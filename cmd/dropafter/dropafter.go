@@ -11,13 +11,13 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcd/database"
-	_ "github.com/btcsuite/btcd/database/ldb"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btclog"
-	"github.com/btcsuite/btcutil"
-	flags "github.com/btcsuite/go-flags"
+	"github.com/FactomProject/btcd/chaincfg"
+	"github.com/FactomProject/btcd/database"
+	_ "github.com/FactomProject/btcd/database/ldb"
+	"github.com/FactomProject/btcd/wire"
+	"github.com/FactomProject/btclog"
+	"github.com/FactomProject/btcutil"
+	flags "github.com/FactomProject/go-flags"
 )
 
 type config struct {

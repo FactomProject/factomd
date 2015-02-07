@@ -8,7 +8,7 @@ import (
 	"crypto/rand"
 	"testing"
 
-	"github.com/btcsuite/btcd/wire"
+	"github.com/FactomProject/btcd/wire"
 )
 
 // BenchmarkMruInventoryList performs basic benchmarks on the most recently

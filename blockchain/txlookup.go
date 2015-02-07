@@ -7,9 +7,9 @@ package blockchain
 import (
 	"fmt"
 
-	"github.com/btcsuite/btcd/database"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btcutil"
+	"github.com/FactomProject/btcd/database"
+	"github.com/FactomProject/btcd/wire"
+	"github.com/FactomProject/btcutil"
 )
 
 // TxData contains contextual information about transactions such as which block

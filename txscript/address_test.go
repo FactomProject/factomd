@@ -8,9 +8,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcd/txscript"
-	"github.com/btcsuite/btcutil"
+	"github.com/FactomProject/btcd/chaincfg"
+	"github.com/FactomProject/btcd/txscript"
+	"github.com/FactomProject/btcutil"
 )
 
 // decodeHex decodes the passed hex string and returns the resulting bytes.  It

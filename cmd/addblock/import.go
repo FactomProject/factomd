@@ -11,11 +11,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/btcsuite/btcd/blockchain"
-	"github.com/btcsuite/btcd/database"
-	_ "github.com/btcsuite/btcd/database/ldb"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btcutil"
+	"github.com/FactomProject/btcd/blockchain"
+	"github.com/FactomProject/btcd/database"
+	_ "github.com/FactomProject/btcd/database/ldb"
+	"github.com/FactomProject/btcd/wire"
+	"github.com/FactomProject/btcutil"
 )
 
 var zeroHash = wire.ShaHash{}

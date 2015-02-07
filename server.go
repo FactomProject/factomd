@@ -19,13 +19,13 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/btcsuite/btcd/addrmgr"
-	"github.com/btcsuite/btcd/blockchain"
-	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcd/database"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btcjson"
-	"github.com/btcsuite/btcutil"
+	"github.com/FactomProject/btcd/addrmgr"
+	"github.com/FactomProject/btcd/blockchain"
+	"github.com/FactomProject/btcd/chaincfg"
+	"github.com/FactomProject/btcd/database"
+	"github.com/FactomProject/btcd/wire"
+	"github.com/FactomProject/btcjson"
+	"github.com/FactomProject/btcutil"
 )
 
 const (

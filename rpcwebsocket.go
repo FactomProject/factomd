@@ -19,14 +19,14 @@ import (
 
 	"golang.org/x/crypto/ripemd160"
 
-	"github.com/btcsuite/btcd/database"
-	"github.com/btcsuite/btcd/txscript"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btcjson"
-	"github.com/btcsuite/btcutil"
-	"github.com/btcsuite/btcws"
-	"github.com/btcsuite/fastsha256"
-	"github.com/btcsuite/websocket"
+	"github.com/FactomProject/btcd/database"
+	"github.com/FactomProject/btcd/txscript"
+	"github.com/FactomProject/btcd/wire"
+	"github.com/FactomProject/btcjson"
+	"github.com/FactomProject/btcutil"
+	"github.com/FactomProject/btcws"
+	"github.com/FactomProject/fastsha256"
+	"github.com/FactomProject/websocket"
 )
 
 const (

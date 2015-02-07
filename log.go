@@ -10,14 +10,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/btcsuite/btcd/addrmgr"
+	"github.com/FactomProject/btcd/addrmgr"
 
-	"github.com/btcsuite/btcd/blockchain"
-	"github.com/btcsuite/btcd/database"
-	"github.com/btcsuite/btcd/txscript"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btclog"
-	"github.com/btcsuite/seelog"
+	"github.com/FactomProject/btcd/blockchain"
+	"github.com/FactomProject/btcd/database"
+	"github.com/FactomProject/btcd/txscript"
+	"github.com/FactomProject/btcd/wire"
+	"github.com/FactomProject/btclog"
+	"github.com/FactomProject/seelog"
 )
 
 const (

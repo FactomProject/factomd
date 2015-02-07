@@ -10,10 +10,10 @@ import (
 	"sort"
 	"strconv"
 
-	"github.com/btcsuite/btcjson"
-	"github.com/btcsuite/btcutil"
-	"github.com/btcsuite/btcws"
-	flags "github.com/btcsuite/go-flags"
+	"github.com/FactomProject/btcjson"
+	"github.com/FactomProject/btcutil"
+	"github.com/FactomProject/btcws"
+	flags "github.com/FactomProject/go-flags"
 	"github.com/davecgh/go-spew/spew"
 )
 

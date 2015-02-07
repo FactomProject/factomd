@@ -9,7 +9,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/btcsuite/btcd/btcec"
+	"github.com/FactomProject/btcd/btcec"
 )
 
 // TestSetInt ensures that setting a field value to various native integers
