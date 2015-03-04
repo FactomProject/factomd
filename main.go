@@ -1,6 +1,4 @@
-// Copyright (c) 2013-2014 Conformal Systems LLC.
-// Use of this source code is governed by an ISC
-// license that can be found in the LICENSE file.
+// Copyright 2015 Factom Foundation
 
 package main
 
@@ -10,6 +8,8 @@ import (
 )
 
 func RealMain() {
+	util.Trace()
+	factomd.Factomd_init()
 	util.Trace()
 	factomd.Factomd_main()
 	util.Trace()
