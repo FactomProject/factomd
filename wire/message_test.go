@@ -450,3 +450,32 @@ func TestWriteMessageWireErrors(t *testing.T) {
 		}
 	}
 }
+
+func TestLengthChecks(t *testing.T) {
+	var errors = 0
+
+	cmdlist := []string{
+		wire.CmdEntry,
+		wire.CmdBlock,
+		wire.CmdCommitChain,
+		wire.CmdCommitEntry,
+		wire.CmdDirectoryBlock,
+		wire.CmdEntryBlock,
+		wire.CmdEntryCreditBlock,
+		wire.CmdGetDirBlocks,
+		wire.CmdMerkleBlock,
+		wire.CmdMHashReveal,
+		wire.CmdRevealChain,
+		wire.CmdRevealEntry,
+	}
+
+	for _, value := range cmdlist {
+		if wire.CommandSize < len(value) {
+			errors++
+		}
+	}
+
+	if 0 < errors {
+		t.Errorf("LengthChecks errors= %d", errors)
+	}
+}

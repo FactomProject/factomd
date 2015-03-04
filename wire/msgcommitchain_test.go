@@ -1,13 +1,13 @@
-package factomwire_test
+package wire_test
 
 import (
 	"bytes"
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
-	"github.com/FactomProject/FactomCode/factomwire"
 	"github.com/FactomProject/FactomCode/notaryapi"
 	"github.com/FactomProject/FactomCode/wallet"
+	"github.com/FactomProject/btcd/wire"
 	"testing"
 	"time"
 )
@@ -56,7 +56,7 @@ func TestCommitChain(t *testing.T) {
 	pubKey.SetBytes(binkey)
 
 	//Write msg
-	msgOutgoing := factomwire.NewMsgCommitChain()
+	msgOutgoing := wire.NewMsgCommitChain()
 	msgOutgoing.ECPubKey = pubKey
 	msgOutgoing.ChainID = chain.ChainID
 	msgOutgoing.EntryHash = entryHash
@@ -71,7 +71,7 @@ func TestCommitChain(t *testing.T) {
 	fmt.Println("Outgoing msg bytes: ", buf.Bytes())
 
 	//Read msg
-	msgIncoming := factomwire.NewMsgCommitChain()
+	msgIncoming := wire.NewMsgCommitChain()
 	err := msgIncoming.BtcDecode(&buf, uint32(1))
 
 	fmt.Printf("msgIncoming:%+v\n", msgIncoming)

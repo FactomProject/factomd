@@ -26,15 +26,15 @@ const MaxMessagePayload = (1024 * 1024 * 32) // 32MB
 
 // Commands used in bitcoin message headers which describe the type of message.
 const (
-	CmdVersion     = "version"
-	CmdVerAck      = "verack"
-	CmdGetAddr     = "getaddr"
-	CmdAddr        = "addr"
-	CmdGetBlocks   = "getblocks"
-	CmdInv         = "inv"
-	CmdGetData     = "getdata"
-	CmdNotFound    = "notfound"
-	CmdBlock       = "block"
+	CmdVersion   = "version"
+	CmdVerAck    = "verack"
+	CmdGetAddr   = "getaddr"
+	CmdAddr      = "addr"
+	CmdGetBlocks = "getblocks"
+	CmdInv       = "inv"
+	CmdGetData   = "getdata"
+	CmdNotFound  = "notfound"
+	//	CmdBlock       = "block"
 	CmdTx          = "tx"
 	CmdGetHeaders  = "getheaders"
 	CmdHeaders     = "headers"
@@ -47,7 +47,32 @@ const (
 	CmdFilterLoad  = "filterload"
 	CmdMerkleBlock = "merkleblock"
 	CmdReject      = "reject"
+
+	// Factom additions:
+
+	// incoming blocks of the 3 special types & 1 general-purpose chain type:
+	CmdBlock            = "factoidblock"
+	CmdEntryCreditBlock = "ecblock"
+	CmdDirectoryBlock   = "dirblock"
+	CmdEntryBlock       = "entryblock"
+
+	// entry itself
+	CmdEntry = "entry"
+
+	CmdCommitChain = "commitchain"
+	CmdRevealChain = "revealchain"
+	CmdCommitEntry = "commitentry"
+	CmdRevealEntry = "revealentry"
+
+	// using these commands we query & find the best chain & latest height for the Directory (all other chain heights are then known)
+	CmdGetDirBlocks = "getdirblocks"
+
+	CmdConfirmation = "confirmation"
+	CmdMHashReveal  = "mhashreveal"
 )
+
+// MaxAppMsgPayload is the maximum bytes a factom app message can be in bytes.
+const MaxAppMsgPayload = (10 * 1024) // 10Kib
 
 // Message is an interface that describes a bitcoin message.  A type that
 // implements Message has complete control over the representation of its data
@@ -127,6 +152,18 @@ func makeEmptyMessage(command string) (Message, error) {
 
 	case CmdReject:
 		msg = &MsgReject{}
+
+	case CmdRevealEntry:
+		msg = &MsgRevealEntry{}
+
+	case CmdCommitEntry:
+		msg = &MsgCommitEntry{}
+
+	case CmdRevealChain:
+		msg = &MsgRevealChain{}
+
+	case CmdCommitChain:
+		msg = &MsgCommitChain{}
 
 	default:
 		return nil, fmt.Errorf("unhandled command [%s]", command)
