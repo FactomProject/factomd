@@ -2,10 +2,10 @@
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
-package blockchain
+package main
 
 import (
-	"fmt"
+	//	"fmt"
 
 	"github.com/FactomProject/btcd/database"
 	"github.com/FactomProject/btcd/wire"
@@ -101,7 +101,8 @@ func disconnectTransactions(txStore TxStore, block *btcutil.Block) error {
 // transactions from the point of view of the end of the main chain.  It takes
 // a flag which specifies whether or not fully spent transaction should be
 // included in the results.
-func fetchTxStoreMain(db database.Db, txSet map[wire.ShaHash]struct{}, includeSpent bool) TxStore {
+// func fetchTxStoreMain(db database.Db, txSet map[wire.ShaHash]struct{}, includeSpent bool) TxStore {
+func fetchTxStoreMain(txSet map[wire.ShaHash]struct{}, includeSpent bool) TxStore {
 	// Just return an empty store now if there are no requested hashes.
 	txStore := make(TxStore)
 	if len(txSet) == 0 {
@@ -118,42 +119,45 @@ func fetchTxStoreMain(db database.Db, txSet map[wire.ShaHash]struct{}, includeSp
 		txList = append(txList, &hashCopy)
 	}
 
-	// Ask the database (main chain) for the list of transactions.  This
-	// will return the information from the point of view of the end of the
-	// main chain.  Choose whether or not to include fully spent
-	// transactions depending on the passed flag.
-	fetchFunc := db.FetchUnSpentTxByShaList
-	if includeSpent {
-		fetchFunc = db.FetchTxByShaList
-	}
-	txReplyList := fetchFunc(txList)
-	for _, txReply := range txReplyList {
-		// Lookup the existing results entry to modify.  Skip
-		// this reply if there is no corresponding entry in
-		// the transaction store map which really should not happen, but
-		// be safe.
-		txD, ok := txStore[*txReply.Sha]
-		if !ok {
-			continue
+	/*
+		// Ask the database (main chain) for the list of transactions.  This
+		// will return the information from the point of view of the end of the
+		// main chain.  Choose whether or not to include fully spent
+		// transactions depending on the passed flag.
+		fetchFunc := db.FetchUnSpentTxByShaList
+		if includeSpent {
+			fetchFunc = db.FetchTxByShaList
 		}
+		txReplyList := fetchFunc(txList)
+		for _, txReply := range txReplyList {
+			// Lookup the existing results entry to modify.  Skip
+			// this reply if there is no corresponding entry in
+			// the transaction store map which really should not happen, but
+			// be safe.
+			txD, ok := txStore[*txReply.Sha]
+			if !ok {
+				continue
+			}
 
-		// Fill in the transaction details.  A copy is used here since
-		// there is no guarantee the returned data isn't cached and
-		// this code modifies the data.  A bug caused by modifying the
-		// cached data would likely be difficult to track down and could
-		// cause subtle errors, so avoid the potential altogether.
-		txD.Err = txReply.Err
-		if txReply.Err == nil {
-			txD.Tx = btcutil.NewTx(txReply.Tx)
-			txD.BlockHeight = txReply.Height
-			txD.Spent = make([]bool, len(txReply.TxSpent))
-			copy(txD.Spent, txReply.TxSpent)
+			// Fill in the transaction details.  A copy is used here since
+			// there is no guarantee the returned data isn't cached and
+			// this code modifies the data.  A bug caused by modifying the
+			// cached data would likely be difficult to track down and could
+			// cause subtle errors, so avoid the potential altogether.
+			txD.Err = txReply.Err
+			if txReply.Err == nil {
+				txD.Tx = btcutil.NewTx(txReply.Tx)
+				txD.BlockHeight = txReply.Height
+				txD.Spent = make([]bool, len(txReply.TxSpent))
+				copy(txD.Spent, txReply.TxSpent)
+			}
 		}
-	}
+	*/
 
 	return txStore
 }
 
+/*
 // fetchTxStore fetches transaction data about the provided set of transactions
 // from the point of view of the given node.  For example, a given node might
 // be down a side chain where a transaction hasn't been spent from its point of
@@ -294,12 +298,14 @@ func (b *BlockChain) fetchInputTransactions(node *blockNode, block *btcutil.Bloc
 
 	return txStore, nil
 }
+*/
 
 // FetchTransactionStore fetches the input transactions referenced by the
 // passed transaction from the point of view of the end of the main chain.  It
 // also attempts to fetch the transaction itself so the returned TxStore can be
 // examined for duplicate transactions.
-func (b *BlockChain) FetchTransactionStore(tx *btcutil.Tx) (TxStore, error) {
+// func (b *BlockChain) FetchTransactionStore(tx *btcutil.Tx) (TxStore, error) {
+func FetchTransactionStore(tx *btcutil.Tx) (TxStore, error) {
 	// Create a set of needed transactions from the transactions referenced
 	// by the inputs of the passed transaction.  Also, add the passed
 	// transaction itself as a way for the caller to detect duplicates.
@@ -313,6 +319,7 @@ func (b *BlockChain) FetchTransactionStore(tx *btcutil.Tx) (TxStore, error) {
 	// the main chain without including fully spent trasactions in the
 	// results.  Fully spent transactions are only needed for chain
 	// reorganization which does not apply here.
-	txStore := fetchTxStoreMain(b.db, txNeededSet, false)
+	//	txStore := fetchTxStoreMain(b.db, txNeededSet, false)
+	txStore := fetchTxStoreMain(txNeededSet, false)
 	return txStore, nil
 }

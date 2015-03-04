@@ -32,6 +32,7 @@ var winServiceMain func() (bool, error)
 // notified with the server once it is setup so it can gracefully stop it when
 // requested from the service control manager.
 func btcdMain(serverChan chan<- *server) error {
+	util.Trace()
 	// Load configuration and parse command line.  This function also
 	// initializes logging and configures it accordingly.
 	tcfg, _, err := loadConfig()
@@ -68,39 +69,42 @@ func btcdMain(serverChan chan<- *server) error {
 		defer pprof.StopCPUProfile()
 	}
 
-	// Perform upgrades to btcd as new versions require it.
-	if err := doUpgrades(); err != nil {
-		btcdLog.Errorf("%v", err)
-		return err
-	}
-
-	// Load the block database.
-	db, err := loadBlockDB()
-	if err != nil {
-		btcdLog.Errorf("%v", err)
-		return err
-	}
-	defer db.Close()
-
-	if cfg.DropAddrIndex {
-		btcdLog.Info("Deleting entire addrindex.")
-		err := db.DeleteAddrIndex()
-		if err != nil {
-			btcdLog.Errorf("Unable to delete the addrindex: %v", err)
+	/*
+		// Perform upgrades to btcd as new versions require it.
+		if err := doUpgrades(); err != nil {
+			btcdLog.Errorf("%v", err)
 			return err
 		}
-		btcdLog.Info("Successfully deleted addrindex, exiting")
-		return nil
-	}
 
-	// Ensure the database is sync'd and closed on Ctrl+C.
-	addInterruptHandler(func() {
-		btcdLog.Infof("Gracefully shutting down the database...")
-		db.RollbackClose()
-	})
+		// Load the block database.
+		db, err := loadBlockDB()
+		if err != nil {
+			btcdLog.Errorf("%v", err)
+			return err
+		}
+		defer db.Close()
+
+		if cfg.DropAddrIndex {
+			btcdLog.Info("Deleting entire addrindex.")
+			err := db.DeleteAddrIndex()
+			if err != nil {
+				btcdLog.Errorf("Unable to delete the addrindex: %v", err)
+				return err
+			}
+			btcdLog.Info("Successfully deleted addrindex, exiting")
+			return nil
+		}
+
+		// Ensure the database is sync'd and closed on Ctrl+C.
+		addInterruptHandler(func() {
+			btcdLog.Infof("Gracefully shutting down the database...")
+			db.RollbackClose()
+		})
+	*/
 
 	// Create server and start it.
-	server, err := newServer(cfg.Listeners, db, activeNetParams.Params)
+	//	server, err := newServer(cfg.Listeners, db, activeNetParams.Params)
+	server, err := newServer(cfg.Listeners, activeNetParams.Params)
 	if err != nil {
 		// TODO(oga) this logging could do with some beautifying.
 		btcdLog.Errorf("Unable to start server on %v: %v",
@@ -137,7 +141,7 @@ func btcdMain(serverChan chan<- *server) error {
 }
 
 func btcd_main() {
-	util.Trace()
+	util.Trace("FORMER REAL btcd main() function !")
 	// Use all processor cores.
 	runtime.GOMAXPROCS(runtime.NumCPU())
 

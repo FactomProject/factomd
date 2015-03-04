@@ -17,13 +17,15 @@ import (
 	"time"
 
 	"github.com/FactomProject/btcd/addrmgr"
-	"github.com/FactomProject/btcd/blockchain"
-	"github.com/FactomProject/btcd/database"
+	//	"github.com/FactomProject/btcd/blockchain"
+	//	"github.com/FactomProject/btcd/database"
 	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/btcutil"
 	"github.com/FactomProject/btcutil/bloom"
 	"github.com/FactomProject/go-socks/socks"
 	"github.com/davecgh/go-spew/spew"
+
+	"github.com/FactomProject/FactomCode/util"
 )
 
 const (
@@ -248,10 +250,14 @@ func (p *peer) RelayTxDisabled() bool {
 // pushVersionMsg sends a version message to the connected peer using the
 // current state.
 func (p *peer) pushVersionMsg() error {
-	_, blockNum, err := p.server.db.NewestSha()
-	if err != nil {
-		return err
-	}
+	/*
+		_, blockNum, err := p.server.db.NewestSha()
+		if err != nil {
+			return err
+		}
+	*/
+
+	blockNum := int32(0)
 
 	theirNa := p.na
 
@@ -447,7 +453,7 @@ func (p *peer) handleVersionMsg(msg *wire.MsgVersion) {
 
 	// Add the remote peer time as a sample for creating an offset against
 	// the local clock to keep the network time in sync.
-	p.server.timeSource.AddTimeSample(p.addr, msg.Timestamp)
+	//	p.server.timeSource.AddTimeSample(p.addr, msg.Timestamp)
 
 	// Signal the block manager this peer is a new sync candidate.
 	p.server.blockManager.NewPeer(p)
@@ -482,6 +488,7 @@ func (p *peer) pushTxMsg(sha *wire.ShaHash, doneChan, waitChan chan struct{}) er
 	return nil
 }
 
+/*
 // pushBlockMsg sends a block message for the provided block hash to the
 // connected peer.  An error is returned if the block hash is not known.
 func (p *peer) pushBlockMsg(sha *wire.ShaHash, doneChan, waitChan chan struct{}) error {
@@ -681,6 +688,7 @@ func (p *peer) PushGetHeadersMsg(locator blockchain.BlockLocator, stopHash *wire
 	p.prevGetHdrsStop = stopHash
 	return nil
 }
+*/
 
 // PushRejectMsg sends a reject message for the provided command, reject code,
 // and reject reason, and hash.  The hash will only be used when the command
@@ -760,6 +768,7 @@ func (p *peer) handleMemPoolMsg(msg *wire.MsgMemPool) {
 // handler this does not serialize all transactions through a single thread
 // transactions don't rely on the previous one in a linear fashion like blocks.
 func (p *peer) handleTxMsg(msg *wire.MsgTx) {
+	util.Trace()
 	// Add the transaction to the known inventory for the peer.
 	// Convert the raw MsgTx to a btcutil.Tx which provides some convenience
 	// methods and things such as hash caching.
@@ -776,6 +785,7 @@ func (p *peer) handleTxMsg(msg *wire.MsgTx) {
 	<-p.txProcessed
 }
 
+/*
 // handleBlockMsg is invoked when a peer receives a block bitcoin message.  It
 // blocks until the bitcoin block has been fully processed.
 func (p *peer) handleBlockMsg(msg *wire.MsgBlock, buf []byte) {
@@ -806,6 +816,7 @@ func (p *peer) handleBlockMsg(msg *wire.MsgBlock, buf []byte) {
 	p.server.blockManager.QueueBlock(block, p)
 	<-p.blockProcessed
 }
+*/
 
 // handleInvMsg is invoked when a peer receives an inv bitcoin message and is
 // used to examine the inventory being advertised by the remote peer and react
@@ -815,11 +826,13 @@ func (p *peer) handleInvMsg(msg *wire.MsgInv) {
 	p.server.blockManager.QueueInv(msg, p)
 }
 
+/*
 // handleHeadersMsg is invoked when a peer receives a headers bitcoin message.
 // The message is passed down to the block manager.
 func (p *peer) handleHeadersMsg(msg *wire.MsgHeaders) {
 	p.server.blockManager.QueueHeaders(msg, p)
 }
+*/
 
 // handleGetData is invoked when a peer receives a getdata bitcoin message and
 // is used to deliver block and transaction information.
@@ -847,10 +860,12 @@ func (p *peer) handleGetDataMsg(msg *wire.MsgGetData) {
 		switch iv.Type {
 		case wire.InvTypeTx:
 			err = p.pushTxMsg(&iv.Hash, c, waitChan)
-		case wire.InvTypeBlock:
-			err = p.pushBlockMsg(&iv.Hash, c, waitChan)
-		case wire.InvTypeFilteredBlock:
-			err = p.pushMerkleBlockMsg(&iv.Hash, c, waitChan)
+			/*
+				case wire.InvTypeBlock:
+					err = p.pushBlockMsg(&iv.Hash, c, waitChan)
+				case wire.InvTypeFilteredBlock:
+					err = p.pushMerkleBlockMsg(&iv.Hash, c, waitChan)
+			*/
 		default:
 			peerLog.Warnf("Unknown type in inventory request %d",
 				iv.Type)
@@ -885,6 +900,7 @@ func (p *peer) handleGetDataMsg(msg *wire.MsgGetData) {
 	}
 }
 
+/*
 // handleGetBlocksMsg is invoked when a peer receives a getblocks bitcoin message.
 func (p *peer) handleGetBlocksMsg(msg *wire.MsgGetBlocks) {
 	// Return all block hashes to the latest one (up to max per message) if
@@ -1057,6 +1073,7 @@ func (p *peer) handleGetHeadersMsg(msg *wire.MsgGetHeaders) {
 	}
 	p.QueueMessage(headersMsg, nil)
 }
+*/
 
 // handleFilterAddMsg is invoked when a peer receives a filteradd bitcoin
 // message and is used by remote peers to add data to an already loaded bloom
@@ -1275,10 +1292,10 @@ func (p *peer) readMessage() (wire.Message, []byte, error) {
 		return fmt.Sprintf("Received %v%s from %s",
 			msg.Command(), summary, p)
 	}))
-	peerLog.Tracef("%v", newLogClosure(func() string {
+	peerLog.Debugf("%v", newLogClosure(func() string {
 		return spew.Sdump(msg)
 	}))
-	peerLog.Tracef("%v", newLogClosure(func() string {
+	peerLog.Debugf("%v", newLogClosure(func() string {
 		return spew.Sdump(buf)
 	}))
 
@@ -1315,10 +1332,10 @@ func (p *peer) writeMessage(msg wire.Message) {
 		return fmt.Sprintf("Sending %v%s to %s", msg.Command(),
 			summary, p)
 	}))
-	peerLog.Tracef("%v", newLogClosure(func() string {
+	peerLog.Debugf("%v", newLogClosure(func() string {
 		return spew.Sdump(msg)
 	}))
-	peerLog.Tracef("%v", newLogClosure(func() string {
+	peerLog.Debugf("%v", newLogClosure(func() string {
 		var buf bytes.Buffer
 		err := wire.WriteMessage(&buf, msg, p.ProtocolVersion(),
 			p.btcnet)
@@ -1383,7 +1400,8 @@ func (p *peer) inHandler() {
 	})
 out:
 	for atomic.LoadInt32(&p.disconnect) == 0 {
-		rmsg, buf, err := p.readMessage()
+		//		rmsg, buf, err := p.readMessage()
+		rmsg, _, err := p.readMessage()
 		// Stop the timer now, if we go around again we will reset it.
 		idleTimer.Stop()
 		if err != nil {
@@ -1483,15 +1501,19 @@ out:
 		case *wire.MsgTx:
 			p.handleTxMsg(msg)
 
-		case *wire.MsgBlock:
-			p.handleBlockMsg(msg, buf)
+			/*
+				case *wire.MsgBlock:
+					p.handleBlockMsg(msg, buf)
+			*/
 
 		case *wire.MsgInv:
 			p.handleInvMsg(msg)
 			markConnected = true
 
-		case *wire.MsgHeaders:
-			p.handleHeadersMsg(msg)
+			/*
+				case *wire.MsgHeaders:
+					p.handleHeadersMsg(msg)
+			*/
 
 		case *wire.MsgNotFound:
 			// TODO(davec): Ignore this for now, but ultimately
@@ -1503,11 +1525,13 @@ out:
 			p.handleGetDataMsg(msg)
 			markConnected = true
 
-		case *wire.MsgGetBlocks:
-			p.handleGetBlocksMsg(msg)
+			/*
+				case *wire.MsgGetBlocks:
+					p.handleGetBlocksMsg(msg)
 
-		case *wire.MsgGetHeaders:
-			p.handleGetHeadersMsg(msg)
+				case *wire.MsgGetHeaders:
+					p.handleGetHeadersMsg(msg)
+			*/
 
 		case *wire.MsgFilterAdd:
 			p.handleFilterAddMsg(msg)

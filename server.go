@@ -20,9 +20,9 @@ import (
 	"time"
 
 	"github.com/FactomProject/btcd/addrmgr"
-	"github.com/FactomProject/btcd/blockchain"
+	//	"github.com/FactomProject/btcd/blockchain"
 	"github.com/FactomProject/btcd/chaincfg"
-	"github.com/FactomProject/btcd/database"
+	//	"github.com/FactomProject/btcd/database"
 	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/btcjson"
 	"github.com/FactomProject/btcutil"
@@ -73,21 +73,21 @@ type relayMsg struct {
 // server provides a bitcoin server for handling communications to and from
 // bitcoin peers.
 type server struct {
-	nonce                uint64
-	listeners            []net.Listener
-	chainParams          *chaincfg.Params
-	started              int32      // atomic
-	shutdown             int32      // atomic
-	shutdownSched        int32      // atomic
-	bytesMutex           sync.Mutex // For the following two fields.
-	bytesReceived        uint64     // Total bytes received from all peers since start.
-	bytesSent            uint64     // Total bytes sent by all peers since start.
-	addrManager          *addrmgr.AddrManager
-	rpcServer            *rpcServer
-	blockManager         *blockManager
-	addrIndexer          *addrIndexer
-	txMemPool            *txMemPool
-	cpuMiner             *CPUMiner
+	nonce         uint64
+	listeners     []net.Listener
+	chainParams   *chaincfg.Params
+	started       int32      // atomic
+	shutdown      int32      // atomic
+	shutdownSched int32      // atomic
+	bytesMutex    sync.Mutex // For the following two fields.
+	bytesReceived uint64     // Total bytes received from all peers since start.
+	bytesSent     uint64     // Total bytes sent by all peers since start.
+	addrManager   *addrmgr.AddrManager
+	//	rpcServer            *rpcServer
+	blockManager *blockManager
+	//	addrIndexer  *addrIndexer
+	txMemPool *txMemPool
+	//	cpuMiner             *CPUMiner
 	modifyRebroadcastInv chan interface{}
 	newPeers             chan *peer
 	donePeers            chan *peer
@@ -99,8 +99,8 @@ type server struct {
 	wg                   sync.WaitGroup
 	quit                 chan struct{}
 	nat                  NAT
-	db                   database.Db
-	timeSource           blockchain.MedianTimeSource
+	//	db                   database.Db
+	//	timeSource           blockchain.MedianTimeSource
 }
 
 type peerState struct {
@@ -389,7 +389,7 @@ func (s *server) handleQuery(querymsg interface{}, state *peerState) {
 		msg.reply <- nconnected
 
 	case getPeerInfoMsg:
-		syncPeer := s.blockManager.SyncPeer()
+		//		syncPeer := s.blockManager.SyncPeer()
 		infos := make([]*btcjson.GetPeerInfoResult, 0, state.peers.Len())
 		state.forAllPeers(func(p *peer) {
 			if !p.Connected() {
@@ -414,7 +414,7 @@ func (s *server) handleQuery(querymsg interface{}, state *peerState) {
 				Inbound:        p.inbound,
 				StartingHeight: p.lastBlock,
 				BanScore:       0,
-				SyncNode:       p == syncPeer,
+				//				SyncNode:       p == syncPeer,
 			}
 			info.PingTime = float64(p.lastPingMicros)
 			if p.lastPingNonce != 0 {
@@ -707,9 +707,11 @@ out:
 		}
 	}
 
-	if cfg.AddrIndex {
-		s.addrIndexer.Stop()
-	}
+	/*
+		if cfg.AddrIndex {
+			s.addrIndexer.Stop()
+		}
+	*/
 	s.blockManager.Stop()
 	s.addrManager.Stop()
 	s.wg.Done()
@@ -907,17 +909,19 @@ func (s *server) Start() {
 		// the RPC server are rebroadcast until being included in a block.
 		go s.rebroadcastHandler()
 
-		s.rpcServer.Start()
+		//		s.rpcServer.Start()
 	}
 
-	// Start the CPU miner if generation is enabled.
-	if cfg.Generate {
-		s.cpuMiner.Start()
-	}
+	/*
+			// Start the CPU miner if generation is enabled.
+			if cfg.Generate {
+				s.cpuMiner.Start()
+			}
 
-	if cfg.AddrIndex {
-		s.addrIndexer.Start()
-	}
+		if cfg.AddrIndex {
+			s.addrIndexer.Start()
+		}
+	*/
 }
 
 // Stop gracefully shuts down the server by stopping and disconnecting all
@@ -940,13 +944,15 @@ func (s *server) Stop() error {
 		}
 	}
 
-	// Stop the CPU miner if needed
-	s.cpuMiner.Stop()
+	/*
+		// Stop the CPU miner if needed
+		s.cpuMiner.Stop()
 
-	// Shutdown the RPC server if it's not disabled.
-	if !cfg.DisableRPC {
-		s.rpcServer.Stop()
-	}
+		// Shutdown the RPC server if it's not disabled.
+		if !cfg.DisableRPC {
+			s.rpcServer.Stop()
+		}
+	*/
 
 	// Signal the remaining goroutines to quit.
 	close(s.quit)
@@ -1098,7 +1104,8 @@ out:
 // newServer returns a new btcd server configured to listen on addr for the
 // bitcoin network type specified by chainParams.  Use start to begin accepting
 // connections from peers.
-func newServer(listenAddrs []string, db database.Db, chainParams *chaincfg.Params) (*server, error) {
+// func newServer(listenAddrs []string, db database.Db, chainParams *chaincfg.Params) (*server, error) {
+func newServer(listenAddrs []string, chainParams *chaincfg.Params) (*server, error) {
 	nonce, err := wire.RandomUint64()
 	if err != nil {
 		return nil, err
@@ -1245,8 +1252,8 @@ func newServer(listenAddrs []string, db database.Db, chainParams *chaincfg.Param
 		quit:                 make(chan struct{}),
 		modifyRebroadcastInv: make(chan interface{}),
 		nat:                  nat,
-		db:                   db,
-		timeSource:           blockchain.NewMedianTime(),
+		//		db:                   db,
+		//		timeSource:           blockchain.NewMedianTime(),
 	}
 	bm, err := newBlockManager(&s)
 	if err != nil {
@@ -1254,22 +1261,24 @@ func newServer(listenAddrs []string, db database.Db, chainParams *chaincfg.Param
 	}
 	s.blockManager = bm
 	s.txMemPool = newTxMemPool(&s)
-	s.cpuMiner = newCPUMiner(&s)
+	//	s.cpuMiner = newCPUMiner(&s)
 
-	if cfg.AddrIndex {
-		ai, err := newAddrIndexer(&s)
-		if err != nil {
-			return nil, err
+	/*
+		if cfg.AddrIndex {
+			ai, err := newAddrIndexer(&s)
+			if err != nil {
+				return nil, err
+			}
+			s.addrIndexer = ai
 		}
-		s.addrIndexer = ai
-	}
 
-	if !cfg.DisableRPC {
-		s.rpcServer, err = newRPCServer(cfg.RPCListeners, &s)
-		if err != nil {
-			return nil, err
-		}
-	}
+			if !cfg.DisableRPC {
+				s.rpcServer, err = newRPCServer(cfg.RPCListeners, &s)
+				if err != nil {
+					return nil, err
+				}
+			}
+	*/
 
 	return &s, nil
 }

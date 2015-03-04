@@ -12,7 +12,7 @@ import (
 
 	"github.com/FactomProject/btcd/addrmgr"
 
-	"github.com/FactomProject/btcd/blockchain"
+	//	"github.com/FactomProject/btcd/blockchain"
 	"github.com/FactomProject/btcd/database"
 	"github.com/FactomProject/btcd/txscript"
 	"github.com/FactomProject/btcd/wire"
@@ -113,9 +113,11 @@ func useLogger(subsystemID string, logger btclog.Logger) {
 	case "BTCD":
 		btcdLog = logger
 
-	case "CHAN":
-		chanLog = logger
-		blockchain.UseLogger(logger)
+		/*
+			case "CHAN":
+				chanLog = logger
+				blockchain.UseLogger(logger)
+		*/
 
 	case "DISC":
 		discLog = logger
@@ -237,8 +239,10 @@ func invSummary(invList []*wire.InvVect) string {
 		switch iv.Type {
 		case wire.InvTypeError:
 			return fmt.Sprintf("error %s", iv.Hash)
-		case wire.InvTypeBlock:
-			return fmt.Sprintf("block %s", iv.Hash)
+			/*
+				case wire.InvTypeBlock:
+					return fmt.Sprintf("block %s", iv.Hash)
+			*/
 		case wire.InvTypeTx:
 			return fmt.Sprintf("tx %s", iv.Hash)
 		}
@@ -340,8 +344,10 @@ func messageSummary(msg wire.Message) string {
 	case *wire.MsgGetHeaders:
 		return locatorSummary(msg.BlockLocatorHashes, &msg.HashStop)
 
-	case *wire.MsgHeaders:
-		return fmt.Sprintf("num %d", len(msg.Headers))
+		/*
+			case *wire.MsgHeaders:
+				return fmt.Sprintf("num %d", len(msg.Headers))
+		*/
 
 	case *wire.MsgReject:
 		// Ensure the variable length strings don't contain any
