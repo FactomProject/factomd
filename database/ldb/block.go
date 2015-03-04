@@ -195,9 +195,11 @@ func (db *LevelDb) ExistsSha(sha *wire.ShaHash) (bool, error) {
 	defer db.dbLock.Unlock()
 
 	// not in cache, try database
-	return db.blkExistsSha(sha)
+	//	return db.blkExistsSha(sha)
+	return false, nil
 }
 
+/*
 // blkExistsSha looks up the given block hash
 // returns true if it is present in the database.
 // CALLED WITH LOCK HELD
@@ -206,6 +208,7 @@ func (db *LevelDb) blkExistsSha(sha *wire.ShaHash) (bool, error) {
 
 	return db.lDb.Has(key, db.ro)
 }
+*/
 
 // FetchBlockShaByHeight returns a block hash based on its height in the
 // block chain.

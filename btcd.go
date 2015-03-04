@@ -13,6 +13,7 @@ import (
 	"runtime"
 	"runtime/pprof"
 
+	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/btcd/limits"
 )
 
@@ -135,7 +136,8 @@ func btcdMain(serverChan chan<- *server) error {
 	return nil
 }
 
-func main() {
+func btcd_main() {
+	util.Trace()
 	// Use all processor cores.
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
