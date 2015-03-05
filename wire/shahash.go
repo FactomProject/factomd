@@ -7,6 +7,7 @@ package wire
 import (
 	"bytes"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 )
 
@@ -105,4 +106,17 @@ func NewShaHashFromStr(hash string) (*ShaHash, error) {
 		ret[i], ret[blen-i] = buf[blen-i], b
 	}
 	return &ret, nil
+}
+
+func NewShaHashFromStruct(DataStruct interface{}) (*ShaHash, error) {
+
+	jsonbytes, err := json.Marshal(DataStruct)
+	if err != nil {
+		fmt.Printf("NewShaHash Json Marshal Error: %s\n", err)
+		return nil, nil
+	}
+
+	fmt.Println("NewShaHashFromStruct =", jsonbytes)
+
+	return NewShaHash(DoubleSha256(jsonbytes))
 }
