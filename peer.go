@@ -25,6 +25,7 @@ import (
 	"github.com/FactomProject/go-socks/socks"
 	"github.com/davecgh/go-spew/spew"
 
+	"github.com/FactomProject/FactomCode/factomd"
 	"github.com/FactomProject/FactomCode/util"
 )
 
@@ -2058,7 +2059,7 @@ func (p *peer) handleCommitChainMsg(msg *wire.MsgCommitChain) {
 	util.Trace()
 
 	// Add the msg to inbound msg queue
-	// inMsgQueue <- msg
+	factomd.InMsgQueue <- msg
 }
 
 // Handle factom app imcoming msg
@@ -2066,7 +2067,7 @@ func (p *peer) handleRevealChainMsg(msg *wire.MsgRevealChain) {
 	util.Trace()
 
 	// Add the msg to inbound msg queue
-	// inMsgQueue <- msg
+	factomd.InMsgQueue <- msg
 }
 
 // Handle factom app imcoming msg
@@ -2074,7 +2075,7 @@ func (p *peer) handleCommitEntryMsg(msg *wire.MsgCommitEntry) {
 	util.Trace()
 
 	// Add the msg to inbound msg queue
-	// inMsgQueue <- msg
+	factomd.InMsgQueue <- msg
 }
 
 // Handle factom app imcoming msg
@@ -2082,7 +2083,7 @@ func (p *peer) handleRevealEntryMsg(msg *wire.MsgRevealEntry) {
 	util.Trace()
 
 	// Add the msg to inbound msg queue
-	// inMsgQueue <- msg
+	factomd.InMsgQueue <- msg
 }
 
 // returns true if the message should be relayed, false otherwise
