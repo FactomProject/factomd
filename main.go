@@ -5,24 +5,24 @@
 package main
 
 import (
+	"fmt"
 	"github.com/FactomProject/FactomCode/factomd"
 	"github.com/FactomProject/FactomCode/util"
 )
 
 func realMain() {
-	util.Trace()
 	factomd.Factomd_init()
-
-	util.Trace()
 	factomd.Factomd_main()
 
 	util.Trace()
 	btcd_main()
-
-	util.Trace()
 }
 
 func main() {
+	fmt.Println("////////////////////////////////// Copyright 2015 Factom Foundation")
+	fmt.Println("////////////////////////////////// Use of this source code is governed by the MIT")
+	fmt.Println("////////////////////////////////// license that can be found in the LICENSE file.")
+
 	realMain()
 }
 
