@@ -85,8 +85,8 @@ type server struct {
 	bytesReceived uint64     // Total bytes received from all peers since start.
 	bytesSent     uint64     // Total bytes sent by all peers since start.
 	addrManager   *addrmgr.AddrManager
-	//	rpcServer            *rpcServer
-	blockManager *blockManager
+	rpcServer     *rpcServer
+	blockManager  *blockManager
 	//	addrIndexer  *addrIndexer
 	txMemPool *txMemPool
 	//	cpuMiner             *CPUMiner
@@ -913,7 +913,7 @@ func (s *server) Start() {
 		// the RPC server are rebroadcast until being included in a block.
 		go s.rebroadcastHandler()
 
-		//		s.rpcServer.Start()
+		s.rpcServer.Start()
 	}
 
 	/*
@@ -951,12 +951,12 @@ func (s *server) Stop() error {
 	/*
 		// Stop the CPU miner if needed
 		s.cpuMiner.Stop()
-
-		// Shutdown the RPC server if it's not disabled.
-		if !cfg.DisableRPC {
-			s.rpcServer.Stop()
-		}
 	*/
+
+	// Shutdown the RPC server if it's not disabled.
+	if !cfg.DisableRPC {
+		s.rpcServer.Stop()
+	}
 
 	// Signal the remaining goroutines to quit.
 	close(s.quit)
@@ -1275,14 +1275,14 @@ func newServer(listenAddrs []string, chainParams *chaincfg.Params) (*server, err
 			}
 			s.addrIndexer = ai
 		}
-
-			if !cfg.DisableRPC {
-				s.rpcServer, err = newRPCServer(cfg.RPCListeners, &s)
-				if err != nil {
-					return nil, err
-				}
-			}
 	*/
+
+	if !cfg.DisableRPC {
+		s.rpcServer, err = newRPCServer(cfg.RPCListeners, &s)
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	return &s, nil
 }
