@@ -121,6 +121,10 @@ func btcdMain(serverChan chan<- *server) error {
 		serverChan <- server
 	}
 
+	// Factom Additions BEGIN
+	factomQueues(server)
+	// Factom Additions END
+
 	// Monitor for graceful server shutdown and signal the main goroutine
 	// when done.  This is done in a separate goroutine rather than waiting
 	// directly so the main goroutine can be signaled for shutdown by either

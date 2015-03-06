@@ -26,6 +26,8 @@ import (
 	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/btcjson"
 	"github.com/FactomProject/btcutil"
+
+	"github.com/FactomProject/FactomCode/util"
 )
 
 const (
@@ -335,6 +337,7 @@ func (s *server) handleRelayInvMsg(state *peerState, msg relayMsg) {
 // handleBroadcastMsg deals with broadcasting messages to peers.  It is invoked
 // from the peerHandler goroutine.
 func (s *server) handleBroadcastMsg(state *peerState, bmsg *broadcastMsg) {
+	util.Trace()
 	state.forAllPeers(func(p *peer) {
 		excluded := false
 		for _, ep := range bmsg.excludePeers {

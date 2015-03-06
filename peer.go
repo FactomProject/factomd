@@ -55,7 +55,8 @@ const (
 
 	// pingTimeoutMinutes is the number of minutes since we last sent a
 	// message requiring a reply before we will ping a host.
-	pingTimeoutMinutes = 2
+	//	pingTimeoutMinutes = 2
+	pingTimeoutMinutes = 1
 )
 
 var (
@@ -1239,6 +1240,7 @@ func (p *peer) handleAddrMsg(msg *wire.MsgAddr) {
 // message.  For older clients, it does nothing and anything other than failure
 // is considered a successful ping.
 func (p *peer) handlePingMsg(msg *wire.MsgPing) {
+	util.Trace()
 	// Only Reply with pong is message comes from a new enough client.
 	if p.ProtocolVersion() > wire.BIP0031Version {
 		// Include nonce from ping so pong can be identified.
@@ -1252,6 +1254,7 @@ func (p *peer) handlePingMsg(msg *wire.MsgPing) {
 // we had not send a ping we ignore it.
 func (p *peer) handlePongMsg(msg *wire.MsgPong) {
 	p.StatsMtx.Lock()
+	util.Trace()
 	defer p.StatsMtx.Unlock()
 
 	// Arguably we could use a buffered channel here sending data
@@ -1480,10 +1483,12 @@ out:
 			markConnected = true
 
 		case *wire.MsgPing:
+			util.Trace()
 			p.handlePingMsg(msg)
 			markConnected = true
 
 		case *wire.MsgPong:
+			util.Trace()
 			p.handlePongMsg(msg)
 
 		case *wire.MsgAlert:
@@ -1549,18 +1554,22 @@ out:
 
 			// Factom additions
 		case *wire.MsgCommitChain:
+			util.Trace()
 			p.handleCommitChainMsg(msg)
 			p.FactomRelay(msg)
 
 		case *wire.MsgRevealChain:
+			util.Trace()
 			p.handleRevealChainMsg(msg)
 			p.FactomRelay(msg)
 
 		case *wire.MsgCommitEntry:
+			util.Trace()
 			p.handleCommitEntryMsg(msg)
 			p.FactomRelay(msg)
 
 		case *wire.MsgRevealEntry:
+			util.Trace()
 			p.handleRevealEntryMsg(msg)
 			p.FactomRelay(msg)
 
