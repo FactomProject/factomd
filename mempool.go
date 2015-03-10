@@ -20,7 +20,7 @@ import (
 	"github.com/FactomProject/btcutil"
 
 	"github.com/FactomProject/FactomCode/util"
-	//	"github.com/davecgh/go-spew/spew"
+	"github.com/davecgh/go-spew/spew"
 )
 
 const (
@@ -1336,6 +1336,8 @@ func (mp *txMemPool) ProcessTransaction(tx *btcutil.Tx, allowOrphan, rateLimit b
 	// Protect concurrent access.
 	mp.Lock()
 	defer mp.Unlock()
+
+	util.Trace(spew.Sdump(tx))
 
 	//	txmpLog.Tracef("Processing transaction %v", tx.Sha())
 	txmpLog.Debugf("Processing transaction %v", tx.Sha())

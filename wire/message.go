@@ -67,8 +67,8 @@ const (
 	// using these commands we query & find the best chain & latest height for the Directory (all other chain heights are then known)
 	CmdGetDirBlocks = "getdirblocks"
 
-	CmdConfirmation = "confirmation"
-	CmdMHashReveal  = "mhashreveal"
+	CmdAcknowledgement = "confirmation"
+	CmdMHashReveal     = "mhashreveal"
 )
 
 // MaxAppMsgPayload is the maximum bytes a factom app message can be in bytes.
@@ -165,8 +165,8 @@ func makeEmptyMessage(command string) (Message, error) {
 	case CmdCommitChain:
 		msg = &MsgCommitChain{}
 
-	case CmdConfirmation:
-		msg = &MsgConfirmation{}
+	case CmdAcknowledgement:
+		msg = &MsgAcknowledgement{}
 
 	default:
 		return nil, fmt.Errorf("unhandled command [%s]", command)

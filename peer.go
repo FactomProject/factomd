@@ -770,7 +770,8 @@ func (p *peer) handleMemPoolMsg(msg *wire.MsgMemPool) {
 // handler this does not serialize all transactions through a single thread
 // transactions don't rely on the previous one in a linear fashion like blocks.
 func (p *peer) handleTxMsg(msg *wire.MsgTx) {
-	util.Trace()
+	util.Trace("BEGIN")
+
 	// Add the transaction to the known inventory for the peer.
 	// Convert the raw MsgTx to a btcutil.Tx which provides some convenience
 	// methods and things such as hash caching.
@@ -785,6 +786,8 @@ func (p *peer) handleTxMsg(msg *wire.MsgTx) {
 	// being disconnected) and wasting memory.
 	p.server.blockManager.QueueTx(tx, p)
 	<-p.txProcessed
+
+	util.Trace("END")
 }
 
 /*

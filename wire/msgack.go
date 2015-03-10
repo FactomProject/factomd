@@ -9,7 +9,7 @@ import (
 	"io"
 )
 
-type MsgConfirmation struct {
+type MsgAcknowledgement struct {
 	Height      uint64
 	ChainID     notaryapi.Hash
 	Index       uint32
@@ -21,7 +21,7 @@ type MsgConfirmation struct {
 
 // BtcDecode decodes r using the bitcoin protocol encoding into the receiver.
 // This is part of the Message interface implementation.
-func (msg *MsgConfirmation) BtcDecode(r io.Reader, pver uint32) error {
+func (msg *MsgAcknowledgement) BtcDecode(r io.Reader, pver uint32) error {
 	err := readElements(r, &msg.Height, &msg.ChainID, &msg.Index, &msg.Affirmation, &msg.SerialHash, &msg.Signature, &msg.MsgHash)
 	if err != nil {
 		return err
@@ -32,7 +32,7 @@ func (msg *MsgConfirmation) BtcDecode(r io.Reader, pver uint32) error {
 
 // BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
 // This is part of the Message interface implementation.
-func (msg *MsgConfirmation) BtcEncode(w io.Writer, pver uint32) error {
+func (msg *MsgAcknowledgement) BtcEncode(w io.Writer, pver uint32) error {
 	err := writeElements(w, &msg.Height, &msg.ChainID, &msg.Index, &msg.Affirmation, &msg.SerialHash, &msg.Signature, &msg.MsgHash)
 	if err != nil {
 		return err
@@ -43,22 +43,22 @@ func (msg *MsgConfirmation) BtcEncode(w io.Writer, pver uint32) error {
 
 // Command returns the protocol command string for the message.  This is part
 // of the Message interface implementation.
-func (msg *MsgConfirmation) Command() string {
-	return CmdConfirmation
+func (msg *MsgAcknowledgement) Command() string {
+	return CmdAcknowledgement
 }
 
 // MaxPayloadLength returns the maximum length the payload can be for the
 // receiver.  This is part of the Message interface implementation.
-func (msg *MsgConfirmation) MaxPayloadLength(pver uint32) uint32 {
+func (msg *MsgAcknowledgement) MaxPayloadLength(pver uint32) uint32 {
 
 	// 10K is too big of course, TODO: adjust
 	return MaxAppMsgPayload
 }
 
-// NewMsgConfirmation returns a new bitcoin ping message that conforms to the Message
-// interface.  See MsgConfirmation for details.
-func NewMsgConfirmation(height uint64, index uint32) *MsgConfirmation {
-	return &MsgConfirmation{
+// NewMsgAcknowledgement returns a new bitcoin ping message that conforms to the Message
+// interface.  See MsgAcknowledgement for details.
+func NewMsgAcknowledgement(height uint64, index uint32) *MsgAcknowledgement {
+	return &MsgAcknowledgement{
 		Height: height,
 		Index:  index,
 	}
