@@ -1,4 +1,6 @@
 // Copyright 2015 Factom Foundation
+// Use of this source code is governed by the MIT
+// license that can be found in the LICENSE file.
 
 package wire
 
@@ -20,7 +22,7 @@ type MsgConfirmation struct {
 // BtcDecode decodes r using the bitcoin protocol encoding into the receiver.
 // This is part of the Message interface implementation.
 func (msg *MsgConfirmation) BtcDecode(r io.Reader, pver uint32) error {
-	err := readElements(r, &msg.Height, &msg.ChainID, &msg.Index, &msg.Affirmation, &msg.Hash, &msg.Signature, &msg.MsgHash)
+	err := readElements(r, &msg.Height, &msg.ChainID, &msg.Index, &msg.Affirmation, &msg.SerialHash, &msg.Signature, &msg.MsgHash)
 	if err != nil {
 		return err
 	}
@@ -31,7 +33,7 @@ func (msg *MsgConfirmation) BtcDecode(r io.Reader, pver uint32) error {
 // BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
 // This is part of the Message interface implementation.
 func (msg *MsgConfirmation) BtcEncode(w io.Writer, pver uint32) error {
-	err := writeElements(w, &msg.Height, &msg.ChainID, &msg.Index, &msg.Affirmation, &msg.Hash, &msg.Signature, &msg.MsgHash)
+	err := writeElements(w, &msg.Height, &msg.ChainID, &msg.Index, &msg.Affirmation, &msg.SerialHash, &msg.Signature, &msg.MsgHash)
 	if err != nil {
 		return err
 	}
