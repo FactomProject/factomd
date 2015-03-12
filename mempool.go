@@ -505,6 +505,8 @@ func (mp *txMemPool) addOrphan(tx *btcutil.Tx) {
 		mp.orphansByPrev[originTxHash].PushBack(tx)
 	}
 
+	factom_PL_hook(tx, "orphan")
+
 	txmpLog.Debugf("Stored orphan transaction %v (total: %d)", tx.Sha(),
 		len(mp.orphans))
 }
@@ -1115,11 +1117,11 @@ func (mp *txMemPool) maybeAcceptTransaction(tx *btcutil.Tx, isNew, rateLimit boo
 		}
 	}
 
-	/*
-		// NOTE: if you modify this code to accept non-standard transactions,
-		// you should add code here to check that the transaction does a
-		// reasonable number of ECDSA signature verifications.
+	// NOTE: if you modify this code to accept non-standard transactions,
+	// you should add code here to check that the transaction does a
+	// reasonable number of ECDSA signature verifications.
 
+	/*
 		// Don't allow transactions with an excessive number of signature
 		// operations which would result in making it impossible to mine.  Since
 		// the coinbase address itself can contain signature operations, the
@@ -1199,6 +1201,8 @@ func (mp *txMemPool) maybeAcceptTransaction(tx *btcutil.Tx, isNew, rateLimit boo
 
 	// Add to transaction pool.
 	mp.addTransaction(tx, curHeight, txFee)
+
+	factom_PL_hook(tx, "mempool")
 
 	txmpLog.Debugf("Accepted transaction %v (pool size: %v)", txHash,
 		len(mp.pool))

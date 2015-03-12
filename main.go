@@ -19,9 +19,9 @@ func realMain() {
 }
 
 func main() {
-	fmt.Println("////////////////////////////////// Copyright 2015 Factom Foundation")
-	fmt.Println("////////////////////////////////// Use of this source code is governed by the MIT")
-	fmt.Println("////////////////////////////////// license that can be found in the LICENSE file.")
+	fmt.Println("//////////////////////// Copyright 2015 Factom Foundation")
+	fmt.Println("//////////////////////// Use of this source code is governed by the MIT")
+	fmt.Println("//////////////////////// license that can be found in the LICENSE file.")
 
 	realMain()
 }
