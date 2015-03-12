@@ -16,13 +16,13 @@ type MsgAcknowledgement struct {
 	Affirmation [32]byte // affirmation value -- hash of the message/object in question
 	SerialHash  [32]byte
 	Signature   [64]byte
-	MsgHash     *ShaHash // hash of the msg being confirmed, unsure how I can use it yet
+	//	MsgHash     *ShaHash // this field is PROBABLY AN ERROR: being removed, Affirmation Hash is it: hash of the msg being confirmed, unsure how I can use it yet
 }
 
 // BtcDecode decodes r using the bitcoin protocol encoding into the receiver.
 // This is part of the Message interface implementation.
 func (msg *MsgAcknowledgement) BtcDecode(r io.Reader, pver uint32) error {
-	err := readElements(r, &msg.Height, &msg.ChainID, &msg.Index, &msg.Affirmation, &msg.SerialHash, &msg.Signature, &msg.MsgHash)
+	err := readElements(r, &msg.Height, &msg.ChainID, &msg.Index, &msg.Affirmation, &msg.SerialHash, &msg.Signature)
 	if err != nil {
 		return err
 	}
@@ -33,7 +33,7 @@ func (msg *MsgAcknowledgement) BtcDecode(r io.Reader, pver uint32) error {
 // BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
 // This is part of the Message interface implementation.
 func (msg *MsgAcknowledgement) BtcEncode(w io.Writer, pver uint32) error {
-	err := writeElements(w, &msg.Height, &msg.ChainID, &msg.Index, &msg.Affirmation, &msg.SerialHash, &msg.Signature, &msg.MsgHash)
+	err := writeElements(w, &msg.Height, &msg.ChainID, &msg.Index, &msg.Affirmation, &msg.SerialHash, &msg.Signature)
 	if err != nil {
 		return err
 	}
@@ -57,9 +57,10 @@ func (msg *MsgAcknowledgement) MaxPayloadLength(pver uint32) uint32 {
 
 // NewMsgAcknowledgement returns a new bitcoin ping message that conforms to the Message
 // interface.  See MsgAcknowledgement for details.
-func NewMsgAcknowledgement(height uint64, index uint32) *MsgAcknowledgement {
+func NewMsgAcknowledgement(height uint64, index uint32, affirm [32]byte) *MsgAcknowledgement {
 	return &MsgAcknowledgement{
-		Height: height,
-		Index:  index,
+		Height:      height,
+		Index:       index,
+		Affirmation: affirm,
 	}
 }
