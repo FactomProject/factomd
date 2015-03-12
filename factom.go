@@ -7,10 +7,91 @@
 package main
 
 import (
+	"fmt"
+	"github.com/FactomProject/FactomCode/factomd"
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/btcutil"
 )
+
+/*
+// Handle factom app imcoming msg
+func (p *peer) handleBuyCreditMsg(msg *wire.MsgGetCredit) {
+	util.Trace()
+
+	// Add the msg to inbound msg queue
+	inMsgQueue <- msg
+}
+*/
+
+// Handle factom app imcoming msg
+func (p *peer) handleCommitChainMsg(msg *wire.MsgCommitChain) {
+	util.Trace()
+
+	// Add the msg to inbound msg queue
+	factomd.InMsgQueue <- msg
+}
+
+// Handle factom app imcoming msg
+func (p *peer) handleRevealChainMsg(msg *wire.MsgRevealChain) {
+	util.Trace()
+
+	// Add the msg to inbound msg queue
+	factomd.InMsgQueue <- msg
+}
+
+// Handle factom app imcoming msg
+func (p *peer) handleCommitEntryMsg(msg *wire.MsgCommitEntry) {
+	util.Trace()
+
+	// Add the msg to inbound msg queue
+	factomd.InMsgQueue <- msg
+}
+
+// Handle factom app imcoming msg
+func (p *peer) handleRevealEntryMsg(msg *wire.MsgRevealEntry) {
+	util.Trace()
+
+	// Add the msg to inbound msg queue
+	factomd.InMsgQueue <- msg
+}
+
+// returns true if the message should be relayed, false otherwise
+func (p *peer) shallRelay(msg interface{}) bool {
+	util.Trace()
+
+	fmt.Println("shallRelay msg= ", msg)
+
+	hash, _ := wire.NewShaHashFromStruct(msg)
+	fmt.Println("shallRelay hash= ", hash)
+
+	iv := wire.NewInvVect(wire.InvTypeFactomRaw, hash)
+
+	fmt.Println("shallRelay iv= ", iv)
+
+	if !p.isKnownInventory(iv) {
+		p.AddKnownInventory(iv)
+
+		return true
+	}
+
+	fmt.Println("******************* SHALL NOT RELAY !!!!!!!!!!! ******************")
+
+	return false
+}
+
+// Call FactomRelay to relay/broadcast a Factom message (to your peers).
+// The intent is to call this function after certain 'processor' checks been done.
+func (p *peer) FactomRelay(msg wire.Message) {
+	util.Trace()
+
+	fmt.Println("FactomRelay msg= ", msg)
+
+	// broadcast/relay only if hadn't been done for this peer
+	if p.shallRelay(msg) {
+		p.server.BroadcastMessage(msg, p)
+	}
+}
 
 // func (pl *ProcessList) AddFtmTxToProcessList(msg wire.Message, msgHash *wire.ShaHash) error {
 func fakehook1(msg wire.Message, msgHash *wire.ShaHash) error {
