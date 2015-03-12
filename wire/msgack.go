@@ -11,12 +11,11 @@ import (
 
 type MsgAcknowledgement struct {
 	Height      uint64
-	ChainID     notaryapi.Hash
+	ChainID     *notaryapi.Hash
 	Index       uint32
-	Affirmation [32]byte // affirmation value -- hash of the message/object in question
+	Affirmation *ShaHash // affirmation value -- hash of the message/object in question
 	SerialHash  [32]byte
 	Signature   [64]byte
-	//	MsgHash     *ShaHash // this field is PROBABLY AN ERROR: being removed, Affirmation Hash is it: hash of the msg being confirmed, unsure how I can use it yet
 }
 
 // BtcDecode decodes r using the bitcoin protocol encoding into the receiver.
@@ -57,7 +56,7 @@ func (msg *MsgAcknowledgement) MaxPayloadLength(pver uint32) uint32 {
 
 // NewMsgAcknowledgement returns a new bitcoin ping message that conforms to the Message
 // interface.  See MsgAcknowledgement for details.
-func NewMsgAcknowledgement(height uint64, index uint32, affirm [32]byte) *MsgAcknowledgement {
+func NewMsgAcknowledgement(height uint64, index uint32, affirm *ShaHash) *MsgAcknowledgement {
 	return &MsgAcknowledgement{
 		Height:      height,
 		Index:       index,
