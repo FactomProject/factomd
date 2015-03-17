@@ -28,6 +28,8 @@ func main() {
 
 // start up Factom queue(s) managers/processors
 func factomQueues(s *server) {
+	local_Server = s // local copy of our server pointer
+
 	// Write outgoing factom messages into P2P network
 	go func() {
 		for msg := range factomd.OutMsgQueue {

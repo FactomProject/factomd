@@ -14,6 +14,10 @@ import (
 	"github.com/FactomProject/btcutil"
 )
 
+var (
+	local_Server *server
+)
+
 /*
 // Handle factom app imcoming msg
 func (p *peer) handleBuyCreditMsg(msg *wire.MsgGetCredit) {
@@ -89,7 +93,8 @@ func (p *peer) FactomRelay(msg wire.Message) {
 
 	// broadcast/relay only if hadn't been done for this peer
 	if p.shallRelay(msg) {
-		p.server.BroadcastMessage(msg, p)
+		//		p.server.BroadcastMessage(msg, p)
+		local_Server.BroadcastMessage(msg)
 	}
 }
 
@@ -104,4 +109,9 @@ func factom_PL_hook(tx *btcutil.Tx, label string) error {
 	_ = fakehook1(tx.MsgTx(), tx.Sha())
 
 	return nil
+}
+
+// for Jack
+func global_DeleteMemPoolEntry(hash *wire.ShaHash) {
+	// TODO: ensure mutex-protection
 }
