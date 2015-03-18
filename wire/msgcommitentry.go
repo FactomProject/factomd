@@ -8,6 +8,9 @@ import (
 	"github.com/FactomProject/FactomCode/notaryapi"
 	"github.com/agl/ed25519"
 	"io"
+	"bytes"
+	"encoding/binary"
+	"fmt"	
 )
 
 // MsgCommitEntry implements the Message interface and represents a factom
@@ -116,7 +119,18 @@ func NewMsgCommitEntry() *MsgCommitEntry {
 	return &MsgCommitEntry{}
 }
 
-// placeholder until Jack delivers
+// Check whether the msg can pass the message level validations
+// such as timestamp, signiture and etc
 func (msg *MsgCommitEntry) IsValid() bool {
+	//Verify signature (timestamp + entry hash + credits)
+	var buf bytes.Buffer
+	binary.Write(&buf, binary.BigEndian, msg.Timestamp)
+	buf.Write(msg.EntryHash.Bytes)
+	binary.Write(&buf, binary.BigEndian, msg.Credits)
+	if !notaryapi.VerifySlice(msg.ECPubKey.Bytes, buf.Bytes(), msg.Sig) {
+		fmt.Println("Error in verifying signature for msg:" + fmt.Sprintf("%+v", msg))
+		return false
+	}	
+	
 	return true
 }
