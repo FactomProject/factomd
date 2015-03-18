@@ -145,3 +145,8 @@ func (msg *MsgCommitChain) MaxPayloadLength(pver uint32) uint32 {
 func NewMsgCommitChain() *MsgCommitChain {
 	return &MsgCommitChain{}
 }
+
+// placeholder until Jack delivers
+func (msg *MsgCommitChain) IsValid() bool {
+	return true
+}
