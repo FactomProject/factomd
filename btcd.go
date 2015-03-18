@@ -75,15 +75,17 @@ func btcdMain(serverChan chan<- *server) error {
 			btcdLog.Errorf("%v", err)
 			return err
 		}
+	*/
 
-		// Load the block database.
-		db, err := loadBlockDB()
-		if err != nil {
-			btcdLog.Errorf("%v", err)
-			return err
-		}
-		defer db.Close()
+	// Load the block database.
+	db, err := loadBlockDB()
+	if err != nil {
+		btcdLog.Errorf("%v", err)
+		return err
+	}
+	defer db.Close()
 
+	/*
 		if cfg.DropAddrIndex {
 			btcdLog.Info("Deleting entire addrindex.")
 			err := db.DeleteAddrIndex()
@@ -94,17 +96,16 @@ func btcdMain(serverChan chan<- *server) error {
 			btcdLog.Info("Successfully deleted addrindex, exiting")
 			return nil
 		}
-
-		// Ensure the database is sync'd and closed on Ctrl+C.
-		addInterruptHandler(func() {
-			btcdLog.Infof("Gracefully shutting down the database...")
-			db.RollbackClose()
-		})
 	*/
 
+	// Ensure the database is sync'd and closed on Ctrl+C.
+	addInterruptHandler(func() {
+		btcdLog.Infof("Gracefully shutting down the database...")
+		db.RollbackClose()
+	})
+
 	// Create server and start it.
-	//	server, err := newServer(cfg.Listeners, db, activeNetParams.Params)
-	server, err := newServer(cfg.Listeners, activeNetParams.Params)
+	server, err := newServer(cfg.Listeners, db, activeNetParams.Params)
 	if err != nil {
 		// TODO(oga) this logging could do with some beautifying.
 		btcdLog.Errorf("Unable to start server on %v: %v",

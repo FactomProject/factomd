@@ -26,15 +26,15 @@ const MaxMessagePayload = (1024 * 1024 * 32) // 32MB
 
 // Commands used in bitcoin message headers which describe the type of message.
 const (
-	CmdVersion   = "version"
-	CmdVerAck    = "verack"
-	CmdGetAddr   = "getaddr"
-	CmdAddr      = "addr"
-	CmdGetBlocks = "getblocks"
-	CmdInv       = "inv"
-	CmdGetData   = "getdata"
-	CmdNotFound  = "notfound"
-	//	CmdBlock       = "block"
+	CmdVersion     = "version"
+	CmdVerAck      = "verack"
+	CmdGetAddr     = "getaddr"
+	CmdAddr        = "addr"
+	CmdGetBlocks   = "getblocks"
+	CmdInv         = "inv"
+	CmdGetData     = "getdata"
+	CmdNotFound    = "notfound"
+	CmdBlock       = "block"
 	CmdTx          = "tx"
 	CmdGetHeaders  = "getheaders"
 	CmdHeaders     = "headers"
@@ -51,7 +51,7 @@ const (
 	// Factom additions:
 
 	// incoming blocks of the 3 special types & 1 general-purpose chain type:
-	CmdBlock            = "factoidblock"
+	//	CmdBlock            = "factoidblock"
 	CmdEntryCreditBlock = "ecblock"
 	CmdDirectoryBlock   = "dirblock"
 	CmdEntryBlock       = "entryblock"

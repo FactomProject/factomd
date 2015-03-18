@@ -22,7 +22,7 @@ import (
 	"github.com/FactomProject/btcd/addrmgr"
 	//	"github.com/FactomProject/btcd/blockchain"
 	"github.com/FactomProject/btcd/chaincfg"
-	//	"github.com/FactomProject/btcd/database"
+	"github.com/FactomProject/btcd/database"
 	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/btcjson"
 	"github.com/FactomProject/btcutil"
@@ -101,7 +101,7 @@ type server struct {
 	wg                   sync.WaitGroup
 	quit                 chan struct{}
 	nat                  NAT
-	//	db                   database.Db
+	db                   database.Db
 	//	timeSource           blockchain.MedianTimeSource
 }
 
@@ -1108,8 +1108,7 @@ out:
 // newServer returns a new btcd server configured to listen on addr for the
 // bitcoin network type specified by chainParams.  Use start to begin accepting
 // connections from peers.
-// func newServer(listenAddrs []string, db database.Db, chainParams *chaincfg.Params) (*server, error) {
-func newServer(listenAddrs []string, chainParams *chaincfg.Params) (*server, error) {
+func newServer(listenAddrs []string, db database.Db, chainParams *chaincfg.Params) (*server, error) {
 	nonce, err := wire.RandomUint64()
 	if err != nil {
 		return nil, err
@@ -1256,7 +1255,7 @@ func newServer(listenAddrs []string, chainParams *chaincfg.Params) (*server, err
 		quit:                 make(chan struct{}),
 		modifyRebroadcastInv: make(chan interface{}),
 		nat:                  nat,
-		//		db:                   db,
+		db:                   db,
 		//		timeSource:           blockchain.NewMedianTime(),
 	}
 	bm, err := newBlockManager(&s)

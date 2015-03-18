@@ -5,7 +5,7 @@
 package main
 
 import (
-	//	"github.com/FactomProject/btcd/blockchain"
+	"github.com/FactomProject/btcd/blockchain"
 	"github.com/FactomProject/btcd/wire"
 )
 
@@ -50,7 +50,6 @@ func txRuleError(c wire.RejectCode, desc string) RuleError {
 	}
 }
 
-/*
 // chainRuleError returns a RuleError that encapsulates the given
 // blockchain.RuleError.
 func chainRuleError(chainErr blockchain.RuleError) RuleError {
@@ -58,7 +57,6 @@ func chainRuleError(chainErr blockchain.RuleError) RuleError {
 		Err: chainErr,
 	}
 }
-*/
 
 // extractRejectCode attempts to return a relevant reject code for a given error
 // by examining the error for known types.  It will return true if a code
@@ -70,38 +68,36 @@ func extractRejectCode(err error) (wire.RejectCode, bool) {
 	}
 
 	switch err := err.(type) {
-	/*
-		case blockchain.RuleError:
-			// Convert the chain error to a reject code.
-			var code wire.RejectCode
-			switch err.ErrorCode {
-			// Rejected due to duplicate.
-			case blockchain.ErrDuplicateBlock:
-				fallthrough
-			case blockchain.ErrDoubleSpend:
-				code = wire.RejectDuplicate
+	case blockchain.RuleError:
+		// Convert the chain error to a reject code.
+		var code wire.RejectCode
+		switch err.ErrorCode {
+		// Rejected due to duplicate.
+		case blockchain.ErrDuplicateBlock:
+			fallthrough
+		case blockchain.ErrDoubleSpend:
+			code = wire.RejectDuplicate
 
-			// Rejected due to obsolete version.
-			case blockchain.ErrBlockVersionTooOld:
-				code = wire.RejectObsolete
+		// Rejected due to obsolete version.
+		case blockchain.ErrBlockVersionTooOld:
+			code = wire.RejectObsolete
 
-			// Rejected due to checkpoint.
-			case blockchain.ErrCheckpointTimeTooOld:
-				fallthrough
-			case blockchain.ErrDifficultyTooLow:
-				fallthrough
-			case blockchain.ErrBadCheckpoint:
-				fallthrough
-			case blockchain.ErrForkTooOld:
-				code = wire.RejectCheckpoint
+		// Rejected due to checkpoint.
+		case blockchain.ErrCheckpointTimeTooOld:
+			fallthrough
+		case blockchain.ErrDifficultyTooLow:
+			fallthrough
+		case blockchain.ErrBadCheckpoint:
+			fallthrough
+		case blockchain.ErrForkTooOld:
+			code = wire.RejectCheckpoint
 
-			// Everything else is due to the block or transaction being invalid.
-			default:
-				code = wire.RejectInvalid
-			}
+		// Everything else is due to the block or transaction being invalid.
+		default:
+			code = wire.RejectInvalid
+		}
 
-			return code, true
-	*/
+		return code, true
 
 	case TxRuleError:
 		return err.RejectCode, true

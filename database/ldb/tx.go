@@ -187,9 +187,11 @@ func (db *LevelDb) ExistsTxSha(txsha *wire.ShaHash) (bool, error) {
 // existsTxSha returns if the given tx sha exists in the database.o
 // Must be called with the db lock held.
 func (db *LevelDb) existsTxSha(txSha *wire.ShaHash) (bool, error) {
-	key := shaTxToKey(txSha)
+	// FIXME
+	//	key := shaTxToKey(txSha)
 
-	return db.lDb.Has(key, db.ro)
+	//	return db.lDb.Has(key, db.ro)
+	return false, nil
 }
 
 // FetchTxByShaList returns the most recent tx of the name fully spent or not

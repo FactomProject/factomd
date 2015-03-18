@@ -38,7 +38,7 @@ import (
 	"github.com/FactomProject/fastsha256"
 	"github.com/FactomProject/websocket"
 
-	"github.com/FactomProject/FactomCode/util"
+	//	"github.com/FactomProject/FactomCode/util"
 )
 
 const (
@@ -2293,13 +2293,11 @@ func handleGetNetworkHashPS(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan stru
 
 // handleGetPeerInfo implements the getpeerinfo command.
 func handleGetPeerInfo(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{}) (interface{}, error) {
-	util.Trace()
 	return s.server.PeerInfo(), nil
 }
 
 // handleGetRawMempool implements the getrawmempool command.
 func handleGetRawMempool(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{}) (interface{}, error) {
-	util.Trace()
 	c := cmd.(*btcjson.GetRawMempoolCmd)
 	mp := s.server.txMemPool
 	descs := mp.TxDescs()
@@ -3468,7 +3466,6 @@ func getDifficultyRatio(bits uint32) float64 {
 */
 
 func init() {
-	util.Trace()
 	rpcHandlers = rpcHandlersBeforeInit
 	rand.Seed(time.Now().UnixNano())
 }

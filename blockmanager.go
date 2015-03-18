@@ -7,15 +7,15 @@ package main
 import (
 	"container/list"
 	//	"net"
-	//	"os"
-	//	"path/filepath"
+	"os"
+	"path/filepath"
 	"sync"
 	"sync/atomic"
 	"time"
 
-	//	"github.com/FactomProject/btcd/blockchain"
+	"github.com/FactomProject/btcd/blockchain"
 	"github.com/FactomProject/btcd/chaincfg"
-	//	"github.com/FactomProject/btcd/database"
+	"github.com/FactomProject/btcd/database"
 	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/btcutil"
 
@@ -164,10 +164,10 @@ func (c *chainState) Best() (*wire.ShaHash, int64) {
 // blockManager provides a concurrency safe block manager for handling all
 // incoming blocks.
 type blockManager struct {
-	server   *server
-	started  int32
-	shutdown int32
-	//	blockChain        *blockchain.BlockChain
+	server            *server
+	started           int32
+	shutdown          int32
+	blockChain        *blockchain.BlockChain
 	requestedTxns     map[wire.ShaHash]struct{}
 	requestedBlocks   map[wire.ShaHash]struct{}
 	progressLogger    *blockProgressLogger
@@ -203,6 +203,7 @@ func (b *blockManager) resetHeaderState(newestHash *wire.ShaHash, newestHeight i
 		b.headerList.PushBack(&node)
 	}
 }
+*/
 
 // updateChainState updates the chain state associated with the block manager.
 // This allows fast access to chain information since btcchain is currently not
@@ -222,6 +223,7 @@ func (b *blockManager) updateChainState(newestHash *wire.ShaHash, newestHeight i
 	}
 }
 
+/*
 // findNextHeaderCheckpoint returns the next checkpoint after the passed height.
 // It returns nil when there is not one either because the height is already
 // later than the final checkpoint or some other reason such as disabled
@@ -839,29 +841,22 @@ func (b *blockManager) handleHeadersMsg(hmsg *headersMsg) {
 // are in the memory pool (either the main pool or orphan pool).
 func (b *blockManager) haveInventory(invVect *wire.InvVect) (bool, error) {
 	switch invVect.Type {
-	/*
-		case wire.InvTypeBlock:
-			// Ask chain if the block is known to it in any form (main
-			// chain, side chain, or orphan).
-			return b.blockChain.HaveBlock(&invVect.Hash)
-	*/
+	case wire.InvTypeBlock:
+		// Ask chain if the block is known to it in any form (main
+		// chain, side chain, or orphan).
+		return b.blockChain.HaveBlock(&invVect.Hash)
 
 	case wire.InvTypeTx:
 		util.Trace()
 		// Ask the transaction memory pool if the transaction is known
 		// to it in any form (main pool or orphan).
-		/*
-			if b.server.txMemPool.HaveTransaction(&invVect.Hash) {
-				return true, nil
-			}
-		*/
-		return b.server.txMemPool.HaveTransaction(&invVect.Hash), nil
+		if b.server.txMemPool.HaveTransaction(&invVect.Hash) {
+			return true, nil
+		}
 
-		/*
-			// Check if the transaction exists from the point of view of the
-			// end of the main chain.
-			return b.server.db.ExistsTxSha(&invVect.Hash)
-		*/
+		// Check if the transaction exists from the point of view of the
+		// end of the main chain.
+		return b.server.db.ExistsTxSha(&invVect.Hash)
 	}
 
 	// The requested inventory is is an unsupported type, so just claim
@@ -1110,7 +1105,6 @@ out:
 	bmgrLog.Trace("Block handler done")
 }
 
-/*
 // handleNotifyMsg handles notifications from blockchain.  It does things such
 // as request orphan block parents and relay accepted blocks to connected peers.
 func (b *blockManager) handleNotifyMsg(notification *blockchain.Notification) {
@@ -1173,11 +1167,13 @@ func (b *blockManager) handleNotifyMsg(notification *blockchain.Notification) {
 			r.ntfnMgr.NotifyBlockConnected(block)
 		}
 
-		// If we're maintaing the address index, and it is up to date
-		// then update it based off this new block.
-		if cfg.AddrIndex && b.server.addrIndexer.IsCaughtUp() {
-			b.server.addrIndexer.UpdateAddressIndex(block)
-		}
+		/*
+			// If we're maintaing the address index, and it is up to date
+			// then update it based off this new block.
+			if cfg.AddrIndex && b.server.addrIndexer.IsCaughtUp() {
+				b.server.addrIndexer.UpdateAddressIndex(block)
+			}
+		*/
 
 	// A block has been disconnected from the main block chain.
 	case blockchain.NTBlockDisconnected:
@@ -1206,7 +1202,6 @@ func (b *blockManager) handleNotifyMsg(notification *blockchain.Notification) {
 		}
 	}
 }
-*/
 
 // NewPeer informs the block manager of a newly active peer.
 func (b *blockManager) NewPeer(p *peer) {
@@ -1231,7 +1226,6 @@ func (b *blockManager) QueueTx(tx *btcutil.Tx, p *peer) {
 	b.msgChan <- &txMsg{tx: tx, peer: p}
 }
 
-/*
 // QueueBlock adds the passed block message and peer to the block handling queue.
 func (b *blockManager) QueueBlock(block *btcutil.Block, p *peer) {
 	// Don't accept more blocks if we're shutting down.
@@ -1242,7 +1236,6 @@ func (b *blockManager) QueueBlock(block *btcutil.Block, p *peer) {
 
 	b.msgChan <- &blockMsg{block: block, peer: p}
 }
-*/
 
 // QueueInv adds the passed inv message and peer to the block handling queue.
 func (b *blockManager) QueueInv(inv *wire.MsgInv, p *peer) {
@@ -1364,12 +1357,10 @@ func (b *blockManager) IsCurrent() bool {
 // newBlockManager returns a new bitcoin block manager.
 // Use Start to begin processing asynchronous block and inv updates.
 func newBlockManager(s *server) (*blockManager, error) {
-	/*
-		newestHash, height, err := s.db.NewestSha()
-		if err != nil {
-			return nil, err
-		}
-	*/
+	newestHash, height, err := s.db.NewestSha()
+	if err != nil {
+		return nil, err
+	}
 
 	bm := blockManager{
 		server:          s,
@@ -1381,9 +1372,11 @@ func newBlockManager(s *server) (*blockManager, error) {
 		quit:            make(chan struct{}),
 	}
 	bm.progressLogger = newBlockProgressLogger("Processed", bmgrLog)
+
+	bm.blockChain = blockchain.New(s.db, s.chainParams, bm.handleNotifyMsg)
+	bm.blockChain.DisableCheckpoints(cfg.DisableCheckpoints)
+
 	/*
-		bm.blockChain = blockchain.New(s.db, s.chainParams, bm.handleNotifyMsg)
-		bm.blockChain.DisableCheckpoints(cfg.DisableCheckpoints)
 		if !cfg.DisableCheckpoints {
 			// Initialize the next checkpoint based on the current height.
 			bm.nextCheckpoint = bm.findNextHeaderCheckpoint(height)
@@ -1393,19 +1386,19 @@ func newBlockManager(s *server) (*blockManager, error) {
 		} else {
 			bmgrLog.Info("Checkpoints are disabled")
 		}
-
-		bmgrLog.Infof("Generating initial block node index.  This may " +
-			"take a while...")
-		err = bm.blockChain.GenerateInitialIndex()
-		if err != nil {
-			return nil, err
-		}
-		bmgrLog.Infof("Block index generation complete")
-
-		// Initialize the chain state now that the intial block node index has
-		// been generated.
-		bm.updateChainState(newestHash, height)
 	*/
+
+	bmgrLog.Infof("Generating initial block node index.  This may " +
+		"take a while...")
+	err = bm.blockChain.GenerateInitialIndex()
+	if err != nil {
+		return nil, err
+	}
+	bmgrLog.Infof("Block index generation complete")
+
+	// Initialize the chain state now that the intial block node index has
+	// been generated.
+	bm.updateChainState(newestHash, height)
 
 	return &bm, nil
 }
@@ -1438,6 +1431,7 @@ func removeRegressionDB(dbPath string) error {
 
 	return nil
 }
+*/
 
 // dbPath returns the path to the block database given a database type.
 func blockDbPath(dbType string) string {
@@ -1450,6 +1444,7 @@ func blockDbPath(dbType string) string {
 	return dbPath
 }
 
+/*
 // warnMultipeDBs shows a warning if multiple block database types are detected.
 // This is not a situation most users want.  It is handy for development however
 // to support multiple side-by-side databases.
@@ -1482,6 +1477,7 @@ func warnMultipeDBs() {
 			duplicateDbPaths)
 	}
 }
+*/
 
 // setupBlockDB loads (or creates when needed) the block database taking into
 // account the selected database backend.  It also contains additional logic
@@ -1501,14 +1497,14 @@ func setupBlockDB() (database.Db, error) {
 		return db, nil
 	}
 
-	warnMultipeDBs()
+	//	warnMultipeDBs()
 
 	// The database name is based on the database type.
 	dbPath := blockDbPath(cfg.DbType)
 
 	// The regression test is special in that it needs a clean database for
 	// each run, so remove it now if it already exists.
-	removeRegressionDB(dbPath)
+	//	removeRegressionDB(dbPath)
 
 	btcdLog.Infof("Loading block database from '%s'", dbPath)
 	db, err := database.OpenDB(cfg.DbType, dbPath)
@@ -1564,4 +1560,3 @@ func loadBlockDB() (database.Db, error) {
 	btcdLog.Infof("Block database loaded with block height %d", height)
 	return db, nil
 }
-*/

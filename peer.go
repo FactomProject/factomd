@@ -17,8 +17,8 @@ import (
 	"time"
 
 	"github.com/FactomProject/btcd/addrmgr"
-	//	"github.com/FactomProject/btcd/blockchain"
-	//	"github.com/FactomProject/btcd/database"
+	"github.com/FactomProject/btcd/blockchain"
+	"github.com/FactomProject/btcd/database"
 	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/btcutil"
 	"github.com/FactomProject/btcutil/bloom"
@@ -251,14 +251,10 @@ func (p *peer) RelayTxDisabled() bool {
 // pushVersionMsg sends a version message to the connected peer using the
 // current state.
 func (p *peer) pushVersionMsg() error {
-	/*
-		_, blockNum, err := p.server.db.NewestSha()
-		if err != nil {
-			return err
-		}
-	*/
-
-	blockNum := int32(0)
+	_, blockNum, err := p.server.db.NewestSha()
+	if err != nil {
+		return err
+	}
 
 	theirNa := p.na
 
@@ -489,7 +485,6 @@ func (p *peer) pushTxMsg(sha *wire.ShaHash, doneChan, waitChan chan struct{}) er
 	return nil
 }
 
-/*
 // pushBlockMsg sends a block message for the provided block hash to the
 // connected peer.  An error is returned if the block hash is not known.
 func (p *peer) pushBlockMsg(sha *wire.ShaHash, doneChan, waitChan chan struct{}) error {
@@ -652,6 +647,7 @@ func (p *peer) PushGetBlocksMsg(locator blockchain.BlockLocator, stopHash *wire.
 	return nil
 }
 
+/*
 // PushGetHeadersMsg sends a getblocks message for the provided block locator
 // and stop hash.  It will ignore back-to-back duplicate requests.
 func (p *peer) PushGetHeadersMsg(locator blockchain.BlockLocator, stopHash *wire.ShaHash) error {
@@ -789,7 +785,6 @@ func (p *peer) handleTxMsg(msg *wire.MsgTx) {
 	util.Trace("END")
 }
 
-/*
 // handleBlockMsg is invoked when a peer receives a block bitcoin message.  It
 // blocks until the bitcoin block has been fully processed.
 func (p *peer) handleBlockMsg(msg *wire.MsgBlock, buf []byte) {
@@ -820,7 +815,6 @@ func (p *peer) handleBlockMsg(msg *wire.MsgBlock, buf []byte) {
 	p.server.blockManager.QueueBlock(block, p)
 	<-p.blockProcessed
 }
-*/
 
 // handleInvMsg is invoked when a peer receives an inv bitcoin message and is
 // used to examine the inventory being advertised by the remote peer and react
@@ -864,12 +858,10 @@ func (p *peer) handleGetDataMsg(msg *wire.MsgGetData) {
 		switch iv.Type {
 		case wire.InvTypeTx:
 			err = p.pushTxMsg(&iv.Hash, c, waitChan)
-			/*
-				case wire.InvTypeBlock:
-					err = p.pushBlockMsg(&iv.Hash, c, waitChan)
-				case wire.InvTypeFilteredBlock:
-					err = p.pushMerkleBlockMsg(&iv.Hash, c, waitChan)
-			*/
+		case wire.InvTypeBlock:
+			err = p.pushBlockMsg(&iv.Hash, c, waitChan)
+		case wire.InvTypeFilteredBlock:
+			err = p.pushMerkleBlockMsg(&iv.Hash, c, waitChan)
 		default:
 			peerLog.Warnf("Unknown type in inventory request %d",
 				iv.Type)
@@ -904,7 +896,6 @@ func (p *peer) handleGetDataMsg(msg *wire.MsgGetData) {
 	}
 }
 
-/*
 // handleGetBlocksMsg is invoked when a peer receives a getblocks bitcoin message.
 func (p *peer) handleGetBlocksMsg(msg *wire.MsgGetBlocks) {
 	// Return all block hashes to the latest one (up to max per message) if
@@ -985,6 +976,7 @@ func (p *peer) handleGetBlocksMsg(msg *wire.MsgGetBlocks) {
 	}
 }
 
+/*
 // handleGetHeadersMsg is invoked when a peer receives a getheaders bitcoin
 // message.
 func (p *peer) handleGetHeadersMsg(msg *wire.MsgGetHeaders) {
@@ -1406,8 +1398,7 @@ func (p *peer) inHandler() {
 	})
 out:
 	for atomic.LoadInt32(&p.disconnect) == 0 {
-		//		rmsg, buf, err := p.readMessage()
-		rmsg, _, err := p.readMessage()
+		rmsg, buf, err := p.readMessage()
 		// Stop the timer now, if we go around again we will reset it.
 		idleTimer.Stop()
 		if err != nil {
@@ -1509,10 +1500,8 @@ out:
 		case *wire.MsgTx:
 			p.handleTxMsg(msg)
 
-			/*
-				case *wire.MsgBlock:
-					p.handleBlockMsg(msg, buf)
-			*/
+		case *wire.MsgBlock:
+			p.handleBlockMsg(msg, buf)
 
 		case *wire.MsgInv:
 			p.handleInvMsg(msg)
@@ -1533,10 +1522,10 @@ out:
 			p.handleGetDataMsg(msg)
 			markConnected = true
 
-			/*
-				case *wire.MsgGetBlocks:
-					p.handleGetBlocksMsg(msg)
+		case *wire.MsgGetBlocks:
+			p.handleGetBlocksMsg(msg)
 
+			/*
 				case *wire.MsgGetHeaders:
 					p.handleGetHeadersMsg(msg)
 			*/
