@@ -5,12 +5,12 @@
 package wire
 
 import (
+	"bytes"
+	"encoding/binary"
+	"fmt"
 	"github.com/FactomProject/FactomCode/notaryapi"
 	"github.com/agl/ed25519"
 	"io"
-	"bytes"
-	"encoding/binary"
-	"fmt"	
 )
 
 // MsgCommitEntry implements the Message interface and represents a factom
@@ -162,7 +162,7 @@ func (msg *MsgCommitChain) IsValid() bool {
 	if !notaryapi.VerifySlice(msg.ECPubKey.Bytes, buf.Bytes(), msg.Sig) {
 		fmt.Println("Error in verifying signature for msg:" + fmt.Sprintf("%+v", msg)) //use logging level??
 		return false
-	}	
-	
+	}
+
 	return true
 }
