@@ -115,3 +115,19 @@ func factom_PL_hook(tx *btcutil.Tx, label string) error {
 func global_DeleteMemPoolEntry(hash *wire.ShaHash) {
 	// TODO: ensure mutex-protection
 }
+
+func (b *blockManager) factom_bmCheck() {
+	util.Trace()
+
+	if b.headersFirstMode {
+		panic(1)
+	}
+
+	if cfg.AddrIndex {
+		panic(2)
+	}
+
+	if cfg.RegressionTest {
+		panic(3)
+	}
+}

@@ -17,6 +17,8 @@ import (
 	"github.com/FactomProject/btcutil"
 	"github.com/FactomProject/goleveldb/leveldb"
 	"github.com/FactomProject/goleveldb/leveldb/opt"
+
+	"github.com/FactomProject/FactomCode/util"
 )
 
 const (
@@ -275,6 +277,8 @@ func (db *LevelDb) close() error {
 func (db *LevelDb) Sync() error {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
+
+	util.Trace()
 
 	// while specified by the API, does nothing
 	// however does grab lock to verify it does not return until other operations are complete.

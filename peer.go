@@ -764,7 +764,7 @@ func (p *peer) handleMemPoolMsg(msg *wire.MsgMemPool) {
 // until the bitcoin transaction has been fully processed.  Unlock the block
 // handler this does not serialize all transactions through a single thread
 // transactions don't rely on the previous one in a linear fashion like blocks.
-func (p *peer) handleTxMsg(msg *wire.MsgTx) {
+func (p *peer) peer_HandleTxMsg(msg *wire.MsgTx) {
 	util.Trace("BEGIN")
 
 	// Add the transaction to the known inventory for the peer.
@@ -787,7 +787,8 @@ func (p *peer) handleTxMsg(msg *wire.MsgTx) {
 
 // handleBlockMsg is invoked when a peer receives a block bitcoin message.  It
 // blocks until the bitcoin block has been fully processed.
-func (p *peer) handleBlockMsg(msg *wire.MsgBlock, buf []byte) {
+func (p *peer) peer_HandleBlockMsg(msg *wire.MsgBlock, buf []byte) {
+	util.Trace()
 	// Convert the raw MsgBlock to a btcutil.Block which provides some
 	// convenience methods and things such as hash caching.
 	block := btcutil.NewBlockFromBlockAndBytes(msg, buf)
@@ -1498,10 +1499,10 @@ out:
 			p.handleMemPoolMsg(msg)
 
 		case *wire.MsgTx:
-			p.handleTxMsg(msg)
+			p.peer_HandleTxMsg(msg)
 
 		case *wire.MsgBlock:
-			p.handleBlockMsg(msg, buf)
+			p.peer_HandleBlockMsg(msg, buf)
 
 		case *wire.MsgInv:
 			p.handleInvMsg(msg)

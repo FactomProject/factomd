@@ -13,6 +13,8 @@ import (
 	"github.com/FactomProject/btcd/database"
 	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/btcutil"
+
+	"github.com/FactomProject/FactomCode/util"
 )
 
 // Errors that the various database functions may return.
@@ -745,6 +747,8 @@ func (db *MemDb) RollbackClose() error {
 func (db *MemDb) Sync() error {
 	db.Lock()
 	defer db.Unlock()
+
+	util.Trace()
 
 	if db.closed {
 		return ErrDbClosed

@@ -17,6 +17,8 @@ import (
 	"github.com/FactomProject/btcd/database"
 	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/btcutil"
+
+	"github.com/FactomProject/FactomCode/util"
 )
 
 const (
@@ -176,6 +178,7 @@ func (b *BlockChain) DisableVerify(disable bool) {
 //
 // This function is NOT safe for concurrent access.
 func (b *BlockChain) HaveBlock(hash *wire.ShaHash) (bool, error) {
+	util.Trace()
 	exists, err := b.blockExists(hash)
 	if err != nil {
 		return false, err
