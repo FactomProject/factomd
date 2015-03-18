@@ -45,6 +45,8 @@ func btcdMain(serverChan chan<- *server) error {
 	// Show version at startup.
 	btcdLog.Infof("Version %s", version())
 
+	factomInitFork()
+
 	// Enable http profiling server if requested.
 	if cfg.Profile != "" {
 		go func() {

@@ -575,43 +575,47 @@ func (b *blockManager) handleBlockMsg(bmsg *blockMsg) {
 
 	util.Trace()
 
-	/*
-		// Process the block to include validation, best chain selection, orphan
-		// handling, etc.
-		isOrphan, err := b.blockChain.ProcessBlock(bmsg.block,
-			b.server.timeSource, behaviorFlags)
-		if err != nil {
-			// When the error is a rule error, it means the block was simply
-			// rejected as opposed to something actually going wrong, so log
-			// it as such.  Otherwise, something really did go wrong, so log
-			// it as an actual error.
-			if _, ok := err.(blockchain.RuleError); ok {
-				bmgrLog.Infof("Rejected block %v from %s: %v", blockSha,
-					bmsg.peer, err)
-			} else {
-				bmgrLog.Errorf("Failed to process block %v: %v",
-					blockSha, err)
-			}
+	// Process the block to include validation, best chain selection, orphan
+	// handling, etc.
+	isOrphan, err := b.blockChain.ProcessBlock(bmsg.block,
+		//		b.server.timeSource, behaviorFlags)
+		b.server.timeSource, 0)
 
-			// Convert the error into an appropriate reject message and
-			// send it.
-			code, reason := errToRejectErr(err)
-			bmsg.peer.PushRejectMsg(wire.CmdBlock, code, reason,
-				blockSha, false)
-			return
+	util.Trace()
+	if err != nil {
+		// When the error is a rule error, it means the block was simply
+		// rejected as opposed to something actually going wrong, so log
+		// it as such.  Otherwise, something really did go wrong, so log
+		// it as an actual error.
+		if _, ok := err.(blockchain.RuleError); ok {
+			bmgrLog.Infof("Rejected block %v from %s: %v", blockSha,
+				bmsg.peer, err)
+		} else {
+			bmgrLog.Errorf("Failed to process block %v: %v",
+				blockSha, err)
 		}
 
-		// Request the parents for the orphan block from the peer that sent it.
-		if isOrphan {
-			orphanRoot := b.blockChain.GetOrphanRoot(blockSha)
-			locator, err := b.blockChain.LatestBlockLocator()
-			if err != nil {
-				bmgrLog.Warnf("Failed to get block locator for the "+
-					"latest block: %v", err)
-			} else {
-				bmsg.peer.PushGetBlocksMsg(locator, orphanRoot)
-			}
-		} else */{
+		// Convert the error into an appropriate reject message and
+		// send it.
+		code, reason := errToRejectErr(err)
+		bmsg.peer.PushRejectMsg(wire.CmdBlock, code, reason,
+			blockSha, false)
+		return
+	}
+
+	util.Trace()
+
+	// Request the parents for the orphan block from the peer that sent it.
+	if isOrphan {
+		orphanRoot := b.blockChain.GetOrphanRoot(blockSha)
+		locator, err := b.blockChain.LatestBlockLocator()
+		if err != nil {
+			bmgrLog.Warnf("Failed to get block locator for the "+
+				"latest block: %v", err)
+		} else {
+			bmsg.peer.PushGetBlocksMsg(locator, orphanRoot)
+		}
+	} else {
 		// When the block is not an orphan, log information about it and
 		// update the chain state.
 
@@ -852,7 +856,6 @@ func (b *blockManager) handleHeadersMsg(hmsg *headersMsg) {
 // of the main chain, on a side chain, in the orphan pool, and transactions that
 // are in the memory pool (either the main pool or orphan pool).
 func (b *blockManager) haveInventory(invVect *wire.InvVect) (bool, error) {
-	util.Trace()
 	switch invVect.Type {
 	case wire.InvTypeBlock:
 		util.Trace()
@@ -861,7 +864,6 @@ func (b *blockManager) haveInventory(invVect *wire.InvVect) (bool, error) {
 		return b.blockChain.HaveBlock(&invVect.Hash)
 
 	case wire.InvTypeTx:
-		util.Trace()
 		// Ask the transaction memory pool if the transaction is known
 		// to it in any form (main pool or orphan).
 		if b.server.txMemPool.HaveTransaction(&invVect.Hash) {
@@ -1291,7 +1293,7 @@ func (b *blockManager) Start() {
 
 	bmgrLog.Trace("Starting block manager")
 
-	b.factom_bmCheck()
+	b.factomChecks()
 
 	b.wg.Add(1)
 	go b.blockHandler()

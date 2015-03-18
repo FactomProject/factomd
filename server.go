@@ -20,7 +20,7 @@ import (
 	"time"
 
 	"github.com/FactomProject/btcd/addrmgr"
-	//	"github.com/FactomProject/btcd/blockchain"
+	"github.com/FactomProject/btcd/blockchain"
 	"github.com/FactomProject/btcd/chaincfg"
 	"github.com/FactomProject/btcd/database"
 	"github.com/FactomProject/btcd/wire"
@@ -102,7 +102,7 @@ type server struct {
 	quit                 chan struct{}
 	nat                  NAT
 	db                   database.Db
-	//	timeSource           blockchain.MedianTimeSource
+	timeSource           blockchain.MedianTimeSource
 }
 
 type peerState struct {
@@ -1256,7 +1256,7 @@ func newServer(listenAddrs []string, db database.Db, chainParams *chaincfg.Param
 		modifyRebroadcastInv: make(chan interface{}),
 		nat:                  nat,
 		db:                   db,
-		//		timeSource:           blockchain.NewMedianTime(),
+		timeSource:           blockchain.NewMedianTime(),
 	}
 	bm, err := newBlockManager(&s)
 	if err != nil {

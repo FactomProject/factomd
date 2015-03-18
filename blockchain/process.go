@@ -9,6 +9,8 @@ import (
 
 	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/btcutil"
+
+	"github.com/FactomProject/FactomCode/util"
 )
 
 // BehaviorFlags is a bitmask defining tweaks to the normal behavior when
@@ -115,6 +117,8 @@ func (b *BlockChain) processOrphans(hash *wire.ShaHash, flags BehaviorFlags) err
 // any errors that occurred during processing.  The returned bool is only valid
 // when the error is nil.
 func (b *BlockChain) ProcessBlock(block *btcutil.Block, timeSource MedianTimeSource, flags BehaviorFlags) (bool, error) {
+	util.Trace()
+
 	fastAdd := flags&BFFastAdd == BFFastAdd
 	dryRun := flags&BFDryRun == BFDryRun
 
@@ -122,7 +126,7 @@ func (b *BlockChain) ProcessBlock(block *btcutil.Block, timeSource MedianTimeSou
 	if err != nil {
 		return false, err
 	}
-	log.Tracef("Processing block %v", blockHash)
+	log.Infof("Processing block %v", blockHash)
 
 	// The block must not already exist in the main chain or side chains.
 	exists, err := b.blockExists(blockHash)

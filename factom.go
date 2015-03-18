@@ -116,7 +116,12 @@ func global_DeleteMemPoolEntry(hash *wire.ShaHash) {
 	// TODO: ensure mutex-protection
 }
 
-func (b *blockManager) factom_bmCheck() {
+func factomInitFork() {
+	cfg.DisableCheckpoints = true
+}
+
+// check a few btcd-related flags for sanity in our fork
+func (b *blockManager) factomChecks() {
 	util.Trace()
 
 	if b.headersFirstMode {
@@ -127,7 +132,11 @@ func (b *blockManager) factom_bmCheck() {
 		panic(2)
 	}
 
-	if cfg.RegressionTest {
+	if !cfg.DisableCheckpoints {
 		panic(3)
+	}
+
+	if cfg.RegressionTest || cfg.TestNet3 || cfg.SimNet || cfg.Generate {
+		panic(100)
 	}
 }

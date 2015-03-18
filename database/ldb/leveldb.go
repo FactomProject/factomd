@@ -209,9 +209,9 @@ func openDB(dbpath string, create bool) (pbdb database.Db, err error) {
 	}
 
 	opts := &opt.Options{
-		//		BlockCacher: opt.DefaultBlockCacher,
-		Compression: opt.NoCompression,
-		//		OpenFilesCacher: opt.DefaultOpenFilesCacher,
+		BlockCacher:     opt.DefaultBlockCacher,
+		Compression:     opt.NoCompression,
+		OpenFilesCacher: opt.DefaultOpenFilesCacher,
 	}
 
 	switch dbversion {
