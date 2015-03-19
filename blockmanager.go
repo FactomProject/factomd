@@ -1323,17 +1323,24 @@ func (b *blockManager) SyncPeer() *peer {
 	b.msgChan <- getSyncPeerMsg{reply: reply}
 	return <-reply
 }
+*/
 
 // CheckConnectBlock performs several checks to confirm connecting the passed
 // block to the main chain does not violate any rules.  This function makes use
 // of CheckConnectBlock on an internal instance of a block chain.  It is funneled
 // through the block manager since btcchain is not safe for concurrent access.
 func (b *blockManager) CheckConnectBlock(block *btcutil.Block) error {
+	util.Trace()
 	reply := make(chan error)
+	util.Trace()
 	b.msgChan <- checkConnectBlockMsg{block: block, reply: reply}
-	return <-reply
+	util.Trace()
+	err := <-reply
+	util.Trace()
+	return err
 }
 
+/*
 // CalcNextRequiredDifficulty calculates the required difficulty for the next
 // block after the current main chain.  This function makes use of
 // CalcNextRequiredDifficulty on an internal instance of a block chain.  It is
