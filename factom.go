@@ -19,7 +19,11 @@ var (
 )
 
 // start up Factom queue(s) managers/processors
-func factomQueues(s *server) {
+// this is to be called within the btcd's main code
+func factomForkInit(s *server) {
+	// tweak some config options
+	cfg.DisableCheckpoints = true
+
 	local_Server = s // local copy of our server pointer
 
 	// Write outgoing factom messages into P2P network
@@ -152,10 +156,6 @@ func global_DeleteMemPoolEntry(hash *wire.ShaHash) {
 	// TODO: ensure mutex-protection
 }
 
-func factomInitFork() {
-	cfg.DisableCheckpoints = true
-}
-
 // check a few btcd-related flags for sanity in our fork
 func (b *blockManager) factomChecks() {
 	util.Trace()
@@ -175,9 +175,11 @@ func (b *blockManager) factomChecks() {
 	if cfg.RegressionTest || cfg.TestNet3 || cfg.SimNet || cfg.Generate {
 		panic(100)
 	}
+
+	util.Trace()
 }
 
-// feed all incoming Txs to the inner Factom code
+// feed all incoming Txs to the inner Factom code (for Jack)
 // TODO: do this after proper mempool/orphanpool/validity triangulation & checks
 func factomIngressTx_hook(tx *wire.MsgTx) error {
 	util.Trace()

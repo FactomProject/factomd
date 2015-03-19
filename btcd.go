@@ -45,8 +45,6 @@ func btcdMain(serverChan chan<- *server) error {
 	// Show version at startup.
 	btcdLog.Infof("Version %s", version())
 
-	factomInitFork()
-
 	// Enable http profiling server if requested.
 	if cfg.Profile != "" {
 		go func() {
@@ -125,7 +123,7 @@ func btcdMain(serverChan chan<- *server) error {
 	}
 
 	// Factom Additions BEGIN
-	factomQueues(server)
+	factomForkInit(server)
 	// Factom Additions END
 
 	// Monitor for graceful server shutdown and signal the main goroutine

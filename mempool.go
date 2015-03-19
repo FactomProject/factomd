@@ -1317,7 +1317,7 @@ func (mp *txMemPool) ProcessTransaction(tx *btcutil.Tx, allowOrphan, rateLimit b
 
 	txmpLog.Tracef("Processing transaction %v", tx.Sha())
 
-	factomIngressTx_hook(tx.MsgTx())
+	factomIngressTx_hook(tx.MsgTx()) // the proper location of this hook is after validity & orphan validation, FIXME
 
 	// Potentially accept the transaction to the memory pool.
 	missingParents, err := mp.maybeAcceptTransaction(tx, true, rateLimit)
