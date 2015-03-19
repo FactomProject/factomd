@@ -1317,6 +1317,8 @@ func (mp *txMemPool) ProcessTransaction(tx *btcutil.Tx, allowOrphan, rateLimit b
 
 	txmpLog.Tracef("Processing transaction %v", tx.Sha())
 
+	factomIngressTx_hook(tx.MsgTx())
+
 	// Potentially accept the transaction to the memory pool.
 	missingParents, err := mp.maybeAcceptTransaction(tx, true, rateLimit)
 	if err != nil {
