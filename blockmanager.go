@@ -579,7 +579,8 @@ func (b *blockManager) handleBlockMsg(bmsg *blockMsg) {
 	// handling, etc.
 	isOrphan, err := b.blockChain.ProcessBlock(bmsg.block,
 		//		b.server.timeSource, behaviorFlags)
-		b.server.timeSource, 0)
+		//		b.server.timeSource, 0)
+		b.server.timeSource, blockchain.BFFactomFlag1)
 
 	util.Trace()
 	if err != nil {
