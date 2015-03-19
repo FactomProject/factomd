@@ -172,7 +172,7 @@ func (b *blockManager) factomChecks() {
 		panic(3)
 	}
 
-	if cfg.RegressionTest || cfg.TestNet3 || cfg.SimNet || cfg.Generate {
+	if cfg.RegressionTest || cfg.SimNet || cfg.Generate {
 		panic(100)
 	}
 
