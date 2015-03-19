@@ -7,6 +7,7 @@ package wire
 import (
 	"github.com/FactomProject/FactomCode/notaryapi"
 	"io"
+	"bytes"	
 )
 
 type MsgAcknowledgement struct {
@@ -62,4 +63,15 @@ func NewMsgAcknowledgement(height uint64, index uint32, affirm *ShaHash) *MsgAck
 		Index:       index,
 		Affirmation: affirm,
 	}
+}
+
+// Create a sha hash from the message binary (output of BtcEncode)
+func (msg *MsgAcknowledgement) Sha() (ShaHash, error) {
+
+	buf := bytes.NewBuffer(nil)
+	msg.BtcEncode(buf, ProtocolVersion)
+	var sha ShaHash
+	_ = sha.SetBytes(Sha256(buf.Bytes()))	
+	
+	return sha, nil
 }

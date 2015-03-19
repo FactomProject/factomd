@@ -7,6 +7,7 @@ package wire
 import (
 	"github.com/FactomProject/FactomCode/notaryapi"
 	"io"
+	"bytes"	
 )
 
 // MsgRevealChain implements the Message interface and represents a factom
@@ -67,4 +68,15 @@ func (msg *MsgRevealChain) MaxPayloadLength(pver uint32) uint32 {
 // interface.  See MsgInv for details.
 func NewMsgRevealChain() *MsgRevealChain {
 	return &MsgRevealChain{}
+}
+
+// Create a sha hash from the message binary (output of BtcEncode)
+func (msg *MsgRevealChain) Sha() (ShaHash, error) {
+
+	buf := bytes.NewBuffer(nil)
+	msg.BtcEncode(buf, ProtocolVersion)
+	var sha ShaHash
+	_ = sha.SetBytes(Sha256(buf.Bytes()))	
+	
+	return sha, nil
 }
