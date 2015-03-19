@@ -529,3 +529,10 @@ func DoubleSha256(b []byte) []byte {
 	hasher.Write(sum)
 	return hasher.Sum(nil)
 }
+
+// Sha256 calculates sha256(b)) and returns the resulting bytes.
+func Sha256(b []byte) []byte {
+	hasher := fastsha256.New()
+	hasher.Write(b)
+	return hasher.Sum(nil)
+}
