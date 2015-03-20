@@ -156,6 +156,10 @@ func global_DeleteMemPoolEntry(hash *wire.ShaHash) {
 	// TODO: ensure mutex-protection
 }
 
+func factomSetupOverrides() {
+	//	factomd.FactomOverride.TxIgnoreMissingParents = true
+}
+
 // check a few btcd-related flags for sanity in our fork
 func (b *blockManager) factomChecks() {
 	util.Trace()

@@ -118,7 +118,7 @@ type processBlockResponse struct {
 // way to call ProcessBlock on the internal block chain instance.
 type processBlockMsg struct {
 	block *btcutil.Block
-	//	flags blockchain.BehaviorFlags
+	flags blockchain.BehaviorFlags
 	reply chan processBlockResponse
 }
 
@@ -375,7 +375,6 @@ func (b *blockManager) isSyncCandidate(p *peer) bool {
 // be considered as a sync peer (they have already successfully negotiated).  It
 // also starts syncing if needed.  It is invoked from the syncHandler goroutine.
 func (b *blockManager) handleNewPeerMsg(peers *list.List, p *peer) {
-	util.Trace()
 	// Ignore if in the process of shutting down.
 	if atomic.LoadInt32(&b.shutdown) != 0 {
 		return
@@ -1227,7 +1226,7 @@ func (b *blockManager) NewPeer(p *peer) {
 // QueueTx adds the passed transaction message and peer to the block handling
 // queue.
 func (b *blockManager) QueueTx(tx *btcutil.Tx, p *peer) {
-	util.Trace()
+	//	util.Trace()
 	// Don't accept more transactions if we're shutting down.
 	if atomic.LoadInt32(&b.shutdown) != 0 {
 		p.txProcessed <- struct{}{}
@@ -1250,7 +1249,7 @@ func (b *blockManager) QueueBlock(block *btcutil.Block, p *peer) {
 
 // QueueInv adds the passed inv message and peer to the block handling queue.
 func (b *blockManager) QueueInv(inv *wire.MsgInv, p *peer) {
-	util.Trace()
+	//	util.Trace()
 	// No channel handling here because peers do not need to block on inv
 	// messages.
 	if atomic.LoadInt32(&b.shutdown) != 0 {
@@ -1352,17 +1351,17 @@ func (b *blockManager) CalcNextRequiredDifficulty(timestamp time.Time) (uint32, 
 	response := <-reply
 	return response.difficulty, response.err
 }
+*/
 
 // ProcessBlock makes use of ProcessBlock on an internal instance of a block
 // chain.  It is funneled through the block manager since btcchain is not safe
 // for concurrent access.
-func (b *blockManager) ProcessBlock(block *btcutil.Block, flags blockchain.BehaviorFlags) (bool, error) {
+func (b *blockManager) bm_ProcessBlock(block *btcutil.Block, flags blockchain.BehaviorFlags) (bool, error) {
 	reply := make(chan processBlockResponse, 1)
 	b.msgChan <- processBlockMsg{block: block, flags: flags, reply: reply}
 	response := <-reply
 	return response.isOrphan, response.err
 }
-*/
 
 // IsCurrent returns whether or not the block manager believes it is synced with
 // the connected peers.

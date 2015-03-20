@@ -14,6 +14,7 @@ func realMain() {
 	factomd.Factomd_init()
 	factomd.Factomd_main()
 
+	go test_timer()
 	util.Trace()
 	btcd_main()
 }
