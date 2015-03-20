@@ -158,6 +158,8 @@ func global_DeleteMemPoolEntry(hash *wire.ShaHash) {
 
 func factomSetupOverrides() {
 	//	factomd.FactomOverride.TxIgnoreMissingParents = true
+	factomd.FactomOverride.TxOrphansInsteadOfMempool = true
+	factomd.FactomOverride.BlockDisableChecks = true
 }
 
 // check a few btcd-related flags for sanity in our fork

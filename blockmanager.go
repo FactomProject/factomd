@@ -1058,11 +1058,13 @@ out:
 
 					case getSyncPeerMsg:
 						msg.reply <- b.syncPeer
+				*/
 
-					case checkConnectBlockMsg:
-						err := b.blockChain.CheckConnectBlock(msg.block)
-						msg.reply <- err
+			case checkConnectBlockMsg:
+				err := b.blockChain.CheckConnectBlock(msg.block)
+				msg.reply <- err
 
+				/*
 					case calcNextReqDifficultyMsg:
 						difficulty, err :=
 							b.blockChain.CalcNextRequiredDifficulty(

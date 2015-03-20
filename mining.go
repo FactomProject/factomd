@@ -15,6 +15,9 @@ import (
 	"github.com/FactomProject/btcd/txscript"
 	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/btcutil"
+
+	"github.com/FactomProject/FactomCode/factomd"
+	"github.com/FactomProject/FactomCode/util"
 )
 
 const (
@@ -424,7 +427,7 @@ func medianAdjustedTime(chainState *chainState) (time.Time, error) {
 //  |  transactions (while block size   |   |
 //  |  <= cfg.BlockMinSize)             |   |
 //   -----------------------------------  --
-func NewBlockTemplate(mempool *txMemPool, payToAddress btcutil.Address) (*BlockTemplate, error) {
+func old_NewBlockTemplate(mempool *txMemPool, payToAddress btcutil.Address) (*BlockTemplate, error) {
 	blockManager := mempool.server.blockManager
 	chainState := &blockManager.chainState
 	chain := blockManager.blockChain
@@ -462,7 +465,18 @@ func NewBlockTemplate(mempool *txMemPool, payToAddress btcutil.Address) (*BlockT
 	// Also, choose the initial sort order for the priority queue based on
 	// whether or not there is an area allocated for high-priority
 	// transactions.
-	mempoolTxns := mempool.TxDescs()
+
+	var mempoolTxns []*TxDesc
+
+	if !factomd.FactomOverride.TxOrphansInsteadOfMempool {
+		util.Trace()
+		mempoolTxns = mempool.TxDescs()
+	} else {
+		util.Trace()
+		mempoolTxns = mempool.myDescs()
+	}
+	util.Trace()
+
 	sortedByFee := cfg.BlockPrioritySize == 0
 	priorityQueue := newTxPriorityQueue(len(mempoolTxns), sortedByFee)
 
