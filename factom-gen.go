@@ -30,10 +30,7 @@ import (
 type CPUMINER struct {
 	sync.Mutex
 	server          *server
-	numWorkers      uint32
-	started         bool
 	submitBlockLock sync.Mutex
-	wg              sync.WaitGroup
 }
 
 // generateBlocks is a worker that is controlled by the miningWorkerController.
@@ -49,6 +46,7 @@ func test_generateBlocks() {
 
 	var cpum CPUMINER
 	m := &cpum
+	m.server = local_Server
 
 	/*
 		// Start a ticker which is used to signal checks for stale work and
@@ -92,6 +90,9 @@ func test_generateBlocks() {
 	util.Trace()
 	curHeight := int64(0)
 
+	block := btcutil.NewBlock(template.block)
+	fmt.Println(spew.Sdump(block))
+
 	// Attempt to solve the block.  The function will exit early
 	// with false when conditions that trigger a stale block, so
 	// a new block template can be generated.  When the return is
@@ -105,8 +106,7 @@ func test_generateBlocks() {
 		}
 	*/
 
-	block := btcutil.NewBlock(template.block)
-	fmt.Println(spew.Sdump(block))
+	m.test_submitBlock(block)
 
 	//	m.workerWg.Done()
 	minrLog.Infof("Generate blocks worker done; height= ", curHeight)
@@ -185,6 +185,55 @@ func (mp *txMemPool) myDescs() []*TxDesc {
 	util.Trace("collected " + fmt.Sprintf("%d", i) + " orphans as FAKE TXs for the block")
 
 	return descs
+}
+
+// submitBlock submits the passed block to network after ensuring it passes all
+// of the consensus validation rules.
+func (m *CPUMINER) test_submitBlock(block *btcutil.Block) bool {
+	m.submitBlockLock.Lock()
+	defer m.submitBlockLock.Unlock()
+
+	util.Trace()
+
+	// Ensure the block is not stale since a new block could have shown up
+	// while the solution was being found.  Typically that condition is
+	// detected and all work on the stale block is halted to start work on
+	// a new block, but the check only happens periodically, so it is
+	// possible a block was found and submitted in between.
+	latestHash, _ := m.server.blockManager.chainState.Best()
+	msgBlock := block.MsgBlock()
+	if !msgBlock.Header.PrevBlock.IsEqual(latestHash) {
+		minrLog.Debugf("Block submitted via CPU miner with previous "+
+			"block %s is stale", msgBlock.Header.PrevBlock)
+		return false
+	}
+
+	// Process this block using the same rules as blocks coming from other
+	// nodes.  This will in turn relay it to the network like normal.
+	isOrphan, err := m.server.blockManager.bm_ProcessBlock(block, blockchain.BFNone)
+	if err != nil {
+		// Anything other than a rule violation is an unexpected error,
+		// so log that error as an internal error.
+		if _, ok := err.(blockchain.RuleError); !ok {
+			minrLog.Errorf("Unexpected error while processing "+
+				"block submitted via CPU miner: %v", err)
+			return false
+		}
+
+		minrLog.Debugf("Block submitted via CPU miner rejected: %v", err)
+		return false
+	}
+	if isOrphan {
+		minrLog.Debugf("Block submitted via CPU miner is an orphan")
+		return false
+	}
+
+	// The block was accepted.
+	blockSha, _ := block.Sha()
+	coinbaseTx := block.MsgBlock().Transactions[0].TxOut[0]
+	minrLog.Infof("Block submitted via CPU miner accepted (hash %s, "+
+		"amount %v)", blockSha, btcutil.Amount(coinbaseTx.Value))
+	return true
 }
 
 // NewBlockTemplate returns a new block template that is ready to be solved

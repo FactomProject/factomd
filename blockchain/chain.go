@@ -748,6 +748,7 @@ func (b *BlockChain) getReorganizeNodes(node *blockNode) (*list.List, *list.List
 // connectBlock handles connecting the passed node/block to the end of the main
 // (best) chain.
 func (b *BlockChain) connectBlock(node *blockNode, block *btcutil.Block) error {
+	util.Trace()
 	// Make sure it's extending the end of the best chain.
 	prevHash := &block.MsgBlock().Header.PrevBlock
 	if b.bestChain != nil && !prevHash.IsEqual(b.bestChain.hash) {

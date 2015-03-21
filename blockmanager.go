@@ -1075,30 +1075,28 @@ out:
 						}
 				*/
 
-				/*
-					case processBlockMsg:
-						util.Trace()
-						isOrphan, err := b.blockChain.ProcessBlock(
-							msg.block, b.server.timeSource,
-							msg.flags)
-						if err != nil {
-							msg.reply <- processBlockResponse{
-								isOrphan: false,
-								err:      err,
-							}
-						}
+			case processBlockMsg:
+				util.Trace()
+				isOrphan, err := b.blockChain.ProcessBlock(
+					msg.block, b.server.timeSource,
+					msg.flags)
+				if err != nil {
+					msg.reply <- processBlockResponse{
+						isOrphan: false,
+						err:      err,
+					}
+				}
 
-						// Query the db for the latest best block since
-						// the block that was processed could be on a
-						// side chain or have caused a reorg.
-						newestSha, newestHeight, _ := b.server.db.NewestSha()
-						b.updateChainState(newestSha, newestHeight)
+				// Query the db for the latest best block since
+				// the block that was processed could be on a
+				// side chain or have caused a reorg.
+				newestSha, newestHeight, _ := b.server.db.NewestSha()
+				b.updateChainState(newestSha, newestHeight)
 
-						msg.reply <- processBlockResponse{
-							isOrphan: isOrphan,
-							err:      nil,
-						}
-				*/
+				msg.reply <- processBlockResponse{
+					isOrphan: isOrphan,
+					err:      nil,
+				}
 
 			case isCurrentMsg:
 				msg.reply <- b.current()
@@ -1359,6 +1357,7 @@ func (b *blockManager) CalcNextRequiredDifficulty(timestamp time.Time) (uint32, 
 // chain.  It is funneled through the block manager since btcchain is not safe
 // for concurrent access.
 func (b *blockManager) bm_ProcessBlock(block *btcutil.Block, flags blockchain.BehaviorFlags) (bool, error) {
+	util.Trace()
 	reply := make(chan processBlockResponse, 1)
 	b.msgChan <- processBlockMsg{block: block, flags: flags, reply: reply}
 	response := <-reply

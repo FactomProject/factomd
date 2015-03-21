@@ -15,9 +15,6 @@ import (
 	"github.com/FactomProject/btcd/txscript"
 	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/btcutil"
-
-	"github.com/FactomProject/FactomCode/factomd"
-	"github.com/FactomProject/FactomCode/util"
 )
 
 const (
@@ -465,18 +462,7 @@ func old_NewBlockTemplate(mempool *txMemPool, payToAddress btcutil.Address) (*Bl
 	// Also, choose the initial sort order for the priority queue based on
 	// whether or not there is an area allocated for high-priority
 	// transactions.
-
-	var mempoolTxns []*TxDesc
-
-	if !factomd.FactomOverride.TxOrphansInsteadOfMempool {
-		util.Trace()
-		mempoolTxns = mempool.TxDescs()
-	} else {
-		util.Trace()
-		mempoolTxns = mempool.myDescs()
-	}
-	util.Trace()
-
+	mempoolTxns := mempool.TxDescs()
 	sortedByFee := cfg.BlockPrioritySize == 0
 	priorityQueue := newTxPriorityQueue(len(mempoolTxns), sortedByFee)
 
