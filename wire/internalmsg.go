@@ -8,7 +8,10 @@ import (
 const (
 
 	// Factom internal messages:
-	CmdInt_AddPLI     = "int_addpli"
+	CmdInt_FactoidObj     = "int_factoidobj"
+	CmdInt_FactoidTxHash     = "int_txhash"	
+	CmdInt_EOM     = "int_eom"	
+	
 )
 
 
@@ -19,12 +22,32 @@ type FtmInternalMsg interface {
 }
 
 
-// response to a getdata message (MsgGetData) for a given block hash.
-type MsgInt_PLI struct {
-	Transactions []*MsgTx
+// Factoid Obj to carry factoid transation data to constuct the Process lit item.
+type MsgInt_FactoidObj struct {
+	//Transactions []*MsgTx
 }
 
-// AddTransaction adds a transaction to the message.
-func (msg *MsgInt_PLI) Command() string {
-	return CmdInt_AddPLI
-} 
+// Factoid Obj to carry factoid transation data to constuct the Process lit item.
+func (msg *MsgInt_FactoidObj) Command() string {
+	return CmdInt_FactoidObj
+}
+
+// Factoid transaction hash for commnunications between Goroutines
+type MsgInt_TxHash struct {
+	Hash *ShaHash
+}
+
+// Factoid transaction hash for commnunications between Goroutines
+func (msg *MsgInt_TxHash) Command() string {
+	return CmdInt_FactoidTxHash
+}  
+
+// End-of-Minute internal message for time commnunications between Goroutines
+type MsgInt_EOM struct {
+	EOM_Type byte
+}
+
+// End-of-Minute internal message for time commnunications between Goroutines
+func (msg *MsgInt_EOM) Command() string {
+	return CmdInt_EOM
+}  

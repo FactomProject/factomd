@@ -29,7 +29,10 @@ func factomForkInit(s *server) {
 	// Write outgoing factom messages into P2P network
 	go func() {
 		for msg := range factomd.OutMsgQueue {
-			s.BroadcastMessage(msg)
+			wireMsg, ok := msg.(wire.Message)	
+			if ok {			
+				s.BroadcastMessage(wireMsg)
+			}
 			/*      peerInfoResults := server.PeerInfo()
 			        for peerInfo := range peerInfoResults{
 			          fmt.Printf("PeerInfo:%+v", peerInfo)
