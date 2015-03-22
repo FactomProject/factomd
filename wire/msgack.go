@@ -9,14 +9,34 @@ import (
 	"io"
 	"bytes"	
 )
-
+// Acknowledgement Type
+const (
+	ACK_COMMIT_ENTRY uint8 = iota
+	ACK_REVEAL_ENTRY
+	ACK_COMMIT_CHAIN
+	ACK_REVEAL_CHAIN
+	ACK_FACTOID_TX
+	ACK_END_MINUTE_1
+	ACK_END_MINUTE_2
+	ACK_END_MINUTE_3
+	ACK_END_MINUTE_4
+	ACK_END_MINUTE_5
+	ACK_END_MINUTE_6
+	ACK_END_MINUTE_7
+	ACK_END_MINUTE_8
+	ACK_END_MINUTE_9
+	ACK_END_MINUTE_10
+)
+	
 type MsgAcknowledgement struct {
 	Height      uint64
 	ChainID     *notaryapi.Hash
 	Index       uint32
+	Type 		byte	
 	Affirmation *ShaHash // affirmation value -- hash of the message/object in question
 	SerialHash  [32]byte
 	Signature   [64]byte
+
 }
 
 // BtcDecode decodes r using the bitcoin protocol encoding into the receiver.
@@ -57,11 +77,12 @@ func (msg *MsgAcknowledgement) MaxPayloadLength(pver uint32) uint32 {
 
 // NewMsgAcknowledgement returns a new bitcoin ping message that conforms to the Message
 // interface.  See MsgAcknowledgement for details.
-func NewMsgAcknowledgement(height uint64, index uint32, affirm *ShaHash) *MsgAcknowledgement {
+func NewMsgAcknowledgement(height uint64, index uint32, affirm *ShaHash, ackType byte) *MsgAcknowledgement {
 	return &MsgAcknowledgement{
 		Height:      height,
 		Index:       index,
 		Affirmation: affirm,
+		Type: 		 ackType,
 	}
 }
 
