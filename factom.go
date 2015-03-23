@@ -11,7 +11,7 @@ import (
 	"github.com/FactomProject/FactomCode/factomd"
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/btcd/wire"
-	"github.com/FactomProject/btcutil"
+	//	"github.com/FactomProject/btcutil"
 )
 
 var (
@@ -29,8 +29,8 @@ func factomForkInit(s *server) {
 	// Write outgoing factom messages into P2P network
 	go func() {
 		for msg := range factomd.OutMsgQueue {
-			wireMsg, ok := msg.(wire.Message)	
-			if ok {			
+			wireMsg, ok := msg.(wire.Message)
+			if ok {
 				s.BroadcastMessage(wireMsg)
 			}
 			/*      peerInfoResults := server.PeerInfo()
@@ -141,6 +141,7 @@ func (p *peer) FactomRelay(msg wire.Message) {
 	}
 }
 
+/*
 // func (pl *ProcessList) AddFtmTxToProcessList(msg wire.Message, msgHash *wire.ShaHash) error {
 func fakehook1(msg wire.Message, msgHash *wire.ShaHash) error {
 	return nil
@@ -153,6 +154,7 @@ func factom_PL_hook(tx *btcutil.Tx, label string) error {
 
 	return nil
 }
+*/
 
 // for Jack
 func global_DeleteMemPoolEntry(hash *wire.ShaHash) {
@@ -193,7 +195,16 @@ func (b *blockManager) factomChecks() {
 func factomIngressTx_hook(tx *wire.MsgTx) error {
 	util.Trace()
 
-	factomd.InMsgQueue <- tx
+	var ecmap []wire.EntryCreditMap
+
+	//	fo := IngMsg_FactoidObj{tx.MsgTx(), tx.Sha(), nil}
+
+	fo := wire.MsgInt_FactoidObj{*tx, ecmap}
+
+	fmt.Println("ecmap len =", len(ecmap))
+
+	//	factomd.InMsgQueue <- tx
+	factomd.InMsgQueue <- fo
 
 	return nil
 }
