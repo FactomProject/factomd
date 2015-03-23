@@ -15,7 +15,7 @@ func realMain() {
 	factomd.Factomd_main()
 
 	factomSetupOverrides()
-	go test_timer()
+	//	go test_timer() // block-writing tests timer
 
 	util.Trace()
 	btcd_main()
