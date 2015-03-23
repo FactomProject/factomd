@@ -17,15 +17,10 @@ type FtmInternalMsg interface {
 	Command() string
 }
 
-type EntryCreditMap struct {
-	pubkey ShaHash
-	value  uint64
-}
-
 // Factoid Obj to carry factoid transation data to constuct the Process lit item.
 type MsgInt_FactoidObj struct {
-	FactoidTx MsgTx // Jack: get the TX hash this way: FactoidTx.TxSha()
-	EC_map    []EntryCreditMap
+	FactoidTx    MsgTx              // Jack: get the TX hash this way: FactoidTx.TxSha()
+	EntryCredits map[ShaHash]uint64 // TODO: this should really be a single-hash per Brian (?)
 }
 
 // Factoid Obj to carry factoid transation data to constuct the Process lit item.

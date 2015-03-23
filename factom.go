@@ -195,9 +195,13 @@ func (b *blockManager) factomChecks() {
 func factomIngressTx_hook(tx *wire.MsgTx) error {
 	util.Trace()
 
-	var ecmap []wire.EntryCreditMap
+	//	var ecmap map[wire.ShaHash]uint64
+	ecmap := make(map[wire.ShaHash]uint64)
 
-	//	fo := IngMsg_FactoidObj{tx.MsgTx(), tx.Sha(), nil}
+	txid, _ := tx.TxSha()
+	hash, _ := wire.NewShaHash(wire.Sha256(txid.Bytes()))
+
+	ecmap[*hash] = 1
 
 	fo := wire.MsgInt_FactoidObj{*tx, ecmap}
 
