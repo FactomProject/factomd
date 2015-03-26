@@ -7,7 +7,6 @@ const (
 
 	// Factom internal messages:
 	CmdInt_FactoidObj    = "int_factoidobj"
-	CmdInt_FactoidTxHash = "int_txhash"
 	CmdInt_EOM           = "int_eom"
 )
 
@@ -19,7 +18,8 @@ type FtmInternalMsg interface {
 
 // Factoid Obj to carry factoid transation data to constuct the Process lit item.
 type MsgInt_FactoidObj struct {
-	FactoidTx    MsgTx              // Jack: get the TX hash this way: FactoidTx.TxSha()
+	FactoidTx    *MsgTx       
+	TxSha		 *ShaHash       
 	EntryCredits map[ShaHash]uint64 // TODO: this should really be a single-hash per Brian (?)
 }
 
@@ -28,18 +28,6 @@ type MsgInt_FactoidObj struct {
 func (msg MsgInt_FactoidObj) Command() string {
 	return CmdInt_FactoidObj
 }
-
-/* SEE ABOVE: FactoidTx.TxSha()
-// Factoid transaction hash for commnunications between Goroutines
-type MsgInt_TxHash struct {
-	Hash *ShaHash
-}
-
-// Factoid transaction hash for commnunications between Goroutines
-func (msg *MsgInt_TxHash) Command() string {
-	return CmdInt_FactoidTxHash
-}
-*/
 
 // End-of-Minute internal message for time commnunications between Goroutines
 type MsgInt_EOM struct {
