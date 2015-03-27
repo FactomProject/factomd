@@ -11,11 +11,7 @@ import (
 )
 // Acknowledgement Type
 const (
-	ACK_COMMIT_ENTRY uint8 = iota
-	ACK_REVEAL_ENTRY
-	ACK_COMMIT_CHAIN
-	ACK_REVEAL_CHAIN
-	ACK_FACTOID_TX
+	ACK_FACTOID_TX uint8 = iota
 	END_MINUTE_1
 	END_MINUTE_2
 	END_MINUTE_3
@@ -26,6 +22,10 @@ const (
 	END_MINUTE_8
 	END_MINUTE_9
 	END_MINUTE_10
+	ACK_REVEAL_ENTRY
+	ACK_COMMIT_CHAIN
+	ACK_REVEAL_CHAIN
+	ACK_COMMIT_ENTRY	
 )
 	
 type MsgAcknowledgement struct {

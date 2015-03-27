@@ -32,6 +32,7 @@ func (msg MsgInt_FactoidObj) Command() string {
 // End-of-Minute internal message for time commnunications between Goroutines
 type MsgInt_EOM struct {
 	EOM_Type byte
+	NextDBlockHeight uint64	
 }
 
 // End-of-Minute internal message for time commnunications between Goroutines
