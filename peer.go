@@ -21,7 +21,7 @@ import (
 	"github.com/FactomProject/btcd/database"
 	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/btcutil"
-	"github.com/FactomProject/btcutil/bloom"
+	//	"github.com/FactomProject/btcutil/bloom"
 	"github.com/FactomProject/go-socks/socks"
 	"github.com/davecgh/go-spew/spew"
 
@@ -166,32 +166,32 @@ type peer struct {
 	prevGetHdrsBegin   *wire.ShaHash // owned by blockmanager
 	prevGetHdrsStop    *wire.ShaHash // owned by blockmanager
 	requestQueue       []*wire.InvVect
-	filter             *bloom.Filter
-	relayMtx           sync.Mutex
-	disableRelayTx     bool
-	continueHash       *wire.ShaHash
-	outputQueue        chan outMsg
-	sendQueue          chan outMsg
-	sendDoneQueue      chan struct{}
-	queueWg            sync.WaitGroup // TODO(oga) wg -> single use channel?
-	outputInvChan      chan *wire.InvVect
-	txProcessed        chan struct{}
-	blockProcessed     chan struct{}
-	quit               chan struct{}
-	StatsMtx           sync.Mutex // protects all statistics below here.
-	versionKnown       bool
-	protocolVersion    uint32
-	services           wire.ServiceFlag
-	timeConnected      time.Time
-	lastSend           time.Time
-	lastRecv           time.Time
-	bytesReceived      uint64
-	bytesSent          uint64
-	userAgent          string
-	lastBlock          int32
-	lastPingNonce      uint64    // Set to nonce if we have a pending ping.
-	lastPingTime       time.Time // Time we sent last ping.
-	lastPingMicros     int64     // Time for last ping to return.
+	//	filter             *bloom.Filter
+	relayMtx        sync.Mutex
+	disableRelayTx  bool
+	continueHash    *wire.ShaHash
+	outputQueue     chan outMsg
+	sendQueue       chan outMsg
+	sendDoneQueue   chan struct{}
+	queueWg         sync.WaitGroup // TODO(oga) wg -> single use channel?
+	outputInvChan   chan *wire.InvVect
+	txProcessed     chan struct{}
+	blockProcessed  chan struct{}
+	quit            chan struct{}
+	StatsMtx        sync.Mutex // protects all statistics below here.
+	versionKnown    bool
+	protocolVersion uint32
+	services        wire.ServiceFlag
+	timeConnected   time.Time
+	lastSend        time.Time
+	lastRecv        time.Time
+	bytesReceived   uint64
+	bytesSent       uint64
+	userAgent       string
+	lastBlock       int32
+	lastPingNonce   uint64    // Set to nonce if we have a pending ping.
+	lastPingTime    time.Time // Time we sent last ping.
+	lastPingMicros  int64     // Time for last ping to return.
 }
 
 // String returns the peer's address and directionality as a human-readable
@@ -533,6 +533,7 @@ func (p *peer) pushBlockMsg(sha *wire.ShaHash, doneChan, waitChan chan struct{})
 	return nil
 }
 
+/*
 // pushMerkleBlockMsg sends a merkleblock message for the provided block hash to
 // the connected peer.  Since a merkle block requires the peer to have a filter
 // loaded, this call will simply be ignored if there is no filter loaded.  An
@@ -608,6 +609,7 @@ func (p *peer) pushMerkleBlockMsg(sha *wire.ShaHash, doneChan, waitChan chan str
 
 	return nil
 }
+*/
 
 // PushGetBlocksMsg sends a getblocks message for the provided block locator
 // and stop hash.  It will ignore back-to-back duplicate requests.
@@ -721,6 +723,7 @@ func (p *peer) PushRejectMsg(command string, code wire.RejectCode, reason string
 	<-doneChan
 }
 
+/*
 // handleMemPoolMsg is invoked when a peer receives a mempool bitcoin message.
 // It creates and sends an inventory message with the contents of the memory
 // pool up to the maximum inventory allowed per message.  When the peer has a
@@ -759,6 +762,7 @@ func (p *peer) handleMemPoolMsg(msg *wire.MsgMemPool) {
 		p.QueueMessage(invMsg, nil)
 	}
 }
+*/
 
 // handleTxMsg is invoked when a peer receives a tx bitcoin message.  It blocks
 // until the bitcoin transaction has been fully processed.  Unlock the block
@@ -861,8 +865,10 @@ func (p *peer) handleGetDataMsg(msg *wire.MsgGetData) {
 			err = p.pushTxMsg(&iv.Hash, c, waitChan)
 		case wire.InvTypeBlock:
 			err = p.pushBlockMsg(&iv.Hash, c, waitChan)
-		case wire.InvTypeFilteredBlock:
-			err = p.pushMerkleBlockMsg(&iv.Hash, c, waitChan)
+			/*
+				case wire.InvTypeFilteredBlock:
+					err = p.pushMerkleBlockMsg(&iv.Hash, c, waitChan)
+			*/
 		default:
 			peerLog.Warnf("Unknown type in inventory request %d",
 				iv.Type)
@@ -1072,6 +1078,7 @@ func (p *peer) handleGetHeadersMsg(msg *wire.MsgGetHeaders) {
 }
 */
 
+/*
 // handleFilterAddMsg is invoked when a peer receives a filteradd bitcoin
 // message and is used by remote peers to add data to an already loaded bloom
 // filter.  The peer will be disconnected if a filter is not loaded when this
@@ -1113,6 +1120,7 @@ func (p *peer) handleFilterLoadMsg(msg *wire.MsgFilterLoad) {
 
 	p.filter.Reload(msg)
 }
+*/
 
 // handleGetAddrMsg is invoked when a peer receives a getaddr bitcoin message
 // and is used to provide the peer with known addresses from the address
@@ -1495,8 +1503,10 @@ out:
 			// implementions' alert messages, we will not relay
 			// theirs.
 
-		case *wire.MsgMemPool:
-			p.handleMemPoolMsg(msg)
+			/*
+				case *wire.MsgMemPool:
+					p.handleMemPoolMsg(msg)
+			*/
 
 		case *wire.MsgTx:
 			p.peer_HandleTxMsg(msg)
@@ -1529,16 +1539,16 @@ out:
 			/*
 				case *wire.MsgGetHeaders:
 					p.handleGetHeadersMsg(msg)
+
+				case *wire.MsgFilterAdd:
+					p.handleFilterAddMsg(msg)
+
+				case *wire.MsgFilterClear:
+					p.handleFilterClearMsg(msg)
+
+				case *wire.MsgFilterLoad:
+					p.handleFilterLoadMsg(msg)
 			*/
-
-		case *wire.MsgFilterAdd:
-			p.handleFilterAddMsg(msg)
-
-		case *wire.MsgFilterClear:
-			p.handleFilterClearMsg(msg)
-
-		case *wire.MsgFilterLoad:
-			p.handleFilterLoadMsg(msg)
 
 		case *wire.MsgReject:
 			// Nothing to do currently.  Logging of the rejected
@@ -1940,14 +1950,14 @@ func newPeerBase(s *server, inbound bool) *peer {
 		knownInventory:  NewMruInventoryMap(maxKnownInventory),
 		requestedTxns:   make(map[wire.ShaHash]struct{}),
 		requestedBlocks: make(map[wire.ShaHash]struct{}),
-		filter:          bloom.LoadFilter(nil),
-		outputQueue:     make(chan outMsg, outputBufferSize),
-		sendQueue:       make(chan outMsg, 1),   // nonblocking sync
-		sendDoneQueue:   make(chan struct{}, 1), // nonblocking sync
-		outputInvChan:   make(chan *wire.InvVect, outputBufferSize),
-		txProcessed:     make(chan struct{}, 1),
-		blockProcessed:  make(chan struct{}, 1),
-		quit:            make(chan struct{}),
+		//		filter:          bloom.LoadFilter(nil),
+		outputQueue:    make(chan outMsg, outputBufferSize),
+		sendQueue:      make(chan outMsg, 1),   // nonblocking sync
+		sendDoneQueue:  make(chan struct{}, 1), // nonblocking sync
+		outputInvChan:  make(chan *wire.InvVect, outputBufferSize),
+		txProcessed:    make(chan struct{}, 1),
+		blockProcessed: make(chan struct{}, 1),
+		quit:           make(chan struct{}),
 	}
 	return &p
 }

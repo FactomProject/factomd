@@ -5,12 +5,13 @@
 package blockchain
 
 import (
-	"encoding/binary"
+	//	"encoding/binary"
 	"fmt"
 	"math"
 	"math/big"
 	"time"
 
+	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/btcd/chaincfg"
 	"github.com/FactomProject/btcd/database"
 	"github.com/FactomProject/btcd/txscript"
@@ -28,18 +29,21 @@ const (
 	// is generated per 10 minutes, this allows blocks for about 9,512
 	// years.  However, if the field is interpreted as a timestamp, given
 	// the lock time is a uint32, the max is sometime around 2106.
-	lockTimeThreshold uint32 = 5e8 // Tue Nov 5 00:53:20 1985 UTC
+	//	lockTimeThreshold uint32 = 5e8 // Tue Nov 5 00:53:20 1985 UTC
+	lockTimeThreshold int64 = 5e8 // Tue Nov 5 00:53:20 1985 UTC  // FIXME TODO
 
 	// MaxTimeOffsetSeconds is the maximum number of seconds a block time
 	// is allowed to be ahead of the current time.  This is currently 2
 	// hours.
 	MaxTimeOffsetSeconds = 2 * 60 * 60
 
-	// MinCoinbaseScriptLen is the minimum length a coinbase script can be.
-	MinCoinbaseScriptLen = 2
+	/*
+		// MinCoinbaseScriptLen is the minimum length a coinbase script can be.
+		MinCoinbaseScriptLen = 2
 
-	// MaxCoinbaseScriptLen is the maximum length a coinbase script can be.
-	MaxCoinbaseScriptLen = 100
+		// MaxCoinbaseScriptLen is the maximum length a coinbase script can be.
+		MaxCoinbaseScriptLen = 100
+	*/
 
 	// medianTimeBlocks is the number of previous blocks which should be
 	// used to calculate the median time used to validate block timestamps.
@@ -127,7 +131,7 @@ func IsFinalizedTransaction(tx *btcutil.Tx, blockHeight int64, blockTime time.Ti
 	// value is before the lockTimeThreshold.  When it is under the
 	// threshold it is a block height.
 	blockTimeOrHeight := int64(0)
-	if lockTime < lockTimeThreshold {
+	if lockTime < lockTimeThreshold { // need to verify the threshold here !!!!!!!!!!!!
 		blockTimeOrHeight = blockHeight
 	} else {
 		blockTimeOrHeight = blockTime.Unix()
@@ -136,14 +140,16 @@ func IsFinalizedTransaction(tx *btcutil.Tx, blockHeight int64, blockTime time.Ti
 		return true
 	}
 
-	// At this point, the transaction's lock time hasn't occured yet, but
-	// the transaction might still be finalized if the sequence number
-	// for all transaction inputs is maxed out.
-	for _, txIn := range msgTx.TxIn {
-		if txIn.Sequence != math.MaxUint32 {
-			return false
+	/*
+		// At this point, the transaction's lock time hasn't occured yet, but
+		// the transaction might still be finalized if the sequence number
+		// for all transaction inputs is maxed out.
+		for _, txIn := range msgTx.TxIn {
+			if txIn.Sequence != math.MaxUint32 {
+				return false
+			}
 		}
-	}
+	*/
 	return true
 }
 
@@ -255,13 +261,15 @@ func CheckTransactionSanity(tx *btcutil.Tx) error {
 
 	// Coinbase script length must be between min and max length.
 	if IsCoinBase(tx) {
-		slen := len(msgTx.TxIn[0].SignatureScript)
-		if slen < MinCoinbaseScriptLen || slen > MaxCoinbaseScriptLen {
-			str := fmt.Sprintf("coinbase transaction script length "+
-				"of %d is out of range (min: %d, max: %d)",
-				slen, MinCoinbaseScriptLen, MaxCoinbaseScriptLen)
-			return ruleError(ErrBadCoinbaseScriptLen, str)
-		}
+		/*
+			slen := len(msgTx.TxIn[0].SignatureScript)
+			if slen < MinCoinbaseScriptLen || slen > MaxCoinbaseScriptLen {
+				str := fmt.Sprintf("coinbase transaction script length "+
+					"of %d is out of range (min: %d, max: %d)",
+					slen, MinCoinbaseScriptLen, MaxCoinbaseScriptLen)
+				return ruleError(ErrBadCoinbaseScriptLen, str)
+			}
+		*/
 	} else {
 		// Previous transaction outputs referenced by the inputs to this
 		// transaction must not be null.
@@ -333,22 +341,24 @@ func CheckProofOfWork(block *btcutil.Block, powLimit *big.Int) error {
 // quicker, but imprecise, signature operation counting mechanism from
 // txscript.
 func CountSigOps(tx *btcutil.Tx) int {
-	msgTx := tx.MsgTx()
-
-	// Accumulate the number of signature operations in all transaction
-	// inputs.
 	totalSigOps := 0
-	for _, txIn := range msgTx.TxIn {
-		numSigOps := txscript.GetSigOpCount(txIn.SignatureScript)
-		totalSigOps += numSigOps
-	}
+	util.Trace("NOT IMPLEMENTED --- NEEDED !!!!")
+	/*
+		msgTx := tx.MsgTx()
+			// Accumulate the number of signature operations in all transaction
+			// inputs.
+			for _, txIn := range msgTx.TxIn {
+				numSigOps := txscript.GetSigOpCount(txIn.SignatureScript)
+				totalSigOps += numSigOps
+			}
 
-	// Accumulate the number of signature operations in all transaction
-	// outputs.
-	for _, txOut := range msgTx.TxOut {
-		numSigOps := txscript.GetSigOpCount(txOut.PkScript)
-		totalSigOps += numSigOps
-	}
+			// Accumulate the number of signature operations in all transaction
+			// outputs.
+			for _, txOut := range msgTx.TxOut {
+				numSigOps := txscript.GetSigOpCount(txOut.PkScript)
+				totalSigOps += numSigOps
+			}
+	*/
 
 	return totalSigOps
 }
@@ -389,23 +399,25 @@ func CountP2SHSigOps(tx *btcutil.Tx, isCoinBaseTx bool, txStore TxStore) (int, e
 			return 0, ruleError(ErrBadTxInput, str)
 		}
 
-		// We're only interested in pay-to-script-hash types, so skip
-		// this input if it's not one.
-		pkScript := originMsgTx.TxOut[originTxIndex].PkScript
-		if !txscript.IsPayToScriptHash(pkScript) {
-			continue
-		}
+		/*
+			// We're only interested in pay-to-script-hash types, so skip
+			// this input if it's not one.
+			pkScript := originMsgTx.TxOut[originTxIndex].PkScript
+			if !txscript.IsPayToScriptHash(pkScript) {
+				continue
+			}
 
-		// Count the precise number of signature operations in the
-		// referenced public key script.
-		sigScript := txIn.SignatureScript
-		numSigOps := txscript.GetPreciseSigOpCount(sigScript, pkScript,
-			true)
+				// Count the precise number of signature operations in the
+				// referenced public key script.
+				sigScript := txIn.SignatureScript
+				numSigOps := txscript.GetPreciseSigOpCount(sigScript, pkScript,
+					true)
+		*/
 
 		// We could potentially overflow the accumulator so check for
 		// overflow.
 		lastSigOps := totalSigOps
-		totalSigOps += numSigOps
+		//		totalSigOps += numSigOps
 		if totalSigOps < lastSigOps {
 			str := fmt.Sprintf("the public key script from "+
 				"output index %d in transaction %v contains "+
@@ -556,6 +568,7 @@ func CheckBlockSanity(block *btcutil.Block, powLimit *big.Int, timeSource Median
 	return checkBlockSanity(block, powLimit, timeSource, BFNone)
 }
 
+/*
 // checkSerializedHeight checks if the signature script in the passed
 // transaction starts with the serialized block height of wantHeight.
 func checkSerializedHeight(coinbaseTx *btcutil.Tx, wantHeight int64) error {
@@ -589,6 +602,7 @@ func checkSerializedHeight(coinbaseTx *btcutil.Tx, wantHeight int64) error {
 
 	return nil
 }
+*/
 
 // isTransactionSpent returns whether or not the provided transaction data
 // describes a fully spent transaction.  A fully spent transaction is one where
@@ -903,28 +917,30 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block *btcutil.Block) er
 		return ruleError(ErrBadCoinbaseValue, str)
 	}
 
-	// Don't run scripts if this node is before the latest known good
-	// checkpoint since the validity is verified via the checkpoints (all
-	// transactions are included in the merkle root hash and any changes
-	// will therefore be detected by the next checkpoint).  This is a huge
-	// optimization because running the scripts is the most time consuming
-	// portion of block handling.
-	checkpoint := b.LatestCheckpoint()
-	runScripts := !b.noVerify
-	if checkpoint != nil && node.height <= checkpoint.Height {
+	/*
+		// Don't run scripts if this node is before the latest known good
+		// checkpoint since the validity is verified via the checkpoints (all
+		// transactions are included in the merkle root hash and any changes
+		// will therefore be detected by the next checkpoint).  This is a huge
+		// optimization because running the scripts is the most time consuming
+		// portion of block handling.
+		checkpoint := b.LatestCheckpoint()
+		runScripts := !b.noVerify
+		if checkpoint != nil && node.height <= checkpoint.Height {
 		runScripts = false
-	}
-
-	// Now that the inexpensive checks are done and have passed, verify the
-	// transactions are actually allowed to spend the coins by running the
-	// expensive ECDSA signature check scripts.  Doing this last helps
-	// prevent CPU exhaustion attacks.
-	if runScripts {
-		err := checkBlockScripts(block, txInputStore)
-		if err != nil {
-			return err
 		}
-	}
+
+			// Now that the inexpensive checks are done and have passed, verify the
+			// transactions are actually allowed to spend the coins by running the
+			// expensive ECDSA signature check scripts.  Doing this last helps
+			// prevent CPU exhaustion attacks.
+			if runScripts {
+				err := checkBlockScripts(block, txInputStore)
+				if err != nil {
+					return err
+				}
+			}
+	*/
 
 	return nil
 }

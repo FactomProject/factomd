@@ -15,7 +15,7 @@ import (
 
 	"github.com/FactomProject/btcd/blockchain"
 	"github.com/FactomProject/btcd/database"
-	"github.com/FactomProject/btcd/txscript"
+	//	"github.com/FactomProject/btcd/txscript"
 	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/btcutil"
 )
@@ -63,7 +63,7 @@ const (
 	// That brings the total to 1+(15*74)+3+513 = 1627.  This value also
 	// adds a few extra bytes to provide a little buffer.
 	// (1 + 15*74 + 3) + (15*34 + 3) + 23 = 1650
-	maxStandardSigScriptSize = 1650
+	//	maxStandardSigScriptSize = 1650
 
 	// maxStandardMultiSigKeys is the maximum number of public keys allowed
 	// in a multi-signature transaction output script for it to be
@@ -168,6 +168,7 @@ func isDust(txOut *wire.TxOut) bool {
 	return txOut.Value*1000/(3*int64(totalSize)) < minTxRelayFee
 }
 
+/*
 // checkPkScriptStandard performs a series of checks on a transaction ouput
 // script (public key script) to ensure it is a "standard" public key script.
 // A standard public key script is one that is a recognized form, and for
@@ -217,6 +218,7 @@ func checkPkScriptStandard(pkScript []byte, scriptClass txscript.ScriptClass) er
 
 	return nil
 }
+*/
 
 // checkTransactionStandard performs a series of checks on a transaction to
 // ensure it is a "standard" transaction.  A standard transaction is one that
@@ -254,78 +256,81 @@ func checkTransactionStandard(tx *btcutil.Tx, height int64) error {
 		return txRuleError(wire.RejectNonstandard, str)
 	}
 
-	for i, txIn := range msgTx.TxIn {
-		// Each transaction input signature script must not exceed the
-		// maximum size allowed for a standard transaction.  See
-		// the comment on maxStandardSigScriptSize for more details.
-		sigScriptLen := len(txIn.SignatureScript)
-		if sigScriptLen > maxStandardSigScriptSize {
-			str := fmt.Sprintf("transaction input %d: signature "+
-				"script size of %d bytes is large than max "+
-				"allowed size of %d bytes", i, sigScriptLen,
-				maxStandardSigScriptSize)
-			return txRuleError(wire.RejectNonstandard, str)
-		}
+	/*
+				for i, txIn := range msgTx.TxIn {
+					// Each transaction input signature script must not exceed the
+					// maximum size allowed for a standard transaction.  See
+					// the comment on maxStandardSigScriptSize for more details.
+					sigScriptLen := len(txIn.SignatureScript)
+					if sigScriptLen > maxStandardSigScriptSize {
+						str := fmt.Sprintf("transaction input %d: signature "+
+							"script size of %d bytes is large than max "+
+							"allowed size of %d bytes", i, sigScriptLen,
+							maxStandardSigScriptSize)
+						return txRuleError(wire.RejectNonstandard, str)
+					}
 
-		// Each transaction input signature script must only contain
-		// opcodes which push data onto the stack.
-		if !txscript.IsPushOnlyScript(txIn.SignatureScript) {
-			str := fmt.Sprintf("transaction input %d: signature "+
-				"script is not push only", i)
-			return txRuleError(wire.RejectNonstandard, str)
-		}
+					// Each transaction input signature script must only contain
+					// opcodes which push data onto the stack.
+					if !txscript.IsPushOnlyScript(txIn.SignatureScript) {
+						str := fmt.Sprintf("transaction input %d: signature "+
+							"script is not push only", i)
+						return txRuleError(wire.RejectNonstandard, str)
+					}
 
-		// Each transaction input signature script must only contain
-		// canonical data pushes.  A canonical data push is one where
-		// the minimum possible number of bytes is used to represent
-		// the data push as possible.
-		if !txscript.HasCanonicalPushes(txIn.SignatureScript) {
-			str := fmt.Sprintf("transaction input %d: signature "+
-				"script has a non-canonical data push", i)
-			return txRuleError(wire.RejectNonstandard, str)
-		}
-	}
+					// Each transaction input signature script must only contain
+					// canonical data pushes.  A canonical data push is one where
+					// the minimum possible number of bytes is used to represent
+					// the data push as possible.
+					if !txscript.HasCanonicalPushes(txIn.SignatureScript) {
+						str := fmt.Sprintf("transaction input %d: signature "+
+							"script has a non-canonical data push", i)
+						return txRuleError(wire.RejectNonstandard, str)
+					}
+				}
 
-	// None of the output public key scripts can be a non-standard script or
-	// be "dust" (except when the script is a null data script).
-	numNullDataOutputs := 0
-	for i, txOut := range msgTx.TxOut {
-		scriptClass := txscript.GetScriptClass(txOut.PkScript)
-		err := checkPkScriptStandard(txOut.PkScript, scriptClass)
-		if err != nil {
-			// Attempt to extract a reject code from the error so
-			// it can be retained.  When not possible, fall back to
-			// a non standard error.
-			rejectCode, found := extractRejectCode(err)
-			if !found {
-				rejectCode = wire.RejectNonstandard
+			// None of the output public key scripts can be a non-standard script or
+			// be "dust" (except when the script is a null data script).
+			numNullDataOutputs := 0
+			for i, txOut := range msgTx.TxOut {
+					scriptClass := txscript.GetScriptClass(txOut.PkScript)
+					err := checkPkScriptStandard(txOut.PkScript, scriptClass)
+					if err != nil {
+						// Attempt to extract a reject code from the error so
+						// it can be retained.  When not possible, fall back to
+						// a non standard error.
+						rejectCode, found := extractRejectCode(err)
+						if !found {
+							rejectCode = wire.RejectNonstandard
+						}
+						str := fmt.Sprintf("transaction output %d: %v", i, err)
+						return txRuleError(rejectCode, str)
+					}
+
+				// Accumulate the number of outputs which only carry data.  For
+				// all other script types, ensure the output value is not
+				// "dust".
+				if scriptClass == txscript.NullDataTy {
+					numNullDataOutputs++
+				} else if isDust(txOut) {
+					str := fmt.Sprintf("transaction output %d: payment "+
+						"of %d is dust", i, txOut.Value)
+					return txRuleError(wire.RejectDust, str)
+				}
 			}
-			str := fmt.Sprintf("transaction output %d: %v", i, err)
-			return txRuleError(rejectCode, str)
-		}
 
-		// Accumulate the number of outputs which only carry data.  For
-		// all other script types, ensure the output value is not
-		// "dust".
-		if scriptClass == txscript.NullDataTy {
-			numNullDataOutputs++
-		} else if isDust(txOut) {
-			str := fmt.Sprintf("transaction output %d: payment "+
-				"of %d is dust", i, txOut.Value)
-			return txRuleError(wire.RejectDust, str)
+		// A standard transaction must not have more than one output script that
+		// only carries data.
+		if numNullDataOutputs > 1 {
+			str := "more than one transaction output in a nulldata script"
+			return txRuleError(wire.RejectNonstandard, str)
 		}
-	}
-
-	// A standard transaction must not have more than one output script that
-	// only carries data.
-	if numNullDataOutputs > 1 {
-		str := "more than one transaction output in a nulldata script"
-		return txRuleError(wire.RejectNonstandard, str)
-	}
+	*/
 
 	return nil
 }
 
+/*
 // checkInputsStandard performs a series of checks on a transaction's inputs
 // to ensure they are "standard".  A standard transaction input is one that
 // that consumes the expected number of elements from the stack and that number
@@ -376,6 +381,7 @@ func checkInputsStandard(tx *btcutil.Tx, txStore blockchain.TxStore) error {
 
 	return nil
 }
+*/
 
 // calcMinRequiredTxRelayFee returns the minimum transaction fee required for a
 // transaction with the passed serialized size to be accepted into the memory
@@ -611,9 +617,11 @@ func (mp *txMemPool) removeTransaction(tx *btcutil.Tx) {
 	// Remove the transaction and mark the referenced outpoints as unspent
 	// by the pool.
 	if txDesc, exists := mp.pool[*txHash]; exists {
-		if cfg.AddrIndex {
-			mp.removeTransactionFromAddrIndex(tx)
-		}
+		/*
+			if cfg.AddrIndex {
+				mp.removeTransactionFromAddrIndex(tx)
+			}
+		*/
 
 		for _, txIn := range txDesc.Tx.MsgTx().TxIn {
 			delete(mp.outpoints, txIn.PreviousOutPoint)
@@ -624,6 +632,7 @@ func (mp *txMemPool) removeTransaction(tx *btcutil.Tx) {
 
 }
 
+/*
 // removeTransactionFromAddrIndex removes the passed transaction from our
 // address based index.
 //
@@ -665,6 +674,7 @@ func (mp *txMemPool) removeScriptFromAddrIndex(pkScript []byte, tx *btcutil.Tx) 
 
 	return nil
 }
+*/
 
 // RemoveTransaction removes the passed transaction and any transactions which
 // depend on it from the memory pool.
@@ -718,11 +728,14 @@ func (mp *txMemPool) addTransaction(tx *btcutil.Tx, height, fee int64) {
 	}
 	mp.lastUpdated = time.Now()
 
-	if cfg.AddrIndex {
-		mp.addTransactionToAddrIndex(tx)
-	}
+	/*
+		if cfg.AddrIndex {
+			mp.addTransactionToAddrIndex(tx)
+		}
+	*/
 }
 
+/*
 // addTransactionToAddrIndex adds all addresses related to the transaction to
 // our in-memory address index. Note that this address is only populated when
 // we're running with the optional address index activated.
@@ -747,7 +760,9 @@ func (mp *txMemPool) addTransactionToAddrIndex(tx *btcutil.Tx) error {
 
 	return nil
 }
+*/
 
+/*
 // fetchReferencedOutputScripts looks up and returns all the scriptPubKeys
 // referenced by inputs of the passed transaction.
 //
@@ -768,7 +783,9 @@ func (mp *txMemPool) fetchReferencedOutputScripts(tx *btcutil.Tx) ([][]byte, err
 	}
 	return previousOutScripts, nil
 }
+*/
 
+/*
 // indexScriptByAddress alters our address index by indexing the payment address
 // encoded by the passed scriptPubKey to the passed transaction.
 //
@@ -791,6 +808,7 @@ func (mp *txMemPool) indexScriptAddressToTx(pkScript []byte, tx *btcutil.Tx) err
 
 	return nil
 }
+*/
 
 // calcInputValueAge is a helper function used to calculate the input age of
 // a transaction.  The input age for a txin is the number of confirmations
@@ -1081,21 +1099,23 @@ func (mp *txMemPool) maybeAcceptTransaction(tx *btcutil.Tx, isNew, rateLimit boo
 
 	// Don't allow transactions with non-standard inputs if the network
 	// parameters forbid their relaying.
-	if !activeNetParams.RelayNonStdTxs {
-		err := checkInputsStandard(tx, txStore)
-		if err != nil {
-			// Attempt to extract a reject code from the error so
-			// it can be retained.  When not possible, fall back to
-			// a non standard error.
-			rejectCode, found := extractRejectCode(err)
-			if !found {
-				rejectCode = wire.RejectNonstandard
+	/*
+		if !activeNetParams.RelayNonStdTxs {
+			err := checkInputsStandard(tx, txStore)
+			if err != nil {
+				// Attempt to extract a reject code from the error so
+				// it can be retained.  When not possible, fall back to
+				// a non standard error.
+				rejectCode, found := extractRejectCode(err)
+				if !found {
+					rejectCode = wire.RejectNonstandard
+				}
+				str := fmt.Sprintf("transaction %v has a non-standard "+
+					"input: %v", txHash, err)
+				return nil, txRuleError(rejectCode, str)
 			}
-			str := fmt.Sprintf("transaction %v has a non-standard "+
-				"input: %v", txHash, err)
-			return nil, txRuleError(rejectCode, str)
 		}
-	}
+	*/
 
 	// NOTE: if you modify this code to accept non-standard transactions,
 	// you should add code here to check that the transaction does a
@@ -1164,17 +1184,19 @@ func (mp *txMemPool) maybeAcceptTransaction(tx *btcutil.Tx, isNew, rateLimit boo
 			cfg.FreeTxRelayLimit*10*1000)
 	}
 
-	// Verify crypto signatures for each input and reject the transaction if
-	// any don't verify.
-	err = blockchain.ValidateTransactionScripts(tx, txStore,
-		//		standardScriptVerifyFlags)
-		0)
-	if err != nil {
-		if cerr, ok := err.(blockchain.RuleError); ok {
-			return nil, chainRuleError(cerr)
+	/*
+		// Verify crypto signatures for each input and reject the transaction if
+		// any don't verify.
+		err = blockchain.ValidateTransactionScripts(tx, txStore,
+			//		standardScriptVerifyFlags)
+			0)
+		if err != nil {
+			if cerr, ok := err.(blockchain.RuleError); ok {
+				return nil, chainRuleError(cerr)
+			}
+			return nil, err
 		}
-		return nil, err
-	}
+	*/
 
 	// Add to transaction pool.
 	mp.addTransaction(tx, curHeight, txFee)

@@ -25,7 +25,7 @@ import (
 	"github.com/FactomProject/btcd/database"
 	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/btcjson"
-	"github.com/FactomProject/btcutil"
+	//	"github.com/FactomProject/btcutil"
 
 	"github.com/FactomProject/FactomCode/util"
 )
@@ -311,20 +311,22 @@ func (s *server) handleRelayInvMsg(state *peerState, msg relayMsg) {
 				return
 			}
 
-			// Don't relay the transaction if there is a bloom
-			// filter loaded and the transaction doesn't match it.
-			if p.filter.IsLoaded() {
-				tx, ok := msg.data.(*btcutil.Tx)
-				if !ok {
-					peerLog.Warnf("Underlying data for tx" +
-						" inv relay is not a transaction")
-					return
-				}
+			/*
+				// Don't relay the transaction if there is a bloom
+				// filter loaded and the transaction doesn't match it.
+				if p.filter.IsLoaded() {
+					tx, ok := msg.data.(*btcutil.Tx)
+					if !ok {
+						peerLog.Warnf("Underlying data for tx" +
+							" inv relay is not a transaction")
+						return
+					}
 
-				if !p.filter.MatchTxAndUpdate(tx) {
-					return
+					if !p.filter.MatchTxAndUpdate(tx) {
+						return
+					}
 				}
-			}
+			*/
 		}
 
 		// Queue the inventory to be relayed with the next batch.

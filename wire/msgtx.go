@@ -6,10 +6,12 @@ package wire
 
 import (
 	"bytes"
-	"encoding/binary"
-	"fmt"
+	//	"encoding/binary"
+	//	"fmt"
 	"io"
 	"strconv"
+
+	"github.com/FactomProject/FactomCode/util"
 )
 
 const (
@@ -40,7 +42,7 @@ const (
 
 	// maxTxInPerMessage is the maximum number of transactions inputs that
 	// a transaction which fits into a message could possibly have.
-	maxTxInPerMessage = (MaxMessagePayload / minTxInPayload) + 1
+	//	maxTxInPerMessage = (MaxMessagePayload / minTxInPayload) + 1
 
 	// minTxOutPayload is the minimum payload size for a transaction output.
 	// Value 8 bytes + Varint for PkScript length 1 byte.
@@ -48,7 +50,7 @@ const (
 
 	// maxTxOutPerMessage is the maximum number of transactions outputs that
 	// a transaction which fits into a message could possibly have.
-	maxTxOutPerMessage = (MaxMessagePayload / minTxOutPayload) + 1
+	//	maxTxOutPerMessage = (MaxMessagePayload / minTxOutPayload) + 1
 
 	// minTxPayload is the minimum payload size for a transaction.  Note
 	// that any realistically usable transaction must have at least one
@@ -60,13 +62,7 @@ const (
 	minTxPayload = 10
 )
 
-// OutPoint defines a bitcoin data type that is used to track previous
-// transaction outputs.
-type OutPoint struct {
-	Hash  ShaHash
-	Index uint32
-}
-
+/*
 // NewOutPoint returns a new bitcoin transaction outpoint point with the
 // provided hash and index.
 func NewOutPoint(hash *ShaHash, index uint32) *OutPoint {
@@ -75,6 +71,7 @@ func NewOutPoint(hash *ShaHash, index uint32) *OutPoint {
 		Index: index,
 	}
 }
+*/
 
 // String returns the OutPoint in the human-readable form "hash:index".
 func (o OutPoint) String() string {
@@ -91,21 +88,18 @@ func (o OutPoint) String() string {
 	return string(buf)
 }
 
-// TxIn defines a bitcoin transaction input.
-type TxIn struct {
-	PreviousOutPoint OutPoint
-	SignatureScript  []byte
-	Sequence         uint32
-}
-
 // SerializeSize returns the number of bytes it would take to serialize the
 // the transaction input.
 func (t *TxIn) SerializeSize() int {
 	// Outpoint Hash 32 bytes + Outpoint Index 4 bytes + Sequence 4 bytes +
 	// serialized varint size for the length of SignatureScript +
 	// SignatureScript bytes.
-	return 40 + VarIntSerializeSize(uint64(len(t.SignatureScript))) +
-		len(t.SignatureScript)
+	/*
+		return 40 + VarIntSerializeSize(uint64(len(t.SignatureScript))) +
+			len(t.SignatureScript)
+	*/
+
+	return 41
 }
 
 // NewTxIn returns a new bitcoin transaction input with the provided
@@ -114,15 +108,9 @@ func (t *TxIn) SerializeSize() int {
 func NewTxIn(prevOut *OutPoint, signatureScript []byte) *TxIn {
 	return &TxIn{
 		PreviousOutPoint: *prevOut,
-		SignatureScript:  signatureScript,
-		Sequence:         MaxTxInSequenceNum,
+		//		SignatureScript:  signatureScript,
+		//		Sequence:         MaxTxInSequenceNum,
 	}
-}
-
-// TxOut defines a bitcoin transaction output.
-type TxOut struct {
-	Value    int64
-	PkScript []byte
 }
 
 // SerializeSize returns the number of bytes it would take to serialize the
@@ -130,29 +118,17 @@ type TxOut struct {
 func (t *TxOut) SerializeSize() int {
 	// Value 8 bytes + serialized varint size for the length of PkScript +
 	// PkScript bytes.
-	return 8 + VarIntSerializeSize(uint64(len(t.PkScript))) + len(t.PkScript)
+	//	return 8 + VarIntSerializeSize(uint64(len(t.PkScript))) + len(t.PkScript)
+	return 32 + VarIntSerializeSize(uint64(t.Value))
 }
 
 // NewTxOut returns a new bitcoin transaction output with the provided
 // transaction value and public key script.
 func NewTxOut(value int64, pkScript []byte) *TxOut {
 	return &TxOut{
-		Value:    value,
-		PkScript: pkScript,
+		Value: value,
+		//		PkScript: pkScript,
 	}
-}
-
-// MsgTx implements the Message interface and represents a bitcoin tx message.
-// It is used to deliver transaction information in response to a getdata
-// message (MsgGetData) for a given transaction.
-//
-// Use the AddTxIn and AddTxOut functions to build up the list of transaction
-// inputs and outputs.
-type MsgTx struct {
-	Version  int32
-	TxIn     []*TxIn
-	TxOut    []*TxOut
-	LockTime uint32
 }
 
 // AddTxIn adds a transaction input to the message.
@@ -167,6 +143,7 @@ func (msg *MsgTx) AddTxOut(to *TxOut) {
 
 // TxSha generates the ShaHash name for the transaction.
 func (msg *MsgTx) TxSha() (ShaHash, error) {
+	util.Trace()
 	// Encode the transaction and calculate double sha256 on the result.
 	// Ignore the error returns since the only way the encode could fail
 	// is being out of memory or due to nil pointers, both of which would
@@ -184,6 +161,7 @@ func (msg *MsgTx) TxSha() (ShaHash, error) {
 	return sha, nil
 }
 
+/*
 // Copy creates a deep copy of a transaction so that the original does not get
 // modified when the copy is manipulated.
 func (msg *MsgTx) Copy() *MsgTx {
@@ -245,7 +223,9 @@ func (msg *MsgTx) Copy() *MsgTx {
 
 	return &newTx
 }
+*/
 
+/*
 // BtcDecode decodes r using the bitcoin protocol encoding into the receiver.
 // This is part of the Message interface implementation.
 // See Deserialize for decoding transactions stored to disk, such as in a
@@ -316,6 +296,7 @@ func (msg *MsgTx) BtcDecode(r io.Reader, pver uint32) error {
 
 	return nil
 }
+*/
 
 // Deserialize decodes a transaction from r into the receiver using a format
 // that is suitable for long-term storage such as a database while respecting
@@ -328,12 +309,15 @@ func (msg *MsgTx) BtcDecode(r io.Reader, pver uint32) error {
 // difference and separating the two allows the API to be flexible enough to
 // deal with changes.
 func (msg *MsgTx) Deserialize(r io.Reader) error {
+	util.Trace()
 	// At the current time, there is no difference between the wire encoding
 	// at protocol version 0 and the stable long-term storage format.  As
 	// a result, make use of BtcDecode.
+
 	return msg.BtcDecode(r, 0)
 }
 
+/*
 // BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
 // This is part of the Message interface implementation.
 // See Serialize for encoding transactions to be stored to disk, such as in a
@@ -380,6 +364,7 @@ func (msg *MsgTx) BtcEncode(w io.Writer, pver uint32) error {
 
 	return nil
 }
+*/
 
 // Serialize encodes the transaction to w using a format that suitable for
 // long-term storage such as a database while respecting the Version field in
@@ -392,11 +377,12 @@ func (msg *MsgTx) BtcEncode(w io.Writer, pver uint32) error {
 // difference and separating the two allows the API to be flexible enough to
 // deal with changes.
 func (msg *MsgTx) Serialize(w io.Writer) error {
+	util.Trace()
 	// At the current time, there is no difference between the wire encoding
 	// at protocol version 0 and the stable long-term storage format.  As
 	// a result, make use of BtcEncode.
-	return msg.BtcEncode(w, 0)
 
+	return msg.BtcEncode(w, 0)
 }
 
 // SerializeSize returns the number of bytes it would take to serialize the
@@ -443,6 +429,7 @@ func NewMsgTx() *MsgTx {
 	}
 }
 
+/*
 // readOutPoint reads the next sequence of bytes from r as an OutPoint.
 func readOutPoint(r io.Reader, pver uint32, version int32, op *OutPoint) error {
 	_, err := io.ReadFull(r, op.Hash[:])
@@ -560,3 +547,4 @@ func writeTxOut(w io.Writer, pver uint32, version int32, to *TxOut) error {
 	}
 	return nil
 }
+*/

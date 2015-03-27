@@ -38,7 +38,7 @@ import (
 	"github.com/FactomProject/fastsha256"
 	"github.com/FactomProject/websocket"
 
-	//	"github.com/FactomProject/FactomCode/util"
+	"github.com/FactomProject/FactomCode/util"
 )
 
 const (
@@ -853,6 +853,7 @@ func handleDebugLevel(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{}) 
 	return "Done.", nil
 }
 
+/*
 // createVinList returns a slice of JSON objects for the inputs of the passed
 // transaction.
 func createVinList(mtx *wire.MsgTx) []btcjson.Vin {
@@ -913,6 +914,7 @@ func createVoutList(mtx *wire.MsgTx, chainParams *chaincfg.Params) []btcjson.Vou
 
 	return voutList
 }
+*/
 
 // createTxRawResult converts the passed transaction and associated parameters
 // to a raw transaction JSON object.
@@ -920,70 +922,81 @@ func createTxRawResult(chainParams *chaincfg.Params, txSha string,
 	mtx *wire.MsgTx, blk *btcutil.Block, maxidx int64,
 	blksha *wire.ShaHash) (*btcjson.TxRawResult, error) {
 
-	mtxHex, err := messageToHex(mtx)
-	if err != nil {
-		return nil, err
-	}
+	util.Trace("NOT IMPLEMENTED !!!!!!!!!!!!!!!!!!!!!!!!!")
+	return nil, errors.New("Factoid TX changed!")
 
-	txReply := &btcjson.TxRawResult{
-		Hex:      mtxHex,
-		Txid:     txSha,
-		Vout:     createVoutList(mtx, chainParams),
-		Vin:      createVinList(mtx),
-		Version:  mtx.Version,
-		LockTime: mtx.LockTime,
-	}
+	/*
+		mtxHex, err := messageToHex(mtx)
+		if err != nil {
+			return nil, err
+		}
 
-	if blk != nil {
-		blockHeader := &blk.MsgBlock().Header
-		idx := blk.Height()
+		txReply := &btcjson.TxRawResult{
+			Hex:      mtxHex,
+			Txid:     txSha,
+			Vout:     createVoutList(mtx, chainParams),
+			Vin:      createVinList(mtx),
+			Version:  mtx.Version,
+			LockTime: mtx.LockTime,
+		}
 
-		// This is not a typo, they are identical in bitcoind as well.
-		txReply.Time = blockHeader.Timestamp.Unix()
-		txReply.Blocktime = blockHeader.Timestamp.Unix()
-		txReply.BlockHash = blksha.String()
-		txReply.Confirmations = uint64(1 + maxidx - idx)
-	}
+		if blk != nil {
+			blockHeader := &blk.MsgBlock().Header
+			idx := blk.Height()
 
-	return txReply, nil
+			// This is not a typo, they are identical in bitcoind as well.
+			txReply.Time = blockHeader.Timestamp.Unix()
+			txReply.Blocktime = blockHeader.Timestamp.Unix()
+			txReply.BlockHash = blksha.String()
+			txReply.Confirmations = uint64(1 + maxidx - idx)
+		}
+
+		return txReply, nil
+	*/
 }
 
 // handleDecodeRawTransaction handles decoderawtransaction commands.
 func handleDecodeRawTransaction(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{}) (interface{}, error) {
-	c := cmd.(*btcjson.DecodeRawTransactionCmd)
 
-	// Deserialize the transaction.
-	hexStr := c.HexTx
-	if len(hexStr)%2 != 0 {
-		hexStr = "0" + hexStr
-	}
-	serializedTx, err := hex.DecodeString(hexStr)
-	if err != nil {
-		return nil, btcjson.Error{
-			Code: btcjson.ErrDecodeHexString.Code,
-			Message: fmt.Sprintf("argument must be hexadecimal "+
-				"string (not %q)", hexStr),
-		}
-	}
-	var mtx wire.MsgTx
-	err = mtx.Deserialize(bytes.NewReader(serializedTx))
-	if err != nil {
-		return nil, btcjson.Error{
-			Code:    btcjson.ErrDeserialization.Code,
-			Message: "TX decode failed",
-		}
-	}
-	txSha, _ := mtx.TxSha()
+	util.Trace("NOT IMPLEMENTED !!!!!!!!!!!!!!!!!!!!!!!!!")
+	return nil, errors.New("Factoid TX changed!!")
 
-	// Create and return the result.
-	txReply := btcjson.TxRawDecodeResult{
-		Txid:     txSha.String(),
-		Version:  mtx.Version,
-		Locktime: mtx.LockTime,
-		Vin:      createVinList(&mtx),
-		Vout:     createVoutList(&mtx, s.server.chainParams),
-	}
-	return txReply, nil
+	/*
+		c := cmd.(*btcjson.DecodeRawTransactionCmd)
+
+		// Deserialize the transaction.
+		hexStr := c.HexTx
+		if len(hexStr)%2 != 0 {
+			hexStr = "0" + hexStr
+		}
+		serializedTx, err := hex.DecodeString(hexStr)
+		if err != nil {
+			return nil, btcjson.Error{
+				Code: btcjson.ErrDecodeHexString.Code,
+				Message: fmt.Sprintf("argument must be hexadecimal "+
+					"string (not %q)", hexStr),
+			}
+		}
+		var mtx wire.MsgTx
+		err = mtx.Deserialize(bytes.NewReader(serializedTx))
+		if err != nil {
+			return nil, btcjson.Error{
+				Code:    btcjson.ErrDeserialization.Code,
+				Message: "TX decode failed",
+			}
+		}
+		txSha, _ := mtx.TxSha()
+
+		// Create and return the result.
+		txReply := btcjson.TxRawDecodeResult{
+			Txid:     txSha.String(),
+			Version:  mtx.Version,
+			Locktime: mtx.LockTime,
+			Vin:      createVinList(&mtx),
+			Vout:     createVoutList(&mtx, s.server.chainParams),
+		}
+		return txReply, nil
+	*/
 }
 
 // handleDecodeScript handles decodescript commands.
@@ -2478,107 +2491,110 @@ func reverseUint32Array(b []byte) {
 
 // handleGetTxOut handles gettxout commands.
 func handleGetTxOut(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{}) (interface{}, error) {
-	c := cmd.(*btcjson.GetTxOutCmd)
+	util.Trace("NOT IMPLEMENTED !!!!!!!!!!!!!!!!!!!!!!!!!")
+	return nil, errors.New("Factoid TX changed!!!")
 
-	// Convert the provided transaction hash hex to a ShaHash.
-	txSha, err := wire.NewShaHashFromStr(c.Txid)
-	if err != nil {
-		return nil, btcjson.Error{
-			Code: btcjson.ErrInvalidParameter.Code,
-			Message: fmt.Sprintf("argument must be hexadecimal "+
-				"string (not %q)", c.Txid),
-		}
-	}
+	/*
+		c := cmd.(*btcjson.GetTxOutCmd)
 
-	// If requested and the tx is available in the mempool try to fetch it from
-	// there, otherwise attempt to fetch from the block database.
-	var mtx *wire.MsgTx
-	var bestBlockSha string
-	var confirmations int64
-	var dbSpentInfo []bool
-	if c.IncludeMempool && s.server.txMemPool.HaveTransaction(txSha) {
-		tx, err := s.server.txMemPool.FetchTransaction(txSha)
+		// Convert the provided transaction hash hex to a ShaHash.
+		txSha, err := wire.NewShaHashFromStr(c.Txid)
 		if err != nil {
-			rpcsLog.Errorf("Error fetching tx: %v", err)
-			return nil, btcjson.ErrNoTxInfo
+			return nil, btcjson.Error{
+				Code: btcjson.ErrInvalidParameter.Code,
+				Message: fmt.Sprintf("argument must be hexadecimal "+
+					"string (not %q)", c.Txid),
+			}
 		}
-		mtx = tx.MsgTx()
-		confirmations = 0
-		bestBlockSha = ""
-	} else {
-		/*
-			txList, err := s.server.db.FetchTxBySha(txSha)
-			if err != nil || len(txList) == 0 {
+
+		// If requested and the tx is available in the mempool try to fetch it from
+		// there, otherwise attempt to fetch from the block database.
+		var mtx *wire.MsgTx
+		var bestBlockSha string
+		var confirmations int64
+		var dbSpentInfo []bool
+		if c.IncludeMempool && s.server.txMemPool.HaveTransaction(txSha) {
+			tx, err := s.server.txMemPool.FetchTransaction(txSha)
+			if err != nil {
+				rpcsLog.Errorf("Error fetching tx: %v", err)
 				return nil, btcjson.ErrNoTxInfo
 			}
-
-			lastTx := txList[len(txList)-1]
-			mtx = lastTx.Tx
-			blksha := lastTx.BlkSha
-			txHeight := lastTx.Height
-			dbSpentInfo = lastTx.TxSpent
-
-				_, bestHeight, err := s.server.db.NewestSha()
-				if err != nil {
-					rpcsLog.Errorf("Cannot get newest sha: %v", err)
-					return nil, btcjson.ErrBlockNotFound
+			mtx = tx.MsgTx()
+			confirmations = 0
+			bestBlockSha = ""
+		} else {
+				txList, err := s.server.db.FetchTxBySha(txSha)
+				if err != nil || len(txList) == 0 {
+					return nil, btcjson.ErrNoTxInfo
 				}
 
-				confirmations = 1 + bestHeight - txHeight
-				bestBlockSha = blksha.String()
-		*/
-	}
+				lastTx := txList[len(txList)-1]
+				mtx = lastTx.Tx
+				blksha := lastTx.BlkSha
+				txHeight := lastTx.Height
+				dbSpentInfo = lastTx.TxSpent
 
-	if c.Output < 0 || c.Output > len(mtx.TxOut)-1 {
-		return nil, btcjson.ErrInvalidTxVout
-	}
+					_, bestHeight, err := s.server.db.NewestSha()
+					if err != nil {
+						rpcsLog.Errorf("Cannot get newest sha: %v", err)
+						return nil, btcjson.ErrBlockNotFound
+					}
 
-	txOut := mtx.TxOut[c.Output]
-	if txOut == nil {
-		rpcsLog.Errorf("Output index: %d, for txid: %s does not exist.", c.Output, c.Txid)
-		return nil, btcjson.ErrInternal
-	}
+					confirmations = 1 + bestHeight - txHeight
+					bestBlockSha = blksha.String()
+		}
 
-	// To match the behavior of the reference client, this handler returns
-	// nil (JSON null) if the transaction output is spent by another
-	// transaction already in the database.  Unspent transaction outputs
-	// from transactions in mempool, as well as mined transactions that are
-	// spent by a mempool transaction, are not affected by this.
-	if dbSpentInfo != nil && dbSpentInfo[c.Output] {
-		return nil, nil
-	}
+		if c.Output < 0 || c.Output > len(mtx.TxOut)-1 {
+			return nil, btcjson.ErrInvalidTxVout
+		}
 
-	// Disassemble script into single line printable format.
-	// The disassembled string will contain [error] inline if the script
-	// doesn't fully parse, so ignore the error here.
-	script := txOut.PkScript
-	disbuf, _ := txscript.DisasmString(script)
+		txOut := mtx.TxOut[c.Output]
+		if txOut == nil {
+			rpcsLog.Errorf("Output index: %d, for txid: %s does not exist.", c.Output, c.Txid)
+			return nil, btcjson.ErrInternal
+		}
 
-	// Get further info about the script.
-	// Ignore the error here since an error means the script couldn't parse
-	// and there is no additional information about it anyways.
-	scriptClass, addrs, reqSigs, _ := txscript.ExtractPkScriptAddrs(script,
-		s.server.chainParams)
-	addresses := make([]string, len(addrs))
-	for i, addr := range addrs {
-		addresses[i] = addr.EncodeAddress()
-	}
+		// To match the behavior of the reference client, this handler returns
+		// nil (JSON null) if the transaction output is spent by another
+		// transaction already in the database.  Unspent transaction outputs
+		// from transactions in mempool, as well as mined transactions that are
+		// spent by a mempool transaction, are not affected by this.
+		if dbSpentInfo != nil && dbSpentInfo[c.Output] {
+			return nil, nil
+		}
 
-	txOutReply := &btcjson.GetTxOutResult{
-		BestBlock:     bestBlockSha,
-		Confirmations: confirmations,
-		Value:         btcutil.Amount(txOut.Value).ToUnit(btcutil.AmountBTC),
-		Version:       mtx.Version,
-		ScriptPubKey: btcjson.ScriptPubKeyResult{
-			Asm:       disbuf,
-			Hex:       hex.EncodeToString(script),
-			ReqSigs:   int32(reqSigs),
-			Type:      scriptClass.String(),
-			Addresses: addresses,
-		},
-		Coinbase: IsCoinBase(btcutil.NewTx(mtx)),
-	}
-	return txOutReply, nil
+		// Disassemble script into single line printable format.
+		// The disassembled string will contain [error] inline if the script
+		// doesn't fully parse, so ignore the error here.
+		script := txOut.PkScript
+		disbuf, _ := txscript.DisasmString(script)
+
+		// Get further info about the script.
+		// Ignore the error here since an error means the script couldn't parse
+		// and there is no additional information about it anyways.
+		scriptClass, addrs, reqSigs, _ := txscript.ExtractPkScriptAddrs(script,
+			s.server.chainParams)
+		addresses := make([]string, len(addrs))
+		for i, addr := range addrs {
+			addresses[i] = addr.EncodeAddress()
+		}
+
+		txOutReply := &btcjson.GetTxOutResult{
+			BestBlock:     bestBlockSha,
+			Confirmations: confirmations,
+			Value:         btcutil.Amount(txOut.Value).ToUnit(btcutil.AmountBTC),
+			Version:       mtx.Version,
+			ScriptPubKey: btcjson.ScriptPubKeyResult{
+				Asm:       disbuf,
+				Hex:       hex.EncodeToString(script),
+				ReqSigs:   int32(reqSigs),
+				Type:      scriptClass.String(),
+				Addresses: addresses,
+			},
+			Coinbase: IsCoinBase(btcutil.NewTx(mtx)),
+		}
+		return txOutReply, nil
+	*/
 }
 
 /*

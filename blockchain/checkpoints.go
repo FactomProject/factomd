@@ -8,7 +8,7 @@ import (
 	"fmt"
 
 	"github.com/FactomProject/btcd/chaincfg"
-	"github.com/FactomProject/btcd/txscript"
+	//	"github.com/FactomProject/btcd/txscript"
 	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/btcutil"
 )
@@ -190,13 +190,15 @@ func (b *BlockChain) findPreviousCheckpoint() (*btcutil.Block, error) {
 func isNonstandardTransaction(tx *btcutil.Tx) bool {
 	// TODO(davec): Should there be checks for the input signature scripts?
 
-	// Check all of the output public key scripts for non-standard scripts.
-	for _, txOut := range tx.MsgTx().TxOut {
-		scriptClass := txscript.GetScriptClass(txOut.PkScript)
-		if scriptClass == txscript.NonStandardTy {
-			return true
+	/*
+		// Check all of the output public key scripts for non-standard scripts.
+		for _, txOut := range tx.MsgTx().TxOut {
+			scriptClass := txscript.GetScriptClass(txOut.PkScript)
+			if scriptClass == txscript.NonStandardTy {
+				return true
+			}
 		}
-	}
+	*/
 	return false
 }
 

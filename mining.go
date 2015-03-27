@@ -7,7 +7,7 @@ package main
 import (
 	"container/heap"
 	"container/list"
-	"fmt"
+	//	"fmt"
 	"time"
 
 	"github.com/FactomProject/btcd/blockchain"
@@ -216,21 +216,25 @@ func createCoinbaseTx(coinbaseScript []byte, nextBlockHeight int64, addr btcutil
 	// Create the script to pay to the provided payment address if one was
 	// specified.  Otherwise create a script that allows the coinbase to be
 	// redeemable by anyone.
-	var pkScript []byte
-	if addr != nil {
-		var err error
-		pkScript, err = txscript.PayToAddrScript(addr)
-		if err != nil {
-			return nil, err
+
+	/*
+		var pkScript []byte
+
+		if addr != nil {
+			var err error
+			pkScript, err = txscript.PayToAddrScript(addr)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			var err error
+			scriptBuilder := txscript.NewScriptBuilder()
+			pkScript, err = scriptBuilder.AddOp(txscript.OP_TRUE).Script()
+			if err != nil {
+				return nil, err
+			}
 		}
-	} else {
-		var err error
-		scriptBuilder := txscript.NewScriptBuilder()
-		pkScript, err = scriptBuilder.AddOp(txscript.OP_TRUE).Script()
-		if err != nil {
-			return nil, err
-		}
-	}
+	*/
 
 	tx := wire.NewMsgTx()
 	tx.AddTxIn(&wire.TxIn{
@@ -238,17 +242,18 @@ func createCoinbaseTx(coinbaseScript []byte, nextBlockHeight int64, addr btcutil
 		// zero hash and max index.
 		PreviousOutPoint: *wire.NewOutPoint(&wire.ShaHash{},
 			wire.MaxPrevOutIndex),
-		SignatureScript: coinbaseScript,
-		Sequence:        wire.MaxTxInSequenceNum,
+		//		SignatureScript: coinbaseScript,
+		//		Sequence:        wire.MaxTxInSequenceNum,
 	})
 	tx.AddTxOut(&wire.TxOut{
 		Value: blockchain.CalcBlockSubsidy(nextBlockHeight,
 			activeNetParams.Params),
-		PkScript: pkScript,
+		//		PkScript: pkScript,
 	})
 	return btcutil.NewTx(tx), nil
 }
 
+/*
 // calcPriority returns a transaction priority given a transaction and the sum
 // of each of its input values multiplied by their age (# of confirmations).
 // Thus, the final formula for the priority is:
@@ -286,6 +291,7 @@ func calcPriority(tx *btcutil.Tx, serializedTxSize int, inputValueAge float64) f
 
 	return inputValueAge / float64(serializedTxSize-overhead)
 }
+*/
 
 // spendTransaction updates the passed transaction store by marking the inputs
 // to the passed transaction as spent.  It also adds the passed transaction to
@@ -711,14 +717,17 @@ mempoolLoop:
 			logSkippedDeps(tx, deps)
 			continue
 		}
-		err = blockchain.ValidateTransactionScripts(tx, blockTxStore,
-			standardScriptVerifyFlags)
-		if err != nil {
-			minrLog.Tracef("Skipping tx %s due to error in "+
-				"ValidateTransactionScripts: %v", tx.Sha(), err)
-			logSkippedDeps(tx, deps)
-			continue
-		}
+
+		/*
+			err = blockchain.ValidateTransactionScripts(tx, blockTxStore,
+				standardScriptVerifyFlags)
+			if err != nil {
+				minrLog.Tracef("Skipping tx %s due to error in "+
+					"ValidateTransactionScripts: %v", tx.Sha(), err)
+				logSkippedDeps(tx, deps)
+				continue
+			}
+		*/
 
 		// Spend the transaction inputs in the block transaction store
 		// and add an entry for it to ensure any transactions which
@@ -855,17 +864,19 @@ func UpdateBlockTime(msgBlock *wire.MsgBlock, bManager *blockManager) error {
 // height.  It also recalculates and updates the new merkle root that results
 // from changing the coinbase script.
 func UpdateExtraNonce(msgBlock *wire.MsgBlock, blockHeight int64, extraNonce uint64) error {
-	coinbaseScript, err := standardCoinbaseScript(blockHeight, extraNonce)
-	if err != nil {
-		return err
-	}
-	if len(coinbaseScript) > blockchain.MaxCoinbaseScriptLen {
-		return fmt.Errorf("coinbase transaction script length "+
-			"of %d is out of range (min: %d, max: %d)",
-			len(coinbaseScript), blockchain.MinCoinbaseScriptLen,
-			blockchain.MaxCoinbaseScriptLen)
-	}
-	msgBlock.Transactions[0].TxIn[0].SignatureScript = coinbaseScript
+	/*
+		coinbaseScript, err := standardCoinbaseScript(blockHeight, extraNonce)
+		if err != nil {
+			return err
+		}
+		if len(coinbaseScript) > blockchain.MaxCoinbaseScriptLen {
+			return fmt.Errorf("coinbase transaction script length "+
+				"of %d is out of range (min: %d, max: %d)",
+				len(coinbaseScript), blockchain.MinCoinbaseScriptLen,
+				blockchain.MaxCoinbaseScriptLen)
+		}
+		msgBlock.Transactions[0].TxIn[0].SignatureScript = coinbaseScript
+	*/
 
 	// TODO(davec): A btcutil.Block should use saved in the state to avoid
 	// recalculating all of the other transaction hashes.

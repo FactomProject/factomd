@@ -125,7 +125,7 @@ func test_timer() {
 		if 0 == (count % 2) {
 			fmt.Println("evensec")
 
-			//test_generateBlocks() // CheckConnectBlock not returning yet, called from NewBlockTemplate
+			test_generateBlocks() // CheckConnectBlock not returning yet, called from NewBlockTemplate
 
 		}
 		fmt.Println("===================================")

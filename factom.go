@@ -10,8 +10,8 @@ import (
 	"fmt"
 	"github.com/FactomProject/FactomCode/factomd"
 	"github.com/FactomProject/FactomCode/util"
+	"github.com/FactomProject/FactomCode/wallet"
 	"github.com/FactomProject/btcd/wire"
-	"github.com/FactomProject/FactomCode/wallet"	
 	//	"github.com/FactomProject/btcutil"
 )
 
@@ -196,27 +196,25 @@ func (b *blockManager) factomChecks() {
 func factomIngressTx_hook(tx *wire.MsgTx) error {
 	util.Trace()
 
-	//	var ecmap map[wire.ShaHash]uint64
 	ecmap := make(map[wire.ShaHash]uint64)
 
 	txid, _ := tx.TxSha()
 	hash, _ := wire.NewShaHash(wire.Sha256(txid.Bytes()))
 
 	ecmap[*hash] = 1
-	
+
 	// Use wallet's public key to add EC??
-	sig := wallet.SignData(nil)	
-	hash2 := new (wire.ShaHash)
-	hash2.SetBytes ((*sig.Pub.Key)[:])
-	
+	sig := wallet.SignData(nil)
+	hash2 := new(wire.ShaHash)
+	hash2.SetBytes((*sig.Pub.Key)[:])
+
 	ecmap[*hash2] = 1000000
-	
+
 	txHash, _ := tx.TxSha()
 	fo := &wire.MsgInt_FactoidObj{tx, &txHash, ecmap}
 
 	fmt.Println("ecmap len =", len(ecmap))
 
-	//	factomd.InMsgQueue <- tx
 	factomd.InMsgQueue <- fo
 
 	return nil

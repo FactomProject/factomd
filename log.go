@@ -26,7 +26,7 @@ const (
 	// is generated per 10 minutes, this allows blocks for about 9,512
 	// years.  However, if the field is interpreted as a timestamp, given
 	// the lock time is a uint32, the max is sometime around 2106.
-	lockTimeThreshold uint32 = 5e8 // Tue Nov 5 00:53:20 1985 UTC
+	lockTimeThreshold int64 = 5e8 // Tue Nov 5 00:53:20 1985 UTC
 
 	// maxRejectReasonLen is the maximum length of a sanitized reject reason
 	// that will be logged.
@@ -211,7 +211,7 @@ func directionString(inbound bool) string {
 }
 
 // formatLockTime returns a transaction lock time as a human-readable string.
-func formatLockTime(lockTime uint32) string {
+func formatLockTime(lockTime int64) string {
 	// The lock time field of a transaction is either a block height at
 	// which the transaction is finalized or a timestamp depending on if the
 	// value is before the lockTimeThreshold.  When it is under the

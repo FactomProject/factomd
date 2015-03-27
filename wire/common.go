@@ -334,21 +334,21 @@ func readVarInt(r io.Reader, pver uint32) (uint64, error) {
 		if err != nil {
 			return 0, err
 		}
-		rv = binary.LittleEndian.Uint64(b[:])
+		rv = binary.BigEndian.Uint64(b[:])
 
 	case 0xfe:
 		_, err := io.ReadFull(r, b[0:4])
 		if err != nil {
 			return 0, err
 		}
-		rv = uint64(binary.LittleEndian.Uint32(b[:]))
+		rv = uint64(binary.BigEndian.Uint32(b[:]))
 
 	case 0xfd:
 		_, err := io.ReadFull(r, b[0:2])
 		if err != nil {
 			return 0, err
 		}
-		rv = uint64(binary.LittleEndian.Uint16(b[:]))
+		rv = uint64(binary.BigEndian.Uint16(b[:]))
 
 	default:
 		rv = uint64(discriminant)
@@ -368,7 +368,7 @@ func writeVarInt(w io.Writer, pver uint32, val uint64) error {
 	if val <= math.MaxUint16 {
 		var buf [3]byte
 		buf[0] = 0xfd
-		binary.LittleEndian.PutUint16(buf[1:], uint16(val))
+		binary.BigEndian.PutUint16(buf[1:], uint16(val))
 		_, err := w.Write(buf[:])
 		return err
 	}
@@ -376,14 +376,14 @@ func writeVarInt(w io.Writer, pver uint32, val uint64) error {
 	if val <= math.MaxUint32 {
 		var buf [5]byte
 		buf[0] = 0xfe
-		binary.LittleEndian.PutUint32(buf[1:], uint32(val))
+		binary.BigEndian.PutUint32(buf[1:], uint32(val))
 		_, err := w.Write(buf[:])
 		return err
 	}
 
 	var buf [9]byte
 	buf[0] = 0xff
-	binary.LittleEndian.PutUint64(buf[1:], val)
+	binary.BigEndian.PutUint64(buf[1:], val)
 	_, err := w.Write(buf[:])
 	return err
 }

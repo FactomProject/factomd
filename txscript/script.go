@@ -6,7 +6,7 @@ package txscript
 
 import (
 	"bytes"
-	"encoding/binary"
+	//	"encoding/binary"
 	"errors"
 	"fmt"
 	"time"
@@ -15,6 +15,8 @@ import (
 	"github.com/FactomProject/btcd/chaincfg"
 	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/btcutil"
+
+	"github.com/FactomProject/FactomCode/util"
 )
 
 var (
@@ -826,86 +828,90 @@ func DisasmString(buf []byte) (string, error) {
 // scriptmachine, calculate the doubleSha256 hash of the transaction and
 // script to be used for signature signing and verification.
 func calcScriptHash(script []parsedOpcode, hashType SigHashType, tx *wire.MsgTx, idx int) []byte {
+	util.Trace("NOT IMPLEMENTED !!!!!!!!! NOT NEEDED !!!!!!!!!!!!!!")
+	/*
 
-	// remove all instances of OP_CODESEPARATOR still left in the script
-	script = removeOpcode(script, OP_CODESEPARATOR)
+		// remove all instances of OP_CODESEPARATOR still left in the script
+		script = removeOpcode(script, OP_CODESEPARATOR)
 
-	// Make a deep copy of the transaction, zeroing out the script
-	// for all inputs that are not currently being processed.
-	txCopy := tx.Copy()
-	for i := range txCopy.TxIn {
-		var txIn wire.TxIn
-		txIn = *txCopy.TxIn[i]
-		txCopy.TxIn[i] = &txIn
-		if i == idx {
-			// unparseScript cannot fail here, because removeOpcode
-			// above only returns a valid script.
-			sigscript, _ := unparseScript(script)
-			txCopy.TxIn[idx].SignatureScript = sigscript
-		} else {
-			txCopy.TxIn[i].SignatureScript = []byte{}
-		}
-	}
-	// Default behaviour has all outputs set up.
-	for i := range txCopy.TxOut {
-		var txOut wire.TxOut
-		txOut = *txCopy.TxOut[i]
-		txCopy.TxOut[i] = &txOut
-	}
-
-	switch hashType & 31 {
-	case SigHashNone:
-		txCopy.TxOut = txCopy.TxOut[0:0] // empty slice
+		// Make a deep copy of the transaction, zeroing out the script
+		// for all inputs that are not currently being processed.
+		txCopy := tx.Copy()
 		for i := range txCopy.TxIn {
-			if i != idx {
-				txCopy.TxIn[i].Sequence = 0
+			var txIn wire.TxIn
+			txIn = *txCopy.TxIn[i]
+			txCopy.TxIn[i] = &txIn
+			if i == idx {
+				// unparseScript cannot fail here, because removeOpcode
+				// above only returns a valid script.
+				sigscript, _ := unparseScript(script)
+				txCopy.TxIn[idx].SignatureScript = sigscript
+			} else {
+				txCopy.TxIn[i].SignatureScript = []byte{}
 			}
 		}
-	case SigHashSingle:
-		if idx >= len(txCopy.TxOut) {
-			// This was created by a buggy implementation.
-			// In this case we do the same as bitcoind and bitcoinj
-			// and return 1 (as a uint256 little endian) as an
-			// error. Unfortunately this was not checked anywhere
-			// and thus is treated as the actual
-			// hash.
-			hash := make([]byte, 32)
-			hash[0] = 0x01
-			return hash
+		// Default behaviour has all outputs set up.
+		for i := range txCopy.TxOut {
+			var txOut wire.TxOut
+			txOut = *txCopy.TxOut[i]
+			txCopy.TxOut[i] = &txOut
 		}
-		// Resize output array to up to and including requested index.
-		txCopy.TxOut = txCopy.TxOut[:idx+1]
-		// all but  current output get zeroed out
-		for i := 0; i < idx; i++ {
-			txCopy.TxOut[i].Value = -1
-			txCopy.TxOut[i].PkScript = []byte{}
-		}
-		// Sequence on all other inputs is 0, too.
-		for i := range txCopy.TxIn {
-			if i != idx {
-				txCopy.TxIn[i].Sequence = 0
+
+		switch hashType & 31 {
+		case SigHashNone:
+			txCopy.TxOut = txCopy.TxOut[0:0] // empty slice
+			for i := range txCopy.TxIn {
+				if i != idx {
+					txCopy.TxIn[i].Sequence = 0
+				}
 			}
+		case SigHashSingle:
+			if idx >= len(txCopy.TxOut) {
+				// This was created by a buggy implementation.
+				// In this case we do the same as bitcoind and bitcoinj
+				// and return 1 (as a uint256 little endian) as an
+				// error. Unfortunately this was not checked anywhere
+				// and thus is treated as the actual
+				// hash.
+				hash := make([]byte, 32)
+				hash[0] = 0x01
+				return hash
+			}
+			// Resize output array to up to and including requested index.
+			txCopy.TxOut = txCopy.TxOut[:idx+1]
+			// all but  current output get zeroed out
+			for i := 0; i < idx; i++ {
+				txCopy.TxOut[i].Value = -1
+				txCopy.TxOut[i].PkScript = []byte{}
+			}
+			// Sequence on all other inputs is 0, too.
+			for i := range txCopy.TxIn {
+				if i != idx {
+					txCopy.TxIn[i].Sequence = 0
+				}
+			}
+		default:
+			// XXX bitcoind treats undefined hashtypes like normal
+			// SigHashAll for purposes of hash generation.
+			fallthrough
+		case SigHashOld:
+			fallthrough
+		case SigHashAll:
+			// nothing special here
 		}
-	default:
-		// XXX bitcoind treats undefined hashtypes like normal
-		// SigHashAll for purposes of hash generation.
-		fallthrough
-	case SigHashOld:
-		fallthrough
-	case SigHashAll:
-		// nothing special here
-	}
-	if hashType&SigHashAnyOneCanPay != 0 {
-		txCopy.TxIn = txCopy.TxIn[idx : idx+1]
-		idx = 0
-	}
+		if hashType&SigHashAnyOneCanPay != 0 {
+			txCopy.TxIn = txCopy.TxIn[idx : idx+1]
+			idx = 0
+		}
 
-	var wbuf bytes.Buffer
-	txCopy.Serialize(&wbuf)
-	// Append LE 4 bytes hash type
-	binary.Write(&wbuf, binary.LittleEndian, uint32(hashType))
+		var wbuf bytes.Buffer
+		txCopy.Serialize(&wbuf)
+		// Append LE 4 bytes hash type
+		binary.Write(&wbuf, binary.LittleEndian, uint32(hashType))
 
-	return wire.DoubleSha256(wbuf.Bytes())
+		return wire.DoubleSha256(wbuf.Bytes())
+	*/
+	return nil
 }
 
 // getStack returns the contents of stack as a byte array bottom up
