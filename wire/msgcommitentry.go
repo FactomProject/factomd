@@ -8,7 +8,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/FactomProject/FactomCode/notaryapi"
+	"github.com/FactomProject/FactomCode/common"
 	"github.com/agl/ed25519"
 	"io"
 )
@@ -16,8 +16,8 @@ import (
 // MsgCommitEntry implements the Message interface and represents a factom
 // Commit-Entry message.  It is used by client to commit the entry before revealing it.
 type MsgCommitEntry struct {
-	ECPubKey  *notaryapi.Hash
-	EntryHash *notaryapi.Hash
+	ECPubKey  *common.Hash
+	EntryHash *common.Hash
 	Credits   uint32
 	Timestamp uint64
 	Sig       []byte
@@ -28,13 +28,13 @@ type MsgCommitEntry struct {
 func (msg *MsgCommitEntry) BtcEncode(w io.Writer, pver uint32) error {
 
 	//ECPubKey
-	err := writeVarBytes(w, uint32(notaryapi.HashSize), msg.ECPubKey.Bytes)
+	err := writeVarBytes(w, uint32(common.HashSize), msg.ECPubKey.Bytes)
 	if err != nil {
 		return err
 	}
 
 	//EntryHash
-	err = writeVarBytes(w, uint32(notaryapi.HashSize), msg.EntryHash.Bytes)
+	err = writeVarBytes(w, uint32(common.HashSize), msg.EntryHash.Bytes)
 	if err != nil {
 		return err
 	}
@@ -64,20 +64,20 @@ func (msg *MsgCommitEntry) BtcEncode(w io.Writer, pver uint32) error {
 // This is part of the Message interface implementation.
 func (msg *MsgCommitEntry) BtcDecode(r io.Reader, pver uint32) error {
 	//ECPubKey
-	bytes, err := readVarBytes(r, pver, uint32(notaryapi.HashSize), CmdCommitEntry)
+	bytes, err := readVarBytes(r, pver, uint32(common.HashSize), CmdCommitEntry)
 	if err != nil {
 		return err
 	}
 
-	msg.ECPubKey = new(notaryapi.Hash)
+	msg.ECPubKey = new(common.Hash)
 	msg.ECPubKey.SetBytes(bytes)
 
 	//EntryHash
-	bytes, err = readVarBytes(r, pver, uint32(notaryapi.HashSize), CmdCommitEntry)
+	bytes, err = readVarBytes(r, pver, uint32(common.HashSize), CmdCommitEntry)
 	if err != nil {
 		return err
 	}
-	msg.EntryHash = new(notaryapi.Hash)
+	msg.EntryHash = new(common.Hash)
 	msg.EntryHash.SetBytes(bytes)
 
 	//Credits
@@ -127,7 +127,7 @@ func (msg *MsgCommitEntry) IsValid() bool {
 	binary.Write(&buf, binary.BigEndian, msg.Timestamp)
 	buf.Write(msg.EntryHash.Bytes)
 	binary.Write(&buf, binary.BigEndian, msg.Credits)
-	if !notaryapi.VerifySlice(msg.ECPubKey.Bytes, buf.Bytes(), msg.Sig) {
+	if !common.VerifySlice(msg.ECPubKey.Bytes, buf.Bytes(), msg.Sig) {
 		fmt.Println("Error in verifying signature for msg:" + fmt.Sprintf("%+v", msg))
 		return false
 	}

@@ -5,7 +5,7 @@
 package wire
 
 import (
-	"github.com/FactomProject/FactomCode/notaryapi"
+	"github.com/FactomProject/FactomCode/common"
 	"io"
 	"bytes"	
 )
@@ -30,7 +30,7 @@ const (
 	
 type MsgAcknowledgement struct {
 	Height      uint64
-	ChainID     *notaryapi.Hash
+	ChainID     *common.Hash
 	Index       uint32
 	Type 		byte	
 	Affirmation *ShaHash // affirmation value -- hash of the message/object in question

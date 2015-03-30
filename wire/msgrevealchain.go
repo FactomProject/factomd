@@ -5,7 +5,7 @@
 package wire
 
 import (
-	"github.com/FactomProject/FactomCode/notaryapi"
+	"github.com/FactomProject/FactomCode/common"
 	"io"
 	"bytes"	
 )
@@ -13,7 +13,7 @@ import (
 // MsgRevealChain implements the Message interface and represents a factom
 // Reveal-Chain message.  It is used by client to reveal the chain.
 type MsgRevealChain struct {
-	Chain *notaryapi.EChain
+	Chain *common.EChain
 }
 
 // BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
@@ -43,7 +43,7 @@ func (msg *MsgRevealChain) BtcDecode(r io.Reader, pver uint32) error {
 		return err
 	}
 
-	msg.Chain = new(notaryapi.EChain)
+	msg.Chain = new(common.EChain)
 	err = msg.Chain.UnmarshalBinary(bytes)
 	if err != nil {
 		return err

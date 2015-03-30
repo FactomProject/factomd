@@ -8,7 +8,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/FactomProject/FactomCode/notaryapi"
+	"github.com/FactomProject/FactomCode/common"
 	"github.com/agl/ed25519"
 	"io"
 )
@@ -16,10 +16,10 @@ import (
 // MsgCommitEntry implements the Message interface and represents a factom
 // Commit-Entry message.  It is used by client to commit the entry before revealing it.
 type MsgCommitChain struct {
-	ECPubKey         *notaryapi.Hash
-	ChainID          *notaryapi.Hash
-	EntryHash        *notaryapi.Hash
-	EntryChainIDHash *notaryapi.Hash
+	ECPubKey         *common.Hash
+	ChainID          *common.Hash
+	EntryHash        *common.Hash
+	EntryChainIDHash *common.Hash
 	Credits          uint32
 	Timestamp        uint64
 	Sig              []byte
@@ -30,25 +30,25 @@ type MsgCommitChain struct {
 func (msg *MsgCommitChain) BtcEncode(w io.Writer, pver uint32) error {
 
 	//ECPubKey
-	err := writeVarBytes(w, uint32(notaryapi.HashSize), msg.ECPubKey.Bytes)
+	err := writeVarBytes(w, uint32(common.HashSize), msg.ECPubKey.Bytes)
 	if err != nil {
 		return err
 	}
 
 	//ChainID
-	err = writeVarBytes(w, uint32(notaryapi.HashSize), msg.ChainID.Bytes)
+	err = writeVarBytes(w, uint32(common.HashSize), msg.ChainID.Bytes)
 	if err != nil {
 		return err
 	}
 
 	//EntryHash
-	err = writeVarBytes(w, uint32(notaryapi.HashSize), msg.EntryHash.Bytes)
+	err = writeVarBytes(w, uint32(common.HashSize), msg.EntryHash.Bytes)
 	if err != nil {
 		return err
 	}
 
 	//EntryChainIDHash
-	err = writeVarBytes(w, uint32(notaryapi.HashSize), msg.EntryChainIDHash.Bytes)
+	err = writeVarBytes(w, uint32(common.HashSize), msg.EntryChainIDHash.Bytes)
 	if err != nil {
 		return err
 	}
@@ -78,36 +78,36 @@ func (msg *MsgCommitChain) BtcEncode(w io.Writer, pver uint32) error {
 // This is part of the Message interface implementation.
 func (msg *MsgCommitChain) BtcDecode(r io.Reader, pver uint32) error {
 	//ECPubKey
-	bytes, err := readVarBytes(r, pver, uint32(notaryapi.HashSize), CmdCommitChain)
+	bytes, err := readVarBytes(r, pver, uint32(common.HashSize), CmdCommitChain)
 	if err != nil {
 		return err
 	}
 
-	msg.ECPubKey = new(notaryapi.Hash)
+	msg.ECPubKey = new(common.Hash)
 	msg.ECPubKey.SetBytes(bytes)
 
 	//ChainID
-	bytes, err = readVarBytes(r, pver, uint32(notaryapi.HashSize), CmdCommitChain)
+	bytes, err = readVarBytes(r, pver, uint32(common.HashSize), CmdCommitChain)
 	if err != nil {
 		return err
 	}
-	msg.ChainID = new(notaryapi.Hash)
+	msg.ChainID = new(common.Hash)
 	msg.ChainID.SetBytes(bytes)
 
 	//EntryHash
-	bytes, err = readVarBytes(r, pver, uint32(notaryapi.HashSize), CmdCommitChain)
+	bytes, err = readVarBytes(r, pver, uint32(common.HashSize), CmdCommitChain)
 	if err != nil {
 		return err
 	}
-	msg.EntryHash = new(notaryapi.Hash)
+	msg.EntryHash = new(common.Hash)
 	msg.EntryHash.SetBytes(bytes)
 
 	//EntryChainIDHash
-	bytes, err = readVarBytes(r, pver, uint32(notaryapi.HashSize), CmdCommitChain)
+	bytes, err = readVarBytes(r, pver, uint32(common.HashSize), CmdCommitChain)
 	if err != nil {
 		return err
 	}
-	msg.EntryChainIDHash = new(notaryapi.Hash)
+	msg.EntryChainIDHash = new(common.Hash)
 	msg.EntryChainIDHash.SetBytes(bytes)
 
 	//Credits
@@ -159,7 +159,7 @@ func (msg *MsgCommitChain) IsValid() bool {
 	buf.Write(msg.EntryHash.Bytes)
 	buf.Write(msg.EntryChainIDHash.Bytes)
 	binary.Write(&buf, binary.BigEndian, msg.Credits)
-	if !notaryapi.VerifySlice(msg.ECPubKey.Bytes, buf.Bytes(), msg.Sig) {
+	if !common.VerifySlice(msg.ECPubKey.Bytes, buf.Bytes(), msg.Sig) {
 		fmt.Println("Error in verifying signature for msg:" + fmt.Sprintf("%+v", msg)) //use logging level??
 		return false
 	}

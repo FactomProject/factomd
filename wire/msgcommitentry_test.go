@@ -5,7 +5,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
-	"github.com/FactomProject/FactomCode/notaryapi"
+	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/wallet"
 	"github.com/FactomProject/btcd/wire"
 	"testing"
@@ -14,7 +14,7 @@ import (
 
 func TestCommitEntry(t *testing.T) {
 	fmt.Println("\nTestCommitEntry===========================================================================")
-	chain := new(notaryapi.EChain)
+	chain := new(common.EChain)
 	bName := make([][]byte, 0, 5)
 	bName = append(bName, []byte("myCompany"))
 	bName = append(bName, []byte("bookkeeping2"))
@@ -22,7 +22,7 @@ func TestCommitEntry(t *testing.T) {
 	chain.Name = bName
 	chain.GenerateIDFromName()
 
-	entry := new(notaryapi.Entry)
+	entry := new(common.Entry)
 	entry.ExtIDs = make([][]byte, 0, 5)
 	entry.ExtIDs = append(entry.ExtIDs, []byte(string(1)))
 	entry.ExtIDs = append(entry.ExtIDs, []byte("570b9e3fb2f5ae823685eb4422d4fd83f3f0d9e7ce07d988bd17e665394668c6"))
@@ -31,7 +31,7 @@ func TestCommitEntry(t *testing.T) {
 	entry.ChainID = *chain.ChainID
 
 	binaryEntry, _ := entry.MarshalBinary()
-	entryHash := notaryapi.Sha(binaryEntry)
+	entryHash := common.Sha(binaryEntry)
 
 	// Calculate the required credits
 	credits := uint32(binary.Size(binaryEntry)/1000 + 1)
@@ -46,7 +46,7 @@ func TestCommitEntry(t *testing.T) {
 
 	hexkey := "ed14447c656241bf7727fce2e2a48108374bec6e71358f0a280608b292c7f3bc"
 	binkey, _ := hex.DecodeString(hexkey)
-	pubKey := new(notaryapi.Hash)
+	pubKey := new(common.Hash)
 	pubKey.SetBytes(binkey)
 
 	//Write msg
