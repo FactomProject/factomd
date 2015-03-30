@@ -7,7 +7,7 @@
 
 // temp code to test out the block generating functions
 
-package main
+package btcd
 
 import (
 	//	"container/list"

@@ -2,7 +2,7 @@
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
-package main
+package btcd
 
 import (
 	"fmt"
@@ -145,7 +145,7 @@ func btcdMain(serverChan chan<- *server) error {
 	return nil
 }
 
-func btcd_main() {
+func Btcd_main() {
 	util.Trace("FORMER REAL btcd main() function !")
 	// Use all processor cores.
 	runtime.GOMAXPROCS(runtime.NumCPU())

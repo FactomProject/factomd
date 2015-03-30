@@ -4,7 +4,7 @@
 
 // Glue code between BTCD code & Factom.
 
-package main
+package btcd
 
 import (
 	"fmt"
@@ -162,7 +162,7 @@ func global_DeleteMemPoolEntry(hash *wire.ShaHash) {
 	// TODO: ensure mutex-protection
 }
 
-func factomSetupOverrides() {
+func FactomSetupOverrides() {
 	//	factomd.FactomOverride.TxIgnoreMissingParents = true
 	factomd.FactomOverride.TxOrphansInsteadOfMempool = true
 	factomd.FactomOverride.BlockDisableChecks = true

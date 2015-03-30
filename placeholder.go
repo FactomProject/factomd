@@ -2,7 +2,7 @@
 // placeholder stuff, while merging
 //
 
-package main
+package btcd
 
 import (
 	"github.com/FactomProject/btcd/wire"
