@@ -4,8 +4,13 @@
 
 package wire
 
+// Notes - TODO:
+// Value is fixed uint64 right now, must be VarInt
+// LockTime is int64 right now, must be 5 bytes
+// RCD, sig & bitfield primitives not implemented yet
+
 import (
-	//	"bytes"
+	"bytes"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -17,8 +22,33 @@ import (
 )
 
 const (
+	TxVersion  = 0
 	inNout_cap = 16000 // per spec
+
+	MaxPrevOutIndex = inNout_cap
+
+	// minTxPayload is the minimum payload size for a transaction.  Note
+	// that any realistically usable transaction must have at least one
+	// input or output, but that is a rule enforced at a higher layer, so
+	// it is intentionally not included here.
+	// Version 4 bytes + Varint number of transaction inputs 1 byte + Varint
+	// number of transaction outputs 1 byte + LockTime 4 bytes + min input
+	// payload + min output payload.
+	minTxPayload = 10 // TODO: revisit for Factoid, blind copy from Bitcoin
+
+	defaultTxInOutAlloc = 15
 )
+
+// TODO: confirm with Brian, he is considering 10KiB or 16KiB -- max TX size:
+func (msg *MsgTx) MaxPayloadLength(pver uint32) uint32 {
+	return 1024 * 16
+}
+
+// Command returns the protocol command string for the message.  This is part
+// of the Message interface implementation.
+func (msg *MsgTx) Command() string {
+	return CmdTx
+}
 
 // good check to run after deserialization
 func factoid_CountCheck(tx *MsgTx) bool {
@@ -29,6 +59,38 @@ func factoid_CountCheck(tx *MsgTx) bool {
 }
 
 func readRCD(r io.Reader, pver uint32, rcd *RCD) error {
+	util.Trace("NOT IMPLEMENTED !!!")
+
+	return nil
+}
+
+func writeRCD(w io.Writer, pver uint32, rcd *RCD) error {
+	util.Trace("NOT IMPLEMENTED !!!")
+
+	return nil
+}
+
+func readSig(r io.Reader, pver uint32, sig *TxSig) error {
+	util.Trace("NOT IMPLEMENTED !!!")
+
+	return nil
+}
+
+func writeSig(w io.Writer, pver uint32, sig *TxSig) error {
+	util.Trace("NOT IMPLEMENTED !!!")
+
+	return nil
+}
+
+func readBitfield(r io.Reader, pver uint32) error {
+	util.Trace("NOT IMPLEMENTED !!!")
+
+	return nil
+}
+
+func writeBitfield(w io.Writer, pver uint32, sigs []*TxSig) error {
+	util.Trace("NOT IMPLEMENTED !!!")
+
 	return nil
 }
 
@@ -105,7 +167,7 @@ func readTxOut(r io.Reader, pver uint32, to *TxOut) error {
 		return err
 	}
 
-	to.Value = int64(value)
+	to.Value = int64(value) // FIXME: make it VarInt
 
 	b := make([]byte, 32)
 	_, err = io.ReadFull(r, b)
@@ -121,7 +183,7 @@ func readECOut(r io.Reader, pver uint32, eco *TxEntryCreditOut) error {
 		return err
 	}
 
-	eco.Value = int64(value)
+	eco.Value = int64(value) // FIXME: make it VarInt
 
 	b := make([]byte, 32)
 	_, err = io.ReadFull(r, b)
@@ -251,6 +313,8 @@ func (msg *MsgTx) BtcDecode(r io.Reader, pver uint32) error {
 		msg.RCD[i] = &rcd
 	}
 
+	readBitfield(r, pver)
+
 	// ----------------------------------------------
 	if !factoid_CountCheck(msg) {
 		errors.New("Factoid check 1")
@@ -264,8 +328,6 @@ func (msg *MsgTx) BtcDecode(r io.Reader, pver uint32) error {
 // See Serialize for encoding transactions to be stored to disk, such as in a
 // database, as opposed to encoding transactions for the wire.
 func (msg *MsgTx) BtcEncode(w io.Writer, pver uint32) error {
-
-	util.Trace(" WIP !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 
 	var buf [1]byte
 
@@ -302,73 +364,224 @@ func (msg *MsgTx) BtcEncode(w io.Writer, pver uint32) error {
 		return err
 	}
 
-	/*
-		count = uint64(len(msg.TxOut))
-		err = writeVarInt(w, pver, count)
+	for _, eco := range msg.ECOut {
+		err = writeECOut(w, pver, eco)
 		if err != nil {
 			return err
 		}
+	}
 
-		for _, to := range msg.TxOut {
-			err = writeTxOut(w, pver, to)
-			if err != nil {
-				return err
-			}
-		}
+	incount := uint64(len(msg.TxIn))
+	err = writeVarInt(w, pver, incount)
+	if err != nil {
+		return err
+	}
 
-		binary.BigEndian.PutUint64(buf[:], uint64(msg.LockTime)) // FIXME: must do 5 bytes here
-		_, err = w.Write(buf[:])
+	for _, ti := range msg.TxIn {
+		err = writeTxIn(w, pver, ti)
 		if err != nil {
 			return err
 		}
+	}
 
-	*/
+	rcdcount := uint64(len(msg.RCD))
+	err = writeVarInt(w, pver, rcdcount)
+	if err != nil {
+		return err
+	}
+
+	for _, rcd := range msg.RCD {
+		err = writeRCD(w, pver, rcd)
+		if err != nil {
+			return err
+		}
+	}
+
+	writeBitfield(w, pver, msg.TxSig)
+
+	for _, sig := range msg.TxSig {
+		err = writeSig(w, pver, sig)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
 // writeTxIn encodes ti to the protocol encoding for a transaction
 // input (TxIn) to w.
 func writeTxIn(w io.Writer, pver uint32, ti *TxIn) error {
-	util.Trace(" NOT IMPLEMENTED !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+	err := writeOutPoint(w, pver, &ti.PreviousOutPoint)
+	if err != nil {
+		return err
+	}
 
-	/*
-		err := writeOutPoint(w, pver, &ti.PreviousOutPoint)
-		if err != nil {
-			return err
-		}
+	var buf [1]byte
 
-		err = writeVarBytes(w, pver, ti.SignatureScript)
-		if err != nil {
-			return err
-		}
+	buf[0] = ti.sighash
 
-		var buf [4]byte
-		binary.BigEndian.PutUint32(buf[:], ti.Sequence)
-		_, err = w.Write(buf[:])
-		if err != nil {
-			return err
-		}
+	_, err = w.Write(buf[:])
+	if err != nil {
+		return err
+	}
 
-	*/
 	return nil
 }
 
 // writeTxOut encodes to into the protocol encoding for a transaction
 // output (TxOut) to w.
 func writeTxOut(w io.Writer, pver uint32, to *TxOut) error {
-	util.Trace(" NOT IMPLEMENTED !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-	/*
-		var buf [8]byte
-		binary.BigEndian.PutUint64(buf[:], uint64(to.Value))
-		_, err := w.Write(buf[:])
-		if err != nil {
-			return err
-		}
+	var buf [8]byte
+	binary.BigEndian.PutUint64(buf[:], uint64(to.Value)) // FIXME: make it VarInt
+	_, err := w.Write(buf[:])
+	if err != nil {
+		return err
+	}
 
-		err = writeVarBytes(w, pver, to.PkScript)
-		if err != nil {
-			return err
-		}
-	*/
+	err = writeVarBytes(w, pver, to.RCDHash[:])
+	if err != nil {
+		return err
+	}
+
 	return nil
+}
+
+// writeECOut encodes to into the protocol encoding for a transaction
+// output (TxOut) to w.
+func writeECOut(w io.Writer, pver uint32, eco *TxEntryCreditOut) error {
+	var buf [8]byte
+	binary.BigEndian.PutUint64(buf[:], uint64(eco.Value)) // FIXME: make it VarInt
+	_, err := w.Write(buf[:])
+	if err != nil {
+		return err
+	}
+
+	err = writeVarBytes(w, pver, eco.ECpubkey[:])
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// SerializeSize returns the number of bytes it would take to serialize the
+// the transaction output.
+func (t *TxOut) SerializeSize() int {
+	// FIXME: switch to this VarInt calculation
+	//	return 32 + VarIntSerializeSize(uint64(t.Value))  // this is good for VarInt.. future
+
+	return 40 // TODO: replace with the VarInt calc, this is for fixed size value (8 bytes)
+}
+
+func (t *TxEntryCreditOut) SerializeSize() int {
+	// FIXME: make it VarInt
+	return 40
+}
+
+// the transaction input: txid (32) + vaue (8) + sighash (1)
+// FIXME: make it VarInt
+func (t *TxIn) SerializeSize() int {
+	return 41
+}
+
+// SerializeSize returns the number of bytes it would take to serialize the
+// the transaction.
+func (msg *MsgTx) SerializeSize() int {
+	n := 1 + // 1 byte version
+		8 // FIXME: 5 bytes locktime
+
+	for _, txOut := range msg.TxOut {
+		n += txOut.SerializeSize()
+	}
+
+	for _, ecOut := range msg.ECOut {
+		n += ecOut.SerializeSize()
+	}
+
+	for _, txIn := range msg.TxIn {
+		n += txIn.SerializeSize()
+	}
+
+	return n
+}
+
+// TxSha generates the ShaHash name for the transaction.
+func (msg *MsgTx) TxSha() (ShaHash, error) {
+	util.Trace()
+
+	// Encode the transaction and calculate double sha256 on the result.
+	// Ignore the error returns since the only way the encode could fail
+	// is being out of memory or due to nil pointers, both of which would
+	// cause a run-time panic.  Also, SetBytes can't fail here due to the
+	// fact DoubleSha256 always returns a []byte of the right size
+	// regardless of input.
+	buf := bytes.NewBuffer(make([]byte, 0, msg.SerializeSize()))
+	_ = msg.Serialize(buf)
+	var sha ShaHash
+	_ = sha.SetBytes(DoubleSha256(buf.Bytes()))
+
+	// Even though this function can't currently fail, it still returns
+	// a potential error to help future proof the API should a failure
+	// become possible.
+	return sha, nil
+}
+
+func (msg *MsgTx) Deserialize(r io.Reader) error {
+	util.Trace()
+	// At the current time, there is no difference between the wire encoding
+	// at protocol version 0 and the stable long-term storage format.  As
+	// a result, make use of BtcDecode.
+
+	return msg.BtcDecode(r, 0)
+}
+
+func (msg *MsgTx) Serialize(w io.Writer) error {
+	util.Trace()
+	// At the current time, there is no difference between the wire encoding
+	// at protocol version 0 and the stable long-term storage format.  As
+	// a result, make use of BtcEncode.
+
+	return msg.BtcEncode(w, 0)
+}
+
+// NewTxIn returns a new bitcoin transaction input with the provided
+// previous outpoint point and signature script with a default sequence of
+// MaxTxInSequenceNum.
+func NewTxIn(prevOut *OutPoint, signatureScript []byte) *TxIn {
+	return &TxIn{
+		PreviousOutPoint: *prevOut,
+		//    SignatureScript:  signatureScript,
+		//    Sequence:         MaxTxInSequenceNum,
+	}
+}
+
+// NewTxOut returns a new bitcoin transaction output with the provided
+// transaction value and public key script.
+func NewTxOut(value int64, pkScript []byte) *TxOut {
+	return &TxOut{
+		Value: value,
+		//    PkScript: pkScript, // TODO
+	}
+}
+
+// AddTxIn adds a transaction input to the message.
+func (msg *MsgTx) AddTxIn(ti *TxIn) {
+	msg.TxIn = append(msg.TxIn, ti)
+}
+
+// AddTxOut adds a transaction output to the message.
+func (msg *MsgTx) AddTxOut(to *TxOut) {
+	msg.TxOut = append(msg.TxOut, to)
+}
+
+// NewMsgTx returns a new tx message that conforms to the Message
+// interface.  The return instance has a default version of TxVersion and there
+// are no transaction inputs or outputs.  Also, the lock time is set to zero
+// to indicate the transaction is valid immediately as opposed to some time in
+// future.
+func NewMsgTx() *MsgTx {
+	return &MsgTx{
+		Version: TxVersion,
+	}
 }
