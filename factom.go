@@ -11,7 +11,7 @@ import (
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/FactomCode/wallet"
 	"github.com/FactomProject/btcd/wire"
-	"github.com/FactomProject/btcd/limits"
+
 	"os"	
 	//	"github.com/FactomProject/btcutil"
 )
@@ -92,10 +92,12 @@ func Start_btcd(inMsgQ chan wire.FtmInternalMsg, outMsgQ chan wire.FtmInternalMs
 	// Use all processor cores.
 	//runtime.GOMAXPROCS(runtime.NumCPU())
 
+	FactomSetupOverrides()
+
 	// Up some limits.
-	if err := limits.SetLimits(); err != nil {
-		os.Exit(1)
-	}
+	//if err := limits.SetLimits(); err != nil {
+	//	os.Exit(1)
+	//}
 
 	// Call serviceMain on Windows to handle running as a service.  When
 	// the return isService flag is true, exit now since we ran as a
@@ -116,6 +118,10 @@ func Start_btcd(inMsgQ chan wire.FtmInternalMsg, outMsgQ chan wire.FtmInternalMs
 	outMsgQueue = outMsgQ
 	inCtlMsgQueue = inCtlMsgQ
 	outCtlMsgQueue = outCtlMsgQ
+	
+	//for testing only -- to be removed??
+	tx := wire.NewMsgTx()
+	factomIngressTx_hook(tx)
 		
 	// Work around defer not working after os.Exit()
 	if err := btcdMain(nil); err != nil {
