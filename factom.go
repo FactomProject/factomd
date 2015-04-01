@@ -8,16 +8,31 @@ package btcd
 
 import (
 	"fmt"
-	"github.com/FactomProject/FactomCode/factomd"
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/FactomCode/wallet"
 	"github.com/FactomProject/btcd/wire"
+	"github.com/FactomProject/btcd/limits"
+	"os"	
 	//	"github.com/FactomProject/btcutil"
 )
 
 var (
 	local_Server *server
+	// to be renamed??
+	inMsgQueue  chan wire.FtmInternalMsg //incoming message queue for factom application messages
+	outMsgQueue chan wire.FtmInternalMsg //outgoing message queue for factom application messages
+
+	inCtlMsgQueue  chan wire.FtmInternalMsg //incoming message queue for factom control messages
+	outCtlMsgQueue chan wire.FtmInternalMsg //outgoing message queue for factom control messages	
 )
+
+// trying out some flags to optionally disable old BTC functionality ... WIP
+var FactomOverride struct {
+	//	TxIgnoreMissingParents bool
+	temp1                     bool
+	TxOrphansInsteadOfMempool bool // allow orphans for block creation
+	BlockDisableChecks        bool
+}
 
 // start up Factom queue(s) managers/processors
 // this is to be called within the btcd's main code
@@ -29,7 +44,7 @@ func factomForkInit(s *server) {
 
 	// Write outgoing factom messages into P2P network
 	go func() {
-		for msg := range factomd.OutMsgQueue {
+		for msg := range outMsgQueue {
 			wireMsg, ok := msg.(wire.Message)
 			if ok {
 				s.BroadcastMessage(wireMsg)
@@ -72,12 +87,49 @@ func (p *peer) handleBuyCreditMsg(msg *wire.MsgGetCredit) {
 }
 */
 
+func Start_btcd(inMsgQ chan wire.FtmInternalMsg, outMsgQ chan wire.FtmInternalMsg, inCtlMsgQ chan wire.FtmInternalMsg, outCtlMsgQ chan wire.FtmInternalMsg) {
+	util.Trace("FORMER REAL btcd main() function !")
+	// Use all processor cores.
+	//runtime.GOMAXPROCS(runtime.NumCPU())
+
+	// Up some limits.
+	if err := limits.SetLimits(); err != nil {
+		os.Exit(1)
+	}
+
+	// Call serviceMain on Windows to handle running as a service.  When
+	// the return isService flag is true, exit now since we ran as a
+	// service.  Otherwise, just fall through to normal operation.
+	/*if runtime.GOOS == "windows" {
+		isService, err := winServiceMain()
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		if isService {
+			os.Exit(0)
+		}
+	}
+*/
+	// pass in the message queues
+	inMsgQueue = inMsgQ
+	outMsgQueue = outMsgQ
+	inCtlMsgQueue = inCtlMsgQ
+	outCtlMsgQueue = outCtlMsgQ
+		
+	// Work around defer not working after os.Exit()
+	if err := btcdMain(nil); err != nil {
+		os.Exit(1)
+	}
+}
+
+
 // Handle factom app imcoming msg
 func (p *peer) handleCommitChainMsg(msg *wire.MsgCommitChain) {
 	util.Trace()
 
 	// Add the msg to inbound msg queue
-	factomd.InMsgQueue <- msg
+	inMsgQueue <- msg
 }
 
 // Handle factom app imcoming msg
@@ -85,7 +137,7 @@ func (p *peer) handleRevealChainMsg(msg *wire.MsgRevealChain) {
 	util.Trace()
 
 	// Add the msg to inbound msg queue
-	factomd.InMsgQueue <- msg
+	inMsgQueue <- msg
 }
 
 // Handle factom app imcoming msg
@@ -93,7 +145,7 @@ func (p *peer) handleCommitEntryMsg(msg *wire.MsgCommitEntry) {
 	util.Trace()
 
 	// Add the msg to inbound msg queue
-	factomd.InMsgQueue <- msg
+	inMsgQueue <- msg
 }
 
 // Handle factom app imcoming msg
@@ -101,7 +153,7 @@ func (p *peer) handleRevealEntryMsg(msg *wire.MsgRevealEntry) {
 	util.Trace()
 
 	// Add the msg to inbound msg queue
-	factomd.InMsgQueue <- msg
+	inMsgQueue <- msg
 }
 
 // returns true if the message should be relayed, false otherwise
@@ -162,12 +214,6 @@ func global_DeleteMemPoolEntry(hash *wire.ShaHash) {
 	// TODO: ensure mutex-protection
 }
 
-func FactomSetupOverrides() {
-	//	factomd.FactomOverride.TxIgnoreMissingParents = true
-	factomd.FactomOverride.TxOrphansInsteadOfMempool = true
-	factomd.FactomOverride.BlockDisableChecks = true
-}
-
 // check a few btcd-related flags for sanity in our fork
 func (b *blockManager) factomChecks() {
 	util.Trace()
@@ -215,7 +261,13 @@ func factomIngressTx_hook(tx *wire.MsgTx) error {
 
 	fmt.Println("ecmap len =", len(ecmap))
 
-	factomd.InMsgQueue <- fo
+	inMsgQueue <- fo
 
 	return nil
+}
+
+func FactomSetupOverrides() {
+	//	factomd.FactomOverride.TxIgnoreMissingParents = true
+	FactomOverride.TxOrphansInsteadOfMempool = true
+	FactomOverride.BlockDisableChecks = true
 }
