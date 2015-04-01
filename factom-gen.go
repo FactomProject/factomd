@@ -113,7 +113,7 @@ func test_generateBlocks() {
 	util.Trace()
 }
 
-func test_timer() {
+func Test_timer() {
 	count := int32(0)
 
 	for {
