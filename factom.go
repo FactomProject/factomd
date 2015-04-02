@@ -260,7 +260,7 @@ func factomIngressTx_hook(tx *wire.MsgTx) error {
 	hash2 := new(wire.ShaHash)
 	hash2.SetBytes((*sig.Pub.Key)[:])
 
-	ecmap[*hash2] = 1000000
+	ecmap[*hash2] = 10000000
 
 	txHash, _ := tx.TxSha()
 	fo := &wire.MsgInt_FactoidObj{tx, &txHash, ecmap}
