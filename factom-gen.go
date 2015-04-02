@@ -22,8 +22,6 @@ import (
 	"github.com/FactomProject/btcd/chaincfg"
 	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/btcutil"
-
-	"github.com/FactomProject/FactomCode/factomd"
 	"github.com/FactomProject/FactomCode/util"
 )
 
@@ -340,7 +338,7 @@ func test_NewBlockTemplate(mempool *txMemPool, payToAddress btcutil.Address) (*B
 
 	var mempoolTxns []*TxDesc
 
-	if !factomd.FactomOverride.TxOrphansInsteadOfMempool {
+	if !FactomOverride.TxOrphansInsteadOfMempool {
 		util.Trace()
 		mempoolTxns = mempool.TxDescs()
 	} else {
@@ -437,7 +435,7 @@ func test_NewBlockTemplate(mempool *txMemPool, payToAddress btcutil.Address) (*B
 	block := btcutil.NewBlock(&msgBlock)
 	block.SetHeight(nextBlockHeight)
 
-	if !factomd.FactomOverride.BlockDisableChecks {
+	if !FactomOverride.BlockDisableChecks {
 		if err := blockManager.CheckConnectBlock(block); err != nil {
 			return nil, err
 		}

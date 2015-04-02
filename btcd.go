@@ -5,16 +5,16 @@
 package btcd
 
 import (
-	"fmt"
+	//"fmt"
 	"net"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
-	"runtime"
+//	"runtime"
 	"runtime/pprof"
 
 	"github.com/FactomProject/FactomCode/util"
-	"github.com/FactomProject/btcd/limits"
+
 )
 
 var (
@@ -145,32 +145,3 @@ func btcdMain(serverChan chan<- *server) error {
 	return nil
 }
 
-func Btcd_main() {
-	util.Trace("FORMER REAL btcd main() function !")
-	// Use all processor cores.
-	runtime.GOMAXPROCS(runtime.NumCPU())
-
-	// Up some limits.
-	if err := limits.SetLimits(); err != nil {
-		os.Exit(1)
-	}
-
-	// Call serviceMain on Windows to handle running as a service.  When
-	// the return isService flag is true, exit now since we ran as a
-	// service.  Otherwise, just fall through to normal operation.
-	if runtime.GOOS == "windows" {
-		isService, err := winServiceMain()
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-		if isService {
-			os.Exit(0)
-		}
-	}
-
-	// Work around defer not working after os.Exit()
-	if err := btcdMain(nil); err != nil {
-		os.Exit(1)
-	}
-}
