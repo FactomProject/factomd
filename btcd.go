@@ -10,11 +10,10 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"os"
-//	"runtime"
+	//	"runtime"
 	"runtime/pprof"
 
 	"github.com/FactomProject/FactomCode/util"
-
 )
 
 var (
@@ -32,7 +31,8 @@ var winServiceMain func() (bool, error)
 // notified with the server once it is setup so it can gracefully stop it when
 // requested from the service control manager.
 func btcdMain(serverChan chan<- *server) error {
-	util.Trace()
+	util.Trace("*******************************************************************************")
+
 	// Load configuration and parse command line.  This function also
 	// initializes logging and configures it accordingly.
 	tcfg, _, err := loadConfig()
@@ -124,6 +124,11 @@ func btcdMain(serverChan chan<- *server) error {
 
 	// Factom Additions BEGIN
 	factomForkInit(server)
+
+	// Factom testing
+	// gen
+	go Test_timer()
+
 	// Factom Additions END
 
 	// Monitor for graceful server shutdown and signal the main goroutine
@@ -144,4 +149,3 @@ func btcdMain(serverChan chan<- *server) error {
 	btcdLog.Info("Shutdown complete")
 	return nil
 }
-

@@ -18,11 +18,11 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 
+	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/btcd/blockchain"
 	"github.com/FactomProject/btcd/chaincfg"
 	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/btcutil"
-	"github.com/FactomProject/FactomCode/util"
 )
 
 type CPUMINER struct {
@@ -112,6 +112,8 @@ func test_generateBlocks() {
 }
 
 func Test_timer() {
+	util.Trace()
+
 	count := int32(0)
 
 	for {

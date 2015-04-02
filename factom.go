@@ -12,7 +12,7 @@ import (
 	"github.com/FactomProject/FactomCode/wallet"
 	"github.com/FactomProject/btcd/wire"
 
-	"os"	
+	"os"
 	//	"github.com/FactomProject/btcutil"
 )
 
@@ -23,7 +23,7 @@ var (
 	outMsgQueue chan wire.FtmInternalMsg //outgoing message queue for factom application messages
 
 	inCtlMsgQueue  chan wire.FtmInternalMsg //incoming message queue for factom control messages
-	outCtlMsgQueue chan wire.FtmInternalMsg //outgoing message queue for factom control messages	
+	outCtlMsgQueue chan wire.FtmInternalMsg //outgoing message queue for factom control messages
 )
 
 // trying out some flags to optionally disable old BTC functionality ... WIP
@@ -37,6 +37,7 @@ var FactomOverride struct {
 // start up Factom queue(s) managers/processors
 // this is to be called within the btcd's main code
 func factomForkInit(s *server) {
+	util.Trace()
 	// tweak some config options
 	cfg.DisableCheckpoints = true
 
@@ -112,23 +113,18 @@ func Start_btcd(inMsgQ chan wire.FtmInternalMsg, outMsgQ chan wire.FtmInternalMs
 			os.Exit(0)
 		}
 	}
-*/
+	*/
 	// pass in the message queues
 	inMsgQueue = inMsgQ
 	outMsgQueue = outMsgQ
 	inCtlMsgQueue = inCtlMsgQ
 	outCtlMsgQueue = outCtlMsgQ
-	
-	//for testing only -- to be removed??
-	tx := wire.NewMsgTx()
-	factomIngressTx_hook(tx)
-		
+
 	// Work around defer not working after os.Exit()
 	if err := btcdMain(nil); err != nil {
 		os.Exit(1)
 	}
 }
-
 
 // Handle factom app imcoming msg
 func (p *peer) handleCommitChainMsg(msg *wire.MsgCommitChain) {
