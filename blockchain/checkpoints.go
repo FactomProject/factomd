@@ -11,6 +11,8 @@ import (
 	//	"github.com/FactomProject/btcd/txscript"
 	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/btcutil"
+
+	"github.com/FactomProject/FactomCode/util"
 )
 
 // CheckpointConfirmations is the number of blocks before the end of the current
@@ -84,9 +86,11 @@ func (b *BlockChain) verifyCheckpoint(height int64, hash *wire.ShaHash) bool {
 // associated block.  It returns nil if a checkpoint can't be found (this should
 // really only happen for blocks before the first checkpoint).
 func (b *BlockChain) findPreviousCheckpoint() (*btcutil.Block, error) {
+	util.Trace()
 	if b.noCheckpoints || len(b.chainParams.Checkpoints) == 0 {
 		return nil, nil
 	}
+	util.Trace()
 
 	// No checkpoints.
 	checkpoints := b.chainParams.Checkpoints

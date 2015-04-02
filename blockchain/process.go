@@ -119,13 +119,14 @@ func (b *BlockChain) processOrphans(hash *wire.ShaHash, flags BehaviorFlags) err
 // It returns a bool which indicates whether or not the block is an orphan and
 // any errors that occurred during processing.  The returned bool is only valid
 // when the error is nil.
-func (b *BlockChain) ProcessBlock(block *btcutil.Block, timeSource MedianTimeSource, flags BehaviorFlags) (bool, error) {
+func (b *BlockChain) BC_ProcessBlock(block *btcutil.Block, timeSource MedianTimeSource, flags BehaviorFlags) (bool, error) {
 	util.Trace()
 
 	if flags&BFFactomFlag1 == BFFactomFlag1 {
 		util.Trace("NOT IMPLEMENTED (block processing) !!!!!!!")
 		return false, nil
 	}
+	util.Trace()
 
 	fastAdd := flags&BFFastAdd == BFFastAdd
 	dryRun := flags&BFDryRun == BFDryRun
@@ -135,28 +136,33 @@ func (b *BlockChain) ProcessBlock(block *btcutil.Block, timeSource MedianTimeSou
 		return false, err
 	}
 	log.Infof("Processing block %v", blockHash)
+	util.Trace()
 
 	// The block must not already exist in the main chain or side chains.
 	exists, err := b.blockExists(blockHash)
 	if err != nil {
 		return false, err
 	}
+	util.Trace()
 	if exists {
 		str := fmt.Sprintf("already have block %v", blockHash)
 		return false, ruleError(ErrDuplicateBlock, str)
 	}
+	util.Trace()
 
 	// The block must not already exist as an orphan.
 	if _, exists := b.orphans[*blockHash]; exists {
 		str := fmt.Sprintf("already have block (orphan) %v", blockHash)
 		return false, ruleError(ErrDuplicateBlock, str)
 	}
+	util.Trace()
 
 	// Perform preliminary sanity checks on the block and its transactions.
 	err = checkBlockSanity(block, b.chainParams.PowLimit, timeSource, flags)
 	if err != nil {
 		return false, err
 	}
+	util.Trace()
 
 	// Find the previous checkpoint and perform some additional checks based
 	// on the checkpoint.  This provides a few nice properties such as
@@ -167,8 +173,10 @@ func (b *BlockChain) ProcessBlock(block *btcutil.Block, timeSource MedianTimeSou
 	blockHeader := &block.MsgBlock().Header
 	checkpointBlock, err := b.findPreviousCheckpoint()
 	if err != nil {
+		util.Trace("ERROR in findPreviousCheckpoint !!!!")
 		return false, err
 	}
+	util.Trace()
 	if checkpointBlock != nil {
 		// Ensure the block timestamp is after the checkpoint timestamp.
 		checkpointHeader := &checkpointBlock.MsgBlock().Header
@@ -179,6 +187,7 @@ func (b *BlockChain) ProcessBlock(block *btcutil.Block, timeSource MedianTimeSou
 				blockHeader.Timestamp, checkpointTime)
 			return false, ruleError(ErrCheckpointTimeTooOld, str)
 		}
+		util.Trace()
 		if !fastAdd {
 			// Even though the checks prior to now have already ensured the
 			// proof of work exceeds the claimed amount, the claimed amount
@@ -216,6 +225,7 @@ func (b *BlockChain) ProcessBlock(block *btcutil.Block, timeSource MedianTimeSou
 			return true, nil
 		}
 	}
+	util.Trace()
 
 	// The block has passed all context independent checks and appears sane
 	// enough to potentially accept it into the block chain.
@@ -223,6 +233,7 @@ func (b *BlockChain) ProcessBlock(block *btcutil.Block, timeSource MedianTimeSou
 	if err != nil {
 		return false, err
 	}
+	util.Trace()
 
 	// Don't process any orphans or log when the dry run flag is set.
 	if !dryRun {
@@ -233,6 +244,7 @@ func (b *BlockChain) ProcessBlock(block *btcutil.Block, timeSource MedianTimeSou
 		if err != nil {
 			return false, err
 		}
+		util.Trace()
 
 		log.Debugf("Accepted block %v", blockHash)
 	}

@@ -19,13 +19,15 @@ import (
 
 	"github.com/FactomProject/FactomCode/factoid"
 	"github.com/FactomProject/FactomCode/util"
+
+	//	"github.com/davecgh/go-spew/spew"
 )
 
 const (
 	TxVersion  = 0
 	inNout_cap = 16000 // per spec
 
-	MaxPrevOutIndex = inNout_cap
+	MaxPrevOutIndex = 0xffffffff // there are some checks that expect math.MaxUint32 here... hm: IsCoinBase()
 
 	// minTxPayload is the minimum payload size for a transaction.  Note
 	// that any realistically usable transaction must have at least one
@@ -73,11 +75,15 @@ func writeRCD(w io.Writer, pver uint32, rcd *RCD) error {
 func readSig(r io.Reader, pver uint32, sig *TxSig) error {
 	util.Trace("NOT IMPLEMENTED !!!")
 
+	readBitfield(r, pver)
+
 	return nil
 }
 
 func writeSig(w io.Writer, pver uint32, sig *TxSig) error {
 	util.Trace("NOT IMPLEMENTED !!!")
+
+	writeBitfield(w, pver, sig)
 
 	return nil
 }
@@ -88,7 +94,7 @@ func readBitfield(r io.Reader, pver uint32) error {
 	return nil
 }
 
-func writeBitfield(w io.Writer, pver uint32, sigs []*TxSig) error {
+func writeBitfield(w io.Writer, pver uint32, sig *TxSig) error {
 	util.Trace("NOT IMPLEMENTED !!!")
 
 	return nil
@@ -199,6 +205,12 @@ func readECOut(r io.Reader, pver uint32, eco *TxEntryCreditOut) error {
 // database, as opposed to decoding transactions from the wire.
 func (msg *MsgTx) BtcDecode(r io.Reader, pver uint32) error {
 	util.Trace()
+
+	/*
+		txid, _ := msg.TxSha()
+		fmt.Println("BtcDecode, txid: ", txid, spew.Sdump(msg))
+	*/
+
 	var buf [1]byte
 	_, err := io.ReadFull(r, buf[:])
 	if err != nil {
@@ -206,6 +218,8 @@ func (msg *MsgTx) BtcDecode(r io.Reader, pver uint32) error {
 	}
 
 	msg.Version = uint8(buf[0])
+
+	fmt.Println("msg.Version= ", msg.Version)
 
 	if !factoid.FactoidTx_VersionCheck(msg.Version) {
 		return errors.New("fTx version check")
@@ -313,7 +327,15 @@ func (msg *MsgTx) BtcDecode(r io.Reader, pver uint32) error {
 		msg.RCD[i] = &rcd
 	}
 
-	readBitfield(r, pver)
+	msg.TxSig = make([]*TxSig, incount)
+	for i := uint64(0); i < incount; i++ {
+		sig := TxSig{}
+		err = readSig(r, pver, &sig)
+		if err != nil {
+			return err
+		}
+		msg.TxSig[i] = &sig
+	}
 
 	// ----------------------------------------------
 	if !factoid_CountCheck(msg) {
@@ -396,8 +418,6 @@ func (msg *MsgTx) BtcEncode(w io.Writer, pver uint32) error {
 			return err
 		}
 	}
-
-	writeBitfield(w, pver, msg.TxSig)
 
 	for _, sig := range msg.TxSig {
 		err = writeSig(w, pver, sig)
@@ -532,7 +552,6 @@ func (msg *MsgTx) Deserialize(r io.Reader) error {
 	// At the current time, there is no difference between the wire encoding
 	// at protocol version 0 and the stable long-term storage format.  As
 	// a result, make use of BtcDecode.
-
 	return msg.BtcDecode(r, 0)
 }
 
@@ -582,6 +601,12 @@ func (msg *MsgTx) AddTxOut(to *TxOut) {
 // future.
 func NewMsgTx() *MsgTx {
 	return &MsgTx{
-		Version: TxVersion,
+		Version:  TxVersion,
+		LockTime: 0, // FIXME: ensure 5-byte locktime
+		TxOut:    make([]*TxOut, 0, defaultTxInOutAlloc),
+		ECOut:    make([]*TxEntryCreditOut, 0, defaultTxInOutAlloc),
+		TxIn:     make([]*TxIn, 0, defaultTxInOutAlloc),
+		RCD:      make([]*RCD, 0, defaultTxInOutAlloc),
+		TxSig:    make([]*TxSig, 0, defaultTxInOutAlloc),
 	}
 }

@@ -17,6 +17,8 @@ import (
 	"github.com/FactomProject/btcd/txscript"
 	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/btcutil"
+
+	"github.com/davecgh/go-spew/spew"
 )
 
 const (
@@ -99,19 +101,25 @@ func isNullOutpoint(outpoint *wire.OutPoint) bool {
 // a previous output transaction index set to the maximum value along with a
 // zero hash.
 func IsCoinBase(tx *btcutil.Tx) bool {
+	util.Trace()
 	msgTx := tx.MsgTx()
+
+	fmt.Println("tx=", spew.Sdump(tx))
 
 	// A coin base must only have one transaction input.
 	if len(msgTx.TxIn) != 1 {
 		return false
 	}
+	util.Trace()
 
 	// The previous output of a coin base must have a max value index and
 	// a zero hash.
 	prevOut := msgTx.TxIn[0].PreviousOutPoint
+	fmt.Println("prevOut=", spew.Sdump(prevOut))
 	if prevOut.Index != math.MaxUint32 || !prevOut.Hash.IsEqual(zeroHash) {
 		return false
 	}
+	util.Trace()
 
 	return true
 }
@@ -286,6 +294,7 @@ func CheckTransactionSanity(tx *btcutil.Tx) error {
 	return nil
 }
 
+/*
 // checkProofOfWork ensures the block header bits which indicate the target
 // difficulty is in min/max range and that the block hash is less than the
 // target difficulty as claimed.
@@ -335,6 +344,7 @@ func checkProofOfWork(block *btcutil.Block, powLimit *big.Int, flags BehaviorFla
 func CheckProofOfWork(block *btcutil.Block, powLimit *big.Int) error {
 	return checkProofOfWork(block, powLimit, BFNone)
 }
+*/
 
 // CountSigOps returns the number of signature operations for all transaction
 // input and output scripts in the provided transaction.  This uses the
@@ -342,7 +352,7 @@ func CheckProofOfWork(block *btcutil.Block, powLimit *big.Int) error {
 // txscript.
 func CountSigOps(tx *btcutil.Tx) int {
 	totalSigOps := 0
-	util.Trace("NOT IMPLEMENTED --- NEEDED !!!!")
+	util.Trace("NOT IMPLEMENTED --- NEEDED; ignored for now !!!!")
 	/*
 		msgTx := tx.MsgTx()
 			// Accumulate the number of signature operations in all transaction
@@ -436,6 +446,8 @@ func CountP2SHSigOps(tx *btcutil.Tx, isCoinBaseTx bool, txStore TxStore) (int, e
 // The flags do not modify the behavior of this function directly, however they
 // are needed to pass along to checkProofOfWork.
 func checkBlockSanity(block *btcutil.Block, powLimit *big.Int, timeSource MedianTimeSource, flags BehaviorFlags) error {
+	util.Trace()
+
 	// A block must have at least one transaction.
 	msgBlock := block.MsgBlock()
 	numTx := len(msgBlock.Transactions)
@@ -460,13 +472,15 @@ func checkBlockSanity(block *btcutil.Block, powLimit *big.Int, timeSource Median
 		return ruleError(ErrBlockTooBig, str)
 	}
 
-	// Ensure the proof of work bits in the block header is in min/max range
-	// and the block hash is less than the target value described by the
-	// bits.
-	err := checkProofOfWork(block, powLimit, flags)
-	if err != nil {
-		return err
-	}
+	/*
+		// Ensure the proof of work bits in the block header is in min/max range
+		// and the block hash is less than the target value described by the
+		// bits.
+		err := checkProofOfWork(block, powLimit, flags)
+		if err != nil {
+			return err
+		}
+	*/
 
 	// A block timestamp must not have a greater precision than one second.
 	// This check is necessary because Go time.Time values support
@@ -489,12 +503,14 @@ func checkBlockSanity(block *btcutil.Block, powLimit *big.Int, timeSource Median
 		return ruleError(ErrTimeTooNew, str)
 	}
 
+	util.Trace()
 	// The first transaction in a block must be a coinbase.
 	transactions := block.Transactions()
 	if !IsCoinBase(transactions[0]) {
 		return ruleError(ErrFirstTxNotCoinbase, "first transaction in "+
 			"block is not a coinbase")
 	}
+	util.Trace()
 
 	// A block must not have more than one coinbase.
 	for i, tx := range transactions[1:] {
@@ -513,6 +529,7 @@ func checkBlockSanity(block *btcutil.Block, powLimit *big.Int, timeSource Median
 			return err
 		}
 	}
+	util.Trace()
 
 	// Build merkle tree and ensure the calculated merkle root matches the
 	// entry in the block header.  This also has the effect of caching all
@@ -529,6 +546,7 @@ func checkBlockSanity(block *btcutil.Block, powLimit *big.Int, timeSource Median
 		return ruleError(ErrBadMerkleRoot, str)
 	}
 
+	util.Trace()
 	// Check for duplicate transactions.  This check will be fairly quick
 	// since the transaction hashes are already cached due to building the
 	// merkle tree above.
@@ -542,6 +560,7 @@ func checkBlockSanity(block *btcutil.Block, powLimit *big.Int, timeSource Median
 		}
 		existingTxHashes[*hash] = struct{}{}
 	}
+	util.Trace()
 
 	// The number of signature operations must be less than the maximum
 	// allowed per block.
@@ -558,6 +577,7 @@ func checkBlockSanity(block *btcutil.Block, powLimit *big.Int, timeSource Median
 			return ruleError(ErrTooManySigOps, str)
 		}
 	}
+	util.Trace()
 
 	return nil
 }

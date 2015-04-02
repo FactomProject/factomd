@@ -57,15 +57,6 @@ func NewOutPoint(hash *ShaHash, index uint32) *OutPoint {
 	}
 }
 
-/*
-// OutPoint defines a bitcoin data type that is used to track previous
-// transaction outputs.
-type OutPoint struct {
-	txid [32]byte
-	idx  uint64
-}
-*/
-
 type RCD struct {
 	Version     uint8
 	Type        uint8

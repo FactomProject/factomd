@@ -572,16 +572,16 @@ func (b *blockManager) handleBlockMsg(bmsg *blockMsg) {
 	delete(bmsg.peer.requestedBlocks, *blockSha)
 	delete(b.requestedBlocks, *blockSha)
 
-	util.Trace()
+	util.Trace("just before BC_ProcessBlock")
 
 	// Process the block to include validation, best chain selection, orphan
 	// handling, etc.
-	isOrphan, err := b.blockChain.ProcessBlock(bmsg.block,
+	isOrphan, err := b.blockChain.BC_ProcessBlock(bmsg.block,
 		//		b.server.timeSource, behaviorFlags)
 		//		b.server.timeSource, 0)
 		b.server.timeSource, blockchain.BFFactomFlag1)
 
-	util.Trace()
+	util.Trace("BC_ProcessBlock error checking")
 	if err != nil {
 		// When the error is a rule error, it means the block was simply
 		// rejected as opposed to something actually going wrong, so log
@@ -603,7 +603,7 @@ func (b *blockManager) handleBlockMsg(bmsg *blockMsg) {
 		return
 	}
 
-	util.Trace()
+	util.Trace("just before block orphan checking")
 
 	// Request the parents for the orphan block from the peer that sent it.
 	if isOrphan {
@@ -1077,7 +1077,7 @@ out:
 
 			case processBlockMsg:
 				util.Trace()
-				isOrphan, err := b.blockChain.ProcessBlock(
+				isOrphan, err := b.blockChain.BC_ProcessBlock(
 					msg.block, b.server.timeSource,
 					msg.flags)
 				if err != nil {
