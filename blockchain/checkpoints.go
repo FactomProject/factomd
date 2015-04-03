@@ -28,12 +28,14 @@ func newShaHashFromStr(hexStr string) *wire.ShaHash {
 	return sha
 }
 
+/*
 // DisableCheckpoints provides a mechanism to disable validation against
 // checkpoints which you DO NOT want to do in production.  It is provided only
 // for debug purposes.
 func (b *BlockChain) DisableCheckpoints(disable bool) {
 	b.noCheckpoints = disable
 }
+*/
 
 // Checkpoints returns a slice of checkpoints (regardless of whether they are
 // already known).  When checkpoints are disabled or there are no checkpoints
@@ -98,6 +100,7 @@ func (b *BlockChain) findPreviousCheckpoint() (*btcutil.Block, error) {
 	if numCheckpoints == 0 {
 		return nil, nil
 	}
+	util.Trace()
 
 	// Perform the initial search to find and cache the latest known
 	// checkpoint if the best chain is not known yet or we haven't already

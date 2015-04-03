@@ -19,6 +19,7 @@ import (
 	"github.com/FactomProject/goleveldb/leveldb/opt"
 
 	"github.com/FactomProject/FactomCode/util"
+	"github.com/davecgh/go-spew/spew"
 )
 
 const (
@@ -363,6 +364,7 @@ func (db *LevelDb) InsertBlock(block *btcutil.Block) (height int64, rerr error) 
 	}()
 
 	util.Trace()
+	spew.Sdump(block)
 
 	blocksha, err := block.Sha()
 	if err != nil {
@@ -377,7 +379,7 @@ func (db *LevelDb) InsertBlock(block *btcutil.Block) (height int64, rerr error) 
 	}
 	txloc, err := block.TxLoc()
 	if err != nil {
-		log.Warnf("Failed to obtain raw block sha %v", blocksha)
+		log.Warnf("Failed to obtain TxLoc, raw block sha %v", blocksha)
 		return 0, err
 	}
 

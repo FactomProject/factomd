@@ -7,6 +7,7 @@ package blockchain
 import (
 	"fmt"
 
+	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/btcutil"
 )
 
@@ -20,6 +21,8 @@ import (
 //  - BFDryRun: The memory chain index will not be pruned and no accept
 //    notification will be sent since the block is not being accepted.
 func (b *BlockChain) maybeAcceptBlock(block *btcutil.Block, flags BehaviorFlags) error {
+	util.Trace()
+
 	fastAdd := flags&BFFastAdd == BFFastAdd
 	dryRun := flags&BFDryRun == BFDryRun
 
@@ -41,20 +44,22 @@ func (b *BlockChain) maybeAcceptBlock(block *btcutil.Block, flags BehaviorFlags)
 
 	blockHeader := &block.MsgBlock().Header
 	if !fastAdd {
-		// Ensure the difficulty specified in the block header matches
-		// the calculated difficulty based on the previous block and
-		// difficulty retarget rules.
-		expectedDifficulty, err := b.calcNextRequiredDifficulty(prevNode,
-			block.MsgBlock().Header.Timestamp)
-		if err != nil {
-			return err
-		}
-		blockDifficulty := blockHeader.Bits
-		if blockDifficulty != expectedDifficulty {
-			str := "block difficulty of %d is not the expected value of %d"
-			str = fmt.Sprintf(str, blockDifficulty, expectedDifficulty)
-			return ruleError(ErrUnexpectedDifficulty, str)
-		}
+		/*
+			// Ensure the difficulty specified in the block header matches
+			// the calculated difficulty based on the previous block and
+			// difficulty retarget rules.
+			expectedDifficulty, err := b.calcNextRequiredDifficulty(prevNode,
+				block.MsgBlock().Header.Timestamp)
+			if err != nil {
+				return err
+			}
+			blockDifficulty := blockHeader.Bits
+			if blockDifficulty != expectedDifficulty {
+				str := "block difficulty of %d is not the expected value of %d"
+				str = fmt.Sprintf(str, blockDifficulty, expectedDifficulty)
+				return ruleError(ErrUnexpectedDifficulty, str)
+			}
+		*/
 
 		// Ensure the timestamp for the block header is after the
 		// median time of the last several blocks (medianTimeBlocks).

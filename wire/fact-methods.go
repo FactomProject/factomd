@@ -15,19 +15,21 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	//	"strconv"
 
 	"github.com/FactomProject/FactomCode/factoid"
 	"github.com/FactomProject/FactomCode/util"
 
-	//	"github.com/davecgh/go-spew/spew"
+	"github.com/davecgh/go-spew/spew"
 )
 
 const (
 	TxVersion  = 0
 	inNout_cap = 16000 // per spec
 
-	MaxPrevOutIndex = 0xffffffff // there are some checks that expect math.MaxUint32 here... hm: IsCoinBase()
+	//	MaxPrevOutIndex = 0xffffffff // there are some checks that expect math.MaxUint32 here... hm: IsCoinBase()
+	MaxPrevOutIndex = math.MaxUint32 // there are some checks that expect math.MaxUint32 here... hm: IsCoinBase()
 
 	// minTxPayload is the minimum payload size for a transaction.  Note
 	// that any realistically usable transaction must have at least one
@@ -38,12 +40,12 @@ const (
 	// payload + min output payload.
 	minTxPayload = 10 // TODO: revisit for Factoid, blind copy from Bitcoin
 
-	defaultTxInOutAlloc = 15
+	defaultTxInOutAlloc = 4
 )
 
-// TODO: confirm with Brian, he is considering 10KiB or 16KiB -- max TX size:
+// 10KiB is the limit for entries, per Brian we apply the same here
 func (msg *MsgTx) MaxPayloadLength(pver uint32) uint32 {
-	return 1024 * 16
+	return 1024 * 10
 }
 
 // Command returns the protocol command string for the message.  This is part
@@ -210,8 +212,10 @@ func (msg *MsgTx) BtcDecode(r io.Reader, pver uint32) error {
 		txid, _ := msg.TxSha()
 		fmt.Println("BtcDecode, txid: ", txid, spew.Sdump(msg))
 	*/
+	fmt.Println("BtcDecode spew: ", spew.Sdump(msg))
 
 	var buf [1]byte
+
 	_, err := io.ReadFull(r, buf[:])
 	if err != nil {
 		return err
@@ -219,13 +223,21 @@ func (msg *MsgTx) BtcDecode(r io.Reader, pver uint32) error {
 
 	msg.Version = uint8(buf[0])
 
-	fmt.Println("msg.Version= ", msg.Version)
+	fmt.Printf("buf= %v (%d)\n", buf, msg.Version)
 
 	if !factoid.FactoidTx_VersionCheck(msg.Version) {
 		return errors.New("fTx version check")
 	}
 
-	msg.LockTime = int64(binary.BigEndian.Uint64(buf[:])) // FIXME: must do 5 bytes here
+	var buf8 [8]byte
+	_, err = io.ReadFull(r, buf8[:])
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("buf8= %v\n", buf8)
+
+	msg.LockTime = int64(binary.BigEndian.Uint64(buf8[:])) // FIXME: must do 5 bytes here
 
 	if !factoid.FactoidTx_LocktimeCheck(msg.LockTime) {
 		return errors.New("fTx locktime check")
@@ -544,6 +556,9 @@ func (msg *MsgTx) TxSha() (ShaHash, error) {
 	// Even though this function can't currently fail, it still returns
 	// a potential error to help future proof the API should a failure
 	// become possible.
+
+	util.Trace(sha.String())
+
 	return sha, nil
 }
 
@@ -576,11 +591,15 @@ func NewTxIn(prevOut *OutPoint, signatureScript []byte) *TxIn {
 }
 
 // NewTxOut returns a new bitcoin transaction output with the provided
-// transaction value and public key script.
-func NewTxOut(value int64, pkScript []byte) *TxOut {
+// transaction value and public key.
+func NewTxOut(value int64, pk []byte) *TxOut {
+	var rcdhash RCDHash
+
+	copy(rcdhash[:], pk)
+
 	return &TxOut{
-		Value: value,
-		//    PkScript: pkScript, // TODO
+		Value:   value,
+		RCDHash: rcdhash,
 	}
 }
 
@@ -592,6 +611,11 @@ func (msg *MsgTx) AddTxIn(ti *TxIn) {
 // AddTxOut adds a transaction output to the message.
 func (msg *MsgTx) AddTxOut(to *TxOut) {
 	msg.TxOut = append(msg.TxOut, to)
+}
+
+// AddRCD adds a RCD to the message.
+func (msg *MsgTx) AddRCD(rcd *RCD) {
+	msg.RCD = append(msg.RCD, rcd)
 }
 
 // NewMsgTx returns a new tx message that conforms to the Message

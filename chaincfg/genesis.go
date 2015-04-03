@@ -13,7 +13,11 @@ import (
 // genesisCoinbaseTx is the coinbase transaction for the genesis blocks for
 // the main network, regression test network, and test network (version 3).
 var genesisCoinbaseTx = wire.MsgTx{
-	Version: 1,
+	//	Version: 1,
+	//	Version: 5, // FIXME
+	Version: 0,
+	//	LockTime: 0x12345000000, // FIXME, testing
+	LockTime: 0,
 	TxIn: []*wire.TxIn{
 		{
 			PreviousOutPoint: wire.OutPoint{
@@ -51,7 +55,6 @@ var genesisCoinbaseTx = wire.MsgTx{
 			//			},
 		},
 	},
-	LockTime: 0,
 }
 
 // genesisHash is the hash of the first block in the block chain for the main

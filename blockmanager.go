@@ -1395,18 +1395,19 @@ func newBlockManager(s *server) (*blockManager, error) {
 	bm.progressLogger = newBlockProgressLogger("Processed", bmgrLog)
 
 	bm.blockChain = blockchain.New(s.db, s.chainParams, bm.handleNotifyMsg)
-	bm.blockChain.DisableCheckpoints(cfg.DisableCheckpoints)
 
 	/*
-		if !cfg.DisableCheckpoints {
-			// Initialize the next checkpoint based on the current height.
-			bm.nextCheckpoint = bm.findNextHeaderCheckpoint(height)
-			if bm.nextCheckpoint != nil {
-				bm.resetHeaderState(newestHash, height)
+		  bm.blockChain.DisableCheckpoints(cfg.DisableCheckpoints)
+
+			if !cfg.DisableCheckpoints {
+				// Initialize the next checkpoint based on the current height.
+				bm.nextCheckpoint = bm.findNextHeaderCheckpoint(height)
+				if bm.nextCheckpoint != nil {
+					bm.resetHeaderState(newestHash, height)
+				}
+			} else {
+				bmgrLog.Info("Checkpoints are disabled")
 			}
-		} else {
-			bmgrLog.Info("Checkpoints are disabled")
-		}
 	*/
 
 	bmgrLog.Infof("Generating initial block node index.  This may " +

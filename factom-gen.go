@@ -11,6 +11,7 @@ package btcd
 
 import (
 	//	"container/list"
+	//	"crypto/rand"
 	"encoding/hex"
 	"fmt"
 	"sync"
@@ -68,6 +69,15 @@ func test_generateBlocks() {
 		"a2fcfdeb7d76519aecc62770f5b0e4ef8551" +
 		"946d8a540911abe3e7854a26f39f58b25c15" +
 		"342af"))
+
+	/*
+		//	randHashBytes := make([]byte, wire.HashSize)
+		randHashBytes := make([]byte, 33)
+		n, err := rand.Read(randHashBytes)
+		fmt.Println(n, err, randHashBytes)
+
+		payToAddr = newAddressPubKey(randHashBytes)
+	*/
 
 	// Create a new block template using the available transactions
 	// in the memory pool as a source of transactions to potentially
@@ -140,6 +150,7 @@ func newAddressPubKey(serializedPubKey []byte) btcutil.Address {
 	addr, err := btcutil.NewAddressPubKey(serializedPubKey,
 		&chaincfg.MainNetParams)
 	if err != nil {
+		fmt.Println(err)
 		panic("invalid public key in test source")
 	}
 

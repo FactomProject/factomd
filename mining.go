@@ -7,7 +7,8 @@ package btcd
 import (
 	"container/heap"
 	"container/list"
-	//	"fmt"
+	"crypto/rand"
+	"fmt"
 	"time"
 
 	"github.com/FactomProject/btcd/blockchain"
@@ -15,6 +16,8 @@ import (
 	"github.com/FactomProject/btcd/txscript"
 	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/btcutil"
+
+	"github.com/FactomProject/FactomCode/util"
 )
 
 const (
@@ -213,6 +216,7 @@ func standardCoinbaseScript(nextBlockHeight int64, extraNonce uint64) ([]byte, e
 // See the comment for NewBlockTemplate for more information about why the nil
 // address handling is useful.
 func createCoinbaseTx(coinbaseScript []byte, nextBlockHeight int64, addr btcutil.Address) (*btcutil.Tx, error) {
+	util.Trace()
 	// Create the script to pay to the provided payment address if one was
 	// specified.  Otherwise create a script that allows the coinbase to be
 	// redeemable by anyone.
@@ -236,20 +240,40 @@ func createCoinbaseTx(coinbaseScript []byte, nextBlockHeight int64, addr btcutil
 		}
 	*/
 
+	randHashBytes := make([]byte, wire.HashSize)
+	nn, err0 := rand.Read(randHashBytes)
+	fmt.Println(nn, err0, randHashBytes)
+
+	newsha, _ := wire.NewShaHash(randHashBytes)
+
 	tx := wire.NewMsgTx()
 	tx.AddTxIn(&wire.TxIn{
 		// Coinbase transactions have no inputs, so previous outpoint is
 		// zero hash and max index.
-		PreviousOutPoint: *wire.NewOutPoint(&wire.ShaHash{},
+		//		PreviousOutPoint: *wire.NewOutPoint(&wire.ShaHash{},
+		PreviousOutPoint: *wire.NewOutPoint(newsha,
 			wire.MaxPrevOutIndex),
 		//		SignatureScript: coinbaseScript,
 		//		Sequence:        wire.MaxTxInSequenceNum,
 	})
+
 	tx.AddTxOut(&wire.TxOut{
 		Value: blockchain.CalcBlockSubsidy(nextBlockHeight,
 			activeNetParams.Params),
 		//		PkScript: pkScript,
 	})
+
+	randBytes := make([]byte, wire.PubKeySize)
+	n, err := rand.Read(randBytes)
+	fmt.Println("randBytes: ", n, err, randBytes)
+
+	//	var pubkeys []wire.PubKey
+	pubkeys := make([]wire.PubKey, 1)
+
+	copy(pubkeys[0][:], randBytes)
+
+	tx.AddRCD(&wire.RCD{PubKey: pubkeys})
+
 	return btcutil.NewTx(tx), nil
 }
 

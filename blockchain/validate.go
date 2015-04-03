@@ -111,14 +111,37 @@ func IsCoinBase(tx *btcutil.Tx) bool {
 		return false
 	}
 	util.Trace()
+	// A coin base must not have any EntryCredit outputs.
+	if len(msgTx.ECOut) != 0 {
+		return false
+	}
+	util.Trace()
+	// A coin base must have exactly 1 RCD (?) TODO FIXME TBD
+	if len(msgTx.RCD) != 1 {
+		return false
+	}
+	util.Trace()
 
 	// The previous output of a coin base must have a max value index and
 	// a zero hash.
 	prevOut := msgTx.TxIn[0].PreviousOutPoint
 	fmt.Println("prevOut=", spew.Sdump(prevOut))
-	if prevOut.Index != math.MaxUint32 || !prevOut.Hash.IsEqual(zeroHash) {
+
+	/*
+		if prevOut.Index != math.MaxUint32 || !prevOut.Hash.IsEqual(zeroHash) {
+			return false
+		}
+	*/
+
+	if prevOut.Index != math.MaxUint32 {
 		return false
 	}
+
+	if !prevOut.Hash.IsEqual(zeroHash) {
+		util.Trace("ERROR: not ZeroHash !")
+		return false
+	}
+
 	util.Trace()
 
 	return true
@@ -645,6 +668,7 @@ func isTransactionSpent(txD *TxData) bool {
 // For more details, see https://en.bitcoin.it/wiki/BIP_0030 and
 // http://r6.ca/blog/20120206T005236Z.html.
 func (b *BlockChain) checkBIP0030(node *blockNode, block *btcutil.Block) error {
+	util.Trace()
 	// Attempt to fetch duplicate transactions for all of the transactions
 	// in this block from the point of view of the parent node.
 	fetchSet := make(map[wire.ShaHash]struct{})
