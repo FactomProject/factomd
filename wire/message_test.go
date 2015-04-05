@@ -459,7 +459,7 @@ func TestLengthChecks(t *testing.T) {
 		wire.CmdBlock,
 		wire.CmdCommitChain,
 		wire.CmdCommitEntry,
-		wire.CmdDirectoryBlock,
+		wire.CmdDirBlock,
 		wire.CmdEntryBlock,
 		wire.CmdEntryCreditBlock,
 		wire.CmdGetDirBlocks,
