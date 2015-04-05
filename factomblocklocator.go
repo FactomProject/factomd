@@ -36,7 +36,7 @@ func DirBlockLocatorFromHash(hash *wire.ShaHash, dChain *common.DChain) blockcha
 	// Attempt to find the height of the block that corresponds to the
 	// passed hash, and if it's on a side chain, also find the height at
 	// which it forks from the main chain.
-//	blockHeight := int64(-1)
+	blockHeight := int64(-1)
 /*	node, exists := b.index[*hash]
 	if !exists {
 		// Try to look up the height for passed block hash.  Assume an
@@ -66,7 +66,13 @@ func DirBlockLocatorFromHash(hash *wire.ShaHash, dChain *common.DChain) blockcha
 	// Generate the block locators according to the algorithm described in
 	// in the BlockLocator comment and make sure to leave room for the
 	// final genesis hash.
-/*	iterNode := node
+	
+	commonhash := new(common.Hash)
+	commonhash.SetBytes(hash.Bytes())
+	dblock, _ := db.FetchDBlockByHash(commonhash)
+	if dblock != nil{
+		blockHeight = int64(dblock.Header.BlockID)
+	}
 	increment := int64(1)
 	for len(locator) < wire.MaxBlockLocatorsPerMsg-1 {
 		// Once there are 10 locators, exponentially increase the
@@ -79,37 +85,13 @@ func DirBlockLocatorFromHash(hash *wire.ShaHash, dChain *common.DChain) blockcha
 			break
 		}
 
-		// As long as this is still on the side chain, walk backwards
-		// along the side chain nodes to each block height.
-		if forkHeight != -1 && blockHeight > forkHeight {
-			// Intentionally use parent field instead of the
-			// getPrevNodeFromNode function since we don't want to
-			// dynamically load nodes when building block locators.
-			// Side chain blocks should always be in memory already,
-			// and if they aren't for some reason it's ok to skip
-			// them.
-			for iterNode != nil && blockHeight > iterNode.height {
-				iterNode = iterNode.parent
-			}
-			if iterNode != nil && iterNode.height == blockHeight {
-				locator = append(locator, iterNode.hash)
-			}
-			continue
-		}
+		// to be improved??
+		newHash, _ := wire.NewShaHash(dchain.Blocks[blockHeight].DBHash.Bytes)
 
-		// The desired block height is in the main chain, so look it up
-		// from the main chain database.
-		h, err := b.db.FetchBlockShaByHeight(blockHeight)
-		if err != nil {
-			// This shouldn't happen and it's ok to ignore block
-			// locators, so just continue to the next one.
-			log.Warnf("Lookup of known valid height failed %v",
-				blockHeight)
-			continue
-		}
-		locator = append(locator, h)
+		locator = append(locator, newHash)
 	}
-*/
+
+		
 	// Append the appropriate genesis block.
 	locator = append(locator, genesisHash)
 	return locator
