@@ -882,7 +882,7 @@ func (b *blockManager) haveInventory(invVect *wire.InvVect) (bool, error) {
 		util.Trace()
 		// Ask chain if the block is known to it in any form (main
 		// chain, side chain, or orphan).
-		return b.dirChain.HaveBlock(&invVect.Hash)
+		return HaveBlockInDChain(b.dirChain, &invVect.Hash)
 	}
 	// The requested inventory is is an unsupported type, so just claim
 	// it is known to avoid requesting it.

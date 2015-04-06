@@ -14,17 +14,7 @@ import (
 	"github.com/FactomProject/FactomCode/util"
 )
 
-// dirBlocksMsg packages a dir block message and the peer it came from together
-// so the block handler has access to that information.
-type dirBlocksMsg struct {
-	msg  *wire.MsgGetDirBlocks
-	peer *peer
-}
 
-type dirGetDataMsg struct {
-	msg  *wire.MsgGetData
-	peer *peer
-}
 
 // dirBlockMsg packages a directory block message and the peer it came from together
 // so the block handler has access to that information.
@@ -44,7 +34,10 @@ type dirInvMsg struct {
 func (b *blockManager) handleDirBlockMsg(bmsg *dirBlockMsg) {
 	util.Trace()
 	// If we didn't ask for this block then the peer is misbehaving.
-	blockSha, _ := bmsg.block.Sha()
+	binary, _ := bmsg.block.MarshalBinary()
+	commonHash := common.Sha(binary)
+	blockSha, _ := wire.NewShaHash(commonHash.Bytes)	
+
 	if _, ok := bmsg.peer.requestedBlocks[*blockSha]; !ok {
 		// The regression test intentionally sends some blocks twice
 		// to test duplicate block insertion fails.  Don't disconnect
@@ -95,13 +88,15 @@ func (b *blockManager) handleDirBlockMsg(bmsg *dirBlockMsg) {
 
 	// Process the block to include validation, best chain selection, orphan
 	// handling, etc.	
-	isOrphan, err := b.blockChain.BC_ProcessBlock(bmsg.block,
+/*	isOrphan, err := b.blockChain.BC_ProcessBlock(bmsg.block,
 		//		b.server.timeSource, behaviorFlags)
 		//		b.server.timeSource, 0)
 		b.server.timeSource, blockchain.BFFactomFlag1)
+*/
+	isOrphan := false // to be improved
 
 	util.Trace("BC_ProcessBlock error checking")
-	if err != nil {
+/*	if err != nil {
 		// When the error is a rule error, it means the block was simply
 		// rejected as opposed to something actually going wrong, so log
 		// it as such.  Otherwise, something really did go wrong, so log
@@ -117,11 +112,11 @@ func (b *blockManager) handleDirBlockMsg(bmsg *dirBlockMsg) {
 		// Convert the error into an appropriate reject message and
 		// send it.
 		code, reason := errToRejectErr(err)
-		bmsg.peer.PushRejectMsg(wire.CmdBlock, code, reason,
+		bmsg.peer.PushRejectMsg(wire.CmdDirBlock, code, reason,
 			blockSha, false)
 		return
 	}
-
+*/
 	util.Trace("just before block orphan checking")
 
 	// Request the parents for the orphan block from the peer that sent it.
@@ -145,8 +140,8 @@ func (b *blockManager) handleDirBlockMsg(bmsg *dirBlockMsg) {
 		// Query the db for the latest best block since the block
 		// that was processed could be on a side chain or have caused
 		// a reorg.
-		newestSha, newestHeight, _ := btcd.db.NewestSha()
-		b.updateChainState(newestSha, newestHeight)
+//		newestSha, newestHeight, _ := btcd.db.NewestSha()
+//		b.updateChainState(newestSha, newestHeight)
 
 		// Allow any clients performing long polling via the
 		// getblocktemplate RPC to be notified when the new block causes
@@ -545,3 +540,18 @@ func (b *blockManager) isSyncCandidate(p *peer) bool {
 	*/
 	//return true
 //}
+
+// HaveBlock returns whether or not the chain instance has the block represented
+// by the passed hash.  This includes checking the various places a block can
+// be like part of the main chain, on a side chain, or in the orphan pool.
+//
+// This function is NOT safe for concurrent access.
+func HaveBlockInDChain(dChain *common.DChain, hash *wire.ShaHash) (bool, error) {
+	commonhash := new(common.Hash)
+	commonhash.SetBytes(hash.Bytes())
+	dblock, _ := db.FetchDBlockByHash(commonhash)
+	if dblock != nil{
+		return true, nil
+	}
+	return false, nil
+}
