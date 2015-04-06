@@ -1110,6 +1110,15 @@ out:
 			case isCurrentMsg:
 				msg.reply <- b.current()
 
+			case *dirBlockMsg:
+				util.Trace()
+				b.handleDirBlockMsg(msg)
+				msg.peer.blockProcessed <- struct{}{}
+
+			case *dirInvMsg:
+				util.Trace()
+				b.handleDirInvMsg(msg)
+
 			default:
 				bmgrLog.Warnf("Invalid message type in block "+
 					"handler: %T", msg)
