@@ -63,7 +63,7 @@ func (p *peer) handleHeadersMsg(msg *wire.MsgHeaders) {
 
 // handleGetDirDataMsg is invoked when a peer receives a getdata bitcoin message and
 // is used to deliver block and transaction information.
-func (p *peer) handleGetDirDataMsg(msg *wire.MsgGetData) {
+func (p *peer) handleGetDirDataMsg(msg *wire.MsgGetDirData) {
 	util.Trace()
 	numAdded := 0
 	notFound := wire.NewMsgNotFound()
