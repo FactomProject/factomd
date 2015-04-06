@@ -394,7 +394,7 @@ func (s *server) handleQuery(querymsg interface{}, state *peerState) {
 		msg.reply <- nconnected
 
 	case getPeerInfoMsg:
-		//		syncPeer := s.blockManager.SyncPeer()
+		syncPeer := s.blockManager.SyncPeer()
 		infos := make([]*btcjson.GetPeerInfoResult, 0, state.peers.Len())
 		state.forAllPeers(func(p *peer) {
 			if !p.Connected() {
@@ -419,7 +419,7 @@ func (s *server) handleQuery(querymsg interface{}, state *peerState) {
 				Inbound:        p.inbound,
 				StartingHeight: p.lastBlock,
 				BanScore:       0,
-				//				SyncNode:       p == syncPeer,
+				SyncNode:       p == syncPeer,
 			}
 			info.PingTime = float64(p.lastPingMicros)
 			if p.lastPingNonce != 0 {

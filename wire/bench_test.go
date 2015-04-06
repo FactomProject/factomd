@@ -228,7 +228,7 @@ func BenchmarkReadOutPoint(b *testing.B) {
 	}
 	var op OutPoint
 	for i := 0; i < b.N; i++ {
-		readOutPoint(bytes.NewReader(buf), 0, 0, &op)
+		readOutPoint(bytes.NewReader(buf), 0, &op)
 	}
 }
 
@@ -240,7 +240,7 @@ func BenchmarkWriteOutPoint(b *testing.B) {
 		Index: 0,
 	}
 	for i := 0; i < b.N; i++ {
-		writeOutPoint(ioutil.Discard, 0, 0, op)
+		writeOutPoint(ioutil.Discard, 0, op)
 	}
 }
 
@@ -264,7 +264,7 @@ func BenchmarkReadTxOut(b *testing.B) {
 	}
 	var txOut TxOut
 	for i := 0; i < b.N; i++ {
-		readTxOut(bytes.NewReader(buf), 0, 0, &txOut)
+		readTxOut(bytes.NewReader(buf), 0, &txOut)
 	}
 }
 
@@ -273,7 +273,7 @@ func BenchmarkReadTxOut(b *testing.B) {
 func BenchmarkWriteTxOut(b *testing.B) {
 	txOut := blockOne.Transactions[0].TxOut[0]
 	for i := 0; i < b.N; i++ {
-		writeTxOut(ioutil.Discard, 0, 0, txOut)
+		writeTxOut(ioutil.Discard, 0, txOut)
 	}
 }
 
@@ -292,7 +292,7 @@ func BenchmarkReadTxIn(b *testing.B) {
 	}
 	var txIn TxIn
 	for i := 0; i < b.N; i++ {
-		readTxIn(bytes.NewReader(buf), 0, 0, &txIn)
+		readTxIn(bytes.NewReader(buf), 0, &txIn)
 	}
 }
 
@@ -301,7 +301,7 @@ func BenchmarkReadTxIn(b *testing.B) {
 func BenchmarkWriteTxIn(b *testing.B) {
 	txIn := blockOne.Transactions[0].TxIn[0]
 	for i := 0; i < b.N; i++ {
-		writeTxIn(ioutil.Discard, 0, 0, txIn)
+		writeTxIn(ioutil.Discard, 0, txIn)
 	}
 }
 

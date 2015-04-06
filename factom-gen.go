@@ -117,7 +117,7 @@ func test_generateBlocks() {
 	m.test_submitBlock(block)
 
 	//	m.workerWg.Done()
-	minrLog.Infof("Generate blocks worker done; height= ", curHeight)
+	minrLog.Infof("Generate blocks worker done; height= %d", curHeight)
 	util.Trace()
 }
 
@@ -320,6 +320,8 @@ func test_NewBlockTemplate(mempool *txMemPool, payToAddress btcutil.Address) (*B
 	prevHash := chainState.newestHash
 	nextBlockHeight := chainState.newestHeight + 1
 	chainState.Unlock()
+
+	fmt.Printf("nextBlockHeight= %d\n", nextBlockHeight)
 
 	// Create a standard coinbase transaction paying to the provided
 	// address.  NOTE: The coinbase value will be updated to include the

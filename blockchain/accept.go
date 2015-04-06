@@ -141,12 +141,12 @@ func (b *BlockChain) maybeAcceptBlock(block *btcutil.Block, flags BehaviorFlags)
 					if prevNode != nil {
 						expectedHeight = prevNode.height + 1
 					}
-						coinbaseTx := block.Transactions()[0]
-						err := checkSerializedHeight(coinbaseTx,
-							expectedHeight)
-						if err != nil {
-							return err
-						}
+					coinbaseTx := block.Transactions()[0]
+					err := checkSerializedHeight(coinbaseTx,
+						expectedHeight)
+					if err != nil {
+						return err
+					}
 				*/
 			}
 		}

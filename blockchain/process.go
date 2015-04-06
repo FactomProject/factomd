@@ -34,9 +34,6 @@ const (
 	// without modifying the current state.
 	BFDryRun
 
-	// Stop block processing... for now TODO FIXME
-	BFFactomFlag1
-
 	// BFNone is a convenience value to specifically indicate no flags.
 	BFNone BehaviorFlags = 0
 )
@@ -120,12 +117,6 @@ func (b *BlockChain) processOrphans(hash *wire.ShaHash, flags BehaviorFlags) err
 // any errors that occurred during processing.  The returned bool is only valid
 // when the error is nil.
 func (b *BlockChain) BC_ProcessBlock(block *btcutil.Block, timeSource MedianTimeSource, flags BehaviorFlags) (bool, error) {
-	util.Trace()
-
-	if flags&BFFactomFlag1 == BFFactomFlag1 {
-		util.Trace("NOT IMPLEMENTED (block processing) !!!!!!!")
-		return false, nil
-	}
 	util.Trace()
 
 	fastAdd := flags&BFFastAdd == BFFastAdd

@@ -122,11 +122,11 @@ func IsCoinBase(tx *btcutil.Tx) bool {
 	}
 	util.Trace()
 
-	// The previous output of a coin base must have a max value index and
-	// a zero hash.
 	prevOut := msgTx.TxIn[0].PreviousOutPoint
 	fmt.Println("prevOut=", spew.Sdump(prevOut))
 
+	// The previous output of a coin base must have a max value index and
+	// a zero hash.
 	/*
 		if prevOut.Index != math.MaxUint32 || !prevOut.Hash.IsEqual(zeroHash) {
 			return false
@@ -136,10 +136,11 @@ func IsCoinBase(tx *btcutil.Tx) bool {
 	if prevOut.Index != math.MaxUint32 {
 		return false
 	}
+	util.Trace()
 
 	if !prevOut.Hash.IsEqual(zeroHash) {
-		util.Trace("ERROR: not ZeroHash !")
-		return false
+		util.Trace("WARNING: not zeroHash !")
+		//		return false  // TODO FIXME : check with Brian
 	}
 
 	util.Trace()

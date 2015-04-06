@@ -8,6 +8,9 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+
+	"github.com/FactomProject/FactomCode/util"
+	"github.com/davecgh/go-spew/spew"
 )
 
 // defaultTransactionAlloc is the default size used for the backing array
@@ -111,7 +114,10 @@ func (msg *MsgBlock) Deserialize(r io.Reader) error {
 // a byte buffer instead of a generic reader and returns a slice containing the start and length of
 // each transaction within the raw data that is being deserialized.
 func (msg *MsgBlock) DeserializeTxLoc(r *bytes.Buffer) ([]TxLoc, error) {
+	util.Trace()
 	fullLen := r.Len()
+
+	fmt.Println("fullLen=", fullLen, spew.Sdump(r.Bytes()))
 
 	// At the current time, there is no difference between the wire encoding
 	// at protocol version 0 and the stable long-term storage format.  As
@@ -120,11 +126,13 @@ func (msg *MsgBlock) DeserializeTxLoc(r *bytes.Buffer) ([]TxLoc, error) {
 	if err != nil {
 		return nil, err
 	}
+	util.Trace()
 
 	txCount, err := readVarInt(r, 0)
 	if err != nil {
 		return nil, err
 	}
+	util.Trace()
 
 	// Prevent more transactions than could possibly fit into a block.
 	// It would be possible to cause memory exhaustion and panics without
@@ -134,6 +142,7 @@ func (msg *MsgBlock) DeserializeTxLoc(r *bytes.Buffer) ([]TxLoc, error) {
 			"[count %d, max %d]", txCount, maxTxPerBlock)
 		return nil, messageError("MsgBlock.DeserializeTxLoc", str)
 	}
+	util.Trace()
 
 	// Deserialize each transaction while keeping track of its location
 	// within the byte stream.
@@ -146,6 +155,7 @@ func (msg *MsgBlock) DeserializeTxLoc(r *bytes.Buffer) ([]TxLoc, error) {
 		if err != nil {
 			return nil, err
 		}
+		util.Trace()
 		msg.Transactions = append(msg.Transactions, &tx)
 		txLocs[i].TxLen = (fullLen - r.Len()) - txLocs[i].TxStart
 	}

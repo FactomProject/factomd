@@ -212,7 +212,7 @@ func (msg *MsgTx) BtcDecode(r io.Reader, pver uint32) error {
 		txid, _ := msg.TxSha()
 		fmt.Println("BtcDecode, txid: ", txid, spew.Sdump(msg))
 	*/
-	fmt.Println("BtcDecode spew: ", spew.Sdump(msg))
+	fmt.Println("BtcDecode spew: ", spew.Sdump(*msg))
 
 	var buf [1]byte
 
@@ -222,18 +222,21 @@ func (msg *MsgTx) BtcDecode(r io.Reader, pver uint32) error {
 	}
 
 	msg.Version = uint8(buf[0])
+	util.Trace(fmt.Sprintf("version=%d\n", msg.Version))
 
 	fmt.Printf("buf= %v (%d)\n", buf, msg.Version)
 
 	if !factoid.FactoidTx_VersionCheck(msg.Version) {
 		return errors.New("fTx version check")
 	}
+	util.Trace()
 
 	var buf8 [8]byte
 	_, err = io.ReadFull(r, buf8[:])
 	if err != nil {
 		return err
 	}
+	util.Trace()
 
 	fmt.Printf("buf8= %v\n", buf8)
 
@@ -242,11 +245,13 @@ func (msg *MsgTx) BtcDecode(r io.Reader, pver uint32) error {
 	if !factoid.FactoidTx_LocktimeCheck(msg.LockTime) {
 		return errors.New("fTx locktime check")
 	}
+	util.Trace()
 
 	outcount, err := readVarInt(r, pver)
 	if err != nil {
 		return err
 	}
+	util.Trace(fmt.Sprintf("outcount=%d\n", outcount))
 
 	// Prevent more input transactions than could possibly fit into a
 	// message.  It would be possible to cause memory exhaustion and panics
@@ -257,6 +262,7 @@ func (msg *MsgTx) BtcDecode(r io.Reader, pver uint32) error {
 			inNout_cap)
 		return messageError("MsgTx.BtcDecode maxtxout", str)
 	}
+	util.Trace()
 
 	msg.TxOut = make([]*TxOut, outcount)
 	for i := uint64(0); i < outcount; i++ {
@@ -267,11 +273,13 @@ func (msg *MsgTx) BtcDecode(r io.Reader, pver uint32) error {
 		}
 		msg.TxOut[i] = &to
 	}
+	util.Trace()
 
 	eccount, err := readVarInt(r, pver)
 	if err != nil {
 		return err
 	}
+	util.Trace(fmt.Sprintf("eccount=%d\n", eccount))
 
 	// Prevent more input transactions than could possibly fit into a
 	// message.  It would be possible to cause memory exhaustion and panics
@@ -282,6 +290,7 @@ func (msg *MsgTx) BtcDecode(r io.Reader, pver uint32) error {
 			inNout_cap)
 		return messageError("MsgTx.BtcDecode maxtxout", str)
 	}
+	util.Trace()
 
 	// Prevent more input transactions than could possibly fit into a
 	// message.  It would be possible to cause memory exhaustion and panics
@@ -292,6 +301,7 @@ func (msg *MsgTx) BtcDecode(r io.Reader, pver uint32) error {
 			inNout_cap)
 		return messageError("MsgTx.BtcDecode maxtxout", str)
 	}
+	util.Trace(fmt.Sprintf("eccount=%d\n", eccount))
 
 	msg.ECOut = make([]*TxEntryCreditOut, eccount)
 	for i := uint64(0); i < eccount; i++ {
@@ -302,6 +312,7 @@ func (msg *MsgTx) BtcDecode(r io.Reader, pver uint32) error {
 		}
 		msg.ECOut[i] = &eco
 	}
+	util.Trace()
 
 	incount, err := readVarInt(r, pver)
 
@@ -314,11 +325,13 @@ func (msg *MsgTx) BtcDecode(r io.Reader, pver uint32) error {
 		}
 		msg.TxIn[i] = &ti
 	}
+	util.Trace()
 
 	_, err = io.ReadFull(r, buf[:])
 	if err != nil {
 		return err
 	}
+	util.Trace()
 
 	rcdcount, err := readVarInt(r, pver)
 
@@ -328,6 +341,7 @@ func (msg *MsgTx) BtcDecode(r io.Reader, pver uint32) error {
 			inNout_cap)
 		return messageError("MsgTx.BtcDecode max rcd", str)
 	}
+	util.Trace()
 
 	msg.RCD = make([]*RCD, rcdcount)
 	for i := uint64(0); i < rcdcount; i++ {
@@ -338,6 +352,7 @@ func (msg *MsgTx) BtcDecode(r io.Reader, pver uint32) error {
 		}
 		msg.RCD[i] = &rcd
 	}
+	util.Trace()
 
 	msg.TxSig = make([]*TxSig, incount)
 	for i := uint64(0); i < incount; i++ {
@@ -348,6 +363,7 @@ func (msg *MsgTx) BtcDecode(r io.Reader, pver uint32) error {
 		}
 		msg.TxSig[i] = &sig
 	}
+	util.Trace()
 
 	// ----------------------------------------------
 	if !factoid_CountCheck(msg) {
