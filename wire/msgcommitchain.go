@@ -173,7 +173,7 @@ func (msg *MsgCommitChain) Sha() (ShaHash, error) {
 	buf := bytes.NewBuffer(nil)
 	msg.BtcEncode(buf, ProtocolVersion)
 	var sha ShaHash
-	_ = sha.SetBytes(Sha256(buf.Bytes()))	
-	
+	_ = sha.SetBytes(Sha256(buf.Bytes()))
+
 	return sha, nil
 }

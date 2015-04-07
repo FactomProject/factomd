@@ -1,4 +1,3 @@
-
 // Copyright (c) 2013-2014 Conformal Systems LLC.
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
@@ -7,12 +6,12 @@ package btcd
 
 import (
 	"github.com/FactomProject/btcd/wire"
-//	"github.com/FactomProject/btcutil"
+	//	"github.com/FactomProject/btcutil"
 	"github.com/FactomProject/btcd/blockchain"
 	//"github.com/davecgh/go-spew/spew"
 	"github.com/FactomProject/FactomCode/common"
+	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/util"
-	"github.com/FactomProject/FactomCode/database"	
 )
 
 // handleDirBlockMsg is invoked when a peer receives a block bitcoin message.  It
@@ -87,7 +86,7 @@ func (p *peer) handleGetDirDataMsg(msg *wire.MsgGetDirData) {
 		var err error
 		switch iv.Type {
 		//case wire.InvTypeTx:
-			//err = p.pushTxMsg(&iv.Hash, c, waitChan)
+		//err = p.pushTxMsg(&iv.Hash, c, waitChan)
 		case wire.InvTypeFactomDirBlock:
 			err = p.pushDirBlockMsg(&iv.Hash, c, waitChan)
 			/*
@@ -134,17 +133,17 @@ func (p *peer) handleGetDirBlocksMsg(msg *wire.MsgGetDirBlocks) {
 	// no stop hash was specified.
 	// Attempt to find the ending index of the stop hash if specified.
 	util.Trace()
-	endIdx := database.AllShas	//factom db
+	endIdx := database.AllShas //factom db
 	if !msg.HashStop.IsEqual(&zeroHash) {
-		
+
 		//to be improved??
 		commonhash := new(common.Hash)
 		commonhash.SetBytes(msg.HashStop.Bytes())
 		dblock, _ := db.FetchDBlockByHash(commonhash)
-		if dblock != nil{
+		if dblock != nil {
 			height := int64(dblock.Header.BlockID)
-			endIdx = height + 1			
-		}		
+			endIdx = height + 1
+		}
 	}
 
 	// Find the most recent known block based on the block locator.
@@ -154,17 +153,17 @@ func (p *peer) handleGetDirBlocksMsg(msg *wire.MsgGetDirBlocks) {
 	// This mirrors the behavior in the reference implementation.
 	startIdx := int64(1)
 	for _, hash := range msg.BlockLocatorHashes {
-		
+
 		//to be improved??
 		commonhash := new(common.Hash)
 		commonhash.SetBytes(hash.Bytes())
 		dblock, _ := db.FetchDBlockByHash(commonhash)
-		if dblock != nil{
+		if dblock != nil {
 			height := int64(dblock.Header.BlockID)
 			startIdx = height + 1
-			break	
-		}	
-				
+			break
+		}
+
 	}
 
 	// Don't attempt to fetch more than we can put into a single message.
@@ -185,17 +184,17 @@ func (p *peer) handleGetDirBlocksMsg(msg *wire.MsgGetDirBlocks) {
 		// Fetch the inventory from the block database.
 		//hashList, err := db.FetchHeightRange(start, endIdx)
 		// to be improved??
-		hashList := make([]wire.ShaHash, 0, endIdx-startIdx)	
-		for i:=int64(0);i<(endIdx-startIdx);i++{
-			newhash,_ := wire.NewShaHash(dchain.Blocks[i].DBHash.Bytes)
+		hashList := make([]wire.ShaHash, 0, endIdx-startIdx)
+		for i := int64(0); i < (endIdx - startIdx); i++ {
+			newhash, _ := wire.NewShaHash(dchain.Blocks[i].DBHash.Bytes)
 			hashList = append(hashList, *newhash)
 		}
-		
-/*		if err != nil {
-			peerLog.Warnf("Block lookup failed: %v", err)
-			return
-		}
-*/
+
+		/*		if err != nil {
+					peerLog.Warnf("Block lookup failed: %v", err)
+					return
+				}
+		*/
 		// The database did not return any further hashes.  Break out of
 		// the loop now.
 		if len(hashList) == 0 {
@@ -230,11 +229,11 @@ func (p *peer) handleGetDirBlocksMsg(msg *wire.MsgGetDirBlocks) {
 // connected peer.  An error is returned if the block hash is not known.
 func (p *peer) pushDirBlockMsg(sha *wire.ShaHash, doneChan, waitChan chan struct{}) error {
 	util.Trace()
-	
+
 	//to be improved??
 	commonhash := new(common.Hash)
 	commonhash.SetBytes(sha.Bytes())
-	blk, err := db.FetchDBlockByHash(commonhash)	
+	blk, err := db.FetchDBlockByHash(commonhash)
 
 	if err != nil {
 		peerLog.Tracef("Unable to fetch requested dir block sha %v: %v",
@@ -260,7 +259,7 @@ func (p *peer) pushDirBlockMsg(sha *wire.ShaHash, doneChan, waitChan chan struct
 	}
 	msg := wire.NewMsgDirBlock()
 	msg.DBlk = blk
-	p.QueueMessage(msg, dc)	//blk.MsgBlock(), dc)
+	p.QueueMessage(msg, dc) //blk.MsgBlock(), dc)
 
 	// When the peer requests the final block that was advertised in
 	// response to a getblocks message which requested more blocks than
@@ -268,7 +267,7 @@ func (p *peer) pushDirBlockMsg(sha *wire.ShaHash, doneChan, waitChan chan struct
 	// to trigger it to issue another getblocks message for the next
 	// batch of inventory.
 	if p.continueHash != nil && p.continueHash.IsEqual(sha) {
-		hash, _ := wire.NewShaHash(dchain.Blocks[dchain.NextBlockID-1].DBHash.Bytes)	// to be improved??	
+		hash, _ := wire.NewShaHash(dchain.Blocks[dchain.NextBlockID-1].DBHash.Bytes) // to be improved??
 		if err == nil {
 			invMsg := wire.NewMsgDirInvSizeHint(1)
 			iv := wire.NewInvVect(wire.InvTypeFactomDirBlock, hash)

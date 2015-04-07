@@ -189,7 +189,7 @@ type blockManager struct {
 	nextCheckpoint   *chaincfg.Checkpoint
 
 	// Factom Addition
-	dirChain					*common.DChain
+	dirChain *common.DChain
 }
 
 /*

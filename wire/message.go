@@ -63,8 +63,8 @@ const (
 
 	// using these commands we query & find the best chain & latest height for the Directory (all other chain heights are then known)
 	CmdGetDirBlocks = "getdirblocks"
-	CmdDirInv				= "dirInv"
-	CmdGetDirData		= "getdirdata"
+	CmdDirInv       = "dirInv"
+	CmdGetDirData   = "getdirdata"
 	CmdDirBlock     = "dirblock"
 
 	CmdAcknowledgement = "confirmation"

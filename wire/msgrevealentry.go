@@ -5,9 +5,9 @@
 package wire
 
 import (
+	"bytes"
 	"github.com/FactomProject/FactomCode/common"
 	"io"
-	"bytes"	
 )
 
 // MsgRevealEntry implements the Message interface and represents a factom
@@ -76,7 +76,7 @@ func (msg *MsgRevealEntry) Sha() (ShaHash, error) {
 	buf := bytes.NewBuffer(nil)
 	msg.BtcEncode(buf, ProtocolVersion)
 	var sha ShaHash
-	_ = sha.SetBytes(Sha256(buf.Bytes()))	
-	
+	_ = sha.SetBytes(Sha256(buf.Bytes()))
+
 	return sha, nil
 }
