@@ -53,11 +53,8 @@ const (
 	// incoming blocks of the 3 special types & 1 general-purpose chain type:
 	//	CmdBlock            = "factoidblock"
 	CmdEntryCreditBlock = "ecblock"
-	CmdDirectoryBlock   = "dirblock"
 	CmdEntryBlock       = "entryblock"
-
-	// entry itself
-	CmdEntry = "entry"
+	CmdEntry            = "entry"
 
 	CmdCommitChain = "commitchain"
 	CmdRevealChain = "revealchain"
@@ -66,6 +63,9 @@ const (
 
 	// using these commands we query & find the best chain & latest height for the Directory (all other chain heights are then known)
 	CmdGetDirBlocks = "getdirblocks"
+	CmdDirInv				= "dirInv"
+	CmdGetDirData		= "getdirdata"
+	CmdDirBlock     = "dirblock"
 
 	CmdAcknowledgement = "confirmation"
 	CmdMHashReveal     = "mhashreveal"
@@ -167,6 +167,18 @@ func makeEmptyMessage(command string) (Message, error) {
 
 	case CmdAcknowledgement:
 		msg = &MsgAcknowledgement{}
+
+	case CmdGetDirBlocks:
+		msg = &MsgGetDirBlocks{}
+
+	case CmdDirInv:
+		msg = &MsgDirInv{}
+
+	case CmdGetDirData:
+		msg = &MsgGetDirData{}
+
+	case CmdDirBlock:
+		msg = &MsgDirBlock{}
 
 	default:
 		return nil, fmt.Errorf("unhandled command [%s]", command)

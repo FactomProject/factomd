@@ -1575,6 +1575,24 @@ out:
 			p.handleRevealEntryMsg(msg)
 			p.FactomRelay(msg)
 
+		case *wire.MsgDirBlock:
+			util.Trace()
+			p.handleDirBlockMsg(msg, buf)
+
+		case *wire.MsgDirInv:
+			util.Trace()
+			p.handleDirInvMsg(msg)
+			markConnected = true
+
+		case *wire.MsgGetDirData:
+			util.Trace()
+			p.handleGetDirDataMsg(msg)
+			markConnected = true
+
+		case *wire.MsgGetDirBlocks:
+			util.Trace()
+			p.handleGetDirBlocksMsg(msg)
+
 		default:
 			peerLog.Debugf("Received unhandled message of type %v: Fix Me",
 				rmsg.Command())

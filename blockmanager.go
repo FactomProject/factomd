@@ -20,6 +20,7 @@ import (
 	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/btcutil"
 
+	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/util"
 )
 
@@ -186,6 +187,9 @@ type blockManager struct {
 	headerList       *list.List
 	startHeader      *list.Element
 	nextCheckpoint   *chaincfg.Checkpoint
+
+	// Factom Addition
+	dirChain					*common.DChain
 }
 
 /*
@@ -870,8 +874,13 @@ func (b *blockManager) haveInventory(invVect *wire.InvVect) (bool, error) {
 		// Check if the transaction exists from the point of view of the
 		// end of the main chain.
 		return b.server.db.ExistsTxSha(&invVect.Hash)
-	}
 
+	case wire.InvTypeFactomDirBlock:
+		util.Trace()
+		// Ask chain if the block is known to it in any form (main
+		// chain, side chain, or orphan).
+		return HaveBlockInDChain(b.dirChain, &invVect.Hash)
+	}
 	// The requested inventory is is an unsupported type, so just claim
 	// it is known to avoid requesting it.
 	return true, nil
@@ -1097,6 +1106,15 @@ out:
 
 			case isCurrentMsg:
 				msg.reply <- b.current()
+
+			case *dirBlockMsg:
+				util.Trace()
+				b.handleDirBlockMsg(msg)
+				msg.peer.blockProcessed <- struct{}{}
+
+			case *dirInvMsg:
+				util.Trace()
+				b.handleDirInvMsg(msg)
 
 			default:
 				bmgrLog.Warnf("Invalid message type in block "+
@@ -1389,19 +1407,20 @@ func newBlockManager(s *server) (*blockManager, error) {
 	bm.progressLogger = newBlockProgressLogger("Processed", bmgrLog)
 
 	bm.blockChain = blockchain.New(s.db, s.chainParams, bm.handleNotifyMsg)
+	//bm.blockChain.DisableCheckpoints(cfg.DisableCheckpoints)
+
+	bm.dirChain = dchain
 
 	/*
-		  bm.blockChain.DisableCheckpoints(cfg.DisableCheckpoints)
-
-			if !cfg.DisableCheckpoints {
-				// Initialize the next checkpoint based on the current height.
-				bm.nextCheckpoint = bm.findNextHeaderCheckpoint(height)
-				if bm.nextCheckpoint != nil {
-					bm.resetHeaderState(newestHash, height)
-				}
-			} else {
-				bmgrLog.Info("Checkpoints are disabled")
+		if !cfg.DisableCheckpoints {
+			// Initialize the next checkpoint based on the current height.
+			bm.nextCheckpoint = bm.findNextHeaderCheckpoint(height)
+			if bm.nextCheckpoint != nil {
+				bm.resetHeaderState(newestHash, height)
 			}
+		} else {
+			bmgrLog.Info("Checkpoints are disabled")
+		}
 	*/
 
 	util.Trace(fmt.Sprintf("GenesisHash= %v\n", activeNetParams.GenesisHash))
