@@ -9,6 +9,8 @@ import (
 
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/btcutil"
+
+	"github.com/davecgh/go-spew/spew"
 )
 
 // maybeAcceptBlock potentially accepts a block into the memory block chain.
@@ -22,6 +24,7 @@ import (
 //    notification will be sent since the block is not being accepted.
 func (b *BlockChain) maybeAcceptBlock(block *btcutil.Block, flags BehaviorFlags) error {
 	util.Trace()
+	fmt.Println("maybeAcceptBlock=", spew.Sdump(block))
 
 	fastAdd := flags&BFFastAdd == BFFastAdd
 	dryRun := flags&BFDryRun == BFDryRun
@@ -34,6 +37,7 @@ func (b *BlockChain) maybeAcceptBlock(block *btcutil.Block, flags BehaviorFlags)
 		return err
 	}
 
+	util.Trace()
 	// The height of this block is one more than the referenced previous
 	// block.
 	blockHeight := int64(0)
@@ -61,19 +65,24 @@ func (b *BlockChain) maybeAcceptBlock(block *btcutil.Block, flags BehaviorFlags)
 			}
 		*/
 
-		// Ensure the timestamp for the block header is after the
-		// median time of the last several blocks (medianTimeBlocks).
-		medianTime, err := b.calcPastMedianTime(prevNode)
-		if err != nil {
-			log.Errorf("calcPastMedianTime: %v", err)
-			return err
-		}
-		if !blockHeader.Timestamp.After(medianTime) {
-			str := "block timestamp of %v is not after expected %v"
-			str = fmt.Sprintf(str, blockHeader.Timestamp,
-				medianTime)
-			return ruleError(ErrTimeTooOld, str)
-		}
+		/*
+			// Ensure the timestamp for the block header is after the
+			// median time of the last several blocks (medianTimeBlocks).
+			medianTime, err := b.calcPastMedianTime(prevNode)
+			if err != nil {
+				log.Errorf("calcPastMedianTime: %v", err)
+				return err
+			}
+			util.Trace()
+
+			if !blockHeader.Timestamp.After(medianTime) {
+				str := "block timestamp of %v is not after expected %v"
+				str = fmt.Sprintf(str, blockHeader.Timestamp,
+					medianTime)
+				return ruleError(ErrTimeTooOld, str)
+			}
+			util.Trace()
+		*/
 
 		// Ensure all transactions in the block are finalized.
 		for _, tx := range block.Transactions() {
@@ -85,6 +94,7 @@ func (b *BlockChain) maybeAcceptBlock(block *btcutil.Block, flags BehaviorFlags)
 			}
 		}
 
+		util.Trace()
 	}
 
 	// Ensure chain matches up to predetermined checkpoints.
@@ -95,6 +105,7 @@ func (b *BlockChain) maybeAcceptBlock(block *btcutil.Block, flags BehaviorFlags)
 			"checkpoint hash", blockHeight)
 		return ruleError(ErrBadCheckpoint, str)
 	}
+	util.Trace()
 
 	// Find the previous checkpoint and prevent blocks which fork the main
 	// chain before it.  This prevents storage of new, otherwise valid,
@@ -104,12 +115,14 @@ func (b *BlockChain) maybeAcceptBlock(block *btcutil.Block, flags BehaviorFlags)
 	if err != nil {
 		return err
 	}
+	util.Trace()
 	if checkpointBlock != nil && blockHeight < checkpointBlock.Height() {
 		str := fmt.Sprintf("block at height %d forks the main chain "+
 			"before the previous checkpoint at height %d",
 			blockHeight, checkpointBlock.Height())
 		return ruleError(ErrForkTooOld, str)
 	}
+	util.Trace()
 
 	if !fastAdd {
 		// Reject version 1 blocks once a majority of the network has
@@ -125,6 +138,7 @@ func (b *BlockChain) maybeAcceptBlock(block *btcutil.Block, flags BehaviorFlags)
 				return ruleError(ErrBlockVersionTooOld, str)
 			}
 		}
+		util.Trace()
 
 		// Ensure coinbase starts with serialized block heights for
 		// blocks whose version is the serializedHeightVersion or
@@ -150,7 +164,9 @@ func (b *BlockChain) maybeAcceptBlock(block *btcutil.Block, flags BehaviorFlags)
 				*/
 			}
 		}
+		util.Trace()
 	}
+	util.Trace()
 
 	// Prune block nodes which are no longer needed before creating
 	// a new node.
@@ -169,6 +185,7 @@ func (b *BlockChain) maybeAcceptBlock(block *btcutil.Block, flags BehaviorFlags)
 		newNode.height = blockHeight
 		newNode.workSum.Add(prevNode.workSum, newNode.workSum)
 	}
+	util.Trace()
 
 	// Connect the passed block to the chain while respecting proper chain
 	// selection according to the chain with the most proof of work.  This
@@ -177,6 +194,7 @@ func (b *BlockChain) maybeAcceptBlock(block *btcutil.Block, flags BehaviorFlags)
 	if err != nil {
 		return err
 	}
+	util.Trace()
 
 	// Notify the caller that the new block was accepted into the block
 	// chain.  The caller would typically want to react by relaying the

@@ -5,7 +5,10 @@
 package blockchain
 
 import (
+	"fmt"
 	"github.com/FactomProject/btcd/wire"
+
+	"github.com/FactomProject/FactomCode/util"
 )
 
 // BlockLocator is used to help locate a specific block.  The algorithm for
@@ -39,6 +42,9 @@ func (b *BlockChain) BlockLocatorFromHash(hash *wire.ShaHash) BlockLocator {
 	// The locator contains the requested hash at the very least.
 	locator := make(BlockLocator, 0, wire.MaxBlockLocatorsPerMsg)
 	locator = append(locator, hash)
+
+	util.Trace(fmt.Sprintf("hash= %v\n", hash.String()))
+	util.Trace(fmt.Sprintf("GenesisHash= %v\n", b.chainParams.GenesisHash.String()))
 
 	// Nothing more to do if a locator for the genesis hash was requested.
 	if hash.IsEqual(b.chainParams.GenesisHash) {

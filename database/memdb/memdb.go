@@ -535,6 +535,8 @@ func (db *MemDb) InsertBlock(block *btcutil.Block) (int64, error) {
 	db.Lock()
 	defer db.Unlock()
 
+	util.Trace()
+
 	if db.closed {
 		return 0, ErrDbClosed
 	}

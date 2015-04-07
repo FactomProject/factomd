@@ -31,7 +31,7 @@ func readElement(r io.Reader, element interface{}) error {
 		if err != nil {
 			return err
 		}
-		*e = int32(binary.LittleEndian.Uint32(b))
+		*e = int32(binary.BigEndian.Uint32(b))
 		return nil
 
 	case *uint32:
@@ -40,7 +40,7 @@ func readElement(r io.Reader, element interface{}) error {
 		if err != nil {
 			return err
 		}
-		*e = binary.LittleEndian.Uint32(b)
+		*e = binary.BigEndian.Uint32(b)
 		return nil
 
 	case *int64:
@@ -49,7 +49,7 @@ func readElement(r io.Reader, element interface{}) error {
 		if err != nil {
 			return err
 		}
-		*e = int64(binary.LittleEndian.Uint64(b))
+		*e = int64(binary.BigEndian.Uint64(b))
 		return nil
 
 	case *uint64:
@@ -58,7 +58,7 @@ func readElement(r io.Reader, element interface{}) error {
 		if err != nil {
 			return err
 		}
-		*e = binary.LittleEndian.Uint64(b)
+		*e = binary.BigEndian.Uint64(b)
 		return nil
 
 	case *bool:
@@ -111,7 +111,7 @@ func readElement(r io.Reader, element interface{}) error {
 		if err != nil {
 			return err
 		}
-		*e = ServiceFlag(binary.LittleEndian.Uint64(b))
+		*e = ServiceFlag(binary.BigEndian.Uint64(b))
 		return nil
 
 	case *InvType:
@@ -120,7 +120,7 @@ func readElement(r io.Reader, element interface{}) error {
 		if err != nil {
 			return err
 		}
-		*e = InvType(binary.LittleEndian.Uint32(b))
+		*e = InvType(binary.BigEndian.Uint32(b))
 		return nil
 
 	case *BitcoinNet:
@@ -129,7 +129,7 @@ func readElement(r io.Reader, element interface{}) error {
 		if err != nil {
 			return err
 		}
-		*e = BitcoinNet(binary.LittleEndian.Uint32(b))
+		*e = BitcoinNet(binary.BigEndian.Uint32(b))
 		return nil
 
 	case *BloomUpdateType:
@@ -153,7 +153,7 @@ func readElement(r io.Reader, element interface{}) error {
 
 	// Fall back to the slower binary.Read if a fast path was not available
 	// above.
-	return binary.Read(r, binary.LittleEndian, element)
+	return binary.Read(r, binary.BigEndian, element)
 }
 
 // readElements reads multiple items from r.  It is equivalent to multiple
@@ -177,7 +177,7 @@ func writeElement(w io.Writer, element interface{}) error {
 	switch e := element.(type) {
 	case int32:
 		b := scratch[0:4]
-		binary.LittleEndian.PutUint32(b, uint32(e))
+		binary.BigEndian.PutUint32(b, uint32(e))
 		_, err := w.Write(b)
 		if err != nil {
 			return err
@@ -186,7 +186,7 @@ func writeElement(w io.Writer, element interface{}) error {
 
 	case uint32:
 		b := scratch[0:4]
-		binary.LittleEndian.PutUint32(b, e)
+		binary.BigEndian.PutUint32(b, e)
 		_, err := w.Write(b)
 		if err != nil {
 			return err
@@ -195,7 +195,7 @@ func writeElement(w io.Writer, element interface{}) error {
 
 	case int64:
 		b := scratch[0:8]
-		binary.LittleEndian.PutUint64(b, uint64(e))
+		binary.BigEndian.PutUint64(b, uint64(e))
 		_, err := w.Write(b)
 		if err != nil {
 			return err
@@ -204,7 +204,7 @@ func writeElement(w io.Writer, element interface{}) error {
 
 	case uint64:
 		b := scratch[0:8]
-		binary.LittleEndian.PutUint64(b, e)
+		binary.BigEndian.PutUint64(b, e)
 		_, err := w.Write(b)
 		if err != nil {
 			return err
@@ -257,7 +257,7 @@ func writeElement(w io.Writer, element interface{}) error {
 
 	case ServiceFlag:
 		b := scratch[0:8]
-		binary.LittleEndian.PutUint64(b, uint64(e))
+		binary.BigEndian.PutUint64(b, uint64(e))
 		_, err := w.Write(b)
 		if err != nil {
 			return err
@@ -266,7 +266,7 @@ func writeElement(w io.Writer, element interface{}) error {
 
 	case InvType:
 		b := scratch[0:4]
-		binary.LittleEndian.PutUint32(b, uint32(e))
+		binary.BigEndian.PutUint32(b, uint32(e))
 		_, err := w.Write(b)
 		if err != nil {
 			return err
@@ -275,7 +275,7 @@ func writeElement(w io.Writer, element interface{}) error {
 
 	case BitcoinNet:
 		b := scratch[0:4]
-		binary.LittleEndian.PutUint32(b, uint32(e))
+		binary.BigEndian.PutUint32(b, uint32(e))
 		_, err := w.Write(b)
 		if err != nil {
 			return err
@@ -303,7 +303,7 @@ func writeElement(w io.Writer, element interface{}) error {
 
 	// Fall back to the slower binary.Write if a fast path was not available
 	// above.
-	return binary.Write(w, binary.LittleEndian, element)
+	return binary.Write(w, binary.BigEndian, element)
 }
 
 // writeElements writes multiple items to w.  It is equivalent to multiple

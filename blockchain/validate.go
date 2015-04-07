@@ -567,6 +567,7 @@ func checkBlockSanity(block *btcutil.Block, powLimit *big.Int, timeSource Median
 		str := fmt.Sprintf("block merkle root is invalid - block "+
 			"header indicates %v, but calculated value is %v",
 			header.MerkleRoot, calculatedMerkleRoot)
+		util.Trace("ERROR merkle")
 		return ruleError(ErrBadMerkleRoot, str)
 	}
 
@@ -837,6 +838,7 @@ func CheckTransactionInputs(tx *btcutil.Tx, txHeight int64, txStore TxStore) (in
 // See the comments for CheckConnectBlock for some examples of the type of
 // checks performed by this function.
 func (b *BlockChain) checkConnectBlock(node *blockNode, block *btcutil.Block) error {
+	util.Trace()
 	// If the side chain blocks end up in the database, a call to
 	// CheckBlockSanity should be done here in case a previous version
 	// allowed a block that is no longer valid.  However, since the
@@ -845,6 +847,9 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block *btcutil.Block) er
 
 	// The coinbase for the Genesis block is not spendable, so just return
 	// now.
+	util.Trace(fmt.Sprintf("node.hash= %v\n", node.hash.String()))
+	util.Trace(fmt.Sprintf("GenesisHash= %v\n", b.chainParams.GenesisHash.String()))
+
 	if node.hash.IsEqual(b.chainParams.GenesisHash) && b.bestChain == nil {
 		return nil
 	}
@@ -1000,6 +1005,7 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block *btcutil.Block) er
 //
 // This function is NOT safe for concurrent access.
 func (b *BlockChain) CheckConnectBlock(block *btcutil.Block) error {
+	util.Trace()
 	prevNode := b.bestChain
 	blockSha, _ := block.Sha()
 	newNode := newBlockNode(&block.MsgBlock().Header, blockSha, block.Height())

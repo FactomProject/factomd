@@ -41,6 +41,7 @@ func TestGenesisBlock(t *testing.T) {
 	}
 }
 
+/*
 // TestRegTestGenesisBlock tests the genesis block of the regression test
 // network for validity by checking the encoded bytes and hashes.
 func TestRegTestGenesisBlock(t *testing.T) {
@@ -130,6 +131,7 @@ func TestSimNetGenesisBlock(t *testing.T) {
 			spew.Sdump(chaincfg.SimNetParams.GenesisHash))
 	}
 }
+*/
 
 // genesisBlockBytes are the wire encoded bytes for the genesis block of the
 // main network as of protocol version 60002.

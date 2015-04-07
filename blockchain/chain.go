@@ -478,6 +478,9 @@ func (b *BlockChain) loadBlockNode(hash *wire.ShaHash) (*blockNode, error) {
 func (b *BlockChain) getPrevNodeFromBlock(block *btcutil.Block) (*blockNode, error) {
 	// Genesis block.
 	prevHash := &block.MsgBlock().Header.PrevBlock
+
+	util.Trace(fmt.Sprintf("prevHash= %v\n", prevHash.String()))
+
 	if prevHash.IsEqual(zeroHash) {
 		return nil, nil
 	}
@@ -508,6 +511,9 @@ func (b *BlockChain) getPrevNodeFromNode(node *blockNode) (*blockNode, error) {
 	if node.parent != nil {
 		return node.parent, nil
 	}
+
+	util.Trace(fmt.Sprintf("node.hash= %v\n", node.hash.String()))
+	util.Trace(fmt.Sprintf("GenesisHash= %v\n", b.chainParams.GenesisHash.String()))
 
 	// Genesis block.
 	if node.hash.IsEqual(b.chainParams.GenesisHash) {

@@ -99,7 +99,7 @@ func test_generateBlocks() {
 	curHeight := int64(0)
 
 	block := btcutil.NewBlock(template.block)
-	fmt.Println(spew.Sdump(block))
+	fmt.Println("NewBlock= ", spew.Sdump(block))
 
 	// Attempt to solve the block.  The function will exit early
 	// with false when conditions that trigger a stale block, so
@@ -322,6 +322,7 @@ func test_NewBlockTemplate(mempool *txMemPool, payToAddress btcutil.Address) (*B
 	chainState.Unlock()
 
 	fmt.Printf("nextBlockHeight= %d\n", nextBlockHeight)
+	fmt.Println("prevHash= ", prevHash)
 
 	// Create a standard coinbase transaction paying to the provided
 	// address.  NOTE: The coinbase value will be updated to include the
@@ -336,11 +337,13 @@ func test_NewBlockTemplate(mempool *txMemPool, payToAddress btcutil.Address) (*B
 	if err != nil {
 		return nil, err
 	}
+	util.Trace()
 	coinbaseTx, err := createCoinbaseTx(coinbaseScript, nextBlockHeight,
 		payToAddress)
 	if err != nil {
 		return nil, err
 	}
+	util.Trace()
 	numCoinbaseSigOps := int64(blockchain.CountSigOps(coinbaseTx))
 
 	// Get the current memory pool transactions and create a priority queue
@@ -414,18 +417,23 @@ func test_NewBlockTemplate(mempool *txMemPool, payToAddress btcutil.Address) (*B
 	blockSigOps := 0
 	totalFees := int64(0)
 
+	util.Trace()
+
 	// block size for the real transaction count and coinbase value with
 	// the total fees accordingly.
 	coinbaseTx.MsgTx().TxOut[0].Value += totalFees
 	txFees[0] = -totalFees
 
-	// Calculate the required difficulty for the block.  The timestamp
-	// is potentially adjusted to ensure it comes after the median time of
-	// the last several blocks per the chain consensus rules.
-	ts, err := medianAdjustedTime(chainState)
-	if err != nil {
-		return nil, err
-	}
+	/*
+		// Calculate the required difficulty for the block.  The timestamp
+		// is potentially adjusted to ensure it comes after the median time of
+		// the last several blocks per the chain consensus rules.
+		ts, err := medianAdjustedTime(chainState)
+		if err != nil {
+			return nil, err
+		}
+	*/
+	util.Trace()
 
 	// Create a new block ready to be solved.
 	merkles := blockchain.BuildMerkleTreeStore(blockTxns)
@@ -434,15 +442,17 @@ func test_NewBlockTemplate(mempool *txMemPool, payToAddress btcutil.Address) (*B
 		Version:    generatedBlockVersion,
 		PrevBlock:  *prevHash,
 		MerkleRoot: *merkles[len(merkles)-1],
-		Timestamp:  ts,
+		Timestamp:  time.Unix(0, 0),
 		//		Bits:       requiredDifficulty,
 		Bits: 0,
 	}
 	for _, tx := range blockTxns {
 		if err := msgBlock.AddTransaction(tx.MsgTx()); err != nil {
+			util.Trace("ERROR AddTransaction")
 			return nil, err
 		}
 	}
+	util.Trace()
 
 	// Finally, perform a full check on the created block against the chain
 	// consensus rules to ensure it properly connects to the current best
@@ -455,6 +465,7 @@ func test_NewBlockTemplate(mempool *txMemPool, payToAddress btcutil.Address) (*B
 			return nil, err
 		}
 	}
+	util.Trace()
 
 	minrLog.Infof("Created new block template (%d transactions, %d in "+
 		"fees, %d signature operations, %d bytes, target difficulty "+

@@ -371,7 +371,9 @@ func (db *LevelDb) InsertBlock(block *btcutil.Block) (height int64, rerr error) 
 		log.Warnf("Failed to compute block sha %v", blocksha)
 		return 0, err
 	}
-	util.Trace()
+
+	log.Debugf("insert block sha %v", blocksha)
+	util.Trace(fmt.Sprintf("blocksha= %v\n"), blocksha.String())
 
 	mblock := block.MsgBlock()
 	rawMsg, err := block.Bytes()

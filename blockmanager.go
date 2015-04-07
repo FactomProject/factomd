@@ -7,6 +7,7 @@ package btcd
 import (
 	"container/list"
 	//	"net"
+	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
@@ -1369,6 +1370,8 @@ func (b *blockManager) IsCurrent() bool {
 // newBlockManager returns a new bitcoin block manager.
 // Use Start to begin processing asynchronous block and inv updates.
 func newBlockManager(s *server) (*blockManager, error) {
+	util.Trace()
+
 	newestHash, height, err := s.db.NewestSha()
 	if err != nil {
 		return nil, err
@@ -1400,6 +1403,8 @@ func newBlockManager(s *server) (*blockManager, error) {
 				bmgrLog.Info("Checkpoints are disabled")
 			}
 	*/
+
+	util.Trace(fmt.Sprintf("GenesisHash= %v\n", activeNetParams.GenesisHash))
 
 	bmgrLog.Infof("Generating initial block node index.  This may " +
 		"take a while...")
@@ -1544,6 +1549,8 @@ func setupBlockDB() (database.Db, error) {
 
 // loadBlockDB opens the block database and returns a handle to it.
 func loadBlockDB() (database.Db, error) {
+	util.Trace()
+
 	db, err := setupBlockDB()
 	if err != nil {
 		return nil, err
@@ -1559,10 +1566,12 @@ func loadBlockDB() (database.Db, error) {
 	// Insert the appropriate genesis block for the bitcoin network being
 	// connected to if needed.
 	if height == -1 {
+		util.Trace("will insert genesis block")
 		genesis := btcutil.NewBlock(activeNetParams.GenesisBlock)
 		_, err := db.InsertBlock(genesis)
 		if err != nil {
 			db.Close()
+			util.Trace("insert genesis failed")
 			return nil, err
 		}
 		btcdLog.Infof("Inserted genesis block %v",

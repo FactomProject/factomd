@@ -16,7 +16,7 @@ import (
 	"fmt"
 	"io"
 	"math"
-	//	"strconv"
+	"strconv"
 
 	"github.com/FactomProject/FactomCode/factoid"
 	"github.com/FactomProject/FactomCode/util"
@@ -115,7 +115,7 @@ func readOutPoint(r io.Reader, pver uint32, op *OutPoint) error {
 		return err
 	}
 
-	// op.Index = binary.LittleEndian.Uint32(buf[:])
+	// op.Index = binary.BigEndian.Uint32(buf[:])
 
 	// varint on the wire, but easily fits into uint32
 	index, err := readVarInt(r, pver)
@@ -164,6 +164,8 @@ func readTxIn(r io.Reader, pver uint32, ti *TxIn) error {
 
 	ti.sighash = uint8(buf[0])
 
+	fmt.Println("readTxIn():", spew.Sdump(ti))
+
 	return nil
 }
 
@@ -177,10 +179,12 @@ func readTxOut(r io.Reader, pver uint32, to *TxOut) error {
 
 	to.Value = int64(value) // FIXME: make it VarInt
 
-	b := make([]byte, 32)
+	b := make([]byte, RCDHashSize)
 	_, err = io.ReadFull(r, b)
 
 	copy(to.RCDHash[:], b)
+
+	fmt.Println("readTxOut():", spew.Sdump(to))
 
 	return nil
 }
@@ -198,6 +202,8 @@ func readECOut(r io.Reader, pver uint32, eco *TxEntryCreditOut) error {
 
 	copy(eco.ECpubkey[:], b)
 
+	fmt.Println("readECOut():", spew.Sdump(eco))
+
 	return nil
 }
 
@@ -211,8 +217,8 @@ func (msg *MsgTx) BtcDecode(r io.Reader, pver uint32) error {
 	/*
 		txid, _ := msg.TxSha()
 		fmt.Println("BtcDecode, txid: ", txid, spew.Sdump(msg))
+		fmt.Println("BtcDecode spew: ", spew.Sdump(*msg))
 	*/
-	fmt.Println("BtcDecode spew: ", spew.Sdump(*msg))
 
 	var buf [1]byte
 
@@ -229,14 +235,12 @@ func (msg *MsgTx) BtcDecode(r io.Reader, pver uint32) error {
 	if !factoid.FactoidTx_VersionCheck(msg.Version) {
 		return errors.New("fTx version check")
 	}
-	util.Trace()
 
 	var buf8 [8]byte
 	_, err = io.ReadFull(r, buf8[:])
 	if err != nil {
 		return err
 	}
-	util.Trace()
 
 	fmt.Printf("buf8= %v\n", buf8)
 
@@ -245,7 +249,6 @@ func (msg *MsgTx) BtcDecode(r io.Reader, pver uint32) error {
 	if !factoid.FactoidTx_LocktimeCheck(msg.LockTime) {
 		return errors.New("fTx locktime check")
 	}
-	util.Trace()
 
 	outcount, err := readVarInt(r, pver)
 	if err != nil {
@@ -262,7 +265,6 @@ func (msg *MsgTx) BtcDecode(r io.Reader, pver uint32) error {
 			inNout_cap)
 		return messageError("MsgTx.BtcDecode maxtxout", str)
 	}
-	util.Trace()
 
 	msg.TxOut = make([]*TxOut, outcount)
 	for i := uint64(0); i < outcount; i++ {
@@ -288,20 +290,10 @@ func (msg *MsgTx) BtcDecode(r io.Reader, pver uint32) error {
 		str := fmt.Sprintf("too many input transactions to fit into "+
 			"max message size [count %d, max %d]", eccount,
 			inNout_cap)
-		return messageError("MsgTx.BtcDecode maxtxout", str)
+		return messageError("MsgTx.BtcDecode maxecout", str)
 	}
-	util.Trace()
 
-	// Prevent more input transactions than could possibly fit into a
-	// message.  It would be possible to cause memory exhaustion and panics
-	// without a sane upper bound on this count.
-	if eccount > uint64(inNout_cap) {
-		str := fmt.Sprintf("too many input transactions to fit into "+
-			"max message size [count %d, max %d]", eccount,
-			inNout_cap)
-		return messageError("MsgTx.BtcDecode maxtxout", str)
-	}
-	util.Trace(fmt.Sprintf("eccount=%d\n", eccount))
+	util.Trace()
 
 	msg.ECOut = make([]*TxEntryCreditOut, eccount)
 	for i := uint64(0); i < eccount; i++ {
@@ -389,7 +381,7 @@ func (msg *MsgTx) BtcEncode(w io.Writer, pver uint32) error {
 	}
 
 	var buf8 [8]byte
-	binary.LittleEndian.PutUint64(buf8[:], uint64(msg.LockTime)) // FIXME: must do 5 bytes here
+	binary.BigEndian.PutUint64(buf8[:], uint64(msg.LockTime)) // FIXME: must do 5 bytes here
 	_, err = w.Write(buf8[:])
 	if err != nil {
 		return err
@@ -649,4 +641,19 @@ func NewMsgTx() *MsgTx {
 		RCD:      make([]*RCD, 0, defaultTxInOutAlloc),
 		TxSig:    make([]*TxSig, 0, defaultTxInOutAlloc),
 	}
+}
+
+// String returns the OutPoint in the human-readable form "hash:index".
+func (o OutPoint) String() string {
+	// Allocate enough for hash string, colon, and 10 digits.  Although
+	// at the time of writing, the number of digits can be no greater than
+	// the length of the decimal representation of maxTxOutPerMessage, the
+	// maximum message payload may increase in the future and this
+	// optimization may go unnoticed, so allocate space for 10 decimal
+	// digits, which will fit any uint32.
+	buf := make([]byte, 2*HashSize+1, 2*HashSize+1+10)
+	copy(buf, o.Hash.String())
+	buf[2*HashSize] = ':'
+	buf = strconv.AppendUint(buf, uint64(o.Index), 10)
+	return string(buf)
 }
