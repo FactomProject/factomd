@@ -11,6 +11,13 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"log"
+	"os"
+	"sort"
+	"strconv"
+	"time"
+
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/consensus"
 	"github.com/FactomProject/FactomCode/database"
@@ -18,12 +25,7 @@ import (
 	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/btcrpcclient"
 	"github.com/FactomProject/btcutil"
-	"io/ioutil"
-	"log"
-	"os"
-	"sort"
-	"strconv"
-	"time"
+	"github.com/davecgh/go-spew/spew"
 )
 
 const (
@@ -425,6 +427,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		} else {
 			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
 		}
+
 	case wire.CmdInt_EOM:
 		if nodeMode == SERVER_NODE {
 			msgEom, ok := msg.(*wire.MsgInt_EOM)
@@ -447,9 +450,29 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 				plMgr.AddMyProcessListItem(msgEom, nil, msgEom.EOM_Type)
 			}
 		}
+
+	case wire.CmdDirBlock:
+		dirBlock, ok := msg.(*wire.MsgDirBlock)
+		if ok {
+			err := processDirBlock(dirBlock)
+			if err != nil {
+				return err
+			}
+		} else {
+			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
+		}
+
 	default:
 		return errors.New("Message type unsupported:" + fmt.Sprintf("%+v", msg))
 	}
+	return nil
+}
+
+// processDirBlock validates dir block and save it to factom db.
+// similar to blockChain.BC_ProcessBlock
+func processDirBlock(msg *wire.MsgDirBlock) error {
+	util.Trace()
+	fmt.Println("MsgDirBlock=%s", spew.Sdump(msg.DBlk))
 	return nil
 }
 

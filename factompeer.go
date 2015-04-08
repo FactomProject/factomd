@@ -5,13 +5,14 @@
 package btcd
 
 import (
-	"github.com/FactomProject/btcd/wire"
-	//	"github.com/FactomProject/btcutil"
-	"github.com/FactomProject/btcd/blockchain"
-	//"github.com/davecgh/go-spew/spew"
+	"fmt"
+
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/util"
+	"github.com/FactomProject/btcd/blockchain"
+	"github.com/FactomProject/btcd/wire"
+	"github.com/davecgh/go-spew/spew"
 )
 
 // handleDirBlockMsg is invoked when a peer receives a block bitcoin message.  It
@@ -21,6 +22,8 @@ func (p *peer) handleDirBlockMsg(msg *wire.MsgDirBlock, buf []byte) {
 	// Convert the raw MsgBlock to a btcutil.Block which provides some
 	// convenience methods and things such as hash caching.
 
+	fmt.Println("msgDirBlock=%s", spew.Sdump(msg.DBlk))
+
 	binary, _ := msg.DBlk.MarshalBinary()
 	commonHash := common.Sha(binary)
 	hash, _ := wire.NewShaHash(commonHash.Bytes)
@@ -28,19 +31,22 @@ func (p *peer) handleDirBlockMsg(msg *wire.MsgDirBlock, buf []byte) {
 	iv := wire.NewInvVect(wire.InvTypeFactomDirBlock, hash)
 	p.AddKnownInventory(iv)
 
-	// Queue the block up to be handled by the block
-	// manager and intentionally block further receives
-	// until the bitcoin block is fully processed and known
-	// good or bad.  This helps prevent a malicious peer
-	// from queueing up a bunch of bad blocks before
-	// disconnecting (or being disconnected) and wasting
-	// memory.  Additionally, this behavior is depended on
-	// by at least the block acceptance test tool as the
-	// reference implementation processes blocks in the same
-	// thread and therefore blocks further messages until
-	// the bitcoin block has been fully processed.
-	p.server.blockManager.QueueDirBlock(msg, p)
-	<-p.blockProcessed
+	inMsgQueue <- msg
+	/*
+		// Queue the block up to be handled by the block
+		// manager and intentionally block further receives
+		// until the bitcoin block is fully processed and known
+		// good or bad.  This helps prevent a malicious peer
+		// from queueing up a bunch of bad blocks before
+		// disconnecting (or being disconnected) and wasting
+		// memory.  Additionally, this behavior is depended on
+		// by at least the block acceptance test tool as the
+		// reference implementation processes blocks in the same
+		// thread and therefore blocks further messages until
+		// the bitcoin block has been fully processed.
+		p.server.blockManager.QueueDirBlock(msg, p)
+		<-p.blockProcessed
+	*/
 }
 
 // handleDirInvMsg is invoked when a peer receives an inv bitcoin message and is
@@ -173,13 +179,15 @@ func (p *peer) handleGetDirBlocksMsg(msg *wire.MsgGetDirBlocks) {
 		autoContinue = true
 	}
 
+	fmt.Println("startIdx=%d, endIdx=%d, autoContinue=%v", startIdx, endIdx, autoContinue)
+
 	// Generate inventory message.
 	//
 	// The FetchBlockBySha call is limited to a maximum number of hashes
 	// per invocation.  Since the maximum number of inventory per message
 	// might be larger, call it multiple times with the appropriate indices
 	// as needed.
-	invMsg := wire.NewMsgInv()
+	invMsg := wire.NewMsgDirInv()
 	for start := startIdx; start < endIdx; {
 		// Fetch the inventory from the block database.
 		//hashList, err := db.FetchHeightRange(start, endIdx)
@@ -188,6 +196,7 @@ func (p *peer) handleGetDirBlocksMsg(msg *wire.MsgGetDirBlocks) {
 		for i := int64(0); i < (endIdx - startIdx); i++ {
 			newhash, _ := wire.NewShaHash(dchain.Blocks[i].DBHash.Bytes)
 			hashList = append(hashList, *newhash)
+			fmt.Println("appended hash=%s", newhash.String())
 		}
 
 		/*		if err != nil {
@@ -201,10 +210,10 @@ func (p *peer) handleGetDirBlocksMsg(msg *wire.MsgGetDirBlocks) {
 			break
 		}
 
-		// Add block inventory to the message.
+		// Add dir block inventory to the message.
 		for _, hash := range hashList {
 			hashCopy := hash
-			iv := wire.NewInvVect(wire.InvTypeBlock, &hashCopy)
+			iv := wire.NewInvVect(wire.InvTypeFactomDirBlock, &hashCopy)
 			invMsg.AddInvVect(iv)
 		}
 		start += int64(len(hashList))
@@ -212,12 +221,14 @@ func (p *peer) handleGetDirBlocksMsg(msg *wire.MsgGetDirBlocks) {
 
 	// Send the inventory message if there is anything to send.
 	if len(invMsg.InvList) > 0 {
+		util.Trace()
 		invListLen := len(invMsg.InvList)
 		if autoContinue && invListLen == wire.MaxBlocksPerMsg {
 			// Intentionally use a copy of the final hash so there
 			// is not a reference into the inventory slice which
 			// would prevent the entire slice from being eligible
 			// for GC as soon as it's sent.
+			util.Trace()
 			continueHash := invMsg.InvList[invListLen-1].Hash
 			p.continueHash = &continueHash
 		}
@@ -245,6 +256,8 @@ func (p *peer) pushDirBlockMsg(sha *wire.ShaHash, doneChan, waitChan chan struct
 		return err
 	}
 
+	fmt.Println("commonHash=%s, dir block=%s", commonhash.String(), spew.Sdump(blk))
+
 	// Once we have fetched data wait for any previous operation to finish.
 	if waitChan != nil {
 		<-waitChan
@@ -259,6 +272,7 @@ func (p *peer) pushDirBlockMsg(sha *wire.ShaHash, doneChan, waitChan chan struct
 	}
 	msg := wire.NewMsgDirBlock()
 	msg.DBlk = blk
+	fmt.Println("dblock=%s", spew.Sdump(blk))
 	p.QueueMessage(msg, dc) //blk.MsgBlock(), dc)
 
 	// When the peer requests the final block that was advertised in
@@ -267,8 +281,10 @@ func (p *peer) pushDirBlockMsg(sha *wire.ShaHash, doneChan, waitChan chan struct
 	// to trigger it to issue another getblocks message for the next
 	// batch of inventory.
 	if p.continueHash != nil && p.continueHash.IsEqual(sha) {
+		util.Trace()
 		hash, _ := wire.NewShaHash(dchain.Blocks[dchain.NextBlockID-1].DBHash.Bytes) // to be improved??
 		if err == nil {
+			util.Trace()
 			invMsg := wire.NewMsgDirInvSizeHint(1)
 			iv := wire.NewInvVect(wire.InvTypeFactomDirBlock, hash)
 			invMsg.AddInvVect(iv)
@@ -284,6 +300,8 @@ func (p *peer) pushDirBlockMsg(sha *wire.ShaHash, doneChan, waitChan chan struct
 // PushGetDirBlocksMsg sends a getdirblocks message for the provided block locator
 // and stop hash.  It will ignore back-to-back duplicate requests.
 func (p *peer) PushGetDirBlocksMsg(locator blockchain.BlockLocator, stopHash *wire.ShaHash) error {
+	util.Trace()
+
 	// Extract the begin hash from the block locator, if one was specified,
 	// to use for filtering duplicate getblocks requests.
 	// request.
@@ -292,12 +310,14 @@ func (p *peer) PushGetDirBlocksMsg(locator blockchain.BlockLocator, stopHash *wi
 		beginHash = locator[0]
 	}
 
-	// Filter duplicate getblocks requests.
+	fmt.Println("beginHash=%s, stopHash=%s", beginHash.String(), stopHash.String())
+
+	// Filter duplicate getdirblocks requests.
 	if p.prevGetBlocksStop != nil && p.prevGetBlocksBegin != nil &&
 		beginHash != nil && stopHash.IsEqual(p.prevGetBlocksStop) &&
 		beginHash.IsEqual(p.prevGetBlocksBegin) {
 
-		peerLog.Tracef("Filtering duplicate [getblocks] with begin "+
+		peerLog.Tracef("Filtering duplicate [getdirblocks] with begin "+
 			"hash %v, stop hash %v", beginHash, stopHash)
 		return nil
 	}
@@ -309,6 +329,7 @@ func (p *peer) PushGetDirBlocksMsg(locator blockchain.BlockLocator, stopHash *wi
 		if err != nil {
 			return err
 		}
+		fmt.Println("add dir block hash=%s", hash.String())
 	}
 	p.QueueMessage(msg, nil)
 

@@ -203,6 +203,7 @@ func (p *peer) String() string {
 // isKnownInventory returns whether or not the peer is known to have the passed
 // inventory.  It is safe for concurrent access.
 func (p *peer) isKnownInventory(invVect *wire.InvVect) bool {
+	util.Trace()
 	p.knownInvMutex.Lock()
 	defer p.knownInvMutex.Unlock()
 
@@ -215,6 +216,7 @@ func (p *peer) isKnownInventory(invVect *wire.InvVect) bool {
 // AddKnownInventory adds the passed inventory to the cache of known inventory
 // for the peer.  It is safe for concurrent access.
 func (p *peer) AddKnownInventory(invVect *wire.InvVect) {
+	util.Trace()
 	p.knownInvMutex.Lock()
 	defer p.knownInvMutex.Unlock()
 
@@ -1809,6 +1811,8 @@ out:
 				// Should get us block, tx, or not found.
 			case *wire.MsgGetHeaders:
 				// Should get us headers back.
+			case *wire.MsgGetDirData:
+				// Should get us dir block, or not found for factom
 			default:
 				// Not one of the above, no sure reply.
 				// We want to ping if nothing else
