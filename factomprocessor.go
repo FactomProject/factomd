@@ -11,6 +11,13 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"log"
+	"os"
+	"sort"
+	"strconv"
+	"time"
+
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/consensus"
 	"github.com/FactomProject/FactomCode/database"
@@ -18,15 +25,10 @@ import (
 	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/btcrpcclient"
 	"github.com/FactomProject/btcutil"
-	"io/ioutil"
-	"log"
-	"os"
-	"sort"
-	"strconv"
-	"time"
+	"github.com/davecgh/go-spew/spew"
 )
 
-const (  
+const (
 	//Server running mode
 	FULL_NODE   = "FULL"
 	SERVER_NODE = "SERVER"
@@ -59,12 +61,12 @@ var (
 	dbInfoMap map[string]*common.DBInfo // dbInfoMap with dbHash string([32]byte) as key
 
 	// to be renamed??
-/*	inMsgQueue  chan wire.FtmInternalMsg //incoming message queue for factom application messages
-	outMsgQueue chan wire.FtmInternalMsg //outgoing message queue for factom application messages
+	/*	inMsgQueue  chan wire.FtmInternalMsg //incoming message queue for factom application messages
+		outMsgQueue chan wire.FtmInternalMsg //outgoing message queue for factom application messages
 
-	inCtlMsgQueue  chan wire.FtmInternalMsg //incoming message queue for factom control messages
-	outCtlMsgQueue chan wire.FtmInternalMsg //outgoing message queue for factom control messages
-*/
+		inCtlMsgQueue  chan wire.FtmInternalMsg //incoming message queue for factom control messages
+		outCtlMsgQueue chan wire.FtmInternalMsg //outgoing message queue for factom control messages
+	*/
 	fMemPool *ftmMemPool
 	plMgr    *consensus.ProcessListMgr
 )
@@ -425,6 +427,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		} else {
 			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
 		}
+
 	case wire.CmdInt_EOM:
 		if nodeMode == SERVER_NODE {
 			msgEom, ok := msg.(*wire.MsgInt_EOM)
@@ -447,15 +450,35 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 				plMgr.AddMyProcessListItem(msgEom, nil, msgEom.EOM_Type)
 			}
 		}
+
+	case wire.CmdDirBlock:
+		dirBlock, ok := msg.(*wire.MsgDirBlock)
+		if ok {
+			err := processDirBlock(dirBlock)
+			if err != nil {
+				return err
+			}
+		} else {
+			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
+		}
+
 	default:
 		return errors.New("Message type unsupported:" + fmt.Sprintf("%+v", msg))
 	}
 	return nil
 }
 
+// processDirBlock validates dir block and save it to factom db.
+// similar to blockChain.BC_ProcessBlock
+func processDirBlock(msg *wire.MsgDirBlock) error {
+	util.Trace()
+	fmt.Println("MsgDirBlock=%s", spew.Sdump(msg.DBlk))
+	return nil
+}
+
 // Process a factoid obj message and put it in the process list
 func processFactoidTx(msg *wire.MsgInt_FactoidObj) error {
-	
+
 	// Update the credit balance in memory for each EC output
 	for k, v := range msg.EntryCredits {
 		pubKey := new(common.Hash)
@@ -464,8 +487,8 @@ func processFactoidTx(msg *wire.MsgInt_FactoidObj) error {
 		// Update the credit balance in memory
 		balance, _ := eCreditMap[pubKey.String()]
 		eCreditMap[pubKey.String()] = balance + credits
-	}	
-	
+	}
+
 	// Add to MyPL if Server Node
 	if nodeMode == SERVER_NODE {
 		err := plMgr.AddMyProcessListItem(msg, msg.TxSha, wire.ACK_FACTOID_TX)
@@ -940,12 +963,12 @@ func newDirectoryBlock(chain *common.DChain) *common.DBlock {
 	// acquire the last block
 	block := chain.Blocks[len(chain.Blocks)-1]
 
-/*
-	if len(block.DBEntries) < 1 {
-		//log.Println("No Directory block created for chain ... because no new entry is found.")
-		return nil
-	}
-*/
+	/*
+		if len(block.DBEntries) < 1 {
+			//log.Println("No Directory block created for chain ... because no new entry is found.")
+			return nil
+		}
+	*/
 	// Create the block add a new block for new coming entries
 	chain.BlockMutex.Lock()
 	block.Header.EntryCount = uint32(len(block.DBEntries))
@@ -1071,8 +1094,8 @@ func initDChain() {
 
 	dchain.Blocks = make([]*common.DBlock, len(dBlocks))
 
-	for i := 0; i < len(dBlocks); i = i + 1 {	
-		if dBlocks[i].Header.BlockID != uint64(i) {			
+	for i := 0; i < len(dBlocks); i = i + 1 {
+		if dBlocks[i].Header.BlockID != uint64(i) {
 			panic("Error in initializing dChain:" + dchain.ChainID.String())
 		}
 		dBlocks[i].Chain = dchain
@@ -1241,6 +1264,7 @@ func printPaidEntryMap() {
 		fmt.Println("Key:", key, "Value", prePaidEntryMap[key])
 	}
 }
+
 /*
 func printCChain() {
 

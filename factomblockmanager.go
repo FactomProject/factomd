@@ -5,6 +5,7 @@
 package btcd
 
 import (
+	"container/list"
 	"sync/atomic"
 
 	//"github.com/FactomProject/btcd/blockchain"
@@ -13,8 +14,6 @@ import (
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/util"
 )
-
-
 
 // dirBlockMsg packages a directory block message and the peer it came from together
 // so the block handler has access to that information.
@@ -30,13 +29,14 @@ type dirInvMsg struct {
 	peer *peer
 }
 
+/*
 // handleDirBlockMsg handles dir block messages from all peers.
 func (b *blockManager) handleDirBlockMsg(bmsg *dirBlockMsg) {
 	util.Trace()
 	// If we didn't ask for this block then the peer is misbehaving.
 	binary, _ := bmsg.block.MarshalBinary()
 	commonHash := common.Sha(binary)
-	blockSha, _ := wire.NewShaHash(commonHash.Bytes)	
+	blockSha, _ := wire.NewShaHash(commonHash.Bytes)
 
 	if _, ok := bmsg.peer.requestedBlocks[*blockSha]; !ok {
 		// The regression test intentionally sends some blocks twice
@@ -52,7 +52,7 @@ func (b *blockManager) handleDirBlockMsg(bmsg *dirBlockMsg) {
 		}
 	}
 
-	/*
+
 		// When in headers-first mode, if the block matches the hash of the
 		// first header in the list of headers that are being fetched, it's
 		// eligible for less validation since the headers have already been
@@ -76,7 +76,7 @@ func (b *blockManager) handleDirBlockMsg(bmsg *dirBlockMsg) {
 				}
 			}
 		}
-	*/
+
 
 	// Remove block from request maps. Either chain will know about it and
 	// so we shouldn't have any more instances of trying to fetch it, or we
@@ -87,16 +87,16 @@ func (b *blockManager) handleDirBlockMsg(bmsg *dirBlockMsg) {
 	util.Trace("just before BC_ProcessBlock")
 
 	// Process the block to include validation, best chain selection, orphan
-	// handling, etc.	
-/*	isOrphan, err := b.blockChain.BC_ProcessBlock(bmsg.block,
+	// handling, etc.
+	isOrphan, err := b.dirChain.BC_ProcessBlock(bmsg.block,
 		//		b.server.timeSource, behaviorFlags)
 		//		b.server.timeSource, 0)
 		b.server.timeSource, blockchain.BFFactomFlag1)
-*/
+
 	isOrphan := false // to be improved
 
 	util.Trace("BC_ProcessBlock error checking")
-/*	if err != nil {
+	if err != nil {
 		// When the error is a rule error, it means the block was simply
 		// rejected as opposed to something actually going wrong, so log
 		// it as such.  Otherwise, something really did go wrong, so log
@@ -116,13 +116,13 @@ func (b *blockManager) handleDirBlockMsg(bmsg *dirBlockMsg) {
 			blockSha, false)
 		return
 	}
-*/
+
 	util.Trace("just before block orphan checking")
 
 	// Request the parents for the orphan block from the peer that sent it.
 	if isOrphan {
-		orphanRoot := b.blockChain.GetOrphanRoot(blockSha)
-		locator, err := b.blockChain.LatestBlockLocator()
+		orphanRoot := b.dirChain.GetOrphanRoot(blockSha)
+		locator, err := b.dirChain.LatestBlockLocator()
 		if err != nil {
 			bmgrLog.Warnf("Failed to get block locator for the "+
 				"latest block: %v", err)
@@ -140,24 +140,23 @@ func (b *blockManager) handleDirBlockMsg(bmsg *dirBlockMsg) {
 		// Query the db for the latest best block since the block
 		// that was processed could be on a side chain or have caused
 		// a reorg.
-//		newestSha, newestHeight, _ := btcd.db.NewestSha()
-//		b.updateChainState(newestSha, newestHeight)
+		//		newestSha, newestHeight, _ := db.NewestSha()
+		//		b.updateChainState(newestSha, newestHeight)
 
 		// Allow any clients performing long polling via the
 		// getblocktemplate RPC to be notified when the new block causes
 		// their old block template to become stale.
 
-			//rpcServer := b.server.rpcServer
-			//if rpcServer != nil {
-				//rpcServer.gbtWorkState.NotifyBlockConnected(blockSha)
-			//}
+		//rpcServer := b.server.rpcServer
+		//if rpcServer != nil {
+		//rpcServer.gbtWorkState.NotifyBlockConnected(blockSha)
+		//}
 
 	}
 
 	// Sync the db to disk.
-	db.Sync()		// factom db
+	db.Sync() // factom db
 
-	/*
 		// Nothing more to do if we aren't in headers-first mode.
 		if !b.headersFirstMode {
 			return
@@ -208,9 +207,8 @@ func (b *blockManager) handleDirBlockMsg(bmsg *dirBlockMsg) {
 				bmsg.peer.addr, err)
 			return
 		}
-	*/
-}
 
+}*/
 
 // handleDirInvMsg handles dir inv messages from all peers.
 // We examine the inventory advertised by the remote peer and act accordingly.
@@ -239,10 +237,11 @@ func (b *blockManager) handleDirInvMsg(imsg *dirInvMsg) {
 	// request parent blocks of orphans if we receive one we already have.
 	// Finally, attempt to detect potential stalls due to long side chains
 	// we already have and request more blocks to prevent them.
-	chain := b.blockChain
+
+	chain := b.dirChain
 	for i, iv := range invVects {
 		// Ignore unsupported inventory types.
-		if iv.Type != wire.InvTypeFactomDirBlock {	//} && iv.Type != wire.InvTypeTx {
+		if iv.Type != wire.InvTypeFactomDirBlock { //} && iv.Type != wire.InvTypeTx {
 			continue
 		}
 
@@ -252,7 +251,7 @@ func (b *blockManager) handleDirInvMsg(imsg *dirInvMsg) {
 
 		// Ignore inventory when we're in headers-first mode.
 		//if b.headersFirstMode {
-			//continue
+		//continue
 		//}
 
 		// Request the inventory if we don't already have it.
@@ -280,21 +279,22 @@ func (b *blockManager) handleDirInvMsg(imsg *dirInvMsg) {
 			// resending the orphan block as an available block
 			// to signal there are more missing blocks that need to
 			// be requested.
-			if chain.IsKnownOrphan(&iv.Hash) {
-				// Request blocks starting at the latest known
-				// up to the root of the orphan that just came
-				// in.
-				orphanRoot := chain.GetOrphanRoot(&iv.Hash)
-				locator, err := chain.LatestBlockLocator()
-				if err != nil {
-					bmgrLog.Errorf("PEER: Failed to get block "+
-						"locator for the latest block: "+
-						"%v", err)
+			/*
+				if chain.IsKnownOrphan(&iv.Hash) {
+					// Request blocks starting at the latest known
+					// up to the root of the orphan that just came
+					// in.
+					orphanRoot := chain.GetOrphanRoot(&iv.Hash)
+					locator, err := chain.LatestBlockLocator()
+					if err != nil {
+						bmgrLog.Errorf("PEER: Failed to get block "+
+							"locator for the latest block: "+
+							"%v", err)
+						continue
+					}
+					imsg.peer.PushGetDirBlocksMsg(locator, orphanRoot)
 					continue
-				}
-				imsg.peer.PushGetDirBlocksMsg(locator, orphanRoot)
-				continue
-			}
+				}*/
 
 			// We already have the final block advertised by this
 			// inventory message, so force a request for more.  This
@@ -304,7 +304,7 @@ func (b *blockManager) handleDirInvMsg(imsg *dirInvMsg) {
 				// Request blocks after this one up to the
 				// final one the remote peer knows about (zero
 				// stop hash).
-				locator := chain.BlockLocatorFromHash(&iv.Hash)
+				locator := DirBlockLocatorFromHash(&iv.Hash, chain)
 				imsg.peer.PushGetDirBlocksMsg(locator, &zeroHash)
 			}
 		}
@@ -354,6 +354,7 @@ func (b *blockManager) handleDirInvMsg(imsg *dirInvMsg) {
 
 // QueueDirBlock adds the passed GetDirBlocks message and peer to the block handling queue.
 func (b *blockManager) QueueDirBlock(msg *wire.MsgDirBlock, p *peer) {
+	util.Trace()
 	// Don't accept more blocks if we're shutting down.
 	if atomic.LoadInt32(&b.shutdown) != 0 {
 		p.blockProcessed <- struct{}{}
@@ -365,7 +366,7 @@ func (b *blockManager) QueueDirBlock(msg *wire.MsgDirBlock, p *peer) {
 
 // QueueDirInv adds the passed inv message and peer to the block handling queue.
 func (b *blockManager) QueueDirInv(inv *wire.MsgDirInv, p *peer) {
-	//	util.Trace()
+	util.Trace()
 	// No channel handling here because peers do not need to block on inv
 	// messages.
 	if atomic.LoadInt32(&b.shutdown) != 0 {
@@ -375,43 +376,18 @@ func (b *blockManager) QueueDirInv(inv *wire.MsgDirInv, p *peer) {
 	b.msgChan <- &dirInvMsg{inv: inv, peer: p}
 }
 
-/*
-// ProcessBlock makes use of ProcessBlock on an internal instance of a block
-// chain.  It is funneled through the block manager since btcchain is not safe
-// for concurrent access.
-func (b *blockManager) bm_ProcessBlock(block *btcutil.Block, flags blockchain.BehaviorFlags) (bool, error) {
-	util.Trace()
-	reply := make(chan processBlockResponse, 1)
-	b.msgChan <- processBlockMsg{block: block, flags: flags, reply: reply}
-	response := <-reply
-	return response.isOrphan, response.err
-}
-*/
-
-// IsCurrent returns whether or not the block manager believes it is synced with
-// the connected peers.
-//func (b *blockManager) IsCurrent() bool {
-	/*
-		reply := make(chan bool)
-		b.msgChan <- isCurrentMsg{reply: reply}
-		return <-reply
-	*/
-	//return true
-//}
-
-/*
-// startSync will choose the best peer among the available candidate peers to
+// startSyncFactom will choose the best peer among the available candidate peers to
 // download/sync the blockchain from.  When syncing is already running, it
 // simply returns.  It also examines the candidates for any which are no longer
 // candidates and removes them as needed.
-func (b *blockManager) startSync(peers *list.List) {
+func (b *blockManager) startSyncFactom(peers *list.List) {
 	// Return now if we're already syncing.
 	if b.syncPeer != nil {
 		return
 	}
 
 	// Find the height of the current known best block.
-	_, height, err := btcd.db.NewestSha()
+	_, height, err := LatestDirBlockSha(b.dirChain) // db.NewestSha()
 	if err != nil {
 		bmgrLog.Errorf("%v", err)
 		return
@@ -441,7 +417,7 @@ func (b *blockManager) startSync(peers *list.List) {
 
 	// Start syncing from the best peer if one was selected.
 	if bestPeer != nil {
-		locator, err := b.blockChain.LatestBlockLocator()
+		locator, err := LatestDirBlockLocator(b.dirChain)
 		if err != nil {
 			bmgrLog.Errorf("Failed to get block locator for the "+
 				"latest block: %v", err)
@@ -468,89 +444,92 @@ func (b *blockManager) startSync(peers *list.List) {
 		// and fully validate them.  Finally, regression test mode does
 		// not support the headers-first approach so do normal block
 		// downloads when in regression test mode.
-		if b.nextCheckpoint != nil && height < b.nextCheckpoint.Height &&
-			!cfg.RegressionTest && !cfg.DisableCheckpoints {
+		/*
+			if b.nextCheckpoint != nil && height < b.nextCheckpoint.Height &&
+				!cfg.RegressionTest && !cfg.DisableCheckpoints {
 
-			bestPeer.PushGetHeadersMsg(locator, b.nextCheckpoint.Hash)
-			b.headersFirstMode = true
-			bmgrLog.Infof("Downloading headers for blocks %d to "+
-				"%d from peer %s", height+1,
-				b.nextCheckpoint.Height, bestPeer.addr)
-		} else {
-			bestPeer.PushGetBlocksMsg(locator, &zeroHash)
-		}
+				bestPeer.PushGetHeadersMsg(locator, b.nextCheckpoint.Hash)
+				b.headersFirstMode = true
+				bmgrLog.Infof("Downloading headers for blocks %d to "+
+					"%d from peer %s", height+1,
+					b.nextCheckpoint.Height, bestPeer.addr)
+			} else {*/
+		bestPeer.PushGetBlocksMsg(locator, &zeroHash)
+		//}
 		b.syncPeer = bestPeer
 	} else {
 		bmgrLog.Warnf("No sync peer candidates available")
 	}
 }
 
-// isSyncCandidate returns whether or not the peer is a candidate to consider
+// isSyncCandidateFactom returns whether or not the peer is a candidate to consider
 // syncing from.
-func (b *blockManager) isSyncCandidate(p *peer) bool {
-	// Typically a peer is not a candidate for sync if it's not a full node,
-	// however regression test is special in that the regression tool is
-	// not a full node and still needs to be considered a sync candidate.
-	if cfg.RegressionTest {
-		// The peer is not a candidate if it's not coming from localhost
-		// or the hostname can't be determined for some reason.
-		host, _, err := net.SplitHostPort(p.addr)
-		if err != nil {
-			return false
+func (b *blockManager) isSyncCandidateFactom(p *peer) bool {
+	/*
+		// Typically a peer is not a candidate for sync if it's not a full node,
+		// however regression test is special in that the regression tool is
+		// not a full node and still needs to be considered a sync candidate.
+		if cfg.RegressionTest {
+			// The peer is not a candidate if it's not coming from localhost
+			// or the hostname can't be determined for some reason.
+			host, _, err := net.SplitHostPort(p.addr)
+			if err != nil {
+				return false
+			}
+
+			if host != "127.0.0.1" && host != "localhost" {
+				return false
+			}
+		} else {
+			// The peer is not a candidate for sync if it's not a full node.
+			if p.services&wire.SFNodeNetwork != wire.SFNodeNetwork {
+				return false
+			}
 		}
 
-		if host != "127.0.0.1" && host != "localhost" {
-			return false
-		}
-	} else {
-		// The peer is not a candidate for sync if it's not a full node.
-		if p.services&wire.SFNodeNetwork != wire.SFNodeNetwork {
-			return false
-		}
+		// Candidate if all checks passed.
+	*/
+	return true
+}
+
+/*
+// currentDChain returns true if we believe we are synced with our peers, false if we
+// still have blocks to check
+func (b *blockManager) currentDChain() bool {
+
+	if !b.dirChain.IsCurrent(b.server.timeSource) {
+		return false
 	}
 
-	// Candidate if all checks passed.
+	// if blockChain thinks we are current and we have no syncPeer it
+	// is probably right.
+	if b.syncPeer == nil {
+		return true
+	}
+
+	_, height, err := db.NewestSha()
+	// No matter what chain thinks, if we are below the block we are
+	// syncing to we are not current.
+	// TODO(oga) we can get chain to return the height of each block when we
+	// parse an orphan, which would allow us to update the height of peers
+	// from what it was at initial handshake.
+	if err != nil || height < int64(b.syncPeer.lastBlock) {
+		return false
+	}
+
 	return true
 }
 */
 
-// current returns true if we believe we are synced with our peers, false if we
-// still have blocks to check
-//func (b *blockManager) current() bool {
-	/*
-		if !b.blockChain.IsCurrent(b.server.timeSource) {
-			return false
-		}
-
-		// if blockChain thinks we are current and we have no syncPeer it
-		// is probably right.
-		if b.syncPeer == nil {
-			return true
-		}
-
-		_, height, err := btcd.db.NewestSha()
-		// No matter what chain thinks, if we are below the block we are
-		// syncing to we are not current.
-		// TODO(oga) we can get chain to return the height of each block when we
-		// parse an orphan, which would allow us to update the height of peers
-		// from what it was at initial handshake.
-		if err != nil || height < int64(b.syncPeer.lastBlock) {
-			return false
-		}
-	*/
-	//return true
-//}
-
-// HaveBlock returns whether or not the chain instance has the block represented
+// HaveBlockInDChain returns whether or not the chain instance has the block represented
 // by the passed hash.  This includes checking the various places a block can
 // be like part of the main chain, on a side chain, or in the orphan pool.
 //
 // This function is NOT safe for concurrent access.
 func HaveBlockInDChain(dChain *common.DChain, hash *wire.ShaHash) (bool, error) {
-	commonhash := new(common.Hash)
-	commonhash.SetBytes(hash.Bytes())
-	dblock, _ := db.FetchDBlockByHash(commonhash)
-	if dblock != nil{
+	util.Trace()
+	dblock, _ := db.FetchDBlockByHash(hash.ToFactomHash())
+	if dblock != nil {
 		return true, nil
 	}
 	return false, nil

@@ -5,10 +5,11 @@
 package wire
 
 import (
+	"bytes"
 	"github.com/FactomProject/FactomCode/common"
 	"io"
-	"bytes"	
 )
+
 // Acknowledgement Type
 const (
 	ACK_FACTOID_TX uint8 = iota
@@ -25,18 +26,17 @@ const (
 	ACK_REVEAL_ENTRY
 	ACK_COMMIT_CHAIN
 	ACK_REVEAL_CHAIN
-	ACK_COMMIT_ENTRY	
+	ACK_COMMIT_ENTRY
 )
-	
+
 type MsgAcknowledgement struct {
 	Height      uint64
 	ChainID     *common.Hash
 	Index       uint32
-	Type 		byte	
+	Type        byte
 	Affirmation *ShaHash // affirmation value -- hash of the message/object in question
 	SerialHash  [32]byte
 	Signature   [64]byte
-
 }
 
 // BtcDecode decodes r using the bitcoin protocol encoding into the receiver.
@@ -82,7 +82,7 @@ func NewMsgAcknowledgement(height uint64, index uint32, affirm *ShaHash, ackType
 		Height:      height,
 		Index:       index,
 		Affirmation: affirm,
-		Type: 		 ackType,
+		Type:        ackType,
 	}
 }
 
@@ -92,7 +92,7 @@ func (msg *MsgAcknowledgement) Sha() (ShaHash, error) {
 	buf := bytes.NewBuffer(nil)
 	msg.BtcEncode(buf, ProtocolVersion)
 	var sha ShaHash
-	_ = sha.SetBytes(Sha256(buf.Bytes()))	
-	
+	_ = sha.SetBytes(Sha256(buf.Bytes()))
+
 	return sha, nil
 }

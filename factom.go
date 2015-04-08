@@ -119,8 +119,8 @@ func Start_btcd(inMsgQ chan wire.FtmInternalMsg, outMsgQ chan wire.FtmInternalMs
 	outMsgQueue = outMsgQ
 	inCtlMsgQueue = inCtlMsgQ
 	outCtlMsgQueue = outCtlMsgQ
-	
-	factomIngressTx_hook(wire.NewMsgTx())//to be removed??
+
+	factomIngressTx_hook(wire.NewMsgTx()) //to be removed??
 
 	// Work around defer not working after os.Exit()
 	if err := btcdMain(nil); err != nil {

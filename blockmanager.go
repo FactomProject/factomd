@@ -189,7 +189,7 @@ type blockManager struct {
 	nextCheckpoint   *chaincfg.Checkpoint
 
 	// Factom Addition
-	dirChain					*common.DChain
+	dirChain *common.DChain
 }
 
 /*
@@ -399,6 +399,17 @@ func (b *blockManager) handleNewPeerMsg(peers *list.List, p *peer) {
 		// Start syncing by choosing the best candidate if needed.
 		b.startSync(peers)
 	*/
+
+	// Ignore the peer if it's not a sync candidate.
+	if !b.isSyncCandidateFactom(p) {
+		return
+	}
+
+	// Add the peer as a candidate to sync from.
+	peers.PushBack(p)
+
+	// Start syncing by choosing the best candidate if needed.
+	b.startSyncFactom(peers)
 }
 
 /*
@@ -1106,12 +1117,18 @@ out:
 
 			case isCurrentMsg:
 				msg.reply <- b.current()
-
-			case *dirBlockMsg:
-				util.Trace()
-				b.handleDirBlockMsg(msg)
-				msg.peer.blockProcessed <- struct{}{}
-
+				/*
+					case *dirBlockMsg:
+						util.Trace()
+						//b.handleDirBlockMsg(msg)
+						binary, _ := msg.block.MarshalBinary()
+						commonHash := common.Sha(binary)
+						blockSha, _ := wire.NewShaHash(commonHash.Bytes)
+						delete(msg.peer.requestedBlocks, *blockSha)
+						delete(b.requestedBlocks, *blockSha)
+						inMsgQueue <- msg
+						msg.peer.blockProcessed <- struct{}{}
+				*/
 			case *dirInvMsg:
 				util.Trace()
 				b.handleDirInvMsg(msg)

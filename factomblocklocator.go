@@ -5,12 +5,10 @@
 package btcd
 
 import (
-	"github.com/FactomProject/btcd/wire"
+	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/btcd/blockchain"
-	"github.com/FactomProject/FactomCode/common"	
+	"github.com/FactomProject/btcd/wire"
 )
-
-
 
 // BlockLocatorFromHash returns a block locator for the passed block hash.
 // See BlockLocator for details on the algotirhm used to create a block locator.
@@ -37,40 +35,38 @@ func DirBlockLocatorFromHash(hash *wire.ShaHash, dChain *common.DChain) blockcha
 	// passed hash, and if it's on a side chain, also find the height at
 	// which it forks from the main chain.
 	blockHeight := int64(-1)
-/*	node, exists := b.index[*hash]
-	if !exists {
-		// Try to look up the height for passed block hash.  Assume an
-		// error means it doesn't exist and just return the locator for
-		// the block itself.
-		block, err := b.db.FetchBlockBySha(hash)
-		if err != nil {
-			return locator
-		}
-		blockHeight = block.Height()
+	/*	node, exists := b.index[*hash]
+		if !exists {
+			// Try to look up the height for passed block hash.  Assume an
+			// error means it doesn't exist and just return the locator for
+			// the block itself.
+			block, err := b.db.FetchBlockBySha(hash)
+			if err != nil {
+				return locator
+			}
+			blockHeight = block.Height()
 
-	} else {
-		blockHeight = node.height
+		} else {
+			blockHeight = node.height
 
-		// Find the height at which this node forks from the main chain
-		// if the node is on a side chain.
-		if !node.inMainChain {
-			for n := node; n.parent != nil; n = n.parent {
-				if n.inMainChain {
-					forkHeight = n.height
-					break
+			// Find the height at which this node forks from the main chain
+			// if the node is on a side chain.
+			if !node.inMainChain {
+				for n := node; n.parent != nil; n = n.parent {
+					if n.inMainChain {
+						forkHeight = n.height
+						break
+					}
 				}
 			}
 		}
-	}
-*/
+	*/
 	// Generate the block locators according to the algorithm described in
 	// in the BlockLocator comment and make sure to leave room for the
 	// final genesis hash.
-	
-	commonhash := new(common.Hash)
-	commonhash.SetBytes(hash.Bytes())
-	dblock, _ := db.FetchDBlockByHash(commonhash)
-	if dblock != nil{
+
+	dblock, _ := db.FetchDBlockByHash(hash.ToFactomHash())
+	if dblock != nil {
 		blockHeight = int64(dblock.Header.BlockID)
 	}
 	increment := int64(1)
@@ -85,13 +81,9 @@ func DirBlockLocatorFromHash(hash *wire.ShaHash, dChain *common.DChain) blockcha
 			break
 		}
 
-		// to be improved??
-		newHash, _ := wire.NewShaHash(dchain.Blocks[blockHeight].DBHash.Bytes)
-
-		locator = append(locator, newHash)
+		locator = append(locator, wire.FactomHashToShaHash(dchain.Blocks[blockHeight].DBHash))
 	}
 
-		
 	// Append the appropriate genesis block.
 	locator = append(locator, genesisHash)
 	return locator
@@ -104,4 +96,17 @@ func LatestDirBlockLocator(dChain *common.DChain) (blockchain.BlockLocator, erro
 	latestDirBlockHash, _ := wire.NewShaHash(dChain.Blocks[dChain.NextBlockID-1].DBHash.Bytes)
 	// The best chain is set, so use its hash.
 	return DirBlockLocatorFromHash(latestDirBlockHash, dChain), nil
+}
+
+
+// LatestBlockLocator returns a block locator for the latest known tip of the
+// main (best) chain.
+func LatestDirBlockSha(dChain *common.DChain) (sha *wire.ShaHash, height int64, err error) {
+
+	sha, _ = wire.NewShaHash(dChain.Blocks[dChain.NextBlockID-1].DBHash.Bytes)
+	
+	height = int64(dChain.Blocks[dChain.NextBlockID-1].Header.BlockID)
+	
+	// The best chain is set, so use its hash.
+	return sha, height, nil
 }

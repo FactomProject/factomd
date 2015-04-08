@@ -6,8 +6,8 @@ import ()
 const (
 
 	// Factom internal messages:
-	CmdInt_FactoidObj    = "int_factoidobj"
-	CmdInt_EOM           = "int_eom"
+	CmdInt_FactoidObj = "int_factoidobj"
+	CmdInt_EOM        = "int_eom"
 )
 
 // FtmInternalMsg is an interface that describes an internal factom message.
@@ -18,8 +18,8 @@ type FtmInternalMsg interface {
 
 // Factoid Obj to carry factoid transation data to constuct the Process lit item.
 type MsgInt_FactoidObj struct {
-	FactoidTx    *MsgTx       
-	TxSha		 *ShaHash       
+	FactoidTx    *MsgTx
+	TxSha        *ShaHash
 	EntryCredits map[ShaHash]uint64 // TODO: this should really be a single-hash per Brian (?)
 }
 
@@ -31,8 +31,8 @@ func (msg MsgInt_FactoidObj) Command() string {
 
 // End-of-Minute internal message for time commnunications between Goroutines
 type MsgInt_EOM struct {
-	EOM_Type byte
-	NextDBlockHeight uint64	
+	EOM_Type         byte
+	NextDBlockHeight uint64
 }
 
 // End-of-Minute internal message for time commnunications between Goroutines
