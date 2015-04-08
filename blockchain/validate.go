@@ -536,6 +536,9 @@ func checkBlockSanity(block *btcutil.Block, powLimit *big.Int, timeSource Median
 	}
 	util.Trace()
 
+	/*
+		util.Trace("TODO: uncomment this check after testing !!!!!!!!!!!!!!!!!!!!!!!!!")
+	*/
 	// A block must not have more than one coinbase.
 	for i, tx := range transactions[1:] {
 		if IsCoinBase(tx) {

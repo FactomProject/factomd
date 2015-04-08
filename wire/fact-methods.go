@@ -104,23 +104,21 @@ func writeBitfield(w io.Writer, pver uint32, sig *TxSig) error {
 
 // readOutPoint reads the next sequence of bytes from r as an OutPoint.
 func readOutPoint(r io.Reader, pver uint32, op *OutPoint) error {
+	util.Trace()
 	_, err := io.ReadFull(r, op.Hash[:])
 	if err != nil {
 		return err
 	}
-
-	var buf [4]byte
-	_, err = io.ReadFull(r, buf[:])
-	if err != nil {
-		return err
-	}
+	util.Trace()
 
 	// op.Index = binary.BigEndian.Uint32(buf[:])
 
 	// varint on the wire, but easily fits into uint32
 	index, err := readVarInt(r, pver)
+	util.Trace(fmt.Sprintf("index=%d\n", index))
 
-	if inNout_cap < index {
+	// coinbase has math.MaxUint32, so that's ok
+	if inNout_cap < index && math.MaxUint32 != index {
 		return fmt.Errorf("OutPoint trouble, index too large: %d", index)
 	}
 
@@ -147,6 +145,7 @@ func writeOutPoint(w io.Writer, pver uint32, op *OutPoint) error {
 
 // readTxIn reads the next sequence of bytes from r as a transaction input
 func readTxIn(r io.Reader, pver uint32, ti *TxIn) error {
+	util.Trace()
 	var op OutPoint
 
 	err := readOutPoint(r, pver, &op)
@@ -307,6 +306,7 @@ func (msg *MsgTx) BtcDecode(r io.Reader, pver uint32) error {
 	util.Trace()
 
 	incount, err := readVarInt(r, pver)
+	util.Trace(fmt.Sprintf("incount=%d\n", incount))
 
 	msg.TxIn = make([]*TxIn, incount)
 	for i := uint64(0); i < incount; i++ {
@@ -472,14 +472,23 @@ func writeTxIn(w io.Writer, pver uint32, ti *TxIn) error {
 // writeTxOut encodes to into the protocol encoding for a transaction
 // output (TxOut) to w.
 func writeTxOut(w io.Writer, pver uint32, to *TxOut) error {
-	var buf [8]byte
-	binary.BigEndian.PutUint64(buf[:], uint64(to.Value)) // FIXME: make it VarInt
-	_, err := w.Write(buf[:])
+	/*
+		var buf [8]byte
+		binary.BigEndian.PutUint64(buf[:], uint64(to.Value)) // FIXME: make it VarInt
+		_, err := w.Write(buf[:])
+		if err != nil {
+			return err
+		}
+	*/
+
+	err := writeVarInt(w, pver, uint64(to.Value))
 	if err != nil {
 		return err
 	}
 
-	err = writeVarBytes(w, pver, to.RCDHash[:])
+	//	err = writeVarBytes(w, pver, to.RCDHash[:])
+	_, err = w.Write(to.RCDHash[:])
+
 	if err != nil {
 		return err
 	}
@@ -550,6 +559,8 @@ func (msg *MsgTx) SerializeSize() int {
 func (msg *MsgTx) TxSha() (ShaHash, error) {
 	util.Trace()
 
+	fmt.Println("TxSha spew: ", spew.Sdump(*msg))
+
 	// Encode the transaction and calculate double sha256 on the result.
 	// Ignore the error returns since the only way the encode could fail
 	// is being out of memory or due to nil pointers, both of which would
@@ -571,7 +582,6 @@ func (msg *MsgTx) TxSha() (ShaHash, error) {
 }
 
 func (msg *MsgTx) Deserialize(r io.Reader) error {
-	util.Trace()
 	// At the current time, there is no difference between the wire encoding
 	// at protocol version 0 and the stable long-term storage format.  As
 	// a result, make use of BtcDecode.
@@ -579,11 +589,9 @@ func (msg *MsgTx) Deserialize(r io.Reader) error {
 }
 
 func (msg *MsgTx) Serialize(w io.Writer) error {
-	util.Trace()
 	// At the current time, there is no difference between the wire encoding
 	// at protocol version 0 and the stable long-term storage format.  As
 	// a result, make use of BtcEncode.
-
 	return msg.BtcEncode(w, 0)
 }
 

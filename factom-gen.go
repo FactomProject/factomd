@@ -126,8 +126,12 @@ func Test_timer() {
 
 	count := int32(0)
 
-	for {
-		time.Sleep(time.Second * 5)
+	//	for {
+	for i := 0; i < 10; i++ {
+		//	for i := 0; i < 3; i++ {
+
+		//		time.Sleep(time.Second * 5)
+		time.Sleep(time.Second * 10)
 		count++
 
 		fmt.Println("===================================")
@@ -242,8 +246,9 @@ func (m *CPUMINER) test_submitBlock(block *btcutil.Block) bool {
 	// The block was accepted.
 	blockSha, _ := block.Sha()
 	coinbaseTx := block.MsgBlock().Transactions[0].TxOut[0]
+	txsha, _ := block.MsgBlock().Transactions[0].TxSha()
 	minrLog.Infof("Block submitted via CPU miner accepted (hash %s, "+
-		"amount %v)", blockSha, btcutil.Amount(coinbaseTx.Value))
+		"amount %v; tx hash: %s)", blockSha, btcutil.Amount(coinbaseTx.Value), txsha)
 	return true
 }
 
@@ -338,8 +343,7 @@ func test_NewBlockTemplate(mempool *txMemPool, payToAddress btcutil.Address) (*B
 		return nil, err
 	}
 	util.Trace()
-	coinbaseTx, err := createCoinbaseTx(coinbaseScript, nextBlockHeight,
-		payToAddress)
+	coinbaseTx, err := createCoinbaseTx(coinbaseScript, nextBlockHeight, payToAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -371,6 +375,15 @@ func test_NewBlockTemplate(mempool *txMemPool, payToAddress btcutil.Address) (*B
 	// can be avoided.
 	blockTxns := make([]*btcutil.Tx, 0, len(mempoolTxns))
 	blockTxns = append(blockTxns, coinbaseTx)
+
+	/*
+		// temp testing 2nd TX in the block, TODO: remove
+		{
+			secondtx, _ := createCoinbaseTx(coinbaseScript, nextBlockHeight, payToAddress)
+			blockTxns = append(blockTxns, secondtx)
+		}
+	*/
+
 	blockTxStore := make(blockchain.TxStore)
 
 	// dependers is used to track transactions which depend on another

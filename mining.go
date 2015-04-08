@@ -241,8 +241,8 @@ func createCoinbaseTx(coinbaseScript []byte, nextBlockHeight int64, addr btcutil
 	*/
 
 	randHashBytes := make([]byte, wire.HashSize)
-	//	nn, err0 := rand.Read(randHashBytes)
-	//	fmt.Println(nn, err0, randHashBytes)
+	nn, err0 := rand.Read(randHashBytes)
+	fmt.Println(nn, err0, randHashBytes)
 
 	newsha, _ := wire.NewShaHash(randHashBytes)
 
@@ -260,8 +260,8 @@ func createCoinbaseTx(coinbaseScript []byte, nextBlockHeight int64, addr btcutil
 	var rcdhash wire.RCDHash
 	randRCD := make([]byte, wire.RCDHashSize)
 	rand.Read(randRCD)
-	randRCD[0] = 1
-	randRCD[30] = 0x30
+	//	randRCD[0] = 1
+	//	randRCD[30] = 0x30
 	fmt.Println("randRCD len=", len(randRCD))
 	copy(rcdhash[:], randRCD)
 
@@ -272,8 +272,8 @@ func createCoinbaseTx(coinbaseScript []byte, nextBlockHeight int64, addr btcutil
 	})
 
 	randBytes := make([]byte, wire.PubKeySize)
-	//	n, err := rand.Read(randBytes)
-	//	fmt.Println("randBytes: ", n, err, randBytes)
+	n, err := rand.Read(randBytes)
+	fmt.Println("randBytes: ", n, err, randBytes)
 
 	//	var pubkeys []wire.PubKey
 	pubkeys := make([]wire.PubKey, 1)

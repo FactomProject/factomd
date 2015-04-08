@@ -65,6 +65,7 @@ func (b *BlockChain) maybeAcceptBlock(block *btcutil.Block, flags BehaviorFlags)
 			}
 		*/
 
+		// FIXME TODO : determine if this is needed for Factoids, probably a good idea
 		/*
 			// Ensure the timestamp for the block header is after the
 			// median time of the last several blocks (medianTimeBlocks).
