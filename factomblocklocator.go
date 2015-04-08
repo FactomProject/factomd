@@ -97,3 +97,16 @@ func LatestDirBlockLocator(dChain *common.DChain) (blockchain.BlockLocator, erro
 	// The best chain is set, so use its hash.
 	return DirBlockLocatorFromHash(latestDirBlockHash, dChain), nil
 }
+
+
+// LatestBlockLocator returns a block locator for the latest known tip of the
+// main (best) chain.
+func LatestDirBlockSha(dChain *common.DChain) (sha *wire.ShaHash, height int64, err error) {
+
+	sha, _ = wire.NewShaHash(dChain.Blocks[dChain.NextBlockID-1].DBHash.Bytes)
+	
+	height = int64(dChain.Blocks[dChain.NextBlockID-1].Header.BlockID)
+	
+	// The best chain is set, so use its hash.
+	return sha, height, nil
+}
