@@ -200,7 +200,7 @@ type GetTxOutResult struct {
 	Confirmations int64              `json:"confirmations"`
 	Value         float64            `json:"value"`
 	ScriptPubKey  ScriptPubKeyResult `json:"scriptPubKey"`
-	Version       int32              `json:"version"`
+	Version       uint8              `json:"version"`
 	Coinbase      bool               `json:"coinbase"`
 }
 
@@ -408,8 +408,8 @@ type SignRawTransactionResult struct {
 type TxRawResult struct {
 	Hex           string `json:"hex"`
 	Txid          string `json:"txid"`
-	Version       int32  `json:"version"`
-	LockTime      uint32 `json:"locktime"`
+	Version       uint8  `json:"version"`
+	LockTime      int64  `json:"locktime"`
 	Vin           []Vin  `json:"vin"`
 	Vout          []Vout `json:"vout"`
 	BlockHash     string `json:"blockhash,omitempty"`
@@ -421,8 +421,8 @@ type TxRawResult struct {
 // TxRawDecodeResult models the data from the decoderawtransaction command.
 type TxRawDecodeResult struct {
 	Txid     string `json:"txid"`
-	Version  int32  `json:"version"`
-	Locktime uint32 `json:"locktime"`
+	Version  uint8  `json:"version"`
+	Locktime int64  `json:"locktime"`
 	Vin      []Vin  `json:"vin"`
 	Vout     []Vout `json:"vout"`
 }

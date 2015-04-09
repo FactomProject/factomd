@@ -28,11 +28,11 @@ import (
 
 	"github.com/FactomProject/btcd/blockchain"
 	"github.com/FactomProject/btcd/btcec"
+	"github.com/FactomProject/btcd/btcjson"
 	"github.com/FactomProject/btcd/chaincfg"
 	"github.com/FactomProject/btcd/database"
 	"github.com/FactomProject/btcd/txscript"
 	"github.com/FactomProject/btcd/wire"
-	"github.com/FactomProject/btcjson"
 	"github.com/FactomProject/btcutil"
 	"github.com/FactomProject/btcws"
 	"github.com/FactomProject/fastsha256"
@@ -853,7 +853,6 @@ func handleDebugLevel(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{}) 
 	return "Done.", nil
 }
 
-/*
 // createVinList returns a slice of JSON objects for the inputs of the passed
 // transaction.
 func createVinList(mtx *wire.MsgTx) []btcjson.Vin {
@@ -861,7 +860,7 @@ func createVinList(mtx *wire.MsgTx) []btcjson.Vin {
 	vinList := make([]btcjson.Vin, len(mtx.TxIn))
 	for i, v := range mtx.TxIn {
 		if blockchain.IsCoinBase(tx) {
-			vinList[i].Coinbase = hex.EncodeToString(v.SignatureScript)
+			//			vinList[i].Coinbase = hex.EncodeToString(v.SignatureScript)
 		} else {
 			vinList[i].Txid = v.PreviousOutPoint.Hash.String()
 			vinList[i].Vout = v.PreviousOutPoint.Index
@@ -869,12 +868,14 @@ func createVinList(mtx *wire.MsgTx) []btcjson.Vin {
 			// The disassembled string will contain [error] inline
 			// if the script doesn't fully parse, so ignore the
 			// error here.
-			disbuf, _ := txscript.DisasmString(v.SignatureScript)
-			vinList[i].ScriptSig = new(btcjson.ScriptSig)
-			vinList[i].ScriptSig.Asm = disbuf
-			vinList[i].ScriptSig.Hex = hex.EncodeToString(v.SignatureScript)
+			/*
+				disbuf, _ := txscript.DisasmString(v.SignatureScript)
+				vinList[i].ScriptSig = new(btcjson.ScriptSig)
+				vinList[i].ScriptSig.Asm = disbuf
+				vinList[i].ScriptSig.Hex = hex.EncodeToString(v.SignatureScript)
+			*/
 		}
-		vinList[i].Sequence = v.Sequence
+		//		vinList[i].Sequence = v.Sequence
 	}
 
 	return vinList
@@ -888,33 +889,36 @@ func createVoutList(mtx *wire.MsgTx, chainParams *chaincfg.Params) []btcjson.Vou
 		voutList[i].N = uint32(i)
 		voutList[i].Value = float64(v.Value) / btcutil.SatoshiPerBitcoin
 
-		// The disassembled string will contain [error] inline if the
-		// script doesn't fully parse, so ignore the error here.
-		disbuf, _ := txscript.DisasmString(v.PkScript)
-		voutList[i].ScriptPubKey.Asm = disbuf
-		voutList[i].ScriptPubKey.Hex = hex.EncodeToString(v.PkScript)
+		/*
+			// The disassembled string will contain [error] inline if the
+			// script doesn't fully parse, so ignore the error here.
+			disbuf, _ := txscript.DisasmString(v.PkScript)
+			voutList[i].ScriptPubKey.Asm = disbuf
+			voutList[i].ScriptPubKey.Hex = hex.EncodeToString(v.PkScript)
 
-		// Ignore the error here since an error means the script
-		// couldn't parse and there is no additional information about
-		// it anyways.
-		scriptClass, addrs, reqSigs, _ := txscript.ExtractPkScriptAddrs(
-			v.PkScript, chainParams)
-		voutList[i].ScriptPubKey.Type = scriptClass.String()
-		voutList[i].ScriptPubKey.ReqSigs = int32(reqSigs)
+			// Ignore the error here since an error means the script
+			// couldn't parse and there is no additional information about
+			// it anyways.
+			scriptClass, addrs, reqSigs, _ := txscript.ExtractPkScriptAddrs(
+				v.PkScript, chainParams)
+			voutList[i].ScriptPubKey.Type = scriptClass.String()
+			voutList[i].ScriptPubKey.ReqSigs = int32(reqSigs)
+		*/
 
-		if addrs == nil {
-			voutList[i].ScriptPubKey.Addresses = nil
-		} else {
-			voutList[i].ScriptPubKey.Addresses = make([]string, len(addrs))
-			for j, addr := range addrs {
-				voutList[i].ScriptPubKey.Addresses[j] = addr.EncodeAddress()
+		/*
+			if addrs == nil {
+				//			voutList[i].ScriptPubKey.Addresses = nil
+			} else {
+				//			voutList[i].ScriptPubKey.Addresses = make([]string, len(addrs))
+				for j, addr := range addrs {
+					//				voutList[i].ScriptPubKey.Addresses[j] = addr.EncodeAddress()
+				}
 			}
-		}
+		*/
 	}
 
 	return voutList
 }
-*/
 
 // createTxRawResult converts the passed transaction and associated parameters
 // to a raw transaction JSON object.
@@ -922,37 +926,35 @@ func createTxRawResult(chainParams *chaincfg.Params, txSha string,
 	mtx *wire.MsgTx, blk *btcutil.Block, maxidx int64,
 	blksha *wire.ShaHash) (*btcjson.TxRawResult, error) {
 
-	util.Trace("NOT IMPLEMENTED !!!!!!!!!!!!!!!!!!!!!!!!!")
-	return nil, errors.New("Factoid TX changed!")
+	// need to beef up createVoutList & createVinList & add EC out list
+	util.Trace("PARTIALLY IMPLEMENTED !!!!!!!!!!!!!!!!!!!!!!!!!")
 
-	/*
-		mtxHex, err := messageToHex(mtx)
-		if err != nil {
-			return nil, err
-		}
+	mtxHex, err := messageToHex(mtx)
+	if err != nil {
+		return nil, err
+	}
 
-		txReply := &btcjson.TxRawResult{
-			Hex:      mtxHex,
-			Txid:     txSha,
-			Vout:     createVoutList(mtx, chainParams),
-			Vin:      createVinList(mtx),
-			Version:  mtx.Version,
-			LockTime: mtx.LockTime,
-		}
+	txReply := &btcjson.TxRawResult{
+		Hex:      mtxHex,
+		Txid:     txSha,
+		Vout:     createVoutList(mtx, chainParams),
+		Vin:      createVinList(mtx),
+		Version:  mtx.Version,
+		LockTime: mtx.LockTime,
+	}
 
-		if blk != nil {
-			blockHeader := &blk.MsgBlock().Header
-			idx := blk.Height()
+	if blk != nil {
+		blockHeader := &blk.MsgBlock().Header
+		idx := blk.Height()
 
-			// This is not a typo, they are identical in bitcoind as well.
-			txReply.Time = blockHeader.Timestamp.Unix()
-			txReply.Blocktime = blockHeader.Timestamp.Unix()
-			txReply.BlockHash = blksha.String()
-			txReply.Confirmations = uint64(1 + maxidx - idx)
-		}
+		// This is not a typo, they are identical in bitcoind as well.
+		txReply.Time = blockHeader.Timestamp.Unix()
+		txReply.Blocktime = blockHeader.Timestamp.Unix()
+		txReply.BlockHash = blksha.String()
+		txReply.Confirmations = uint64(1 + maxidx - idx)
+	}
 
-		return txReply, nil
-	*/
+	return txReply, nil
 }
 
 // handleDecodeRawTransaction handles decoderawtransaction commands.

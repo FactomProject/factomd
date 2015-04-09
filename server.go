@@ -21,10 +21,10 @@ import (
 
 	"github.com/FactomProject/btcd/addrmgr"
 	"github.com/FactomProject/btcd/blockchain"
+	"github.com/FactomProject/btcd/btcjson"
 	"github.com/FactomProject/btcd/chaincfg"
 	"github.com/FactomProject/btcd/database"
 	"github.com/FactomProject/btcd/wire"
-	"github.com/FactomProject/btcjson"
 	//	"github.com/FactomProject/btcutil"
 
 	"github.com/FactomProject/FactomCode/util"
