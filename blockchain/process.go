@@ -119,7 +119,7 @@ func (b *BlockChain) processOrphans(hash *wire.ShaHash, flags BehaviorFlags) err
 func (b *BlockChain) BC_ProcessBlock(block *btcutil.Block, timeSource MedianTimeSource, flags BehaviorFlags) (bool, error) {
 	util.Trace()
 
-	fastAdd := flags&BFFastAdd == BFFastAdd
+	//	fastAdd := flags&BFFastAdd == BFFastAdd
 	dryRun := flags&BFDryRun == BFDryRun
 
 	blockHash, err := block.Sha()
@@ -162,42 +162,44 @@ func (b *BlockChain) BC_ProcessBlock(block *btcutil.Block, timeSource MedianTime
 	// used to eat memory, and ensuring expected (versus claimed) proof of
 	// work requirements since the previous checkpoint are met.
 	blockHeader := &block.MsgBlock().Header
-	checkpointBlock, err := b.findPreviousCheckpoint()
-	if err != nil {
-		util.Trace("ERROR in findPreviousCheckpoint !!!!")
-		return false, err
-	}
-	util.Trace()
-	if checkpointBlock != nil {
-		// Ensure the block timestamp is after the checkpoint timestamp.
-		checkpointHeader := &checkpointBlock.MsgBlock().Header
-		checkpointTime := checkpointHeader.Timestamp
-		if blockHeader.Timestamp.Before(checkpointTime) {
-			str := fmt.Sprintf("block %v has timestamp %v before "+
-				"last checkpoint timestamp %v", blockHash,
-				blockHeader.Timestamp, checkpointTime)
-			return false, ruleError(ErrCheckpointTimeTooOld, str)
+	/*
+		checkpointBlock, err := b.findPreviousCheckpoint()
+		if err != nil {
+			util.Trace("ERROR in findPreviousCheckpoint !!!!")
+			return false, err
 		}
 		util.Trace()
-		if !fastAdd {
-			// Even though the checks prior to now have already ensured the
-			// proof of work exceeds the claimed amount, the claimed amount
-			// is a field in the block header which could be forged.  This
-			// check ensures the proof of work is at least the minimum
-			// expected based on elapsed time since the last checkpoint and
-			// maximum adjustment allowed by the retarget rules.
-			duration := blockHeader.Timestamp.Sub(checkpointTime)
-			requiredTarget := CompactToBig(b.calcEasiestDifficulty(
-				checkpointHeader.Bits, duration))
-			currentTarget := CompactToBig(blockHeader.Bits)
-			if currentTarget.Cmp(requiredTarget) > 0 {
-				str := fmt.Sprintf("block target difficulty of %064x "+
-					"is too low when compared to the previous "+
-					"checkpoint", currentTarget)
-				return false, ruleError(ErrDifficultyTooLow, str)
+		if checkpointBlock != nil {
+			// Ensure the block timestamp is after the checkpoint timestamp.
+			checkpointHeader := &checkpointBlock.MsgBlock().Header
+			checkpointTime := checkpointHeader.Timestamp
+			if blockHeader.Timestamp.Before(checkpointTime) {
+				str := fmt.Sprintf("block %v has timestamp %v before "+
+					"last checkpoint timestamp %v", blockHash,
+					blockHeader.Timestamp, checkpointTime)
+				return false, ruleError(ErrCheckpointTimeTooOld, str)
+			}
+			util.Trace()
+			if !fastAdd {
+				// Even though the checks prior to now have already ensured the
+				// proof of work exceeds the claimed amount, the claimed amount
+				// is a field in the block header which could be forged.  This
+				// check ensures the proof of work is at least the minimum
+				// expected based on elapsed time since the last checkpoint and
+				// maximum adjustment allowed by the retarget rules.
+				duration := blockHeader.Timestamp.Sub(checkpointTime)
+				requiredTarget := CompactToBig(b.calcEasiestDifficulty(
+					checkpointHeader.Bits, duration))
+				currentTarget := CompactToBig(blockHeader.Bits)
+				if currentTarget.Cmp(requiredTarget) > 0 {
+					str := fmt.Sprintf("block target difficulty of %064x "+
+						"is too low when compared to the previous "+
+						"checkpoint", currentTarget)
+					return false, ruleError(ErrDifficultyTooLow, str)
+				}
 			}
 		}
-	}
+	*/
 
 	// Handle orphan blocks.
 	prevHash := &blockHeader.PrevBlock
