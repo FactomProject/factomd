@@ -22,7 +22,7 @@ func (p *peer) handleDirBlockMsg(msg *wire.MsgDirBlock, buf []byte) {
 	// Convert the raw MsgBlock to a btcutil.Block which provides some
 	// convenience methods and things such as hash caching.
 
-	fmt.Println("msgDirBlock=%s", spew.Sdump(msg.DBlk))
+	fmt.Printf("msgDirBlock=%s\n", spew.Sdump(msg.DBlk))
 
 	binary, _ := msg.DBlk.MarshalBinary()
 	commonHash := common.Sha(binary)
@@ -179,7 +179,7 @@ func (p *peer) handleGetDirBlocksMsg(msg *wire.MsgGetDirBlocks) {
 		autoContinue = true
 	}
 
-	fmt.Println("startIdx=%d, endIdx=%d, autoContinue=%v", startIdx, endIdx, autoContinue)
+	fmt.Printf("startIdx=%d, endIdx=%d, autoContinue=%v\n", startIdx, endIdx, autoContinue)
 
 	// Generate inventory message.
 	//
@@ -196,7 +196,7 @@ func (p *peer) handleGetDirBlocksMsg(msg *wire.MsgGetDirBlocks) {
 		for i := int64(0); i < (endIdx - startIdx - 1); i++ {
 			newhash, _ := wire.NewShaHash(dchain.Blocks[i].DBHash.Bytes)
 			hashList = append(hashList, *newhash)
-			fmt.Println("appended hash=%s", newhash.String())
+			fmt.Printf("appended hash=%s\n", newhash.String())
 		}
 
 		/*		if err != nil {
@@ -256,7 +256,7 @@ func (p *peer) pushDirBlockMsg(sha *wire.ShaHash, doneChan, waitChan chan struct
 		return err
 	}
 
-	fmt.Println("commonHash=%s, dir block=%s", commonhash.String(), spew.Sdump(blk))
+	fmt.Printf("commonHash=%s, dir block=%s\n", commonhash.String(), spew.Sdump(blk))
 
 	// Once we have fetched data wait for any previous operation to finish.
 	if waitChan != nil {
@@ -272,7 +272,7 @@ func (p *peer) pushDirBlockMsg(sha *wire.ShaHash, doneChan, waitChan chan struct
 	}
 	msg := wire.NewMsgDirBlock()
 	msg.DBlk = blk
-	fmt.Println("dblock=%s", spew.Sdump(blk))
+	fmt.Printf("dblock=%s\n", spew.Sdump(blk))
 	p.QueueMessage(msg, dc) //blk.MsgBlock(), dc)
 
 	// When the peer requests the final block that was advertised in
@@ -310,7 +310,7 @@ func (p *peer) PushGetDirBlocksMsg(locator blockchain.BlockLocator, stopHash *wi
 		beginHash = locator[0]
 	}
 
-	fmt.Println("beginHash=%s, stopHash=%s", beginHash.String(), stopHash.String())
+	fmt.Printf("beginHash=%s, stopHash=%s\n", beginHash.String(), stopHash.String())
 
 	// Filter duplicate getdirblocks requests.
 	if p.prevGetBlocksStop != nil && p.prevGetBlocksBegin != nil &&
@@ -329,7 +329,7 @@ func (p *peer) PushGetDirBlocksMsg(locator blockchain.BlockLocator, stopHash *wi
 		if err != nil {
 			return err
 		}
-		fmt.Println("add dir block hash=%s", hash.String())
+		fmt.Printf("add dir block hash=%s\n", hash.String())
 	}
 	p.QueueMessage(msg, nil)
 
