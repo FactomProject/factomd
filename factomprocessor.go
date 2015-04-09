@@ -942,6 +942,7 @@ func newEntryCreditBlock(chain *common.CChain) *common.CBlock {
 	// Create the block and add a new block for new coming entries
 	chain.BlockMutex.Lock()
 	block.Header.EntryCount = uint32(len(block.CBEntries))
+	block.Header.CreditsPerFactoid = uint32(creditsPerFactoid)
 	blkhash, _ := common.CreateHash(block)
 	log.Println("blkhash:%v", blkhash.Bytes)
 	block.IsSealed = true
