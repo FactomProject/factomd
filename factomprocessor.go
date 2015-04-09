@@ -472,7 +472,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 // similar to blockChain.BC_ProcessBlock
 func processDirBlock(msg *wire.MsgDirBlock) error {
 	util.Trace()
-	fmt.Println("MsgDirBlock=%s", spew.Sdump(msg.DBlk))
+	fmt.Printf("MsgDirBlock=%s\n", spew.Sdump(msg.DBlk))
 	return nil
 }
 

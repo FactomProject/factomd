@@ -8,9 +8,9 @@ import (
 	"fmt"
 
 	"github.com/FactomProject/FactomCode/common"
-	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/btcd/blockchain"
+	"github.com/FactomProject/btcd/database"
 	"github.com/FactomProject/btcd/wire"
 	"github.com/davecgh/go-spew/spew"
 )
@@ -22,7 +22,7 @@ func (p *peer) handleDirBlockMsg(msg *wire.MsgDirBlock, buf []byte) {
 	// Convert the raw MsgBlock to a btcutil.Block which provides some
 	// convenience methods and things such as hash caching.
 
-	fmt.Printf("msgDirBlock=%s\n", spew.Sdump(msg.DBlk))
+	fmt.Printf("msgDirBlock=%v\n", spew.Sdump(msg.DBlk))
 
 	binary, _ := msg.DBlk.MarshalBinary()
 	commonHash := common.Sha(binary)
@@ -139,7 +139,15 @@ func (p *peer) handleGetDirBlocksMsg(msg *wire.MsgGetDirBlocks) {
 	// no stop hash was specified.
 	// Attempt to find the ending index of the stop hash if specified.
 	util.Trace()
+	endHeight := int64(len(dchain.Blocks)) - 1
 	endIdx := database.AllShas //factom db
+	if endIdx >= 500 {
+		endIdx = 500
+	}
+	if endIdx >= endHeight {
+		endIdx = endHeight
+	}
+
 	if !msg.HashStop.IsEqual(&zeroHash) {
 
 		//to be improved??
@@ -179,7 +187,8 @@ func (p *peer) handleGetDirBlocksMsg(msg *wire.MsgGetDirBlocks) {
 		autoContinue = true
 	}
 
-	fmt.Printf("startIdx=%d, endIdx=%d, autoContinue=%v\n", startIdx, endIdx, autoContinue)
+	fmt.Printf("Newest height=%d, startIdx=%d, endIdx=%d, autoContinue=%v\n",
+		endHeight, startIdx, endIdx, autoContinue)
 
 	// Generate inventory message.
 	//
@@ -192,8 +201,8 @@ func (p *peer) handleGetDirBlocksMsg(msg *wire.MsgGetDirBlocks) {
 		// Fetch the inventory from the block database.
 		//hashList, err := db.FetchHeightRange(start, endIdx)
 		// to be improved??
-		hashList := make([]wire.ShaHash, 0, endIdx-startIdx-1)
-		for i := int64(0); i < (endIdx-startIdx) && i < int64(len(dchain.Blocks))-1; i++ {
+		hashList := make([]wire.ShaHash, 0, endIdx-startIdx)
+		for i := int64(0); i < endIdx; i++ {
 			newhash, _ := wire.NewShaHash(dchain.Blocks[i].DBHash.Bytes)
 			hashList = append(hashList, *newhash)
 			fmt.Printf("appended hash=%s\n", newhash.String())
