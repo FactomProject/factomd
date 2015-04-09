@@ -1116,6 +1116,8 @@ func initDChain() {
 		dchain.NextBlockID = 0
 		newblock, _ := common.CreateDBlock(dchain, nil, 10)
 		dchain.Blocks = append(dchain.Blocks, newblock)
+		newDirectoryBlock(dchain) // empty genesis block??
+		saveDChain(dchain)		
 
 	} else {
 		dchain.NextBlockID = uint64(len(dchain.Blocks))

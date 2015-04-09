@@ -101,15 +101,11 @@ func LatestDirBlockLocator(dChain *common.DChain) (blockchain.BlockLocator, erro
 
 // LatestDirBlockSha returns newest shahash of dchain and current height
 func LatestDirBlockSha(dChain *common.DChain) (sha *wire.ShaHash, height int64, err error) {
-	if dChain == nil || dChain.NextBlockID < 1{
-		sha, _ = wire.NewShaHash(common.NewHash().Bytes)
-		height = 0
-	} else {
 
-		sha, _ = wire.NewShaHash(dChain.Blocks[dChain.NextBlockID-1].DBHash.Bytes)
+	sha, _ = wire.NewShaHash(dChain.Blocks[dChain.NextBlockID-1].DBHash.Bytes)
 		
-		height = int64(dChain.Blocks[dChain.NextBlockID-1].Header.BlockID)
-	}
+	height = int64(dChain.Blocks[dChain.NextBlockID-1].Header.BlockID)
+
 	// The best chain is set, so use its hash.
 	return sha, height, nil
 }
