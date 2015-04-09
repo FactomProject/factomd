@@ -400,6 +400,7 @@ func (b *blockManager) handleNewPeerMsg(peers *list.List, p *peer) {
 		b.startSync(peers)
 	*/
 
+	util.Trace()
 	// Ignore the peer if it's not a sync candidate.
 	if !b.isSyncCandidateFactom(p) {
 		return

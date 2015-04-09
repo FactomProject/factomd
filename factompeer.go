@@ -192,8 +192,8 @@ func (p *peer) handleGetDirBlocksMsg(msg *wire.MsgGetDirBlocks) {
 		// Fetch the inventory from the block database.
 		//hashList, err := db.FetchHeightRange(start, endIdx)
 		// to be improved??
-		hashList := make([]wire.ShaHash, 0, endIdx-startIdx)
-		for i := int64(0); i < (endIdx - startIdx); i++ {
+		hashList := make([]wire.ShaHash, 0, endIdx-startIdx-1)
+		for i := int64(0); i < (endIdx - startIdx - 1); i++ {
 			newhash, _ := wire.NewShaHash(dchain.Blocks[i].DBHash.Bytes)
 			hashList = append(hashList, *newhash)
 			fmt.Println("appended hash=%s", newhash.String())
