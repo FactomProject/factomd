@@ -167,7 +167,7 @@ func (p *peer) handleGetDirBlocksMsg(msg *wire.MsgGetDirBlocks) {
 		if dblock != nil {
 			height := int64(dblock.Header.BlockID)
 			startIdx = height + 1
-			break
+			break 
 		}
 
 	}
@@ -193,7 +193,7 @@ func (p *peer) handleGetDirBlocksMsg(msg *wire.MsgGetDirBlocks) {
 		//hashList, err := db.FetchHeightRange(start, endIdx)
 		// to be improved??
 		hashList := make([]wire.ShaHash, 0, endIdx-startIdx-1)
-		for i := int64(0); i < (endIdx - startIdx - 1) && i < int64(len(dchain.Blocks)); i++ {
+		for i := int64(0); i < (endIdx - startIdx - 1) && i < int64(len(dchain.Blocks)) - 1; i++ {
 			newhash, _ := wire.NewShaHash(dchain.Blocks[i].DBHash.Bytes)
 			hashList = append(hashList, *newhash)
 			fmt.Printf("appended hash=%s\n", newhash.String())
