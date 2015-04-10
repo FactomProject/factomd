@@ -462,6 +462,17 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
 		}
 
+	case wire.CmdCBlock:
+		cblock, ok := msg.(*wire.MsgCBlock)
+		if ok {
+			err := processCBlock(cblock)
+			if err != nil {
+				return err
+			}
+		} else {
+			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
+		}
+
 	default:
 		return errors.New("Message type unsupported:" + fmt.Sprintf("%+v", msg))
 	}
@@ -472,7 +483,15 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 // similar to blockChain.BC_ProcessBlock
 func processDirBlock(msg *wire.MsgDirBlock) error {
 	util.Trace()
-	fmt.Println("MsgDirBlock=%s", spew.Sdump(msg.DBlk))
+	fmt.Printf("MsgDirBlock=%s\n", spew.Sdump(msg.DBlk))
+	return nil
+}
+
+// processCBlock validates entry credit block and save it to factom db.
+// similar to blockChain.BC_ProcessBlock
+func processCBlock(msg *wire.MsgCBlock) error {
+	util.Trace()
+	fmt.Printf("MsgCBlock=%s\n", spew.Sdump(msg.CBlk))
 	return nil
 }
 
