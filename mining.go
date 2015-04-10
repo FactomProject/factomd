@@ -260,8 +260,6 @@ func createCoinbaseTx(coinbaseScript []byte, nextBlockHeight int64, addr btcutil
 	var rcdhash wire.RCDHash
 	randRCD := make([]byte, wire.RCDHashSize)
 	rand.Read(randRCD)
-	//	randRCD[0] = 1
-	//	randRCD[30] = 0x30
 	fmt.Println("randRCD len=", len(randRCD))
 	copy(rcdhash[:], randRCD)
 
@@ -280,7 +278,7 @@ func createCoinbaseTx(coinbaseScript []byte, nextBlockHeight int64, addr btcutil
 
 	copy(pubkeys[0][:], randBytes)
 
-	tx.AddRCD(&wire.RCD{PubKey: pubkeys})
+	tx.AddRCD(&wire.RCDreveal{PubKey: pubkeys})
 
 	return btcutil.NewTx(tx), nil
 }

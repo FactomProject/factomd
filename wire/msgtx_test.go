@@ -392,12 +392,14 @@ func TestTxWireErrors(t *testing.T) {
 // TestTxSerialize tests MsgTx serialize and deserialize.
 func TestTxSerialize(t *testing.T) {
 	noTx := wire.NewMsgTx()
-	noTx.Version = 1
+	noTx.Version = 0
 	noTxEncoded := []byte{
-		0x01, 0x00, 0x00, 0x00, // Version
-		0x00,                   // Varint for number of input transactions
-		0x00,                   // Varint for number of output transactions
-		0x00, 0x00, 0x00, 0x00, // Lock time
+		0x00,                                           // Version
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Lock time
+		0x00, // Varint for number of input transactions
+		0x00, // Varint for number of output transactions
+		0x00, // Varint for number of output EC transactions
+		0x00, // Varint for number of RCDreveals
 	}
 
 	tests := []struct {
