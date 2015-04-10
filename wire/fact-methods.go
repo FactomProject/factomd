@@ -8,12 +8,14 @@ package wire
 // RCD, sig & bitfield primitives not implemented yet
 
 import (
+	//	"bufio"
 	"bytes"
 	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
 	"math"
+	//	"os"
 	"strconv"
 
 	"github.com/FactomProject/FactomCode/factoid"
@@ -213,6 +215,23 @@ func readECOut(r io.Reader, pver uint32, eco *TxEntryCreditOut) error {
 func (msg *MsgTx) BtcDecode(r io.Reader, pver uint32) error {
 	util.Trace()
 
+	/*
+		if s, ok := r.(io.Seeker); ok {
+		}
+		nowseek, _ := s.Seek(0, os.SEEK_CUR)
+
+		fmt.Println("nowseek= ", nowseek)
+
+		{
+			me := bufio.NewReader(r)
+			peekbuf, _ := me.Peek(1000)
+
+			fmt.Println("bufio peek= ", spew.Sdump(peekbuf))
+		}
+	*/
+
+	//	s.Seek(nowseek, os.SEEK_SET)
+
 	var buf [1]byte
 
 	_, err := io.ReadFull(r, buf[:])
@@ -239,6 +258,8 @@ func (msg *MsgTx) BtcDecode(r io.Reader, pver uint32) error {
 
 	full8slice := []byte{0, 0, 0}
 	full8slice = append(full8slice, buf5[:]...)
+
+	fmt.Printf("full8slice= %v\n", full8slice)
 
 	msg.LockTime = int64(binary.BigEndian.Uint64(full8slice))
 
@@ -361,6 +382,9 @@ func (msg *MsgTx) BtcDecode(r io.Reader, pver uint32) error {
 		errors.New("Factoid check 1")
 	}
 	*/
+
+	fmt.Println("MsgTx= ", spew.Sdump(*msg))
+	fmt.Println("MsgTx= ", spew.Sdump(msg))
 
 	return nil
 }
@@ -663,8 +687,9 @@ func (msg *MsgTx) AddRCD(rcd *RCDreveal) {
 // future.
 func NewMsgTx() *MsgTx {
 	return &MsgTx{
-		Version:   TxVersion,
-		LockTime:  0, // FIXME: ensure 5-byte locktime
+		Version:  TxVersion,
+		LockTime: 0,
+		//		LockTime:  0x123456789A, // FIXME: this is for testing only
 		TxOut:     make([]*TxOut, 0, defaultTxInOutAlloc),
 		ECOut:     make([]*TxEntryCreditOut, 0, defaultTxInOutAlloc),
 		TxIn:      make([]*TxIn, 0, defaultTxInOutAlloc),
