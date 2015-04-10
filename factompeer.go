@@ -101,71 +101,71 @@ func (p *peer) handleGetNonDirDataMsg(msg *wire.MsgGetNonDirData) {
 
 	//var waitChan chan struct{}
 	doneChan := make(chan struct{}, 1)
+	/*	for i, iv := range msg.InvList {
 
-	for i, iv := range msg.InvList {
-		var c chan struct{}
-		// If this will be the last message we send.
-		if i == len(msg.InvList)-1 && len(notFound.InvList) == 0 {
-			c = doneChan
-		} else if (i+1)%3 == 0 {
-			// Buffered so as to not make the send goroutine block.
-			c = make(chan struct{}, 1)
-		}
-
-		if iv.Type != wire.InvTypeFactomNonDirBlock {
-			continue
-		}
-		/*
-			commonhash := new(common.Hash)
-			commonhash.SetBytes(&iv.Hash.Bytes())
-			blk, err := db.FetchCBlockByHash(commonhash)
-
-			if err != nil {
-				peerLog.Tracef("Unable to fetch requested dir block sha %v: %v",
-					sha, err)
-
-				if doneChan != nil {
-					doneChan <- struct{}{}
-				}
-				return err
+			var c chan struct{}
+			// If this will be the last message we send.
+			if i == len(msg.InvList)-1 && len(notFound.InvList) == 0 {
+				c = doneChan
+			} else { //if (i+1)%3 == 0 {
+				// Buffered so as to not make the send goroutine block.
+				c = make(chan struct{}, 1)
 			}
 
-			fmt.Printf("commonHash=%s, Credit block=%s\n", commonhash.String(), spew.Sdump(blk))
+			if iv.Type != wire.InvTypeFactomNonDirBlock {
+				continue
+			}
 
-			for j, entry := range blk.DBEntries {
+				commonhash := new(common.Hash)
+				commonhash.SetBytes(&iv.Hash.Bytes())
+				blk, err := db.FetchCBlockByHash(commonhash)
 
-				var err error
-				switch entry.ChainID {
-				case CChain:
-					// similar to pushDirBlockMsg
-					err = p.pushCBlockMsg(entry.MerkleRoot, c, waitChan)
-
-				case EChain:
-
-				case Entry:
-
-				default:
-					peerLog.Warnf("Unknown type in inventory request %d",
-						iv.Type)
-					continue
-				}
 				if err != nil {
-					notFound.AddInvVect(iv)
+					peerLog.Tracef("Unable to fetch requested dir block sha %v: %v",
+						sha, err)
 
-					// When there is a failure fetching the final entry
-					// and the done channel was sent in due to there
-					// being no outstanding not found inventory, consume
-					// it here because there is now not found inventory
-					// that will use the channel momentarily.
-					if i == len(msg.InvList)-1 && c != nil {
-						<-c
+					if doneChan != nil {
+						doneChan <- struct{}{}
 					}
+					return err
 				}
-				numAdded++
-				waitChan = c
-			}
-		*/
-	}
+
+				fmt.Printf("commonHash=%s, Credit block=%s\n", commonhash.String(), spew.Sdump(blk))
+
+				for j, entry := range blk.DBEntries {
+
+					var err error
+					switch entry.ChainID {
+					case CChain:
+						// similar to pushDirBlockMsg
+						err = p.pushCBlockMsg(entry.MerkleRoot, c, waitChan)
+
+					case EChain:
+
+					case Entry:
+
+					default:
+						peerLog.Warnf("Unknown type in inventory request %d",
+							iv.Type)
+						continue
+					}
+					if err != nil {
+						notFound.AddInvVect(iv)
+
+						// When there is a failure fetching the final entry
+						// and the done channel was sent in due to there
+						// being no outstanding not found inventory, consume
+						// it here because there is now not found inventory
+						// that will use the channel momentarily.
+						if i == len(msg.InvList)-1 && c != nil {
+							<-c
+						}
+					}
+					numAdded++
+					waitChan = c
+				}
+
+	}*/
 	if len(notFound.InvList) != 0 {
 		p.QueueMessage(notFound, doneChan)
 	}

@@ -214,7 +214,7 @@ func (b *blockManager) startSyncFactom(peers *list.List) {
 		return
 	}
 
-	bmgrLog.Infof("LatestDirBlockSha: %d", height)
+	bmgrLog.Infof("Latest DirBlock Height: %d", height)
 
 	var bestPeer *peer
 	var enext *list.Element
