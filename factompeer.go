@@ -517,7 +517,7 @@ func (p *peer) pushGetEntryDataMsg(eblock *common.EBlock) {
 	hash, _ := wire.NewShaHash(commonHash.Bytes)
 
 	iv := wire.NewInvVect(wire.InvTypeFactomEntryBlock, hash)
-	gdmsg := wire.NewMsgGetNonDirData()
+	gdmsg := wire.NewMsgGetEntryData()
 	gdmsg.AddInvVect(iv)
 	if len(gdmsg.InvList) > 0 {
 		p.QueueMessage(gdmsg, nil)
