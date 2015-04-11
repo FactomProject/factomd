@@ -10,17 +10,17 @@ import (
 	"github.com/FactomProject/FactomCode/common"
 )
 
-// MsgDirBlock implements the Message interface and represents a factom
-// DBlock message.  It is used by client to reveal the entry.
-type MsgDirBlock struct {
-	DBlk *common.DBlock
+// MsgEntry implements the Message interface and represents a factom
+// Entry message.  It is used by client to reveal the entry.
+type MsgEntry struct {
+	Entry *common.EBEntry
 }
 
 // BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
 // This is part of the Message interface implementation.
-func (msg *MsgDirBlock) BtcEncode(w io.Writer, pver uint32) error {
+func (msg *MsgEntry) BtcEncode(w io.Writer, pver uint32) error {
 
-	bytes, err := msg.DBlk.MarshalBinary()
+	bytes, err := msg.Entry.MarshalBinary()
 	if err != nil {
 		return err
 	}
@@ -35,15 +35,15 @@ func (msg *MsgDirBlock) BtcEncode(w io.Writer, pver uint32) error {
 
 // BtcDecode decodes r using the bitcoin protocol encoding into the receiver.
 // This is part of the Message interface implementation.
-func (msg *MsgDirBlock) BtcDecode(r io.Reader, pver uint32) error {
+func (msg *MsgEntry) BtcDecode(r io.Reader, pver uint32) error {
 	//Entry
 	bytes, err := readVarBytes(r, pver, uint32(10000), CmdRevealEntry)
 	if err != nil {
 		return err
 	}
 
-	msg.DBlk = new(common.DBlock)
-	err = msg.DBlk.UnmarshalBinary(bytes)
+	msg.Entry = new(common.EBEntry)
+	err = msg.Entry.UnmarshalBinary(bytes)
 	if err != nil {
 		return err
 	}
@@ -53,18 +53,18 @@ func (msg *MsgDirBlock) BtcDecode(r io.Reader, pver uint32) error {
 
 // Command returns the protocol command string for the message.  This is part
 // of the Message interface implementation.
-func (msg *MsgDirBlock) Command() string {
-	return CmdDirBlock
+func (msg *MsgEntry) Command() string {
+	return CmdEntry
 }
 
 // MaxPayloadLength returns the maximum length the payload can be for the
 // receiver.  This is part of the Message interface implementation.
-func (msg *MsgDirBlock) MaxPayloadLength(pver uint32) uint32 {
+func (msg *MsgEntry) MaxPayloadLength(pver uint32) uint32 {
 	return MaxAppMsgPayload
 }
 
-// NewMsgDirBlock returns a new bitcoin inv message that conforms to the Message
+// NewMsgEntry returns a new bitcoin inv message that conforms to the Message
 // interface.  See MsgInv for details.
-func NewMsgDirBlock() *MsgDirBlock {
-	return &MsgDirBlock{}
+func NewMsgEntry() *MsgEntry {
+	return &MsgEntry{}
 }

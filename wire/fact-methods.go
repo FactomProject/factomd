@@ -5,17 +5,17 @@
 package wire
 
 // Notes - TODO:
-// Value is fixed uint64 right now, must be VarInt
-// LockTime is int64 right now, must be 5 bytes
 // RCD, sig & bitfield primitives not implemented yet
 
 import (
+	//	"bufio"
 	"bytes"
 	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
 	"math"
+	//	"os"
 	"strconv"
 
 	"github.com/FactomProject/FactomCode/factoid"
@@ -54,6 +54,7 @@ func (msg *MsgTx) Command() string {
 	return CmdTx
 }
 
+/*
 // good check to run after deserialization
 func factoid_CountCheck(tx *MsgTx) bool {
 	l1 := len(tx.TxIn)
@@ -61,14 +62,15 @@ func factoid_CountCheck(tx *MsgTx) bool {
 
 	return l1 == l2
 }
+*/
 
-func readRCD(r io.Reader, pver uint32, rcd *RCD) error {
+func readRCD(r io.Reader, pver uint32, rcd *RCDreveal) error {
 	util.Trace("NOT IMPLEMENTED !!!")
 
 	return nil
 }
 
-func writeRCD(w io.Writer, pver uint32, rcd *RCD) error {
+func writeRCD(w io.Writer, pver uint32, rcd *RCDreveal) error {
 	util.Trace("NOT IMPLEMENTED !!!")
 
 	return nil
@@ -176,7 +178,7 @@ func readTxOut(r io.Reader, pver uint32, to *TxOut) error {
 		return err
 	}
 
-	to.Value = int64(value) // FIXME: make it VarInt
+	to.Value = int64(value)
 
 	b := make([]byte, RCDHashSize)
 	_, err = io.ReadFull(r, b)
@@ -194,7 +196,7 @@ func readECOut(r io.Reader, pver uint32, eco *TxEntryCreditOut) error {
 		return err
 	}
 
-	eco.Value = int64(value) // FIXME: make it VarInt
+	eco.Value = int64(value)
 
 	b := make([]byte, 32)
 	_, err = io.ReadFull(r, b)
@@ -214,10 +216,21 @@ func (msg *MsgTx) BtcDecode(r io.Reader, pver uint32) error {
 	util.Trace()
 
 	/*
-		txid, _ := msg.TxSha()
-		fmt.Println("BtcDecode, txid: ", txid, spew.Sdump(msg))
-		fmt.Println("BtcDecode spew: ", spew.Sdump(*msg))
+		if s, ok := r.(io.Seeker); ok {
+		}
+		nowseek, _ := s.Seek(0, os.SEEK_CUR)
+
+		fmt.Println("nowseek= ", nowseek)
+
+		{
+			me := bufio.NewReader(r)
+			peekbuf, _ := me.Peek(1000)
+
+			fmt.Println("bufio peek= ", spew.Sdump(peekbuf))
+		}
 	*/
+
+	//	s.Seek(nowseek, os.SEEK_SET)
 
 	var buf [1]byte
 
@@ -235,18 +248,23 @@ func (msg *MsgTx) BtcDecode(r io.Reader, pver uint32) error {
 		return errors.New("fTx version check")
 	}
 
-	var buf8 [8]byte
-	_, err = io.ReadFull(r, buf8[:])
+	var buf5 [5]byte
+	_, err = io.ReadFull(r, buf5[:])
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("buf8= %v\n", buf8)
+	fmt.Printf("buf5= %v\n", buf5)
 
-	msg.LockTime = int64(binary.BigEndian.Uint64(buf8[:])) // FIXME: must do 5 bytes here
+	full8slice := []byte{0, 0, 0}
+	full8slice = append(full8slice, buf5[:]...)
+
+	fmt.Printf("full8slice= %v\n", full8slice)
+
+	msg.LockTime = int64(binary.BigEndian.Uint64(full8slice))
 
 	if !factoid.FactoidTx_LocktimeCheck(msg.LockTime) {
-		return errors.New("fTx locktime check")
+		return errors.New("fTx decode locktime check")
 	}
 
 	outcount, err := readVarInt(r, pver)
@@ -335,17 +353,19 @@ func (msg *MsgTx) BtcDecode(r io.Reader, pver uint32) error {
 	}
 	util.Trace()
 
-	msg.RCD = make([]*RCD, rcdcount)
+	msg.RCDreveal = make([]*RCDreveal, rcdcount)
 	for i := uint64(0); i < rcdcount; i++ {
-		rcd := RCD{}
+		rcd := RCDreveal{}
 		err = readRCD(r, pver, &rcd)
 		if err != nil {
 			return err
 		}
-		msg.RCD[i] = &rcd
+		msg.RCDreveal[i] = &rcd
 	}
 	util.Trace()
 
+	/* TODO:
+	RE - ENABLE
 	msg.TxSig = make([]*TxSig, incount)
 	for i := uint64(0); i < incount; i++ {
 		sig := TxSig{}
@@ -361,6 +381,10 @@ func (msg *MsgTx) BtcDecode(r io.Reader, pver uint32) error {
 	if !factoid_CountCheck(msg) {
 		errors.New("Factoid check 1")
 	}
+	*/
+
+	fmt.Println("MsgTx= ", spew.Sdump(*msg))
+	fmt.Println("MsgTx= ", spew.Sdump(msg))
 
 	return nil
 }
@@ -381,8 +405,13 @@ func (msg *MsgTx) BtcEncode(w io.Writer, pver uint32) error {
 	}
 
 	var buf8 [8]byte
-	binary.BigEndian.PutUint64(buf8[:], uint64(msg.LockTime)) // FIXME: must do 5 bytes here
-	_, err = w.Write(buf8[:])
+
+	if !factoid.FactoidTx_LocktimeCheck(msg.LockTime) {
+		return errors.New("fTx encode locktime check")
+	}
+
+	binary.BigEndian.PutUint64(buf8[:], uint64(msg.LockTime))
+	_, err = w.Write(buf8[3:8]) // LockTime is 5 bytes
 	if err != nil {
 		return err
 	}
@@ -426,25 +455,27 @@ func (msg *MsgTx) BtcEncode(w io.Writer, pver uint32) error {
 		}
 	}
 
-	rcdcount := uint64(len(msg.RCD))
+	rcdcount := uint64(len(msg.RCDreveal))
 	err = writeVarInt(w, pver, rcdcount)
 	if err != nil {
 		return err
 	}
 
-	for _, rcd := range msg.RCD {
+	for _, rcd := range msg.RCDreveal {
 		err = writeRCD(w, pver, rcd)
 		if err != nil {
 			return err
 		}
 	}
 
+	/* TODO: RE-ENABLE
 	for _, sig := range msg.TxSig {
 		err = writeSig(w, pver, sig)
 		if err != nil {
 			return err
 		}
 	}
+	*/
 
 	return nil
 }
@@ -472,15 +503,6 @@ func writeTxIn(w io.Writer, pver uint32, ti *TxIn) error {
 // writeTxOut encodes to into the protocol encoding for a transaction
 // output (TxOut) to w.
 func writeTxOut(w io.Writer, pver uint32, to *TxOut) error {
-	/*
-		var buf [8]byte
-		binary.BigEndian.PutUint64(buf[:], uint64(to.Value)) // FIXME: make it VarInt
-		_, err := w.Write(buf[:])
-		if err != nil {
-			return err
-		}
-	*/
-
 	err := writeVarInt(w, pver, uint64(to.Value))
 	if err != nil {
 		return err
@@ -499,14 +521,12 @@ func writeTxOut(w io.Writer, pver uint32, to *TxOut) error {
 // writeECOut encodes to into the protocol encoding for a transaction
 // output (TxOut) to w.
 func writeECOut(w io.Writer, pver uint32, eco *TxEntryCreditOut) error {
-	var buf [8]byte
-	binary.BigEndian.PutUint64(buf[:], uint64(eco.Value)) // FIXME: make it VarInt
-	_, err := w.Write(buf[:])
+	err := writeVarInt(w, pver, uint64(eco.Value))
 	if err != nil {
 		return err
 	}
 
-	err = writeVarBytes(w, pver, eco.ECpubkey[:])
+	_, err = w.Write(eco.ECpubkey[:])
 	if err != nil {
 		return err
 	}
@@ -517,40 +537,66 @@ func writeECOut(w io.Writer, pver uint32, eco *TxEntryCreditOut) error {
 // SerializeSize returns the number of bytes it would take to serialize the
 // the transaction output.
 func (t *TxOut) SerializeSize() int {
-	// FIXME: switch to this VarInt calculation
-	//	return 32 + VarIntSerializeSize(uint64(t.Value))  // this is good for VarInt.. future
-
-	return 40 // TODO: replace with the VarInt calc, this is for fixed size value (8 bytes)
+	return RCDHashSize + VarIntSerializeSize(uint64(t.Value))
 }
 
 func (t *TxEntryCreditOut) SerializeSize() int {
-	// FIXME: make it VarInt
-	return 40
+	return PubKeySize + VarIntSerializeSize(uint64(t.Value))
 }
 
-// the transaction input: txid (32) + vaue (8) + sighash (1)
-// FIXME: make it VarInt
+// we are using the OutPoint here; thus the total transaction input size is: txid (32) + index (4) + sighash (1)
 func (t *TxIn) SerializeSize() int {
-	return 41
+	return 37
+}
+
+func (rcd *RCDreveal) SerializeSize() int {
+	util.Trace("NOT IMPLEMENTED !!!")
+
+	return 0
+}
+
+func (sig *TxSig) SerializeSize() int {
+	util.Trace("NOT IMPLEMENTED !!!")
+
+	return 0
 }
 
 // SerializeSize returns the number of bytes it would take to serialize the
 // the transaction.
 func (msg *MsgTx) SerializeSize() int {
+	util.Trace()
+
 	n := 1 + // 1 byte version
-		8 // FIXME: 5 bytes locktime
+		5 // 5 bytes locktime
+
+	n += VarIntSerializeSize(uint64(len(msg.TxOut)))
 
 	for _, txOut := range msg.TxOut {
 		n += txOut.SerializeSize()
 	}
 
+	n += VarIntSerializeSize(uint64(len(msg.ECOut)))
+
 	for _, ecOut := range msg.ECOut {
 		n += ecOut.SerializeSize()
 	}
 
+	n += VarIntSerializeSize(uint64(len(msg.TxIn)))
+
 	for _, txIn := range msg.TxIn {
 		n += txIn.SerializeSize()
 	}
+
+	n += VarIntSerializeSize(uint64(len(msg.RCDreveal)))
+
+	for _, rcd := range msg.RCDreveal {
+		n += rcd.SerializeSize()
+	}
+
+	// FIXME
+	// TODO: count TxSig impact here
+
+	util.Trace(fmt.Sprintf("n= %d\n", n))
 
 	return n
 }
@@ -630,8 +676,8 @@ func (msg *MsgTx) AddTxOut(to *TxOut) {
 }
 
 // AddRCD adds a RCD to the message.
-func (msg *MsgTx) AddRCD(rcd *RCD) {
-	msg.RCD = append(msg.RCD, rcd)
+func (msg *MsgTx) AddRCD(rcd *RCDreveal) {
+	msg.RCDreveal = append(msg.RCDreveal, rcd)
 }
 
 // NewMsgTx returns a new tx message that conforms to the Message
@@ -642,12 +688,13 @@ func (msg *MsgTx) AddRCD(rcd *RCD) {
 func NewMsgTx() *MsgTx {
 	return &MsgTx{
 		Version:  TxVersion,
-		LockTime: 0, // FIXME: ensure 5-byte locktime
-		TxOut:    make([]*TxOut, 0, defaultTxInOutAlloc),
-		ECOut:    make([]*TxEntryCreditOut, 0, defaultTxInOutAlloc),
-		TxIn:     make([]*TxIn, 0, defaultTxInOutAlloc),
-		RCD:      make([]*RCD, 0, defaultTxInOutAlloc),
-		TxSig:    make([]*TxSig, 0, defaultTxInOutAlloc),
+		LockTime: 0,
+		//		LockTime:  0x123456789A, // FIXME: this is for testing only
+		TxOut:     make([]*TxOut, 0, defaultTxInOutAlloc),
+		ECOut:     make([]*TxEntryCreditOut, 0, defaultTxInOutAlloc),
+		TxIn:      make([]*TxIn, 0, defaultTxInOutAlloc),
+		RCDreveal: make([]*RCDreveal, 0, defaultTxInOutAlloc),
+		//		TxSig:    make([]*TxSig, 0, defaultTxInOutAlloc), // TODO: RE-ENABLE
 	}
 }
 
@@ -663,5 +710,6 @@ func (o OutPoint) String() string {
 	copy(buf, o.Hash.String())
 	buf[2*HashSize] = ':'
 	buf = strconv.AppendUint(buf, uint64(o.Index), 10)
+
 	return string(buf)
 }

@@ -3001,6 +3001,8 @@ func handlePing(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{}) (inter
 
 // handleSearchRawTransaction implements the searchrawtransactions command.
 func handleSearchRawTransactions(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{}) (interface{}, error) {
+	util.Trace()
+
 	if !cfg.AddrIndex {
 		return nil, btcjson.Error{
 			Code:    btcjson.ErrMisc.Code,
@@ -3119,6 +3121,8 @@ func handleSearchRawTransactions(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan
 
 // handleSendRawTransaction implements the sendrawtransaction command.
 func handleSendRawTransaction(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{}) (interface{}, error) {
+	util.Trace()
+
 	c := cmd.(*btcjson.SendRawTransactionCmd)
 	// Deserialize and send off to tx relay
 	hexStr := c.HexTx

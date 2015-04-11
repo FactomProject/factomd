@@ -33,6 +33,7 @@ const (
 	InvTypeFactomEntryBlock       InvType = 15
 	InvTypeFactomEntry            InvType = 16
 	InvTypeFactomEntryCreditBlock InvType = 17
+	InvTypeFactomNonDirBlock      InvType = 18
 
 	InvTypeFactomControl InvType = 50 // Factom control messages
 	InvTypeFactomRaw     InvType = 99 // Factom raw
@@ -49,6 +50,7 @@ var ivStrings = map[InvType]string{
 	InvTypeFactomEntryBlock:       "MSG_FACTOM_ENTRYBLOCK",
 	InvTypeFactomEntry:            "MSG_FACTOM_ENTRY",
 	InvTypeFactomEntryCreditBlock: "MSG_FACTOM_ENTRYCREDITBLOCK",
+	InvTypeFactomNonDirBlock:      "MSG_FACTOM_NONDIRBLOCK",
 
 	InvTypeFactomControl: "MSG_FACTOM_CONTROL",
 	InvTypeFactomRaw:     "MSG_FACTOM_RAW",

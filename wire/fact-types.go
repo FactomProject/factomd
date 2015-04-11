@@ -15,14 +15,14 @@ type PubKey [PubKeySize]byte
 // inputs and outputs.
 type MsgTx struct {
 	Version  uint8
-	LockTime int64 // is really 5 bytes, TODO: fix in Encode/Decode
+	LockTime int64 // 5 bytes on the wire
 
 	//	FactoidOut []*TxFactoidOut
-	TxOut []*TxOut
-	ECOut []*TxEntryCreditOut
-	TxIn  []*TxIn
-	RCD   []*RCD
-	TxSig []*TxSig
+	TxOut     []*TxOut
+	ECOut     []*TxEntryCreditOut
+	TxIn      []*TxIn
+	RCDreveal []*RCDreveal
+	//	TxSig []*TxSig  // TODO: RE-ENABLE
 }
 
 // type TxFactoidOut struct {
@@ -57,7 +57,8 @@ func NewOutPoint(hash *ShaHash, index uint32) *OutPoint {
 	}
 }
 
-type RCD struct {
+// Redeem Condition Datastructure (reveal)
+type RCDreveal struct {
 	Version     uint8
 	Type        uint8
 	PubKey      []PubKey

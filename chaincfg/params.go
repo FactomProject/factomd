@@ -96,7 +96,8 @@ type Params struct {
 
 // MainNetParams defines the network parameters for the main Bitcoin network.
 var MainNetParams = Params{
-	Name:        "mainnet",
+	//	Name:        "mainnet",
+	Name:        "factoid0",
 	Net:         wire.MainNet,
 	DefaultPort: "8333",
 
@@ -110,6 +111,7 @@ var MainNetParams = Params{
 
 	// Checkpoints ordered from oldest to newest.
 	Checkpoints: []Checkpoint{
+	/*
 		{11111, newShaHashFromStr("0000000069e244f73d78e8fd29ba2fd2ed618bd6fa2ee92559f542fdb26e7c1d")},
 		{33333, newShaHashFromStr("000000002dd5588a74784eaa7ab0507a18ad16a236e7b1ce69f00d7ddfb5d0a6")},
 		{74000, newShaHashFromStr("0000000000573993a3c9e41ce34471c079dcf5f52a0e824a81e7f953b8661a20")},
@@ -125,6 +127,7 @@ var MainNetParams = Params{
 		{279000, newShaHashFromStr("0000000000000001ae8c72a0b0c301f67e3afca10e819efa9041e458e9bd7e40")},
 		{300255, newShaHashFromStr("0000000000000000162804527c6e9b9f0563a280525f9d08c12041def0a0f3b2")},
 		{319400, newShaHashFromStr("000000000000000021c6052e9becade189495d1c539aa37c58917305fd15f13b")},
+	*/
 	},
 
 	// Reject version 1 blocks once a majority of the network has upgraded.

@@ -52,9 +52,9 @@ const (
 
 	// incoming blocks of the 3 special types & 1 general-purpose chain type:
 	//	CmdBlock            = "factoidblock"
-	CmdEntryCreditBlock = "ecblock"
-	CmdEntryBlock       = "entryblock"
-	CmdEntry            = "entry"
+	CmdCBlock = "ecblock"    // Entry Credit Block
+	CmdEBlock = "entryblock" // Entry Block
+	CmdEntry  = "entry"
 
 	CmdCommitChain = "commitchain"
 	CmdRevealChain = "revealchain"
@@ -62,10 +62,12 @@ const (
 	CmdRevealEntry = "revealentry"
 
 	// using these commands we query & find the best chain & latest height for the Directory (all other chain heights are then known)
-	CmdGetDirBlocks = "getdirblocks"
-	CmdDirInv       = "dirInv"
-	CmdGetDirData   = "getdirdata"
-	CmdDirBlock     = "dirblock"
+	CmdGetDirBlocks  = "getdirblocks"
+	CmdDirInv        = "dirInv"
+	CmdGetDirData    = "getdirdata"
+	CmdDirBlock      = "dirblock"
+	CmdGetNonDirData = "getnondirdata"
+	CmdGetEntryData  = "getentrydata"
 
 	CmdAcknowledgement = "confirmation"
 	CmdMHashReveal     = "mhashreveal"
@@ -177,8 +179,14 @@ func makeEmptyMessage(command string) (Message, error) {
 	case CmdGetDirData:
 		msg = &MsgGetDirData{}
 
-	case CmdDirBlock:
-		msg = &MsgDirBlock{}
+	case CmdCBlock:
+		msg = &MsgCBlock{}
+
+	case CmdEBlock:
+		//msg = &MsgEBlock{}
+
+	case CmdEntry:
+		//msg = &MsgEntry{}
 
 	default:
 		return nil, fmt.Errorf("unhandled command [%s]", command)

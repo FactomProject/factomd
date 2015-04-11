@@ -117,7 +117,7 @@ func IsCoinBase(tx *btcutil.Tx) bool {
 	}
 	util.Trace()
 	// A coin base must have exactly 1 RCD (?) TODO FIXME TBD
-	if len(msgTx.RCD) != 1 {
+	if len(msgTx.RCDreveal) != 1 {
 		return false
 	}
 	util.Trace()

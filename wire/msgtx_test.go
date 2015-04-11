@@ -36,7 +36,7 @@ func TestTx(t *testing.T) {
 
 	// Ensure max payload is expected value for latest protocol version.
 	// Num addresses (varInt) + max allowed addresses.
-	wantPayload := uint32(1000 * 1000)
+	wantPayload := uint32(1024 * 10)
 	maxPayload := msg.MaxPayloadLength(pver)
 	if maxPayload != wantPayload {
 		t.Errorf("MaxPayloadLength: wrong max payload length for "+
@@ -193,13 +193,16 @@ func TestTxSha(t *testing.T) {
 func TestTxWire(t *testing.T) {
 	// Empty tx message.
 	noTx := wire.NewMsgTx()
-	noTx.Version = 1
+	noTx.Version = 0
 	noTxEncoded := []byte{
-		0x01, 0x00, 0x00, 0x00, // Version
-		0x00,                   // Varint for number of input transactions
-		0x00,                   // Varint for number of output transactions
-		0x00, 0x00, 0x00, 0x00, // Lock time
+		0x11,                                           // Version
+		0x0A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F, // Lock time
+		0x01, // Varint for number of output transactions
+		0x02, // Varint for number of output entry credits
+		0x03, // Varint for number of input transactions
 	}
+
+	t.Logf("noTx= %s", spew.Sdump(noTx))
 
 	tests := []struct {
 		in   *wire.MsgTx // Message to encode
@@ -389,12 +392,14 @@ func TestTxWireErrors(t *testing.T) {
 // TestTxSerialize tests MsgTx serialize and deserialize.
 func TestTxSerialize(t *testing.T) {
 	noTx := wire.NewMsgTx()
-	noTx.Version = 1
+	noTx.Version = 0
 	noTxEncoded := []byte{
-		0x01, 0x00, 0x00, 0x00, // Version
-		0x00,                   // Varint for number of input transactions
-		0x00,                   // Varint for number of output transactions
-		0x00, 0x00, 0x00, 0x00, // Lock time
+		0x00,                                           // Version
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Lock time
+		0x00, // Varint for number of input transactions
+		0x00, // Varint for number of output transactions
+		0x00, // Varint for number of output EC transactions
+		0x00, // Varint for number of RCDreveals
 	}
 
 	tests := []struct {
@@ -677,7 +682,7 @@ var multiTx = &wire.MsgTx{
 // multiTxEncoded is the wire encoded bytes for multiTx using protocol version
 // 60002 and is used in the various tests.
 var multiTxEncoded = []byte{
-	0x01, 0x00, 0x00, 0x00, // Version
+	0x00, 0x00, 0x00, 0x00, // Version
 	0x01, // Varint for number of input transactions
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
