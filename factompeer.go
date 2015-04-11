@@ -15,8 +15,7 @@ import (
 	"github.com/davecgh/go-spew/spew"
 )
 
-// handleDirBlockMsg is invoked when a peer receives a block bitcoin message.  It
-// blocks until the bitcoin block has been fully processed.
+// handleDirBlockMsg is invoked when a peer receives a dir block message.
 func (p *peer) handleDirBlockMsg(msg *wire.MsgDirBlock, buf []byte) {
 	util.Trace()
 	// Convert the raw MsgBlock to a btcutil.Block which provides some
@@ -32,27 +31,11 @@ func (p *peer) handleDirBlockMsg(msg *wire.MsgDirBlock, buf []byte) {
 	p.AddKnownInventory(iv)
 
 	inMsgQueue <- msg
-	/*
-		// Queue the block up to be handled by the block
-		// manager and intentionally block further receives
-		// until the bitcoin block is fully processed and known
-		// good or bad.  This helps prevent a malicious peer
-		// from queueing up a bunch of bad blocks before
-		// disconnecting (or being disconnected) and wasting
-		// memory.  Additionally, this behavior is depended on
-		// by at least the block acceptance test tool as the
-		// reference implementation processes blocks in the same
-		// thread and therefore blocks further messages until
-		// the bitcoin block has been fully processed.
-		p.server.blockManager.QueueDirBlock(msg, p)
-		<-p.blockProcessed
-	*/
 
 	p.pushGetNonDirDataMsg(msg.DBlk)
 }
 
-// handleCBlockMsg is invoked when a peer receives a block bitcoin message.  It
-// blocks until the bitcoin block has been fully processed.
+// handleCBlockMsg is invoked when a peer receives a entry credit block message.
 func (p *peer) handleCBlockMsg(msg *wire.MsgCBlock, buf []byte) {
 	util.Trace()
 	// Convert the raw MsgBlock to a btcutil.Block which provides some
@@ -68,21 +51,44 @@ func (p *peer) handleCBlockMsg(msg *wire.MsgCBlock, buf []byte) {
 	p.AddKnownInventory(iv)
 
 	inMsgQueue <- msg
-	/*
-		// Queue the block up to be handled by the block
-		// manager and intentionally block further receives
-		// until the bitcoin block is fully processed and known
-		// good or bad.  This helps prevent a malicious peer
-		// from queueing up a bunch of bad blocks before
-		// disconnecting (or being disconnected) and wasting
-		// memory.  Additionally, this behavior is depended on
-		// by at least the block acceptance test tool as the
-		// reference implementation processes blocks in the same
-		// thread and therefore blocks further messages until
-		// the bitcoin block has been fully processed.
-		p.server.blockManager.QueueDirBlock(msg, p)
-		<-p.blockProcessed
-	*/
+}
+
+// handleEBlockMsg is invoked when a peer receives an entry block bitcoin message.
+func (p *peer) handleEBlockMsg(msg *wire.MsgEBlock, buf []byte) {
+	util.Trace()
+	// Convert the raw MsgBlock to a btcutil.Block which provides some
+	// convenience methods and things such as hash caching.
+
+	fmt.Printf("msgEBlock=%v\n", spew.Sdump(msg.EBlk))
+
+	binary, _ := msg.EBlk.MarshalBinary()
+	commonHash := common.Sha(binary)
+	hash, _ := wire.NewShaHash(commonHash.Bytes)
+
+	iv := wire.NewInvVect(wire.InvTypeFactomEntryBlock, hash)
+	p.AddKnownInventory(iv)
+
+	inMsgQueue <- msg
+
+	p.pushGetEntryDataMsg(msg.EBlk)
+}
+
+// handleCBlockMsg is invoked when a peer receives a EBlock Entry message.
+func (p *peer) handleEntryMsg(msg *wire.MsgEntry, buf []byte) {
+	util.Trace()
+	// Convert the raw MsgBlock to a btcutil.Block which provides some
+	// convenience methods and things such as hash caching.
+
+	fmt.Printf("msgEntry=%v\n", spew.Sdump(msg.Entry))
+
+	binary, _ := msg.Entry.MarshalBinary()
+	commonHash := common.Sha(binary)
+	hash, _ := wire.NewShaHash(commonHash.Bytes)
+
+	iv := wire.NewInvVect(wire.InvTypeFactomEntry, hash)
+	p.AddKnownInventory(iv)
+
+	inMsgQueue <- msg
 }
 
 // handleGetNonDirDataMsg is invoked when a peer receives a dir block message.
@@ -141,8 +147,11 @@ func (p *peer) handleGetNonDirDataMsg(msg *wire.MsgGetNonDirData) {
 						err = p.pushCBlockMsg(entry.MerkleRoot, c, waitChan)
 
 					case EChain:
+						err = p.pushEBlockMsg(entry.MerkleRoot, c, waitChan)
 
-					case Entry:
+					case Factoid:
+						shahash := wire.NewShaHash(entry.MerkleRoot.Bytes)
+						err = p.pushBlockMsg(shahash, c, waitChan)
 
 					default:
 						peerLog.Warnf("Unknown type in inventory request %d",
@@ -498,6 +507,23 @@ func (p *peer) pushGetNonDirDataMsg(dblock *common.DBlock) {
 	}
 }
 
+// pushGetEntryDataMsg takes the passed EBlock
+// and return all the corresponding EBEntries
+func (p *peer) pushGetEntryDataMsg(eblock *common.EBlock) {
+	util.Trace()
+
+	binary, _ := eblock.MarshalBinary()
+	commonHash := common.Sha(binary)
+	hash, _ := wire.NewShaHash(commonHash.Bytes)
+
+	iv := wire.NewInvVect(wire.InvTypeFactomEntryBlock, hash)
+	gdmsg := wire.NewMsgGetNonDirData()
+	gdmsg.AddInvVect(iv)
+	if len(gdmsg.InvList) > 0 {
+		p.QueueMessage(gdmsg, nil)
+	}
+}
+
 // pushCBlockMsg sends a entry credit block message for the provided block hash to the
 // connected peer.  An error is returned if the block hash is not known.
 func (p *peer) pushCBlockMsg(commonhash *common.Hash, doneChan, waitChan chan struct{}) error {
@@ -506,7 +532,7 @@ func (p *peer) pushCBlockMsg(commonhash *common.Hash, doneChan, waitChan chan st
 		blk, err := db.FetchCBlockByHash(commonhash)
 
 		if err != nil {
-			peerLog.Tracef("Unable to fetch requested dir block sha %v: %v",
+			peerLog.Tracef("Unable to fetch requested entry credit block sha %v: %v",
 				commonhash, err)
 
 			if doneChan != nil {
@@ -515,7 +541,7 @@ func (p *peer) pushCBlockMsg(commonhash *common.Hash, doneChan, waitChan chan st
 			return err
 		}
 
-		fmt.Printf("commonHash=%s, dir block=%s\n", commonhash.String(), spew.Sdump(blk))
+		fmt.Printf("commonHash=%s, entry credit block=%s\n", commonhash.String(), spew.Sdump(blk))
 
 		// Once we have fetched data wait for any previous operation to finish.
 		if waitChan != nil {
@@ -526,6 +552,38 @@ func (p *peer) pushCBlockMsg(commonhash *common.Hash, doneChan, waitChan chan st
 	msg := wire.NewMsgCBlock()
 	//msg.CBlk = blk
 	//fmt.Printf("cblock=%s\n", spew.Sdump(blk))
+	p.QueueMessage(msg, doneChan) //blk.MsgBlock(), dc)
+	return nil
+}
+
+// pushEBlockMsg sends a entry credit block message for the provided block hash to the
+// connected peer.  An error is returned if the block hash is not known.
+func (p *peer) pushEBlockMsg(commonhash *common.Hash, doneChan, waitChan chan struct{}) error {
+	util.Trace()
+	/*
+		blk, err := db.FetchEBlockByHash(commonhash)
+
+		if err != nil {
+			peerLog.Tracef("Unable to fetch requested entry block sha %v: %v",
+				commonhash, err)
+
+			if doneChan != nil {
+				doneChan <- struct{}{}
+			}
+			return err
+		}
+
+		fmt.Printf("commonHash=%s, entry block=%s\n", commonhash.String(), spew.Sdump(blk))
+
+		// Once we have fetched data wait for any previous operation to finish.
+		if waitChan != nil {
+			<-waitChan
+		}
+	*/
+
+	msg := wire.NewMsgEBlock()
+	//msg.EBlk = blk
+	//fmt.Printf("eblock=%s\n", spew.Sdump(blk))
 	p.QueueMessage(msg, doneChan) //blk.MsgBlock(), dc)
 	return nil
 }

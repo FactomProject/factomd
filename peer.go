@@ -1581,6 +1581,14 @@ out:
 			util.Trace()
 			p.handleCBlockMsg(msg, buf)
 
+		case *wire.MsgEBlock:
+			util.Trace()
+			p.handleEBlockMsg(msg, buf)
+
+		case *wire.MsgEntry:
+			util.Trace()
+			p.handleEntryMsg(msg, buf)
+
 		case *wire.MsgDirBlock:
 			util.Trace()
 			p.handleDirBlockMsg(msg, buf)
