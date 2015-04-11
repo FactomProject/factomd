@@ -78,6 +78,7 @@ var (
 	dataStorePath               = "/tmp/store/seed/"
 	ldbpath                     = "/tmp/ldb9"
 	nodeMode                    = "FULL"
+	devNet                 bool = false
 
 	//BTC:
 	//	addrStr = "movaFTARmsaTMk3j71MpX8HtMURpsKhdra"
@@ -135,7 +136,7 @@ func initEChainFromDB(chain *common.EChain) {
 	chain.Blocks = make([]*common.EBlock, len(*eBlocks))
 
 	for i := 0; i < len(*eBlocks); i = i + 1 {
-		if (*eBlocks)[i].Header.BlockID != uint64(i) {
+		if (*eBlocks)[i].Header.EBHeight != uint64(i) {
 			panic("Error in initializing EChain:" + chain.ChainID.String())
 		}
 		(*eBlocks)[i].Chain = chain
@@ -189,8 +190,8 @@ func init_processor() {
 		fmt.Println("Loaded", len(chain.Blocks)-1, "blocks for chain: "+chain.ChainID.String())
 
 		for i := 0; i < len(chain.Blocks); i = i + 1 {
-			if uint64(i) != chain.Blocks[i].Header.BlockID {
-				panic(errors.New("BlockID does not equal index for chain:" + chain.ChainID.String() + " block:" + fmt.Sprintf("%v", chain.Blocks[i].Header.BlockID)))
+			if uint64(i) != chain.Blocks[i].Header.EBHeight {
+				panic(errors.New("BlockID does not equal index for chain:" + chain.ChainID.String() + " block:" + fmt.Sprintf("%v", chain.Blocks[i].Header.EBHeight)))
 			}
 		}
 
@@ -900,31 +901,47 @@ func newEntryBlock(chain *common.EChain) *common.EBlock {
 	}
 
 	// Create the block and add a new block for new coming entries
-	chain.BlockMutex.Lock()
+
+
+
+	block.Header.DBHeight = dchain.NextBlockID
+	block.Header.EntryCount = uint32(len(block.EBEntries))
+	block.Header.StartTime = dchain.Blocks[dchain.NextBlockID].Header.StartTime
+	
+	if devNet {
+		block.Header.NetworkID = common.NETWORK_ID_TEST
+		} else {
+		block.Header.NetworkID = common.NETWORK_ID_EB		
+		}
+
+	// Create the Entry Block Boday Merkle Root from EB Entries
+	hashes := make([]*common.Hash, 0, len(block.EBEntries))
+	for _, entry := range block.EBEntries {
+		hashes = append(hashes, entry.EntryHash)
+	}
+	merkle := common.BuildMerkleTreeStore(hashes)	
+	block.Header.BodyMR = merkle[len(merkle)-1]
+		
+	// Create the Entry Block Key Merkle Root from the hash of Header and the Body Merkle Root	
+	hashes = make([]*common.Hash, 0, 2)	
+	binaryEBHeader, _ := block.Header.MarshalBinary()
+	hashes = append(hashes, common.Sha(binaryEBHeader))
+	hashes = append(hashes, block.Header.BodyMR)	
+	merkle = common.BuildMerkleTreeStore(hashes)
+	block.MerkleRoot = merkle[len(merkle)-1] // MerkleRoot is not marshalized in Entry Block
+	fmt.Println("block.MerkleRoot:%v", block.MerkleRoot.String())
 	blkhash, _ := common.CreateHash(block)
+	block.EBHash = blkhash	
 	log.Println("blkhash:%v", blkhash.Bytes)
+	
 	block.IsSealed = true
 	chain.NextBlockID++
 	newblock, _ := common.CreateBlock(chain, block, 10)
-	chain.Blocks = append(chain.Blocks, newblock)
-	chain.BlockMutex.Unlock()
-	block.EBHash = blkhash
-
-	// Create the Entry Block Merkle Root for FB Entry
-	hashes := make([]*common.Hash, 0, len(block.EBEntries)+1)
-	for _, entry := range block.EBEntries {
-		data, _ := entry.MarshalBinary()
-		hashes = append(hashes, common.Sha(data))
-	}
-	binaryEBHeader, _ := block.Header.MarshalBinary()
-	hashes = append(hashes, common.Sha(binaryEBHeader))
-	merkle := common.BuildMerkleTreeStore(hashes)
-	block.MerkleRoot = merkle[len(merkle)-1] // MerkleRoot is not marshalized in Entry Block
-	fmt.Println("block.MerkleRoot:%v", block.MerkleRoot.String())
-
+	chain.Blocks = append(chain.Blocks, newblock)	
+	
 	//Store the block in db
 	db.ProcessEBlockBatch(block)
-	log.Println("EntryBlock: block" + strconv.FormatUint(block.Header.BlockID, 10) + " created for chain: " + chain.ChainID.String())
+	log.Println("EntryBlock: block" + strconv.FormatUint(block.Header.EBHeight, 10) + " created for chain: " + chain.ChainID.String())
 
 	return block
 }
