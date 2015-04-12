@@ -13,7 +13,7 @@ import (
 // MsgEntry implements the Message interface and represents a factom
 // Entry message.  It is used by client to reveal the entry.
 type MsgEntry struct {
-	Entry *common.EBEntry
+	Entry *common.Entry
 }
 
 // BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
@@ -37,12 +37,12 @@ func (msg *MsgEntry) BtcEncode(w io.Writer, pver uint32) error {
 // This is part of the Message interface implementation.
 func (msg *MsgEntry) BtcDecode(r io.Reader, pver uint32) error {
 	//Entry
-	bytes, err := readVarBytes(r, pver, uint32(10000), CmdRevealEntry)
+	bytes, err := readVarBytes(r, pver, uint32(10000), CmdEntry)
 	if err != nil {
 		return err
 	}
 
-	msg.Entry = new(common.EBEntry)
+	msg.Entry = new(common.Entry)
 	err = msg.Entry.UnmarshalBinary(bytes)
 	if err != nil {
 		return err

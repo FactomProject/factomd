@@ -36,8 +36,8 @@ func (msg *MsgCBlock) BtcEncode(w io.Writer, pver uint32) error {
 // BtcDecode decodes r using the bitcoin protocol encoding into the receiver.
 // This is part of the Message interface implementation.
 func (msg *MsgCBlock) BtcDecode(r io.Reader, pver uint32) error {
-	//Entry
-	bytes, err := readVarBytes(r, pver, uint32(10000), CmdRevealEntry)
+
+	bytes, err := readVarBytes(r, pver, uint32(10000), CmdCBlock)
 	if err != nil {
 		return err
 	}

@@ -130,17 +130,17 @@ func initWallet() error {
 	balances = make([]balance, 0, 100)
 	if len(unspentResults) > 0 {
 		/*		var i int
-			for _, b := range unspentResults {
-		// need to use different btcd packages and improve??
+					for _, b := range unspentResults {
+				// need to use different btcd packages and improve??
 
-				//bypass the bug in btcwallet where one unconfirmed spent
-				//is listed in unspent result
-				if b.Amount > float64(0.1) && !compareUnspentResult(spentResult, b) {
-					//fmt.Println(i, "  ", b.Amount)
-					balances = append(balances, balance{unspentResult: b})
-					i++
-				}
-			}*/
+						//bypass the bug in btcwallet where one unconfirmed spent
+						//is listed in unspent result
+						if b.Amount > float64(0.1) && !compareUnspentResult(spentResult, b) {
+							//fmt.Println(i, "  ", b.Amount)
+							balances = append(balances, balance{unspentResult: b})
+							i++
+						}
+					}*/
 
 	}
 	//	fmt.Println("balances.len=", len(balances))

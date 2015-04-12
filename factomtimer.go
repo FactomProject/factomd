@@ -42,10 +42,9 @@ func (bt *BlockTimer) StartBlockTimer() {
 
 	roundTime := time.Now().Round(time.Minute)
 	minutesPassed := roundTime.Minute() - (roundTime.Minute()/10)*10
-	
+
 	// Set the start time for the open dir block
 	dchain.Blocks[dchain.NextBlockID].Header.StartTime = uint64(roundTime.Add(time.Duration((0 - 60*minutesPassed) * 1000000000)).Unix())
-	
 
 	for minutesPassed < 10 {
 

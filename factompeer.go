@@ -105,76 +105,69 @@ func (p *peer) handleGetNonDirDataMsg(msg *wire.MsgGetNonDirData) {
 	// The waiting occurs after the database fetch for the next one to
 	// provide a little pipelining.
 
-	//var waitChan chan struct{}
+	var waitChan chan struct{}
 	doneChan := make(chan struct{}, 1)
-	/*	for i, iv := range msg.InvList {
+	for i, iv := range msg.InvList {
 
-			var c chan struct{}
-			// If this will be the last message we send.
-			if i == len(msg.InvList)-1 && len(notFound.InvList) == 0 {
-				c = doneChan
-			} else { //if (i+1)%3 == 0 {
-				// Buffered so as to not make the send goroutine block.
-				c = make(chan struct{}, 1)
+		var c chan struct{}
+		// If this will be the last message we send.
+		if i == len(msg.InvList)-1 && len(notFound.InvList) == 0 {
+			c = doneChan
+		} else { //if (i+1)%3 == 0 {
+			// Buffered so as to not make the send goroutine block.
+			c = make(chan struct{}, 1)
+		}
+
+		if iv.Type != wire.InvTypeFactomNonDirBlock {
+			continue
+		}
+
+		// Is this right? what is iv.hash?
+		blk, err := db.FetchDBlockByHash(iv.Hash.ToFactomHash())
+
+		if err != nil {
+			peerLog.Tracef("Unable to fetch requested EC block sha %v: %v",
+				iv.Hash, err)
+
+			if doneChan != nil {
+				doneChan <- struct{}{}
 			}
+			return
+		}
 
-			if iv.Type != wire.InvTypeFactomNonDirBlock {
+		fmt.Printf("commonHash=%s, directory block=%s\n", iv.Hash.ToFactomHash().String(), spew.Sdump(blk))
+
+		for _, dbEntry := range blk.DBEntries {
+
+			var err error
+			switch dbEntry.ChainID.String() {
+			case cchain.ChainID.String():
+				// similar to pushDirBlockMsg
+				err = p.pushCBlockMsg(dbEntry.MerkleRoot, c, waitChan)
+
+			case fchainID.String():
+				err = p.pushBlockMsg(wire.FactomHashToShaHash(dbEntry.MerkleRoot), c, waitChan)
+
+			default:
+				err = p.pushEBlockMsg(dbEntry.MerkleRoot, c, waitChan)
 				continue
 			}
-
-				commonhash := new(common.Hash)
-				commonhash.SetBytes(&iv.Hash.Bytes())
-				blk, err := db.FetchCBlockByHash(commonhash)
-
-				if err != nil {
-					peerLog.Tracef("Unable to fetch requested dir block sha %v: %v",
-						sha, err)
-
-					if doneChan != nil {
-						doneChan <- struct{}{}
-					}
-					return err
+			if err != nil {
+				notFound.AddInvVect(iv)
+				// When there is a failure fetching the final entry
+				// and the done channel was sent in due to there
+				// being no outstanding not found inventory, consume
+				// it here because there is now not found inventory
+				// that will use the channel momentarily.
+				if i == len(msg.InvList)-1 && c != nil {
+					<-c
 				}
+			}
+			numAdded++
+			waitChan = c
+		}
 
-				fmt.Printf("commonHash=%s, Credit block=%s\n", commonhash.String(), spew.Sdump(blk))
-
-				for j, entry := range blk.DBEntries {
-
-					var err error
-					switch entry.ChainID {
-					case CChain:
-						// similar to pushDirBlockMsg
-						err = p.pushCBlockMsg(entry.MerkleRoot, c, waitChan)
-
-					case EChain:
-						err = p.pushEBlockMsg(entry.MerkleRoot, c, waitChan)
-
-					case Factoid:
-						shahash := wire.NewShaHash(entry.MerkleRoot.Bytes)
-						err = p.pushBlockMsg(shahash, c, waitChan)
-
-					default:
-						peerLog.Warnf("Unknown type in inventory request %d",
-							iv.Type)
-						continue
-					}
-					if err != nil {
-						notFound.AddInvVect(iv)
-
-						// When there is a failure fetching the final entry
-						// and the done channel was sent in due to there
-						// being no outstanding not found inventory, consume
-						// it here because there is now not found inventory
-						// that will use the channel momentarily.
-						if i == len(msg.InvList)-1 && c != nil {
-							<-c
-						}
-					}
-					numAdded++
-					waitChan = c
-				}
-
-	}*/
+	}
 	if len(notFound.InvList) != 0 {
 		p.QueueMessage(notFound, doneChan)
 	}
@@ -528,26 +521,25 @@ func (p *peer) pushGetEntryDataMsg(eblock *common.EBlock) {
 // connected peer.  An error is returned if the block hash is not known.
 func (p *peer) pushCBlockMsg(commonhash *common.Hash, doneChan, waitChan chan struct{}) error {
 	util.Trace()
-	/*
-		blk, err := db.FetchCBlockByHash(commonhash)
 
-		if err != nil {
-			peerLog.Tracef("Unable to fetch requested entry credit block sha %v: %v",
-				commonhash, err)
+	blk, err := db.FetchCBlockByHash(commonhash)
 
-			if doneChan != nil {
-				doneChan <- struct{}{}
-			}
-			return err
+	if err != nil {
+		peerLog.Tracef("Unable to fetch requested entry credit block sha %v: %v",
+			commonhash, err)
+
+		if doneChan != nil {
+			doneChan <- struct{}{}
 		}
+		return err
+	}
 
-		fmt.Printf("commonHash=%s, entry credit block=%s\n", commonhash.String(), spew.Sdump(blk))
+	fmt.Printf("commonHash=%s, entry credit block=%s\n", commonhash.String(), spew.Sdump(blk))
 
-		// Once we have fetched data wait for any previous operation to finish.
-		if waitChan != nil {
-			<-waitChan
-		}
-	*/
+	// Once we have fetched data wait for any previous operation to finish.
+	if waitChan != nil {
+		<-waitChan
+	}
 
 	msg := wire.NewMsgCBlock()
 	//msg.CBlk = blk
@@ -560,26 +552,25 @@ func (p *peer) pushCBlockMsg(commonhash *common.Hash, doneChan, waitChan chan st
 // connected peer.  An error is returned if the block hash is not known.
 func (p *peer) pushEBlockMsg(commonhash *common.Hash, doneChan, waitChan chan struct{}) error {
 	util.Trace()
-	/*
-		blk, err := db.FetchEBlockByHash(commonhash)
 
-		if err != nil {
-			peerLog.Tracef("Unable to fetch requested entry block sha %v: %v",
-				commonhash, err)
+	blk, err := db.FetchEBHashByMR(commonhash)
 
-			if doneChan != nil {
-				doneChan <- struct{}{}
-			}
-			return err
+	if err != nil {
+		peerLog.Tracef("Unable to fetch requested entry block sha %v: %v",
+			commonhash, err)
+
+		if doneChan != nil {
+			doneChan <- struct{}{}
 		}
+		return err
+	}
 
-		fmt.Printf("commonHash=%s, entry block=%s\n", commonhash.String(), spew.Sdump(blk))
+	fmt.Printf("commonHash=%s, entry block=%s\n", commonhash.String(), spew.Sdump(blk))
 
-		// Once we have fetched data wait for any previous operation to finish.
-		if waitChan != nil {
-			<-waitChan
-		}
-	*/
+	// Once we have fetched data wait for any previous operation to finish.
+	if waitChan != nil {
+		<-waitChan
+	}
 
 	msg := wire.NewMsgEBlock()
 	//msg.EBlk = blk

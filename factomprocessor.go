@@ -44,6 +44,7 @@ var (
 	db          database.Db    // database
 	dchain      *common.DChain //Directory Block Chain
 	cchain      *common.CChain //Entry Credit Chain
+	fchainID    *common.Hash
 
 	creditsPerChain   int32  = 10
 	creditsPerFactoid uint64 = 1000
@@ -72,13 +73,13 @@ var (
 )
 
 var (
-	portNumber              int = 8083
-	sendToBTCinSeconds          = 600
-	directoryBlockInSeconds     = 60
-	dataStorePath               = "/tmp/store/seed/"
-	ldbpath                     = "/tmp/ldb9"
-	nodeMode                    = "FULL"
-	devNet                 bool = false
+	portNumber              int  = 8083
+	sendToBTCinSeconds           = 600
+	directoryBlockInSeconds      = 60
+	dataStorePath                = "/tmp/store/seed/"
+	ldbpath                      = "/tmp/ldb9"
+	nodeMode                     = "FULL"
+	devNet                  bool = false
 
 	//BTC:
 	//	addrStr = "movaFTARmsaTMk3j71MpX8HtMURpsKhdra"
@@ -177,6 +178,12 @@ func init_processor() {
 
 	// init process list manager
 	initProcessListMgr()
+
+	// init fchainid
+	barray := []byte{0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+		0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}
+	fchainID = new(common.Hash)
+	fchainID.SetBytes(barray)
 
 	// init Entry Credit Chain
 	initCChain()
@@ -921,43 +928,41 @@ func newEntryBlock(chain *common.EChain) *common.EBlock {
 
 	// Create the block and add a new block for new coming entries
 
-
-
 	block.Header.DBHeight = dchain.NextBlockID
 	block.Header.EntryCount = uint32(len(block.EBEntries))
 	block.Header.StartTime = dchain.Blocks[dchain.NextBlockID].Header.StartTime
-	
+
 	if devNet {
 		block.Header.NetworkID = common.NETWORK_ID_TEST
-		} else {
-		block.Header.NetworkID = common.NETWORK_ID_EB		
-		}
+	} else {
+		block.Header.NetworkID = common.NETWORK_ID_EB
+	}
 
 	// Create the Entry Block Boday Merkle Root from EB Entries
 	hashes := make([]*common.Hash, 0, len(block.EBEntries))
 	for _, entry := range block.EBEntries {
 		hashes = append(hashes, entry.EntryHash)
 	}
-	merkle := common.BuildMerkleTreeStore(hashes)	
+	merkle := common.BuildMerkleTreeStore(hashes)
 	block.Header.BodyMR = merkle[len(merkle)-1]
-		
-	// Create the Entry Block Key Merkle Root from the hash of Header and the Body Merkle Root	
-	hashes = make([]*common.Hash, 0, 2)	
+
+	// Create the Entry Block Key Merkle Root from the hash of Header and the Body Merkle Root
+	hashes = make([]*common.Hash, 0, 2)
 	binaryEBHeader, _ := block.Header.MarshalBinary()
 	hashes = append(hashes, common.Sha(binaryEBHeader))
-	hashes = append(hashes, block.Header.BodyMR)	
+	hashes = append(hashes, block.Header.BodyMR)
 	merkle = common.BuildMerkleTreeStore(hashes)
 	block.MerkleRoot = merkle[len(merkle)-1] // MerkleRoot is not marshalized in Entry Block
 	fmt.Println("block.MerkleRoot:%v", block.MerkleRoot.String())
 	blkhash, _ := common.CreateHash(block)
-	block.EBHash = blkhash	
+	block.EBHash = blkhash
 	log.Println("blkhash:%v", blkhash.Bytes)
-	
+
 	block.IsSealed = true
 	chain.NextBlockID++
 	newblock, _ := common.CreateBlock(chain, block, 10)
-	chain.Blocks = append(chain.Blocks, newblock)	
-	
+	chain.Blocks = append(chain.Blocks, newblock)
+
 	//Store the block in db
 	db.ProcessEBlockBatch(block)
 	log.Println("EntryBlock: block" + strconv.FormatUint(block.Header.EBHeight, 10) + " created for chain: " + chain.ChainID.String())
