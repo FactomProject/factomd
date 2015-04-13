@@ -32,6 +32,10 @@ type CPUMINER struct {
 	submitBlockLock sync.Mutex
 }
 
+const (
+	MaxPayoutAmount = blockchain.BaseSubsidy // in Satoshis
+)
+
 // generateBlocks is a worker that is controlled by the miningWorkerController.
 // It is self contained in that it creates block templates and attempts to solve
 // them while detecting when it is performing stale work and reacting
@@ -61,17 +65,6 @@ func test_generateBlocks() {
 	// a block that is in the process of becoming stale.
 	m.submitBlockLock.Lock()
 
-	// Choose a payment address at random.
-	//	rand.Seed(time.Now().UnixNano())
-	//	payToAddr := cfg.miningAddrs[rand.Intn(len(cfg.miningAddrs))]
-	/*
-		payToAddr0 := newAddressPubKey(decodeHex("0461cbdcc5409fb4b" +
-			"4d42b51d33381354d80e550078cb532a34bf" +
-			"a2fcfdeb7d76519aecc62770f5b0e4ef8551" +
-			"946d8a540911abe3e7854a26f39f58b25c15" +
-			"342af"))
-	*/
-
 	/*
 		//	randHashBytes := make([]byte, wire.HashSize)
 		randHashBytes := make([]byte, 33)
@@ -84,6 +77,14 @@ func test_generateBlocks() {
 	// Create a new block template using the available transactions
 	// in the memory pool as a source of transactions to potentially
 	// include in the block.
+
+	/*
+		var payto wire.RCDHash
+		randRCD := make([]byte, wire.RCDHashSize)
+		rand.Read(randRCD)
+		fmt.Println("randRCD len=", len(randRCD))
+		copy(payto[:], randRCD)
+	*/
 	payto := wire.RCDHash{}
 
 	template, err := NewBlockTemplate(local_Server.txMemPool, payto)

@@ -234,90 +234,9 @@ func createCoinbaseTx(nextBlockHeight int64, addr wire.RCDHash) (*btcutil.Tx, er
 			wire.MaxPrevOutIndex),
 	})
 
-	var rcdhash wire.RCDHash
-	randRCD := make([]byte, wire.RCDHashSize)
-	rand.Read(randRCD)
-	fmt.Println("randRCD len=", len(randRCD))
-	copy(rcdhash[:], randRCD)
-
 	tx.AddTxOut(&wire.TxOut{
-		Value: blockchain.CalcBlockSubsidy(nextBlockHeight,
-			activeNetParams.Params),
-		RCDHash: rcdhash,
-	})
-
-	randBytes := make([]byte, wire.PubKeySize)
-	n, err := rand.Read(randBytes)
-	fmt.Println("randBytes: ", n, err, randBytes)
-
-	//	var pubkeys []wire.PubKey
-	pubkeys := make([]wire.PubKey, 1)
-
-	copy(pubkeys[0][:], randBytes)
-
-	tx.AddRCD(&wire.RCDreveal{PubKey: pubkeys})
-
-	return btcutil.NewTx(tx), nil
-}
-
-// createCoinbaseTx returns a coinbase transaction paying an appropriate subsidy
-// based on the passed block height to the provided address.  When the address
-// is nil, the coinbase transaction will instead be redeemable by anyone.
-//
-// See the comment for NewBlockTemplate for more information about why the nil
-// address handling is useful.
-func createCoinbaseTx_old(coinbaseScript []byte, nextBlockHeight int64, addr btcutil.Address) (*btcutil.Tx, error) {
-	util.Trace()
-	// Create the script to pay to the provided payment address if one was
-	// specified.  Otherwise create a script that allows the coinbase to be
-	// redeemable by anyone.
-
-	/*
-		var pkScript []byte
-
-		if addr != nil {
-			var err error
-			pkScript, err = txscript.PayToAddrScript(addr)
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			var err error
-			scriptBuilder := txscript.NewScriptBuilder()
-			pkScript, err = scriptBuilder.AddOp(txscript.OP_TRUE).Script()
-			if err != nil {
-				return nil, err
-			}
-		}
-	*/
-
-	randHashBytes := make([]byte, wire.HashSize)
-	nn, err0 := rand.Read(randHashBytes)
-	fmt.Println(nn, err0, randHashBytes)
-
-	newsha, _ := wire.NewShaHash(randHashBytes)
-
-	tx := wire.NewMsgTx()
-	tx.AddTxIn(&wire.TxIn{
-		// Coinbase transactions have no inputs, so previous outpoint is
-		// zero hash and max index.
-		//		PreviousOutPoint: *wire.NewOutPoint(&wire.ShaHash{},
-		PreviousOutPoint: *wire.NewOutPoint(newsha,
-			wire.MaxPrevOutIndex),
-		//		SignatureScript: coinbaseScript,
-		//		Sequence:        wire.MaxTxInSequenceNum,
-	})
-
-	var rcdhash wire.RCDHash
-	randRCD := make([]byte, wire.RCDHashSize)
-	rand.Read(randRCD)
-	fmt.Println("randRCD len=", len(randRCD))
-	copy(rcdhash[:], randRCD)
-
-	tx.AddTxOut(&wire.TxOut{
-		Value: blockchain.CalcBlockSubsidy(nextBlockHeight,
-			activeNetParams.Params),
-		RCDHash: rcdhash,
+		Value:   MaxPayoutAmount,
+		RCDHash: addr,
 	})
 
 	randBytes := make([]byte, wire.PubKeySize)

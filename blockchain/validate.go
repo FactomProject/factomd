@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/FactomProject/FactomCode/util"
-	"github.com/FactomProject/btcd/chaincfg"
+	//	"github.com/FactomProject/btcd/chaincfg"
 	"github.com/FactomProject/btcd/database"
 	"github.com/FactomProject/btcd/txscript"
 	"github.com/FactomProject/btcd/wire"
@@ -57,7 +57,8 @@ const (
 
 	// baseSubsidy is the starting subsidy amount for mined blocks.  This
 	// value is halved every SubsidyHalvingInterval blocks.
-	baseSubsidy = 50 * btcutil.SatoshiPerBitcoin
+	//	baseSubsidy = 50 * btcutil.SatoshiPerBitcoin
+	BaseSubsidy = 10000000 // Phase 1 Factom release, real small subsidy
 
 	// CoinbaseMaturity is the number of blocks required before newly
 	// mined bitcoins (coinbase transactions) can be spent.
@@ -190,17 +191,21 @@ func IsFinalizedTransaction(tx *btcutil.Tx, blockHeight int64, blockTime time.Ti
 // two blocks that violate the BIP0030 rule which prevents transactions from
 // overwriting old ones.
 func isBIP0030Node(node *blockNode) bool {
-	if node.height == 91842 && node.hash.IsEqual(block91842Hash) {
-		return true
-	}
+	return true
+	/*
+		if node.height == 91842 && node.hash.IsEqual(block91842Hash) {
+			return true
+		}
 
-	if node.height == 91880 && node.hash.IsEqual(block91880Hash) {
-		return true
-	}
+		if node.height == 91880 && node.hash.IsEqual(block91880Hash) {
+			return true
+		}
 
-	return false
+		return false
+	*/
 }
 
+/*
 // CalcBlockSubsidy returns the subsidy amount a block at the provided height
 // should have. This is mainly used for determining how much the coinbase for
 // newly generated blocks awards as well as validating the coinbase for blocks
@@ -219,6 +224,7 @@ func CalcBlockSubsidy(height int64, chainParams *chaincfg.Params) int64 {
 	// Equivalent to: baseSubsidy / 2^(height/subsidyHalvingInterval)
 	return baseSubsidy >> uint(height/int64(chainParams.SubsidyHalvingInterval))
 }
+*/
 
 // CheckTransactionSanity performs some preliminary checks on a transaction to
 // ensure it is sane.  These checks are context free.
@@ -962,8 +968,12 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block *btcutil.Block) er
 	for _, txOut := range transactions[0].MsgTx().TxOut {
 		totalSatoshiOut += txOut.Value
 	}
-	expectedSatoshiOut := CalcBlockSubsidy(node.height, b.chainParams) +
-		totalFees
+
+	//	expectedSatoshiOut := CalcBlockSubsidy(node.height, b.chainParams) +
+	//	totalFees
+
+	expectedSatoshiOut := int64(BaseSubsidy)
+
 	if totalSatoshiOut > expectedSatoshiOut {
 		str := fmt.Sprintf("coinbase transaction for block pays %v "+
 			"which is more than expected value of %v",
