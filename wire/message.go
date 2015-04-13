@@ -18,7 +18,7 @@ const MessageHeaderSize = 24
 
 // CommandSize is the fixed size of all commands in the common bitcoin message
 // header.  Shorter commands must be zero padded.
-const CommandSize = 12
+const CommandSize = 15
 
 // MaxMessagePayload is the maximum bytes a message can be regardless of other
 // individual limits imposed by messages themselves.
