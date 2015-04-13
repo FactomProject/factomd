@@ -85,7 +85,8 @@ func test_generateBlocks() {
 		fmt.Println("randRCD len=", len(randRCD))
 		copy(payto[:], randRCD)
 	*/
-	payto := wire.RCDHash{}
+
+	payto := wire.RCDHash{} // for Phase 1 pay to a non-spendable address, FIXME later
 
 	template, err := NewBlockTemplate(local_Server.txMemPool, payto)
 	m.submitBlockLock.Unlock()
@@ -106,23 +107,14 @@ func test_generateBlocks() {
 	block := btcutil.NewBlock(template.block)
 	fmt.Println("NewBlock= ", spew.Sdump(block))
 
-	// Attempt to solve the block.  The function will exit early
-	// with false when conditions that trigger a stale block, so
-	// a new block template can be generated.  When the return is
-	// true a solution was found, so submit the solved block.
-	//	if m.solveBlock(template.block, curHeight+1, ticker, quit) {
-
-	/*
-		if m.solveBlock(template.block, curHeight+1, ticker, make(chan struct{})) {
-			block := btcutil.NewBlock(template.block)
-			m.submitBlock(block)
-		}
-	*/
-
-	m.test_submitBlock(block)
+	m.submitBlock(block)
 
 	//	m.workerWg.Done()
 	minrLog.Infof("Generate blocks worker done; height= %d", curHeight)
+
+	blockSha, _ := block.Sha()
+	factomIngressBlock_hook(blockSha)
+
 	util.Trace()
 }
 
@@ -209,7 +201,7 @@ func (mp *txMemPool) myDescs() []*TxDesc {
 
 // submitBlock submits the passed block to network after ensuring it passes all
 // of the consensus validation rules.
-func (m *CPUMINER) test_submitBlock(block *btcutil.Block) bool {
+func (m *CPUMINER) submitBlock(block *btcutil.Block) bool {
 	m.submitBlockLock.Lock()
 	defer m.submitBlockLock.Unlock()
 

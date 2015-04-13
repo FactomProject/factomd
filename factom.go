@@ -241,6 +241,12 @@ func (b *blockManager) factomChecks() {
 	util.Trace()
 }
 
+func FactomSetupOverrides() {
+	//	factomd.FactomOverride.TxIgnoreMissingParents = true
+	FactomOverride.TxOrphansInsteadOfMempool = true
+	FactomOverride.BlockDisableChecks = true
+}
+
 // feed all incoming Txs to the inner Factom code (for Jack)
 // TODO: do this after proper mempool/orphanpool/validity triangulation & checks
 func factomIngressTx_hook(tx *wire.MsgTx) error {
@@ -270,8 +276,12 @@ func factomIngressTx_hook(tx *wire.MsgTx) error {
 	return nil
 }
 
-func FactomSetupOverrides() {
-	//	factomd.FactomOverride.TxIgnoreMissingParents = true
-	FactomOverride.TxOrphansInsteadOfMempool = true
-	FactomOverride.BlockDisableChecks = true
+func factomIngressBlock_hook(hash *wire.ShaHash) error {
+	util.Trace(fmt.Sprintf("hash: %s", hash))
+
+	fbo := &wire.MsgInt_FactoidBlock{*hash}
+
+	inMsgQueue <- fbo
+
+	return nil
 }

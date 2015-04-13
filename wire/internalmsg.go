@@ -6,8 +6,9 @@ import ()
 const (
 
 	// Factom internal messages:
-	CmdInt_FactoidObj = "int_factoidobj"
-	CmdInt_EOM        = "int_eom"
+	CmdInt_FactoidObj   = "int_factoidobj"
+	CmdInt_FactoidBlock = "int_fx_block"
+	CmdInt_EOM          = "int_eom"
 )
 
 // FtmInternalMsg is an interface that describes an internal factom message.
@@ -38,4 +39,13 @@ type MsgInt_EOM struct {
 // End-of-Minute internal message for time commnunications between Goroutines
 func (msg *MsgInt_EOM) Command() string {
 	return CmdInt_EOM
+}
+
+type MsgInt_FactoidBlock struct {
+	ShaHash ShaHash
+}
+
+// Factoid block available: internal message for time commnunications between Goroutines
+func (msg *MsgInt_FactoidBlock) Command() string {
+	return CmdInt_FactoidBlock
 }

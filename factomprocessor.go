@@ -459,6 +459,11 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 			}
 		}
 
+	case wire.CmdInt_FactoidBlock:
+		factoidBlock, ok := msg.(*wire.MsgInt_FactoidBlock)
+		util.Trace("Factoid Block (GENERATED??)")
+		fmt.Println("factoidBlock= ", factoidBlock, " ok= ", ok)
+
 	case wire.CmdDirBlock:
 		dirBlock, ok := msg.(*wire.MsgDirBlock)
 		if ok {
@@ -1110,7 +1115,7 @@ func saveDChain(chain *common.DChain) {
 
 	for i, block := range bcp {
 		//the open block is not saved
-		if block==nil || block.IsSealed == false {
+		if block == nil || block.IsSealed == false {
 			continue
 		}
 
@@ -1190,7 +1195,7 @@ func initDChain() {
 	dBlocks, _ := db.FetchAllDBlocks()
 	sort.Sort(util.ByDBlockIDAccending(dBlocks))
 
-	dchain.Blocks = make([]*common.DBlock, len(dBlocks), len(dBlocks) +1)
+	dchain.Blocks = make([]*common.DBlock, len(dBlocks), len(dBlocks)+1)
 
 	for i := 0; i < len(dBlocks); i = i + 1 {
 		if dBlocks[i].Header.BlockID != uint64(i) {
@@ -1256,7 +1261,7 @@ func initCChain() {
 
 		// Calculate the EC balance for each account
 		initializeECreditMap(cchain.Blocks[i])
-	} 
+	}
 
 	// double check the block ids
 	for i := 0; i < len(cchain.Blocks); i = i + 1 {
