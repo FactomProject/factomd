@@ -525,6 +525,9 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 func processDirBlock(msg *wire.MsgDirBlock) error {
 	util.Trace()
 	fmt.Printf("MsgDirBlock=%s\n", spew.Sdump(msg.DBlk))
+	
+	
+	
 	return nil
 }
 
@@ -983,7 +986,7 @@ func newEntryBlock(chain *common.EChain) *common.EBlock {
 
 	block.Header.DBHeight = dchain.NextBlockID
 	block.Header.EntryCount = uint32(len(block.EBEntries))
-	block.Header.StartTime = dchain.Blocks[dchain.NextBlockID].Header.StartTime
+	block.Header.StartTime = dchain.NextBlock.Header.StartTime
 
 	if devNet {
 		block.Header.NetworkID = common.NETWORK_ID_TEST
