@@ -34,8 +34,8 @@ const (
 	CmdInv         = "inv"
 	CmdGetData     = "getdata"
 	CmdNotFound    = "notfound"
-	CmdBlock       = "block"
-	CmdTx          = "tx"
+	CmdBlock       = "block" // Factoid Block
+	CmdTx          = "tx"    // Factoid Tx
 	CmdGetHeaders  = "getheaders"
 	CmdHeaders     = "headers"
 	CmdPing        = "ping"
@@ -50,19 +50,16 @@ const (
 
 	// Factom additions:
 
-	// using these commands we query & find the best chain & latest height for the Directory (all other chain heights are then known)
+	// Factom downloads: block & entry
 	CmdGetDirBlocks  = "getdirblocks"
 	CmdDirInv        = "dirInv"
 	CmdGetDirData    = "getdirdata"
-	CmdGetNonDirData = "getnondirdata"
-	CmdGetEntryData  = "getentrydata"
 	CmdDirBlock      = "dirblock"
-
-	// incoming blocks of the 3 special types & 1 general-purpose chain type:
-	//	CmdBlock            = "factoidblock"
-	CmdCBlock = "ecblock"    // Entry Credit Block
-	CmdEBlock = "entryblock" // Entry Block
-	CmdEntry  = "entry"
+	CmdGetNonDirData = "getnondirdata"
+	CmdCBlock        = "ecblock"    // Entry Credit Block
+	CmdEBlock        = "entryblock" // Entry Block
+	CmdGetEntryData  = "getentrydata"
+	CmdEntry         = "entry"
 
 	CmdCommitChain = "commitchain"
 	CmdRevealChain = "revealchain"
