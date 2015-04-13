@@ -459,6 +459,11 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 			}
 		}
 
+	case wire.CmdInt_FactoidBlock:
+		factoidBlock, ok := msg.(*wire.MsgInt_FactoidBlock)
+		util.Trace("Factoid Block (generated)")
+		fmt.Println("factoidBlock= ", factoidBlock, " ok= ", ok)
+
 	case wire.CmdDirBlock:
 		dirBlock, ok := msg.(*wire.MsgDirBlock)
 		if ok {
