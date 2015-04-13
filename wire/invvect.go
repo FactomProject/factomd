@@ -24,9 +24,9 @@ type InvType uint32
 // These constants define the various supported inventory vector types.
 const (
 	InvTypeError InvType = 0
-	InvTypeTx    InvType = 1
+	InvTypeTx    InvType = 1 // Factoid tx
 
-	InvTypeBlock InvType = 2
+	InvTypeBlock InvType = 2 // Factoid block
 	//	InvTypeFilteredBlock InvType = 3
 
 	InvTypeFactomDirBlock         InvType = 14

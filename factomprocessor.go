@@ -441,9 +441,9 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 			msgEom, ok := msg.(*wire.MsgInt_EOM)
 			if !ok {
 				return errors.New("Error in build blocks:" + fmt.Sprintf("%+v", msg))
-			} else {
-				fmt.Println("wire.CmdInt_EOM:%+v", msg)
 			}
+			fmt.Println("wire.CmdInt_EOM:%+v", msg)
+
 			if msgEom.EOM_Type == wire.END_MINUTE_10 {
 				// Process from Orphan pool before the end of process list
 				processFromOrphanPool()
@@ -481,6 +481,39 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
 		}
 
+	case wire.CmdEBlock:
+		eblock, ok := msg.(*wire.MsgEBlock)
+		if ok {
+			err := processEBlock(eblock)
+			if err != nil {
+				return err
+			}
+		} else {
+			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
+		}
+
+	case wire.CmdEntry:
+		entry, ok := msg.(*wire.MsgEntry)
+		if ok {
+			err := processEntry(entry)
+			if err != nil {
+				return err
+			}
+		} else {
+			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
+		}
+
+	case wire.CmdBlock: // Factoid block
+		block, ok := msg.(*wire.MsgBlock)
+		if ok {
+			err := processFactoidBlock(block)
+			if err != nil {
+				return err
+			}
+		} else {
+			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
+		}
+
 	default:
 		return errors.New("Message type unsupported:" + fmt.Sprintf("%+v", msg))
 	}
@@ -500,6 +533,29 @@ func processDirBlock(msg *wire.MsgDirBlock) error {
 func processCBlock(msg *wire.MsgCBlock) error {
 	util.Trace()
 	fmt.Printf("MsgCBlock=%s\n", spew.Sdump(msg.CBlk))
+	return nil
+}
+
+// processEBlock validates entry block and save it to factom db.
+// similar to blockChain.BC_ProcessBlock
+func processEBlock(msg *wire.MsgEBlock) error {
+	util.Trace()
+	fmt.Printf("MsgEBlock=%s\n", spew.Sdump(msg.EBlk))
+	return nil
+}
+
+// processEntry validates entry and save it to factom db.
+// similar to blockChain.BC_ProcessBlock
+func processEntry(msg *wire.MsgEntry) error {
+	util.Trace()
+	fmt.Printf("MsgEntry=%s\n", spew.Sdump(msg.Entry))
+	return nil
+}
+
+// processFactoidBlock validates factoid block and save it to factom db.
+func processFactoidBlock(msg *wire.MsgBlock) error {
+	util.Trace()
+	fmt.Printf("Msg Factoid Block=%s\n", spew.Sdump(msg))
 	return nil
 }
 
@@ -707,40 +763,37 @@ func processFromOrphanPool() error {
 			err := processCommitChain(msgCommitChain)
 			if err != nil {
 				return err
-			} else {
-				delete(fMemPool.orphans, k)
 			}
+			delete(fMemPool.orphans, k)
 
 		case wire.CmdRevealChain:
 			msgRevealChain, _ := msg.(*wire.MsgRevealChain)
 			err := processRevealChain(msgRevealChain)
 			if err != nil {
 				return err
-			} else {
-				delete(fMemPool.orphans, k)
 			}
+			delete(fMemPool.orphans, k)
 
 		case wire.CmdCommitEntry:
 			msgCommitEntry, _ := msg.(*wire.MsgCommitEntry)
 			err := processCommitEntry(msgCommitEntry)
 			if err != nil {
 				return err
-			} else {
-				delete(fMemPool.orphans, k)
 			}
+			delete(fMemPool.orphans, k)
 
 		case wire.CmdRevealEntry:
 			msgRevealEntry, _ := msg.(*wire.MsgRevealEntry)
 			err := processRevealEntry(msgRevealEntry)
 			if err != nil {
 				return err
-			} else {
-				delete(fMemPool.orphans, k)
 			}
+			delete(fMemPool.orphans, k)
 		}
 	}
 	return nil
 }
+
 func buildRevealEntry(msg *wire.MsgRevealEntry) {
 
 	chain := chainIDMap[msg.Entry.ChainID.String()]
