@@ -1142,6 +1142,7 @@ func initDChain() {
 		}
 		dBlocks[i].Chain = dchain
 		dBlocks[i].IsSealed = true
+		dBlocks[i].IsSavedInDB = true
 		dchain.Blocks[i] = &dBlocks[i]
 	}
 
