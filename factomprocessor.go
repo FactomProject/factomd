@@ -1003,7 +1003,7 @@ func newEntryCreditBlock(chain *common.CChain) *common.CBlock {
 func newDirectoryBlock(chain *common.DChain) *common.DBlock {
 
 	// acquire the last block
-	block := chain.Blocks[len(chain.Blocks)-1]
+	block := chain.NextBlock
 
 	/*
 		if len(block.DBEntries) < 1 {
@@ -1021,9 +1021,9 @@ func newDirectoryBlock(chain *common.DChain) *common.DBlock {
 	}
 	blkhash, _ := common.CreateHash(block)
 	block.IsSealed = true
+	chain.AddDBlockToDChain(block)
 	chain.NextBlockID++
-	newblock, _ := common.CreateDBlock(chain, block, 10)
-	chain.Blocks = append(chain.Blocks, newblock)
+	chain.NextBlock, _ = common.CreateDBlock(chain, block, 10)
 	chain.BlockMutex.Unlock()
 
 	//Store the block in db
@@ -1054,7 +1054,7 @@ func saveDChain(chain *common.DChain) {
 
 	for i, block := range bcp {
 		//the open block is not saved
-		if block.IsSealed == false {
+		if block==nil || block.IsSealed == false {
 			continue
 		}
 
@@ -1134,7 +1134,7 @@ func initDChain() {
 	dBlocks, _ := db.FetchAllDBlocks()
 	sort.Sort(util.ByDBlockIDAccending(dBlocks))
 
-	dchain.Blocks = make([]*common.DBlock, len(dBlocks))
+	dchain.Blocks = make([]*common.DBlock, len(dBlocks), len(dBlocks) +1)
 
 	for i := 0; i < len(dBlocks); i = i + 1 {
 		if dBlocks[i].Header.BlockID != uint64(i) {
@@ -1155,21 +1155,17 @@ func initDChain() {
 	//Create an empty block and append to the chain
 	if len(dchain.Blocks) == 0 {
 		dchain.NextBlockID = 0
-		newblock, _ := common.CreateDBlock(dchain, nil, 10)
-		dchain.Blocks = append(dchain.Blocks, newblock)
+		dchain.NextBlock, _ = common.CreateDBlock(dchain, nil, 10)
 		newDirectoryBlock(dchain) // empty genesis block??
 		saveDChain(dchain)
 
 	} else {
 		dchain.NextBlockID = uint64(len(dchain.Blocks))
-		newblock, _ := common.CreateDBlock(dchain, dchain.Blocks[len(dchain.Blocks)-1], 10)
-		dchain.Blocks = append(dchain.Blocks, newblock)
+		dchain.NextBlock, _ = common.CreateDBlock(dchain, dchain.Blocks[len(dchain.Blocks)-1], 10)
 	}
 
-	//Get the unprocessed entries in db for the past # of mins for the open block
-	binaryTimestamp := make([]byte, 8)
-	binary.BigEndian.PutUint64(binaryTimestamp, uint64(0))
-	if dchain.Blocks[dchain.NextBlockID].IsSealed == true {
+	//Double check the sealed flag
+	if dchain.NextBlock.IsSealed == true {
 		panic("dchain.Blocks[dchain.NextBlockID].IsSealed for chain:" + dchain.ChainID.String())
 	}
 
@@ -1203,7 +1199,7 @@ func initCChain() {
 
 		// Calculate the EC balance for each account
 		initializeECreditMap(cchain.Blocks[i])
-	}
+	} 
 
 	// double check the block ids
 	for i := 0; i < len(cchain.Blocks); i = i + 1 {
