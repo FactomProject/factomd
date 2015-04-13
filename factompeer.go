@@ -91,11 +91,9 @@ func (p *peer) handleEntryMsg(msg *wire.MsgEntry, buf []byte) {
 	inMsgQueue <- msg
 }
 
-// handleGetNonDirDataMsg is invoked when a peer receives a dir block message.
-// It returns the corresponding data block like Factoid block,
-// EC block, Entry block, and Entry based on dblock's ChainID
-// Similar to handleGetDirDataMsg
-func (p *peer) handleGetNonDirDataMsg(msg *wire.MsgGetNonDirData) {
+// handleGetEntryDataMsg is invoked when a peer receives a get entry data message and
+// is used to deliver entry of EBlock information.
+func (p *peer) handleGetEntryDataMsg(msg *wire.MsgGetEntryData) {
 	util.Trace()
 	numAdded := 0
 	notFound := wire.NewMsgNotFound()
@@ -109,6 +107,84 @@ func (p *peer) handleGetNonDirDataMsg(msg *wire.MsgGetNonDirData) {
 	doneChan := make(chan struct{}, 1)
 	for i, iv := range msg.InvList {
 
+		var c chan struct{}
+		// If this will be the last message we send.
+		if i == len(msg.InvList)-1 && len(notFound.InvList) == 0 {
+			c = doneChan
+		} else { //if (i+1)%3 == 0 {
+			// Buffered so as to not make the send goroutine block.
+			c = make(chan struct{}, 1)
+		}
+
+		if iv.Type != wire.InvTypeFactomEntry {
+			continue
+		}
+
+		// Is this right? what is iv.hash?
+		blk, err := db.FetchEBlockByHash(iv.Hash.ToFactomHash())
+
+		if err != nil {
+			peerLog.Tracef("Unable to fetch requested EBlock sha %v: %v",
+				iv.Hash, err)
+
+			if doneChan != nil {
+				doneChan <- struct{}{}
+			}
+			return
+		}
+
+		fmt.Printf("commonHash=%s, entry block=%s\n", iv.Hash.ToFactomHash().String(), spew.Sdump(blk))
+
+		for _, ebEntry := range blk.EBEntries {
+
+			var err error
+			err = p.pushEntryMsg(ebEntry.EntryHash, c, waitChan)
+			if err != nil {
+				notFound.AddInvVect(iv)
+				// When there is a failure fetching the final entry
+				// and the done channel was sent in due to there
+				// being no outstanding not found inventory, consume
+				// it here because there is now not found inventory
+				// that will use the channel momentarily.
+				if i == len(msg.InvList)-1 && c != nil {
+					<-c
+				}
+			}
+			numAdded++
+			waitChan = c
+		}
+
+	}
+	if len(notFound.InvList) != 0 {
+		p.QueueMessage(notFound, doneChan)
+	}
+
+	// Wait for messages to be sent. We can send quite a lot of data at this
+	// point and this will keep the peer busy for a decent amount of time.
+	// We don't process anything else by them in this time so that we
+	// have an idea of when we should hear back from them - else the idle
+	// timeout could fire when we were only half done sending the blocks.
+	if numAdded > 0 {
+		<-doneChan
+	}
+}
+
+// handleGetNonDirDataMsg is invoked when a peer receives a dir block message.
+// It returns the corresponding data block like Factoid block,
+// EC block, Entry block, and Entry based on directory block's ChainID
+func (p *peer) handleGetNonDirDataMsg(msg *wire.MsgGetNonDirData) {
+	util.Trace()
+	numAdded := 0
+	notFound := wire.NewMsgNotFound()
+
+	// We wait on the this wait channel periodically to prevent queueing
+	// far more data than we can send in a reasonable time, wasting memory.
+	// The waiting occurs after the database fetch for the next one to
+	// provide a little pipelining.
+
+	var waitChan chan struct{}
+	doneChan := make(chan struct{}, 1)
+	for i, iv := range msg.InvList {
 		var c chan struct{}
 		// If this will be the last message we send.
 		if i == len(msg.InvList)-1 && len(notFound.InvList) == 0 {
@@ -142,7 +218,6 @@ func (p *peer) handleGetNonDirDataMsg(msg *wire.MsgGetNonDirData) {
 			var err error
 			switch dbEntry.ChainID.String() {
 			case cchain.ChainID.String():
-				// similar to pushDirBlockMsg
 				err = p.pushCBlockMsg(dbEntry.MerkleRoot, c, waitChan)
 
 			case fchainID.String():
@@ -150,7 +225,7 @@ func (p *peer) handleGetNonDirDataMsg(msg *wire.MsgGetNonDirData) {
 
 			default:
 				err = p.pushEBlockMsg(dbEntry.MerkleRoot, c, waitChan)
-				continue
+				//continue
 			}
 			if err != nil {
 				notFound.AddInvVect(iv)
@@ -190,14 +265,6 @@ func (p *peer) handleDirInvMsg(msg *wire.MsgDirInv) {
 	util.Trace()
 	p.server.blockManager.QueueDirInv(msg, p)
 }
-
-/*
-// handleHeadersMsg is invoked when a peer receives a headers bitcoin message.
-// The message is passed down to the block manager.
-func (p *peer) handleHeadersMsg(msg *wire.MsgHeaders) {
-	p.server.blockManager.QueueHeaders(msg, p)
-}
-*/
 
 // handleGetDirDataMsg is invoked when a peer receives a getdata bitcoin message and
 // is used to deliver block and transaction information.
@@ -573,6 +640,37 @@ func (p *peer) pushEBlockMsg(commonhash *common.Hash, doneChan, waitChan chan st
 	}
 
 	msg := wire.NewMsgEBlock()
+	//msg.EBlk = blk
+	//fmt.Printf("eblock=%s\n", spew.Sdump(blk))
+	p.QueueMessage(msg, doneChan) //blk.MsgBlock(), dc)
+	return nil
+}
+
+// pushEntryMsg sends a EBlock entry message for the provided ebentry hash to the
+// connected peer.  An error is returned if the block hash is not known.
+func (p *peer) pushEntryMsg(commonhash *common.Hash, doneChan, waitChan chan struct{}) error {
+	util.Trace()
+
+	blk, err := db.FetchEntryByHash(commonhash)
+
+	if err != nil {
+		peerLog.Tracef("Unable to fetch requested eblock entry sha %v: %v",
+			commonhash, err)
+
+		if doneChan != nil {
+			doneChan <- struct{}{}
+		}
+		return err
+	}
+
+	fmt.Printf("commonHash=%s, entry=%s\n", commonhash.String(), spew.Sdump(blk))
+
+	// Once we have fetched data wait for any previous operation to finish.
+	if waitChan != nil {
+		<-waitChan
+	}
+
+	msg := wire.NewMsgEntry()
 	//msg.EBlk = blk
 	//fmt.Printf("eblock=%s\n", spew.Sdump(blk))
 	p.QueueMessage(msg, doneChan) //blk.MsgBlock(), dc)

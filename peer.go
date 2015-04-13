@@ -1577,21 +1577,10 @@ out:
 			p.handleRevealEntryMsg(msg)
 			p.FactomRelay(msg)
 
-		case *wire.MsgCBlock:
+			// Factom blocks downloading
+		case *wire.MsgGetDirBlocks:
 			util.Trace()
-			p.handleCBlockMsg(msg, buf)
-
-		case *wire.MsgEBlock:
-			util.Trace()
-			p.handleEBlockMsg(msg, buf)
-
-		case *wire.MsgEntry:
-			util.Trace()
-			p.handleEntryMsg(msg, buf)
-
-		case *wire.MsgDirBlock:
-			util.Trace()
-			p.handleDirBlockMsg(msg, buf)
+			p.handleGetDirBlocksMsg(msg)
 
 		case *wire.MsgDirInv:
 			util.Trace()
@@ -1603,9 +1592,31 @@ out:
 			p.handleGetDirDataMsg(msg)
 			markConnected = true
 
-		case *wire.MsgGetDirBlocks:
+		case *wire.MsgDirBlock:
 			util.Trace()
-			p.handleGetDirBlocksMsg(msg)
+			p.handleDirBlockMsg(msg, buf)
+
+		case *wire.MsgGetNonDirData:
+			util.Trace()
+			p.handleGetNonDirDataMsg(msg)
+			markConnected = true
+
+		case *wire.MsgCBlock:
+			util.Trace()
+			p.handleCBlockMsg(msg, buf)
+
+		case *wire.MsgEBlock:
+			util.Trace()
+			p.handleEBlockMsg(msg, buf)
+
+		case *wire.MsgGetEntryData:
+			util.Trace()
+			p.handleGetEntryDataMsg(msg)
+			markConnected = true
+
+		case *wire.MsgEntry:
+			util.Trace()
+			p.handleEntryMsg(msg, buf)
 
 		default:
 			peerLog.Debugf("Received unhandled message of type %v: Fix Me",
