@@ -11,7 +11,7 @@ import (
 )
 
 // MsgCBlock implements the Message interface and represents a factom
-// Reveal-Entry message.  It is used by client to reveal the entry.
+// CBlock message.  It is used by client to download CBlock.
 type MsgCBlock struct {
 	CBlk *common.CBlock
 }

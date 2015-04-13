@@ -609,18 +609,18 @@ func (p *peer) pushCBlockMsg(commonhash *common.Hash, doneChan, waitChan chan st
 	}
 
 	msg := wire.NewMsgCBlock()
-	//msg.CBlk = blk
-	//fmt.Printf("cblock=%s\n", spew.Sdump(blk))
+	msg.CBlk = blk
+	fmt.Printf("cblock=%s\n", spew.Sdump(blk))
 	p.QueueMessage(msg, doneChan) //blk.MsgBlock(), dc)
 	return nil
 }
 
-// pushEBlockMsg sends a entry credit block message for the provided block hash to the
+// pushEBlockMsg sends a entry block message for the provided block hash to the
 // connected peer.  An error is returned if the block hash is not known.
 func (p *peer) pushEBlockMsg(commonhash *common.Hash, doneChan, waitChan chan struct{}) error {
 	util.Trace()
 
-	blk, err := db.FetchEBHashByMR(commonhash)
+	blk, err := db.FetchEBlockByMR(commonhash)
 
 	if err != nil {
 		peerLog.Tracef("Unable to fetch requested entry block sha %v: %v",
@@ -640,8 +640,8 @@ func (p *peer) pushEBlockMsg(commonhash *common.Hash, doneChan, waitChan chan st
 	}
 
 	msg := wire.NewMsgEBlock()
-	//msg.EBlk = blk
-	//fmt.Printf("eblock=%s\n", spew.Sdump(blk))
+	msg.EBlk = blk
+	fmt.Printf("eblock=%s\n", spew.Sdump(blk))
 	p.QueueMessage(msg, doneChan) //blk.MsgBlock(), dc)
 	return nil
 }
@@ -651,7 +651,7 @@ func (p *peer) pushEBlockMsg(commonhash *common.Hash, doneChan, waitChan chan st
 func (p *peer) pushEntryMsg(commonhash *common.Hash, doneChan, waitChan chan struct{}) error {
 	util.Trace()
 
-	blk, err := db.FetchEntryByHash(commonhash)
+	entry, err := db.FetchEntryByHash(commonhash)
 
 	if err != nil {
 		peerLog.Tracef("Unable to fetch requested eblock entry sha %v: %v",
@@ -663,7 +663,7 @@ func (p *peer) pushEntryMsg(commonhash *common.Hash, doneChan, waitChan chan str
 		return err
 	}
 
-	fmt.Printf("commonHash=%s, entry=%s\n", commonhash.String(), spew.Sdump(blk))
+	fmt.Printf("commonHash=%s, entry=%s\n", commonhash.String(), spew.Sdump(entry))
 
 	// Once we have fetched data wait for any previous operation to finish.
 	if waitChan != nil {
@@ -671,8 +671,8 @@ func (p *peer) pushEntryMsg(commonhash *common.Hash, doneChan, waitChan chan str
 	}
 
 	msg := wire.NewMsgEntry()
-	//msg.EBlk = blk
-	//fmt.Printf("eblock=%s\n", spew.Sdump(blk))
+	msg.Entry = entry
+	fmt.Printf("Entry=%s\n", spew.Sdump(entry))
 	p.QueueMessage(msg, doneChan) //blk.MsgBlock(), dc)
 	return nil
 }

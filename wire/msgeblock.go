@@ -11,7 +11,7 @@ import (
 )
 
 // MsgEBlock implements the Message interface and represents a factom
-// EBlock message.  It is used by client to reveal the entry.
+// EBlock message.  It is used by client to download the EBlock.
 type MsgEBlock struct {
 	EBlk *common.EBlock
 }
