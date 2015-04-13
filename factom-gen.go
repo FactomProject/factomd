@@ -64,11 +64,13 @@ func test_generateBlocks() {
 	// Choose a payment address at random.
 	//	rand.Seed(time.Now().UnixNano())
 	//	payToAddr := cfg.miningAddrs[rand.Intn(len(cfg.miningAddrs))]
-	payToAddr := newAddressPubKey(decodeHex("0461cbdcc5409fb4b" +
-		"4d42b51d33381354d80e550078cb532a34bf" +
-		"a2fcfdeb7d76519aecc62770f5b0e4ef8551" +
-		"946d8a540911abe3e7854a26f39f58b25c15" +
-		"342af"))
+	/*
+		payToAddr0 := newAddressPubKey(decodeHex("0461cbdcc5409fb4b" +
+			"4d42b51d33381354d80e550078cb532a34bf" +
+			"a2fcfdeb7d76519aecc62770f5b0e4ef8551" +
+			"946d8a540911abe3e7854a26f39f58b25c15" +
+			"342af"))
+	*/
 
 	/*
 		//	randHashBytes := make([]byte, wire.HashSize)
@@ -82,7 +84,9 @@ func test_generateBlocks() {
 	// Create a new block template using the available transactions
 	// in the memory pool as a source of transactions to potentially
 	// include in the block.
-	template, err := test_NewBlockTemplate(local_Server.txMemPool, payToAddr)
+	payto := wire.RCDHash{}
+
+	template, err := NewBlockTemplate(local_Server.txMemPool, payto)
 	m.submitBlockLock.Unlock()
 
 	util.Trace()
@@ -313,7 +317,7 @@ func (m *CPUMINER) test_submitBlock(block *btcutil.Block) bool {
 //  |  transactions (while block size   |   |
 //  |  <= cfg.BlockMinSize)             |   |
 //   -----------------------------------  --
-func test_NewBlockTemplate(mempool *txMemPool, payToAddress btcutil.Address) (*BlockTemplate, error) {
+func NewBlockTemplate(mempool *txMemPool, payToAddress wire.RCDHash) (*BlockTemplate, error) {
 	util.Trace()
 
 	blockManager := mempool.server.blockManager
@@ -329,21 +333,7 @@ func test_NewBlockTemplate(mempool *txMemPool, payToAddress btcutil.Address) (*B
 	fmt.Printf("nextBlockHeight= %d\n", nextBlockHeight)
 	fmt.Println("prevHash= ", prevHash)
 
-	// Create a standard coinbase transaction paying to the provided
-	// address.  NOTE: The coinbase value will be updated to include the
-	// fees from the selected transactions later after they have actually
-	// been selected.  It is created here to detect any errors early
-	// before potentially doing a lot of work below.  The extra nonce helps
-	// ensure the transaction is not a duplicate transaction (paying the
-	// same value to the same public key address would otherwise be an
-	// identical transaction for block version 1).
-	extraNonce := uint64(0)
-	coinbaseScript, err := standardCoinbaseScript(nextBlockHeight, extraNonce)
-	if err != nil {
-		return nil, err
-	}
-	util.Trace()
-	coinbaseTx, err := createCoinbaseTx(coinbaseScript, nextBlockHeight, payToAddress)
+	coinbaseTx, err := createCoinbaseTx(nextBlockHeight, payToAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -487,10 +477,14 @@ func test_NewBlockTemplate(mempool *txMemPool, payToAddress btcutil.Address) (*B
 
 	util.Trace()
 	return &BlockTemplate{
-		block:           &msgBlock,
-		fees:            txFees,
-		sigOpCounts:     txSigOpCounts,
-		height:          nextBlockHeight,
-		validPayAddress: payToAddress != nil,
+		block:       &msgBlock,
+		fees:        txFees,
+		sigOpCounts: txSigOpCounts,
+		height:      nextBlockHeight,
+		// TODO: good check to have; compile issue TBD; FIXME
+		// cannot convert nil to type wire.RCDHash
+		// use of untyped nil
+		//		validPayAddress: payToAddress != nil,
+		validPayAddress: true,
 	}, nil
 }

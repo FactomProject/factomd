@@ -102,6 +102,7 @@ func isNullOutpoint(outpoint *wire.OutPoint) bool {
 // zero hash.
 func IsCoinBase(tx *btcutil.Tx) bool {
 	util.Trace()
+
 	msgTx := tx.MsgTx()
 
 	fmt.Println("tx=", spew.Sdump(tx))
