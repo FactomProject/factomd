@@ -176,14 +176,17 @@ func makeEmptyMessage(command string) (Message, error) {
 	case CmdGetDirData:
 		msg = &MsgGetDirData{}
 
+	case CmdDirBlock:
+		msg = &MsgDirBlock{}
+
 	case CmdCBlock:
 		msg = &MsgCBlock{}
 
 	case CmdEBlock:
-		//msg = &MsgEBlock{}
+		msg = &MsgEBlock{}
 
 	case CmdEntry:
-		//msg = &MsgEntry{}
+		msg = &MsgEntry{}
 
 	default:
 		return nil, fmt.Errorf("unhandled command [%s]", command)
