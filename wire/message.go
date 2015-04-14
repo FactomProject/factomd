@@ -18,7 +18,7 @@ const MessageHeaderSize = 24
 
 // CommandSize is the fixed size of all commands in the common bitcoin message
 // header.  Shorter commands must be zero padded.
-const CommandSize = 15
+const CommandSize = 12
 
 // MaxMessagePayload is the maximum bytes a message can be regardless of other
 // individual limits imposed by messages themselves.
@@ -55,7 +55,7 @@ const (
 	CmdDirInv        = "dirInv"
 	CmdGetDirData    = "getdirdata"
 	CmdDirBlock      = "dirblock"
-	CmdGetNonDirData = "getnondirdata"
+	CmdGetNonDirData = "getnodirdata"
 	CmdCBlock        = "ecblock"    // Entry Credit Block
 	CmdEBlock        = "entryblock" // Entry Block
 	CmdGetEntryData  = "getentrydata"
@@ -179,11 +179,17 @@ func makeEmptyMessage(command string) (Message, error) {
 	case CmdDirBlock:
 		msg = &MsgDirBlock{}
 
+	case CmdGetNonDirData:
+		msg = &MsgGetNonDirData{}
+
 	case CmdCBlock:
 		msg = &MsgCBlock{}
 
 	case CmdEBlock:
 		msg = &MsgEBlock{}
+
+	case CmdGetEntryData:
+		msg = &MsgGetEntryData{}
 
 	case CmdEntry:
 		msg = &MsgEntry{}
