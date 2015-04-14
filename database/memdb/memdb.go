@@ -7,7 +7,7 @@ package memdb
 import (
 	"errors"
 	"fmt"
-	"math"
+	//	"math"
 	"sync"
 
 	"github.com/FactomProject/btcd/database"
@@ -54,8 +54,11 @@ func newShaHashFromStr(hexStr string) *wire.ShaHash {
 // a single input that has a previous output transaction index set to the
 // maximum value along with a zero hash.
 func isCoinbaseInput(txIn *wire.TxIn) bool {
+	util.Trace()
+
 	prevOut := &txIn.PreviousOutPoint
-	if prevOut.Index == math.MaxUint32 && prevOut.Hash.IsEqual(&zeroHash) {
+	//	if prevOut.Index == math.MaxUint32 && prevOut.Hash.IsEqual(&zeroHash) {
+	if prevOut.Hash.IsEqual(&zeroHash) {
 		return true
 	}
 

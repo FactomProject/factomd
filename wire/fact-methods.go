@@ -28,9 +28,6 @@ const (
 	TxVersion  = 0
 	inNout_cap = 16000 // per spec
 
-	//	MaxPrevOutIndex = 0xffffffff // there are some checks that expect math.MaxUint32 here... hm: IsCoinBase()
-	MaxPrevOutIndex = math.MaxUint32 // there are some checks that expect math.MaxUint32 here... hm: IsCoinBase()
-
 	// minTxPayload is the minimum payload size for a transaction.  Note
 	// that any realistically usable transaction must have at least one
 	// input or output, but that is a rule enforced at a higher layer, so

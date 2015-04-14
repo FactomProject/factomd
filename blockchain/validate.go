@@ -7,7 +7,7 @@ package blockchain
 import (
 	//	"encoding/binary"
 	"fmt"
-	"math"
+	//	"math"
 	"math/big"
 	"time"
 
@@ -90,7 +90,9 @@ var (
 // isNullOutpoint determines whether or not a previous transaction output point
 // is set.
 func isNullOutpoint(outpoint *wire.OutPoint) bool {
-	if outpoint.Index == math.MaxUint32 && outpoint.Hash.IsEqual(zeroHash) {
+	util.Trace()
+	//	if outpoint.Index == math.MaxUint32 && outpoint.Hash.IsEqual(zeroHash) {
+	if outpoint.Hash.IsEqual(zeroHash) {
 		return true
 	}
 	return false
@@ -118,7 +120,7 @@ func IsCoinBase(tx *btcutil.Tx) bool {
 		return false
 	}
 	util.Trace()
-	// A coin base must have exactly 1 RCD (?) TODO FIXME TBD
+	// A coin base must not have any RCD reveals
 	if len(msgTx.RCDreveal) != 0 {
 		return false
 	}
@@ -135,17 +137,18 @@ func IsCoinBase(tx *btcutil.Tx) bool {
 		}
 	*/
 
-	if prevOut.Index != math.MaxUint32 {
+	if !prevOut.Hash.IsEqual(zeroHash) {
+		util.Trace("WARNING: not zeroHash !")
 		return false
 	}
 	util.Trace()
 
-	if !prevOut.Hash.IsEqual(zeroHash) {
-		util.Trace("WARNING: not zeroHash !")
-		return false // TODO FIXME : check with Brian
-	}
-
-	util.Trace()
+	/*
+		if prevOut.Index != math.MaxUint32 {
+			return false
+		}
+		util.Trace()
+	*/
 
 	return true
 }

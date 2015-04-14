@@ -30,6 +30,8 @@ const (
 
 var log = btclog.Disabled
 
+var zeroHash wire.ShaHash
+
 type tTxInsertData struct {
 	txsha   *wire.ShaHash
 	blockid int64
@@ -442,7 +444,7 @@ func (db *LevelDb) InsertBlock(block *btcutil.Block) (height int64, rerr error) 
 				spendtx.AddTxIn(txI)
 				err = db.doSpend(&spendtx)
 				if err != nil {
-					log.Warnf("block %v idx %v failed to spend tx %v %v err %v", blocksha, newheight, &txsha, txidx, err)
+					log.Warnf("err1: block %v idx %v failed to spend tx %v %v err %v", blocksha, newheight, &txsha, txidx, err)
 				}
 			}
 		}
@@ -460,14 +462,14 @@ func (db *LevelDb) InsertBlock(block *btcutil.Block) (height int64, rerr error) 
 				spendtx.AddTxIn(txI)
 				err = db.doSpend(&spendtx)
 				if err != nil {
-					log.Warnf("block %v idx %v failed to spend tx %v %v err %v", blocksha, newheight, &txsha, txidx, err)
+					log.Warnf("err2: block %v idx %v failed to spend tx %v %v err %v", blocksha, newheight, &txsha, txidx, err)
 				}
 			}
 		}
 
 		err = db.doSpend(tx)
 		if err != nil {
-			log.Warnf("block %v idx %v failed to spend tx %v %v err %v", blocksha, newheight, txsha, txidx, err)
+			log.Warnf("err3: block %v idx %v failed to spend tx %v %v err %v", blocksha, newheight, txsha, txidx, err)
 			return 0, err
 		}
 	}
@@ -477,13 +479,19 @@ func (db *LevelDb) InsertBlock(block *btcutil.Block) (height int64, rerr error) 
 // doSpend iterates all TxIn in a bitcoin transaction marking each associated
 // TxOut as spent.
 func (db *LevelDb) doSpend(tx *wire.MsgTx) error {
+	util.Trace()
 	for txinidx := range tx.TxIn {
 		txin := tx.TxIn[txinidx]
 
 		inTxSha := txin.PreviousOutPoint.Hash
 		inTxidx := txin.PreviousOutPoint.Index
 
+		// CoinBase check !!!
 		if inTxidx == ^uint32(0) {
+			continue
+		}
+
+		if inTxSha.IsEqual(&zeroHash) {
 			continue
 		}
 
@@ -500,13 +508,19 @@ func (db *LevelDb) doSpend(tx *wire.MsgTx) error {
 // unSpend iterates all TxIn in a bitcoin transaction marking each associated
 // TxOut as unspent.
 func (db *LevelDb) unSpend(tx *wire.MsgTx) error {
+	util.Trace()
 	for txinidx := range tx.TxIn {
 		txin := tx.TxIn[txinidx]
 
 		inTxSha := txin.PreviousOutPoint.Hash
 		inTxidx := txin.PreviousOutPoint.Index
 
+		// CoinBase check !!!
 		if inTxidx == ^uint32(0) {
+			continue
+		}
+
+		if inTxSha.IsEqual(&zeroHash) {
 			continue
 		}
 

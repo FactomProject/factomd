@@ -107,13 +107,16 @@ func test_generateBlocks() {
 	block := btcutil.NewBlock(template.block)
 	fmt.Println("NewBlock= ", spew.Sdump(block))
 
-	m.submitBlock(block)
+	successful := m.submitBlock(block)
 
 	//	m.workerWg.Done()
 	minrLog.Infof("Generate blocks worker done; height= %d", curHeight)
 
 	blockSha, _ := block.Sha()
-	factomIngressBlock_hook(blockSha)
+
+	if successful {
+		factomIngressBlock_hook(blockSha)
+	}
 
 	util.Trace()
 }
@@ -326,7 +329,7 @@ func NewBlockTemplate(mempool *txMemPool, payToAddress wire.RCDHash) (*BlockTemp
 	fmt.Printf("nextBlockHeight= %d\n", nextBlockHeight)
 	fmt.Println("prevHash= ", prevHash)
 
-	coinbaseTx, err := createCoinbaseTx(nextBlockHeight, payToAddress)
+	coinbaseTx, err := createCoinbaseTx(uint32(nextBlockHeight), payToAddress)
 	if err != nil {
 		return nil, err
 	}
