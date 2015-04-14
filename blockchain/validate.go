@@ -119,7 +119,7 @@ func IsCoinBase(tx *btcutil.Tx) bool {
 	}
 	util.Trace()
 	// A coin base must have exactly 1 RCD (?) TODO FIXME TBD
-	if len(msgTx.RCDreveal) != 1 {
+	if len(msgTx.RCDreveal) != 0 {
 		return false
 	}
 	util.Trace()
@@ -142,7 +142,7 @@ func IsCoinBase(tx *btcutil.Tx) bool {
 
 	if !prevOut.Hash.IsEqual(zeroHash) {
 		util.Trace("WARNING: not zeroHash !")
-		//		return false  // TODO FIXME : check with Brian
+		return false // TODO FIXME : check with Brian
 	}
 
 	util.Trace()

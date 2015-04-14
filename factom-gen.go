@@ -330,7 +330,8 @@ func NewBlockTemplate(mempool *txMemPool, payToAddress wire.RCDHash) (*BlockTemp
 	if err != nil {
 		return nil, err
 	}
-	util.Trace()
+	util.Trace(fmt.Sprintf("coinbase tx=%s", spew.Sdump(coinbaseTx)))
+
 	numCoinbaseSigOps := int64(blockchain.CountSigOps(coinbaseTx))
 
 	// Get the current memory pool transactions and create a priority queue

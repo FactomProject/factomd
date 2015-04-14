@@ -219,36 +219,46 @@ func createCoinbaseTx(nextBlockHeight int64, addr wire.RCDHash) (*btcutil.Tx, er
 
 	util.Trace()
 
-	randHashBytes := make([]byte, wire.HashSize)
-	nn, err0 := rand.Read(randHashBytes)
-	fmt.Println(nn, err0, randHashBytes)
-
-	newsha, _ := wire.NewShaHash(randHashBytes)
-
 	tx := wire.NewMsgTx()
-	tx.AddTxIn(&wire.TxIn{
-		// Coinbase transactions have no inputs, so previous outpoint is
-		// zero hash and max index.
-		//		PreviousOutPoint: *wire.NewOutPoint(&wire.ShaHash{},
-		PreviousOutPoint: *wire.NewOutPoint(newsha,
-			wire.MaxPrevOutIndex),
-	})
 
 	tx.AddTxOut(&wire.TxOut{
 		Value:   MaxPayoutAmount,
 		RCDHash: addr,
 	})
 
-	randBytes := make([]byte, wire.PubKeySize)
-	n, err := rand.Read(randBytes)
-	fmt.Println("randBytes: ", n, err, randBytes)
+	tx.AddTxIn(&wire.TxIn{
+		// Coinbase transactions have no inputs, so previous outpoint is
+		// zero hash and max index.
+		PreviousOutPoint: *wire.NewOutPoint(&wire.ShaHash{},
+			uint32(nextBlockHeight)),
+	})
 
-	//	var pubkeys []wire.PubKey
-	pubkeys := make([]wire.PubKey, 1)
+	randHashBytes := make([]byte, wire.HashSize)
+	nn, err0 := rand.Read(randHashBytes)
+	fmt.Println(nn, err0, randHashBytes)
 
-	copy(pubkeys[0][:], randBytes)
+	/*
+		  newsha, _ := wire.NewShaHash(randHashBytes)
 
-	tx.AddRCD(&wire.RCDreveal{PubKey: pubkeys})
+			tx.AddTxIn(&wire.TxIn{
+				// Coinbase transactions have no inputs, so previous outpoint is
+				// zero hash and max index.
+				//		PreviousOutPoint: *wire.NewOutPoint(&wire.ShaHash{},
+				PreviousOutPoint: *wire.NewOutPoint(newsha,
+					wire.MaxPrevOutIndex),
+			})
+
+			randBytes := make([]byte, wire.PubKeySize)
+			n, err := rand.Read(randBytes)
+			fmt.Println("randBytes: ", n, err, randBytes)
+
+			//	var pubkeys []wire.PubKey
+			pubkeys := make([]wire.PubKey, 1)
+
+			copy(pubkeys[0][:], randBytes)
+
+			tx.AddRCD(&wire.RCDreveal{PubKey: pubkeys})
+	*/
 
 	return btcutil.NewTx(tx), nil
 }
