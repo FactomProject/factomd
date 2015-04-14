@@ -529,13 +529,15 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 // similar to blockChain.BC_ProcessBlock
 func processDirBlock(msg *wire.MsgDirBlock) error {
 	util.Trace()
-	fmt.Printf("MsgDirBlock=%s\n", spew.Sdump(msg.DBlk))
-	
+
 	dchain.AddDBlockToDChain(msg.DBlk)
-	
-	db.ProcessDBlockBatch(msg.DBlk)//?? to be removed later
-		
+
+	db.ProcessDBlockBatch(msg.DBlk) //?? to be removed later
+
 	msg.DBlk = nil
+
+	fmt.Printf("Processor: MsgDirBlock=%s\n", spew.Sdump(msg.DBlk))
+
 	return nil
 }
 
@@ -543,8 +545,11 @@ func processDirBlock(msg *wire.MsgDirBlock) error {
 // similar to blockChain.BC_ProcessBlock
 func processCBlock(msg *wire.MsgCBlock) error {
 	util.Trace()
-	fmt.Printf("MsgCBlock=%s\n", spew.Sdump(msg.CBlk))
+
 	db.ProcessCBlockBatch(msg.CBlk)
+
+	fmt.Printf("Processor: MsgCBlock=%s\n", spew.Sdump(msg.CBlk))
+
 	return nil
 }
 
@@ -552,8 +557,11 @@ func processCBlock(msg *wire.MsgCBlock) error {
 // similar to blockChain.BC_ProcessBlock
 func processEBlock(msg *wire.MsgEBlock) error {
 	util.Trace()
-	fmt.Printf("MsgEBlock=%s\n", spew.Sdump(msg.EBlk))
+
 	db.ProcessEBlockBatch(msg.EBlk)
+
+	fmt.Printf("Processor: MsgEBlock=%s\n", spew.Sdump(msg.EBlk))
+
 	return nil
 }
 
@@ -561,7 +569,6 @@ func processEBlock(msg *wire.MsgEBlock) error {
 // similar to blockChain.BC_ProcessBlock
 func processEntry(msg *wire.MsgEntry) error {
 	util.Trace()
-	fmt.Printf("MsgEntry=%s\n", spew.Sdump(msg.Entry))
 
 	chain := chainIDMap[msg.Entry.ChainID.String()]
 
@@ -569,14 +576,16 @@ func processEntry(msg *wire.MsgEntry) error {
 	entryBinary, _ := msg.Entry.MarshalBinary()
 	entryHash := common.Sha(entryBinary)
 	db.InsertEntry(entryHash, &entryBinary, msg.Entry, &chain.ChainID.Bytes)
-	
+
+	fmt.Printf("Processor: MsgEntry=%s\n", spew.Sdump(msg.Entry))
+
 	return nil
 }
 
 // processFactoidBlock validates factoid block and save it to factom db.
 func processFactoidBlock(msg *wire.MsgBlock) error {
 	util.Trace()
-	fmt.Printf("Msg Factoid Block=%s\n", spew.Sdump(msg))
+	fmt.Printf("Processor: MsgFactoidBlock=%s\n", spew.Sdump(msg))
 	return nil
 }
 
@@ -1090,7 +1099,7 @@ func newDirectoryBlock(chain *common.DChain) *common.DBlock {
 	block.Header.EntryCount = uint32(len(block.DBEntries))
 	// Calculate Merkle Root for FBlock and store it in header
 	if block.Header.MerkleRoot == nil {
-		block.Header.MerkleRoot,_ = block.CalculateMerkleRoot()
+		block.Header.MerkleRoot, _ = block.CalculateMerkleRoot()
 		fmt.Println("block.Header.MerkleRoot:%v", block.Header.MerkleRoot.String())
 	}
 	blkhash, _ := common.CreateHash(block)
@@ -1120,28 +1129,31 @@ func validateDChain(c *common.DChain) error {
 	if uint64(len(c.Blocks)) != c.NextBlockID {
 		return errors.New("Dir chain doesn't have an expected Next Block ID: " + string(c.NextBlockID))
 	}
-		
+
 	//prevBlk := c.Blocks[0]
 	prevMR, prevBlkHash, err := validateDBlock(c, c.Blocks[0])
-	if err != nil { return err}		
-	
+	if err != nil {
+		return err
+	}
+
 	//validate the genesis block here??
-	
-	for i:=1; i< len(c.Blocks); i++{
-		if ! prevBlkHash.IsSameAs(c.Blocks[i].Header.PrevBlockHash){
+
+	for i := 1; i < len(c.Blocks); i++ {
+		if !prevBlkHash.IsSameAs(c.Blocks[i].Header.PrevBlockHash) {
 			return errors.New("Previous block hash not matching for Dir block: " + string(i))
 		}
-		if ! prevMR.IsSameAs(c.Blocks[i].Header.MerkleRoot){ //??
-			
-		}		
+		if !prevMR.IsSameAs(c.Blocks[i].Header.MerkleRoot) { //??
+
+		}
 		mr, dblkHash, err := validateDBlock(c, c.Blocks[i])
-		if err != nil { return err}	
-		
+		if err != nil {
+			return err
+		}
+
 		prevMR = mr
 		prevBlkHash = dblkHash
 		//prevBlk = c.Blocks[i]
 	}
-	
 
 	return nil
 }
@@ -1149,68 +1161,75 @@ func validateDChain(c *common.DChain) error {
 func validateDBlock(c *common.DChain, b *common.DBlock) (merkleRoot *common.Hash, dbHash *common.Hash, err error) {
 
 	merkleRoot, err = b.CalculateMerkleRoot()
-	if err != nil { return nil, nil, err}	
+	if err != nil {
+		return nil, nil, err
+	}
 
 	for _, dbEntry := range b.DBEntries {
 		switch dbEntry.ChainID.String() {
-		case cchain.ChainID.String(): 
+		case cchain.ChainID.String():
 			err := validateCBlockByMR(dbEntry.MerkleRoot)
-			if err != nil { return nil, nil, err}
+			if err != nil {
+				return nil, nil, err
+			}
 
-		case fchainID.String(): 
+		case fchainID.String():
 			err := validateFBlockByMR(dbEntry.MerkleRoot)
-			if err != nil { return nil, nil, err}	
+			if err != nil {
+				return nil, nil, err
+			}
 
 		default:
-			err := validateEBlockByMR(dbEntry.ChainID, dbEntry.MerkleRoot)		
-			if err != nil { return nil, nil, err}					
+			err := validateEBlockByMR(dbEntry.ChainID, dbEntry.MerkleRoot)
+			if err != nil {
+				return nil, nil, err
+			}
 		}
 	}
 
 	dbBinary, _ := b.MarshalBinary()
-	dbHash = common.Sha(dbBinary)	
-	
+	dbHash = common.Sha(dbBinary)
+
 	return merkleRoot, dbHash, nil
 }
 
-
 func validateFBlockByMR(mr *common.Hash) error {
 	// Call BTCD side for factoid block validation??
-	
+
 	return nil
 }
 
 func validateCBlockByMR(mr *common.Hash) error {
 	cb, _ := db.FetchCBlockByHash(mr)
-	
+
 	if cb == nil {
-		return errors.New("Entry block not found in db for merkle root: " + mr.String())		
-	}	
-	
+		return errors.New("Entry block not found in db for merkle root: " + mr.String())
+	}
+
 	return nil
 }
 
 func validateEBlockByMR(cid *common.Hash, mr *common.Hash) error {
-	
+
 	eb, _ := db.FetchEBlockByMR(mr)
-	
+
 	if eb == nil {
-		return errors.New("Entry block not found in db for merkle root: " + mr.String())		
+		return errors.New("Entry block not found in db for merkle root: " + mr.String())
 	}
-	
+
 	eb.BuildMerkleRoot()
-	
-	if ! mr.IsSameAs(eb.MerkleRoot) {
-		return errors.New("Entry block's merkle root does not match with: " + mr.String())			
+
+	if !mr.IsSameAs(eb.MerkleRoot) {
+		return errors.New("Entry block's merkle root does not match with: " + mr.String())
 	}
-	
+
 	for _, ebEntry := range eb.EBEntries {
 		entry, _ := db.FetchEntryByHash(ebEntry.EntryHash)
 		if entry == nil {
-			return errors.New("Entry not found in db for entry hash: " + ebEntry.EntryHash.String())		
-		}		
-	}	
-	
+			return errors.New("Entry not found in db for entry hash: " + ebEntry.EntryHash.String())
+		}
+	}
+
 	return nil
 }
 

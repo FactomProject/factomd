@@ -55,7 +55,7 @@ const (
 	CmdDirInv        = "dirInv"
 	CmdGetDirData    = "getdirdata"
 	CmdDirBlock      = "dirblock"
-	CmdGetNonDirData = "getnondirdata"
+	CmdGetNonDirData = "getnodirdata"
 	CmdCBlock        = "ecblock"    // Entry Credit Block
 	CmdEBlock        = "entryblock" // Entry Block
 	CmdGetEntryData  = "getentrydata"
@@ -176,14 +176,23 @@ func makeEmptyMessage(command string) (Message, error) {
 	case CmdGetDirData:
 		msg = &MsgGetDirData{}
 
+	case CmdDirBlock:
+		msg = &MsgDirBlock{}
+
+	case CmdGetNonDirData:
+		msg = &MsgGetNonDirData{}
+
 	case CmdCBlock:
 		msg = &MsgCBlock{}
 
 	case CmdEBlock:
-		//msg = &MsgEBlock{}
+		msg = &MsgEBlock{}
+
+	case CmdGetEntryData:
+		msg = &MsgGetEntryData{}
 
 	case CmdEntry:
-		//msg = &MsgEntry{}
+		msg = &MsgEntry{}
 
 	default:
 		return nil, fmt.Errorf("unhandled command [%s]", command)
