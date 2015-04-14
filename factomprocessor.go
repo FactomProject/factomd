@@ -529,10 +529,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 // similar to blockChain.BC_ProcessBlock
 func processDirBlock(msg *wire.MsgDirBlock) error {
 	util.Trace()
-	fmt.Printf("MsgDirBlock=%s\n", spew.Sdump(msg.DBlk))
-	
-	
-	
+	fmt.Printf("Processor: MsgDirBlock=%s\n", spew.Sdump(msg.DBlk))
 	return nil
 }
 
@@ -540,7 +537,7 @@ func processDirBlock(msg *wire.MsgDirBlock) error {
 // similar to blockChain.BC_ProcessBlock
 func processCBlock(msg *wire.MsgCBlock) error {
 	util.Trace()
-	fmt.Printf("MsgCBlock=%s\n", spew.Sdump(msg.CBlk))
+	fmt.Printf("Processor: MsgCBlock=%s\n", spew.Sdump(msg.CBlk))
 	return nil
 }
 
@@ -548,7 +545,7 @@ func processCBlock(msg *wire.MsgCBlock) error {
 // similar to blockChain.BC_ProcessBlock
 func processEBlock(msg *wire.MsgEBlock) error {
 	util.Trace()
-	fmt.Printf("MsgEBlock=%s\n", spew.Sdump(msg.EBlk))
+	fmt.Printf("Processor: MsgEBlock=%s\n", spew.Sdump(msg.EBlk))
 	return nil
 }
 
@@ -556,14 +553,14 @@ func processEBlock(msg *wire.MsgEBlock) error {
 // similar to blockChain.BC_ProcessBlock
 func processEntry(msg *wire.MsgEntry) error {
 	util.Trace()
-	fmt.Printf("MsgEntry=%s\n", spew.Sdump(msg.Entry))
+	fmt.Printf("Processor: MsgEntry=%s\n", spew.Sdump(msg.Entry))
 	return nil
 }
 
 // processFactoidBlock validates factoid block and save it to factom db.
 func processFactoidBlock(msg *wire.MsgBlock) error {
 	util.Trace()
-	fmt.Printf("Msg Factoid Block=%s\n", spew.Sdump(msg))
+	fmt.Printf("Processor: MsgFactoidBlock=%s\n", spew.Sdump(msg))
 	return nil
 }
 
