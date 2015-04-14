@@ -570,12 +570,10 @@ func processEBlock(msg *wire.MsgEBlock) error {
 func processEntry(msg *wire.MsgEntry) error {
 	util.Trace()
 
-	chain := chainIDMap[msg.Entry.ChainID.String()]
-
 	// store the new entry in db
 	entryBinary, _ := msg.Entry.MarshalBinary()
 	entryHash := common.Sha(entryBinary)
-	db.InsertEntry(entryHash, &entryBinary, msg.Entry, &chain.ChainID.Bytes)
+	db.InsertEntry(entryHash, &entryBinary, msg.Entry, &msg.Entry.ChainID.Bytes)
 
 	fmt.Printf("Processor: MsgEntry=%s\n", spew.Sdump(msg.Entry))
 
