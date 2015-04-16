@@ -147,8 +147,8 @@ func initEChainFromDB(chain *common.EChain) {
 		chain.NextBlockID = uint64(len(*eBlocks))
 		chain.NextBlock, _ = common.CreateBlock(chain, &(*eBlocks)[len(*eBlocks)-1], 10)
 	}
-	
-	fmt.Println("Loaded", chain.NextBlockID, "blocks for chain: " + chain.ChainID.String())	
+
+	fmt.Println("Loaded", chain.NextBlockID, "blocks for chain: "+chain.ChainID.String())
 
 	//Get the unprocessed entries in db for the past # of mins for the open block
 	binaryTimestamp := make([]byte, 8)
@@ -187,8 +187,6 @@ func init_processor() {
 		initEChainFromDB(chain)
 
 		fmt.Println("Loaded", chain.NextBlockID, "blocks for chain: "+chain.ChainID.String())
-
-
 
 	}
 
@@ -331,7 +329,7 @@ func save(chain *common.EChain) {
 	sort.Sort(util.ByEBlockIDAccending(*eBlocks))
 
 	for i, block := range *eBlocks {
-		
+
 		data, err := block.MarshalBinary()
 		if err != nil {
 			panic(err)
@@ -443,8 +441,10 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		fmt.Println("factoidBlock= ", factoidBlock, " ok= ", ok)
 
 	case wire.CmdDirBlock:
-		if nodeMode == SERVER_NODE { break }	
-		
+		if nodeMode == SERVER_NODE {
+			break
+		}
+
 		dirBlock, ok := msg.(*wire.MsgDirBlock)
 		if ok {
 			err := processDirBlock(dirBlock)
@@ -456,8 +456,10 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		}
 
 	case wire.CmdCBlock:
-		if nodeMode == SERVER_NODE { break }	
-			
+		if nodeMode == SERVER_NODE {
+			break
+		}
+
 		cblock, ok := msg.(*wire.MsgCBlock)
 		if ok {
 			err := processCBlock(cblock)
@@ -469,8 +471,10 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		}
 
 	case wire.CmdEBlock:
-		if nodeMode == SERVER_NODE { break }	
-			
+		if nodeMode == SERVER_NODE {
+			break
+		}
+
 		eblock, ok := msg.(*wire.MsgEBlock)
 		if ok {
 			err := processEBlock(eblock)
@@ -482,8 +486,10 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		}
 
 	case wire.CmdEntry:
-		if nodeMode == SERVER_NODE { break }	
-			
+		if nodeMode == SERVER_NODE {
+			break
+		}
+
 		entry, ok := msg.(*wire.MsgEntry)
 		if ok {
 			err := processEntry(entry)
@@ -493,20 +499,20 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		} else {
 			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
 		}
-/* this should be done on the btcd side
-	case wire.CmdBlock: // Factoid block
-		if nodeMode == SERVER_NODE { break }		
-		
-		block, ok := msg.(*wire.MsgBlock)
-		if ok {
-			err := processFactoidBlock(block)
-			if err != nil {
-				return err
+		/* this should be done on the btcd side
+		case wire.CmdBlock: // Factoid block
+			if nodeMode == SERVER_NODE { break }
+
+			block, ok := msg.(*wire.MsgBlock)
+			if ok {
+				err := processFactoidBlock(block)
+				if err != nil {
+					return err
+				}
+			} else {
+				return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
 			}
-		} else {
-			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
-		}
-*/
+		*/
 	default:
 		return errors.New("Message type unsupported:" + fmt.Sprintf("%+v", msg))
 	}
@@ -549,19 +555,18 @@ func processEBlock(msg *wire.MsgEBlock) error {
 	// create a chain in db if it's not existing
 	chain := chainIDMap[msg.EBlk.Header.ChainID.String()]
 	if chain == nil {
-		chain = new (common.EChain)
+		chain = new(common.EChain)
 		chain.ChainID = msg.EBlk.Header.ChainID
-		
+
 		// to get chain name from the first entry??
 		bName := make([][]byte, 0, 5)
 		bName = append(bName, chain.ChainID.Bytes)
 		chain.Name = bName
-		
+
 		db.InsertChain(chain)
 		chainIDMap[chain.ChainID.String()] = chain
 	}
 
-	
 	db.ProcessEBlockBatch(msg.EBlk)
 
 	fmt.Printf("Processor: MsgEBlock=%s\n", spew.Sdump(msg.EBlk))
@@ -583,6 +588,7 @@ func processEntry(msg *wire.MsgEntry) error {
 
 	return nil
 }
+
 /* this should be processed on btcd side
 // processFactoidBlock validates factoid block and save it to factom db.
 func processFactoidBlock(msg *wire.MsgBlock) error {
@@ -891,7 +897,6 @@ func buildRevealChain(msg *wire.MsgRevealChain) {
 
 	// Chain initialization
 	initEChainFromDB(newChain)
-
 
 	// store the new entry in db
 	entryBinary, _ := newChain.FirstEntry.MarshalBinary()
@@ -1356,10 +1361,10 @@ func initDChain() {
 		dchain.NextBlockID = uint64(len(dchain.Blocks))
 		dchain.NextBlock, _ = common.CreateDBlock(dchain, dchain.Blocks[len(dchain.Blocks)-1], 10)
 	}
-	
+
 	// only for debug??
 	saveDChain(dchain)
-	
+
 	//Double check the sealed flag
 	if dchain.NextBlock.IsSealed == true {
 		panic("dchain.Blocks[dchain.NextBlockID].IsSealed for chain:" + dchain.ChainID.String())
