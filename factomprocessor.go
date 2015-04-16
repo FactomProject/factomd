@@ -179,7 +179,7 @@ func init_processor() {
 
 	// init Entry Credit Chain
 	initCChain()
-	fmt.Println("Loaded", len(cchain.Blocks)-1, "Entry Credit blocks for chain: "+cchain.ChainID.String())
+	fmt.Println("Loaded", cchain.NextBlockID, "Entry Credit blocks for chain: "+cchain.ChainID.String())
 
 	// init Entry Chains
 	initEChains()
@@ -325,34 +325,7 @@ func fileNotExists(name string) bool {
 	return err != nil
 }
 
-func save(chain *common.EChain) {
 
-	eBlocks, _ := db.FetchAllEBlocksByChain(chain.ChainID)
-	sort.Sort(util.ByEBlockIDAccending(*eBlocks))
-
-	for i, block := range *eBlocks {
-		
-		data, err := block.MarshalBinary()
-		if err != nil {
-			panic(err)
-		}
-
-		strChainID := chain.ChainID.String()
-		if fileNotExists(dataStorePath + strChainID) {
-			err := os.MkdirAll(dataStorePath+strChainID, 0777)
-			if err == nil {
-				log.Println("Created directory " + dataStorePath + strChainID)
-			} else {
-				log.Println(err)
-			}
-		}
-
-		err = ioutil.WriteFile(fmt.Sprintf(dataStorePath+strChainID+"/store.%09d.block", i), data, 0777)
-		if err != nil {
-			panic(err)
-		}
-	}
-}
 
 func serveMsgRequest(msg wire.FtmInternalMsg) error {
 
@@ -534,7 +507,10 @@ func processDirBlock(msg *wire.MsgDirBlock) error {
 func processCBlock(msg *wire.MsgCBlock) error {
 	util.Trace()
 
+	//Need to validate against Dchain??
+	
 	db.ProcessCBlockBatch(msg.CBlk)
+	
 
 	fmt.Printf("Processor: MsgCBlock=%s\n", spew.Sdump(msg.CBlk))
 
@@ -545,6 +521,27 @@ func processCBlock(msg *wire.MsgCBlock) error {
 // similar to blockChain.BC_ProcessBlock
 func processEBlock(msg *wire.MsgEBlock) error {
 	util.Trace()
+	if msg.EBlk.Header.DBHeight >= dchain.NextBlockID || msg.EBlk.Header.DBHeight < 0 {
+		return errors.New("MsgEBlock has an invalid DBHeight:" + string(msg.EBlk.Header.DBHeight))
+	}
+	
+	dblock := dchain.Blocks[msg.EBlk.Header.DBHeight]
+	
+	if dblock == nil {
+		return errors.New("MsgEBlock has an invalid DBHeight:" + string(msg.EBlk.Header.DBHeight))
+	}
+	
+	mr, _ := dblock.CalculateMerkleRoot()
+
+	validEblock := false
+	for _, dbEntry := range dblock.DBEntries {
+		if mr.IsSameAs(dbEntry.MerkleRoot) && dbEntry.ChainID.IsSameAs (msg.EBlk.Header.ChainID){
+			validEblock = true
+			break
+		}
+	}
+	
+	if ! validEblock { return errors.New("Invalid MsgEBlock with height:" + string(msg.EBlk.Header.EBHeight))}
 
 	// create a chain in db if it's not existing
 	chain := chainIDMap[msg.EBlk.Header.ChainID.String()]
@@ -848,7 +845,7 @@ func buildCommitEntry(msg *wire.MsgCommitEntry) {
 	// Create PayEntryCBEntry
 	cbEntry := common.NewPayEntryCBEntry(msg.ECPubKey, msg.EntryHash, int32(0-msg.Credits), int64(msg.Timestamp), msg.Sig)
 
-	err := cchain.Blocks[len(cchain.Blocks)-1].AddCBEntry(cbEntry)
+	err := cchain.NextBlock.AddCBEntry(cbEntry)
 
 	if err != nil {
 		panic("Error while building Block:" + err.Error())
@@ -860,7 +857,7 @@ func buildCommitChain(msg *wire.MsgCommitChain) {
 	// Create PayChainCBEntry
 	cbEntry := common.NewPayChainCBEntry(msg.ECPubKey, msg.EntryHash, int32(0-msg.Credits), msg.ChainID, msg.EntryChainIDHash, msg.Sig)
 
-	err := cchain.Blocks[len(cchain.Blocks)-1].AddCBEntry(cbEntry)
+	err := cchain.NextBlock.AddCBEntry(cbEntry)
 
 	if err != nil {
 		panic("Error while building Block:" + err.Error())
@@ -876,7 +873,7 @@ func buildFactoidObj(msg *wire.MsgInt_FactoidObj) {
 		pubKey.SetBytes(k.Bytes())
 		credits := int32(creditsPerFactoid * v / 100000000)
 		cbEntry := common.NewBuyCBEntry(pubKey, factoidTxHash, credits)
-		err := cchain.Blocks[len(cchain.Blocks)-1].AddCBEntry(cbEntry)
+		err := cchain.NextBlock.AddCBEntry(cbEntry)
 		if err != nil {
 			panic(fmt.Sprintf(`Error while adding the First Entry to Block: %s`, err.Error()))
 		}
@@ -932,7 +929,7 @@ func buildBlocks() error {
 		if eblock != nil {
 			dchain.AddDBEntry(eblock)
 		}
-		save(chain)
+		saveEChain(chain)
 	}
 
 	// Entry Credit Chain
@@ -1057,7 +1054,7 @@ func newEntryBlock(chain *common.EChain) *common.EBlock {
 func newEntryCreditBlock(chain *common.CChain) *common.CBlock {
 
 	// acquire the last block
-	block := chain.Blocks[len(chain.Blocks)-1]
+	block := chain.NextBlock
 
 	if len(block.CBEntries) < 1 {
 		//log.Println("No new entry found. No block created for chain: "  + common.EncodeChainID(chain.ChainID))
@@ -1072,8 +1069,7 @@ func newEntryCreditBlock(chain *common.CChain) *common.CBlock {
 	log.Println("blkhash:%v", blkhash.Bytes)
 	block.IsSealed = true
 	chain.NextBlockID++
-	newblock, _ := common.CreateCBlock(chain, block, 10)
-	chain.Blocks = append(chain.Blocks, newblock)
+	chain.NextBlock, _ = common.CreateCBlock(chain, block, 10)
 	chain.BlockMutex.Unlock()
 	block.CBHash = blkhash
 
@@ -1273,19 +1269,42 @@ func saveDChain(chain *common.DChain) {
 	}
 }
 
-func saveCChain(chain *common.CChain) {
-	if len(chain.Blocks) == 0 {
-		//log.Println("no blocks to save for chain: " + string (*chain.ChainID))
-		return
+func saveEChain(chain *common.EChain) {
+
+	eBlocks, _ := db.FetchAllEBlocksByChain(chain.ChainID)
+	sort.Sort(util.ByEBlockIDAccending(*eBlocks))
+
+	for i, block := range *eBlocks {
+		
+		data, err := block.MarshalBinary()
+		if err != nil {
+			panic(err)
+		}
+
+		strChainID := chain.ChainID.String()
+		if fileNotExists(dataStorePath + strChainID) {
+			err := os.MkdirAll(dataStorePath+strChainID, 0777)
+			if err == nil {
+				log.Println("Created directory " + dataStorePath + strChainID)
+			} else {
+				log.Println(err)
+			}
+		}
+
+		err = ioutil.WriteFile(fmt.Sprintf(dataStorePath+strChainID+"/store.%09d.block", i), data, 0777)
+		if err != nil {
+			panic(err)
+		}
 	}
+}
 
-	bcp := make([]*common.CBlock, len(chain.Blocks))
+func saveCChain(chain *common.CChain) {
+	
+	// get all cBlocks from db
+	cBlocks, _ := db.FetchAllCBlocks()
+	sort.Sort(util.ByCBlockIDAccending(cBlocks))
 
-	chain.BlockMutex.Lock()
-	copy(bcp, chain.Blocks)
-	chain.BlockMutex.Unlock()
-
-	for i, block := range bcp {
+	for i, block := range cBlocks {
 		//the open block is not saved
 		if block.IsSealed == false {
 			continue
@@ -1379,51 +1398,35 @@ func initCChain() {
 	cchain.ChainID = new(common.Hash)
 	cchain.ChainID.SetBytes(barray)
 
-	// get all dBlocks from db
+	// get all cBlocks from db
 	cBlocks, _ := db.FetchAllCBlocks()
 	sort.Sort(util.ByCBlockIDAccending(cBlocks))
-
-	cchain.Blocks = make([]*common.CBlock, len(cBlocks))
 
 	for i := 0; i < len(cBlocks); i = i + 1 {
 		if cBlocks[i].Header.BlockID != uint64(i) {
 			panic("Error in initializing dChain:" + cchain.ChainID.String())
 		}
-		cBlocks[i].Chain = cchain
-		cBlocks[i].IsSealed = true
-		cchain.Blocks[i] = &cBlocks[i]
 
 		// Calculate the EC balance for each account
-		initializeECreditMap(cchain.Blocks[i])
+		initializeECreditMap(&cBlocks[i])
 	}
 
 	// double check the block ids
-	for i := 0; i < len(cchain.Blocks); i = i + 1 {
-		if uint64(i) != cchain.Blocks[i].Header.BlockID {
-			panic(errors.New("BlockID does not equal index for chain:" + cchain.ChainID.String() + " block:" + fmt.Sprintf("%v", cchain.Blocks[i].Header.BlockID)))
+	for i := 0; i < len(cBlocks); i = i + 1 {
+		if uint64(i) != cBlocks[i].Header.BlockID {
+			panic(errors.New("BlockID does not equal index for chain:" + cchain.ChainID.String() + " block:" + fmt.Sprintf("%v", cBlocks[i].Header.BlockID)))
 		}
 	}
 
 	//Create an empty block and append to the chain
-	if len(cchain.Blocks) == 0 {
+	if len(cBlocks) == 0 {
 		cchain.NextBlockID = 0
-		newblock, _ := common.CreateCBlock(cchain, nil, 10)
-		cchain.Blocks = append(cchain.Blocks, newblock)
+		cchain.NextBlock, _ = common.CreateCBlock(cchain, nil, 10)
 
 	} else {
-		cchain.NextBlockID = uint64(len(cchain.Blocks))
-		newblock, _ := common.CreateCBlock(cchain, cchain.Blocks[len(cchain.Blocks)-1], 10)
-		cchain.Blocks = append(cchain.Blocks, newblock)
+		cchain.NextBlockID = uint64(len(cBlocks))
+		cchain.NextBlock, _ = common.CreateCBlock(cchain, &cBlocks[len(cBlocks)-1], 10)
 	}
-
-	//Get the unprocessed entries in db for the past # of mins for the open block
-	/*	binaryTimestamp := make([]byte, 8)
-		binary.BigEndian.PutUint64(binaryTimestamp, uint64(0))
-		if cchain.Blocks[cchain.NextBlockID].IsSealed == true {
-			panic ("dchain.Blocks[dchain.NextBlockID].IsSealed for chain:" + common.EncodeBinary(dchain.ChainID))
-		}
-		dchain.Blocks[dchain.NextBlockID].DBEntries, _ = db.FetchDBEntriesFromQueue(&binaryTimestamp)
-	*/
 
 	// create a backup copy before processing entries
 	copyCreditMap(eCreditMap, eCreditMapBackup)
@@ -1431,7 +1434,7 @@ func initCChain() {
 	//ONly for debug??
 	saveCChain(cchain)
 
-	//??
+	// ONly for debug??
 	//printCChain()
 	printCreditMap()
 	printPaidEntryMap()
@@ -1452,7 +1455,7 @@ func initEChains() {
 		var newChain = chain
 		chainIDMap[newChain.ChainID.String()] = &newChain
 		//ONly for debug??
-		save(&chain)
+		saveEChain(&chain)
 	}
 
 }
