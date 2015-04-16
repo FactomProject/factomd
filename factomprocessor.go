@@ -491,14 +491,20 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 func processDirBlock(msg *wire.MsgDirBlock) error {
 	util.Trace()
 
+	blk, _ := db.FetchDBlockByHeight(msg.DBlk.Header.BlockID)
+	if blk != nil {
+		fmt.Println("DBlock already existing for height:" +  string(msg.DBlk.Header.BlockID))		
+		return nil
+	}
+	
 	dchain.AddDBlockToDChain(msg.DBlk)
 
 	db.ProcessDBlockBatch(msg.DBlk) //?? to be removed later
 
-	msg.DBlk = nil
-
 	fmt.Printf("Processor: MsgDirBlock=%s\n", spew.Sdump(msg.DBlk))
-
+	
+	msg.DBlk = nil
+	
 	return nil
 }
 
@@ -509,8 +515,7 @@ func processCBlock(msg *wire.MsgCBlock) error {
 
 	//Need to validate against Dchain??
 	
-	db.ProcessCBlockBatch(msg.CBlk)
-	
+	db.ProcessCBlockBatch(msg.CBlk)	
 
 	fmt.Printf("Processor: MsgCBlock=%s\n", spew.Sdump(msg.CBlk))
 
