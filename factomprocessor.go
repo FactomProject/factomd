@@ -28,7 +28,7 @@ import (
 	"github.com/davecgh/go-spew/spew"
 )
 
-const (
+const ( 
 	//Server running mode
 	FULL_NODE   = "FULL"
 	SERVER_NODE = "SERVER"
@@ -1310,10 +1310,6 @@ func saveCChain(chain *common.CChain) {
 	sort.Sort(util.ByCBlockIDAccending(cBlocks))
 
 	for i, block := range cBlocks {
-		//the open block is not saved
-		if block.IsSealed == false {
-			continue
-		}
 
 		data, err := block.MarshalBinary()
 		if err != nil {
