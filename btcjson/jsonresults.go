@@ -270,6 +270,14 @@ type DestAddrResult struct {
 	Addresses []string `json:"addresses,omitempty"`
 }
 
+type ECAddrResult struct {
+	Asm       string   `json:"asm2"`
+	Hex       string   `json:"hex,omitempty"`
+	ReqSigs   int32    `json:"reqSigs,omitempty"`
+	Type      string   `json:"type"`
+	Addresses []string `json:"addresses,omitempty"`
+}
+
 // Vout models parts of the tx data.  It is defined seperately since both
 // getrawtransaction, sendrawtransaction, and decoderawtransaction use the same
 // structure.
@@ -277,6 +285,11 @@ type Vout struct {
 	Value    float64        `json:"value"`
 	N        uint32         `json:"n"`
 	DestAddr DestAddrResult `json:"DestAddress"`
+}
+
+type VECout struct {
+	Value  int64        `json:"value"`
+	ECAddr ECAddrResult `json:"ECAddress"`
 }
 
 // GetMiningInfoResult models the data from the getmininginfo command.
@@ -404,16 +417,17 @@ type SignRawTransactionResult struct {
 // TxRawResult models the data from the getrawtransaction and sendrawtransaction
 // commands
 type TxRawResult struct {
-	Hex           string `json:"hex"`
-	Txid          string `json:"txid"`
-	Version       uint8  `json:"version"`
-	LockTime      int64  `json:"locktime"`
-	Vin           []Vin  `json:"vin"`
-	Vout          []Vout `json:"vout"`
-	BlockHash     string `json:"blockhash,omitempty"`
-	Confirmations uint64 `json:"confirmations"`
-	Time          int64  `json:"time,omitempty"`
-	Blocktime     int64  `json:"blocktime,omitempty"`
+	Hex           string   `json:"hex"`
+	Txid          string   `json:"txid"`
+	Version       uint8    `json:"version"`
+	LockTime      int64    `json:"locktime"`
+	Vin           []Vin    `json:"vin"`
+	Vout          []Vout   `json:"vout"`
+	Vecout        []VECout `json:"vecout"`
+	BlockHash     string   `json:"blockhash,omitempty"`
+	Confirmations uint64   `json:"confirmations"`
+	Time          int64    `json:"time,omitempty"`
+	Blocktime     int64    `json:"blocktime,omitempty"`
 }
 
 // TxRawDecodeResult models the data from the decoderawtransaction command.

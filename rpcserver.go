@@ -923,14 +923,21 @@ func createVoutList(mtx *wire.MsgTx, chainParams *chaincfg.Params) []btcjson.Vou
 	return voutList
 }
 
+func createVECoutList(mtx *wire.MsgTx) []btcjson.VECout {
+	voutList := make([]btcjson.VECout, len(mtx.ECOut))
+	for i, v := range mtx.ECOut {
+		voutList[i].Value = v.Value
+		voutList[i].ECAddr.Hex = hex.EncodeToString(v.ECpubkey[:])
+	}
+
+	return voutList
+}
+
 // createTxRawResult converts the passed transaction and associated parameters
 // to a raw transaction JSON object.
 func createTxRawResult(chainParams *chaincfg.Params, txSha string,
 	mtx *wire.MsgTx, blk *btcutil.Block, maxidx int64,
 	blksha *wire.ShaHash) (*btcjson.TxRawResult, error) {
-
-	// need to beef up createVoutList & createVinList & add EC out list
-	util.Trace("Almost Implemented, missing the Entry Credit Out part !...................")
 
 	mtxHex, err := messageToHex(mtx)
 	if err != nil {
@@ -941,6 +948,7 @@ func createTxRawResult(chainParams *chaincfg.Params, txSha string,
 		Hex:      mtxHex,
 		Txid:     txSha,
 		Vout:     createVoutList(mtx, chainParams),
+		Vecout:   createVECoutList(mtx),
 		Vin:      createVinList(mtx),
 		Version:  mtx.Version,
 		LockTime: mtx.LockTime,
