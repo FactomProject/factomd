@@ -930,7 +930,7 @@ func createTxRawResult(chainParams *chaincfg.Params, txSha string,
 	blksha *wire.ShaHash) (*btcjson.TxRawResult, error) {
 
 	// need to beef up createVoutList & createVinList & add EC out list
-	util.Trace("PARTIALLY IMPLEMENTED !!!!!!!!!!!!!!!!!!!!!!!!!")
+	util.Trace("Almost Implemented, missing the Entry Credit Out part !...................")
 
 	mtxHex, err := messageToHex(mtx)
 	if err != nil {
