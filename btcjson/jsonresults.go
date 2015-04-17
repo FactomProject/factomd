@@ -196,12 +196,12 @@ type GetTransactionResult struct {
 
 // GetTxOutResult models the data from the gettxout command.
 type GetTxOutResult struct {
-	BestBlock     string             `json:"bestblock"`
-	Confirmations int64              `json:"confirmations"`
-	Value         float64            `json:"value"`
-	ScriptPubKey  ScriptPubKeyResult `json:"scriptPubKey1"`
-	Version       uint8              `json:"version"`
-	Coinbase      bool               `json:"coinbase"`
+	BestBlock     string         `json:"bestblock"`
+	Confirmations int64          `json:"confirmations"`
+	Value         float64        `json:"value"`
+	DestAddr      DestAddrResult `json:"scriptPubKey1"`
+	Version       uint8          `json:"version"`
+	Coinbase      bool           `json:"coinbase"`
 }
 
 // GetNetTotalsResult models the data returned from the getnettotals command.
@@ -260,9 +260,9 @@ func (v *Vin) MarshalJSON() ([]byte, error) {
 	return json.Marshal(txStruct)
 }
 
-// ScriptPubKeyResult models the scriptPubKey data of a tx script.  It is
+// DestAddrResult models the scriptPubKey data of a tx script.  It is
 // defined separately since it is used by multiple commands.
-type ScriptPubKeyResult struct {
+type DestAddrResult struct {
 	Asm       string   `json:"asm2"`
 	Hex       string   `json:"hex,omitempty"`
 	ReqSigs   int32    `json:"reqSigs,omitempty"`
@@ -274,9 +274,9 @@ type ScriptPubKeyResult struct {
 // getrawtransaction, sendrawtransaction, and decoderawtransaction use the same
 // structure.
 type Vout struct {
-	Value        float64            `json:"value"`
-	N            uint32             `json:"n"`
-	ScriptPubKey ScriptPubKeyResult `json:"scriptPubKey2"`
+	Value    float64        `json:"value"`
+	N        uint32         `json:"n"`
+	DestAddr DestAddrResult `json:"DestAddress"`
 }
 
 // GetMiningInfoResult models the data from the getmininginfo command.
@@ -380,7 +380,7 @@ type ListUnspentResult struct {
 	Vout          uint32  `json:"vout"`
 	Address       string  `json:"address"`
 	Account       string  `json:"account"`
-	ScriptPubKey  string  `json:"scriptPubKey3"`
+	DestAddr      string  `json:"scriptPubKey3"`
 	RedeemScript  string  `json:"redeemScript,omitempty"`
 	Amount        float64 `json:"amount"`
 	Confirmations int64   `json:"confirmations"`
@@ -617,8 +617,8 @@ func ReadResultCmd(cmd string, message []byte) (Reply, error) {
 		var res *GetTxOutResult
 		err = json.Unmarshal(objmap["result"], &res)
 		if res != nil && err == nil {
-			if res.ScriptPubKey.Addresses == nil {
-				res.ScriptPubKey.Addresses = []string{}
+			if res.DestAddr.Addresses == nil {
+				res.DestAddr.Addresses = []string{}
 			}
 			result.Result = res
 		}

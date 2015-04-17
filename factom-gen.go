@@ -11,7 +11,7 @@ package btcd
 
 import (
 	//	"container/list"
-	//	"crypto/rand"
+	"crypto/rand"
 	"encoding/hex"
 	"fmt"
 	"sync"
@@ -65,28 +65,18 @@ func test_generateBlocks() {
 	// a block that is in the process of becoming stale.
 	m.submitBlockLock.Lock()
 
-	/*
-		//	randHashBytes := make([]byte, wire.HashSize)
-		randHashBytes := make([]byte, 33)
-		n, err := rand.Read(randHashBytes)
-		fmt.Println(n, err, randHashBytes)
-
-		payToAddr = newAddressPubKey(randHashBytes)
-	*/
-
 	// Create a new block template using the available transactions
 	// in the memory pool as a source of transactions to potentially
 	// include in the block.
 
-	/*
-		var payto wire.RCDHash
-		randRCD := make([]byte, wire.RCDHashSize)
-		rand.Read(randRCD)
-		fmt.Println("randRCD len=", len(randRCD))
-		copy(payto[:], randRCD)
-	*/
+	//	payto := wire.RCDHash{} // for Phase 1 pay to a non-spendable address, FIXME later
 
-	payto := wire.RCDHash{} // for Phase 1 pay to a non-spendable address, FIXME later
+	// comment out later, testing payout to a random address
+	var payto wire.RCDHash
+	randRCD := make([]byte, wire.RCDHashSize)
+	rand.Read(randRCD)
+	fmt.Println("randRCD len=", len(randRCD))
+	copy(payto[:], randRCD)
 
 	template, err := NewBlockTemplate(local_Server.txMemPool, payto)
 	m.submitBlockLock.Unlock()

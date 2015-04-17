@@ -195,6 +195,9 @@ func init_processor() {
 
 	// write 10 FBlock in a batch to BTC every 10 minutes
 	tickers[1] = time.NewTicker(time.Second * time.Duration(sendToBTCinSeconds))
+
+	util.Trace("NOT IMPLEMENTED! IMPORTANT: Anchoring code 1 !!!")
+
 	/*
 		go func() {
 			for _ = range tickers[0].C {
@@ -307,7 +310,7 @@ func Start_Processor(ldb database.Db, inMsgQ chan wire.FtmInternalMsg, outMsgQ c
 	util.Trace()
 
 	defer func() {
-		shutdown()
+		//		shutdown()	// was defined in factombtc.go TODO: TBD
 		tickers[0].Stop()
 		tickers[1].Stop()
 		//db.Close()
@@ -978,8 +981,14 @@ func buildBlocks() error {
 
 	// Only Servers can write the anchor to Bitcoin network
 	if nodeMode == SERVER_NODE && dbBlock != nil && false { //?? for testing
-		dbInfo := common.NewDBInfoFromDBlock(dbBlock)
-		saveDBMerkleRoottoBTC(dbInfo) //goroutine??
+		// dbInfo := common.NewDBInfoFromDBlock(dbBlock)
+
+		// FIXME
+		// TODO
+		// anchoring can't be done via this code; the source is no longer Bitcoin-compatible
+		//		saveDBMerkleRoottoBTC(dbInfo) //goroutine??
+		util.Trace("NOT IMPLEMENTED! IMPORTANT: Anchoring code 2 !!!")
+
 	}
 
 	return nil
