@@ -127,8 +127,8 @@ func Test_timer() {
 	count := int32(0)
 
 	//	for {
-	for i := 0; i < 10; i++ {
-		//	for i := 0; i < 3; i++ {
+	//	for i := 0; i < 10; i++ {
+	for i := 0; i < 3; i++ {
 
 		//		time.Sleep(time.Second * 5)
 		time.Sleep(time.Second * 10)
