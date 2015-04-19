@@ -11,6 +11,16 @@ const (
 	CmdInt_EOM          = "int_eom"
 )
 
+// Block status code
+const (
+	BLOCK_QUERY_STATUS uint8 = iota
+	BLOCK_BUILD_SUCCESS
+	BLOCK_BUILD_FAILED
+	BLOCK_NOT_FOUND
+	BLOCK_NOT_VALID
+
+)
+
 // FtmInternalMsg is an interface that describes an internal factom message.
 // The message is used for communication between two modules
 type FtmInternalMsg interface {
@@ -41,8 +51,12 @@ func (msg *MsgInt_EOM) Command() string {
 	return CmdInt_EOM
 }
 
+// Factoid block message for internal communication 
 type MsgInt_FactoidBlock struct {
 	ShaHash ShaHash
+	BlockHeight uint64
+	FactoidBlockStatus byte
+		
 }
 
 // Factoid block available: internal message for time commnunications between Goroutines
