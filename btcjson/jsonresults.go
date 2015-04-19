@@ -38,9 +38,9 @@ type CreateMultiSigResult struct {
 
 // DecodeScriptResult models the data returned from the decodescript command.
 type DecodeScriptResult struct {
-	Asm       string   `json:"asm"`
+	Asm       string   `json:"asm0"`
 	ReqSigs   int32    `json:"reqSigs,omitempty"`
-	Type      string   `json:"type"`
+	Type      string   `json:"type0"`
 	Addresses []string `json:"addresses,omitempty"`
 	P2sh      string   `json:"p2sh"`
 }
@@ -186,7 +186,7 @@ type GetTransactionResult struct {
 	BlockHash       string                        `json:"blockhash"`
 	BlockIndex      int64                         `json:"blockindex"`
 	BlockTime       int64                         `json:"blocktime"`
-	TxID            string                        `json:"txid"`
+	TxID            string                        `json:"txid1"`
 	WalletConflicts []string                      `json:"walletconflicts"`
 	Time            int64                         `json:"time"`
 	TimeReceived    int64                         `json:"timereceived"`
@@ -196,12 +196,12 @@ type GetTransactionResult struct {
 
 // GetTxOutResult models the data from the gettxout command.
 type GetTxOutResult struct {
-	BestBlock     string             `json:"bestblock"`
-	Confirmations int64              `json:"confirmations"`
-	Value         float64            `json:"value"`
-	ScriptPubKey  ScriptPubKeyResult `json:"scriptPubKey"`
-	Version       uint8              `json:"version"`
-	Coinbase      bool               `json:"coinbase"`
+	BestBlock     string         `json:"bestblock"`
+	Confirmations int64          `json:"confirmations"`
+	Value         float64        `json:"value"`
+	DestAddr      DestAddrResult `json:"scriptPubKey1"`
+	Version       uint8          `json:"version"`
+	Coinbase      bool           `json:"coinbase"`
 }
 
 // GetNetTotalsResult models the data returned from the getnettotals command.
@@ -215,7 +215,7 @@ type GetNetTotalsResult struct {
 // applies to non-coinbase.  Therefore the field in the Vin structure needs
 // to be a pointer.
 type ScriptSig struct {
-	Asm string `json:"asm"`
+	Asm string `json:"asm1"`
 	Hex string `json:"hex"`
 }
 
@@ -223,11 +223,9 @@ type ScriptSig struct {
 // getrawtransaction, sendrawtransaction, and decoderawtransaction use the
 // same structure.
 type Vin struct {
-	Coinbase  string     `json:"coinbase"`
-	Txid      string     `json:"txid"`
-	Vout      uint32     `json:"vout"`
-	ScriptSig *ScriptSig `json:"scriptSig"`
-	Sequence  uint32     `json:"sequence"`
+	Coinbase string `json:"coinbase"`
+	Txid     string `json:"txid2"`
+	Vout     uint32 `json:"vout"`
 }
 
 // IsCoinBase returns a bool to show if a Vin is a Coinbase one or not.
@@ -240,32 +238,40 @@ func (v *Vin) MarshalJSON() ([]byte, error) {
 	if v.IsCoinBase() {
 		coinbaseStruct := struct {
 			Coinbase string `json:"coinbase"`
-			Sequence uint32 `json:"sequence"`
+			//			Sequence uint32 `json:"sequence"`
 		}{
 			Coinbase: v.Coinbase,
-			Sequence: v.Sequence,
+			//			Sequence: v.Sequence,
 		}
 		return json.Marshal(coinbaseStruct)
 	}
 
 	txStruct := struct {
-		Txid      string     `json:"txid"`
-		Vout      uint32     `json:"vout"`
-		ScriptSig *ScriptSig `json:"scriptSig"`
-		Sequence  uint32     `json:"sequence"`
+		Txid string `json:"txid3"`
+		Vout uint32 `json:"vout"`
+		//		ScriptSig *ScriptSig `json:"scriptSig"`
+		//		Sequence  uint32     `json:"sequence"`
 	}{
-		Txid:      v.Txid,
-		Vout:      v.Vout,
-		ScriptSig: v.ScriptSig,
-		Sequence:  v.Sequence,
+		Txid: v.Txid,
+		Vout: v.Vout,
+		//		ScriptSig: v.ScriptSig,
+		//		Sequence:  v.Sequence,
 	}
 	return json.Marshal(txStruct)
 }
 
-// ScriptPubKeyResult models the scriptPubKey data of a tx script.  It is
+// DestAddrResult models the scriptPubKey data of a tx script.  It is
 // defined separately since it is used by multiple commands.
-type ScriptPubKeyResult struct {
-	Asm       string   `json:"asm"`
+type DestAddrResult struct {
+	Asm       string   `json:"asm2"`
+	Hex       string   `json:"hex,omitempty"`
+	ReqSigs   int32    `json:"reqSigs,omitempty"`
+	Type      string   `json:"type"`
+	Addresses []string `json:"addresses,omitempty"`
+}
+
+type ECAddrResult struct {
+	Asm       string   `json:"asm2"`
 	Hex       string   `json:"hex,omitempty"`
 	ReqSigs   int32    `json:"reqSigs,omitempty"`
 	Type      string   `json:"type"`
@@ -276,9 +282,14 @@ type ScriptPubKeyResult struct {
 // getrawtransaction, sendrawtransaction, and decoderawtransaction use the same
 // structure.
 type Vout struct {
-	Value        float64            `json:"value"`
-	N            uint32             `json:"n"`
-	ScriptPubKey ScriptPubKeyResult `json:"scriptPubKey"`
+	Value    float64        `json:"value"`
+	N        uint32         `json:"n"`
+	DestAddr DestAddrResult `json:"DestAddress"`
+}
+
+type VECout struct {
+	Value  int64        `json:"value"`
+	ECAddr ECAddrResult `json:"ECAddress"`
 }
 
 // GetMiningInfoResult models the data from the getmininginfo command.
@@ -336,7 +347,7 @@ type ListTransactionsResult struct {
 	BlockHash       string   `json:"blockhash,omitempty"`
 	BlockIndex      int64    `json:"blockindex,omitempty"`
 	BlockTime       int64    `json:"blocktime,omitempty"`
-	TxID            string   `json:"txid"`
+	TxID            string   `json:"txid4"`
 	WalletConflicts []string `json:"walletconflicts"`
 	Time            int64    `json:"time"`
 	TimeReceived    int64    `json:"timereceived"`
@@ -378,11 +389,11 @@ type ListSinceBlockResult struct {
 
 // ListUnspentResult models a successful response from the listunspent request.
 type ListUnspentResult struct {
-	TxId          string  `json:"txid"`
+	TxId          string  `json:"txid6"`
 	Vout          uint32  `json:"vout"`
 	Address       string  `json:"address"`
 	Account       string  `json:"account"`
-	ScriptPubKey  string  `json:"scriptPubKey"`
+	DestAddr      string  `json:"scriptPubKey3"`
 	RedeemScript  string  `json:"redeemScript,omitempty"`
 	Amount        float64 `json:"amount"`
 	Confirmations int64   `json:"confirmations"`
@@ -406,16 +417,17 @@ type SignRawTransactionResult struct {
 // TxRawResult models the data from the getrawtransaction and sendrawtransaction
 // commands
 type TxRawResult struct {
-	Hex           string `json:"hex"`
-	Txid          string `json:"txid"`
-	Version       uint8  `json:"version"`
-	LockTime      int64  `json:"locktime"`
-	Vin           []Vin  `json:"vin"`
-	Vout          []Vout `json:"vout"`
-	BlockHash     string `json:"blockhash,omitempty"`
-	Confirmations uint64 `json:"confirmations"`
-	Time          int64  `json:"time,omitempty"`
-	Blocktime     int64  `json:"blocktime,omitempty"`
+	Hex           string   `json:"hex"`
+	Txid          string   `json:"txid"`
+	Version       uint8    `json:"version"`
+	LockTime      int64    `json:"locktime"`
+	Vin           []Vin    `json:"vin"`
+	Vout          []Vout   `json:"vout"`
+	Vecout        []VECout `json:"vecout"`
+	BlockHash     string   `json:"blockhash,omitempty"`
+	Confirmations uint64   `json:"confirmations"`
+	Time          int64    `json:"time,omitempty"`
+	Blocktime     int64    `json:"blocktime,omitempty"`
 }
 
 // TxRawDecodeResult models the data from the decoderawtransaction command.
@@ -619,8 +631,8 @@ func ReadResultCmd(cmd string, message []byte) (Reply, error) {
 		var res *GetTxOutResult
 		err = json.Unmarshal(objmap["result"], &res)
 		if res != nil && err == nil {
-			if res.ScriptPubKey.Addresses == nil {
-				res.ScriptPubKey.Addresses = []string{}
+			if res.DestAddr.Addresses == nil {
+				res.DestAddr.Addresses = []string{}
 			}
 			result.Result = res
 		}

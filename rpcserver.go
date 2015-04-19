@@ -861,6 +861,7 @@ func createVinList(mtx *wire.MsgTx) []btcjson.Vin {
 	for i, v := range mtx.TxIn {
 		if blockchain.IsCoinBase(tx) {
 			//			vinList[i].Coinbase = hex.EncodeToString(v.SignatureScript)
+			vinList[i].Coinbase = "CoinBase yay!"
 		} else {
 			vinList[i].Txid = v.PreviousOutPoint.Hash.String()
 			vinList[i].Vout = v.PreviousOutPoint.Index
@@ -888,6 +889,8 @@ func createVoutList(mtx *wire.MsgTx, chainParams *chaincfg.Params) []btcjson.Vou
 	for i, v := range mtx.TxOut {
 		voutList[i].N = uint32(i)
 		voutList[i].Value = float64(v.Value) / btcutil.SatoshiPerBitcoin
+
+		voutList[i].DestAddr.Hex = hex.EncodeToString(v.RCDHash[:])
 
 		/*
 			// The disassembled string will contain [error] inline if the
@@ -920,14 +923,21 @@ func createVoutList(mtx *wire.MsgTx, chainParams *chaincfg.Params) []btcjson.Vou
 	return voutList
 }
 
+func createVECoutList(mtx *wire.MsgTx) []btcjson.VECout {
+	voutList := make([]btcjson.VECout, len(mtx.ECOut))
+	for i, v := range mtx.ECOut {
+		voutList[i].Value = v.Value
+		voutList[i].ECAddr.Hex = hex.EncodeToString(v.ECpubkey[:])
+	}
+
+	return voutList
+}
+
 // createTxRawResult converts the passed transaction and associated parameters
 // to a raw transaction JSON object.
 func createTxRawResult(chainParams *chaincfg.Params, txSha string,
 	mtx *wire.MsgTx, blk *btcutil.Block, maxidx int64,
 	blksha *wire.ShaHash) (*btcjson.TxRawResult, error) {
-
-	// need to beef up createVoutList & createVinList & add EC out list
-	util.Trace("PARTIALLY IMPLEMENTED !!!!!!!!!!!!!!!!!!!!!!!!!")
 
 	mtxHex, err := messageToHex(mtx)
 	if err != nil {
@@ -938,6 +948,7 @@ func createTxRawResult(chainParams *chaincfg.Params, txSha string,
 		Hex:      mtxHex,
 		Txid:     txSha,
 		Vout:     createVoutList(mtx, chainParams),
+		Vecout:   createVECoutList(mtx),
 		Vin:      createVinList(mtx),
 		Version:  mtx.Version,
 		LockTime: mtx.LockTime,
