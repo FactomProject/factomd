@@ -29,6 +29,11 @@ type BlockHeader struct {
 	// Merkle tree reference to hash of all transactions for the block.
 	MerkleRoot ShaHash
 
+	BodyMR    ShaHash
+	PrevKeyMR ShaHash
+
+	PrevHash3 Sha3Hash
+
 	// Time the block was created.  This is, unfortunately, encoded as a
 	// uint32 on the wire and therefore is limited to 2106.
 	Timestamp time.Time
