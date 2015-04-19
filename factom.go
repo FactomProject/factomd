@@ -22,9 +22,9 @@ var (
 	inMsgQueue  chan wire.FtmInternalMsg //incoming message queue for factom application messages
 	outMsgQueue chan wire.FtmInternalMsg //outgoing message queue for factom application messages
 
-	inCtlMsgQueue  chan wire.FtmInternalMsg //incoming message queue for factom control messages
-	outCtlMsgQueue chan wire.FtmInternalMsg //outgoing message queue for factom control messages
-	doneFBlockQueue  = make(chan wire.FtmInternalMsg) 	//incoming message queue for factoid component to send MR	
+	inCtlMsgQueue   chan wire.FtmInternalMsg         //incoming message queue for factom control messages
+	outCtlMsgQueue  chan wire.FtmInternalMsg         //outgoing message queue for factom control messages
+	doneFBlockQueue = make(chan wire.FtmInternalMsg) //incoming message queue for factoid component to send MR
 )
 
 // trying out some flags to optionally disable old BTC functionality ... WIP
@@ -89,7 +89,7 @@ func (p *peer) handleBuyCreditMsg(msg *wire.MsgGetCredit) {
 }
 */
 
-func Start_btcd(inMsgQ chan wire.FtmInternalMsg, outMsgQ chan wire.FtmInternalMsg, 
+func Start_btcd(inMsgQ chan wire.FtmInternalMsg, outMsgQ chan wire.FtmInternalMsg,
 	inCtlMsgQ chan wire.FtmInternalMsg, outCtlMsgQ chan wire.FtmInternalMsg, doneFBlockQ chan wire.FtmInternalMsg) {
 	util.Trace("FORMER REAL btcd main() function !")
 	// Use all processor cores.
@@ -233,8 +233,9 @@ func (b *blockManager) factomChecks() {
 		panic(2)
 	}
 
-	if !cfg.DisableCheckpoints {//?? double check
-		//panic(3)
+	// DisableCheckpoints should always be set
+	if !cfg.DisableCheckpoints {
+		panic(3)
 	}
 
 	if cfg.RegressionTest || cfg.SimNet || cfg.Generate {
