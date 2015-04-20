@@ -119,7 +119,7 @@ func Test_timer() {
 
 	//	for {
 	//	for i := 0; i < 10; i++ {
-	for i := 0; i < 5; i++ {
+	for i := 0; i < 4; i++ {
 
 		//		time.Sleep(time.Second * 5)
 		time.Sleep(time.Second * 10)
