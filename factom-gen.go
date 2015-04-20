@@ -78,7 +78,7 @@ func test_generateBlocks() {
 	fmt.Println("randRCD len=", len(randRCD))
 	copy(payto[:], randRCD)
 
-	template, err := NewBlockTemplate(local_Server.txMemPool, payto)
+	template, err := factom_NewBlockTemplate(local_Server.txMemPool, payto)
 	m.submitBlockLock.Unlock()
 
 	util.Trace()
@@ -242,7 +242,7 @@ func (m *CPUMINER) submitBlock(block *btcutil.Block) bool {
 	return true
 }
 
-// NewBlockTemplate returns a new block template that is ready to be solved
+// factom_NewBlockTemplate returns a new block template that is ready to be solved
 // using the transactions from the passed transaction memory pool and a coinbase
 // that either pays to the passed address if it is not nil, or a coinbase that
 // is redeemable by anyone if the passed address is nil.  The nil address
@@ -303,7 +303,7 @@ func (m *CPUMINER) submitBlock(block *btcutil.Block) bool {
 //  |  transactions (while block size   |   |
 //  |  <= cfg.BlockMinSize)             |   |
 //   -----------------------------------  --
-func NewBlockTemplate(mempool *txMemPool, payToAddress wire.RCDHash) (*BlockTemplate, error) {
+func factom_NewBlockTemplate(mempool *txMemPool, payToAddress wire.RCDHash) (*BlockTemplate, error) {
 	util.Trace()
 
 	blockManager := mempool.server.blockManager
@@ -318,6 +318,8 @@ func NewBlockTemplate(mempool *txMemPool, payToAddress wire.RCDHash) (*BlockTemp
 
 	fmt.Printf("nextBlockHeight= %d\n", nextBlockHeight)
 	fmt.Println("prevHash= ", prevHash)
+
+	fakecoinbaseTx, err := createCoinbaseTx(uint32(nextBlockHeight), payToAddress)
 
 	coinbaseTx, err := createCoinbaseTx(uint32(nextBlockHeight), payToAddress)
 	if err != nil {
@@ -352,6 +354,8 @@ func NewBlockTemplate(mempool *txMemPool, payToAddress wire.RCDHash) (*BlockTemp
 	// can be avoided.
 	blockTxns := make([]*btcutil.Tx, 0, len(mempoolTxns))
 	blockTxns = append(blockTxns, coinbaseTx)
+
+	blockTxns = append(blockTxns, fakecoinbaseTx)
 
 	/*
 		// temp testing 2nd TX in the block, TODO: remove
@@ -414,15 +418,6 @@ func NewBlockTemplate(mempool *txMemPool, payToAddress wire.RCDHash) (*BlockTemp
 	coinbaseTx.MsgTx().TxOut[0].Value += totalFees
 	txFees[0] = -totalFees
 
-	/*
-		// Calculate the required difficulty for the block.  The timestamp
-		// is potentially adjusted to ensure it comes after the median time of
-		// the last several blocks per the chain consensus rules.
-		ts, err := medianAdjustedTime(chainState)
-		if err != nil {
-			return nil, err
-		}
-	*/
 	util.Trace()
 
 	// Create a new block ready to be solved.
@@ -433,8 +428,7 @@ func NewBlockTemplate(mempool *txMemPool, payToAddress wire.RCDHash) (*BlockTemp
 		PrevBlock:  *prevHash,
 		MerkleRoot: *merkles[len(merkles)-1],
 		Timestamp:  time.Unix(0, 0),
-		//		Bits:       requiredDifficulty,
-		Bits: 0,
+		Bits:       0,
 	}
 	for _, tx := range blockTxns {
 		if err := msgBlock.AddTransaction(tx.MsgTx()); err != nil {
