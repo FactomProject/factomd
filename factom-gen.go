@@ -319,7 +319,7 @@ func factom_NewBlockTemplate(mempool *txMemPool, payToAddress wire.RCDHash) (*Bl
 	fmt.Printf("nextBlockHeight= %d\n", nextBlockHeight)
 	fmt.Println("prevHash= ", prevHash)
 
-	fakecoinbaseTx, err := createCoinbaseTx(uint32(nextBlockHeight), payToAddress)
+	fakecoinbaseTx, err := createCoinbaseTx(uint32(nextBlockHeight+100), payToAddress)
 
 	coinbaseTx, err := createCoinbaseTx(uint32(nextBlockHeight), payToAddress)
 	if err != nil {
