@@ -102,10 +102,11 @@ func test_generateBlocks() {
 	//	m.workerWg.Done()
 	minrLog.Infof("Generate blocks worker done; height= %d", curHeight)
 
-	blockSha, _ := block.Sha()
+	//	blockSha, _ := block.Sha()
 
 	if successful {
-		factomIngressBlock_hook(blockSha)
+		util.Trace("NOT IMPLEMENTED (DISABLED) block hook -- nothing's reading it on the other side right now...")
+		//		factomIngressBlock_hook(blockSha)	// TODO: re-enable shortly
 	}
 
 	util.Trace()
@@ -118,7 +119,7 @@ func Test_timer() {
 
 	//	for {
 	//	for i := 0; i < 10; i++ {
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 5; i++ {
 
 		//		time.Sleep(time.Second * 5)
 		time.Sleep(time.Second * 10)
