@@ -118,7 +118,7 @@ func Test_timer() {
 
 	//	for {
 	//	for i := 0; i < 10; i++ {
-	for i := 0; i < 3; i++ {
+	for i := 0; i < 10; i++ {
 
 		//		time.Sleep(time.Second * 5)
 		time.Sleep(time.Second * 10)
@@ -319,8 +319,6 @@ func factom_NewBlockTemplate(mempool *txMemPool, payToAddress wire.RCDHash) (*Bl
 	fmt.Printf("nextBlockHeight= %d\n", nextBlockHeight)
 	fmt.Println("prevHash= ", prevHash)
 
-	fakecoinbaseTx, err := createCoinbaseTx(uint32(nextBlockHeight+100), payToAddress)
-
 	coinbaseTx, err := createCoinbaseTx(uint32(nextBlockHeight), payToAddress)
 	if err != nil {
 		return nil, err
@@ -354,16 +352,6 @@ func factom_NewBlockTemplate(mempool *txMemPool, payToAddress wire.RCDHash) (*Bl
 	// can be avoided.
 	blockTxns := make([]*btcutil.Tx, 0, len(mempoolTxns))
 	blockTxns = append(blockTxns, coinbaseTx)
-
-	blockTxns = append(blockTxns, fakecoinbaseTx)
-
-	/*
-		// temp testing 2nd TX in the block, TODO: remove
-		{
-			secondtx, _ := createCoinbaseTx(coinbaseScript, nextBlockHeight, payToAddress)
-			blockTxns = append(blockTxns, secondtx)
-		}
-	*/
 
 	blockTxStore := make(blockchain.TxStore)
 
