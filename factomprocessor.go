@@ -953,10 +953,10 @@ func buildEndOfMinute(pl *consensus.ProcessList, pli *consensus.ProcessListItem)
 
 // build Genesis blocks
 func buildGenesisBlocks() error {
-	
+	/*
 		// Allocate the first two dbentries for ECBlock and Factoid block
 		dchain.AddDBEntry(&common.DBEntry{}) // ECBlock
-//		dchain.AddDBEntry(&common.DBEntry{}) // Factoid block
+		dchain.AddDBEntry(&common.DBEntry{}) // Factoid block
 
 		// Entry Credit Chain
 		cBlock := newEntryCreditBlock(cchain)
@@ -965,7 +965,7 @@ func buildGenesisBlocks() error {
 		saveCChain(cchain)
 
 		// Wait for Factoid block to be built and update the DbEntry
-/*		msg := <- doneFBlockQueue
+		msg := <- doneFBlockQueue
 		doneFBlockMsg, ok := msg.(*wire.MsgInt_FactoidBlock)
 		//?? to be restored: if ok && doneFBlockMsg.BlockHeight == dchain.NextBlockID {
 				// double check MR ??
@@ -977,7 +977,7 @@ func buildGenesisBlocks() error {
 		} else {
 			panic ("Error in processing msg from doneFBlockQueue:" + fmt.Sprintf("%+v", msg))
 		}
-*/		
+	*/
 	// Directory Block chain
 	dbBlock := newDirectoryBlock(dchain)
 	// Check block hash if genesis block here??
@@ -997,7 +997,7 @@ func buildGenesisBlocks() error {
 func buildBlocks() error {
 
 	// Allocate the first two dbentries for ECBlock and Factoid block
-		dchain.AddDBEntry(&common.DBEntry{}) // ECBlock
+	//	dchain.AddDBEntry(&common.DBEntry{}) // ECBlock
 	//	dchain.AddDBEntry(&common.DBEntry{}) // Factoid block
 
 	if plMgr != nil && plMgr.MyProcessList.IsValid() {
@@ -1043,6 +1043,12 @@ func buildBlocks() error {
 	// Directory Block chain
 	dbBlock := newDirectoryBlock(dchain)
 	// Check block hash if genesis block here??
+
+	// Generate the inventory vector and relay it.
+	binary, _ := dbBlock.MarshalBinary()
+	commonHash := common.Sha(binary)
+	hash, _ := wire.NewShaHash(commonHash.Bytes)
+	outMsgQueue <- (&wire.MsgInt_DirBlock{hash})
 
 	saveDChain(dchain)
 
@@ -1154,15 +1160,11 @@ func newEntryCreditBlock(chain *common.CChain) *common.CBlock {
 	// acquire the last block
 	block := chain.NextBlock
 
-/*	if len(block.CBEntries) < 1 {
+	if len(block.CBEntries) < 1 {
 		//log.Println("No new entry found. No block created for chain: "  + common.EncodeChainID(chain.ChainID))
 		return nil
 	}
-*/
-	if chain.NextBlockID != dchain.NextBlockID {
-		panic ("Entry Credit Block height does not match Directory Block height:" + string(dchain.NextBlockID))
-	}
-	
+
 	// Create the block and add a new block for new coming entries
 	chain.BlockMutex.Lock()
 	block.Header.EntryCount = uint32(len(block.CBEntries))

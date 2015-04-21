@@ -8,6 +8,7 @@ package btcd
 
 import (
 	"fmt"
+
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/FactomCode/wallet"
 	"github.com/FactomProject/btcd/wire"
@@ -47,9 +48,17 @@ func factomForkInit(s *server) {
 	// Write outgoing factom messages into P2P network
 	go func() {
 		for msg := range outMsgQueue {
-			wireMsg, ok := msg.(wire.Message)
+			dirBlock, ok := msg.(*wire.MsgInt_DirBlock)
+			fmt.Println("dirBlock= ", dirBlock, " ok= ", ok)
 			if ok {
-				s.BroadcastMessage(wireMsg)
+				util.Trace("Dir Block GENERATED")
+				iv := wire.NewInvVect(wire.InvTypeFactomDirBlock, dirBlock.ShaHash)
+				s.RelayInventory(iv, nil)
+			} else {
+				wireMsg, ok := msg.(wire.Message)
+				if ok {
+					s.BroadcastMessage(wireMsg)
+				}
 			}
 			/*      peerInfoResults := server.PeerInfo()
 			        for peerInfo := range peerInfoResults{
