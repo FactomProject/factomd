@@ -953,17 +953,17 @@ func buildEndOfMinute(pl *consensus.ProcessList, pli *consensus.ProcessListItem)
 
 // build Genesis blocks
 func buildGenesisBlocks() error {
-	/*
+	
 		// Allocate the first two dbentries for ECBlock and Factoid block
 		dchain.AddDBEntry(&common.DBEntry{}) // ECBlock
-		dchain.AddDBEntry(&common.DBEntry{}) // Factoid block
+//		dchain.AddDBEntry(&common.DBEntry{}) // Factoid block
 
 		// Entry Credit Chain
 		cBlock := newEntryCreditBlock(cchain)
 		fmt.Printf("buildGenesisBlocks: cBlock=%s\n", spew.Sdump(cBlock))
 		dchain.AddCBlockToDBEntry(cBlock)
 		saveCChain(cchain)
-
+/*
 		// Wait for Factoid block to be built and update the DbEntry
 		msg := <- doneFBlockQueue
 		doneFBlockMsg, ok := msg.(*wire.MsgInt_FactoidBlock)
