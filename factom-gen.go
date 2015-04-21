@@ -445,10 +445,8 @@ func factom_NewBlockTemplate(mempool *txMemPool, payToAddress wire.RCDHash) (*Bl
 	}
 	util.Trace()
 
-	minrLog.Infof("Created new block template (%d transactions, %d in "+
-		"fees, %d signature operations, %d bytes)",
-		"%064x)", len(msgBlock.Transactions), totalFees, blockSigOps,
-		blockSize)
+	minrLog.Infof("Created new block template (%d transactions, %d in fees, %d signature operations, %d bytes)",
+		len(msgBlock.Transactions), totalFees, blockSigOps, blockSize)
 
 	util.Trace()
 	return &BlockTemplate{

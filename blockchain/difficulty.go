@@ -5,7 +5,7 @@
 package blockchain
 
 import (
-	"fmt"
+	//	"fmt"
 	"math/big"
 	"time"
 
@@ -161,6 +161,7 @@ func BigToCompact(n *big.Int) uint32 {
 	return compact
 }
 
+/*
 // CalcWork calculates a work value from difficulty bits.  Bitcoin increases
 // the difficulty for generating a block by decreasing the value which the
 // generated hash must be less than.  This difficulty target is stored in each
@@ -360,3 +361,4 @@ func (b *BlockChain) calcNextRequiredDifficulty(lastNode *blockNode, newBlockTim
 func (b *BlockChain) CalcNextRequiredDifficulty(timestamp time.Time) (uint32, error) {
 	return b.calcNextRequiredDifficulty(b.bestChain, timestamp)
 }
+*/

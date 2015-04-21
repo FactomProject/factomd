@@ -14,7 +14,7 @@ import (
 	"github.com/FactomProject/FactomCode/util"
 	//	"github.com/FactomProject/btcd/chaincfg"
 	"github.com/FactomProject/btcd/database"
-	"github.com/FactomProject/btcd/txscript"
+	//	"github.com/FactomProject/btcd/txscript"
 	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/btcutil"
 
@@ -884,9 +884,11 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block *btcutil.Block) er
 	// after the timestamp defined by txscript.Bip16Activation.  See
 	// https://en.bitcoin.it/wiki/BIP_0016 for more details.
 	enforceBIP0016 := false
-	if node.timestamp.After(txscript.Bip16Activation) {
-		enforceBIP0016 = true
-	}
+	/*
+		if node.timestamp.After(txscript.Bip16Activation) {
+			enforceBIP0016 = true
+		}
+	*/
 
 	// The number of signature operations must be less than the maximum
 	// allowed per block.  Note that the preliminary sanity checks on a
@@ -1015,7 +1017,7 @@ func (b *BlockChain) CheckConnectBlock(block *btcutil.Block) error {
 	newNode := newBlockNode(&block.MsgBlock().Header, blockSha, block.Height())
 	if prevNode != nil {
 		newNode.parent = prevNode
-		newNode.workSum.Add(prevNode.workSum, newNode.workSum)
+		//		newNode.workSum.Add(prevNode.workSum, newNode.workSum)
 	}
 
 	return b.checkConnectBlock(newNode, block)
