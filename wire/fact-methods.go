@@ -672,6 +672,11 @@ func (msg *MsgTx) AddTxOut(to *TxOut) {
 	msg.TxOut = append(msg.TxOut, to)
 }
 
+// AddECOut adds a transaction output to the message.
+func (msg *MsgTx) AddECOut(eco *TxEntryCreditOut) {
+	msg.ECOut = append(msg.ECOut, eco)
+}
+
 // AddRCD adds a RCD to the message.
 func (msg *MsgTx) AddRCD(rcd *RCDreveal) {
 	msg.RCDreveal = append(msg.RCDreveal, rcd)

@@ -115,10 +115,12 @@ func IsCoinBase(tx *btcutil.Tx) bool {
 		return false
 	}
 	util.Trace()
+
 	// A coin base must not have any EntryCredit outputs.
 	if len(msgTx.ECOut) != 0 {
 		return false
 	}
+
 	util.Trace()
 	// A coin base must not have any RCD reveals
 	if len(msgTx.RCDreveal) != 0 {
@@ -129,26 +131,11 @@ func IsCoinBase(tx *btcutil.Tx) bool {
 	prevOut := msgTx.TxIn[0].PreviousOutPoint
 	fmt.Println("prevOut=", spew.Sdump(prevOut))
 
-	// The previous output of a coin base must have a max value index and
-	// a zero hash.
-	/*
-		if prevOut.Index != math.MaxUint32 || !prevOut.Hash.IsEqual(zeroHash) {
-			return false
-		}
-	*/
-
 	if !prevOut.Hash.IsEqual(zeroHash) {
 		util.Trace("WARNING: not zeroHash !")
 		return false
 	}
 	util.Trace()
-
-	/*
-		if prevOut.Index != math.MaxUint32 {
-			return false
-		}
-		util.Trace()
-	*/
 
 	return true
 }

@@ -226,6 +226,13 @@ func createCoinbaseTx(nonce uint32, addr wire.RCDHash) (*btcutil.Tx, error) {
 		RCDHash: addr,
 	})
 
+	/* TEST ONLY: add an Entry Credit payout
+	tx.AddECOut(&wire.TxEntryCreditOut{
+		Value:    12345,
+		ECpubkey: wire.ECPubKey{},
+	})
+	*/
+
 	/*
 		tx.AddTxIn(&wire.TxIn{
 			// Coinbase transactions have no inputs, so previous outpoint is
