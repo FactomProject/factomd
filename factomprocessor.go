@@ -166,8 +166,8 @@ func init_processor() {
 	fMemPool.init_ftmMemPool()
 
 	// init fchainid
-	barray := []byte{0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-		0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}
+	barray := []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F}
 	fchainID = new(common.Hash)
 	fchainID.SetBytes(barray)
 
@@ -1159,25 +1159,23 @@ func newEntryCreditBlock(chain *common.CChain) *common.CBlock {
 		return nil
 	}
 */
-	if chain.NextBlockID != dchain.NextBlockID {
+	if uint64(chain.NextBlockID) != dchain.NextBlockID {
 		panic ("Entry Credit Block height does not match Directory Block height:" + string(dchain.NextBlockID))
 	}
+	block.Header.BodyHash, _ = block.BuildCBBodyHash()
+	block.BuildCBHash()
+	block.BuildMerkleRoot()
 	
 	// Create the block and add a new block for new coming entries
 	chain.BlockMutex.Lock()
-	block.Header.EntryCount = uint32(len(block.CBEntries))
-	block.Header.CreditsPerFactoid = uint32(creditsPerFactoid)
-	blkhash, _ := common.CreateHash(block)
-	log.Println("blkhash:%v", blkhash.Bytes)
 	block.IsSealed = true
 	chain.NextBlockID++
 	chain.NextBlock, _ = common.CreateCBlock(chain, block, 10)
 	chain.BlockMutex.Unlock()
-	block.CBHash = blkhash
 
 	//Store the block in db
 	db.ProcessCBlockBatch(block)
-	log.Println("EntryCreditBlock: block" + strconv.FormatUint(block.Header.BlockID, 10) + " created for chain: " + chain.ChainID.String())
+	log.Println("EntryCreditBlock: block" + string(block.Header.DBHeight) + " created for chain: " + chain.ChainID.String())
 
 	return block
 }
@@ -1486,8 +1484,8 @@ func initCChain() {
 
 	//Initialize the Entry Credit Chain ID
 	cchain = new(common.CChain)
-	barray := []byte{0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC,
-		0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC}
+	barray := []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0C}
 	cchain.ChainID = new(common.Hash)
 	cchain.ChainID.SetBytes(barray)
 
@@ -1498,7 +1496,7 @@ func initCChain() {
 	fmt.Printf("initCChain: cBlocks=%s\n", spew.Sdump(cBlocks))
 
 	for i := 0; i < len(cBlocks); i = i + 1 {
-		if cBlocks[i].Header.BlockID != uint64(i) {
+		if cBlocks[i].Header.DBHeight != uint32(i) {
 			panic("Error in initializing dChain:" + cchain.ChainID.String())
 		}
 
@@ -1508,8 +1506,8 @@ func initCChain() {
 
 	// double check the block ids
 	for i := 0; i < len(cBlocks); i = i + 1 {
-		if uint64(i) != cBlocks[i].Header.BlockID {
-			panic(errors.New("BlockID does not equal index for chain:" + cchain.ChainID.String() + " block:" + fmt.Sprintf("%v", cBlocks[i].Header.BlockID)))
+		if uint32(i) != cBlocks[i].Header.DBHeight {
+			panic(errors.New("BlockID does not equal index for chain:" + cchain.ChainID.String() + " block:" + fmt.Sprintf("%v", cBlocks[i].Header.DBHeight)))
 		}
 	}
 
@@ -1519,7 +1517,7 @@ func initCChain() {
 		cchain.NextBlock, _ = common.CreateCBlock(cchain, nil, 10)
 
 	} else {
-		cchain.NextBlockID = uint64(len(cBlocks))
+		cchain.NextBlockID = uint32(len(cBlocks))
 		cchain.NextBlock, _ = common.CreateCBlock(cchain, &cBlocks[len(cBlocks)-1], 10)
 	}
 
