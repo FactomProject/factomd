@@ -89,11 +89,11 @@ func newBlockNode(blockHeader *wire.BlockHeader, blockSha *wire.ShaHash, height 
 	node := blockNode{
 		hash:       blockSha,
 		parentHash: &prevHash,
-		workSum:    CalcWork(blockHeader.Bits),
-		height:     height,
-		version:    blockHeader.Version,
-		bits:       blockHeader.Bits,
-		timestamp:  blockHeader.Timestamp,
+		//		workSum:    CalcWork(blockHeader.Bits),
+		height:  height,
+		version: blockHeader.Version,
+		//		bits:       blockHeader.Bits,
+		timestamp: blockHeader.Timestamp,
 	}
 	return &node
 }

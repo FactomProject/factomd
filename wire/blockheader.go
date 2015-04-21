@@ -39,10 +39,10 @@ type BlockHeader struct {
 	Timestamp time.Time
 
 	// Difficulty target for the block.
-	Bits uint32
+	//	Bits uint32
 
 	// Nonce used to generate the block.
-	Nonce uint32
+	//	Nonce uint32
 }
 
 // blockHeaderLen is a constant that represents the number of bytes for a block
@@ -101,8 +101,8 @@ func NewBlockHeader(prevHash *ShaHash, merkleRootHash *ShaHash, bits uint32,
 		PrevBlock:  *prevHash,
 		MerkleRoot: *merkleRootHash,
 		Timestamp:  time.Unix(time.Now().Unix(), 0),
-		Bits:       bits,
-		Nonce:      nonce,
+		//		Bits:       bits,
+		//		Nonce:      nonce,
 	}
 }
 
@@ -111,8 +111,9 @@ func NewBlockHeader(prevHash *ShaHash, merkleRootHash *ShaHash, bits uint32,
 // decoding from the wire.
 func readBlockHeader(r io.Reader, pver uint32, bh *BlockHeader) error {
 	var sec uint32
-	err := readElements(r, &bh.Version, &bh.PrevBlock, &bh.MerkleRoot, &sec,
-		&bh.Bits, &bh.Nonce)
+	//	err := readElements(r, &bh.Version, &bh.PrevBlock, &bh.MerkleRoot, &sec)
+	err := readElements(r, &bh.Version, &bh.PrevBlock, &bh.MerkleRoot, &bh.PrevHash3)
+	//		&bh.Bits, &bh.Nonce)
 	if err != nil {
 		return err
 	}
@@ -125,9 +126,9 @@ func readBlockHeader(r io.Reader, pver uint32, bh *BlockHeader) error {
 // encoding block headers to be stored to disk, such as in a database, as
 // opposed to encoding for the wire.
 func writeBlockHeader(w io.Writer, pver uint32, bh *BlockHeader) error {
-	sec := uint32(bh.Timestamp.Unix())
-	err := writeElements(w, bh.Version, &bh.PrevBlock, &bh.MerkleRoot,
-		sec, bh.Bits, bh.Nonce)
+	//	sec := uint32(bh.Timestamp.Unix())
+	err := writeElements(w, bh.Version, &bh.PrevBlock, &bh.MerkleRoot, &bh.PrevHash3)
+	//		sec, bh.Bits, bh.Nonce)
 	if err != nil {
 		return err
 	}

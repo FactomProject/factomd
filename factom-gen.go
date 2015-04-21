@@ -410,6 +410,10 @@ func factom_NewBlockTemplate(mempool *txMemPool, payToAddress wire.RCDHash) (*Bl
 	util.Trace()
 
 	// Create a new block ready to be solved.
+
+	// TODO: need the PrevHash3 (SHA3) calculation here............
+	util.Trace("Need SHA3 calculations here.......................")
+
 	merkles := blockchain.BuildMerkleTreeStore(blockTxns)
 	var msgBlock wire.MsgBlock
 	msgBlock.Header = wire.BlockHeader{
@@ -417,8 +421,9 @@ func factom_NewBlockTemplate(mempool *txMemPool, payToAddress wire.RCDHash) (*Bl
 		PrevBlock:  *prevHash,
 		MerkleRoot: *merkles[len(merkles)-1],
 		Timestamp:  time.Unix(0, 0),
-		Bits:       0,
+		//		Bits:       0,
 	}
+
 	for _, tx := range blockTxns {
 		if err := msgBlock.AddTransaction(tx.MsgTx()); err != nil {
 			util.Trace("ERROR AddTransaction")
@@ -441,9 +446,9 @@ func factom_NewBlockTemplate(mempool *txMemPool, payToAddress wire.RCDHash) (*Bl
 	util.Trace()
 
 	minrLog.Infof("Created new block template (%d transactions, %d in "+
-		"fees, %d signature operations, %d bytes, target difficulty "+
+		"fees, %d signature operations, %d bytes)",
 		"%064x)", len(msgBlock.Transactions), totalFees, blockSigOps,
-		blockSize, blockchain.CompactToBig(msgBlock.Header.Bits))
+		blockSize)
 
 	util.Trace()
 	return &BlockTemplate{
