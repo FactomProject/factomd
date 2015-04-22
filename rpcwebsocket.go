@@ -19,8 +19,8 @@ import (
 
 	"golang.org/x/crypto/ripemd160"
 
-	//	"github.com/FactomProject/btcd/database"
 	"github.com/FactomProject/FactomCode/util"
+	//	"github.com/FactomProject/btcd/database"
 	//	"github.com/FactomProject/btcd/txscript"
 	"github.com/FactomProject/btcd/btcjson"
 	"github.com/FactomProject/btcd/wire"
@@ -50,11 +50,11 @@ type wsCommandHandler func(*wsClient, btcjson.Cmd) (interface{}, *btcjson.Error)
 // wsHandlers maps RPC command strings to appropriate websocket handler
 // functions.
 var wsHandlers = map[string]wsCommandHandler{
-	//	"notifyblocks":          handleNotifyBlocks,
+	"notifyblocks":          handleNotifyBlocks,
 	"notifynewtransactions": handleNotifyNewTransactions,
 	"notifyreceived":        handleNotifyReceived,
 	"notifyspent":           handleNotifySpent,
-	//	"rescan":                handleRescan,
+	"rescan":                handleRescan,
 }
 
 // wsAsyncHandlers holds the websocket commands which should be run
@@ -618,6 +618,7 @@ func (m *wsNotificationManager) notifyForTxOuts(ops map[wire.OutPoint]map[chan s
 	addrs map[string]map[chan struct{}]*wsClient, tx *btcutil.Tx, block *btcutil.Block) {
 
 	util.Trace("NOT IMPLEMENTED !!!!!!!!!!!!!!!!!!! needed for the wallet (?)")
+	panic(111)
 	return
 
 	/*
@@ -1392,6 +1393,8 @@ func newWebsocketClient(server *rpcServer, conn *websocket.Conn,
 // handleNotifyBlocks implements the notifyblocks command extension for
 // websocket connections.
 func handleNotifyBlocks(wsc *wsClient, icmd btcjson.Cmd) (interface{}, *btcjson.Error) {
+	util.Trace()
+
 	wsc.server.ntfnMgr.RegisterBlockUpdates(wsc)
 	return nil, nil
 }
@@ -1608,7 +1611,9 @@ func rescanBlock(wsc *wsClient, lookups *rescanKeys, blk *btcutil.Block) {
 		}
 	}
 }
+*/
 
+/*
 // recoverFromReorg attempts to recover from a detected reorganize during a
 // rescan.  It fetches a new range of block shas from the database and
 // verifies that the new range of blocks is on the same fork as a previous
@@ -1637,6 +1642,7 @@ func recoverFromReorg(db database.Db, minBlock, maxBlock int64,
 	}
 	return hashList, nil
 }
+*/
 
 // descendantBlock returns the appropiate JSON-RPC error if a current block
 // 'cur' fetched during a reorganize is not a direct child of the parent block
@@ -1667,250 +1673,256 @@ func descendantBlock(prev, cur *btcutil.Block) *btcjson.Error {
 // the chain (perhaps from a rescanprogress notification) to resume their
 // rescan.
 func handleRescan(wsc *wsClient, icmd btcjson.Cmd) (interface{}, *btcjson.Error) {
-	cmd, ok := icmd.(*btcws.RescanCmd)
-	if !ok {
-		return nil, &btcjson.ErrInternal
-	}
+	util.Trace("NOT IMPLEMENTED !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+	panic(222)
 
-	outpoints := make([]*wire.OutPoint, 0, len(cmd.OutPoints))
-	for i := range cmd.OutPoints {
-		blockHash, err := wire.NewShaHashFromStr(cmd.OutPoints[i].Hash)
-		if err != nil {
-			return nil, &btcjson.Error{
-				Code:    btcjson.ErrParse.Code,
-				Message: err.Error(),
+	return nil, nil
+
+	/*
+			cmd, ok := icmd.(*btcws.RescanCmd)
+			if !ok {
+				return nil, &btcjson.ErrInternal
 			}
-		}
-		index := cmd.OutPoints[i].Index
-		outpoints = append(outpoints, wire.NewOutPoint(blockHash, index))
-	}
 
-	numAddrs := len(cmd.Addresses)
-	if numAddrs == 1 {
-		rpcsLog.Info("Beginning rescan for 1 address")
-	} else {
-		rpcsLog.Infof("Beginning rescan for %d addresses", numAddrs)
-	}
-
-	// Build lookup maps.
-	lookups := rescanKeys{
-		fallbacks:           map[string]struct{}{},
-		pubKeyHashes:        map[[ripemd160.Size]byte]struct{}{},
-		scriptHashes:        map[[ripemd160.Size]byte]struct{}{},
-		compressedPubkeys:   map[[33]byte]struct{}{},
-		uncompressedPubkeys: map[[65]byte]struct{}{},
-		unspent:             map[wire.OutPoint]struct{}{},
-	}
-	var compressedPubkey [33]byte
-	var uncompressedPubkey [65]byte
-	for _, addrStr := range cmd.Addresses {
-		addr, err := btcutil.DecodeAddress(addrStr, activeNetParams.Params)
-		if err != nil {
-			jsonErr := btcjson.Error{
-				Code:    btcjson.ErrInvalidAddressOrKey.Code,
-				Message: "Rescan address " + addrStr + ": " + err.Error(),
-			}
-			return nil, &jsonErr
-		}
-		switch a := addr.(type) {
-		case *btcutil.AddressPubKeyHash:
-			lookups.pubKeyHashes[*a.Hash160()] = struct{}{}
-
-		case *btcutil.AddressScriptHash:
-			lookups.scriptHashes[*a.Hash160()] = struct{}{}
-
-		case *btcutil.AddressPubKey:
-			pubkeyBytes := a.ScriptAddress()
-			switch len(pubkeyBytes) {
-			case 33: // Compressed
-				copy(compressedPubkey[:], pubkeyBytes)
-				lookups.compressedPubkeys[compressedPubkey] = struct{}{}
-
-			case 65: // Uncompressed
-				copy(uncompressedPubkey[:], pubkeyBytes)
-				lookups.uncompressedPubkeys[uncompressedPubkey] = struct{}{}
-
-			default:
-				jsonErr := btcjson.Error{
-					Code:    btcjson.ErrInvalidAddressOrKey.Code,
-					Message: "Pubkey " + addrStr + " is of unknown length",
+			outpoints := make([]*wire.OutPoint, 0, len(cmd.OutPoints))
+			for i := range cmd.OutPoints {
+				blockHash, err := wire.NewShaHashFromStr(cmd.OutPoints[i].Hash)
+				if err != nil {
+					return nil, &btcjson.Error{
+						Code:    btcjson.ErrParse.Code,
+						Message: err.Error(),
+					}
 				}
-				return nil, &jsonErr
+				index := cmd.OutPoints[i].Index
+				outpoints = append(outpoints, wire.NewOutPoint(blockHash, index))
 			}
 
-		default:
-			// A new address type must have been added.  Use encoded
-			// payment address string as a fallback until a fast path
-			// is added.
-			lookups.fallbacks[addrStr] = struct{}{}
-		}
-	}
-	for _, outpoint := range outpoints {
-		lookups.unspent[*outpoint] = struct{}{}
-	}
+			numAddrs := len(cmd.Addresses)
+			if numAddrs == 1 {
+				rpcsLog.Info("Beginning rescan for 1 address")
+			} else {
+				rpcsLog.Infof("Beginning rescan for %d addresses", numAddrs)
+			}
 
-	db := wsc.server.server.db
+			// Build lookup maps.
+			lookups := rescanKeys{
+				fallbacks:           map[string]struct{}{},
+				pubKeyHashes:        map[[ripemd160.Size]byte]struct{}{},
+				scriptHashes:        map[[ripemd160.Size]byte]struct{}{},
+				compressedPubkeys:   map[[33]byte]struct{}{},
+				uncompressedPubkeys: map[[65]byte]struct{}{},
+				unspent:             map[wire.OutPoint]struct{}{},
+			}
+			var compressedPubkey [33]byte
+			var uncompressedPubkey [65]byte
+			for _, addrStr := range cmd.Addresses {
+				addr, err := btcutil.DecodeAddress(addrStr, activeNetParams.Params)
+				if err != nil {
+					jsonErr := btcjson.Error{
+						Code:    btcjson.ErrInvalidAddressOrKey.Code,
+						Message: "Rescan address " + addrStr + ": " + err.Error(),
+					}
+					return nil, &jsonErr
+				}
+				switch a := addr.(type) {
+				case *btcutil.AddressPubKeyHash:
+					lookups.pubKeyHashes[*a.Hash160()] = struct{}{}
 
-	minBlockSha, err := wire.NewShaHashFromStr(cmd.BeginBlock)
-	if err != nil {
-		return nil, &btcjson.ErrDecodeHexString
-	}
-	minBlock, err := db.FetchBlockHeightBySha(minBlockSha)
-	if err != nil {
-		return nil, &btcjson.ErrBlockNotFound
-	}
+				case *btcutil.AddressScriptHash:
+					lookups.scriptHashes[*a.Hash160()] = struct{}{}
 
-	maxBlock := database.AllShas
-	if cmd.EndBlock != "" {
-		maxBlockSha, err := wire.NewShaHashFromStr(cmd.EndBlock)
-		if err != nil {
-			return nil, &btcjson.ErrDecodeHexString
-		}
-		maxBlock, err = db.FetchBlockHeightBySha(maxBlockSha)
-		if err != nil {
-			return nil, &btcjson.ErrBlockNotFound
-		}
-	}
+				case *btcutil.AddressPubKey:
+					pubkeyBytes := a.ScriptAddress()
+					switch len(pubkeyBytes) {
+					case 33: // Compressed
+						copy(compressedPubkey[:], pubkeyBytes)
+						lookups.compressedPubkeys[compressedPubkey] = struct{}{}
 
-	var lastBlock *btcutil.Block
+					case 65: // Uncompressed
+						copy(uncompressedPubkey[:], pubkeyBytes)
+						lookups.uncompressedPubkeys[uncompressedPubkey] = struct{}{}
 
-	// A ticker is created to wait at least 10 seconds before notifying the
-	// websocket client of the current progress completed by the rescan.
-	ticker := time.NewTicker(10 * time.Second)
-	defer ticker.Stop()
+					default:
+						jsonErr := btcjson.Error{
+							Code:    btcjson.ErrInvalidAddressOrKey.Code,
+							Message: "Pubkey " + addrStr + " is of unknown length",
+						}
+						return nil, &jsonErr
+					}
 
-	// FetchHeightRange may not return a complete list of block shas for
-	// the given range, so fetch range as many times as necessary.
-fetchRange:
-	for minBlock < maxBlock {
-		hashList, err := db.FetchHeightRange(minBlock, maxBlock)
-		if err != nil {
-			rpcsLog.Errorf("Error looking up block range: %v", err)
-			return nil, &btcjson.ErrDatabase
-		}
-		if len(hashList) == 0 {
-			break
-		}
+				default:
+					// A new address type must have been added.  Use encoded
+					// payment address string as a fallback until a fast path
+					// is added.
+					lookups.fallbacks[addrStr] = struct{}{}
+				}
+			}
+			for _, outpoint := range outpoints {
+				lookups.unspent[*outpoint] = struct{}{}
+			}
 
-	loopHashList:
-		for i := range hashList {
-			blk, err := db.FetchBlockBySha(&hashList[i])
+			db := wsc.server.server.db
+
+			minBlockSha, err := wire.NewShaHashFromStr(cmd.BeginBlock)
 			if err != nil {
-				// Only handle reorgs if a block could not be
-				// found for the hash.
-				if err != database.ErrBlockShaMissing {
-					rpcsLog.Errorf("Error looking up "+
-						"block: %v", err)
+				return nil, &btcjson.ErrDecodeHexString
+			}
+			minBlock, err := db.FetchBlockHeightBySha(minBlockSha)
+			if err != nil {
+				return nil, &btcjson.ErrBlockNotFound
+			}
+
+			maxBlock := database.AllShas
+			if cmd.EndBlock != "" {
+				maxBlockSha, err := wire.NewShaHashFromStr(cmd.EndBlock)
+				if err != nil {
+					return nil, &btcjson.ErrDecodeHexString
+				}
+				maxBlock, err = db.FetchBlockHeightBySha(maxBlockSha)
+				if err != nil {
+					return nil, &btcjson.ErrBlockNotFound
+				}
+			}
+
+			var lastBlock *btcutil.Block
+
+			// A ticker is created to wait at least 10 seconds before notifying the
+			// websocket client of the current progress completed by the rescan.
+			ticker := time.NewTicker(10 * time.Second)
+			defer ticker.Stop()
+
+			// FetchHeightRange may not return a complete list of block shas for
+			// the given range, so fetch range as many times as necessary.
+		fetchRange:
+			for minBlock < maxBlock {
+				hashList, err := db.FetchHeightRange(minBlock, maxBlock)
+				if err != nil {
+					rpcsLog.Errorf("Error looking up block range: %v", err)
 					return nil, &btcjson.ErrDatabase
 				}
-
-				// If an absolute max block was specified, don't
-				// attempt to handle the reorg.
-				if maxBlock != database.AllShas {
-					rpcsLog.Errorf("Stopping rescan for "+
-						"reorged block %v",
-						cmd.EndBlock)
-					return nil, &ErrRescanReorg
-				}
-
-				// If the lookup for the previously valid block
-				// hash failed, there may have been a reorg.
-				// Fetch a new range of block hashes and verify
-				// that the previously processed block (if there
-				// was any) still exists in the database.  If it
-				// doesn't, we error.
-				//
-				// A goto is used to branch executation back to
-				// before the range was evaluated, as it must be
-				// reevaluated for the new hashList.
-				minBlock += int64(i)
-				var jsonErr *btcjson.Error
-				hashList, jsonErr = recoverFromReorg(db, minBlock,
-					maxBlock, lastBlock)
-				if jsonErr != nil {
-					return nil, jsonErr
-				}
 				if len(hashList) == 0 {
-					break fetchRange
+					break
 				}
-				goto loopHashList
-			}
-			if i == 0 && lastBlock != nil {
-				// Ensure the new hashList is on the same fork
-				// as the last block from the old hashList.
-				jsonErr := descendantBlock(lastBlock, blk)
-				if jsonErr != nil {
-					return nil, jsonErr
+
+			loopHashList:
+				for i := range hashList {
+					blk, err := db.FetchBlockBySha(&hashList[i])
+					if err != nil {
+						// Only handle reorgs if a block could not be
+						// found for the hash.
+						if err != database.ErrBlockShaMissing {
+							rpcsLog.Errorf("Error looking up "+
+								"block: %v", err)
+							return nil, &btcjson.ErrDatabase
+						}
+
+						// If an absolute max block was specified, don't
+						// attempt to handle the reorg.
+						if maxBlock != database.AllShas {
+							rpcsLog.Errorf("Stopping rescan for "+
+								"reorged block %v",
+								cmd.EndBlock)
+							return nil, &ErrRescanReorg
+						}
+
+						// If the lookup for the previously valid block
+						// hash failed, there may have been a reorg.
+						// Fetch a new range of block hashes and verify
+						// that the previously processed block (if there
+						// was any) still exists in the database.  If it
+						// doesn't, we error.
+						//
+						// A goto is used to branch executation back to
+						// before the range was evaluated, as it must be
+						// reevaluated for the new hashList.
+						minBlock += int64(i)
+						var jsonErr *btcjson.Error
+						hashList, jsonErr = recoverFromReorg(db, minBlock,
+							maxBlock, lastBlock)
+						if jsonErr != nil {
+							return nil, jsonErr
+						}
+						if len(hashList) == 0 {
+							break fetchRange
+						}
+						goto loopHashList
+					}
+					if i == 0 && lastBlock != nil {
+						// Ensure the new hashList is on the same fork
+						// as the last block from the old hashList.
+						jsonErr := descendantBlock(lastBlock, blk)
+						if jsonErr != nil {
+							return nil, jsonErr
+						}
+					}
+
+					// A select statement is used to stop rescans if the
+					// client requesting the rescan has disconnected.
+					select {
+					case <-wsc.quit:
+						rpcsLog.Debugf("Stopped rescan at height %v "+
+							"for disconnected client", blk.Height())
+						return nil, nil
+					default:
+						rescanBlock(wsc, &lookups, blk)
+						lastBlock = blk
+					}
+
+					// Periodically notify the client of the progress
+					// completed.  Continue with next block if no progress
+					// notification is needed yet.
+					select {
+					case <-ticker.C: // fallthrough
+					default:
+						continue
+					}
+
+					n := btcws.NewRescanProgressNtfn(hashList[i].String(),
+						int32(blk.Height()),
+						blk.MsgBlock().Header.Timestamp.Unix())
+					mn, err := n.MarshalJSON()
+					if err != nil {
+						rpcsLog.Errorf("Failed to marshal rescan "+
+							"progress notification: %v", err)
+						continue
+					}
+
+					if err = wsc.QueueNotification(mn); err == ErrClientQuit {
+						// Finished if the client disconnected.
+						rpcsLog.Debugf("Stopped rescan at height %v "+
+							"for disconnected client", blk.Height())
+						return nil, nil
+					}
 				}
+
+				minBlock += int64(len(hashList))
 			}
 
-			// A select statement is used to stop rescans if the
-			// client requesting the rescan has disconnected.
-			select {
-			case <-wsc.quit:
-				rpcsLog.Debugf("Stopped rescan at height %v "+
-					"for disconnected client", blk.Height())
-				return nil, nil
-			default:
-				rescanBlock(wsc, &lookups, blk)
-				lastBlock = blk
-			}
-
-			// Periodically notify the client of the progress
-			// completed.  Continue with next block if no progress
-			// notification is needed yet.
-			select {
-			case <-ticker.C: // fallthrough
-			default:
-				continue
-			}
-
-			n := btcws.NewRescanProgressNtfn(hashList[i].String(),
-				int32(blk.Height()),
-				blk.MsgBlock().Header.Timestamp.Unix())
-			mn, err := n.MarshalJSON()
+			// Notify websocket client of the finished rescan.  Due to how btcd
+			// asynchronously queues notifications to not block calling code,
+			// there is no guarantee that any of the notifications created during
+			// rescan (such as rescanprogress, recvtx and redeemingtx) will be
+			// received before the rescan RPC returns.  Therefore, another method
+			// is needed to safely inform clients that all rescan notifiations have
+			// been sent.
+			blkSha, err := lastBlock.Sha()
 			if err != nil {
-				rpcsLog.Errorf("Failed to marshal rescan "+
-					"progress notification: %v", err)
-				continue
+				rpcsLog.Errorf("Unknown problem creating block sha: %v", err)
+				return nil, &btcjson.ErrInternal
+			}
+			n := btcws.NewRescanFinishedNtfn(blkSha.String(),
+				int32(lastBlock.Height()),
+				lastBlock.MsgBlock().Header.Timestamp.Unix())
+			if mn, err := n.MarshalJSON(); err != nil {
+				rpcsLog.Errorf("Failed to marshal rescan finished "+
+					"notification: %v", err)
+			} else {
+				// The rescan is finished, so we don't care whether the client
+				// has disconnected at this point, so discard error.
+				_ = wsc.QueueNotification(mn)
 			}
 
-			if err = wsc.QueueNotification(mn); err == ErrClientQuit {
-				// Finished if the client disconnected.
-				rpcsLog.Debugf("Stopped rescan at height %v "+
-					"for disconnected client", blk.Height())
-				return nil, nil
-			}
-		}
-
-		minBlock += int64(len(hashList))
-	}
-
-	// Notify websocket client of the finished rescan.  Due to how btcd
-	// asynchronously queues notifications to not block calling code,
-	// there is no guarantee that any of the notifications created during
-	// rescan (such as rescanprogress, recvtx and redeemingtx) will be
-	// received before the rescan RPC returns.  Therefore, another method
-	// is needed to safely inform clients that all rescan notifiations have
-	// been sent.
-	blkSha, err := lastBlock.Sha()
-	if err != nil {
-		rpcsLog.Errorf("Unknown problem creating block sha: %v", err)
-		return nil, &btcjson.ErrInternal
-	}
-	n := btcws.NewRescanFinishedNtfn(blkSha.String(),
-		int32(lastBlock.Height()),
-		lastBlock.MsgBlock().Header.Timestamp.Unix())
-	if mn, err := n.MarshalJSON(); err != nil {
-		rpcsLog.Errorf("Failed to marshal rescan finished "+
-			"notification: %v", err)
-	} else {
-		// The rescan is finished, so we don't care whether the client
-		// has disconnected at this point, so discard error.
-		_ = wsc.QueueNotification(mn)
-	}
-
-	rpcsLog.Info("Finished rescan")
-	return nil, nil
+			rpcsLog.Info("Finished rescan")
+			return nil, nil
+	*/
 }
-*/

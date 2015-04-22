@@ -963,17 +963,17 @@ func buildEndOfMinute(pl *consensus.ProcessList, pli *consensus.ProcessListItem)
 
 // build Genesis blocks
 func buildGenesisBlocks() error {
-	
-		// Allocate the first two dbentries for ECBlock and Factoid block
-		dchain.AddDBEntry(&common.DBEntry{}) // ECBlock
-//		dchain.AddDBEntry(&common.DBEntry{}) // Factoid block
 
-		// Entry Credit Chain
-		cBlock := newEntryCreditBlock(cchain)
-		fmt.Printf("buildGenesisBlocks: cBlock=%s\n", spew.Sdump(cBlock))
-		dchain.AddCBlockToDBEntry(cBlock)
-		saveCChain(cchain)
-/*
+	// Allocate the first two dbentries for ECBlock and Factoid block
+	dchain.AddDBEntry(&common.DBEntry{}) // ECBlock
+	//		dchain.AddDBEntry(&common.DBEntry{}) // Factoid block
+
+	// Entry Credit Chain
+	cBlock := newEntryCreditBlock(cchain)
+	fmt.Printf("buildGenesisBlocks: cBlock=%s\n", spew.Sdump(cBlock))
+	dchain.AddCBlockToDBEntry(cBlock)
+	saveCChain(cchain)
+	/*
 		// Wait for Factoid block to be built and update the DbEntry
 		msg := <- doneFBlockQueue
 		doneFBlockMsg, ok := msg.(*wire.MsgInt_FactoidBlock)
@@ -1171,7 +1171,7 @@ func newEntryCreditBlock(chain *common.CChain) *common.CBlock {
 	block := chain.NextBlock
 
 	if uint64(chain.NextBlockID) != dchain.NextBlockID {
-		panic ("Entry Credit Block height does not match Directory Block height:" + string(dchain.NextBlockID))
+		panic("Entry Credit Block height does not match Directory Block height:" + string(dchain.NextBlockID))
 	}
 
 	block.Header.BodyHash, _ = block.BuildCBBodyHash()
@@ -1179,8 +1179,7 @@ func newEntryCreditBlock(chain *common.CChain) *common.CBlock {
 	block.Header.BodySize = block.MarshalledSize() - block.Header.MarshalledSize()
 	block.BuildCBHash()
 	block.BuildMerkleRoot()
-	
-	
+
 	// Create the block and add a new block for new coming entries
 	chain.BlockMutex.Lock()
 	chain.NextBlockID++

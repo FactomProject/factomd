@@ -8,7 +8,7 @@ import (
 	"container/list"
 	"errors"
 	"fmt"
-	"math/big"
+	//	"math/big"
 	"sort"
 	"sync"
 	"time"
@@ -62,9 +62,11 @@ type blockNode struct {
 	// height is the position in the block chain.
 	height int64
 
-	// workSum is the total amount of work in the chain up to and including
-	// this node.
-	workSum *big.Int
+	/*
+		// workSum is the total amount of work in the chain up to and including
+		// this node.
+		workSum *big.Int
+	*/
 
 	// inMainChain denotes whether the block node is currently on the
 	// the main chain or not.  This is used to help find the common
@@ -72,9 +74,9 @@ type blockNode struct {
 	inMainChain bool
 
 	// Some fields from block headers to aid in best chain selection.
-	version   int32
-	bits      uint32
-	timestamp time.Time
+	version int32
+	bits    uint32
+	//	timestamp time.Time
 }
 
 // newBlockNode returns a new block node for the given block header.  It is
@@ -82,18 +84,25 @@ type blockNode struct {
 // for the passed block.  The work sum is updated accordingly when the node is
 // inserted into a chain.
 func newBlockNode(blockHeader *wire.BlockHeader, blockSha *wire.ShaHash, height int64) *blockNode {
+	util.Trace()
+
 	// Make a copy of the hash so the node doesn't keep a reference to part
 	// of the full block/block header preventing it from being garbage
 	// collected.
 	prevHash := blockHeader.PrevBlock
+
+	if prevHash.IsEqual(zeroHash) {
+		util.Trace("ERROR !!!")
+	}
+
 	node := blockNode{
 		hash:       blockSha,
 		parentHash: &prevHash,
-		workSum:    CalcWork(blockHeader.Bits),
-		height:     height,
-		version:    blockHeader.Version,
-		bits:       blockHeader.Bits,
-		timestamp:  blockHeader.Timestamp,
+		//		workSum:    CalcWork(blockHeader.Bits),
+		height:  height,
+		version: blockHeader.Version,
+		//		bits:       blockHeader.Bits,
+		//		timestamp: blockHeader.Timestamp,
 	}
 	return &node
 }
@@ -106,6 +115,7 @@ type orphanBlock struct {
 	expiration time.Time
 }
 
+/*
 // addChildrenWork adds the passed work amount to all children all the way
 // down the chain.  It is used primarily to allow a new node to be dynamically
 // inserted from the database into the memory chain prior to nodes we already
@@ -116,6 +126,7 @@ func addChildrenWork(node *blockNode, work *big.Int) {
 		addChildrenWork(childNode, work)
 	}
 }
+*/
 
 // removeChildNode deletes node from the provided slice of child block
 // nodes.  It ensures the final pointer reference is set to nil to prevent
@@ -433,7 +444,7 @@ func (b *BlockChain) loadBlockNode(hash *wire.ShaHash) (*blockNode, error) {
 		// work sum and this node's work, append the node as a child of
 		// the parent node and set this node's parent to the parent
 		// node.
-		node.workSum = node.workSum.Add(parentNode.workSum, node.workSum)
+		//		node.workSum = node.workSum.Add(parentNode.workSum, node.workSum)
 		parentNode.children = append(parentNode.children, node)
 		node.parent = parentNode
 
@@ -445,7 +456,7 @@ func (b *BlockChain) loadBlockNode(hash *wire.ShaHash) (*blockNode, error) {
 		for _, childNode := range childNodes {
 			childNode.parent = node
 			node.children = append(node.children, childNode)
-			addChildrenWork(childNode, node.workSum)
+			//			addChildrenWork(childNode, node.workSum)
 			b.root = node
 		}
 
@@ -658,7 +669,7 @@ func (b *BlockChain) calcPastMedianTime(startNode *blockNode) (time.Time, error)
 	numNodes := 0
 	iterNode := startNode
 	for i := 0; i < medianTimeBlocks && iterNode != nil; i++ {
-		timestamps[i] = iterNode.timestamp
+		//		timestamps[i] = iterNode.timestamp
 		numNodes++
 
 		// Get the previous block node.  This function is used over
@@ -989,35 +1000,37 @@ func (b *BlockChain) connectBestChain(node *blockNode, block *btcutil.Block, fla
 		}()
 	}
 
-	// We're extending (or creating) a side chain, but the cumulative
-	// work for this new side chain is not enough to make it the new chain.
-	if node.workSum.Cmp(b.bestChain.workSum) <= 0 {
-		// Skip Logging info when the dry run flag is set.
-		if dryRun {
+	/*
+		// We're extending (or creating) a side chain, but the cumulative
+		// work for this new side chain is not enough to make it the new chain.
+		if node.workSum.Cmp(b.bestChain.workSum) <= 0 {
+			// Skip Logging info when the dry run flag is set.
+			if dryRun {
+				return nil
+			}
+
+			// Find the fork point.
+			fork := node
+			for ; fork.parent != nil; fork = fork.parent {
+				if fork.inMainChain {
+					break
+				}
+			}
+
+			// Log information about how the block is forking the chain.
+			if fork.hash.IsEqual(node.parent.hash) {
+				log.Infof("FORK: Block %v forks the chain at height %d"+
+					"/block %v, but does not cause a reorganize",
+					node.hash, fork.height, fork.hash)
+			} else {
+				log.Infof("EXTEND FORK: Block %v extends a side chain "+
+					"which forks the chain at height %d/block %v",
+					node.hash, fork.height, fork.hash)
+			}
+
 			return nil
 		}
-
-		// Find the fork point.
-		fork := node
-		for ; fork.parent != nil; fork = fork.parent {
-			if fork.inMainChain {
-				break
-			}
-		}
-
-		// Log information about how the block is forking the chain.
-		if fork.hash.IsEqual(node.parent.hash) {
-			log.Infof("FORK: Block %v forks the chain at height %d"+
-				"/block %v, but does not cause a reorganize",
-				node.hash, fork.height, fork.hash)
-		} else {
-			log.Infof("EXTEND FORK: Block %v extends a side chain "+
-				"which forks the chain at height %d/block %v",
-				node.hash, fork.height, fork.hash)
-		}
-
-		return nil
-	}
+	*/
 
 	// We're extending (or creating) a side chain and the cumulative work
 	// for this new side chain is more than the old best chain, so this side
@@ -1061,12 +1074,14 @@ func (b *BlockChain) IsCurrent(timeSource MedianTimeSource) bool {
 		return false
 	}
 
-	// Not current if the latest best block has a timestamp before 24 hours
-	// ago.
-	minus24Hours := timeSource.AdjustedTime().Add(-24 * time.Hour)
-	if b.bestChain.timestamp.Before(minus24Hours) {
-		return false
-	}
+	/*
+		// Not current if the latest best block has a timestamp before 24 hours
+		// ago.
+		minus24Hours := timeSource.AdjustedTime().Add(-24 * time.Hour)
+		if b.bestChain.timestamp.Before(minus24Hours) {
+			return false
+		}
+	*/
 
 	// The chain appears to be current if the above checks did not report
 	// otherwise.

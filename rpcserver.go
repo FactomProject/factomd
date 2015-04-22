@@ -1149,6 +1149,8 @@ func handleGetAddedNodeInfo(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan stru
 
 // handleGetBestBlock implements the getbestblock command.
 func handleGetBestBlock(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{}) (interface{}, error) {
+	util.Trace()
+
 	// All other "get block" commands give either the height, the
 	// hash, or both but require the block SHA.  This gets both for
 	// the best block.
@@ -1166,6 +1168,8 @@ func handleGetBestBlock(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{}
 
 // handleGetBestBlockHash implements the getbestblockhash command.
 func handleGetBestBlockHash(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{}) (interface{}, error) {
+	util.Trace()
+
 	sha, _, err := s.server.db.NewestSha()
 	if err != nil {
 		rpcsLog.Errorf("Error getting newest sha: %v", err)
@@ -1219,16 +1223,16 @@ func handleGetBlock(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{}) (i
 
 	blockHeader := &blk.MsgBlock().Header
 	blockReply := btcjson.BlockResult{
-		Hash:          c.Hash,
-		Version:       blockHeader.Version,
-		MerkleRoot:    blockHeader.MerkleRoot.String(),
-		PreviousHash:  blockHeader.PrevBlock.String(),
-		Nonce:         blockHeader.Nonce,
+		Hash:         c.Hash,
+		Version:      blockHeader.Version,
+		MerkleRoot:   blockHeader.MerkleRoot.String(),
+		PreviousHash: blockHeader.PrevBlock.String(),
+		//		Nonce:         blockHeader.Nonce,
 		Time:          blockHeader.Timestamp.Unix(),
 		Confirmations: uint64(1 + maxidx - idx),
 		Height:        idx,
 		Size:          int32(len(buf)),
-		Bits:          strconv.FormatInt(int64(blockHeader.Bits), 16),
+		//		Bits:          strconv.FormatInt(int64(blockHeader.Bits), 16),
 		//		Difficulty:    getDifficultyRatio(blockHeader.Bits),
 	}
 
