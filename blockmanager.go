@@ -905,6 +905,8 @@ func (b *blockManager) handleInvMsg(imsg *invMsg) {
 	/*
 		// Ignore invs from peers that aren't the sync if we are not current.
 		// Helps prevent fetching a mass of orphans.
+
+		// Note: For factom related invMsg, we should bypass b.current()
 		if imsg.peer != b.syncPeer && !b.current() {
 			return
 		}
@@ -928,7 +930,7 @@ func (b *blockManager) handleInvMsg(imsg *invMsg) {
 	chain := b.blockChain
 	for i, iv := range invVects {
 		// Ignore unsupported inventory types.
-		if iv.Type != wire.InvTypeBlock && iv.Type != wire.InvTypeTx {
+		if iv.Type != wire.InvTypeBlock && iv.Type != wire.InvTypeTx && iv.Type != wire.InvTypeFactomDirBlock {
 			continue
 		}
 
@@ -1023,6 +1025,16 @@ func (b *blockManager) handleInvMsg(imsg *invMsg) {
 			if _, exists := b.requestedTxns[iv.Hash]; !exists {
 				b.requestedTxns[iv.Hash] = struct{}{}
 				imsg.peer.requestedTxns[iv.Hash] = struct{}{}
+				gdmsg.AddInvVect(iv)
+				numRequested++
+			}
+
+		case wire.InvTypeFactomDirBlock:
+			// Request the factom dir block if there is not already a pending
+			// request.
+			if _, exists := b.requestedBlocks[iv.Hash]; !exists {
+				b.requestedBlocks[iv.Hash] = struct{}{}
+				imsg.peer.requestedBlocks[iv.Hash] = struct{}{}
 				gdmsg.AddInvVect(iv)
 				numRequested++
 			}
