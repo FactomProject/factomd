@@ -937,28 +937,28 @@ func buildRevealChain(msg *wire.MsgRevealChain) {
 	}
 }
 
-// Loop through the Process List items and get the touched chains 
+// Loop through the Process List items and get the touched chains
 // Put End-Of-Minute marker in the entry chains
 func buildEndOfMinute(pl *consensus.ProcessList, pli *consensus.ProcessListItem) {
-	tempChainMap := make(map[string]*common.EChain) 
+	tempChainMap := make(map[string]*common.EChain)
 	items := pl.GetPLItems()
 	for i := pli.Ack.Index; i >= 0; i-- {
 		if wire.END_MINUTE_1 <= items[i].Ack.Type && items[i].Ack.Type <= wire.END_MINUTE_10 {
 			break
-		} else if items[i].Ack.Type == wire.ACK_REVEAL_ENTRY && tempChainMap[items[i].Ack.ChainID.String()] ==  nil {
-						
+		} else if items[i].Ack.Type == wire.ACK_REVEAL_ENTRY && tempChainMap[items[i].Ack.ChainID.String()] == nil {
+
 			chain := chainIDMap[items[i].Ack.ChainID.String()]
-			chain.NextBlock.AddEndOfMinuteMarker(pli.Ack.Type)			
+			chain.NextBlock.AddEndOfMinuteMarker(pli.Ack.Type)
 			// Add the new chain in the tempChainMap
-			tempChainMap[chain.ChainID.String()] = chain			
+			tempChainMap[chain.ChainID.String()] = chain
 		}
 	}
-	
+
 	// Add it to the entry credit chain
 	entries := cchain.NextBlock.CBEntries
-	if len(entries)>0 && entries[len(entries)-1].Type() != common.TYPE_MINUTE_NUMBER {
-		cchain.NextBlock.AddEndOfMinuteMarker(pli.Ack.Type)	
-	}  
+	if len(entries) > 0 && entries[len(entries)-1].Type() != common.TYPE_MINUTE_NUMBER {
+		cchain.NextBlock.AddEndOfMinuteMarker(pli.Ack.Type)
+	}
 }
 
 // build Genesis blocks
