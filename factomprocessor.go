@@ -294,14 +294,16 @@ func Start_Processor(ldb database.Db, inMsgQ chan wire.FtmInternalMsg, outMsgQ c
 	for {
 		select {
 		case msg := <-inMsgQ:
-			//fmt.Printf("in inMsgQ, msg:%+v\n", msg)
+			fmt.Printf("PROCESSOR: in inMsgQ, msg:%+v\n", msg)
+
 			err := serveMsgRequest(msg)
 			if err != nil {
 				log.Println(err)
 			}
 
 		case ctlMsg := <-inCtlMsgQueue:
-			//fmt.Printf("in ctlMsg, msg:%+v\n", ctlMsg)
+			fmt.Printf("PROCESSOR: in ctlMsg, msg:%+v\n", ctlMsg)
+
 			err := serveMsgRequest(ctlMsg)
 			if err != nil {
 				log.Println(err)
@@ -406,12 +408,14 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		}
 
 	case wire.CmdInt_EOM:
+		util.Trace("CmdInt_EOM")
+
 		if nodeMode == SERVER_NODE {
 			msgEom, ok := msg.(*wire.MsgInt_EOM)
 			if !ok {
 				return errors.New("Error in build blocks:" + fmt.Sprintf("%+v", msg))
 			}
-			fmt.Printf("End of minute msg - wire.CmdInt_EOM:%+v\n", msg)
+			fmt.Printf("PROCESSOR: End of minute msg - wire.CmdInt_EOM:%+v\n", msg)
 
 			if msgEom.EOM_Type == wire.END_MINUTE_10 {
 				// Process from Orphan pool before the end of process list
@@ -420,6 +424,8 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 				plMgr.AddMyProcessListItem(msgEom, nil, wire.END_MINUTE_10)
 
 				//Notify the factoid component to start building factoid block
+				util.Trace("Notify the factoid component to start building factoid block")
+
 				outCtlMsgQueue <- msgEom
 
 				err := buildBlocks()
@@ -530,7 +536,7 @@ func processDirBlock(msg *wire.MsgDirBlock) error {
 
 	db.ProcessDBlockBatch(msg.DBlk) //?? to be removed later
 
-	fmt.Printf("Processor: MsgDirBlock=%s\n", spew.Sdump(msg.DBlk))
+	fmt.Printf("PROCESSOR: MsgDirBlock=%s\n", spew.Sdump(msg.DBlk))
 
 	msg.DBlk = nil
 
@@ -546,7 +552,7 @@ func processCBlock(msg *wire.MsgCBlock) error {
 
 	db.ProcessCBlockBatch(msg.CBlk)
 
-	fmt.Printf("Processor: MsgCBlock=%s\n", spew.Sdump(msg.CBlk))
+	fmt.Printf("PROCESSOR: MsgCBlock=%s\n", spew.Sdump(msg.CBlk))
 
 	return nil
 }
@@ -596,7 +602,7 @@ func processEBlock(msg *wire.MsgEBlock) error {
 
 	db.ProcessEBlockBatch(msg.EBlk)
 
-	fmt.Printf("Processor: MsgEBlock=%s\n", spew.Sdump(msg.EBlk))
+	fmt.Printf("PROCESSOR: MsgEBlock=%s\n", spew.Sdump(msg.EBlk))
 
 	return nil
 }
@@ -611,7 +617,7 @@ func processEntry(msg *wire.MsgEntry) error {
 	entryHash := common.Sha(entryBinary)
 	db.InsertEntry(entryHash, &entryBinary, msg.Entry, &msg.Entry.ChainID.Bytes)
 
-	fmt.Printf("Processor: MsgEntry=%s\n", spew.Sdump(msg.Entry))
+	fmt.Printf("PROCESSOR: MsgEntry=%s\n", spew.Sdump(msg.Entry))
 
 	return nil
 }
@@ -620,10 +626,11 @@ func processEntry(msg *wire.MsgEntry) error {
 // processFactoidBlock validates factoid block and save it to factom db.
 func processFactoidBlock(msg *wire.MsgBlock) error {
 	util.Trace()
-	fmt.Printf("Processor: MsgFactoidBlock=%s\n", spew.Sdump(msg))
+	fmt.Printf("PROCESSOR: MsgFactoidBlock=%s\n", spew.Sdump(msg))
 	return nil
 }
 */
+
 // Process a factoid obj message and put it in the process list
 func processFactoidTx(msg *wire.MsgInt_FactoidObj) error {
 
@@ -973,21 +980,21 @@ func buildGenesisBlocks() error {
 	fmt.Printf("buildGenesisBlocks: cBlock=%s\n", spew.Sdump(cBlock))
 	dchain.AddCBlockToDBEntry(cBlock)
 	saveCChain(cchain)
-	/*
-		// Wait for Factoid block to be built and update the DbEntry
-		msg := <- doneFBlockQueue
-		doneFBlockMsg, ok := msg.(*wire.MsgInt_FactoidBlock)
-		//?? to be restored: if ok && doneFBlockMsg.BlockHeight == dchain.NextBlockID {
-				// double check MR ??
-		if ok {
-			dbEntryUpdate := new (common.DBEntry)
-			dbEntryUpdate.ChainID = fchainID
-			dbEntryUpdate.MerkleRoot = doneFBlockMsg.ShaHash.ToFactomHash()
-			dchain.AddFBlockMRToDBEntry(dbEntryUpdate)
-		} else {
-			panic ("Error in processing msg from doneFBlockQueue:" + fmt.Sprintf("%+v", msg))
-		}
-	*/
+
+	// Wait for Factoid block to be built and update the DbEntry
+	msg := <-doneFBlockQueue
+	doneFBlockMsg, ok := msg.(*wire.MsgInt_FactoidBlock)
+	//?? to be restored: if ok && doneFBlockMsg.BlockHeight == dchain.NextBlockID {
+	// double check MR ??
+	if ok {
+		dbEntryUpdate := new(common.DBEntry)
+		dbEntryUpdate.ChainID = fchainID
+		dbEntryUpdate.MerkleRoot = doneFBlockMsg.ShaHash.ToFactomHash()
+		dchain.AddFBlockMRToDBEntry(dbEntryUpdate)
+	} else {
+		panic("Error in processing msg from doneFBlockQueue:" + fmt.Sprintf("%+v", msg))
+	}
+
 	// Directory Block chain
 	dbBlock := newDirectoryBlock(dchain)
 	// Check block hash if genesis block here??

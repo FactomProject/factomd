@@ -108,7 +108,7 @@ func IsCoinBase(tx *btcutil.Tx) bool {
 
 	msgTx := tx.MsgTx()
 
-	fmt.Println("tx=", spew.Sdump(tx))
+	//	fmt.Println("tx=", spew.Sdump(tx))
 
 	// A coin base must only have one transaction input.
 	if len(msgTx.TxIn) != 1 {
