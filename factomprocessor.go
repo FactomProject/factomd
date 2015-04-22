@@ -937,18 +937,28 @@ func buildRevealChain(msg *wire.MsgRevealChain) {
 	}
 }
 
+// Loop through the Process List items and get the touched chains 
 // Put End-Of-Minute marker in the entry chains
 func buildEndOfMinute(pl *consensus.ProcessList, pli *consensus.ProcessListItem) {
+	tempChainMap := make(map[string]*common.EChain) 
 	items := pl.GetPLItems()
 	for i := pli.Ack.Index; i >= 0; i-- {
 		if wire.END_MINUTE_1 <= items[i].Ack.Type && items[i].Ack.Type <= wire.END_MINUTE_10 {
 			break
-		} else if items[i].Ack.Type == wire.ACK_REVEAL_ENTRY {
+		} else if items[i].Ack.Type == wire.ACK_REVEAL_ENTRY && tempChainMap[items[i].Ack.ChainID.String()] ==  nil {
+						
 			chain := chainIDMap[items[i].Ack.ChainID.String()]
-
-			chain.NextBlock.AddEndOfMinuteMarker(pli.Ack.Type)
+			chain.NextBlock.AddEndOfMinuteMarker(pli.Ack.Type)			
+			// Add the new chain in the tempChainMap
+			tempChainMap[chain.ChainID.String()] = chain			
 		}
 	}
+	
+	// Add it to the entry credit chain
+	entries := cchain.NextBlock.CBEntries
+	if len(entries)>0 && entries[len(entries)-1].Type() != common.TYPE_MINUTE_NUMBER {
+		cchain.NextBlock.AddEndOfMinuteMarker(pli.Ack.Type)	
+	}  
 }
 
 // build Genesis blocks
@@ -1165,19 +1175,20 @@ func newEntryCreditBlock(chain *common.CChain) *common.CBlock {
 	}
 
 	block.Header.BodyHash, _ = block.BuildCBBodyHash()
+	block.Header.EntryCount = uint64(len(block.CBEntries))
+	block.Header.BodySize = block.MarshalledSize() - block.Header.MarshalledSize()
 	block.BuildCBHash()
 	block.BuildMerkleRoot()
 
 	// Create the block and add a new block for new coming entries
 	chain.BlockMutex.Lock()
-	block.IsSealed = true
 	chain.NextBlockID++
 	chain.NextBlock, _ = common.CreateCBlock(chain, block, 10)
 	chain.BlockMutex.Unlock()
 
 	//Store the block in db
 	db.ProcessCBlockBatch(block)
-	log.Println("EntryCreditBlock: block" + string(block.Header.DBHeight) + " created for chain: " + chain.ChainID.String())
+	log.Println("EntryCreditBlock: block" + strconv.FormatUint(uint64(block.Header.DBHeight), 10) + " created for chain: " + chain.ChainID.String())
 
 	return block
 }
@@ -1557,8 +1568,11 @@ func initEChains() {
 
 func initializeECreditMap(block *common.CBlock) {
 	for _, cbEntry := range block.CBEntries {
-		credits, _ := eCreditMap[cbEntry.PublicKey().String()]
-		eCreditMap[cbEntry.PublicKey().String()] = credits + cbEntry.Credits()
+		// Only process: TYPE_PAY_CHAIN, TYPE_PAY_ENTRY, TYPE_BUY
+		if cbEntry.Type() >= common.TYPE_PAY_CHAIN {
+			credits, _ := eCreditMap[cbEntry.PublicKey().String()]
+			eCreditMap[cbEntry.PublicKey().String()] = credits + cbEntry.Credits()
+		}
 	}
 }
 func initProcessListMgr() {
