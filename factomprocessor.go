@@ -160,6 +160,7 @@ func initEChainFromDB(chain *common.EChain) {
 }
 
 func init_processor() {
+	util.Trace()
 
 	// init mem pools
 	fMemPool = new(ftmMemPool)
@@ -970,6 +971,7 @@ func buildEndOfMinute(pl *consensus.ProcessList, pli *consensus.ProcessListItem)
 
 // build Genesis blocks
 func buildGenesisBlocks() error {
+	util.Trace()
 
 	// Allocate the first two dbentries for ECBlock and Factoid block
 	dchain.AddDBEntry(&common.DBEntry{}) // ECBlock
@@ -981,9 +983,11 @@ func buildGenesisBlocks() error {
 	dchain.AddCBlockToDBEntry(cBlock)
 	saveCChain(cchain)
 
+	util.Trace()
 	// Wait for Factoid block to be built and update the DbEntry
 	msg := <-doneFBlockQueue
 	doneFBlockMsg, ok := msg.(*wire.MsgInt_FactoidBlock)
+	util.Trace()
 	//?? to be restored: if ok && doneFBlockMsg.BlockHeight == dchain.NextBlockID {
 	// double check MR ??
 	if ok {
@@ -1012,6 +1016,7 @@ func buildGenesisBlocks() error {
 
 // build blocks from all process lists
 func buildBlocks() error {
+	util.Trace()
 
 	// Allocate the first two dbentries for ECBlock and Factoid block
 	//	dchain.AddDBEntry(&common.DBEntry{}) // ECBlock
