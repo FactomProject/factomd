@@ -867,6 +867,8 @@ func (p *peer) handleGetDataMsg(msg *wire.MsgGetData) {
 			err = p.pushTxMsg(&iv.Hash, c, waitChan)
 		case wire.InvTypeBlock:
 			err = p.pushBlockMsg(&iv.Hash, c, waitChan)
+		case wire.InvTypeFactomDirBlock:
+			err = p.pushDirBlockMsg(&iv.Hash, c, waitChan)
 			/*
 				case wire.InvTypeFilteredBlock:
 					err = p.pushMerkleBlockMsg(&iv.Hash, c, waitChan)
