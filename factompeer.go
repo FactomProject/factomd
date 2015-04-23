@@ -355,7 +355,7 @@ func (p *peer) handleGetDirBlocksMsg(msg *wire.MsgGetDirBlocks) {
 		commonhash.SetBytes(msg.HashStop.Bytes())
 		dblock, _ := db.FetchDBlockByHash(commonhash)
 		if dblock != nil {
-			height := int64(dblock.Header.BlockID)
+			height := int64(dblock.Header.BlockHeight)
 			endIdx = height + 1
 		}
 	}
@@ -373,7 +373,7 @@ func (p *peer) handleGetDirBlocksMsg(msg *wire.MsgGetDirBlocks) {
 		commonhash.SetBytes(hash.Bytes())
 		dblock, _ := db.FetchDBlockByHash(commonhash)
 		if dblock != nil {
-			height := int64(dblock.Header.BlockID)
+			height := int64(dblock.Header.BlockHeight)
 			startIdx = height + 1
 			break
 		}
@@ -491,7 +491,7 @@ func (p *peer) pushDirBlockMsg(sha *wire.ShaHash, doneChan, waitChan chan struct
 	// batch of inventory.
 	if p.continueHash != nil && p.continueHash.IsEqual(sha) {
 		util.Trace()
-		hash, _ := wire.NewShaHash(dchain.Blocks[dchain.NextBlockID-1].DBHash.Bytes) // to be improved??
+		hash, _ := wire.NewShaHash(dchain.Blocks[dchain.NextBlockHeight-1].DBHash.Bytes) // to be improved??
 		if err == nil {
 			util.Trace()
 			invMsg := wire.NewMsgDirInvSizeHint(1)

@@ -136,16 +136,16 @@ func initEChainFromDB(chain *common.EChain) {
 	sort.Sort(util.ByEBlockIDAccending(*eBlocks))
 
 	for i := 0; i < len(*eBlocks); i = i + 1 {
-		if uint64(i) != (*eBlocks)[i].Header.EBHeight {
+		if uint32(i) != (*eBlocks)[i].Header.EBHeight {
 			panic(errors.New("BlockID does not equal index for chain:" + chain.ChainID.String() + " block:" + fmt.Sprintf("%v", (*eBlocks)[i].Header.EBHeight)))
 		}
 	}
 
 	if len(*eBlocks) == 0 {
-		chain.NextBlockID = 0
+		chain.NextBlockHeight = 0
 		chain.NextBlock, _ = common.CreateBlock(chain, nil, 10)
 	} else {
-		chain.NextBlockID = uint64(len(*eBlocks))
+		chain.NextBlockHeight = uint32(len(*eBlocks))
 		chain.NextBlock, _ = common.CreateBlock(chain, &(*eBlocks)[len(*eBlocks)-1], 10)
 	}
 
@@ -174,11 +174,11 @@ func init_processor() {
 
 	// init Entry Credit Chain
 	initCChain()
-	fmt.Println("Loaded", cchain.NextBlockID, "Entry Credit blocks for chain: "+cchain.ChainID.String())
+	fmt.Println("Loaded", cchain.NextBlockHeight, "Entry Credit blocks for chain: "+cchain.ChainID.String())
 
 	// init Directory Block Chain
 	initDChain()
-	fmt.Println("Loaded", dchain.NextBlockID, "Directory blocks for chain: "+dchain.ChainID.String())
+	fmt.Println("Loaded", dchain.NextBlockHeight, "Directory blocks for chain: "+dchain.ChainID.String())
 
 	// init process list manager
 	initProcessListMgr()
@@ -188,7 +188,7 @@ func init_processor() {
 	for _, chain := range chainIDMap {
 		initEChainFromDB(chain)
 
-		fmt.Println("Loaded", chain.NextBlockID, "blocks for chain: "+chain.ChainID.String())
+		fmt.Println("Loaded", chain.NextBlockHeight, "blocks for chain: "+chain.ChainID.String())
 
 	}
 
@@ -284,7 +284,7 @@ func Start_Processor(ldb database.Db, inMsgQ chan wire.FtmInternalMsg, outMsgQ c
 	// Initialize timer for the open dblock before processing messages
 	if nodeMode == SERVER_NODE {
 		timer := &BlockTimer{
-			nextDBlockHeight: dchain.NextBlockID,
+			nextDBlockHeight: dchain.NextBlockHeight,
 			inCtlMsgQueue:    inCtlMsgQueue,
 		}
 		go timer.StartBlockTimer()
@@ -527,9 +527,9 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 func processDirBlock(msg *wire.MsgDirBlock) error {
 	util.Trace()
 
-	blk, _ := db.FetchDBlockByHeight(msg.DBlk.Header.BlockID)
+	blk, _ := db.FetchDBlockByHeight(uint64(msg.DBlk.Header.BlockHeight))
 	if blk != nil {
-		fmt.Println("DBlock already existing for height:" + string(msg.DBlk.Header.BlockID))
+		fmt.Println("DBlock already existing for height:" + string(msg.DBlk.Header.BlockHeight))
 		return nil
 	}
 
@@ -562,7 +562,7 @@ func processCBlock(msg *wire.MsgCBlock) error {
 // similar to blockChain.BC_ProcessBlock
 func processEBlock(msg *wire.MsgEBlock) error {
 	util.Trace()
-	if msg.EBlk.Header.DBHeight >= dchain.NextBlockID || msg.EBlk.Header.DBHeight < 0 {
+	if msg.EBlk.Header.DBHeight >= dchain.NextBlockHeight || msg.EBlk.Header.DBHeight < 0 {
 		return errors.New("MsgEBlock has an invalid DBHeight:" + string(msg.EBlk.Header.DBHeight))
 	}
 
@@ -572,11 +572,11 @@ func processEBlock(msg *wire.MsgEBlock) error {
 		return errors.New("MsgEBlock has an invalid DBHeight:" + string(msg.EBlk.Header.DBHeight))
 	}
 
-	mr, _ := dblock.CalculateMerkleRoot()
+	msg.EBlk.BuildMerkleRoot()
 
 	validEblock := false
 	for _, dbEntry := range dblock.DBEntries {
-		if mr.IsSameAs(dbEntry.MerkleRoot) && dbEntry.ChainID.IsSameAs(msg.EBlk.Header.ChainID) {
+		if msg.EBlk.MerkleRoot.IsSameAs(dbEntry.MerkleRoot) && dbEntry.ChainID.IsSameAs(msg.EBlk.Header.ChainID) {
 			validEblock = true
 			break
 		}
@@ -1027,6 +1027,7 @@ func buildBlocks() error {
 	//	dchain.AddDBEntry(&common.DBEntry{}) // ECBlock
 	//	dchain.AddDBEntry(&common.DBEntry{}) // Factoid block
 
+	
 	if plMgr != nil && plMgr.MyProcessList.IsValid() {
 		buildFromProcessList(plMgr.MyProcessList)
 	}
@@ -1085,7 +1086,7 @@ func buildBlocks() error {
 	// Initialize timer for the new dblock
 	if nodeMode == SERVER_NODE {
 		timer := &BlockTimer{
-			nextDBlockHeight: dchain.NextBlockID,
+			nextDBlockHeight: dchain.NextBlockHeight,
 			inCtlMsgQueue:    inCtlMsgQueue,
 		}
 		go timer.StartBlockTimer()
@@ -1141,7 +1142,7 @@ func newEntryBlock(chain *common.EChain) *common.EBlock {
 
 	// Create the block and add a new block for new coming entries
 
-	block.Header.DBHeight = dchain.NextBlockID
+	block.Header.DBHeight = dchain.NextBlockHeight
 	block.Header.EntryCount = uint32(len(block.EBEntries))
 	block.Header.StartTime = dchain.NextBlock.Header.StartTime
 
@@ -1172,13 +1173,12 @@ func newEntryBlock(chain *common.EChain) *common.EBlock {
 	log.Println("blkhash:%v", blkhash.Bytes)
 
 	block.IsSealed = true
-	chain.NextBlockID++
+	chain.NextBlockHeight++
 	chain.NextBlock, _ = common.CreateBlock(chain, block, 10)
 
 	//Store the block in db
 	db.ProcessEBlockBatch(block)
-	log.Println("EntryBlock: block" + strconv.FormatUint(block.Header.EBHeight, 10) + " created for chain: " + chain.ChainID.String())
-
+	log.Println("EntryBlock: block" + strconv.FormatUint(uint64(block.Header.EBHeight), 10) + " created for chain: " + chain.ChainID.String())
 	return block
 }
 
@@ -1187,8 +1187,8 @@ func newEntryCreditBlock(chain *common.CChain) *common.CBlock {
 	// acquire the last block
 	block := chain.NextBlock
 
-	if uint64(chain.NextBlockID) != dchain.NextBlockID {
-		panic("Entry Credit Block height does not match Directory Block height:" + string(dchain.NextBlockID))
+	if chain.NextBlockHeight != dchain.NextBlockHeight {
+		panic("Entry Credit Block height does not match Directory Block height:" + string(dchain.NextBlockHeight))
 	}
 
 	block.Header.BodyHash, _ = block.BuildCBBodyHash()
@@ -1199,7 +1199,7 @@ func newEntryCreditBlock(chain *common.CChain) *common.CBlock {
 
 	// Create the block and add a new block for new coming entries
 	chain.BlockMutex.Lock()
-	chain.NextBlockID++
+	chain.NextBlockHeight++
 	chain.NextBlock, _ = common.CreateCBlock(chain, block, 10)
 	chain.BlockMutex.Unlock()
 
@@ -1214,28 +1214,31 @@ func newDirectoryBlock(chain *common.DChain) *common.DBlock {
 
 	// acquire the last block
 	block := chain.NextBlock
+	
+	if devNet {
+		block.Header.NetworkID = common.NETWORK_ID_TEST
+	} else {
+		block.Header.NetworkID = common.NETWORK_ID_EB
+	}	
 
 	// Create the block add a new block for new coming entries
 	chain.BlockMutex.Lock()
 	block.Header.EntryCount = uint32(len(block.DBEntries))
 	// Calculate Merkle Root for FBlock and store it in header
-	if block.Header.MerkleRoot == nil {
-		fmt.Printf("new Block=%s\n", spew.Sdump(block))
-		block.Header.MerkleRoot, _ = block.CalculateMerkleRoot()
-		fmt.Println("block.Header.MerkleRoot:%v", block.Header.MerkleRoot.String())
+	if block.Header.BodyMR == nil {
+		block.Header.BodyMR, _ = block.BuildBodyMR()
 	}
-	blkhash, _ := common.CreateHash(block)
 	block.IsSealed = true
 	chain.AddDBlockToDChain(block)
-	chain.NextBlockID++
+	chain.NextBlockHeight++
 	chain.NextBlock, _ = common.CreateDBlock(chain, block, 10)
 	chain.BlockMutex.Unlock()
 
-	//Store the block in db
-	block.DBHash = blkhash
+	block.DBHash, _ = common.CreateHash(block)
+	//Store the block in db	
 	db.ProcessDBlockBatch(block)
 
-	log.Println("DirectoryBlock: block" + strconv.FormatUint(block.Header.BlockID, 10) + " created for directory block chain: " + chain.ChainID.String())
+	log.Println("DirectoryBlock: block" + strconv.FormatUint(uint64(block.Header.BlockHeight), 10) + " created for directory block chain: " + chain.ChainID.String())
 
 	return block
 }
@@ -1248,8 +1251,8 @@ func GetEntryCreditBalance(pubKey *common.Hash) (int32, error) {
 // Validate dir chain from genesis block
 func validateDChain(c *common.DChain) error {
 
-	if uint64(len(c.Blocks)) != c.NextBlockID {
-		return errors.New("Dir chain doesn't have an expected Next Block ID: " + string(c.NextBlockID))
+	if uint32(len(c.Blocks)) != c.NextBlockHeight {
+		return errors.New("Dir chain doesn't have an expected Next Block ID: " + string(c.NextBlockHeight))
 	}
 
 	//prevBlk := c.Blocks[0]
@@ -1264,7 +1267,7 @@ func validateDChain(c *common.DChain) error {
 		if !prevBlkHash.IsSameAs(c.Blocks[i].Header.PrevBlockHash) {
 			return errors.New("Previous block hash not matching for Dir block: " + string(i))
 		}
-		if !prevMR.IsSameAs(c.Blocks[i].Header.MerkleRoot) { //??
+		if !prevMR.IsSameAs(c.Blocks[i].Header.BodyMR) { //??
 
 		}
 		mr, dblkHash, err := validateDBlock(c, c.Blocks[i])
@@ -1282,7 +1285,7 @@ func validateDChain(c *common.DChain) error {
 
 func validateDBlock(c *common.DChain, b *common.DBlock) (merkleRoot *common.Hash, dbHash *common.Hash, err error) {
 
-	merkleRoot, err = b.CalculateMerkleRoot()
+	merkleRoot, err = b.BuildBodyMR()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1468,10 +1471,12 @@ func initDChain() {
 	dBlocks, _ := db.FetchAllDBlocks()
 	sort.Sort(util.ByDBlockIDAccending(dBlocks))
 
+	//fmt.Printf("initDChain: dBlocks=%s\n", spew.Sdump(dBlocks))
+
 	dchain.Blocks = make([]*common.DBlock, len(dBlocks), len(dBlocks)+1)
 
 	for i := 0; i < len(dBlocks); i = i + 1 {
-		if dBlocks[i].Header.BlockID != uint64(i) {
+		if dBlocks[i].Header.BlockHeight != uint32(i) {
 			panic("Error in initializing dChain:" + dchain.ChainID.String())
 		}
 		dBlocks[i].Chain = dchain
@@ -1482,18 +1487,18 @@ func initDChain() {
 
 	// double check the block ids
 	for i := 0; i < len(dchain.Blocks); i = i + 1 {
-		if uint64(i) != dchain.Blocks[i].Header.BlockID {
-			panic(errors.New("BlockID does not equal index for chain:" + dchain.ChainID.String() + " block:" + fmt.Sprintf("%v", dchain.Blocks[i].Header.BlockID)))
+		if uint32(i) != dchain.Blocks[i].Header.BlockHeight {
+			panic(errors.New("BlockID does not equal index for chain:" + dchain.ChainID.String() + " block:" + fmt.Sprintf("%v", dchain.Blocks[i].Header.BlockHeight)))
 		}
 	}
 
 	//Create an empty block and append to the chain
 	if len(dchain.Blocks) == 0 {
-		dchain.NextBlockID = 0
+		dchain.NextBlockHeight = 0
 		dchain.NextBlock, _ = common.CreateDBlock(dchain, nil, 10)
 		buildGenesisBlocks() // empty genesis block??
 	} else {
-		dchain.NextBlockID = uint64(len(dchain.Blocks))
+		dchain.NextBlockHeight = uint32(len(dchain.Blocks))
 		dchain.NextBlock, _ = common.CreateDBlock(dchain, dchain.Blocks[len(dchain.Blocks)-1], 10)
 	}
 
@@ -1523,7 +1528,7 @@ func initCChain() {
 	cBlocks, _ := db.FetchAllCBlocks()
 	sort.Sort(util.ByCBlockIDAccending(cBlocks))
 
-	fmt.Printf("initCChain: cBlocks=%s\n", spew.Sdump(cBlocks))
+	//fmt.Printf("initCChain: cBlocks=%s\n", spew.Sdump(cBlocks))
 
 	for i := 0; i < len(cBlocks); i = i + 1 {
 		if cBlocks[i].Header.DBHeight != uint32(i) {
@@ -1543,11 +1548,11 @@ func initCChain() {
 
 	//Create an empty block and append to the chain
 	if len(cBlocks) == 0 {
-		cchain.NextBlockID = 0
+		cchain.NextBlockHeight = 0
 		cchain.NextBlock, _ = common.CreateCBlock(cchain, nil, 10)
 
 	} else {
-		cchain.NextBlockID = uint32(len(cBlocks))
+		cchain.NextBlockHeight = uint32(len(cBlocks))
 		cchain.NextBlock, _ = common.CreateCBlock(cchain, &cBlocks[len(cBlocks)-1], 10)
 	}
 
@@ -1593,7 +1598,7 @@ func initializeECreditMap(block *common.CBlock) {
 	}
 }
 func initProcessListMgr() {
-	plMgr = consensus.NewProcessListMgr(dchain.NextBlockID, 1, 10)
+	plMgr = consensus.NewProcessListMgr(dchain.NextBlockHeight, 1, 10)
 
 }
 
