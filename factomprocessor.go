@@ -986,15 +986,20 @@ func buildGenesisBlocks() error {
 	util.Trace()
 	// Wait for Factoid block to be built and update the DbEntry
 	msg := <-doneFBlockQueue
+	util.Trace(spew.Sdump(msg))
 	doneFBlockMsg, ok := msg.(*wire.MsgInt_FactoidBlock)
-	util.Trace()
+	util.Trace(spew.Sdump(doneFBlockMsg))
 	//?? to be restored: if ok && doneFBlockMsg.BlockHeight == dchain.NextBlockID {
 	// double check MR ??
 	if ok {
+		util.Trace("ok")
 		dbEntryUpdate := new(common.DBEntry)
 		dbEntryUpdate.ChainID = fchainID
 		dbEntryUpdate.MerkleRoot = doneFBlockMsg.ShaHash.ToFactomHash()
+
+		util.Trace("before dchain")
 		dchain.AddFBlockMRToDBEntry(dbEntryUpdate)
+		util.Trace("after dchain")
 	} else {
 		panic("Error in processing msg from doneFBlockQueue:" + fmt.Sprintf("%+v", msg))
 	}

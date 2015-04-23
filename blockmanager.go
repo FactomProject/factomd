@@ -1626,6 +1626,9 @@ func loadBlockDB() (database.Db, error) {
 		btcdLog.Infof("Inserted genesis block %v",
 			activeNetParams.GenesisHash)
 		height = 0
+
+		gensha, _ := genesis.Sha()
+		factomIngressBlock_hook(gensha)
 	}
 
 	btcdLog.Infof("Block database loaded with block height %d", height)
