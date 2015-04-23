@@ -1024,10 +1024,9 @@ func buildBlocks() error {
 	util.Trace()
 
 	// Allocate the first two dbentries for ECBlock and Factoid block
-	//	dchain.AddDBEntry(&common.DBEntry{}) // ECBlock
-	//	dchain.AddDBEntry(&common.DBEntry{}) // Factoid block
+	dchain.AddDBEntry(&common.DBEntry{}) // ECBlock
+	dchain.AddDBEntry(&common.DBEntry{}) // Factoid block
 
-	
 	if plMgr != nil && plMgr.MyProcessList.IsValid() {
 		buildFromProcessList(plMgr.MyProcessList)
 	}
@@ -1214,12 +1213,12 @@ func newDirectoryBlock(chain *common.DChain) *common.DBlock {
 
 	// acquire the last block
 	block := chain.NextBlock
-	
+
 	if devNet {
 		block.Header.NetworkID = common.NETWORK_ID_TEST
 	} else {
 		block.Header.NetworkID = common.NETWORK_ID_EB
-	}	
+	}
 
 	// Create the block add a new block for new coming entries
 	chain.BlockMutex.Lock()
@@ -1235,7 +1234,7 @@ func newDirectoryBlock(chain *common.DChain) *common.DBlock {
 	chain.BlockMutex.Unlock()
 
 	block.DBHash, _ = common.CreateHash(block)
-	//Store the block in db	
+	//Store the block in db
 	db.ProcessDBlockBatch(block)
 
 	log.Println("DirectoryBlock: block" + strconv.FormatUint(uint64(block.Header.BlockHeight), 10) + " created for directory block chain: " + chain.ChainID.String())
