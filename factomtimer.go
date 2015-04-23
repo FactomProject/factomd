@@ -12,7 +12,7 @@ import (
 
 // BlockTimer is set to sent End-Of-Minute messages to processor
 type BlockTimer struct {
-	nextDBlockHeight uint64
+	nextDBlockHeight uint32
 	inCtlMsgQueue    chan wire.FtmInternalMsg //incoming message queue for factom control messages
 }
 
@@ -30,7 +30,7 @@ func (bt *BlockTimer) StartBlockTimer() {
 		for i := 0; i < 10; i++ {
 			eomMsg := &wire.MsgInt_EOM{
 				EOM_Type:         wire.END_MINUTE_1 + byte(i),
-				NextDBlockHeight: bt.nextDBlockHeight,
+				NextDBlockHeight: uint64(bt.nextDBlockHeight), //??
 			}
 
 			//send the end-of-minute message to processor
@@ -44,7 +44,7 @@ func (bt *BlockTimer) StartBlockTimer() {
 	minutesPassed := roundTime.Minute() - (roundTime.Minute()/10)*10
 
 	// Set the start time for the open dir block
-	dchain.Blocks[dchain.NextBlockID].Header.StartTime = uint64(roundTime.Add(time.Duration((0 - 60*minutesPassed) * 1000000000)).Unix())
+	dchain.Blocks[dchain.NextBlockHeight].Header.StartTime = uint64(roundTime.Add(time.Duration((0 - 60*minutesPassed) * 1000000000)).Unix())
 
 	for minutesPassed < 10 {
 
@@ -59,7 +59,7 @@ func (bt *BlockTimer) StartBlockTimer() {
 
 		eomMsg := &wire.MsgInt_EOM{
 			EOM_Type:         wire.END_MINUTE_1 + byte(minutesPassed),
-			NextDBlockHeight: bt.nextDBlockHeight,
+			NextDBlockHeight: uint64(bt.nextDBlockHeight),
 		}
 
 		//send the end-of-minute message to processor
