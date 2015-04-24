@@ -12,6 +12,7 @@ import (
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/FactomCode/wallet"
 	"github.com/FactomProject/btcd/wire"
+	"github.com/davecgh/go-spew/spew"
 
 	"os"
 	//	"github.com/FactomProject/btcutil"
@@ -48,17 +49,16 @@ func factomForkInit(s *server) {
 	// Write outgoing factom messages into P2P network
 	go func() {
 		for msg := range outMsgQueue {
-			dirBlock, ok := msg.(*wire.MsgInt_DirBlock)
-			fmt.Println("dirBlock= ", dirBlock, " ok= ", ok)
-			if ok {
-				util.Trace("Dir Block GENERATED")
+			switch msg.(type) {
+			case *wire.MsgInt_DirBlock:
+				dirBlock, _ := msg.(*wire.MsgInt_DirBlock)
+				util.Trace("Dir Block GENERATED. dirBlock= ", spew.Sdump(dirBlock))
 				iv := wire.NewInvVect(wire.InvTypeFactomDirBlock, dirBlock.ShaHash)
 				s.RelayInventory(iv, nil)
-			} else {
-				wireMsg, ok := msg.(wire.Message)
-				if ok {
-					s.BroadcastMessage(wireMsg)
-				}
+
+			case wire.Message:
+				wireMsg, _ := msg.(wire.Message)
+				s.BroadcastMessage(wireMsg)
 			}
 			/*      peerInfoResults := server.PeerInfo()
 			        for peerInfo := range peerInfoResults{
