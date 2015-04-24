@@ -972,9 +972,9 @@ func buildGenesisBlocks() error {
 
 	// Send an End of Minute message to the Factoid component to create a genesis block
 	eomMsg := &wire.MsgInt_EOM{
-			EOM_Type:         wire.END_MINUTE_10,
-			NextDBlockHeight: 0,
-		}
+		EOM_Type:         wire.END_MINUTE_10,
+		NextDBlockHeight: 0,
+	}
 	outCtlMsgQueue <- eomMsg
 
 	// Allocate the first two dbentries for ECBlock and Factoid block
