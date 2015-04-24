@@ -172,13 +172,18 @@ func init_processor() {
 	fchainID = new(common.Hash)
 	fchainID.SetBytes(barray)
 
+	// init Directory Block Chain
+	initDChain()
+	fmt.Println("Loaded", dchain.NextBlockHeight, "Directory blocks for chain: "+dchain.ChainID.String())
+
 	// init Entry Credit Chain
 	initCChain()
 	fmt.Println("Loaded", cchain.NextBlockHeight, "Entry Credit blocks for chain: "+cchain.ChainID.String())
 
-	// init Directory Block Chain
-	initDChain()
-	fmt.Println("Loaded", dchain.NextBlockHeight, "Directory blocks for chain: "+dchain.ChainID.String())
+	// build the Genesis blocks if the current height is 0
+	if dchain.NextBlockHeight == 0 {
+		buildGenesisBlocks()
+	}
 
 	// init process list manager
 	initProcessListMgr()
@@ -975,7 +980,7 @@ func buildGenesisBlocks() error {
 
 	// Allocate the first two dbentries for ECBlock and Factoid block
 	dchain.AddDBEntry(&common.DBEntry{}) // ECBlock
-	//		dchain.AddDBEntry(&common.DBEntry{}) // Factoid block
+	dchain.AddDBEntry(&common.DBEntry{}) // Factoid block
 
 	// Entry Credit Chain
 	cBlock := newEntryCreditBlock(cchain)
@@ -1055,18 +1060,18 @@ func buildBlocks() error {
 	}
 
 	// Wait for Factoid block to be built and update the DbEntry
-	/*	msg := <- doneFBlockQueue
-		doneFBlockMsg, ok := msg.(*wire.MsgInt_FactoidBlock)
-		//?? to be restored: if ok && doneFBlockMsg.BlockHeight == dchain.NextBlockID {
-		if ok {
-			dbEntryUpdate := new (common.DBEntry)
-			dbEntryUpdate.ChainID = fchainID
-			dbEntryUpdate.MerkleRoot = doneFBlockMsg.ShaHash.ToFactomHash()
-			dchain.AddFBlockMRToDBEntry(dbEntryUpdate)
-		} else {
-			panic ("Error in processing msg from doneFBlockQueue:" + fmt.Sprintf("%+v", msg))
-		}
-	*/
+	msg := <-doneFBlockQueue
+	doneFBlockMsg, ok := msg.(*wire.MsgInt_FactoidBlock)
+	//?? to be restored: if ok && doneFBlockMsg.BlockHeight == dchain.NextBlockID {
+	if ok {
+		dbEntryUpdate := new(common.DBEntry)
+		dbEntryUpdate.ChainID = fchainID
+		dbEntryUpdate.MerkleRoot = doneFBlockMsg.ShaHash.ToFactomHash()
+		dchain.AddFBlockMRToDBEntry(dbEntryUpdate)
+	} else {
+		panic("Error in processing msg from doneFBlockQueue:" + fmt.Sprintf("%+v", msg))
+	}
+
 	// Directory Block chain
 	dbBlock := newDirectoryBlock(dchain)
 	// Check block hash if genesis block here??
@@ -1495,7 +1500,7 @@ func initDChain() {
 	if len(dchain.Blocks) == 0 {
 		dchain.NextBlockHeight = 0
 		dchain.NextBlock, _ = common.CreateDBlock(dchain, nil, 10)
-		buildGenesisBlocks() // empty genesis block??
+		//buildGenesisBlocks() // empty genesis block??
 	} else {
 		dchain.NextBlockHeight = uint32(len(dchain.Blocks))
 		dchain.NextBlock, _ = common.CreateDBlock(dchain, dchain.Blocks[len(dchain.Blocks)-1], 10)
@@ -1546,13 +1551,14 @@ func initCChain() {
 	}
 
 	//Create an empty block and append to the chain
-	if len(cBlocks) == 0 {
+	if len(cBlocks) == 0 || dchain.NextBlockHeight == 0 {
 		cchain.NextBlockHeight = 0
 		cchain.NextBlock, _ = common.CreateCBlock(cchain, nil, 10)
 
 	} else {
-		cchain.NextBlockHeight = uint32(len(cBlocks))
-		cchain.NextBlock, _ = common.CreateCBlock(cchain, &cBlocks[len(cBlocks)-1], 10)
+		// Entry Credit Chain should have the same height as the dir chain
+		cchain.NextBlockHeight = dchain.NextBlockHeight
+		cchain.NextBlock, _ = common.CreateCBlock(cchain, &cBlocks[cchain.NextBlockHeight-1], 10)
 	}
 
 	// create a backup copy before processing entries
