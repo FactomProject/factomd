@@ -30,7 +30,7 @@ const (
 )
 
 type MsgAcknowledgement struct {
-	Height      uint64
+	Height      uint32
 	ChainID     *common.Hash
 	Index       uint32
 	Type        byte
@@ -77,7 +77,7 @@ func (msg *MsgAcknowledgement) MaxPayloadLength(pver uint32) uint32 {
 
 // NewMsgAcknowledgement returns a new bitcoin ping message that conforms to the Message
 // interface.  See MsgAcknowledgement for details.
-func NewMsgAcknowledgement(height uint64, index uint32, affirm *ShaHash, ackType byte) *MsgAcknowledgement {
+func NewMsgAcknowledgement(height uint32, index uint32, affirm *ShaHash, ackType byte) *MsgAcknowledgement {
 	return &MsgAcknowledgement{
 		Height:      height,
 		Index:       index,
