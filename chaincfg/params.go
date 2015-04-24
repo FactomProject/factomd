@@ -99,7 +99,7 @@ var MainNetParams = Params{
 	//	Name:        "mainnet",
 	Name:        "factoid0",
 	Net:         wire.MainNet,
-	DefaultPort: "8333",
+	DefaultPort: "8108",
 
 	// Chain parameters
 	GenesisBlock:           &genesisBlock,
@@ -215,7 +215,7 @@ var RegressionNetParams = Params{
 var TestNet3Params = Params{
 	Name:        "testnet3",
 	Net:         wire.TestNet3,
-	DefaultPort: "18333",
+	DefaultPort: "18108",
 
 	// Chain parameters
 	GenesisBlock:           &testNet3GenesisBlock,

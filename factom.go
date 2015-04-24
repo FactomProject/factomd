@@ -88,19 +88,9 @@ func factomForkInit(s *server) {
 	*/
 }
 
-/*
-// Handle factom app imcoming msg
-func (p *peer) handleBuyCreditMsg(msg *wire.MsgGetCredit) {
-	util.Trace()
-
-	// Add the msg to inbound msg queue
-	inMsgQueue <- msg
-}
-*/
-
-func Start_btcd(inMsgQ chan wire.FtmInternalMsg, outMsgQ chan wire.FtmInternalMsg,
-	inCtlMsgQ chan wire.FtmInternalMsg, outCtlMsgQ chan wire.FtmInternalMsg, doneFBlockQ chan wire.FtmInternalMsg) {
+func Start_btcd() {
 	util.Trace("FORMER REAL btcd main() function !")
+
 	// Use all processor cores.
 	//runtime.GOMAXPROCS(runtime.NumCPU())
 
@@ -125,14 +115,6 @@ func Start_btcd(inMsgQ chan wire.FtmInternalMsg, outMsgQ chan wire.FtmInternalMs
 		}
 	}
 	*/
-	// pass in the message queues
-	inMsgQueue = inMsgQ
-	outMsgQueue = outMsgQ
-	inCtlMsgQueue = inCtlMsgQ
-	outCtlMsgQueue = outCtlMsgQ
-	doneFBlockQueue = doneFBlockQ
-
-	factomIngressTx_hook(wire.NewMsgTx()) //to be removed??
 
 	// Work around defer not working after os.Exit()
 	if err := btcdMain(nil); err != nil {

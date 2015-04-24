@@ -72,7 +72,7 @@ type config struct {
 	AddPeers           []string      `short:"a" long:"addpeer" description:"Add a peer to connect with at startup"`
 	ConnectPeers       []string      `long:"connect" description:"Connect only to the specified peers at startup"`
 	DisableListen      bool          `long:"nolisten" description:"Disable listening for incoming connections -- NOTE: Listening is automatically disabled if the --connect or --proxy options are used without also specifying listen interfaces via --listen"`
-	Listeners          []string      `long:"listen" description:"Add an interface/port to listen for connections (default all interfaces port: 8333, testnet: 18333)"`
+	Listeners          []string      `long:"listen" description:"Add an interface/port to listen for connections (default all interfaces port: 8108, testnet: 18108)"`
 	MaxPeers           int           `long:"maxpeers" description:"Max number of inbound and outbound peers"`
 	BanDuration        time.Duration `long:"banduration" description:"How long to ban misbehaving peers.  Valid time units are {s, m, h}.  Minimum 1 second"`
 	RPCUser            string        `short:"u" long:"rpcuser" description:"Username for RPC connections"`
