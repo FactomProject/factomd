@@ -13,7 +13,7 @@ import (
 // MsgDirBlock implements the Message interface and represents a factom
 // DBlock message.  It is used by client to reveal the entry.
 type MsgDirBlock struct {
-	DBlk *common.DBlock
+	DBlk *common.DirectoryBlock
 }
 
 // BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
@@ -42,7 +42,7 @@ func (msg *MsgDirBlock) BtcDecode(r io.Reader, pver uint32) error {
 		return err
 	}
 
-	msg.DBlk = new(common.DBlock)
+	msg.DBlk = new(common.DirectoryBlock)
 	err = msg.DBlk.UnmarshalBinary(bytes)
 	if err != nil {
 		return err

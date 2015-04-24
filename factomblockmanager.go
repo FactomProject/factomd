@@ -18,7 +18,7 @@ import (
 // dirBlockMsg packages a directory block message and the peer it came from together
 // so the block handler has access to that information.
 type dirBlockMsg struct {
-	block *common.DBlock
+	block *common.DirectoryBlock
 	peer  *peer
 }
 

@@ -1214,7 +1214,7 @@ func newEntryCreditBlock(chain *common.CChain) *common.CBlock {
 	return block
 }
 
-func newDirectoryBlock(chain *common.DChain) *common.DBlock {
+func newDirectoryBlock(chain *common.DChain) *common.DirectoryBlock {
 
 	// acquire the last block
 	block := chain.NextBlock
@@ -1287,7 +1287,7 @@ func validateDChain(c *common.DChain) error {
 	return nil
 }
 
-func validateDBlock(c *common.DChain, b *common.DBlock) (merkleRoot *common.Hash, dbHash *common.Hash, err error) {
+func validateDBlock(c *common.DChain, b *common.DirectoryBlock) (merkleRoot *common.Hash, dbHash *common.Hash, err error) {
 
 	merkleRoot, err = b.BuildBodyMR()
 	if err != nil {
@@ -1368,7 +1368,7 @@ func saveDChain(chain *common.DChain) {
 		return
 	}
 
-	bcp := make([]*common.DBlock, len(chain.Blocks))
+	bcp := make([]*common.DirectoryBlock, len(chain.Blocks))
 
 	chain.BlockMutex.Lock()
 	copy(bcp, chain.Blocks)
@@ -1477,7 +1477,7 @@ func initDChain() {
 
 	//fmt.Printf("initDChain: dBlocks=%s\n", spew.Sdump(dBlocks))
 
-	dchain.Blocks = make([]*common.DBlock, len(dBlocks), len(dBlocks)+1)
+	dchain.Blocks = make([]*common.DirectoryBlock, len(dBlocks), len(dBlocks)+1)
 
 	for i := 0; i < len(dBlocks); i = i + 1 {
 		if dBlocks[i].Header.BlockHeight != uint32(i) {

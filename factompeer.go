@@ -552,7 +552,7 @@ func (p *peer) PushGetDirBlocksMsg(locator blockchain.BlockLocator, stopHash *wi
 // pushGetNonDirDataMsg takes the passed DBlock
 // and return corresponding data block like Factoid block,
 // EC block, Entry block, and Entry
-func (p *peer) pushGetNonDirDataMsg(dblock *common.DBlock) {
+func (p *peer) pushGetNonDirDataMsg(dblock *common.DirectoryBlock) {
 	util.Trace()
 
 	binary, _ := dblock.MarshalBinary()
