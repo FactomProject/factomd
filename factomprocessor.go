@@ -982,11 +982,6 @@ func buildGenesisBlocks() error {
 	dchain.AddDBEntry(&common.DBEntry{}) // ECBlock
 	dchain.AddDBEntry(&common.DBEntry{}) // Factoid block
 
-	// Entry Credit Chain
-	cBlock := newEntryCreditBlock(cchain)
-	fmt.Printf("buildGenesisBlocks: cBlock=%s\n", spew.Sdump(cBlock))
-	dchain.AddCBlockToDBEntry(cBlock)
-	saveCChain(cchain)
 
 	util.Trace()
 	// Wait for Factoid block to be built and update the DbEntry
@@ -1008,6 +1003,12 @@ func buildGenesisBlocks() error {
 	} else {
 		panic("Error in processing msg from doneFBlockQueue:" + fmt.Sprintf("%+v", msg))
 	}
+	
+	// Entry Credit Chain
+	cBlock := newEntryCreditBlock(cchain)
+	fmt.Printf("buildGenesisBlocks: cBlock=%s\n", spew.Sdump(cBlock))
+	dchain.AddCBlockToDBEntry(cBlock)
+	saveCChain(cchain)
 
 	// Directory Block chain
 	dbBlock := newDirectoryBlock(dchain)
@@ -1036,6 +1037,19 @@ func buildBlocks() error {
 		buildFromProcessList(plMgr.MyProcessList)
 	}
 
+	// Wait for Factoid block to be built and update the DbEntry
+	msg := <-doneFBlockQueue
+	doneFBlockMsg, ok := msg.(*wire.MsgInt_FactoidBlock)
+	//?? to be restored: if ok && doneFBlockMsg.BlockHeight == dchain.NextBlockID {
+	if ok {
+		dbEntryUpdate := new(common.DBEntry)
+		dbEntryUpdate.ChainID = fchainID
+		dbEntryUpdate.MerkleRoot = doneFBlockMsg.ShaHash.ToFactomHash()
+		dchain.AddFBlockMRToDBEntry(dbEntryUpdate)
+	} else {
+		panic("Error in processing msg from doneFBlockQueue:" + fmt.Sprintf("%+v", msg))
+	}
+
 	// Entry Credit Chain
 	cBlock := newEntryCreditBlock(cchain)
 	if cBlock != nil { // to be removed??
@@ -1057,19 +1071,6 @@ func buildBlocks() error {
 			dchain.AddEBlockToDBEntry(eblock)
 		}
 		saveEChain(chain)
-	}
-
-	// Wait for Factoid block to be built and update the DbEntry
-	msg := <-doneFBlockQueue
-	doneFBlockMsg, ok := msg.(*wire.MsgInt_FactoidBlock)
-	//?? to be restored: if ok && doneFBlockMsg.BlockHeight == dchain.NextBlockID {
-	if ok {
-		dbEntryUpdate := new(common.DBEntry)
-		dbEntryUpdate.ChainID = fchainID
-		dbEntryUpdate.MerkleRoot = doneFBlockMsg.ShaHash.ToFactomHash()
-		dchain.AddFBlockMRToDBEntry(dbEntryUpdate)
-	} else {
-		panic("Error in processing msg from doneFBlockQueue:" + fmt.Sprintf("%+v", msg))
 	}
 
 	// Directory Block chain

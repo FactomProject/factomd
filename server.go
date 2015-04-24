@@ -1309,3 +1309,7 @@ func dynamicTickDuration(remaining time.Duration) time.Duration {
 	}
 	return time.Hour
 }
+
+func (s *server) SyncPeer() *peer {
+	return s.blockManager.syncPeer
+}
