@@ -61,14 +61,6 @@ var (
 	//Diretory Block meta data map
 	dbInfoMap map[string]*common.DBInfo // dbInfoMap with dbHash string([32]byte) as key
 
-	// to be renamed??
-	/*	inMsgQueue  chan wire.FtmInternalMsg //incoming message queue for factom application messages
-		outMsgQueue chan wire.FtmInternalMsg //outgoing message queue for factom application messages
-
-		inCtlMsgQueue  chan wire.FtmInternalMsg //incoming message queue for factom control messages
-		outCtlMsgQueue chan wire.FtmInternalMsg //outgoing message queue for factom control messages
-		doneFBlockQueue  = make(chan wire.FtmInternalMsg) 	//incoming message queue for factoid component to send MR
-	*/
 	fMemPool *ftmMemPool
 	plMgr    *consensus.ProcessListMgr
 )
@@ -1009,7 +1001,7 @@ func buildGenesisBlocks() error {
 	} else {
 		panic("Error in processing msg from doneFBlockQueue:" + fmt.Sprintf("%+v", msg))
 	}
-	
+
 	// Entry Credit Chain
 	cBlock := newEntryCreditBlock(cchain)
 	fmt.Printf("buildGenesisBlocks: cBlock=%s\n", spew.Sdump(cBlock))
