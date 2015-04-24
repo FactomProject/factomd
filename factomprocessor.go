@@ -978,10 +978,16 @@ func buildEndOfMinute(pl *consensus.ProcessList, pli *consensus.ProcessListItem)
 func buildGenesisBlocks() error {
 	util.Trace()
 
+	// Send an End of Minute message to the Factoid component to create a genesis block
+	eomMsg := &wire.MsgInt_EOM{
+			EOM_Type:         wire.END_MINUTE_10,
+			NextDBlockHeight: 0,
+		}
+	outCtlMsgQueue <- eomMsg
+
 	// Allocate the first two dbentries for ECBlock and Factoid block
 	dchain.AddDBEntry(&common.DBEntry{}) // ECBlock
 	dchain.AddDBEntry(&common.DBEntry{}) // Factoid block
-
 
 	util.Trace()
 	// Wait for Factoid block to be built and update the DbEntry
