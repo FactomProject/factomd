@@ -27,6 +27,8 @@ const (
 	ACK_COMMIT_CHAIN
 	ACK_REVEAL_CHAIN
 	ACK_COMMIT_ENTRY
+
+	FORCE_FACTOID_GENESIS_REBUILD
 )
 
 type MsgAcknowledgement struct {

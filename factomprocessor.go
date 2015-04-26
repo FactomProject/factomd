@@ -590,12 +590,12 @@ func processEBlock(msg *wire.MsgEBlock) error {
 		chain.ChainID = msg.EBlk.Header.ChainID
 
 		/******************************
-         * TODO
-         * 
-         * A Chain needs an entry first... Not sure about handling here.
-         * 
-         ******************************/
-		
+		 * TODO
+		 *
+		 * A Chain needs an entry first... Not sure about handling here.
+		 *
+		 ******************************/
+
 		db.InsertChain(chain)
 		chainIDMap[chain.ChainID.String()] = chain
 	}
@@ -974,7 +974,8 @@ func buildGenesisBlocks() error {
 
 	// Send an End of Minute message to the Factoid component to create a genesis block
 	eomMsg := &wire.MsgInt_EOM{
-		EOM_Type:         wire.END_MINUTE_10,
+		//		EOM_Type:         wire.END_MINUTE_10,
+		EOM_Type:         wire.FORCE_FACTOID_GENESIS_REBUILD,
 		NextDBlockHeight: 0,
 	}
 	outCtlMsgQueue <- eomMsg
@@ -1577,20 +1578,20 @@ func initEChains() {
 
 	chainIDMap = make(map[string]*common.EChain)
 
-    /******************************
-     * 
-     * TODO:  Make our system into a lazy evaluation system.  DON'T assume
-     *        data is in memory, or even in the database!  We may have to 
-     *        pull from the network!
-     * 
-     * This should not be.  Any time we do not have a chain that we need,
-     * we can pull it by its chainID from the database.  If it does not 
-     * exist, then it has not been created yet.
-     * 
-     * I see no reason to pull all chains into memory by default.  
-     * 
-     ******************************/
-    
+	/******************************
+	 *
+	 * TODO:  Make our system into a lazy evaluation system.  DON'T assume
+	 *        data is in memory, or even in the database!  We may have to
+	 *        pull from the network!
+	 *
+	 * This should not be.  Any time we do not have a chain that we need,
+	 * we can pull it by its chainID from the database.  If it does not
+	 * exist, then it has not been created yet.
+	 *
+	 * I see no reason to pull all chains into memory by default.
+	 *
+	 ******************************/
+
 }
 
 func initializeECreditMap(block *common.CBlock) {

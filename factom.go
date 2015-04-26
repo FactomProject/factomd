@@ -14,6 +14,7 @@ import (
 	"github.com/FactomProject/btcd/wire"
 	"github.com/davecgh/go-spew/spew"
 
+	"errors"
 	"os"
 	//	"github.com/FactomProject/btcutil"
 )
@@ -68,24 +69,61 @@ func factomForkInit(s *server) {
 		}
 	}()
 
-	/*
-	   go func() {
-	     for msg := range inRpcQueue {
-	       fmt.Printf("in range inRpcQueue, msg:%+v\n", msg)
-	       switch msg.Command() {
-	       case factomwire.CmdTx:
-	         InMsgQueue <- msg //    for testing
-	         server.blockManager.QueueTx(msg.(*factomwire.MsgTx), nil)
-	       case factomwire.CmdConfirmation:
-	         server.blockManager.QueueConf(msg.(*factomwire.MsgConfirmation), nil)
+	go func() {
+		for msg := range outCtlMsgQueue {
 
-	       default:
-	         inMsgQueue <- msg
-	         outMsgQueue <- msg
-	       }
-	     }
-	   }()
-	*/
+			fmt.Printf("in range outCtlMsgQueue, msg:%+v\n", msg)
+
+			msgEom, _ := msg.(*wire.MsgInt_EOM)
+
+			//			switch msgEom.Command() {
+			switch msg.Command() {
+			case wire.CmdInt_EOM:
+				fmt.Println("\n***********************")
+				util.Trace(fmt.Sprintf("next DB height= %d\n", msgEom.NextDBlockHeight))
+				fmt.Println("***********************\n")
+				util.Trace()
+
+				switch msgEom.EOM_Type {
+				case wire.END_MINUTE_10:
+					util.Trace("type 10")
+				case wire.FORCE_FACTOID_GENESIS_REBUILD:
+					util.Trace("force genesis rebuild")
+				default:
+					util.Trace("unhandled EOM type")
+					panic(errors.New("unhandled EOM type"))
+				}
+
+			default:
+				util.Trace("default")
+				panic(errors.New("unhandled CmdInt_EOM"))
+			}
+
+			/*
+				switch msg.EOM_Type {
+
+				case wire.END_MINUTE_10:
+					util.Trace("EOM10")
+				default:
+					util.Trace("default")
+				}
+			*/
+
+			/*
+				switch msg.Command() {
+				case factomwire.CmdTx:
+					InMsgQueue <- msg //    for testing
+					server.blockManager.QueueTx(msg.(*factomwire.MsgTx), nil)
+				case factomwire.CmdConfirmation:
+					server.blockManager.QueueConf(msg.(*factomwire.MsgConfirmation), nil)
+
+				default:
+					inMsgQueue <- msg
+					outMsgQueue <- msg
+				}
+			*/
+		}
+	}()
 }
 
 func Start_btcd() {
