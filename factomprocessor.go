@@ -589,11 +589,13 @@ func processEBlock(msg *wire.MsgEBlock) error {
 		chain = new(common.EChain)
 		chain.ChainID = msg.EBlk.Header.ChainID
 
-		// to get chain name from the first entry??
-		bName := make([][]byte, 0, 5)
-		bName = append(bName, chain.ChainID.Bytes)
-		chain.Name = bName
-
+		/******************************
+         * TODO
+         * 
+         * A Chain needs an entry first... Not sure about handling here.
+         * 
+         ******************************/
+		
 		db.InsertChain(chain)
 		chainIDMap[chain.ChainID.String()] = chain
 	}
@@ -1466,8 +1468,7 @@ func initDChain() {
 
 	//Initialize the Directory Block Chain ID
 	dchain.ChainID = new(common.Hash)
-	barray := []byte{0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD,
-		0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD, 0xDD}
+	barray := common.D_CHAINID
 	dchain.ChainID.SetBytes(barray)
 
 	// get all dBlocks from db
@@ -1522,8 +1523,7 @@ func initCChain() {
 
 	//Initialize the Entry Credit Chain ID
 	cchain = new(common.CChain)
-	barray := []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0C}
+	barray := common.EC_CHAINID
 	cchain.ChainID = new(common.Hash)
 	cchain.ChainID.SetBytes(barray)
 
@@ -1577,19 +1577,20 @@ func initEChains() {
 
 	chainIDMap = make(map[string]*common.EChain)
 
-	chains, err := db.FetchAllChainsByName(nil)
-
-	if err != nil {
-		panic(err)
-	}
-
-	for _, chain := range *chains {
-		var newChain = chain
-		chainIDMap[newChain.ChainID.String()] = &newChain
-		//ONly for debug??
-		saveEChain(&chain)
-	}
-
+    /******************************
+     * 
+     * TODO:  Make our system into a lazy evaluation system.  DON'T assume
+     *        data is in memory, or even in the database!  We may have to 
+     *        pull from the network!
+     * 
+     * This should not be.  Any time we do not have a chain that we need,
+     * we can pull it by its chainID from the database.  If it does not 
+     * exist, then it has not been created yet.
+     * 
+     * I see no reason to pull all chains into memory by default.  
+     * 
+     ******************************/
+    
 }
 
 func initializeECreditMap(block *common.CBlock) {
