@@ -28,13 +28,13 @@ type MsgCommitEntry struct {
 func (msg *MsgCommitEntry) BtcEncode(w io.Writer, pver uint32) error {
 
 	//ECPubKey
-	err := writeVarBytes(w, uint32(common.HashSize), msg.ECPubKey.Bytes)
+	err := writeVarBytes(w, uint32(common.HASH_LENGTH), msg.ECPubKey.Bytes)
 	if err != nil {
 		return err
 	}
 
 	//EntryHash
-	err = writeVarBytes(w, uint32(common.HashSize), msg.EntryHash.Bytes)
+	err = writeVarBytes(w, uint32(common.HASH_LENGTH), msg.EntryHash.Bytes)
 	if err != nil {
 		return err
 	}
@@ -64,7 +64,7 @@ func (msg *MsgCommitEntry) BtcEncode(w io.Writer, pver uint32) error {
 // This is part of the Message interface implementation.
 func (msg *MsgCommitEntry) BtcDecode(r io.Reader, pver uint32) error {
 	//ECPubKey
-	bytes, err := readVarBytes(r, pver, uint32(common.HashSize), CmdCommitEntry)
+	bytes, err := readVarBytes(r, pver, uint32(common.HASH_LENGTH), CmdCommitEntry)
 	if err != nil {
 		return err
 	}
@@ -73,7 +73,7 @@ func (msg *MsgCommitEntry) BtcDecode(r io.Reader, pver uint32) error {
 	msg.ECPubKey.SetBytes(bytes)
 
 	//EntryHash
-	bytes, err = readVarBytes(r, pver, uint32(common.HashSize), CmdCommitEntry)
+	bytes, err = readVarBytes(r, pver, uint32(common.HASH_LENGTH), CmdCommitEntry)
 	if err != nil {
 		return err
 	}

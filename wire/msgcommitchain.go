@@ -30,25 +30,25 @@ type MsgCommitChain struct {
 func (msg *MsgCommitChain) BtcEncode(w io.Writer, pver uint32) error {
 
 	//ECPubKey
-	err := writeVarBytes(w, uint32(common.HashSize), msg.ECPubKey.Bytes)
+	err := writeVarBytes(w, uint32(common.HASH_LENGTH), msg.ECPubKey.Bytes)
 	if err != nil {
 		return err
 	}
 
 	//ChainID
-	err = writeVarBytes(w, uint32(common.HashSize), msg.ChainID.Bytes)
+	err = writeVarBytes(w, uint32(common.HASH_LENGTH), msg.ChainID.Bytes)
 	if err != nil {
 		return err
 	}
 
 	//EntryHash
-	err = writeVarBytes(w, uint32(common.HashSize), msg.EntryHash.Bytes)
+	err = writeVarBytes(w, uint32(common.HASH_LENGTH), msg.EntryHash.Bytes)
 	if err != nil {
 		return err
 	}
 
 	//EntryChainIDHash
-	err = writeVarBytes(w, uint32(common.HashSize), msg.EntryChainIDHash.Bytes)
+	err = writeVarBytes(w, uint32(common.HASH_LENGTH), msg.EntryChainIDHash.Bytes)
 	if err != nil {
 		return err
 	}
@@ -78,7 +78,7 @@ func (msg *MsgCommitChain) BtcEncode(w io.Writer, pver uint32) error {
 // This is part of the Message interface implementation.
 func (msg *MsgCommitChain) BtcDecode(r io.Reader, pver uint32) error {
 	//ECPubKey
-	bytes, err := readVarBytes(r, pver, uint32(common.HashSize), CmdCommitChain)
+	bytes, err := readVarBytes(r, pver, uint32(common.HASH_LENGTH), CmdCommitChain)
 	if err != nil {
 		return err
 	}
@@ -87,7 +87,7 @@ func (msg *MsgCommitChain) BtcDecode(r io.Reader, pver uint32) error {
 	msg.ECPubKey.SetBytes(bytes)
 
 	//ChainID
-	bytes, err = readVarBytes(r, pver, uint32(common.HashSize), CmdCommitChain)
+	bytes, err = readVarBytes(r, pver, uint32(common.HASH_LENGTH), CmdCommitChain)
 	if err != nil {
 		return err
 	}
@@ -95,7 +95,7 @@ func (msg *MsgCommitChain) BtcDecode(r io.Reader, pver uint32) error {
 	msg.ChainID.SetBytes(bytes)
 
 	//EntryHash
-	bytes, err = readVarBytes(r, pver, uint32(common.HashSize), CmdCommitChain)
+	bytes, err = readVarBytes(r, pver, uint32(common.HASH_LENGTH), CmdCommitChain)
 	if err != nil {
 		return err
 	}
@@ -103,7 +103,7 @@ func (msg *MsgCommitChain) BtcDecode(r io.Reader, pver uint32) error {
 	msg.EntryHash.SetBytes(bytes)
 
 	//EntryChainIDHash
-	bytes, err = readVarBytes(r, pver, uint32(common.HashSize), CmdCommitChain)
+	bytes, err = readVarBytes(r, pver, uint32(common.HASH_LENGTH), CmdCommitChain)
 	if err != nil {
 		return err
 	}
