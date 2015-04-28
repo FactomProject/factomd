@@ -13,6 +13,7 @@ import (
 	//	"container/list"
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -43,7 +44,7 @@ const (
 // is submitted.
 //
 // It must be run as a goroutine.
-func test_generateBlocks() {
+func generateFactoidBlock(h uint32) {
 	minrLog.Infof("Starting generate blocks worker")
 	util.Trace()
 
@@ -78,7 +79,7 @@ func test_generateBlocks() {
 	fmt.Println("randRCD len=", len(randRCD))
 	copy(payto[:], randRCD)
 
-	template, err := factom_NewBlockTemplate(local_Server.txMemPool, payto)
+	template, err := factom_NewBlockTemplate(local_Server.txMemPool, payto, h)
 	m.submitBlockLock.Unlock()
 
 	util.Trace()
@@ -115,26 +116,28 @@ func test_generateBlocks() {
 func Test_timer() {
 	util.Trace()
 
-	count := int32(0)
+	/*
+		count := int32(0)
 
-	//	for {
-	//	for i := 0; i < 10; i++ {
-	for i := 0; i < 4; i++ {
+		//	for {
+		//	for i := 0; i < 10; i++ {
+		for i := 0; i < 4; i++ {
 
-		//		time.Sleep(time.Second * 5)
-		time.Sleep(time.Second * 10)
-		count++
+			//		time.Sleep(time.Second * 5)
+			time.Sleep(time.Second * 10)
+			count++
 
-		fmt.Println("===================================")
-		fmt.Println(count, count%2)
-		if 0 == (count % 2) {
-			fmt.Println("evensec")
+			fmt.Println("===================================")
+			fmt.Println(count, count%2)
+			if 0 == (count % 2) {
+				fmt.Println("evensec")
 
-			test_generateBlocks() // CheckConnectBlock not returning yet, called from NewBlockTemplate
+				test_generateBlock() // CheckConnectBlock not returning yet, called from NewBlockTemplate
 
+			}
+			fmt.Println("===================================")
 		}
-		fmt.Println("===================================")
-	}
+	*/
 }
 
 // newAddressPubKey returns a new btcutil.AddressPubKey from the provided
@@ -304,7 +307,7 @@ func (m *CPUMINER) submitBlock(block *btcutil.Block) bool {
 //  |  transactions (while block size   |   |
 //  |  <= cfg.BlockMinSize)             |   |
 //   -----------------------------------  --
-func factom_NewBlockTemplate(mempool *txMemPool, payToAddress wire.RCDHash) (*BlockTemplate, error) {
+func factom_NewBlockTemplate(mempool *txMemPool, payToAddress wire.RCDHash, globalHeight uint32) (*BlockTemplate, error) {
 	util.Trace()
 
 	blockManager := mempool.server.blockManager
@@ -316,6 +319,10 @@ func factom_NewBlockTemplate(mempool *txMemPool, payToAddress wire.RCDHash) (*Bl
 	prevHash := chainState.newestHash
 	nextBlockHeight := chainState.newestHeight + 1
 	chainState.Unlock()
+
+	if uint32(nextBlockHeight) != globalHeight {
+		panic(errors.New(fmt.Sprintf("globalHeight is %d and nextBlockHeight is %d\n", globalHeight, nextBlockHeight)))
+	}
 
 	fmt.Printf("nextBlockHeight= %d\n", nextBlockHeight)
 	fmt.Println("prevHash= ", prevHash)
