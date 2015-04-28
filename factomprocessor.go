@@ -420,6 +420,8 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 				// Process from Orphan pool before the end of process list
 				processFromOrphanPool()
 
+				// Pass the Entry Credit Exchange Rate into the Factoid component
+				msgEom.EC_Exchange_Rate = creditsPerFactoid
 				plMgr.AddMyProcessListItem(msgEom, nil, wire.END_MINUTE_10)
 
 				//Notify the factoid component to start building factoid block
@@ -639,10 +641,10 @@ func processFactoidTx(msg *wire.MsgInt_FactoidObj) error {
 	for k, v := range msg.EntryCredits {
 		pubKey := new(common.Hash)
 		pubKey.SetBytes(k.Bytes())
-		credits := int32(creditsPerFactoid * v / 100000000)
+		//credits := int32(creditsPerFactoid * v / 100000000)
 		// Update the credit balance in memory
 		balance, _ := eCreditMap[pubKey.String()]
-		eCreditMap[pubKey.String()] = balance + credits
+		eCreditMap[pubKey.String()] = balance + int32(v)
 	}
 
 	// Add to MyPL if Server Node
@@ -915,8 +917,8 @@ func buildFactoidObj(msg *wire.MsgInt_FactoidObj) {
 	for k, v := range msg.EntryCredits {
 		pubKey := new(common.Hash)
 		pubKey.SetBytes(k.Bytes())
-		credits := int32(creditsPerFactoid * v / 100000000)
-		cbEntry := common.NewBuyCBEntry(pubKey, factoidTxHash, credits)
+		//credits := int32(creditsPerFactoid * v / 100000000)
+		cbEntry := common.NewBuyCBEntry(pubKey, factoidTxHash, int32(v))
 		err := cchain.NextBlock.AddCBEntry(cbEntry)
 		if err != nil {
 			panic(fmt.Sprintf(`Error while adding the First Entry to Block: %s`, err.Error()))
@@ -1536,7 +1538,7 @@ func initCChain() {
 	cBlocks, _ := db.FetchAllCBlocks()
 	sort.Sort(util.ByCBlockIDAccending(cBlocks))
 
-	//fmt.Printf("initCChain: cBlocks=%s\n", spew.Sdump(cBlocks))
+	fmt.Printf("initCChain: cBlocks=%s\n", spew.Sdump(cBlocks))
 
 	for i := 0; i < len(cBlocks); i = i + 1 {
 		if cBlocks[i].Header.DBHeight != uint32(i) {
