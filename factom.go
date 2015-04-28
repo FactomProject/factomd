@@ -80,30 +80,27 @@ func factomForkInit(s *server) {
 			switch msg.Command() {
 
 			case wire.CmdInt_EOM:
-				fmt.Println("\n***********************")
 				util.Trace(fmt.Sprintf("next DB height= %d, type= %d\n", msgEom.NextDBlockHeight, msgEom.EOM_Type))
-				fmt.Println("***********************\n")
-				util.Trace()
 
 				switch msgEom.EOM_Type {
 
 				case wire.END_MINUTE_10:
-					fmt.Println("***********************")
-					// TODO: start block building, return the hash of the new one via doneFB
+					// block building, return the hash of the new one via doneFB (via hook)
 					generateFactoidBlock(msgEom.NextDBlockHeight)
 					fmt.Println("***********************")
 					fmt.Println("***********************")
-					fmt.Println("***********************")
 
-				case wire.FORCE_FACTOID_GENESIS_REBUILD:
-					fmt.Println("***********************")
-					util.Trace("NOT IMPLEMENTED: force genesis rebuild")
-					fmt.Println("***********************")
-					// TODO: erase the blockchain, build genesis block, return the hash of it via doneFB
+					/*
+						case wire.FORCE_FACTOID_GENESIS_REBUILD:
+							fmt.Println("***********************")
+							util.Trace("NOT IMPLEMENTED: force genesis rebuild")
+							fmt.Println("***********************")
+							// TODO: erase the blockchain, build genesis block, return the hash of it via doneFB
 
-				case wire.FORCE_FACTOID_VALIDATION:
-					util.Trace("NOT IMPLEMENTED: force factoid validation")
-					// TODO: erase everything above the given height -- return or not ???
+						case wire.FORCE_FACTOID_VALIDATION:
+							util.Trace("NOT IMPLEMENTED: force factoid validation")
+							// TODO: erase everything above the given height -- return or not ???
+					*/
 
 				default:
 					util.Trace("unhandled EOM type")
@@ -271,11 +268,11 @@ func (b *blockManager) factomChecks() {
 	util.Trace()
 
 	if b.headersFirstMode {
-		panic(1)
+		panic(errors.New("headersFirstMode must be disabled and it is NOT !!!"))
 	}
 
 	if cfg.AddrIndex {
-		panic(2)
+		panic(errors.New("AddrIndex must be disabled and it is NOT !!!"))
 	}
 
 	// DisableCheckpoints should always be set

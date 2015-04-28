@@ -5,7 +5,7 @@
 package btcd
 
 import (
-	"fmt"
+	//	"fmt"
 	"github.com/FactomProject/btcd/wire"
 	"time"
 
@@ -20,7 +20,7 @@ type BlockTimer struct {
 
 // Send End-Of-Minute messages to processor for the current open directory block
 func (bt *BlockTimer) StartBlockTimer() {
-	util.Trace()
+	//	util.Trace()
 
 	//wait till the end of minute
 	//the first minute section might be bigger than others. To be improved.
@@ -37,16 +37,16 @@ func (bt *BlockTimer) StartBlockTimer() {
 				NextDBlockHeight: bt.nextDBlockHeight, //??
 			}
 
-			util.Trace("eomMsg to inCtlMsgQueue")
+			util.Trace("eomMsg 111 to inCtlMsgQueue")
 
 			//send the end-of-minute message to processor
 			bt.inCtlMsgQueue <- eomMsg
 
-			util.Trace(fmt.Sprintf("entering into sleep; i=%d", i))
+			//			util.Trace(fmt.Sprintf("entering into sleep; i=%d", i))
 			time.Sleep(time.Duration(sleeptime * 1000000000))
-			util.Trace(fmt.Sprintf("getting up from sleep; i=%d", i))
+			//			util.Trace(fmt.Sprintf("getting up from sleep; i=%d", i))
 		}
-		util.Trace("return 1")
+		//		util.Trace("return 1")
 		return
 	}
 
@@ -72,7 +72,7 @@ func (bt *BlockTimer) StartBlockTimer() {
 			NextDBlockHeight: bt.nextDBlockHeight,
 		}
 
-		util.Trace("eomMsg to inCtlMsgQueue")
+		util.Trace("eomMsg 222 to inCtlMsgQueue")
 		//send the end-of-minute message to processor
 		bt.inCtlMsgQueue <- eomMsg
 

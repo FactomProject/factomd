@@ -176,6 +176,13 @@ func init_processor() {
 	// build the Genesis blocks if the current height is 0
 	if dchain.NextBlockHeight == 0 {
 		buildGenesisBlocks()
+	} else {
+		// still send a message to the btcd-side to start up the database; such as a current block height
+		eomMsg := &wire.MsgInt_EOM{
+			EOM_Type:         wire.INFO_CURRENT_HEIGHT,
+			NextDBlockHeight: dchain.NextBlockHeight,
+		}
+		outCtlMsgQueue <- eomMsg
 	}
 
 	// init process list manager
@@ -977,7 +984,6 @@ func buildGenesisBlocks() error {
 
 	// Send an End of Minute message to the Factoid component to create a genesis block
 	eomMsg := &wire.MsgInt_EOM{
-		//		EOM_Type:         wire.END_MINUTE_10,
 		EOM_Type:         wire.FORCE_FACTOID_GENESIS_REBUILD,
 		NextDBlockHeight: 0,
 	}

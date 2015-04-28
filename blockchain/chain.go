@@ -84,7 +84,7 @@ type blockNode struct {
 // for the passed block.  The work sum is updated accordingly when the node is
 // inserted into a chain.
 func newBlockNode(blockHeader *wire.BlockHeader, blockSha *wire.ShaHash, height int64) *blockNode {
-	util.Trace()
+	//	util.Trace()
 
 	// Make a copy of the hash so the node doesn't keep a reference to part
 	// of the full block/block header preventing it from being garbage

@@ -106,8 +106,7 @@ func generateFactoidBlock(h uint32) {
 	blockSha, _ := block.Sha()
 
 	if successful {
-		util.Trace("NOT IMPLEMENTED (DISABLED) block hook -- nothing's reading it on the other side right now...")
-		factomIngressBlock_hook(blockSha) // TODO: re-enable shortly
+		factomIngressBlock_hook(blockSha)
 	}
 
 	util.Trace()
@@ -321,7 +320,7 @@ func factom_NewBlockTemplate(mempool *txMemPool, payToAddress wire.RCDHash, glob
 	chainState.Unlock()
 
 	if uint32(nextBlockHeight) != globalHeight {
-		panic(errors.New(fmt.Sprintf("globalHeight is %d and nextBlockHeight is %d\n", globalHeight, nextBlockHeight)))
+		panic(errors.New(fmt.Sprintf("ERROR: globalHeight is %d and nextBlockHeight is %d\n", globalHeight, nextBlockHeight)))
 	}
 
 	fmt.Printf("nextBlockHeight= %d\n", nextBlockHeight)
