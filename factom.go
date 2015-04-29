@@ -90,18 +90,6 @@ func factomForkInit(s *server) {
 					fmt.Println("***********************")
 					fmt.Println("***********************")
 
-					/*
-						case wire.FORCE_FACTOID_GENESIS_REBUILD:
-							fmt.Println("***********************")
-							util.Trace("NOT IMPLEMENTED: force genesis rebuild")
-							fmt.Println("***********************")
-							// TODO: erase the blockchain, build genesis block, return the hash of it via doneFB
-
-						case wire.FORCE_FACTOID_VALIDATION:
-							util.Trace("NOT IMPLEMENTED: force factoid validation")
-							// TODO: erase everything above the given height -- return or not ???
-					*/
-
 				default:
 					util.Trace("unhandled EOM type")
 					panic(errors.New("unhandled EOM type"))
