@@ -44,6 +44,7 @@ var (
 	db          database.Db    // database
 	dchain      *common.DChain //Directory Block Chain
 	cchain      *common.CChain //Entry Credit Chain
+	achain      *common.AdminChain //Admin Chain	
 	fchainID    *common.Hash
 
 	creditsPerChain   int32  = 10
@@ -171,6 +172,10 @@ func init_processor() {
 	// init Entry Credit Chain
 	initCChain()
 	fmt.Println("Loaded", cchain.NextBlockHeight, "Entry Credit blocks for chain: "+cchain.ChainID.String())
+	
+	// init Admin Chain
+	initAChain()
+	fmt.Println("Loaded", achain.NextBlockHeight, "Admin blocks for chain: "+achain.ChainID.String())	
 
 	// build the Genesis blocks if the current height is 0
 	if dchain.NextBlockHeight == 0 {
@@ -526,7 +531,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 func processDirBlock(msg *wire.MsgDirBlock) error {
 	util.Trace()
 
-	blk, _ := db.FetchDBlockByHeight(uint64(msg.DBlk.Header.BlockHeight))
+	blk, _ := db.FetchDBlockByHeight(msg.DBlk.Header.BlockHeight)
 	if blk != nil {
 		fmt.Println("DBlock already existing for height:" + string(msg.DBlk.Header.BlockHeight))
 		return nil
@@ -983,6 +988,7 @@ func buildGenesisBlocks() error {
 	outCtlMsgQueue <- eomMsg
 
 	// Allocate the first two dbentries for ECBlock and Factoid block
+	dchain.AddDBEntry(&common.DBEntry{}) // AdminBlock		
 	dchain.AddDBEntry(&common.DBEntry{}) // ECBlock
 	dchain.AddDBEntry(&common.DBEntry{}) // Factoid block
 
@@ -1012,6 +1018,12 @@ func buildGenesisBlocks() error {
 	fmt.Printf("buildGenesisBlocks: cBlock=%s\n", spew.Sdump(cBlock))
 	dchain.AddCBlockToDBEntry(cBlock)
 	saveCChain(cchain)
+	
+	// Admin chain
+	aBlock := newAdminBlock(achain)
+	fmt.Printf("buildGenesisBlocks: aBlock=%s\n", spew.Sdump(aBlock))
+	dchain.AddABlockToDBEntry(aBlock)
+	saveAChain(achain)	
 
 	// Directory Block chain
 	dbBlock := newDirectoryBlock(dchain)
@@ -1032,7 +1044,8 @@ func buildGenesisBlocks() error {
 func buildBlocks() error {
 	util.Trace()
 
-	// Allocate the first two dbentries for ECBlock and Factoid block
+	// Allocate the first three dbentries for Admin block, ECBlock and Factoid block
+	dchain.AddDBEntry(&common.DBEntry{}) // AdminBlock	
 	dchain.AddDBEntry(&common.DBEntry{}) // ECBlock
 	dchain.AddDBEntry(&common.DBEntry{}) // Factoid block
 
@@ -1055,10 +1068,16 @@ func buildBlocks() error {
 
 	// Entry Credit Chain
 	cBlock := newEntryCreditBlock(cchain)
-	if cBlock != nil { // to be removed??
-		dchain.AddCBlockToDBEntry(cBlock)
-		saveCChain(cchain)
-	}
+	dchain.AddCBlockToDBEntry(cBlock)
+	saveCChain(cchain)
+
+
+	// Admin chain
+	aBlock := newAdminBlock(achain)
+	fmt.Printf("buildGenesisBlocks: aBlock=%s\n", spew.Sdump(aBlock))
+	dchain.AddABlockToDBEntry(aBlock)
+	saveAChain(achain)	
+
 
 	// sort the echains by chain id
 	var keys []string
@@ -1214,6 +1233,32 @@ func newEntryCreditBlock(chain *common.CChain) *common.CBlock {
 	//Store the block in db
 	db.ProcessCBlockBatch(block)
 	log.Println("EntryCreditBlock: block" + strconv.FormatUint(uint64(block.Header.DBHeight), 10) + " created for chain: " + chain.ChainID.String())
+
+	return block
+}
+
+func newAdminBlock(chain *common.AdminChain) *common.AdminBlock {
+
+	// acquire the last block
+	block := chain.NextBlock
+
+	if chain.NextBlockHeight != dchain.NextBlockHeight {
+		panic("Admin Block height does not match Directory Block height:" + string(dchain.NextBlockHeight))
+	}
+
+	block.Header.EntryCount = uint32(len(block.ABEntries))
+	block.Header.BodySize = uint32(block.MarshalledSize() - block.Header.MarshalledSize())
+	block.BuildABHash()
+
+	// Create the block and add a new block for new coming entries
+	chain.BlockMutex.Lock()
+	chain.NextBlockHeight++
+	chain.NextBlock, _ = common.CreateAdminBlock(chain, block, 10)
+	chain.BlockMutex.Unlock()
+
+	//Store the block in db
+	db.ProcessABlockBatch(block)
+	log.Println("Admin Block: block" + strconv.FormatUint(uint64(block.Header.DBHeight), 10) + " created for chain: " + chain.ChainID.String())
 
 	return block
 }
@@ -1463,6 +1508,36 @@ func saveCChain(chain *common.CChain) {
 	}
 }
 
+func saveAChain(chain *common.AdminChain) {
+
+	// get all aBlocks from db
+	aBlocks, _ := db.FetchAllABlocks()
+	sort.Sort(util.ByABlockIDAccending(aBlocks))
+
+	for i, block := range aBlocks {
+
+		data, err := block.MarshalBinary()
+		if err != nil {
+			panic(err)
+		}
+
+		strChainID := chain.ChainID.String()
+		if fileNotExists(dataStorePath + strChainID) {
+			err := os.MkdirAll(dataStorePath+strChainID, 0777)
+			if err == nil {
+				log.Println("Created directory " + dataStorePath + strChainID)
+			} else {
+				log.Println(err)
+			}
+		}
+		err = ioutil.WriteFile(fmt.Sprintf(dataStorePath+strChainID+"/store.%09d.block", i), data, 0777)
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
+
 func initDChain() {
 	dchain = new(common.DChain)
 
@@ -1575,6 +1650,43 @@ func initCChain() {
 	printPaidEntryMap()
 
 }
+
+func initAChain() {
+
+	//Initialize the Admin Chain ID
+	achain = new(common.AdminChain)
+	achain.ChainID = new(common.Hash)
+	achain.ChainID.SetBytes(common.ADMIN_CHAINID)
+
+	// get all aBlocks from db
+	aBlocks, _ := db.FetchAllABlocks()
+	sort.Sort(util.ByABlockIDAccending(aBlocks))
+
+	fmt.Printf("initAChain: aBlocks=%s\n", spew.Sdump(aBlocks))
+
+	// double check the block ids
+	for i := 0; i < len(aBlocks); i = i + 1 {
+		if uint32(i) != aBlocks[i].Header.DBHeight {
+			panic(errors.New("BlockID does not equal index for chain:" + achain.ChainID.String() + " block:" + fmt.Sprintf("%v", aBlocks[i].Header.DBHeight)))
+		}
+	}
+
+	//Create an empty block and append to the chain
+	if len(aBlocks) == 0 || dchain.NextBlockHeight == 0 {
+		achain.NextBlockHeight = 0
+		achain.NextBlock, _ = common.CreateAdminBlock(achain, nil, 10)
+
+	} else {
+		// Entry Credit Chain should have the same height as the dir chain
+		achain.NextBlockHeight = dchain.NextBlockHeight
+		achain.NextBlock, _ = common.CreateAdminBlock(achain, &aBlocks[achain.NextBlockHeight-1], 10)
+	}
+
+	//ONly for debug??
+	saveAChain(achain)
+
+}
+
 
 func initEChains() {
 
