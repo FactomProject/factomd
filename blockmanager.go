@@ -1470,19 +1470,16 @@ func newBlockManager(s *server) (*blockManager, error) {
 	return &bm, nil
 }
 
-/*
 // removeRegressionDB removes the existing regression test database if running
 // in regression test mode and it already exists.
-func removeRegressionDB(dbPath string) error {
-	// Dont do anything if not in regression test mode.
-	if !cfg.RegressionTest {
-		return nil
-	}
+func removeDB(dbPath string) error {
+	util.Trace()
 
-	// Remove the old regression test database if it already exists.
+	// Remove the old database if it already exists.
 	fi, err := os.Stat(dbPath)
 	if err == nil {
-		btcdLog.Infof("Removing regression test database from '%s'", dbPath)
+		//		btcdLog.Infof("Removing regression test database from '%s'", dbPath)
+		btcdLog.Infof("Removing the database from '%s'", dbPath)
 		if fi.IsDir() {
 			err := os.RemoveAll(dbPath)
 			if err != nil {
@@ -1498,7 +1495,6 @@ func removeRegressionDB(dbPath string) error {
 
 	return nil
 }
-*/
 
 // dbPath returns the path to the block database given a database type.
 func blockDbPath(dbType string) string {
@@ -1551,7 +1547,9 @@ func warnMultipeDBs() {
 // such warning the user if there are multiple databases which consume space on
 // the file system and ensuring the regression test database is clean when in
 // regression test mode.
-func setupBlockDB() (database.Db, error) {
+func setupBlockDB(flag bool) (database.Db, error) {
+	util.Trace("DbType: " + cfg.DbType)
+
 	// The memdb backend does not have a file path associated with it, so
 	// handle it uniquely.  We also don't want to worry about the multiple
 	// database type warnings when running with the memory database.
@@ -1569,9 +1567,10 @@ func setupBlockDB() (database.Db, error) {
 	// The database name is based on the database type.
 	dbPath := blockDbPath(cfg.DbType)
 
-	// The regression test is special in that it needs a clean database for
-	// each run, so remove it now if it already exists.
-	//	removeRegressionDB(dbPath)
+	// Remove the database, restart from genesis is requested by the processor.
+	if flag {
+		removeDB(dbPath)
+	}
 
 	btcdLog.Infof("Loading block database from '%s'", dbPath)
 	db, err := database.OpenDB(cfg.DbType, dbPath)
@@ -1600,7 +1599,19 @@ func setupBlockDB() (database.Db, error) {
 func loadBlockDB() (database.Db, error) {
 	util.Trace()
 
-	db, err := setupBlockDB()
+	var removeFlag bool = false
+
+	util.Trace("FORCE waiting for msg")
+	msg := <-outCtlMsgQueue
+
+	msgEom, _ := msg.(*wire.MsgInt_EOM)
+	if wire.FORCE_FACTOID_GENESIS_REBUILD == msgEom.EOM_Type {
+		util.Trace("FORCE got it")
+		removeFlag = true
+	}
+	util.Trace("FORCE end of waiting for it")
+
+	db, err := setupBlockDB(removeFlag)
 	if err != nil {
 		return nil, err
 	}

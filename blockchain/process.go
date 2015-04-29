@@ -58,6 +58,7 @@ func (b *BlockChain) blockExists(hash *wire.ShaHash) (bool, error) {
 // The flags do not modify the behavior of this function directly, however they
 // are needed to pass along to maybeAcceptBlock.
 func (b *BlockChain) processOrphans(hash *wire.ShaHash, flags BehaviorFlags) error {
+	util.Trace()
 	// Start with processing at least the passed hash.  Leave a little room
 	// for additional orphan blocks that need to be processed without
 	// needing to grow the array in the common case.

@@ -84,7 +84,7 @@ type blockNode struct {
 // for the passed block.  The work sum is updated accordingly when the node is
 // inserted into a chain.
 func newBlockNode(blockHeader *wire.BlockHeader, blockSha *wire.ShaHash, height int64) *blockNode {
-	util.Trace()
+	//	util.Trace()
 
 	// Make a copy of the hash so the node doesn't keep a reference to part
 	// of the full block/block header preventing it from being garbage
@@ -208,6 +208,7 @@ func (b *BlockChain) HaveBlock(hash *wire.ShaHash) (bool, error) {
 //
 // This function is safe for concurrent access.
 func (b *BlockChain) IsKnownOrphan(hash *wire.ShaHash) bool {
+	util.Trace()
 	// Protect concurrent access.  Using a read lock only so multiple
 	// readers can query without blocking each other.
 	b.orphanLock.RLock()
@@ -225,6 +226,7 @@ func (b *BlockChain) IsKnownOrphan(hash *wire.ShaHash) bool {
 //
 // This function is safe for concurrent access.
 func (b *BlockChain) GetOrphanRoot(hash *wire.ShaHash) *wire.ShaHash {
+	util.Trace()
 	// Protect concurrent access.  Using a read lock only so multiple
 	// readers can query without blocking each other.
 	b.orphanLock.RLock()
@@ -249,6 +251,7 @@ func (b *BlockChain) GetOrphanRoot(hash *wire.ShaHash) *wire.ShaHash {
 // removeOrphanBlock removes the passed orphan block from the orphan pool and
 // previous orphan index.
 func (b *BlockChain) removeOrphanBlock(orphan *orphanBlock) {
+	util.Trace()
 	// Protect concurrent access.
 	b.orphanLock.Lock()
 	defer b.orphanLock.Unlock()
@@ -289,6 +292,7 @@ func (b *BlockChain) removeOrphanBlock(orphan *orphanBlock) {
 // blocks and will remove the oldest received orphan block if the limit is
 // exceeded.
 func (b *BlockChain) addOrphanBlock(block *btcutil.Block) {
+	util.Trace()
 	// Remove expired orphan blocks.
 	for _, oBlock := range b.orphans {
 		if time.Now().After(oBlock.expiration) {

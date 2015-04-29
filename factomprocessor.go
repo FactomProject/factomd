@@ -67,7 +67,7 @@ var (
 )
 
 var (
-	portNumber              int  = 8083
+	//	portNumber              int  = 8083
 	sendToBTCinSeconds           = 600
 	directoryBlockInSeconds      = 60
 	dataStorePath                = "/tmp/store/seed/"
@@ -86,7 +86,8 @@ var (
 	btcTransFee       float64 = 0.0001
 
 	certHomePathBtcd = "btcd"
-	rpcBtcdHost      = "localhost:18334" //btcd rpcserver address
+
+//	rpcBtcdHost      = "localhost:18334" //btcd rpcserver address
 
 )
 
@@ -94,7 +95,7 @@ func LoadConfigurations(cfg *util.FactomdConfig) {
 
 	//setting the variables by the valued form the config file
 	logLevel = cfg.Log.LogLevel
-	portNumber = cfg.App.PortNumber
+	//	portNumber = cfg.App.PortNumber
 	dataStorePath = cfg.App.DataStorePath
 	ldbpath = cfg.App.LdbPath
 	directoryBlockInSeconds = cfg.App.DirectoryBlockInSeconds
@@ -110,7 +111,7 @@ func LoadConfigurations(cfg *util.FactomdConfig) {
 	rpcClientPass = cfg.Btc.RpcClientPass
 	btcTransFee = cfg.Btc.BtcTransFee
 	certHomePathBtcd = cfg.Btc.CertHomePathBtcd
-	rpcBtcdHost = cfg.Btc.RpcBtcdHost //btcd rpcserver address
+	//	rpcBtcdHost = cfg.Btc.RpcBtcdHost //btcd rpcserver address
 
 }
 
@@ -180,6 +181,13 @@ func init_processor() {
 	// build the Genesis blocks if the current height is 0
 	if dchain.NextBlockHeight == 0 {
 		buildGenesisBlocks()
+	} else {
+		// still send a message to the btcd-side to start up the database; such as a current block height
+		eomMsg := &wire.MsgInt_EOM{
+			EOM_Type:         wire.INFO_CURRENT_HEIGHT,
+			NextDBlockHeight: dchain.NextBlockHeight,
+		}
+		outCtlMsgQueue <- eomMsg
 	}
 
 	// init process list manager
@@ -444,7 +452,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 
 	case wire.CmdInt_FactoidBlock:
 		factoidBlock, ok := msg.(*wire.MsgInt_FactoidBlock)
-		util.Trace("Factoid Block (GENERATED??)")
+		util.Trace("Factoid Block (GENERATED??) -- detected in the processor")
 		fmt.Println("factoidBlock= ", factoidBlock, " ok= ", ok)
 
 	case wire.CmdDirBlock:
@@ -981,7 +989,6 @@ func buildGenesisBlocks() error {
 
 	// Send an End of Minute message to the Factoid component to create a genesis block
 	eomMsg := &wire.MsgInt_EOM{
-		//		EOM_Type:         wire.END_MINUTE_10,
 		EOM_Type:         wire.FORCE_FACTOID_GENESIS_REBUILD,
 		NextDBlockHeight: 0,
 	}
@@ -998,6 +1005,7 @@ func buildGenesisBlocks() error {
 	util.Trace(spew.Sdump(msg))
 	doneFBlockMsg, ok := msg.(*wire.MsgInt_FactoidBlock)
 	util.Trace(spew.Sdump(doneFBlockMsg))
+
 	//?? to be restored: if ok && doneFBlockMsg.BlockHeight == dchain.NextBlockID {
 	// double check MR ??
 	if ok {
@@ -1056,6 +1064,8 @@ func buildBlocks() error {
 	// Wait for Factoid block to be built and update the DbEntry
 	msg := <-doneFBlockQueue
 	doneFBlockMsg, ok := msg.(*wire.MsgInt_FactoidBlock)
+	util.Trace(spew.Sdump(doneFBlockMsg))
+
 	//?? to be restored: if ok && doneFBlockMsg.BlockHeight == dchain.NextBlockID {
 	if ok {
 		dbEntryUpdate := new(common.DBEntry)
