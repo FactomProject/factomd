@@ -112,33 +112,6 @@ func generateFactoidBlock(h uint32) {
 	util.Trace()
 }
 
-func Test_timer() {
-	util.Trace()
-
-	/*
-		count := int32(0)
-
-		//	for {
-		//	for i := 0; i < 10; i++ {
-		for i := 0; i < 4; i++ {
-
-			//		time.Sleep(time.Second * 5)
-			time.Sleep(time.Second * 10)
-			count++
-
-			fmt.Println("===================================")
-			fmt.Println(count, count%2)
-			if 0 == (count % 2) {
-				fmt.Println("evensec")
-
-				test_generateBlock() // CheckConnectBlock not returning yet, called from NewBlockTemplate
-
-			}
-			fmt.Println("===================================")
-		}
-	*/
-}
-
 // newAddressPubKey returns a new btcutil.AddressPubKey from the provided
 // serialized public key.  It panics if an error occurs.  This is only used in
 // the tests as a helper since the only way it can fail is if there is an error

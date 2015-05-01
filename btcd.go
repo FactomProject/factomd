@@ -125,10 +125,6 @@ func btcdMain(serverChan chan<- *server) error {
 	// Factom Additions BEGIN
 	factomForkInit(server)
 
-	// Factom testing
-	// gen
-	go Test_timer()
-
 	// Factom Additions END
 
 	// Monitor for graceful server shutdown and signal the main goroutine

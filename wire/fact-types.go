@@ -7,7 +7,7 @@ package wire
 const RCDHashSize = 32
 const PubKeySize = 32
 
-type RCDHash [RCDHashSize]byte
+type RCDHash [RCDHashSize]byte // this is out factoid address
 type ECPubKey [PubKeySize]byte
 type PubKey [PubKeySize]byte
 
