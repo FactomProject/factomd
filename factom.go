@@ -13,7 +13,7 @@ import (
 	"github.com/FactomProject/FactomCode/wallet"
 	"github.com/FactomProject/btcd/wire"
 	"github.com/davecgh/go-spew/spew"
-
+	"math"
 	"errors"
 	"os"
 	//	"github.com/FactomProject/btcutil"
@@ -144,6 +144,14 @@ func Start_btcd() {
 
 	// Use all processor cores.
 	//runtime.GOMAXPROCS(runtime.NumCPU())
+	
+	//For testing only: ??------------------
+	coinbaseOutpoint := wire.NewOutPoint(&wire.ShaHash{}, math.MaxUint32)
+	coinbaseTx := wire.NewMsgTx()
+	coinbaseTx.Version = 2
+	coinbaseTx.AddTxIn(wire.NewTxIn(coinbaseOutpoint, nil))
+	factomIngressTx_hook(coinbaseTx)
+	// ----------------------------------
 
 	FactomSetupOverrides()
 

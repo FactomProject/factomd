@@ -795,40 +795,41 @@ func processBuyEntryCredit(pubKey *common.Hash, credits int32, factoidTxHash *co
 
 func processRevealChain(msg *wire.MsgRevealChain) error {
 	shaHash, _ := msg.Sha()
-	newChain := msg.Chain
 
 	// Check if the chain id already exists
-	_, existing := chainIDMap[newChain.ChainID.String()]
+	_, existing := chainIDMap[msg.FirstEntry.ChainID.String()]
 	if !existing {
-		if newChain.ChainID.IsSameAs(dchain.ChainID) || newChain.ChainID.IsSameAs(cchain.ChainID) {
+		// the chain id should not be the same as the special chains
+		if dchain.ChainID.IsSameAs(msg.FirstEntry.ChainID) || cchain.ChainID.IsSameAs(msg.FirstEntry.ChainID) || 
+			achain.ChainID.IsSameAs(msg.FirstEntry.ChainID) || fchainID.IsSameAs(msg.FirstEntry.ChainID) {
 			existing = true
 		}
 	}
 	if existing {
-		return errors.New("This chain is already existing:" + newChain.ChainID.String())
+		return errors.New("This chain is already existing:" + msg.FirstEntry.ChainID.String())
 	}
 
-	if newChain.FirstEntry == nil {
-		return errors.New("The first entry is required to create a new chain:" + newChain.ChainID.String())
-	}
 	// Calculate the required credits
-	binaryChain, _ := newChain.MarshalBinary()
+	binaryChain, _ := msg.FirstEntry.MarshalBinary()
 	credits := int32(binary.Size(binaryChain)/1000+1) + creditsPerChain
 
 	// Remove the entry for prePaidEntryMap
-	binaryEntry, _ := newChain.FirstEntry.MarshalBinary()
+	binaryEntry, _ := msg.FirstEntry.MarshalBinary()
 	firstEntryHash := common.Sha(binaryEntry)
-	key := getPrePaidChainKey(firstEntryHash, newChain.ChainID)
+	key := getPrePaidChainKey(firstEntryHash, msg.FirstEntry.ChainID)
 	prepayment, ok := prePaidEntryMap[key]
 	if ok && prepayment >= credits {
 		delete(prePaidEntryMap, key)
 	} else {
 		fMemPool.addOrphanMsg(msg, &shaHash)
-		return errors.New("Enough credits need to paid first before creating a new chain:" + newChain.ChainID.String())
+		return errors.New("Enough credits need to paid first before creating a new chain:" + msg.FirstEntry.ChainID.String())
 	}
 
 	// Add the new chain in the chainIDMap
-	chainIDMap[newChain.ChainID.String()] = newChain
+	newChain := new(common.EChain)
+	newChain.ChainID = msg.FirstEntry.ChainID
+	newChain.FirstEntry = msg.FirstEntry
+	chainIDMap[msg.FirstEntry.ChainID.String()] = newChain
 
 	// Add to MyPL if Server Node
 	if nodeMode == SERVER_NODE {
@@ -940,9 +941,11 @@ func buildFactoidObj(msg *wire.MsgInt_FactoidObj) {
 
 func buildRevealChain(msg *wire.MsgRevealChain) {
 
-	newChain := msg.Chain
+	newChain := chainIDMap[msg.FirstEntry.ChainID.String()]
+
+	//	newChain := msg.Chain
 	// Store the new chain in db
-	db.InsertChain(newChain)
+	//	db.InsertChain(newChain)
 
 	// Chain initialization
 	initEChainFromDB(newChain)
