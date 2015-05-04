@@ -748,6 +748,8 @@ func messageToHex(msg wire.Message) (string, error) {
 
 // handleCreateRawTransaction handles createrawtransaction commands.
 func handleCreateRawTransaction(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{}) (interface{}, error) {
+	util.Trace()
+
 	c := cmd.(*btcjson.CreateRawTransactionCmd)
 
 	// Add all transaction inputs to a new transaction after performing
@@ -971,45 +973,45 @@ func createTxRawResult(chainParams *chaincfg.Params, txSha string,
 // handleDecodeRawTransaction handles decoderawtransaction commands.
 func handleDecodeRawTransaction(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{}) (interface{}, error) {
 
-	util.Trace("NOT IMPLEMENTED !!!!!!!!!!!!!!!!!!!!!!!!!")
-	return nil, errors.New("Factoid TX changed!!")
-
 	/*
-		c := cmd.(*btcjson.DecodeRawTransactionCmd)
-
-		// Deserialize the transaction.
-		hexStr := c.HexTx
-		if len(hexStr)%2 != 0 {
-			hexStr = "0" + hexStr
-		}
-		serializedTx, err := hex.DecodeString(hexStr)
-		if err != nil {
-			return nil, btcjson.Error{
-				Code: btcjson.ErrDecodeHexString.Code,
-				Message: fmt.Sprintf("argument must be hexadecimal "+
-					"string (not %q)", hexStr),
-			}
-		}
-		var mtx wire.MsgTx
-		err = mtx.Deserialize(bytes.NewReader(serializedTx))
-		if err != nil {
-			return nil, btcjson.Error{
-				Code:    btcjson.ErrDeserialization.Code,
-				Message: "TX decode failed",
-			}
-		}
-		txSha, _ := mtx.TxSha()
-
-		// Create and return the result.
-		txReply := btcjson.TxRawDecodeResult{
-			Txid:     txSha.String(),
-			Version:  mtx.Version,
-			Locktime: mtx.LockTime,
-			Vin:      createVinList(&mtx),
-			Vout:     createVoutList(&mtx, s.server.chainParams),
-		}
-		return txReply, nil
+		util.Trace("NOT IMPLEMENTED !!!!!!!!!!!!!!!!!!!!!!!!!")
+		return nil, errors.New("Factoid TX changed!!")
 	*/
+
+	c := cmd.(*btcjson.DecodeRawTransactionCmd)
+
+	// Deserialize the transaction.
+	hexStr := c.HexTx
+	if len(hexStr)%2 != 0 {
+		hexStr = "0" + hexStr
+	}
+	serializedTx, err := hex.DecodeString(hexStr)
+	if err != nil {
+		return nil, btcjson.Error{
+			Code: btcjson.ErrDecodeHexString.Code,
+			Message: fmt.Sprintf("argument must be hexadecimal "+
+				"string (not %q)", hexStr),
+		}
+	}
+	var mtx wire.MsgTx
+	err = mtx.Deserialize(bytes.NewReader(serializedTx))
+	if err != nil {
+		return nil, btcjson.Error{
+			Code:    btcjson.ErrDeserialization.Code,
+			Message: "TX decode failed",
+		}
+	}
+	txSha, _ := mtx.TxSha()
+
+	// Create and return the result.
+	txReply := btcjson.TxRawDecodeResult{
+		Txid:     txSha.String(),
+		Version:  mtx.Version,
+		Locktime: mtx.LockTime,
+		Vin:      createVinList(&mtx),
+		Vout:     createVoutList(&mtx, s.server.chainParams),
+	}
+	return txReply, nil
 }
 
 // handleDecodeScript handles decodescript commands.
@@ -1279,6 +1281,8 @@ func handleGetBlock(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{}) (i
 
 // handleGetBlockCount implements the getblockcount command.
 func handleGetBlockCount(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{}) (interface{}, error) {
+	util.Trace()
+
 	_, maxidx, err := s.server.db.NewestSha()
 	if err != nil {
 		rpcsLog.Errorf("Error getting newest sha: %v", err)
@@ -1290,6 +1294,8 @@ func handleGetBlockCount(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{
 
 // handleGetBlockHash implements the getblockhash command.
 func handleGetBlockHash(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{}) (interface{}, error) {
+	util.Trace()
+
 	c := cmd.(*btcjson.GetBlockHashCmd)
 	sha, err := s.server.db.FetchBlockShaByHeight(c.Index)
 	if err != nil {
@@ -2400,6 +2406,8 @@ func handleGetRawMempool(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{
 
 // handleGetRawTransaction implements the getrawtransaction command.
 func handleGetRawTransaction(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{}) (interface{}, error) {
+	util.Trace()
+
 	c := cmd.(*btcjson.GetRawTransactionCmd)
 
 	// Convert the provided transaction hash hex to a ShaHash.
@@ -3338,6 +3346,8 @@ func handleValidateAddress(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struc
 
 // handleVerifyChain implements the verifychain command.
 func handleVerifyChain(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{}) (interface{}, error) {
+	util.Trace()
+
 	c := cmd.(*btcjson.VerifyChainCmd)
 
 	err := verifyChain(s.server.db, c.CheckLevel, c.CheckDepth,
@@ -3347,6 +3357,8 @@ func handleVerifyChain(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{})
 
 // handleVerifyMessage implements the verifymessage command.
 func handleVerifyMessage(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{}) (interface{}, error) {
+	util.Trace()
+
 	c := cmd.(*btcjson.VerifyMessageCmd)
 
 	// Decode the provided address.
