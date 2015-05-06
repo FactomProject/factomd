@@ -143,11 +143,14 @@ func initEChainFromDB(chain *common.EChain) {
 		chain.NextBlock, _ = common.CreateBlock(chain, &(*eBlocks)[len(*eBlocks)-1], 10)
 	}
 
-	//fmt.Println("Loaded", chain.NextBlockID, "blocks for chain: " + chain.ChainID.String())
+	// Initialize chain with the first entry (Name and rules) for non-server mode
+	if nodeMode != SERVER_NODE && chain.FirstEntry == nil && len(*eBlocks) > 0{
+		chain.FirstEntry, _ = db.FetchEntryByHash((*eBlocks)[0].EBEntries[0].EntryHash)
+		if chain.FirstEntry != nil {
+			db.InsertChain(chain)
+		}
+	}
 
-	//Get the unprocessed entries in db for the past # of mins for the open block
-	binaryTimestamp := make([]byte, 8)
-	binary.BigEndian.PutUint64(binaryTimestamp, uint64(0))
 	if chain.NextBlock.IsSealed == true {
 		panic("chain.NextBlock.IsSealed for chain:" + chain.ChainID.String())
 	}
@@ -199,6 +202,7 @@ func init_processor() {
 		initEChainFromDB(chain)
 
 		fmt.Println("Loaded", chain.NextBlockHeight, "blocks for chain: "+chain.ChainID.String())
+		//fmt.Printf("PROCESSOR: echain=%s\n", spew.Sdump(chain))		
 
 	}
 
@@ -603,16 +607,16 @@ func processEBlock(msg *wire.MsgEBlock) error {
 	if chain == nil {
 		chain = new(common.EChain)
 		chain.ChainID = msg.EBlk.Header.ChainID
-
-		/******************************
-		 * TODO
-		 *
-		 * A Chain needs an entry first... Not sure about handling here.
-		 *
-		 ******************************/
+		
+		if msg.EBlk.Header.EBHeight == 0 {
+			chain.FirstEntry, _ = db.FetchEntryByHash(msg.EBlk.EBEntries[0].EntryHash)
+		}
 
 		db.InsertChain(chain)
 		chainIDMap[chain.ChainID.String()] = chain
+	} else if chain.FirstEntry == nil && msg.EBlk.Header.EBHeight == 0  {
+		chain.FirstEntry, _ = db.FetchEntryByHash(msg.EBlk.EBEntries[0].EntryHash)
+		db.InsertChain(chain)			
 	}
 
 	db.ProcessEBlockBatch(msg.EBlk)
@@ -943,9 +947,8 @@ func buildRevealChain(msg *wire.MsgRevealChain) {
 
 	newChain := chainIDMap[msg.FirstEntry.ChainID.String()]
 
-	//	newChain := msg.Chain
 	// Store the new chain in db
-	//	db.InsertChain(newChain)
+	db.InsertChain(newChain)
 
 	// Chain initialization
 	initEChainFromDB(newChain)
@@ -1622,7 +1625,7 @@ func initCChain() {
 	cBlocks, _ := db.FetchAllCBlocks()
 	sort.Sort(util.ByCBlockIDAccending(cBlocks))
 
-	fmt.Printf("initCChain: cBlocks=%s\n", spew.Sdump(cBlocks))
+	//fmt.Printf("initCChain: cBlocks=%s\n", spew.Sdump(cBlocks))
 
 	for i := 0; i < len(cBlocks); i = i + 1 {
 		if cBlocks[i].Header.DBHeight != uint32(i) {
@@ -1675,7 +1678,7 @@ func initAChain() {
 	aBlocks, _ := db.FetchAllABlocks()
 	sort.Sort(util.ByABlockIDAccending(aBlocks))
 
-	fmt.Printf("initAChain: aBlocks=%s\n", spew.Sdump(aBlocks))
+	//fmt.Printf("initAChain: aBlocks=%s\n", spew.Sdump(aBlocks))
 
 	// double check the block ids
 	for i := 0; i < len(aBlocks); i = i + 1 {
@@ -1718,6 +1721,19 @@ func initEChains() {
 	 * I see no reason to pull all chains into memory by default.
 	 *
 	 ******************************/
+
+	chains, err := db.FetchAllChains()
+
+	if err != nil {
+		panic(err)
+	}
+
+	for _, chain := range chains {
+		var newChain = chain
+		chainIDMap[newChain.ChainID.String()] = &newChain
+		//ONly for debug??
+		saveEChain(&chain)
+	}
 
 }
 
