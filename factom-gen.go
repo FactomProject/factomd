@@ -293,7 +293,7 @@ func factom_NewBlockTemplate(mempool *txMemPool, payToAddress wire.RCDHash, glob
 	chainState.Unlock()
 
 	if uint32(nextBlockHeight) != globalHeight {
-		panic(errors.New(fmt.Sprintf("ERROR: globalHeight is %d and nextBlockHeight is %d\n", globalHeight, nextBlockHeight)))
+		panic(errors.New(fmt.Sprintf("ERROR: DirBlockHeight (globalHeight) is %d and FactoidChainHeight (nextBlockHeight) is %d\n", globalHeight, nextBlockHeight)))
 	}
 
 	fmt.Printf("nextBlockHeight= %d\n", nextBlockHeight)
