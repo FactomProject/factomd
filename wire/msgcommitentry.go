@@ -7,9 +7,10 @@ package wire
 import (
 	"bytes"
 	"encoding/binary"
+	"io"
+
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/agl/ed25519"
-	"io"
 )
 
 // MsgCommitEntry implements the Message interface and represents a factom
@@ -38,8 +39,7 @@ func (msg *MsgCommitEntry) BtcEncode(w io.Writer, pver uint32) error {
 	}
 
 	//EntryHash
-	if err := writeVarBytes(w, uint32(common.HASH_LENGTH), msg.EntryHash.Bytes);
-		err != nil {
+	if err := writeVarBytes(w, uint32(common.HASH_LENGTH), msg.EntryHash.Bytes); err != nil {
 		return err
 	}
 
@@ -49,14 +49,12 @@ func (msg *MsgCommitEntry) BtcEncode(w io.Writer, pver uint32) error {
 	}
 
 	//ECPubKey
-	if err := writeVarBytes(w, uint32(ed25519.PublicKeySize), msg.ECPubKey[:]);
-		err != nil {
+	if err := writeVarBytes(w, uint32(ed25519.PublicKeySize), msg.ECPubKey[:]); err != nil {
 		return err
 	}
 
 	//Signature
-	if err := writeVarBytes(w, uint32(ed25519.SignatureSize), msg.Sig[:]);
-		err != nil {
+	if err := writeVarBytes(w, uint32(ed25519.SignatureSize), msg.Sig[:]); err != nil {
 		return err
 	}
 
@@ -72,8 +70,7 @@ func (msg *MsgCommitEntry) BtcDecode(r io.Reader, pver uint32) error {
 	}
 
 	// MilliTime
-	if bytes, err := readVarBytes(r, pver, uint32(6), CmdCommitEntry);
-		err != nil {
+	if bytes, err := readVarBytes(r, pver, uint32(6), CmdCommitEntry); err != nil {
 		return err
 	} else {
 		copy(msg.MilliTime[:], bytes)
@@ -134,7 +131,7 @@ func NewMsgCommitEntry() *MsgCommitEntry {
 	m.EntryHash.Bytes = make([]byte, 32)
 	m.ECPubKey = new([32]byte)
 	m.Sig = new([64]byte)
-	
+
 	return m
 }
 
@@ -147,7 +144,7 @@ func (msg *MsgCommitEntry) IsValid() bool {
 	buf.Write(msg.MilliTime[:])
 	buf.Write(msg.EntryHash.Bytes)
 	binary.Write(buf, binary.BigEndian, msg.Credits)
-	
+
 	return ed25519.Verify(msg.ECPubKey, buf.Bytes(), msg.Sig)
 }
 
