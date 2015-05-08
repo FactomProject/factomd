@@ -9,6 +9,7 @@ package btcd
 
 import (
 	"encoding/binary"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -722,12 +723,13 @@ func processCommitEntry(msg *wire.MsgCommitEntry) error {
 	shaHash, _ := msg.Sha()
 
 	// Update the credit balance in memory
-	creditBalance, _ := eCreditMap[msg.ECPubKey.String()]
+	creditBalance, _ := eCreditMap[hex.EncodeToString(msg.ECPubKey[:])]
 	if creditBalance < int32(msg.Credits) {
 		fMemPool.addOrphanMsg(msg, &shaHash)
-		return errors.New("Not enough credit for public key:" + msg.ECPubKey.String() + " Balance:" + fmt.Sprint(creditBalance))
+		return fmt.Errorf("Not enough credit for public key: %x\nBalance: %d\n",
+			msg.ECPubKey, creditBalance)
 	}
-	eCreditMap[msg.ECPubKey.String()] = creditBalance - int32(msg.Credits)
+	eCreditMap[hex.EncodeToString(msg.ECPubKey[:])] = creditBalance - int32(msg.Credits)
 	// Update the prePaidEntryMapin memory
 	payments, _ := prePaidEntryMap[msg.EntryHash.String()]
 	prePaidEntryMap[msg.EntryHash.String()] = payments + int32(msg.Credits)
