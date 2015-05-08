@@ -79,6 +79,16 @@ func generateFactoidBlock(h uint32) {
 	fmt.Println("randRCD len=", len(randRCD))
 	copy(payto[:], randRCD)
 
+	// 03264ef3197ff0b843e9f83362341e8cc135913bcbbdbabd62d049acaeb2e55944
+	//	sha, err := wire.NewShaHashFromStr("264ef3197ff0b843e9f83362341e8cc135913bcbbdbabd62d049acaeb2e55944")
+	sha, err := wire.NewShaHashFromStr("4459e5b2aeac49d062bdbabdcb3b9135c18c1e346233f8e943b8f07f19f34e26")
+
+	if nil == err {
+		util.Trace("mywallet sha=" + spew.Sdump(sha))
+		copy(payto[:], sha[:])
+		util.Trace("mywallet payto=" + spew.Sdump(payto))
+	}
+
 	template, err := factom_NewBlockTemplate(local_Server.txMemPool, payto, h)
 	m.submitBlockLock.Unlock()
 

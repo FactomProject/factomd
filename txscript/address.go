@@ -26,17 +26,19 @@ func ExtractPkScriptAddrs(pkScript []byte, chainParams *chaincfg.Params) (Script
 
 	scriptClass := typeOfScript(pops)
 	switch scriptClass {
-	case PubKeyHashTy:
-		// A pay-to-pubkey-hash script is of the form:
-		//  OP_DUP OP_HASH160 <hash> OP_EQUALVERIFY OP_CHECKSIG
-		// Therefore the pubkey hash is the 3rd item on the stack.
-		// Skip the pubkey hash if it's invalid for some reason.
-		requiredSigs = 1
-		addr, err := btcutil.NewAddressPubKeyHash(pops[2].data,
-			chainParams)
-		if err == nil {
-			addrs = append(addrs, addr)
-		}
+	/*
+		case PubKeyHashTy:
+			// A pay-to-pubkey-hash script is of the form:
+			//  OP_DUP OP_HASH160 <hash> OP_EQUALVERIFY OP_CHECKSIG
+			// Therefore the pubkey hash is the 3rd item on the stack.
+			// Skip the pubkey hash if it's invalid for some reason.
+			requiredSigs = 1
+			addr, err := btcutil.NewAddressPubKeyHash(pops[2].data,
+				chainParams)
+			if err == nil {
+				addrs = append(addrs, addr)
+			}
+	*/
 
 	case PubKeyTy:
 		// A pay-to-pubkey script is of the form:
