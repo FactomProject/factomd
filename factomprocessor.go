@@ -723,16 +723,16 @@ func processCommitEntry(msg *wire.MsgCommitEntry) error {
 	shaHash, _ := msg.Sha()
 
 	// Update the credit balance in memory
-	creditBalance, _ := eCreditMap[hex.EncodeToString(msg.ECPubKey[:])]
-	if creditBalance < int32(msg.Credits) {
+	creditBalance, _ := eCreditMap[hex.EncodeToString(msg.CommitEntry.ECPubKey[:])]
+	if creditBalance < int32(msg.CommitEntry.Credits) {
 		fMemPool.addOrphanMsg(msg, &shaHash)
 		return fmt.Errorf("Not enough credit for public key: %x\nBalance: %d\n",
-			msg.ECPubKey, creditBalance)
+			msg.CommitEntry.ECPubKey, creditBalance)
 	}
-	eCreditMap[hex.EncodeToString(msg.ECPubKey[:])] = creditBalance - int32(msg.Credits)
+	eCreditMap[hex.EncodeToString(msg.CommitEntry.ECPubKey[:])] = creditBalance - int32(msg.CommitEntry.Credits)
 	// Update the prePaidEntryMapin memory
-	payments, _ := prePaidEntryMap[msg.EntryHash.String()]
-	prePaidEntryMap[msg.EntryHash.String()] = payments + int32(msg.Credits)
+	payments, _ := prePaidEntryMap[msg.CommitEntry.EntryHash.String()]
+	prePaidEntryMap[msg.CommitEntry.EntryHash.String()] = payments + int32(msg.CommitEntry.Credits)
 
 	// Add to MyPL if Server Node
 	if nodeMode == SERVER_NODE {
@@ -901,9 +901,13 @@ func buildRevealEntry(msg *wire.MsgRevealEntry) {
 }
 
 func buildCommitEntry(msg *wire.MsgCommitEntry) {
-
 	// Create PayEntryCBEntry
-	cbEntry := common.NewPayEntryCBEntry(msg.ECPubKey, msg.EntryHash, int32(0-msg.Credits), int64(msg.Timestamp), msg.Sig)
+	cbEntry := common.NewPayEntryCBEntry(
+		msg.CommitEntry.ECPubKey,
+		msg.CommitEntry.EntryHash,
+		int32(0-msg.CommitEntry.Credits),
+		int64(msg.CommitEntry.Timestamp),
+		msg.CommitEntry.Sig)
 
 	err := cchain.NextBlock.AddCBEntry(cbEntry)
 
