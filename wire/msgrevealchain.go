@@ -13,15 +13,15 @@ import (
 // MsgRevealChain implements the Message interface and represents a factom
 // Reveal-Chain message.  It is used by client to reveal the chain.
 type MsgRevealChain struct {
-	Chain *common.EChain
+	FirstEntry *common.Entry
 }
 
 // BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
 // This is part of the Message interface implementation.
 func (msg *MsgRevealChain) BtcEncode(w io.Writer, pver uint32) error {
 
-	//Chain
-	bytes, err := msg.Chain.MarshalBinary()
+	//FirstEntry
+	bytes, err := msg.FirstEntry.MarshalBinary()
 	if err != nil {
 		return err
 	}
@@ -37,14 +37,14 @@ func (msg *MsgRevealChain) BtcEncode(w io.Writer, pver uint32) error {
 // BtcDecode decodes r using the bitcoin protocol encoding into the receiver.
 // This is part of the Message interface implementation.
 func (msg *MsgRevealChain) BtcDecode(r io.Reader, pver uint32) error {
-	//Chain
+	//FirstEntry
 	bytes, err := readVarBytes(r, pver, MaxAppMsgPayload, CmdRevealChain)
 	if err != nil {
 		return err
 	}
 
-	msg.Chain = new(common.EChain)
-	err = msg.Chain.UnmarshalBinary(bytes)
+	msg.FirstEntry = new(common.Entry)
+	err = msg.FirstEntry.UnmarshalBinary(bytes)
 	if err != nil {
 		return err
 	}

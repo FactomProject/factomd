@@ -34,6 +34,9 @@ const (
 	FULL_NODE   = "FULL"
 	SERVER_NODE = "SERVER"
 	LIGHT_NODE  = "LIGHT"
+	
+	//Server public key for milestone 1
+	SERVER_PUB_KEY = "8cee85c62a9e48039d4ac294da97943c2001be1539809ea5f54721f0c5477a0a"
 )
 
 var (
@@ -65,30 +68,30 @@ var (
 
 	fMemPool *ftmMemPool
 	plMgr    *consensus.ProcessListMgr
+	
+	//Server Private key and Public key for milestone 1
+	serverPrivKey 	common.PrivateKey
+	serverPubKey 	common.PublicKey
 )
 
 var (
-	//	portNumber              int  = 8083
-	sendToBTCinSeconds           = 600
-	directoryBlockInSeconds      = 60
-	dataStorePath                = "/tmp/store/seed/"
-	ldbpath                      = "/tmp/ldb9"
-	nodeMode                     = "FULL"
-	devNet                  bool = false
+	sendToBTCinSeconds           	int
+	directoryBlockInSeconds      	int
+	dataStorePath                	string
+	ldbpath                      	string
+	nodeMode                     	string
+	devNet                  		bool 
 
-	//BTC:
-	//	addrStr = "movaFTARmsaTMk3j71MpX8HtMURpsKhdra"
-	walletPassphrase          = "lindasilva"
-	certHomePath              = "btcwallet"
-	rpcClientHost             = "localhost:18332" //btcwallet rpcserver address
-	rpcClientEndpoint         = "ws"
-	rpcClientUser             = "testuser"
-	rpcClientPass             = "notarychain"
-	btcTransFee       float64 = 0.0001
+	walletPassphrase          		string
+	certHomePath              		string
+	rpcClientHost             		string
+	rpcClientEndpoint         		string
+	rpcClientUser             		string
+	rpcClientPass             		string
+	btcTransFee       				float64
 
-	certHomePathBtcd = "btcd"
-
-//	rpcBtcdHost      = "localhost:18334" //btcd rpcserver address
+	certHomePathBtcd 				string //needs cleanup??
+	serverPrivKeyHex				string
 
 )
 
@@ -96,13 +99,12 @@ func LoadConfigurations(cfg *util.FactomdConfig) {
 
 	//setting the variables by the valued form the config file
 	logLevel = cfg.Log.LogLevel
-	//	portNumber = cfg.App.PortNumber
 	dataStorePath = cfg.App.DataStorePath
 	ldbpath = cfg.App.LdbPath
 	directoryBlockInSeconds = cfg.App.DirectoryBlockInSeconds
 	nodeMode = cfg.App.NodeMode
+	serverPrivKeyHex = cfg.App.ServerPrivKey
 
-	//addrStr = cfg.Btc.BTCPubAddr
 	sendToBTCinSeconds = cfg.Btc.SendToBTCinSeconds
 	walletPassphrase = cfg.Btc.WalletPassphrase
 	certHomePath = cfg.Btc.CertHomePath
@@ -112,7 +114,6 @@ func LoadConfigurations(cfg *util.FactomdConfig) {
 	rpcClientPass = cfg.Btc.RpcClientPass
 	btcTransFee = cfg.Btc.BtcTransFee
 	certHomePathBtcd = cfg.Btc.CertHomePathBtcd
-	//	rpcBtcdHost = cfg.Btc.RpcBtcdHost //btcd rpcserver address
 
 }
 
@@ -144,11 +145,14 @@ func initEChainFromDB(chain *common.EChain) {
 		chain.NextBlock, _ = common.CreateBlock(chain, &(*eBlocks)[len(*eBlocks)-1], 10)
 	}
 
-	//fmt.Println("Loaded", chain.NextBlockID, "blocks for chain: " + chain.ChainID.String())
+	// Initialize chain with the first entry (Name and rules) for non-server mode
+	if nodeMode != SERVER_NODE && chain.FirstEntry == nil && len(*eBlocks) > 0{
+		chain.FirstEntry, _ = db.FetchEntryByHash((*eBlocks)[0].EBEntries[0].EntryHash)
+		if chain.FirstEntry != nil {
+			db.InsertChain(chain)
+		}
+	}
 
-	//Get the unprocessed entries in db for the past # of mins for the open block
-	binaryTimestamp := make([]byte, 8)
-	binary.BigEndian.PutUint64(binaryTimestamp, uint64(0))
 	if chain.NextBlock.IsSealed == true {
 		panic("chain.NextBlock.IsSealed for chain:" + chain.ChainID.String())
 	}
@@ -156,6 +160,9 @@ func initEChainFromDB(chain *common.EChain) {
 
 func init_processor() {
 	util.Trace()
+	
+	// init server private key or pub key
+	initServerKeys()
 
 	// init mem pools
 	fMemPool = new(ftmMemPool)
@@ -200,6 +207,7 @@ func init_processor() {
 		initEChainFromDB(chain)
 
 		fmt.Println("Loaded", chain.NextBlockHeight, "blocks for chain: "+chain.ChainID.String())
+		//fmt.Printf("PROCESSOR: echain=%s\n", spew.Sdump(chain))		
 
 	}
 
@@ -604,16 +612,16 @@ func processEBlock(msg *wire.MsgEBlock) error {
 	if chain == nil {
 		chain = new(common.EChain)
 		chain.ChainID = msg.EBlk.Header.ChainID
-
-		/******************************
-		 * TODO
-		 *
-		 * A Chain needs an entry first... Not sure about handling here.
-		 *
-		 ******************************/
+		
+		if msg.EBlk.Header.EBHeight == 0 {
+			chain.FirstEntry, _ = db.FetchEntryByHash(msg.EBlk.EBEntries[0].EntryHash)
+		}
 
 		db.InsertChain(chain)
 		chainIDMap[chain.ChainID.String()] = chain
+	} else if chain.FirstEntry == nil && msg.EBlk.Header.EBHeight == 0  {
+		chain.FirstEntry, _ = db.FetchEntryByHash(msg.EBlk.EBEntries[0].EntryHash)
+		db.InsertChain(chain)			
 	}
 
 	db.ProcessEBlockBatch(msg.EBlk)
@@ -797,40 +805,41 @@ func processBuyEntryCredit(pubKey *common.Hash, credits int32, factoidTxHash *co
 
 func processRevealChain(msg *wire.MsgRevealChain) error {
 	shaHash, _ := msg.Sha()
-	newChain := msg.Chain
 
 	// Check if the chain id already exists
-	_, existing := chainIDMap[newChain.ChainID.String()]
+	_, existing := chainIDMap[msg.FirstEntry.ChainID.String()]
 	if !existing {
-		if newChain.ChainID.IsSameAs(dchain.ChainID) || newChain.ChainID.IsSameAs(cchain.ChainID) {
+		// the chain id should not be the same as the special chains
+		if dchain.ChainID.IsSameAs(msg.FirstEntry.ChainID) || cchain.ChainID.IsSameAs(msg.FirstEntry.ChainID) || 
+			achain.ChainID.IsSameAs(msg.FirstEntry.ChainID) || fchainID.IsSameAs(msg.FirstEntry.ChainID) {
 			existing = true
 		}
 	}
 	if existing {
-		return errors.New("This chain is already existing:" + newChain.ChainID.String())
+		return errors.New("This chain is already existing:" + msg.FirstEntry.ChainID.String())
 	}
 
-	if newChain.FirstEntry == nil {
-		return errors.New("The first entry is required to create a new chain:" + newChain.ChainID.String())
-	}
 	// Calculate the required credits
-	binaryChain, _ := newChain.MarshalBinary()
+	binaryChain, _ := msg.FirstEntry.MarshalBinary()
 	credits := int32(binary.Size(binaryChain)/1000+1) + creditsPerChain
 
 	// Remove the entry for prePaidEntryMap
-	binaryEntry, _ := newChain.FirstEntry.MarshalBinary()
+	binaryEntry, _ := msg.FirstEntry.MarshalBinary()
 	firstEntryHash := common.Sha(binaryEntry)
-	key := getPrePaidChainKey(firstEntryHash, newChain.ChainID)
+	key := getPrePaidChainKey(firstEntryHash, msg.FirstEntry.ChainID)
 	prepayment, ok := prePaidEntryMap[key]
 	if ok && prepayment >= credits {
 		delete(prePaidEntryMap, key)
 	} else {
 		fMemPool.addOrphanMsg(msg, &shaHash)
-		return errors.New("Enough credits need to paid first before creating a new chain:" + newChain.ChainID.String())
+		return errors.New("Enough credits need to paid first before creating a new chain:" + msg.FirstEntry.ChainID.String())
 	}
 
 	// Add the new chain in the chainIDMap
-	chainIDMap[newChain.ChainID.String()] = newChain
+	newChain := new(common.EChain)
+	newChain.ChainID = msg.FirstEntry.ChainID
+	newChain.FirstEntry = msg.FirstEntry
+	chainIDMap[msg.FirstEntry.ChainID.String()] = newChain
 
 	// Add to MyPL if Server Node
 	if nodeMode == SERVER_NODE {
@@ -946,7 +955,8 @@ func buildFactoidObj(msg *wire.MsgInt_FactoidObj) {
 
 func buildRevealChain(msg *wire.MsgRevealChain) {
 
-	newChain := msg.Chain
+	newChain := chainIDMap[msg.FirstEntry.ChainID.String()]
+
 	// Store the new chain in db
 	db.InsertChain(newChain)
 
@@ -1045,11 +1055,8 @@ func buildGenesisBlocks() error {
 
 	saveDChain(dchain)
 
-	// Only Servers can write the anchor to Bitcoin network
-	if nodeMode == SERVER_NODE && dbBlock != nil && false { //?? for testing
-		//dbInfo := common.NewDBInfoFromDBlock(dbBlock)
-		//saveDBMerkleRoottoBTC(dbInfo) //goroutine??
-	}
+	// place an anchor into btc
+	placeAnchor(dbBlock)
 
 	return nil
 }
@@ -1090,7 +1097,7 @@ func buildBlocks() error {
 
 	// Admin chain
 	aBlock := newAdminBlock(achain)
-	fmt.Printf("buildGenesisBlocks: aBlock=%s\n", spew.Sdump(aBlock))
+	//fmt.Printf("buildGenesisBlocks: aBlock=%s\n", spew.Sdump(aBlock))
 	dchain.AddABlockToDBEntry(aBlock)
 	saveAChain(achain)	
 
@@ -1135,8 +1142,17 @@ func buildBlocks() error {
 		go timer.StartBlockTimer()
 	}
 
+	// place an anchor into btc
+	placeAnchor(dbBlock)
+
+	return nil
+}
+
+// Sign the directory block and place an anchor into btc
+func placeAnchor(dbBlock *common.DirectoryBlock) error {
 	// Only Servers can write the anchor to Bitcoin network
-	if nodeMode == SERVER_NODE && dbBlock != nil && false { //?? for testing
+	if nodeMode == SERVER_NODE && dbBlock != nil { //?? for testing
+		
 		// dbInfo := common.NewDBInfoFromDBlock(dbBlock)
 
 		// FIXME
@@ -1261,6 +1277,17 @@ func newAdminBlock(chain *common.AdminChain) *common.AdminBlock {
 	if chain.NextBlockHeight != dchain.NextBlockHeight {
 		panic("Admin Block height does not match Directory Block height:" + string(dchain.NextBlockHeight))
 	}
+	
+	// Only Servers can create a Directory Block signature and add it to the open Admin Block
+	// To be improved in milestone 2 to use ack msg??
+	if nodeMode == SERVER_NODE && dchain.NextBlockHeight > 0 { 
+		// get the previous directory block from db
+		dbBlock, _ := db.FetchDBlockByHeight(dchain.NextBlockHeight - 1)
+		dbHeaderBytes, _ := dbBlock.Header.MarshalBinary()
+		identityChainID := common.NewHash() // 0 ID for milestone 1		
+		sig := serverPrivKey.Sign(dbHeaderBytes)
+		block.AddABEntry(common.NewDBSignatureEntry(identityChainID, sig))		
+	}	
 
 	block.Header.EntryCount = uint32(len(block.ABEntries))
 	block.Header.BodySize = uint32(block.MarshalledSize() - block.Header.MarshalledSize())
@@ -1625,7 +1652,7 @@ func initCChain() {
 	cBlocks, _ := db.FetchAllCBlocks()
 	sort.Sort(util.ByCBlockIDAccending(cBlocks))
 
-	fmt.Printf("initCChain: cBlocks=%s\n", spew.Sdump(cBlocks))
+	//fmt.Printf("initCChain: cBlocks=%s\n", spew.Sdump(cBlocks))
 
 	for i := 0; i < len(cBlocks); i = i + 1 {
 		if cBlocks[i].Header.DBHeight != uint32(i) {
@@ -1678,7 +1705,7 @@ func initAChain() {
 	aBlocks, _ := db.FetchAllABlocks()
 	sort.Sort(util.ByABlockIDAccending(aBlocks))
 
-	fmt.Printf("initAChain: aBlocks=%s\n", spew.Sdump(aBlocks))
+	//fmt.Printf("initAChain: aBlocks=%s\n", spew.Sdump(aBlocks))
 
 	// double check the block ids
 	for i := 0; i < len(aBlocks); i = i + 1 {
@@ -1722,6 +1749,19 @@ func initEChains() {
 	 *
 	 ******************************/
 
+	chains, err := db.FetchAllChains()
+
+	if err != nil {
+		panic(err)
+	}
+
+	for _, chain := range chains {
+		var newChain = chain
+		chainIDMap[newChain.ChainID.String()] = &newChain
+		//ONly for debug??
+		saveEChain(&chain)
+	}
+
 }
 
 func initializeECreditMap(block *common.CBlock) {
@@ -1733,6 +1773,20 @@ func initializeECreditMap(block *common.CBlock) {
 		}
 	}
 }
+
+// Initialize server private key and server public key for milestone 1
+func initServerKeys() {
+	if nodeMode == SERVER_NODE {
+		var err error
+		serverPrivKey, err = common.NewPrivateKeyFromHex(serverPrivKeyHex)
+		if err != nil {
+			panic ("Cannot parse Server Private Key from configuration file: " + err.Error())
+		}
+	} else {
+		serverPubKey = common.PubKeyFromString(SERVER_PUB_KEY)
+	}	
+}
+
 func initProcessListMgr() {
 	plMgr = consensus.NewProcessListMgr(dchain.NextBlockHeight, 1, 10)
 

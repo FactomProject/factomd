@@ -79,6 +79,16 @@ func generateFactoidBlock(h uint32) {
 	fmt.Println("randRCD len=", len(randRCD))
 	copy(payto[:], randRCD)
 
+	// 03264ef3197ff0b843e9f83362341e8cc135913bcbbdbabd62d049acaeb2e55944
+	//	sha, err := wire.NewShaHashFromStr("264ef3197ff0b843e9f83362341e8cc135913bcbbdbabd62d049acaeb2e55944")
+	sha, err := wire.NewShaHashFromStr("4459e5b2aeac49d062bdbabdcb3b9135c18c1e346233f8e943b8f07f19f34e26")
+
+	if nil == err {
+		util.Trace("mywallet sha=" + spew.Sdump(sha))
+		copy(payto[:], sha[:])
+		util.Trace("mywallet payto=" + spew.Sdump(payto))
+	}
+
 	template, err := factom_NewBlockTemplate(local_Server.txMemPool, payto, h)
 	m.submitBlockLock.Unlock()
 
@@ -110,33 +120,6 @@ func generateFactoidBlock(h uint32) {
 	}
 
 	util.Trace()
-}
-
-func Test_timer() {
-	util.Trace()
-
-	/*
-		count := int32(0)
-
-		//	for {
-		//	for i := 0; i < 10; i++ {
-		for i := 0; i < 4; i++ {
-
-			//		time.Sleep(time.Second * 5)
-			time.Sleep(time.Second * 10)
-			count++
-
-			fmt.Println("===================================")
-			fmt.Println(count, count%2)
-			if 0 == (count % 2) {
-				fmt.Println("evensec")
-
-				test_generateBlock() // CheckConnectBlock not returning yet, called from NewBlockTemplate
-
-			}
-			fmt.Println("===================================")
-		}
-	*/
 }
 
 // newAddressPubKey returns a new btcutil.AddressPubKey from the provided
@@ -320,7 +303,7 @@ func factom_NewBlockTemplate(mempool *txMemPool, payToAddress wire.RCDHash, glob
 	chainState.Unlock()
 
 	if uint32(nextBlockHeight) != globalHeight {
-		panic(errors.New(fmt.Sprintf("ERROR: globalHeight is %d and nextBlockHeight is %d\n", globalHeight, nextBlockHeight)))
+		panic(errors.New(fmt.Sprintf("ERROR: DirBlockHeight (globalHeight) is %d and FactoidChainHeight (nextBlockHeight) is %d\n", globalHeight, nextBlockHeight)))
 	}
 
 	fmt.Printf("nextBlockHeight= %d\n", nextBlockHeight)

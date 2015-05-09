@@ -1609,7 +1609,7 @@ func loadBlockDB() (database.Db, error) {
 		util.Trace("FORCE got it")
 		removeFlag = true
 	}
-	util.Trace("FORCE end of waiting for it")
+	util.Trace(fmt.Sprintf("FORCE end of waiting for it; height provided= %d", msgEom.NextDBlockHeight))
 
 	db, err := setupBlockDB(removeFlag)
 	if err != nil {
