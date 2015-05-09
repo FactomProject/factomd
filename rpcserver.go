@@ -31,7 +31,7 @@ import (
 	"github.com/FactomProject/btcd/btcjson"
 	"github.com/FactomProject/btcd/chaincfg"
 	"github.com/FactomProject/btcd/database"
-	"github.com/FactomProject/btcd/txscript"
+	//	"github.com/FactomProject/btcd/txscript"
 	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/btcutil"
 	"github.com/FactomProject/btcws"
@@ -39,6 +39,8 @@ import (
 	"github.com/FactomProject/websocket"
 
 	"github.com/FactomProject/FactomCode/util"
+
+	"github.com/davecgh/go-spew/spew"
 )
 
 const (
@@ -125,16 +127,16 @@ var rpcHandlersBeforeInit = map[string]commandHandler{
 	"createrawtransaction": handleCreateRawTransaction,
 	"debuglevel":           handleDebugLevel,
 	"decoderawtransaction": handleDecodeRawTransaction,
-	"decodescript":         handleDecodeScript,
-	"estimatefee":          handleUnimplemented,
-	"estimatepriority":     handleUnimplemented,
-	"getaddednodeinfo":     handleGetAddedNodeInfo,
-	"getbestblock":         handleGetBestBlock,
-	"getbestblockhash":     handleGetBestBlockHash,
-	"getblock":             handleGetBlock,
-	"getblockchaininfo":    handleUnimplemented,
-	"getblockcount":        handleGetBlockCount,
-	"getblockhash":         handleGetBlockHash,
+	//	"decodescript":         handleDecodeScript,
+	"estimatefee":       handleUnimplemented,
+	"estimatepriority":  handleUnimplemented,
+	"getaddednodeinfo":  handleGetAddedNodeInfo,
+	"getbestblock":      handleGetBestBlock,
+	"getbestblockhash":  handleGetBestBlockHash,
+	"getblock":          handleGetBlock,
+	"getblockchaininfo": handleUnimplemented,
+	"getblockcount":     handleGetBlockCount,
+	"getblockhash":      handleGetBlockHash,
 	//	"getblocktemplate":      handleGetBlockTemplate,
 	"getchaintips":       handleUnimplemented,
 	"getconnectioncount": handleGetConnectionCount,
@@ -215,6 +217,7 @@ var rpcAskWallet = map[string]struct{}{
 // Commands that are temporarily unimplemented.
 var rpcUnimplemented = map[string]struct{}{}
 
+/*
 // builderScript is a convenience function which is used to for hard-coded
 // scripts built with the script builder.   Any errors are converted to a panic
 // since it is only, and must only, be used with hard-coded, and therefore,
@@ -227,7 +230,6 @@ func builderScript(builder *txscript.ScriptBuilder) []byte {
 	return script
 }
 
-/*
 // workStateBlockInfo houses information about how to reconstruct a block given
 // its template and signature script.
 type workStateBlockInfo struct {
@@ -784,9 +786,13 @@ func handleCreateRawTransaction(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan 
 			}
 		}
 
+		util.Trace(encodedAddr)
+
 		// Decode the provided address.
-		addr, err := btcutil.DecodeAddress(encodedAddr,
-			activeNetParams.Params)
+		addr, err := btcutil.DecodeAddress(encodedAddr, activeNetParams.Params)
+
+		util.Trace(fmt.Sprintf(spew.Sdump(addr)))
+
 		if err != nil {
 			return nil, btcjson.Error{
 				Code: btcjson.ErrInvalidAddressOrKey.Code,
@@ -814,7 +820,8 @@ func handleCreateRawTransaction(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan 
 		}
 
 		// Create a new script which pays to the provided address.
-		pkScript, err := txscript.PayToAddrScript(addr)
+		//		pkScript, err := txscript.PayToAddrScript(addr)
+		pkScript, err := PayToAddrScript(addr)
 		if err != nil {
 			return nil, btcjson.Error{
 				Code:    btcjson.ErrInternal.Code,
@@ -973,11 +980,6 @@ func createTxRawResult(chainParams *chaincfg.Params, txSha string,
 // handleDecodeRawTransaction handles decoderawtransaction commands.
 func handleDecodeRawTransaction(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{}) (interface{}, error) {
 
-	/*
-		util.Trace("NOT IMPLEMENTED !!!!!!!!!!!!!!!!!!!!!!!!!")
-		return nil, errors.New("Factoid TX changed!!")
-	*/
-
 	c := cmd.(*btcjson.DecodeRawTransactionCmd)
 
 	// Deserialize the transaction.
@@ -1014,6 +1016,7 @@ func handleDecodeRawTransaction(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan 
 	return txReply, nil
 }
 
+/*
 // handleDecodeScript handles decodescript commands.
 func handleDecodeScript(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{}) (interface{}, error) {
 	c := cmd.(*btcjson.DecodeScriptCmd)
@@ -1065,6 +1068,7 @@ func handleDecodeScript(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{}
 	}
 	return reply, nil
 }
+*/
 
 // handleGetAddedNodeInfo handles getaddednodeinfo commands.
 func handleGetAddedNodeInfo(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{}) (interface{}, error) {

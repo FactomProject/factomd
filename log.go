@@ -14,7 +14,7 @@ import (
 
 	"github.com/FactomProject/btcd/blockchain"
 	"github.com/FactomProject/btcd/database"
-	"github.com/FactomProject/btcd/txscript"
+	//	"github.com/FactomProject/btcd/txscript"
 	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/btclog"
 	"github.com/FactomProject/seelog"
@@ -129,9 +129,11 @@ func useLogger(subsystemID string, logger btclog.Logger) {
 	case "RPCS":
 		rpcsLog = logger
 
-	case "SCRP":
-		scrpLog = logger
-		txscript.UseLogger(logger)
+		/*
+			case "SCRP":
+				scrpLog = logger
+				txscript.UseLogger(logger)
+		*/
 
 	case "SRVR":
 		srvrLog = logger

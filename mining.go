@@ -13,7 +13,7 @@ import (
 
 	"github.com/FactomProject/btcd/blockchain"
 	"github.com/FactomProject/btcd/database"
-	"github.com/FactomProject/btcd/txscript"
+	//	"github.com/FactomProject/btcd/txscript"
 	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/btcutil"
 
@@ -49,10 +49,12 @@ const (
 	// allow pay-to-script hash transactions.  Note these flags are
 	// different than what is required for the consensus rules in that they
 	// are more strict.
-	standardScriptVerifyFlags = txscript.ScriptBip16 |
-		txscript.ScriptCanonicalSignatures |
-		txscript.ScriptStrictMultiSig |
-		txscript.ScriptDiscourageUpgradableNops
+	/*
+		standardScriptVerifyFlags = txscript.ScriptBip16 |
+			txscript.ScriptCanonicalSignatures |
+			txscript.ScriptStrictMultiSig |
+			txscript.ScriptDiscourageUpgradableNops
+	*/
 )
 
 // txPrioItem houses a transaction along with extra information that allows the
@@ -200,6 +202,7 @@ func mergeTxStore(txStoreA blockchain.TxStore, txStoreB blockchain.TxStore) {
 	}
 }
 
+/*
 // standardCoinbaseScript returns a standard script suitable for use as the
 // signature script of the coinbase transaction of a new block.  In particular,
 // it starts with the block height that is required by version 2 blocks and adds
@@ -208,6 +211,7 @@ func standardCoinbaseScript(nextBlockHeight int64, extraNonce uint64) ([]byte, e
 	return txscript.NewScriptBuilder().AddInt64(nextBlockHeight).
 		AddUint64(extraNonce).AddData([]byte(coinbaseFlags)).Script()
 }
+*/
 
 // createCoinbaseTx returns a coinbase transaction paying an appropriate subsidy
 // based on the passed block height to the provided address.  When the address

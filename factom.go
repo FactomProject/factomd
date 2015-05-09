@@ -7,16 +7,18 @@
 package btcd
 
 import (
+	"errors"
 	"fmt"
+	"math"
+	"os"
+
+	"github.com/FactomProject/btcd/chaincfg"
+	"github.com/FactomProject/btcutil"
 
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/FactomCode/wallet"
 	"github.com/FactomProject/btcd/wire"
 	"github.com/davecgh/go-spew/spew"
-
-	"errors"
-	"os"
-	//	"github.com/FactomProject/btcutil"
 )
 
 var (
@@ -132,6 +134,14 @@ func Start_btcd() {
 
 	// Use all processor cores.
 	//runtime.GOMAXPROCS(runtime.NumCPU())
+
+	//For testing only: ??------------------
+	coinbaseOutpoint := wire.NewOutPoint(&wire.ShaHash{}, math.MaxUint32)
+	coinbaseTx := wire.NewMsgTx()
+	coinbaseTx.Version = 2
+	coinbaseTx.AddTxIn(wire.NewTxIn(coinbaseOutpoint, nil))
+	factomIngressTx_hook(coinbaseTx)
+	// ----------------------------------
 
 	FactomSetupOverrides()
 
@@ -319,4 +329,39 @@ func factomIngressBlock_hook(hash *wire.ShaHash) error {
 	doneFBlockQueue <- fbo
 
 	return nil
+}
+
+func ExtractPkScriptAddrs(pkScript []byte, chainParams *chaincfg.Params) ([]btcutil.Address, int, error) {
+	util.Trace(spew.Sdump(pkScript))
+
+	var addrs []btcutil.Address
+	var requiredSigs int
+
+	// A pay-to-pubkey script is of the form:
+	//  <pubkey> OP_CHECKSIG
+	// Therefore the pubkey is the first item on the stack.
+	// Skip the pubkey if it's invalid for some reason.
+	requiredSigs = 1
+	addr, err := btcutil.NewAddressPubKey(pkScript, chainParams)
+	if err == nil {
+		addrs = append(addrs, addr)
+	}
+
+	return addrs, requiredSigs, nil
+}
+
+// PayToAddrScript creates a new script to pay a transaction output to a the
+// specified address.
+func PayToAddrScript(addr btcutil.Address) ([]byte, error) {
+	util.Trace("NOT IMPLEMENTED !!!!!!!!!!!!!!!!!!!!")
+	/*
+		switch addr := addr.(type) {
+		case *btcutil.AddressPubKey:
+			if addr != nil {
+				return payToPubKeyScript(addr.ScriptAddress()), nil
+			}
+		}
+	*/
+
+	return nil, errors.New("unsupported !!!")
 }

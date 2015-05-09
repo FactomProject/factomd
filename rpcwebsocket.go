@@ -621,54 +621,48 @@ func newRedeemingTxNotification(txHex string, index int, block *btcutil.Block) (
 func (m *wsNotificationManager) notifyForTxOuts(ops map[wire.OutPoint]map[chan struct{}]*wsClient,
 	addrs map[string]map[chan struct{}]*wsClient, tx *btcutil.Tx, block *btcutil.Block) {
 
-	util.Trace("NOT IMPLEMENTED !!!!!!!!!!!!!!!!!!! needed for the wallet (?)")
-	panic(111)
-	return
+	// Nothing to do if nobody is listening for address notifications.
+	if len(addrs) == 0 {
+		return
+	}
 
-	/*
-		// Nothing to do if nobody is listening for address notifications.
-		if len(addrs) == 0 {
-			return
+	txHex := ""
+	wscNotified := make(map[chan struct{}]struct{})
+	for i, txOut := range tx.MsgTx().TxOut {
+		txAddrs, _, err := ExtractPkScriptAddrs(txOut.RCDHash[:], m.server.server.chainParams)
+
+		if err != nil {
+			continue
 		}
 
-		txHex := ""
-		wscNotified := make(map[chan struct{}]struct{})
-		for i, txOut := range tx.MsgTx().TxOut {
-			_, txAddrs, _, err := txscript.ExtractPkScriptAddrs(
-				txOut.PkScript, m.server.server.chainParams)
-			if err != nil {
+		for _, txAddr := range txAddrs {
+			cmap, ok := addrs[txAddr.EncodeAddress()]
+			if !ok {
 				continue
 			}
 
-			for _, txAddr := range txAddrs {
-				cmap, ok := addrs[txAddr.EncodeAddress()]
-				if !ok {
-					continue
-				}
+			if txHex == "" {
+				txHex = txHexString(tx)
+			}
+			ntfn := btcws.NewRecvTxNtfn(txHex, blockDetails(block, tx.Index()))
 
-				if txHex == "" {
-					txHex = txHexString(tx)
-				}
-				ntfn := btcws.NewRecvTxNtfn(txHex, blockDetails(block, tx.Index()))
+			marshalledJSON, err := json.Marshal(ntfn)
+			if err != nil {
+				rpcsLog.Errorf("Failed to marshal processedtx notification: %v", err)
+				continue
+			}
 
-				marshalledJSON, err := json.Marshal(ntfn)
-				if err != nil {
-					rpcsLog.Errorf("Failed to marshal processedtx notification: %v", err)
-					continue
-				}
+			op := wire.NewOutPoint(tx.Sha(), uint32(i))
+			for wscQuit, wsc := range cmap {
+				m.addSpentRequest(ops, wsc, op)
 
-				op := wire.NewOutPoint(tx.Sha(), uint32(i))
-				for wscQuit, wsc := range cmap {
-					m.addSpentRequest(ops, wsc, op)
-
-					if _, ok := wscNotified[wscQuit]; !ok {
-						wscNotified[wscQuit] = struct{}{}
-						wsc.QueueNotification(marshalledJSON)
-					}
+				if _, ok := wscNotified[wscQuit]; !ok {
+					wscNotified[wscQuit] = struct{}{}
+					wsc.QueueNotification(marshalledJSON)
 				}
 			}
 		}
-	*/
+	}
 }
 
 // notifyForTx examines the inputs and outputs of the passed transaction,
