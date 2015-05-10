@@ -195,6 +195,9 @@ func init_processor() {
 			NextDBlockHeight: dchain.NextBlockHeight,
 		}
 		outCtlMsgQueue <- eomMsg
+		
+		// To be improved in milestone 2		
+		SignDirectoryBlock()
 	}
 
 	// init process list manager
@@ -991,6 +994,12 @@ func buildEndOfMinute(pl *consensus.ProcessList, pli *consensus.ProcessListItem)
 	if len(entries) > 0 && entries[len(entries)-1].Type() != common.TYPE_MINUTE_NUMBER {
 		cchain.NextBlock.AddEndOfMinuteMarker(pli.Ack.Type)
 	}
+	
+	// Add it to the admin chain
+	abEntries := achain.NextBlock.ABEntries
+	if len(abEntries) > 0 && abEntries[len(abEntries)-1].Type() != common.TYPE_MINUTE_NUM {
+		achain.NextBlock.AddEndOfMinuteMarker(pli.Ack.Type)
+	}	
 }
 
 // build Genesis blocks
@@ -1142,7 +1151,22 @@ func buildBlocks() error {
 	return nil
 }
 
-// Sign the directory block and place an anchor into btc
+// Sign the directory block
+func SignDirectoryBlock() error {
+	// Only Servers can write the anchor to Bitcoin network
+	if nodeMode == SERVER_NODE && dchain.NextBlockHeight > 0 { 
+		// get the previous directory block from db
+		dbBlock, _ := db.FetchDBlockByHeight(dchain.NextBlockHeight - 1)
+		dbHeaderBytes, _ := dbBlock.Header.MarshalBinary()
+		identityChainID := common.NewHash() // 0 ID for milestone 1		
+		sig := serverPrivKey.Sign(dbHeaderBytes)
+		achain.NextBlock.AddABEntry(common.NewDBSignatureEntry(identityChainID, sig))		
+	}
+
+	return nil
+}
+
+// Place an anchor into btc
 func placeAnchor(dbBlock *common.DirectoryBlock) error {
 	// Only Servers can write the anchor to Bitcoin network
 	if nodeMode == SERVER_NODE && dbBlock != nil { //?? for testing
@@ -1272,17 +1296,6 @@ func newAdminBlock(chain *common.AdminChain) *common.AdminBlock {
 		panic("Admin Block height does not match Directory Block height:" + string(dchain.NextBlockHeight))
 	}
 	
-	// Only Servers can create a Directory Block signature and add it to the open Admin Block
-	// To be improved in milestone 2 to use ack msg??
-	if nodeMode == SERVER_NODE && dchain.NextBlockHeight > 0 { 
-		// get the previous directory block from db
-		dbBlock, _ := db.FetchDBlockByHeight(dchain.NextBlockHeight - 1)
-		dbHeaderBytes, _ := dbBlock.Header.MarshalBinary()
-		identityChainID := common.NewHash() // 0 ID for milestone 1		
-		sig := serverPrivKey.Sign(dbHeaderBytes)
-		block.AddABEntry(common.NewDBSignatureEntry(identityChainID, sig))		
-	}	
-
 	block.Header.EntryCount = uint32(len(block.ABEntries))
 	block.Header.BodySize = uint32(block.MarshalledSize() - block.Header.MarshalledSize())
 	block.BuildABHash()
@@ -1329,6 +1342,9 @@ func newDirectoryBlock(chain *common.DChain) *common.DirectoryBlock {
 	db.ProcessDBlockBatch(block)
 
 	log.Println("DirectoryBlock: block" + strconv.FormatUint(uint64(block.Header.BlockHeight), 10) + " created for directory block chain: " + chain.ChainID.String())
+
+	// To be improved in milestone 2
+	SignDirectoryBlock()
 
 	return block
 }
@@ -1699,7 +1715,7 @@ func initAChain() {
 	aBlocks, _ := db.FetchAllABlocks()
 	sort.Sort(util.ByABlockIDAccending(aBlocks))
 
-	//fmt.Printf("initAChain: aBlocks=%s\n", spew.Sdump(aBlocks))
+	fmt.Printf("initAChain: aBlocks=%s\n", spew.Sdump(aBlocks))
 
 	// double check the block ids
 	for i := 0; i < len(aBlocks); i = i + 1 {
