@@ -14,35 +14,30 @@ import (
 
 func TestCommitChain(t *testing.T) {
 	fmt.Println("\nTestCommitChain===========================================================================")
-	chain := new(common.EChain)
 	bName := make([][]byte, 0, 5)
 	bName = append(bName, []byte("myCompany"))
 	bName = append(bName, []byte("bookkeeping2"))
-
-	chain.Name = bName
-	chain.GenerateIDFromName()
+    
+    chainID,_ := common.GetChainID(bName)
 
 	entry := new(common.Entry)
-	entry.ChainID = *chain.ChainID
-	entry.ExtIDs = make([][]byte, 0, 5)
-	entry.ExtIDs = append(entry.ExtIDs, []byte("1001"))
+	entry.ChainID = chainID
+	entry.ExtIDs = bName
 	entry.Data = []byte("First entry for chain:\"2FrgD2+vPP3yz5zLVaE5Tc2ViVv9fwZeR3/adzITjJc=\"Rules:\"asl;djfasldkfjasldfjlksouiewopurw111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111\"")
-
-	chain.FirstEntry = entry
 
 	binaryEntry, _ := entry.MarshalBinary()
 	entryHash := common.Sha(binaryEntry)
 
-	entryChainIDHash := common.Sha(append(chain.ChainID.Bytes, entryHash.Bytes...))
+	entryChainIDHash := common.Sha(append(chainID.Bytes, entryHash.Bytes...))
 
 	// Calculate the required credits
-	binaryChain, _ := chain.MarshalBinary()
+	binaryChain, _ := chainID.MarshalBinary()
 	credits := uint32(binary.Size(binaryChain)/1000+1) + 10
 
 	timestamp := uint64(time.Now().Unix())
 	var msg bytes.Buffer
 	binary.Write(&msg, binary.BigEndian, timestamp)
-	msg.Write(chain.ChainID.Bytes)
+	msg.Write(chainID.Bytes)
 	msg.Write(entryHash.Bytes)
 	msg.Write(entryChainIDHash.Bytes)
 
@@ -58,7 +53,7 @@ func TestCommitChain(t *testing.T) {
 	//Write msg
 	msgOutgoing := wire.NewMsgCommitChain()
 	msgOutgoing.ECPubKey = pubKey
-	msgOutgoing.ChainID = chain.ChainID
+	msgOutgoing.ChainID = chainID
 	msgOutgoing.EntryHash = entryHash
 	msgOutgoing.EntryChainIDHash = entryChainIDHash
 	msgOutgoing.Credits = credits

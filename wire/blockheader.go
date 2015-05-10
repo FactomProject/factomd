@@ -39,10 +39,10 @@ type BlockHeader struct {
 	Timestamp time.Time
 
 	// Difficulty target for the block.
-	//	Bits uint32
+    Bits uint32
 
 	// Nonce used to generate the block.
-	//	Nonce uint32
+    Nonce uint32
 }
 
 // blockHeaderLen is a constant that represents the number of bytes for a block

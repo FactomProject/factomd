@@ -36,14 +36,6 @@ func TestBlockHeader(t *testing.T) {
 		t.Errorf("NewBlockHeader: wrong merkle root - got %v, want %v",
 			spew.Sprint(bh.MerkleRoot), spew.Sprint(merkleHash))
 	}
-	if bh.Bits != bits {
-		t.Errorf("NewBlockHeader: wrong bits - got %v, want %v",
-			bh.Bits, bits)
-	}
-	if bh.Nonce != nonce {
-		t.Errorf("NewBlockHeader: wrong nonce - got %v, want %v",
-			bh.Nonce, nonce)
-	}
 }
 
 // TestBlockHeaderWire tests the BlockHeader wire encode and decode for various
