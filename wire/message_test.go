@@ -72,7 +72,7 @@ func TestMessage(t *testing.T) {
 	msgFilterAdd := wire.NewMsgFilterAdd([]byte{0x01})
 	msgFilterClear := wire.NewMsgFilterClear()
 	msgFilterLoad := wire.NewMsgFilterLoad([]byte{0x01}, 10, 0, wire.BloomUpdateNone)
-	bh := wire.NewBlockHeader(&wire.ShaHash{}, &wire.ShaHash{}, 0, 0)
+	bh := wire.NewBlockHeader(&wire.ShaHash{}, &wire.ShaHash{}, &wire.Sha3Hash{})
 	msgMerkleBlock := wire.NewMsgMerkleBlock(bh)
 	msgReject := wire.NewMsgReject("block", wire.RejectDuplicate, "duplicate block")
 
@@ -88,8 +88,8 @@ func TestMessage(t *testing.T) {
 		{msgGetAddr, msgGetAddr, pver, wire.MainNet, 24},
 		{msgAddr, msgAddr, pver, wire.MainNet, 25},
 		{msgGetBlocks, msgGetBlocks, pver, wire.MainNet, 61},
-		{msgBlock, msgBlock, pver, wire.MainNet, 239},
-		{msgInv, msgInv, pver, wire.MainNet, 25},
+		{msgBlock, msgBlock, pver, wire.MainNet, 210},		
+        {msgInv, msgInv, pver, wire.MainNet, 25},
 		{msgGetData, msgGetData, pver, wire.MainNet, 25},
 		{msgNotFound, msgNotFound, pver, wire.MainNet, 25},
 		{msgTx, msgTx, pver, wire.MainNet, 34},
@@ -102,7 +102,7 @@ func TestMessage(t *testing.T) {
 		{msgFilterAdd, msgFilterAdd, pver, wire.MainNet, 26},
 		{msgFilterClear, msgFilterClear, pver, wire.MainNet, 24},
 		{msgFilterLoad, msgFilterLoad, pver, wire.MainNet, 35},
-		{msgMerkleBlock, msgMerkleBlock, pver, wire.MainNet, 110},
+		{msgMerkleBlock, msgMerkleBlock, pver, wire.MainNet, 126},
 		{msgReject, msgReject, pver, wire.MainNet, 79},
 	}
 
@@ -225,7 +225,7 @@ func TestReadMessageWireErrors(t *testing.T) {
 	// contained in the message.  Claim there is two, but don't provide
 	// them.  At the same time, forge the header fields so the message is
 	// otherwise accurate.
-	badMessageBytes := makeHeader(btcnet, "addr", 1, 0xeaadc31c)
+	badMessageBytes := makeHeader(btcnet, "addr", 1, 0x1cc3adea)
 	badMessageBytes = append(badMessageBytes, 0x2)
 
 	// Wire encoded bytes for a message which the header claims has 15k
