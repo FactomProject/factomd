@@ -7,7 +7,6 @@ package wire
 import (
 	"bytes"
 	"io"
-	"time"
 )
 
 // BlockVersion is the current latest supported block version.
@@ -20,8 +19,6 @@ const MaxBlockHeaderPayload = 16 + (HashSize * 2)
 // BlockHeader defines information about a block and is used in the bitcoin
 // block (MsgBlock) and headers (MsgHeaders) messages.
 type BlockHeader struct {
-	// Version of the block.  This is not the same as the protocol version.
-	Version int32
 
 	// Hash of the previous block in the block chain.
 	PrevBlock ShaHash
@@ -33,16 +30,6 @@ type BlockHeader struct {
 	PrevKeyMR ShaHash
 
 	PrevHash3 Sha3Hash
-
-	// Time the block was created.  This is, unfortunately, encoded as a
-	// uint32 on the wire and therefore is limited to 2106.
-	Timestamp time.Time
-
-	// Difficulty target for the block.
-    Bits uint32
-
-	// Nonce used to generate the block.
-    Nonce uint32
 }
 
 // blockHeaderLen is a constant that represents the number of bytes for a block
@@ -91,18 +78,13 @@ func (h *BlockHeader) Serialize(w io.Writer) error {
 // NewBlockHeader returns a new BlockHeader using the provided previous block
 // hash, merkle root hash, difficulty bits, and nonce used to generate the
 // block with defaults for the remaining fields.
-func NewBlockHeader(prevHash *ShaHash, merkleRootHash *ShaHash, bits uint32,
-	nonce uint32) *BlockHeader {
+func NewBlockHeader(prevHash *ShaHash, merkleRootHash *ShaHash, prevHash3 *Sha3Hash) *BlockHeader {
 
-	// Limit the timestamp to one second precision since the protocol
-	// doesn't support better.
 	return &BlockHeader{
-		Version:    BlockVersion,
 		PrevBlock:  *prevHash,
-		MerkleRoot: *merkleRootHash,
-		Timestamp:  time.Unix(time.Now().Unix(), 0),
-		//		Bits:       bits,
-		//		Nonce:      nonce,
+        PrevHash3:  *prevHash3,
+        MerkleRoot: *merkleRootHash,
+
 	}
 }
 
@@ -110,14 +92,11 @@ func NewBlockHeader(prevHash *ShaHash, merkleRootHash *ShaHash, bits uint32,
 // decoding block headers stored to disk, such as in a database, as opposed to
 // decoding from the wire.
 func readBlockHeader(r io.Reader, pver uint32, bh *BlockHeader) error {
-	var sec uint32
-	//	err := readElements(r, &bh.Version, &bh.PrevBlock, &bh.MerkleRoot, &sec)
-	err := readElements(r, &bh.Version, &bh.PrevBlock, &bh.MerkleRoot, &bh.PrevHash3)
-	//		&bh.Bits, &bh.Nonce)
-	if err != nil {
+	err := readElements(r, &bh.PrevBlock, &bh.MerkleRoot, &bh.PrevHash3)
+	
+    if err != nil {
 		return err
 	}
-	bh.Timestamp = time.Unix(int64(sec), 0)
 
 	return nil
 }
@@ -126,10 +105,9 @@ func readBlockHeader(r io.Reader, pver uint32, bh *BlockHeader) error {
 // encoding block headers to be stored to disk, such as in a database, as
 // opposed to encoding for the wire.
 func writeBlockHeader(w io.Writer, pver uint32, bh *BlockHeader) error {
-	//	sec := uint32(bh.Timestamp.Unix())
-	err := writeElements(w, bh.Version, &bh.PrevBlock, &bh.MerkleRoot, &bh.PrevHash3)
-	//		sec, bh.Bits, bh.Nonce)
-	if err != nil {
+	err := writeElements(w, &bh.PrevBlock, &bh.MerkleRoot, &bh.PrevHash3)
+
+    if err != nil {
 		return err
 	}
 
