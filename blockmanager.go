@@ -6,7 +6,6 @@ package btcd
 
 import (
 	"container/list"
-	//	"net"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -148,8 +147,6 @@ type chainState struct {
 	sync.Mutex
 	newestHash        *wire.ShaHash
 	newestHeight      int64
-	pastMedianTime    time.Time
-	pastMedianTimeErr error
 }
 
 // Best returns the block hash and height known for the tip of the best known
@@ -220,12 +217,6 @@ func (b *blockManager) updateChainState(newestHash *wire.ShaHash, newestHeight i
 
 	b.chainState.newestHash = newestHash
 	b.chainState.newestHeight = newestHeight
-	medianTime, err := b.blockChain.CalcPastMedianTime()
-	if err != nil {
-		b.chainState.pastMedianTimeErr = err
-	} else {
-		b.chainState.pastMedianTime = medianTime
-	}
 }
 
 /*

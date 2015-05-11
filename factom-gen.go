@@ -10,7 +10,6 @@
 package btcd
 
 import (
-	//	"container/list"
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
@@ -406,10 +405,9 @@ func factom_NewBlockTemplate(mempool *txMemPool, payToAddress wire.RCDHash, glob
 	merkles := blockchain.BuildMerkleTreeStore(blockTxns)
 	var msgBlock wire.MsgBlock
 	msgBlock.Header = wire.BlockHeader{
-		Version:    generatedBlockVersion,
 		PrevBlock:  *prevHash,
 		MerkleRoot: *merkles[len(merkles)-1],
-		Timestamp:  time.Unix(0, 0),
+        // PrevHash3:  <- Put the SHA3 here!
 		//		Bits:       0,
 	}
 

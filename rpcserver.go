@@ -9,7 +9,6 @@ import (
 	"crypto/subtle"
 	"crypto/tls"
 	"encoding/base64"
-	//	"encoding/binary"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -964,12 +963,11 @@ func createTxRawResult(chainParams *chaincfg.Params, txSha string,
 	}
 
 	if blk != nil {
-		blockHeader := &blk.MsgBlock().Header
 		idx := blk.Height()
 
 		// This is not a typo, they are identical in bitcoind as well.
-		txReply.Time = blockHeader.Timestamp.Unix()
-		txReply.Blocktime = blockHeader.Timestamp.Unix()
+//		txReply.Time = blockHeader.Timestamp.Unix()                     FACTOM
+//		txReply.Blocktime = blockHeader.Timestamp.Unix()                FACTOM
 		txReply.BlockHash = blksha.String()
 		txReply.Confirmations = uint64(1 + maxidx - idx)
 	}
@@ -1230,11 +1228,12 @@ func handleGetBlock(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{}) (i
 	blockHeader := &blk.MsgBlock().Header
 	blockReply := btcjson.BlockResult{
 		Hash:         c.Hash,
-		Version:      blockHeader.Version,
+		Version:      0,                                // TODO: delete version...
 		MerkleRoot:   blockHeader.MerkleRoot.String(),
 		PreviousHash: blockHeader.PrevBlock.String(),
+		// Should have PrevHash3 here too!  FACTOM
 		//		Nonce:         blockHeader.Nonce,
-		Time:          blockHeader.Timestamp.Unix(),
+		Time:          0, // blockHeader.Timestamp.Unix(),
 		Confirmations: uint64(1 + maxidx - idx),
 		Height:        idx,
 		Size:          int32(len(buf)),

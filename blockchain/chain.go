@@ -8,8 +8,7 @@ import (
 	"container/list"
 	"errors"
 	"fmt"
-	//	"math/big"
-	"sort"
+	
 	"sync"
 	"time"
 
@@ -73,9 +72,6 @@ type blockNode struct {
 	// ancestor when switching chains.
 	inMainChain bool
 
-	// Some fields from block headers to aid in best chain selection.
-	version int32
-	bits    uint32
 	//	timestamp time.Time
 }
 
@@ -100,7 +96,7 @@ func newBlockNode(blockHeader *wire.BlockHeader, blockSha *wire.ShaHash, height 
 		parentHash: &prevHash,
 		//		workSum:    CalcWork(blockHeader.Bits),
 		height:  height,
-		version: blockHeader.Version,
+		
 		//		bits:       blockHeader.Bits,
 		//		timestamp: blockHeader.Timestamp,
 	}
@@ -639,9 +635,9 @@ func (b *BlockChain) isMajorityVersion(minVer int32, startNode *blockNode, numRe
 	iterNode := startNode
 	for i := uint64(0); i < numToCheck && iterNode != nil; i++ {
 		// This node has a version that is at least the minimum version.
-		if iterNode.version >= minVer {
-			numFound++
-		}
+		// TODO:  Factom, all blocks are good.
+        numFound++
+		
 
 		// Get the previous block node.  This function is used over
 		// simply accessing iterNode.parent directly as it will
@@ -658,67 +654,11 @@ func (b *BlockChain) isMajorityVersion(minVer int32, startNode *blockNode, numRe
 	return numFound >= numRequired
 }
 
-// calcPastMedianTime calculates the median time of the previous few blocks
-// prior to, and including, the passed block node.  It is primarily used to
-// validate new blocks have sane timestamps.
-func (b *BlockChain) calcPastMedianTime(startNode *blockNode) (time.Time, error) {
-	// Genesis block.
-	if startNode == nil {
-		return b.chainParams.GenesisBlock.Header.Timestamp, nil
-	}
-
-	// Create a slice of the previous few block timestamps used to calculate
-	// the median per the number defined by the constant medianTimeBlocks.
-	timestamps := make([]time.Time, medianTimeBlocks)
-	numNodes := 0
-	iterNode := startNode
-	for i := 0; i < medianTimeBlocks && iterNode != nil; i++ {
-		//		timestamps[i] = iterNode.timestamp
-		numNodes++
-
-		// Get the previous block node.  This function is used over
-		// simply accessing iterNode.parent directly as it will
-		// dynamically create previous block nodes as needed.  This
-		// helps allow only the pieces of the chain that are needed
-		// to remain in memory.
-		var err error
-		iterNode, err = b.getPrevNodeFromNode(iterNode)
-		if err != nil {
-			log.Errorf("getPrevNodeFromNode: %v", err)
-			return time.Time{}, err
-		}
-	}
-
-	// Prune the slice to the actual number of available timestamps which
-	// will be fewer than desired near the beginning of the block chain
-	// and sort them.
-	timestamps = timestamps[:numNodes]
-	sort.Sort(timeSorter(timestamps))
-
-	// NOTE: bitcoind incorrectly calculates the median for even numbers of
-	// blocks.  A true median averages the middle two elements for a set
-	// with an even number of elements in it.   Since the constant for the
-	// previous number of blocks to be used is odd, this is only an issue
-	// for a few blocks near the beginning of the chain.  I suspect this is
-	// an optimization even though the result is slightly wrong for a few
-	// of the first blocks since after the first few blocks, there will
-	// always be an odd number of blocks in the set per the constant.
-	//
-	// This code follows suit to ensure the same rules are used as bitcoind
-	// however, be aware that should the medianTimeBlocks constant ever be
-	// changed to an even number, this code will be wrong.
-	medianTimestamp := timestamps[numNodes/2]
-	return medianTimestamp, nil
-}
-
-// CalcPastMedianTime calculates the median time of the previous few blocks
-// prior to, and including, the end of the current best chain.  It is primarily
-// used to ensure new blocks have sane timestamps.
-//
-// This function is NOT safe for concurrent access.
-func (b *BlockChain) CalcPastMedianTime() (time.Time, error) {
-	return b.calcPastMedianTime(b.bestChain)
-}
+/******************************************
+ * FACTOM removed timestamp functions.  The coin doesn't deal with timestamps.
+ * func (b *BlockChain) calcPastMedianTime(startNode *blockNode) (time.Time, error) {
+ * func (b *BlockChain) CalcPastMedianTime() (time.Time, error) {
+ ******************************************/
 
 // getReorganizeNodes finds the fork point between the main chain and the passed
 // node and returns a list of block nodes that would need to be detached from

@@ -17,11 +17,8 @@ import (
 	"sync"
 	"time"
 
-	//	"golang.org/x/crypto/ripemd160"
-
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/btcd/database"
-	//	"github.com/FactomProject/btcd/txscript"
 	"github.com/FactomProject/btcd/btcjson"
 	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/btcutil"
@@ -600,7 +597,7 @@ func blockDetails(block *btcutil.Block, txIndex int) *btcws.BlockDetails {
 		Height: int32(block.Height()),
 		Hash:   blockSha.String(),
 		Index:  txIndex,
-		Time:   block.MsgBlock().Header.Timestamp.Unix(),
+		Time:   0,
 	}
 }
 
@@ -1904,7 +1901,7 @@ fetchRange:
 
 			n := btcws.NewRescanProgressNtfn(hashList[i].String(),
 				int32(blk.Height()),
-				blk.MsgBlock().Header.Timestamp.Unix())
+				0)
 			mn, err := n.MarshalJSON()
 			if err != nil {
 				rpcsLog.Errorf("Failed to marshal rescan "+
@@ -1937,7 +1934,7 @@ fetchRange:
 	}
 	n := btcws.NewRescanFinishedNtfn(blkSha.String(),
 		int32(lastBlock.Height()),
-		lastBlock.MsgBlock().Header.Timestamp.Unix())
+		0)
 	if mn, err := n.MarshalJSON(); err != nil {
 		rpcsLog.Errorf("Failed to marshal rescan finished "+
 			"notification: %v", err)

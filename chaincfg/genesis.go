@@ -5,8 +5,6 @@
 package chaincfg
 
 import (
-	"time"
-
 	"github.com/FactomProject/btcd/wire"
 )
 
@@ -170,11 +168,11 @@ var genesisMerkleRoot = wire.ShaHash([wire.HashSize]byte{ // Make go vet happy.
 // public transaction ledger for the main network.
 var genesisBlock = wire.MsgBlock{
 	Header: wire.BlockHeader{
-		Version:    1,
+	
 		PrevBlock:  wire.ShaHash{},    // 0000000000000000000000000000000000000000000000000000000000000000
 		MerkleRoot: genesisMerkleRoot, // 4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b
-		//		Timestamp:  time.Unix(0x495fab29, 0), // 2009-01-03 18:15:05 +0000 UTC
-		Timestamp: time.Unix(0, 0),
+		PrevHash3:  wire.Sha3Hash{},
+        //		Timestamp:  time.Unix(0x495fab29, 0), // 2009-01-03 18:15:05 +0000 UTC
 		//		Bits:      0x1d00ffff, // 486604799 [00000000ffff0000000000000000000000000000000000000000000000000000]
 		//		Nonce:     0x7c2bac1d, // 2083236893
 	},
@@ -199,10 +197,10 @@ var regTestGenesisMerkleRoot = genesisMerkleRoot
 // as the public transaction ledger for the regression test network.
 var regTestGenesisBlock = wire.MsgBlock{
 	Header: wire.BlockHeader{
-		Version:    1,
+
 		PrevBlock:  wire.ShaHash{},           // 0000000000000000000000000000000000000000000000000000000000000000
 		MerkleRoot: regTestGenesisMerkleRoot, // 4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b
-		Timestamp:  time.Unix(1296688602, 0), // 2011-02-02 23:16:42 +0000 UTC
+        PrevHash3:  wire.Sha3Hash{},
 		//		Bits:       0x207fffff,               // 545259519 [7fffff0000000000000000000000000000000000000000000000000000000000]
 		//		Nonce:      2,
 	},
@@ -227,10 +225,9 @@ var testNet3GenesisMerkleRoot = genesisMerkleRoot
 // serves as the public transaction ledger for the test network (version 3).
 var testNet3GenesisBlock = wire.MsgBlock{
 	Header: wire.BlockHeader{
-		Version:    1,
 		PrevBlock:  wire.ShaHash{},            // 0000000000000000000000000000000000000000000000000000000000000000
 		MerkleRoot: testNet3GenesisMerkleRoot, // 4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b
-		Timestamp:  time.Unix(1296688602, 0),  // 2011-02-02 23:16:42 +0000 UTC
+        PrevHash3:  wire.Sha3Hash{},
 		//		Bits:       0x1d00ffff,                // 486604799 [00000000ffff0000000000000000000000000000000000000000000000000000]
 		//		Nonce:      0x18aea41a,                // 414098458
 	},
@@ -255,10 +252,9 @@ var simNetGenesisMerkleRoot = genesisMerkleRoot
 // as the public transaction ledger for the simulation test network.
 var simNetGenesisBlock = wire.MsgBlock{
 	Header: wire.BlockHeader{
-		Version:    1,
 		PrevBlock:  wire.ShaHash{},           // 0000000000000000000000000000000000000000000000000000000000000000
 		MerkleRoot: simNetGenesisMerkleRoot,  // 4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b
-		Timestamp:  time.Unix(1401292357, 0), // 2014-05-28 15:52:37 +0000 UTC
+        PrevHash3:  wire.Sha3Hash{},
 		//		Bits:       0x207fffff,               // 545259519 [7fffff0000000000000000000000000000000000000000000000000000000000]
 		//		Nonce:      2,
 	},
