@@ -44,7 +44,7 @@ func (b *BlockChain) BlockLocatorFromHash(hash *wire.ShaHash) BlockLocator {
 	locator = append(locator, hash)
 
 	util.Trace(fmt.Sprintf("hash= %v\n", hash.String()))
-	util.Trace(fmt.Sprintf("GenesisHash= %v\n", b.chainParams.GenesisHash.String()))
+	util.Trace(fmt.Sprintf("Hard-Coded GenesisHash= %v\n", b.chainParams.GenesisHash.String()))
 
 	// Nothing more to do if a locator for the genesis hash was requested.
 	if hash.IsEqual(b.chainParams.GenesisHash) {

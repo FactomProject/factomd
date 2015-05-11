@@ -139,7 +139,7 @@ func IsCoinBase(tx *btcutil.Tx) bool {
 // TODO: pay attention to locktime in some way.
 func IsFinalizedTransaction(tx *btcutil.Tx, blockHeight int64) bool {
 
-    return true
+	return true
 }
 
 // isBIP0030Node returns whether or not the passed node represents one of the
@@ -506,7 +506,7 @@ func checkBlockSanity(block *btcutil.Block, powLimit *big.Int, timeSource Median
 	// after the following checks, but there is no reason not to check the
 	// merkle root matches here.
 
-    header := &block.MsgBlock().Header
+	header := &block.MsgBlock().Header
 	merkles := BuildMerkleTreeStore(block.Transactions())
 	calculatedMerkleRoot := merkles[len(merkles)-1]
 	if !header.MerkleRoot.IsEqual(calculatedMerkleRoot) {
@@ -794,7 +794,7 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block *btcutil.Block) er
 	// The coinbase for the Genesis block is not spendable, so just return
 	// now.
 	util.Trace(fmt.Sprintf("node.hash= %v\n", node.hash.String()))
-	util.Trace(fmt.Sprintf("GenesisHash= %v\n", b.chainParams.GenesisHash.String()))
+	util.Trace(fmt.Sprintf("Hard-Coded GenesisHash= %v\n", b.chainParams.GenesisHash.String()))
 
 	if node.hash.IsEqual(b.chainParams.GenesisHash) && b.bestChain == nil {
 		return nil

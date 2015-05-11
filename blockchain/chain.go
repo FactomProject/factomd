@@ -8,7 +8,7 @@ import (
 	"container/list"
 	"errors"
 	"fmt"
-	
+
 	"sync"
 	"time"
 
@@ -95,8 +95,8 @@ func newBlockNode(blockHeader *wire.BlockHeader, blockSha *wire.ShaHash, height 
 		hash:       blockSha,
 		parentHash: &prevHash,
 		//		workSum:    CalcWork(blockHeader.Bits),
-		height:  height,
-		
+		height: height,
+
 		//		bits:       blockHeader.Bits,
 		//		timestamp: blockHeader.Timestamp,
 	}
@@ -524,7 +524,7 @@ func (b *BlockChain) getPrevNodeFromNode(node *blockNode) (*blockNode, error) {
 	}
 
 	util.Trace(fmt.Sprintf("node.hash= %v\n", node.hash.String()))
-	util.Trace(fmt.Sprintf("GenesisHash= %v\n", b.chainParams.GenesisHash.String()))
+	util.Trace(fmt.Sprintf("Hard-Coded GenesisHash= %v\n", b.chainParams.GenesisHash.String()))
 
 	// Genesis block.
 	if node.hash.IsEqual(b.chainParams.GenesisHash) {
@@ -636,8 +636,7 @@ func (b *BlockChain) isMajorityVersion(minVer int32, startNode *blockNode, numRe
 	for i := uint64(0); i < numToCheck && iterNode != nil; i++ {
 		// This node has a version that is at least the minimum version.
 		// TODO:  Factom, all blocks are good.
-        numFound++
-		
+		numFound++
 
 		// Get the previous block node.  This function is used over
 		// simply accessing iterNode.parent directly as it will

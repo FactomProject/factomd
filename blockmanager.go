@@ -6,6 +6,7 @@ package btcd
 
 import (
 	"container/list"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -145,8 +146,8 @@ type headerNode struct {
 // is inserted and protecting it with a mutex.
 type chainState struct {
 	sync.Mutex
-	newestHash        *wire.ShaHash
-	newestHeight      int64
+	newestHash   *wire.ShaHash
+	newestHeight int64
 }
 
 // Best returns the block hash and height known for the tip of the best known
@@ -1444,7 +1445,7 @@ func newBlockManager(s *server) (*blockManager, error) {
 		}
 	*/
 
-	util.Trace(fmt.Sprintf("GenesisHash= %v\n", activeNetParams.GenesisHash))
+	util.Trace(fmt.Sprintf("Hard-Coded GenesisHash= %v\n", activeNetParams.GenesisHash))
 
 	bmgrLog.Infof("Generating initial block node index.  This may " +
 		"take a while...")
@@ -1631,6 +1632,11 @@ func loadBlockDB() (database.Db, error) {
 
 		gensha, _ := genesis.Sha()
 		factomIngressBlock_hook(gensha)
+
+		// verify the inserted genesis block matches the hard-code value
+		if !chaincfg.MainNetParams.GenesisHash.IsEqual(gensha) {
+			panic(errors.New(fmt.Sprintf("Factoid genesis block hash ERROR, during insertion")))
+		}
 	}
 
 	btcdLog.Infof("Block database loaded with block height %d", height)
