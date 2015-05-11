@@ -817,7 +817,7 @@ func processRevealChain(msg *wire.MsgRevealChain) error {
 		}
 	}
 	if existing {
-		return errors.New("This chain is already existing:" + msg.FirstEntry.ChainID.String())
+		return errors.New("This chain already exists:" + msg.FirstEntry.ChainID.String())
 	}
 
 	// Calculate the required credits
@@ -1719,9 +1719,9 @@ func initAChain() {
 
 	// double check the block ids
 	for i := 0; i < len(aBlocks); i = i + 1 {
-		if uint32(i) != aBlocks[i].Header.DBHeight {
-			panic(errors.New("BlockID does not equal index for chain:" + achain.ChainID.String() + " block:" + fmt.Sprintf("%v", aBlocks[i].Header.DBHeight)))
-		}
+		//if uint32(i) != aBlocks[i].Header.DBHeight {
+		//	panic(errors.New("BlockID does not equal index for chain:" + achain.ChainID.String() + " block:" + fmt.Sprintf("%v", aBlocks[i].Header.DBHeight)))
+		//}
 	}
 
 	//Create an empty block and append to the chain
