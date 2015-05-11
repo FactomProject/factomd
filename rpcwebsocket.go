@@ -18,8 +18,8 @@ import (
 	"time"
 
 	"github.com/FactomProject/FactomCode/util"
-	"github.com/FactomProject/btcd/database"
 	"github.com/FactomProject/btcd/btcjson"
+	"github.com/FactomProject/btcd/database"
 	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/btcutil"
 	"github.com/FactomProject/btcws"

@@ -407,7 +407,7 @@ func factom_NewBlockTemplate(mempool *txMemPool, payToAddress wire.RCDHash, glob
 	msgBlock.Header = wire.BlockHeader{
 		PrevBlock:  *prevHash,
 		MerkleRoot: *merkles[len(merkles)-1],
-        // PrevHash3:  <- Put the SHA3 here!
+		// PrevHash3:  <- Put the SHA3 here!
 		//		Bits:       0,
 	}
 

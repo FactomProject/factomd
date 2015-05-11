@@ -33,7 +33,7 @@ const (
 	FULL_NODE   = "FULL"
 	SERVER_NODE = "SERVER"
 	LIGHT_NODE  = "LIGHT"
-	
+
 	//Server public key for milestone 1
 	SERVER_PUB_KEY = "8cee85c62a9e48039d4ac294da97943c2001be1539809ea5f54721f0c5477a0a"
 )
@@ -44,10 +44,10 @@ var (
 
 	currentAddr btcutil.Address
 	tickers     [2]*time.Ticker
-	db          database.Db    // database
-	dchain      *common.DChain //Directory Block Chain
-	cchain      *common.CChain //Entry Credit Chain
-	achain      *common.AdminChain //Admin Chain	
+	db          database.Db        // database
+	dchain      *common.DChain     //Directory Block Chain
+	cchain      *common.CChain     //Entry Credit Chain
+	achain      *common.AdminChain //Admin Chain
 	fchainID    *common.Hash
 
 	creditsPerChain   int32  = 10
@@ -67,31 +67,30 @@ var (
 
 	fMemPool *ftmMemPool
 	plMgr    *consensus.ProcessListMgr
-	
+
 	//Server Private key and Public key for milestone 1
-	serverPrivKey 	common.PrivateKey
-	serverPubKey 	common.PublicKey
+	serverPrivKey common.PrivateKey
+	serverPubKey  common.PublicKey
 )
 
 var (
-	sendToBTCinSeconds           	int
-	directoryBlockInSeconds      	int
-	dataStorePath                	string
-	ldbpath                      	string
-	nodeMode                     	string
-	devNet                  		bool 
+	sendToBTCinSeconds      int
+	directoryBlockInSeconds int
+	dataStorePath           string
+	ldbpath                 string
+	nodeMode                string
+	devNet                  bool
 
-	walletPassphrase          		string
-	certHomePath              		string
-	rpcClientHost             		string
-	rpcClientEndpoint         		string
-	rpcClientUser             		string
-	rpcClientPass             		string
-	btcTransFee       				float64
+	walletPassphrase  string
+	certHomePath      string
+	rpcClientHost     string
+	rpcClientEndpoint string
+	rpcClientUser     string
+	rpcClientPass     string
+	btcTransFee       float64
 
-	certHomePathBtcd 				string //needs cleanup??
-	serverPrivKeyHex				string
-
+	certHomePathBtcd string //needs cleanup??
+	serverPrivKeyHex string
 )
 
 func LoadConfigurations(cfg *util.FactomdConfig) {
@@ -145,7 +144,7 @@ func initEChainFromDB(chain *common.EChain) {
 	}
 
 	// Initialize chain with the first entry (Name and rules) for non-server mode
-	if nodeMode != SERVER_NODE && chain.FirstEntry == nil && len(*eBlocks) > 0{
+	if nodeMode != SERVER_NODE && chain.FirstEntry == nil && len(*eBlocks) > 0 {
 		chain.FirstEntry, _ = db.FetchEntryByHash((*eBlocks)[0].EBEntries[0].EntryHash)
 		if chain.FirstEntry != nil {
 			db.InsertChain(chain)
@@ -159,7 +158,7 @@ func initEChainFromDB(chain *common.EChain) {
 
 func init_processor() {
 	util.Trace()
-	
+
 	// init server private key or pub key
 	initServerKeys()
 
@@ -180,10 +179,10 @@ func init_processor() {
 	// init Entry Credit Chain
 	initCChain()
 	fmt.Println("Loaded", cchain.NextBlockHeight, "Entry Credit blocks for chain: "+cchain.ChainID.String())
-	
+
 	// init Admin Chain
 	initAChain()
-	fmt.Println("Loaded", achain.NextBlockHeight, "Admin blocks for chain: "+achain.ChainID.String())	
+	fmt.Println("Loaded", achain.NextBlockHeight, "Admin blocks for chain: "+achain.ChainID.String())
 
 	// build the Genesis blocks if the current height is 0
 	if dchain.NextBlockHeight == 0 {
@@ -195,8 +194,8 @@ func init_processor() {
 			NextDBlockHeight: dchain.NextBlockHeight,
 		}
 		outCtlMsgQueue <- eomMsg
-		
-		// To be improved in milestone 2		
+
+		// To be improved in milestone 2
 		SignDirectoryBlock()
 	}
 
@@ -209,7 +208,7 @@ func init_processor() {
 		initEChainFromDB(chain)
 
 		fmt.Println("Loaded", chain.NextBlockHeight, "blocks for chain: "+chain.ChainID.String())
-		//fmt.Printf("PROCESSOR: echain=%s\n", spew.Sdump(chain))		
+		//fmt.Printf("PROCESSOR: echain=%s\n", spew.Sdump(chain))
 
 	}
 
@@ -614,16 +613,16 @@ func processEBlock(msg *wire.MsgEBlock) error {
 	if chain == nil {
 		chain = new(common.EChain)
 		chain.ChainID = msg.EBlk.Header.ChainID
-		
+
 		if msg.EBlk.Header.EBHeight == 0 {
 			chain.FirstEntry, _ = db.FetchEntryByHash(msg.EBlk.EBEntries[0].EntryHash)
 		}
 
 		db.InsertChain(chain)
 		chainIDMap[chain.ChainID.String()] = chain
-	} else if chain.FirstEntry == nil && msg.EBlk.Header.EBHeight == 0  {
+	} else if chain.FirstEntry == nil && msg.EBlk.Header.EBHeight == 0 {
 		chain.FirstEntry, _ = db.FetchEntryByHash(msg.EBlk.EBEntries[0].EntryHash)
-		db.InsertChain(chain)			
+		db.InsertChain(chain)
 	}
 
 	db.ProcessEBlockBatch(msg.EBlk)
@@ -811,7 +810,7 @@ func processRevealChain(msg *wire.MsgRevealChain) error {
 	_, existing := chainIDMap[msg.FirstEntry.ChainID.String()]
 	if !existing {
 		// the chain id should not be the same as the special chains
-		if dchain.ChainID.IsSameAs(msg.FirstEntry.ChainID) || cchain.ChainID.IsSameAs(msg.FirstEntry.ChainID) || 
+		if dchain.ChainID.IsSameAs(msg.FirstEntry.ChainID) || cchain.ChainID.IsSameAs(msg.FirstEntry.ChainID) ||
 			achain.ChainID.IsSameAs(msg.FirstEntry.ChainID) || fchainID.IsSameAs(msg.FirstEntry.ChainID) {
 			existing = true
 		}
@@ -994,12 +993,12 @@ func buildEndOfMinute(pl *consensus.ProcessList, pli *consensus.ProcessListItem)
 	if len(entries) > 0 && entries[len(entries)-1].Type() != common.TYPE_MINUTE_NUMBER {
 		cchain.NextBlock.AddEndOfMinuteMarker(pli.Ack.Type)
 	}
-	
+
 	// Add it to the admin chain
 	abEntries := achain.NextBlock.ABEntries
 	if len(abEntries) > 0 && abEntries[len(abEntries)-1].Type() != common.TYPE_MINUTE_NUM {
 		achain.NextBlock.AddEndOfMinuteMarker(pli.Ack.Type)
-	}	
+	}
 }
 
 // build Genesis blocks
@@ -1014,7 +1013,7 @@ func buildGenesisBlocks() error {
 	outCtlMsgQueue <- eomMsg
 
 	// Allocate the first two dbentries for ECBlock and Factoid block
-	dchain.AddDBEntry(&common.DBEntry{}) // AdminBlock		
+	dchain.AddDBEntry(&common.DBEntry{}) // AdminBlock
 	dchain.AddDBEntry(&common.DBEntry{}) // ECBlock
 	dchain.AddDBEntry(&common.DBEntry{}) // Factoid block
 
@@ -1045,12 +1044,12 @@ func buildGenesisBlocks() error {
 	fmt.Printf("buildGenesisBlocks: cBlock=%s\n", spew.Sdump(cBlock))
 	dchain.AddCBlockToDBEntry(cBlock)
 	saveCChain(cchain)
-	
+
 	// Admin chain
 	aBlock := newAdminBlock(achain)
 	fmt.Printf("buildGenesisBlocks: aBlock=%s\n", spew.Sdump(aBlock))
 	dchain.AddABlockToDBEntry(aBlock)
-	saveAChain(achain)	
+	saveAChain(achain)
 
 	// Directory Block chain
 	dbBlock := newDirectoryBlock(dchain)
@@ -1069,7 +1068,7 @@ func buildBlocks() error {
 	util.Trace()
 
 	// Allocate the first three dbentries for Admin block, ECBlock and Factoid block
-	dchain.AddDBEntry(&common.DBEntry{}) // AdminBlock	
+	dchain.AddDBEntry(&common.DBEntry{}) // AdminBlock
 	dchain.AddDBEntry(&common.DBEntry{}) // ECBlock
 	dchain.AddDBEntry(&common.DBEntry{}) // Factoid block
 
@@ -1097,13 +1096,11 @@ func buildBlocks() error {
 	dchain.AddCBlockToDBEntry(cBlock)
 	saveCChain(cchain)
 
-
 	// Admin chain
 	aBlock := newAdminBlock(achain)
 	//fmt.Printf("buildGenesisBlocks: aBlock=%s\n", spew.Sdump(aBlock))
 	dchain.AddABlockToDBEntry(aBlock)
-	saveAChain(achain)	
-
+	saveAChain(achain)
 
 	// sort the echains by chain id
 	var keys []string
@@ -1154,13 +1151,13 @@ func buildBlocks() error {
 // Sign the directory block
 func SignDirectoryBlock() error {
 	// Only Servers can write the anchor to Bitcoin network
-	if nodeMode == SERVER_NODE && dchain.NextBlockHeight > 0 { 
+	if nodeMode == SERVER_NODE && dchain.NextBlockHeight > 0 {
 		// get the previous directory block from db
 		dbBlock, _ := db.FetchDBlockByHeight(dchain.NextBlockHeight - 1)
 		dbHeaderBytes, _ := dbBlock.Header.MarshalBinary()
-		identityChainID := common.NewHash() // 0 ID for milestone 1		
+		identityChainID := common.NewHash() // 0 ID for milestone 1
 		sig := serverPrivKey.Sign(dbHeaderBytes)
-		achain.NextBlock.AddABEntry(common.NewDBSignatureEntry(identityChainID, sig))		
+		achain.NextBlock.AddABEntry(common.NewDBSignatureEntry(identityChainID, sig))
 	}
 
 	return nil
@@ -1170,7 +1167,7 @@ func SignDirectoryBlock() error {
 func placeAnchor(dbBlock *common.DirectoryBlock) error {
 	// Only Servers can write the anchor to Bitcoin network
 	if nodeMode == SERVER_NODE && dbBlock != nil { //?? for testing
-		
+
 		// dbInfo := common.NewDBInfoFromDBlock(dbBlock)
 
 		// FIXME
@@ -1295,7 +1292,7 @@ func newAdminBlock(chain *common.AdminChain) *common.AdminBlock {
 	if chain.NextBlockHeight != dchain.NextBlockHeight {
 		panic("Admin Block height does not match Directory Block height:" + string(dchain.NextBlockHeight))
 	}
-	
+
 	block.Header.EntryCount = uint32(len(block.ABEntries))
 	block.Header.BodySize = uint32(block.MarshalledSize() - block.Header.MarshalledSize())
 	block.BuildABHash()
@@ -1590,7 +1587,6 @@ func saveAChain(chain *common.AdminChain) {
 	}
 }
 
-
 func initDChain() {
 	dchain = new(common.DChain)
 
@@ -1740,7 +1736,6 @@ func initAChain() {
 
 }
 
-
 func initEChains() {
 
 	chainIDMap = make(map[string]*common.EChain)
@@ -1790,11 +1785,11 @@ func initServerKeys() {
 		var err error
 		serverPrivKey, err = common.NewPrivateKeyFromHex(serverPrivKeyHex)
 		if err != nil {
-			panic ("Cannot parse Server Private Key from configuration file: " + err.Error())
+			panic("Cannot parse Server Private Key from configuration file: " + err.Error())
 		}
 	} else {
 		serverPubKey = common.PubKeyFromString(SERVER_PUB_KEY)
-	}	
+	}
 }
 
 func initProcessListMgr() {

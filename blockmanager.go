@@ -1631,12 +1631,13 @@ func loadBlockDB() (database.Db, error) {
 		height = 0
 
 		gensha, _ := genesis.Sha()
-		factomIngressBlock_hook(gensha)
 
 		// verify the inserted genesis block matches the hard-code value
 		if !chaincfg.MainNetParams.GenesisHash.IsEqual(gensha) {
 			panic(errors.New(fmt.Sprintf("Factoid genesis block hash ERROR, during insertion")))
 		}
+
+		factomIngressBlock_hook(gensha)
 	}
 
 	btcdLog.Infof("Block database loaded with block height %d", height)
