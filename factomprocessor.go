@@ -16,7 +16,7 @@ import (
 	"os"
 	"sort"
 	"strconv"
-	"github.com/FactomProject/FactomCode/anchor"
+//	"github.com/FactomProject/FactomCode/anchor"
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/consensus"
 	"github.com/FactomProject/FactomCode/database"
@@ -1124,7 +1124,7 @@ func placeAnchor(dbBlock *common.DirectoryBlock) error {
 
 		// todo: need to make anchor as a go routine, independent of factomd
 		// same as blockmanager to btcd
-		go anchor.SendRawTransactionToBTC(dbBlock.DBHash.Bytes, uint64(dbBlock.Header.BlockHeight))
+		//go anchor.SendRawTransactionToBTC(dbBlock.DBHash.Bytes, uint64(dbBlock.Header.BlockHeight))
 	}
 	return nil
 }
