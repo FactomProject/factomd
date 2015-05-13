@@ -18,6 +18,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/FactomProject/FactomCode/anchor"
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/consensus"
 	"github.com/FactomProject/FactomCode/database"
@@ -31,7 +32,7 @@ import (
 const (
 	//Server running mode
 	FULL_NODE   = "FULL"
-	SERVER_NODE = "SERVER" 
+	SERVER_NODE = "SERVER"
 	LIGHT_NODE  = "LIGHT"
 
 	//Server public key for milestone 1
@@ -67,8 +68,8 @@ var (
 	//Server Private key and Public key for milestone 1
 	serverPrivKey common.PrivateKey
 	serverPubKey  common.PublicKey
-	
-    FactoshisPerCredit  uint64     // .001 / .15 * 100000000 (assuming a Factoid is .15 cents, entry credit = .1 cents    
+
+	FactoshisPerCredit uint64 // .001 / .15 * 100000000 (assuming a Factoid is .15 cents, entry credit = .1 cents
 
 )
 
@@ -156,9 +157,9 @@ func initEChainFromDB(chain *common.EChain) {
 }
 
 func init_processor() {
-    
-    wire.Init()
-    
+
+	wire.Init()
+
 	util.Trace()
 
 	// init server private key or pub key
@@ -170,13 +171,12 @@ func init_processor() {
 
 	// init wire.FChainID
 	barray := []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-		             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F}
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F}
 	wire.FChainID = new(common.Hash)
 	wire.FChainID.SetBytes(barray)
 
-    FactoshisPerCredit = 666667     // .001 / .15 * 100000000 (assuming a Factoid is .15 cents, entry credit = .1 cents    
+	FactoshisPerCredit = 666667 // .001 / .15 * 100000000 (assuming a Factoid is .15 cents, entry credit = .1 cents
 
-    
 	// init Directory Block Chain
 	initDChain()
 	fmt.Println("Loaded", dchain.NextBlockHeight, "Directory blocks for chain: "+dchain.ChainID.String())
@@ -1170,19 +1170,20 @@ func SignDirectoryBlock() error {
 
 // Place an anchor into btc
 func placeAnchor(dbBlock *common.DirectoryBlock) error {
+	util.Trace()
 	// Only Servers can write the anchor to Bitcoin network
-	if nodeMode == SERVER_NODE && dbBlock != nil { //?? for testing
+	if nodeMode == SERVER_NODE && dbBlock != nil {
+		newhash, _ := wire.NewShaHash(dbBlock.DBHash.Bytes)
+		height := dbBlock.Chain.NextBlockHeight
+		fmt.Printf("place into anchor: dblock height=%d, hash=%s\n", height, newhash.String())
 
-		// dbInfo := common.NewDBInfoFromDBlock(dbBlock)
-
-		// FIXME
-		// TODO
-		// anchoring can't be done via this code; the source is no longer Bitcoin-compatible
-		//		saveDBMerkleRoottoBTC(dbInfo) //goroutine??
-		util.Trace("NOT IMPLEMENTED! IMPORTANT: Anchoring code 2 !!!")
-
+		//todo: need to make anchor as a go routine, independent of factomd
+		// same as blockmanager to btcd
+		_, err := anchor.SendRawTransactionToBTC(newhash.Bytes(), uint64(height))
+		if err != nil {
+			return err
+		}
 	}
-
 	return nil
 }
 
