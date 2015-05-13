@@ -16,8 +16,6 @@ import (
 	"os"
 	"sort"
 	"strconv"
-	"time"
-
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/consensus"
 	"github.com/FactomProject/FactomCode/database"
@@ -36,6 +34,7 @@ const (
 	
 	//Server public key for milestone 1
 	SERVER_PUB_KEY = "8cee85c62a9e48039d4ac294da97943c2001be1539809ea5f54721f0c5477a0a"
+	GENESIS_DIR_BLOCK_HASH = "96fc4f142d3ddcccfcef2086ad6aab415a221ccf29d7ec9cceff91c365aeff5d"
 )
 
 var (
@@ -43,7 +42,7 @@ var (
 	dclient *btcrpcclient.Client //rpc client for btcd rpc server
 
 	currentAddr btcutil.Address
-	tickers     [2]*time.Ticker
+	//tickers     [2]*time.Ticker
 	db          database.Db    // database
 	dchain      *common.DChain //Directory Block Chain
 	cchain      *common.CChain //Entry Credit Chain
@@ -168,10 +167,9 @@ func init_processor() {
 	fMemPool.init_ftmMemPool()
 
 	// init fchainid
-	barray := []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F}
+
 	fchainID = new(common.Hash)
-	fchainID.SetBytes(barray)
+	fchainID.SetBytes(common.FACTOID_CHAINID)
 
 	// init Directory Block Chain
 	initDChain()
@@ -213,67 +211,15 @@ func init_processor() {
 
 	}
 
-	// create EBlocks and FBlock every 60 seconds
-	tickers[0] = time.NewTicker(time.Second * time.Duration(directoryBlockInSeconds))
-
-	// write 10 FBlock in a batch to BTC every 10 minutes
-	tickers[1] = time.NewTicker(time.Second * time.Duration(sendToBTCinSeconds))
-
-	util.Trace("NOT IMPLEMENTED! IMPORTANT: Anchoring code 1 !!!")
-
-	/*
-		go func() {
-			for _ = range tickers[0].C {
-				fmt.Println("in tickers[0]: newEntryBlock & newFactomBlock")
-
-				eom10 := &wire.MsgInt_EOM{
-					EOM_Type: wire.END_MINUTE_10,
-				}
-
-				inCtlMsgQueue <- eom10
-
-				/*
-					// Entry Chains
-					for _, chain := range chainIDMap {
-						eblock := newEntryBlock(chain)
-						if eblock != nil {
-							dchain.AddDBEntry(eblock)
-						}
-						save(chain)
-					}
-
-					// Entry Credit Chain
-					cBlock := newEntryCreditBlock(cchain)
-					if cBlock != nil {
-						dchain.AddCBlockToDBEntry(cBlock)
-					}
-					saveCChain(cchain)
-
-					util.Trace("NOT IMPLEMENTED: Factoid Chain init was here !!!!!!!!!!!")
-
-					/*
-						// Factoid Chain
-						fBlock := newFBlock(fchain)
-						if fBlock != nil {
-							dchain.AddFBlockToDBEntry(factoid.NewDBEntryFromFBlock(fBlock))
-						}
-						saveFChain(fchain)
-					*\
-
-					// Directory Block chain
-					dbBlock := newDirectoryBlock(dchain)
-					saveDChain(dchain)
-
-					// Only Servers can write the anchor to Bitcoin network
-					if nodeMode == SERVER_NODE && dbBlock != nil {
-						dbInfo := common.NewDBInfoFromDBlock(dbBlock)
-						saveDBMerkleRoottoBTC(dbInfo)
-					}
-
-
-			}
-		}()
-	*/
+	// Validate all dir blocks
+	err :=	validateDChain(dchain)
+	if err != nil {
+		if nodeMode == SERVER_NODE {
+			panic ("Error found in validating directory blocks: " + err.Error()) 
+		} else {
+			dchain.IsValidated = false
+		}
+	}
 }
 
 func Start_Processor(ldb database.Db, inMsgQ chan wire.FtmInternalMsg, outMsgQ chan wire.FtmInternalMsg,
@@ -335,13 +281,6 @@ func Start_Processor(ldb database.Db, inMsgQ chan wire.FtmInternalMsg, outMsgQ c
 	}
 
 	util.Trace()
-
-	defer func() {
-		//		shutdown()	// was defined in factombtc.go TODO: TBD
-		tickers[0].Stop()
-		tickers[1].Stop()
-		//db.Close()
-	}()
 
 }
 
@@ -1054,7 +993,11 @@ func buildGenesisBlocks() error {
 
 	// Directory Block chain
 	dbBlock := newDirectoryBlock(dchain)
-	// Check block hash if genesis block here??
+	
+	// Check block hash if genesis block
+	if dbBlock.DBHash.String() != GENESIS_DIR_BLOCK_HASH {
+		panic ("Genesis block hash is not expected!")
+	}
 
 	saveDChain(dchain)
 
@@ -1366,15 +1309,18 @@ func validateDChain(c *common.DChain) error {
 	if err != nil {
 		return err
 	}
-
-	//validate the genesis block here??
+	//validate the genesis block
+	if prevBlkHash== nil || prevBlkHash.String() != GENESIS_DIR_BLOCK_HASH {
+		panic ("Genesis dir block is not as expected!")
+	} 
+	
 
 	for i := 1; i < len(c.Blocks); i++ {
 		if !prevBlkHash.IsSameAs(c.Blocks[i].Header.PrevBlockHash) {
 			return errors.New("Previous block hash not matching for Dir block: " + string(i))
 		}
-		if !prevMR.IsSameAs(c.Blocks[i].Header.BodyMR) { //??
-
+		if !prevMR.IsSameAs(c.Blocks[i].Header.BodyMR) {
+			//??return errors.New("Previous merkle root not matching for Dir block: " + string(i))
 		}
 		mr, dblkHash, err := validateDBlock(c, c.Blocks[i])
 		if err != nil {
@@ -1383,12 +1329,12 @@ func validateDChain(c *common.DChain) error {
 
 		prevMR = mr
 		prevBlkHash = dblkHash
-		//prevBlk = c.Blocks[i]
 	}
 
 	return nil
 }
 
+// Validate a dir block
 func validateDBlock(c *common.DChain, b *common.DirectoryBlock) (merkleRoot *common.Hash, dbHash *common.Hash, err error) {
 
 	merkleRoot, err = b.BuildBodyMR()
@@ -1403,7 +1349,11 @@ func validateDBlock(c *common.DChain, b *common.DirectoryBlock) (merkleRoot *com
 			if err != nil {
 				return nil, nil, err
 			}
-
+		case achain.ChainID.String():
+			err := validateABlockByMR(dbEntry.MerkleRoot)
+			if err != nil {
+				return nil, nil, err
+			}
 		case fchainID.String():
 			err := validateFBlockByMR(dbEntry.MerkleRoot)
 			if err != nil {
@@ -1434,6 +1384,17 @@ func validateCBlockByMR(mr *common.Hash) error {
 	cb, _ := db.FetchCBlockByHash(mr)
 
 	if cb == nil {
+		return errors.New("Entry block not found in db for merkle root: " + mr.String())
+	}
+
+	return nil
+}
+
+// Validate Admin Block by merkle root
+func validateABlockByMR(mr *common.Hash) error {
+	b, _ := db.FetchABlockByHash(mr)
+
+	if b == nil {
 		return errors.New("Entry block not found in db for merkle root: " + mr.String())
 	}
 
