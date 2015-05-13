@@ -74,72 +74,72 @@ var genesisHash = wire.ShaHash([wire.HashSize]byte{ // Make go vet happy.
 	*/
 
 	/*
-		0x2f,
-		0xfe,
-		0xd4,
-		0x84,
-		0x8a,
-		0xad,
-		0x6d,
-		0xc2,
-		0x69,
-		0x4b,
-		0x19,
-		0x84,
-		0xa3,
-		0xad,
-		0x58,
-		0xbe,
-		0x98,
-		0x0d,
-		0x0d,
-		0x1f,
-		0xc1,
-		0xca,
-		0x19,
-		0x81,
-		0x36,
-		0x73,
-		0x58,
-		0xfb,
-		0xd7,
-		0x42,
 		0x04,
-		0x32,
+		0x9c,
+		0xc1,
+		0xa5,
+		0xb8,
+		0xcf,
+		0xe0,
+		0x1b,
+		0x88,
+		0x65,
+		0x9f,
+		0x9e,
+		0xe7,
+		0x64,
+		0x1c,
+		0xaa,
+		0x69,
+		0x18,
+		0x25,
+		0x33,
+		0xde,
+		0x0b,
+		0xb8,
+		0xc9,
+		0xe6,
+		0x10,
+		0x3c,
+		0xc5,
+		0x09,
+		0x1d,
+		0x86,
+		0xc4,
 	*/
 
-	0x04,
-	0x9c,
-	0xc1,
-	0xa5,
-	0xb8,
-	0xcf,
-	0xe0,
-	0x1b,
-	0x88,
-	0x65,
-	0x9f,
-	0x9e,
+	0x4b,
 	0xe7,
-	0x64,
-	0x1c,
-	0xaa,
-	0x69,
-	0x18,
-	0x25,
-	0x33,
-	0xde,
-	0x0b,
-	0xb8,
-	0xc9,
-	0xe6,
-	0x10,
-	0x3c,
-	0xc5,
+	0x57,
+	0x0e,
+	0x8f,
+	0x70,
+	0xeb,
 	0x09,
-	0x1d,
-	0x86,
-	0xc4,
+	0x36,
+	0x40,
+	0xc8,
+	0x46,
+	0x82,
+	0x74,
+	0xba,
+	0x75,
+	0x97,
+	0x45,
+	0xa7,
+	0xaa,
+	0x2b,
+	0x7d,
+	0x25,
+	0xab,
+	0x1e,
+	0x04,
+	0x21,
+	0xb2,
+	0x59,
+	0x84,
+	0x50,
+	0x14,
 })
 
 /*
@@ -168,11 +168,11 @@ var genesisMerkleRoot = wire.ShaHash([wire.HashSize]byte{ // Make go vet happy.
 // public transaction ledger for the main network.
 var genesisBlock = wire.MsgBlock{
 	Header: wire.BlockHeader{
-	
+
 		PrevBlock:  wire.ShaHash{},    // 0000000000000000000000000000000000000000000000000000000000000000
 		MerkleRoot: genesisMerkleRoot, // 4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b
 		PrevHash3:  wire.Sha3Hash{},
-        //		Timestamp:  time.Unix(0x495fab29, 0), // 2009-01-03 18:15:05 +0000 UTC
+		//		Timestamp:  time.Unix(0x495fab29, 0), // 2009-01-03 18:15:05 +0000 UTC
 		//		Bits:      0x1d00ffff, // 486604799 [00000000ffff0000000000000000000000000000000000000000000000000000]
 		//		Nonce:     0x7c2bac1d, // 2083236893
 	},
@@ -200,7 +200,7 @@ var regTestGenesisBlock = wire.MsgBlock{
 
 		PrevBlock:  wire.ShaHash{},           // 0000000000000000000000000000000000000000000000000000000000000000
 		MerkleRoot: regTestGenesisMerkleRoot, // 4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b
-        PrevHash3:  wire.Sha3Hash{},
+		PrevHash3:  wire.Sha3Hash{},
 		//		Bits:       0x207fffff,               // 545259519 [7fffff0000000000000000000000000000000000000000000000000000000000]
 		//		Nonce:      2,
 	},
@@ -227,7 +227,7 @@ var testNet3GenesisBlock = wire.MsgBlock{
 	Header: wire.BlockHeader{
 		PrevBlock:  wire.ShaHash{},            // 0000000000000000000000000000000000000000000000000000000000000000
 		MerkleRoot: testNet3GenesisMerkleRoot, // 4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b
-        PrevHash3:  wire.Sha3Hash{},
+		PrevHash3:  wire.Sha3Hash{},
 		//		Bits:       0x1d00ffff,                // 486604799 [00000000ffff0000000000000000000000000000000000000000000000000000]
 		//		Nonce:      0x18aea41a,                // 414098458
 	},
@@ -252,9 +252,9 @@ var simNetGenesisMerkleRoot = genesisMerkleRoot
 // as the public transaction ledger for the simulation test network.
 var simNetGenesisBlock = wire.MsgBlock{
 	Header: wire.BlockHeader{
-		PrevBlock:  wire.ShaHash{},           // 0000000000000000000000000000000000000000000000000000000000000000
-		MerkleRoot: simNetGenesisMerkleRoot,  // 4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b
-        PrevHash3:  wire.Sha3Hash{},
+		PrevBlock:  wire.ShaHash{},          // 0000000000000000000000000000000000000000000000000000000000000000
+		MerkleRoot: simNetGenesisMerkleRoot, // 4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b
+		PrevHash3:  wire.Sha3Hash{},
 		//		Bits:       0x207fffff,               // 545259519 [7fffff0000000000000000000000000000000000000000000000000000000000]
 		//		Nonce:      2,
 	},

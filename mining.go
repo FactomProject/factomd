@@ -7,11 +7,11 @@ package btcd
 import (
 	"container/heap"
 	"container/list"
+	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/btcd/blockchain"
 	"github.com/FactomProject/btcd/database"
 	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/btcutil"
-	"github.com/FactomProject/FactomCode/util"
 )
 
 const (
@@ -352,7 +352,7 @@ func logSkippedDeps(tx *btcutil.Tx, deps *list.List) {
 /*****************************************
  * Time isn't handled in the coin in Factom
  * ************************************
- * 
+ *
 // minimumMedianTime returns the minimum allowed timestamp for a block building
 // on the end of the current best chain.  In particular, it is one second after
 // the median timestamp of the last several blocks per the chain consensus

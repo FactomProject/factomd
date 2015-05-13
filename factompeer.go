@@ -220,7 +220,7 @@ func (p *peer) handleGetNonDirDataMsg(msg *wire.MsgGetNonDirData) {
 			case cchain.ChainID.String():
 				err = p.pushCBlockMsg(dbEntry.MerkleRoot, c, waitChan)
 
-			case fchainID.String():
+			case wire.FChainID.String():
 				err = p.pushBlockMsg(wire.FactomHashToShaHash(dbEntry.MerkleRoot), c, waitChan)
 
 			default:
