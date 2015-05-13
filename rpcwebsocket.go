@@ -1445,7 +1445,7 @@ func handleNotifyReceived(wsc *wsClient, icmd btcjson.Cmd) (interface{}, *btcjso
 	}
 
 	for _, addrStr := range cmd.Addresses {
-		addr, err := btcutil.DecodeAddress(addrStr, activeNetParams.Params)
+		addr, err := btcutil.DecodeAddress(addrStr)
 		if err != nil {
 			e := btcjson.Error{
 				Code:    btcjson.ErrInvalidAddressOrKey.Code,
@@ -1728,7 +1728,7 @@ func handleRescan(wsc *wsClient, icmd btcjson.Cmd) (interface{}, *btcjson.Error)
 	//	var uncompressedPubkey [65]byte
 
 	for _, addrStr := range cmd.Addresses {
-		addr, err := btcutil.DecodeAddress(addrStr, activeNetParams.Params)
+		addr, err := btcutil.DecodeAddress(addrStr)
 		util.Trace(addrStr)
 		util.Trace(spew.Sdump(addr))
 

@@ -353,7 +353,7 @@ func ExtractPkScriptAddrs(pkScript []byte, chainParams *chaincfg.Params) ([]btcu
 // PayToAddrScript creates a new script to pay a transaction output to a the
 // specified address.
 func PayToAddrScript(addr btcutil.Address) ([]byte, error) {
-	util.Trace("NOT IMPLEMENTED !!!!!!!!!!!!!!!!!!!!")
+	util.Trace("NOT IMPLEMENTED -- needs to be !!!!!!!!!!!!!!!!!!!!")
 	/*
 		switch addr := addr.(type) {
 		case *btcutil.AddressPubKey:
@@ -362,6 +362,8 @@ func PayToAddrScript(addr btcutil.Address) ([]byte, error) {
 			}
 		}
 	*/
+
+	panic(errors.New("PayToAddrScript -- NOT IMPLEMENTED !!!"))
 
 	return nil, errors.New("unsupported !!!")
 }

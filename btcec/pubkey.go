@@ -9,6 +9,9 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+
+	"github.com/FactomProject/FactomCode/util"
+	"github.com/davecgh/go-spew/spew"
 )
 
 // These constants define the lengths of serialized public keys.
@@ -58,6 +61,10 @@ const (
 // ecdsa.Publickey, verifying that it is valid. It supports compressed,
 // uncompressed and hybrid signature formats.
 func ParsePubKey(pubKeyStr []byte, curve *KoblitzCurve) (key *PublicKey, err error) {
+	util.Trace("before dump")
+	util.Trace(spew.Sdump(pubKeyStr))
+	util.Trace("after dump")
+
 	pubkey := PublicKey{}
 	pubkey.Curve = curve
 
