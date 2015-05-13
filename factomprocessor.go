@@ -31,7 +31,7 @@ import (
 const (
 	//Server running mode
 	FULL_NODE   = "FULL"
-	SERVER_NODE = "SERVER"
+	SERVER_NODE = "SERVER" 
 	LIGHT_NODE  = "LIGHT"
 
 	//Server public key for milestone 1
@@ -48,17 +48,13 @@ var (
 	dchain      *common.DChain     //Directory Block Chain
 	cchain      *common.CChain     //Entry Credit Chain
 	achain      *common.AdminChain //Admin Chain
-	fchainID    *common.Hash
-
-	creditsPerChain   int32  = 10
-	creditsPerFactoid uint64 = 1000
 
 	// To be moved to ftmMemPool??
 	chainIDMap      map[string]*common.EChain // ChainIDMap with chainID string([32]byte) as key
 	eCreditMap      map[string]int32          // eCreditMap with public key string([32]byte) as key, credit balance as value
 	prePaidEntryMap map[string]int32          // Paid but unrevealed entries string(Etnry Hash) as key, Number of payments as value
 
-	chainIDMapBackup      map[string]*common.EChain //previous block bakcup - ChainIDMap with chainID string([32]byte) as key
+	chainIDMapBackup      map[string]*common.EChain //previous block backup - ChainIDMap with chainID string([32]byte) as key
 	eCreditMapBackup      map[string]int32          // backup from previous block - eCreditMap with public key string([32]byte) as key, credit balance as value
 	prePaidEntryMapBackup map[string]int32          // backup from previous block - Paid but unrevealed entries string(Etnry Hash) as key, Number of payments as value
 
@@ -71,6 +67,9 @@ var (
 	//Server Private key and Public key for milestone 1
 	serverPrivKey common.PrivateKey
 	serverPubKey  common.PublicKey
+	
+    FactoshisPerCredit  uint64     // .001 / .15 * 100000000 (assuming a Factoid is .15 cents, entry credit = .1 cents    
+
 )
 
 var (
@@ -157,6 +156,9 @@ func initEChainFromDB(chain *common.EChain) {
 }
 
 func init_processor() {
+    
+    wire.Init()
+    
 	util.Trace()
 
 	// init server private key or pub key
@@ -166,12 +168,15 @@ func init_processor() {
 	fMemPool = new(ftmMemPool)
 	fMemPool.init_ftmMemPool()
 
-	// init fchainid
+	// init wire.FChainID
 	barray := []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F}
-	fchainID = new(common.Hash)
-	fchainID.SetBytes(barray)
+		             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F}
+	wire.FChainID = new(common.Hash)
+	wire.FChainID.SetBytes(barray)
 
+    FactoshisPerCredit = 666667     // .001 / .15 * 100000000 (assuming a Factoid is .15 cents, entry credit = .1 cents    
+
+    
 	// init Directory Block Chain
 	initDChain()
 	fmt.Println("Loaded", dchain.NextBlockHeight, "Directory blocks for chain: "+dchain.ChainID.String())
@@ -443,7 +448,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 				processFromOrphanPool()
 
 				// Pass the Entry Credit Exchange Rate into the Factoid component
-				msgEom.EC_Exchange_Rate = creditsPerFactoid
+				msgEom.EC_Exchange_Rate = FactoshisPerCredit
 				plMgr.AddMyProcessListItem(msgEom, nil, wire.END_MINUTE_10)
 
 				//Notify the factoid component to start building factoid block
@@ -811,7 +816,7 @@ func processRevealChain(msg *wire.MsgRevealChain) error {
 	if !existing {
 		// the chain id should not be the same as the special chains
 		if dchain.ChainID.IsSameAs(msg.FirstEntry.ChainID) || cchain.ChainID.IsSameAs(msg.FirstEntry.ChainID) ||
-			achain.ChainID.IsSameAs(msg.FirstEntry.ChainID) || fchainID.IsSameAs(msg.FirstEntry.ChainID) {
+			achain.ChainID.IsSameAs(msg.FirstEntry.ChainID) || wire.FChainID.IsSameAs(msg.FirstEntry.ChainID) {
 			existing = true
 		}
 	}
@@ -821,7 +826,7 @@ func processRevealChain(msg *wire.MsgRevealChain) error {
 
 	// Calculate the required credits
 	binaryChain, _ := msg.FirstEntry.MarshalBinary()
-	credits := int32(binary.Size(binaryChain)/1000+1) + creditsPerChain
+	credits := int32(binary.Size(binaryChain)/1000+1) + wire.CreditsPerChain
 
 	// Remove the entry for prePaidEntryMap
 	binaryEntry, _ := msg.FirstEntry.MarshalBinary()
@@ -1029,7 +1034,7 @@ func buildGenesisBlocks() error {
 	if ok {
 		util.Trace("ok")
 		dbEntryUpdate := new(common.DBEntry)
-		dbEntryUpdate.ChainID = fchainID
+		dbEntryUpdate.ChainID = wire.FChainID
 		dbEntryUpdate.MerkleRoot = doneFBlockMsg.ShaHash.ToFactomHash()
 
 		util.Trace("before dchain")
@@ -1084,7 +1089,7 @@ func buildBlocks() error {
 	//?? to be restored: if ok && doneFBlockMsg.BlockHeight == dchain.NextBlockID {
 	if ok {
 		dbEntryUpdate := new(common.DBEntry)
-		dbEntryUpdate.ChainID = fchainID
+		dbEntryUpdate.ChainID = wire.FChainID
 		dbEntryUpdate.MerkleRoot = doneFBlockMsg.ShaHash.ToFactomHash()
 		dchain.AddFBlockMRToDBEntry(dbEntryUpdate)
 	} else {
@@ -1401,7 +1406,7 @@ func validateDBlock(c *common.DChain, b *common.DirectoryBlock) (merkleRoot *com
 				return nil, nil, err
 			}
 
-		case fchainID.String():
+		case wire.FChainID.String():
 			err := validateFBlockByMR(dbEntry.MerkleRoot)
 			if err != nil {
 				return nil, nil, err
