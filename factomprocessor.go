@@ -1173,16 +1173,13 @@ func placeAnchor(dbBlock *common.DirectoryBlock) error {
 	util.Trace()
 	// Only Servers can write the anchor to Bitcoin network
 	if nodeMode == SERVER_NODE && dbBlock != nil {
-		newhash, _ := wire.NewShaHash(dbBlock.DBHash.Bytes)
-		height := dbBlock.Chain.NextBlockHeight
-		fmt.Printf("place into anchor: dblock height=%d, hash=%s\n", height, newhash.String())
+		//newhash, _ := wire.NewShaHash(dbBlock.DBHash.Bytes)
+		//height := dbBlock.Header.BlockHeight
+		//fmt.Printf("place into anchor: dblock height=%d, hash=%s\n", height, newhash.String())
 
-		//todo: need to make anchor as a go routine, independent of factomd
+		// todo: need to make anchor as a go routine, independent of factomd
 		// same as blockmanager to btcd
-		_, err := anchor.SendRawTransactionToBTC(newhash.Bytes(), uint64(height))
-		if err != nil {
-			return err
-		}
+		go anchor.SendRawTransactionToBTC(dbBlock.DBHash.Bytes, uint64(dbBlock.Header.BlockHeight))
 	}
 	return nil
 }
