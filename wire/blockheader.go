@@ -7,33 +7,16 @@ package wire
 import (
 	"bytes"
 	"io"
-    "github.com/FactomProject/FactomCode/common"
+	"time"
+	"github.com/FactomProject/FactomCode/common"	
 )
-
-
 
 // BlockVersion is the current latest supported block version.
 const BlockVersion = 2
 
-// The MerkleRoot (32 bytes) the Previous Merkle Root (32 bytes) and the paranoid hash (32 bytes)
-const MaxBlockHeaderPayload =  (HashSize * 3)
-
-// BlockHeader defines information about a block and is used in the bitcoin
-// block (MsgBlock) and headers (MsgHeaders) messages.
-type BlockHeader struct {
-
-                              // ChainID     ShaHash  unneeded by our logic in process
-    // Hash of the previous block in the block chain.
-    MerkleRoot  ShaHash       // BodyMR elsewhere in the Factom Code for other blocks.
-                              //   This is the Merkle Root of all the transactions in the body.
-    PrevBlock   ShaHash       // Key Merkle root of previous block.
-    PrevHash3   Sha3Hash
-                              // ExchRate    uint64   provided over a chanel... part of wire format
-                              // DBHeight    uint32   provided over a chanel... part of wire format
-                              // UTXOCommit  [32]byte computed when we close the block.
-                              // TransCnt    uint64   Is only used over the wire
-                              // BodySize    uint64   Is only used over the wire.
-}
+// Version 4 bytes + Timestamp 4 bytes + Bits 4 bytes + Nonce 4 bytes +
+// PrevBlock and MerkleRoot hashes.
+const MaxBlockHeaderPayload = 16 + (HashSize * 2)
 
 var (
     // Shared constants
@@ -43,10 +26,6 @@ var (
     // BTCD State Variables
     FactoshisPerCredit uint64     
 )
-
-// blockHeaderLen is a constant that represents the number of bytes for a block
-// header.
-const blockHeaderLen = 96
 
 // Factom Constants for BTCD and Factom
 //
@@ -64,7 +43,37 @@ func Init () {
     
 }
 
+// BlockHeader defines information about a block and is used in the bitcoin
+// block (MsgBlock) and headers (MsgHeaders) messages.
+type BlockHeader struct {
+	// Version of the block.  This is not the same as the protocol version.
+	Version int32
 
+	// Hash of the previous block in the block chain.
+	PrevBlock ShaHash
+
+	// Merkle tree reference to hash of all transactions for the block.
+	MerkleRoot ShaHash
+
+	BodyMR    ShaHash
+	PrevKeyMR ShaHash
+
+	PrevHash3 Sha3Hash
+
+	// Time the block was created.  This is, unfortunately, encoded as a
+	// uint32 on the wire and therefore is limited to 2106.
+	Timestamp time.Time
+
+	// Difficulty target for the block.
+	//	Bits uint32
+
+	// Nonce used to generate the block.
+	//	Nonce uint32
+}
+
+// blockHeaderLen is a constant that represents the number of bytes for a block
+// header.
+const blockHeaderLen = 80
 
 // BlockSha computes the block identifier hash for the given block header.
 func (h *BlockHeader) BlockSha() (ShaHash, error) {
@@ -108,13 +117,18 @@ func (h *BlockHeader) Serialize(w io.Writer) error {
 // NewBlockHeader returns a new BlockHeader using the provided previous block
 // hash, merkle root hash, difficulty bits, and nonce used to generate the
 // block with defaults for the remaining fields.
-func NewBlockHeader(prevHash *ShaHash, merkleRootHash *ShaHash, prevHash3 *Sha3Hash) *BlockHeader {
+func NewBlockHeader(prevHash *ShaHash, merkleRootHash *ShaHash, bits uint32,
+	nonce uint32) *BlockHeader {
 
+	// Limit the timestamp to one second precision since the protocol
+	// doesn't support better.
 	return &BlockHeader{
+		Version:    BlockVersion,
 		PrevBlock:  *prevHash,
-        PrevHash3:  *prevHash3,
-        MerkleRoot: *merkleRootHash,
-
+		MerkleRoot: *merkleRootHash,
+		Timestamp:  time.Unix(time.Now().Unix(), 0),
+		//		Bits:       bits,
+		//		Nonce:      nonce,
 	}
 }
 
@@ -122,19 +136,14 @@ func NewBlockHeader(prevHash *ShaHash, merkleRootHash *ShaHash, prevHash3 *Sha3H
 // decoding block headers stored to disk, such as in a database, as opposed to
 // decoding from the wire.
 func readBlockHeader(r io.Reader, pver uint32, bh *BlockHeader) error {
-    
-    var chainID     ShaHash
-    var exchRate    uint64
-    var utxoCommit  [32]byte
-    var transCnt    uint64
-    var bodySize    uint64
-    
-    err := readElements(r, &chainID, &bh.MerkleRoot, &bh.PrevBlock,  &bh.PrevHash3,
-        &exchRate, &utxoCommit, &transCnt, &bodySize)
-    
-    if err != nil {
+	var sec uint32
+	//	err := readElements(r, &bh.Version, &bh.PrevBlock, &bh.MerkleRoot, &sec)
+	err := readElements(r, &bh.Version, &bh.PrevBlock, &bh.MerkleRoot, &bh.PrevHash3)
+	//		&bh.Bits, &bh.Nonce)
+	if err != nil {
 		return err
 	}
+	bh.Timestamp = time.Unix(int64(sec), 0)
 
 	return nil
 }
@@ -143,16 +152,10 @@ func readBlockHeader(r io.Reader, pver uint32, bh *BlockHeader) error {
 // encoding block headers to be stored to disk, such as in a database, as
 // opposed to encoding for the wire.
 func writeBlockHeader(w io.Writer, pver uint32, bh *BlockHeader) error {
-	
-    var utxoCommit [32]byte
-    var transCnt    uint64
-    var bodySize    uint64
-    
-    err := writeElements(w, FChainID,  &bh.MerkleRoot, &bh.PrevBlock, &bh.PrevHash3,
-                         &FactoshisPerCredit, &utxoCommit, &transCnt, &bodySize) 
-    
-
-    if err != nil {
+	//	sec := uint32(bh.Timestamp.Unix())
+	err := writeElements(w, bh.Version, &bh.PrevBlock, &bh.MerkleRoot, &bh.PrevHash3)
+	//		sec, bh.Bits, bh.Nonce)
+	if err != nil {
 		return err
 	}
 
