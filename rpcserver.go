@@ -788,7 +788,7 @@ func handleCreateRawTransaction(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan 
 		util.Trace(encodedAddr)
 
 		// Decode the provided address.
-		addr, err := btcutil.DecodeAddress(encodedAddr, activeNetParams.Params)
+		addr, err := btcutil.DecodeAddress(encodedAddr)
 
 		util.Trace(fmt.Sprintf(spew.Sdump(addr)))
 
@@ -804,8 +804,13 @@ func handleCreateRawTransaction(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan 
 		// the network encoded with the address matches the network the
 		// server is currently on.
 		switch addr.(type) {
-		case *btcutil.AddressPubKeyHash:
-		case *btcutil.AddressScriptHash:
+		/*
+			case *btcutil.AddressPubKeyHash:
+			case *btcutil.AddressScriptHash:
+		*/
+		case *btcutil.AddressPubKey:
+			util.Trace("TODO: NOT IMPLEMENTED fully")
+			panic(errors.New("MUST VERIFY: this case statement is new"))
 		default:
 			return nil, btcjson.ErrInvalidAddressOrKey
 		}
@@ -3048,7 +3053,7 @@ func handleSearchRawTransactions(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan
 	c := cmd.(*btcjson.SearchRawTransactionsCmd)
 
 	// Attempt to decode the supplied address.
-	addr, err := btcutil.DecodeAddress(c.Address, s.server.chainParams)
+	addr, err := btcutil.DecodeAddress(c.Address)
 	if err != nil {
 		return nil, btcjson.Error{
 			Code: btcjson.ErrInvalidAddressOrKey.Code,
@@ -3335,7 +3340,7 @@ func handleValidateAddress(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struc
 	c := cmd.(*btcjson.ValidateAddressCmd)
 
 	result := btcjson.ValidateAddressResult{}
-	addr, err := btcutil.DecodeAddress(c.Address, activeNetParams.Params)
+	addr, err := btcutil.DecodeAddress(c.Address)
 	if err != nil {
 		// Return the default value (false) for IsValid.
 		return result, nil
@@ -3364,23 +3369,26 @@ func handleVerifyMessage(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{
 
 	c := cmd.(*btcjson.VerifyMessageCmd)
 
-	// Decode the provided address.
-	addr, err := btcutil.DecodeAddress(c.Address, activeNetParams.Params)
-	if err != nil {
-		return nil, btcjson.Error{
-			Code: btcjson.ErrInvalidAddressOrKey.Code,
-			Message: fmt.Sprintf("%s: %v",
-				btcjson.ErrInvalidAddressOrKey.Message, err),
+	/*
+		// Decode the provided address.
+		addr, err := btcutil.DecodeAddress(c.Address, activeNetParams.Params)
+		if err != nil {
+			return nil, btcjson.Error{
+				Code: btcjson.ErrInvalidAddressOrKey.Code,
+				Message: fmt.Sprintf("%s: %v",
+					btcjson.ErrInvalidAddressOrKey.Message, err),
+			}
 		}
-	}
+	*/
 
 	// Only P2PKH addresses are valid for signing.
-	if _, ok := addr.(*btcutil.AddressPubKeyHash); !ok {
-		return nil, btcjson.Error{
-			Code:    btcjson.ErrType.Code,
-			Message: "Address is not a pay-to-pubkey-hash address",
-		}
+	//	if _, ok := addr.(*btcutil.AddressPubKeyHash); !ok {
+	// TODO: must revisit this logic
+	return nil, btcjson.Error{
+		Code:    btcjson.ErrType.Code,
+		Message: "Address is not a pay-to-pubkey-hash address",
 	}
+	//	}
 
 	// Decode base64 signature.
 	sig, err := base64.StdEncoding.DecodeString(c.Signature)

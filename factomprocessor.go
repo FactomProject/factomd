@@ -6,7 +6,6 @@
 // github.com/alexcesaro/log/golog (MIT License)
 
 package btcd
-
 import (
 	"encoding/binary"
 	"errors"
@@ -21,6 +20,7 @@ import (
 	"github.com/FactomProject/FactomCode/consensus"
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/util"
+	"github.com/FactomProject/FactomCode/factomlog"	
 	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/btcrpcclient"
 	"github.com/FactomProject/btcutil"
@@ -60,9 +60,6 @@ var (
 	chainIDMapBackup      map[string]*common.EChain //previous block backup - ChainIDMap with chainID string([32]byte) as key
 	eCreditMapBackup      map[string]int32          // backup from previous block - eCreditMap with public key string([32]byte) as key, credit balance as value
 	prePaidEntryMapBackup map[string]int32          // backup from previous block - Paid but unrevealed entries string(Etnry Hash) as key, Number of payments as value
-
-	//Diretory Block meta data map
-	dbInfoMap map[string]*common.DBInfo // dbInfoMap with dbHash string([32]byte) as key
 
 	fMemPool *ftmMemPool
 	plMgr    *consensus.ProcessListMgr
@@ -240,19 +237,6 @@ func Start_Processor(ldb database.Db, inMsgQ chan wire.FtmInternalMsg, outMsgQ c
 	doneFBlockQueue = doneFBlockQ
 
 	init_processor()
-	/* for testing??
-	if nodeMode == SERVER_NODE {
-		err := initRPCClient()
-		if err != nil {
-			log.Fatalf("cannot init rpc client: %s", err)
-		}
-
-		if err := initWallet(); err != nil {
-			log.Fatalf("cannot init wallet: %s", err)
-		}
-	}
-
-	*/
 
 	// Initialize timer for the open dblock before processing messages
 	if nodeMode == SERVER_NODE {
@@ -714,7 +698,7 @@ func processCommitChain(msg *wire.MsgCommitChain) error {
 		return errors.New("Already existing chain id:" + msg.ChainID.String())
 	}
 
-	// Precalculate the key and value pair for prePaidEntryMap
+	// Precalculate the key and value pair for 
 	key := getPrePaidChainKey(msg.EntryHash, msg.ChainID)
 
 	// Update the credit balance in memory
@@ -989,13 +973,13 @@ func buildGenesisBlocks() error {
 	cBlock := newEntryCreditBlock(cchain)
 	fmt.Printf("buildGenesisBlocks: cBlock=%s\n", spew.Sdump(cBlock))
 	dchain.AddCBlockToDBEntry(cBlock)
-	saveCChain(cchain)
+	exportCChain(cchain)
 
 	// Admin chain
 	aBlock := newAdminBlock(achain)
 	fmt.Printf("buildGenesisBlocks: aBlock=%s\n", spew.Sdump(aBlock))
 	dchain.AddABlockToDBEntry(aBlock)
-	saveAChain(achain)
+	exportAChain(achain)
 
 	// Directory Block chain
 	dbBlock := newDirectoryBlock(dchain)
@@ -1005,7 +989,7 @@ func buildGenesisBlocks() error {
 		panic ("Genesis block hash is not expected!")
 	}
 
-	saveDChain(dchain)
+	exportDChain(dchain)
 
 	// place an anchor into btc
 	placeAnchor(dbBlock)
@@ -1044,13 +1028,13 @@ func buildBlocks() error {
 	// Entry Credit Chain
 	cBlock := newEntryCreditBlock(cchain)
 	dchain.AddCBlockToDBEntry(cBlock)
-	saveCChain(cchain)
+	exportCChain(cchain)
 
 	// Admin chain
 	aBlock := newAdminBlock(achain)
 	//fmt.Printf("buildGenesisBlocks: aBlock=%s\n", spew.Sdump(aBlock))
 	dchain.AddABlockToDBEntry(aBlock)
-	saveAChain(achain)
+	exportAChain(achain)
 
 	// sort the echains by chain id
 	var keys []string
@@ -1065,7 +1049,7 @@ func buildBlocks() error {
 		if eblock != nil {
 			dchain.AddEBlockToDBEntry(eblock)
 		}
-		saveEChain(chain)
+		exportEChain(chain)
 	}
 
 	// Directory Block chain
@@ -1078,7 +1062,7 @@ func buildBlocks() error {
 	hash, _ := wire.NewShaHash(commonHash.Bytes)
 	outMsgQueue <- (&wire.MsgInt_DirBlock{hash})
 
-	saveDChain(dchain)
+	exportDChain(dchain)
 
 	// re-initialize the process lit manager
 	initProcessListMgr()
@@ -1326,11 +1310,13 @@ func validateDChain(c *common.DChain) error {
 		}
 		mr, dblkHash, err := validateDBlock(c, c.Blocks[i])
 		if err != nil {
+			c.Blocks[i].IsValidated = false
 			return err
 		}
 
 		prevMR = mr
 		prevBlkHash = dblkHash
+		c.Blocks[i].IsValidated = true		
 	}
 
 	return nil
@@ -1426,8 +1412,8 @@ func validateEBlockByMR(cid *common.Hash, mr *common.Hash) error {
 	return nil
 }
 
-func saveDChain(chain *common.DChain) {
-	if len(chain.Blocks) == 0 {
+func exportDChain(chain *common.DChain) {
+	if len(chain.Blocks) == 0 || procLog.Level() < factomlog.Info {
 		//log.Println("no blocks to save for chain: " + string (*chain.ChainID))
 		return
 	}
@@ -1465,7 +1451,10 @@ func saveDChain(chain *common.DChain) {
 	}
 }
 
-func saveEChain(chain *common.EChain) {
+func exportEChain(chain *common.EChain) {
+	if procLog.Level() < factomlog.Info {
+		return
+	}
 
 	eBlocks, _ := db.FetchAllEBlocksByChain(chain.ChainID)
 	sort.Sort(util.ByEBlockIDAccending(*eBlocks))
@@ -1494,8 +1483,10 @@ func saveEChain(chain *common.EChain) {
 	}
 }
 
-func saveCChain(chain *common.CChain) {
-
+func exportCChain(chain *common.CChain) {
+	if procLog.Level() < factomlog.Info {
+		return
+	}
 	// get all cBlocks from db
 	cBlocks, _ := db.FetchAllCBlocks()
 	sort.Sort(util.ByCBlockIDAccending(cBlocks))
@@ -1523,8 +1514,10 @@ func saveCChain(chain *common.CChain) {
 	}
 }
 
-func saveAChain(chain *common.AdminChain) {
-
+func exportAChain(chain *common.AdminChain) {
+	if procLog.Level() < factomlog.Info {
+		return
+	}
 	// get all aBlocks from db
 	aBlocks, _ := db.FetchAllABlocks()
 	sort.Sort(util.ByABlockIDAccending(aBlocks))
@@ -1554,9 +1547,6 @@ func saveAChain(chain *common.AdminChain) {
 
 func initDChain() {
 	dchain = new(common.DChain)
-
-	//Initialize dbInfoMap
-	dbInfoMap = make(map[string]*common.DBInfo)
 
 	//Initialize the Directory Block Chain ID
 	dchain.ChainID = new(common.Hash)
@@ -1592,14 +1582,12 @@ func initDChain() {
 	if len(dchain.Blocks) == 0 {
 		dchain.NextBlockHeight = 0
 		dchain.NextBlock, _ = common.CreateDBlock(dchain, nil, 10)
-		//buildGenesisBlocks() // empty genesis block??
 	} else {
 		dchain.NextBlockHeight = uint32(len(dchain.Blocks))
 		dchain.NextBlock, _ = common.CreateDBlock(dchain, dchain.Blocks[len(dchain.Blocks)-1], 10)
 	}
 
-	// only for debug??
-	saveDChain(dchain)
+	exportDChain(dchain)
 
 	//Double check the sealed flag
 	if dchain.NextBlock.IsSealed == true {
@@ -1655,13 +1643,12 @@ func initCChain() {
 	// create a backup copy before processing entries
 	copyCreditMap(eCreditMap, eCreditMapBackup)
 
-	//ONly for debug??
-	saveCChain(cchain)
+	exportCChain(cchain)
 
-	// ONly for debug??
+	// ONly for debugging
 	//printCChain()
-	printCreditMap()
-	printPaidEntryMap()
+	//printCreditMap()
+	//printPaidEntryMap()
 
 }
 
@@ -1696,28 +1683,13 @@ func initAChain() {
 		achain.NextBlock, _ = common.CreateAdminBlock(achain, &aBlocks[achain.NextBlockHeight-1], 10)
 	}
 
-	//ONly for debug??
-	saveAChain(achain)
+	exportAChain(achain)
 
 }
 
 func initEChains() {
 
 	chainIDMap = make(map[string]*common.EChain)
-
-	/******************************
-	 *
-	 * TODO:  Make our system into a lazy evaluation system.  DON'T assume
-	 *        data is in memory, or even in the database!  We may have to
-	 *        pull from the network!
-	 *
-	 * This should not be.  Any time we do not have a chain that we need,
-	 * we can pull it by its chainID from the database.  If it does not
-	 * exist, then it has not been created yet.
-	 *
-	 * I see no reason to pull all chains into memory by default.
-	 *
-	 ******************************/
 
 	chains, err := db.FetchAllChains()
 
@@ -1728,8 +1700,7 @@ func initEChains() {
 	for _, chain := range chains {
 		var newChain = chain
 		chainIDMap[newChain.ChainID.String()] = &newChain
-		//ONly for debug??
-		saveEChain(&chain)
+		exportEChain(&chain)
 	}
 
 }
