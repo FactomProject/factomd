@@ -26,8 +26,7 @@ func (msg *MsgCommitEntry) BtcEncode(w io.Writer, pver uint32) error {
 		return err
 	}
 
-	err = writeVarBytes(w, pver, bytes)
-	if err != nil {
+	if err := writeVarBytes(w, pver, bytes); err != nil {
 		return err
 	}
 
