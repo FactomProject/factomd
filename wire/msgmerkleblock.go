@@ -20,8 +20,7 @@ const maxFlagsPerMerkleBlock = maxTxPerBlock / 8
 //
 // This message was not added until protocol version BIP0037Version.
 type MsgMerkleBlock struct {
-	Header       BlockHeader
-	Transactions uint32
+    Header       FBlockHeader
 	Hashes       []*ShaHash
 	Flags        []byte
 }
@@ -51,25 +50,27 @@ func (msg *MsgMerkleBlock) BtcDecode(r io.Reader, pver uint32) error {
 	if err != nil {
 		return err
 	}
-
-	err = readElement(r, &msg.Transactions)
-	if err != nil {
-		return err
-	}
-
-	// Read num block locator hashes and limit to max.
-	count, err := readVarInt(r, pver)
-	if err != nil {
-		return err
-	}
-	if count > maxTxPerBlock {
+    
+    // Read the transaction count.
+	err = readElement(r, &msg.Header.TransCnt)
+    if err != nil {
+        return err
+    }
+    
+    // Read num block locator hashes and limit to max.
+    msg.Header.TransCnt, err = readVarInt(r, pver)   
+    if err != nil {
+        return err
+    }
+    
+	if msg.Header.TransCnt > maxTxPerBlock {
 		str := fmt.Sprintf("too many transaction hashes for message "+
-			"[count %v, max %v]", count, maxTxPerBlock)
+        "[count %v, max %v]", msg.Header.TransCnt, maxTxPerBlock)
 		return messageError("MsgMerkleBlock.BtcDecode", str)
 	}
 
-	msg.Hashes = make([]*ShaHash, 0, count)
-	for i := uint64(0); i < count; i++ {
+	msg.Hashes = make([]*ShaHash, 0, msg.Header.TransCnt)
+	for i := uint64(0); i < msg.Header.TransCnt; i++ {
 		var sha ShaHash
 		err := readElement(r, &sha)
 		if err != nil {
@@ -109,13 +110,8 @@ func (msg *MsgMerkleBlock) BtcEncode(w io.Writer, pver uint32) error {
 			"max %v]", numFlagBytes, maxFlagsPerMerkleBlock)
 		return messageError("MsgMerkleBlock.BtcDecode", str)
 	}
-
+	
 	err := writeBlockHeader(w, pver, &msg.Header)
-	if err != nil {
-		return err
-	}
-
-	err = writeElement(w, msg.Transactions)
 	if err != nil {
 		return err
 	}
@@ -124,6 +120,7 @@ func (msg *MsgMerkleBlock) BtcEncode(w io.Writer, pver uint32) error {
 	if err != nil {
 		return err
 	}
+	
 	for _, hash := range msg.Hashes {
 		err = writeElement(w, hash)
 		if err != nil {
@@ -153,10 +150,9 @@ func (msg *MsgMerkleBlock) MaxPayloadLength(pver uint32) uint32 {
 
 // NewMsgMerkleBlock returns a new bitcoin merkleblock message that conforms to
 // the Message interface.  See MsgMerkleBlock for details.
-func NewMsgMerkleBlock(bh *BlockHeader) *MsgMerkleBlock {
+func NewMsgMerkleBlock(bh *FBlockHeader) *MsgMerkleBlock {
 	return &MsgMerkleBlock{
 		Header:       *bh,
-		Transactions: 0,
 		Hashes:       make([]*ShaHash, 0),
 		Flags:        make([]byte, 0),
 	}

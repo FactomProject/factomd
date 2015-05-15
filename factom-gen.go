@@ -404,7 +404,7 @@ func factom_NewBlockTemplate(mempool *txMemPool, payToAddress wire.RCDHash, glob
 
 	merkles := blockchain.BuildMerkleTreeStore(blockTxns)
 	var msgBlock wire.MsgBlock
-	msgBlock.Header = wire.BlockHeader{
+	msgBlock.Header = wire.FBlockHeader{
 		PrevBlock:  *prevHash,
 		MerkleRoot: *merkles[len(merkles)-1],
 		// PrevHash3:  <- Put the SHA3 here!

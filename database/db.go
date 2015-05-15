@@ -57,7 +57,7 @@ type Db interface {
 
 	// FetchBlockHeaderBySha returns a wire.BlockHeader for the given
 	// sha.  The implementation may cache the underlying data if desired.
-	FetchBlockHeaderBySha(sha *wire.ShaHash) (bh *wire.BlockHeader, err error)
+	FetchBlockHeaderBySha(sha *wire.ShaHash) (bh *wire.FBlockHeader, err error)
 
 	// FetchBlockShaByHeight returns a block hash based on its height in the
 	// block chain.

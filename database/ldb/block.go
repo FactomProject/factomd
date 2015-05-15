@@ -49,7 +49,7 @@ func (db *LevelDb) FetchBlockHeightBySha(sha *wire.ShaHash) (int64, error) {
 }
 
 // FetchBlockHeaderBySha - return a ShaHash
-func (db *LevelDb) FetchBlockHeaderBySha(sha *wire.ShaHash) (bh *wire.BlockHeader, err error) {
+func (db *LevelDb) FetchBlockHeaderBySha(sha *wire.ShaHash) (bh *wire.FBlockHeader, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -61,7 +61,7 @@ func (db *LevelDb) FetchBlockHeaderBySha(sha *wire.ShaHash) (bh *wire.BlockHeade
 
 	// Only deserialize the header portion and ensure the transaction count
 	// is zero since this is a standalone header.
-	var blockHeader wire.BlockHeader
+	var blockHeader wire.FBlockHeader
 	err = blockHeader.Deserialize(bytes.NewReader(buf))
 	if err != nil {
 		return nil, err
