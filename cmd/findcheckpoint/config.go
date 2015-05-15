@@ -25,7 +25,7 @@ const (
 )
 
 var (
-	btcdHomeDir     = btcutil.AppDataDir("fct", false)
+	btcdHomeDir     = btcutil.AppDataDir("factom", false)
 	defaultDataDir  = filepath.Join(btcdHomeDir, "data")
 	knownDbTypes    = database.SupportedDBs()
 	activeNetParams = &chaincfg.MainNetParams
