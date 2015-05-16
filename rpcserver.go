@@ -59,7 +59,7 @@ const (
 	// by length of the message in bits encoded as a big-endian uint64
 	// (8 bytes).  Thus, the resulting length is a multiple of the sha256
 	// block size (64 bytes).
-	getworkDataLen = (1 + ((wire.MaxBlockHeaderPayload + 8) /
+	getworkDataLen = (1 + ((wire.BlockHeaderLen + 8) /
 		fastsha256.BlockSize)) * fastsha256.BlockSize
 
 	// hash1Len is the length of the hash1 field of the getwork RPC.  It

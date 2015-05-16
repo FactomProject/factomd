@@ -79,7 +79,7 @@ type blockNode struct {
 // completely disconnected from the chain and the workSum value is just the work
 // for the passed block.  The work sum is updated accordingly when the node is
 // inserted into a chain.
-func newBlockNode(blockHeader *wire.BlockHeader, blockSha *wire.ShaHash, height int64) *blockNode {
+func newBlockNode(blockHeader *wire.FBlockHeader, blockSha *wire.ShaHash, height int64) *blockNode {
 	//	util.Trace()
 
 	// Make a copy of the hash so the node doesn't keep a reference to part

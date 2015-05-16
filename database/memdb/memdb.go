@@ -263,7 +263,7 @@ func (db *MemDb) FetchBlockHeightBySha(sha *wire.ShaHash) (int64, error) {
 //
 // This implementation does not use any additional cache since the entire
 // database is already in memory.
-func (db *MemDb) FetchBlockHeaderBySha(sha *wire.ShaHash) (*wire.BlockHeader, error) {
+func (db *MemDb) FetchBlockHeaderBySha(sha *wire.ShaHash) (*wire.FBlockHeader, error) {
 	db.Lock()
 	defer db.Unlock()
 
