@@ -45,7 +45,6 @@ const (
 	CmdFilterAdd   = "filteradd"
 	CmdFilterClear = "filterclear"
 	CmdFilterLoad  = "filterload"
-	CmdMerkleBlock = "merkleblock"
 	CmdReject      = "reject"
 
 	// Factom additions:
@@ -145,9 +144,6 @@ func makeEmptyMessage(command string) (Message, error) {
 
 	case CmdFilterLoad:
 		msg = &MsgFilterLoad{}
-
-	case CmdMerkleBlock:
-		msg = &MsgMerkleBlock{}
 
 	case CmdReject:
 		msg = &MsgReject{}

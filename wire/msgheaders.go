@@ -19,7 +19,7 @@ const MaxBlockHeadersPerMsg = 2000
 // per message is currently 2000.  See MsgGetHeaders for details on requesting
 // the headers.
 type MsgHeaders struct {
-    Headers []*FBlockHeader
+	Headers []*FBlockHeader
 }
 
 // AddBlockHeader adds a new block header to the message.
@@ -51,13 +51,18 @@ func (msg *MsgHeaders) BtcDecode(r io.Reader, pver uint32) error {
 
 	msg.Headers = make([]*FBlockHeader, 0, count)
 	for i := uint64(0); i < count; i++ {
-        bh := FBlockHeader{}
+		bh := FBlockHeader{}
 		err := readBlockHeader(r, pver, &bh)
 		if err != nil {
 			return err
 		}
 
-		txCount := bh.TransCnt
+		//		txCount := bh.TransCnt
+
+		txCount, err := readVarInt(r, pver)
+		if err != nil {
+			return err
+		}
 
 		// Ensure the transaction count is zero for headers.
 		if txCount > 0 {
@@ -118,7 +123,7 @@ func (msg *MsgHeaders) Command() string {
 func (msg *MsgHeaders) MaxPayloadLength(pver uint32) uint32 {
 	// Num headers (varInt) + max allowed headers (header length + 1 byte
 	// for the number of transactions which is always 0).
-    return MaxVarIntPayload + ((BlockHeaderLen + 1) *
+	return MaxVarIntPayload + ((BlockHeaderLen + 1) *
 		MaxBlockHeadersPerMsg)
 }
 

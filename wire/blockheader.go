@@ -6,55 +6,56 @@ package wire
 
 import (
 	"bytes"
+	"fmt"
+	"github.com/FactomProject/FactomCode/common"
 	"io"
-	"github.com/FactomProject/FactomCode/common"	
-    "fmt"
 )
 
 var (
-    // Shared constants
-    FChainID          *common.Hash
-    CreditsPerChain    int32    
-    
-    // BTCD State Variables
-    FactoshisPerCredit uint64     
+	// Shared constants
+	FChainID        *common.Hash
+	CreditsPerChain int32
+
+	// BTCD State Variables
+	FactoshisPerCredit uint64
 )
 
 // Factom Constants for BTCD and Factom
 //
-func Init () {
-    barray := []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F}
-    FChainID = new(common.Hash)
-    FChainID.SetBytes(barray)
-    
-    CreditsPerChain = 10            // Entry Credits to create a chain
-    
-    // Shouldn't set this, but we are for now.
-    FactoshisPerCredit = 666667     // .001 / .15 * 100000000 (assuming a Factoid is .15 cents, entry credit = .1 cents    
+func Init() {
+	barray := []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F}
+	FChainID = new(common.Hash)
+	FChainID.SetBytes(barray)
 
-    
+	CreditsPerChain = 10 // Entry Credits to create a chain
+
+	// Shouldn't set this, but we are for now.
+	FactoshisPerCredit = 666667 // .001 / .15 * 100000000 (assuming a Factoid is .15 cents, entry credit = .1 cents
+
 }
 
 // FBlockHeader defines information about a block and is used in the bitcoin
 // block (MsgBlock) and headers (MsgHeaders) messages.
 type FBlockHeader struct {
+	ChainID    ShaHash  // ChainID.  But since this is a constant, we need not actually use space to store it.
+	MerkleRoot ShaHash  // Merkle root of the Factoid transactions which accompany this block.
+	PrevBlock  ShaHash  // Key Merkle root of previous block.
+	PrevHash3  Sha3Hash // Sha3 of the previous Factoid Block
+	ExchRate   uint64   // Factoshis per Entry Credit
+	DBHeight   uint32   // Directory Block height
+	UTXOCommit ShaHash  // This field will hold a Merkle root of an array containing all unspent transactions.
 
-    ChainID    ShaHash      // ChainID.  But since this is a constant, we need not actually use space to store it.
-	MerkleRoot ShaHash      // Merkle root of the Factoid transactions which accompany this block.  
-	PrevBlock  ShaHash      // Key Merkle root of previous block.
-	PrevHash3  Sha3Hash     // Sha3 of the previous Factoid Block
-    ExchRate   uint64       // Factoshis per Entry Credit
-    DBHeight   uint32       // Directory Block height
-	UTXOCommit ShaHash      // This field will hold a Merkle root of an array containing all unspent transactions.
-	TransCnt   uint64       // Count of transactions in this block
-	BodySize   uint64       // Bytes in the body of this block.
+	// transaction count is part of serialization logic, does not belong here
+	//	TransCnt   uint64       // Count of transactions in this block
 
+	BodySize uint64 // Bytes in the body of this block.
 }
 
 // FBlockHeaderLen is a constant that represents the number of bytes for a block
 // header.
-const BlockHeaderLen = 28 + 5*HashSize
+// const BlockHeaderLen = 28 + 5*HashSize
+const BlockHeaderLen = 20 + 5*HashSize
 
 // BlockSha computes the block identifier hash for the given block header.
 func (h *FBlockHeader) BlockSha() (ShaHash, error) {
@@ -67,8 +68,8 @@ func (h *FBlockHeader) BlockSha() (ShaHash, error) {
 	var buf bytes.Buffer
 	var sha ShaHash
 	_ = writeBlockHeader(&buf, 0, h)
-    fmt.Println("Len: ", len(buf.Bytes())," ", BlockHeaderLen)
-    _ = sha.SetBytes(DoubleSha256(buf.Bytes()[0:BlockHeaderLen]))
+	fmt.Println("Len: ", len(buf.Bytes()), " ", BlockHeaderLen)
+	_ = sha.SetBytes(DoubleSha256(buf.Bytes()[0:BlockHeaderLen]))
 
 	// Even though this function can't currently fail, it still returns
 	// a potential error to help future proof the API should a failure
@@ -109,11 +110,11 @@ func NewBlockHeader(prevHash *ShaHash, merkleRootHash *ShaHash) *FBlockHeader {
 // decoding block headers stored to disk, such as in a database, as opposed to
 // decoding from the wire.
 func readBlockHeader(r io.Reader, pver uint32, bh *FBlockHeader) error {
-	
-	err := readElements(r, &bh.ChainID,    &bh.MerkleRoot, &bh.PrevBlock,  &bh.PrevHash3,  &bh.ExchRate, 
-                           &bh.DBHeight,   &bh.UTXOCommit, &bh.TransCnt,  &bh.BodySize )
-	
-        if err != nil {
+
+	err := readElements(r, &bh.ChainID, &bh.MerkleRoot, &bh.PrevBlock, &bh.PrevHash3, &bh.ExchRate,
+		&bh.DBHeight, &bh.UTXOCommit, &bh.BodySize)
+
+	if err != nil {
 		return err
 	}
 
@@ -124,11 +125,11 @@ func readBlockHeader(r io.Reader, pver uint32, bh *FBlockHeader) error {
 // encoding block headers to be stored to disk, such as in a database, as
 // opposed to encoding for the wire.
 func writeBlockHeader(w io.Writer, pver uint32, bh *FBlockHeader) error {
-        copy(bh.ChainID[:], FChainID.Bytes)
-        err := writeElements(w,  &bh.ChainID,   &bh.MerkleRoot, &bh.PrevBlock,  &bh.PrevHash3,  bh.ExchRate, 
-                                 bh.DBHeight,   &bh.UTXOCommit,  bh.TransCnt,   bh.BodySize )
-        
-        if err != nil {
+	copy(bh.ChainID[:], FChainID.Bytes)
+	err := writeElements(w, &bh.ChainID, &bh.MerkleRoot, &bh.PrevBlock, &bh.PrevHash3, bh.ExchRate,
+		bh.DBHeight, &bh.UTXOCommit, bh.BodySize)
+
+	if err != nil {
 		return err
 	}
 
