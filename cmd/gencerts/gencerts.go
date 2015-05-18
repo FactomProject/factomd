@@ -27,7 +27,7 @@ type config struct {
 func main() {
 	cfg := config{
 		Years:        10,
-		Organization: "gencerts",
+		Organization: "fctgencerts",
 	}
 	parser := flags.NewParser(&cfg, flags.Default)
 	_, err := parser.Parse()
@@ -81,7 +81,7 @@ func main() {
 func cleanAndExpandPath(path string) string {
 	// Expand initial ~ to OS specific home directory.
 	if strings.HasPrefix(path, "~") {
-		appHomeDir := btcutil.AppDataDir("gencerts", false)
+		appHomeDir := btcutil.AppDataDir("fctgencerts", false)
 		homeDir := filepath.Dir(appHomeDir)
 		path = strings.Replace(path, "~", homeDir, 1)
 	}

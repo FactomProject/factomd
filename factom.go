@@ -282,6 +282,10 @@ func (b *blockManager) factomChecks() {
 		panic(100)
 	}
 
+	if cfg.TestNet3 {
+		panic(errors.New("TestNet mode is NOT SUPPORTED (remove the option from the command line or from the .conf file)!"))
+	}
+
 	util.Trace()
 }
 

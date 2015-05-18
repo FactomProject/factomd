@@ -6,6 +6,7 @@
 // github.com/alexcesaro/log/golog (MIT License)
 
 package btcd
+
 import (
 	"encoding/binary"
 	"errors"
@@ -15,12 +16,12 @@ import (
 	"os"
 	"sort"
 	"strconv"
-//	"github.com/FactomProject/FactomCode/anchor"
+	//	"github.com/FactomProject/FactomCode/anchor"
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/consensus"
 	"github.com/FactomProject/FactomCode/database"
+	"github.com/FactomProject/FactomCode/factomlog"
 	"github.com/FactomProject/FactomCode/util"
-	"github.com/FactomProject/FactomCode/factomlog"	
 	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/btcrpcclient"
 	"github.com/FactomProject/btcutil"
@@ -35,7 +36,8 @@ const (
 
 	//Server public key for milestone 1
 	SERVER_PUB_KEY = "8cee85c62a9e48039d4ac294da97943c2001be1539809ea5f54721f0c5477a0a"
-	GENESIS_DIR_BLOCK_HASH = "9ef43de37abe5d9b2e985a52e65930662cb3c76f5fb0f0c5b91bf3a01d517f1b"
+	//	GENESIS_DIR_BLOCK_HASH = "9ef43de37abe5d9b2e985a52e65930662cb3c76f5fb0f0c5b91bf3a01d517f1b"
+	GENESIS_DIR_BLOCK_HASH = "43f308adb91984ce340f626e39c3707db31343eff0563a4dfe5dd8d31ed95488"
 )
 
 var (
@@ -43,10 +45,10 @@ var (
 	dclient *btcrpcclient.Client //rpc client for btcd rpc server
 
 	currentAddr btcutil.Address
-	db          database.Db    // database
-	dchain      *common.DChain //Directory Block Chain
-	cchain      *common.CChain //Entry Credit Chain
-	achain      *common.AdminChain //Admin Chain	
+	db          database.Db        // database
+	dchain      *common.DChain     //Directory Block Chain
+	cchain      *common.CChain     //Entry Credit Chain
+	achain      *common.AdminChain //Admin Chain
 	fchainID    *common.Hash
 
 	creditsPerChain   int32  = 10
@@ -215,10 +217,10 @@ func init_processor() {
 	}
 
 	// Validate all dir blocks
-	err :=	validateDChain(dchain)
+	err := validateDChain(dchain)
 	if err != nil {
 		if nodeMode == SERVER_NODE {
-			panic ("Error found in validating directory blocks: " + err.Error()) 
+			panic("Error found in validating directory blocks: " + err.Error())
 		} else {
 			dchain.IsValidated = false
 		}
@@ -698,7 +700,7 @@ func processCommitChain(msg *wire.MsgCommitChain) error {
 		return errors.New("Already existing chain id:" + msg.ChainID.String())
 	}
 
-	// Precalculate the key and value pair for 
+	// Precalculate the key and value pair for
 	key := getPrePaidChainKey(msg.EntryHash, msg.ChainID)
 
 	// Update the credit balance in memory
@@ -983,12 +985,10 @@ func buildGenesisBlocks() error {
 
 	// Directory Block chain
 	dbBlock := newDirectoryBlock(dchain)
-	
+
 	// Check block hash if genesis block
 	if dbBlock.DBHash.String() != GENESIS_DIR_BLOCK_HASH {
-		panic ("Genesis block hash is not expected:" + dbBlock.DBHash.String())
-	} else {
-		fmt.Println ("Genesis block created: " + dbBlock.DBHash.String())
+		panic("Genesis block hash is not expected:" + dbBlock.DBHash.String())
 	}
 
 	exportDChain(dchain)
@@ -1304,7 +1304,6 @@ func validateDChain(c *common.DChain) error {
 	if prevBlkHash== nil || prevBlkHash.String() != GENESIS_DIR_BLOCK_HASH {
 		panic ("Genesis dir block is not as expected: " + prevBlkHash.String())
 	} 
-	
 
 	for i := 1; i < len(c.Blocks); i++ {
 		if !prevBlkHash.IsSameAs(c.Blocks[i].Header.PrevBlockHash) {
@@ -1321,7 +1320,7 @@ func validateDChain(c *common.DChain) error {
 
 		prevMR = mr
 		prevBlkHash = dblkHash
-		c.Blocks[i].IsValidated = true		
+		c.Blocks[i].IsValidated = true
 	}
 
 	return nil

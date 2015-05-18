@@ -26,11 +26,11 @@ import (
 )
 
 const (
-	defaultConfigFilename    = "btcd.conf"
+	defaultConfigFilename    = "factoid.conf"
 	defaultDataDirname       = "data"
 	defaultLogLevel          = "info"
 	defaultLogDirname        = "logs"
-	defaultLogFilename       = "btcd.log"
+	defaultLogFilename       = "factom-d.log"
 	defaultMaxPeers          = 125
 	defaultBanDuration       = time.Hour * 24
 	defaultMaxRPCClients     = 10
@@ -48,7 +48,7 @@ const (
 )
 
 var (
-	btcdHomeDir        = btcutil.AppDataDir("btcd", false)
+	btcdHomeDir        = btcutil.AppDataDir("factom", false)
 	defaultConfigFile  = filepath.Join(btcdHomeDir, defaultConfigFilename)
 	defaultDataDir     = filepath.Join(btcdHomeDir, defaultDataDirname)
 	knownDbTypes       = database.SupportedDBs()
@@ -415,7 +415,8 @@ func loadConfig() (*config, []string, error) {
 	// while we're at it
 	if cfg.TestNet3 {
 		numNets++
-		activeNetParams = &testNet3Params
+		//		activeNetParams = &testNet3Params
+		activeNetParams = &mainNetParams
 	}
 	if cfg.RegressionTest {
 		numNets++
