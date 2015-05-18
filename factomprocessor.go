@@ -515,13 +515,13 @@ func processCBlock(msg *wire.MsgCBlock) error {
 func processEBlock(msg *wire.MsgEBlock) error {
 	util.Trace()
 	if msg.EBlk.Header.DBHeight >= dchain.NextBlockHeight || msg.EBlk.Header.DBHeight < 0 {
-		return errors.New("MsgEBlock has an invalid DBHeight:" + string(msg.EBlk.Header.DBHeight))
+		return errors.New("MsgEBlock has an invalid DBHeight:" + strconv.Itoa(int(msg.EBlk.Header.DBHeight)))
 	}
 
 	dblock := dchain.Blocks[msg.EBlk.Header.DBHeight]
 
 	if dblock == nil {
-		return errors.New("MsgEBlock has an invalid DBHeight:" + string(msg.EBlk.Header.DBHeight))
+		return errors.New("MsgEBlock has an invalid DBHeight:" + strconv.Itoa(int(msg.EBlk.Header.DBHeight)))
 	}
 
 	msg.EBlk.BuildMerkleRoot()
@@ -535,7 +535,7 @@ func processEBlock(msg *wire.MsgEBlock) error {
 	}
 
 	if !validEblock {
-		return errors.New("Invalid MsgEBlock with height:" + string(msg.EBlk.Header.EBHeight))
+		return errors.New("Invalid MsgEBlock with height:" + strconv.Itoa(int(msg.EBlk.Header.EBHeight)))
 	}
 
 	// create a chain in db if it's not existing
@@ -987,6 +987,8 @@ func buildGenesisBlocks() error {
 	// Check block hash if genesis block
 	if dbBlock.DBHash.String() != GENESIS_DIR_BLOCK_HASH {
 		panic ("Genesis block hash is not expected:" + dbBlock.DBHash.String())
+	} else {
+		fmt.Println ("Genesis block created: " + dbBlock.DBHash.String())
 	}
 
 	exportDChain(dchain)
@@ -1267,6 +1269,8 @@ func newDirectoryBlock(chain *common.DChain) *common.DirectoryBlock {
 	chain.BlockMutex.Unlock()
 
 	block.DBHash, _ = common.CreateHash(block)
+	block.BuildKeyMerkleRoot()
+	
 	//Store the block in db
 	db.ProcessDBlockBatch(block)
 
@@ -1287,26 +1291,27 @@ func GetEntryCreditBalance(pubKey *common.Hash) (int32, error) {
 func validateDChain(c *common.DChain) error {
 
 	if uint32(len(c.Blocks)) != c.NextBlockHeight {
-		return errors.New("Dir chain doesn't have an expected Next Block ID: " + string(c.NextBlockHeight))
+		return errors.New("Dir chain doesn't have an expected Next Block ID: " + strconv.Itoa(int(c.NextBlockHeight)))
 	}
 
 	//prevBlk := c.Blocks[0]
 	prevMR, prevBlkHash, err := validateDBlock(c, c.Blocks[0])
 	if err != nil {
 		return err
-	}
+	} 
+	
 	//validate the genesis block
 	if prevBlkHash== nil || prevBlkHash.String() != GENESIS_DIR_BLOCK_HASH {
-		panic ("Genesis dir block is not as expected!")
+		panic ("Genesis dir block is not as expected: " + prevBlkHash.String())
 	} 
 	
 
 	for i := 1; i < len(c.Blocks); i++ {
 		if !prevBlkHash.IsSameAs(c.Blocks[i].Header.PrevBlockHash) {
-			return errors.New("Previous block hash not matching for Dir block: " + string(i))
+			return errors.New("Previous block hash not matching for Dir block: " + strconv.Itoa(i))
 		}
-		if !prevMR.IsSameAs(c.Blocks[i].Header.BodyMR) {
-			//??return errors.New("Previous merkle root not matching for Dir block: " + string(i))
+		if !prevMR.IsSameAs(c.Blocks[i].Header.PrevKeyMR) {
+			return errors.New("Previous merkle root not matching for Dir block: " + strconv.Itoa(i))
 		}
 		mr, dblkHash, err := validateDBlock(c, c.Blocks[i])
 		if err != nil {
@@ -1325,9 +1330,13 @@ func validateDChain(c *common.DChain) error {
 // Validate a dir block
 func validateDBlock(c *common.DChain, b *common.DirectoryBlock) (merkleRoot *common.Hash, dbHash *common.Hash, err error) {
 
-	merkleRoot, err = b.BuildBodyMR()
+	bodyMR, err := b.BuildBodyMR()
 	if err != nil {
 		return nil, nil, err
+	}
+	
+	if !b.Header.BodyMR.IsSameAs(bodyMR) {
+		return nil, nil, errors.New("Invalid body MR for dir block: " + string(b.Header.BlockHeight))
 	}
 
 	for _, dbEntry := range b.DBEntries {
@@ -1355,10 +1364,10 @@ func validateDBlock(c *common.DChain, b *common.DirectoryBlock) (merkleRoot *com
 		}
 	}
 
-	dbBinary, _ := b.MarshalBinary()
-	dbHash = common.Sha(dbBinary)
+	b.DBHash, _ = common.CreateHash(b)
+	b.BuildKeyMerkleRoot()
 
-	return merkleRoot, dbHash, nil
+	return  b.KeyMR, b.DBHash, nil
 }
 
 func validateFBlockByMR(mr *common.Hash) error {
