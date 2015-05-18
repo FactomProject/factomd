@@ -6,6 +6,7 @@ package btcd
 
 import (
 	"container/list"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -1631,16 +1632,12 @@ func loadBlockDB() (database.Db, error) {
 
 		gensha, _ := genesis.Sha()
 
-        /**
-         * Factom checks the genesis block.  We don't do it here anymore.
-         * 
 		// verify the inserted genesis block matches the hard-code value
+		// Will be taken out once https://github.com/FactomProject/WorkItems/issues/325 is implemented.
 		if !chaincfg.MainNetParams.GenesisHash.IsEqual(gensha) {
-            fmt.Println("######### GenesisHash does not match. 
 			panic(errors.New(fmt.Sprintf("Factoid genesis block hash ERROR, during insertion")))
 		}
-        **/
-        
+
 		factomIngressBlock_hook(gensha)
 	}
 
