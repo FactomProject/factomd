@@ -46,9 +46,8 @@ type FBlockHeader struct {
 	DBHeight   uint32   // Directory Block height
 	UTXOCommit ShaHash  // This field will hold a Merkle root of an array containing all unspent transactions.
 
-	// transaction count is part of serialization logic, does not belong here
-	//	TransCnt   uint64       // Count of transactions in this block
-
+	// transaction count & body size are "read-only" (future) fields since serialization logic is handling both
+	TransCnt uint64 // Count of transactions in this block
 	BodySize uint64 // Bytes in the body of this block.
 }
 

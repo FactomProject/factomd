@@ -80,25 +80,19 @@ type blockNode struct {
 // for the passed block.  The work sum is updated accordingly when the node is
 // inserted into a chain.
 func newBlockNode(blockHeader *wire.FBlockHeader, blockSha *wire.ShaHash, height int64) *blockNode {
-	//	util.Trace()
-
 	// Make a copy of the hash so the node doesn't keep a reference to part
 	// of the full block/block header preventing it from being garbage
 	// collected.
 	prevHash := blockHeader.PrevBlock
 
 	if prevHash.IsEqual(zeroHash) {
-		util.Trace("ERROR !!!")
+		util.Trace("warning: inserting the genesis block...")
 	}
 
 	node := blockNode{
 		hash:       blockSha,
 		parentHash: &prevHash,
-		//		workSum:    CalcWork(blockHeader.Bits),
-		height: height,
-
-		//		bits:       blockHeader.Bits,
-		//		timestamp: blockHeader.Timestamp,
+		height:     height,
 	}
 	return &node
 }

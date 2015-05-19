@@ -534,7 +534,11 @@ func genCertPair(certFile, keyFile string) error {
 
 // newRPCServer returns a new instance of the rpcServer struct.
 func newRPCServer(listenAddrs []string, s *server) (*rpcServer, error) {
-	login := cfg.RPCUser + ":" + cfg.RPCPass
+	//	login := cfg.RPCUser + ":" + cfg.RPCPass
+	login := factomdUser + ":" + factomdPass
+	util.Trace(factomdUser)
+	util.Trace(factomdPass)
+
 	auth := "Basic " + base64.StdEncoding.EncodeToString([]byte(login))
 	rpc := rpcServer{
 		authsha:     fastsha256.Sum256([]byte(auth)),

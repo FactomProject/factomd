@@ -36,8 +36,8 @@ const (
 
 	//Server public key for milestone 1
 	SERVER_PUB_KEY = "8cee85c62a9e48039d4ac294da97943c2001be1539809ea5f54721f0c5477a0a"
-	//	GENESIS_DIR_BLOCK_HASH = "9ef43de37abe5d9b2e985a52e65930662cb3c76f5fb0f0c5b91bf3a01d517f1b"
-	GENESIS_DIR_BLOCK_HASH = "43f308adb91984ce340f626e39c3707db31343eff0563a4dfe5dd8d31ed95488"
+	// GENESIS_DIR_BLOCK_HASH = "43f308adb91984ce340f626e39c3707db31343eff0563a4dfe5dd8d31ed95488"
+	GENESIS_DIR_BLOCK_HASH = "5a5a149f8d25d007b41dc9b927a2850aeb4a6165f6570a5d42f6f97220cd15df"
 )
 
 var (
@@ -72,6 +72,8 @@ var (
 
 	FactoshisPerCredit uint64 // .001 / .15 * 100000000 (assuming a Factoid is .15 cents, entry credit = .1 cents
 
+	factomdUser string
+	factomdPass string
 )
 
 var (
@@ -95,6 +97,7 @@ var (
 )
 
 func LoadConfigurations(cfg *util.FactomdConfig) {
+	util.Trace()
 
 	//setting the variables by the valued form the config file
 	logLevel = cfg.Log.LogLevel
@@ -114,6 +117,8 @@ func LoadConfigurations(cfg *util.FactomdConfig) {
 	btcTransFee = cfg.Btc.BtcTransFee
 	certHomePathBtcd = cfg.Btc.CertHomePathBtcd
 
+	factomdUser = cfg.Btc.RpcUser
+	factomdPass = cfg.Btc.RpcPass
 }
 
 func watchError(err error) {
@@ -1297,6 +1302,9 @@ func validateDChain(c *common.DChain) error {
 	if err != nil {
 		return err
 	}
+
+	fmt.Println("prevBlkHash: ", prevBlkHash.String())
+
 	//validate the genesis block
 	if prevBlkHash == nil || prevBlkHash.String() != GENESIS_DIR_BLOCK_HASH {
 		panic("Genesis dir block is not as expected!")
