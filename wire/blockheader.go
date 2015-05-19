@@ -53,8 +53,7 @@ type FBlockHeader struct {
 
 // FBlockHeaderLen is a constant that represents the number of bytes for a block
 // header.
-// const BlockHeaderLen = 28 + 5*HashSize
-const BlockHeaderLen = 20 + 5*HashSize
+const BlockHeaderLen = 28 + 5*HashSize
 
 // BlockSha computes the block identifier hash for the given block header.
 func (h *FBlockHeader) BlockSha() (ShaHash, error) {
@@ -111,7 +110,7 @@ func NewBlockHeader(prevHash *ShaHash, merkleRootHash *ShaHash) *FBlockHeader {
 func readBlockHeader(r io.Reader, pver uint32, bh *FBlockHeader) error {
 
 	err := readElements(r, &bh.ChainID, &bh.MerkleRoot, &bh.PrevBlock, &bh.PrevHash3, &bh.ExchRate,
-		&bh.DBHeight, &bh.UTXOCommit, &bh.BodySize)
+		&bh.DBHeight, &bh.UTXOCommit, &bh.TransCnt, &bh.BodySize)
 
 	if err != nil {
 		return err
@@ -126,7 +125,7 @@ func readBlockHeader(r io.Reader, pver uint32, bh *FBlockHeader) error {
 func writeBlockHeader(w io.Writer, pver uint32, bh *FBlockHeader) error {
 	copy(bh.ChainID[:], FChainID.Bytes)
 	err := writeElements(w, &bh.ChainID, &bh.MerkleRoot, &bh.PrevBlock, &bh.PrevHash3, bh.ExchRate,
-		bh.DBHeight, &bh.UTXOCommit, bh.BodySize)
+		bh.DBHeight, &bh.UTXOCommit, &bh.TransCnt, bh.BodySize)
 
 	if err != nil {
 		return err
