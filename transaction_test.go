@@ -8,24 +8,70 @@ package simplecoin
 import (
     "testing"
     "fmt"
+    "math/rand"
+    //"agl/ed25519"
 )
 
+// Random first "address".  It isn't a real one, but one we are using for now.
 var adr1 = [ADDRESS_LENGTH]byte{ 
      0x61, 0xe3, 0x8c, 0x0a, 0xb6, 0xf1, 0xb3, 0x72,  0xc1, 0xa6, 0xa2, 0x46, 0xae, 0x63, 0xf7, 0x4f,
      0x93, 0x1e, 0x83, 0x65, 0xe1, 0x5a, 0x08, 0x9c,  0x68, 0xd6, 0x19, 0x00, 0x00, 0x00, 0x00, 0x00,
+}
+
+func nextAddress() IAddress {
+    addr := new(address)
+    addr.SetHash(Sha(adr1[:]))
+    copy(adr1[:],addr.Bytes())
+    return addr
+}
+
+func nextSig() []byte {
+    a := nextAddress().(*address)
+    b := nextAddress().(*address)
+    var sign [64] byte
+    copy(sign[:32],a.Bytes())
+    copy(sign[33:],b.Bytes())
+    return sign[:]
 }
 
 func TestTransaction(t *testing.T) {
     nb := transaction{}.NewBlock()
     cb := nb.(*transaction)
     
-    addr := new(address)
-    addr.SetBytes(adr1[:])
-    for i:=0;i<10;i++ {
-        cb.inputs = cb.AddInput(addr)
-        addr2 := new(address)
-        addr2.SetHash(Sha(addr.Bytes()))
-        addr = addr2    
+    for i:=0;i<3;i++ {
+        cb.AddInput(nextAddress())
+    }
+    
+    for i:=0;i<3;i++ {
+        cb.AddOutput(uint64(rand.Int63n(10000000000)),nextAddress())
+    }
+    
+    for i:=0;i<3;i++ {
+        cb.AddECOutput(uint64(rand.Int63n(10000000)),nextAddress())
+    }
+    
+    for i:=0;i<1;i++ {
+        sig,_ := NewSignature1(nextSig())
+        cb.AddAuthorization(sig)
+    }
+    
+    for i:=0;i<2;i++ {
+        n := rand.Int()%2+1
+        m := rand.Int()%2+n
+        addresses := make([]IAddress,m,m)
+        for j:=0; j<m; j++ {
+            addresses[j] = nextAddress()
+        }
+        signs := make([]sign,n,n)
+        for j:=0; j<n; j++ {
+            auth,_ := NewSignature1(nextSig())
+            signs[j] = sign {
+                index: j,                 // Index into m for this signature
+                authorization: auth,
+            }
+        }
+        sig,_ := NewSignature2(n,m,addresses,signs)
+        cb.AddAuthorization(sig)
     }
     
     bytes,_ := nb.MarshalText()

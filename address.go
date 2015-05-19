@@ -13,6 +13,9 @@ import (
 
 type IAddress interface {
     IBlock
+    Bytes() []byte
+    SetBytes([]byte)
+    SetHash(IHash)
 }
 
 type address struct {
@@ -32,15 +35,16 @@ func (a *address) SetBytes(b []byte) {
     a.theBytes.SetBytes(b)
 }
 
-func (a *address) MarshalText() (text []byte, err error) {
+func (a address) MarshalText() (text []byte, err error) {
     var out bytes.Buffer
     addr := hex.EncodeToString(a.theBytes.Bytes())
+    out.WriteString("addr  ")
     out.WriteString(addr)
     out.WriteString("\n")
     return out.Bytes(),nil
 }
 
-func (a *address) Bytes() ([]byte) {
+func (a address) Bytes() ([]byte) {
     return a.theBytes.Bytes()
 }
 

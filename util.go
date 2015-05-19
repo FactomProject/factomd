@@ -12,6 +12,24 @@ import (
     "encoding/binary"
 )
 
+func WriteNumber64(out *bytes.Buffer, num uint64) {
+    var buf bytes.Buffer
+    
+    binary.Write(&buf, binary.BigEndian, num)
+    str := hex.EncodeToString(buf.Bytes())
+    out.WriteString(str)
+    
+} 
+
+func WriteNumber32(out *bytes.Buffer, num uint32) {
+    var buf bytes.Buffer
+    
+    binary.Write(&buf, binary.BigEndian, num)
+    str := hex.EncodeToString(buf.Bytes())
+    out.WriteString(str)
+    
+} 
+
 func WriteNumber16(out *bytes.Buffer, num uint16) {
     var buf bytes.Buffer
     
