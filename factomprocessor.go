@@ -37,9 +37,7 @@ const (
 	//Server public key for milestone 1
 	SERVER_PUB_KEY = "8cee85c62a9e48039d4ac294da97943c2001be1539809ea5f54721f0c5477a0a"
 	// GENESIS_DIR_BLOCK_HASH = "43f308adb91984ce340f626e39c3707db31343eff0563a4dfe5dd8d31ed95488"
-	// GENESIS_DIR_BLOCK_HASH = "9ef43de37abe5d9b2e985a52e65930662cb3c76f5fb0f0c5b91bf3a01d517f1b"
-	// GENESIS_DIR_BLOCK_HASH = "43f308adb91984ce340f626e39c3707db31343eff0563a4dfe5dd8d31ed95488"
-	GENESIS_DIR_BLOCK_HASH = "5a5a149f8d25d007b41dc9b927a2850aeb4a6165f6570a5d42f6f97220cd15df"
+	GENESIS_DIR_BLOCK_HASH = "2923d512f88f8979d33c3b66530897d469517db0885f6490c34f14b088290fc2"
 )
 
 var (
@@ -1008,7 +1006,7 @@ func buildGenesisBlocks() error {
 
 	// Check block hash if genesis block
 	if dbBlock.DBHash.String() != GENESIS_DIR_BLOCK_HASH {
-		panic("Genesis block hash is not expected:" + dbBlock.DBHash.String())
+		panic("Genesis block hash is not expected: " + dbBlock.DBHash.String())
 	}
 
 	exportDChain(dchain)
