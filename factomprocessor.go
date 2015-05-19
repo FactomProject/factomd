@@ -232,6 +232,19 @@ func init_processor() {
 			dchain.IsValidated = false
 		}
 	}
+	
+	
+	// testing:- to be removed ------------------------------------------
+	//dbinfos, _ := db.FetchAllDBInfo()
+	//fmt.Printf("PROCESSOR: dbinfos=%s\n", spew.Sdump(dbinfos))
+	
+	//dbinfos, _ := db.FetchAllUnconfirmedDBInfo()
+	//fmt.Printf("PROCESSOR: unconfirmed dbinfos=%s\n", spew.Sdump(dbinfos))	
+	
+	
+	//dblk, _ := db.FetchDBlockByMR(dchain.Blocks[0].KeyMR)
+	//fmt.Printf("PROCESSOR: dblk=%s\n", spew.Sdump(dblk))	
+	// ------------------------------------------------------------------
 }
 
 func Start_Processor(ldb database.Db, inMsgQ chan wire.FtmInternalMsg, outMsgQ chan wire.FtmInternalMsg,
@@ -1280,6 +1293,9 @@ func newDirectoryBlock(chain *common.DChain) *common.DirectoryBlock {
 
 	//Store the block in db
 	db.ProcessDBlockBatch(block)
+	
+	// Initialize the dbInfo obj in db
+	db.InsertDBInfo(common.NewDBInfoFromDBlock(block))
 
 	log.Println("DirectoryBlock: block" + strconv.FormatUint(uint64(block.Header.BlockHeight), 10) + " created for directory block chain: " + chain.ChainID.String())
 
