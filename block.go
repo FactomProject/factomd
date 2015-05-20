@@ -5,17 +5,15 @@
 package simplecoin
 
 import (
-    // "fmt"
-    "encoding"
+	// "fmt"
+	"encoding"
 )
 
 type IBlock interface {
-    encoding.BinaryMarshaler
-    encoding.BinaryUnmarshaler
-    encoding.TextMarshaler
-    encoding.TextUnmarshaler
+	encoding.BinaryMarshaler
+	encoding.BinaryUnmarshaler
+	encoding.TextMarshaler
+	encoding.TextUnmarshaler
 
-    newBlock(...interface{}) (IBlock)
-    
+	newBlock(...interface{}) IBlock
 }
-

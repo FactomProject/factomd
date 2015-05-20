@@ -7,17 +7,16 @@
 
 package simplecoin
 
-
 type IInAddress interface {
-    ITransAddress
+	ITransAddress
 }
 
 type InAddress struct {
-    TransAddress
+	TransAddress
 }
 
-func (oa InAddress)GetName() string {
-    return "in"
+func (oa InAddress) GetName() string {
+	return "in"
 }
 
 /******************************
@@ -25,8 +24,8 @@ func (oa InAddress)GetName() string {
  ******************************/
 
 func NewInAddress(amount uint64, address IAddress) IInAddress {
-    oa := new(InAddress)
-    oa.amount = amount
-    oa.address = address
-    return oa
+	oa := new(InAddress)
+	oa.amount = amount
+	oa.address = address
+	return oa
 }

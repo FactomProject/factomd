@@ -5,7 +5,7 @@
 package simplecoin
 
 const (
-    ADDRESS_LENGTH = 32
-    // HashSize = 32                // Simple coin assumes the hash size and address size are the same.
-                                    // It doesn't HAVE to be so, but for now that is what I do.
+	ADDRESS_LENGTH = 32
+	// HashSize = 32                // Simple coin assumes the hash size and address size are the same.
+	// It doesn't HAVE to be so, but for now that is what I do.
 )

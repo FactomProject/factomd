@@ -10,17 +10,16 @@ package simplecoin
 //
 // Entry Credit Addresses are always outputs.
 
-
 type IOutECAddress interface {
-    ITransAddress
+	ITransAddress
 }
 
 type OutECAddress struct {
-    TransAddress
+	TransAddress
 }
 
 func (oa OutECAddress) GetName() string {
-    return "outEC"
+	return "outEC"
 }
 
 /******************************
@@ -28,8 +27,8 @@ func (oa OutECAddress) GetName() string {
  ******************************/
 
 func NewOutECAddress(amount uint64, address IAddress) IOutAddress {
-    oa := new(OutECAddress)
-    oa.amount = amount
-    oa.address = address
-    return oa
+	oa := new(OutECAddress)
+	oa.amount = amount
+	oa.address = address
+	return oa
 }

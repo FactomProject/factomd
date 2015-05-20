@@ -8,15 +8,15 @@
 package simplecoin
 
 type IOutAddress interface {
-   ITransAddress
+	ITransAddress
 }
 
 type OutAddress struct {
-    TransAddress
+	TransAddress
 }
 
-func (oa OutAddress)GetName() string {
-    return "out"
+func (oa OutAddress) GetName() string {
+	return "out"
 }
 
 /******************************
@@ -24,8 +24,8 @@ func (oa OutAddress)GetName() string {
  ******************************/
 
 func NewOutAddress(amount uint64, address IAddress) IOutAddress {
-    oa := new(OutAddress)
-    oa.amount = amount
-    oa.address = address
-    return oa
+	oa := new(OutAddress)
+	oa.amount = amount
+	oa.address = address
+	return oa
 }

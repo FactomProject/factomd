@@ -5,56 +5,55 @@
 package simplecoin
 
 import (
-    // "fmt"
-    "bytes"
-    "encoding/hex"
-
+	// "fmt"
+	"bytes"
+	"encoding/hex"
 )
 
 type IAddress interface {
-    IBlock
-    Bytes() []byte
-    SetBytes([]byte)
-    SetHash(IHash)
+	IBlock
+	Bytes() []byte
+	SetBytes([]byte)
+	SetHash(IHash)
 }
 
-type address struct {
-    IAddress
-    theBytes   IHash
+type Address struct {
+	IAddress
+	theBytes IHash
 }
 
-func (a address) MarshalBinary() ( []byte,  error) {
-    
-    data,err := a.theBytes.MarshalBinary()
-    
-    return data,err
+func (a Address) MarshalBinary() ([]byte, error) {
+
+	data, err := a.theBytes.MarshalBinary()
+
+	return data, err
 }
 
-func (cb *address) NewBlock() (IBlock) {
-    blk := new (address)
-    return blk
+func (cb *Address) NewBlock() IBlock {
+	blk := new(Address)
+	return blk
 }
 
-func (a *address) SetBytes(b []byte) {
-    if(a.theBytes == nil) {
-        a.theBytes = Hash{}.NewBlock().(IHash)
-    }
-    a.theBytes.SetBytes(b)
+func (a *Address) SetBytes(b []byte) {
+	if a.theBytes == nil {
+		a.theBytes = Hash{}.NewBlock().(IHash)
+	}
+	a.theBytes.SetBytes(b)
 }
 
-func (a address) MarshalText() (text []byte, err error) {
-    var out bytes.Buffer
-    addr := hex.EncodeToString(a.theBytes.Bytes())
-    out.WriteString("addr  ")
-    out.WriteString(addr)
-    out.WriteString("\n")
-    return out.Bytes(),nil
+func (a Address) MarshalText() (text []byte, err error) {
+	var out bytes.Buffer
+	addr := hex.EncodeToString(a.theBytes.Bytes())
+	out.WriteString("addr  ")
+	out.WriteString(addr)
+	out.WriteString("\n")
+	return out.Bytes(), nil
 }
 
-func (a address) Bytes() ([]byte) {
-    return a.theBytes.Bytes()
+func (a Address) Bytes() []byte {
+	return a.theBytes.Bytes()
 }
 
-func (a *address) SetHash(h IHash) {
-    a.theBytes = h
+func (a *Address) SetHash(h IHash) {
+	a.theBytes = h
 }
