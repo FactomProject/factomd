@@ -8,18 +8,39 @@ import (
     "bytes"
     "encoding/hex"
     "fmt"
+    "encoding/binary"
+//    "github.com/agl/ed25519"
 )
+
+/**************************
+ * IAuthorization
+ **************************/
+
 
 type IAuthorization interface {
     IBlock
     Validate(addr IAddress, transaction []byte) bool     // Validate the address, transaction
 }
 
+/**************************
+ * Authorize_1
+ **************************/
+
+
 // In this case, we are simply validating one address to ensure it signed
 // this transaction.
 type authorize_1 struct {
     IAuthorization
-    signature           [64]byte
+    signature           []byte
+}
+
+func (a authorize_1) MarshalBinary() (data []byte, err error) {
+    var out bytes.Buffer
+    
+    out.WriteByte(byte(1))              // The First Authorization method
+    out.Write(a.signature)
+    
+    return out.Bytes(), nil
 }
 
 // Check this signature against this transaction.
@@ -38,11 +59,26 @@ func (a authorize_1) MarshalText() (text []byte, err error) {
     return out.Bytes(), nil
 }
 
+
+/*******************
+ * sign
+ *******************/
+
 // We need an index into m.  We could search, but that could make transaction
 // processing time slow.
 type sign struct {
     index               int                 // Index into m for this signature
     authorization       IAuthorization      // The authorization to test
+}
+
+func (s sign) MarshalBinary() ([]byte, error) {
+    var out bytes.Buffer
+    
+    binary.Write(&out, binary.BigEndian, uint16(s.index))    
+    data,err := s.authorization.MarshalBinary()
+    out.Write(data)
+    
+    return out.Bytes(),err
 }
 
 func (s sign) MarshalText() ([]byte, error) {
@@ -57,13 +93,49 @@ func (s sign) MarshalText() ([]byte, error) {
     return out.Bytes(), nil
 }
 
+/************************
+ * Authorize 2
+ ************************/
+
+// Type 2 authorization blocks implement multisig
+// m of n
+// Must have m addresses from which to choose, no fewer, no more
+// Must have n authorization blocks, no fewer no more.
+// NOTE: This does mean you can have a multisig nested in a 
+// multisig.  It just works.
+
 type authorize_2 struct {
     IAuthorization
-    m                   int                 // Total sigatures possible
     n                   int                 // Number signatures required
+    m                   int                 // Total sigatures possible
     m_addresses         []IAddress          // m addresses
     n_signatures        []sign              // n sigatures. 
 }
+
+func (a authorize_2) MarshalBinary() ([]byte, error) {
+    var out bytes.Buffer
+    
+    binary.Write(&out, binary.BigEndian, uint8(2))    
+    binary.Write(&out, binary.BigEndian, uint16(a.n))    
+    binary.Write(&out, binary.BigEndian, uint16(a.m))    
+    for i:=0;i<a.m;i++ {
+        data,err := a.m_addresses[i].MarshalBinary()
+        if err != nil {
+            return nil, err
+        }
+        out.Write(data)
+    }
+    for i:=0;i<a.n;i++ {
+        data,err := a.n_signatures[i].MarshalBinary()
+        if err != nil {
+            return nil, err
+        }
+        out.Write(data)
+    }
+    
+    return out.Bytes(),nil
+}
+
 
 func (a authorize_2) MarshalText() ([]byte, error) {
     var out bytes.Buffer
@@ -90,7 +162,7 @@ func (a authorize_2) MarshalText() ([]byte, error) {
 
 
 // We are going to require all the sigatures to be valid, if they are provided.
-// We will only check n signatures, even if the user provides more.
+// We will expect only n signatures if only n are required.
 func (a authorize_2) Validate(addr IAddress, t []byte) bool {
     if len(a.n_signatures) < a.n {                    // Gotta have at least n signatures
         return false
@@ -116,6 +188,7 @@ func (a authorize_2) Validate(addr IAddress, t []byte) bool {
 
 func NewSignature1( sign []byte ) (IAuthorization, error) {
     a := new(authorize_1)
+    a.signature = make([]byte,len(sign),len(sign))
     copy(a.signature[:], sign)
     return a, nil
 }

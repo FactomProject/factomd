@@ -2,29 +2,30 @@
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
-// Output object for a Simplecoin transaction.   contains an amount
+// Input object for a Simplecoin transaction.   contains an amount
 // and the destination address.
 
 package simplecoin
 
-type IOutAddress interface {
-   ITransAddress
+
+type IInAddress interface {
+    ITransAddress
 }
 
-type OutAddress struct {
+type InAddress struct {
     TransAddress
 }
 
-func (oa OutAddress)GetName() string {
-    return "out"
+func (oa InAddress)GetName() string {
+    return "in"
 }
 
 /******************************
  * Helper functions
  ******************************/
 
-func NewOutAddress(amount uint64, address IAddress) IOutAddress {
-    oa := new(OutAddress)
+func NewInAddress(amount uint64, address IAddress) IInAddress {
+    oa := new(InAddress)
     oa.amount = amount
     oa.address = address
     return oa

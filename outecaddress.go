@@ -4,10 +4,6 @@
 
 package simplecoin
 
-import (
-    "bytes"
-)
-
 // Entry Credit Addresses are the same as Addresses in Simplecoin
 // They just get printed out differently when we output them in
 // human readable form.
@@ -16,32 +12,23 @@ import (
 
 
 type IOutECAddress interface {
-    IBlock
+    ITransAddress
 }
 
-type outECAddress struct {
-    OutAddress
+type OutECAddress struct {
+    TransAddress
 }
 
-func (oa outECAddress) MarshalText() ([]byte, error) {
-    var out bytes.Buffer
-    
-    out.WriteString("ec_out ")
-    WriteNumber64(&out, oa.amount)
-    out.WriteString(" ")
-    
-    text, _ := oa.address.MarshalText()
-    out.Write(text)
-    
-    return out.Bytes(), nil
-} 
+func (oa OutECAddress) GetName() string {
+    return "outEC"
+}
 
 /******************************
  * Helper functions
  ******************************/
 
 func NewOutECAddress(amount uint64, address IAddress) IOutAddress {
-    oa := new(outECAddress)
+    oa := new(OutECAddress)
     oa.amount = amount
     oa.address = address
     return oa

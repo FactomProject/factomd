@@ -23,6 +23,13 @@ type address struct {
     theBytes   IHash
 }
 
+func (a address) MarshalBinary() ( []byte,  error) {
+    
+    data,err := a.theBytes.MarshalBinary()
+    
+    return data,err
+}
+
 func (cb *address) NewBlock() (IBlock) {
     blk := new (address)
     return blk

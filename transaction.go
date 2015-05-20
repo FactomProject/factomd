@@ -11,44 +11,49 @@ import (
 
 type ITransaction interface {
     IBlock
+    AddInput(amount uint64, input IAddress) 
+    AddOutput(amount uint64, output IAddress) 
+    AddECOutput(amount uint64, ecoutput IAddress)  
+    AddAuthorization(auth IAuthorization)         
 }
 
 type transaction struct {
     ITransaction
-    inputs              [] IAddress
+    inputs              [] IInAddress
     outputs             [] IOutAddress
     outECs              [] IOutECAddress
     authorizations      [] IAuthorization
 }
     
-var _ IBlock = (*transaction)(nil)
-
+var _ ITransaction = (*transaction)(nil)
+    
 func (cb transaction) NewBlock() (IBlock) {
     blk := new (transaction)
     return blk
 }
 
-func (cb *transaction) AddInput(input IAddress) {
+func (cb *transaction) AddInput(amount uint64, input IAddress) {
       if(cb.inputs == nil) {
-          cb.inputs = make([]IAddress,0,5)
+          cb.inputs = make([]IInAddress,0,5)
       }
-      cb.inputs = append(cb.inputs, input)
+      out := NewInAddress(amount, input)
+      cb.inputs = append(cb.inputs, out)
 }
 
-func (cb *transaction) AddOutput(amount uint64, input IAddress) {
+func (cb *transaction) AddOutput(amount uint64, output IAddress) {
     if(cb.outputs == nil) {
         cb.outputs = make([]IOutAddress,0,5)
     }
-    out := NewOutAddress(amount, input)
+    out := NewOutAddress(amount, output)
     cb.outputs = append(cb.outputs, out)
     
 }
 
-func (cb *transaction) AddECOutput(amount uint64, input IAddress)  {
+func (cb *transaction) AddECOutput(amount uint64, ecoutput IAddress)  {
     if(cb.outECs == nil) {
         cb.outECs = make([]IOutECAddress,0,5)
     }
-    out := NewOutECAddress(amount, input)
+    out := NewOutECAddress(amount, ecoutput)
     cb.outECs = append(cb.outECs, out)
     
 }

@@ -9,7 +9,8 @@ import (
     "testing"
     "fmt"
     "math/rand"
-    //"agl/ed25519"
+    "github.com/agl/ed25519"
+    "time"
 )
 
 // Random first "address".  It isn't a real one, but one we are using for now.
@@ -18,10 +19,23 @@ var adr1 = [ADDRESS_LENGTH]byte{
      0x93, 0x1e, 0x83, 0x65, 0xe1, 0x5a, 0x08, 0x9c,  0x68, 0xd6, 0x19, 0x00, 0x00, 0x00, 0x00, 0x00,
 }
 
+type zeroReader struct{}
+
+func (zeroReader) Read(buf []byte) (int, error) {
+    for i := range buf {
+        buf[i] = byte(rand.Int63n(8)+time.Now().Unix())
+    }
+    return len(buf), nil
+}
+var zero zeroReader
+
+
 func nextAddress() IAddress {
+    
+    public, _, _ := ed25519.GenerateKey(zero)
+    
     addr := new(address)
-    addr.SetHash(Sha(adr1[:]))
-    copy(adr1[:],addr.Bytes())
+    addr.SetBytes(public[:])
     return addr
 }
 
@@ -39,7 +53,7 @@ func TestTransaction(t *testing.T) {
     cb := nb.(*transaction)
     
     for i:=0;i<3;i++ {
-        cb.AddInput(nextAddress())
+        cb.AddInput(uint64(rand.Int63n(10000000000)),nextAddress())
     }
     
     for i:=0;i<3;i++ {
@@ -50,14 +64,14 @@ func TestTransaction(t *testing.T) {
         cb.AddECOutput(uint64(rand.Int63n(10000000)),nextAddress())
     }
     
-    for i:=0;i<1;i++ {
+    for i:=0;i<3;i++ {
         sig,_ := NewSignature1(nextSig())
         cb.AddAuthorization(sig)
     }
     
     for i:=0;i<2;i++ {
-        n := rand.Int()%2+1
-        m := rand.Int()%2+n
+        n := rand.Int()%4+1
+        m := rand.Int()%4+n
         addresses := make([]IAddress,m,m)
         for j:=0; j<m; j++ {
             addresses[j] = nextAddress()
