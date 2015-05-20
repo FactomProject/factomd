@@ -16,7 +16,7 @@ import (
 	"os"
 	"sort"
 	"strconv"
-	//	"github.com/FactomProject/FactomCode/anchor"
+
 	"github.com/FactomProject/FactomCode/anchor"
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/consensus"
@@ -41,9 +41,6 @@ const (
 )
 
 var (
-	//wclient *btcrpcclient.Client //rpc client for btcwallet rpc server
-	//dclient *btcrpcclient.Client //rpc client for btcd rpc server
-
 	currentAddr btcutil.Address
 	db          database.Db        // database
 	dchain      *common.DChain     //Directory Block Chain
@@ -72,28 +69,17 @@ var (
 
 	FactoshisPerCredit uint64 // .001 / .15 * 100000000 (assuming a Factoid is .15 cents, entry credit = .1 cents
 
-	//factomdUser string
-	//factomdPass string
+	factomdUser string
+	factomdPass string
 )
 
 var (
-	//sendToBTCinSeconds      int
 	directoryBlockInSeconds int
 	dataStorePath           string
 	ldbpath                 string
 	nodeMode                string
 	devNet                  bool
-
-	//walletPassphrase  string
-	//certHomePath      string
-	//rpcClientHost     string
-	//rpcClientEndpoint string
-	//rpcClientUser     string
-	//rpcClientPass     string
-	//btcTransFee       float64
-
-	//certHomePathBtcd string //needs cleanup??
-	serverPrivKeyHex string
+	serverPrivKeyHex        string
 )
 
 func LoadConfigurations(cfg *util.FactomdConfig) {
@@ -107,18 +93,8 @@ func LoadConfigurations(cfg *util.FactomdConfig) {
 	nodeMode = cfg.App.NodeMode
 	serverPrivKeyHex = cfg.App.ServerPrivKey
 
-	//sendToBTCinSeconds = cfg.Btc.SendToBTCinSeconds
-	//walletPassphrase = cfg.Btc.WalletPassphrase
-	//certHomePath = cfg.Btc.CertHomePath
-	//rpcClientHost = cfg.Btc.RpcClientHost
-	//rpcClientEndpoint = cfg.Btc.RpcClientEndpoint
-	//rpcClientUser = cfg.Btc.RpcClientUser
-	//rpcClientPass = cfg.Btc.RpcClientPass
-	//btcTransFee = cfg.Btc.BtcTransFee
-	//certHomePathBtcd = cfg.Btc.CertHomePathBtcd
-
-	//factomdUser = cfg.Btc.RpcUser
-	//factomdPass = cfg.Btc.RpcPass
+	factomdUser = cfg.Btc.RpcUser
+	factomdPass = cfg.Btc.RpcPass
 }
 
 func watchError(err error) {
@@ -162,7 +138,7 @@ func initEChainFromDB(chain *common.EChain) {
 	}
 }
 
-func init_processor() {
+func initProcess() {
 
 	wire.Init()
 
@@ -193,6 +169,8 @@ func init_processor() {
 	initAChain()
 	fmt.Println("Loaded", achain.NextBlockHeight, "Admin blocks for chain: "+achain.ChainID.String())
 
+	anchor.InitAnchor(db)
+
 	// build the Genesis blocks if the current height is 0
 	if dchain.NextBlockHeight == 0 {
 		buildGenesisBlocks()
@@ -218,7 +196,6 @@ func init_processor() {
 
 		fmt.Println("Loaded", chain.NextBlockHeight, "blocks for chain: "+chain.ChainID.String())
 		//fmt.Printf("PROCESSOR: echain=%s\n", spew.Sdump(chain))
-
 	}
 
 	// Validate all dir blocks
@@ -230,8 +207,6 @@ func init_processor() {
 			dchain.IsValidated = false
 		}
 	}
-
-	anchor.InitAnchor(db)
 }
 
 func Start_Processor(ldb database.Db, inMsgQ chan wire.FtmInternalMsg, outMsgQ chan wire.FtmInternalMsg,
@@ -245,7 +220,7 @@ func Start_Processor(ldb database.Db, inMsgQ chan wire.FtmInternalMsg, outMsgQ c
 	outCtlMsgQueue = outCtlMsgQ
 	doneFBlockQueue = doneFBlockQ
 
-	init_processor()
+	initProcess()
 
 	// Initialize timer for the open dblock before processing messages
 	if nodeMode == SERVER_NODE {
@@ -991,6 +966,7 @@ func buildGenesisBlocks() error {
 	exportAChain(achain)
 
 	// Directory Block chain
+	util.Trace("in buildGenesisBlocks")
 	dbBlock := newDirectoryBlock(dchain)
 
 	// Check block hash if genesis block
@@ -1062,6 +1038,7 @@ func buildBlocks() error {
 	}
 
 	// Directory Block chain
+	util.Trace("in buildBlocks")
 	dbBlock := newDirectoryBlock(dchain)
 	// Check block hash if genesis block here??
 
@@ -1248,7 +1225,7 @@ func newAdminBlock(chain *common.AdminChain) *common.AdminBlock {
 }
 
 func newDirectoryBlock(chain *common.DChain) *common.DirectoryBlock {
-
+	util.Trace("**** new Dir Block")
 	// acquire the last block
 	block := chain.NextBlock
 
@@ -1276,6 +1253,10 @@ func newDirectoryBlock(chain *common.DChain) *common.DirectoryBlock {
 
 	//Store the block in db
 	db.ProcessDBlockBatch(block)
+
+	// Initialize the dbInfo obj in db
+	db.InsertDBInfo(common.NewDBInfoFromDBlock(block))
+	anchor.UpdateDBInfoMap(common.NewDBInfoFromDBlock(block))
 
 	log.Println("DirectoryBlock: block" + strconv.FormatUint(uint64(block.Header.BlockHeight), 10) + " created for directory block chain: " + chain.ChainID.String())
 
