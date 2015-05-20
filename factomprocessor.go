@@ -1254,9 +1254,9 @@ func newDirectoryBlock(chain *common.DChain) *common.DirectoryBlock {
 	//Store the block in db
 	db.ProcessDBlockBatch(block)
 
-	// Initialize the dbInfo obj in db
-	db.InsertDBInfo(common.NewDBInfoFromDBlock(block))
-	anchor.UpdateDBInfoMap(common.NewDBInfoFromDBlock(block))
+	// Initialize the dirBlockInfo obj in db
+	db.InsertDirBlockInfo(common.NewDirBlockInfoFromDBlock(block))
+	anchor.UpdateDirBlockInfoMap(common.NewDirBlockInfoFromDBlock(block))
 
 	log.Println("DirectoryBlock: block" + strconv.FormatUint(uint64(block.Header.BlockHeight), 10) + " created for directory block chain: " + chain.ChainID.String())
 
