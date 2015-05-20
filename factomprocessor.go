@@ -17,13 +17,13 @@ import (
 	"sort"
 	"strconv"
 	//	"github.com/FactomProject/FactomCode/anchor"
+	"github.com/FactomProject/FactomCode/anchor"
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/consensus"
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/factomlog"
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/btcd/wire"
-	"github.com/FactomProject/btcrpcclient"
 	"github.com/FactomProject/btcutil"
 	"github.com/davecgh/go-spew/spew"
 )
@@ -41,8 +41,8 @@ const (
 )
 
 var (
-	wclient *btcrpcclient.Client //rpc client for btcwallet rpc server
-	dclient *btcrpcclient.Client //rpc client for btcd rpc server
+	//wclient *btcrpcclient.Client //rpc client for btcwallet rpc server
+	//dclient *btcrpcclient.Client //rpc client for btcd rpc server
 
 	currentAddr btcutil.Address
 	db          database.Db        // database
@@ -72,27 +72,27 @@ var (
 
 	FactoshisPerCredit uint64 // .001 / .15 * 100000000 (assuming a Factoid is .15 cents, entry credit = .1 cents
 
-	factomdUser string
-	factomdPass string
+	//factomdUser string
+	//factomdPass string
 )
 
 var (
-	sendToBTCinSeconds      int
+	//sendToBTCinSeconds      int
 	directoryBlockInSeconds int
 	dataStorePath           string
 	ldbpath                 string
 	nodeMode                string
 	devNet                  bool
 
-	walletPassphrase  string
-	certHomePath      string
-	rpcClientHost     string
-	rpcClientEndpoint string
-	rpcClientUser     string
-	rpcClientPass     string
-	btcTransFee       float64
+	//walletPassphrase  string
+	//certHomePath      string
+	//rpcClientHost     string
+	//rpcClientEndpoint string
+	//rpcClientUser     string
+	//rpcClientPass     string
+	//btcTransFee       float64
 
-	certHomePathBtcd string //needs cleanup??
+	//certHomePathBtcd string //needs cleanup??
 	serverPrivKeyHex string
 )
 
@@ -107,18 +107,18 @@ func LoadConfigurations(cfg *util.FactomdConfig) {
 	nodeMode = cfg.App.NodeMode
 	serverPrivKeyHex = cfg.App.ServerPrivKey
 
-	sendToBTCinSeconds = cfg.Btc.SendToBTCinSeconds
-	walletPassphrase = cfg.Btc.WalletPassphrase
-	certHomePath = cfg.Btc.CertHomePath
-	rpcClientHost = cfg.Btc.RpcClientHost
-	rpcClientEndpoint = cfg.Btc.RpcClientEndpoint
-	rpcClientUser = cfg.Btc.RpcClientUser
-	rpcClientPass = cfg.Btc.RpcClientPass
-	btcTransFee = cfg.Btc.BtcTransFee
-	certHomePathBtcd = cfg.Btc.CertHomePathBtcd
+	//sendToBTCinSeconds = cfg.Btc.SendToBTCinSeconds
+	//walletPassphrase = cfg.Btc.WalletPassphrase
+	//certHomePath = cfg.Btc.CertHomePath
+	//rpcClientHost = cfg.Btc.RpcClientHost
+	//rpcClientEndpoint = cfg.Btc.RpcClientEndpoint
+	//rpcClientUser = cfg.Btc.RpcClientUser
+	//rpcClientPass = cfg.Btc.RpcClientPass
+	//btcTransFee = cfg.Btc.BtcTransFee
+	//certHomePathBtcd = cfg.Btc.CertHomePathBtcd
 
-	factomdUser = cfg.Btc.RpcUser
-	factomdPass = cfg.Btc.RpcPass
+	//factomdUser = cfg.Btc.RpcUser
+	//factomdPass = cfg.Btc.RpcPass
 }
 
 func watchError(err error) {
@@ -230,6 +230,8 @@ func init_processor() {
 			dchain.IsValidated = false
 		}
 	}
+
+	anchor.InitAnchor(db)
 }
 
 func Start_Processor(ldb database.Db, inMsgQ chan wire.FtmInternalMsg, outMsgQ chan wire.FtmInternalMsg,
@@ -1109,13 +1111,9 @@ func placeAnchor(dbBlock *common.DirectoryBlock) error {
 	util.Trace()
 	// Only Servers can write the anchor to Bitcoin network
 	if nodeMode == SERVER_NODE && dbBlock != nil {
-		//newhash, _ := wire.NewShaHash(dbBlock.DBHash.Bytes)
-		//height := dbBlock.Header.BlockHeight
-		//fmt.Printf("place into anchor: dblock height=%d, hash=%s\n", height, newhash.String())
-
 		// todo: need to make anchor as a go routine, independent of factomd
 		// same as blockmanager to btcd
-		//go anchor.SendRawTransactionToBTC(dbBlock.DBHash.Bytes, uint64(dbBlock.Header.BlockHeight))
+		// go anchor.SendRawTransactionToBTC(dbBlock.KeyMR.Bytes, uint64(dbBlock.Header.BlockHeight))
 	}
 	return nil
 }
