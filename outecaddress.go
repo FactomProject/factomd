@@ -18,6 +18,8 @@ type OutECAddress struct {
 	TransAddress
 }
 
+var _ IOutECAddress = (*OutECAddress)(nil)
+
 func (oa OutECAddress) GetName() string {
 	return "outEC"
 }

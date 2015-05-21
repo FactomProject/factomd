@@ -15,6 +15,8 @@ type OutAddress struct {
 	TransAddress
 }
 
+var _ IOutAddress = (*OutAddress)(nil)
+
 func (oa OutAddress) GetName() string {
 	return "out"
 }

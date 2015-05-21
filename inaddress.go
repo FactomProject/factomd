@@ -15,6 +15,8 @@ type InAddress struct {
 	TransAddress
 }
 
+var _ IInAddress = (*InAddress)(nil)
+
 func (oa InAddress) GetName() string {
 	return "in"
 }
