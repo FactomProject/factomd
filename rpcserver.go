@@ -908,6 +908,7 @@ func createVoutList(mtx *wire.MsgTx, chainParams *chaincfg.Params) []btcjson.Vou
 		voutList[i].Value = float64(v.Value) / btcutil.SatoshiPerBitcoin
 
 		voutList[i].DestAddr.Hex = hex.EncodeToString(v.RCDHash[:])
+		voutList[i].DestAddr.Asm = btcutil.EncodeAddr(v.RCDHash[:])
 
 		/*
 			// The disassembled string will contain [error] inline if the

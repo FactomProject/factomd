@@ -211,6 +211,7 @@ type GetNetTotalsResult struct {
 	TimeMillis     int64  `json:"timemillis"`
 }
 
+/*
 // ScriptSig models a signature script.  It is defined seperately since it only
 // applies to non-coinbase.  Therefore the field in the Vin structure needs
 // to be a pointer.
@@ -218,6 +219,7 @@ type ScriptSig struct {
 	Asm string `json:"asm1"`
 	Hex string `json:"hex"`
 }
+*/
 
 // Vin models parts of the tx data.  It is defined seperately since both
 // getrawtransaction, sendrawtransaction, and decoderawtransaction use the
@@ -266,7 +268,6 @@ type DestAddrResult struct {
 	Asm       string   `json:"asm2"`
 	Hex       string   `json:"hex,omitempty"`
 	ReqSigs   int32    `json:"reqSigs,omitempty"`
-	Type      string   `json:"type"`
 	Addresses []string `json:"addresses,omitempty"`
 }
 
@@ -274,7 +275,6 @@ type ECAddrResult struct {
 	Asm       string   `json:"asm2"`
 	Hex       string   `json:"hex,omitempty"`
 	ReqSigs   int32    `json:"reqSigs,omitempty"`
-	Type      string   `json:"type"`
 	Addresses []string `json:"addresses,omitempty"`
 }
 
