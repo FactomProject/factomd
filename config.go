@@ -77,7 +77,7 @@ type config struct {
 	BanDuration   time.Duration `long:"banduration" description:"How long to ban misbehaving peers.  Valid time units are {s, m, h}.  Minimum 1 second"`
 	//	RPCUser            string        `short:"u" long:"rpcuser" description:"Username for RPC connections"`
 	//	RPCPass            string        `short:"P" long:"rpcpass" default-mask:"-" description:"Password for RPC connections"`
-	RPCListeners       []string `long:"rpclisten" description:"Add an interface/port to listen for RPC connections (default port: 8334, testnet: 18334)"`
+	RPCListeners       []string `long:"rpclisten" description:"Add an interface/port to listen for RPC connections (default port: 8384, testnet: 18334)"`
 	RPCCert            string   `long:"rpccert" description:"File containing the certificate file"`
 	RPCKey             string   `long:"rpckey" description:"File containing the certificate key"`
 	RPCMaxClients      int      `long:"rpcmaxclients" description:"Max number of RPC clients for standard connections"`

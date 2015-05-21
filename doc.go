@@ -38,7 +38,7 @@ Application Options:
   -u, --rpcuser=           Username for RPC connections
   -P, --rpcpass=           Password for RPC connections
       --rpclisten=         Add an interface/port to listen for RPC connections
-                           (default port: 8334, testnet: 18334)
+                           (default port: 8384, testnet: 18334)
       --rpccert=           File containing the certificate file
       --rpckey=            File containing the certificate key
       --rpcmaxclients=     Max number of RPC clients for standard connections

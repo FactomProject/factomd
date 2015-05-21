@@ -59,9 +59,9 @@ func normalizeAddress(addr string, useTestNet3, useSimNet, useWallet bool) strin
 			}
 		default:
 			if useWallet {
-				defaultPort = "8332"
+				defaultPort = "8382"
 			} else {
-				defaultPort = "8334"
+				defaultPort = "8384"
 			}
 		}
 
