@@ -35,6 +35,24 @@ func (p *peer) handleDirBlockMsg(msg *wire.MsgDirBlock, buf []byte) {
 	p.pushGetNonDirDataMsg(msg.DBlk)
 }
 
+// handleABlockMsg is invoked when a peer receives a entry credit block message.
+func (p *peer) handleABlockMsg(msg *wire.MsgABlock, buf []byte) {
+	util.Trace()
+	// Convert the raw MsgBlock to a btcutil.Block which provides some
+	// convenience methods and things such as hash caching.
+
+	fmt.Printf("msgABlock=%v\n", spew.Sdump(msg.ABlk))
+
+	binary, _ := msg.ABlk.MarshalBinary()
+	commonHash := common.Sha(binary)
+	hash, _ := wire.NewShaHash(commonHash.Bytes)
+
+	iv := wire.NewInvVect(wire.InvTypeFactomAdminBlock, hash)
+	p.AddKnownInventory(iv)
+
+	inMsgQueue <- msg
+}
+
 // handleCBlockMsg is invoked when a peer receives a entry credit block message.
 func (p *peer) handleCBlockMsg(msg *wire.MsgCBlock, buf []byte) {
 	util.Trace()
@@ -220,6 +238,9 @@ func (p *peer) handleGetNonDirDataMsg(msg *wire.MsgGetNonDirData) {
 			case cchain.ChainID.String():
 				err = p.pushCBlockMsg(dbEntry.MerkleRoot, c, waitChan)
 
+			case achain.ChainID.String():
+				err = p.pushABlockMsg(dbEntry.MerkleRoot, c, waitChan)
+				
 			case wire.FChainID.String():
 				err = p.pushBlockMsg(wire.FactomHashToShaHash(dbEntry.MerkleRoot), c, waitChan)
 
@@ -582,6 +603,38 @@ func (p *peer) pushGetEntryDataMsg(eblock *common.EBlock) {
 	if len(gdmsg.InvList) > 0 {
 		p.QueueMessage(gdmsg, nil)
 	}
+}
+
+
+// pushABlockMsg sends an admin block message for the provided block hash to the
+// connected peer.  An error is returned if the block hash is not known.
+func (p *peer) pushABlockMsg(commonhash *common.Hash, doneChan, waitChan chan struct{}) error {
+	util.Trace()
+
+	blk, err := db.FetchABlockByHash(commonhash)
+
+	if err != nil {
+		peerLog.Tracef("Unable to fetch requested admin block sha %v: %v",
+			commonhash, err)
+
+		if doneChan != nil {
+			doneChan <- struct{}{}
+		}
+		return err
+	}
+
+	fmt.Printf("commonHash=%s, admin block=%s\n", commonhash.String(), spew.Sdump(blk))
+
+	// Once we have fetched data wait for any previous operation to finish.
+	if waitChan != nil {
+		<-waitChan
+	}
+
+	msg := wire.NewMsgABlock()
+	msg.ABlk = blk
+	fmt.Printf("ablock=%s\n", spew.Sdump(blk))
+	p.QueueMessage(msg, doneChan) //blk.MsgBlock(), dc)
+	return nil
 }
 
 // pushCBlockMsg sends a entry credit block message for the provided block hash to the
