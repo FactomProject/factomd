@@ -1603,6 +1603,10 @@ out:
 			p.handleGetNonDirDataMsg(msg)
 			markConnected = true
 
+		case *wire.MsgABlock:
+			util.Trace()
+			p.handleABlockMsg(msg, buf)
+
 		case *wire.MsgCBlock:
 			util.Trace()
 			p.handleCBlockMsg(msg, buf)

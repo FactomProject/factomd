@@ -480,6 +480,20 @@ func processDirBlock(msg *wire.MsgDirBlock) error {
 	return nil
 }
 
+// processABlock validates admin block and save it to factom db.
+// similar to blockChain.BC_ProcessBlock
+func processABlock(msg *wire.MsgABlock) error {
+	util.Trace()
+
+	//Need to validate against Dchain??
+
+	db.ProcessABlockBatch(msg.ABlk)
+
+	fmt.Printf("PROCESSOR: MsgABlock=%s\n", spew.Sdump(msg.ABlk))
+
+	return nil
+}
+
 // processCBlock validates entry credit block and save it to factom db.
 // similar to blockChain.BC_ProcessBlock
 func processCBlock(msg *wire.MsgCBlock) error {
