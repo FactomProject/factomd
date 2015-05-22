@@ -8,7 +8,6 @@ import (
 	//	"fmt"
 	"github.com/FactomProject/btcd/wire"
 	"time"
-
 	"github.com/FactomProject/FactomCode/util"
 )
 
@@ -54,7 +53,7 @@ func (bt *BlockTimer) StartBlockTimer() {
 	minutesPassed := roundTime.Minute() - (roundTime.Minute()/10)*10
 
 	// Set the start time for the open dir block
-	dchain.Blocks[dchain.NextBlockHeight].Header.StartTime = uint64(roundTime.Add(time.Duration((0 - 60*minutesPassed) * 1000000000)).Unix())
+	dchain.NextBlock.Header.StartTime = uint64(roundTime.Add(time.Duration((0 - 60*minutesPassed) * 1000000000)).Unix())
 
 	for minutesPassed < 10 {
 
