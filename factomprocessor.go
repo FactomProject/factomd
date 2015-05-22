@@ -394,6 +394,21 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
 		}
 
+	case wire.CmdABlock:
+		if nodeMode == SERVER_NODE {
+			break
+		}
+
+		ablock, ok := msg.(*wire.MsgABlock)
+		if ok {
+			err := processABlock(ablock)
+			if err != nil {
+				return err
+			}
+		} else {
+			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
+		}
+
 	case wire.CmdCBlock:
 		if nodeMode == SERVER_NODE {
 			break
