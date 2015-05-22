@@ -1,5 +1,5 @@
-// Copyright (c) 2013-2015 Conformal Systems LLC.
-// Use of this source code is governed by an ISC
+// Copyright 2015 Factom Foundation
+// Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
 // This is a minimum wallet to be used to test the coin
@@ -17,12 +17,17 @@ import (
 )
 
 type ISCWallet interface {
+    GenerateAddress(name string)
+    GetAddressBalance(name string) uint64
+    GetAddressDetails(name string)
+    GetAddressList() names[]string
+    SubmitTransaction(ITransaction) error
+    GenerateMultisigAddress(name string, m int, n int, []string)
 }
 
 var oneSCW SCWallet
 
-type scwEntry struct {
-    authBlk IAuthorization
+
 
 type SCWallet struct {
     var scWallet map[[simplecoin.ADDRESS_LENGTH]byte] IAuthorization

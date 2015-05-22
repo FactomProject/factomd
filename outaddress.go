@@ -1,5 +1,5 @@
-// Copyright (c) 2013-2015 Conformal Systems LLC.
-// Use of this source code is governed by an ISC
+// Copyright 2015 Factom Foundation
+// Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
 // Output object for a Simplecoin transaction.   contains an amount

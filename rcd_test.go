@@ -1,5 +1,5 @@
-// Copyright (c) 2013-2015 Conformal Systems LLC.
-// Use of this source code is governed by an ISC
+// Copyright 2015 Factom Foundation
+// Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
 package simplecoin
@@ -17,10 +17,10 @@ var _ = rand.New
 
 func Test_Auth1_Equals(test *testing.T) {
     
-    var sig1 [64]byte
+    var sig1 [64]byte                               // Make a "random" 64 byte thing
     copy(sig1[:32],Sha([]byte("one")).Bytes())
     copy(sig1[32:],Sha([]byte("two")).Bytes())
-    var sig2 [64]byte
+    var sig2 [64]byte                               // Make another 64 byte thing
     copy(sig2[:32],Sha([]byte("three")).Bytes())
     copy(sig2[32:],Sha([]byte("four")).Bytes())
     
