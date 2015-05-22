@@ -30,9 +30,10 @@ func (p *peer) handleDirBlockMsg(msg *wire.MsgDirBlock, buf []byte) {
 	iv := wire.NewInvVect(wire.InvTypeFactomDirBlock, hash)
 	p.AddKnownInventory(iv)
 
+	p.pushGetNonDirDataMsg(msg.DBlk)
+	
 	inMsgQueue <- msg
 
-	p.pushGetNonDirDataMsg(msg.DBlk)
 }
 
 // handleABlockMsg is invoked when a peer receives a entry credit block message.
@@ -86,9 +87,11 @@ func (p *peer) handleEBlockMsg(msg *wire.MsgEBlock, buf []byte) {
 	iv := wire.NewInvVect(wire.InvTypeFactomEntryBlock, hash)
 	p.AddKnownInventory(iv)
 
+	p.pushGetEntryDataMsg(msg.EBlk)
+	
 	inMsgQueue <- msg
 
-	p.pushGetEntryDataMsg(msg.EBlk)
+
 }
 
 // handleCBlockMsg is invoked when a peer receives a EBlock Entry message.

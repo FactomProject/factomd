@@ -297,7 +297,9 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		} else {
 			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
 		}
-
+		// Broadcast the msg to the network if no errors
+		outMsgQueue <- msg
+		
 	case wire.CmdRevealChain:
 		msgRevealChain, ok := msg.(*wire.MsgRevealChain)
 		if ok {
@@ -308,6 +310,8 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		} else {
 			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
 		}
+		// Broadcast the msg to the network if no errors
+		outMsgQueue <- msg		
 
 	case wire.CmdCommitEntry:
 		msgCommitEntry, ok := msg.(*wire.MsgCommitEntry)
@@ -319,6 +323,8 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		} else {
 			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
 		}
+		// Broadcast the msg to the network if no errors
+		outMsgQueue <- msg
 
 	case wire.CmdRevealEntry:
 		msgRevealEntry, ok := msg.(*wire.MsgRevealEntry)
@@ -330,6 +336,8 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		} else {
 			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
 		}
+		// Broadcast the msg to the network if no errors
+		outMsgQueue <- msg		
 
 	case wire.CmdInt_FactoidObj:
 		factoidObj, ok := msg.(*wire.MsgInt_FactoidObj)
@@ -453,23 +461,12 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		} else {
 			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
 		}
-		/* this should be done on the btcd side
-		case wire.CmdBlock: // Factoid block
-			if nodeMode == SERVER_NODE { break }
 
-			block, ok := msg.(*wire.MsgBlock)
-			if ok {
-				err := processFactoidBlock(block)
-				if err != nil {
-					return err
-				}
-			} else {
-				return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
-			}
-		*/
 	default:
 		return errors.New("Message type unsupported:" + fmt.Sprintf("%+v", msg))
 	}
+	
+						
 	return nil
 }
 
@@ -491,6 +488,8 @@ func processDirBlock(msg *wire.MsgDirBlock) error {
 	fmt.Printf("PROCESSOR: MsgDirBlock=%s\n", spew.Sdump(msg.DBlk))
 
 	msg.DBlk = nil
+	
+	exportDChain(dchain)
 
 	return nil
 }
@@ -505,6 +504,8 @@ func processABlock(msg *wire.MsgABlock) error {
 	db.ProcessABlockBatch(msg.ABlk)
 
 	fmt.Printf("PROCESSOR: MsgABlock=%s\n", spew.Sdump(msg.ABlk))
+	
+	exportAChain(achain)
 
 	return nil
 }
@@ -519,6 +520,8 @@ func processCBlock(msg *wire.MsgCBlock) error {
 	db.ProcessCBlockBatch(msg.CBlk)
 
 	fmt.Printf("PROCESSOR: MsgCBlock=%s\n", spew.Sdump(msg.CBlk))
+	
+	exportCChain(cchain)
 
 	return nil
 }
@@ -572,6 +575,8 @@ func processEBlock(msg *wire.MsgEBlock) error {
 
 	fmt.Printf("PROCESSOR: MsgEBlock=%s\n", spew.Sdump(msg.EBlk))
 
+	exportEChain(chain)
+	
 	return nil
 }
 
