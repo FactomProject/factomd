@@ -5,8 +5,8 @@
 package simplecoin
 
 const (
-    
-	ADDRESS_LENGTH = 32                // Length of an Address or a Hash
-	SIGNATURE_LENGTH = 64              // Length of a signature
-	MAX_TRANSACTION_SIZE = 10240       // 10K like everything else?
+	ADDRESS_LENGTH       = 32    // Length of an Address or a Hash or Public Key
+    PRIVATE_LENGTH       = 64    // length of a Private Key
+	SIGNATURE_LENGTH     = 64    // Length of a signature
+	MAX_TRANSACTION_SIZE = 10240 // 10K like everything else?
 )

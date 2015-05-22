@@ -30,24 +30,23 @@ type Hash struct {
 var _ IHash = (*Hash)(nil)
 
 func (t Hash) IsEqual(hash IBlock) bool {
-    h, ok := hash.(IHash)
-    if !ok || !h.IsSameAs(&t) { 
-        return false
-    }
-    
-    return true
-}
+	h, ok := hash.(IHash)
+	if !ok || !h.IsSameAs(&t) {
+		return false
+	}
 
+	return true
+}
 
 func (t *Hash) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 
-    if(len(data)<ADDRESS_LENGTH) {
-        PrtStk()
-        return nil, fmt.Errorf("Data source too short to unmarshal a Hash: %d",len(data))
-    }
-    
-    copy(t.hash[:],data[:ADDRESS_LENGTH])
-    return data[ADDRESS_LENGTH:], err
+	if len(data) < ADDRESS_LENGTH {
+		PrtStk()
+		return nil, fmt.Errorf("Data source too short to unmarshal a Hash: %d", len(data))
+	}
+
+	copy(t.hash[:], data[:ADDRESS_LENGTH])
+	return data[ADDRESS_LENGTH:], err
 }
 
 func (h Hash) NewBlock() IBlock {
@@ -77,8 +76,8 @@ func (h Hash) MarshalBinary() ([]byte, error) {
 }
 
 func (h *Hash) UnmarshalBinary(p []byte) error {
-    h.hash = *new([32]byte)
-    copy(h.hash[:], p)
+	h.hash = *new([32]byte)
+	copy(h.hash[:], p)
 	return nil
 }
 
@@ -87,7 +86,7 @@ func (h *Hash) UnmarshalBinary(p []byte) error {
 // value.
 func (h Hash) Bytes() []byte {
 	newHash := make([]byte, ADDRESS_LENGTH)
-    copy(newHash, h.hash[:])
+	copy(newHash, h.hash[:])
 
 	return newHash
 }
@@ -101,7 +100,7 @@ func (hash *Hash) SetBytes(newHash []byte) error {
 	}
 
 	hash.hash = *new([32]byte)
-    copy(hash.hash[:], newHash)
+	copy(hash.hash[:], newHash)
 	return nil
 }
 
@@ -117,13 +116,13 @@ func Sha(p []byte) (h2 IHash) {
 
 // Convert a hash into a string with hex encoding
 func (h Hash) String() string {
-    return hex.EncodeToString(h.hash[:])
+	return hex.EncodeToString(h.hash[:])
 }
 
 func (hash Hash) HexToHash(hexStr string) (h2 IHash, err error) {
 	h := new(Hash)
 	byt, err := hex.DecodeString(hexStr)
-    copy(h.hash[:], byt)
+	copy(h.hash[:], byt)
 	return h, err
 }
 

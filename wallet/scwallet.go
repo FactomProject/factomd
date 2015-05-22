@@ -10,48 +10,45 @@
 package wallet
 
 import (
-    "fmt"
     "github.com/agl/ed25519"
     "math/rand"
-    "testing"
+    "github.com/FactomProject/simplecoin"
+    "github.com/FactomProject/simplecoin/database"
 )
 
 type ISCWallet interface {
+    database.ISCDatabase
+    generateKey() (public []byte,private []byte, err error)
     GenerateAddress(name string)
     GetAddressBalance(name string) uint64
     GetAddressDetails(name string)
-    GetAddressList() names[]string
-    SubmitTransaction(ITransaction) error
-    GenerateMultisigAddress(name string, m int, n int, []string)
+    GetAddressList() (names[]string)
+    SubmitTransaction(simplecoin.ITransaction) error
 }
 
 var oneSCW SCWallet
 
-
-
 type SCWallet struct {
-    var scWallet map[[simplecoin.ADDRESS_LENGTH]byte] IAuthorization
-    var r *rand.Rand
+    database.SCDatabase
+    r *rand.Rand
 }
 
 func (w *SCWallet) WalletInit () {
-    if r != nul { return }
-    r = rand.New(rand.NewSource(13436523)) 
+    if w.r != nil { return }
+    w.r = rand.New(rand.NewSource(13436523)) 
+}
     
-    for i:=0 ; i < 10 ; i++ {
-        public, private, _ := ed25519.GenerateKey(w)
-            
-            
-    }
-    
-
 func (w *SCWallet) Read(buf []byte) (int, error) {
     //if r==nil { r = rand.New(rand.NewSource(time.Now().Unix())) }
     w.WalletInit()
     for i := range buf {
-        buf[i] = byte(r.Int())
+        buf[i] = byte(w.r.Int())
     }
     return len(buf), nil
 }
 
-    
+func (w *SCWallet) generateKey() (public []byte,private []byte, err error){
+    pub,pri,err := ed25519.GenerateKey(w)
+    return pub[:], pri[:], err
+}
+

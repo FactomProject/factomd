@@ -11,9 +11,9 @@
 package simplecoin
 
 import (
-    "fmt"
 	"bytes"
 	"encoding/binary"
+	"fmt"
 )
 
 type ITransAddress interface {
@@ -31,30 +31,28 @@ type TransAddress struct {
 var _ ITransAddress = (*TransAddress)(nil)
 
 func (t TransAddress) IsEqual(addr IBlock) bool {
-    a, ok := addr.(ITransAddress)
-    if 
-        !ok ||                                          // Not the right kind of IBlock
-        a.GetAmount() != t.GetAmount() ||               // Amount is different
-        !a.GetAddress().IsEqual(t.GetAddress()) {       // Address is different
-            return false
-        }
-    
-    return true
+	a, ok := addr.(ITransAddress)
+	if !ok || // Not the right kind of IBlock
+		a.GetAmount() != t.GetAmount() || // Amount is different
+		!a.GetAddress().IsEqual(t.GetAddress()) { // Address is different
+		return false
+	}
+
+	return true
 }
 
-
 func (t *TransAddress) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-    
-    if(len(data)<36) {
-        return nil, fmt.Errorf("Data source too short to UnmarshalBinary() an address: %d",len(data))
-    }
-    
-    t.amount, data = binary.BigEndian.Uint64(data[0:8]), data[8:]
-    t.address = new(Address)
-    
-    data,err = t.address.UnmarshalBinaryData(data)
-    
-    return data,err
+
+	if len(data) < 36 {
+		return nil, fmt.Errorf("Data source too short to UnmarshalBinary() an address: %d", len(data))
+	}
+
+	t.amount, data = binary.BigEndian.Uint64(data[0:8]), data[8:]
+	t.address = new(Address)
+
+	data, err = t.address.UnmarshalBinaryData(data)
+
+	return data, err
 }
 
 // MarshalBinary.  'nuff said

@@ -9,7 +9,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
-    "runtime/debug"
+	"runtime/debug"
 )
 
 /*********************************
@@ -57,8 +57,8 @@ func WriteNumber8(out *bytes.Buffer, num uint8) {
  **************************************/
 
 func PrtStk() {
-    Prtln()
-    debug.PrintStack()
+	Prtln()
+	debug.PrintStack()
 }
 
 func Prt(a ...interface{}) {
@@ -84,7 +84,7 @@ func PrtData(data []byte) {
 				fmt.Print(" | ")
 			}
 		}
-	}    
+	}
 }
 func PrtDataL(title string, data []byte) {
 	fmt.Println()
