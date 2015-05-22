@@ -24,9 +24,9 @@ func Test_Auth1_Equals(test *testing.T) {
     copy(sig2[:32],Sha([]byte("three")).Bytes())
     copy(sig2[32:],Sha([]byte("four")).Bytes())
     
-    a1 := new(Authorize_1)
+    a1 := new(RCD_1)
     a1.signature = sig1[:]
-    a2 := new(Authorize_1)
+    a2 := new(RCD_1)
     a2.signature = sig1[:]
     
     if !a1.IsEqual(a2) {        

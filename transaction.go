@@ -277,12 +277,12 @@ func (t Transaction) MarshalText() (text []byte, err error) {
 
 type ISignedTransaction interface {
 	ITransaction
-	AddAuthorization(auth IAuthorization)
+	AddAuthorization(auth IRCD)
 }
 
 type SignedTransaction struct {
 	Transaction
-	authorizations []IAuthorization
+	authorizations []IRCD
 }
 
 var _ ISignedTransaction = (*SignedTransaction)(nil)
@@ -310,7 +310,7 @@ func (t *SignedTransaction) UnmarshalBinaryData(data []byte) (newData []byte, er
     data, err = t.UnmarshalBinaryData2(data)
     
     if t.authorizations == nil {
-        t.authorizations = make([]IAuthorization, len(t.inputs))
+        t.authorizations = make([]IRCD, len(t.inputs))
     }
     
     for i:=0; i<len(t.inputs); i++ {
@@ -358,9 +358,9 @@ func (cb SignedTransaction) NewBlock() IBlock {
 // Helper Function.  This simply adds an Authorization to a 
 // transaction.  DOES NO VALIDATION.  Not the job of construction.
 // That's why we have a validation call.
-func (st *SignedTransaction) AddAuthorization(auth IAuthorization) {
+func (st *SignedTransaction) AddAuthorization(auth IRCD) {
 	if st.authorizations == nil {
-		st.authorizations = make([]IAuthorization, 0, 5)
+		st.authorizations = make([]IRCD, 0, 5)
 	}
 	st.authorizations = append(st.authorizations, auth)
 }

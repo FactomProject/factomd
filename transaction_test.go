@@ -54,7 +54,7 @@ func nextSig() []byte {
 }
 
 
-func nextAuth2() IAuthorization {
+func nextAuth2() IRCD {
     if r==nil { r = rand.New(rand.NewSource(1)) }
     n := r.Int()%4 + 1
     m := r.Int()%4 + n
