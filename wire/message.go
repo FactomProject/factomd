@@ -56,7 +56,7 @@ const (
 	CmdGetDirData    = "getdirdata"
 	CmdDirBlock      = "dirblock"
 	CmdGetNonDirData = "getnodirdata"
-	CmdCBlock        = "ecblock"    // Entry Credit Block
+	CmdECBlock        = "ecblock"    // Entry Credit Block
 	CmdEBlock        = "entryblock" // Entry Block
 	CmdGetEntryData  = "getentrydata"
 	CmdEntry         = "entry"
@@ -182,8 +182,8 @@ func makeEmptyMessage(command string) (Message, error) {
 	case CmdGetNonDirData:
 		msg = &MsgGetNonDirData{}
 
-	case CmdCBlock:
-		msg = &MsgCBlock{}
+	case CmdECBlock:
+		msg = &MsgECBlock{}
 
 	case CmdEBlock:
 		msg = &MsgEBlock{}
