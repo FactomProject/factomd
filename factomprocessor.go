@@ -481,13 +481,13 @@ func processDirBlock(msg *wire.MsgDirBlock) error {
 		return nil
 	}
 
+	msg.DBlk.IsSealed = true
 	dchain.AddDBlockToDChain(msg.DBlk)
 
 	db.ProcessDBlockBatch(msg.DBlk) //?? to be removed later
 
 	fmt.Printf("PROCESSOR: MsgDirBlock=%s\n", spew.Sdump(msg.DBlk))
-
-	msg.DBlk = nil
+	fmt.Printf("PROCESSOR: dchain=%s\n", spew.Sdump(dchain))
 	
 	exportDChain(dchain)
 
@@ -1444,13 +1444,7 @@ func exportDChain(chain *common.DChain) {
 		return
 	}
 
-	bcp := make([]*common.DirectoryBlock, len(chain.Blocks))
-
-	chain.BlockMutex.Lock()
-	copy(bcp, chain.Blocks)
-	chain.BlockMutex.Unlock()
-
-	for i, block := range bcp {
+	for _, block := range chain.Blocks {
 		//the open block is not saved
 		if block == nil || block.IsSealed == false {
 			continue
@@ -1470,7 +1464,7 @@ func exportDChain(chain *common.DChain) {
 				log.Println(err)
 			}
 		}
-		err = ioutil.WriteFile(fmt.Sprintf(dataStorePath+strChainID+"/store.%09d.block", i), data, 0777)
+		err = ioutil.WriteFile(fmt.Sprintf(dataStorePath+strChainID+"/store.%09d.block", block.Header.BlockHeight), data, 0777)
 		if err != nil {
 			panic(err)
 		}
@@ -1485,7 +1479,7 @@ func exportEChain(chain *common.EChain) {
 	eBlocks, _ := db.FetchAllEBlocksByChain(chain.ChainID)
 	sort.Sort(util.ByEBlockIDAccending(*eBlocks))
 
-	for i, block := range *eBlocks {
+	for _, block := range *eBlocks {
 
 		data, err := block.MarshalBinary()
 		if err != nil {
@@ -1502,7 +1496,7 @@ func exportEChain(chain *common.EChain) {
 			}
 		}
 
-		err = ioutil.WriteFile(fmt.Sprintf(dataStorePath+strChainID+"/store.%09d.block", i), data, 0777)
+		err = ioutil.WriteFile(fmt.Sprintf(dataStorePath+strChainID+"/store.%09d.block", block.Header.DBHeight), data, 0777)
 		if err != nil {
 			panic(err)
 		}
@@ -1517,7 +1511,7 @@ func exportCChain(chain *common.CChain) {
 	cBlocks, _ := db.FetchAllCBlocks()
 	sort.Sort(util.ByCBlockIDAccending(cBlocks))
 
-	for i, block := range cBlocks {
+	for _, block := range cBlocks {
 
 		data, err := block.MarshalBinary()
 		if err != nil {
@@ -1533,7 +1527,7 @@ func exportCChain(chain *common.CChain) {
 				log.Println(err)
 			}
 		}
-		err = ioutil.WriteFile(fmt.Sprintf(dataStorePath+strChainID+"/store.%09d.block", i), data, 0777)
+		err = ioutil.WriteFile(fmt.Sprintf(dataStorePath+strChainID+"/store.%09d.block", block.Header.DBHeight), data, 0777)
 		if err != nil {
 			panic(err)
 		}
@@ -1548,7 +1542,7 @@ func exportAChain(chain *common.AdminChain) {
 	aBlocks, _ := db.FetchAllABlocks()
 	sort.Sort(util.ByABlockIDAccending(aBlocks))
 
-	for i, block := range aBlocks {
+	for _, block := range aBlocks {
 
 		data, err := block.MarshalBinary()
 		if err != nil {
@@ -1564,7 +1558,7 @@ func exportAChain(chain *common.AdminChain) {
 				log.Println(err)
 			}
 		}
-		err = ioutil.WriteFile(fmt.Sprintf(dataStorePath+strChainID+"/store.%09d.block", i), data, 0777)
+		err = ioutil.WriteFile(fmt.Sprintf(dataStorePath+strChainID+"/store.%09d.block", block.Header.DBHeight), data, 0777)
 		if err != nil {
 			panic(err)
 		}
