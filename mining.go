@@ -7,17 +7,11 @@ package btcd
 import (
 	"container/heap"
 	"container/list"
-	//	"crypto/rand"
-	//	"fmt"
-	"time"
-
+	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/btcd/blockchain"
 	"github.com/FactomProject/btcd/database"
-	//	"github.com/FactomProject/btcd/txscript"
 	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/btcutil"
-
-	"github.com/FactomProject/FactomCode/util"
 )
 
 const (
@@ -35,7 +29,7 @@ const (
 
 	// blockHeaderOverhead is the max number of bytes it takes to serialize
 	// a block header and max possible transaction count.
-	blockHeaderOverhead = wire.MaxBlockHeaderPayload + wire.MaxVarIntPayload
+	blockHeaderOverhead = wire.BlockHeaderLen + wire.MaxVarIntPayload
 
 	// coinbaseFlags is added to the coinbase script of a generated block
 	// and is used to monitor BIP16 support as well as blocks that are
@@ -355,6 +349,10 @@ func logSkippedDeps(tx *btcutil.Tx, deps *list.List) {
 	}
 }
 
+/*****************************************
+ * Time isn't handled in the coin in Factom
+ * ************************************
+ *
 // minimumMedianTime returns the minimum allowed timestamp for a block building
 // on the end of the current best chain.  In particular, it is one second after
 // the median timestamp of the last several blocks per the chain consensus
@@ -410,7 +408,7 @@ func UpdateBlockTime(msgBlock *wire.MsgBlock, bManager *blockManager) error {
 	}
 	msgBlock.Header.Timestamp = newTimestamp
 
-	/*
+	/
 		// If running on a network that requires recalculating the difficulty,
 		// do so now.
 		if activeNetParams.ResetMinDifficulty {
@@ -420,10 +418,11 @@ func UpdateBlockTime(msgBlock *wire.MsgBlock, bManager *blockManager) error {
 			}
 			msgBlock.Header.Bits = difficulty
 		}
-	*/
+	/
 
 	return nil
 }
+**************************************/
 
 // UpdateExtraNonce updates the extra nonce in the coinbase script of the passed
 // block by regenerating the coinbase script with the passed value and block

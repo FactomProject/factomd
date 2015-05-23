@@ -87,8 +87,7 @@ func (b *BlockChain) maybeAcceptBlock(block *btcutil.Block, flags BehaviorFlags)
 
 		// Ensure all transactions in the block are finalized.
 		for _, tx := range block.Transactions() {
-			if !IsFinalizedTransaction(tx, blockHeight,
-				blockHeader.Timestamp) {
+			if !IsFinalizedTransaction(tx, blockHeight) {
 				str := fmt.Sprintf("block contains "+
 					"unfinalized transaction %v", tx.Sha())
 				return ruleError(ErrUnfinalizedTx, str)
@@ -125,50 +124,15 @@ func (b *BlockChain) maybeAcceptBlock(block *btcutil.Block, flags BehaviorFlags)
 	}
 	util.Trace()
 
-	if !fastAdd {
-		// Reject version 1 blocks once a majority of the network has
-		// upgraded.  This is part of BIP0034.
-		if blockHeader.Version < 2 {
-			if b.isMajorityVersion(2, prevNode,
-				b.chainParams.BlockV1RejectNumRequired,
-				b.chainParams.BlockV1RejectNumToCheck) {
-
-				str := "new blocks with version %d are no " +
-					"longer valid"
-				str = fmt.Sprintf(str, blockHeader.Version)
-				return ruleError(ErrBlockVersionTooOld, str)
-			}
-		}
-		util.Trace()
-
-		// Ensure coinbase starts with serialized block heights for
-		// blocks whose version is the serializedHeightVersion or
-		// newer once a majority of the network has upgraded.  This is
-		// part of BIP0034.
-		if blockHeader.Version >= serializedHeightVersion {
-			if b.isMajorityVersion(serializedHeightVersion,
-				prevNode,
-				b.chainParams.CoinbaseBlockHeightNumRequired,
-				b.chainParams.CoinbaseBlockHeightNumToCheck) {
-
-				/*
-					expectedHeight := int64(0)
-					if prevNode != nil {
-						expectedHeight = prevNode.height + 1
-					}
-					coinbaseTx := block.Transactions()[0]
-					err := checkSerializedHeight(coinbaseTx,
-						expectedHeight)
-					if err != nil {
-						return err
-					}
-				*/
-			}
-		}
-		util.Trace()
-	}
-	util.Trace()
-
+    /*********************************************
+        Once there was code here for rejecting blocks.
+        FACTOM doesn't do this sort of thing.  Blocks
+        simply are not rejected.
+        
+        Rejecting messages or transactins based on 
+        versions will be done above the coin.  So 
+        we don't need that logic here.
+    **********************************************/
 	// Prune block nodes which are no longer needed before creating
 	// a new node.
 	if !dryRun {

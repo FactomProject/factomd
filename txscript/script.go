@@ -1065,6 +1065,7 @@ func payToPubKeyScript(serializedPubKey []byte) ([]byte, error) {
 		AddOp(OP_CHECKSIG).Script()
 }
 
+/*
 // PayToAddrScript creates a new script to pay a transaction output to a the
 // specified address.
 func PayToAddrScript(addr btcutil.Address) ([]byte, error) {
@@ -1090,6 +1091,7 @@ func PayToAddrScript(addr btcutil.Address) ([]byte, error) {
 
 	return nil, ErrUnsupportedAddress
 }
+*/
 
 // ErrBadNumRequired is returned from MultiSigScript when nrequired is larger
 // than the number of provided public keys.

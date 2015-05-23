@@ -17,12 +17,9 @@ import (
 	"sync"
 	"time"
 
-	//	"golang.org/x/crypto/ripemd160"
-
 	"github.com/FactomProject/FactomCode/util"
-	"github.com/FactomProject/btcd/database"
-	//	"github.com/FactomProject/btcd/txscript"
 	"github.com/FactomProject/btcd/btcjson"
+	"github.com/FactomProject/btcd/database"
 	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/btcutil"
 	"github.com/FactomProject/btcws"
@@ -600,7 +597,7 @@ func blockDetails(block *btcutil.Block, txIndex int) *btcws.BlockDetails {
 		Height: int32(block.Height()),
 		Hash:   blockSha.String(),
 		Index:  txIndex,
-		Time:   block.MsgBlock().Header.Timestamp.Unix(),
+		Time:   0,
 	}
 }
 
@@ -1448,7 +1445,7 @@ func handleNotifyReceived(wsc *wsClient, icmd btcjson.Cmd) (interface{}, *btcjso
 	}
 
 	for _, addrStr := range cmd.Addresses {
-		addr, err := btcutil.DecodeAddress(addrStr, activeNetParams.Params)
+		addr, err := btcutil.DecodeAddress(addrStr)
 		if err != nil {
 			e := btcjson.Error{
 				Code:    btcjson.ErrInvalidAddressOrKey.Code,
@@ -1731,7 +1728,7 @@ func handleRescan(wsc *wsClient, icmd btcjson.Cmd) (interface{}, *btcjson.Error)
 	//	var uncompressedPubkey [65]byte
 
 	for _, addrStr := range cmd.Addresses {
-		addr, err := btcutil.DecodeAddress(addrStr, activeNetParams.Params)
+		addr, err := btcutil.DecodeAddress(addrStr)
 		util.Trace(addrStr)
 		util.Trace(spew.Sdump(addr))
 
@@ -1904,7 +1901,7 @@ fetchRange:
 
 			n := btcws.NewRescanProgressNtfn(hashList[i].String(),
 				int32(blk.Height()),
-				blk.MsgBlock().Header.Timestamp.Unix())
+				0)
 			mn, err := n.MarshalJSON()
 			if err != nil {
 				rpcsLog.Errorf("Failed to marshal rescan "+
@@ -1937,7 +1934,7 @@ fetchRange:
 	}
 	n := btcws.NewRescanFinishedNtfn(blkSha.String(),
 		int32(lastBlock.Height()),
-		lastBlock.MsgBlock().Header.Timestamp.Unix())
+		0)
 	if mn, err := n.MarshalJSON(); err != nil {
 		rpcsLog.Errorf("Failed to marshal rescan finished "+
 			"notification: %v", err)

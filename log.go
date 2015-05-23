@@ -14,7 +14,6 @@ import (
 
 	"github.com/FactomProject/btcd/blockchain"
 	"github.com/FactomProject/btcd/database"
-	//	"github.com/FactomProject/btcd/txscript"
 	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/btclog"
 	"github.com/FactomProject/seelog"
@@ -333,10 +332,8 @@ func messageSummary(msg wire.Message) string {
 			formatLockTime(msg.LockTime))
 
 	case *wire.MsgBlock:
-		header := &msg.Header
 		hash, _ := msg.BlockSha()
-		return fmt.Sprintf("hash %s, ver %d, %d tx, %s", hash,
-			header.Version, len(msg.Transactions), header.Timestamp)
+		return fmt.Sprintf("hash %s, %d tx ", hash, len(msg.Transactions))
 
 	case *wire.MsgInv:
 		return invSummary(msg.InvList)

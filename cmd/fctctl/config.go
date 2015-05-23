@@ -12,9 +12,9 @@ import (
 )
 
 var (
-	btcdHomeDir           = btcutil.AppDataDir("btcd", false)
-	btcctlHomeDir         = btcutil.AppDataDir("btcctl", false)
-	btcwalletHomeDir      = btcutil.AppDataDir("btcwallet", false)
+	btcdHomeDir           = btcutil.AppDataDir("factom", false)
+	btcctlHomeDir         = btcutil.AppDataDir("fctctl", false)
+	btcwalletHomeDir      = btcutil.AppDataDir("fctwallet", false)
 	defaultConfigFile     = filepath.Join(btcctlHomeDir, "btcctl.conf")
 	defaultRPCServer      = "localhost"
 	defaultRPCCertFile    = filepath.Join(btcdHomeDir, "rpc.cert")
@@ -59,9 +59,9 @@ func normalizeAddress(addr string, useTestNet3, useSimNet, useWallet bool) strin
 			}
 		default:
 			if useWallet {
-				defaultPort = "8332"
+				defaultPort = "8382"
 			} else {
-				defaultPort = "8334"
+				defaultPort = "8384"
 			}
 		}
 

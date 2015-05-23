@@ -8,24 +8,17 @@ import (
 	"bytes"
 	"reflect"
 	"testing"
-	"time"
-
 	"github.com/FactomProject/btcd/wire"
 	"github.com/davecgh/go-spew/spew"
 )
 
 // TestBlockHeader tests the BlockHeader API.
 func TestBlockHeader(t *testing.T) {
-	nonce64, err := wire.RandomUint64()
-	if err != nil {
-		t.Errorf("RandomUint64: Error generating nonce: %v", err)
-	}
-	nonce := uint32(nonce64)
 
 	hash := mainNetGenesisHash
 	merkleHash := mainNetGenesisMerkleRoot
-	bits := uint32(0x1d00ffff)
-	bh := wire.NewBlockHeader(&hash, &merkleHash, bits, nonce)
+	prevHash3 := mainNetGenesisPrevHash3
+	bh := wire.NewBlockHeader(&hash, &merkleHash, &prevHash3)
 
 	// Ensure we get the same data back out.
 	if !bh.PrevBlock.IsEqual(&hash) {
@@ -36,35 +29,21 @@ func TestBlockHeader(t *testing.T) {
 		t.Errorf("NewBlockHeader: wrong merkle root - got %v, want %v",
 			spew.Sprint(bh.MerkleRoot), spew.Sprint(merkleHash))
 	}
-	if bh.Bits != bits {
-		t.Errorf("NewBlockHeader: wrong bits - got %v, want %v",
-			bh.Bits, bits)
-	}
-	if bh.Nonce != nonce {
-		t.Errorf("NewBlockHeader: wrong nonce - got %v, want %v",
-			bh.Nonce, nonce)
-	}
 }
 
 // TestBlockHeaderWire tests the BlockHeader wire encode and decode for various
 // protocol versions.
 func TestBlockHeaderWire(t *testing.T) {
-	nonce := uint32(123123) // 0x1e0f3
 
 	// baseBlockHdr is used in the various tests as a baseline BlockHeader.
-	bits := uint32(0x1d00ffff)
 	baseBlockHdr := &wire.BlockHeader{
-		Version:    1,
 		PrevBlock:  mainNetGenesisHash,
 		MerkleRoot: mainNetGenesisMerkleRoot,
-		Timestamp:  time.Unix(0x495fab29, 0), // 2009-01-03 12:15:05 -0600 CST
-		Bits:       bits,
-		Nonce:      nonce,
+        PrevHash3:  mainNetGenesisPrevHash3,
 	}
 
 	// baseBlockHdrEncoded is the wire encoded bytes of baseBlockHdr.
 	baseBlockHdrEncoded := []byte{
-		0x00, 0x00, 0x00, 0x01, // Version 1
 		0x6f, 0xe2, 0x8c, 0x0a, 0xb6, 0xf1, 0xb3, 0x72,
 		0xc1, 0xa6, 0xa2, 0x46, 0xae, 0x63, 0xf7, 0x4f,
 		0x93, 0x1e, 0x83, 0x65, 0xe1, 0x5a, 0x08, 0x9c,
@@ -73,9 +52,10 @@ func TestBlockHeaderWire(t *testing.T) {
 		0x7a, 0xc7, 0x2c, 0x3e, 0x67, 0x76, 0x8f, 0x61,
 		0x7f, 0xc8, 0x1b, 0xc3, 0x88, 0x8a, 0x51, 0x32,
 		0x3a, 0x9f, 0xb8, 0xaa, 0x4b, 0x1e, 0x5e, 0x4a, // MerkleRoot
-		0x49, 0x5f, 0xab, 0x29, // Timestamp
-		0x1d, 0x00, 0xff, 0xff, // Bits
-		0x00, 0x01, 0xe0, 0xf3, // Nonce
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // PrevBlock3
 	}
 
 	tests := []struct {
@@ -158,22 +138,15 @@ func TestBlockHeaderWire(t *testing.T) {
 
 // TestBlockHeaderSerialize tests BlockHeader serialize and deserialize.
 func TestBlockHeaderSerialize(t *testing.T) {
-	nonce := uint32(123123) // 0x1e0f3
 
 	// baseBlockHdr is used in the various tests as a baseline BlockHeader.
-	bits := uint32(0x1d00ffff)
 	baseBlockHdr := &wire.BlockHeader{
-		Version:    1,
 		PrevBlock:  mainNetGenesisHash,
 		MerkleRoot: mainNetGenesisMerkleRoot,
-		Timestamp:  time.Unix(0x495fab29, 0), // 2009-01-03 12:15:05 -0600 CST
-		Bits:       bits,
-		Nonce:      nonce,
 	}
 
 	// baseBlockHdrEncoded is the wire encoded bytes of baseBlockHdr.
 	baseBlockHdrEncoded := []byte{
-		0x00, 0x00, 0x00, 0x01, // Version 1
 		0x6f, 0xe2, 0x8c, 0x0a, 0xb6, 0xf1, 0xb3, 0x72,
 		0xc1, 0xa6, 0xa2, 0x46, 0xae, 0x63, 0xf7, 0x4f,
 		0x93, 0x1e, 0x83, 0x65, 0xe1, 0x5a, 0x08, 0x9c,
@@ -182,9 +155,10 @@ func TestBlockHeaderSerialize(t *testing.T) {
 		0x7a, 0xc7, 0x2c, 0x3e, 0x67, 0x76, 0x8f, 0x61,
 		0x7f, 0xc8, 0x1b, 0xc3, 0x88, 0x8a, 0x51, 0x32,
 		0x3a, 0x9f, 0xb8, 0xaa, 0x4b, 0x1e, 0x5e, 0x4a, // MerkleRoot
-		0x49, 0x5f, 0xab, 0x29, // Timestamp
-		0x1d, 0x00, 0xff, 0xff, // Bits
-		0x00, 0x01, 0xe0, 0xf3, // Nonce
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // PrevBlock3
 	}
 
 	tests := []struct {

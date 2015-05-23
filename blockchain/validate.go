@@ -5,16 +5,11 @@
 package blockchain
 
 import (
-	//	"encoding/binary"
 	"fmt"
-	//	"math"
 	"math/big"
-	"time"
 
 	"github.com/FactomProject/FactomCode/util"
-	//	"github.com/FactomProject/btcd/chaincfg"
 	"github.com/FactomProject/btcd/database"
-	//	"github.com/FactomProject/btcd/txscript"
 	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/btcutil"
 
@@ -141,39 +136,9 @@ func IsCoinBase(tx *btcutil.Tx) bool {
 }
 
 // IsFinalizedTransaction determines whether or not a transaction is finalized.
-func IsFinalizedTransaction(tx *btcutil.Tx, blockHeight int64, blockTime time.Time) bool {
-	msgTx := tx.MsgTx()
+// TODO: pay attention to locktime in some way.
+func IsFinalizedTransaction(tx *btcutil.Tx, blockHeight int64) bool {
 
-	// Lock time of zero means the transaction is finalized.
-	lockTime := msgTx.LockTime
-	if lockTime == 0 {
-		return true
-	}
-
-	// The lock time field of a transaction is either a block height at
-	// which the transaction is finalized or a timestamp depending on if the
-	// value is before the lockTimeThreshold.  When it is under the
-	// threshold it is a block height.
-	blockTimeOrHeight := int64(0)
-	if lockTime < lockTimeThreshold { // need to verify the threshold here !!!!!!!!!!!!
-		blockTimeOrHeight = blockHeight
-	} else {
-		blockTimeOrHeight = blockTime.Unix()
-	}
-	if int64(lockTime) < blockTimeOrHeight {
-		return true
-	}
-
-	/*
-		// At this point, the transaction's lock time hasn't occured yet, but
-		// the transaction might still be finalized if the sequence number
-		// for all transaction inputs is maxed out.
-		for _, txIn := range msgTx.TxIn {
-			if txIn.Sequence != math.MaxUint32 {
-				return false
-			}
-		}
-	*/
 	return true
 }
 
@@ -503,27 +468,6 @@ func checkBlockSanity(block *btcutil.Block, powLimit *big.Int, timeSource Median
 		}
 	*/
 
-	// A block timestamp must not have a greater precision than one second.
-	// This check is necessary because Go time.Time values support
-	// nanosecond precision whereas the consensus rules only apply to
-	// seconds and it's much nicer to deal with standard Go time values
-	// instead of converting to seconds everywhere.
-	header := &block.MsgBlock().Header
-	if !header.Timestamp.Equal(time.Unix(header.Timestamp.Unix(), 0)) {
-		str := fmt.Sprintf("block timestamp of %v has a higher "+
-			"precision than one second", header.Timestamp)
-		return ruleError(ErrInvalidTime, str)
-	}
-
-	// Ensure the block time is not too far in the future.
-	maxTimestamp := timeSource.AdjustedTime().Add(time.Second *
-		MaxTimeOffsetSeconds)
-	if header.Timestamp.After(maxTimestamp) {
-		str := fmt.Sprintf("block timestamp of %v is too far in the "+
-			"future", header.Timestamp)
-		return ruleError(ErrTimeTooNew, str)
-	}
-
 	util.Trace()
 	// The first transaction in a block must be a coinbase.
 	transactions := block.Transactions()
@@ -561,6 +505,8 @@ func checkBlockSanity(block *btcutil.Block, powLimit *big.Int, timeSource Median
 	// checks.  Bitcoind builds the tree here and checks the merkle root
 	// after the following checks, but there is no reason not to check the
 	// merkle root matches here.
+
+	header := &block.MsgBlock().Header
 	merkles := BuildMerkleTreeStore(block.Transactions())
 	calculatedMerkleRoot := merkles[len(merkles)-1]
 	if !header.MerkleRoot.IsEqual(calculatedMerkleRoot) {
@@ -848,7 +794,7 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block *btcutil.Block) er
 	// The coinbase for the Genesis block is not spendable, so just return
 	// now.
 	util.Trace(fmt.Sprintf("node.hash= %v\n", node.hash.String()))
-	util.Trace(fmt.Sprintf("GenesisHash= %v\n", b.chainParams.GenesisHash.String()))
+	util.Trace(fmt.Sprintf("Hard-Coded GenesisHash= %v\n", b.chainParams.GenesisHash.String()))
 
 	if node.hash.IsEqual(b.chainParams.GenesisHash) && b.bestChain == nil {
 		return nil

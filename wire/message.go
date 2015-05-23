@@ -45,21 +45,21 @@ const (
 	CmdFilterAdd   = "filteradd"
 	CmdFilterClear = "filterclear"
 	CmdFilterLoad  = "filterload"
-	CmdMerkleBlock = "merkleblock"
 	CmdReject      = "reject"
 
 	// Factom additions:
 
 	// Factom downloads: block & entry
-	CmdGetDirBlocks  = "getdirblocks"
-	CmdDirInv        = "dirInv"
-	CmdGetDirData    = "getdirdata"
-	CmdDirBlock      = "dirblock"
+	CmdGetDirBlocks = "getdirblocks"
+	CmdDirInv = "dirInv"
+	CmdGetDirData = "getdirdata"
+	CmdDirBlock = "dirblock"
 	CmdGetNonDirData = "getnodirdata"
-	CmdECBlock        = "ecblock"    // Entry Credit Block
-	CmdEBlock        = "entryblock" // Entry Block
-	CmdGetEntryData  = "getentrydata"
-	CmdEntry         = "entry"
+	CmdABlock = "adminblock" // Admin Block
+	CmdECBlock = "ecblock"   // Entry Credit Block
+	CmdEBlock = "entryblock" // Entry Block
+	CmdGetEntryData = "getentrydata"
+	CmdEntry = "entry"
 
 	CmdCommitChain = "commitchain"
 	CmdRevealChain = "revealchain"
@@ -146,9 +146,6 @@ func makeEmptyMessage(command string) (Message, error) {
 	case CmdFilterLoad:
 		msg = &MsgFilterLoad{}
 
-	case CmdMerkleBlock:
-		msg = &MsgMerkleBlock{}
-
 	case CmdReject:
 		msg = &MsgReject{}
 
@@ -181,6 +178,9 @@ func makeEmptyMessage(command string) (Message, error) {
 
 	case CmdGetNonDirData:
 		msg = &MsgGetNonDirData{}
+		
+	case CmdABlock:
+		msg = &MsgABlock{}		
 
 	case CmdECBlock:
 		msg = &MsgECBlock{}

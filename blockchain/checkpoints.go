@@ -257,7 +257,7 @@ func (b *BlockChain) IsCheckpointCandidate(block *btcutil.Block) (bool, error) {
 
 	// Get the previous block.
 	prevHash := &block.MsgBlock().Header.PrevBlock
-	prevBlock, err := b.db.FetchBlockBySha(prevHash)
+	_, err = b.db.FetchBlockBySha(prevHash)
 	if err != nil {
 		return false, err
 	}
@@ -267,27 +267,9 @@ func (b *BlockChain) IsCheckpointCandidate(block *btcutil.Block) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	nextBlock, err := b.db.FetchBlockBySha(nextHash)
+	_, err = b.db.FetchBlockBySha(nextHash)
 	if err != nil {
 		return false, err
-	}
-
-	// A checkpoint must have timestamps for the block and the blocks on
-	// either side of it in order (due to the median time allowance this is
-	// not always the case).
-	prevTime := prevBlock.MsgBlock().Header.Timestamp
-	curTime := block.MsgBlock().Header.Timestamp
-	nextTime := nextBlock.MsgBlock().Header.Timestamp
-	if prevTime.After(curTime) || nextTime.Before(curTime) {
-		return false, nil
-	}
-
-	// A checkpoint must have transactions that only contain standard
-	// scripts.
-	for _, tx := range block.Transactions() {
-		if isNonstandardTransaction(tx) {
-			return false, nil
-		}
 	}
 
 	return true, nil

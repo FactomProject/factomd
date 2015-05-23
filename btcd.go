@@ -5,7 +5,8 @@
 package btcd
 
 import (
-	//"fmt"
+	"errors"
+	"fmt"
 	"net"
 	"net/http"
 	_ "net/http/pprof"
@@ -14,6 +15,7 @@ import (
 	"runtime/pprof"
 
 	"github.com/FactomProject/FactomCode/util"
+	"github.com/FactomProject/btcd/chaincfg"
 )
 
 var (
@@ -84,6 +86,14 @@ func btcdMain(serverChan chan<- *server) error {
 		return err
 	}
 	defer db.Close()
+
+	// a(nother) genesis hash check
+	gensha, err := db.FetchBlockShaByHeight(0)
+
+	// Will be taken out once https://github.com/FactomProject/WorkItems/issues/325 is implemented.
+	if !chaincfg.MainNetParams.GenesisHash.IsEqual(gensha) {
+		panic(errors.New(fmt.Sprintf("Factoid genesis block hash ERROR, after loadBlockDB")))
+	}
 
 	/*
 		if cfg.DropAddrIndex {

@@ -240,7 +240,7 @@ func checkTransactionStandard(tx *btcutil.Tx, height int64) error {
 
 	// The transaction must be finalized to be standard and therefore
 	// considered for inclusion in a block.
-	if !blockchain.IsFinalizedTransaction(tx, height, time.Now()) {
+	if !blockchain.IsFinalizedTransaction(tx, height) {
 		return txRuleError(wire.RejectNonstandard,
 			"transaction is not finalized")
 	}

@@ -433,12 +433,14 @@ func (db *LevelDb) FetchTxsForAddr(addr btcutil.Address, skip int,
 	// Parse address type, bailing on an unknown type.
 	var addrKey []byte
 	switch addr := addr.(type) {
-	case *btcutil.AddressPubKeyHash:
-		hash160 := addr.Hash160()
-		addrKey = hash160[:]
-	case *btcutil.AddressScriptHash:
-		hash160 := addr.Hash160()
-		addrKey = hash160[:]
+	/*
+		case *btcutil.AddressPubKeyHash:
+			hash160 := addr.Hash160()
+			addrKey = hash160[:]
+		case *btcutil.AddressScriptHash:
+			hash160 := addr.Hash160()
+			addrKey = hash160[:]
+	*/
 	case *btcutil.AddressPubKey:
 		hash160 := addr.AddressPubKeyHash().Hash160()
 		addrKey = hash160[:]

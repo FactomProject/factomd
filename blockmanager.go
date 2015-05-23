@@ -6,7 +6,7 @@ package btcd
 
 import (
 	"container/list"
-	//	"net"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -146,10 +146,8 @@ type headerNode struct {
 // is inserted and protecting it with a mutex.
 type chainState struct {
 	sync.Mutex
-	newestHash        *wire.ShaHash
-	newestHeight      int64
-	pastMedianTime    time.Time
-	pastMedianTimeErr error
+	newestHash   *wire.ShaHash
+	newestHeight int64
 }
 
 // Best returns the block hash and height known for the tip of the best known
@@ -220,12 +218,6 @@ func (b *blockManager) updateChainState(newestHash *wire.ShaHash, newestHeight i
 
 	b.chainState.newestHash = newestHash
 	b.chainState.newestHeight = newestHeight
-	medianTime, err := b.blockChain.CalcPastMedianTime()
-	if err != nil {
-		b.chainState.pastMedianTimeErr = err
-	} else {
-		b.chainState.pastMedianTime = medianTime
-	}
 }
 
 /*
@@ -1453,7 +1445,7 @@ func newBlockManager(s *server) (*blockManager, error) {
 		}
 	*/
 
-	util.Trace(fmt.Sprintf("GenesisHash= %v\n", activeNetParams.GenesisHash))
+	util.Trace(fmt.Sprintf("Hard-Coded GenesisHash= %v\n", activeNetParams.GenesisHash))
 
 	bmgrLog.Infof("Generating initial block node index.  This may " +
 		"take a while...")
@@ -1639,6 +1631,13 @@ func loadBlockDB() (database.Db, error) {
 		height = 0
 
 		gensha, _ := genesis.Sha()
+
+		// verify the inserted genesis block matches the hard-code value
+		// Will be taken out once https://github.com/FactomProject/WorkItems/issues/325 is implemented.
+		if !chaincfg.MainNetParams.GenesisHash.IsEqual(gensha) {
+			panic(errors.New(fmt.Sprintf("Factoid genesis block hash ERROR, during insertion")))
+		}
+
 		factomIngressBlock_hook(gensha)
 	}
 

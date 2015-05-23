@@ -29,7 +29,7 @@ type params struct {
 // to emulate the full reference implementation RPC API.
 var mainNetParams = params{
 	Params:  &chaincfg.MainNetParams,
-	rpcPort: "8334",
+	rpcPort: "8384",
 	dnsSeeds: []string{
 		"seed.bitcoin.sipa.be",
 		"dnsseed.bluematt.me",
@@ -51,6 +51,7 @@ var regressionNetParams = params{
 	dnsSeeds: []string{},
 }
 
+/*
 // testNet3Params contains parameters specific to the test network (version 3)
 // (wire.TestNet3).  NOTE: The RPC port is intentionally different than the
 // reference implementation - see the mainNetParams comment for details.
@@ -64,6 +65,7 @@ var testNet3Params = params{
 		"testnet-seed.bluematt.me",
 	},
 }
+*/
 
 // simNetParams contains parameters specific to the simulation test network
 // (wire.SimNet).

@@ -9,7 +9,6 @@ import (
 )
 
 func TestCommitEntry(t *testing.T) {
-
 	//Write msg
 	msgOutgoing := wire.NewMsgCommitEntry()
 	msgOutgoing.Version = 0

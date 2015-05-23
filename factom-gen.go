@@ -10,7 +10,6 @@
 package btcd
 
 import (
-	//	"container/list"
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
@@ -386,7 +385,6 @@ func factom_NewBlockTemplate(mempool *txMemPool, payToAddress wire.RCDHash, glob
 	}
 
 	blockSize := 0
-	blockSigOps := 0
 	totalFees := int64(0)
 
 	util.Trace()
@@ -405,11 +403,10 @@ func factom_NewBlockTemplate(mempool *txMemPool, payToAddress wire.RCDHash, glob
 
 	merkles := blockchain.BuildMerkleTreeStore(blockTxns)
 	var msgBlock wire.MsgBlock
-	msgBlock.Header = wire.BlockHeader{
-		Version:    generatedBlockVersion,
+	msgBlock.Header = wire.FBlockHeader{
 		PrevBlock:  *prevHash,
 		MerkleRoot: *merkles[len(merkles)-1],
-		Timestamp:  time.Unix(0, 0),
+		// PrevHash3:  <- Put the SHA3 here!
 		//		Bits:       0,
 	}
 
@@ -434,8 +431,8 @@ func factom_NewBlockTemplate(mempool *txMemPool, payToAddress wire.RCDHash, glob
 	}
 	util.Trace()
 
-	minrLog.Infof("Created new block template (%d transactions, %d in fees, %d signature operations, %d bytes)",
-		len(msgBlock.Transactions), totalFees, blockSigOps, blockSize)
+	minrLog.Infof("Created new block template (%d transactions, %d in fees, %d bytes)",
+		len(msgBlock.Transactions), totalFees, blockSize)
 
 	util.Trace()
 	return &BlockTemplate{
