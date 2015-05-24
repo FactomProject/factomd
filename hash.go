@@ -29,6 +29,16 @@ type Hash struct {
 
 var _ IHash = (*Hash)(nil)
 
+func (w1 Hash)GetDBHash() IHash {
+    return Sha([]byte("Hash"))
+    
+}
+
+func (w1 Hash)GetNewInstance() IBlock {
+    return new(Hash)
+}
+
+
 func (t Hash) IsEqual(hash IBlock) bool {
 	h, ok := hash.(IHash)
 	if !ok || !h.IsSameAs(&t) {

@@ -38,6 +38,14 @@ type Signature struct {
 
 var _ ISignature = (*Signature)(nil)
 
+func (w1 Signature)GetDBHash() IHash {
+    return Sha([]byte("Signature"))
+}
+
+func (w1 Signature)GetNewInstance() IBlock {
+    return new(Signature)
+}
+
 // Checks that the signatures are the same.  The index does NOT have to be the same.
 // This way, you can check if two signatures on the same transaction are actually
 // the same. Or if two transactions are the same.  We don't know what you are signing,

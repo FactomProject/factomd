@@ -25,7 +25,7 @@ type t_balance struct {
 
 func Test_Auth1_Equals(test *testing.T) {
 
-	scd := new(SCDatabase)                     // Get me a database
+	scd := new(MapDB)                          // Get me a database
 	scd.Init()             
 	
 	ecAdr := simplecoin.Sha([]byte("ec one"))  // Get me an address

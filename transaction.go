@@ -41,6 +41,14 @@ type Transaction struct {
 
 var _ ITransaction = (*Transaction)(nil)
 
+func (w1 Transaction)GetDBHash() IHash {
+    return Sha([]byte("Transaction"))
+}
+
+func (w1 Transaction)GetNewInstance() IBlock {
+    return new(Transaction)
+}
+
 // Only validates that the transaction is well formed.  This means that 
 // the inputs cover the value of the outputs.  Can't validate addresses,
 // as they are hashes.  

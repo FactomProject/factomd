@@ -20,6 +20,14 @@ type OutECAddress struct {
 
 var _ IOutECAddress = (*OutECAddress)(nil)
 
+func (w1 OutECAddress)GetDBHash() IHash {
+    return Sha([]byte("OutECAddress"))
+}
+
+func (w1 OutECAddress)GetNewInstance() IBlock {
+    return new(OutECAddress)
+}
+
 func (oa OutECAddress) GetName() string {
 	return "outEC"
 }

@@ -28,6 +28,14 @@ type RCD_1 struct {
 
 var _ IRCD = (*RCD_1)(nil)
 
+func (w1 RCD_1)GetDBHash() IHash {
+    return Sha([]byte("RCD_1"))
+}
+
+func (w1 RCD_1)GetNewInstance() IBlock {
+    return new(RCD_1)
+}
+
 func (a RCD_1) GetPublicKey() []byte {
 	return a.publicKey
 }

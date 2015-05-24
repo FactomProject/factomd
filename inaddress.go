@@ -17,6 +17,14 @@ type InAddress struct {
 
 var _ IInAddress = (*InAddress)(nil)
 
+func (w1 InAddress)GetDBHash() IHash {
+    return Sha([]byte("InAddress"))
+}
+
+func (w1 InAddress)GetNewInstance() IBlock {
+    return new(InAddress)
+}
+
 func (oa InAddress) GetName() string {
 	return "in"
 }

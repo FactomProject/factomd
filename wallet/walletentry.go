@@ -39,6 +39,14 @@ type WalletEntry struct {
 
 var _ IWalletEntry = (*WalletEntry)(nil)
 
+func (w1 WalletEntry)GetDBHash() IHash {
+    return Sha("WalletEntry")
+}
+
+func (w1 WalletEntry)GetNewInstance() IBlock {
+    return new(WalletEntry)
+}
+
 func (w1 WalletEntry) IsEqual(w simplecoin.IBlock) bool {
     w2, ok := w.(*WalletEntry)
     if !ok { return false }

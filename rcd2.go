@@ -32,6 +32,14 @@ type RCD_2 struct {
 
 var _ IRCD = (*RCD_2)(nil)
 
+func (w1 RCD_2)GetDBHash() IHash {
+    return Sha([]byte("RCD_2"))
+}
+
+func (w1 RCD_2)GetNewInstance() IBlock {
+    return new(RCD_2)
+}
+
 func (a1 RCD_2) IsEqual(addr IBlock) bool {
 	a2, ok := addr.(*RCD_2)
 	if !ok || // Not the right kind of IBlock

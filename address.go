@@ -32,6 +32,14 @@ type Address struct {
 
 var _ IAddress = (*Address)(nil)
 
+func (w Address)GetDBHash() IHash {
+    return Sha([]byte("Address"))
+}
+
+func (w1 Address)GetNewInstance() IBlock {
+    return new(Address)
+}
+
 func (t Address) IsEqual(addr IBlock) bool {
 	a, ok := addr.(IAddress)
 	if !ok || !a.GetHash().IsEqual(t.GetHash()) {

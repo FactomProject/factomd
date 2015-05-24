@@ -19,4 +19,14 @@ type ISignatureBlock interface {
 	AddSignature(sig []byte)
 }
 
-type SignatureBlock interface{}
+type SignatureBlock struct{
+    ISignatureBlock
+}
+
+func (w1 SignatureBlock)GetDBHash() IHash {
+    return Sha([]byte("SignatureBlock"))
+}
+
+func (w1 SignatureBlock)GetNewInstance() IBlock {
+    return new(SignatureBlock)
+}

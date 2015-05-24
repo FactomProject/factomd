@@ -10,6 +10,7 @@ import (
 
 struct IFactomMessage interface {
     simplecoin.IBlock 
+    
     Validate(IFactomState) int
     Leader(IFactomState)
     Follower(IFactomState)

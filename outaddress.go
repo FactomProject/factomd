@@ -17,6 +17,14 @@ type OutAddress struct {
 
 var _ IOutAddress = (*OutAddress)(nil)
 
+func (w1 OutAddress)GetDBHash() IHash {
+    return Sha([]byte("OutAddress"))
+}
+
+func (w1 OutAddress)GetNewInstance() IBlock {
+    return new(OutAddress)
+}
+
 func (oa OutAddress) GetName() string {
 	return "out"
 }
