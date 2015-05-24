@@ -39,11 +39,11 @@ type WalletEntry struct {
 
 var _ IWalletEntry = (*WalletEntry)(nil)
 
-func (w1 WalletEntry)GetDBHash() IHash {
-    return Sha("WalletEntry")
+func (w1 WalletEntry)GetDBHash() simplecoin.IHash {
+    return simplecoin.Sha([]byte("WalletEntry"))
 }
 
-func (w1 WalletEntry)GetNewInstance() IBlock {
+func (w1 WalletEntry)GetNewInstance() simplecoin.IBlock {
     return new(WalletEntry)
 }
 

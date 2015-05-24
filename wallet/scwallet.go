@@ -43,7 +43,7 @@ type ISCWallet interface {
 var oneSCW SCWallet
 
 type SCWallet struct {
-    db database.SCDatabase
+    db database.MapDB
     r *rand.Rand
 }
 
