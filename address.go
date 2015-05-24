@@ -44,19 +44,6 @@ func (t Address) GetHash() IHash {
 	return t.address
 }
 
-func (t *Address) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	t.address = new(Hash)
-	data, err = t.address.UnmarshalBinaryData(data)
-	return data, err
-}
-
-func (a Address) MarshalBinary() ([]byte, error) {
-
-	data, err := a.address.MarshalBinary()
-
-	return data, err
-}
-
 func (cb *Address) NewBlock() IBlock {
 	blk := new(Address)
 	return blk
@@ -69,19 +56,32 @@ func (a *Address) SetBytes(b []byte) {
 	a.address.SetBytes(b)
 }
 
-func (a Address) MarshalText() (text []byte, err error) {
-	var out bytes.Buffer
-	addr := hex.EncodeToString(a.address.Bytes())
-	out.WriteString("addr  ")
-	out.WriteString(addr)
-	out.WriteString("\n")
-	return out.Bytes(), nil
-}
-
 func (a Address) Bytes() []byte {
 	return a.address.Bytes()
 }
 
 func (a *Address) SetHash(h IHash) {
 	a.address = h
+}
+
+func (t *Address) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+    t.address = new(Hash)
+    data, err = t.address.UnmarshalBinaryData(data)
+    return data, err
+}
+
+func (a Address) MarshalBinary() ([]byte, error) {
+    
+    data, err := a.address.MarshalBinary()
+    
+    return data, err
+}
+
+func (a Address) MarshalText() (text []byte, err error) {
+    var out bytes.Buffer
+    addr := hex.EncodeToString(a.address.Bytes())
+    out.WriteString("addr  ")
+    out.WriteString(addr)
+    out.WriteString("\n")
+    return out.Bytes(), nil
 }

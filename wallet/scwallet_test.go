@@ -18,7 +18,7 @@ var _ = ed25519.Sign
 var _ = rand.New
 var _ = binary.Write
 
-func Test_create_walletentry(test *testing.T) {
+func Test_create_scwallet(test *testing.T) {
     w := new(SCWallet)          // make me a wallet
     we := new(WalletEntry)
     rcd := new(simplecoin.RCD_1)
@@ -33,22 +33,16 @@ func Test_create_walletentry(test *testing.T) {
     we.SetRCD(rcd)
     we.AddKey(pub,pri)
     we.SetName([]byte(name))
-    
-    data,err := we.MarshalBinary()
-    if err != nil {
-        test.Fail()
-    } 
-    
-    w2 := new(WalletEntry)
-        
-    data, err = w2.UnmarshalBinaryData(data)
-    if err != nil {
-        test.Fail()
-    }
- 
-    if !we.IsEqual(w2) { test.Fail() }
 }
 
+func Test_GenerateAddress_scwallet(test *testing.T) {
+    w := new(SCWallet)          // make me a wallet
+    h1 := w.GenerateAddress([]byte("test 1"),1,1)
+    h2 := w.GenerateAddress([]byte("test 1"),1,1)
+    
+    if h1.IsEqual(h2) { test.Fail() }   
+    
+    //    GetAddressDetailsAddr(addr []byte)
+}
 
-
-
+func Test_AddInput_scallet(test *testing.T) { }

@@ -14,13 +14,10 @@ type IBlock interface {
 	encoding.BinaryUnmarshaler // And once in Binary, it must come back.
 	encoding.TextMarshaler     // Using this mostly for debugging
 
-	UnmarshalBinaryData(data []byte) ([]byte, error) // We need the progress through the slice.
-	//   so we really can't use the stock spec
-	//   for the UnmarshalBinary() method from
-	//   encode.
-	newBlock(...interface{}) IBlock
+	// We need the progress through the slice, so we really can't use the stock spec
+	// for the UnmarshalBinary() method from encode.  We define our own method that
+	// makes the code easier to read and way more efficent.
+	UnmarshalBinaryData(data []byte) ([]byte, error) 
+    
 	IsEqual(IBlock) bool // Check if this block is the same as itself
-	GetName() string     // Used by Wallet, and useful for debugging.
-	SetName(string)      // Used by Wallet, and useful for debugging.
-
 }

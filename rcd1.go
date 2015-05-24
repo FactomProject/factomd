@@ -15,6 +15,10 @@ import (
  * RCD_1 Simple Signature
  **************************/
 
+type IRCD_1 interface {
+    GetPublicKey() []byte
+}
+
 // In this case, we are simply validating one address to ensure it signed
 // this transaction.
 type RCD_1 struct {
@@ -24,8 +28,8 @@ type RCD_1 struct {
 
 var _ IRCD = (*RCD_1)(nil)
 
-func (a RCD_1) Gethash() IHash {
-	return Sha(a.publicKey)
+func (a RCD_1) GetPublicKey() []byte {
+	return a.publicKey
 }
 
 func (a1 RCD_1) IsEqual(addr IBlock) bool {
@@ -62,6 +66,7 @@ func (t *RCD_1) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 func (a RCD_1) MarshalBinary() (data []byte, err error) {
 	var out bytes.Buffer
 	if len(a.publicKey) != ADDRESS_LENGTH {
+        Prtln("Length of Public Key: ", len(a.publicKey))
 		panic("Bad length in rcd1.  Should not happen")
 	}
 	out.WriteByte(byte(1)) // The First Authorization method

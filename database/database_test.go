@@ -16,23 +16,26 @@ import (
 var _ = fmt.Printf
 var _ = ed25519.Sign
 var _ = rand.New
+var _ = binary.Read
+
+type t_balance struct {
+    simplecoin.IBlock
+    balance uint64
+}
 
 func Test_Auth1_Equals(test *testing.T) {
 
-	scd := new(SCDatabase) // Get me a database
+	scd := new(SCDatabase)                     // Get me a database
 	scd.Init()             
 	
-	ecAdr := simplecoin.Sha([]byte("ec one")) // Get me an address
-	var balance uint64 = 1000               
+	ecAdr := simplecoin.Sha([]byte("ec one"))  // Get me an address
+	b := new(t_balance)                        // Get a balance IBlock
+    b.balance = 1000                           // Set the balance 
 
-	bal := new([8]byte)                // Someplace to put a balance
-	binary.PutUvarint(bal[:], balance) // Write a balance
+	scd.Put("ec", ecAdr, b)                    // Write balance to db
+	b2 := scd.Get("ec", ecAdr)                 // Get it back.
 
-	scd.Put("ec", ecAdr, bal[:]) // Write balance to db
-	rBal := scd.Get("ec", ecAdr) // Get it back.
-
-	newBalance, _ := binary.Uvarint(rBal) //
-	if newBalance != balance {            // Make sure we got it back.
+	if b.balance != b2.(*t_balance).balance {   // Make sure we got it back.
 		test.Fail() 
 	}
 

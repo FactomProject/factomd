@@ -16,7 +16,6 @@ import (
 
 type IRCD interface {
 	IBlock
-	GetHash() IHash // This is what the world uses as an address
 }
 
 /***********************
@@ -41,17 +40,17 @@ func UnmarshalBinaryAuth(data []byte) (a IRCD, newData []byte, err error) {
 	return auth, data, err
 }
 
-func NewSignature1(publicKey []byte) (IRCD, error) {
+func NewRCD_1(publicKey []byte) (IRCD) {
 	if len(publicKey) != ADDRESS_LENGTH {
 		panic("Bad publickey.  This should not happen")
 	}
 	a := new(RCD_1)
 	a.publicKey = make([]byte, len(publicKey), len(publicKey))
 	copy(a.publicKey[:], publicKey)
-	return a, nil
+	return a
 }
 
-func NewSignature2(n int, m int, addresses []IAddress) (IRCD, error) {
+func NewRCD_2(n int, m int, addresses []IAddress) (IRCD, error) {
 	if len(addresses) != m {
 		return nil, fmt.Errorf("Improper number of addresses.  m = %d n = %d #addresses = %d", m, n, len(addresses))
 	}
@@ -63,4 +62,15 @@ func NewSignature2(n int, m int, addresses []IAddress) (IRCD, error) {
 	copy(au.n_addresses, addresses)
 
 	return au, nil
+}
+
+func CreateRCD(data []byte) IRCD {
+    switch data[0] {
+        case 1 :
+            return new(RCD_1)
+        case 2 :
+            return new(RCD_2)
+        default :
+            panic("Bad Data encountered by CreateRCD.  Should never happen")
+    }
 }

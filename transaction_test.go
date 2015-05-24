@@ -61,7 +61,7 @@ func nextAuth2() IRCD {
 		addresses[j] = nextAddress()
 	}
 
-	rcd, _ := NewSignature2(n, m, addresses)
+	rcd, _ := NewRCD_2(n, m, addresses)
 	return rcd
 }
 
@@ -89,7 +89,7 @@ func getSignedTrans() IBlock {
 	}
 
 	for i := 0; i < 3; i++ {
-		sig, _ := NewSignature1(nextSig())
+		sig := NewRCD_1(nextSig())
 		t.AddAuthorization(sig)
 	}
 
