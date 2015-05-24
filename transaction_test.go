@@ -73,8 +73,8 @@ func getSignedTrans() IBlock {
 		return nb
 	}
 
-	nb = SignedTransaction{}.NewBlock()
-	t := nb.(*SignedTransaction)
+	nb = new(Transaction)
+	t := nb.(*Transaction)
 
 	for i := 0; i < 5; i++ {
 		t.AddInput(uint64(rand.Int63n(10000000000)), nextAddress())
@@ -149,7 +149,7 @@ func Test_Transaction_MarshalUnMarshal(test *testing.T) {
 		test.Fail()
 	}
 
-	xb := new(SignedTransaction)
+	xb := new(Transaction)
 
 	err = xb.UnmarshalBinary(data) // Now Unmarshal
 	if err != nil {

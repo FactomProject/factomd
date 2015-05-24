@@ -21,6 +21,9 @@ type ITransaction interface {
 	GetInputs() []IInAddress
 	GetOutputs() []IOutAddress
 	GetOutECs() []IOutECAddress
+	AddRCD(rcd IRCD)
+    GetRCD(i int) IRCD
+	Validate(factoshisPerEC uint64) bool
 }
 
 type Transaction struct {
@@ -29,17 +32,39 @@ type Transaction struct {
 	// uint16 number of inputs
 	// uint16 number of outputs
 	// uint16 number of outECs (Number of EntryCredits)
-	inputs  []IInAddress
-	outputs []IOutAddress
-	outECs  []IOutECAddress
+	lockTime       uint64
+	inputs         []IInAddress
+	outputs        []IOutAddress
+	outECs         []IOutECAddress
+	rcds           []IRCD
 }
 
 var _ ITransaction = (*Transaction)(nil)
 
+// Only validates that the transaction is well formed.  This means that 
+// the inputs cover the value of the outputs.  Can't validate addresses,
+// as they are hashes.  
+//
+// Validates the transaction fee, given the exchange rate to EC.
+//
+func (t Transaction)Validate(factoshisPerEC uint64) bool {
+    var inSum, outSum uint64
+    
+    for _,input := range t.inputs {
+        inSum += input.GetAmount()
+    }
+     
+    for _,output := range t.outputs {
+        outSum += output.GetAmount()
+    } 
+        
+    return inSum >= outSum
+}
+
 // Tests if the transaction is equal in all of its structures, and
 // in order of the structures.  Largely used to test and debug, but
 // generally useful.
-func (t1 Transaction) IsEqual2(trans IBlock) bool {
+func (t1 Transaction) IsEqual(trans IBlock) bool {
 
 	t2, ok := trans.(ITransaction)
 
@@ -66,42 +91,43 @@ func (t1 Transaction) IsEqual2(trans IBlock) bool {
 			return false
 		}
 	}
-
+	for i, a := range t1.rcds {
+        if !a.IsEqual(t2.GetRCD(i)) {
+            return false
+        }
+    }
 	return true
 }
 
 func (t Transaction) GetInputs() []IInAddress    { return t.inputs }
 func (t Transaction) GetOutputs() []IOutAddress  { return t.outputs }
 func (t Transaction) GetOutECs() []IOutECAddress { return t.outECs }
+func (t Transaction) GetRCDs()   []IRCD          { return t.rcds }
 
-func (t1 Transaction) IsEqual(trans IBlock) bool {
-	return t1.IsEqual2(trans)
-}
 
 func (t *Transaction) GetInput(i int) IInAddress {
-	if i > len(t.inputs) {
-		return nil
-	}
+	if i > len(t.inputs) { return nil }
 	return t.inputs[i]
 }
 
 func (t *Transaction) GetOutput(i int) IOutAddress {
-	if i > len(t.outputs) {
-		return nil
-	}
+	if i > len(t.outputs) { return nil }
 	return t.outputs[i]
 }
 
 func (t *Transaction) GetOutEC(i int) IOutECAddress {
-	if i > len(t.outECs) {
-		return nil
-	}
+	if i > len(t.outECs) { return nil }
 	return t.outECs[i]
+}
+
+func (t *Transaction) GetRCD(i int) IRCD {
+    if i > len(t.rcds) { return nil }
+    return t.rcds[i]
 }
 
 // UnmarshalBinary assumes that the Binary is all good.  We do error
 // out if there isn't enough data, or the transaction is too large.
-func (t *Transaction) UnmarshalBinaryData2(data []byte) (newData []byte, err error) {
+func (t *Transaction) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 
 	if len(data) < 72 {
 		return nil, fmt.Errorf("Transaction data too small: %d bytes", len(data))
@@ -109,7 +135,13 @@ func (t *Transaction) UnmarshalBinaryData2(data []byte) (newData []byte, err err
 	if len(data) > MAX_TRANSACTION_SIZE {
 		return nil, fmt.Errorf("Transaction data too large: %d bytes", len(data))
 	}
-
+    
+    {   // limit the scope of d
+        var d [8]byte
+        copy(d[3:],data[0:5])
+        t.lockTime, data = binary .BigEndian.Uint64(d[:]), data[5:]
+    }
+	
 	numInputs, data := binary.BigEndian.Uint16(data[0:2]), data[2:]
 	numOutputs, data := binary.BigEndian.Uint16(data[0:2]), data[2:]
 	numOutECs, data := binary.BigEndian.Uint16(data[0:2]), data[2:]
@@ -138,23 +170,38 @@ func (t *Transaction) UnmarshalBinaryData2(data []byte) (newData []byte, err err
 		if err != nil {
 			return nil, err
 		}
-
 	}
-
+	
+	if t.rcds == nil {
+        t.rcds = make([]IRCD, len(t.inputs))
+    }
+    for i := 0; i < len(t.inputs); i++ {
+        t.rcds[i] = CreateRCD(data)
+        data, err = t.rcds[i].UnmarshalBinaryData(data)
+        if err != nil {
+            return nil, err
+        }
+    }
 	return data, nil
 }
 
 func (t *Transaction) UnmarshalBinary(data []byte) (err error) {
-	data, err = t.UnmarshalBinaryData2(data)
+	data, err = t.UnmarshalBinaryData(data)
 	return err
 }
 
 // This is a workaround helper function so that Signed Transactions don't
 // have to duplicate this code.
 //
-func (t Transaction) MarshalBinary2() ([]byte, error) {
+func (t Transaction) MarshalBinary() ([]byte, error) {
 	var out bytes.Buffer
-
+    
+	{  // limit the scope of tmp
+       var tmp bytes.Buffer
+       binary.Write(&tmp, binary.BigEndian, uint64(t.lockTime))
+	   out.Write(tmp.Bytes()[3:])
+    }
+    
 	binary.Write(&out, binary.BigEndian, uint16(len(t.inputs)))
 	binary.Write(&out, binary.BigEndian, uint16(len(t.outputs)))
 	binary.Write(&out, binary.BigEndian, uint16(len(t.outECs)))
@@ -183,20 +230,17 @@ func (t Transaction) MarshalBinary2() ([]byte, error) {
 		out.Write(data)
 	}
 
+	for _, rcd := range t.rcds {
+        data, err := rcd.MarshalBinary()
+        if err != nil {
+            return nil, err
+        }
+        out.Write(data)
+    }
+    
 	return out.Bytes(), nil
 }
 
-// We can't call our "parent's" implementation of a function, (or I
-// don't know how to in go) so I have a helper function that leaves
-// my parent's implementation callable.
-func (t Transaction) MarshalBinary() ([]byte, error) {
-	return t.MarshalBinary2()
-}
-
-func (cb Transaction) NewBlock() IBlock {
-	blk := new(Transaction)
-	return blk
-}
 
 // Helper function for building transactions.  Add an input to
 // the transaction.  I'm guessing 5 inputs is about all anyone
@@ -262,128 +306,22 @@ func (t Transaction) MarshalText2() (text []byte, err error) {
 		text, _ := ecaddress.MarshalText()
 		out.Write(text)
 	}
-
+	for _, rcd := range t.rcds {
+        text, err = rcd.MarshalText()
+        if err != nil {
+            return nil, err
+        }
+        out.Write(text)
+    }
 	return out.Bytes(), nil
-}
-
-// MarshalText.  Eough said. Mostly for debugging.
-func (t Transaction) MarshalText() (text []byte, err error) {
-	return t.MarshalText2()
-}
-
-/************************
- * SignedTransaction
- ************************/
-
-// These transactions are exactly Transactions plus authentication
-// blocks.
-
-type ISignedTransaction interface {
-	ITransaction
-	AddAuthorization(auth IRCD)
-}
-
-type SignedTransaction struct {
-	Transaction
-	authorizations []IRCD
-}
-
-var _ ISignedTransaction = (*SignedTransaction)(nil)
-
-// Tests if the transaction is equal in all of its structures, and
-// in order of the structures.  Largely used to test and debug, but
-// generally useful.
-func (t1 SignedTransaction) IsEqual(trans IBlock) bool {
-	t2, ok := trans.(*SignedTransaction)
-	if !ok || !t1.IsEqual2(t2) { // It is the right type, and
-		return false //  the regular transaction stuff has to match
-	}
-
-	for i, a := range t1.authorizations {
-		if !a.IsEqual(t2.authorizations[i]) {
-			return false
-		}
-	}
-
-	return true
-}
-
-func (t *SignedTransaction) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	data, err = t.UnmarshalBinaryData2(data)
-
-	if t.authorizations == nil {
-		t.authorizations = make([]IRCD, len(t.inputs))
-	}
-
-	for i := 0; i < len(t.inputs); i++ {
-		t.authorizations[i], data, err = UnmarshalBinaryAuth(data)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return data, err
-}
-
-func (t *SignedTransaction) UnmarshalBinary(data []byte) (err error) {
-	data, err = t.UnmarshalBinaryData(data)
-	return err
-}
-
-// MarshalBinary.  Enough said.
-func (st SignedTransaction) MarshalBinary() ([]byte, error) {
-	var out bytes.Buffer
-
-	data, err := st.MarshalBinary2()
-	if err != nil {
-		return nil, err
-	}
-	out.Write(data)
-
-	for _, authorization := range st.authorizations {
-		data, err = authorization.MarshalBinary()
-		if err != nil {
-			return nil, err
-		}
-		out.Write(data)
-	}
-
-	return out.Bytes(), nil
-}
-
-// Create one of me!
-func (cb SignedTransaction) NewBlock() IBlock {
-	blk := new(SignedTransaction)
-	return blk
 }
 
 // Helper Function.  This simply adds an Authorization to a
 // transaction.  DOES NO VALIDATION.  Not the job of construction.
 // That's why we have a validation call.
-func (st *SignedTransaction) AddAuthorization(auth IRCD) {
-	if st.authorizations == nil {
-		st.authorizations = make([]IRCD, 0, 5)
-	}
-	st.authorizations = append(st.authorizations, auth)
-}
-
-// Marshal Text.  Mostly a debugging and testing thing.
-func (st SignedTransaction) MarshalText() ([]byte, error) {
-	var out bytes.Buffer
-
-	text, err := st.MarshalText2()
-	if err != nil {
-		return nil, err
-	}
-	out.Write(text)
-
-	for _, authorization := range st.authorizations {
-		text, err = authorization.MarshalText()
-		if err != nil {
-			return nil, err
-		}
-		out.Write(text)
-	}
-
-	return out.Bytes(), nil
+func (t *Transaction) AddAuthorization(auth IRCD) {
+    if t.rcds == nil {
+        t.rcds = make([]IRCD, 0, 5)
+    }
+    t.rcds = append(t.rcds, auth)
 }

@@ -26,7 +26,7 @@ type ISCWallet interface {
     generateKey() (public []byte,private []byte, err error)
     GenerateAddress(name []byte) simplecoin.IHash
     
-    GetAddressBalance(name []byte) uint64
+    GetAddressBalance(addr simplecoin.IHash) uint64
     GetAddressDetailsAddr(addr []byte) IWalletEntry
     GetAddressList() (names [][]byte, addresses []simplecoin.Address)
     GetAddressListByName(name []byte) (names[][]byte)
