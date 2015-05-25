@@ -12,9 +12,9 @@ import (
 
 type ITransaction interface {
 	IBlock
-	AddInput(amount uint64, input IAddress)
-	AddOutput(amount uint64, output IAddress)
-	AddECOutput(amount uint64, ecoutput IAddress)
+	AddInput(input IAddress, amount uint64, )
+    AddOutput(output IAddress, amount uint64 )
+    AddECOutput(ecoutput IAddress, amount uint64 )
 	GetInput(i int) IInAddress
 	GetOutput(i int) IOutAddress
 	GetOutEC(i int) IOutECAddress
@@ -144,12 +144,13 @@ func (t *Transaction) UnmarshalBinaryData(data []byte) (newData []byte, err erro
 		return nil, fmt.Errorf("Transaction data too large: %d bytes", len(data))
 	}
     
-    {   // limit the scope of d
-        var d [8]byte
-        copy(d[3:],data[0:5])
-        t.lockTime, data = binary .BigEndian.Uint64(d[:]), data[5:]
-    }
-	
+//     {   // limit the scope of d
+//         var d [8]byte
+//         copy(d[3:],data[0:5])
+//         t.lockTime, data = binary .BigEndian.Uint64(d[:]), data[5:]
+//     }
+    t.lockTime, data = binary .BigEndian.Uint64(data[:]), data[8:]
+    
 	numInputs, data := binary.BigEndian.Uint16(data[0:2]), data[2:]
 	numOutputs, data := binary.BigEndian.Uint16(data[0:2]), data[2:]
 	numOutECs, data := binary.BigEndian.Uint16(data[0:2]), data[2:]
@@ -204,12 +205,12 @@ func (t *Transaction) UnmarshalBinary(data []byte) (err error) {
 func (t Transaction) MarshalBinary() ([]byte, error) {
 	var out bytes.Buffer
     
-	{  // limit the scope of tmp
-       var tmp bytes.Buffer
-       binary.Write(&tmp, binary.BigEndian, uint64(t.lockTime))
-	   out.Write(tmp.Bytes()[3:])
-    }
-    
+// 	{  // limit the scope of tmp
+//        var tmp bytes.Buffer
+//        binary.Write(&tmp, binary.BigEndian, uint64(t.lockTime))
+// 	   out.Write(tmp.Bytes()[3:])
+//     }
+    binary.Write(&out, binary.BigEndian, uint64(t.lockTime)) 
 	binary.Write(&out, binary.BigEndian, uint16(len(t.inputs)))
 	binary.Write(&out, binary.BigEndian, uint16(len(t.outputs)))
 	binary.Write(&out, binary.BigEndian, uint16(len(t.outECs)))
@@ -254,11 +255,11 @@ func (t Transaction) MarshalBinary() ([]byte, error) {
 // the transaction.  I'm guessing 5 inputs is about all anyone
 // will need, so I'll default to 5.  Of course, go will grow
 // past that if needed.
-func (t *Transaction) AddInput(amount uint64, input IAddress) {
+func (t *Transaction) AddInput( input IAddress,amount uint64) {
 	if t.inputs == nil {
 		t.inputs = make([]IInAddress, 0, 5)
 	}
-	out := NewInAddress(amount, input)
+	out := NewInAddress(input, amount)
 	t.inputs = append(t.inputs, out)
 }
 
@@ -266,11 +267,11 @@ func (t *Transaction) AddInput(amount uint64, input IAddress) {
 // the transaction.  I'm guessing 5 outputs is about all anyone
 // will need, so I'll default to 5.  Of course, go will grow
 // past that if needed.
-func (t *Transaction) AddOutput(amount uint64, output IAddress) {
+func (t *Transaction) AddOutput(output IAddress,amount uint64) {
 	if t.outputs == nil {
 		t.outputs = make([]IOutAddress, 0, 5)
 	}
-	out := NewOutAddress(amount, output)
+	out := NewOutAddress(output, amount)
 	t.outputs = append(t.outputs, out)
 
 }
@@ -278,11 +279,11 @@ func (t *Transaction) AddOutput(amount uint64, output IAddress) {
 // Add a EntryCredit output.  Validating this is going to require
 // access to the exchange rate.  This is literally how many entry
 // credits are being added to the specified Entry Credit address.
-func (t *Transaction) AddECOutput(amount uint64, ecoutput IAddress) {
+func (t *Transaction) AddECOutput( ecoutput IAddress, amount uint64) {
 	if t.outECs == nil {
 		t.outECs = make([]IOutECAddress, 0, 5)
 	}
-	out := NewOutECAddress(amount, ecoutput)
+	out := NewOutECAddress(ecoutput, amount)
 	t.outECs = append(t.outECs, out)
 
 }
@@ -294,6 +295,8 @@ func (t *Transaction) AddECOutput(amount uint64, ecoutput IAddress) {
 func (t Transaction) MarshalText2() (text []byte, err error) {
 	var out bytes.Buffer
 
+	out.WriteString("locktime")
+    WriteNumber64(&out, uint64(t.lockTime))
 	out.WriteString("in  ")
 	WriteNumber16(&out, uint16(len(t.inputs)))
 	out.WriteString("\nout ")

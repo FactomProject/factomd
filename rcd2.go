@@ -32,6 +32,17 @@ type RCD_2 struct {
 
 var _ IRCD = (*RCD_2)(nil)
 
+func (w RCD_2)Clone() IRCD {
+    c := new (RCD_2)
+    c.m = w.m
+    c.n = w.n
+    c.n_addresses = make([]IAddress,len(w.n_addresses))
+    for i,address := range w.n_addresses {
+        c.n_addresses[i] = CreateAddress(address.GetHash())
+    }
+    return c
+}
+
 func (w1 RCD_2)GetDBHash() IHash {
     return Sha([]byte("RCD_2"))
 }

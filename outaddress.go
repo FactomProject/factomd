@@ -33,7 +33,7 @@ func (oa OutAddress) GetName() string {
  * Helper functions
  ******************************/
 
-func NewOutAddress(amount uint64, address IAddress) IOutAddress {
+func NewOutAddress( address IAddress, amount uint64) IOutAddress {
 	oa := new(OutAddress)
 	oa.amount = amount
 	oa.address = address

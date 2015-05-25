@@ -33,7 +33,7 @@ func (oa InAddress) GetName() string {
  * Helper functions
  ******************************/
 
-func NewInAddress(amount uint64, address IAddress) IInAddress {
+func NewInAddress( address IAddress, amount uint64) IInAddress {
 	oa := new(InAddress)
 	oa.amount = amount
 	oa.address = address

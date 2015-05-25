@@ -28,6 +28,23 @@ type RCD_1 struct {
 
 var _ IRCD = (*RCD_1)(nil)
 
+func (w RCD_1)Clone() IRCD {
+    c := new (RCD_1)
+    c.publicKey = make([]byte,len(w.publicKey))
+    copy(c.publicKey,w.publicKey)
+    return c
+}
+
+
+func (w RCD_1)GetAddress() (IHash, error){
+    data, err := w.MarshalBinary()
+    if err != nil {
+        return nil, fmt.Errorf("This should never happen.  If I have a RCD_1, it should hash.")
+    }
+    return Sha(data), nil
+}
+
+
 func (w1 RCD_1)GetDBHash() IHash {
     return Sha([]byte("RCD_1"))
 }
@@ -75,7 +92,7 @@ func (a RCD_1) MarshalBinary() (data []byte, err error) {
 	var out bytes.Buffer
 	if len(a.publicKey) != ADDRESS_LENGTH {
         Prtln("Length of Public Key: ", len(a.publicKey))
-		panic("Bad length in rcd1.  Should not happen")
+		return nil, fmt.Errorf("Bad length in rcd1.  Should not happen")
 	}
 	out.WriteByte(byte(1)) // The First Authorization method
 	out.Write(a.publicKey)

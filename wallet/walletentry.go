@@ -10,6 +10,7 @@
 package wallet
 
 import (
+    "fmt"
     "bytes"
     "encoding/binary"
     "github.com/FactomProject/simplecoin"
@@ -22,7 +23,8 @@ type IWalletEntry interface {
     GetRCD() simplecoin.IRCD 
     AddKey(public, private []byte)
     GetName() ([]byte)  
-    SetName([]byte)     
+    SetName([]byte)  
+    GetAddress() (simplecoin.IHash, error)
     
 }
 
@@ -32,15 +34,27 @@ type WalletEntry struct {
     name    []byte          
     rcd     simplecoin.IRCD // Verification block for this IWalletEntry
     // 1 byte count of public keys
-    public  [][]byte        // Set of public keys necessary to sign the rcd
+    public  [][]byte        // Set of public keys necessary towe sign the rcd
     // 1 byte count of private keys
     private [][]byte        // Set of private keys necessary to sign the rcd
 }
 
 var _ IWalletEntry = (*WalletEntry)(nil)
 
+func (w1 WalletEntry)GetAddress() (simplecoin.IHash, error) {
+    if w1.rcd == nil {
+        return nil, fmt.Errorf("Should never happen. Missing the rcd block")
+    }
+    adr, err := w1.rcd.GetAddress()
+    if err != nil {
+        return nil, err
+    }
+    return adr, nil
+}
+
+
 func (w1 WalletEntry)GetDBHash() simplecoin.IHash {
-    return simplecoin.Sha([]byte("WalletEntry"))
+    return simplecoin.Sha([]byte("WalletEntry")     )
 }
 
 func (w1 WalletEntry)GetNewInstance() simplecoin.IBlock {

@@ -36,7 +36,7 @@ func (oa OutECAddress) GetName() string {
  * Helper functions
  ******************************/
 
-func NewOutECAddress(amount uint64, address IAddress) IOutAddress {
+func NewOutECAddress( address IAddress, amount uint64 ) IOutAddress {
 	oa := new(OutECAddress)
 	oa.amount = amount
 	oa.address = address

@@ -64,6 +64,7 @@ func Test_bolt_init(t *testing.T) {
     db.Init(bucketList, instances)
     
     
+    
 }
 
 

@@ -93,3 +93,10 @@ func (a Address) MarshalText() (text []byte, err error) {
     out.WriteString("\n")
     return out.Bytes(), nil
 }
+
+func CreateAddress(hash IHash) IAddress {
+    a := new(Address)
+    a.address = new(Hash)
+    a.address.SetBytes(hash.Bytes())
+    return a
+}

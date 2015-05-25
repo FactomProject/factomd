@@ -16,6 +16,8 @@ import (
 
 type IRCD interface {
 	IBlock
+	GetAddress() (IHash, error)
+    Clone() IRCD
 }
 
 /***********************

@@ -77,15 +77,15 @@ func getSignedTrans() IBlock {
 	t := nb.(*Transaction)
 
 	for i := 0; i < 5; i++ {
-		t.AddInput(uint64(rand.Int63n(10000000000)), nextAddress())
+        t.AddInput( nextAddress(), uint64(rand.Int63n(10000000000)))
 	}
 
 	for i := 0; i < 3; i++ {
-		t.AddOutput(uint64(rand.Int63n(10000000000)), nextAddress())
+        t.AddOutput(nextAddress(), uint64(rand.Int63n(10000000000)) )
 	}
 
 	for i := 0; i < 3; i++ {
-		t.AddECOutput(uint64(rand.Int63n(10000000)), nextAddress())
+        t.AddECOutput( nextAddress(), uint64(rand.Int63n(10000000)))
 	}
 
 	for i := 0; i < 3; i++ {
