@@ -44,7 +44,7 @@ var (
 	currentAddr btcutil.Address
 	db          database.Db        // database
 	dchain      *common.DChain     //Directory Block Chain
-	ecchain      *common.ECChain //Entry Credit Chain
+	ecchain     *common.ECChain    //Entry Credit Chain
 	achain      *common.AdminChain //Admin Chain
 	fchainID    *common.Hash
 
@@ -53,11 +53,11 @@ var (
 
 	// To be moved to ftmMemPool??
 	chainIDMap      map[string]*common.EChain // ChainIDMap with chainID string([32]byte) as key
-	eCreditMap      map[*[32]byte]int32          // eCreditMap with public key string([32]byte) as key, credit balance as value
+	eCreditMap      map[*[32]byte]int32       // eCreditMap with public key string([32]byte) as key, credit balance as value
 	prePaidEntryMap map[string]int32          // Paid but unrevealed entries string(Etnry Hash) as key, Number of payments as value
 
 	chainIDMapBackup      map[string]*common.EChain //previous block bakcup - ChainIDMap with chainID string([32]byte) as key
-	eCreditMapBackup      map[*[32]byte]int32          // backup from previous block - eCreditMap with public key string([32]byte) as key, credit balance as value
+	eCreditMapBackup      map[*[32]byte]int32       // backup from previous block - eCreditMap with public key string([32]byte) as key, credit balance as value
 	prePaidEntryMapBackup map[string]int32          // backup from previous block - Paid but unrevealed entries string(Etnry Hash) as key, Number of payments as value
 
 	//Diretory Block meta data map
@@ -246,16 +246,14 @@ func Start_Processor(
 		case msg := <-inMsgQ:
 			fmt.Printf("PROCESSOR: in inMsgQ, msg:%+v\n", msg)
 
-			err := serveMsgRequest(msg)
-			if err != nil {
+			if err := serveMsgRequest(msg); err != nil {
 				log.Println(err)
 			}
 
 		case ctlMsg := <-inCtlMsgQueue:
 			fmt.Printf("PROCESSOR: in ctlMsg, msg:%+v\n", ctlMsg)
 
-			err := serveMsgRequest(ctlMsg)
-			if err != nil {
+			if err := serveMsgRequest(ctlMsg); err != nil {
 				log.Println(err)
 			}
 		}
@@ -1612,26 +1610,17 @@ func initECChain() {
 	//Initialize the Entry Credit Chain ID
 	ecchain = common.NewECChain()
 
-	// get all cBlocks from db
+	// get all ecBlocks from db
 	ecBlocks, _ := db.FetchAllECBlocks()
 	sort.Sort(util.ByECBlockIDAccending(ecBlocks))
 
-	//fmt.Printf("initCChain: cBlocks=%s\n", spew.Sdump(cBlocks))
-
-	for i := 0; i < len(ecBlocks); i = i + 1 {
-		if ecBlocks[i].Header.DBHeight != uint32(i) {
+	for i, v := range ecBlocks {
+		if v.Header.DBHeight != uint32(i) {
 			panic("Error in initializing dChain:" + ecchain.ChainID.String())
 		}
-
+		
 		// Calculate the EC balance for each account
-		initializeECreditMap(&ecBlocks[i])
-	}
-
-	// double check the block ids
-	for i := 0; i < len(ecBlocks); i = i + 1 {
-		if uint32(i) != ecBlocks[i].Header.DBHeight {
-			panic(errors.New("BlockID does not equal index for chain:" + ecchain.ChainID.String() + " block:" + fmt.Sprintf("%v", ecBlocks[i].Header.DBHeight)))
-		}
+		initializeECreditMap(&v)
 	}
 
 	//Create an empty block and append to the chain
