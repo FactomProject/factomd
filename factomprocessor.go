@@ -715,15 +715,15 @@ func processCommitChain(msg *wire.MsgCommitChain) error {
 	shaHash, _ := msg.Sha()
 
 	// Check if the chain id already exists
-	_, existing := chainIDMap[msg.CommitChain.ChainID.String()]
-	if !existing {
-		if msg.ChainID.IsSameAs(dchain.ChainID) || msg.CommitChain.ChainID.IsSameAs(cchain.ChainID) {
-			existing = true
-		}
-	}
-	if existing {
-		return errors.New("Already existing chain id:" + msg.CommitChain.ChainID.String())
-	}
+//	_, existing := chainIDMap[msg.CommitChain.ChainID.String()]
+//	if !existing {
+//		if msg.ChainID.IsSameAs(dchain.ChainID) || msg.CommitChain.ChainID.IsSameAs(cchain.ChainID) {
+//			existing = true
+//		}
+//	}
+//	if existing {
+//		return errors.New("Already existing chain id:" + msg.CommitChain.ChainID.String())
+//	}
 
 	// Precalculate the key and value pair for prePaidEntryMap
 	key := getPrePaidChainKey(msg.CommitChain.EntryHash,
@@ -768,7 +768,7 @@ func processRevealChain(msg *wire.MsgRevealChain) error {
 	_, existing := chainIDMap[msg.FirstEntry.ChainID.String()]
 	if !existing {
 		// the chain id should not be the same as the special chains
-		if dchain.ChainID.IsSameAs(msg.FirstEntry.ChainID) || cchain.ChainID.IsSameAs(msg.FirstEntry.ChainID) ||
+		if dchain.ChainID.IsSameAs(msg.FirstEntry.ChainID) || ecchain.ChainID.IsSameAs(msg.FirstEntry.ChainID) ||
 			achain.ChainID.IsSameAs(msg.FirstEntry.ChainID) || wire.FChainID.IsSameAs(msg.FirstEntry.ChainID) {
 			existing = true
 		}
@@ -983,7 +983,7 @@ func buildGenesisBlocks() error {
 	cBlock := newEntryCreditBlock(ecchain)
 	fmt.Printf("buildGenesisBlocks: cBlock=%s\n", spew.Sdump(cBlock))
 	dchain.AddECBlockToDBEntry(cBlock)
-	exportCChain(ecchain)
+	exportECChain(ecchain)
 	
 	// Admin chain
 	aBlock := newAdminBlock(achain)
@@ -1039,7 +1039,7 @@ func buildBlocks() error {
 	// Entry Credit Chain
 	ecBlock := newEntryCreditBlock(ecchain)
 	dchain.AddECBlockToDBEntry(ecBlock)
-	exportCChain(ecchain)
+	exportECChain(ecchain)
 
 	// Admin chain
 	aBlock := newAdminBlock(achain)
@@ -1053,6 +1053,7 @@ func buildBlocks() error {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
+	
 	// Entry Chains
 	for _, k := range keys {
 		chain := chainIDMap[k]
