@@ -33,7 +33,8 @@ import (
 	//	"github.com/FactomProject/btcd/txscript"
 	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/btcutil"
-	"github.com/FactomProject/btcws"
+	//	"github.com/FactomProject/btcws"
+	"github.com/FactomProject/btcd/btcjson/btcws"
 	"github.com/FactomProject/fastsha256"
 	"github.com/FactomProject/websocket"
 
@@ -792,7 +793,7 @@ func handleCreateRawTransaction(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan 
 		util.Trace(encodedAddr)
 
 		// Decode the provided address.
-		addr, err := btcutil.DecodeAddress(encodedAddr)
+		addr, err := btcutil.DecodeAddress(encodedAddr, activeNetParams.Params)
 
 		util.Trace(fmt.Sprintf(spew.Sdump(addr)))
 
@@ -1418,17 +1419,17 @@ func (state *gbtWorkState) NotifyMempoolTx(lastUpdated time.Time) {
 		state.Lock()
 		defer state.Unlock()
 
-		// No need to notify anything if no block templates have been generated
-		// yet.
-		if state.prevHash == nil || state.lastGenerated.IsZero() {
-			return
-		}
+			// No need to notify anything if no block templates have been generated
+			// yet.
+			if state.prevHash == nil || state.lastGenerated.IsZero() {
+				return
+			}
 
-		if time.Now().After(state.lastGenerated.Add(time.Second *
-			gbtRegenerateSeconds)) {
+			if time.Now().After(state.lastGenerated.Add(time.Second *
+				gbtRegenerateSeconds)) {
 
-			state.notifyLongPollers(state.prevHash, lastUpdated)
-		}
+				state.notifyLongPollers(state.prevHash, lastUpdated)
+			}
 	}()
 }
 
@@ -3058,7 +3059,7 @@ func handleSearchRawTransactions(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan
 	c := cmd.(*btcjson.SearchRawTransactionsCmd)
 
 	// Attempt to decode the supplied address.
-	addr, err := btcutil.DecodeAddress(c.Address)
+	addr, err := btcutil.DecodeAddress(c.Address, s.server.chainParams)
 	if err != nil {
 		return nil, btcjson.Error{
 			Code: btcjson.ErrInvalidAddressOrKey.Code,
@@ -3345,7 +3346,7 @@ func handleValidateAddress(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struc
 	c := cmd.(*btcjson.ValidateAddressCmd)
 
 	result := btcjson.ValidateAddressResult{}
-	addr, err := btcutil.DecodeAddress(c.Address)
+	addr, err := btcutil.DecodeAddress(c.Address, activeNetParams.Params)
 	if err != nil {
 		// Return the default value (false) for IsValid.
 		return result, nil

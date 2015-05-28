@@ -18,10 +18,10 @@ type MsgTx struct {
 	LockTime int64 // 5 bytes on the wire
 
 	//	FactoidOut []*TxFactoidOut
-	TxOut     []*TxOut
-	ECOut     []*TxEntryCreditOut
-	TxIn      []*TxIn
-	RCDreveal []*RCDreveal
+	TxOut []*TxOut
+	ECOut []*TxEntryCreditOut
+	TxIn  []*TxIn
+	//	RCDreveal []*RCDreveal
 	//	TxSig []*TxSig  // TODO: RE-ENABLE
 }
 

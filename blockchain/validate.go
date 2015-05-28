@@ -53,11 +53,13 @@ const (
 	// baseSubsidy is the starting subsidy amount for mined blocks.  This
 	// value is halved every SubsidyHalvingInterval blocks.
 	//	baseSubsidy = 50 * btcutil.SatoshiPerBitcoin
-	BaseSubsidy = 10000000 // Phase 1 Factom release, real small subsidy
+	//	BaseSubsidy = 10000000 // Phase 1 Factom release, real small subsidy
+	BaseSubsidy = 500000000 // Phase 1 Factom release, small subsidy test only: 5 BTC
 
 	// CoinbaseMaturity is the number of blocks required before newly
 	// mined bitcoins (coinbase transactions) can be spent.
-	CoinbaseMaturity = 100
+	//	CoinbaseMaturity = 100
+	CoinbaseMaturity = 1
 )
 
 var (
@@ -99,7 +101,7 @@ func isNullOutpoint(outpoint *wire.OutPoint) bool {
 // a previous output transaction index set to the maximum value along with a
 // zero hash.
 func IsCoinBase(tx *btcutil.Tx) bool {
-	util.Trace()
+	//	util.Trace()
 
 	msgTx := tx.MsgTx()
 
@@ -109,19 +111,20 @@ func IsCoinBase(tx *btcutil.Tx) bool {
 	if len(msgTx.TxIn) != 1 {
 		return false
 	}
-	util.Trace()
+	//	util.Trace()
 
 	// A coin base must not have any EntryCredit outputs.
 	if len(msgTx.ECOut) != 0 {
 		return false
 	}
 
-	util.Trace()
+	/* TODO: RE-ENABLE
+	//	util.Trace()
 	// A coin base must not have any RCD reveals
 	if len(msgTx.RCDreveal) != 0 {
 		return false
 	}
-	util.Trace()
+	*/
 
 	prevOut := msgTx.TxIn[0].PreviousOutPoint
 	fmt.Println("prevOut=", spew.Sdump(prevOut))
@@ -130,7 +133,7 @@ func IsCoinBase(tx *btcutil.Tx) bool {
 		util.Trace("WARNING: not zeroHash !")
 		return false
 	}
-	util.Trace()
+	//	util.Trace()
 
 	return true
 }

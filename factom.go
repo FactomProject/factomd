@@ -291,7 +291,10 @@ func (b *blockManager) factomChecks() {
 
 func FactomSetupOverrides() {
 	//	factomd.FactomOverride.TxIgnoreMissingParents = true
-	FactomOverride.TxOrphansInsteadOfMempool = true
+
+	//	FactomOverride.TxOrphansInsteadOfMempool = true
+	FactomOverride.TxOrphansInsteadOfMempool = false
+
 	FactomOverride.BlockDisableChecks = true
 }
 
@@ -336,20 +339,39 @@ func factomIngressBlock_hook(hash *wire.ShaHash) error {
 }
 
 func ExtractPkScriptAddrs(pkScript []byte, chainParams *chaincfg.Params) ([]btcutil.Address, int, error) {
-	util.Trace(spew.Sdump(pkScript))
+	oldWay := false
+
+	util.Trace("bytes= " + spew.Sdump(pkScript))
 
 	var addrs []btcutil.Address
 	var requiredSigs int
 
-	// A pay-to-pubkey script is of the form:
-	//  <pubkey> OP_CHECKSIG
-	// Therefore the pubkey is the first item on the stack.
-	// Skip the pubkey if it's invalid for some reason.
-	requiredSigs = 1
-	addr, err := btcutil.NewAddressPubKey(pkScript, chainParams)
-	if err == nil {
-		addrs = append(addrs, addr)
+	if oldWay {
+		// A pay-to-pubkey script is of the form:
+		//  <pubkey> OP_CHECKSIG
+		// Therefore the pubkey is the first item on the stack.
+		// Skip the pubkey if it's invalid for some reason.
+		requiredSigs = 1
+		addr, err := btcutil.NewAddressPubKey(pkScript, chainParams)
+		if err == nil {
+			addrs = append(addrs, addr)
+		}
+
+	} else {
+
+		// A pay-to-pubkey-hash script is of the form:
+		//  OP_DUP OP_HASH160 <hash> OP_EQUALVERIFY OP_CHECKSIG
+		// Therefore the pubkey hash is the 3rd item on the stack.
+		// Skip the pubkey hash if it's invalid for some reason.
+		requiredSigs = 1
+		//	addr, err := btcutil.NewAddressPubKeyHash(pops[2].data,
+		addr, err := btcutil.NewAddressPubKeyHash(pkScript, chainParams)
+		if err == nil {
+			addrs = append(addrs, addr)
+		}
 	}
+
+	util.Trace("addrs= " + spew.Sdump(addrs))
 
 	return addrs, requiredSigs, nil
 }
@@ -357,17 +379,13 @@ func ExtractPkScriptAddrs(pkScript []byte, chainParams *chaincfg.Params) ([]btcu
 // PayToAddrScript creates a new script to pay a transaction output to a the
 // specified address.
 func PayToAddrScript(addr btcutil.Address) ([]byte, error) {
-	util.Trace("NOT IMPLEMENTED -- needs to be !!!!!!!!!!!!!!!!!!!!")
-	/*
-		switch addr := addr.(type) {
-		case *btcutil.AddressPubKey:
-			if addr != nil {
-				return payToPubKeyScript(addr.ScriptAddress()), nil
-			}
-		}
-	*/
+	scrAddr := addr.ScriptAddress()
 
-	panic(errors.New("PayToAddrScript -- NOT IMPLEMENTED !!!"))
+	util.Trace("scrAddr= " + spew.Sdump(scrAddr))
 
-	return nil, errors.New("unsupported !!!")
+	return scrAddr, nil
+
+	//	panic(errors.New("PayToAddrScript -- NOT IMPLEMENTED !!!"))
+
+	//	return payToPubKeyHashScript(addr.ScriptAddress())
 }

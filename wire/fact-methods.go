@@ -38,6 +38,8 @@ const (
 	minTxPayload = 10 // TODO: revisit for Factoid, blind copy from Bitcoin
 
 	defaultTxInOutAlloc = 4
+
+	disableSpew = true
 )
 
 // 10KiB is the limit for entries, per Brian we apply the same here
@@ -104,6 +106,7 @@ func writeBitfield(w io.Writer, pver uint32, sig *TxSig) error {
 // readOutPoint reads the next sequence of bytes from r as an OutPoint.
 func readOutPoint(r io.Reader, pver uint32, op *OutPoint) error {
 	util.Trace()
+
 	_, err := io.ReadFull(r, op.Hash[:])
 	if err != nil {
 		return err
@@ -114,7 +117,7 @@ func readOutPoint(r io.Reader, pver uint32, op *OutPoint) error {
 
 	// varint on the wire, but easily fits into uint32
 	index, err := readVarInt(r, pver)
-	util.Trace(fmt.Sprintf("index=%d\n", index))
+	util.Trace(fmt.Sprintf("index=%X\n", index))
 
 	// coinbase has math.MaxUint32, so that's ok
 	if inNout_cap < index && math.MaxUint32 != index {
@@ -162,7 +165,9 @@ func readTxIn(r io.Reader, pver uint32, ti *TxIn) error {
 
 	ti.sighash = uint8(buf[0])
 
+	//	if !disableSpew {
 	fmt.Println("readTxIn():", spew.Sdump(ti))
+	//	}
 
 	return nil
 }
@@ -182,7 +187,9 @@ func readTxOut(r io.Reader, pver uint32, to *TxOut) error {
 
 	copy(to.RCDHash[:], b)
 
-	fmt.Println("readTxOut():", spew.Sdump(to))
+	if !disableSpew {
+		fmt.Println("readTxOut():", spew.Sdump(to))
+	}
 
 	return nil
 }
@@ -200,7 +207,9 @@ func readECOut(r io.Reader, pver uint32, eco *TxEntryCreditOut) error {
 
 	copy(eco.ECpubkey[:], b)
 
-	fmt.Println("readECOut():", spew.Sdump(eco))
+	if !disableSpew {
+		fmt.Println("readECOut():", spew.Sdump(eco))
+	}
 
 	return nil
 }
@@ -210,7 +219,7 @@ func readECOut(r io.Reader, pver uint32, eco *TxEntryCreditOut) error {
 // See Deserialize for decoding transactions stored to disk, such as in a
 // database, as opposed to decoding transactions from the wire.
 func (msg *MsgTx) BtcDecode(r io.Reader, pver uint32) error {
-	util.Trace()
+	//	util.Trace()
 
 	/*
 		if s, ok := r.(io.Seeker); ok {
@@ -237,9 +246,9 @@ func (msg *MsgTx) BtcDecode(r io.Reader, pver uint32) error {
 	}
 
 	msg.Version = uint8(buf[0])
-	util.Trace(fmt.Sprintf("version=%d\n", msg.Version))
+	//	util.Trace(fmt.Sprintf("version=%d\n", msg.Version))
 
-	fmt.Printf("buf= %v (%d)\n", buf, msg.Version)
+	//	fmt.Printf("buf= %v (%d)\n", buf, msg.Version)
 
 	if !factoid.FactoidTx_VersionCheck(msg.Version) {
 		return errors.New("fTx version check")
@@ -261,6 +270,7 @@ func (msg *MsgTx) BtcDecode(r io.Reader, pver uint32) error {
 	msg.LockTime = int64(binary.BigEndian.Uint64(full8slice))
 
 	if !factoid.FactoidTx_LocktimeCheck(msg.LockTime) {
+		util.Trace("LOCKTIME error: MsgTx= " + spew.Sdump(*msg))
 		return errors.New("fTx decode locktime check")
 	}
 
@@ -289,13 +299,13 @@ func (msg *MsgTx) BtcDecode(r io.Reader, pver uint32) error {
 		}
 		msg.TxOut[i] = &to
 	}
-	util.Trace()
+	//	util.Trace()
 
 	eccount, err := readVarInt(r, pver)
 	if err != nil {
 		return err
 	}
-	util.Trace(fmt.Sprintf("eccount=%d\n", eccount))
+	//	util.Trace(fmt.Sprintf("eccount=%d\n", eccount))
 
 	// Prevent more input transactions than could possibly fit into a
 	// message.  It would be possible to cause memory exhaustion and panics
@@ -307,7 +317,7 @@ func (msg *MsgTx) BtcDecode(r io.Reader, pver uint32) error {
 		return messageError("MsgTx.BtcDecode maxecout", str)
 	}
 
-	util.Trace()
+	//	util.Trace()
 
 	msg.ECOut = make([]*TxEntryCreditOut, eccount)
 	for i := uint64(0); i < eccount; i++ {
@@ -318,7 +328,7 @@ func (msg *MsgTx) BtcDecode(r io.Reader, pver uint32) error {
 		}
 		msg.ECOut[i] = &eco
 	}
-	util.Trace()
+	//	util.Trace()
 
 	incount, err := readVarInt(r, pver)
 	util.Trace(fmt.Sprintf("incount=%d\n", incount))
@@ -332,14 +342,17 @@ func (msg *MsgTx) BtcDecode(r io.Reader, pver uint32) error {
 		}
 		msg.TxIn[i] = &ti
 	}
-	util.Trace()
+	//	util.Trace()
 
+	/* LOOKS LIKE ERROR HERE
 	_, err = io.ReadFull(r, buf[:])
 	if err != nil {
 		return err
 	}
-	util.Trace()
+	//	util.Trace()
+	*/
 
+	/* TODO: RE-ENABLE
 	rcdcount, err := readVarInt(r, pver)
 
 	if rcdcount > uint64(inNout_cap) {
@@ -348,7 +361,7 @@ func (msg *MsgTx) BtcDecode(r io.Reader, pver uint32) error {
 			inNout_cap)
 		return messageError("MsgTx.BtcDecode max rcd", str)
 	}
-	util.Trace()
+	//	util.Trace()
 
 	msg.RCDreveal = make([]*RCDreveal, rcdcount)
 	for i := uint64(0); i < rcdcount; i++ {
@@ -359,7 +372,7 @@ func (msg *MsgTx) BtcDecode(r io.Reader, pver uint32) error {
 		}
 		msg.RCDreveal[i] = &rcd
 	}
-	util.Trace()
+	*/
 
 	/* TODO:
 	RE - ENABLE
@@ -380,8 +393,9 @@ func (msg *MsgTx) BtcDecode(r io.Reader, pver uint32) error {
 	}
 	*/
 
-	fmt.Println("MsgTx= ", spew.Sdump(*msg))
-	fmt.Println("MsgTx= ", spew.Sdump(msg))
+	if !disableSpew {
+		fmt.Println("MsgTx= ", spew.Sdump(*msg))
+	}
 
 	return nil
 }
@@ -452,6 +466,7 @@ func (msg *MsgTx) BtcEncode(w io.Writer, pver uint32) error {
 		}
 	}
 
+	/* TODO: RE-ENABLE
 	rcdcount := uint64(len(msg.RCDreveal))
 	err = writeVarInt(w, pver, rcdcount)
 	if err != nil {
@@ -464,6 +479,7 @@ func (msg *MsgTx) BtcEncode(w io.Writer, pver uint32) error {
 			return err
 		}
 	}
+	*/
 
 	/* TODO: RE-ENABLE
 	for _, sig := range msg.TxSig {
@@ -584,11 +600,13 @@ func (msg *MsgTx) SerializeSize() int {
 		n += txIn.SerializeSize()
 	}
 
+	/* TODO: RE-ENABLE
 	n += VarIntSerializeSize(uint64(len(msg.RCDreveal)))
 
 	for _, rcd := range msg.RCDreveal {
 		n += rcd.SerializeSize()
 	}
+	*/
 
 	// FIXME
 	// TODO: count TxSig impact here
@@ -602,7 +620,9 @@ func (msg *MsgTx) SerializeSize() int {
 func (msg *MsgTx) TxSha() (ShaHash, error) {
 	util.Trace()
 
-	fmt.Println("TxSha spew: ", spew.Sdump(*msg))
+	if !disableSpew {
+		fmt.Println("TxSha spew: ", spew.Sdump(*msg))
+	}
 
 	// Encode the transaction and calculate double sha256 on the result.
 	// Ignore the error returns since the only way the encode could fail
@@ -669,7 +689,11 @@ func (msg *MsgTx) AddTxIn(ti *TxIn) {
 
 // AddTxOut adds a transaction output to the message.
 func (msg *MsgTx) AddTxOut(to *TxOut) {
+	util.Trace("BEGIN msg= " + spew.Sdump(msg))
+
 	msg.TxOut = append(msg.TxOut, to)
+
+	util.Trace("END msg= " + spew.Sdump(msg))
 }
 
 // AddECOut adds a transaction output to the message.
@@ -677,10 +701,12 @@ func (msg *MsgTx) AddECOut(eco *TxEntryCreditOut) {
 	msg.ECOut = append(msg.ECOut, eco)
 }
 
+/* TODO: RE-ENABLE
 // AddRCD adds a RCD to the message.
 func (msg *MsgTx) AddRCD(rcd *RCDreveal) {
 	msg.RCDreveal = append(msg.RCDreveal, rcd)
 }
+*/
 
 // NewMsgTx returns a new tx message that conforms to the Message
 // interface.  The return instance has a default version of TxVersion and there
@@ -692,10 +718,10 @@ func NewMsgTx() *MsgTx {
 		Version:  TxVersion,
 		LockTime: 0,
 		//		LockTime:  0x123456789A, // FIXME: this is for testing only
-		TxOut:     make([]*TxOut, 0, defaultTxInOutAlloc),
-		ECOut:     make([]*TxEntryCreditOut, 0, defaultTxInOutAlloc),
-		TxIn:      make([]*TxIn, 0, defaultTxInOutAlloc),
-		RCDreveal: make([]*RCDreveal, 0, defaultTxInOutAlloc),
+		TxOut: make([]*TxOut, 0, defaultTxInOutAlloc),
+		ECOut: make([]*TxEntryCreditOut, 0, defaultTxInOutAlloc),
+		TxIn:  make([]*TxIn, 0, defaultTxInOutAlloc),
+		//		RCDreveal: make([]*RCDreveal, 0, defaultTxInOutAlloc), // TODO: RE-ENABLE
 		//		TxSig:    make([]*TxSig, 0, defaultTxInOutAlloc), // TODO: RE-ENABLE
 	}
 }
