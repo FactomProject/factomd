@@ -47,26 +47,34 @@ func Test_GenerateAddress_scwallet(test *testing.T) {
     if !h1.IsEqual(h1) { test.Fail() }
 }
 
-func Test_CreateTransaction_scallet(test *testing.T) { 
+func Test_CreateTransaction_swcallet(test *testing.T) { 
     w := new(SCWallet)          // make me a wallet
     h1,err := w.GenerateAddress([]byte("test 1"),1,1)
     if err != nil { test.Fail() }
     h2,err := w.GenerateAddress([]byte("test 2"),1,1)
     if err != nil { test.Fail() }
     
-//     CreateTransaction() simplecoin.ITransaction
-//     AddInput(simplecoin.ITransaction, IWalletEntry, uint64)
-//     AddOutput(simplecoin.ITransaction, IWalletEntry, uint64)
-//     AddECOutput(simplecoin.ITransaction, IWalletEntry, uint64)
-//     ValidateTransaction(simplecoin.ITransaction)
-   t := w.CreateTransaction()
-   w.AddInput(t,h1,10000)
-   w.AddOutput(t,h2,9000)
-   
-   err1, err2 := w.ValidateTransaction(t)
-   if(!err1 || err2 != nil) {
-       simplecoin.Prtln(err2,err1)
-       test.Fail()
-   }
+    t := w.CreateTransaction()
+    
+    w.AddInput(t,h1,1000000)
+    w.AddOutput(t,h2,1000000-12000)
+    
+    signed,err := w.SignInputs(t)
+    if !signed || err != nil {
+        simplecoin.Prtln("Signed Fail: ",signed, err)
+        test.Fail()
+    }
+    
+    fee, err := t.CalculateFee(1000)
+    if fee != 12000 || err != nil {
+        simplecoin.Prtln("Fee Calculation Failed",fee,err)
+        test.Fail() 
+    }
+    
+    valid, err2 := w.Validate(t)
+    if(!valid || err2 != nil) {
+        simplecoin.Prtln(err2,valid)
+        test.Fail()
+    }
     
 }

@@ -44,7 +44,6 @@ func (w RCD_1)GetAddress() (IHash, error){
     return Sha(data), nil
 }
 
-
 func (w1 RCD_1)GetDBHash() IHash {
     return Sha([]byte("RCD_1"))
 }
@@ -55,6 +54,10 @@ func (w1 RCD_1)GetNewInstance() IBlock {
 
 func (a RCD_1) GetPublicKey() []byte {
 	return a.publicKey
+}
+
+func (w1 RCD_1)NumberOfSignatures() int {
+    return 1
 }
 
 func (a1 RCD_1) IsEqual(addr IBlock) bool {
@@ -79,16 +82,17 @@ func (t *RCD_1) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 
 	if len(data) < ADDRESS_LENGTH {
 		PrtStk()
-		return nil, fmt.Errorf("Data source too short to unmarshal a Signature: %d", len(data))
+		return nil, fmt.Errorf("Data source too short to unmarshal an address: %d", len(data))
 	}
 
 	t.publicKey = make([]byte, ADDRESS_LENGTH, ADDRESS_LENGTH)
 	copy(t.publicKey, data[:ADDRESS_LENGTH])
-
-	return data[ADDRESS_LENGTH:], nil
+    data = data[ADDRESS_LENGTH:]
+    
+	return data, nil
 }
 
-func (a RCD_1) MarshalBinary() (data []byte, err error) {
+func (a RCD_1) MarshalBinary() ([]byte, error) {
 	var out bytes.Buffer
 	if len(a.publicKey) != ADDRESS_LENGTH {
         Prtln("Length of Public Key: ", len(a.publicKey))
@@ -96,7 +100,7 @@ func (a RCD_1) MarshalBinary() (data []byte, err error) {
 	}
 	out.WriteByte(byte(1)) // The First Authorization method
 	out.Write(a.publicKey)
-
+    
 	return out.Bytes(), nil
 }
 

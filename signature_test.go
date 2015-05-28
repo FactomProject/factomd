@@ -33,11 +33,9 @@ func Test_Setup_Signature(test *testing.T) {
 	copy(sig2[32:], sh22)
     
     s1 = new(Signature)
-    s1.SetSignature(sig1[:])
-    s1.SetIndex(1)
+    s1.SetSignature(0,sig1[:])
     s2 = new(Signature)
-    s2.SetSignature(sig2[:])
-    s2.SetIndex(1)
+    s2.SetSignature(0, sig2[:])
 
     //    txt1,_:=s1.MarshalText()
     //    txt2,_:=s2.MarshalText()
@@ -52,14 +50,14 @@ func Test_IsEqual_Signature(test *testing.T) {
         test.Fail()
     }
     
-    s2.SetSignature(sig1[:])    // Set to sig1 for test
+    s2.SetSignature(0,sig1[:])    // Set to sig1 for test
     
     if(!    s1.IsEqual(s2)) {
         PrtStk()
         test.Fail()
     }
     
-    s2.SetSignature(sig2[:])    // Reset it back to Sig2
+    s2.SetSignature(0, sig2[:])    // Reset it back to Sig2
 }
 
 func Test_Marshal_Signature_(test *testing.T) {
@@ -72,6 +70,6 @@ func Test_Marshal_Signature_(test *testing.T) {
         test.Fail()
     }
     
-    s2.SetSignature(sig2[:])    // Reset it back to Sig2
+    s2.SetSignature(0,sig2[:])    // Reset it back to Sig2
     
 }

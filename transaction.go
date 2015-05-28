@@ -12,18 +12,25 @@ import (
 
 type ITransaction interface {
 	IBlock
+	MarshalBinarySig() ([]byte, error)
+	
 	AddInput(input IAddress, amount uint64, )
     AddOutput(output IAddress, amount uint64 )
     AddECOutput(ecoutput IAddress, amount uint64 )
-	GetInput(i int) IInAddress
+    AddRCD(rcd IRCD)
+    GetInput(i int) IInAddress
 	GetOutput(i int) IOutAddress
 	GetOutEC(i int) IOutECAddress
+	GetRCD(i int) IRCD
+	GetSignatureBlock(i int) ISignatureBlock
+	SetSignatureBlock(i int, signatureblk ISignatureBlock)
 	GetInputs() []IInAddress
 	GetOutputs() []IOutAddress
 	GetOutECs() []IOutECAddress
-	AddRCD(rcd IRCD)
-    GetRCD(i int) IRCD
-	Validate(factoshisPerEC uint64) bool
+	GetRCDs() []IRCD
+	GetSignatureBlocks() []ISignatureBlock
+    Validate(factoshisPerEC uint64) (bool, error)
+	CalculateFee(factoshisPerEC uint64) (uint64,error)
 }
 
 type Transaction struct {
@@ -37,10 +44,29 @@ type Transaction struct {
 	outputs        []IOutAddress
 	outECs         []IOutECAddress
 	rcds           []IRCD
+	sigBlocks      []ISignatureBlock
 }
 
 var _ ITransaction = (*Transaction)(nil)
 
+func (t *Transaction)SetSignatureBlock(i int, sig ISignatureBlock)  {
+    for len(t.sigBlocks) <= i {
+        t.sigBlocks = append(t.sigBlocks,new(SignatureBlock))
+    }
+    t.sigBlocks[i] = sig
+}
+
+func (t *Transaction)GetSignatureBlock(i int) ISignatureBlock {
+    for len(t.sigBlocks) <= i {
+        t.sigBlocks = append(t.sigBlocks,new(SignatureBlock))
+    }
+    return t.sigBlocks[i]
+}
+
+func (t *Transaction)AddRCD(rcd IRCD) {
+    t.rcds = append(t.rcds, rcd)
+}
+    
 func (w1 Transaction)GetDBHash() IHash {
     return Sha([]byte("Transaction"))
 }
@@ -49,15 +75,68 @@ func (w1 Transaction)GetNewInstance() IBlock {
     return new(Transaction)
 }
 
+// Fee structure can be found:
+// https://github.com/FactomProject/FactomDocs/blob/master/factomDataStructureDetails.md#sighash-type
+//
+//Transaction data size. -- Factoid transactions are charged the same 
+//    amount as Entry Credits (EC). The size fees are 1 EC per KiB with a 
+//    maximum transaction size of 10 KiB.
+//Number of outputs created -- These are data points which potentially 
+//    need to be tracked far into the future. They are more expensive 
+//    to handle, and require a larger sacrifice. Outputs cost 10 EC per 
+//    output. A purchase of Entry Credits also requires the 10 EC sized 
+//    fee to be valid.
+//Number of signatures checked -- These cause expensive computation on 
+//    all full nodes. A fee of 1 EC equivalent must be paid for each 
+//    signature included.
+func (t Transaction)CalculateFee(factoshisPerEC uint64) (uint64, error) {
+    
+    // First look at the size of the transaction, and make sure
+    // everything is inbounds.
+    data,err := t.MarshalBinary()
+    if err != nil {                  
+        return 0, fmt.Errorf("Can't Marshal the Transaction")   
+    }
+    if len(data) > MAX_TRANSACTION_SIZE { // Can't be bigger than our limits
+        return 0, fmt.Errorf("Transaction is greater than the max transaction size")
+    }
+    // Okay, we know the transaction is mostly good. Let's calculate 
+    // fees.
+    var fee uint64
+    
+    fee = factoshisPerEC * uint64((len(data)+1023)/1024)
+    
+    fee += factoshisPerEC * 10 * uint64( len(t.outputs) + len(t.outECs) )
+    
+    for _,rcd := range t.rcds {
+        fee += factoshisPerEC * uint64(rcd.NumberOfSignatures())
+    }
+    
+    return fee, nil
+}
+
 // Only validates that the transaction is well formed.  This means that 
 // the inputs cover the value of the outputs.  Can't validate addresses,
 // as they are hashes.  
 //
 // Validates the transaction fee, given the exchange rate to EC.
 //
-func (t Transaction)Validate(factoshisPerEC uint64) bool {
-    var inSum, outSum uint64
+// Returns:
+//
+// An error if the transaction is not well formed (inputs do not cover the
+// outputs + the fee, or if the signatures are bad).
+//
+// Returns false if the transaction is well formed, but one or more signatures
+// are still needed.
+//
+// Returns true if all the needed signures are present, and validate.
+//
+// If there are signatures, and they do not validate, we return an error.
+
+func (t Transaction)Validate(factoshisPerEC uint64) (bool, error) {
     
+    var inSum, outSum uint64
+
     for _,input := range t.inputs {
         inSum += input.GetAmount()
     }
@@ -65,10 +144,20 @@ func (t Transaction)Validate(factoshisPerEC uint64) bool {
     for _,output := range t.outputs {
         outSum += output.GetAmount()
     } 
-        
-    return inSum >= outSum
-}
+     
+    fee,err := t.CalculateFee(factoshisPerEC) 
 
+    if err != nil { return false, err }
+    
+    if inSum < outSum+fee { 
+        return false, fmt.Errorf("inputs do not cover the outputs and the fee") 
+    }
+    
+   
+    
+    
+    return true, nil
+}
 // Tests if the transaction is equal in all of its structures, and
 // in order of the structures.  Largely used to test and debug, but
 // generally useful.
@@ -104,14 +193,33 @@ func (t1 Transaction) IsEqual(trans IBlock) bool {
             return false
         }
     }
+    for i, s := range t1.sigBlocks {
+        if !s.IsEqual(t2.GetSignatureBlock(i)) {
+            return false
+        }
+    }
+    
 	return true
 }
 
-func (t Transaction) GetInputs() []IInAddress    { return t.inputs }
-func (t Transaction) GetOutputs() []IOutAddress  { return t.outputs }
-func (t Transaction) GetOutECs() []IOutECAddress { return t.outECs }
-func (t Transaction) GetRCDs()   []IRCD          { return t.rcds }
+func (t Transaction) GetInputs()          []IInAddress      { return t.inputs }
+func (t Transaction) GetOutputs()         []IOutAddress     { return t.outputs }
+func (t Transaction) GetOutECs()          []IOutECAddress   { return t.outECs }
+func (t Transaction) GetRCDs()            []IRCD            { return t.rcds }
 
+func (t *Transaction) GetSignatureBlocks() []ISignatureBlock { 
+    if len(t.sigBlocks) > len(t.inputs) {                    // If too long, nil out
+        for i := len(t.inputs); i < len(t.sigBlocks); i++ {  // the extra entries, and
+            t.sigBlocks[i] = nil                            // cut it to length.
+        }
+        t.sigBlocks = t.sigBlocks[:len(t.inputs)]
+        return t.sigBlocks
+    }
+    for i := len(t.sigBlocks); i <len(t.inputs); i++ {          // If too short, then
+        t.sigBlocks = append(t.sigBlocks, new(SignatureBlock)) // pad it with 
+    }                                                           // signature blocks.
+    return t.sigBlocks 
+}
 
 func (t *Transaction) GetInput(i int) IInAddress {
 	if i > len(t.inputs) { return nil }
@@ -132,6 +240,7 @@ func (t *Transaction) GetRCD(i int) IRCD {
     if i > len(t.rcds) { return nil }
     return t.rcds[i]
 }
+
 
 // UnmarshalBinary assumes that the Binary is all good.  We do error
 // out if there isn't enough data, or the transaction is too large.
@@ -191,6 +300,18 @@ func (t *Transaction) UnmarshalBinaryData(data []byte) (newData []byte, err erro
             return nil, err
         }
     }
+    
+    if t.sigBlocks == nil {
+        t.sigBlocks = make([]ISignatureBlock, len(t.inputs))
+    }
+    for i := 0; i < len(t.inputs); i++ {
+        t.sigBlocks[i] = new(SignatureBlock)
+        data, err = t.sigBlocks[i].UnmarshalBinaryData(data)
+        if err != nil {
+            return nil, err
+        }
+    }
+    
 	return data, nil
 }
 
@@ -199,10 +320,9 @@ func (t *Transaction) UnmarshalBinary(data []byte) (err error) {
 	return err
 }
 
-// This is a workaround helper function so that Signed Transactions don't
-// have to duplicate this code.
-//
-func (t Transaction) MarshalBinary() ([]byte, error) {
+// This is what Gets Signed.  Yet signature blocks are part of the transaction.
+// We don't include them here, and tack them on later.
+func (t *Transaction) MarshalBinarySig() ([]byte, error) {
 	var out bytes.Buffer
     
 // 	{  // limit the scope of tmp
@@ -247,7 +367,40 @@ func (t Transaction) MarshalBinary() ([]byte, error) {
         out.Write(data)
     }
     
+    for i := 0; i < len(t.inputs); i++ {
+        for len(t.sigBlocks) <= i {
+            t.sigBlocks = append(t.sigBlocks, new(SignatureBlock))
+        }
+        data, err := t.sigBlocks[i].MarshalBinary()
+        if err != nil {
+            return nil, err
+        }
+        out.Write(data)
+    }
+    
 	return out.Bytes(), nil
+}
+
+// This just Marshals the Signatures, and calls MarshalBinarySig() for 
+// everything else.
+func (t Transaction) MarshalBinary() ([]byte, error) {
+    var out bytes.Buffer
+    
+    data, err := t.MarshalBinarySig()
+    if err != nil {
+        return nil, err
+    }
+    out.Write(data)
+    
+    for _, sig := range t.sigBlocks {
+        data, err := sig.MarshalBinary()
+        if err != nil {
+            return nil, err
+        }
+        out.Write(data)
+    }
+    
+    return out.Bytes(), nil
 }
 
 
@@ -288,11 +441,8 @@ func (t *Transaction) AddECOutput( ecoutput IAddress, amount uint64) {
 
 }
 
-// Helper function because I don't know how to call a parent struct's
-// implementation in Go.  Of course, instead of inheritence, we could
-// just keep a pointer to the transaction in SignedTransaction.  That
-// likely makes more sense, but we can change that later easy enough.
-func (t Transaction) MarshalText2() (text []byte, err error) {
+// Marshal to text.  Largely a debugging thing.
+func (t Transaction) MarshalText() (text []byte, err error) {
 	var out bytes.Buffer
 
 	out.WriteString("locktime")
@@ -324,7 +474,18 @@ func (t Transaction) MarshalText2() (text []byte, err error) {
         }
         out.Write(text)
     }
-	return out.Bytes(), nil
+    for i := 0; i < len(t.inputs); i++ {
+        if len(t.sigBlocks) < i {
+            t.sigBlocks = append(t.sigBlocks, new(SignatureBlock))
+        }
+        text, err := t.sigBlocks[i].MarshalText()
+        if err != nil {
+            return nil, err
+        }
+        out.Write(text)
+    }
+    
+    return out.Bytes(), nil
 }
 
 // Helper Function.  This simply adds an Authorization to a
