@@ -10,17 +10,16 @@ import (
 	"github.com/FactomProject/FactomCode/common"
 )
 
-// MsgCBlock implements the Message interface and represents a factom
-// CBlock message.  It is used by client to download CBlock.
-type MsgCBlock struct {
-	CBlk *common.CBlock
+// MsgECBlock implements the Message interface and represents a factom ECBlock
+// message.  It is used by client to download ECBlock.
+type MsgECBlock struct {
+	ECBlock *common.ECBlock
 }
 
 // BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
 // This is part of the Message interface implementation.
-func (msg *MsgCBlock) BtcEncode(w io.Writer, pver uint32) error {
-
-	bytes, err := msg.CBlk.MarshalBinary()
+func (msg *MsgECBlock) BtcEncode(w io.Writer, pver uint32) error {
+	bytes, err := msg.ECBlock.MarshalBinary()
 	if err != nil {
 		return err
 	}
@@ -35,15 +34,15 @@ func (msg *MsgCBlock) BtcEncode(w io.Writer, pver uint32) error {
 
 // BtcDecode decodes r using the bitcoin protocol encoding into the receiver.
 // This is part of the Message interface implementation.
-func (msg *MsgCBlock) BtcDecode(r io.Reader, pver uint32) error {
+func (msg *MsgECBlock) BtcDecode(r io.Reader, pver uint32) error {
 
-	bytes, err := readVarBytes(r, pver, uint32(10000), CmdCBlock)
+	bytes, err := readVarBytes(r, pver, uint32(10000), CmdECBlock)
 	if err != nil {
 		return err
 	}
 
-	msg.CBlk = new(common.CBlock)
-	err = msg.CBlk.UnmarshalBinary(bytes)
+	msg.ECBlock = new(common.ECBlock)
+	err = msg.ECBlock.UnmarshalBinary(bytes)
 	if err != nil {
 		return err
 	}
@@ -53,18 +52,18 @@ func (msg *MsgCBlock) BtcDecode(r io.Reader, pver uint32) error {
 
 // Command returns the protocol command string for the message.  This is part
 // of the Message interface implementation.
-func (msg *MsgCBlock) Command() string {
-	return CmdCBlock
+func (msg *MsgECBlock) Command() string {
+	return CmdECBlock
 }
 
 // MaxPayloadLength returns the maximum length the payload can be for the
 // receiver.  This is part of the Message interface implementation.
-func (msg *MsgCBlock) MaxPayloadLength(pver uint32) uint32 {
+func (msg *MsgECBlock) MaxPayloadLength(pver uint32) uint32 {
 	return MaxAppMsgPayload
 }
 
-// NewMsgCBlock returns a new bitcoin inv message that conforms to the Message
+// NewMsgECBlock returns a new bitcoin inv message that conforms to the Message
 // interface.  See MsgInv for details.
-func NewMsgCBlock() *MsgCBlock {
-	return &MsgCBlock{}
+func NewMsgECBlock() *MsgECBlock {
+	return &MsgECBlock{}
 }

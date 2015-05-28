@@ -1607,9 +1607,9 @@ out:
 			util.Trace()
 			p.handleABlockMsg(msg, buf)
 
-		case *wire.MsgCBlock:
+		case *wire.MsgECBlock:
 			util.Trace()
-			p.handleCBlockMsg(msg, buf)
+			p.handleECBlockMsg(msg, buf)
 
 		case *wire.MsgEBlock:
 			util.Trace()

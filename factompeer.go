@@ -30,9 +30,10 @@ func (p *peer) handleDirBlockMsg(msg *wire.MsgDirBlock, buf []byte) {
 	iv := wire.NewInvVect(wire.InvTypeFactomDirBlock, hash)
 	p.AddKnownInventory(iv)
 
+	p.pushGetNonDirDataMsg(msg.DBlk)
+	
 	inMsgQueue <- msg
 
-	p.pushGetNonDirDataMsg(msg.DBlk)
 }
 
 // handleABlockMsg is invoked when a peer receives a entry credit block message.
@@ -53,15 +54,16 @@ func (p *peer) handleABlockMsg(msg *wire.MsgABlock, buf []byte) {
 	inMsgQueue <- msg
 }
 
-// handleCBlockMsg is invoked when a peer receives a entry credit block message.
-func (p *peer) handleCBlockMsg(msg *wire.MsgCBlock, buf []byte) {
+// handleECBlockMsg is invoked when a peer receives a entry credit block
+// message.
+func (p *peer) handleECBlockMsg(msg *wire.MsgECBlock, buf []byte) {
 	util.Trace()
 	// Convert the raw MsgBlock to a btcutil.Block which provides some
 	// convenience methods and things such as hash caching.
 
-	fmt.Printf("msgCBlock=%v\n", spew.Sdump(msg.CBlk))
+	fmt.Printf("msgECBlock=%v\n", spew.Sdump(msg.ECBlock))
 
-	binary, _ := msg.CBlk.MarshalBinary()
+	binary, _ := msg.ECBlock.MarshalBinary()
 	commonHash := common.Sha(binary)
 	hash, _ := wire.NewShaHash(commonHash.Bytes)
 
@@ -86,12 +88,14 @@ func (p *peer) handleEBlockMsg(msg *wire.MsgEBlock, buf []byte) {
 	iv := wire.NewInvVect(wire.InvTypeFactomEntryBlock, hash)
 	p.AddKnownInventory(iv)
 
+	p.pushGetEntryDataMsg(msg.EBlk)
+	
 	inMsgQueue <- msg
 
-	p.pushGetEntryDataMsg(msg.EBlk)
+
 }
 
-// handleCBlockMsg is invoked when a peer receives a EBlock Entry message.
+// handleEntryMsg is invoked when a peer receives a EBlock Entry message.
 func (p *peer) handleEntryMsg(msg *wire.MsgEntry, buf []byte) {
 	util.Trace()
 	// Convert the raw MsgBlock to a btcutil.Block which provides some
@@ -235,8 +239,8 @@ func (p *peer) handleGetNonDirDataMsg(msg *wire.MsgGetNonDirData) {
 
 			var err error
 			switch dbEntry.ChainID.String() {
-			case cchain.ChainID.String():
-				err = p.pushCBlockMsg(dbEntry.MerkleRoot, c, waitChan)
+			case ecchain.ChainID.String():
+				err = p.pushECBlockMsg(dbEntry.MerkleRoot, c, waitChan)
 
 			case achain.ChainID.String():
 				err = p.pushABlockMsg(dbEntry.MerkleRoot, c, waitChan)
@@ -605,7 +609,6 @@ func (p *peer) pushGetEntryDataMsg(eblock *common.EBlock) {
 	}
 }
 
-
 // pushABlockMsg sends an admin block message for the provided block hash to the
 // connected peer.  An error is returned if the block hash is not known.
 func (p *peer) pushABlockMsg(commonhash *common.Hash, doneChan, waitChan chan struct{}) error {
@@ -637,12 +640,12 @@ func (p *peer) pushABlockMsg(commonhash *common.Hash, doneChan, waitChan chan st
 	return nil
 }
 
-// pushCBlockMsg sends a entry credit block message for the provided block hash to the
-// connected peer.  An error is returned if the block hash is not known.
-func (p *peer) pushCBlockMsg(commonhash *common.Hash, doneChan, waitChan chan struct{}) error {
-	util.Trace()
+// pushECBlockMsg sends a entry credit block message for the provided block
+// hash to the connected peer.  An error is returned if the block hash is not
+// known.
+func (p *peer) pushECBlockMsg(commonhash *common.Hash, doneChan, waitChan chan struct{}) error {
 
-	blk, err := db.FetchCBlockByHash(commonhash)
+	blk, err := db.FetchECBlockByHash(commonhash)
 
 	if err != nil {
 		peerLog.Tracef("Unable to fetch requested entry credit block sha %v: %v",
@@ -661,8 +664,8 @@ func (p *peer) pushCBlockMsg(commonhash *common.Hash, doneChan, waitChan chan st
 		<-waitChan
 	}
 
-	msg := wire.NewMsgCBlock()
-	msg.CBlk = blk
+	msg := wire.NewMsgECBlock()
+	msg.ECBlock = blk
 	fmt.Printf("cblock=%s\n", spew.Sdump(blk))
 	p.QueueMessage(msg, doneChan) //blk.MsgBlock(), dc)
 	return nil

@@ -487,7 +487,7 @@ func readVarBytes(r io.Reader, pver uint32, maxAllowed uint32,
 	return b, nil
 }
 
-// writeVarInt serializes a variable length byte array to w as a varInt
+// writeVarBytes serializes a variable length byte array to w as a varInt
 // containing the number of bytes, followed by the bytes themselves.
 func writeVarBytes(w io.Writer, pver uint32, bytes []byte) error {
 	slen := uint64(len(bytes))

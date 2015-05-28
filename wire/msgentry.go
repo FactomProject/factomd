@@ -19,7 +19,6 @@ type MsgEntry struct {
 // BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
 // This is part of the Message interface implementation.
 func (msg *MsgEntry) BtcEncode(w io.Writer, pver uint32) error {
-
 	bytes, err := msg.Entry.MarshalBinary()
 	if err != nil {
 		return err

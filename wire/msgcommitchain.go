@@ -6,125 +6,43 @@ package wire
 
 import (
 	"bytes"
-	"encoding/binary"
-	"fmt"
-	"github.com/FactomProject/FactomCode/common"
-	"github.com/agl/ed25519"
 	"io"
+
+	"github.com/FactomProject/FactomCode/common"
 )
 
 // MsgCommitEntry implements the Message interface and represents a factom
 // Commit-Entry message.  It is used by client to commit the entry before revealing it.
 type MsgCommitChain struct {
-	ECPubKey         *common.Hash
-	ChainID          *common.Hash
-	EntryHash        *common.Hash
-	EntryChainIDHash *common.Hash
-	Credits          uint32
-	Timestamp        uint64
-	Sig              []byte
+	CommitChain *common.CommitChain
 }
 
 // BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
 // This is part of the Message interface implementation.
 func (msg *MsgCommitChain) BtcEncode(w io.Writer, pver uint32) error {
-
-	//ECPubKey
-	err := writeVarBytes(w, uint32(common.HASH_LENGTH), msg.ECPubKey.Bytes)
+	bytes, err := msg.CommitChain.MarshalBinary()
 	if err != nil {
 		return err
 	}
 
-	//ChainID
-	err = writeVarBytes(w, uint32(common.HASH_LENGTH), msg.ChainID.Bytes)
-	if err != nil {
+	if err := writeVarBytes(w, pver, bytes); err != nil {
 		return err
 	}
 
-	//EntryHash
-	err = writeVarBytes(w, uint32(common.HASH_LENGTH), msg.EntryHash.Bytes)
-	if err != nil {
-		return err
-	}
-
-	//EntryChainIDHash
-	err = writeVarBytes(w, uint32(common.HASH_LENGTH), msg.EntryChainIDHash.Bytes)
-	if err != nil {
-		return err
-	}
-
-	//Credits
-	err = writeElement(w, &msg.Credits)
-	if err != nil {
-		return err
-	}
-
-	//Timestamp
-	err = writeVarInt(w, pver, msg.Timestamp)
-	if err != nil {
-		return err
-	}
-
-	//Signature
-	err = writeVarBytes(w, uint32(ed25519.SignatureSize), msg.Sig)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return nil	
 }
 
 // BtcDecode decodes r using the bitcoin protocol encoding into the receiver.
 // This is part of the Message interface implementation.
 func (msg *MsgCommitChain) BtcDecode(r io.Reader, pver uint32) error {
-	//ECPubKey
-	bytes, err := readVarBytes(r, pver, uint32(common.HASH_LENGTH), CmdCommitChain)
+	bytes, err := readVarBytes(r, pver, uint32(common.CommitChainSize),
+		CmdEntry)
 	if err != nil {
 		return err
 	}
 
-	msg.ECPubKey = new(common.Hash)
-	msg.ECPubKey.SetBytes(bytes)
-
-	//ChainID
-	bytes, err = readVarBytes(r, pver, uint32(common.HASH_LENGTH), CmdCommitChain)
-	if err != nil {
-		return err
-	}
-	msg.ChainID = new(common.Hash)
-	msg.ChainID.SetBytes(bytes)
-
-	//EntryHash
-	bytes, err = readVarBytes(r, pver, uint32(common.HASH_LENGTH), CmdCommitChain)
-	if err != nil {
-		return err
-	}
-	msg.EntryHash = new(common.Hash)
-	msg.EntryHash.SetBytes(bytes)
-
-	//EntryChainIDHash
-	bytes, err = readVarBytes(r, pver, uint32(common.HASH_LENGTH), CmdCommitChain)
-	if err != nil {
-		return err
-	}
-	msg.EntryChainIDHash = new(common.Hash)
-	msg.EntryChainIDHash.SetBytes(bytes)
-
-	//Credits
-	err = readElement(r, &msg.Credits)
-	if err != nil {
-		return err
-	}
-
-	//Timestamp
-	msg.Timestamp, err = readVarInt(r, pver)
-	if err != nil {
-		return err
-	}
-
-	//Signature
-	msg.Sig, err = readVarBytes(r, pver, uint32(ed25519.SignatureSize), CmdCommitChain)
-	if err != nil {
+	msg.CommitChain = new(common.CommitChain)
+	if err := msg.CommitChain.UnmarshalBinary(bytes); err != nil {
 		return err
 	}
 
@@ -152,19 +70,7 @@ func NewMsgCommitChain() *MsgCommitChain {
 // Check whether the msg can pass the message level validations
 // such as timestamp, signiture and etc
 func (msg *MsgCommitChain) IsValid() bool {
-	//Verify signature (timestamp + chainid + entry hash + entryChainIDHash + credits)
-	var buf bytes.Buffer
-	binary.Write(&buf, binary.BigEndian, msg.Timestamp)
-	buf.Write(msg.ChainID.Bytes)
-	buf.Write(msg.EntryHash.Bytes)
-	buf.Write(msg.EntryChainIDHash.Bytes)
-	binary.Write(&buf, binary.BigEndian, msg.Credits)
-	if !common.VerifySlice(msg.ECPubKey.Bytes, buf.Bytes(), msg.Sig) {
-		fmt.Println("Error in verifying signature for msg:" + fmt.Sprintf("%+v", msg)) //use logging level??
-		return false
-	}
-
-	return true
+	return msg.CommitChain.IsValid()
 }
 
 // Create a sha hash from the message binary (output of BtcEncode)

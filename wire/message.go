@@ -50,16 +50,16 @@ const (
 	// Factom additions:
 
 	// Factom downloads: block & entry
-	CmdGetDirBlocks  = "getdirblocks"
-	CmdDirInv        = "dirInv"
-	CmdGetDirData    = "getdirdata"
-	CmdDirBlock      = "dirblock"
+	CmdGetDirBlocks = "getdirblocks"
+	CmdDirInv = "dirInv"
+	CmdGetDirData = "getdirdata"
+	CmdDirBlock = "dirblock"
 	CmdGetNonDirData = "getnodirdata"
-	CmdABlock        = "adminblock"	// Admin Block	
-	CmdCBlock        = "ecblock"    // Entry Credit Block
-	CmdEBlock        = "entryblock" // Entry Block
-	CmdGetEntryData  = "getentrydata"
-	CmdEntry         = "entry"
+	CmdABlock = "adminblock" // Admin Block
+	CmdECBlock = "ecblock"   // Entry Credit Block
+	CmdEBlock = "entryblock" // Entry Block
+	CmdGetEntryData = "getentrydata"
+	CmdEntry = "entry"
 
 	CmdCommitChain = "commitchain"
 	CmdRevealChain = "revealchain"
@@ -182,8 +182,8 @@ func makeEmptyMessage(command string) (Message, error) {
 	case CmdABlock:
 		msg = &MsgABlock{}		
 
-	case CmdCBlock:
-		msg = &MsgCBlock{}
+	case CmdECBlock:
+		msg = &MsgECBlock{}
 
 	case CmdEBlock:
 		msg = &MsgEBlock{}
