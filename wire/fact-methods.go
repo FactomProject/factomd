@@ -73,30 +73,51 @@ func writeRCD(w io.Writer, pver uint32, rcd *RCDreveal) error {
 	return nil
 }
 
-func readSig(r io.Reader, pver uint32, sig *TxSig) error {
-	util.Trace("NOT IMPLEMENTED !!!")
+func readSig(r io.Reader, pver uint32, sigCount int, sig *TxSig) error {
 
-	readBitfield(r, pver)
+	readBitfield(r, pver, sig)
+	sig.signatures = make([][]byte, sigCount)
+	
+	var err error
+	for i := 0; i<sigCount; i++ {
+		sig.signatures[i] = make([]byte, 64)		
+		_, err = io.ReadFull(r, sig.signatures[i])
+		if err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
 
 func writeSig(w io.Writer, pver uint32, sig *TxSig) error {
-	util.Trace("NOT IMPLEMENTED !!!")
 
 	writeBitfield(w, pver, sig)
+	
+	for i := 0; i < len(sig.signatures); i++ {
+		w.Write(sig.signatures[i])
+	}
 
 	return nil
 }
 
-func readBitfield(r io.Reader, pver uint32) error {
-	util.Trace("NOT IMPLEMENTED !!!")
+func readBitfield(r io.Reader, pver uint32, sig *TxSig) error {
+
+	var err error
+	sig.bitfield, err = readVarBytes(r, pver, uint32(40), "Bitfield")
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
 
 func writeBitfield(w io.Writer, pver uint32, sig *TxSig) error {
-	util.Trace("NOT IMPLEMENTED !!!")
+	
+	err := writeVarBytes(w, pver, sig.bitfield)
+	if err != nil {
+		return err
+	}	
 
 	return nil
 }
@@ -553,9 +574,16 @@ func (rcd *RCDreveal) SerializeSize() int {
 }
 
 func (sig *TxSig) SerializeSize() int {
-	util.Trace("NOT IMPLEMENTED !!!")
+	n := 0
+	// get the size for bitfield
+	n += VarIntSerializeSize(uint64(len(sig.bitfield)))
+	n += len(sig.bitfield)
 
-	return 0
+	for _, signature := range sig.signatures {
+		n += len(signature)
+	}
+
+	return n
 }
 
 // SerializeSize returns the number of bytes it would take to serialize the
