@@ -6,9 +6,9 @@ package btcd
 
 import (
 	//	"fmt"
+	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/btcd/wire"
 	"time"
-	"github.com/FactomProject/FactomCode/util"
 )
 
 // BlockTimer is set to sent End-Of-Minute messages to processor

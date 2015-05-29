@@ -1012,8 +1012,6 @@ func (mp *txMemPool) maybeAcceptTransaction(tx *btcutil.Tx, isNew, rateLimit boo
 		return nil, txRuleError(wire.RejectNonstandard, str)
 	}
 
-	util.Trace("001")
-
 	// Get the current height of the main chain.  A standalone transaction
 	// will be mined into the next block at best, so it's height is at least
 	// one more than the current height.
@@ -1024,8 +1022,6 @@ func (mp *txMemPool) maybeAcceptTransaction(tx *btcutil.Tx, isNew, rateLimit boo
 		return nil, err
 	}
 	nextBlockHeight := curHeight + 1
-
-	util.Trace("002")
 
 	// Don't allow non-standard transactions if the network parameters
 	// forbid their relaying.
@@ -1045,8 +1041,6 @@ func (mp *txMemPool) maybeAcceptTransaction(tx *btcutil.Tx, isNew, rateLimit boo
 		}
 	}
 
-	util.Trace("003")
-
 	// The transaction may not use any of the same outputs as other
 	// transactions already in the pool as that would ultimately result in a
 	// double spend.  This check is intended to be quick and therefore only
@@ -1060,8 +1054,6 @@ func (mp *txMemPool) maybeAcceptTransaction(tx *btcutil.Tx, isNew, rateLimit boo
 		return nil, err
 	}
 
-	util.Trace("004")
-
 	// Fetch all of the transactions referenced by the inputs to this
 	// transaction.  This function also attempts to fetch the transaction
 	// itself to be used for detecting a duplicate transaction without
@@ -1074,8 +1066,6 @@ func (mp *txMemPool) maybeAcceptTransaction(tx *btcutil.Tx, isNew, rateLimit boo
 		return nil, err
 	}
 
-	util.Trace("005")
-
 	// Don't allow the transaction if it exists in the main chain and is not
 	// not already fully spent.
 	if txD, exists := txStore[*txHash]; exists && txD.Err == nil {
@@ -1087,8 +1077,6 @@ func (mp *txMemPool) maybeAcceptTransaction(tx *btcutil.Tx, isNew, rateLimit boo
 		}
 	}
 	delete(txStore, *txHash)
-
-	util.Trace("006")
 
 	// Transaction is an orphan if any of the referenced input transactions
 	// don't exist.  Adding orphans to the orphan pool is not handled by
@@ -1104,8 +1092,6 @@ func (mp *txMemPool) maybeAcceptTransaction(tx *btcutil.Tx, isNew, rateLimit boo
 		return missingParents, nil
 	}
 
-	util.Trace("007")
-
 	// Perform several checks on the transaction inputs using the invariant
 	// rules in btcchain for what transactions are allowed into blocks.
 	// Also returns the fees associated with the transaction which will be
@@ -1117,8 +1103,6 @@ func (mp *txMemPool) maybeAcceptTransaction(tx *btcutil.Tx, isNew, rateLimit boo
 		}
 		return nil, err
 	}
-
-	util.Trace("008")
 
 	// Don't allow transactions with non-standard inputs if the network
 	// parameters forbid their relaying.
@@ -1162,7 +1146,6 @@ func (mp *txMemPool) maybeAcceptTransaction(tx *btcutil.Tx, isNew, rateLimit boo
 			txHash, numSigOps, maxSigOpsPerTx)
 		return nil, txRuleError(wire.RejectNonstandard, str)
 	}
-	util.Trace("009")
 
 	// Don't allow transactions with fees too low to get into a mined block.
 	//
@@ -1183,7 +1166,6 @@ func (mp *txMemPool) maybeAcceptTransaction(tx *btcutil.Tx, isNew, rateLimit boo
 			minFee)
 		return nil, txRuleError(wire.RejectInsufficientFee, str)
 	}
-	util.Trace("010")
 
 	// Free-to-relay transactions are rate limited here to prevent
 	// penny-flooding with tiny transactions as a form of attack.
@@ -1209,7 +1191,7 @@ func (mp *txMemPool) maybeAcceptTransaction(tx *btcutil.Tx, isNew, rateLimit boo
 			cfg.FreeTxRelayLimit*10*1000)
 	}
 
-	util.Trace("011")
+	util.Trace("NOT IMPLEMENTED: NEEDED -- validate signatures !!!")
 
 	/*
 		// Verify crypto signatures for each input and reject the transaction if
@@ -1227,8 +1209,6 @@ func (mp *txMemPool) maybeAcceptTransaction(tx *btcutil.Tx, isNew, rateLimit boo
 
 	// Add to transaction pool.
 	mp.addTransaction(tx, curHeight, txFee)
-
-	util.Trace("012")
 
 	txmpLog.Debugf("Accepted transaction %v (pool size: %v)", txHash,
 		len(mp.pool))

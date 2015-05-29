@@ -167,7 +167,7 @@ func initProcess() {
 	// init Entry Credit Chain
 	initECChain()
 	fmt.Println("Loaded", ecchain.NextBlockHeight, "Entry Credit blocks for chain: "+ecchain.ChainID.String())
-	
+
 	// init Admin Chain
 	initAChain()
 	fmt.Println("Loaded", achain.NextBlockHeight, "Admin blocks for chain: "+achain.ChainID.String())
@@ -305,7 +305,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		}
 		// Broadcast the msg to the network if no errors
 		outMsgQueue <- msg
-		
+
 	case wire.CmdRevealChain:
 		msgRevealChain, ok := msg.(*wire.MsgRevealChain)
 		if ok {
@@ -317,7 +317,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
 		}
 		// Broadcast the msg to the network if no errors
-		outMsgQueue <- msg		
+		outMsgQueue <- msg
 
 	case wire.CmdCommitEntry:
 		msgCommitEntry, ok := msg.(*wire.MsgCommitEntry)
@@ -343,7 +343,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
 		}
 		// Broadcast the msg to the network if no errors
-		outMsgQueue <- msg		
+		outMsgQueue <- msg
 
 	case wire.CmdInt_FactoidObj:
 		factoidObj, ok := msg.(*wire.MsgInt_FactoidObj)
@@ -471,8 +471,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 	default:
 		return errors.New("Message type unsupported:" + fmt.Sprintf("%+v", msg))
 	}
-	
-						
+
 	return nil
 }
 
@@ -494,7 +493,7 @@ func processDirBlock(msg *wire.MsgDirBlock) error {
 
 	fmt.Printf("PROCESSOR: MsgDirBlock=%s\n", spew.Sdump(msg.DBlk))
 	fmt.Printf("PROCESSOR: dchain=%s\n", spew.Sdump(dchain))
-	
+
 	exportDChain(dchain)
 
 	return nil
@@ -510,7 +509,7 @@ func processABlock(msg *wire.MsgABlock) error {
 	db.ProcessABlockBatch(msg.ABlk)
 
 	fmt.Printf("PROCESSOR: MsgABlock=%s\n", spew.Sdump(msg.ABlk))
-	
+
 	exportAChain(achain)
 
 	return nil
@@ -526,7 +525,7 @@ func processCBlock(msg *wire.MsgECBlock) error {
 	db.ProcessECBlockBatch(msg.ECBlock)
 
 	fmt.Printf("PROCESSOR: MsgCBlock=%s\n", spew.Sdump(msg.ECBlock))
-	
+
 	exportECChain(ecchain)
 
 	return nil
@@ -582,7 +581,7 @@ func processEBlock(msg *wire.MsgEBlock) error {
 	fmt.Printf("PROCESSOR: MsgEBlock=%s\n", spew.Sdump(msg.EBlk))
 
 	exportEChain(chain)
-	
+
 	return nil
 }
 
@@ -713,15 +712,15 @@ func processCommitChain(msg *wire.MsgCommitChain) error {
 	shaHash, _ := msg.Sha()
 
 	// Check if the chain id already exists
-//	_, existing := chainIDMap[msg.CommitChain.ChainID.String()]
-//	if !existing {
-//		if msg.ChainID.IsSameAs(dchain.ChainID) || msg.CommitChain.ChainID.IsSameAs(cchain.ChainID) {
-//			existing = true
-//		}
-//	}
-//	if existing {
-//		return errors.New("Already existing chain id:" + msg.CommitChain.ChainID.String())
-//	}
+	//	_, existing := chainIDMap[msg.CommitChain.ChainID.String()]
+	//	if !existing {
+	//		if msg.ChainID.IsSameAs(dchain.ChainID) || msg.CommitChain.ChainID.IsSameAs(cchain.ChainID) {
+	//			existing = true
+	//		}
+	//	}
+	//	if existing {
+	//		return errors.New("Already existing chain id:" + msg.CommitChain.ChainID.String())
+	//	}
 
 	// Precalculate the key and value pair for prePaidEntryMap
 	key := getPrePaidChainKey(msg.CommitChain.EntryHash,
@@ -982,7 +981,7 @@ func buildGenesisBlocks() error {
 	fmt.Printf("buildGenesisBlocks: cBlock=%s\n", spew.Sdump(cBlock))
 	dchain.AddECBlockToDBEntry(cBlock)
 	exportECChain(ecchain)
-	
+
 	// Admin chain
 	aBlock := newAdminBlock(achain)
 	fmt.Printf("buildGenesisBlocks: aBlock=%s\n", spew.Sdump(aBlock))
@@ -1051,7 +1050,7 @@ func buildBlocks() error {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
-	
+
 	// Entry Chains
 	for _, k := range keys {
 		chain := chainIDMap[k]
@@ -1205,7 +1204,7 @@ func newEntryCreditBlock(chain *common.ECChain) *common.ECBlock {
 	}
 
 	block.BuildHeader()
-	
+
 	// Create the block and add a new block for new coming entries
 	chain.BlockMutex.Lock()
 	chain.NextBlockHeight++
@@ -1618,7 +1617,7 @@ func initECChain() {
 		if v.Header.DBHeight != uint32(i) {
 			panic("Error in initializing dChain:" + ecchain.ChainID.String())
 		}
-		
+
 		// Calculate the EC balance for each account
 		initializeECreditMap(&v)
 	}
@@ -1740,7 +1739,7 @@ func copyCreditMap(
 	originalMap map[*[32]byte]int32,
 	newMap map[*[32]byte]int32) {
 	newMap = make(map[*[32]byte]int32)
-	
+
 	// copy every element from the original map
 	for k, v := range originalMap {
 		newMap[k] = v
