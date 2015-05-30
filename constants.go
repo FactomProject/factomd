@@ -9,4 +9,9 @@ const (
     PRIVATE_LENGTH       = 64    // length of a Private Key
 	SIGNATURE_LENGTH     = 64    // Length of a signature
 	MAX_TRANSACTION_SIZE = 10240 // 10K like everything else?
+	
 )
+
+// Factoid chain
+var FACTOID_CHAINID	= []byte {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x0f}
+    

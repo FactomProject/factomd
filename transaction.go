@@ -29,7 +29,7 @@ type ITransaction interface {
 	GetOutECs() []IOutECAddress
 	GetRCDs() []IRCD
 	GetSignatureBlocks() []ISignatureBlock
-    Validate(factoshisPerEC uint64) (bool, error)
+    Validate() bool
 	CalculateFee(factoshisPerEC uint64) (uint64,error)
 }
 
@@ -117,23 +117,16 @@ func (t Transaction)CalculateFee(factoshisPerEC uint64) (uint64, error) {
 
 // Only validates that the transaction is well formed.  This means that 
 // the inputs cover the value of the outputs.  Can't validate addresses,
-// as they are hashes.  
+// as they are hashes.  Can't validate the fee, because it might change 
+// in the next period.
 //
-// Validates the transaction fee, given the exchange rate to EC.
+// If this validation returns false, the transaction can safely be 
+// discarded.
 //
-// Returns:
+// Note that the coinbase transaction for any block is never technically
+// valid.  That validation must be done at the block level.
 //
-// An error if the transaction is not well formed (inputs do not cover the
-// outputs + the fee, or if the signatures are bad).
-//
-// Returns false if the transaction is well formed, but one or more signatures
-// are still needed.
-//
-// Returns true if all the needed signures are present, and validate.
-//
-// If there are signatures, and they do not validate, we return an error.
-
-func (t Transaction)Validate(factoshisPerEC uint64) (bool, error) {
+func (t Transaction)Validate() bool {
     
     var inSum, outSum uint64
 
@@ -144,19 +137,9 @@ func (t Transaction)Validate(factoshisPerEC uint64) (bool, error) {
     for _,output := range t.outputs {
         outSum += output.GetAmount()
     } 
-     
-    fee,err := t.CalculateFee(factoshisPerEC) 
-
-    if err != nil { return false, err }
+         
+    return inSum >= outSum  
     
-    if inSum < outSum+fee { 
-        return false, fmt.Errorf("inputs do not cover the outputs and the fee") 
-    }
-    
-   
-    
-    
-    return true, nil
 }
 // Tests if the transaction is equal in all of its structures, and
 // in order of the structures.  Largely used to test and debug, but
