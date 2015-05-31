@@ -14,14 +14,23 @@ import (
 
 type ISCBlock interface {
 	sc.IBlock
+	GetChainID() sc.IHash
 	MarshalTrans() ([]byte, error)
     AddCoinbase(sc.ITransaction) (bool, error)
 	AddTransaction(sc.ITransaction) (bool, error)
 	CalculateHashes()
+    GetMerkleRoot() sc.IHash
+    GetPrevBlock() sc.IHash
+    SetPrevBlock([]byte) 
+    GetPrevHash3() sc.IHash
+    SetPrevHash3([]byte) 
 	SetDBHeight(uint32)
 	GetDBHeight() uint32
 	SetExchRate(uint64)
 	GetExchRate() uint64
+	GetUTXOCommit() sc.IHash
+	SetUTXOCommit([]byte) 
+	
 }
 
 // FBlockHeader defines information about a block and is used in the bitcoin
@@ -45,6 +54,8 @@ type SCBlock struct {
 }
 
 var _ ISCBlock = (*SCBlock)(nil)
+
+
 
 func (b *SCBlock) MarshalTrans() ([]byte, error) {
 	var out bytes.Buffer
@@ -175,6 +186,39 @@ func (b1 SCBlock) IsEqual(block sc.IBlock) bool {
 	}
 
 	return true
+}
+
+
+func (b *SCBlock) GetChainID() sc.IHash {
+    return sc.Sha(sc.FACTOID_CHAINID)
+}
+
+func (b *SCBlock) GetMerkleRoot() sc.IHash {
+    return b.MerkleRoot
+}
+
+func (b *SCBlock) GetPrevBlock() sc.IHash {
+    return b.PrevBlock
+}
+
+func (b *SCBlock) SetPrevBlock(hash[]byte) {
+    b.PrevBlock.SetBytes(hash)
+}
+
+func (b *SCBlock) GetPrevHash3() sc.IHash {
+    return b.PrevHash3
+}
+
+func (b *SCBlock) SetPrevHash3(hash[]byte)  {
+    b.PrevHash3.SetBytes(hash)
+}
+
+func (b *SCBlock) GetUTXOCommit() sc.IHash {
+    return b.UTXOCommit
+}
+
+func (b *SCBlock) SetUTXOCommit(hash[]byte) {
+    b.UTXOCommit.SetBytes(hash)
 }
 
 func (b *SCBlock) CalculateHashes() {
