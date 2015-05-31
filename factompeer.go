@@ -15,6 +15,25 @@ import (
 	"github.com/davecgh/go-spew/spew"
 )
 
+
+// handleDirBlockMsg is invoked when a peer receives a dir block message.
+func (p *peer) handleSCBlockMsg(msg *wire.MsgSCBlock, buf []byte) {
+    util.Trace()
+    // Convert the raw MsgBlock to a btcutil.Block which provides some
+    // convenience methods and things such as hash caching.
+    
+    fmt.Printf("msgSCBlock=%v\n", spew.Sdump(msg.SC))
+    
+    binary, _ := msg.SC.MarshalBinary()
+    commonHash := common.Sha(binary)
+    hash, _ := wire.NewShaHash(commonHash.Bytes)
+    
+    iv := wire.NewInvVect(wire.InvTypeFactomSCBlock, hash)
+    p.AddKnownInventory(iv)
+    
+    inMsgQueue <- msg
+    
+}
 // handleDirBlockMsg is invoked when a peer receives a dir block message.
 func (p *peer) handleDirBlockMsg(msg *wire.MsgDirBlock, buf []byte) {
 	util.Trace()
@@ -609,6 +628,36 @@ func (p *peer) pushGetEntryDataMsg(eblock *common.EBlock) {
 	}
 }
 
+// pushSCBlockMsg sends an simplecoin block message for the provided block hash to the
+// connected peer.  An error is returned if the block hash is not known.
+func (p *peer) pushSCBlockMsg(commonhash *common.Hash, doneChan, waitChan chan struct{}) error {
+    util.Trace()
+    
+    blk, err := db.FetchSCBlockByHash(commonhash)
+    
+    if err != nil {
+        peerLog.Tracef("Unable to fetch requested SC block sha %v: %v",
+                       commonhash, err)
+        
+        if doneChan != nil {
+            doneChan <- struct{}{}
+        }
+        return err
+    }
+    
+    fmt.Printf("commonHash=%s, SC block=%s\n", commonhash.String(), spew.Sdump(blk))
+    
+    // Once we have fetched data wait for any previous operation to finish.
+    if waitChan != nil {
+        <-waitChan
+    }
+    
+    msg := wire.NewMsgSCBlock()
+    msg.SC = blk
+    fmt.Printf("ablock=%s\n", spew.Sdump(blk))
+    p.QueueMessage(msg, doneChan) //blk.MsgBlock(), dc)
+    return nil
+}
 // pushABlockMsg sends an admin block message for the provided block hash to the
 // connected peer.  An error is returned if the block hash is not known.
 func (p *peer) pushABlockMsg(commonhash *common.Hash, doneChan, waitChan chan struct{}) error {
