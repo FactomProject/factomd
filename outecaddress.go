@@ -4,6 +4,10 @@
 
 package simplecoin
 
+import (
+    "bytes"
+)
+
 // Entry Credit Addresses are the same as Addresses in Simplecoin
 // They just get printed out differently when we output them in
 // human readable form.
@@ -32,6 +36,12 @@ func (oa OutECAddress) GetName() string {
 	return "outEC"
 }
 
+func (a OutECAddress) MarshalText() (text []byte, err error) {
+    var out bytes.Buffer
+    out.WriteString("ec: ")
+    a.MarshalText2(&out)
+    return out.Bytes(), nil
+}
 /******************************
  * Helper functions
  ******************************/

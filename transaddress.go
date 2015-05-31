@@ -20,6 +20,7 @@ type ITransAddress interface {
 	IBlock
 	GetAmount() uint64
 	GetAddress() IAddress
+	MarshalText2(*bytes.Buffer) 
 }
 
 type TransAddress struct {
@@ -85,16 +86,13 @@ func (ta TransAddress) GetAddress() IAddress {
 }
 
 // Make this into somewhat readable text.
-func (ta TransAddress) MarshalText() ([]byte, error) {
-	var out bytes.Buffer
+func (ta TransAddress) MarshalText2(out *bytes.Buffer) {
 
-	out.WriteString(ta.GetName())
-	out.WriteString("  ")
-	WriteNumber64(&out, ta.amount)
+	WriteNumber64(out, ta.amount)
 	out.WriteString(" ")
 
 	text, _ := ta.address.MarshalText()
 	out.Write(text)
 
-	return out.Bytes(), nil
+	return 
 }

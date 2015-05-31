@@ -131,12 +131,12 @@ func (w WalletEntry) MarshalText() (text []byte, err error) {
 
     out.WriteString("name:  ")
     out.Write   (w.name)
-    
-    txt,_ := w.rcd.MarshalText()
-    out.Write(txt)
+    out.WriteString("\n factoid address:")
+    hash,err := w.rcd.GetAddress()
+    out.WriteString(hash.String())
     out.WriteString("\n")
  
-    out.WriteString("\npublic:  ")
+    out.WriteString("\n public:  ")
     for i,public := range w.public {
         simplecoin.WriteNumber16(&out, uint16(i))
         out.WriteString(" ")
@@ -145,7 +145,7 @@ func (w WalletEntry) MarshalText() (text []byte, err error) {
         out.WriteString("\n")
     }
 
-    out.WriteString("\nprivate:  ")
+    out.WriteString("\n private:  ")
     for i,private := range w.private {
         simplecoin.WriteNumber16(&out, uint16(i))
         out.WriteString(" ")

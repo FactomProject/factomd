@@ -9,7 +9,7 @@ const (
     PRIVATE_LENGTH       = 64    // length of a Private Key
 	SIGNATURE_LENGTH     = 64    // Length of a signature
 	MAX_TRANSACTION_SIZE = 10240 // 10K like everything else?
-	
+	MINIMUM_AMOUNT       = 1     // Not sure if we need a minimum amount.  Set at 1 Factoshi
 )
 
 // Factoid chain

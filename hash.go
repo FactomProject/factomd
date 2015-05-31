@@ -148,3 +148,10 @@ func (a Hash) IsSameAs(b IHash) bool {
 
 	return false
 }
+
+func (a Hash) MarshalText() (text []byte, err error) {
+    var out bytes.Buffer
+    hash := hex.EncodeToString(a.hash[:])
+    out.WriteString(hash)
+    return out.Bytes(), nil
+}

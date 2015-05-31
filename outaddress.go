@@ -7,6 +7,10 @@
 
 package simplecoin
 
+import (
+    "bytes"
+)
+
 type IOutAddress interface {
 	ITransAddress
 }
@@ -29,6 +33,12 @@ func (oa OutAddress) GetName() string {
 	return "out"
 }
 
+func (a OutAddress) MarshalText() (text []byte, err error) {
+    var out bytes.Buffer
+    out.WriteString("output: ")
+    a.MarshalText2(&out)
+    return out.Bytes(), nil
+}
 /******************************
  * Helper functions
  ******************************/

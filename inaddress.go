@@ -7,6 +7,10 @@
 
 package simplecoin
 
+import (
+    "bytes"
+)
+
 type IInAddress interface {
 	ITransAddress
 }
@@ -17,18 +21,21 @@ type InAddress struct {
 
 var _ IInAddress = (*InAddress)(nil)
 
-func (w1 InAddress)GetDBHash() IHash {
+func (i InAddress)GetDBHash() IHash {
     return Sha([]byte("InAddress"))
 }
 
-func (w1 InAddress)GetNewInstance() IBlock {
+func (i InAddress)GetNewInstance() IBlock {
     return new(InAddress)
 }
 
-func (oa InAddress) GetName() string {
-	return "in"
-}
 
+func (a InAddress) MarshalText() (text []byte, err error) {
+    var out bytes.Buffer
+    out.WriteString("input: ")
+    a.MarshalText2(&out)
+    return out.Bytes(), nil
+}
 /******************************
  * Helper functions
  ******************************/

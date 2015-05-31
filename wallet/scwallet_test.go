@@ -4,19 +4,25 @@
 
 package wallet
 
+import sc "github.com/FactomProject/simplecoin"
 import (
-	"encoding/binary"
+	"encoding/hex"
+    "encoding/binary"
 	"fmt"
-	"github.com/FactomProject/simplecoin"
-	"github.com/agl/ed25519"
+    "github.com/FactomProject/simplecoin"
+    "github.com/agl/ed25519"
 	"math/rand"
 	"testing"
+    
 )
 
+var _ = hex.EncodeToString
 var _ = fmt.Printf
 var _ = ed25519.Sign
 var _ = rand.New
 var _ = binary.Write
+var _ = sc.Prtln   
+ 
 
 func Test_create_scwallet(test *testing.T) {
     w := new(SCWallet)          // make me a wallet
@@ -33,6 +39,10 @@ func Test_create_scwallet(test *testing.T) {
     we.SetRCD(rcd)
     we.AddKey(pub,pri)
     we.SetName([]byte(name))
+    
+    txt,err := we.MarshalText()
+    var _ = txt
+   // simplecoin.Prtln(string(txt))
 }
 
 func Test_GenerateAddress_scwallet(test *testing.T) {

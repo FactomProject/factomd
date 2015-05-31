@@ -29,7 +29,11 @@ type ITransaction interface {
 	GetOutECs() []IOutECAddress
 	GetRCDs() []IRCD
 	GetSignatureBlocks() []ISignatureBlock
+	TotalInputs() uint64
+	TotalOutputs() uint64
+	TotalECs() uint64
     Validate() bool
+    
 	CalculateFee(factoshisPerEC uint64) (uint64,error)
 }
 
@@ -115,6 +119,30 @@ func (t Transaction)CalculateFee(factoshisPerEC uint64) (uint64, error) {
     return fee, nil
 }
 
+func (t Transaction)TotalInputs() uint64 {
+    var sum uint64
+    for _,input := range t.inputs {
+        sum += input.GetAmount()
+    }
+    return sum
+}
+
+func (t Transaction)TotalOutputs() uint64 {
+    var sum uint64
+    for _,output := range t.outputs {
+        sum += output.GetAmount()
+    } 
+    return sum
+}
+
+func (t Transaction)TotalECs() uint64 {
+    var sum uint64
+    for _,ec := range t.outECs {
+        sum += ec.GetAmount()
+    } 
+    return sum
+}
+
 // Only validates that the transaction is well formed.  This means that 
 // the inputs cover the value of the outputs.  Can't validate addresses,
 // as they are hashes.  Can't validate the fee, because it might change 
@@ -127,18 +155,10 @@ func (t Transaction)CalculateFee(factoshisPerEC uint64) (uint64, error) {
 // valid.  That validation must be done at the block level.
 //
 func (t Transaction)Validate() bool {
-    
-    var inSum, outSum uint64
-
-    for _,input := range t.inputs {
-        inSum += input.GetAmount()
-    }
-     
-    for _,output := range t.outputs {
-        outSum += output.GetAmount()
-    } 
          
-    return inSum >= outSum  
+    return t.TotalInputs() >= t.TotalOutputs()+t.TotalECs() && 
+       len(t.inputs) > 0 && 
+       t.TotalInputs() >= MINIMUM_AMOUNT 
     
 }
 // Tests if the transaction is equal in all of its structures, and
@@ -276,18 +296,16 @@ func (t *Transaction) UnmarshalBinaryData(data []byte) (newData []byte, err erro
 	if t.rcds == nil {
         t.rcds = make([]IRCD, len(t.inputs))
     }
+    if t.sigBlocks == nil {
+        t.sigBlocks = make([]ISignatureBlock, len(t.inputs))
+    }
     for i := 0; i < len(t.inputs); i++ {
         t.rcds[i] = CreateRCD(data)
         data, err = t.rcds[i].UnmarshalBinaryData(data)
         if err != nil {
             return nil, err
         }
-    }
     
-    if t.sigBlocks == nil {
-        t.sigBlocks = make([]ISignatureBlock, len(t.inputs))
-    }
-    for i := 0; i < len(t.inputs); i++ {
         t.sigBlocks[i] = new(SignatureBlock)
         data, err = t.sigBlocks[i].UnmarshalBinaryData(data)
         if err != nil {
@@ -341,31 +359,12 @@ func (t *Transaction) MarshalBinarySig() ([]byte, error) {
 		}
 		out.Write(data)
 	}
-
-	for _, rcd := range t.rcds {
-        data, err := rcd.MarshalBinary()
-        if err != nil {
-            return nil, err
-        }
-        out.Write(data)
-    }
-    
-    for i := 0; i < len(t.inputs); i++ {
-        for len(t.sigBlocks) <= i {
-            t.sigBlocks = append(t.sigBlocks, new(SignatureBlock))
-        }
-        data, err := t.sigBlocks[i].MarshalBinary()
-        if err != nil {
-            return nil, err
-        }
-        out.Write(data)
-    }
     
 	return out.Bytes(), nil
 }
 
-// This just Marshals the Signatures, and calls MarshalBinarySig() for 
-// everything else.
+// This just Marshals what gets signed, i.e. MarshalBinarySig(), then
+// Marshals the signatures and the RCDs for this transaction.
 func (t Transaction) MarshalBinary() ([]byte, error) {
     var out bytes.Buffer
     
@@ -375,12 +374,31 @@ func (t Transaction) MarshalBinary() ([]byte, error) {
     }
     out.Write(data)
     
-    for _, sig := range t.sigBlocks {
-        data, err := sig.MarshalBinary()
+    for i, rcd := range t.rcds {
+        
+        // Write the RCD
+        data, err := rcd.MarshalBinary()
         if err != nil {
             return nil, err
         }
         out.Write(data)
+        
+        // Then write its signature blocks.  This needs to be
+        // reworked so we use the information from the RCD block
+        // to control the writing of the signatures.  After all,
+        // we don't want to restrict what might be required to
+        // sign an input.
+        if len(t.sigBlocks) <= i {
+            t.sigBlocks = append(t.sigBlocks, new(SignatureBlock))
+        }
+        data, err = t.sigBlocks[i].MarshalBinary()
+        if err != nil {
+            return nil, err
+        }
+        out.Write(data)
+    }
+    
+    for i := 0; i < len(t.inputs); i++ {
     }
     
     return out.Bytes(), nil
@@ -428,13 +446,13 @@ func (t *Transaction) AddECOutput( ecoutput IAddress, amount uint64) {
 func (t Transaction) MarshalText() (text []byte, err error) {
 	var out bytes.Buffer
 
-	out.WriteString("locktime")
+	out.WriteString("Transaction:\n locktime")
     WriteNumber64(&out, uint64(t.lockTime))
-	out.WriteString("in  ")
+	out.WriteString("\n in:  ")
 	WriteNumber16(&out, uint16(len(t.inputs)))
-	out.WriteString("\nout ")
+	out.WriteString("\n out: ")
 	WriteNumber16(&out, uint16(len(t.outputs)))
-	out.WriteString("\nec  ")
+	out.WriteString("\n ec:  ")
 	WriteNumber16(&out, uint16(len(t.outECs)))
 	out.WriteString("\n")
 
@@ -450,14 +468,13 @@ func (t Transaction) MarshalText() (text []byte, err error) {
 		text, _ := ecaddress.MarshalText()
 		out.Write(text)
 	}
-	for _, rcd := range t.rcds {
+	for i, rcd := range t.rcds {
         text, err = rcd.MarshalText()
         if err != nil {
             return nil, err
         }
         out.Write(text)
-    }
-    for i := 0; i < len(t.inputs); i++ {
+    
         if len(t.sigBlocks) < i {
             t.sigBlocks = append(t.sigBlocks, new(SignatureBlock))
         }

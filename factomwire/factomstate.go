@@ -13,18 +13,5 @@ import (
     "cointainer/list"
 )
 
-type IFactomState interface {
-    Init()
-    GetDatabase() database.ISCDatabase
-}
 
-type FactomState struct {
-    IFactomState
-    db              database.ISCDatabase    
-    processList     *list.List
-}
-
-func (f FactomState)Init {
-    processList = list.New()
-    db = new(database.SCDatabase)
     

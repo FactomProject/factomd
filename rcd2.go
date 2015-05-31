@@ -74,9 +74,7 @@ func (t *RCD_2) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	typ := int8(data[0])
 	data = data[1:]
 	if typ != 2 {
-		if err != nil {
-			return nil, fmt.Errorf("Bad data fed to RCD_2 UnmarshalBinaryData()")
-		}
+        return nil, fmt.Errorf("Bad data fed to RCD_2 UnmarshalBinaryData()")
 	}
 
 	t.n, data = int(binary.BigEndian.Uint16(data[0:2])), data[2:]

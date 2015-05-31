@@ -205,8 +205,8 @@ func (w *SCWallet) AddECOutput(trans simplecoin.ITransaction, hash simplecoin.IH
 }
 
 func (w *SCWallet) Validate(trans simplecoin.ITransaction) (bool,error){
-    valid, err := trans.Validate(w.GetECRate())
-    return valid,err
+    valid := trans.Validate()
+    return valid, nil
 }    
  
  

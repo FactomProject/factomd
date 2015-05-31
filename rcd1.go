@@ -16,13 +16,14 @@ import (
  **************************/
 
 type IRCD_1 interface {
+    IRCD
     GetPublicKey() []byte
 }
 
 // In this case, we are simply validating one address to ensure it signed
 // this transaction.
 type RCD_1 struct {
-	IRCD
+	IRCD_1
 	publicKey []byte
 }
 
