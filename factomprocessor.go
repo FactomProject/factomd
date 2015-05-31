@@ -53,8 +53,8 @@ var (
 
 	// To be moved to ftmMemPool??
 	chainIDMap      map[string]*common.EChain // ChainIDMap with chainID string([32]byte) as key
-	commitChainMap  map[string]*common.CommitChain
-	commitEntryMap  map[string]*common.CommitEntry
+	commitChainMap  = make(map[string]*common.CommitChain, 0)
+	commitEntryMap  = make(map[string]*common.CommitEntry, 0)
 	eCreditMap      map[*[32]byte]int32       // eCreditMap with public key string([32]byte) as key, credit balance as value
 	prePaidEntryMap map[string]int32          // Paid but unrevealed entries string(Etnry Hash) as key, Number of payments as value
 
