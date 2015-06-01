@@ -24,6 +24,7 @@ import (
 	"github.com/FactomProject/FactomCode/util"
 )
 
+var _ = util.Trace
 const (
 	chanBufferSize = 50
 
@@ -392,7 +393,6 @@ func (b *blockManager) handleNewPeerMsg(peers *list.List, p *peer) {
 		b.startSync(peers)
 	*/
 
-	util.Trace()
 	// Ignore the peer if it's not a sync candidate.
 	if !b.isSyncCandidateFactom(p) {
 		return
@@ -459,7 +459,6 @@ func (b *blockManager) handleDonePeerMsg(peers *list.List, p *peer) {
 
 // handleTxMsg handles transaction messages from all peers.
 func (b *blockManager) handleTxMsg(tmsg *txMsg) {
-	util.Trace()
 	// NOTE:  BitcoinJ, and possibly other wallets, don't follow the spec of
 	// sending an inventory message and allowing the remote peer to decide
 	// whether or not they want to request the transaction via a getdata
@@ -530,7 +529,6 @@ func (b *blockManager) current() bool {
 
 // handleBlockMsg handles block messages from all peers.
 func (b *blockManager) handleBlockMsg(bmsg *blockMsg) {
-	util.Trace()
 	// If we didn't ask for this block then the peer is misbehaving.
 	blockSha, _ := bmsg.block.Sha()
 	if _, ok := bmsg.peer.requestedBlocks[*blockSha]; !ok {
@@ -579,14 +577,11 @@ func (b *blockManager) handleBlockMsg(bmsg *blockMsg) {
 	delete(bmsg.peer.requestedBlocks, *blockSha)
 	delete(b.requestedBlocks, *blockSha)
 
-	util.Trace("just before BC_ProcessBlock")
-
 	// Process the block to include validation, best chain selection, orphan
 	// handling, etc.
 	isOrphan, err := b.blockChain.BC_ProcessBlock(bmsg.block,
 		b.server.timeSource, behaviorFlags)
 
-	util.Trace("BC_ProcessBlock error checking")
 	if err != nil {
 		// When the error is a rule error, it means the block was simply
 		// rejected as opposed to something actually going wrong, so log
@@ -608,8 +603,6 @@ func (b *blockManager) handleBlockMsg(bmsg *blockMsg) {
 		return
 	}
 
-	util.Trace("just before block orphan checking")
-
 	// Request the parents for the orphan block from the peer that sent it.
 	if isOrphan {
 		orphanRoot := b.blockChain.GetOrphanRoot(blockSha)
@@ -623,8 +616,6 @@ func (b *blockManager) handleBlockMsg(bmsg *blockMsg) {
 	} else {
 		// When the block is not an orphan, log information about it and
 		// update the chain state.
-
-		util.Trace()
 
 		b.progressLogger.LogBlockHeight(bmsg.block)
 
@@ -863,7 +854,6 @@ func (b *blockManager) handleHeadersMsg(hmsg *headersMsg) {
 func (b *blockManager) haveInventory(invVect *wire.InvVect) (bool, error) {
 	switch invVect.Type {
 	case wire.InvTypeBlock:
-		util.Trace()
 		// Ask chain if the block is known to it in any form (main
 		// chain, side chain, or orphan).
 		return b.blockChain.HaveBlock(&invVect.Hash)
@@ -880,7 +870,6 @@ func (b *blockManager) haveInventory(invVect *wire.InvVect) (bool, error) {
 		return b.server.db.ExistsTxSha(&invVect.Hash)
 
 	case wire.InvTypeFactomDirBlock:
-		util.Trace()
 		// Ask chain if the block is known to it in any form (main
 		// chain, side chain, or orphan).
 		return HaveBlockInDChain(b.dirChain, &invVect.Hash)
@@ -893,7 +882,6 @@ func (b *blockManager) haveInventory(invVect *wire.InvVect) (bool, error) {
 // handleInvMsg handles inv messages from all peers.
 // We examine the inventory advertised by the remote peer and act accordingly.
 func (b *blockManager) handleInvMsg(imsg *invMsg) {
-	util.Trace()
 	/*
 		// Ignore invs from peers that aren't the sync if we are not current.
 		// Helps prevent fetching a mass of orphans.
@@ -1049,7 +1037,6 @@ func (b *blockManager) handleInvMsg(imsg *invMsg) {
 // important because the block manager controls which blocks are needed and how
 // the fetching should proceed.
 func (b *blockManager) blockHandler() {
-	util.Trace()
 	candidatePeers := list.New()
 out:
 	for {
@@ -1064,7 +1051,6 @@ out:
 				msg.peer.txProcessed <- struct{}{}
 
 			case *blockMsg:
-				util.Trace()
 				b.handleBlockMsg(msg)
 				msg.peer.blockProcessed <- struct{}{}
 
@@ -1098,7 +1084,6 @@ out:
 				*/
 
 			case processBlockMsg:
-				util.Trace()
 				isOrphan, err := b.blockChain.BC_ProcessBlock(
 					msg.block, b.server.timeSource,
 					msg.flags)
@@ -1135,7 +1120,6 @@ out:
 						msg.peer.blockProcessed <- struct{}{}
 				*/
 			case *dirInvMsg:
-				util.Trace()
 				b.handleDirInvMsg(msg)
 
 			default:
@@ -1322,7 +1306,6 @@ func (b *blockManager) DonePeer(p *peer) {
 
 // Start begins the core block handler which processes block and inv messages.
 func (b *blockManager) Start() {
-	util.Trace()
 	// Already started?
 	if atomic.AddInt32(&b.started, 1) != 1 {
 		return
@@ -1339,7 +1322,6 @@ func (b *blockManager) Start() {
 // Stop gracefully shuts down the block manager by stopping all asynchronous
 // handlers and waiting for them to finish.
 func (b *blockManager) Stop() error {
-	util.Trace()
 	if atomic.AddInt32(&b.shutdown, 1) != 1 {
 		bmgrLog.Warnf("Block manager is already in the process of " +
 			"shutting down")
@@ -1364,13 +1346,9 @@ func (b *blockManager) SyncPeer() *peer {
 // of CheckConnectBlock on an internal instance of a block chain.  It is funneled
 // through the block manager since btcchain is not safe for concurrent access.
 func (b *blockManager) CheckConnectBlock(block *btcutil.Block) error {
-	util.Trace()
 	reply := make(chan error)
-	util.Trace()
 	b.msgChan <- checkConnectBlockMsg{block: block, reply: reply}
-	util.Trace()
 	err := <-reply
-	util.Trace()
 	return err
 }
 
@@ -1392,7 +1370,6 @@ func (b *blockManager) CalcNextRequiredDifficulty(timestamp time.Time) (uint32, 
 // chain.  It is funneled through the block manager since btcchain is not safe
 // for concurrent access.
 func (b *blockManager) bm_ProcessBlock(block *btcutil.Block, flags blockchain.BehaviorFlags) (bool, error) {
-	util.Trace()
 	reply := make(chan processBlockResponse, 1)
 	b.msgChan <- processBlockMsg{block: block, flags: flags, reply: reply}
 	response := <-reply
@@ -1410,7 +1387,6 @@ func (b *blockManager) IsCurrent() bool {
 // newBlockManager returns a new bitcoin block manager.
 // Use Start to begin processing asynchronous block and inv updates.
 func newBlockManager(s *server) (*blockManager, error) {
-	util.Trace()
 
 	newestHash, height, err := s.db.NewestSha()
 	if err != nil {
@@ -1445,15 +1421,10 @@ func newBlockManager(s *server) (*blockManager, error) {
 		}
 	*/
 
-	util.Trace(fmt.Sprintf("Hard-Coded GenesisHash= %v\n", activeNetParams.GenesisHash))
-
-	bmgrLog.Infof("Generating initial block node index.  This may " +
-		"take a while...")
 	err = bm.blockChain.GenerateInitialIndex()
 	if err != nil {
 		return nil, err
 	}
-	bmgrLog.Infof("Block index generation complete")
 
 	// Initialize the chain state now that the intial block node index has
 	// been generated.
@@ -1465,8 +1436,7 @@ func newBlockManager(s *server) (*blockManager, error) {
 // removeRegressionDB removes the existing regression test database if running
 // in regression test mode and it already exists.
 func removeDB(dbPath string) error {
-	util.Trace()
-
+	
 	// Remove the old database if it already exists.
 	fi, err := os.Stat(dbPath)
 	if err == nil {
@@ -1540,7 +1510,6 @@ func warnMultipeDBs() {
 // the file system and ensuring the regression test database is clean when in
 // regression test mode.
 func setupBlockDB(flag bool) (database.Db, error) {
-	util.Trace("DbType: " + cfg.DbType)
 
 	// The memdb backend does not have a file path associated with it, so
 	// handle it uniquely.  We also don't want to worry about the multiple
@@ -1589,19 +1558,15 @@ func setupBlockDB(flag bool) (database.Db, error) {
 
 // loadBlockDB opens the block database and returns a handle to it.
 func loadBlockDB() (database.Db, error) {
-	util.Trace()
 
 	var removeFlag bool = false
 
-	util.Trace("FORCE waiting for msg")
 	msg := <-outCtlMsgQueue
 
 	msgEom, _ := msg.(*wire.MsgInt_EOM)
 	if wire.FORCE_FACTOID_GENESIS_REBUILD == msgEom.EOM_Type {
-		util.Trace("FORCE got it")
 		removeFlag = true
 	}
-	util.Trace(fmt.Sprintf("FORCE end of waiting for it; height provided= %d", msgEom.NextDBlockHeight))
 
 	db, err := setupBlockDB(removeFlag)
 	if err != nil {
@@ -1618,16 +1583,12 @@ func loadBlockDB() (database.Db, error) {
 	// Insert the appropriate genesis block for the bitcoin network being
 	// connected to if needed.
 	if height == -1 {
-		util.Trace("will insert genesis block")
 		genesis := btcutil.NewBlock(activeNetParams.GenesisBlock)
 		_, err := db.InsertBlock(genesis)
 		if err != nil {
 			db.Close()
-			util.Trace("insert genesis failed")
 			return nil, err
 		}
-		btcdLog.Infof("Inserted genesis block %v",
-			activeNetParams.GenesisHash)
 		height = 0
 
 		gensha, _ := genesis.Sha()
@@ -1641,6 +1602,5 @@ func loadBlockDB() (database.Db, error) {
 		factomIngressBlock_hook(gensha)
 	}
 
-	btcdLog.Infof("Block database loaded with block height %d", height)
 	return db, nil
 }

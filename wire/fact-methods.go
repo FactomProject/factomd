@@ -24,6 +24,7 @@ import (
 	"github.com/davecgh/go-spew/spew"
 )
 
+var _ = util.Trace
 const (
 	TxVersion  = 0
 	inNout_cap = 16000 // per spec
@@ -62,14 +63,12 @@ func factoid_CountCheck(tx *MsgTx) bool {
 */
 
 func readRCD(r io.Reader, pver uint32, rcd *RCDreveal) error {
-	util.Trace("NOT IMPLEMENTED !!!")
 
 	return nil
 }
 
 func writeRCD(w io.Writer, pver uint32, rcd *RCDreveal) error {
-	util.Trace("NOT IMPLEMENTED !!!")
-
+	
 	return nil
 }
 
@@ -124,19 +123,16 @@ func writeBitfield(w io.Writer, pver uint32, sig *TxSig) error {
 
 // readOutPoint reads the next sequence of bytes from r as an OutPoint.
 func readOutPoint(r io.Reader, pver uint32, op *OutPoint) error {
-	util.Trace()
 	_, err := io.ReadFull(r, op.Hash[:])
 	if err != nil {
 		return err
 	}
-	util.Trace()
-
+	
 	// op.Index = binary.BigEndian.Uint32(buf[:])
 
 	// varint on the wire, but easily fits into uint32
 	index, err := readVarInt(r, pver)
-	util.Trace(fmt.Sprintf("index=%d\n", index))
-
+	
 	// coinbase has math.MaxUint32, so that's ok
 	if inNout_cap < index && math.MaxUint32 != index {
 		return fmt.Errorf("OutPoint trouble, index too large: %d", index)
@@ -165,7 +161,6 @@ func writeOutPoint(w io.Writer, pver uint32, op *OutPoint) error {
 
 // readTxIn reads the next sequence of bytes from r as a transaction input
 func readTxIn(r io.Reader, pver uint32, ti *TxIn) error {
-	util.Trace()
 	var op OutPoint
 
 	err := readOutPoint(r, pver, &op)
@@ -182,8 +177,6 @@ func readTxIn(r io.Reader, pver uint32, ti *TxIn) error {
 	}
 
 	ti.sighash = uint8(buf[0])
-
-	fmt.Println("readTxIn():", spew.Sdump(ti))
 
 	return nil
 }
@@ -203,8 +196,6 @@ func readTxOut(r io.Reader, pver uint32, to *TxOut) error {
 
 	copy(to.RCDHash[:], b)
 
-	fmt.Println("readTxOut():", spew.Sdump(to))
-
 	return nil
 }
 
@@ -221,8 +212,6 @@ func readECOut(r io.Reader, pver uint32, eco *TxEntryCreditOut) error {
 
 	copy(eco.ECpubkey[:], b)
 
-	fmt.Println("readECOut():", spew.Sdump(eco))
-
 	return nil
 }
 
@@ -231,7 +220,6 @@ func readECOut(r io.Reader, pver uint32, eco *TxEntryCreditOut) error {
 // See Deserialize for decoding transactions stored to disk, such as in a
 // database, as opposed to decoding transactions from the wire.
 func (msg *MsgTx) BtcDecode(r io.Reader, pver uint32) error {
-	util.Trace()
 
 	/*
 		if s, ok := r.(io.Seeker); ok {
@@ -258,9 +246,7 @@ func (msg *MsgTx) BtcDecode(r io.Reader, pver uint32) error {
 	}
 
 	msg.Version = uint8(buf[0])
-	util.Trace(fmt.Sprintf("version=%d\n", msg.Version))
 
-	fmt.Printf("buf= %v (%d)\n", buf, msg.Version)
 
 	if !factoid.FactoidTx_VersionCheck(msg.Version) {
 		return errors.New("fTx version check")
@@ -272,12 +258,8 @@ func (msg *MsgTx) BtcDecode(r io.Reader, pver uint32) error {
 		return err
 	}
 
-	fmt.Printf("buf5= %v\n", buf5)
-
 	full8slice := []byte{0, 0, 0}
 	full8slice = append(full8slice, buf5[:]...)
-
-	fmt.Printf("full8slice= %v\n", full8slice)
 
 	msg.LockTime = int64(binary.BigEndian.Uint64(full8slice))
 
@@ -289,7 +271,6 @@ func (msg *MsgTx) BtcDecode(r io.Reader, pver uint32) error {
 	if err != nil {
 		return err
 	}
-	util.Trace(fmt.Sprintf("outcount=%d\n", outcount))
 
 	// Prevent more input transactions than could possibly fit into a
 	// message.  It would be possible to cause memory exhaustion and panics
@@ -310,13 +291,11 @@ func (msg *MsgTx) BtcDecode(r io.Reader, pver uint32) error {
 		}
 		msg.TxOut[i] = &to
 	}
-	util.Trace()
 
 	eccount, err := readVarInt(r, pver)
 	if err != nil {
 		return err
 	}
-	util.Trace(fmt.Sprintf("eccount=%d\n", eccount))
 
 	// Prevent more input transactions than could possibly fit into a
 	// message.  It would be possible to cause memory exhaustion and panics
@@ -328,8 +307,6 @@ func (msg *MsgTx) BtcDecode(r io.Reader, pver uint32) error {
 		return messageError("MsgTx.BtcDecode maxecout", str)
 	}
 
-	util.Trace()
-
 	msg.ECOut = make([]*TxEntryCreditOut, eccount)
 	for i := uint64(0); i < eccount; i++ {
 		eco := TxEntryCreditOut{}
@@ -339,10 +316,8 @@ func (msg *MsgTx) BtcDecode(r io.Reader, pver uint32) error {
 		}
 		msg.ECOut[i] = &eco
 	}
-	util.Trace()
 
 	incount, err := readVarInt(r, pver)
-	util.Trace(fmt.Sprintf("incount=%d\n", incount))
 
 	msg.TxIn = make([]*TxIn, incount)
 	for i := uint64(0); i < incount; i++ {
@@ -353,13 +328,11 @@ func (msg *MsgTx) BtcDecode(r io.Reader, pver uint32) error {
 		}
 		msg.TxIn[i] = &ti
 	}
-	util.Trace()
 
 	_, err = io.ReadFull(r, buf[:])
 	if err != nil {
 		return err
 	}
-	util.Trace()
 
 	rcdcount, err := readVarInt(r, pver)
 
@@ -369,7 +342,6 @@ func (msg *MsgTx) BtcDecode(r io.Reader, pver uint32) error {
 			inNout_cap)
 		return messageError("MsgTx.BtcDecode max rcd", str)
 	}
-	util.Trace()
 
 	msg.RCDreveal = make([]*RCDreveal, rcdcount)
 	for i := uint64(0); i < rcdcount; i++ {
@@ -380,7 +352,6 @@ func (msg *MsgTx) BtcDecode(r io.Reader, pver uint32) error {
 		}
 		msg.RCDreveal[i] = &rcd
 	}
-	util.Trace()
 
 	/* TODO:
 	RE - ENABLE
@@ -400,9 +371,6 @@ func (msg *MsgTx) BtcDecode(r io.Reader, pver uint32) error {
 		errors.New("Factoid check 1")
 	}
 	*/
-
-	fmt.Println("MsgTx= ", spew.Sdump(*msg))
-	fmt.Println("MsgTx= ", spew.Sdump(msg))
 
 	return nil
 }
@@ -568,8 +536,7 @@ func (t *TxIn) SerializeSize() int {
 }
 
 func (rcd *RCDreveal) SerializeSize() int {
-	util.Trace("NOT IMPLEMENTED !!!")
-
+	
 	return 0
 }
 
@@ -589,7 +556,6 @@ func (sig *TxSig) SerializeSize() int {
 // SerializeSize returns the number of bytes it would take to serialize the
 // the transaction.
 func (msg *MsgTx) SerializeSize() int {
-	util.Trace()
 
 	n := 1 + // 1 byte version
 		5 // 5 bytes locktime
@@ -620,16 +586,13 @@ func (msg *MsgTx) SerializeSize() int {
 
 	// FIXME
 	// TODO: count TxSig impact here
-
-	util.Trace(fmt.Sprintf("n= %d\n", n))
-
+	
 	return n
 }
 
 // TxSha generates the ShaHash name for the transaction.
 func (msg *MsgTx) TxSha() (ShaHash, error) {
-	util.Trace()
-
+	
 	fmt.Println("TxSha spew: ", spew.Sdump(*msg))
 
 	// Encode the transaction and calculate double sha256 on the result.
@@ -646,8 +609,6 @@ func (msg *MsgTx) TxSha() (ShaHash, error) {
 	// Even though this function can't currently fail, it still returns
 	// a potential error to help future proof the API should a failure
 	// become possible.
-
-	util.Trace(sha.String())
 
 	return sha, nil
 }

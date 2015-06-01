@@ -18,8 +18,10 @@ import (
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/FactomCode/wallet"
 	"github.com/FactomProject/btcd/wire"
-	"github.com/davecgh/go-spew/spew"
+	//"github.com/davecgh/go-spew/spew"
 )
+
+var _ = fmt.Printf
 
 var (
 	local_Server *server
@@ -43,7 +45,7 @@ var FactomOverride struct {
 // start up Factom queue(s) managers/processors
 // this is to be called within the btcd's main code
 func factomForkInit(s *server) {
-	util.Trace()
+
 	// tweak some config options
 	cfg.DisableCheckpoints = true
 
@@ -55,7 +57,6 @@ func factomForkInit(s *server) {
 			switch msg.(type) {
 			case *wire.MsgInt_DirBlock:
 				dirBlock, _ := msg.(*wire.MsgInt_DirBlock)
-				util.Trace("Dir Block GENERATED. dirBlock= ", spew.Sdump(dirBlock))
 				iv := wire.NewInvVect(wire.InvTypeFactomDirBlock, dirBlock.ShaHash)
 				s.RelayInventory(iv, nil)
 
@@ -74,24 +75,19 @@ func factomForkInit(s *server) {
 	go func() {
 		for msg := range outCtlMsgQueue {
 
-			fmt.Printf("in range outCtlMsgQueue, msg:%+v\n", msg)
-
 			msgEom, _ := msg.(*wire.MsgInt_EOM)
 
 			//			switch msgEom.Command() {
 			switch msg.Command() {
 
 			case wire.CmdInt_EOM:
-				util.Trace(fmt.Sprintf("next DB height= %d, type= %d\n", msgEom.NextDBlockHeight, msgEom.EOM_Type))
-
+		
 				switch msgEom.EOM_Type {
 
 				case wire.END_MINUTE_10:
 					// block building, return the hash of the new one via doneFB (via hook)
 					generateFactoidBlock(msgEom.NextDBlockHeight)
-					fmt.Println("***********************")
-					fmt.Println("***********************")
-
+			
 				default:
 					util.Trace("unhandled EOM type")
 					panic(errors.New("unhandled EOM type"))
@@ -130,8 +126,7 @@ func factomForkInit(s *server) {
 }
 
 func Start_btcd() {
-	util.Trace("FORMER REAL btcd main() function !")
-
+	
 	// Use all processor cores.
 	//runtime.GOMAXPROCS(runtime.NumCPU())
 
@@ -173,7 +168,6 @@ func Start_btcd() {
 
 // Handle factom app imcoming msg
 func (p *peer) handleCommitChainMsg(msg *wire.MsgCommitChain) {
-	util.Trace()
 
 	// Add the msg to inbound msg queue
 	inMsgQueue <- msg
@@ -181,7 +175,6 @@ func (p *peer) handleCommitChainMsg(msg *wire.MsgCommitChain) {
 
 // Handle factom app imcoming msg
 func (p *peer) handleRevealChainMsg(msg *wire.MsgRevealChain) {
-	util.Trace()
 
 	// Add the msg to inbound msg queue
 	inMsgQueue <- msg
@@ -189,7 +182,6 @@ func (p *peer) handleRevealChainMsg(msg *wire.MsgRevealChain) {
 
 // Handle factom app imcoming msg
 func (p *peer) handleCommitEntryMsg(msg *wire.MsgCommitEntry) {
-	util.Trace()
 
 	// Add the msg to inbound msg queue
 	inMsgQueue <- msg
@@ -197,7 +189,6 @@ func (p *peer) handleCommitEntryMsg(msg *wire.MsgCommitEntry) {
 
 // Handle factom app imcoming msg
 func (p *peer) handleRevealEntryMsg(msg *wire.MsgRevealEntry) {
-	util.Trace()
 
 	// Add the msg to inbound msg queue
 	inMsgQueue <- msg
@@ -205,16 +196,10 @@ func (p *peer) handleRevealEntryMsg(msg *wire.MsgRevealEntry) {
 
 // returns true if the message should be relayed, false otherwise
 func (p *peer) shallRelay(msg interface{}) bool {
-	util.Trace()
-
-	fmt.Println("shallRelay msg= ", msg)
 
 	hash, _ := wire.NewShaHashFromStruct(msg)
-	fmt.Println("shallRelay hash= ", hash)
 
 	iv := wire.NewInvVect(wire.InvTypeFactomRaw, hash)
-
-	fmt.Println("shallRelay iv= ", iv)
 
 	if !p.isKnownInventory(iv) {
 		p.AddKnownInventory(iv)
@@ -222,19 +207,14 @@ func (p *peer) shallRelay(msg interface{}) bool {
 		return true
 	}
 
-	fmt.Println("******************* SHALL NOT RELAY !!!!!!!!!!! ******************")
-
 	return false
 }
 
 // Call FactomRelay to relay/broadcast a Factom message (to your peers).
 // The intent is to call this function after certain 'processor' checks been done.
 func (p *peer) FactomRelay(msg wire.Message) {
-	util.Trace()
 
-	fmt.Println("FactomRelay msg= ", msg)
-
-	// broadcast/relay only if hadn't been done for this peer
+    // broadcast/relay only if hadn't been done for this peer
 	if p.shallRelay(msg) {
 		//		p.server.BroadcastMessage(msg, p)
 		local_Server.BroadcastMessage(msg)
@@ -263,8 +243,7 @@ func global_DeleteMemPoolEntry(hash *wire.ShaHash) {
 
 // check a few btcd-related flags for sanity in our fork
 func (b *blockManager) factomChecks() {
-	util.Trace()
-
+	
 	if b.headersFirstMode {
 		panic(errors.New("headersFirstMode must be disabled and it is NOT !!!"))
 	}
@@ -286,7 +265,6 @@ func (b *blockManager) factomChecks() {
 		panic(errors.New("TestNet mode is NOT SUPPORTED (remove the option from the command line or from the .conf file)!"))
 	}
 
-	util.Trace()
 }
 
 func FactomSetupOverrides() {
@@ -298,7 +276,6 @@ func FactomSetupOverrides() {
 // feed all incoming Txs to the inner Factom code (for Jack)
 // TODO: do this after proper mempool/orphanpool/validity triangulation & checks
 func factomIngressTx_hook(tx *wire.MsgTx) error {
-	util.Trace()
 
 	ecmap := make(map[wire.ShaHash]uint64)
 
@@ -317,15 +294,12 @@ func factomIngressTx_hook(tx *wire.MsgTx) error {
 	txHash, _ := tx.TxSha()
 	fo := &wire.MsgInt_FactoidObj{tx, &txHash, ecmap}
 
-	fmt.Println("ecmap len =", len(ecmap))
-
 	inMsgQueue <- fo
 
 	return nil
 }
 
 func factomIngressBlock_hook(hash *wire.ShaHash) error {
-	util.Trace(fmt.Sprintf("hash: %s", hash))
 
 	fbo := &wire.MsgInt_FactoidBlock{
 		ShaHash: *hash}
@@ -336,7 +310,6 @@ func factomIngressBlock_hook(hash *wire.ShaHash) error {
 }
 
 func ExtractPkScriptAddrs(pkScript []byte, chainParams *chaincfg.Params) ([]btcutil.Address, int, error) {
-	util.Trace(spew.Sdump(pkScript))
 
 	var addrs []btcutil.Address
 	var requiredSigs int
@@ -357,7 +330,6 @@ func ExtractPkScriptAddrs(pkScript []byte, chainParams *chaincfg.Params) ([]btcu
 // PayToAddrScript creates a new script to pay a transaction output to a the
 // specified address.
 func PayToAddrScript(addr btcutil.Address) ([]byte, error) {
-	util.Trace("NOT IMPLEMENTED -- needs to be !!!!!!!!!!!!!!!!!!!!")
 	/*
 		switch addr := addr.(type) {
 		case *btcutil.AddressPubKey:

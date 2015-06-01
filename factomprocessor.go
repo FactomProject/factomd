@@ -23,10 +23,15 @@ import (
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/factomlog"
     "github.com/FactomProject/FactomCode/util"
+    sc "github.com/FactomProject/simplecoin"
+    "github.com/FactomProject/simplecoin/block"
     "github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/btcutil"
-    "github.com/davecgh/go-spew/spew"
+//    "github.com/davecgh/go-spew/spew"
 )
+
+var _ = (*sc.Transaction)(nil)
+var _ = (*block.SCBlock)(nil)
 
 const (
 	//Server running mode
@@ -37,7 +42,7 @@ const (
 	//Server public key for milestone 1
 	SERVER_PUB_KEY = "8cee85c62a9e48039d4ac294da97943c2001be1539809ea5f54721f0c5477a0a"
 	// GENESIS_DIR_BLOCK_HASH = "43f308adb91984ce340f626e39c3707db31343eff0563a4dfe5dd8d31ed95488"
-	GENESIS_DIR_BLOCK_HASH = "2923d512f88f8979d33c3b66530897d469517db0885f6490c34f14b088290fc2"
+    GENESIS_DIR_BLOCK_HASH = "e68fd6aa43da3afc6e5c005ba9815169d121a5d1445ff9e8ca74660a9fa59046"
 )
 
 var (
@@ -89,7 +94,6 @@ var (
 )
 
 func LoadConfigurations(cfg *util.FactomdConfig) {
-	util.Trace()
 
 	//setting the variables by the valued form the config file
 	logLevel = cfg.Log.LogLevel
@@ -148,8 +152,6 @@ func initProcess() {
 
 	wire.Init()
 
-	util.Trace()
-
 	// init server private key or pub key
 	initServerKeys()
 
@@ -175,6 +177,9 @@ func initProcess() {
 	initAChain()
 	fmt.Println("Loaded", achain.NextBlockHeight, "Admin blocks for chain: "+achain.ChainID.String())
 
+    initSCChain()
+    fmt.Println("Loaded", scchain.NextBlockHeight, "Simplecoin blocks for chain: "+scchain.ChainID.String())
+    
 	anchor.InitAnchor(db)
 
 	// build the Genesis blocks if the current height is 0
@@ -233,6 +238,7 @@ func Start_Processor(
 
 	initProcess()
 
+    
 	// Initialize timer for the open dblock before processing messages
 	if nodeMode == SERVER_NODE {
 		timer := &BlockTimer{
@@ -240,9 +246,17 @@ func Start_Processor(
 			inCtlMsgQueue:    inCtlMsgQueue,
 		}
 		go timer.StartBlockTimer()
+        fmt.Println("\n\n\n================================================================================")
+        fmt.Println("\n===                                                                          ===")
+        fmt.Println("\n===                                                                          ===")
+        fmt.Println("\n===                           Starting the Timer!                            ===")
+        fmt.Println("\n===                                                                          ===")
+        fmt.Println("\n===                                                                          ===")
+        fmt.Println("\n================================================================================\n\n")
 	}
+	
 
-	util.Trace("before range inMsgQ")
+    
 	// Process msg from the incoming queue one by one
 	for {
 		select {
@@ -263,8 +277,6 @@ func Start_Processor(
 
 	}
 
-	util.Trace()
-
 }
 
 func fileNotExists(name string) bool {
@@ -278,8 +290,6 @@ func fileNotExists(name string) bool {
 // Serve the "fast lane" incoming control msg from inCtlMsgQueue
 func serveCtlMsgRequest(msg wire.FtmInternalMsg) error {
 
-	util.Trace()
-
 	switch msg.Command() {
 	case wire.CmdCommitChain:
 
@@ -292,8 +302,6 @@ func serveCtlMsgRequest(msg wire.FtmInternalMsg) error {
 
 // Serve incoming msg from inMsgQueue
 func serveMsgRequest(msg wire.FtmInternalMsg) error {
-
-	util.Trace()
 
 	switch msg.Command() {
 	case wire.CmdCommitChain:
@@ -360,8 +368,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		}
 
 	case wire.CmdInt_EOM:
-		util.Trace("CmdInt_EOM")
-
+	
 		if nodeMode == SERVER_NODE {
 			msgEom, ok := msg.(*wire.MsgInt_EOM)
 			if !ok {
@@ -378,8 +385,6 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 				plMgr.AddMyProcessListItem(msgEom, nil, wire.END_MINUTE_10)
 
 				//Notify the factoid component to start building factoid block
-				util.Trace("Notify the factoid component to start building factoid block")
-
 				outCtlMsgQueue <- msgEom
 
 				err := buildBlocks()
@@ -392,10 +397,8 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		}
 
 	case wire.CmdInt_FactoidBlock:
-		factoidBlock, ok := msg.(*wire.MsgInt_FactoidBlock)
-		util.Trace("Factoid Block (GENERATED??) -- detected in the processor")
-		fmt.Println("factoidBlock= ", factoidBlock, " ok= ", ok)
-
+		//factoidBlock, ok := msg.(*wire.MsgInt_FactoidBlock)
+		
 	case wire.CmdDirBlock:
 		if nodeMode == SERVER_NODE {
 			break
@@ -497,11 +500,9 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 // processDirBlock validates dir block and save it to factom db.
 // similar to blockChain.BC_ProcessBlock
 func processDirBlock(msg *wire.MsgDirBlock) error {
-	util.Trace()
 
 	blk, _ := db.FetchDBlockByHeight(msg.DBlk.Header.BlockHeight)
 	if blk != nil {
-		fmt.Println("DBlock already existing for height:" + string(msg.DBlk.Header.BlockHeight))
 		return nil
 	}
 
@@ -510,9 +511,6 @@ func processDirBlock(msg *wire.MsgDirBlock) error {
 
 	db.ProcessDBlockBatch(msg.DBlk) //?? to be removed later
 
-	fmt.Printf("PROCESSOR: MsgDirBlock=%s\n", spew.Sdump(msg.DBlk))
-	fmt.Printf("PROCESSOR: dchain=%s\n", spew.Sdump(dchain))
-	
 	exportDChain(dchain)
 
 	return nil
@@ -521,13 +519,10 @@ func processDirBlock(msg *wire.MsgDirBlock) error {
 // processABlock validates admin block and save it to factom db.
 // similar to blockChain.BC_ProcessBlock
 func processSCBlock(msg *wire.MsgSCBlock) error {
-    util.Trace()
     
     //Need to validate against Dchain??
     
     db.ProcessSCBlockBatch(msg.SC)
-    
-    fmt.Printf("PROCESSOR: MsgSCBlock=%s\n", spew.Sdump(msg.SC))
     
     exportSCChain(scchain)
     
@@ -537,14 +532,11 @@ func processSCBlock(msg *wire.MsgSCBlock) error {
 // processABlock validates admin block and save it to factom db.
 // similar to blockChain.BC_ProcessBlock
 func processABlock(msg *wire.MsgABlock) error {
-	util.Trace()
 
 	//Need to validate against Dchain??
 
 	db.ProcessABlockBatch(msg.ABlk)
 
-	fmt.Printf("PROCESSOR: MsgABlock=%s\n", spew.Sdump(msg.ABlk))
-	
 	exportAChain(achain)
 
 	return nil
@@ -553,14 +545,11 @@ func processABlock(msg *wire.MsgABlock) error {
 // processCBlock validates entry credit block and save it to factom db.
 // similar to blockChain.BC_ProcessBlock
 func processCBlock(msg *wire.MsgECBlock) error {
-	util.Trace()
 
 	//Need to validate against Dchain??
 
 	db.ProcessECBlockBatch(msg.ECBlock)
 
-	fmt.Printf("PROCESSOR: MsgCBlock=%s\n", spew.Sdump(msg.ECBlock))
-	
 	exportECChain(ecchain)
 
 	return nil
@@ -569,7 +558,6 @@ func processCBlock(msg *wire.MsgECBlock) error {
 // processEBlock validates entry block and save it to factom db.
 // similar to blockChain.BC_ProcessBlock
 func processEBlock(msg *wire.MsgEBlock) error {
-	util.Trace()
 	if msg.EBlk.Header.DBHeight >= dchain.NextBlockHeight || msg.EBlk.Header.DBHeight < 0 {
 		return errors.New("MsgEBlock has an invalid DBHeight:" + strconv.Itoa(int(msg.EBlk.Header.DBHeight)))
 	}
@@ -613,7 +601,6 @@ func processEBlock(msg *wire.MsgEBlock) error {
 
 	db.ProcessEBlockBatch(msg.EBlk)
 
-	fmt.Printf("PROCESSOR: MsgEBlock=%s\n", spew.Sdump(msg.EBlk))
 
 	exportEChain(chain)
 	
@@ -623,14 +610,11 @@ func processEBlock(msg *wire.MsgEBlock) error {
 // processEntry validates entry and save it to factom db.
 // similar to blockChain.BC_ProcessBlock
 func processEntry(msg *wire.MsgEntry) error {
-	util.Trace()
-
+	
 	// store the new entry in db
 	entryBinary, _ := msg.Entry.MarshalBinary()
 	entryHash := common.Sha(entryBinary)
 	db.InsertEntry(entryHash, &entryBinary, msg.Entry, &msg.Entry.ChainID.Bytes)
-
-	fmt.Printf("PROCESSOR: MsgEntry=%s\n", spew.Sdump(msg.Entry))
 
 	return nil
 }
@@ -1096,11 +1080,11 @@ func buildEndOfMinute(pl *consensus.ProcessList, pli *consensus.ProcessListItem)
 	if len(abEntries) > 0 && abEntries[len(abEntries)-1].Type() != common.TYPE_MINUTE_NUM {
 		achain.NextBlock.AddEndOfMinuteMarker(pli.Ack.Type)
 	}
+	
 }
 
 // build Genesis blocks
 func buildGenesisBlocks() error {
-	util.Trace()
 
 	// Send an End of Minute message to the Factoid component to create a genesis block
 	eomMsg := &wire.MsgInt_EOM{
@@ -1115,52 +1099,46 @@ func buildGenesisBlocks() error {
     dchain.AddDBEntry(&common.DBEntry{}) // Factoid block
     dchain.AddDBEntry(&common.DBEntry{}) // Simplecoin
     
-	util.Trace()
 	// Wait for Factoid block to be built and update the DbEntry
 	msg := <-doneFBlockQueue
-	util.Trace(spew.Sdump(msg))
 	doneFBlockMsg, ok := msg.(*wire.MsgInt_FactoidBlock)
-	util.Trace(spew.Sdump(doneFBlockMsg))
 
 	//?? to be restored: if ok && doneFBlockMsg.BlockHeight == dchain.NextBlockID {
 	// double check MR ??
 	if ok {
-		util.Trace("ok")
 		dbEntryUpdate := new(common.DBEntry)
 		dbEntryUpdate.ChainID = wire.FChainID
 		dbEntryUpdate.MerkleRoot = doneFBlockMsg.ShaHash.ToFactomHash()
 
-		util.Trace("before dchain")
 		dchain.AddFBlockMRToDBEntry(dbEntryUpdate)
-		util.Trace("after dchain")
 	} else {
 		panic("Error in processing msg from doneFBlockQueue:" + fmt.Sprintf("%+v", msg))
 	}
 
 	// Entry Credit Chain
 	cBlock := newEntryCreditBlock(ecchain)
-	fmt.Printf("buildGenesisBlocks: cBlock=%s\n", spew.Sdump(cBlock))
 	dchain.AddECBlockToDBEntry(cBlock)
 	exportECChain(ecchain)
 	
 	// Admin chain
 	aBlock := newAdminBlock(achain)
-	fmt.Printf("buildGenesisBlocks: aBlock=%s\n", spew.Sdump(aBlock))
 	dchain.AddABlockToDBEntry(aBlock)
 	exportAChain(achain)
 
-    // Simplecoin "chain"
-    scBlock := sc.NewSCBlock(FactoshisPerCredit, 0)  
-    fmt.Printf("buildGenesisBlocks: scBlock=%s\n", spew.Sdump(scBlock))
+    // Simplecoin Genesis Address
+    scBlock := block.GetGenesisBlock(1000000,10,200000000000)  // THIS IS IN TWO PLACES HERE! THEY NEED TO MATCH
+    data, _ := scBlock.MarshalBinary()
+    fmt.Println("\n\n ",common.Sha(data).String(),"\n\n")
     dchain.AddSCBlockToDBEntry(scBlock)
     
 	// Directory Block chain
-	util.Trace("in buildGenesisBlocks")
 	dbBlock := newDirectoryBlock(dchain)
 
 	// Check block hash if genesis block
 	if dbBlock.DBHash.String() != GENESIS_DIR_BLOCK_HASH {
-		panic("Genesis block hash is not expected: " + dbBlock.DBHash.String())
+        
+		panic("\nGenesis block hash expected: "+GENESIS_DIR_BLOCK_HASH+
+		    "\nGenesis block hash found:    " + dbBlock.DBHash.String()+"\n")
 	}
 
 	exportDChain(dchain)
@@ -1173,7 +1151,6 @@ func buildGenesisBlocks() error {
 
 // build blocks from all process lists
 func buildBlocks() error {
-	util.Trace()
 
 	// Allocate the first three dbentries for Admin block, ECBlock and Factoid block
 	dchain.AddDBEntry(&common.DBEntry{}) // AdminBlock
@@ -1187,7 +1164,6 @@ func buildBlocks() error {
 	// Wait for Factoid block to be built and update the DbEntry
 	msg := <-doneFBlockQueue
 	doneFBlockMsg, ok := msg.(*wire.MsgInt_FactoidBlock)
-	util.Trace(spew.Sdump(doneFBlockMsg))
 
 	//?? to be restored: if ok && doneFBlockMsg.BlockHeight == dchain.NextBlockID {
 	if ok {
@@ -1228,7 +1204,6 @@ func buildBlocks() error {
 	}
 
 	// Directory Block chain
-	util.Trace("in buildBlocks")
 	dbBlock := newDirectoryBlock(dchain)
 	// Check block hash if genesis block here??
 
@@ -1250,6 +1225,7 @@ func buildBlocks() error {
 			inCtlMsgQueue:    inCtlMsgQueue,
 		}
 		go timer.StartBlockTimer()
+       
 	}
 
 	// place an anchor into btc
@@ -1275,7 +1251,6 @@ func SignDirectoryBlock() error {
 
 // Place an anchor into btc
 func placeAnchor(dbBlock *common.DirectoryBlock) error {
-	util.Trace()
 	// Only Servers can write the anchor to Bitcoin network
 	if nodeMode == SERVER_NODE && dbBlock != nil {
 		// todo: need to make anchor as a go routine, independent of factomd
@@ -1345,10 +1320,8 @@ func newEntryBlock(chain *common.EChain) *common.EBlock {
 	hashes = append(hashes, block.Header.BodyMR)
 	merkle = common.BuildMerkleTreeStore(hashes)
 	block.MerkleRoot = merkle[len(merkle)-1] // MerkleRoot is not marshalized in Entry Block
-	fmt.Println("block.MerkleRoot:%v", block.MerkleRoot.String())
 	blkhash, _ := common.CreateHash(block)
 	block.EBHash = blkhash
-	log.Println("blkhash:%v", blkhash.Bytes)
 
 	block.IsSealed = true
 	chain.NextBlockHeight++
@@ -1356,7 +1329,6 @@ func newEntryBlock(chain *common.EChain) *common.EBlock {
 
 	//Store the block in db
 	db.ProcessEBlockBatch(block)
-	log.Println("EntryBlock: block" + strconv.FormatUint(uint64(block.Header.EBHeight), 10) + " created for chain: " + chain.ChainID.String())
 	return block
 }
 
@@ -1379,7 +1351,6 @@ func newEntryCreditBlock(chain *common.ECChain) *common.ECBlock {
 
 	//Store the block in db
 	db.ProcessECBlockBatch(block)
-	log.Println("EntryCreditBlock: block" + strconv.FormatUint(uint64(block.Header.DBHeight), 10) + " created for chain: " + chain.ChainID.String())
 
 	return block
 }
@@ -1405,13 +1376,11 @@ func newAdminBlock(chain *common.AdminChain) *common.AdminBlock {
 
 	//Store the block in db
 	db.ProcessABlockBatch(block)
-	log.Println("Admin Block: block" + strconv.FormatUint(uint64(block.Header.DBHeight), 10) + " created for chain: " + chain.ChainID.String())
 
 	return block
 }
 
 func newDirectoryBlock(chain *common.DChain) *common.DirectoryBlock {
-	util.Trace("**** new Dir Block")
 	// acquire the last block
 	block := chain.NextBlock
 
@@ -1443,8 +1412,6 @@ func newDirectoryBlock(chain *common.DChain) *common.DirectoryBlock {
 	// Initialize the dirBlockInfo obj in db
 	db.InsertDirBlockInfo(common.NewDirBlockInfoFromDBlock(block))
 	anchor.UpdateDirBlockInfoMap(common.NewDirBlockInfoFromDBlock(block))
-
-	log.Println("DirectoryBlock: block" + strconv.FormatUint(uint64(block.Header.BlockHeight), 10) + " created for directory block chain: " + chain.ChainID.String())
 
 	// To be improved in milestone 2
 	SignDirectoryBlock()
@@ -1515,11 +1482,16 @@ func validateDBlock(c *common.DChain, b *common.DirectoryBlock) (merkleRoot *com
 			if err != nil {
 				return nil, nil, err
 			}
-		case achain.ChainID.String():
-			err := validateABlockByMR(dbEntry.MerkleRoot)
-			if err != nil {
-				return nil, nil, err
-			}
+        case achain.ChainID.String():
+            err := validateABlockByMR(dbEntry.MerkleRoot)
+            if err != nil {
+                return nil, nil, err
+            }
+        case scchain.ChainID.String():
+            err := validateSCBlockByMR(dbEntry.MerkleRoot)
+            if err != nil {
+                return nil, nil, err
+            }
 		case wire.FChainID.String():
 			err := validateFBlockByMR(dbEntry.MerkleRoot)
 			if err != nil {
@@ -1549,9 +1521,8 @@ func validateCBlockByMR(mr *common.Hash) error {
 	cb, _ := db.FetchECBlockByHash(mr)
 
 	if cb == nil {
-		return errors.New("Entry block not found in db for merkle root: " + mr.String())
+		return errors.New("Entry Credit block not found in db for merkle root: " + mr.String())
 	}
-
 	return nil
 }
 
@@ -1560,10 +1531,21 @@ func validateABlockByMR(mr *common.Hash) error {
 	b, _ := db.FetchABlockByHash(mr)
 
 	if b == nil {
-		return errors.New("Entry block not found in db for merkle root: " + mr.String())
+		return errors.New("Admin block not found in db for merkle root: " + mr.String())
 	}
 
 	return nil
+}
+
+// Validate Admin Block by merkle root
+func validateSCBlockByMR(mr *common.Hash) error {
+    b, _ := db.FetchSCBlockByHash(mr)
+    
+    if b == nil {
+        return errors.New("Simple Coin block not found in db for merkle root: " + mr.String())
+    }
+    
+    return nil
 }
 
 func validateEBlockByMR(cid *common.Hash, mr *common.Hash) error {
@@ -1852,8 +1834,6 @@ func initAChain() {
 	aBlocks, _ := db.FetchAllABlocks()
 	sort.Sort(util.ByABlockIDAccending(aBlocks))
 
-	fmt.Printf("initAChain: aBlocks=%s\n", spew.Sdump(aBlocks))
-
 	// double check the block ids
 	for i := 0; i < len(aBlocks); i = i + 1 {
 		//if uint32(i) != aBlocks[i].Header.DBHeight {
@@ -1875,6 +1855,43 @@ func initAChain() {
 	exportAChain(achain)
 
 }
+
+func initSCChain() {
+    
+    //Initialize the Admin Chain ID
+    scchain = new(common.SCChain)
+    scchain.ChainID = new(common.Hash)
+    scchain.ChainID.SetBytes(sc.FACTOID_CHAINID)
+    
+    // get all aBlocks from db
+    scBlocks, _ := db.FetchAllSCBlocks()
+    sort.Sort(util.BySCBlockIDAccending(scBlocks))
+        
+    // double check the block ids
+    for i := 0; i < len(scBlocks); i = i + 1 {
+        //if uint32(i) != aBlocks[i].Header.DBHeight {
+        //	panic(errors.New("BlockID does not equal index for chain:" + achain.ChainID.String() + " block:" + fmt.Sprintf("%v", aBlocks[i].Header.DBHeight)))
+        //}
+    }
+    
+    //Create an empty block and append to the chain
+    if len(scBlocks) == 0 || dchain.NextBlockHeight == 0 {
+        scchain.NextBlockHeight = 0
+        
+        // THIS IS IN TWO PLACES HERE! THEY NEED TO MATCH!
+        scchain.NextBlock = block.GetGenesisBlock(1000000,10,200000000000)  
+        data, _ := scchain.NextBlock.MarshalBinary()
+        fmt.Println("\n\n ",common.Sha(data).String(),"\n\n")
+    } else {
+        // Entry Credit Chain should have the same height as the dir chain
+        scchain.NextBlockHeight = dchain.NextBlockHeight
+        scchain.NextBlock = block.NewSCBlock(FactoshisPerCredit, dchain.NextBlockHeight)
+    }
+    
+    exportSCChain(scchain)
+    
+}
+
 
 func initEChains() {
 

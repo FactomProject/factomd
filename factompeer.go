@@ -12,9 +12,10 @@ import (
 	"github.com/FactomProject/btcd/blockchain"
 	"github.com/FactomProject/btcd/database"
 	"github.com/FactomProject/btcd/wire"
-	"github.com/davecgh/go-spew/spew"
+	//"github.com/davecgh/go-spew/spew"
 )
 
+var _ = fmt.Printf
 
 // handleDirBlockMsg is invoked when a peer receives a dir block message.
 func (p *peer) handleSCBlockMsg(msg *wire.MsgSCBlock, buf []byte) {
@@ -22,7 +23,6 @@ func (p *peer) handleSCBlockMsg(msg *wire.MsgSCBlock, buf []byte) {
     // Convert the raw MsgBlock to a btcutil.Block which provides some
     // convenience methods and things such as hash caching.
     
-    fmt.Printf("msgSCBlock=%v\n", spew.Sdump(msg.SC))
     
     binary, _ := msg.SC.MarshalBinary()
     commonHash := common.Sha(binary)
@@ -39,8 +39,6 @@ func (p *peer) handleDirBlockMsg(msg *wire.MsgDirBlock, buf []byte) {
 	util.Trace()
 	// Convert the raw MsgBlock to a btcutil.Block which provides some
 	// convenience methods and things such as hash caching.
-
-	fmt.Printf("msgDirBlock=%v\n", spew.Sdump(msg.DBlk))
 
 	binary, _ := msg.DBlk.MarshalBinary()
 	commonHash := common.Sha(binary)
@@ -61,8 +59,6 @@ func (p *peer) handleABlockMsg(msg *wire.MsgABlock, buf []byte) {
 	// Convert the raw MsgBlock to a btcutil.Block which provides some
 	// convenience methods and things such as hash caching.
 
-	fmt.Printf("msgABlock=%v\n", spew.Sdump(msg.ABlk))
-
 	binary, _ := msg.ABlk.MarshalBinary()
 	commonHash := common.Sha(binary)
 	hash, _ := wire.NewShaHash(commonHash.Bytes)
@@ -80,8 +76,6 @@ func (p *peer) handleECBlockMsg(msg *wire.MsgECBlock, buf []byte) {
 	// Convert the raw MsgBlock to a btcutil.Block which provides some
 	// convenience methods and things such as hash caching.
 
-	fmt.Printf("msgECBlock=%v\n", spew.Sdump(msg.ECBlock))
-
 	binary, _ := msg.ECBlock.MarshalBinary()
 	commonHash := common.Sha(binary)
 	hash, _ := wire.NewShaHash(commonHash.Bytes)
@@ -97,8 +91,6 @@ func (p *peer) handleEBlockMsg(msg *wire.MsgEBlock, buf []byte) {
 	util.Trace()
 	// Convert the raw MsgBlock to a btcutil.Block which provides some
 	// convenience methods and things such as hash caching.
-
-	fmt.Printf("msgEBlock=%v\n", spew.Sdump(msg.EBlk))
 
 	binary, _ := msg.EBlk.MarshalBinary()
 	commonHash := common.Sha(binary)
@@ -119,8 +111,6 @@ func (p *peer) handleEntryMsg(msg *wire.MsgEntry, buf []byte) {
 	util.Trace()
 	// Convert the raw MsgBlock to a btcutil.Block which provides some
 	// convenience methods and things such as hash caching.
-
-	fmt.Printf("msgEntry=%v\n", spew.Sdump(msg.Entry))
 
 	binary, _ := msg.Entry.MarshalBinary()
 	commonHash := common.Sha(binary)
@@ -165,8 +155,6 @@ func (p *peer) handleGetEntryDataMsg(msg *wire.MsgGetEntryData) {
 		blk, err := db.FetchEBlockByHash(iv.Hash.ToFactomHash())
 
 		if err != nil {
-			peerLog.Tracef("Unable to fetch requested EBlock sha %v: %v",
-				iv.Hash, err)
 
 			if doneChan != nil {
 				doneChan <- struct{}{}
@@ -174,7 +162,6 @@ func (p *peer) handleGetEntryDataMsg(msg *wire.MsgGetEntryData) {
 			return
 		}
 
-		fmt.Printf("commonHash=%s, entry block=%s\n", iv.Hash.ToFactomHash().String(), spew.Sdump(blk))
 
 		for _, ebEntry := range blk.EBEntries {
 
@@ -252,7 +239,6 @@ func (p *peer) handleGetNonDirDataMsg(msg *wire.MsgGetNonDirData) {
 			return
 		}
 
-		fmt.Printf("commonHash=%s, directory block=%s\n", iv.Hash.ToFactomHash().String(), spew.Sdump(blk))
 
 		for _, dbEntry := range blk.DBEntries {
 
@@ -431,8 +417,6 @@ func (p *peer) handleGetDirBlocksMsg(msg *wire.MsgGetDirBlocks) {
 		autoContinue = true
 	}
 
-	fmt.Printf("Newest height=%d, startIdx=%d, endIdx=%d, autoContinue=%v\n",
-		endHeight, startIdx, endIdx, autoContinue)
 
 	// Generate inventory message.
 	//
@@ -449,7 +433,6 @@ func (p *peer) handleGetDirBlocksMsg(msg *wire.MsgGetDirBlocks) {
 		for i := int64(0); i < endIdx; i++ {
 			newhash, _ := wire.NewShaHash(dchain.Blocks[i].DBHash.Bytes)
 			hashList = append(hashList, *newhash)
-			fmt.Printf("appended hash=%s\n", newhash.String())
 		}
 
 		/*		if err != nil {
@@ -509,8 +492,6 @@ func (p *peer) pushDirBlockMsg(sha *wire.ShaHash, doneChan, waitChan chan struct
 		return err
 	}
 
-	fmt.Printf("commonHash=%s, dir block=%s\n", commonhash.String(), spew.Sdump(blk))
-
 	// Once we have fetched data wait for any previous operation to finish.
 	if waitChan != nil {
 		<-waitChan
@@ -525,7 +506,6 @@ func (p *peer) pushDirBlockMsg(sha *wire.ShaHash, doneChan, waitChan chan struct
 	}
 	msg := wire.NewMsgDirBlock()
 	msg.DBlk = blk
-	fmt.Printf("dblock=%s\n", spew.Sdump(blk))
 	p.QueueMessage(msg, dc) //blk.MsgBlock(), dc)
 
 	// When the peer requests the final block that was advertised in
@@ -563,8 +543,6 @@ func (p *peer) PushGetDirBlocksMsg(locator blockchain.BlockLocator, stopHash *wi
 		beginHash = locator[0]
 	}
 
-	fmt.Printf("beginHash=%s, stopHash=%s\n", beginHash.String(), stopHash.String())
-
 	// Filter duplicate getdirblocks requests.
 	if p.prevGetBlocksStop != nil && p.prevGetBlocksBegin != nil &&
 		beginHash != nil && stopHash.IsEqual(p.prevGetBlocksStop) &&
@@ -582,7 +560,6 @@ func (p *peer) PushGetDirBlocksMsg(locator blockchain.BlockLocator, stopHash *wi
 		if err != nil {
 			return err
 		}
-		fmt.Printf("add dir block hash=%s\n", hash.String())
 	}
 	p.QueueMessage(msg, nil)
 
@@ -645,7 +622,6 @@ func (p *peer) pushSCBlockMsg(commonhash *common.Hash, doneChan, waitChan chan s
         return err
     }
     
-    fmt.Printf("commonHash=%s, SC block=%s\n", commonhash.String(), spew.Sdump(blk))
     
     // Once we have fetched data wait for any previous operation to finish.
     if waitChan != nil {
@@ -654,7 +630,6 @@ func (p *peer) pushSCBlockMsg(commonhash *common.Hash, doneChan, waitChan chan s
     
     msg := wire.NewMsgSCBlock()
     msg.SC = blk
-    fmt.Printf("ablock=%s\n", spew.Sdump(blk))
     p.QueueMessage(msg, doneChan) //blk.MsgBlock(), dc)
     return nil
 }
@@ -666,8 +641,6 @@ func (p *peer) pushABlockMsg(commonhash *common.Hash, doneChan, waitChan chan st
 	blk, err := db.FetchABlockByHash(commonhash)
 
 	if err != nil {
-		peerLog.Tracef("Unable to fetch requested admin block sha %v: %v",
-			commonhash, err)
 
 		if doneChan != nil {
 			doneChan <- struct{}{}
@@ -675,7 +648,6 @@ func (p *peer) pushABlockMsg(commonhash *common.Hash, doneChan, waitChan chan st
 		return err
 	}
 
-	fmt.Printf("commonHash=%s, admin block=%s\n", commonhash.String(), spew.Sdump(blk))
 
 	// Once we have fetched data wait for any previous operation to finish.
 	if waitChan != nil {
@@ -684,7 +656,6 @@ func (p *peer) pushABlockMsg(commonhash *common.Hash, doneChan, waitChan chan st
 
 	msg := wire.NewMsgABlock()
 	msg.ABlk = blk
-	fmt.Printf("ablock=%s\n", spew.Sdump(blk))
 	p.QueueMessage(msg, doneChan) //blk.MsgBlock(), dc)
 	return nil
 }
@@ -697,16 +668,12 @@ func (p *peer) pushECBlockMsg(commonhash *common.Hash, doneChan, waitChan chan s
 	blk, err := db.FetchECBlockByHash(commonhash)
 
 	if err != nil {
-		peerLog.Tracef("Unable to fetch requested entry credit block sha %v: %v",
-			commonhash, err)
 
 		if doneChan != nil {
 			doneChan <- struct{}{}
 		}
 		return err
 	}
-
-	fmt.Printf("commonHash=%s, entry credit block=%s\n", commonhash.String(), spew.Sdump(blk))
 
 	// Once we have fetched data wait for any previous operation to finish.
 	if waitChan != nil {
@@ -715,7 +682,6 @@ func (p *peer) pushECBlockMsg(commonhash *common.Hash, doneChan, waitChan chan s
 
 	msg := wire.NewMsgECBlock()
 	msg.ECBlock = blk
-	fmt.Printf("cblock=%s\n", spew.Sdump(blk))
 	p.QueueMessage(msg, doneChan) //blk.MsgBlock(), dc)
 	return nil
 }
@@ -728,16 +694,12 @@ func (p *peer) pushEBlockMsg(commonhash *common.Hash, doneChan, waitChan chan st
 	blk, err := db.FetchEBlockByMR(commonhash)
 
 	if err != nil {
-		peerLog.Tracef("Unable to fetch requested entry block sha %v: %v",
-			commonhash, err)
 
 		if doneChan != nil {
 			doneChan <- struct{}{}
 		}
 		return err
 	}
-
-	fmt.Printf("commonHash=%s, entry block=%s\n", commonhash.String(), spew.Sdump(blk))
 
 	// Once we have fetched data wait for any previous operation to finish.
 	if waitChan != nil {
@@ -746,7 +708,6 @@ func (p *peer) pushEBlockMsg(commonhash *common.Hash, doneChan, waitChan chan st
 
 	msg := wire.NewMsgEBlock()
 	msg.EBlk = blk
-	fmt.Printf("eblock=%s\n", spew.Sdump(blk))
 	p.QueueMessage(msg, doneChan) //blk.MsgBlock(), dc)
 	return nil
 }
@@ -759,8 +720,6 @@ func (p *peer) pushEntryMsg(commonhash *common.Hash, doneChan, waitChan chan str
 	entry, err := db.FetchEntryByHash(commonhash)
 
 	if err != nil {
-		peerLog.Tracef("Unable to fetch requested eblock entry sha %v: %v",
-			commonhash, err)
 
 		if doneChan != nil {
 			doneChan <- struct{}{}
@@ -768,7 +727,6 @@ func (p *peer) pushEntryMsg(commonhash *common.Hash, doneChan, waitChan chan str
 		return err
 	}
 
-	fmt.Printf("commonHash=%s, entry=%s\n", commonhash.String(), spew.Sdump(entry))
 
 	// Once we have fetched data wait for any previous operation to finish.
 	if waitChan != nil {
@@ -777,7 +735,6 @@ func (p *peer) pushEntryMsg(commonhash *common.Hash, doneChan, waitChan chan str
 
 	msg := wire.NewMsgEntry()
 	msg.Entry = entry
-	fmt.Printf("Entry=%s\n", spew.Sdump(entry))
 	p.QueueMessage(msg, doneChan) //blk.MsgBlock(), dc)
 	return nil
 }
