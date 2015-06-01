@@ -1130,6 +1130,10 @@ func buildGenesisBlocks() error {
     data, _ := scBlock.MarshalBinary()
     fmt.Println("\n\n ",common.Sha(data).String(),"\n\n")
     dchain.AddSCBlockToDBEntry(scBlock)
+    //Store the block in db
+	db.ProcessSCBlockBatch(scBlock)
+	exportSCChain(scchain)
+    
     
 	// Directory Block chain
 	dbBlock := newDirectoryBlock(dchain)
@@ -1156,6 +1160,7 @@ func buildBlocks() error {
 	dchain.AddDBEntry(&common.DBEntry{}) // AdminBlock
 	dchain.AddDBEntry(&common.DBEntry{}) // ECBlock
 	dchain.AddDBEntry(&common.DBEntry{}) // Factoid block
+    dchain.AddDBEntry(&common.DBEntry{}) // Simplecoin	
 
 	if plMgr != nil && plMgr.MyProcessList.IsValid() {
 		buildFromProcessList(plMgr.MyProcessList)
