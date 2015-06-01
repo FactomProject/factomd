@@ -190,7 +190,9 @@ func (b1 SCBlock) IsEqual(block sc.IBlock) bool {
 
 
 func (b *SCBlock) GetChainID() sc.IHash {
-    return sc.Sha(sc.FACTOID_CHAINID)
+    h := new(sc.Hash)
+    h.SetBytes(sc.FACTOID_CHAINID)
+    return h
 }
 
 func (b *SCBlock) GetMerkleRoot() sc.IHash {
@@ -346,7 +348,11 @@ func (b SCBlock) MarshalText() (text []byte, err error) {
 
 func NewSCBlock(ExchRate uint64, DBHeight uint32) ISCBlock {
 	scb := new(SCBlock)
-	scb.ExchRate = ExchRate
-	scb.DBHeight = DBHeight
+    scb.MerkleRoot = new (sc.Hash)
+    scb.PrevBlock  = new (sc.Hash)
+    scb.PrevHash3  = new (sc.Hash)
+    scb.UTXOCommit = new (sc.Hash)
+	scb.ExchRate   = ExchRate
+	scb.DBHeight   = DBHeight
 	return scb
 }

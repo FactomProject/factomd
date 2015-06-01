@@ -7,18 +7,23 @@ package block
 import (
     sc "github.com/FactomProject/simplecoin"
     "github.com/FactomProject/simplecoin/wallet"
-    "time"
 )
 
 var _ = sc.Prt
 
 var genesisBlock ISCBlock
 
-func GetGenesisBlock() ISCBlock {
-	if genesisBlock != nil {
-		return genesisBlock
-	}
-	genesisBlock = NewSCBlock(1000000, uint32(time.Now().Unix()))  
+// Provide the initial Exchange Rate, and the number of addresses to 
+// fund, and how much to put at each address.
+//
+// GetGenesisBlock(1000000,10,200000000000)
+//
+// This is close to .1 a penny per Entry Credit with a Factoid price of
+// 15 cents, and 2000 Factoids distributed to 10 addresses.
+//
+func GetGenesisBlock(ExRate uint64, addressCnt int, Factoids uint64 ) ISCBlock {
+    if genesisBlock != nil { return genesisBlock }
+    genesisBlock = NewSCBlock(1000000, uint32(0))  
     
     w := new(wallet.SCWallet)        
     t := w.CreateTransaction()

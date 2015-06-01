@@ -45,7 +45,7 @@ type ISCWallet interface {
     SubmitTransaction(simplecoin.ITransaction) error
 }
 
-var factoshisPerEC uint64 = 1000
+var factoshisPerEC uint64 = 100000
 
 var oneSCW SCWallet
 
