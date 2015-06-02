@@ -18,11 +18,11 @@ type MsgTx struct {
 	LockTime int64 // 5 bytes on the wire
 
 	//	FactoidOut []*TxFactoidOut
-	TxOut []*TxOut
-	ECOut []*TxEntryCreditOut
-	TxIn  []*TxIn
-	//	RCDreveal []*RCDreveal
-	//	TxSig []*TxSig  // TODO: RE-ENABLE
+	TxOut     []*TxOut
+	ECOut     []*TxEntryCreditOut
+	TxIn      []*TxIn
+	RCDreveal []*RCDreveal
+//	TxSig     []*TxSig  // TODO: RE-ENABLE
 }
 
 // type TxFactoidOut struct {
@@ -66,6 +66,6 @@ type RCDreveal struct {
 }
 
 type TxSig struct {
-	bitfield   uint64 // TODO: extend to beyond 64bits
-	signatures [64][]byte
+	bitfield   []byte
+	signatures [][]byte
 }
