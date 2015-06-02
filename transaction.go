@@ -152,14 +152,37 @@ func (t Transaction)TotalECs() uint64 {
 // discarded.
 //
 // Note that the coinbase transaction for any block is never technically
-// valid.  That validation must be done at the block level.
+// valid.  That validation must be done separately.
 //
+// Also note that we DO allow for transactions that do not have any outputs.
+// This provides for a provable "burn" of factoids, since all inputs would
+// go as "transaction fees" and those fees do not go to anyone.
 func (t Transaction)Validate() bool {
          
-    return t.TotalInputs() >= t.TotalOutputs()+t.TotalECs() && 
-       len(t.inputs) > 0 && 
-       t.TotalInputs() >= MINIMUM_AMOUNT 
-    
+    // Inputs must cover outputs
+    if t.TotalInputs() < t.TotalOutputs()+t.TotalECs() {return false} 
+    // Cannot have zero inputs.  This means you cannot use this function
+    // to validate coinbase transactions, because they cannot have any
+    // inputs.
+    if   len(t.inputs) == 0 {return false}
+    // Because of our fee structure, we may not enforce a minimum spend.
+    // However, we do check the constant anyway.
+    if t.TotalInputs() < MINIMUM_AMOUNT {return false}
+    // Every input must have an RCD block
+    if len(t.inputs) != len(t.rcds) { return false }
+    // Every input must match the address of an RCD (which is the hash
+    // of the RCD
+    for i,rcd := range t.rcds {
+        // Get the address specified by the RCD.
+        address, err := rcd.GetAddress()
+        // If there is anything wrong with the RCD, then the transaction isn't
+        // valid.
+        if err != nil {return false}
+        // If the Address (which is really a hash) isn't equal to the hash of
+        // the RCD, this transaction is bogus.
+        if !t.inputs[i].GetAddress().IsEqual(address) {return false}
+    }
+    return true
 }
 // Tests if the transaction is equal in all of its structures, and
 // in order of the structures.  Largely used to test and debug, but

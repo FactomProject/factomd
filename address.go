@@ -18,76 +18,18 @@ import (
 )
 
 type IAddress interface {
-	IBlock
-	Bytes() []byte
-	SetBytes([]byte)
-	SetHash(IHash)  // Really this could be a Hash or an Address
-	GetHash() IHash // Same here.
+	IHash
 }
 
 type Address struct {
-	IAddress
-	address IHash
+	Hash
 }
 
 var _ IAddress = (*Address)(nil)
 
-func (w Address)GetDBHash() IHash {
-    return Sha([]byte("Address"))
-}
-
-func (w1 Address)GetNewInstance() IBlock {
-    return new(Address)
-}
-
-func (t Address) IsEqual(addr IBlock) bool {
-	a, ok := addr.(IAddress)
-	if !ok || !a.GetHash().IsEqual(t.GetHash()) {
-		return false
-	}
-	return true
-}
-
-func (t Address) GetHash() IHash {
-	return t.address
-}
-
-func (cb *Address) NewBlock() IBlock {
-	blk := new(Address)
-	return blk
-}
-
-func (a *Address) SetBytes(b []byte) {
-	if a.address == nil {
-		a.address = Hash{}.NewBlock().(IHash)
-	}
-	a.address.SetBytes(b)
-}
-
-func (a Address) Bytes() []byte {
-	return a.address.Bytes()
-}
-
-func (a *Address) SetHash(h IHash) {
-	a.address = h
-}
-
-func (t *Address) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-    t.address = new(Hash)
-    data, err = t.address.UnmarshalBinaryData(data)
-    return data, err
-}
-
-func (a Address) MarshalBinary() ([]byte, error) {
-    
-    data, err := a.address.MarshalBinary()
-    
-    return data, err
-}
-
 func (a Address) MarshalText() (text []byte, err error) {
     var out bytes.Buffer
-    addr := hex.EncodeToString(a.address.Bytes())
+    addr := hex.EncodeToString(a.Bytes())
     out.WriteString("addr  ")
     out.WriteString(addr)
     out.WriteString("\n")
@@ -95,8 +37,5 @@ func (a Address) MarshalText() (text []byte, err error) {
 }
 
 func CreateAddress(hash IHash) IAddress {
-    a := new(Address)
-    a.address = new(Hash)
-    a.address.SetBytes(hash.Bytes())
-    return a
+    return hash
 }

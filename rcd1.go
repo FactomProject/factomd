@@ -37,12 +37,12 @@ func (w RCD_1)Clone() IRCD {
 }
 
 
-func (w RCD_1)GetAddress() (IHash, error){
+func (w RCD_1)GetAddress() (IAddress, error){
     data, err := w.MarshalBinary()
     if err != nil {
         return nil, fmt.Errorf("This should never happen.  If I have a RCD_1, it should hash.")
     }
-    return Sha(data), nil
+    return CreateAddress(Sha(data)), nil
 }
 
 func (w1 RCD_1)GetDBHash() IHash {

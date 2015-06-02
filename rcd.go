@@ -16,7 +16,7 @@ import (
 
 type IRCD interface {
 	IBlock
-	GetAddress()         (IHash, error)
+	GetAddress()         (IAddress, error)
     Clone()              IRCD
     NumberOfSignatures() int
 }

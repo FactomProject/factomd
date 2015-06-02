@@ -38,7 +38,7 @@ func (w RCD_2)Clone() IRCD {
     c.n = w.n
     c.n_addresses = make([]IAddress,len(w.n_addresses))
     for i,address := range w.n_addresses {
-        c.n_addresses[i] = CreateAddress(address.GetHash())
+        c.n_addresses[i] = CreateAddress(address)
     }
     return c
 }

@@ -42,7 +42,7 @@ func (d *BoltDB) Init(a ...interface{}) {
     bucketList := a[0].([][]byte)
     instances  := a[1].(map[[32]byte]simplecoin.IBlock)
     
-    tdb, err := bolt.Open("/tmp/bolt/my.db", 0600, nil)
+    tdb, err := bolt.Open("/tmp/bolt_my.db", 0600, nil)
     d.db = tdb
     
     if err != nil {

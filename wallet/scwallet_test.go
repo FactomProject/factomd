@@ -87,4 +87,6 @@ func Test_CreateTransaction_swcallet(test *testing.T) {
         test.Fail()
     }
     
+    txt, _ := t.MarshalText()
+    simplecoin.Prt(string(txt))
 }
