@@ -41,7 +41,7 @@ type TxLoc struct {
 // block message.  It is used to deliver block and transaction information in
 // response to a getdata message (MsgGetData) for a given block hash.
 type MsgBlock struct {
-	Header       FBlockHeader
+	Header       BlockHeader
 	Transactions []*MsgTx
 }
 
@@ -212,7 +212,7 @@ func (msg *MsgBlock) Serialize(w io.Writer) error {
 func (msg *MsgBlock) SerializeSize() int {
 	// Block header bytes + Serialized varint size for the number of
 	// transactions.
-	n := BlockHeaderLen + VarIntSerializeSize(uint64(len(msg.Transactions)))
+	n := blockHeaderLen + VarIntSerializeSize(uint64(len(msg.Transactions)))
 
 	for _, tx := range msg.Transactions {
 		n += tx.SerializeSize()
@@ -255,7 +255,7 @@ func (msg *MsgBlock) TxShas() ([]ShaHash, error) {
 
 // NewMsgBlock returns a new bitcoin block message that conforms to the
 // Message interface.  See MsgBlock for details.
-func NewMsgBlock(blockHeader *FBlockHeader) *MsgBlock {
+func NewMsgBlock(blockHeader *BlockHeader) *MsgBlock {
 	return &MsgBlock{
 		Header:       *blockHeader,
 		Transactions: make([]*MsgTx, 0, defaultTransactionAlloc),

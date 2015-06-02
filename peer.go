@@ -725,7 +725,6 @@ func (p *peer) PushRejectMsg(command string, code wire.RejectCode, reason string
 	<-doneChan
 }
 
-/*
 // handleMemPoolMsg is invoked when a peer receives a mempool bitcoin message.
 // It creates and sends an inventory message with the contents of the memory
 // pool up to the maximum inventory allowed per message.  When the peer has a
@@ -750,13 +749,13 @@ func (p *peer) handleMemPoolMsg(msg *wire.MsgMemPool) {
 		// Either add all transactions when there is no bloom filter,
 		// or only the transactions that match the filter when there is
 		// one.
-		if !p.filter.IsLoaded() || p.filter.MatchTxAndUpdate(txDesc.Tx) {
-			iv := wire.NewInvVect(wire.InvTypeTx, hash)
-			invMsg.AddInvVect(iv)
-			if i+1 >= wire.MaxInvPerMsg {
-				break
-			}
+		//		if !p.filter.IsLoaded() || p.filter.MatchTxAndUpdate(txDesc.Tx) {
+		iv := wire.NewInvVect(wire.InvTypeTx, hash)
+		invMsg.AddInvVect(iv)
+		if i+1 >= wire.MaxInvPerMsg {
+			break
 		}
+		//		}
 	}
 
 	// Send the inventory message if there is anything to send.
@@ -764,7 +763,6 @@ func (p *peer) handleMemPoolMsg(msg *wire.MsgMemPool) {
 		p.QueueMessage(invMsg, nil)
 	}
 }
-*/
 
 // handleTxMsg is invoked when a peer receives a tx bitcoin message.  It blocks
 // until the bitcoin transaction has been fully processed.  Unlock the block
@@ -1507,10 +1505,8 @@ out:
 			// implementions' alert messages, we will not relay
 			// theirs.
 
-			/*
-				case *wire.MsgMemPool:
-					p.handleMemPoolMsg(msg)
-			*/
+		case *wire.MsgMemPool:
+			p.handleMemPoolMsg(msg)
 
 		case *wire.MsgTx:
 			p.peer_HandleTxMsg(msg)

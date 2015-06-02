@@ -73,7 +73,7 @@ func TestMessage(t *testing.T) {
 	msgFilterClear := wire.NewMsgFilterClear()
 	msgFilterLoad := wire.NewMsgFilterLoad([]byte{0x01}, 10, 0, wire.BloomUpdateNone)
 	bh := wire.NewBlockHeader(&wire.ShaHash{}, &wire.ShaHash{}, &wire.Sha3Hash{})
-	msgMerkleBlock := wire.NewMsgMerkleBlock(bh)
+	//	msgMerkleBlock := wire.NewMsgMerkleBlock(bh)
 	msgReject := wire.NewMsgReject("block", wire.RejectDuplicate, "duplicate block")
 
 	tests := []struct {
@@ -88,8 +88,8 @@ func TestMessage(t *testing.T) {
 		{msgGetAddr, msgGetAddr, pver, wire.MainNet, 24},
 		{msgAddr, msgAddr, pver, wire.MainNet, 25},
 		{msgGetBlocks, msgGetBlocks, pver, wire.MainNet, 61},
-		{msgBlock, msgBlock, pver, wire.MainNet, 210},		
-        {msgInv, msgInv, pver, wire.MainNet, 25},
+		{msgBlock, msgBlock, pver, wire.MainNet, 210},
+		{msgInv, msgInv, pver, wire.MainNet, 25},
 		{msgGetData, msgGetData, pver, wire.MainNet, 25},
 		{msgNotFound, msgNotFound, pver, wire.MainNet, 25},
 		{msgTx, msgTx, pver, wire.MainNet, 34},
@@ -102,7 +102,7 @@ func TestMessage(t *testing.T) {
 		{msgFilterAdd, msgFilterAdd, pver, wire.MainNet, 26},
 		{msgFilterClear, msgFilterClear, pver, wire.MainNet, 24},
 		{msgFilterLoad, msgFilterLoad, pver, wire.MainNet, 35},
-		{msgMerkleBlock, msgMerkleBlock, pver, wire.MainNet, 126},
+		//		{msgMerkleBlock, msgMerkleBlock, pver, wire.MainNet, 126},
 		{msgReject, msgReject, pver, wire.MainNet, 79},
 	}
 
@@ -463,7 +463,7 @@ func TestLengthChecks(t *testing.T) {
 		wire.CmdEBlock,
 		wire.CmdCBlock,
 		wire.CmdGetDirBlocks,
-		wire.CmdMerkleBlock,
+		//		wire.CmdMerkleBlock,
 		wire.CmdMHashReveal,
 		wire.CmdRevealChain,
 		wire.CmdRevealEntry,

@@ -170,7 +170,7 @@ func (mp *txMemPool) myDescs() []*TxDesc {
 	descs := make([]*TxDesc, len(mp.orphans))
 	i := 0
 	for _, tx := range mp.orphans {
-		descs[i] = &TxDesc{tx, time.Now(), 0, 0, 0}
+		descs[i] = &TxDesc{tx, time.Now(), 0, 0}
 		//		fmt.Println("i= ", spew.Sdump(tx))
 		i++
 	}
@@ -406,7 +406,7 @@ func factom_NewBlockTemplate(mempool *txMemPool, payToAddress wire.RCDHash, glob
 
 	merkles := blockchain.BuildMerkleTreeStore(blockTxns)
 	var msgBlock wire.MsgBlock
-	msgBlock.Header = wire.FBlockHeader{
+	msgBlock.Header = wire.BlockHeader{
 		PrevBlock:  *prevHash,
 		MerkleRoot: *merkles[len(merkles)-1],
 		// PrevHash3:  <- Put the SHA3 here!

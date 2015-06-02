@@ -83,11 +83,11 @@ const (
 // TxDesc is a descriptor containing a transaction in the mempool and the
 // metadata we store about it.
 type TxDesc struct {
-	Tx               *btcutil.Tx // Transaction.
-	Added            time.Time   // Time when added to pool.
-	Height           int64       // Blockheight when added to pool.
-	Fee              int64       // Transaction fees.
-	startingPriority float64     // Priority when added to the pool.
+	Tx     *btcutil.Tx // Transaction.
+	Added  time.Time   // Time when added to pool.
+	Height int64       // Blockheight when added to pool.
+	Fee    int64       // Transaction fees.
+	//	startingPriority float64     // Priority when added to the pool.
 }
 
 // txMemPool is used as a source of transactions that need to be mined into
@@ -231,6 +231,8 @@ func checkPkScriptStandard(pkScript []byte, scriptClass txscript.ScriptClass) er
 // so small it costs more to process them than they are worth).
 func checkTransactionStandard(tx *btcutil.Tx, height int64) error {
 	msgTx := tx.MsgTx()
+
+	util.Trace("TODO: add more Factoid-relates checks here and see what was disabled...")
 
 	// The transaction must be a currently supported version.
 	if msgTx.Version > wire.TxVersion || msgTx.Version < 0 {
@@ -848,11 +850,11 @@ func calcInputValueAge(txDesc *TxDesc, txStore blockchain.TxStore, nextBlockHeig
 	return totalInputAge
 }
 
+/*
 // StartingPriority calculates the priority of this tx descriptor's underlying
 // transaction relative to when it was first added to the mempool.  The result
 // is lazily computed and then cached for subsequent function calls.
 func (txD *TxDesc) StartingPriority(txStore blockchain.TxStore) float64 {
-	/*
 		// Return our cached result.
 		if txD.startingPriority != float64(0) {
 			return txD.startingPriority
@@ -865,21 +867,16 @@ func (txD *TxDesc) StartingPriority(txStore blockchain.TxStore) float64 {
 		txD.startingPriority = float64(0)
 
 		return txD.startingPriority
-	*/
-	return 0
 }
 
 // CurrentPriority calculates the current priority of this tx descriptor's
 // underlying transaction relative to the next block height.
 func (txD *TxDesc) CurrentPriority(txStore blockchain.TxStore, nextBlockHeight int64) float64 {
-	/*
-		inputAge := calcInputValueAge(txD, txStore, nextBlockHeight)
-		txSize := txD.Tx.MsgTx().SerializeSize()
-		return calcPriority(txD.Tx, txSize, inputAge)
-	*/
-
-	return 0
+	inputAge := calcInputValueAge(txD, txStore, nextBlockHeight)
+	txSize := txD.Tx.MsgTx().SerializeSize()
+	return calcPriority(txD.Tx, txSize, inputAge)
 }
+*/
 
 // checkPoolDoubleSpend checks whether or not the passed transaction is
 // attempting to spend coins already spent by other transactions in the pool.

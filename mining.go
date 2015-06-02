@@ -27,10 +27,6 @@ const (
 	// transaction to be considered high priority.
 	minHighPriority = btcutil.SatoshiPerBitcoin * 144.0 / 250
 
-	// blockHeaderOverhead is the max number of bytes it takes to serialize
-	// a block header and max possible transaction count.
-	blockHeaderOverhead = wire.BlockHeaderLen + wire.MaxVarIntPayload
-
 	// coinbaseFlags is added to the coinbase script of a generated block
 	// and is used to monitor BIP16 support as well as blocks that are
 	// generated via btcd.
@@ -368,7 +364,6 @@ func UpdateBlockTime(msgBlock *wire.MsgBlock, bManager *blockManager) error {
 	}
 	msgBlock.Header.Timestamp = newTimestamp
 
-	/
 		// If running on a network that requires recalculating the difficulty,
 		// do so now.
 		if activeNetParams.ResetMinDifficulty {
@@ -378,19 +373,15 @@ func UpdateBlockTime(msgBlock *wire.MsgBlock, bManager *blockManager) error {
 			}
 			msgBlock.Header.Bits = difficulty
 		}
-	/
 
 	return nil
 }
-**************************************/
 
 // UpdateExtraNonce updates the extra nonce in the coinbase script of the passed
 // block by regenerating the coinbase script with the passed value and block
 // height.  It also recalculates and updates the new merkle root that results
 // from changing the coinbase script.
 func UpdateExtraNonce(msgBlock *wire.MsgBlock, blockHeight int64, extraNonce uint64) error {
-	util.Trace()
-	/*
 		coinbaseScript, err := standardCoinbaseScript(blockHeight, extraNonce)
 		if err != nil {
 			return err
@@ -402,7 +393,6 @@ func UpdateExtraNonce(msgBlock *wire.MsgBlock, blockHeight int64, extraNonce uin
 				blockchain.MaxCoinbaseScriptLen)
 		}
 		msgBlock.Transactions[0].TxIn[0].SignatureScript = coinbaseScript
-	*/
 
 	// TODO(davec): A btcutil.Block should use saved in the state to avoid
 	// recalculating all of the other transaction hashes.
@@ -414,3 +404,4 @@ func UpdateExtraNonce(msgBlock *wire.MsgBlock, blockHeight int64, extraNonce uin
 	msgBlock.Header.MerkleRoot = *merkles[len(merkles)-1]
 	return nil
 }
+**************************************/
