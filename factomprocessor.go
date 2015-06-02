@@ -56,11 +56,9 @@ var (
 	commitChainMap  = make(map[string]*common.CommitChain, 0)
 	commitEntryMap  = make(map[string]*common.CommitEntry, 0)
 	eCreditMap      map[*[32]byte]int32       // eCreditMap with public key string([32]byte) as key, credit balance as value
-	prePaidEntryMap map[string]int32          // Paid but unrevealed entries string(Etnry Hash) as key, Number of payments as value
 
 	chainIDMapBackup      map[string]*common.EChain //previous block bakcup - ChainIDMap with chainID string([32]byte) as key
 	eCreditMapBackup      map[*[32]byte]int32       // backup from previous block - eCreditMap with public key string([32]byte) as key, credit balance as value
-	prePaidEntryMapBackup map[string]int32          // backup from previous block - Paid but unrevealed entries string(Etnry Hash) as key, Number of payments as value
 
 	//Diretory Block meta data map
 	//dbInfoMap map[string]*common.DBInfo // dbInfoMap with dbHash string([32]byte) as key
@@ -704,75 +702,6 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 
 	return nil	
 }
-// Process a reveal-entry message and put it in the mem pool and the process
-// list putting the message in the orphan pool if the message is out of order
-//func processRevealEntry(msg *wire.MsgRevealEntry) error {
-//	// Calculate the hash
-//	entryBinary, err := msg.Entry.MarshalBinary()
-//	if err != nil {
-//		return err
-//	}
-//	entryHash := msg.Entry.Hash()
-//	shaHash, _ := wire.NewShaHash(entryHash.Bytes)
-//
-//	chain := chainIDMap[msg.Entry.ChainID.String()]
-//	if chain == nil {
-//		fMemPool.addOrphanMsg(msg, shaHash)
-//		return fmt.Errorf("This chain is not supported: %s",
-//			msg.Entry.ChainID.String())
-//	}
-//
-//	// Calculate the required credits
-//	credits := int32(binary.Size(entryBinary)/1024 + 1)
-//
-//	// Delete the entry in the prePaidEntryMap in memory
-//	prepayment, ok := prePaidEntryMap[entryHash.String()]
-//	if !ok || prepayment < credits {
-//		fMemPool.addOrphanMsg(msg, shaHash)
-//		return fmt.Errorf("Credit needs to paid first before an entry is revealed: %s", entryHash.String())
-//	}
-//
-//	delete(prePaidEntryMap, entryHash.String())
-//
-//	// Add the msg to the Mem pool
-//	fMemPool.addMsg(msg, shaHash)
-//
-//	// Add to MyPL if Server Node
-//	if nodeMode == SERVER_NODE {
-//		err := plMgr.AddMyProcessListItem(msg, shaHash, wire.ACK_REVEAL_ENTRY)
-//		if err != nil {
-//			return err
-//		}
-//	}
-//
-//	return nil
-//}
-
-// Process a commint-entry message and put it in the mem pool and the process
-// list Put the message in the orphan pool if the message is out of order
-//func processCommitEntry(msg *wire.MsgCommitEntry) error {
-//	shaHash, _ := msg.Sha()
-//
-//	// Update the credit balance in memory
-//	creditBalance, _ := eCreditMap[msg.CommitEntry.ECPubKey]
-//	if creditBalance < int32(msg.CommitEntry.Credits) {
-//		fMemPool.addOrphanMsg(msg, &shaHash)
-//		return fmt.Errorf("Not enough credit for public key: %x\nBalance: %d\n",
-//			msg.CommitEntry.ECPubKey, creditBalance)
-//	}
-//	eCreditMap[msg.CommitEntry.ECPubKey] = creditBalance - int32(msg.CommitEntry.Credits)
-//	// Update the prePaidEntryMap in memory
-//	prePaidEntryMap[msg.CommitEntry.EntryHash.String()] += int32(msg.CommitEntry.Credits)
-//
-//	// Add to MyPL if Server Node
-//	if nodeMode == SERVER_NODE {
-//		err := plMgr.AddMyProcessListItem(msg, &shaHash, wire.ACK_COMMIT_ENTRY)
-//		if err != nil {
-//			return err
-//		}
-//	}
-//	return nil
-//}
 
 func processCommitEntry(msg *wire.MsgCommitEntry) error {
 	c := msg.CommitEntry
@@ -836,47 +765,6 @@ func processCommitChain(msg *wire.MsgCommitChain) error {
 	return nil
 }
 
-//func processCommitChain(msg *wire.MsgCommitChain) error {
-//	shaHash, _ := msg.Sha()
-//
-//	// Check if the chain id already exists
-////	_, existing := chainIDMap[msg.CommitChain.ChainID.String()]
-////	if !existing {
-////		if msg.ChainID.IsSameAs(dchain.ChainID) || msg.CommitChain.ChainID.IsSameAs(cchain.ChainID) {
-////			existing = true
-////		}
-////	}
-////	if existing {
-////		return errors.New("Already existing chain id:" + msg.CommitChain.ChainID.String())
-////	}
-//
-//	// Precalculate the key and value pair for prePaidEntryMap
-//	key := getPrePaidChainKey(msg.CommitChain.EntryHash,
-//		msg.CommitChain.ChainIDHash)
-//
-//	// Update the credit balance in memory
-//	creditBalance, _ := eCreditMap[msg.CommitChain.ECPubKey]
-//	if creditBalance < int32(msg.CommitChain.Credits) {
-//		return fmt.Errorf("Insufficient credits for public key: %x Balance: %d", msg.CommitChain.ECPubKey, creditBalance)
-//	}
-//	eCreditMap[msg.CommitChain.ECPubKey] = creditBalance - int32(msg.CommitChain.Credits)
-//
-//	// Update the prePaidEntryMap in memory
-//	payments, _ := prePaidEntryMap[key]
-//	prePaidEntryMap[key] = payments + int32(msg.CommitChain.Credits)
-//
-//	// Add to MyPL if Server Node
-//	if nodeMode == SERVER_NODE {
-//		err := plMgr.AddMyProcessListItem(msg, &shaHash, wire.ACK_COMMIT_CHAIN)
-//		if err != nil {
-//			return err
-//		}
-//
-//	}
-//
-//	return nil
-//}
-
 func processBuyEntryCredit(pubKey *[32]byte, credits int32, factoidTxHash *common.Hash) error {
 
 	// Update the credit balance in memory
@@ -885,55 +773,6 @@ func processBuyEntryCredit(pubKey *[32]byte, credits int32, factoidTxHash *commo
 
 	return nil
 }
-
-//func processRevealChain(msg *wire.MsgRevealChain) error {
-//	shaHash, _ := msg.Sha()
-//
-//	// Check if the chain id already exists
-//	_, existing := chainIDMap[msg.FirstEntry.ChainID.String()]
-//	if !existing {
-//		// the chain id should not be the same as the special chains
-//		if dchain.ChainID.IsSameAs(msg.FirstEntry.ChainID) || ecchain.ChainID.IsSameAs(msg.FirstEntry.ChainID) ||
-//			achain.ChainID.IsSameAs(msg.FirstEntry.ChainID) || wire.FChainID.IsSameAs(msg.FirstEntry.ChainID) {
-//			existing = true
-//		}
-//	}
-//	if existing {
-//		return errors.New("This chain already exists:" + msg.FirstEntry.ChainID.String())
-//	}
-//
-//	// Calculate the required credits
-//	binaryChain, _ := msg.FirstEntry.MarshalBinary()
-//	credits := int32(binary.Size(binaryChain)/1000+1) + wire.CreditsPerChain
-//
-//	// Remove the entry for prePaidEntryMap
-//	binaryEntry, _ := msg.FirstEntry.MarshalBinary()
-//	firstEntryHash := common.Sha(binaryEntry)
-//	key := getPrePaidChainKey(firstEntryHash, msg.FirstEntry.ChainID)
-//	prepayment, ok := prePaidEntryMap[key]
-//	if ok && prepayment >= credits {
-//		delete(prePaidEntryMap, key)
-//	} else {
-//		fMemPool.addOrphanMsg(msg, &shaHash)
-//		return errors.New("Enough credits need to paid first before creating a new chain:" + msg.FirstEntry.ChainID.String())
-//	}
-//
-//	// Add the new chain in the chainIDMap
-//	newChain := new(common.EChain)
-//	newChain.ChainID = msg.FirstEntry.ChainID
-//	newChain.FirstEntry = msg.FirstEntry
-//	chainIDMap[msg.FirstEntry.ChainID.String()] = newChain
-//
-//	// Add to MyPL if Server Node
-//	if nodeMode == SERVER_NODE {
-//		err := plMgr.AddMyProcessListItem(msg, &shaHash, wire.ACK_REVEAL_CHAIN)
-//		if err != nil {
-//			return err
-//		}
-//	}
-//
-//	return nil
-//}
 
 // Process Orphan pool before the end of 10 min
 func processFromOrphanPool() error {
@@ -946,14 +785,6 @@ func processFromOrphanPool() error {
 				return err
 			}
 			delete(fMemPool.orphans, k)
-
-//		case wire.CmdRevealChain:
-//			msgRevealChain, _ := msg.(*wire.MsgRevealChain)
-//			err := processRevealChain(msgRevealChain)
-//			if err != nil {
-//				return err
-//			}
-//			delete(fMemPool.orphans, k)
 
 		case wire.CmdCommitEntry:
 			msgCommitEntry, _ := msg.(*wire.MsgCommitEntry)
@@ -1732,7 +1563,6 @@ func initDChain() {
 func initECChain() {
 
 	eCreditMap = make(map[*[32]byte]int32)
-	prePaidEntryMap = make(map[string]int32)
 
 	//Initialize the Entry Credit Chain ID
 	ecchain = common.NewECChain()
@@ -1767,8 +1597,6 @@ func initECChain() {
 	// ONly for debugging
 	//printCChain()
 	//printCreditMap()
-	//printPaidEntryMap()
-
 }
 
 func initAChain() {
@@ -1879,12 +1707,5 @@ func printCreditMap() {
 	fmt.Println("eCreditMap:")
 	for key := range eCreditMap {
 		fmt.Println("Key: %x Value %d\n", key, eCreditMap[key])
-	}
-}
-
-func printPaidEntryMap() {
-	fmt.Println("prePaidEntryMap:")
-	for key := range prePaidEntryMap {
-		fmt.Printf("Key: %x Value %d\n", key, prePaidEntryMap[key])
 	}
 }
