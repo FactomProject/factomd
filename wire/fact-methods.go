@@ -724,7 +724,7 @@ func NewMsgTx() *MsgTx {
 		ECOut:     make([]*TxEntryCreditOut, 0, defaultTxInOutAlloc),
 		TxIn:      make([]*TxIn, 0, defaultTxInOutAlloc),
 		RCDreveal: make([]*RCDreveal, 0, defaultTxInOutAlloc),
-		//		TxSig:    make([]*TxSig, 0, defaultTxInOutAlloc), // TODO: RE-ENABLE
+		TxSig:    make([]*TxSig, 0, defaultTxInOutAlloc), // TODO: RE-ENABLE
 	}
 }
 

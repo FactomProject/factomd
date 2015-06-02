@@ -22,7 +22,7 @@ type MsgTx struct {
 	ECOut     []*TxEntryCreditOut
 	TxIn      []*TxIn
 	RCDreveal []*RCDreveal
-//	TxSig     []*TxSig  // TODO: RE-ENABLE
+	TxSig     []*TxSig  // TODO: RE-ENABLE
 }
 
 // type TxFactoidOut struct {

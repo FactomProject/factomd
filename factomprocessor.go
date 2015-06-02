@@ -524,10 +524,21 @@ func processCBlock(msg *wire.MsgECBlock) error {
 	util.Trace()
 
 	//Need to validate against Dchain??
+	
+	// check if the block already exists
+	h, _ := common.CreateHash(msg.ECBlock)	
+	cblk, _ := db.FetchECBlockByHash(h)	
+	if cblk != nil {
+		return nil
+	}
 
 	db.ProcessECBlockBatch(msg.ECBlock)
+	
+	initializeECreditMap(msg.ECBlock)
 
+	// for debugging??
 	fmt.Printf("PROCESSOR: MsgCBlock=%s\n", spew.Sdump(msg.ECBlock))
+	printCreditMap()
 	
 	exportECChain(ecchain)
 
