@@ -22,9 +22,11 @@ type IAddress interface {
 }
 
 type Address struct {
-	Hash
-}
-
+	Hash       // Since Hash implements IHash, and IAddress is just a
+}              // alais for IHash, then I don't have to (nor can I) make
+               // Address implement IAddress... Weird, but that's the way it is.
+               
+               
 var _ IAddress = (*Address)(nil)
 
 func (a Address) MarshalText() (text []byte, err error) {

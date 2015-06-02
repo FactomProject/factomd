@@ -8,6 +8,7 @@
 package factomwire
 
 import (
+    "fmt"
     "bytes"
     "encoding/binary"
     sc "github.com/FactomProject/simplecoin"
@@ -32,6 +33,31 @@ type FactomState struct {
     database db.ISCDatabase
 }
 
+type fsbalance struct {
+    sc.IBlock
+    number uint64
+}
+
+func (fsbalance)GetDBHash() sc.IHash {
+    return sc.Sha([]byte("fsbalance"))
+}
+
+func (f *fsbalance) UnmarshalBinaryData(data []byte) ([]byte, error) {
+    num, data := binary.BigEndian.Uint64(data), data[8:]
+    f.number = num
+    return data, nil
+}
+        
+func (f fsbalance) MarshalBinary() ([]byte, error) {    
+    var out bytes.Buffer
+    binary.Write(&out, binary.BigEndian, uint64(f.number))
+    return out.Bytes(), nil
+}
+
+/*******************************
+ * FactomState
+ *******************************/
+    
 func(fs *FactomState) SetDB(database db.ISCDatabase){
     fs.database = database
 }
@@ -41,19 +67,18 @@ func(fs *FactomState) GetBalance(address sc.IAddress) uint64 {
     balance := uint64(0)
     b  := fs.database.GetRaw([]byte("factomAddress.balances"),address.Bytes())
     if b != nil  {
-        balance, data := binary.BigEndian.Uint64(b)
+        balance = b.(*fsbalance).number
     }
     return balance
 }
 
 // Update balance throws an error if your update will drive the balance negative.
 func(fs *FactomState) UpdateBalance(address sc.IAddress, amount int64) error {
-    nbalance += int64(fs.GetBlance(address))+amount
+    nbalance := int64(fs.GetBalance(address))+amount
     if nbalance < 0 {return fmt.Errorf("New balance cannot be negative")}
-    balance = uint64(nbalance)
-    var out bytes.Buffer
-    binary.Write(&out, binary.BigEndian, uint64(balance))
-    fs.database.PutRaw([]byte("factomAddress.balances"),address.Bytes(),out.Bytes())
+    balance := uint64(nbalance)
+    fs.database.PutRaw([]byte("factomAddress.balances"),address.Bytes(),&fsbalance{number: balance})
+    return nil
 }    
     
     

@@ -40,6 +40,7 @@ func (a OutECAddress) MarshalText() (text []byte, err error) {
     var out bytes.Buffer
     out.WriteString("ec: ")
     a.MarshalText2(&out)
+    out.WriteString("\n")
     return out.Bytes(), nil
 }
 /******************************

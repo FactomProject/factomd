@@ -24,12 +24,11 @@ import (
 // the interface more usable by developers.
 type ISCWallet interface {
     database.ISCDatabase
-    generateKey() (public []byte,private []byte, err error)
     GenerateAddress(name []byte, m int, n int) (simplecoin.IHash, error)
     
     GetAddressBalance(addr simplecoin.IHash) uint64
     GetAddressDetailsAddr(addr []byte) IWalletEntry
-    GetAddressList() (names [][]byte, addresses []simplecoin.Address)
+    GetAddressList() (names [][]byte, addresses []simplecoin.IHash)
     GetAddressListByName(name []byte) (names[][]byte)
     
     /** Transaction calls **/
@@ -163,6 +162,7 @@ func (w *SCWallet)  CreateTransaction() simplecoin.ITransaction {
     return new(simplecoin.Transaction)
 }
 
+// We returned a 
 func (w *SCWallet) AddInput(trans simplecoin.ITransaction, hash simplecoin.IHash, amount uint64) error {
      
      we := w.db.GetRaw([]byte("wallet.address.hash"),hash.Bytes()).(*WalletEntry)

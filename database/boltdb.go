@@ -23,26 +23,38 @@ import (
 // and unmarshal IBlocks for storage in the database.  And since the IBlocks
 // can provide the hash, we don't need two maps.  Just the Hash to the
 // IBlock.
+//
+// Lastly it needs a filename with a full path.  If none is specified, it will
+// use "/tmp/bolt_my.db".  Not the best idea to let this code default.
+//
 type BoltDB struct {
 	SCDatabase
     
     db          *bolt.DB                        // Pointer to the bolt db
     instances   map[[32]byte]simplecoin.IBlock  // Maps a hash to an instance of an IBlock
+    filename    string                          // location to write the db
 }
 
 var _ ISCDatabase = (*BoltDB)(nil)
 // We have to make accomadation for many Init functions.  But what we really
 // want here is:
 //
-//      Init(bucketList [][]byte, instances map[[32]byte]IBlock)
+//      Init(bucketList [][]byte, instances map[[32]byte]IBlock, filename string)
 //
 func (d *BoltDB) Init(a ...interface{}) {
     simplecoin.Prtln("NEED TO CONFIGURE DB")
     
+    
+    
     bucketList := a[0].([][]byte)
     instances  := a[1].(map[[32]byte]simplecoin.IBlock)
+    if(len(a)<3) {
+        d.filename = "/tmp/bolt_my.db"
+    }else{
+        d.filename = a[2].(string)   
+    }
     
-    tdb, err := bolt.Open("/tmp/bolt_my.db", 0600, nil)
+    tdb, err := bolt.Open(d.filename, 0600, nil)
     d.db = tdb
     
     if err != nil {
@@ -81,7 +93,10 @@ func (d *BoltDB) GetRaw(bucket []byte, key []byte) (value simplecoin.IBlock) {
     }
     
     r := instance.GetNewInstance()
-    r.UnmarshalBinaryData(v)
+    _,err := r.UnmarshalBinaryData(v)
+    if err != nil {
+        panic("This should not happen.  IBlock failed to unmarshal.")
+    }
     
     return r
 }

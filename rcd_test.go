@@ -32,3 +32,4 @@ func Test_Auth2_Equals(test *testing.T) {
 		test.Fail()
 	}
 }
+

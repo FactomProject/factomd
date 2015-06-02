@@ -29,8 +29,7 @@ type ISCBlock interface {
 	SetExchRate(uint64)
 	GetExchRate() uint64
 	GetUTXOCommit() sc.IHash
-	SetUTXOCommit([]byte) 
-	
+	SetUTXOCommit([]byte) 	
 }
 
 // FBlockHeader defines information about a block and is used in the bitcoin
@@ -50,7 +49,6 @@ type SCBlock struct {
 	// Transaction count
 	// body size
 	transactions []sc.ITransaction // List of transactions in this block
-
 }
 
 var _ ISCBlock = (*SCBlock)(nil)

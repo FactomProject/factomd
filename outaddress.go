@@ -37,6 +37,7 @@ func (a OutAddress) MarshalText() (text []byte, err error) {
     var out bytes.Buffer
     out.WriteString("output: ")
     a.MarshalText2(&out)
+    out.WriteString("\n")
     return out.Bytes(), nil
 }
 /******************************
