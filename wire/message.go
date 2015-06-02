@@ -46,6 +46,8 @@ const (
 	CmdFilterClear = "filterclear"
 	CmdFilterLoad  = "filterload"
 	CmdReject      = "reject"
+	// TODO remove CmdTestCred before production
+	CmdTestCredit  = "testcredit"
 
 	// Factom additions:
 
