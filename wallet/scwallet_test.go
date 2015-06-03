@@ -88,3 +88,43 @@ func Test_CreateTransaction_swcallet(test *testing.T) {
     }
     
 }
+
+func Test_SignTransaction_swcallet(test *testing.T) { 
+    w := new(SCWallet)          // make me a wallet
+    h0,err := w.GenerateAddress([]byte("test 0"),1,1)
+    if err != nil { test.Fail() }
+    h1,err := w.GenerateAddress([]byte("test 1"),1,1)
+    if err != nil { test.Fail() }
+    h2,err := w.GenerateAddress([]byte("test 2"),1,1)
+    if err != nil { test.Fail() }
+    h3,err := w.GenerateAddress([]byte("test 3"),1,1)
+    if err != nil { test.Fail() }
+    h4,err := w.GenerateAddress([]byte("test 4"),1,1)
+    if err != nil { test.Fail() }
+    
+    t := w.CreateTransaction()
+    
+    w.AddInput(t,h1,1000000)
+    w.AddInput(t,h2,1000000)
+    w.AddOutput(t,h3,1000000)
+    w.AddOutput(t,h4,1000000)
+    w.AddInput(t,h0,0)
+    fee, err := t.CalculateFee(1000)
+    w.UpdateInput(t,2,h0,fee)
+    signed,err := w.SignInputs(t)
+    
+    if !signed || err != nil {
+        simplecoin.Prtln("Signed Fail: ",signed, err)
+        test.Fail()
+    }
+    
+    txt,err := t.MarshalText()
+    sc.Prtln(string(txt), "\n ", fee )
+    
+    valid := w.ValidateSignatures(t)
+    if !valid {
+        simplecoin.Prtln(valid)
+        test.Fail()
+    }
+    
+}

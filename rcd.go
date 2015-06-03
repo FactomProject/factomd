@@ -16,9 +16,10 @@ import (
 
 type IRCD interface {
 	IBlock
-	GetAddress()         (IAddress, error)
-    Clone()              IRCD
-    NumberOfSignatures() int
+	GetAddress()                (IAddress, error)
+    Clone()                     IRCD
+    NumberOfSignatures()        int
+    CheckSig(trans ITransaction, sigblk ISignatureBlock) bool
 }
 
 /***********************
@@ -48,7 +49,6 @@ func NewRCD_1(publicKey []byte) (IRCD) {
 		panic("Bad publickey.  This should not happen")
 	}
 	a := new(RCD_1)
-	a.publicKey = make([]byte, len(publicKey), len(publicKey))
 	copy(a.publicKey[:], publicKey)
 	return a
 }
@@ -77,3 +77,4 @@ func CreateRCD(data []byte) IRCD {
             panic("Bad Data encountered by CreateRCD.  Should never happen")
     }
 }
+

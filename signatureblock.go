@@ -22,6 +22,7 @@ type ISignatureBlock interface {
 	IBlock
 	GetSignatures() ([]ISignature)
 	AddSignature(sig ISignature)
+    GetSignature(int) ISignature
 }
 
 type SignatureBlock struct{
@@ -30,7 +31,6 @@ type SignatureBlock struct{
 }
 
 var _ ISignatureBlock = (*SignatureBlock)(nil)
-
 
 func (s SignatureBlock) IsEqual(signatureBlock IBlock) bool {
     
@@ -48,9 +48,16 @@ func (s SignatureBlock) IsEqual(signatureBlock IBlock) bool {
     return true
 }
 
-func (s SignatureBlock) AddSignature(sig ISignature) {
+func (s *SignatureBlock) AddSignature(sig ISignature) {
     s.signatures = append(s.signatures, sig)
 }
+
+func (s SignatureBlock) GetSignature(index int) ISignature {
+    if len(s.signatures)<=index {return nil}
+    return s.signatures[index]
+}
+
+
 
 func (s SignatureBlock)GetDBHash() IHash {
     return Sha([]byte("SignatureBlock"))
@@ -109,6 +116,7 @@ func (s *SignatureBlock) UnmarshalBinaryData(data []byte) (newData []byte, err e
         s.signatures[i] = new(Signature)
         data,err = s.signatures[i].UnmarshalBinaryData(data)
         if err != nil {
+            fmt.Println("error")
             return nil, fmt.Errorf("Failure to unmarshal Signature")
         }
     }

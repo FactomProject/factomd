@@ -19,7 +19,9 @@ import (
 type ITransAddress interface {
 	IBlock
 	GetAmount() uint64
+	SetAmount(uint64)
 	GetAddress() IAddress
+	SetAddress(IAddress)
 	MarshalText2(*bytes.Buffer) 
 }
 
@@ -79,10 +81,21 @@ func (ta TransAddress) GetAmount() uint64 {
 	return ta.amount
 }
 
+// Accessor.  Get the amount with this address.
+func (ta *TransAddress) SetAmount(amount uint64) {
+    ta.amount = amount
+}
+
 // Accessor.  Get the raw address.  Could be an actual address,
 // or a hash of an authorization block.  See authorization.go
 func (ta TransAddress) GetAddress() IAddress {
 	return ta.address
+}
+
+// Accessor.  Get the raw address.  Could be an actual address,
+// or a hash of an authorization block.  See authorization.go
+func (ta *TransAddress) SetAddress(address IAddress) {
+    ta.address = address
 }
 
 // Make this into somewhat readable text.

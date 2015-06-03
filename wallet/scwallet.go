@@ -15,6 +15,7 @@ import (
     "math/rand"
     "github.com/FactomProject/simplecoin"
     "github.com/FactomProject/simplecoin/database"
+    "time"
 )
 
 // The wallet interface uses bytes.  This is because we want to 
@@ -33,10 +34,12 @@ type ISCWallet interface {
     
     /** Transaction calls **/
     CreateTransaction() simplecoin.ITransaction
+    UpdateInput(simplecoin.ITransaction, int, simplecoin.IHash, uint64) error
     AddInput(simplecoin.ITransaction, simplecoin.IHash, uint64) error
     AddOutput(simplecoin.ITransaction, simplecoin.IHash, uint64) error
     AddECOutput(simplecoin.ITransaction, simplecoin.IHash, uint64) error
     Validate(simplecoin.ITransaction) (bool,error)
+    ValidateSignatures(simplecoin.ITransaction) bool
     SignInputs(simplecoin.ITransaction) (bool, error)   // True if all inputs are signed
     
     GetECRate() uint64
@@ -162,7 +165,6 @@ func (w *SCWallet)  CreateTransaction() simplecoin.ITransaction {
     return new(simplecoin.Transaction)
 }
 
-// We returned a 
 func (w *SCWallet) AddInput(trans simplecoin.ITransaction, hash simplecoin.IHash, amount uint64) error {
      
      we := w.db.GetRaw([]byte("wallet.address.hash"),hash.Bytes()).(*WalletEntry)
@@ -177,7 +179,25 @@ func (w *SCWallet) AddInput(trans simplecoin.ITransaction, hash simplecoin.IHash
      }
      return nil
 }     
-     
+
+func (w *SCWallet) UpdateInput(trans simplecoin.ITransaction, 
+                               index int, 
+                               hash simplecoin.IHash, 
+                               amount uint64) error {
+    
+    we := w.db.GetRaw([]byte("wallet.address.hash"),hash.Bytes()).(*WalletEntry)
+    if we == nil { 
+        return fmt.Errorf("Unknown address")
+    }
+    adr, err := we.GetAddress()
+    in,err := trans.GetInput(index)
+    if err != nil {return err}
+    in.SetAddress(adr)
+    in.SetAmount(amount)
+ 
+    return nil
+}     
+
 func (w *SCWallet) AddOutput(trans simplecoin.ITransaction, hash simplecoin.IHash, amount uint64) error {
     we := w.db.GetRaw([]byte("wallet.address.hash"),hash.Bytes()).(*WalletEntry)
     if we == nil { 
@@ -209,4 +229,8 @@ func (w *SCWallet) Validate(trans simplecoin.ITransaction) (bool,error){
     return valid, nil
 }    
  
+ func (w *SCWallet) ValidateSignatures(trans simplecoin.ITransaction) bool{
+     valid := trans.ValidateSignatures()
+     return valid
+ } 
  

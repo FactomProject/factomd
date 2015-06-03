@@ -8,7 +8,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	//    "github.com/agl/ed25519"
+	"github.com/agl/ed25519"
 )
 
 /**************************
@@ -24,15 +24,22 @@ type IRCD_1 interface {
 // this transaction.
 type RCD_1 struct {
 	IRCD_1
-	publicKey []byte
+	publicKey [ADDRESS_LENGTH]byte
 }
 
 var _ IRCD = (*RCD_1)(nil)
 
+func (w RCD_1) CheckSig(trans ITransaction, sigblk ISignatureBlock) bool {
+    data,err := trans.MarshalBinarySig()
+    if err != nil {return false}
+    sig := sigblk.GetSignature(0).GetSignature(0)
+    if !ed25519.Verify(&w.publicKey,data,sig) {return false}
+    return true
+}
+
 func (w RCD_1)Clone() IRCD {
     c := new (RCD_1)
-    c.publicKey = make([]byte,len(w.publicKey))
-    copy(c.publicKey,w.publicKey)
+    copy(c.publicKey[:],w.publicKey[:])
     return c
 }
 
@@ -54,7 +61,7 @@ func (w1 RCD_1)GetNewInstance() IBlock {
 }
 
 func (a RCD_1) GetPublicKey() []byte {
-	return a.publicKey
+	return a.publicKey[:]
 }
 
 func (w1 RCD_1)NumberOfSignatures() int {
@@ -64,7 +71,7 @@ func (w1 RCD_1)NumberOfSignatures() int {
 func (a1 RCD_1) IsEqual(addr IBlock) bool {
 	a2, ok := addr.(*RCD_1)
 	if !ok || // Not the right kind of IBlock
-		bytes.Compare(a1.publicKey, a2.publicKey) != 0 { // Not the right sigature
+		a1.publicKey != a2.publicKey { // Not the right sigature
 		return false
 	}
 
@@ -86,8 +93,7 @@ func (t *RCD_1) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 		return nil, fmt.Errorf("Data source too short to unmarshal an address: %d", len(data))
 	}
 
-	t.publicKey = make([]byte, ADDRESS_LENGTH, ADDRESS_LENGTH)
-	copy(t.publicKey, data[:ADDRESS_LENGTH])
+	copy(t.publicKey[:], data[:ADDRESS_LENGTH])
     data = data[ADDRESS_LENGTH:]
     
 	return data, nil
@@ -95,12 +101,8 @@ func (t *RCD_1) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 
 func (a RCD_1) MarshalBinary() ([]byte, error) {
 	var out bytes.Buffer
-	if len(a.publicKey) != ADDRESS_LENGTH {
-        Prtln("Length of Public Key: ", len(a.publicKey))
-		return nil, fmt.Errorf("Bad length in rcd1.  Should not happen")
-	}
 	out.WriteByte(byte(1)) // The First Authorization method
-	out.Write(a.publicKey)
+	out.Write(a.publicKey[:])
     
 	return out.Bytes(), nil
 }

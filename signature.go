@@ -24,7 +24,7 @@ type ISignature interface {
 	GetIndex() int       // Used with multisig to know where to apply the signature
 	SetIndex(int)        // Set the index
     SetSignature(i int, sig []byte) error // Set or update the signature
-    GetSignature(i int) ([SIGNATURE_LENGTH]byte,error)
+    GetSignature(i int) (*[SIGNATURE_LENGTH]byte)
 }
 
 // The default signature doesn't care about indexing.  We will extend this
@@ -63,8 +63,9 @@ func (s *Signature) SetSignature(i int, sig []byte) error {
     return nil
 }
 
-func (s *Signature) GetSignature(i int) ([SIGNATURE_LENGTH]byte, error) {
-    return s.signature,nil
+func (s *Signature) GetSignature(i int) (*[SIGNATURE_LENGTH]byte) {
+    if i != 0 {return nil}
+    return &s.signature
 }
 
 

@@ -18,11 +18,13 @@ type ITransaction interface {
     AddOutput(output IAddress, amount uint64 )
     AddECOutput(ecoutput IAddress, amount uint64 )
     AddRCD(rcd IRCD)
-    GetInput(i int) IInAddress
-	GetOutput(i int) IOutAddress
-	GetOutEC(i int) IOutECAddress
-	GetRCD(i int) IRCD
-	GetSignatureBlock(i int) ISignatureBlock
+
+    GetInput(i int) (IInAddress, error)
+	GetOutput(int) (IOutAddress, error)
+    GetOutEC(int) (IOutECAddress, error)
+    GetRCD(int) (IRCD, error)
+
+    GetSignatureBlock(i int) ISignatureBlock
 	SetSignatureBlock(i int, signatureblk ISignatureBlock)
 	GetInputs() []IInAddress
 	GetOutputs() []IOutAddress
@@ -33,7 +35,7 @@ type ITransaction interface {
 	TotalOutputs() uint64
 	TotalECs() uint64
     Validate() bool
-    
+    ValidateSignatures() bool
 	CalculateFee(factoshisPerEC uint64) (uint64,error)
 }
 
@@ -184,6 +186,29 @@ func (t Transaction)Validate() bool {
     }
     return true
 }
+
+// Check the signatures as well as validate everything else.  If anything is
+// invalid, then this call returns false.
+//
+// We may change this in the future to put the signatures in control of the RCD,
+// but for now they are not.
+//
+func (t Transaction)ValidateSignatures() bool {
+    // If this transaction isn't validly formed, then we don't
+    // care about signatures.
+    if !t.Validate() { return false }
+    // If there isn't a signature block for every rcd, then we also
+    // don't care about signatures.  Or if there are too many.  Don't
+    // care about the transaction in that case either.
+    if len(t.sigBlocks) != len(t.rcds) { return false }
+    for i,rcd := range t.rcds {
+        if !rcd.CheckSig(&t, t.sigBlocks[i]) {
+            return false
+        }
+    }
+    return true
+}
+
 // Tests if the transaction is equal in all of its structures, and
 // in order of the structures.  Largely used to test and debug, but
 // generally useful.
@@ -200,24 +225,44 @@ func (t1 Transaction) IsEqual(trans IBlock) bool {
 	}
 
 	for i, input := range t1.GetInputs() {
-		if !input.IsEqual(t2.GetInput(i)) {
-			return false
-		}
-	}
-	for i, output := range t1.GetOutputs() {
-		if !output.IsEqual(t2.GetOutput(i)) {
-			return false
-		}
-	}
-	for i, outEC := range t1.GetOutECs() {
-		if !outEC.IsEqual(t2.GetOutEC(i)) {
-			return false
-		}
-	}
-	for i, a := range t1.rcds {
-        if !a.IsEqual(t2.GetRCD(i)) {
+        adr,err := t2.GetInput(i)
+		if err != nil {
             return false
         }
+        if !input.IsEqual(adr) {
+			return false
+		}
+		return true
+	}
+	for i, output := range t1.GetOutputs() {
+        adr,err := t2.GetOutput(i)
+        if err != nil {
+            return false
+        }
+        if !output.IsEqual(adr) {
+            return false
+        }
+        return true
+    }
+	for i, outEC := range t1.GetOutECs() {
+        adr,err := t2.GetOutEC(i)
+        if err != nil {
+            return false
+        }
+        if !outEC.IsEqual(adr) {
+            return false
+        }
+        return true
+    }
+	for i, a := range t1.rcds {
+        adr,err := t2.GetInput(i)
+        if err != nil {
+            return false
+        }
+        if !a.IsEqual(adr) {
+            return false
+        }
+        return true
     }
     for i, s := range t1.sigBlocks {
         if !s.IsEqual(t2.GetSignatureBlock(i)) {
@@ -247,24 +292,24 @@ func (t *Transaction) GetSignatureBlocks() []ISignatureBlock {
     return t.sigBlocks 
 }
 
-func (t *Transaction) GetInput(i int) IInAddress {
-	if i > len(t.inputs) { return nil }
-	return t.inputs[i]
+func (t *Transaction) GetInput(i int) (IInAddress, error) {
+	if i > len(t.inputs) { return nil, fmt.Errorf("Index out of Range") }
+	return t.inputs[i], nil
 }
 
-func (t *Transaction) GetOutput(i int) IOutAddress {
-	if i > len(t.outputs) { return nil }
-	return t.outputs[i]
+func (t *Transaction) GetOutput(i int) (IOutAddress, error) {
+    if i > len(t.outputs) { return nil, fmt.Errorf("Index out of Range") }
+	return t.outputs[i], nil
 }
 
-func (t *Transaction) GetOutEC(i int) IOutECAddress {
-	if i > len(t.outECs) { return nil }
-	return t.outECs[i]
+func (t *Transaction) GetOutEC(i int) (IOutECAddress, error) {
+    if i > len(t.outECs) { return nil, fmt.Errorf("Index out of Range") } 
+	return t.outECs[i], nil
 }
 
-func (t *Transaction) GetRCD(i int) IRCD {
-    if i > len(t.rcds) { return nil }
-    return t.rcds[i]
+func (t *Transaction) GetRCD(i int) (IRCD, error) {
+    if i > len(t.rcds) { return nil, fmt.Errorf("Index out of Range") } 
+    return t.rcds[i], nil
 }
 
 
