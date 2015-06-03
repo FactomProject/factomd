@@ -9,7 +9,6 @@ package btcd
 import (
 	"errors"
 	"fmt"
-	"math"
 	"os"
 
 	"github.com/FactomProject/btcd/chaincfg"
@@ -135,13 +134,6 @@ func Start_btcd() {
 	// Use all processor cores.
 	//runtime.GOMAXPROCS(runtime.NumCPU())
 
-	//For testing only: ??------------------
-	coinbaseOutpoint := wire.NewOutPoint(&wire.ShaHash{}, math.MaxUint32)
-	coinbaseTx := wire.NewMsgTx()
-	coinbaseTx.Version = 2
-	coinbaseTx.AddTxIn(wire.NewTxIn(coinbaseOutpoint, nil))
-	factomIngressTx_hook(coinbaseTx)
-	// ----------------------------------
 
 	FactomSetupOverrides()
 
