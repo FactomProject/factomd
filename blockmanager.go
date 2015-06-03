@@ -1638,7 +1638,7 @@ func loadBlockDB() (database.Db, error) {
 			panic(errors.New(fmt.Sprintf("Factoid genesis block hash ERROR, during insertion")))
 		}
 
-		factomIngressBlock_hook(gensha)
+		//		factomIngressBlock_hook(gensha)
 	}
 
 	btcdLog.Infof("Block database loaded with block height %d", height)

@@ -115,10 +115,10 @@ func generateFactoidBlock(h uint32) {
 	//	m.workerWg.Done()
 	minrLog.Infof("Generate blocks worker done; height= %d", curHeight)
 
-	blockSha, _ := block.Sha()
+	//	blockSha, _ := block.Sha()
 
 	if successful {
-		factomIngressBlock_hook(blockSha)
+		//		factomIngressBlock_hook(blockSha)
 	}
 
 	util.Trace()
