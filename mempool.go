@@ -18,6 +18,8 @@ import (
 	//	"github.com/FactomProject/btcd/txscript"
 	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/btcutil"
+
+	"github.com/FactomProject/FactomCode/util"
 )
 
 const (
@@ -81,11 +83,11 @@ const (
 // TxDesc is a descriptor containing a transaction in the mempool and the
 // metadata we store about it.
 type TxDesc struct {
-	Tx               *btcutil.Tx // Transaction.
-	Added            time.Time   // Time when added to pool.
-	Height           int64       // Blockheight when added to pool.
-	Fee              int64       // Transaction fees.
-	startingPriority float64     // Priority when added to the pool.
+	Tx     *btcutil.Tx // Transaction.
+	Added  time.Time   // Time when added to pool.
+	Height int64       // Blockheight when added to pool.
+	Fee    int64       // Transaction fees.
+	//	startingPriority float64     // Priority when added to the pool.
 }
 
 // txMemPool is used as a source of transactions that need to be mined into
@@ -230,10 +232,12 @@ func checkPkScriptStandard(pkScript []byte, scriptClass txscript.ScriptClass) er
 func checkTransactionStandard(tx *btcutil.Tx, height int64) error {
 	msgTx := tx.MsgTx()
 
+	util.Trace("TODO: add more Factoid-relates checks here and see what was disabled...")
+
 	// The transaction must be a currently supported version.
-	if msgTx.Version > wire.TxVersion || msgTx.Version < 1 {
+	if msgTx.Version > wire.TxVersion || msgTx.Version < 0 {
 		str := fmt.Sprintf("transaction version %d is not in the "+
-			"valid range of %d-%d", msgTx.Version, 1,
+			"valid range of %d-%d", msgTx.Version, 0,
 			wire.TxVersion)
 		return txRuleError(wire.RejectNonstandard, str)
 	}
@@ -846,11 +850,11 @@ func calcInputValueAge(txDesc *TxDesc, txStore blockchain.TxStore, nextBlockHeig
 	return totalInputAge
 }
 
+/*
 // StartingPriority calculates the priority of this tx descriptor's underlying
 // transaction relative to when it was first added to the mempool.  The result
 // is lazily computed and then cached for subsequent function calls.
 func (txD *TxDesc) StartingPriority(txStore blockchain.TxStore) float64 {
-	/*
 		// Return our cached result.
 		if txD.startingPriority != float64(0) {
 			return txD.startingPriority
@@ -863,21 +867,16 @@ func (txD *TxDesc) StartingPriority(txStore blockchain.TxStore) float64 {
 		txD.startingPriority = float64(0)
 
 		return txD.startingPriority
-	*/
-	return 0
 }
 
 // CurrentPriority calculates the current priority of this tx descriptor's
 // underlying transaction relative to the next block height.
 func (txD *TxDesc) CurrentPriority(txStore blockchain.TxStore, nextBlockHeight int64) float64 {
-	/*
-		inputAge := calcInputValueAge(txD, txStore, nextBlockHeight)
-		txSize := txD.Tx.MsgTx().SerializeSize()
-		return calcPriority(txD.Tx, txSize, inputAge)
-	*/
-
-	return 0
+	inputAge := calcInputValueAge(txD, txStore, nextBlockHeight)
+	txSize := txD.Tx.MsgTx().SerializeSize()
+	return calcPriority(txD.Tx, txSize, inputAge)
 }
+*/
 
 // checkPoolDoubleSpend checks whether or not the passed transaction is
 // attempting to spend coins already spent by other transactions in the pool.
@@ -969,11 +968,14 @@ func (mp *txMemPool) FilterTransactionsByAddress(addr btcutil.Address) ([]*btcut
 func (mp *txMemPool) maybeAcceptTransaction(tx *btcutil.Tx, isNew, rateLimit bool) ([]*wire.ShaHash, error) {
 	txHash := tx.Sha()
 
+	util.Trace(txHash.String())
+
 	// Don't accept the transaction if it already exists in the pool.  This
 	// applies to orphan transactions as well.  This check is intended to
 	// be a quick check to weed out duplicates.
 	if mp.haveTransaction(txHash) {
 		str := fmt.Sprintf("already have transaction %v", txHash)
+		util.Trace("ERROR: Already have!!! ")
 		return nil, txRuleError(wire.RejectDuplicate, str)
 	}
 
@@ -983,6 +985,7 @@ func (mp *txMemPool) maybeAcceptTransaction(tx *btcutil.Tx, isNew, rateLimit boo
 	err := blockchain.CheckTransactionSanity(tx)
 	if err != nil {
 		if cerr, ok := err.(blockchain.RuleError); ok {
+			util.Trace("ERROR: Sanity problem !!!")
 			return nil, chainRuleError(cerr)
 		}
 		return nil, err
@@ -992,6 +995,7 @@ func (mp *txMemPool) maybeAcceptTransaction(tx *btcutil.Tx, isNew, rateLimit boo
 	if blockchain.IsCoinBase(tx) {
 		str := fmt.Sprintf("transaction %v is an individual coinbase",
 			txHash)
+		util.Trace("ERROR: standalone coinbase !!!")
 		return nil, txRuleError(wire.RejectInvalid, str)
 	}
 
@@ -1183,6 +1187,8 @@ func (mp *txMemPool) maybeAcceptTransaction(tx *btcutil.Tx, isNew, rateLimit boo
 			"limit %v", oldTotal, mp.pennyTotal,
 			cfg.FreeTxRelayLimit*10*1000)
 	}
+
+	util.Trace("NOT IMPLEMENTED: NEEDED -- validate signatures !!!")
 
 	/*
 		// Verify crypto signatures for each input and reject the transaction if

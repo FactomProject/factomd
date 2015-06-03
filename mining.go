@@ -27,10 +27,6 @@ const (
 	// transaction to be considered high priority.
 	minHighPriority = btcutil.SatoshiPerBitcoin * 144.0 / 250
 
-	// blockHeaderOverhead is the max number of bytes it takes to serialize
-	// a block header and max possible transaction count.
-	blockHeaderOverhead = wire.BlockHeaderLen + wire.MaxVarIntPayload
-
 	// coinbaseFlags is added to the coinbase script of a generated block
 	// and is used to monitor BIP16 support as well as blocks that are
 	// generated via btcd.
@@ -272,46 +268,6 @@ func createCoinbaseTx(nonce uint32, addr wire.RCDHash) (*btcutil.Tx, error) {
 	return btcutil.NewTx(tx), nil
 }
 
-/*
-// calcPriority returns a transaction priority given a transaction and the sum
-// of each of its input values multiplied by their age (# of confirmations).
-// Thus, the final formula for the priority is:
-// sum(inputValue * inputAge) / adjustedTxSize
-func calcPriority(tx *btcutil.Tx, serializedTxSize int, inputValueAge float64) float64 {
-	// In order to encourage spending multiple old unspent transaction
-	// outputs thereby reducing the total set, don't count the constant
-	// overhead for each input as well as enough bytes of the signature
-	// script to cover a pay-to-script-hash redemption with a compressed
-	// pubkey.  This makes additional inputs free by boosting the priority
-	// of the transaction accordingly.  No more incentive is given to avoid
-	// encouraging gaming future transactions through the use of junk
-	// outputs.  This is the same logic used in the reference
-	// implementation.
-	//
-	// The constant overhead for a txin is 41 bytes since the previous
-	// outpoint is 36 bytes + 4 bytes for the sequence + 1 byte the
-	// signature script length.
-	//
-	// A compressed pubkey pay-to-script-hash redemption with a maximum len
-	// signature is of the form:
-	// [OP_DATA_73 <73-byte sig> + OP_DATA_35 + {OP_DATA_33
-	// <33 byte compresed pubkey> + OP_CHECKSIG}]
-	//
-	// Thus 1 + 73 + 1 + 1 + 33 + 1 = 110
-	overhead := 0
-	for _, txIn := range tx.MsgTx().TxIn {
-		// Max inputs + size can't possibly overflow here.
-		overhead += 41 + minInt(110, len(txIn.SignatureScript))
-	}
-
-	if overhead >= serializedTxSize {
-		return 0.0
-	}
-
-	return inputValueAge / float64(serializedTxSize-overhead)
-}
-*/
-
 // spendTransaction updates the passed transaction store by marking the inputs
 // to the passed transaction as spent.  It also adds the passed transaction to
 // the store at the provided height.
@@ -408,7 +364,6 @@ func UpdateBlockTime(msgBlock *wire.MsgBlock, bManager *blockManager) error {
 	}
 	msgBlock.Header.Timestamp = newTimestamp
 
-	/
 		// If running on a network that requires recalculating the difficulty,
 		// do so now.
 		if activeNetParams.ResetMinDifficulty {
@@ -418,19 +373,15 @@ func UpdateBlockTime(msgBlock *wire.MsgBlock, bManager *blockManager) error {
 			}
 			msgBlock.Header.Bits = difficulty
 		}
-	/
 
 	return nil
 }
-**************************************/
 
 // UpdateExtraNonce updates the extra nonce in the coinbase script of the passed
 // block by regenerating the coinbase script with the passed value and block
 // height.  It also recalculates and updates the new merkle root that results
 // from changing the coinbase script.
 func UpdateExtraNonce(msgBlock *wire.MsgBlock, blockHeight int64, extraNonce uint64) error {
-	util.Trace()
-	/*
 		coinbaseScript, err := standardCoinbaseScript(blockHeight, extraNonce)
 		if err != nil {
 			return err
@@ -442,7 +393,6 @@ func UpdateExtraNonce(msgBlock *wire.MsgBlock, blockHeight int64, extraNonce uin
 				blockchain.MaxCoinbaseScriptLen)
 		}
 		msgBlock.Transactions[0].TxIn[0].SignatureScript = coinbaseScript
-	*/
 
 	// TODO(davec): A btcutil.Block should use saved in the state to avoid
 	// recalculating all of the other transaction hashes.
@@ -454,3 +404,4 @@ func UpdateExtraNonce(msgBlock *wire.MsgBlock, blockHeight int64, extraNonce uin
 	msgBlock.Header.MerkleRoot = *merkles[len(merkles)-1]
 	return nil
 }
+**************************************/

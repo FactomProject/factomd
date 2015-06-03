@@ -79,13 +79,16 @@ func generateFactoidBlock(h uint32) {
 	copy(payto[:], randRCD)
 
 	// 03264ef3197ff0b843e9f83362341e8cc135913bcbbdbabd62d049acaeb2e55944
-	//	sha, err := wire.NewShaHashFromStr("264ef3197ff0b843e9f83362341e8cc135913bcbbdbabd62d049acaeb2e55944")
-	sha, err := wire.NewShaHashFromStr("4459e5b2aeac49d062bdbabdcb3b9135c18c1e346233f8e943b8f07f19f34e26")
+	//	sha, err := wire.NewShaHashFromStr("7eb6759dcab701e09cb9a10400857203268af15c154c617aa7652d1fc2129cee")
+	//	sha, err := wire.NewShaHashFromStr("ee9c12c21f2d65a77a614c155cf18a260372850004a1b99ce001b7ca9d75b67e")
+	sha, err := wire.NewShaHashFromStr("509342d930cbcf00408bc046762dc5158d20f2e370ad275d3125bcf1b57f9c79")
 
 	if nil == err {
 		util.Trace("mywallet sha=" + spew.Sdump(sha))
 		copy(payto[:], sha[:])
 		util.Trace("mywallet payto=" + spew.Sdump(payto))
+	} else {
+		util.Trace(fmt.Sprintf("PAYTO ERROR: %v", err))
 	}
 
 	template, err := factom_NewBlockTemplate(local_Server.txMemPool, payto, h)
@@ -167,7 +170,7 @@ func (mp *txMemPool) myDescs() []*TxDesc {
 	descs := make([]*TxDesc, len(mp.orphans))
 	i := 0
 	for _, tx := range mp.orphans {
-		descs[i] = &TxDesc{tx, time.Now(), 0, 0, 0}
+		descs[i] = &TxDesc{tx, time.Now(), 0, 0}
 		//		fmt.Println("i= ", spew.Sdump(tx))
 		i++
 	}
@@ -403,7 +406,7 @@ func factom_NewBlockTemplate(mempool *txMemPool, payToAddress wire.RCDHash, glob
 
 	merkles := blockchain.BuildMerkleTreeStore(blockTxns)
 	var msgBlock wire.MsgBlock
-	msgBlock.Header = wire.FBlockHeader{
+	msgBlock.Header = wire.BlockHeader{
 		PrevBlock:  *prevHash,
 		MerkleRoot: *merkles[len(merkles)-1],
 		// PrevHash3:  <- Put the SHA3 here!

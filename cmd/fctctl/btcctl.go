@@ -11,8 +11,8 @@ import (
 	"strconv"
 
 	"github.com/FactomProject/btcd/btcjson"
+	"github.com/FactomProject/btcd/btcjson/btcws"
 	"github.com/FactomProject/btcutil"
-	"github.com/FactomProject/btcws"
 	flags "github.com/FactomProject/go-flags"
 	"github.com/davecgh/go-spew/spew"
 )

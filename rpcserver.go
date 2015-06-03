@@ -33,7 +33,8 @@ import (
 	//	"github.com/FactomProject/btcd/txscript"
 	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/btcutil"
-	"github.com/FactomProject/btcws"
+	//	"github.com/FactomProject/btcws"
+	"github.com/FactomProject/btcd/btcjson/btcws"
 	"github.com/FactomProject/fastsha256"
 	"github.com/FactomProject/websocket"
 
@@ -51,16 +52,6 @@ const (
 	// uint256Size is the number of bytes needed to represent an unsigned
 	// 256-bit integer.
 	uint256Size = 32
-
-	// getworkDataLen is the length of the data field of the getwork RPC.
-	// It consists of the serialized block header plus the internal sha256
-	// padding.  The internal sha256 padding consists of a single 1 bit
-	// followed by enough zeros to pad the message out to 56 bytes followed
-	// by length of the message in bits encoded as a big-endian uint64
-	// (8 bytes).  Thus, the resulting length is a multiple of the sha256
-	// block size (64 bytes).
-	getworkDataLen = (1 + ((wire.BlockHeaderLen + 8) /
-		fastsha256.BlockSize)) * fastsha256.BlockSize
 
 	// hash1Len is the length of the hash1 field of the getwork RPC.  It
 	// consists of a zero hash plus the internal sha256 padding.  See
@@ -792,7 +783,7 @@ func handleCreateRawTransaction(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan 
 		util.Trace(encodedAddr)
 
 		// Decode the provided address.
-		addr, err := btcutil.DecodeAddress(encodedAddr)
+		addr, err := btcutil.DecodeAddress(encodedAddr, activeNetParams.Params)
 
 		util.Trace(fmt.Sprintf(spew.Sdump(addr)))
 
@@ -808,14 +799,15 @@ func handleCreateRawTransaction(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan 
 		// the network encoded with the address matches the network the
 		// server is currently on.
 		switch addr.(type) {
-		/*
-			case *btcutil.AddressPubKeyHash:
-			case *btcutil.AddressScriptHash:
-		*/
-		case *btcutil.AddressPubKey:
-			util.Trace("TODO: NOT IMPLEMENTED fully")
-			panic(errors.New("MUST VERIFY: this case statement is new"))
+		case *btcutil.AddressPubKeyHash:
+			/*
+				case *btcutil.AddressScriptHash:
+				case *btcutil.AddressPubKey:
+			*/
 		default:
+			util.Trace("NO GOOD !")
+			panic(errors.New("MUST VERIFY: this case statement"))
+
 			return nil, btcjson.ErrInvalidAddressOrKey
 		}
 		if !addr.IsForNet(s.server.chainParams) {
@@ -1418,17 +1410,17 @@ func (state *gbtWorkState) NotifyMempoolTx(lastUpdated time.Time) {
 		state.Lock()
 		defer state.Unlock()
 
-		// No need to notify anything if no block templates have been generated
-		// yet.
-		if state.prevHash == nil || state.lastGenerated.IsZero() {
-			return
-		}
+			// No need to notify anything if no block templates have been generated
+			// yet.
+			if state.prevHash == nil || state.lastGenerated.IsZero() {
+				return
+			}
 
-		if time.Now().After(state.lastGenerated.Add(time.Second *
-			gbtRegenerateSeconds)) {
+			if time.Now().After(state.lastGenerated.Add(time.Second *
+				gbtRegenerateSeconds)) {
 
-			state.notifyLongPollers(state.prevHash, lastUpdated)
-		}
+				state.notifyLongPollers(state.prevHash, lastUpdated)
+			}
 	}()
 }
 
@@ -2151,20 +2143,17 @@ func handleGetHashesPerSec(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struc
 // that are not related to wallet functionality.
 func handleGetInfo(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{}) (interface{}, error) {
 	// We require the current block height and sha.
-	//	sha, height, err := s.server.db.NewestSha()
-	_, height, err := s.server.db.NewestSha()
+	sha, height, err := s.server.db.NewestSha()
 	if err != nil {
 		rpcsLog.Errorf("Error getting sha: %v", err)
 		return nil, btcjson.ErrBlockCount
 	}
 
-	/*
-		blkHeader, err := s.server.db.FetchBlockHeaderBySha(sha)
-		if err != nil {
-			rpcsLog.Errorf("Error getting block: %v", err)
-			return nil, btcjson.ErrDifficulty
-		}
-	*/
+	blkHeader, err := s.server.db.FetchBlockHeaderBySha(sha)
+	if err != nil {
+		rpcsLog.Errorf("Error getting block: %v:%v", err, blkHeader)
+		return nil, btcjson.ErrDifficulty
+	}
 
 	ret := &btcjson.InfoResult{
 		Version:         int32(1000000*appMajor + 10000*appMinor + 100*appPatch),
@@ -2360,17 +2349,16 @@ func handleGetRawMempool(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{
 	if c.Verbose {
 		result := make(map[string]*btcjson.GetRawMempoolResult, len(descs))
 
-		/*
-			_, newestHeight, err := s.server.db.NewestSha()
-			if err != nil {
-				rpcsLog.Errorf("Cannot get newest sha: %v", err)
-				return nil, btcjson.ErrBlockNotFound
-			}
-		*/
+		_, newestHeight, err := s.server.db.NewestSha()
+		if err != nil {
+			rpcsLog.Errorf("Cannot get newest sha: %v (%d)", err, newestHeight)
+			return nil, btcjson.ErrBlockNotFound
+		}
 
 		mp.RLock()
 		defer mp.RUnlock()
 		for _, desc := range descs {
+
 			// Calculate the starting and current priority from the
 			// the tx's inputs.  Use zeros if one or more of the
 			// input transactions can't be found for some reason.
@@ -2528,110 +2516,106 @@ func reverseUint32Array(b []byte) {
 
 // handleGetTxOut handles gettxout commands.
 func handleGetTxOut(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{}) (interface{}, error) {
-	util.Trace("NOT IMPLEMENTED !!!!!!!!!!!!!!!!!!!!!!!!!")
-	return nil, errors.New("Factoid TX changed!!!")
+	c := cmd.(*btcjson.GetTxOutCmd)
 
-	/*
-		c := cmd.(*btcjson.GetTxOutCmd)
+	// Convert the provided transaction hash hex to a ShaHash.
+	txSha, err := wire.NewShaHashFromStr(c.Txid)
+	if err != nil {
+		return nil, btcjson.Error{
+			Code: btcjson.ErrInvalidParameter.Code,
+			Message: fmt.Sprintf("argument must be hexadecimal "+
+				"string (not %q)", c.Txid),
+		}
+	}
 
-		// Convert the provided transaction hash hex to a ShaHash.
-		txSha, err := wire.NewShaHashFromStr(c.Txid)
+	// If requested and the tx is available in the mempool try to fetch it from
+	// there, otherwise attempt to fetch from the block database.
+	var mtx *wire.MsgTx
+	var bestBlockSha string
+	var confirmations int64
+	var dbSpentInfo []bool
+	if c.IncludeMempool && s.server.txMemPool.HaveTransaction(txSha) {
+		tx, err := s.server.txMemPool.FetchTransaction(txSha)
 		if err != nil {
-			return nil, btcjson.Error{
-				Code: btcjson.ErrInvalidParameter.Code,
-				Message: fmt.Sprintf("argument must be hexadecimal "+
-					"string (not %q)", c.Txid),
-			}
+			rpcsLog.Errorf("Error fetching tx: %v", err)
+			return nil, btcjson.ErrNoTxInfo
+		}
+		mtx = tx.MsgTx()
+		confirmations = 0
+		bestBlockSha = ""
+	} else {
+		txList, err := s.server.db.FetchTxBySha(txSha)
+		if err != nil || len(txList) == 0 {
+			return nil, btcjson.ErrNoTxInfo
 		}
 
-		// If requested and the tx is available in the mempool try to fetch it from
-		// there, otherwise attempt to fetch from the block database.
-		var mtx *wire.MsgTx
-		var bestBlockSha string
-		var confirmations int64
-		var dbSpentInfo []bool
-		if c.IncludeMempool && s.server.txMemPool.HaveTransaction(txSha) {
-			tx, err := s.server.txMemPool.FetchTransaction(txSha)
-			if err != nil {
-				rpcsLog.Errorf("Error fetching tx: %v", err)
-				return nil, btcjson.ErrNoTxInfo
-			}
-			mtx = tx.MsgTx()
-			confirmations = 0
-			bestBlockSha = ""
-		} else {
-			txList, err := s.server.db.FetchTxBySha(txSha)
-			if err != nil || len(txList) == 0 {
-				return nil, btcjson.ErrNoTxInfo
-			}
+		lastTx := txList[len(txList)-1]
+		mtx = lastTx.Tx
+		blksha := lastTx.BlkSha
+		txHeight := lastTx.Height
+		dbSpentInfo = lastTx.TxSpent
 
-			lastTx := txList[len(txList)-1]
-			mtx = lastTx.Tx
-			blksha := lastTx.BlkSha
-			txHeight := lastTx.Height
-			dbSpentInfo = lastTx.TxSpent
-
-			_, bestHeight, err := s.server.db.NewestSha()
-			if err != nil {
-				rpcsLog.Errorf("Cannot get newest sha: %v", err)
-				return nil, btcjson.ErrBlockNotFound
-			}
-
-			confirmations = 1 + bestHeight - txHeight
-			bestBlockSha = blksha.String()
+		_, bestHeight, err := s.server.db.NewestSha()
+		if err != nil {
+			rpcsLog.Errorf("Cannot get newest sha: %v", err)
+			return nil, btcjson.ErrBlockNotFound
 		}
 
-		if c.Output < 0 || c.Output > len(mtx.TxOut)-1 {
-			return nil, btcjson.ErrInvalidTxVout
-		}
+		confirmations = 1 + bestHeight - txHeight
+		bestBlockSha = blksha.String()
+	}
 
-		txOut := mtx.TxOut[c.Output]
-		if txOut == nil {
-			rpcsLog.Errorf("Output index: %d, for txid: %s does not exist.", c.Output, c.Txid)
-			return nil, btcjson.ErrInternal
-		}
+	if c.Output < 0 || c.Output > len(mtx.TxOut)-1 {
+		return nil, btcjson.ErrInvalidTxVout
+	}
 
-		// To match the behavior of the reference client, this handler returns
-		// nil (JSON null) if the transaction output is spent by another
-		// transaction already in the database.  Unspent transaction outputs
-		// from transactions in mempool, as well as mined transactions that are
-		// spent by a mempool transaction, are not affected by this.
-		if dbSpentInfo != nil && dbSpentInfo[c.Output] {
-			return nil, nil
-		}
+	txOut := mtx.TxOut[c.Output]
+	if txOut == nil {
+		rpcsLog.Errorf("Output index: %d, for txid: %s does not exist.", c.Output, c.Txid)
+		return nil, btcjson.ErrInternal
+	}
 
-		// Disassemble script into single line printable format.
-		// The disassembled string will contain [error] inline if the script
-		// doesn't fully parse, so ignore the error here.
-		script := txOut.PkScript
-		disbuf, _ := txscript.DisasmString(script)
+	// To match the behavior of the reference client, this handler returns
+	// nil (JSON null) if the transaction output is spent by another
+	// transaction already in the database.  Unspent transaction outputs
+	// from transactions in mempool, as well as mined transactions that are
+	// spent by a mempool transaction, are not affected by this.
+	if dbSpentInfo != nil && dbSpentInfo[c.Output] {
+		return nil, nil
+	}
 
-		// Get further info about the script.
-		// Ignore the error here since an error means the script couldn't parse
-		// and there is no additional information about it anyways.
-		scriptClass, addrs, reqSigs, _ := txscript.ExtractPkScriptAddrs(script,
-			s.server.chainParams)
-		addresses := make([]string, len(addrs))
-		for i, addr := range addrs {
-			addresses[i] = addr.EncodeAddress()
-		}
+	// Disassemble script into single line printable format.
+	// The disassembled string will contain [error] inline if the script
+	// doesn't fully parse, so ignore the error here.
+	//	script := txOut.PkScript
+	script := txOut.RCDHash[:]
+	//	disbuf, _ := txscript.DisasmString(script)
+	disbuf := hex.EncodeToString(script)
 
-		txOutReply := &btcjson.GetTxOutResult{
-			BestBlock:     bestBlockSha,
-			Confirmations: confirmations,
-			Value:         btcutil.Amount(txOut.Value).ToUnit(btcutil.AmountBTC),
-			Version:       mtx.Version,
-			ScriptPubKey: btcjson.ScriptPubKeyResult{
-				Asm:       disbuf,
-				Hex:       hex.EncodeToString(script),
-				ReqSigs:   int32(reqSigs),
-				Type:      scriptClass.String(),
-				Addresses: addresses,
-			},
-			Coinbase: blockchain.IsCoinBase(btcutil.NewTx(mtx)),
-		}
-		return txOutReply, nil
-	*/
+	// Get further info about the script.
+	// Ignore the error here since an error means the script couldn't parse
+	// and there is no additional information about it anyways.
+	addrs, reqSigs, _ := ExtractPkScriptAddrs(script, s.server.chainParams)
+
+	addresses := make([]string, len(addrs))
+	for i, addr := range addrs {
+		addresses[i] = addr.EncodeAddress()
+	}
+
+	txOutReply := &btcjson.GetTxOutResult{
+		BestBlock:     bestBlockSha,
+		Confirmations: confirmations,
+		Value:         btcutil.Amount(txOut.Value).ToUnit(btcutil.AmountBTC),
+		Version:       mtx.Version,
+		DestAddr: btcjson.DestAddrResult{
+			Asm:       disbuf,
+			Hex:       hex.EncodeToString(script),
+			ReqSigs:   int32(reqSigs),
+			Addresses: addresses,
+		},
+		Coinbase: blockchain.IsCoinBase(btcutil.NewTx(mtx)),
+	}
+	return txOutReply, nil
 }
 
 /*
@@ -3058,7 +3042,7 @@ func handleSearchRawTransactions(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan
 	c := cmd.(*btcjson.SearchRawTransactionsCmd)
 
 	// Attempt to decode the supplied address.
-	addr, err := btcutil.DecodeAddress(c.Address)
+	addr, err := btcutil.DecodeAddress(c.Address, s.server.chainParams)
 	if err != nil {
 		return nil, btcjson.Error{
 			Code: btcjson.ErrInvalidAddressOrKey.Code,
@@ -3345,7 +3329,7 @@ func handleValidateAddress(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struc
 	c := cmd.(*btcjson.ValidateAddressCmd)
 
 	result := btcjson.ValidateAddressResult{}
-	addr, err := btcutil.DecodeAddress(c.Address)
+	addr, err := btcutil.DecodeAddress(c.Address, activeNetParams.Params)
 	if err != nil {
 		// Return the default value (false) for IsValid.
 		return result, nil
@@ -3374,26 +3358,26 @@ func handleVerifyMessage(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{
 
 	c := cmd.(*btcjson.VerifyMessageCmd)
 
-	/*
-		// Decode the provided address.
-		addr, err := btcutil.DecodeAddress(c.Address, activeNetParams.Params)
-		if err != nil {
-			return nil, btcjson.Error{
-				Code: btcjson.ErrInvalidAddressOrKey.Code,
-				Message: fmt.Sprintf("%s: %v",
-					btcjson.ErrInvalidAddressOrKey.Message, err),
-			}
+	// Decode the provided address.
+	addr, err := btcutil.DecodeAddress(c.Address, activeNetParams.Params)
+	if err != nil {
+		return nil, btcjson.Error{
+			Code: btcjson.ErrInvalidAddressOrKey.Code,
+			Message: fmt.Sprintf("%s: %v %v",
+				btcjson.ErrInvalidAddressOrKey.Message, err, addr),
 		}
-	*/
-
-	// Only P2PKH addresses are valid for signing.
-	//	if _, ok := addr.(*btcutil.AddressPubKeyHash); !ok {
-	// TODO: must revisit this logic
-	return nil, btcjson.Error{
-		Code:    btcjson.ErrType.Code,
-		Message: "Address is not a pay-to-pubkey-hash address",
 	}
-	//	}
+
+	/*
+		// Only P2PKH addresses are valid for signing.
+		//	if _, ok := addr.(*btcutil.AddressPubKeyHash); !ok {
+		// TODO: must revisit this logic
+		return nil, btcjson.Error{
+			Code:    btcjson.ErrType.Code,
+			Message: "Address is not a pay-to-pubkey-hash address",
+		}
+		//	}
+	*/
 
 	// Decode base64 signature.
 	sig, err := base64.StdEncoding.DecodeString(c.Signature)

@@ -1623,7 +1623,7 @@ func loadBlockDB() (database.Db, error) {
 		_, err := db.InsertBlock(genesis)
 		if err != nil {
 			db.Close()
-			util.Trace("insert genesis failed")
+			util.Trace(fmt.Sprintf("insert genesis failed: %v", err))
 			return nil, err
 		}
 		btcdLog.Infof("Inserted genesis block %v",

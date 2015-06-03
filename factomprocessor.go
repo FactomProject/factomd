@@ -167,7 +167,7 @@ func initProcess() {
 	// init Entry Credit Chain
 	initECChain()
 	fmt.Println("Loaded", ecchain.NextBlockHeight, "Entry Credit blocks for chain: "+ecchain.ChainID.String())
-	
+
 	// init Admin Chain
 	initAChain()
 	fmt.Println("Loaded", achain.NextBlockHeight, "Admin blocks for chain: "+achain.ChainID.String())
@@ -306,19 +306,6 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		// Broadcast the msg to the network if no errors
 		outMsgQueue <- msg
 		
-//	case wire.CmdRevealChain:
-//		msgRevealChain, ok := msg.(*wire.MsgRevealChain)
-//		if ok {
-//			err := processRevealChain(msgRevealChain)
-//			if err != nil {
-//				return err
-//			}
-//		} else {
-//			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
-//		}
-//		// Broadcast the msg to the network if no errors
-//		outMsgQueue <- msg		
-
 	case wire.CmdCommitEntry:
 		msgCommitEntry, ok := msg.(*wire.MsgCommitEntry)
 		if ok && msgCommitEntry.IsValid() {
@@ -343,7 +330,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
 		}
 		// Broadcast the msg to the network if no errors
-		outMsgQueue <- msg		
+		outMsgQueue <- msg
 
 	case wire.CmdInt_FactoidObj:
 		factoidObj, ok := msg.(*wire.MsgInt_FactoidObj)
@@ -453,6 +440,15 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
 		}
 
+	case wire.CmdTestCredit:
+		cred, ok := msg.(*wire.MsgTestCredit)
+		if !ok {
+			return fmt.Errorf("Error adding test entry credits")
+		}
+		if err := processTestCredit(cred); err != nil {
+			return err
+		}
+
 	case wire.CmdEntry:
 		if nodeMode == SERVER_NODE {
 			break
@@ -471,8 +467,19 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 	default:
 		return errors.New("Message type unsupported:" + fmt.Sprintf("%+v", msg))
 	}
-	
-						
+
+	return nil
+}
+
+// processTestCedits assignes credits to a specified publick key for testing
+// against the local node. This credit purchase should never propigate across
+// the network.
+// TODO remove this before production
+func processTestCredit(msg *wire.MsgTestCredit) error {
+	if _, exists := eCreditMap[msg.ECKey]; !exists {
+		eCreditMap[msg.ECKey] = 0
+	}
+	eCreditMap[msg.ECKey] += msg.Amt
 	return nil
 }
 
@@ -494,7 +501,7 @@ func processDirBlock(msg *wire.MsgDirBlock) error {
 
 	fmt.Printf("PROCESSOR: MsgDirBlock=%s\n", spew.Sdump(msg.DBlk))
 	fmt.Printf("PROCESSOR: dchain=%s\n", spew.Sdump(dchain))
-	
+
 	exportDChain(dchain)
 
 	return nil
@@ -510,7 +517,7 @@ func processABlock(msg *wire.MsgABlock) error {
 	db.ProcessABlockBatch(msg.ABlk)
 
 	fmt.Printf("PROCESSOR: MsgABlock=%s\n", spew.Sdump(msg.ABlk))
-	
+
 	exportAChain(achain)
 
 	return nil
@@ -593,7 +600,7 @@ func processEBlock(msg *wire.MsgEBlock) error {
 	fmt.Printf("PROCESSOR: MsgEBlock=%s\n", spew.Sdump(msg.EBlk))
 
 	exportEChain(chain)
-	
+
 	return nil
 }
 
@@ -951,7 +958,7 @@ func buildGenesisBlocks() error {
 	fmt.Printf("buildGenesisBlocks: cBlock=%s\n", spew.Sdump(cBlock))
 	dchain.AddECBlockToDBEntry(cBlock)
 	exportECChain(ecchain)
-	
+
 	// Admin chain
 	aBlock := newAdminBlock(achain)
 	fmt.Printf("buildGenesisBlocks: aBlock=%s\n", spew.Sdump(aBlock))
@@ -1020,7 +1027,7 @@ func buildBlocks() error {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
-	
+
 	// Entry Chains
 	for _, k := range keys {
 		chain := chainIDMap[k]
@@ -1174,7 +1181,7 @@ func newEntryCreditBlock(chain *common.ECChain) *common.ECBlock {
 	}
 
 	block.BuildHeader()
-	
+
 	// Create the block and add a new block for new coming entries
 	chain.BlockMutex.Lock()
 	chain.NextBlockHeight++
@@ -1586,7 +1593,7 @@ func initECChain() {
 		if v.Header.DBHeight != uint32(i) {
 			panic("Error in initializing dChain:" + ecchain.ChainID.String())
 		}
-		
+
 		// Calculate the EC balance for each account
 		initializeECreditMap(&v)
 	}
@@ -1706,7 +1713,7 @@ func copyCreditMap(
 	originalMap map[*[32]byte]int32,
 	newMap map[*[32]byte]int32) {
 	newMap = make(map[*[32]byte]int32)
-	
+
 	// copy every element from the original map
 	for k, v := range originalMap {
 		newMap[k] = v

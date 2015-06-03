@@ -29,7 +29,8 @@ const (
 	// in memory in order to perform all necessary validation.  It is used
 	// to determine when it's safe to prune nodes from memory without
 	// causing constant dynamic reloading.
-	minMemoryNodes = BlocksPerRetarget
+	//	minMemoryNodes = BlocksPerRetarget
+	minMemoryNodes = 3
 )
 
 // ErrIndexAlreadyInitialized describes an error that indicates the block index
@@ -79,7 +80,7 @@ type blockNode struct {
 // completely disconnected from the chain and the workSum value is just the work
 // for the passed block.  The work sum is updated accordingly when the node is
 // inserted into a chain.
-func newBlockNode(blockHeader *wire.FBlockHeader, blockSha *wire.ShaHash, height int64) *blockNode {
+func newBlockNode(blockHeader *wire.BlockHeader, blockSha *wire.ShaHash, height int64) *blockNode {
 	// Make a copy of the hash so the node doesn't keep a reference to part
 	// of the full block/block header preventing it from being garbage
 	// collected.
@@ -1004,20 +1005,20 @@ func (b *BlockChain) IsCurrent(timeSource MedianTimeSource) bool {
 		return false
 	}
 
-	// Not current if the latest main (best) chain height is before the
-	// latest known good checkpoint (when checkpoints are enabled).
-	checkpoint := b.LatestCheckpoint()
-	if checkpoint != nil && b.bestChain.height < checkpoint.Height {
-		return false
-	}
-
 	/*
-		// Not current if the latest best block has a timestamp before 24 hours
-		// ago.
-		minus24Hours := timeSource.AdjustedTime().Add(-24 * time.Hour)
-		if b.bestChain.timestamp.Before(minus24Hours) {
+		// Not current if the latest main (best) chain height is before the
+		// latest known good checkpoint (when checkpoints are enabled).
+		checkpoint := b.LatestCheckpoint()
+		if checkpoint != nil && b.bestChain.height < checkpoint.Height {
 			return false
 		}
+
+			// Not current if the latest best block has a timestamp before 24 hours
+			// ago.
+			minus24Hours := timeSource.AdjustedTime().Add(-24 * time.Hour)
+			if b.bestChain.timestamp.Before(minus24Hours) {
+				return false
+			}
 	*/
 
 	// The chain appears to be current if the above checks did not report
