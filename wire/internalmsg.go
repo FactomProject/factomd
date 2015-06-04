@@ -25,19 +25,6 @@ type FtmInternalMsg interface {
 	Command() string
 }
 
-// Factoid Obj to carry factoid transation data to constuct the Process lit item.
-type MsgInt_FactoidObj struct {
-	FactoidTx    *MsgTx
-	TxSha        *ShaHash
-	EntryCredits map[ShaHash]uint64 // TODO: this should really be a single-hash per Brian (?) // The Sha in the map should be public key
-}
-
-// Factoid Obj to carry factoid transation data to constuct the Process lit item.
-// func (msg *MsgInt_FactoidObj) Command() string {
-func (msg MsgInt_FactoidObj) Command() string {
-	return CmdInt_FactoidObj
-}
-
 // End-of-Minute internal message for time commnunications between Goroutines
 type MsgInt_EOM struct {
 	EOM_Type         byte

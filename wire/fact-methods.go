@@ -79,10 +79,10 @@ func readSig(r io.Reader, pver uint32, sigCount int, sig *TxSig) error {
 
 	readBitfield(r, pver, sig)
 	sig.signatures = make([][]byte, sigCount)
-	
+
 	var err error
-	for i := 0; i<sigCount; i++ {
-		sig.signatures[i] = make([]byte, 64)		
+	for i := 0; i < sigCount; i++ {
+		sig.signatures[i] = make([]byte, 64)
 		_, err = io.ReadFull(r, sig.signatures[i])
 		if err != nil {
 			return err
@@ -95,7 +95,7 @@ func readSig(r io.Reader, pver uint32, sigCount int, sig *TxSig) error {
 func writeSig(w io.Writer, pver uint32, sig *TxSig) error {
 
 	writeBitfield(w, pver, sig)
-	
+
 	for i := 0; i < len(sig.signatures); i++ {
 		w.Write(sig.signatures[i])
 	}
@@ -115,11 +115,11 @@ func readBitfield(r io.Reader, pver uint32, sig *TxSig) error {
 }
 
 func writeBitfield(w io.Writer, pver uint32, sig *TxSig) error {
-	
+
 	err := writeVarBytes(w, pver, sig.bitfield)
 	if err != nil {
 		return err
-	}	
+	}
 
 	return nil
 }

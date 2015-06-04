@@ -16,12 +16,12 @@ import (
 // differentiate between general io errors such as io.EOF and issues that
 // resulted from malformed messages.
 type MessageError struct {
-    error
+	error
 	Func        string // Function name
 	Description string // Human readable description of the issue
 }
 
-var _ error = (*MessageError) (nil)
+var _ error = (*MessageError)(nil)
 
 // Error satisfies the error interface and prints human-readable errors.
 func (e *MessageError) Error() string {

@@ -615,6 +615,7 @@ func processFactoidBlock(msg *wire.MsgBlock) error {
 }
 */
 
+/*
 // Process a factoid obj message and put it in the process list
 func processFactoidTx(msg *wire.MsgInt_FactoidObj) error {
 
@@ -639,6 +640,7 @@ func processFactoidTx(msg *wire.MsgInt_FactoidObj) error {
 
 	return nil
 }
+*/
 
 func processRevealEntry(msg *wire.MsgRevealEntry) error {
 	e := msg.Entry
@@ -835,6 +837,7 @@ func buildCommitChain(msg *wire.MsgCommitChain) {
 	ecchain.NextBlock.AddEntry(msg.CommitChain)
 }
 
+/*
 func buildFactoidObj(msg *wire.MsgInt_FactoidObj) {
 	factoidTxHash := new(common.Hash)
 	factoidTxHash.SetBytes(msg.TxSha.Bytes())
@@ -846,6 +849,7 @@ func buildFactoidObj(msg *wire.MsgInt_FactoidObj) {
 		ecchain.NextBlock.AddEntry(cbEntry)
 	}
 }
+*/
 
 func buildRevealChain(msg *wire.MsgRevealChain) {
 

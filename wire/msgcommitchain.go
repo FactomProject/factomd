@@ -29,7 +29,7 @@ func (msg *MsgCommitChain) BtcEncode(w io.Writer, pver uint32) error {
 		return err
 	}
 
-	return nil	
+	return nil
 }
 
 // BtcDecode decodes r using the bitcoin protocol encoding into the receiver.
