@@ -348,18 +348,14 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 				msgEom.EC_Exchange_Rate = FactoshisPerCredit
 				plMgr.AddMyProcessListItem(msgEom, nil, wire.END_MINUTE_10)
 
-				//Notify the factoid component to start building factoid block
-				util.Trace("Notify the factoid component to start building factoid block")
-
-				outCtlMsgQueue <- msgEom
-
 				err := buildBlocks()
 				if err != nil {
 					return err
-				}
+				}	
+					
 			} else if msgEom.EOM_Type >= wire.END_MINUTE_1 && msgEom.EOM_Type < wire.END_MINUTE_10 {
 				plMgr.AddMyProcessListItem(msgEom, nil, msgEom.EOM_Type)
-			}
+			}			
 		}
 
 	case wire.CmdInt_FactoidBlock:
