@@ -36,6 +36,29 @@ type BoltDB struct {
 }
 
 var _ ISCDatabase = (*BoltDB)(nil)
+
+
+func (d *BoltDB) Clear(bucketList [][]byte, filename string) {
+    
+    d.filename = filename
+    
+    tdb, err := bolt.Open(d.filename, 0600, nil)
+    
+    if err != nil {
+        panic("Database "+d.filename+" was not found, and could not be created.")
+    }
+    defer tdb.Close()
+
+    for _,bucket := range bucketList {
+        tdb.Update(func(tx *bolt.Tx) error {
+            err := tx.DeleteBucket(bucket)
+            if err != nil {
+                return fmt.Errorf("No bucket: %s", err)
+            }
+            return nil
+        })
+    }
+}       
 // We have to make accomadation for many Init functions.  But what we really
 // want here is:
 //
@@ -43,8 +66,6 @@ var _ ISCDatabase = (*BoltDB)(nil)
 //
 func (d *BoltDB) Init(a ...interface{}) {
     simplecoin.Prtln("NEED TO CONFIGURE DB")
-    
-    
     
     bucketList := a[0].([][]byte)
     instances  := a[1].(map[[32]byte]simplecoin.IBlock)
@@ -55,11 +76,12 @@ func (d *BoltDB) Init(a ...interface{}) {
     }
     
     tdb, err := bolt.Open(d.filename, 0600, nil)
-    d.db = tdb
-    
     if err != nil {
         panic("Database was not found, and could not be created.")
     }
+    
+    d.db = tdb
+    
     
     for _,bucket := range bucketList {
         d.db.Update(func(tx *bolt.Tx) error {

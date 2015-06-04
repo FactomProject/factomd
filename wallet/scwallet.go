@@ -13,9 +13,8 @@ import (
     "fmt"
     "github.com/agl/ed25519"
     "math/rand"
-    "github.com/FactomProject/simplecoin"
+    sc "github.com/FactomProject/simplecoin"
     "github.com/FactomProject/simplecoin/database"
-    "time"
 )
 
 // The wallet interface uses bytes.  This is because we want to 
@@ -25,26 +24,26 @@ import (
 // the interface more usable by developers.
 type ISCWallet interface {
     database.ISCDatabase
-    GenerateAddress(name []byte, m int, n int) (simplecoin.IHash, error)
+    GenerateAddress(name []byte, m int, n int) (sc.IAddress, error)
     
-    GetAddressBalance(addr simplecoin.IHash) uint64
+    GetAddressBalance(addr sc.IAddress) uint64
     GetAddressDetailsAddr(addr []byte) IWalletEntry
-    GetAddressList() (names [][]byte, addresses []simplecoin.IHash)
+    GetAddressList() (names [][]byte, addresses []sc.IAddress)
     GetAddressListByName(name []byte) (names[][]byte)
     
     /** Transaction calls **/
-    CreateTransaction() simplecoin.ITransaction
-    UpdateInput(simplecoin.ITransaction, int, simplecoin.IHash, uint64) error
-    AddInput(simplecoin.ITransaction, simplecoin.IHash, uint64) error
-    AddOutput(simplecoin.ITransaction, simplecoin.IHash, uint64) error
-    AddECOutput(simplecoin.ITransaction, simplecoin.IHash, uint64) error
-    Validate(simplecoin.ITransaction) (bool,error)
-    ValidateSignatures(simplecoin.ITransaction) bool
-    SignInputs(simplecoin.ITransaction) (bool, error)   // True if all inputs are signed
+    CreateTransaction() sc.ITransaction
+    UpdateInput(sc.ITransaction, int, sc.IAddress, uint64) error
+    AddInput(sc.ITransaction, sc.IAddress, uint64) error
+    AddOutput(sc.ITransaction, sc.IAddress, uint64) error
+    AddECOutput(sc.ITransaction, sc.IAddress, uint64) error
+    Validate(sc.ITransaction) (bool,error)
+    ValidateSignatures(sc.ITransaction) bool
+    SignInputs(sc.ITransaction) (bool, error)   // True if all inputs are signed
     
     GetECRate() uint64
     
-    SubmitTransaction(simplecoin.ITransaction) error
+    SubmitTransaction(sc.ITransaction) error
 }
 
 var factoshisPerEC uint64 = 100000
@@ -59,7 +58,11 @@ type SCWallet struct {
 
 var _ ISCWallet = (*SCWallet)(nil)
 
-func (w *SCWallet) SignInputs(trans simplecoin.ITransaction) (bool, error) {
+func (SCWallet) GetDBHash() sc.IHash {
+    return sc.Sha([]byte("SCWallet"))
+}
+
+func (w *SCWallet) SignInputs(trans sc.ITransaction) (bool, error) {
     
     data,err := trans.MarshalBinarySig()    // Get the part of the transaction we sign
     if err != nil { return false, err }    
@@ -69,17 +72,17 @@ func (w *SCWallet) SignInputs(trans simplecoin.ITransaction) (bool, error) {
     inputs  := trans.GetInputs()
     rcds    := trans.GetRCDs()
     for i,rcd := range rcds {
-        rcd1, ok := rcd.(*simplecoin.RCD_1)
+        rcd1, ok := rcd.(*sc.RCD_1)
         if ok {
             pub := rcd1.GetPublicKey()
             we := w.db.GetRaw([]byte("wallet.address.addr"),pub).(*WalletEntry)
             if we != nil {
-                var pri [simplecoin.SIGNATURE_LENGTH]byte
+                var pri [sc.SIGNATURE_LENGTH]byte
                 copy(pri[:],we.private[0])
                 bsig := ed25519.Sign(&pri,data)
-                sig := new(simplecoin.Signature)
+                sig := new(sc.Signature)
                 sig.SetSignature(0,bsig[:])
-                sigblk := new(simplecoin.SignatureBlock)
+                sigblk := new(sc.SignatureBlock)
                 sigblk.AddSignature(sig)
                 trans.SetSignatureBlock(i,sigblk)
                 numSigs += 1
@@ -97,7 +100,7 @@ func (w *SCWallet) GetAddressDetailsAddr(name []byte) IWalletEntry {
     return w.db.GetRaw([]byte("wallet.address.addr"),name).(IWalletEntry)
 }
 
-func (w *SCWallet) GenerateAddress(name []byte,m int, n int) (hash simplecoin.IHash, err error) {
+func (w *SCWallet) GenerateAddress(name []byte,m int, n int) (hash sc.IAddress, err error) {
     
     we := new(WalletEntry)
     
@@ -111,8 +114,8 @@ func (w *SCWallet) GenerateAddress(name []byte,m int, n int) (hash simplecoin.IH
         if err != nil { return nil, err  }
         we.AddKey(pub,pri)
         we.SetName(name)
-        simplecoin.NewRCD_1(pub)
-        we.SetRCD(simplecoin.NewRCD_1(pub))
+        sc.NewRCD_1(pub)
+        we.SetRCD(sc.NewRCD_1(pub))
 
         // If the name exists already, then we store this as the hash of the name.
         // If that exists, then we store it as the hash of the hash and so forth.
@@ -123,13 +126,13 @@ func (w *SCWallet) GenerateAddress(name []byte,m int, n int) (hash simplecoin.IH
             case nm == nil :       // New Name
                 b,err := we.MarshalBinary()
                 if err != nil { return nil, err }
-                hash = simplecoin.Sha(b)
+                hash = sc.Sha(b)
                 w.db.PutRaw([]byte("wallet.address.hash"),hash.Bytes(),we)
                 w.db.PutRaw([]byte("wallet.address.name"),name,we)
                 w.db.PutRaw([]byte("wallet.address.addr"),pub,we)
             case nm != nil :       // Duplicate name.  We generate a new name, and recurse.
                 return nil, fmt.Errorf("Should never get here!  This is disabled!")
-                nh := simplecoin.Sha(name)
+                nh := sc.Sha(name)
                 return w.GenerateAddress(nh.Bytes(),m, n)
             default :
                 return nil, fmt.Errorf("Should never get here!  This isn't possible!")
@@ -161,18 +164,18 @@ func (w *SCWallet) generateKey() (public []byte,private []byte, err error){
     return pub[:], pri[:], err
 }
 
-func (w *SCWallet)  CreateTransaction() simplecoin.ITransaction {
-    return new(simplecoin.Transaction)
+func (w *SCWallet)  CreateTransaction() sc.ITransaction {
+    return new(sc.Transaction)
 }
 
-func (w *SCWallet) AddInput(trans simplecoin.ITransaction, hash simplecoin.IHash, amount uint64) error {
-     
-     we := w.db.GetRaw([]byte("wallet.address.hash"),hash.Bytes()).(*WalletEntry)
-     if we == nil { 
+func (w *SCWallet) AddInput(trans sc.ITransaction, hash sc.IAddress, amount uint64) error {
+     v := w.db.GetRaw([]byte("wallet.address.hash"),hash.Bytes())
+     if(v == nil) {
          return fmt.Errorf("Unknown address")
      }
+     we := v.(*WalletEntry)
      adr, err := we.GetAddress()
-     trans.AddInput(simplecoin.CreateAddress(adr),amount)
+     trans.AddInput(sc.CreateAddress(adr),amount)
      trans.AddRCD(we.GetRCD())
      if err != nil {
          return err
@@ -180,15 +183,16 @@ func (w *SCWallet) AddInput(trans simplecoin.ITransaction, hash simplecoin.IHash
      return nil
 }     
 
-func (w *SCWallet) UpdateInput(trans simplecoin.ITransaction, 
+func (w *SCWallet) UpdateInput(trans sc.ITransaction, 
                                index int, 
-                               hash simplecoin.IHash, 
+                               hash sc.IAddress, 
                                amount uint64) error {
     
-    we := w.db.GetRaw([]byte("wallet.address.hash"),hash.Bytes()).(*WalletEntry)
-    if we == nil { 
+    v := w.db.GetRaw([]byte("wallet.address.hash"),hash.Bytes())
+    if v == nil { 
         return fmt.Errorf("Unknown address")
     }
+    we := v.(*WalletEntry)
     adr, err := we.GetAddress()
     in,err := trans.GetInput(index)
     if err != nil {return err}
@@ -198,38 +202,39 @@ func (w *SCWallet) UpdateInput(trans simplecoin.ITransaction,
     return nil
 }     
 
-func (w *SCWallet) AddOutput(trans simplecoin.ITransaction, hash simplecoin.IHash, amount uint64) error {
-    we := w.db.GetRaw([]byte("wallet.address.hash"),hash.Bytes()).(*WalletEntry)
-    if we == nil { 
+func (w *SCWallet) AddOutput(trans sc.ITransaction, hash sc.IAddress, amount uint64) error {
+    v := w.db.GetRaw([]byte("wallet.address.hash"),hash.Bytes())
+    if v == nil { 
         return fmt.Errorf("Unknown address")
     }
+    we := v.(*WalletEntry)
     adr, err := we.GetAddress()
-    trans.AddOutput(simplecoin.CreateAddress(adr),amount)
+    trans.AddOutput(sc.CreateAddress(adr),amount)
     if err != nil {
         return err
     }
     return nil
 }     
  
-func (w *SCWallet) AddECOutput(trans simplecoin.ITransaction, hash simplecoin.IHash, amount uint64) error {
+func (w *SCWallet) AddECOutput(trans sc.ITransaction, hash sc.IAddress, amount uint64) error {
     we := w.db.GetRaw([]byte("wallet.address.hash"),hash.Bytes()).(*WalletEntry)
     if we == nil { 
         return fmt.Errorf("Unknown address")
     }
     adr, err := we.GetAddress()
-    trans.AddECOutput(simplecoin.CreateAddress(adr),amount)
+    trans.AddECOutput(sc.CreateAddress(adr),amount)
     if err != nil {
         return err
     }
     return nil
 }
 
-func (w *SCWallet) Validate(trans simplecoin.ITransaction) (bool,error){
+func (w *SCWallet) Validate(trans sc.ITransaction) (bool,error){
     valid := trans.Validate()
     return valid, nil
 }    
  
- func (w *SCWallet) ValidateSignatures(trans simplecoin.ITransaction) bool{
+ func (w *SCWallet) ValidateSignatures(trans sc.ITransaction) bool{
      valid := trans.ValidateSignatures()
      return valid
  } 

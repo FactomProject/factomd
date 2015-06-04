@@ -36,7 +36,7 @@ type Signature struct {
 
 var _ ISignature = (*Signature)(nil)
 
-func (w1 Signature)GetDBHash() IHash {
+func (Signature)GetDBHash() IHash {
     return Sha([]byte("Signature"))
 }
 

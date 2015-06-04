@@ -31,7 +31,6 @@ var _ IHash = (*Hash)(nil)
 
 func (w1 Hash)GetDBHash() IHash {
     return Sha([]byte("Hash"))
-    
 }
 
 func (w1 Hash)GetNewInstance() IBlock {

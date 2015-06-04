@@ -29,6 +29,10 @@ type Address struct {
                
 var _ IAddress = (*Address)(nil)
 
+func (Address) GetDBHash() IHash {
+    return Sha([]byte("Address"))
+}
+
 func (a Address) MarshalText() (text []byte, err error) {
     var out bytes.Buffer
     addr := hex.EncodeToString(a.Bytes())

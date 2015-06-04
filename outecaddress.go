@@ -24,7 +24,7 @@ type OutECAddress struct {
 
 var _ IOutECAddress = (*OutECAddress)(nil)
 
-func (w1 OutECAddress)GetDBHash() IHash {
+func (OutECAddress)GetDBHash() IHash {
     return Sha([]byte("OutECAddress"))
 }
 

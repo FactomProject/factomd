@@ -21,7 +21,7 @@ type OutAddress struct {
 
 var _ IOutAddress = (*OutAddress)(nil)
 
-func (w1 OutAddress)GetDBHash() IHash {
+func (OutAddress)GetDBHash() IHash {
     return Sha([]byte("OutAddress"))
 }
 

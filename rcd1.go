@@ -52,7 +52,7 @@ func (w RCD_1)GetAddress() (IAddress, error){
     return CreateAddress(Sha(data)), nil
 }
 
-func (w1 RCD_1)GetDBHash() IHash {
+func (RCD_1)GetDBHash() IHash {
     return Sha([]byte("RCD_1"))
 }
 

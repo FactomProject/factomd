@@ -73,7 +73,7 @@ func (t *Transaction)AddRCD(rcd IRCD) {
     t.rcds = append(t.rcds, rcd)
 }
     
-func (w1 Transaction)GetDBHash() IHash {
+func (Transaction)GetDBHash() IHash {
     return Sha([]byte("Transaction"))
 }
 
@@ -184,6 +184,17 @@ func (t Transaction)Validate() bool {
         // the RCD, this transaction is bogus.
         if !t.inputs[i].GetAddress().IsEqual(address) {return false}
     }
+    // Make sure no input is the same as any other input.  All inputs must be
+    // unique addresses.  By the way, this also proves all the rcd's are unique,
+    // since the addresses are the hashes of the rcds.
+    for i:=1;i<len(t.inputs)-1;i++ {
+        for j:=i+1;j<len(t.inputs);j++ {
+            if t.inputs[i].IsEqual(t.inputs[j]) {
+                return false
+            }
+        }
+    }
+    
     return true
 }
 
@@ -514,7 +525,7 @@ func (t *Transaction) AddECOutput( ecoutput IAddress, amount uint64) {
 func (t Transaction) MarshalText() (text []byte, err error) {
 	var out bytes.Buffer
 
-	out.WriteString("Transaction:\n locktime")
+	out.WriteString("Transaction:\n locktime: ")
     WriteNumber64(&out, uint64(t.lockTime))
 	out.WriteString("\n in:  ")
 	WriteNumber16(&out, uint16(len(t.inputs)))

@@ -43,7 +43,7 @@ func (w RCD_2)Clone() IRCD {
     return c
 }
 
-func (w1 RCD_2)GetDBHash() IHash {
+func (RCD_2)GetDBHash() IHash {
     return Sha([]byte("RCD_2"))
 }
 

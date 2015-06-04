@@ -59,7 +59,7 @@ func (s SignatureBlock) GetSignature(index int) ISignature {
 
 
 
-func (s SignatureBlock)GetDBHash() IHash {
+func (SignatureBlock)GetDBHash() IHash {
     return Sha([]byte("SignatureBlock"))
 }
 

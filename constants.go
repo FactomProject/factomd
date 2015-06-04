@@ -10,6 +10,11 @@ const (
 	SIGNATURE_LENGTH     = 64    // Length of a signature
 	MAX_TRANSACTION_SIZE = 10240 // 10K like everything else?
 	MINIMUM_AMOUNT       = 1     // Not sure if we need a minimum amount.  Set at 1 Factoshi
+	
+	// Database
+	DB_FACTOID_BLOCKS    = "Factoid_Transaction_Blocks"
+	DB_F_BALANCES        = "Factoid_Address_balances"
+    DB_EC_BALANCES       = "Entry_Credit_Address_balances"  
 )
 
 // Factoid chain

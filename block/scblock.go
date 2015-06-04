@@ -53,7 +53,18 @@ type SCBlock struct {
 
 var _ ISCBlock = (*SCBlock)(nil)
 
+func (SCBlock) GetDBHash() sc.IHash {
+    return sc.Sha([]byte("SCBlock"))
+}
 
+func (b *SCBlock) GetHash() sc.IHash {
+    data,err := b.MarshalTrans()
+    if err != nil {
+        fmt.Println(err)
+        return nil
+    }
+    return sc.Sha(data)
+}
 
 func (b *SCBlock) MarshalTrans() ([]byte, error) {
 	var out bytes.Buffer

@@ -20,6 +20,7 @@ type IBlock interface {
 	UnmarshalBinaryData(data []byte) ([]byte, error) 
     
 	IsEqual(IBlock)  bool   // Check if this block is the same as itself
-	GetDBHash()      IHash  // Identifies the object 
+	GetDBHash()      IHash  // Identifies the class of the object
+	GetHash()        IHash  // Returns the hash of the object
 	GetNewInstance() IBlock // Get a new instance of this object
 }

@@ -5,7 +5,7 @@
 package database
 
 import (
-	"github.com/FactomProject/simplecoin"
+	sc "github.com/FactomProject/simplecoin"
 )
 
 type MapDB struct {
@@ -14,16 +14,16 @@ type MapDB struct {
 	backer ISCDatabase          // We can have backing databases.  For now this will be nil
     persist ISCDatabase         // We do need LevelDB or Bolt.  It would go here.
     
-	cache  map[DBKey](simplecoin.IBlock) // Our Cache
+	cache  map[DBKey](sc.IBlock) // Our Cache
 }
 
 var _ ISCDatabase = (*MapDB)(nil)
 
 func (db *MapDB) Init(a ...interface{}) {
-	db.cache = make(map[DBKey](simplecoin.IBlock), 100)
+	db.cache = make(map[DBKey](sc.IBlock), 100)
 }
 
-func (db *MapDB) GetRaw(bucket []byte, key []byte) (value simplecoin.IBlock) {
+func (db *MapDB) GetRaw(bucket []byte, key []byte) (value sc.IBlock) {
     dbkey := makeKey(bucket,key).(*DBKey)
     value = db.cache[*dbkey]
     if value == nil && db.backer != nil {
@@ -35,7 +35,7 @@ func (db *MapDB) GetRaw(bucket []byte, key []byte) (value simplecoin.IBlock) {
     return value
 }
 
-func (db *MapDB) PutRaw(bucket []byte, key []byte, value simplecoin.IBlock) {
+func (db *MapDB) PutRaw(bucket []byte, key []byte, value sc.IBlock) {
     dbkey := makeKey(bucket, key).(*DBKey)
     db.cache[*dbkey] = value
     if db.persist != nil {
@@ -43,20 +43,20 @@ func (db *MapDB) PutRaw(bucket []byte, key []byte, value simplecoin.IBlock) {
     }
 }
 
-func (db *MapDB) Get(bucket string, key simplecoin.IHash) (value simplecoin.IBlock) {
+func (db *MapDB) Get(bucket string, key sc.IHash) (value sc.IBlock) {
     return db.GetRaw([]byte(bucket), key.Bytes())
 }
 
-func (db *MapDB) GetKey(key IDBKey) (value simplecoin.IBlock) {
+func (db *MapDB) GetKey(key IDBKey) (value sc.IBlock) {
     return db.GetRaw(key.GetBucket(),key.GetKey())
 }
 
-func (db *MapDB) Put(bucket string, key simplecoin.IHash, value simplecoin.IBlock) {
+func (db *MapDB) Put(bucket string, key sc.IHash, value sc.IBlock) {
     b := []byte(bucket)
     k := key.Bytes()
     db.PutRaw(b, k, value)
 }
 
-func (db *MapDB) PutKey(key IDBKey, value simplecoin.IBlock) {
+func (db *MapDB) PutKey(key IDBKey, value sc.IBlock) {
     db.PutRaw(key.GetBucket(), key.GetKey(), value)
 }

@@ -21,7 +21,7 @@ type InAddress struct {
 
 var _ IInAddress = (*InAddress)(nil)
 
-func (i InAddress)GetDBHash() IHash {
+func (InAddress)GetDBHash() IHash {
     return Sha([]byte("InAddress"))
 }
 

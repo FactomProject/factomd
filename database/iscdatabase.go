@@ -28,6 +28,11 @@ import (
 type ISCDatabase interface {
 	simplecoin.IBlock
 
+	// Clear removes all the specified buckets from the database.
+	// This allows us to cleanly rebuild databases, or in the case
+	// of testing, ensure a particular database state.
+	Clear(bucketList [][]byte, filename string)
+	
 	// Users must call Init() prior to using the database.
 	Init(a ...interface{})
     
