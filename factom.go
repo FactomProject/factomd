@@ -15,7 +15,7 @@ import (
 	"github.com/FactomProject/btcutil"
 
 	"github.com/FactomProject/FactomCode/util"
-	//	"github.com/FactomProject/FactomCode/wallet"
+	"github.com/FactomProject/FactomCode/wallet"
 	"github.com/FactomProject/btcd/wire"
 	"github.com/davecgh/go-spew/spew"
 )
@@ -26,9 +26,9 @@ var (
 	inMsgQueue  chan wire.FtmInternalMsg //incoming message queue for factom application messages
 	outMsgQueue chan wire.FtmInternalMsg //outgoing message queue for factom application messages
 
-	inCtlMsgQueue  chan wire.FtmInternalMsg //incoming message queue for factom control messages
-	outCtlMsgQueue chan wire.FtmInternalMsg //outgoing message queue for factom control messages
-//	doneFBlockQueue = make(chan wire.FtmInternalMsg) //incoming message queue for factoid component to send MR
+	inCtlMsgQueue   chan wire.FtmInternalMsg         //incoming message queue for factom control messages
+	outCtlMsgQueue  chan wire.FtmInternalMsg         //outgoing message queue for factom control messages
+	doneFBlockQueue = make(chan wire.FtmInternalMsg) //incoming message queue for factoid component to send MR
 )
 
 // trying out some flags to optionally disable old BTC functionality ... WIP
@@ -86,7 +86,7 @@ func factomForkInit(s *server) {
 				switch msgEom.EOM_Type {
 
 				case wire.END_MINUTE_10:
-					panic(1301)
+					panic(errors.New("unhandled END_MINUTE_10"))
 
 					// block building, return the hash of the new one via doneFB (via hook)
 					generateFactoidBlock(msgEom.NextDBlockHeight)
@@ -135,7 +135,6 @@ func Start_btcd() {
 
 	// Use all processor cores.
 	//runtime.GOMAXPROCS(runtime.NumCPU())
-
 
 	FactomSetupOverrides()
 
@@ -292,7 +291,6 @@ func FactomSetupOverrides() {
 	FactomOverride.BlockDisableChecks = true
 }
 
-/*
 // feed all incoming Txs to the inner Factom code (for Jack)
 // TODO: do this after proper mempool/orphanpool/validity triangulation & checks
 func factomIngressTx_hook(tx *wire.MsgTx) error {
@@ -332,7 +330,6 @@ func factomIngressBlock_hook(hash *wire.ShaHash) error {
 
 	return nil
 }
-*/
 
 func ExtractPkScriptAddrs(pkScript []byte, chainParams *chaincfg.Params) ([]btcutil.Address, int, error) {
 	oldWay := false

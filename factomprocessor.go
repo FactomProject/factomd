@@ -516,22 +516,22 @@ func processCBlock(msg *wire.MsgECBlock) error {
 	util.Trace()
 
 	//Need to validate against Dchain??
-	
+
 	// check if the block already exists
-	h, _ := common.CreateHash(msg.ECBlock)	
-	cblk, _ := db.FetchECBlockByHash(h)	
+	h, _ := common.CreateHash(msg.ECBlock)
+	cblk, _ := db.FetchECBlockByHash(h)
 	if cblk != nil {
 		return nil
 	}
 
 	db.ProcessECBlockBatch(msg.ECBlock)
-	
+
 	initializeECreditMap(msg.ECBlock)
 
 	// for debugging??
 	fmt.Printf("PROCESSOR: MsgCBlock=%s\n", spew.Sdump(msg.ECBlock))
 	printCreditMap()
-	
+
 	exportECChain(ecchain)
 
 	return nil
@@ -917,7 +917,7 @@ func buildGenesisBlocks() error {
 	// Allocate the first two dbentries for ECBlock and Factoid block
 	dchain.AddDBEntry(&common.DBEntry{}) // AdminBlock
 	dchain.AddDBEntry(&common.DBEntry{}) // ECBlock
-//	dchain.AddDBEntry(&common.DBEntry{}) // Factoid block
+	//	dchain.AddDBEntry(&common.DBEntry{}) // Factoid block
 
 	// Entry Credit Chain
 	cBlock := newEntryCreditBlock(ecchain)
@@ -955,7 +955,7 @@ func buildBlocks() error {
 	// Allocate the first three dbentries for Admin block, ECBlock and Factoid block
 	dchain.AddDBEntry(&common.DBEntry{}) // AdminBlock
 	dchain.AddDBEntry(&common.DBEntry{}) // ECBlock
-//	dchain.AddDBEntry(&common.DBEntry{}) // Factoid block
+	//	dchain.AddDBEntry(&common.DBEntry{}) // Factoid block
 
 	if plMgr != nil && plMgr.MyProcessList.IsValid() {
 		buildFromProcessList(plMgr.MyProcessList)
