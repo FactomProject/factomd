@@ -37,7 +37,7 @@ const (
 	//Server public key for milestone 1
 	SERVER_PUB_KEY = "8cee85c62a9e48039d4ac294da97943c2001be1539809ea5f54721f0c5477a0a"
 	// GENESIS_DIR_BLOCK_HASH = "43f308adb91984ce340f626e39c3707db31343eff0563a4dfe5dd8d31ed95488"
-	GENESIS_DIR_BLOCK_HASH = "2923d512f88f8979d33c3b66530897d469517db0885f6490c34f14b088290fc2"
+	GENESIS_DIR_BLOCK_HASH = "ccb784e368439554e2097303f4b3ca63123533455b65975960d467777536bc8f"
 )
 
 var (
@@ -217,8 +217,7 @@ func Start_Processor(
 	inMsgQ chan wire.FtmInternalMsg,
 	outMsgQ chan wire.FtmInternalMsg,
 	inCtlMsgQ chan wire.FtmInternalMsg,
-	outCtlMsgQ chan wire.FtmInternalMsg,
-	doneFBlockQ chan wire.FtmInternalMsg) {
+	outCtlMsgQ chan wire.FtmInternalMsg) {
 	db = ldb
 
 	inMsgQueue = inMsgQ
@@ -226,7 +225,6 @@ func Start_Processor(
 
 	inCtlMsgQueue = inCtlMsgQ
 	outCtlMsgQueue = outCtlMsgQ
-	//	doneFBlockQueue = doneFBlockQ
 
 	initProcess()
 
@@ -331,17 +329,6 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		}
 		// Broadcast the msg to the network if no errors
 		outMsgQueue <- msg
-
-	case wire.CmdInt_FactoidObj:
-		factoidObj, ok := msg.(*wire.MsgInt_FactoidObj)
-		if ok {
-			err := processFactoidTx(factoidObj)
-			if err != nil {
-				return err
-			}
-		} else {
-			return errors.New("Error in processing msg:" + fmt.Sprintf("%+v", msg))
-		}
 
 	case wire.CmdInt_EOM:
 		util.Trace("CmdInt_EOM")
@@ -529,11 +516,22 @@ func processCBlock(msg *wire.MsgECBlock) error {
 	util.Trace()
 
 	//Need to validate against Dchain??
+	
+	// check if the block already exists
+	h, _ := common.CreateHash(msg.ECBlock)	
+	cblk, _ := db.FetchECBlockByHash(h)	
+	if cblk != nil {
+		return nil
+	}
 
 	db.ProcessECBlockBatch(msg.ECBlock)
+	
+	initializeECreditMap(msg.ECBlock)
 
+	// for debugging??
 	fmt.Printf("PROCESSOR: MsgCBlock=%s\n", spew.Sdump(msg.ECBlock))
-
+	printCreditMap()
+	
 	exportECChain(ecchain)
 
 	return nil
@@ -919,33 +917,7 @@ func buildGenesisBlocks() error {
 	// Allocate the first two dbentries for ECBlock and Factoid block
 	dchain.AddDBEntry(&common.DBEntry{}) // AdminBlock
 	dchain.AddDBEntry(&common.DBEntry{}) // ECBlock
-	dchain.AddDBEntry(&common.DBEntry{}) // Factoid block
-
-	/*
-			util.Trace()
-			// Wait for Factoid block to be built and update the DbEntry
-			msg := <-doneFBlockQueue
-			util.Trace(spew.Sdump(msg))
-			doneFBlockMsg, ok := msg.(*wire.MsgInt_FactoidBlock)
-			util.Trace(spew.Sdump(doneFBlockMsg))
-
-		//?? to be restored: if ok && doneFBlockMsg.BlockHeight == dchain.NextBlockID {
-		// double check MR ??
-		if ok {
-			util.Trace("ok")
-	*/
-	dbEntryUpdate := new(common.DBEntry)
-	dbEntryUpdate.ChainID = wire.FChainID
-	//		dbEntryUpdate.MerkleRoot = doneFBlockMsg.ShaHash.ToFactomHash()
-
-	util.Trace("before dchain")
-	dchain.AddFBlockMRToDBEntry(dbEntryUpdate)
-	util.Trace("after dchain")
-	/*
-		} else {
-			panic("Error in processing msg from doneFBlockQueue:" + fmt.Sprintf("%+v", msg))
-		}
-	*/
+//	dchain.AddDBEntry(&common.DBEntry{}) // Factoid block
 
 	// Entry Credit Chain
 	cBlock := newEntryCreditBlock(ecchain)
@@ -983,30 +955,11 @@ func buildBlocks() error {
 	// Allocate the first three dbentries for Admin block, ECBlock and Factoid block
 	dchain.AddDBEntry(&common.DBEntry{}) // AdminBlock
 	dchain.AddDBEntry(&common.DBEntry{}) // ECBlock
-	dchain.AddDBEntry(&common.DBEntry{}) // Factoid block
+//	dchain.AddDBEntry(&common.DBEntry{}) // Factoid block
 
 	if plMgr != nil && plMgr.MyProcessList.IsValid() {
 		buildFromProcessList(plMgr.MyProcessList)
 	}
-
-	/*
-		// Wait for Factoid block to be built and update the DbEntry
-		msg := <-doneFBlockQueue
-		doneFBlockMsg, ok := msg.(*wire.MsgInt_FactoidBlock)
-		util.Trace(spew.Sdump(doneFBlockMsg))
-	*/
-
-	//?? to be restored: if ok && doneFBlockMsg.BlockHeight == dchain.NextBlockID {
-	//	if ok {
-	dbEntryUpdate := new(common.DBEntry)
-	dbEntryUpdate.ChainID = wire.FChainID
-	//		dbEntryUpdate.MerkleRoot = doneFBlockMsg.ShaHash.ToFactomHash()
-	dchain.AddFBlockMRToDBEntry(dbEntryUpdate)
-	/*
-		} else {
-			panic("Error in processing msg from doneFBlockQueue:" + fmt.Sprintf("%+v", msg))
-		}
-	*/
 
 	// Entry Credit Chain
 	ecBlock := newEntryCreditBlock(ecchain)
@@ -1105,10 +1058,6 @@ func buildFromProcessList(pl *consensus.ProcessList) error {
 			buildRevealChain(pli.Msg.(*wire.MsgRevealChain))
 		} else if pli.Ack.Type == wire.ACK_REVEAL_ENTRY {
 			buildRevealEntry(pli.Msg.(*wire.MsgRevealEntry))
-		} else if pli.Ack.Type == wire.ACK_FACTOID_TX {
-			buildFactoidObj(pli.Msg.(*wire.MsgInt_FactoidObj))
-			//Send the notification to Factoid component
-			outMsgQueue <- pli.Msg.(*wire.MsgInt_FactoidObj)
 		} else if wire.END_MINUTE_1 <= pli.Ack.Type && pli.Ack.Type <= wire.END_MINUTE_10 {
 			buildEndOfMinute(pl, pli)
 		}
