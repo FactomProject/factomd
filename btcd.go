@@ -115,7 +115,7 @@ func btcdMain(serverChan chan<- *server) error {
 	})
 
 	// Create server and start it.
-	server, err := newServer(cfg.Listeners, db, activeNetParams.Params)
+	server, err := newServer(cfg.Listeners, activeNetParams.Params)
 	if err != nil {
 		// TODO(oga) this logging could do with some beautifying.
 		btcdLog.Errorf("Unable to start server on %v: %v",

@@ -23,7 +23,7 @@ import (
 	"github.com/FactomProject/btcd/blockchain"
 	"github.com/FactomProject/btcd/btcjson"
 	"github.com/FactomProject/btcd/chaincfg"
-	"github.com/FactomProject/btcd/database"
+	//	"github.com/FactomProject/btcd/database"
 	"github.com/FactomProject/btcd/wire"
 	//	"github.com/FactomProject/btcutil"
 
@@ -88,7 +88,7 @@ type server struct {
 	rpcServer     *rpcServer
 	blockManager  *blockManager
 	//	addrIndexer  *addrIndexer
-	txMemPool *txMemPool
+	//	txMemPool *txMemPool
 	//	cpuMiner             *CPUMiner
 	modifyRebroadcastInv chan interface{}
 	newPeers             chan *peer
@@ -101,8 +101,8 @@ type server struct {
 	wg                   sync.WaitGroup
 	quit                 chan struct{}
 	nat                  NAT
-	db                   database.Db
-	timeSource           blockchain.MedianTimeSource
+	//	db                   database.Db
+	timeSource blockchain.MedianTimeSource
 }
 
 type peerState struct {
@@ -1110,7 +1110,7 @@ out:
 // newServer returns a new btcd server configured to listen on addr for the
 // bitcoin network type specified by chainParams.  Use start to begin accepting
 // connections from peers.
-func newServer(listenAddrs []string, db database.Db, chainParams *chaincfg.Params) (*server, error) {
+func newServer(listenAddrs []string, chainParams *chaincfg.Params) (*server, error) {
 	nonce, err := wire.RandomUint64()
 	if err != nil {
 		return nil, err
@@ -1257,15 +1257,15 @@ func newServer(listenAddrs []string, db database.Db, chainParams *chaincfg.Param
 		quit:                 make(chan struct{}),
 		modifyRebroadcastInv: make(chan interface{}),
 		nat:                  nat,
-		db:                   db,
-		timeSource:           blockchain.NewMedianTime(),
+		//		db:                   db,
+		timeSource: blockchain.NewMedianTime(),
 	}
 	bm, err := newBlockManager(&s)
 	if err != nil {
 		return nil, err
 	}
 	s.blockManager = bm
-	s.txMemPool = newTxMemPool(&s)
+	//	s.txMemPool = newTxMemPool(&s)
 	//	s.cpuMiner = newCPUMiner(&s)
 
 	/*

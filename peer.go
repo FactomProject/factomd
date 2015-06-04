@@ -253,10 +253,12 @@ func (p *peer) RelayTxDisabled() bool {
 // pushVersionMsg sends a version message to the connected peer using the
 // current state.
 func (p *peer) pushVersionMsg() error {
-	_, blockNum, err := p.server.db.NewestSha()
-	if err != nil {
-		return err
-	}
+	/*
+		_, blockNum, err := p.server.db.NewestSha()
+		if err != nil {
+			return err
+		}
+	*/
 
 	theirNa := p.na
 
@@ -275,9 +277,11 @@ func (p *peer) pushVersionMsg() error {
 	}
 
 	// Version message.
+	util.Trace("NOT IMPLEMENTED? Factoid1")
 	msg := wire.NewMsgVersion(
 		p.server.addrManager.GetBestLocalAddress(p.na), theirNa,
-		p.server.nonce, int32(blockNum))
+		//		p.server.nonce, int32(blockNum))
+		p.server.nonce, 0) // TODO: provide a block number from Factom
 	msg.AddUserAgent(userAgentName, userAgentVersion)
 
 	// XXX: bitcoind appears to always enable the full node services flag
@@ -490,48 +494,52 @@ func (p *peer) pushTxMsg(sha *wire.ShaHash, doneChan, waitChan chan struct{}) er
 // pushBlockMsg sends a block message for the provided block hash to the
 // connected peer.  An error is returned if the block hash is not known.
 func (p *peer) pushBlockMsg(sha *wire.ShaHash, doneChan, waitChan chan struct{}) error {
-	blk, err := p.server.db.FetchBlockBySha(sha)
-	if err != nil {
-		peerLog.Tracef("Unable to fetch requested block sha %v: %v",
-			sha, err)
+	util.Trace("NOT IMPLEMENTED - NEEDED???")
+	panic(1111)
+	/*
+			blk, err := p.server.db.FetchBlockBySha(sha)
+			if err != nil {
+				peerLog.Tracef("Unable to fetch requested block sha %v: %v",
+					sha, err)
 
-		if doneChan != nil {
-			doneChan <- struct{}{}
+				if doneChan != nil {
+					doneChan <- struct{}{}
+				}
+				return err
+			}
+
+		// Once we have fetched data wait for any previous operation to finish.
+		if waitChan != nil {
+			<-waitChan
 		}
-		return err
-	}
 
-	// Once we have fetched data wait for any previous operation to finish.
-	if waitChan != nil {
-		<-waitChan
-	}
-
-	// We only send the channel for this message if we aren't sending
-	// an inv straight after.
-	var dc chan struct{}
-	sendInv := p.continueHash != nil && p.continueHash.IsEqual(sha)
-	if !sendInv {
-		dc = doneChan
-	}
-	p.QueueMessage(blk.MsgBlock(), dc)
-
-	// When the peer requests the final block that was advertised in
-	// response to a getblocks message which requested more blocks than
-	// would fit into a single message, send it a new inventory message
-	// to trigger it to issue another getblocks message for the next
-	// batch of inventory.
-	if p.continueHash != nil && p.continueHash.IsEqual(sha) {
-		hash, _, err := p.server.db.NewestSha()
-		if err == nil {
-			invMsg := wire.NewMsgInvSizeHint(1)
-			iv := wire.NewInvVect(wire.InvTypeBlock, hash)
-			invMsg.AddInvVect(iv)
-			p.QueueMessage(invMsg, doneChan)
-			p.continueHash = nil
-		} else if doneChan != nil {
-			doneChan <- struct{}{}
+		// We only send the channel for this message if we aren't sending
+		// an inv straight after.
+		var dc chan struct{}
+		sendInv := p.continueHash != nil && p.continueHash.IsEqual(sha)
+		if !sendInv {
+			dc = doneChan
 		}
-	}
+		p.QueueMessage(blk.MsgBlock(), dc)
+
+		// When the peer requests the final block that was advertised in
+		// response to a getblocks message which requested more blocks than
+		// would fit into a single message, send it a new inventory message
+		// to trigger it to issue another getblocks message for the next
+		// batch of inventory.
+		if p.continueHash != nil && p.continueHash.IsEqual(sha) {
+			hash, _, err := p.server.db.NewestSha()
+			if err == nil {
+				invMsg := wire.NewMsgInvSizeHint(1)
+				iv := wire.NewInvVect(wire.InvTypeBlock, hash)
+				invMsg.AddInvVect(iv)
+				p.QueueMessage(invMsg, doneChan)
+				p.continueHash = nil
+			} else if doneChan != nil {
+				doneChan <- struct{}{}
+			}
+		}
+	*/
 	return nil
 }
 

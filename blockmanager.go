@@ -14,7 +14,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/FactomProject/btcd/blockchain"
+	//	"github.com/FactomProject/btcd/blockchain"
 	"github.com/FactomProject/btcd/chaincfg"
 	"github.com/FactomProject/btcd/database"
 	"github.com/FactomProject/btcd/wire"
@@ -120,7 +120,7 @@ type processBlockResponse struct {
 // way to call ProcessBlock on the internal block chain instance.
 type processBlockMsg struct {
 	block *btcutil.Block
-	flags blockchain.BehaviorFlags
+	//	flags blockchain.BehaviorFlags
 	reply chan processBlockResponse
 }
 
@@ -164,10 +164,10 @@ func (c *chainState) Best() (*wire.ShaHash, int64) {
 // blockManager provides a concurrency safe block manager for handling all
 // incoming blocks.
 type blockManager struct {
-	server            *server
-	started           int32
-	shutdown          int32
-	blockChain        *blockchain.BlockChain
+	server   *server
+	started  int32
+	shutdown int32
+	//	blockChain        *blockchain.BlockChain
 	requestedTxns     map[wire.ShaHash]struct{}
 	requestedBlocks   map[wire.ShaHash]struct{}
 	progressLogger    *blockProgressLogger
@@ -459,78 +459,85 @@ func (b *blockManager) handleDonePeerMsg(peers *list.List, p *peer) {
 
 // handleTxMsg handles transaction messages from all peers.
 func (b *blockManager) handleTxMsg(tmsg *txMsg) {
-	util.Trace()
-	// NOTE:  BitcoinJ, and possibly other wallets, don't follow the spec of
-	// sending an inventory message and allowing the remote peer to decide
-	// whether or not they want to request the transaction via a getdata
-	// message.  Unfortuantely the reference implementation permits
-	// unrequested data, so it has allowed wallets that don't follow the
-	// spec to proliferate.  While this is not ideal, there is no check here
-	// to disconnect peers for sending unsolicited transactions to provide
-	// interoperability.
+	util.Trace("NOT IMPLEMENTED -- NEEDED???")
+	panic(11112)
 
-	// Process the transaction to include validation, insertion in the
-	// memory pool, orphan handling, etc.
-	err := tmsg.peer.server.txMemPool.ProcessTransaction(tmsg.tx, true, true)
+	/*
+		// NOTE:  BitcoinJ, and possibly other wallets, don't follow the spec of
+		// sending an inventory message and allowing the remote peer to decide
+		// whether or not they want to request the transaction via a getdata
+		// message.  Unfortuantely the reference implementation permits
+		// unrequested data, so it has allowed wallets that don't follow the
+		// spec to proliferate.  While this is not ideal, there is no check here
+		// to disconnect peers for sending unsolicited transactions to provide
+		// interoperability.
 
-	// Remove transaction from request maps. Either the mempool/chain
-	// already knows about it and as such we shouldn't have any more
-	// instances of trying to fetch it, or we failed to insert and thus
-	// we'll retry next time we get an inv.
-	txHash := tmsg.tx.Sha()
-	delete(tmsg.peer.requestedTxns, *txHash)
-	delete(b.requestedTxns, *txHash)
+		// Process the transaction to include validation, insertion in the
+		// memory pool, orphan handling, etc.
+		err := tmsg.peer.server.txMemPool.ProcessTransaction(tmsg.tx, true, true)
 
-	if err != nil {
-		// When the error is a rule error, it means the transaction was
-		// simply rejected as opposed to something actually going wrong,
-		// so log it as such.  Otherwise, something really did go wrong,
-		// so log it as an actual error.
-		if _, ok := err.(RuleError); ok {
-			bmgrLog.Debugf("Rejected transaction %v from %s: %v",
-				txHash, tmsg.peer, err)
-		} else {
-			bmgrLog.Errorf("Failed to process transaction %v: %v",
-				txHash, err)
+		// Remove transaction from request maps. Either the mempool/chain
+		// already knows about it and as such we shouldn't have any more
+		// instances of trying to fetch it, or we failed to insert and thus
+		// we'll retry next time we get an inv.
+		txHash := tmsg.tx.Sha()
+		delete(tmsg.peer.requestedTxns, *txHash)
+		delete(b.requestedTxns, *txHash)
+
+		if err != nil {
+			// When the error is a rule error, it means the transaction was
+			// simply rejected as opposed to something actually going wrong,
+			// so log it as such.  Otherwise, something really did go wrong,
+			// so log it as an actual error.
+			if _, ok := err.(RuleError); ok {
+				bmgrLog.Debugf("Rejected transaction %v from %s: %v",
+					txHash, tmsg.peer, err)
+			} else {
+				bmgrLog.Errorf("Failed to process transaction %v: %v",
+					txHash, err)
+			}
+
+			// Convert the error into an appropriate reject message and
+			// send it.
+			code, reason := errToRejectErr(err)
+			tmsg.peer.PushRejectMsg(wire.CmdBlock, code, reason, txHash,
+				false)
+			return
 		}
-
-		// Convert the error into an appropriate reject message and
-		// send it.
-		code, reason := errToRejectErr(err)
-		tmsg.peer.PushRejectMsg(wire.CmdBlock, code, reason, txHash,
-			false)
-		return
-	}
+	*/
 }
 
 // current returns true if we believe we are synced with our peers, false if we
 // still have blocks to check
 func (b *blockManager) current() bool {
-	if !b.blockChain.IsCurrent(b.server.timeSource) {
-		return false
-	}
+	/*
+		if !b.blockChain.IsCurrent(b.server.timeSource) {
+			return false
+		}
 
-	// if blockChain thinks we are current and we have no syncPeer it
-	// is probably right.
-	if b.syncPeer == nil {
-		return true
-	}
+		// if blockChain thinks we are current and we have no syncPeer it
+		// is probably right.
+		if b.syncPeer == nil {
+			return true
+		}
 
-	_, height, err := b.server.db.NewestSha()
-	// No matter what chain thinks, if we are below the block we are
-	// syncing to we are not current.
-	// TODO(oga) we can get chain to return the height of each block when we
-	// parse an orphan, which would allow us to update the height of peers
-	// from what it was at initial handshake.
-	if err != nil || height < int64(b.syncPeer.lastBlock) {
-		return false
-	}
+		_, height, err := b.server.db.NewestSha()
+		// No matter what chain thinks, if we are below the block we are
+		// syncing to we are not current.
+		// TODO(oga) we can get chain to return the height of each block when we
+		// parse an orphan, which would allow us to update the height of peers
+		// from what it was at initial handshake.
+		if err != nil || height < int64(b.syncPeer.lastBlock) {
+			return false
+		}
+	*/
 	return true
 }
 
 // handleBlockMsg handles block messages from all peers.
 func (b *blockManager) handleBlockMsg(bmsg *blockMsg) {
 	util.Trace()
+
 	// If we didn't ask for this block then the peer is misbehaving.
 	blockSha, _ := bmsg.block.Sha()
 	if _, ok := bmsg.peer.requestedBlocks[*blockSha]; !ok {
@@ -571,7 +578,7 @@ func (b *blockManager) handleBlockMsg(bmsg *blockMsg) {
 			}
 		}
 	*/
-	behaviorFlags := blockchain.BFNone
+	//	behaviorFlags := blockchain.BFNone
 
 	// Remove block from request maps. Either chain will know about it and
 	// so we shouldn't have any more instances of trying to fetch it, or we
@@ -628,11 +635,13 @@ func (b *blockManager) handleBlockMsg(bmsg *blockMsg) {
 
 		b.progressLogger.LogBlockHeight(bmsg.block)
 
-		// Query the db for the latest best block since the block
-		// that was processed could be on a side chain or have caused
-		// a reorg.
-		newestSha, newestHeight, _ := b.server.db.NewestSha()
-		b.updateChainState(newestSha, newestHeight)
+		/*
+			// Query the db for the latest best block since the block
+			// that was processed could be on a side chain or have caused
+			// a reorg.
+			newestSha, newestHeight, _ := b.server.db.NewestSha()
+			b.updateChainState(newestSha, newestHeight)
+		*/
 
 		// Allow any clients performing long polling via the
 		// getblocktemplate RPC to be notified when the new block causes
@@ -646,7 +655,7 @@ func (b *blockManager) handleBlockMsg(bmsg *blockMsg) {
 	}
 
 	// Sync the db to disk.
-	b.server.db.Sync()
+	//	b.server.db.Sync()
 
 	/*
 		// Nothing more to do if we aren't in headers-first mode.
@@ -869,15 +878,20 @@ func (b *blockManager) haveInventory(invVect *wire.InvVect) (bool, error) {
 		return b.blockChain.HaveBlock(&invVect.Hash)
 
 	case wire.InvTypeTx:
-		// Ask the transaction memory pool if the transaction is known
-		// to it in any form (main pool or orphan).
-		if b.server.txMemPool.HaveTransaction(&invVect.Hash) {
-			return true, nil
-		}
+		util.Trace("NOT IMPLEMENTED NEEDED: factoid1")
+		panic(errors.New("needed Factoid1"))
 
-		// Check if the transaction exists from the point of view of the
-		// end of the main chain.
-		return b.server.db.ExistsTxSha(&invVect.Hash)
+		/*
+			// Ask the transaction memory pool if the transaction is known
+			// to it in any form (main pool or orphan).
+			if b.server.txMemPool.HaveTransaction(&invVect.Hash) {
+				return true, nil
+			}
+
+			// Check if the transaction exists from the point of view of the
+			// end of the main chain.
+			return b.server.db.ExistsTxSha(&invVect.Hash)
+		*/
 
 	case wire.InvTypeFactomDirBlock:
 		util.Trace()
@@ -1112,8 +1126,10 @@ out:
 				// Query the db for the latest best block since
 				// the block that was processed could be on a
 				// side chain or have caused a reorg.
-				newestSha, newestHeight, _ := b.server.db.NewestSha()
-				b.updateChainState(newestSha, newestHeight)
+				/*
+					newestSha, newestHeight, _ := b.server.db.NewestSha()
+					b.updateChainState(newestSha, newestHeight)
+				*/
 
 				msg.reply <- processBlockResponse{
 					isOrphan: isOrphan,
@@ -1152,6 +1168,7 @@ out:
 	bmgrLog.Trace("Block handler done")
 }
 
+/*
 // handleNotifyMsg handles notifications from blockchain.  It does things such
 // as request orphan block parents and relay accepted blocks to connected peers.
 func (b *blockManager) handleNotifyMsg(notification *blockchain.Notification) {
@@ -1214,13 +1231,11 @@ func (b *blockManager) handleNotifyMsg(notification *blockchain.Notification) {
 			r.ntfnMgr.NotifyBlockConnected(block)
 		}
 
-		/*
 			// If we're maintaing the address index, and it is up to date
 			// then update it based off this new block.
 			if cfg.AddrIndex && b.server.addrIndexer.IsCaughtUp() {
 				b.server.addrIndexer.UpdateAddressIndex(block)
 			}
-		*/
 
 	// A block has been disconnected from the main block chain.
 	case blockchain.NTBlockDisconnected:
@@ -1249,6 +1264,7 @@ func (b *blockManager) handleNotifyMsg(notification *blockchain.Notification) {
 		}
 	}
 }
+*/
 
 // NewPeer informs the block manager of a newly active peer.
 func (b *blockManager) NewPeer(p *peer) {
@@ -1412,10 +1428,12 @@ func (b *blockManager) IsCurrent() bool {
 func newBlockManager(s *server) (*blockManager, error) {
 	util.Trace()
 
-	newestHash, height, err := s.db.NewestSha()
-	if err != nil {
-		return nil, err
-	}
+	/*
+		newestHash, height, err := s.db.NewestSha()
+		if err != nil {
+			return nil, err
+		}
+	*/
 
 	bm := blockManager{
 		server:          s,
@@ -1428,7 +1446,7 @@ func newBlockManager(s *server) (*blockManager, error) {
 	}
 	bm.progressLogger = newBlockProgressLogger("Processed", bmgrLog)
 
-	bm.blockChain = blockchain.New(s.db, s.chainParams, bm.handleNotifyMsg)
+	//	bm.blockChain = blockchain.New(s.db, s.chainParams, bm.handleNotifyMsg)
 	//bm.blockChain.DisableCheckpoints(cfg.DisableCheckpoints)
 
 	bm.dirChain = dchain
