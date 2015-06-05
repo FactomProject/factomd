@@ -86,10 +86,12 @@ func factomForkInit(s *server) {
 				case wire.END_MINUTE_10:
 					panic(errors.New("unhandled END_MINUTE_10"))
 
-					// block building, return the hash of the new one via doneFB (via hook)
-					generateFactoidBlock(msgEom.NextDBlockHeight)
-					fmt.Println("***********************")
-					fmt.Println("***********************")
+					/*
+						// block building, return the hash of the new one via doneFB (via hook)
+						generateFactoidBlock(msgEom.NextDBlockHeight)
+						fmt.Println("***********************")
+						fmt.Println("***********************")
+					*/
 
 				default:
 					util.Trace("unhandled EOM type")
