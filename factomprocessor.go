@@ -178,12 +178,14 @@ func initProcess() {
 	if dchain.NextBlockHeight == 0 {
 		buildGenesisBlocks()
 	} else {
-		// still send a message to the btcd-side to start up the database; such as a current block height
-		eomMsg := &wire.MsgInt_EOM{
-			EOM_Type:         wire.INFO_CURRENT_HEIGHT,
-			NextDBlockHeight: dchain.NextBlockHeight,
-		}
-		outCtlMsgQueue <- eomMsg
+		/*
+			// still send a message to the btcd-side to start up the database; such as a current block height
+			eomMsg := &wire.MsgInt_EOM{
+				EOM_Type:         wire.INFO_CURRENT_HEIGHT,
+				NextDBlockHeight: dchain.NextBlockHeight,
+			}
+			outCtlMsgQueue <- eomMsg
+		*/
 
 		// To be improved in milestone 2
 		SignDirectoryBlock()
