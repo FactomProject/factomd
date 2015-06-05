@@ -7,7 +7,7 @@ package btcd
 import (
 	"container/list"
 	"errors"
-	"fmt"
+	//	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
@@ -1609,6 +1609,7 @@ func setupBlockDB(flag bool) (database.Db, error) {
 	return db, nil
 }
 
+/*
 // loadBlockDB opens the block database and returns a handle to it.
 func loadBlockDB() (database.Db, error) {
 	util.Trace()
@@ -1666,3 +1667,4 @@ func loadBlockDB() (database.Db, error) {
 	btcdLog.Infof("Block database loaded with block height %d", height)
 	return db, nil
 }
+*/
