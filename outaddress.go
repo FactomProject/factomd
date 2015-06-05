@@ -8,7 +8,7 @@
 package simplecoin
 
 import (
-    "bytes"
+	"bytes"
 )
 
 type IOutAddress interface {
@@ -21,12 +21,20 @@ type OutAddress struct {
 
 var _ IOutAddress = (*OutAddress)(nil)
 
-func (OutAddress)GetDBHash() IHash {
-    return Sha([]byte("OutAddress"))
+func (b OutAddress) String() string {
+	txt, err := b.MarshalText()
+	if err != nil {
+		return "<error>"
+	}
+	return string(txt)
 }
 
-func (w1 OutAddress)GetNewInstance() IBlock {
-    return new(OutAddress)
+func (OutAddress) GetDBHash() IHash {
+	return Sha([]byte("OutAddress"))
+}
+
+func (w1 OutAddress) GetNewInstance() IBlock {
+	return new(OutAddress)
 }
 
 func (oa OutAddress) GetName() string {
@@ -34,17 +42,18 @@ func (oa OutAddress) GetName() string {
 }
 
 func (a OutAddress) MarshalText() (text []byte, err error) {
-    var out bytes.Buffer
-    out.WriteString("output: ")
-    a.MarshalText2(&out)
-    out.WriteString("\n")
-    return out.Bytes(), nil
+	var out bytes.Buffer
+	out.WriteString("output: ")
+	a.MarshalText2(&out)
+	out.WriteString("\n")
+	return out.Bytes(), nil
 }
+
 /******************************
  * Helper functions
  ******************************/
 
-func NewOutAddress( address IAddress, amount uint64) IOutAddress {
+func NewOutAddress(address IAddress, amount uint64) IOutAddress {
 	oa := new(OutAddress)
 	oa.amount = amount
 	oa.address = address

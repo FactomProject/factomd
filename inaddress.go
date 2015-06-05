@@ -8,7 +8,7 @@
 package simplecoin
 
 import (
-    "bytes"
+	"bytes"
 )
 
 type IInAddress interface {
@@ -21,27 +21,35 @@ type InAddress struct {
 
 var _ IInAddress = (*InAddress)(nil)
 
-func (InAddress)GetDBHash() IHash {
-    return Sha([]byte("InAddress"))
+func (b InAddress) String() string {
+	txt, err := b.MarshalText()
+	if err != nil {
+		return "<error>"
+	}
+	return string(txt)
 }
 
-func (i InAddress)GetNewInstance() IBlock {
-    return new(InAddress)
+func (InAddress) GetDBHash() IHash {
+	return Sha([]byte("InAddress"))
 }
 
+func (i InAddress) GetNewInstance() IBlock {
+	return new(InAddress)
+}
 
 func (a InAddress) MarshalText() (text []byte, err error) {
-    var out bytes.Buffer
-    out.WriteString("input: ")
-    a.MarshalText2(&out)
-    out.WriteString("\n")
-    return out.Bytes(), nil
+	var out bytes.Buffer
+	out.WriteString("input: ")
+	a.MarshalText2(&out)
+	out.WriteString("\n")
+	return out.Bytes(), nil
 }
+
 /******************************
  * Helper functions
  ******************************/
 
-func NewInAddress( address IAddress, amount uint64) IInAddress {
+func NewInAddress(address IAddress, amount uint64) IInAddress {
 	oa := new(InAddress)
 	oa.amount = amount
 	oa.address = address

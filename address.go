@@ -22,26 +22,33 @@ type IAddress interface {
 }
 
 type Address struct {
-	Hash       // Since Hash implements IHash, and IAddress is just a
-}              // alais for IHash, then I don't have to (nor can I) make
-               // Address implement IAddress... Weird, but that's the way it is.
-               
-               
+	Hash // Since Hash implements IHash, and IAddress is just a
+} // alais for IHash, then I don't have to (nor can I) make
+// Address implement IAddress... Weird, but that's the way it is.
+
 var _ IAddress = (*Address)(nil)
 
+func (b Address) String() string {
+	txt, err := b.MarshalText()
+	if err != nil {
+		return "<error>"
+	}
+	return string(txt)
+}
+
 func (Address) GetDBHash() IHash {
-    return Sha([]byte("Address"))
+	return Sha([]byte("Address"))
 }
 
 func (a Address) MarshalText() (text []byte, err error) {
-    var out bytes.Buffer
-    addr := hex.EncodeToString(a.Bytes())
-    out.WriteString("addr  ")
-    out.WriteString(addr)
-    out.WriteString("\n")
-    return out.Bytes(), nil
+	var out bytes.Buffer
+	addr := hex.EncodeToString(a.Bytes())
+	out.WriteString("addr  ")
+	out.WriteString(addr)
+	out.WriteString("\n")
+	return out.Bytes(), nil
 }
 
 func CreateAddress(hash IHash) IAddress {
-    return hash
+	return hash
 }

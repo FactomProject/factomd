@@ -29,14 +29,13 @@ type Hash struct {
 
 var _ IHash = (*Hash)(nil)
 
-func (w1 Hash)GetDBHash() IHash {
-    return Sha([]byte("Hash"))
+func (w1 Hash) GetDBHash() IHash {
+	return Sha([]byte("Hash"))
 }
 
-func (w1 Hash)GetNewInstance() IBlock {
-    return new(Hash)
+func (w1 Hash) GetNewInstance() IBlock {
+	return new(Hash)
 }
-
 
 func (t Hash) IsEqual(hash IBlock) bool {
 	h, ok := hash.(IHash)
@@ -149,8 +148,18 @@ func (a Hash) IsSameAs(b IHash) bool {
 }
 
 func (a Hash) MarshalText() (text []byte, err error) {
-    var out bytes.Buffer
-    hash := hex.EncodeToString(a.hash[:])
-    out.WriteString(hash)
-    return out.Bytes(), nil
+	var out bytes.Buffer
+	hash := hex.EncodeToString(a.hash[:])
+	out.WriteString(hash)
+	return out.Bytes(), nil
+}
+
+/**********************
+ * Support functions
+ **********************/
+
+func NewHash(b []byte) IHash {
+    h := new(Hash)
+    h.SetBytes(b)
+    return h
 }

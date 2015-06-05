@@ -9,7 +9,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
-// 	"github.com/agl/ed25519"
+	// 	"github.com/agl/ed25519"
 )
 
 /************************
@@ -32,23 +32,31 @@ type RCD_2 struct {
 
 var _ IRCD = (*RCD_2)(nil)
 
-func (w RCD_2)Clone() IRCD {
-    c := new (RCD_2)
-    c.m = w.m
-    c.n = w.n
-    c.n_addresses = make([]IAddress,len(w.n_addresses))
-    for i,address := range w.n_addresses {
-        c.n_addresses[i] = CreateAddress(address)
-    }
-    return c
+func (b RCD_2) String() string {
+	txt, err := b.MarshalText()
+	if err != nil {
+		return "<error>"
+	}
+	return string(txt)
 }
 
-func (RCD_2)GetDBHash() IHash {
-    return Sha([]byte("RCD_2"))
+func (w RCD_2) Clone() IRCD {
+	c := new(RCD_2)
+	c.m = w.m
+	c.n = w.n
+	c.n_addresses = make([]IAddress, len(w.n_addresses))
+	for i, address := range w.n_addresses {
+		c.n_addresses[i] = CreateAddress(address)
+	}
+	return c
 }
 
-func (w1 RCD_2)GetNewInstance() IBlock {
-    return new(RCD_2)
+func (RCD_2) GetDBHash() IHash {
+	return Sha([]byte("RCD_2"))
+}
+
+func (w1 RCD_2) GetNewInstance() IBlock {
+	return new(RCD_2)
 }
 
 func (a1 RCD_2) IsEqual(addr IBlock) bool {
@@ -74,7 +82,7 @@ func (t *RCD_2) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	typ := int8(data[0])
 	data = data[1:]
 	if typ != 2 {
-        return nil, fmt.Errorf("Bad data fed to RCD_2 UnmarshalBinaryData()")
+		return nil, fmt.Errorf("Bad data fed to RCD_2 UnmarshalBinaryData()")
 	}
 
 	t.n, data = int(binary.BigEndian.Uint16(data[0:2])), data[2:]

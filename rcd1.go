@@ -16,8 +16,8 @@ import (
  **************************/
 
 type IRCD_1 interface {
-    IRCD
-    GetPublicKey() []byte
+	IRCD
+	GetPublicKey() []byte
 }
 
 // In this case, we are simply validating one address to ensure it signed
@@ -29,43 +29,50 @@ type RCD_1 struct {
 
 var _ IRCD = (*RCD_1)(nil)
 
+func (b RCD_1) String() string {
+	txt, err := b.MarshalText()
+	if err != nil {
+		return "<error>"
+	}
+	return string(txt)
+}
+
 func (w RCD_1) CheckSig(trans ITransaction, sigblk ISignatureBlock) bool {
-    data,err := trans.MarshalBinarySig()
-    if err != nil {return false}
-    sig := sigblk.GetSignature(0).GetSignature(0)
-    if !ed25519.Verify(&w.publicKey,data,sig) {return false}
-    return true
+	data, err := trans.MarshalBinarySig()
+	if err != nil {
+		return false
+	}
+	sig := sigblk.GetSignature(0).GetSignature(0)
+	if !ed25519.Verify(&w.publicKey, data, sig) {
+		return false
+	}
+	return true
 }
 
-func (w RCD_1)Clone() IRCD {
-    c := new (RCD_1)
-    copy(c.publicKey[:],w.publicKey[:])
-    return c
+func (w RCD_1) Clone() IRCD {
+	c := new(RCD_1)
+	copy(c.publicKey[:], w.publicKey[:])
+	return c
 }
 
-
-func (w RCD_1)GetAddress() (IAddress, error){
-    data, err := w.MarshalBinary()
-    if err != nil {
-        return nil, fmt.Errorf("This should never happen.  If I have a RCD_1, it should hash.")
-    }
-    return CreateAddress(Sha(data)), nil
+func (w RCD_1) GetAddress() (IAddress, error) {
+	return CreateAddress(Sha(w.publicKey[:])), nil
 }
 
-func (RCD_1)GetDBHash() IHash {
-    return Sha([]byte("RCD_1"))
+func (RCD_1) GetDBHash() IHash {
+	return Sha([]byte("RCD_1"))
 }
 
-func (w1 RCD_1)GetNewInstance() IBlock {
-    return new(RCD_1)
+func (w1 RCD_1) GetNewInstance() IBlock {
+	return new(RCD_1)
 }
 
 func (a RCD_1) GetPublicKey() []byte {
 	return a.publicKey[:]
 }
 
-func (w1 RCD_1)NumberOfSignatures() int {
-    return 1
+func (w1 RCD_1) NumberOfSignatures() int {
+	return 1
 }
 
 func (a1 RCD_1) IsEqual(addr IBlock) bool {
@@ -94,8 +101,8 @@ func (t *RCD_1) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	}
 
 	copy(t.publicKey[:], data[:ADDRESS_LENGTH])
-    data = data[ADDRESS_LENGTH:]
-    
+	data = data[ADDRESS_LENGTH:]
+
 	return data, nil
 }
 
@@ -103,7 +110,7 @@ func (a RCD_1) MarshalBinary() ([]byte, error) {
 	var out bytes.Buffer
 	out.WriteByte(byte(1)) // The First Authorization method
 	out.Write(a.publicKey[:])
-    
+
 	return out.Bytes(), nil
 }
 

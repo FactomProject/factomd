@@ -22,7 +22,7 @@ type ITransAddress interface {
 	SetAmount(uint64)
 	GetAddress() IAddress
 	SetAddress(IAddress)
-	MarshalText2(*bytes.Buffer) 
+	MarshalText2(*bytes.Buffer)
 }
 
 type TransAddress struct {
@@ -83,7 +83,7 @@ func (ta TransAddress) GetAmount() uint64 {
 
 // Accessor.  Get the amount with this address.
 func (ta *TransAddress) SetAmount(amount uint64) {
-    ta.amount = amount
+	ta.amount = amount
 }
 
 // Accessor.  Get the raw address.  Could be an actual address,
@@ -95,7 +95,7 @@ func (ta TransAddress) GetAddress() IAddress {
 // Accessor.  Get the raw address.  Could be an actual address,
 // or a hash of an authorization block.  See authorization.go
 func (ta *TransAddress) SetAddress(address IAddress) {
-    ta.address = address
+	ta.address = address
 }
 
 // Make this into somewhat readable text.
@@ -107,5 +107,5 @@ func (ta TransAddress) MarshalText2(out *bytes.Buffer) {
 	text, _ := ta.address.MarshalText()
 	out.Write(text)
 
-	return 
+	return
 }

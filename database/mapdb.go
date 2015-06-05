@@ -19,6 +19,12 @@ type MapDB struct {
 
 var _ ISCDatabase = (*MapDB)(nil)
 
+func (b MapDB) String() string {
+    txt,err := b.MarshalText()
+    if err != nil {return "<error>" }
+    return string(txt)
+}
+
 func (db *MapDB) Init(a ...interface{}) {
 	db.cache = make(map[DBKey](sc.IBlock), 100)
 }

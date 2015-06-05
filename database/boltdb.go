@@ -7,7 +7,7 @@ package database
 import (
     "fmt"
     "bytes"
-	"github.com/FactomProject/simplecoin"
+	sc "github.com/FactomProject/simplecoin"
     "github.com/boltdb/bolt"
 )
 
@@ -31,12 +31,17 @@ type BoltDB struct {
 	SCDatabase
     
     db          *bolt.DB                        // Pointer to the bolt db
-    instances   map[[32]byte]simplecoin.IBlock  // Maps a hash to an instance of an IBlock
+    instances   map[[32]byte]sc.IBlock  // Maps a hash to an instance of an IBlock
     filename    string                          // location to write the db
 }
 
 var _ ISCDatabase = (*BoltDB)(nil)
 
+func (b BoltDB) String() string {
+    txt,err := b.MarshalText()
+    if err != nil {return "<error>" }
+    return string(txt)
+}
 
 func (d *BoltDB) Clear(bucketList [][]byte, filename string) {
     
@@ -65,10 +70,9 @@ func (d *BoltDB) Clear(bucketList [][]byte, filename string) {
 //      Init(bucketList [][]byte, instances map[[32]byte]IBlock, filename string)
 //
 func (d *BoltDB) Init(a ...interface{}) {
-    simplecoin.Prtln("NEED TO CONFIGURE DB")
     
     bucketList := a[0].([][]byte)
-    instances  := a[1].(map[[32]byte]simplecoin.IBlock)
+    instances  := a[1].(map[[32]byte]sc.IBlock)
     if(len(a)<3) {
         d.filename = "/tmp/bolt_my.db"
     }else{
@@ -100,22 +104,27 @@ func (d *BoltDB) Close() {
     d.db.Close()
 }
 
-func (d *BoltDB) GetRaw(bucket []byte, key []byte) (value simplecoin.IBlock) {
+func (d *BoltDB) GetRaw(bucket []byte, key []byte) (value sc.IBlock) {
     var v []byte
     d.db.View(func(tx *bolt.Tx) error {
         b := tx.Bucket(bucket)
-        v = b.Get([]byte(key))
+        v = b.Get(key)
         return nil
     })
+    sc.PrtData(key) //////////////////////////////////////////////////////////////
+    if v == nil || len(v)<32 {
+        sc.Prt("v: ",v)
+        panic("This should not happen.  Data stored is too small, or is missing")
+    }
     var vv[32]byte
-    copy(vv[:],v)
-    var instance simplecoin.IBlock = d.instances[vv]
+    copy(vv[:],v[:32])
+    var instance sc.IBlock = d.instances[vv]
     if instance == nil {
         panic("This should not happen.  Object stored in the database has no IBlock instance")
     }
     
     r := instance.GetNewInstance()
-    _,err := r.UnmarshalBinaryData(v)
+    _,err := r.UnmarshalBinaryData(v[32:])
     if err != nil {
         panic("This should not happen.  IBlock failed to unmarshal.")
     }
@@ -124,7 +133,10 @@ func (d *BoltDB) GetRaw(bucket []byte, key []byte) (value simplecoin.IBlock) {
 }
 
 
-func (d *BoltDB) PutRaw(bucket []byte, key []byte, value simplecoin.IBlock) {
+func (d *BoltDB) PutRaw(bucket []byte, key []byte, value sc.IBlock) {
+
+    sc.PrtData(key)//////////////////////////////////////////////////////////////
+    
     var out bytes.Buffer
     hash := value.GetDBHash()
     out.Write(hash.Bytes())
@@ -136,25 +148,26 @@ func (d *BoltDB) PutRaw(bucket []byte, key []byte, value simplecoin.IBlock) {
     }
     d.db.Update(func(tx *bolt.Tx) error {
         b := tx.Bucket(bucket)
-        err := b.Put(key, data)
+        err := b.Put(key, out.Bytes())
     return err
     })
+    
 }
 
-func (db *BoltDB) Get(bucket string, key simplecoin.IHash) (value simplecoin.IBlock) {
+func (db *BoltDB) Get(bucket string, key sc.IHash) (value sc.IBlock) {
     return db.GetRaw([]byte(bucket), key.Bytes())
 }
 
-func (db *BoltDB) GetKey(key IDBKey) (value simplecoin.IBlock) {
+func (db *BoltDB) GetKey(key IDBKey) (value sc.IBlock) {
     return db.GetRaw(key.GetBucket(),key.GetKey())
 }
 
-func (db *BoltDB) Put(bucket string, key simplecoin.IHash, value simplecoin.IBlock) {
+func (db *BoltDB) Put(bucket string, key sc.IHash, value sc.IBlock) {
     b := []byte(bucket)
     k := key.Bytes()
     db.PutRaw(b, k, value)
 }
 
-func (db *BoltDB) PutKey(key IDBKey, value simplecoin.IBlock) {
+func (db *BoltDB) PutKey(key IDBKey, value sc.IBlock) {
     db.PutRaw(key.GetBucket(), key.GetKey(), value)
 }

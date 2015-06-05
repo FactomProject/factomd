@@ -58,6 +58,12 @@ type SCWallet struct {
 
 var _ ISCWallet = (*SCWallet)(nil)
 
+func (b SCWallet) String() string {
+    txt,err := b.MarshalText()
+    if err != nil {return "<error>" }
+    return string(txt)
+}
+
 func (SCWallet) GetDBHash() sc.IHash {
     return sc.Sha([]byte("SCWallet"))
 }
@@ -75,7 +81,7 @@ func (w *SCWallet) SignInputs(trans sc.ITransaction) (bool, error) {
         rcd1, ok := rcd.(*sc.RCD_1)
         if ok {
             pub := rcd1.GetPublicKey()
-            we := w.db.GetRaw([]byte("wallet.address.addr"),pub).(*WalletEntry)
+            we := w.db.GetRaw([]byte(sc.W_ADDRESS_PUB_KEY),pub).(*WalletEntry)
             if we != nil {
                 var pri [sc.SIGNATURE_LENGTH]byte
                 copy(pri[:],we.private[0])
@@ -114,7 +120,6 @@ func (w *SCWallet) GenerateAddress(name []byte,m int, n int) (hash sc.IAddress, 
         if err != nil { return nil, err  }
         we.AddKey(pub,pri)
         we.SetName(name)
-        sc.NewRCD_1(pub)
         we.SetRCD(sc.NewRCD_1(pub))
 
         // If the name exists already, then we store this as the hash of the name.
@@ -124,12 +129,10 @@ func (w *SCWallet) GenerateAddress(name []byte,m int, n int) (hash sc.IAddress, 
         nm  := w.db.GetRaw([]byte("wallet.address.name"),name)
         switch {
             case nm == nil :       // New Name
-                b,err := we.MarshalBinary()
-                if err != nil { return nil, err }
-                hash = sc.Sha(b)
-                w.db.PutRaw([]byte("wallet.address.hash"),hash.Bytes(),we)
-                w.db.PutRaw([]byte("wallet.address.name"),name,we)
-                w.db.PutRaw([]byte("wallet.address.addr"),pub,we)
+                hash, _ = we.GetAddress()
+                w.db.PutRaw([]byte(sc.W_ADDRESS_HASH),hash.Bytes(),we)
+                w.db.PutRaw([]byte(sc.W_ADDRESS_PUB_KEY),pub,we)                
+                w.db.PutRaw([]byte(sc.W_NAME_HASH),name,we)
             case nm != nil :       // Duplicate name.  We generate a new name, and recurse.
                 return nil, fmt.Errorf("Should never get here!  This is disabled!")
                 nh := sc.Sha(name)
@@ -169,7 +172,8 @@ func (w *SCWallet)  CreateTransaction() sc.ITransaction {
 }
 
 func (w *SCWallet) AddInput(trans sc.ITransaction, hash sc.IAddress, amount uint64) error {
-     v := w.db.GetRaw([]byte("wallet.address.hash"),hash.Bytes())
+    v := w.db.GetRaw([]byte(sc.W_ADDRESS_HASH),hash.Bytes())
+          
      if(v == nil) {
          return fmt.Errorf("Unknown address")
      }
@@ -188,7 +192,7 @@ func (w *SCWallet) UpdateInput(trans sc.ITransaction,
                                hash sc.IAddress, 
                                amount uint64) error {
     
-    v := w.db.GetRaw([]byte("wallet.address.hash"),hash.Bytes())
+    v := w.db.GetRaw([]byte(sc.W_ADDRESS_HASH),hash.Bytes())
     if v == nil { 
         return fmt.Errorf("Unknown address")
     }
@@ -203,7 +207,7 @@ func (w *SCWallet) UpdateInput(trans sc.ITransaction,
 }     
 
 func (w *SCWallet) AddOutput(trans sc.ITransaction, hash sc.IAddress, amount uint64) error {
-    v := w.db.GetRaw([]byte("wallet.address.hash"),hash.Bytes())
+    v := w.db.GetRaw([]byte(sc.W_ADDRESS_HASH),hash.Bytes())
     if v == nil { 
         return fmt.Errorf("Unknown address")
     }
@@ -217,7 +221,7 @@ func (w *SCWallet) AddOutput(trans sc.ITransaction, hash sc.IAddress, amount uin
 }     
  
 func (w *SCWallet) AddECOutput(trans sc.ITransaction, hash sc.IAddress, amount uint64) error {
-    we := w.db.GetRaw([]byte("wallet.address.hash"),hash.Bytes()).(*WalletEntry)
+    we := w.db.GetRaw([]byte(sc.W_ADDRESS_HASH),hash.Bytes()).(*WalletEntry)
     if we == nil { 
         return fmt.Errorf("Unknown address")
     }
@@ -231,7 +235,11 @@ func (w *SCWallet) AddECOutput(trans sc.ITransaction, hash sc.IAddress, amount u
 
 func (w *SCWallet) Validate(trans sc.ITransaction) (bool,error){
     valid := trans.Validate()
-    return valid, nil
+    if valid == sc.WELL_FORMED {
+        return true, nil
+    }
+    fmt.Println("Validation Failed: ",valid)
+    return false, nil
 }    
  
  func (w *SCWallet) ValidateSignatures(trans sc.ITransaction) bool{

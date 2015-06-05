@@ -29,7 +29,8 @@ type ISCBlock interface {
 	SetExchRate(uint64)
 	GetExchRate() uint64
 	GetUTXOCommit() sc.IHash
-	SetUTXOCommit([]byte) 	
+	SetUTXOCommit([]byte) 
+    GetTransactions() []sc.ITransaction
 }
 
 // FBlockHeader defines information about a block and is used in the bitcoin
@@ -52,6 +53,14 @@ type SCBlock struct {
 }
 
 var _ ISCBlock = (*SCBlock)(nil)
+
+func (b SCBlock) GetTransactions() []sc.ITransaction {
+    return b.transactions
+}
+
+func (b SCBlock) GetNewInstance() sc.IBlock {
+    return new(SCBlock)
+}
 
 func (SCBlock) GetDBHash() sc.IHash {
     return sc.Sha([]byte("SCBlock"))
@@ -251,8 +260,8 @@ func (b SCBlock) GetExchRate() uint64 {
 func (b SCBlock) Validate() (bool, error) {
 	for _, trans := range b.transactions {
 		valid := trans.Validate()
-		if !valid {
-			return false, fmt.Errorf("Block contains invalid transactions")
+		if valid != sc.WELL_FORMED {
+			return false, fmt.Errorf("Block contains invalid transactions:\n%s",valid)
 		}
 	}
 
@@ -295,9 +304,9 @@ func (b *SCBlock) AddCoinbase(trans sc.ITransaction) (bool, error) {
 func (b *SCBlock) AddTransaction(trans sc.ITransaction) (bool, error) {
 	// These tests check that the Transaction itself is valid.  If it
 	// is not internally valid, it never will be valid.
-	ok := trans.Validate()
-	if !ok {
-		return false, fmt.Errorf("Invalid Transaction")
+	valid := trans.Validate()
+	if valid != sc.WELL_FORMED {
+		return false, fmt.Errorf("Invalid Transaction: %s",valid)
 	}
 
 	// These checks may pass in the future
@@ -306,6 +315,12 @@ func (b *SCBlock) AddTransaction(trans sc.ITransaction) (bool, error) {
 
 	b.transactions = append(b.transactions, trans)
 	return true, nil
+}
+
+func (b SCBlock) String() string {
+    txt,err := b.MarshalText()
+    if err != nil {return "<error>" }
+    return string(txt)
 }
 
 // Marshal to text.  Largely a debugging thing.

@@ -21,10 +21,10 @@ import (
 
 type ISignature interface {
 	IBlock
-	GetIndex() int       // Used with multisig to know where to apply the signature
-	SetIndex(int)        // Set the index
-    SetSignature(i int, sig []byte) error // Set or update the signature
-    GetSignature(i int) (*[SIGNATURE_LENGTH]byte)
+	GetIndex() int                        // Used with multisig to know where to apply the signature
+	SetIndex(int)                         // Set the index
+	SetSignature(i int, sig []byte) error // Set or update the signature
+	GetSignature(i int) *[SIGNATURE_LENGTH]byte
 }
 
 // The default signature doesn't care about indexing.  We will extend this
@@ -36,15 +36,23 @@ type Signature struct {
 
 var _ ISignature = (*Signature)(nil)
 
-func (Signature)GetDBHash() IHash {
-    return Sha([]byte("Signature"))
+func (b Signature) String() string {
+	txt, err := b.MarshalText()
+	if err != nil {
+		return "<error>"
+	}
+	return string(txt)
 }
 
-func (w1 Signature)GetNewInstance() IBlock {
-    return new(Signature)
+func (Signature) GetDBHash() IHash {
+	return Sha([]byte("Signature"))
 }
 
-// Checks that the signatures are the same.  
+func (w1 Signature) GetNewInstance() IBlock {
+	return new(Signature)
+}
+
+// Checks that the signatures are the same.
 func (s1 Signature) IsEqual(sig IBlock) bool {
 	s2, ok := sig.(*Signature)
 	if !ok || // Not the right kind of IBlock
@@ -60,14 +68,15 @@ func (s *Signature) SetSignature(i int, sig []byte) error {
 		return fmt.Errorf("Bad signature.  Should not happen")
 	}
 	copy(s.signature[:], sig)
-    return nil
+	return nil
 }
 
-func (s *Signature) GetSignature(i int) (*[SIGNATURE_LENGTH]byte) {
-    if i != 0 {return nil}
-    return &s.signature
+func (s *Signature) GetSignature(i int) *[SIGNATURE_LENGTH]byte {
+	if i != 0 {
+		return nil
+	}
+	return &s.signature
 }
-
 
 func (s Signature) MarshalBinary() ([]byte, error) {
 	var out bytes.Buffer
@@ -88,7 +97,6 @@ func (s Signature) MarshalText() ([]byte, error) {
 }
 
 func (s *Signature) UnmarshalBinaryData(data []byte) ([]byte, error) {
-    copy(s.signature[:], data[:SIGNATURE_LENGTH])
-    return data[SIGNATURE_LENGTH:], nil 
+	copy(s.signature[:], data[:SIGNATURE_LENGTH])
+	return data[SIGNATURE_LENGTH:], nil
 }
-

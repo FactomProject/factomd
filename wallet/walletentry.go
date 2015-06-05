@@ -41,6 +41,12 @@ type WalletEntry struct {
 
 var _ IWalletEntry = (*WalletEntry)(nil)
 
+func (b WalletEntry) String() string {
+    txt,err := b.MarshalText()
+    if err != nil {return "<error>" }
+    return string(txt)
+}
+
 func (w1 WalletEntry)GetAddress() (simplecoin.IHash, error) {
     if w1.rcd == nil {
         return nil, fmt.Errorf("Should never happen. Missing the rcd block")

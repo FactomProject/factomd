@@ -16,10 +16,10 @@ import (
 
 type IRCD interface {
 	IBlock
-	GetAddress()                (IAddress, error)
-    Clone()                     IRCD
-    NumberOfSignatures()        int
-    CheckSig(trans ITransaction, sigblk ISignatureBlock) bool
+	GetAddress() (IAddress, error)
+	Clone() IRCD
+	NumberOfSignatures() int
+	CheckSig(trans ITransaction, sigblk ISignatureBlock) bool
 }
 
 /***********************
@@ -44,7 +44,7 @@ func UnmarshalBinaryAuth(data []byte) (a IRCD, newData []byte, err error) {
 	return auth, data, err
 }
 
-func NewRCD_1(publicKey []byte) (IRCD) {
+func NewRCD_1(publicKey []byte) IRCD {
 	if len(publicKey) != ADDRESS_LENGTH {
 		panic("Bad publickey.  This should not happen")
 	}
@@ -68,13 +68,12 @@ func NewRCD_2(n int, m int, addresses []IAddress) (IRCD, error) {
 }
 
 func CreateRCD(data []byte) IRCD {
-    switch data[0] {
-        case 1 :
-            return new(RCD_1)
-        case 2 :
-            return new(RCD_2)
-        default :
-            panic("Bad Data encountered by CreateRCD.  Should never happen")
-    }
+	switch data[0] {
+	case 1:
+		return new(RCD_1)
+	case 2:
+		return new(RCD_2)
+	default:
+		panic("Bad Data encountered by CreateRCD.  Should never happen")
+	}
 }
-

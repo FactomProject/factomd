@@ -5,7 +5,7 @@
 package simplecoin
 
 import (
-    "bytes"
+	"bytes"
 )
 
 // Entry Credit Addresses are the same as Addresses in Simplecoin
@@ -24,12 +24,20 @@ type OutECAddress struct {
 
 var _ IOutECAddress = (*OutECAddress)(nil)
 
-func (OutECAddress)GetDBHash() IHash {
-    return Sha([]byte("OutECAddress"))
+func (b OutECAddress) String() string {
+	txt, err := b.MarshalText()
+	if err != nil {
+		return "<error>"
+	}
+	return string(txt)
 }
 
-func (w1 OutECAddress)GetNewInstance() IBlock {
-    return new(OutECAddress)
+func (OutECAddress) GetDBHash() IHash {
+	return Sha([]byte("OutECAddress"))
+}
+
+func (w1 OutECAddress) GetNewInstance() IBlock {
+	return new(OutECAddress)
 }
 
 func (oa OutECAddress) GetName() string {
@@ -37,17 +45,18 @@ func (oa OutECAddress) GetName() string {
 }
 
 func (a OutECAddress) MarshalText() (text []byte, err error) {
-    var out bytes.Buffer
-    out.WriteString("ec: ")
-    a.MarshalText2(&out)
-    out.WriteString("\n")
-    return out.Bytes(), nil
+	var out bytes.Buffer
+	out.WriteString("ec: ")
+	a.MarshalText2(&out)
+	out.WriteString("\n")
+	return out.Bytes(), nil
 }
+
 /******************************
  * Helper functions
  ******************************/
 
-func NewOutECAddress( address IAddress, amount uint64 ) IOutAddress {
+func NewOutECAddress(address IAddress, amount uint64) IOutAddress {
 	oa := new(OutECAddress)
 	oa.amount = amount
 	oa.address = address
