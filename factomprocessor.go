@@ -358,7 +358,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 			}			
 		}
 
-	case wire.CmdInt_FactoidBlock:
+	case wire.CmdInt_FactoidBlock: // to be removed??
 		factoidBlock, ok := msg.(*wire.MsgInt_FactoidBlock)
 		util.Trace("Factoid Block (GENERATED??) -- detected in the processor")
 		fmt.Println("factoidBlock= ", factoidBlock, " ok= ", ok)
@@ -470,6 +470,11 @@ func processTestCredit(msg *wire.MsgTestCredit) error {
 // similar to blockChain.BC_ProcessBlock
 func processDirBlock(msg *wire.MsgDirBlock) error {
 	util.Trace()
+	
+	// Error condiftion for Milestone 1
+	if nodeMode == SERVER_NODE {
+		return errors.New("Server received msg:" + msg.Command())
+	}	
 
 	blk, _ := db.FetchDBlockByHeight(msg.DBlk.Header.BlockHeight)
 	if blk != nil {
@@ -495,6 +500,11 @@ func processDirBlock(msg *wire.MsgDirBlock) error {
 func processABlock(msg *wire.MsgABlock) error {
 	util.Trace()
 
+	// Error condiftion for Milestone 1
+	if nodeMode == SERVER_NODE {
+		return errors.New("Server received msg:" + msg.Command())
+	}
+	
 	//Need to validate against Dchain??
 
 	db.ProcessABlockBatch(msg.ABlk)
@@ -511,6 +521,11 @@ func processABlock(msg *wire.MsgABlock) error {
 func processCBlock(msg *wire.MsgECBlock) error {
 	util.Trace()
 
+	// Error condiftion for Milestone 1
+	if nodeMode == SERVER_NODE {
+		return errors.New("Server received msg:" + msg.Command())
+	}
+	
 	//Need to validate against Dchain??
 
 	// check if the block already exists
@@ -537,6 +552,12 @@ func processCBlock(msg *wire.MsgECBlock) error {
 // similar to blockChain.BC_ProcessBlock
 func processEBlock(msg *wire.MsgEBlock) error {
 	util.Trace()
+	
+	// Error condiftion for Milestone 1
+	if nodeMode == SERVER_NODE {
+		return errors.New("Server received msg:" + msg.Command())
+	}
+		
 	if msg.EBlk.Header.DBHeight >= dchain.NextBlockHeight || msg.EBlk.Header.DBHeight < 0 {
 		return errors.New("MsgEBlock has an invalid DBHeight:" + strconv.Itoa(int(msg.EBlk.Header.DBHeight)))
 	}
@@ -591,6 +612,11 @@ func processEBlock(msg *wire.MsgEBlock) error {
 // similar to blockChain.BC_ProcessBlock
 func processEntry(msg *wire.MsgEntry) error {
 	util.Trace()
+	
+	// Error condiftion for Milestone 1
+	if nodeMode == SERVER_NODE {
+		return errors.New("Server received msg:" + msg.Command())
+	}
 
 	// store the new entry in db
 	entryBinary, _ := msg.Entry.MarshalBinary()
@@ -1538,7 +1564,7 @@ func initECChain() {
 
 	for i, v := range ecBlocks {
 		if v.Header.DBHeight != uint32(i) {
-			panic("Error in initializing dChain:" + ecchain.ChainID.String())
+			panic("Error in initializing dChain:" + ecchain.ChainID.String() + " DBHeight:" + strconv.Itoa(int(v.Header.DBHeight)) + " i:" + strconv.Itoa(i))
 		}
 
 		// Calculate the EC balance for each account

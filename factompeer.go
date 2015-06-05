@@ -245,7 +245,7 @@ func (p *peer) handleGetNonDirDataMsg(msg *wire.MsgGetNonDirData) {
 				err = p.pushABlockMsg(dbEntry.MerkleRoot, c, waitChan)
 
 			case wire.FChainID.String():
-				err = p.pushBlockMsg(wire.FactomHashToShaHash(dbEntry.MerkleRoot), c, waitChan)
+				//err = p.pushBlockMsg(wire.FactomHashToShaHash(dbEntry.MerkleRoot), c, waitChan)
 
 			default:
 				err = p.pushEBlockMsg(dbEntry.MerkleRoot, c, waitChan)
