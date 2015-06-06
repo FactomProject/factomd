@@ -22,7 +22,6 @@ var _ = binary.Write
 
 func Test_create_genesis_block(test *testing.T) {
     gb := GetGenesisBlock(1000000,10,200000000000)
-    txt,err := gb.MarshalText()
-    if err != nil { test.Fail() }
-    sc.Prtln(string(txt))
+    var _ = gb
+//    sc.Prtln(gb)
 }

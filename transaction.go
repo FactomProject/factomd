@@ -24,6 +24,8 @@ type ITransaction interface {
 	GetOutEC(int) (IOutECAddress, error)
 	GetRCD(int) (IRCD, error)
 
+    GetLockTime() uint64
+    SetLockTime(uint64) 
 	GetSignatureBlock(i int) ISignatureBlock
 	SetSignatureBlock(i int, signatureblk ISignatureBlock)
 	GetInputs() []IInAddress
@@ -61,6 +63,14 @@ func (b Transaction) String() string {
 		return "<error>"
 	}
 	return string(txt)
+}
+
+// LockTime is in nanoseconds
+func (t *Transaction) GetLockTime() uint64 {
+    return t.lockTime
+}
+func (t *Transaction) SetLockTime(lockTime uint64) {
+    t.lockTime = lockTime
 }
 
 func (t *Transaction) SetSignatureBlock(i int, sig ISignatureBlock) {
@@ -556,7 +566,7 @@ func (t *Transaction) AddECOutput(ecoutput IAddress, amount uint64) {
 func (t Transaction) MarshalText() (text []byte, err error) {
 	var out bytes.Buffer
 
-	out.WriteString("Transaction:\n locktime: ")
+	out.WriteString("Transaction:\n LockTime: ")
 	WriteNumber64(&out, uint64(t.lockTime))
 	out.WriteString("\n in:  ")
 	WriteNumber16(&out, uint16(len(t.inputs)))

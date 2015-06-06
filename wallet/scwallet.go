@@ -171,48 +171,50 @@ func (w *SCWallet)  CreateTransaction() sc.ITransaction {
     return new(sc.Transaction)
 }
 
-func (w *SCWallet) AddInput(trans sc.ITransaction, hash sc.IAddress, amount uint64) error {
-    v := w.db.GetRaw([]byte(sc.W_ADDRESS_HASH),hash.Bytes())
-          
-     if(v == nil) {
-         return fmt.Errorf("Unknown address")
-     }
-     we := v.(*WalletEntry)
-     adr, err := we.GetAddress()
+func (w *SCWallet) getWalletEntry(bucket []byte,address sc.IAddress) (IWalletEntry, sc.IAddress, error){
+    
+    v := w.db.GetRaw([]byte(sc.W_ADDRESS_HASH),address.Bytes())
+    if(v == nil) { return nil, nil, fmt.Errorf("Unknown address") }
+    
+    we := v.(*WalletEntry)
+    
+    adr, err := we.GetAddress()
+    if err != nil { return nil, nil, err }
+    
+    return we, adr, nil
+}
+
+func (w *SCWallet) AddInput(trans sc.ITransaction, address sc.IAddress, amount uint64) error {
+    we, adr, err := w.getWalletEntry([]byte(sc.W_ADDRESS_HASH), address)
+    if err != nil { return err }
+    
      trans.AddInput(sc.CreateAddress(adr),amount)
      trans.AddRCD(we.GetRCD())
-     if err != nil {
-         return err
-     }
+     
      return nil
 }     
 
-func (w *SCWallet) UpdateInput(trans sc.ITransaction, 
-                               index int, 
-                               hash sc.IAddress, 
-                               amount uint64) error {
+func (w *SCWallet) UpdateInput(trans sc.ITransaction, index int, address sc.IAddress, amount uint64) error {
     
-    v := w.db.GetRaw([]byte(sc.W_ADDRESS_HASH),hash.Bytes())
-    if v == nil { 
-        return fmt.Errorf("Unknown address")
-    }
-    we := v.(*WalletEntry)
-    adr, err := we.GetAddress()
+    we, adr, err := w.getWalletEntry([]byte(sc.W_ADDRESS_HASH), address)
+    if err != nil { return err }
+                                   
     in,err := trans.GetInput(index)
     if err != nil {return err}
+    
+    trans.GetRCDs()[index] = we.GetRCD()      // The RCD must match the (possibly) new input
+    
     in.SetAddress(adr)
     in.SetAmount(amount)
  
     return nil
 }     
 
-func (w *SCWallet) AddOutput(trans sc.ITransaction, hash sc.IAddress, amount uint64) error {
-    v := w.db.GetRaw([]byte(sc.W_ADDRESS_HASH),hash.Bytes())
-    if v == nil { 
-        return fmt.Errorf("Unknown address")
-    }
-    we := v.(*WalletEntry)
-    adr, err := we.GetAddress()
+func (w *SCWallet) AddOutput(trans sc.ITransaction, address sc.IAddress, amount uint64) error {
+    
+    _, adr, err := w.getWalletEntry([]byte(sc.W_ADDRESS_HASH), address)
+    if err != nil { return err }
+    
     trans.AddOutput(sc.CreateAddress(adr),amount)
     if err != nil {
         return err
@@ -220,12 +222,11 @@ func (w *SCWallet) AddOutput(trans sc.ITransaction, hash sc.IAddress, amount uin
     return nil
 }     
  
-func (w *SCWallet) AddECOutput(trans sc.ITransaction, hash sc.IAddress, amount uint64) error {
-    we := w.db.GetRaw([]byte(sc.W_ADDRESS_HASH),hash.Bytes()).(*WalletEntry)
-    if we == nil { 
-        return fmt.Errorf("Unknown address")
-    }
-    adr, err := we.GetAddress()
+ func (w *SCWallet) AddECOutput(trans sc.ITransaction, address sc.IAddress, amount uint64) error {
+    
+    _, adr, err := w.getWalletEntry([]byte(sc.W_ADDRESS_HASH), address)
+    if err != nil { return err }
+    
     trans.AddECOutput(sc.CreateAddress(adr),amount)
     if err != nil {
         return err
@@ -235,10 +236,10 @@ func (w *SCWallet) AddECOutput(trans sc.ITransaction, hash sc.IAddress, amount u
 
 func (w *SCWallet) Validate(trans sc.ITransaction) (bool,error){
     valid := trans.Validate()
-    if valid == sc.WELL_FORMED {
-        return true, nil
-    }
+    if valid == sc.WELL_FORMED { return true, nil }
+    
     fmt.Println("Validation Failed: ",valid)
+    
     return false, nil
 }    
  

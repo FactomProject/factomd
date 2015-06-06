@@ -54,7 +54,7 @@ type SCBlock struct {
 
 var _ ISCBlock = (*SCBlock)(nil)
 
-func (b SCBlock) GetTransactions() []sc.ITransaction {
+func (b *SCBlock) GetTransactions() []sc.ITransaction {
     return b.transactions
 }
 
@@ -67,7 +67,7 @@ func (SCBlock) GetDBHash() sc.IHash {
 }
 
 func (b *SCBlock) GetHash() sc.IHash {
-    data,err := b.MarshalTrans()
+    data,err := b.MarshalBinary()
     if err != nil {
         fmt.Println(err)
         return nil
@@ -95,32 +95,38 @@ func (b *SCBlock) MarshalBinary() ([]byte, error) {
 	var out bytes.Buffer
 	b.CalculateHashes()
 	out.Write(sc.FACTOID_CHAINID)
-	b.MerkleRoot = new(sc.Hash)
-	data, err := b.MerkleRoot.MarshalBinary()
+    
+    if b.MerkleRoot == nil {b.MerkleRoot = new(sc.Hash)}
+    data, err := b.MerkleRoot.MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
 	out.Write(data)
-	b.PrevBlock = new(sc.Hash)
+    
+    if b.PrevBlock == nil {b.PrevBlock = new(sc.Hash)}
 	data, err = b.PrevBlock.MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
 	out.Write(data)
-	b.PrevHash3 = new(sc.Hash)
-	data, err = b.PrevHash3.MarshalBinary()
+    
+    if b.PrevHash3 == nil {b.PrevHash3 = new(sc.Hash)}
+    data, err = b.PrevHash3.MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
 	out.Write(data)
+    
 	binary.Write(&out, binary.BigEndian, uint64(b.ExchRate))
 	binary.Write(&out, binary.BigEndian, uint32(b.DBHeight))
-	b.UTXOCommit = new(sc.Hash)
-	data, err = b.UTXOCommit.MarshalBinary()
+    
+    if b.UTXOCommit == nil {b.UTXOCommit = new(sc.Hash)}
+    data, err = b.UTXOCommit.MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
 	out.Write(data)
+    
 	binary.Write(&out, binary.BigEndian, uint64(len(b.transactions)))
 
 	transdata, err := b.MarshalTrans()                           // first get trans data
@@ -133,11 +139,11 @@ func (b *SCBlock) MarshalBinary() ([]byte, error) {
 // UnmarshalBinary assumes that the Binary is all good.  We do error
 // out if there isn't enough data, or the transaction is too large.
 func (b *SCBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
-
 	if bytes.Compare(data[:sc.ADDRESS_LENGTH], sc.FACTOID_CHAINID[:]) != 0 {
 		return nil, fmt.Errorf("Block does not begin with the Factoid ChainID")
 	}
 	data = data[32:]
+	
 	b.MerkleRoot = new(sc.Hash)
 	data, err := b.MerkleRoot.UnmarshalBinaryData(data)
 	if err != nil {
@@ -149,6 +155,7 @@ func (b *SCBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	
 	b.PrevHash3 = new(sc.Hash)
 	data, err = b.PrevHash3.UnmarshalBinaryData(data)
 	if err != nil {
@@ -165,13 +172,15 @@ func (b *SCBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	}
 
 	cnt, data := binary.BigEndian.Uint64(data[0:8]), data[8:]
+
 	data = data[8:] // Just skip the size... We don't really need it.
 
 	b.transactions = make([]sc.ITransaction, 0, cnt)
 	for i := uint64(0); i < cnt; i++ {
-		b.transactions = append(b.transactions, new(sc.Transaction))
+        trans := new(sc.Transaction)
+        data,err = trans.UnmarshalBinaryData(data)
+		b.transactions = append(b.transactions, trans)
 	}
-
 	return data, nil
 }
 
@@ -183,7 +192,7 @@ func (b *SCBlock) UnmarshalBinary(data []byte) (err error) {
 // Tests if the transaction is equal in all of its structures, and
 // in order of the structures.  Largely used to test and debug, but
 // generally useful.
-func (b1 SCBlock) IsEqual(block sc.IBlock) bool {
+func (b1 *SCBlock) IsEqual(block sc.IBlock) bool {
 
 	b2, ok := block.(*SCBlock)
 
@@ -205,55 +214,45 @@ func (b1 SCBlock) IsEqual(block sc.IBlock) bool {
 
 	return true
 }
-
-
 func (b *SCBlock) GetChainID() sc.IHash {
     h := new(sc.Hash)
     h.SetBytes(sc.FACTOID_CHAINID)
     return h
 }
-
 func (b *SCBlock) GetMerkleRoot() sc.IHash {
     return b.MerkleRoot
 }
-
 func (b *SCBlock) GetPrevBlock() sc.IHash {
     return b.PrevBlock
 }
-
 func (b *SCBlock) SetPrevBlock(hash[]byte) {
-    b.PrevBlock.SetBytes(hash)
+    h := sc.NewHash(hash)
+    b.PrevBlock= h
 }
-
 func (b *SCBlock) GetPrevHash3() sc.IHash {
     return b.PrevHash3
 }
-
 func (b *SCBlock) SetPrevHash3(hash[]byte)  {
     b.PrevHash3.SetBytes(hash)
 }
-
 func (b *SCBlock) GetUTXOCommit() sc.IHash {
     return b.UTXOCommit
 }
-
 func (b *SCBlock) SetUTXOCommit(hash[]byte) {
     b.UTXOCommit.SetBytes(hash)
 }
-
 func (b *SCBlock) CalculateHashes() {
 }
-
 func (b *SCBlock) SetDBHeight(dbheight uint32) {
 	b.DBHeight = dbheight
 }
-func (b SCBlock) GetDBHeight() uint32 {
+func (b *SCBlock) GetDBHeight() uint32 {
 	return b.DBHeight
 }
 func (b *SCBlock) SetExchRate(rate uint64) {
 	b.ExchRate = rate
 }
-func (b SCBlock) GetExchRate() uint64 {
+func (b *SCBlock) GetExchRate() uint64 {
 	return b.ExchRate
 }
 

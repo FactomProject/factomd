@@ -7,7 +7,8 @@ package database
 import (
     "fmt"
     "bytes"
-	sc "github.com/FactomProject/simplecoin"
+    sc "github.com/FactomProject/simplecoin"
+    
     "github.com/boltdb/bolt"
 )
 
@@ -108,23 +109,25 @@ func (d *BoltDB) GetRaw(bucket []byte, key []byte) (value sc.IBlock) {
     var v []byte
     d.db.View(func(tx *bolt.Tx) error {
         b := tx.Bucket(bucket)
-        v = b.Get(key)
+        v1 := b.Get(key)
+        v = make([]byte,len(v1))
+        copy(v,v1)
         return nil
     })
-    sc.PrtData(key) //////////////////////////////////////////////////////////////
-    if v == nil || len(v)<32 {
-        sc.Prt("v: ",v)
-        panic("This should not happen.  Data stored is too small, or is missing")
+    if v == nil || len(v)<32 {      // If the value is undefined, return nil
+        return nil
     }
     var vv[32]byte
     copy(vv[:],v[:32])
     var instance sc.IBlock = d.instances[vv]
     if instance == nil {
+        vp := sc.NewHash(vv[:])
+        sc.Prtln("Object hash: ",vp)
         panic("This should not happen.  Object stored in the database has no IBlock instance")
     }
     
     r := instance.GetNewInstance()
-    _,err := r.UnmarshalBinaryData(v[32:])
+    err := r.UnmarshalBinary(v[32:])
     if err != nil {
         panic("This should not happen.  IBlock failed to unmarshal.")
     }
@@ -134,8 +137,6 @@ func (d *BoltDB) GetRaw(bucket []byte, key []byte) (value sc.IBlock) {
 
 
 func (d *BoltDB) PutRaw(bucket []byte, key []byte, value sc.IBlock) {
-
-    sc.PrtData(key)//////////////////////////////////////////////////////////////
     
     var out bytes.Buffer
     hash := value.GetDBHash()
