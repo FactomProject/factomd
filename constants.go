@@ -34,5 +34,6 @@ const (
 )
 // Factoid chain
 var FACTOID_CHAINID	= []byte {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x1f}
+var FACTOID_CHAINID_HASH = NewHash(FACTOID_CHAINID)
 // Zero Hash
 var ZERO_HASH = []byte {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
