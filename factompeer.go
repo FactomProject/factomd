@@ -26,7 +26,7 @@ func (p *peer) handleSCBlockMsg(msg *wire.MsgSCBlock, buf []byte) {
     
     binary, _ := msg.SC.MarshalBinary()
     commonHash := common.Sha(binary)
-    hash, _ := wire.NewShaHash(commonHash.Bytes)
+    hash, _ := wire.NewShaHash(commonHash.Bytes())
     
     iv := wire.NewInvVect(wire.InvTypeFactomSCBlock, hash)
     p.AddKnownInventory(iv)
@@ -42,7 +42,7 @@ func (p *peer) handleDirBlockMsg(msg *wire.MsgDirBlock, buf []byte) {
 
 	binary, _ := msg.DBlk.MarshalBinary()
 	commonHash := common.Sha(binary)
-	hash, _ := wire.NewShaHash(commonHash.Bytes)
+	hash, _ := wire.NewShaHash(commonHash.Bytes())
 
 	iv := wire.NewInvVect(wire.InvTypeFactomDirBlock, hash)
 	p.AddKnownInventory(iv)
@@ -61,7 +61,7 @@ func (p *peer) handleABlockMsg(msg *wire.MsgABlock, buf []byte) {
 
 	binary, _ := msg.ABlk.MarshalBinary()
 	commonHash := common.Sha(binary)
-	hash, _ := wire.NewShaHash(commonHash.Bytes)
+	hash, _ := wire.NewShaHash(commonHash.Bytes())
 
 	iv := wire.NewInvVect(wire.InvTypeFactomAdminBlock, hash)
 	p.AddKnownInventory(iv)
@@ -78,7 +78,7 @@ func (p *peer) handleECBlockMsg(msg *wire.MsgECBlock, buf []byte) {
 
 	binary, _ := msg.ECBlock.MarshalBinary()
 	commonHash := common.Sha(binary)
-	hash, _ := wire.NewShaHash(commonHash.Bytes)
+	hash, _ := wire.NewShaHash(commonHash.Bytes())
 
 	iv := wire.NewInvVect(wire.InvTypeFactomEntryCreditBlock, hash)
 	p.AddKnownInventory(iv)
@@ -94,7 +94,7 @@ func (p *peer) handleEBlockMsg(msg *wire.MsgEBlock, buf []byte) {
 
 	binary, _ := msg.EBlk.MarshalBinary()
 	commonHash := common.Sha(binary)
-	hash, _ := wire.NewShaHash(commonHash.Bytes)
+	hash, _ := wire.NewShaHash(commonHash.Bytes())
 
 	iv := wire.NewInvVect(wire.InvTypeFactomEntryBlock, hash)
 	p.AddKnownInventory(iv)
@@ -113,7 +113,7 @@ func (p *peer) handleEntryMsg(msg *wire.MsgEntry, buf []byte) {
 
 	binary, _ := msg.Entry.MarshalBinary()
 	commonHash := common.Sha(binary)
-	hash, _ := wire.NewShaHash(commonHash.Bytes)
+	hash, _ := wire.NewShaHash(commonHash.Bytes())
 
 	iv := wire.NewInvVect(wire.InvTypeFactomEntry, hash)
 	p.AddKnownInventory(iv)
@@ -430,7 +430,7 @@ func (p *peer) handleGetDirBlocksMsg(msg *wire.MsgGetDirBlocks) {
 		// to be improved??
 		hashList := make([]wire.ShaHash, 0, endIdx-startIdx)
 		for i := int64(0); i < endIdx; i++ {
-			newhash, _ := wire.NewShaHash(dchain.Blocks[i].DBHash.Bytes)
+			newhash, _ := wire.NewShaHash(dchain.Blocks[i].DBHash.Bytes())
 			hashList = append(hashList, *newhash)
 		}
 
@@ -514,7 +514,7 @@ func (p *peer) pushDirBlockMsg(sha *wire.ShaHash, doneChan, waitChan chan struct
 	// batch of inventory.
 	if p.continueHash != nil && p.continueHash.IsEqual(sha) {
 		util.Trace()
-		hash, _ := wire.NewShaHash(dchain.Blocks[dchain.NextBlockHeight-1].DBHash.Bytes) // to be improved??
+		hash, _ := wire.NewShaHash(dchain.Blocks[dchain.NextBlockHeight-1].DBHash.Bytes()) // to be improved??
 		if err == nil {
 			util.Trace()
 			invMsg := wire.NewMsgDirInvSizeHint(1)
@@ -577,7 +577,7 @@ func (p *peer) pushGetNonDirDataMsg(dblock *common.DirectoryBlock) {
 
 	binary, _ := dblock.MarshalBinary()
 	commonHash := common.Sha(binary)
-	hash, _ := wire.NewShaHash(commonHash.Bytes)
+	hash, _ := wire.NewShaHash(commonHash.Bytes())
 
 	iv := wire.NewInvVect(wire.InvTypeFactomNonDirBlock, hash)
 	gdmsg := wire.NewMsgGetNonDirData()
@@ -594,7 +594,7 @@ func (p *peer) pushGetEntryDataMsg(eblock *common.EBlock) {
 
 	binary, _ := eblock.MarshalBinary()
 	commonHash := common.Sha(binary)
-	hash, _ := wire.NewShaHash(commonHash.Bytes)
+	hash, _ := wire.NewShaHash(commonHash.Bytes())
 
 	iv := wire.NewInvVect(wire.InvTypeFactomEntry, hash)
 	gdmsg := wire.NewMsgGetEntryData()

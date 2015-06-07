@@ -19,7 +19,7 @@ func (hash *ShaHash) ToFactomHash() *common.Hash {
 // Convert factom.common.hash into a wire.ShaHash
 func FactomHashToShaHash(ftmHash *common.Hash) *ShaHash {
 
-	h, _ := NewShaHash(ftmHash.Bytes)
+	h, _ := NewShaHash(ftmHash.Bytes())
 	return h
 
 }

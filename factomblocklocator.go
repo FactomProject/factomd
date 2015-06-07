@@ -25,7 +25,7 @@ func DirBlockLocatorFromHash(hash *wire.ShaHash, dChain *common.DChain) blockcha
 	locator := make(blockchain.BlockLocator, 0, wire.MaxBlockLocatorsPerMsg)
 	locator = append(locator, hash)
 
-	genesisHash, _ := wire.NewShaHash(dchain.Blocks[0].DBHash.Bytes)
+	genesisHash, _ := wire.NewShaHash(dchain.Blocks[0].DBHash.Bytes())
 	// Nothing more to do if a locator for the genesis hash was requested.
 	if hash.IsEqual(genesisHash) {
 		return locator
@@ -93,7 +93,7 @@ func DirBlockLocatorFromHash(hash *wire.ShaHash, dChain *common.DChain) blockcha
 // main (best) chain.
 func LatestDirBlockLocator(dChain *common.DChain) (blockchain.BlockLocator, error) {
 
-	latestDirBlockHash, _ := wire.NewShaHash(dChain.Blocks[dChain.NextBlockHeight-1].DBHash.Bytes)
+	latestDirBlockHash, _ := wire.NewShaHash(dChain.Blocks[dChain.NextBlockHeight-1].DBHash.Bytes())
 	// The best chain is set, so use its hash.
 	return DirBlockLocatorFromHash(latestDirBlockHash, dChain), nil
 }
@@ -101,7 +101,7 @@ func LatestDirBlockLocator(dChain *common.DChain) (blockchain.BlockLocator, erro
 // LatestDirBlockSha returns newest shahash of dchain and current height
 func LatestDirBlockSha(dChain *common.DChain) (sha *wire.ShaHash, height int64, err error) {
 
-	sha, _ = wire.NewShaHash(dChain.Blocks[dChain.NextBlockHeight-1].DBHash.Bytes)
+	sha, _ = wire.NewShaHash(dChain.Blocks[dChain.NextBlockHeight-1].DBHash.Bytes())
 
 	height = int64(dChain.Blocks[dChain.NextBlockHeight-1].Header.BlockHeight)
 

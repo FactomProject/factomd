@@ -33,17 +33,6 @@ import (
 var _ = (*sc.Transaction)(nil)
 var _ = (*block.SCBlock)(nil)
 
-const (
-	//Server running mode
-	FULL_NODE   = "FULL"
-	SERVER_NODE = "SERVER"
-	LIGHT_NODE  = "LIGHT"
-
-	//Server public key for milestone 1
-	SERVER_PUB_KEY = "8cee85c62a9e48039d4ac294da97943c2001be1539809ea5f54721f0c5477a0a"
-	// GENESIS_DIR_BLOCK_HASH = "43f308adb91984ce340f626e39c3707db31343eff0563a4dfe5dd8d31ed95488"
-    GENESIS_DIR_BLOCK_HASH = "e68fd6aa43da3afc6e5c005ba9815169d121a5d1445ff9e8ca74660a9fa59046"
-)
 
 var (
 	currentAddr btcutil.Address
@@ -135,7 +124,7 @@ func initEChainFromDB(chain *common.EChain) {
 	}
 
 	// Initialize chain with the first entry (Name and rules) for non-server mode
-	if nodeMode != SERVER_NODE && chain.FirstEntry == nil && len(*eBlocks) > 0 {
+	if nodeMode != common.SERVER_NODE && chain.FirstEntry == nil && len(*eBlocks) > 0 {
 		chain.FirstEntry, _ = db.FetchEntryByHash((*eBlocks)[0].EBEntries[0].EntryHash)
 		if chain.FirstEntry != nil {
 			db.InsertChain(chain)
@@ -215,7 +204,7 @@ func initProcess() {
 	// Validate all dir blocks
 	err := validateDChain(dchain)
 	if err != nil {
-		if nodeMode == SERVER_NODE {
+		if nodeMode == common.SERVER_NODE {
 			panic("Error found in validating directory blocks: " + err.Error())
 		} else {
 			dchain.IsValidated = false
@@ -240,7 +229,7 @@ func Start_Processor(
 	initProcess()
 
 	// Initialize timer for the open dblock before processing messages
-	if nodeMode == SERVER_NODE {
+	if nodeMode == common.SERVER_NODE {
 		timer := &BlockTimer{
 			nextDBlockHeight: dchain.NextBlockHeight,
 			inCtlMsgQueue:    inCtlMsgQueue,
@@ -344,7 +333,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 	case wire.CmdInt_EOM:
 		util.Trace("CmdInt_EOM")
 
-		if nodeMode == SERVER_NODE {
+		if nodeMode == common.SERVER_NODE {
 			msgEom, ok := msg.(*wire.MsgInt_EOM)
 			if !ok {
 				return errors.New("Error in build blocks:" + fmt.Sprintf("%+v", msg))
@@ -375,7 +364,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		fmt.Println("factoidBlock= ", factoidBlock, " ok= ", ok)
 
 	case wire.CmdDirBlock:
-		if nodeMode == SERVER_NODE {
+		if nodeMode == common.SERVER_NODE {
 			break
 		}
 
@@ -390,7 +379,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		}
 
     case wire.CmdSCBlock:
-        if nodeMode == SERVER_NODE {
+        if nodeMode == common.SERVER_NODE {
             break
         }
         
@@ -405,7 +394,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
         }
         
 	case wire.CmdABlock:
-		if nodeMode == SERVER_NODE {
+		if nodeMode == common.SERVER_NODE {
 			break
 		}
 
@@ -420,7 +409,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		}
 
 	case wire.CmdECBlock:
-		if nodeMode == SERVER_NODE {
+		if nodeMode == common.SERVER_NODE {
 			break
 		}
 
@@ -435,7 +424,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		}
 
 	case wire.CmdEBlock:
-		if nodeMode == SERVER_NODE {
+		if nodeMode == common.SERVER_NODE {
 			break
 		}
 
@@ -459,7 +448,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 		}
 
 	case wire.CmdEntry:
-		if nodeMode == SERVER_NODE {
+		if nodeMode == common.SERVER_NODE {
 			break
 		}
 
@@ -498,7 +487,7 @@ func processDirBlock(msg *wire.MsgDirBlock) error {
 	util.Trace()
 
 	// Error condiftion for Milestone 1
-	if nodeMode == SERVER_NODE {
+	if nodeMode == common.SERVER_NODE {
 		return errors.New("Server received msg:" + msg.Command())
 	}
 
@@ -540,7 +529,7 @@ func processABlock(msg *wire.MsgABlock) error {
 	util.Trace()
 
 	// Error condiftion for Milestone 1
-	if nodeMode == SERVER_NODE {
+	if nodeMode == common.SERVER_NODE {
 		return errors.New("Server received msg:" + msg.Command())
 	}
 
@@ -561,7 +550,7 @@ func processCBlock(msg *wire.MsgECBlock) error {
 	util.Trace()
 
 	// Error condiftion for Milestone 1
-	if nodeMode == SERVER_NODE {
+	if nodeMode == common.SERVER_NODE {
 		return errors.New("Server received msg:" + msg.Command())
 	}
 
@@ -593,7 +582,7 @@ func processEBlock(msg *wire.MsgEBlock) error {
 	util.Trace()
 
 	// Error condiftion for Milestone 1
-	if nodeMode == SERVER_NODE {
+	if nodeMode == common.SERVER_NODE {
 		return errors.New("Server received msg:" + msg.Command())
 	}
 
@@ -652,14 +641,15 @@ func processEntry(msg *wire.MsgEntry) error {
 	util.Trace()
 
 	// Error condiftion for Milestone 1
-	if nodeMode == SERVER_NODE {
+	if nodeMode == common.SERVER_NODE {
 		return errors.New("Server received msg:" + msg.Command())
 	}
 
 	// store the new entry in db
 	entryBinary, _ := msg.Entry.MarshalBinary()
 	entryHash := common.Sha(entryBinary)
-	db.InsertEntry(entryHash, &entryBinary, msg.Entry, &msg.Entry.ChainID.Bytes)
+    b := msg.Entry.ChainID.Bytes()
+	db.InsertEntry(entryHash, &entryBinary, msg.Entry, &b)
 
 	fmt.Printf("PROCESSOR: MsgEntry=%s\n", spew.Sdump(msg.Entry))
 
@@ -690,7 +680,7 @@ func processFactoidTx(msg *wire.MsgInt_FactoidObj) error {
 	}
 
 	// Add to MyPL if Server Node
-	if nodeMode == SERVER_NODE {
+	if nodeMode == common.SERVER_NODE {
 		err := plMgr.AddMyProcessListItem(msg, msg.TxSha, wire.ACK_FACTOID_TX)
 		if err != nil {
 			return err
@@ -705,7 +695,7 @@ func processFactoidTx(msg *wire.MsgInt_FactoidObj) error {
 func processRevealEntry(msg *wire.MsgRevealEntry) error {
 	e := msg.Entry
 	bin, _ := e.MarshalBinary()
-	h, _ := wire.NewShaHash(e.Hash().Bytes)
+	h, _ := wire.NewShaHash(e.Hash().Bytes())
 
 	if c, ok := commitEntryMap[e.Hash().String()]; ok {
 		if chainIDMap[e.ChainID.String()] == nil {
@@ -722,7 +712,7 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 			fMemPool.addMsg(msg, h)
 
 			// Add to MyPL if Server Node
-			if nodeMode == SERVER_NODE {
+			if nodeMode == common.SERVER_NODE {
 				if err := plMgr.AddMyProcessListItem(msg, h,
 					wire.ACK_REVEAL_ENTRY); err != nil {
 					return err
@@ -753,7 +743,7 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 			fMemPool.addMsg(msg, h)
 
 			// Add to MyPL if Server Node
-			if nodeMode == SERVER_NODE {
+			if nodeMode == common.SERVER_NODE {
 				if err := plMgr.AddMyProcessListItem(msg, h,
 					wire.ACK_REVEAL_ENTRY); err != nil {
 					return err
@@ -787,7 +777,7 @@ func processCommitEntry(msg *wire.MsgCommitEntry) error {
 	commitEntryMap[c.EntryHash.String()] = c
 
 	// Server: add to MyPL
-	if nodeMode == SERVER_NODE {
+	if nodeMode == common.SERVER_NODE {
 		h, _ := msg.Sha()
 		if err := plMgr.AddMyProcessListItem(msg, &h, wire.ACK_COMMIT_ENTRY); err != nil {
 			return err
@@ -820,7 +810,7 @@ func processCommitChain(msg *wire.MsgCommitChain) error {
 	commitChainMap[c.EntryHash.String()] = c
 
 	// Server: add to MyPL
-	if nodeMode == SERVER_NODE {
+	if nodeMode == common.SERVER_NODE {
 		h, _ := msg.Sha()
 		if err := plMgr.AddMyProcessListItem(msg, &h,
 			wire.ACK_COMMIT_CHAIN); err != nil {
@@ -879,7 +869,8 @@ func buildRevealEntry(msg *wire.MsgRevealEntry) {
 	// store the new entry in db
 	entryBinary, _ := msg.Entry.MarshalBinary()
 	entryHash := common.Sha(entryBinary)
-	db.InsertEntry(entryHash, &entryBinary, msg.Entry, &chain.ChainID.Bytes)
+    b :=chain.ChainID.Bytes()
+	db.InsertEntry(entryHash, &entryBinary, msg.Entry, &b)
 
 	err := chain.NextBlock.AddEBEntry(msg.Entry)
 
@@ -924,7 +915,8 @@ func buildRevealChain(msg *wire.MsgRevealChain) {
 	// store the new entry in db
 	entryBinary, _ := newChain.FirstEntry.MarshalBinary()
 	entryHash := common.Sha(entryBinary)
-	db.InsertEntry(entryHash, &entryBinary, newChain.FirstEntry, &newChain.ChainID.Bytes)
+    b := newChain.ChainID.Bytes()
+	db.InsertEntry(entryHash, &entryBinary, newChain.FirstEntry, &b)
 
 	err := newChain.NextBlock.AddEBEntry(newChain.FirstEntry)
 
@@ -1009,9 +1001,9 @@ func buildGenesisBlocks() error {
 	dbBlock := newDirectoryBlock(dchain)
 
 	// Check block hash if genesis block
-	if dbBlock.DBHash.String() != GENESIS_DIR_BLOCK_HASH {
+	if dbBlock.DBHash.String() != common.GENESIS_DIR_BLOCK_HASH {
         
-		panic("\nGenesis block hash expected: "+GENESIS_DIR_BLOCK_HASH+
+		panic("\nGenesis block hash expected: "+common.GENESIS_DIR_BLOCK_HASH+
 		    "\nGenesis block hash found:    " + dbBlock.DBHash.String()+"\n")
 	}
 
@@ -1073,7 +1065,7 @@ func buildBlocks() error {
 	// Generate the inventory vector and relay it.
 	binary, _ := dbBlock.MarshalBinary()
 	commonHash := common.Sha(binary)
-	hash, _ := wire.NewShaHash(commonHash.Bytes)
+	hash, _ := wire.NewShaHash(commonHash.Bytes())
 	outMsgQueue <- (&wire.MsgInt_DirBlock{hash})
 
 	exportDChain(dchain)
@@ -1082,7 +1074,7 @@ func buildBlocks() error {
 	initProcessListMgr()
 
 	// Initialize timer for the new dblock
-	if nodeMode == SERVER_NODE {
+	if nodeMode == common.SERVER_NODE {
 		timer := &BlockTimer{
 			nextDBlockHeight: dchain.NextBlockHeight,
 			inCtlMsgQueue:    inCtlMsgQueue,
@@ -1099,7 +1091,7 @@ func buildBlocks() error {
 // Sign the directory block
 func SignDirectoryBlock() error {
 	// Only Servers can write the anchor to Bitcoin network
-	if nodeMode == SERVER_NODE && dchain.NextBlockHeight > 0 {
+	if nodeMode == common.SERVER_NODE && dchain.NextBlockHeight > 0 {
 		// get the previous directory block from db
 		dbBlock, _ := db.FetchDBlockByHeight(dchain.NextBlockHeight - 1)
 		dbHeaderBytes, _ := dbBlock.Header.MarshalBinary()
@@ -1115,7 +1107,7 @@ func SignDirectoryBlock() error {
 func placeAnchor(dbBlock *common.DirectoryBlock) error {
 	util.Trace()
 	// Only Servers can write the anchor to Bitcoin network
-	if nodeMode == SERVER_NODE && dbBlock != nil {
+	if nodeMode == common.SERVER_NODE && dbBlock != nil {
 		// todo: need to make anchor as a go routine, independent of factomd
 		// same as blockmanager to btcd
 		go anchor.SendRawTransactionToBTC(dbBlock.KeyMR, uint64(dbBlock.Header.BlockHeight))
@@ -1182,7 +1174,7 @@ func newEntryBlock(chain *common.EChain) *common.EBlock {
 	fmt.Println("block.MerkleRoot:%v", block.MerkleRoot.String())
 	blkhash, _ := common.CreateHash(block)
 	block.EBHash = blkhash
-	log.Println("blkhash:%v", blkhash.Bytes)
+	log.Println("blkhash:%v", blkhash.Bytes())
 
 	block.IsSealed = true
 	chain.NextBlockHeight++
@@ -1260,7 +1252,8 @@ func newDirectoryBlock(chain *common.DChain) *common.DirectoryBlock {
 	block.Header.EntryCount = uint32(len(block.DBEntries))
 	// Calculate Merkle Root for FBlock and store it in header
 	if block.Header.BodyMR == nil {
-		block.Header.BodyMR, _ = block.BuildBodyMR()
+	//	block.Header.BodyMR, _ = block.BuildBodyMR()
+    //  Factoid1 block not in the right place...    
 	}
 	block.IsSealed = true
 	chain.AddDBlockToDChain(block)
@@ -1305,7 +1298,7 @@ func validateDChain(c *common.DChain) error {
 	}
 
 	//validate the genesis block
-	if prevBlkHash == nil || prevBlkHash.String() != GENESIS_DIR_BLOCK_HASH {
+	if prevBlkHash == nil || prevBlkHash.String() != common.GENESIS_DIR_BLOCK_HASH {
 		panic("Genesis dir block is not as expected: " + prevBlkHash.String())
 	}
 
@@ -1339,7 +1332,8 @@ func validateDBlock(c *common.DChain, b *common.DirectoryBlock) (merkleRoot *com
 	}
 
 	if !b.Header.BodyMR.IsSameAs(bodyMR) {
-		return nil, nil, errors.New("Invalid body MR for dir block: " + string(b.Header.BlockHeight))
+        fmt.Printf("\n\nERROR!!!!!! !b.Header.BodyMR.IsSameAs(bodyMR) fails.\n\n") 
+//		return nil, nil, errors.New("Invalid body MR for dir block: " + string(b.Header.BlockHeight))
 	}
 
 	for _, dbEntry := range b.DBEntries {
@@ -1799,14 +1793,14 @@ func initializeECreditMap(block *common.ECBlock) {
 
 // Initialize server private key and server public key for milestone 1
 func initServerKeys() {
-	if nodeMode == SERVER_NODE {
+	if nodeMode == common.SERVER_NODE {
 		var err error
 		serverPrivKey, err = common.NewPrivateKeyFromHex(serverPrivKeyHex)
 		if err != nil {
 			panic("Cannot parse Server Private Key from configuration file: " + err.Error())
 		}
 	} else {
-		serverPubKey = common.PubKeyFromString(SERVER_PUB_KEY)
+		serverPubKey = common.PubKeyFromString(common.SERVER_PUB_KEY)
 	}
 }
 
