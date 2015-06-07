@@ -15,7 +15,6 @@ import (
 	"github.com/FactomProject/btcutil"
 
 	"github.com/FactomProject/FactomCode/util"
-	"github.com/FactomProject/FactomCode/wallet"
 	"github.com/FactomProject/btcd/wire"
 	"github.com/davecgh/go-spew/spew"
 )

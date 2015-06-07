@@ -36,8 +36,6 @@ func (bt *BlockTimer) StartBlockTimer() {
 				NextDBlockHeight: bt.nextDBlockHeight, //??
 			}
 
-			util.Trace("eomMsg 111 to inCtlMsgQueue")
-
 			//send the end-of-minute message to processor
 			bt.inCtlMsgQueue <- eomMsg
 
@@ -71,7 +69,6 @@ func (bt *BlockTimer) StartBlockTimer() {
 			NextDBlockHeight: bt.nextDBlockHeight,
 		}
 
-		util.Trace("eomMsg 222 to inCtlMsgQueue")
 		//send the end-of-minute message to processor
 		bt.inCtlMsgQueue <- eomMsg
 
