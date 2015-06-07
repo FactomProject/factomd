@@ -19,10 +19,10 @@ import (
 
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/btcd/btcjson"
+	"github.com/FactomProject/btcd/btcjson/btcws"
 	"github.com/FactomProject/btcd/database"
 	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/btcutil"
-	"github.com/FactomProject/btcws"
 	"github.com/FactomProject/fastsha256"
 	"github.com/FactomProject/websocket"
 
@@ -53,7 +53,7 @@ var wsHandlers = map[string]wsCommandHandler{
 	"notifynewtransactions": handleNotifyNewTransactions,
 	"notifyreceived":        handleNotifyReceived,
 	"notifyspent":           handleNotifySpent,
-	"rescan":                handleRescan,
+	//	"rescan":                handleRescan,
 }
 
 // wsAsyncHandlers holds the websocket commands which should be run
@@ -184,6 +184,8 @@ func (m *wsNotificationManager) queueHandler() {
 // to the notification manager for block and transaction notification
 // processing.
 func (m *wsNotificationManager) NotifyBlockConnected(block *btcutil.Block) {
+	util.Trace()
+
 	// As NotifyBlockConnected will be called by the block manager
 	// and the RPC server may no longer be running, use a select
 	// statement to unblock enqueueing the notification once the RPC
@@ -197,6 +199,8 @@ func (m *wsNotificationManager) NotifyBlockConnected(block *btcutil.Block) {
 // NotifyBlockDisconnected passes a block disconnected from the best chain
 // to the notification manager for block notification processing.
 func (m *wsNotificationManager) NotifyBlockDisconnected(block *btcutil.Block) {
+	util.Trace()
+
 	// As NotifyBlockDisconnected will be called by the block manager
 	// and the RPC server may no longer be running, use a select
 	// statement to unblock enqueueing the notification once the RPC
@@ -212,6 +216,8 @@ func (m *wsNotificationManager) NotifyBlockDisconnected(block *btcutil.Block) {
 // isNew is true, the tx is is a new transaction, rather than one
 // added to the mempool during a reorg.
 func (m *wsNotificationManager) NotifyMempoolTx(tx *btcutil.Tx, isNew bool) {
+	util.Trace()
+
 	n := &notificationTxAcceptedByMempool{
 		isNew: isNew,
 		tx:    tx,
@@ -279,6 +285,8 @@ func (m *wsNotificationManager) notificationHandler() {
 
 out:
 	for {
+		util.Trace("got a message...")
+
 		select {
 		case n, ok := <-m.notificationMsgs:
 			if !ok {
@@ -391,12 +399,14 @@ func (m *wsNotificationManager) NumClients() (n int) {
 // RegisterBlockUpdates requests block update notifications to the passed
 // websocket client.
 func (m *wsNotificationManager) RegisterBlockUpdates(wsc *wsClient) {
+	util.Trace()
 	m.queueNotification <- (*notificationRegisterBlocks)(wsc)
 }
 
 // UnregisterBlockUpdates removes block update notifications for the passed
 // websocket client.
 func (m *wsNotificationManager) UnregisterBlockUpdates(wsc *wsClient) {
+	util.Trace()
 	m.queueNotification <- (*notificationUnregisterBlocks)(wsc)
 }
 
@@ -458,12 +468,16 @@ func (*wsNotificationManager) notifyBlockDisconnected(clients map[chan struct{}]
 // RegisterNewMempoolTxsUpdates requests notifications to the passed websocket
 // client when new transactions are added to the memory pool.
 func (m *wsNotificationManager) RegisterNewMempoolTxsUpdates(wsc *wsClient) {
+	util.Trace()
+
 	m.queueNotification <- (*notificationRegisterNewMempoolTxs)(wsc)
 }
 
 // UnregisterNewMempoolTxsUpdates removes notifications to the passed websocket
 // client when new transaction are added to the memory pool.
 func (m *wsNotificationManager) UnregisterNewMempoolTxsUpdates(wsc *wsClient) {
+	util.Trace()
+
 	m.queueNotification <- (*notificationUnregisterNewMempoolTxs)(wsc)
 }
 
@@ -516,6 +530,8 @@ func (m *wsNotificationManager) notifyForNewTx(clients map[chan struct{}]*wsClie
 // passed websocket client.  The request is automatically removed once the
 // notification has been sent.
 func (m *wsNotificationManager) RegisterSpentRequest(wsc *wsClient, op *wire.OutPoint) {
+	util.Trace()
+
 	m.queueNotification <- &notificationRegisterSpent{
 		wsc: wsc,
 		op:  op,
@@ -546,6 +562,8 @@ func (*wsNotificationManager) addSpentRequest(ops map[wire.OutPoint]map[chan str
 // to be notified when the passed outpoint is confirmed spent (contained in a
 // block connected to the main chain).
 func (m *wsNotificationManager) UnregisterSpentRequest(wsc *wsClient, op *wire.OutPoint) {
+	util.Trace()
+
 	m.queueNotification <- &notificationUnregisterSpent{
 		wsc: wsc,
 		op:  op,
@@ -721,6 +739,8 @@ func (m *wsNotificationManager) notifyForTxIns(ops map[wire.OutPoint]map[chan st
 // RegisterTxOutAddressRequest requests notifications to the passed websocket
 // client when a transaction output spends to the passed address.
 func (m *wsNotificationManager) RegisterTxOutAddressRequest(wsc *wsClient, addr string) {
+	util.Trace()
+
 	m.queueNotification <- &notificationRegisterAddr{
 		wsc:  wsc,
 		addr: addr,
@@ -750,6 +770,8 @@ func (*wsNotificationManager) addAddrRequest(addrs map[string]map[chan struct{}]
 // UnregisterTxOutAddressRequest removes a request from the passed websocket
 // client to be notified when a transaction spends to the passed address.
 func (m *wsNotificationManager) UnregisterTxOutAddressRequest(wsc *wsClient, addr string) {
+	util.Trace()
+
 	m.queueNotification <- &notificationUnregisterAddr{
 		wsc:  wsc,
 		addr: addr,
@@ -783,12 +805,16 @@ func (*wsNotificationManager) removeAddrRequest(addrs map[string]map[chan struct
 
 // AddClient adds the passed websocket client to the notification manager.
 func (m *wsNotificationManager) AddClient(wsc *wsClient) {
+	util.Trace()
+
 	m.queueNotification <- (*notificationRegisterClient)(wsc)
 }
 
 // RemoveClient removes the passed websocket client and all notifications
 // registered for it.
 func (m *wsNotificationManager) RemoveClient(wsc *wsClient) {
+	util.Trace()
+
 	select {
 	case m.queueNotification <- (*notificationUnregisterClient)(wsc):
 	case <-m.quit:
@@ -818,6 +844,8 @@ func (m *wsNotificationManager) Shutdown() {
 // newWsNotificationManager returns a new notification manager ready for use.
 // See wsNotificationManager for more details.
 func newWsNotificationManager(server *rpcServer) *wsNotificationManager {
+	util.Trace()
+
 	return &wsNotificationManager{
 		server:            server,
 		queueNotification: make(chan interface{}),
@@ -1315,6 +1343,8 @@ var ErrClientQuit = errors.New("client quit")
 // ErrClientQuit.  This is intended to be checked by long-running notification
 // handlers to stop processing if there is no more work needed to be done.
 func (c *wsClient) QueueNotification(marshalledJSON []byte) error {
+	util.Trace()
+
 	// Don't queue the message if disconnected.
 	if c.Disconnected() {
 		return ErrClientQuit
@@ -1445,7 +1475,7 @@ func handleNotifyReceived(wsc *wsClient, icmd btcjson.Cmd) (interface{}, *btcjso
 	}
 
 	for _, addrStr := range cmd.Addresses {
-		addr, err := btcutil.DecodeAddress(addrStr)
+		addr, err := btcutil.DecodeAddress(addrStr, activeNetParams.Params)
 		if err != nil {
 			e := btcjson.Error{
 				Code:    btcjson.ErrInvalidAddressOrKey.Code,
@@ -1461,17 +1491,31 @@ func handleNotifyReceived(wsc *wsClient, icmd btcjson.Cmd) (interface{}, *btcjso
 }
 
 type rescanKeys struct {
-	fallbacks map[string]struct{}
+	fallbacks         map[string]struct{}
+	pubKeyHashes      map[[32]byte]struct{}
+	compressedPubkeys map[[32]byte]struct{}
+
 	/*
 		pubKeyHashes        map[[ripemd160.Size]byte]struct{}
 		scriptHashes        map[[ripemd160.Size]byte]struct{}
-		compressedPubkeys   map[[33]byte]struct{}
 		uncompressedPubkeys map[[65]byte]struct{}
 	*/
 
 	addrHashes map[[wire.RCDHashSize]byte]struct{}
 	unspent    map[wire.OutPoint]struct{}
 }
+
+/*
+// original
+type rescanKeys struct {
+	fallbacks           map[string]struct{}
+	pubKeyHashes        map[[ripemd160.Size]byte]struct{}
+	scriptHashes        map[[ripemd160.Size]byte]struct{}
+	compressedPubkeys   map[[33]byte]struct{}
+	uncompressedPubkeys map[[65]byte]struct{}
+	unspent             map[wire.OutPoint]struct{}
+}
+*/
 
 // ErrRescanReorg defines the error that is returned when an unrecoverable
 // reorganize is detected during a rescan.
@@ -1483,9 +1527,10 @@ var ErrRescanReorg = btcjson.Error{
 // rescanBlock rescans all transactions in a single block.  This is a helper
 // function for handleRescan.
 func rescanBlock(wsc *wsClient, lookups *rescanKeys, blk *btcutil.Block) {
-	util.Trace("wallet-related")
+	util.Trace("lookups= " + spew.Sdump(lookups))
 
 	for _, tx := range blk.Transactions() {
+		util.Trace("111")
 		// Hexadecimal representation of this tx.  Only created if
 		// needed, and reused for later notifications if already made.
 		var txHex string
@@ -1498,10 +1543,14 @@ func rescanBlock(wsc *wsClient, lookups *rescanKeys, blk *btcutil.Block) {
 		recvNotified := false
 
 		for _, txin := range tx.MsgTx().TxIn {
+			util.Trace("222")
 			if _, ok := lookups.unspent[txin.PreviousOutPoint]; ok {
+				util.Trace("333")
 				delete(lookups.unspent, txin.PreviousOutPoint)
+				util.Trace("444")
 
 				if spentNotified {
+					util.Trace("continue 1")
 					continue
 				}
 
@@ -1511,6 +1560,7 @@ func rescanBlock(wsc *wsClient, lookups *rescanKeys, blk *btcutil.Block) {
 				marshalledJSON, err := newRedeemingTxNotification(txHex, tx.Index(), blk)
 				if err != nil {
 					rpcsLog.Errorf("Failed to marshal redeemingtx notification: %v", err)
+					util.Trace("continue 2")
 					continue
 				}
 
@@ -1518,45 +1568,57 @@ func rescanBlock(wsc *wsClient, lookups *rescanKeys, blk *btcutil.Block) {
 				// Stop the rescan early if the websocket client
 				// disconnected.
 				if err == ErrClientQuit {
+					util.Trace("continue 1")
 					return
 				}
 				spentNotified = true
 			}
+			util.Trace("555")
 		}
 
 		for txOutIdx, txout := range tx.MsgTx().TxOut {
 			//			_, addrs, _, _ := txscript.ExtractPkScriptAddrs(
-			//				txout.PkScript, wsc.server.server.chainParams)
+			addrs, _, _ := ExtractPkScriptAddrs(
+				txout.RCDHash[:], wsc.server.server.chainParams)
+			util.Trace("666")
 
-			//			for _, addr := range addrs {
-			/*
+			for _, addr := range addrs {
+				util.Trace("777")
 				switch a := addr.(type) {
+
 				case *btcutil.AddressPubKeyHash:
+					util.Trace("888")
 					if _, ok := lookups.pubKeyHashes[*a.Hash160()]; !ok {
+						util.Trace("continue 3")
 						continue
 					}
 
-				case *btcutil.AddressScriptHash:
-					if _, ok := lookups.scriptHashes[*a.Hash160()]; !ok {
-						continue
-					}
+					/*
+						case *btcutil.AddressScriptHash:
+							if _, ok := lookups.scriptHashes[*a.Hash160()]; !ok {
+								continue
+							}
+					*/
 
 				case *btcutil.AddressPubKey:
+					util.Trace("here here here")
 					found := false
 					switch sa := a.ScriptAddress(); len(sa) {
-					case 33: // Compressed
-						var key [33]byte
+					case 32, 33: // Compressed
+						var key [32]byte
 						copy(key[:], sa)
 						if _, ok := lookups.compressedPubkeys[key]; ok {
 							found = true
 						}
 
-					case 65: // Uncompressed
-						var key [65]byte
-						copy(key[:], sa)
-						if _, ok := lookups.uncompressedPubkeys[key]; ok {
-							found = true
-						}
+						/*
+							case 65: // Uncompressed
+								var key [65]byte
+								copy(key[:], sa)
+								if _, ok := lookups.uncompressedPubkeys[key]; ok {
+									found = true
+								}
+						*/
 
 					default:
 						rpcsLog.Warnf("Skipping rescanned pubkey of unknown "+
@@ -1579,48 +1641,51 @@ func rescanBlock(wsc *wsClient, lookups *rescanKeys, blk *btcutil.Block) {
 					addrStr := addr.EncodeAddress()
 					_, ok := lookups.fallbacks[addrStr]
 					if !ok {
+						util.Trace("continue 4")
 						continue
 					}
 				}
-			*/
+				util.Trace("999")
 
-			//			found := false
-			var key wire.RCDHash
+				outpoint := wire.OutPoint{
+					Hash:  *tx.Sha(),
+					Index: uint32(txOutIdx),
+				}
+				lookups.unspent[outpoint] = struct{}{}
+				util.Trace("1010")
 
-			copy(key[:], txout.RCDHash[:])
-			if _, ok := lookups.addrHashes[key]; ok {
-				//				found = true
+				if recvNotified {
+					util.Trace("continue 5")
+					continue
+				}
+
+				if txHex == "" {
+					txHex = txHexString(tx)
+				}
+				ntfn := btcws.NewRecvTxNtfn(txHex, blockDetails(blk, tx.Index()))
+
+				util.Trace("1111")
+
+				marshalledJSON, err := json.Marshal(ntfn)
+				util.Trace("JSON= " + spew.Sdump(marshalledJSON))
+				if err != nil {
+					rpcsLog.Errorf("Failed to marshal recvtx notification: %v", err)
+					util.Trace("continue 2")
+					return
+				}
+
+				util.Trace("1212")
+
+				err = wsc.QueueNotification(marshalledJSON)
+				// Stop the rescan early if the websocket client
+				// disconnected.
+				if err == ErrClientQuit {
+					util.Trace("continue 3")
+					return
+				}
+				util.Trace("1313")
+				recvNotified = true
 			}
-
-			outpoint := wire.OutPoint{
-				Hash:  *tx.Sha(),
-				Index: uint32(txOutIdx),
-			}
-			lookups.unspent[outpoint] = struct{}{}
-
-			if recvNotified {
-				continue
-			}
-
-			if txHex == "" {
-				txHex = txHexString(tx)
-			}
-			ntfn := btcws.NewRecvTxNtfn(txHex, blockDetails(blk, tx.Index()))
-
-			marshalledJSON, err := json.Marshal(ntfn)
-			if err != nil {
-				rpcsLog.Errorf("Failed to marshal recvtx notification: %v", err)
-				return
-			}
-
-			err = wsc.QueueNotification(marshalledJSON)
-			// Stop the rescan early if the websocket client
-			// disconnected.
-			if err == ErrClientQuit {
-				return
-			}
-			recvNotified = true
-			//			}
 		}
 	}
 }
@@ -1672,278 +1737,4 @@ func descendantBlock(prev, cur *btcutil.Block) *btcjson.Error {
 		return &ErrRescanReorg
 	}
 	return nil
-}
-
-// handleRescan implements the rescan command extension for websocket
-// connections.
-//
-// NOTE: This does not smartly handle reorgs, and fixing requires database
-// changes (for safe, concurrent access to full block ranges, and support
-// for other chains than the best chain).  It will, however, detect whether
-// a reorg removed a block that was previously processed, and result in the
-// handler erroring.  Clients must handle this by finding a block still in
-// the chain (perhaps from a rescanprogress notification) to resume their
-// rescan.
-func handleRescan(wsc *wsClient, icmd btcjson.Cmd) (interface{}, *btcjson.Error) {
-	util.Trace()
-
-	cmd, ok := icmd.(*btcws.RescanCmd)
-	if !ok {
-		return nil, &btcjson.ErrInternal
-	}
-
-	outpoints := make([]*wire.OutPoint, 0, len(cmd.OutPoints))
-	for i := range cmd.OutPoints {
-		blockHash, err := wire.NewShaHashFromStr(cmd.OutPoints[i].Hash)
-		if err != nil {
-			return nil, &btcjson.Error{
-				Code:    btcjson.ErrParse.Code,
-				Message: err.Error(),
-			}
-		}
-		index := cmd.OutPoints[i].Index
-		outpoints = append(outpoints, wire.NewOutPoint(blockHash, index))
-	}
-
-	numAddrs := len(cmd.Addresses)
-	if numAddrs == 1 {
-		rpcsLog.Info("Beginning rescan for 1 address")
-	} else {
-		rpcsLog.Infof("Beginning rescan for %d addresses", numAddrs)
-	}
-
-	// Build lookup maps.
-	lookups := rescanKeys{
-		fallbacks: map[string]struct{}{},
-		/*
-			pubKeyHashes:        map[[ripemd160.Size]byte]struct{}{},
-			scriptHashes:        map[[ripemd160.Size]byte]struct{}{},
-			compressedPubkeys:   map[[33]byte]struct{}{},
-			uncompressedPubkeys: map[[65]byte]struct{}{},
-		*/
-		addrHashes: map[[wire.RCDHashSize]byte]struct{}{},
-		unspent:    map[wire.OutPoint]struct{}{},
-	}
-	//	var compressedPubkey [33]byte
-	//	var uncompressedPubkey [65]byte
-
-	for _, addrStr := range cmd.Addresses {
-		addr, err := btcutil.DecodeAddress(addrStr)
-		util.Trace(addrStr)
-		util.Trace(spew.Sdump(addr))
-
-		if err != nil {
-			jsonErr := btcjson.Error{
-				Code:    btcjson.ErrInvalidAddressOrKey.Code,
-				Message: "Rescan address " + addrStr + ": " + err.Error(),
-			}
-			return nil, &jsonErr
-		}
-		/*
-			switch a := addr.(type) {
-			case *btcutil.AddressPubKeyHash:
-				lookups.pubKeyHashes[*a.Hash160()] = struct{}{}
-
-			case *btcutil.AddressScriptHash:
-				lookups.scriptHashes[*a.Hash160()] = struct{}{}
-
-			case *btcutil.AddressPubKey:
-				pubkeyBytes := a.ScriptAddress()
-				switch len(pubkeyBytes) {
-				case 33: // Compressed
-					copy(compressedPubkey[:], pubkeyBytes)
-					lookups.compressedPubkeys[compressedPubkey] = struct{}{}
-
-				case 65: // Uncompressed
-					copy(uncompressedPubkey[:], pubkeyBytes)
-					lookups.uncompressedPubkeys[uncompressedPubkey] = struct{}{}
-
-				default:
-					jsonErr := btcjson.Error{
-						Code:    btcjson.ErrInvalidAddressOrKey.Code,
-						Message: "Pubkey " + addrStr + " is of unknown length",
-					}
-					return nil, &jsonErr
-				}
-
-			default:
-				// A new address type must have been added.  Use encoded
-				// payment address string as a fallback until a fast path
-				// is added.
-				lookups.fallbacks[addrStr] = struct{}{}
-			}
-		*/
-
-		//		lookups.addrHashes[*a.Hash160()] = struct{}{}
-		// lookups.addrHashes[*RCDHash] = struct{}{}
-		util.Trace("NOT IMPLEMENTED - NEEDED string conversion !!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-	}
-
-	for _, outpoint := range outpoints {
-		lookups.unspent[*outpoint] = struct{}{}
-	}
-
-	db := wsc.server.server.db
-
-	minBlockSha, err := wire.NewShaHashFromStr(cmd.BeginBlock)
-	if err != nil {
-		return nil, &btcjson.ErrDecodeHexString
-	}
-	minBlock, err := db.FetchBlockHeightBySha(minBlockSha)
-	if err != nil {
-		return nil, &btcjson.ErrBlockNotFound
-	}
-
-	maxBlock := database.AllShas
-	if cmd.EndBlock != "" {
-		maxBlockSha, err := wire.NewShaHashFromStr(cmd.EndBlock)
-		if err != nil {
-			return nil, &btcjson.ErrDecodeHexString
-		}
-		maxBlock, err = db.FetchBlockHeightBySha(maxBlockSha)
-		if err != nil {
-			return nil, &btcjson.ErrBlockNotFound
-		}
-	}
-
-	var lastBlock *btcutil.Block
-
-	// A ticker is created to wait at least 10 seconds before notifying the
-	// websocket client of the current progress completed by the rescan.
-	ticker := time.NewTicker(10 * time.Second)
-	defer ticker.Stop()
-
-	// FetchHeightRange may not return a complete list of block shas for
-	// the given range, so fetch range as many times as necessary.
-fetchRange:
-	for minBlock < maxBlock {
-		hashList, err := db.FetchHeightRange(minBlock, maxBlock)
-		if err != nil {
-			rpcsLog.Errorf("Error looking up block range: %v", err)
-			return nil, &btcjson.ErrDatabase
-		}
-		if len(hashList) == 0 {
-			break
-		}
-
-	loopHashList:
-		for i := range hashList {
-			blk, err := db.FetchBlockBySha(&hashList[i])
-			if err != nil {
-				// Only handle reorgs if a block could not be
-				// found for the hash.
-				if err != database.ErrBlockShaMissing {
-					rpcsLog.Errorf("Error looking up "+
-						"block: %v", err)
-					return nil, &btcjson.ErrDatabase
-				}
-
-				// If an absolute max block was specified, don't
-				// attempt to handle the reorg.
-				if maxBlock != database.AllShas {
-					rpcsLog.Errorf("Stopping rescan for "+
-						"reorged block %v",
-						cmd.EndBlock)
-					return nil, &ErrRescanReorg
-				}
-
-				// If the lookup for the previously valid block
-				// hash failed, there may have been a reorg.
-				// Fetch a new range of block hashes and verify
-				// that the previously processed block (if there
-				// was any) still exists in the database.  If it
-				// doesn't, we error.
-				//
-				// A goto is used to branch executation back to
-				// before the range was evaluated, as it must be
-				// reevaluated for the new hashList.
-				minBlock += int64(i)
-				var jsonErr *btcjson.Error
-				hashList, jsonErr = recoverFromReorg(db, minBlock,
-					maxBlock, lastBlock)
-				if jsonErr != nil {
-					return nil, jsonErr
-				}
-				if len(hashList) == 0 {
-					break fetchRange
-				}
-				goto loopHashList
-			}
-			if i == 0 && lastBlock != nil {
-				// Ensure the new hashList is on the same fork
-				// as the last block from the old hashList.
-				jsonErr := descendantBlock(lastBlock, blk)
-				if jsonErr != nil {
-					return nil, jsonErr
-				}
-			}
-
-			// A select statement is used to stop rescans if the
-			// client requesting the rescan has disconnected.
-			select {
-			case <-wsc.quit:
-				rpcsLog.Debugf("Stopped rescan at height %v "+
-					"for disconnected client", blk.Height())
-				return nil, nil
-			default:
-				rescanBlock(wsc, &lookups, blk)
-				lastBlock = blk
-			}
-
-			// Periodically notify the client of the progress
-			// completed.  Continue with next block if no progress
-			// notification is needed yet.
-			select {
-			case <-ticker.C: // fallthrough
-			default:
-				continue
-			}
-
-			n := btcws.NewRescanProgressNtfn(hashList[i].String(),
-				int32(blk.Height()),
-				0)
-			mn, err := n.MarshalJSON()
-			if err != nil {
-				rpcsLog.Errorf("Failed to marshal rescan "+
-					"progress notification: %v", err)
-				continue
-			}
-
-			if err = wsc.QueueNotification(mn); err == ErrClientQuit {
-				// Finished if the client disconnected.
-				rpcsLog.Debugf("Stopped rescan at height %v "+
-					"for disconnected client", blk.Height())
-				return nil, nil
-			}
-		}
-
-		minBlock += int64(len(hashList))
-	}
-
-	// Notify websocket client of the finished rescan.  Due to how btcd
-	// asynchronously queues notifications to not block calling code,
-	// there is no guarantee that any of the notifications created during
-	// rescan (such as rescanprogress, recvtx and redeemingtx) will be
-	// received before the rescan RPC returns.  Therefore, another method
-	// is needed to safely inform clients that all rescan notifiations have
-	// been sent.
-	blkSha, err := lastBlock.Sha()
-	if err != nil {
-		rpcsLog.Errorf("Unknown problem creating block sha: %v", err)
-		return nil, &btcjson.ErrInternal
-	}
-	n := btcws.NewRescanFinishedNtfn(blkSha.String(),
-		int32(lastBlock.Height()),
-		0)
-	if mn, err := n.MarshalJSON(); err != nil {
-		rpcsLog.Errorf("Failed to marshal rescan finished "+
-			"notification: %v", err)
-	} else {
-		// The rescan is finished, so we don't care whether the client
-		// has disconnected at this point, so discard error.
-		_ = wsc.QueueNotification(mn)
-	}
-
-	rpcsLog.Info("Finished rescan")
-	return nil, nil
 }

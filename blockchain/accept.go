@@ -100,39 +100,41 @@ func (b *BlockChain) maybeAcceptBlock(block *btcutil.Block, flags BehaviorFlags)
 	// Ensure chain matches up to predetermined checkpoints.
 	// It's safe to ignore the error on Sha since it's already cached.
 	blockHash, _ := block.Sha()
-	if !b.verifyCheckpoint(blockHeight, blockHash) {
-		str := fmt.Sprintf("block at height %d does not match "+
-			"checkpoint hash", blockHeight)
-		return ruleError(ErrBadCheckpoint, str)
-	}
-	util.Trace()
+	/*
+			if !b.verifyCheckpoint(blockHeight, blockHash) {
+				str := fmt.Sprintf("block at height %d does not match "+
+					"checkpoint hash", blockHeight)
+				return ruleError(ErrBadCheckpoint, str)
+			}
+			util.Trace()
 
-	// Find the previous checkpoint and prevent blocks which fork the main
-	// chain before it.  This prevents storage of new, otherwise valid,
-	// blocks which build off of old blocks that are likely at a much easier
-	// difficulty and therefore could be used to waste cache and disk space.
-	checkpointBlock, err := b.findPreviousCheckpoint()
-	if err != nil {
-		return err
-	}
-	util.Trace()
-	if checkpointBlock != nil && blockHeight < checkpointBlock.Height() {
-		str := fmt.Sprintf("block at height %d forks the main chain "+
-			"before the previous checkpoint at height %d",
-			blockHeight, checkpointBlock.Height())
-		return ruleError(ErrForkTooOld, str)
-	}
-	util.Trace()
+		// Find the previous checkpoint and prevent blocks which fork the main
+		// chain before it.  This prevents storage of new, otherwise valid,
+		// blocks which build off of old blocks that are likely at a much easier
+		// difficulty and therefore could be used to waste cache and disk space.
+		checkpointBlock, err := b.findPreviousCheckpoint()
+		if err != nil {
+			return err
+		}
+		util.Trace()
+		if checkpointBlock != nil && blockHeight < checkpointBlock.Height() {
+			str := fmt.Sprintf("block at height %d forks the main chain "+
+				"before the previous checkpoint at height %d",
+				blockHeight, checkpointBlock.Height())
+			return ruleError(ErrForkTooOld, str)
+		}
+		util.Trace()
+	*/
 
-    /*********************************************
-        Once there was code here for rejecting blocks.
-        FACTOM doesn't do this sort of thing.  Blocks
-        simply are not rejected.
-        
-        Rejecting messages or transactins based on 
-        versions will be done above the coin.  So 
-        we don't need that logic here.
-    **********************************************/
+	/*********************************************
+	    Once there was code here for rejecting blocks.
+	    FACTOM doesn't do this sort of thing.  Blocks
+	    simply are not rejected.
+
+	    Rejecting messages or transactins based on
+	    versions will be done above the coin.  So
+	    we don't need that logic here.
+	**********************************************/
 	// Prune block nodes which are no longer needed before creating
 	// a new node.
 	if !dryRun {

@@ -48,7 +48,7 @@ func (p *peer) handleDirBlockMsg(msg *wire.MsgDirBlock, buf []byte) {
 	p.AddKnownInventory(iv)
 
 	p.pushGetNonDirDataMsg(msg.DBlk)
-	
+
 	inMsgQueue <- msg
 
 }
@@ -100,9 +100,8 @@ func (p *peer) handleEBlockMsg(msg *wire.MsgEBlock, buf []byte) {
 	p.AddKnownInventory(iv)
 
 	p.pushGetEntryDataMsg(msg.EBlk)
-	
-	inMsgQueue <- msg
 
+	inMsgQueue <- msg
 
 }
 
@@ -249,9 +248,9 @@ func (p *peer) handleGetNonDirDataMsg(msg *wire.MsgGetNonDirData) {
 
 			case achain.ChainID.String():
 				err = p.pushABlockMsg(dbEntry.MerkleRoot, c, waitChan)
-				
+
 			case wire.FChainID.String():
-				err = p.pushBlockMsg(wire.FactomHashToShaHash(dbEntry.MerkleRoot), c, waitChan)
+				//err = p.pushBlockMsg(wire.FactomHashToShaHash(dbEntry.MerkleRoot), c, waitChan)
 
 			default:
 				err = p.pushEBlockMsg(dbEntry.MerkleRoot, c, waitChan)

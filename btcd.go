@@ -5,8 +5,8 @@
 package btcd
 
 import (
-	"errors"
-	"fmt"
+	//	"errors"
+	//	"fmt"
 	"net"
 	"net/http"
 	_ "net/http/pprof"
@@ -15,7 +15,7 @@ import (
 	"runtime/pprof"
 
 	"github.com/FactomProject/FactomCode/util"
-	"github.com/FactomProject/btcd/chaincfg"
+	//	"github.com/FactomProject/btcd/chaincfg"
 )
 
 var (
@@ -79,21 +79,23 @@ func btcdMain(serverChan chan<- *server) error {
 		}
 	*/
 
-	// Load the block database.
-	db, err := loadBlockDB()
-	if err != nil {
-		btcdLog.Errorf("%v", err)
-		return err
-	}
-	defer db.Close()
+	/*
+			// Load the block database.
+			db, err := loadBlockDB()
+			if err != nil {
+				btcdLog.Errorf("%v", err)
+				return err
+			}
+			defer db.Close()
 
-	// a(nother) genesis hash check
-	gensha, err := db.FetchBlockShaByHeight(0)
+			// a(nother) genesis hash check
+			gensha, err := db.FetchBlockShaByHeight(0)
 
-	// Will be taken out once https://github.com/FactomProject/WorkItems/issues/325 is implemented.
-	if !chaincfg.MainNetParams.GenesisHash.IsEqual(gensha) {
-		panic(errors.New(fmt.Sprintf("Factoid genesis block hash ERROR, after loadBlockDB")))
-	}
+		// Will be taken out once https://github.com/FactomProject/WorkItems/issues/325 is implemented.
+		if !chaincfg.MainNetParams.GenesisHash.IsEqual(gensha) {
+			panic(errors.New(fmt.Sprintf("Factoid genesis block hash ERROR, after loadBlockDB")))
+		}
+	*/
 
 	/*
 		if cfg.DropAddrIndex {
@@ -108,14 +110,16 @@ func btcdMain(serverChan chan<- *server) error {
 		}
 	*/
 
-	// Ensure the database is sync'd and closed on Ctrl+C.
-	addInterruptHandler(func() {
-		btcdLog.Infof("Gracefully shutting down the database...")
-		db.RollbackClose()
-	})
+	/*
+		// Ensure the database is sync'd and closed on Ctrl+C.
+		addInterruptHandler(func() {
+			btcdLog.Infof("Gracefully shutting down the database...")
+			db.RollbackClose()
+		})
+	*/
 
 	// Create server and start it.
-	server, err := newServer(cfg.Listeners, db, activeNetParams.Params)
+	server, err := newServer(cfg.Listeners, activeNetParams.Params)
 	if err != nil {
 		// TODO(oga) this logging could do with some beautifying.
 		btcdLog.Errorf("Unable to start server on %v: %v",

@@ -38,7 +38,7 @@ type CreateMultiSigResult struct {
 
 // DecodeScriptResult models the data returned from the decodescript command.
 type DecodeScriptResult struct {
-	Asm       string   `json:"asm0"`
+	Asm       string   `json:"asm"`
 	ReqSigs   int32    `json:"reqSigs,omitempty"`
 	Type      string   `json:"type0"`
 	Addresses []string `json:"addresses,omitempty"`
@@ -226,7 +226,7 @@ type ScriptSig struct {
 // same structure.
 type Vin struct {
 	Coinbase string `json:"coinbase"`
-	Txid     string `json:"txid2"`
+	Txid     string `json:"txid"`
 	Vout     uint32 `json:"vout"`
 }
 
@@ -249,7 +249,7 @@ func (v *Vin) MarshalJSON() ([]byte, error) {
 	}
 
 	txStruct := struct {
-		Txid string `json:"txid3"`
+		Txid string `json:"txid"`
 		Vout uint32 `json:"vout"`
 		//		ScriptSig *ScriptSig `json:"scriptSig"`
 		//		Sequence  uint32     `json:"sequence"`
@@ -259,20 +259,21 @@ func (v *Vin) MarshalJSON() ([]byte, error) {
 		//		ScriptSig: v.ScriptSig,
 		//		Sequence:  v.Sequence,
 	}
+
 	return json.Marshal(txStruct)
 }
 
 // DestAddrResult models the scriptPubKey data of a tx script.  It is
 // defined separately since it is used by multiple commands.
 type DestAddrResult struct {
-	Asm       string   `json:"asm2"`
+	Asm       string   `json:"asm"`
 	Hex       string   `json:"hex,omitempty"`
 	ReqSigs   int32    `json:"reqSigs,omitempty"`
 	Addresses []string `json:"addresses,omitempty"`
 }
 
 type ECAddrResult struct {
-	Asm       string   `json:"asm2"`
+	Asm       string   `json:"asm"`
 	Hex       string   `json:"hex,omitempty"`
 	ReqSigs   int32    `json:"reqSigs,omitempty"`
 	Addresses []string `json:"addresses,omitempty"`

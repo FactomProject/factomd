@@ -34,7 +34,7 @@ const (
 	InvTypeFactomEntry            InvType = 16
 	InvTypeFactomEntryCreditBlock InvType = 17
 	InvTypeFactomNonDirBlock      InvType = 18
-	InvTypeFactomAdminBlock 	  InvType = 19	
+	InvTypeFactomAdminBlock       InvType = 19	
 	InvTypeFactomSCBlock          InvType = 20
 
 	InvTypeFactomControl InvType = 50 // Factom control messages

@@ -22,7 +22,7 @@ const (
 
 	// MaxFlagsPerMerkleBlock makes the internal maxFlagsPerMerkleBlock
 	// constant available to the test package.
-	MaxFlagsPerMerkleBlock = maxFlagsPerMerkleBlock
+	//	MaxFlagsPerMerkleBlock = maxFlagsPerMerkleBlock
 
 	// MaxCountSetCancel makes the internal maxCountSetCancel constant
 	// available to the test package.

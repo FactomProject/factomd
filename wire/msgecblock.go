@@ -36,12 +36,12 @@ func (msg *MsgECBlock) BtcEncode(w io.Writer, pver uint32) error {
 // This is part of the Message interface implementation.
 func (msg *MsgECBlock) BtcDecode(r io.Reader, pver uint32) error {
 
-	bytes, err := readVarBytes(r, pver, uint32(10000), CmdECBlock)
+	bytes, err := readVarBytes(r, pver, uint32(100000000), CmdECBlock)
 	if err != nil {
 		return err
 	}
 
-	msg.ECBlock = new(common.ECBlock)
+	msg.ECBlock = common.NewECBlock()
 	err = msg.ECBlock.UnmarshalBinary(bytes)
 	if err != nil {
 		return err

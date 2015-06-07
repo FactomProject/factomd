@@ -35,9 +35,9 @@ func Init() {
 
 }
 
-// FBlockHeader defines information about a block and is used in the bitcoin
+// BlockHeader defines information about a block and is used in the bitcoin
 // block (MsgBlock) and headers (MsgHeaders) messages.
-type FBlockHeader struct {
+type BlockHeader struct {
 	ChainID    ShaHash  // ChainID.  But since this is a constant, we need not actually use space to store it.
 	MerkleRoot ShaHash  // Merkle root of the Factoid transactions which accompany this block.
 	PrevBlock  ShaHash  // Key Merkle root of previous block.
@@ -51,12 +51,12 @@ type FBlockHeader struct {
 	BodySize uint64 // Bytes in the body of this block.
 }
 
-// FBlockHeaderLen is a constant that represents the number of bytes for a block
+// blockHeaderLen is a constant that represents the number of bytes for a block
 // header.
-const BlockHeaderLen = 28 + 5*HashSize
+const blockHeaderLen = 28 + 5*HashSize
 
 // BlockSha computes the block identifier hash for the given block header.
-func (h *FBlockHeader) BlockSha() (ShaHash, error) {
+func (h *BlockHeader) BlockSha() (ShaHash, error) {
 	// Encode the header and run double sha256 everything prior to the
 	// number of transactions.  Ignore the error returns since there is no
 	// way the encode could fail except being out of memory which would
@@ -66,8 +66,8 @@ func (h *FBlockHeader) BlockSha() (ShaHash, error) {
 	var buf bytes.Buffer
 	var sha ShaHash
 	_ = writeBlockHeader(&buf, 0, h)
-	fmt.Println("Len: ", len(buf.Bytes()), " ", BlockHeaderLen)
-	_ = sha.SetBytes(DoubleSha256(buf.Bytes()[0:BlockHeaderLen]))
+	fmt.Println("Len: ", len(buf.Bytes()), " ", blockHeaderLen)
+	_ = sha.SetBytes(DoubleSha256(buf.Bytes()[0:blockHeaderLen]))
 
 	// Even though this function can't currently fail, it still returns
 	// a potential error to help future proof the API should a failure
@@ -77,7 +77,7 @@ func (h *FBlockHeader) BlockSha() (ShaHash, error) {
 
 // Deserialize decodes a block header from r into the receiver using a format
 // that is suitable for long-term storage such as a database.
-func (h *FBlockHeader) Deserialize(r io.Reader) error {
+func (h *BlockHeader) Deserialize(r io.Reader) error {
 	// At the current time, there is no difference between the wire encoding
 	// at protocol version 0 and the stable long-term storage format.  As
 	// a result, make use of readBlockHeader.
@@ -86,19 +86,19 @@ func (h *FBlockHeader) Deserialize(r io.Reader) error {
 
 // Serialize encodes a block header from r into the receiver using a format
 // that is suitable for long-term storage such as a database.
-func (h *FBlockHeader) Serialize(w io.Writer) error {
+func (h *BlockHeader) Serialize(w io.Writer) error {
 	// At the current time, there is no difference between the wire encoding
 	// at protocol version 0 and the stable long-term storage format.  As
 	// a result, make use of writeBlockHeader.
 	return writeBlockHeader(w, 0, h)
 }
 
-// NewBlockHeader returns a new FBlockHeader using the provided previous block
+// NewBlockHeader returns a new BlockHeader using the provided previous block
 // hash, merkle root hash, difficulty bits, and nonce used to generate the
 // block with defaults for the remaining fields.
-func NewBlockHeader(prevHash *ShaHash, merkleRootHash *ShaHash) *FBlockHeader {
+func NewBlockHeader(prevHash *ShaHash, merkleRootHash *ShaHash) *BlockHeader {
 
-	return &FBlockHeader{
+	return &BlockHeader{
 		PrevBlock:  *prevHash,
 		MerkleRoot: *merkleRootHash,
 	}
@@ -107,7 +107,7 @@ func NewBlockHeader(prevHash *ShaHash, merkleRootHash *ShaHash) *FBlockHeader {
 // readBlockHeader reads a bitcoin block header from r.  See Deserialize for
 // decoding block headers stored to disk, such as in a database, as opposed to
 // decoding from the wire.
-func readBlockHeader(r io.Reader, pver uint32, bh *FBlockHeader) error {
+func readBlockHeader(r io.Reader, pver uint32, bh *BlockHeader) error {
 
 	err := readElements(r, &bh.ChainID, &bh.MerkleRoot, &bh.PrevBlock, &bh.PrevHash3, &bh.ExchRate,
 		&bh.DBHeight, &bh.UTXOCommit, &bh.TransCnt, &bh.BodySize)
@@ -122,7 +122,7 @@ func readBlockHeader(r io.Reader, pver uint32, bh *FBlockHeader) error {
 // writeBlockHeader writes a bitcoin block header to w.  See Serialize for
 // encoding block headers to be stored to disk, such as in a database, as
 // opposed to encoding for the wire.
-func writeBlockHeader(w io.Writer, pver uint32, bh *FBlockHeader) error {
+func writeBlockHeader(w io.Writer, pver uint32, bh *BlockHeader) error {
 	copy(bh.ChainID[:], FChainID.Bytes)
 	err := writeElements(w, &bh.ChainID, &bh.MerkleRoot, &bh.PrevBlock, &bh.PrevHash3, bh.ExchRate,
 		bh.DBHeight, &bh.UTXOCommit, &bh.TransCnt, bh.BodySize)

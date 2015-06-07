@@ -421,7 +421,7 @@ func VarIntSerializeSize(val uint64) int {
 func readVarString(r io.Reader, pver uint32) (string, error) {
 	count, err := readVarInt(r, pver)
 	if err != nil {
-		return "", messageError("",err.Error())
+		return "", messageError("", err.Error())
 	}
 
 	// Prevent variable length strings that are larger than the maximum
@@ -436,7 +436,7 @@ func readVarString(r io.Reader, pver uint32) (string, error) {
 	buf := make([]byte, count)
 	_, err = io.ReadFull(r, buf)
 	if err != nil {
-		return "", messageError("",err.Error())
+		return "", messageError("", err.Error())
 	}
 	return string(buf), nil
 }
