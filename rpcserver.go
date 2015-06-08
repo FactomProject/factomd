@@ -112,22 +112,22 @@ type commandHandler func(*rpcServer, btcjson.Cmd, <-chan struct{}) (interface{},
 // a dependancy loop.
 var rpcHandlers map[string]commandHandler
 var rpcHandlersBeforeInit = map[string]commandHandler{
-	"addnode":              handleAddNode,
-	"createrawtransaction": handleCreateRawTransaction,
-	"debuglevel":           handleDebugLevel,
-	"decoderawtransaction": handleDecodeRawTransaction,
+	"addnode": handleAddNode,
+	// "createrawtransaction": handleCreateRawTransaction,
+	"debuglevel": handleDebugLevel,
+	// "decoderawtransaction": handleDecodeRawTransaction,
 	//	"decodescript":         handleDecodeScript,
-	"estimatefee":      handleUnimplemented,
-	"estimatepriority": handleUnimplemented,
+	// 	"estimatefee":      handleUnimplemented,
+	// 	"estimatepriority": handleUnimplemented,
 	"getaddednodeinfo": handleGetAddedNodeInfo,
 	//	"getbestblock":      handleGetBestBlock,
 	//	"getbestblockhash":  handleGetBestBlockHash,
 	//	"getblock":          handleGetBlock,
-	"getblockchaininfo": handleUnimplemented,
+	// 	"getblockchaininfo": handleUnimplemented,
 	//	"getblockcount":     handleGetBlockCount,
 	//	"getblockhash":      handleGetBlockHash,
 	//	"getblocktemplate":      handleGetBlockTemplate,
-	"getchaintips":       handleUnimplemented,
+	// 	"getchaintips":       handleUnimplemented,
 	"getconnectioncount": handleGetConnectionCount,
 	"getcurrentnet":      handleGetCurrentNet,
 	//	"getdifficulty":      handleGetDifficulty,
@@ -150,15 +150,18 @@ var rpcHandlersBeforeInit = map[string]commandHandler{
 	//	"setgenerate":           handleSetGenerate,
 	"stop": handleStop,
 	//	"submitblock":     handleSubmitBlock,
-	"validateaddress": handleValidateAddress,
-	"verifychain":     handleVerifyChain,
-	"verifymessage":   handleVerifyMessage,
+	/*
+		"validateaddress": handleValidateAddress,
+		"verifychain":     handleVerifyChain,
+		"verifymessage":   handleVerifyMessage,
+	*/
 }
 
 // list of commands that we recognise, but for which btcd has no support because
 // it lacks support for wallet functionality. For these commands the user
 // should ask a connected instance of btcwallet.
 var rpcAskWallet = map[string]struct{}{
+/*
 	"addmultisigaddress":     struct{}{},
 	"backupwallet":           struct{}{},
 	"createencryptedwallet":  struct{}{},
@@ -201,6 +204,7 @@ var rpcAskWallet = map[string]struct{}{
 	"walletlock":             struct{}{},
 	"walletpassphrase":       struct{}{},
 	"walletpassphrasechange": struct{}{},
+*/
 }
 
 // Commands that are temporarily unimplemented.
