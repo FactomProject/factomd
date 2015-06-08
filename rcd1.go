@@ -75,14 +75,19 @@ func (w1 RCD_1) NumberOfSignatures() int {
 	return 1
 }
 
-func (a1 RCD_1) IsEqual(addr IBlock) bool {
+func (a1 *RCD_1) IsEqual(addr IBlock) []IBlock {
 	a2, ok := addr.(*RCD_1)
-	if !ok || // Not the right kind of IBlock
-		a1.publicKey != a2.publicKey { // Not the right sigature
-		return false
+
+	if !ok {
+        Prtln("Not the right object",addr)  
+    }// Not the right kind of IBlock
+	if	a1.publicKey != a2.publicKey { // Not the right sigature
+        Prtln("Public Keys don't match")
+            r := make([]IBlock,0,5)
+            return append(r,a1) 
 	}
 
-	return true
+	return nil
 }
 
 func (t *RCD_1) UnmarshalBinaryData(data []byte) (newData []byte, err error) {

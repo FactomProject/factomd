@@ -37,13 +37,14 @@ func (w1 Hash) GetNewInstance() IBlock {
 	return new(Hash)
 }
 
-func (t Hash) IsEqual(hash IBlock) bool {
+func (t Hash) IsEqual(hash IBlock) []IBlock {
 	h, ok := hash.(IHash)
 	if !ok || !h.IsSameAs(&t) {
-		return false
+		r := make([]IBlock,0,5)
+        return append(r,&t)
 	}
 
-	return true
+	return nil
 }
 
 func (t *Hash) UnmarshalBinaryData(data []byte) (newData []byte, err error) {

@@ -10,6 +10,8 @@ import (
 
 type SCDatabase struct {
 	ISCDatabase
+	backer ISCDatabase          // We can have backing databases.  For now this will be nil
+	persist ISCDatabase         // We do need LevelDB or Bolt.  It would go here.
 }
 
 var _ ISCDatabase = (*SCDatabase)(nil)
@@ -24,6 +26,23 @@ type DBKey struct {
 	bucket [simplecoin.ADDRESS_LENGTH]byte
 	key    [simplecoin.ADDRESS_LENGTH]byte
 }
+
+// A Backer database allows the implementation of a least recently
+// used cache to purge data from memory.
+func (db *SCDatabase) SetBacker(b ISCDatabase) {
+    db.backer = b
+}
+func (db SCDatabase) GetBacker() ISCDatabase{
+    return db.backer
+}
+// A Persist database is needed to persist writes.  This is where 
+// one can hook up a LevelDB or Bolt database.
+func (db *SCDatabase) SetPersist(p ISCDatabase){
+    db.persist = p
+}
+func (db SCDatabase) GetPersist() ISCDatabase{
+    return db.persist
+} 
 
 func (k DBKey) GetBucket() []byte{
     return k.bucket[:]
@@ -46,20 +65,4 @@ func makeKey(bucket []byte, key []byte) IDBKey {
 	return k
 }
 
-func (db *SCDatabase) Get(bucket string, key simplecoin.IHash) (value simplecoin.IBlock) {
-	return db.GetRaw([]byte(bucket), key.Bytes())
-}
 
-func (db *SCDatabase) GetKey(key IDBKey) (value simplecoin.IBlock) {
-	return db.GetRaw(key.GetBucket(),key.GetKey())
-}
-
-func (db *SCDatabase) Put(bucket string, key simplecoin.IHash, value simplecoin.IBlock) {
-    b := []byte(bucket)
-    k := key.Bytes()
-    db.PutRaw(b, k, value)
-}
-
-func (db *SCDatabase) PutKey(key IDBKey, value simplecoin.IBlock) {
-	db.PutRaw(key.GetBucket(), key.GetKey(), value)
-}

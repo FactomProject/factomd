@@ -45,10 +45,11 @@ func (a Address) MarshalText() (text []byte, err error) {
 	addr := hex.EncodeToString(a.Bytes())
 	out.WriteString("addr  ")
 	out.WriteString(addr)
-	out.WriteString("\n")
 	return out.Bytes(), nil
 }
 
 func CreateAddress(hash IHash) IAddress {
-	return hash
+	a := new(Address)
+    a.SetBytes(hash.Bytes())
+    return a
 }

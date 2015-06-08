@@ -210,7 +210,7 @@ func (t Transaction) Validate() string {
 		}
 		// If the Address (which is really a hash) isn't equal to the hash of
 		// the RCD, this transaction is bogus.
-		if !t.inputs[i].GetAddress().IsEqual(address) {
+		if t.inputs[i].GetAddress().IsEqual(address) != nil {
             return RCD_MATCH_FAIL
 		}
 	}
@@ -219,7 +219,7 @@ func (t Transaction) Validate() string {
 	// since the addresses are the hashes of the rcds.
 	for i := 1; i < len(t.inputs)-1; i++ {
 		for j := i + 1; j < len(t.inputs); j++ {
-			if t.inputs[i].IsEqual(t.inputs[j]) {
+			if t.inputs[i].IsEqual(t.inputs[j]) == nil {
                 return DUP_INPUT_FAIL
 			}
 		}
@@ -258,7 +258,7 @@ func (t Transaction) ValidateSignatures() bool {
 // Tests if the transaction is equal in all of its structures, and
 // in order of the structures.  Largely used to test and debug, but
 // generally useful.
-func (t1 Transaction) IsEqual(trans IBlock) bool {
+func (t1 *Transaction) IsEqual(trans IBlock) []IBlock {
 
 	t2, ok := trans.(ITransaction)
 
@@ -267,56 +267,66 @@ func (t1 Transaction) IsEqual(trans IBlock) bool {
 		len(t1.outputs) != len(t2.GetOutputs()) || // Size of arrays has to match
 		len(t1.outECs) != len(t2.GetOutECs()) { // Size of arrays has to match
 
-		return false
+            r := make([]IBlock,0,5)
+            return append(r,t1)
 	}
 
 	for i, input := range t1.GetInputs() {
 		adr, err := t2.GetInput(i)
 		if err != nil {
-			return false
+            r := make([]IBlock,0,5)
+            return append(r,t1)
 		}
-		if !input.IsEqual(adr) {
-			return false
+        r := input.IsEqual(adr) 
+        if r != nil {
+			return append(r,t1)
 		}
-		return true
+
 	}
 	for i, output := range t1.GetOutputs() {
 		adr, err := t2.GetOutput(i)
 		if err != nil {
-			return false
+            r := make([]IBlock,0,5)
+            return append(r,t1)
 		}
-		if !output.IsEqual(adr) {
-			return false
-		}
-		return true
+		r := output.IsEqual(adr) 
+        if r != nil {
+            return append(r,t1)
+        }
+		
 	}
 	for i, outEC := range t1.GetOutECs() {
 		adr, err := t2.GetOutEC(i)
 		if err != nil {
-			return false
+            r := make([]IBlock,0,5)
+            return append(r,t1)
 		}
-		if !outEC.IsEqual(adr) {
-			return false
-		}
-		return true
+		r := outEC.IsEqual(adr) 
+        if r != nil {
+            return append(r,t1)
+        }
+        
 	}
 	for i, a := range t1.rcds {
-		adr, err := t2.GetInput(i)
+		adr, err := t2.GetRCD(i)
 		if err != nil {
-			return false
+            r := make([]IBlock,0,5)
+            return append(r,t1)
 		}
-		if !a.IsEqual(adr) {
-			return false
-		}
-		return true
+		r := a.IsEqual(adr) 
+        if r != nil {
+            return append(r,t1)
+        }
+		
 	}
 	for i, s := range t1.sigBlocks {
-		if !s.IsEqual(t2.GetSignatureBlock(i)) {
-			return false
-		}
+		r := s.IsEqual(t2.GetSignatureBlock(i)) 
+        if r != nil {
+            return append(r,t1)
+        }
 	}
 
-	return true
+	return nil
 }
 
 func (t Transaction) GetInputs() []IInAddress    { return t.inputs }

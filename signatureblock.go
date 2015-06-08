@@ -41,26 +41,29 @@ func (b SignatureBlock) String() string {
 	return string(txt)
 }
 
-func (s SignatureBlock) IsEqual(signatureBlock IBlock) bool {
+func (s *SignatureBlock) IsEqual(signatureBlock IBlock) []IBlock {
 
 	sb, ok := signatureBlock.(ISignatureBlock)
 
 	if !ok {
-		return false
+        r := make([]IBlock,0,5)
+        return append(r,s)
 	}
 
 	sigs1 := s.GetSignatures()
 	sigs2 := sb.GetSignatures()
 	if len(sigs1) != len(sigs2) {
-		return false
+        r := make([]IBlock,0,5)
+        return append(r,s)
 	}
 	for i, sig := range sigs1 {
-		if !sig.IsEqual(sigs2[i]) {
-			return false
+		r := sig.IsEqual(sigs2[i]) 
+        if r != nil {
+			return append(r,s)
 		}
 	}
 
-	return true
+	return nil
 }
 
 func (s *SignatureBlock) AddSignature(sig ISignature) {

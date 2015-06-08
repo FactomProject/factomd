@@ -18,8 +18,9 @@ type IBlock interface {
 	// makes the code easier to read and way more efficent.
 	UnmarshalBinaryData(data []byte) ([]byte, error)
 
-	IsEqual(IBlock) bool    // Check if this block is the same as itself
-	GetDBHash() IHash       // Identifies the class of the object
-	GetHash() IHash         // Returns the hash of the object
-	GetNewInstance() IBlock // Get a new instance of this object
+	IsEqual(IBlock) []IBlock   // Check if this block is the same as itself. 
+                               //   Returns nil, or the path to the first difference.
+	GetDBHash() IHash          // Identifies the class of the object
+	GetHash() IHash            // Returns the hash of the object
+	GetNewInstance() IBlock    // Get a new instance of this object
 }

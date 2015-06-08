@@ -15,14 +15,15 @@ import (
 
 var _ = fmt.Printf
 
-var twallet wallet.ISCWallet
-var inputAddresses []sc.IAddress        // Genesis Address funds 10 addresses
-var outputAddresses []sc.IAddress       // We consider our inputs and ten more addresses
-                                        // as valid outputs.
 
 type test_state struct {
     state.FactomState
     clock int64
+    twallet wallet.ISCWallet
+    inputAddresses []sc.IAddress        // Genesis Address funds 10 addresses
+    outputAddresses []sc.IAddress       // We consider our inputs and ten more addresses
+    // as valid outputs.
+    
 }
 
 func(fs *test_state) GetTime64() int64 {
@@ -33,8 +34,15 @@ func(fs *test_state) GetTime32() int64 {
     return time.Now().Unix()
 }
 
-func newTransaction(fs state.IFactomState) sc.ITransaction {
+func(fs *test_state) newTransaction() sc.ITransaction {
     
+    fs.inputAddresses = make([]sc.IAddress,0,20)
+    for _,output := range fs.outputAddresses {
+        bal := fs.GetBalance(output)
+        if bal > 100000 {
+            fs.inputAddresses = append(fs.inputAddresses, output)
+        }
+    }
     // The following code is a function that creates an array
     // of addresses pulled from some source array of addresses
     // selected randomly.
@@ -44,7 +52,7 @@ func newTransaction(fs state.IFactomState) sc.ITransaction {
             i := rand.Int()%len(source)
             adr := source[i]
             for _,adr2 := range adrs {
-                if adr.IsEqual(adr2) {
+                if adr.IsEqual(adr2) == nil {
                     continue MainLoop
                 }
             }
@@ -58,28 +66,34 @@ func newTransaction(fs state.IFactomState) sc.ITransaction {
     numOutputs := rand.Int()%5+1
     
     // Get my input and output addresses
-    inputs := makeList(inputAddresses,numInputs)
-    outputs := makeList(outputAddresses,numOutputs)
+    inputs := makeList(fs.inputAddresses,numInputs)
+    outputs := makeList(fs.outputAddresses,numOutputs)
 
-    transAmount := uint64(int64(1000000000) - rand.Int63() % int64(900000000))
-    
-    t := twallet.CreateTransaction()
+    var paid uint64
+    t := fs.twallet.CreateTransaction()
     for _, adr := range inputs {
-        twallet.AddInput(t,adr,transAmount/uint64(len(inputs)))
+        balance := fs.GetBalance(adr)
+        toPay := balance >> 16 
+        paid = toPay+paid
+        fs.twallet.AddInput(t,adr, toPay)
+        
+        //fmt.Printf("%s %x\n",adr.String(),balance)
+    
     }
     for _, adr := range outputs {
-        twallet.AddOutput(t,adr,transAmount/uint64(len(outputs)))
+        fs.twallet.AddOutput(t,adr,paid/uint64(len(outputs)))
     }
     fee,err := t.CalculateFee(fs.GetFactoshisPerEC())
-    twallet.UpdateInput(t,0,inputs[0], (transAmount/uint64(len(inputs)))+fee)
+    fs.twallet.UpdateInput(t,0,inputs[0], (paid/uint64(len(inputs)))+fee)
     
-    valid, err := twallet.  SignInputs(t)
+    valid, err := fs.twallet.SignInputs(t)
     if err != nil {
+        sc.Prtln("Failed to sign transaction")
         panic(err)
     }
     if !valid {
-        panic("Transaction is not valid")
+        sc.Prtln("Transaction is not valid")
     }
-  
+    if !fs.Validate(t) {return fs.newTransaction() }
     return t
 }

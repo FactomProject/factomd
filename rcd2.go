@@ -59,22 +59,24 @@ func (w1 RCD_2) GetNewInstance() IBlock {
 	return new(RCD_2)
 }
 
-func (a1 RCD_2) IsEqual(addr IBlock) bool {
+func (a1 *RCD_2) IsEqual(addr IBlock) []IBlock {
 	a2, ok := addr.(*RCD_2)
 	if !ok || // Not the right kind of IBlock
 		a1.n != a2.n || // Size of sig has to match
 		a1.m != a2.m || // Size of sig has to match
 		len(a1.n_addresses) != len(a2.n_addresses) { // Size of arrays has to match
-		return false
+            r := make([]IBlock,0,5)
+            return append(r,a1)
 	}
 
 	for i, addr := range a1.n_addresses {
-		if !addr.IsEqual(a2.n_addresses[i]) {
-			return false
+		r := addr.IsEqual(a2.n_addresses[i]) 
+        if r != nil {
+			return append(r,a1)
 		}
 	}
 
-	return true
+	return nil
 }
 
 func (t *RCD_2) UnmarshalBinaryData(data []byte) (newData []byte, err error) {

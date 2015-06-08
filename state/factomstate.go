@@ -57,6 +57,9 @@ type IFactomState interface {
     // Validate transaction
     // Return true if the balance of an address covers each input
     Validate(sc.ITransaction) bool
+    // Update Transaction just updates the balance sheet with the
+    // addition of a transaction.
+    UpdateTransaction(sc.ITransaction) bool
     // Add a Transaction to the current block.  The transaction is
     // validated against the address balances, which must cover The
     // inputs.  Returns true if the transaction is added.
@@ -82,7 +85,28 @@ func(fs *FactomState) GetDBHeight() uint32 {
     return fs.dbheight
 }
 
+// When we are playing catchup, adding the transaction block is a pretty
+// usful feature.
+func(fs *FactomState) AddTransactionBlock(blk block.ISCBlock) error  {
+    transactions := blk.GetTransactions()
+    for _,trans := range transactions {
+        ok := fs.UpdateTransaction(trans)
+        if !ok {
+            return fmt.Errorf("Failed to add transaction")
+        }
+    }
+    return nil
+}
+
 func(fs *FactomState) AddTransaction(trans sc.ITransaction) bool {
+    if fs.UpdateTransaction(trans) {
+        fs.currentBlock.AddTransaction(trans)
+        return true
+    }
+    return false
+}
+
+func(fs *FactomState) UpdateTransaction(trans sc.ITransaction) bool {
     if !fs.Validate(trans) { return false }
     for _,input := range trans.GetInputs() {
         fs.UpdateBalance(input.GetAddress(), - int64(input.GetAmount()))
@@ -102,65 +126,86 @@ func(fs *FactomState) ProcessEndOfMinute() {
 // End of Block means packing the current block away, and setting 
 // up the next block.
 func(fs *FactomState) ProcessEndOfBlock(){
-    fs.PutTransactionBlock(fs.currentBlock.GetHash(),fs.currentBlock)
-    fs.PutTransactionBlock(sc.FACTOID_CHAINID_HASH,fs.currentBlock)
+    var hash sc.IHash
+    
+    data,err := fs.currentBlock.MarshalBinary()
+    x := fs.currentBlock.GetNewInstance()
+    err = x.UnmarshalBinary(data)
+    if err != nil { panic("Marshal/UnmarshalBinary failed") }
+    r := fs.currentBlock.IsEqual(x) 
+    if r!= nil { 
+        sc.Prtln("Difference Found");
+        sc.Prtln(r[0])
+        
+        sc.Prtln("==========================")
+        r = x.IsEqual(fs.currentBlock)
+        sc.Prtln(r[0])
+        panic("Data corrupted") 
+    }
+    if x.GetHash().IsEqual(fs.currentBlock.GetHash())!= nil { panic("Hashes don't match") }
+    
+    if fs.currentBlock != nil {             // If no blocks, the current block is nil
+        hash = fs.currentBlock.GetHash()
+        fs.PutTransactionBlock(hash,fs.currentBlock)
+        fs.PutTransactionBlock(sc.FACTOID_CHAINID_HASH,fs.currentBlock)
+    }
     fs.dbheight += 1
     fs.currentBlock = block.NewSCBlock(fs.GetFactoshisPerEC(),fs.dbheight)
+    fs.currentBlock.SetPrevBlock(hash.Bytes())
 }
 
-// When we are playing catchup, adding the transaction block is a pretty
-// usful feature.
-func(fs *FactomState) AddTransactionBlock(blk block.ISCBlock) error  {
-    transactions := blk.GetTransactions()
-    for _,trans := range transactions {
-        inputs := trans.GetInputs()
-        for _, input := range inputs {
-            amount  := input.GetAmount()
-            err := fs.UpdateBalance(input.GetAddress(), -int64(amount))
-            if err != nil { return err }
-        }
-        outputs := trans.GetOutputs()
-        for _, output := range outputs {
-            amount  := output.GetAmount()
-            err := fs.UpdateBalance(output.GetAddress(), int64(amount))
-            if err != nil { return err }
-        }
-        ecoutputs := trans.GetOutECs()
-        for _, ecoutput := range ecoutputs {
-            amount  := ecoutput.GetAmount()
-            err := fs.UpdateBalance(ecoutput.GetAddress(), int64(amount))
-            if err != nil { return err }
-        }
-    }
-    return nil
-}
+
 
 func(fs *FactomState) LoadState() error  {
     var hashes []sc.IHash
-    hashes = append(hashes, sc.NewHash(sc.FACTOID_CHAINID))
-    iblk := fs.GetTransactionBlock(sc.NewHash(sc.FACTOID_CHAINID))
-    var blk block.ISCBlock
-    for {
-        if iblk == nil {
-            sc.Prtln("No Genesis Block detected.  Adding Genesis Block")
-            gb := block.GetGenesisBlock(1000000,10,200000000000)
-            gb.SetDBHeight(fs.dbheight)
-            fs.PutTransactionBlock(gb.GetHash(),gb)
-            fs.PutTransactionBlock(sc.FACTOID_CHAINID_HASH,gb)
-            iblk = gb
+    blk := fs.GetTransactionBlock(sc.FACTOID_CHAINID_HASH)
+    // If there is no head for the Factoids in the database, we have an
+    // uninitialized database.  We need to add the Genesis Block.
+    if blk == nil {
+        sc.Prtln("No Genesis Block detected.  Adding Genesis Block")
+        gb := block.GetGenesisBlock(1000000,10,200000000000)
+        fs.PutTransactionBlock(gb.GetHash(),gb)
+        fs.PutTransactionBlock(sc.FACTOID_CHAINID_HASH,gb)
+        err := fs.AddTransactionBlock(gb)
+        if err != nil { 
+            sc.Prtln("Failed to build initial state.\n",err); 
+            return err 
         }
-        blk, ok := iblk.(block.ISCBlock)
-        if !ok {return fmt.Errorf("Block not found or not formated properly") }
-        if bytes.Compare(blk.GetPrevBlock().Bytes(),sc.ZERO_HASH) == 0 { break }
+        fs.dbheight = 1
+        fs.currentBlock = block.NewSCBlock(fs.GetFactoshisPerEC(),fs.dbheight) 
+        fs.currentBlock.SetPrevBlock(gb.GetHash().Bytes())
+        return nil
+    }
+    // First run back from the head back to the genesis block, collecting hashes.
+    for {
+        if blk == nil {return fmt.Errorf("Block not found or not formated properly") }
         hashes = append(hashes, blk.GetHash())
-        iblk = fs.GetTransactionBlock(blk.GetPrevBlock())
+        if bytes.Compare(blk.GetPrevBlock().Bytes(),sc.ZERO_HASH) == 0 { 
+            break 
+        }
+        tblk := fs.GetTransactionBlock(blk.GetPrevBlock())
+        if tblk.GetHash().IsEqual(blk.GetPrevBlock()) != nil {
+            return fmt.Errorf("Hash Failure!  Database must be rebuilt")
+        }
+        blk = tblk
     }
+
+    // Now run forward, and build our accounting
     for i := len(hashes)-1; i>=0; i-- {
-        iblk = fs.GetTransactionBlock(hashes[i])
-        blk = iblk.(block.ISCBlock)
-        err := fs.AddTransactionBlock(blk)
-        if err != nil { return err }
+        blk = fs.GetTransactionBlock(hashes[i])
+        if blk == nil { 
+            return fmt.Errorf("Should never happen.  Block not found in LoadState") 
+        }
+        sc.Prt(" ",blk.GetDBHeight())
+        err := fs.AddTransactionBlock(blk)  // updates accounting for this block
+        if err != nil { 
+            sc.Prtln("Failed to rebuild state.\n",err); 
+            return err 
+        }
     }
+    fs.dbheight = blk.GetDBHeight()+1
+    fs.currentBlock = block.NewSCBlock(fs.GetFactoshisPerEC(),fs.dbheight)
+    fs.currentBlock.SetPrevBlock(blk.GetHash().Bytes())
     return nil
 }
         
@@ -187,8 +232,9 @@ func(fs *FactomState) PutTransactionBlock(hash sc.IHash, trans block.ISCBlock) {
 }
 
 func(fs *FactomState) GetTransactionBlock(hash sc.IHash) block.ISCBlock {
-    trans := fs.database.Get(sc.DB_FACTOID_BLOCKS, hash)
-    return trans.(block.ISCBlock)
+    transblk := fs.database.Get(sc.DB_FACTOID_BLOCKS, hash)
+    if transblk == nil { return nil }
+    return transblk.(block.ISCBlock)
 }
 
 func(fs *FactomState) GetTime64() int64 {

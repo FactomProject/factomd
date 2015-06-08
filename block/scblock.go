@@ -192,27 +192,43 @@ func (b *SCBlock) UnmarshalBinary(data []byte) (err error) {
 // Tests if the transaction is equal in all of its structures, and
 // in order of the structures.  Largely used to test and debug, but
 // generally useful.
-func (b1 *SCBlock) IsEqual(block sc.IBlock) bool {
+func (b1 *SCBlock) IsEqual(block sc.IBlock) []sc.IBlock {
 
 	b2, ok := block.(*SCBlock)
 
 	if !ok || // Not the right kind of IBlock
-		!b1.MerkleRoot.IsEqual(b2.MerkleRoot) ||
-		!b1.PrevBlock.IsEqual(b2.PrevBlock) ||
-		!b1.PrevHash3.IsEqual(b2.PrevHash3) ||
-		b1.ExchRate != b2.ExchRate ||
-		b1.DBHeight != b2.DBHeight ||
-		!b1.UTXOCommit.IsEqual(b2.UTXOCommit) {
-		return false
-	}
+        b1.ExchRate != b2.ExchRate ||
+        b1.DBHeight != b2.DBHeight {
+            r := make([]sc.IBlock,0,3)
+            return append(r,b1)
+        }
+        
+    r := b1.MerkleRoot.IsEqual(b2.MerkleRoot)
+    if r != nil {
+        return append(r,b1)
+    }
+    r = b1.PrevBlock.IsEqual(b2.PrevBlock)
+    if r != nil {
+        return append(r,b1)
+    }
+    r = b1.PrevHash3.IsEqual(b2.PrevHash3) 
+    if r != nil {
+        return append(r,b1)
+    }
+    r = b1.UTXOCommit.IsEqual(b2.UTXOCommit) 
+    if r != nil {
+        return append(r,b1)
+    }
+	
 
 	for i, trans := range b1.transactions {
-		if !trans.IsEqual(b2.transactions[i]) {
-			return false
+		r := trans.IsEqual(b2.transactions[i]) 
+		if r != nil {
+            return append(r,b1)
 		}
 	}
 
-	return true
+	return nil
 }
 func (b *SCBlock) GetChainID() sc.IHash {
     h := new(sc.Hash)
@@ -225,7 +241,7 @@ func (b *SCBlock) GetMerkleRoot() sc.IHash {
 func (b *SCBlock) GetPrevBlock() sc.IHash {
     return b.PrevBlock
 }
-func (b *SCBlock) SetPrevBlock(hash[]byte) {
+func (b *SCBlock) SetPrevBlock(hash []byte) {
     h := sc.NewHash(hash)
     b.PrevBlock= h
 }

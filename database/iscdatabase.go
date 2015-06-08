@@ -31,7 +31,7 @@ type ISCDatabase interface {
 	// Clear removes all the specified buckets from the database.
 	// This allows us to cleanly rebuild databases, or in the case
 	// of testing, ensure a particular database state.
-	Clear(bucketList [][]byte, filename string)
+	Clear(bucketList [][]byte)
 	
 	// Users must call Init() prior to using the database.
 	Init(a ...interface{})
@@ -58,6 +58,8 @@ type ISCDatabase interface {
     // one can hook up a LevelDB or Bolt database.
     SetPersist(db ISCDatabase)
     GetPersist() ISCDatabase
+    // A bucket of less than 32 bytes can be ignored and not persisted
+    DoNotPersist(bucket string )
 }
 
 

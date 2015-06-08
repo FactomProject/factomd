@@ -10,14 +10,15 @@ import (
 
 type MapDB struct {
 	SCDatabase
-
-	backer ISCDatabase          // We can have backing databases.  For now this will be nil
-    persist ISCDatabase         // We do need LevelDB or Bolt.  It would go here.
-    
+    doNotPersist  map[string] []byte  
 	cache  map[DBKey](sc.IBlock) // Our Cache
 }
 
 var _ ISCDatabase = (*MapDB)(nil)
+
+func (m MapDB) DoNotPersist(bucket string) {
+    m.doNotPersist[bucket]= []byte(bucket)
+}
 
 func (b MapDB) String() string {
     txt,err := b.MarshalText()
@@ -27,15 +28,16 @@ func (b MapDB) String() string {
 
 func (db *MapDB) Init(a ...interface{}) {
 	db.cache = make(map[DBKey](sc.IBlock), 100)
+    db.doNotPersist = make(map[string][]byte,5)
 }
 
 func (db *MapDB) GetRaw(bucket []byte, key []byte) (value sc.IBlock) {
     dbkey := makeKey(bucket,key).(*DBKey)
     value = db.cache[*dbkey]
-    if value == nil && db.backer != nil {
-        value = db.backer.GetKey(dbkey)
+    if value == nil && db.GetBacker() != nil {
+        value = db.GetBacker().GetRaw(bucket,key)
         if value != nil {
-            db.PutKey(dbkey, value)  // Put this value in our cache
+            db.cache[*dbkey]=value  // Put this value in our cache
         }
     }
     return value
@@ -44,8 +46,9 @@ func (db *MapDB) GetRaw(bucket []byte, key []byte) (value sc.IBlock) {
 func (db *MapDB) PutRaw(bucket []byte, key []byte, value sc.IBlock) {
     dbkey := makeKey(bucket, key).(*DBKey)
     db.cache[*dbkey] = value
-    if db.persist != nil {
-        db.persist.PutRaw(bucket,key,value)
+    if db.doNotPersist[string(bucket)] != nil { return }
+    if db.GetPersist() != nil {
+        db.GetPersist().PutRaw(bucket,key,value)
     }
 }
 

@@ -53,13 +53,14 @@ func (w1 Signature) GetNewInstance() IBlock {
 }
 
 // Checks that the signatures are the same.
-func (s1 Signature) IsEqual(sig IBlock) bool {
+func (s1 *Signature) IsEqual(sig IBlock) []IBlock {
 	s2, ok := sig.(*Signature)
 	if !ok || // Not the right kind of IBlock
 		s1.signature != s2.signature { // Not the right rcd
-		return false
+            r := make([]IBlock,0,5)
+            return append(r,s1)
 	}
-	return true
+	return nil
 }
 
 // Index is ignored.  We only have one signature

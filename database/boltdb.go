@@ -7,6 +7,7 @@ package database
 import (
     "fmt"
     "bytes"
+    "encoding/binary"
     sc "github.com/FactomProject/simplecoin"
     
     "github.com/boltdb/bolt"
@@ -44,9 +45,7 @@ func (b BoltDB) String() string {
     return string(txt)
 }
 
-func (d *BoltDB) Clear(bucketList [][]byte, filename string) {
-    
-    d.filename = filename
+func (d *BoltDB) Clear(bucketList [][]byte) {
     
     tdb, err := bolt.Open(d.filename, 0600, nil)
     
@@ -110,6 +109,7 @@ func (d *BoltDB) GetRaw(bucket []byte, key []byte) (value sc.IBlock) {
     d.db.View(func(tx *bolt.Tx) error {
         b := tx.Bucket(bucket)
         v1 := b.Get(key)
+        if v1 == nil { return nil }
         v = make([]byte,len(v1))
         copy(v,v1)
         return nil
@@ -119,6 +119,8 @@ func (d *BoltDB) GetRaw(bucket []byte, key []byte) (value sc.IBlock) {
     }
     var vv[32]byte
     copy(vv[:],v[:32])
+    v=v[32:]
+    
     var instance sc.IBlock = d.instances[vv]
     if instance == nil {
         vp := sc.NewHash(vv[:])
@@ -127,7 +129,13 @@ func (d *BoltDB) GetRaw(bucket []byte, key []byte) (value sc.IBlock) {
     }
     
     r := instance.GetNewInstance()
-    err := r.UnmarshalBinary(v[32:])
+    
+    datalen, v := binary.BigEndian.Uint32(v[0:4]), v[4:]
+    if len(v) != int(datalen) {
+        sc.Prtln("Lengths don't match.  Expected ",datalen," and got ",len(v))
+        panic("Data not returned properly")
+    }
+    err := r.UnmarshalBinary(v)
     if err != nil {
         panic("This should not happen.  IBlock failed to unmarshal.")
     }
@@ -142,6 +150,7 @@ func (d *BoltDB) PutRaw(bucket []byte, key []byte, value sc.IBlock) {
     hash := value.GetDBHash()
     out.Write(hash.Bytes())
     data, err := value.MarshalBinary()
+    binary.Write(&out, binary.BigEndian, uint32(len(data)))
     out.Write(data)
     
     if err != nil {

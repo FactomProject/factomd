@@ -51,6 +51,6 @@ func GetDatabase() database.ISCDatabase {
  
     db := new(database.BoltDB)
     db.Init(bucketList,instances,"/tmp/fs_test.db")
-    
+    sc.Prtln("Initialize Persistent Database")
     return db
 }

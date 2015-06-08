@@ -33,16 +33,21 @@ type TransAddress struct {
 
 var _ ITransAddress = (*TransAddress)(nil)
 
-func (t TransAddress) IsEqual(addr IBlock) bool {
+func (t *TransAddress) IsEqual(addr IBlock) []IBlock {
 	a, ok := addr.(ITransAddress)
 	if !ok || // Not the right kind of IBlock
-		a.GetAmount() != t.GetAmount() || // Amount is different
-		!a.GetAddress().IsEqual(t.GetAddress()) { // Address is different
-		return false
-	}
-
-	return true
+		a.GetAmount() != t.GetAmount() {
+            r := make([]IBlock,0,5)
+            return append(r,t)
+    }// Amount is different
+    r := a.GetAddress().IsEqual(t.GetAddress()) // Address is different
+    if r != nil {
+        return append(r,t)
+    }
+    return nil
 }
+
+
 
 func (t *TransAddress) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 
