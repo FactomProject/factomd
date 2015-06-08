@@ -34,21 +34,21 @@ func Test_AddressEquals(test *testing.T) {
 	a1.SetBytes(address1[:])
 	a2.SetBytes(address1[:])
 
-	if !a1.IsEqual(a2) { // Out of the box, hashes should be equal
+	if a1.IsEqual(a2) != nil { // Out of the box, hashes should be equal
 		PrtStk()
 		test.Fail()
 	}
 
 	a1.SetBytes(address2[:])
 
-	if a1.IsEqual(a2) { // Now they should not be equal
+	if a1.IsEqual(a2) == nil { // Now they should not be equal
 		PrtStk()
 		test.Fail()
 	}
 
 	a2.SetBytes(address2[:])
 
-	if !a1.IsEqual(a2) { // Back to equality!
+	if  a1.IsEqual(a2) != nil { // Back to equality!
 		PrtStk()
 		test.Fail()
 	}

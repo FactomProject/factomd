@@ -162,7 +162,7 @@ func Test_Transaction_MarshalUnMarshal(test *testing.T) {
 	//     Prtln(string(txt1))
 	//     Prtln(string(txt2))
 
-	if !xb.IsEqual(nb) {
+	if  xb.IsEqual(nb) != nil {
 		Prtln(err)
 		test.Fail()
 	}

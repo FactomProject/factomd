@@ -25,21 +25,21 @@ func Test_HashEquals(test *testing.T) {
 	h1 := new(Hash)
 	h2 := new(Hash)
 
-	if !h1.IsEqual(h2) { // Out of the box, hashes should be equal
+	if h1.IsEqual(h2) != nil { // Out of the box, hashes should be equal
 		PrtStk()
 		test.Fail()
 	}
 
 	h1.SetBytes(hash[:])
 
-	if h1.IsEqual(h2) { // Now they should not be equal
+	if h1.IsEqual(h2) == nil { // Now they should not be equal
 		PrtStk()
 		test.Fail()
 	}
 
 	h2.SetBytes(hash[:])
 
-	if !h1.IsEqual(h2) { // Back to equality!
+	if  h1.IsEqual(h2) != nil { // Back to equality!
 		PrtStk()
 		test.Fail()
 	}

@@ -20,14 +20,14 @@ func Test_Auth2_Equals(test *testing.T) {
 	a1 := nextAuth2()
 	a2 := a1
 
-	if !a1.IsEqual(a2) {
+	if a1.IsEqual(a2) != nil {
 		PrtStk()
 		test.Fail()
 	}
 
 	a1 = nextAuth2()
 
-	if a1.IsEqual(a2) {
+	if a1.IsEqual(a2) == nil {
 		PrtStk()
 		test.Fail()
 	}

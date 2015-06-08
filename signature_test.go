@@ -44,14 +44,14 @@ func Test_Setup_Signature(test *testing.T) {
 
 func Test_IsEqual_Signature(test *testing.T) {
 
-	if s1.IsEqual(s2) {
+	if s1.IsEqual(s2) == nil {
 		PrtStk()
 		test.Fail()
 	}
 
 	s2.SetSignature(0, sig1[:]) // Set to sig1 for test
 
-	if !s1.IsEqual(s2) {
+	if  s1.IsEqual(s2) != nil {
 		PrtStk()
 		test.Fail()
 	}
@@ -63,7 +63,7 @@ func Test_Marshal_Signature_(test *testing.T) {
 	data, err := s1.MarshalBinary()
 	s2.UnmarshalBinaryData(data)
 
-	if !s1.IsEqual(s2) {
+	if  s1.IsEqual(s2) != nil {
 		PrtStk()
 		Prtln(err)
 		test.Fail()

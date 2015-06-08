@@ -61,10 +61,10 @@ func Test_create_genesis_factomstate (test *testing.T) {
         fs.SetDB(new(database.MapDB))
         fs.GetDB().Init()
         db := stateinit.GetDatabase()
-        fs.GetDB().SetPersist(db)
-        fs.GetDB().SetBacker(db)
-        fs.GetDB().DoNotPersist(sc.DB_F_BALANCES)
-        fs.GetDB().DoNotPersist(sc.DB_EC_BALANCES)
+     //   fs.GetDB().SetPersist(db)
+     //   fs.GetDB().SetBacker(db)
+     //   fs.GetDB().DoNotPersist(sc.DB_F_BALANCES)
+     //   fs.GetDB().DoNotPersist(sc.DB_EC_BALANCES)
          
     }else{
         fs.SetDB(stateinit.GetDatabase())
