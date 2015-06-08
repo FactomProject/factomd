@@ -8,8 +8,8 @@ import (
     "encoding/hex"
     "encoding/binary"
     "fmt"
-    sc "github.com/FactomProject/simplecoin"
-    "github.com/FactomProject/simplecoin/database"
+    ftc "github.com/FactomProject/factoid"
+    "github.com/FactomProject/factoid/database"
     "github.com/agl/ed25519"
     "math/rand"
     "testing"
@@ -21,13 +21,13 @@ var _ = fmt.Printf
 var _ = ed25519.Sign
 var _ = rand.New
 var _ = binary.Write
-var _ = sc.Prtln 
+var _ = ftc.Prtln 
 
-func GetDatabase() database.ISCDatabase {
+func GetDatabase() database.IFDatabase {
     
     var bucketList [][]byte
-    var instances  map[[sc.ADDRESS_LENGTH]byte]sc.IBlock
-    var addinstance = func  (b sc.IBlock){
+    var instances  map[[ftc.ADDRESS_LENGTH]byte]ftc.IBlock
+    var addinstance = func  (b ftc.IBlock){
         key := new ([32]byte)
         copy(key[:],b.GetDBHash().Bytes())
         instances[*key] = b 
@@ -39,17 +39,17 @@ func GetDatabase() database.ISCDatabase {
     bucketList[0] = []byte("factoidOrphans_balances")
     bucketList[0] = []byte("factomAddress_balances")
     
-    instances = make(map[[sc.ADDRESS_LENGTH]byte]sc.IBlock)
+    instances = make(map[[ftc.ADDRESS_LENGTH]byte]ftc.IBlock)
     
-    addinstance (new(sc.Address))
-    addinstance (new(sc.Hash))
-    addinstance (new(sc.InAddress))
-    addinstance (new(sc.OutAddress))
-    addinstance (new(sc.OutECAddress))
-    addinstance (new(sc.RCD_1))
-    addinstance (new(sc.RCD_2))
-    addinstance (new(sc.Signature))
-    addinstance (new(sc.Transaction))
+    addinstance (new(ftc.Address))
+    addinstance (new(ftc.Hash))
+    addinstance (new(ftc.InAddress))
+    addinstance (new(ftc.OutAddress))
+    addinstance (new(ftc.OutECAddress))
+    addinstance (new(ftc.RCD_1))
+    addinstance (new(ftc.RCD_2))
+    addinstance (new(ftc.Signature))
+    addinstance (new(ftc.Transaction))
     addinstance (new(FSbalance))
     
     db := new(database.BoltDB)

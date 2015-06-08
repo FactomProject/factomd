@@ -8,9 +8,9 @@ import (
     "fmt"
     "time"
     "math/rand"
-    sc "github.com/FactomProject/simplecoin"    
-    "github.com/FactomProject/simplecoin/state"    
-    "github.com/FactomProject/simplecoin/wallet"    
+    ftc "github.com/FactomProject/factoid"    
+    "github.com/FactomProject/factoid/state"    
+    "github.com/FactomProject/factoid/wallet"    
 )
 
 var _ = fmt.Printf
@@ -20,8 +20,8 @@ type test_state struct {
     state.FactomState
     clock int64
     twallet wallet.ISCWallet
-    inputAddresses []sc.IAddress        // Genesis Address funds 10 addresses
-    outputAddresses []sc.IAddress       // We consider our inputs and ten more addresses
+    inputAddresses []ftc.IAddress        // Genesis Address funds 10 addresses
+    outputAddresses []ftc.IAddress       // We consider our inputs and ten more addresses
     // as valid outputs.
     
 }
@@ -34,9 +34,9 @@ func(fs *test_state) GetTime32() int64 {
     return time.Now().Unix()
 }
 
-func(fs *test_state) newTransaction() sc.ITransaction {
+func(fs *test_state) newTransaction() ftc.ITransaction {
     
-    fs.inputAddresses = make([]sc.IAddress,0,20)
+    fs.inputAddresses = make([]ftc.IAddress,0,20)
     for _,output := range fs.outputAddresses {
         bal := fs.GetBalance(output)
         if bal > 100000 {
@@ -46,8 +46,8 @@ func(fs *test_state) newTransaction() sc.ITransaction {
     // The following code is a function that creates an array
     // of addresses pulled from some source array of addresses
     // selected randomly.
-    var makeList = func(source []sc.IAddress, cnt int) []sc.IAddress{
-        adrs := make([]sc.IAddress,0,cnt)
+    var makeList = func(source []ftc.IAddress, cnt int) []ftc.IAddress{
+        adrs := make([]ftc.IAddress,0,cnt)
         MainLoop: for len(adrs)<cnt {
             i := rand.Int()%len(source)
             adr := source[i]
@@ -88,11 +88,11 @@ func(fs *test_state) newTransaction() sc.ITransaction {
     
     valid, err := fs.twallet.SignInputs(t)
     if err != nil {
-        sc.Prtln("Failed to sign transaction")
+        ftc.Prtln("Failed to sign transaction")
         panic(err)
     }
     if !valid {
-        sc.Prtln("Transaction is not valid")
+        ftc.Prtln("Transaction is not valid")
     }
     if !fs.Validate(t) {return fs.newTransaction() }
     return t

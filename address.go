@@ -9,7 +9,7 @@
 // prove this is okay, because the hash of the authentication block must
 // match this address.
 
-package simplecoin
+package factoid
 
 import (
 	// "fmt"

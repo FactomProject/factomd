@@ -5,16 +5,16 @@
 package database
 
 import (
-	"github.com/FactomProject/simplecoin"
+	"github.com/FactomProject/factoid"
 )
 
-type SCDatabase struct {
-	ISCDatabase
-	backer ISCDatabase          // We can have backing databases.  For now this will be nil
-	persist ISCDatabase         // We do need LevelDB or Bolt.  It would go here.
+type FDatabase struct {
+	IFDatabase
+	backer IFDatabase          // We can have backing databases.  For now this will be nil
+	persist IFDatabase         // We do need LevelDB or Bolt.  It would go here.
 }
 
-var _ ISCDatabase = (*SCDatabase)(nil)
+var _ IFDatabase = (*FDatabase)(nil)
 
 type IDBKey interface {
     GetBucket() []byte
@@ -23,24 +23,24 @@ type IDBKey interface {
 
 type DBKey struct {
 	IDBKey
-	bucket [simplecoin.ADDRESS_LENGTH]byte
-	key    [simplecoin.ADDRESS_LENGTH]byte
+	bucket [factoid.ADDRESS_LENGTH]byte
+	key    [factoid.ADDRESS_LENGTH]byte
 }
 
 // A Backer database allows the implementation of a least recently
 // used cache to purge data from memory.
-func (db *SCDatabase) SetBacker(b ISCDatabase) {
+func (db *FDatabase) SetBacker(b IFDatabase) {
     db.backer = b
 }
-func (db SCDatabase) GetBacker() ISCDatabase{
+func (db FDatabase) GetBacker() IFDatabase{
     return db.backer
 }
 // A Persist database is needed to persist writes.  This is where 
 // one can hook up a LevelDB or Bolt database.
-func (db *SCDatabase) SetPersist(p ISCDatabase){
+func (db *FDatabase) SetPersist(p IFDatabase){
     db.persist = p
 }
-func (db SCDatabase) GetPersist() ISCDatabase{
+func (db FDatabase) GetPersist() IFDatabase{
     return db.persist
 } 
 
@@ -54,8 +54,8 @@ func (k DBKey) GetKey()[]byte {
 
 func makeKey(bucket []byte, key []byte) IDBKey {
 
-	if len(bucket) > simplecoin.ADDRESS_LENGTH || len(key) > simplecoin.ADDRESS_LENGTH {
-		panic("Key provided to ISCDatabase is too long")
+	if len(bucket) > factoid.ADDRESS_LENGTH || len(key) > factoid.ADDRESS_LENGTH {
+		panic("Key provided to IFDatabase is too long")
 	}
 
 	k := new(DBKey)

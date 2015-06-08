@@ -2,13 +2,13 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-package simplecoin
+package factoid
 
 import (
 	"bytes"
 )
 
-// Entry Credit Addresses are the same as Addresses in Simplecoin
+// Entry Credit Addresses are the same as Addresses in factoid
 // They just get printed out differently when we output them in
 // human readable form.
 //

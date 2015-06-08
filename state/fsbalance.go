@@ -2,34 +2,34 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-// Defines the state for simplecoin.  By using the proper
-// interfaces, the functionality of simplecoin can be imported
+// Defines the state for factoid.  By using the proper
+// interfaces, the functionality of factoid can be imported
 // into any framework.
 package state
 
 import (
     "bytes"
     "encoding/binary"
-    sc "github.com/FactomProject/simplecoin"
+    ftc "github.com/FactomProject/factoid"
 )
 
 type IFSbalance interface {
-    sc.IBlock
+    ftc.IBlock
     getNumber() uint64
     setNumber(uint64)
 }
 
 type FSbalance struct {
-    sc.IBlock
+    ftc.IBlock
     number uint64  
 }
 
-func (FSbalance) GetNewInstance() sc.IBlock {
+func (FSbalance) GetNewInstance() ftc.IBlock {
     return new(FSbalance)
 }
 
-func (FSbalance) GetDBHash() sc.IHash {
-    return sc.Sha([]byte("FSbalance"))
+func (FSbalance) GetDBHash() ftc.IHash {
+    return ftc.Sha([]byte("FSbalance"))
 }
 
 func (f *FSbalance) UnmarshalBinaryData(data []byte) ([]byte, error) {

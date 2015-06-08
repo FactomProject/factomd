@@ -2,13 +2,13 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-// Transaction Address for a Simplecoin transaction.   contains an amount
+// Transaction Address for a factoid transaction.   contains an amount
 // and the address.  Our inputs spec how much is going into a transaction
 // and our outputs spec how much is going out of a transaction.  This
 // avoids having to have extra outputs to deal with change.
 //
 
-package simplecoin
+package factoid
 
 import (
 	"bytes"

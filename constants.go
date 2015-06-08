@@ -2,7 +2,7 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-package simplecoin
+package factoid
 
 const (
 	ADDRESS_LENGTH       = 32    // Length of an Address or a Hash or Public Key

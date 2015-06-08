@@ -10,11 +10,11 @@ import (
     "fmt"
     "time"
     cv "strconv"
-    sc "github.com/FactomProject/simplecoin"
-    "github.com/FactomProject/simplecoin/state/stateinit"
-    "github.com/FactomProject/simplecoin/state"
-    "github.com/FactomProject/simplecoin/database"
-    "github.com/FactomProject/simplecoin/wallet"
+    ftc "github.com/FactomProject/factoid"
+    "github.com/FactomProject/factoid/state/stateinit"
+    "github.com/FactomProject/factoid/state"
+    "github.com/FactomProject/factoid/database"
+    "github.com/FactomProject/factoid/wallet"
     "github.com/agl/ed25519"
     "math/rand"
     "testing"
@@ -27,7 +27,7 @@ var _ = fmt.Printf
 var _ = ed25519.Sign
 var _ = rand.New
 var _ = binary.Write
-var _ = sc.Prtln 
+var _ = ftc.Prtln 
 var _ = stateinit.GetDatabase
 var _ = database.MapDB{}
 
@@ -37,20 +37,20 @@ func Test_setup_factomstate (test *testing.T) {
     // Create a Test State
     fs = new(test_state)
     
-    fs.inputAddresses = make([]sc.IAddress,0,10)
-    fs.outputAddresses = make([]sc.IAddress,0,10)
+    fs.inputAddresses = make([]ftc.IAddress,0,10)
+    fs.outputAddresses = make([]ftc.IAddress,0,10)
     fs.twallet = new(wallet.SCWallet)              // Wallet for our tests
     fs.twallet.Init()
     
     for i:=0; i<10; i++ {
         addr, err := fs.twallet.GenerateAddress([]byte("tes,mbbm,btin_"+cv.Itoa(i)),1,1)
-        if err != nil { sc.Prtln(err); test.Fail() }
+        if err != nil { ftc.Prtln(err); test.Fail() }
         fs.inputAddresses = append(fs.inputAddresses,addr)
         fs.outputAddresses = append(fs.outputAddresses,addr)
     }
     for i:=0; i<10; i++ {
         addr, err := fs.twallet.GenerateAddress([]byte("testout_"+cv.Itoa(i)),1,1)
-        if err != nil { sc.Prtln(err); test.Fail() }
+        if err != nil { ftc.Prtln(err); test.Fail() }
         fs.outputAddresses = append(fs.outputAddresses,addr)
     }
 }
@@ -65,8 +65,8 @@ func Test_create_genesis_factomstate (test *testing.T) {
         db := stateinit.GetDatabase()
         fs.GetDB().SetPersist(db)
         fs.GetDB().SetBacker(db)
-        fs.GetDB().DoNotPersist(sc.DB_F_BALANCES)
-        fs.GetDB().DoNotPersist(sc.DB_EC_BALANCES)
+        fs.GetDB().DoNotPersist(ftc.DB_F_BALANCES)
+        fs.GetDB().DoNotPersist(ftc.DB_EC_BALANCES)
          
     }else{
         fs.SetDB(stateinit.GetDatabase())
@@ -76,19 +76,19 @@ func Test_create_genesis_factomstate (test *testing.T) {
    
     err := fs.LoadState()
     if err != nil {
-        sc.Prtln(err)
+        ftc.Prtln(err)
         test.Fail()
         return
     }
     // Create a number of blocks (i)
     for i:=0; i<100; i++ {
-        sc.Prt(" ",fs.GetDBHeight())
+        ftc.Prt(" ",fs.GetDBHeight())
         // Create a new block
         for j:=0; j<10000; j++ {
             t := fs.newTransaction()
             added := fs.AddTransaction(t)
             if !added { 
-                sc.Prt("F:",i,"-",j," ",t) 
+                ftc.Prt("F:",i,"-",j," ",t) 
             }
             time.Sleep(time.Second/100000)
         }

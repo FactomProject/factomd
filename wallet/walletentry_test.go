@@ -7,7 +7,7 @@ package wallet
 import (
 	"encoding/binary"
 	"fmt"
-	"github.com/FactomProject/simplecoin"
+	"github.com/FactomProject/factoid"
 	"github.com/agl/ed25519"
 	"math/rand"
 	"testing"
@@ -21,12 +21,12 @@ var _ = binary.Write
 func Test_create_walletentry(test *testing.T) {
     w := new(SCWallet)          // make me a wallet
     we := new(WalletEntry)
-    rcd := new(simplecoin.RCD_1)
+    rcd := new(factoid.RCD_1)
     name := "John Smith"
     pub, pri, err := w.generateKey()
     
     if err != nil {
-        simplecoin.Prtln("Generate Failed")
+        factoid.Prtln("Generate Failed")
         test.Fail()
     }
     

@@ -11,46 +11,46 @@ package stateinit
 
 import (
     "fmt"
-    sc "github.com/FactomProject/simplecoin"
-    "github.com/FactomProject/simplecoin/block"
-    "github.com/FactomProject/simplecoin/database"
-    "github.com/FactomProject/simplecoin/state"
+    ftc "github.com/FactomProject/factoid"
+    "github.com/FactomProject/factoid/block"
+    "github.com/FactomProject/factoid/database"
+    "github.com/FactomProject/factoid/state"
 )
 
 var _ = fmt.Printf
 
-func GetDatabase() database.ISCDatabase {
+func GetDatabase() database.IFDatabase {
     
     var bucketList [][]byte
-    var instances  map[[sc.ADDRESS_LENGTH]byte]sc.IBlock
+    var instances  map[[ftc.ADDRESS_LENGTH]byte]ftc.IBlock
     
     bucketList = make([][]byte,0,5)
     
-    bucketList = append(bucketList,[]byte(sc.DB_FACTOID_BLOCKS))
-    bucketList = append(bucketList,[]byte(sc.DB_F_BALANCES))
-    bucketList = append(bucketList,[]byte(sc.DB_EC_BALANCES))    
+    bucketList = append(bucketList,[]byte(ftc.DB_FACTOID_BLOCKS))
+    bucketList = append(bucketList,[]byte(ftc.DB_F_BALANCES))
+    bucketList = append(bucketList,[]byte(ftc.DB_EC_BALANCES))    
     
-    instances = make(map[[sc.ADDRESS_LENGTH]byte]sc.IBlock)
+    instances = make(map[[ftc.ADDRESS_LENGTH]byte]ftc.IBlock)
     
-    var addinstance = func  (b sc.IBlock){
+    var addinstance = func  (b ftc.IBlock){
         key := new ([32]byte)
         copy(key[:],b.GetDBHash().Bytes())
         instances[*key] = b 
     }
-    addinstance (new(sc.Address))
-    addinstance (new(sc.Hash))
-    addinstance (new(sc.InAddress))
-    addinstance (new(sc.OutAddress))
-    addinstance (new(sc.OutECAddress))
-    addinstance (new(sc.RCD_1))
-    addinstance (new(sc.RCD_2))
-    addinstance (new(sc.Signature))
-    addinstance (new(sc.Transaction))
-    addinstance (new(block.SCBlock))
+    addinstance (new(ftc.Address))
+    addinstance (new(ftc.Hash))
+    addinstance (new(ftc.InAddress))
+    addinstance (new(ftc.OutAddress))
+    addinstance (new(ftc.OutECAddress))
+    addinstance (new(ftc.RCD_1))
+    addinstance (new(ftc.RCD_2))
+    addinstance (new(ftc.Signature))
+    addinstance (new(ftc.Transaction))
+    addinstance (new(block.FBlock))
     addinstance (new(state.FSbalance))
  
     db := new(database.BoltDB)
     db.Init(bucketList,instances,"/tmp/fs_test.db")
-    sc.Prtln("Initialize Persistent Database")
+    ftc.Prtln("Initialize Persistent Database")
     return db
 }

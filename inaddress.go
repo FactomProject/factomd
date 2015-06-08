@@ -2,10 +2,10 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-// Input object for a Simplecoin transaction.   contains an amount
+// Input object for a factoid transaction.   contains an amount
 // and the destination address.
 
-package simplecoin
+package factoid
 
 import (
 	"bytes"

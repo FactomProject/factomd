@@ -13,8 +13,8 @@ import (
     "fmt"
     "github.com/agl/ed25519"
     "math/rand"
-    sc "github.com/FactomProject/simplecoin"
-    "github.com/FactomProject/simplecoin/database"
+    ftc "github.com/FactomProject/factoid"
+    "github.com/FactomProject/factoid/database"
 )
 
 // The wallet interface uses bytes.  This is because we want to 
@@ -23,27 +23,27 @@ import (
 // and that complicates the implementation without really making
 // the interface more usable by developers.
 type ISCWallet interface {
-    database.ISCDatabase
-    GenerateAddress(name []byte, m int, n int) (sc.IAddress, error)
+    database.IFDatabase
+    GenerateAddress(name []byte, m int, n int) (ftc.IAddress, error)
     
-    GetAddressBalance(addr sc.IAddress) uint64
+    GetAddressBalance(addr ftc.IAddress) uint64
     GetAddressDetailsAddr(addr []byte) IWalletEntry
-    GetAddressList() (names [][]byte, addresses []sc.IAddress)
+    GetAddressList() (names [][]byte, addresses []ftc.IAddress)
     GetAddressListByName(name []byte) (names[][]byte)
     
     /** Transaction calls **/
-    CreateTransaction() sc.ITransaction
-    UpdateInput(sc.ITransaction, int, sc.IAddress, uint64) error
-    AddInput(sc.ITransaction, sc.IAddress, uint64) error
-    AddOutput(sc.ITransaction, sc.IAddress, uint64) error
-    AddECOutput(sc.ITransaction, sc.IAddress, uint64) error
-    Validate(sc.ITransaction) (bool,error)
-    ValidateSignatures(sc.ITransaction) bool
-    SignInputs(sc.ITransaction) (bool, error)   // True if all inputs are signed
+    CreateTransaction() ftc.ITransaction
+    UpdateInput(ftc.ITransaction, int, ftc.IAddress, uint64) error
+    AddInput(ftc.ITransaction, ftc.IAddress, uint64) error
+    AddOutput(ftc.ITransaction, ftc.IAddress, uint64) error
+    AddECOutput(ftc.ITransaction, ftc.IAddress, uint64) error
+    Validate(ftc.ITransaction) (bool,error)
+    ValidateSignatures(ftc.ITransaction) bool
+    SignInputs(ftc.ITransaction) (bool, error)   // True if all inputs are signed
     
     GetECRate() uint64
     
-    SubmitTransaction(sc.ITransaction) error
+    SubmitTransaction(ftc.ITransaction) error
 }
 
 var factoshisPerEC uint64 = 100000
@@ -64,11 +64,11 @@ func (b SCWallet) String() string {
     return string(txt)
 }
 
-func (SCWallet) GetDBHash() sc.IHash {
-    return sc.Sha([]byte("SCWallet"))
+func (SCWallet) GetDBHash() ftc.IHash {
+    return ftc.Sha([]byte("SCWallet"))
 }
 
-func (w *SCWallet) SignInputs(trans sc.ITransaction) (bool, error) {
+func (w *SCWallet) SignInputs(trans ftc.ITransaction) (bool, error) {
     
     data,err := trans.MarshalBinarySig()    // Get the part of the transaction we sign
     if err != nil { return false, err }    
@@ -78,17 +78,17 @@ func (w *SCWallet) SignInputs(trans sc.ITransaction) (bool, error) {
     inputs  := trans.GetInputs()
     rcds    := trans.GetRCDs()
     for i,rcd := range rcds {
-        rcd1, ok := rcd.(*sc.RCD_1)
+        rcd1, ok := rcd.(*ftc.RCD_1)
         if ok {
             pub := rcd1.GetPublicKey()
-            we := w.db.GetRaw([]byte(sc.W_ADDRESS_PUB_KEY),pub).(*WalletEntry)
+            we := w.db.GetRaw([]byte(ftc.W_ADDRESS_PUB_KEY),pub).(*WalletEntry)
             if we != nil {
-                var pri [sc.SIGNATURE_LENGTH]byte
+                var pri [ftc.SIGNATURE_LENGTH]byte
                 copy(pri[:],we.private[0])
                 bsig := ed25519.Sign(&pri,data)
-                sig := new(sc.Signature)
+                sig := new(ftc.Signature)
                 sig.SetSignature(0,bsig[:])
-                sigblk := new(sc.SignatureBlock)
+                sigblk := new(ftc.SignatureBlock)
                 sigblk.AddSignature(sig)
                 trans.SetSignatureBlock(i,sigblk)
                 numSigs += 1
@@ -106,7 +106,7 @@ func (w *SCWallet) GetAddressDetailsAddr(name []byte) IWalletEntry {
     return w.db.GetRaw([]byte("wallet.address.addr"),name).(IWalletEntry)
 }
 
-func (w *SCWallet) GenerateAddress(name []byte,m int, n int) (hash sc.IAddress, err error) {
+func (w *SCWallet) GenerateAddress(name []byte,m int, n int) (hash ftc.IAddress, err error) {
     
     we := new(WalletEntry)
     
@@ -120,7 +120,7 @@ func (w *SCWallet) GenerateAddress(name []byte,m int, n int) (hash sc.IAddress, 
         if err != nil { return nil, err  }
         we.AddKey(pub,pri)
         we.SetName(name)
-        we.SetRCD(sc.NewRCD_1(pub))
+        we.SetRCD(ftc.NewRCD_1(pub))
 
         // If the name exists already, then we store this as the hash of the name.
         // If that exists, then we store it as the hash of the hash and so forth.
@@ -130,12 +130,12 @@ func (w *SCWallet) GenerateAddress(name []byte,m int, n int) (hash sc.IAddress, 
         switch {
             case nm == nil :       // New Name
                 hash, _ = we.GetAddress()
-                w.db.PutRaw([]byte(sc.W_ADDRESS_HASH),hash.Bytes(),we)
-                w.db.PutRaw([]byte(sc.W_ADDRESS_PUB_KEY),pub,we)                
-                w.db.PutRaw([]byte(sc.W_NAME_HASH),name,we)
+                w.db.PutRaw([]byte(ftc.W_ADDRESS_HASH),hash.Bytes(),we)
+                w.db.PutRaw([]byte(ftc.W_ADDRESS_PUB_KEY),pub,we)                
+                w.db.PutRaw([]byte(ftc.W_NAME_HASH),name,we)
             case nm != nil :       // Duplicate name.  We generate a new name, and recurse.
                 return nil, fmt.Errorf("Should never get here!  This is disabled!")
-                nh := sc.Sha(name)
+                nh := ftc.Sha(name)
                 return w.GenerateAddress(nh.Bytes(),m, n)
             default :
                 return nil, fmt.Errorf("Should never get here!  This isn't possible!")
@@ -167,13 +167,13 @@ func (w *SCWallet) generateKey() (public []byte,private []byte, err error){
     return pub[:], pri[:], err
 }
 
-func (w *SCWallet)  CreateTransaction() sc.ITransaction {
-    return new(sc.Transaction)
+func (w *SCWallet)  CreateTransaction() ftc.ITransaction {
+    return new(ftc.Transaction)
 }
 
-func (w *SCWallet) getWalletEntry(bucket []byte,address sc.IAddress) (IWalletEntry, sc.IAddress, error){
+func (w *SCWallet) getWalletEntry(bucket []byte,address ftc.IAddress) (IWalletEntry, ftc.IAddress, error){
     
-    v := w.db.GetRaw([]byte(sc.W_ADDRESS_HASH),address.Bytes())
+    v := w.db.GetRaw([]byte(ftc.W_ADDRESS_HASH),address.Bytes())
     if(v == nil) { return nil, nil, fmt.Errorf("Unknown address") }
     
     we := v.(*WalletEntry)
@@ -184,19 +184,19 @@ func (w *SCWallet) getWalletEntry(bucket []byte,address sc.IAddress) (IWalletEnt
     return we, adr, nil
 }
 
-func (w *SCWallet) AddInput(trans sc.ITransaction, address sc.IAddress, amount uint64) error {
-    we, adr, err := w.getWalletEntry([]byte(sc.W_ADDRESS_HASH), address)
+func (w *SCWallet) AddInput(trans ftc.ITransaction, address ftc.IAddress, amount uint64) error {
+    we, adr, err := w.getWalletEntry([]byte(ftc.W_ADDRESS_HASH), address)
     if err != nil { return err }
     
-     trans.AddInput(sc.CreateAddress(adr),amount)
+     trans.AddInput(ftc.CreateAddress(adr),amount)
      trans.AddRCD(we.GetRCD())
      
      return nil
 }     
 
-func (w *SCWallet) UpdateInput(trans sc.ITransaction, index int, address sc.IAddress, amount uint64) error {
+func (w *SCWallet) UpdateInput(trans ftc.ITransaction, index int, address ftc.IAddress, amount uint64) error {
     
-    we, adr, err := w.getWalletEntry([]byte(sc.W_ADDRESS_HASH), address)
+    we, adr, err := w.getWalletEntry([]byte(ftc.W_ADDRESS_HASH), address)
     if err != nil { return err }
                                    
     in,err := trans.GetInput(index)
@@ -210,40 +210,40 @@ func (w *SCWallet) UpdateInput(trans sc.ITransaction, index int, address sc.IAdd
     return nil
 }     
 
-func (w *SCWallet) AddOutput(trans sc.ITransaction, address sc.IAddress, amount uint64) error {
+func (w *SCWallet) AddOutput(trans ftc.ITransaction, address ftc.IAddress, amount uint64) error {
     
-    _, adr, err := w.getWalletEntry([]byte(sc.W_ADDRESS_HASH), address)
+    _, adr, err := w.getWalletEntry([]byte(ftc.W_ADDRESS_HASH), address)
     if err != nil { return err }
     
-    trans.AddOutput(sc.CreateAddress(adr),amount)
+    trans.AddOutput(ftc.CreateAddress(adr),amount)
     if err != nil {
         return err
     }
     return nil
 }     
  
- func (w *SCWallet) AddECOutput(trans sc.ITransaction, address sc.IAddress, amount uint64) error {
+ func (w *SCWallet) AddECOutput(trans ftc.ITransaction, address ftc.IAddress, amount uint64) error {
     
-    _, adr, err := w.getWalletEntry([]byte(sc.W_ADDRESS_HASH), address)
+    _, adr, err := w.getWalletEntry([]byte(ftc.W_ADDRESS_HASH), address)
     if err != nil { return err }
     
-    trans.AddECOutput(sc.CreateAddress(adr),amount)
+    trans.AddECOutput(ftc.CreateAddress(adr),amount)
     if err != nil {
         return err
     }
     return nil
 }
 
-func (w *SCWallet) Validate(trans sc.ITransaction) (bool,error){
+func (w *SCWallet) Validate(trans ftc.ITransaction) (bool,error){
     valid := trans.Validate()
-    if valid == sc.WELL_FORMED { return true, nil }
+    if valid == ftc.WELL_FORMED { return true, nil }
     
     fmt.Println("Validation Failed: ",valid)
     
     return false, nil
 }    
  
- func (w *SCWallet) ValidateSignatures(trans sc.ITransaction) bool{
+ func (w *SCWallet) ValidateSignatures(trans ftc.ITransaction) bool{
      valid := trans.ValidateSignatures()
      return valid
  } 

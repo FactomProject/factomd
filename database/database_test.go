@@ -7,7 +7,7 @@ package database
 import (
 	"encoding/binary"
 	"fmt"
-	"github.com/FactomProject/simplecoin"
+	"github.com/FactomProject/factoid"
 	"github.com/agl/ed25519"
 	"math/rand"
 	"testing"
@@ -19,7 +19,7 @@ var _ = rand.New
 var _ = binary.Read
 
 type t_balance struct {
-    simplecoin.IBlock
+    factoid.IBlock
     balance uint64
 }
 
@@ -28,7 +28,7 @@ func Test_Auth1_Equals(test *testing.T) {
 	scd := new(MapDB)                          // Get me a database
 	scd.Init()             
 	
-	ecAdr := simplecoin.Sha([]byte("ec one"))  // Get me an address
+	ecAdr := factoid.Sha([]byte("ec one"))  // Get me an address
 	b := new(t_balance)                        // Get a balance IBlock
     b.balance = 1000                           // Set the balance 
 

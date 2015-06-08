@@ -4,12 +4,12 @@
 
 package wallet
 
-import sc "github.com/FactomProject/simplecoin"
+import ftc "github.com/FactomProject/factoid"
 import (
 	"encoding/hex"
     "encoding/binary"
 	"fmt"
-    "github.com/FactomProject/simplecoin"
+    "github.com/FactomProject/factoid"
     "github.com/agl/ed25519"
 	"math/rand"
 	"testing"
@@ -21,18 +21,18 @@ var _ = fmt.Printf
 var _ = ed25519.Sign
 var _ = rand.New
 var _ = binary.Write
-var _ = sc.Prtln   
+var _ = ftc.Prtln   
  
 
 func Test_create_scwallet(test *testing.T) {
     w := new(SCWallet)          // make me a wallet
     we := new(WalletEntry)
-    rcd := new(simplecoin.RCD_1)
+    rcd := new(factoid.RCD_1)
     name := "John Smith"
     pub, pri, err := w.generateKey()
     
     if err != nil {
-        simplecoin.Prtln("Generate Failed")
+        factoid.Prtln("Generate Failed")
         test.Fail()
     }
     
@@ -42,7 +42,7 @@ func Test_create_scwallet(test *testing.T) {
     
     txt,err := we.MarshalText()
     var _ = txt
-   // simplecoin.Prtln(string(txt))
+   // factoid.Prtln(string(txt))
 }
 
 func Test_GenerateAddress_scwallet(test *testing.T) {
@@ -71,19 +71,19 @@ func Test_CreateTransaction_swcallet(test *testing.T) {
     
     signed,err := w.SignInputs(t)
     if !signed || err != nil {
-        simplecoin.Prtln("Signed Fail: ",signed, err)
+        factoid.Prtln("Signed Fail: ",signed, err)
         test.Fail()
     }
     
     fee, err := t.CalculateFee(1000)
     if fee != 12000 || err != nil {
-        simplecoin.Prtln("Fee Calculation Failed",fee,err)
+        factoid.Prtln("Fee Calculation Failed",fee,err)
         test.Fail() 
     }
     
     valid, err2 := w.Validate(t)
     if(!valid || err2 != nil) {
-        simplecoin.Prtln(err2,valid)
+        factoid.Prtln(err2,valid)
         test.Fail()
     }
     
@@ -114,16 +114,16 @@ func Test_SignTransaction_swcallet(test *testing.T) {
     signed,err := w.SignInputs(t)
     
     if !signed || err != nil {
-        simplecoin.Prtln("Signed Fail: ",signed, err)
+        factoid.Prtln("Signed Fail: ",signed, err)
         test.Fail()
     }
     
     txt,err := t.MarshalText()
-    sc.Prtln(string(txt), "\n ", fee )
+    ftc.Prtln(string(txt), "\n ", fee )
     
     valid := w.ValidateSignatures(t)
     if !valid {
-        simplecoin.Prtln(valid)
+        factoid.Prtln(valid)
         test.Fail()
     }
     

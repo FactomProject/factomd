@@ -13,18 +13,18 @@ import (
     "fmt"
     "bytes"
     "encoding/binary"
-    sc "github.com/FactomProject/simplecoin"
+    ftc "github.com/FactomProject/factoid"
     "encoding/hex"
 )
 
 type IWalletEntry interface {
-    sc.IBlock
-    SetRCD(sc.IRCD)
-    GetRCD() sc.IRCD 
+    ftc.IBlock
+    SetRCD(ftc.IRCD)
+    GetRCD() ftc.IRCD 
     AddKey(public, private []byte)
     GetName() ([]byte)  
     SetName([]byte)  
-    GetAddress() (sc.IHash, error)
+    GetAddress() (ftc.IHash, error)
     
 }
 
@@ -32,7 +32,7 @@ type WalletEntry struct {
     IWalletEntry
     // 2 byte length not included here
     name    []byte          
-    rcd     sc.IRCD // Verification block for this IWalletEntry
+    rcd     ftc.IRCD // Verification block for this IWalletEntry
     // 1 byte count of public keys
     public  [][]byte        // Set of public keys necessary towe sign the rcd
     // 1 byte count of private keys
@@ -47,7 +47,7 @@ func (b WalletEntry) String() string {
     return string(txt)
 }
 
-func (w1 WalletEntry)GetAddress() (sc.IHash, error) {
+func (w1 WalletEntry)GetAddress() (ftc.IHash, error) {
     if w1.rcd == nil {
         return nil, fmt.Errorf("Should never happen. Missing the rcd block")
     }
@@ -59,24 +59,24 @@ func (w1 WalletEntry)GetAddress() (sc.IHash, error) {
 }
 
 
-func (w1 WalletEntry)GetDBHash() sc.IHash {
-    return sc.Sha([]byte("WalletEntry")     )
+func (w1 WalletEntry)GetDBHash() ftc.IHash {
+    return ftc.Sha([]byte("WalletEntry")     )
 }
 
-func (w1 WalletEntry)GetNewInstance() sc.IBlock {
+func (w1 WalletEntry)GetNewInstance() ftc.IBlock {
     return new(WalletEntry)
 }
 
-func (w1 *WalletEntry) IsEqual(w sc.IBlock) []sc.IBlock {
+func (w1 *WalletEntry) IsEqual(w ftc.IBlock) []ftc.IBlock {
     w2, ok := w.(*WalletEntry)
     if !ok { 
-        r := make([]sc.IBlock,0,3)
+        r := make([]ftc.IBlock,0,3)
         return append(r,w1)
     }
     
     for i, public := range w1.public {
         if bytes.Compare(w2.public[i],public) != 0 {
-            r := make([]sc.IBlock,0,3)
+            r := make([]ftc.IBlock,0,3)
             return append(r,w1)
         }
     }
@@ -92,7 +92,7 @@ func (w *WalletEntry) UnmarshalBinaryData(data []byte) ([]byte, error) {
     w.name = n                  // Finally!  set the name
     
     if w.rcd == nil {
-        w.rcd = sc.CreateRCD(data)      // looks ahead, and creates the right RCD
+        w.rcd = ftc.CreateRCD(data)      // looks ahead, and creates the right RCD
     }   
     data,err := w.rcd.UnmarshalBinaryData(data)
     if err != nil { return nil, err }
@@ -100,17 +100,17 @@ func (w *WalletEntry) UnmarshalBinaryData(data []byte) ([]byte, error) {
     blen, data := data[0], data[1:]
     w.public = make([][]byte,len,len)
     for i:=0;i<int(blen);i++ {
-        w.public[i] = make([]byte,sc.ADDRESS_LENGTH,sc.ADDRESS_LENGTH)
-        copy(w.public[i],data[:sc.ADDRESS_LENGTH])
-        data = data[sc.ADDRESS_LENGTH:]
+        w.public[i] = make([]byte,ftc.ADDRESS_LENGTH,ftc.ADDRESS_LENGTH)
+        copy(w.public[i],data[:ftc.ADDRESS_LENGTH])
+        data = data[ftc.ADDRESS_LENGTH:]
     }
     
     blen, data = data[0], data[1:]
     w.private = make([][]byte,len,len)
     for i:=0;i<int(blen);i++ {
-        w.private[i] = make([]byte,sc.PRIVATE_LENGTH,sc.PRIVATE_LENGTH)
-        copy(w.private[i],data[:sc.PRIVATE_LENGTH])
-        data = data[sc.PRIVATE_LENGTH:]
+        w.private[i] = make([]byte,ftc.PRIVATE_LENGTH,ftc.PRIVATE_LENGTH)
+        copy(w.private[i],data[:ftc.PRIVATE_LENGTH])
+        data = data[ftc.PRIVATE_LENGTH:]
     }
     return data, nil
 }
@@ -148,7 +148,7 @@ func (w WalletEntry) MarshalText() (text []byte, err error) {
  
     out.WriteString("\n public:  ")
     for i,public := range w.public {
-        sc.WriteNumber16(&out, uint16(i))
+        ftc.WriteNumber16(&out, uint16(i))
         out.WriteString(" ")
         addr := hex.EncodeToString(public)
         out.WriteString(addr)
@@ -157,7 +157,7 @@ func (w WalletEntry) MarshalText() (text []byte, err error) {
 
     out.WriteString("\n private:  ")
     for i,private := range w.private {
-        sc.WriteNumber16(&out, uint16(i))
+        ftc.WriteNumber16(&out, uint16(i))
         out.WriteString(" ")
         addr := hex.EncodeToString(private)
         out.WriteString(addr)
@@ -167,28 +167,28 @@ func (w WalletEntry) MarshalText() (text []byte, err error) {
     return out.Bytes(), nil
 }
 
-func (w *WalletEntry) SetRCD(rcd sc.IRCD) {
+func (w *WalletEntry) SetRCD(rcd ftc.IRCD) {
     w.rcd = rcd
 }
 
-func (w WalletEntry) GetRCD() sc.IRCD  {
+func (w WalletEntry) GetRCD() ftc.IRCD  {
     return w.rcd
 }
 
 
 func (w *WalletEntry) AddKey(public, private []byte) {
-    if len(public) != sc.ADDRESS_LENGTH || 
-       len(private) != sc.PRIVATE_LENGTH {
+    if len(public) != ftc.ADDRESS_LENGTH || 
+       len(private) != ftc.PRIVATE_LENGTH {
         panic("Bad Keys presented to AddKey.  Should not happen.")
     }
-    pu := make([]byte,sc.ADDRESS_LENGTH,sc.ADDRESS_LENGTH)
-    pr := make([]byte,sc.PRIVATE_LENGTH,sc.PRIVATE_LENGTH)
+    pu := make([]byte,ftc.ADDRESS_LENGTH,ftc.ADDRESS_LENGTH)
+    pr := make([]byte,ftc.PRIVATE_LENGTH,ftc.PRIVATE_LENGTH)
     copy(pu,public)
     copy(pr,private)
     w.public = append(w.public,pu)
     w.private = append(w.private, pr)
     
-    w.rcd = sc.NewRCD_1(pu)
+    w.rcd = ftc.NewRCD_1(pu)
 }
 
 func (w *WalletEntry) SetName(name []byte) {

@@ -5,11 +5,11 @@
 package database
 
 import (
-	"github.com/FactomProject/simplecoin"
+	"github.com/FactomProject/factoid"
 )
 
 /***********************************************
- * ISCDatabase
+ * IFDatabase
  *
  * Modeling this simple database structure after the architecture of most
  * key value stores.  The user gets to choose a "bucket" where they get a
@@ -25,8 +25,8 @@ import (
  *
  * Values are not limited here.  Factom limits most things to 10k
  ************************************************/
-type ISCDatabase interface {
-	simplecoin.IBlock
+type IFDatabase interface {
+	factoid.IBlock
 
 	// Clear removes all the specified buckets from the database.
 	// This allows us to cleanly rebuild databases, or in the case
@@ -41,23 +41,23 @@ type ISCDatabase interface {
     
     // The Get methods return an entry, or nil if it does not yet
 	// exist.  No errors are thrown.
-	Get(bucket string, key simplecoin.IHash) simplecoin.IBlock
-	GetRaw(bucket []byte, key []byte) simplecoin.IBlock
-	GetKey(key IDBKey) simplecoin.IBlock
+	Get(bucket string, key factoid.IHash) factoid.IBlock
+	GetRaw(bucket []byte, key []byte) factoid.IBlock
+	GetKey(key IDBKey) factoid.IBlock
 
 	// Put places the value in the database.  No errors are thrown.
-	Put(bucket string, key simplecoin.IHash, value simplecoin.IBlock)
-	PutRaw(bucket []byte, key []byte, value simplecoin.IBlock)
-	PutKey(key IDBKey, value simplecoin.IBlock)
+	Put(bucket string, key factoid.IHash, value factoid.IBlock)
+	PutRaw(bucket []byte, key []byte, value factoid.IBlock)
+	PutKey(key IDBKey, value factoid.IBlock)
 
     // A Backer database allows the implementation of a least recently
     // used cache to purge data from memory.
-    SetBacker(db ISCDatabase)     
-    GetBacker() ISCDatabase
+    SetBacker(db IFDatabase)     
+    GetBacker() IFDatabase
     // A Persist database is needed to persist writes.  This is where 
     // one can hook up a LevelDB or Bolt database.
-    SetPersist(db ISCDatabase)
-    GetPersist() ISCDatabase
+    SetPersist(db IFDatabase)
+    GetPersist() IFDatabase
     // A bucket of less than 32 bytes can be ignored and not persisted
     DoNotPersist(bucket string )
 }
