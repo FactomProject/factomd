@@ -987,12 +987,10 @@ func buildGenesisBlocks() error {
 	exportAChain(achain)
 
     // Simplecoin Genesis Address
-    scBlock := block.GetGenesisBlock(1000000,10,200000000000)  // THIS IS IN TWO PLACES HERE! THEY NEED TO MATCH
+    scBlock := newFactoidBlock(scchain)
     data, _ := scBlock.MarshalBinary()
     fmt.Println("\n\n ",common.Sha(data).String(),"\n\n")
     dchain.AddSCBlockToDBEntry(scBlock)
-    //Store the block in db
-	db.ProcessSCBlockBatch(scBlock)
 	exportSCChain(scchain)
     
     
@@ -1022,8 +1020,7 @@ func buildBlocks() error {
 	// Allocate the first three dbentries for Admin block, ECBlock and Factoid block
 	dchain.AddDBEntry(&common.DBEntry{}) // AdminBlock
 	dchain.AddDBEntry(&common.DBEntry{}) // ECBlock
-	//     dchain.AddDBEntry(&common.DBEntry{}) // Factoid block
-        dchain.AddDBEntry(&common.DBEntry{}) // Simplecoin	
+    dchain.AddDBEntry(&common.DBEntry{}) // Simplecoin	
 
 	if plMgr != nil && plMgr.MyProcessList.IsValid() {
 		buildFromProcessList(plMgr.MyProcessList)
@@ -1039,6 +1036,12 @@ func buildBlocks() error {
 	//fmt.Printf("buildGenesisBlocks: aBlock=%s\n", spew.Sdump(aBlock))
 	dchain.AddABlockToDBEntry(aBlock)
 	exportAChain(achain)
+	
+	// Factoid chain
+	fBlock := newFactoidBlock(scchain)
+	//fmt.Printf("buildGenesisBlocks: aBlock=%s\n", spew.Sdump(aBlock))
+	dchain.AddSCBlockToDBEntry(fBlock)
+	exportSCChain(scchain)	
 
 	// sort the echains by chain id
 	var keys []string
@@ -1236,6 +1239,30 @@ func newAdminBlock(chain *common.AdminChain) *common.AdminBlock {
 	return block
 }
 
+func newFactoidBlock(chain *common.SCChain) block.ISCBlock {
+
+	// acquire the last block
+	currentBlock := chain.NextBlock
+
+	if chain.NextBlockHeight != dchain.NextBlockHeight {
+		panic("Factoid Block height does not match Directory Block height:" + strconv.Itoa(int(dchain.NextBlockHeight)))
+	}
+
+	//block.BuildHeader()
+
+	// Create the block and add a new block for new coming entries
+	chain.BlockMutex.Lock()
+	chain.NextBlockHeight++
+	chain.NextBlock = block.NewSCBlock(FactoshisPerCredit, chain.NextBlockHeight)
+	chain.BlockMutex.Unlock()
+
+	//Store the block in db
+	db.ProcessSCBlockBatch(currentBlock)
+	log.Println("Factoid chain: block" + " created for chain: " + chain.ChainID.String())
+
+	return currentBlock
+}
+
 func newDirectoryBlock(chain *common.DChain) *common.DirectoryBlock {
 	util.Trace("**** new Dir Block")
 	// acquire the last block
@@ -1252,7 +1279,7 @@ func newDirectoryBlock(chain *common.DChain) *common.DirectoryBlock {
 	block.Header.EntryCount = uint32(len(block.DBEntries))
 	// Calculate Merkle Root for FBlock and store it in header
 	if block.Header.BodyMR == nil {
-	//	block.Header.BodyMR, _ = block.BuildBodyMR()
+		block.Header.BodyMR, _ = block.BuildBodyMR()
     //  Factoid1 block not in the right place...    
 	}
 	block.IsSealed = true
