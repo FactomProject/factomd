@@ -69,6 +69,7 @@ type IFactomState interface {
     // Process End of Block.
     ProcessEndOfBlock()
     // Get the current Directory Block Height
+    GetDBHeight() uint32
 }
 
 type FactomState struct {
@@ -107,7 +108,7 @@ func(fs *FactomState) AddTransaction(trans sc.ITransaction) bool {
 }
 
 func(fs *FactomState) UpdateTransaction(trans sc.ITransaction) bool {
-    if !fs.Validate(trans) { return false }
+    // if !fs.Validate(trans) { return false }
     for _,input := range trans.GetInputs() {
         fs.UpdateBalance(input.GetAddress(), - int64(input.GetAmount()))
     }
@@ -196,7 +197,7 @@ func(fs *FactomState) LoadState() error  {
         if blk == nil { 
             return fmt.Errorf("Should never happen.  Block not found in LoadState") 
         }
-        sc.Prt(" ",blk.GetDBHeight())
+        sc.Prt(blk.GetDBHeight()," ")
         err := fs.AddTransactionBlock(blk)  // updates accounting for this block
         if err != nil { 
             sc.Prtln("Failed to rebuild state.\n",err); 

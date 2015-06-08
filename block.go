@@ -17,6 +17,7 @@ type IBlock interface {
 	// for the UnmarshalBinary() method from encode.  We define our own method that
 	// makes the code easier to read and way more efficent.
 	UnmarshalBinaryData(data []byte) ([]byte, error)
+    String() string            // Makes debugging, logging, and error reporting easier
 
 	IsEqual(IBlock) []IBlock   // Check if this block is the same as itself. 
                                //   Returns nil, or the path to the first difference.

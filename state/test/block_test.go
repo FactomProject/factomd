@@ -8,6 +8,7 @@ import (
     "encoding/hex"
     "encoding/binary"
     "fmt"
+    "time"
     cv "strconv"
     sc "github.com/FactomProject/simplecoin"
     "github.com/FactomProject/simplecoin/state/stateinit"
@@ -19,6 +20,7 @@ import (
     "testing"
 )
 
+var _ = time.Second
 var _ = state.FactomState{}
 var _ = hex.EncodeToString
 var _ = fmt.Printf
@@ -61,10 +63,10 @@ func Test_create_genesis_factomstate (test *testing.T) {
         fs.SetDB(new(database.MapDB))
         fs.GetDB().Init()
         db := stateinit.GetDatabase()
-     //   fs.GetDB().SetPersist(db)
-     //   fs.GetDB().SetBacker(db)
-     //   fs.GetDB().DoNotPersist(sc.DB_F_BALANCES)
-     //   fs.GetDB().DoNotPersist(sc.DB_EC_BALANCES)
+        fs.GetDB().SetPersist(db)
+        fs.GetDB().SetBacker(db)
+        fs.GetDB().DoNotPersist(sc.DB_F_BALANCES)
+        fs.GetDB().DoNotPersist(sc.DB_EC_BALANCES)
          
     }else{
         fs.SetDB(stateinit.GetDatabase())
@@ -79,17 +81,19 @@ func Test_create_genesis_factomstate (test *testing.T) {
         return
     }
     // Create a number of blocks (i)
-    for i:=0; i<30000; i++ {
-        sc.Prt(i," ")
+    for i:=0; i<100; i++ {
+        sc.Prt(" ",fs.GetDBHeight())
         // Create a new block
-        for j:=0; j<10; j++ {
+        for j:=0; j<10000; j++ {
             t := fs.newTransaction()
             added := fs.AddTransaction(t)
             if !added { 
                 sc.Prt("F:",i,"-",j," ",t) 
             }
+            time.Sleep(time.Second/100000)
         }
         fs.ProcessEndOfBlock()
+        time.Sleep(time.Second)
     }
     fmt.Println("\nDone")
 }

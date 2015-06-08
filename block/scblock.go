@@ -175,11 +175,15 @@ func (b *SCBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
 
 	data = data[8:] // Just skip the size... We don't really need it.
 
-	b.transactions = make([]sc.ITransaction, 0, cnt)
+	b.transactions = make([]sc.ITransaction, cnt, cnt)
 	for i := uint64(0); i < cnt; i++ {
         trans := new(sc.Transaction)
         data,err = trans.UnmarshalBinaryData(data)
-		b.transactions = append(b.transactions, trans)
+        if err != nil {
+            sc.Prtln("Failed to unmarshal a transaction in block.",err)
+            return nil, fmt.Errorf("Failed to unmarshal a transaction in block.\n%s",b.String())
+        }
+		b.transactions[i] = trans
 	}
 	return data, nil
 }
@@ -376,8 +380,17 @@ func (b SCBlock) MarshalText() (text []byte, err error) {
 			return out.Bytes(), err
 		}
 		out.Write(txt)
+        t := trans.GetNewInstance()
+        t.UnmarshalBinary(txt)
+        if t.IsEqual(trans) != nil {
+            return nil, fmt.Errorf("Failed to marshal the transaction:\n%s",trans.String())
+        }
 	}
-
+    bn := b.GetNewInstance()
+    bn.UnmarshalBinary(out.Bytes())
+    if b.IsEqual(bn) != nil {
+        return nil, fmt.Errorf("Failed to marshal the transaction block:\n%s",b.String())
+    }
 	return out.Bytes(), nil
 }
 

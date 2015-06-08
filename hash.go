@@ -16,7 +16,6 @@ type IHash interface {
 
 	Bytes() []byte                          // Return the byte slice for this Hash
 	SetBytes([]byte) error                  // Set the bytes
-	String() string                         // Convert to a String ???
 	IsSameAs(IHash) bool                    // Compare two Hashes
 	CreateHash(a ...IBlock) (IHash, error)  // Create a serial Hash from arguments
 	HexToHash(hexStr string) (IHash, error) // Convert a Hex string to a Hash

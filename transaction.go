@@ -383,9 +383,6 @@ func (t *Transaction) UnmarshalBinaryData(data []byte) (newData []byte, err erro
 	if len(data) < 72 {
 		return nil, fmt.Errorf("Transaction data too small: %d bytes", len(data))
 	}
-	if len(data) > MAX_TRANSACTION_SIZE {
-		return nil, fmt.Errorf("Transaction data too large: %d bytes", len(data))
-	}
 
 	//     {   // limit the scope of d
 	//         var d [8]byte

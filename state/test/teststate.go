@@ -73,7 +73,7 @@ func(fs *test_state) newTransaction() sc.ITransaction {
     t := fs.twallet.CreateTransaction()
     for _, adr := range inputs {
         balance := fs.GetBalance(adr)
-        toPay := balance >> 16 
+        toPay := balance >> 8 
         paid = toPay+paid
         fs.twallet.AddInput(t,adr, toPay)
         
