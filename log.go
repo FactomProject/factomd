@@ -12,8 +12,8 @@ import (
 
 	"github.com/FactomProject/btcd/addrmgr"
 
-	"github.com/FactomProject/btcd/blockchain"
-	"github.com/FactomProject/btcd/database"
+	//	"github.com/FactomProject/btcd/blockchain"
+	//	"github.com/FactomProject/btcd/database"
 	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/btclog"
 	"github.com/FactomProject/seelog"
@@ -102,9 +102,11 @@ func useLogger(subsystemID string, logger btclog.Logger) {
 		amgrLog = logger
 		addrmgr.UseLogger(logger)
 
-	case "BCDB":
-		bcdbLog = logger
-		database.UseLogger(logger)
+		/*
+			case "BCDB":
+				bcdbLog = logger
+				database.UseLogger(logger)
+		*/
 
 	case "BMGR":
 		bmgrLog = logger
@@ -112,9 +114,11 @@ func useLogger(subsystemID string, logger btclog.Logger) {
 	case "BTCD":
 		btcdLog = logger
 
-	case "CHAN":
-		chanLog = logger
-		blockchain.UseLogger(logger)
+		/*
+			case "CHAN":
+				chanLog = logger
+				blockchain.UseLogger(logger)
+		*/
 
 	case "DISC":
 		discLog = logger

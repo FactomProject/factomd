@@ -16,7 +16,7 @@ import (
 
 	//	"github.com/FactomProject/btcd/blockchain"
 	"github.com/FactomProject/btcd/chaincfg"
-	"github.com/FactomProject/btcd/database"
+	//	"github.com/FactomProject/btcd/database"
 	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/btcutil"
 
@@ -168,9 +168,9 @@ type blockManager struct {
 	started  int32
 	shutdown int32
 	//	blockChain        *blockchain.BlockChain
-	requestedTxns     map[wire.ShaHash]struct{}
-	requestedBlocks   map[wire.ShaHash]struct{}
-	progressLogger    *blockProgressLogger
+	requestedTxns   map[wire.ShaHash]struct{}
+	requestedBlocks map[wire.ShaHash]struct{}
+	//	progressLogger    *blockProgressLogger
 	receivedLogBlocks int64
 	receivedLogTx     int64
 	processingReqs    bool
@@ -1441,12 +1441,12 @@ func newBlockManager(s *server) (*blockManager, error) {
 		server:          s,
 		requestedTxns:   make(map[wire.ShaHash]struct{}),
 		requestedBlocks: make(map[wire.ShaHash]struct{}),
-		progressLogger:  newBlockProgressLogger("Processed", bmgrLog),
-		msgChan:         make(chan interface{}, cfg.MaxPeers*3),
-		headerList:      list.New(),
-		quit:            make(chan struct{}),
+		//		progressLogger:  newBlockProgressLogger("Processed", bmgrLog),
+		msgChan:    make(chan interface{}, cfg.MaxPeers*3),
+		headerList: list.New(),
+		quit:       make(chan struct{}),
 	}
-	bm.progressLogger = newBlockProgressLogger("Processed", bmgrLog)
+	//	bm.progressLogger = newBlockProgressLogger("Processed", bmgrLog)
 
 	//	bm.blockChain = blockchain.New(s.db, s.chainParams, bm.handleNotifyMsg)
 	//bm.blockChain.DisableCheckpoints(cfg.DisableCheckpoints)

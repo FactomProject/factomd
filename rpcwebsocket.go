@@ -20,13 +20,11 @@ import (
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/btcd/btcjson"
 	"github.com/FactomProject/btcd/btcjson/btcws"
-	"github.com/FactomProject/btcd/database"
+	//	"github.com/FactomProject/btcd/database"
 	"github.com/FactomProject/btcd/wire"
-	"github.com/FactomProject/btcutil"
+	//	"github.com/FactomProject/btcutil"
 	"github.com/FactomProject/fastsha256"
 	"github.com/FactomProject/websocket"
-
-	"github.com/davecgh/go-spew/spew"
 )
 
 const (
@@ -180,6 +178,7 @@ func (m *wsNotificationManager) queueHandler() {
 	m.wg.Done()
 }
 
+/*
 // NotifyBlockConnected passes a block newly-connected to the best chain
 // to the notification manager for block and transaction notification
 // processing.
@@ -240,6 +239,7 @@ type notificationTxAcceptedByMempool struct {
 	isNew bool
 	tx    *btcutil.Tx
 }
+*/
 
 // Notification control requests
 type notificationRegisterClient wsClient
@@ -265,6 +265,7 @@ type notificationUnregisterAddr struct {
 	addr string
 }
 
+/*
 // notificationHandler reads notifications and control messages from the queue
 // handler and processes one at a time.
 func (m *wsNotificationManager) notificationHandler() {
@@ -386,6 +387,7 @@ out:
 	}
 	m.wg.Done()
 }
+*/
 
 // NumClients returns the number of clients actively being served.
 func (m *wsNotificationManager) NumClients() (n int) {
@@ -410,6 +412,7 @@ func (m *wsNotificationManager) UnregisterBlockUpdates(wsc *wsClient) {
 	m.queueNotification <- (*notificationUnregisterBlocks)(wsc)
 }
 
+/*
 // notifyBlockConnected notifies websocket clients that have registered for
 // block updates when a block is connected to the main chain.
 func (*wsNotificationManager) notifyBlockConnected(clients map[chan struct{}]*wsClient,
@@ -524,6 +527,7 @@ func (m *wsNotificationManager) notifyForNewTx(clients map[chan struct{}]*wsClie
 		}
 	}
 }
+*/
 
 // RegisterSpentRequest requests an notification when the passed outpoint is
 // confirmed spent (contained in a block connected to the main chain) for the
@@ -629,6 +633,7 @@ func newRedeemingTxNotification(txHex string, index int, block *btcutil.Block) (
 	return json.Marshal(ntfn)
 }
 
+/*
 // notifyForTxOuts examines each transaction output, notifying interested
 // websocket clients of the transaction if an output spends to a watched
 // address.  A spent notification request is automatically registered for
@@ -735,6 +740,7 @@ func (m *wsNotificationManager) notifyForTxIns(ops map[wire.OutPoint]map[chan st
 		}
 	}
 }
+*/
 
 // RegisterTxOutAddressRequest requests notifications to the passed websocket
 // client when a transaction output spends to the passed address.
@@ -826,7 +832,7 @@ func (m *wsNotificationManager) RemoveClient(wsc *wsClient) {
 func (m *wsNotificationManager) Start() {
 	m.wg.Add(2)
 	go m.queueHandler()
-	go m.notificationHandler()
+	//	go m.notificationHandler()
 }
 
 // WaitForShutdown blocks until all notification manager goroutines have
@@ -1524,6 +1530,7 @@ var ErrRescanReorg = btcjson.Error{
 	Message: "Reorganize",
 }
 
+/*
 // rescanBlock rescans all transactions in a single block.  This is a helper
 // function for handleRescan.
 func rescanBlock(wsc *wsClient, lookups *rescanKeys, blk *btcutil.Block) {
@@ -1593,12 +1600,6 @@ func rescanBlock(wsc *wsClient, lookups *rescanKeys, blk *btcutil.Block) {
 						continue
 					}
 
-					/*
-						case *btcutil.AddressScriptHash:
-							if _, ok := lookups.scriptHashes[*a.Hash160()]; !ok {
-								continue
-							}
-					*/
 
 				case *btcutil.AddressPubKey:
 					util.Trace("here here here")
@@ -1611,14 +1612,6 @@ func rescanBlock(wsc *wsClient, lookups *rescanKeys, blk *btcutil.Block) {
 							found = true
 						}
 
-						/*
-							case 65: // Uncompressed
-								var key [65]byte
-								copy(key[:], sa)
-								if _, ok := lookups.uncompressedPubkeys[key]; ok {
-									found = true
-								}
-						*/
 
 					default:
 						rpcsLog.Warnf("Skipping rescanned pubkey of unknown "+
@@ -1689,6 +1682,7 @@ func rescanBlock(wsc *wsClient, lookups *rescanKeys, blk *btcutil.Block) {
 		}
 	}
 }
+*/
 
 // recoverFromReorg attempts to recover from a detected reorganize during a
 // rescan.  It fetches a new range of block shas from the database and

@@ -10,7 +10,7 @@ import (
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/btcd/blockchain"
-	"github.com/FactomProject/btcd/database"
+	//	"github.com/FactomProject/btcd/database"
 	"github.com/FactomProject/btcd/wire"
 	"github.com/davecgh/go-spew/spew"
 )
@@ -363,11 +363,12 @@ func (p *peer) handleGetDirBlocksMsg(msg *wire.MsgGetDirBlocks) {
 	// no stop hash was specified.
 	// Attempt to find the ending index of the stop hash if specified.
 	util.Trace()
+
 	endHeight := int64(len(dchain.Blocks)) - 1
-	endIdx := database.AllShas //factom db
-	if endIdx >= 500 {
-		endIdx = 500
-	}
+	//	endIdx := database.AllShas //factom db 	// FIXME
+	//	if endIdx >= 500 {
+	endIdx := 500
+	//	}
 	if endIdx >= endHeight {
 		endIdx = endHeight
 	}

@@ -24,7 +24,7 @@ import (
 	"github.com/FactomProject/FactomCode/factomlog"
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/btcd/wire"
-	"github.com/FactomProject/btcutil"
+	//	"github.com/FactomProject/btcutil"
 	"github.com/davecgh/go-spew/spew"
 )
 
@@ -41,12 +41,12 @@ const (
 )
 
 var (
-	currentAddr btcutil.Address
-	db          database.Db        // database
-	dchain      *common.DChain     //Directory Block Chain
-	ecchain     *common.ECChain    //Entry Credit Chain
-	achain      *common.AdminChain //Admin Chain
-	fchainID    *common.Hash
+	//	currentAddr btcutil.Address
+	db       database.Db        // database
+	dchain   *common.DChain     //Directory Block Chain
+	ecchain  *common.ECChain    //Entry Credit Chain
+	achain   *common.AdminChain //Admin Chain
+	fchainID *common.Hash
 
 	creditsPerChain   int32  = 10
 	creditsPerFactoid uint64 = 1000

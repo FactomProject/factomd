@@ -26,20 +26,19 @@ import (
 	"time"
 
 	"github.com/FactomProject/btcd/blockchain"
-	"github.com/FactomProject/btcd/btcec"
 	"github.com/FactomProject/btcd/btcjson"
 	"github.com/FactomProject/btcd/chaincfg"
-	"github.com/FactomProject/btcd/database"
+	//	"github.com/FactomProject/btcd/database"
 	//	"github.com/FactomProject/btcd/txscript"
 	"github.com/FactomProject/btcd/wire"
-	"github.com/FactomProject/btcutil"
+	//	"github.com/FactomProject/btcutil"
 	//	"github.com/FactomProject/btcd/btcjson/btcws"
 	"github.com/FactomProject/fastsha256"
 	"github.com/FactomProject/websocket"
 
 	"github.com/FactomProject/FactomCode/util"
 
-	"github.com/davecgh/go-spew/spew"
+	//	"github.com/davecgh/go-spew/spew"
 )
 
 const (
@@ -745,6 +744,7 @@ func messageToHex(msg wire.Message) (string, error) {
 	return hex.EncodeToString(buf.Bytes()), nil
 }
 
+/*
 // handleCreateRawTransaction handles createrawtransaction commands.
 func handleCreateRawTransaction(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{}) (interface{}, error) {
 	util.Trace()
@@ -803,10 +803,6 @@ func handleCreateRawTransaction(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan 
 		// server is currently on.
 		switch addr.(type) {
 		case *btcutil.AddressPubKeyHash:
-			/*
-				case *btcutil.AddressScriptHash:
-				case *btcutil.AddressPubKey:
-			*/
 		default:
 			util.Trace("NO GOOD !")
 			panic(errors.New("MUST VERIFY: this case statement"))
@@ -843,6 +839,7 @@ func handleCreateRawTransaction(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan 
 	}
 	return mtxHex, nil
 }
+*/
 
 // handleDebugLevel handles debuglevel commands.
 func handleDebugLevel(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{}) (interface{}, error) {
@@ -868,10 +865,11 @@ func handleDebugLevel(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{}) 
 // createVinList returns a slice of JSON objects for the inputs of the passed
 // transaction.
 func createVinList(mtx *wire.MsgTx) []btcjson.Vin {
-	tx := btcutil.NewTx(mtx)
+	//	tx := btcutil.NewTx(mtx)
 	vinList := make([]btcjson.Vin, len(mtx.TxIn))
 	for i, v := range mtx.TxIn {
-		if blockchain.IsCoinBase(tx) {
+		//		if blockchain.IsCoinBase(tx) {
+		if false {
 			//			vinList[i].Coinbase = hex.EncodeToString(v.SignatureScript)
 			vinList[i].Coinbase = "CoinBase yay!"
 		} else {
@@ -3237,7 +3235,6 @@ func handleSubmitBlock(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{})
 	}
 	return nil, nil
 }
-*/
 
 func verifyChain(db database.Db, level, depth int32, timeSource blockchain.MedianTimeSource) error {
 	_, curHeight64, err := db.NewestSha()
@@ -3286,6 +3283,7 @@ func verifyChain(db database.Db, level, depth int32, timeSource blockchain.Media
 
 	return nil
 }
+*/
 
 // handleValidateAddress implements the validateaddress command.
 func handleValidateAddress(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{}) (interface{}, error) {
@@ -3318,6 +3316,7 @@ func handleVerifyChain(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{})
 	*/
 }
 
+/*
 // handleVerifyMessage implements the verifymessage command.
 func handleVerifyMessage(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{}) (interface{}, error) {
 	util.Trace()
@@ -3333,17 +3332,6 @@ func handleVerifyMessage(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{
 				btcjson.ErrInvalidAddressOrKey.Message, err, addr),
 		}
 	}
-
-	/*
-		// Only P2PKH addresses are valid for signing.
-		//	if _, ok := addr.(*btcutil.AddressPubKeyHash); !ok {
-		// TODO: must revisit this logic
-		return nil, btcjson.Error{
-			Code:    btcjson.ErrType.Code,
-			Message: "Address is not a pay-to-pubkey-hash address",
-		}
-		//	}
-	*/
 
 	// Decode base64 signature.
 	sig, err := base64.StdEncoding.DecodeString(c.Signature)
@@ -3383,6 +3371,7 @@ func handleVerifyMessage(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{
 	// Return boolean if addresses match.
 	return address.EncodeAddress() == c.Address, nil
 }
+*/
 
 // parseCmd parses a marshaled known command, returning any errors as a
 // btcjson.Error that can be used in replies.  The returned cmd may still

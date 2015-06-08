@@ -11,8 +11,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/FactomProject/btcd/chaincfg"
-	"github.com/FactomProject/btcutil"
+	//	"github.com/FactomProject/btcd/chaincfg"
+	//	"github.com/FactomProject/btcutil"
 
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/btcd/wire"
@@ -333,6 +333,7 @@ func factomIngressBlock_hook(hash *wire.ShaHash) error {
 }
 */
 
+/*
 func ExtractPkScriptAddrs(pkScript []byte, chainParams *chaincfg.Params) ([]btcutil.Address, int, error) {
 	oldWay := false
 
@@ -384,3 +385,4 @@ func PayToAddrScript(addr btcutil.Address) ([]byte, error) {
 
 	//	return payToPubKeyHashScript(addr.ScriptAddress())
 }
+*/
