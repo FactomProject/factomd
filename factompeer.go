@@ -368,7 +368,7 @@ func (p *peer) handleGetDirBlocksMsg(msg *wire.MsgGetDirBlocks) {
 	// no stop hash was specified.
 	// Attempt to find the ending index of the stop hash if specified.
 	util.Trace()
-	endHeight := int64(len(dchain.Blocks)) - 1
+	_, endHeight, _ := db.FetchBlockHeightCache()
 	endIdx := database.AllShas //factom db
 	if endIdx >= 500 {
 		endIdx = 500
@@ -430,8 +430,8 @@ func (p *peer) handleGetDirBlocksMsg(msg *wire.MsgGetDirBlocks) {
 		// to be improved??
 		hashList := make([]wire.ShaHash, 0, endIdx-startIdx)
 		for i := int64(0); i < endIdx; i++ {
-			newhash, _ := wire.NewShaHash(dchain.Blocks[i].DBHash.Bytes())
-			hashList = append(hashList, *newhash)
+			h, _ := db.FetchDBHashByHeight(uint32(i))
+			hashList = append(hashList, *wire.FactomHashToShaHash(h))
 		}
 
 		/*		if err != nil {
@@ -514,7 +514,7 @@ func (p *peer) pushDirBlockMsg(sha *wire.ShaHash, doneChan, waitChan chan struct
 	// batch of inventory.
 	if p.continueHash != nil && p.continueHash.IsEqual(sha) {
 		util.Trace()
-		hash, _ := wire.NewShaHash(dchain.Blocks[dchain.NextBlockHeight-1].DBHash.Bytes()) // to be improved??
+		hash, _, _ := db.FetchBlockHeightCache()
 		if err == nil {
 			util.Trace()
 			invMsg := wire.NewMsgDirInvSizeHint(1)

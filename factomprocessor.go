@@ -1656,9 +1656,14 @@ func initDChain() {
 	if len(dchain.Blocks) == 0 {
 		dchain.NextBlockHeight = 0
 		dchain.NextBlock, _ = common.CreateDBlock(dchain, nil, 10)
+		// Update dir block height cache in db
+		h, _ := common.HexToHash(common.GENESIS_DIR_BLOCK_HASH)
+		db.UpdateBlockHeightCache( 0, h)		
 	} else {
 		dchain.NextBlockHeight = uint32(len(dchain.Blocks))
 		dchain.NextBlock, _ = common.CreateDBlock(dchain, dchain.Blocks[len(dchain.Blocks)-1], 10)
+		// Update dir block height cache in db
+		db.UpdateBlockHeightCache(dchain.NextBlockHeight -1, dchain.NextBlock.Header.PrevBlockHash)		
 	}
 
 	exportDChain(dchain)
@@ -1667,6 +1672,7 @@ func initDChain() {
 	if dchain.NextBlock.IsSealed == true {
 		panic("dchain.Blocks[dchain.NextBlockID].IsSealed for chain:" + dchain.ChainID.String())
 	}
+
 
 }
 
