@@ -27,7 +27,7 @@ import (
 
 	"github.com/FactomProject/btcd/blockchain"
 	"github.com/FactomProject/btcd/btcjson"
-	"github.com/FactomProject/btcd/chaincfg"
+	//	"github.com/FactomProject/btcd/chaincfg"
 	//	"github.com/FactomProject/btcd/database"
 	//	"github.com/FactomProject/btcd/txscript"
 	"github.com/FactomProject/btcd/wire"
@@ -892,6 +892,7 @@ func createVinList(mtx *wire.MsgTx) []btcjson.Vin {
 	return vinList
 }
 
+/*
 // createVoutList returns a slice of JSON objects for the outputs of the passed
 // transaction.
 func createVoutList(mtx *wire.MsgTx, chainParams *chaincfg.Params) []btcjson.Vout {
@@ -903,32 +904,6 @@ func createVoutList(mtx *wire.MsgTx, chainParams *chaincfg.Params) []btcjson.Vou
 		voutList[i].DestAddr.Hex = hex.EncodeToString(v.RCDHash[:])
 		voutList[i].DestAddr.Asm = btcutil.EncodeAddr(v.RCDHash[:])
 
-		/*
-			// The disassembled string will contain [error] inline if the
-			// script doesn't fully parse, so ignore the error here.
-			disbuf, _ := txscript.DisasmString(v.PkScript)
-			voutList[i].ScriptPubKey.Asm = disbuf
-			voutList[i].ScriptPubKey.Hex = hex.EncodeToString(v.PkScript)
-
-			// Ignore the error here since an error means the script
-			// couldn't parse and there is no additional information about
-			// it anyways.
-			scriptClass, addrs, reqSigs, _ := txscript.ExtractPkScriptAddrs(
-				v.PkScript, chainParams)
-			voutList[i].ScriptPubKey.Type = scriptClass.String()
-			voutList[i].ScriptPubKey.ReqSigs = int32(reqSigs)
-		*/
-
-		/*
-			if addrs == nil {
-				//			voutList[i].ScriptPubKey.Addresses = nil
-			} else {
-				//			voutList[i].ScriptPubKey.Addresses = make([]string, len(addrs))
-				for j, addr := range addrs {
-					//				voutList[i].ScriptPubKey.Addresses[j] = addr.EncodeAddress()
-				}
-			}
-		*/
 	}
 
 	return voutList
@@ -944,7 +919,6 @@ func createVECoutList(mtx *wire.MsgTx) []btcjson.VECout {
 	return voutList
 }
 
-/*
 // createTxRawResult converts the passed transaction and associated parameters
 // to a raw transaction JSON object.
 func createTxRawResult(chainParams *chaincfg.Params, txSha string,
@@ -978,7 +952,6 @@ func createTxRawResult(chainParams *chaincfg.Params, txSha string,
 
 	return txReply, nil
 }
-*/
 
 // handleDecodeRawTransaction handles decoderawtransaction commands.
 func handleDecodeRawTransaction(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{}) (interface{}, error) {
@@ -1019,7 +992,6 @@ func handleDecodeRawTransaction(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan 
 	return txReply, nil
 }
 
-/*
 // handleDecodeScript handles decodescript commands.
 func handleDecodeScript(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{}) (interface{}, error) {
 	c := cmd.(*btcjson.DecodeScriptCmd)

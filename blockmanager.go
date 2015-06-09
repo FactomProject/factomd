@@ -15,7 +15,7 @@ import (
 	"time"
 
 	//	"github.com/FactomProject/btcd/blockchain"
-	"github.com/FactomProject/btcd/chaincfg"
+	//	"github.com/FactomProject/btcd/chaincfg"
 	//	"github.com/FactomProject/btcd/database"
 	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/btcutil"
@@ -184,7 +184,7 @@ type blockManager struct {
 	headersFirstMode bool
 	headerList       *list.List
 	startHeader      *list.Element
-	nextCheckpoint   *chaincfg.Checkpoint
+	//	nextCheckpoint   *chaincfg.Checkpoint
 
 	// Factom Addition
 	dirChain *common.DChain
