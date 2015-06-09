@@ -18,7 +18,7 @@ import (
 var _ = fmt.Printf
 
 // handleDirBlockMsg is invoked when a peer receives a dir block message.
-func (p *peer) handleSCBlockMsg(msg *wire.MsgSCBlock, buf []byte) {
+func (p *peer) handleFBlockMsg(msg *wire.MsgFBlock, buf []byte) {
     util.Trace()
     // Convert the raw MsgBlock to a btcutil.Block which provides some
     // convenience methods and things such as hash caching.
@@ -28,7 +28,7 @@ func (p *peer) handleSCBlockMsg(msg *wire.MsgSCBlock, buf []byte) {
     commonHash := common.Sha(binary)
     hash, _ := wire.NewShaHash(commonHash.Bytes())
     
-    iv := wire.NewInvVect(wire.InvTypeFactomSCBlock, hash)
+    iv := wire.NewInvVect(wire.InvTypeFactomFBlock, hash)
     p.AddKnownInventory(iv)
     
     inMsgQueue <- msg
@@ -604,12 +604,12 @@ func (p *peer) pushGetEntryDataMsg(eblock *common.EBlock) {
 	}
 }
 
-// pushSCBlockMsg sends an simplecoin block message for the provided block hash to the
+// pushFBlockMsg sends an factoid block message for the provided block hash to the
 // connected peer.  An error is returned if the block hash is not known.
-func (p *peer) pushSCBlockMsg(commonhash *common.Hash, doneChan, waitChan chan struct{}) error {
+func (p *peer) pushFBlockMsg(commonhash *common.Hash, doneChan, waitChan chan struct{}) error {
     util.Trace()
     
-    blk, err := db.FetchSCBlockByHash(commonhash)
+    blk, err := db.FetchFBlockByHash(commonhash)
     
     if err != nil {
         peerLog.Tracef("Unable to fetch requested SC block sha %v: %v",
@@ -627,7 +627,7 @@ func (p *peer) pushSCBlockMsg(commonhash *common.Hash, doneChan, waitChan chan s
         <-waitChan
     }
     
-    msg := wire.NewMsgSCBlock()
+    msg := wire.NewMsgFBlock()
     msg.SC = blk
     p.QueueMessage(msg, doneChan) //blk.MsgBlock(), dc)
     return nil
