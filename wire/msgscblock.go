@@ -7,17 +7,17 @@ package wire
 
 import (
 	"io"
-    "github.com/FactomProject/simplecoin/block"
+    "github.com/FactomProject/factoid/block"
 )
 
-// Simplecoin block
-type MsgSCBlock struct {
-	SC block.ISCBlock
+// factoid block
+type MsgFBlock struct {
+	SC block.IFBlock
 }
 
 // BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
 // This is part of the Message interface implementation.
-func (msg *MsgSCBlock) BtcEncode(w io.Writer, pver uint32) error {
+func (msg *MsgFBlock) BtcEncode(w io.Writer, pver uint32) error {
 
 	bytes, err := msg.SC.MarshalBinary()
 	if err != nil {
@@ -34,14 +34,14 @@ func (msg *MsgSCBlock) BtcEncode(w io.Writer, pver uint32) error {
 
 // BtcDecode decodes r using the bitcoin protocol encoding into the receiver.
 // This is part of the Message interface implementation.
-func (msg *MsgSCBlock) BtcDecode(r io.Reader, pver uint32) error {
+func (msg *MsgFBlock) BtcDecode(r io.Reader, pver uint32) error {
 
-	bytes, err := readVarBytes(r, pver, uint32(10000), CmdSCBlock)
+	bytes, err := readVarBytes(r, pver, uint32(10000), CmdFBlock)
 	if err != nil {
 		return err
 	}
 
-	msg.SC = new(block.SCBlock)
+	msg.SC = new(block.FBlock)
 	err = msg.SC.UnmarshalBinary(bytes)
 	if err != nil {
 		return err
@@ -52,18 +52,18 @@ func (msg *MsgSCBlock) BtcDecode(r io.Reader, pver uint32) error {
 
 // Command returns the protocol command string for the message.  This is part
 // of the Message interface implementation.
-func (msg *MsgSCBlock) Command() string {
-	return CmdSCBlock
+func (msg *MsgFBlock) Command() string {
+	return CmdFBlock
 }
 
 // MaxPayloadLength returns the maximum length the payload can be for the
 // receiver.  This is part of the Message interface implementation.
-func (msg *MsgSCBlock) MaxPayloadLength(pver uint32) uint32 {
+func (msg *MsgFBlock) MaxPayloadLength(pver uint32) uint32 {
 	return MaxAppMsgPayload
 }
 
 // NewMsgABlock returns a new bitcoin inv message that conforms to the Message
 // interface.  See MsgInv for details.
-func NewMsgSCBlock() *MsgSCBlock {
-    return &MsgSCBlock{}
+func NewMsgFBlock() *MsgFBlock {
+    return &MsgFBlock{}
 }
