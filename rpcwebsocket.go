@@ -5,14 +5,14 @@
 package btcd
 
 import (
-	"bytes"
+	//	"bytes"
 	"container/list"
 	"crypto/subtle"
 	"encoding/base64"
-	"encoding/hex"
+	//	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"fmt"
+	//	"fmt"
 	"io"
 	"sync"
 	"time"
@@ -47,11 +47,13 @@ type wsCommandHandler func(*wsClient, btcjson.Cmd) (interface{}, *btcjson.Error)
 // wsHandlers maps RPC command strings to appropriate websocket handler
 // functions.
 var wsHandlers = map[string]wsCommandHandler{
+/*
 	"notifyblocks":          handleNotifyBlocks,
 	"notifynewtransactions": handleNotifyNewTransactions,
 	"notifyreceived":        handleNotifyReceived,
 	"notifyspent":           handleNotifySpent,
-	//	"rescan":                handleRescan,
+	"rescan":                handleRescan,
+*/
 }
 
 // wsAsyncHandlers holds the websocket commands which should be run
@@ -600,6 +602,7 @@ func (*wsNotificationManager) removeSpentRequest(ops map[wire.OutPoint]map[chan 
 	}
 }
 
+/*
 // txHexString returns the serialized transaction encoded in hexadecimal.
 func txHexString(tx *btcutil.Tx) string {
 	buf := bytes.NewBuffer(make([]byte, 0, tx.MsgTx().SerializeSize()))
@@ -633,7 +636,6 @@ func newRedeemingTxNotification(txHex string, index int, block *btcutil.Block) (
 	return json.Marshal(ntfn)
 }
 
-/*
 // notifyForTxOuts examines each transaction output, notifying interested
 // websocket clients of the transaction if an output spends to a watched
 // address.  A spent notification request is automatically registered for
@@ -1459,6 +1461,7 @@ func handleNotifySpent(wsc *wsClient, icmd btcjson.Cmd) (interface{}, *btcjson.E
 	return nil, nil
 }
 
+/*
 // handleNotifyNewTransations implements the notifynewtransactions command
 // extension for websocket connections.
 func handleNotifyNewTransactions(wsc *wsClient, icmd btcjson.Cmd) (interface{}, *btcjson.Error) {
@@ -1495,6 +1498,7 @@ func handleNotifyReceived(wsc *wsClient, icmd btcjson.Cmd) (interface{}, *btcjso
 
 	return nil, nil
 }
+*/
 
 type rescanKeys struct {
 	fallbacks         map[string]struct{}
@@ -1682,7 +1686,6 @@ func rescanBlock(wsc *wsClient, lookups *rescanKeys, blk *btcutil.Block) {
 		}
 	}
 }
-*/
 
 // recoverFromReorg attempts to recover from a detected reorganize during a
 // rescan.  It fetches a new range of block shas from the database and
@@ -1732,3 +1735,4 @@ func descendantBlock(prev, cur *btcutil.Block) *btcjson.Error {
 	}
 	return nil
 }
+*/

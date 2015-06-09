@@ -223,6 +223,7 @@ func parseAndSetDebugLevels(debugLevel string) error {
 	return nil
 }
 
+/*
 // validDbType returns whether or not dbType is a supported database type.
 func validDbType(dbType string) bool {
 	for _, knownType := range knownDbTypes {
@@ -233,6 +234,7 @@ func validDbType(dbType string) bool {
 
 	return false
 }
+*/
 
 // removeDuplicateAddresses returns a new slice with all duplicate entries in
 // addrs removed.

@@ -31,7 +31,7 @@ import (
 	//	"github.com/FactomProject/btcd/database"
 	//	"github.com/FactomProject/btcd/txscript"
 	"github.com/FactomProject/btcd/wire"
-	//	"github.com/FactomProject/btcutil"
+	"github.com/FactomProject/btcutil"
 	//	"github.com/FactomProject/btcd/btcjson/btcws"
 	"github.com/FactomProject/fastsha256"
 	"github.com/FactomProject/websocket"
@@ -944,6 +944,7 @@ func createVECoutList(mtx *wire.MsgTx) []btcjson.VECout {
 	return voutList
 }
 
+/*
 // createTxRawResult converts the passed transaction and associated parameters
 // to a raw transaction JSON object.
 func createTxRawResult(chainParams *chaincfg.Params, txSha string,
@@ -977,6 +978,7 @@ func createTxRawResult(chainParams *chaincfg.Params, txSha string,
 
 	return txReply, nil
 }
+*/
 
 // handleDecodeRawTransaction handles decoderawtransaction commands.
 func handleDecodeRawTransaction(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{}) (interface{}, error) {

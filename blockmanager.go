@@ -1554,7 +1554,6 @@ func warnMultipeDBs() {
 			duplicateDbPaths)
 	}
 }
-*/
 
 // setupBlockDB loads (or creates when needed) the block database taking into
 // account the selected database backend.  It also contains additional logic
@@ -1609,7 +1608,6 @@ func setupBlockDB(flag bool) (database.Db, error) {
 	return db, nil
 }
 
-/*
 // loadBlockDB opens the block database and returns a handle to it.
 func loadBlockDB() (database.Db, error) {
 	util.Trace()
