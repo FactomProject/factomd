@@ -18,7 +18,7 @@ import (
 	//	"github.com/FactomProject/btcd/chaincfg"
 	//	"github.com/FactomProject/btcd/database"
 	"github.com/FactomProject/btcd/wire"
-	"github.com/FactomProject/btcutil"
+	//	"github.com/FactomProject/btcutil"
 
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/util"
@@ -46,8 +46,8 @@ type newPeerMsg struct {
 // blockMsg packages a bitcoin block message and the peer it came from together
 // so the block handler has access to that information.
 type blockMsg struct {
-	block *btcutil.Block
-	peer  *peer
+	//	block *btcutil.Block
+	peer *peer
 }
 
 // invMsg packages a bitcoin inv message and the peer it came from together
@@ -74,7 +74,7 @@ type donePeerMsg struct {
 // txMsg packages a bitcoin tx message and the peer it came from together
 // so the block handler has access to that information.
 type txMsg struct {
-	tx   *btcutil.Tx
+	//	tx   *btcutil.Tx
 	peer *peer
 }
 
@@ -88,7 +88,7 @@ type getSyncPeerMsg struct {
 // for requesting chain to check if a block connects to the end of the current
 // main chain.
 type checkConnectBlockMsg struct {
-	block *btcutil.Block
+	//	block *btcutil.Block
 	reply chan error
 }
 
@@ -119,7 +119,7 @@ type processBlockResponse struct {
 // extra handling whereas this message essentially is just a concurrent safe
 // way to call ProcessBlock on the internal block chain instance.
 type processBlockMsg struct {
-	block *btcutil.Block
+	//	block *btcutil.Block
 	//	flags blockchain.BehaviorFlags
 	reply chan processBlockResponse
 }
@@ -1278,6 +1278,7 @@ func (b *blockManager) NewPeer(p *peer) {
 	b.msgChan <- &newPeerMsg{peer: p}
 }
 
+/*
 // QueueTx adds the passed transaction message and peer to the block handling
 // queue.
 func (b *blockManager) QueueTx(tx *btcutil.Tx, p *peer) {
@@ -1301,6 +1302,7 @@ func (b *blockManager) QueueBlock(block *btcutil.Block, p *peer) {
 
 	b.msgChan <- &blockMsg{block: block, peer: p}
 }
+*/
 
 // QueueInv adds the passed inv message and peer to the block handling queue.
 func (b *blockManager) QueueInv(inv *wire.MsgInv, p *peer) {
@@ -1377,6 +1379,7 @@ func (b *blockManager) SyncPeer() *peer {
 	return <-reply
 }
 
+/*
 // CheckConnectBlock performs several checks to confirm connecting the passed
 // block to the main chain does not violate any rules.  This function makes use
 // of CheckConnectBlock on an internal instance of a block chain.  It is funneled
@@ -1392,7 +1395,6 @@ func (b *blockManager) CheckConnectBlock(block *btcutil.Block) error {
 	return err
 }
 
-/*
 // CalcNextRequiredDifficulty calculates the required difficulty for the next
 // block after the current main chain.  This function makes use of
 // CalcNextRequiredDifficulty on an internal instance of a block chain.  It is
