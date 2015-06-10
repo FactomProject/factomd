@@ -50,10 +50,10 @@ var (
 	chainIDMap     map[string]*common.EChain // ChainIDMap with chainID string([32]byte) as key
 	commitChainMap = make(map[string]*common.CommitChain, 0)
 	commitEntryMap = make(map[string]*common.CommitEntry, 0)
-	eCreditMap     map[*[32]byte]int32 // eCreditMap with public key string([32]byte) as key, credit balance as value
+	eCreditMap     map[string]int32 // eCreditMap with public key string([32]byte) as key, credit balance as value
 
 	chainIDMapBackup map[string]*common.EChain //previous block bakcup - ChainIDMap with chainID string([32]byte) as key
-	eCreditMapBackup map[*[32]byte]int32       // backup from previous block - eCreditMap with public key string([32]byte) as key, credit balance as value
+	eCreditMapBackup map[string]int32       // backup from previous block - eCreditMap with public key string([32]byte) as key, credit balance as value
 
 	//Diretory Block meta data map
 	//dbInfoMap map[string]*common.DBInfo // dbInfoMap with dbHash string([32]byte) as key
@@ -474,10 +474,10 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 // the network.
 // TODO remove this before production
 func processTestCredit(msg *wire.MsgTestCredit) error {
-	if _, exists := eCreditMap[msg.ECKey]; !exists {
-		eCreditMap[msg.ECKey] = 0
+	if _, exists := eCreditMap[string(msg.ECKey[:])]; !exists {
+		eCreditMap[string(msg.ECKey[:])] = 0
 	}
-	eCreditMap[msg.ECKey] += msg.Amt
+	eCreditMap[string(msg.ECKey[:])] += msg.Amt
 	return nil
 }
 
@@ -675,8 +675,8 @@ func processFactoidTx(msg *wire.MsgInt_FactoidObj) error {
 		copy(pubKey[:], k.Bytes())
 		//credits := int32(creditsPerFactoid * v / 100000000)
 		// Update the credit balance in memory
-		balance, _ := eCreditMap[pubKey]
-		eCreditMap[pubKey] = balance + int32(v)
+		balance, _ := eCreditMap[string(pubKey[:])]
+		eCreditMap[string(pubKey[:])] = balance + int32(v)
 	}
 
 	// Add to MyPL if Server Node
@@ -801,10 +801,10 @@ func processCommitChain(msg *wire.MsgCommitChain) error {
 	}
 
 	// deduct the entry credits from the eCreditMap
-	if eCreditMap[c.ECPubKey] < int32(c.Credits) {
+	if eCreditMap[string(c.ECPubKey[:])] < int32(c.Credits) {
 		return fmt.Errorf("Not enough credits for CommitChain")
 	}
-	eCreditMap[c.ECPubKey] -= int32(c.Credits)
+	eCreditMap[string(c.ECPubKey[:])] -= int32(c.Credits)
 
 	// add to the commitChainMap
 	commitChainMap[c.EntryHash.String()] = c
@@ -824,8 +824,8 @@ func processCommitChain(msg *wire.MsgCommitChain) error {
 func processBuyEntryCredit(pubKey *[32]byte, credits int32, factoidTxHash *common.Hash) error {
 
 	// Update the credit balance in memory
-	balance, _ := eCreditMap[pubKey]
-	eCreditMap[pubKey] = balance + credits
+	balance, _ := eCreditMap[string(pubKey[:])]
+	eCreditMap[string(pubKey[:])] = balance + credits
 
 	return nil
 }
@@ -1308,7 +1308,7 @@ func newDirectoryBlock(chain *common.DChain) *common.DirectoryBlock {
 
 func GetEntryCreditBalance(pubKey *[32]byte) (int32, error) {
 
-	return eCreditMap[pubKey], nil
+	return eCreditMap[string(pubKey[:])], nil
 }
 
 // Validate dir chain from genesis block
@@ -1672,7 +1672,7 @@ func initDChain() {
 
 func initECChain() {
 
-	eCreditMap = make(map[*[32]byte]int32)
+	eCreditMap = make(map[string]int32)
 
 	//Initialize the Entry Credit Chain ID
 	ecchain = common.NewECChain()
@@ -1807,13 +1807,13 @@ func initializeECreditMap(block *common.ECBlock) {
 		switch entry.ECID() {
 		case common.ECIDChainCommit:
 			e := entry.(*common.CommitChain)
-			eCreditMap[e.ECPubKey] += int32(e.Credits)
+			eCreditMap[string(e.ECPubKey[:])] += int32(e.Credits)
 		case common.ECIDEntryCommit:
 			e := entry.(*common.CommitEntry)
-			eCreditMap[e.ECPubKey] += int32(e.Credits)
+			eCreditMap[string(e.ECPubKey[:])] += int32(e.Credits)
 		case common.ECIDBalanceIncrease:
 			e := entry.(*common.IncreaseBalance)
-			eCreditMap[e.ECPubKey] += int32(e.Credits)
+			eCreditMap[string(e.ECPubKey[:])] += int32(e.Credits)
 		}
 	}
 }
@@ -1841,9 +1841,9 @@ func getPrePaidChainKey(entryHash *common.Hash, chainIDHash *common.Hash) string
 }
 
 func copyCreditMap(
-	originalMap map[*[32]byte]int32,
-	newMap map[*[32]byte]int32) {
-	newMap = make(map[*[32]byte]int32)
+	originalMap map[string]int32,
+	newMap map[string]int32) {
+	newMap = make(map[string]int32)
 
 	// copy every element from the original map
 	for k, v := range originalMap {
