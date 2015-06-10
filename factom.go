@@ -19,6 +19,8 @@ import (
 	"github.com/davecgh/go-spew/spew"
 )
 
+var _ = fmt.Printf
+
 var (
 	local_Server *server
 	// to be renamed??

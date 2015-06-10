@@ -20,7 +20,7 @@ import (
 	"github.com/FactomProject/btcd/wire"
 	//	"github.com/FactomProject/btcutil"
 
-	"github.com/FactomProject/FactomCode/common"
+	//	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/util"
 )
 
@@ -187,7 +187,7 @@ type blockManager struct {
 	//	nextCheckpoint   *chaincfg.Checkpoint
 
 	// Factom Addition
-	dirChain *common.DChain
+	//dirChain *common.DChain
 }
 
 /*
@@ -392,7 +392,6 @@ func (b *blockManager) handleNewPeerMsg(peers *list.List, p *peer) {
 		b.startSync(peers)
 	*/
 
-	util.Trace()
 	// Ignore the peer if it's not a sync candidate.
 	if !b.isSyncCandidateFactom(p) {
 		return
@@ -891,9 +890,9 @@ func (b *blockManager) haveInventory(invVect *wire.InvVect) (bool, error) {
 
 	case wire.InvTypeFactomDirBlock:
 		util.Trace()
-		// Ask chain if the block is known to it in any form (main
+		// Ask db if the block is known to it in any form (main
 		// chain, side chain, or orphan).
-		return HaveBlockInDChain(b.dirChain, &invVect.Hash)
+		return HaveBlockInDB(&invVect.Hash)
 	}
 	// The requested inventory is is an unsupported type, so just claim
 	// it is known to avoid requesting it.
@@ -960,11 +959,7 @@ func (b *blockManager) handleInvMsg(imsg *invMsg) {
 		}
 
 		if iv.Type == wire.InvTypeBlock {
-			// The block is an orphan block that we already have.
-			// When the existing orphan was processed, it requested
-			// the missing parent blocks.  When this scenario
-			// happens, it means there were more blocks missing
-			// than are allowed into a single inventory message.  As
+
 			// a result, once this peer requested the final
 			// advertised block, the remote peer noticed and is now
 			// resending the orphan block as an available block
@@ -1453,7 +1448,7 @@ func newBlockManager(s *server) (*blockManager, error) {
 	//	bm.blockChain = blockchain.New(s.db, s.chainParams, bm.handleNotifyMsg)
 	//bm.blockChain.DisableCheckpoints(cfg.DisableCheckpoints)
 
-	bm.dirChain = dchain
+	//bm.dirChain = dchain
 
 	/*
 		if !cfg.DisableCheckpoints {

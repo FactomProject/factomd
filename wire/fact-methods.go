@@ -24,6 +24,7 @@ import (
 	"github.com/davecgh/go-spew/spew"
 )
 
+var _ = util.Trace
 const (
 	TxVersion  = 0
 	inNout_cap = 16000 // per spec
@@ -132,14 +133,12 @@ func readOutPoint(r io.Reader, pver uint32, op *OutPoint) error {
 	if err != nil {
 		return err
 	}
-	util.Trace()
-
+	
 	// op.Index = binary.BigEndian.Uint32(buf[:])
 
 	// varint on the wire, but easily fits into uint32
 	index, err := readVarInt(r, pver)
-	util.Trace(fmt.Sprintf("index=%X\n", index))
-
+	
 	// coinbase has math.MaxUint32, so that's ok
 	if inNout_cap < index && math.MaxUint32 != index {
 		return fmt.Errorf("OutPoint trouble, index too large: %d", index)

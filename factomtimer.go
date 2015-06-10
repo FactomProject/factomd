@@ -5,11 +5,12 @@
 package btcd
 
 import (
-	//	"fmt"
-	"github.com/FactomProject/FactomCode/util"
+	"fmt"
 	"github.com/FactomProject/btcd/wire"
 	"time"
 )
+
+var _ = fmt.Println
 
 // BlockTimer is set to sent End-Of-Minute messages to processor
 type BlockTimer struct {
@@ -35,8 +36,6 @@ func (bt *BlockTimer) StartBlockTimer() {
 				EOM_Type:         wire.END_MINUTE_1 + byte(i),
 				NextDBlockHeight: bt.nextDBlockHeight, //??
 			}
-
-			util.Trace("eomMsg 111 to inCtlMsgQueue")
 
 			//send the end-of-minute message to processor
 			bt.inCtlMsgQueue <- eomMsg
@@ -71,7 +70,6 @@ func (bt *BlockTimer) StartBlockTimer() {
 			NextDBlockHeight: bt.nextDBlockHeight,
 		}
 
-		util.Trace("eomMsg 222 to inCtlMsgQueue")
 		//send the end-of-minute message to processor
 		bt.inCtlMsgQueue <- eomMsg
 

@@ -247,6 +247,8 @@ func invSummary(invList []*wire.InvVect) string {
 		case wire.InvTypeTx:
 			return fmt.Sprintf("tx %s", iv.Hash)
 
+		case wire.InvTypeFactomFBlock:
+			return fmt.Sprintf("factom FBlock %s", iv.Hash)
 		case wire.InvTypeFactomDirBlock:
 			return fmt.Sprintf("factom dirblock %s", iv.Hash)
 		case wire.InvTypeFactomEntryBlock:

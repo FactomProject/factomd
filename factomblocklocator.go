@@ -20,12 +20,13 @@ import (
 //    therefore the block locator will only consist of the genesis hash
 //  - If the passed hash is not currently known, the block locator will only
 //    consist of the passed hash
-func DirBlockLocatorFromHash(hash *wire.ShaHash, dChain *common.DChain) blockchain.BlockLocator {
+func DirBlockLocatorFromHash(hash *wire.ShaHash) blockchain.BlockLocator {
 	// The locator contains the requested hash at the very least.
 	locator := make(blockchain.BlockLocator, 0, wire.MaxBlockLocatorsPerMsg)
 	locator = append(locator, hash)
 
-	genesisHash, _ := wire.NewShaHash(dchain.Blocks[0].DBHash.Bytes)
+	h, _ := common.HexToHash(common.GENESIS_DIR_BLOCK_HASH)
+	genesisHash := wire.FactomHashToShaHash(h)
 	// Nothing more to do if a locator for the genesis hash was requested.
 	if hash.IsEqual(genesisHash) {
 		return locator
@@ -81,7 +82,14 @@ func DirBlockLocatorFromHash(hash *wire.ShaHash, dChain *common.DChain) blockcha
 			break
 		}
 
-		locator = append(locator, wire.FactomHashToShaHash(dchain.Blocks[blockHeight].DBHash))
+		blk, _ := db.FetchDBlockByHeight(uint32(blockHeight))
+		if blk == nil {
+			continue
+		} else if blk.DBHash == nil {
+			blk.DBHash, _ = common.CreateHash(blk)
+		}
+
+		locator = append(locator, wire.FactomHashToShaHash(blk.DBHash))
 	}
 
 	// Append the appropriate genesis block.
@@ -91,20 +99,9 @@ func DirBlockLocatorFromHash(hash *wire.ShaHash, dChain *common.DChain) blockcha
 
 // LatestBlockLocator returns a block locator for the latest known tip of the
 // main (best) chain.
-func LatestDirBlockLocator(dChain *common.DChain) (blockchain.BlockLocator, error) {
+func LatestDirBlockLocator() (blockchain.BlockLocator, error) {
 
-	latestDirBlockHash, _ := wire.NewShaHash(dChain.Blocks[dChain.NextBlockHeight-1].DBHash.Bytes)
+	latestDirBlockHash, _, _ := db.FetchBlockHeightCache()
 	// The best chain is set, so use its hash.
-	return DirBlockLocatorFromHash(latestDirBlockHash, dChain), nil
-}
-
-// LatestDirBlockSha returns newest shahash of dchain and current height
-func LatestDirBlockSha(dChain *common.DChain) (sha *wire.ShaHash, height int64, err error) {
-
-	sha, _ = wire.NewShaHash(dChain.Blocks[dChain.NextBlockHeight-1].DBHash.Bytes)
-
-	height = int64(dChain.Blocks[dChain.NextBlockHeight-1].Header.BlockHeight)
-
-	// The best chain is set, so use its hash.
-	return sha, height, nil
+	return DirBlockLocatorFromHash(latestDirBlockHash), nil
 }

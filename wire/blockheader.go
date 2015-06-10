@@ -123,7 +123,7 @@ func readBlockHeader(r io.Reader, pver uint32, bh *BlockHeader) error {
 // encoding block headers to be stored to disk, such as in a database, as
 // opposed to encoding for the wire.
 func writeBlockHeader(w io.Writer, pver uint32, bh *BlockHeader) error {
-	copy(bh.ChainID[:], FChainID.Bytes)
+	copy(bh.ChainID[:], FChainID.Bytes())
 	err := writeElements(w, &bh.ChainID, &bh.MerkleRoot, &bh.PrevBlock, &bh.PrevHash3, bh.ExchRate,
 		bh.DBHeight, &bh.UTXOCommit, &bh.TransCnt, bh.BodySize)
 

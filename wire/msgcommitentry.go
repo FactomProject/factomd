@@ -18,6 +18,14 @@ type MsgCommitEntry struct {
 	CommitEntry *common.CommitEntry
 }
 
+// NewMsgCommitEntry returns a new Commit Entry message that conforms to the
+// Message interface.
+func NewMsgCommitEntry() *MsgCommitEntry {
+	m := new(MsgCommitEntry)
+	m.CommitEntry = common.NewCommitEntry()
+	return m
+}
+
 // BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
 // This is part of the Message interface implementation.
 func (msg *MsgCommitEntry) BtcEncode(w io.Writer, pver uint32) error {
@@ -61,12 +69,6 @@ func (msg *MsgCommitEntry) Command() string {
 // receiver.  This is part of the Message interface implementation.
 func (msg *MsgCommitEntry) MaxPayloadLength(pver uint32) uint32 {
 	return MaxAppMsgPayload
-}
-
-// NewMsgCommitEntry returns a new bitcoin Commit Entry message that conforms to
-// the Message interface.
-func NewMsgCommitEntry() *MsgCommitEntry {
-	return &MsgCommitEntry{}
 }
 
 // Check whether the msg can pass the message level validations

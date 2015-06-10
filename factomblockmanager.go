@@ -56,8 +56,6 @@ func (b *blockManager) handleDirInvMsg(imsg *dirInvMsg) {
 	// request parent blocks of orphans if we receive one we already have.
 	// Finally, attempt to detect potential stalls due to long side chains
 	// we already have and request more blocks to prevent them.
-
-	chain := b.dirChain
 	for i, iv := range invVects {
 		// Ignore unsupported inventory types.
 		if iv.Type != wire.InvTypeFactomDirBlock { //} && iv.Type != wire.InvTypeTx {
@@ -123,7 +121,7 @@ func (b *blockManager) handleDirInvMsg(imsg *dirInvMsg) {
 				// Request blocks after this one up to the
 				// final one the remote peer knows about (zero
 				// stop hash).
-				locator := DirBlockLocatorFromHash(&iv.Hash, chain)
+				locator := DirBlockLocatorFromHash(&iv.Hash)
 				imsg.peer.PushGetDirBlocksMsg(locator, &zeroHash)
 			}
 		}
@@ -207,7 +205,7 @@ func (b *blockManager) startSyncFactom(peers *list.List) {
 	}
 
 	// Find the height of the current known best block.
-	_, height, err := LatestDirBlockSha(b.dirChain) // db.NewestSha()
+	_, height, err := db.FetchBlockHeightCache()
 	if err != nil {
 		bmgrLog.Errorf("%v", err)
 		return
@@ -240,7 +238,7 @@ func (b *blockManager) startSyncFactom(peers *list.List) {
 	// Start syncing from the best peer if one was selected.
 	if bestPeer != nil {
 		util.Trace()
-		locator, err := LatestDirBlockLocator(b.dirChain)
+		locator, err := LatestDirBlockLocator()
 		if err != nil {
 			bmgrLog.Errorf("Failed to get block locator for the "+
 				"latest block: %v", err)
@@ -318,12 +316,12 @@ func (b *blockManager) isSyncCandidateFactom(p *peer) bool {
 	return true
 }
 
-// HaveBlockInDChain returns whether or not the chain instance has the block represented
+// HaveBlockInDB returns whether or not the chain instance has the block represented
 // by the passed hash.  This includes checking the various places a block can
 // be like part of the main chain, on a side chain, or in the orphan pool.
 //
 // This function is NOT safe for concurrent access.
-func HaveBlockInDChain(dChain *common.DChain, hash *wire.ShaHash) (bool, error) {
+func HaveBlockInDB(hash *wire.ShaHash) (bool, error) {
 	util.Trace()
 	dblock, _ := db.FetchDBlockByHash(hash.ToFactomHash())
 	if dblock != nil {
