@@ -12,8 +12,8 @@ import (
 
 	"github.com/FactomProject/btcd/addrmgr"
 
-	"github.com/FactomProject/btcd/blockchain"
-	"github.com/FactomProject/btcd/database"
+	//	"github.com/FactomProject/btcd/blockchain"
+	//	"github.com/FactomProject/btcd/database"
 	"github.com/FactomProject/btcd/wire"
 	"github.com/FactomProject/btclog"
 	"github.com/FactomProject/seelog"
@@ -102,9 +102,11 @@ func useLogger(subsystemID string, logger btclog.Logger) {
 		amgrLog = logger
 		addrmgr.UseLogger(logger)
 
-	case "BCDB":
-		bcdbLog = logger
-		database.UseLogger(logger)
+		/*
+			case "BCDB":
+				bcdbLog = logger
+				database.UseLogger(logger)
+		*/
 
 	case "BMGR":
 		bmgrLog = logger
@@ -112,9 +114,11 @@ func useLogger(subsystemID string, logger btclog.Logger) {
 	case "BTCD":
 		btcdLog = logger
 
-	case "CHAN":
-		chanLog = logger
-		blockchain.UseLogger(logger)
+		/*
+			case "CHAN":
+				chanLog = logger
+				blockchain.UseLogger(logger)
+		*/
 
 	case "DISC":
 		discLog = logger
@@ -243,8 +247,8 @@ func invSummary(invList []*wire.InvVect) string {
 		case wire.InvTypeTx:
 			return fmt.Sprintf("tx %s", iv.Hash)
 
-        case wire.InvTypeFactomFBlock:
-            return fmt.Sprintf("factom FBlock %s", iv.Hash)
+		case wire.InvTypeFactomFBlock:
+			return fmt.Sprintf("factom FBlock %s", iv.Hash)
 		case wire.InvTypeFactomDirBlock:
 			return fmt.Sprintf("factom dirblock %s", iv.Hash)
 		case wire.InvTypeFactomEntryBlock:

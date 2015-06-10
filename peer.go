@@ -21,8 +21,7 @@ import (
 	"github.com/FactomProject/btcd/blockchain"
 	//	"github.com/FactomProject/btcd/database"
 	"github.com/FactomProject/btcd/wire"
-	"github.com/FactomProject/btcutil"
-	//	"github.com/FactomProject/btcutil/bloom"
+	//	"github.com/FactomProject/btcutil"
 	"github.com/FactomProject/go-socks/socks"
 	"github.com/davecgh/go-spew/spew"
 
@@ -457,7 +456,7 @@ func (p *peer) handleVersionMsg(msg *wire.MsgVersion) {
 
 	// Add the remote peer time as a sample for creating an offset against
 	// the local clock to keep the network time in sync.
-	p.server.timeSource.AddTimeSample(p.addr, msg.Timestamp)
+	//	p.server.timeSource.AddTimeSample(p.addr, msg.Timestamp)
 
 	// Signal the block manager this peer is a new sync candidate.
 	p.server.blockManager.NewPeer(p)
@@ -778,6 +777,7 @@ func (p *peer) handleMemPoolMsg(msg *wire.MsgMemPool) {
 }
 */
 
+/*
 // handleTxMsg is invoked when a peer receives a tx bitcoin message.  It blocks
 // until the bitcoin transaction has been fully processed.  Unlock the block
 // handler this does not serialize all transactions through a single thread
@@ -834,6 +834,7 @@ func (p *peer) peer_HandleBlockMsg(msg *wire.MsgBlock, buf []byte) {
 	p.server.blockManager.QueueBlock(block, p)
 	<-p.blockProcessed
 }
+*/
 
 // handleInvMsg is invoked when a peer receives an inv bitcoin message and is
 // used to examine the inventory being advertised by the remote peer and react
@@ -1528,11 +1529,13 @@ out:
 					p.handleMemPoolMsg(msg)
 			*/
 
-		case *wire.MsgTx:
-			p.peer_HandleTxMsg(msg)
+			/*
+				case *wire.MsgTx:
+					p.peer_HandleTxMsg(msg)
 
-		case *wire.MsgBlock:
-			p.peer_HandleBlockMsg(msg, buf)
+				case *wire.MsgBlock:
+					p.peer_HandleBlockMsg(msg, buf)
+			*/
 
 		case *wire.MsgInv:
 			p.handleInvMsg(msg)

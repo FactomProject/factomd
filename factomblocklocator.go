@@ -81,15 +81,14 @@ func DirBlockLocatorFromHash(hash *wire.ShaHash) blockchain.BlockLocator {
 		if blockHeight < 1 {
 			break
 		}
-		
+
 		blk, _ := db.FetchDBlockByHeight(uint32(blockHeight))
 		if blk == nil {
 			continue
 		} else if blk.DBHash == nil {
 			blk.DBHash, _ = common.CreateHash(blk)
 		}
-		
-		
+
 		locator = append(locator, wire.FactomHashToShaHash(blk.DBHash))
 	}
 
@@ -102,7 +101,7 @@ func DirBlockLocatorFromHash(hash *wire.ShaHash) blockchain.BlockLocator {
 // main (best) chain.
 func LatestDirBlockLocator() (blockchain.BlockLocator, error) {
 
-	latestDirBlockHash, _, _  := db.FetchBlockHeightCache()
+	latestDirBlockHash, _, _ := db.FetchBlockHeightCache()
 	// The best chain is set, so use its hash.
 	return DirBlockLocatorFromHash(latestDirBlockHash), nil
 }

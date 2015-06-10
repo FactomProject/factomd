@@ -8,9 +8,9 @@ import (
 	"fmt"
 
 	"github.com/FactomProject/FactomCode/common"
+	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/btcd/blockchain"
-	"github.com/FactomProject/btcd/database"
 	"github.com/FactomProject/btcd/wire"
 	//"github.com/davecgh/go-spew/spew"
 )
@@ -19,21 +19,21 @@ var _ = fmt.Printf
 
 // handleDirBlockMsg is invoked when a peer receives a dir block message.
 func (p *peer) handleFBlockMsg(msg *wire.MsgFBlock, buf []byte) {
-    util.Trace()
-    // Convert the raw MsgBlock to a btcutil.Block which provides some
-    // convenience methods and things such as hash caching.
-    
-    
-    binary, _ := msg.SC.MarshalBinary()
-    commonHash := common.Sha(binary)
-    hash, _ := wire.NewShaHash(commonHash.Bytes())
-    
-    iv := wire.NewInvVect(wire.InvTypeFactomFBlock, hash)
-    p.AddKnownInventory(iv)
-    
-    inMsgQueue <- msg
-    
+	util.Trace()
+	// Convert the raw MsgBlock to a btcutil.Block which provides some
+	// convenience methods and things such as hash caching.
+
+	binary, _ := msg.SC.MarshalBinary()
+	commonHash := common.Sha(binary)
+	hash, _ := wire.NewShaHash(commonHash.Bytes())
+
+	iv := wire.NewInvVect(wire.InvTypeFactomFBlock, hash)
+	p.AddKnownInventory(iv)
+
+	inMsgQueue <- msg
+
 }
+
 // handleDirBlockMsg is invoked when a peer receives a dir block message.
 func (p *peer) handleDirBlockMsg(msg *wire.MsgDirBlock, buf []byte) {
 	util.Trace()
@@ -161,7 +161,6 @@ func (p *peer) handleGetEntryDataMsg(msg *wire.MsgGetEntryData) {
 			return
 		}
 
-
 		for _, ebEntry := range blk.EBEntries {
 
 			var err error
@@ -237,7 +236,6 @@ func (p *peer) handleGetNonDirDataMsg(msg *wire.MsgGetNonDirData) {
 			}
 			return
 		}
-
 
 		for _, dbEntry := range blk.DBEntries {
 
@@ -415,7 +413,6 @@ func (p *peer) handleGetDirBlocksMsg(msg *wire.MsgGetDirBlocks) {
 		endIdx = startIdx + wire.MaxBlocksPerMsg
 		autoContinue = true
 	}
-
 
 	// Generate inventory message.
 	//
@@ -607,31 +604,31 @@ func (p *peer) pushGetEntryDataMsg(eblock *common.EBlock) {
 // pushFBlockMsg sends an factoid block message for the provided block hash to the
 // connected peer.  An error is returned if the block hash is not known.
 func (p *peer) pushFBlockMsg(commonhash *common.Hash, doneChan, waitChan chan struct{}) error {
-    util.Trace()
-    
-    blk, err := db.FetchFBlockByHash(commonhash)
-    
-    if err != nil {
-        peerLog.Tracef("Unable to fetch requested SC block sha %v: %v",
-                       commonhash, err)
-        
-        if doneChan != nil {
-            doneChan <- struct{}{}
-        }
-        return err
-    }
-    
-    
-    // Once we have fetched data wait for any previous operation to finish.
-    if waitChan != nil {
-        <-waitChan
-    }
-    
-    msg := wire.NewMsgFBlock()
-    msg.SC = blk
-    p.QueueMessage(msg, doneChan) //blk.MsgBlock(), dc)
-    return nil
+	util.Trace()
+
+	blk, err := db.FetchFBlockByHash(commonhash)
+
+	if err != nil {
+		peerLog.Tracef("Unable to fetch requested SC block sha %v: %v",
+			commonhash, err)
+
+		if doneChan != nil {
+			doneChan <- struct{}{}
+		}
+		return err
+	}
+
+	// Once we have fetched data wait for any previous operation to finish.
+	if waitChan != nil {
+		<-waitChan
+	}
+
+	msg := wire.NewMsgFBlock()
+	msg.SC = blk
+	p.QueueMessage(msg, doneChan) //blk.MsgBlock(), dc)
+	return nil
 }
+
 // pushABlockMsg sends an admin block message for the provided block hash to the
 // connected peer.  An error is returned if the block hash is not known.
 func (p *peer) pushABlockMsg(commonhash *common.Hash, doneChan, waitChan chan struct{}) error {
@@ -646,7 +643,6 @@ func (p *peer) pushABlockMsg(commonhash *common.Hash, doneChan, waitChan chan st
 		}
 		return err
 	}
-
 
 	// Once we have fetched data wait for any previous operation to finish.
 	if waitChan != nil {
@@ -725,7 +721,6 @@ func (p *peer) pushEntryMsg(commonhash *common.Hash, doneChan, waitChan chan str
 		}
 		return err
 	}
-
 
 	// Once we have fetched data wait for any previous operation to finish.
 	if waitChan != nil {

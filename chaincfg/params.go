@@ -57,8 +57,8 @@ type Params struct {
 	DefaultPort string
 
 	// Chain parameters
-	GenesisBlock           *wire.MsgBlock
-	GenesisHash            *wire.ShaHash
+	//	GenesisBlock           *wire.MsgBlock
+	//	GenesisHash            *wire.ShaHash
 	PowLimit               *big.Int
 	PowLimitBits           uint32
 	SubsidyHalvingInterval int32
@@ -102,8 +102,8 @@ var MainNetParams = Params{
 	DefaultPort: "8108",
 
 	// Chain parameters
-	GenesisBlock:           &genesisBlock,
-	GenesisHash:            &genesisHash,
+	//	GenesisBlock:           &genesisBlock,
+	//	GenesisHash:            &genesisHash,
 	PowLimit:               mainPowLimit,
 	PowLimitBits:           0x1d00ffff,
 	SubsidyHalvingInterval: 210000,
@@ -169,8 +169,8 @@ var RegressionNetParams = Params{
 	DefaultPort: "18444",
 
 	// Chain parameters
-	GenesisBlock:           &regTestGenesisBlock,
-	GenesisHash:            &regTestGenesisHash,
+	//	GenesisBlock:           &regTestGenesisBlock,
+	//	GenesisHash:            &regTestGenesisHash,
 	PowLimit:               regressionPowLimit,
 	PowLimitBits:           0x207fffff,
 	SubsidyHalvingInterval: 150,
@@ -218,8 +218,8 @@ var TestNet3Params = Params{
 	DefaultPort: "18108",
 
 	// Chain parameters
-	GenesisBlock:           &testNet3GenesisBlock,
-	GenesisHash:            &testNet3GenesisHash,
+	//	GenesisBlock:           &testNet3GenesisBlock,
+	//	GenesisHash:            &testNet3GenesisHash,
 	PowLimit:               testNet3PowLimit,
 	PowLimitBits:           0x1d00ffff,
 	SubsidyHalvingInterval: 210000,
@@ -273,8 +273,8 @@ var SimNetParams = Params{
 	DefaultPort: "18555",
 
 	// Chain parameters
-	GenesisBlock:           &simNetGenesisBlock,
-	GenesisHash:            &simNetGenesisHash,
+	//	GenesisBlock:           &simNetGenesisBlock,
+	//	GenesisHash:            &simNetGenesisHash,
 	PowLimit:               simNetPowLimit,
 	PowLimitBits:           0x207fffff,
 	SubsidyHalvingInterval: 210000,

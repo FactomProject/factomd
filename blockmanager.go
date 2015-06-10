@@ -15,12 +15,12 @@ import (
 	"time"
 
 	//	"github.com/FactomProject/btcd/blockchain"
-	"github.com/FactomProject/btcd/chaincfg"
-	"github.com/FactomProject/btcd/database"
+	//	"github.com/FactomProject/btcd/chaincfg"
+	//	"github.com/FactomProject/btcd/database"
 	"github.com/FactomProject/btcd/wire"
-	"github.com/FactomProject/btcutil"
+	//	"github.com/FactomProject/btcutil"
 
-//	"github.com/FactomProject/FactomCode/common"
+	//	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/util"
 )
 
@@ -46,8 +46,8 @@ type newPeerMsg struct {
 // blockMsg packages a bitcoin block message and the peer it came from together
 // so the block handler has access to that information.
 type blockMsg struct {
-	block *btcutil.Block
-	peer  *peer
+	//	block *btcutil.Block
+	peer *peer
 }
 
 // invMsg packages a bitcoin inv message and the peer it came from together
@@ -74,7 +74,7 @@ type donePeerMsg struct {
 // txMsg packages a bitcoin tx message and the peer it came from together
 // so the block handler has access to that information.
 type txMsg struct {
-	tx   *btcutil.Tx
+	//	tx   *btcutil.Tx
 	peer *peer
 }
 
@@ -88,7 +88,7 @@ type getSyncPeerMsg struct {
 // for requesting chain to check if a block connects to the end of the current
 // main chain.
 type checkConnectBlockMsg struct {
-	block *btcutil.Block
+	//	block *btcutil.Block
 	reply chan error
 }
 
@@ -119,7 +119,7 @@ type processBlockResponse struct {
 // extra handling whereas this message essentially is just a concurrent safe
 // way to call ProcessBlock on the internal block chain instance.
 type processBlockMsg struct {
-	block *btcutil.Block
+	//	block *btcutil.Block
 	//	flags blockchain.BehaviorFlags
 	reply chan processBlockResponse
 }
@@ -168,9 +168,9 @@ type blockManager struct {
 	started  int32
 	shutdown int32
 	//	blockChain        *blockchain.BlockChain
-	requestedTxns     map[wire.ShaHash]struct{}
-	requestedBlocks   map[wire.ShaHash]struct{}
-	progressLogger    *blockProgressLogger
+	requestedTxns   map[wire.ShaHash]struct{}
+	requestedBlocks map[wire.ShaHash]struct{}
+	//	progressLogger    *blockProgressLogger
 	receivedLogBlocks int64
 	receivedLogTx     int64
 	processingReqs    bool
@@ -184,7 +184,7 @@ type blockManager struct {
 	headersFirstMode bool
 	headerList       *list.List
 	startHeader      *list.Element
-	nextCheckpoint   *chaincfg.Checkpoint
+	//	nextCheckpoint   *chaincfg.Checkpoint
 
 	// Factom Addition
 	//dirChain *common.DChain
@@ -392,7 +392,6 @@ func (b *blockManager) handleNewPeerMsg(peers *list.List, p *peer) {
 		b.startSync(peers)
 	*/
 
-	
 	// Ignore the peer if it's not a sync candidate.
 	if !b.isSyncCandidateFactom(p) {
 		return
@@ -960,7 +959,7 @@ func (b *blockManager) handleInvMsg(imsg *invMsg) {
 		}
 
 		if iv.Type == wire.InvTypeBlock {
-				
+
 			// a result, once this peer requested the final
 			// advertised block, the remote peer noticed and is now
 			// resending the orphan block as an available block
@@ -1274,6 +1273,7 @@ func (b *blockManager) NewPeer(p *peer) {
 	b.msgChan <- &newPeerMsg{peer: p}
 }
 
+/*
 // QueueTx adds the passed transaction message and peer to the block handling
 // queue.
 func (b *blockManager) QueueTx(tx *btcutil.Tx, p *peer) {
@@ -1297,6 +1297,7 @@ func (b *blockManager) QueueBlock(block *btcutil.Block, p *peer) {
 
 	b.msgChan <- &blockMsg{block: block, peer: p}
 }
+*/
 
 // QueueInv adds the passed inv message and peer to the block handling queue.
 func (b *blockManager) QueueInv(inv *wire.MsgInv, p *peer) {
@@ -1373,6 +1374,7 @@ func (b *blockManager) SyncPeer() *peer {
 	return <-reply
 }
 
+/*
 // CheckConnectBlock performs several checks to confirm connecting the passed
 // block to the main chain does not violate any rules.  This function makes use
 // of CheckConnectBlock on an internal instance of a block chain.  It is funneled
@@ -1388,7 +1390,6 @@ func (b *blockManager) CheckConnectBlock(block *btcutil.Block) error {
 	return err
 }
 
-/*
 // CalcNextRequiredDifficulty calculates the required difficulty for the next
 // block after the current main chain.  This function makes use of
 // CalcNextRequiredDifficulty on an internal instance of a block chain.  It is
@@ -1437,12 +1438,12 @@ func newBlockManager(s *server) (*blockManager, error) {
 		server:          s,
 		requestedTxns:   make(map[wire.ShaHash]struct{}),
 		requestedBlocks: make(map[wire.ShaHash]struct{}),
-		progressLogger:  newBlockProgressLogger("Processed", bmgrLog),
-		msgChan:         make(chan interface{}, cfg.MaxPeers*3),
-		headerList:      list.New(),
-		quit:            make(chan struct{}),
+		//		progressLogger:  newBlockProgressLogger("Processed", bmgrLog),
+		msgChan:    make(chan interface{}, cfg.MaxPeers*3),
+		headerList: list.New(),
+		quit:       make(chan struct{}),
 	}
-	bm.progressLogger = newBlockProgressLogger("Processed", bmgrLog)
+	//	bm.progressLogger = newBlockProgressLogger("Processed", bmgrLog)
 
 	//	bm.blockChain = blockchain.New(s.db, s.chainParams, bm.handleNotifyMsg)
 	//bm.blockChain.DisableCheckpoints(cfg.DisableCheckpoints)
@@ -1550,7 +1551,6 @@ func warnMultipeDBs() {
 			duplicateDbPaths)
 	}
 }
-*/
 
 // setupBlockDB loads (or creates when needed) the block database taking into
 // account the selected database backend.  It also contains additional logic
@@ -1605,7 +1605,6 @@ func setupBlockDB(flag bool) (database.Db, error) {
 	return db, nil
 }
 
-/*
 // loadBlockDB opens the block database and returns a handle to it.
 func loadBlockDB() (database.Db, error) {
 	util.Trace()

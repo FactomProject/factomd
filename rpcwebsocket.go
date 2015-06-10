@@ -5,14 +5,14 @@
 package btcd
 
 import (
-	"bytes"
+	//	"bytes"
 	"container/list"
 	"crypto/subtle"
 	"encoding/base64"
-	"encoding/hex"
+	//	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"fmt"
+	//	"fmt"
 	"io"
 	"sync"
 	"time"
@@ -20,13 +20,11 @@ import (
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/btcd/btcjson"
 	"github.com/FactomProject/btcd/btcjson/btcws"
-	"github.com/FactomProject/btcd/database"
+	//	"github.com/FactomProject/btcd/database"
 	"github.com/FactomProject/btcd/wire"
-	"github.com/FactomProject/btcutil"
+	//	"github.com/FactomProject/btcutil"
 	"github.com/FactomProject/fastsha256"
 	"github.com/FactomProject/websocket"
-
-	"github.com/davecgh/go-spew/spew"
 )
 
 const (
@@ -49,11 +47,13 @@ type wsCommandHandler func(*wsClient, btcjson.Cmd) (interface{}, *btcjson.Error)
 // wsHandlers maps RPC command strings to appropriate websocket handler
 // functions.
 var wsHandlers = map[string]wsCommandHandler{
+/*
 	"notifyblocks":          handleNotifyBlocks,
 	"notifynewtransactions": handleNotifyNewTransactions,
 	"notifyreceived":        handleNotifyReceived,
 	"notifyspent":           handleNotifySpent,
-	//	"rescan":                handleRescan,
+	"rescan":                handleRescan,
+*/
 }
 
 // wsAsyncHandlers holds the websocket commands which should be run
@@ -180,6 +180,7 @@ func (m *wsNotificationManager) queueHandler() {
 	m.wg.Done()
 }
 
+/*
 // NotifyBlockConnected passes a block newly-connected to the best chain
 // to the notification manager for block and transaction notification
 // processing.
@@ -240,6 +241,7 @@ type notificationTxAcceptedByMempool struct {
 	isNew bool
 	tx    *btcutil.Tx
 }
+*/
 
 // Notification control requests
 type notificationRegisterClient wsClient
@@ -265,6 +267,7 @@ type notificationUnregisterAddr struct {
 	addr string
 }
 
+/*
 // notificationHandler reads notifications and control messages from the queue
 // handler and processes one at a time.
 func (m *wsNotificationManager) notificationHandler() {
@@ -386,6 +389,7 @@ out:
 	}
 	m.wg.Done()
 }
+*/
 
 // NumClients returns the number of clients actively being served.
 func (m *wsNotificationManager) NumClients() (n int) {
@@ -410,6 +414,7 @@ func (m *wsNotificationManager) UnregisterBlockUpdates(wsc *wsClient) {
 	m.queueNotification <- (*notificationUnregisterBlocks)(wsc)
 }
 
+/*
 // notifyBlockConnected notifies websocket clients that have registered for
 // block updates when a block is connected to the main chain.
 func (*wsNotificationManager) notifyBlockConnected(clients map[chan struct{}]*wsClient,
@@ -524,6 +529,7 @@ func (m *wsNotificationManager) notifyForNewTx(clients map[chan struct{}]*wsClie
 		}
 	}
 }
+*/
 
 // RegisterSpentRequest requests an notification when the passed outpoint is
 // confirmed spent (contained in a block connected to the main chain) for the
@@ -596,6 +602,7 @@ func (*wsNotificationManager) removeSpentRequest(ops map[wire.OutPoint]map[chan 
 	}
 }
 
+/*
 // txHexString returns the serialized transaction encoded in hexadecimal.
 func txHexString(tx *btcutil.Tx) string {
 	buf := bytes.NewBuffer(make([]byte, 0, tx.MsgTx().SerializeSize()))
@@ -735,6 +742,7 @@ func (m *wsNotificationManager) notifyForTxIns(ops map[wire.OutPoint]map[chan st
 		}
 	}
 }
+*/
 
 // RegisterTxOutAddressRequest requests notifications to the passed websocket
 // client when a transaction output spends to the passed address.
@@ -826,7 +834,7 @@ func (m *wsNotificationManager) RemoveClient(wsc *wsClient) {
 func (m *wsNotificationManager) Start() {
 	m.wg.Add(2)
 	go m.queueHandler()
-	go m.notificationHandler()
+	//	go m.notificationHandler()
 }
 
 // WaitForShutdown blocks until all notification manager goroutines have
@@ -1453,6 +1461,7 @@ func handleNotifySpent(wsc *wsClient, icmd btcjson.Cmd) (interface{}, *btcjson.E
 	return nil, nil
 }
 
+/*
 // handleNotifyNewTransations implements the notifynewtransactions command
 // extension for websocket connections.
 func handleNotifyNewTransactions(wsc *wsClient, icmd btcjson.Cmd) (interface{}, *btcjson.Error) {
@@ -1489,6 +1498,7 @@ func handleNotifyReceived(wsc *wsClient, icmd btcjson.Cmd) (interface{}, *btcjso
 
 	return nil, nil
 }
+*/
 
 type rescanKeys struct {
 	fallbacks         map[string]struct{}
@@ -1524,6 +1534,7 @@ var ErrRescanReorg = btcjson.Error{
 	Message: "Reorganize",
 }
 
+/*
 // rescanBlock rescans all transactions in a single block.  This is a helper
 // function for handleRescan.
 func rescanBlock(wsc *wsClient, lookups *rescanKeys, blk *btcutil.Block) {
@@ -1593,12 +1604,6 @@ func rescanBlock(wsc *wsClient, lookups *rescanKeys, blk *btcutil.Block) {
 						continue
 					}
 
-					/*
-						case *btcutil.AddressScriptHash:
-							if _, ok := lookups.scriptHashes[*a.Hash160()]; !ok {
-								continue
-							}
-					*/
 
 				case *btcutil.AddressPubKey:
 					util.Trace("here here here")
@@ -1611,14 +1616,6 @@ func rescanBlock(wsc *wsClient, lookups *rescanKeys, blk *btcutil.Block) {
 							found = true
 						}
 
-						/*
-							case 65: // Uncompressed
-								var key [65]byte
-								copy(key[:], sa)
-								if _, ok := lookups.uncompressedPubkeys[key]; ok {
-									found = true
-								}
-						*/
 
 					default:
 						rpcsLog.Warnf("Skipping rescanned pubkey of unknown "+
@@ -1738,3 +1735,4 @@ func descendantBlock(prev, cur *btcutil.Block) *btcjson.Error {
 	}
 	return nil
 }
+*/
