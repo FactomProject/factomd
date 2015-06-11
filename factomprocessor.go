@@ -47,10 +47,10 @@ var (
 	chainIDMap     map[string]*common.EChain // ChainIDMap with chainID string([32]byte) as key
 	commitChainMap = make(map[string]*common.CommitChain, 0)
 	commitEntryMap = make(map[string]*common.CommitEntry, 0)
-	eCreditMap     map[*[32]byte]int32 // eCreditMap with public key string([32]byte) as key, credit balance as value
+	eCreditMap     map[string]int32 // eCreditMap with public key string([32]byte) as key, credit balance as value
 
 	chainIDMapBackup map[string]*common.EChain //previous block bakcup - ChainIDMap with chainID string([32]byte) as key
-	eCreditMapBackup map[*[32]byte]int32       // backup from previous block - eCreditMap with public key string([32]byte) as key, credit balance as value
+	eCreditMapBackup map[string]int32          // backup from previous block - eCreditMap with public key string([32]byte) as key, credit balance as value
 
 	//Diretory Block meta data map
 	//dbInfoMap map[string]*common.DBInfo // dbInfoMap with dbHash string([32]byte) as key
@@ -232,6 +232,9 @@ func Start_Processor(
 			inCtlMsgQueue:    inCtlMsgQueue,
 		}
 		go timer.StartBlockTimer()
+	} else {
+		// start the go routine to process the blocks and entries downloaded from peers
+		go validateAndStoreBlocks(fMemPool, db, dchain, outCtlMsgQueue)
 	}
 
 	// Process msg from the incoming queue one by one
@@ -411,7 +414,7 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 
 		cblock, ok := msg.(*wire.MsgECBlock)
 		if ok {
-			err := procesFBlock(cblock)
+			err := procesECBlock(cblock)
 			if err != nil {
 				return err
 			}
@@ -470,10 +473,10 @@ func serveMsgRequest(msg wire.FtmInternalMsg) error {
 // the network.
 // TODO remove this before production
 func processTestCredit(msg *wire.MsgTestCredit) error {
-	if _, exists := eCreditMap[msg.ECKey]; !exists {
-		eCreditMap[msg.ECKey] = 0
+	if _, exists := eCreditMap[string(msg.ECKey[:])]; !exists {
+		eCreditMap[string(msg.ECKey[:])] = 0
 	}
-	eCreditMap[msg.ECKey] += msg.Amt
+	eCreditMap[string(msg.ECKey[:])] += msg.Amt
 	return nil
 }
 
@@ -496,12 +499,15 @@ func processDirBlock(msg *wire.MsgDirBlock) error {
 	msg.DBlk.IsSealed = true
 	dchain.AddDBlockToDChain(msg.DBlk)
 
-	db.ProcessDBlockBatch(msg.DBlk) //?? to be removed later
+	//Add it to mem pool before saving it in db
+	fMemPool.addBlockMsg(msg, strconv.Itoa(int(msg.DBlk.Header.BlockHeight))) // store in mempool with the height as the key
+
+	//db.ProcessDBlockBatch(msg.DBlk) //?? to be removed later
 
 	fmt.Printf("PROCESSOR: MsgDirBlock=%s\n", spew.Sdump(msg.DBlk))
 	fmt.Printf("PROCESSOR: dchain=%s\n", spew.Sdump(dchain))
 
-	exportDChain(dchain)
+	//exportDChain(dchain)
 
 	return nil
 }
@@ -512,11 +518,16 @@ func processFBlock(msg *wire.MsgFBlock) error {
 
 	//Need to validate against Dchain??
 
-	db.ProcessFBlockBatch(msg.SC)
+	//db.ProcessFBlockBatch(msg.SC)
 
-	exportSCChain(scchain)
+	//exportSCChain(scchain)
+
+	//Add it to mem pool before saving it in db
+	h, _ := common.CreateHash(msg.SC)     // need to change it to MR??
+	fMemPool.addBlockMsg(msg, h.String()) // stored in mem pool with the MR as the key
 
 	return nil
+
 }
 
 // processABlock validates admin block and save it to factom db.
@@ -531,18 +542,20 @@ func processABlock(msg *wire.MsgABlock) error {
 
 	//Need to validate against Dchain??
 
-	db.ProcessABlockBatch(msg.ABlk)
+	//db.ProcessABlockBatch(msg.ABlk)
 
-	fmt.Printf("PROCESSOR: MsgABlock=%s\n", spew.Sdump(msg.ABlk))
+	//Add it to mem pool before saving it in db
+	msg.ABlk.BuildABHash()
+	fMemPool.addBlockMsg(msg, msg.ABlk.ABHash.String()) // store in mem pool with ABHash as key
 
-	exportAChain(achain)
+	//exportAChain(achain)
 
 	return nil
 }
 
 // procesFBlock validates entry credit block and save it to factom db.
 // similar to blockChain.BC_ProcessBlock
-func procesFBlock(msg *wire.MsgECBlock) error {
+func procesECBlock(msg *wire.MsgECBlock) error {
 	util.Trace()
 
 	// Error condiftion for Milestone 1
@@ -552,22 +565,17 @@ func procesFBlock(msg *wire.MsgECBlock) error {
 
 	//Need to validate against Dchain??
 
-	// check if the block already exists
 	h, _ := common.CreateHash(msg.ECBlock)
-	cblk, _ := db.FetchECBlockByHash(h)
-	if cblk != nil {
-		return nil
-	}
+	//Add it to mem pool before saving it in db
+	fMemPool.addBlockMsg(msg, h.String())
 
-	db.ProcessECBlockBatch(msg.ECBlock)
-
-	initializeECreditMap(msg.ECBlock)
+	//initializeECreditMap(msg.ECBlock)//?? to add it after it is stored in db
 
 	// for debugging??
-	fmt.Printf("PROCESSOR: MsgCBlock=%s\n", spew.Sdump(msg.ECBlock))
-	printCreditMap()
+	//fmt.Printf("PROCESSOR: MsgCBlock=%s\n", spew.Sdump(msg.ECBlock))
+	//printCreditMap()
 
-	exportECChain(ecchain)
+	//exportECChain(ecchain)
 
 	return nil
 }
@@ -585,47 +593,52 @@ func processEBlock(msg *wire.MsgEBlock) error {
 	if msg.EBlk.Header.DBHeight >= dchain.NextBlockHeight || msg.EBlk.Header.DBHeight < 0 {
 		return errors.New("MsgEBlock has an invalid DBHeight:" + strconv.Itoa(int(msg.EBlk.Header.DBHeight)))
 	}
+	/*
+		dblock := dchain.Blocks[msg.EBlk.Header.DBHeight]
 
-	dblock := dchain.Blocks[msg.EBlk.Header.DBHeight]
-
-	if dblock == nil {
-		return errors.New("MsgEBlock has an invalid DBHeight:" + strconv.Itoa(int(msg.EBlk.Header.DBHeight)))
-	}
-
-	msg.EBlk.BuildMerkleRoot()
-
-	validEblock := false
-	for _, dbEntry := range dblock.DBEntries {
-		if msg.EBlk.MerkleRoot.IsSameAs(dbEntry.MerkleRoot) && dbEntry.ChainID.IsSameAs(msg.EBlk.Header.ChainID) {
-			validEblock = true
-			break
+		if dblock == nil {
+			return errors.New("MsgEBlock has an invalid DBHeight:" + strconv.Itoa(int(msg.EBlk.Header.DBHeight)))
 		}
-	}
 
-	if !validEblock {
-		return errors.New("Invalid MsgEBlock with height:" + strconv.Itoa(int(msg.EBlk.Header.EBHeight)))
-	}
+		msg.EBlk.BuildMerkleRoot()
 
-	// create a chain in db if it's not existing
-	chain := chainIDMap[msg.EBlk.Header.ChainID.String()]
-	if chain == nil {
-		chain = new(common.EChain)
-		chain.ChainID = msg.EBlk.Header.ChainID
+		validEblock := false
+		for _, dbEntry := range dblock.DBEntries {
+			if msg.EBlk.MerkleRoot.IsSameAs(dbEntry.MerkleRoot) && dbEntry.ChainID.IsSameAs(msg.EBlk.Header.ChainID) {
+				validEblock = true
+				break
+			}
+		}
 
-		if msg.EBlk.Header.EBHeight == 0 {
+		if !validEblock {
+			return errors.New("Invalid MsgEBlock with height:" + strconv.Itoa(int(msg.EBlk.Header.EBHeight)))
+		}
+
+		// create a chain in db if it's not existing
+		chain := chainIDMap[msg.EBlk.Header.ChainID.String()]
+		if chain == nil {
+			chain = new(common.EChain)
+			chain.ChainID = msg.EBlk.Header.ChainID
+
+			if msg.EBlk.Header.EBHeight == 0 {
+				chain.FirstEntry, _ = db.FetchEntryByHash(msg.EBlk.EBEntries[0].EntryHash)
+			}
+
+			db.InsertChain(chain)
+			chainIDMap[chain.ChainID.String()] = chain
+		} else if chain.FirstEntry == nil && msg.EBlk.Header.EBHeight == 0 {
 			chain.FirstEntry, _ = db.FetchEntryByHash(msg.EBlk.EBEntries[0].EntryHash)
+			db.InsertChain(chain)
 		}
 
-		db.InsertChain(chain)
-		chainIDMap[chain.ChainID.String()] = chain
-	} else if chain.FirstEntry == nil && msg.EBlk.Header.EBHeight == 0 {
-		chain.FirstEntry, _ = db.FetchEntryByHash(msg.EBlk.EBEntries[0].EntryHash)
-		db.InsertChain(chain)
-	}
+		db.ProcessEBlockBatch(msg.EBlk)
+	*/
 
-	db.ProcessEBlockBatch(msg.EBlk)
+	//Add it to mem pool before saving it in db
+	msg.EBlk.BuildMerkleRoot()
+	fMemPool.addBlockMsg(msg, msg.EBlk.MerkleRoot.String()) // store it in mem pool with MR as the key
 
-	exportEChain(chain)
+	//exportEChain(chain)
 
 	return nil
 }
@@ -640,13 +653,35 @@ func processEntry(msg *wire.MsgEntry) error {
 		return errors.New("Server received msg:" + msg.Command())
 	}
 
+	// store the entry in mem pool
+	h, _ := common.CreateHash(msg.Entry)
+	fMemPool.addBlockMsg(msg, h.String()) // store it in mem pool with hash as the key
+
 	// store the new entry in db
-	entryBinary, _ := msg.Entry.MarshalBinary()
+	/*entryBinary, _ := msg.Entry.MarshalBinary()
 	entryHash := common.Sha(entryBinary)
 	b := msg.Entry.ChainID.Bytes()
 	db.InsertEntry(entryHash, &entryBinary, msg.Entry, &b)
 
 	fmt.Printf("PROCESSOR: MsgEntry=%s\n", spew.Sdump(msg.Entry))
+	*/
+	return nil
+}
+
+// processAcknowledgement validates the ack and adds it to processlist
+func processAcknowledgement(msg *wire.MsgAcknowledgement) error {
+	// Error condiftion for Milestone 1
+	if nodeMode == common.SERVER_NODE {
+		return errors.New("Server received msg:" + msg.Command())
+	}
+
+	// Validate the signiture
+	// To be added ??
+
+	// Update the next block height in dchain
+	if msg.Height > dchain.NextBlockHeight {
+		dchain.NextBlockHeight = msg.Height
+	}
 
 	return nil
 }
@@ -670,8 +705,8 @@ func processFactoidTx(msg *wire.MsgInt_FactoidObj) error {
 		copy(pubKey[:], k.Bytes())
 		//credits := int32(creditsPerFactoid * v / 100000000)
 		// Update the credit balance in memory
-		balance, _ := eCreditMap[pubKey]
-		eCreditMap[pubKey] = balance + int32(v)
+		balance, _ := eCreditMap[string(pubKey[:])]
+		eCreditMap[string(pubKey[:])] = balance + int32(v)
 	}
 
 	// Add to MyPL if Server Node
@@ -708,9 +743,12 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 
 			// Add to MyPL if Server Node
 			if nodeMode == common.SERVER_NODE {
-				if err := plMgr.AddMyProcessListItem(msg, h,
-					wire.ACK_REVEAL_ENTRY); err != nil {
+				ack, err := plMgr.AddMyProcessListItem(msg, h, wire.ACK_REVEAL_ENTRY)
+				if err != nil {
 					return err
+				} else {
+					// Broadcast the ack to the network if no errors
+					outMsgQueue <- ack
 				}
 			}
 		}
@@ -739,9 +777,12 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 
 			// Add to MyPL if Server Node
 			if nodeMode == common.SERVER_NODE {
-				if err := plMgr.AddMyProcessListItem(msg, h,
-					wire.ACK_REVEAL_ENTRY); err != nil {
+				ack, err := plMgr.AddMyProcessListItem(msg, h, wire.ACK_REVEAL_ENTRY)
+				if err != nil {
 					return err
+				} else {
+					// Broadcast the ack to the network if no errors
+					outMsgQueue <- ack
 				}
 			}
 		}
@@ -774,8 +815,12 @@ func processCommitEntry(msg *wire.MsgCommitEntry) error {
 	// Server: add to MyPL
 	if nodeMode == common.SERVER_NODE {
 		h, _ := msg.Sha()
-		if err := plMgr.AddMyProcessListItem(msg, &h, wire.ACK_COMMIT_ENTRY); err != nil {
+		ack, err := plMgr.AddMyProcessListItem(msg, &h, wire.ACK_COMMIT_ENTRY)
+		if err != nil {
 			return err
+		} else {
+			// Broadcast the ack to the network if no errors
+			outMsgQueue <- ack
 		}
 	}
 
@@ -796,10 +841,10 @@ func processCommitChain(msg *wire.MsgCommitChain) error {
 	}
 
 	// deduct the entry credits from the eCreditMap
-	if eCreditMap[c.ECPubKey] < int32(c.Credits) {
+	if eCreditMap[string(c.ECPubKey[:])] < int32(c.Credits) {
 		return fmt.Errorf("Not enough credits for CommitChain")
 	}
-	eCreditMap[c.ECPubKey] -= int32(c.Credits)
+	eCreditMap[string(c.ECPubKey[:])] -= int32(c.Credits)
 
 	// add to the commitChainMap
 	commitChainMap[c.EntryHash.String()] = c
@@ -807,9 +852,12 @@ func processCommitChain(msg *wire.MsgCommitChain) error {
 	// Server: add to MyPL
 	if nodeMode == common.SERVER_NODE {
 		h, _ := msg.Sha()
-		if err := plMgr.AddMyProcessListItem(msg, &h,
-			wire.ACK_COMMIT_CHAIN); err != nil {
+		ack, err := plMgr.AddMyProcessListItem(msg, &h, wire.ACK_COMMIT_CHAIN)
+		if err != nil {
 			return err
+		} else {
+			// Broadcast the ack to the network if no errors
+			outMsgQueue <- ack
 		}
 	}
 
@@ -819,8 +867,8 @@ func processCommitChain(msg *wire.MsgCommitChain) error {
 func processBuyEntryCredit(pubKey *[32]byte, credits int32, factoidTxHash *common.Hash) error {
 
 	// Update the credit balance in memory
-	balance, _ := eCreditMap[pubKey]
-	eCreditMap[pubKey] = balance + credits
+	balance, _ := eCreditMap[string(pubKey[:])]
+	eCreditMap[string(pubKey[:])] = balance + credits
 
 	return nil
 }
@@ -864,8 +912,8 @@ func buildRevealEntry(msg *wire.MsgRevealEntry) {
 	// store the new entry in db
 	entryBinary, _ := msg.Entry.MarshalBinary()
 	entryHash := common.Sha(entryBinary)
-	b := chain.ChainID.Bytes()
-	db.InsertEntry(entryHash, &entryBinary, msg.Entry, &b)
+
+	db.InsertEntry(entryHash, msg.Entry)
 
 	err := chain.NextBlock.AddEBEntry(msg.Entry)
 
@@ -910,8 +958,7 @@ func buildRevealChain(msg *wire.MsgRevealChain) {
 	// store the new entry in db
 	entryBinary, _ := newChain.FirstEntry.MarshalBinary()
 	entryHash := common.Sha(entryBinary)
-	b := newChain.ChainID.Bytes()
-	db.InsertEntry(entryHash, &entryBinary, newChain.FirstEntry, &b)
+	db.InsertEntry(entryHash, newChain.FirstEntry)
 
 	err := newChain.NextBlock.AddEBEntry(newChain.FirstEntry)
 
@@ -1302,7 +1349,7 @@ func newDirectoryBlock(chain *common.DChain) *common.DirectoryBlock {
 
 func GetEntryCreditBalance(pubKey *[32]byte) (int32, error) {
 
-	return eCreditMap[pubKey], nil
+	return eCreditMap[string(pubKey[:])], nil
 }
 
 // Validate dir chain from genesis block
@@ -1664,7 +1711,7 @@ func initDChain() {
 
 func initECChain() {
 
-	eCreditMap = make(map[*[32]byte]int32)
+	eCreditMap = make(map[string]int32)
 
 	//Initialize the Entry Credit Chain ID
 	ecchain = common.NewECChain()
@@ -1798,13 +1845,13 @@ func initializeECreditMap(block *common.ECBlock) {
 		switch entry.ECID() {
 		case common.ECIDChainCommit:
 			e := entry.(*common.CommitChain)
-			eCreditMap[e.ECPubKey] += int32(e.Credits)
+			eCreditMap[string(e.ECPubKey[:])] += int32(e.Credits)
 		case common.ECIDEntryCommit:
 			e := entry.(*common.CommitEntry)
-			eCreditMap[e.ECPubKey] += int32(e.Credits)
+			eCreditMap[string(e.ECPubKey[:])] += int32(e.Credits)
 		case common.ECIDBalanceIncrease:
 			e := entry.(*common.IncreaseBalance)
-			eCreditMap[e.ECPubKey] += int32(e.Credits)
+			eCreditMap[string(e.ECPubKey[:])] += int32(e.Credits)
 		}
 	}
 }
@@ -1832,9 +1879,9 @@ func getPrePaidChainKey(entryHash *common.Hash, chainIDHash *common.Hash) string
 }
 
 func copyCreditMap(
-	originalMap map[*[32]byte]int32,
-	newMap map[*[32]byte]int32) {
-	newMap = make(map[*[32]byte]int32)
+	originalMap map[string]int32,
+	newMap map[string]int32) {
+	newMap = make(map[string]int32)
 
 	// copy every element from the original map
 	for k, v := range originalMap {
