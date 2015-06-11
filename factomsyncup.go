@@ -1,11 +1,11 @@
 package btcd
 
 import (
+	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/database"
-	"github.com/FactomProject/FactomCode/common"	
 	"github.com/FactomProject/btcd/wire"
+	"strconv"
 	"time"
-	"strconv"	
 )
 
 // Validate the new blocks in mem pool and store them in db
@@ -13,31 +13,31 @@ func validateAndStoreBlocks(fMemPool *ftmMemPool, db database.Db, dchain *common
 	var myDBHeight int64
 	var sleeptime int
 	var dblk *common.DirectoryBlock
-	
+
 	for true {
 
 		_, myDBHeight, _ = db.FetchBlockHeightCache()
-	
+
 		sleeptime = 1 // need a formula??
-		
-		if len(dchain.Blocks) > int(myDBHeight + 1) {
+
+		if len(dchain.Blocks) > int(myDBHeight+1) {
 			dblk = dchain.Blocks[myDBHeight+1]
 		}
-		if dblk != nil{
+		if dblk != nil {
 			if validateBlocksFromMemPool(dblk, fMemPool, db) {
 				err := storeBlocksFromMemPool(dblk, fMemPool, db)
 				if err == nil {
 					deleteBlocksFromMemPool(dblk, fMemPool)
 				} else {
-					panic ("error in deleteBlocksFromMemPool.")
+					panic("error in deleteBlocksFromMemPool.")
 				}
 			}
 		} else {
-			//send an internal msg to sync up with peers			
+			//send an internal msg to sync up with peers
 		}
 
 		time.Sleep(time.Duration(sleeptime * 1000000000))
-	}	
+	}
 
 }
 
@@ -50,11 +50,11 @@ func validateBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, d
 			if _, ok := fMemPool.blockpool[dbEntry.MerkleRoot.String()]; !ok {
 				return false
 			}
-        case achain.ChainID.String():
+		case achain.ChainID.String():
 			if _, ok := fMemPool.blockpool[dbEntry.MerkleRoot.String()]; !ok {
 				return false
 			}
-        case scchain.ChainID.String():
+		case scchain.ChainID.String():
 			if _, ok := fMemPool.blockpool[dbEntry.MerkleRoot.String()]; !ok {
 				return false
 			}
@@ -91,13 +91,13 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 			if err != nil {
 				return err
 			}
-        case achain.ChainID.String():
+		case achain.ChainID.String():
 			aBlkMsg := fMemPool.blockpool[dbEntry.MerkleRoot.String()].(*wire.MsgABlock)
 			err := db.ProcessABlockBatch(aBlkMsg.ABlk)
 			if err != nil {
 				return err
 			}
-        case scchain.ChainID.String():
+		case scchain.ChainID.String():
 			fBlkMsg := fMemPool.blockpool[dbEntry.MerkleRoot.String()].(*wire.MsgFBlock)
 			err := db.ProcessFBlockBatch(fBlkMsg.SC)
 			if err != nil {
@@ -126,19 +126,19 @@ func deleteBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool) err
 		switch dbEntry.ChainID.String() {
 		case ecchain.ChainID.String():
 			delete(fMemPool.blockpool, dbEntry.MerkleRoot.String())
-        case achain.ChainID.String():
+		case achain.ChainID.String():
 			delete(fMemPool.blockpool, dbEntry.MerkleRoot.String())
-        case scchain.ChainID.String():
+		case scchain.ChainID.String():
 			delete(fMemPool.blockpool, dbEntry.MerkleRoot.String())
 		default:
 			eBlkMsg, _ := fMemPool.blockpool[dbEntry.MerkleRoot.String()].(*wire.MsgEBlock)
 			for _, ebEntry := range eBlkMsg.EBlk.EBEntries {
 				delete(fMemPool.blockpool, ebEntry.EntryHash.String())
 			}
-			delete(fMemPool.blockpool, dbEntry.MerkleRoot.String())		
+			delete(fMemPool.blockpool, dbEntry.MerkleRoot.String())
 		}
 	}
-	delete(fMemPool.blockpool, strconv.Itoa(int(b.Header.BlockHeight)))	
+	delete(fMemPool.blockpool, strconv.Itoa(int(b.Header.BlockHeight)))
 
 	return nil
 }

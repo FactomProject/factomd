@@ -12,8 +12,8 @@ type ftmMemPool struct {
 	sync.RWMutex
 	pool        map[wire.ShaHash]wire.Message
 	orphans     map[wire.ShaHash]wire.Message
-	blockpool   map[string]wire.Message	// to hold the blocks or entries downloaded from peers
-	lastUpdated time.Time // last time pool was updated
+	blockpool   map[string]wire.Message // to hold the blocks or entries downloaded from peers
+	lastUpdated time.Time               // last time pool was updated
 }
 
 // Add a factom message to the orphan pool
@@ -21,6 +21,7 @@ func (mp *ftmMemPool) init_ftmMemPool() error {
 
 	mp.pool = make(map[wire.ShaHash]wire.Message)
 	mp.orphans = make(map[wire.ShaHash]wire.Message)
+	mp.blockpool = make(map[string]wire.Message)
 
 	return nil
 }
