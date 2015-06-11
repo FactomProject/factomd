@@ -16,11 +16,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/FactomProject/btcd/database"
-	_ "github.com/FactomProject/btcd/database/ldb"
-	_ "github.com/FactomProject/btcd/database/memdb"
+	//	"github.com/FactomProject/btcd/database"
+	//	_ "github.com/FactomProject/btcd/database/ldb"
+	//	_ "github.com/FactomProject/btcd/database/memdb"
 	"github.com/FactomProject/btcd/wire"
-	"github.com/FactomProject/btcutil"
+	//	"github.com/FactomProject/btcutil"
 	flags "github.com/FactomProject/go-flags"
 	"github.com/FactomProject/go-socks/socks"
 )
@@ -48,10 +48,11 @@ const (
 )
 
 var (
-	btcdHomeDir        = btcutil.AppDataDir("factom", false)
-	defaultConfigFile  = filepath.Join(btcdHomeDir, defaultConfigFilename)
-	defaultDataDir     = filepath.Join(btcdHomeDir, defaultDataDirname)
-	knownDbTypes       = database.SupportedDBs()
+	//	btcdHomeDir       = btcutil.AppDataDir("factom", false)
+	btcdHomeDir       = "/tmp"
+	defaultConfigFile = filepath.Join(btcdHomeDir, defaultConfigFilename)
+	defaultDataDir    = filepath.Join(btcdHomeDir, defaultDataDirname)
+	//	knownDbTypes       = database.SupportedDBs()
 	defaultRPCKeyFile  = filepath.Join(btcdHomeDir, "rpc.key")
 	defaultRPCCertFile = filepath.Join(btcdHomeDir, "rpc.cert")
 	defaultLogDir      = filepath.Join(btcdHomeDir, defaultLogDirname)
@@ -115,7 +116,7 @@ type config struct {
 	lookup             func(string) ([]net.IP, error)
 	oniondial          func(string, string) (net.Conn, error)
 	dial               func(string, string) (net.Conn, error)
-	miningAddrs        []btcutil.Address
+	//	miningAddrs        []btcutil.Address
 }
 
 // serviceOptions defines the configuration options for btcd as a service on
@@ -222,6 +223,7 @@ func parseAndSetDebugLevels(debugLevel string) error {
 	return nil
 }
 
+/*
 // validDbType returns whether or not dbType is a supported database type.
 func validDbType(dbType string) bool {
 	for _, knownType := range knownDbTypes {
@@ -232,6 +234,7 @@ func validDbType(dbType string) bool {
 
 	return false
 }
+*/
 
 // removeDuplicateAddresses returns a new slice with all duplicate entries in
 // addrs removed.
@@ -469,15 +472,17 @@ func loadConfig() (*config, []string, error) {
 		return nil, nil, err
 	}
 
-	// Validate database type.
-	if !validDbType(cfg.DbType) {
-		str := "%s: The specified database type [%v] is invalid -- " +
-			"supported types %v"
-		err := fmt.Errorf(str, funcName, cfg.DbType, knownDbTypes)
-		fmt.Fprintln(os.Stderr, err)
-		fmt.Fprintln(os.Stderr, usageMessage)
-		return nil, nil, err
-	}
+	/*
+		// Validate database type.
+		if !validDbType(cfg.DbType) {
+			str := "%s: The specified database type [%v] is invalid -- " +
+				"supported types %v"
+			err := fmt.Errorf(str, funcName, cfg.DbType, knownDbTypes)
+			fmt.Fprintln(os.Stderr, err)
+			fmt.Fprintln(os.Stderr, usageMessage)
+			return nil, nil, err
+		}
+	*/
 
 	if cfg.AddrIndex && cfg.DropAddrIndex {
 		err := fmt.Errorf("addrindex and dropaddrindex cannot be " +
@@ -583,58 +588,60 @@ func loadConfig() (*config, []string, error) {
 	cfg.BlockPrioritySize = minUint32(cfg.BlockPrioritySize, cfg.BlockMaxSize)
 	cfg.BlockMinSize = minUint32(cfg.BlockMinSize, cfg.BlockMaxSize)
 
-	// Check getwork keys are valid and saved parsed versions.
-	cfg.miningAddrs = make([]btcutil.Address, 0, len(cfg.GetWorkKeys)+
-		len(cfg.MiningAddrs))
-	for _, strAddr := range cfg.GetWorkKeys {
-		addr, err := btcutil.DecodeAddress(strAddr, activeNetParams.Params)
-		if err != nil {
-			str := "%s: getworkkey '%s' failed to decode: %v"
-			err := fmt.Errorf(str, funcName, strAddr, err)
-			fmt.Fprintln(os.Stderr, err)
-			fmt.Fprintln(os.Stderr, usageMessage)
-			return nil, nil, err
+	/*
+		// Check getwork keys are valid and saved parsed versions.
+		cfg.miningAddrs = make([]btcutil.Address, 0, len(cfg.GetWorkKeys)+
+			len(cfg.MiningAddrs))
+		for _, strAddr := range cfg.GetWorkKeys {
+			addr, err := btcutil.DecodeAddress(strAddr, activeNetParams.Params)
+			if err != nil {
+				str := "%s: getworkkey '%s' failed to decode: %v"
+				err := fmt.Errorf(str, funcName, strAddr, err)
+				fmt.Fprintln(os.Stderr, err)
+				fmt.Fprintln(os.Stderr, usageMessage)
+				return nil, nil, err
+			}
+			if !addr.IsForNet(activeNetParams.Params) {
+				str := "%s: getworkkey '%s' is on the wrong network"
+				err := fmt.Errorf(str, funcName, strAddr)
+				fmt.Fprintln(os.Stderr, err)
+				fmt.Fprintln(os.Stderr, usageMessage)
+				return nil, nil, err
+			}
+			cfg.miningAddrs = append(cfg.miningAddrs, addr)
 		}
-		if !addr.IsForNet(activeNetParams.Params) {
-			str := "%s: getworkkey '%s' is on the wrong network"
-			err := fmt.Errorf(str, funcName, strAddr)
-			fmt.Fprintln(os.Stderr, err)
-			fmt.Fprintln(os.Stderr, usageMessage)
-			return nil, nil, err
-		}
-		cfg.miningAddrs = append(cfg.miningAddrs, addr)
-	}
 
-	// Check mining addresses are valid and saved parsed versions.
-	for _, strAddr := range cfg.MiningAddrs {
-		addr, err := btcutil.DecodeAddress(strAddr, activeNetParams.Params)
-		if err != nil {
-			str := "%s: mining address '%s' failed to decode: %v"
-			err := fmt.Errorf(str, funcName, strAddr, err)
-			fmt.Fprintln(os.Stderr, err)
-			fmt.Fprintln(os.Stderr, usageMessage)
-			return nil, nil, err
+		// Check mining addresses are valid and saved parsed versions.
+		for _, strAddr := range cfg.MiningAddrs {
+			addr, err := btcutil.DecodeAddress(strAddr, activeNetParams.Params)
+			if err != nil {
+				str := "%s: mining address '%s' failed to decode: %v"
+				err := fmt.Errorf(str, funcName, strAddr, err)
+				fmt.Fprintln(os.Stderr, err)
+				fmt.Fprintln(os.Stderr, usageMessage)
+				return nil, nil, err
+			}
+			if !addr.IsForNet(activeNetParams.Params) {
+				str := "%s: mining address '%s' is on the wrong network"
+				err := fmt.Errorf(str, funcName, strAddr)
+				fmt.Fprintln(os.Stderr, err)
+				fmt.Fprintln(os.Stderr, usageMessage)
+				return nil, nil, err
+			}
+			cfg.miningAddrs = append(cfg.miningAddrs, addr)
 		}
-		if !addr.IsForNet(activeNetParams.Params) {
-			str := "%s: mining address '%s' is on the wrong network"
-			err := fmt.Errorf(str, funcName, strAddr)
-			fmt.Fprintln(os.Stderr, err)
-			fmt.Fprintln(os.Stderr, usageMessage)
-			return nil, nil, err
-		}
-		cfg.miningAddrs = append(cfg.miningAddrs, addr)
-	}
 
-	// Ensure there is at least one mining address when the generate flag is
-	// set.
-	if cfg.Generate && len(cfg.MiningAddrs) == 0 {
-		str := "%s: the generate flag is set, but there are no mining " +
-			"addresses specified "
-		err := fmt.Errorf(str, funcName)
-		fmt.Fprintln(os.Stderr, err)
-		fmt.Fprintln(os.Stderr, usageMessage)
-		return nil, nil, err
-	}
+		// Ensure there is at least one mining address when the generate flag is
+		// set.
+		if cfg.Generate && len(cfg.MiningAddrs) == 0 {
+			str := "%s: the generate flag is set, but there are no mining " +
+				"addresses specified "
+			err := fmt.Errorf(str, funcName)
+			fmt.Fprintln(os.Stderr, err)
+			fmt.Fprintln(os.Stderr, usageMessage)
+			return nil, nil, err
+		}
+	*/
 
 	// Add default port to all listener addresses if needed and remove
 	// duplicate addresses.

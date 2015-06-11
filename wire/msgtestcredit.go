@@ -20,6 +20,7 @@ type MsgTestCredit struct {
 
 func NewMsgTestCredit() *MsgTestCredit {
 	m := new(MsgTestCredit)
+	m.ECKey = new([32]byte)
 	return m
 }
 

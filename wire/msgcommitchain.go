@@ -17,6 +17,14 @@ type MsgCommitChain struct {
 	CommitChain *common.CommitChain
 }
 
+// NewMsgCommitChain returns a new Commit Chain message that conforms to the
+// Message interface.  See MsgInv for details.
+func NewMsgCommitChain() *MsgCommitChain {
+	m := new(MsgCommitChain)
+	m.CommitChain = common.NewCommitChain()
+	return m
+}
+
 // BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
 // This is part of the Message interface implementation.
 func (msg *MsgCommitChain) BtcEncode(w io.Writer, pver uint32) error {
@@ -59,12 +67,6 @@ func (msg *MsgCommitChain) Command() string {
 // receiver.  This is part of the Message interface implementation.
 func (msg *MsgCommitChain) MaxPayloadLength(pver uint32) uint32 {
 	return MaxAppMsgPayload
-}
-
-// NewMsgInv returns a new bitcoin inv message that conforms to the Message
-// interface.  See MsgInv for details.
-func NewMsgCommitChain() *MsgCommitChain {
-	return &MsgCommitChain{}
 }
 
 // Check whether the msg can pass the message level validations

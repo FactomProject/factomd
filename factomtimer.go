@@ -5,12 +5,13 @@
 package btcd
 
 import (
-    "fmt"
+	"fmt"
 	"github.com/FactomProject/btcd/wire"
 	"time"
 )
 
 var _ = fmt.Println
+
 // BlockTimer is set to sent End-Of-Minute messages to processor
 type BlockTimer struct {
 	nextDBlockHeight uint32
