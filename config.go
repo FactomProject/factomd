@@ -48,8 +48,7 @@ const (
 )
 
 var (
-	//	btcdHomeDir       = btcutil.AppDataDir("factom", false)
-	btcdHomeDir       = "/tmp"
+	btcdHomeDir       = AppDataDir("factom", false)
 	defaultConfigFile = filepath.Join(btcdHomeDir, defaultConfigFilename)
 	defaultDataDir    = filepath.Join(btcdHomeDir, defaultDataDirname)
 	//	knownDbTypes       = database.SupportedDBs()
