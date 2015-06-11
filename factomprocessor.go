@@ -502,12 +502,8 @@ func processDirBlock(msg *wire.MsgDirBlock) error {
 	//Add it to mem pool before saving it in db
 	fMemPool.addBlockMsg(msg, strconv.Itoa(int(msg.DBlk.Header.BlockHeight))) // store in mempool with the height as the key
 
-	//db.ProcessDBlockBatch(msg.DBlk) //?? to be removed later
-
 	fmt.Printf("PROCESSOR: MsgDirBlock=%s\n", spew.Sdump(msg.DBlk))
 	fmt.Printf("PROCESSOR: dchain=%s\n", spew.Sdump(dchain))
-
-	//exportDChain(dchain)
 
 	return nil
 }
@@ -515,12 +511,6 @@ func processDirBlock(msg *wire.MsgDirBlock) error {
 // processFBlock validates admin block and save it to factom db.
 // similar to blockChain.BC_ProcessBlock
 func processFBlock(msg *wire.MsgFBlock) error {
-
-	//Need to validate against Dchain??
-
-	//db.ProcessFBlockBatch(msg.SC)
-
-	//exportSCChain(scchain)
 
 	//Add it to mem pool before saving it in db
 	h, _ := common.CreateHash(msg.SC)     // need to change it to MR??
@@ -540,15 +530,9 @@ func processABlock(msg *wire.MsgABlock) error {
 		return errors.New("Server received msg:" + msg.Command())
 	}
 
-	//Need to validate against Dchain??
-
-	//db.ProcessABlockBatch(msg.ABlk)
-
 	//Add it to mem pool before saving it in db
 	msg.ABlk.BuildABHash()
 	fMemPool.addBlockMsg(msg, msg.ABlk.ABHash.String()) // store in mem pool with ABHash as key
-
-	//exportAChain(achain)
 
 	return nil
 }
@@ -563,19 +547,12 @@ func procesECBlock(msg *wire.MsgECBlock) error {
 		return errors.New("Server received msg:" + msg.Command())
 	}
 
-	//Need to validate against Dchain??
-
 	h, _ := common.CreateHash(msg.ECBlock)
 	//Add it to mem pool before saving it in db
 	fMemPool.addBlockMsg(msg, h.String())
 
-	//initializeECreditMap(msg.ECBlock)//?? to add it after it is stored in db
-
 	// for debugging??
-	//fmt.Printf("PROCESSOR: MsgCBlock=%s\n", spew.Sdump(msg.ECBlock))
-	//printCreditMap()
-
-	//exportECChain(ecchain)
+	fmt.Printf("PROCESSOR: MsgCBlock=%s\n", spew.Sdump(msg.ECBlock))
 
 	return nil
 }
@@ -593,53 +570,14 @@ func processEBlock(msg *wire.MsgEBlock) error {
 	if msg.EBlk.Header.DBHeight >= dchain.NextBlockHeight || msg.EBlk.Header.DBHeight < 0 {
 		return errors.New("MsgEBlock has an invalid DBHeight:" + strconv.Itoa(int(msg.EBlk.Header.DBHeight)))
 	}
-	/*
-		dblock := dchain.Blocks[msg.EBlk.Header.DBHeight]
-
-		if dblock == nil {
-			return errors.New("MsgEBlock has an invalid DBHeight:" + strconv.Itoa(int(msg.EBlk.Header.DBHeight)))
-		}
-
-		msg.EBlk.BuildMerkleRoot()
-
-		validEblock := false
-		for _, dbEntry := range dblock.DBEntries {
-			if msg.EBlk.MerkleRoot.IsSameAs(dbEntry.MerkleRoot) && dbEntry.ChainID.IsSameAs(msg.EBlk.Header.ChainID) {
-				validEblock = true
-				break
-			}
-		}
-
-		if !validEblock {
-			return errors.New("Invalid MsgEBlock with height:" + strconv.Itoa(int(msg.EBlk.Header.EBHeight)))
-		}
-
-		// create a chain in db if it's not existing
-		chain := chainIDMap[msg.EBlk.Header.ChainID.String()]
-		if chain == nil {
-			chain = new(common.EChain)
-			chain.ChainID = msg.EBlk.Header.ChainID
-
-			if msg.EBlk.Header.EBHeight == 0 {
-				chain.FirstEntry, _ = db.FetchEntryByHash(msg.EBlk.EBEntries[0].EntryHash)
-			}
-
-			db.InsertChain(chain)
-			chainIDMap[chain.ChainID.String()] = chain
-		} else if chain.FirstEntry == nil && msg.EBlk.Header.EBHeight == 0 {
-			chain.FirstEntry, _ = db.FetchEntryByHash(msg.EBlk.EBEntries[0].EntryHash)
-			db.InsertChain(chain)
-		}
-
-		db.ProcessEBlockBatch(msg.EBlk)
-	*/
 
 	//Add it to mem pool before saving it in db
 	msg.EBlk.BuildMerkleRoot()
 	fMemPool.addBlockMsg(msg, msg.EBlk.MerkleRoot.String()) // store it in mem pool with MR as the key
 
-	//exportEChain(chain)
-
+	// for debugging??
+	fmt.Printf("PROCESSOR: MsgEBlock=%s\n", spew.Sdump(msg.EBlk))
+	
 	return nil
 }
 
@@ -657,14 +595,8 @@ func processEntry(msg *wire.MsgEntry) error {
 	h, _ := common.CreateHash(msg.Entry)
 	fMemPool.addBlockMsg(msg, h.String()) // store it in mem pool with hash as the key
 
-	// store the new entry in db
-	/*entryBinary, _ := msg.Entry.MarshalBinary()
-	entryHash := common.Sha(entryBinary)
-	b := msg.Entry.ChainID.Bytes()
-	db.InsertEntry(entryHash, &entryBinary, msg.Entry, &b)
-
 	fmt.Printf("PROCESSOR: MsgEntry=%s\n", spew.Sdump(msg.Entry))
-	*/
+
 	return nil
 }
 

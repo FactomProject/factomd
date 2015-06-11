@@ -28,6 +28,11 @@ func validateAndStoreBlocks(fMemPool *ftmMemPool, db database.Db, dchain *common
 				err := storeBlocksFromMemPool(dblk, fMemPool, db)
 				if err == nil {
 					deleteBlocksFromMemPool(dblk, fMemPool)
+					//to be removed ?? :
+					exportDChain(dchain)
+					exportAChain(achain)
+					exportECChain(ecchain)
+					exportSCChain(scchain)
 				} else {
 					panic("error in deleteBlocksFromMemPool.")
 				}
@@ -56,7 +61,7 @@ func validateBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, d
 			}
 		case scchain.ChainID.String():
 			if _, ok := fMemPool.blockpool[dbEntry.MerkleRoot.String()]; !ok {
-				return false
+				// ?? return false
 			}
 		default:
 			if msg, ok := fMemPool.blockpool[dbEntry.MerkleRoot.String()]; !ok {
@@ -81,6 +86,7 @@ func validateBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, d
 }
 
 // Validate the new blocks in mem pool and store them in db
+// Need to make a batch insert in db in milestone 2
 func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db database.Db) error {
 
 	for _, dbEntry := range b.DBEntries {
@@ -91,6 +97,8 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 			if err != nil {
 				return err
 			}
+			// needs to be improved??
+			initializeECreditMap(ecBlkMsg.ECBlock)			
 		case achain.ChainID.String():
 			aBlkMsg := fMemPool.blockpool[dbEntry.MerkleRoot.String()].(*wire.MsgABlock)
 			err := db.ProcessABlockBatch(aBlkMsg.ABlk)
@@ -98,13 +106,15 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 				return err
 			}
 		case scchain.ChainID.String():
-			fBlkMsg := fMemPool.blockpool[dbEntry.MerkleRoot.String()].(*wire.MsgFBlock)
+	/*		fBlkMsg := fMemPool.blockpool[dbEntry.MerkleRoot.String()].(*wire.MsgFBlock)
 			err := db.ProcessFBlockBatch(fBlkMsg.SC)
 			if err != nil {
 				return err
-			}
+			}*/
 		default:
+			// handle Entry Block
 			eBlkMsg, _ := fMemPool.blockpool[dbEntry.MerkleRoot.String()].(*wire.MsgEBlock)
+			// store entry in db first
 			for _, ebEntry := range eBlkMsg.EBlk.EBEntries {
 				if msg, foundInMemPool := fMemPool.blockpool[ebEntry.EntryHash.String()]; foundInMemPool {
 					err := db.InsertEntry(ebEntry.EntryHash, msg.(*wire.MsgEntry).Entry)
@@ -113,9 +123,34 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 					}
 				}
 			}
+			// Store Entry Block in db
+			err := db.ProcessEBlockBatch(eBlkMsg.EBlk)	
+			if err != nil {
+				return err
+			}					
+			// create a chain in db if it's not existing
+			chain := chainIDMap[eBlkMsg.EBlk.Header.ChainID.String()]
+			if chain == nil {
+				chain = new(common.EChain)
+				chain.ChainID = eBlkMsg.EBlk.Header.ChainID	
+				if eBlkMsg.EBlk.Header.EBHeight == 0 {
+					chain.FirstEntry, _ = db.FetchEntryByHash(eBlkMsg.EBlk.EBEntries[0].EntryHash)
+				}
+				db.InsertChain(chain)
+				chainIDMap[chain.ChainID.String()] = chain
+			} else if chain.FirstEntry == nil && eBlkMsg.EBlk.Header.EBHeight == 0 {
+				chain.FirstEntry, _ = db.FetchEntryByHash(eBlkMsg.EBlk.EBEntries[0].EntryHash)
+				db.InsertChain(chain)
+			}			
 		}
 	}
-
+	
+	// Store the dir block
+	err := db.ProcessDBlockBatch(b)
+	if err != nil {
+		return err
+	}	
+	
 	return nil
 }
 
