@@ -12,7 +12,7 @@ import (
 
 	"github.com/FactomProject/btcd/btcjson"
 	"github.com/FactomProject/btcd/btcjson/btcws"
-	"github.com/FactomProject/btcutil"
+	//	"github.com/FactomProject/btcutil"
 	flags "github.com/FactomProject/go-flags"
 	"github.com/davecgh/go-spew/spew"
 )
@@ -52,9 +52,9 @@ var commandHandlers = map[string]*handlerData{
 	"addnode":               {2, 0, displayJSONDump, nil, makeAddNode, "<ip> <add/remove/onetry>"},
 	"createencryptedwallet": {1, 0, displayGeneric, nil, makeCreateEncryptedWallet, "<passphrase>"},
 	"createnewaccount":      {1, 0, displayGeneric, nil, makeCreateNewAccount, "<account>"},
-	"createrawtransaction":  {2, 0, displayGeneric, nil, makeCreateRawTransaction, outpointArrayStr + " " + "\"{\"address\":amount,...}\""},
-	"debuglevel":            {1, 0, displayGeneric, nil, makeDebugLevel, "<levelspec>"},
-	"decoderawtransaction":  {1, 0, displayJSONDump, nil, makeDecodeRawTransaction, "<txhash>"},
+	//	"createrawtransaction":  {2, 0, displayGeneric, nil, makeCreateRawTransaction, outpointArrayStr + " " + "\"{\"address\":amount,...}\""},
+	"debuglevel": {1, 0, displayGeneric, nil, makeDebugLevel, "<levelspec>"},
+	//	"decoderawtransaction":  {1, 0, displayJSONDump, nil, makeDecodeRawTransaction, "<txhash>"},
 	"decodescript":          {1, 0, displayJSONDump, nil, makeDecodeScript, "<hex>"},
 	"dumpprivkey":           {1, 0, displayGeneric, nil, makeDumpPrivKey, "<bitcoinaddress>"},
 	"estimatefee":           {1, 0, displayGeneric, []conversionHandler{toInt64}, makeEstimateFee, "<numblocks>"},
@@ -83,10 +83,10 @@ var commandHandlers = map[string]*handlerData{
 	"getpeerinfo":           {0, 0, displayJSONDump, nil, makeGetPeerInfo, ""},
 	"getrawchangeaddress":   {0, 0, displayGeneric, nil, makeGetRawChangeAddress, ""},
 	"getrawmempool":         {0, 1, displayJSONDump, []conversionHandler{toBool}, makeGetRawMempool, "[verbose=false]"},
-	"getrawtransaction":     {1, 1, displayJSONDump, []conversionHandler{nil, toInt}, makeGetRawTransaction, "<txhash> [verbose=0]"},
-	"getreceivedbyaccount":  {1, 1, displayGeneric, []conversionHandler{nil, toInt}, makeGetReceivedByAccount, "<account> [minconf=1]"},
-	"getreceivedbyaddress":  {1, 1, displayGeneric, []conversionHandler{nil, toInt}, makeGetReceivedByAddress, "<address> [minconf=1]"},
-	"gettransaction":        {1, 1, displayJSONDump, nil, makeGetTransaction, "txid"},
+	//	"getrawtransaction":     {1, 1, displayJSONDump, []conversionHandler{nil, toInt}, makeGetRawTransaction, "<txhash> [verbose=0]"},
+	"getreceivedbyaccount": {1, 1, displayGeneric, []conversionHandler{nil, toInt}, makeGetReceivedByAccount, "<account> [minconf=1]"},
+	"getreceivedbyaddress": {1, 1, displayGeneric, []conversionHandler{nil, toInt}, makeGetReceivedByAddress, "<address> [minconf=1]"},
+	//	"gettransaction":        {1, 1, displayJSONDump, nil, makeGetTransaction, "txid"},
 	"gettxout":              {2, 1, displayJSONDump, []conversionHandler{nil, toInt, toBool}, makeGetTxOut, "<txid> <n> [includemempool=false]"},
 	"gettxoutsetinfo":       {0, 0, displayJSONDump, nil, makeGetTxOutSetInfo, ""},
 	"getwork":               {0, 1, displayJSONDump, nil, makeGetWork, "[data]"},
@@ -100,21 +100,23 @@ var commandHandlers = map[string]*handlerData{
 	"listreceivedbyaddress": {0, 2, displayJSONDump, []conversionHandler{toInt, toBool}, makeListReceivedByAddress, "[minconf] [includeempty]"},
 	"listlockunspent":       {0, 0, displayJSONDump, nil, makeListLockUnspent, ""},
 	"listsinceblock":        {0, 2, displayJSONDump, []conversionHandler{nil, toInt}, makeListSinceBlock, "[blockhash] [minconf=10]"},
-	"listtransactions":      {0, 3, displayJSONDump, []conversionHandler{nil, toInt, toInt}, makeListTransactions, "[account] [count=10] [from=0]"},
-	"listunspent":           {0, 3, displayJSONDump, []conversionHandler{toInt, toInt, nil}, makeListUnspent, "[minconf=1] [maxconf=9999999] [jsonaddressarray]"},
-	"lockunspent":           {1, 2, displayJSONDump, []conversionHandler{toBool, nil}, makeLockUnspent, "<unlock> " + outpointArrayStr},
-	"ping":                  {0, 0, displayGeneric, nil, makePing, ""},
-	"renameaccount":         {2, 0, displayGeneric, nil, makeRenameAccount, "<oldaccount> <newaccount>"},
-	"searchrawtransactions": {1, 3, displayJSONDump, []conversionHandler{nil, toInt, toInt, toInt}, makeSearchRawTransactions, "<address> [verbose=1] [skip=0] [count=100]"},
-	"sendfrom": {3, 3, displayGeneric, []conversionHandler{nil, nil, toSatoshi, toInt, nil, nil},
-		makeSendFrom, "<account> <address> <amount> [minconf=1] [comment] [comment-to]"},
-	"sendmany":               {2, 2, displayGeneric, []conversionHandler{nil, nil, toInt, nil}, makeSendMany, "<account> <{\"address\":amount,...}> [minconf=1] [comment]"},
-	"sendrawtransaction":     {1, 0, displayGeneric, nil, makeSendRawTransaction, "<hextx>"},
-	"sendtoaddress":          {2, 2, displayGeneric, []conversionHandler{nil, toSatoshi, nil, nil}, makeSendToAddress, "<address> <amount> [comment] [comment-to]"},
-	"setgenerate":            {1, 1, displayGeneric, []conversionHandler{toBool, toInt}, makeSetGenerate, "<generate> [genproclimit]"},
-	"settxfee":               {1, 0, displayGeneric, []conversionHandler{toSatoshi}, makeSetTxFee, "<amount>"},
-	"signmessage":            {2, 2, displayGeneric, nil, makeSignMessage, "<address> <message>"},
-	"signrawtransaction":     {1, 3, displayJSONDump, nil, makeSignRawTransaction, "<hex> [{\"txid\":txid,\"vout\":n,\"scriptPubKey\":hex,\"redeemScript\":hex},...] [<privatekey1>,...] [sighashtype=\"ALL\"]"},
+	//	"listtransactions":      {0, 3, displayJSONDump, []conversionHandler{nil, toInt, toInt}, makeListTransactions, "[account] [count=10] [from=0]"},
+	"listunspent":   {0, 3, displayJSONDump, []conversionHandler{toInt, toInt, nil}, makeListUnspent, "[minconf=1] [maxconf=9999999] [jsonaddressarray]"},
+	"lockunspent":   {1, 2, displayJSONDump, []conversionHandler{toBool, nil}, makeLockUnspent, "<unlock> " + outpointArrayStr},
+	"ping":          {0, 0, displayGeneric, nil, makePing, ""},
+	"renameaccount": {2, 0, displayGeneric, nil, makeRenameAccount, "<oldaccount> <newaccount>"},
+	/*
+			"searchrawtransactions": {1, 3, displayJSONDump, []conversionHandler{nil, toInt, toInt, toInt}, makeSearchRawTransactions, "<address> [verbose=1] [skip=0] [count=100]"},
+			"sendfrom": {3, 3, displayGeneric, []conversionHandler{nil, nil, toSatoshi, toInt, nil, nil},
+				makeSendFrom, "<account> <address> <amount> [minconf=1] [comment] [comment-to]"},
+			"sendmany":               {2, 2, displayGeneric, []conversionHandler{nil, nil, toInt, nil}, makeSendMany, "<account> <{\"address\":amount,...}> [minconf=1] [comment]"},
+			"sendrawtransaction":     {1, 0, displayGeneric, nil, makeSendRawTransaction, "<hextx>"},
+			"sendtoaddress":          {2, 2, displayGeneric, []conversionHandler{nil, toSatoshi, nil, nil}, makeSendToAddress, "<address> <amount> [comment] [comment-to]"},
+			"setgenerate":            {1, 1, displayGeneric, []conversionHandler{toBool, toInt}, makeSetGenerate, "<generate> [genproclimit]"},
+			"settxfee":               {1, 0, displayGeneric, []conversionHandler{toSatoshi}, makeSetTxFee, "<amount>"},
+		"signmessage":            {2, 2, displayGeneric, nil, makeSignMessage, "<address> <message>"},
+		"signrawtransaction":     {1, 3, displayJSONDump, nil, makeSignRawTransaction, "<hex> [{\"txid\":txid,\"vout\":n,\"scriptPubKey\":hex,\"redeemScript\":hex},...] [<privatekey1>,...] [sighashtype=\"ALL\"]"},
+	*/
 	"stop":                   {0, 0, displayGeneric, nil, makeStop, ""},
 	"submitblock":            {1, 1, displayGeneric, nil, makeSubmitBlock, "<hexdata> [jsonparametersobject]"},
 	"validateaddress":        {1, 0, displayJSONDump, nil, makeValidateAddress, "<address>"},
@@ -125,6 +127,7 @@ var commandHandlers = map[string]*handlerData{
 	"walletpassphrasechange": {2, 0, displayGeneric, nil, makeWalletPassphraseChange, "<oldpassphrase> <newpassphrase>"},
 }
 
+/*
 // toSatoshi attempts to convert the passed string to a satoshi amount returned
 // as an int64.  It returns the int64 packed into an interface so it can be used
 // in the calls which expect interfaces.  An error will be returned if the string
@@ -140,6 +143,7 @@ func toSatoshi(val string) (interface{}, error) {
 	}
 	return int64(amt), nil
 }
+*/
 
 // toInt attempts to convert the passed string to an integer.  It returns the
 // integer packed into an interface so it can be used in the calls which expect
@@ -250,6 +254,7 @@ func makeCreateNewAccount(args []interface{}) (btcjson.Cmd, error) {
 	return btcws.NewCreateNewAccountCmd("btcctl", args[0].(string)), nil
 }
 
+/*
 // makeCreateRawTransaction generates the cmd structure for createrawtransaction
 // commands.
 func makeCreateRawTransaction(args []interface{}) (btcjson.Cmd, error) {
@@ -276,6 +281,7 @@ func makeCreateRawTransaction(args []interface{}) (btcjson.Cmd, error) {
 
 	return btcjson.NewCreateRawTransactionCmd("btcctl", inputs, amounts)
 }
+*/
 
 // makeDebugLevel generates the cmd structure for debuglevel commands.
 func makeDebugLevel(args []interface{}) (btcjson.Cmd, error) {
@@ -765,6 +771,7 @@ func makeSendFrom(args []interface{}) (btcjson.Cmd, error) {
 		args[1].(string), args[2].(int64), optargs...)
 }
 
+/*
 // makeSendMany generates the cmd structure for sendmany commands.
 func makeSendMany(args []interface{}) (btcjson.Cmd, error) {
 	origPairs := make(map[string]float64)
@@ -786,6 +793,7 @@ func makeSendMany(args []interface{}) (btcjson.Cmd, error) {
 	}
 	return btcjson.NewSendManyCmd("btcctl", args[0].(string), pairs, optargs...)
 }
+*/
 
 // makeSendRawTransaction generates the cmd structure for sendrawtransaction
 // commands.

@@ -7,14 +7,14 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/FactomProject/btcutil"
+	"github.com/FactomProject/btcd"
 	flags "github.com/FactomProject/go-flags"
 )
 
 var (
-	btcdHomeDir           = btcutil.AppDataDir("factom", false)
-	btcctlHomeDir         = btcutil.AppDataDir("fctctl", false)
-	btcwalletHomeDir      = btcutil.AppDataDir("fctwallet", false)
+	btcdHomeDir           = btcd.AppDataDir("factom", false)
+	btcctlHomeDir         = btcd.AppDataDir("fctctl", false)
+	btcwalletHomeDir      = btcd.AppDataDir("fctwallet", false)
 	defaultConfigFile     = filepath.Join(btcctlHomeDir, "btcctl.conf")
 	defaultRPCServer      = "localhost"
 	defaultRPCCertFile    = filepath.Join(btcdHomeDir, "rpc.cert")
