@@ -260,10 +260,6 @@ func global_DeleteMemPoolEntry(hash *wire.ShaHash) {
 func (b *blockManager) factomChecks() {
 	util.Trace()
 
-	if b.headersFirstMode {
-		panic(errors.New("headersFirstMode must be disabled and it is NOT !!!"))
-	}
-
 	if cfg.AddrIndex {
 		panic(errors.New("AddrIndex must be disabled and it is NOT !!!"))
 	}

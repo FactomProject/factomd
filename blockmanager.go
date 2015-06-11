@@ -15,14 +15,14 @@ import (
 	"time"
 
 	//	"github.com/FactomProject/btcd/blockchain"
-	"github.com/FactomProject/btcd/chaincfg"
+	//	"github.com/FactomProject/btcd/chaincfg"
 	//	"github.com/FactomProject/btcd/database"
 	"github.com/FactomProject/btcd/wire"
 	//	"github.com/FactomProject/btcutil"
 
 	//	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/util"
-	"github.com/davecgh/go-spew/spew"	
+	"github.com/davecgh/go-spew/spew"
 )
 
 const (
@@ -181,17 +181,19 @@ type blockManager struct {
 	wg                sync.WaitGroup
 	quit              chan struct{}
 
-	// The following fields are used for headers-first mode.
-	headersFirstMode bool
-	headerList       *list.List
-	startHeader      *list.Element
-	nextCheckpoint   *chaincfg.Checkpoint
+	/*
+		// The following fields are used for headers-first mode.
+		headersFirstMode bool
+		headerList  *list.List
+		startHeader *list.Element
+		nextCheckpoint   *chaincfg.Checkpoint
+	*/
 
 	// Factom Addition
 	//dirChain *common.DChain
 }
 
-
+/*
 // resetHeaderState sets the headers-first mode state to values appropriate for
 // syncing from a new peer.
 func (b *blockManager) resetHeaderState(newestHash *wire.ShaHash, newestHeight int64) {
@@ -207,7 +209,7 @@ func (b *blockManager) resetHeaderState(newestHash *wire.ShaHash, newestHeight i
 		b.headerList.PushBack(&node)
 	}
 }
-
+*/
 
 // updateChainState updates the chain state associated with the block manager.
 // This allows fast access to chain information since btcchain is currently not
@@ -405,7 +407,6 @@ func (b *blockManager) handleNewPeerMsg(peers *list.List, p *peer) {
 	b.startSyncFactom(peers)
 }
 
-
 // handleDonePeerMsg deals with peers that have signalled they are done.  It
 // removes the peer as a candidate for syncing and in the case where it was
 // the current sync peer, attempts to select a new best peer to sync from.  It
@@ -440,22 +441,23 @@ func (b *blockManager) handleDonePeerMsg(peers *list.List, p *peer) {
 	// mode so
 	if b.syncPeer != nil && b.syncPeer == p {
 		b.syncPeer = nil
-		if b.headersFirstMode {
-			// This really shouldn't fail.  We have a fairly
-			// unrecoverable database issue if it does.
-			newestHash, height, err := db.FetchBlockHeightCache()
-			if err != nil {
-				bmgrLog.Warnf("Unable to obtain latest "+
-					"block information from the database: "+
-					"%v", err)
-				return
+		/*
+			if b.headersFirstMode {
+				// This really shouldn't fail.  We have a fairly
+				// unrecoverable database issue if it does.
+				newestHash, height, err := db.FetchBlockHeightCache()
+				if err != nil {
+					bmgrLog.Warnf("Unable to obtain latest "+
+						"block information from the database: "+
+						"%v", err)
+					return
+				}
+				b.resetHeaderState(newestHash, height)
 			}
-			b.resetHeaderState(newestHash, height)
-		}
+		*/
 		b.startSyncFactom(peers)
 	}
 }
-
 
 // handleTxMsg handles transaction messages from all peers.
 func (b *blockManager) handleTxMsg(tmsg *txMsg) {
@@ -940,10 +942,12 @@ func (b *blockManager) handleInvMsg(imsg *invMsg) {
 		// for the peer.
 		imsg.peer.AddKnownInventory(iv)
 
-		// Ignore inventory when we're in headers-first mode.
-		if b.headersFirstMode {
-			continue
-		}
+		/*
+			// Ignore inventory when we're in headers-first mode.
+			if b.headersFirstMode {
+				continue
+			}
+		*/
 
 		// Request the inventory if we don't already have it.
 		haveInv, err := b.haveInventory(iv)
@@ -960,7 +964,11 @@ func (b *blockManager) handleInvMsg(imsg *invMsg) {
 		}
 
 		if iv.Type == wire.InvTypeBlock {
-
+			// The block is an orphan block that we already have.
+			// When the existing orphan was processed, it requested
+			// the missing parent blocks.  When this scenario
+			// happens, it means there were more blocks missing
+			// than are allowed into a single inventory message.  As
 			// a result, once this peer requested the final
 			// advertised block, the remote peer noticed and is now
 			// resending the orphan block as an available block
@@ -1083,7 +1091,7 @@ out:
 					case *headersMsg:
 						b.handleHeadersMsg(msg)
 				*/
-				
+
 			case *donePeerMsg:
 				b.handleDonePeerMsg(candidatePeers, msg.peer)
 
@@ -1441,9 +1449,9 @@ func newBlockManager(s *server) (*blockManager, error) {
 		requestedTxns:   make(map[wire.ShaHash]struct{}),
 		requestedBlocks: make(map[wire.ShaHash]struct{}),
 		//		progressLogger:  newBlockProgressLogger("Processed", bmgrLog),
-		msgChan:    make(chan interface{}, cfg.MaxPeers*3),
-		headerList: list.New(),
-		quit:       make(chan struct{}),
+		msgChan: make(chan interface{}, cfg.MaxPeers*3),
+		//		headerList: list.New(),
+		quit: make(chan struct{}),
 	}
 	//	bm.progressLogger = newBlockProgressLogger("Processed", bmgrLog)
 
