@@ -7,7 +7,7 @@ package btcd
 import (
 	"container/list"
 	"errors"
-	//	"fmt"
+	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
@@ -15,13 +15,14 @@ import (
 	"time"
 
 	//	"github.com/FactomProject/btcd/blockchain"
-	//	"github.com/FactomProject/btcd/chaincfg"
+	"github.com/FactomProject/btcd/chaincfg"
 	//	"github.com/FactomProject/btcd/database"
 	"github.com/FactomProject/btcd/wire"
 	//	"github.com/FactomProject/btcutil"
 
 	//	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/util"
+	"github.com/davecgh/go-spew/spew"	
 )
 
 const (
@@ -184,13 +185,13 @@ type blockManager struct {
 	headersFirstMode bool
 	headerList       *list.List
 	startHeader      *list.Element
-	//	nextCheckpoint   *chaincfg.Checkpoint
+	nextCheckpoint   *chaincfg.Checkpoint
 
 	// Factom Addition
 	//dirChain *common.DChain
 }
 
-/*
+
 // resetHeaderState sets the headers-first mode state to values appropriate for
 // syncing from a new peer.
 func (b *blockManager) resetHeaderState(newestHash *wire.ShaHash, newestHeight int64) {
@@ -206,7 +207,7 @@ func (b *blockManager) resetHeaderState(newestHash *wire.ShaHash, newestHeight i
 		b.headerList.PushBack(&node)
 	}
 }
-*/
+
 
 // updateChainState updates the chain state associated with the block manager.
 // This allows fast access to chain information since btcchain is currently not
@@ -404,7 +405,7 @@ func (b *blockManager) handleNewPeerMsg(peers *list.List, p *peer) {
 	b.startSyncFactom(peers)
 }
 
-/*
+
 // handleDonePeerMsg deals with peers that have signalled they are done.  It
 // removes the peer as a candidate for syncing and in the case where it was
 // the current sync peer, attempts to select a new best peer to sync from.  It
@@ -442,7 +443,7 @@ func (b *blockManager) handleDonePeerMsg(peers *list.List, p *peer) {
 		if b.headersFirstMode {
 			// This really shouldn't fail.  We have a fairly
 			// unrecoverable database issue if it does.
-			newestHash, height, err := b.server.db.NewestSha()
+			newestHash, height, err := db.FetchBlockHeightCache()
 			if err != nil {
 				bmgrLog.Warnf("Unable to obtain latest "+
 					"block information from the database: "+
@@ -451,10 +452,10 @@ func (b *blockManager) handleDonePeerMsg(peers *list.List, p *peer) {
 			}
 			b.resetHeaderState(newestHash, height)
 		}
-		b.startSync(peers)
+		b.startSyncFactom(peers)
 	}
 }
-*/
+
 
 // handleTxMsg handles transaction messages from all peers.
 func (b *blockManager) handleTxMsg(tmsg *txMsg) {
@@ -1081,10 +1082,10 @@ out:
 				/*
 					case *headersMsg:
 						b.handleHeadersMsg(msg)
-
-					case *donePeerMsg:
-						b.handleDonePeerMsg(candidatePeers, msg.peer)
 				*/
+				
+			case *donePeerMsg:
+				b.handleDonePeerMsg(candidatePeers, msg.peer)
 
 			case getSyncPeerMsg:
 				msg.reply <- b.syncPeer
@@ -1153,7 +1154,8 @@ out:
 			default:
 				bmgrLog.Warnf("Invalid message type in block "+
 					"handler: %T", msg)
-				panic(errors.New("invalid message type"))
+				fmt.Printf("before invalid message type: msg=%s\n", spew.Sdump(msg))
+				panic(errors.New("invalid message type:"))
 			}
 
 		case <-b.quit:
