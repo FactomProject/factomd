@@ -577,7 +577,7 @@ func processEBlock(msg *wire.MsgEBlock) error {
 
 	// for debugging??
 	fmt.Printf("PROCESSOR: MsgEBlock=%s\n", spew.Sdump(msg.EBlk))
-	
+
 	return nil
 }
 
@@ -1434,11 +1434,11 @@ func exportDChain(chain *common.DChain) {
 		return
 	}
 
-	for _, block := range chain.Blocks {
-		//the open block is not saved
-		if block == nil || block.IsSealed == false {
-			continue
-		}
+	// get all ecBlocks from db
+	dBlocks, _ := db.FetchAllDBlocks()
+	sort.Sort(util.ByDBlockIDAccending(dBlocks))
+
+	for _, block := range dBlocks {
 
 		data, err := block.MarshalBinary()
 		if err != nil {
