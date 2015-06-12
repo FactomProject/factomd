@@ -20,7 +20,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
-	"strings"
+	//	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -480,6 +480,8 @@ func (s *rpcServer) checkAuth(r *http.Request, require bool) (bool, error) {
 
 // Stop is used by server.go to stop the rpc listener.
 func (s *rpcServer) Stop() error {
+	util.Trace()
+
 	if atomic.AddInt32(&s.shutdown, 1) != 1 {
 		rpcsLog.Infof("RPC server is already in the process of shutting down")
 		return nil
@@ -526,12 +528,15 @@ func genCertPair(certFile, keyFile string) error {
 
 // newRPCServer returns a new instance of the rpcServer struct.
 func newRPCServer(listenAddrs []string, s *server) (*rpcServer, error) {
-	//	login := cfg.RPCUser + ":" + cfg.RPCPass
-	login := factomdUser + ":" + factomdPass
-	util.Trace(factomdUser)
-	util.Trace(factomdPass)
-
-	auth := "Basic " + base64.StdEncoding.EncodeToString([]byte(login))
+		//login := cfg.RPCUser + ":" + cfg.RPCPass
+	//login := factomdUser + ":" + factomdPass
+	//util.Trace(factomdUser)
+	//util.Trace(factomdPass)
+	
+	//?? is this still neede??
+	
+	//auth := "Basic " + base64.StdEncoding.EncodeToString([]byte(login))
+	auth := "Basic " + base64.StdEncoding.EncodeToString([]byte(""))	
 	rpc := rpcServer{
 		authsha:     fastsha256.Sum256([]byte(auth)),
 		server:      s,
@@ -694,12 +699,14 @@ func handleUnimplemented(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{
 	return nil, btcjson.ErrUnimplemented
 }
 
+/*
 // handleAskWallet is the handler for commands that we do recognise as valid
 // but that we can not answer correctly since it involves wallet state.
 // These commands will be implemented in btcwallet.
 func handleAskWallet(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{}) (interface{}, error) {
 	return nil, btcjson.ErrNoWallet
 }
+*/
 
 // handleAddNode handles addnode commands.
 func handleAddNode(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{}) (interface{}, error) {
@@ -1276,7 +1283,6 @@ func handleGetBlockHash(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{}
 
 	return sha.String(), nil
 }
-*/
 
 // encodeTemplateID encodes the passed details into an ID that can be used to
 // uniquely identify a block template.
@@ -1307,7 +1313,6 @@ func decodeTemplateID(templateID string) (*wire.ShaHash, int64, error) {
 	return prevHash, lastGenerated, nil
 }
 
-/*
 // notifyLongPollers notifies any channels that have been registered to be
 // notified when block templates are stale.
 //
@@ -3157,6 +3162,8 @@ func handleSetGenerate(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{})
 
 // handleStop implements the stop command.
 func handleStop(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{}) (interface{}, error) {
+	util.Trace()
+
 	s.server.Stop()
 	return "btcd stopping.", nil
 }
@@ -3264,23 +3271,19 @@ func handleValidateAddress(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struc
 
 	return result, nil
 }
-*/
 
 // handleVerifyChain implements the verifychain command.
 func handleVerifyChain(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{}) (interface{}, error) {
 	util.Trace("NOT IMPLEMENTED")
 	panic(11115)
-	/*
 
 		c := cmd.(*btcjson.VerifyChainCmd)
 
 		err := verifyChain(s.server.db, c.CheckLevel, c.CheckDepth,
 			s.server.timeSource)
 		return err == nil, nil
-	*/
 }
 
-/*
 // handleVerifyMessage implements the verifymessage command.
 func handleVerifyMessage(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{}) (interface{}, error) {
 	util.Trace()
@@ -3366,11 +3369,13 @@ func standardCmdReply(cmd btcjson.Cmd, s *rpcServer, closeChan <-chan struct{}) 
 	if ok {
 		goto handled
 	}
-	_, ok = rpcAskWallet[cmd.Method()]
-	if ok {
-		handler = handleAskWallet
-		goto handled
-	}
+	/*
+		_, ok = rpcAskWallet[cmd.Method()]
+		if ok {
+			handler = handleAskWallet
+			goto handled
+		}
+	*/
 	_, ok = rpcUnimplemented[cmd.Method()]
 	if ok {
 		handler = handleUnimplemented
@@ -3422,7 +3427,6 @@ func getDifficultyRatio(bits uint32) float64 {
 */
 
 func init() {
-	util.Trace("rand.Seed()")
 	rpcHandlers = rpcHandlersBeforeInit
 	rand.Seed(time.Now().UnixNano())
 }

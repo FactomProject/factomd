@@ -26,8 +26,8 @@ import (
 )
 
 const (
-	defaultConfigFilename    = "factoid.conf"
-	defaultDataDirname       = "data"
+	defaultConfigFilename = "factoid.conf"
+	//	defaultDataDirname       = "data"
 	defaultLogLevel          = "info"
 	defaultLogDirname        = "logs"
 	defaultLogFilename       = "factom-d.log"
@@ -50,7 +50,8 @@ const (
 var (
 	btcdHomeDir       = AppDataDir("factom", false)
 	defaultConfigFile = filepath.Join(btcdHomeDir, defaultConfigFilename)
-	defaultDataDir    = filepath.Join(btcdHomeDir, defaultDataDirname)
+	//	defaultDataDir    = filepath.Join(btcdHomeDir, defaultDataDirname)
+	defaultDataDir = filepath.Join(btcdHomeDir)
 	//	knownDbTypes       = database.SupportedDBs()
 	defaultRPCKeyFile  = filepath.Join(btcdHomeDir, "rpc.key")
 	defaultRPCCertFile = filepath.Join(btcdHomeDir, "rpc.cert")
@@ -552,7 +553,8 @@ func loadConfig() (*config, []string, error) {
 
 	// The RPC server is disabled if no username or password is provided.
 	//	if cfg.RPCUser == "" || cfg.RPCPass == "" {
-	if "" == factomdUser || "" == factomdPass {
+	//if "" == factomdUser || "" == factomdPass { //double check please??
+	if true {
 		cfg.DisableRPC = true
 		fmt.Println("Disabling the RPC server...")
 	}

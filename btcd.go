@@ -110,13 +110,11 @@ func btcdMain(serverChan chan<- *server) error {
 		}
 	*/
 
-	/*
-		// Ensure the database is sync'd and closed on Ctrl+C.
-		addInterruptHandler(func() {
-			btcdLog.Infof("Gracefully shutting down the database...")
-			db.RollbackClose()
-		})
-	*/
+	// Ensure the database is sync'd and closed on Ctrl+C.
+	addInterruptHandler(func() {
+		btcdLog.Infof("Gracefully shutting down the database...")
+		//			db.RollbackClose()
+	})
 
 	// Create server and start it.
 	server, err := newServer(cfg.Listeners, activeNetParams.Params)
