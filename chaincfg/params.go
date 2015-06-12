@@ -97,7 +97,7 @@ type Params struct {
 // MainNetParams defines the network parameters for the main Bitcoin network.
 var MainNetParams = Params{
 	//	Name:        "mainnet",
-	Name:        "factoid0",
+	//	Name:        "factoid0",
 	Net:         wire.MainNet,
 	DefaultPort: "8108",
 
