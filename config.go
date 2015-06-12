@@ -552,7 +552,8 @@ func loadConfig() (*config, []string, error) {
 
 	// The RPC server is disabled if no username or password is provided.
 	//	if cfg.RPCUser == "" || cfg.RPCPass == "" {
-	if "" == factomdUser || "" == factomdPass {
+	//if "" == factomdUser || "" == factomdPass { //double check please??
+	if true {
 		cfg.DisableRPC = true
 		fmt.Println("Disabling the RPC server...")
 	}

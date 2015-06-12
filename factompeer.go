@@ -12,6 +12,7 @@ import (
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/btcd/blockchain"
 	"github.com/FactomProject/btcd/wire"
+	"encoding/hex"	
 	//"github.com/davecgh/go-spew/spew"
 )
 
@@ -241,10 +242,10 @@ func (p *peer) handleGetNonDirDataMsg(msg *wire.MsgGetNonDirData) {
 
 			var err error
 			switch dbEntry.ChainID.String() {
-			case ecchain.ChainID.String():
+			case hex.EncodeToString(common.EC_CHAINID[:]):
 				err = p.pushECBlockMsg(dbEntry.MerkleRoot, c, waitChan)
 
-			case achain.ChainID.String():
+			case hex.EncodeToString(common.ADMIN_CHAINID[:]):
 				err = p.pushABlockMsg(dbEntry.MerkleRoot, c, waitChan)
 
 			case wire.FChainID.String():

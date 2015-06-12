@@ -17,12 +17,14 @@ import (
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/btcd/wire"
 	"github.com/davecgh/go-spew/spew"
+	"github.com/FactomProject/FactomCode/database"	
 )
 
 var _ = fmt.Printf
 
 var (
 	local_Server *server
+	db       database.Db        // database	
 	// to be renamed??
 	inMsgQueue  chan wire.FtmInternalMsg //incoming message queue for factom application messages
 	outMsgQueue chan wire.FtmInternalMsg //outgoing message queue for factom application messages
@@ -132,7 +134,20 @@ func factomForkInit(s *server) {
 	}()
 }
 
-func Start_btcd() {
+func Start_btcd(
+	ldb database.Db,
+	inMsgQ chan wire.FtmInternalMsg,
+	outMsgQ chan wire.FtmInternalMsg,
+	inCtlMsgQ chan wire.FtmInternalMsg,
+	outCtlMsgQ chan wire.FtmInternalMsg) {
+		
+	db = ldb
+
+	inMsgQueue = inMsgQ
+	outMsgQueue = outMsgQ
+
+	inCtlMsgQueue = inCtlMsgQ
+	outCtlMsgQueue = outCtlMsgQ		
 	util.Trace("FORMER REAL btcd main() function !")
 
 	// Use all processor cores.
