@@ -32,7 +32,7 @@ func validateAndStoreBlocks(fMemPool *ftmMemPool, db database.Db, dchain *common
 					exportDChain(dchain)
 					exportAChain(achain)
 					exportECChain(ecchain)
-					exportSCChain(scchain)
+					exportFctChain(FctChain)
 				} else {
 					panic("error in deleteBlocksFromMemPool.")
 				}
@@ -59,7 +59,7 @@ func validateBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, d
 			if _, ok := fMemPool.blockpool[dbEntry.MerkleRoot.String()]; !ok {
 				return false
 			}
-		case scchain.ChainID.String():
+		case FctChain.ChainID.String():
 			if _, ok := fMemPool.blockpool[dbEntry.MerkleRoot.String()]; !ok {
 				// ?? return false
 			}
@@ -105,7 +105,7 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 			if err != nil {
 				return err
 			}
-		case scchain.ChainID.String():
+		case FctChain.ChainID.String():
 	/*		fBlkMsg := fMemPool.blockpool[dbEntry.MerkleRoot.String()].(*wire.MsgFBlock)
 			err := db.ProcessFBlockBatch(fBlkMsg.SC)
 			if err != nil {
@@ -163,7 +163,7 @@ func deleteBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool) err
 			delete(fMemPool.blockpool, dbEntry.MerkleRoot.String())
 		case achain.ChainID.String():
 			delete(fMemPool.blockpool, dbEntry.MerkleRoot.String())
-		case scchain.ChainID.String():
+		case FctChain.ChainID.String():
 			delete(fMemPool.blockpool, dbEntry.MerkleRoot.String())
 		default:
 			eBlkMsg, _ := fMemPool.blockpool[dbEntry.MerkleRoot.String()].(*wire.MsgEBlock)

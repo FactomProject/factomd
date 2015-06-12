@@ -34,9 +34,10 @@ const (
 	CmdInv         = "inv"
 	CmdGetData     = "getdata"
 	CmdNotFound    = "notfound"
-    CmdFBlock     = "FBlock"
-	CmdBlock       = "block" // Factoid Block
-	CmdTx          = "tx"    // Factoid Tx
+	CmdBlock       = "block"       // Factoid-0 Block
+	CmdTx          = "tx"          // Factoid-0 Tx
+    CmdFBlock      = "FBlock"      // Factoid-1 Block
+    CmdFactoidTX   = "factoidtx"   // Factoid-1 Tx
 	CmdGetHeaders  = "getheaders"
 	CmdHeaders     = "headers"
 	CmdPing        = "ping"

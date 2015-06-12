@@ -37,7 +37,7 @@ var (
 	dchain   *common.DChain     //Directory Block Chain
 	ecchain  *common.ECChain    //Entry Credit Chain
 	achain   *common.AdminChain //Admin Chain
-	scchain  *common.SCChain    // factoid Chain
+	FctChain  *common.FctChain    // factoid Chain
 	fchainID *common.Hash
 
 	creditsPerChain   int32  = 10
@@ -164,8 +164,10 @@ func initProcess() {
 	initAChain()
 	fmt.Println("Loaded", achain.NextBlockHeight, "Admin blocks for chain: "+achain.ChainID.String())
 
-	initSCChain()
-	fmt.Println("Loaded", scchain.NextBlockHeight, "factoid blocks for chain: "+scchain.ChainID.String())
+    // init Factoids
+	initFctChain()
+    common.FactoidState.LoadState()
+	fmt.Println("Loaded", FctChain.NextBlockHeight, "factoid blocks for chain: "+FctChain.ChainID.String())
 
 	anchor.InitAnchor(db)
 
@@ -961,11 +963,11 @@ func buildGenesisBlocks() error {
 	exportAChain(achain)
 
 	// factoid Genesis Address
-	FBlock := newFactoidBlock(scchain)
+	FBlock := newFactoidBlock(FctChain)
 	data, _ := FBlock.MarshalBinary()
 	fmt.Println("\n\n ", common.Sha(data).String(), "\n\n")
 	dchain.AddFBlockToDBEntry(FBlock)
-	exportSCChain(scchain)
+	exportFctChain(FctChain)
 
 	// Directory Block chain
 	util.Trace("in buildGenesisBlocks")
@@ -1011,10 +1013,10 @@ func buildBlocks() error {
 	exportAChain(achain)
 
 	// Factoid chain
-	fBlock := newFactoidBlock(scchain)
+	fBlock := newFactoidBlock(FctChain)
 	//fmt.Printf("buildGenesisBlocks: aBlock=%s\n", spew.Sdump(aBlock))
 	dchain.AddFBlockToDBEntry(fBlock)
-	exportSCChain(scchain)
+	exportFctChain(FctChain)
 
 	// sort the echains by chain id
 	var keys []string
@@ -1212,7 +1214,7 @@ func newAdminBlock(chain *common.AdminChain) *common.AdminBlock {
 	return block
 }
 
-func newFactoidBlock(chain *common.SCChain) block.IFBlock {
+func newFactoidBlock(chain *common.FctChain) block.IFBlock {
 
 	// acquire the last block
 	currentBlock := chain.NextBlock
@@ -1226,12 +1228,14 @@ func newFactoidBlock(chain *common.SCChain) block.IFBlock {
 	// Create the block and add a new block for new coming entries
 	chain.BlockMutex.Lock()
 	chain.NextBlockHeight++
-	chain.NextBlock = block.NewFBlock(FactoshisPerCredit, chain.NextBlockHeight)
+	common.FactoidState.SetFactoshisPerEC(FactoshisPerCredit)
+	common.FactoidState.ProcessEndOfBlock()
+    chain.NextBlock = common.FactoidState.GetCurrentBlock()
 	chain.BlockMutex.Unlock()
 
 	//Store the block in db
 	db.ProcessFBlockBatch(currentBlock)
-	log.Println("Factoid chain: block" + " created for chain: " + chain.ChainID.String())
+	log.Println("Factoid chain: block created for chain: " + chain.ChainID.String())
 
 	return currentBlock
 }
@@ -1348,7 +1352,7 @@ func validateDBlock(c *common.DChain, b *common.DirectoryBlock) (merkleRoot *com
 			if err != nil {
 				return nil, nil, err
 			}
-		case scchain.ChainID.String():
+		case FctChain.ChainID.String():
 			err := validateFBlockByMR(dbEntry.MerkleRoot)
 			if err != nil {
 				return nil, nil, err
@@ -1554,7 +1558,7 @@ func exportAChain(chain *common.AdminChain) {
 	}
 }
 
-func exportSCChain(chain *common.SCChain) {
+func exportFctChain(chain *common.FctChain) {
 	if procLog.Level() < factomlog.Info {
 		return
 	}
@@ -1717,12 +1721,12 @@ func initAChain() {
 
 }
 
-func initSCChain() {
+func initFctChain() {
 
 	//Initialize the Admin Chain ID
-	scchain = new(common.SCChain)
-	scchain.ChainID = new(common.Hash)
-	scchain.ChainID.SetBytes(sc.FACTOID_CHAINID)
+	FctChain = new(common.FctChain)
+	FctChain.ChainID = new(common.Hash)
+	FctChain.ChainID.SetBytes(sc.FACTOID_CHAINID)
 
 	// get all aBlocks from db
 	FBlocks, _ := db.FetchAllFBlocks()
@@ -1737,19 +1741,19 @@ func initSCChain() {
 
 	//Create an empty block and append to the chain
 	if len(FBlocks) == 0 || dchain.NextBlockHeight == 0 {
-		scchain.NextBlockHeight = 0
+		FctChain.NextBlockHeight = 0
 
 		// THIS IS IN TWO PLACES HERE! THEY NEED TO MATCH!
-		scchain.NextBlock = block.GetGenesisBlock(1000000, 10, 200000000000)
-		data, _ := scchain.NextBlock.MarshalBinary()
+		FctChain.NextBlock = block.GetGenesisBlock(1000000, 10, 200000000000)
+		data, _ := FctChain.NextBlock.MarshalBinary()
 		fmt.Println("\n\n ", common.Sha(data).String(), "\n\n")
 	} else {
 		// Entry Credit Chain should have the same height as the dir chain
-		scchain.NextBlockHeight = dchain.NextBlockHeight
-		scchain.NextBlock = block.NewFBlock(FactoshisPerCredit, dchain.NextBlockHeight)
+		FctChain.NextBlockHeight = dchain.NextBlockHeight
+		FctChain.NextBlock = block.NewFBlock(FactoshisPerCredit, dchain.NextBlockHeight)
 	}
 
-	exportSCChain(scchain)
+	exportFctChain(FctChain)
 
 }
 

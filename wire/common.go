@@ -168,7 +168,8 @@ func readElements(r io.Reader, elements ...interface{}) error {
 	return nil
 }
 
-// writeElement writes the little endian representation of element to w.
+// writeElement writes the big endian representation of element to w. Well,
+// except for bytes and strings, which are just written out.
 func writeElement(w io.Writer, element interface{}) error {
 	var scratch [8]byte
 
