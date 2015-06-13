@@ -13,7 +13,7 @@ import (
 	"github.com/FactomProject/btcd/blockchain"
 	"github.com/FactomProject/btcd/wire"
 	"encoding/hex"	
-	//"github.com/davecgh/go-spew/spew"
+	"github.com/davecgh/go-spew/spew"
 )
 
 var _ = fmt.Printf
@@ -393,21 +393,30 @@ func (p *peer) handleGetDirBlocksMsg(msg *wire.MsgGetDirBlocks) {
 	// provided locator are known.  This does mean the client will start
 	// over with the genesis block if unknown block locators are provided.
 	// This mirrors the behavior in the reference implementation.
+	fmt.Printf("msg=%s\n", spew.Sdump(msg))	
 	startIdx := int64(1)
 	for _, hash := range msg.BlockLocatorHashes {
 
 		//to be improved??
 		commonhash := new(common.Hash)
 		commonhash.SetBytes(hash.Bytes())
+		fmt.Printf("hash=%s\n", spew.Sdump(hash))			
+		fmt.Printf("commonhash=%s\n", spew.Sdump(commonhash))		
+			
 		dblock, _ := db.FetchDBlockByHash(commonhash)
 		if dblock != nil {
+			fmt.Printf("dblock=%s\n", spew.Sdump(dblock))				
 			height := int64(dblock.Header.BlockHeight)
-			startIdx = height + 1
+			//?? startIdx = height + 1
+			startIdx = height
 			break
 		}
 
 	}
 
+	fmt.Printf("startIdx=%s\n", spew.Sdump(startIdx))
+	fmt.Printf("endIdx=%s\n", spew.Sdump(endIdx))	
+	
 	// Don't attempt to fetch more than we can put into a single message.
 	autoContinue := false
 	if endIdx-startIdx > wire.MaxBlocksPerMsg {
@@ -427,7 +436,7 @@ func (p *peer) handleGetDirBlocksMsg(msg *wire.MsgGetDirBlocks) {
 		//hashList, err := db.FetchHeightRange(start, endIdx)
 		// to be improved??
 		hashList := make([]wire.ShaHash, 0, endIdx-startIdx)
-		for i := int64(0); i < endIdx; i++ {
+		for i := int64(startIdx); i <= endIdx; i++ {
 			h, _ := db.FetchDBHashByHeight(uint32(i))
 			hashList = append(hashList, *wire.FactomHashToShaHash(h))
 		}
@@ -465,6 +474,8 @@ func (p *peer) handleGetDirBlocksMsg(msg *wire.MsgGetDirBlocks) {
 			continueHash := invMsg.InvList[invListLen-1].Hash
 			p.continueHash = &continueHash
 		}
+		
+		fmt.Printf("handleGetDirBlocksMsg invMsg=%s\n", spew.Sdump(invMsg))
 		p.QueueMessage(invMsg, nil)
 	}
 }
