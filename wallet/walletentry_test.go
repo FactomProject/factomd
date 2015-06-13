@@ -46,7 +46,7 @@ func Test_create_walletentry(test *testing.T) {
         test.Fail()
     }
  
-    if !we.IsEqual(w2) { test.Fail() }
+    if we.IsEqual(w2) != nil { test.Fail() }
 }
 
 

@@ -13,6 +13,7 @@ import (
     "bytes"
     fct "github.com/FactomProject/factoid"
     "github.com/FactomProject/factoid/block"
+    "github.com/FactomProject/factoid/wallet"
     db "github.com/FactomProject/factoid/database"
 )
 
@@ -25,6 +26,10 @@ type IFactoidState interface {
     SetDB(db.IFDatabase)    
     // Load the address state of Factoids
     LoadState() error 
+    // Get the wallet used to help manage the Factoid State in
+    // some applications.
+    GetWallet() wallet.ISCWallet
+    SetWallet(wallet.ISCWallet) 
     // The Exchange Rate for Entry Credits in Factoshis per
     // Entry Credits
     GetFactoshisPerEC() uint64
@@ -82,10 +87,18 @@ type FactoidState struct {
     factoshisPerEC uint64
     currentBlock block.IFBlock
     dbheight uint32
+    wallet wallet.ISCWallet
 }
 
 var _ IFactoidState = (*FactoidState)(nil)
 
+func(fs *FactoidState) GetWallet() wallet.ISCWallet {
+    return fs.wallet
+}
+
+func(fs *FactoidState) SetWallet(w wallet.ISCWallet) {
+    fs.wallet = w
+}
 
 func(fs *FactoidState) GetCurrentBlock() block.IFBlock {
     return fs.currentBlock

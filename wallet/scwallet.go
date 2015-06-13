@@ -23,27 +23,43 @@ import (
 // and that complicates the implementation without really making
 // the interface more usable by developers.
 type ISCWallet interface {
-    database.IFDatabase
+
+    // Returns the backing database for the wallet
+    GetDB() database.IFDatabase 
+    // Generate an Factoid Address
     GenerateAddress(name []byte, m int, n int) (fct.IAddress, error)
-    
-    GetAddressBalance(addr fct.IAddress) uint64
+    // Get details for an address
     GetAddressDetailsAddr(addr []byte) IWalletEntry
+    // Get a list of names for addresses.  Names are easier for people to use.
     GetAddressList() (names [][]byte, addresses []fct.IAddress)
-    GetAddressListByName(name []byte) (names[][]byte)
     
     /** Transaction calls **/
+    // Create a transaction.  This is just the bones, to which the
+    // user must add inputs, outputs, and sign before submission.
     CreateTransaction() fct.ITransaction
+    // Modify an input.  Used to back fill the transaction fee.
     UpdateInput(fct.ITransaction, int, fct.IAddress, uint64) error
+    // Add an input to a transaction
     AddInput(fct.ITransaction, fct.IAddress, uint64) error
+    // Add an output to a transaction
     AddOutput(fct.ITransaction, fct.IAddress, uint64) error
+    // Add an Entry Credit output to a transaction.  Note that these are 
+    // denominated in Factoids.  So you need the exchange rate to do this
+    // properly.
     AddECOutput(fct.ITransaction, fct.IAddress, uint64) error
+    // Validate a transaction.  Just checks that the inputs and outputs are
+    // there and properly constructed.
     Validate(fct.ITransaction) (bool,error)
+    // Checks that the signatures all validate.
     ValidateSignatures(fct.ITransaction) bool
+    // Sign the inputs that have public keys to which we have the private 
+    // keys.  In the future, we will allow transactions with partical signatures
+    // to be sent to other people to complete the signing process.  This will
+    // be particularly useful with multisig.
     SignInputs(fct.ITransaction) (bool, error)   // True if all inputs are signed
-    
+    // Get the exchange rate of Factoids per Entry Credit
     GetECRate() uint64
     
-    SubmitTransaction(fct.ITransaction) error
 }
 
 var factoshisPerEC uint64 = 100000
@@ -58,10 +74,8 @@ type SCWallet struct {
 
 var _ ISCWallet = (*SCWallet)(nil)
 
-func (b SCWallet) String() string {
-    txt,err := b.MarshalText()
-    if err != nil {return "<error>" }
-    return string(txt)
+func (w *SCWallet) GetDB() database.IFDatabase {
+    return &w.db
 }
 
 func (SCWallet) GetDBHash() fct.IHash {
@@ -110,14 +124,23 @@ func (w *SCWallet) GenerateAddress(name []byte,m int, n int) (hash fct.IAddress,
     
     we := new(WalletEntry)
     
-    nm := w.db.GetRaw([]byte("wallet.address.name"),name)
+    nm := w.db.GetRaw([]byte(fct.W_NAME_HASH),name)
     if nm != nil {
         return nil, fmt.Errorf("Duplicate Name")
     }
     
     if m == 1 && n == 1 {
+        // Get a public/private key pair
         pub,pri,err := w.generateKey()
+        // Error, skip out.
         if err != nil { return nil, err  }
+        // Make sure we have not generated this pair before;  Keep
+        // generating until we have a unique pair.
+        for w.db.GetRaw([]byte(fct.W_ADDRESS_PUB_KEY),pub) != nil {
+            pub,pri,err = w.generateKey()
+            if err != nil { return nil, err  }
+        }
+        
         we.AddKey(pub,pri)
         we.SetName(name)
         we.SetRCD(fct.NewRCD_1(pub))
@@ -126,7 +149,7 @@ func (w *SCWallet) GenerateAddress(name []byte,m int, n int) (hash fct.IAddress,
         // If that exists, then we store it as the hash of the hash and so forth.
         // This way, we can get a list of addresses with the same name.
         //
-        nm  := w.db.GetRaw([]byte("wallet.address.name"),name)
+        nm  := w.db.GetRaw([]byte(fct.W_NAME_HASH),name)
         switch {
             case nm == nil :       // New Name
                 hash, _ = we.GetAddress()

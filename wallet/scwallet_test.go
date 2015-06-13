@@ -43,6 +43,8 @@ func Test_create_scwallet(test *testing.T) {
     txt,err := we.MarshalText()
     var _ = txt
    // factoid.Prtln(string(txt))
+   
+   we
 }
 
 func Test_GenerateAddress_scwallet(test *testing.T) {
@@ -52,9 +54,9 @@ func Test_GenerateAddress_scwallet(test *testing.T) {
     h2,err := w.GenerateAddress([]byte("test 2"),1,1)
     if err != nil { test.Fail() }
     
-    if h1.IsEqual(h2) { test.Fail() }   
+    if h1.IsEqual(h2) == nil { test.Fail() }   
     
-    if !h1.IsEqual(h1) { test.Fail() }
+    if h1.IsEqual(h1) != nil { test.Fail() }
 }
 
 func Test_CreateTransaction_swcallet(test *testing.T) { 

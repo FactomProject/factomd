@@ -63,7 +63,7 @@ func (w1 WalletEntry)GetDBHash() fct.IHash {
     return fct.Sha([]byte("WalletEntry")     )
 }
 
-func (w1 WalletEntry)GetNewInstance() fct.IBlock {
+func (WalletEntry)GetNewInstance() fct.IBlock {
     return new(WalletEntry)
 }
 
@@ -113,6 +113,11 @@ func (w *WalletEntry) UnmarshalBinaryData(data []byte) ([]byte, error) {
         data = data[fct.PRIVATE_LENGTH:]
     }
     return data, nil
+}
+
+func (w *WalletEntry) UnmarshalBinary(data []byte) error {
+    _,err := w.UnmarshalBinaryData(data)
+    return err
 }
 
 func (w WalletEntry) MarshalBinary() ([]byte, error) {

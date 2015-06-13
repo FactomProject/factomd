@@ -40,7 +40,6 @@ func Test_setup_FactoidState (test *testing.T) {
     fs.inputAddresses = make([]fct.IAddress,0,10)
     fs.outputAddresses = make([]fct.IAddress,0,10)
     fs.twallet = new(wallet.SCWallet)              // Wallet for our tests
-    fs.twallet.Init()
     
     for i:=0; i<10; i++ {
         addr, err := fs.twallet.GenerateAddress([]byte("tes,mbbm,btin_"+cv.Itoa(i)),1,1)

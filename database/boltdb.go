@@ -129,6 +129,9 @@ func (d *BoltDB) GetRaw(bucket []byte, key []byte) (value fct.IBlock) {
     }
     
     r := instance.GetNewInstance()
+    if r == nil {
+        panic("An IBlock has failed to implement GetNewInstance()")
+    }
     
     datalen, v := binary.BigEndian.Uint32(v[0:4]), v[4:]
     if len(v) != int(datalen) {

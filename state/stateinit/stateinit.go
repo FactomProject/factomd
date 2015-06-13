@@ -15,6 +15,7 @@ import (
     "github.com/FactomProject/factoid/block"
     "github.com/FactomProject/factoid/database"
     "github.com/FactomProject/factoid/state"
+    "github.com/FactomProject/factoid/wallet"
 )
 
 var _ = fmt.Printf
@@ -22,6 +23,9 @@ var _ = fmt.Printf
 func NewFactoidState(filename string) state.IFactoidState{
     fs := new(state.FactoidState)
 
+    fs.SetWallet(new(wallet.SCWallet))
+    fs.GetWallet().GetDB().Init()
+    
     // Use Bolt DB
     if true {
         fs.SetDB(new(database.MapDB))
@@ -31,7 +35,9 @@ func NewFactoidState(filename string) state.IFactoidState{
         fs.GetDB().SetBacker(db)
         fs.GetDB().DoNotPersist(fct.DB_F_BALANCES)
         fs.GetDB().DoNotPersist(fct.DB_EC_BALANCES)
-        
+    
+        fs.GetWallet().GetDB().SetPersist(db)
+        fs.GetWallet().GetDB().SetBacker(db)
     }else{
         fs.SetDB(GetDatabase(filename))
     }
@@ -49,6 +55,9 @@ func GetDatabase(filename string) database.IFDatabase {
     bucketList = append(bucketList,[]byte(fct.DB_FACTOID_BLOCKS))
     bucketList = append(bucketList,[]byte(fct.DB_F_BALANCES))
     bucketList = append(bucketList,[]byte(fct.DB_EC_BALANCES))    
+    bucketList = append(bucketList,[]byte(fct.W_ADDRESS_HASH))    
+    bucketList = append(bucketList,[]byte(fct.W_ADDRESS_PUB_KEY))    
+    bucketList = append(bucketList,[]byte(fct.W_NAME_HASH))    
     
     instances = make(map[[fct.ADDRESS_LENGTH]byte]fct.IBlock)
     
@@ -68,6 +77,7 @@ func GetDatabase(filename string) database.IFDatabase {
     addinstance (new(fct.Transaction))
     addinstance (new(block.FBlock))
     addinstance (new(state.FSbalance))
+    addinstance (new(wallet.WalletEntry))
  
     db := new(database.BoltDB)
     db.Init(bucketList,instances,filename)
