@@ -1753,7 +1753,8 @@ out:
 
 			// Create and send as many inv messages as needed to
 			// drain the inventory send queue.
-			invMsg := wire.NewMsgInv()
+			//invMsg := wire.NewMsgInv()
+			invMsg := wire.NewMsgDirInv()
 			for e := invSendQueue.Front(); e != nil; e = invSendQueue.Front() {
 				iv := invSendQueue.Remove(e).(*wire.InvVect)
 
@@ -1768,7 +1769,8 @@ out:
 					waiting = queuePacket(
 						outMsg{msg: invMsg},
 						pendingMsgs, waiting)
-					invMsg = wire.NewMsgInv()
+					//invMsg = wire.NewMsgInv()
+					invMsg = wire.NewMsgDirInv()
 				}
 
 				// Add the inventory that is being relayed to
