@@ -33,11 +33,13 @@ func NewFactoidState(filename string) state.IFactoidState{
         db := GetDatabase(filename)
         fs.GetDB().SetPersist(db)
         fs.GetDB().SetBacker(db)
-        fs.GetDB().DoNotPersist(fct.DB_F_BALANCES)
-        fs.GetDB().DoNotPersist(fct.DB_EC_BALANCES)
-    
         fs.GetWallet().GetDB().SetPersist(db)
         fs.GetWallet().GetDB().SetBacker(db)
+        
+        fs.GetDB().DoNotPersist(fct.DB_F_BALANCES)
+        fs.GetDB().DoNotPersist(fct.DB_EC_BALANCES)
+        fs.GetDB().DoNotCache(fct.DB_FACTOID_BLOCKS)
+        
     }else{
         fs.SetDB(GetDatabase(filename))
     }

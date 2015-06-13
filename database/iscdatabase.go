@@ -58,8 +58,13 @@ type IFDatabase interface {
     // one can hook up a LevelDB or Bolt database.
     SetPersist(db IFDatabase)
     GetPersist() IFDatabase
-    // A bucket of less than 32 bytes can be ignored and not persisted
+    // This is a bucket that holds small or limited information that
+    // does not have to go to disk.
     DoNotPersist(bucket string )
+    // This bucket is written to disk.  We do not cache into memory 
+    // because the stuff in it is too big, and we don't need fast 
+    // access to it.
+    DoNotCache(bucket string )
 }
 
 

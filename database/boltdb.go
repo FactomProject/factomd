@@ -70,6 +70,8 @@ func (d *BoltDB) Clear(bucketList [][]byte) {
 //      Init(bucketList [][]byte, instances map[[32]byte]IBlock, filename string)
 //
 func (d *BoltDB) Init(a ...interface{}) {
+    d.doNotCache = make(map[string][]byte,5)
+    d.doNotPersist = make(map[string][]byte,5)
     
     bucketList := a[0].([][]byte)
     instances  := a[1].(map[[32]byte]fct.IBlock)

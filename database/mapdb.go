@@ -10,15 +10,10 @@ import (
 
 type MapDB struct {
 	FDatabase
-    doNotPersist  map[string] []byte  
 	cache  map[DBKey](fct.IBlock) // Our Cache
 }
 
 var _ IFDatabase = (*MapDB)(nil)
-
-func (m MapDB) DoNotPersist(bucket string) {
-    m.doNotPersist[bucket]= []byte(bucket)
-}
 
 func (b MapDB) String() string {
     txt,err := b.MarshalText()
@@ -27,7 +22,8 @@ func (b MapDB) String() string {
 }
 
 func (db *MapDB) Init(a ...interface{}) {
-	db.cache = make(map[DBKey](fct.IBlock), 100)
+    db.cache = make(map[DBKey](fct.IBlock), 100)
+    db.doNotCache = make(map[string][]byte,5)
     db.doNotPersist = make(map[string][]byte,5)
 }
 
@@ -36,7 +32,13 @@ func (db *MapDB) GetRaw(bucket []byte, key []byte) (value fct.IBlock) {
     value = db.cache[*dbkey]
     if value == nil && db.GetBacker() != nil {
         value = db.GetBacker().GetRaw(bucket,key)
-        if value != nil {
+        if value != nil && db.doNotCache[string(bucket)] == nil { 
+            db.cache[*dbkey]=value  // Put this value in our cache
+        }
+    }
+    if value == nil && db.GetPersist() != nil {
+        value = db.GetPersist().GetRaw(bucket,key)
+        if value != nil && db.doNotCache[string(bucket)] == nil { 
             db.cache[*dbkey]=value  // Put this value in our cache
         }
     }

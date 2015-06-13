@@ -47,7 +47,7 @@ func Test_setup_FactoidState (test *testing.T) {
         fs.inputAddresses = append(fs.inputAddresses,addr)
         fs.outputAddresses = append(fs.outputAddresses,addr)
     }
-    for i:=0; i<10; i++ {
+    for i:=0; i<1000; i++ {
         addr, err := fs.twallet.GenerateAddress([]byte("testout_"+cv.Itoa(i)),1,1)
         if err != nil { fct.Prtln(err); test.Fail() }
         fs.outputAddresses = append(fs.outputAddresses,addr)
@@ -66,13 +66,13 @@ func Test_create_genesis_FactoidState (test *testing.T) {
         fs.GetDB().SetBacker(db)
         fs.GetDB().DoNotPersist(fct.DB_F_BALANCES)
         fs.GetDB().DoNotPersist(fct.DB_EC_BALANCES)
-         
+        fs.GetDB().DoNotCache(fct.DB_FACTOID_BLOCKS)
     }else{
         fs.SetDB(stateinit.GetDatabase("/tmp/fct_test.db"))
     }
     // Set the price for Factoids
     fs.SetFactoshisPerEC(10000)
-   
+    fct.Prt("Loading....")
     err := fs.LoadState()
     if err != nil {
         fct.Prtln(err)
@@ -80,10 +80,10 @@ func Test_create_genesis_FactoidState (test *testing.T) {
         return
     }
     // Create a number of blocks (i)
-    for i:=0; i<10; i++ {
-        fct.Prt(" ",fs.GetDBHeight())
+    for i:=0; i<1000; i++ {
+        fct.Prt(" ",fs.GetDBHeight(),":",i*10000,"--",fs.badAddresses)
         // Create a new block
-        for j:=0; j<100; j++ {
+        for j:=0; j<10000; j++ {
             t := fs.newTransaction()
             added := fs.AddTransaction(t)
             if !added { 

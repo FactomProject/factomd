@@ -23,7 +23,7 @@ type Test_state struct {
     inputAddresses []fct.IAddress        // Genesis Address funds 10 addresses
     outputAddresses []fct.IAddress       // We consider our inputs and ten more addresses
     // as valid outputs.
-    
+    badAddresses int
 }
 
 func(fs *Test_state) GetWallet() wallet.ISCWallet {
@@ -77,7 +77,10 @@ func(fs *Test_state) newTransaction() fct.ITransaction {
     t := fs.twallet.CreateTransaction()
     for _, adr := range inputs {
         balance := fs.GetBalance(adr)
-        toPay := balance >> 8 
+        toPay := balance
+        if balance > 100000000 {
+            toPay = balance >> 8
+        }
         paid = toPay+paid
         fs.twallet.AddInput(t,adr, toPay)
         
@@ -98,6 +101,9 @@ func(fs *Test_state) newTransaction() fct.ITransaction {
     if !valid {
         fct.Prtln("Transaction is not valid")
     }
-    if !fs.Validate(t) {return fs.newTransaction() }
+    if !fs.Validate(t) {
+        fs.badAddresses += 1
+        return fs.newTransaction() 
+    }
     return t
 }
