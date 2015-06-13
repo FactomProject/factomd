@@ -4,7 +4,7 @@
 
 package wallet
 
-import ftc "github.com/FactomProject/factoid"
+import fct "github.com/FactomProject/factoid"
 import (
 	"encoding/hex"
     "encoding/binary"
@@ -21,7 +21,7 @@ var _ = fmt.Printf
 var _ = ed25519.Sign
 var _ = rand.New
 var _ = binary.Write
-var _ = ftc.Prtln   
+var _ = fct.Prtln   
  
 
 func Test_create_scwallet(test *testing.T) {
@@ -119,7 +119,7 @@ func Test_SignTransaction_swcallet(test *testing.T) {
     }
     
     txt,err := t.MarshalText()
-    ftc.Prtln(string(txt), "\n ", fee )
+    fct.Prtln(string(txt), "\n ", fee )
     
     valid := w.ValidateSignatures(t)
     if !valid {

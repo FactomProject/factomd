@@ -9,9 +9,9 @@ import (
 	"fmt"
     cv "strconv"
 	"github.com/agl/ed25519"
-    sc "github.com/FactomProject/simplecoin"
-    "github.com/FactomProject/simplecoin/wallet"
-    "github.com/FactomProject/simplecoin/block"
+    sc "github.com/FactomProject/factoid"
+    "github.com/FactomProject/factoid/wallet"
+    "github.com/FactomProject/factoid/block"
     "math/rand"
 	"testing"
     

@@ -8,13 +8,13 @@ import (
     "encoding/binary"
     "fmt"
     "github.com/agl/ed25519"
-    ftc "github.com/FactomProject/factoid"
+    fct "github.com/FactomProject/factoid"
     "math/rand"
     "testing"
     
 )
 
-var _ = ftc.Prt
+var _ = fct.Prt
 var _ = fmt.Printf
 var _ = ed25519.Sign
 var _ = rand.New
@@ -23,6 +23,6 @@ var _ = binary.Write
 func Test_create_genesis_block(test *testing.T) {
     gb := GetGenesisBlock(1000000,10,200000000000)
     var _ = gb
-    ftc.Prtln(gb)
-    ftc.Prtln("Hash: ",gb.GetHash())
+    fct.Prtln(gb)
+    fct.Prtln("Hash: ",gb.GetHash())
 }

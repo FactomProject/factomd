@@ -9,28 +9,28 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
-    ftc "github.com/FactomProject/factoid"
+    fct "github.com/FactomProject/factoid"
 )
 
 type IFBlock interface {
-	ftc.IBlock
-	GetChainID() ftc.IHash
+	fct.IBlock
+	GetChainID() fct.IHash
 	MarshalTrans() ([]byte, error)
-    AddCoinbase(ftc.ITransaction) (bool, error)
-	AddTransaction(ftc.ITransaction) (bool, error)
+    AddCoinbase(fct.ITransaction) (bool, error)
+	AddTransaction(fct.ITransaction) (bool, error)
 	CalculateHashes()
-    GetMerkleRoot() ftc.IHash
-    GetPrevBlock() ftc.IHash
+    GetMerkleRoot() fct.IHash
+    GetPrevBlock() fct.IHash
     SetPrevBlock([]byte) 
-    GetPrevHash3() ftc.IHash
+    GetPrevHash3() fct.IHash
     SetPrevHash3([]byte) 
 	SetDBHeight(uint32)
 	GetDBHeight() uint32
 	SetExchRate(uint64)
 	GetExchRate() uint64
-	GetUTXOCommit() ftc.IHash
+	GetUTXOCommit() fct.IHash
 	SetUTXOCommit([]byte) 
-    GetTransactions() []ftc.ITransaction
+    GetTransactions() []fct.ITransaction
 }
 
 // FBlockHeader defines information about a block and is used in the bitcoin
@@ -41,38 +41,38 @@ type IFBlock interface {
 type FBlock struct {
 	IFBlock
 	//  ChainID         IHash           // ChainID.  But since this is a constant, we need not actually use space to store it.
-	MerkleRoot ftc.IHash // Merkle root of the Factoid transactions which accompany this block.
-	PrevBlock  ftc.IHash // Key Merkle root of previous block.
-	PrevHash3  ftc.IHash // Sha3 of the previous Factoid Block
+	MerkleRoot fct.IHash // Merkle root of the Factoid transactions which accompany this block.
+	PrevBlock  fct.IHash // Key Merkle root of previous block.
+	PrevHash3  fct.IHash // Sha3 of the previous Factoid Block
 	ExchRate   uint64   // Factoshis per Entry Credit
 	DBHeight   uint32   // Directory Block height
-	UTXOCommit ftc.IHash // This field will hold a Merkle root of an array containing all unspent transactions.
+	UTXOCommit fct.IHash // This field will hold a Merkle root of an array containing all unspent transactions.
 	// Transaction count
 	// body size
-	transactions []ftc.ITransaction // List of transactions in this block
+	transactions []fct.ITransaction // List of transactions in this block
 }
 
 var _ IFBlock = (*FBlock)(nil)
 
-func (b *FBlock) GetTransactions() []ftc.ITransaction {
+func (b *FBlock) GetTransactions() []fct.ITransaction {
     return b.transactions
 }
 
-func (b FBlock) GetNewInstance() ftc.IBlock {
+func (b FBlock) GetNewInstance() fct.IBlock {
     return new(FBlock)
 }
 
-func (FBlock) GetDBHash() ftc.IHash {
-    return ftc.Sha([]byte("FBlock"))
+func (FBlock) GetDBHash() fct.IHash {
+    return fct.Sha([]byte("FBlock"))
 }
 
-func (b *FBlock) GetHash() ftc.IHash {
+func (b *FBlock) GetHash() fct.IHash {
     data,err := b.MarshalBinary()
     if err != nil {
         fmt.Println(err)
         return nil
     }
-    return ftc.Sha(data)
+    return fct.Sha(data)
 }
 
 func (b *FBlock) MarshalTrans() ([]byte, error) {
@@ -94,23 +94,23 @@ func (b *FBlock) MarshalTrans() ([]byte, error) {
 func (b *FBlock) MarshalBinary() ([]byte, error) {
 	var out bytes.Buffer
 	b.CalculateHashes()
-	out.Write(ftc.FACTOID_CHAINID)
+	out.Write(fct.FACTOID_CHAINID)
     
-    if b.MerkleRoot == nil {b.MerkleRoot = new(ftc.Hash)}
+    if b.MerkleRoot == nil {b.MerkleRoot = new(fct.Hash)}
     data, err := b.MerkleRoot.MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
 	out.Write(data)
     
-    if b.PrevBlock == nil {b.PrevBlock = new(ftc.Hash)}
+    if b.PrevBlock == nil {b.PrevBlock = new(fct.Hash)}
 	data, err = b.PrevBlock.MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
 	out.Write(data)
     
-    if b.PrevHash3 == nil {b.PrevHash3 = new(ftc.Hash)}
+    if b.PrevHash3 == nil {b.PrevHash3 = new(fct.Hash)}
     data, err = b.PrevHash3.MarshalBinary()
 	if err != nil {
 		return nil, err
@@ -120,7 +120,7 @@ func (b *FBlock) MarshalBinary() ([]byte, error) {
 	binary.Write(&out, binary.BigEndian, uint64(b.ExchRate))
 	binary.Write(&out, binary.BigEndian, uint32(b.DBHeight))
     
-    if b.UTXOCommit == nil {b.UTXOCommit = new(ftc.Hash)}
+    if b.UTXOCommit == nil {b.UTXOCommit = new(fct.Hash)}
     data, err = b.UTXOCommit.MarshalBinary()
 	if err != nil {
 		return nil, err
@@ -139,24 +139,24 @@ func (b *FBlock) MarshalBinary() ([]byte, error) {
 // UnmarshalBinary assumes that the Binary is all good.  We do error
 // out if there isn't enough data, or the transaction is too large.
 func (b *FBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
-	if bytes.Compare(data[:ftc.ADDRESS_LENGTH], ftc.FACTOID_CHAINID[:]) != 0 {
+	if bytes.Compare(data[:fct.ADDRESS_LENGTH], fct.FACTOID_CHAINID[:]) != 0 {
 		return nil, fmt.Errorf("Block does not begin with the Factoid ChainID")
 	}
 	data = data[32:]
 	
-	b.MerkleRoot = new(ftc.Hash)
+	b.MerkleRoot = new(fct.Hash)
 	data, err := b.MerkleRoot.UnmarshalBinaryData(data)
 	if err != nil {
 		return nil, err
 	}
 
-	b.PrevBlock = new(ftc.Hash)
+	b.PrevBlock = new(fct.Hash)
 	data, err = b.PrevBlock.UnmarshalBinaryData(data)
 	if err != nil {
 		return nil, err
 	}
 	
-	b.PrevHash3 = new(ftc.Hash)
+	b.PrevHash3 = new(fct.Hash)
 	data, err = b.PrevHash3.UnmarshalBinaryData(data)
 	if err != nil {
 		return nil, err
@@ -165,7 +165,7 @@ func (b *FBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	b.ExchRate, data = binary.BigEndian.Uint64(data[0:8]), data[8:]
 	b.DBHeight, data = binary.BigEndian.Uint32(data[0:4]), data[4:]
 
-	b.UTXOCommit = new(ftc.Hash)
+	b.UTXOCommit = new(fct.Hash)
 	data, err = b.UTXOCommit.UnmarshalBinaryData(data)
 	if err != nil {
 		return nil, err
@@ -175,12 +175,12 @@ func (b *FBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
 
 	data = data[8:] // Just skip the size... We don't really need it.
 
-	b.transactions = make([]ftc.ITransaction, cnt, cnt)
+	b.transactions = make([]fct.ITransaction, cnt, cnt)
 	for i := uint64(0); i < cnt; i++ {
-        trans := new(ftc.Transaction)
+        trans := new(fct.Transaction)
         data,err = trans.UnmarshalBinaryData(data)
         if err != nil {
-            ftc.Prtln("Failed to unmarshal a transaction in block.",err)
+            fct.Prtln("Failed to unmarshal a transaction in block.",err)
             return nil, fmt.Errorf("Failed to unmarshal a transaction in block.\n%s",b.String())
         }
 		b.transactions[i] = trans
@@ -196,14 +196,14 @@ func (b *FBlock) UnmarshalBinary(data []byte) (err error) {
 // Tests if the transaction is equal in all of its structures, and
 // in order of the structures.  Largely used to test and debug, but
 // generally useful.
-func (b1 *FBlock) IsEqual(block ftc.IBlock) []ftc.IBlock {
+func (b1 *FBlock) IsEqual(block fct.IBlock) []fct.IBlock {
 
 	b2, ok := block.(*FBlock)
 
 	if !ok || // Not the right kind of IBlock
         b1.ExchRate != b2.ExchRate ||
         b1.DBHeight != b2.DBHeight {
-            r := make([]ftc.IBlock,0,3)
+            r := make([]fct.IBlock,0,3)
             return append(r,b1)
         }
         
@@ -234,28 +234,28 @@ func (b1 *FBlock) IsEqual(block ftc.IBlock) []ftc.IBlock {
 
 	return nil
 }
-func (b *FBlock) GetChainID() ftc.IHash {
-    h := new(ftc.Hash)
-    h.SetBytes(ftc.FACTOID_CHAINID)
+func (b *FBlock) GetChainID() fct.IHash {
+    h := new(fct.Hash)
+    h.SetBytes(fct.FACTOID_CHAINID)
     return h
 }
-func (b *FBlock) GetMerkleRoot() ftc.IHash {
+func (b *FBlock) GetMerkleRoot() fct.IHash {
     return b.MerkleRoot
 }
-func (b *FBlock) GetPrevBlock() ftc.IHash {
+func (b *FBlock) GetPrevBlock() fct.IHash {
     return b.PrevBlock
 }
 func (b *FBlock) SetPrevBlock(hash []byte) {
-    h := ftc.NewHash(hash)
+    h := fct.NewHash(hash)
     b.PrevBlock= h
 }
-func (b *FBlock) GetPrevHash3() ftc.IHash {
+func (b *FBlock) GetPrevHash3() fct.IHash {
     return b.PrevHash3
 }
 func (b *FBlock) SetPrevHash3(hash[]byte)  {
     b.PrevHash3.SetBytes(hash)
 }
-func (b *FBlock) GetUTXOCommit() ftc.IHash {
+func (b *FBlock) GetUTXOCommit() fct.IHash {
     return b.UTXOCommit
 }
 func (b *FBlock) SetUTXOCommit(hash[]byte) {
@@ -279,7 +279,7 @@ func (b *FBlock) GetExchRate() uint64 {
 func (b FBlock) Validate() (bool, error) {
 	for _, trans := range b.transactions {
 		valid := trans.Validate()
-		if valid != ftc.WELL_FORMED {
+		if valid != fct.WELL_FORMED {
 			return false, fmt.Errorf("Block contains invalid transactions:\n%s",valid)
 		}
 	}
@@ -301,7 +301,7 @@ func (b FBlock) Validate() (bool, error) {
 // Add the first transaction of a block.  This transaction makes the 
 // payout to the servers, so it has no inputs.   This transaction must
 // be deterministic so that all servers will know and expect its output.
-func (b *FBlock) AddCoinbase(trans ftc.ITransaction) (bool, error) {
+func (b *FBlock) AddCoinbase(trans fct.ITransaction) (bool, error) {
     if len(b.transactions)              != 0 ||
        len(trans.GetInputs())           != 0 || 
        len(trans.GetOutECs())           != 0 ||
@@ -320,11 +320,11 @@ func (b *FBlock) AddCoinbase(trans ftc.ITransaction) (bool, error) {
 // Add a transaction to the Facoid block. If there is an error,
 // then the transaction can be discarded.  If it returns true,
 // then the transaction was added, if false it was not.
-func (b *FBlock) AddTransaction(trans ftc.ITransaction) (bool, error) {
+func (b *FBlock) AddTransaction(trans fct.ITransaction) (bool, error) {
 	// These tests check that the Transaction itself is valid.  If it
 	// is not internally valid, it never will be valid.
 	valid := trans.Validate()
-	if valid != ftc.WELL_FORMED {
+	if valid != fct.WELL_FORMED {
 		return false, fmt.Errorf("Invalid Transaction: %s",valid)
 	}
 
@@ -338,7 +338,7 @@ func (b *FBlock) AddTransaction(trans ftc.ITransaction) (bool, error) {
 
 func (b FBlock) String() string {
     txt,err := b.MarshalText()
-    if err != nil {return "<error>" }
+    if err != nil {return err.Error() }
     return string(txt)
 }
 
@@ -348,31 +348,31 @@ func (b FBlock) MarshalText() (text []byte, err error) {
 
 	out.WriteString("Transaction Block\n")
 	out.WriteString("  ChainID: ")
-	out.WriteString(hex.EncodeToString(ftc.FACTOID_CHAINID))
-    if b.MerkleRoot == nil { b.MerkleRoot = new (ftc.Hash) }
+	out.WriteString(hex.EncodeToString(fct.FACTOID_CHAINID))
+    if b.MerkleRoot == nil { b.MerkleRoot = new (fct.Hash) }
     out.WriteString("\n  MerkleRoot: ")
     out.WriteString(b.MerkleRoot.String())
-    if b.PrevBlock == nil { b.PrevBlock = new (ftc.Hash) }
+    if b.PrevBlock == nil { b.PrevBlock = new (fct.Hash) }
     out.WriteString("\n  PrevBlock: ")
 	out.WriteString(b.PrevBlock.String())
-    if b.PrevHash3 == nil { b.PrevHash3 = new (ftc.Hash) }
+    if b.PrevHash3 == nil { b.PrevHash3 = new (fct.Hash) }
     out.WriteString("\n  PrevHash3: ")
 	out.WriteString(b.PrevHash3.String())
 	out.WriteString("\n  ExchRate: ")
-	ftc.WriteNumber64(&out, b.ExchRate)
+	fct.WriteNumber64(&out, b.ExchRate)
 	out.WriteString("\n  DBHeight: ")
-	ftc.WriteNumber32(&out, b.DBHeight)
-    if b.UTXOCommit == nil { b.UTXOCommit = new (ftc.Hash) }
+	fct.WriteNumber32(&out, b.DBHeight)
+    if b.UTXOCommit == nil { b.UTXOCommit = new (fct.Hash) }
     out.WriteString("\n  UTXOCommit: ")
 	out.WriteString(b.UTXOCommit.String())
 	out.WriteString("\n  Number Transactions: ")
-	ftc.WriteNumber64(&out, uint64(len(b.transactions)))
+	fct.WriteNumber64(&out, uint64(len(b.transactions)))
 	transdata, err := b.MarshalTrans()
 	if err != nil {
 		return out.Bytes(), err
 	}
 	out.WriteString("\n  Body Size: ")
-	ftc.WriteNumber64(&out, uint64(len(transdata)))
+	fct.WriteNumber64(&out, uint64(len(transdata)))
 	out.WriteString("\n")
 	for _, trans := range b.transactions {
 		txt, err := trans.MarshalText()
@@ -380,17 +380,7 @@ func (b FBlock) MarshalText() (text []byte, err error) {
 			return out.Bytes(), err
 		}
 		out.Write(txt)
-        t := trans.GetNewInstance()
-        t.UnmarshalBinary(txt)
-        if t.IsEqual(trans) != nil {
-            return nil, fmt.Errorf("Failed to marshal the transaction:\n%s",trans.String())
-        }
 	}
-    bn := b.GetNewInstance()
-    bn.UnmarshalBinary(out.Bytes())
-    if b.IsEqual(bn) != nil {
-        return nil, fmt.Errorf("Failed to marshal the transaction block:\n%s",b.String())
-    }
 	return out.Bytes(), nil
 }
 
@@ -400,10 +390,10 @@ func (b FBlock) MarshalText() (text []byte, err error) {
 
 func NewFBlock(ExchRate uint64, DBHeight uint32) IFBlock {
 	scb := new(FBlock)
-    scb.MerkleRoot = new (ftc.Hash)
-    scb.PrevBlock  = new (ftc.Hash)
-    scb.PrevHash3  = new (ftc.Hash)
-    scb.UTXOCommit = new (ftc.Hash)
+    scb.MerkleRoot = new (fct.Hash)
+    scb.PrevBlock  = new (fct.Hash)
+    scb.PrevHash3  = new (fct.Hash)
+    scb.UTXOCommit = new (fct.Hash)
 	scb.ExchRate   = ExchRate
 	scb.DBHeight   = DBHeight
 	return scb

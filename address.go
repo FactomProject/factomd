@@ -48,8 +48,12 @@ func (a Address) MarshalText() (text []byte, err error) {
 	return out.Bytes(), nil
 }
 
-func CreateAddress(hash IHash) IAddress {
-	a := new(Address)
-    a.SetBytes(hash.Bytes())
+func NewAddress(b []byte) IAddress {
+    a := new(Address)
+    a.SetBytes(b)
     return a
+}
+
+func CreateAddress(hash IHash) IAddress {
+    return NewAddress(hash.Bytes())
 }

@@ -57,6 +57,14 @@ type Transaction struct {
 
 var _ ITransaction = (*Transaction)(nil)
 
+func (b Transaction) GetHash() IHash {
+    m, err := b.MarshalBinary()
+    if err != nil {
+        return nil
+    }
+    return Sha(m)
+}
+
 func (b Transaction) String() string {
 	txt, err := b.MarshalText()
 	if err != nil {

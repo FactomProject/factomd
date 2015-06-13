@@ -8,7 +8,7 @@ import (
     "encoding/hex"
     "encoding/binary"
     "fmt"
-    ftc "github.com/FactomProject/factoid"
+    fct "github.com/FactomProject/factoid"
     "github.com/FactomProject/factoid/database"
     "github.com/agl/ed25519"
     "math/rand"
@@ -21,13 +21,13 @@ var _ = fmt.Printf
 var _ = ed25519.Sign
 var _ = rand.New
 var _ = binary.Write
-var _ = ftc.Prtln 
+var _ = fct.Prtln 
 
 func GetDatabase() database.IFDatabase {
     
     var bucketList [][]byte
-    var instances  map[[ftc.ADDRESS_LENGTH]byte]ftc.IBlock
-    var addinstance = func  (b ftc.IBlock){
+    var instances  map[[fct.ADDRESS_LENGTH]byte]fct.IBlock
+    var addinstance = func  (b fct.IBlock){
         key := new ([32]byte)
         copy(key[:],b.GetDBHash().Bytes())
         instances[*key] = b 
@@ -39,28 +39,28 @@ func GetDatabase() database.IFDatabase {
     bucketList[0] = []byte("factoidOrphans_balances")
     bucketList[0] = []byte("factomAddress_balances")
     
-    instances = make(map[[ftc.ADDRESS_LENGTH]byte]ftc.IBlock)
+    instances = make(map[[fct.ADDRESS_LENGTH]byte]fct.IBlock)
     
-    addinstance (new(ftc.Address))
-    addinstance (new(ftc.Hash))
-    addinstance (new(ftc.InAddress))
-    addinstance (new(ftc.OutAddress))
-    addinstance (new(ftc.OutECAddress))
-    addinstance (new(ftc.RCD_1))
-    addinstance (new(ftc.RCD_2))
-    addinstance (new(ftc.Signature))
-    addinstance (new(ftc.Transaction))
+    addinstance (new(fct.Address))
+    addinstance (new(fct.Hash))
+    addinstance (new(fct.InAddress))
+    addinstance (new(fct.OutAddress))
+    addinstance (new(fct.OutECAddress))
+    addinstance (new(fct.RCD_1))
+    addinstance (new(fct.RCD_2))
+    addinstance (new(fct.Signature))
+    addinstance (new(fct.Transaction))
     addinstance (new(FSbalance))
     
     db := new(database.BoltDB)
-    db.Clear(bucketList,"/tmp/fs_test.db")
+
     db.Init(bucketList,instances,"/tmp/fs_test.db")
     
     return db
 }
 
-func Test_updating_balances_factomstate (test *testing.T) {
-    fs := new(FactomState)
+func Test_updating_balances_FactoidState (test *testing.T) {
+    fs := new(FactoidState)
     fs.database = GetDatabase()
 
 }

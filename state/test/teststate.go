@@ -2,13 +2,13 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-package state
+package test
 
 import (
     "fmt"
     "time"
     "math/rand"
-    ftc "github.com/FactomProject/factoid"    
+    fct "github.com/FactomProject/factoid"    
     "github.com/FactomProject/factoid/state"    
     "github.com/FactomProject/factoid/wallet"    
 )
@@ -16,27 +16,31 @@ import (
 var _ = fmt.Printf
 
 
-type test_state struct {
-    state.FactomState
+type Test_state struct {
+    state.FactoidState
     clock int64
     twallet wallet.ISCWallet
-    inputAddresses []ftc.IAddress        // Genesis Address funds 10 addresses
-    outputAddresses []ftc.IAddress       // We consider our inputs and ten more addresses
+    inputAddresses []fct.IAddress        // Genesis Address funds 10 addresses
+    outputAddresses []fct.IAddress       // We consider our inputs and ten more addresses
     // as valid outputs.
     
 }
 
-func(fs *test_state) GetTime64() int64 {
+func(fs *Test_state) GetWallet() wallet.ISCWallet {
+    return fs.twallet
+}
+
+func(fs *Test_state) GetTime64() int64 {
     return time.Now().UnixNano()
 }
 
-func(fs *test_state) GetTime32() int64 {
+func(fs *Test_state) GetTime32() int64 {
     return time.Now().Unix()
 }
 
-func(fs *test_state) newTransaction() ftc.ITransaction {
+func(fs *Test_state) newTransaction() fct.ITransaction {
     
-    fs.inputAddresses = make([]ftc.IAddress,0,20)
+    fs.inputAddresses = make([]fct.IAddress,0,20)
     for _,output := range fs.outputAddresses {
         bal := fs.GetBalance(output)
         if bal > 100000 {
@@ -46,8 +50,8 @@ func(fs *test_state) newTransaction() ftc.ITransaction {
     // The following code is a function that creates an array
     // of addresses pulled from some source array of addresses
     // selected randomly.
-    var makeList = func(source []ftc.IAddress, cnt int) []ftc.IAddress{
-        adrs := make([]ftc.IAddress,0,cnt)
+    var makeList = func(source []fct.IAddress, cnt int) []fct.IAddress{
+        adrs := make([]fct.IAddress,0,cnt)
         MainLoop: for len(adrs)<cnt {
             i := rand.Int()%len(source)
             adr := source[i]
@@ -88,11 +92,11 @@ func(fs *test_state) newTransaction() ftc.ITransaction {
     
     valid, err := fs.twallet.SignInputs(t)
     if err != nil {
-        ftc.Prtln("Failed to sign transaction")
+        fct.Prtln("Failed to sign transaction")
         panic(err)
     }
     if !valid {
-        ftc.Prtln("Transaction is not valid")
+        fct.Prtln("Transaction is not valid")
     }
     if !fs.Validate(t) {return fs.newTransaction() }
     return t

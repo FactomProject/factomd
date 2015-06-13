@@ -7,7 +7,7 @@ package database
 import (
     "encoding/binary"
     "fmt"
-    ftc "github.com/FactomProject/factoid"
+    fct "github.com/FactomProject/factoid"
     "github.com/agl/ed25519"
     "math/rand"
     "testing"
@@ -31,8 +31,8 @@ var _ = binary.Read
 // can provide the hash, we don't need two maps.  Just the Hash to the
 // IBlock.
 
-func cp (a ftc.IHash) [ftc.ADDRESS_LENGTH]byte {
-    r := new([ftc.ADDRESS_LENGTH]byte)
+func cp (a fct.IHash) [fct.ADDRESS_LENGTH]byte {
+    r := new([fct.ADDRESS_LENGTH]byte)
     copy(r[:],a.Bytes())
     return *r
 }
@@ -48,24 +48,24 @@ func Test_bolt_init(t *testing.T) {
     bucketList[3] = []byte("four")
     bucketList[4] = []byte("five")
     
-    instances := make(map[[ftc.ADDRESS_LENGTH]byte]ftc.IBlock)
+    instances := make(map[[fct.ADDRESS_LENGTH]byte]fct.IBlock)
     {   
-        var a ftc.IBlock
-        a = new(ftc.Address); instances[cp(a.GetDBHash())] = a 
-        a = new(ftc.Hash); instances[cp(a.GetDBHash())] = a 
-        a = new(ftc.InAddress); instances[cp(a.GetDBHash())] = a 
-        a = new(ftc.OutAddress); instances[cp(a.GetDBHash())] = a 
-        a = new(ftc.OutECAddress); instances[cp(a.GetDBHash())] = a 
-        a = new(ftc.RCD_1); instances[cp(a.GetDBHash())] = a 
-        a = new(ftc.RCD_2); instances[cp(a.GetDBHash())] = a 
-        a = new(ftc.Signature); instances[cp(a.GetDBHash())] = a 
-        a = new(ftc.Transaction); instances[cp(a.GetDBHash())] = a 
+        var a fct.IBlock
+        a = new(fct.Address); instances[cp(a.GetDBHash())] = a 
+        a = new(fct.Hash); instances[cp(a.GetDBHash())] = a 
+        a = new(fct.InAddress); instances[cp(a.GetDBHash())] = a 
+        a = new(fct.OutAddress); instances[cp(a.GetDBHash())] = a 
+        a = new(fct.OutECAddress); instances[cp(a.GetDBHash())] = a 
+        a = new(fct.RCD_1); instances[cp(a.GetDBHash())] = a 
+        a = new(fct.RCD_2); instances[cp(a.GetDBHash())] = a 
+        a = new(fct.Signature); instances[cp(a.GetDBHash())] = a 
+        a = new(fct.Transaction); instances[cp(a.GetDBHash())] = a 
     }
     db.Init(bucketList, instances)
-    a := new(ftc.Address)
-    a.SetBytes(ftc.Sha([]byte("I came, I saw")).Bytes())
-    db.Put("one",ftc.Sha([]byte("one")),a)
-    r := db.Get("one",ftc.Sha([]byte("one")))
+    a := new(fct.Address)
+    a.SetBytes(fct.Sha([]byte("I came, I saw")).Bytes())
+    db.Put("one",fct.Sha([]byte("one")),a)
+    r := db.Get("one",fct.Sha([]byte("one")))
     
     if !a.IsEqual(r) { t.Fail() }
 }

@@ -5,11 +5,11 @@
 package block
 
 import (
-    ftc "github.com/FactomProject/factoid"
+    fct "github.com/FactomProject/factoid"
     "github.com/FactomProject/factoid/wallet"
 )
 
-var _ = ftc.Prt
+var _ = fct.Prt
 
 var genesisBlock IFBlock
 
@@ -35,7 +35,7 @@ func GetGenesisBlock(ExRate uint64, addressCnt int, Factoids uint64 ) IFBlock {
     
 	flg, err := genesisBlock.AddCoinbase(t)
 	if !flg || err != nil { 
-        ftc.Prtln("Flag: ",flg," Error: ",err)
+        fct.Prtln("Flag: ",flg," Error: ",err)
     }
 	return genesisBlock
 }
