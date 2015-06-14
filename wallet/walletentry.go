@@ -24,7 +24,7 @@ type IWalletEntry interface {
     AddKey(public, private []byte)
     GetName() ([]byte)  
     SetName([]byte)  
-    GetAddress() (fct.IHash, error)
+    GetAddress() (fct.IAddress, error)
     
 }
 
@@ -47,7 +47,7 @@ func (b WalletEntry) String() string {
     return string(txt)
 }
 
-func (w1 WalletEntry)GetAddress() (fct.IHash, error) {
+func (w1 WalletEntry)GetAddress() (fct.IAddress, error) {
     if w1.rcd == nil {
         return nil, fmt.Errorf("Should never happen. Missing the rcd block")
     }

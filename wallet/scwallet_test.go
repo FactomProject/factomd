@@ -44,7 +44,7 @@ func Test_create_scwallet(test *testing.T) {
     var _ = txt
    // factoid.Prtln(string(txt))
    
-   we
+   
 }
 
 func Test_GenerateAddress_scwallet(test *testing.T) {

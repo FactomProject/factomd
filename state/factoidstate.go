@@ -23,7 +23,8 @@ type IFactoidState interface {
     // Set the database for the Coin State.  This is where
     // we manage the balances for transactions.  We also look
     // for previous blocks here.
-    SetDB(db.IFDatabase)    
+    SetDB(db.IFDatabase)  
+    GetDB() db.IFDatabase
     // Load the address state of Factoids
     LoadState() error 
     // Get the wallet used to help manage the Factoid State in
@@ -161,6 +162,7 @@ func(fs *FactoidState) ProcessEndOfBlock(){
     if hash != nil {
         fs.currentBlock.SetPrevBlock(hash.Bytes())
     }
+    
 }
 
 func(fs *FactoidState) LoadState() error  {

@@ -17,27 +17,25 @@ import (
 
 var _ = fct.Address{}
 
-func  handleFactoidGenerateAddress(ctx *web.Context, keymr string) {
-
+func  handleFactoidGenerateAddress(ctx *web.Context, name string) {
+    
     type faddress struct {
         Address string
     }
     
-    adr, err := factoidState.GetWallet().GenerateAddress([]byte(keymr),1,1)
+    adr, err := factoidState.GetWallet().GenerateAddress([]byte(name),1,1)
     if err != nil {
         fmt.Println("Error: ",err)
-        ctx.WriteHeader(httpBad)
+        reportResults(ctx,false)
         return
     }
     
     a := new(faddress)
     
     adrstr := hex.EncodeToString(adr.Bytes())
-    
     a.Address = adrstr
-    
     if p, err := json.Marshal(a); err != nil {
-        ctx.WriteHeader(httpBad)
+        reportResults(ctx,false)
         return
     } else {
         ctx.Write(p)

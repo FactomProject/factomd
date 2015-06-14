@@ -67,7 +67,7 @@ func Test_bolt_init(t *testing.T) {
     db.Put("one",fct.Sha([]byte("one")),a)
     r := db.Get("one",fct.Sha([]byte("one")))
     
-    if !a.IsEqual(r) { t.Fail() }
+    if a.IsEqual(r)!= nil { t.Fail() }
 }
     
 

@@ -15,6 +15,26 @@ import (
 
 var _ = fmt.Printf
 
+type Stats struct {
+    badAddresses int
+    transactions int
+    errors map[string]int
+    start time.Time
+    blocktimes []time.Time
+}
+func (s Stats) begin() {
+    s.start = time.Now()
+}
+func (s Stats) endBlock() {
+    s.blocktimes = append(s.blocktimes, time.Now())
+}
+func (s Stats) logError(err string) {
+    if s.errors == nil {
+        s.errors = make(map[string]int)
+    }
+    cnt := s.errors[err]
+    s.errors[err] = cnt+1
+}
 
 type Test_state struct {
     state.FactoidState
@@ -22,8 +42,7 @@ type Test_state struct {
     twallet wallet.ISCWallet
     inputAddresses []fct.IAddress        // Genesis Address funds 10 addresses
     outputAddresses []fct.IAddress       // We consider our inputs and ten more addresses
-    // as valid outputs.
-    badAddresses int
+    stats Stats
 }
 
 func(fs *Test_state) GetWallet() wallet.ISCWallet {
@@ -43,7 +62,7 @@ func(fs *Test_state) newTransaction() fct.ITransaction {
     fs.inputAddresses = make([]fct.IAddress,0,20)
     for _,output := range fs.outputAddresses {
         bal := fs.GetBalance(output)
-        if bal > 100000 {
+        if bal > 1000000 {
             fs.inputAddresses = append(fs.inputAddresses, output)
         }
     }
@@ -78,7 +97,7 @@ func(fs *Test_state) newTransaction() fct.ITransaction {
     for _, adr := range inputs {
         balance := fs.GetBalance(adr)
         toPay := balance
-        if balance > 100000000 {
+        if balance > 1000000 {
             toPay = balance >> 8
         }
         paid = toPay+paid
@@ -102,7 +121,7 @@ func(fs *Test_state) newTransaction() fct.ITransaction {
         fct.Prtln("Transaction is not valid")
     }
     if !fs.Validate(t) {
-        fs.badAddresses += 1
+        fs.stats.badAddresses += 1
         return fs.newTransaction() 
     }
     return t
