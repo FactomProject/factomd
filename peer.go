@@ -1634,6 +1634,10 @@ out:
 			util.Trace()
 			p.handleEBlockMsg(msg, buf)
 
+		case *wire.MsgFBlock:
+			util.Trace()
+			p.handleFBlockMsg(msg, buf)
+
 		case *wire.MsgGetEntryData:
 			util.Trace()
 			p.handleGetEntryDataMsg(msg)
