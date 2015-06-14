@@ -5,10 +5,13 @@
 package wire
 
 import (
+    "fmt"
 	"bytes"
 	"io"
 	fct "github.com/FactomProject/factoid"
 )
+
+var _ = fmt.Printf
 
 type IMsgFactoidTX interface {
     // BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
@@ -37,50 +40,42 @@ type IMsgFactoidTX interface {
 // revealing it.
 type MsgFactoidTX struct {
     IMsgFactoidTX
-	transaction fct.ITransaction
+	Transaction fct.ITransaction
 }
 
 // BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
 // This is part of the Message interface implementation.
 func (msg *MsgFactoidTX) BtcEncode(w io.Writer, pver uint32) error {
-    bytes, err := msg.transaction.MarshalBinary()
-	if err != nil {
-		return err
-	}
-	// Write the transaction length
-	if err := writeElement(w, uint32(len(bytes))); err != nil {
+    
+    data, err := msg.Transaction.MarshalBinary()
+    if err != nil {
         return err
     }
-	// Write the transaction 
-	if err := writeVarBytes(w, pver, bytes); err != nil {
-		return err
-	}
-
-	return nil
+    
+    err = writeVarBytes(w, pver, data)
+    if err != nil {
+        return err
+    }
+    
+    return nil
 }
 
 // BtcDecode decodes r using the bitcoin protocol encoding into the receiver.
 // This is part of the Message interface implementation.
 func (msg *MsgFactoidTX) BtcDecode(r io.Reader, pver uint32) error {
-    var length uint32
-    // Read the transaction length
-    err := readElement(r , &length)
+    
+    data, err := readVarBytes(r, pver, uint32(100000000), CmdEBlock)
     if err != nil {
         return err
     }
-    // Get the bytes for the transaction
-    bytes, err := readVarBytes(r, pver, uint32(length), CmdFactoidTX)
-	if err != nil {
-		return err
-	}
-    // Unmarshal
-	msg.transaction = new(fct.Transaction)
-	err = msg.transaction.UnmarshalBinary(bytes)
-	if err != nil {
-		return err
-	}
-
-	return nil
+        
+    msg.Transaction = new(fct.Transaction)
+    err = msg.Transaction.UnmarshalBinary(data)
+    if err != nil {
+        return err
+    }
+    
+    return nil
 }
 
 // Command returns the protocol command string for the message.  This is part
@@ -104,7 +99,7 @@ func NewMsgFactoidTX() IMsgFactoidTX {
 // Check whether the msg can pass the message level validations
 // such as timestamp, signiture and etc
 func (msg *MsgFactoidTX) IsValid() bool {
-    return msg.transaction.Validate() == fct.WELL_FORMED
+    return msg.Transaction.Validate() == fct.WELL_FORMED
 }
 
 // Create a sha hash from the message binary (output of BtcEncode)
