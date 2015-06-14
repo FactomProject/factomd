@@ -25,12 +25,12 @@ var ErrHashStrSize = fmt.Errorf("max hash string length is %v bytes", MaxHashStr
 // typically represents the double sha256 of data.
 type ShaHash [HashSize]byte
 
-// String returns the ShaHash as the hexadecimal string of the byte-reversed
-// hash.
+
+// To make it consistent with Factom Hash ------------------- 
 func (hash ShaHash) String() string {
-	for i := 0; i < HashSize/2; i++ {
-		hash[i], hash[HashSize-1-i] = hash[HashSize-1-i], hash[i]
-	}
+	//for i := 0; i < HashSize/2; i++ {
+		//hash[i], hash[HashSize-1-i] = hash[HashSize-1-i], hash[i]
+	//}
 	return hex.EncodeToString(hash[:])
 }
 
