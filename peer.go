@@ -253,12 +253,11 @@ func (p *peer) RelayTxDisabled() bool {
 // pushVersionMsg sends a version message to the connected peer using the
 // current state.
 func (p *peer) pushVersionMsg() error {
-	/*
-		_, blockNum, err := p.server.db.NewestSha()
-		if err != nil {
-			return err
-		}
-	*/
+	//_, blockNum, err := p.server.db.NewestSha()
+	_, blockNum, err := db.FetchBlockHeightCache()
+	if err != nil {
+		return err
+	}
 
 	theirNa := p.na
 
@@ -280,8 +279,8 @@ func (p *peer) pushVersionMsg() error {
 	util.Trace("NOT IMPLEMENTED? Factoid1")
 	msg := wire.NewMsgVersion(
 		p.server.addrManager.GetBestLocalAddress(p.na), theirNa,
-		//		p.server.nonce, int32(blockNum))
-		p.server.nonce, 0) // TODO: provide a block number from Factom
+		p.server.nonce, int32(blockNum))
+	//p.server.nonce, 0) // TODO: provide a block number from Factom
 	msg.AddUserAgent(userAgentName, userAgentVersion)
 
 	// XXX: bitcoind appears to always enable the full node services flag
@@ -491,7 +490,7 @@ func (p *peer) pushTxMsg(sha *wire.ShaHash, doneChan, waitChan chan struct{}) er
 		p.QueueMessage(tx.MsgTx(), doneChan)
 	*/
 
-	return nil
+	//return nil
 }
 
 // pushBlockMsg sends a block message for the provided block hash to the
@@ -543,7 +542,7 @@ func (p *peer) pushBlockMsg(sha *wire.ShaHash, doneChan, waitChan chan struct{})
 			}
 		}
 	*/
-	return nil
+	//return nil
 }
 
 /*
