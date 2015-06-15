@@ -14,17 +14,17 @@ import (
 	//	"github.com/FactomProject/btcd/chaincfg"
 	//	"github.com/FactomProject/btcutil"
 
+	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/btcd/wire"
 	"github.com/davecgh/go-spew/spew"
-	"github.com/FactomProject/FactomCode/database"	
 )
 
 var _ = fmt.Printf
 
 var (
 	local_Server *server
-	db       database.Db        // database	
+	db           database.Db // database
 	// to be renamed??
 	inMsgQueue  chan wire.FtmInternalMsg //incoming message queue for factom application messages
 	outMsgQueue chan wire.FtmInternalMsg //outgoing message queue for factom application messages
@@ -56,7 +56,7 @@ func factomForkInit(s *server) {
 			switch msg.(type) {
 			case *wire.MsgInt_DirBlock:
 				dirBlock, _ := msg.(*wire.MsgInt_DirBlock)
-				util.Trace("Dir Block GENERATED. dirBlock= ", spew.Sdump(dirBlock))
+				util.Trace("Dir Block Received (from wire.MsgInt_DirBlock). dirBlock= ", spew.Sdump(dirBlock))
 				iv := wire.NewInvVect(wire.InvTypeFactomDirBlock, dirBlock.ShaHash)
 				s.RelayInventory(iv, nil)
 
@@ -140,14 +140,14 @@ func Start_btcd(
 	outMsgQ chan wire.FtmInternalMsg,
 	inCtlMsgQ chan wire.FtmInternalMsg,
 	outCtlMsgQ chan wire.FtmInternalMsg) {
-		
+
 	db = ldb
 
 	inMsgQueue = inMsgQ
 	outMsgQueue = outMsgQ
 
 	inCtlMsgQueue = inCtlMsgQ
-	outCtlMsgQueue = outCtlMsgQ		
+	outCtlMsgQueue = outCtlMsgQ
 	util.Trace("FORMER REAL btcd main() function !")
 
 	// Use all processor cores.
