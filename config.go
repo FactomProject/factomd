@@ -21,7 +21,6 @@ import (
 	//	_ "github.com/FactomProject/btcd/database/memdb"
 	"github.com/FactomProject/btcd/wire"
 	//	"github.com/FactomProject/btcutil"
-	"github.com/FactomProject/FactomCode/process"
 	flags "github.com/FactomProject/go-flags"
 	"github.com/FactomProject/go-socks/socks"
 )
@@ -57,6 +56,9 @@ var (
 	defaultRPCKeyFile  = filepath.Join(btcdHomeDir, "rpc.key")
 	defaultRPCCertFile = filepath.Join(btcdHomeDir, "rpc.cert")
 	defaultLogDir      = filepath.Join(btcdHomeDir, defaultLogDirname)
+
+	factomdUser string
+	factomdPass string
 )
 
 // runServiceCommand is only set to a real function on Windows.  It is used
@@ -554,7 +556,7 @@ func loadConfig() (*config, []string, error) {
 
 	// The RPC server is disabled if no username or password is provided.
 	//	if cfg.RPCUser == "" || cfg.RPCPass == "" {
-	if "" == process.FactomdUser || "" == process.FactomdPass {
+	if "" == factomdUser || "" == factomdPass {
 		cfg.DisableRPC = true
 		fmt.Println("Disabling the RPC server...")
 	}
