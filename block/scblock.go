@@ -304,7 +304,7 @@ func (b FBlock) Validate() (bool, error) {
 func (b *FBlock) AddCoinbase(trans fct.ITransaction) (bool, error) {
     if len(b.transactions)              != 0 ||
        len(trans.GetInputs())           != 0 || 
-       len(trans.GetOutECs())           != 0 ||
+       len(trans.GetECOutputs())           != 0 ||
        len(trans.GetRCDs())             != 0 ||
        len(trans.GetSignatureBlocks())  != 0 {
         return false, fmt.Errorf("Cannot have inputs or EC outputs in the coinbase.")

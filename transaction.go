@@ -21,7 +21,7 @@ type ITransaction interface {
 
 	GetInput(i int) (IInAddress, error)
 	GetOutput(int) (IOutAddress, error)
-	GetOutEC(int) (IOutECAddress, error)
+	GetECOutput(int) (IOutECAddress, error)
 	GetRCD(int) (IRCD, error)
 
     GetLockTime() uint64
@@ -30,7 +30,7 @@ type ITransaction interface {
 	SetSignatureBlock(i int, signatureblk ISignatureBlock)
 	GetInputs() []IInAddress
 	GetOutputs() []IOutAddress
-	GetOutECs() []IOutECAddress
+	GetECOutputs() []IOutECAddress
 	GetRCDs() []IRCD
 	GetSignatureBlocks() []ISignatureBlock
 	TotalInputs() uint64
@@ -273,7 +273,7 @@ func (t1 *Transaction) IsEqual(trans IBlock) []IBlock {
 	if !ok || // Not the right kind of IBlock
 		len(t1.inputs) != len(t2.GetInputs()) || // Size of arrays has to match
 		len(t1.outputs) != len(t2.GetOutputs()) || // Size of arrays has to match
-		len(t1.outECs) != len(t2.GetOutECs()) { // Size of arrays has to match
+		len(t1.outECs) != len(t2.GetECOutputs()) { // Size of arrays has to match
 
             r := make([]IBlock,0,5)
             return append(r,t1)
@@ -303,8 +303,8 @@ func (t1 *Transaction) IsEqual(trans IBlock) []IBlock {
         }
 		
 	}
-	for i, outEC := range t1.GetOutECs() {
-		adr, err := t2.GetOutEC(i)
+	for i, outEC := range t1.GetECOutputs() {
+		adr, err := t2.GetECOutput(i)
 		if err != nil {
             r := make([]IBlock,0,5)
             return append(r,t1)
@@ -339,7 +339,7 @@ func (t1 *Transaction) IsEqual(trans IBlock) []IBlock {
 
 func (t Transaction) GetInputs() []IInAddress    { return t.inputs }
 func (t Transaction) GetOutputs() []IOutAddress  { return t.outputs }
-func (t Transaction) GetOutECs() []IOutECAddress { return t.outECs }
+func (t Transaction) GetECOutputs() []IOutECAddress { return t.outECs }
 func (t Transaction) GetRCDs() []IRCD            { return t.rcds }
 
 func (t *Transaction) GetSignatureBlocks() []ISignatureBlock {
@@ -370,7 +370,7 @@ func (t *Transaction) GetOutput(i int) (IOutAddress, error) {
 	return t.outputs[i], nil
 }
 
-func (t *Transaction) GetOutEC(i int) (IOutECAddress, error) {
+func (t *Transaction) GetECOutput(i int) (IOutECAddress, error) {
 	if i > len(t.outECs) {
 		return nil, fmt.Errorf("Index out of Range")
 	}

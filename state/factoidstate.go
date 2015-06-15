@@ -44,7 +44,7 @@ type IFactoidState interface {
     // Update balance updates the balance for an Entry Credit address 
     // in the database.  Note that we take an int64 to allow debits
     // as well as credits
-    UpdateECBalance(address fct.IAddress, amount uint64)  error
+    UpdateECBalance(address fct.IAddress, amount int64)  error
     // Use Entry Credits, which lowers their balance
     UseECs(address fct.IAddress, amount uint64) error
     // Return the Factoid balance for an address
@@ -138,8 +138,8 @@ func(fs *FactoidState) UpdateTransaction(trans fct.ITransaction) bool {
     for _,output := range trans.GetOutputs() {
         fs.UpdateBalance(output.GetAddress(), int64(output.GetAmount()))
     }
-    for _,ecoutput := range trans.GetOutECs() {
-        fs.UpdateECBalance(ecoutput.GetAddress(), ecoutput.GetAmount())
+    for _,ecoutput := range trans.GetECOutputs() {
+        fs.UpdateECBalance(ecoutput.GetAddress(), int64(ecoutput.GetAmount()))
     }
     return true
 }
@@ -278,6 +278,15 @@ func(fs *FactoidState) UpdateBalance(address fct.IAddress, amount int64) error {
     if nbalance < 0 {return fmt.Errorf("New balance cannot be negative")}
     balance := uint64(nbalance)
     fs.database.PutRaw([]byte(fct.DB_F_BALANCES),address.Bytes(),&FSbalance{number: balance})
+    return nil
+} 
+
+// Update ec balance throws an error if your update will drive the balance negative.
+func(fs *FactoidState) UpdateECBalance(address fct.IAddress, amount int64) error {
+    nbalance := int64(fs.GetBalance(address))+amount
+    if nbalance < 0 {return fmt.Errorf("New balance cannot be negative")}
+    balance := uint64(nbalance)
+    fs.database.PutRaw([]byte(fct.DB_EC_BALANCES),address.Bytes(),&FSbalance{number: balance})
     return nil
 } 
 
