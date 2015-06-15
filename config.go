@@ -21,6 +21,7 @@ import (
 	//	_ "github.com/FactomProject/btcd/database/memdb"
 	"github.com/FactomProject/btcd/wire"
 	//	"github.com/FactomProject/btcutil"
+	"github.com/FactomProject/FactomCode/process"
 	flags "github.com/FactomProject/go-flags"
 	"github.com/FactomProject/go-socks/socks"
 )
@@ -553,8 +554,7 @@ func loadConfig() (*config, []string, error) {
 
 	// The RPC server is disabled if no username or password is provided.
 	//	if cfg.RPCUser == "" || cfg.RPCPass == "" {
-	//if "" == factomdUser || "" == factomdPass { //double check please??
-	if true {
+	if "" == process.FactomdUser || "" == process.FactomdPass {
 		cfg.DisableRPC = true
 		fmt.Println("Disabling the RPC server...")
 	}

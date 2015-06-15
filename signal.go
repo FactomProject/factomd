@@ -7,6 +7,8 @@ package btcd
 import (
 	"os"
 	"os/signal"
+
+	"github.com/FactomProject/FactomCode/util"
 )
 
 // interruptChannel is used to receive SIGINT (Ctrl+C) signals.
@@ -20,6 +22,8 @@ var addHandlerChannel = make(chan func())
 // interruptChannel and invokes the registered interruptCallbacks accordingly.
 // It also listens for callback registration.  It must be run as a goroutine.
 func mainInterruptHandler() {
+	util.Trace()
+
 	// interruptCallbacks is a list of callbacks to invoke when a
 	// SIGINT (Ctrl+C) is received.
 	var interruptCallbacks []func()
@@ -33,6 +37,7 @@ func mainInterruptHandler() {
 	for {
 		select {
 		case <-interruptChannel:
+			util.Trace("interruptChannel")
 			// Ignore more than one shutdown signal.
 			if isShutdown {
 				btcdLog.Infof("Received SIGINT (Ctrl+C).  " +
@@ -56,6 +61,7 @@ func mainInterruptHandler() {
 			}()
 
 		case handler := <-addHandlerChannel:
+			util.Trace("addHandlerChannel")
 			// The shutdown signal has already been received, so
 			// just invoke and new handlers immediately.
 			if isShutdown {
@@ -70,6 +76,8 @@ func mainInterruptHandler() {
 // addInterruptHandler adds a handler to call when a SIGINT (Ctrl+C) is
 // received.
 func addInterruptHandler(handler func()) {
+	util.Trace()
+
 	// Create the channel and start the main interrupt handler which invokes
 	// all other callbacks and exits if not already done.
 	if interruptChannel == nil {
