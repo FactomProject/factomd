@@ -28,9 +28,10 @@ type params struct {
 // it does not handle on to btcd.  This approach allows the wallet process
 // to emulate the full reference implementation RPC API.
 var mainNetParams = params{
-	Params:  &chaincfg.MainNetParams,
-	rpcPort: "8384",
+	Params:   &chaincfg.MainNetParams,
+	rpcPort:  "8384",
 	dnsSeeds: []string{
+	/*
 		"seed.bitcoin.sipa.be",
 		"dnsseed.bluematt.me",
 		"dnsseed.bitcoin.dashjr.org",
@@ -38,6 +39,7 @@ var mainNetParams = params{
 		"seed.bitnodes.io",
 		"bitseed.xf2.org",
 		"seeds.bitcoin.open-nodes.org",
+	*/
 	},
 }
 
