@@ -56,7 +56,7 @@ func factomForkInit(s *server) {
 			switch msg.(type) {
 			case *wire.MsgInt_DirBlock:
 				dirBlock, _ := msg.(*wire.MsgInt_DirBlock)
-				util.Trace("Dir Block GENERATED. dirBlock= ", spew.Sdump(dirBlock))
+				util.Trace("Dir Block Received (from wire.MsgInt_DirBlock). dirBlock= ", spew.Sdump(dirBlock))
 				iv := wire.NewInvVect(wire.InvTypeFactomDirBlock, dirBlock.ShaHash)
 				s.RelayInventory(iv, nil)
 
