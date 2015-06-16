@@ -163,6 +163,8 @@ func(fs *FactoidState) ProcessEndOfBlock(){
         fs.currentBlock.SetPrevBlock(hash.Bytes())
     }
     
+    fmt.Println("\n\n Factoid Block Height: ",fs.currentBlock.GetDBHeight(),"\n")
+    
 }
 
 func(fs *FactoidState) LoadState() error  {
