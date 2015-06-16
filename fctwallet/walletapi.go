@@ -5,6 +5,7 @@
 package main
 
 import (
+	"fmt"
     "time"
     "github.com/hoisie/web"
     fct "github.com/FactomProject/factoid"
@@ -19,11 +20,12 @@ const (
 )
 
 var (
-    ipaddress        = "localhost:"
-    portNumber       = "8089"
+	cfg = fct.ReadConfig().Wallet
+    ipAddress        = cfg.Address
+    portNumber       = cfg.Port
     applicationName  = "Factom/fctwallet"
-    dataStorePath    = "/tmp/fctwallet.dat"
-    refreshInSeconds = 60
+    dataStorePath    = cfg.DataFile
+    refreshInSeconds = cfg.RefreshInSeconds
     
     ipaddressFD      = "localhost:"
     portNumberFD     = "8088"
@@ -95,7 +97,7 @@ func Start() {
     // Get the Transaction fee
     server.Get("/v1/factoid-get-fee/", handleGetFee)
     
-    go server.Run(ipaddress +portNumber)
+    go server.Run(fmt.Sprintf("%s:%d", ipAddress, portNumber))
 }   
  
 func main() {
