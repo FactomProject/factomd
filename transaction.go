@@ -388,10 +388,6 @@ func (t *Transaction) GetRCD(i int) (IRCD, error) {
 // out if there isn't enough data, or the transaction is too large.
 func (t *Transaction) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 
-	if len(data) < 72 {
-		return nil, fmt.Errorf("Transaction data too small: %d bytes", len(data))
-	}
-
 	//     {   // limit the scope of d
 	//         var d [8]byte
 	//         copy(d[3:],data[0:5])
