@@ -159,6 +159,10 @@ func(fs *FactoidState) ProcessEndOfBlock(){
     }
     fs.dbheight += 1
     fs.currentBlock = block.NewFBlock(fs.GetFactoshisPerEC(),fs.dbheight)
+    flg, err := fs.currentBlock.AddCoinbase(new(fct.Transaction))
+    if !flg || err !=nil {
+        panic("Failed to add coinbase transaction")
+    }
     if hash != nil {
         fs.currentBlock.SetPrevBlock(hash.Bytes())
     }
@@ -173,7 +177,7 @@ func(fs *FactoidState) LoadState() error  {
     // If there is no head for the Factoids in the database, we have an
     // uninitialized database.  We need to add the Genesis Block. TODO
     if blk == nil {
-        fct.Prtln("No Genesis Block detected.  Adding Genesis Block")
+        fct.Prtln("No Genesis Block for Factoids detected.  Adding Genesis Block")
         gb := block.GetGenesisBlock(1000000,10,200000000000)
         fs.PutTransactionBlock(gb.GetHash(),gb)
         fs.PutTransactionBlock(fct.FACTOID_CHAINID_HASH,gb)
@@ -182,9 +186,8 @@ func(fs *FactoidState) LoadState() error  {
             fct.Prtln("Failed to build initial state.\n",err); 
             return err 
         }
-        fs.dbheight = 1
-        fs.currentBlock = block.NewFBlock(fs.GetFactoshisPerEC(),fs.dbheight) 
-        fs.currentBlock.SetPrevBlock(gb.GetHash().Bytes())
+        fs.dbheight = 0
+        fs.currentBlock = gb
         return nil
     }
     // First run back from the head back to the genesis block, collecting hashes.
