@@ -114,14 +114,14 @@ func getParams(ctx *web.Context, params string) (
     
 
 // New Transaction:  key --
-// We create a new transaction, and track it with the user supplied key.  The user
-// can then use this key to make subsequent calls to add inputs, outputs, and to sign.
-// Then they can submit the transaction.
+// We create a new transaction, and track it with the user supplied key.  The
+// user can then use this key to make subsequent calls to add inputs, outputs,
+// and to sign. Then they can submit the transaction.
 //
-// When the transaction is submitted, we clear it from our working memory.  Multiple
-// transactions can be under construction at one time, but they need their own keys.
-// Once a transaction is either submitted or deleted, the key can be reused.
-//
+// When the transaction is submitted, we clear it from our working memory. 
+// Multiple transactions can be under construction at one time, but they need
+// their own keys. Once a transaction is either submitted or deleted, the key
+// can be reused.
 func  handleFactoidNewTransaction(ctx *web.Context, key string) {
 
     // Make sure we have a key

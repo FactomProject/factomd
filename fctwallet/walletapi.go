@@ -6,10 +6,11 @@ package main
 
 import (
 	"fmt"
-    "time"
-    "github.com/hoisie/web"
-    fct "github.com/FactomProject/factoid"
-    "github.com/FactomProject/factoid/state/stateinit"
+	"time"
+
+	fct "github.com/FactomProject/factoid"
+	"github.com/FactomProject/factoid/state/stateinit"
+	"github.com/hoisie/web"
 )
 
 var _ = fct.Address{}
