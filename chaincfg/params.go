@@ -98,9 +98,8 @@ type Params struct {
 var MainNetParams = Params{
 	//	Name:        "mainnet",
 	//	Name:        "factoid0",
-	Net: wire.MainNet,
-	//	DefaultPort: "8108",
-	DefaultPort: "999",
+	Net:         wire.MainNet,
+	DefaultPort: "8108",
 
 	// Chain parameters
 	//	GenesisBlock:           &genesisBlock,
