@@ -513,6 +513,10 @@ func (s *server) seedFromDNS() {
 		return
 	}
 
+	if !ClientOnly {
+		return
+	}
+
 	for _, seeder := range activeNetParams.dnsSeeds {
 		go func(seeder string) {
 			randSource := mrand.New(mrand.NewSource(time.Now().UnixNano()))

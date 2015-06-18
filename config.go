@@ -59,6 +59,8 @@ var (
 
 	factomdUser string
 	factomdPass string
+
+	ClientOnly bool
 )
 
 // runServiceCommand is only set to a real function on Windows.  It is used

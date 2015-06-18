@@ -140,10 +140,18 @@ func Start_btcd(
 	outMsgQ chan wire.FtmInternalMsg,
 	inCtlMsgQ chan wire.FtmInternalMsg,
 	outCtlMsgQ chan wire.FtmInternalMsg,
-	user, pass string) {
+	user, pass string, clientMode bool) {
 
 	factomdUser = user
 	factomdPass = pass
+
+	ClientOnly = clientMode
+
+	if ClientOnly {
+		util.Trace("CLIENT MODE")
+	} else {
+		util.Trace("SERVER MODE")
+	}
 
 	db = ldb
 
