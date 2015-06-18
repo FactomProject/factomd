@@ -5,9 +5,7 @@
 package factoid
 
 import (
-	"log"
 	"os"
-
 	"code.google.com/p/gcfg"
 )
 

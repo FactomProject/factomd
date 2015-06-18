@@ -6,12 +6,20 @@ package main
 
 import (
 	"fmt"
+<<<<<<< HEAD
     "time"
     "bytes"
     "github.com/hoisie/web"
     fct "github.com/FactomProject/factoid"
     "github.com/FactomProject/factoid/state/stateinit"
     "github.com/btcsuitereleases/btcutil/base58"
+=======
+	"time"
+
+	fct "github.com/FactomProject/factoid"
+	"github.com/FactomProject/factoid/state/stateinit"
+	"github.com/hoisie/web"
+>>>>>>> 54352a856cd6f151685c6c980a23b19b5c4ca9ad
 )
 
 var _ = fct.Address{}
@@ -109,6 +117,7 @@ func main() {
     }    
 }
 
+
 /****************************
  * Helper Functions
  ****************************/
@@ -136,14 +145,12 @@ func main() {
 //
 
 var FactoidPrefix = []byte{ 0x5f, 0xb1 }
-var EntryCreditPrefix = []byte{ 0x59, 0x2a }
+var EntryCreditPrefix = []byte{ 0x5f, 0xb1 }
 
 //  Convert Factoid and Entry Credit addresses to their more user
 //  friendly and human readable formats.
 //
-//  Creates the binary form.  Just needs the conversion to base58
-//  for display.
-func ConvertAddressToUser(prefix []byte, addr fct.IAddress) []byte {
+func convertAddressToUser(prefix []byte, addr fct.IAddress) []byte {
     sha256d := fct.Sha(fct.Sha(addr.Bytes()).Bytes()).Bytes()
     userd := make([]byte,0,32)
     userd = append(userd, prefix...)
@@ -154,13 +161,13 @@ func ConvertAddressToUser(prefix []byte, addr fct.IAddress) []byte {
 
 // Convert Factoid Addresses
 func ConvertFAddressToUserStr(addr fct.IAddress) string {
-    userd := ConvertAddressToUser(FactoidPrefix, addr)
+    userd := convertAddressToUser(FactoidPrefix, addr)
     return base58.Encode(userd)
 }
 
 // Convert Entry Credits
 func ConvertECAddressToUserStr(addr fct.IAddress) string {
-    userd := ConvertAddressToUser(FactoidPrefix, addr)
+    userd := convertAddressToUser(FactoidPrefix, addr)
     return base58.Encode(userd)
 }
 

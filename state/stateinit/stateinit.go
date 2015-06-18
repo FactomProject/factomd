@@ -59,7 +59,8 @@ func GetDatabase(filename string) database.IFDatabase {
     
     bucketList = append(bucketList,[]byte(fct.DB_FACTOID_BLOCKS))
     bucketList = append(bucketList,[]byte(fct.DB_F_BALANCES))
-    bucketList = append(bucketList,[]byte(fct.DB_EC_BALANCES))    
+    bucketList = append(bucketList,[]byte(fct.DB_EC_BALANCES))
+    
     bucketList = append(bucketList,[]byte(fct.DB_BUILD_TRANS))    
     bucketList = append(bucketList,[]byte(fct.DB_TRANSACTIONS))    
     bucketList = append(bucketList,[]byte(fct.W_ADDRESS_HASH))    

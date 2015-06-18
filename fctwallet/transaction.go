@@ -50,7 +50,7 @@ func getTransaction(ctx *web.Context, key string) (trans fct.ITransaction, err e
 }
 
 // &key=<key>&name=<name or address>&amount=<amount>
-func getParams(ctx *web.Context, params string) (
+func getParams(ctx *web.Context, params string, ec bool) (
     trans fct.ITransaction, 
     key string, 
     name string, 
@@ -69,7 +69,7 @@ func getParams(ctx *web.Context, params string) (
         ctx.WriteHeader(httpBad)
         return
     }
-    
+        
     amount, err = strconv.ParseInt(StrAmount,10,64)
     if err != nil {
         fmt.Println("Error parsing amount.\n",err)
@@ -88,27 +88,30 @@ func getParams(ctx *web.Context, params string) (
     // do a weird Address as a name and fool the code, but that seems unlikely.
     // Could check for that some how, but there are many ways around such checks.
     
-    we := factoidState.GetDB().GetRaw([]byte(fct.W_NAME_HASH),[]byte(name))
-    if we != nil {
-        address,err = we.(wallet.IWalletEntry).GetAddress()
-        if err != nil || address == nil {
-            fmt.Println("Should not get an error geting a address from a Wallet Entry")
-            err = fmt.Errorf("Wallet Entry failed to provide address")
-            reportResults(ctx,false)
-            ctx.WriteHeader(httpBad)
+    if len(name)<= fct.ADDRESS_LENGTH {
+        we := factoidState.GetDB().GetRaw([]byte(fct.W_NAME_HASH),[]byte(name))
+        if we != nil {
+            address,err = we.(wallet.IWalletEntry).GetAddress()
+            if err != nil || address == nil {
+                fmt.Println("Should not get an error geting a address from a Wallet Entry")
+                err = fmt.Errorf("Wallet Entry failed to provide address")
+                reportResults(ctx,false)
+                ctx.WriteHeader(httpBad)
+                return
+            }
             return
         }
-    }else{
-        badr, er := hex.DecodeString(name)
-        if er != nil || len(badr) != fct.ADDRESS_LENGTH {
-            fmt.Println("Bad or unknown address: "+name)
-            err = fmt.Errorf("Bad or unknown address")
-            reportResults(ctx,false)
-            ctx.WriteHeader(httpBad)
-            return
-        }
-        address = fct.NewAddress(badr)
     }
+    if (!ec && !ValidateFUserStr(name)) || (ec && !ValidateECUserStr(name)) {
+        fmt.Println("Bad Address")
+        err = fmt.Errorf("Badly formed address")
+        reportResults(ctx,false)
+        ctx.WriteHeader(httpBad)
+        return
+    }
+    baddr := ConvertUserStrToAddress(name)
+    
+    address = fct.NewAddress(baddr)
     
     return
 }
@@ -147,7 +150,7 @@ func handleFactoidNewTransaction(ctx *web.Context, key string) {
 }
 
 func handleFactoidAddInput(ctx *web.Context, parms string) {
-	trans, key, _, address, amount, err := getParams(ctx, parms)
+	trans, key, _, address, amount, err := getParams(ctx, parms, false)
 	if err != nil {
 		return
 	}
@@ -169,7 +172,7 @@ func handleFactoidAddInput(ctx *web.Context, parms string) {
 }
 
 func handleFactoidAddOutput(ctx *web.Context, parms string) {
-	trans, key, _, address, amount, err := getParams(ctx, parms)
+	trans, key, _, address, amount, err := getParams(ctx, parms, false)
 	if err != nil {
 		return
 	}
@@ -177,7 +180,7 @@ func handleFactoidAddOutput(ctx *web.Context, parms string) {
 	// Add our new Output
 	err = factoidState.GetWallet().AddOutput(trans, address, uint64(amount))
 	if err != nil {
-		fmt.Println("Failed to add input")
+		fmt.Println("Failed to add output")
 		reportResults(ctx, false)
 		ctx.WriteHeader(httpBad)
 		return
@@ -191,7 +194,7 @@ func handleFactoidAddOutput(ctx *web.Context, parms string) {
 }
 
 func handleFactoidAddECOutput(ctx *web.Context, parms string) {
-	trans, key, _, address, amount, err := getParams(ctx, parms)
+	trans, key, _, address, amount, err := getParams(ctx, parms, true)
 	if err != nil {
 		return
 	}
