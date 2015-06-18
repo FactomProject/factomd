@@ -24,7 +24,7 @@ const defaultConfig = `
 ; ------------------------------------------------------------------------------
 ; App settings
 ; ------------------------------------------------------------------------------
-[Wallet]
+[wallet]
 Address = localhost
 Port = 8089
 DataFile = /tmp/fctwallet.dat
@@ -35,10 +35,7 @@ RefreshInSeconds = 60
 func ReadConfig() *FactoidConfig {
 	cfg := new(FactoidConfig)
 	filename := os.Getenv("HOME") + "/.factom/factoid.conf"
-	log.Println("read factoid config file: ", filename)
-
 	if err := gcfg.ReadFileInto(cfg, filename); err != nil {
-		log.Println("Server starting with default settings...")
 		gcfg.ReadStringInto(cfg, defaultConfig)
 	}
 	return cfg
