@@ -373,7 +373,7 @@ func (p *peer) handleGetDirBlocksMsg(msg *wire.MsgGetDirBlocks) {
 		endIdx = 500
 	}
 	if endIdx >= endHeight {
-		endIdx = endHeight
+		endIdx = endHeight + 1 
 	}
 
 	if !msg.HashStop.IsEqual(&zeroHash) {
