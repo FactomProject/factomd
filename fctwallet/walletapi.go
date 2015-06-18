@@ -47,8 +47,8 @@ func Start() {
     
     // Generate Address
     // localhost:8089/v1/factoid-generate-address/<name>
-    // Generate an address, and tie it to the given name within the wallet.  You can
-    // use the name for the address in this API
+    // Generate an address, and tie it to the given name within the wallet. You
+    // can use the name for the address in this API
     server.Get("/v1/factoid-generate-address/([^/]+)", handleFactoidGenerateAddress)
     
     // New Transaction
@@ -56,43 +56,43 @@ func Start() {
     // Use the key in subsequent calls to add inputs, outputs, ecoutputs, and to
     // sign and submit the transaction. Returns Success == true if all is well.
     // Multiple transactions can be in process.  Only one transaction per key.
-    // Once the transaction has been submitted or deleted, the key can be reused.
-    server.Get("/v1/factoid-new-transaction/([^/]+)", handleFactoidNewTransaction)
-    
+    // Once the transaction has been submitted or deleted, the key can be
+    // reused.
+    server.Post("/v1/factoid-new-transaction/([^/]+)", handleFactoidNewTransaction)
+
     // Add Input
     // localhost:8089/v1/factoid-add-input/?key=<key>&name=<name or address>&amount=<amount>
     // Add an input to a transaction in process.  Start with new-transaction.
-    server.Get("/v1/factoid-add-input/(.*)", handleFactoidAddInput)
+    server.Post("/v1/factoid-add-input/(.*)", handleFactoidAddInput)
     
     // Add Output
     // localhost:8089/v1/factoid-add-output/?key=<key>&name=<name or address>&amount=<amount>
     // Add an output to a transaction in process.  Start with new-transaction.
-    server.Get("/v1/factoid-add-output/(.*)", handleFactoidAddOutput)
+    server.Post("/v1/factoid-add-output/(.*)", handleFactoidAddOutput)
     
     // Add Entry Credit Output
     // localhost:8089/v1/factoid-add-ecoutput/?key=<key>&name=<name or address>&amount=<amount>
     // Add an ecoutput to a transaction in process.  Start with new-transaction.
-    server.Get("/v1/factoid-add-ecoutput/(.*)", handleFactoidAddECOutput)
+    server.Post("/v1/factoid-add-ecoutput/(.*)", handleFactoidAddECOutput)
     
     // Sign Transaction
     // localhost:8089/v1/factoid-sign-transaction/<key>
-    // If the transaction validates structure wise and all signatures can be applied, 
-    // then all inputs are signed, and returns success = true
-    // Otherwise returns false.
-    // Note that this doesn't check that the inputs can cover the transaction.  Use validate
-    // to do that.
-    server.Get("/v1/factoid-sign-transaction/(.*)", handleFactoidSignTransaction)
+    // If the transaction validates structure wise and all signatures can be
+    // applied, then all inputs are signed, and returns success = true
+    // Otherwise returns false. Note that this doesn't check that the inputs
+    // can cover the transaction.  Use validate to do that.
+    server.Post("/v1/factoid-sign-transaction/(.*)", handleFactoidSignTransaction)
+    
+    // Submit
+    // localhost:8089/v1/factoid-submit/
+    // Put the key for the transaction in {Transaction string}
+    server.Post("/v1/factoid-submit/", handleFactoidSubmit)
     
     // Validate
     // localhost:8089/v1/factoid-validate/<key>
     // Validates amounts and that all required signatures are applied, returns success = true
     // Otherwise returns false.
     server.Get("/v1/factoid-validate/(.*)", handleFactoidValidate)
-    
-    // Submit
-    // localhost:8089/v1/factoid-submit/
-    // Put the key for the transaction in {Transaction string}
-    server.Post("/v1/factoid-submit/", handleFactoidSubmit)
     
     // Get Fee
     // localhost:8089/v1/factoid-get-fee/
@@ -108,7 +108,6 @@ func main() {
         time.Sleep(time.Second)
     }    
 }
-
 
 /****************************
  * Helper Functions
@@ -137,12 +136,14 @@ func main() {
 //
 
 var FactoidPrefix = []byte{ 0x5f, 0xb1 }
-var EntryCreditPrefix = []byte{ 0x5f, 0xb1 }
+var EntryCreditPrefix = []byte{ 0x59, 0x2a }
 
 //  Convert Factoid and Entry Credit addresses to their more user
 //  friendly and human readable formats.
 //
-func convertAddressToUser(prefix []byte, addr fct.IAddress) []byte {
+//  Creates the binary form.  Just needs the conversion to base58
+//  for display.
+func ConvertAddressToUser(prefix []byte, addr fct.IAddress) []byte {
     sha256d := fct.Sha(fct.Sha(addr.Bytes()).Bytes()).Bytes()
     userd := make([]byte,0,32)
     userd = append(userd, prefix...)
@@ -153,13 +154,13 @@ func convertAddressToUser(prefix []byte, addr fct.IAddress) []byte {
 
 // Convert Factoid Addresses
 func ConvertFAddressToUserStr(addr fct.IAddress) string {
-    userd := convertAddressToUser(FactoidPrefix, addr)
+    userd := ConvertAddressToUser(FactoidPrefix, addr)
     return base58.Encode(userd)
 }
 
 // Convert Entry Credits
 func ConvertECAddressToUserStr(addr fct.IAddress) string {
-    userd := convertAddressToUser(FactoidPrefix, addr)
+    userd := ConvertAddressToUser(FactoidPrefix, addr)
     return base58.Encode(userd)
 }
 

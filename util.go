@@ -107,46 +107,5 @@ func PrtIndent(level int) {
 	}
 }
 
-/**********************************
- * User Addresses
- **********************************/
-/*
- * Factoid Address
- * 
- Factoids are sent to an RCD Hash. Inside the computer, the RCD hash 
- is represented as a 32 byte number. The user sees Factoid addresses 
- as a 52 ch*aracter string starting with FA.
- 
- A User Factoid address is constructed like this (using a zero RCD 
- hash for clarity:
- Concatenate 0x5fb1 and the RCD Hash bytewise
- 5fb10000000000000000000000000000000000000000000000000000000000000000 
- 
- Take the SHA256d of the above data. Append the first 4 bytes of this 
- SHA256d to the end of the above value bytewise.
- 5fb10000000000000000000000000000000000000000000000000000000000000000d48a8e32
- Convert the above value from base 256 to base 58. Use standard 
- Bitcoin base58 encoding to display the number.
- 
- FA1y5ZGuHSLmf2TqNf6hVMkPiNGyQpQDTFJvDLRkKQaoPo4bmbgu
- Factoid addresses will range between 
-    FA1y5ZGuHSLmf2TqNf6hVMkPiNGyQpQDTFJvDLRkKQaoPo4bmbgu 
- and 
-    FA3upjWMKHmStAHR5ZgKVK4zVHPb8U74L2wzKaaSDQEonHajiLeq
-*/
 
-func getFUserAddress(address IAddress) string {
-    user := make([]byte,0,2+32+4)   // 2 byte prefix + 32 byte addr + 4 byte chksum
-    shad := Sha(Sha(address.Bytes()).Bytes())
-    user = append(user, []byte{0x5f, 0xb1}...)
-    user = append(user,address.Bytes()  ...)
-    user = append(user,shad.Bytes()[:4]...)
-    
-    
-    return ""
-    }
-func getFAddressFromUser(userAdr string) (IAddress, error) {
-
-    return nil, nil
-}
 

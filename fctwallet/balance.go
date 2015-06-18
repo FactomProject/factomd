@@ -18,7 +18,7 @@ import (
 
 func GetBalance(adr string) int64 {
     
-    if len(adr) <= fct.ADDRESS_LENGTH {
+    if !ValidateFUserStr(adr) {
         we := factoidState.GetDB().GetRaw([]byte(fct.W_NAME_HASH),[]byte(adr))
     
         if (we != nil){
@@ -26,6 +26,9 @@ func GetBalance(adr string) int64 {
             addr,_ := we2.GetAddress()
             adr = hex.EncodeToString(addr.Bytes())
         }
+    }else{
+        baddr := ConvertUserStrToAddress(adr)
+        adr = hex.EncodeToString(baddr)
     }
     
     str := fmt.Sprintf("http://%s/v1/factoid-balance/%s", ipaddressFD+portNumberFD, adr)

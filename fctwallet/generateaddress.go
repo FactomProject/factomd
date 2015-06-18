@@ -9,7 +9,6 @@ package main
 import (
     
     "fmt"   
-    "encoding/hex"
     "encoding/json"
     "github.com/hoisie/web"
     fct "github.com/FactomProject/factoid"
@@ -32,7 +31,7 @@ func  handleFactoidGenerateAddress(ctx *web.Context, name string) {
     
     a := new(faddress)
     
-    adrstr := hex.EncodeToString(adr.Bytes())
+    adrstr := ConvertFAddressToUserStr(adr)
     a.Address = adrstr
     if p, err := json.Marshal(a); err != nil {
         reportResults(ctx,false)
