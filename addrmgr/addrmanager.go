@@ -546,7 +546,9 @@ func (a *AddrManager) Start() {
 	log.Trace("Starting address manager")
 
 	// Load peers we already know about from file.
-	a.loadPeers()
+	// TODO: Milestone2 -- must ENABLE, FIXME
+	fmt.Println("peers.json is disabled for Milestone1")
+	// a.loadPeers()
 
 	// Start the address ticker to save addresses periodically.
 	a.wg.Add(1)

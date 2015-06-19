@@ -203,7 +203,7 @@ func (p *peer) String() string {
 // isKnownInventory returns whether or not the peer is known to have the passed
 // inventory.  It is safe for concurrent access.
 func (p *peer) isKnownInventory(invVect *wire.InvVect) bool {
-	util.Trace()
+	//	util.Trace()
 	p.knownInvMutex.Lock()
 	defer p.knownInvMutex.Unlock()
 
@@ -216,7 +216,7 @@ func (p *peer) isKnownInventory(invVect *wire.InvVect) bool {
 // AddKnownInventory adds the passed inventory to the cache of known inventory
 // for the peer.  It is safe for concurrent access.
 func (p *peer) AddKnownInventory(invVect *wire.InvVect) {
-	util.Trace()
+	//	util.Trace()
 	p.knownInvMutex.Lock()
 	defer p.knownInvMutex.Unlock()
 
@@ -1263,7 +1263,6 @@ func (p *peer) handleAddrMsg(msg *wire.MsgAddr) {
 // message.  For older clients, it does nothing and anything other than failure
 // is considered a successful ping.
 func (p *peer) handlePingMsg(msg *wire.MsgPing) {
-	util.Trace()
 	// Only Reply with pong is message comes from a new enough client.
 	if p.ProtocolVersion() > wire.BIP0031Version {
 		// Include nonce from ping so pong can be identified.
@@ -1277,7 +1276,6 @@ func (p *peer) handlePingMsg(msg *wire.MsgPing) {
 // we had not send a ping we ignore it.
 func (p *peer) handlePongMsg(msg *wire.MsgPong) {
 	p.StatsMtx.Lock()
-	util.Trace()
 	defer p.StatsMtx.Unlock()
 
 	// Arguably we could use a buffered channel here sending data
@@ -1599,7 +1597,7 @@ out:
 
 			// Factom blocks downloading
 		case *wire.MsgGetDirBlocks:
-			util.Trace()
+			//			util.Trace()
 			p.handleGetDirBlocksMsg(msg)
 
 		case *wire.MsgDirInv:
@@ -1622,7 +1620,7 @@ out:
 			markConnected = true
 
 		case *wire.MsgABlock:
-			util.Trace()
+			//			util.Trace()
 			p.handleABlockMsg(msg, buf)
 
 		case *wire.MsgECBlock:
@@ -1634,7 +1632,7 @@ out:
 			p.handleEBlockMsg(msg, buf)
 
 		case *wire.MsgFBlock:
-			util.Trace()
+			//			util.Trace()
 			p.handleFBlockMsg(msg, buf)
 
 		case *wire.MsgGetEntryData:
