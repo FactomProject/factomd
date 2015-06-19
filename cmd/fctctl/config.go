@@ -45,18 +45,20 @@ func normalizeAddress(addr string, useTestNet3, useSimNet, useWallet bool) strin
 	if err != nil {
 		var defaultPort string
 		switch {
-		case useTestNet3:
-			if useWallet {
-				defaultPort = "18332"
-			} else {
-				defaultPort = "18334"
-			}
-		case useSimNet:
-			if useWallet {
-				defaultPort = "18554"
-			} else {
-				defaultPort = "18556"
-			}
+		/*
+			case useTestNet3:
+				if useWallet {
+					defaultPort = "18332"
+				} else {
+					defaultPort = "18334"
+				}
+			case useSimNet:
+				if useWallet {
+					defaultPort = "18554"
+				} else {
+					defaultPort = "18556"
+				}
+		*/
 		default:
 			if useWallet {
 				defaultPort = "8382"

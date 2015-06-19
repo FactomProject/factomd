@@ -72,6 +72,8 @@ var wsAsyncHandlers = map[string]struct{}{
 func (s *rpcServer) WebsocketHandler(conn *websocket.Conn, remoteAddr string,
 	authenticated bool) {
 
+	util.Trace()
+
 	// Clear the read deadline that was set before the websocket hijacked
 	// the connection.
 	conn.SetReadDeadline(timeZeroVal)
@@ -176,6 +178,8 @@ out:
 // queueHandler maintains a queue of notifications and notification handler
 // control messages.
 func (m *wsNotificationManager) queueHandler() {
+	util.Trace()
+
 	queueHandler(m.queueNotification, m.notificationMsgs, m.quit)
 	m.wg.Done()
 }
@@ -267,10 +271,10 @@ type notificationUnregisterAddr struct {
 	addr string
 }
 
-/*
 // notificationHandler reads notifications and control messages from the queue
 // handler and processes one at a time.
 func (m *wsNotificationManager) notificationHandler() {
+	util.Trace()
 	// clients is a map of all currently connected websocket clients.
 	clients := make(map[chan struct{}]*wsClient)
 
@@ -288,7 +292,7 @@ func (m *wsNotificationManager) notificationHandler() {
 
 out:
 	for {
-		util.Trace("got a message...")
+		util.Trace("for before select...")
 
 		select {
 		case n, ok := <-m.notificationMsgs:
@@ -297,47 +301,51 @@ out:
 				break out
 			}
 			switch n := n.(type) {
-			case *notificationBlockConnected:
-				block := (*btcutil.Block)(n)
-				if len(blockNotifications) != 0 {
-					m.notifyBlockConnected(blockNotifications,
-						block)
-				}
+			/*
+				case *notificationBlockConnected:
+					block := (*btcutil.Block)(n)
+					if len(blockNotifications) != 0 {
+						m.notifyBlockConnected(blockNotifications,
+							block)
+					}
 
-				// Skip iterating through all txs if no
-				// tx notification requests exist.
-				if len(watchedOutPoints) == 0 && len(watchedAddrs) == 0 {
-					continue
-				}
+					// Skip iterating through all txs if no
+					// tx notification requests exist.
+					if len(watchedOutPoints) == 0 && len(watchedAddrs) == 0 {
+						continue
+					}
 
-				for _, tx := range block.Transactions() {
-					m.notifyForTx(watchedOutPoints,
-						watchedAddrs, tx, block)
-				}
+					for _, tx := range block.Transactions() {
+						m.notifyForTx(watchedOutPoints,
+							watchedAddrs, tx, block)
+					}
 
-			case *notificationBlockDisconnected:
-				m.notifyBlockDisconnected(blockNotifications,
-					(*btcutil.Block)(n))
+				case *notificationBlockDisconnected:
+					m.notifyBlockDisconnected(blockNotifications,
+						(*btcutil.Block)(n))
 
-			case *notificationTxAcceptedByMempool:
-				if n.isNew && len(txNotifications) != 0 {
-					m.notifyForNewTx(txNotifications, n.tx)
-				}
-				m.notifyForTx(watchedOutPoints, watchedAddrs, n.tx, nil)
+				case *notificationTxAcceptedByMempool:
+					if n.isNew && len(txNotifications) != 0 {
+						m.notifyForNewTx(txNotifications, n.tx)
+					}
+					m.notifyForTx(watchedOutPoints, watchedAddrs, n.tx, nil)
 
-			case *notificationRegisterBlocks:
-				wsc := (*wsClient)(n)
-				blockNotifications[wsc.quit] = wsc
+				case *notificationRegisterBlocks:
+					wsc := (*wsClient)(n)
+					blockNotifications[wsc.quit] = wsc
 
-			case *notificationUnregisterBlocks:
-				wsc := (*wsClient)(n)
-				delete(blockNotifications, wsc.quit)
+				case *notificationUnregisterBlocks:
+					wsc := (*wsClient)(n)
+					delete(blockNotifications, wsc.quit)
+			*/
 
 			case *notificationRegisterClient:
+				util.Trace()
 				wsc := (*wsClient)(n)
 				clients[wsc.quit] = wsc
 
 			case *notificationUnregisterClient:
+				util.Trace()
 				wsc := (*wsClient)(n)
 				// Remove any requests made by the client as well as
 				// the client itself.
@@ -389,7 +397,6 @@ out:
 	}
 	m.wg.Done()
 }
-*/
 
 // NumClients returns the number of clients actively being served.
 func (m *wsNotificationManager) NumClients() (n int) {
@@ -834,7 +841,7 @@ func (m *wsNotificationManager) RemoveClient(wsc *wsClient) {
 func (m *wsNotificationManager) Start() {
 	m.wg.Add(2)
 	go m.queueHandler()
-	//	go m.notificationHandler()
+	go m.notificationHandler()
 }
 
 // WaitForShutdown blocks until all notification manager goroutines have
@@ -1122,6 +1129,8 @@ out:
 // manager) which are queueing the data.  The data is passed on to outHandler to
 // actually be written.  It must be run as a goroutine.
 func (c *wsClient) notificationQueueHandler() {
+	util.Trace()
+
 	ntfnSentChan := make(chan bool, 1) // nonblocking sync
 
 	// pendingNtfns is used as a queue for notifications that are ready to
@@ -1412,6 +1421,8 @@ func (c *wsClient) WaitForShutdown() {
 func newWebsocketClient(server *rpcServer, conn *websocket.Conn,
 	remoteAddr string, authenticated bool) *wsClient {
 
+	util.Trace()
+
 	return &wsClient{
 		conn:          conn,
 		addr:          remoteAddr,
@@ -1438,6 +1449,8 @@ func handleNotifyBlocks(wsc *wsClient, icmd btcjson.Cmd) (interface{}, *btcjson.
 // handleNotifySpent implements the notifyspent command extension for
 // websocket connections.
 func handleNotifySpent(wsc *wsClient, icmd btcjson.Cmd) (interface{}, *btcjson.Error) {
+	util.Trace()
+
 	cmd, ok := icmd.(*btcws.NotifySpentCmd)
 	if !ok {
 		return nil, &btcjson.ErrInternal

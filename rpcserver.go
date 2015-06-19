@@ -291,9 +291,11 @@ type rpcServer struct {
 
 // Start is used by server.go to start the rpc listener.
 func (s *rpcServer) Start() {
+	util.Trace()
 	if atomic.AddInt32(&s.started, 1) != 1 {
 		return
 	}
+	util.Trace()
 
 	rpcsLog.Trace("Starting RPC server")
 	rpcServeMux := http.NewServeMux()
@@ -458,6 +460,8 @@ func (s *rpcServer) decrementClients() {
 //
 // This check is time-constant.
 func (s *rpcServer) checkAuth(r *http.Request, require bool) (bool, error) {
+	util.Trace()
+
 	authhdr := r.Header["Authorization"]
 	if len(authhdr) <= 0 {
 		if require {
@@ -2073,11 +2077,13 @@ func handleGetBlockTemplate(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan stru
 
 // handleGetConnectionCount implements the getconnectioncount command.
 func handleGetConnectionCount(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{}) (interface{}, error) {
+	util.Trace()
 	return s.server.ConnectedCount(), nil
 }
 
 // handleGetCurrentNet implements the getcurrentnet command.
 func handleGetCurrentNet(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{}) (interface{}, error) {
+	util.Trace()
 	return s.server.chainParams.Net, nil
 }
 

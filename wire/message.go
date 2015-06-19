@@ -34,10 +34,10 @@ const (
 	CmdInv         = "inv"
 	CmdGetData     = "getdata"
 	CmdNotFound    = "notfound"
-	CmdBlock       = "block"       // Factoid-0 Block
-	CmdTx          = "tx"          // Factoid-0 Tx
-    CmdFBlock      = "FBlock"      // Factoid-1 Block
-    CmdFactoidTX   = "factoidtx"   // Factoid-1 Tx
+	CmdBlock       = "block"     // Factoid-0 Block
+	CmdTx          = "tx"        // Factoid-0 Tx
+	CmdFBlock      = "FBlock"    // Factoid-1 Block
+	CmdFactoidTX   = "factoidtx" // Factoid-1 Tx
 	CmdGetHeaders  = "getheaders"
 	CmdHeaders     = "headers"
 	CmdPing        = "ping"
@@ -98,9 +98,9 @@ func makeEmptyMessage(command string) (Message, error) {
 
 	case CmdVerAck:
 		msg = &MsgVerAck{}
-		
-    case CmdFBlock:
-		msg = &MsgFBlock{} 
+
+	case CmdFBlock:
+		msg = &MsgFBlock{}
 
 	case CmdGetAddr:
 		msg = &MsgGetAddr{}
