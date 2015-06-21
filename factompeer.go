@@ -367,23 +367,10 @@ func (p *peer) handleGetDirBlocksMsg(msg *wire.MsgGetDirBlocks) {
 	// no stop hash was specified.
 	// Attempt to find the ending index of the stop hash if specified.
 	util.Trace()
-	_, endHeight, _ := db.FetchBlockHeightCache()
 	endIdx := database.AllShas //factom db
-	if endIdx >= 500 {
-		endIdx = 500
-	}
-	if endIdx >= endHeight {
-		endIdx = endHeight + 1 
-	}
-
 	if !msg.HashStop.IsEqual(&zeroHash) {
-
-		//to be improved??
-		commonhash := new(common.Hash)
-		commonhash.SetBytes(msg.HashStop.Bytes())
-		dblock, _ := db.FetchDBlockByHash(commonhash)
-		if dblock != nil {
-			height := int64(dblock.Header.BlockHeight)
+		height, err := db.FetchBlockHeightBySha(&msg.HashStop)
+		if err == nil {
 			endIdx = height + 1
 		}
 	}
@@ -395,18 +382,15 @@ func (p *peer) handleGetDirBlocksMsg(msg *wire.MsgGetDirBlocks) {
 	// This mirrors the behavior in the reference implementation.
 	startIdx := int64(1)
 	for _, hash := range msg.BlockLocatorHashes {
-
-		//to be improved??
-		commonhash := new(common.Hash)
-		commonhash.SetBytes(hash.Bytes())
-		dblock, _ := db.FetchDBlockByHash(commonhash)
-		if dblock != nil {
-			height := int64(dblock.Header.BlockHeight)
+		height, err := db.FetchBlockHeightBySha(hash)
+		if err == nil {
+			// Start with the next hash since we know this one.
 			startIdx = height + 1
 			break
 		}
-
 	}
+
+	fmt.Println("startIdx=", startIdx, ", endIdx=", endIdx)
 
 	// Don't attempt to fetch more than we can put into a single message.
 	autoContinue := false
@@ -424,19 +408,12 @@ func (p *peer) handleGetDirBlocksMsg(msg *wire.MsgGetDirBlocks) {
 	invMsg := wire.NewMsgDirInv()
 	for start := startIdx; start < endIdx; {
 		// Fetch the inventory from the block database.
-		//hashList, err := db.FetchHeightRange(start, endIdx)
-		// to be improved??
-		hashList := make([]wire.ShaHash, 0, endIdx-startIdx)
-		for i := int64(0); i < endIdx; i++ {
-			h, _ := db.FetchDBHashByHeight(uint32(i))
-			hashList = append(hashList, *wire.FactomHashToShaHash(h))
+		hashList, err := db.FetchHeightRange(start, endIdx)
+		if err != nil {
+			peerLog.Warnf("Dir Block lookup failed: %v", err)
+			return
 		}
 
-		/*		if err != nil {
-					peerLog.Warnf("Block lookup failed: %v", err)
-					return
-				}
-		*/
 		// The database did not return any further hashes.  Break out of
 		// the loop now.
 		if len(hashList) == 0 {
