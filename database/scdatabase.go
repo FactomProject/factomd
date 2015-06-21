@@ -83,7 +83,7 @@ type IDBKey interface {
 type DBKey struct {
     IDBKey
     bucket [factoid.ADDRESS_LENGTH]byte
-    key    [factoid.ADDRESS_LENGTH]byte
+    key    [factoid.KEY_LIMIT]byte
 }
 
 func (k DBKey) GetBucket() []byte{
@@ -96,8 +96,8 @@ func (k DBKey) GetKey()[]byte {
 
 func makeKey(bucket []byte, key []byte) IDBKey {
 
-	if len(bucket) > factoid.ADDRESS_LENGTH || len(key) > factoid.ADDRESS_LENGTH {
-		panic("Key provided to IFDatabase is too long")
+    if len(bucket) > factoid.ADDRESS_LENGTH || len(key) > factoid.KEY_LIMIT {
+		panic("Key or bucket provided to IFDatabase is too long")
 	}
 
 	k := new(DBKey)

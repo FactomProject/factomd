@@ -12,16 +12,18 @@ const (
 	MINIMUM_AMOUNT       = 1     // Not sure if we need a minimum amount.  Set at 1 Factoshi
 
 	// Database
+	KEY_LIMIT            = ADDRESS_LENGTH*2  // Limit on size of keys, since Maps in Go can't
+                                             // handle variable length keys.
 	DB_FACTOID_BLOCKS    = "Factoid_Transaction_Blocks"
 	DB_F_BALANCES        = "Factoid_Address_balances"
 	DB_EC_BALANCES       = "Entry_Credit_Address_balances"
-    DB_BUILD_TRANS       = "Transactions_Under_Construction"
-    DB_TRANSACTIONS      = "Transactions_For_Addresses"
     
     // Wallet
-    W_ADDRESS_HASH       = "wallet.address.addr"
+    W_RCD_ADDRESS_HASH   = "wallet.address.addr"
     W_ADDRESS_PUB_KEY    = "wallet.public.key"
-    W_NAME_HASH          = "wallet.address.name"
+    W_NAME               = "wallet.address.name"
+    DB_BUILD_TRANS       = "Transactions_Under_Construction"
+    DB_TRANSACTIONS      = "Transactions_For_Addresses"
     
     // Validation
     WELL_FORMED          = "Pass"

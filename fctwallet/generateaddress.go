@@ -22,7 +22,7 @@ func  handleFactoidGenerateAddress(ctx *web.Context, name string) {
         Address string
     }
     
-    adr, err := factoidState.GetWallet().GenerateAddress([]byte(name),1,1)
+    adr, err := factoidState.GetWallet().GenerateFctAddress([]byte(name),1,1)
     if err != nil {
         fmt.Println("Error: ",err)
         reportResults(ctx,false)
@@ -31,7 +31,33 @@ func  handleFactoidGenerateAddress(ctx *web.Context, name string) {
     
     a := new(faddress)
     
-    adrstr := ConvertFAddressToUserStr(adr)
+    adrstr := fct.ConvertFctAddressToUserStr(adr)
+    a.Address = adrstr
+    if p, err := json.Marshal(a); err != nil {
+        reportResults(ctx,false)
+        return
+    } else {
+        ctx.Write(p)
+    }  
+    
+}
+
+func  handleFactoidGenerateECAddress(ctx *web.Context, name string) {
+    
+    type faddress struct {
+        Address string
+    }
+    
+    adr, err := factoidState.GetWallet().GenerateECAddress([]byte(name))
+    if err != nil {
+        fmt.Println("Error: ",err)
+        reportResults(ctx,false)
+        return
+    }
+    
+    a := new(faddress)
+    
+    adrstr := fct.ConvertECAddressToUserStr(adr)
     a.Address = adrstr
     if p, err := json.Marshal(a); err != nil {
         reportResults(ctx,false)

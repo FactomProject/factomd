@@ -62,8 +62,8 @@ type IFactoidState interface {
     // must be controlled in order to build reliable, repeatable
     // tests.  Therefore, no node should directly querry system
     // time.  
-    GetTimeNano() int64    // Count of nanoseconds from Jan 1,1970
-    GetTime() int64        // Count of seconds from Jan 1, 1970
+    GetTimeNano() uint64    // Count of nanoseconds from Jan 1,1970
+    GetTime() uint64        // Count of seconds from Jan 1, 1970
     // Validate transaction
     // Return true if the balance of an address covers each input
     Validate(fct.ITransaction) bool
@@ -123,6 +123,7 @@ func(fs *FactoidState) AddTransactionBlock(blk block.IFBlock) error  {
 }
 
 func(fs *FactoidState) AddTransaction(trans fct.ITransaction) bool {
+    if !fs.Validate(trans) { return false }
     if fs.UpdateTransaction(trans) {
         fs.currentBlock.AddTransaction(trans)
         return true
@@ -130,8 +131,8 @@ func(fs *FactoidState) AddTransaction(trans fct.ITransaction) bool {
     return false
 }
 
+// Assumes validation has already been done.
 func(fs *FactoidState) UpdateTransaction(trans fct.ITransaction) bool {
-    // if !fs.Validate(trans) { return false }
     for _,input := range trans.GetInputs() {
         fs.UpdateBalance(input.GetAddress(), - int64(input.GetAmount()))
     }
@@ -176,7 +177,7 @@ func(fs *FactoidState) LoadState() error  {
     // uninitialized database.  We need to add the Genesis Block. TODO
     if blk == nil {
         fct.Prtln("No Genesis Block for Factoids detected.  Adding Genesis Block")
-        gb := block.GetGenesisBlock(1000000,10,200000000000)
+        gb := block.GetGenesisBlock(fs.GetTimeNano(), 1000000,10,200000000000)
         fs.PutTransactionBlock(gb.GetHash(),gb)
         fs.PutTransactionBlock(fct.FACTOID_CHAINID_HASH,gb)
         err := fs.AddTransactionBlock(gb)
@@ -249,12 +250,12 @@ func(fs *FactoidState) GetTransactionBlock(hash fct.IHash) block.IFBlock {
     return transblk.(block.IFBlock)
 }
 
-func(fs *FactoidState) GetTime64() int64 {
-    return time.Now().UnixNano()
+func(fs *FactoidState) GetTimeNano() uint64 {
+    return uint64(time.Now().UnixNano())
 }
 
-func(fs *FactoidState) GetTime32() int64 {
-    return time.Now().Unix()
+func(fs *FactoidState) GetTime() uint64 {
+    return uint64(time.Now().Unix())
 }
 
 func(fs *FactoidState) SetDB(database db.IFDatabase){

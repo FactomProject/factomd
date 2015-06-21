@@ -8,11 +8,13 @@ import (
     "fmt"
     "bytes"
     "encoding/binary"
+    "encoding/hex"
     fct "github.com/FactomProject/factoid"
     
     "github.com/boltdb/bolt"
 )
 
+var _ = hex.EncodeToString
 // This database stores and retrieves IBlock instances.  To do that, it
 // needs a list of buckets that the using function wants, so it can make sure
 // all those buckets exist.  (Avoids checking and building buckets in every 
@@ -38,6 +40,26 @@ type BoltDB struct {
 }
 
 var _ IFDatabase = (*BoltDB)(nil)
+
+func (bdb BoltDB) GetKeysValues(bucket []byte) (keys [][]byte, values []fct.IBlock) {
+    keys = make([][]byte,0,32)
+    values = make([]fct.IBlock,0,32)
+    bdb.db.View(func(tx *bolt.Tx) error {
+        b := tx.Bucket([]byte(bucket))
+        if b == nil {
+            fmt.Println("bucket '",bucket,"' not found")
+        }else{
+            b.ForEach(func(k, v []byte) error {
+                keys = append(keys,k)
+                instance := bdb.GetInstance(v)
+                values = append(values,instance)
+                return nil
+            })
+        }
+        return nil
+    })
+    return
+}
 
 func (b BoltDB) String() string {
     txt,err := b.MarshalText()
@@ -119,6 +141,15 @@ func (d *BoltDB) GetRaw(bucket []byte, key []byte) (value fct.IBlock) {
     if v == nil || len(v)<32 {      // If the value is undefined, return nil
         return nil
     }
+    
+    return d.GetInstance(v)
+    
+}
+
+// Return the instance, properly unmarshaled, given the entry in the database, which is 
+// the hash for the Instance (vv) followed by the source from which to unmarshal (v)
+func (d *BoltDB) GetInstance(v []byte) fct.IBlock {
+
     var vv[32]byte
     copy(vv[:],v[:32])
     v=v[32:]
@@ -150,7 +181,6 @@ func (d *BoltDB) GetRaw(bucket []byte, key []byte) (value fct.IBlock) {
 
 
 func (d *BoltDB) PutRaw(bucket []byte, key []byte, value fct.IBlock) {
-    
     var out bytes.Buffer
     hash := value.GetDBHash()
     out.Write(hash.Bytes())

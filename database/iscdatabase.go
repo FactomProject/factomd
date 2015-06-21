@@ -65,6 +65,8 @@ type IFDatabase interface {
     // because the stuff in it is too big, and we don't need fast 
     // access to it.
     DoNotCache(bucket string )
+    // Get a list of the keys and values in a bucket
+    GetKeysValues(bucket []byte) (keys [][]byte, values []factoid.IBlock)
 }
 
 

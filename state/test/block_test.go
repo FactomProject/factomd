@@ -42,13 +42,13 @@ func Test_setup_FactoidState (test *testing.T) {
     fs.twallet = new(wallet.SCWallet)              // Wallet for our tests
     
     for i:=0; i<10; i++ {
-        addr, err := fs.twallet.GenerateAddress([]byte("tes,mbbm,btin_"+cv.Itoa(i)),1,1)
+        addr, err := fs.twallet.GenerateFctAddress([]byte("tes,mbbm,btin_"+cv.Itoa(i)),1,1)
         if err != nil { fct.Prtln(err); test.Fail() }
         fs.inputAddresses = append(fs.inputAddresses,addr)
         fs.outputAddresses = append(fs.outputAddresses,addr)
     }
     for i:=0; i<10000; i++ {
-        addr, err := fs.twallet.GenerateAddress([]byte("testout_"+cv.Itoa(i)),1,1)
+        addr, err := fs.twallet.GenerateFctAddress([]byte("testout_"+cv.Itoa(i)),1,1)
         if err != nil { fct.Prtln(err); test.Fail() }
         fs.outputAddresses = append(fs.outputAddresses,addr)
     }
@@ -98,7 +98,7 @@ func Test_create_genesis_FactoidState (test *testing.T) {
             cnt += 1
         }
         fs.ProcessEndOfBlock()
-        time.Sleep(time.Second)
+       // time.Sleep(time.Second)
     }
     fmt.Println("\nDone")
 }

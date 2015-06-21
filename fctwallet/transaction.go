@@ -12,6 +12,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strconv"
+    "time"
 
 	fct "github.com/FactomProject/factoid"
 	"github.com/FactomProject/factoid/wallet"
@@ -21,6 +22,11 @@ import (
 /******************************************
  * Helper Functions
  ******************************************/
+
+func GetTimeNano() uint64 {
+    return uint64(time.Now().UnixNano())
+}
+
 
 // True is sccuess! False is failure
 func reportResults(ctx *web.Context, v bool) {
@@ -89,7 +95,7 @@ func getParams(ctx *web.Context, params string, ec bool) (
     // Could check for that some how, but there are many ways around such checks.
     
     if len(name)<= fct.ADDRESS_LENGTH {
-        we := factoidState.GetDB().GetRaw([]byte(fct.W_NAME_HASH),[]byte(name))
+        we := factoidState.GetDB().GetRaw([]byte(fct.W_NAME),[]byte(name))
         if we != nil {
             address,err = we.(wallet.IWalletEntry).GetAddress()
             if err != nil || address == nil {
@@ -102,14 +108,14 @@ func getParams(ctx *web.Context, params string, ec bool) (
             return
         }
     }
-    if (!ec && !ValidateFUserStr(name)) || (ec && !ValidateECUserStr(name)) {
+    if (!ec && !fct.ValidateFUserStr(name)) || (ec && !fct.ValidateECUserStr(name)) {
         fmt.Println("Bad Address")
         err = fmt.Errorf("Badly formed address")
         reportResults(ctx,false)
         ctx.WriteHeader(httpBad)
         return
     }
-    baddr := ConvertUserStrToAddress(name)
+    baddr := fct.ConvertUserStrToAddress(name)
     
     address = fct.NewAddress(baddr)
     
@@ -142,7 +148,7 @@ func handleFactoidNewTransaction(ctx *web.Context, key string) {
 		return
 	}
 	// Create a transaction
-	t = factoidState.GetWallet().CreateTransaction()
+	t = factoidState.GetWallet().CreateTransaction(GetTimeNano())
 	// Save it with the key
 	factoidState.GetDB().PutRaw([]byte(fct.DB_BUILD_TRANS), []byte(key), t)
 
@@ -298,6 +304,9 @@ func handleFactoidSubmit(ctx *web.Context) {
     	return
     }
     resp.Body.Close()
+
+    factoidState.GetDB().PutRaw([]byte(fct.DB_BUILD_TRANS), []byte(t.Transaction), nil)
+    
 }
    
 func handleGetFee(ctx *web.Context) {
@@ -326,6 +335,91 @@ func handleGetFee(ctx *web.Context) {
     ctx.Write(body)
     
 }   
+   
+func formatFct(v uint64) string {   
+    tv := v/100000000
+    bv := v-(tv*100000000)
+    var str string
+   
+    // Count zeros to lop off
+    var cnt int 
+    for cnt=0; cnt<7;cnt++ {
+        if (bv/10)*10 != bv {break}
+        bv = bv/10
+    }
+    // Print the proper format string
+    fstr := fmt.Sprintf(" %s%dv.%s0%vd","%",12,"%",8-cnt)
+    // Use the format string to print our Factoid balance
+    str = fmt.Sprintf(fstr,tv,bv)
     
+    return str
+}    
+
+func   handleGetAddresses  (ctx *web.Context) {
+    
+    keys, values := factoidState.GetDB().GetKeysValues([]byte(fct.W_NAME))
+    
+    ecKeys := make([]string,0,len(keys))
+    fctKeys := make([]string,0,len(keys))
+    ecBalances := make([]string,0,len(keys))
+    fctBalances := make([]string,0,len(keys))
+    fctAddresses := make([]string,0,len(keys))
+    ecAddresses := make([]string,0,len(keys))
+    
+    var maxlen int
+    for i,k := range keys {
+        if len(k) > maxlen {maxlen = len(k)}
+        we,ok := values[i].(wallet.IWalletEntry)
+        if !ok { 
+            panic("Get Addresses finds the database corrupt.  Shouldn't happen")
+        }
+        var adr string
+        if we.GetType() == "ec" {
+            address, err := we.GetAddress()
+            if err != nil { continue }
+            adr = fct.ConvertECAddressToUserStr(address)
+            ecAddresses = append(ecAddresses,adr)
+            ecKeys = append(ecKeys, string(k))
+            bal := ECBalance(adr)
+            ecBalances = append(ecBalances,strconv.FormatInt(bal,10))
+        }else{
+            address, err := we.GetAddress()
+            if err != nil { continue }
+            adr = fct.ConvertFctAddressToUserStr(address)
+            fctAddresses = append(fctAddresses,adr)
+            fctKeys = append(fctKeys, string(k))
+            bal := FctBalance(adr)
+            sbal := formatFct(uint64(bal))
+            fctBalances = append(fctBalances,sbal)
+        }
+    }
+    var out bytes.Buffer
+    if len(fctKeys)>0 { out.WriteString("\n  Factoid Addresses\n\n") }
+    fstr := fmt.Sprintf("%s%vs    %s38s %s14s\n","%",maxlen+4,"%","%")
+    for i,key := range fctKeys {
+        str := fmt.Sprintf(fstr,  key,  fctAddresses[i],   fctBalances[i]) 
+        out.WriteString(str)
+    }
+    if len(ecKeys)>0 { out.WriteString("\n  Entry Credit Addresses\n\n") }
+    for i,key := range ecKeys {
+        str := fmt.Sprintf(fstr,  key,  ecAddresses[i],    ecBalances[i]) 
+        out.WriteString(str)
+    }
+    type x struct {
+        Body string
+        Success bool
+    }
+    b := new(x)
+    b.Body = string(out.Bytes())
+    b.Success = true
+    j, err := json.Marshal(b)
+    if err != nil {
+        reportResults(ctx, false)
+        return
+    }
+    ctx.Write(j)
+}    
+   
+   
 func handleFactoidValidate(ctx *web.Context) {
 }

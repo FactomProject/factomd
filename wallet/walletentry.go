@@ -19,17 +19,29 @@ import (
 
 type IWalletEntry interface {
     fct.IBlock
+    // Set the RCD for this entry.  USE WITH CAUTION!  You change
+    // the hash and thus the address returned by the wallet entry!
     SetRCD(fct.IRCD)
+    // Get the RCD used to validate an input
     GetRCD() fct.IRCD 
+    // Add a public and private key.  USE WITH CAUTION! You change
+    // the hash and thus the address returned by the wallet entry!
     AddKey(public, private []byte)
+    // Get the name for this address
     GetName() ([]byte)  
+    // Set the name for this address
     SetName([]byte)  
+    // Get the address defined by the RCD for this wallet entry.
     GetAddress() (fct.IAddress, error)
-    
+    // Return "ec" for Entry Credit address, and "fct" for a Factoid address
+    GetType() string
+    SetType(string) 
 }
 
 type WalletEntry struct {
     IWalletEntry
+    // Type string for the address.  Either "ec" or "fct"
+    addrtype string
     // 2 byte length not included here
     name    []byte          
     rcd     fct.IRCD // Verification block for this IWalletEntry
@@ -40,6 +52,18 @@ type WalletEntry struct {
 }
 
 var _ IWalletEntry = (*WalletEntry)(nil)
+
+func (w WalletEntry) GetType() string {
+    return w.addrtype
+}
+
+func (w *WalletEntry) SetType(addrtype string) {
+    switch addrtype {
+        case "ec" : fallthrough
+        case "fct": w.addrtype = addrtype
+        default : panic("Invalid type passed to SetType()")
+    }
+}
 
 func (b WalletEntry) String() string {
     txt,err := b.MarshalText()
@@ -69,7 +93,7 @@ func (WalletEntry)GetNewInstance() fct.IBlock {
 
 func (w1 *WalletEntry) IsEqual(w fct.IBlock) []fct.IBlock {
     w2, ok := w.(*WalletEntry)
-    if !ok { 
+    if !ok || w1.GetType() != w2.GetType() { 
         r := make([]fct.IBlock,0,3)
         return append(r,w1)
     }
@@ -85,6 +109,15 @@ func (w1 *WalletEntry) IsEqual(w fct.IBlock) []fct.IBlock {
 
 func (w *WalletEntry) UnmarshalBinaryData(data []byte) ([]byte, error) {
     
+    // handle the type byte
+    if uint(data[0]) > 1 { return nil, fmt.Errorf("Invalid type byte") }
+    if data[0] == 0 { 
+        w.addrtype = "fct" 
+    }else{ 
+        w.addrtype = "ec" 
+    }
+    data = data[1:]
+
     len, data := binary.BigEndian.Uint16(data[0:2]), data[2:]
     n := make([]byte,len,len)   // build a place for the name
     copy(n,data[:len])          // copy it into that place
@@ -122,6 +155,14 @@ func (w *WalletEntry) UnmarshalBinary(data []byte) error {
 
 func (w WalletEntry) MarshalBinary() ([]byte, error) {
     var out bytes.Buffer
+
+    if w.addrtype == "fct" {
+        out.WriteByte(0)
+    } else if w.addrtype == "ec" {
+        out.WriteByte(1)
+    } else {
+        panic("Address type not set")
+    }
     
     binary.Write(&out, binary.BigEndian, uint16(len([]byte(w.name))))
     out.Write([]    byte(w.name))

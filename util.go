@@ -10,6 +10,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"runtime/debug"
+    "github.com/btcsuitereleases/btcutil/base58"
 )
 
 /*********************************
@@ -105,6 +106,104 @@ func PrtIndent(level int) {
 	for i := 0; i < level && i < 10; i++ { // Indent up to 10 levels.
 		Prt("    ") //   by printing leading spaces
 	}
+}
+
+/************************************************
+ * Helper Functions for User Address handling
+ ************************************************/
+
+// Factoid Address
+// 
+// 
+// Add a prefix of 0x5fb1 at the start, and the first 4 bytes of a SHA256d to
+// the end.  Using zeros for the address, this might look like:
+// 
+//     5fb10000000000000000000000000000000000000000000000000000000000000000d48a8e32
+// 
+// A typical Factoid Address:
+//
+//     FA1y5ZGuHSLmf2TqNf6hVMkPiNGyQpQDTFJvDLRkKQaoPo4bmbgu
+// 
+// Entry credits only differ by the prefix of 0x592a and typically look like:
+//
+//     EC3htx3MxKqKTrTMYj4ApWD8T3nYBCQw99veRvH1FLFdjgN6GuNK
+//
+// More words on this can be found here:
+//
+// https://github.com/FactomProject/FactomDocs/blob/master/factomDataStructureDetails.md#human-readable-addresses
+//
+
+var FactoidPrefix = []byte{ 0x5f, 0xb1 }
+var EntryCreditPrefix = []byte{ 0x59, 0x2a }
+
+//  Convert Factoid and Entry Credit addresses to their more user
+//  friendly and human readable formats.
+//
+//  Creates the binary form.  Just needs the conversion to base58
+//  for display.
+func ConvertAddressToUser(prefix []byte, addr IAddress) []byte {
+    sha256d := Sha(Sha(addr.Bytes()).Bytes()).Bytes()
+    userd := make([]byte,0,32)
+    userd = append(userd, prefix...)
+    userd = append(userd, addr.Bytes()...)
+    userd = append(userd, sha256d[:4]...)
+    return userd
+}
+
+// Convert Factoid Addresses
+func ConvertFctAddressToUserStr(addr IAddress) string {
+    userd := ConvertAddressToUser(FactoidPrefix, addr)
+    return base58.Encode(userd)
+}
+
+// Convert Entry Credits
+func ConvertECAddressToUserStr(addr IAddress) string {
+    userd := ConvertAddressToUser(EntryCreditPrefix, addr)
+    return base58.Encode(userd)
+}
+
+
+//
+// Validates a User representation of a Factom and 
+// Entry Credit addresses.
+//
+// Returns false if the length is wrong.
+// Returns false if the prefix is wrong.  
+// Returns false if the checksum is wrong.
+//
+func validateUserStr(prefix []byte, userFAddr string) bool {
+    if len(userFAddr) != 52 {  
+        return false 
+        
+    }
+    v := base58.Decode(userFAddr)
+    if bytes.Compare(prefix, v[:2]) != 0 { 
+        return false 
+        
+    }
+    sha256d := Sha(Sha(v[2:34]).Bytes()).Bytes()
+    if bytes.Compare (sha256d[:4],v[34:]) != 0 {
+        return false 
+    }
+    return true
+}
+
+// Validate Factoids
+func ValidateFUserStr(userFAddr string) bool {
+    return validateUserStr(FactoidPrefix, userFAddr)
+}
+
+// Validate Entry Credits
+func ValidateECUserStr(userFAddr string) bool {
+    return validateUserStr(EntryCreditPrefix, userFAddr)
+}
+
+// Convert a User facing Factoid or Entry Credit address
+// to the regular form.  Note validation must be done
+// separately!
+func ConvertUserStrToAddress(userFAddr string) []byte {
+    v := base58.Decode(userFAddr)
+    return v[2:34]
 }
 
 

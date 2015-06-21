@@ -23,6 +23,7 @@ func Test_create_walletentry(test *testing.T) {
     we := new(WalletEntry)
     rcd := new(factoid.RCD_1)
     name := "John Smith"
+    adrtype := "fct"
     pub, pri, err := w.generateKey()
     
     if err != nil {
@@ -33,6 +34,7 @@ func Test_create_walletentry(test *testing.T) {
     we.SetRCD(rcd)
     we.AddKey(pub,pri)
     we.SetName([]byte(name))
+    we.SetType(adrtype)
     
     data,err := we.MarshalBinary()
     if err != nil {

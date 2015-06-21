@@ -49,9 +49,9 @@ func Test_create_scwallet(test *testing.T) {
 
 func Test_GenerateAddress_scwallet(test *testing.T) {
     w := new(SCWallet)          // make me a wallet
-    h1,err := w.GenerateAddress([]byte("test 1"),1,1)
+    h1,err := w.GenerateFctAddress([]byte("test 1"),1,1)
     if err != nil { test.Fail() }
-    h2,err := w.GenerateAddress([]byte("test 2"),1,1)
+    h2,err := w.GenerateFctAddress([]byte("test 2"),1,1)
     if err != nil { test.Fail() }
     
     if h1.IsEqual(h2) == nil { test.Fail() }   
@@ -61,9 +61,9 @@ func Test_GenerateAddress_scwallet(test *testing.T) {
 
 func Test_CreateTransaction_swcallet(test *testing.T) { 
     w := new(SCWallet)          // make me a wallet
-    h1,err := w.GenerateAddress([]byte("test 1"),1,1)
+    h1,err := w.GenerateFctAddress([]byte("test 1"),1,1)
     if err != nil { test.Fail() }
-    h2,err := w.GenerateAddress([]byte("test 2"),1,1)
+    h2,err := w.GenerateFctAddress([]byte("test 2"),1,1)
     if err != nil { test.Fail() }
     
     t := w.CreateTransaction()
@@ -93,15 +93,15 @@ func Test_CreateTransaction_swcallet(test *testing.T) {
 
 func Test_SignTransaction_swcallet(test *testing.T) { 
     w := new(SCWallet)          // make me a wallet
-    h0,err := w.GenerateAddress([]byte("test 0"),1,1)
+    h0,err := w.GenerateFctAddress([]byte("test 0"),1,1)
     if err != nil { test.Fail() }
-    h1,err := w.GenerateAddress([]byte("test 1"),1,1)
+    h1,err := w.GenerateFctAddress([]byte("test 1"),1,1)
     if err != nil { test.Fail() }
-    h2,err := w.GenerateAddress([]byte("test 2"),1,1)
+    h2,err := w.GenerateFctAddress([]byte("test 2"),1,1)
     if err != nil { test.Fail() }
-    h3,err := w.GenerateAddress([]byte("test 3"),1,1)
+    h3,err := w.GenerateFctAddress([]byte("test 3"),1,1)
     if err != nil { test.Fail() }
-    h4,err := w.GenerateAddress([]byte("test 4"),1,1)
+    h4,err := w.GenerateFctAddress([]byte("test 4"),1,1)
     if err != nil { test.Fail() }
     
     t := w.CreateTransaction()

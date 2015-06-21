@@ -16,10 +16,10 @@ import (
 )
 
 
-func GetBalance(adr string) int64 {
+func FctBalance(adr string) int64 {
     
-    if !ValidateFUserStr(adr) {
-        we := factoidState.GetDB().GetRaw([]byte(fct.W_NAME_HASH),[]byte(adr))
+    if !fct.ValidateFUserStr(adr) {
+        we := factoidState.GetDB().GetRaw([]byte(fct.W_NAME),[]byte(adr))
     
         if (we != nil){
             we2 := we.(wallet.IWalletEntry)
@@ -27,7 +27,7 @@ func GetBalance(adr string) int64 {
             adr = hex.EncodeToString(addr.Bytes())
         }
     }else{
-        baddr := ConvertUserStrToAddress(adr)
+        baddr := fct.ConvertUserStrToAddress(adr)
         adr = hex.EncodeToString(baddr)
     }
     
@@ -53,9 +53,50 @@ func GetBalance(adr string) int64 {
     
 }
 
+func ECBalance(adr string) int64 {
+    
+    if !fct.ValidateECUserStr(adr) {
+        we := factoidState.GetDB().GetRaw([]byte(fct.W_NAME),[]byte(adr))
+        
+        if (we != nil){
+            if we.(wallet.IWalletEntry).GetType() != "ec" {
+                fmt.Println("Wallet Entry has wrong type")
+                return -1
+            }
+            we2 := we.(wallet.IWalletEntry)
+            addr,_ := we2.GetAddress()
+            adr = hex.EncodeToString(addr.Bytes())
+        }
+    }else{
+        baddr := fct.ConvertUserStrToAddress(adr)
+        adr = hex.EncodeToString(baddr)
+    }
+    
+    resp, err := http.Get(fmt.Sprintf("http://%s/v1/entry-credit-balance/%s", ipaddressFD+portNumberFD, adr))
+    if err != nil {
+        fmt.Println("-2::",err)
+        return -2
+    }
+    body, err := ioutil.ReadAll(resp.Body)
+    if err != nil {
+        fmt.Println("-3::",err)
+        return -3
+    }
+    resp.Body.Close()
+    
+    type Balance struct { Balance int64 }
+    b := new(Balance)
+    if err := json.Unmarshal(body, b); err != nil {
+        fmt.Println("-4::",err)
+        return -4
+    }
+    
+    return b.Balance
+}
+
 func  handleFactoidBalance(ctx *web.Context, adr string) {
     
-    v := GetBalance(adr)
+    v := FctBalance(adr)
     if v < 0 {
         fmt.Println("Unknown or bad address: ",v)
         reportResults(ctx,false)

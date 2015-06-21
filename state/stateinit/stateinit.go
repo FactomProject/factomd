@@ -42,7 +42,6 @@ func NewFactoidState(filename string) state.IFactoidState{
         fs.GetDB().DoNotCache(fct.DB_FACTOID_BLOCKS)
         fs.GetDB().DoNotCache(fct.DB_TRANSACTIONS)
         
-        
     }else{
         fs.SetDB(GetDatabase(filename))
     }
@@ -63,9 +62,9 @@ func GetDatabase(filename string) database.IFDatabase {
     
     bucketList = append(bucketList,[]byte(fct.DB_BUILD_TRANS))    
     bucketList = append(bucketList,[]byte(fct.DB_TRANSACTIONS))    
-    bucketList = append(bucketList,[]byte(fct.W_ADDRESS_HASH))    
+    bucketList = append(bucketList,[]byte(fct.W_RCD_ADDRESS_HASH))    
     bucketList = append(bucketList,[]byte(fct.W_ADDRESS_PUB_KEY))    
-    bucketList = append(bucketList,[]byte(fct.W_NAME_HASH))    
+    bucketList = append(bucketList,[]byte(fct.W_NAME))    
         
     instances = make(map[[fct.ADDRESS_LENGTH]byte]fct.IBlock)
     

@@ -5,6 +5,7 @@
 package database
 
 import (
+    "bytes"
 	fct "github.com/FactomProject/factoid"
 )
 
@@ -14,6 +15,21 @@ type MapDB struct {
 }
 
 var _ IFDatabase = (*MapDB)(nil)
+
+func (b MapDB) GetKeysValues(bucket []byte) (keys [][]byte, values []fct.IBlock) {
+    keys = make([][]byte,0,32)
+    values = make([]fct.IBlock,0,32)
+    if b.GetPersist() == nil || b.doNotPersist[string(bucket)] != nil {    
+        for dbKey,v:= range b.cache {
+            if bytes.Compare(dbKey.GetKey(),bucket)==0 {
+            keys = append(keys, dbKey.GetKey())
+            values = append(values,v)
+            }
+        }
+        return
+    }
+    return b.GetPersist().GetKeysValues(bucket)
+}
 
 func (b MapDB) String() string {
     txt,err := b.MarshalText()
