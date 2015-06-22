@@ -33,14 +33,6 @@ var (
 	outCtlMsgQueue chan wire.FtmInternalMsg //outgoing message queue for factom control messages
 )
 
-// trying out some flags to optionally disable old BTC functionality ... WIP
-var FactomOverride struct {
-	//	TxIgnoreMissingParents bool
-	temp1                     bool
-	TxOrphansInsteadOfMempool bool // allow orphans for block creation
-	BlockDisableChecks        bool
-}
-
 // start up Factom queue(s) managers/processors
 // this is to be called within the btcd's main code
 func factomForkInit(s *server) {
@@ -165,8 +157,6 @@ func Start_btcd(
 	// Use all processor cores.
 	//runtime.GOMAXPROCS(runtime.NumCPU())
 
-	FactomSetupOverrides()
-
 	// Up some limits.
 	//if err := limits.SetLimits(); err != nil {
 	//	os.Exit(1)
@@ -276,7 +266,6 @@ func factom_PL_hook(tx *btcutil.Tx, label string) error {
 
 	return nil
 }
-*/
 
 // for Jack
 func global_DeleteMemPoolEntry(hash *wire.ShaHash) {
@@ -307,16 +296,6 @@ func (b *blockManager) factomChecks() {
 	util.Trace()
 }
 
-func FactomSetupOverrides() {
-	//	factomd.FactomOverride.TxIgnoreMissingParents = true
-
-	//	FactomOverride.TxOrphansInsteadOfMempool = true
-	FactomOverride.TxOrphansInsteadOfMempool = false
-
-	FactomOverride.BlockDisableChecks = true
-}
-
-/*
 // feed all incoming Txs to the inner Factom code (for Jack)
 // TODO: do this after proper mempool/orphanpool/validity triangulation & checks
 func factomIngressTx_hook(tx *wire.MsgTx) error {
