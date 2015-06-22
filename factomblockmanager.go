@@ -6,6 +6,7 @@ package btcd
 
 import (
 	"container/list"
+	"fmt"
 	"sync/atomic"
 
 	"github.com/FactomProject/btcd/wire"
@@ -325,6 +326,7 @@ func HaveBlockInDB(hash *wire.ShaHash) (bool, error) {
 	util.Trace()
 	dblock, _ := db.FetchDBlockByHash(hash.ToFactomHash())
 	if dblock != nil {
+		fmt.Println("dir block height=", dblock.Header.BlockHeight)
 		return true, nil
 	}
 	return false, nil
