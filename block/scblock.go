@@ -14,22 +14,37 @@ import (
 
 type IFBlock interface {
 	fct.IBlock
+	// Get the ChainID. This is a constant for all Factoids.
 	GetChainID() fct.IHash
+	// Validation functions
+	Validate() (bool, error)
+    ValidateTransaction(fct.ITransaction) bool
+    // Marshal just the transactions.  This is because we need the length
 	MarshalTrans() ([]byte, error)
+    // Add a coinbase transaction.  This transaction has no inputs
     AddCoinbase(fct.ITransaction) (bool, error)
+    // Add a proper transaction.  Transactions are validated before
+    // being added to the block.
 	AddTransaction(fct.ITransaction) (bool, error)
+    // Calculate all the MR and serial hashes for this block.  Done just
+    // prior to being persisted.
 	CalculateHashes()
+    // Hash accessors
     GetMerkleRoot() fct.IHash
     GetPrevBlock() fct.IHash
     SetPrevBlock([]byte) 
     GetPrevHash3() fct.IHash
     SetPrevHash3([]byte) 
-	SetDBHeight(uint32)
+    // Accessors for the Directory Block Height
+    SetDBHeight(uint32)
 	GetDBHeight() uint32
+	// Accessors for the Exchange rate
 	SetExchRate(uint64)
 	GetExchRate() uint64
+	// This isn't used, but is left for future optimizations
 	GetUTXOCommit() fct.IHash
 	SetUTXOCommit([]byte) 
+    // Accessors for the transactions
     GetTransactions() []fct.ITransaction
 }
 
@@ -276,12 +291,39 @@ func (b *FBlock) GetExchRate() uint64 {
 	return b.ExchRate
 }
 
+func (b FBlock) ValidateTransaction(trans fct.ITransaction) bool {
+    // Calculate the fee due.
+    {
+        valid := trans.Validate()
+        if valid != fct.WELL_FORMED {
+            fmt.Println("Not Well Formed")
+            return false // Transaction is not well formed.
+        }
+    }
+    {
+        valid := trans.ValidateSignatures()
+        if !valid {
+            fmt.Println("Not validly signed")
+            return false // Transaction is not proerly signed.
+        }
+    }
+    fee, err := trans.CalculateFee(b.ExchRate)
+    if err != nil {
+        fmt.Println("Failed to calculate fee")
+        return false
+    }
+    if trans.TotalInputs() < trans.TotalOutputs()+trans.TotalECs()+fee {
+        fmt.Println("Not enough inputs to cover outputs and the fee")
+        return false    // Transaction either has not enough inputs, 
+    }                   // or didn't pay the fee.
+    return true
+}
+
 func (b FBlock) Validate() (bool, error) {
 	for _, trans := range b.transactions {
-		valid := trans.Validate()
-		if valid != fct.WELL_FORMED {
-			return false, fmt.Errorf("Block contains invalid transactions:\n%s",valid)
-		}
+        if !b.ValidateTransaction(trans) {
+            return false, fmt.Errorf("Block contains invalid transactions")
+        }
 	}
 
 	// Need to check balances are all good.
@@ -323,14 +365,12 @@ func (b *FBlock) AddCoinbase(trans fct.ITransaction) (bool, error) {
 func (b *FBlock) AddTransaction(trans fct.ITransaction) (bool, error) {
 	// These tests check that the Transaction itself is valid.  If it
 	// is not internally valid, it never will be valid.
-	valid := trans.Validate()
-	if valid != fct.WELL_FORMED {
-		return false, fmt.Errorf("Invalid Transaction: %s",valid)
+    valid := b.ValidateTransaction(trans)
+	if !valid {
+		return false, fmt.Errorf("Invalid Transaction")
 	}
-
-	// These checks may pass in the future
-
-	// Check against address balances
+	
+	// Check against address balances is done at the Factom level.
 
 	b.transactions = append(b.transactions, trans)
 	return true, nil

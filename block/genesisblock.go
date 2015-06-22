@@ -28,9 +28,9 @@ func GetGenesisBlock(ftime uint64, ExRate uint64, addressCnt int, Factoids uint6
     w := new(wallet.SCWallet)        
     t := w.CreateTransaction(ftime)
     
-    for i:=0; i<10; i++ {
+    for i:=0; i<addressCnt; i++ {
         h,_ := w.GenerateFctAddress([]byte("test "+string(i)),1,1)
-        w.AddOutput(t,h,200000000000)   // 2000 factoids per address
+        w.AddOutput(t,h,Factoids)   // 2000 factoids per address
     }
     
 	flg, err := genesisBlock.AddCoinbase(t)
