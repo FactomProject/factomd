@@ -224,9 +224,14 @@ func(fs *FactoidState) LoadState() error  {
         
 
 func(fs *FactoidState) Validate(trans fct.ITransaction) bool  {
+    if !fs.currentBlock.ValidateTransaction(trans) {
+        return false
+    }
     for _, input := range trans.GetInputs() {
         bal := fs.GetBalance(input.GetAddress())
-        if input.GetAmount()>bal { return false }
+        if input.GetAmount()>bal { 
+            return false 
+        }
     }
     return true;
 }
