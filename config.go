@@ -32,7 +32,7 @@ RefreshInSeconds = 60
 // ReadConfig reads the factoid.conf file and returns the FactoidConfig object
 func ReadConfig() *FactoidConfig {
 	cfg := new(FactoidConfig)
-	filename := os.Getenv("HOME") + "/.factom/factoid.conf"
+	filename := os.Getenv("HOME") + "/.factom/fctwallet.conf"
 	if err := gcfg.ReadFileInto(cfg, filename); err != nil {
 		gcfg.ReadStringInto(cfg, defaultConfig)
 	}
