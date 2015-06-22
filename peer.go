@@ -5,7 +5,6 @@
 package btcd
 
 import (
-	"bytes"
 	"container/list"
 	"errors"
 	"fmt"
@@ -1359,16 +1358,16 @@ func (p *peer) writeMessage(msg wire.Message) {
 	}))
 	peerLog.Debugf("%v", newLogClosure(func() string {
 		return spew.Sdump(msg)
-	}))
-	peerLog.Debugf("%v", newLogClosure(func() string {
-		var buf bytes.Buffer
-		err := wire.WriteMessage(&buf, msg, p.ProtocolVersion(),
-			p.btcnet)
-		if err != nil {
-			return err.Error()
-		}
-		return spew.Sdump(buf.Bytes())
-	}))
+	})) /*
+		peerLog.Debugf("%v", newLogClosure(func() string {
+			var buf bytes.Buffer
+			err := wire.WriteMessage(&buf, msg, p.ProtocolVersion(),
+				p.btcnet)
+			if err != nil {
+				return err.Error()
+			}
+			return spew.Sdump(buf.Bytes())
+		})) */
 
 	// Write the message to the peer.
 	n, err := wire.WriteMessageN(p.conn, msg, p.ProtocolVersion(),
