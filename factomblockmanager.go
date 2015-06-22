@@ -49,6 +49,7 @@ func (b *blockManager) handleDirInvMsg(imsg *dirInvMsg) {
 	for i := len(invVects) - 1; i >= 0; i-- {
 		if invVects[i].Type == wire.InvTypeFactomDirBlock {
 			lastBlock = i
+			bmgrLog.Debugf("lastBlock=%d", lastBlock)
 			break
 		}
 	}
@@ -122,6 +123,7 @@ func (b *blockManager) handleDirInvMsg(imsg *dirInvMsg) {
 				// Request blocks after this one up to the
 				// final one the remote peer knows about (zero
 				// stop hash).
+				util.Trace("push for more dir blocks: PushGetDirBlocksMsg")
 				locator := DirBlockLocatorFromHash(&iv.Hash)
 				imsg.peer.PushGetDirBlocksMsg(locator, &zeroHash)
 			}
@@ -130,6 +132,7 @@ func (b *blockManager) handleDirInvMsg(imsg *dirInvMsg) {
 
 	// Request as much as possible at once.  Anything that won't fit into
 	// the request will be requested on the next inv message.
+	util.Trace()
 	numRequested := 0
 	gdmsg := wire.NewMsgGetDirData()
 	requestQueue := imsg.peer.requestQueue
@@ -142,13 +145,14 @@ func (b *blockManager) handleDirInvMsg(imsg *dirInvMsg) {
 		case wire.InvTypeFactomDirBlock:
 			// Request the block if there is not already a pending
 			// request.
+			util.Trace()
 			if _, exists := b.requestedBlocks[iv.Hash]; !exists {
 				b.requestedBlocks[iv.Hash] = struct{}{}
 				imsg.peer.requestedBlocks[iv.Hash] = struct{}{}
 				gdmsg.AddInvVect(iv)
 				numRequested++
 			}
-
+		
 		case wire.InvTypeTx:
 			// Request the transaction if there is not already a
 			// pending request.
