@@ -275,11 +275,9 @@ func (p *peer) pushVersionMsg() error {
 	}
 
 	// Version message.
-	util.Trace("NOT IMPLEMENTED? Factoid1")
 	msg := wire.NewMsgVersion(
 		p.server.addrManager.GetBestLocalAddress(p.na), theirNa,
 		p.server.nonce, int32(blockNum))
-	//p.server.nonce, 0) // TODO: provide a block number from Factom
 	msg.AddUserAgent(userAgentName, userAgentVersion)
 
 	// XXX: bitcoind appears to always enable the full node services flag
@@ -1307,7 +1305,7 @@ func (p *peer) readMessage() (wire.Message, []byte, error) {
 
 	// Use closures to log expensive operations so they are only run when
 	// the logging level requires it.
-	peerLog.Debugf("%v", newLogClosure(func() string {
+	peerLog.Debugf("read: %v", newLogClosure(func() string {
 		// Debug summary of message.
 		summary := messageSummary(msg)
 		if len(summary) > 0 {
@@ -1316,12 +1314,12 @@ func (p *peer) readMessage() (wire.Message, []byte, error) {
 		return fmt.Sprintf("Received %v%s from %s",
 			msg.Command(), summary, p)
 	}))
-	peerLog.Debugf("%v", newLogClosure(func() string {
+	peerLog.Debugf("read: %v", newLogClosure(func() string {
 		return spew.Sdump(msg)
-	}))
-	peerLog.Debugf("%v", newLogClosure(func() string {
-		return spew.Sdump(buf)
-	}))
+	})) /*
+		peerLog.Debugf("%v", newLogClosure(func() string {
+			return spew.Sdump(buf)
+		})) */
 
 	return msg, buf, nil
 }
@@ -1347,7 +1345,7 @@ func (p *peer) writeMessage(msg wire.Message) {
 
 	// Use closures to log expensive operations so they are only run when
 	// the logging level requires it.
-	peerLog.Debugf("%v", newLogClosure(func() string {
+	peerLog.Debugf("write: %v", newLogClosure(func() string {
 		// Debug summary of message.
 		summary := messageSummary(msg)
 		if len(summary) > 0 {
@@ -1356,7 +1354,7 @@ func (p *peer) writeMessage(msg wire.Message) {
 		return fmt.Sprintf("Sending %v%s to %s", msg.Command(),
 			summary, p)
 	}))
-	peerLog.Debugf("%v", newLogClosure(func() string {
+	peerLog.Debugf("write: %v", newLogClosure(func() string {
 		return spew.Sdump(msg)
 	})) /*
 		peerLog.Debugf("%v", newLogClosure(func() string {
