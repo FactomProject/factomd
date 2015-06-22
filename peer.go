@@ -1641,6 +1641,10 @@ out:
 			util.Trace()
 			p.handleEntryMsg(msg, buf)
 
+		case *wire.MsgFactoidTX:
+			util.Trace("MsgFactoidTX")
+			p.handleFactoidMsg(msg, buf)
+
 		default:
 			peerLog.Debugf("Received unhandled message of type %v: Fix Me",
 				rmsg.Command())

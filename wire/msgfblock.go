@@ -4,10 +4,9 @@
 
 package wire
 
-
 import (
+	"github.com/FactomProject/factoid/block"
 	"io"
-    "github.com/FactomProject/factoid/block"
 )
 
 // factoid block
@@ -65,5 +64,5 @@ func (msg *MsgFBlock) MaxPayloadLength(pver uint32) uint32 {
 // NewMsgABlock returns a new bitcoin inv message that conforms to the Message
 // interface.  See MsgInv for details.
 func NewMsgFBlock() *MsgFBlock {
-    return &MsgFBlock{}
+	return &MsgFBlock{}
 }

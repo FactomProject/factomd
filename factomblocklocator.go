@@ -28,7 +28,7 @@ func DirBlockLocatorFromHash(hash *wire.ShaHash) blockchain.BlockLocator {
 	h, _ := common.HexToHash(common.GENESIS_DIR_BLOCK_HASH)
 	genesisHash := wire.FactomHashToShaHash(h)
 	// Nothing more to do if a locator for the genesis hash was requested.
-	if hash.IsEqual(genesisHash) {
+	if genesisHash.IsEqual(hash) {
 		return locator
 	}
 
