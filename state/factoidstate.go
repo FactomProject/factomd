@@ -77,7 +77,8 @@ type IFactoidState interface {
     // Process End of Minute.  
     ProcessEndOfMinute()
     // Process End of Block.
-    ProcessEndOfBlock()
+    ProcessEndOfBlock() // to be replaced by ProcessEndOfBlock2
+    ProcessEndOfBlock2(uint32)    
     // Get the current Directory Block Height
     GetDBHeight() uint32
 }
@@ -152,14 +153,36 @@ func(fs *FactoidState) ProcessEndOfMinute() {
 // up the next block.
 func(fs *FactoidState) ProcessEndOfBlock(){
     var hash fct.IHash
-    
+   
     if fs.currentBlock != nil {             // If no blocks, the current block is nil
         hash = fs.currentBlock.GetHash()
         fs.PutTransactionBlock(hash,fs.currentBlock)
         fs.PutTransactionBlock(fct.FACTOID_CHAINID_HASH,fs.currentBlock)
     }
+    
     fs.dbheight += 1
     fs.currentBlock = block.NewFBlock(fs.GetFactoshisPerEC(),fs.dbheight)
+    flg, err := fs.currentBlock.AddCoinbase(new(fct.Transaction))
+    if !flg || err !=nil {
+        panic("Failed to add coinbase transaction")
+    }
+    if hash != nil {
+        fs.currentBlock.SetPrevBlock(hash.Bytes())
+    }
+    
+}
+
+// End of Block means packing the current block away, and setting 
+// up the next block.
+// this function is to replace the existing function: ProcessEndOfBlock
+func(fs *FactoidState) ProcessEndOfBlock2(nextBlkHeight uint32) {
+    var hash fct.IHash
+ 
+    if fs.currentBlock != nil {             // If no blocks, the current block is nil
+        hash = fs.currentBlock.GetHash()
+    }
+    
+    fs.currentBlock = block.NewFBlock(fs.GetFactoshisPerEC(), nextBlkHeight)
     flg, err := fs.currentBlock.AddCoinbase(new(fct.Transaction))
     if !flg || err !=nil {
         panic("Failed to add coinbase transaction")
@@ -221,7 +244,7 @@ func(fs *FactoidState) LoadState() error  {
     fs.currentBlock.SetPrevBlock(blk.GetHash().Bytes())
     return nil
 }
-        
+    
 
 func(fs *FactoidState) Validate(trans fct.ITransaction) bool  {
     for _, input := range trans.GetInputs() {
