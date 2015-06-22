@@ -373,7 +373,7 @@ func (p *peer) handleGetDirBlocksMsg(msg *wire.MsgGetDirBlocks) {
 		endIdx = 500
 	}
 	if endIdx >= endHeight {
-		endIdx = endHeight + 1 
+		endIdx = endHeight + 1
 	}
 
 	if !msg.HashStop.IsEqual(&zeroHash) {
@@ -731,5 +731,54 @@ func (p *peer) pushEntryMsg(commonhash *common.Hash, doneChan, waitChan chan str
 	msg := wire.NewMsgEntry()
 	msg.Entry = entry
 	p.QueueMessage(msg, doneChan) //blk.MsgBlock(), dc)
+	return nil
+}
+
+// handleFactoidMsg
+func (p *peer) handleFactoidMsg(msg *wire.MsgFactoidTX, buf []byte) {
+	util.Trace()
+
+	// Convert the raw MsgBlock to a btcutil.Block which provides some
+	// convenience methods and things such as hash caching.
+
+	binary, _ := msg.Transaction.MarshalBinary()
+	commonHash := common.Sha(binary)
+	hash, _ := wire.NewShaHash(commonHash.Bytes())
+
+	iv := wire.NewInvVect(wire.InvTypeTx, hash)
+	p.AddKnownInventory(iv)
+
+	inMsgQueue <- msg
+}
+
+// pushFactoiMsg
+func (p *peer) pushFactoidMsg(commonhash *common.Hash, doneChan, waitChan chan struct{}) error {
+	util.Trace()
+
+	var err error = nil
+
+	// TODO FIXME
+	// tx, err := db.FetchFactoidByHash(commonhash)
+
+	if err != nil {
+
+		if doneChan != nil {
+			doneChan <- struct{}{}
+		}
+		return err
+	}
+
+	// Once we have fetched data wait for any previous operation to finish.
+	if waitChan != nil {
+		<-waitChan
+	}
+
+	msg := wire.NewMsgFactoidTX()
+
+	// TODO FIXME
+	//	msg.Transaction = tx
+
+	p.QueueMessage(msg, doneChan)
+
 	return nil
 }
