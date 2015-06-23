@@ -103,6 +103,11 @@ func DirBlockLocatorFromHash(hash *wire.ShaHash) blockchain.BlockLocator {
 func LatestDirBlockLocator() (blockchain.BlockLocator, error) {
 	util.Trace()
 	latestDirBlockHash, _, _ := db.FetchBlockHeightCache()
+	
+	if latestDirBlockHash == nil {
+		latestDirBlockHash = &zeroHash	
+	}
+
 	// The best chain is set, so use its hash.
 	return DirBlockLocatorFromHash(latestDirBlockHash), nil
 }
