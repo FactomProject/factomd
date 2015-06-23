@@ -149,7 +149,7 @@ func (b *blockManager) handleDirInvMsg(imsg *dirInvMsg) {
 		case wire.InvTypeFactomDirBlock:
 			// Request the block if there is not already a pending
 			// request.
-			util.Trace()
+			//util.Trace()
 			if _, exists := b.requestedBlocks[iv.Hash]; !exists {
 				b.requestedBlocks[iv.Hash] = struct{}{}
 				imsg.peer.requestedBlocks[iv.Hash] = struct{}{}
@@ -174,6 +174,7 @@ func (b *blockManager) handleDirInvMsg(imsg *dirInvMsg) {
 	}
 	imsg.peer.requestQueue = requestQueue
 	if len(gdmsg.InvList) > 0 {
+		util.Trace()
 		imsg.peer.QueueMessage(gdmsg, nil)
 	}
 }
