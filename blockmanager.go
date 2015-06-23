@@ -1355,8 +1355,6 @@ func (b *blockManager) Start() {
 
 	bmgrLog.Trace("Starting block manager")
 
-	b.factomChecks()
-
 	b.wg.Add(1)
 	go b.blockHandler()
 }
