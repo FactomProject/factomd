@@ -14,6 +14,7 @@ import (
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/btcd/blockchain"
 	"github.com/FactomProject/btcd/wire"
+	"github.com/davecgh/go-spew/spew"
 )
 
 var _ = fmt.Printf
@@ -472,7 +473,7 @@ func (p *peer) pushDirBlockMsg(sha *wire.ShaHash, doneChan, waitChan chan struct
 		<-waitChan
 	}
 
-	// We only send the channel for this message if we aren't sending
+	// We only send the channel for this message if we aren't sending(sha)
 	// an inv straight after.
 	var dc chan struct{}
 	sendInv := p.continueHash != nil && p.continueHash.IsEqual(sha)
@@ -489,16 +490,23 @@ func (p *peer) pushDirBlockMsg(sha *wire.ShaHash, doneChan, waitChan chan struct
 	// to trigger it to issue another getblocks message for the next
 	// batch of inventory.
 	if p.continueHash != nil && p.continueHash.IsEqual(sha) {
+		util.Trace("continueHash: " + spew.Sdump(sha))
+		//
+		// Note: Rather than the latest block height, we should pass
+		// the last block height of this batch of wire.MaxBlockLocatorsPerMsg
+		// to signal this is the end of the batch and
+		// to trigger a client to send a new GetDirBlocks message
+		//
+		//hash, _, err := db.FetchBlockHeightCache()
+		//if err == nil {
 		util.Trace()
-		hash, _, _ := db.FetchBlockHeightCache()
-		if err == nil {
-			util.Trace()
-			invMsg := wire.NewMsgDirInvSizeHint(1)
-			iv := wire.NewInvVect(wire.InvTypeFactomDirBlock, hash)
-			invMsg.AddInvVect(iv)
-			p.QueueMessage(invMsg, doneChan)
-			p.continueHash = nil
-		} else if doneChan != nil {
+		invMsg := wire.NewMsgDirInvSizeHint(1)
+		iv := wire.NewInvVect(wire.InvTypeFactomDirBlock, sha) //hash)
+		invMsg.AddInvVect(iv)
+		p.QueueMessage(invMsg, doneChan)
+		p.continueHash = nil
+		//} else if doneChan != nil {
+		if doneChan != nil {
 			doneChan <- struct{}{}
 		}
 	}
@@ -733,7 +741,7 @@ func (p *peer) handleFactoidMsg(msg *wire.MsgFactoidTX, buf []byte) {
 func (p *peer) pushFactoidMsg(commonhash *common.Hash, doneChan, waitChan chan struct{}) error {
 	util.Trace()
 
-	var err error = nil
+	var err error //= nil
 
 	// TODO FIXME
 	// tx, err := db.FetchFactoidByHash(commonhash)
