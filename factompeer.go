@@ -49,7 +49,7 @@ func (p *peer) handleDirBlockMsg(msg *wire.MsgDirBlock, buf []byte) {
 	iv := wire.NewInvVect(wire.InvTypeFactomDirBlock, hash)
 	p.AddKnownInventory(iv)
 
-	//p.pushGetNonDirDataMsg(msg.DBlk)
+	p.pushGetNonDirDataMsg(msg.DBlk)
 
 	inMsgQueue <- msg
 
