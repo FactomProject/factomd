@@ -516,23 +516,23 @@ func (b *blockManager) current() bool {
 		if !b.blockChain.IsCurrent(b.server.timeSource) {
 			return false
 		}
-
-		// if blockChain thinks we are current and we have no syncPeer it
-		// is probably right.
-		if b.syncPeer == nil {
-			return true
-		}
-
-		_, height, err := b.server.db.NewestSha()
-		// No matter what chain thinks, if we are below the block we are
-		// syncing to we are not current.
-		// TODO(oga) we can get chain to return the height of each block when we
-		// parse an orphan, which would allow us to update the height of peers
-		// from what it was at initial handshake.
-		if err != nil || height < int64(b.syncPeer.lastBlock) {
-			return false
-		}
 	*/
+	// if blockChain thinks we are current and we have no syncPeer it
+	// is probably right.
+	if b.syncPeer == nil {
+		return true
+	}
+
+	_, height, err := db.FetchBlockHeightCache()	//b.server.db.NewestSha()
+	// No matter what chain thinks, if we are below the block we are
+	// syncing to we are not current.
+	// TODO(oga) we can get chain to return the height of each block when we
+	// parse an orphan, which would allow us to update the height of peers
+	// from what it was at initial handshake.
+	if err != nil || height < int64(b.syncPeer.lastBlock) {
+		return false
+	}
+	
 	return true
 }
 
@@ -1354,8 +1354,6 @@ func (b *blockManager) Start() {
 	}
 
 	bmgrLog.Trace("Starting block manager")
-
-	b.factomChecks()
 
 	b.wg.Add(1)
 	go b.blockHandler()

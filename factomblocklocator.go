@@ -6,6 +6,7 @@ package btcd
 
 import (
 	"github.com/FactomProject/FactomCode/common"
+	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/btcd/blockchain"
 	"github.com/FactomProject/btcd/wire"
 )
@@ -100,7 +101,7 @@ func DirBlockLocatorFromHash(hash *wire.ShaHash) blockchain.BlockLocator {
 // LatestBlockLocator returns a block locator for the latest known tip of the
 // main (best) chain.
 func LatestDirBlockLocator() (blockchain.BlockLocator, error) {
-
+	util.Trace()
 	latestDirBlockHash, _, _ := db.FetchBlockHeightCache()
 	
 	if latestDirBlockHash == nil {
