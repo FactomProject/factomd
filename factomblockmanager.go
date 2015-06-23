@@ -8,6 +8,7 @@ import (
 	"container/list"
 	"fmt"
 	"sync/atomic"
+	"time"
 
 	"github.com/FactomProject/btcd/wire"
 
@@ -33,7 +34,7 @@ type dirInvMsg struct {
 // handleDirInvMsg handles dir inv messages from all peers.
 // We examine the inventory advertised by the remote peer and act accordingly.
 func (b *blockManager) handleDirInvMsg(imsg *dirInvMsg) {
-	util.Trace()
+	util.Trace(spew.Sdump(imsg))
 
 	// Ignore invs from peers that aren't the sync if we are not current.
 	// Helps prevent fetching a mass of orphans.
@@ -74,6 +75,8 @@ func (b *blockManager) handleDirInvMsg(imsg *dirInvMsg) {
 		//if b.headersFirstMode {
 		//continue
 		//}
+		
+		time.Sleep(1 * time.Second)
 
 		// Request the inventory if we don't already have it.
 		haveInv, err := b.haveInventory(iv)
@@ -85,7 +88,7 @@ func (b *blockManager) handleDirInvMsg(imsg *dirInvMsg) {
 		}
 		if !haveInv {
 			// Add it to the request queue.
-			util.Trace("!haveInv")
+			//util.Trace("!haveInv")
 			imsg.peer.requestQueue = append(imsg.peer.requestQueue, iv)
 			continue
 		}
@@ -332,7 +335,7 @@ func (b *blockManager) isSyncCandidateFactom(p *peer) bool {
 //
 // This function is NOT safe for concurrent access.
 func HaveBlockInDB(hash *wire.ShaHash) (bool, error) {
-	util.Trace()
+	util.Trace(spew.Sdump(hash))
 	dblock, _ := db.FetchDBlockByHash(hash.ToFactomHash())
 	if dblock != nil {
 		fmt.Println("dir block height=", dblock.Header.BlockHeight)
@@ -340,32 +343,3 @@ func HaveBlockInDB(hash *wire.ShaHash) (bool, error) {
 	}
 	return false, nil
 }
-
-/*
-// currentDChain returns true if we believe we are synced with our peers, false if we
-// still have blocks to check
-func (b *blockManager) currentDChain() bool {
-
-	if !b.dirChain.IsCurrent(b.server.timeSource) {
-		return false
-	}
-
-	// if blockChain thinks we are current and we have no syncPeer it
-	// is probably right.
-	if b.syncPeer == nil {
-		return true
-	}
-
-	_, height, err := db.NewestSha()
-	// No matter what chain thinks, if we are below the block we are
-	// syncing to we are not current.
-	// TODO(oga) we can get chain to return the height of each block when we
-	// parse an orphan, which would allow us to update the height of peers
-	// from what it was at initial handshake.
-	if err != nil || height < int64(b.syncPeer.lastBlock) {
-		return false
-	}
-
-	return true
-}
-*/

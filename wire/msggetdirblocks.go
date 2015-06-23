@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/FactomProject/FactomCode/util"
+	//"github.com/FactomProject/FactomCode/util"
 )
 
 // MaxBlockLocatorsPerMsg is the maximum number of Directory block locator hashes allowed
@@ -38,7 +38,7 @@ type MsgGetDirBlocks struct {
 
 // AddBlockLocatorHash adds a new block locator hash to the message.
 func (msg *MsgGetDirBlocks) AddBlockLocatorHash(hash *ShaHash) error {
-	util.Trace()
+	//util.Trace()
 	if len(msg.BlockLocatorHashes)+1 > MaxBlockLocatorsPerMsg {
 		str := fmt.Sprintf("too many block locator hashes for message [max %v]",
 			MaxBlockLocatorsPerMsg)
@@ -52,7 +52,7 @@ func (msg *MsgGetDirBlocks) AddBlockLocatorHash(hash *ShaHash) error {
 // BtcDecode decodes r using the bitcoin protocol encoding into the receiver.
 // This is part of the Message interface implementation.
 func (msg *MsgGetDirBlocks) BtcDecode(r io.Reader, pver uint32) error {
-	util.Trace()
+	//util.Trace()
 	err := readElement(r, &msg.ProtocolVersion)
 	if err != nil {
 		return err
@@ -90,7 +90,7 @@ func (msg *MsgGetDirBlocks) BtcDecode(r io.Reader, pver uint32) error {
 // BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
 // This is part of the Message interface implementation.
 func (msg *MsgGetDirBlocks) BtcEncode(w io.Writer, pver uint32) error {
-	util.Trace()
+	//util.Trace()
 	count := len(msg.BlockLocatorHashes)
 	if count > MaxBlockLocatorsPerMsg {
 		str := fmt.Sprintf("too many block locator hashes for message "+
@@ -126,7 +126,7 @@ func (msg *MsgGetDirBlocks) BtcEncode(w io.Writer, pver uint32) error {
 // Command returns the protocol command string for the message.  This is part
 // of the Message interface implementation.
 func (msg *MsgGetDirBlocks) Command() string {
-	util.Trace()
+	//util.Trace()
 	return CmdGetDirBlocks
 }
 
@@ -135,7 +135,7 @@ func (msg *MsgGetDirBlocks) Command() string {
 func (msg *MsgGetDirBlocks) MaxPayloadLength(pver uint32) uint32 {
 	// Protocol version 4 bytes + num hashes (varInt) + max block locator
 	// hashes + hash stop.
-	util.Trace()
+	//util.Trace()
 	return 4 + MaxVarIntPayload + (MaxBlockLocatorsPerMsg * HashSize) + HashSize
 }
 
@@ -143,7 +143,7 @@ func (msg *MsgGetDirBlocks) MaxPayloadLength(pver uint32) uint32 {
 // Message interface using the passed parameters and defaults for the remaining
 // fields.
 func NewMsgGetDirBlocks(hashStop *ShaHash) *MsgGetDirBlocks {
-	util.Trace()
+	//util.Trace()
 	return &MsgGetDirBlocks{
 		ProtocolVersion:    ProtocolVersion,
 		BlockLocatorHashes: make([]*ShaHash, 0, MaxBlockLocatorsPerMsg),
