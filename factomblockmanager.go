@@ -76,7 +76,7 @@ func (b *blockManager) handleDirInvMsg(imsg *dirInvMsg) {
 		//continue
 		//}
 		
-		time.Sleep(1 * time.Second)
+		//time.Sleep(1 * time.Second)
 
 		// Request the inventory if we don't already have it.
 		haveInv, err := b.haveInventory(iv)
