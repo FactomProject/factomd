@@ -7,7 +7,7 @@ package btcd
 import (
 	"container/list"
 	"errors"
-	"fmt"
+	//"fmt"
 	"os"
 	"path/filepath"
 	"sync"
@@ -20,7 +20,7 @@ import (
 	"github.com/FactomProject/btcd/wire"
 	//	"github.com/FactomProject/btcutil"
 
-	//	"github.com/FactomProject/FactomCode/common"
+	"github.com/FactomProject/FactomCode/process"
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/davecgh/go-spew/spew"
 )
@@ -895,7 +895,7 @@ func (b *blockManager) haveInventory(invVect *wire.InvVect) (bool, error) {
 		util.Trace()
 		// Ask db if the block is known to it in any form (main
 		// chain, side chain, or orphan).
-		return HaveBlockInDB(&invVect.Hash)
+		return process.HaveBlockInDB((&invVect.Hash).ToFactomHash())
 	}
 	// The requested inventory is is an unsupported type, so just claim
 	// it is known to avoid requesting it.
