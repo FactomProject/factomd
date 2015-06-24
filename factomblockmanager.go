@@ -8,7 +8,7 @@ import (
 	"container/list"
 	//"fmt"
 	"sync/atomic"
-	"time"
+//	"time"
 
 	"github.com/FactomProject/btcd/wire"
 
