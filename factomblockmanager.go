@@ -6,7 +6,7 @@ package btcd
 
 import (
 	"container/list"
-	"fmt"
+	//"fmt"
 	"sync/atomic"
 	"time"
 

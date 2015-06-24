@@ -7,7 +7,7 @@ package btcd
 import (
 	"container/list"
 	"errors"
-	//"fmt"
+	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
