@@ -158,9 +158,6 @@ func (w *SCWallet) generateAddress(addrtype string, name []byte,m int, n int) (h
     }else{
         we.SetType("ec")
     }
-    // If the name exists already, then we store this as the hash of the name.
-    // If that exists, then we store it as the hash of the hash and so forth.
-    // This way, we can get a list of addresses with the same name.
     //
     hash, _ = we.GetAddress()
     w.db.PutRaw([]byte(fct.W_RCD_ADDRESS_HASH),hash.Bytes(),we)
