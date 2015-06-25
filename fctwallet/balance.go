@@ -59,10 +59,6 @@ func ECBalance(adr string) int64 {
         we := factoidState.GetDB().GetRaw([]byte(fct.W_NAME),[]byte(adr))
         
         if (we != nil){
-            if we.(wallet.IWalletEntry).GetType() != "ec" {
-                fmt.Println("Wallet Entry has wrong type")
-                return -1
-            }
             we2 := we.(wallet.IWalletEntry)
             addr,_ := we2.GetAddress()
             adr = hex.EncodeToString(addr.Bytes())
@@ -72,7 +68,8 @@ func ECBalance(adr string) int64 {
         adr = hex.EncodeToString(baddr)
     }
     
-    resp, err := http.Get(fmt.Sprintf("http://%s/v1/entry-credit-balance/%s", ipaddressFD+portNumberFD, adr))
+    str := fmt.Sprintf("http://%s/v1/entry-credit-balance/%s", ipaddressFD+portNumberFD, adr)
+    resp, err := http.Get(str)
     if err != nil {
         fmt.Println("-2::",err)
         return -2
@@ -93,6 +90,33 @@ func ECBalance(adr string) int64 {
     
     return b.Balance
 }
+
+func  handleEntryCreditBalance(ctx *web.Context, adr string) {    
+
+    v := ECBalance(adr)
+    if v < 0 {
+        fmt.Println("Unknown or bad address: ",v)
+        reportResults(ctx,false)
+        return
+        v = 0
+    }
+    
+    type ecbal struct {
+        Balance uint64
+    }
+    
+    b := new(ecbal)
+    b.Balance = uint64(v)
+    
+    if p, err := json.Marshal(b); err != nil {
+        reportResults(ctx,false)
+        return
+    } else {
+        ctx.Write(p)
+    }
+    
+}
+
 
 func  handleFactoidBalance(ctx *web.Context, adr string) {
     
@@ -119,4 +143,3 @@ func  handleFactoidBalance(ctx *web.Context, adr string) {
     }
     
 }
-

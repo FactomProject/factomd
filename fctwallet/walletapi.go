@@ -43,6 +43,12 @@ func Start() {
     // the given name.
     server.Get("/v1/factoid-balance/([^/]+)", handleFactoidBalance)
     
+    // Balance
+    // localhost:8089/v1/factoid-balance/<name or address>
+    // Returns the balance of entry credits at that address, or the address tied to
+    // the given name.
+    server.Get("/v1/entry-credit-balance/([^/]+)", handleEntryCreditBalance)
+    
     // Generate Address
     // localhost:8089/v1/factoid-generate-address/<name>
     // Generate an address, and tie it to the given name within the wallet. You
