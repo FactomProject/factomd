@@ -9,7 +9,6 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
-	// 	"github.com/agl/ed25519"
 )
 
 /************************

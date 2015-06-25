@@ -22,8 +22,10 @@ var _ = fmt.Printf
 
 func NewFactoidState(filename string) state.IFactoidState{
     fs := new(state.FactoidState)
+    wall := new(wallet.SCWallet)
+    wall.Init()
 
-    fs.SetWallet(new(wallet.SCWallet))
+    fs.SetWallet(wall)
     fs.GetWallet().GetDB().Init()
     
     // Use Bolt DB

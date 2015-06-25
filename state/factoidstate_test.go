@@ -10,7 +10,7 @@ import (
     "fmt"
     fct "github.com/FactomProject/factoid"
     "github.com/FactomProject/factoid/database"
-    "github.com/agl/ed25519"
+    "github.com/FactomProject/ed25519"
     "math/rand"
     "testing"
     

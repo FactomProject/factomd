@@ -6,7 +6,7 @@ package factoid
 
 import (
 	"fmt"
-	"github.com/agl/ed25519"
+	"github.com/FactomProject/ed25519"
 	"math/rand"
 	"testing"
 )

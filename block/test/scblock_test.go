@@ -8,7 +8,7 @@ import (
 	"encoding/binary"
 	"fmt"
     cv "strconv"
-	"github.com/agl/ed25519"
+	"github.com/FactomProject/ed25519"
     sc "github.com/FactomProject/factoid"
     "github.com/FactomProject/factoid/wallet"
     "github.com/FactomProject/factoid/block"
@@ -32,7 +32,7 @@ func newFakeAddr() sc.IAddress {
 
 func Test_create_block(test *testing.T) {
     w := new(wallet.SCWallet)          // make me a wallet
-    
+    w.Init()
     scb := block.NewSCBlock(1000, 0)
 	
     for i:=0;i<1;i++ {

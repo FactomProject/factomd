@@ -8,7 +8,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"github.com/agl/ed25519"
+	"github.com/FactomProject/ed25519"
 )
 
 /**************************

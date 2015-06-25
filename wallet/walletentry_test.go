@@ -8,7 +8,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/FactomProject/factoid"
-	"github.com/agl/ed25519"
+	"github.com/FactomProject/ed25519"
 	"math/rand"
 	"testing"
 )
@@ -20,6 +20,7 @@ var _ = binary.Write
 
 func Test_create_walletentry(test *testing.T) {
     w := new(SCWallet)          // make me a wallet
+    w.Init()
     we := new(WalletEntry)
     rcd := new(factoid.RCD_1)
     name := "John Smith"

@@ -25,7 +25,9 @@ func GetGenesisBlock(ftime uint64, ExRate uint64, addressCnt int, Factoids uint6
     if genesisBlock != nil { return genesisBlock }
     genesisBlock = NewFBlock(1000000, uint32(0))  
     
-    w := new(wallet.SCWallet)        
+    w := new(wallet.SCWallet)
+    w.Init()
+    
     t := w.CreateTransaction(ftime)
     
     for i:=0; i<addressCnt; i++ {

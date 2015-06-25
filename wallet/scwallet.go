@@ -11,10 +11,11 @@ package wallet
 
 import (
     "fmt"
-    "github.com/agl/ed25519"
-    "math/rand"
+    "github.com/FactomProject/ed25519"
     fct "github.com/FactomProject/factoid"
     "github.com/FactomProject/factoid/database"
+    "crypto/sha512"
+    "errors"
 )
 
 // The wallet interface uses bytes.  This is because we want to 
@@ -24,6 +25,8 @@ import (
 // the interface more usable by developers.
 type ISCWallet interface {
 
+    //initialize the object.  call before using other functions
+    Init (a ...interface{})
     // Returns the backing database for the wallet
     GetDB() database.IFDatabase 
     // Generate an Factoid Address
@@ -72,7 +75,8 @@ var oneSCW SCWallet
 type SCWallet struct {
     ISCWallet
     db database.MapDB
-    r *rand.Rand
+    isInitialized bool //defaults to 0 and false
+    nextSeed []byte
 }
 
 var _ ISCWallet = (*SCWallet)(nil)
@@ -174,23 +178,44 @@ func (w *SCWallet) GenerateFctAddress(name []byte, m int, n int) (hash fct.IAddr
 }
 
 func (w *SCWallet) Init (a ...interface{}) {
-    if w.r != nil { return }
-    w.r = rand.New(rand.NewSource(13436523)) 
+    if w.isInitialized != false { return }
+    w.isInitialized = true
+    hasher := sha512.New()
+    hasher.Write([]byte("replace with randomness"))
+    seedhash := hasher.Sum(nil)
+    //fmt.Printf("The seed hash is: %x\n", seedhash)
+    w.nextSeed = seedhash
+
     w.db.Init()
 }
-    
-func (w *SCWallet) Read(buf []byte) (int, error) {
-    //if r==nil { r = rand.New(rand.NewSource(time.Now().Unix())) }
-    w.Init()
-    for i := range buf {
-        buf[i] = byte(w.r.Int())
-    }
-    return len(buf), nil
-}
 
+// This function pulls the next private key from the deterministic
+// private key generator, gets the public key associated with it
+// then prepares the generator for the next time a private key is needed.
+// To prepare the next state, it sha512s the previous sha512 output.
+// It returns a 32 byte public key, a 64 byte private key, and an error condition.
+// The private key is the SUPERCOP style with the private key in the first 32 bytes
+// and the public key is the last 32 bytes.
+// The public key essentially returns twice because of this.
 func (w *SCWallet) generateKey() (public []byte,private []byte, err error){
-    pub,pri,err := ed25519.GenerateKey(w)
-    return pub[:], pri[:], err
+    if (len(w.nextSeed) != 64) {
+        return nil, nil, errors.New("wallet seed uninitialized")
+    }
+    keypair := new([64]byte)
+    // the secret part of the keypair is the top 32 bytes of the sha512 hash 
+    copy(keypair[:32], w.nextSeed[:32])
+    //fmt.Printf("next seed is: %x\n", w.nextSeed)
+    // the crypto library puts the pubkey in the lower 32 bytes and returns the same 32 bytes.
+    pub := ed25519.GetPublicKey(keypair)
+    //fmt.Printf("keypair is  : %x\n", *keypair)
+    
+    // Iterate the deterministic key private generator
+    // so it is ready for the next time this function is called.
+    hasher := sha512.New()
+    hasher.Write(w.nextSeed)
+    w.nextSeed = hasher.Sum(nil)
+
+    return pub[:], keypair[:], err
 }
 
 func (w *SCWallet)  CreateTransaction(time uint64) fct.ITransaction {

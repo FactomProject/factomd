@@ -7,7 +7,7 @@ package block
 import (
     "encoding/binary"
     "fmt"
-    "github.com/agl/ed25519"
+    "github.com/FactomProject/ed25519"
     fct "github.com/FactomProject/factoid"
     "math/rand"
     "testing"
