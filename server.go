@@ -391,6 +391,7 @@ func (s *server) handleQuery(querymsg interface{}, state *peerState) {
 				nconnected++
 			}
 		})
+		util.Trace(fmt.Sprintf("nconnected= %d", nconnected))
 		msg.reply <- nconnected
 
 	case getPeerInfoMsg:
@@ -729,12 +730,22 @@ out:
 
 // AddPeer adds a new peer that has already been connected to the server.
 func (s *server) AddPeer(p *peer) {
+	util.Trace()
+
 	s.newPeers <- p
+
+	count := s.ConnectedCount()
+	util.Trace(fmt.Sprintf("ConnectedCount()= %d", count))
 }
 
 // BanPeer bans a peer that has already been connected to the server by ip.
 func (s *server) BanPeer(p *peer) {
+	util.Trace()
+
 	s.banPeers <- p
+
+	count := s.ConnectedCount()
+	util.Trace(fmt.Sprintf("ConnectedCount()= %d", count))
 }
 
 // RelayInventory relays the passed inventory to all connected peers that are

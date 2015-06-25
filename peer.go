@@ -1962,11 +1962,14 @@ func (p *peer) Connected() bool {
 // Disconnect disconnects the peer by closing the connection.  It also sets
 // a flag so the impending shutdown can be detected.
 func (p *peer) Disconnect() {
+	util.Trace()
 	// did we win the race?
 	if atomic.AddInt32(&p.disconnect, 1) != 1 {
 		return
 	}
 	peerLog.Tracef("disconnecting %s", p)
+	peerLog.Infof("disconnecting %s", p)
+
 	close(p.quit)
 	if atomic.LoadInt32(&p.connected) != 0 {
 		p.conn.Close()
@@ -1982,6 +1985,7 @@ func (p *peer) Start() error {
 	}
 
 	peerLog.Tracef("Starting peer %s", p)
+	peerLog.Infof("Starting peer %s", p)
 
 	// Send an initial version message if this is an outbound connection.
 	if !p.inbound {
