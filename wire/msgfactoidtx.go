@@ -14,6 +14,8 @@ import (
 var _ = fmt.Printf
 
 type IMsgFactoidTX interface {
+    // Set the Transaction to be carried by this message.
+    SetTransaction(fct.ITransaction)
 	// BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
 	// This is part of the Message interface implementation.
 	BtcEncode(w io.Writer, pver uint32) error
@@ -42,6 +44,11 @@ type IMsgFactoidTX interface {
 type MsgFactoidTX struct {
 	IMsgFactoidTX
 	Transaction fct.ITransaction
+}
+
+// Accessor to set the Transaction for a message.
+func (msg *MsgFactoidTX) SetTransaction (transaction fct.ITransaction)  {
+    msg.Transaction = transaction
 }
 
 // BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
