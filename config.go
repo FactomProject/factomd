@@ -26,12 +26,14 @@ import (
 )
 
 const (
-	defaultConfigFilename = "factoid.conf"
+	//	defaultConfigFilename = "factoid.conf"
+	defaultConfigFilename = "factom.conf"
 	//	defaultDataDirname       = "data"
-	defaultLogLevel          = "info"
-	defaultLogDirname        = "logs"
-	defaultLogFilename       = "factom-d.log"
-	defaultMaxPeers          = 125
+	defaultLogLevel    = "info"
+	defaultLogDirname  = "logs"
+	defaultLogFilename = "factom-d.log"
+	//	defaultMaxPeers          = 125
+	defaultMaxPeers          = 10
 	defaultBanDuration       = time.Hour * 24
 	defaultMaxRPCClients     = 10
 	defaultMaxRPCWebsockets  = 25

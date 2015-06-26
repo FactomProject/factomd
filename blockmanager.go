@@ -523,7 +523,7 @@ func (b *blockManager) current() bool {
 		return true
 	}
 
-	_, height, err := db.FetchBlockHeightCache()	//b.server.db.NewestSha()
+	_, height, err := db.FetchBlockHeightCache() //b.server.db.NewestSha()
 	// No matter what chain thinks, if we are below the block we are
 	// syncing to we are not current.
 	// TODO(oga) we can get chain to return the height of each block when we
@@ -532,7 +532,7 @@ func (b *blockManager) current() bool {
 	if err != nil || height < int64(b.syncPeer.lastBlock) {
 		return false
 	}
-	
+
 	return true
 }
 

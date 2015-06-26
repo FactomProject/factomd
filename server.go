@@ -391,6 +391,7 @@ func (s *server) handleQuery(querymsg interface{}, state *peerState) {
 				nconnected++
 			}
 		})
+		srvrLog.Infof("nconnected= %d", nconnected)
 		util.Trace(fmt.Sprintf("nconnected= %d", nconnected))
 		msg.reply <- nconnected
 
@@ -490,7 +491,7 @@ func (s *server) handleQuery(querymsg interface{}, state *peerState) {
 // listenHandler is the main listener which accepts incoming connections for the
 // server.  It must be run as a goroutine.
 func (s *server) listenHandler(listener net.Listener) {
-	srvrLog.Infof("Server listening on %s", listener.Addr())
+	srvrLog.Infof("Server listening on %s ; MaxPeers= %d", listener.Addr(), cfg.MaxPeers)
 	for atomic.LoadInt32(&s.shutdown) == 0 {
 		conn, err := listener.Accept()
 		if err != nil {

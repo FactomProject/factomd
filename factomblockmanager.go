@@ -8,7 +8,7 @@ import (
 	"container/list"
 	//"fmt"
 	"sync/atomic"
-//	"time"
+	//	"time"
 
 	"github.com/FactomProject/btcd/wire"
 
@@ -75,7 +75,7 @@ func (b *blockManager) handleDirInvMsg(imsg *dirInvMsg) {
 		//if b.headersFirstMode {
 		//continue
 		//}
-		
+
 		//time.Sleep(1 * time.Second)
 
 		// Request the inventory if we don't already have it.
@@ -92,7 +92,7 @@ func (b *blockManager) handleDirInvMsg(imsg *dirInvMsg) {
 			imsg.peer.requestQueue = append(imsg.peer.requestQueue, iv)
 			continue
 		}
-		
+
 		util.Trace("haveInv")
 		if iv.Type == wire.InvTypeFactomDirBlock {
 			// The block is an orphan block that we already have.
@@ -159,7 +159,7 @@ func (b *blockManager) handleDirInvMsg(imsg *dirInvMsg) {
 				gdmsg.AddInvVect(iv)
 				numRequested++
 			}
-		
+
 		case wire.InvTypeTx:
 			// Request the transaction if there is not already a
 			// pending request.
