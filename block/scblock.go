@@ -82,12 +82,11 @@ func (FBlock) GetDBHash() fct.IHash {
 }
 
 func (b *FBlock) GetHash() fct.IHash {
-    data,err := b.MarshalBinary()
-    if err != nil {
-        fmt.Println(err)
-        return nil
+    if b.MerkleRoot != nil {
+        return b.MerkleRoot
     }
-    return fct.Sha(data)
+    b.CalculateHashes()
+    return b.MerkleRoot
 }
 
 func (b *FBlock) MarshalTrans() ([]byte, error) {
@@ -108,7 +107,7 @@ func (b *FBlock) MarshalTrans() ([]byte, error) {
 // Write out the block
 func (b *FBlock) MarshalBinary() ([]byte, error) {
 	var out bytes.Buffer
-	b.CalculateHashes()
+	
 	out.Write(fct.FACTOID_CHAINID)
     
     if b.MerkleRoot == nil {b.MerkleRoot = new(fct.Hash)}
@@ -277,7 +276,15 @@ func (b *FBlock) SetUTXOCommit(hash[]byte) {
     b.UTXOCommit.SetBytes(hash)
 }
 func (b *FBlock) CalculateHashes() {
+    // TODO calculate the PrevHash3
+    hashes := make([]fct.IHash,0,len(b.transactions))
+    for _,trans := range b.transactions{
+        hashes = append(hashes,trans.GetHash())
+    }
+
+    b.MerkleRoot = fct.ComputeMerkleRoot(hashes)
 }
+
 func (b *FBlock) SetDBHeight(dbheight uint32) {
 	b.DBHeight = dbheight
 }
@@ -285,7 +292,7 @@ func (b *FBlock) GetDBHeight() uint32 {
 	return b.DBHeight
 }
 func (b *FBlock) SetExchRate(rate uint64) {
-	b.ExchRate = rate
+    b.ExchRate = rate
 }
 func (b *FBlock) GetExchRate() uint64 {
 	return b.ExchRate
@@ -296,24 +303,20 @@ func (b FBlock) ValidateTransaction(trans fct.ITransaction) bool {
     {
         valid := trans.Validate()
         if valid != fct.WELL_FORMED {
-            fmt.Println("Not Well Formed")
             return false // Transaction is not well formed.
         }
     }
     {
         valid := trans.ValidateSignatures()
         if !valid {
-            fmt.Println("Not validly signed")
             return false // Transaction is not proerly signed.
         }
     }
     fee, err := trans.CalculateFee(b.ExchRate)
     if err != nil {
-        fmt.Println("Failed to calculate fee")
         return false
     }
     if trans.TotalInputs() < trans.TotalOutputs()+trans.TotalECs()+fee {
-        fmt.Println("Not enough inputs to cover outputs and the fee")
         return false    // Transaction either has not enough inputs, 
     }                   // or didn't pay the fee.
     return true
@@ -344,6 +347,7 @@ func (b FBlock) Validate() (bool, error) {
 // payout to the servers, so it has no inputs.   This transaction must
 // be deterministic so that all servers will know and expect its output.
 func (b *FBlock) AddCoinbase(trans fct.ITransaction) (bool, error) {
+    b.MerkleRoot = nil
     if len(b.transactions)              != 0 ||
        len(trans.GetInputs())           != 0 || 
        len(trans.GetECOutputs())           != 0 ||
@@ -365,6 +369,7 @@ func (b *FBlock) AddCoinbase(trans fct.ITransaction) (bool, error) {
 func (b *FBlock) AddTransaction(trans fct.ITransaction) (bool, error) {
 	// These tests check that the Transaction itself is valid.  If it
 	// is not internally valid, it never will be valid.
+    b.MerkleRoot = nil
     valid := b.ValidateTransaction(trans)
 	if !valid {
 		return false, fmt.Errorf("Invalid Transaction")

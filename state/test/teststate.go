@@ -109,7 +109,7 @@ func(fs *Test_state) newTransaction() fct.ITransaction {
     for _, adr := range outputs {
         fs.twallet.AddOutput(t,adr,paid/uint64(len(outputs)))
     }
-    fee,err := t.CalculateFee(fs.GetFactoshisPerEC())
+    fee,_ := t.CalculateFee(fs.GetFactoshisPerEC())
     fs.twallet.UpdateInput(t,0,inputs[0], (paid/uint64(len(inputs)))+fee)
     
     valid, err := fs.twallet.SignInputs(t)

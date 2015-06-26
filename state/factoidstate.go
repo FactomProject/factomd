@@ -153,7 +153,7 @@ func(fs *FactoidState) ProcessEndOfMinute() {
 // up the next block.
 func(fs *FactoidState) ProcessEndOfBlock(){
     var hash fct.IHash
-   
+
     if fs.currentBlock != nil {             // If no blocks, the current block is nil
         hash = fs.currentBlock.GetHash()
         fs.PutTransactionBlock(hash,fs.currentBlock)
@@ -177,7 +177,7 @@ func(fs *FactoidState) ProcessEndOfBlock(){
 // this function is to replace the existing function: ProcessEndOfBlock
 func(fs *FactoidState) ProcessEndOfBlock2(nextBlkHeight uint32) {
     var hash fct.IHash
- 
+    
     if fs.currentBlock != nil {             // If no blocks, the current block is nil
         hash = fs.currentBlock.GetHash()
     }
