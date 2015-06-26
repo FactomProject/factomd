@@ -7,10 +7,6 @@
 
 package factoid
 
-import (
-	"bytes"
-)
-
 type IOutAddress interface {
 	ITransAddress
 }
@@ -42,11 +38,7 @@ func (oa OutAddress) GetName() string {
 }
 
 func (a OutAddress) MarshalText() (text []byte, err error) {
-	var out bytes.Buffer
-	out.WriteString("output: ")
-	a.MarshalText2(&out)
-	out.WriteString("\n")
-	return out.Bytes(), nil
+    return a.MarshalText2("output") 
 }
 
 /******************************

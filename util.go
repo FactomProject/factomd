@@ -5,8 +5,10 @@
 package factoid
 
 import (
+    "strings"
 	"bytes"
-	"encoding/binary"
+    "strconv"
+    "encoding/binary"
 	"encoding/hex"
 	"fmt"
 	"runtime/debug"
@@ -135,6 +137,69 @@ func PrtIndent(level int) {
 
 var FactoidPrefix = []byte{ 0x5f, 0xb1 }
 var EntryCreditPrefix = []byte{ 0x59, 0x2a }
+
+// Take fixed point data and produce a nice decimial point
+// sort of output that users can handle.
+func ConvertDecimal(v uint64) string {   
+    tv := v/100000000
+    bv := v-(tv*100000000)
+    var str string
+    
+    // Count zeros to lop off
+    var cnt int 
+    for cnt=0; cnt<7;cnt++ {
+        if (bv/10)*10 != bv {break}
+        bv = bv/10
+    }
+    // Print the proper format string
+    fstr := fmt.Sprintf(" %s%dv.%s0%vd","%",12,"%",8-cnt)
+    // Use the format string to print our Factoid balance
+    str = fmt.Sprintf(fstr,tv,bv)
+    
+    return str
+}    
+
+// Convert Decimal point input to FixedPoint (no decimal point)
+// output suitable for Factom to chew on.
+func ConvertFixedPoint(amt string) (string, error) {
+    var v int64
+    var err error
+    index := strings.Index(amt,".");
+    if  index < 0 {
+        v, err =strconv.ParseInt(amt,10,64)
+        if err != nil {
+            fmt.Println("1:",err)
+            return "", err
+        }
+        v *= 100000000      // Convert to Factoshis
+    }else{
+        tp := amt[:index]
+        v, err =strconv.ParseInt(tp,10,64)
+        if err != nil {
+            fmt.Println("2:",err)
+            return "", err
+        }
+        v = v*100000000      // Convert to Factoshis
+        
+        bp := amt[index+1:]
+        if len(bp)>8 {
+            fmt.Println("3: Bad length")
+            return "", fmt.Errorf("Format Error in amount")
+        }
+        bpv, err :=strconv.ParseInt(bp,10,64)
+        if err != nil {
+            fmt.Println("4:",err)
+            return "", err
+        }
+        for i:=0; i<8-len(bp); i++ {
+            bpv *= 10
+        }
+        v += bpv
+    }
+    return strconv.FormatInt(v,10),nil
+}
+
+
 
 //  Convert Factoid and Entry Credit addresses to their more user
 //  friendly and human readable formats.

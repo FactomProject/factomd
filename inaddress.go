@@ -7,10 +7,6 @@
 
 package factoid
 
-import (
-	"bytes"
-)
-
 type IInAddress interface {
 	ITransAddress
 }
@@ -38,11 +34,7 @@ func (i InAddress) GetNewInstance() IBlock {
 }
 
 func (a InAddress) MarshalText() (text []byte, err error) {
-	var out bytes.Buffer
-	out.WriteString("input: ")
-	a.MarshalText2(&out)
-	out.WriteString("\n")
-	return out.Bytes(), nil
+    return a.MarshalText2("input") 
 }
 
 /******************************

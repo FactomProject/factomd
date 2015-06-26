@@ -4,10 +4,6 @@
 
 package factoid
 
-import (
-	"bytes"
-)
-
 // Entry Credit Addresses are the same as Addresses in factoid
 // They just get printed out differently when we output them in
 // human readable form.
@@ -45,11 +41,7 @@ func (oa OutECAddress) GetName() string {
 }
 
 func (a OutECAddress) MarshalText() (text []byte, err error) {
-	var out bytes.Buffer
-	out.WriteString("ec: ")
-	a.MarshalText2(&out)
-	out.WriteString("\n")
-	return out.Bytes(), nil
+    return a.MarshalText2("ecoutput") 
 }
 
 /******************************

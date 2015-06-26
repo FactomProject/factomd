@@ -11,8 +11,10 @@
 package factoid
 
 import (
-	"bytes"
+    "strings"
+    "bytes"
 	"encoding/binary"
+    "encoding/hex"
 	"fmt"
 )
 
@@ -22,7 +24,7 @@ type ITransAddress interface {
 	SetAmount(uint64)
 	GetAddress() IAddress
 	SetAddress(IAddress)
-	MarshalText2(*bytes.Buffer)
+    MarshalText2(string) ([]byte, error)
 }
 
 type TransAddress struct {
@@ -104,13 +106,15 @@ func (ta *TransAddress) SetAddress(address IAddress) {
 }
 
 // Make this into somewhat readable text.
-func (ta TransAddress) MarshalText2(out *bytes.Buffer) {
-
-	WriteNumber64(out, ta.amount)
-	out.WriteString(" ")
-
-	text, _ := ta.address.MarshalText()
-	out.Write(text)
-
-	return
+func (ta TransAddress) MarshalText2(label string) ([]byte, error) {
+    var out bytes.Buffer
+    out.WriteString(fmt.Sprintf("   %8s:",label))
+    v := ConvertDecimal(ta.amount)
+    fill := 8 - len(v) + strings.Index(v,".")+1 
+    fstr := fmt.Sprintf("%%%vs%%%vs ",18-fill,fill)
+    out.WriteString(fmt.Sprintf(fstr,v,""))
+    out.WriteString(ConvertFctAddressToUserStr(ta.address))
+    str := fmt.Sprintf("\n                  %016x %038s\n\n",ta.amount, string(hex.EncodeToString(ta.GetAddress().Bytes())))
+    out.WriteString(str)
+    return out.Bytes(), nil
 }

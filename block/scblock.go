@@ -387,33 +387,33 @@ func (b FBlock) MarshalText() (text []byte, err error) {
 	var out bytes.Buffer
 
 	out.WriteString("Transaction Block\n")
-	out.WriteString("  ChainID: ")
+	out.WriteString("  ChainID:       ")
 	out.WriteString(hex.EncodeToString(fct.FACTOID_CHAINID))
     if b.MerkleRoot == nil { b.MerkleRoot = new (fct.Hash) }
-    out.WriteString("\n  MerkleRoot: ")
+    out.WriteString("\n  MerkleRoot:    ")
     out.WriteString(b.MerkleRoot.String())
     if b.PrevBlock == nil { b.PrevBlock = new (fct.Hash) }
-    out.WriteString("\n  PrevBlock: ")
+    out.WriteString("\n  PrevBlock:     ")
 	out.WriteString(b.PrevBlock.String())
     if b.PrevHash3 == nil { b.PrevHash3 = new (fct.Hash) }
-    out.WriteString("\n  PrevHash3: ")
+    out.WriteString("\n  PrevHash3:     ")
 	out.WriteString(b.PrevHash3.String())
-	out.WriteString("\n  ExchRate: ")
+	out.WriteString("\n  ExchRate:      ")
 	fct.WriteNumber64(&out, b.ExchRate)
-	out.WriteString("\n  DBHeight: ")
+	out.WriteString("\n  DBHeight:      ")
 	fct.WriteNumber32(&out, b.DBHeight)
     if b.UTXOCommit == nil { b.UTXOCommit = new (fct.Hash) }
-    out.WriteString("\n  UTXOCommit: ")
+    out.WriteString("\n  UTXOCommit:    ")
 	out.WriteString(b.UTXOCommit.String())
-	out.WriteString("\n  Number Transactions: ")
+	out.WriteString("\n  #Transactions: ")
 	fct.WriteNumber64(&out, uint64(len(b.transactions)))
 	transdata, err := b.MarshalTrans()
 	if err != nil {
 		return out.Bytes(), err
 	}
-	out.WriteString("\n  Body Size: ")
+	out.WriteString("\n  Body Size:     ")
 	fct.WriteNumber64(&out, uint64(len(transdata)))
-	out.WriteString("\n")
+	out.WriteString("\n\n")
 	for _, trans := range b.transactions {
 		txt, err := trans.MarshalText()
 		if err != nil {

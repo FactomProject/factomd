@@ -336,24 +336,6 @@ func handleGetFee(ctx *web.Context) {
     
 }   
    
-func formatFct(v uint64) string {   
-    tv := v/100000000
-    bv := v-(tv*100000000)
-    var str string
-   
-    // Count zeros to lop off
-    var cnt int 
-    for cnt=0; cnt<7;cnt++ {
-        if (bv/10)*10 != bv {break}
-        bv = bv/10
-    }
-    // Print the proper format string
-    fstr := fmt.Sprintf(" %s%dv.%s0%vd","%",12,"%",8-cnt)
-    // Use the format string to print our Factoid balance
-    str = fmt.Sprintf(fstr,tv,bv)
-    
-    return str
-}    
 
 func   handleGetAddresses  (ctx *web.Context) {
     
@@ -389,7 +371,7 @@ func   handleGetAddresses  (ctx *web.Context) {
             fctAddresses = append(fctAddresses,adr)
             fctKeys = append(fctKeys, string(k))
             bal := FctBalance(adr)
-            sbal := formatFct(uint64(bal))
+            sbal := fct.ConvertDecimal(uint64(bal))
             fctBalances = append(fctBalances,sbal)
         }
     }
