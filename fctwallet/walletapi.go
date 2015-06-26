@@ -53,7 +53,7 @@ func Start() {
     // localhost:8089/v1/factoid-generate-address/<name>
     // Generate an address, and tie it to the given name within the wallet. You
     // can use the name for the address in this API
-    server.Post("/v1/factoid-generate-address/([^/]+)", handleFactoidGenerateAddress)
+    server.Get("/v1/factoid-generate-address/([^/]+)", handleFactoidGenerateAddress)
 
     // Generate Entry Credit Address
     // localhost:8089/v1/factoid-generate-ec-address/<name>
