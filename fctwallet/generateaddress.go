@@ -17,7 +17,7 @@ import (
 var _ = fct.Address{}
 
 func  handleFactoidGenerateAddress(ctx *web.Context, name string) {
-    
+
     type faddress struct {
         Address string
     }
@@ -37,6 +37,7 @@ func  handleFactoidGenerateAddress(ctx *web.Context, name string) {
         reportResults(ctx,false)
         return
     } else {
+        fmt.Println("\n",p,"\n")
         ctx.Write(p)
     }  
     
