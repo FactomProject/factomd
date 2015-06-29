@@ -2,7 +2,7 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-package main
+package handlers
 
 import (
 	"bytes"
@@ -131,7 +131,7 @@ func getParams(ctx *web.Context, params string, ec bool) (
 // Multiple transactions can be under construction at one time, but they need
 // their own keys. Once a transaction is either submitted or deleted, the key
 // can be reused.
-func handleFactoidNewTransaction(ctx *web.Context, key string) {
+func HandleFactoidNewTransaction(ctx *web.Context, key string) {
 	// Make sure we have a key
 	if len(key) == 0 {
 		fmt.Println("Missing transaction key")
@@ -155,7 +155,7 @@ func handleFactoidNewTransaction(ctx *web.Context, key string) {
 	reportResults(ctx, true)
 }
 
-func handleFactoidAddInput(ctx *web.Context, parms string) {
+func HandleFactoidAddInput(ctx *web.Context, parms string) {
 	trans, key, _, address, amount, err := getParams(ctx, parms, false)
 	if err != nil {
 		return
@@ -177,7 +177,7 @@ func handleFactoidAddInput(ctx *web.Context, parms string) {
 	reportResults(ctx, true)
 }
 
-func handleFactoidAddOutput(ctx *web.Context, parms string) {
+func HandleFactoidAddOutput(ctx *web.Context, parms string) {
 	trans, key, _, address, amount, err := getParams(ctx, parms, false)
 	if err != nil {
 		return
@@ -199,7 +199,7 @@ func handleFactoidAddOutput(ctx *web.Context, parms string) {
 	reportResults(ctx, true)
 }
 
-func handleFactoidAddECOutput(ctx *web.Context, parms string) {
+func HandleFactoidAddECOutput(ctx *web.Context, parms string) {
 	trans, key, _, address, amount, err := getParams(ctx, parms, true)
 	if err != nil {
 		return
@@ -221,7 +221,7 @@ func handleFactoidAddECOutput(ctx *web.Context, parms string) {
 	reportResults(ctx, true)
 }
 
-func  handleFactoidSignTransaction(ctx *web.Context, key string) {
+func  HandleFactoidSignTransaction(ctx *web.Context, key string) {
     // Get the transaction
     trans, err := getTransaction(ctx, key)
     if err != nil {
@@ -247,7 +247,7 @@ func  handleFactoidSignTransaction(ctx *web.Context, key string) {
     reportResults(ctx, true)    
 }
 
-func handleFactoidSubmit(ctx *web.Context) {
+func HandleFactoidSubmit(ctx *web.Context) {
     type transaction struct {
     	Transaction string
     }
@@ -309,7 +309,7 @@ func handleFactoidSubmit(ctx *web.Context) {
     
 }
    
-func handleGetFee(ctx *web.Context) {
+func HandleGetFee(ctx *web.Context) {
     str := fmt.Sprintf("http://%s/v1/factoid-get-fee/", ipaddressFD+portNumberFD)
     resp, err := http.Get(str)
     if err != nil {
@@ -336,9 +336,7 @@ func handleGetFee(ctx *web.Context) {
     
 }   
    
-
-func   handleGetAddresses  (ctx *web.Context) {
-    
+func GetAddresses() [] byte{
     keys, values := factoidState.GetDB().GetKeysValues([]byte(fct.W_NAME))
     
     ecKeys := make([]string,0,len(keys))
@@ -387,12 +385,20 @@ func   handleGetAddresses  (ctx *web.Context) {
         str := fmt.Sprintf(fstr,  key,  ecAddresses[i],    ecBalances[i]) 
         out.WriteString(str)
     }
+    
+    return out.Bytes()
+}
+   
+   
+func   HandleGetAddresses  (ctx *web.Context) {
+    
+
     type x struct {
         Body string
         Success bool
     }
     b := new(x)
-    b.Body = string(out.Bytes())
+    b.Body = string(GetAddresses())
     b.Success = true
     j, err := json.Marshal(b)
     if err != nil {
@@ -403,5 +409,5 @@ func   handleGetAddresses  (ctx *web.Context) {
 }    
    
    
-func handleFactoidValidate(ctx *web.Context) {
+func HandleFactoidValidate(ctx *web.Context) {
 }
