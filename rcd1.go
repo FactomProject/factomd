@@ -43,7 +43,7 @@ func (w RCD_1) CheckSig(trans ITransaction, sigblk ISignatureBlock) bool {
 		return false
 	}
 	sig := sigblk.GetSignature(0).GetSignature(0)
-	if !ed25519.Verify(&w.publicKey, data, sig) {
+	if !ed25519.VerifyCanonical(&w.publicKey, data, sig) {
 		return false
 	}
 	return true
