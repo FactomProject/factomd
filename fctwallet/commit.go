@@ -16,6 +16,10 @@ import (
 )
 
 func handleCommitChain(ctx *web.Context, name string) {
+	type walletcommit struct {
+		Message string
+	}
+	
 	type commit struct {
 		CommitChainMsg string
 	}
@@ -26,7 +30,16 @@ func handleCommitChain(ctx *web.Context, name string) {
 		ctx.WriteHeader(httpBad)
 		return
 	}
-	signed := factoidState.GetWallet().SignCommit([]byte(name), data)
+	in := new(walletcommit)
+	json.Unmarshal(data, in)
+	msg, err := hex.DecodeString(in.Message)
+	if err != nil {
+		fmt.Println("Could not decode message:", err)
+		ctx.WriteHeader(httpBad)
+		return
+	}
+		
+	signed := factoidState.GetWallet().SignCommit([]byte(name), msg)
 
 	com := new(commit)
 	com.CommitChainMsg = hex.EncodeToString(signed)
@@ -50,6 +63,10 @@ func handleCommitChain(ctx *web.Context, name string) {
 }
 
 func handleCommitEntry(ctx *web.Context, name string) {
+	type walletcommit struct {
+		Message string
+	}
+	
 	type commit struct {
 		CommitEntryMsg string
 	}
@@ -60,7 +77,16 @@ func handleCommitEntry(ctx *web.Context, name string) {
 		ctx.WriteHeader(httpBad)
 		return
 	}
-	signed := factoidState.GetWallet().SignCommit([]byte(name), data)
+	in := new(walletcommit)
+	json.Unmarshal(data, in)
+	msg, err := hex.DecodeString(in.Message)
+	if err != nil {
+		fmt.Println("Could not decode message:", err)
+		ctx.WriteHeader(httpBad)
+		return
+	}
+		
+	signed := factoidState.GetWallet().SignCommit([]byte(name), msg)
 
 	com := new(commit)
 	com.CommitEntryMsg = hex.EncodeToString(signed)
