@@ -9,30 +9,10 @@ import (
     "time"
     "github.com/hoisie/web"
     fct "github.com/FactomProject/factoid"
-    "github.com/FactomProject/factoid/state/stateinit"
-   
+    "github.com/FactomProject/factoid/fctwallet/handlers"   
 )
 
 var _ = fct.Address{}
-
-const (
-    httpOK  = 200
-    httpBad = 400
-)
-
-var (
-	cfg = fct.ReadConfig().Wallet
-    ipAddress        = cfg.Address
-    portNumber       = cfg.Port
-    applicationName  = "Factom/fctwallet"
-    dataStorePath    = cfg.DataFile
-    refreshInSeconds = cfg.RefreshInSeconds
-    
-    ipaddressFD      = "localhost:"
-    portNumberFD     = "8088"
-)
-
-var factoidState = stateinit.NewFactoidState("/tmp/factoid_wallet_bolt.db")
 
 var server = web.NewServer()
  
@@ -41,25 +21,25 @@ func Start() {
     // localhost:8089/v1/factoid-balance/<name or address>
     // Returns the balance of factoids at that address, or the address tied to
     // the given name.
-    server.Get("/v1/factoid-balance/([^/]+)", handleFactoidBalance)
+    server.Get("/v1/factoid-balance/([^/]+)", handlers.HandleFactoidBalance)
     
     // Balance
     // localhost:8089/v1/factoid-balance/<name or address>
     // Returns the balance of entry credits at that address, or the address tied to
     // the given name.
-    server.Get("/v1/entry-credit-balance/([^/]+)", handleEntryCreditBalance)
+    server.Get("/v1/entry-credit-balance/([^/]+)", handlers.HandleEntryCreditBalance)
     
     // Generate Address
     // localhost:8089/v1/factoid-generate-address/<name>
     // Generate an address, and tie it to the given name within the wallet. You
     // can use the name for the address in this API
-    server.Get("/v1/factoid-generate-address/([^/]+)", handleFactoidGenerateAddress)
+    server.Get("/v1/factoid-generate-address/([^/]+)", handlers.HandleFactoidGenerateAddress)
 
     // Generate Entry Credit Address
     // localhost:8089/v1/factoid-generate-ec-address/<name>
     // Generate an address, and tie it to the given name within the wallet. You
     // can use the name for the address in this API
-    server.Get("/v1/factoid-generate-ec-address/([^/]+)", handleFactoidGenerateECAddress)
+    server.Get("/v1/factoid-generate-ec-address/([^/]+)", handlers.HandleFactoidGenerateECAddress)
 
     // New Transaction
     // localhost:8089/v1/factoid-new-transaction/<key>
@@ -68,22 +48,22 @@ func Start() {
     // Multiple transactions can be in process.  Only one transaction per key.
     // Once the transaction has been submitted or deleted, the key can be
     // reused.
-    server.Post("/v1/factoid-new-transaction/([^/]+)", handleFactoidNewTransaction)
+    server.Post("/v1/factoid-new-transaction/([^/]+)", handlers.HandleFactoidNewTransaction)
 
     // Add Input
     // localhost:8089/v1/factoid-add-input/?key=<key>&name=<name or address>&amount=<amount>
     // Add an input to a transaction in process.  Start with new-transaction.
-    server.Post("/v1/factoid-add-input/(.*)", handleFactoidAddInput)
+    server.Post("/v1/factoid-add-input/(.*)", handlers.HandleFactoidAddInput)
     
     // Add Output
     // localhost:8089/v1/factoid-add-output/?key=<key>&name=<name or address>&amount=<amount>
     // Add an output to a transaction in process.  Start with new-transaction.
-    server.Post("/v1/factoid-add-output/(.*)", handleFactoidAddOutput)
+    server.Post("/v1/factoid-add-output/(.*)", handlers.HandleFactoidAddOutput)
     
     // Add Entry Credit Output
     // localhost:8089/v1/factoid-add-ecoutput/?key=<key>&name=<name or address>&amount=<amount>
     // Add an ecoutput to a transaction in process.  Start with new-transaction.
-    server.Post("/v1/factoid-add-ecoutput/(.*)", handleFactoidAddECOutput)
+    server.Post("/v1/factoid-add-ecoutput/(.*)", handlers.HandleFactoidAddECOutput)
     
     // Sign Transaction
     // localhost:8089/v1/factoid-sign-transaction/<key>
@@ -91,29 +71,29 @@ func Start() {
     // applied, then all inputs are signed, and returns success = true
     // Otherwise returns false. Note that this doesn't check that the inputs
     // can cover the transaction.  Use validate to do that.
-    server.Post("/v1/factoid-sign-transaction/(.*)", handleFactoidSignTransaction)
+    server.Post("/v1/factoid-sign-transaction/(.*)", handlers.HandleFactoidSignTransaction)
     
     // Submit
     // localhost:8089/v1/factoid-submit/
     // Put the key for the transaction in {Transaction string}
-    server.Post("/v1/factoid-submit/", handleFactoidSubmit)
+    server.Post("/v1/factoid-submit/", handlers.HandleFactoidSubmit)
     
     // Validate
     // localhost:8089/v1/factoid-validate/<key>
     // Validates amounts and that all required signatures are applied, returns success = true
     // Otherwise returns false.
-    server.Get("/v1/factoid-validate/(.*)", handleFactoidValidate)
+    server.Get("/v1/factoid-validate/(.*)", handlers.HandleFactoidValidate)
     
     // Get Fee
     // localhost:8089/v1/factoid-get-fee/
     // Get the Transaction fee
-    server.Get("/v1/factoid-get-fee/", handleGetFee)
+    server.Get("/v1/factoid-get-fee/", handlers.HandleGetFee)
     
     // Get Address List
     // localhost:8089/v1/factoid-get-addresses/
-    server.Get("/v1/factoid-get-addresses/", handleGetAddresses)
+    server.Get("/v1/factoid-get-addresses/", handlers.HandleGetAddresses)
     
-    go server.Run(fmt.Sprintf("%s:%d", ipAddress, portNumber))
+    go server.Run(fmt.Sprintf("%s:%d", handlers.IpAddress, handlers.PortNumber))
 }   
  
 func main() {

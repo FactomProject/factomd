@@ -2,7 +2,7 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-package main
+package handlers
 
 import (
     "fmt"
@@ -91,7 +91,7 @@ func ECBalance(adr string) int64 {
     return b.Balance
 }
 
-func  handleEntryCreditBalance(ctx *web.Context, adr string) {    
+func  HandleEntryCreditBalance(ctx *web.Context, adr string) {    
 
     v := ECBalance(adr)
     if v < 0 {
@@ -118,7 +118,7 @@ func  handleEntryCreditBalance(ctx *web.Context, adr string) {
 }
 
 
-func  handleFactoidBalance(ctx *web.Context, adr string) {
+func  HandleFactoidBalance(ctx *web.Context, adr string) {
     
     v := FctBalance(adr)
     if v < 0 {
