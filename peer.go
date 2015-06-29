@@ -1592,6 +1592,11 @@ out:
 			p.handleRevealEntryMsg(msg)
 			p.FactomRelay(msg)
 
+		case *wire.MsgAcknowledgement:
+			util.Trace()
+			p.handleAcknoledgementMsg(msg)
+			p.FactomRelay(msg)
+			
 			// Factom blocks downloading
 		case *wire.MsgGetDirBlocks:
 			//			util.Trace()

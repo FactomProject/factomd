@@ -215,6 +215,14 @@ func (p *peer) handleRevealEntryMsg(msg *wire.MsgRevealEntry) {
 	inMsgQueue <- msg
 }
 
+// Handle factom app imcoming msg
+func (p *peer) handleAcknoledgementMsg(msg *wire.MsgAcknowledgement) {
+	util.Trace()
+
+	// Add the msg to inbound msg queue
+	inMsgQueue <- msg
+}
+
 // returns true if the message should be relayed, false otherwise
 func (p *peer) shallRelay(msg interface{}) bool {
 	util.Trace()

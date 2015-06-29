@@ -59,7 +59,7 @@ func (msg *MsgAcknowledgement) GetBinaryForSignature() (data []byte, err error) 
 	
 	binary.Write(&buf, binary.BigEndian, msg.Index)
 	
-	buf.Write([]byte{msg.Type})
+	buf.Write([]byte{msg.Type}) 
 
 	buf.Write(msg.Affirmation.Bytes())
 
