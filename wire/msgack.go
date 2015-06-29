@@ -49,12 +49,13 @@ func (msg *MsgAcknowledgement) GetBinaryForSignature() (data []byte, err error) 
 	var buf bytes.Buffer
 
 	binary.Write(&buf, binary.BigEndian, msg.Height)
-	
-	data, err = msg.ChainID.MarshalBinary()
-	if err != nil {
-		return nil, err
+	if msg.ChainID != nil {
+		data, err = msg.ChainID.MarshalBinary()
+		if err != nil {
+			return nil, err
+		}
+		buf.Write(data)
 	}
-	buf.Write(data)
 	
 	binary.Write(&buf, binary.BigEndian, msg.Index)
 	
