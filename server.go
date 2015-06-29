@@ -223,6 +223,10 @@ func (s *server) handleAddPeerMsg(state *peerState, p *peer) bool {
 
 	// TODO: Check for max peers from a single IP.
 
+	// count peers
+	peerCount := state.Count()
+	srvrLog.Infof("nconnected= %d (peerCount)", peerCount)
+
 	// Limit max number of total peers.
 	if state.Count() >= cfg.MaxPeers {
 		srvrLog.Infof("Max peers reached [%d] - disconnecting "+
@@ -465,6 +469,10 @@ func (s *server) handleQuery(querymsg interface{}, state *peerState) {
 				// to iterate so won't corrupt the loop.
 				state.persistentPeers.Remove(e)
 				peer.Disconnect()
+
+				peerCount := state.Count()
+				srvrLog.Infof("nconnected= %d (peerCount) after Disconnect()", peerCount)
+
 				found = true
 				break
 			}

@@ -10,9 +10,9 @@ import (
 	"sort"
 	"strconv"
 
+	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/btcd/btcjson"
 	"github.com/FactomProject/btcd/btcjson/btcws"
-	//	"github.com/FactomProject/btcutil"
 	flags "github.com/FactomProject/go-flags"
 	"github.com/davecgh/go-spew/spew"
 )
@@ -958,6 +958,8 @@ func sendCommand(cfg *config, command btcjson.Cmd) (interface{}, error) {
 // commandHandler handles commands provided via the cli using the specific
 // handler data to instruct the handler what to do.
 func commandHandler(cfg *config, command string, data *handlerData, args []string) error {
+	util.Trace()
+
 	// Ensure the number of arguments are the expected value.
 	if len(args) < data.requiredArgs {
 		return ErrUsage
@@ -965,11 +967,13 @@ func commandHandler(cfg *config, command string, data *handlerData, args []strin
 	if len(args) > data.requiredArgs+data.optionalArgs {
 		return ErrUsage
 	}
+	util.Trace()
 
 	// Ensure there is a display handler.
 	if data.displayHandler == nil {
 		return ErrNoDisplayHandler
 	}
+	util.Trace()
 
 	// Ensure the number of conversion handlers is valid if any are
 	// specified.
@@ -977,6 +981,7 @@ func commandHandler(cfg *config, command string, data *handlerData, args []strin
 	if convHandlers != nil && len(convHandlers) < len(args) {
 		return fmt.Errorf("the number of conversion handlers is invalid")
 	}
+	util.Trace()
 
 	// Convert input parameters per the conversion handlers.
 	iargs := make([]interface{}, len(args))
@@ -995,16 +1000,19 @@ func commandHandler(cfg *config, command string, data *handlerData, args []strin
 			}
 		}
 	}
+	util.Trace()
 	cmd, err := data.makeCmd(iargs)
 	if err != nil {
 		return err
 	}
+	util.Trace()
 
 	// Create and send the appropriate JSON-RPC command.
 	reply, err := sendCommand(cfg, cmd)
 	if err != nil {
 		return err
 	}
+	util.Trace()
 
 	// Display the results of the JSON-RPC command using the provided
 	// display handler.
@@ -1015,6 +1023,7 @@ func commandHandler(cfg *config, command string, data *handlerData, args []strin
 
 		}
 	}
+	util.Trace()
 
 	return nil
 }
@@ -1041,6 +1050,9 @@ func usage(parser *flags.Parser) {
 }
 
 func main() {
+	fmt.Println("main ***************")
+	util.Trace()
+
 	parser, cfg, args, err := loadConfig()
 	if err != nil {
 		usage(parser)
@@ -1058,6 +1070,8 @@ func main() {
 		usage(parser)
 		os.Exit(1)
 	}
+
+	util.Trace()
 
 	// Execute the command.
 	err = commandHandler(cfg, args[0], data, args[1:])
