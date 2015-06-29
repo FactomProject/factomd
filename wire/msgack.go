@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"github.com/FactomProject/FactomCode/common"
 	"io"
+	"encoding/binary"	
 )
 
 // Acknowledgement Type
@@ -41,6 +42,29 @@ type MsgAcknowledgement struct {
 	Affirmation *ShaHash // affirmation value -- hash of the message/object in question
 	SerialHash  [32]byte
 	Signature   [64]byte
+}
+
+// Write out the MsgAcknowledgement (excluding Signature) to binary.
+func (msg *MsgAcknowledgement) GetBinaryForSignature() (data []byte, err error) {
+	var buf bytes.Buffer
+
+	binary.Write(&buf, binary.BigEndian, msg.Height)
+	
+	data, err = msg.ChainID.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	buf.Write(data)
+	
+	binary.Write(&buf, binary.BigEndian, msg.Index)
+	
+	buf.Write([]byte{msg.Type})
+
+	buf.Write(msg.Affirmation.Bytes())
+
+	buf.Write(msg.SerialHash[:])
+
+	return buf.Bytes(), err
 }
 
 // BtcDecode decodes r using the bitcoin protocol encoding into the receiver.
@@ -82,6 +106,10 @@ func (msg *MsgAcknowledgement) MaxPayloadLength(pver uint32) uint32 {
 // NewMsgAcknowledgement returns a new bitcoin ping message that conforms to the Message
 // interface.  See MsgAcknowledgement for details.
 func NewMsgAcknowledgement(height uint32, index uint32, affirm *ShaHash, ackType byte) *MsgAcknowledgement {
+	
+	if affirm == nil {
+		affirm = new (ShaHash)
+	}
 	return &MsgAcknowledgement{
 		Height:      height,
 		Index:       index,
@@ -100,3 +128,4 @@ func (msg *MsgAcknowledgement) Sha() (ShaHash, error) {
 
 	return sha, nil
 }
+
