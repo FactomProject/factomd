@@ -25,60 +25,78 @@ type IFactoidState interface {
     // for previous blocks here.
     SetDB(db.IFDatabase)  
     GetDB() db.IFDatabase
+    
     // Load the address state of Factoids
     LoadState() error 
+    
     // Get the wallet used to help manage the Factoid State in
     // some applications.
     GetWallet() wallet.ISCWallet
     SetWallet(wallet.ISCWallet) 
+    
     // The Exchange Rate for Entry Credits in Factoshis per
     // Entry Credits
     GetFactoshisPerEC() uint64
     SetFactoshisPerEC(uint64)
+    
     // Get the current transaction block
     GetCurrentBlock() block.IFBlock
+    
     // Update balance updates the balance for a Factoid address in
     // the database.  Note that we take an int64 to allow debits
     // as well as credits
     UpdateBalance(address fct.IAddress, amount int64)  error
+    
     // Update balance updates the balance for an Entry Credit address 
     // in the database.  Note that we take an int64 to allow debits
     // as well as credits
     UpdateECBalance(address fct.IAddress, amount int64)  error
+    
     // Use Entry Credits, which lowers their balance
     UseECs(address fct.IAddress, amount uint64) error
+    
     // Return the Factoid balance for an address
     GetBalance(address fct.IAddress) uint64
+    
     // Return the Entry Credit balance for an address
     GetECBalance(address fct.IAddress) uint64
+    
     // Add a transaction block.  Useful for catching up with the network.
     AddTransactionBlock(block.IFBlock) error
+    
     // Return the Factoid block with this hash.  If unknown, returns
     // a null.
     GetTransactionBlock(fct.IHash) block.IFBlock
     // Put a Factoid block with this hash into the database.
     PutTransactionBlock(fct.IHash, block.IFBlock) 
+    
     // Time is something that can vary across multiple systems, and
     // must be controlled in order to build reliable, repeatable
     // tests.  Therefore, no node should directly querry system
     // time.  
     GetTimeNano() uint64    // Count of nanoseconds from Jan 1,1970
     GetTime() uint64        // Count of seconds from Jan 1, 1970
+    
     // Validate transaction
     // Return true if the balance of an address covers each input
     Validate(fct.ITransaction) bool
+    
     // Update Transaction just updates the balance sheet with the
     // addition of a transaction.
     UpdateTransaction(fct.ITransaction) bool
+    
     // Add a Transaction to the current block.  The transaction is
     // validated against the address balances, which must cover The
     // inputs.  Returns true if the transaction is added.
     AddTransaction(fct.ITransaction) bool
+    
     // Process End of Minute.  
     ProcessEndOfMinute()
+    
     // Process End of Block.
     ProcessEndOfBlock() // to be replaced by ProcessEndOfBlock2
     ProcessEndOfBlock2(uint32)    
+    
     // Get the current Directory Block Height
     GetDBHeight() uint32
 }
@@ -135,9 +153,11 @@ func(fs *FactoidState) AddTransaction(trans fct.ITransaction) bool {
 // Assumes validation has already been done.
 func(fs *FactoidState) UpdateTransaction(trans fct.ITransaction) bool {
     for _,input := range trans.GetInputs() {
+        fmt.Println("Input",input)
         fs.UpdateBalance(input.GetAddress(), - int64(input.GetAmount()))
     }
     for _,output := range trans.GetOutputs() {
+        fmt.Println("Output",output)
         fs.UpdateBalance(output.GetAddress(), int64(output.GetAmount()))
     }
     for _,ecoutput := range trans.GetECOutputs() {
