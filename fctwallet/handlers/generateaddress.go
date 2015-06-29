@@ -4,7 +4,7 @@
 
 
 
-package main
+package handlers
 
 import (
     
@@ -16,7 +16,7 @@ import (
 
 var _ = fct.Address{}
 
-func  handleFactoidGenerateAddress(ctx *web.Context, name string) {
+func  HandleFactoidGenerateAddress(ctx *web.Context, name string) {
 
     type faddress struct {
         Address string
@@ -43,7 +43,7 @@ func  handleFactoidGenerateAddress(ctx *web.Context, name string) {
     
 }
 
-func  handleFactoidGenerateECAddress(ctx *web.Context, name string) {
+func  HandleFactoidGenerateECAddress(ctx *web.Context, name string) {
     
     type faddress struct {
         Address string

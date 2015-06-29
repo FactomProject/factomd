@@ -2,7 +2,7 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-package main
+package handlers
 
 import (
 	"bytes"
@@ -15,7 +15,7 @@ import (
 	"github.com/hoisie/web"
 )
 
-func handleCommitChain(ctx *web.Context, name string) {
+func HandleCommitChain(ctx *web.Context, name string) {
 	type commit struct {
 		CommitChainMsg string
 	}
@@ -49,7 +49,7 @@ func handleCommitChain(ctx *web.Context, name string) {
 	resp.Body.Close()
 }
 
-func handleCommitEntry(ctx *web.Context, name string) {
+func HandleCommitEntry(ctx *web.Context, name string) {
 	type commit struct {
 		CommitEntryMsg string
 	}

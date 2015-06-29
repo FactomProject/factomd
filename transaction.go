@@ -598,7 +598,7 @@ func (t *Transaction) AddECOutput(ecoutput IAddress, amount uint64) {
 }
 
 // Marshal to text.  Largely a debugging thing.
-func (t Transaction) MarshalText() (text []byte, err error) {
+func (t *Transaction) MarshalText() (text []byte, err error) {
 	var out bytes.Buffer
 
 	out.WriteString("Transaction:\n LockTime: ")
@@ -610,7 +610,6 @@ func (t Transaction) MarshalText() (text []byte, err error) {
 	out.WriteString("\n ec:  ")
 	WriteNumber16(&out, uint16(len(t.outECs)))
 	out.WriteString("\n")
-
 	for _, address := range t.inputs {
 		text, _ := address.MarshalText()
 		out.Write(text)
@@ -630,10 +629,10 @@ func (t Transaction) MarshalText() (text []byte, err error) {
 		}
 		out.Write(text)
 
-		if len(t.sigBlocks) < i {
+        for len(t.sigBlocks) <= i {
 			t.sigBlocks = append(t.sigBlocks, new(SignatureBlock))
 		}
-		text, err := t.sigBlocks[i].MarshalText()
+	     text, err := t.sigBlocks[i].MarshalText()
 		if err != nil {
 			return nil, err
 		}
