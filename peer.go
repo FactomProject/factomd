@@ -1608,7 +1608,7 @@ out:
 			markConnected = true
 
 		case *wire.MsgDirBlock:
-			util.Trace()
+			//			util.Trace()
 			p.handleDirBlockMsg(msg, buf)
 
 		case *wire.MsgGetNonDirData:

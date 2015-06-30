@@ -39,7 +39,7 @@ func (p *peer) handleFBlockMsg(msg *wire.MsgFBlock, buf []byte) {
 
 // handleDirBlockMsg is invoked when a peer receives a dir block message.
 func (p *peer) handleDirBlockMsg(msg *wire.MsgDirBlock, buf []byte) {
-	util.Trace()
+	//	util.Trace()
 	// Convert the raw MsgBlock to a btcutil.Block which provides some
 	// convenience methods and things such as hash caching.
 
@@ -561,7 +561,7 @@ func (p *peer) PushGetDirBlocksMsg(locator blockchain.BlockLocator, stopHash *wi
 // and return corresponding data block like Factoid block,
 // EC block, Entry block, and Entry
 func (p *peer) pushGetNonDirDataMsg(dblock *common.DirectoryBlock) {
-	util.Trace()
+	//	util.Trace()
 
 	binary, _ := dblock.MarshalBinary()
 	commonHash := common.Sha(binary)
@@ -743,7 +743,7 @@ func (p *peer) handleFactoidMsg(msg *wire.MsgFactoidTX, buf []byte) {
 
 // pushFactoiMsg
 func (p *peer) pushFactoidMsg(commonhash *common.Hash, doneChan, waitChan chan struct{}) error {
-	util.Trace()
+	//	util.Trace()
 
 	var err error //= nil
 
