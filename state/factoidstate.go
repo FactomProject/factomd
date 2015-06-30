@@ -136,12 +136,15 @@ func(fs *FactoidState) AddTransaction(trans fct.ITransaction) bool {
 func(fs *FactoidState) UpdateTransaction(trans fct.ITransaction) bool {
     for _,input := range trans.GetInputs() {
         fs.UpdateBalance(input.GetAddress(), - int64(input.GetAmount()))
+        fmt.Println("input: ",input)
     }
     for _,output := range trans.GetOutputs() {
         fs.UpdateBalance(output.GetAddress(), int64(output.GetAmount()))
+        fmt.Println("output: ",output)
     }
     for _,ecoutput := range trans.GetECOutputs() {
         fs.UpdateECBalance(ecoutput.GetAddress(), int64(ecoutput.GetAmount()))
+        fmt.Println("EC Output: ",ecoutput)
     }
     return true
 }
