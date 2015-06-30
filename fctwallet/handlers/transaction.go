@@ -95,7 +95,7 @@ func getParams(ctx *web.Context, params string, ec bool) (
     // Could check for that some how, but there are many ways around such checks.
     
     if len(name)<= fct.ADDRESS_LENGTH {
-        we := factoidState.GetDB().GetRaw([]byte(fct.W_NAME),[]byte(name))
+        we := factoidState.GetDB().GetRaw([]byte(fct.W_NAME), []byte(name))
         if we != nil {
             address,err = we.(wallet.IWalletEntry).GetAddress()
             if err != nil || address == nil {

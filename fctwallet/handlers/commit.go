@@ -12,6 +12,8 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	fct "github.com/FactomProject/factoid"
+	"github.com/FactomProject/factoid/wallet"
 	"github.com/hoisie/web"
 )
 
@@ -19,7 +21,7 @@ func HandleCommitChain(ctx *web.Context, name string) {
 	type walletcommit struct {
 		Message string
 	}
-	
+
 	type commit struct {
 		CommitChainMsg string
 	}
@@ -38,8 +40,9 @@ func HandleCommitChain(ctx *web.Context, name string) {
 		ctx.WriteHeader(httpBad)
 		return
 	}
-		
-	signed := factoidState.GetWallet().SignCommit([]byte(name), msg)
+
+	we := factoidState.GetDB().GetRaw([]byte(fct.W_NAME), []byte(name))
+	signed := factoidState.GetWallet().SignCommit(we.(wallet.IWalletEntry), msg)
 
 	com := new(commit)
 	com.CommitChainMsg = hex.EncodeToString(signed)
@@ -51,7 +54,7 @@ func HandleCommitChain(ctx *web.Context, name string) {
 	}
 
 	resp, err := http.Post(
-		fmt.Sprintf("http://%s/v1/commit-chain/", ipaddressFD+portNumberFD),
+		fmt.Sprintf("http://%s/v1/commit-chain", ipaddressFD+portNumberFD),
 		"application/json",
 		bytes.NewBuffer(j))
 	if err != nil {
@@ -66,7 +69,7 @@ func HandleCommitEntry(ctx *web.Context, name string) {
 	type walletcommit struct {
 		Message string
 	}
-	
+
 	type commit struct {
 		CommitEntryMsg string
 	}
@@ -85,8 +88,9 @@ func HandleCommitEntry(ctx *web.Context, name string) {
 		ctx.WriteHeader(httpBad)
 		return
 	}
-		
-	signed := factoidState.GetWallet().SignCommit([]byte(name), msg)
+
+	we := factoidState.GetDB().GetRaw([]byte(fct.W_NAME), []byte(name))
+	signed := factoidState.GetWallet().SignCommit(we.(wallet.IWalletEntry), msg)
 
 	com := new(commit)
 	com.CommitEntryMsg = hex.EncodeToString(signed)
