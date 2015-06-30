@@ -53,8 +53,13 @@ func factomForkInit(s *server) {
 				s.RelayInventory(iv, nil)
 
 			case wire.Message:
+				util.Trace()
 				wireMsg, _ := msg.(wire.Message)
 				s.BroadcastMessage(wireMsg)
+
+			default:
+				util.Trace("unhandled outMsgQueue message")
+				panic(fmt.Sprintf("bad outMsgQueue message received: %v", msg))
 			}
 			/*      peerInfoResults := server.PeerInfo()
 			        for peerInfo := range peerInfoResults{
