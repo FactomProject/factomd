@@ -65,7 +65,7 @@ type ISCWallet interface {
 	// be particularly useful with multisig.
 	SignInputs(fct.ITransaction) (bool, error) // True if all inputs are signed
 	// Sign a CommitEntry or a CommitChain with the eckey
-	SignCommit(name, data []byte) []byte
+	SignCommit(we IWalletEntry, data []byte) []byte
 	// Get the exchange rate of Factoids per Entry Credit
 	GetECRate() uint64
 }
@@ -125,12 +125,11 @@ func (w *SCWallet) SignInputs(trans fct.ITransaction) (bool, error) {
 
 // SignCommit will sign the []byte with the Entry Credit Key and retrurn the
 // slice with the signature and pubkey appended.
-func (w *SCWallet) SignCommit(name, data []byte) []byte {
-	eckey := w.GetAddressDetailsAddr(name).(*WalletEntry)
-	pub := new([fct.SIGNATURE_LENGTH]byte)
-	copy(pub[:], eckey.public[0])
-	pri := new([fct.SIGNATURE_LENGTH]byte)
-	copy(pri[:], eckey.private[0])
+func (w *SCWallet) SignCommit(we IWalletEntry, data []byte) []byte {
+	pub := new([fct.ADDRESS_LENGTH]byte)
+	copy(pub[:], we.GetKey(0))
+	pri := new([fct.PRIVATE_LENGTH]byte)
+	copy(pri[:], we.GetPrivKey(0))
 	sig := ed25519.Sign(pri, data)
 	r := append(data, pub[:]...)
 	r = append(r, sig[:]...)
