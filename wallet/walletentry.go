@@ -28,7 +28,11 @@ type IWalletEntry interface {
     // the hash and thus the address returned by the wallet entry!
     AddKey(public, private []byte)
     // Get the name for this address
-    GetName() ([]byte)  
+    GetName() ([]byte)
+    // Get the Public Key by its index
+    GetKey(i int) []byte
+    // Get the Private Key by its index
+    GetPrivKey(i int) []byte
     // Set the name for this address
     SetName([]byte)  
     // Get the address defined by the RCD for this wallet entry.
@@ -235,6 +239,14 @@ func (w *WalletEntry) AddKey(public, private []byte) {
     w.private = append(w.private, pr)
     
     w.rcd = fct.NewRCD_1(pu)
+}
+
+func (we *WalletEntry) GetKey(i int) []byte {
+	return we.public[i]
+}
+
+func (we *WalletEntry) GetPrivKey(i int) []byte {
+	return we.private[i]
 }
 
 func (w *WalletEntry) SetName(name []byte) {
