@@ -264,7 +264,7 @@ func(fs *FactoidState) LoadState() error  {
     return nil
 }
     
-
+// TODO: TBD - maybe it's better to return false, since panic gets handled elsewhere in the web server and does not crash the program
 func(fs *FactoidState) Validate(trans fct.ITransaction) bool  {
     if !fs.currentBlock.ValidateTransaction(trans) {
         return false
