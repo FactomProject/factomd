@@ -75,15 +75,15 @@ func (w1 WalletEntry)GetAddress() (fct.IAddress, error) {
     if w1.rcd == nil {
         return nil, fmt.Errorf("Should never happen. Missing the rcd block")
     }
-    var adr IHash
+    var adr fct.IHash
     var err error
-    if addrtype == "fct" {
+    if w1.addrtype == "fct" {
         adr, err = w1.rcd.GetAddress()
     }else{
-        if len(public)==0 {
+        if len(w1.public)==0 {
             err = fmt.Errorf("No Public Key for WalletEntry")
         }else{
-            adr = NewHash(public[0])
+            adr = fct.NewHash(w1.public[0])
         }
     }
     if err != nil {
