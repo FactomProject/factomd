@@ -18,11 +18,10 @@ import (
 )
 
 func HandleCommitChain(ctx *web.Context, name string) {
-	fmt.Println("DEBUG: HandleCommitChain")
 	type walletcommit struct {
 		Message string
 	}
-	
+
 	type commit struct {
 		CommitChainMsg string
 	}
@@ -41,7 +40,7 @@ func HandleCommitChain(ctx *web.Context, name string) {
 		ctx.WriteHeader(httpBad)
 		return
 	}
-	
+
 	we := factoidState.GetDB().GetRaw([]byte(fct.W_NAME), []byte(name))
 	signed := factoidState.GetWallet().SignCommit(we.(wallet.IWalletEntry), msg)
 
@@ -53,7 +52,6 @@ func HandleCommitChain(ctx *web.Context, name string) {
 		ctx.WriteHeader(httpBad)
 		return
 	}
-	fmt.Println("DEBUG: Sending signed chain commit to wallet:", string(j))
 
 	resp, err := http.Post(
 		fmt.Sprintf("http://%s/v1/commit-chain", ipaddressFD+portNumberFD),
@@ -64,7 +62,6 @@ func HandleCommitChain(ctx *web.Context, name string) {
 		ctx.WriteHeader(httpBad)
 		return
 	}
-	fmt.Printf("DEBUG: sending to server http://%s/v1/commit-chain/\n", ipaddressFD+portNumberFD)
 	resp.Body.Close()
 }
 
@@ -72,7 +69,7 @@ func HandleCommitEntry(ctx *web.Context, name string) {
 	type walletcommit struct {
 		Message string
 	}
-	
+
 	type commit struct {
 		CommitEntryMsg string
 	}
@@ -91,7 +88,7 @@ func HandleCommitEntry(ctx *web.Context, name string) {
 		ctx.WriteHeader(httpBad)
 		return
 	}
-	
+
 	we := factoidState.GetDB().GetRaw([]byte(fct.W_NAME), []byte(name))
 	signed := factoidState.GetWallet().SignCommit(we.(wallet.IWalletEntry), msg)
 

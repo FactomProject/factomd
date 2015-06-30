@@ -127,7 +127,6 @@ func (w *SCWallet) SignInputs(trans fct.ITransaction) (bool, error) {
 // slice with the signature and pubkey appended.
 func (w *SCWallet) SignCommit(we IWalletEntry, data []byte) []byte {
 	pub := new([fct.ADDRESS_LENGTH]byte)
-	fmt.Printf("DEBUG: eckey: %x\n", we.GetKey(0))
 	copy(pub[:], we.GetKey(0))
 	pri := new([fct.PRIVATE_LENGTH]byte)
 	copy(pri[:], we.GetPrivKey(0))
