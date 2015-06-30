@@ -50,7 +50,7 @@ func (msg *MsgCommitEntry) BtcDecode(r io.Reader, pver uint32) error {
 		return err
 	}
 
-	msg.CommitEntry = new(common.CommitEntry)
+	msg.CommitEntry = common.NewCommitEntry()
 	err = msg.CommitEntry.UnmarshalBinary(bytes)
 	if err != nil {
 		return err
