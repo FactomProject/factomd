@@ -49,7 +49,7 @@ func (msg *MsgCommitChain) BtcDecode(r io.Reader, pver uint32) error {
 		return err
 	}
 
-	msg.CommitChain = new(common.CommitChain)
+	msg.CommitChain = common.NewCommitChain()
 	if err := msg.CommitChain.UnmarshalBinary(bytes); err != nil {
 		return err
 	}
