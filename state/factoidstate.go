@@ -9,7 +9,6 @@ package state
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	fct "github.com/FactomProject/factoid"
 	"github.com/FactomProject/factoid/block"
@@ -270,13 +269,18 @@ func (fs *FactoidState) LoadState() error {
 	return nil
 }
 
+// TODO: TBD - maybe it's better to return false, since panic gets handled elsewhere in the web server and does not crash the program
 func (fs *FactoidState) Validate(trans fct.ITransaction) bool {
 	if nil == fs {
-		panic(errors.New("\n\n!!! ERROR: fs is nil !!!"))
+		//		panic("\n\n!!! ERROR: fs is nil !!!")
+		fmt.Println("\n\n!!! ERROR: fs is nil !!!")
+		return false
 	}
 
 	if nil == fs.currentBlock {
-		panic(errors.New("\n\n!!! ERROR: fs.currentBlock is nil !!!"))
+		//		panic("\n\n!!! ERROR: fs.currentBlock is nil !!!")
+		fmt.Println("\n\n!!! ERROR: fs.currentBlock is nil !!!")
+		return false
 	}
 
 	if !fs.currentBlock.ValidateTransaction(trans) {
