@@ -138,6 +138,7 @@ func(fs *FactoidState) AddTransactionBlock(blk block.IFBlock) error  {
             return fmt.Errorf("Failed to add transaction")
         }
     }
+    fs.currentBlock=blk
     return nil
 }
 
@@ -153,11 +154,9 @@ func(fs *FactoidState) AddTransaction(trans fct.ITransaction) bool {
 // Assumes validation has already been done.
 func(fs *FactoidState) UpdateTransaction(trans fct.ITransaction) bool {
     for _,input := range trans.GetInputs() {
-        fmt.Println("Input",input)
         fs.UpdateBalance(input.GetAddress(), - int64(input.GetAmount()))
     }
     for _,output := range trans.GetOutputs() {
-        fmt.Println("Output",output)
         fs.UpdateBalance(output.GetAddress(), int64(output.GetAmount()))
     }
     for _,ecoutput := range trans.GetECOutputs() {
