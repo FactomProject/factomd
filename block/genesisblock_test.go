@@ -26,3 +26,5 @@ func Test_create_genesis_block(test *testing.T) {
     fct.Prtln(gb)
     fct.Prtln("Hash: ",gb.GetHash())
 }
+
+

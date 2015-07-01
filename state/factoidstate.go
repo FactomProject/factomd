@@ -232,7 +232,7 @@ func(fs *FactoidState) LoadState() error  {
             return err 
         }
         fs.dbheight = 0
-        fs.currentBlock = gb
+        fs.ProcessEndOfBlock()
         return nil
     }
     // First run back from the head back to the genesis block, collecting hashes.

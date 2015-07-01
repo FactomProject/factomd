@@ -82,7 +82,7 @@ func (FBlock) GetDBHash() fct.IHash {
 }
 
 func (b *FBlock) GetHash() fct.IHash {
-    if b.MerkleRoot != nil {
+    if b.MerkleRoot != nil && bytes.Compare(b.MerkleRoot.Bytes(), new([32]byte)[:])!=0 {
         return b.MerkleRoot
     }
     b.CalculateHashes()
