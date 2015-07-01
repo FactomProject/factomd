@@ -269,11 +269,16 @@ func(fs *FactoidState) Validate(trans fct.ITransaction) bool  {
     if !fs.currentBlock.ValidateTransaction(trans) {
         return false
     }
+    sums = map[IAddress][int64]
     for _, input := range trans.GetInputs() {
-        bal := fs.GetBalance(input.GetAddress())
+        bal := sums[input.GetAddress()]
+        bal += fs.GetBalance(input.GetAddress())
+        
         if input.GetAmount()>bal { 
             return false 
         }
+        
+        sums[input.GetAddress()] = bal
     }
     return true;
 }
