@@ -123,8 +123,10 @@ func makeEmptyMessage(command string) (Message, error) {
 	case CmdNotFound:
 		msg = &MsgNotFound{}
 
-	case CmdTx:
-		msg = &MsgTx{}
+		/*
+			case CmdTx:
+				msg = &MsgTx{}
+		*/
 
 	case CmdPing:
 		msg = &MsgPing{}
@@ -200,6 +202,9 @@ func makeEmptyMessage(command string) (Message, error) {
 
 	case CmdEntry:
 		msg = &MsgEntry{}
+
+	case CmdFactoidTX:
+		msg = &MsgFactoidTX{}
 
 	default:
 		return nil, fmt.Errorf("unhandled command [%s]", command)
