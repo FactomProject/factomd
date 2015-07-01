@@ -85,17 +85,17 @@ func Test_create_genesis_FactoidState (test *testing.T) {
     }
     var cnt int
     // Create a number of blocks (i)
-    for i:=0; i<300; i++ {
+    for i:=0; i<10; i++ {
         
         fct.Prt(" ",fs.GetDBHeight(),":",cnt,"--",fs.stats.badAddresses)
         // Create a new block
-        for j:=0; j<1000; j++ {
+        for j:=0; j<100; j++ {
             t := fs.newTransaction()
             added := fs.AddTransaction(t)
             if !added { 
                 fct.Prt("F:",i,"-",j," ",t) 
             }
-            time.Sleep(time.Second/10000)
+            time.Sleep(time.Second/1000)
             cnt += 1
         }
         fs.ProcessEndOfBlock()

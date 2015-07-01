@@ -181,7 +181,9 @@ func(fs *FactoidState) ProcessEndOfBlock(){
     
     fs.dbheight += 1
     fs.currentBlock = block.NewFBlock(fs.GetFactoshisPerEC(),fs.dbheight)
-    flg, err := fs.currentBlock.AddCoinbase(new(fct.Transaction))
+    t := new(fct.Transaction)
+    t.SetLockTime(fs.GetTimeNano())
+    flg, err := fs.currentBlock.AddCoinbase(t)
     if !flg || err !=nil {
         panic("Failed to add coinbase transaction")
     }
@@ -202,7 +204,9 @@ func(fs *FactoidState) ProcessEndOfBlock2(nextBlkHeight uint32) {
     }
     
     fs.currentBlock = block.NewFBlock(fs.GetFactoshisPerEC(), nextBlkHeight)
-    flg, err := fs.currentBlock.AddCoinbase(new(fct.Transaction))
+    t := new(fct.Transaction)
+    t.SetLockTime(fs.GetTimeNano())
+    flg, err := fs.currentBlock.AddCoinbase(t)
     if !flg || err !=nil {
         panic("Failed to add coinbase transaction")
     }
@@ -269,12 +273,12 @@ func(fs *FactoidState) Validate(trans fct.ITransaction) bool  {
     if !fs.currentBlock.ValidateTransaction(trans) {
         return false
     }
-    sums = map[IAddress][int64]
+    var sums = make(map[fct.IAddress]int64,10)
     for _, input := range trans.GetInputs() {
         bal := sums[input.GetAddress()]
-        bal += fs.GetBalance(input.GetAddress())
+        bal += int64(fs.GetBalance(input.GetAddress()))
         
-        if input.GetAmount()>bal { 
+        if int64(input.GetAmount())>bal { 
             return false 
         }
         
