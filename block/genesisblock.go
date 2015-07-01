@@ -7,10 +7,11 @@ package block
 import (
     fct "github.com/FactomProject/factoid"
     "github.com/FactomProject/factoid/wallet"
+    "fmt"
 )
 
 var _ = fct.Prt
-
+var _ = fmt.Println
 var genesisBlock IFBlock
 
 // Provide the initial Exchange Rate, and the number of addresses to 
@@ -39,5 +40,7 @@ func GetGenesisBlock(ftime uint64, ExRate uint64, addressCnt int, Factoids uint6
 	if !flg || err != nil { 
         fct.Prtln("Flag: ",flg," Error: ",err)
     }
+    genesisBlock.GetHash()
+
 	return genesisBlock
 }
