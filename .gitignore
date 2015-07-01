@@ -1,23 +1,18 @@
-# Temp files
-*~
-*.kate-swp
-
-# Databases
-btcd.db
-*-shm
-*-wal
-
-# Log files
-*.log
-
 # Compiled Object files, Static and Dynamic libs (Shared Objects)
 *.o
 *.a
 *.so
 
+# Temp files
+*~
+*.kate-swp
+*.orig
+
 # Folders
 _obj
 _test
+bin
+pkg
 
 # Architecture specific extensions/prefixes
 *.[568vq]
@@ -32,3 +27,6 @@ _cgo_export.*
 _testmain.go
 
 *.exe
+*.test
+
+.DS_Store
