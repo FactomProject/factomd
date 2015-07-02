@@ -79,10 +79,9 @@ func (p *peer) handleECBlockMsg(msg *wire.MsgECBlock, buf []byte) {
 	// Convert the raw MsgBlock to a btcutil.Block which provides some
 	// convenience methods and things such as hash caching.
 
-	binary, _ := msg.ECBlock.MarshalBinary()
-	commonHash := common.Sha(binary)
-	hash, _ := wire.NewShaHash(commonHash.Bytes())
-
+	// Use KeyMR as the key for inv
+	hash := wire.FactomHashToShaHash(msg.ECBlock.KeyMR())
+	
 	iv := wire.NewInvVect(wire.InvTypeFactomEntryCreditBlock, hash)
 	p.AddKnownInventory(iv)
 
