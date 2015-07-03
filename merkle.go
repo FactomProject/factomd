@@ -6,7 +6,10 @@ package factoid
 
 import (
 	"math"
+    "fmt"
 )
+
+var _ = fmt.Println
 
 // nextPowerOfTwo returns the next highest power of two from a given number if
 // it is not already a power of two.  This is a helper function used during the
@@ -43,6 +46,9 @@ func ComputeMerkleRoot(hashes [] IHash) IHash {
 
 // The root of the Merkle Tree is returned in merkles[len(merkles)-1]
 func BuildMerkleTreeStore(hashes []IHash) (merkles []IHash) {
+    if len(hashes)==0 {
+        return append(make([]IHash,0,1),new(Hash))
+    }
 	// Calculate how many entries are required to hold the binary merkle
 	// tree as a linear array and create an array of that size.
 	nextPoT := nextPowerOfTwo(len(hashes))
