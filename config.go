@@ -33,7 +33,8 @@ const (
 	defaultLogDirname  = "logs"
 	defaultLogFilename = "factom-d.log"
 	//	defaultMaxPeers          = 125
-	defaultMaxPeers          = 10
+	// defaultMaxPeers          = 10
+	defaultMaxPeers          = 20
 	defaultBanDuration       = time.Hour * 24
 	defaultMaxRPCClients     = 10
 	defaultMaxRPCWebsockets  = 25
