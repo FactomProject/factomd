@@ -53,11 +53,12 @@ type ITransaction interface {
     GetSignatureBlocks() []ISignatureBlock
     
     // Helper functions for validation.
-	TotalInputs() uint64
-	TotalOutputs() uint64
-	TotalECs() uint64
+	TotalInputs() (uint64, bool)
+	TotalOutputs() (uint64, bool)
+	TotalECs() (uint64, bool)
 	
 	// Validate does everything but check the signatures.
+	ValidateAmounts(...uint64) (uint64, bool)
 	Validate() string
 	ValidateSignatures() bool
 	
@@ -171,28 +172,57 @@ func (t Transaction) CalculateFee(factoshisPerEC uint64) (uint64, error) {
 	return fee, nil
 }
 
-func (t Transaction) TotalInputs() uint64 {
+// Checks that the sum of the given amounts do not cross
+// a signed boundry.  Returns false if invalid, and the
+// sum if valid.  Returns 0 and true if nothing is passed in.
+func ValidateAmounts(amts ...uint64) (uint64, bool) {
+    var sum int64 
+    for _,amt := range amts {
+        if int64(amt) < 0 {
+            return 0, false
+        }
+        sum += int64(amt)
+        if int64(sum) < 0 {
+            return 0, false
+        }
+    }
+    return uint64(sum), true
+}
+
+func (t Transaction) TotalInputs() (uint64, bool) {
 	var sum uint64
+	var ok bool
 	for _, input := range t.inputs {
-		sum += input.GetAmount()
+        sum, ok = ValidateAmounts(sum, input.GetAmount())
+        if !ok {
+            return 0, false
+        }
 	}
-	return sum
+	return sum, true
 }
 
-func (t Transaction) TotalOutputs() uint64 {
-	var sum uint64
-	for _, output := range t.outputs {
-		sum += output.GetAmount()
-	}
-	return sum
+func (t Transaction) TotalOutputs() (uint64, bool) {
+    var sum uint64
+    var ok bool
+    for _, output := range t.outputs {
+        sum, ok = ValidateAmounts(sum, output.GetAmount())
+        if !ok {
+            return 0, false
+        }
+    }
+	return sum, true
 }
 
-func (t Transaction) TotalECs() uint64 {
-	var sum uint64
-	for _, ec := range t.outECs {
-		sum += ec.GetAmount()
-	}
-	return sum
+func (t Transaction) TotalECs() (uint64, bool) {
+    var sum uint64
+    var ok bool
+    for _, ec := range t.outECs {
+        sum, ok = ValidateAmounts(sum, ec.GetAmount())
+        if !ok {
+            return 0, false
+        }
+    }
+	return sum, true
 }
 
 // Only validates that the transaction is well formed.  This means that
@@ -211,8 +241,16 @@ func (t Transaction) TotalECs() uint64 {
 // go as "transaction fees" and those fees do not go to anyone.
 func (t Transaction) Validate() string {
 
-	// Inputs must cover outputs
-	if t.TotalInputs() < t.TotalOutputs()+t.TotalECs() {
+	// Inputs, outputs, and ecoutputs, must be valid, 
+    tinputs,  ok1 := t.TotalInputs()
+    toutputs, ok2 := t.TotalOutputs()
+    tecs,     ok3 := t.TotalECs()
+    if !ok1 || !ok2 || !ok3 { 
+        return INVALID_INPUTS 
+    }
+        
+    // Inputs cover outputs and ecoutputs.
+    if tinputs < toutputs + tecs {
         return BALANCE_FAIL
 	}
 	// Cannot have zero inputs.  This means you cannot use this function
@@ -223,7 +261,8 @@ func (t Transaction) Validate() string {
 	}
 	// Because of our fee structure, we may not enforce a minimum spend.
 	// However, we do check the constant anyway.
-	if t.TotalInputs() < MINIMUM_AMOUNT {
+	tin, ok := t.TotalInputs()
+	if !ok || tin < MINIMUM_AMOUNT {
         return MIN_SPEND_FAIL
 	}
 	// Every input must have an RCD block

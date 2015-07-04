@@ -50,6 +50,12 @@ func Start() {
     // reused.
     server.Post("/v1/factoid-new-transaction/([^/]+)", handlers.HandleFactoidNewTransaction)
 
+    // Delete Transaction
+    // localhost:8089/v1/factoid-new-transaction/<key>
+    // Remove the key of a transaction in flight.  If it doesn't exist, then 
+    // nobody cares.
+    server.Post("/v1/factoid-delete-transaction/([^/]+)", handlers.HandleFactoidDeleteTransaction)
+    
     // Add Input
     // localhost:8089/v1/factoid-add-input/?key=<key>&name=<name or address>&amount=<amount>
     // Add an input to a transaction in process.  Start with new-transaction.

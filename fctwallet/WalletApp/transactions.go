@@ -503,11 +503,22 @@ func (Print) Execute (state State, args []string) error {
             fee, err := trans.CalculateFee(uint64(v))
             if err != nil {fmt.Println(err); continue }
             fmt.Println("Required Fee:       ", strings.TrimSpace(fct.ConvertDecimal(fee)))
-            cfee := int64(trans.TotalInputs())- int64(trans.TotalOutputs())
-            sign := ""
-            if cfee < 0 { sign = "-"; cfee = -cfee } 
-            fmt.Print("Fee You are paying: ", 
-                    sign, strings.TrimSpace(fct.ConvertDecimal(uint64(cfee))),"\n")
+            tin,  ok1 := trans.TotalInputs()
+            tout, ok2 := trans.TotalOutputs()
+            if ok1 && ok2 {
+                cfee := int64(tin)- int64(tout)
+                sign := ""
+                if cfee < 0 { sign = "-"; cfee = -cfee } 
+                fmt.Print("Fee You are paying: ", 
+                        sign, strings.TrimSpace(fct.ConvertDecimal(uint64(cfee))),"\n")
+            }else{
+                if !ok1 {
+                    fmt.Println("One or more of your inputs are invalid")
+                }
+                if !ok2 {
+                    fmt.Println("One or more of your outputs are invalid")
+                }
+            }
             binary, err := trans.MarshalBinary()
             if err != nil {fmt.Println(err); continue }
             fmt.Println("Transaction Size:   ", len(binary))

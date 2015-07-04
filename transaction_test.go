@@ -168,3 +168,16 @@ func Test_Transaction_MarshalUnMarshal(test *testing.T) {
 	}
 
 }
+
+func Test_ValidateAmounts(test *testing.T) {
+    var zero uint64
+    _, ok := ValidateAmounts(zero-1    )
+    if ok { test.Failed() }
+    _, ok = ValidateAmounts(1,2,3,4,5,zero-1)
+    if ok { test.Failed() }
+    _, ok = ValidateAmounts(0x6FFFFFFFFFFFFFFF,1)
+    if !ok { test.Failed() }
+    _, ok = ValidateAmounts(1, 0x6FFFFFFFFFFFFFFF,1)
+    if ok { test.Failed() }
+    
+}

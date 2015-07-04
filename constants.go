@@ -27,6 +27,7 @@ const (
     
     // Validation
     WELL_FORMED          = "Pass"
+    INVALID_INPUTS       = "One or more of the inputs are negative, or cause an overflow"
     BALANCE_FAIL         = "The sum of the inputs do not cover the sum of the outputs"
     MIN_INPUT_FAIL       = "Must have at least one input"
     MIN_SPEND_FAIL       = "Must have a minimum spend in the transaction"

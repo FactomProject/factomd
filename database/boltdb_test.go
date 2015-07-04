@@ -68,6 +68,11 @@ func Test_bolt_init(t *testing.T) {
     r := db.Get("one",fct.Sha([]byte("one")))
     
     if a.IsEqual(r)!= nil { t.Fail() }
+    
+    db.DeleteKey([]byte("one"),fct.Sha([]byte("one")).Bytes())
+    r = db.Get("one",fct.Sha([]byte("one")))
+    
+    if r != nil { t.Fail() }
 }
     
 

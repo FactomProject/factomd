@@ -199,6 +199,16 @@ func (d *BoltDB) PutRaw(bucket []byte, key []byte, value fct.IBlock) {
     
 }
 
+// We don't care if delete works or not.  If the key isn't there, that's ok
+func (d *BoltDB) DeleteKey(bucket []byte, key []byte) {
+    d.db.Update(func(tx *bolt.Tx) error {
+        b := tx.Bucket(bucket)
+        b.Delete(key)
+        return nil
+    })
+    
+}
+
 func (db *BoltDB) Get(bucket string, key fct.IHash) (value fct.IBlock) {
     return db.GetRaw([]byte(bucket), key.Bytes())
 }

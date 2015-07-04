@@ -49,7 +49,8 @@ type IFDatabase interface {
 	Put(bucket string, key factoid.IHash, value factoid.IBlock)
 	PutRaw(bucket []byte, key []byte, value factoid.IBlock)
 	PutKey(key IDBKey, value factoid.IBlock)
-
+    DeleteKey(bucket []byte, key[]byte)
+    
     // A Backer database allows the implementation of a least recently
     // used cache to purge data from memory.
     SetBacker(db IFDatabase)     
