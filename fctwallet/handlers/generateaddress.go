@@ -24,8 +24,8 @@ func  HandleFactoidGenerateAddress(ctx *web.Context, name string) {
     
     adr, err := factoidState.GetWallet().GenerateFctAddress([]byte(name),1,1)
     if err != nil {
-        fmt.Println("Error: ",err)
-        reportResults(ctx,false)
+        str := fmt.Sprintln("Error: %s",err)
+        reportResults(ctx,str,false)
         return
     }
     
@@ -34,7 +34,7 @@ func  HandleFactoidGenerateAddress(ctx *web.Context, name string) {
     adrstr := fct.ConvertFctAddressToUserStr(adr)
     a.Address = adrstr
     if p, err := json.Marshal(a); err != nil {
-        reportResults(ctx,false)
+        reportResults(ctx,"Failed to unmarshal the response from factomd",false)
         return
     } else {
         fmt.Println("\n",p,"\n")
@@ -51,8 +51,8 @@ func  HandleFactoidGenerateECAddress(ctx *web.Context, name string) {
     
     adr, err := factoidState.GetWallet().GenerateECAddress([]byte(name))
     if err != nil {
-        fmt.Println("Error: ",err)
-        reportResults(ctx,false)
+        str := fmt.Sprintf("Error: %s",err)
+        reportResults(ctx, str, false)
         return
     }
     
@@ -61,7 +61,7 @@ func  HandleFactoidGenerateECAddress(ctx *web.Context, name string) {
     adrstr := fct.ConvertECAddressToUserStr(adr)
     a.Address = adrstr
     if p, err := json.Marshal(a); err != nil {
-        reportResults(ctx,false)
+        reportResults(ctx,"Failed to unmarshal the response from factomd",false)
         return
     } else {
         ctx.Write(p)

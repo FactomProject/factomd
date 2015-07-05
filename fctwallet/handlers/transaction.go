@@ -28,9 +28,16 @@ func GetTimeNano() uint64 {
 }
 
 
-// True is sccuess! False is failure
-func reportResults(ctx *web.Context, v bool) {
-    b := struct{Success bool}{v}
+// True is sccuess! False is failure.  The Response is what the CLI
+// should report.
+func reportResults(ctx *web.Context, response string , success bool) {
+    b := struct{
+            Response string; 
+            Success bool
+         } {
+            Response: response, 
+            Success:  success,
+         }
     if p, err := json.Marshal(b); err != nil {
         ctx.WriteHeader(httpBad)
         return
@@ -46,9 +53,8 @@ func getTransaction(ctx *web.Context, key string) (trans fct.ITransaction, err e
     ib := factoidState.GetDB().GetRaw([]byte(fct.DB_BUILD_TRANS),[]byte(key))
     trans, ok := ib.(fct.ITransaction)
     if ib == nil || !ok {
-        fmt.Println("Unknown Transaction: '",key,"'")
-        err = fmt.Errorf("Unknown Transaction")
-        reportResults(ctx,false)
+        str := fmt.Sprintf("Unknown Transaction: %s",key)
+        reportResults(ctx,str,false)
         ctx.WriteHeader(httpBad)
         return
     }
@@ -69,19 +75,15 @@ func getParams(ctx *web.Context, params string, ec bool) (
     StrAmount := ctx.Params["amount"]
     
     if len(key)==0 || len(name)==0 || len(StrAmount)==0 {
-        fmt.Println("Missing Parameters: key='",key,"' name='",name,"' amount='",StrAmount,"'")
-        reportResults(ctx,false)
-        err = fmt.Errorf("Missing Parameters")
-        ctx.WriteHeader(httpBad)
+        str := fmt.Sprintln("Missing Parameters: key='",key,"' name='",name,"' amount='",StrAmount,"'")
+        reportResults(ctx,str,false)
         return
     }
         
     amount, err = strconv.ParseInt(StrAmount,10,64)
     if err != nil {
-        fmt.Println("Error parsing amount.\n",err)
-        err = fmt.Errorf("Error parsing amount")
-        reportResults(ctx,false)
-        ctx.WriteHeader(httpBad)
+        str := fmt.Sprintln("Error parsing amount.\n",err)
+        reportResults(ctx,str,false)
         return
     }
     
@@ -99,19 +101,14 @@ func getParams(ctx *web.Context, params string, ec bool) (
         if we != nil {
             address,err = we.(wallet.IWalletEntry).GetAddress()
             if err != nil || address == nil {
-                fmt.Println("Should not get an error geting a address from a Wallet Entry")
-                err = fmt.Errorf("Wallet Entry failed to provide address")
-                reportResults(ctx,false)
-                ctx.WriteHeader(httpBad)
+                reportResults(ctx,"Should not get an error geting a address from a Wallet Entry",false)
                 return
             }
             return
         }
     }
     if (!ec && !fct.ValidateFUserStr(name)) || (ec && !fct.ValidateECUserStr(name)) {
-        fmt.Println("Bad Address")
-        err = fmt.Errorf("Badly formed address")
-        reportResults(ctx,false)
+        reportResults(ctx,"Badly formed address",false)
         ctx.WriteHeader(httpBad)
         return
     }
@@ -134,17 +131,15 @@ func getParams(ctx *web.Context, params string, ec bool) (
 func HandleFactoidNewTransaction(ctx *web.Context, key string) {
 	// Make sure we have a key
 	if len(key) == 0 {
-		fmt.Println("Missing transaction key")
-		reportResults(ctx, false)
+        reportResults(ctx, "Missing transaction key", false)
 		ctx.WriteHeader(httpBad)
 		return
 	}
 	// Make sure we don't already have a transaction in process with this key
 	t := factoidState.GetDB().GetRaw([]byte(fct.DB_BUILD_TRANS), []byte(key))
 	if t != nil {
-		fmt.Println("Duplicate key: '", key, "'")
-		reportResults(ctx, false)
-		ctx.WriteHeader(httpBad)
+		str := fmt.Sprintln("Duplicate key: '", key, "'")
+		reportResults(ctx,str, false)
 		return
 	}
 	// Create a transaction
@@ -152,7 +147,7 @@ func HandleFactoidNewTransaction(ctx *web.Context, key string) {
 	// Save it with the key
 	factoidState.GetDB().PutRaw([]byte(fct.DB_BUILD_TRANS), []byte(key), t)
 
-	reportResults(ctx, true)
+	reportResults(ctx,"Success building a transaction", true)
 }
 
 // New Transaction:  key --
@@ -167,12 +162,12 @@ func HandleFactoidNewTransaction(ctx *web.Context, key string) {
 func HandleFactoidDeleteTransaction(ctx *web.Context, key string) {
     // Make sure we have a key
     if len(key) == 0 {
-        fmt.Println("Missing transaction key")
-        reportResults(ctx, false)  
+        reportResults(ctx,"Missing transaction key",false)  
         return
     }
     // Wipe out the key
     factoidState.GetDB().DeleteKey([]byte(fct.DB_BUILD_TRANS), []byte(key))
+    reportResults(ctx, "Success deleting transaction",true)
 }
 
 
@@ -186,9 +181,7 @@ func HandleFactoidAddInput(ctx *web.Context, parms string) {
 	// Add our new input
 	err = factoidState.GetWallet().AddInput(trans, address, uint64(amount))
 	if err != nil {
-		fmt.Println("Failed to add input")
-		reportResults(ctx, false)
-		ctx.WriteHeader(httpBad)
+        reportResults(ctx, "Failed to add input", false)
 		return
 	}
 
@@ -196,7 +189,7 @@ func HandleFactoidAddInput(ctx *web.Context, parms string) {
 	// of our work will go away!
 	factoidState.GetDB().PutRaw([]byte(fct.DB_BUILD_TRANS), []byte(key), trans)
 
-	reportResults(ctx, true)
+	reportResults(ctx, "Success adding Input", true)
 }
 
 func HandleFactoidAddOutput(ctx *web.Context, parms string) {
@@ -208,9 +201,7 @@ func HandleFactoidAddOutput(ctx *web.Context, parms string) {
 	// Add our new Output
 	err = factoidState.GetWallet().AddOutput(trans, address, uint64(amount))
 	if err != nil {
-		fmt.Println("Failed to add output")
-		reportResults(ctx, false)
-		ctx.WriteHeader(httpBad)
+        reportResults(ctx, "Failed to add output", false)
 		return
 	}
 
@@ -218,7 +209,7 @@ func HandleFactoidAddOutput(ctx *web.Context, parms string) {
 	// of our work will go away!
 	factoidState.GetDB().PutRaw([]byte(fct.DB_BUILD_TRANS), []byte(key), trans)
 
-	reportResults(ctx, true)
+	reportResults(ctx, "Success adding output", true)
 }
 
 func HandleFactoidAddECOutput(ctx *web.Context, parms string) {
@@ -230,9 +221,7 @@ func HandleFactoidAddECOutput(ctx *web.Context, parms string) {
 	// Add our new Entry Credit Output
 	err = factoidState.GetWallet().AddECOutput(trans, address, uint64(amount))
 	if err != nil {
-		fmt.Println("Failed to add input")
-		reportResults(ctx, false)
-		ctx.WriteHeader(httpBad)
+        reportResults(ctx, "Failed to add input", false)
 		return
 	}
 
@@ -240,7 +229,7 @@ func HandleFactoidAddECOutput(ctx *web.Context, parms string) {
 	// of our work will go away!
 	factoidState.GetDB().PutRaw([]byte(fct.DB_BUILD_TRANS), []byte(key), trans)
 
-	reportResults(ctx, true)
+	reportResults(ctx,"Success adding Entry Credit Output", true)
 }
 
 func  HandleFactoidSignTransaction(ctx *web.Context, key string) {
@@ -252,13 +241,17 @@ func  HandleFactoidSignTransaction(ctx *web.Context, key string) {
 
     valid, err := factoidState.GetWallet().Validate(trans)
     if !valid || err != nil {
-    	reportResults(ctx, false)
+    	reportResults(ctx, "Transaction is Invalid", false)
     	return
     }
 
     valid, err = factoidState.GetWallet().SignInputs(trans)
-    if err != nil || !valid {
-    	reportResults(ctx, false)
+    if err != nil {
+        str:= fmt.Sprintf("%s",err)
+        reportResults(ctx,str, false)
+    }
+    if !valid {
+    	reportResults(ctx,"Could not sign all inputs", false)
     	return
     }
 
@@ -266,7 +259,7 @@ func  HandleFactoidSignTransaction(ctx *web.Context, key string) {
     // of our work will go away!
     factoidState.GetDB().PutRaw([]byte(fct.DB_BUILD_TRANS), []byte(key), trans)
 
-    reportResults(ctx, true)    
+    reportResults(ctx, "Success signing transaction", true)    
 }
 
 func HandleFactoidSubmit(ctx *web.Context) {
@@ -279,7 +272,7 @@ func HandleFactoidSubmit(ctx *web.Context) {
     	return
     } else {
     	if err := json.Unmarshal(p, t); err != nil {
-    		ctx.WriteHeader(httpBad)
+            reportResults(ctx,"Failed to unmarshal the response from factomd",false)
     		return
     	}
     }
@@ -293,14 +286,14 @@ func HandleFactoidSubmit(ctx *web.Context) {
 
     valid := factoidState.GetWallet().ValidateSignatures(trans)
     if !valid {
-    	reportResults(ctx, false)
+    	reportResults(ctx, "Could not validate all the signatures of the transaction",false)
     	return
     }
 
     // Okay, transaction is good, so marshal and send to factomd!
     data, err := trans.MarshalBinary()
     if err != nil {
-    	reportResults(ctx, false)
+        reportResults(ctx,"Failed to marshal the transaction for factomd",false)
     	return
     }
 
@@ -310,7 +303,8 @@ func HandleFactoidSubmit(ctx *web.Context) {
 
     j, err := json.Marshal(s)
     if err != nil {
-    	reportResults(ctx, false)
+        reportResults(ctx,"Failed to marshal the transaction for factomd",false)
+        
     	return
     }
 
@@ -322,12 +316,14 @@ func HandleFactoidSubmit(ctx *web.Context) {
     fmt.Println(bytes.NewBuffer(j))
 
     if err != nil {
-    	fmt.Println("Error coming back from server ")
+        str := fmt.Sprintf("%s",err)
+        reportResults(ctx,str,false)
     	return
     }
     resp.Body.Close()
 
     factoidState.GetDB().PutRaw([]byte(fct.DB_BUILD_TRANS), []byte(t.Transaction), nil)
+    reportResults(ctx,"Transaction submitted",true)
     
 }
    
@@ -335,13 +331,14 @@ func HandleGetFee(ctx *web.Context) {
     str := fmt.Sprintf("http://%s/v1/factoid-get-fee/", ipaddressFD+portNumberFD)
     resp, err := http.Get(str)
     if err != nil {
-        fmt.Println("\n",str)
-        reportResults(ctx,false)
+        str := fmt.Sprintf("%s",err.Error())
+        reportResults(ctx,str,false)
         return 
     }
     body, err := ioutil.ReadAll(resp.Body)
     if err != nil {
-        reportResults(ctx,false)
+        str := fmt.Sprintf("%s",err.Error())
+        reportResults(ctx,str,false)
         return 
     }
     resp.Body.Close()
@@ -349,13 +346,12 @@ func HandleGetFee(ctx *web.Context) {
     type x struct { Fee int64 }
     b := new(x)
     if err := json.Unmarshal(body, b); err != nil {
-        fmt.Println(err)
-        reportResults(ctx,false)
+        str := fmt.Sprintf("%s",err.Error())
+        reportResults(ctx,str,false)
         return 
     }
     
     ctx.Write(body)
-    
 }   
    
 func GetAddresses() [] byte{
@@ -414,7 +410,6 @@ func GetAddresses() [] byte{
    
 func   HandleGetAddresses  (ctx *web.Context) {
     
-
     type x struct {
         Body string
         Success bool
@@ -424,7 +419,8 @@ func   HandleGetAddresses  (ctx *web.Context) {
     b.Success = true
     j, err := json.Marshal(b)
     if err != nil {
-        reportResults(ctx, false)
+        str := fmt.Sprintf("%s",err.Error())
+        reportResults(ctx,str,false)
         return
     }
     ctx.Write(j)

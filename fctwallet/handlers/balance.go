@@ -95,10 +95,8 @@ func  HandleEntryCreditBalance(ctx *web.Context, adr string) {
 
     v := ECBalance(adr)
     if v < 0 {
-        fmt.Println("Unknown or bad address: ",v)
-        reportResults(ctx,false)
+        reportResults(ctx,"Unknown or bad address",false)
         return
-        v = 0
     }
     
     type ecbal struct {
@@ -109,7 +107,7 @@ func  HandleEntryCreditBalance(ctx *web.Context, adr string) {
     b.Balance = uint64(v)
     
     if p, err := json.Marshal(b); err != nil {
-        reportResults(ctx,false)
+        reportResults(ctx,"Failed to unmarshal the response from factomd", false)
         return
     } else {
         ctx.Write(p)
@@ -122,10 +120,8 @@ func  HandleFactoidBalance(ctx *web.Context, adr string) {
     
     v := FctBalance(adr)
     if v < 0 {
-        fmt.Println("Unknown or bad address: ",v)
-        reportResults(ctx,false)
+        reportResults(ctx,"Unknown or bad address: ",false)
         return
-        v = 0
     }
     
     type factoidbal struct {
@@ -136,7 +132,7 @@ func  HandleFactoidBalance(ctx *web.Context, adr string) {
     b.Balance = uint64(v)
     
     if p, err := json.Marshal(b); err != nil {
-        reportResults(ctx,false)
+        reportResults(ctx,"Failed to unmarshal the response from factomd", false)
         return
     } else {
         ctx.Write(p)
