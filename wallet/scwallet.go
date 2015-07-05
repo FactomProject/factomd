@@ -332,6 +332,7 @@ func (w *SCWallet) Validate(trans fct.ITransaction) (string, error) {
 }
 
 func (w *SCWallet) ValidateSignatures(trans fct.ITransaction) bool {
-	valid := trans.ValidateSignatures()
+	if trans==nil {return false}
+    valid := trans.ValidateSignatures()
 	return valid
 }

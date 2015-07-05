@@ -268,20 +268,22 @@ func(fs *FactoidState) LoadState() error  {
     return nil
 }
     
-// TODO: TBD - maybe it's better to return false, since panic gets handled elsewhere in the web server and does not crash the program
+// Returns false if the balances do not support the transaction.  This
+// call assumes you have already validated via the Transaction itself, so
+// the structure of the transaction is correct, i.e. inputs cover outputs.
 func(fs *FactoidState) Validate(trans fct.ITransaction) bool  {
     if !fs.currentBlock.ValidateTransaction(trans) {
         return false
     }
-    var sums = make(map[fct.IAddress]int64,10)
+    var sums = make(map[fct.IAddress]uint64,10)
     for _, input := range trans.GetInputs() {
-        bal := sums[input.GetAddress()]
-        bal += int64(fs.GetBalance(input.GetAddress()))
+        bal,ok := fct.ValidateAmounts(
+            sums[input.GetAddress()],           // Will be zero the first time around 
+            fs.GetBalance(input.GetAddress()))  // Get this amount, check against bounds
         
-        if int64(input.GetAmount())>bal { 
+        if !ok { 
             return false 
         }
-        
         sums[input.GetAddress()] = bal
     }
     return true;

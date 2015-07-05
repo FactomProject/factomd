@@ -50,15 +50,14 @@ func getTransaction(ctx *web.Context, key string) (trans fct.ITransaction, err e
     // Now get the transaction.  If we don't have a transaction by the given
     // keys there is nothing we can do.  Now we *could* create the transaaction
     // and tie it to the key.  Something to think about.
+    fmt.Println("key=",key)
     ib := factoidState.GetDB().GetRaw([]byte(fct.DB_BUILD_TRANS),[]byte(key))
     trans, ok := ib.(fct.ITransaction)
     if ib == nil || !ok {
         str := fmt.Sprintf("Unknown Transaction: %s",key)
-        reportResults(ctx,str,false)
-        ctx.WriteHeader(httpBad)
-        return
+        return nil, fmt.Errorf(str)
     }
-    return
+    return 
 }
 
 // &key=<key>&name=<name or address>&amount=<amount>
@@ -263,26 +262,19 @@ func  HandleFactoidSignTransaction(ctx *web.Context, key string) {
     reportResults(ctx, "Success signing transaction", true)    
 }
 
-func HandleFactoidSubmit(ctx *web.Context) {
-    type transaction struct {
-    	Transaction string
+func HandleFactoidSubmit(ctx *web.Context, key string) {
+    type submitReq struct {
+        Transaction string
     }
-    t := new(transaction)
-    if p, err := ioutil.ReadAll(ctx.Request.Body); err != nil {
-    	ctx.WriteHeader(httpBad)
-    	return
-    } else {
-    	if err := json.Unmarshal(p, t); err != nil {
-            reportResults(ctx,"Failed to unmarshal the response from factomd",false)
-    		return
-    	}
-    }
-
+    
+    in := new(submitReq)
+    json.Unmarshal([]byte(key), in)
+    
     // Get the transaction
-    trans, err := getTransaction(ctx, t.Transaction)
-
+    trans, err := getTransaction(ctx, in.Transaction)
     if err != nil {
-    	return
+        reportResults(ctx, "Failed to get the transaction", false)
+        return
     }
 
     valid := factoidState.GetWallet().ValidateSignatures(trans)
@@ -305,7 +297,6 @@ func HandleFactoidSubmit(ctx *web.Context) {
     j, err := json.Marshal(s)
     if err != nil {
         reportResults(ctx,"Failed to marshal the transaction for factomd",false)
-        
     	return
     }
 
@@ -314,18 +305,38 @@ func HandleFactoidSubmit(ctx *web.Context) {
     	"application/json",
     	bytes.NewBuffer(j))
 
-    fmt.Println(bytes.NewBuffer(j))
-
     if err != nil {
+        resp.Body.Close()
         str := fmt.Sprintf("%s",err)
         reportResults(ctx,str,false)
     	return
     }
+    
+    body, err := ioutil.ReadAll(resp.Body)
+    if err != nil {
+        resp.Body.Close()
+        str := fmt.Sprintf("%s",err)
+        reportResults(ctx,str,false)
+    }
+    
     resp.Body.Close()
 
-    factoidState.GetDB().DeleteKey([]byte(fct.DB_BUILD_TRANS), []byte(t.Transaction))
-    
-    reportResults(ctx,"Transaction submitted",true)
+    type returnMsg struct { 
+        Response string
+        Success  bool
+    }
+    r := new(returnMsg)
+    if err := json.Unmarshal(body, r); err != nil {
+        str := fmt.Sprintf("%s",err)
+        reportResults(ctx,str,false)
+    }
+
+    if r.Success {
+        factoidState.GetDB().DeleteKey([]byte(fct.DB_BUILD_TRANS), []byte(key))
+        reportResults(ctx,r.Response,true)
+    }else{
+        reportResults(ctx,r.Response,false)
+    }
     
 }
    

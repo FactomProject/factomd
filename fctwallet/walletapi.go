@@ -94,7 +94,7 @@ func Start() {
     // Submit
     // localhost:8089/v1/factoid-submit/
     // Put the key for the transaction in {Transaction string}
-    server.Post("/v1/factoid-submit/", handlers.HandleFactoidSubmit)
+    server.Post("/v1/factoid-submit/(.*)", handlers.HandleFactoidSubmit)
     
     // Validate
     // localhost:8089/v1/factoid-validate/<key>
