@@ -50,7 +50,6 @@ func getTransaction(ctx *web.Context, key string) (trans fct.ITransaction, err e
     // Now get the transaction.  If we don't have a transaction by the given
     // keys there is nothing we can do.  Now we *could* create the transaaction
     // and tie it to the key.  Something to think about.
-    fmt.Println("key=",key)
     ib := factoidState.GetDB().GetRaw([]byte(fct.DB_BUILD_TRANS),[]byte(key))
     trans, ok := ib.(fct.ITransaction)
     if ib == nil || !ok {
