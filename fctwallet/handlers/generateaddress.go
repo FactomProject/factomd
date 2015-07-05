@@ -18,6 +18,12 @@ var _ = fct.Address{}
 
 func  HandleFactoidGenerateAddress(ctx *web.Context, name string) {
 
+    msg, ok := ValidateKey(name) 
+    if !ok {
+        reportResults(ctx, msg, false)
+        return
+    }
+    
     type faddress struct {
         Address string
     }
@@ -44,6 +50,12 @@ func  HandleFactoidGenerateAddress(ctx *web.Context, name string) {
 }
 
 func  HandleFactoidGenerateECAddress(ctx *web.Context, name string) {
+    
+    msg, ok := ValidateKey(name) 
+    if !ok {
+        reportResults(ctx, msg, false)
+        return
+    }
     
     type faddress struct {
         Address string

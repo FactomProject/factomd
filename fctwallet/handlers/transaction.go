@@ -5,6 +5,7 @@
 package handlers
 
 import (
+    "regexp"
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
@@ -23,10 +24,23 @@ import (
  * Helper Functions
  ******************************************/
 
+var badChar,_ = regexp.Compile("[^A-Za-z0-9_]")
+var badHexChar,_ = regexp.Compile("[^A-Fa-f0-9]")
+
 func GetTimeNano() uint64 {
     return uint64(time.Now().UnixNano())
 }
 
+func ValidateKey(key string) (msg string, valid bool) {
+    if len(key) > fct.ADDRESS_LENGTH     { 
+        return "Key is too long.  Keys must be less than 32 characters", false     
+    }
+    if badChar.FindStringIndex(key)!=nil { 
+        return "Key contains invalid characters.  You are restricted to "+
+               "Alphanumeric characters and underscores", false 
+    }
+    return "", true
+}
 
 // True is sccuess! False is failure.  The Response is what the CLI
 // should report.
@@ -47,6 +61,12 @@ func reportResults(ctx *web.Context, response string , success bool) {
 }
 
 func getTransaction(ctx *web.Context, key string) (trans fct.ITransaction, err error) {
+    
+    msg, valid := ValidateKey(key)
+    if !valid {
+        return nil, fmt.Errorf(msg)
+    }
+    
     // Now get the transaction.  If we don't have a transaction by the given
     // keys there is nothing we can do.  Now we *could* create the transaaction
     // and tie it to the key.  Something to think about.
@@ -60,13 +80,13 @@ func getTransaction(ctx *web.Context, key string) (trans fct.ITransaction, err e
 }
 
 // &key=<key>&name=<name or address>&amount=<amount>
-func getParams(ctx *web.Context, params string, ec bool) (
+func getParams_(ctx *web.Context, params string, ec bool) (
     trans fct.ITransaction, 
     key string, 
     name string, 
     address fct.IAddress, 
     amount int64 , 
-    err error) {
+    ok bool) {
     
     key = ctx.Params["key"]
     name = ctx.Params["name"]
@@ -75,19 +95,32 @@ func getParams(ctx *web.Context, params string, ec bool) (
     if len(key)==0 || len(name)==0 || len(StrAmount)==0 {
         str := fmt.Sprintln("Missing Parameters: key='",key,"' name='",name,"' amount='",StrAmount,"'")
         reportResults(ctx,str,false)
-        return
+        ok = false
+        return 
     }
-        
-    amount, err = strconv.ParseInt(StrAmount,10,64)
+    
+    msg, valid := ValidateKey(key)
+    if !valid {
+        reportResults(ctx,msg,false)
+        ok = false
+        return 
+    }
+     
+    amount, err := strconv.ParseInt(StrAmount,10,64)
     if err != nil {
         str := fmt.Sprintln("Error parsing amount.\n",err)
         reportResults(ctx,str,false)
-        return
+        ok = false
+        return 
     }
     
     // Get the transaction
     trans, err = getTransaction(ctx,key)
-    if err != nil { return }
+    if err != nil { 
+        reportResults(ctx,"Failure to locate the transaction",false)
+        ok = false
+        return 
+    }
     
     // Get the input/output/ec address.  Which could be a name.  First look and see if it is
     // a name.  If it isn't, then look and see if it is an address.  Someone could
@@ -100,22 +133,31 @@ func getParams(ctx *web.Context, params string, ec bool) (
             address,err = we.(wallet.IWalletEntry).GetAddress()
             if err != nil || address == nil {
                 reportResults(ctx,"Should not get an error geting a address from a Wallet Entry",false)
-                return
+                ok = false
+                return 
             }
-            return
+            ok = true
+            return 
         }
     }
     if (!ec && !fct.ValidateFUserStr(name)) || (ec && !fct.ValidateECUserStr(name)) {
         reportResults(ctx,"Badly formed address",false)
         ctx.WriteHeader(httpBad)
-        return
+        ok = false
+        return 
     }
     baddr := fct.ConvertUserStrToAddress(name)
     
     address = fct.NewAddress(baddr)
     
-    return
+    ok = true
+    return 
 }
+
+/*************************************************************************
+ * Handler Functions
+ *************************************************************************/
+
 
 // New Transaction:  key --
 // We create a new transaction, and track it with the user supplied key.  The
@@ -130,14 +172,20 @@ func HandleFactoidNewTransaction(ctx *web.Context, key string) {
 	// Make sure we have a key
 	if len(key) == 0 {
         reportResults(ctx, "Missing transaction key", false)
-		ctx.WriteHeader(httpBad)
 		return
 	}
+	
+	msg, valid := ValidateKey(key)
+    if !valid {
+        reportResults(ctx, msg, false)
+        return
+    }
+    
 	// Make sure we don't already have a transaction in process with this key
 	t := factoidState.GetDB().GetRaw([]byte(fct.DB_BUILD_TRANS), []byte(key))
 	if t != nil {
 		str := fmt.Sprintln("Duplicate key: '", key, "'")
-		reportResults(ctx,str, false)
+        reportResults(ctx, str, false)
 		return
 	}
 	// Create a transaction
@@ -169,15 +217,19 @@ func HandleFactoidDeleteTransaction(ctx *web.Context, key string) {
 }
 
 
-
 func HandleFactoidAddInput(ctx *web.Context, parms string) {
-	trans, key, _, address, amount, err := getParams(ctx, parms, false)
-	if err != nil {
+	trans, key, _, address, amount, ok := getParams_(ctx, parms, false)
+	if !ok {
 		return
 	}
-
+    msg, ok := ValidateKey(key) 
+    if !ok {
+        reportResults(ctx, msg, false)
+        return
+    }
+    
 	// Add our new input
-	err = factoidState.GetWallet().AddInput(trans, address, uint64(amount))
+	err := factoidState.GetWallet().AddInput(trans, address, uint64(amount))
 	if err != nil {
         reportResults(ctx, "Failed to add input", false)
 		return
@@ -191,13 +243,19 @@ func HandleFactoidAddInput(ctx *web.Context, parms string) {
 }
 
 func HandleFactoidAddOutput(ctx *web.Context, parms string) {
-	trans, key, _, address, amount, err := getParams(ctx, parms, false)
-	if err != nil {
+	trans, key, _, address, amount, ok := getParams_(ctx, parms, false)
+	if !ok {
 		return
 	}
-
+	
+	msg, ok := ValidateKey(key) 
+    if !ok {
+        reportResults(ctx, msg, false)
+        return
+    }
+    
 	// Add our new Output
-	err = factoidState.GetWallet().AddOutput(trans, address, uint64(amount))
+	err := factoidState.GetWallet().AddOutput(trans, address, uint64(amount))
 	if err != nil {
         reportResults(ctx, "Failed to add output", false)
 		return
@@ -211,13 +269,19 @@ func HandleFactoidAddOutput(ctx *web.Context, parms string) {
 }
 
 func HandleFactoidAddECOutput(ctx *web.Context, parms string) {
-	trans, key, _, address, amount, err := getParams(ctx, parms, true)
-	if err != nil {
+	trans, key, _, address, amount, ok := getParams_(ctx, parms, true)
+	if !ok {
 		return
 	}
 
+	msg, ok := ValidateKey(key) 
+    if !ok {
+        reportResults(ctx, msg, false)
+        return
+    }
+    
 	// Add our new Entry Credit Output
-	err = factoidState.GetWallet().AddECOutput(trans, address, uint64(amount))
+	err := factoidState.GetWallet().AddECOutput(trans, address, uint64(amount))
 	if err != nil {
         reportResults(ctx, "Failed to add input", false)
 		return
@@ -231,6 +295,13 @@ func HandleFactoidAddECOutput(ctx *web.Context, parms string) {
 }
 
 func  HandleFactoidSignTransaction(ctx *web.Context, key string) {
+    
+    msg, ok := ValidateKey(key) 
+    if !ok {
+        reportResults(ctx, msg, false)
+        return
+    }
+    
     // Get the transaction
     trans, err := getTransaction(ctx, key)
     if err != nil {
@@ -272,7 +343,7 @@ func HandleFactoidSubmit(ctx *web.Context, key string) {
     // Get the transaction
     trans, err := getTransaction(ctx, in.Transaction)
     if err != nil {
-        reportResults(ctx, "Failed to get the transaction", false)
+        reportResults(ctx, err.Error(), false)
         return
     }
 
