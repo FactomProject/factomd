@@ -236,16 +236,17 @@ func  HandleFactoidSignTransaction(ctx *web.Context, key string) {
     // Get the transaction
     trans, err := getTransaction(ctx, key)
     if err != nil {
+        reportResults(ctx, "Failed to get the transaction", false)
+        return
+    }
+
+    report, err := factoidState.GetWallet().Validate(trans)
+    if err != nil {
+    	reportResults(ctx, report, false)
     	return
     }
 
-    valid, err := factoidState.GetWallet().Validate(trans)
-    if !valid || err != nil {
-    	reportResults(ctx, "Transaction is Invalid", false)
-    	return
-    }
-
-    valid, err = factoidState.GetWallet().SignInputs(trans)
+    valid, err := factoidState.GetWallet().SignInputs(trans)
     if err != nil {
         str:= fmt.Sprintf("%s",err)
         reportResults(ctx,str, false)
@@ -322,7 +323,8 @@ func HandleFactoidSubmit(ctx *web.Context) {
     }
     resp.Body.Close()
 
-    factoidState.GetDB().PutRaw([]byte(fct.DB_BUILD_TRANS), []byte(t.Transaction), nil)
+    factoidState.GetDB().DeleteKey([]byte(fct.DB_BUILD_TRANS), []byte(t.Transaction))
+    
     reportResults(ctx,"Transaction submitted",true)
     
 }

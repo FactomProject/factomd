@@ -58,7 +58,6 @@ type ITransaction interface {
 	TotalECs() (uint64, bool)
 	
 	// Validate does everything but check the signatures.
-	ValidateAmounts(...uint64) (uint64, bool)
 	Validate() string
 	ValidateSignatures() bool
 	

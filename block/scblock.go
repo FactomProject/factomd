@@ -319,7 +319,7 @@ func (b FBlock) ValidateTransaction(trans fct.ITransaction) bool {
     tin,ok1  := trans.TotalInputs()
     tout,ok2 := trans.TotalOutputs()
     tec,ok3  := trans.TotalECs()
-    sum,ok4  := trans.ValidateAmounts(tout,tec,fee)
+    sum,ok4  := fct.ValidateAmounts(tout,tec,fee)
     if !ok1 || !ok2 || !ok3 || !ok4 || tin < sum {
         return false    // Transaction either has not enough inputs, 
     }                   // or didn't pay the fee.
