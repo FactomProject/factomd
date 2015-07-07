@@ -24,7 +24,7 @@ import (
  * Helper Functions
  ******************************************/
 
-var badChar,_ = regexp.Compile("[^A-Za-z0-9_]")
+var badChar,_ = regexp.Compile("[^A-Za-z0-9_-]")
 var badHexChar,_ = regexp.Compile("[^A-Fa-f0-9]")
 
 func GetTimeNano() uint64 {
