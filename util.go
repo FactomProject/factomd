@@ -166,14 +166,14 @@ func ConvertFixedPoint(amt string) (string, error) {
     var err error
     index := strings.Index(amt,".");
     if  index < 0 {
-        v, err =strconv.ParseInt(amt,0,64)
+        v, err =strconv.ParseInt(amt,10,64)
         if err != nil {
             return "", err
         }
         v *= 100000000      // Convert to Factoshis
     }else{
         tp := amt[:index]
-        v, err =strconv.ParseInt(tp,0,64)
+        v, err =strconv.ParseInt(tp,10,64)
         if err != nil {
             return "", err
         }
@@ -183,7 +183,7 @@ func ConvertFixedPoint(amt string) (string, error) {
         if len(bp)>8 {
             return "", fmt.Errorf("Format Error in amount")
         }
-        bpv, err :=strconv.ParseInt(bp,0,64)
+        bpv, err :=strconv.ParseInt(bp,10,64)
         if err != nil {
             return "", err
         }
