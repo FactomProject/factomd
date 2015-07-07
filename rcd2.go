@@ -26,7 +26,7 @@ type RCD_2 struct {
 	IRCD
 	m           int        // Number signatures required
 	n           int        // Total sigatures possible
-	n_addresses []IAddress // m addresses
+	n_addresses []IAddress // n addresses
 }
 
 var _ IRCD = (*RCD_2)(nil)
