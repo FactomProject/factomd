@@ -30,6 +30,9 @@ type ISCWallet interface {
 	Init(a ...interface{})
 	// Returns the backing database for the wallet
 	GetDB() database.IFDatabase
+	// Import a key pair.  If the private key is null, this is treated as an
+	// external address, useful only as a destination 
+	AddKeyPair(addrtype string, name []byte, public []byte, private [] byte) (fct.IAddress,  error)
 	// Generate an Factoid Address
 	GenerateFctAddress(name []byte, m int, n int) (fct.IAddress, error)
 	// Generate an Entry Credit Address
@@ -82,6 +85,7 @@ type SCWallet struct {
 }
 
 var _ ISCWallet = (*SCWallet)(nil)
+
 
 func (w *SCWallet) GetDB() database.IFDatabase {
 	return &w.db
@@ -145,24 +149,31 @@ func (w *SCWallet) GetAddressDetailsAddr(name []byte) IWalletEntry {
 	return w.db.GetRaw([]byte("wallet.address.addr"), name).(IWalletEntry)
 }
 
-func (w *SCWallet) generateAddress(addrtype string, name []byte, m int, n int) (hash fct.IAddress, err error) {
+func (w *SCWallet) generateAddress(addrtype string, name []byte, m int, n int) (fct.IAddress,  error) {
 
-	we := new(WalletEntry)
+    if addrtype == "fct" && (m != 1 || n != 1) {
+        return nil, fmt.Errorf("Multisig addresses are not supported at this time")
+    }
+    
+    // Get a new public/private key pair
+    pub, pri, err := w.generateKey()
+    if err != nil {
+        return nil, err
+    }
+    
+    return w.AddKeyPair(addrtype, name, pub, pri)
+}
+
+func (w *SCWallet) AddKeyPair(addrtype string, name []byte, pub []byte, pri []byte) (address fct.IAddress, err error) {
+    
+    we := new(WalletEntry)
 
 	nm := w.db.GetRaw([]byte(fct.W_NAME), name)
 	if nm != nil {
 		return nil, fmt.Errorf(fmt.Sprint(string(name), " Duplicate Name "))
 	}
 
-	if addrtype == "fct" && (m != 1 || n != 1) {
-		return nil, fmt.Errorf("Not this far yet!")
-	}
-	// Get a public/private key pair
-	pub, pri, err := w.generateKey()
-	// Error, skip out.
-	if err != nil {
-		return nil, err
-	}
+
 	// Make sure we have not generated this pair before;  Keep
 	// generating until we have a unique pair.
 	for w.db.GetRaw([]byte(fct.W_ADDRESS_PUB_KEY), pub) != nil {
@@ -181,8 +192,8 @@ func (w *SCWallet) generateAddress(addrtype string, name []byte, m int, n int) (
 		we.SetType("ec")
 	}
 	//
-	hash, _ = we.GetAddress()
-	w.db.PutRaw([]byte(fct.W_RCD_ADDRESS_HASH), hash.Bytes(), we)
+	address, _ = we.GetAddress()
+    w.db.PutRaw([]byte(fct.W_RCD_ADDRESS_HASH), address.Bytes(), we)
 	w.db.PutRaw([]byte(fct.W_ADDRESS_PUB_KEY), pub, we)
 	w.db.PutRaw([]byte(fct.W_NAME), name, we)
 
