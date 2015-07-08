@@ -9,7 +9,6 @@ package handlers
 import (
     
     "fmt"   
-    "encoding/json"
     "github.com/hoisie/web"
     fct "github.com/FactomProject/factoid"
 )
@@ -24,29 +23,16 @@ func  HandleFactoidGenerateAddress(ctx *web.Context, name string) {
         return
     }
     
-    type faddress struct {
-        Address string
-    }
-    
     adr, err := factoidState.GetWallet().GenerateFctAddress([]byte(name),1,1)
     if err != nil {
-        str := fmt.Sprintln("Error: %s",err)
-        reportResults(ctx,str,false)
+        reportResults(ctx,err.Error(),false)
         return
     }
     
-    a := new(faddress)
-    
     adrstr := fct.ConvertFctAddressToUserStr(adr)
-    a.Address = adrstr
-    if p, err := json.Marshal(a); err != nil {
-        reportResults(ctx,"Failed to unmarshal the response from factomd",false)
-        return
-    } else {
-        fmt.Println("\n",p,"\n")
-        ctx.Write(p)
-    }  
-    
+        
+    reportResults(ctx,adrstr,true)
+      
 }
 
 func  HandleFactoidGenerateECAddress(ctx *web.Context, name string) {
@@ -68,15 +54,8 @@ func  HandleFactoidGenerateECAddress(ctx *web.Context, name string) {
         return
     }
     
-    a := new(faddress)
-    
     adrstr := fct.ConvertECAddressToUserStr(adr)
-    a.Address = adrstr
-    if p, err := json.Marshal(a); err != nil {
-        reportResults(ctx,"Failed to unmarshal the response from factomd",false)
-        return
-    } else {
-        ctx.Write(p)
-    }  
+    
+    reportResults(ctx, adrstr, true)
     
 }

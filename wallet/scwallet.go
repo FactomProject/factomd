@@ -170,7 +170,8 @@ func (w *SCWallet) AddKeyPair(addrtype string, name []byte, pub []byte, pri []by
 
 	nm := w.db.GetRaw([]byte(fct.W_NAME), name)
 	if nm != nil {
-		return nil, fmt.Errorf(fmt.Sprint(string(name), " Duplicate Name "))
+        str := fmt.Sprintf("The name '%s' already exists. Duplicate names are not supported",string(name))
+		return nil, fmt.Errorf(str)
 	}
 
 

@@ -36,8 +36,10 @@ func ValidateKey(key string) (msg string, valid bool) {
         return "Key is too long.  Keys must be less than 32 characters", false     
     }
     if badChar.FindStringIndex(key)!=nil { 
-        return "Key contains invalid characters.  You are restricted to "+
-               "Alphanumeric characters and underscores", false 
+        str := fmt.Sprintf("The key or name '%s' contains invalid characters.\n"+
+          "Keys and names are restricted to alphanumeric characters,\n"+
+          "minuses (dashes), and underscores", key)
+        return str, false
     }
     return "", true
 }
