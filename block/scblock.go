@@ -111,7 +111,7 @@ func (b *FBlock) MarshalBinary() ([]byte, error) {
 	out.Write(fct.FACTOID_CHAINID)
     
     if b.MerkleRoot == nil {b.MerkleRoot = new(fct.Hash)}
-    data, err := b.MerkleRoot.MarshalBinary()
+    data, err := b.GetHash().MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
