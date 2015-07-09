@@ -360,6 +360,13 @@ func (p *peer) handleVersionMsg(msg *wire.MsgVersion) {
 		return
 	}
 
+	if isVersionMismatch(maxProtocolVersion, msg.ProtocolVersion) {
+		fmt.Println("\n\nVERSION MISMATCH (handleVersionMsg) -- must upgrade\n\n")
+		p.Disconnect()
+		panic("Please Upgrade this code !")
+		return
+	}
+
 	// Notify and disconnect clients that have a protocol version that is
 	// too old.
 	if msg.ProtocolVersion < int32(wire.MultipleAddressVersion) {
@@ -458,6 +465,15 @@ func (p *peer) handleVersionMsg(msg *wire.MsgVersion) {
 	p.server.blockManager.NewPeer(p)
 
 	// TODO: Relay alerts.
+
+	// Protocol version mismatch -- need client upgrade !
+	if isVersionMismatch(maxProtocolVersion, int32(p.ProtocolVersion())) {
+		util.Trace(fmt.Sprintf("NEED client upgrade -- will ban & disconnect !: us=%d , peer= %d", maxProtocolVersion, p.ProtocolVersion()))
+		p.logError(fmt.Sprintf("NEED client upgrade -- will ban & disconnect !: us=%d , peer= %d", maxProtocolVersion, p.ProtocolVersion()))
+		//		p.Disconnect()
+		p.server.BanPeer(p)
+		return
+	}
 }
 
 // pushTxMsg sends a tx message for the provided transaction hash to the
@@ -1591,12 +1607,12 @@ out:
 			util.Trace()
 			p.handleRevealEntryMsg(msg)
 			p.FactomRelay(msg)
-/*
-		case *wire.MsgAcknowledgement:
-			util.Trace()
-			p.handleAcknoledgementMsg(msg)
-			p.FactomRelay(msg)
-	*/		
+			/*
+				case *wire.MsgAcknowledgement:
+					util.Trace()
+					p.handleAcknoledgementMsg(msg)
+					p.FactomRelay(msg)
+			*/
 			// Factom blocks downloading
 		case *wire.MsgGetDirBlocks:
 			//			util.Trace()
@@ -2135,4 +2151,16 @@ func (p *peer) logError(fmt string, args ...interface{}) {
 	} else {
 		peerLog.Debugf(fmt, args...)
 	}
+}
+
+func isVersionMismatch(us, them int32) bool {
+	util.Trace(fmt.Sprintf("VERSION: us=%d , peer= %d", us, them))
+	return false // for testing
+
+	if us != them {
+		util.Trace("NEED CLIENT UPGRADE !!!")
+		return true
+	}
+
+	return false
 }

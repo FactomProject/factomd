@@ -34,8 +34,9 @@ const (
 	defaultLogFilename = "factom-d.log"
 	//	defaultMaxPeers          = 125
 	// defaultMaxPeers          = 10
-	defaultMaxPeers          = 20
-	defaultBanDuration       = time.Hour * 24
+	defaultMaxPeers = 20
+	//	defaultBanDuration       = time.Hour * 24
+	defaultBanDuration       = time.Minute // used in Factom to ban old clients, for a minute...
 	defaultMaxRPCClients     = 10
 	defaultMaxRPCWebsockets  = 25
 	defaultVerifyEnabled     = false
