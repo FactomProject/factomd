@@ -79,7 +79,7 @@ func (p *peer) handleECBlockMsg(msg *wire.MsgECBlock, buf []byte) {
 	// Convert the raw MsgBlock to a btcutil.Block which provides some
 	// convenience methods and things such as hash caching.
 
-	// Use KeyMR as the key for inv
+	// Use HeaderHash as the key for inv
 	hash := wire.FactomHashToShaHash(msg.ECBlock.Header.Hash())
 	
 	iv := wire.NewInvVect(wire.InvTypeFactomEntryCreditBlock, hash)
@@ -244,16 +244,16 @@ func (p *peer) handleGetNonDirDataMsg(msg *wire.MsgGetNonDirData) {
 			var err error
 			switch dbEntry.ChainID.String() {
 			case hex.EncodeToString(common.EC_CHAINID[:]):
-				err = p.pushECBlockMsg(dbEntry.MerkleRoot, c, waitChan)
+				err = p.pushECBlockMsg(dbEntry.KeyMR, c, waitChan)
 
 			case hex.EncodeToString(common.ADMIN_CHAINID[:]):
-				err = p.pushABlockMsg(dbEntry.MerkleRoot, c, waitChan)
+				err = p.pushABlockMsg(dbEntry.KeyMR, c, waitChan)
 
 			case wire.FChainID.String():
-				err = p.pushFBlockMsg(dbEntry.MerkleRoot, c, waitChan)
+				err = p.pushFBlockMsg(dbEntry.KeyMR, c, waitChan)
 
 			default:
-				err = p.pushEBlockMsg(dbEntry.MerkleRoot, c, waitChan)
+				err = p.pushEBlockMsg(dbEntry.KeyMR, c, waitChan)
 				//continue
 			}
 			if err != nil {
