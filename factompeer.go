@@ -80,7 +80,7 @@ func (p *peer) handleECBlockMsg(msg *wire.MsgECBlock, buf []byte) {
 	// convenience methods and things such as hash caching.
 
 	// Use KeyMR as the key for inv
-	hash := wire.FactomHashToShaHash(msg.ECBlock.KeyMR())
+	hash := wire.FactomHashToShaHash(msg.ECBlock.Header.Hash())
 	
 	iv := wire.NewInvVect(wire.InvTypeFactomEntryCreditBlock, hash)
 	p.AddKnownInventory(iv)
