@@ -463,7 +463,7 @@ func GetAddresses() [] byte{
             adr = fct.ConvertECAddressToUserStr(address)
             ecAddresses = append(ecAddresses,adr)
             ecKeys = append(ecKeys, string(k))
-            bal := ECBalance(adr)
+            bal,_ := ECBalance(adr)
             ecBalances = append(ecBalances,strconv.FormatInt(bal,10))
         }else{
             address, err := we.GetAddress()
@@ -471,7 +471,7 @@ func GetAddresses() [] byte{
             adr = fct.ConvertFctAddressToUserStr(address)
             fctAddresses = append(fctAddresses,adr)
             fctKeys = append(fctKeys, string(k))
-            bal := FctBalance(adr)
+            bal,_ := FctBalance(adr)
             sbal := fct.ConvertDecimal(uint64(bal))
             fctBalances = append(fctBalances,sbal)
         }
