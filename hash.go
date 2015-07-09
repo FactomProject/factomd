@@ -112,16 +112,6 @@ func (hash *Hash) SetBytes(newHash []byte) error {
 	return nil
 }
 
-// Create a Sha256 Hash from a byte array
-func Sha(p []byte) (h2 IHash) {
-	sha := sha256.New()
-	sha.Write(p)
-
-	h := new(Hash)
-	h.SetBytes(sha.Sum(nil))
-	return h
-}
-
 // Convert a hash into a string with hex encoding
 func (h Hash) String() string {
 	return hex.EncodeToString(h.hash[:])
@@ -157,6 +147,23 @@ func (a Hash) MarshalText() (text []byte, err error) {
 /**********************
  * Support functions
  **********************/
+
+// Create a Sha256 Hash from a byte array
+func Sha(p []byte) (IHash) {
+    h := new(Hash)
+    b := sha256.Sum256(p)
+    h.SetBytes(b[:])
+    return h
+}
+
+// Shad Double Sha256 Hash; sha256(sha256(data))
+func Shad(data []byte) (IHash){
+    h1 := sha256.Sum256(data)
+    h2 := sha256.Sum256(h1[:])
+    h := new(Hash)
+    h.SetBytes(h2[:])
+    return h
+}
 
 func NewHash(b []byte) IHash {
     h := new(Hash)

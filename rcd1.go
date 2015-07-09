@@ -56,7 +56,7 @@ func (w RCD_1) Clone() IRCD {
 }
 
 func (w RCD_1) GetAddress() (IAddress, error) {
-	return CreateAddress(Sha(w.publicKey[:])), nil
+	return CreateAddress(Shad(w.publicKey[:])), nil
 }
 
 func (RCD_1) GetDBHash() IHash {
