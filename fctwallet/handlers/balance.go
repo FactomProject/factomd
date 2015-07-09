@@ -6,6 +6,7 @@ package handlers
 
 import (
     "fmt"
+    "strconv"
     "net/http"
     "io/ioutil"    
     "encoding/hex"
@@ -16,9 +17,14 @@ import (
 )
 
 
-func FctBalance(adr string) int64 {
+func FctBalance(adr string) (int64, error) {
     
     if !fct.ValidateFUserStr(adr) {
+        msg, ok := ValidateKey(adr)
+        if !ok {
+            return 0, fmt.Errorf("%s",msg)
+        }
+        
         we := factoidState.GetDB().GetRaw([]byte(fct.W_NAME),[]byte(adr))
     
         if (we != nil){
@@ -26,6 +32,7 @@ func FctBalance(adr string) int64 {
             addr,_ := we2.GetAddress()
             adr = hex.EncodeToString(addr.Bytes())
         }
+        
     }else{
         baddr := fct.ConvertUserStrToAddress(adr)
         adr = hex.EncodeToString(baddr)
@@ -34,28 +41,44 @@ func FctBalance(adr string) int64 {
     str := fmt.Sprintf("http://%s/v1/factoid-balance/%s", ipaddressFD+portNumberFD, adr)
     resp, err := http.Get(str)
     if err != nil {
-        fmt.Println("\n",str)
-        return -1
+        return 0, err
     }
     body, err := ioutil.ReadAll(resp.Body)
     if err != nil {
-        return -2
+        return 0, err
     }
     resp.Body.Close()
-        
-    type Balance struct { Balance int64 }
-    b := new(Balance)
-    if err := json.Unmarshal(body, b); err != nil {
-        return -3
+    
+    type x struct { 
+        Response string
+        Success  bool
     }
-        
-    return b.Balance
+    b := new(x)
+    if err := json.Unmarshal(body, b); err != nil {
+        return 0, err
+    }
+    
+    if !b.Success {
+        return 0, fmt.Errorf("%s",b.Response)
+    }
+    
+    v, err := strconv.ParseInt(b.Response,10,64)
+    if err != nil {
+        return 0,err
+    }
+    
+    return v, nil
     
 }
 
-func ECBalance(adr string) int64 {
+func ECBalance(adr string) (int64, error) {
     
     if !fct.ValidateECUserStr(adr) {
+        msg, ok := ValidateKey(adr)
+        if !ok {
+            return 0, fmt.Errorf("%s",msg)
+        }
+        
         we := factoidState.GetDB().GetRaw([]byte(fct.W_NAME),[]byte(adr))
         
         if (we != nil){
@@ -63,6 +86,7 @@ func ECBalance(adr string) int64 {
             addr,_ := we2.GetAddress()
             adr = hex.EncodeToString(addr.Bytes())
         }
+        
     }else{
         baddr := fct.ConvertUserStrToAddress(adr)
         adr = hex.EncodeToString(baddr)
@@ -71,71 +95,57 @@ func ECBalance(adr string) int64 {
     str := fmt.Sprintf("http://%s/v1/entry-credit-balance/%s", ipaddressFD+portNumberFD, adr)
     resp, err := http.Get(str)
     if err != nil {
-        fmt.Println("-2::",err)
-        return -2
+        return 0, err
     }
     body, err := ioutil.ReadAll(resp.Body)
     if err != nil {
-        fmt.Println("-3::",err)
-        return -3
+        return 0, err
     }
     resp.Body.Close()
     
-    type Balance struct { Balance int64 }
-    b := new(Balance)
+    type x struct { 
+        Response string
+        Success  bool
+    }
+    b := new(x)
     if err := json.Unmarshal(body, b); err != nil {
-        fmt.Println("-4::",err)
-        return -4
+        return 0, err
     }
     
-    return b.Balance
+    if !b.Success {
+        return 0, fmt.Errorf("%s",b.Response)
+    }
+    
+    v, err := strconv.ParseInt(b.Response,10,64)
+    if err != nil {
+        return 0,err
+    }
+    
+    return v, nil
 }
 
 func  HandleEntryCreditBalance(ctx *web.Context, adr string) {    
 
-    v := ECBalance(adr)
-    if v < 0 {
-        reportResults(ctx,"Unknown or bad address",false)
+    v,err := ECBalance( adr)
+    if err != nil {
+        reportResults(ctx,err.Error(),false)
         return
     }
-    
-    type ecbal struct {
-        Balance uint64
-    }
-    
-    b := new(ecbal)
-    b.Balance = uint64(v)
-    
-    if p, err := json.Marshal(b); err != nil {
-        reportResults(ctx,"Failed to unmarshal the response from factomd", false)
-        return
-    } else {
-        ctx.Write(p)
-    }
+    str := fmt.Sprintf("%d",v)
+    reportResults(ctx,str,true)
     
 }
 
 
 func  HandleFactoidBalance(ctx *web.Context, adr string) {
     
-    v := FctBalance(adr)
-    if v < 0 {
-        reportResults(ctx,"Unknown or bad address: ",false)
+    v,err := FctBalance(adr)
+    if err != nil {
+        reportResults(ctx,err.Error(),false)
         return
     }
     
-    type factoidbal struct {
-        Balance uint64
-    }
-    
-    b := new(factoidbal)
-    b.Balance = uint64(v)
-    
-    if p, err := json.Marshal(b); err != nil {
-        reportResults(ctx,"Failed to unmarshal the response from factomd", false)
-        return
-    } else {
-        ctx.Write(p)
-    }
+    str := fmt.Sprintf("%d",v)
+    reportResults(ctx,str,true)
     
 }
