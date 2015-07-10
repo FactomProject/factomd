@@ -28,7 +28,7 @@ func mix(v []uint64) {
 
 func Test_Variable_Integers (test *testing.T) {
      
-    for i:=0; i<1000; i++ {
+    for i:=0; i<100000; i++ {
         var out bytes.Buffer
         
         v := make([]uint64,10)
@@ -53,20 +53,20 @@ func Test_Variable_Integers (test *testing.T) {
                 test.Fail()
                 return
             }
-//            fmt.Printf("%x ",v[j])
+//              fmt.Printf("%x ",v[j])
         }
-//        fmt.Println( "Length: ",out.Len())
+//          fmt.Println( "Length: ",out.Len())
         
         data := out.Bytes()
         
-//        PrtData(data) 
-//        fmt.Println()
+//          PrtData(data) 
+//          fmt.Println()
         
         var dv uint64
         for j:=0; j<len(v); j++ {
             dv, data = DecodeVarInt(data) 
             if ( dv != v[j] ) {
-                fmt.Printf("Values don't match: %x %x (%d)\n",dv,v[j], j)
+                fmt.Printf("Values don't match: decode:%x expected:%x (%d)\n",dv,v[j], j)
                 test.Fail()
                 return
             }

@@ -267,10 +267,74 @@ func ConvertUserStrToAddress(userFAddr string) []byte {
     return v[2:34]
 }
 
+func DecodeVarInt(data []byte) (uint64, []byte) {
+    return DecodeVarIntGo(data)
+}
+
+func EncodeVarInt(out *bytes.Buffer, v uint64) error {
+    return EncodeVarIntGo(out,v)
+}
+
+// Decode a varaible integer from the given data buffer.
+// We use the algorithm used by Go, only BigEndian.
+func DecodeVarIntGo(data []byte) (uint64, []byte) {
+    
+    var v uint64
+    var cnt int
+    var b byte
+    for cnt,b = range data {
+        if cnt == 9 {
+            v = v << 1
+            v += uint64(b)&1
+            break
+        }
+        v = v << 7
+        v += uint64(b) & 0x7F
+        if (b & 0x80) == 0 {
+            break
+        }
+    }
+    return v, data[cnt+1:]
+}
+
+// Encode an integer as a variable int into the given data buffer.
+func EncodeVarIntGo(out *bytes.Buffer, v uint64) error {
+    
+    
+    h := v
+    if 0x8000000000000000 & h != 0 {
+        for i := 0; i < 9; i++ {
+            b := byte(h >> 57)|0x80
+            out.WriteByte(b)
+            h = h << 7
+        }
+        b := byte(v & 1)
+        out.WriteByte(b)
+        return nil
+    }
+    start := false
+    h = v << 1                        // Shift out the high order zero. 63/7 = 9
+    for i := 0; i < 9; i++ {
+        b := byte(h >> 57)          // Get the top 7 bits
+        if start || b != 0 || i==8{
+            start = true
+            if i != 8 {
+                b = b | 0x80
+            }
+            out.WriteByte(b)
+        }
+        h = h << 7
+    }
+
+    return nil
+}
+
+
+
 // Decode a variable integer from the given data buffer.
 // Returns the uint64 bit value and a data slice positioned
 // after the variable integer
-func DecodeVarInt(data []byte) (uint64, []byte) {
+func DecodeVarIntBTC(data []byte) (uint64, []byte) {
     
     b := uint8(data[0])
     if b < 0xfd { return uint64(b), data[1:] }
@@ -299,7 +363,7 @@ func DecodeVarInt(data []byte) (uint64, []byte) {
 }
 
 // Encode an integer as a variable int into the given data buffer.
-func EncodeVarInt(out *bytes.Buffer, v uint64) error {
+func EncodeVarIntBTC(out *bytes.Buffer, v uint64) error {
     
     var err error
     switch {
