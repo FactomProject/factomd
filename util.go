@@ -283,14 +283,9 @@ func DecodeVarIntGo(data []byte) (uint64, []byte) {
     var cnt int
     var b byte
     for cnt,b = range data {
-        if cnt == 9 {
-            v = v << 1
-            v += uint64(b)&1
-            break
-        }
         v = v << 7
         v += uint64(b) & 0x7F
-        if (b & 0x80) == 0 {
+        if b < 0x80 {
             break
         }
     }
@@ -300,26 +295,25 @@ func DecodeVarIntGo(data []byte) (uint64, []byte) {
 // Encode an integer as a variable int into the given data buffer.
 func EncodeVarIntGo(out *bytes.Buffer, v uint64) error {
     
-    
-    h := v
-    if 0x8000000000000000 & h != 0 {
-        for i := 0; i < 9; i++ {
-            b := byte(h >> 57)|0x80
-            out.WriteByte(b)
-            h = h << 7
-        }
-        b := byte(v & 1)
-        out.WriteByte(b)
-        return nil
+    if v == 0 {
+        out.WriteByte(0)
     }
+    h := v
     start := false
-    h = v << 1                        // Shift out the high order zero. 63/7 = 9
+    
+    if 0x8000000000000000 & h != 0 { // Deal with the high bit set; Zero 
+        out.WriteByte(0x81)          // doesn't need this, only when set.
+        start=true                   // Going the whole 10 byte path!
+    }
+
     for i := 0; i < 9; i++ {
-        b := byte(h >> 57)          // Get the top 7 bits
-        if start || b != 0 || i==8{
+        b := byte(h >> 56)          // Get the top 7 bits
+        if  b != 0 || start {
             start = true
             if i != 8 {
                 b = b | 0x80
+            }else{
+                b = b & 0x7F
             }
             out.WriteByte(b)
         }
