@@ -69,7 +69,7 @@ func DirBlockLocatorFromHash(hash *wire.ShaHash) blockchain.BlockLocator {
 
 	dblock, _ := db.FetchDBlockByHash(hash.ToFactomHash())
 	if dblock != nil {
-		blockHeight = int64(dblock.Header.BlockHeight)
+		blockHeight = int64(dblock.Header.DBHeight)
 	}
 	increment := int64(1)
 	for len(locator) < wire.MaxBlockLocatorsPerMsg-1 {
