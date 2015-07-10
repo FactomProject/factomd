@@ -2155,7 +2155,6 @@ func (p *peer) logError(fmt string, args ...interface{}) {
 
 func isVersionMismatch(us, them int32) bool {
 	util.Trace(fmt.Sprintf("VERSION: us=%d , peer= %d", us, them))
-	return false // for testing
 
 	if us != them {
 		util.Trace("NEED CLIENT UPGRADE !!!")
