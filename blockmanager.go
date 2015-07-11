@@ -892,7 +892,6 @@ func (b *blockManager) haveInventory(invVect *wire.InvVect) (bool, error) {
 		*/
 
 	case wire.InvTypeFactomDirBlock:
-		util.Trace()
 		// Ask db if the block is known to it in any form (main
 		// chain, side chain, or orphan).
 		return process.HaveBlockInDB((&invVect.Hash).ToFactomHash())
@@ -905,7 +904,6 @@ func (b *blockManager) haveInventory(invVect *wire.InvVect) (bool, error) {
 // handleInvMsg handles inv messages from all peers.
 // We examine the inventory advertised by the remote peer and act accordingly.
 func (b *blockManager) handleInvMsg(imsg *invMsg) {
-	util.Trace()
 	/*
 		// Ignore invs from peers that aren't the sync if we are not current.
 		// Helps prevent fetching a mass of orphans.
@@ -1065,7 +1063,7 @@ func (b *blockManager) handleInvMsg(imsg *invMsg) {
 // important because the block manager controls which blocks are needed and how
 // the fetching should proceed.
 func (b *blockManager) blockHandler() {
-	util.Trace()
+	//	util.Trace()
 	candidatePeers := list.New()
 out:
 	for {
@@ -1080,7 +1078,7 @@ out:
 				msg.peer.txProcessed <- struct{}{}
 
 			case *blockMsg:
-				util.Trace()
+				//				util.Trace()
 				b.handleBlockMsg(msg)
 				msg.peer.blockProcessed <- struct{}{}
 
@@ -1156,7 +1154,7 @@ out:
 						msg.peer.blockProcessed <- struct{}{}
 				*/
 			case *dirInvMsg:
-				util.Trace()
+				//				util.Trace()
 				b.handleDirInvMsg(msg)
 
 			default:

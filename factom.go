@@ -17,7 +17,7 @@ import (
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/btcd/wire"
-	"github.com/davecgh/go-spew/spew"
+	//	"github.com/davecgh/go-spew/spew"
 )
 
 var _ = fmt.Printf
@@ -36,7 +36,7 @@ var (
 // start up Factom queue(s) managers/processors
 // this is to be called within the btcd's main code
 func factomForkInit(s *server) {
-	util.Trace()
+	//	util.Trace()
 	// tweak some config options
 	cfg.DisableCheckpoints = true
 
@@ -48,12 +48,12 @@ func factomForkInit(s *server) {
 			switch msg.(type) {
 			case *wire.MsgInt_DirBlock:
 				dirBlock, _ := msg.(*wire.MsgInt_DirBlock)
-				util.Trace("Dir Block Received (from wire.MsgInt_DirBlock). dirBlock= ", spew.Sdump(dirBlock))
+				//				util.Trace("Dir Block Received (from wire.MsgInt_DirBlock). dirBlock= ", spew.Sdump(dirBlock))
 				iv := wire.NewInvVect(wire.InvTypeFactomDirBlock, dirBlock.ShaHash)
 				s.RelayInventory(iv, nil)
 
 			case wire.Message:
-				util.Trace()
+				//				util.Trace()
 				wireMsg, _ := msg.(wire.Message)
 				s.BroadcastMessage(wireMsg)
 
@@ -80,7 +80,7 @@ func factomForkInit(s *server) {
 			switch msg.Command() {
 
 			case wire.CmdInt_EOM:
-				util.Trace(fmt.Sprintf("next DB height= %d, type= %d\n", msgEom.NextDBlockHeight, msgEom.EOM_Type))
+				//				util.Trace(fmt.Sprintf("next DB height= %d, type= %d\n", msgEom.NextDBlockHeight, msgEom.EOM_Type))
 
 				switch msgEom.EOM_Type {
 
@@ -190,7 +190,7 @@ func Start_btcd(
 
 // Handle factom app imcoming msg
 func (p *peer) handleCommitChainMsg(msg *wire.MsgCommitChain) {
-	util.Trace()
+	//	util.Trace()
 
 	// Add the msg to inbound msg queue
 	inMsgQueue <- msg
@@ -198,7 +198,7 @@ func (p *peer) handleCommitChainMsg(msg *wire.MsgCommitChain) {
 
 // Handle factom app imcoming msg
 func (p *peer) handleRevealChainMsg(msg *wire.MsgRevealChain) {
-	util.Trace()
+	//	util.Trace()
 
 	// Add the msg to inbound msg queue
 	inMsgQueue <- msg
@@ -206,7 +206,7 @@ func (p *peer) handleRevealChainMsg(msg *wire.MsgRevealChain) {
 
 // Handle factom app imcoming msg
 func (p *peer) handleCommitEntryMsg(msg *wire.MsgCommitEntry) {
-	util.Trace()
+	//	util.Trace()
 
 	// Add the msg to inbound msg queue
 	inMsgQueue <- msg
@@ -214,7 +214,7 @@ func (p *peer) handleCommitEntryMsg(msg *wire.MsgCommitEntry) {
 
 // Handle factom app imcoming msg
 func (p *peer) handleRevealEntryMsg(msg *wire.MsgRevealEntry) {
-	util.Trace()
+	//	util.Trace()
 
 	// Add the msg to inbound msg queue
 	inMsgQueue <- msg
@@ -222,7 +222,7 @@ func (p *peer) handleRevealEntryMsg(msg *wire.MsgRevealEntry) {
 
 // Handle factom app imcoming msg
 func (p *peer) handleAcknoledgementMsg(msg *wire.MsgAcknowledgement) {
-	util.Trace()
+	//	util.Trace()
 
 	// Add the msg to inbound msg queue
 	inMsgQueue <- msg
@@ -230,7 +230,7 @@ func (p *peer) handleAcknoledgementMsg(msg *wire.MsgAcknowledgement) {
 
 // returns true if the message should be relayed, false otherwise
 func (p *peer) shallRelay(msg interface{}) bool {
-	util.Trace()
+	//	util.Trace()
 
 	fmt.Println("shallRelay msg= ", msg)
 
@@ -255,7 +255,7 @@ func (p *peer) shallRelay(msg interface{}) bool {
 // Call FactomRelay to relay/broadcast a Factom message (to your peers).
 // The intent is to call this function after certain 'processor' checks been done.
 func (p *peer) FactomRelay(msg wire.Message) {
-	util.Trace()
+	//	util.Trace()
 
 	fmt.Println("FactomRelay msg= ", msg)
 
