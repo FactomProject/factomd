@@ -37,7 +37,6 @@ func UnmarshalBinaryAuth(data []byte) (a IRCD, newData []byte, err error) {
 	case 2:
 		auth = new(RCD_2)
 	default:
-		PrtStk()
 		return nil, nil, fmt.Errorf("Invalid type byte for authorizations: %x ", int(t))
 	}
 	data, err = auth.UnmarshalBinaryData(data)

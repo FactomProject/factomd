@@ -89,14 +89,61 @@ func Test_create_genesis_FactoidState (test *testing.T) {
         
         fct.Prt(" ",fs.GetDBHeight(),":",cnt,"--",fs.stats.badAddresses)
         // Create a new block
-        for j:=0; j<100; j++ {
-            t := fs.newTransaction()
-            added := fs.AddTransaction(t)
-            if !added { 
-                fct.Prt("F:",i,"-",j," ",t) 
+        for j:=cnt; cnt < j+100; {      // Execute for some number RECORDED transactions
+            tx := fs.newTransaction()
+            
+            
+            // Test Marshal/UnMarshal
+            m,err := tx.MarshalBinary()
+            if err != nil { fmt.Println("\n",err); test.Fail(); return } 
+            
+            good := true
+            k := rand.Int()%(len(m)-2)
+            k++
+            flip := rand.Int()%100
+            // To simulate bad data, I mess up some of the data here.
+            if rand.Int()%100 < 5 { // Mess up 5 percent of the transactions
+                good = false
+                if flip < 49 {    // Flip a coin
+                    m = m[k:]
+                }else{
+                    m = m[:k]
+                }
             }
-            time.Sleep(time.Second/1000)
-            cnt += 1
+            
+            t := fs.newTransaction()
+            err = t.UnmarshalBinary(m)
+            
+            if good && tx.IsEqual(t) != nil { 
+                fmt.Println("\nFail valid Unmarshal")
+                test.Fail()
+                return
+            }
+            
+            if err == nil {
+                added := fs.AddTransaction(t)
+                if added != good { test.Fail(); return }
+                
+            }
+            
+            if good && err != nil {         
+                fmt.Println("\nUnmarshal Failed. trans is good",
+                            "\nand the error detected: ",err,
+                            "\nand k:",k, "and flip:",flip)
+                fct.PrtData(m)
+                fmt.Println()
+                fmt.Println("good:\n",tx,"bad:\n",t)           
+                test.Fail() 
+                return 
+            } 
+            
+            if good {
+                time.Sleep(time.Second/1000)
+                cnt += 1
+            }else{
+                fs.stats.badAddresses += 1
+            }
+            
         }
         fs.ProcessEndOfBlock()
     }

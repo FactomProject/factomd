@@ -49,7 +49,6 @@ func (t Hash) IsEqual(hash IBlock) []IBlock {
 func (t *Hash) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 
 	if len(data) < ADDRESS_LENGTH {
-		PrtStk()
 		return nil, fmt.Errorf("Data source too short to unmarshal a Hash: %d", len(data))
 	}
 

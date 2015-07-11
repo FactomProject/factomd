@@ -144,6 +144,7 @@ func(fs *FactoidState) AddTransactionBlock(blk block.IFBlock) error  {
 
 func(fs *FactoidState) AddTransaction(trans fct.ITransaction) bool {
     if !fs.Validate(trans) { return false }
+    if len(trans.GetInputs()) == 0 { return false }
     if fs.UpdateTransaction(trans) {
         fs.currentBlock.AddTransaction(trans)
         return true

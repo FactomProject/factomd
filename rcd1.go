@@ -96,12 +96,10 @@ func (t *RCD_1) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	data = data[1:]
 
 	if typ != 1 {
-		PrtStk()
 		return nil, fmt.Errorf("Bad type byte: %d", typ)
 	}
 
 	if len(data) < ADDRESS_LENGTH {
-		PrtStk()
 		return nil, fmt.Errorf("Data source too short to unmarshal an address: %d", len(data))
 	}
 

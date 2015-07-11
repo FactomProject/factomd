@@ -327,9 +327,18 @@ func (b FBlock) ValidateTransaction(trans fct.ITransaction) bool {
 }
 
 func (b FBlock) Validate() (bool, error) {
-	for _, trans := range b.transactions {
+	for i, trans := range b.transactions {
         if !b.ValidateTransaction(trans) {
             return false, fmt.Errorf("Block contains invalid transactions")
+        }
+        if i == 0 {
+            if len(trans.GetInputs()) != 0 {
+                return false, fmt.Errorf("Block has a coinbase transaction with inputs")
+            }
+        }else{
+            if len(trans.GetInputs()) == 0 {
+                return false, fmt.Errorf("Block contains transactions without inputs")
+            }
         }
 	}
 

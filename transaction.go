@@ -450,64 +450,70 @@ func (t *Transaction) GetRCD(i int) (IRCD, error) {
 // out if there isn't enough data, or the transaction is too large.
 func (t *Transaction) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 
-	//     {   // limit the scope of d
-	//         var d [8]byte
-	//         copy(d[3:],data[0:5])
-	//         t.lockTime, data = binary .BigEndian.Uint64(d[:]), data[5:]
-	//     }
-	t.lockTime, data = binary.BigEndian.Uint64(data[:]), data[8:]
+    // To catch memory errors, I capture the panic and turn it into
+    // a reported error.
+    defer func() {
+        if r := recover(); r != nil {
+            err = fmt.Errorf("Error unmarshalling transaction: %v",r)
+        }
+    }()
+    
+    // To capture the panic, my code needs to be in a function.  So I'm
+    // creating one here, and call it at the end of this function.
+    var doit = func(data []byte) (newData []byte, err error) {
+      
+        t.lockTime, data = binary.BigEndian.Uint64(data[:]), data[8:]
+        numInputs, data := binary.BigEndian.Uint16(data[0:2]), data[2:]
+        numOutputs, data := binary.BigEndian.Uint16(data[0:2]), data[2:]
+        numOutECs, data := binary.BigEndian.Uint16(data[0:2]), data[2:]
 
-	numInputs, data := binary.BigEndian.Uint16(data[0:2]), data[2:]
-	numOutputs, data := binary.BigEndian.Uint16(data[0:2]), data[2:]
-	numOutECs, data := binary.BigEndian.Uint16(data[0:2]), data[2:]
+        t.inputs = make([]IInAddress, numInputs, numInputs)
+        t.outputs = make([]IOutAddress, numOutputs, numOutputs)
+        t.outECs = make([]IOutECAddress, numOutECs, numOutECs)
 
-	t.inputs = make([]IInAddress, numInputs, numInputs)
-	t.outputs = make([]IOutAddress, numOutputs, numOutputs)
-	t.outECs = make([]IOutECAddress, numOutECs, numOutECs)
+        for i, _ := range t.inputs {
+            t.inputs[i] = new(InAddress)
+            data, err = t.inputs[i].UnmarshalBinaryData(data)
+            if err != nil || t.inputs[i] == nil {
+                return nil, err
+            }
+        }   
+        for i, _ := range t.outputs {
+            t.outputs[i] = new(OutAddress)
+            data, err = t.outputs[i].UnmarshalBinaryData(data)
+            if err != nil {
+                return nil, err
+            }
+        }
+        for i, _ := range t.outECs {
+            t.outECs[i] = new(OutECAddress)
+            data, err = t.outECs[i].UnmarshalBinaryData(data)
+            if err != nil {
+                return nil, err
+            }
+        }
 
-	for i, _ := range t.inputs {
-		t.inputs[i] = new(InAddress)
-		data, err = t.inputs[i].UnmarshalBinaryData(data)
-		if err != nil || t.inputs[i] == nil {
-			return nil, err
-		}
-	}
-	for i, _ := range t.outputs {
-		t.outputs[i] = new(OutAddress)
-		data, err = t.outputs[i].UnmarshalBinaryData(data)
-		if err != nil {
-			return nil, err
-		}
-	}
-	for i, _ := range t.outECs {
-		t.outECs[i] = new(OutECAddress)
-		data, err = t.outECs[i].UnmarshalBinaryData(data)
-		if err != nil {
-			return nil, err
-		}
-	}
+        t.rcds = make([]IRCD, len(t.inputs))
+        t.sigBlocks = make([]ISignatureBlock, len(t.inputs))
+        
+        for i := 0; i < len(t.inputs); i++ {
+            t.rcds[i] = CreateRCD(data)
+            data, err = t.rcds[i].UnmarshalBinaryData(data)
+            if err != nil {
+                return nil, err
+            }
 
-	if t.rcds == nil {
-		t.rcds = make([]IRCD, len(t.inputs))
-	}
-	if t.sigBlocks == nil {
-		t.sigBlocks = make([]ISignatureBlock, len(t.inputs))
-	}
-	for i := 0; i < len(t.inputs); i++ {
-		t.rcds[i] = CreateRCD(data)
-		data, err = t.rcds[i].UnmarshalBinaryData(data)
-		if err != nil {
-			return nil, err
-		}
+            t.sigBlocks[i] = new(SignatureBlock)
+            data, err = t.sigBlocks[i].UnmarshalBinaryData(data)
+            if err != nil {
+                return nil, err
+            }
+        }
 
-		t.sigBlocks[i] = new(SignatureBlock)
-		data, err = t.sigBlocks[i].UnmarshalBinaryData(data)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return data, nil
+        return data, nil
+    }
+    
+    return doit(data)
 }
 
 func (t *Transaction) UnmarshalBinary(data []byte) (err error) {
@@ -517,14 +523,9 @@ func (t *Transaction) UnmarshalBinary(data []byte) (err error) {
 
 // This is what Gets Signed.  Yet signature blocks are part of the transaction.
 // We don't include them here, and tack them on later.
-func (t *Transaction) MarshalBinarySig() ([]byte, error) {
-	var out bytes.Buffer
+func (t *Transaction) MarshalBinarySig() (newData []byte, err error) {
+	var out bytes.Buffer    
 
-	// 	{  // limit the scope of tmp
-	//        var tmp bytes.Buffer
-	//        binary.Write(&tmp, binary.BigEndian, uint64(t.lockTime))
-	// 	   out.Write(tmp.Bytes()[3:])
-	//     }
 	binary.Write(&out, binary.BigEndian, uint64(t.lockTime))
 	binary.Write(&out, binary.BigEndian, uint16(len(t.inputs)))
 	binary.Write(&out, binary.BigEndian, uint16(len(t.outputs)))
@@ -569,7 +570,7 @@ func (t Transaction) MarshalBinary() ([]byte, error) {
 	out.Write(data)
 
 	for i, rcd := range t.rcds {
-
+        
 		// Write the RCD
 		data, err := rcd.MarshalBinary()
 		if err != nil {
@@ -590,9 +591,6 @@ func (t Transaction) MarshalBinary() ([]byte, error) {
 			return nil, err
 		}
 		out.Write(data)
-	}
-
-	for i := 0; i < len(t.inputs); i++ {
 	}
 
 	return out.Bytes(), nil
