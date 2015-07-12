@@ -35,8 +35,6 @@ import (
 	"github.com/FactomProject/fastsha256"
 	"github.com/FactomProject/websocket"
 
-	"github.com/FactomProject/FactomCode/util"
-
 	//	"github.com/davecgh/go-spew/spew"
 )
 
@@ -291,12 +289,10 @@ type rpcServer struct {
 
 // Start is used by server.go to start the rpc listener.
 func (s *rpcServer) Start() {
-	util.Trace()
 	if atomic.AddInt32(&s.started, 1) != 1 {
 		return
 	}
-	util.Trace()
-
+	
 	rpcsLog.Trace("Starting RPC server")
 	rpcServeMux := http.NewServeMux()
 	httpServer := &http.Server{
@@ -460,7 +456,6 @@ func (s *rpcServer) decrementClients() {
 //
 // This check is time-constant.
 func (s *rpcServer) checkAuth(r *http.Request, require bool) (bool, error) {
-	util.Trace()
 
 	authhdr := r.Header["Authorization"]
 	if len(authhdr) <= 0 {
@@ -484,7 +479,6 @@ func (s *rpcServer) checkAuth(r *http.Request, require bool) (bool, error) {
 
 // Stop is used by server.go to stop the rpc listener.
 func (s *rpcServer) Stop() error {
-	util.Trace()
 
 	if atomic.AddInt32(&s.shutdown, 1) != 1 {
 		rpcsLog.Infof("RPC server is already in the process of shutting down")
@@ -534,8 +528,6 @@ func genCertPair(certFile, keyFile string) error {
 func newRPCServer(listenAddrs []string, s *server) (*rpcServer, error) {
 	//	login := cfg.RPCUser + ":" + cfg.RPCPass
 	login := factomdUser + ":" + factomdPass
-	util.Trace(factomdUser)
-	util.Trace(factomdPass)
 
 	auth := "Basic " + base64.StdEncoding.EncodeToString([]byte(login))
 	rpc := rpcServer{
@@ -2077,13 +2069,11 @@ func handleGetBlockTemplate(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan stru
 
 // handleGetConnectionCount implements the getconnectioncount command.
 func handleGetConnectionCount(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{}) (interface{}, error) {
-	util.Trace()
 	return s.server.ConnectedCount(), nil
 }
 
 // handleGetCurrentNet implements the getcurrentnet command.
 func handleGetCurrentNet(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{}) (interface{}, error) {
-	util.Trace()
 	return s.server.chainParams.Net, nil
 }
 
@@ -3165,8 +3155,6 @@ func handleSetGenerate(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{})
 
 // handleStop implements the stop command.
 func handleStop(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{}) (interface{}, error) {
-	util.Trace()
-
 	s.server.Stop()
 	return "btcd stopping.", nil
 }

@@ -21,7 +21,6 @@ import (
 	//	"github.com/FactomProject/btcutil"
 
 	"github.com/FactomProject/FactomCode/process"
-	"github.com/FactomProject/FactomCode/util"
 	"github.com/davecgh/go-spew/spew"
 )
 
@@ -461,7 +460,6 @@ func (b *blockManager) handleDonePeerMsg(peers *list.List, p *peer) {
 
 // handleTxMsg handles transaction messages from all peers.
 func (b *blockManager) handleTxMsg(tmsg *txMsg) {
-	util.Trace("NOT IMPLEMENTED -- NEEDED???")
 	panic(11112)
 
 	/*
@@ -538,7 +536,6 @@ func (b *blockManager) current() bool {
 
 // handleBlockMsg handles block messages from all peers.
 func (b *blockManager) handleBlockMsg(bmsg *blockMsg) {
-	util.Trace("NOT IMPLEMENTED")
 	panic(11113)
 
 	/*
@@ -869,14 +866,12 @@ func (b *blockManager) handleHeadersMsg(hmsg *headersMsg) {
 func (b *blockManager) haveInventory(invVect *wire.InvVect) (bool, error) {
 	switch invVect.Type {
 	case wire.InvTypeBlock:
-		util.Trace("NOT IMPLEMENTED probably not NEEDED")
 		panic(errors.New("probably not needed: Factoid1"))
 		// Ask chain if the block is known to it in any form (main
 		// chain, side chain, or orphan).
 		//		return b.blockChain.HaveBlock(&invVect.Hash)
 
 	case wire.InvTypeTx:
-		util.Trace("NOT IMPLEMENTED NEEDED: factoid1")
 		panic(errors.New("needed Factoid1"))
 
 		/*
@@ -892,7 +887,6 @@ func (b *blockManager) haveInventory(invVect *wire.InvVect) (bool, error) {
 		*/
 
 	case wire.InvTypeFactomDirBlock:
-		util.Trace()
 		// Ask db if the block is known to it in any form (main
 		// chain, side chain, or orphan).
 		return process.HaveBlockInDB((&invVect.Hash).ToFactomHash())
@@ -905,7 +899,6 @@ func (b *blockManager) haveInventory(invVect *wire.InvVect) (bool, error) {
 // handleInvMsg handles inv messages from all peers.
 // We examine the inventory advertised by the remote peer and act accordingly.
 func (b *blockManager) handleInvMsg(imsg *invMsg) {
-	util.Trace()
 	/*
 		// Ignore invs from peers that aren't the sync if we are not current.
 		// Helps prevent fetching a mass of orphans.
@@ -1065,7 +1058,6 @@ func (b *blockManager) handleInvMsg(imsg *invMsg) {
 // important because the block manager controls which blocks are needed and how
 // the fetching should proceed.
 func (b *blockManager) blockHandler() {
-	util.Trace()
 	candidatePeers := list.New()
 out:
 	for {
@@ -1080,7 +1072,6 @@ out:
 				msg.peer.txProcessed <- struct{}{}
 
 			case *blockMsg:
-				util.Trace()
 				b.handleBlockMsg(msg)
 				msg.peer.blockProcessed <- struct{}{}
 
@@ -1114,7 +1105,6 @@ out:
 				*/
 
 			case processBlockMsg:
-				util.Trace("???")
 				panic(errors.New("probably not needed: Factoid1"))
 				/*
 					isOrphan, err := b.blockChain.BC_ProcessBlock(
@@ -1156,7 +1146,6 @@ out:
 						msg.peer.blockProcessed <- struct{}{}
 				*/
 			case *dirInvMsg:
-				util.Trace()
 				b.handleDirInvMsg(msg)
 
 			default:
@@ -1347,7 +1336,6 @@ func (b *blockManager) DonePeer(p *peer) {
 
 // Start begins the core block handler which processes block and inv messages.
 func (b *blockManager) Start() {
-	util.Trace()
 	// Already started?
 	if atomic.AddInt32(&b.started, 1) != 1 {
 		return
@@ -1362,7 +1350,6 @@ func (b *blockManager) Start() {
 // Stop gracefully shuts down the block manager by stopping all asynchronous
 // handlers and waiting for them to finish.
 func (b *blockManager) Stop() error {
-	util.Trace()
 	if atomic.AddInt32(&b.shutdown, 1) != 1 {
 		bmgrLog.Warnf("Block manager is already in the process of " +
 			"shutting down")
@@ -1433,7 +1420,6 @@ func (b *blockManager) IsCurrent() bool {
 // newBlockManager returns a new bitcoin block manager.
 // Use Start to begin processing asynchronous block and inv updates.
 func newBlockManager(s *server) (*blockManager, error) {
-	util.Trace()
 
 	/*
 		newestHash, height, err := s.db.NewestSha()
@@ -1492,7 +1478,6 @@ func newBlockManager(s *server) (*blockManager, error) {
 // removeRegressionDB removes the existing regression test database if running
 // in regression test mode and it already exists.
 func removeDB(dbPath string) error {
-	util.Trace()
 
 	// Remove the old database if it already exists.
 	fi, err := os.Stat(dbPath)

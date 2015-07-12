@@ -15,9 +15,7 @@ import (
 	//	"github.com/FactomProject/btcutil"
 
 	"github.com/FactomProject/FactomCode/database"
-	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/btcd/wire"
-	"github.com/davecgh/go-spew/spew"
 )
 
 var _ = fmt.Printf
@@ -36,7 +34,6 @@ var (
 // start up Factom queue(s) managers/processors
 // this is to be called within the btcd's main code
 func factomForkInit(s *server) {
-	util.Trace()
 	// tweak some config options
 	cfg.DisableCheckpoints = true
 
@@ -48,17 +45,14 @@ func factomForkInit(s *server) {
 			switch msg.(type) {
 			case *wire.MsgInt_DirBlock:
 				dirBlock, _ := msg.(*wire.MsgInt_DirBlock)
-				util.Trace("Dir Block Received (from wire.MsgInt_DirBlock). dirBlock= ", spew.Sdump(dirBlock))
 				iv := wire.NewInvVect(wire.InvTypeFactomDirBlock, dirBlock.ShaHash)
 				s.RelayInventory(iv, nil)
 
 			case wire.Message:
-				util.Trace()
 				wireMsg, _ := msg.(wire.Message)
 				s.BroadcastMessage(wireMsg)
 
 			default:
-				util.Trace("unhandled outMsgQueue message")
 				panic(fmt.Sprintf("bad outMsgQueue message received: %v", msg))
 			}
 			/*      peerInfoResults := server.PeerInfo()
@@ -80,7 +74,6 @@ func factomForkInit(s *server) {
 			switch msg.Command() {
 
 			case wire.CmdInt_EOM:
-				util.Trace(fmt.Sprintf("next DB height= %d, type= %d\n", msgEom.NextDBlockHeight, msgEom.EOM_Type))
 
 				switch msgEom.EOM_Type {
 
@@ -95,12 +88,10 @@ func factomForkInit(s *server) {
 					*/
 
 				default:
-					util.Trace("unhandled EOM type")
 					panic(errors.New("unhandled EOM type"))
 				}
 
 			default:
-				util.Trace("default")
 				panic(errors.New("unhandled CmdInt_EOM"))
 			}
 
@@ -145,9 +136,9 @@ func Start_btcd(
 	ClientOnly = clientMode
 
 	if ClientOnly {
-		util.Trace("CLIENT MODE")
+		fmt.Println("\n\n>>>>>>>>>>>>>>>>>  CLIENT MODE <<<<<<<<<<<<<<<<<<<<<<<\n\n")
 	} else {
-		util.Trace("SERVER MODE")
+        fmt.Println("\n\n>>>>>>>>>>>>>>>>>  SERVER MODE <<<<<<<<<<<<<<<<<<<<<<<\n\n")
 	}
 
 	db = ldb
@@ -157,7 +148,6 @@ func Start_btcd(
 
 	inCtlMsgQueue = inCtlMsgQ
 	outCtlMsgQueue = outCtlMsgQ
-	util.Trace("FORMER REAL btcd main() function !")
 
 	// Use all processor cores.
 	//runtime.GOMAXPROCS(runtime.NumCPU())
@@ -190,56 +180,43 @@ func Start_btcd(
 
 // Handle factom app imcoming msg
 func (p *peer) handleCommitChainMsg(msg *wire.MsgCommitChain) {
-	util.Trace()
-
 	// Add the msg to inbound msg queue
 	inMsgQueue <- msg
 }
 
 // Handle factom app imcoming msg
 func (p *peer) handleRevealChainMsg(msg *wire.MsgRevealChain) {
-	util.Trace()
-
 	// Add the msg to inbound msg queue
 	inMsgQueue <- msg
 }
 
 // Handle factom app imcoming msg
 func (p *peer) handleCommitEntryMsg(msg *wire.MsgCommitEntry) {
-	util.Trace()
-
+	
 	// Add the msg to inbound msg queue
 	inMsgQueue <- msg
 }
 
 // Handle factom app imcoming msg
 func (p *peer) handleRevealEntryMsg(msg *wire.MsgRevealEntry) {
-	util.Trace()
-
+	
 	// Add the msg to inbound msg queue
 	inMsgQueue <- msg
 }
 
 // Handle factom app imcoming msg
 func (p *peer) handleAcknoledgementMsg(msg *wire.MsgAcknowledgement) {
-	util.Trace()
-
+	
 	// Add the msg to inbound msg queue
 	inMsgQueue <- msg
 }
 
 // returns true if the message should be relayed, false otherwise
 func (p *peer) shallRelay(msg interface{}) bool {
-	util.Trace()
-
-	fmt.Println("shallRelay msg= ", msg)
-
+	
 	hash, _ := wire.NewShaHashFromStruct(msg)
-	fmt.Println("shallRelay hash= ", hash)
-
+	
 	iv := wire.NewInvVect(wire.InvTypeFactomRaw, hash)
-
-	fmt.Println("shallRelay iv= ", iv)
 
 	if !p.isKnownInventory(iv) {
 		p.AddKnownInventory(iv)
@@ -247,17 +224,12 @@ func (p *peer) shallRelay(msg interface{}) bool {
 		return true
 	}
 
-	fmt.Println("******************* SHALL NOT RELAY !!!!!!!!!!! ******************")
-
 	return false
 }
 
 // Call FactomRelay to relay/broadcast a Factom message (to your peers).
 // The intent is to call this function after certain 'processor' checks been done.
 func (p *peer) FactomRelay(msg wire.Message) {
-	util.Trace()
-
-	fmt.Println("FactomRelay msg= ", msg)
 
 	// broadcast/relay only if hadn't been done for this peer
 	if p.shallRelay(msg) {

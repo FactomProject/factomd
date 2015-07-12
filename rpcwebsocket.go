@@ -17,7 +17,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/btcd/btcjson"
 	"github.com/FactomProject/btcd/btcjson/btcws"
 	//	"github.com/FactomProject/btcd/database"
@@ -71,8 +70,6 @@ var wsAsyncHandlers = map[string]struct{}{
 // satisfying the requirement.
 func (s *rpcServer) WebsocketHandler(conn *websocket.Conn, remoteAddr string,
 	authenticated bool) {
-
-	util.Trace()
 
 	// Clear the read deadline that was set before the websocket hijacked
 	// the connection.
@@ -178,7 +175,6 @@ out:
 // queueHandler maintains a queue of notifications and notification handler
 // control messages.
 func (m *wsNotificationManager) queueHandler() {
-	util.Trace()
 
 	queueHandler(m.queueNotification, m.notificationMsgs, m.quit)
 	m.wg.Done()
@@ -274,7 +270,6 @@ type notificationUnregisterAddr struct {
 // notificationHandler reads notifications and control messages from the queue
 // handler and processes one at a time.
 func (m *wsNotificationManager) notificationHandler() {
-	util.Trace()
 	// clients is a map of all currently connected websocket clients.
 	clients := make(map[chan struct{}]*wsClient)
 
@@ -292,7 +287,6 @@ func (m *wsNotificationManager) notificationHandler() {
 
 out:
 	for {
-		util.Trace("for before select...")
 
 		select {
 		case n, ok := <-m.notificationMsgs:
@@ -340,12 +334,10 @@ out:
 			*/
 
 			case *notificationRegisterClient:
-				util.Trace()
 				wsc := (*wsClient)(n)
 				clients[wsc.quit] = wsc
 
 			case *notificationUnregisterClient:
-				util.Trace()
 				wsc := (*wsClient)(n)
 				// Remove any requests made by the client as well as
 				// the client itself.
@@ -410,14 +402,12 @@ func (m *wsNotificationManager) NumClients() (n int) {
 // RegisterBlockUpdates requests block update notifications to the passed
 // websocket client.
 func (m *wsNotificationManager) RegisterBlockUpdates(wsc *wsClient) {
-	util.Trace()
 	m.queueNotification <- (*notificationRegisterBlocks)(wsc)
 }
 
 // UnregisterBlockUpdates removes block update notifications for the passed
 // websocket client.
 func (m *wsNotificationManager) UnregisterBlockUpdates(wsc *wsClient) {
-	util.Trace()
 	m.queueNotification <- (*notificationUnregisterBlocks)(wsc)
 }
 
@@ -543,7 +533,6 @@ func (m *wsNotificationManager) notifyForNewTx(clients map[chan struct{}]*wsClie
 // passed websocket client.  The request is automatically removed once the
 // notification has been sent.
 func (m *wsNotificationManager) RegisterSpentRequest(wsc *wsClient, op *wire.OutPoint) {
-	util.Trace()
 
 	m.queueNotification <- &notificationRegisterSpent{
 		wsc: wsc,
@@ -575,7 +564,7 @@ func (*wsNotificationManager) addSpentRequest(ops map[wire.OutPoint]map[chan str
 // to be notified when the passed outpoint is confirmed spent (contained in a
 // block connected to the main chain).
 func (m *wsNotificationManager) UnregisterSpentRequest(wsc *wsClient, op *wire.OutPoint) {
-	util.Trace()
+
 
 	m.queueNotification <- &notificationUnregisterSpent{
 		wsc: wsc,
@@ -754,7 +743,6 @@ func (m *wsNotificationManager) notifyForTxIns(ops map[wire.OutPoint]map[chan st
 // RegisterTxOutAddressRequest requests notifications to the passed websocket
 // client when a transaction output spends to the passed address.
 func (m *wsNotificationManager) RegisterTxOutAddressRequest(wsc *wsClient, addr string) {
-	util.Trace()
 
 	m.queueNotification <- &notificationRegisterAddr{
 		wsc:  wsc,
@@ -785,7 +773,6 @@ func (*wsNotificationManager) addAddrRequest(addrs map[string]map[chan struct{}]
 // UnregisterTxOutAddressRequest removes a request from the passed websocket
 // client to be notified when a transaction spends to the passed address.
 func (m *wsNotificationManager) UnregisterTxOutAddressRequest(wsc *wsClient, addr string) {
-	util.Trace()
 
 	m.queueNotification <- &notificationUnregisterAddr{
 		wsc:  wsc,
@@ -820,7 +807,6 @@ func (*wsNotificationManager) removeAddrRequest(addrs map[string]map[chan struct
 
 // AddClient adds the passed websocket client to the notification manager.
 func (m *wsNotificationManager) AddClient(wsc *wsClient) {
-	util.Trace()
 
 	m.queueNotification <- (*notificationRegisterClient)(wsc)
 }
@@ -828,7 +814,6 @@ func (m *wsNotificationManager) AddClient(wsc *wsClient) {
 // RemoveClient removes the passed websocket client and all notifications
 // registered for it.
 func (m *wsNotificationManager) RemoveClient(wsc *wsClient) {
-	util.Trace()
 
 	select {
 	case m.queueNotification <- (*notificationUnregisterClient)(wsc):
@@ -859,7 +844,6 @@ func (m *wsNotificationManager) Shutdown() {
 // newWsNotificationManager returns a new notification manager ready for use.
 // See wsNotificationManager for more details.
 func newWsNotificationManager(server *rpcServer) *wsNotificationManager {
-	util.Trace()
 
 	return &wsNotificationManager{
 		server:            server,
@@ -1129,7 +1113,6 @@ out:
 // manager) which are queueing the data.  The data is passed on to outHandler to
 // actually be written.  It must be run as a goroutine.
 func (c *wsClient) notificationQueueHandler() {
-	util.Trace()
 
 	ntfnSentChan := make(chan bool, 1) // nonblocking sync
 
@@ -1360,7 +1343,6 @@ var ErrClientQuit = errors.New("client quit")
 // ErrClientQuit.  This is intended to be checked by long-running notification
 // handlers to stop processing if there is no more work needed to be done.
 func (c *wsClient) QueueNotification(marshalledJSON []byte) error {
-	util.Trace()
 
 	// Don't queue the message if disconnected.
 	if c.Disconnected() {
@@ -1421,8 +1403,6 @@ func (c *wsClient) WaitForShutdown() {
 func newWebsocketClient(server *rpcServer, conn *websocket.Conn,
 	remoteAddr string, authenticated bool) *wsClient {
 
-	util.Trace()
-
 	return &wsClient{
 		conn:          conn,
 		addr:          remoteAddr,
@@ -1440,7 +1420,6 @@ func newWebsocketClient(server *rpcServer, conn *websocket.Conn,
 // handleNotifyBlocks implements the notifyblocks command extension for
 // websocket connections.
 func handleNotifyBlocks(wsc *wsClient, icmd btcjson.Cmd) (interface{}, *btcjson.Error) {
-	util.Trace()
 
 	wsc.server.ntfnMgr.RegisterBlockUpdates(wsc)
 	return nil, nil
@@ -1449,7 +1428,6 @@ func handleNotifyBlocks(wsc *wsClient, icmd btcjson.Cmd) (interface{}, *btcjson.
 // handleNotifySpent implements the notifyspent command extension for
 // websocket connections.
 func handleNotifySpent(wsc *wsClient, icmd btcjson.Cmd) (interface{}, *btcjson.Error) {
-	util.Trace()
 
 	cmd, ok := icmd.(*btcws.NotifySpentCmd)
 	if !ok {
