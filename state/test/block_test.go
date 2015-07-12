@@ -91,6 +91,7 @@ func Test_create_genesis_FactoidState (test *testing.T) {
         fct.Prt(" ",fs.GetDBHeight(),":",cnt,"--",fs.stats.badAddresses)
         // Create a new block
         for j:=cnt; cnt < j+100; {      // Execute for some number RECORDED transactions
+            
             tx := fs.newTransaction()
             
             // Test Marshal/UnMarshal
@@ -120,10 +121,13 @@ func Test_create_genesis_FactoidState (test *testing.T) {
                 return
             }
             if err == nil {
-                fs.GetWallet().SignInputs(t)
                 added := fs.AddTransaction(t)
                 if good != added  { 
-                    fmt.Println("Failed to add a transaction that should have added")
+                    if good {
+                        fmt.Println("Failed to add a transaction that should have added")
+                    }else{
+                        fmt.Println("Added a transaction that should have failed to be added")
+                    }
                     test.Fail(); 
                     return 
                 }

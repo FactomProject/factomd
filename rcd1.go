@@ -40,13 +40,11 @@ func (b RCD_1) String() string {
 func (w RCD_1) CheckSig(trans ITransaction, sigblk ISignatureBlock) bool {
 	data, err := trans.MarshalBinarySig()
 	if err != nil {
-		return false
+      	return false
 	}
 	sig := sigblk.GetSignature(0).GetSignature(0)
-	if !ed25519.VerifyCanonical(&w.publicKey, data, sig) {
-		return false
-	}
-	return true
+  
+	return ed25519.VerifyCanonical(&w.publicKey, data, sig) 
 }
 
 func (w RCD_1) Clone() IRCD {
@@ -78,11 +76,7 @@ func (w1 RCD_1) NumberOfSignatures() int {
 func (a1 *RCD_1) IsEqual(addr IBlock) []IBlock {
 	a2, ok := addr.(*RCD_1)
 
-	if !ok {
-        Prtln("Not the right object",addr)  
-    }// Not the right kind of IBlock
-	if	a1.publicKey != a2.publicKey { // Not the right sigature
-        Prtln("Public Keys don't match")
+	if	!ok || a1.publicKey != a2.publicKey { // Not the right object or sigature
             r := make([]IBlock,0,5)
             return append(r,a1) 
 	}

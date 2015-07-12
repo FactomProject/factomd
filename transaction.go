@@ -79,24 +79,31 @@ type Transaction struct {
 	outECs         []IOutECAddress
 	rcds           []IRCD
 	sigBlocks      []ISignatureBlock
+	
+	marshalsig     IHash         // cache to avoid unnecessary marshal/unmarshals
 }
 
 var _ ITransaction = (*Transaction)(nil)
 
-func (b Transaction) GetVersion() uint64 {
+// Clears caches if they are no long valid.
+func (t *Transaction) clearCaches() {
+    t.marshalsig = nil
+}
+
+func (Transaction) GetVersion() uint64 {
     return 2
 }
 
-func (b Transaction) GetHash() IHash {
-    m, err := b.MarshalBinary()
+func (t Transaction) GetHash() IHash {
+    m, err := t.MarshalBinary()
     if err != nil {
         return nil
     }
     return Sha(m)
 }
 
-func (b Transaction) String() string {
-	txt, err := b.MarshalText()
+func (t Transaction) String() string {
+	txt, err := t.MarshalText()
 	if err != nil {
 		return "<error>"
 	}
@@ -127,6 +134,7 @@ func (t *Transaction) GetSignatureBlock(i int) ISignatureBlock {
 
 func (t *Transaction) AddRCD(rcd IRCD) {
 	t.rcds = append(t.rcds, rcd)
+    t.clearCaches()
 }
 
 func (Transaction) GetDBHash() IHash {
@@ -258,7 +266,7 @@ func (t Transaction) Validate() string {
     }
         
     // Inputs cover outputs and ecoutputs.
-    if tinputs < toutputs + tecs {
+    if tinputs <= toutputs + tecs {
         return BALANCE_FAIL
 	}
 	// Cannot have zero inputs.  This means you cannot use this function
@@ -314,21 +322,21 @@ func (t Transaction) Validate() string {
 // but for now they are not.
 //
 func (t Transaction) ValidateSignatures() bool {
-	// If this transaction isn't validly formed, then we don't
+    
+    // If this transaction isn't validly formed, then we don't
 	// care about signatures.
     if e := t.Validate(); e != WELL_FORMED {
-        fmt.Println("Validation Failure: ",e)
 		return false
 	}
 	// If there isn't a signature block for every rcd, then we also
 	// don't care about signatures.  Or if there are too many.  Don't
 	// care about the transaction in that case either.
 	if len(t.sigBlocks) != len(t.rcds) {
-		return false
+        return false
 	}
 	for i, rcd := range t.rcds {
 		if !rcd.CheckSig(&t, t.sigBlocks[i]) {
-			return false
+            return false
 		}
 	}
 	return true
@@ -476,12 +484,12 @@ func (t *Transaction) UnmarshalBinaryData(data []byte) (newData []byte, err erro
         }
         hd, data := binary.BigEndian.Uint32(data[:]), data[4:]
         ld, data := binary.BigEndian.Uint16(data[:]), data[2:]
-        t.milliTimestamp = uint64(hd<<16)+uint64(ld)
+        t.milliTimestamp = (uint64(hd)<<16)+uint64(ld)
         
-        numInputs, data := binary.BigEndian.Uint16(data[0:2]), data[2:]
-        numOutputs, data := binary.BigEndian.Uint16(data[0:2]), data[2:]
-        numOutECs, data := binary.BigEndian.Uint16(data[0:2]), data[2:]
-
+        numInputs  := int(data[0]); data = data[1:]
+        numOutputs := int(data[0]); data = data[1:]
+        numOutECs  := int(data[0]); data = data[1:]
+    
         t.inputs = make([]IInAddress, numInputs, numInputs)
         t.outputs = make([]IOutAddress, numOutputs, numOutputs)
         t.outECs = make([]IOutECAddress, numOutECs, numOutECs)
@@ -542,16 +550,16 @@ func (t *Transaction) MarshalBinarySig() (newData []byte, err error) {
 	var out bytes.Buffer    
 
 	EncodeVarInt(&out,t.GetVersion())
-	
+
 	hd := uint32(t.milliTimestamp >> 16) 
     ld := uint16(t.milliTimestamp & 0xFFFF)
     binary.Write(&out, binary.BigEndian, uint32(hd))
     binary.Write(&out, binary.BigEndian, uint16(ld))
-    
-	binary.Write(&out, binary.BigEndian, uint16(len(t.inputs)))
-	binary.Write(&out, binary.BigEndian, uint16(len(t.outputs)))
-	binary.Write(&out, binary.BigEndian, uint16(len(t.outECs)))
 
+    out.WriteByte(byte(len(t.inputs)))
+    out.WriteByte(byte(len(t.outputs)))
+    out.WriteByte(byte(len(t.outECs)))
+    
 	for _, input := range t.inputs {
 		data, err := input.MarshalBinary()
 		if err != nil {
@@ -627,6 +635,7 @@ func (t *Transaction) AddInput(input IAddress, amount uint64) {
 	}
 	out := NewInAddress(input, amount)
 	t.inputs = append(t.inputs, out)
+    t.clearCaches()
 }
 
 // Helper function for building transactions.  Add an output to
@@ -639,7 +648,7 @@ func (t *Transaction) AddOutput(output IAddress, amount uint64) {
 	}
 	out := NewOutAddress(output, amount)
 	t.outputs = append(t.outputs, out)
-
+    t.clearCaches()
 }
 
 // Add a EntryCredit output.  Validating this is going to require
@@ -651,7 +660,7 @@ func (t *Transaction) AddECOutput(ecoutput IAddress, amount uint64) {
 	}
 	out := NewOutECAddress(ecoutput, amount)
 	t.outECs = append(t.outECs, out)
-
+    t.clearCaches()
 }
 
 // Marshal to text.  Largely a debugging thing.
@@ -663,7 +672,7 @@ func (t *Transaction) MarshalText() (text []byte, err error) {
 	out.WriteString("\n          MilliTimeStamp: ")
     WriteNumber64(&out, uint64(t.milliTimestamp))
     ts := time.Unix(0,int64(t.milliTimestamp*1000000))
-    out.WriteString(ts.UTC().Format(" Jan 2, 2006 20:04 (MST)"))
+    out.WriteString(ts.UTC().Format(" Jan 2, 2006 at 3:04am (MST)"))
 	out.WriteString("\n                # Inputs: ")
 	WriteNumber16(&out, uint16(len(t.inputs)))
 	out.WriteString("\n               # Outputs: ")

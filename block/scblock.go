@@ -194,7 +194,6 @@ func (b *FBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
         trans := new(fct.Transaction)
         data,err = trans.UnmarshalBinaryData(data)
         if err != nil {
-            fct.Prtln("Failed to unmarshal a transaction in block.",err)
             return nil, fmt.Errorf("Failed to unmarshal a transaction in block.\n%s",b.String())
         }
 		b.transactions[i] = trans
@@ -307,8 +306,8 @@ func (b FBlock) ValidateTransaction(trans fct.ITransaction) bool {
         }
     }
     if len(b.transactions)>0{
-        valid := trans.ValidateSignatures()
-        if !valid {
+        ok := trans.ValidateSignatures()
+        if !ok {
             return false // Transaction is not properly signed.
         }
     }

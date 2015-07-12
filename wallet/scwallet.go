@@ -70,7 +70,7 @@ type ISCWallet interface {
 	// Sign a CommitEntry or a CommitChain with the eckey
 	SignCommit(we IWalletEntry, data []byte) []byte
 	// Get the exchange rate of Factoids per Entry Credit
-	GetECRate() uint64
+// 	GetECRate() uint64
 }
 
 var factoshisPerEC uint64 = 100000
@@ -96,7 +96,7 @@ func (SCWallet) GetDBHash() fct.IHash {
 }
 
 func (w *SCWallet) SignInputs(trans fct.ITransaction) (bool, error) {
-
+    
 	data, err := trans.MarshalBinarySig() // Get the part of the transaction we sign
 	if err != nil {
 		return false, err
@@ -124,10 +124,11 @@ func (w *SCWallet) SignInputs(trans fct.ITransaction) (bool, error) {
 			}
 		}
 	}
+
 	return numSigs == len(inputs), nil
 }
 
-// SignCommit will sign the []byte with the Entry Credit Key and retrurn the
+// SignCommit will sign the []byte with the Entry Credit Key and return the
 // slice with the signature and pubkey appended.
 func (w *SCWallet) SignCommit(we IWalletEntry, data []byte) []byte {
 	pub := new([fct.ADDRESS_LENGTH]byte)
@@ -216,7 +217,6 @@ func (w *SCWallet) Init(a ...interface{}) {
 	hasher := sha512.New()
 	hasher.Write([]byte("replace with randomness"))
 	seedhash := hasher.Sum(nil)
-	//fmt.Printf("The seed hash is: %x\n", seedhash)
 	w.nextSeed = seedhash
 
 	w.db.Init()
@@ -237,10 +237,8 @@ func (w *SCWallet) generateKey() (public []byte, private []byte, err error) {
 	keypair := new([64]byte)
 	// the secret part of the keypair is the top 32 bytes of the sha512 hash
 	copy(keypair[:32], w.nextSeed[:32])
-	//fmt.Printf("next seed is: %x\n", w.nextSeed)
 	// the crypto library puts the pubkey in the lower 32 bytes and returns the same 32 bytes.
 	pub := ed25519.GetPublicKey(keypair)
-	//fmt.Printf("keypair is  : %x\n", *keypair)
 
 	// Iterate the deterministic key private generator
 	// so it is ready for the next time this function is called.
