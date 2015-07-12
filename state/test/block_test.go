@@ -43,7 +43,7 @@ func Test_setup_FactoidState (test *testing.T) {
     fs.twallet.Init()
     
     for i:=0; i<10; i++ {
-        addr, err := fs.twallet.GenerateFctAddress([]byte("tes,mbbm,btin_"+cv.Itoa(i)),1,1)
+        addr, err := fs.twallet.GenerateFctAddress([]byte("testin_"+cv.Itoa(i)),1,1)
         if err != nil { fct.Prtln(err); test.Fail() }
         fs.inputAddresses = append(fs.inputAddresses,addr)
         fs.outputAddresses = append(fs.outputAddresses,addr)
@@ -90,7 +90,7 @@ func Test_create_genesis_FactoidState (test *testing.T) {
         
         fct.Prt(" ",fs.GetDBHeight(),":",cnt,"--",fs.stats.badAddresses)
         // Create a new block
-        for j:=cnt; cnt < j+10; {      // Execute for some number RECORDED transactions
+        for j:=cnt; cnt < j+20; {      // Execute for some number RECORDED transactions
             
             tx := fs.newTransaction()
             
