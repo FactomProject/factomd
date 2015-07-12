@@ -45,7 +45,7 @@ func (NewTransaction) Execute (state State, args []string) error {
         return fmt.Errorf("Duplicate key: '%s'", key)
     }
     // Create a transaction
-    t = state.fs.GetWallet().CreateTransaction(state.fs.GetTimeNano())
+    t = state.fs.GetWallet().CreateTransaction(state.fs.GetTimeMilli())
     // Save it with the key
     state.fs.GetDB().PutRaw([]byte(fct.DB_BUILD_TRANS), []byte(key), t)
 
@@ -347,15 +347,15 @@ func (Sign) Execute (state State, args []string) error {
     if err != nil {
         return err
     }
-    if !valid {
-        return fmt.Errorf("Invalid Transaction")
+    if valid!=fct.WELL_FORMED {
+        return fmt.Errorf("Invalid Transaction: "+valid)
     }
     
-    valid, err = state.fs.GetWallet().SignInputs(trans)
+    ok, err = state.fs.GetWallet().SignInputs(trans)
     if err != nil {
         return err
     }
-    if !valid {
+    if !ok {
         return fmt.Errorf("Error signing the transaction")
     }
     
@@ -419,8 +419,8 @@ func (Submit) Execute (state State, args []string) error {
     if err != nil {
         return err
     }
-    if !valid {
-        return fmt.Errorf("Invalid transaction")
+    if valid!=fct.WELL_FORMED {
+        return fmt.Errorf("Invalid transaction: "+valid)
     }
     
     ok = state.fs.GetWallet().ValidateSignatures(trans)

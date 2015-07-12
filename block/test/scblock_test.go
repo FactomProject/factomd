@@ -7,6 +7,7 @@ package block
 import (
 	"encoding/binary"
 	"fmt"
+    "time"
     cv "strconv"
 	"github.com/FactomProject/ed25519"
     sc "github.com/FactomProject/factoid"
@@ -33,23 +34,23 @@ func newFakeAddr() sc.IAddress {
 func Test_create_block(test *testing.T) {
     w := new(wallet.SCWallet)          // make me a wallet
     w.Init()
-    scb := block.NewSCBlock(1000, 0)
+    scb := block.NewFBlock(1000, 0)
 	
-    for i:=0;i<1;i++ {
-        h0,err := w.GenerateAddress([]byte("test "+cv.Itoa(i)+"-0"),1,1)
+    for i:=0;i<100;i++ {
+        h0,err := w.GenerateFctAddress([]byte("test "+cv.Itoa(i)+"-0"),1,1)
         if err != nil { test.Fail() }
-        h1,err := w.GenerateAddress([]byte("test "+cv.Itoa(i)+"-1"),1,1)
+        h1,err := w.GenerateFctAddress([]byte("test "+cv.Itoa(i)+"-1"),1,1)
         if err != nil { test.Fail() }
-        h2,err := w.GenerateAddress([]byte("test "+cv.Itoa(i)+"-2"),1,1)
+        h2,err := w.GenerateFctAddress([]byte("test "+cv.Itoa(i)+"-2"),1,1)
         if err != nil { test.Fail() }
-        h3,err := w.GenerateAddress([]byte("test "+cv.Itoa(i)+"-3"),1,1)
+        h3,err := w.GenerateFctAddress([]byte("test "+cv.Itoa(i)+"-3"),1,1)
         if err != nil { test.Fail() }
-        h4,err := w.GenerateAddress([]byte("test "+cv.Itoa(i)+"-4"),1,1)
+        h4,err := w.GenerateFctAddress([]byte("test "+cv.Itoa(i)+"-4"),1,1)
         if err != nil { test.Fail() }
-        h5,err := w.GenerateAddress([]byte("test "+cv.Itoa(i)+"-5"),1,1)
+        h5,err := w.GenerateFctAddress([]byte("test "+cv.Itoa(i)+"-5"),1,1)
         if err != nil { test.Fail() }
         
-        t := w.CreateTransaction()
+        t := w.CreateTransaction(uint64(time.Now().UnixNano()/1000000))
         
         w.AddInput(t,h1,1000000)
         w.AddInput(t,h2,1000000)
@@ -60,7 +61,6 @@ func Test_create_block(test *testing.T) {
         fee, err := t.CalculateFee(1000)
         w.UpdateInput(t,2,h0,fee)
         
-        t.SetLockTime(1257894000000000000+uint64(13424323*i))
         signed,err := w.SignInputs(t)
         if err != nil { sc.Prtln("Error found: ",err); test.Fail(); return; }
         if !signed { sc.Prtln("Not valid"); test.Fail(); return; } 
@@ -74,10 +74,10 @@ func Test_create_block(test *testing.T) {
 		sc.PrtStk()
 		test.Fail()
 	}
-	scb2 := block.NewSCBlock(1000, 0)
+	scb2 := block.NewFBlock(1000, 0)
 	_, err = scb2.UnmarshalBinaryData(data)
 
-	if !scb.IsEqual(scb2) {
+    if scb.IsEqual(scb2)!=nil {
 		sc.PrtStk()
 		test.Fail()
 	}
