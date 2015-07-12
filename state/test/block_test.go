@@ -90,7 +90,7 @@ func Test_create_genesis_FactoidState (test *testing.T) {
         
         fct.Prt(" ",fs.GetDBHeight(),":",cnt,"--",fs.stats.badAddresses)
         // Create a new block
-        for j:=cnt; cnt < j+100; {      // Execute for some number RECORDED transactions
+        for j:=cnt; cnt < j+10; {      // Execute for some number RECORDED transactions
             
             tx := fs.newTransaction()
             
