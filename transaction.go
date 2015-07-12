@@ -87,6 +87,7 @@ var _ ITransaction = (*Transaction)(nil)
 
 // Clears caches if they are no long valid.
 func (t *Transaction) clearCaches() {
+    return
     t.marshalsig = nil
 }
 
