@@ -6,6 +6,7 @@ package factoid
 
 import (
 	"bytes"
+    "time"
 	"encoding/binary"
 	"fmt"
 )
@@ -42,11 +43,12 @@ type ITransaction interface {
     GetECOutputs() []IOutECAddress
     GetRCDs() []IRCD
     
+    GetVersion() uint64
     // Locktime serves as a nonce to make every transaction unique. Transactions
     // that are more than 24 hours old are not included nor propagated through
     // the network.
-    GetLockTime() uint64
-    SetLockTime(uint64) 
+    GetMilliTimestamp() uint64
+    SetMilliTimestamp(uint64) 
     // Get a signature 
 	GetSignatureBlock(i int) ISignatureBlock
 	SetSignatureBlock(i int, signatureblk ISignatureBlock)
@@ -67,19 +69,23 @@ type ITransaction interface {
 
 type Transaction struct {
 	ITransaction
-	// Binary Format has these additional fields
-	// uint16 number of inputs
-	// uint16 number of outputs
-	// uint16 number of outECs (Number of EntryCredits)
-	lockTime  uint64
-	inputs    []IInAddress
-	outputs   []IOutAddress
-	outECs    []IOutECAddress
-	rcds      []IRCD
-	sigBlocks []ISignatureBlock
+	// version     uint64         Version of transaction. Hardcoded, naturally.
+	milliTimestamp uint64
+	// #inputs     uint8          number of inputs
+	// #outputs    uint8          number of outputs
+	// #ecoutputs  uint8          number of outECs (Number of EntryCredits)
+	inputs         []IInAddress
+	outputs        []IOutAddress
+	outECs         []IOutECAddress
+	rcds           []IRCD
+	sigBlocks      []ISignatureBlock
 }
 
 var _ ITransaction = (*Transaction)(nil)
+
+func (b Transaction) GetVersion() uint64 {
+    return 2
+}
 
 func (b Transaction) GetHash() IHash {
     m, err := b.MarshalBinary()
@@ -97,12 +103,12 @@ func (b Transaction) String() string {
 	return string(txt)
 }
 
-// LockTime is in nanoseconds
-func (t *Transaction) GetLockTime() uint64 {
-    return t.lockTime
+// MilliTimestamp is in milliseconds
+func (t *Transaction) GetMilliTimestamp() uint64 {
+    return t.milliTimestamp
 }
-func (t *Transaction) SetLockTime(lockTime uint64) {
-    t.lockTime = lockTime
+func (t *Transaction) SetMilliTimestamp(ts uint64) {
+    t.milliTimestamp = ts
 }
 
 func (t *Transaction) SetSignatureBlock(i int, sig ISignatureBlock) {
@@ -191,6 +197,7 @@ func ValidateAmounts(amts ...uint64) (uint64, bool) {
 func (t Transaction) TotalInputs() (uint64, bool) {
 	var sum uint64
 	var ok bool
+	if len(t.inputs) > 255 {return 0, false}
 	for _, input := range t.inputs {
         sum, ok = ValidateAmounts(sum, input.GetAmount())
         if !ok {
@@ -203,6 +210,7 @@ func (t Transaction) TotalInputs() (uint64, bool) {
 func (t Transaction) TotalOutputs() (uint64, bool) {
     var sum uint64
     var ok bool
+    if len(t.outputs) > 255 {return 0, false}
     for _, output := range t.outputs {
         sum, ok = ValidateAmounts(sum, output.GetAmount())
         if !ok {
@@ -215,6 +223,7 @@ func (t Transaction) TotalOutputs() (uint64, bool) {
 func (t Transaction) TotalECs() (uint64, bool) {
     var sum uint64
     var ok bool
+    if len(t.outECs) > 255 {return 0, false}
     for _, ec := range t.outECs {
         sum, ok = ValidateAmounts(sum, ec.GetAmount())
         if !ok {
@@ -461,8 +470,14 @@ func (t *Transaction) UnmarshalBinaryData(data []byte) (newData []byte, err erro
     // To capture the panic, my code needs to be in a function.  So I'm
     // creating one here, and call it at the end of this function.
     var doit = func(data []byte) (newData []byte, err error) {
-      
-        t.lockTime, data = binary.BigEndian.Uint64(data[:]), data[8:]
+        v, data := DecodeVarInt(data)
+        if v != t.GetVersion() {
+            return nil, fmt.Errorf("Wrong version: %v",v)
+        }
+        hd, data := binary.BigEndian.Uint32(data[:]), data[4:]
+        ld, data := binary.BigEndian.Uint16(data[:]), data[2:]
+        t.milliTimestamp = uint64(hd<<16)+uint64(ld)
+        
         numInputs, data := binary.BigEndian.Uint16(data[0:2]), data[2:]
         numOutputs, data := binary.BigEndian.Uint16(data[0:2]), data[2:]
         numOutECs, data := binary.BigEndian.Uint16(data[0:2]), data[2:]
@@ -526,7 +541,13 @@ func (t *Transaction) UnmarshalBinary(data []byte) (err error) {
 func (t *Transaction) MarshalBinarySig() (newData []byte, err error) {
 	var out bytes.Buffer    
 
-	binary.Write(&out, binary.BigEndian, uint64(t.lockTime))
+	EncodeVarInt(&out,t.GetVersion())
+	
+	hd := uint32(t.milliTimestamp >> 16) 
+    ld := uint16(t.milliTimestamp & 0xFFFF)
+    binary.Write(&out, binary.BigEndian, uint32(hd))
+    binary.Write(&out, binary.BigEndian, uint16(ld))
+    
 	binary.Write(&out, binary.BigEndian, uint16(len(t.inputs)))
 	binary.Write(&out, binary.BigEndian, uint16(len(t.outputs)))
 	binary.Write(&out, binary.BigEndian, uint16(len(t.outECs)))
@@ -636,14 +657,18 @@ func (t *Transaction) AddECOutput(ecoutput IAddress, amount uint64) {
 // Marshal to text.  Largely a debugging thing.
 func (t *Transaction) MarshalText() (text []byte, err error) {
 	var out bytes.Buffer
-
-	out.WriteString("Transaction:\n LockTime: ")
-	WriteNumber64(&out, uint64(t.lockTime))
-	out.WriteString("\n in:  ")
+	out.WriteString("Transaction:\n")
+    out.WriteString("                 Version: ")
+    WriteNumber64(&out, uint64(t.GetVersion()))
+	out.WriteString("\n          MilliTimeStamp: ")
+    WriteNumber64(&out, uint64(t.milliTimestamp))
+    ts := time.Unix(0,int64(t.milliTimestamp*1000000))
+    out.WriteString(ts.UTC().Format(" Jan 2, 2006 20:04 (MST)"))
+	out.WriteString("\n                # Inputs: ")
 	WriteNumber16(&out, uint16(len(t.inputs)))
-	out.WriteString("\n out: ")
+	out.WriteString("\n               # Outputs: ")
 	WriteNumber16(&out, uint16(len(t.outputs)))
-	out.WriteString("\n ec:  ")
+	out.WriteString("\n   # EntryCredit outputs: ")
 	WriteNumber16(&out, uint16(len(t.outECs)))
 	out.WriteString("\n")
 	for _, address := range t.inputs {

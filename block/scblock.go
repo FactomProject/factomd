@@ -306,10 +306,10 @@ func (b FBlock) ValidateTransaction(trans fct.ITransaction) bool {
             return false // Transaction is not well formed.
         }
     }
-    {
+    if len(b.transactions)>0{
         valid := trans.ValidateSignatures()
         if !valid {
-            return false // Transaction is not proerly signed.
+            return false // Transaction is not properly signed.
         }
     }
     fee, err := trans.CalculateFee(b.ExchRate)

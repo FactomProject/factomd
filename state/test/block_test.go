@@ -59,7 +59,7 @@ func Test_setup_FactoidState (test *testing.T) {
 func Test_create_genesis_FactoidState (test *testing.T) {
         
     // Use Bolt DB
-    if true {
+    if false {
         fs.SetDB(new(database.MapDB))
         fs.GetDB().Init()
         db := stateinit.GetDatabase("/tmp/fct_test.db")
@@ -72,14 +72,15 @@ func Test_create_genesis_FactoidState (test *testing.T) {
         fs.GetDB().DoNotCache(fct.DB_FACTOID_BLOCKS)
         fs.GetDB().DoNotCache(fct.DB_TRANSACTIONS)
     }else{
-        fs.SetDB(stateinit.GetDatabase("/tmp/fct_test.db"))
+        fs.SetDB(new(database.MapDB))
+        fs.GetDB().Init()
     }
     // Set the price for Factoids
     fs.SetFactoshisPerEC(10000)
     fct.Prt("Loading....")
     err := fs.LoadState()
     if err != nil {
-        fct.Prtln(err)
+        fct.Prtln("Failed to load:", err)
         test.Fail()
         return
     }
@@ -92,10 +93,9 @@ func Test_create_genesis_FactoidState (test *testing.T) {
         for j:=cnt; cnt < j+100; {      // Execute for some number RECORDED transactions
             tx := fs.newTransaction()
             
-            
             // Test Marshal/UnMarshal
             m,err := tx.MarshalBinary()
-            if err != nil { fmt.Println("\n",err); test.Fail(); return } 
+            if err != nil { fmt.Println("\n Failed to Marshal: ",err); test.Fail(); return } 
             
             good := true
             k := rand.Int()%(len(m)-2)
@@ -119,10 +119,14 @@ func Test_create_genesis_FactoidState (test *testing.T) {
                 test.Fail()
                 return
             }
-            
             if err == nil {
+                fs.GetWallet().SignInputs(t)
                 added := fs.AddTransaction(t)
-                if added != good { test.Fail(); return }
+                if good != added  { 
+                    fmt.Println("Failed to add a transaction that should have added")
+                    test.Fail(); 
+                    return 
+                }
                 
             }
             
@@ -130,9 +134,6 @@ func Test_create_genesis_FactoidState (test *testing.T) {
                 fmt.Println("\nUnmarshal Failed. trans is good",
                             "\nand the error detected: ",err,
                             "\nand k:",k, "and flip:",flip)
-                fct.PrtData(m)
-                fmt.Println()
-                fmt.Println("good:\n",tx,"bad:\n",t)           
                 test.Fail() 
                 return 
             } 

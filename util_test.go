@@ -23,14 +23,16 @@ func Test_Variable_Integers (test *testing.T) {
         v := make([]uint64,10)
         
         for j:=0; j<len(v); j++ {
-            sw := rand.Int63()%5                                   // Pick a random choice
+            var m uint64                        // 64 bit mask
+            sw := rand.Int63()%4                // Pick a random choice
             switch sw {
-                case 0: v[j] = uint64(rand.Int63() & 0xFF)         // Random byte  
-                case 1: v[j] = uint64(rand.Int63() & 0xFFFF)       // Random 16 bit integer
-                case 2: v[j] = uint64(rand.Int63() & 0xFFFFFFFF)   // Random 32 bit integer
-                case 3: v[j] = uint64(rand.Int63())                // Random 63 bit int, high order zero
-                case 4: v[j] = uint64(rand.Int63()<<1)             // Random 63 bit int, low order zero
+                case 0: m = 0xFF                // Random byte  
+                case 1: m = 0xFFFF              // Random 16 bit integer
+                case 2: m = 0xFFFFFFFF          // Random 32 bit integer
+                case 3: m = 0xFFFFFFFFFFFFFFFF  // Random 64 bit integer
             }
+            n := uint64(rand.Int63() + (rand.Int63() << 32))
+            v[j] = n & m 
         }
                     
         for j:=0; j<len(v); j++ {               // Encode our entire array of numbers

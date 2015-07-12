@@ -253,7 +253,7 @@ func (w *SCWallet) generateKey() (public []byte, private []byte, err error) {
 
 func (w *SCWallet) CreateTransaction(time uint64) fct.ITransaction {
 	t := new(fct.Transaction)
-	t.SetLockTime(time)
+	t.SetMilliTimestamp(time)
 	return t
 }
 

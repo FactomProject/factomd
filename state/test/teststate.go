@@ -93,7 +93,7 @@ func(fs *Test_state) newTransaction() fct.ITransaction {
     outputs := makeList(fs.outputAddresses,numOutputs)
 
     var paid uint64
-    t := fs.twallet.CreateTransaction(fs.GetTimeNano())
+    t := fs.twallet.CreateTransaction(fs.GetTimeMilli())
     for _, adr := range inputs {
         balance := fs.GetBalance(adr)
         toPay := balance

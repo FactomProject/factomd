@@ -74,8 +74,8 @@ type IFactoidState interface {
     // must be controlled in order to build reliable, repeatable
     // tests.  Therefore, no node should directly querry system
     // time.  
-    GetTimeNano() uint64    // Count of nanoseconds from Jan 1,1970
-    GetTime() uint64        // Count of seconds from Jan 1, 1970
+    GetTimeMilli() uint64    // Count of milliseconds from Jan 1,1970
+    GetTime() uint64         // Count of seconds from Jan 1, 1970
     
     // Validate transaction
     // Return true if the balance of an address covers each input
@@ -183,7 +183,7 @@ func(fs *FactoidState) ProcessEndOfBlock(){
     fs.dbheight += 1
     fs.currentBlock = block.NewFBlock(fs.GetFactoshisPerEC(),fs.dbheight)
     t := new(fct.Transaction)
-    t.SetLockTime(fs.GetTimeNano())
+    t.SetMilliTimestamp(fs.GetTimeMilli())
     flg, err := fs.currentBlock.AddCoinbase(t)
     if !flg || err !=nil {
         panic("Failed to add coinbase transaction")
@@ -206,7 +206,7 @@ func(fs *FactoidState) ProcessEndOfBlock2(nextBlkHeight uint32) {
     
     fs.currentBlock = block.NewFBlock(fs.GetFactoshisPerEC(), nextBlkHeight)
     t := new(fct.Transaction)
-    t.SetLockTime(fs.GetTimeNano())
+    t.SetMilliTimestamp(fs.GetTimeMilli())
     flg, err := fs.currentBlock.AddCoinbase(t)
     if !flg || err !=nil {
         panic("Failed to add coinbase transaction")
@@ -224,7 +224,7 @@ func(fs *FactoidState) LoadState() error  {
     // uninitialized database.  We need to add the Genesis Block. TODO
     if blk == nil {
         fct.Prtln("No Genesis Block for Factoids detected.  Adding Genesis Block")
-        gb := block.GetGenesisBlock(fs.GetTimeNano(), 1000000,10,200000000000)
+        gb := block.GetGenesisBlock(fs.GetTimeMilli(), 1000000,10,200000000000)
         fs.PutTransactionBlock(gb.GetHash(),gb)
         fs.PutTransactionBlock(fct.FACTOID_CHAINID_HASH,gb)
         err := fs.AddTransactionBlock(gb)
@@ -309,8 +309,8 @@ func(fs *FactoidState) GetTransactionBlock(hash fct.IHash) block.IFBlock {
     return transblk.(block.IFBlock)
 }
 
-func(fs *FactoidState) GetTimeNano() uint64 {
-    return uint64(time.Now().UnixNano())
+func(fs *FactoidState) GetTimeMilli() uint64 {
+    return uint64(time.Now().UnixNano())/1000000  // 10^-9 >> 10^-3
 }
 
 func(fs *FactoidState) GetTime() uint64 {

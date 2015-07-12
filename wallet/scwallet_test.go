@@ -89,7 +89,7 @@ func Test_CreateTransaction_swcallet(test *testing.T) {
     }
     
     valid, err2 := w.Validate(t)
-    if(!valid || err2 != nil) {
+    if(valid != fct.WELL_FORMED || err2 != nil) {
         factoid.Prtln(err2,valid)
         test.Fail()
     }
