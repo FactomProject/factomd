@@ -2,8 +2,8 @@
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
-package main
-
+package mainx
+/*
 import (
 	"fmt"
 	"io/ioutil"
@@ -100,3 +100,4 @@ func fileExists(name string) bool {
 	}
 	return true
 }
+*/

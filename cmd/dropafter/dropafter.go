@@ -2,8 +2,8 @@
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
-package main
-
+package mainx
+/*
 import (
 	"errors"
 	"fmt"
@@ -225,3 +225,4 @@ func parsesha(argstr string) (argtype int, height int64, psha *wire.ShaHash, err
 	psha = &sha
 	return
 }
+*/
