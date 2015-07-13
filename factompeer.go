@@ -5,44 +5,28 @@
 package btcd
 
 import (
-	"fmt"
-
 	"encoding/hex"
-	"time"
 
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/database"
-	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/btcd/blockchain"
 	"github.com/FactomProject/btcd/wire"
 	"github.com/davecgh/go-spew/spew"
 )
 
-var _ = fmt.Printf
-
 // handleFBlockMsg is invoked when a peer receives a factoid block message.
 func (p *peer) handleFBlockMsg(msg *wire.MsgFBlock, buf []byte) {
-	util.Trace()
-	// Convert the raw MsgBlock to a btcutil.Block which provides some
-	// convenience methods and things such as hash caching.
-
 	binary, _ := msg.SC.MarshalBinary()
 	commonHash := common.Sha(binary)
 	hash, _ := wire.NewShaHash(commonHash.Bytes())
 
 	iv := wire.NewInvVect(wire.InvTypeFactomFBlock, hash)
 	p.AddKnownInventory(iv)
-
 	inMsgQueue <- msg
-
 }
 
 // handleDirBlockMsg is invoked when a peer receives a dir block message.
 func (p *peer) handleDirBlockMsg(msg *wire.MsgDirBlock, buf []byte) {
-	//	util.Trace()
-	// Convert the raw MsgBlock to a btcutil.Block which provides some
-	// convenience methods and things such as hash caching.
-
 	binary, _ := msg.DBlk.MarshalBinary()
 	commonHash := common.Sha(binary)
 	hash, _ := wire.NewShaHash(commonHash.Bytes())
@@ -54,32 +38,24 @@ func (p *peer) handleDirBlockMsg(msg *wire.MsgDirBlock, buf []byte) {
 
 	inMsgQueue <- msg
 
+	delete(p.requestedBlocks, *hash)
+	delete(p.server.blockManager.requestedBlocks, *hash)
 }
 
 // handleABlockMsg is invoked when a peer receives a entry credit block message.
 func (p *peer) handleABlockMsg(msg *wire.MsgABlock, buf []byte) {
-	util.Trace()
-	// Convert the raw MsgBlock to a btcutil.Block which provides some
-	// convenience methods and things such as hash caching.
-
 	binary, _ := msg.ABlk.MarshalBinary()
 	commonHash := common.Sha(binary)
 	hash, _ := wire.NewShaHash(commonHash.Bytes())
 
 	iv := wire.NewInvVect(wire.InvTypeFactomAdminBlock, hash)
 	p.AddKnownInventory(iv)
-
 	inMsgQueue <- msg
 }
 
 // handleECBlockMsg is invoked when a peer receives a entry credit block
 // message.
 func (p *peer) handleECBlockMsg(msg *wire.MsgECBlock, buf []byte) {
-	util.Trace()
-	// Convert the raw MsgBlock to a btcutil.Block which provides some
-	// convenience methods and things such as hash caching.
-
-	// Use HeaderHash as the key for inv
 	hash := wire.FactomHashToShaHash(msg.ECBlock.Header.Hash())
 
 	iv := wire.NewInvVect(wire.InvTypeFactomEntryCreditBlock, hash)
@@ -90,10 +66,6 @@ func (p *peer) handleECBlockMsg(msg *wire.MsgECBlock, buf []byte) {
 
 // handleEBlockMsg is invoked when a peer receives an entry block bitcoin message.
 func (p *peer) handleEBlockMsg(msg *wire.MsgEBlock, buf []byte) {
-	util.Trace()
-	// Convert the raw MsgBlock to a btcutil.Block which provides some
-	// convenience methods and things such as hash caching.
-
 	binary, _ := msg.EBlk.MarshalBinary()
 	commonHash := common.Sha(binary)
 	hash, _ := wire.NewShaHash(commonHash.Bytes())
@@ -109,10 +81,6 @@ func (p *peer) handleEBlockMsg(msg *wire.MsgEBlock, buf []byte) {
 
 // handleEntryMsg is invoked when a peer receives a EBlock Entry message.
 func (p *peer) handleEntryMsg(msg *wire.MsgEntry, buf []byte) {
-	util.Trace()
-	// Convert the raw MsgBlock to a btcutil.Block which provides some
-	// convenience methods and things such as hash caching.
-
 	binary, _ := msg.Entry.MarshalBinary()
 	commonHash := common.Sha(binary)
 	hash, _ := wire.NewShaHash(commonHash.Bytes())
@@ -126,7 +94,6 @@ func (p *peer) handleEntryMsg(msg *wire.MsgEntry, buf []byte) {
 // handleGetEntryDataMsg is invoked when a peer receives a get entry data message and
 // is used to deliver entry of EBlock information.
 func (p *peer) handleGetEntryDataMsg(msg *wire.MsgGetEntryData) {
-	util.Trace()
 	numAdded := 0
 	notFound := wire.NewMsgNotFound()
 
@@ -201,7 +168,6 @@ func (p *peer) handleGetEntryDataMsg(msg *wire.MsgGetEntryData) {
 // It returns the corresponding data block like Factoid block,
 // EC block, Entry block, and Entry based on directory block's ChainID
 func (p *peer) handleGetNonDirDataMsg(msg *wire.MsgGetNonDirData) {
-	util.Trace()
 	numAdded := 0
 	notFound := wire.NewMsgNotFound()
 
@@ -291,14 +257,12 @@ func (p *peer) handleGetNonDirDataMsg(msg *wire.MsgGetNonDirData) {
 // accordingly.  We pass the message down to blockmanager which will call
 // QueueMessage with any appropriate responses.
 func (p *peer) handleDirInvMsg(msg *wire.MsgDirInv) {
-	util.Trace()
 	p.server.blockManager.QueueDirInv(msg, p)
 }
 
 // handleGetDirDataMsg is invoked when a peer receives a getdata bitcoin message and
 // is used to deliver block and transaction information.
 func (p *peer) handleGetDirDataMsg(msg *wire.MsgGetDirData) {
-	util.Trace()
 	numAdded := 0
 	notFound := wire.NewMsgNotFound()
 
@@ -367,7 +331,6 @@ func (p *peer) handleGetDirBlocksMsg(msg *wire.MsgGetDirBlocks) {
 	// Return all block hashes to the latest one (up to max per message) if
 	// no stop hash was specified.
 	// Attempt to find the ending index of the stop hash if specified.
-	util.Trace()
 	endIdx := database.AllShas //factom db
 	if !msg.HashStop.IsEqual(&zeroHash) {
 		height, err := db.FetchBlockHeightBySha(&msg.HashStop)
@@ -392,7 +355,7 @@ func (p *peer) handleGetDirBlocksMsg(msg *wire.MsgGetDirBlocks) {
 
 	}
 
-	fmt.Println("startIdx=", startIdx, ", endIdx=", endIdx)
+	peerLog.Info("startIdx=", startIdx, ", endIdx=", endIdx)
 
 	// Don't attempt to fetch more than we can put into a single message.
 	autoContinue := false
@@ -433,14 +396,12 @@ func (p *peer) handleGetDirBlocksMsg(msg *wire.MsgGetDirBlocks) {
 
 	// Send the inventory message if there is anything to send.
 	if len(invMsg.InvList) > 0 {
-		util.Trace()
 		invListLen := len(invMsg.InvList)
 		if autoContinue && invListLen == wire.MaxBlocksPerMsg {
 			// Intentionally use a copy of the final hash so there
 			// is not a reference into the inventory slice which
 			// would prevent the entire slice from being eligible
 			// for GC as soon as it's sent.
-			util.Trace()
 			continueHash := invMsg.InvList[invListLen-1].Hash
 			p.continueHash = &continueHash
 		}
@@ -451,9 +412,6 @@ func (p *peer) handleGetDirBlocksMsg(msg *wire.MsgGetDirBlocks) {
 // pushDirBlockMsg sends a dir block message for the provided block hash to the
 // connected peer.  An error is returned if the block hash is not known.
 func (p *peer) pushDirBlockMsg(sha *wire.ShaHash, doneChan, waitChan chan struct{}) error {
-	util.Trace()
-
-	//to be improved??
 	commonhash := new(common.Hash)
 	commonhash.SetBytes(sha.Bytes())
 	blk, err := db.FetchDBlockByHash(commonhash)
@@ -490,9 +448,9 @@ func (p *peer) pushDirBlockMsg(sha *wire.ShaHash, doneChan, waitChan chan struct
 	// to trigger it to issue another getblocks message for the next
 	// batch of inventory.
 	if p.continueHash != nil && p.continueHash.IsEqual(sha) {
-		util.Trace("continueHash: " + spew.Sdump(sha))
+		peerLog.Debug("continueHash: " + spew.Sdump(sha))
 		// Sleep for 5 seconds for the peer to catch up
-		time.Sleep(5 * time.Second)
+		//time.Sleep(5 * time.Second)
 
 		//
 		// Note: Rather than the latest block height, we should pass
@@ -502,7 +460,6 @@ func (p *peer) pushDirBlockMsg(sha *wire.ShaHash, doneChan, waitChan chan struct
 		//
 		//hash, _, err := db.FetchBlockHeightCache()
 		//if err == nil {
-		util.Trace()
 		invMsg := wire.NewMsgDirInvSizeHint(1)
 		iv := wire.NewInvVect(wire.InvTypeFactomDirBlock, sha) //hash)
 		invMsg.AddInvVect(iv)
@@ -519,7 +476,6 @@ func (p *peer) pushDirBlockMsg(sha *wire.ShaHash, doneChan, waitChan chan struct
 // PushGetDirBlocksMsg sends a getdirblocks message for the provided block locator
 // and stop hash.  It will ignore back-to-back duplicate requests.
 func (p *peer) PushGetDirBlocksMsg(locator blockchain.BlockLocator, stopHash *wire.ShaHash) error {
-	util.Trace()
 
 	// Extract the begin hash from the block locator, if one was specified,
 	// to use for filtering duplicate getblocks requests.
@@ -575,8 +531,6 @@ func (p *peer) pushGetNonDirDataMsg(dblock *common.DirectoryBlock) {
 // pushGetEntryDataMsg takes the passed EBlock
 // and return all the corresponding EBEntries
 func (p *peer) pushGetEntryDataMsg(eblock *common.EBlock) {
-	util.Trace()
-
 	binary, _ := eblock.MarshalBinary()
 	commonHash := common.Sha(binary)
 	hash, _ := wire.NewShaHash(commonHash.Bytes())
@@ -643,11 +597,8 @@ func (p *peer) pushABlockMsg(commonhash *common.Hash, doneChan, waitChan chan st
 // hash to the connected peer.  An error is returned if the block hash is not
 // known.
 func (p *peer) pushECBlockMsg(commonhash *common.Hash, doneChan, waitChan chan struct{}) error {
-
 	blk, err := db.FetchECBlockByHash(commonhash)
-
 	if err != nil {
-
 		if doneChan != nil {
 			doneChan <- struct{}{}
 		}
@@ -669,9 +620,7 @@ func (p *peer) pushECBlockMsg(commonhash *common.Hash, doneChan, waitChan chan s
 // connected peer.  An error is returned if the block hash is not known.
 func (p *peer) pushEBlockMsg(commonhash *common.Hash, doneChan, waitChan chan struct{}) error {
 	blk, err := db.FetchEBlockByMR(commonhash)
-
 	if err != nil {
-
 		if doneChan != nil {
 			doneChan <- struct{}{}
 		}
@@ -693,9 +642,7 @@ func (p *peer) pushEBlockMsg(commonhash *common.Hash, doneChan, waitChan chan st
 // connected peer.  An error is returned if the block hash is not known.
 func (p *peer) pushEntryMsg(commonhash *common.Hash, doneChan, waitChan chan struct{}) error {
 	entry, err := db.FetchEntryByHash(commonhash)
-
 	if err != nil {
-
 		if doneChan != nil {
 			doneChan <- struct{}{}
 		}
@@ -715,11 +662,6 @@ func (p *peer) pushEntryMsg(commonhash *common.Hash, doneChan, waitChan chan str
 
 // handleFactoidMsg
 func (p *peer) handleFactoidMsg(msg *wire.MsgFactoidTX, buf []byte) {
-	//	util.Trace()
-
-	// Convert the raw MsgBlock to a btcutil.Block which provides some
-	// convenience methods and things such as hash caching.
-
 	binary, _ := msg.Transaction.MarshalBinary()
 	commonHash := common.Sha(binary)
 	hash, _ := wire.NewShaHash(commonHash.Bytes())
@@ -729,37 +671,3 @@ func (p *peer) handleFactoidMsg(msg *wire.MsgFactoidTX, buf []byte) {
 
 	inMsgQueue <- msg
 }
-
-/*
-// pushFactoiMsg
-func (p *peer) pushFactoidMsg(commonhash *common.Hash, doneChan, waitChan chan struct{}) error {
-	//	util.Trace()
-
-	var err error //= nil
-
-	// TODO FIXME
-	// tx, err := db.FetchFactoidByHash(commonhash)
-
-	if err != nil {
-
-		if doneChan != nil {
-			doneChan <- struct{}{}
-		}
-		return err
-	}
-
-	// Once we have fetched data wait for any previous operation to finish.
-	if waitChan != nil {
-		<-waitChan
-	}
-
-	msg := wire.NewMsgFactoidTX()
-
-	// TODO FIXME
-	//	msg.Transaction = tx
-
-	p.QueueMessage(msg, doneChan)
-
-	return nil
-}
-*/

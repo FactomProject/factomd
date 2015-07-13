@@ -25,9 +25,8 @@ import (
 	"github.com/FactomProject/btcd/chaincfg"
 	//	"github.com/FactomProject/btcd/database"
 	"github.com/FactomProject/btcd/wire"
-	//	"github.com/FactomProject/btcutil"
 
-	"github.com/FactomProject/FactomCode/util"
+//	"github.com/FactomProject/btcutil"
 )
 
 const (
@@ -343,7 +342,6 @@ func (s *server) handleRelayInvMsg(state *peerState, msg relayMsg) {
 // handleBroadcastMsg deals with broadcasting messages to peers.  It is invoked
 // from the peerHandler goroutine.
 func (s *server) handleBroadcastMsg(state *peerState, bmsg *broadcastMsg) {
-	//	util.Trace()
 	state.forAllPeers(func(p *peer) {
 		excluded := false
 		for _, ep := range bmsg.excludePeers {
@@ -396,7 +394,7 @@ func (s *server) handleQuery(querymsg interface{}, state *peerState) {
 			}
 		})
 		srvrLog.Infof("nconnected= %d", nconnected)
-		util.Trace(fmt.Sprintf("nconnected= %d", nconnected))
+		//srvrLog.Info(fmt.Sprintf("nconnected= %d", nconnected))
 		msg.reply <- nconnected
 
 	case getPeerInfoMsg:
@@ -739,8 +737,6 @@ out:
 
 // AddPeer adds a new peer that has already been connected to the server.
 func (s *server) AddPeer(p *peer) {
-	//	util.Trace()
-
 	s.newPeers <- p
 
 	//	count := s.ConnectedCount()
@@ -749,8 +745,6 @@ func (s *server) AddPeer(p *peer) {
 
 // BanPeer bans a peer that has already been connected to the server by ip.
 func (s *server) BanPeer(p *peer) {
-	//	util.Trace()
-
 	s.banPeers <- p
 
 	//	count := s.ConnectedCount()
@@ -766,7 +760,6 @@ func (s *server) RelayInventory(invVect *wire.InvVect, data interface{}) {
 // BroadcastMessage sends msg to all peers currently connected to the server
 // except those in the passed peers to exclude.
 func (s *server) BroadcastMessage(msg wire.Message, exclPeers ...*peer) {
-	//	util.Trace()
 	// XXX: Need to determine if this is an alert that has already been
 	// broadcast and refrain from broadcasting again.
 	bmsg := broadcastMsg{message: msg, excludePeers: exclPeers}
