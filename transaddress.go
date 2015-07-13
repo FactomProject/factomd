@@ -13,7 +13,6 @@ package factoid
 import (
     "strings"
     "bytes"
-	"encoding/binary"
     "encoding/hex"
 	"fmt"
 )
@@ -57,7 +56,7 @@ func (t *TransAddress) UnmarshalBinaryData(data []byte) (newData []byte, err err
 		return nil, fmt.Errorf("Data source too short to UnmarshalBinary() an address: %d", len(data))
 	}
 
-	t.amount, data = binary.BigEndian.Uint64(data[0:8]), data[8:]
+	t.amount, data = DecodeVarInt(data)
 	t.address = new(Address)
 
 	data, err = t.address.UnmarshalBinaryData(data)
@@ -68,9 +67,10 @@ func (t *TransAddress) UnmarshalBinaryData(data []byte) (newData []byte, err err
 // MarshalBinary.  'nuff said
 func (a TransAddress) MarshalBinary() ([]byte, error) {
 	var out bytes.Buffer
-
-	binary.Write(&out, binary.BigEndian, uint64(a.amount))
-	data, err := a.address.MarshalBinary()
+    
+    err := EncodeVarInt(&out,a.amount)
+	if err != nil { return nil, err }
+    data, err := a.address.MarshalBinary()
 	out.Write(data)
 
 	return out.Bytes(), err
