@@ -6,9 +6,9 @@ package wire
 
 import (
 	"bytes"
+	"encoding/binary"
 	"github.com/FactomProject/FactomCode/common"
 	"io"
-	"encoding/binary"	
 )
 
 // Acknowledgement Type
@@ -56,10 +56,10 @@ func (msg *MsgAcknowledgement) GetBinaryForSignature() (data []byte, err error) 
 		}
 		buf.Write(data)
 	}
-	
+
 	binary.Write(&buf, binary.BigEndian, msg.Index)
-	
-	buf.Write([]byte{msg.Type}) 
+
+	buf.Write([]byte{msg.Type})
 
 	buf.Write(msg.Affirmation.Bytes())
 
@@ -107,9 +107,9 @@ func (msg *MsgAcknowledgement) MaxPayloadLength(pver uint32) uint32 {
 // NewMsgAcknowledgement returns a new bitcoin ping message that conforms to the Message
 // interface.  See MsgAcknowledgement for details.
 func NewMsgAcknowledgement(height uint32, index uint32, affirm *ShaHash, ackType byte) *MsgAcknowledgement {
-	
+
 	if affirm == nil {
-		affirm = new (ShaHash)
+		affirm = new(ShaHash)
 	}
 	return &MsgAcknowledgement{
 		Height:      height,
@@ -129,4 +129,3 @@ func (msg *MsgAcknowledgement) Sha() (ShaHash, error) {
 
 	return sha, nil
 }
-

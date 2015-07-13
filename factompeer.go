@@ -81,7 +81,7 @@ func (p *peer) handleECBlockMsg(msg *wire.MsgECBlock, buf []byte) {
 
 	// Use HeaderHash as the key for inv
 	hash := wire.FactomHashToShaHash(msg.ECBlock.Header.Hash())
-	
+
 	iv := wire.NewInvVect(wire.InvTypeFactomEntryCreditBlock, hash)
 	p.AddKnownInventory(iv)
 
