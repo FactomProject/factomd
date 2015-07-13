@@ -360,11 +360,13 @@ func (p *peer) handleVersionMsg(msg *wire.MsgVersion) {
 		return
 	}
 
-	if isVersionMismatch(maxProtocolVersion, msg.ProtocolVersion) {
-		fmt.Println("\n\nVERSION MISMATCH (handleVersionMsg) -- must upgrade\n\n")
-		p.Disconnect()
-		panic("Please Upgrade this code !")
-		return
+	if ClientOnly {
+		if isVersionMismatch(maxProtocolVersion, msg.ProtocolVersion) {
+			fmt.Println("\n\nVERSION MISMATCH (handleVersionMsg) -- must upgrade\n\n")
+			p.Disconnect()
+			panic("Please Upgrade this code !")
+			return
+		}
 	}
 
 	// Notify and disconnect clients that have a protocol version that is
@@ -466,13 +468,15 @@ func (p *peer) handleVersionMsg(msg *wire.MsgVersion) {
 
 	// TODO: Relay alerts.
 
-	// Protocol version mismatch -- need client upgrade !
-	if isVersionMismatch(maxProtocolVersion, int32(p.ProtocolVersion())) {
-		util.Trace(fmt.Sprintf("NEED client upgrade -- will ban & disconnect !: us=%d , peer= %d", maxProtocolVersion, p.ProtocolVersion()))
-		p.logError(fmt.Sprintf("NEED client upgrade -- will ban & disconnect !: us=%d , peer= %d", maxProtocolVersion, p.ProtocolVersion()))
-		//		p.Disconnect()
-		p.server.BanPeer(p)
-		return
+	if !ClientOnly {
+		// Protocol version mismatch -- need client upgrade !
+		if isVersionMismatch(maxProtocolVersion, int32(p.ProtocolVersion())) {
+			util.Trace(fmt.Sprintf("NEED client upgrade -- will ban & disconnect !: us=%d , peer= %d", maxProtocolVersion, p.ProtocolVersion()))
+			p.logError(fmt.Sprintf("NEED client upgrade -- will ban & disconnect !: us=%d , peer= %d", maxProtocolVersion, p.ProtocolVersion()))
+			//		p.Disconnect()
+			p.server.BanPeer(p)
+			return
+		}
 	}
 }
 
