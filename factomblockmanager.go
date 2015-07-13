@@ -9,6 +9,7 @@ import (
 	"sync/atomic"
 
 	"github.com/FactomProject/FactomCode/common"
+	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/btcd/wire"
 	"github.com/davecgh/go-spew/spew"
 )
@@ -225,45 +226,9 @@ func (b *blockManager) startSyncFactom(peers *list.List) {
 // isSyncCandidateFactom returns whether or not the peer is a candidate to consider
 // syncing from.
 func (b *blockManager) isSyncCandidateFactom(p *peer) bool {
-	/*
-		// Typically a peer is not a candidate for sync if it's not a full node,
-		// however regression test is special in that the regression tool is
-		// not a full node and still needs to be considered a sync candidate.
-		if cfg.RegressionTest {
-			// The peer is not a candidate if it's not coming from localhost
-			// or the hostname can't be determined for some reason.
-			host, _, err := net.SplitHostPort(p.addr)
-			if err != nil {
-				return false
-			}
-
-			if host != "127.0.0.1" && host != "localhost" {
-				return false
-			}
-		} else {
-			// The peer is not a candidate for sync if it's not a full node.
-			if p.services&wire.SFNodeNetwork != wire.SFNodeNetwork {
-				return false
-			}
-		}
-
-		// Candidate if all checks passed.
-	*/
-	return true
-}
-
-// HaveBlockInDB returns whether or not the chain instance has the block represented
-// by the passed hash.  This includes checking the various places a block can
-// be like part of the main chain, on a side chain, or in the orphan pool.
-//
-// This function is NOT safe for concurrent access.
-/*func HaveBlockInDB(hash *wire.ShaHash) (bool, error) {
-	util.Trace(spew.Sdump(hash))
-	dblock, _ := db.FetchDBlockByHash(hash.ToFactomHash())
-	if dblock != nil {
-		fmt.Println("dir block height=", dblock.Header.BlockHeight)
-		return true, nil
+	// Typically a peer is not a candidate for sync if it's not a Factom SERVER node,
+	if common.SERVER_NODE == util.ReadConfig().App.NodeMode {
+		return true
 	}
-	return false, nil
+	return false
 }
-*/
