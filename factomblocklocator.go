@@ -6,12 +6,11 @@ package btcd
 
 import (
 	"github.com/FactomProject/FactomCode/common"
-	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/btcd/blockchain"
 	"github.com/FactomProject/btcd/wire"
 )
 
-// BlockLocatorFromHash returns a block locator for the passed block hash.
+// DirBlockLocatorFromHash returns a block locator for the passed block hash.
 // See BlockLocator for details on the algotirhm used to create a block locator.
 //
 // In addition to the general algorithm referenced above, there are a couple of
@@ -37,32 +36,7 @@ func DirBlockLocatorFromHash(hash *wire.ShaHash) blockchain.BlockLocator {
 	// passed hash, and if it's on a side chain, also find the height at
 	// which it forks from the main chain.
 	blockHeight := int64(-1)
-	/*	node, exists := b.index[*hash]
-		if !exists {
-			// Try to look up the height for passed block hash.  Assume an
-			// error means it doesn't exist and just return the locator for
-			// the block itself.
-			block, err := b.db.FetchBlockBySha(hash)
-			if err != nil {
-				return locator
-			}
-			blockHeight = block.Height()
 
-		} else {
-			blockHeight = node.height
-
-			// Find the height at which this node forks from the main chain
-			// if the node is on a side chain.
-			if !node.inMainChain {
-				for n := node; n.parent != nil; n = n.parent {
-					if n.inMainChain {
-						forkHeight = n.height
-						break
-					}
-				}
-			}
-		}
-	*/
 	// Generate the block locators according to the algorithm described in
 	// in the BlockLocator comment and make sure to leave room for the
 	// final genesis hash.
@@ -98,10 +72,9 @@ func DirBlockLocatorFromHash(hash *wire.ShaHash) blockchain.BlockLocator {
 	return locator
 }
 
-// LatestBlockLocator returns a block locator for the latest known tip of the
+// LatestDirBlockLocator returns a block locator for the latest known tip of the
 // main (best) chain.
 func LatestDirBlockLocator() (blockchain.BlockLocator, error) {
-	util.Trace()
 	latestDirBlockHash, _, _ := db.FetchBlockHeightCache()
 
 	if latestDirBlockHash == nil {
