@@ -90,6 +90,5 @@ func GetDatabase(filename string) database.IFDatabase {
  
     db := new(database.BoltDB)
     db.Init(bucketList,instances,filename)
-    fct.Prtln("Initialize Persistent Database")
     return db
 }
