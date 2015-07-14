@@ -295,10 +295,12 @@ func(fs *FactoidState) Validate(trans fct.ITransaction) bool  {
     for _, input := range trans.GetInputs() {
         bal,ok := fct.ValidateAmounts(
             sums[input.GetAddress()],           // Will be zero the first time around 
-            fs.GetBalance(input.GetAddress()))  // Get this amount, check against bounds
-        
+            input.GetAmount())  // Get this amount, check against bounds
         if !ok { 
             return false 
+        }
+        if bal > fs.GetBalance(input.GetAddress()) {
+            return false
         }
         sums[input.GetAddress()] = bal
     }
