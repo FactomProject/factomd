@@ -230,5 +230,5 @@ func (b *blockManager) isSyncCandidateFactom(p *peer) bool {
 	if common.SERVER_NODE == util.ReadConfig().App.NodeMode {
 		return true
 	}
-	return false
+	return true
 }
