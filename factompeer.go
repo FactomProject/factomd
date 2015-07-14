@@ -560,8 +560,6 @@ func (p *peer) PushGetDirBlocksMsg(locator blockchain.BlockLocator, stopHash *wi
 // and return corresponding data block like Factoid block,
 // EC block, Entry block, and Entry
 func (p *peer) pushGetNonDirDataMsg(dblock *common.DirectoryBlock) {
-	//	util.Trace()
-
 	binary, _ := dblock.MarshalBinary()
 	commonHash := common.Sha(binary)
 	hash, _ := wire.NewShaHash(commonHash.Bytes())
@@ -594,8 +592,6 @@ func (p *peer) pushGetEntryDataMsg(eblock *common.EBlock) {
 // pushFBlockMsg sends an factoid block message for the provided block hash to the
 // connected peer.  An error is returned if the block hash is not known.
 func (p *peer) pushFBlockMsg(commonhash *common.Hash, doneChan, waitChan chan struct{}) error {
-	util.Trace()
-
 	blk, err := db.FetchFBlockByHash(commonhash)
 
 	if err != nil {
@@ -622,8 +618,6 @@ func (p *peer) pushFBlockMsg(commonhash *common.Hash, doneChan, waitChan chan st
 // pushABlockMsg sends an admin block message for the provided block hash to the
 // connected peer.  An error is returned if the block hash is not known.
 func (p *peer) pushABlockMsg(commonhash *common.Hash, doneChan, waitChan chan struct{}) error {
-	util.Trace()
-
 	blk, err := db.FetchABlockByHash(commonhash)
 
 	if err != nil {
@@ -674,8 +668,6 @@ func (p *peer) pushECBlockMsg(commonhash *common.Hash, doneChan, waitChan chan s
 // pushEBlockMsg sends a entry block message for the provided block hash to the
 // connected peer.  An error is returned if the block hash is not known.
 func (p *peer) pushEBlockMsg(commonhash *common.Hash, doneChan, waitChan chan struct{}) error {
-	util.Trace()
-
 	blk, err := db.FetchEBlockByMR(commonhash)
 
 	if err != nil {
@@ -700,8 +692,6 @@ func (p *peer) pushEBlockMsg(commonhash *common.Hash, doneChan, waitChan chan st
 // pushEntryMsg sends a EBlock entry message for the provided ebentry hash to the
 // connected peer.  An error is returned if the block hash is not known.
 func (p *peer) pushEntryMsg(commonhash *common.Hash, doneChan, waitChan chan struct{}) error {
-	util.Trace()
-
 	entry, err := db.FetchEntryByHash(commonhash)
 
 	if err != nil {
@@ -725,7 +715,7 @@ func (p *peer) pushEntryMsg(commonhash *common.Hash, doneChan, waitChan chan str
 
 // handleFactoidMsg
 func (p *peer) handleFactoidMsg(msg *wire.MsgFactoidTX, buf []byte) {
-	util.Trace()
+	//	util.Trace()
 
 	// Convert the raw MsgBlock to a btcutil.Block which provides some
 	// convenience methods and things such as hash caching.
@@ -740,6 +730,7 @@ func (p *peer) handleFactoidMsg(msg *wire.MsgFactoidTX, buf []byte) {
 	inMsgQueue <- msg
 }
 
+/*
 // pushFactoiMsg
 func (p *peer) pushFactoidMsg(commonhash *common.Hash, doneChan, waitChan chan struct{}) error {
 	//	util.Trace()
@@ -771,3 +762,4 @@ func (p *peer) pushFactoidMsg(commonhash *common.Hash, doneChan, waitChan chan s
 
 	return nil
 }
+*/

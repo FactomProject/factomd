@@ -192,30 +192,25 @@ func (p *peer) handleRevealChainMsg(msg *wire.MsgRevealChain) {
 
 // Handle factom app imcoming msg
 func (p *peer) handleCommitEntryMsg(msg *wire.MsgCommitEntry) {
-	
 	// Add the msg to inbound msg queue
 	inMsgQueue <- msg
 }
 
 // Handle factom app imcoming msg
 func (p *peer) handleRevealEntryMsg(msg *wire.MsgRevealEntry) {
-	
 	// Add the msg to inbound msg queue
 	inMsgQueue <- msg
 }
 
 // Handle factom app imcoming msg
 func (p *peer) handleAcknoledgementMsg(msg *wire.MsgAcknowledgement) {
-	
 	// Add the msg to inbound msg queue
 	inMsgQueue <- msg
 }
 
 // returns true if the message should be relayed, false otherwise
 func (p *peer) shallRelay(msg interface{}) bool {
-	
 	hash, _ := wire.NewShaHashFromStruct(msg)
-	
 	iv := wire.NewInvVect(wire.InvTypeFactomRaw, hash)
 
 	if !p.isKnownInventory(iv) {
@@ -223,6 +218,8 @@ func (p *peer) shallRelay(msg interface{}) bool {
 
 		return true
 	}
+
+	fmt.Println("******************* SHALL NOT RELAY !!!!!!!!!!! ******************")
 
 	return false
 }
