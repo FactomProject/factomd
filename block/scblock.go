@@ -236,6 +236,10 @@ func (b *FBlock) UnmarshalBinary(data []byte) (err error) {
 // generally useful.
 func (b1 *FBlock) IsEqual(block fct.IBlock) []fct.IBlock {
 
+    if(b1.endOfPeriod[9]==0){
+        b1.EndOfPeriod(1)           // Sets the end of the first period here.
+    }                               // This is what unmarshalling will do.
+    
 	b2, ok := block.(*FBlock)
 
 	if !ok || // Not the right kind of IBlock
@@ -258,6 +262,11 @@ func (b1 *FBlock) IsEqual(block fct.IBlock) []fct.IBlock {
         return append(r,b1)
     }
 
+    if b1.endOfPeriod != b2.endOfPeriod {
+        fmt.Println(b1.endOfPeriod)
+        fmt.Println(b2.endOfPeriod)
+        return append(r,b1)
+    }
 
 	for i, trans := range b1.transactions {
 		r := trans.IsEqual(b2.transactions[i]) 
