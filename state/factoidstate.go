@@ -198,7 +198,7 @@ func(fs *FactoidState) ProcessEndOfBlock(){
         panic("Failed to add coinbase transaction")
     }
     if hash != nil {
-        fs.currentBlock.SetPrevBlock(hash.Bytes())
+        fs.currentBlock.SetPrevKeyMR(hash.Bytes())
     }
     
 }
@@ -221,7 +221,7 @@ func(fs *FactoidState) ProcessEndOfBlock2(nextBlkHeight uint32) {
         panic("Failed to add coinbase transaction")
     }
     if hash != nil {
-        fs.currentBlock.SetPrevBlock(hash.Bytes())
+        fs.currentBlock.SetPrevKeyMR(hash.Bytes())
     }
     
 }
@@ -249,11 +249,11 @@ func(fs *FactoidState) LoadState() error  {
     for {
         if blk == nil {return fmt.Errorf("Block not found or not formated properly") }
         hashes = append(hashes, blk.GetHash())
-        if bytes.Compare(blk.GetPrevBlock().Bytes(),fct.ZERO_HASH) == 0 { 
+        if bytes.Compare(blk.GetPrevKeyMR().Bytes(),fct.ZERO_HASH) == 0 { 
             break 
         }
-        tblk := fs.GetTransactionBlock(blk.GetPrevBlock())
-        if tblk.GetHash().IsEqual(blk.GetPrevBlock()) != nil {
+        tblk := fs.GetTransactionBlock(blk.GetPrevKeyMR())
+        if tblk.GetHash().IsEqual(blk.GetPrevKeyMR()) != nil {
             return fmt.Errorf("Hash Failure!  Database must be rebuilt")
         }
         blk = tblk
@@ -274,7 +274,7 @@ func(fs *FactoidState) LoadState() error  {
     }
     fs.dbheight = blk.GetDBHeight()+1
     fs.currentBlock = block.NewFBlock(fs.GetFactoshisPerEC(),fs.dbheight)
-    fs.currentBlock.SetPrevBlock(blk.GetHash().Bytes())
+    fs.currentBlock.SetPrevKeyMR(blk.GetHash().Bytes())
     return nil
 }
     
