@@ -99,6 +99,10 @@ type IFactoidState interface {
     
     // Get the current Directory Block Height
     GetDBHeight() uint32
+    
+    // Set the End of Period.  Currently, each block in Factom is broken
+    // into ten, one minute periods.
+    EndOfPeriod(period int)
 }
 
 type FactoidState struct {
@@ -111,6 +115,11 @@ type FactoidState struct {
 }
 
 var _ IFactoidState = (*FactoidState)(nil)
+
+func(fs *FactoidState) EndOfPeriod(period int) {
+    fs.GetCurrentBlock().EndOfPeriod(period)
+}
+
 
 func(fs *FactoidState) GetWallet() wallet.ISCWallet {
     return fs.wallet

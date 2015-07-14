@@ -88,9 +88,16 @@ func Test_create_genesis_FactoidState (test *testing.T) {
     // Create a number of blocks (i)
     for i:=0; i<10; i++ {
         
+        periodMark := 1
         fct.Prt(" ",fs.GetDBHeight(),":",cnt,"--",fs.stats.badAddresses)
         // Create a new block
         for j:=cnt; cnt < j+20; {      // Execute for some number RECORDED transactions
+            
+            
+            if periodMark <=10 && cnt%2==0 {
+                fs.EndOfPeriod(periodMark)
+                periodMark++
+            }
             
             tx := fs.newTransaction()
             

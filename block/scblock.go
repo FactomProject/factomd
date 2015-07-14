@@ -46,6 +46,12 @@ type IFBlock interface {
 	SetUTXOCommit([]byte) 
     // Accessors for the transactions
     GetTransactions() []fct.ITransaction
+    
+    // Mark an end of Minute.  If there are multiple calls with the same minute value
+    // the later one simply overwrites the previous one.  Since this is an informational 
+    // data point, we do not enforce much, other than order (the end of period one can't
+    // come before period 2.  We just adjust the periods accordingly.
+    EndOfPeriod(min int)
 }
 
 // FBlockHeader defines information about a block and is used in the bitcoin
@@ -59,15 +65,29 @@ type FBlock struct {
 	MerkleRoot fct.IHash // Merkle root of the Factoid transactions which accompany this block.
 	PrevBlock  fct.IHash // Key Merkle root of previous block.
 	PrevHash3  fct.IHash // Sha3 of the previous Factoid Block
-	ExchRate   uint64   // Factoshis per Entry Credit
-	DBHeight   uint32   // Directory Block height
+	ExchRate   uint64    // Factoshis per Entry Credit
+	DBHeight   uint32    // Directory Block height
 	UTXOCommit fct.IHash // This field will hold a Merkle root of an array containing all unspent transactions.
 	// Transaction count
 	// body size
 	transactions []fct.ITransaction // List of transactions in this block
+	
+	endOfPeriod [10]int  // End of Minute transaction heights.  The mark the height of the first entry of 
+                         // the NEXT period.  This entry may not exist.  The Coinbase transaction is considered
+                         // to be in the first period.  Factom's periods will initially be a minute long, and
+                         // there will be 10 of them.  This may change in the future.
 }
 
 var _ IFBlock = (*FBlock)(nil)
+
+func (b *FBlock) EndOfPeriod(period int) {
+    period = period-1                            // Make the period zero based.  
+    if period < 0 || period >= 10 { return }     // Ignore out of range period.
+    for i := period; i < 10; i++ {               // Set the period and all following to the height
+        b.endOfPeriod[i] = len(b.transactions)
+    }
+}
+
 
 func (b *FBlock) GetTransactions() []fct.ITransaction {
     return b.transactions
@@ -91,7 +111,14 @@ func (b *FBlock) GetHash() fct.IHash {
 
 func (b *FBlock) MarshalTrans() ([]byte, error) {
 	var out bytes.Buffer
-	for _, trans := range b.transactions {
+	var periodMark = 0;
+	for i, trans := range b.transactions {
+        
+        for periodMark < len(b.endOfPeriod) && i == b.endOfPeriod[periodMark] {
+            out.WriteByte(0xFF)
+            periodMark++
+        }
+        
 		data, err := trans.MarshalBinary()
 		if err != nil {
 			return nil, err
@@ -141,10 +168,10 @@ func (b *FBlock) MarshalBinary() ([]byte, error) {
 	}
 	out.Write(data)
     
-	binary.Write(&out, binary.BigEndian, uint64(len(b.transactions)))
+	binary.Write(&out, binary.BigEndian, uint32(len(b.transactions)))
 
 	transdata, err := b.MarshalTrans()                           // first get trans data
-	binary.Write(&out, binary.BigEndian, uint64(len(transdata))) // write out its length
+	binary.Write(&out, binary.BigEndian, uint32(len(transdata))) // write out its length
 	out.Write(transdata)                                         // write out trans data
 
 	return out.Bytes(), nil
@@ -185,12 +212,20 @@ func (b *FBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	cnt, data := binary.BigEndian.Uint64(data[0:8]), data[8:]
+	cnt, data := binary.BigEndian.Uint32(data[0:4]), data[4:]
 
-	data = data[8:] // Just skip the size... We don't really need it.
+	data = data[4:] // Just skip the size... We don't really need it.
 
 	b.transactions = make([]fct.ITransaction, cnt, cnt)
-	for i := uint64(0); i < cnt; i++ {
+    var periodMark = 1
+	for i := uint32(0); i < cnt; i++ {
+        
+        for data[0] == 0xFF {
+            b.EndOfPeriod(periodMark)
+            data = data[1:]
+            periodMark++
+        }
+        
         trans := new(fct.Transaction)
         data,err = trans.UnmarshalBinaryData(data)
         if err != nil {
@@ -423,16 +458,23 @@ func (b FBlock) MarshalText() (text []byte, err error) {
     out.WriteString("\n  UTXOCommit:    ")
 	out.WriteString(b.UTXOCommit.String())
 	out.WriteString("\n  #Transactions: ")
-	fct.WriteNumber64(&out, uint64(len(b.transactions)))
+	fct.WriteNumber32(&out, uint32(len(b.transactions)))
 	transdata, err := b.MarshalTrans()
 	if err != nil {
 		return out.Bytes(), err
 	}
 	out.WriteString("\n  Body Size:     ")
-	fct.WriteNumber64(&out, uint64(len(transdata)))
+	fct.WriteNumber32(&out, uint32(len(transdata)))
 	out.WriteString("\n\n")
-	for _, trans := range b.transactions {
-		txt, err := trans.MarshalText()
+    markPeriod := 0
+	for i, trans := range b.transactions {
+		
+        for markPeriod < 10 && i == b.endOfPeriod[markPeriod] {
+            out.WriteString(fmt.Sprintf("\n   End of Minute %d\n\n",markPeriod+1))
+            markPeriod++
+        }
+        
+        txt, err := trans.MarshalText()
 		if err != nil {
 			return out.Bytes(), err
 		}
