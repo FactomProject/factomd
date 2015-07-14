@@ -157,7 +157,9 @@ func Test_create_genesis_FactoidState (test *testing.T) {
             }
             
         }
-        fs.ProcessEndOfBlock()
+//         blk:=fs.GetCurrentBlock()       // Get Current block, but hashes are set by processing.
+        fs.ProcessEndOfBlock()             // Process the block.
+//         fmt.Println(blk)                // Now print it.
     }
     fmt.Println("\nDone")
 }

@@ -291,12 +291,10 @@ func (b *FBlock) SetPrevFullHash(hash[]byte)  {
 }
 
 func (b *FBlock) CalculateHashes() {
-    // TODO calculate the PrevFullHash
     hashes := make([]fct.IHash,0,len(b.transactions))
     for _,trans := range b.transactions{
         hashes = append(hashes,trans.GetHash())
     }
-
     b.BodyMR = fct.ComputeMerkleRoot(hashes)
 }
 
@@ -423,13 +421,13 @@ func (b FBlock) MarshalText() (text []byte, err error) {
 	out.WriteString("  ChainID:       ")
 	out.WriteString(hex.EncodeToString(fct.FACTOID_CHAINID))
     if b.BodyMR == nil { b.BodyMR = new (fct.Hash) }
-    out.WriteString("\n  BodyMR:    ")
+    out.WriteString("\n  BodyMR:        ")
     out.WriteString(b.BodyMR.String())
     if b.PrevKeyMR == nil { b.PrevKeyMR = new (fct.Hash) }
     out.WriteString("\n  PrevKeyMR:     ")
 	out.WriteString(b.PrevKeyMR.String())
     if b.PrevFullHash == nil { b.PrevFullHash = new (fct.Hash) }
-    out.WriteString("\n  PrevFullHash:     ")
+    out.WriteString("\n  PrevFullHash:  ")
 	out.WriteString(b.PrevFullHash.String())
 	out.WriteString("\n  ExchRate:      ")
 	fct.WriteNumber64(&out, b.ExchRate)
@@ -445,6 +443,7 @@ func (b FBlock) MarshalText() (text []byte, err error) {
 	fct.WriteNumber32(&out, uint32(len(transdata)))
 	out.WriteString("\n\n")
     markPeriod := 0
+   
 	for i, trans := range b.transactions {
 		
         for markPeriod < 10 && i == b.endOfPeriod[markPeriod] {

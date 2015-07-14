@@ -181,10 +181,12 @@ func(fs *FactoidState) ProcessEndOfMinute() {
 // End of Block means packing the current block away, and setting 
 // up the next block.
 func(fs *FactoidState) ProcessEndOfBlock(){
-    var hash fct.IHash
+    var hash,hash2 fct.IHash
 
     if fs.currentBlock != nil {             // If no blocks, the current block is nil
         hash = fs.currentBlock.GetHash()
+        bin, _ := fs.currentBlock.MarshalBinary()
+        hash2 = fct.Sha(bin)
         fs.PutTransactionBlock(hash,fs.currentBlock)
         fs.PutTransactionBlock(fct.FACTOID_CHAINID_HASH,fs.currentBlock)
     }
@@ -199,6 +201,7 @@ func(fs *FactoidState) ProcessEndOfBlock(){
     }
     if hash != nil {
         fs.currentBlock.SetPrevKeyMR(hash.Bytes())
+        fs.currentBlock.SetPrevFullHash(hash2.Bytes())
     }
     
 }
@@ -207,10 +210,12 @@ func(fs *FactoidState) ProcessEndOfBlock(){
 // up the next block.
 // this function is to replace the existing function: ProcessEndOfBlock
 func(fs *FactoidState) ProcessEndOfBlock2(nextBlkHeight uint32) {
-    var hash fct.IHash
+    var hash,hash2 fct.IHash
     
     if fs.currentBlock != nil {             // If no blocks, the current block is nil
         hash = fs.currentBlock.GetHash()
+        bin, _ := fs.currentBlock.MarshalBinary()
+        hash2 = fct.Sha(bin)
     }
     
     fs.currentBlock = block.NewFBlock(fs.GetFactoshisPerEC(), nextBlkHeight)
@@ -222,6 +227,7 @@ func(fs *FactoidState) ProcessEndOfBlock2(nextBlkHeight uint32) {
     }
     if hash != nil {
         fs.currentBlock.SetPrevKeyMR(hash.Bytes())
+        fs.currentBlock.SetPrevFullHash(hash2.Bytes())
     }
     
 }
