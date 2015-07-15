@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	prand "math/rand"
 	"net"
 	"strconv"
@@ -359,10 +360,13 @@ func (p *peer) handleVersionMsg(msg *wire.MsgVersion) {
 	}
 
 	if ClientOnly {
-		if isVersionMismatch(maxProtocolVersion, msg.ProtocolVersion) {
-			peerLog.Warn("\n\nVERSION MISMATCH (handleVersionMsg) -- must upgrade\n\n")
+		if isVersionMismatch(maxProtocolVersion, msg.ProtocolVersion) {		
+			errmsg := "\n\n******************** - IMPORTANT - ****************************\n\n"
+			errmsg += "\n\n      VERSION MISMATCH -- Please upgrade your software! \n\n"
+			errmsg += "\n\n***************************************************************\n\n"
+			peerLog.Error(errmsg)	
 			p.Disconnect()
-			panic("Please Upgrade this code !")
+			os.Exit(1)
 			//return
 		}
 	}
