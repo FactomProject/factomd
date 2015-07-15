@@ -130,10 +130,10 @@ func (p *peer) handleGetEntryDataMsg(msg *wire.MsgGetEntryData) {
 			return
 		}
 
-		for _, ebEntry := range blk.EBEntries {
+		for _, ebEntry := range blk.Body.EBEntries {
 
 			var err error
-			err = p.pushEntryMsg(ebEntry.EntryHash, c, waitChan)
+			err = p.pushEntryMsg(ebEntry, c, waitChan)
 			if err != nil {
 				notFound.AddInvVect(iv)
 				// When there is a failure fetching the final entry
