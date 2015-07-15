@@ -42,7 +42,7 @@ func (msg *MsgEBlock) BtcDecode(r io.Reader, pver uint32) error {
 		return err
 	}
 
-	msg.EBlk = new(common.EBlock)
+	msg.EBlk = common.NewEBlock()
 	err = msg.EBlk.UnmarshalBinary(bytes)
 	if err != nil {
 		return err
