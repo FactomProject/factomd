@@ -190,7 +190,7 @@ a JSON object is provided with the following:
 	"size":n,			# Block size as numeric.
 	"height":n,			# Block height as numeric.
 	"version":n,			# Block version as numeric.
-	"merkelroot":"...",		# The merkle root of the block.
+	"merkleroot":"...",		# The merkle root of the block.
 	"tx" : [	# the transactions in the block as an array of strings.
 		"transactionid",
 		...
