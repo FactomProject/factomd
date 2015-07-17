@@ -30,7 +30,7 @@ import (
 
 const (
 	// maxProtocolVersion is the max protocol version the peer supports.
-	maxProtocolVersion = 1000 //version starts from 1000 for Factom
+	maxProtocolVersion = 1001 //version starts from 1000 for Factom
 
 	// outputBufferSize is the number of elements the output channels use.
 	outputBufferSize = 50
