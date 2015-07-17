@@ -12,6 +12,7 @@ import (
 	"github.com/FactomProject/btcd/blockchain"
 	"github.com/FactomProject/btcd/wire"
 	"github.com/davecgh/go-spew/spew"
+	"time"
 )
 
 // handleFBlockMsg is invoked when a peer receives a factoid block message.
@@ -450,7 +451,7 @@ func (p *peer) pushDirBlockMsg(sha *wire.ShaHash, doneChan, waitChan chan struct
 	if p.continueHash != nil && p.continueHash.IsEqual(sha) {
 		peerLog.Debug("continueHash: " + spew.Sdump(sha))
 		// Sleep for 5 seconds for the peer to catch up
-		//time.Sleep(5 * time.Second)
+		time.Sleep(5 * time.Second)
 
 		//
 		// Note: Rather than the latest block height, we should pass
