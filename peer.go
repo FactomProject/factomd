@@ -9,9 +9,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
 	prand "math/rand"
 	"net"
+	"os"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -27,6 +27,8 @@ import (
 
 	"github.com/FactomProject/FactomCode/util"
 )
+
+var _ = util.Trace
 
 const (
 	// maxProtocolVersion is the max protocol version the peer supports.
@@ -360,11 +362,11 @@ func (p *peer) handleVersionMsg(msg *wire.MsgVersion) {
 	}
 
 	if ClientOnly {
-		if isVersionMismatch(maxProtocolVersion, msg.ProtocolVersion) {		
+		if isVersionMismatch(maxProtocolVersion, msg.ProtocolVersion) {
 			errmsg := "\n\n******************** - IMPORTANT - ****************************\n\n"
 			errmsg += "\n\n      VERSION MISMATCH -- Please upgrade your software! \n\n"
 			errmsg += "\n\n***************************************************************\n\n"
-			peerLog.Error(errmsg)	
+			peerLog.Error(errmsg)
 			p.Disconnect()
 			os.Exit(1)
 			//return
@@ -515,7 +517,7 @@ func (p *peer) pushTxMsg(sha *wire.ShaHash, doneChan, waitChan chan struct{}) er
 // pushBlockMsg sends a block message for the provided block hash to the
 // connected peer.  An error is returned if the block hash is not known.
 func (p *peer) pushBlockMsg(sha *wire.ShaHash, doneChan, waitChan chan struct{}) error {
-	util.Trace("NOT IMPLEMENTED - NEEDED???")
+	//util.Trace("NOT IMPLEMENTED - NEEDED???")
 	panic(1111)
 	/*
 			blk, err := p.server.db.FetchBlockBySha(sha)

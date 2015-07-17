@@ -66,13 +66,13 @@ func factoid_CountCheck(tx *MsgTx) bool {
 */
 
 func readRCD(r io.Reader, pver uint32, rcd *RCDreveal) error {
-	util.Trace("NOT IMPLEMENTED !!!")
+	//util.Trace("NOT IMPLEMENTED !!!")
 
 	return nil
 }
 
 func writeRCD(w io.Writer, pver uint32, rcd *RCDreveal) error {
-	util.Trace("NOT IMPLEMENTED !!!")
+	//util.Trace("NOT IMPLEMENTED !!!")
 
 	return nil
 }
@@ -128,7 +128,7 @@ func writeBitfield(w io.Writer, pver uint32, sig *TxSig) error {
 
 // readOutPoint reads the next sequence of bytes from r as an OutPoint.
 func readOutPoint(r io.Reader, pver uint32, op *OutPoint) error {
-	util.Trace()
+	//util.Trace()
 
 	_, err := io.ReadFull(r, op.Hash[:])
 	if err != nil {
@@ -168,7 +168,7 @@ func writeOutPoint(w io.Writer, pver uint32, op *OutPoint) error {
 
 // readTxIn reads the next sequence of bytes from r as a transaction input
 func readTxIn(r io.Reader, pver uint32, ti *TxIn) error {
-	util.Trace()
+	//util.Trace()
 	var op OutPoint
 
 	err := readOutPoint(r, pver, &op)
@@ -291,7 +291,7 @@ func (msg *MsgTx) BtcDecode(r io.Reader, pver uint32) error {
 	msg.LockTime = int64(binary.BigEndian.Uint64(full8slice))
 
 	if !factoid.FactoidTx_LocktimeCheck(msg.LockTime) {
-		util.Trace("LOCKTIME error: MsgTx= " + spew.Sdump(*msg))
+		//util.Trace("LOCKTIME error: MsgTx= " + spew.Sdump(*msg))
 		return errors.New("fTx decode locktime check")
 	}
 
@@ -299,7 +299,7 @@ func (msg *MsgTx) BtcDecode(r io.Reader, pver uint32) error {
 	if err != nil {
 		return err
 	}
-	util.Trace(fmt.Sprintf("outcount=%d\n", outcount))
+	//util.Trace(fmt.Sprintf("outcount=%d\n", outcount))
 
 	// Prevent more input transactions than could possibly fit into a
 	// message.  It would be possible to cause memory exhaustion and panics
@@ -352,7 +352,7 @@ func (msg *MsgTx) BtcDecode(r io.Reader, pver uint32) error {
 	//	util.Trace()
 
 	incount, err := readVarInt(r, pver)
-	util.Trace(fmt.Sprintf("incount=%d\n", incount))
+	//util.Trace(fmt.Sprintf("incount=%d\n", incount))
 
 	msg.TxIn = make([]*TxIn, incount)
 	for i := uint64(0); i < incount; i++ {
@@ -406,7 +406,7 @@ func (msg *MsgTx) BtcDecode(r io.Reader, pver uint32) error {
 		}
 		msg.TxSig[i] = &sig
 	}
-	util.Trace()
+	//util.Trace()
 
 	// ----------------------------------------------
 	if !factoid_CountCheck(msg) {
@@ -584,7 +584,7 @@ func (t *TxIn) SerializeSize() int {
 }
 
 func (rcd *RCDreveal) SerializeSize() int {
-	util.Trace("NOT IMPLEMENTED !!!")
+	//util.Trace("NOT IMPLEMENTED !!!")
 
 	return 0
 }
@@ -605,7 +605,7 @@ func (sig *TxSig) SerializeSize() int {
 // SerializeSize returns the number of bytes it would take to serialize the
 // the transaction.
 func (msg *MsgTx) SerializeSize() int {
-	util.Trace()
+	//util.Trace()
 
 	n := 1 + // 1 byte version
 		5 // 5 bytes locktime
@@ -639,14 +639,14 @@ func (msg *MsgTx) SerializeSize() int {
 	// FIXME
 	// TODO: count TxSig impact here
 
-	util.Trace(fmt.Sprintf("n= %d\n", n))
+	//util.Trace(fmt.Sprintf("n= %d\n", n))
 
 	return n
 }
 
 // TxSha generates the ShaHash name for the transaction.
 func (msg *MsgTx) TxSha() (ShaHash, error) {
-	util.Trace()
+	//util.Trace()
 
 	if !disableSpew {
 		fmt.Println("TxSha spew: ", spew.Sdump(*msg))
@@ -667,7 +667,7 @@ func (msg *MsgTx) TxSha() (ShaHash, error) {
 	// a potential error to help future proof the API should a failure
 	// become possible.
 
-	util.Trace(sha.String())
+	//util.Trace(sha.String())
 
 	return sha, nil
 }
@@ -717,11 +717,11 @@ func (msg *MsgTx) AddTxIn(ti *TxIn) {
 
 // AddTxOut adds a transaction output to the message.
 func (msg *MsgTx) AddTxOut(to *TxOut) {
-	util.Trace("BEGIN msg= " + spew.Sdump(msg))
+	//util.Trace("BEGIN msg= " + spew.Sdump(msg))
 
 	msg.TxOut = append(msg.TxOut, to)
 
-	util.Trace("END msg= " + spew.Sdump(msg))
+	//util.Trace("END msg= " + spew.Sdump(msg))
 }
 
 // AddECOut adds a transaction output to the message.

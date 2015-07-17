@@ -99,9 +99,9 @@ func factomForkInit(s *server) {
 				switch msg.EOM_Type {
 
 				case wire.END_MINUTE_10:
-					util.Trace("EOM10")
+					//util.Trace("EOM10")
 				default:
-					util.Trace("default")
+					//util.Trace("default")
 				}
 			*/
 
@@ -138,7 +138,7 @@ func Start_btcd(
 	if ClientOnly {
 		fmt.Println("\n\n>>>>>>>>>>>>>>>>>  CLIENT MODE <<<<<<<<<<<<<<<<<<<<<<<\n\n")
 	} else {
-        fmt.Println("\n\n>>>>>>>>>>>>>>>>>  SERVER MODE <<<<<<<<<<<<<<<<<<<<<<<\n\n")
+		fmt.Println("\n\n>>>>>>>>>>>>>>>>>  SERVER MODE <<<<<<<<<<<<<<<<<<<<<<<\n\n")
 	}
 
 	db = ldb
@@ -242,7 +242,7 @@ func fakehook1(msg wire.Message, msgHash *wire.ShaHash) error {
 }
 
 func factom_PL_hook(tx *btcutil.Tx, label string) error {
-	util.Trace("label= " + label)
+	//util.Trace("label= " + label)
 
 	_ = fakehook1(tx.MsgTx(), tx.Sha())
 
@@ -256,7 +256,7 @@ func global_DeleteMemPoolEntry(hash *wire.ShaHash) {
 
 // check a few btcd-related flags for sanity in our fork
 func (b *blockManager) factomChecks() {
-	util.Trace()
+	//util.Trace()
 
 	if cfg.AddrIndex {
 		panic(errors.New("AddrIndex must be disabled and it is NOT !!!"))
@@ -275,13 +275,13 @@ func (b *blockManager) factomChecks() {
 		panic(errors.New("TestNet mode is NOT SUPPORTED (remove the option from the command line or from the .conf file)!"))
 	}
 
-	util.Trace()
+	//util.Trace()
 }
 
 // feed all incoming Txs to the inner Factom code (for Jack)
 // TODO: do this after proper mempool/orphanpool/validity triangulation & checks
 func factomIngressTx_hook(tx *wire.MsgTx) error {
-	util.Trace()
+	//util.Trace()
 
 	ecmap := make(map[wire.ShaHash]uint64)
 
@@ -308,7 +308,7 @@ func factomIngressTx_hook(tx *wire.MsgTx) error {
 }
 
 func factomIngressBlock_hook(hash *wire.ShaHash) error {
-	util.Trace(fmt.Sprintf("hash: %s", hash))
+	//util.Trace(fmt.Sprintf("hash: %s", hash))
 
 	fbo := &wire.MsgInt_FactoidBlock{
 		ShaHash: *hash}
@@ -323,7 +323,7 @@ func factomIngressBlock_hook(hash *wire.ShaHash) error {
 func ExtractPkScriptAddrs(pkScript []byte, chainParams *chaincfg.Params) ([]btcutil.Address, int, error) {
 	oldWay := false
 
-	util.Trace("bytes= " + spew.Sdump(pkScript))
+	//util.Trace("bytes= " + spew.Sdump(pkScript))
 
 	var addrs []btcutil.Address
 	var requiredSigs int
@@ -353,7 +353,7 @@ func ExtractPkScriptAddrs(pkScript []byte, chainParams *chaincfg.Params) ([]btcu
 		}
 	}
 
-	util.Trace("addrs= " + spew.Sdump(addrs))
+	//util.Trace("addrs= " + spew.Sdump(addrs))
 
 	return addrs, requiredSigs, nil
 }
@@ -363,7 +363,7 @@ func ExtractPkScriptAddrs(pkScript []byte, chainParams *chaincfg.Params) ([]btcu
 func PayToAddrScript(addr btcutil.Address) ([]byte, error) {
 	scrAddr := addr.ScriptAddress()
 
-	util.Trace("scrAddr= " + spew.Sdump(scrAddr))
+	//util.Trace("scrAddr= " + spew.Sdump(scrAddr))
 
 	return scrAddr, nil
 
