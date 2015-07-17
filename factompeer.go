@@ -6,7 +6,6 @@ package btcd
 
 import (
 	"encoding/hex"
-	"time"
 
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/database"
