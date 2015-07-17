@@ -79,6 +79,12 @@ func Start() {
     // can cover the transaction.  Use validate to do that.
     server.Post("/v1/factoid-sign-transaction/(.*)", handlers.HandleFactoidSignTransaction)
     
+    // New Seed
+    // localhost:8089/v1/factoid-new-seed/<data>
+    // hashes the given data to create a new seed from which to generate addresses.
+    // The point is to create unique and secure addresses for this user.
+    server.Post("/v1/factoid-new-seed/(.*)", handlers.HandleFactoidNewSeed)
+    
 	// Commit Chain
 	// localhost:8089/v1/commit-chain/
 	// sign a binary Chain Commit with an entry credit key and submit it to the

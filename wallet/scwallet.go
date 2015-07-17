@@ -209,6 +209,14 @@ func (w *SCWallet) GenerateFctAddress(name []byte, m int, n int) (hash fct.IAddr
 	return w.generateAddress("fct", name, m, n)
 }
 
+func (w *SCWallet) NewSeed(data []byte) {
+    if len(data) == 0 {return}      // No data, no change
+    hasher := sha512.New()
+    hasher.Write(data)
+    seedhash := hasher.Sum(nil)
+    w.nextSeed = seedhash
+}
+
 func (w *SCWallet) Init(a ...interface{}) {
 	if w.isInitialized != false {
 		return
