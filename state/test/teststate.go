@@ -57,8 +57,8 @@ func(fs *Test_state) GetTime32() int64 {
     return time.Now().Unix()
 }
 
-func(fs *Test_state) newTransaction() fct.ITransaction {
-    
+func(fs *Test_state) newTransaction(maxIn, maxOut int) fct.ITransaction {
+   
     fs.inputAddresses = make([]fct.IAddress,0,20)
     for _,output := range fs.outputAddresses {
         bal := fs.GetBalance(output)
@@ -85,8 +85,14 @@ func(fs *Test_state) newTransaction() fct.ITransaction {
     }
 
     // Get one to five inputs, and one to five outputs
-    numInputs := rand.Int()%5+1
-    numOutputs := rand.Int()%5+1
+    numInputs := rand.Int()%maxIn+1
+    numOutputs := rand.Int()%maxOut+1
+
+    numInputs = (numInputs%(len(fs.inputAddresses)-2))+1
+    numInputs = (numInputs%(len(fs.outputAddresses)-2))+1
+    
+   // fmt.Println("inputs outputs",numInputs,numOutputs, "limits",len(fs.inputAddresses),len(fs.outputAddresses))
+    
     
     // Get my input and output addresses
     inputs := makeList(fs.inputAddresses,numInputs)
@@ -122,7 +128,8 @@ func(fs *Test_state) newTransaction() fct.ITransaction {
     }
     if !fs.Validate(t) {
         fs.stats.badAddresses += 1
-        return fs.newTransaction() 
+        fmt.Print("Bad Transactions: ",fs.stats.badAddresses,"\r")
+        return fs.newTransaction(maxIn,maxOut) 
     }
     return t
 }
