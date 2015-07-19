@@ -40,6 +40,7 @@ func Test_setup_FactoidState (test *testing.T) {
     
     fs.inputAddresses = make([]fct.IAddress,0,10)
     fs.outputAddresses = make([]fct.IAddress,0,10)
+    fs.ecoutputAddresses = make([]fct.IAddress,0,10)
     fs.twallet = new(wallet.SCWallet)              // Wallet for our tests
     fs.twallet.Init()
     
@@ -54,13 +55,20 @@ func Test_setup_FactoidState (test *testing.T) {
         if err != nil { fct.Prtln(err); test.Fail() }
         fs.outputAddresses = append(fs.outputAddresses,addr)
     }
+    for i:=0; i<1000; i++ {
+        addr, err := fs.twallet.GenerateECAddress([]byte("testecout_"+cv.Itoa(i)))
+        if err != nil { fct.Prtln(err); test.Fail() }
+        fs.ecoutputAddresses = append(fs.outputAddresses,addr)
+    }
 }
 
 
 func Test_create_genesis_FactoidState (test *testing.T) {
-     
+    fmt.Print("\033[0;0H                                      ")
+    fmt.Print("\033[40;0H")
+    
     numBlocks       := 5000
-    numTransactions := 200
+    numTransactions := 10
     maxIn           := 10
     maxOut          := 20
     if testing.Short() {
@@ -90,7 +98,6 @@ func Test_create_genesis_FactoidState (test *testing.T) {
     }
     // Set the price for Factoids
     fs.SetFactoshisPerEC(10000)
-    fct.Prt("Loading....")
     err := fs.LoadState()
     if err != nil {
         fct.Prtln("Failed to load:", err)
@@ -103,11 +110,10 @@ func Test_create_genesis_FactoidState (test *testing.T) {
     for i:=0; i<numBlocks; i++ {
         
         periodMark := 1
-        fct.Prt(" ",fs.GetDBHeight(),":",cnt,"--",fs.stats.badAddresses)
         // Create a new block
         for j:=cnt; cnt < j+numTransactions; {      // Execute for some number RECORDED transactions
             
-            if periodMark <=10 && cnt%2==0 {
+            if periodMark <=10 && cnt%(numTransactions/10)==0 {
                 fs.EndOfPeriod(periodMark)
                 periodMark++
             }
@@ -118,18 +124,22 @@ func Test_create_genesis_FactoidState (test *testing.T) {
             m,err := tx.MarshalBinary()
             if err != nil { fmt.Println("\n Failed to Marshal: ",err); test.Fail(); return } 
             if len(m) > max { 
+                fmt.Print("\033[33;0H")
                 max = len(m)
-                fmt.Println("Transaction",cnt,"is",len(m),"Bytes long. ",
+                fmt.Println("Max Transaction",cnt,"is",len(m),"Bytes long. ",
                             len(tx.GetInputs()), "inputs and",
                             len(tx.GetOutputs()),"outputs and",
-                            len(tx.GetECOutputs()),"ecoutputs",)
+                            len(tx.GetECOutputs()),"ecoutputs                       ",)
+                fmt.Print("\033[40;0H")
             }
             if len(m) < min { 
+                fmt.Print("\033[34;0H")
                 min = len(m)
-                fmt.Println("Transaction",cnt,"is",len(m),"Bytes long. ",
+                fmt.Println("Min Transaction",cnt,"is",len(m),"Bytes long. ",
                             len(tx.GetInputs()), "inputs and",
                             len(tx.GetOutputs()),"outputs and",
-                            len(tx.GetECOutputs()),"ecoutputs",)
+                            len(tx.GetECOutputs()),"ecoutputs                       ",)
+                fmt.Print("\033[40;0H")
             }
             good := true
             k := rand.Int()%(len(m)-2)
@@ -176,7 +186,9 @@ func Test_create_genesis_FactoidState (test *testing.T) {
             } 
             
             if good {
-                fmt.Print("\rBad Transactions: ",fs.stats.badAddresses,"   Total transactions: ",cnt,"\r")
+                fmt.Print("\033[32;0H")
+                fmt.Println("Bad Transactions: ",fs.stats.badAddresses,"   Total transactions: ",cnt,"\r")
+                fmt.Print("\033[40;0H")
                 time.Sleep(9000)
                 cnt += 1
             }else{
@@ -193,7 +205,10 @@ func Test_create_genesis_FactoidState (test *testing.T) {
         err = blk.UnmarshalBinary(blkdata)
         if err != nil { test.Fail(); return }
         if len(blkdata)>maxblk {
-            fmt.Println("Block",blk.GetDBHeight(),"is",len(blkdata),"bytes")
+            fmt.Printf("\033[%d;%dH",(blk.GetDBHeight())%30+1, (((blk.GetDBHeight())/30)%5)*25)
+            fmt.Printf("Blk:%6d-%8dB   ",blk.GetDBHeight(),len(blkdata))
+            fmt.Printf("\033[%d;%dH",(blk.GetDBHeight())%30+2, (((blk.GetDBHeight())/30)%5)*25)
+            fmt.Printf("%24s","====================    ")
         }
 //         blk:=fs.GetCurrentBlock()       // Get Current block, but hashes are set by processing.
         fs.ProcessEndOfBlock()             // Process the block.

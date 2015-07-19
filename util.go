@@ -165,6 +165,7 @@ func ConvertFixedPoint(amt string) (string, error) {
     var v int64
     var err error
     index := strings.Index(amt,".");
+    if  index == 0 { amt = "0"+amt; index++ }
     if  index < 0 {
         v, err =strconv.ParseInt(amt,10,64)
         if err != nil {
@@ -181,7 +182,7 @@ func ConvertFixedPoint(amt string) (string, error) {
         
         bp := amt[index+1:]
         if len(bp)>8 {
-            return "", fmt.Errorf("Format Error in amount")
+            bp=bp[:8]
         }
         bpv, err :=strconv.ParseInt(bp,10,64)
         if err != nil {

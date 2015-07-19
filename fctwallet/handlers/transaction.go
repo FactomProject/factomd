@@ -7,13 +7,13 @@ package handlers
 import (
     "regexp"
 	"bytes"
+    "strings"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strconv"
-    "time"
 
 	fct "github.com/FactomProject/factoid"
 	"github.com/FactomProject/factoid/wallet"
@@ -26,10 +26,6 @@ import (
 
 var badChar,_ = regexp.Compile("[^A-Za-z0-9_-]")
 var badHexChar,_ = regexp.Compile("[^A-Fa-f0-9]")
-
-func GetTimeNano() uint64 {
-    return uint64(time.Now().UnixNano())
-}
 
 func ValidateKey(key string) (msg string, valid bool) {
     if len(key) > fct.ADDRESS_LENGTH     { 
@@ -191,7 +187,7 @@ func HandleFactoidNewTransaction(ctx *web.Context, key string) {
 		return
 	}
 	// Create a transaction
-	t = factoidState.GetWallet().CreateTransaction(GetTimeNano())
+	t = factoidState.GetWallet().CreateTransaction(factoidState.GetTimeMilli())
 	// Save it with the key
 	factoidState.GetDB().PutRaw([]byte(fct.DB_BUILD_TRANS), []byte(key), t)
 
@@ -412,6 +408,28 @@ func HandleFactoidSubmit(ctx *web.Context, key string) {
     
 }
    
+func GetFee(ctx *web.Context) (int64, error) {
+    str := fmt.Sprintf("http://%s/v1/factoid-get-fee/", ipaddressFD+portNumberFD)
+    resp, err := http.Get(str)
+    if err != nil {
+        return 0, err
+    }
+    body, err := ioutil.ReadAll(resp.Body)
+    if err != nil {
+        resp.Body.Close()
+        return 0, err
+    }
+    resp.Body.Close()
+
+    type x struct { Fee int64 }
+    b := new(x)
+    if err := json.Unmarshal(body, b); err != nil {
+        return 0, err
+    }
+    
+    return b.Fee, nil
+}   
+
 func HandleGetFee(ctx *web.Context) {
     str := fmt.Sprintf("http://%s/v1/factoid-get-fee/", ipaddressFD+portNumberFD)
     resp, err := http.Get(str)
@@ -438,8 +456,9 @@ func HandleGetFee(ctx *web.Context) {
     
     ctx.Write(body)
 }   
-   
-func GetAddresses() [] byte{
+
+
+func GetAddresses() ([]byte) {
     keys, values := factoidState.GetDB().GetKeysValues([]byte(fct.W_NAME))
     
     ecKeys := make([]string,0,len(keys))
@@ -491,7 +510,92 @@ func GetAddresses() [] byte{
     
     return out.Bytes()
 }
-   
+
+func GetTransactions(ctx *web.Context) ([]byte, error) {
+    exch,err := GetFee(ctx)
+    if err != nil {
+        return nil, err
+    }
+
+    // Get the transactions in flight.
+    keys, values := factoidState.GetDB().GetKeysValues([]byte(fct.DB_BUILD_TRANS))
+    
+    for i:=0; i<len(keys)-1; i++ {
+        for j:=0; j<len(keys)-i-1;j++ {
+            if bytes.Compare(keys[j],keys[j+1])>0 {
+                t := keys[j]
+                keys[j]=keys[j+1]
+                keys[j+1]=t
+                t2 := values[j]
+                values[j]=values[j+1]
+                values[j+1]=t2
+            }
+            
+        }
+    }
+    var out bytes.Buffer
+    for i,key := range keys {
+        
+        trans := values[i].(fct.ITransaction)
+        
+        fee, _ := trans.CalculateFee(uint64(exch))  
+        cprt := ""
+        cin, ok1 := trans.TotalInputs() 
+        if !ok1 {
+            cprt = cprt + "\nOne or more Inputs are invalid. "
+        }
+        cout, ok2 := trans.TotalOutputs() 
+        if !ok2 {
+            cprt = cprt + "\nOne or more Outputs are invalid. "
+        }
+        cecout, ok3 := trans.TotalECs() 
+        if !ok3 {
+            cprt = cprt + "\nOne or more Entry Credit Outputs are invalid. "
+        }
+        
+        if ok1 && ok2 && ok3 {
+            v := int64(cin) - int64(cout) - int64(cecout)
+            sign := ""
+            if v < 0 {
+                sign = "-"
+                v = -v
+            }
+            cprt = fmt.Sprintf(" Currently will pay: %s%s",
+                        sign,
+                        strings.TrimSpace(fct.ConvertDecimal(uint64(v))))
+            if sign == "-" || fee > uint64(v) {
+                cprt = cprt + "\n\nWARNING: Currently your transaction fee may be too low"
+            }
+        }
+        
+        out.WriteString(fmt.Sprintf("\n%25s:  Fee Due: %s  %s\n\n%s\n",
+                                    key,
+                                    strings.TrimSpace(fct.ConvertDecimal(fee)),
+                                    cprt,
+                                    values[i].String()))     
+    }
+    
+    output := out.Bytes()
+    // now look for the addresses, and replace them with our names. (the transactions
+    // in flight also have a Factom address... We leave those alone.
+    
+    names, vs    := factoidState.GetDB().GetKeysValues([]byte(fct.W_NAME))
+    
+    for i,name := range names {
+        we,ok := vs[i].(wallet.IWalletEntry)
+        if !ok { return nil,fmt.Errorf("Database is corrupt") }
+
+        address, err := we.GetAddress()
+        if err != nil { continue }      // We shouldn't get any of these, but ignore them if we do.
+        adrstr := []byte(hex.EncodeToString(address.Bytes()))
+        
+        output = bytes.Replace(output,adrstr,name,-1)
+    }
+    
+    return output, nil
+}
+
+
    
 func   HandleGetAddresses  (ctx *web.Context) {
     
@@ -510,7 +614,34 @@ func   HandleGetAddresses  (ctx *web.Context) {
     }
     ctx.Write(j)
 }    
-   
+  
+func   HandleGetTransactions  (ctx *web.Context) {
+    
+    type x struct {
+        Body string
+        Success bool
+    }
+    b := new(x)
+    txt,err := GetTransactions(ctx)
+    if err != nil {
+        str := fmt.Sprintf("%s",err.Error())
+        reportResults(ctx,str,false)
+        return
+    }
+    b.Body = string(txt)
+    b.Success = true
+    j, err := json.Marshal(b)
+    if err != nil {
+        str := fmt.Sprintf("%s",err.Error())
+        reportResults(ctx,str,false)
+        return
+    }
+    ctx.Write(j)
+}      
    
 func HandleFactoidValidate(ctx *web.Context) {
+}
+
+
+func HandleFactoidNewSeed(ctx *web.Context) {
 }

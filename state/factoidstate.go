@@ -148,6 +148,7 @@ func(fs *FactoidState) AddTransactionBlock(blk block.IFBlock) error  {
         }
     }
     fs.currentBlock=blk
+    fs.SetFactoshisPerEC(blk.GetExchRate())
     return nil
 }
 
@@ -193,12 +194,15 @@ func(fs *FactoidState) ProcessEndOfBlock(){
     
     fs.dbheight += 1
     fs.currentBlock = block.NewFBlock(fs.GetFactoshisPerEC(),fs.dbheight)
-    t := new(fct.Transaction)
-    t.SetMilliTimestamp(fs.GetTimeMilli())
+ 
+    t := block.GetCoinbase(fs.GetTimeMilli())
     flg, err := fs.currentBlock.AddCoinbase(t)
     if !flg || err !=nil {
         panic("Failed to add coinbase transaction")
     }
+    fs.UpdateTransaction(t)
+    
+    
     if hash != nil {
         fs.currentBlock.SetPrevKeyMR(hash.Bytes())
         fs.currentBlock.SetPrevFullHash(hash2.Bytes())
@@ -219,12 +223,14 @@ func(fs *FactoidState) ProcessEndOfBlock2(nextBlkHeight uint32) {
     }
     
     fs.currentBlock = block.NewFBlock(fs.GetFactoshisPerEC(), nextBlkHeight)
-    t := new(fct.Transaction)
-    t.SetMilliTimestamp(fs.GetTimeMilli())
-    flg, err := fs.currentBlock.AddCoinbase(t)
+
+    t := block.GetCoinbase(fs.GetTimeMilli())
+    flg, err := fs.currentBlock.AddCoinbase(t)    
     if !flg || err !=nil {
         panic("Failed to add coinbase transaction")
     }
+    fs.UpdateTransaction(t)
+    
     if hash != nil {
         fs.currentBlock.SetPrevKeyMR(hash.Bytes())
         fs.currentBlock.SetPrevFullHash(hash2.Bytes())

@@ -158,7 +158,7 @@ func (w1 Transaction) GetNewInstance() IBlock {
 //    output. A purchase of Entry Credits also requires the 10 EC sized
 //    fee to be valid.
 //Number of signatures checked -- These cause expensive computation on
-//    all full nodes. A fee of 1 EC equivalent must be paid for each
+//    all full nodes. A fee of 10 EC equivalent must be paid for each
 //    signature included.
 func (t Transaction) CalculateFee(factoshisPerEC uint64) (uint64, error) {
 
@@ -180,7 +180,7 @@ func (t Transaction) CalculateFee(factoshisPerEC uint64) (uint64, error) {
 	fee += factoshisPerEC * 10 * uint64(len(t.outputs)+len(t.outECs))
 
 	for _, rcd := range t.rcds {
-		fee += factoshisPerEC * uint64(rcd.NumberOfSignatures())
+		fee += factoshisPerEC * uint64(rcd.NumberOfSignatures())*10
 	}
 
 	return fee, nil

@@ -12,10 +12,19 @@ import (
     "testing"
 )
 
+
+func TestConversions (test *testing.T) {
+    v, err := ConvertFixedPoint(".999"); if err != nil || v != "99900000" {fmt.Println("1",v,err);test.Fail()}
+    v, err = ConvertFixedPoint("0.999"); if err != nil || v != "99900000" {fmt.Println("2",v,err);test.Fail()}
+    v, err = ConvertFixedPoint("10.999"); if err != nil || v != "1099900000" {fmt.Println("3",v,err);test.Fail()}
+    v, err = ConvertFixedPoint(".99999999999999"); if err != nil || v != "99999999" {fmt.Println("4",v,err);test.Fail()}
+}
+
+
 // func DecodeVarInt(data []byte)                   (uint64, []byte) 
 // func EncodeVarInt(out *bytes.Buffer, v uint64)   error 
 
-func Test_Variable_Integers (test *testing.T) {
+func TestVariable_Integers (test *testing.T) {
      
     for i:=0; i<1000; i++ {
         var out bytes.Buffer

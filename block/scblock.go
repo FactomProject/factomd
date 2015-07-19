@@ -263,8 +263,6 @@ func (b1 *FBlock) IsEqual(block fct.IBlock) []fct.IBlock {
     }
 
     if b1.endOfPeriod != b2.endOfPeriod {
-        fmt.Println(b1.endOfPeriod)
-        fmt.Println(b2.endOfPeriod)
         return append(r,b1)
     }
 

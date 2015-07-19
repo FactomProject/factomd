@@ -42,6 +42,7 @@ type Test_state struct {
     twallet wallet.ISCWallet
     inputAddresses []fct.IAddress        // Genesis Address funds 10 addresses
     outputAddresses []fct.IAddress       // We consider our inputs and ten more addresses
+    ecoutputAddresses []fct.IAddress     // Entry Credit Addresses
     stats Stats
 }
 
@@ -86,35 +87,38 @@ func(fs *Test_state) newTransaction(maxIn, maxOut int) fct.ITransaction {
 
     // Get one to five inputs, and one to five outputs
     numInputs := rand.Int()%maxIn+1
-    numOutputs := rand.Int()%maxOut+1
-
+    numOutputs := rand.Int()%maxOut
+    mumECOutputs := rand.Int()%maxOut
+ 
     numInputs = (numInputs%(len(fs.inputAddresses)-2))+1
-    numInputs = (numInputs%(len(fs.outputAddresses)-2))+1
-    
+
    // fmt.Println("inputs outputs",numInputs,numOutputs, "limits",len(fs.inputAddresses),len(fs.outputAddresses))
     
     
     // Get my input and output addresses
     inputs := makeList(fs.inputAddresses,numInputs)
     outputs := makeList(fs.outputAddresses,numOutputs)
-
+    ecoutputs := makeList(fs.ecoutputAddresses,mumECOutputs)
     var paid uint64
     t := fs.twallet.CreateTransaction(fs.GetTimeMilli())
     for _, adr := range inputs {
         balance := fs.GetBalance(adr)
-        toPay := balance
-        if balance > 1000000 {
-            toPay = balance >> 8
-        }
+        toPay := uint64(rand.Int63())%(balance/10)
         paid = toPay+paid
         fs.twallet.AddInput(t,adr, toPay)
-        
-        //fmt.Printf("%s %x\n",adr.String(),balance)
+        //fmt.Print("\033[10;3H")
+        //fmt.Printf("%s %s    \n",adr.String(),fct.ConvertDecimal(toPay))
+        //fmt.Print("\033[40;3H")
+    }
     
-    }
     for _, adr := range outputs {
-        fs.twallet.AddOutput(t,adr,paid/uint64(len(outputs)))
+        fs.twallet.AddOutput(t,adr,paid/uint64(len(outputs)+len(ecoutputs)))
     }
+    
+    for _, adr := range ecoutputs {
+        fs.twallet.AddECOutput(t,adr,paid/uint64(len(outputs)+len(ecoutputs)))
+    }
+    
     fee,_ := t.CalculateFee(fs.GetFactoshisPerEC())
     fs.twallet.UpdateInput(t,0,inputs[0], (paid/uint64(len(inputs)))+fee)
     
@@ -128,7 +132,9 @@ func(fs *Test_state) newTransaction(maxIn, maxOut int) fct.ITransaction {
     }
     if !fs.Validate(t) {
         fs.stats.badAddresses += 1
-        fmt.Print("Bad Transactions: ",fs.stats.badAddresses,"\r")
+        fmt.Print("\033[32;0H")
+        fmt.Println("Bad Transactions: ",fs.stats.badAddresses,"\r")
+        fmt.Print("\033[40;0H")
         return fs.newTransaction(maxIn,maxOut) 
     }
     return t
