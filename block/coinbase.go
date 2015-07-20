@@ -14,8 +14,8 @@ var _ = fct.Prt
 var _ = fmt.Println
 
 var adrs []fct.IAddress 
-var amount     uint64 = 25000000           // One Factoid (remember, fixed point math!
-var addressCnt int    = 10                  // 10 addresses for now.
+var amount     uint64 = 5000000000           // One Factoid (remember, fixed point math!
+var addressCnt int    = 10                   // 10 addresses for now.
 
 
 // Allows the amount paid in the coinbase to be modified.   This is
