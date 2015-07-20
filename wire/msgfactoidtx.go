@@ -107,7 +107,11 @@ func NewMsgFactoidTX() IMsgFactoidTX {
 // Check whether the msg can pass the message level validations
 // such as timestamp, signiture and etc
 func (msg *MsgFactoidTX) IsValid() bool {
-	return msg.Transaction.Validate() == fct.WELL_FORMED
+	err := msg.Transaction.Validate() 
+    if err != nil { return false }
+    err = msg.Transaction.ValidateSignatures()
+    if err != nil { return false }
+    return true
 }
 
 // Create a sha hash from the message binary (output of BtcEncode)
