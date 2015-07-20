@@ -50,12 +50,12 @@ func Test_setup_FactoidState (test *testing.T) {
         fs.inputAddresses = append(fs.inputAddresses,addr)
         fs.outputAddresses = append(fs.outputAddresses,addr)
     }
-    for i:=0; i<1000; i++ {
+    for i:=0; i<500; i++ {
         addr, err := fs.twallet.GenerateFctAddress([]byte("testout_"+cv.Itoa(i)),1,1)
         if err != nil { fct.Prtln(err); test.Fail() }
         fs.outputAddresses = append(fs.outputAddresses,addr)
     }
-    for i:=0; i<1000; i++ {
+    for i:=0; i<50; i++ {
         addr, err := fs.twallet.GenerateECAddress([]byte("testecout_"+cv.Itoa(i)))
         if err != nil { fct.Prtln(err); test.Fail() }
         fs.ecoutputAddresses = append(fs.outputAddresses,addr)
@@ -64,12 +64,11 @@ func Test_setup_FactoidState (test *testing.T) {
 
 
 func Test_create_genesis_FactoidState (test *testing.T) {
-    fmt.Print("\033[0;0H                                      ")
-    fmt.Print("\033[40;0H")
+    fmt.Print("\033[2J")
     
     numBlocks       := 5000
-    numTransactions := 10
-    maxIn           := 10
+    numTransactions := 500
+    maxIn           := 5
     maxOut          := 20
     if testing.Short() {
         fmt.Print("\nDoing Short Tests\n")
@@ -97,13 +96,17 @@ func Test_create_genesis_FactoidState (test *testing.T) {
         fs.GetDB().Init()
     }
     // Set the price for Factoids
-    fs.SetFactoshisPerEC(10000)
+    fs.SetFactoshisPerEC(100000)
     err := fs.LoadState()
     if err != nil {
         fct.Prtln("Failed to load:", err)
         test.Fail()
         return
     }
+    
+    // Make the coinbase very generous
+    block.UpdateAmount(100000000000)
+    
     var cnt,max,min,maxblk int
     min = 100000
     // Create a number of blocks (i)
@@ -164,20 +167,23 @@ func Test_create_genesis_FactoidState (test *testing.T) {
                 return
             }
             if err == nil {
-                added := fs.AddTransaction(t)
-                if good != added  { 
-                    if good {
-                        fmt.Println("Failed to add a transaction that should have added")
-                    }else{
-                        fmt.Println("Added a transaction that should have failed to be added")
-                    }
+                if good && err != nil  { 
+                    fmt.Println("Added a transaction that should have failed to be added")
+                    fmt.Println(err)
                     test.Fail(); 
-                    return 
                 }
-                
+                if !good {
+                    fmt.Println("Failed to add a transaction that should have added")
+                    test.Fail(); 
+                }
             }
             
-            if good && err != nil {         
+            if good {
+                err = fs.AddTransaction(t)
+            }
+            
+            if good && err != nil {   
+                fmt.Println(err)
                 fmt.Println("\nUnmarshal Failed. trans is good",
                             "\nand the error detected: ",err,
                             "\nand k:",k, "and flip:",flip)
@@ -205,10 +211,10 @@ func Test_create_genesis_FactoidState (test *testing.T) {
         err = blk.UnmarshalBinary(blkdata)
         if err != nil { test.Fail(); return }
         if len(blkdata)>maxblk {
-            fmt.Printf("\033[%d;%dH",(blk.GetDBHeight())%30+1, (((blk.GetDBHeight())/30)%5)*25)
-            fmt.Printf("Blk:%6d-%8dB   ",blk.GetDBHeight(),len(blkdata))
-            fmt.Printf("\033[%d;%dH",(blk.GetDBHeight())%30+2, (((blk.GetDBHeight())/30)%5)*25)
-            fmt.Printf("%24s","====================    ")
+            fmt.Printf("\033[%d;%dH",(blk.GetDBHeight())%30+1, (((blk.GetDBHeight())/30)%5)*25+1)
+            fmt.Printf("Blk:%6d %8d B ",blk.GetDBHeight(),len(blkdata))
+            fmt.Printf("\033[%d;%dH",(blk.GetDBHeight())%30+2, (((blk.GetDBHeight())/30)%5)*25+1)
+            fmt.Printf("%24s","=====================    ")
         }
 //         blk:=fs.GetCurrentBlock()       // Get Current block, but hashes are set by processing.
         fs.ProcessEndOfBlock()             // Process the block.

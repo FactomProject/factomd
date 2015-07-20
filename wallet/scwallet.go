@@ -59,9 +59,9 @@ type ISCWallet interface {
 	AddECOutput(fct.ITransaction, fct.IAddress, uint64) error
 	// Validate a transaction.  Just checks that the inputs and outputs are
 	// there and properly constructed.
-	Validate(fct.ITransaction) (string, error)
+	Validate(fct.ITransaction) error
 	// Checks that the signatures all validate.
-	ValidateSignatures(fct.ITransaction) bool
+	ValidateSignatures(fct.ITransaction) error
 	// Sign the inputs that have public keys to which we have the private
 	// keys.  In the future, we will allow transactions with partical signatures
 	// to be sent to other people to complete the signing process.  This will
@@ -340,17 +340,12 @@ func (w *SCWallet) AddECOutput(trans fct.ITransaction, address fct.IAddress, amo
 	return nil
 }
 
-func (w *SCWallet) Validate(trans fct.ITransaction) (string, error) {
-	valid := trans.Validate()
-	if valid == fct.WELL_FORMED {
-		return valid, nil
-	}
-
-	return valid, fmt.Errorf("%s",valid)
+func (w *SCWallet) Validate(trans fct.ITransaction) error {
+	err := trans.Validate()
+	return err
 }
 
-func (w *SCWallet) ValidateSignatures(trans fct.ITransaction) bool {
-	if trans==nil {return false}
-    valid := trans.ValidateSignatures()
-	return valid
+func (w *SCWallet) ValidateSignatures(trans fct.ITransaction) error {
+	if trans==nil {return fmt.Errorf("Missing Transaction")}
+    return trans.ValidateSignatures()
 }

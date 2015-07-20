@@ -65,9 +65,8 @@ func Test_create_block(test *testing.T) {
         if err != nil { sc.Prtln("Error found: ",err); test.Fail(); return; }
         if !signed { sc.Prtln("Not valid"); test.Fail(); return; } 
         
-        valid, err := scb.AddTransaction(t)
+        err = scb.AddTransaction(t)
         if err != nil { sc.Prtln("Error found: ",err); test.Fail(); return; }
-        if !valid { sc.Prtln("Not valid"); test.Fail(); return; } 
     }
     data,err := scb.MarshalBinary()
     if err != nil {

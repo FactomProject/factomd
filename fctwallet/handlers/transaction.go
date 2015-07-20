@@ -51,6 +51,7 @@ func reportResults(ctx *web.Context, response string , success bool) {
             Success:  success,
          }
     if p, err := json.Marshal(b); err != nil {
+        
         ctx.WriteHeader(httpBad)
         return
     } else {
@@ -69,10 +70,10 @@ func getTransaction(ctx *web.Context, key string) (trans fct.ITransaction, err e
     // keys there is nothing we can do.  Now we *could* create the transaaction
     // and tie it to the key.  Something to think about.
     ib := factoidState.GetDB().GetRaw([]byte(fct.DB_BUILD_TRANS),[]byte(key))
+    
     trans, ok := ib.(fct.ITransaction)
     if ib == nil || !ok {
-        str := fmt.Sprintf("Unknown Transaction: %s",key)
-        return nil, fmt.Errorf(str)
+        return nil, fmt.Errorf("Unknown Transaction: %s",key)
     }
     return 
 }
@@ -307,22 +308,19 @@ func  HandleFactoidSignTransaction(ctx *web.Context, key string) {
         return
     }
 
-    report, err := factoidState.GetWallet().Validate(trans)
+    err = factoidState.GetWallet().Validate(trans)
     if err != nil {
-    	reportResults(ctx, report, false)
+    	reportResults(ctx, err.Error(), false)
     	return
     }
 
     valid, err := factoidState.GetWallet().SignInputs(trans)
     if err != nil {
-        str:= fmt.Sprintf("%s",err)
-        reportResults(ctx,str, false)
+        reportResults(ctx,err.Error(), false)
     }
     if !valid {
-    	reportResults(ctx,"Could not sign all inputs", false)
-    	return
+        reportResults(ctx,"Not all inputs are signed", false)
     }
-
     // Update our map with our new transaction to the same key.  Otherwise, all
     // of our work will go away!
     factoidState.GetDB().PutRaw([]byte(fct.DB_BUILD_TRANS), []byte(key), trans)
@@ -330,24 +328,25 @@ func  HandleFactoidSignTransaction(ctx *web.Context, key string) {
     reportResults(ctx, "Success signing transaction", true)    
 }
 
-func HandleFactoidSubmit(ctx *web.Context, key string) {
+func HandleFactoidSubmit(ctx *web.Context, jsonkey string) {
     type submitReq struct {
         Transaction string
     }
     
     in := new(submitReq)
-    json.Unmarshal([]byte(key), in)
+    json.Unmarshal([]byte(jsonkey), in)
     
+    key := in.Transaction
     // Get the transaction
-    trans, err := getTransaction(ctx, in.Transaction)
+    trans, err := getTransaction(ctx, key)
     if err != nil {
         reportResults(ctx, err.Error(), false)
         return
     }
 
-    valid := factoidState.GetWallet().ValidateSignatures(trans)
-    if !valid {
-    	reportResults(ctx, "Could not validate all the signatures of the transaction",false)
+    err = factoidState.GetWallet().ValidateSignatures(trans)
+    if err != nil {
+    	reportResults(ctx, err.Error() ,false)
     	return
     }
 
@@ -374,17 +373,13 @@ func HandleFactoidSubmit(ctx *web.Context, key string) {
     	bytes.NewBuffer(j))
 
     if err != nil {
-        resp.Body.Close()
-        str := fmt.Sprintf("%s",err)
-        reportResults(ctx,str,false)
+        reportResults(ctx,err.Error(),false)
     	return
     }
     
     body, err := ioutil.ReadAll(resp.Body)
     if err != nil {
-        resp.Body.Close()
-        str := fmt.Sprintf("%s",err)
-        reportResults(ctx,str,false)
+        reportResults(ctx,err.Error(),false)
     }
     
     resp.Body.Close()
@@ -395,8 +390,7 @@ func HandleFactoidSubmit(ctx *web.Context, key string) {
     }
     r := new(returnMsg)
     if err := json.Unmarshal(body, r); err != nil {
-        str := fmt.Sprintf("%s",err)
-        reportResults(ctx,str,false)
+        reportResults(ctx,err.Error(),false)
     }
 
     if r.Success {
@@ -434,14 +428,12 @@ func HandleGetFee(ctx *web.Context) {
     str := fmt.Sprintf("http://%s/v1/factoid-get-fee/", ipaddressFD+portNumberFD)
     resp, err := http.Get(str)
     if err != nil {
-        str := fmt.Sprintf("%s",err.Error())
-        reportResults(ctx,str,false)
+        reportResults(ctx,err.Error(),false)
         return 
     }
     body, err := ioutil.ReadAll(resp.Body)
     if err != nil {
-        str := fmt.Sprintf("%s",err.Error())
-        reportResults(ctx,str,false)
+        reportResults(ctx,err.Error(),false)
         return 
     }
     resp.Body.Close()
@@ -449,8 +441,7 @@ func HandleGetFee(ctx *web.Context) {
     type x struct { Fee int64 }
     b := new(x)
     if err := json.Unmarshal(body, b); err != nil {
-        str := fmt.Sprintf("%s",err.Error())
-        reportResults(ctx,str,false)
+        reportResults(ctx,err.Error(),false)
         return 
     }
     
@@ -535,25 +526,25 @@ func GetTransactions(ctx *web.Context) ([]byte, error) {
     }
     var out bytes.Buffer
     for i,key := range keys {
-        
+        if values[i]== nil {continue}
         trans := values[i].(fct.ITransaction)
         
         fee, _ := trans.CalculateFee(uint64(exch))  
         cprt := ""
-        cin, ok1 := trans.TotalInputs() 
-        if !ok1 {
-            cprt = cprt + "\nOne or more Inputs are invalid. "
+        cin, err := trans.TotalInputs() 
+        if err != nil {
+            cprt = cprt + err.Error()
         }
-        cout, ok2 := trans.TotalOutputs() 
-        if !ok2 {
-            cprt = cprt + "\nOne or more Outputs are invalid. "
+        cout, err := trans.TotalOutputs() 
+        if err != nil {
+            cprt = cprt + err.Error()
         }
-        cecout, ok3 := trans.TotalECs() 
-        if !ok3 {
-            cprt = cprt + "\nOne or more Entry Credit Outputs are invalid. "
+        cecout, err := trans.TotalECs() 
+        if err != nil {
+            cprt = cprt + err.Error()
         }
         
-        if ok1 && ok2 && ok3 {
+        if len(cprt)==0 {
             v := int64(cin) - int64(cout) - int64(cecout)
             sign := ""
             if v < 0 {
@@ -608,8 +599,7 @@ func   HandleGetAddresses  (ctx *web.Context) {
     b.Success = true
     j, err := json.Marshal(b)
     if err != nil {
-        str := fmt.Sprintf("%s",err.Error())
-        reportResults(ctx,str,false)
+        reportResults(ctx,err.Error(),false)
         return
     }
     ctx.Write(j)
@@ -624,16 +614,14 @@ func   HandleGetTransactions  (ctx *web.Context) {
     b := new(x)
     txt,err := GetTransactions(ctx)
     if err != nil {
-        str := fmt.Sprintf("%s",err.Error())
-        reportResults(ctx,str,false)
+        reportResults(ctx,err.Error(),false)
         return
     }
     b.Body = string(txt)
     b.Success = true
     j, err := json.Marshal(b)
     if err != nil {
-        str := fmt.Sprintf("%s",err.Error())
-        reportResults(ctx,str,false)
+        reportResults(ctx,err.Error(),false)
         return
     }
     ctx.Write(j)

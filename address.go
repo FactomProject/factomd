@@ -12,11 +12,12 @@
 package factoid
 
 import (
-	"bytes"
 	"encoding/hex"
+    "bytes"
 	"fmt"
-	"testing"
 )
+
+var _ = fmt.Println
 
 type IAddress interface {
 	IHash
@@ -59,54 +60,3 @@ func CreateAddress(hash IHash) IAddress {
     return NewAddress(hash.Bytes())
 }
 
-func Test_Factoid_Addresses(test *testing.T) {
-   
-    addr := NewAddress(Sha([]byte("A fake address")).Bytes())
-    fmt.Println( addr)
-    
-    uaddr := ConvertFctAddressToUserStr(addr) 
-    fmt.Println(uaddr)
-
-    if !ValidateFUserStr(uaddr) { test.Fail() }
-    
-    addrBack := ConvertUserStrToAddress(uaddr)
-    
-    if bytes.Compare(addrBack,addr.Bytes()) != 0 { test.Fail() }
-    
-    buaddr := []byte(uaddr)
-    
-    for i,v := range buaddr {
-        for j:= uint(0); j<8; j++ {
-            if !ValidateFUserStr(string(buaddr)) { test.Fail() }
-            buaddr[i] = v^(01<<j)
-            if ValidateFUserStr(string(buaddr)) { test.Fail() }
-            buaddr[i] = v
-        }
-    }
-}
-
-func Test_Entry_Credit_Addresses(test *testing.T) {
-    
-    addr := NewAddress(Sha([]byte("A fake address")).Bytes())
-    fmt.Println( addr)
-    
-    uaddr := ConvertECAddressToUserStr(addr) 
-    fmt.Println(uaddr)
-    
-    if !ValidateECUserStr(uaddr) {fmt.Printf("1"); test.Fail() }
-    
-    addrBack := ConvertUserStrToAddress(uaddr)
-    
-    if bytes.Compare(addrBack,addr.Bytes()) != 0 {fmt.Printf("2"); test.Fail() }
-    
-    buaddr := []byte(uaddr)
-    
-    for i,v := range buaddr {
-        for j:= uint(0); j<8; j++ {
-            if !ValidateECUserStr(string(buaddr)) { fmt.Printf("3"); test.Fail(); return}
-            buaddr[i] = v^(01<<j)
-            if ValidateECUserStr(string(buaddr)) { fmt.Printf("4"); test.Fail();return }
-            buaddr[i] = v
-        }
-    }
-}

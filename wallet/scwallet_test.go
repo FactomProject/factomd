@@ -88,9 +88,9 @@ func Test_CreateTransaction_swcallet(test *testing.T) {
         test.Fail() 
     }
     
-    valid, err2 := w.Validate(t)
-    if(valid != fct.WELL_FORMED || err2 != nil) {
-        factoid.Prtln(err2,valid)
+    err2 := w.Validate(t)
+    if( err2 != nil) {
+        factoid.Prtln(err2)
         test.Fail()
     }
     
@@ -129,9 +129,9 @@ func Test_SignTransaction_swcallet(test *testing.T) {
     txt,err := t.MarshalText()
     fct.Prtln(string(txt), "\n ", fee )
     
-    valid := w.ValidateSignatures(t)
-    if !valid {
-        factoid.Prtln(valid)
+    err = w.ValidateSignatures(t)
+    if err != nil {
+        factoid.Prtln(err)
         test.Fail()
     }
     

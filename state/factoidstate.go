@@ -78,17 +78,17 @@ type IFactoidState interface {
     GetTime() uint64         // Count of seconds from Jan 1, 1970
     
     // Validate transaction
-    // Return true if the balance of an address covers each input
-    Validate(fct.ITransaction) bool
+    // Return zero len string if the balance of an address covers each input
+    Validate(fct.ITransaction) error
     
     // Update Transaction just updates the balance sheet with the
     // addition of a transaction.
-    UpdateTransaction(fct.ITransaction) bool
+    UpdateTransaction(fct.ITransaction) error
     
     // Add a Transaction to the current block.  The transaction is
     // validated against the address balances, which must cover The
     // inputs.  Returns true if the transaction is added.
-    AddTransaction(fct.ITransaction) bool
+    AddTransaction(fct.ITransaction) error
     
     // Process End of Minute.  
     ProcessEndOfMinute()
@@ -142,9 +142,9 @@ func(fs *FactoidState) GetDBHeight() uint32 {
 func(fs *FactoidState) AddTransactionBlock(blk block.IFBlock) error  {
     transactions := blk.GetTransactions()
     for _,trans := range transactions {
-        ok := fs.UpdateTransaction(trans)
-        if !ok {
-            return fmt.Errorf("Failed to add transaction")
+        err := fs.UpdateTransaction(trans)
+        if err != nil {
+            return err
         }
     }
     fs.currentBlock=blk
@@ -152,18 +152,16 @@ func(fs *FactoidState) AddTransactionBlock(blk block.IFBlock) error  {
     return nil
 }
 
-func(fs *FactoidState) AddTransaction(trans fct.ITransaction) bool {
-    if !fs.Validate(trans) { return false }
-    if len(trans.GetInputs()) == 0 { return false }
-    if fs.UpdateTransaction(trans) {
-        fs.currentBlock.AddTransaction(trans)
-        return true
-    }
-    return false
+func(fs *FactoidState) AddTransaction(trans fct.ITransaction) error {
+    if err := fs.Validate(trans);                     err != nil { return err }
+    if err := fs.UpdateTransaction(trans);            err != nil { return err }
+    if err := fs.currentBlock.AddTransaction(trans);  err != nil { return err }
+       
+    return nil
 }
 
 // Assumes validation has already been done.
-func(fs *FactoidState) UpdateTransaction(trans fct.ITransaction) bool {
+func(fs *FactoidState) UpdateTransaction(trans fct.ITransaction) error {
     for _,input := range trans.GetInputs() {
         fs.UpdateBalance(input.GetAddress(), - int64(input.GetAmount()))
     }
@@ -173,7 +171,7 @@ func(fs *FactoidState) UpdateTransaction(trans fct.ITransaction) bool {
     for _,ecoutput := range trans.GetECOutputs() {
         fs.UpdateECBalance(ecoutput.GetAddress(), int64(ecoutput.GetAmount()))
     }
-    return true
+    return nil
 }
  
 func(fs *FactoidState) ProcessEndOfMinute() {
@@ -196,9 +194,9 @@ func(fs *FactoidState) ProcessEndOfBlock(){
     fs.currentBlock = block.NewFBlock(fs.GetFactoshisPerEC(),fs.dbheight)
  
     t := block.GetCoinbase(fs.GetTimeMilli())
-    flg, err := fs.currentBlock.AddCoinbase(t)
-    if !flg || err !=nil {
-        panic("Failed to add coinbase transaction")
+    err := fs.currentBlock.AddCoinbase(t)
+    if err !=nil {
+        panic(err.Error())
     }
     fs.UpdateTransaction(t)
     
@@ -225,9 +223,9 @@ func(fs *FactoidState) ProcessEndOfBlock2(nextBlkHeight uint32) {
     fs.currentBlock = block.NewFBlock(fs.GetFactoshisPerEC(), nextBlkHeight)
 
     t := block.GetCoinbase(fs.GetTimeMilli())
-    flg, err := fs.currentBlock.AddCoinbase(t)    
-    if !flg || err !=nil {
-        panic("Failed to add coinbase transaction")
+    err := fs.currentBlock.AddCoinbase(t)    
+    if err !=nil {
+        panic(err.Error())
     }
     fs.UpdateTransaction(t)
     
@@ -290,27 +288,26 @@ func(fs *FactoidState) LoadState() error  {
     return nil
 }
     
-// Returns false if the balances do not support the transaction.  This
-// call assumes you have already validated via the Transaction itself, so
-// the structure of the transaction is correct, i.e. inputs cover outputs.
-func(fs *FactoidState) Validate(trans fct.ITransaction) bool  {
-    if !fs.currentBlock.ValidateTransaction(trans) {
-        return false
-    }
+// Returns an error message about what is wrong with the transaction if it is
+// invalid, otherwise you are good to go.
+func(fs *FactoidState) Validate(trans fct.ITransaction) error  {
+    err := fs.currentBlock.ValidateTransaction(trans) 
+    if err != nil { return err }
+
     var sums = make(map[fct.IAddress]uint64,10)
     for _, input := range trans.GetInputs() {
-        bal,ok := fct.ValidateAmounts(
+        bal,err := fct.ValidateAmounts(
             sums[input.GetAddress()],           // Will be zero the first time around 
-            input.GetAmount())  // Get this amount, check against bounds
-        if !ok { 
-            return false 
+            input.GetAmount())                  // Get this amount, check against bounds
+        if err != nil { 
+            return err
         }
         if bal > fs.GetBalance(input.GetAddress()) {
-            return false
+            return fmt.Errorf("Not enough funds in input addresses for the transaction")
         }
         sums[input.GetAddress()] = bal
     }
-    return true;
+    return nil
 }
 
 

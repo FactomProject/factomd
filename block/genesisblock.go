@@ -36,9 +36,9 @@ func GetGenesisBlock(ftime uint64, ExRate uint64, addressCnt int, Factoids uint6
         w.AddOutput(t,h,Factoids)   // 2000 factoids per address
     }
     
-	flg, err := genesisBlock.AddCoinbase(t)
-	if !flg || err != nil { 
-        fct.Prtln("Flag: ",flg," Error: ",err)
+	err := genesisBlock.AddCoinbase(t)
+	if err != nil { 
+        fct.Prtln(" Error Adding Genesis Block: ",err)
     }
     genesisBlock.GetHash()
 

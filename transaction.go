@@ -55,13 +55,14 @@ type ITransaction interface {
     GetSignatureBlocks() []ISignatureBlock
     
     // Helper functions for validation.
-	TotalInputs() (uint64, bool)
-	TotalOutputs() (uint64, bool)
-	TotalECs() (uint64, bool)
+	TotalInputs() (uint64, error)
+    TotalOutputs() (uint64, error)
+    TotalECs() (uint64, error)
 	
 	// Validate does everything but check the signatures.
-	Validate() string
-	ValidateSignatures() bool
+	Validate() error
+	ValidateSignatures() error
+	ValidateAmounts(amts ...uint64) (uint64, error)
 	
 	// Calculate the fee for a transaction, given the specified exchange rate.
 	CalculateFee(factoshisPerEC uint64) (uint64, error)
@@ -189,57 +190,51 @@ func (t Transaction) CalculateFee(factoshisPerEC uint64) (uint64, error) {
 // Checks that the sum of the given amounts do not cross
 // a signed boundry.  Returns false if invalid, and the
 // sum if valid.  Returns 0 and true if nothing is passed in.
-func ValidateAmounts(amts ...uint64) (uint64, bool) {
-    var sum int64 
+func ValidateAmounts(amts ...uint64) (uint64, error) {
+    var sum int64
     for _,amt := range amts {
         if int64(amt) < 0 {
-            return 0, false
+            return 0, fmt.Errorf("Negative amounts are not allowed")
         }
         sum += int64(amt)
         if int64(sum) < 0 {
-            return 0, false
+            return 0, fmt.Errorf("The amounts specified are too large")
         }
     }
-    return uint64(sum), true
+    return uint64(sum), nil
 }
 
-func (t Transaction) TotalInputs() (uint64, bool) {
-	var sum uint64
-	var ok bool
-	if len(t.inputs) > 255 {return 0, false}
+func (t Transaction) TotalInputs() (sum uint64, err error) {
+	if len(t.inputs) > 255 {return 0, fmt.Errorf("The number of inputs must be less than 255")}
 	for _, input := range t.inputs {
-        sum, ok = ValidateAmounts(sum, input.GetAmount())
-        if !ok {
-            return 0, false
+        sum, err = ValidateAmounts(sum, input.GetAmount())
+        if err != nil {
+            return 0, fmt.Errorf("Error totalling Inputs: %s",err.Error())
         }
 	}
-	return sum, true
+	return 
 }
 
-func (t Transaction) TotalOutputs() (uint64, bool) {
-    var sum uint64
-    var ok bool
-    if len(t.outputs) > 255 {return 0, false}
-    for _, output := range t.outputs {
-        sum, ok = ValidateAmounts(sum, output.GetAmount())
-        if !ok {
-            return 0, false
+func (t Transaction) TotalOutputs() (sum uint64, err error) {
+    if len(t.outputs) > 255 {return 0, fmt.Errorf("The number of outputs must be less than 255")}
+	for _, output := range t.outputs {
+        sum, err = ValidateAmounts(sum, output.GetAmount())
+        if err != nil {
+            return 0, fmt.Errorf("Error totalling Outputs: %s",err.Error())
         }
     }
-	return sum, true
+	return 
 }
 
-func (t Transaction) TotalECs() (uint64, bool) {
-    var sum uint64
-    var ok bool
-    if len(t.outECs) > 255 {return 0, false}
+func (t Transaction) TotalECs() (sum uint64, err error) {
+    if len(t.outECs) > 255 {return 0, fmt.Errorf("The number of Entry Credit outputs must be less than 255")}
     for _, ec := range t.outECs {
-        sum, ok = ValidateAmounts(sum, ec.GetAmount())
-        if !ok {
-            return 0, false
+        sum, err = ValidateAmounts(sum, ec.GetAmount())
+        if err != nil {
+            return 0, fmt.Errorf("Error totalling Entry Credit outputs: %s",err.Error())
         }
     }
-	return sum, true
+	return 
 }
 
 // Only validates that the transaction is well formed.  This means that
@@ -256,35 +251,26 @@ func (t Transaction) TotalECs() (uint64, bool) {
 // Also note that we DO allow for transactions that do not have any outputs.
 // This provides for a provable "burn" of factoids, since all inputs would
 // go as "transaction fees" and those fees do not go to anyone.
-func (t Transaction) Validate() string {
+func (t Transaction) Validate() error {
 
 	// Inputs, outputs, and ecoutputs, must be valid, 
-    tinputs,  ok1 := t.TotalInputs()
-    toutputs, ok2 := t.TotalOutputs()
-    tecs,     ok3 := t.TotalECs()
-    if !ok1 || !ok2 || !ok3 { 
-        return INVALID_INPUTS 
-    }
+    tinputs,  err := t.TotalInputs();    if err != nil { return err }
+    toutputs, err := t.TotalOutputs();   if err != nil { return err }
+    tecs,     err := t.TotalECs();       if err != nil { return err }
         
     // Inputs cover outputs and ecoutputs.
-    if tinputs <= toutputs + tecs {
-        return BALANCE_FAIL
+    if tinputs < toutputs + tecs {
+        return fmt.Errorf("The Inputs of the transaction do not cover the outputs")
 	}
 	// Cannot have zero inputs.  This means you cannot use this function
 	// to validate coinbase transactions, because they cannot have any
 	// inputs.
 	if len(t.inputs) == 0 {
-        return MIN_INPUT_FAIL
-	}
-	// Because of our fee structure, we may not enforce a minimum spend.
-	// However, we do check the constant anyway.
-	tin, ok := t.TotalInputs()
-	if !ok || tin < MINIMUM_AMOUNT {
-        return MIN_SPEND_FAIL
+        return fmt.Errorf("Transactions (other than the coinbase) must have at least one input")
 	}
 	// Every input must have an RCD block
 	if len(t.inputs) != len(t.rcds) {
-        return RCD_INPUT_FAIL
+        return fmt.Errorf("All inputs must have a cooresponding RCD") 
 	}
 	// Every input must match the address of an RCD (which is the hash
 	// of the RCD
@@ -294,53 +280,34 @@ func (t Transaction) Validate() string {
 		// If there is anything wrong with the RCD, then the transaction isn't
 		// valid.
 		if err != nil {
-            return RCD_REPORT_FAIL
+            return fmt.Errorf("RCD %d failed to provide an address to compare with its input",i)
 		}
 		// If the Address (which is really a hash) isn't equal to the hash of
 		// the RCD, this transaction is bogus.
 		if t.inputs[i].GetAddress().IsEqual(address) != nil {
-            return RCD_MATCH_FAIL
+            return fmt.Errorf("The %d Input does not match the %d RCD",i,i) 
 		}
 	}
-	// Make sure no input is the same as any other input.  All inputs must be
-	// unique addresses.  By the way, this also proves all the rcd's are unique,
-	// since the addresses are the hashes of the rcds.
-	for i := 1; i < len(t.inputs)-1; i++ {
-		for j := i + 1; j < len(t.inputs); j++ {
-			if t.inputs[i].IsEqual(t.inputs[j]) == nil {
-                return DUP_INPUT_FAIL
-			}
-		}
-	}
-
-	return WELL_FORMED
+	
+	return nil
 }
 
-// Check the signatures as well as validate everything else.  If anything is
-// invalid, then this call returns false.
+// This call ONLY checks signatures.  Call ITransaction.Validate() to check the structure of the 
+// transaction.
 //
-// We may change this in the future to put the signatures in control of the RCD,
-// but for now they are not.
-//
-func (t Transaction) ValidateSignatures() bool {
-    
-    // If this transaction isn't validly formed, then we don't
-	// care about signatures.
-    if e := t.Validate(); e != WELL_FORMED {
-		return false
-	}
-	// If there isn't a signature block for every rcd, then we also
-	// don't care about signatures.  Or if there are too many.  Don't
-	// care about the transaction in that case either.
-	if len(t.sigBlocks) != len(t.rcds) {
-        return false
-	}
+func (t Transaction) ValidateSignatures() error {
+    missingCnt := 0
+    sigBlks := t.GetSignatureBlocks()
 	for i, rcd := range t.rcds {
-		if !rcd.CheckSig(&t, t.sigBlocks[i]) {
-            return false
+		if !rcd.CheckSig(&t, sigBlks[i]) {
+            missingCnt++
 		}
 	}
-	return true
+	if missingCnt != 0 {
+        return fmt.Errorf("Missing %d of %d signatures",missingCnt,len(t.rcds))
+    }
+    
+    return nil
 }
 
 // Tests if the transaction is equal in all of its structures, and

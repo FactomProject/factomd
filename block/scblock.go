@@ -17,15 +17,15 @@ type IFBlock interface {
 	// Get the ChainID. This is a constant for all Factoids.
 	GetChainID() fct.IHash
 	// Validation functions
-	Validate() (bool, error)
-    ValidateTransaction(fct.ITransaction) bool
+	Validate() error
+    ValidateTransaction(fct.ITransaction) error
     // Marshal just the transactions.  This is because we need the length
 	MarshalTrans() ([]byte, error)
     // Add a coinbase transaction.  This transaction has no inputs
-    AddCoinbase(fct.ITransaction) (bool, error)
+    AddCoinbase(fct.ITransaction) error
     // Add a proper transaction.  Transactions are validated before
     // being added to the block.
-	AddTransaction(fct.ITransaction) (bool, error)
+	AddTransaction(fct.ITransaction) error
     // Calculate all the MR and serial hashes for this block.  Done just
     // prior to being persisted.
 	CalculateHashes()
@@ -318,46 +318,50 @@ func (b *FBlock) GetExchRate() uint64 {
 	return b.ExchRate
 }
 
-func (b FBlock) ValidateTransaction(trans fct.ITransaction) bool {
+func (b FBlock) ValidateTransaction(trans fct.ITransaction) error {
     // Calculate the fee due.
     {
-        valid := trans.Validate()
-        if valid != fct.WELL_FORMED {
-            return false // Transaction is not well formed.
+        err := trans.Validate()
+        if err != nil {
+            return err 
         }
     }
     if len(b.transactions)>0{
-        ok := trans.ValidateSignatures()
-        if !ok {
-            return false // Transaction is not properly signed.
+        err := trans.ValidateSignatures()
+        if err != nil {
+            return err 
         }
     }
-    fee, err := trans.CalculateFee(b.ExchRate)
-    if err != nil {
-        return false
+    
+    fee, err  := trans.CalculateFee(b.ExchRate);       if err!=nil {return err}
+    tin, err  := trans.TotalInputs();                  if err!=nil {return err}
+    tout,err  := trans.TotalOutputs();                 if err!=nil {return err}
+    tec, err  := trans.TotalECs();                     if err!=nil {return err}
+    sum, err  := fct.ValidateAmounts(tout,tec,fee);    if err!=nil {return err}
+    
+    if tin < sum {
+        return fmt.Errorf("The inputs %s do not cover the outputs %s,\n"+
+        "the Entry Credit outputs %s, and the required fee %s",
+            fct.ConvertDecimal(tin),
+            fct.ConvertDecimal(tout),
+            fct.ConvertDecimal(tec),
+            fct.ConvertDecimal(fee))
     }
-    tin,ok1  := trans.TotalInputs()
-    tout,ok2 := trans.TotalOutputs()
-    tec,ok3  := trans.TotalECs()
-    sum,ok4  := fct.ValidateAmounts(tout,tec,fee)
-    if !ok1 || !ok2 || !ok3 || !ok4 || tin < sum {
-        return false    // Transaction either has not enough inputs, 
-    }                   // or didn't pay the fee.
-    return true
+    return nil
 }
 
-func (b FBlock) Validate() (bool, error) {
+func (b FBlock) Validate() error {
 	for i, trans := range b.transactions {
-        if !b.ValidateTransaction(trans) {
-            return false, fmt.Errorf("Block contains invalid transactions")
+        if err := b.ValidateTransaction(trans); err != nil {
+            return nil
         }
         if i == 0 {
             if len(trans.GetInputs()) != 0 {
-                return false, fmt.Errorf("Block has a coinbase transaction with inputs")
+                return fmt.Errorf("Block has a coinbase transaction with inputs")
             }
         }else{
             if len(trans.GetInputs()) == 0 {
-                return false, fmt.Errorf("Block contains transactions without inputs")
+                return fmt.Errorf("Block contains transactions without inputs")
             }
         }
 	}
@@ -366,52 +370,51 @@ func (b FBlock) Validate() (bool, error) {
 
 	// Save what we got for our hashes
 	mr := b.BodyMR
-	pb := b.PrevKeyMR
-	ph := b.PrevFullHash
 
 	// Recalculate the hashes
 	b.CalculateHashes()
 
 	// Make sure nothing changes.  If something did, this block is bad.
-	return mr == b.BodyMR && pb == b.PrevKeyMR && ph == b.PrevFullHash, nil
+	if mr != b.BodyMR {
+        return fmt.Errorf("This blocks Merkle Root of the transactions does not match the transactions")
+    }
+	
+	return nil
 }
 
 // Add the first transaction of a block.  This transaction makes the 
 // payout to the servers, so it has no inputs.   This transaction must
 // be deterministic so that all servers will know and expect its output.
-func (b *FBlock) AddCoinbase(trans fct.ITransaction) (bool, error) {
+func (b *FBlock) AddCoinbase(trans fct.ITransaction) error {
     b.BodyMR = nil
-    if len(b.transactions)              != 0 ||
-       len(trans.GetInputs())           != 0 || 
-       len(trans.GetECOutputs())           != 0 ||
-       len(trans.GetRCDs())             != 0 ||
-       len(trans.GetSignatureBlocks())  != 0 {
-        return false, fmt.Errorf("Cannot have inputs or EC outputs in the coinbase.")
-    }
-
+    if len(b.transactions)              != 0 { return fmt.Errorf("The coinbase transaction must be the first transaction")}
+    if len(trans.GetInputs())           != 0 { return fmt.Errorf("The coinbase transaction cannot have any inputs")} 
+    if len(trans.GetECOutputs())        != 0 { return fmt.Errorf("The coinbase transaction cannot buy Entry Credits")}
+    if len(trans.GetRCDs())             != 0 { return fmt.Errorf("The coinbase transaction cannot have anyRCD blocks")}
+    if len(trans.GetSignatureBlocks())  != 0 { return fmt.Errorf("The coinbase transaction is not signed")}
+   
     // TODO Add check here for the proper payouts.
     
     b.transactions = append(b.transactions, trans)
-    return true, nil
+    return nil
 }
     
 
-// Add a transaction to the Facoid block. If there is an error,
-// then the transaction can be discarded.  If it returns true,
-// then the transaction was added, if false it was not.
-func (b *FBlock) AddTransaction(trans fct.ITransaction) (bool, error) {
+// Add the given transaction to this block.  Reports an error if this
+// cannot be done, or if the transaction is invalid.
+func (b *FBlock) AddTransaction(trans fct.ITransaction) error {
 	// These tests check that the Transaction itself is valid.  If it
 	// is not internally valid, it never will be valid.
     b.BodyMR = nil
-    valid := b.ValidateTransaction(trans)
-	if !valid {
-		return false, fmt.Errorf("Invalid Transaction")
+    err := b.ValidateTransaction(trans)
+	if err != nil {
+		return err
 	}
 	
 	// Check against address balances is done at the Factom level.
 
 	b.transactions = append(b.transactions, trans)
-	return true, nil
+	return nil
 }
 
 func (b FBlock) String() string {

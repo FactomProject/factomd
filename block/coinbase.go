@@ -17,6 +17,13 @@ var adrs []fct.IAddress
 var amount     uint64 = 25000000           // One Factoid (remember, fixed point math!
 var addressCnt int    = 10                  // 10 addresses for now.
 
+
+// Allows the amount paid in the coinbase to be modified.   This is
+// NOT allowed in production!  That's why it is here in Test!
+func UpdateAmount(amt uint64) {
+    amount = amt
+}
+
 // This routine generates the Coinbase.  This is a fixed amount to be
 // paid to the federated servers.  
 //

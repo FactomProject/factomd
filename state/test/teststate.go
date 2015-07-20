@@ -7,6 +7,7 @@ package test
 import (
     "fmt"
     "time"
+    "strings"
     "math/rand"
     fct "github.com/FactomProject/factoid"    
     "github.com/FactomProject/factoid/state"    
@@ -59,27 +60,37 @@ func(fs *Test_state) GetTime32() int64 {
 }
 
 func(fs *Test_state) newTransaction(maxIn, maxOut int) fct.ITransaction {
-   
+    var max, max2 uint64
     fs.inputAddresses = make([]fct.IAddress,0,20)
     for _,output := range fs.outputAddresses {
         bal := fs.GetBalance(output)
-        if bal > 1000000 {
+        if bal > 1000000000 {
             fs.inputAddresses = append(fs.inputAddresses, output)
         }
+        if max < bal {
+            max2 = max
+            max = bal
+        }else{
+            if max2 < bal {
+                max2 = bal 
+            }
+        }        
     }
+    
+    fmt.Printf("\033[35;80H Inputs %4d, Max %20s Max2 %20s            ",
+               len(fs.inputAddresses),
+               strings.TrimSpace(fct.ConvertDecimal(max)),
+               strings.TrimSpace(fct.ConvertDecimal(max2)))
+    fmt.Print("\033[40;0H")
+    
     // The following code is a function that creates an array
     // of addresses pulled from some source array of addresses
     // selected randomly.
     var makeList = func(source []fct.IAddress, cnt int) []fct.IAddress{
         adrs := make([]fct.IAddress,0,cnt)
-        MainLoop: for len(adrs)<cnt {
+        for len(adrs)<cnt {
             i := rand.Int()%len(source)
             adr := source[i]
-            for _,adr2 := range adrs {
-                if adr.IsEqual(adr2) == nil {
-                    continue MainLoop
-                }
-            }
             adrs = append(adrs,adr)
         }
         return adrs
@@ -103,7 +114,7 @@ func(fs *Test_state) newTransaction(maxIn, maxOut int) fct.ITransaction {
     t := fs.twallet.CreateTransaction(fs.GetTimeMilli())
     for _, adr := range inputs {
         balance := fs.GetBalance(adr)
-        toPay := uint64(rand.Int63())%(balance/10)
+        toPay := uint64(rand.Int63())%(balance)
         paid = toPay+paid
         fs.twallet.AddInput(t,adr, toPay)
         //fmt.Print("\033[10;3H")
@@ -111,17 +122,20 @@ func(fs *Test_state) newTransaction(maxIn, maxOut int) fct.ITransaction {
         //fmt.Print("\033[40;3H")
     }
     
+    paid = paid - fs.GetFactoshisPerEC()*uint64(len(ecoutputs))
+    
     for _, adr := range outputs {
-        fs.twallet.AddOutput(t,adr,paid/uint64(len(outputs)+len(ecoutputs)))
+        fs.twallet.AddOutput(t,adr,paid/uint64(len(outputs)))
     }
     
     for _, adr := range ecoutputs {
-        fs.twallet.AddECOutput(t,adr,paid/uint64(len(outputs)+len(ecoutputs)))
+        fs.twallet.AddECOutput(t,adr,fs.GetFactoshisPerEC())
     }
     
     fee,_ := t.CalculateFee(fs.GetFactoshisPerEC())
-    fs.twallet.UpdateInput(t,0,inputs[0], (paid/uint64(len(inputs)))+fee)
-    
+    toPay := t.GetInputs()[0].GetAmount()
+    fs.twallet.UpdateInput(t,0,inputs[0], toPay+fee)
+        
     valid, err := fs.twallet.SignInputs(t)
     if err != nil {
         fct.Prtln("Failed to sign transaction")
@@ -130,8 +144,9 @@ func(fs *Test_state) newTransaction(maxIn, maxOut int) fct.ITransaction {
     if !valid {
         fct.Prtln("Transaction is not valid")
     }
-    if !fs.Validate(t) {
+    if err := fs.Validate(t); err != nil {
         fs.stats.badAddresses += 1
+        println(err)
         fmt.Print("\033[32;0H")
         fmt.Println("Bad Transactions: ",fs.stats.badAddresses,"\r")
         fmt.Print("\033[40;0H")

@@ -343,12 +343,9 @@ func (Sign) Execute (state State, args []string) error {
         return fmt.Errorf("Invalid Parameters")
     }
     
-    valid, err := state.fs.GetWallet().Validate(trans)
+    err := state.fs.GetWallet().Validate(trans)
     if err != nil {
         return err
-    }
-    if valid!=fct.WELL_FORMED {
-        return fmt.Errorf("Invalid Transaction: "+valid)
     }
     
     ok, err = state.fs.GetWallet().SignInputs(trans)
@@ -415,17 +412,14 @@ func (Submit) Execute (state State, args []string) error {
         return fmt.Errorf("Invalid Parameters")
     }
     
-    valid, err := state.fs.GetWallet().Validate(trans)
+    err := state.fs.GetWallet().Validate(trans)
     if err != nil {
         return err
     }
-    if valid!=fct.WELL_FORMED {
-        return fmt.Errorf("Invalid transaction: "+valid)
-    }
     
-    ok = state.fs.GetWallet().ValidateSignatures(trans)
-    if !ok {
-        return fmt.Errorf("Not all signatures have been validated")
+    err = state.fs.GetWallet().ValidateSignatures(trans)
+    if err != nil {
+        return err
     }
     
     // Okay, transaction is good, so marshal and send to factomd!
@@ -503,20 +497,20 @@ func (Print) Execute (state State, args []string) error {
             fee, err := trans.CalculateFee(uint64(v))
             if err != nil {fmt.Println(err); continue }
             fmt.Println("Required Fee:       ", strings.TrimSpace(fct.ConvertDecimal(fee)))
-            tin,  ok1 := trans.TotalInputs()
-            tout, ok2 := trans.TotalOutputs()
-            if ok1 && ok2 {
+            tin,  err1 := trans.TotalInputs()
+            tout, err2 := trans.TotalOutputs()
+            if err1 == nil && err2 == nil {
                 cfee := int64(tin)- int64(tout)
                 sign := ""
                 if cfee < 0 { sign = "-"; cfee = -cfee } 
                 fmt.Print("Fee You are paying: ", 
                         sign, strings.TrimSpace(fct.ConvertDecimal(uint64(cfee))),"\n")
             }else{
-                if !ok1 {
-                    fmt.Println("One or more of your inputs are invalid")
+                if err1 != nil {
+                    fmt.Println("Inputs have an error: ", err1)
                 }
-                if !ok2 {
-                    fmt.Println("One or more of your outputs are invalid")
+                if err2 != nil {
+                    fmt.Println("Outputs have an error: ",err2)
                 }
             }
             binary, err := trans.MarshalBinary()

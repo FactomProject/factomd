@@ -38,13 +38,17 @@ func (b RCD_1) String() string {
 }
 
 func (w RCD_1) CheckSig(trans ITransaction, sigblk ISignatureBlock) bool {
+    if sigblk == nil { return false }
 	data, err := trans.MarshalBinarySig()
 	if err != nil {
       	return false
 	}
-	sig := sigblk.GetSignature(0).GetSignature(0)
-  
-	return ed25519.VerifyCanonical(&w.publicKey, data, sig) 
+	signature := sigblk.GetSignature(0)
+    if signature == nil { return false }
+    cryptosig := signature.GetSignature(0)
+    if cryptosig == nil { return false }
+    
+	return ed25519.VerifyCanonical(&w.publicKey, data, cryptosig) 
 }
 
 func (w RCD_1) Clone() IRCD {

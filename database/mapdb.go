@@ -81,9 +81,11 @@ func (db *MapDB) PutRaw(bucket []byte, key []byte, value fct.IBlock) {
 func (db *MapDB) DeleteKey(bucket []byte, key []byte) {
     dbkey := makeKey(bucket,key).(*DBKey)
     db.cache[*dbkey] = nil
-    if db.doNotPersist[string(bucket)] != nil { return }
-    if db.GetPersist() != nil {
+    if db.doNotPersist[string(bucket)] != nil && db.GetPersist() != nil {
         db.GetPersist().DeleteKey(bucket,key)
+    }
+    if db.GetBacker() != nil {
+        db.GetBacker().DeleteKey(bucket,key)
     }
 }
 
