@@ -26,8 +26,7 @@ import (
 )
 
 const (
-	//	defaultConfigFilename = "factoid.conf"
-	defaultConfigFilename = "factom.conf"
+	defaultConfigFilename = "NONE.conf"
 	//	defaultDataDirname       = "data"
 	defaultLogLevel    = "info"
 	defaultLogDirname  = "logs"
@@ -104,7 +103,7 @@ type config struct {
 	OnionProxyPass     string   `long:"onionpass" default-mask:"-" description:"Password for onion proxy server"`
 	NoOnion            bool     `long:"noonion" description:"Disable connecting to tor hidden services"`
 	TestNet3           bool     `long:"testnet" description:"Use the test network"`
-	RegressionTest     bool     `long:"regtest" description:"Use the regression test network"`
+	RegressionTest     bool     `long:"devnet" description:"Use the devnet test network"`
 	SimNet             bool     `long:"simnet" description:"Use the simulation test network"`
 	DisableCheckpoints bool     `long:"nocheckpoints" description:"Disable built-in checkpoints.  Don't do this unless you know what you're doing."`
 	DbType             string   `long:"dbtype" description:"Database backend to use for the Block Chain"`

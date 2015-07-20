@@ -50,6 +50,8 @@ const (
 	defaultMaxOutbound = 8
 )
 
+var prev_connected int
+
 // broadcastMsg provides the ability to house a bitcoin message to be broadcast
 // to all connected peers except specified excluded peers.
 type broadcastMsg struct {
@@ -225,7 +227,10 @@ func (s *server) handleAddPeerMsg(state *peerState, p *peer) bool {
 
 	// count peers
 	peerCount := state.Count()
-	srvrLog.Infof("nconnected= %d (peerCount)", peerCount)
+	if prev_connected != peerCount {
+		srvrLog.Infof("nconnected= %d (peerCount)", peerCount)
+		prev_connected = peerCount
+	}
 
 	// Limit max number of total peers.
 	if state.Count() >= cfg.MaxPeers {
@@ -395,8 +400,10 @@ func (s *server) handleQuery(querymsg interface{}, state *peerState) {
 				nconnected++
 			}
 		})
+
 		srvrLog.Infof("nconnected= %d", nconnected)
 		util.Trace(fmt.Sprintf("nconnected= %d", nconnected))
+
 		msg.reply <- nconnected
 
 	case getPeerInfoMsg:
