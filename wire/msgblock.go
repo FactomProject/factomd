@@ -13,6 +13,8 @@ import (
 	"github.com/davecgh/go-spew/spew"
 )
 
+var _ = util.Trace
+
 // defaultTransactionAlloc is the default size used for the backing array
 // for transactions.  The transaction array will dynamically grow as needed, but
 // this figure is intended to provide enough space for the number of
@@ -114,7 +116,7 @@ func (msg *MsgBlock) Deserialize(r io.Reader) error {
 // a byte buffer instead of a generic reader and returns a slice containing the start and length of
 // each transaction within the raw data that is being deserialized.
 func (msg *MsgBlock) DeserializeTxLoc(r *bytes.Buffer) ([]TxLoc, error) {
-	util.Trace()
+	//util.Trace()
 	fullLen := r.Len()
 
 	fmt.Println("fullLen=", fullLen, spew.Sdump(r.Bytes()))
@@ -126,14 +128,14 @@ func (msg *MsgBlock) DeserializeTxLoc(r *bytes.Buffer) ([]TxLoc, error) {
 	if err != nil {
 		return nil, err
 	}
-	util.Trace()
+	//util.Trace()
 
 	txCount, err := readVarInt(r, 0)
 	if err != nil {
 		return nil, err
 	}
 
-	util.Trace(fmt.Sprintf("txCount= %d", txCount))
+	//util.Trace(fmt.Sprintf("txCount= %d", txCount))
 
 	// Prevent more transactions than could possibly fit into a block.
 	// It would be possible to cause memory exhaustion and panics without
@@ -143,7 +145,7 @@ func (msg *MsgBlock) DeserializeTxLoc(r *bytes.Buffer) ([]TxLoc, error) {
 			"[count %d, max %d]", txCount, maxTxPerBlock)
 		return nil, messageError("MsgBlock.DeserializeTxLoc", str)
 	}
-	util.Trace()
+	//util.Trace()
 
 	// Deserialize each transaction while keeping track of its location
 	// within the byte stream.
@@ -157,7 +159,7 @@ func (msg *MsgBlock) DeserializeTxLoc(r *bytes.Buffer) ([]TxLoc, error) {
 			return nil, err
 		}
 
-		util.Trace("tx deserialized= " + spew.Sdump(tx))
+		//util.Trace("tx deserialized= " + spew.Sdump(tx))
 
 		msg.Transactions = append(msg.Transactions, &tx)
 		txLocs[i].TxLen = (fullLen - r.Len()) - txLocs[i].TxStart

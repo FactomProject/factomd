@@ -35,8 +35,6 @@ import (
 	"github.com/FactomProject/fastsha256"
 	"github.com/FactomProject/websocket"
 
-	"github.com/FactomProject/FactomCode/util"
-
 	//	"github.com/davecgh/go-spew/spew"
 )
 
@@ -291,11 +289,9 @@ type rpcServer struct {
 
 // Start is used by server.go to start the rpc listener.
 func (s *rpcServer) Start() {
-	util.Trace()
 	if atomic.AddInt32(&s.started, 1) != 1 {
 		return
 	}
-	util.Trace()
 
 	rpcsLog.Trace("Starting RPC server")
 	rpcServeMux := http.NewServeMux()
@@ -460,7 +456,6 @@ func (s *rpcServer) decrementClients() {
 //
 // This check is time-constant.
 func (s *rpcServer) checkAuth(r *http.Request, require bool) (bool, error) {
-	util.Trace()
 
 	authhdr := r.Header["Authorization"]
 	if len(authhdr) <= 0 {
@@ -484,7 +479,6 @@ func (s *rpcServer) checkAuth(r *http.Request, require bool) (bool, error) {
 
 // Stop is used by server.go to stop the rpc listener.
 func (s *rpcServer) Stop() error {
-	util.Trace()
 
 	if atomic.AddInt32(&s.shutdown, 1) != 1 {
 		rpcsLog.Infof("RPC server is already in the process of shutting down")
@@ -534,8 +528,6 @@ func genCertPair(certFile, keyFile string) error {
 func newRPCServer(listenAddrs []string, s *server) (*rpcServer, error) {
 	//	login := cfg.RPCUser + ":" + cfg.RPCPass
 	login := factomdUser + ":" + factomdPass
-	util.Trace(factomdUser)
-	util.Trace(factomdPass)
 
 	auth := "Basic " + base64.StdEncoding.EncodeToString([]byte(login))
 	rpc := rpcServer{
@@ -754,7 +746,7 @@ func messageToHex(msg wire.Message) (string, error) {
 /*
 // handleCreateRawTransaction handles createrawtransaction commands.
 func handleCreateRawTransaction(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{}) (interface{}, error) {
-	util.Trace()
+	//util.Trace()
 
 	c := cmd.(*btcjson.CreateRawTransactionCmd)
 
@@ -790,12 +782,12 @@ func handleCreateRawTransaction(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan 
 			}
 		}
 
-		util.Trace(encodedAddr)
+		//util.Trace(encodedAddr)
 
 		// Decode the provided address.
 		addr, err := btcutil.DecodeAddress(encodedAddr, activeNetParams.Params)
 
-		util.Trace(fmt.Sprintf(spew.Sdump(addr)))
+		//util.Trace(fmt.Sprintf(spew.Sdump(addr)))
 
 		if err != nil {
 			return nil, btcjson.Error{
@@ -811,7 +803,7 @@ func handleCreateRawTransaction(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan 
 		switch addr.(type) {
 		case *btcutil.AddressPubKeyHash:
 		default:
-			util.Trace("NO GOOD !")
+			//util.Trace("NO GOOD !")
 			panic(errors.New("MUST VERIFY: this case statement"))
 
 			return nil, btcjson.ErrInvalidAddressOrKey
@@ -1129,7 +1121,7 @@ func handleGetAddedNodeInfo(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan stru
 /*
 // handleGetBestBlock implements the getbestblock command.
 func handleGetBestBlock(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{}) (interface{}, error) {
-	util.Trace()
+	//util.Trace()
 
 	// All other "get block" commands give either the height, the
 	// hash, or both but require the block SHA.  This gets both for
@@ -1148,7 +1140,7 @@ func handleGetBestBlock(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{}
 
 // handleGetBestBlockHash implements the getbestblockhash command.
 func handleGetBestBlockHash(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{}) (interface{}, error) {
-	util.Trace()
+	//util.Trace()
 
 	sha, _, err := s.server.db.NewestSha()
 	if err != nil {
@@ -1161,7 +1153,7 @@ func handleGetBestBlockHash(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan stru
 
 // handleGetBlock implements the getblock command.
 func handleGetBlock(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{}) (interface{}, error) {
-	util.Trace()
+	//util.Trace()
 
 	c := cmd.(*btcjson.GetBlockCmd)
 	sha, err := wire.NewShaHashFromStr(c.Hash)
@@ -1260,7 +1252,7 @@ func handleGetBlock(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{}) (i
 
 // handleGetBlockCount implements the getblockcount command.
 func handleGetBlockCount(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{}) (interface{}, error) {
-	util.Trace()
+	//util.Trace()
 
 	_, maxidx, err := s.server.db.NewestSha()
 	if err != nil {
@@ -1273,7 +1265,7 @@ func handleGetBlockCount(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{
 
 // handleGetBlockHash implements the getblockhash command.
 func handleGetBlockHash(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{}) (interface{}, error) {
-	util.Trace()
+	//util.Trace()
 
 	c := cmd.(*btcjson.GetBlockHashCmd)
 	sha, err := s.server.db.FetchBlockShaByHeight(c.Index)
@@ -2077,13 +2069,11 @@ func handleGetBlockTemplate(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan stru
 
 // handleGetConnectionCount implements the getconnectioncount command.
 func handleGetConnectionCount(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{}) (interface{}, error) {
-	util.Trace()
 	return s.server.ConnectedCount(), nil
 }
 
 // handleGetCurrentNet implements the getcurrentnet command.
 func handleGetCurrentNet(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{}) (interface{}, error) {
-	util.Trace()
 	return s.server.chainParams.Net, nil
 }
 
@@ -2344,7 +2334,7 @@ func handleGetRawMempool(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{
 /*
 // handleGetRawTransaction implements the getrawtransaction command.
 func handleGetRawTransaction(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{}) (interface{}, error) {
-	util.Trace()
+	//util.Trace()
 
 	c := cmd.(*btcjson.GetRawTransactionCmd)
 
@@ -2962,7 +2952,7 @@ func handlePing(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{}) (inter
 /*
 // handleSearchRawTransaction implements the searchrawtransactions command.
 func handleSearchRawTransactions(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{}) (interface{}, error) {
-	util.Trace()
+	//util.Trace()
 
 	if !cfg.AddrIndex {
 		return nil, btcjson.Error{
@@ -3073,7 +3063,7 @@ func handleSearchRawTransactions(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan
 
 // handleSendRawTransaction implements the sendrawtransaction command.
 func handleSendRawTransaction(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{}) (interface{}, error) {
-	util.Trace()
+	//util.Trace()
 
 	c := cmd.(*btcjson.SendRawTransactionCmd)
 	// Deserialize and send off to tx relay
@@ -3165,8 +3155,6 @@ func handleSetGenerate(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{})
 
 // handleStop implements the stop command.
 func handleStop(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{}) (interface{}, error) {
-	util.Trace()
-
 	s.server.Stop()
 	return "btcd stopping.", nil
 }
@@ -3277,7 +3265,7 @@ func handleValidateAddress(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struc
 
 // handleVerifyChain implements the verifychain command.
 func handleVerifyChain(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{}) (interface{}, error) {
-	util.Trace("NOT IMPLEMENTED")
+	//util.Trace("NOT IMPLEMENTED")
 	panic(11115)
 
 		c := cmd.(*btcjson.VerifyChainCmd)
@@ -3289,7 +3277,7 @@ func handleVerifyChain(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{})
 
 // handleVerifyMessage implements the verifymessage command.
 func handleVerifyMessage(s *rpcServer, cmd btcjson.Cmd, closeChan <-chan struct{}) (interface{}, error) {
-	util.Trace()
+	//util.Trace()
 
 	c := cmd.(*btcjson.VerifyMessageCmd)
 

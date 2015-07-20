@@ -37,12 +37,12 @@ func (msg *MsgEBlock) BtcEncode(w io.Writer, pver uint32) error {
 // This is part of the Message interface implementation.
 func (msg *MsgEBlock) BtcDecode(r io.Reader, pver uint32) error {
 
-	bytes, err := readVarBytes(r, pver, uint32(100000000), CmdEBlock)
+	bytes, err := readVarBytes(r, pver, uint32(MaxAppMsgPayload), CmdEBlock)
 	if err != nil {
 		return err
 	}
 
-	msg.EBlk = new(common.EBlock)
+	msg.EBlk = common.NewEBlock()
 	err = msg.EBlk.UnmarshalBinary(bytes)
 	if err != nil {
 		return err

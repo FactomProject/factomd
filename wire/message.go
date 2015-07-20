@@ -76,7 +76,7 @@ const (
 
 // MaxAppMsgPayload is the maximum bytes a factom app message can be in bytes.
 //const MaxAppMsgPayload = (10 * 1024) // 10Kib
-const MaxAppMsgPayload = (1000 * 1024) // 1Mib??
+const MaxAppMsgPayload = (1024 * 1024 * 32) // 32MB
 
 // Message is an interface that describes a bitcoin message.  A type that
 // implements Message has complete control over the representation of its data

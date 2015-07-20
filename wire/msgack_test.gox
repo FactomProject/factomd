@@ -14,7 +14,7 @@ import (
 
 func TestCommitChain(t *testing.T) {
 	fmt.Println("\nTestAck===========================================================================")
-	ack := wire.NewMsgAcknowledgement(1, 2, nil, END_MINUTE_10) //??
+	ack := wire.NewMsgAcknowledgement(1, 2,  nil, END_MINUTE_10) //??
 
 	// Sign the ack using server private keys
 	bytes, _ := ack.GetBinaryForSignature()

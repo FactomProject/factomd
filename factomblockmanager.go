@@ -6,14 +6,11 @@ package btcd
 
 import (
 	"container/list"
-	//"fmt"
 	"sync/atomic"
-	//	"time"
-
-	"github.com/FactomProject/btcd/wire"
 
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/util"
+	"github.com/FactomProject/btcd/wire"
 	"github.com/davecgh/go-spew/spew"
 )
 
@@ -34,12 +31,11 @@ type dirInvMsg struct {
 // handleDirInvMsg handles dir inv messages from all peers.
 // We examine the inventory advertised by the remote peer and act accordingly.
 func (b *blockManager) handleDirInvMsg(imsg *dirInvMsg) {
-	util.Trace(spew.Sdump(imsg))
+	bmgrLog.Debug("handleDirInvMsg: ", spew.Sdump(imsg))
 
 	// Ignore invs from peers that aren't the sync if we are not current.
 	// Helps prevent fetching a mass of orphans.
 	if imsg.peer != b.syncPeer && !b.current() {
-		util.Trace("!b.current()")
 		return
 	}
 
@@ -50,7 +46,6 @@ func (b *blockManager) handleDirInvMsg(imsg *dirInvMsg) {
 	bmgrLog.Debugf("len(InvVects)=%d", len(invVects))
 	for i := len(invVects) - 1; i >= 0; i-- {
 		if invVects[i].Type == wire.InvTypeFactomDirBlock {
-			util.Trace()
 			lastBlock = i
 			bmgrLog.Debugf("lastBlock=%d", lastBlock)
 			break
@@ -71,13 +66,6 @@ func (b *blockManager) handleDirInvMsg(imsg *dirInvMsg) {
 		// for the peer.
 		imsg.peer.AddKnownInventory(iv)
 
-		// Ignore inventory when we're in headers-first mode.
-		//if b.headersFirstMode {
-		//continue
-		//}
-
-		//time.Sleep(1 * time.Second)
-
 		// Request the inventory if we don't already have it.
 		haveInv, err := b.haveInventory(iv)
 		if err != nil {
@@ -88,39 +76,11 @@ func (b *blockManager) handleDirInvMsg(imsg *dirInvMsg) {
 		}
 		if !haveInv {
 			// Add it to the request queue.
-			//util.Trace("!haveInv")
 			imsg.peer.requestQueue = append(imsg.peer.requestQueue, iv)
 			continue
 		}
 
-		util.Trace("haveInv")
 		if iv.Type == wire.InvTypeFactomDirBlock {
-			// The block is an orphan block that we already have.
-			// When the existing orphan was processed, it requested
-			// the missing parent blocks.  When this scenario
-			// happens, it means there were more blocks missing
-			// than are allowed into a single inventory message.  As
-			// a result, once this peer requested the final
-			// advertised block, the remote peer noticed and is now
-			// resending the orphan block as an available block
-			// to signal there are more missing blocks that need to
-			// be requested.
-			/*
-				if chain.IsKnownOrphan(&iv.Hash) {
-					// Request blocks starting at the latest known
-					// up to the root of the orphan that just came
-					// in.
-					orphanRoot := chain.GetOrphanRoot(&iv.Hash)
-					locator, err := chain.LatestBlockLocator()
-					if err != nil {
-						bmgrLog.Errorf("PEER: Failed to get block "+
-							"locator for the latest block: "+
-							"%v", err)
-						continue
-					}
-					imsg.peer.PushGetDirBlocksMsg(locator, orphanRoot)
-					continue
-				}*/
 
 			// We already have the final block advertised by this
 			// inventory message, so force a request for more.  This
@@ -130,7 +90,7 @@ func (b *blockManager) handleDirInvMsg(imsg *dirInvMsg) {
 				// Request blocks after this one up to the
 				// final one the remote peer knows about (zero
 				// stop hash).
-				util.Trace("push for more dir blocks: PushGetDirBlocksMsg")
+				bmgrLog.Debug("push for more dir blocks: PushGetDirBlocksMsg")
 				locator := DirBlockLocatorFromHash(&iv.Hash)
 				imsg.peer.PushGetDirBlocksMsg(locator, &zeroHash)
 			}
@@ -139,7 +99,6 @@ func (b *blockManager) handleDirInvMsg(imsg *dirInvMsg) {
 
 	// Request as much as possible at once.  Anything that won't fit into
 	// the request will be requested on the next inv message.
-	util.Trace()
 	numRequested := 0
 	gdmsg := wire.NewMsgGetDirData()
 	requestQueue := imsg.peer.requestQueue
@@ -152,7 +111,6 @@ func (b *blockManager) handleDirInvMsg(imsg *dirInvMsg) {
 		case wire.InvTypeFactomDirBlock:
 			// Request the block if there is not already a pending
 			// request.
-			//util.Trace()
 			if _, exists := b.requestedBlocks[iv.Hash]; !exists {
 				b.requestedBlocks[iv.Hash] = struct{}{}
 				imsg.peer.requestedBlocks[iv.Hash] = struct{}{}
@@ -177,14 +135,12 @@ func (b *blockManager) handleDirInvMsg(imsg *dirInvMsg) {
 	}
 	imsg.peer.requestQueue = requestQueue
 	if len(gdmsg.InvList) > 0 {
-		util.Trace()
 		imsg.peer.QueueMessage(gdmsg, nil)
 	}
 }
 
 // QueueDirBlock adds the passed GetDirBlocks message and peer to the block handling queue.
 func (b *blockManager) QueueDirBlock(msg *wire.MsgDirBlock, p *peer) {
-	util.Trace()
 	// Don't accept more blocks if we're shutting down.
 	if atomic.LoadInt32(&b.shutdown) != 0 {
 		p.blockProcessed <- struct{}{}
@@ -196,7 +152,6 @@ func (b *blockManager) QueueDirBlock(msg *wire.MsgDirBlock, p *peer) {
 
 // QueueDirInv adds the passed inv message and peer to the block handling queue.
 func (b *blockManager) QueueDirInv(inv *wire.MsgDirInv, p *peer) {
-	util.Trace()
 	// No channel handling here because peers do not need to block on inv
 	// messages.
 	if atomic.LoadInt32(&b.shutdown) != 0 {
@@ -211,7 +166,6 @@ func (b *blockManager) QueueDirInv(inv *wire.MsgDirInv, p *peer) {
 // simply returns.  It also examines the candidates for any which are no longer
 // candidates and removes them as needed.
 func (b *blockManager) startSyncFactom(peers *list.List) {
-	util.Trace()
 	// Return now if we're already syncing.
 	if b.syncPeer != nil {
 		return
@@ -250,7 +204,6 @@ func (b *blockManager) startSyncFactom(peers *list.List) {
 
 	// Start syncing from the best peer if one was selected.
 	if bestPeer != nil {
-		util.Trace()
 		locator, err := LatestDirBlockLocator()
 		if err != nil {
 			bmgrLog.Errorf("Failed to get block locator for the "+
@@ -263,35 +216,7 @@ func (b *blockManager) startSyncFactom(peers *list.List) {
 		bmgrLog.Infof("Syncing to block height %d from peer %v",
 			bestPeer.lastBlock, bestPeer.addr)
 
-		// When the current height is less than a known checkpoint we
-		// can use block headers to learn about which blocks comprise
-		// the chain up to the checkpoint and perform less validation
-		// for them.  This is possible since each header contains the
-		// hash of the previous header and a merkle root.  Therefore if
-		// we validate all of the received headers link together
-		// properly and the checkpoint hashes match, we can be sure the
-		// hashes for the blocks in between are accurate.  Further, once
-		// the full blocks are downloaded, the merkle root is computed
-		// and compared against the value in the header which proves the
-		// full block hasn't been tampered with.
-		//
-		// Once we have passed the final checkpoint, or checkpoints are
-		// disabled, use standard inv messages learn about the blocks
-		// and fully validate them.  Finally, regression test mode does
-		// not support the headers-first approach so do normal block
-		// downloads when in regression test mode.
-		/*
-			if b.nextCheckpoint != nil && height < b.nextCheckpoint.Height &&
-				!cfg.RegressionTest && !cfg.DisableCheckpoints {
-
-				bestPeer.PushGetHeadersMsg(locator, b.nextCheckpoint.Hash)
-				b.headersFirstMode = true
-				bmgrLog.Infof("Downloading headers for blocks %d to "+
-					"%d from peer %s", height+1,
-					b.nextCheckpoint.Height, bestPeer.addr)
-			} else {*/
 		bestPeer.PushGetDirBlocksMsg(locator, &zeroHash)
-		//}
 		b.syncPeer = bestPeer
 	} else {
 		bmgrLog.Warnf("No sync peer candidates available")
@@ -301,46 +226,9 @@ func (b *blockManager) startSyncFactom(peers *list.List) {
 // isSyncCandidateFactom returns whether or not the peer is a candidate to consider
 // syncing from.
 func (b *blockManager) isSyncCandidateFactom(p *peer) bool {
-	/*
-		// Typically a peer is not a candidate for sync if it's not a full node,
-		// however regression test is special in that the regression tool is
-		// not a full node and still needs to be considered a sync candidate.
-		if cfg.RegressionTest {
-			// The peer is not a candidate if it's not coming from localhost
-			// or the hostname can't be determined for some reason.
-			host, _, err := net.SplitHostPort(p.addr)
-			if err != nil {
-				return false
-			}
-
-			if host != "127.0.0.1" && host != "localhost" {
-				return false
-			}
-		} else {
-			// The peer is not a candidate for sync if it's not a full node.
-			if p.services&wire.SFNodeNetwork != wire.SFNodeNetwork {
-				return false
-			}
-		}
-
-		// Candidate if all checks passed.
-	*/
-	util.Trace()
+	// Typically a peer is not a candidate for sync if it's not a Factom SERVER node,
+	if common.SERVER_NODE == util.ReadConfig().App.NodeMode {
+		return true
+	}
 	return true
 }
-
-// HaveBlockInDB returns whether or not the chain instance has the block represented
-// by the passed hash.  This includes checking the various places a block can
-// be like part of the main chain, on a side chain, or in the orphan pool.
-//
-// This function is NOT safe for concurrent access.
-/*func HaveBlockInDB(hash *wire.ShaHash) (bool, error) {
-	util.Trace(spew.Sdump(hash))
-	dblock, _ := db.FetchDBlockByHash(hash.ToFactomHash())
-	if dblock != nil {
-		fmt.Println("dir block height=", dblock.Header.BlockHeight)
-		return true, nil
-	}
-	return false, nil
-}
-*/

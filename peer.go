@@ -11,6 +11,7 @@ import (
 	"io"
 	prand "math/rand"
 	"net"
+	"os"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -27,9 +28,11 @@ import (
 	"github.com/FactomProject/FactomCode/util"
 )
 
+var _ = util.Trace
+
 const (
 	// maxProtocolVersion is the max protocol version the peer supports.
-	maxProtocolVersion = 70002
+	maxProtocolVersion = 1001 //version starts from 1000 for Factom
 
 	// outputBufferSize is the number of elements the output channels use.
 	outputBufferSize = 50
@@ -202,7 +205,6 @@ func (p *peer) String() string {
 // isKnownInventory returns whether or not the peer is known to have the passed
 // inventory.  It is safe for concurrent access.
 func (p *peer) isKnownInventory(invVect *wire.InvVect) bool {
-	//	util.Trace()
 	p.knownInvMutex.Lock()
 	defer p.knownInvMutex.Unlock()
 
@@ -215,7 +217,6 @@ func (p *peer) isKnownInventory(invVect *wire.InvVect) bool {
 // AddKnownInventory adds the passed inventory to the cache of known inventory
 // for the peer.  It is safe for concurrent access.
 func (p *peer) AddKnownInventory(invVect *wire.InvVect) {
-	//	util.Trace()
 	p.knownInvMutex.Lock()
 	defer p.knownInvMutex.Unlock()
 
@@ -362,10 +363,13 @@ func (p *peer) handleVersionMsg(msg *wire.MsgVersion) {
 
 	if ClientOnly {
 		if isVersionMismatch(maxProtocolVersion, msg.ProtocolVersion) {
-			fmt.Println("\n\nVERSION MISMATCH (handleVersionMsg) -- must upgrade\n\n")
+			errmsg := "\n\n******************** - IMPORTANT - ****************************\n\n"
+			errmsg += "\n\n      VERSION MISMATCH -- Please upgrade your software! \n\n"
+			errmsg += "\n\n***************************************************************\n\n"
+			peerLog.Error(errmsg)
 			p.Disconnect()
-			panic("Please Upgrade this code !")
-			return
+			os.Exit(1)
+			//return
 		}
 	}
 
@@ -471,7 +475,7 @@ func (p *peer) handleVersionMsg(msg *wire.MsgVersion) {
 	if !ClientOnly {
 		// Protocol version mismatch -- need client upgrade !
 		if isVersionMismatch(maxProtocolVersion, int32(p.ProtocolVersion())) {
-			util.Trace(fmt.Sprintf("NEED client upgrade -- will ban & disconnect !: us=%d , peer= %d", maxProtocolVersion, p.ProtocolVersion()))
+			//util.Trace(fmt.Sprintf("NEED client upgrade -- will ban & disconnect !: us=%d , peer= %d", maxProtocolVersion, p.ProtocolVersion()))
 			p.logError(fmt.Sprintf("NEED client upgrade -- will ban & disconnect !: us=%d , peer= %d", maxProtocolVersion, p.ProtocolVersion()))
 			//		p.Disconnect()
 			p.server.BanPeer(p)
@@ -513,7 +517,7 @@ func (p *peer) pushTxMsg(sha *wire.ShaHash, doneChan, waitChan chan struct{}) er
 // pushBlockMsg sends a block message for the provided block hash to the
 // connected peer.  An error is returned if the block hash is not known.
 func (p *peer) pushBlockMsg(sha *wire.ShaHash, doneChan, waitChan chan struct{}) error {
-	util.Trace("NOT IMPLEMENTED - NEEDED???")
+	//util.Trace("NOT IMPLEMENTED - NEEDED???")
 	panic(1111)
 	/*
 			blk, err := p.server.db.FetchBlockBySha(sha)
@@ -799,7 +803,6 @@ func (p *peer) handleMemPoolMsg(msg *wire.MsgMemPool) {
 // handler this does not serialize all transactions through a single thread
 // transactions don't rely on the previous one in a linear fashion like blocks.
 func (p *peer) peer_HandleTxMsg(msg *wire.MsgTx) {
-	util.Trace("BEGIN")
 
 	// Add the transaction to the known inventory for the peer.
 	// Convert the raw MsgTx to a btcutil.Tx which provides some convenience
@@ -816,13 +819,11 @@ func (p *peer) peer_HandleTxMsg(msg *wire.MsgTx) {
 	p.server.blockManager.QueueTx(tx, p)
 	<-p.txProcessed
 
-	util.Trace("END")
 }
 
 // handleBlockMsg is invoked when a peer receives a block bitcoin message.  It
 // blocks until the bitcoin block has been fully processed.
 func (p *peer) peer_HandleBlockMsg(msg *wire.MsgBlock, buf []byte) {
-	util.Trace()
 	// Convert the raw MsgBlock to a btcutil.Block which provides some
 	// convenience methods and things such as hash caching.
 	block := btcutil.NewBlockFromBlockAndBytes(msg, buf)
@@ -1520,12 +1521,10 @@ out:
 			markConnected = true
 
 		case *wire.MsgPing:
-			util.Trace()
 			p.handlePingMsg(msg)
 			markConnected = true
 
 		case *wire.MsgPong:
-			util.Trace()
 			p.handlePongMsg(msg)
 
 		case *wire.MsgAlert:
@@ -1593,81 +1592,64 @@ out:
 
 			// Factom additions
 		case *wire.MsgCommitChain:
-			util.Trace()
 			p.handleCommitChainMsg(msg)
 			p.FactomRelay(msg)
 
 		case *wire.MsgRevealChain:
-			util.Trace()
 			p.handleRevealChainMsg(msg)
 			p.FactomRelay(msg)
 
 		case *wire.MsgCommitEntry:
-			util.Trace()
 			p.handleCommitEntryMsg(msg)
 			p.FactomRelay(msg)
 
 		case *wire.MsgRevealEntry:
-			util.Trace()
 			p.handleRevealEntryMsg(msg)
 			p.FactomRelay(msg)
 			/*
 				case *wire.MsgAcknowledgement:
-					util.Trace()
 					p.handleAcknoledgementMsg(msg)
 					p.FactomRelay(msg)
 			*/
 			// Factom blocks downloading
 		case *wire.MsgGetDirBlocks:
-			//			util.Trace()
 			p.handleGetDirBlocksMsg(msg)
 
 		case *wire.MsgDirInv:
-			util.Trace()
 			p.handleDirInvMsg(msg)
 			markConnected = true
 
 		case *wire.MsgGetDirData:
-			util.Trace()
 			p.handleGetDirDataMsg(msg)
 			markConnected = true
 
 		case *wire.MsgDirBlock:
-			//			util.Trace()
 			p.handleDirBlockMsg(msg, buf)
 
 		case *wire.MsgGetNonDirData:
-			util.Trace()
 			p.handleGetNonDirDataMsg(msg)
 			markConnected = true
 
 		case *wire.MsgABlock:
-			//			util.Trace()
 			p.handleABlockMsg(msg, buf)
 
 		case *wire.MsgECBlock:
-			util.Trace()
 			p.handleECBlockMsg(msg, buf)
 
 		case *wire.MsgEBlock:
-			util.Trace()
 			p.handleEBlockMsg(msg, buf)
 
 		case *wire.MsgFBlock:
-			//			util.Trace()
 			p.handleFBlockMsg(msg, buf)
 
 		case *wire.MsgGetEntryData:
-			util.Trace()
 			p.handleGetEntryDataMsg(msg)
 			markConnected = true
 
 		case *wire.MsgEntry:
-			util.Trace()
 			p.handleEntryMsg(msg, buf)
 
 		case *wire.MsgFactoidTX:
-			util.Trace("MsgFactoidTX")
 			p.handleFactoidMsg(msg, buf)
 
 		default:
@@ -1987,7 +1969,6 @@ func (p *peer) Connected() bool {
 // Disconnect disconnects the peer by closing the connection.  It also sets
 // a flag so the impending shutdown can be detected.
 func (p *peer) Disconnect() {
-	util.Trace()
 	// did we win the race?
 	if atomic.AddInt32(&p.disconnect, 1) != 1 {
 		return
@@ -2158,10 +2139,10 @@ func (p *peer) logError(fmt string, args ...interface{}) {
 }
 
 func isVersionMismatch(us, them int32) bool {
-	util.Trace(fmt.Sprintf("VERSION: us=%d , peer= %d", us, them))
+	peerLog.Debug(fmt.Sprintf("VERSION: us=%d , peer= %d", us, them))
 
 	if us != them {
-		util.Trace("NEED CLIENT UPGRADE !!!")
+		peerLog.Debug("NEED CLIENT UPGRADE !!!")
 		return true
 	}
 

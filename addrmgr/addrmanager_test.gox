@@ -9,7 +9,7 @@ import (
 	"net"
 	"testing"
 	"time"
-
+	"fmt"
 	"github.com/FactomProject/btcd/addrmgr"
 	"github.com/FactomProject/btcd/wire"
 )
@@ -103,6 +103,7 @@ func lookupFunc(host string) ([]net.IP, error) {
 }
 
 func TestAddLocalAddress(t *testing.T) {
+    fmt.Println("Here")
 	var tests = []struct {
 		address wire.NetAddress
 		valid   bool

@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 package main
-
+/*
 import (
 	"os"
 	"path/filepath"
@@ -133,3 +133,6 @@ func main() {
 		os.Exit(1)
 	}
 }
+*/
+
+func main() { }

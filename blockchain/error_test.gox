@@ -6,12 +6,13 @@ package blockchain_test
 
 import (
 	"testing"
-
+"fmt"
 	"github.com/FactomProject/btcd/blockchain"
 )
 
 // TestErrorCodeStringer tests the stringized output for the ErrorCode type.
 func TestErrorCodeStringer(t *testing.T) {
+fmt.Println("Start")
 	tests := []struct {
 		in   blockchain.ErrorCode
 		want string
@@ -60,6 +61,7 @@ func TestErrorCodeStringer(t *testing.T) {
 
 	t.Logf("Running %d tests", len(tests))
 	for i, test := range tests {
+	    fmt.Println(i)
 		result := test.in.String()
 		if result != test.want {
 			t.Errorf("String #%d\n got: %s want: %s", i, result,
@@ -71,6 +73,7 @@ func TestErrorCodeStringer(t *testing.T) {
 
 // TestRuleError tests the error output for the RuleError type.
 func TestRuleError(t *testing.T) {
+fmt.Println("Start")
 	tests := []struct {
 		in   blockchain.RuleError
 		want string
