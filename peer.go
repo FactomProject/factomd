@@ -368,6 +368,7 @@ func (p *peer) handleVersionMsg(msg *wire.MsgVersion) {
 			errmsg += "\n\n***************************************************************\n\n"
 			peerLog.Error(errmsg)
 			p.Disconnect()
+			panic(errmsg)
 			os.Exit(1)
 			//return
 		}
