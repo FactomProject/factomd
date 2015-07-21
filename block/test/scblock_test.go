@@ -36,19 +36,19 @@ func Test_create_block(test *testing.T) {
     w.Init()
     scb := block.NewFBlock(1000, 0)
 	
-    for i:=0;i<100;i++ {
+    for i:=0;i<3;i++ {
         h0,err := w.GenerateFctAddress([]byte("test "+cv.Itoa(i)+"-0"),1,1)
-        if err != nil { test.Fail() }
+        if err != nil { sc.Prtln("Error 1"); test.Fail() }
         h1,err := w.GenerateFctAddress([]byte("test "+cv.Itoa(i)+"-1"),1,1)
-        if err != nil { test.Fail() }
+        if err != nil { sc.Prtln("Error 2");test.Fail() }
         h2,err := w.GenerateFctAddress([]byte("test "+cv.Itoa(i)+"-2"),1,1)
-        if err != nil { test.Fail() }
+        if err != nil { sc.Prtln("Error 3");test.Fail() }
         h3,err := w.GenerateFctAddress([]byte("test "+cv.Itoa(i)+"-3"),1,1)
-        if err != nil { test.Fail() }
+        if err != nil { sc.Prtln("Error 4");test.Fail() }
         h4,err := w.GenerateFctAddress([]byte("test "+cv.Itoa(i)+"-4"),1,1)
-        if err != nil { test.Fail() }
+        if err != nil { sc.Prtln("Error 5");test.Fail() }
         h5,err := w.GenerateFctAddress([]byte("test "+cv.Itoa(i)+"-5"),1,1)
-        if err != nil { test.Fail() }
+        if err != nil { sc.Prtln("Error 6");test.Fail() }
         
         t := w.CreateTransaction(uint64(time.Now().UnixNano()/1000000))
         
@@ -76,6 +76,7 @@ func Test_create_block(test *testing.T) {
 	scb2 := block.NewFBlock(1000, 0)
 	_, err = scb2.UnmarshalBinaryData(data)
 
+    sc.Prtln(scb,scb2)
     if scb.IsEqual(scb2)!=nil {
 		sc.PrtStk()
 		test.Fail()

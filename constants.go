@@ -25,16 +25,9 @@ const (
     DB_BUILD_TRANS       = "Transactions_Under_Construction"
     DB_TRANSACTIONS      = "Transactions_For_Addresses"
     
-    // Validation
-    WELL_FORMED          = "Pass"
-    INVALID_INPUTS       = "One or more of the inputs are negative, or cause an overflow"
-    BALANCE_FAIL         = "The sum of the inputs do not cover the sum of the outputs"
-    MIN_INPUT_FAIL       = "Must have at least one input"
-    MIN_SPEND_FAIL       = "Must have a minimum spend in the transaction"
-    RCD_INPUT_FAIL       = "Must have one and only one RCD per input"
-    RCD_REPORT_FAIL      = "RCD failed to provide an address"
-    RCD_MATCH_FAIL       = "The inputs and the RCDs must match, and be in the same order"
-    DUP_INPUT_FAIL       = "No duplicate inputs allowed"
+    // Block 
+    MARKER               = 0x00   // Byte used to mark minute boundries in Factoid blocks
+    
 
 )
 // Factoid chain

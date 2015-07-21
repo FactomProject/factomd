@@ -109,10 +109,12 @@ func (b *FBlock) GetHash() fct.IHash {
 func (b *FBlock) MarshalTrans() ([]byte, error) {
 	var out bytes.Buffer
 	var periodMark = 0;
-	for i, trans := range b.transactions {
+    var i int
+    var trans fct.ITransaction
+	for i, trans = range b.transactions {
         
         for periodMark < len(b.endOfPeriod) && i == b.endOfPeriod[periodMark] {
-            out.WriteByte(0xFF)
+            out.WriteByte(fct.MARKER)
             periodMark++
         }
         
@@ -125,12 +127,20 @@ func (b *FBlock) MarshalTrans() ([]byte, error) {
 			return nil, err
 		}
 	}
+	for periodMark < len(b.endOfPeriod) {
+        out.WriteByte(fct.MARKER)
+        periodMark++
+    }
 	return out.Bytes(), nil
 }
 
 // Write out the block
 func (b *FBlock) MarshalBinary() ([]byte, error) {
 	var out bytes.Buffer
+	
+	if(b.endOfPeriod[9]==0){
+        b.EndOfPeriod(1)           // Sets the end of the first period here.
+    }                               // This is what unmarshalling will do.
 	
 	out.Write(fct.FACTOID_CHAINID)
     
@@ -210,7 +220,7 @@ func (b *FBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
     var periodMark = 1
 	for i := uint32(0); i < cnt; i++ {
         
-        for data[0] == 0xFF {
+        for data[0] == fct.MARKER {
             b.EndOfPeriod(periodMark)
             data = data[1:]
             periodMark++
@@ -223,6 +233,13 @@ func (b *FBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
         }
 		b.transactions[i] = trans
 	}
+	
+	for periodMark <= len(b.endOfPeriod) {
+        b.EndOfPeriod(periodMark)
+        data = data[1:]
+        periodMark++
+    }    
+	
 	return data, nil
 }
 
@@ -298,8 +315,16 @@ func (b *FBlock) SetPrevFullHash(hash[]byte)  {
 }
 
 func (b *FBlock) CalculateHashes() {
+    if(b.endOfPeriod[9]==0){
+        b.EndOfPeriod(1)            // Sets the end of the first period here.
+    }                               // This is what unmarshalling will do.
     hashes := make([]fct.IHash,0,len(b.transactions))
-    for _,trans := range b.transactions{
+    marker := 0
+    for i,trans := range b.transactions{
+        for marker <10 && i == b.endOfPeriod[marker] {
+            marker++
+            hashes = append(hashes,fct.Sha(fct.ZERO_HASH))
+        }
         hashes = append(hashes,trans.GetHash())
     }
     b.BodyMR = fct.ComputeMerkleRoot(hashes)
@@ -443,6 +468,8 @@ func (b FBlock) MarshalText() (text []byte, err error) {
 	fct.WriteNumber64(&out, b.ExchRate)
 	out.WriteString("\n  DBHeight:      ")
 	fct.WriteNumber32(&out, b.DBHeight)
+    out.WriteString("\n  Period Marks:  ")
+    for _,mark := range b.endOfPeriod { out.WriteString( fmt.Sprintf("%d ",mark))}
     out.WriteString("\n  #Transactions: ")
 	fct.WriteNumber32(&out, uint32(len(b.transactions)))
 	transdata, err := b.MarshalTrans()
