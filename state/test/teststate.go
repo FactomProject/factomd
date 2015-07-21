@@ -77,7 +77,7 @@ func(fs *Test_state) newTransaction(maxIn, maxOut int) fct.ITransaction {
         }        
     }
     
-    fmt.Printf("\033[35;80H Inputs %4d, Max %20s Max2 %20s            ",
+    fmt.Printf("\033[35;0H Inputs %4d, Max %20s Max2 %20s            ",
                len(fs.inputAddresses),
                strings.TrimSpace(fct.ConvertDecimal(max)),
                strings.TrimSpace(fct.ConvertDecimal(max2)))

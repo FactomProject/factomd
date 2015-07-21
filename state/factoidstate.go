@@ -81,6 +81,11 @@ type IFactoidState interface {
     // Return zero len string if the balance of an address covers each input
     Validate(fct.ITransaction) error
     
+    // Check the transaction timestamp for to ensure it can be included 
+    // in the current block.  Transactions that are too old, or dated to
+    // far in the future cannot be included in the current block
+    ValidateTransactionAge(trans fct.ITransaction) error
+    
     // Update Transaction just updates the balance sheet with the
     // addition of a transaction.
     UpdateTransaction(fct.ITransaction) error
@@ -152,11 +157,31 @@ func(fs *FactoidState) AddTransactionBlock(blk block.IFBlock) error  {
     return nil
 }
 
+// Checks the transaction timestamp for validity in being included in the current block.
+// No node has any responsiblity to forward on transactions that do not fall within
+// the timeframe around a block defined by TRANSACTION_PRIOR_LIMIT and TRANSACTION_POST_LIMIT
+func(fs *FactoidState) ValidateTransactionAge(trans fct.ITransaction) error {
+    tsblk   := fs.GetCurrentBlock().GetCoinbaseTimestamp()
+    if tsblk < 0  { return fmt.Errorf("Block has no coinbase transaction at this time") }
+    
+    tstrans := int64(trans.GetMilliTimestamp())
+    
+    if tsblk - tstrans  > fct.TRANSACTION_PRIOR_LIMIT {
+        return fmt.Errorf("Transaction is too old to be included in the current block")
+    }
+    
+    if tstrans - tsblk  > fct.TRANSACTION_POST_LIMIT {
+        return fmt.Errorf("Transaction is dated too far in the future to be included in the current block")
+    }
+    return nil
+}
+
+// Only add valid transactions to the current block.
 func(fs *FactoidState) AddTransaction(trans fct.ITransaction) error {
     if err := fs.Validate(trans);                     err != nil { return err }
     if err := fs.UpdateTransaction(trans);            err != nil { return err }
+    if err := fs.ValidateTransactionAge(trans);       err != nil { return err }   
     if err := fs.currentBlock.AddTransaction(trans);  err != nil { return err }
-       
     return nil
 }
 

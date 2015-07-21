@@ -53,6 +53,12 @@ type IFBlock interface {
     // data point, we do not enforce much, other than order (the end of period one can't
     // come before period 2.  We just adjust the periods accordingly.
     EndOfPeriod(min int)
+    
+    // Returns the milliTimestamp of the coinbase transaction.  This is used to validate
+    // the timestamps of transactions included in the block. Transactions prior to the
+    // TRANSACTION_PRIOR_LIMIT or after the TRANSACTION_POST_LIMIT are considered invalid
+    // for this block. -1 is returned if no coinbase transaction is found.
+    GetCoinbaseTimestamp() int64
 }
 
 // FBlockHeader defines information about a block and is used in the bitcoin
@@ -80,6 +86,12 @@ type FBlock struct {
 }
 
 var _ IFBlock = (*FBlock)(nil)
+
+// Return the timestamp of the coinbase transaction
+func (b *FBlock) GetCoinbaseTimestamp() int64 {
+    if len(b.transactions)==0 {return -1 }
+    return int64(b.transactions[0].GetMilliTimestamp())
+}
 
 // Returns the Full hash for this block.
 func (b *FBlock) GetFullHash() fct.IHash {

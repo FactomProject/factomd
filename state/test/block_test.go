@@ -103,6 +103,7 @@ func Test_create_genesis_FactoidState (test *testing.T) {
         test.Fail()
         return
     }
+    fs.ProcessEndOfBlock()
     
     // Make the coinbase very generous
     block.UpdateAmount(100000000000)
@@ -123,6 +124,20 @@ func Test_create_genesis_FactoidState (test *testing.T) {
             
             tx := fs.newTransaction(maxIn,maxOut)
             
+            
+            addtest := true
+            flip := rand.Int()%100
+            if rand.Int()%100 < 5 { // Mess up the timestamp on 5 percent of the transactions
+                addtest = false
+                blkts := uint64(fs.GetCurrentBlock().GetCoinbaseTimestamp())
+                if flip < 49 {    // Flip a coin
+                    tx.SetMilliTimestamp(blkts - uint64(fct.TRANSACTION_PRIOR_LIMIT)-1)
+                }else{
+                    tx.SetMilliTimestamp(blkts + uint64(fct.TRANSACTION_POST_LIMIT)+1)
+                }
+                fs.twallet.SignInputs(tx)
+            }
+            
             // Test Marshal/UnMarshal
             m,err := tx.MarshalBinary()
             if err != nil { fmt.Println("\n Failed to Marshal: ",err); test.Fail(); return } 
@@ -133,7 +148,7 @@ func Test_create_genesis_FactoidState (test *testing.T) {
                             len(tx.GetInputs()), "inputs and",
                             len(tx.GetOutputs()),"outputs and",
                             len(tx.GetECOutputs()),"ecoutputs                       ",)
-                fmt.Print("\033[40;0H")
+                fmt.Print("\033[41;0H")
             }
             if len(m) < min { 
                 fmt.Print("\033[34;0H")
@@ -142,12 +157,13 @@ func Test_create_genesis_FactoidState (test *testing.T) {
                             len(tx.GetInputs()), "inputs and",
                             len(tx.GetOutputs()),"outputs and",
                             len(tx.GetECOutputs()),"ecoutputs                       ",)
-                fmt.Print("\033[40;0H")
+                fmt.Print("\033[41;0H")
             }
-            good := true
+           
             k := rand.Int()%(len(m)-2)
             k++
-            flip := rand.Int()%100
+            good := true
+            flip = rand.Int()%100
             // To simulate bad data, I mess up some of the data here.
             if rand.Int()%100 < 5 { // Mess up 5 percent of the transactions
                 good = false
@@ -162,39 +178,53 @@ func Test_create_genesis_FactoidState (test *testing.T) {
             err = t.UnmarshalBinary(m)
             
             if good && tx.IsEqual(t) != nil { 
-                fmt.Println("\nFail valid Unmarshal")
+                fmt.Println("\n\n\n\n\n\nFail valid Unmarshal")
                 test.Fail()
                 return
             }
             if err == nil {
                 if good && err != nil  { 
-                    fmt.Println("Added a transaction that should have failed to be added")
+                    fmt.Println("\n\n\n\n\n\n\nAdded a transaction that should have failed to be added")
                     fmt.Println(err)
-                    test.Fail(); 
+                    test.Fail();
+                    return
                 }
                 if !good {
-                    fmt.Println("Failed to add a transaction that should have added")
+                    fmt.Println("\n\n\n\n\n\n\nFailed to add a transaction that should have added")
                     test.Fail(); 
+                    return
                 }
             }
             
             if good {
                 err = fs.AddTransaction(t)
             }
+            if !addtest  && err == nil {
+                ts := int64(t.GetMilliTimestamp())
+                bts := int64(fs.GetCurrentBlock().GetCoinbaseTimestamp())
+                fmt.Println("\n\n\n\n\n\n\ntimestamp failure ", ts, bts, ts-bts, fct.TRANSACTION_POST_LIMIT)
+                test.Fail()
+                return
+            }
+            if !addtest && err == nil {
+                fmt.Println("\n\n\n\n\n\n\nfailed to catch error")
+                test.Fail()
+                return
+            }
             
-            if good && err != nil {   
+            if addtest && good && err != nil {   
                 fmt.Println(err)
-                fmt.Println("\nUnmarshal Failed. trans is good",
+                fmt.Println("\n\n\n\n\n\n\n\n\n\nUnmarshal Failed. trans is good",
                             "\nand the error detected: ",err,
                             "\nand k:",k, "and flip:",flip)
                 test.Fail() 
                 return 
             } 
             
-            if good {
+            if good && addtest {
                 fmt.Print("\033[32;0H")
                 fmt.Println("Bad Transactions: ",fs.stats.badAddresses,"   Total transactions: ",cnt,"\r")
-                fmt.Print("\033[40;0H")
+                fmt.Print("\033[42;0H")
                 time.Sleep(9000)
                 cnt += 1
             }else{
