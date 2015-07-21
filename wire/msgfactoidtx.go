@@ -72,7 +72,7 @@ func (msg *MsgFactoidTX) BtcEncode(w io.Writer, pver uint32) error {
 // This is part of the Message interface implementation.
 func (msg *MsgFactoidTX) BtcDecode(r io.Reader, pver uint32) error {
 
-	data, err := readVarBytes(r, pver, uint32(100000000), CmdEBlock)
+	data, err := readVarBytes(r, pver, uint32(MaxAppMsgPayload), CmdEBlock)
 	if err != nil {
 		return err
 	}
