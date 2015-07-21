@@ -26,7 +26,7 @@ import (
 	//	"github.com/FactomProject/btcd/database"
 	"github.com/FactomProject/btcd/wire"
 
-//	"github.com/FactomProject/btcutil"
+	//	"github.com/FactomProject/btcutil"
 )
 
 const (
