@@ -19,6 +19,9 @@ type IFBlock interface {
 	// Validation functions
 	Validate() error
     ValidateTransaction(fct.ITransaction) error
+    // Marshal just the header for the block. This is to include the header
+    // in the FullHash
+    MarshalHeader() ([]byte, error)
     // Marshal just the transactions.  This is because we need the length
 	MarshalTrans() ([]byte, error)
     // Add a coinbase transaction.  This transaction has no inputs
@@ -33,6 +36,7 @@ type IFBlock interface {
     GetBodyMR() fct.IHash
     GetPrevKeyMR() fct.IHash
     SetPrevKeyMR([]byte) 
+    GetFullHash() fct.IHash
     GetPrevFullHash() fct.IHash
     SetPrevFullHash([]byte) 
     // Accessors for the Directory Block Height
@@ -76,6 +80,30 @@ type FBlock struct {
 }
 
 var _ IFBlock = (*FBlock)(nil)
+
+// Returns the Full hash for this block.
+func (b *FBlock) GetFullHash() fct.IHash {
+    if(b.endOfPeriod[9]==0){
+        b.EndOfPeriod(1)            // Sets the end of the first period here.
+    }                               // This is what unmarshalling will do.
+    hashes := make([]fct.IHash,0,len(b.transactions))
+    marker := 0
+    for i,trans := range b.transactions{
+        for marker <10 && i == b.endOfPeriod[marker] {
+            marker++
+            hashes = append(hashes,fct.Sha(fct.ZERO_HASH))
+        }
+        hash,_ := trans.MarshalBinarySig()
+        hashes = append(hashes,fct.NewHash(hash))
+    }
+    // Add any lagging markers
+    for marker <10 {
+        marker++
+        hashes = append(hashes,fct.Sha(fct.ZERO_HASH))
+    }
+    fullHash := fct.ComputeMerkleRoot(hashes) 
+    return fullHash
+}
 
 func (b *FBlock) EndOfPeriod(period int) {
     period = period-1                            // Make the period zero based.  
@@ -134,48 +162,63 @@ func (b *FBlock) MarshalTrans() ([]byte, error) {
 	return out.Bytes(), nil
 }
 
+func (b *FBlock) MarshalHeader() ([]byte,error) {
+    var out bytes.Buffer
+    
+    if(b.endOfPeriod[9]==0){
+        b.EndOfPeriod(1)           // Sets the end of the first period here.
+    }                               // This is what unmarshalling will do.
+    
+    out.Write(fct.FACTOID_CHAINID)
+    
+    if b.BodyMR == nil {b.BodyMR = new(fct.Hash)}
+    data, err := b.GetHash().MarshalBinary()
+    if err != nil {
+        return nil, err
+    }
+    out.Write(data)
+    
+    if b.PrevKeyMR == nil {b.PrevKeyMR = new(fct.Hash)}
+    data, err = b.PrevKeyMR.MarshalBinary()
+    if err != nil {
+        return nil, err
+    }
+    out.Write(data)
+    
+    if b.PrevFullHash == nil {b.PrevFullHash = new(fct.Hash)}
+    data, err = b.PrevFullHash.MarshalBinary()
+    if err != nil {
+        return nil, err
+    }
+    out.Write(data)
+    
+    binary.Write(&out, binary.BigEndian, uint64(b.ExchRate))
+    binary.Write(&out, binary.BigEndian, uint32(b.DBHeight))
+    
+    fct.EncodeVarInt(&out,0)        // At this point in time, nothing in the Expansion Header
+    // so we just write out a zero.
+    
+    binary.Write(&out, binary.BigEndian, uint32(len(b.transactions)))
+    
+    transdata, err := b.MarshalTrans()                           // first get trans data
+    if err != nil {return nil, err }
+    
+    binary.Write(&out, binary.BigEndian, uint32(len(transdata))) // write out its length
+
+    return out.Bytes(),nil
+}
+
 // Write out the block
 func (b *FBlock) MarshalBinary() ([]byte, error) {
 	var out bytes.Buffer
 	
-	if(b.endOfPeriod[9]==0){
-        b.EndOfPeriod(1)           // Sets the end of the first period here.
-    }                               // This is what unmarshalling will do.
-	
-	out.Write(fct.FACTOID_CHAINID)
+	data, err := b.MarshalHeader()
+    if err != nil { return nil, err }
+    out.Write(data)
     
-    if b.BodyMR == nil {b.BodyMR = new(fct.Hash)}
-    data, err := b.GetHash().MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
-	out.Write(data)
-    
-    if b.PrevKeyMR == nil {b.PrevKeyMR = new(fct.Hash)}
-	data, err = b.PrevKeyMR.MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
-	out.Write(data)
-    
-    if b.PrevFullHash == nil {b.PrevFullHash = new(fct.Hash)}
-    data, err = b.PrevFullHash.MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
-	out.Write(data)
-    
-	binary.Write(&out, binary.BigEndian, uint64(b.ExchRate))
-	binary.Write(&out, binary.BigEndian, uint32(b.DBHeight))
-    
-    fct.EncodeVarInt(&out,0)        // At this point in time, nothing in the Expansion Header
-                                    // so we just write out a zero.
-    
-	binary.Write(&out, binary.BigEndian, uint32(len(b.transactions)))
-
-	transdata, err := b.MarshalTrans()                           // first get trans data
-	binary.Write(&out, binary.BigEndian, uint32(len(transdata))) // write out its length
-	out.Write(transdata)                                         // write out trans data
+    transdata, err := b.MarshalTrans()                           // first get trans data
+    if err != nil {return nil, err }
+    out.Write(transdata)                                         // write out trans data
 
 	return out.Bytes(), nil
 }
@@ -327,6 +370,12 @@ func (b *FBlock) CalculateHashes() {
         }
         hashes = append(hashes,trans.GetHash())
     }
+    // Add any lagging markers
+    for marker <10 {
+        marker++
+        hashes = append(hashes,fct.Sha(fct.ZERO_HASH))
+    }
+    
     b.BodyMR = fct.ComputeMerkleRoot(hashes)
 }
 

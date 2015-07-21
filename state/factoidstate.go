@@ -184,8 +184,7 @@ func(fs *FactoidState) ProcessEndOfBlock(){
 
     if fs.currentBlock != nil {             // If no blocks, the current block is nil
         hash = fs.currentBlock.GetHash()
-        bin, _ := fs.currentBlock.MarshalBinary()
-        hash2 = fct.Sha(bin)
+        hash2 = fs.currentBlock.GetFullHash()
         fs.PutTransactionBlock(hash,fs.currentBlock)
         fs.PutTransactionBlock(fct.FACTOID_CHAINID_HASH,fs.currentBlock)
     }
@@ -199,7 +198,6 @@ func(fs *FactoidState) ProcessEndOfBlock(){
         panic(err.Error())
     }
     fs.UpdateTransaction(t)
-    
     
     if hash != nil {
         fs.currentBlock.SetPrevKeyMR(hash.Bytes())
@@ -215,9 +213,8 @@ func(fs *FactoidState) ProcessEndOfBlock2(nextBlkHeight uint32) {
     var hash,hash2 fct.IHash
     
     if fs.currentBlock != nil {             // If no blocks, the current block is nil
-        hash = fs.currentBlock.GetHash()
-        bin, _ := fs.currentBlock.MarshalBinary()
-        hash2 = fct.Sha(bin)
+        hash  = fs.currentBlock.GetHash()
+        hash2 = fs.currentBlock.GetFullHash()
     }
     
     fs.currentBlock = block.NewFBlock(fs.GetFactoshisPerEC(), nextBlkHeight)
