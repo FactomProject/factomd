@@ -292,7 +292,6 @@ func (b *FBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	
 	for periodMark <= len(b.endOfPeriod) {
         b.EndOfPeriod(periodMark)
-        data = data[1:]
         periodMark++
     }    
 	
