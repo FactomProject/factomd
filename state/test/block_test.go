@@ -9,6 +9,7 @@ import (
     "encoding/binary"
     "fmt"
     "time"
+    "strings"
     cv "strconv"
     fct "github.com/FactomProject/factoid"
     "github.com/FactomProject/factoid/state/stateinit"
@@ -37,6 +38,8 @@ var fs *Test_state
 func Test_setup_FactoidState (test *testing.T) {
     // Create a Test State
     fs = new(Test_state)
+    fs.stats.errors = make(map[string]int,100)
+    fs.stats.full = make(map[string]string,100)
     
     fs.inputAddresses = make([]fct.IAddress,0,10)
     fs.outputAddresses = make([]fct.IAddress,0,10)
@@ -79,7 +82,7 @@ func Test_create_genesis_FactoidState (test *testing.T) {
     }
     
     // Use Bolt DB
-    if false {
+    if !testing.Short() {
         fs.SetDB(new(database.MapDB))
         fs.GetDB().Init()
         db := stateinit.GetDatabase("/tmp/fct_test.db")
@@ -132,8 +135,12 @@ func Test_create_genesis_FactoidState (test *testing.T) {
                 blkts := uint64(fs.GetCurrentBlock().GetCoinbaseTimestamp())
                 if flip < 49 {    // Flip a coin
                     tx.SetMilliTimestamp(blkts - uint64(fct.TRANSACTION_PRIOR_LIMIT)-1)
+                    fs.stats.errors["trans too early"] += 1
+                    fs.stats.full["trans too early"]="trans too early"
                 }else{
                     tx.SetMilliTimestamp(blkts + uint64(fct.TRANSACTION_POST_LIMIT)+1)
+                    fs.stats.errors["trans too late"] += 1
+                    fs.stats.full["trans too late"]="trans too late"
                 }
                 fs.twallet.SignInputs(tx)
             }
@@ -169,8 +176,12 @@ func Test_create_genesis_FactoidState (test *testing.T) {
                 good = false
                 if flip < 49 {    // Flip a coin
                     m = m[k:]
+                    fs.stats.errors["lost start of trans"] += 1
+                    fs.stats.full["lost start of trans"]="lost start of trans"
                 }else{
                     m = m[:k]
+                    fs.stats.errors["lost end of trans"] += 1
+                    fs.stats.full["lost end of trans"]="lost end of trans"
                 }
             }
             
@@ -241,15 +252,38 @@ func Test_create_genesis_FactoidState (test *testing.T) {
         err = blk.UnmarshalBinary(blkdata)
         if err != nil { test.Fail(); return }
         if len(blkdata)>maxblk {
-            fmt.Printf("\033[%d;%dH",(blk.GetDBHeight())%30+1, (((blk.GetDBHeight())/30)%5)*25+1)
+            fmt.Printf("\033[%d;%dH",(blk.GetDBHeight())%30+1, (((blk.GetDBHeight())/30)%1)*25+1)
             fmt.Printf("Blk:%6d %8d B ",blk.GetDBHeight(),len(blkdata))
-            fmt.Printf("\033[%d;%dH",(blk.GetDBHeight())%30+2, (((blk.GetDBHeight())/30)%5)*25+1)
+            fmt.Printf("\033[%d;%dH",(blk.GetDBHeight())%30+2, (((blk.GetDBHeight())/30)%1)*25+1)
             fmt.Printf("%24s","=====================    ")
         }
 //         blk:=fs.GetCurrentBlock()       // Get Current block, but hashes are set by processing.
         fs.ProcessEndOfBlock()             // Process the block.
 //         fmt.Println(blk)                // Now print it.
         
+        c := 1
+        keys := make([]string, 0, len(fs.stats.errors))
+        for k := range fs.stats.errors {
+            keys = append(keys, k)
+        }
+        for i := 0; i<len(keys)-1; i++ {
+            for j:=0;j<len(keys)-i-1; j++ {
+                if keys[j]<keys[j+1] {
+                    t := keys[j]
+                    keys[j] = keys[j+1]
+                    keys[j+1]=t
+                }
+            }
+        }
+        for _,key := range keys {
+            cnt := fs.stats.errors[key]
+            by  := []byte(fs.stats.full[key])
+            prt := string(by)
+            if len(prt)>80 { prt = string(by[:80])+"..." }
+            prt = strings.Replace(prt,"\n"," ",-1)
+            fmt.Printf("\033[%d;30H %5d %-83s",c,cnt,prt)
+            c++
+        }
     }
     fmt.Println("\nDone")
 }

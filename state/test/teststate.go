@@ -7,6 +7,7 @@ package test
 import (
     "fmt"
     "time"
+    "bytes"
     "strings"
     "math/rand"
     fct "github.com/FactomProject/factoid"    
@@ -20,6 +21,7 @@ type Stats struct {
     badAddresses int
     transactions int
     errors map[string]int
+    full map[string]string
     start time.Time
     blocktimes []time.Time
 }
@@ -96,10 +98,20 @@ func(fs *Test_state) newTransaction(maxIn, maxOut int) fct.ITransaction {
         return adrs
     }
 
+    mIn := maxIn
+    mOut := maxOut
+    
+    joker := rand.Int()%100
+    if joker < 1 { mIn = maxIn*100 }
+    joker = rand.Int()%100
+    if joker < 1 { mOut = maxOut*200 }
+    
     // Get one to five inputs, and one to five outputs
-    numInputs := rand.Int()%maxIn+1
-    numOutputs := rand.Int()%maxOut
-    mumECOutputs := rand.Int()%maxOut
+    numInputs := rand.Int()%mIn+1
+    numOutputs := rand.Int()%mOut
+    mumECOutputs := rand.Int()%mOut
+ 
+ 
  
     numInputs = (numInputs%(len(fs.inputAddresses)-2))+1
 
@@ -146,7 +158,14 @@ func(fs *Test_state) newTransaction(maxIn, maxOut int) fct.ITransaction {
     }
     if err := fs.Validate(t); err != nil {
         fs.stats.badAddresses += 1
-        println(err)
+        
+        str := []byte(err.Error())[:10]
+        if bytes.Compare(str,[]byte("The inputs"))!=0 {
+            str = []byte(err.Error())[:30]
+        }
+        fs.stats.errors[string(str)] += 1
+        fs.stats.full[string(str)] = err.Error()
+        
         fmt.Print("\033[32;0H")
         fmt.Println("Bad Transactions: ",fs.stats.badAddresses,"\r")
         fmt.Print("\033[40;0H")

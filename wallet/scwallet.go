@@ -28,6 +28,8 @@ type ISCWallet interface {
 
 	//initialize the object.  call before using other functions
 	Init(a ...interface{})
+    // A New Seed is generated for the wallet.
+    NewSeed(data []byte)
 	// Returns the backing database for the wallet
 	GetDB() database.IFDatabase
 	// Import a key pair.  If the private key is null, this is treated as an

@@ -6,6 +6,7 @@ package block
 
 import (
 	"bytes"
+    "strings"
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
@@ -428,10 +429,10 @@ func (b FBlock) ValidateTransaction(trans fct.ITransaction) error {
     if tin < sum {
         return fmt.Errorf("The inputs %s do not cover the outputs %s,\n"+
         "the Entry Credit outputs %s, and the required fee %s",
-            fct.ConvertDecimal(tin),
-            fct.ConvertDecimal(tout),
-            fct.ConvertDecimal(tec),
-            fct.ConvertDecimal(fee))
+            strings.TrimSpace(fct.ConvertDecimal(tin)),
+            strings.TrimSpace(fct.ConvertDecimal(tout)),
+            strings.TrimSpace(fct.ConvertDecimal(tec)),
+            strings.TrimSpace(fct.ConvertDecimal(fee)))
     }
     return nil
 }

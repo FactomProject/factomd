@@ -297,11 +297,14 @@ func(fs *FactoidState) LoadState() error  {
         if blk == nil { 
             return fmt.Errorf("Should never happen.  Block not found in LoadState") 
         }
-        fct.Prt(blk.GetDBHeight()," ")
+        fct.Prt("Loading from disk block: ", blk.GetDBHeight(),"\r")
         err := fs.AddTransactionBlock(blk)  // updates accounting for this block
         if err != nil { 
             fct.Prtln("Failed to rebuild state.\n",err); 
             return err 
+        }
+        if i%50 == 0 {
+            time.Sleep(10000)
         }
     }
     fs.dbheight = blk.GetDBHeight()+1
