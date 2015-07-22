@@ -14,6 +14,7 @@ import (
     fct "github.com/FactomProject/factoid"
     "github.com/FactomProject/factoid/block"
     "github.com/FactomProject/factoid/wallet"
+    cp "github.com/FactomProject/FactomCode/controlpanel"
     db "github.com/FactomProject/factoid/database"
 )
 
@@ -117,6 +118,7 @@ type FactoidState struct {
     currentBlock block.IFBlock
     dbheight uint32
     wallet wallet.ISCWallet
+    numTransactions int
 }
 
 var _ IFactoidState = (*FactoidState)(nil)
@@ -182,6 +184,7 @@ func(fs *FactoidState) AddTransaction(trans fct.ITransaction) error {
     if err := fs.UpdateTransaction(trans);            err != nil { return err }
     if err := fs.ValidateTransactionAge(trans);       err != nil { return err }   
     if err := fs.currentBlock.AddTransaction(trans);  err != nil { return err }
+
     return nil
 }
 
@@ -196,6 +199,10 @@ func(fs *FactoidState) UpdateTransaction(trans fct.ITransaction) error {
     for _,ecoutput := range trans.GetECOutputs() {
         fs.UpdateECBalance(ecoutput.GetAddress(), int64(ecoutput.GetAmount()))
     }
+    
+    fs.numTransactions++
+    cp.CP.UpdateTransactionsProcessed(fs.numTransactions)
+    
     return nil
 }
  
