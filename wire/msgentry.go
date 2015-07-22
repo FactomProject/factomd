@@ -36,7 +36,7 @@ func (msg *MsgEntry) BtcEncode(w io.Writer, pver uint32) error {
 // This is part of the Message interface implementation.
 func (msg *MsgEntry) BtcDecode(r io.Reader, pver uint32) error {
 	//Entry
-	bytes, err := readVarBytes(r, pver, uint32(10000), CmdEntry)
+	bytes, err := readVarBytes(r, pver, uint32(MaxAppMsgPayload), CmdEntry)
 	if err != nil {
 		return err
 	}
