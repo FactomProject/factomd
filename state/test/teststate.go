@@ -148,15 +148,17 @@ func(fs *Test_state) newTransaction(maxIn, maxOut int) fct.ITransaction {
     toPay := t.GetInputs()[0].GetAmount()
     fs.twallet.UpdateInput(t,0,inputs[0], toPay+fee)
         
-    valid, err := fs.twallet.SignInputs(t)
-    if err != nil {
+    valid, err1 := fs.twallet.SignInputs(t)
+    if err1 != nil {
         fct.Prtln("Failed to sign transaction")
-        panic(err)
     }
     if !valid {
         fct.Prtln("Transaction is not valid")
     }
-    if err := fs.Validate(t); err != nil {
+    if err := fs.Validate(t); err != nil || err1 != nil {
+        
+        fs.GetDB().Put(fct.DB_BAD_TRANS, t.GetHash(), t)
+        
         fs.stats.badAddresses += 1
         
         str := []byte(err.Error())[:10]

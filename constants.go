@@ -15,7 +15,8 @@ const (
 	KEY_LIMIT            = ADDRESS_LENGTH*2  // Limit on size of keys, since Maps in Go can't
                                              // handle variable length keys.
 	DB_FACTOID_BLOCKS    = "Factoid_Transaction_Blocks"
-	DB_F_BALANCES        = "Factoid_Address_balances"
+    DB_BAD_TRANS         = "Bad_Transactions_Encountered"
+    DB_F_BALANCES        = "Factoid_Address_balances"
 	DB_EC_BALANCES       = "Entry_Credit_Address_balances"
     
     // Wallet

@@ -93,6 +93,7 @@ func Test_create_genesis_FactoidState (test *testing.T) {
         fs.GetDB().DoNotPersist(fct.DB_EC_BALANCES)
         fs.GetDB().DoNotPersist(fct.DB_BUILD_TRANS)
         fs.GetDB().DoNotCache(fct.DB_FACTOID_BLOCKS)
+        fs.GetDB().DoNotCache(fct.DB_BAD_TRANS)
         fs.GetDB().DoNotCache(fct.DB_TRANSACTIONS)
     }else{
         fs.SetDB(new(database.MapDB))
@@ -206,7 +207,7 @@ func Test_create_genesis_FactoidState (test *testing.T) {
                     return
                 }
             }
-            
+                            
             if good {
                 err = fs.AddTransaction(t)
             }
