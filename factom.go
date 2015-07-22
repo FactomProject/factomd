@@ -24,7 +24,6 @@ var _ = fmt.Printf
 var (
 	local_Server *server
 	db           database.Db // database
-	// to be renamed??
 	inMsgQueue  chan wire.FtmInternalMsg //incoming message queue for factom application messages
 	outMsgQueue chan wire.FtmInternalMsg //outgoing message queue for factom application messages
 
