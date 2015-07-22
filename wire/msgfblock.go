@@ -35,7 +35,7 @@ func (msg *MsgFBlock) BtcEncode(w io.Writer, pver uint32) error {
 // This is part of the Message interface implementation.
 func (msg *MsgFBlock) BtcDecode(r io.Reader, pver uint32) error {
 
-	bytes, err := readVarBytes(r, pver, uint32(MaxAppMsgPayload), CmdFBlock)
+	bytes, err := readVarBytes(r, pver, uint32(MaxBlockMsgPayload), CmdFBlock)
 	if err != nil {
 		return err
 	}
@@ -58,7 +58,7 @@ func (msg *MsgFBlock) Command() string {
 // MaxPayloadLength returns the maximum length the payload can be for the
 // receiver.  This is part of the Message interface implementation.
 func (msg *MsgFBlock) MaxPayloadLength(pver uint32) uint32 {
-	return MaxAppMsgPayload
+	return MaxBlockMsgPayload
 }
 
 // NewMsgABlock returns a new bitcoin inv message that conforms to the Message
