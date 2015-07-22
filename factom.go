@@ -14,7 +14,8 @@ import (
 	//	"github.com/FactomProject/btcd/chaincfg"
 	//	"github.com/FactomProject/btcutil"
 
-	"github.com/FactomProject/FactomCode/database"
+    "github.com/FactomProject/FactomCode/database"
+    cp "github.com/FactomProject/FactomCode/controlpanel"
 	"github.com/FactomProject/btcd/wire"
 )
 
@@ -136,9 +137,11 @@ func Start_btcd(
 	ClientOnly = clientMode
 
 	if ClientOnly {
+        cp.CP.SetFactomMode("Client")
 		fmt.Println("\n\n>>>>>>>>>>>>>>>>>  CLIENT MODE <<<<<<<<<<<<<<<<<<<<<<<\n\n")
 	} else {
-		fmt.Println("\n\n>>>>>>>>>>>>>>>>>  SERVER MODE <<<<<<<<<<<<<<<<<<<<<<<\n\n")
+        cp.CP.SetFactomMode("Server")
+        fmt.Println("\n\n>>>>>>>>>>>>>>>>>  SERVER MODE <<<<<<<<<<<<<<<<<<<<<<<\n\n")
 	}
 
 	db = ldb
