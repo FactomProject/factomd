@@ -223,7 +223,8 @@ func(fs *FactoidState) ProcessEndOfBlock(){
     
     fs.dbheight += 1
     fs.currentBlock = block.NewFBlock(fs.GetFactoshisPerEC(),fs.dbheight)
- 
+    cp.CP.UpdateBlockHeight(int(fs.GetDBHeight()))
+    
     t := block.GetCoinbase(fs.GetTimeMilli())
     err := fs.currentBlock.AddCoinbase(t)
     if err !=nil {
@@ -243,6 +244,7 @@ func(fs *FactoidState) ProcessEndOfBlock(){
 // this function is to replace the existing function: ProcessEndOfBlock
 func(fs *FactoidState) ProcessEndOfBlock2(nextBlkHeight uint32) {
     var hash,hash2 fct.IHash
+    cp.CP.UpdateBlockHeight(int(nextBlkHeight))
     
     if fs.currentBlock != nil {             // If no blocks, the current block is nil
         hash  = fs.currentBlock.GetHash()
