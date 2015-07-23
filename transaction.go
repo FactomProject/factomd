@@ -633,8 +633,12 @@ func (t *Transaction) AddECOutput(ecoutput IAddress, amount uint64) {
 
 // Marshal to text.  Largely a debugging thing.
 func (t *Transaction) MarshalText() (text []byte, err error) {
-	var out bytes.Buffer
-	out.WriteString("Transaction:\n")
+	data,err := t.MarshalBinary()
+    if err != nil { 
+        return nil, err 
+    } 
+    var out bytes.Buffer
+	out.WriteString(fmt.Sprintf("Transaction (size %d):\n",len(data)))
     out.WriteString("                 Version: ")
     WriteNumber64(&out, uint64(t.GetVersion()))
 	out.WriteString("\n          MilliTimeStamp: ")
