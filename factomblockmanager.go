@@ -7,7 +7,8 @@ package btcd
 import (
 	"container/list"
 	"sync/atomic"
-
+    "fmt"
+    cp 	"github.com/FactomProject/FactomCode/controlpanel"
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/btcd/wire"
@@ -213,8 +214,16 @@ func (b *blockManager) startSyncFactom(peers *list.List) {
 
 		bmgrLog.Infof("LatestDirBlockLocator: %s", spew.Sdump(locator))
 
-		bmgrLog.Infof("Syncing to block height %d from peer %v",
-			bestPeer.lastBlock, bestPeer.addr)
+		str:= fmt.Sprintf("At %d: syncing to block height %d from peer %v",
+            height, bestPeer.lastBlock, bestPeer.addr)
+        bmgrLog.Infof(str)
+
+        cp.CP.AddUpdate(
+            "Syncing",                                      // tag
+            "status",                                       // Category 
+            "Client is Syncing with Federated Server(s)",   // Title
+            str,                                            // Message
+            60)
 
 		bestPeer.PushGetDirBlocksMsg(locator, &zeroHash)
 		b.syncPeer = bestPeer

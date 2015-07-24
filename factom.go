@@ -136,10 +136,20 @@ func Start_btcd(
 	ClientOnly = clientMode
 
 	if ClientOnly {
-		cp.CP.SetFactomMode("Client")
+        cp.CP.AddUpdate(
+            "FactomMode",                         // tag
+            "system",                             // Category 
+            "Factom Mode: Full Node (Client)",    // Title
+            "",                                   // Message
+            0)
 		fmt.Println("\n\n>>>>>>>>>>>>>>>>>  CLIENT MODE <<<<<<<<<<<<<<<<<<<<<<<\n\n")
 	} else {
-		cp.CP.SetFactomMode("Server")
+        cp.CP.AddUpdate(
+            "FactomMode",                         // tag
+            "system",                             // Category 
+            "Factom Mode: Federated Server",      // Title
+            "",                                   // Message
+            0)
 		fmt.Println("\n\n>>>>>>>>>>>>>>>>>  SERVER MODE <<<<<<<<<<<<<<<<<<<<<<<\n\n")
 	}
 
