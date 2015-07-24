@@ -201,8 +201,13 @@ func(fs *FactoidState) UpdateTransaction(trans fct.ITransaction) error {
     }
     
     fs.numTransactions++
-    cp.CP.UpdateTransactionsProcessed(fs.numTransactions)
-    
+    cp.CP.AddUpdate(
+        "transprocessed",                                               // tag
+        "status",                                                       // Category 
+        fmt.Sprintf("Transactions Processed: %d",fs.numTransactions),   // Title
+        "",                                                             // Message
+        0)                                                              // When to expire the message; 0 is never  
+
     return nil
 }
  
@@ -223,7 +228,13 @@ func(fs *FactoidState) ProcessEndOfBlock(){
     
     fs.dbheight += 1
     fs.currentBlock = block.NewFBlock(fs.GetFactoshisPerEC(),fs.dbheight)
-    cp.CP.UpdateBlockHeight(int(fs.GetDBHeight()))
+    
+    cp.CP.AddUpdate(
+        "blockheight",                                               // tag
+        "status",                                                    // Category 
+        fmt.Sprintf("Directory Block Height: %d",fs.GetDBHeight()),  // Title
+        "",                                                          // Msg
+        0)
     
     t := block.GetCoinbase(fs.GetTimeMilli())
     err := fs.currentBlock.AddCoinbase(t)
@@ -244,7 +255,14 @@ func(fs *FactoidState) ProcessEndOfBlock(){
 // this function is to replace the existing function: ProcessEndOfBlock
 func(fs *FactoidState) ProcessEndOfBlock2(nextBlkHeight uint32) {
     var hash,hash2 fct.IHash
-    cp.CP.UpdateBlockHeight(int(nextBlkHeight))
+    
+    cp.CP.AddUpdate(
+        "blockheight",                                               // tag
+        "status",                                                    // Category 
+        fmt.Sprintf("Directory Block Height: %d",nextBlkHeight),  // Title
+        "",                                                          // Msg
+        0)
+
     
     if fs.currentBlock != nil {             // If no blocks, the current block is nil
         hash  = fs.currentBlock.GetHash()

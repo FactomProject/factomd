@@ -181,7 +181,7 @@ func (t Transaction) CalculateFee(factoshisPerEC uint64) (uint64, error) {
 	fee += factoshisPerEC * 10 * uint64(len(t.outputs)+len(t.outECs))
 
 	for _, rcd := range t.rcds {
-		fee += factoshisPerEC * uint64(rcd.NumberOfSignatures())*10
+		fee += factoshisPerEC * uint64(rcd.NumberOfSignatures())
 	}
 
 	return fee, nil

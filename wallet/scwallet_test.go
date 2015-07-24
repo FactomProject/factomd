@@ -83,7 +83,7 @@ func Test_CreateTransaction_swcallet(test *testing.T) {
     }
     
     fee, err := t.CalculateFee(1000)
-    if fee != 21000 || err != nil {
+    if fee != 12000 || err != nil {
         factoid.Prtln("Fee Calculation Failed",fee,err)
         test.Fail() 
     }

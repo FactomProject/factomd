@@ -10,6 +10,7 @@ import (
     "github.com/hoisie/web"
     fct "github.com/FactomProject/factoid"
     "github.com/FactomProject/factoid/fctwallet/handlers"   
+    cp "github.com/FactomProject/FactomCode/controlpanel"   
 )
 
 var _ = fct.Address{}
@@ -124,8 +125,11 @@ func Start() {
     
     go server.Run(fmt.Sprintf("%s:%d", handlers.IpAddress, handlers.PortNumber))
 }   
- 
+
+var CP = new (cp.ControlPanel)
+
 func main() {
+    CP.SetPort("8091")
     Start()
     for { 
         time.Sleep(time.Second)
