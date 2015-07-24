@@ -20,7 +20,6 @@ import (
 	"github.com/FactomProject/btcd/wire"
 	//	"github.com/FactomProject/btcutil"
 
-    cp "github.com/FactomProject/FactomCode/controlpanel"
     "github.com/FactomProject/FactomCode/process"
     "github.com/davecgh/go-spew/spew"
 )
