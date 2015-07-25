@@ -204,7 +204,7 @@ func(fs *FactoidState) UpdateTransaction(trans fct.ITransaction) error {
     cp.CP.AddUpdate(
         "transprocessed",                                               // tag
         "status",                                                       // Category 
-        fmt.Sprintf("Transactions Processed: %d",fs.numTransactions),   // Title
+        fmt.Sprintf("Factoid Transactions Processed: %d",fs.numTransactions),   // Title
         "",                                                             // Message
         0)                                                              // When to expire the message; 0 is never  
 
