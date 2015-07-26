@@ -34,7 +34,7 @@ type ITransaction interface {
 
     // Accessors the inputs, outputs, and Entry Credit outputs (ecoutputs) 
     // to this transaction.
-	GetInput(i int) (IInAddress, error)
+	GetInput(int) (IInAddress, error)
     GetOutput(int) (IOutAddress, error)
     GetECOutput(int) (IOutECAddress, error)
     GetRCD(int) (IRCD, error)

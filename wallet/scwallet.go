@@ -43,7 +43,10 @@ type ISCWallet interface {
 	GetAddressDetailsAddr(addr []byte) IWalletEntry
 	// Get a list of names for addresses.  Names are easier for people to use.
 	GetAddressList() (names [][]byte, addresses []fct.IAddress)
-
+    // Returns the Address hash (what we use for inputs) given the public key
+    GetAddressHash(fct.IAddress) (fct.IAddress, error) 
+        
+    
 	/** Transaction calls **/
 	// Create a transaction.  This is just the bones, to which the
 	// user must add inputs, outputs, and sign before submission.
@@ -281,6 +284,16 @@ func (w *SCWallet) getWalletEntry(bucket []byte, address fct.IAddress) (IWalletE
 
 	return we, adr, nil
 }
+
+// Returns the Address hash (what we use for inputs) given the public key
+func (w *SCWallet) GetAddressHash(address fct.IAddress) (fct.IAddress, error) {
+    _, adr, err := w.getWalletEntry([]byte(fct.W_RCD_ADDRESS_HASH), address)
+    if err != nil {
+        return nil, err
+    }
+    return fct.CreateAddress(adr), nil
+}
+
 
 func (w *SCWallet) AddInput(trans fct.ITransaction, address fct.IAddress, amount uint64) error {
 	we, adr, err := w.getWalletEntry([]byte(fct.W_RCD_ADDRESS_HASH), address)

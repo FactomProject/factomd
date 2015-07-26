@@ -14,6 +14,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strconv"
+    "time"
 
 	fct "github.com/FactomProject/factoid"
 	"github.com/FactomProject/factoid/wallet"
@@ -79,6 +80,7 @@ func getTransaction(ctx *web.Context, key string) (trans fct.ITransaction, err e
 }
 
 // &key=<key>&name=<name or address>&amount=<amount>
+// If no amount is specified, a zero is returned.
 func getParams_(ctx *web.Context, params string, ec bool) (
     trans fct.ITransaction, 
     key string, 
@@ -91,7 +93,11 @@ func getParams_(ctx *web.Context, params string, ec bool) (
     name = ctx.Params["name"]
     StrAmount := ctx.Params["amount"]
     
-    if len(key)==0 || len(name)==0 || len(StrAmount)==0 {
+    if len(StrAmount)== 0 {
+        StrAmount = "0"
+    }
+    
+    if len(key)==0 || len(name)==0 {
         str := fmt.Sprintln("Missing Parameters: key='",key,"' name='",name,"' amount='",StrAmount,"'")
         reportResults(ctx,str,false)
         ok = false
@@ -140,7 +146,7 @@ func getParams_(ctx *web.Context, params string, ec bool) (
         }
     }
     if (!ec && !fct.ValidateFUserStr(name)) || (ec && !fct.ValidateECUserStr(name)) {
-        reportResults(ctx,"Badly formed address",false)
+        reportResults(ctx,fmt.Sprintf("Badly formed address %s",name),false)
         ctx.WriteHeader(httpBad)
         ok = false
         return 
@@ -157,7 +163,49 @@ func getParams_(ctx *web.Context, params string, ec bool) (
  * Handler Functions
  *************************************************************************/
 
+// Setup:  seed --
+// Setup creates the 10 fountain Factoid Addresses, then sets address
+// generation to be unique for this wallet.  You CAN call setup multiple
+// times, but once the Fountain addresses are created, Setup only changes
+// the seed.
+//
+// Setup must be called once before you do anything else with the wallet.
+//
 
+func HandleFactoidSetup(ctx *web.Context, seed string) {
+    // Make sure we have a seed.
+    if len(seed) == 0 {
+        msg := "You must supply some random seed. For example (don't use this!)\n"+
+        "factom-cli setup 'woe!#in31!%234ng)%^&$%oeg%^&*^jp45694a;gmr@#t4 q34y'\n"+
+        "would make a nice seed.  The more random the better.\n\n"+
+        "Note that if you create an address before you call Setup, you must\n"+
+        "use those address(s) as you access the fountians."
+        
+        reportResults(ctx,msg,false)
+    }
+    setFountian := false
+    keys,_ := factoidState.GetDB().GetKeysValues([]byte(fct.W_NAME)) 
+    if len(keys) == 0 {
+        setFountian = true
+        for i:=1; i<=10; i++ {
+            name := fmt.Sprintf("%02d-Fountain",i)
+            _, err := factoidState.GetWallet().GenerateFctAddress([]byte(name),1,1)
+            if err != nil {
+                reportResults(ctx,err.Error(),false)
+                return
+            }
+        }
+    }
+
+    seedprime := fct.Sha([]byte(fmt.Sprintf("%s%v",seed,time.Now().UnixNano()))).Bytes()
+    factoidState.GetWallet().NewSeed(seedprime)
+        
+    if setFountian {
+        reportResults(ctx,"New seed set, fountain addresses defined", true)
+    }else{
+        reportResults(ctx,"New seed set, no fountain addresses defined", true)
+    }
+}
 // New Transaction:  key --
 // We create a new transaction, and track it with the user supplied key.  The
 // user can then use this key to make subsequent calls to add inputs, outputs,
@@ -195,15 +243,10 @@ func HandleFactoidNewTransaction(ctx *web.Context, key string) {
 	reportResults(ctx,"Success building a transaction", true)
 }
 
-// New Transaction:  key --
-// We create a new transaction, and track it with the user supplied key.  The
-// user can then use this key to make subsequent calls to add inputs, outputs,
-// and to sign. Then they can submit the transaction.
+// Delete Transaction:  key --
+// Remove a transaction rather than sign and submit the transaction.  Sometimes
+// you just need to throw one a way, and rebuild it.
 //
-// When the transaction is submitted, we clear it from our working memory.
-// Multiple transactions can be under construction at one time, but they need
-// their own keys. Once a transaction is either submitted or deleted, the key
-// can be reused.
 func HandleFactoidDeleteTransaction(ctx *web.Context, key string) {
     // Make sure we have a key
     if len(key) == 0 {
@@ -215,16 +258,97 @@ func HandleFactoidDeleteTransaction(ctx *web.Context, key string) {
     reportResults(ctx, "Success deleting transaction",true)
 }
 
+func HandleFactoidAddFee(ctx *web.Context, parms string) {
+    trans, key, _, address, _, ok := getParams_(ctx, parms, false)
+    if !ok {
+        return
+    }
+    
+    name := ctx.Params["name"]   // This is the name the user used.
+    
+    {
+        ins,err  := trans.TotalInputs();  if err!=nil { reportResults(ctx,err.Error(), false) } 
+        outs,err := trans.TotalOutputs(); if err!=nil { reportResults(ctx,err.Error(), false) } 
+        ecs,err  := trans.TotalECs();     if err!=nil { reportResults(ctx,err.Error(), false) } 
+    
+        if ins != outs+ecs {
+            msg := fmt.Sprintf(
+            "Addfee requires that all the inputs balance the outputs.\n"+
+            "The total inputs of your transaction are              %s\n"+
+            "The total outputs + ecoutputs of your transaction are %s",
+            fct.ConvertDecimal(ins), fct.ConvertDecimal(outs+ecs))
+            
+            reportResults(ctx,msg,false)
+            return
+        }
+    }
+        
+    msg, ok := ValidateKey(key) 
+    if !ok {
+        reportResults(ctx, msg, false)
+        return
+    }
+    
+    fee,err := GetFee(ctx)
+    if err != nil {
+        reportResults(ctx,err.Error(),false)
+        return
+    }
+    
+    transfee,err := trans.CalculateFee(uint64(fee))
+    if err != nil {
+        reportResults(ctx,err.Error(),false)
+        return
+    }
+    
+    adr, err := factoidState.GetWallet().GetAddressHash(address)
+    if err != nil {
+        reportResults(ctx, err.Error(),false)
+        return
+    }
+    
+    for _,input := range trans.GetInputs() {
+        
+        if input.GetAddress().IsSameAs(adr) {
+            amt,err := fct.ValidateAmounts(input.GetAmount(), transfee)  
+            if err != nil {
+                reportResults(ctx,err.Error(),false)
+                return
+            }
+            input.SetAmount(amt)
+            reportResults(ctx, fmt.Sprintf("Added %s to %s",fct.ConvertDecimal(uint64(transfee)),name), true)
+            return
+        }
+    }
+    reportResults(ctx, fmt.Sprintf("%s is not an input to the transaction.",key), false)
+    return
+}
+ 
+
 
 func HandleFactoidAddInput(ctx *web.Context, parms string) {
 	trans, key, _, address, amount, ok := getParams_(ctx, parms, false)
-	if !ok {
+    
+    if !ok {
 		return
 	}
     msg, ok := ValidateKey(key) 
     if !ok {
         reportResults(ctx, msg, false)
         return
+    }
+    
+    // First look if this is really an update
+    for _,input := range trans.GetInputs() {
+        if input.GetAddress().IsSameAs(address) {
+            oldamt := input.GetAmount()
+            input.SetAmount(uint64(amount))
+            reportResults(ctx, fmt.Sprintf("Input was %s\n"+
+                                           "Now is    %s",
+                fct.ConvertDecimal(oldamt),
+                fct.ConvertDecimal(uint64(amount))), true)
+            return
+        }
     }
     
 	// Add our new input
@@ -253,6 +377,18 @@ func HandleFactoidAddOutput(ctx *web.Context, parms string) {
         return
     }
     
+    // First look if this is really an update
+    for _,output := range trans.GetOutputs() {
+        if output.GetAddress().IsSameAs(address) {
+            oldamt := output.GetAmount()
+            output.SetAmount(uint64(amount))
+            reportResults(ctx, fmt.Sprintf("Input was %s\n"+
+                                           "Now is    %s",
+                fct.ConvertDecimal(oldamt),
+                fct.ConvertDecimal(uint64(amount))), true)
+            return
+        }
+    }    
 	// Add our new Output
 	err := factoidState.GetWallet().AddOutput(trans, address, uint64(amount))
 	if err != nil {
@@ -278,7 +414,18 @@ func HandleFactoidAddECOutput(ctx *web.Context, parms string) {
         reportResults(ctx, msg, false)
         return
     }
-    
+    // First look if this is really an update
+    for _,ecoutput := range trans.GetECOutputs() {
+        if ecoutput.GetAddress().IsSameAs(address) {
+            oldamt := ecoutput.GetAmount()
+            ecoutput.SetAmount(uint64(amount))
+            reportResults(ctx, fmt.Sprintf("Input was %s\n"+
+            "Now is    %s",
+            fct.ConvertDecimal(oldamt),
+                                           fct.ConvertDecimal(uint64(amount))), true)
+            return
+        }
+    }     
 	// Add our new Entry Credit Output
 	err := factoidState.GetWallet().AddECOutput(trans, address, uint64(amount))
 	if err != nil {

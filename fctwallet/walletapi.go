@@ -58,6 +58,13 @@ func Start() {
     server.Post("/v1/factoid-delete-transaction/([^/]+)", handlers.HandleFactoidDeleteTransaction)
     
     // Add Input
+    // localhost:8089/v1/factoid-add-input/?key=<key>&name=<name or address>
+    // Add the fee for this transaction to the input specified by the name or address.
+    // If the name or address is not an input to this transaction, then an error 
+    // is posted.
+    server.Post("/v1/factoid-add-fee/(.*)", handlers.HandleFactoidAddFee)
+    
+    // Add Input
     // localhost:8089/v1/factoid-add-input/?key=<key>&name=<name or address>&amount=<amount>
     // Add an input to a transaction in process.  Start with new-transaction.
     server.Post("/v1/factoid-add-input/(.*)", handlers.HandleFactoidAddInput)
@@ -80,11 +87,11 @@ func Start() {
     // can cover the transaction.  Use validate to do that.
     server.Post("/v1/factoid-sign-transaction/(.*)", handlers.HandleFactoidSignTransaction)
     
-    // New Seed
-    // localhost:8089/v1/factoid-new-seed/<data>
+    // Setup
+    // localhost:8089/v1/factoid-setup/<key>
     // hashes the given data to create a new seed from which to generate addresses.
     // The point is to create unique and secure addresses for this user.
-    server.Post("/v1/factoid-new-seed/(.*)", handlers.HandleFactoidNewSeed)
+    server.Post("/v1/factoid-setup/(.*)", handlers.HandleFactoidSetup)
     
 	// Commit Chain
 	// localhost:8089/v1/commit-chain/
