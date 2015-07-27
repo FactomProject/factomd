@@ -13,15 +13,15 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
- 
+
 	//	"github.com/FactomProject/btcd/blockchain"
 	//	"github.com/FactomProject/btcd/chaincfg"
 	//	"github.com/FactomProject/btcd/database"
 	"github.com/FactomProject/btcd/wire"
 	//	"github.com/FactomProject/btcutil"
 
-    "github.com/FactomProject/FactomCode/process"
-    "github.com/davecgh/go-spew/spew"
+	"github.com/FactomProject/FactomCode/process"
+	"github.com/davecgh/go-spew/spew"
 )
 
 const (
