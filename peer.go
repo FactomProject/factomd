@@ -1515,7 +1515,10 @@ out:
 			// Do nothing.
 
 		case *wire.MsgGetAddr:
-			p.handleGetAddrMsg(msg)
+			/*
+				FIXME in Milestone2; disable for Milestone1 only
+					p.handleGetAddrMsg(msg)
+			*/
 
 		case *wire.MsgAddr:
 			p.handleAddrMsg(msg)
