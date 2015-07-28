@@ -748,10 +748,22 @@ func (a *AddrManager) GetAddress(class string, newBias int) *KnownAddress {
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
 
+    
 	if a.numAddresses() == 0 {
 		return nil
 	}
 
+	// Really.  If there are less than some small number of choices, just picking
+	// one and getting on with life will work better than trying to be smart.
+    if a.numAddresses() < 20 {
+        pick := rand.Int()%5
+        i :=0
+        for _,value := range a.addrIndex {
+            if i == pick { return value }
+            i ++
+        }
+    }
+                
 	if newBias > 100 {
 		newBias = 100
 	}
