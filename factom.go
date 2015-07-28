@@ -23,9 +23,9 @@ var _ = fmt.Printf
 
 var (
 	local_Server *server
-	db           database.Db // database
-	inMsgQueue  chan wire.FtmInternalMsg //incoming message queue for factom application messages
-	outMsgQueue chan wire.FtmInternalMsg //outgoing message queue for factom application messages
+	db           database.Db              // database
+	inMsgQueue   chan wire.FtmInternalMsg //incoming message queue for factom application messages
+	outMsgQueue  chan wire.FtmInternalMsg //outgoing message queue for factom application messages
 
 	inCtlMsgQueue  chan wire.FtmInternalMsg //incoming message queue for factom control messages
 	outCtlMsgQueue chan wire.FtmInternalMsg //outgoing message queue for factom control messages
@@ -136,20 +136,20 @@ func Start_btcd(
 	ClientOnly = clientMode
 
 	if ClientOnly {
-        cp.CP.AddUpdate(
-            "FactomMode",                         // tag
-            "system",                             // Category 
-            "Factom Mode: Full Node (Client)",    // Title
-            "",                                   // Message
-            0)
+		cp.CP.AddUpdate(
+			"FactomMode", // tag
+			"system",     // Category
+			"Factom Mode: Full Node (Client)", // Title
+			"", // Message
+			0)
 		fmt.Println("\n\n>>>>>>>>>>>>>>>>>  CLIENT MODE <<<<<<<<<<<<<<<<<<<<<<<\n\n")
 	} else {
-        cp.CP.AddUpdate(
-            "FactomMode",                         // tag
-            "system",                             // Category 
-            "Factom Mode: Federated Server",      // Title
-            "",                                   // Message
-            0)
+		cp.CP.AddUpdate(
+			"FactomMode",                    // tag
+			"system",                        // Category
+			"Factom Mode: Federated Server", // Title
+			"", // Message
+			0)
 		fmt.Println("\n\n>>>>>>>>>>>>>>>>>  SERVER MODE <<<<<<<<<<<<<<<<<<<<<<<\n\n")
 	}
 
