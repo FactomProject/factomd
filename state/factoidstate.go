@@ -156,6 +156,14 @@ func(fs *FactoidState) AddTransactionBlock(blk block.IFBlock) error  {
     }
     fs.currentBlock=blk
     fs.SetFactoshisPerEC(blk.GetExchRate())
+    
+    cp.CP.AddUpdate(
+    "FAddBlk",  // tag
+    "status",   // Category
+    fmt.Sprintf("Added Factoid Block %d",blk.GetDBHeight()), // Title
+    "",         // message
+    60)         // sixty seconds should be enough
+
     return nil
 }
 
