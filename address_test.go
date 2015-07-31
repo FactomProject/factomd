@@ -58,10 +58,8 @@ func Test_AddressEquals(test *testing.T) {
 func Test_Factoid_Addresses(test *testing.T) {
     
     addr := NewAddress(Sha([]byte("A fake address")).Bytes())
-    fmt.Println( addr)
     
     uaddr := ConvertFctAddressToUserStr(addr) 
-    fmt.Println(uaddr)
     
     if !ValidateFUserStr(uaddr) { test.Fail() }
     
@@ -84,10 +82,8 @@ func Test_Factoid_Addresses(test *testing.T) {
 func Test_Entry_Credit_Addresses(test *testing.T) {
     
     addr := NewAddress(Sha([]byte("A fake address")).Bytes())
-    fmt.Println( addr)
     
     uaddr := ConvertECAddressToUserStr(addr) 
-    fmt.Println(uaddr)
     
     if !ValidateECUserStr(uaddr) {fmt.Printf("1"); test.Fail() }
     
