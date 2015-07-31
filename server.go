@@ -667,7 +667,7 @@ out:
 		tries := 0
 		for state.NeedMoreOutbound() &&
 			atomic.LoadInt32(&s.shutdown) == 0 {
-            time.Sleep(time.Second/10)
+			time.Sleep(time.Second / 10)
 			// We bias like bitcoind does, 10 for no outgoing
 			// up to 90 (8) for the selection of new vs tried
 			//addresses.

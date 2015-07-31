@@ -23,8 +23,8 @@ import (
 	"sync/atomic"
 	"time"
 
-    "github.com/FactomProject/btcd/wire"
-    cp "github.com/FactomProject/FactomCode/controlpanel"
+	cp "github.com/FactomProject/FactomCode/controlpanel"
+	"github.com/FactomProject/btcd/wire"
 )
 
 var _ = cp.CP
@@ -750,11 +750,11 @@ func (a *AddrManager) GetAddress(class string, newBias int) *KnownAddress {
 	// Protect concurrent access.
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
-    
-    if a.numAddresses() == 0 {
+
+	if a.numAddresses() == 0 {
 		return nil
 	}
-                
+
 	if newBias > 100 {
 		newBias = 100
 	}
