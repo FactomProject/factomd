@@ -6,7 +6,6 @@ package factoid
 
 import (
 	"bytes"
-	"encoding/binary"
 	"fmt"
 )
 
@@ -27,14 +26,14 @@ type ISignatureBlock interface {
 }
 
 type SignatureBlock struct {
-	ISignatureBlock
-	signatures []ISignature
+	ISignatureBlock `json:"-"`
+	signatures      []ISignature
 }
 
 var _ ISignatureBlock = (*SignatureBlock)(nil)
 
 func (b SignatureBlock) String() string {
-	txt, err := b.MarshalText()
+	txt, err := b.CustomMarshalText()
 	if err != nil {
 		return "<error>"
 	}
@@ -46,28 +45,33 @@ func (s *SignatureBlock) IsEqual(signatureBlock IBlock) []IBlock {
 	sb, ok := signatureBlock.(ISignatureBlock)
 
 	if !ok {
-        r := make([]IBlock,0,5)
-        return append(r,s)
+		r := make([]IBlock, 0, 5)
+		return append(r, s)
 	}
 
 	sigs1 := s.GetSignatures()
 	sigs2 := sb.GetSignatures()
 	if len(sigs1) != len(sigs2) {
-        r := make([]IBlock,0,5)
-        return append(r,s)
+		r := make([]IBlock, 0, 5)
+		return append(r, s)
 	}
 	for i, sig := range sigs1 {
-		r := sig.IsEqual(sigs2[i]) 
-        if r != nil {
-			return append(r,s)
+		r := sig.IsEqual(sigs2[i])
+		if r != nil {
+			return append(r, s)
 		}
 	}
 
 	return nil
 }
 
-func (s *SignatureBlock) AddSignature(sig ISignature) {
-	s.signatures = append(s.signatures, sig)
+
+func (s *SignatureBlock) AddSignature(sig ISignature) {    
+    if (len(s.signatures) == 0 ){
+        s.signatures = append(s.signatures, sig)
+    }else{
+        s.signatures[0]=sig
+    }
 }
 
 func (s SignatureBlock) GetSignature(index int) ISignature {
@@ -94,10 +98,10 @@ func (s SignatureBlock) GetSignatures() []ISignature {
 
 func (a SignatureBlock) MarshalBinary() ([]byte, error) {
 	var out bytes.Buffer
-
-	binary.Write(&out, binary.BigEndian, uint16(len(a.signatures)))
+    if len(a.signatures) == 0 {
+        a.AddSignature(new(Signature))
+    }
 	for _, sig := range a.GetSignatures() {
-
 		data, err := sig.MarshalBinary()
 		if err != nil {
 			return nil, fmt.Errorf("Signature failed to Marshal in RCD_1")
@@ -108,16 +112,14 @@ func (a SignatureBlock) MarshalBinary() ([]byte, error) {
 	return out.Bytes(), nil
 }
 
-func (s SignatureBlock) MarshalText() ([]byte, error) {
+func (s SignatureBlock) CustomMarshalText() ([]byte, error) {
 	var out bytes.Buffer
 
-	out.WriteString("Signature Block: ")
-	WriteNumber16(&out, uint16(len(s.signatures)))
-	out.WriteString("\n")
+	out.WriteString("Signature Block: \n")
 	for _, sig := range s.signatures {
 
 		out.WriteString(" signature: ")
-		txt, err := sig.MarshalText()
+		txt, err := sig.CustomMarshalText()
 		if err != nil {
 			return nil, err
 		}
@@ -130,10 +132,8 @@ func (s SignatureBlock) MarshalText() ([]byte, error) {
 }
 
 func (s *SignatureBlock) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-
-	numSignatures, data := binary.BigEndian.Uint16(data[0:2]), data[2:]
-	s.signatures = make([]ISignature, numSignatures)
-	for i := uint16(0); i < numSignatures; i++ {
+	s.signatures = make([]ISignature, 1)
+	for i := uint16(0); i < 1; i++ {
 		s.signatures[i] = new(Signature)
 		data, err = s.signatures[i].UnmarshalBinaryData(data)
 		if err != nil {

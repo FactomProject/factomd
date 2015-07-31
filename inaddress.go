@@ -18,7 +18,7 @@ type InAddress struct {
 var _ IInAddress = (*InAddress)(nil)
 
 func (b InAddress) String() string {
-	txt, err := b.MarshalText()
+	txt, err := b.CustomMarshalText()
 	if err != nil {
 		return "<error>"
 	}
@@ -33,8 +33,8 @@ func (i InAddress) GetNewInstance() IBlock {
 	return new(InAddress)
 }
 
-func (a InAddress) MarshalText() (text []byte, err error) {
-    return a.MarshalText2("input") 
+func (a InAddress) CustomMarshalText() (text []byte, err error) {
+	return a.CustomMarshalText2("input")
 }
 
 /******************************

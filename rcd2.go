@@ -32,7 +32,7 @@ type RCD_2 struct {
 var _ IRCD = (*RCD_2)(nil)
 
 func (b RCD_2) String() string {
-	txt, err := b.MarshalText()
+	txt, err := b.CustomMarshalText()
 	if err != nil {
 		return "<error>"
 	}
@@ -64,14 +64,14 @@ func (a1 *RCD_2) IsEqual(addr IBlock) []IBlock {
 		a1.n != a2.n || // Size of sig has to match
 		a1.m != a2.m || // Size of sig has to match
 		len(a1.n_addresses) != len(a2.n_addresses) { // Size of arrays has to match
-            r := make([]IBlock,0,5)
-            return append(r,a1)
+		r := make([]IBlock, 0, 5)
+		return append(r, a1)
 	}
 
 	for i, addr := range a1.n_addresses {
-		r := addr.IsEqual(a2.n_addresses[i]) 
-        if r != nil {
-			return append(r,a1)
+		r := addr.IsEqual(a2.n_addresses[i])
+		if r != nil {
+			return append(r, a1)
 		}
 	}
 
@@ -119,7 +119,7 @@ func (a RCD_2) MarshalBinary() ([]byte, error) {
 	return out.Bytes(), nil
 }
 
-func (a RCD_2) MarshalText() ([]byte, error) {
+func (a RCD_2) CustomMarshalText() ([]byte, error) {
 	var out bytes.Buffer
 
 	WriteNumber8(&out, uint8(2)) // Type 2 Authorization

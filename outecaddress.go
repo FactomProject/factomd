@@ -21,7 +21,7 @@ type OutECAddress struct {
 var _ IOutECAddress = (*OutECAddress)(nil)
 
 func (b OutECAddress) String() string {
-	txt, err := b.MarshalText()
+	txt, err := b.CustomMarshalText()
 	if err != nil {
 		return "<error>"
 	}
@@ -40,8 +40,8 @@ func (oa OutECAddress) GetName() string {
 	return "outEC"
 }
 
-func (a OutECAddress) MarshalText() (text []byte, err error) {
-    return a.MarshalText2("ecoutput") 
+func (a OutECAddress) CustomMarshalText() (text []byte, err error) {
+	return a.CustomMarshalText2("ecoutput")
 }
 
 /******************************

@@ -12,8 +12,8 @@
 package factoid
 
 import (
+	"bytes"
 	"encoding/hex"
-    "bytes"
 	"fmt"
 )
 
@@ -31,7 +31,7 @@ type Address struct {
 var _ IAddress = (*Address)(nil)
 
 func (b Address) String() string {
-	txt, err := b.MarshalText()
+	txt, err := b.CustomMarshalText()
 	if err != nil {
 		return "<error>"
 	}
@@ -42,7 +42,7 @@ func (Address) GetDBHash() IHash {
 	return Sha([]byte("Address"))
 }
 
-func (a Address) MarshalText() (text []byte, err error) {
+func (a Address) CustomMarshalText() (text []byte, err error) {
 	var out bytes.Buffer
 	addr := hex.EncodeToString(a.Bytes())
 	out.WriteString("addr  ")
@@ -51,12 +51,11 @@ func (a Address) MarshalText() (text []byte, err error) {
 }
 
 func NewAddress(b []byte) IAddress {
-    a := new(Address)
-    a.SetBytes(b)
-    return a
+	a := new(Address)
+	a.SetBytes(b)
+	return a
 }
 
 func CreateAddress(hash IHash) IAddress {
-    return NewAddress(hash.Bytes())
+	return NewAddress(hash.Bytes())
 }
-

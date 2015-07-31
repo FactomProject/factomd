@@ -36,7 +36,7 @@ type Signature struct {
 var _ ISignature = (*Signature)(nil)
 
 func (b Signature) String() string {
-	txt, err := b.MarshalText()
+	txt, err := b.CustomMarshalText()
 	if err != nil {
 		return "<error>"
 	}
@@ -56,8 +56,8 @@ func (s1 *Signature) IsEqual(sig IBlock) []IBlock {
 	s2, ok := sig.(*Signature)
 	if !ok || // Not the right kind of IBlock
 		s1.signature != s2.signature { // Not the right rcd
-            r := make([]IBlock,0,5)
-            return append(r,s1)
+		r := make([]IBlock, 0, 5)
+		return append(r, s1)
 	}
 	return nil
 }
@@ -86,7 +86,7 @@ func (s Signature) MarshalBinary() ([]byte, error) {
 	return out.Bytes(), nil
 }
 
-func (s Signature) MarshalText() ([]byte, error) {
+func (s Signature) CustomMarshalText() ([]byte, error) {
 	var out bytes.Buffer
 
 	out.WriteString(" signature: ")

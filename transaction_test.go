@@ -105,7 +105,7 @@ func getSignedTrans() IBlock {
 // Mostly we keep it commented out.
 func xTestTransaction(test *testing.T) {
 	nb = getSignedTrans()
-	bytes, _ := nb.MarshalText()
+	bytes, _ := nb.CustomMarshalText()
 	fmt.Printf("Transaction:\n%slen: %d\n", string(bytes), len(bytes))
 	fmt.Println("\n---------------------------------------------------------------------")
 }
@@ -157,12 +157,12 @@ func Test_Transaction_MarshalUnMarshal(test *testing.T) {
 		test.Fail()
 	}
 
-	//     txt1,_ := xb.MarshalText()
-	//     txt2,_ := nb.MarshalText()
+	//     txt1,_ := xb.CustomMarshalText()
+	//     txt2,_ := nb.CustomMarshalText()
 	//     Prtln(string(txt1))
 	//     Prtln(string(txt2))
 
-	if  xb.IsEqual(nb) != nil {
+	if xb.IsEqual(nb) != nil {
 		Prtln(err)
 		test.Fail()
 	}
@@ -170,13 +170,21 @@ func Test_Transaction_MarshalUnMarshal(test *testing.T) {
 }
 
 func Test_ValidateAmounts(test *testing.T) {
-    var zero uint64
-    _, err := ValidateAmounts(zero-1    )
-    if err != nil { test.Failed() }
-    _, err = ValidateAmounts(1,2,3,4,5,zero-1)
-    if err != nil { test.Failed() }
-    _, err = ValidateAmounts(0x6FFFFFFFFFFFFFFF,1)
-    if err != nil { test.Failed() }
-    _, err = ValidateAmounts(1, 0x6FFFFFFFFFFFFFFF,1)
-    if err != nil { test.Failed() }
+	var zero uint64
+	_, err := ValidateAmounts(zero - 1)
+	if err != nil {
+		test.Failed()
+	}
+	_, err = ValidateAmounts(1, 2, 3, 4, 5, zero-1)
+	if err != nil {
+		test.Failed()
+	}
+	_, err = ValidateAmounts(0x6FFFFFFFFFFFFFFF, 1)
+	if err != nil {
+		test.Failed()
+	}
+	_, err = ValidateAmounts(1, 0x6FFFFFFFFFFFFFFF, 1)
+	if err != nil {
+		test.Failed()
+	}
 }

@@ -70,16 +70,25 @@ func Test_create_block(test *testing.T) {
     }
     data,err := scb.MarshalBinary()
     if err != nil {
-		sc.PrtStk()
+        fmt.Println(err)
 		test.Fail()
+        return
 	}
-	scb2 := block.NewFBlock(1000, 0)
+	scb2 := new(block.FBlock)
 	_, err = scb2.UnmarshalBinaryData(data)
-
-    sc.Prtln(scb,scb2)
+    
+    fmt.Println("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n",scb2)
+    
+    if err != nil {
+        fmt.Println(err)
+        test.Fail()
+        return
+    }
+    //sc.Prtln("FIRST\n",scb,"SECOND\n",scb2)
     if scb.IsEqual(scb2)!=nil {
-		sc.PrtStk()
-		test.Fail()
-	}
+        fmt.Println(err)
+        test.Fail()
+        return
+    }
 
 }

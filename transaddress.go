@@ -11,10 +11,10 @@
 package factoid
 
 import (
-    "strings"
-    "bytes"
-    "encoding/hex"
+	"bytes"
+	"encoding/hex"
 	"fmt"
+	"strings"
 )
 
 type ITransAddress interface {
@@ -23,7 +23,7 @@ type ITransAddress interface {
 	SetAmount(uint64)
 	GetAddress() IAddress
 	SetAddress(IAddress)
-    MarshalText2(string) ([]byte, error)
+	CustomMarshalText2(string) ([]byte, error)
 }
 
 type TransAddress struct {
@@ -38,17 +38,15 @@ func (t *TransAddress) IsEqual(addr IBlock) []IBlock {
 	a, ok := addr.(ITransAddress)
 	if !ok || // Not the right kind of IBlock
 		a.GetAmount() != t.GetAmount() {
-            r := make([]IBlock,0,5)
-            return append(r,t)
-    }// Amount is different
-    r := a.GetAddress().IsEqual(t.GetAddress()) // Address is different
-    if r != nil {
-        return append(r,t)
-    }
-    return nil
+		r := make([]IBlock, 0, 5)
+		return append(r, t)
+	} // Amount is different
+	r := a.GetAddress().IsEqual(t.GetAddress()) // Address is different
+	if r != nil {
+		return append(r, t)
+	}
+	return nil
 }
-
-
 
 func (t *TransAddress) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 
@@ -67,10 +65,12 @@ func (t *TransAddress) UnmarshalBinaryData(data []byte) (newData []byte, err err
 // MarshalBinary.  'nuff said
 func (a TransAddress) MarshalBinary() ([]byte, error) {
 	var out bytes.Buffer
-    
-    err := EncodeVarInt(&out,a.amount)
-	if err != nil { return nil, err }
-    data, err := a.address.MarshalBinary()
+
+	err := EncodeVarInt(&out, a.amount)
+	if err != nil {
+		return nil, err
+	}
+	data, err := a.address.MarshalBinary()
 	out.Write(data)
 
 	return out.Bytes(), err
@@ -78,7 +78,7 @@ func (a TransAddress) MarshalBinary() ([]byte, error) {
 
 // Accessor. Default to a zero length string.  This is a debug
 // thing for looking out what we have built. Used by
-// MarshalText
+// CustomMarshalText
 func (ta TransAddress) GetName() string {
 	return ""
 }
@@ -106,15 +106,15 @@ func (ta *TransAddress) SetAddress(address IAddress) {
 }
 
 // Make this into somewhat readable text.
-func (ta TransAddress) MarshalText2(label string) ([]byte, error) {
-    var out bytes.Buffer
-    out.WriteString(fmt.Sprintf("   %8s:",label))
-    v := ConvertDecimal(ta.amount)
-    fill := 8 - len(v) + strings.Index(v,".")+1 
-    fstr := fmt.Sprintf("%%%vs%%%vs ",18-fill,fill)
-    out.WriteString(fmt.Sprintf(fstr,v,""))
-    out.WriteString(ConvertFctAddressToUserStr(ta.address))
-    str := fmt.Sprintf("\n                  %016x %038s\n\n",ta.amount, string(hex.EncodeToString(ta.GetAddress().Bytes())))
-    out.WriteString(str)
-    return out.Bytes(), nil
+func (ta TransAddress) CustomMarshalText2(label string) ([]byte, error) {
+	var out bytes.Buffer
+	out.WriteString(fmt.Sprintf("   %8s:", label))
+	v := ConvertDecimal(ta.amount)
+	fill := 8 - len(v) + strings.Index(v, ".") + 1
+	fstr := fmt.Sprintf("%%%vs%%%vs ", 18-fill, fill)
+	out.WriteString(fmt.Sprintf(fstr, v, ""))
+	out.WriteString(ConvertFctAddressToUserStr(ta.address))
+	str := fmt.Sprintf("\n                  %016x %038s\n\n", ta.amount, string(hex.EncodeToString(ta.GetAddress().Bytes())))
+	out.WriteString(str)
+	return out.Bytes(), nil
 }

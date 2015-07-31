@@ -73,7 +73,7 @@ func (w *WalletEntry) SetType(addrtype string) {
 }
 
 func (b WalletEntry) String() string {
-	txt, err := b.MarshalText()
+	txt, err := b.CustomMarshalText()
 	if err != nil {
 		return "<error>"
 	}
@@ -204,7 +204,7 @@ func (w WalletEntry) MarshalBinary() ([]byte, error) {
 	return out.Bytes(), nil
 }
 
-func (w WalletEntry) MarshalText() (text []byte, err error) {
+func (w WalletEntry) CustomMarshalText() (text []byte, err error) {
 	var out bytes.Buffer
 
 	out.WriteString("name:  ")
