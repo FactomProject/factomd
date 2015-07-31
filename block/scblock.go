@@ -69,7 +69,7 @@ type IFBlock interface {
 // https://github.com/FactomProject/FactomDocs/blob/master/factomDataStructureDetails.md#factoid-block
 //
 type FBlock struct {
-	IFBlock
+	IFBlock `json:"-"`
 	//  ChainID         IHash     // ChainID.  But since this is a constant, we need not actually use space to store it.
 	BodyMR       fct.IHash // Merkle root of the Factoid transactions which accompany this block.
 	PrevKeyMR    fct.IHash // Key Merkle root of previous block.
@@ -560,7 +560,7 @@ func (b *FBlock) AddTransaction(trans fct.ITransaction) error {
 }
 
 func (b FBlock) String() string {
-	txt, err := b.MarshalText()
+	txt, err := b.CustomMarshalText()
 	if err != nil {
 		return err.Error()
 	}
@@ -568,7 +568,7 @@ func (b FBlock) String() string {
 }
 
 // Marshal to text.  Largely a debugging thing.
-func (b FBlock) MarshalText() (text []byte, err error) {
+func (b FBlock) CustomMarshalText() (text []byte, err error) {
 	var out bytes.Buffer
 
 	out.WriteString("Transaction Block\n")
@@ -615,7 +615,7 @@ func (b FBlock) MarshalText() (text []byte, err error) {
 			markPeriod++
 		}
 
-		txt, err := trans.MarshalText()
+		txt, err := trans.CustomMarshalText()
 		if err != nil {
 			return out.Bytes(), err
 		}

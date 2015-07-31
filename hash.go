@@ -22,8 +22,21 @@ type IHash interface {
 }
 
 type Hash struct {
-	IHash
-	hash [ADDRESS_LENGTH]byte
+	IHash `json:"-"`
+	hash  [ADDRESS_LENGTH]byte
+}
+
+func (h *Hash) MarshalText() ([]byte, error) {
+	return []byte(hex.EncodeToString(h.hash[:])), nil
+}
+
+func (h *Hash) UnmarshalText(b []byte) error {
+	p, err := hex.DecodeString(string(b))
+	if err != nil {
+		return err
+	}
+	copy(h.hash[:], p)
+	return nil
 }
 
 var _ IHash = (*Hash)(nil)
@@ -39,8 +52,8 @@ func (w1 Hash) GetNewInstance() IBlock {
 func (t Hash) IsEqual(hash IBlock) []IBlock {
 	h, ok := hash.(IHash)
 	if !ok || !h.IsSameAs(&t) {
-		r := make([]IBlock,0,5)
-        return append(r,&t)
+		r := make([]IBlock, 0, 5)
+		return append(r, &t)
 	}
 
 	return nil
@@ -136,7 +149,7 @@ func (a Hash) IsSameAs(b IHash) bool {
 	return false
 }
 
-func (a Hash) MarshalText() (text []byte, err error) {
+func (a Hash) CustomMarshalText() (text []byte, err error) {
 	var out bytes.Buffer
 	hash := hex.EncodeToString(a.hash[:])
 	out.WriteString(hash)
@@ -148,24 +161,24 @@ func (a Hash) MarshalText() (text []byte, err error) {
  **********************/
 
 // Create a Sha256 Hash from a byte array
-func Sha(p []byte) (IHash) {
-    h := new(Hash)
-    b := sha256.Sum256(p)
-    h.SetBytes(b[:])
-    return h
+func Sha(p []byte) IHash {
+	h := new(Hash)
+	b := sha256.Sum256(p)
+	h.SetBytes(b[:])
+	return h
 }
 
 // Shad Double Sha256 Hash; sha256(sha256(data))
-func Shad(data []byte) (IHash){
-    h1 := sha256.Sum256(data)
-    h2 := sha256.Sum256(h1[:])
-    h := new(Hash)
-    h.SetBytes(h2[:])
-    return h
+func Shad(data []byte) IHash {
+	h1 := sha256.Sum256(data)
+	h2 := sha256.Sum256(h1[:])
+	h := new(Hash)
+	h.SetBytes(h2[:])
+	return h
 }
 
 func NewHash(b []byte) IHash {
-    h := new(Hash)
-    h.SetBytes(b)
-    return h
+	h := new(Hash)
+	h.SetBytes(b)
+	return h
 }

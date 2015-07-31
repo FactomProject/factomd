@@ -36,8 +36,8 @@ func Test_Setup_Signature(test *testing.T) {
 	s2 = new(Signature)
 	s2.SetSignature(0, sig2[:])
 
-	//    txt1,_:=s1.MarshalText()
-	//    txt2,_:=s2.MarshalText()
+	//    txt1,_:=s1.CustomMarshalText()
+	//    txt2,_:=s2.CustomMarshalText()
 	//    Prtln(string(txt1))
 	//    Prtln(string(txt2))
 }
@@ -51,7 +51,7 @@ func Test_IsEqual_Signature(test *testing.T) {
 
 	s2.SetSignature(0, sig1[:]) // Set to sig1 for test
 
-	if  s1.IsEqual(s2) != nil {
+	if s1.IsEqual(s2) != nil {
 		PrtStk()
 		test.Fail()
 	}
@@ -63,7 +63,7 @@ func Test_Marshal_Signature_(test *testing.T) {
 	data, err := s1.MarshalBinary()
 	s2.UnmarshalBinaryData(data)
 
-	if  s1.IsEqual(s2) != nil {
+	if s1.IsEqual(s2) != nil {
 		PrtStk()
 		Prtln(err)
 		test.Fail()

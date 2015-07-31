@@ -27,14 +27,14 @@ type ISignatureBlock interface {
 }
 
 type SignatureBlock struct {
-	ISignatureBlock
-	signatures []ISignature
+	ISignatureBlock `json:"-"`
+	signatures      []ISignature
 }
 
 var _ ISignatureBlock = (*SignatureBlock)(nil)
 
 func (b SignatureBlock) String() string {
-	txt, err := b.MarshalText()
+	txt, err := b.CustomMarshalText()
 	if err != nil {
 		return "<error>"
 	}
@@ -46,20 +46,20 @@ func (s *SignatureBlock) IsEqual(signatureBlock IBlock) []IBlock {
 	sb, ok := signatureBlock.(ISignatureBlock)
 
 	if !ok {
-        r := make([]IBlock,0,5)
-        return append(r,s)
+		r := make([]IBlock, 0, 5)
+		return append(r, s)
 	}
 
 	sigs1 := s.GetSignatures()
 	sigs2 := sb.GetSignatures()
 	if len(sigs1) != len(sigs2) {
-        r := make([]IBlock,0,5)
-        return append(r,s)
+		r := make([]IBlock, 0, 5)
+		return append(r, s)
 	}
 	for i, sig := range sigs1 {
-		r := sig.IsEqual(sigs2[i]) 
-        if r != nil {
-			return append(r,s)
+		r := sig.IsEqual(sigs2[i])
+		if r != nil {
+			return append(r, s)
 		}
 	}
 
@@ -108,7 +108,7 @@ func (a SignatureBlock) MarshalBinary() ([]byte, error) {
 	return out.Bytes(), nil
 }
 
-func (s SignatureBlock) MarshalText() ([]byte, error) {
+func (s SignatureBlock) CustomMarshalText() ([]byte, error) {
 	var out bytes.Buffer
 
 	out.WriteString("Signature Block: ")
@@ -117,7 +117,7 @@ func (s SignatureBlock) MarshalText() ([]byte, error) {
 	for _, sig := range s.signatures {
 
 		out.WriteString(" signature: ")
-		txt, err := sig.MarshalText()
+		txt, err := sig.CustomMarshalText()
 		if err != nil {
 			return nil, err
 		}

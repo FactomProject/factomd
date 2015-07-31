@@ -18,7 +18,7 @@ type OutAddress struct {
 var _ IOutAddress = (*OutAddress)(nil)
 
 func (b OutAddress) String() string {
-	txt, err := b.MarshalText()
+	txt, err := b.CustomMarshalText()
 	if err != nil {
 		return "<error>"
 	}
@@ -37,8 +37,8 @@ func (oa OutAddress) GetName() string {
 	return "out"
 }
 
-func (a OutAddress) MarshalText() (text []byte, err error) {
-    return a.MarshalText2("output") 
+func (a OutAddress) CustomMarshalText() (text []byte, err error) {
+	return a.CustomMarshalText2("output")
 }
 
 /******************************

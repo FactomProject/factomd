@@ -70,7 +70,7 @@ type ITransaction interface {
 }
 
 type Transaction struct {
-	ITransaction
+	ITransaction `json:"-"`
 	// version     uint64         Version of transaction. Hardcoded, naturally.
 	milliTimestamp uint64
 	// #inputs     uint8          number of inputs
@@ -106,7 +106,7 @@ func (t Transaction) GetHash() IHash {
 }
 
 func (t Transaction) String() string {
-	txt, err := t.MarshalText()
+	txt, err := t.CustomMarshalText()
 	if err != nil {
 		return "<error>"
 	}
@@ -651,7 +651,7 @@ func (t *Transaction) AddECOutput(ecoutput IAddress, amount uint64) {
 }
 
 // Marshal to text.  Largely a debugging thing.
-func (t *Transaction) MarshalText() (text []byte, err error) {
+func (t *Transaction) CustomMarshalText() (text []byte, err error) {
 	data, err := t.MarshalBinary()
 	if err != nil {
 		return nil, err
@@ -672,19 +672,19 @@ func (t *Transaction) MarshalText() (text []byte, err error) {
 	WriteNumber16(&out, uint16(len(t.outECs)))
 	out.WriteString("\n")
 	for _, address := range t.inputs {
-		text, _ := address.MarshalText()
+		text, _ := address.CustomMarshalText()
 		out.Write(text)
 	}
 	for _, address := range t.outputs {
-		text, _ := address.MarshalText()
+		text, _ := address.CustomMarshalText()
 		out.Write(text)
 	}
 	for _, ecaddress := range t.outECs {
-		text, _ := ecaddress.MarshalText()
+		text, _ := ecaddress.CustomMarshalText()
 		out.Write(text)
 	}
 	for i, rcd := range t.rcds {
-		text, err = rcd.MarshalText()
+		text, err = rcd.CustomMarshalText()
 		if err != nil {
 			return nil, err
 		}
@@ -693,7 +693,7 @@ func (t *Transaction) MarshalText() (text []byte, err error) {
 		for len(t.sigBlocks) <= i {
 			t.sigBlocks = append(t.sigBlocks, new(SignatureBlock))
 		}
-		text, err := t.sigBlocks[i].MarshalText()
+		text, err := t.sigBlocks[i].CustomMarshalText()
 		if err != nil {
 			return nil, err
 		}

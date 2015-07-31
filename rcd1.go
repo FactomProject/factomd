@@ -30,7 +30,7 @@ type RCD_1 struct {
 var _ IRCD = (*RCD_1)(nil)
 
 func (b RCD_1) String() string {
-	txt, err := b.MarshalText()
+	txt, err := b.CustomMarshalText()
 	if err != nil {
 		return "<error>"
 	}
@@ -38,17 +38,23 @@ func (b RCD_1) String() string {
 }
 
 func (w RCD_1) CheckSig(trans ITransaction, sigblk ISignatureBlock) bool {
-    if sigblk == nil { return false }
+	if sigblk == nil {
+		return false
+	}
 	data, err := trans.MarshalBinarySig()
 	if err != nil {
-      	return false
+		return false
 	}
 	signature := sigblk.GetSignature(0)
-    if signature == nil { return false }
-    cryptosig := signature.GetSignature(0)
-    if cryptosig == nil { return false }
-    
-	return ed25519.VerifyCanonical(&w.publicKey, data, cryptosig) 
+	if signature == nil {
+		return false
+	}
+	cryptosig := signature.GetSignature(0)
+	if cryptosig == nil {
+		return false
+	}
+
+	return ed25519.VerifyCanonical(&w.publicKey, data, cryptosig)
 }
 
 func (w RCD_1) Clone() IRCD {
@@ -80,9 +86,9 @@ func (w1 RCD_1) NumberOfSignatures() int {
 func (a1 *RCD_1) IsEqual(addr IBlock) []IBlock {
 	a2, ok := addr.(*RCD_1)
 
-	if	!ok || a1.publicKey != a2.publicKey { // Not the right object or sigature
-            r := make([]IBlock,0,5)
-            return append(r,a1) 
+	if !ok || a1.publicKey != a2.publicKey { // Not the right object or sigature
+		r := make([]IBlock, 0, 5)
+		return append(r, a1)
 	}
 
 	return nil
@@ -115,7 +121,7 @@ func (a RCD_1) MarshalBinary() ([]byte, error) {
 	return out.Bytes(), nil
 }
 
-func (a RCD_1) MarshalText() (text []byte, err error) {
+func (a RCD_1) CustomMarshalText() (text []byte, err error) {
 	var out bytes.Buffer
 	out.WriteString("RCD 1: ")
 	WriteNumber8(&out, uint8(1)) // Type Zero Authorization
