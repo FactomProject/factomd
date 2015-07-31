@@ -248,70 +248,65 @@ func (b *FBlock) UnmarshalBinaryData(data []byte) ( newdata []byte, err error) {
         }
     }()
     
-    // To capture the panic, my code needs to be in a function.  So I'm
-    // creating one here, and call it at the end of this function.
-    var doit = func(data []byte) ( []byte,  error) {
-        if bytes.Compare(data[:fct.ADDRESS_LENGTH], fct.FACTOID_CHAINID[:]) != 0 {
-            return nil, fmt.Errorf("Block does not begin with the Factoid ChainID")
-        }
-        data = data[32:]
-        
-        b.BodyMR = new(fct.Hash)
-        data, err := b.BodyMR.UnmarshalBinaryData(data)
-        if err != nil {
-            return nil, err
-        }
-
-        b.PrevKeyMR = new(fct.Hash)
-        data, err = b.PrevKeyMR.UnmarshalBinaryData(data)
-        if err != nil {
-            return nil, err
-        }
-        
-        b.PrevFullHash = new(fct.Hash)
-        data, err = b.PrevFullHash.UnmarshalBinaryData(data)
-        if err != nil {
-            return nil, err
-        }
-
-        b.ExchRate, data = binary.BigEndian.Uint64(data[0:8]), data[8:]
-        b.DBHeight, data = binary.BigEndian.Uint32(data[0:4]), data[4:]
-
-        skip, data := fct.DecodeVarInt(data) // Skip the Expansion Header, if any, since
-        data = data[skip:]                   // we don't know what to do with it.
-
-        cnt, data := binary.BigEndian.Uint32(data[0:4]), data[4:]
-
-        data = data[4:] // Just skip the size... We don't really need it.
-
-        b.transactions = make([]fct.ITransaction, cnt, cnt)
-        var periodMark = 1
-        for i := uint32(0); i < cnt; i++ {
-            
-            for data[0] == fct.MARKER {
-                b.EndOfPeriod(periodMark)
-                data = data[1:]
-                periodMark++
-            }
-            
-            trans := new(fct.Transaction)
-            data,err = trans.UnmarshalBinaryData(data)
-            if err != nil {
-                //return nil, fmt.Errorf("Failed to unmarshal a transaction in block.\n%s",b.String())
-                return nil, fmt.Errorf("Failed to unmarshal a transaction in block.\n")       //TODO: quick fix. please revisit...     
-            }
-            b.transactions[i] = trans
-        }
-        
-        for periodMark <= len(b.endOfPeriod) {
-            b.EndOfPeriod(periodMark)
-            periodMark++
-        }    
-        
-        return data, nil
+    if bytes.Compare(data[:fct.ADDRESS_LENGTH], fct.FACTOID_CHAINID[:]) != 0 {
+        return nil, fmt.Errorf("Block does not begin with the Factoid ChainID")
     }
-	
-	return doit(data)
+    data = data[32:]
+    
+    b.BodyMR = new(fct.Hash)
+    data, err = b.BodyMR.UnmarshalBinaryData(data)
+    if err != nil {
+        return nil, err
+    }
+
+    b.PrevKeyMR = new(fct.Hash)
+    data, err = b.PrevKeyMR.UnmarshalBinaryData(data)
+    if err != nil {
+        return nil, err
+    }
+    
+    b.PrevFullHash = new(fct.Hash)
+    data, err = b.PrevFullHash.UnmarshalBinaryData(data)
+    if err != nil {
+        return nil, err
+    }
+
+    b.ExchRate, data = binary.BigEndian.Uint64(data[0:8]), data[8:]
+    b.DBHeight, data = binary.BigEndian.Uint32(data[0:4]), data[4:]
+
+    skip, data := fct.DecodeVarInt(data) // Skip the Expansion Header, if any, since
+    data = data[skip:]                   // we don't know what to do with it.
+
+    cnt, data := binary.BigEndian.Uint32(data[0:4]), data[4:]
+
+    data = data[4:] // Just skip the size... We don't really need it.
+
+    b.transactions = make([]fct.ITransaction, cnt, cnt)
+    var periodMark = 1
+    for i := uint32(0); i < cnt; i++ {
+        
+        for data[0] == fct.MARKER {
+            b.EndOfPeriod(periodMark)
+            data = data[1:]
+            periodMark++
+        }
+        
+        trans := new(fct.Transaction)
+        data,err = trans.UnmarshalBinaryData(data)
+        if err != nil {
+            //return nil, fmt.Errorf("Failed to unmarshal a transaction in block.\n%s",b.String())
+            return nil, fmt.Errorf("Failed to unmarshal a transaction in block.\n")       //TODO: quick fix. please revisit...     
+        }
+        b.transactions[i] = trans
+    }
+    
+    for periodMark <= len(b.endOfPeriod) {
+        b.EndOfPeriod(periodMark)
+        periodMark++
+    }    
+    
+    return data, nil
+   
 }
 
 func (b *FBlock) UnmarshalBinary(data []byte) (err error) {
@@ -386,6 +381,7 @@ func (b *FBlock) SetPrevFullHash(hash[]byte)  {
 }
 
 func (b *FBlock) CalculateHashes() {
+    fmt.Println("Calculate Hashes ooooooooooooooooooooooooooooooooooooooooooo")
     if(b.endOfPeriod[9]==0){
         b.EndOfPeriod(1)            // Sets the end of the first period here.
     }                               // This is what unmarshalling will do.

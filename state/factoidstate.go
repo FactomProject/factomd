@@ -147,15 +147,19 @@ func(fs *FactoidState) GetDBHeight() uint32 {
 // When we are playing catchup, adding the transaction block is a pretty
 // useful feature.
 func(fs *FactoidState) AddTransactionBlock(blk block.IFBlock) error  {
+    fs.SetFactoshisPerEC(blk.GetExchRate())
+    fs.currentBlock=blk
     transactions := blk.GetTransactions()
-    for _,trans := range transactions {
-        err := fs.UpdateTransaction(trans)
-        if err != nil {
-            return err
+    for i,trans := range transactions {
+        if i == 0 {
+            fs.UpdateTransaction(trans)
+        }else{
+            err := fs.AddTransaction(trans)
+            if err != nil {
+                return err
+            }
         }
     }
-    fs.currentBlock=blk
-    fs.SetFactoshisPerEC(blk.GetExchRate())
     
     cp.CP.AddUpdate(
     "FAddBlk",  // tag
