@@ -80,7 +80,7 @@ type IFactoidState interface {
 
 	// Validate transaction
 	// Return zero len string if the balance of an address covers each input
-	Validate(fct.ITransaction) error
+	Validate(index int, trans fct.ITransaction) error
 
 	// Check the transaction timestamp for to ensure it can be included
 	// in the current block.  Transactions that are too old, or dated to
@@ -89,12 +89,12 @@ type IFactoidState interface {
 
 	// Update Transaction just updates the balance sheet with the
 	// addition of a transaction.
-	UpdateTransaction(fct.ITransaction) error
+	UpdateTransaction(int, fct.ITransaction) error
 
 	// Add a Transaction to the current block.  The transaction is
 	// validated against the address balances, which must cover The
 	// inputs.  Returns true if the transaction is added.
-	AddTransaction(fct.ITransaction) error
+	AddTransaction(int, fct.ITransaction) error
 
 	// Process End of Minute.
 	ProcessEndOfMinute()
@@ -151,12 +151,16 @@ func(fs *FactoidState) AddTransactionBlock(blk block.IFBlock) error  {
     fs.currentBlock=blk
     transactions := blk.GetTransactions()
     for i,trans := range transactions {
-        if i == 0 {
-            fs.UpdateTransaction(trans)
-        }else{
-            err := fs.AddTransaction(trans)
-            if err != nil {
-                return err
+        fmt.Print(i," ")
+        if err := fs.ValidateTransactionAge(trans); err != nil { 
+            return err 
+        }   
+        if err := fs.UpdateTransaction(i,trans); err != nil { 
+            return err 
+        }
+        if i != 0 {
+            if err := fs.Validate(len(fs.currentBlock.GetTransactions()),trans); err != nil { 
+                return err 
             }
         }
     }
@@ -192,28 +196,43 @@ func (fs *FactoidState) ValidateTransactionAge(trans fct.ITransaction) error {
 	return nil
 }
 
-// Only add valid transactions to the current block.
-func(fs *FactoidState) AddTransaction(trans fct.ITransaction) error {
-    if err := fs.Validate(trans);                     err != nil { return err }
-    if err := fs.UpdateTransaction(trans);            err != nil { return err }
-    if err := fs.ValidateTransactionAge(trans);       err != nil { return err }   
-    if err := fs.currentBlock.AddTransaction(trans);  err != nil { return err }
-
+// Only add valid transactions to the current block.  Note that this BUILDs the block.
+// On reload, only call UpdateTransaction() and the appropriate error checking
+func(fs *FactoidState) AddTransaction(index int, trans fct.ITransaction) error {
+    if err := fs.Validate(len(fs.currentBlock.GetTransactions()),trans); err != nil { 
+        return err 
+    }
+    if err := fs.ValidateTransactionAge(trans);        err != nil { 
+        return err 
+    }   
+    if err := fs.UpdateTransaction(index, trans);      err != nil { 
+        return err 
+    }
+    if err := fs.currentBlock.AddTransaction(trans);   err != nil { 
+        return err 
+    }
+    
     return nil
 }
 
 // Assumes validation has already been done.
-func(fs *FactoidState) UpdateTransaction(trans fct.ITransaction) error {
+func(fs *FactoidState) UpdateTransaction(index int, trans fct.ITransaction) error {
+    
+    fmt.Printf("\nUpTrans Block: %d Trans# %d <--\n",fs.GetCurrentBlock().GetDBHeight(),index)
+    
     for _,input := range trans.GetInputs() {
         fs.UpdateBalance(input.GetAddress(), - int64(input.GetAmount()))
+        fmt.Println("\nUpTrans Input: ",input.GetAddress()," ",input.GetAmount()," new balance: ",fs.GetBalance(input.GetAddress()))
     }
     for _,output := range trans.GetOutputs() {
         fs.UpdateBalance(output.GetAddress(), int64(output.GetAmount()))
+        fmt.Println("\nUpTrans Output: ",output.GetAddress()," ",output.GetAmount()," new balance: ",fs.GetBalance(output.GetAddress()))
     }
     for _,ecoutput := range trans.GetECOutputs() {
         fs.UpdateECBalance(ecoutput.GetAddress(), int64(ecoutput.GetAmount()))
+        fmt.Println("\nUpTrans ECOutput: ",ecoutput.GetAddress()," ",ecoutput.GetAmount()," new balance: ",fs.GetECBalance(ecoutput.GetAddress()))
     }
-    
+        
     fs.numTransactions++
     cp.CP.AddUpdate(
         "transprocessed",                                               // tag
@@ -255,7 +274,7 @@ func(fs *FactoidState) ProcessEndOfBlock(){
     if err !=nil {
         panic(err.Error())
     }
-    fs.UpdateTransaction(t)
+    fs.UpdateTransaction(0, t)
     
     if hash != nil {
         fs.currentBlock.SetPrevKeyMR(hash.Bytes())
@@ -290,7 +309,7 @@ func(fs *FactoidState) ProcessEndOfBlock2(nextBlkHeight uint32) {
     if err !=nil {
         panic(err.Error())
     }
-    fs.UpdateTransaction(t)
+    fs.UpdateTransaction(0,t)
     
     if hash != nil {
         fs.currentBlock.SetPrevKeyMR(hash.Bytes())
@@ -338,7 +357,6 @@ func(fs *FactoidState) LoadState() error  {
         if blk == nil { 
             return fmt.Errorf("Should never happen.  Block not found in LoadState") 
         }
-        fct.Prt("Loading from disk block: ", blk.GetDBHeight(),"\r")
         err := fs.AddTransactionBlock(blk)  // updates accounting for this block
         if err != nil { 
             fct.Prtln("Failed to rebuild state.\n",err); 
@@ -356,22 +374,41 @@ func(fs *FactoidState) LoadState() error  {
     
 // Returns an error message about what is wrong with the transaction if it is
 // invalid, otherwise you are good to go.
-func(fs *FactoidState) Validate(trans fct.ITransaction) error  {
-    err := fs.currentBlock.ValidateTransaction(trans) 
-    if err != nil { return err }
+func(fs *FactoidState) Validate(index int, trans fct.ITransaction) error  {
+    if index == 0 {
+        // Genesis block validation and code base validation done here.
+    }else{
+        err := fs.currentBlock.ValidateTransaction(trans) 
+        if err != nil { return err }
 
-    var sums = make(map[fct.IAddress]uint64,10)
-    for _, input := range trans.GetInputs() {
-        bal,err := fct.ValidateAmounts(
-            sums[input.GetAddress()],           // Will be zero the first time around 
-            input.GetAmount())                  // Get this amount, check against bounds
-        if err != nil { 
-            return err
+        var sums = make(map[fct.IAddress]uint64,10)
+        for _, input := range trans.GetInputs() {
+            bal,err := fct.ValidateAmounts(
+                sums[input.GetAddress()],           // Will be zero the first time around 
+                input.GetAmount())                  // Get this amount, check against bounds
+            if err != nil { 
+                return err
+            }
+            cbal := fs.GetBalance(input.GetAddress())
+            
+            in,  _ := trans.TotalInputs()
+            out, _ := trans.TotalOutputs()
+            ec,  _ := trans.TotalECs()
+            fee, _ := trans.CalculateFee(fs.currentBlock.GetExchRate())
+            msg := fmt.Sprintf("Address balance(s) does not cover the inputs for the transaction:\n"+
+                            "balance  "+fct.ConvertDecimal(bal)+"\n"+
+                            "cbalance "+fct.ConvertDecimal(cbal)+"\n"+
+                            "Inputs:  "+fct.ConvertDecimal(in)+"\n"+
+                            "Outputs: "+fct.ConvertDecimal(out)+
+                                        fct.ConvertDecimal(ec)+
+                                        fct.ConvertDecimal(fee)+" =\n"+
+                            "         "+fct.ConvertDecimal(out+ec+fee))
+            
+            if bal > cbal {
+                return fmt.Errorf("Block %d, Transaction %d\n%s",fs.GetDBHeight(),index,msg)
+            }
+            sums[input.GetAddress()] = bal
         }
-        if bal > fs.GetBalance(input.GetAddress()) {
-            return fmt.Errorf("Not enough funds in input addresses for the transaction")
-        }
-        sums[input.GetAddress()] = bal
     }
     return nil
 }

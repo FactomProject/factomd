@@ -209,7 +209,7 @@ func Test_create_genesis_FactoidState (test *testing.T) {
             }
                             
             if good {
-                err = fs.AddTransaction(t)
+                err = fs.AddTransaction(j,t)
             }
             if !addtest  && err == nil {
                 ts := int64(t.GetMilliTimestamp())
