@@ -20,20 +20,21 @@ import (
 
 type ISignature interface {
 	IBlock
-	GetIndex() int                        // Used with multisig to know where to apply the signature
-	SetIndex(int)                         // Set the index
-	SetSignature(i int, sig []byte) error // Set or update the signature
-	GetSignature(i int) *[SIGNATURE_LENGTH]byte
+	SetSignature(sig []byte) error // Set or update the signature
+	GetSignature() *[SIGNATURE_LENGTH]byte
 }
 
 // The default signature doesn't care about indexing.  We will extend this
 // signature for multisig
 type Signature struct {
-	ISignature
 	signature [SIGNATURE_LENGTH]byte // The signature
 }
 
 var _ ISignature = (*Signature)(nil)
+
+func (t *Signature) GetHash() IHash {
+    return nil
+}
 
 func (b Signature) String() string {
 	txt, err := b.MarshalText()
@@ -63,7 +64,7 @@ func (s1 *Signature) IsEqual(sig IBlock) []IBlock {
 }
 
 // Index is ignored.  We only have one signature
-func (s *Signature) SetSignature(i int, sig []byte) error {
+func (s *Signature) SetSignature(sig []byte) error {
 	if len(sig) != SIGNATURE_LENGTH {
 		return fmt.Errorf("Bad signature.  Should not happen")
 	}
@@ -71,10 +72,7 @@ func (s *Signature) SetSignature(i int, sig []byte) error {
 	return nil
 }
 
-func (s *Signature) GetSignature(i int) *[SIGNATURE_LENGTH]byte {
-	if i != 0 {
-		return nil
-	}
+func (s *Signature) GetSignature() *[SIGNATURE_LENGTH]byte {
 	return &s.signature
 }
 
@@ -99,4 +97,9 @@ func (s Signature) MarshalText() ([]byte, error) {
 func (s *Signature) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	copy(s.signature[:], data[:SIGNATURE_LENGTH])
 	return data[SIGNATURE_LENGTH:], nil
+}
+
+func (s *Signature) UnmarshalBinary(data []byte) error {
+    _, err := s.UnmarshalBinaryData(data)
+    return err
 }

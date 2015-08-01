@@ -107,7 +107,6 @@ func Test_create_genesis_FactoidState (test *testing.T) {
         test.Fail()
         return
     }
-    fs.ProcessEndOfBlock()
     
     // Make the coinbase very generous
     block.UpdateAmount(100000000000)
@@ -209,7 +208,7 @@ func Test_create_genesis_FactoidState (test *testing.T) {
             }
                             
             if good {
-                err = fs.AddTransaction(t)
+                err = fs.AddTransaction(len(fs.GetCurrentBlock().GetTransactions()),t)
             }
             if !addtest  && err == nil {
                 ts := int64(t.GetMilliTimestamp())

@@ -155,7 +155,7 @@ func(fs *Test_state) newTransaction(maxIn, maxOut int) fct.ITransaction {
     if !valid {
         fct.Prtln("Transaction is not valid")
     }
-    if err := fs.Validate(t); err != nil || err1 != nil {
+    if err := fs.Validate(len(fs.GetCurrentBlock().GetTransactions()),t); err != nil || err1 != nil {
         
         fs.GetDB().Put(fct.DB_BAD_TRANS, t.GetHash(), t)
         

@@ -62,14 +62,12 @@ type ITransaction interface {
 	// Validate does everything but check the signatures.
 	Validate() error
 	ValidateSignatures() error
-	ValidateAmounts(amts ...uint64) (uint64, error)
 	
 	// Calculate the fee for a transaction, given the specified exchange rate.
 	CalculateFee(factoshisPerEC uint64) (uint64, error)
 }
 
 type Transaction struct {
-	ITransaction
 	// version     uint64         Version of transaction. Hardcoded, naturally.
 	milliTimestamp uint64
 	// #inputs     uint8          number of inputs

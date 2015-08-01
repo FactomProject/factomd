@@ -20,6 +20,30 @@ type MapDB struct {
 var _ IFDatabase = (*MapDB)(nil)
 var _ = fmt.Println
 
+
+func (MapDB) Close() {}
+
+func (MapDB) IsEqual(fct.IBlock) []fct.IBlock {
+    return nil
+}
+
+func (MapDB) GetNewInstance() fct.IBlock {
+    return new(MapDB)
+}
+
+func (MapDB) MarshalBinary() ([]byte, error) {
+    return nil,nil
+}
+
+func (MapDB) UnmarshalBinary([]byte) error {
+    return nil
+}
+
+func (MapDB) UnmarshalBinaryData([]byte) ([]byte, error) {
+    return nil,nil
+}
+
+
 func (b MapDB) GetKeysValues(bucket []byte) (keys [][]byte, values []fct.IBlock) {
 
     if b.GetPersist() == nil || b.doNotPersist[string(bucket)] != nil {    

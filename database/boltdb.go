@@ -41,6 +41,57 @@ type BoltDB struct {
 
 var _ IFDatabase = (*BoltDB)(nil)
 
+/*************************************
+ *       Stubs
+ *************************************/
+
+
+func (BoltDB) GetAddress() (fct.IAddress, error) {
+    return nil,nil
+}
+
+func (BoltDB) GetHash() fct.IHash {
+    return nil
+}
+
+func (BoltDB) GetDBHash() fct.IHash {
+    return nil
+}
+
+func (BoltDB)NumberOfSignatures() int {
+    return 1
+}
+
+func (BoltDB) MarshalText() ([]byte, error) {
+    return nil,nil
+}
+
+func (BoltDB) MarshalBinary() ([]byte, error) {
+    return nil,nil
+}
+
+func (BoltDB) UnmarshalBinary(data []byte) ( error) {
+    return nil
+}
+
+func (BoltDB) UnmarshalBinaryData(data []byte) ([]byte, error) {
+    return nil,nil
+}
+
+
+/***************************************
+ *       Methods
+ ***************************************/
+func (bdb BoltDB) GetNewInstance() fct.IBlock {
+    return new(BoltDB)
+}
+
+func (bdb BoltDB) IsEqual(blk2 fct.IBlock) []fct.IBlock  {
+    b := make([]fct.IBlock,1,1)
+    b[0]=bdb
+    return b
+}
+
 func (bdb BoltDB) GetKeysValues(bucket []byte) (keys [][]byte, values []fct.IBlock) {
     keys = make([][]byte,0,32)
     values = make([]fct.IBlock,0,32)

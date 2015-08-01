@@ -68,7 +68,6 @@ type IFBlock interface {
 // https://github.com/FactomProject/FactomDocs/blob/master/factomDataStructureDetails.md#factoid-block
 //
 type FBlock struct {
-	IFBlock
 	//  ChainID         IHash     // ChainID.  But since this is a constant, we need not actually use space to store it.
 	BodyMR              fct.IHash // Merkle root of the Factoid transactions which accompany this block.
 	PrevKeyMR           fct.IHash // Key Merkle root of previous block.

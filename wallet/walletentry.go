@@ -43,7 +43,6 @@ type IWalletEntry interface {
 }
 
 type WalletEntry struct {
-	IWalletEntry
 	// Type string for the address.  Either "ec" or "fct"
 	addrtype string
 	// 2 byte length not included here
@@ -56,6 +55,26 @@ type WalletEntry struct {
 }
 
 var _ IWalletEntry = (*WalletEntry)(nil)
+
+/*************************************
+ *       Stubs
+ *************************************/
+
+
+
+func (b WalletEntry) GetHash() fct.IHash {
+    return nil
+}
+
+
+
+/***************************************
+ *       Methods
+ ***************************************/
+
+func (w WalletEntry) GetName() []byte {
+    return w.name
+}
 
 func (w WalletEntry) GetType() string {
 	return w.addrtype

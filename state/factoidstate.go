@@ -80,7 +80,7 @@ type IFactoidState interface {
     
     // Validate transaction
     // Return zero len string if the balance of an address covers each input
-    Validate(fct.ITransaction) error
+    Validate(int, fct.ITransaction) error
     
     // Check the transaction timestamp for to ensure it can be included 
     // in the current block.  Transactions that are too old, or dated to
@@ -94,7 +94,7 @@ type IFactoidState interface {
     // Add a Transaction to the current block.  The transaction is
     // validated against the address balances, which must cover The
     // inputs.  Returns true if the transaction is added.
-    AddTransaction(fct.ITransaction) error
+    AddTransaction(int, fct.ITransaction) error
     
     // Process End of Minute.  
     ProcessEndOfMinute()
@@ -112,7 +112,7 @@ type IFactoidState interface {
 }
 
 type FactoidState struct {
-    IFactoidState
+
     database db.IFDatabase
     factoshisPerEC uint64
     currentBlock block.IFBlock
@@ -187,10 +187,10 @@ func(fs *FactoidState) ValidateTransactionAge(trans fct.ITransaction) error {
 }
 
 // Only add valid transactions to the current block.
-func(fs *FactoidState) AddTransaction(trans fct.ITransaction) error {
-    if err := fs.Validate(trans);                     err != nil { return err }
-    if err := fs.UpdateTransaction(trans);            err != nil { return err }
+func(fs *FactoidState) AddTransaction(index int, trans fct.ITransaction) error {
+    if err := fs.Validate(index, trans);              err != nil { return err }
     if err := fs.ValidateTransactionAge(trans);       err != nil { return err }   
+    if err := fs.UpdateTransaction(trans);            err != nil { return err }
     if err := fs.currentBlock.AddTransaction(trans);  err != nil { return err }
 
     return nil
@@ -227,12 +227,14 @@ func(fs *FactoidState) ProcessEndOfMinute() {
 func(fs *FactoidState) ProcessEndOfBlock(){
     var hash,hash2 fct.IHash
 
-    if fs.currentBlock != nil {             // If no blocks, the current block is nil
-        hash = fs.currentBlock.GetHash()
-        hash2 = fs.currentBlock.GetFullHash()
-        fs.PutTransactionBlock(hash,fs.currentBlock)
-        fs.PutTransactionBlock(fct.FACTOID_CHAINID_HASH,fs.currentBlock)
+    if fs.GetCurrentBlock() == nil {
+        panic("Invalid state on initialization")
     }
+    
+    hash = fs.currentBlock.GetHash()
+    hash2 = fs.currentBlock.GetFullHash()
+    fs.PutTransactionBlock(hash,fs.currentBlock)
+    fs.PutTransactionBlock(fct.FACTOID_CHAINID_HASH,fs.currentBlock)
     
     fs.dbheight += 1
     fs.currentBlock = block.NewFBlock(fs.GetFactoshisPerEC(),fs.dbheight)
@@ -312,20 +314,30 @@ func(fs *FactoidState) LoadState() error  {
         fs.ProcessEndOfBlock()
         return nil
     }
+    
     // First run back from the head back to the genesis block, collecting hashes.
     for {
         if blk == nil {return fmt.Errorf("Block not found or not formated properly") }
-        hashes = append(hashes, blk.GetHash())
+        h := blk.GetHash()
+        for _,hash := range hashes {
+            if bytes.Compare(hash.Bytes(),h.Bytes()) == 0 {
+                return fmt.Errorf("Corrupted database; same hash found twice")
+            }
+        }
+        hashes = append(hashes,h)
         if bytes.Compare(blk.GetPrevKeyMR().Bytes(),fct.ZERO_HASH) == 0 { 
             break 
         }
+        
         tblk := fs.GetTransactionBlock(blk.GetPrevKeyMR())
         if tblk.GetHash().IsEqual(blk.GetPrevKeyMR()) != nil {
             return fmt.Errorf("Hash Failure!  Database must be rebuilt")
         }
+        
         blk = tblk
+        time.Sleep(time.Second/100)
     }
-
+    
     // Now run forward, and build our accounting
     for i := len(hashes)-1; i>=0; i-- {
         blk = fs.GetTransactionBlock(hashes[i])
@@ -338,19 +350,16 @@ func(fs *FactoidState) LoadState() error  {
             fct.Prtln("Failed to rebuild state.\n",err); 
             return err 
         }
-        if i%50 == 0 {
-            time.Sleep(10000)
-        }
+        time.Sleep(time.Second/100)
     }
-    fs.dbheight = blk.GetDBHeight()+1
-    fs.currentBlock = block.NewFBlock(fs.GetFactoshisPerEC(),fs.dbheight)
-    fs.currentBlock.SetPrevKeyMR(blk.GetHash().Bytes())
+    fs.dbheight = blk.GetDBHeight()
+    fs.ProcessEndOfBlock()
     return nil
 }
     
 // Returns an error message about what is wrong with the transaction if it is
 // invalid, otherwise you are good to go.
-func(fs *FactoidState) Validate(trans fct.ITransaction) error  {
+func(fs *FactoidState) Validate(index int, trans fct.ITransaction) error  {
     err := fs.currentBlock.ValidateTransaction(trans) 
     if err != nil { return err }
 

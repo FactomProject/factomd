@@ -22,11 +22,15 @@ type IHash interface {
 }
 
 type Hash struct {
-	IHash
 	hash [ADDRESS_LENGTH]byte
 }
 
 var _ IHash = (*Hash)(nil)
+
+
+func (Hash) GetHash() IHash {
+    return nil
+}
 
 func (w1 Hash) GetDBHash() IHash {
 	return Sha([]byte("Hash"))

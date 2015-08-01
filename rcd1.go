@@ -23,11 +23,27 @@ type IRCD_1 interface {
 // In this case, we are simply validating one address to ensure it signed
 // this transaction.
 type RCD_1 struct {
-	IRCD_1
 	publicKey [ADDRESS_LENGTH]byte
 }
 
 var _ IRCD = (*RCD_1)(nil)
+
+/*************************************
+ *       Stubs
+ *************************************/
+
+func (b RCD_1) GetHash() IHash {
+    return nil
+}
+
+/***************************************
+ *       Methods
+ ***************************************/
+
+func (b RCD_1   ) UnmarshalBinary(data []byte) error { 
+    _, err := b.UnmarshalBinaryData(data)
+    return err
+}
 
 func (b RCD_1) String() string {
 	txt, err := b.MarshalText()
@@ -45,7 +61,7 @@ func (w RCD_1) CheckSig(trans ITransaction, sigblk ISignatureBlock) bool {
 	}
 	signature := sigblk.GetSignature(0)
     if signature == nil { return false }
-    cryptosig := signature.GetSignature(0)
+    cryptosig := signature.GetSignature()
     if cryptosig == nil { return false }
     
 	return ed25519.VerifyCanonical(&w.publicKey, data, cryptosig) 

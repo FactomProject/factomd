@@ -31,7 +31,8 @@ type IFDatabase interface {
 	// Clear removes all the specified buckets from the database.
 	// This allows us to cleanly rebuild databases, or in the case
 	// of testing, ensure a particular database state.
-	Clear(bucketList [][]byte)
+	// 
+	// Clear(bucketList [][]byte)
 	
 	// Users must call Init() prior to using the database.
 	Init(a ...interface{})

@@ -9,7 +9,6 @@ import (
 )
 
 type FDatabase struct {
-	IFDatabase
 	backer IFDatabase          // We can have backing databases.  For now this will be nil
 	persist IFDatabase         // We do need LevelDB or Bolt.  It would go here.
 	doNotPersist  map[string] []byte  
@@ -17,6 +16,89 @@ type FDatabase struct {
 }
 
 var _ IFDatabase = (*FDatabase)(nil)
+
+/*************************************
+ *       Stubs
+ *************************************/
+
+func (FDatabase) Close() {}
+
+func (FDatabase) GetAddress() (factoid.IAddress, error) {
+    return nil,nil
+}
+
+func (FDatabase) GetHash() factoid.IHash {
+    return nil
+}
+
+func (FDatabase) GetDBHash() factoid.IHash {
+    return nil
+}
+
+func (FDatabase)NumberOfSignatures() int {
+    return 1
+}
+
+func (FDatabase) MarshalText() ([]byte, error) {
+    return nil,nil
+}
+
+func (FDatabase) MarshalBinary() ([]byte, error) {
+    return nil,nil
+}
+
+func (FDatabase) UnmarshalBinary([]byte) (error) {
+    return nil
+}
+
+func (FDatabase) UnmarshalBinaryData([]byte) ([]byte, error) {
+    return nil,nil
+}
+
+func (FDatabase) DeleteKey(bucket []byte, key[]byte) { }
+
+func (FDatabase) Get(bucket string, key factoid.IHash) factoid.IBlock {
+    return nil
+}
+
+func (FDatabase) GetKey(key IDBKey) factoid.IBlock {
+    return nil
+}
+
+func (FDatabase) GetKeysValues(bucket []byte) (keys [][]byte, values []factoid.IBlock) {
+    return nil,nil
+}
+
+func (FDatabase) IsEqual(factoid.IBlock) []factoid.IBlock {
+    return nil
+}
+
+func (FDatabase) GetRaw(bucket []byte, key []byte) factoid.IBlock {
+    return nil
+}
+
+func (FDatabase) String() string {
+    return ""
+}
+
+func (FDatabase) Init(a ...interface{}) { }
+
+func (FDatabase) Put(bucket string, key factoid.IHash, value factoid.IBlock) { }    
+
+func (FDatabase) PutKey(key IDBKey, value factoid.IBlock) { }
+
+func (FDatabase) PutRaw(bucket []byte, key []byte, value factoid.IBlock) { }
+
+
+/***************************************
+ *       Methods
+ ***************************************/
+
+func (FDatabase) GetNewInstance() factoid.IBlock {
+    return new(FDatabase)
+}
+    
+
 
 // Do not hold objects in this cache in memory.  They are too big, and there
 // is no interesting reason to keep them in memory.
@@ -81,10 +163,11 @@ type IDBKey interface {
 }
 
 type DBKey struct {
-    IDBKey
     bucket [factoid.ADDRESS_LENGTH]byte
     key    [factoid.KEY_LIMIT]byte
 }
+
+var _ IDBKey = (* DBKey)(nil)
 
 func (k DBKey) GetBucket() []byte{
     return k.bucket[:]

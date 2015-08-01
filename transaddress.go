@@ -27,12 +27,38 @@ type ITransAddress interface {
 }
 
 type TransAddress struct {
-	ITransAddress
 	amount  uint64
 	address IAddress
 }
 
 var _ ITransAddress = (*TransAddress)(nil)
+
+// Not useful on TransAddress objects
+func (t *TransAddress) GetHash() IHash {
+    return nil
+}
+
+func (t *TransAddress) GetDBHash() IHash {
+    return Sha([]byte ("TransAddress"))
+}
+
+func (t *TransAddress) GetNewInstance() IBlock {
+    return new(TransAddress)
+}
+
+func (t *TransAddress) UnmarshalBinary(data []byte) error {
+    _, err := t.UnmarshalBinaryData(data)
+    return err
+}
+
+func (t *TransAddress) MarshalText() ([]byte, error) {
+    return nil,nil
+}
+
+func (t *TransAddress) String() string {
+    txt,_ := t.MarshalText()
+    return (string(txt))
+}
 
 func (t *TransAddress) IsEqual(addr IBlock) []IBlock {
 	a, ok := addr.(ITransAddress)
