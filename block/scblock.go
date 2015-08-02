@@ -19,7 +19,7 @@ type IFBlock interface {
 	GetChainID() fct.IHash
 	// Validation functions
 	Validate() error
-    ValidateTransaction(fct.ITransaction) error
+    ValidateTransaction(int, fct.ITransaction) error
     // Marshal just the header for the block. This is to include the header
     // in the FullHash
     MarshalHeader() ([]byte, error)
@@ -419,10 +419,10 @@ func (b *FBlock) GetExchRate() uint64 {
 	return b.ExchRate
 }
 
-func (b FBlock) ValidateTransaction(trans fct.ITransaction) error {
+func (b FBlock) ValidateTransaction(index int, trans fct.ITransaction) error {
     // Calculate the fee due.
     {
-        err := trans.Validate()
+        err := trans.Validate(index)
         if err != nil {
             return err 
         }
@@ -453,7 +453,7 @@ func (b FBlock) ValidateTransaction(trans fct.ITransaction) error {
 
 func (b FBlock) Validate() error {
 	for i, trans := range b.transactions {
-        if err := b.ValidateTransaction(trans); err != nil {
+        if err := b.ValidateTransaction(i, trans); err != nil {
             return nil
         }
         if i == 0 {
@@ -471,7 +471,6 @@ func (b FBlock) Validate() error {
 
 	// Save what we got for our hashes
 	mr := b.BodyMR
-
 	// Recalculate the hashes
 	b.CalculateHashes()
 
@@ -507,7 +506,7 @@ func (b *FBlock) AddTransaction(trans fct.ITransaction) error {
 	// These tests check that the Transaction itself is valid.  If it
 	// is not internally valid, it never will be valid.
     b.BodyMR = nil
-    err := b.ValidateTransaction(trans)
+    err := b.ValidateTransaction(len(b.transactions),trans)
 	if err != nil {
 		return err
 	}

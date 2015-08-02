@@ -66,7 +66,7 @@ func(fs *Test_state) newTransaction(maxIn, maxOut int) fct.ITransaction {
     fs.inputAddresses = make([]fct.IAddress,0,20)
     for _,output := range fs.outputAddresses {
         bal := fs.GetBalance(output)
-        if bal > 1000000000 {
+        if bal > 100000 {
             fs.inputAddresses = append(fs.inputAddresses, output)
         }
         if max < bal {

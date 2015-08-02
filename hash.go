@@ -14,6 +14,7 @@ import (
 type IHash interface {
 	IBlock // Implements IBlock
 
+	Fixed() [32]byte                        // Returns the fixed array for use in maps
 	Bytes() []byte                          // Return the byte slice for this Hash
 	SetBytes([]byte) error                  // Set the bytes
 	IsSameAs(IHash) bool                    // Compare two Hashes
@@ -118,6 +119,10 @@ func (hash *Hash) SetBytes(newHash []byte) error {
 // Convert a hash into a string with hex encoding
 func (h Hash) String() string {
 	return hex.EncodeToString(h.hash[:])
+}
+
+func (h Hash) Fixed() [32]byte {
+    return h.hash
 }
 
 func (hash Hash) HexToHash(hexStr string) (h2 IHash, err error) {

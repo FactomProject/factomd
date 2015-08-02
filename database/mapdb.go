@@ -95,7 +95,9 @@ func (db *MapDB) GetRaw(bucket []byte, key []byte) (value fct.IBlock) {
 
 func (db *MapDB) PutRaw(bucket []byte, key []byte, value fct.IBlock) {
     dbkey := makeKey(bucket, key).(*DBKey)
-    db.cache[*dbkey] = value
+    if db.doNotCache[string(bucket)] == nil {
+        db.cache[*dbkey] = value
+    }
     if db.doNotPersist[string(bucket)] != nil { return }
     if db.GetPersist() != nil {
         db.GetPersist().PutRaw(bucket,key,value)

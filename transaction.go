@@ -60,7 +60,7 @@ type ITransaction interface {
     TotalECs() (uint64, error)
 	
 	// Validate does everything but check the signatures.
-	Validate() error
+	Validate(int) error
 	ValidateSignatures() error
 	
 	// Calculate the fee for a transaction, given the specified exchange rate.
@@ -249,7 +249,15 @@ func (t Transaction) TotalECs() (sum uint64, err error) {
 // Also note that we DO allow for transactions that do not have any outputs.
 // This provides for a provable "burn" of factoids, since all inputs would
 // go as "transaction fees" and those fees do not go to anyone.
-func (t Transaction) Validate() error {
+//
+// The index is the height of the transaction in a Factoid block.  When
+// the index == 0, then it means this is the coinbase transaction.  
+// The coinbase transaction is the "payout" transaction which cannot have
+// any inputs, unlike any other transaction which must have at least one
+// input.  If the height of the transaction is known, then the index can
+// be used to identify the transaction. Otherwise it simply must be > 0
+// to indicate it isn't a coinbase transaction.
+func (t Transaction) Validate(index int) error {
 
 	// Inputs, outputs, and ecoutputs, must be valid, 
     tinputs,  err := t.TotalInputs();    if err != nil { return err }
@@ -257,15 +265,23 @@ func (t Transaction) Validate() error {
     tecs,     err := t.TotalECs();       if err != nil { return err }
         
     // Inputs cover outputs and ecoutputs.
-    if tinputs < toutputs + tecs {
+    if index != 0 && tinputs < toutputs + tecs {
         return fmt.Errorf("The Inputs of the transaction do not cover the outputs")
 	}
 	// Cannot have zero inputs.  This means you cannot use this function
 	// to validate coinbase transactions, because they cannot have any
 	// inputs.
 	if len(t.inputs) == 0 {
-        return fmt.Errorf("Transactions (other than the coinbase) must have at least one input")
-	}
+        if index > 0 {
+            return fmt.Errorf("Transactions (other than the coinbase) must have at least one input")
+        }
+	} else {
+        if index == 0 {
+            PrtStk()
+            fmt.Println(index, t)
+            return fmt.Errorf("Coinbase transactions cannot have inputs.")
+        }
+    }
 	// Every input must have an RCD block
 	if len(t.inputs) != len(t.rcds) {
         return fmt.Errorf("All inputs must have a cooresponding RCD") 
