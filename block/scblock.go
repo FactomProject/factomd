@@ -96,7 +96,7 @@ func (b *FBlock) GetCoinbaseTimestamp() int64 {
     return int64(b.transactions[0].GetMilliTimestamp())
 }
 
-// Returns the LedgerKeyMR for this block.
+// Returns the Ledger Body MR for this block.
 func (b *FBlock) GetFullHash() fct.IHash {
     if(b.endOfPeriod[9]==0){
         b.EndOfPeriod(1)            // Sets the end of the first period here.
