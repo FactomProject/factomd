@@ -22,7 +22,7 @@ var genesisBlock IFBlock
 // This is close to .1 a penny per Entry Credit with a Factoid price of
 // 15 cents, and 2000 Factoids distributed to 10 addresses.
 //
-func GetGenesisBlock(ftime uint64, ExRate uint64, addressCnt int, Factoids uint64 ) IFBlock {
+func GetGenesisFBlock(ftime uint64, ExRate uint64, addressCnt int, Factoids uint64 ) IFBlock {
     if genesisBlock != nil { return genesisBlock }
     genesisBlock = NewFBlock(1000000, uint32(0))  
     

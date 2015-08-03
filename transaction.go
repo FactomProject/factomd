@@ -459,66 +459,62 @@ func (t *Transaction) UnmarshalBinaryData(data []byte) (newData []byte, err erro
     
     // To capture the panic, my code needs to be in a function.  So I'm
     // creating one here, and call it at the end of this function.
-    var doit = func(data []byte) (newData []byte, err error) {
-        v, data := DecodeVarInt(data)
-        if v != t.GetVersion() {
-            return nil, fmt.Errorf("Wrong version: %v",v)
-        }
-        hd, data := binary.BigEndian.Uint32(data[:]), data[4:]
-        ld, data := binary.BigEndian.Uint16(data[:]), data[2:]
-        t.milliTimestamp = (uint64(hd)<<16)+uint64(ld)
-        
-        numInputs  := int(data[0]); data = data[1:]
-        numOutputs := int(data[0]); data = data[1:]
-        numOutECs  := int(data[0]); data = data[1:]
-    
-        t.inputs = make([]IInAddress, numInputs, numInputs)
-        t.outputs = make([]IOutAddress, numOutputs, numOutputs)
-        t.outECs = make([]IOutECAddress, numOutECs, numOutECs)
-
-        for i, _ := range t.inputs {
-            t.inputs[i] = new(InAddress)
-            data, err = t.inputs[i].UnmarshalBinaryData(data)
-            if err != nil || t.inputs[i] == nil {
-                return nil, err
-            }
-        }   
-        for i, _ := range t.outputs {
-            t.outputs[i] = new(OutAddress)
-            data, err = t.outputs[i].UnmarshalBinaryData(data)
-            if err != nil {
-                return nil, err
-            }
-        }
-        for i, _ := range t.outECs {
-            t.outECs[i] = new(OutECAddress)
-            data, err = t.outECs[i].UnmarshalBinaryData(data)
-            if err != nil {
-                return nil, err
-            }
-        }
-
-        t.rcds = make([]IRCD, len(t.inputs))
-        t.sigBlocks = make([]ISignatureBlock, len(t.inputs))
-        
-        for i := 0; i < len(t.inputs); i++ {
-            t.rcds[i] = CreateRCD(data)
-            data, err = t.rcds[i].UnmarshalBinaryData(data)
-            if err != nil {
-                return nil, err
-            }
-
-            t.sigBlocks[i] = new(SignatureBlock)
-            data, err = t.sigBlocks[i].UnmarshalBinaryData(data)
-            if err != nil {
-                return nil, err
-            }
-        }
-
-        return data, nil
+    v, data := DecodeVarInt(data)
+    if v != t.GetVersion() {
+        return nil, fmt.Errorf("Wrong Transaction Version encountered. Expected %v and found %v",t.GetVersion(),v)
     }
+    hd, data := binary.BigEndian.Uint32(data[:]), data[4:]
+    ld, data := binary.BigEndian.Uint16(data[:]), data[2:]
+    t.milliTimestamp = (uint64(hd)<<16)+uint64(ld)
     
-    return doit(data)
+    numInputs  := int(data[0]); data = data[1:]
+    numOutputs := int(data[0]); data = data[1:]
+    numOutECs  := int(data[0]); data = data[1:]
+
+    t.inputs = make([]IInAddress, numInputs, numInputs)
+    t.outputs = make([]IOutAddress, numOutputs, numOutputs)
+    t.outECs = make([]IOutECAddress, numOutECs, numOutECs)
+
+    for i, _ := range t.inputs {
+        t.inputs[i] = new(InAddress)
+        data, err = t.inputs[i].UnmarshalBinaryData(data)
+        if err != nil || t.inputs[i] == nil {
+            return nil, err
+        }
+    }   
+    for i, _ := range t.outputs {
+        t.outputs[i] = new(OutAddress)
+        data, err = t.outputs[i].UnmarshalBinaryData(data)
+        if err != nil {
+            return nil, err
+        }
+    }
+    for i, _ := range t.outECs {
+        t.outECs[i] = new(OutECAddress)
+        data, err = t.outECs[i].UnmarshalBinaryData(data)
+        if err != nil {
+            return nil, err
+        }
+    }
+
+    t.rcds = make([]IRCD, len(t.inputs))
+    t.sigBlocks = make([]ISignatureBlock, len(t.inputs))
+    
+    for i := 0; i < len(t.inputs); i++ {
+        t.rcds[i] = CreateRCD(data)
+        data, err = t.rcds[i].UnmarshalBinaryData(data)
+        if err != nil {
+            return nil, err
+        }
+
+        t.sigBlocks[i] = new(SignatureBlock)
+        data, err = t.sigBlocks[i].UnmarshalBinaryData(data)
+        if err != nil {
+            return nil, err
+        }
+    }
+
+    return data, nil
 }
 
 func (t *Transaction) UnmarshalBinary(data []byte) (err error) {

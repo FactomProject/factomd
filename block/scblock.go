@@ -296,8 +296,7 @@ func (b *FBlock) UnmarshalBinaryData(data []byte) ( newdata []byte, err error) {
             trans := new(fct.Transaction)
             data,err = trans.UnmarshalBinaryData(data)
             if err != nil {
-                //return nil, fmt.Errorf("Failed to unmarshal a transaction in block.\n%s",b.String())
-                return nil, fmt.Errorf("Failed to unmarshal a transaction in block.\n")       //TODO: quick fix. please revisit...     
+                return nil, fmt.Errorf("Failed to unmarshal a transaction in block.\n"+err.Error()) 
             }
             b.transactions[i] = trans
         }
