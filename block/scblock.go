@@ -71,7 +71,10 @@ type FBlock struct {
 	//  ChainID         IHash     // ChainID.  But since this is a constant, we need not actually use space to store it.
 	BodyMR              fct.IHash // Merkle root of the Factoid transactions which accompany this block.
 	PrevKeyMR           fct.IHash // Key Merkle root of previous block.
-	PrevFullHash        fct.IHash // Sha3 of the previous Factoid Block
+	PrevFullHash        fct.IHash // Also known as the PrevLedgerKeyMR.  This is a keyMR style structure, 
+					//but instead of using the bodyMR, it uses a Merkle root with the leaves only being
+					//hashes of the transaction header, inputs, and outputs.  The RCDs and Signatures are
+					//excluded from the FullHash/PrevLedgerKeyMR
 	ExchRate            uint64    // Factoshis per Entry Credit
 	DBHeight            uint32    // Directory Block height
     // Header Expansion Size  varint
@@ -93,7 +96,7 @@ func (b *FBlock) GetCoinbaseTimestamp() int64 {
     return int64(b.transactions[0].GetMilliTimestamp())
 }
 
-// Returns the Full hash for this block.
+// Returns the Ledger Body MR for this block.
 func (b *FBlock) GetFullHash() fct.IHash {
     if(b.endOfPeriod[9]==0){
         b.EndOfPeriod(1)            // Sets the end of the first period here.
