@@ -34,8 +34,11 @@ func newFakeAddr() sc.IAddress {
 func Test_create_block(test *testing.T) {
     w := new(wallet.SCWallet)          // make me a wallet
     w.Init()
+    
     scb := block.NewFBlock(1000, 0)
-	
+	cb := w.CreateTransaction(uint64(time.Now().UnixNano()/1000000))
+    scb.AddCoinbase(cb)
+    
     for i:=0;i<3;i++ {
         h0,err := w.GenerateFctAddress([]byte("test "+cv.Itoa(i)+"-0"),1,1)
         if err != nil { sc.Prtln("Error 1"); test.Fail() }

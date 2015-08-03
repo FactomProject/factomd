@@ -19,18 +19,24 @@ import (
  * how to apply the signatures to the addresses in the RCD.
  **************************************/
 type ISignatureBlock interface {
-	IBlock
-	GetSignatures() []ISignature
+    IBlock
+    GetSignatures() []ISignature
 	AddSignature(sig ISignature)
 	GetSignature(int) ISignature
 }
 
 type SignatureBlock struct {
-	ISignatureBlock `json:"-"`
-	signatures      []ISignature
+	signatures []ISignature
 }
 
 var _ ISignatureBlock = (*SignatureBlock)(nil)
+var _ IBlock          = (*SignatureBlock)(nil)
+func (b SignatureBlock) GetHash() IHash { return nil }
+
+func (b SignatureBlock) UnmarshalBinary(data []byte) error { 
+    _, err := b.UnmarshalBinaryData(data)
+    return err
+}
 
 func (b SignatureBlock) String() string {
 	txt, err := b.CustomMarshalText()
@@ -45,32 +51,31 @@ func (s *SignatureBlock) IsEqual(signatureBlock IBlock) []IBlock {
 	sb, ok := signatureBlock.(ISignatureBlock)
 
 	if !ok {
-		r := make([]IBlock, 0, 5)
-		return append(r, s)
+        r := make([]IBlock,0,5)
+        return append(r,s)
 	}
 
 	sigs1 := s.GetSignatures()
 	sigs2 := sb.GetSignatures()
 	if len(sigs1) != len(sigs2) {
-		r := make([]IBlock, 0, 5)
-		return append(r, s)
+        r := make([]IBlock,0,5)
+        return append(r,s)
 	}
 	for i, sig := range sigs1 {
-		r := sig.IsEqual(sigs2[i])
-		if r != nil {
-			return append(r, s)
+		r := sig.IsEqual(sigs2[i]) 
+        if r != nil {
+			return append(r,s)
 		}
 	}
 
 	return nil
 }
 
-
-func (s *SignatureBlock) AddSignature(sig ISignature) {    
-    if (len(s.signatures) == 0 ){
-        s.signatures = append(s.signatures, sig)
-    }else{
+func (s *SignatureBlock) AddSignature(sig ISignature) {
+	if len(s.signatures)>0 {
         s.signatures[0]=sig
+    }else{
+        s.signatures = append(s.signatures, sig)
     }
 }
 
@@ -91,17 +96,17 @@ func (s SignatureBlock) GetNewInstance() IBlock {
 
 func (s SignatureBlock) GetSignatures() []ISignature {
 	if s.signatures == nil {
-		s.signatures = make([]ISignature, 0, 1)
+		s.signatures = make([]ISignature, 1, 1)
+        s.signatures[0] = new(Signature)
 	}
 	return s.signatures
 }
 
 func (a SignatureBlock) MarshalBinary() ([]byte, error) {
 	var out bytes.Buffer
-    if len(a.signatures) == 0 {
-        a.AddSignature(new(Signature))
-    }
+
 	for _, sig := range a.GetSignatures() {
+
 		data, err := sig.MarshalBinary()
 		if err != nil {
 			return nil, fmt.Errorf("Signature failed to Marshal in RCD_1")
@@ -132,15 +137,15 @@ func (s SignatureBlock) CustomMarshalText() ([]byte, error) {
 }
 
 func (s *SignatureBlock) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+
 	s.signatures = make([]ISignature, 1)
-	for i := uint16(0); i < 1; i++ {
-		s.signatures[i] = new(Signature)
-		data, err = s.signatures[i].UnmarshalBinaryData(data)
-		if err != nil {
-			fmt.Println("error")
-			return nil, fmt.Errorf("Failure to unmarshal Signature")
-		}
-	}
+    s.signatures[0] = new(Signature)
+    data, err = s.signatures[0].UnmarshalBinaryData(data)
+    if err != nil {
+        fmt.Println("error")
+        return nil, fmt.Errorf("Failure to unmarshal Signature")
+    }
+	
 
 	return data, nil
 }

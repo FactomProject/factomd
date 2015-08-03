@@ -23,13 +23,44 @@ import (
 // multisig.  It just works.
 
 type RCD_2 struct {
-	IRCD
 	m           int        // Number signatures required
 	n           int        // Total sigatures possible
 	n_addresses []IAddress // n addresses
 }
 
 var _ IRCD = (*RCD_2)(nil)
+
+/*************************************
+ *       Stubs
+ *************************************/
+
+
+func (b RCD_2) GetAddress() (IAddress, error) {
+    return nil,nil
+}
+
+func (b RCD_2) GetHash() IHash {
+    return nil
+}
+
+func (b RCD_2)NumberOfSignatures() int {
+    return 1
+}
+
+
+/***************************************
+ *       Methods
+ ***************************************/
+
+func (b RCD_2) UnmarshalBinary(data []byte) error { 
+    _, err := b.UnmarshalBinaryData(data)
+    return err
+}
+
+
+func (b RCD_2)CheckSig(trans ITransaction, sigblk ISignatureBlock) bool {
+    return false
+}
 
 func (b RCD_2) String() string {
 	txt, err := b.CustomMarshalText()

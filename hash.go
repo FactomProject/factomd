@@ -14,6 +14,7 @@ import (
 type IHash interface {
 	IBlock // Implements IBlock
 
+	Fixed() [32]byte                        // Returns the fixed array for use in maps
 	Bytes() []byte                          // Return the byte slice for this Hash
 	SetBytes([]byte) error                  // Set the bytes
 	IsSameAs(IHash) bool                    // Compare two Hashes
@@ -22,24 +23,13 @@ type IHash interface {
 }
 
 type Hash struct {
-	IHash `json:"-"`
-	hash  [ADDRESS_LENGTH]byte
-}
-
-func (h *Hash) MarshalText() ([]byte, error) {
-	return []byte(hex.EncodeToString(h.hash[:])), nil
-}
-
-func (h *Hash) UnmarshalText(b []byte) error {
-	p, err := hex.DecodeString(string(b))
-	if err != nil {
-		return err
-	}
-	copy(h.hash[:], p)
-	return nil
+	hash [ADDRESS_LENGTH]byte
 }
 
 var _ IHash = (*Hash)(nil)
+func (Hash) GetHash() IHash {
+    return nil
+}
 
 func (w1 Hash) GetDBHash() IHash {
 	return Sha([]byte("Hash"))
@@ -52,8 +42,8 @@ func (w1 Hash) GetNewInstance() IBlock {
 func (t Hash) IsEqual(hash IBlock) []IBlock {
 	h, ok := hash.(IHash)
 	if !ok || !h.IsSameAs(&t) {
-		r := make([]IBlock, 0, 5)
-		return append(r, &t)
+		r := make([]IBlock,0,5)
+        return append(r,&t)
 	}
 
 	return nil
@@ -129,6 +119,10 @@ func (h Hash) String() string {
 	return hex.EncodeToString(h.hash[:])
 }
 
+func (h Hash) Fixed() [32]byte {
+    return h.hash
+}
+
 func (hash Hash) HexToHash(hexStr string) (h2 IHash, err error) {
 	h := new(Hash)
 	byt, err := hex.DecodeString(hexStr)
@@ -161,24 +155,24 @@ func (a Hash) CustomMarshalText() (text []byte, err error) {
  **********************/
 
 // Create a Sha256 Hash from a byte array
-func Sha(p []byte) IHash {
-	h := new(Hash)
-	b := sha256.Sum256(p)
-	h.SetBytes(b[:])
-	return h
+func Sha(p []byte) (IHash) {
+    h := new(Hash)
+    b := sha256.Sum256(p)
+    h.SetBytes(b[:])
+    return h
 }
 
 // Shad Double Sha256 Hash; sha256(sha256(data))
-func Shad(data []byte) IHash {
-	h1 := sha256.Sum256(data)
-	h2 := sha256.Sum256(h1[:])
-	h := new(Hash)
-	h.SetBytes(h2[:])
-	return h
+func Shad(data []byte) (IHash){
+    h1 := sha256.Sum256(data)
+    h2 := sha256.Sum256(h1[:])
+    h := new(Hash)
+    h.SetBytes(h2[:])
+    return h
 }
 
 func NewHash(b []byte) IHash {
-	h := new(Hash)
-	h.SetBytes(b)
-	return h
+    h := new(Hash)
+    h.SetBytes(b)
+    return h
 }

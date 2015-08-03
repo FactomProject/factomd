@@ -41,8 +41,6 @@ type ISCWallet interface {
 	GenerateECAddress(name []byte) (fct.IAddress, error)
 	// Get details for an address
 	GetAddressDetailsAddr(addr []byte) IWalletEntry
-	// Get a list of names for addresses.  Names are easier for people to use.
-	GetAddressList() (names [][]byte, addresses []fct.IAddress)
     // Returns the Address hash (what we use for inputs) given the public key
     GetAddressHash(fct.IAddress) (fct.IAddress, error) 
         
@@ -64,7 +62,7 @@ type ISCWallet interface {
 	AddECOutput(fct.ITransaction, fct.IAddress, uint64) error
 	// Validate a transaction.  Just checks that the inputs and outputs are
 	// there and properly constructed.
-	Validate(fct.ITransaction) error
+	Validate(int, fct.ITransaction) error
 	// Checks that the signatures all validate.
 	ValidateSignatures(fct.ITransaction) error
 	// Sign the inputs that have public keys to which we have the private
@@ -83,13 +81,29 @@ var factoshisPerEC uint64 = 100000
 var oneSCW SCWallet
 
 type SCWallet struct {
-	ISCWallet
 	db            database.MapDB
 	isInitialized bool //defaults to 0 and false
 	nextSeed      []byte
 }
 
 var _ ISCWallet = (*SCWallet)(nil)
+
+/*************************************
+ *       Stubs
+ *************************************/
+
+
+
+func (SCWallet) GetHash() fct.IHash {
+    return nil
+}
+
+
+
+/***************************************
+ *       Methods
+ ***************************************/
+
 
 
 func (w *SCWallet) GetDB() database.IFDatabase {
@@ -121,7 +135,7 @@ func (w *SCWallet) SignInputs(trans fct.ITransaction) (bool, error) {
 				copy(pri[:], we.private[0])
 				bsig := ed25519.Sign(&pri, data)
 				sig := new(fct.Signature)
-				sig.SetSignature(0, bsig[:])
+				sig.SetSignature(bsig[:])
 				sigblk := new(fct.SignatureBlock)
 				sigblk.AddSignature(sig)
 				trans.SetSignatureBlock(i, sigblk)
@@ -355,8 +369,8 @@ func (w *SCWallet) AddECOutput(trans fct.ITransaction, address fct.IAddress, amo
 	return nil
 }
 
-func (w *SCWallet) Validate(trans fct.ITransaction) error {
-	err := trans.Validate()
+func (w *SCWallet) Validate(index int, trans fct.ITransaction) error {
+	err := trans.Validate(index)
 	return err
 }
 

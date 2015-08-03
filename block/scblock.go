@@ -15,52 +15,51 @@ import (
 
 type IFBlock interface {
 	fct.IBlock
-	fct.Printable
 	// Get the ChainID. This is a constant for all Factoids.
 	GetChainID() fct.IHash
 	// Validation functions
 	Validate() error
-	ValidateTransaction(fct.ITransaction) error
-	// Marshal just the header for the block. This is to include the header
-	// in the FullHash
-	MarshalHeader() ([]byte, error)
-	// Marshal just the transactions.  This is because we need the length
+    ValidateTransaction(int, fct.ITransaction) error
+    // Marshal just the header for the block. This is to include the header
+    // in the FullHash
+    MarshalHeader() ([]byte, error)
+    // Marshal just the transactions.  This is because we need the length
 	MarshalTrans() ([]byte, error)
-	// Add a coinbase transaction.  This transaction has no inputs
-	AddCoinbase(fct.ITransaction) error
-	// Add a proper transaction.  Transactions are validated before
-	// being added to the block.
+    // Add a coinbase transaction.  This transaction has no inputs
+    AddCoinbase(fct.ITransaction) error
+    // Add a proper transaction.  Transactions are validated before
+    // being added to the block.
 	AddTransaction(fct.ITransaction) error
-	// Calculate all the MR and serial hashes for this block.  Done just
-	// prior to being persisted.
+    // Calculate all the MR and serial hashes for this block.  Done just
+    // prior to being persisted.
 	CalculateHashes()
-	// Hash accessors
-	GetBodyMR() fct.IHash
-	GetPrevKeyMR() fct.IHash
-	SetPrevKeyMR([]byte)
-	GetFullHash() fct.IHash
-	GetPrevFullHash() fct.IHash
-	SetPrevFullHash([]byte)
-	// Accessors for the Directory Block Height
-	SetDBHeight(uint32)
+    // Hash accessors
+    GetBodyMR() fct.IHash
+    GetPrevKeyMR() fct.IHash
+    SetPrevKeyMR([]byte) 
+    GetFullHash() fct.IHash
+    GetPrevFullHash() fct.IHash
+    SetPrevFullHash([]byte) 
+    // Accessors for the Directory Block Height
+    SetDBHeight(uint32)
 	GetDBHeight() uint32
 	// Accessors for the Exchange rate
 	SetExchRate(uint64)
 	GetExchRate() uint64
-	// Accessors for the transactions
-	GetTransactions() []fct.ITransaction
-
-	// Mark an end of Minute.  If there are multiple calls with the same minute value
-	// the later one simply overwrites the previous one.  Since this is an informational
-	// data point, we do not enforce much, other than order (the end of period one can't
-	// come before period 2.  We just adjust the periods accordingly.
-	EndOfPeriod(min int)
-
-	// Returns the milliTimestamp of the coinbase transaction.  This is used to validate
-	// the timestamps of transactions included in the block. Transactions prior to the
-	// TRANSACTION_PRIOR_LIMIT or after the TRANSACTION_POST_LIMIT are considered invalid
-	// for this block. -1 is returned if no coinbase transaction is found.
-	GetCoinbaseTimestamp() int64
+    // Accessors for the transactions
+    GetTransactions() []fct.ITransaction
+    
+    // Mark an end of Minute.  If there are multiple calls with the same minute value
+    // the later one simply overwrites the previous one.  Since this is an informational 
+    // data point, we do not enforce much, other than order (the end of period one can't
+    // come before period 2.  We just adjust the periods accordingly.
+    EndOfPeriod(min int)
+    
+    // Returns the milliTimestamp of the coinbase transaction.  This is used to validate
+    // the timestamps of transactions included in the block. Transactions prior to the
+    // TRANSACTION_PRIOR_LIMIT or after the TRANSACTION_POST_LIMIT are considered invalid
+    // for this block. -1 is returned if no coinbase transaction is found.
+    GetCoinbaseTimestamp() int64
 }
 
 // FBlockHeader defines information about a block and is used in the bitcoin
@@ -69,7 +68,6 @@ type IFBlock interface {
 // https://github.com/FactomProject/FactomDocs/blob/master/factomDataStructureDetails.md#factoid-block
 //
 type FBlock struct {
-	IFBlock `json:"-"`
 	//  ChainID         IHash     // ChainID.  But since this is a constant, we need not actually use space to store it.
 	BodyMR              fct.IHash // Merkle root of the Factoid transactions which accompany this block.
 	PrevKeyMR           fct.IHash // Key Merkle root of previous block.
@@ -91,10 +89,8 @@ var _ IFBlock = (*FBlock)(nil)
 
 // Return the timestamp of the coinbase transaction
 func (b *FBlock) GetCoinbaseTimestamp() int64 {
-	if len(b.transactions) == 0 {
-		return -1
-	}
-	return int64(b.transactions[0].GetMilliTimestamp())
+    if len(b.transactions)==0 {return -1 }
+    return int64(b.transactions[0].GetMilliTimestamp())
 }
 
 // Returns the Full hash for this block.
@@ -122,14 +118,13 @@ func (b *FBlock) GetFullHash() fct.IHash {
 }
 
 func (b *FBlock) EndOfPeriod(period int) {
-	period = period - 1 // Make the period zero based.
-	if period < 0 || period >= 10 {
-		return
-	} // Ignore out of range period.
-	for i := period; i < 10; i++ { // Set the period and all following to the height
-		b.endOfPeriod[i] = len(b.transactions)
-	}
+    period = period-1                            // Make the period zero based.  
+    if period < 0 || period >= 10 { return }     // Ignore out of range period.
+    for i := period; i < 10; i++ {               // Set the period and all following to the height
+        b.endOfPeriod[i] = len(b.transactions)
+    }
 }
+
 
 func (b *FBlock) GetTransactions() []fct.ITransaction {
     return b.transactions
@@ -179,149 +174,143 @@ func (b *FBlock) MarshalTrans() ([]byte, error) {
 	return out.Bytes(), nil
 }
 
-func (b *FBlock) MarshalHeader() ([]byte, error) {
-	var out bytes.Buffer
+func (b *FBlock) MarshalHeader() ([]byte,error) {
+    var out bytes.Buffer
+    
+    if(b.endOfPeriod[9]==0){
+        b.EndOfPeriod(1)           // Sets the end of the first period here.
+    }                               // This is what unmarshalling will do.
+    
+    out.Write(fct.FACTOID_CHAINID)
+    
+    if b.BodyMR == nil {b.BodyMR = new(fct.Hash)}
+    data, err := b.GetHash().MarshalBinary()
+    if err != nil {
+        return nil, err
+    }
+    out.Write(data)
+    
+    if b.PrevKeyMR == nil {b.PrevKeyMR = new(fct.Hash)}
+    data, err = b.PrevKeyMR.MarshalBinary()
+    if err != nil {
+        return nil, err
+    }
+    out.Write(data)
+    
+    if b.PrevFullHash == nil {b.PrevFullHash = new(fct.Hash)}
+    data, err = b.PrevFullHash.MarshalBinary()
+    if err != nil {
+        return nil, err
+    }
+    out.Write(data)
+    
+    binary.Write(&out, binary.BigEndian, uint64(b.ExchRate))
+    binary.Write(&out, binary.BigEndian, uint32(b.DBHeight))
+    
+    fct.EncodeVarInt(&out,0)        // At this point in time, nothing in the Expansion Header
+    // so we just write out a zero.
+    
+    binary.Write(&out, binary.BigEndian, uint32(len(b.transactions)))
+    
+    transdata, err := b.MarshalTrans()                           // first get trans data
+    if err != nil {return nil, err }
+    
+    binary.Write(&out, binary.BigEndian, uint32(len(transdata))) // write out its length
 
-	if b.endOfPeriod[9] == 0 {
-		b.EndOfPeriod(1) // Sets the end of the first period here.
-	} // This is what unmarshalling will do.
-
-	out.Write(fct.FACTOID_CHAINID)
-
-	if b.BodyMR == nil {
-		b.BodyMR = new(fct.Hash)
-	}
-	data, err := b.GetHash().MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
-	out.Write(data)
-
-	if b.PrevKeyMR == nil {
-		b.PrevKeyMR = new(fct.Hash)
-	}
-	data, err = b.PrevKeyMR.MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
-	out.Write(data)
-
-	if b.PrevFullHash == nil {
-		b.PrevFullHash = new(fct.Hash)
-	}
-	data, err = b.PrevFullHash.MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
-	out.Write(data)
-
-	binary.Write(&out, binary.BigEndian, uint64(b.ExchRate))
-	binary.Write(&out, binary.BigEndian, uint32(b.DBHeight))
-
-	fct.EncodeVarInt(&out, 0) // At this point in time, nothing in the Expansion Header
-	// so we just write out a zero.
-
-	binary.Write(&out, binary.BigEndian, uint32(len(b.transactions)))
-
-	transdata, err := b.MarshalTrans() // first get trans data
-	if err != nil {
-		return nil, err
-	}
-
-	binary.Write(&out, binary.BigEndian, uint32(len(transdata))) // write out its length
-
-	return out.Bytes(), nil
+    return out.Bytes(),nil
 }
 
 // Write out the block
 func (b *FBlock) MarshalBinary() ([]byte, error) {
 	var out bytes.Buffer
+	
 	data, err := b.MarshalHeader()
-	if err != nil {
-		return nil, err
-	}
-	out.Write(data)
-
-	transdata, err := b.MarshalTrans() // first get trans data
-	if err != nil {
-		return nil, err
-	}
-	out.Write(transdata) // write out trans data
+    if err != nil { return nil, err }
+    out.Write(data)
+    
+    transdata, err := b.MarshalTrans()                           // first get trans data
+    if err != nil {return nil, err }
+    out.Write(transdata)                                         // write out trans data
 
 	return out.Bytes(), nil
 }
 
 // UnmarshalBinary assumes that the Binary is all good.  We do error
 // out if there isn't enough data, or the transaction is too large.
-func (b *FBlock) UnmarshalBinaryData(data []byte) (newdata []byte, err error) {
-
-	// To catch memory errors, I capture the panic and turn it into
-	// a reported error.
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling transaction: %v", r)
-		}
-	}()
-
-    if bytes.Compare(data[:fct.ADDRESS_LENGTH], fct.FACTOID_CHAINID[:]) != 0 {
-        return nil, fmt.Errorf("Block does not begin with the Factoid ChainID")
-    }
-    data = data[32:]
+func (b *FBlock) UnmarshalBinaryData(data []byte) ( newdata []byte, err error) {
     
-    b.BodyMR = new(fct.Hash)
-    data, err = b.BodyMR.UnmarshalBinaryData(data)
-    if err != nil {
-        return nil, err
-    }
-    
-    b.PrevKeyMR = new(fct.Hash)
-    data, err = b.PrevKeyMR.UnmarshalBinaryData(data)
-    if err != nil {
-        return nil, err
-    }
-    
-    b.PrevFullHash = new(fct.Hash)
-    data, err = b.PrevFullHash.UnmarshalBinaryData(data)
-    if err != nil {
-        return nil, err
-    }
-    
-    b.ExchRate, data = binary.BigEndian.Uint64(data[0:8]), data[8:]
-    b.DBHeight, data = binary.BigEndian.Uint32(data[0:4]), data[4:]
-
-    skip, data := fct.DecodeVarInt(data) // Skip the Expansion Header, if any, since
-    data = data[skip:]                   // we don't know what to do with it.
-
-    cnt, data := binary.BigEndian.Uint32(data[0:4]), data[4:]
-
-    data = data[4:] // Just skip the size... We don't really need it.
-    
-    b.transactions = make([]fct.ITransaction, cnt, cnt)
-    var periodMark = 1
-    for i := uint32(0); i < cnt; i++ {
-        
-        for data[0] == fct.MARKER {
-            b.EndOfPeriod(periodMark)
-            data = data[1:]
-            periodMark++
+    // To catch memory errors, I capture the panic and turn it into
+    // a reported error.
+    defer func() {
+        if r := recover(); r != nil {
+            err = fmt.Errorf("Error unmarshalling transaction: %v",r)
         }
+    }()
+    
+    // To capture the panic, my code needs to be in a function.  So I'm
+    // creating one here, and call it at the end of this function.
+    var doit = func(data []byte) ( []byte,  error) {
+        if bytes.Compare(data[:fct.ADDRESS_LENGTH], fct.FACTOID_CHAINID[:]) != 0 {
+            return nil, fmt.Errorf("Block does not begin with the Factoid ChainID")
+        }
+        data = data[32:]
         
-        trans := new(fct.Transaction)
-        data,err = trans.UnmarshalBinaryData(data)
+        b.BodyMR = new(fct.Hash)
+        data, err := b.BodyMR.UnmarshalBinaryData(data)
         if err != nil {
-            //return nil, fmt.Errorf("Failed to unmarshal a transaction in block.\n%s",b.String())
-            return nil, fmt.Errorf("Failed to unmarshal a transaction in block.\n")       //TODO: quick fix. please revisit...     
+            return nil, err
         }
-        b.transactions[i] = trans
+
+        b.PrevKeyMR = new(fct.Hash)
+        data, err = b.PrevKeyMR.UnmarshalBinaryData(data)
+        if err != nil {
+            return nil, err
+        }
+        
+        b.PrevFullHash = new(fct.Hash)
+        data, err = b.PrevFullHash.UnmarshalBinaryData(data)
+        if err != nil {
+            return nil, err
+        }
+
+        b.ExchRate, data = binary.BigEndian.Uint64(data[0:8]), data[8:]
+        b.DBHeight, data = binary.BigEndian.Uint32(data[0:4]), data[4:]
+
+        skip, data := fct.DecodeVarInt(data) // Skip the Expansion Header, if any, since
+        data = data[skip:]                   // we don't know what to do with it.
+
+        cnt, data := binary.BigEndian.Uint32(data[0:4]), data[4:]
+
+        data = data[4:] // Just skip the size... We don't really need it.
+
+        b.transactions = make([]fct.ITransaction, cnt, cnt)
+        var periodMark = 1
+        for i := uint32(0); i < cnt; i++ {
+            
+            for data[0] == fct.MARKER {
+                b.EndOfPeriod(periodMark)
+                data = data[1:]
+                periodMark++
+            }
+            
+            trans := new(fct.Transaction)
+            data,err = trans.UnmarshalBinaryData(data)
+            if err != nil {
+                //return nil, fmt.Errorf("Failed to unmarshal a transaction in block.\n%s",b.String())
+                return nil, fmt.Errorf("Failed to unmarshal a transaction in block.\n")       //TODO: quick fix. please revisit...     
+            }
+            b.transactions[i] = trans
+        }
+        
+        for periodMark <= len(b.endOfPeriod) {
+            b.EndOfPeriod(periodMark)
+            periodMark++
+        }    
+        
+        return data, nil
     }
-    
-    for periodMark <= len(b.endOfPeriod) {
-        b.EndOfPeriod(periodMark)
-        periodMark++
-    }    
-    
-    return data, nil
-    
+	
+	return doit(data)
 }
 
 func (b *FBlock) UnmarshalBinary(data []byte) (err error) {
@@ -430,10 +419,10 @@ func (b *FBlock) GetExchRate() uint64 {
 	return b.ExchRate
 }
 
-func (b FBlock) ValidateTransaction(trans fct.ITransaction) error {
+func (b FBlock) ValidateTransaction(index int, trans fct.ITransaction) error {
     // Calculate the fee due.
     {
-        err := trans.Validate()
+        err := trans.Validate(index)
         if err != nil {
             return err 
         }
@@ -464,7 +453,7 @@ func (b FBlock) ValidateTransaction(trans fct.ITransaction) error {
 
 func (b FBlock) Validate() error {
 	for i, trans := range b.transactions {
-        if err := b.ValidateTransaction(trans); err != nil {
+        if err := b.ValidateTransaction(i, trans); err != nil {
             return nil
         }
         if i == 0 {
@@ -517,7 +506,7 @@ func (b *FBlock) AddTransaction(trans fct.ITransaction) error {
 	// These tests check that the Transaction itself is valid.  If it
 	// is not internally valid, it never will be valid.
     b.BodyMR = nil
-    err := b.ValidateTransaction(trans)
+    err := b.ValidateTransaction(len(b.transactions),trans)
 	if err != nil {
 		return err
 	}
@@ -529,13 +518,13 @@ func (b *FBlock) AddTransaction(trans fct.ITransaction) error {
 }
 
 func (b FBlock) String() string {
-    txt,err := b.MarshalText()
+    txt,err := b.CustomMarshalText()
     if err != nil {return err.Error() }
     return string(txt)
 }
 
 // Marshal to text.  Largely a debugging thing.
-func (b FBlock) MarshalText() (text []byte, err error) {
+func (b FBlock) CustomMarshalText() (text []byte, err error) {
 	var out bytes.Buffer
 
 	out.WriteString("Transaction Block\n")
@@ -574,26 +563,13 @@ func (b FBlock) MarshalText() (text []byte, err error) {
             markPeriod++
         }
         
-        txt := trans.String()
-		out.WriteString(txt)
+        txt, err := trans.CustomMarshalText()
+		if err != nil {
+			return out.Bytes(), err
+		}
+		out.Write(txt)
 	}
 	return out.Bytes(), nil
-}
-
-func (e *FBlock) JSONByte() ([]byte, error) {
-	return fct.EncodeJSON(e)
-}
-
-func (e *FBlock) JSONString() (string, error) {
-	return fct.EncodeJSONString(e)
-}
-
-func (e *FBlock) JSONBuffer(b *bytes.Buffer) error {
-	return fct.EncodeJSONToBuffer(e, b)
-}
-
-func (e *FBlock) Spew() string {
-	return fct.Spew(e)
 }
 
 /**************************
@@ -602,10 +578,10 @@ func (e *FBlock) Spew() string {
 
 func NewFBlock(ExchRate uint64, DBHeight uint32) IFBlock {
 	scb := new(FBlock)
-	scb.BodyMR = new(fct.Hash)
-	scb.PrevKeyMR = new(fct.Hash)
-	scb.PrevFullHash = new(fct.Hash)
-	scb.ExchRate = ExchRate
-	scb.DBHeight = DBHeight
+    scb.BodyMR = new (fct.Hash)
+    scb.PrevKeyMR  = new (fct.Hash)
+    scb.PrevFullHash  = new (fct.Hash)
+  	scb.ExchRate   = ExchRate
+	scb.DBHeight   = DBHeight
 	return scb
 }
