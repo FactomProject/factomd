@@ -15,6 +15,7 @@ type FactoidConfig struct {
 		Port             int
 		DataFile         string
 		RefreshInSeconds string
+		BoltDBPath	     string		
 	}
 }
 
@@ -27,6 +28,7 @@ Address = localhost
 Port = 8089
 DataFile = /tmp/fctwallet.dat
 RefreshInSeconds = 60
+BoltDBPath = /tmp/
 `
 
 // ReadConfig reads the factoid.conf file and returns the FactoidConfig object
