@@ -88,7 +88,7 @@ func Test_CreateTransaction_swcallet(test *testing.T) {
         test.Fail() 
     }
     
-    err2 := w.Validate(t)
+    err2 := w.Validate(1,t)
     if( err2 != nil) {
         factoid.Prtln(err2)
         test.Fail()

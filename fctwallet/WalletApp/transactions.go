@@ -343,7 +343,7 @@ func (Sign) Execute (state State, args []string) error {
         return fmt.Errorf("Invalid Parameters")
     }
     
-    err := state.fs.GetWallet().Validate(trans)
+    err := state.fs.GetWallet().Validate(1, trans)
     if err != nil {
         return err
     }
@@ -412,7 +412,7 @@ func (Submit) Execute (state State, args []string) error {
         return fmt.Errorf("Invalid Parameters")
     }
     
-    err := state.fs.GetWallet().Validate(trans)
+    err := state.fs.GetWallet().Validate(1, trans)
     if err != nil {
         return err
     }
