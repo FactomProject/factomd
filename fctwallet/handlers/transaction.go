@@ -455,7 +455,7 @@ func  HandleFactoidSignTransaction(ctx *web.Context, key string) {
         return
     }
 
-    err = factoidState.GetWallet().Validate(trans)
+    err = factoidState.GetWallet().Validate(1,trans)
     if err != nil {
     	reportResults(ctx, err.Error(), false)
     	return
