@@ -107,7 +107,7 @@ func NewMsgFactoidTX() IMsgFactoidTX {
 // Check whether the msg can pass the message level validations
 // such as timestamp, signiture and etc
 func (msg *MsgFactoidTX) IsValid() bool {
-	err := msg.Transaction.Validate()
+	err := msg.Transaction.Validate(1)
 	if err != nil {
 		return false
 	}
