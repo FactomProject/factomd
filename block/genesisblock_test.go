@@ -21,7 +21,7 @@ var _ = rand.New
 var _ = binary.Write
 
 func Test_create_genesis_block(test *testing.T) {
-    gb := GetGenesisBlock(0,1000000,10,200000000000)
+    gb := GetGenesisFBlock(0,1000000,10,200000000000)
     var _ = gb
     fct.Prtln(gb)
     fct.Prtln("Hash: ",gb.GetHash())
