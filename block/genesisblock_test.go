@@ -5,13 +5,12 @@
 package block
 
 import (
-    "encoding/binary"
-    "fmt"
-    "github.com/FactomProject/ed25519"
-    fct "github.com/FactomProject/factoid"
-    "math/rand"
-    "testing"
-    
+	"encoding/binary"
+	"fmt"
+	"github.com/FactomProject/ed25519"
+	fct "github.com/FactomProject/factoid"
+	"math/rand"
+	"testing"
 )
 
 var _ = fct.Prt
@@ -21,11 +20,8 @@ var _ = rand.New
 var _ = binary.Write
 
 func Test_create_genesis_block(test *testing.T) {
-    gb := GetGenesisFBlock(0,1000000,10,200000000000)
-    var _ = gb
-    fct.Prtln(gb)
-    fct.Prtln("Hash: ",gb.GetHash())
+	gb := GetGenesisFBlock(0, 1000000, 10, 200000000000)
+	var _ = gb
+	fct.Prtln(gb)
+	fct.Prtln("Hash: ", gb.GetHash())
 }
-
-
-
