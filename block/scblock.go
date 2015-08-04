@@ -15,6 +15,7 @@ import (
 
 type IFBlock interface {
 	fct.IBlock
+	fct.Printable
 	// Get the ChainID. This is a constant for all Factoids.
 	GetChainID() fct.IHash
 	// Validation functions

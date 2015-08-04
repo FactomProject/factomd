@@ -13,6 +13,7 @@ import (
 
 type IHash interface {
 	IBlock // Implements IBlock
+	Printable
 
 	Fixed() [32]byte                        // Returns the fixed array for use in maps
 	Bytes() []byte                          // Return the byte slice for this Hash
@@ -27,6 +28,20 @@ type Hash struct {
 }
 
 var _ IHash = (*Hash)(nil)
+
+func (h *Hash) MarshalText() ([]byte, error) {
+	return []byte(hex.EncodeToString(h.hash[:])), nil
+}
+
+func (h *Hash) UnmarshalText(b []byte) error {
+	p, err := hex.DecodeString(string(b))
+	if err != nil {
+		return err
+	}
+	copy(h.hash[:], p)
+	return nil
+}
+
 func (Hash) GetHash() IHash {
     return nil
 }
@@ -149,6 +164,23 @@ func (a Hash) CustomMarshalText() (text []byte, err error) {
 	out.WriteString(hash)
 	return out.Bytes(), nil
 }
+
+func (e *Hash) JSONByte() ([]byte, error) {
+	return EncodeJSON(e)
+}
+
+func (e *Hash) JSONString() (string, error) {
+	return EncodeJSONString(e)
+}
+
+func (e *Hash) JSONBuffer(b *bytes.Buffer) error {
+	return EncodeJSONToBuffer(e, b)
+}
+
+func (e *Hash) Spew() string {
+	return Spew(e)
+}
+
 
 /**********************
  * Support functions
