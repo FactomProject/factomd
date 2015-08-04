@@ -549,7 +549,7 @@ func (p *peer) pushGetEntryDataMsg(eblock *common.EBlock) {
 func (p *peer) pushFBlockMsg(commonhash *common.Hash, doneChan, waitChan chan struct{}) error {
 	blk, err := db.FetchFBlockByHash(commonhash)
 
-	if err != nil {
+	if err != nil || blk == nil {
 		peerLog.Tracef("Unable to fetch requested SC block sha %v: %v",
 			commonhash, err)
 
@@ -557,7 +557,7 @@ func (p *peer) pushFBlockMsg(commonhash *common.Hash, doneChan, waitChan chan st
 			doneChan <- struct{}{}
 		}
 		return err
-	}
+	} 
 
 	// Once we have fetched data wait for any previous operation to finish.
 	if waitChan != nil {
@@ -575,8 +575,9 @@ func (p *peer) pushFBlockMsg(commonhash *common.Hash, doneChan, waitChan chan st
 func (p *peer) pushABlockMsg(commonhash *common.Hash, doneChan, waitChan chan struct{}) error {
 	blk, err := db.FetchABlockByHash(commonhash)
 
-	if err != nil {
-
+	if err != nil || blk == nil {
+		peerLog.Tracef("Unable to fetch requested Admin block sha %v: %v",
+			commonhash, err)
 		if doneChan != nil {
 			doneChan <- struct{}{}
 		}
@@ -599,7 +600,10 @@ func (p *peer) pushABlockMsg(commonhash *common.Hash, doneChan, waitChan chan st
 // known.
 func (p *peer) pushECBlockMsg(commonhash *common.Hash, doneChan, waitChan chan struct{}) error {
 	blk, err := db.FetchECBlockByHash(commonhash)
-	if err != nil {
+	if err != nil || blk == nil {
+		peerLog.Tracef("Unable to fetch requested Entry Credit block sha %v: %v",
+			commonhash, err)
+		
 		if doneChan != nil {
 			doneChan <- struct{}{}
 		}
@@ -622,7 +626,9 @@ func (p *peer) pushECBlockMsg(commonhash *common.Hash, doneChan, waitChan chan s
 func (p *peer) pushEBlockMsg(commonhash *common.Hash, doneChan, waitChan chan struct{}) error {
 	blk, err := db.FetchEBlockByMR(commonhash)
 	if err != nil {
-		if doneChan != nil {
+		if doneChan != nil || blk == nil {
+			peerLog.Tracef("Unable to fetch requested Entry block sha %v: %v",
+				commonhash, err)			
 			doneChan <- struct{}{}
 		}
 		return err
@@ -643,7 +649,9 @@ func (p *peer) pushEBlockMsg(commonhash *common.Hash, doneChan, waitChan chan st
 // connected peer.  An error is returned if the block hash is not known.
 func (p *peer) pushEntryMsg(commonhash *common.Hash, doneChan, waitChan chan struct{}) error {
 	entry, err := db.FetchEntryByHash(commonhash)
-	if err != nil {
+	if err != nil || entry == nil {
+		peerLog.Tracef("Unable to fetch requested Entry sha %v: %v",
+			commonhash, err)		
 		if doneChan != nil {
 			doneChan <- struct{}{}
 		}
