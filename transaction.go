@@ -13,6 +13,7 @@ import (
 
 type ITransaction interface {
 	IBlock
+	Printable
 	// Marshals the parts of the transaction that are signed to
 	// validate the transaction.  This includes the transaction header,
 	// the locktime, the inputs, outputs, and outputs to EntryCredits.  It
