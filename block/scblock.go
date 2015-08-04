@@ -94,7 +94,7 @@ func (b *FBlock) GetCoinbaseTimestamp() int64 {
     return int64(b.transactions[0].GetMilliTimestamp())
 }
 
-// Returns the Full hash for this block.
+// Returns the LedgerKeyMR for this block.
 func (b *FBlock) GetLedgerKeyMR() fct.IHash {
     if(b.endOfPeriod[9]==0){
         b.EndOfPeriod(1)            // Sets the end of the first period here.
@@ -364,7 +364,6 @@ func (b *FBlock) GetChainID() fct.IHash {
     h.SetBytes(fct.FACTOID_CHAINID)
     return h
 }
-
 // Calculates the Key Merkle Root for this block and returns it.
 func (b *FBlock) GetKeyMR() fct.IHash {
     data,err := b.MarshalHeader()
@@ -375,7 +374,6 @@ func (b *FBlock) GetKeyMR() fct.IHash {
     cat := append(headerHash.Bytes(),b.GetBodyMR().Bytes()...)
     return fct.Sha(cat)
 }
-
 func (b *FBlock) GetBodyMR() fct.IHash {
     if b.BodyMR != nil && bytes.Compare(b.BodyMR.Bytes(), fct.ZERO_HASH)!=0 {
         return b.BodyMR
