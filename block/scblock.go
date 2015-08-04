@@ -34,10 +34,14 @@ type IFBlock interface {
     // prior to being persisted.
 	CalculateHashes()
     // Hash accessors
+    // Get Key MR() hashes the header with the GetBodyMR() of the transactions
     GetKeyMR() fct.IHash
+    // Get the MR for the list of transactions
     GetBodyMR() fct.IHash
+    // Get the KeyMR of the previous block.
     GetPrevKeyMR() fct.IHash
     SetPrevKeyMR([]byte) 
+    GetLedgerMR() fct.IHash                       
     GetLedgerKeyMR() fct.IHash
     GetPrevLedgerKeyMR() fct.IHash
     SetPrevLedgerKeyMR([]byte) 
@@ -94,8 +98,8 @@ func (b *FBlock) GetCoinbaseTimestamp() int64 {
     return int64(b.transactions[0].GetMilliTimestamp())
 }
 
-// Returns the LedgerKeyMR for this block.
-func (b *FBlock) GetLedgerKeyMR() fct.IHash {
+// Returns the LedgerMR for this block.
+func (b *FBlock) GetLedgerMR() fct.IHash {
     if(b.endOfPeriod[9]==0){
         b.EndOfPeriod(1)            // Sets the end of the first period here.
     }                               // This is what unmarshalling will do.
@@ -364,6 +368,7 @@ func (b *FBlock) GetChainID() fct.IHash {
     h.SetBytes(fct.FACTOID_CHAINID)
     return h
 }
+
 // Calculates the Key Merkle Root for this block and returns it.
 func (b *FBlock) GetKeyMR() fct.IHash {
     data,err := b.MarshalHeader()
@@ -374,6 +379,18 @@ func (b *FBlock) GetKeyMR() fct.IHash {
     cat := append(headerHash.Bytes(),b.GetBodyMR().Bytes()...)
     return fct.Sha(cat)
 }
+
+// Calculates the Key Merkle Root for this block and returns it.
+func (b *FBlock) GetLedgerKeyMR() fct.IHash {
+    data,err := b.MarshalHeader()
+    if err != nil {
+        return fct.NewHash(fct.ZERO_HASH)
+    }
+    headerHash := fct.Sha(data)
+    cat := append(headerHash.Bytes(),b.GetLedgerMR().Bytes()...)
+    return fct.Sha(cat)
+}
+
 func (b *FBlock) GetBodyMR() fct.IHash {
     if b.BodyMR != nil && bytes.Compare(b.BodyMR.Bytes(), fct.ZERO_HASH)!=0 {
         return b.BodyMR
