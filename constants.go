@@ -36,3 +36,4 @@ var FACTOID_CHAINID	= []byte {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 var FACTOID_CHAINID_HASH = NewHash(FACTOID_CHAINID)
 // Zero Hash
 var ZERO_HASH = []byte {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
+var ZERO      = []byte {0}

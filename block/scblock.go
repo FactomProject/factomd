@@ -21,7 +21,7 @@ type IFBlock interface {
 	Validate() error
     ValidateTransaction(int, fct.ITransaction) error
     // Marshal just the header for the block. This is to include the header
-    // in the FullHash
+    // in the LedgerKeyMR
     MarshalHeader() ([]byte, error)
     // Marshal just the transactions.  This is because we need the length
 	MarshalTrans() ([]byte, error)
@@ -34,12 +34,13 @@ type IFBlock interface {
     // prior to being persisted.
 	CalculateHashes()
     // Hash accessors
+    GetKeyMR() fct.IHash
     GetBodyMR() fct.IHash
     GetPrevKeyMR() fct.IHash
     SetPrevKeyMR([]byte) 
-    GetFullHash() fct.IHash
-    GetPrevFullHash() fct.IHash
-    SetPrevFullHash([]byte) 
+    GetLedgerKeyMR() fct.IHash
+    GetPrevLedgerKeyMR() fct.IHash
+    SetPrevLedgerKeyMR([]byte) 
     // Accessors for the Directory Block Height
     SetDBHeight(uint32)
 	GetDBHeight() uint32
@@ -71,7 +72,7 @@ type FBlock struct {
 	//  ChainID         IHash     // ChainID.  But since this is a constant, we need not actually use space to store it.
 	BodyMR              fct.IHash // Merkle root of the Factoid transactions which accompany this block.
 	PrevKeyMR           fct.IHash // Key Merkle root of previous block.
-	PrevFullHash        fct.IHash // Sha3 of the previous Factoid Block
+	PrevLedgerKeyMR        fct.IHash // Sha3 of the previous Factoid Block
 	ExchRate            uint64    // Factoshis per Entry Credit
 	DBHeight            uint32    // Directory Block height
     // Header Expansion Size  varint
@@ -94,7 +95,7 @@ func (b *FBlock) GetCoinbaseTimestamp() int64 {
 }
 
 // Returns the Full hash for this block.
-func (b *FBlock) GetFullHash() fct.IHash {
+func (b *FBlock) GetLedgerKeyMR() fct.IHash {
     if(b.endOfPeriod[9]==0){
         b.EndOfPeriod(1)            // Sets the end of the first period here.
     }                               // This is what unmarshalling will do.
@@ -103,7 +104,7 @@ func (b *FBlock) GetFullHash() fct.IHash {
     for i,trans := range b.transactions{
         for marker <10 && i == b.endOfPeriod[marker] {
             marker++
-            hashes = append(hashes,fct.Sha(fct.ZERO_HASH))
+            hashes = append(hashes,fct.Sha(fct.ZERO))
         }
         hash,_ := trans.MarshalBinarySig()
         hashes = append(hashes,fct.NewHash(hash))
@@ -111,7 +112,7 @@ func (b *FBlock) GetFullHash() fct.IHash {
     // Add any lagging markers
     for marker <10 {
         marker++
-        hashes = append(hashes,fct.Sha(fct.ZERO_HASH))
+        hashes = append(hashes,fct.Sha(fct.ZERO))
     }
     fullHash := fct.ComputeMerkleRoot(hashes) 
     return fullHash
@@ -139,11 +140,8 @@ func (FBlock) GetDBHash() fct.IHash {
 }
 
 func (b *FBlock) GetHash() fct.IHash {
-    if b.BodyMR != nil && bytes.Compare(b.BodyMR.Bytes(), new([32]byte)[:])!=0 {
-        return b.BodyMR
-    }
-    b.CalculateHashes()
-    return b.BodyMR
+    kmr := b.GetKeyMR()
+    return kmr 
 }
 
 func (b *FBlock) MarshalTrans() ([]byte, error) {
@@ -184,7 +182,7 @@ func (b *FBlock) MarshalHeader() ([]byte,error) {
     out.Write(fct.FACTOID_CHAINID)
     
     if b.BodyMR == nil {b.BodyMR = new(fct.Hash)}
-    data, err := b.GetHash().MarshalBinary()
+    data, err := b.BodyMR.MarshalBinary()
     if err != nil {
         return nil, err
     }
@@ -197,8 +195,8 @@ func (b *FBlock) MarshalHeader() ([]byte,error) {
     }
     out.Write(data)
     
-    if b.PrevFullHash == nil {b.PrevFullHash = new(fct.Hash)}
-    data, err = b.PrevFullHash.MarshalBinary()
+    if b.PrevLedgerKeyMR == nil {b.PrevLedgerKeyMR = new(fct.Hash)}
+    data, err = b.PrevLedgerKeyMR.MarshalBinary()
     if err != nil {
         return nil, err
     }
@@ -267,8 +265,8 @@ func (b *FBlock) UnmarshalBinaryData(data []byte) ( newdata []byte, err error) {
             return nil, err
         }
         
-        b.PrevFullHash = new(fct.Hash)
-        data, err = b.PrevFullHash.UnmarshalBinaryData(data)
+        b.PrevLedgerKeyMR = new(fct.Hash)
+        data, err = b.PrevLedgerKeyMR.UnmarshalBinaryData(data)
         if err != nil {
             return nil, err
         }
@@ -343,7 +341,7 @@ func (b1 *FBlock) IsEqual(block fct.IBlock) []fct.IBlock {
     if r != nil {
         return append(r,b1)
     }
-    r = b1.PrevFullHash.IsEqual(b2.PrevFullHash) 
+    r = b1.PrevLedgerKeyMR.IsEqual(b2.PrevLedgerKeyMR) 
     if r != nil {
         return append(r,b1)
     }
@@ -366,7 +364,23 @@ func (b *FBlock) GetChainID() fct.IHash {
     h.SetBytes(fct.FACTOID_CHAINID)
     return h
 }
+
+// Calculates the Key Merkle Root for this block and returns it.
+func (b *FBlock) GetKeyMR() fct.IHash {
+    data,err := b.MarshalHeader()
+    if err != nil {
+        return fct.NewHash(fct.ZERO_HASH)
+    }
+    headerHash := fct.Sha(data)
+    cat := append(headerHash.Bytes(),b.GetBodyMR().Bytes()...)
+    return fct.Sha(cat)
+}
+
 func (b *FBlock) GetBodyMR() fct.IHash {
+    if b.BodyMR != nil && bytes.Compare(b.BodyMR.Bytes(), fct.ZERO_HASH)!=0 {
+        return b.BodyMR
+    }
+    b.CalculateHashes()
     return b.BodyMR
 }
 func (b *FBlock) GetPrevKeyMR() fct.IHash {
@@ -376,11 +390,11 @@ func (b *FBlock) SetPrevKeyMR(hash []byte) {
     h := fct.NewHash(hash)
     b.PrevKeyMR= h
 }
-func (b *FBlock) GetPrevFullHash() fct.IHash {
-    return b.PrevFullHash
+func (b *FBlock) GetPrevLedgerKeyMR() fct.IHash {
+    return b.PrevLedgerKeyMR
 }
-func (b *FBlock) SetPrevFullHash(hash[]byte)  {
-    b.PrevFullHash.SetBytes(hash)
+func (b *FBlock) SetPrevLedgerKeyMR(hash[]byte)  {
+    b.PrevLedgerKeyMR.SetBytes(hash)
 }
 
 func (b *FBlock) CalculateHashes() {
@@ -392,14 +406,14 @@ func (b *FBlock) CalculateHashes() {
     for i,trans := range b.transactions{
         for marker <10 && i == b.endOfPeriod[marker] {
             marker++
-            hashes = append(hashes,fct.Sha(fct.ZERO_HASH))
+            hashes = append(hashes,fct.Sha(fct.ZERO))
         }
         hashes = append(hashes,trans.GetHash())
     }
     // Add any lagging markers
     for marker <10 {
         marker++
-        hashes = append(hashes,fct.Sha(fct.ZERO_HASH))
+        hashes = append(hashes,fct.Sha(fct.ZERO))
     }
     
     b.BodyMR = fct.ComputeMerkleRoot(hashes)
@@ -535,9 +549,9 @@ func (b FBlock) CustomMarshalText() (text []byte, err error) {
     if b.PrevKeyMR == nil { b.PrevKeyMR = new (fct.Hash) }
     out.WriteString("\n  PrevKeyMR:     ")
 	out.WriteString(b.PrevKeyMR.String())
-    if b.PrevFullHash == nil { b.PrevFullHash = new (fct.Hash) }
-    out.WriteString("\n  PrevFullHash:  ")
-	out.WriteString(b.PrevFullHash.String())
+    if b.PrevLedgerKeyMR == nil { b.PrevLedgerKeyMR = new (fct.Hash) }
+    out.WriteString("\n  PrevLedgerKeyMR:  ")
+	out.WriteString(b.PrevLedgerKeyMR.String())
 	out.WriteString("\n  ExchRate:      ")
 	fct.WriteNumber64(&out, b.ExchRate)
 	out.WriteString("\n  DBHeight:      ")
@@ -579,7 +593,7 @@ func NewFBlock(ExchRate uint64, DBHeight uint32) IFBlock {
 	scb := new(FBlock)
     scb.BodyMR = new (fct.Hash)
     scb.PrevKeyMR  = new (fct.Hash)
-    scb.PrevFullHash  = new (fct.Hash)
+    scb.PrevLedgerKeyMR  = new (fct.Hash)
   	scb.ExchRate   = ExchRate
 	scb.DBHeight   = DBHeight
 	return scb

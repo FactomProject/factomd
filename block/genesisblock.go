@@ -33,7 +33,7 @@ func GetGenesisFBlock(ftime uint64, ExRate uint64, addressCnt int, Factoids uint
    
     for i:=0; i<addressCnt; i++ {
         h,_ := w.GenerateFctAddress([]byte("test "+string(i)),1,1)
-        w.AddOutput(t,h,Factoids)   // 2000 factoids per address
+        w.AddOutput(t,h,Factoids)   
     }
     
 	err := genesisBlock.AddCoinbase(t)

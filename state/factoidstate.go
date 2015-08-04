@@ -239,7 +239,7 @@ func(fs *FactoidState) ProcessEndOfBlock(){
     }
     
     hash = fs.currentBlock.GetHash()
-    hash2 = fs.currentBlock.GetFullHash()
+    hash2 = fs.currentBlock.GetLedgerKeyMR()
     fs.PutTransactionBlock(hash,fs.currentBlock)
     fs.PutTransactionBlock(fct.FACTOID_CHAINID_HASH,fs.currentBlock)
     
@@ -262,7 +262,7 @@ func(fs *FactoidState) ProcessEndOfBlock(){
     
     if hash != nil {
         fs.currentBlock.SetPrevKeyMR(hash.Bytes())
-        fs.currentBlock.SetPrevFullHash(hash2.Bytes())
+        fs.currentBlock.SetPrevLedgerKeyMR(hash2.Bytes())
     }
     
 }
@@ -283,7 +283,7 @@ func(fs *FactoidState) ProcessEndOfBlock2(nextBlkHeight uint32) {
     
     if fs.currentBlock != nil {             // If no blocks, the current block is nil
         hash  = fs.currentBlock.GetHash()
-        hash2 = fs.currentBlock.GetFullHash()
+        hash2 = fs.currentBlock.GetLedgerKeyMR()
     }
     
     fs.currentBlock = block.NewFBlock(fs.GetFactoshisPerEC(), nextBlkHeight)
@@ -297,17 +297,17 @@ func(fs *FactoidState) ProcessEndOfBlock2(nextBlkHeight uint32) {
     
     if hash != nil {
         fs.currentBlock.SetPrevKeyMR(hash.Bytes())
-        fs.currentBlock.SetPrevFullHash(hash2.Bytes())
+        fs.currentBlock.SetPrevLedgerKeyMR(hash2.Bytes())
     }
     
 }
 
 func(fs *FactoidState) LoadState() error  {
     var hashes []fct.IHash
-    blk := fs.GetTransactionBlock(fct.FACTOID_CHAINID_HASH)
+    cblk := fs.GetTransactionBlock(fct.FACTOID_CHAINID_HASH)
     // If there is no head for the Factoids in the database, we have an
     // uninitialized database.  We need to add the Genesis Block. TODO
-    if blk == nil {
+    if cblk == nil {
         cp.CP.AddUpdate(
                     "Creating Factoid Genesis Block",                                    // tag
                     "info",                                                              // Category 
@@ -325,10 +325,13 @@ func(fs *FactoidState) LoadState() error  {
         fs.ProcessEndOfBlock()
         return nil
     }
-    
+    blk := cblk
     // First run back from the head back to the genesis block, collecting hashes.
     for {
-        if blk == nil {return fmt.Errorf("Block not found or not formated properly") }
+        if blk == nil {
+            return fmt.Errorf("Block not found or not formated properly") 
+            
+        }
         h := blk.GetHash()
         for _,hash := range hashes {
             if bytes.Compare(hash.Bytes(),h.Bytes()) == 0 {
@@ -339,9 +342,12 @@ func(fs *FactoidState) LoadState() error  {
         if bytes.Compare(blk.GetPrevKeyMR().Bytes(),fct.ZERO_HASH) == 0 { 
             break 
         }
-        
         tblk := fs.GetTransactionBlock(blk.GetPrevKeyMR())
+        if tblk == nil {
+            return fmt.Errorf("Failed to find the block at height: %d",blk.GetDBHeight()-1)
+        }
         if tblk.GetHash().IsEqual(blk.GetPrevKeyMR()) != nil {
+            
             return fmt.Errorf("Hash Failure!  Database must be rebuilt")
         }
         
@@ -349,12 +355,11 @@ func(fs *FactoidState) LoadState() error  {
         time.Sleep(time.Second/100)
     }
 
-    
     // Now run forward, and build our accounting
     for i := len(hashes)-1; i>=0; i-- {
         blk = fs.GetTransactionBlock(hashes[i])
         if blk == nil { 
-            return fmt.Errorf("Should never happen.  Block not found in LoadState") 
+            return fmt.Errorf("Should never happen.  Block not found in the Database") 
         }
         cp.CP.AddUpdate(
             "Loading Factoid Blocks",                                            // tag
@@ -452,20 +457,18 @@ func(fs *FactoidState) GetECBalance(address fct.IAddress) uint64 {
 func(fs *FactoidState) UpdateBalance(address fct.IAddress, amount int64) error {
     nbalance := int64(fs.GetBalance(address))+amount
     if nbalance < 0 {
-        fct.PrtStk()
         return fmt.Errorf("The update to this address would drive the balance negative.")
     }
     balance := uint64(nbalance)
     fs.database.PutRaw([]byte(fct.DB_F_BALANCES),address.Bytes(),&FSbalance{number: balance})
     
-return nil
+    return nil
 } 
 
 // Update ec balance throws an error if your update will drive the balance negative.
 func(fs *FactoidState) UpdateECBalance(address fct.IAddress, amount int64) error {
     nbalance := int64(fs.GetECBalance(address))+amount
     if nbalance < 0 {
-        fct.PrtStk()
         return fmt.Errorf("The update to this Entry Credit address would drive the balance negative.")
     }
     balance := uint64(nbalance)
