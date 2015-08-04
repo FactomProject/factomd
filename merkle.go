@@ -5,8 +5,8 @@
 package factoid
 
 import (
+	"fmt"
 	"math"
-    "fmt"
 )
 
 var _ = fmt.Println
@@ -30,25 +30,25 @@ func nextPowerOfTwo(n int) int {
 // function used to aid in the generation of a merkle tree.
 func hashMerkleBranches(left IHash, right IHash) IHash {
 	// Concatenate the left and right nodes.
-    var barray []byte = make([]byte, ADDRESS_LENGTH*2)
-    copy(barray[:ADDRESS_LENGTH], left.Bytes())
-    copy(barray[ADDRESS_LENGTH:], right.Bytes())
+	var barray []byte = make([]byte, ADDRESS_LENGTH*2)
+	copy(barray[:ADDRESS_LENGTH], left.Bytes())
+	copy(barray[ADDRESS_LENGTH:], right.Bytes())
 
 	newSha := Sha(barray)
 	return newSha
 }
 
 // Give a list of hashes, return the root of the Merkle Tree
-func ComputeMerkleRoot(hashes [] IHash) IHash {
-    merkles := BuildMerkleTreeStore(hashes)
-    return merkles[len(merkles)-1]
+func ComputeMerkleRoot(hashes []IHash) IHash {
+	merkles := BuildMerkleTreeStore(hashes)
+	return merkles[len(merkles)-1]
 }
 
 // The root of the Merkle Tree is returned in merkles[len(merkles)-1]
 func BuildMerkleTreeStore(hashes []IHash) (merkles []IHash) {
-    if len(hashes)==0 {
-        return append(make([]IHash,0,1),new(Hash))
-    }
+	if len(hashes) == 0 {
+		return append(make([]IHash, 0, 1), new(Hash))
+	}
 	// Calculate how many entries are required to hold the binary merkle
 	// tree as a linear array and create an array of that size.
 	nextPoT := nextPowerOfTwo(len(hashes))

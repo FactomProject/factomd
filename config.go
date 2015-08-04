@@ -5,8 +5,8 @@
 package factoid
 
 import (
-	"os"
 	"code.google.com/p/gcfg"
+	"os"
 )
 
 type FactoidConfig struct {
@@ -15,7 +15,7 @@ type FactoidConfig struct {
 		Port             int
 		DataFile         string
 		RefreshInSeconds string
-		BoltDBPath	     string		
+		BoltDBPath       string
 	}
 }
 

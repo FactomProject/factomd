@@ -33,7 +33,7 @@ type Signature struct {
 var _ ISignature = (*Signature)(nil)
 
 func (t *Signature) GetHash() IHash {
-    return nil
+	return nil
 }
 
 func (b Signature) String() string {
@@ -100,6 +100,6 @@ func (s *Signature) UnmarshalBinaryData(data []byte) ([]byte, error) {
 }
 
 func (s *Signature) UnmarshalBinary(data []byte) error {
-    _, err := s.UnmarshalBinaryData(data)
-    return err
+	_, err := s.UnmarshalBinaryData(data)
+	return err
 }

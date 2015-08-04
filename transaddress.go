@@ -35,29 +35,29 @@ var _ ITransAddress = (*TransAddress)(nil)
 
 // Not useful on TransAddress objects
 func (t *TransAddress) GetHash() IHash {
-    return nil
+	return nil
 }
 
 func (t *TransAddress) GetDBHash() IHash {
-    return Sha([]byte ("TransAddress"))
+	return Sha([]byte("TransAddress"))
 }
 
 func (t *TransAddress) GetNewInstance() IBlock {
-    return new(TransAddress)
+	return new(TransAddress)
 }
 
 func (t *TransAddress) UnmarshalBinary(data []byte) error {
-    _, err := t.UnmarshalBinaryData(data)
-    return err
+	_, err := t.UnmarshalBinaryData(data)
+	return err
 }
 
 func (t *TransAddress) CustomMarshalText() ([]byte, error) {
-    return nil,nil
+	return nil, nil
 }
 
 func (t *TransAddress) String() string {
-    txt,_ := t.CustomMarshalText()
-    return (string(txt))
+	txt, _ := t.CustomMarshalText()
+	return (string(txt))
 }
 
 func (t *TransAddress) IsEqual(addr IBlock) []IBlock {

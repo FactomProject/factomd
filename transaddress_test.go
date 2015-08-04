@@ -40,7 +40,7 @@ func Test_TAddressEquals(test *testing.T) {
 	a1.address.SetBytes(address1[:])
 	a2.address.SetBytes(address1[:])
 
-	if  a1.IsEqual(a2) != nil { // Out of the box, hashes should be equal
+	if a1.IsEqual(a2) != nil { // Out of the box, hashes should be equal
 		PrtStk()
 		test.Fail()
 	}
@@ -54,7 +54,7 @@ func Test_TAddressEquals(test *testing.T) {
 
 	a2.address.SetBytes(address2[:])
 
-	if  a1.IsEqual(a2) != nil { // Back to equality!
+	if a1.IsEqual(a2) != nil { // Back to equality!
 		PrtStk()
 		test.Fail()
 	}

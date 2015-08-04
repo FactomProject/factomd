@@ -39,7 +39,7 @@ func Test_HashEquals(test *testing.T) {
 
 	h2.SetBytes(hash[:])
 
-	if  h1.IsEqual(h2) != nil { // Back to equality!
+	if h1.IsEqual(h2) != nil { // Back to equality!
 		PrtStk()
 		test.Fail()
 	}
