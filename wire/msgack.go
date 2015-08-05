@@ -9,7 +9,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
-
+	"io/ioutil"
 	"github.com/FactomProject/FactomCode/common"
 )
 
@@ -75,27 +75,28 @@ func (msg *MsgAcknowledgement) GetBinaryForSignature() (data []byte, err error) 
 func (msg *MsgAcknowledgement) BtcDecode(r io.Reader, pver uint32) error {
 	//err := readElements(r, &msg.Height, msg.ChainID, &msg.Index, &msg.Type, msg.Affirmation, &msg.SerialHash, &msg.Signature)
 
-	buf, ok := r.(*bytes.Buffer)
-	if !ok {
-		return fmt.Errorf("MsgAcknowledgement.BtcDecode reader is not a " +
-			"*bytes.Buffer")
+	newData, err := ioutil.ReadAll(r)
+	if err != nil {
+		return fmt.Errorf("MsgAcknowledgement.BtcDecode reader is invalid")
+	}	
+	
+	if len(newData) != 169 {
+		return fmt.Errorf("MsgAcknowledgement.BtcDecode reader does not have right length: ", len(newData))
 	}
-
-	newData := buf.Bytes()
 
 	msg.Height, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
-	hash := common.NewHash()
-	newData, _ = hash.UnmarshalBinaryData(newData)
+	msg.ChainID = common.NewHash()
+	newData, _ = msg.ChainID.UnmarshalBinaryData(newData)
 
 	msg.Index, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
 	msg.Type, newData = newData[0], newData[1:]
 
-	msg.Affirmation, _ = NewShaHash(newData[0:31])
+	msg.Affirmation, _ = NewShaHash(newData[0:32])
 	newData = newData[32:]
 
-	copy(msg.SerialHash[:], newData[0:31])
+	copy(msg.SerialHash[:], newData[0:32])
 	newData = newData[32:]
 
 	copy(msg.Signature[:], newData[0:63])
@@ -112,13 +113,14 @@ func (msg *MsgAcknowledgement) BtcEncode(w io.Writer, pver uint32) error {
 
 	binary.Write(&buf, binary.BigEndian, msg.Height)
 	buf.Write(msg.ChainID.Bytes())
+	
 
 	binary.Write(&buf, binary.BigEndian, msg.Index)
 	buf.Write([]byte{msg.Type})
 	buf.Write(msg.Affirmation.Bytes())
 	buf.Write(msg.SerialHash[:])
 	buf.Write(msg.Signature[:])
-
+	
 	w.Write(buf.Bytes())
 
 	return nil
@@ -147,7 +149,7 @@ func NewMsgAcknowledgement(height uint32, index uint32, affirm *ShaHash, ackType
 	}
 	return &MsgAcknowledgement{
 		Height:      height,
-		ChainID:     common.NewHash(),
+		ChainID:     common.NewHash(), //TODO: get the correct chain id from processor
 		Index:       index,
 		Affirmation: affirm,
 		Type:        ackType,
