@@ -114,8 +114,11 @@ func (b *FBlock) GetLedgerMR() fct.IHash {
 			marker++
 			hashes = append(hashes, fct.Sha(fct.ZERO))
 		}
-		hash, _ := trans.MarshalBinarySig()
-		hashes = append(hashes, fct.NewHash(hash))
+		hash, err := trans.MarshalBinarySig()
+		if err != nil {
+            panic("Failed to get LedgerMR: "+err.Error())
+        }
+        hashes = append(hashes, fct.NewHash(hash))
 	}
 	// Add any lagging markers
 	for marker < 10 {
@@ -150,7 +153,10 @@ func (FBlock) GetDBHash() fct.IHash {
 
 func (b *FBlock) GetHash() fct.IHash {
 	kmr := b.GetKeyMR()
-	return kmr
+
+    //    fmt.Println("blk:",b.GetDBHeight(),"GetHash(): ",kmr)
+	
+    return kmr
 }
 
 func (b *FBlock) MarshalTrans() ([]byte, error) {
@@ -394,33 +400,63 @@ func (b *FBlock) GetKeyMR() fct.IHash {
 	}
 	headerHash := fct.Sha(data)
 	cat := append(headerHash.Bytes(), b.GetBodyMR().Bytes()...)
-	return fct.Sha(cat)
+	kmr := fct.Sha(cat)
+    
+ //   fmt.Println("blk:",b.GetDBHeight(),"GetKeyMR(): ",kmr)
+    
+    return kmr
 }
 
 // Calculates the Key Merkle Root for this block and returns it.
 func (b *FBlock) GetLedgerKeyMR() fct.IHash {
 	data, err := b.MarshalHeader()
 	if err != nil {
-        panic("Failed to create KeyMR: "+err.Error())
+        panic("Failed to create LedgerKeyMR: "+err.Error())
     }
 	headerHash := fct.Sha(data)
 	cat := append(headerHash.Bytes(), b.GetLedgerMR().Bytes()...)
-	return fct.Sha(cat)
+	lkmr := fct.Sha(cat)
+    
+  //  fmt.Println("blk:",b.GetDBHeight(),"GetLedgerKeyMR(): ",lkmr)
+    
+    return lkmr
 }
 
 func (b *FBlock) GetBodyMR() fct.IHash {
-	if b.BodyMR != nil && bytes.Compare(b.BodyMR.Bytes(), fct.ZERO_HASH) != 0 {
-		return b.BodyMR
-	}
-	b.CalculateHashes()
-	return b.BodyMR
+    if b.endOfPeriod[9] == 0 {
+        b.EndOfPeriod(1) // Sets the end of the first period here.
+    } // This is what unmarshalling will do.
+    hashes := make([]fct.IHash, 0, len(b.Transactions))
+    marker := 0
+    for i, trans := range b.Transactions {
+        for marker < 10 && i == b.endOfPeriod[marker] {
+            marker++
+            hashes = append(hashes, fct.Sha(fct.ZERO))
+        }
+        hashes = append(hashes, trans.GetHash())
+    }
+    // Add any lagging markers
+    for marker < 10 {
+        marker++
+        hashes = append(hashes, fct.Sha(fct.ZERO))
+    }
+    
+    b.BodyMR = fct.ComputeMerkleRoot(hashes)
+
+//    fmt.Println("blk:",b.GetDBHeight(),"GetBodyMR(): ",b.BodyMR)
+    
+    return b.BodyMR
 }
+
 func (b *FBlock) GetPrevKeyMR() fct.IHash {
 	return b.PrevKeyMR
 }
 func (b *FBlock) SetPrevKeyMR(hash []byte) {
 	h := fct.NewHash(hash)
 	b.PrevKeyMR = h
+	
+//	fmt.Println("blk:",b.GetDBHeight(),"SetPrevKeyMR(): ",h)
+    
 }
 func (b *FBlock) GetPrevLedgerKeyMR() fct.IHash {
 	return b.PrevLedgerKeyMR
@@ -430,25 +466,8 @@ func (b *FBlock) SetPrevLedgerKeyMR(hash []byte) {
 }
 
 func (b *FBlock) CalculateHashes() {
-	if b.endOfPeriod[9] == 0 {
-		b.EndOfPeriod(1) // Sets the end of the first period here.
-	} // This is what unmarshalling will do.
-	hashes := make([]fct.IHash, 0, len(b.Transactions))
-	marker := 0
-	for i, trans := range b.Transactions {
-		for marker < 10 && i == b.endOfPeriod[marker] {
-			marker++
-			hashes = append(hashes, fct.Sha(fct.ZERO))
-		}
-		hashes = append(hashes, trans.GetHash())
-	}
-	// Add any lagging markers
-	for marker < 10 {
-		marker++
-		hashes = append(hashes, fct.Sha(fct.ZERO))
-	}
-
-	b.BodyMR = fct.ComputeMerkleRoot(hashes)
+	b.BodyMR = nil
+	b.BodyMR = b.GetBodyMR()
 }
 
 func (b *FBlock) SetDBHeight(dbheight uint32) {
