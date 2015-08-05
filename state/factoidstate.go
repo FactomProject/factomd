@@ -339,7 +339,7 @@ func(fs *FactoidState) LoadState() error  {
             }
         }
         hashes = append(hashes,h)
-        if bytes.Compare(blk.GetPrevKeyMR().Bytes(),fct.ZERO_HASH) == 0 { 
+        if bytes.Compare(blk.GetPrevKeyMR().Bytes(),fct.ZERO) == 0 { 
             break 
         }
         tblk := fs.GetTransactionBlock(blk.GetPrevKeyMR())

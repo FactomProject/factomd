@@ -390,7 +390,7 @@ func (b *FBlock) GetChainID() fct.IHash {
 func (b *FBlock) GetKeyMR() fct.IHash {
 	data, err := b.MarshalHeader()
 	if err != nil {
-		return fct.NewHash(fct.ZERO_HASH)
+        panic("Failed to create KeyMR: "+err.Error())
 	}
 	headerHash := fct.Sha(data)
 	cat := append(headerHash.Bytes(), b.GetBodyMR().Bytes()...)
@@ -401,8 +401,8 @@ func (b *FBlock) GetKeyMR() fct.IHash {
 func (b *FBlock) GetLedgerKeyMR() fct.IHash {
 	data, err := b.MarshalHeader()
 	if err != nil {
-		return fct.NewHash(fct.ZERO_HASH)
-	}
+        panic("Failed to create KeyMR: "+err.Error())
+    }
 	headerHash := fct.Sha(data)
 	cat := append(headerHash.Bytes(), b.GetLedgerMR().Bytes()...)
 	return fct.Sha(cat)
