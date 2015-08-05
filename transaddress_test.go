@@ -31,35 +31,35 @@ func Test_TAddressEquals(test *testing.T) {
 	a1 := new(TransAddress)
 	a2 := new(TransAddress)
 
-	a1.amount = 5
-	a2.amount = 5
+	a1.Amount = 5
+	a2.Amount = 5
 
-	a1.address = new(Address)
-	a2.address = new(Address)
+	a1.Address = new(Address)
+	a2.Address = new(Address)
 
-	a1.address.SetBytes(address1[:])
-	a2.address.SetBytes(address1[:])
+	a1.Address.SetBytes(address1[:])
+	a2.Address.SetBytes(address1[:])
 
 	if  a1.IsEqual(a2) != nil { // Out of the box, hashes should be equal
 		PrtStk()
 		test.Fail()
 	}
 
-	a1.address.SetBytes(address2[:])
+	a1.Address.SetBytes(address2[:])
 
 	if a1.IsEqual(a2) == nil { // Now they should not be equal
 		PrtStk()
 		test.Fail()
 	}
 
-	a2.address.SetBytes(address2[:])
+	a2.Address.SetBytes(address2[:])
 
 	if  a1.IsEqual(a2) != nil { // Back to equality!
 		PrtStk()
 		test.Fail()
 	}
 
-	a1.amount = 6
+	a1.Amount = 6
 
 	if a1.IsEqual(a2) == nil { // Amounts are not equal
 		PrtStk()

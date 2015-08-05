@@ -43,7 +43,7 @@ func (a InAddress) CustomMarshalText() (text []byte, err error) {
 
 func NewInAddress(address IAddress, amount uint64) IInAddress {
 	oa := new(InAddress)
-	oa.amount = amount
-	oa.address = address
+	oa.Amount = amount
+	oa.Address = address
 	return oa
 }
