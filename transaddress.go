@@ -27,8 +27,8 @@ type ITransAddress interface {
 }
 
 type TransAddress struct {
-	amount  uint64
-	address IAddress
+	Amount  uint64
+	Address IAddress
 }
 
 var _ ITransAddress = (*TransAddress)(nil)
@@ -80,10 +80,10 @@ func (t *TransAddress) UnmarshalBinaryData(data []byte) (newData []byte, err err
 		return nil, fmt.Errorf("Data source too short to UnmarshalBinary() an address: %d", len(data))
 	}
 
-	t.amount, data = DecodeVarInt(data)
-	t.address = new(Address)
+	t.Amount, data = DecodeVarInt(data)
+	t.Address = new(Address)
 
-	data, err = t.address.UnmarshalBinaryData(data)
+	data, err = t.Address.UnmarshalBinaryData(data)
 
 	return data, err
 }
@@ -92,11 +92,11 @@ func (t *TransAddress) UnmarshalBinaryData(data []byte) (newData []byte, err err
 func (a TransAddress) MarshalBinary() ([]byte, error) {
 	var out bytes.Buffer
 
-	err := EncodeVarInt(&out, a.amount)
+	err := EncodeVarInt(&out, a.Amount)
 	if err != nil {
 		return nil, err
 	}
-	data, err := a.address.MarshalBinary()
+	data, err := a.Address.MarshalBinary()
 	out.Write(data)
 
 	return out.Bytes(), err
@@ -111,36 +111,36 @@ func (ta TransAddress) GetName() string {
 
 // Accessor.  Get the amount with this address.
 func (ta TransAddress) GetAmount() uint64 {
-	return ta.amount
+	return ta.Amount
 }
 
 // Accessor.  Get the amount with this address.
 func (ta *TransAddress) SetAmount(amount uint64) {
-	ta.amount = amount
+	ta.Amount = amount
 }
 
 // Accessor.  Get the raw address.  Could be an actual address,
 // or a hash of an authorization block.  See authorization.go
 func (ta TransAddress) GetAddress() IAddress {
-	return ta.address
+	return ta.Address
 }
 
 // Accessor.  Get the raw address.  Could be an actual address,
 // or a hash of an authorization block.  See authorization.go
 func (ta *TransAddress) SetAddress(address IAddress) {
-	ta.address = address
+	ta.Address = address
 }
 
 // Make this into somewhat readable text.
 func (ta TransAddress) CustomMarshalText2(label string) ([]byte, error) {
 	var out bytes.Buffer
 	out.WriteString(fmt.Sprintf("   %8s:", label))
-	v := ConvertDecimal(ta.amount)
+	v := ConvertDecimal(ta.Amount)
 	fill := 8 - len(v) + strings.Index(v, ".") + 1
 	fstr := fmt.Sprintf("%%%vs%%%vs ", 18-fill, fill)
 	out.WriteString(fmt.Sprintf(fstr, v, ""))
-	out.WriteString(ConvertFctAddressToUserStr(ta.address))
-	str := fmt.Sprintf("\n                  %016x %038s\n\n", ta.amount, string(hex.EncodeToString(ta.GetAddress().Bytes())))
+	out.WriteString(ConvertFctAddressToUserStr(ta.Address))
+	str := fmt.Sprintf("\n                  %016x %038s\n\n", ta.Amount, string(hex.EncodeToString(ta.GetAddress().Bytes())))
 	out.WriteString(str)
 	return out.Bytes(), nil
 }

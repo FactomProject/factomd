@@ -50,7 +50,7 @@ func (a OutECAddress) CustomMarshalText() (text []byte, err error) {
 
 func NewOutECAddress(address IAddress, amount uint64) IOutAddress {
 	oa := new(OutECAddress)
-	oa.amount = amount
-	oa.address = address
+	oa.Amount = amount
+	oa.Address = address
 	return oa
 }

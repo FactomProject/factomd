@@ -15,6 +15,7 @@ import (
 
 type IFBlock interface {
 	fct.IBlock
+	fct.Printable
 	// Get the ChainID. This is a constant for all Factoids.
 	GetChainID() fct.IHash
 	// Validation functions
@@ -82,7 +83,7 @@ type FBlock struct {
 	// Header Expansion Size  varint
 	// Transaction count
 	// body size
-	transactions []fct.ITransaction // List of transactions in this block
+	Transactions []fct.ITransaction // List of transactions in this block
 
 	endOfPeriod [10]int // End of Minute transaction heights.  The mark the height of the first entry of
 	// the NEXT period.  This entry may not exist.  The Coinbase transaction is considered
@@ -95,10 +96,10 @@ var _ fct.Printable = (*FBlock)(nil)
 
 // Return the timestamp of the coinbase transaction
 func (b *FBlock) GetCoinbaseTimestamp() int64 {
-	if len(b.transactions) == 0 {
+	if len(b.Transactions) == 0 {
 		return -1
 	}
-	return int64(b.transactions[0].GetMilliTimestamp())
+	return int64(b.Transactions[0].GetMilliTimestamp())
 }
 
 // Returns the LedgerMR for this block.
@@ -106,9 +107,9 @@ func (b *FBlock) GetLedgerMR() fct.IHash {
 	if b.endOfPeriod[9] == 0 {
 		b.EndOfPeriod(1) // Sets the end of the first period here.
 	} // This is what unmarshalling will do.
-	hashes := make([]fct.IHash, 0, len(b.transactions))
+	hashes := make([]fct.IHash, 0, len(b.Transactions))
 	marker := 0
-	for i, trans := range b.transactions {
+	for i, trans := range b.Transactions {
 		for marker < 10 && i == b.endOfPeriod[marker] {
 			marker++
 			hashes = append(hashes, fct.Sha(fct.ZERO))
@@ -131,12 +132,12 @@ func (b *FBlock) EndOfPeriod(period int) {
 		return
 	} // Ignore out of range period.
 	for i := period; i < 10; i++ { // Set the period and all following to the height
-		b.endOfPeriod[i] = len(b.transactions)
+		b.endOfPeriod[i] = len(b.Transactions)
 	}
 }
 
 func (b *FBlock) GetTransactions() []fct.ITransaction {
-	return b.transactions
+	return b.Transactions
 }
 
 func (b FBlock) GetNewInstance() fct.IBlock {
@@ -157,7 +158,7 @@ func (b *FBlock) MarshalTrans() ([]byte, error) {
 	var periodMark = 0
 	var i int
 	var trans fct.ITransaction
-	for i, trans = range b.transactions {
+	for i, trans = range b.Transactions {
 
 		for periodMark < len(b.endOfPeriod) && i == b.endOfPeriod[periodMark] {
 			out.WriteByte(fct.MARKER)
@@ -222,7 +223,7 @@ func (b *FBlock) MarshalHeader() ([]byte, error) {
 	fct.EncodeVarInt(&out, 0) // At this point in time, nothing in the Expansion Header
 	// so we just write out a zero.
 
-	binary.Write(&out, binary.BigEndian, uint32(len(b.transactions)))
+	binary.Write(&out, binary.BigEndian, uint32(len(b.Transactions)))
 
 	transdata, err := b.MarshalTrans() // first get trans data
 	if err != nil {
@@ -301,7 +302,7 @@ func (b *FBlock) UnmarshalBinaryData(data []byte) (newdata []byte, err error) {
 
 		data = data[4:] // Just skip the size... We don't really need it.
 
-		b.transactions = make([]fct.ITransaction, cnt, cnt)
+		b.Transactions = make([]fct.ITransaction, cnt, cnt)
 		var periodMark = 1
 		for i := uint32(0); i < cnt; i++ {
 
@@ -316,7 +317,7 @@ func (b *FBlock) UnmarshalBinaryData(data []byte) (newdata []byte, err error) {
 			if err != nil {
 				return nil, fmt.Errorf("Failed to unmarshal a transaction in block.\n" + err.Error())
 			}
-			b.transactions[i] = trans
+			b.Transactions[i] = trans
 		}
 
 		for periodMark <= len(b.endOfPeriod) {
@@ -370,8 +371,8 @@ func (b1 *FBlock) IsEqual(block fct.IBlock) []fct.IBlock {
 		return append(r, b1)
 	}
 
-	for i, trans := range b1.transactions {
-		r := trans.IsEqual(b2.transactions[i])
+	for i, trans := range b1.Transactions {
+		r := trans.IsEqual(b2.Transactions[i])
 		if r != nil {
 			return append(r, b1)
 		}
@@ -432,9 +433,9 @@ func (b *FBlock) CalculateHashes() {
 	if b.endOfPeriod[9] == 0 {
 		b.EndOfPeriod(1) // Sets the end of the first period here.
 	} // This is what unmarshalling will do.
-	hashes := make([]fct.IHash, 0, len(b.transactions))
+	hashes := make([]fct.IHash, 0, len(b.Transactions))
 	marker := 0
-	for i, trans := range b.transactions {
+	for i, trans := range b.Transactions {
 		for marker < 10 && i == b.endOfPeriod[marker] {
 			marker++
 			hashes = append(hashes, fct.Sha(fct.ZERO))
@@ -471,7 +472,7 @@ func (b FBlock) ValidateTransaction(index int, trans fct.ITransaction) error {
 			return err
 		}
 	}
-	if len(b.transactions) > 0 {
+	if len(b.Transactions) > 0 {
 		err := trans.ValidateSignatures()
 		if err != nil {
 			return err
@@ -511,7 +512,7 @@ func (b FBlock) ValidateTransaction(index int, trans fct.ITransaction) error {
 }
 
 func (b FBlock) Validate() error {
-	for i, trans := range b.transactions {
+	for i, trans := range b.Transactions {
 		if err := b.ValidateTransaction(i, trans); err != nil {
 			return nil
 		}
@@ -547,7 +548,7 @@ func (b FBlock) Validate() error {
 // be deterministic so that all servers will know and expect its output.
 func (b *FBlock) AddCoinbase(trans fct.ITransaction) error {
 	b.BodyMR = nil
-	if len(b.transactions) != 0 {
+	if len(b.Transactions) != 0 {
 		return fmt.Errorf("The coinbase transaction must be the first transaction")
 	}
 	if len(trans.GetInputs()) != 0 {
@@ -565,7 +566,7 @@ func (b *FBlock) AddCoinbase(trans fct.ITransaction) error {
 
 	// TODO Add check here for the proper payouts.
 
-	b.transactions = append(b.transactions, trans)
+	b.Transactions = append(b.Transactions, trans)
 	return nil
 }
 
@@ -575,14 +576,14 @@ func (b *FBlock) AddTransaction(trans fct.ITransaction) error {
 	// These tests check that the Transaction itself is valid.  If it
 	// is not internally valid, it never will be valid.
 	b.BodyMR = nil
-	err := b.ValidateTransaction(len(b.transactions), trans)
+	err := b.ValidateTransaction(len(b.Transactions), trans)
 	if err != nil {
 		return err
 	}
 
 	// Check against address balances is done at the Factom level.
 
-	b.transactions = append(b.transactions, trans)
+	b.Transactions = append(b.Transactions, trans)
 	return nil
 }
 
@@ -625,7 +626,7 @@ func (b FBlock) CustomMarshalText() (text []byte, err error) {
 		out.WriteString(fmt.Sprintf("%d ", mark))
 	}
 	out.WriteString("\n  #Transactions: ")
-	fct.WriteNumber32(&out, uint32(len(b.transactions)))
+	fct.WriteNumber32(&out, uint32(len(b.Transactions)))
 	transdata, err := b.MarshalTrans()
 	if err != nil {
 		return out.Bytes(), err
@@ -635,7 +636,7 @@ func (b FBlock) CustomMarshalText() (text []byte, err error) {
 	out.WriteString("\n\n")
 	markPeriod := 0
 
-	for i, trans := range b.transactions {
+	for i, trans := range b.Transactions {
 
 		for markPeriod < 10 && i == b.endOfPeriod[markPeriod] {
 			out.WriteString(fmt.Sprintf("\n   End of Minute %d\n\n", markPeriod+1))

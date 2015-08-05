@@ -13,6 +13,7 @@ import (
 
 type IHash interface {
 	IBlock // Implements IBlock
+	Printable
 
 	Fixed() [32]byte                        // Returns the fixed array for use in maps
 	Bytes() []byte                          // Return the byte slice for this Hash
@@ -27,9 +28,21 @@ type Hash struct {
 }
 
 var _ IHash = (*Hash)(nil)
+func (h *Hash) MarshalText() ([]byte, error) {
+	return []byte(hex.EncodeToString(h.hash[:])), nil
+}
+
+func (h *Hash) UnmarshalText(b []byte) error {
+	p, err := hex.DecodeString(string(b))
+	if err != nil {
+		return err
+	}
+	copy(h.hash[:], p)
+	return nil
+}
 
 func (Hash) GetHash() IHash {
-	return nil
+    return nil
 }
 
 func (w1 Hash) GetDBHash() IHash {
@@ -150,30 +163,45 @@ func (a Hash) CustomMarshalText() (text []byte, err error) {
 	out.WriteString(hash)
 	return out.Bytes(), nil
 }
+func (e *Hash) JSONByte() ([]byte, error) {
+	return EncodeJSON(e)
+}
+
+func (e *Hash) JSONString() (string, error) {
+	return EncodeJSONString(e)
+}
+
+func (e *Hash) JSONBuffer(b *bytes.Buffer) error {
+	return EncodeJSONToBuffer(e, b)
+}
+
+func (e *Hash) Spew() string {
+	return Spew(e)
+}
 
 /**********************
  * Support functions
  **********************/
 
 // Create a Sha256 Hash from a byte array
-func Sha(p []byte) IHash {
-	h := new(Hash)
-	b := sha256.Sum256(p)
-	h.SetBytes(b[:])
-	return h
+func Sha(p []byte) (IHash) {
+    h := new(Hash)
+    b := sha256.Sum256(p)
+    h.SetBytes(b[:])
+    return h
 }
 
 // Shad Double Sha256 Hash; sha256(sha256(data))
-func Shad(data []byte) IHash {
-	h1 := sha256.Sum256(data)
-	h2 := sha256.Sum256(h1[:])
-	h := new(Hash)
-	h.SetBytes(h2[:])
-	return h
+func Shad(data []byte) (IHash){
+    h1 := sha256.Sum256(data)
+    h2 := sha256.Sum256(h1[:])
+    h := new(Hash)
+    h.SetBytes(h2[:])
+    return h
 }
 
 func NewHash(b []byte) IHash {
-	h := new(Hash)
-	h.SetBytes(b)
-	return h
+    h := new(Hash)
+    h.SetBytes(b)
+    return h
 }
