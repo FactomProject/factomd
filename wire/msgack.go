@@ -7,8 +7,10 @@ package wire
 import (
 	"bytes"
 	"encoding/binary"
-	"github.com/FactomProject/FactomCode/common"
+	"fmt"
 	"io"
+
+	"github.com/FactomProject/FactomCode/common"
 )
 
 // Acknowledgement Type
@@ -71,10 +73,32 @@ func (msg *MsgAcknowledgement) GetBinaryForSignature() (data []byte, err error) 
 // BtcDecode decodes r using the bitcoin protocol encoding into the receiver.
 // This is part of the Message interface implementation.
 func (msg *MsgAcknowledgement) BtcDecode(r io.Reader, pver uint32) error {
-	err := readElements(r, &msg.Height, &msg.ChainID, &msg.Index, &msg.Affirmation, &msg.SerialHash, &msg.Signature)
-	if err != nil {
-		return err
+	//err := readElements(r, &msg.Height, msg.ChainID, &msg.Index, &msg.Type, msg.Affirmation, &msg.SerialHash, &msg.Signature)
+
+	buf, ok := r.(*bytes.Buffer)
+	if !ok {
+		return fmt.Errorf("MsgAcknowledgement.BtcDecode reader is not a " +
+			"*bytes.Buffer")
 	}
+
+	newData := buf.Bytes()
+
+	msg.Height, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+
+	hash := common.NewHash()
+	newData, _ = hash.UnmarshalBinaryData(newData)
+
+	msg.Index, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+
+	msg.Type, newData = newData[0], newData[1:]
+
+	msg.Affirmation, _ = NewShaHash(newData[0:31])
+	newData = newData[32:]
+
+	copy(msg.SerialHash[:], newData[0:31])
+	newData = newData[32:]
+
+	copy(msg.Signature[:], newData[0:63])
 
 	return nil
 }
@@ -82,10 +106,20 @@ func (msg *MsgAcknowledgement) BtcDecode(r io.Reader, pver uint32) error {
 // BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
 // This is part of the Message interface implementation.
 func (msg *MsgAcknowledgement) BtcEncode(w io.Writer, pver uint32) error {
-	err := writeElements(w, &msg.Height, &msg.ChainID, &msg.Index, &msg.Affirmation, &msg.SerialHash, &msg.Signature)
-	if err != nil {
-		return err
-	}
+	//err := writeElements(w, msg.Height, msg.ChainID, msg.Index, msg.Type, msg.Affirmation, msg.SerialHash, msg.Signature)
+
+	var buf bytes.Buffer
+
+	binary.Write(&buf, binary.BigEndian, msg.Height)
+	buf.Write(msg.ChainID.Bytes())
+
+	binary.Write(&buf, binary.BigEndian, msg.Index)
+	buf.Write([]byte{msg.Type})
+	buf.Write(msg.Affirmation.Bytes())
+	buf.Write(msg.SerialHash[:])
+	buf.Write(msg.Signature[:])
+
+	w.Write(buf.Bytes())
 
 	return nil
 }
@@ -113,6 +147,7 @@ func NewMsgAcknowledgement(height uint32, index uint32, affirm *ShaHash, ackType
 	}
 	return &MsgAcknowledgement{
 		Height:      height,
+		ChainID:     common.NewHash(),
 		Index:       index,
 		Affirmation: affirm,
 		Type:        ackType,
