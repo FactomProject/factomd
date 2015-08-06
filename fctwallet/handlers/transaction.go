@@ -146,7 +146,7 @@ func getParams_(ctx *web.Context, params string, ec bool) (
         }
     }
     if (!ec && !fct.ValidateFUserStr(name)) || (ec && !fct.ValidateECUserStr(name)) {
-        reportResults(ctx,fmt.Sprintf("Badly formed address %s",name),false)
+        reportResults(ctx,fmt.Sprintf("The address specified isn't defined or is invalid: %s",name),false)
         ctx.WriteHeader(httpBad)
         ok = false
         return 
