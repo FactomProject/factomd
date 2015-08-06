@@ -5,8 +5,8 @@
 package handlers
 
 import (
-    fct "github.com/FactomProject/factoid"
     "github.com/FactomProject/factoid/state/stateinit"
+	"github.com/FactomProject/FactomCode/util"    
    
 )
 
@@ -17,7 +17,7 @@ const (
 
 
 var (
-    cfg = fct.ReadConfig().Wallet
+    cfg = util.ReadConfig().Wallet
     IpAddress        = cfg.Address
     PortNumber       = cfg.Port
     applicationName  = "Factom/fctwallet"
