@@ -57,7 +57,12 @@ func (p *peer) handleABlockMsg(msg *wire.MsgABlock, buf []byte) {
 // handleECBlockMsg is invoked when a peer receives a entry credit block
 // message.
 func (p *peer) handleECBlockMsg(msg *wire.MsgECBlock, buf []byte) {
-	hash := wire.FactomHashToShaHash(msg.ECBlock.HeaderHash())
+	headerHash, err:=msg.ECBlock.HeaderHash()
+	if err!=nil {
+		panic(err)
+	}
+	hash := wire.FactomHashToShaHash(headerHash)
+
 
 	iv := wire.NewInvVect(wire.InvTypeFactomEntryCreditBlock, hash)
 	p.AddKnownInventory(iv)
