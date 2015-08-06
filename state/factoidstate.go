@@ -237,14 +237,19 @@ func(fs *FactoidState) ProcessEndOfBlock(){
     if fs.GetCurrentBlock() == nil {
         panic("Invalid state on initialization")
     }
-    
-    hash = fs.currentBlock.GetHash()
+    blk:= fs.currentBlock
+    hash = fs.currentBlock.GetKeyMR()
     hash2 = fs.currentBlock.GetLedgerKeyMR()
+    hash = fs.currentBlock.GetKeyMR()
+    if !bytes.Equal(hash.Bytes(),blk.GetKeyMR().Bytes()) {panic("KeyMR Changed! 1")}
     fs.PutTransactionBlock(hash,fs.currentBlock)
+    if !bytes.Equal(hash.Bytes(),blk.GetKeyMR().Bytes()) {panic("KeyMR Changed! 2")}
     fs.PutTransactionBlock(fct.FACTOID_CHAINID_HASH,fs.currentBlock)
+    if !bytes.Equal(hash.Bytes(),blk.GetKeyMR().Bytes()) {panic("KeyMR Changed! 3")}
     
     fs.dbheight += 1
     fs.currentBlock = block.NewFBlock(fs.GetFactoshisPerEC(),fs.dbheight)
+    if !bytes.Equal(hash.Bytes(),blk.GetKeyMR().Bytes()) {panic("KeyMR Changed! 4")}
     
     cp.CP.AddUpdate(
         "blockheight",                                               // tag
@@ -258,12 +263,15 @@ func(fs *FactoidState) ProcessEndOfBlock(){
     if err !=nil {
         panic(err.Error())
     }
+    if !bytes.Equal(hash.Bytes(),blk.GetKeyMR().Bytes()) {panic("KeyMR Changed! 5")}
     fs.UpdateTransaction(t)
+    if !bytes.Equal(hash.Bytes(),blk.GetKeyMR().Bytes()) {panic("KeyMR Changed! 6")}
     
     if hash != nil {
         fs.currentBlock.SetPrevKeyMR(hash.Bytes())
         fs.currentBlock.SetPrevLedgerKeyMR(hash2.Bytes())
     }
+    if !bytes.Equal(hash.Bytes(),blk.GetKeyMR().Bytes()) {panic("KeyMR Changed! 7")}
     
 }
 
@@ -339,15 +347,14 @@ func(fs *FactoidState) LoadState() error  {
             }
         }
         hashes = append(hashes,h)
-        if bytes.Compare(blk.GetPrevKeyMR().Bytes(),fct.ZERO) == 0 { 
+        if bytes.Compare(blk.GetPrevKeyMR().Bytes(),fct.ZERO_HASH) == 0 { 
             break 
         }
         tblk := fs.GetTransactionBlock(blk.GetPrevKeyMR())
         if tblk == nil {
             return fmt.Errorf("Failed to find the block at height: %d",blk.GetDBHeight()-1)
         }
-        if tblk.GetHash().IsEqual(blk.GetPrevKeyMR()) != nil {
-            
+        if !bytes.Equal(tblk.GetHash().Bytes(),blk.GetPrevKeyMR().Bytes()) {
             return fmt.Errorf("Hash Failure!  Database must be rebuilt")
         }
         
@@ -359,7 +366,10 @@ func(fs *FactoidState) LoadState() error  {
     for i := len(hashes)-1; i>=0; i-- {
         blk = fs.GetTransactionBlock(hashes[i])
         if blk == nil { 
-            return fmt.Errorf("Should never happen.  Block not found in the Database") 
+            
+            return fmt.Errorf("Should never happen.  Block not found in the Database\n"+
+                "No block found for: %s",hashes[i].String())
+            
         }
         cp.CP.AddUpdate(
             "Loading Factoid Blocks",                                            // tag

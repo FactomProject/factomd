@@ -16,6 +16,7 @@ import (
 )
 
 var _ = fmt.Printf
+var _ = strings.Replace
 
 type Stats struct {
     badAddresses int
@@ -78,13 +79,7 @@ func(fs *Test_state) newTransaction(maxIn, maxOut int) fct.ITransaction {
             }
         }        
     }
-    
-    fmt.Printf("\033[35;0H Inputs %4d, Max %20s Max2 %20s            ",
-               len(fs.inputAddresses),
-               strings.TrimSpace(fct.ConvertDecimal(max)),
-               strings.TrimSpace(fct.ConvertDecimal(max2)))
-    fmt.Print("\033[40;0H")
-    
+        
     // The following code is a function that creates an array
     // of addresses pulled from some source array of addresses
     // selected randomly.
@@ -168,9 +163,6 @@ func(fs *Test_state) newTransaction(maxIn, maxOut int) fct.ITransaction {
         fs.stats.errors[string(str)] += 1
         fs.stats.full[string(str)] = err.Error()
         
-        fmt.Print("\033[32;0H")
-        fmt.Println("Bad Transactions: ",fs.stats.badAddresses,"\r")
-        fmt.Print("\033[40;0H")
         return fs.newTransaction(maxIn,maxOut) 
     }
     return t

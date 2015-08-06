@@ -102,41 +102,14 @@ func (b *FBlock) GetCoinbaseTimestamp() int64 {
 	return int64(b.Transactions[0].GetMilliTimestamp())
 }
 
-// Returns the LedgerMR for this block.
-func (b *FBlock) GetLedgerMR() fct.IHash {
-	if b.endOfPeriod[9] == 0 {
-		b.EndOfPeriod(1) // Sets the end of the first period here.
-	} // This is what unmarshalling will do.
-	hashes := make([]fct.IHash, 0, len(b.Transactions))
-	marker := 0
-	for i, trans := range b.Transactions {
-		for marker < 10 && i == b.endOfPeriod[marker] {
-			marker++
-			hashes = append(hashes, fct.Sha(fct.ZERO))
-		}
-		hash, err := trans.MarshalBinarySig()
-		if err != nil {
-            panic("Failed to get LedgerMR: "+err.Error())
-        }
-        hashes = append(hashes, fct.NewHash(hash))
-	}
-	// Add any lagging markers
-	for marker < 10 {
-		marker++
-		hashes = append(hashes, fct.Sha(fct.ZERO))
-	}
-	fullHash := fct.ComputeMerkleRoot(hashes)
-	return fullHash
-}
 
 func (b *FBlock) EndOfPeriod(period int) {
-	period = period - 1 // Make the period zero based.
-	if period < 0 || period >= 10 {
-		return
-	} // Ignore out of range period.
-	for i := period; i < 10; i++ { // Set the period and all following to the height
-		b.endOfPeriod[i] = len(b.Transactions)
-	}
+    if period == 0 {
+        return
+    }else{
+        period = period - 1 // Make the period zero based.
+        b.endOfPeriod[period]=len(b.Transactions)
+    }
 }
 
 func (b *FBlock) GetTransactions() []fct.ITransaction {
@@ -153,8 +126,6 @@ func (FBlock) GetDBHash() fct.IHash {
 
 func (b *FBlock) GetHash() fct.IHash {
 	kmr := b.GetKeyMR()
-
-    //    fmt.Println("blk:",b.GetDBHeight(),"GetHash(): ",kmr)
 	
     return kmr
 }
@@ -166,8 +137,11 @@ func (b *FBlock) MarshalTrans() ([]byte, error) {
 	var trans fct.ITransaction
 	for i, trans = range b.Transactions {
 
-		for periodMark < len(b.endOfPeriod) && i == b.endOfPeriod[periodMark] {
-			out.WriteByte(fct.MARKER)
+		for periodMark < len(b.endOfPeriod) &&
+            b.endOfPeriod[periodMark] > 0   &&      // Ignore if markers are not set
+            i == b.endOfPeriod[periodMark] {
+
+            out.WriteByte(fct.MARKER)
 			periodMark++
 		}
 
@@ -190,10 +164,8 @@ func (b *FBlock) MarshalTrans() ([]byte, error) {
 func (b *FBlock) MarshalHeader() ([]byte, error) {
 	var out bytes.Buffer
 
-	if b.endOfPeriod[9] == 0 {
-		b.EndOfPeriod(1) // Sets the end of the first period here.
-	} // This is what unmarshalling will do.
-
+	b.EndOfPeriod(0)   // Clean up end of minute markers, if needed.
+    
 	out.Write(fct.FACTOID_CHAINID)
 
 	if b.BodyMR == nil {
@@ -274,67 +246,60 @@ func (b *FBlock) UnmarshalBinaryData(data []byte) (newdata []byte, err error) {
 
 	// To capture the panic, my code needs to be in a function.  So I'm
 	// creating one here, and call it at the end of this function.
-	var doit = func(data []byte) ([]byte, error) {
-		if bytes.Compare(data[:fct.ADDRESS_LENGTH], fct.FACTOID_CHAINID[:]) != 0 {
-			return nil, fmt.Errorf("Block does not begin with the Factoid ChainID")
-		}
-		data = data[32:]
+    if bytes.Compare(data[:fct.ADDRESS_LENGTH], fct.FACTOID_CHAINID[:]) != 0 {
+        return nil, fmt.Errorf("Block does not begin with the Factoid ChainID")
+    }
+    data = data[32:]
 
-		b.BodyMR = new(fct.Hash)
-		data, err := b.BodyMR.UnmarshalBinaryData(data)
-		if err != nil {
-			return nil, err
-		}
+    b.BodyMR = new(fct.Hash)
+    data, err = b.BodyMR.UnmarshalBinaryData(data)
+    if err != nil {
+        return nil, err
+    }
 
-		b.PrevKeyMR = new(fct.Hash)
-		data, err = b.PrevKeyMR.UnmarshalBinaryData(data)
-		if err != nil {
-			return nil, err
-		}
+    b.PrevKeyMR = new(fct.Hash)
+    data, err = b.PrevKeyMR.UnmarshalBinaryData(data)
+    if err != nil {
+        return nil, err
+    }
 
-		b.PrevLedgerKeyMR = new(fct.Hash)
-		data, err = b.PrevLedgerKeyMR.UnmarshalBinaryData(data)
-		if err != nil {
-			return nil, err
-		}
+    b.PrevLedgerKeyMR = new(fct.Hash)
+    data, err = b.PrevLedgerKeyMR.UnmarshalBinaryData(data)
+    if err != nil {
+        return nil, err
+    }
 
-		b.ExchRate, data = binary.BigEndian.Uint64(data[0:8]), data[8:]
-		b.DBHeight, data = binary.BigEndian.Uint32(data[0:4]), data[4:]
+    b.ExchRate, data = binary.BigEndian.Uint64(data[0:8]), data[8:]
+    b.DBHeight, data = binary.BigEndian.Uint32(data[0:4]), data[4:]
 
-		skip, data := fct.DecodeVarInt(data) // Skip the Expansion Header, if any, since
-		data = data[skip:]                   // we don't know what to do with it.
+    skip, data := fct.DecodeVarInt(data) // Skip the Expansion Header, if any, since
+    data = data[skip:]                   // we don't know what to do with it.
 
-		cnt, data := binary.BigEndian.Uint32(data[0:4]), data[4:]
+    cnt, data := binary.BigEndian.Uint32(data[0:4]), data[4:]
 
-		data = data[4:] // Just skip the size... We don't really need it.
+    data = data[4:] // Just skip the size... We don't really need it.
 
-		b.Transactions = make([]fct.ITransaction, cnt, cnt)
-		var periodMark = 1
-		for i := uint32(0); i < cnt; i++ {
+    b.Transactions = make([]fct.ITransaction, cnt, cnt)
+    for i,_ := range b.endOfPeriod { b.endOfPeriod[i] = 0 }
+    var periodMark = 0
+    for i := uint32(0); i < cnt; i++ {
 
-			for data[0] == fct.MARKER {
-				b.EndOfPeriod(periodMark)
-				data = data[1:]
-				periodMark++
-			}
+        for data[0] == fct.MARKER {
+            b.endOfPeriod[periodMark]=int(i)
+            data = data[1:]
+            periodMark++
+        }
 
-			trans := new(fct.Transaction)
-			data, err = trans.UnmarshalBinaryData(data)
-			if err != nil {
-				return nil, fmt.Errorf("Failed to unmarshal a transaction in block.\n" + err.Error())
-			}
-			b.Transactions[i] = trans
-		}
+        trans := new(fct.Transaction)
+        data, err = trans.UnmarshalBinaryData(data)
+        if err != nil {
+            return nil, fmt.Errorf("Failed to unmarshal a transaction in block.\n" + err.Error())
+        }
+        b.Transactions[i] = trans
+    }
 
-		for periodMark <= len(b.endOfPeriod) {
-			b.EndOfPeriod(periodMark)
-			periodMark++
-		}
-
-		return data, nil
-	}
-
-	return doit(data)
+    return data, nil
+    
 }
 
 func (b *FBlock) UnmarshalBinary(data []byte) (err error) {
@@ -347,10 +312,8 @@ func (b *FBlock) UnmarshalBinary(data []byte) (err error) {
 // generally useful.
 func (b1 *FBlock) IsEqual(block fct.IBlock) []fct.IBlock {
 
-	if b1.endOfPeriod[9] == 0 {
-		b1.EndOfPeriod(1) // Sets the end of the first period here.
-	} // This is what unmarshalling will do.
-
+    b1.EndOfPeriod(0)   // Clean up end of minute markers, if needed.
+    
 	b2, ok := block.(*FBlock)
 
 	if !ok || // Not the right kind of IBlock
@@ -394,42 +357,73 @@ func (b *FBlock) GetChainID() fct.IHash {
 
 // Calculates the Key Merkle Root for this block and returns it.
 func (b *FBlock) GetKeyMR() fct.IHash {
-	data, err := b.MarshalHeader()
+    
+    bodyMR     := b.GetBodyMR()
+    
+    data, err := b.MarshalHeader()
 	if err != nil {
         panic("Failed to create KeyMR: "+err.Error())
 	}
 	headerHash := fct.Sha(data)
-	cat := append(headerHash.Bytes(), b.GetBodyMR().Bytes()...)
+
+	cat := append(headerHash.Bytes(), bodyMR.Bytes()...)
 	kmr := fct.Sha(cat)
-    
- //   fmt.Println("blk:",b.GetDBHeight(),"GetKeyMR(): ",kmr)
-    
+        
     return kmr
 }
 
 // Calculates the Key Merkle Root for this block and returns it.
 func (b *FBlock) GetLedgerKeyMR() fct.IHash {
-	data, err := b.MarshalHeader()
+    
+    ledgerMR := b.GetLedgerMR()
+    
+    data, err := b.MarshalHeader()
 	if err != nil {
         panic("Failed to create LedgerKeyMR: "+err.Error())
     }
-	headerHash := fct.Sha(data)
-	cat := append(headerHash.Bytes(), b.GetLedgerMR().Bytes()...)
+    headerHash := fct.Sha(data)
+	cat := append(headerHash.Bytes(), ledgerMR.Bytes()...)
 	lkmr := fct.Sha(cat)
-    
-  //  fmt.Println("blk:",b.GetDBHeight(),"GetLedgerKeyMR(): ",lkmr)
-    
+        
     return lkmr
 }
 
-func (b *FBlock) GetBodyMR() fct.IHash {
-    if b.endOfPeriod[9] == 0 {
-        b.EndOfPeriod(1) // Sets the end of the first period here.
-    } // This is what unmarshalling will do.
+// Returns the LedgerMR for this block.
+func (b *FBlock) GetLedgerMR() fct.IHash {
+    
+    b.EndOfPeriod(0)   // Clean up end of minute markers, if needed.
+    
     hashes := make([]fct.IHash, 0, len(b.Transactions))
     marker := 0
     for i, trans := range b.Transactions {
         for marker < 10 && i == b.endOfPeriod[marker] {
+            marker++
+            hashes = append(hashes, fct.Sha(fct.ZERO))
+        }
+        hash, err := trans.MarshalBinarySig()
+        if err != nil {
+            panic("Failed to get LedgerMR: "+err.Error())
+        }
+        hashes = append(hashes, fct.NewHash(hash))
+    }
+    // Add any lagging markers
+    for marker < 10 {
+        marker++
+        hashes = append(hashes, fct.Sha(fct.ZERO))
+    }
+    lmr := fct.ComputeMerkleRoot(hashes)
+    return lmr
+}
+
+
+func (b *FBlock) GetBodyMR() fct.IHash {
+    
+    b.EndOfPeriod(0)   // Clean up end of minute markers, if needed.
+    
+    hashes := make([]fct.IHash, 0, len(b.Transactions))
+    marker := 0
+    for i, trans := range b.Transactions {
+        for marker < len(b.endOfPeriod) && i == b.endOfPeriod[marker] {
             marker++
             hashes = append(hashes, fct.Sha(fct.ZERO))
         }
@@ -440,11 +434,9 @@ func (b *FBlock) GetBodyMR() fct.IHash {
         marker++
         hashes = append(hashes, fct.Sha(fct.ZERO))
     }
-    
+  
     b.BodyMR = fct.ComputeMerkleRoot(hashes)
-
-//    fmt.Println("blk:",b.GetDBHeight(),"GetBodyMR(): ",b.BodyMR)
-    
+ 
     return b.BodyMR
 }
 
@@ -454,9 +446,6 @@ func (b *FBlock) GetPrevKeyMR() fct.IHash {
 func (b *FBlock) SetPrevKeyMR(hash []byte) {
 	h := fct.NewHash(hash)
 	b.PrevKeyMR = h
-	
-//	fmt.Println("blk:",b.GetDBHeight(),"SetPrevKeyMR(): ",h)
-    
 }
 func (b *FBlock) GetPrevLedgerKeyMR() fct.IHash {
 	return b.PrevLedgerKeyMR
@@ -617,6 +606,8 @@ func (b FBlock) String() string {
 // Marshal to text.  Largely a debugging thing.
 func (b FBlock) CustomMarshalText() (text []byte, err error) {
 	var out bytes.Buffer
+
+	b.EndOfPeriod(0)   // Clean up end of minute markers, if needed.
 
 	out.WriteString("Transaction Block\n")
 	out.WriteString("  ChainID:       ")
