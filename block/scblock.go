@@ -400,7 +400,7 @@ func (b *FBlock) GetLedgerMR() fct.IHash {
 	hashes := make([]fct.IHash, 0, len(b.Transactions))
 	marker := 0
 	for i, trans := range b.Transactions {
-		for marker < 10 && i == b.endOfPeriod[marker] {
+		for marker < 10 && i != 0 && i == b.endOfPeriod[marker] {
 			marker++
 			hashes = append(hashes, fct.Sha(fct.ZERO))
 		}
