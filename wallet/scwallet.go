@@ -30,6 +30,10 @@ type ISCWallet interface {
 	Init(a ...interface{})
     // A New Seed is generated for the wallet.
     NewSeed(data []byte)
+    // Set the seed for a wallet
+    SetSeed(seed []byte)
+    // Get the seed for a wallet
+    GetSeed() ([]byte)
 	// Returns the backing database for the wallet
 	GetDB() database.IFDatabase
 	// Import a key pair.  If the private key is null, this is treated as an
@@ -77,8 +81,6 @@ type ISCWallet interface {
 }
 
 var factoshisPerEC uint64 = 100000
-
-var oneSCW SCWallet
 
 type SCWallet struct {
 	db            database.MapDB
@@ -235,6 +237,15 @@ func (w *SCWallet) NewSeed(data []byte) {
     seedhash := hasher.Sum(nil)
     w.nextSeed = seedhash
 }
+
+func (w *SCWallet) SetSeed(seed []byte) {
+    w.nextSeed = seed
+}
+
+func (w *SCWallet) GetSeed() ([]byte) {
+    return w.nextSeed 
+}
+
 
 func (w *SCWallet) Init(a ...interface{}) {
 	if w.isInitialized != false {

@@ -237,42 +237,34 @@ func(fs *FactoidState) ProcessEndOfBlock(){
     if fs.GetCurrentBlock() == nil {
         panic("Invalid state on initialization")
     }
-    blk:= fs.currentBlock
-    hash = fs.currentBlock.GetKeyMR()
+   
+    hash = fs.currentBlock.GetHash()
     hash2 = fs.currentBlock.GetLedgerKeyMR()
-    hash = fs.currentBlock.GetKeyMR()
-    if !bytes.Equal(hash.Bytes(),blk.GetKeyMR().Bytes()) {panic("KeyMR Changed! 1")}
+    
     fs.PutTransactionBlock(hash,fs.currentBlock)
-    if !bytes.Equal(hash.Bytes(),blk.GetKeyMR().Bytes()) {panic("KeyMR Changed! 2")}
     fs.PutTransactionBlock(fct.FACTOID_CHAINID_HASH,fs.currentBlock)
-    if !bytes.Equal(hash.Bytes(),blk.GetKeyMR().Bytes()) {panic("KeyMR Changed! 3")}
     
     fs.dbheight += 1
     fs.currentBlock = block.NewFBlock(fs.GetFactoshisPerEC(),fs.dbheight)
-    if !bytes.Equal(hash.Bytes(),blk.GetKeyMR().Bytes()) {panic("KeyMR Changed! 4")}
+
+    t := block.GetCoinbase(fs.GetTimeMilli())
+    err := fs.currentBlock.AddCoinbase(t)
+    if err !=nil {
+        panic(err.Error())
+    }
+    fs.UpdateTransaction(t)
     
+    if hash != nil {
+        fs.currentBlock.SetPrevKeyMR(hash.Bytes())
+        fs.currentBlock.SetPrevLedgerKeyMR(hash2.Bytes())
+    }
+
     cp.CP.AddUpdate(
         "blockheight",                                               // tag
         "status",                                                    // Category 
         fmt.Sprintf("Directory Block Height: %d",fs.GetDBHeight()),  // Title
         "",                                                          // Msg
         0)
-    
-    t := block.GetCoinbase(fs.GetTimeMilli())
-    err := fs.currentBlock.AddCoinbase(t)
-    if err !=nil {
-        panic(err.Error())
-    }
-    if !bytes.Equal(hash.Bytes(),blk.GetKeyMR().Bytes()) {panic("KeyMR Changed! 5")}
-    fs.UpdateTransaction(t)
-    if !bytes.Equal(hash.Bytes(),blk.GetKeyMR().Bytes()) {panic("KeyMR Changed! 6")}
-    
-    if hash != nil {
-        fs.currentBlock.SetPrevKeyMR(hash.Bytes())
-        fs.currentBlock.SetPrevLedgerKeyMR(hash2.Bytes())
-    }
-    if !bytes.Equal(hash.Bytes(),blk.GetKeyMR().Bytes()) {panic("KeyMR Changed! 7")}
-    
 }
 
 // End of Block means packing the current block away, and setting 
@@ -280,14 +272,6 @@ func(fs *FactoidState) ProcessEndOfBlock(){
 // this function is to replace the existing function: ProcessEndOfBlock
 func(fs *FactoidState) ProcessEndOfBlock2(nextBlkHeight uint32) {
     var hash,hash2 fct.IHash
-    
-    cp.CP.AddUpdate(
-        "blockheight",                                               // tag
-        "status",                                                    // Category 
-        fmt.Sprintf("Directory Block Height: %d",nextBlkHeight),  // Title
-        "",                                                          // Msg
-        0)
-
     
     if fs.currentBlock != nil {             // If no blocks, the current block is nil
         hash  = fs.currentBlock.GetHash()
@@ -307,6 +291,14 @@ func(fs *FactoidState) ProcessEndOfBlock2(nextBlkHeight uint32) {
         fs.currentBlock.SetPrevKeyMR(hash.Bytes())
         fs.currentBlock.SetPrevLedgerKeyMR(hash2.Bytes())
     }
+    
+    cp.CP.AddUpdate(
+        "blockheight",                                               // tag
+        "status",                                                    // Category 
+        fmt.Sprintf("Directory Block Height: %d",nextBlkHeight),  // Title
+                    "",                                                          // Msg
+                    0)
+    
     
 }
 
@@ -360,7 +352,13 @@ func(fs *FactoidState) LoadState() error  {
         
         blk = tblk
         time.Sleep(time.Second/100)
-    }
+        cp.CP.AddUpdate(
+            "loadState",
+            "status",                                                              // Category 
+            "Loading State",
+            fmt.Sprintf("Scanning backwards. Block: %d", blk.GetDBHeight()),
+            0)
+        }
 
     // Now run forward, and build our accounting
     for i := len(hashes)-1; i>=0; i-- {
@@ -371,12 +369,6 @@ func(fs *FactoidState) LoadState() error  {
                 "No block found for: %s",hashes[i].String())
             
         }
-        cp.CP.AddUpdate(
-            "Loading Factoid Blocks",                                            // tag
-            "info",                                                              // Category 
-            fmt.Sprintf("Loaded %v factoid blocks from disk", blk.GetDBHeight()),// Title
-            "",                                                                  // Msg
-            60)                                                                  // Expire 
         
         err := fs.AddTransactionBlock(blk)  // updates accounting for this block
         if err != nil { 
@@ -384,7 +376,14 @@ func(fs *FactoidState) LoadState() error  {
             return err 
         }
         time.Sleep(time.Second/100)
+        cp.CP.AddUpdate(
+            "loadState",
+            "status",                                                              // Category 
+            "Loading State",
+            fmt.Sprintf("Loading and Processing. Block: %d", blk.GetDBHeight()),
+        0)
     }
+    
     fs.dbheight = blk.GetDBHeight()
     fs.ProcessEndOfBlock()
     return nil

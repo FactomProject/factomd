@@ -369,7 +369,6 @@ func (b *FBlock) GetKeyMR() fct.IHash {
 		panic("Failed to create KeyMR: " + err.Error())
 	}
 	headerHash := fct.Sha(data)
-
 	cat := append(headerHash.Bytes(), bodyMR.Bytes()...)
 	kmr := fct.Sha(cat)
 
@@ -400,18 +399,20 @@ func (b *FBlock) GetLedgerMR() fct.IHash {
 	hashes := make([]fct.IHash, 0, len(b.Transactions))
 	marker := 0
 	for i, trans := range b.Transactions {
-		for marker < 10 && i != 0 && i == b.endOfPeriod[marker] {
+        for marker < len(b.endOfPeriod) && i != 0  && i == b.endOfPeriod[marker] {
 			marker++
 			hashes = append(hashes, fct.Sha(fct.ZERO))
 		}
-		hash, err := trans.MarshalBinarySig()
-		if err != nil {
+		data, err := trans.MarshalBinarySig()
+		hash := fct.Sha(data)
+        if err != nil {
 			panic("Failed to get LedgerMR: " + err.Error())
 		}
-		hashes = append(hashes, fct.NewHash(hash))
+		hashes = append(hashes, hash)
 	}
+		
 	// Add any lagging markers
-	for marker < 10 {
+	for marker < len(b.endOfPeriod) {
 		marker++
 		hashes = append(hashes, fct.Sha(fct.ZERO))
 	}
@@ -433,7 +434,7 @@ func (b *FBlock) GetBodyMR() fct.IHash {
 		hashes = append(hashes, trans.GetHash())
 	}
 	// Add any lagging markers
-	for marker < 10 {
+	for marker < len(b.endOfPeriod) {
 		marker++
 		hashes = append(hashes, fct.Sha(fct.ZERO))
 	}
