@@ -385,7 +385,7 @@ func (b *FBlock) GetLedgerKeyMR() fct.IHash {
 		panic("Failed to create LedgerKeyMR: " + err.Error())
 	}
 	headerHash := fct.Sha(data)
-	cat := append(headerHash.Bytes(), ledgerMR.Bytes()...)
+	cat := append(ledgerMR.Bytes(), headerHash.Bytes()...)
 	lkmr := fct.Sha(cat)
 
 	return lkmr
