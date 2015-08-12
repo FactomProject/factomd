@@ -43,8 +43,9 @@ func GetGenesisFBlock(ftime uint64, ExRate uint64, addressCnt int, Factoids uint
 	if err != nil {
 		fct.Prtln(" Error Adding Genesis Block: ", err)
 	}
-	genesisBlock.GetHash()
-
+        genesisBlock.SetExchRate(uint64(666666))
+	genesisBlock.GetKeyMR()
+    
 	return genesisBlock
 }
 */

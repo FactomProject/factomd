@@ -460,7 +460,7 @@ func (b *FBlock) SetPrevLedgerKeyMR(hash []byte) {
 
 func (b *FBlock) CalculateHashes() {
 	b.BodyMR = nil
-	b.BodyMR = b.GetBodyMR()
+	b.GetBodyMR()
 }
 
 func (b *FBlock) SetDBHeight(dbheight uint32) {
