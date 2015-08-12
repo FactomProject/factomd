@@ -371,7 +371,6 @@ func (b *FBlock) GetKeyMR() fct.IHash {
 	headerHash := fct.Sha(data)
 	cat := append(headerHash.Bytes(), bodyMR.Bytes()...)
 	kmr := fct.Sha(cat)
-
 	return kmr
 }
 
