@@ -314,7 +314,8 @@ func(fs *FactoidState) LoadState() error  {
                     "Creating the Factoid Genesis Block",                                // Title
                     "",                                                                  // Msg
                     60)                                                                  // Expire 
-        gb := block.GetGenesisFBlock(fs.GetTimeMilli(), 1000000,10,200000000000)
+        //gb := block.GetGenesisFBlock(fs.GetTimeMilli(), 1000000,10,200000000000)
+        gb:=block.GetGenesisFBlock()
         fs.PutTransactionBlock(gb.GetHash(),gb)
         fs.PutTransactionBlock(fct.FACTOID_CHAINID_HASH,gb)
         err := fs.AddTransactionBlock(gb)

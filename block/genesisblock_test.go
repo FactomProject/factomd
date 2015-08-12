@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 package block
-
+/*
 import (
 	"encoding/binary"
 	"fmt"
@@ -25,3 +25,4 @@ func Test_create_genesis_block(test *testing.T) {
 	fct.Prtln(gb)
 	fct.Prtln("Hash: ", gb.GetHash())
 }
+*/

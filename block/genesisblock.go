@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 package block
-
+/*
 import (
 	"fmt"
 	fct "github.com/FactomProject/factoid"
@@ -22,6 +22,7 @@ var genesisBlock IFBlock
 // This is close to .1 a penny per Entry Credit with a Factoid price of
 // 15 cents, and 2000 Factoids distributed to 10 addresses.
 //
+
 func GetGenesisFBlock(ftime uint64, ExRate uint64, addressCnt int, Factoids uint64) IFBlock {
 	if genesisBlock != nil {
 		return genesisBlock
@@ -46,3 +47,4 @@ func GetGenesisFBlock(ftime uint64, ExRate uint64, addressCnt int, Factoids uint
 
 	return genesisBlock
 }
+*/
