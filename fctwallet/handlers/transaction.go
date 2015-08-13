@@ -28,6 +28,11 @@ import (
 var badChar,_ = regexp.Compile("[^A-Za-z0-9_-]")
 var badHexChar,_ = regexp.Compile("[^A-Fa-f0-9]")
 
+type Response struct {
+    Response string
+    Success bool
+}
+
 func ValidateKey(key string) (msg string, valid bool) {
     if len(key) > fct.ADDRESS_LENGTH     { 
         return "Key is too long.  Keys must be less than 32 characters", false     
@@ -44,10 +49,7 @@ func ValidateKey(key string) (msg string, valid bool) {
 // True is sccuess! False is failure.  The Response is what the CLI
 // should report.
 func reportResults(ctx *web.Context, response string , success bool) {
-    b := struct{
-            Response string; 
-            Success bool
-         } {
+    b := Response {
             Response: response, 
             Success:  success,
          }
@@ -531,11 +533,7 @@ func HandleFactoidSubmit(ctx *web.Context, jsonkey string) {
     
     resp.Body.Close()
 
-    type returnMsg struct { 
-        Response string
-        Success  bool
-    }
-    r := new(returnMsg)
+    r := new(Response)
     if err := json.Unmarshal(body, r); err != nil {
         reportResults(ctx,err.Error(),false)
     }
@@ -736,13 +734,8 @@ func GetTransactions(ctx *web.Context) ([]byte, error) {
 
    
 func   HandleGetAddresses  (ctx *web.Context) {
-    
-    type x struct {
-        Body string
-        Success bool
-    }
-    b := new(x)
-    b.Body = string(GetAddresses())
+    b := new(Response)
+    b.Response = string(GetAddresses())
     b.Success = true
     j, err := json.Marshal(b)
     if err != nil {
@@ -753,18 +746,13 @@ func   HandleGetAddresses  (ctx *web.Context) {
 }    
   
 func   HandleGetTransactions  (ctx *web.Context) {
-    
-    type x struct {
-        Body string
-        Success bool
-    }
-    b := new(x)
+    b := new(Response)
     txt,err := GetTransactions(ctx)
     if err != nil {
         reportResults(ctx,err.Error(),false)
         return
     }
-    b.Body = string(txt)
+    b.Response = string(txt)
     b.Success = true
     j, err := json.Marshal(b)
     if err != nil {
