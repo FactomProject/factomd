@@ -92,4 +92,3 @@ func TestVariable_Integers(test *testing.T) {
 		}
 	}
 }
-

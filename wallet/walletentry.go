@@ -60,20 +60,16 @@ var _ IWalletEntry = (*WalletEntry)(nil)
  *       Stubs
  *************************************/
 
-
-
 func (b WalletEntry) GetHash() fct.IHash {
-    return nil
+	return nil
 }
-
-
 
 /***************************************
  *       Methods
  ***************************************/
 
 func (w WalletEntry) GetName() []byte {
-    return w.name
+	return w.name
 }
 
 func (w WalletEntry) GetType() string {

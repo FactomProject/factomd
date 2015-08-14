@@ -3,6 +3,7 @@
 // license that can be found in the LICENSE file.
 
 package block
+
 /*
 import (
 	"fmt"
@@ -45,7 +46,7 @@ func GetGenesisFBlock(ftime uint64, ExRate uint64, addressCnt int, Factoids uint
 	}
         genesisBlock.SetExchRate(uint64(666666))
 	genesisBlock.GetKeyMR()
-    
+
 	return genesisBlock
 }
 */

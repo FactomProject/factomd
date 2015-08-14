@@ -46,51 +46,49 @@ var _ IFDatabase = (*BoltDB)(nil)
  *       Stubs
  *************************************/
 
-
 func (BoltDB) GetAddress() (fct.IAddress, error) {
-    return nil,nil
+	return nil, nil
 }
 
 func (BoltDB) GetHash() fct.IHash {
-    return nil
+	return nil
 }
 
 func (BoltDB) GetDBHash() fct.IHash {
-    return nil
+	return nil
 }
 
-func (BoltDB)NumberOfSignatures() int {
-    return 1
+func (BoltDB) NumberOfSignatures() int {
+	return 1
 }
 
 func (BoltDB) CustomMarshalText() ([]byte, error) {
-    return nil,nil
+	return nil, nil
 }
 
 func (BoltDB) MarshalBinary() ([]byte, error) {
-    return nil,nil
+	return nil, nil
 }
 
-func (BoltDB) UnmarshalBinary(data []byte) ( error) {
-    return nil
+func (BoltDB) UnmarshalBinary(data []byte) error {
+	return nil
 }
 
 func (BoltDB) UnmarshalBinaryData(data []byte) ([]byte, error) {
-    return nil,nil
+	return nil, nil
 }
-
 
 /***************************************
  *       Methods
  ***************************************/
 func (bdb BoltDB) GetNewInstance() fct.IBlock {
-    return new(BoltDB)
+	return new(BoltDB)
 }
 
-func (bdb BoltDB) IsEqual(blk2 fct.IBlock) []fct.IBlock  {
-    b := make([]fct.IBlock,1,1)
-    b[0]=bdb
-    return b
+func (bdb BoltDB) IsEqual(blk2 fct.IBlock) []fct.IBlock {
+	b := make([]fct.IBlock, 1, 1)
+	b[0] = bdb
+	return b
 }
 
 func (bdb BoltDB) GetKeysValues(bucket []byte) (keys [][]byte, values []fct.IBlock) {

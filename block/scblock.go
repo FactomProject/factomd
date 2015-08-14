@@ -398,18 +398,18 @@ func (b *FBlock) GetLedgerMR() fct.IHash {
 	hashes := make([]fct.IHash, 0, len(b.Transactions))
 	marker := 0
 	for i, trans := range b.Transactions {
-        for marker < len(b.endOfPeriod) && i != 0  && i == b.endOfPeriod[marker] {
+		for marker < len(b.endOfPeriod) && i != 0 && i == b.endOfPeriod[marker] {
 			marker++
 			hashes = append(hashes, fct.Sha(fct.ZERO))
 		}
 		data, err := trans.MarshalBinarySig()
 		hash := fct.Sha(data)
-        if err != nil {
+		if err != nil {
 			panic("Failed to get LedgerMR: " + err.Error())
 		}
 		hashes = append(hashes, hash)
 	}
-		
+
 	// Add any lagging markers
 	for marker < len(b.endOfPeriod) {
 		marker++

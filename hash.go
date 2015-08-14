@@ -28,6 +28,7 @@ type Hash struct {
 }
 
 var _ IHash = (*Hash)(nil)
+
 func (h *Hash) MarshalText() ([]byte, error) {
 	return []byte(hex.EncodeToString(h.hash[:])), nil
 }
@@ -42,7 +43,7 @@ func (h *Hash) UnmarshalText(b []byte) error {
 }
 
 func (Hash) GetHash() IHash {
-    return nil
+	return nil
 }
 
 func (w1 Hash) GetDBHash() IHash {
@@ -184,24 +185,24 @@ func (e *Hash) Spew() string {
  **********************/
 
 // Create a Sha256 Hash from a byte array
-func Sha(p []byte) (IHash) {
-    h := new(Hash)
-    b := sha256.Sum256(p)
-    h.SetBytes(b[:])
-    return h
+func Sha(p []byte) IHash {
+	h := new(Hash)
+	b := sha256.Sum256(p)
+	h.SetBytes(b[:])
+	return h
 }
 
 // Shad Double Sha256 Hash; sha256(sha256(data))
-func Shad(data []byte) (IHash){
-    h1 := sha256.Sum256(data)
-    h2 := sha256.Sum256(h1[:])
-    h := new(Hash)
-    h.SetBytes(h2[:])
-    return h
+func Shad(data []byte) IHash {
+	h1 := sha256.Sum256(data)
+	h2 := sha256.Sum256(h1[:])
+	h := new(Hash)
+	h.SetBytes(h2[:])
+	return h
 }
 
 func NewHash(b []byte) IHash {
-    h := new(Hash)
-    h.SetBytes(b)
-    return h
+	h := new(Hash)
+	h.SetBytes(b)
+	return h
 }

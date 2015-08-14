@@ -31,16 +31,16 @@ type IFDatabase interface {
 	// Clear removes all the specified buckets from the database.
 	// This allows us to cleanly rebuild databases, or in the case
 	// of testing, ensure a particular database state.
-	// 
+	//
 	// Clear(bucketList [][]byte)
-	
+
 	// Users must call Init() prior to using the database.
 	Init(a ...interface{})
-    
-    // Users should defer a call to Close()
-    Close()
-    
-    // The Get methods return an entry, or nil if it does not yet
+
+	// Users should defer a call to Close()
+	Close()
+
+	// The Get methods return an entry, or nil if it does not yet
 	// exist.  No errors are thrown.
 	Get(bucket string, key factoid.IHash) factoid.IBlock
 	GetRaw(bucket []byte, key []byte) factoid.IBlock
@@ -50,25 +50,23 @@ type IFDatabase interface {
 	Put(bucket string, key factoid.IHash, value factoid.IBlock)
 	PutRaw(bucket []byte, key []byte, value factoid.IBlock)
 	PutKey(key IDBKey, value factoid.IBlock)
-    DeleteKey(bucket []byte, key[]byte)
-    
-    // A Backer database allows the implementation of a least recently
-    // used cache to purge data from memory.
-    SetBacker(db IFDatabase)     
-    GetBacker() IFDatabase
-    // A Persist database is needed to persist writes.  This is where 
-    // one can hook up a LevelDB or Bolt database.
-    SetPersist(db IFDatabase)
-    GetPersist() IFDatabase
-    // This is a bucket that holds small or limited information that
-    // does not have to go to disk.
-    DoNotPersist(bucket string )
-    // This bucket is written to disk.  We do not cache into memory 
-    // because the stuff in it is too big, and we don't need fast 
-    // access to it.
-    DoNotCache(bucket string )
-    // Get a list of the keys and values in a bucket
-    GetKeysValues(bucket []byte) (keys [][]byte, values []factoid.IBlock)
+	DeleteKey(bucket []byte, key []byte)
+
+	// A Backer database allows the implementation of a least recently
+	// used cache to purge data from memory.
+	SetBacker(db IFDatabase)
+	GetBacker() IFDatabase
+	// A Persist database is needed to persist writes.  This is where
+	// one can hook up a LevelDB or Bolt database.
+	SetPersist(db IFDatabase)
+	GetPersist() IFDatabase
+	// This is a bucket that holds small or limited information that
+	// does not have to go to disk.
+	DoNotPersist(bucket string)
+	// This bucket is written to disk.  We do not cache into memory
+	// because the stuff in it is too big, and we don't need fast
+	// access to it.
+	DoNotCache(bucket string)
+	// Get a list of the keys and values in a bucket
+	GetKeysValues(bucket []byte) (keys [][]byte, values []factoid.IBlock)
 }
-
-
