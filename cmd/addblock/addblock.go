@@ -3,6 +3,7 @@
 // license that can be found in the LICENSE file.
 
 package main
+
 /*
 import (
 	"os"
@@ -135,4 +136,4 @@ func main() {
 }
 */
 
-func main() { }
+func main() {}

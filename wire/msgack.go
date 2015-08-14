@@ -8,9 +8,9 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"github.com/FactomProject/FactomCode/common"
 	"io"
 	"io/ioutil"
-	"github.com/FactomProject/FactomCode/common"
 )
 
 // Acknowledgement Type
@@ -78,8 +78,8 @@ func (msg *MsgAcknowledgement) BtcDecode(r io.Reader, pver uint32) error {
 	newData, err := ioutil.ReadAll(r)
 	if err != nil {
 		return fmt.Errorf("MsgAcknowledgement.BtcDecode reader is invalid")
-	}	
-	
+	}
+
 	if len(newData) != 169 {
 		return fmt.Errorf("MsgAcknowledgement.BtcDecode reader does not have right length: ", len(newData))
 	}
@@ -113,14 +113,13 @@ func (msg *MsgAcknowledgement) BtcEncode(w io.Writer, pver uint32) error {
 
 	binary.Write(&buf, binary.BigEndian, msg.Height)
 	buf.Write(msg.ChainID.Bytes())
-	
 
 	binary.Write(&buf, binary.BigEndian, msg.Index)
 	buf.Write([]byte{msg.Type})
 	buf.Write(msg.Affirmation.Bytes())
 	buf.Write(msg.SerialHash[:])
 	buf.Write(msg.Signature[:])
-	
+
 	w.Write(buf.Bytes())
 
 	return nil
