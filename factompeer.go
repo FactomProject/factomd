@@ -136,7 +136,11 @@ func (p *peer) handleGetEntryDataMsg(msg *wire.MsgGetEntryData) {
 		}
 
 		for _, ebEntry := range blk.Body.EBEntries {
-
+			
+			//Skip the minute markers 
+			if ebEntry.IsMinuteMarker() {
+				continue
+			}
 			var err error
 			err = p.pushEntryMsg(ebEntry, c, waitChan)
 			if err != nil {
