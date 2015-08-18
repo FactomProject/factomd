@@ -50,7 +50,16 @@ func factomForkInit(s *server) {
 
 			case wire.Message:
 				wireMsg, _ := msg.(wire.Message)
-				s.BroadcastMessage(wireMsg)
+				//s.BroadcastMessage(wireMsg)
+				if ClientOnly {
+					fmt.Println("broadcasting from client.")
+					s.BroadcastMessage(wireMsg)
+				} else {
+					if _, ok := msg.(*wire.MsgAcknowledgement); ok {
+						fmt.Println("broadcasting from server.")
+						s.BroadcastMessage(wireMsg)
+					}
+				}
 
 			default:
 				panic(fmt.Sprintf("bad outMsgQueue message received: %v", msg))
@@ -193,31 +202,42 @@ func Start_btcd(
 // Handle factom app imcoming msg
 func (p *peer) handleCommitChainMsg(msg *wire.MsgCommitChain) {
 	// Add the msg to inbound msg queue
-	inMsgQueue <- msg
+	if !ClientOnly {
+		inMsgQueue <- msg
+	}
 }
 
 // Handle factom app imcoming msg
 func (p *peer) handleRevealChainMsg(msg *wire.MsgRevealChain) {
 	// Add the msg to inbound msg queue
-	inMsgQueue <- msg
+	//inMsgQueue <- msg
+	if !ClientOnly {
+		inMsgQueue <- msg
+	}
 }
 
 // Handle factom app imcoming msg
 func (p *peer) handleCommitEntryMsg(msg *wire.MsgCommitEntry) {
 	// Add the msg to inbound msg queue
-	inMsgQueue <- msg
+	if !ClientOnly {
+		inMsgQueue <- msg
+	}
 }
 
 // Handle factom app imcoming msg
 func (p *peer) handleRevealEntryMsg(msg *wire.MsgRevealEntry) {
 	// Add the msg to inbound msg queue
-	inMsgQueue <- msg
+	if !ClientOnly {
+		inMsgQueue <- msg
+	}
 }
 
 // Handle factom app imcoming msg
 func (p *peer) handleAcknoledgementMsg(msg *wire.MsgAcknowledgement) {
 	// Add the msg to inbound msg queue
-	inMsgQueue <- msg
+	if !ClientOnly {
+		inMsgQueue <- msg
+	}
 }
 
 // returns true if the message should be relayed, false otherwise

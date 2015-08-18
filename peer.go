@@ -32,7 +32,7 @@ var _ = util.Trace
 
 const (
 	// maxProtocolVersion is the max protocol version the peer supports.
-	maxProtocolVersion = 1004 //version starts from 1000 for Factom
+	maxProtocolVersion = 1003 //version starts from 1000 for Factom
 
 	// outputBufferSize is the number of elements the output channels use.
 	outputBufferSize = 50
@@ -1597,19 +1597,19 @@ out:
 			// Factom additions
 		case *wire.MsgCommitChain:
 			p.handleCommitChainMsg(msg)
-			p.FactomRelay(msg)
+			//p.FactomRelay(msg)
 
 		case *wire.MsgRevealChain:
 			p.handleRevealChainMsg(msg)
-			p.FactomRelay(msg)
+			//p.FactomRelay(msg)
 
 		case *wire.MsgCommitEntry:
 			p.handleCommitEntryMsg(msg)
-			p.FactomRelay(msg)
+			//p.FactomRelay(msg)
 
 		case *wire.MsgRevealEntry:
 			p.handleRevealEntryMsg(msg)
-			p.FactomRelay(msg)
+			//p.FactomRelay(msg)
 
 		case *wire.MsgAcknowledgement:
 			p.handleAcknoledgementMsg(msg)
