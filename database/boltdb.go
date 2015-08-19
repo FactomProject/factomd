@@ -145,24 +145,37 @@ func (d *BoltDB) Clear(bucketList [][]byte) {
 //      Init(bucketList [][]byte, instances map[[32]byte]IBlock, filename string)
 //
 func (d *BoltDB) Init(a ...interface{}) {
-	d.doNotCache = make(map[string][]byte, 5)
-	d.doNotPersist = make(map[string][]byte, 5)
-
+	
+	if d.doNotCache == nil {
+		d.doNotCache = make(map[string][]byte, 5)
+		d.doNotPersist = make(map[string][]byte, 5)
+	}
+	
 	bucketList := a[0].([][]byte)
-	instances := a[1].(map[[32]byte]fct.IBlock)
-	if len(a) < 3 {
-		d.filename = "/tmp/bolt_my.db"
-	} else {
-		d.filename = a[2].(string)
+	
+	if d.instances == nil {
+		d.instances = a[1].(map[[32]byte]fct.IBlock)
+	}else{
+		for k, v := range a[1].(map[[32]byte]fct.IBlock) {
+			d.instances[k]=v
+		}
 	}
+	
+	if d.db == nil {
+		if len(a) < 3 {
+			d.filename = "/tmp/bolt_my.db"
+		} else {
+			d.filename = a[2].(string)
+		}
 
-	tdb, err := bolt.Open(d.filename, 0600, nil)
-	if err != nil {
-		panic("Database was not found, and could not be created.")
+		tdb, err := bolt.Open(d.filename, 0600, nil)
+		if err != nil {
+			panic("Database was not found, and could not be created.")
+		}
+
+		d.db = tdb
 	}
-
-	d.db = tdb
-
+	
 	for _, bucket := range bucketList {
 		d.db.Update(func(tx *bolt.Tx) error {
 			_, err := tx.CreateBucketIfNotExists(bucket)
@@ -173,7 +186,6 @@ func (d *BoltDB) Init(a ...interface{}) {
 		})
 	}
 
-	d.instances = instances
 }
 
 func (d *BoltDB) Close() {
