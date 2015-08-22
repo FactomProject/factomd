@@ -315,7 +315,7 @@ func (w *SCWallet) GetAddressHash(address fct.IAddress) (fct.IAddress, error) {
 func (w *SCWallet) AddInput(trans fct.ITransaction, address fct.IAddress, amount uint64) error {
 	we, adr, err := w.getWalletEntry([]byte(fct.W_RCD_ADDRESS_HASH), address)
 	if err != nil {
-		return err
+		adr = address
 	}
 
 	trans.AddInput(fct.CreateAddress(adr), amount)
@@ -346,9 +346,10 @@ func (w *SCWallet) UpdateInput(trans fct.ITransaction, index int, address fct.IA
 
 func (w *SCWallet) AddOutput(trans fct.ITransaction, address fct.IAddress, amount uint64) error {
 
+	
 	_, adr, err := w.getWalletEntry([]byte(fct.W_RCD_ADDRESS_HASH), address)
 	if err != nil {
-		return err
+		adr = address
 	}
 
 	trans.AddOutput(fct.CreateAddress(adr), amount)
@@ -362,7 +363,7 @@ func (w *SCWallet) AddECOutput(trans fct.ITransaction, address fct.IAddress, amo
 
 	_, adr, err := w.getWalletEntry([]byte(fct.W_RCD_ADDRESS_HASH), address)
 	if err != nil {
-		return err
+		adr = address
 	}
 
 	trans.AddECOutput(fct.CreateAddress(adr), amount)
