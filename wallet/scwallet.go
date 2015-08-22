@@ -353,9 +353,7 @@ func (w *SCWallet) AddOutput(trans fct.ITransaction, address fct.IAddress, amoun
 	}
 
 	trans.AddOutput(fct.CreateAddress(adr), amount)
-	if err != nil {
-		return err
-	}
+
 	return nil
 }
 
@@ -367,9 +365,6 @@ func (w *SCWallet) AddECOutput(trans fct.ITransaction, address fct.IAddress, amo
 	}
 
 	trans.AddECOutput(fct.CreateAddress(adr), amount)
-	if err != nil {
-		return err
-	}
 	return nil
 }
 
