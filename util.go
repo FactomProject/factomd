@@ -207,11 +207,12 @@ func ConvertFixedPoint(amt string) (string, error) {
 //  Creates the binary form.  Just needs the conversion to base58
 //  for display.
 func ConvertAddressToUser(prefix []byte, addr IAddress) []byte {
-	sha256d := Sha(Sha(addr.Bytes()).Bytes()).Bytes()
-	userd := make([]byte, 0, 32)
-	userd = append(userd, prefix...)
-	userd = append(userd, addr.Bytes()...)
-	userd = append(userd, sha256d[:4]...)
+	dat := prefix
+	dat = append(dat,addr.Bytes()...)
+	sha256d := Sha(Sha(dat).Bytes()).Bytes()
+	userd := prefix
+	userd  = append(userd,addr.Bytes()...)
+	userd  = append(userd,sha256d[:4]...)
 	return userd
 }
 
@@ -245,7 +246,7 @@ func validateUserStr(prefix []byte, userFAddr string) bool {
 		return false
 
 	}
-	sha256d := Sha(Sha(v[2:34]).Bytes()).Bytes()
+	sha256d := Sha(Sha(v[:34]).Bytes()).Bytes()
 	if bytes.Compare(sha256d[:4], v[34:]) != 0 {
 		return false
 	}
