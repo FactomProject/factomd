@@ -41,7 +41,7 @@ func (oa OutECAddress) GetName() string {
 }
 
 func (a OutECAddress) CustomMarshalText() (text []byte, err error) {
-	return a.CustomMarshalText2("ecoutput")
+	return a.CustomMarshalTextEC2("ecoutput")
 }
 
 /******************************
