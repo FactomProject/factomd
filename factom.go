@@ -52,11 +52,11 @@ func factomForkInit(s *server) {
 				wireMsg, _ := msg.(wire.Message)
 				//s.BroadcastMessage(wireMsg)
 				if ClientOnly {
-					fmt.Println("broadcasting from client.")
+					//fmt.Println("broadcasting from client.")
 					s.BroadcastMessage(wireMsg)
 				} else {
 					if _, ok := msg.(*wire.MsgAcknowledgement); ok {
-						fmt.Println("broadcasting from server.")
+						//fmt.Println("broadcasting from server.")
 						s.BroadcastMessage(wireMsg)
 					}
 				}
