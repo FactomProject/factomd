@@ -6,6 +6,7 @@ package wallet
 
 import fct "github.com/FactomProject/factoid"
 import (
+	"bytes"
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
@@ -21,6 +22,28 @@ var _ = ed25519.Sign
 var _ = rand.New
 var _ = binary.Write
 var _ = fct.Prtln
+
+func TestGenerateKeyFromPrivateKey(t *testing.T) {
+	w := new(SCWallet) // make me a wallet
+	w.Init()
+
+	pub, priv, err := w.generateKey()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Errorf("pub - %X, priv - %X, err - %v", pub, priv, err)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	pub2, priv2, err := w.generateKeyFromPrivateKey(priv[:32])
+	if bytes.Compare(pub, pub2) != 0 {
+		t.Errorf("Public keys are not identical")
+	}
+	if bytes.Compare(priv, priv2) != 0 {
+		t.Errorf("Private keys are not identical")
+	}
+}
 
 func Test_create_scwallet(test *testing.T) {
 	w := new(SCWallet) // make me a wallet

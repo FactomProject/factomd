@@ -483,6 +483,8 @@ func (b FBlock) ValidateTransaction(index int, trans fct.ITransaction) error {
 			return err
 		}
 	}
+
+	//Ignore coinbase transaction's signatures
 	if len(b.Transactions) > 0 {
 		err := trans.ValidateSignatures()
 		if err != nil {

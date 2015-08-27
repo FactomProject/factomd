@@ -39,10 +39,14 @@ type ISCWallet interface {
 	// Import a key pair.  If the private key is null, this is treated as an
 	// external address, useful only as a destination
 	AddKeyPair(addrtype string, name []byte, public []byte, private []byte) (fct.IAddress, error)
-	// Generate an Factoid Address
+	// Generate a Factoid Address
 	GenerateFctAddress(name []byte, m int, n int) (fct.IAddress, error)
 	// Generate an Entry Credit Address
 	GenerateECAddress(name []byte) (fct.IAddress, error)
+	// Generate a Factoid Address from a private key
+	GenerateFctAddressFromPrivateKey(name []byte, privateKey []byte, m int, n int) (fct.IAddress, error)
+	// Generate an Entry Credit Address from a privatekey
+	GenerateECAddressFromPrivateKey(name []byte, privateKey []byte) (fct.IAddress, error)
 	// Get details for an address
 	GetAddressDetailsAddr(addr []byte) IWalletEntry
 	// Returns the Address hash (what we use for inputs) given the public key
@@ -164,8 +168,21 @@ func (w *SCWallet) GetAddressDetailsAddr(name []byte) IWalletEntry {
 	return w.db.GetRaw([]byte("wallet.address.addr"), name).(IWalletEntry)
 }
 
-func (w *SCWallet) generateAddress(addrtype string, name []byte, m int, n int) (fct.IAddress, error) {
+func (w *SCWallet) generateAddressFromPrivateKey(addrtype string, name []byte, privateKey []byte, m int, n int) (fct.IAddress, error) {
+	if addrtype == "fct" && (m != 1 || n != 1) {
+		return nil, fmt.Errorf("Multisig addresses are not supported at this time")
+	}
 
+	// Get a new public/private key pair
+	pub, pri, err := w.generateKeyFromPrivateKey(privateKey)
+	if err != nil {
+		return nil, err
+	}
+
+	return w.AddKeyPair(addrtype, name, pub, pri)
+}
+
+func (w *SCWallet) generateAddress(addrtype string, name []byte, m int, n int) (fct.IAddress, error) {
 	if addrtype == "fct" && (m != 1 || n != 1) {
 		return nil, fmt.Errorf("Multisig addresses are not supported at this time")
 	}
@@ -222,6 +239,13 @@ func (w *SCWallet) GenerateFctAddress(name []byte, m int, n int) (hash fct.IAddr
 	return w.generateAddress("fct", name, m, n)
 }
 
+func (w *SCWallet) GenerateECAddressFromPrivateKey(name []byte, privateKey []byte) (hash fct.IAddress, err error) {
+	return w.generateAddressFromPrivateKey("ec", name, privateKey, 1, 1)
+}
+func (w *SCWallet) GenerateFctAddressFromPrivateKey(name []byte, privateKey []byte, m int, n int) (hash fct.IAddress, err error) {
+	return w.generateAddressFromPrivateKey("fct", name, privateKey, m, n)
+}
+
 func (w *SCWallet) NewSeed(data []byte) {
 	if len(data) == 0 {
 		return
@@ -268,6 +292,28 @@ func (w *SCWallet) generateKey() (public []byte, private []byte, err error) {
 	keypair := new([64]byte)
 	// the secret part of the keypair is the top 32 bytes of the sha512 hash
 	copy(keypair[:32], w.nextSeed[:32])
+	// the crypto library puts the pubkey in the lower 32 bytes and returns the same 32 bytes.
+	pub := ed25519.GetPublicKey(keypair)
+
+	// Iterate the deterministic key private generator
+	// so it is ready for the next time this function is called.
+	hasher := sha512.New()
+	hasher.Write(w.nextSeed)
+	w.nextSeed = hasher.Sum(nil)
+
+	return pub[:], keypair[:], err
+}
+
+func (w *SCWallet) generateKeyFromPrivateKey(privateKey []byte) (public []byte, private []byte, err error) {
+	if len(privateKey) == 64 {
+		privateKey = privateKey[:32]
+	}
+	if len(privateKey) != 32 {
+		return nil, nil, errors.New("Wrong privateKey size")
+	}
+	keypair := new([64]byte)
+
+	copy(keypair[:32], privateKey[:])
 	// the crypto library puts the pubkey in the lower 32 bytes and returns the same 32 bytes.
 	pub := ed25519.GetPublicKey(keypair)
 
@@ -346,7 +392,6 @@ func (w *SCWallet) UpdateInput(trans fct.ITransaction, index int, address fct.IA
 
 func (w *SCWallet) AddOutput(trans fct.ITransaction, address fct.IAddress, amount uint64) error {
 
-	
 	_, adr, err := w.getWalletEntry([]byte(fct.W_RCD_ADDRESS_HASH), address)
 	if err != nil {
 		adr = address
