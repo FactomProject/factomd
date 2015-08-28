@@ -43,10 +43,22 @@ type ISCWallet interface {
 	GenerateFctAddress(name []byte, m int, n int) (fct.IAddress, error)
 	// Generate an Entry Credit Address
 	GenerateECAddress(name []byte) (fct.IAddress, error)
+
 	// Generate a Factoid Address from a private key
 	GenerateFctAddressFromPrivateKey(name []byte, privateKey []byte, m int, n int) (fct.IAddress, error)
 	// Generate an Entry Credit Address from a privatekey
 	GenerateECAddressFromPrivateKey(name []byte, privateKey []byte) (fct.IAddress, error)
+
+	// Generate a Factoid Address from a human readible private key
+	GenerateFctAddressFromHumanReadiblePrivateKey(name []byte, privateKey string, m int, n int) (fct.IAddress, error)
+	// Generate an Entry Credit Address from a human readible private key
+	GenerateECAddressFromHumanReadiblePrivateKey(name []byte, privateKey string) (fct.IAddress, error)
+
+	// Generate a Factoid Address from a human readible private key
+	GenerateFctAddressFromMnemonic(name []byte, mnemonic string, m int, n int) (fct.IAddress, error)
+	// Generate an Entry Credit Address from a human readible private key
+	GenerateECAddressFromMnemonic(name []byte, mnemonic string) (fct.IAddress, error)
+
 	// Get details for an address
 	GetAddressDetailsAddr(addr []byte) IWalletEntry
 	// Returns the Address hash (what we use for inputs) given the public key
@@ -244,6 +256,38 @@ func (w *SCWallet) GenerateECAddressFromPrivateKey(name []byte, privateKey []byt
 }
 func (w *SCWallet) GenerateFctAddressFromPrivateKey(name []byte, privateKey []byte, m int, n int) (hash fct.IAddress, err error) {
 	return w.generateAddressFromPrivateKey("fct", name, privateKey, m, n)
+}
+
+func (w *SCWallet) GenerateECAddressFromHumanReadiblePrivateKey(name []byte, privateKey string) (fct.IAddress, error) {
+	priv, err := HumanReadiblyPrivateKeyToPrivateKey(privateKey)
+	if err != nil {
+		return nil, err
+	}
+	return w.GenerateECAddressFromPrivateKey(name, priv)
+}
+
+func (w *SCWallet) GenerateFctAddressFromHumanReadiblePrivateKey(name []byte, privateKey string, m int, n int) (fct.IAddress, error) {
+	priv, err := HumanReadiblyPrivateKeyToPrivateKey(privateKey)
+	if err != nil {
+		return nil, err
+	}
+	return w.GenerateFctAddressFromPrivateKey(name, priv, m, n)
+}
+
+func (w *SCWallet) GenerateECAddressFromMnemonic(name []byte, mnemonic string) (fct.IAddress, error) {
+	priv, err := MnemonicStringToPrivateKey(mnemonic)
+	if err != nil {
+		return nil, err
+	}
+	return w.GenerateECAddressFromPrivateKey(name, priv)
+}
+
+func (w *SCWallet) GenerateFctAddressFromMnemonic(name []byte, mnemonic string, m int, n int) (fct.IAddress, error) {
+	priv, err := MnemonicStringToPrivateKey(mnemonic)
+	if err != nil {
+		return nil, err
+	}
+	return w.GenerateFctAddressFromPrivateKey(name, priv, m, n)
 }
 
 func (w *SCWallet) NewSeed(data []byte) {

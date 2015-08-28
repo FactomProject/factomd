@@ -31,7 +31,6 @@ func TestGenerateKeyFromPrivateKey(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Errorf("pub - %X, priv - %X, err - %v", pub, priv, err)
 	if err != nil {
 		t.Fatal(err)
 	}
