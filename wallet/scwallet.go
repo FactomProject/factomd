@@ -38,7 +38,7 @@ type ISCWallet interface {
 	GetDB() database.IFDatabase
 	// Import a key pair.  If the private key is null, this is treated as an
 	// external address, useful only as a destination
-	AddKeyPair(addrtype string, name []byte, public []byte, private []byte) (fct.IAddress, error)
+	AddKeyPair(addrtype string, name []byte, public []byte, private []byte, generateRandomIfAddressPresent bool) (fct.IAddress, error)
 	// Generate a Factoid Address
 	GenerateFctAddress(name []byte, m int, n int) (fct.IAddress, error)
 	// Generate an Entry Credit Address
@@ -191,7 +191,7 @@ func (w *SCWallet) generateAddressFromPrivateKey(addrtype string, name []byte, p
 		return nil, err
 	}
 
-	return w.AddKeyPair(addrtype, name, pub, pri)
+	return w.AddKeyPair(addrtype, name, pub, pri, false)
 }
 
 func (w *SCWallet) generateAddress(addrtype string, name []byte, m int, n int) (fct.IAddress, error) {
@@ -205,10 +205,10 @@ func (w *SCWallet) generateAddress(addrtype string, name []byte, m int, n int) (
 		return nil, err
 	}
 
-	return w.AddKeyPair(addrtype, name, pub, pri)
+	return w.AddKeyPair(addrtype, name, pub, pri, true)
 }
 
-func (w *SCWallet) AddKeyPair(addrtype string, name []byte, pub []byte, pri []byte) (address fct.IAddress, err error) {
+func (w *SCWallet) AddKeyPair(addrtype string, name []byte, pub []byte, pri []byte, generateRandomIfAddressPresent bool) (address fct.IAddress, err error) {
 
 	we := new(WalletEntry)
 
@@ -221,9 +221,13 @@ func (w *SCWallet) AddKeyPair(addrtype string, name []byte, pub []byte, pri []by
 	// Make sure we have not generated this pair before;  Keep
 	// generating until we have a unique pair.
 	for w.db.GetRaw([]byte(fct.W_ADDRESS_PUB_KEY), pub) != nil {
-		pub, pri, err = w.generateKey()
-		if err != nil {
-			return nil, err
+		if generateRandomIfAddressPresent {
+			pub, pri, err = w.generateKey()
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			return nil, fmt.Errorf("Address already exists in the wallet")
 		}
 	}
 
