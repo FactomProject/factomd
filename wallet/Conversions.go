@@ -3,8 +3,8 @@ package wallet
 import (
 	"fmt"
 	"github.com/btcsuitereleases/btcutil/base58"
-	"github.com/tyler-smith/go-bip32"
-	"github.com/tyler-smith/go-bip39"
+	"github.com/FactomProject/go-bip32"
+	"github.com/FactomProject/go-bip39"
 	"strings"
 )
 
