@@ -253,7 +253,6 @@ func (fs *FactoidState) ProcessEndOfBlock() {
 		panic("Invalid state on initialization")
 	}
 
-	fs.currentBlock.SetExchRate(fs.GetFactoshisPerEC())
 	hash = fs.currentBlock.GetHash()
 	hash2 = fs.currentBlock.GetLedgerKeyMR()
 
@@ -290,7 +289,6 @@ func (fs *FactoidState) ProcessEndOfBlock2(nextBlkHeight uint32) {
 	var hash, hash2 fct.IHash
 
 	if fs.currentBlock != nil { // If no blocks, the current block is nil
-		fs.currentBlock.SetExchRate(fs.GetFactoshisPerEC())
 		hash = fs.currentBlock.GetHash()
 		hash2 = fs.currentBlock.GetLedgerKeyMR()
 	}
