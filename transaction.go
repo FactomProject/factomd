@@ -33,6 +33,9 @@ type ITransaction interface {
 	// RCDs are generally added at the same time.
 	AddRCD(rcd IRCD)
 
+	// Get the hash of the signed portion (not including signatures)
+	GetSigHash() IHash
+	
 	// Accessors the inputs, outputs, and Entry Credit outputs (ecoutputs)
 	// to this transaction.
 	GetInput(int) (IInAddress, error)
@@ -103,6 +106,16 @@ func (t Transaction) GetHash() IHash {
 	}
 	return Sha(m)
 }
+
+func (t Transaction) GetSigHash() IHash {
+	m, err := t.MarshalBinarySig()
+	if err != nil {
+		return nil
+	}
+	return Sha(m)
+}
+
+
 
 func (t Transaction) String() string {
 	txt, err := t.CustomMarshalText()
