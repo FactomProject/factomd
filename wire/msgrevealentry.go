@@ -80,3 +80,8 @@ func (msg *MsgRevealEntry) Sha() (ShaHash, error) {
 
 	return sha, nil
 }
+
+// Check whether the msg can pass the message level validations
+func (msg *MsgRevealEntry) IsValid() bool {
+	return msg.Entry.IsValid()
+}

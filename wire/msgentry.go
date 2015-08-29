@@ -67,3 +67,4 @@ func (msg *MsgEntry) MaxPayloadLength(pver uint32) uint32 {
 func NewMsgEntry() *MsgEntry {
 	return &MsgEntry{}
 }
+
