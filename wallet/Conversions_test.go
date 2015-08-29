@@ -16,7 +16,7 @@ func TestMnemonicStringToPrivateKey(t *testing.T) {
 }
 
 func TestHumanReadiblyPrivateKeyToPrivateKey(t *testing.T) {
-	priv, err := HumanReadiblyPrivateKeyToPrivateKey("Fs37iVGnZ7jShPudsXuB98qURxk35eLrmh9cgPuPpTXHAJEBkUTh")
+	priv, err := HumanReadableFactoidPrivateKeyToPrivateKey("Fs37iVGnZ7jShPudsXuB98qURxk35eLrmh9cgPuPpTXHAJEBkUTh")
 	if err != nil {
 		t.Error(err)
 	}

@@ -261,7 +261,7 @@ func (w *SCWallet) GenerateFctAddressFromPrivateKey(name []byte, privateKey []by
 }
 
 func (w *SCWallet) GenerateECAddressFromHumanReadablePrivateKey(name []byte, privateKey string) (fct.IAddress, error) {
-	priv, err := HumanReadiblyPrivateKeyToPrivateKey(privateKey)
+	priv, err := HumanReadableECPrivateKeyToPrivateKey(privateKey)
 	if err != nil {
 		return nil, err
 	}
@@ -269,7 +269,7 @@ func (w *SCWallet) GenerateECAddressFromHumanReadablePrivateKey(name []byte, pri
 }
 
 func (w *SCWallet) GenerateFctAddressFromHumanReadablePrivateKey(name []byte, privateKey string, m int, n int) (fct.IAddress, error) {
-	priv, err := HumanReadiblyPrivateKeyToPrivateKey(privateKey)
+	priv, err := HumanReadableFactoidPrivateKeyToPrivateKey(privateKey)
 	if err != nil {
 		return nil, err
 	}
