@@ -31,7 +31,7 @@ var mainNetParams = params{
 	Params:  &chaincfg.MainNetParams,
 	rpcPort: "8384",
 	dnsSeeds: []string{
-		"52.19.117.149",
+		"factom.network",
 		/*
 			"seed.bitcoin.sipa.be",
 			"dnsseed.bluematt.me",
