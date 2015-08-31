@@ -2,15 +2,18 @@ package wallet
 
 import (
 	"fmt"
-	"github.com/btcsuitereleases/btcutil/base58"
 	"github.com/FactomProject/go-bip32"
 	"github.com/FactomProject/go-bip39"
+	"github.com/btcsuitereleases/btcutil/base58"
 	"strings"
 )
 
 func MnemonicStringToPrivateKey(mnemonic string) ([]byte, error) {
 	mnemonic = strings.ToLower(strings.TrimSpace(mnemonic))
-	seed := bip39.NewSeed(mnemonic, "")
+	seed, err := bip39.NewSeedWithErrorChecking(mnemonic, "")
+	if err != nil {
+		return nil, err
+	}
 
 	masterKey, err := bip32.NewMasterKey(seed)
 	if err != nil {
