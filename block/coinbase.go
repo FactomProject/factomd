@@ -15,7 +15,7 @@ var _ = fmt.Println
 
 var adrs []fct.IAddress
 var amount uint64 = 5000000000 // One Factoid (remember, fixed point math!
-var addressCnt int = 10        // 10 addresses for now.
+var addressCnt int = 0         // No coinbase payments until Milestone 3
 
 // Allows the amount paid in the coinbase to be modified.   This is
 // NOT allowed in production!  That's why it is here in Test!
@@ -30,7 +30,7 @@ func UpdateAmount(amt uint64) {
 //
 func GetCoinbase(ftime uint64) fct.ITransaction {
 
-	if adrs == nil {
+	if false && adrs == nil {
 		var w wallet.ISCWallet
 		w = new(wallet.SCWallet)
 		w.Init()
