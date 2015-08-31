@@ -11,9 +11,9 @@ package wallet
 
 import (
 	"crypto/sha512"
+	"crypto/rand"
 	"errors"
 	"fmt"
-
 	"github.com/FactomProject/ed25519"
 	fct "github.com/FactomProject/factoid"
 	"github.com/FactomProject/factoid/database"
@@ -250,7 +250,7 @@ func (w *SCWallet) AddKeyPair(addrtype string, name []byte, pub []byte, pri []by
 	w.db.PutRaw([]byte(fct.W_RCD_ADDRESS_HASH), address.Bytes(), we)
 	w.db.PutRaw([]byte(fct.W_ADDRESS_PUB_KEY), pub, we)
 	w.db.PutRaw([]byte(fct.W_NAME), name, we)
-
+	
 	return
 }
 
@@ -313,6 +313,12 @@ func (w *SCWallet) SetSeed(seed []byte) {
 }
 
 func (w *SCWallet) GetSeed() []byte {
+	iroot := w.db.GetRaw([]byte(fct.W_SEEDS),fct.CURRENT_SEED[:])
+	if iroot == nil {
+		randomstuff := make([]byte,1024)
+		rand.Read(randomstuff)
+		w.NewSeed(randomstuff)
+	}
 	hasher := sha512.New()
 	hasher.Write([]byte(w.NextSeed))
 	seedhash := hasher.Sum(nil)
