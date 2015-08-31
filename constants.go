@@ -20,6 +20,8 @@ const (
 	DB_EC_BALANCES    = "Entry_Credit_Address_balances"
 
 	// Wallet
+	W_SEEDS            = "wallet.address.seeds"			// Holds the root seeds for address generation
+	W_SEED_HEADS       = "wallet.address.seed.heads"	// Holds the latest generated seed for each root seed.
 	W_RCD_ADDRESS_HASH = "wallet.address.addr"
 	W_ADDRESS_PUB_KEY  = "wallet.public.key"
 	W_NAME             = "wallet.address.name"
@@ -39,3 +41,5 @@ var FACTOID_CHAINID_HASH = NewHash(FACTOID_CHAINID)
 // Zero Hash
 var ZERO_HASH = []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 var ZERO = []byte{0}
+
+var CURRENT_SEED = [32]byte{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}

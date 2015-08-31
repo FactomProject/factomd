@@ -34,6 +34,8 @@ type ISCWallet interface {
 	SetSeed(seed []byte)
 	// Get the seed for a wallet
 	GetSeed() []byte
+	// Set the current deterministic root (Initialization function)
+	SetRoot([]byte)
 	// Returns the backing database for the wallet
 	GetDB() database.IFDatabase
 	// Import a key pair.  If the private key is null, this is treated as an
@@ -98,7 +100,8 @@ var factoshisPerEC uint64 = 100000
 type SCWallet struct {
 	db            database.MapDB
 	isInitialized bool //defaults to 0 and false
-	nextSeed      []byte
+	RootSeed      []byte
+	NextSeed      []byte
 }
 
 var _ ISCWallet = (*SCWallet)(nil)
@@ -114,6 +117,11 @@ func (SCWallet) GetHash() fct.IHash {
 /***************************************
  *       Methods
  ***************************************/
+
+func (w *SCWallet) SetRoot(root []byte) {
+	w.RootSeed = root
+}
+
 
 func (w *SCWallet) GetDB() database.IFDatabase {
 	return &w.db
@@ -291,27 +299,37 @@ func (w *SCWallet) NewSeed(data []byte) {
 	hasher := sha512.New()
 	hasher.Write(data)
 	seedhash := hasher.Sum(nil)
-	w.nextSeed = seedhash
+	w.NextSeed = seedhash
+	w.RootSeed = seedhash
+	b := new(database.ByteStore)
+	b.SetBytes(w.RootSeed)
+	w.db.PutRaw([]byte(fct.W_SEEDS), fct.CURRENT_SEED[:], b)
+	w.db.PutRaw([]byte(fct.W_SEEDS), w.RootSeed[:32], b)
+	w.db.PutRaw([]byte(fct.W_SEED_HEADS), w.RootSeed[:32], b)
 }
 
 func (w *SCWallet) SetSeed(seed []byte) {
-	w.nextSeed = seed
+	w.NextSeed = seed
 }
 
 func (w *SCWallet) GetSeed() []byte {
-	return w.nextSeed
+	hasher := sha512.New()
+	hasher.Write([]byte(w.NextSeed))
+	seedhash := hasher.Sum(nil)
+	w.NextSeed = seedhash
+	
+	b := new(database.ByteStore)
+	b.SetBytes(w.NextSeed)
+	w.db.PutRaw([]byte(fct.W_SEED_HEADS), w.RootSeed[:32], b)
+	
+	return w.NextSeed
 }
 
 func (w *SCWallet) Init(a ...interface{}) {
 	if w.isInitialized != false {
 		return
-	}
+	}	
 	w.isInitialized = true
-	hasher := sha512.New()
-	hasher.Write([]byte("replace with randomness"))
-	seedhash := hasher.Sum(nil)
-	w.nextSeed = seedhash
-
 	w.db.Init()
 }
 
@@ -324,20 +342,12 @@ func (w *SCWallet) Init(a ...interface{}) {
 // and the public key is the last 32 bytes.
 // The public key essentially returns twice because of this.
 func (w *SCWallet) generateKey() (public []byte, private []byte, err error) {
-	if len(w.nextSeed) != 64 {
-		return nil, nil, errors.New("wallet seed uninitialized")
-	}
+	
 	keypair := new([64]byte)
 	// the secret part of the keypair is the top 32 bytes of the sha512 hash
-	copy(keypair[:32], w.nextSeed[:32])
+	copy(keypair[:32], w.GetSeed()[:32])
 	// the crypto library puts the pubkey in the lower 32 bytes and returns the same 32 bytes.
 	pub := ed25519.GetPublicKey(keypair)
-
-	// Iterate the deterministic key private generator
-	// so it is ready for the next time this function is called.
-	hasher := sha512.New()
-	hasher.Write(w.nextSeed)
-	w.nextSeed = hasher.Sum(nil)
 
 	return pub[:], keypair[:], err
 }
@@ -354,12 +364,6 @@ func (w *SCWallet) generateKeyFromPrivateKey(privateKey []byte) (public []byte, 
 	copy(keypair[:32], privateKey[:])
 	// the crypto library puts the pubkey in the lower 32 bytes and returns the same 32 bytes.
 	pub := ed25519.GetPublicKey(keypair)
-
-	// Iterate the deterministic key private generator
-	// so it is ready for the next time this function is called.
-	hasher := sha512.New()
-	hasher.Write(w.nextSeed)
-	w.nextSeed = hasher.Sum(nil)
 
 	return pub[:], keypair[:], err
 }

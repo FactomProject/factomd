@@ -33,7 +33,7 @@ func newFakeAddr() sc.IAddress {
 func Test_create_block(test *testing.T) {
 	w := new(wallet.SCWallet) // make me a wallet
 	w.Init()
-
+	w.NewSeed([]byte("slfkjasdlfjasflajsfl"))
 	scb := block.NewFBlock(1000, 0)
 	cb := w.CreateTransaction(uint64(time.Now().UnixNano() / 1000000))
 	scb.AddCoinbase(cb)

@@ -21,6 +21,7 @@ var _ = binary.Write
 func Test_create_walletentry(test *testing.T) {
 	w := new(SCWallet) // make me a wallet
 	w.Init()
+	w.NewSeed([]byte("lkdfsgjlagkjlasd"))
 	we := new(WalletEntry)
 	rcd := new(factoid.RCD_1)
 	name := "John Smith"

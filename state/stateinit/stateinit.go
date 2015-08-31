@@ -68,7 +68,9 @@ func GetDatabase(filename string) database.IFDatabase {
 	bucketList = append(bucketList, []byte(fct.W_RCD_ADDRESS_HASH))
 	bucketList = append(bucketList, []byte(fct.W_ADDRESS_PUB_KEY))
 	bucketList = append(bucketList, []byte(fct.W_NAME))
-
+	bucketList = append(bucketList, []byte(fct.W_SEEDS))
+	bucketList = append(bucketList, []byte(fct.W_SEED_HEADS))
+	
 	instances = make(map[[fct.ADDRESS_LENGTH]byte]fct.IBlock)
 
 	var addinstance = func(b fct.IBlock) {
@@ -76,6 +78,7 @@ func GetDatabase(filename string) database.IFDatabase {
 		copy(key[:], b.GetDBHash().Bytes())
 		instances[*key] = b
 	}
+	addinstance(new(database.ByteStore))
 	addinstance(new(fct.Address))
 	addinstance(new(fct.Hash))
 	addinstance(new(fct.InAddress))
