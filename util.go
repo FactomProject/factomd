@@ -137,6 +137,8 @@ func PrtIndent(level int) {
 
 var FactoidPrefix = []byte{0x5f, 0xb1}
 var EntryCreditPrefix = []byte{0x59, 0x2a}
+var FactoidPrivatePrefix = []byte{0x64, 0x78}
+var EntryCreditPrivatePrefix = []byte{0x5d, 0xb6}
 
 // Take fixed point data and produce a nice decimial point
 // sort of output that users can handle.
@@ -222,9 +224,21 @@ func ConvertFctAddressToUserStr(addr IAddress) string {
 	return base58.Encode(userd)
 }
 
+// Convert Factoid Private Key
+func ConvertFctPrivateToUserStr(addr IAddress) string {
+	userd := ConvertAddressToUser(FactoidPrivatePrefix, addr)
+	return base58.Encode(userd)
+}
+
 // Convert Entry Credits
 func ConvertECAddressToUserStr(addr IAddress) string {
 	userd := ConvertAddressToUser(EntryCreditPrefix, addr)
+	return base58.Encode(userd)
+}
+
+// Convert Entry Credit Private key
+func ConvertECPrivateToUserStr(addr IAddress) string {
+	userd := ConvertAddressToUser(EntryCreditPrivatePrefix, addr)
 	return base58.Encode(userd)
 }
 
@@ -258,12 +272,24 @@ func ValidateFUserStr(userFAddr string) bool {
 	return validateUserStr(FactoidPrefix, userFAddr)
 }
 
+// Validate Factoid Private Key
+func ValidateFPrivateUserStr(userFAddr string) bool {
+	return validateUserStr(FactoidPrivatePrefix, userFAddr)
+}
+
 // Validate Entry Credits
 func ValidateECUserStr(userFAddr string) bool {
 	return validateUserStr(EntryCreditPrefix, userFAddr)
 }
 
+// Validate Entry Credit Private Key
+func ValidateECPrivateUserStr(userFAddr string) bool {
+	return validateUserStr(EntryCreditPrivatePrefix, userFAddr)
+}
+
+
 // Convert a User facing Factoid or Entry Credit address
+// or their Private Key representations 
 // to the regular form.  Note validation must be done
 // separately!
 func ConvertUserStrToAddress(userFAddr string) []byte {
