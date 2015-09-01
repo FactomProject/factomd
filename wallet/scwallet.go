@@ -309,6 +309,12 @@ func (w *SCWallet) NewSeed(data []byte) {
 
 func (w *SCWallet) SetSeed(seed []byte) {
 	w.NextSeed = seed
+	w.RootSeed = seed
+	b := new(database.ByteStore)
+	b.SetBytes(w.RootSeed)
+	w.db.PutRaw([]byte(fct.W_SEEDS), fct.CURRENT_SEED[:], b)
+	w.db.PutRaw([]byte(fct.W_SEEDS), w.RootSeed[:32], b)
+	w.db.PutRaw([]byte(fct.W_SEED_HEADS), w.RootSeed[:32], b)
 }
 
 func (w *SCWallet) GetSeed() []byte {
