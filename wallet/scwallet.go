@@ -384,7 +384,7 @@ func (w *SCWallet) CreateTransaction(time uint64) fct.ITransaction {
 }
 
 func (w *SCWallet) getWalletEntry(bucket []byte, address fct.IAddress) (IWalletEntry, fct.IAddress, error) {
-	fmt.Println(w.db, bucket, address)
+	
 	v := w.db.GetRaw([]byte(fct.W_RCD_ADDRESS_HASH), address.Bytes())
 	if v == nil {
 		return nil, nil, fmt.Errorf("Unknown address")
@@ -416,7 +416,11 @@ func (w *SCWallet) AddInput(trans fct.ITransaction, address fct.IAddress, amount
 	if we == nil || err != nil {
 		rcd := fct.NewRCD_1(address.Bytes()) 
 		trans.AddRCD(rcd)
-		trans.AddInput(fct.CreateAddress(address), amount)
+		adr, err := rcd.GetAddress()
+		if err != nil {
+			return err
+		}
+		trans.AddInput(fct.CreateAddress(adr), amount)
 	}else{		
 		trans.AddRCD(we.GetRCD())
 		trans.AddInput(fct.CreateAddress(adr), amount)
