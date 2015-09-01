@@ -10,8 +10,8 @@
 package wallet
 
 import (
-	"crypto/sha512"
 	"crypto/rand"
+	"crypto/sha512"
 	"errors"
 	"fmt"
 	"github.com/FactomProject/ed25519"
@@ -121,7 +121,6 @@ func (SCWallet) GetHash() fct.IHash {
 func (w *SCWallet) SetRoot(root []byte) {
 	w.RootSeed = root
 }
-
 
 func (w *SCWallet) GetDB() database.IFDatabase {
 	return &w.db
@@ -250,7 +249,7 @@ func (w *SCWallet) AddKeyPair(addrtype string, name []byte, pub []byte, pri []by
 	w.db.PutRaw([]byte(fct.W_RCD_ADDRESS_HASH), address.Bytes(), we)
 	w.db.PutRaw([]byte(fct.W_ADDRESS_PUB_KEY), pub, we)
 	w.db.PutRaw([]byte(fct.W_NAME), name, we)
-	
+
 	return
 }
 
@@ -313,9 +312,9 @@ func (w *SCWallet) SetSeed(seed []byte) {
 }
 
 func (w *SCWallet) GetSeed() []byte {
-	iroot := w.db.GetRaw([]byte(fct.W_SEEDS),fct.CURRENT_SEED[:])
+	iroot := w.db.GetRaw([]byte(fct.W_SEEDS), fct.CURRENT_SEED[:])
 	if iroot == nil {
-		randomstuff := make([]byte,1024)
+		randomstuff := make([]byte, 1024)
 		rand.Read(randomstuff)
 		w.NewSeed(randomstuff)
 	}
@@ -323,18 +322,18 @@ func (w *SCWallet) GetSeed() []byte {
 	hasher.Write([]byte(w.NextSeed))
 	seedhash := hasher.Sum(nil)
 	w.NextSeed = seedhash
-	
+
 	b := new(database.ByteStore)
 	b.SetBytes(w.NextSeed)
 	w.db.PutRaw([]byte(fct.W_SEED_HEADS), w.RootSeed[:32], b)
-	
+
 	return w.NextSeed
 }
 
 func (w *SCWallet) Init(a ...interface{}) {
 	if w.isInitialized != false {
 		return
-	}	
+	}
 	w.isInitialized = true
 	w.db.Init()
 }
@@ -348,7 +347,7 @@ func (w *SCWallet) Init(a ...interface{}) {
 // and the public key is the last 32 bytes.
 // The public key essentially returns twice because of this.
 func (w *SCWallet) generateKey() (public []byte, private []byte, err error) {
-	
+
 	keypair := new([64]byte)
 	// the secret part of the keypair is the top 32 bytes of the sha512 hash
 	copy(keypair[:32], w.GetSeed()[:32])
@@ -358,7 +357,7 @@ func (w *SCWallet) generateKey() (public []byte, private []byte, err error) {
 	return pub[:], keypair[:], err
 }
 
-func (w *SCWallet) generateKeyFromPrivateKey(privateKey []byte) (public []byte, private []byte, err error) {
+func GenerateKeyFromPrivateKey(privateKey []byte) (public []byte, private []byte, err error) {
 	if len(privateKey) == 64 {
 		privateKey = privateKey[:32]
 	}
@@ -372,6 +371,10 @@ func (w *SCWallet) generateKeyFromPrivateKey(privateKey []byte) (public []byte, 
 	pub := ed25519.GetPublicKey(keypair)
 
 	return pub[:], keypair[:], err
+}
+
+func (w *SCWallet) generateKeyFromPrivateKey(privateKey []byte) (public []byte, private []byte, err error) {
+	return GenerateKeyFromPrivateKey(privateKey)
 }
 
 func (w *SCWallet) CreateTransaction(time uint64) fct.ITransaction {
