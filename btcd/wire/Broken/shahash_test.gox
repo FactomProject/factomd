@@ -9,7 +9,7 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"github.com/FactomProject/btcd/wire"
+	"github.com/FactomProject/factomd/btcd/wire"
 )
 
 // TestShaHash tests the ShaHash API.

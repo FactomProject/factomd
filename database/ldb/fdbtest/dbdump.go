@@ -11,7 +11,7 @@ import (
 	//"bytes"
 	//"encoding/binary"
 
-	//	"github.com/FactomProject/btcd/wire"
+	//	"github.com/FactomProject/factomd/btcd/wire"
 	"github.com/davecgh/go-spew/spew"
 )
 

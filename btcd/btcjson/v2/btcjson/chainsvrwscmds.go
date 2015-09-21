@@ -8,7 +8,7 @@
 package btcjson
 
 import (
-	"github.com/FactomProject/btcd/wire"
+	"github.com/FactomProject/factomd/btcd/wire"
 )
 
 // AuthenticateCmd defines the authenticate JSON-RPC command.

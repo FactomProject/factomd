@@ -7,7 +7,7 @@ package process
 import (
 	"errors"
 	"github.com/FactomProject/FactomCode/common"
-	"github.com/FactomProject/btcd/wire"
+	"github.com/FactomProject/factomd/btcd/wire"
 	"sync"
 	"time"
 )

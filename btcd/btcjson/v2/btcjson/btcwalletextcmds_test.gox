@@ -11,7 +11,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/FactomProject/btcd/btcjson/v2/btcjson"
+	"github.com/FactomProject/factomd/btcd/btcjson/v2/btcjson"
 )
 
 // TestBtcWalletExtCmds tests all of the btcwallet extended commands marshal and

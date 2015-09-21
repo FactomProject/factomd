@@ -9,8 +9,8 @@ import (
 
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/database"
-	"github.com/FactomProject/btcd/blockchain"
-	"github.com/FactomProject/btcd/wire"
+	"github.com/FactomProject/factomd/btcd/blockchain"
+	"github.com/FactomProject/factomd/btcd/wire"
 	"github.com/davecgh/go-spew/spew"
 	"time"
 )
@@ -136,8 +136,8 @@ func (p *peer) handleGetEntryDataMsg(msg *wire.MsgGetEntryData) {
 		}
 
 		for _, ebEntry := range blk.Body.EBEntries {
-			
-			//Skip the minute markers 
+
+			//Skip the minute markers
 			if ebEntry.IsMinuteMarker() {
 				continue
 			}

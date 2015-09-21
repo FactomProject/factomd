@@ -10,11 +10,11 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/FactomProject/btcd/blockchain"
-	"github.com/FactomProject/btcd/chaincfg"
-	"github.com/FactomProject/btcd/database"
-	_ "github.com/FactomProject/btcd/database/ldb"
-	"github.com/FactomProject/btcd/wire"
+	"github.com/FactomProject/factomd/btcd/blockchain"
+	"github.com/FactomProject/factomd/btcd/chaincfg"
+	"github.com/FactomProject/factomd/btcd/database"
+	_ "github.com/FactomProject/factomd/btcd/database/ldb"
+	"github.com/FactomProject/factomd/btcd/wire"
 )
 
 const blockDbNamePrefix = "blocks"

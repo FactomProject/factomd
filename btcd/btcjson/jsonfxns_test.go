@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/FactomProject/btcd/btcjson"
+	"github.com/FactomProject/factomd/btcd/btcjson"
 )
 
 // TestMarshallAndSend tests the MarshallAndSend function to make sure it can

@@ -5,8 +5,8 @@
 package btcd
 
 import (
-	"github.com/FactomProject/btcd/chaincfg"
-	"github.com/FactomProject/btcd/wire"
+	"github.com/FactomProject/factomd/btcd/chaincfg"
+	"github.com/FactomProject/factomd/btcd/wire"
 )
 
 // activeNetParams is a pointer to the parameters specific to the

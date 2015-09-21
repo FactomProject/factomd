@@ -15,8 +15,8 @@ import (
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/factomapi"
 	"github.com/FactomProject/FactomCode/util"
-	"github.com/FactomProject/btcd/wire"
 	fct "github.com/FactomProject/factoid"
+	"github.com/FactomProject/factomd/btcd/wire"
 	"github.com/hoisie/web"
 )
 

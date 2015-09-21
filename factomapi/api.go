@@ -11,8 +11,8 @@ import (
 	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/FactomCode/process"
-	"github.com/FactomProject/btcd/wire"
 	fct "github.com/FactomProject/factoid"
+	"github.com/FactomProject/factomd/btcd/wire"
 )
 
 var (

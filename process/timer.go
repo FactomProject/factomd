@@ -5,7 +5,7 @@
 package process
 
 import (
-	"github.com/FactomProject/btcd/wire"
+	"github.com/FactomProject/factomd/btcd/wire"
 	"time"
 )
 

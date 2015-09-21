@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/FactomProject/btcd"
 	flags "github.com/FactomProject/go-flags"
+	"github.com/factomd/btcd"
 )
 
 var (

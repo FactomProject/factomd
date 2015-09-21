@@ -10,12 +10,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/FactomProject/btcd/addrmgr"
+	"github.com/FactomProject/factomd/btcd/addrmgr"
 
-	//	"github.com/FactomProject/btcd/blockchain"
-	//	"github.com/FactomProject/btcd/database"
-	"github.com/FactomProject/btcd/wire"
+	//	"github.com/FactomProject/factomd/btcd/blockchain"
+	//	"github.com/FactomProject/factomd/btcd/database"
 	"github.com/FactomProject/btclog"
+	"github.com/FactomProject/factomd/btcd/wire"
 	"github.com/FactomProject/seelog"
 )
 

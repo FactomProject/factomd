@@ -24,7 +24,7 @@ import (
 	"time"
 
 	cp "github.com/FactomProject/FactomCode/controlpanel"
-	"github.com/FactomProject/btcd/wire"
+	"github.com/FactomProject/factomd/btcd/wire"
 )
 
 var _ = cp.CP

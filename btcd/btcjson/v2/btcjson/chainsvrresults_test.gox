@@ -8,7 +8,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/FactomProject/btcd/btcjson/v2/btcjson"
+	"github.com/FactomProject/factomd/btcd/btcjson/v2/btcjson"
 )
 
 // TestChainSvrCustomResults ensures any results that have custom marshalling

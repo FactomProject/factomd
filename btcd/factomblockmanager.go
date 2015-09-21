@@ -10,7 +10,7 @@ import (
 	"github.com/FactomProject/FactomCode/common"
 	cp "github.com/FactomProject/FactomCode/controlpanel"
 	"github.com/FactomProject/FactomCode/util"
-	"github.com/FactomProject/btcd/wire"
+	"github.com/FactomProject/factomd/btcd/wire"
 	"github.com/davecgh/go-spew/spew"
 	"sync/atomic"
 )

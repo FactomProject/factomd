@@ -2,11 +2,14 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-package common
+package factoid
 
 import (
+	"fmt"
 	"math"
 )
+
+var _ = fmt.Println
 
 // nextPowerOfTwo returns the next highest power of two from a given number if
 // it is not already a power of two.  This is a helper function used during the
@@ -25,23 +28,33 @@ func nextPowerOfTwo(n int) int {
 // HashMerkleBranches takes two hashes, treated as the left and right tree
 // nodes, and returns the hash of their concatenation.  This is a helper
 // function used to aid in the generation of a merkle tree.
-func hashMerkleBranches(left *Hash, right *Hash) *Hash {
+func hashMerkleBranches(left IHash, right IHash) IHash {
 	// Concatenate the left and right nodes.
-	var barray []byte = make([]byte, HASH_LENGTH*2)
-	copy(barray[:HASH_LENGTH], left.Bytes())
-	copy(barray[HASH_LENGTH:], right.Bytes())
+	var barray []byte = make([]byte, ADDRESS_LENGTH*2)
+	copy(barray[:ADDRESS_LENGTH], left.Bytes())
+	copy(barray[ADDRESS_LENGTH:], right.Bytes())
 
 	newSha := Sha(barray)
 	return newSha
 }
 
-func BuildMerkleTreeStore(hashes []*Hash) (merkles []*Hash) {
+// Give a list of hashes, return the root of the Merkle Tree
+func ComputeMerkleRoot(hashes []IHash) IHash {
+	merkles := BuildMerkleTreeStore(hashes)
+	return merkles[len(merkles)-1]
+}
+
+// The root of the Merkle Tree is returned in merkles[len(merkles)-1]
+func BuildMerkleTreeStore(hashes []IHash) (merkles []IHash) {
+	if len(hashes) == 0 {
+		return append(make([]IHash, 0, 1), new(Hash))
+	}
 	// Calculate how many entries are required to hold the binary merkle
 	// tree as a linear array and create an array of that size.
 	nextPoT := nextPowerOfTwo(len(hashes))
 	arraySize := nextPoT*2 - 1
 	//	fmt.Println("hashes.len=", len(hashes), ", nextPoT=", nextPoT, ", array.size=", arraySize)
-	merkles = make([]*Hash, arraySize)
+	merkles = make([]IHash, arraySize)
 
 	// Create the base transaction shas and populate the array with them.
 	//for i, entity := range entities {

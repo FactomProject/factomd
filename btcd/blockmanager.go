@@ -14,10 +14,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	//	"github.com/FactomProject/btcd/blockchain"
-	//	"github.com/FactomProject/btcd/chaincfg"
-	//	"github.com/FactomProject/btcd/database"
-	"github.com/FactomProject/btcd/wire"
+	//	"github.com/FactomProject/factomd/btcd/blockchain"
+	//	"github.com/FactomProject/factomd/btcd/chaincfg"
+	//	"github.com/FactomProject/factomd/btcd/database"
+	"github.com/FactomProject/factomd/btcd/wire"
 	//	"github.com/FactomProject/btcutil"
 
 	"github.com/FactomProject/FactomCode/process"

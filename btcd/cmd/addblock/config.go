@@ -10,10 +10,10 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/FactomProject/btcd/chaincfg"
-	"github.com/FactomProject/btcd/database"
-	_ "github.com/FactomProject/btcd/database/ldb"
-	"github.com/FactomProject/btcd/wire"
+	"github.com/FactomProject/factomd/btcd/chaincfg"
+	"github.com/FactomProject/factomd/btcd/database"
+	_ "github.com/FactomProject/factomd/btcd/database/ldb"
+	"github.com/FactomProject/factomd/btcd/wire"
 	"github.com/FactomProject/btcutil"
 	flags "github.com/FactomProject/go-flags"
 )
