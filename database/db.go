@@ -5,9 +5,9 @@
 package database
 
 import (
-	"github.com/FactomProject/factoid/block"
 	"github.com/FactomProject/factomd/btcd/wire"
 	"github.com/FactomProject/factomd/common"
+	"github.com/FactomProject/factomd/common/factoid/block"
 )
 
 // AllShas is a special value that can be used as the final sha when requesting

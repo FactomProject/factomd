@@ -7,8 +7,8 @@ package common
 import (
 	"bytes"
 	"fmt"
-	"github.com/FactomProject/factoid/block"
-	"github.com/FactomProject/factoid/state"
+	"github.com/FactomProject/factomd/common/factoid/block"
+	"github.com/FactomProject/factomd/common/factoid/state"
 	"sync"
 )
 

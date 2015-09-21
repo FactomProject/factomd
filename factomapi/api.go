@@ -8,9 +8,9 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	fct "github.com/FactomProject/factoid"
 	"github.com/FactomProject/factomd/btcd/wire"
 	"github.com/FactomProject/factomd/common"
+	fct "github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/database"
 	"github.com/FactomProject/factomd/process"
 )

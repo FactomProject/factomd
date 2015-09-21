@@ -5,7 +5,7 @@
 package wire
 
 import (
-	"github.com/FactomProject/factoid/block"
+	"github.com/FactomProject/factomd/common/factoid/block"
 	"io"
 )
 

@@ -7,7 +7,7 @@ package wire
 import (
 	"bytes"
 	"fmt"
-	fct "github.com/FactomProject/factoid"
+	fct "github.com/FactomProject/factomd/common/factoid"
 	"io"
 )
 

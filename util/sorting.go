@@ -1,8 +1,8 @@
 package util
 
 import (
-	"github.com/FactomProject/factoid/block"
 	"github.com/FactomProject/factomd/common"
+	"github.com/FactomProject/factomd/common/factoid/block"
 )
 
 //------------------------------------------------

@@ -5,7 +5,7 @@
 package database
 
 import (
-	"github.com/FactomProject/factoid"
+	"github.com/FactomProject/factomd/common/factoid"
 )
 
 type FDatabase struct {

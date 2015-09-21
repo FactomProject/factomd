@@ -6,8 +6,8 @@ package block
 
 import (
 	"fmt"
-	fct "github.com/FactomProject/factoid"
-	"github.com/FactomProject/factoid/wallet"
+	fct "github.com/FactomProject/factomd/common/factoid"
+	"github.com/FactomProject/factomd/common/factoid/wallet"
 )
 
 var _ = fct.Prt

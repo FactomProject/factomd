@@ -10,10 +10,10 @@ package state
 import (
 	"bytes"
 	"fmt"
-	fct "github.com/FactomProject/factoid"
-	"github.com/FactomProject/factoid/block"
-	db "github.com/FactomProject/factoid/database"
-	"github.com/FactomProject/factoid/wallet"
+	fct "github.com/FactomProject/factomd/common/factoid"
+	"github.com/FactomProject/factomd/common/factoid/block"
+	db "github.com/FactomProject/factomd/common/factoid/database"
+	"github.com/FactomProject/factomd/common/factoid/wallet"
 	cp "github.com/FactomProject/factomd/controlpanel"
 	"time"
 )

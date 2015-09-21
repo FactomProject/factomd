@@ -11,11 +11,11 @@ package stateinit
 
 import (
 	"fmt"
-	fct "github.com/FactomProject/factoid"
-	"github.com/FactomProject/factoid/block"
-	"github.com/FactomProject/factoid/database"
-	"github.com/FactomProject/factoid/state"
-	"github.com/FactomProject/factoid/wallet"
+	fct "github.com/FactomProject/factomd/common/factoid"
+	"github.com/FactomProject/factomd/common/factoid/block"
+	"github.com/FactomProject/factomd/common/factoid/database"
+	"github.com/FactomProject/factomd/common/factoid/state"
+	"github.com/FactomProject/factomd/common/factoid/wallet"
 )
 
 var _ = fmt.Printf
@@ -70,7 +70,7 @@ func GetDatabase(filename string) database.IFDatabase {
 	bucketList = append(bucketList, []byte(fct.W_NAME))
 	bucketList = append(bucketList, []byte(fct.W_SEEDS))
 	bucketList = append(bucketList, []byte(fct.W_SEED_HEADS))
-	
+
 	instances = make(map[[fct.ADDRESS_LENGTH]byte]fct.IBlock)
 
 	var addinstance = func(b fct.IBlock) {

@@ -8,7 +8,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/FactomProject/ed25519"
-	"github.com/FactomProject/factoid"
+	"github.com/FactomProject/factomd/common/factoid"
 	"math/rand"
 	"testing"
 )

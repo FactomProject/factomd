@@ -6,10 +6,10 @@ package main
 
 import (
 	"fmt"
-	"github.com/FactomProject/factoid/state/stateinit"
 	"github.com/FactomProject/factomd/btcd/limits"
 	"github.com/FactomProject/factomd/btcd/wire"
 	"github.com/FactomProject/factomd/common"
+	"github.com/FactomProject/factomd/common/factoid/state/stateinit"
 	cp "github.com/FactomProject/factomd/controlpanel"
 	"github.com/FactomProject/factomd/database"
 	"github.com/FactomProject/factomd/database/ldb"

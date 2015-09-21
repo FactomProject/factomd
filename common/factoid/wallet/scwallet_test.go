@@ -4,14 +4,14 @@
 
 package wallet
 
-import fct "github.com/FactomProject/factoid"
+import fct "github.com/FactomProject/factomd/common/factoid"
 import (
 	"bytes"
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 	"github.com/FactomProject/ed25519"
-	"github.com/FactomProject/factoid"
+	"github.com/FactomProject/factomd/common/factoid"
 	"math/rand"
 	"testing"
 )

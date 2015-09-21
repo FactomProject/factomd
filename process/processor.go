@@ -21,11 +21,11 @@ import (
 	"strings"
 	"time"
 
-	fct "github.com/FactomProject/factoid"
-	"github.com/FactomProject/factoid/block"
 	"github.com/FactomProject/factomd/anchor"
 	"github.com/FactomProject/factomd/btcd/wire"
 	"github.com/FactomProject/factomd/common"
+	fct "github.com/FactomProject/factomd/common/factoid"
+	"github.com/FactomProject/factomd/common/factoid/block"
 	"github.com/FactomProject/factomd/consensus"
 	cp "github.com/FactomProject/factomd/controlpanel"
 	"github.com/FactomProject/factomd/database"

@@ -10,7 +10,7 @@ package state
 import (
 	"bytes"
 	"encoding/binary"
-	fct "github.com/FactomProject/factoid"
+	fct "github.com/FactomProject/factomd/common/factoid"
 )
 
 type IFSbalance interface {

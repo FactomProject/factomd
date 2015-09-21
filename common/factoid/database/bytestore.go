@@ -12,10 +12,10 @@
 package database
 
 import (
-	fct "github.com/FactomProject/factoid"
-	"fmt"
-	"encoding/binary"
 	"bytes"
+	"encoding/binary"
+	"fmt"
+	fct "github.com/FactomProject/factomd/common/factoid"
 )
 
 var _ = fmt.Println
@@ -27,7 +27,7 @@ type IByteStore interface {
 }
 
 type ByteStore struct {
-	byteData [] byte
+	byteData []byte
 }
 
 var _ IByteStore = (*ByteStore)(nil)
@@ -43,7 +43,6 @@ func (b *ByteStore) SetBytes(data []byte) {
 	b.byteData = data
 }
 
-
 func (b ByteStore) String() string {
 	return string(b.byteData)
 }
@@ -52,36 +51,36 @@ func (ByteStore) GetDBHash() fct.IHash {
 	return fct.Sha([]byte("ByteStore"))
 }
 
-func (b ByteStore)CustomMarshalText() ([]byte, error) {
+func (b ByteStore) CustomMarshalText() ([]byte, error) {
 	return b.byteData, nil
 }
 
 // We need the progress through the slice, so we really can't use the stock spec
 // for the UnmarshalBinary() method from encode.  We define our own method that
 // makes the code easier to read and way more efficent.
-func (b *ByteStore)UnmarshalBinaryData(data []byte) ([]byte, error) {
+func (b *ByteStore) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	size, data := binary.BigEndian.Uint32(data), data[4:]
-	b.byteData = make([]byte, size,size)
-	copy(b.byteData,data[:size])
+	b.byteData = make([]byte, size, size)
+	copy(b.byteData, data[:size])
 	return data[size:], nil
 }
 
-func (b *ByteStore)UnmarshalBinary(data []byte) error {
-	_,err := b.UnmarshalBinaryData(data)
+func (b *ByteStore) UnmarshalBinary(data []byte) error {
+	_, err := b.UnmarshalBinaryData(data)
 	return err
 }
 
-func (b ByteStore)MarshalBinary() ([]byte, error){
+func (b ByteStore) MarshalBinary() ([]byte, error) {
 	var out bytes.Buffer
 	binary.Write(&out, binary.BigEndian, uint32(len(b.byteData)))
 	out.Write(b.byteData)
 	return out.Bytes(), nil
 }
 
-func (b1 ByteStore)IsEqual(b fct.IBlock) []fct.IBlock {
+func (b1 ByteStore) IsEqual(b fct.IBlock) []fct.IBlock {
 	b2, ok := b.(*ByteStore)
-	if !ok || !bytes.Equal(b1.byteData,b2.byteData){
-		return []fct.IBlock{&b1} 
+	if !ok || !bytes.Equal(b1.byteData, b2.byteData) {
+		return []fct.IBlock{&b1}
 	}
 	return nil
 }

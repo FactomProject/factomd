@@ -14,7 +14,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
-	fct "github.com/FactomProject/factoid"
+	fct "github.com/FactomProject/factomd/common/factoid"
 )
 
 type WalletEntry struct {

@@ -7,9 +7,9 @@ package test
 import (
 	"bytes"
 	"fmt"
-	fct "github.com/FactomProject/factoid"
-	"github.com/FactomProject/factoid/state"
-	"github.com/FactomProject/factoid/wallet"
+	fct "github.com/FactomProject/factomd/common/factoid"
+	"github.com/FactomProject/factomd/common/factoid/state"
+	"github.com/FactomProject/factomd/common/factoid/wallet"
 	"math/rand"
 	"strings"
 	"time"

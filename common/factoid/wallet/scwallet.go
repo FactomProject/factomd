@@ -15,8 +15,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/FactomProject/ed25519"
-	fct "github.com/FactomProject/factoid"
-	"github.com/FactomProject/factoid/database"
+	fct "github.com/FactomProject/factomd/common/factoid"
+	"github.com/FactomProject/factomd/common/factoid/database"
 )
 
 var factoshisPerEC uint64 = 100000

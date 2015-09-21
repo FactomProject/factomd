@@ -12,7 +12,7 @@ import (
 	"reflect"
 	"sync"
 
-	"github.com/FactomProject/factoid/block"
+	"github.com/FactomProject/factomd/common/factoid/block"
 )
 
 const DBlockVersion = 0
