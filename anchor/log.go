@@ -7,8 +7,8 @@ package anchor
 import (
 	"os"
 
-	"github.com/FactomProject/FactomCode/factomlog"
-	"github.com/FactomProject/FactomCode/util"
+	"github.com/FactomProject/factomd/factomlog"
+	"github.com/FactomProject/factomd/util"
 )
 
 var (

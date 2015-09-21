@@ -8,11 +8,11 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"github.com/FactomProject/FactomCode/common"
-	"github.com/FactomProject/FactomCode/database"
-	"github.com/FactomProject/FactomCode/process"
 	fct "github.com/FactomProject/factoid"
 	"github.com/FactomProject/factomd/btcd/wire"
+	"github.com/FactomProject/factomd/common"
+	"github.com/FactomProject/factomd/database"
+	"github.com/FactomProject/factomd/process"
 )
 
 var (

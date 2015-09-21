@@ -8,7 +8,7 @@ package factoid
 
 import (
 	"fmt"
-	"github.com/FactomProject/FactomCode/util"
+	"github.com/FactomProject/factomd/util"
 )
 
 var _ = util.Trace

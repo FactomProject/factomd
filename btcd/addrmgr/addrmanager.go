@@ -23,8 +23,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	cp "github.com/FactomProject/FactomCode/controlpanel"
 	"github.com/FactomProject/factomd/btcd/wire"
+	cp "github.com/FactomProject/factomd/controlpanel"
 )
 
 var _ = cp.CP

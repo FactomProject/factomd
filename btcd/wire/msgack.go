@@ -8,7 +8,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/FactomProject/FactomCode/common"
+	"github.com/FactomProject/factomd/common"
 	"io"
 	"io/ioutil"
 )

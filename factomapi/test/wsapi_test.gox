@@ -4,7 +4,7 @@ import (
 	"bytes"
 	//	"encoding/hex"
 	"fmt"
-	"github.com/FactomProject/FactomCode/common"
+	"github.com/FactomProject/factomd/common"
 	"github.com/FactomProject/gocoding"
 	"net/http"
 	"net/url"

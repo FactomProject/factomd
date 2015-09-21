@@ -4,7 +4,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/FactomProject/FactomCode/common"
+	"github.com/FactomProject/factomd/common"
 	"github.com/FactomProject/goleveldb/leveldb"
 	"github.com/FactomProject/goleveldb/leveldb/opt"
 	"github.com/FactomProject/goleveldb/leveldb/util"

@@ -7,10 +7,10 @@ package btcd
 import (
 	"container/list"
 	"fmt"
-	"github.com/FactomProject/FactomCode/common"
-	cp "github.com/FactomProject/FactomCode/controlpanel"
-	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/factomd/btcd/wire"
+	"github.com/FactomProject/factomd/common"
+	cp "github.com/FactomProject/factomd/controlpanel"
+	"github.com/FactomProject/factomd/util"
 	"github.com/davecgh/go-spew/spew"
 	"sync/atomic"
 )

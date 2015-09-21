@@ -8,9 +8,9 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
-	"github.com/FactomProject/FactomCode/common"
-	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/factomd/btcd/wire"
+	"github.com/FactomProject/factomd/common"
+	"github.com/FactomProject/factomd/database"
 	"github.com/FactomProject/goleveldb/leveldb"
 	"github.com/FactomProject/goleveldb/leveldb/util"
 )

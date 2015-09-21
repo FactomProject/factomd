@@ -14,9 +14,9 @@ import (
 	//	"github.com/FactomProject/factomd/btcd/chaincfg"
 	//	"github.com/FactomProject/btcutil"
 
-	cp "github.com/FactomProject/FactomCode/controlpanel"
-	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/factomd/btcd/wire"
+	cp "github.com/FactomProject/factomd/controlpanel"
+	"github.com/FactomProject/factomd/database"
 )
 
 var _ = fmt.Printf

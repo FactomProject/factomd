@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/FactomProject/FactomCode/database"
+	"github.com/FactomProject/factomd/database"
 
 	"github.com/FactomProject/factomd/btcd/wire"
 	"github.com/FactomProject/goleveldb/leveldb"

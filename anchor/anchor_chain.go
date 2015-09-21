@@ -14,9 +14,9 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/FactomProject/FactomCode/common"
-	"github.com/FactomProject/FactomCode/util"
 	factomwire "github.com/FactomProject/factomd/btcd/wire"
+	"github.com/FactomProject/factomd/common"
+	"github.com/FactomProject/factomd/util"
 )
 
 //Construct the entry and submit it to the server

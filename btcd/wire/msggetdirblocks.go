@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"io"
 
-	//"github.com/FactomProject/FactomCode/util"
+	//"github.com/FactomProject/factomd/util"
 )
 
 // MaxBlockLocatorsPerMsg is the maximum number of Directory block locator hashes allowed

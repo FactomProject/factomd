@@ -7,10 +7,10 @@ package btcd
 import (
 	"encoding/hex"
 
-	"github.com/FactomProject/FactomCode/common"
-	"github.com/FactomProject/FactomCode/database"
 	"github.com/FactomProject/factomd/btcd/blockchain"
 	"github.com/FactomProject/factomd/btcd/wire"
+	"github.com/FactomProject/factomd/common"
+	"github.com/FactomProject/factomd/database"
 	"github.com/davecgh/go-spew/spew"
 	"time"
 )

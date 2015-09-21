@@ -2,9 +2,9 @@ package wire_test
 
 import (
 	"bytes"
-	"github.com/FactomProject/FactomCode/common"
-	"github.com/FactomProject/FactomCode/consensus"
 	"github.com/FactomProject/factomd/btcd/wire"
+	"github.com/FactomProject/factomd/common"
+	"github.com/FactomProject/factomd/consensus"
 	"testing"
 )
 

@@ -5,7 +5,7 @@
 package wire
 
 import (
-	"github.com/FactomProject/FactomCode/common"
+	"github.com/FactomProject/factomd/common"
 )
 
 // Convert wire.ShaHash into factom.common.Hash

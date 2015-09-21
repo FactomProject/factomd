@@ -1,8 +1,8 @@
 package consensus
 
 import (
-	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/factomd/btcd/wire"
+	"github.com/FactomProject/factomd/common"
 	"sync"
 )
 

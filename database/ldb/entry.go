@@ -4,7 +4,7 @@ import (
 	"log"
 	"strings"
 
-	"github.com/FactomProject/FactomCode/common"
+	"github.com/FactomProject/factomd/common"
 	"github.com/FactomProject/goleveldb/leveldb"
 	"github.com/FactomProject/goleveldb/leveldb/util"
 )

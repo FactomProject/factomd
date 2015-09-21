@@ -2,7 +2,7 @@
 # Use of this source code is governed by the MIT
 # license that can be found in the LICENSE file.
 
-# To be run from within the FactomCode project.
+# To be run from within the factomd project.
 #
 # Factom has a pile of dependencies, and development requries that these be 
 # kept in sync with each other.  This script allows you to check out a 
@@ -96,7 +96,7 @@ compile() {
     cd $current
 }
 
-checkout FactomCode   $branch $default
+checkout factomd   $branch $default
 checkout btcd         $branch $default
 checkout factoid      $branch $default
 checkout factom       $branch $default
@@ -127,7 +127,7 @@ echo "
 "
 compile factoid/fctwallet 
 compile factom-cli  
-compile FactomCode/factomd 
+compile factomd/factomd 
 echo ""
 echo "
 *******************************************************
@@ -143,10 +143,10 @@ go test -short  ./btcd/...
 
 echo "
 +================+
-|  FactomCode    |
+|  factomd    |
 +================+
 "
-go test -short  ./FactomCode/...
+go test -short  ./factomd/...
 
 echo "
 +================+
@@ -163,4 +163,4 @@ echo "
 go test -short  ./factom-cli/...
 
 
-cd FactomCode
+cd factomd

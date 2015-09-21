@@ -27,10 +27,10 @@ import (
 	"github.com/btcsuitereleases/btcutil"
 	"github.com/davecgh/go-spew/spew"
 
-	"github.com/FactomProject/FactomCode/common"
-	"github.com/FactomProject/FactomCode/database"
-	"github.com/FactomProject/FactomCode/util"
 	factomwire "github.com/FactomProject/factomd/btcd/wire"
+	"github.com/FactomProject/factomd/common"
+	"github.com/FactomProject/factomd/database"
+	"github.com/FactomProject/factomd/util"
 )
 
 var (

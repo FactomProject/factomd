@@ -7,7 +7,7 @@ package wire
 import (
 	"io"
 
-	"github.com/FactomProject/FactomCode/common"
+	"github.com/FactomProject/factomd/common"
 )
 
 // MsgEBlock implements the Message interface and represents a factom

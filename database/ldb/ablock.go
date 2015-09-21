@@ -3,7 +3,7 @@ package ldb
 import (
 	//	"errors"
 	"encoding/binary"
-	"github.com/FactomProject/FactomCode/common"
+	"github.com/FactomProject/factomd/common"
 	"github.com/FactomProject/goleveldb/leveldb"
 	"github.com/FactomProject/goleveldb/leveldb/util"
 	"log"

@@ -6,10 +6,10 @@ package process
 
 import (
 	"fmt"
-	"github.com/FactomProject/FactomCode/common"
-	"github.com/FactomProject/FactomCode/factomlog"
-	"github.com/FactomProject/FactomCode/util"
 	"github.com/FactomProject/factoid/block"
+	"github.com/FactomProject/factomd/common"
+	"github.com/FactomProject/factomd/factomlog"
+	"github.com/FactomProject/factomd/util"
 	"github.com/davecgh/go-spew/spew"
 	"io/ioutil"
 	"os"

@@ -6,7 +6,7 @@ package wire
 
 import (
 	"bytes"
-	"github.com/FactomProject/FactomCode/common"
+	"github.com/FactomProject/factomd/common"
 	"io"
 )
 

@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 	
-	"github.com/FactomProject/FactomCode/database"
-	"github.com/FactomProject/FactomCode/factomwire"
-	"github.com/FactomProject/FactomCode/util"
+	"github.com/FactomProject/factomd/database"
+	"github.com/FactomProject/factomd/factomwire"
+	"github.com/FactomProject/factomd/util"
 )
 
 var _ = fmt.Sprint("")

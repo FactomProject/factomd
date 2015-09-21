@@ -3,10 +3,10 @@ package main
 import (
 	//	"bytes"
 	"fmt"
-	"github.com/FactomProject/FactomCode/common"
+	"github.com/FactomProject/factomd/common"
 	"github.com/davecgh/go-spew/spew"
 	"testing"
-	"github.com/FactomProject/FactomCode/util"	
+	"github.com/FactomProject/factomd/util"	
 )
 
 var dirBlockHeight uint32 = 11

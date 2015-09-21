@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"testing"
 
-	. "github.com/FactomProject/FactomCode/common"
+	. "github.com/FactomProject/factomd/common"
 )
 
 func TestMarshalUnmarshalDirectoryBlockHeader(t *testing.T) {

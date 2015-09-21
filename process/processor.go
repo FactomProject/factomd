@@ -21,15 +21,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/FactomProject/FactomCode/anchor"
-	"github.com/FactomProject/FactomCode/common"
-	"github.com/FactomProject/FactomCode/consensus"
-	cp "github.com/FactomProject/FactomCode/controlpanel"
-	"github.com/FactomProject/FactomCode/database"
-	"github.com/FactomProject/FactomCode/util"
 	fct "github.com/FactomProject/factoid"
 	"github.com/FactomProject/factoid/block"
+	"github.com/FactomProject/factomd/anchor"
 	"github.com/FactomProject/factomd/btcd/wire"
+	"github.com/FactomProject/factomd/common"
+	"github.com/FactomProject/factomd/consensus"
+	cp "github.com/FactomProject/factomd/controlpanel"
+	"github.com/FactomProject/factomd/database"
+	"github.com/FactomProject/factomd/util"
 	"github.com/davecgh/go-spew/spew"
 )
 

@@ -6,7 +6,7 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/FactomProject/FactomCode/common"
+	"github.com/FactomProject/factomd/common"
 )
 
 func TestVarInt(t *testing.T) {

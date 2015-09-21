@@ -3,7 +3,7 @@ package common_test
 import (
 	"bytes"
 	"fmt"
-	. "github.com/FactomProject/FactomCode/common"
+	. "github.com/FactomProject/factomd/common"
 	"testing"
 )
 

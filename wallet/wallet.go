@@ -5,8 +5,8 @@ import (
 	"os"
 	//"fmt"
 	"code.google.com/p/gcfg"
-	"github.com/FactomProject/FactomCode/common"
-	"github.com/FactomProject/FactomCode/util"
+	"github.com/FactomProject/factomd/common"
+	"github.com/FactomProject/factomd/util"
 )
 
 var (

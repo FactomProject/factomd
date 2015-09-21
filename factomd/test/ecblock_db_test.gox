@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/FactomProject/FactomCode/common"
+	"github.com/FactomProject/factomd/common"
 	"github.com/davecgh/go-spew/spew"
 	"testing"
 )

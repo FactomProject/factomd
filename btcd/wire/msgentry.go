@@ -7,7 +7,7 @@ package wire
 import (
 	"io"
 
-	"github.com/FactomProject/FactomCode/common"
+	"github.com/FactomProject/factomd/common"
 )
 
 // MsgEntry implements the Message interface and represents a factom
@@ -67,4 +67,3 @@ func (msg *MsgEntry) MaxPayloadLength(pver uint32) uint32 {
 func NewMsgEntry() *MsgEntry {
 	return &MsgEntry{}
 }
-

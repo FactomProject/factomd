@@ -12,11 +12,11 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/FactomProject/FactomCode/anchor"
-	"github.com/FactomProject/FactomCode/common"
-	"github.com/FactomProject/FactomCode/database"
-	"github.com/FactomProject/FactomCode/database/ldb"
-	"github.com/FactomProject/FactomCode/util"
+	"github.com/FactomProject/factomd/anchor"
+	"github.com/FactomProject/factomd/common"
+	"github.com/FactomProject/factomd/database"
+	"github.com/FactomProject/factomd/database/ldb"
+	"github.com/FactomProject/factomd/util"
 	"github.com/btcsuite/btcd/wire"
 	"github.com/davecgh/go-spew/spew"
 )

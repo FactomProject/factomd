@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/FactomProject/FactomCode/util"
+	"github.com/FactomProject/factomd/util"
 	"github.com/davecgh/go-spew/spew"
 )
 

@@ -6,7 +6,7 @@ package main
 
 import (
 //	"fmt"
-//	"github.com/FactomProject/FactomCode/wallet"
+//	"github.com/FactomProject/factomd/wallet"
 )
 
 func main() {

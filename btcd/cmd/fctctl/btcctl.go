@@ -10,7 +10,7 @@ import (
 	"sort"
 	"strconv"
 
-	//	"github.com/FactomProject/FactomCode/util"
+	//	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/btcd/btcjson"
 	"github.com/FactomProject/factomd/btcd/btcjson/btcws"
 	flags "github.com/FactomProject/go-flags"

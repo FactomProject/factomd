@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/FactomProject/FactomCode/common"
 	ed "github.com/FactomProject/ed25519"
+	"github.com/FactomProject/factomd/common"
 	"github.com/davecgh/go-spew/spew"
 )
 

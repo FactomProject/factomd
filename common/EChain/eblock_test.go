@@ -1,7 +1,7 @@
 package common_test
 
 import (
-	"github.com/FactomProject/FactomCode/common"
+	"github.com/FactomProject/factomd/common"
 	"testing"
 )
 

@@ -2,7 +2,7 @@ package wallet
 
 import (
 	"errors"
-	"github.com/FactomProject/FactomCode/common"
+	"github.com/FactomProject/factomd/common"
 	"os"
 )
 
