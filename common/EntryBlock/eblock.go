@@ -25,6 +25,14 @@ type EBlock struct {
 
 var _ Printable = (*EBlock)(nil)
 var _ BinaryMarshallable = (*EBlock)(nil)
+var _ IIDBEntry = (*EBlock)(nil)
+
+func (c *EBlock) GetChainID() IHash {
+	return c.Header.GetChainID()
+}
+func (c *EBlock) GetKeyMR() (IHash, error) {
+	return c.KeyMR()
+}
 
 func (c *EBlock) MarshalledSize() uint64 {
 	return uint64(EBHeaderSize)

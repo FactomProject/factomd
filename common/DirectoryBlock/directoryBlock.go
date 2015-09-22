@@ -2,7 +2,7 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-package common
+package DirectoryBlock
 
 import (
 	"bytes"
@@ -12,7 +12,9 @@ import (
 	"reflect"
 	"sync"
 
-	"github.com/FactomProject/factomd/common/factoid/block"
+	. "github.com/FactomProject/factomd/common/constants"
+	. "github.com/FactomProject/factomd/common/interfaces"
+	. "github.com/FactomProject/factomd/common/primitives"
 )
 
 const DBlockVersion = 0
@@ -172,54 +174,6 @@ func (e *DBlockHeader) JSONBuffer(b *bytes.Buffer) error {
 
 func (e *DBlockHeader) Spew() string {
 	return Spew(e)
-}
-
-type DBEntry struct {
-	ChainID IHash
-	KeyMR   IHash // Different MR in EBlockHeader
-}
-
-var _ Printable = (*DBEntry)(nil)
-var _ BinaryMarshallable = (*DBEntry)(nil)
-
-func (c *DBEntry) MarshalledSize() uint64 {
-	panic("Function not implemented")
-	return 0
-}
-
-func NewDBEntry(eb *EBlock) (*DBEntry, error) {
-	e := new(DBEntry)
-
-	e.ChainID = eb.Header.ChainID
-	var err error
-	e.KeyMR, err = eb.KeyMR()
-	if err != nil {
-		return nil, err
-	}
-
-	return e, nil
-}
-
-func NewDBEntryFromECBlock(cb *ECBlock) (*DBEntry, error) {
-	e := &DBEntry{}
-
-	e.ChainID = cb.Header.ECChainID
-	var err error
-	e.KeyMR, err = cb.HeaderHash()
-	if err != nil {
-		return nil, err
-	}
-
-	return e, nil
-}
-
-func NewDBEntryFromABlock(b *AdminBlock) *DBEntry {
-	e := &DBEntry{}
-
-	e.ChainID = b.Header.AdminChainID
-	e.KeyMR, _ = b.PartialHash()
-
-	return e
 }
 
 func NewDirBlockInfoFromDBlock(b *DirectoryBlock) *DirBlockInfo {
@@ -453,8 +407,7 @@ func CreateDBlock(chain *DChain, prev *DirectoryBlock, cap uint) (b *DirectoryBl
 }
 
 // Add DBEntry from an Entry Block
-func (c *DChain) AddEBlockToDBEntry(eb *EBlock) (err error) {
-
+func (c *DChain) AddEBlockToDBEntry(eb IDBEntry) (err error) {
 	dbEntry, err := NewDBEntry(eb)
 	if err != nil {
 		return err
@@ -467,9 +420,8 @@ func (c *DChain) AddEBlockToDBEntry(eb *EBlock) (err error) {
 }
 
 // Add DBEntry from an Entry Credit Block
-func (c *DChain) AddECBlockToDBEntry(ecb *ECBlock) (err error) {
-
-	dbEntry, err := NewDBEntryFromECBlock(ecb)
+func (c *DChain) AddECBlockToDBEntry(ecb IDBEntry) (err error) {
+	dbEntry, err := NewDBEntry(ecb)
 	if err != nil {
 		return err
 	}
@@ -487,13 +439,10 @@ func (c *DChain) AddECBlockToDBEntry(ecb *ECBlock) (err error) {
 }
 
 // Add DBEntry from an Admin Block
-func (c *DChain) AddABlockToDBEntry(b *AdminBlock) (err error) {
-
-	dbEntry := &DBEntry{}
-	dbEntry.ChainID = b.Header.AdminChainID
-	dbEntry.KeyMR, err = b.PartialHash()
+func (c *DChain) AddABlockToDBEntry(b IDBEntry) (err error) {
+	dbEntry, err := NewDBEntry(b)
 	if err != nil {
-		return
+		return err
 	}
 
 	if len(c.NextBlock.DBEntries) < 3 {
@@ -510,7 +459,7 @@ func (c *DChain) AddABlockToDBEntry(b *AdminBlock) (err error) {
 }
 
 // Add DBEntry from an SC Block
-func (c *DChain) AddFBlockToDBEntry(b block.IFBlock) (err error) {
+func (c *DChain) AddFBlockToDBEntry(b IFBlock) (err error) {
 
 	dbEntry := &DBEntry{}
 	dbEntry.ChainID = new(Hash)

@@ -44,6 +44,14 @@ type AdminBlock struct {
 
 var _ Printable = (*AdminBlock)(nil)
 var _ BinaryMarshallable = (*AdminBlock)(nil)
+var _ IDBEntry = (*AdminBlock)(nil)
+
+func (c *AdminBlock) GetChainID() IHash {
+	return c.Header.AdminChainID
+}
+func (c *AdminBlock) GetKeyMR() (IHash, error) {
+	return c.PartialHash()
+}
 
 func (ab *AdminBlock) LedgerKeyMR() (IHash, error) {
 	if ab.fullHash == nil {

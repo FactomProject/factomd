@@ -1,4 +1,4 @@
-package common_test
+package DirectoryBlock_test
 
 import (
 	"bytes"
@@ -6,7 +6,8 @@ import (
 	"fmt"
 	"testing"
 
-	. "github.com/FactomProject/factomd/common"
+	. "github.com/FactomProject/factomd/common/DirectoryBlock"
+	. "github.com/FactomProject/factomd/common/primitives"
 )
 
 func TestMarshalUnmarshalDirectoryBlockHeader(t *testing.T) {

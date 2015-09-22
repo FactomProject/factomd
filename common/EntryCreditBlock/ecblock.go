@@ -32,6 +32,14 @@ type ECBlock struct {
 
 var _ Printable = (*ECBlock)(nil)
 var _ BinaryMarshallable = (*ECBlock)(nil)
+var _ IDBEntry = (*ECBlock)(nil)
+
+func (c *ECBlock) GetChainID() IHash {
+	return c.Header.ECChainID
+}
+func (c *ECBlock) GetKeyMR() (IHash, error) {
+	return c.HeaderHash()
+}
 
 func (c *ECBlock) MarshalledSize() uint64 {
 	panic("Function not implemented")
