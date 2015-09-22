@@ -2,7 +2,7 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-package factoid
+package primitives
 
 import (
 	"bytes"
@@ -210,11 +210,11 @@ func ConvertFixedPoint(amt string) (string, error) {
 //  for display.
 func ConvertAddressToUser(prefix []byte, addr IAddress) []byte {
 	dat := prefix
-	dat = append(dat,addr.Bytes()...)
+	dat = append(dat, addr.Bytes()...)
 	sha256d := Sha(Sha(dat).Bytes()).Bytes()
 	userd := prefix
-	userd  = append(userd,addr.Bytes()...)
-	userd  = append(userd,sha256d[:4]...)
+	userd = append(userd, addr.Bytes()...)
+	userd = append(userd, sha256d[:4]...)
 	return userd
 }
 
@@ -287,9 +287,8 @@ func ValidateECPrivateUserStr(userFAddr string) bool {
 	return validateUserStr(EntryCreditPrivatePrefix, userFAddr)
 }
 
-
 // Convert a User facing Factoid or Entry Credit address
-// or their Private Key representations 
+// or their Private Key representations
 // to the regular form.  Note validation must be done
 // separately!
 func ConvertUserStrToAddress(userFAddr string) []byte {

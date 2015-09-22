@@ -1,12 +1,16 @@
-package AChain
+package AdminBlock
 
-import ()
+import (
+	"bytes"
+	"fmt"
+	"github.com/FactomProject/factomd/common/primitives"
+)
 
 // DB Signature Entry -------------------------
 type DBSignatureEntry struct {
 	entryType            byte
-	IdentityAdminChainID *Hash
-	PubKey               PublicKey
+	IdentityAdminChainID *primitives.Hash
+	PubKey               primitives.PublicKey
 	PrevDBSig            *Sig
 }
 
@@ -14,7 +18,7 @@ var _ ABEntry = (*DBSignatureEntry)(nil)
 var _ BinaryMarshallable = (*DBSignatureEntry)(nil)
 
 // Create a new DB Signature Entry
-func NewDBSignatureEntry(identityAdminChainID *Hash, sig Signature) (e *DBSignatureEntry) {
+func NewDBSignatureEntry(identityAdminChainID *primitives.Hash, sig Signature) (e *DBSignatureEntry) {
 	e = new(DBSignatureEntry)
 	e.entryType = TYPE_DB_SIGNATURE
 	e.IdentityAdminChainID = identityAdminChainID

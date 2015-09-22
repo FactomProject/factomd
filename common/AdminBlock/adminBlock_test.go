@@ -1,4 +1,4 @@
-package common_test
+package AdminBlock_test
 
 import (
 	"bytes"
@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"testing"
 
-	. "github.com/FactomProject/factomd/common"
+	. "github.com/FactomProject/factomd/common/AdminBlock"
 )
 
 func TestAdminBlockPreviousHash(t *testing.T) {

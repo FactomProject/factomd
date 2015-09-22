@@ -1,4 +1,4 @@
-package wallet
+package primitives
 
 import (
 	"fmt"
