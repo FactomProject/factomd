@@ -17,9 +17,9 @@ func TestEBlockMarshal(t *testing.T) {
 	eb.Header.EBSequence = 5
 	eb.Header.DBHeight = 6
 	eb.Header.EntryCount = 7
-	ha := common.NewHash()
+	ha := common.NewZeroHash()
 	ha.SetBytes(byteof(0xaa))
-	hb := common.NewHash()
+	hb := common.NewZeroHash()
 	hb.SetBytes(byteof(0xbb))
 	eb.Body.EBEntries = append(eb.Body.EBEntries, ha)
 	eb.AddEndOfMinuteMarker(0xcc)

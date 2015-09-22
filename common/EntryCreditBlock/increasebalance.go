@@ -2,17 +2,19 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-package common
+package EntryCreditBlock
 
 import (
 	"bytes"
+	. "github.com/FactomProject/factomd/common/interfaces"
+	. "github.com/FactomProject/factomd/common/primitives"
 )
 
 //var IncreaseBalanceSize int = 32 + 4 + 32
 
 type IncreaseBalance struct {
 	ECPubKey *[32]byte
-	TXID     *Hash
+	TXID     IHash
 	Index    uint64
 	NumEC    uint64
 }
@@ -29,11 +31,11 @@ var _ ECBlockEntry = (*IncreaseBalance)(nil)
 
 func NewIncreaseBalance() *IncreaseBalance {
 	r := new(IncreaseBalance)
-	r.TXID = NewHash()
+	r.TXID = NewZeroHash()
 	return r
 }
 
-func (e *IncreaseBalance) Hash() *Hash {
+func (e *IncreaseBalance) Hash() IHash {
 	bin, err := e.MarshalBinary()
 	if err != nil {
 		panic(err)
@@ -83,7 +85,7 @@ func (b *IncreaseBalance) UnmarshalBinaryData(data []byte) (newData []byte, err 
 		return
 	}
 	if b.TXID == nil {
-		b.TXID = NewHash()
+		b.TXID = NewZeroHash()
 	}
 	b.TXID.SetBytes(hash)
 

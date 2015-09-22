@@ -159,7 +159,7 @@ func (db *LevelDb) FetchEBHashByMR(eBMR *common.Hash) (*common.Hash, error) {
 		return nil, err
 	}
 
-	eBlockHash := common.NewHash()
+	eBlockHash := common.NewZeroHash()
 	_, err = eBlockHash.UnmarshalBinaryData(data)
 	if err != nil {
 		return nil, err
@@ -255,7 +255,7 @@ func (db *LevelDb) FetchAllEBlocksByChain(chainID *common.Hash) (eBlocks *[]comm
 	iter := db.lDb.NewIterator(&util.Range{Start: fromkey, Limit: tokey}, db.ro)
 
 	for iter.Next() {
-		eBlockHash := common.NewHash()
+		eBlockHash := common.NewZeroHash()
 		_, err := eBlockHash.UnmarshalBinaryData(iter.Value())
 		if err != nil {
 			return nil, err

@@ -72,7 +72,7 @@ var (
 	FactomdUser string
 	FactomdPass string
 
-	zeroHash = common.NewHash()
+	zeroHash = common.NewZeroHash()
 )
 
 var (
@@ -113,7 +113,7 @@ func initProcessor() {
 	fMemPool.init_ftmMemPool()
 
 	// init wire.FChainID
-	wire.FChainID = common.NewHash()
+	wire.FChainID = common.NewZeroHash()
 	wire.FChainID.SetBytes(common.FACTOID_CHAINID)
 
 	FactoshisPerCredit = 666666 // .001 / .15 * 100000000 (assuming a Factoid is .15 cents, entry credit = .1 cents
@@ -804,7 +804,7 @@ func buildIncreaseBalance(msg *wire.MsgFactoidTX) {
 		copy(pub[:], ecout.GetAddress().Bytes())
 		ib.ECPubKey = pub
 
-		th := common.NewHash()
+		th := common.NewZeroHash()
 		th.SetBytes(t.GetHash().Bytes())
 		ib.TXID = th
 
@@ -1228,7 +1228,7 @@ func SignDirectoryBlock() error {
 		// get the previous directory block from db
 		dbBlock, _ := db.FetchDBlockByHeight(dchain.NextDBHeight - 1)
 		dbHeaderBytes, _ := dbBlock.Header.MarshalBinary()
-		identityChainID := common.NewHash() // 0 ID for milestone 1
+		identityChainID := common.NewZeroHash() // 0 ID for milestone 1
 		sig := serverPrivKey.Sign(dbHeaderBytes)
 		achain.NextBlock.AddABEntry(common.NewDBSignatureEntry(identityChainID, sig))
 	}

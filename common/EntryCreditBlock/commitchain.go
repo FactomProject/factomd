@@ -2,12 +2,15 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-package common
+package EntryCreditBlock
 
 import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	. "github.com/FactomProject/factomd/common/constants"
+	. "github.com/FactomProject/factomd/common/interfaces"
+	. "github.com/FactomProject/factomd/common/primitives"
 	"io"
 	"time"
 
@@ -22,9 +25,9 @@ const (
 type CommitChain struct {
 	Version     uint8
 	MilliTime   *[6]byte
-	ChainIDHash *Hash
-	Weld        *Hash
-	EntryHash   *Hash
+	ChainIDHash IHash
+	Weld        IHash
+	EntryHash   IHash
 	Credits     uint8
 	ECPubKey    *[32]byte
 	Sig         *[64]byte
@@ -43,16 +46,16 @@ func NewCommitChain() *CommitChain {
 	c := new(CommitChain)
 	c.Version = 0
 	c.MilliTime = new([6]byte)
-	c.ChainIDHash = NewHash()
-	c.Weld = NewHash()
-	c.EntryHash = NewHash()
+	c.ChainIDHash = NewZeroHash()
+	c.Weld = NewZeroHash()
+	c.EntryHash = NewZeroHash()
 	c.Credits = 0
 	c.ECPubKey = new([32]byte)
 	c.Sig = new([64]byte)
 	return c
 }
 
-func (e *CommitChain) Hash() *Hash {
+func (e *CommitChain) Hash() IHash {
 	bin, err := e.MarshalBinary()
 	if err != nil {
 		panic(err)
@@ -98,21 +101,21 @@ func (c *CommitChain) InTime() bool {
 }
 
 func (c *CommitChain) IsValid() bool {
-	
+
 	//double check the credits in the commit
 	if c.Credits < 1 || c.Version != 0 {
 		return false
 	}
-	
+
 	return ed.VerifyCanonical(c.ECPubKey, c.CommitMsg(), c.Sig)
 }
 
-func (c *CommitChain) GetHash() *Hash {
+func (c *CommitChain) GetHash() IHash {
 	data, _ := c.MarshalBinary()
 	return Sha(data)
 }
 
-func (c *CommitChain) GetSigHash() *Hash {
+func (c *CommitChain) GetSigHash() IHash {
 	data := c.CommitMsg()
 	return Sha(data)
 }

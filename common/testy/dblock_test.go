@@ -185,8 +185,8 @@ func TestMakeSureBlockCountIsNotDuplicates(t *testing.T) {
 		}
 
 		de := new(DBEntry)
-		de.ChainID = NewHash()
-		de.KeyMR = NewHash()
+		de.ChainID = NewZeroHash()
+		de.KeyMR = NewZeroHash()
 
 		block.DBEntries = append(block.DBEntries, de)
 	}
@@ -204,8 +204,8 @@ func createTestDirectoryBlock() *DirectoryBlock {
 	dblock.DBEntries = make([]*DBEntry, 0, 5)
 
 	de := new(DBEntry)
-	de.ChainID = NewHash()
-	de.KeyMR = NewHash()
+	de.ChainID = NewZeroHash()
+	de.KeyMR = NewZeroHash()
 
 	dblock.DBEntries = append(dblock.DBEntries, de)
 	dblock.Header.BlockCount = uint32(len(dblock.DBEntries))
@@ -217,11 +217,11 @@ func createTestDirectoryBlockHeader() *DBlockHeader {
 	header := new(DBlockHeader)
 
 	header.DBHeight = 1
-	header.BodyMR = NewHash()
+	header.BodyMR = NewZeroHash()
 	header.BlockCount = 0
 	header.NetworkID = 9
-	header.PrevLedgerKeyMR = NewHash()
-	header.PrevKeyMR = NewHash()
+	header.PrevLedgerKeyMR = NewZeroHash()
+	header.PrevKeyMR = NewZeroHash()
 	header.Timestamp = 1234
 	header.Version = 1
 

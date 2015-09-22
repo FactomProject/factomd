@@ -18,7 +18,7 @@ import (
 const DBlockVersion = 0
 
 type DChain struct {
-	ChainID      *Hash
+	ChainID      IHash
 	Blocks       []*DirectoryBlock
 	BlockMutex   sync.Mutex
 	NextBlock    *DirectoryBlock
@@ -42,8 +42,8 @@ type DirectoryBlock struct {
 	//Not Marshalized
 	Chain       *DChain
 	IsSealed    bool
-	DBHash      *Hash
-	KeyMR       *Hash
+	DBHash      IHash
+	KeyMR       IHash
 	IsSavedInDB bool
 	IsValidated bool
 }
@@ -61,8 +61,8 @@ func NewDirectoryBlock() *DirectoryBlock {
 	d.Header = NewDBlockHeader()
 
 	d.DBEntries = make([]*DBEntry, 0)
-	d.DBHash = NewHash()
-	d.KeyMR = NewHash()
+	d.DBHash = NewZeroHash()
+	d.KeyMR = NewZeroHash()
 
 	return d
 }
@@ -89,14 +89,14 @@ func (e *DirectoryBlock) Spew() string {
 
 type DirBlockInfo struct {
 	// Serial hash for the directory block
-	DBHash *Hash
+	DBHash IHash
 
 	DBHeight uint32 //directory block height
 
 	Timestamp int64 // time of this dir block info being created
 
 	// BTCTxHash is the Tx hash returned from rpcclient.SendRawTransaction
-	BTCTxHash *Hash // use string or *btcwire.ShaHash ???
+	BTCTxHash IHash // use string or *btcwire.ShaHash ???
 
 	// BTCTxOffset is the index of the TX in this BTC block
 	BTCTxOffset int32
@@ -105,11 +105,11 @@ type DirBlockInfo struct {
 	BTCBlockHeight int32
 
 	//BTCBlockHash is the hash of the block where this TX is stored in BTC
-	BTCBlockHash *Hash // use string or *btcwire.ShaHash ???
+	BTCBlockHash IHash // use string or *btcwire.ShaHash ???
 
 	// DBMerkleRoot is the merkle root of the Directory Block
 	// and is written into BTC as OP_RETURN data
-	DBMerkleRoot *Hash
+	DBMerkleRoot IHash
 
 	// A flag to to show BTC anchor confirmation
 	BTCConfirmed bool
@@ -137,9 +137,9 @@ type DBlockHeader struct {
 	Version   byte
 	NetworkID uint32
 
-	BodyMR          *Hash
-	PrevKeyMR       *Hash
-	PrevLedgerKeyMR *Hash
+	BodyMR          IHash
+	PrevKeyMR       IHash
+	PrevLedgerKeyMR IHash
 
 	Timestamp  uint32
 	DBHeight   uint32
@@ -151,9 +151,9 @@ var _ BinaryMarshallable = (*DBlockHeader)(nil)
 
 func NewDBlockHeader() *DBlockHeader {
 	d := new(DBlockHeader)
-	d.BodyMR = NewHash()
-	d.PrevKeyMR = NewHash()
-	d.PrevLedgerKeyMR = NewHash()
+	d.BodyMR = NewZeroHash()
+	d.PrevKeyMR = NewZeroHash()
+	d.PrevLedgerKeyMR = NewZeroHash()
 
 	return d
 }
@@ -175,8 +175,8 @@ func (e *DBlockHeader) Spew() string {
 }
 
 type DBEntry struct {
-	ChainID *Hash
-	KeyMR   *Hash // Different MR in EBlockHeader
+	ChainID IHash
+	KeyMR   IHash // Different MR in EBlockHeader
 }
 
 var _ Printable = (*DBEntry)(nil)
@@ -229,13 +229,13 @@ func NewDirBlockInfoFromDBlock(b *DirectoryBlock) *DirBlockInfo {
 	e.Timestamp = int64(b.Header.Timestamp * 60) //time.Now().Unix()
 	e.DBMerkleRoot = b.KeyMR
 	e.BTCConfirmed = false
-	e.BTCTxHash = NewHash()
-	e.BTCBlockHash = NewHash()
+	e.BTCTxHash = NewZeroHash()
+	e.BTCBlockHash = NewZeroHash()
 
 	return e
 }
 
-//func (e *DBEntry) Hash() *Hash {
+//func (e *DBEntry) Hash() IHash {
 //	return e.hash
 //}
 //
@@ -298,7 +298,7 @@ func (e *DBEntry) UnmarshalBinary(data []byte) (err error) {
 	return
 }
 
-func (e *DBEntry) ShaHash() *Hash {
+func (e *DBEntry) ShaHash() IHash {
 	byteArray, _ := e.MarshalBinary()
 	return Sha(byteArray)
 }
@@ -434,8 +434,8 @@ func CreateDBlock(chain *DChain, prev *DirectoryBlock, cap uint) (b *DirectoryBl
 	b.Header.Version = VERSION_0
 
 	if prev == nil {
-		b.Header.PrevLedgerKeyMR = NewHash()
-		b.Header.PrevKeyMR = NewHash()
+		b.Header.PrevLedgerKeyMR = NewZeroHash()
+		b.Header.PrevKeyMR = NewZeroHash()
 	} else {
 		b.Header.PrevLedgerKeyMR, err = CreateHash(prev)
 		if prev.KeyMR == nil {
@@ -613,8 +613,8 @@ func (b *DirectoryBlock) MarshalBinary() (data []byte, err error) {
 	return buf.Bytes(), err
 }
 
-func (b *DirectoryBlock) BuildBodyMR() (mr *Hash, err error) {
-	hashes := make([]*Hash, len(b.DBEntries))
+func (b *DirectoryBlock) BuildBodyMR() (mr IHash, err error) {
+	hashes := make([]IHash, len(b.DBEntries))
 	for i, entry := range b.DBEntries {
 		data, _ := entry.MarshalBinary()
 		hashes[i] = Sha(data)
@@ -631,7 +631,7 @@ func (b *DirectoryBlock) BuildBodyMR() (mr *Hash, err error) {
 func (b *DirectoryBlock) BuildKeyMerkleRoot() (err error) {
 
 	// Create the Entry Block Key Merkle Root from the hash of Header and the Body Merkle Root
-	hashes := make([]*Hash, 0, 2)
+	hashes := make([]IHash, 0, 2)
 	binaryEBHeader, _ := b.Header.MarshalBinary()
 	hashes = append(hashes, Sha(binaryEBHeader))
 	hashes = append(hashes, b.Header.BodyMR)

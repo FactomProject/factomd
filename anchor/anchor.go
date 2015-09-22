@@ -124,7 +124,7 @@ func sanityCheck(hash *common.Hash) (*common.DirBlockInfo, error) {
 		anchorLog.Error(s)
 		return nil, errors.New(s)
 	}
-	if !common.NewHash().IsSameAs(dirBlockInfo.BTCTxHash) {
+	if !common.NewZeroHash().IsSameAs(dirBlockInfo.BTCTxHash) {
 		s := fmt.Sprintf("Anchor Warning: hash %s has already been anchored but not confirmed. btc tx hash is %s\n", hash.String(), dirBlockInfo.BTCTxHash.String())
 		anchorLog.Error(s)
 		return nil, errors.New(s)

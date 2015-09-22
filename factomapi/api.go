@@ -132,7 +132,7 @@ func SetInMsgQueue(q chan wire.FtmInternalMsg) {
 }
 
 func atoh(a string) (*common.Hash, error) {
-	h := common.NewHash()
+	h := common.NewZeroHash()
 	p, err := hex.DecodeString(a)
 	if err != nil {
 		return h, err

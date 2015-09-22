@@ -2,12 +2,15 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-package common
+package EntryCreditBlock
 
 import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	. "github.com/FactomProject/factomd/common/constants"
+	. "github.com/FactomProject/factomd/common/interfaces"
+	. "github.com/FactomProject/factomd/common/primitives"
 	"io"
 )
 
@@ -61,7 +64,7 @@ func (e *ECBlock) AddEntry(entries ...ECBlockEntry) {
 	e.Body.Entries = append(e.Body.Entries, entries...)
 }
 
-func (e *ECBlock) Hash() (*Hash, error) {
+func (e *ECBlock) Hash() (IHash, error) {
 	p, err := e.MarshalBinary()
 	if err != nil {
 		return nil, err
@@ -69,7 +72,7 @@ func (e *ECBlock) Hash() (*Hash, error) {
 	return Sha(p), nil
 }
 
-func (e *ECBlock) HeaderHash() (*Hash, error) {
+func (e *ECBlock) HeaderHash() (IHash, error) {
 	p, err := e.marshalHeaderBinary()
 	if err != nil {
 		return nil, err
@@ -384,14 +387,14 @@ type ECBlockEntry interface {
 	ECID() byte
 	MarshalBinary() ([]byte, error)
 	UnmarshalBinary(data []byte) error
-	Hash() *Hash
+	Hash() IHash
 }
 
 type ECBlockHeader struct {
-	ECChainID           *Hash
-	BodyHash            *Hash
-	PrevHeaderHash      *Hash
-	PrevLedgerKeyMR     *Hash
+	ECChainID           IHash
+	BodyHash            IHash
+	PrevHeaderHash      IHash
+	PrevLedgerKeyMR     IHash
 	DBHeight            uint32
 	HeaderExpansionArea []byte
 	ObjectCount         uint64
@@ -402,11 +405,11 @@ var _ Printable = (*ECBlockHeader)(nil)
 
 func NewECBlockHeader() *ECBlockHeader {
 	h := new(ECBlockHeader)
-	h.ECChainID = NewHash()
+	h.ECChainID = NewZeroHash()
 	h.ECChainID.SetBytes(EC_CHAINID)
-	h.BodyHash = NewHash()
-	h.PrevHeaderHash = NewHash()
-	h.PrevLedgerKeyMR = NewHash()
+	h.BodyHash = NewZeroHash()
+	h.PrevHeaderHash = NewZeroHash()
+	h.PrevLedgerKeyMR = NewZeroHash()
 	h.HeaderExpansionArea = make([]byte, 0)
 	return h
 }

@@ -2,12 +2,15 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-package common
+package EntryCreditBlock
 
 import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	. "github.com/FactomProject/factomd/common/constants"
+	. "github.com/FactomProject/factomd/common/interfaces"
+	. "github.com/FactomProject/factomd/common/primitives"
 	"io"
 	"time"
 
@@ -22,7 +25,7 @@ const (
 type CommitEntry struct {
 	Version   uint8
 	MilliTime *[6]byte
-	EntryHash *Hash
+	EntryHash IHash
 	Credits   uint8
 	ECPubKey  *[32]byte
 	Sig       *[64]byte
@@ -41,14 +44,14 @@ func NewCommitEntry() *CommitEntry {
 	c := new(CommitEntry)
 	c.Version = 0
 	c.MilliTime = new([6]byte)
-	c.EntryHash = NewHash()
+	c.EntryHash = NewZeroHash()
 	c.Credits = 0
 	c.ECPubKey = new([32]byte)
 	c.Sig = new([64]byte)
 	return c
 }
 
-func (e *CommitEntry) Hash() *Hash {
+func (e *CommitEntry) Hash() IHash {
 	bin, err := e.MarshalBinary()
 	if err != nil {
 		panic(err)
@@ -97,22 +100,20 @@ func (c *CommitEntry) IsValid() bool {
 	//double check the credits in the commit
 	if c.Credits < 1 || c.Version != 0 {
 		return false
-	}	
-	
+	}
+
 	return ed.VerifyCanonical(c.ECPubKey, c.CommitMsg(), c.Sig)
 }
 
-func (c *CommitEntry)GetHash() *Hash {
-	h,_ :=	c.MarshalBinary()
+func (c *CommitEntry) GetHash() IHash {
+	h, _ := c.MarshalBinary()
 	return Sha(h)
 }
 
-func (c *CommitEntry) GetSigHash() *Hash {
+func (c *CommitEntry) GetSigHash() IHash {
 	data := c.CommitMsg()
 	return Sha(data)
 }
-
-
 
 func (c *CommitEntry) MarshalBinary() ([]byte, error) {
 	buf := new(bytes.Buffer)

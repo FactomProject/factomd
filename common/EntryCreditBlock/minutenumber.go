@@ -2,11 +2,13 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-package common
+package EntryCreditBlock
 
 import (
 	"bytes"
 	"fmt"
+	. "github.com/FactomProject/factomd/common/interfaces"
+	. "github.com/FactomProject/factomd/common/primitives"
 )
 
 const (
@@ -22,7 +24,7 @@ var _ BinaryMarshallable = (*MinuteNumber)(nil)
 var _ ShortInterpretable = (*MinuteNumber)(nil)
 var _ ECBlockEntry = (*MinuteNumber)(nil)
 
-func (e *MinuteNumber) Hash() *Hash {
+func (e *MinuteNumber) Hash() IHash {
 	bin, err := e.MarshalBinary()
 	if err != nil {
 		panic(err)

@@ -16,7 +16,7 @@ import (
 // https://github.com/FactomProject/FactomDocs/blob/master/factomDataStructureDetails.md#entry
 type Entry struct {
 	Version uint8
-	ChainID *Hash
+	ChainID IHash
 	ExtIDs  [][]byte
 	Content []byte
 }
@@ -31,7 +31,7 @@ func (c *Entry) MarshalledSize() uint64 {
 
 func NewEntry() *Entry {
 	e := new(Entry)
-	e.ChainID = NewHash()
+	e.ChainID = NewZeroHash()
 	e.ExtIDs = make([][]byte, 0)
 	e.Content = make([]byte, 0)
 	return e
@@ -39,7 +39,7 @@ func NewEntry() *Entry {
 
 // NewChainID generates a ChainID from an entry. ChainID = Sha(Sha(ExtIDs[0]) +
 // Sha(ExtIDs[1] + ... + Sha(ExtIDs[n]))
-func NewChainID(e *Entry) *Hash {
+func NewChainID(e *Entry) IHash {
 	id := new(Hash)
 	sum := sha256.New()
 	for _, v := range e.ExtIDs {
@@ -56,13 +56,13 @@ func (e *Entry) IsValid() bool {
 	//double check the version
 	if e.Version != 0 {
 		return false
-	}	
-	
+	}
+
 	return true
 }
 
-func (e *Entry) Hash() *Hash {
-	h := NewHash()
+func (e *Entry) Hash() IHash {
+	h := NewZeroHash()
 	entry, err := e.MarshalBinary()
 	if err != nil {
 		return h
@@ -135,7 +135,7 @@ func (e *Entry) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	}
 
 	// 32 byte ChainID
-	e.ChainID = NewHash()
+	e.ChainID = NewZeroHash()
 	if _, err = buf.Read(hash); err != nil {
 		return
 	} else if err = e.ChainID.SetBytes(hash); err != nil {

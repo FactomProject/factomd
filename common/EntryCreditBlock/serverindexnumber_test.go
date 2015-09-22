@@ -2,15 +2,15 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-package common_test
+package EntryCreditBlock_test
 
 import (
-	"github.com/FactomProject/factomd/common"
+	. "github.com/FactomProject/factomd/common/EntryCreditBlock"
 	"testing"
 )
 
 func TestServerIndexMarshalUnmarshal(t *testing.T) {
-	si1 := common.NewServerIndexNumber()
+	si1 := NewServerIndexNumber()
 	si1.Number = 3
 	b, err := si1.MarshalBinary()
 	if err != nil {
@@ -23,7 +23,7 @@ func TestServerIndexMarshalUnmarshal(t *testing.T) {
 		t.Error("Invalid byte")
 	}
 
-	si2 := common.NewServerIndexNumber()
+	si2 := NewServerIndexNumber()
 	err = si2.UnmarshalBinary(b)
 	if err != nil {
 		t.Error(err)

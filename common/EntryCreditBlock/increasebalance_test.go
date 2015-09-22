@@ -1,10 +1,10 @@
-package common_test
+package EntryCreditBlock_test
 
 import (
 	"fmt"
 	"testing"
 
-	. "github.com/FactomProject/factomd/common"
+	. "github.com/FactomProject/factomd/common/EntryCreditBlock"
 )
 
 func TestIncreaseBalanceMarshalUnmarshal(t *testing.T) {

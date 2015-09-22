@@ -10,7 +10,7 @@ import (
 )
 
 type EChain struct {
-	ChainID         *Hash
+	ChainID         IHash
 	FirstEntry      *Entry
 	NextBlock       *EBlock
 	NextBlockHeight uint32
@@ -26,7 +26,7 @@ func (c *EChain) MarshalledSize() uint64 {
 
 func NewEChain() *EChain {
 	e := new(EChain)
-	e.ChainID = NewHash()
+	e.ChainID = NewZeroHash()
 	e.FirstEntry = NewEntry()
 	e.NextBlock = NewEBlock()
 	return e

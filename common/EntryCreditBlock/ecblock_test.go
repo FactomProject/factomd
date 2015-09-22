@@ -1,4 +1,4 @@
-package common_test
+package EntryCreditBlock_test
 
 import (
 	"crypto/rand"
@@ -6,17 +6,17 @@ import (
 	"testing"
 
 	ed "github.com/FactomProject/ed25519"
-	"github.com/FactomProject/factomd/common"
+	. "github.com/FactomProject/factomd/common/EntryCreditBlock"
 	"github.com/davecgh/go-spew/spew"
 )
 
 var _ = fmt.Sprint("testing")
 
 func TestECBlockMarshal(t *testing.T) {
-	ecb1 := common.NewECBlock()
+	ecb1 := NewECBlock()
 
 	// build a CommitChain for testing
-	cc := common.NewCommitChain()
+	cc := NewCommitChain()
 	cc.Version = 0
 	cc.MilliTime = &[6]byte{1, 1, 1, 1, 1, 1}
 	cc.ChainIDHash.SetBytes(byteof(0xaa))
@@ -44,17 +44,17 @@ func TestECBlockMarshal(t *testing.T) {
 	// add the CommitChain to the ECBlock
 	ecb1.AddEntry(cc)
 
-	m1 := common.NewMinuteNumber()
+	m1 := NewMinuteNumber()
 	m1.Number = 0x01
 	ecb1.AddEntry(m1)
 
 	// add a ServerIndexNumber
-	si1 := common.NewServerIndexNumber()
+	si1 := NewServerIndexNumber()
 	si1.Number = 3
 	ecb1.AddEntry(si1)
 
 	// create an IncreaseBalance for testing
-	ib := common.NewIncreaseBalance()
+	ib := NewIncreaseBalance()
 	pub := new([32]byte)
 	copy(pub[:], byteof(0xaa))
 	ib.ECPubKey = pub
@@ -63,11 +63,11 @@ func TestECBlockMarshal(t *testing.T) {
 	// add the IncreaseBalance
 	ecb1.AddEntry(ib)
 
-	m2 := common.NewMinuteNumber()
+	m2 := NewMinuteNumber()
 	m2.Number = 0x02
 	ecb1.AddEntry(m2)
 
-	ecb2 := common.NewECBlock()
+	ecb2 := NewECBlock()
 	if p, err := ecb1.MarshalBinary(); err != nil {
 		t.Error(err)
 	} else {

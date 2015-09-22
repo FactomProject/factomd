@@ -206,7 +206,7 @@ func TestRepeatedSpending(t *testing.T) {
 
 func writeToBTC(bytes []byte, blockHeight uint64) (*wire.ShaHash, error) {
 	for attempts := 0; attempts < maxTrials; attempts++ {
-		hash := common.NewHash()
+		hash := common.NewZeroHash()
 		hash.SetBytes(bytes)
 		txHash, err := doTransaction(hash, blockHeight, nil) //SendRawTransactionToBTC(hash, blockHeight)
 		if err != nil {

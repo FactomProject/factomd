@@ -291,7 +291,7 @@ func (db *LevelDb) FetchDBHashByHeight(dBlockHeight uint32) (*common.Hash, error
 		return nil, err
 	}
 
-	dBlockHash := common.NewHash()
+	dBlockHash := common.NewZeroHash()
 	_, err = dBlockHash.UnmarshalBinaryData(data)
 	if err != nil {
 		return nil, err
@@ -312,7 +312,7 @@ func (db *LevelDb) FetchDBHashByMR(dBMR *common.Hash) (*common.Hash, error) {
 		return nil, err
 	}
 
-	dBlockHash := common.NewHash()
+	dBlockHash := common.NewZeroHash()
 	_, err = dBlockHash.UnmarshalBinaryData(data)
 	if err != nil {
 		return nil, err
@@ -352,7 +352,7 @@ func (db *LevelDb) FetchHeadMRByChainID(chainID *common.Hash) (blkMR *common.Has
 		return nil, err
 	}
 
-	blkMR = common.NewHash()
+	blkMR = common.NewZeroHash()
 	_, err = blkMR.UnmarshalBinaryData(data)
 	if err != nil {
 		return nil, err

@@ -73,7 +73,7 @@ func (e *EBlock) AddEBEntry(entry *Entry) error {
 func (e *EBlock) AddEndOfMinuteMarker(m byte) {
 	h := make([]byte, 32)
 	h[len(h)-1] = m
-	hash := NewHash()
+	hash := NewZeroHash()
 	hash.SetBytes(h)
 	e.Body.EBEntries = append(e.Body.EBEntries, hash)
 }
@@ -89,7 +89,7 @@ func (e *EBlock) BuildHeader() error {
 
 // Hash returns the simple Sha256 hash of the serialized Entry Block. Hash is
 // used to provide the PrevLedgerKeyMR to the next Entry Block in a Chain.
-func (e *EBlock) Hash() (*Hash, error) {
+func (e *EBlock) Hash() (IHash, error) {
 	p, err := e.MarshalBinary()
 	if err != nil {
 		return nil, err
@@ -101,7 +101,7 @@ func (e *EBlock) Hash() (*Hash, error) {
 // with the Merkle Root of the Entry Block Body. The Body Merkle Root is
 // calculated by the func (e *EBlockBody) MR() which is called by the func
 // (e *EBlock) BuildHeader().
-func (e *EBlock) KeyMR() (*Hash, error) {
+func (e *EBlock) KeyMR() (IHash, error) {
 	// Sha(Sha(header) + BodyMR)
 	e.BuildHeader()
 	header, err := e.marshalHeaderBinary()
@@ -209,7 +209,7 @@ func (e *EBlock) unmarshalBodyBinaryData(data []byte) (newData []byte, err error
 			return buf.Bytes(), err
 		}
 
-		h := NewHash()
+		h := NewZeroHash()
 		h.SetBytes(hash)
 		e.Body.EBEntries = append(e.Body.EBEntries, h)
 	}
@@ -293,7 +293,7 @@ func (e *EBlock) Spew() string {
 
 // EBlockBody is the series of Hashes that form the Entry Block Body.
 type EBlockBody struct {
-	EBEntries []*Hash
+	EBEntries []IHash
 }
 
 var _ Printable = (*EBlockBody)(nil)
@@ -301,13 +301,13 @@ var _ Printable = (*EBlockBody)(nil)
 // NewEBlockBody initalizes an empty Entry Block Body.
 func NewEBlockBody() *EBlockBody {
 	e := new(EBlockBody)
-	e.EBEntries = make([]*Hash, 0)
+	e.EBEntries = make([]IHash, 0)
 	return e
 }
 
 // MR calculates the Merkle Root of the Entry Block Body. See func
-// BuildMerkleTreeStore(hashes []*Hash) (merkles []*Hash) in common/merkle.go.
-func (e *EBlockBody) MR() *Hash {
+// BuildMerkleTreeStore(hashes []IHash) (merkles []IHash) in common/merkle.go.
+func (e *EBlockBody) MR() IHash {
 	mrs := BuildMerkleTreeStore(e.EBEntries)
 	r := mrs[len(mrs)-1]
 	return r
@@ -332,10 +332,10 @@ func (e *EBlockBody) Spew() string {
 // EBlockHeader holds relevent metadata about the Entry Block and the data
 // nessisary to verify the previous block in the Entry Block Chain.
 type EBlockHeader struct {
-	ChainID         *Hash
-	BodyMR          *Hash
-	PrevKeyMR       *Hash
-	PrevLedgerKeyMR *Hash
+	ChainID         IHash
+	BodyMR          IHash
+	PrevKeyMR       IHash
+	PrevLedgerKeyMR IHash
 	EBSequence      uint32
 	DBHeight        uint32
 	EntryCount      uint32
@@ -346,10 +346,10 @@ var _ Printable = (*EBlockHeader)(nil)
 // NewEBlockHeader initializes a new empty Entry Block Header.
 func NewEBlockHeader() *EBlockHeader {
 	e := new(EBlockHeader)
-	e.ChainID = NewHash()
-	e.BodyMR = NewHash()
-	e.PrevKeyMR = NewHash()
-	e.PrevLedgerKeyMR = NewHash()
+	e.ChainID = NewZeroHash()
+	e.BodyMR = NewZeroHash()
+	e.PrevKeyMR = NewZeroHash()
+	e.PrevLedgerKeyMR = NewZeroHash()
 	return e
 }
 

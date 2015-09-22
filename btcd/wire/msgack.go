@@ -86,7 +86,7 @@ func (msg *MsgAcknowledgement) BtcDecode(r io.Reader, pver uint32) error {
 
 	msg.Height, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
-	msg.ChainID = common.NewHash()
+	msg.ChainID = common.NewZeroHash()
 	newData, _ = msg.ChainID.UnmarshalBinaryData(newData)
 
 	msg.Index, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
@@ -148,7 +148,7 @@ func NewMsgAcknowledgement(height uint32, index uint32, affirm *ShaHash, ackType
 	}
 	return &MsgAcknowledgement{
 		Height:      height,
-		ChainID:     common.NewHash(), //TODO: get the correct chain id from processor
+		ChainID:     common.NewZeroHash(), //TODO: get the correct chain id from processor
 		Index:       index,
 		Affirmation: affirm,
 		Type:        ackType,
