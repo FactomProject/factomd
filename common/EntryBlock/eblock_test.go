@@ -1,7 +1,8 @@
-package common_test
+package EntryBlock_test
 
 import (
-	"github.com/FactomProject/factomd/common"
+	. "github.com/FactomProject/factomd/common/EntryBlock"
+	. "github.com/FactomProject/factomd/common/primitives"
 	"testing"
 )
 
@@ -9,7 +10,7 @@ func TestEBlockMarshal(t *testing.T) {
 	t.Logf("\n---\nTestEBlockMarshal\n---\n")
 
 	// build an EBlock for testing
-	eb := common.NewEBlock()
+	eb := NewEBlock()
 	eb.Header.ChainID.SetBytes(byteof(0x11))
 	eb.Header.BodyMR.SetBytes(byteof(0x22))
 	eb.Header.PrevKeyMR.SetBytes(byteof(0x33))
@@ -17,9 +18,9 @@ func TestEBlockMarshal(t *testing.T) {
 	eb.Header.EBSequence = 5
 	eb.Header.DBHeight = 6
 	eb.Header.EntryCount = 7
-	ha := common.NewZeroHash()
+	ha := NewZeroHash()
 	ha.SetBytes(byteof(0xaa))
-	hb := common.NewZeroHash()
+	hb := NewZeroHash()
 	hb.SetBytes(byteof(0xbb))
 	eb.Body.EBEntries = append(eb.Body.EBEntries, ha)
 	eb.AddEndOfMinuteMarker(0xcc)
@@ -31,7 +32,7 @@ func TestEBlockMarshal(t *testing.T) {
 		t.Error(err)
 	}
 
-	eb2 := common.NewEBlock()
+	eb2 := NewEBlock()
 	if err := eb2.UnmarshalBinary(p); err != nil {
 		t.Error(err)
 	}
@@ -46,4 +47,12 @@ func TestEBlockMarshal(t *testing.T) {
 		t.Logf("eb2 = %x\n", p2)
 		t.Fail()
 	}
+}
+
+func byteof(b byte) []byte {
+	r := make([]byte, 0, 32)
+	for i := 0; i < 32; i++ {
+		r = append(r, b)
+	}
+	return r
 }
