@@ -10,12 +10,15 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	. "github.com/FactomProject/factomd/common/constants"
+	. "github.com/FactomProject/factomd/common/interfaces"
+	. "github.com/FactomProject/factomd/common/primitives"
 	"sync"
 )
 
 // Administrative Chain
 type AdminChain struct {
-	ChainID *Hash
+	ChainID IHash
 	Name    [][]byte
 
 	NextBlock       *AdminBlock
@@ -35,14 +38,14 @@ type AdminBlock struct {
 	ABEntries []ABEntry //Interface
 
 	//Not Marshalized
-	fullHash    *Hash //SHA512Half
-	partialHash *Hash //SHA256
+	fullHash    IHash //SHA512Half
+	partialHash IHash //SHA256
 }
 
 var _ Printable = (*AdminBlock)(nil)
 var _ BinaryMarshallable = (*AdminBlock)(nil)
 
-func (ab *AdminBlock) LedgerKeyMR() (*Hash, error) {
+func (ab *AdminBlock) LedgerKeyMR() (IHash, error) {
 	if ab.fullHash == nil {
 		err := ab.buildFullBHash()
 		if err != nil {
@@ -52,7 +55,7 @@ func (ab *AdminBlock) LedgerKeyMR() (*Hash, error) {
 	return ab.fullHash, nil
 }
 
-func (ab *AdminBlock) PartialHash() (*Hash, error) {
+func (ab *AdminBlock) PartialHash() (IHash, error) {
 	if ab.partialHash == nil {
 		err := ab.buildPartialHash()
 		if err != nil {
@@ -76,7 +79,7 @@ func CreateAdminBlock(chain *AdminChain, prev *AdminBlock, cap uint) (b *AdminBl
 	b.Header.AdminChainID = chain.ChainID
 
 	if prev == nil {
-		b.Header.PrevLedgerKeyMR = NewHash()
+		b.Header.PrevLedgerKeyMR = NewZeroHash()
 	} else {
 		b.Header.PrevLedgerKeyMR, err = prev.LedgerKeyMR()
 		if err != nil {
@@ -221,8 +224,8 @@ func (e *AdminBlock) Spew() string {
 
 // Admin Block Header
 type ABlockHeader struct {
-	AdminChainID    *Hash
-	PrevLedgerKeyMR *Hash
+	AdminChainID    IHash
+	PrevLedgerKeyMR IHash
 	DBHeight        uint32
 
 	HeaderExpansionSize uint64
@@ -335,7 +338,7 @@ type ABEntry interface {
 	ShortInterpretable
 
 	Type() byte
-	Hash() *Hash
+	Hash() IHash
 }
 
 type Sig [64]byte

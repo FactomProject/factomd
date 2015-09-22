@@ -3,6 +3,8 @@ package AdminBlock
 import (
 	"bytes"
 	"fmt"
+	. "github.com/FactomProject/factomd/common/interfaces"
+	. "github.com/FactomProject/factomd/common/primitives"
 )
 
 type EndOfMinuteEntry struct {
@@ -79,7 +81,7 @@ func (e *EndOfMinuteEntry) Interpret() string {
 	return fmt.Sprintf("End of Minute %v", e.EOM_Type)
 }
 
-func (e *EndOfMinuteEntry) Hash() *Hash {
+func (e *EndOfMinuteEntry) Hash() IHash {
 	bin, err := e.MarshalBinary()
 	if err != nil {
 		panic(err)

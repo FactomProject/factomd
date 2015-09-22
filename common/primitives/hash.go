@@ -257,6 +257,11 @@ func Shad(data []byte) IHash {
 	return h
 }
 
+func NewZeroHash() IHash {
+	h := new(Hash)
+	return h
+}
+
 func NewHash(b []byte) IHash {
 	h := new(Hash)
 	h.SetBytes(b)

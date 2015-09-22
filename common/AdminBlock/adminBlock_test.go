@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	. "github.com/FactomProject/factomd/common/AdminBlock"
+	. "github.com/FactomProject/factomd/common/primitives"
 )
 
 func TestAdminBlockPreviousHash(t *testing.T) {

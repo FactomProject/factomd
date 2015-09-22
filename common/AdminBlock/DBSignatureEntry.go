@@ -3,14 +3,16 @@ package AdminBlock
 import (
 	"bytes"
 	"fmt"
-	"github.com/FactomProject/factomd/common/primitives"
+	. "github.com/FactomProject/factomd/common/constants"
+	. "github.com/FactomProject/factomd/common/interfaces"
+	. "github.com/FactomProject/factomd/common/primitives"
 )
 
 // DB Signature Entry -------------------------
 type DBSignatureEntry struct {
 	entryType            byte
-	IdentityAdminChainID *primitives.Hash
-	PubKey               primitives.PublicKey
+	IdentityAdminChainID IHash
+	PubKey               PublicKey
 	PrevDBSig            *Sig
 }
 
@@ -18,7 +20,7 @@ var _ ABEntry = (*DBSignatureEntry)(nil)
 var _ BinaryMarshallable = (*DBSignatureEntry)(nil)
 
 // Create a new DB Signature Entry
-func NewDBSignatureEntry(identityAdminChainID *primitives.Hash, sig Signature) (e *DBSignatureEntry) {
+func NewDBSignatureEntry(identityAdminChainID IHash, sig Signature) (e *DBSignatureEntry) {
 	e = new(DBSignatureEntry)
 	e.entryType = TYPE_DB_SIGNATURE
 	e.IdentityAdminChainID = identityAdminChainID
@@ -121,7 +123,7 @@ func (e *DBSignatureEntry) Interpret() string {
 	return ""
 }
 
-func (e *DBSignatureEntry) Hash() *Hash {
+func (e *DBSignatureEntry) Hash() IHash {
 	bin, err := e.MarshalBinary()
 	if err != nil {
 		panic(err)
