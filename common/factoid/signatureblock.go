@@ -7,6 +7,7 @@ package factoid
 import (
 	"bytes"
 	"fmt"
+	. "github.com/FactomProject/factomd/common/interfaces"
 )
 
 /**************************************

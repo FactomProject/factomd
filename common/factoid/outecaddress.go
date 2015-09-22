@@ -10,6 +10,10 @@ package factoid
 //
 // Entry Credit Addresses are always outputs.
 
+import (
+	. "github.com/FactomProject/factomd/common/interfaces"
+)
+
 type OutECAddress struct {
 	TransAddress
 }

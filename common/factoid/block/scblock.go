@@ -9,8 +9,11 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
-	fct "github.com/FactomProject/factomd/common/factoid"
 	"strings"
+
+	. "github.com/FactomProject/factomd/common/constants"
+	. "github.com/FactomProject/factomd/common/interfaces"
+	. "github.com/FactomProject/factomd/common/primitives"
 )
 
 // FBlockHeader defines information about a block and is used in the bitcoin
@@ -20,15 +23,15 @@ import (
 //
 type FBlock struct {
 	//  ChainID         IHash     // ChainID.  But since this is a constant, we need not actually use space to store it.
-	BodyMR          fct.IHash // Merkle root of the Factoid transactions which accompany this block.
-	PrevKeyMR       fct.IHash // Key Merkle root of previous block.
-	PrevLedgerKeyMR fct.IHash // Sha3 of the previous Factoid Block
-	ExchRate        uint64    // Factoshis per Entry Credit
-	DBHeight        uint32    // Directory Block height
+	BodyMR          IHash  // Merkle root of the Factoid transactions which accompany this block.
+	PrevKeyMR       IHash  // Key Merkle root of previous block.
+	PrevLedgerKeyMR IHash  // Sha3 of the previous Factoid Block
+	ExchRate        uint64 // Factoshis per Entry Credit
+	DBHeight        uint32 // Directory Block height
 	// Header Expansion Size  varint
 	// Transaction count
 	// body size
-	Transactions []fct.ITransaction // List of transactions in this block
+	Transactions []ITransaction // List of transactions in this block
 
 	endOfPeriod [10]int // End of Minute transaction heights.  The mark the height of the first entry of
 	// the NEXT period.  This entry may not exist.  The Coinbase transaction is considered
@@ -37,7 +40,7 @@ type FBlock struct {
 }
 
 var _ IFBlock = (*FBlock)(nil)
-var _ fct.Printable = (*FBlock)(nil)
+var _ Printable = (*FBlock)(nil)
 
 // Return the timestamp of the coinbase transaction
 func (b *FBlock) GetCoinbaseTimestamp() int64 {
@@ -59,19 +62,19 @@ func (b *FBlock) EndOfPeriod(period int) {
 	}
 }
 
-func (b *FBlock) GetTransactions() []fct.ITransaction {
+func (b *FBlock) GetTransactions() []ITransaction {
 	return b.Transactions
 }
 
-func (b FBlock) GetNewInstance() fct.IBlock {
+func (b FBlock) GetNewInstance() IBlock {
 	return new(FBlock)
 }
 
-func (FBlock) GetDBHash() fct.IHash {
-	return fct.Sha([]byte("FBlock"))
+func (FBlock) GetDBHash() IHash {
+	return Sha([]byte("FBlock"))
 }
 
-func (b *FBlock) GetHash() fct.IHash {
+func (b *FBlock) GetHash() IHash {
 	kmr := b.GetKeyMR()
 
 	return kmr
@@ -81,14 +84,14 @@ func (b *FBlock) MarshalTrans() ([]byte, error) {
 	var out bytes.Buffer
 	var periodMark = 0
 	var i int
-	var trans fct.ITransaction
+	var trans ITransaction
 	for i, trans = range b.Transactions {
 
 		for periodMark < len(b.endOfPeriod) &&
 			b.endOfPeriod[periodMark] > 0 && // Ignore if markers are not set
 			i == b.endOfPeriod[periodMark] {
 
-			out.WriteByte(fct.MARKER)
+			out.WriteByte(MARKER)
 			periodMark++
 		}
 
@@ -102,7 +105,7 @@ func (b *FBlock) MarshalTrans() ([]byte, error) {
 		}
 	}
 	for periodMark < len(b.endOfPeriod) {
-		out.WriteByte(fct.MARKER)
+		out.WriteByte(MARKER)
 		periodMark++
 	}
 	return out.Bytes(), nil
@@ -113,10 +116,10 @@ func (b *FBlock) MarshalHeader() ([]byte, error) {
 
 	b.EndOfPeriod(0) // Clean up end of minute markers, if needed.
 
-	out.Write(fct.FACTOID_CHAINID)
+	out.Write(FACTOID_CHAINID)
 
 	if b.BodyMR == nil {
-		b.BodyMR = new(fct.Hash)
+		b.BodyMR = new(Hash)
 	}
 	data, err := b.BodyMR.MarshalBinary()
 	if err != nil {
@@ -125,7 +128,7 @@ func (b *FBlock) MarshalHeader() ([]byte, error) {
 	out.Write(data)
 
 	if b.PrevKeyMR == nil {
-		b.PrevKeyMR = new(fct.Hash)
+		b.PrevKeyMR = new(Hash)
 	}
 	data, err = b.PrevKeyMR.MarshalBinary()
 	if err != nil {
@@ -134,7 +137,7 @@ func (b *FBlock) MarshalHeader() ([]byte, error) {
 	out.Write(data)
 
 	if b.PrevLedgerKeyMR == nil {
-		b.PrevLedgerKeyMR = new(fct.Hash)
+		b.PrevLedgerKeyMR = new(Hash)
 	}
 	data, err = b.PrevLedgerKeyMR.MarshalBinary()
 	if err != nil {
@@ -145,7 +148,7 @@ func (b *FBlock) MarshalHeader() ([]byte, error) {
 	binary.Write(&out, binary.BigEndian, uint64(b.ExchRate))
 	binary.Write(&out, binary.BigEndian, uint32(b.DBHeight))
 
-	fct.EncodeVarInt(&out, 0) // At this point in time, nothing in the Expansion Header
+	EncodeVarInt(&out, 0) // At this point in time, nothing in the Expansion Header
 	// so we just write out a zero.
 
 	binary.Write(&out, binary.BigEndian, uint32(len(b.Transactions)))
@@ -193,24 +196,24 @@ func (b *FBlock) UnmarshalBinaryData(data []byte) (newdata []byte, err error) {
 
 	// To capture the panic, my code needs to be in a function.  So I'm
 	// creating one here, and call it at the end of this function.
-	if bytes.Compare(data[:fct.ADDRESS_LENGTH], fct.FACTOID_CHAINID[:]) != 0 {
+	if bytes.Compare(data[:ADDRESS_LENGTH], FACTOID_CHAINID[:]) != 0 {
 		return nil, fmt.Errorf("Block does not begin with the Factoid ChainID")
 	}
 	data = data[32:]
 
-	b.BodyMR = new(fct.Hash)
+	b.BodyMR = new(Hash)
 	data, err = b.BodyMR.UnmarshalBinaryData(data)
 	if err != nil {
 		return nil, err
 	}
 
-	b.PrevKeyMR = new(fct.Hash)
+	b.PrevKeyMR = new(Hash)
 	data, err = b.PrevKeyMR.UnmarshalBinaryData(data)
 	if err != nil {
 		return nil, err
 	}
 
-	b.PrevLedgerKeyMR = new(fct.Hash)
+	b.PrevLedgerKeyMR = new(Hash)
 	data, err = b.PrevLedgerKeyMR.UnmarshalBinaryData(data)
 	if err != nil {
 		return nil, err
@@ -219,27 +222,27 @@ func (b *FBlock) UnmarshalBinaryData(data []byte) (newdata []byte, err error) {
 	b.ExchRate, data = binary.BigEndian.Uint64(data[0:8]), data[8:]
 	b.DBHeight, data = binary.BigEndian.Uint32(data[0:4]), data[4:]
 
-	skip, data := fct.DecodeVarInt(data) // Skip the Expansion Header, if any, since
-	data = data[skip:]                   // we don't know what to do with it.
+	skip, data := DecodeVarInt(data) // Skip the Expansion Header, if any, since
+	data = data[skip:]               // we don't know what to do with it.
 
 	cnt, data := binary.BigEndian.Uint32(data[0:4]), data[4:]
 
 	data = data[4:] // Just skip the size... We don't really need it.
 
-	b.Transactions = make([]fct.ITransaction, cnt, cnt)
+	b.Transactions = make([]ITransaction, cnt, cnt)
 	for i, _ := range b.endOfPeriod {
 		b.endOfPeriod[i] = 0
 	}
 	var periodMark = 0
 	for i := uint32(0); i < cnt; i++ {
 
-		for data[0] == fct.MARKER {
+		for data[0] == MARKER {
 			b.endOfPeriod[periodMark] = int(i)
 			data = data[1:]
 			periodMark++
 		}
 
-		trans := new(fct.Transaction)
+		trans := new(Transaction)
 		data, err = trans.UnmarshalBinaryData(data)
 		if err != nil {
 			return nil, fmt.Errorf("Failed to unmarshal a transaction in block.\n" + err.Error())
@@ -259,7 +262,7 @@ func (b *FBlock) UnmarshalBinary(data []byte) (err error) {
 // Tests if the transaction is equal in all of its structures, and
 // in order of the structures.  Largely used to test and debug, but
 // generally useful.
-func (b1 *FBlock) IsEqual(block fct.IBlock) []fct.IBlock {
+func (b1 *FBlock) IsEqual(block IBlock) []IBlock {
 
 	b1.EndOfPeriod(0) // Clean up end of minute markers, if needed.
 
@@ -268,7 +271,7 @@ func (b1 *FBlock) IsEqual(block fct.IBlock) []fct.IBlock {
 	if !ok || // Not the right kind of IBlock
 		b1.ExchRate != b2.ExchRate ||
 		b1.DBHeight != b2.DBHeight {
-		r := make([]fct.IBlock, 0, 3)
+		r := make([]IBlock, 0, 3)
 		return append(r, b1)
 	}
 
@@ -298,14 +301,14 @@ func (b1 *FBlock) IsEqual(block fct.IBlock) []fct.IBlock {
 
 	return nil
 }
-func (b *FBlock) GetChainID() fct.IHash {
-	h := new(fct.Hash)
-	h.SetBytes(fct.FACTOID_CHAINID)
+func (b *FBlock) GetChainID() IHash {
+	h := new(Hash)
+	h.SetBytes(FACTOID_CHAINID)
 	return h
 }
 
 // Calculates the Key Merkle Root for this block and returns it.
-func (b *FBlock) GetKeyMR() fct.IHash {
+func (b *FBlock) GetKeyMR() IHash {
 
 	bodyMR := b.GetBodyMR()
 
@@ -313,14 +316,14 @@ func (b *FBlock) GetKeyMR() fct.IHash {
 	if err != nil {
 		panic("Failed to create KeyMR: " + err.Error())
 	}
-	headerHash := fct.Sha(data)
+	headerHash := Sha(data)
 	cat := append(headerHash.Bytes(), bodyMR.Bytes()...)
-	kmr := fct.Sha(cat)
+	kmr := Sha(cat)
 	return kmr
 }
 
 // Calculates the Key Merkle Root for this block and returns it.
-func (b *FBlock) GetLedgerKeyMR() fct.IHash {
+func (b *FBlock) GetLedgerKeyMR() IHash {
 
 	ledgerMR := b.GetLedgerMR()
 
@@ -328,27 +331,27 @@ func (b *FBlock) GetLedgerKeyMR() fct.IHash {
 	if err != nil {
 		panic("Failed to create LedgerKeyMR: " + err.Error())
 	}
-	headerHash := fct.Sha(data)
+	headerHash := Sha(data)
 	cat := append(ledgerMR.Bytes(), headerHash.Bytes()...)
-	lkmr := fct.Sha(cat)
+	lkmr := Sha(cat)
 
 	return lkmr
 }
 
 // Returns the LedgerMR for this block.
-func (b *FBlock) GetLedgerMR() fct.IHash {
+func (b *FBlock) GetLedgerMR() IHash {
 
 	b.EndOfPeriod(0) // Clean up end of minute markers, if needed.
 
-	hashes := make([]fct.IHash, 0, len(b.Transactions))
+	hashes := make([]IHash, 0, len(b.Transactions))
 	marker := 0
 	for i, trans := range b.Transactions {
 		for marker < len(b.endOfPeriod) && i != 0 && i == b.endOfPeriod[marker] {
 			marker++
-			hashes = append(hashes, fct.Sha(fct.ZERO))
+			hashes = append(hashes, Sha(ZERO))
 		}
 		data, err := trans.MarshalBinarySig()
-		hash := fct.Sha(data)
+		hash := Sha(data)
 		if err != nil {
 			panic("Failed to get LedgerMR: " + err.Error())
 		}
@@ -358,44 +361,44 @@ func (b *FBlock) GetLedgerMR() fct.IHash {
 	// Add any lagging markers
 	for marker < len(b.endOfPeriod) {
 		marker++
-		hashes = append(hashes, fct.Sha(fct.ZERO))
+		hashes = append(hashes, Sha(ZERO))
 	}
-	lmr := fct.ComputeMerkleRoot(hashes)
+	lmr := ComputeMerkleRoot(hashes)
 	return lmr
 }
 
-func (b *FBlock) GetBodyMR() fct.IHash {
+func (b *FBlock) GetBodyMR() IHash {
 
 	b.EndOfPeriod(0) // Clean up end of minute markers, if needed.
 
-	hashes := make([]fct.IHash, 0, len(b.Transactions))
+	hashes := make([]IHash, 0, len(b.Transactions))
 	marker := 0
 	for i, trans := range b.Transactions {
 		for marker < len(b.endOfPeriod) && i != 0 && i == b.endOfPeriod[marker] {
 			marker++
-			hashes = append(hashes, fct.Sha(fct.ZERO))
+			hashes = append(hashes, Sha(ZERO))
 		}
 		hashes = append(hashes, trans.GetHash())
 	}
 	// Add any lagging markers
 	for marker < len(b.endOfPeriod) {
 		marker++
-		hashes = append(hashes, fct.Sha(fct.ZERO))
+		hashes = append(hashes, Sha(ZERO))
 	}
 
-	b.BodyMR = fct.ComputeMerkleRoot(hashes)
+	b.BodyMR = ComputeMerkleRoot(hashes)
 
 	return b.BodyMR
 }
 
-func (b *FBlock) GetPrevKeyMR() fct.IHash {
+func (b *FBlock) GetPrevKeyMR() IHash {
 	return b.PrevKeyMR
 }
 func (b *FBlock) SetPrevKeyMR(hash []byte) {
-	h := fct.NewHash(hash)
+	h := NewHash(hash)
 	b.PrevKeyMR = h
 }
-func (b *FBlock) GetPrevLedgerKeyMR() fct.IHash {
+func (b *FBlock) GetPrevLedgerKeyMR() IHash {
 	return b.PrevLedgerKeyMR
 }
 func (b *FBlock) SetPrevLedgerKeyMR(hash []byte) {
@@ -420,7 +423,7 @@ func (b *FBlock) GetExchRate() uint64 {
 	return b.ExchRate
 }
 
-func (b FBlock) ValidateTransaction(index int, trans fct.ITransaction) error {
+func (b FBlock) ValidateTransaction(index int, trans ITransaction) error {
 	// Calculate the fee due.
 	{
 		err := trans.Validate(index)
@@ -453,7 +456,7 @@ func (b FBlock) ValidateTransaction(index int, trans fct.ITransaction) error {
 	if err != nil {
 		return err
 	}
-	sum, err := fct.ValidateAmounts(tout, tec, fee)
+	sum, err := ValidateAmounts(tout, tec, fee)
 	if err != nil {
 		return err
 	}
@@ -461,10 +464,10 @@ func (b FBlock) ValidateTransaction(index int, trans fct.ITransaction) error {
 	if tin < sum {
 		return fmt.Errorf("The inputs %s do not cover the outputs %s,\n"+
 			"the Entry Credit outputs %s, and the required fee %s",
-			strings.TrimSpace(fct.ConvertDecimal(tin)),
-			strings.TrimSpace(fct.ConvertDecimal(tout)),
-			strings.TrimSpace(fct.ConvertDecimal(tec)),
-			strings.TrimSpace(fct.ConvertDecimal(fee)))
+			strings.TrimSpace(ConvertDecimal(tin)),
+			strings.TrimSpace(ConvertDecimal(tout)),
+			strings.TrimSpace(ConvertDecimal(tec)),
+			strings.TrimSpace(ConvertDecimal(fee)))
 	}
 	return nil
 }
@@ -504,7 +507,7 @@ func (b FBlock) Validate() error {
 // Add the first transaction of a block.  This transaction makes the
 // payout to the servers, so it has no inputs.   This transaction must
 // be deterministic so that all servers will know and expect its output.
-func (b *FBlock) AddCoinbase(trans fct.ITransaction) error {
+func (b *FBlock) AddCoinbase(trans ITransaction) error {
 	b.BodyMR = nil
 	if len(b.Transactions) != 0 {
 		return fmt.Errorf("The coinbase transaction must be the first transaction")
@@ -530,7 +533,7 @@ func (b *FBlock) AddCoinbase(trans fct.ITransaction) error {
 
 // Add the given transaction to this block.  Reports an error if this
 // cannot be done, or if the transaction is invalid.
-func (b *FBlock) AddTransaction(trans fct.ITransaction) error {
+func (b *FBlock) AddTransaction(trans ITransaction) error {
 	// These tests check that the Transaction itself is valid.  If it
 	// is not internally valid, it never will be valid.
 	b.BodyMR = nil
@@ -561,38 +564,38 @@ func (b FBlock) CustomMarshalText() (text []byte, err error) {
 
 	out.WriteString("Transaction Block\n")
 	out.WriteString("  ChainID:       ")
-	out.WriteString(hex.EncodeToString(fct.FACTOID_CHAINID))
+	out.WriteString(hex.EncodeToString(FACTOID_CHAINID))
 	if b.BodyMR == nil {
-		b.BodyMR = new(fct.Hash)
+		b.BodyMR = new(Hash)
 	}
 	out.WriteString("\n  BodyMR:        ")
 	out.WriteString(b.BodyMR.String())
 	if b.PrevKeyMR == nil {
-		b.PrevKeyMR = new(fct.Hash)
+		b.PrevKeyMR = new(Hash)
 	}
 	out.WriteString("\n  PrevKeyMR:     ")
 	out.WriteString(b.PrevKeyMR.String())
 	if b.PrevLedgerKeyMR == nil {
-		b.PrevLedgerKeyMR = new(fct.Hash)
+		b.PrevLedgerKeyMR = new(Hash)
 	}
 	out.WriteString("\n  PrevLedgerKeyMR:  ")
 	out.WriteString(b.PrevLedgerKeyMR.String())
 	out.WriteString("\n  ExchRate:      ")
-	fct.WriteNumber64(&out, b.ExchRate)
+	WriteNumber64(&out, b.ExchRate)
 	out.WriteString("\n  DBHeight:      ")
-	fct.WriteNumber32(&out, b.DBHeight)
+	WriteNumber32(&out, b.DBHeight)
 	out.WriteString("\n  Period Marks:  ")
 	for _, mark := range b.endOfPeriod {
 		out.WriteString(fmt.Sprintf("%d ", mark))
 	}
 	out.WriteString("\n  #Transactions: ")
-	fct.WriteNumber32(&out, uint32(len(b.Transactions)))
+	WriteNumber32(&out, uint32(len(b.Transactions)))
 	transdata, err := b.MarshalTrans()
 	if err != nil {
 		return out.Bytes(), err
 	}
 	out.WriteString("\n  Body Size:     ")
-	fct.WriteNumber32(&out, uint32(len(transdata)))
+	WriteNumber32(&out, uint32(len(transdata)))
 	out.WriteString("\n\n")
 	markPeriod := 0
 
@@ -613,19 +616,19 @@ func (b FBlock) CustomMarshalText() (text []byte, err error) {
 }
 
 func (e *FBlock) JSONByte() ([]byte, error) {
-	return fct.EncodeJSON(e)
+	return EncodeJSON(e)
 }
 
 func (e *FBlock) JSONString() (string, error) {
-	return fct.EncodeJSONString(e)
+	return EncodeJSONString(e)
 }
 
 func (e *FBlock) JSONBuffer(b *bytes.Buffer) error {
-	return fct.EncodeJSONToBuffer(e, b)
+	return EncodeJSONToBuffer(e, b)
 }
 
 func (e *FBlock) Spew() string {
-	return fct.Spew(e)
+	return Spew(e)
 }
 
 /**************************
@@ -634,9 +637,9 @@ func (e *FBlock) Spew() string {
 
 func NewFBlock(ExchRate uint64, DBHeight uint32) IFBlock {
 	scb := new(FBlock)
-	scb.BodyMR = new(fct.Hash)
-	scb.PrevKeyMR = new(fct.Hash)
-	scb.PrevLedgerKeyMR = new(fct.Hash)
+	scb.BodyMR = new(Hash)
+	scb.PrevKeyMR = new(Hash)
+	scb.PrevLedgerKeyMR = new(Hash)
 	scb.ExchRate = ExchRate
 	scb.DBHeight = DBHeight
 	return scb

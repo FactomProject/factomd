@@ -9,6 +9,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	. "github.com/FactomProject/factomd/common/interfaces"
 )
 
 /************************

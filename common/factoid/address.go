@@ -15,6 +15,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	. "github.com/FactomProject/factomd/common/interfaces"
 )
 
 var _ = fmt.Println

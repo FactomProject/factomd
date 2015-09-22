@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	. "github.com/FactomProject/factomd/common/interfaces"
 	"time"
 )
 

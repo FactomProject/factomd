@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	. "github.com/FactomProject/factomd/common/interfaces"
 )
 
 // The default signature doesn't care about indexing.  We will extend this

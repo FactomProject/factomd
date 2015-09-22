@@ -7,6 +7,10 @@
 
 package factoid
 
+import (
+	. "github.com/FactomProject/factomd/common/interfaces"
+)
+
 type InAddress struct {
 	TransAddress
 }

@@ -15,6 +15,8 @@ import (
 	"encoding/hex"
 	"fmt"
 	"strings"
+
+	. "github.com/FactomProject/factomd/common/interfaces"
 )
 
 type TransAddress struct {
