@@ -4,14 +4,13 @@
 
 package wallet
 
-import fct "github.com/FactomProject/factomd/common/factoid"
 import (
 	"bytes"
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 	"github.com/FactomProject/ed25519"
-	"github.com/FactomProject/factomd/common/factoid"
+	fct "github.com/FactomProject/factomd/common/factoid"
 	"math/rand"
 	"testing"
 )
@@ -49,12 +48,12 @@ func Test_create_scwallet(test *testing.T) {
 	w.Init()
 	w.NewSeed([]byte("lkdfsgjlagkjlasd"))
 	we := new(WalletEntry)
-	rcd := new(factoid.RCD_1)
+	rcd := new(fct.RCD_1)
 	name := "John Smith"
 	pub, pri, err := w.generateKey()
 
 	if err != nil {
-		factoid.Prtln("Generate Failed")
+		fct.Prtln("Generate Failed")
 		test.Fail()
 	}
 
@@ -64,7 +63,7 @@ func Test_create_scwallet(test *testing.T) {
 
 	txt, err := we.CustomMarshalText()
 	var _ = txt
-	// factoid.Prtln(string(txt))
+	// fct.Prtln(string(txt))
 
 }
 
@@ -112,19 +111,19 @@ func Test_CreateTransaction_swcallet(test *testing.T) {
 
 	signed, err := w.SignInputs(t)
 	if !signed || err != nil {
-		factoid.Prtln("Signed Fail: ", signed, err)
+		fct.Prtln("Signed Fail: ", signed, err)
 		test.Fail()
 	}
 
 	fee, err := t.CalculateFee(1000)
 	if fee != 12000 || err != nil {
-		factoid.Prtln("Fee Calculation Failed", fee, err)
+		fct.Prtln("Fee Calculation Failed", fee, err)
 		test.Fail()
 	}
 
 	err2 := w.Validate(1, t)
 	if err2 != nil {
-		factoid.Prtln(err2)
+		fct.Prtln(err2)
 		test.Fail()
 	}
 
@@ -167,7 +166,7 @@ func Test_SignTransaction_swcallet(test *testing.T) {
 	signed, err := w.SignInputs(t)
 
 	if !signed || err != nil {
-		factoid.Prtln("Signed Fail: ", signed, err)
+		fct.Prtln("Signed Fail: ", signed, err)
 		test.Fail()
 	}
 
@@ -176,7 +175,7 @@ func Test_SignTransaction_swcallet(test *testing.T) {
 
 	err = w.ValidateSignatures(t)
 	if err != nil {
-		factoid.Prtln(err)
+		fct.Prtln(err)
 		test.Fail()
 	}
 

@@ -13,12 +13,6 @@ import (
 	fct "github.com/FactomProject/factomd/common/factoid"
 )
 
-type IFSbalance interface {
-	fct.IBlock
-	getNumber() uint64
-	setNumber(uint64)
-}
-
 type FSbalance struct {
 	fct.IBlock
 	number uint64
