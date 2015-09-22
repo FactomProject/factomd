@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"github.com/FactomProject/ed25519"
+	. "github.com/FactomProject/factomd/common/interfaces"
 )
 
 // Verifyer objects can Verify signed messages

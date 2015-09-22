@@ -2,7 +2,7 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-package factoid
+package interfaces
 
 import (
 	// "fmt"
@@ -30,37 +30,37 @@ type IBlock interface {
 }
 
 type IFBlock interface {
-	fct.IBlock
-	fct.Printable
+	IBlock
+	Printable
 	// Get the ChainID. This is a constant for all Factoids.
-	GetChainID() fct.IHash
+	GetChainID() IHash
 	// Validation functions
 	Validate() error
-	ValidateTransaction(int, fct.ITransaction) error
+	ValidateTransaction(int, ITransaction) error
 	// Marshal just the header for the block. This is to include the header
 	// in the LedgerKeyMR
 	MarshalHeader() ([]byte, error)
 	// Marshal just the transactions.  This is because we need the length
 	MarshalTrans() ([]byte, error)
 	// Add a coinbase transaction.  This transaction has no inputs
-	AddCoinbase(fct.ITransaction) error
+	AddCoinbase(ITransaction) error
 	// Add a proper transaction.  Transactions are validated before
 	// being added to the block.
-	AddTransaction(fct.ITransaction) error
+	AddTransaction(ITransaction) error
 	// Calculate all the MR and serial hashes for this block.  Done just
 	// prior to being persisted.
 	CalculateHashes()
 	// Hash accessors
 	// Get Key MR() hashes the header with the GetBodyMR() of the transactions
-	GetKeyMR() fct.IHash
+	GetKeyMR() IHash
 	// Get the MR for the list of transactions
-	GetBodyMR() fct.IHash
+	GetBodyMR() IHash
 	// Get the KeyMR of the previous block.
-	GetPrevKeyMR() fct.IHash
+	GetPrevKeyMR() IHash
 	SetPrevKeyMR([]byte)
-	GetLedgerMR() fct.IHash
-	GetLedgerKeyMR() fct.IHash
-	GetPrevLedgerKeyMR() fct.IHash
+	GetLedgerMR() IHash
+	GetLedgerKeyMR() IHash
+	GetPrevLedgerKeyMR() IHash
 	SetPrevLedgerKeyMR([]byte)
 	// Accessors for the Directory Block Height
 	SetDBHeight(uint32)
@@ -69,7 +69,7 @@ type IFBlock interface {
 	SetExchRate(uint64)
 	GetExchRate() uint64
 	// Accessors for the transactions
-	GetTransactions() []fct.ITransaction
+	GetTransactions() []ITransaction
 
 	// Mark an end of Minute.  If there are multiple calls with the same minute value
 	// the later one simply overwrites the previous one.  Since this is an informational

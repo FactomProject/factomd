@@ -7,6 +7,7 @@ package primitives
 import (
 	"fmt"
 	"github.com/FactomProject/ed25519"
+	. "github.com/FactomProject/factomd/common/constants"
 	"math/rand"
 	"testing"
 )

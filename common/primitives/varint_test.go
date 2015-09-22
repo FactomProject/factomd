@@ -6,7 +6,7 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/FactomProject/factomd/common"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 func TestVarInt(t *testing.T) {
@@ -33,7 +33,7 @@ func TestVarInt(t *testing.T) {
 		}
 
 		for j := 0; j < len(v); j++ { // Encode our entire array of numbers
-			err := common.EncodeVarInt(&out, v[j])
+			err := primitives.EncodeVarInt(&out, v[j])
 			if err != nil {
 				fmt.Println(err)
 				t.Fail()
@@ -52,7 +52,7 @@ func TestVarInt(t *testing.T) {
 		for k := 0; k < 1000; k++ {
 			data = sdata
 			for j := 0; j < len(v); j++ {
-				dv, data = common.DecodeVarInt(data)
+				dv, data = primitives.DecodeVarInt(data)
 				if dv != v[j] {
 					fmt.Printf("Values don't match: decode:%x expected:%x (%d)\n", dv, v[j], j)
 					t.Fail()

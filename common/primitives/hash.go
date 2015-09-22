@@ -10,6 +10,9 @@ import (
 	"crypto/sha512"
 	"encoding/hex"
 	"fmt"
+
+	. "github.com/FactomProject/factomd/common/constants"
+	. "github.com/FactomProject/factomd/common/interfaces"
 )
 
 type Hash struct {
@@ -38,7 +41,7 @@ func (h *Hash) UnmarshalText(b []byte) error {
 }
 
 func (h Hash) Fixed() [32]byte {
-	return h.hash
+	return h.bytes
 }
 func (h *Hash) Bytes() []byte {
 	return h.GetBytes()
@@ -56,9 +59,8 @@ func (w1 Hash) GetNewInstance() IBlock {
 	return new(Hash)
 }
 
-func NewHash() *Hash {
-	h := new(Hash)
-	return h
+func (h *Hash) CreateHash(entities ...BinaryMarshallable) (IHash, error) {
+	return CreateHash(entities...)
 }
 
 func CreateHash(entities ...BinaryMarshallable) (h IHash, err error) {
@@ -71,7 +73,7 @@ func CreateHash(entities ...BinaryMarshallable) (h IHash, err error) {
 		}
 		sha.Write(data)
 	}
-	copy(h.bytes[:], sha.Sum(nil))
+	h.SetBytes(sha.Sum(nil))
 	return
 }
 
@@ -143,16 +145,6 @@ func NewShaHash(newHash []byte) (*Hash, error) {
 	return &sh, err
 }
 
-// Create a Sha256 Hash from a byte array
-func Sha(p []byte) (h *Hash) {
-	sha := sha256.New()
-	sha.Write(p)
-
-	h = new(Hash)
-	copy(h.bytes[:], sha.Sum(nil))
-	return h
-}
-
 // Create a Sha512[:256] Hash from a byte array
 func Sha512Half(p []byte) (h *Hash) {
 	sha := sha512.New()
@@ -176,7 +168,11 @@ func (h *Hash) ByteString() string {
 	return string(h.bytes[:])
 }
 
-func HexToHash(hexStr string) (h *Hash, err error) {
+func (h *Hash) HexToHash(hexStr string) (IHash, error) {
+	return HexToHash(hexStr)
+}
+
+func HexToHash(hexStr string) (h IHash, err error) {
 	h = new(Hash)
 	v, err := hex.DecodeString(hexStr)
 	err = h.SetBytes(v)
@@ -200,7 +196,7 @@ func (a Hash) IsSameAs(b IHash) bool {
 		return false
 	}
 
-	if bytes.Compare(a.hash[:], b.Bytes()) == 0 {
+	if bytes.Compare(a.bytes[:], b.Bytes()) == 0 {
 		return true
 	}
 
@@ -219,7 +215,7 @@ func (h *Hash) IsMinuteMarker() bool {
 
 func (a Hash) CustomMarshalText() (text []byte, err error) {
 	var out bytes.Buffer
-	hash := hex.EncodeToString(a.hash[:])
+	hash := hex.EncodeToString(a.bytes[:])
 	out.WriteString(hash)
 	return out.Bytes(), nil
 }

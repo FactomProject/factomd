@@ -156,11 +156,6 @@ func (db FDatabase) GetPersist() IFDatabase {
  * Database Key for Key/Value Databases that don't support buckets
  *****************************************************************/
 
-type IDBKey interface {
-	GetBucket() []byte
-	GetKey() []byte
-}
-
 type DBKey struct {
 	bucket [factoid.ADDRESS_LENGTH]byte
 	key    [factoid.KEY_LIMIT]byte

@@ -17,7 +17,7 @@ import ()
 type ISignature interface {
 	IBlock
 	SetSignature(sig []byte) error // Set or update the signature
-	GetSignature() *[SIGNATURE_LENGTH]byte
+	GetSignature() *[64]byte
 }
 
 /**************************************

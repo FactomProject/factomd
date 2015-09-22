@@ -7,7 +7,7 @@ package interfaces
 import ()
 
 // The wallet interface uses bytes.  This is because we want to
-// handle fixed length values in our maps and the database.  If
+// handle fixed length values in our maps and the   If
 // we try to use strings, then the lengths vary based on encoding
 // and that complicates the implementation without really making
 // the interface more usable by developers.
@@ -24,58 +24,58 @@ type ISCWallet interface {
 	// Set the current deterministic root (Initialization function)
 	SetRoot([]byte)
 	// Returns the backing database for the wallet
-	GetDB() database.IFDatabase
+	GetDB() IFDatabase
 	// Import a key pair.  If the private key is null, this is treated as an
 	// external address, useful only as a destination
-	AddKeyPair(addrtype string, name []byte, public []byte, private []byte, generateRandomIfAddressPresent bool) (fct.IAddress, error)
+	AddKeyPair(addrtype string, name []byte, public []byte, private []byte, generateRandomIfAddressPresent bool) (IAddress, error)
 	// Generate a Factoid Address
-	GenerateFctAddress(name []byte, m int, n int) (fct.IAddress, error)
+	GenerateFctAddress(name []byte, m int, n int) (IAddress, error)
 	// Generate an Entry Credit Address
-	GenerateECAddress(name []byte) (fct.IAddress, error)
+	GenerateECAddress(name []byte) (IAddress, error)
 
 	// Generate a Factoid Address from a private key
-	GenerateFctAddressFromPrivateKey(name []byte, privateKey []byte, m int, n int) (fct.IAddress, error)
+	GenerateFctAddressFromPrivateKey(name []byte, privateKey []byte, m int, n int) (IAddress, error)
 	// Generate an Entry Credit Address from a privatekey
-	GenerateECAddressFromPrivateKey(name []byte, privateKey []byte) (fct.IAddress, error)
+	GenerateECAddressFromPrivateKey(name []byte, privateKey []byte) (IAddress, error)
 
 	// Generate a Factoid Address from a human readable private key
-	GenerateFctAddressFromHumanReadablePrivateKey(name []byte, privateKey string, m int, n int) (fct.IAddress, error)
+	GenerateFctAddressFromHumanReadablePrivateKey(name []byte, privateKey string, m int, n int) (IAddress, error)
 	// Generate an Entry Credit Address from a human readable private key
-	GenerateECAddressFromHumanReadablePrivateKey(name []byte, privateKey string) (fct.IAddress, error)
+	GenerateECAddressFromHumanReadablePrivateKey(name []byte, privateKey string) (IAddress, error)
 
 	// Generate a Factoid Address from a set of 12 words from the token sale
-	GenerateFctAddressFromMnemonic(name []byte, mnemonic string, m int, n int) (fct.IAddress, error)
+	GenerateFctAddressFromMnemonic(name []byte, mnemonic string, m int, n int) (IAddress, error)
 
 	// Get details for an address
 	GetAddressDetailsAddr(addr []byte) IWalletEntry
 	// Returns the Address hash (what we use for inputs) given the public key
-	GetAddressHash(fct.IAddress) (fct.IAddress, error)
+	GetAddressHash(IAddress) (IAddress, error)
 
 	/** Transaction calls **/
 	// Create a transaction.  This is just the bones, to which the
 	// user must add inputs, outputs, and sign before submission.
 	// Must pass in the time for the transaction! UTC nanoseconds
-	CreateTransaction(time uint64) fct.ITransaction
+	CreateTransaction(time uint64) ITransaction
 	// Modify an input.  Used to back fill the transaction fee.
-	UpdateInput(fct.ITransaction, int, fct.IAddress, uint64) error
+	UpdateInput(ITransaction, int, IAddress, uint64) error
 	// Add an input to a transaction
-	AddInput(fct.ITransaction, fct.IAddress, uint64) error
+	AddInput(ITransaction, IAddress, uint64) error
 	// Add an output to a transaction
-	AddOutput(fct.ITransaction, fct.IAddress, uint64) error
+	AddOutput(ITransaction, IAddress, uint64) error
 	// Add an Entry Credit output to a transaction.  Note that these are
 	// denominated in Factoids.  So you need the exchange rate to do this
 	// properly.
-	AddECOutput(fct.ITransaction, fct.IAddress, uint64) error
+	AddECOutput(ITransaction, IAddress, uint64) error
 	// Validate a transaction.  Just checks that the inputs and outputs are
 	// there and properly constructed.
-	Validate(int, fct.ITransaction) error
+	Validate(int, ITransaction) error
 	// Checks that the signatures all validate.
-	ValidateSignatures(fct.ITransaction) error
+	ValidateSignatures(ITransaction) error
 	// Sign the inputs that have public keys to which we have the private
 	// keys.  In the future, we will allow transactions with partical signatures
 	// to be sent to other people to complete the signing process.  This will
 	// be particularly useful with multisig.
-	SignInputs(fct.ITransaction) (bool, error) // True if all inputs are signed
+	SignInputs(ITransaction) (bool, error) // True if all inputs are signed
 	// Sign a CommitEntry or a CommitChain with the eckey
 	SignCommit(we IWalletEntry, data []byte) []byte
 	// Get the exchange rate of Factoids per Entry Credit
@@ -83,12 +83,12 @@ type ISCWallet interface {
 }
 
 type IWalletEntry interface {
-	fct.IBlock
+	IBlock
 	// Set the RCD for this entry.  USE WITH CAUTION!  You change
 	// the hash and thus the address returned by the wallet entry!
-	SetRCD(fct.IRCD)
+	SetRCD(IRCD)
 	// Get the RCD used to validate an input
-	GetRCD() fct.IRCD
+	GetRCD() IRCD
 	// Add a public and private key.  USE WITH CAUTION! You change
 	// the hash and thus the address returned by the wallet entry!
 	AddKey(public, private []byte)
@@ -101,7 +101,7 @@ type IWalletEntry interface {
 	// Set the name for this address
 	SetName([]byte)
 	// Get the address defined by the RCD for this wallet entry.
-	GetAddress() (fct.IAddress, error)
+	GetAddress() (IAddress, error)
 	// Return "ec" for Entry Credit address, and "fct" for a Factoid address
 	GetType() string
 	SetType(string)

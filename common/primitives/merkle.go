@@ -6,6 +6,8 @@ package primitives
 
 import (
 	"fmt"
+	. "github.com/FactomProject/factomd/common/constants"
+	. "github.com/FactomProject/factomd/common/interfaces"
 	"math"
 )
 

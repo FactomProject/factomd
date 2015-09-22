@@ -2,7 +2,6 @@ package primitives
 
 import (
 	"bytes"
-	"encoding"
 	"encoding/binary"
 	"errors"
 	"fmt"

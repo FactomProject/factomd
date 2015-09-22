@@ -5,7 +5,7 @@
 package interfaces
 
 import (
-	"encoding/binary"
+	"encoding"
 )
 
 type BinaryMarshallable interface {
