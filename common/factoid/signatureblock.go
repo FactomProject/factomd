@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"fmt"
 	. "github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 /**************************************
@@ -83,7 +84,7 @@ func (s SignatureBlock) GetSignature(index int) ISignature {
 }
 
 func (SignatureBlock) GetDBHash() IHash {
-	return Sha([]byte("SignatureBlock"))
+	return primitives.Sha([]byte("SignatureBlock"))
 }
 
 func (s SignatureBlock) GetNewInstance() IBlock {

@@ -16,6 +16,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	. "github.com/FactomProject/factomd/common/interfaces"
+	. "github.com/FactomProject/factomd/common/primitives"
 )
 
 var _ = fmt.Println

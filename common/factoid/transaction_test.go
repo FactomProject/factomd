@@ -7,6 +7,9 @@ package factoid
 import (
 	"fmt"
 	"github.com/FactomProject/ed25519"
+	. "github.com/FactomProject/factomd/common/constants"
+	. "github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 	"math/rand"
 	"testing"
 )
@@ -114,12 +117,12 @@ func Test_Address_MarshalUnMarshal(test *testing.T) {
 	a := nextAddress()
 	adr, err := a.MarshalBinary()
 	if err != nil {
-		Prtln(err)
+		primitives.Prtln(err)
 		test.Fail()
 	}
 	_, err = a.UnmarshalBinaryData(adr)
 	if err != nil {
-		Prtln(err)
+		primitives.Prtln(err)
 		test.Fail()
 	}
 }
@@ -128,14 +131,14 @@ func Test_Multisig_MarshalUnMarshal(test *testing.T) {
 	rcd := nextAuth2()
 	auth2, err := rcd.MarshalBinary()
 	if err != nil {
-		Prtln(err)
+		primitives.Prtln(err)
 		test.Fail()
 	}
 
 	_, err = rcd.UnmarshalBinaryData(auth2)
 
 	if err != nil {
-		Prtln(err)
+		primitives.Prtln(err)
 		test.Fail()
 	}
 }
@@ -145,7 +148,7 @@ func xTest_Transaction_MarshalUnMarshal(test *testing.T) {
 	getSignedTrans()                // Make sure we have a signed transaction
 	data, err := nb.MarshalBinary() // Marshal our signed transaction
 	if err != nil {                 // If we have an error, print our stack
-		Prtln(err) //   and fail our test
+		primitives.Prtln(err) //   and fail our test
 		test.Fail()
 	}
 
@@ -154,18 +157,18 @@ func xTest_Transaction_MarshalUnMarshal(test *testing.T) {
 	err = xb.UnmarshalBinary(data) // Now Unmarshal
 
 	if err != nil {
-		Prtln(err)
+		primitives.Prtln(err)
 		test.Fail()
 		return
 	}
 
 	//     txt1,_ := xb.CustomMarshalText()
 	//     txt2,_ := nb.CustomMarshalText()
-	//     Prtln(string(txt1))
-	//     Prtln(string(txt2))
+	//     primitives.Prtln(string(txt1))
+	//     primitives.Prtln(string(txt2))
 
 	if xb.IsEqual(nb) != nil {
-		Prtln("Trans\n", nb, "Unmarshal Trans\n", xb)
+		primitives.Prtln("Trans\n", nb, "Unmarshal Trans\n", xb)
 		test.Fail()
 	}
 

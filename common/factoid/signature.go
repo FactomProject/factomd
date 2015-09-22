@@ -8,7 +8,9 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	. "github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 // The default signature doesn't care about indexing.  We will extend this
@@ -32,7 +34,7 @@ func (b Signature) String() string {
 }
 
 func (Signature) GetDBHash() IHash {
-	return Sha([]byte("Signature"))
+	return primitives.Sha([]byte("Signature"))
 }
 
 func (w1 Signature) GetNewInstance() IBlock {

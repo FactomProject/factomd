@@ -7,6 +7,7 @@ package factoid
 import (
 	"fmt"
 	"github.com/FactomProject/ed25519"
+	"github.com/FactomProject/factomd/common/primitives"
 	"math/rand"
 	"testing"
 )
@@ -21,14 +22,14 @@ func Test_Auth2_Equals(test *testing.T) {
 	a2 := a1
 
 	if a1.IsEqual(a2) != nil {
-		PrtStk()
+		primitives.PrtStk()
 		test.Fail()
 	}
 
 	a1 = nextAuth2()
 
 	if a1.IsEqual(a2) == nil {
-		PrtStk()
+		primitives.PrtStk()
 		test.Fail()
 	}
 }

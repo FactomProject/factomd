@@ -8,10 +8,10 @@ package factoid
 
 import (
 	"fmt"
-	"github.com/FactomProject/factomd/util"
+	//"github.com/FactomProject/factomd/util"
 )
 
-var _ = util.Trace
+//var _ = util.Trace
 var _ = fmt.Sprintf
 
 // 1-byte version

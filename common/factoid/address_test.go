@@ -8,6 +8,8 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/FactomProject/ed25519"
+	. "github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/primitives"
 	"math/rand"
 	"testing"
 )
@@ -36,36 +38,36 @@ func Test_AddressEquals(test *testing.T) {
 	a2.SetBytes(address1[:])
 
 	if a1.IsEqual(a2) != nil { // Out of the box, hashes should be equal
-		PrtStk()
+		primitives.PrtStk()
 		test.Fail()
 	}
 
 	a1.SetBytes(address2[:])
 
 	if a1.IsEqual(a2) == nil { // Now they should not be equal
-		PrtStk()
+		primitives.PrtStk()
 		test.Fail()
 	}
 
 	a2.SetBytes(address2[:])
 
 	if a1.IsEqual(a2) != nil { // Back to equality!
-		PrtStk()
+		primitives.PrtStk()
 		test.Fail()
 	}
 }
 
 func Test_Factoid_Addresses(test *testing.T) {
 
-	addr := NewAddress(Sha([]byte("A fake address")).Bytes())
+	addr := NewAddress(primitives.Sha([]byte("A fake address")).Bytes())
 
-	uaddr := ConvertFctAddressToUserStr(addr)
+	uaddr := primitives.ConvertFctAddressToUserStr(addr)
 
-	if !ValidateFUserStr(uaddr) {
+	if !primitives.ValidateFUserStr(uaddr) {
 		test.Fail()
 	}
 
-	addrBack := ConvertUserStrToAddress(uaddr)
+	addrBack := primitives.ConvertUserStrToAddress(uaddr)
 
 	if bytes.Compare(addrBack, addr.Bytes()) != 0 {
 		test.Fail()
@@ -75,11 +77,11 @@ func Test_Factoid_Addresses(test *testing.T) {
 
 	for i, v := range buaddr {
 		for j := uint(0); j < 8; j++ {
-			if !ValidateFUserStr(string(buaddr)) {
+			if !primitives.ValidateFUserStr(string(buaddr)) {
 				test.Fail()
 			}
 			buaddr[i] = v ^ (01 << j)
-			if ValidateFUserStr(string(buaddr)) {
+			if primitives.ValidateFUserStr(string(buaddr)) {
 				test.Fail()
 			}
 			buaddr[i] = v
@@ -89,16 +91,16 @@ func Test_Factoid_Addresses(test *testing.T) {
 
 func Test_Entry_Credit_Addresses(test *testing.T) {
 
-	addr := NewAddress(Sha([]byte("A fake address")).Bytes())
+	addr := NewAddress(primitives.Sha([]byte("A fake address")).Bytes())
 
-	uaddr := ConvertECAddressToUserStr(addr)
+	uaddr := primitives.ConvertECAddressToUserStr(addr)
 
-	if !ValidateECUserStr(uaddr) {
+	if !primitives.ValidateECUserStr(uaddr) {
 		fmt.Printf("1")
 		test.Fail()
 	}
 
-	addrBack := ConvertUserStrToAddress(uaddr)
+	addrBack := primitives.ConvertUserStrToAddress(uaddr)
 
 	if bytes.Compare(addrBack, addr.Bytes()) != 0 {
 		fmt.Printf("2")
@@ -109,13 +111,13 @@ func Test_Entry_Credit_Addresses(test *testing.T) {
 
 	for i, v := range buaddr {
 		for j := uint(0); j < 8; j++ {
-			if !ValidateECUserStr(string(buaddr)) {
+			if !primitives.ValidateECUserStr(string(buaddr)) {
 				fmt.Printf("3")
 				test.Fail()
 				return
 			}
 			buaddr[i] = v ^ (01 << j)
-			if ValidateECUserStr(string(buaddr)) {
+			if primitives.ValidateECUserStr(string(buaddr)) {
 				fmt.Printf("4")
 				test.Fail()
 				return

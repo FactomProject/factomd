@@ -7,6 +7,8 @@ package factoid
 import (
 	"fmt"
 	"github.com/FactomProject/ed25519"
+	. "github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/primitives"
 	"math/rand"
 	"testing"
 )
@@ -41,28 +43,28 @@ func Test_TAddressEquals(test *testing.T) {
 	a2.Address.SetBytes(address1[:])
 
 	if a1.IsEqual(a2) != nil { // Out of the box, hashes should be equal
-		PrtStk()
+		primitives.PrtStk()
 		test.Fail()
 	}
 
 	a1.Address.SetBytes(address2[:])
 
 	if a1.IsEqual(a2) == nil { // Now they should not be equal
-		PrtStk()
+		primitives.PrtStk()
 		test.Fail()
 	}
 
 	a2.Address.SetBytes(address2[:])
 
 	if a1.IsEqual(a2) != nil { // Back to equality!
-		PrtStk()
+		primitives.PrtStk()
 		test.Fail()
 	}
 
 	a1.Amount = 6
 
 	if a1.IsEqual(a2) == nil { // Amounts are not equal
-		PrtStk()
+		primitives.PrtStk()
 		test.Fail()
 	}
 
