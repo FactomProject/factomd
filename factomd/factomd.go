@@ -6,6 +6,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/FactomProject/factomd/btcd"
 	"github.com/FactomProject/factomd/btcd/limits"
 	"github.com/FactomProject/factomd/btcd/wire"
 	"github.com/FactomProject/factomd/common"
@@ -16,7 +17,6 @@ import (
 	"github.com/FactomProject/factomd/process"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
-	"github.com/factomd/btcd"
 	"os"
 	"runtime"
 	"strings"

@@ -18,7 +18,7 @@ import (
 	//	"os"
 	"strconv"
 
-	"github.com/FactomProject/factomd/factoid"
+	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/util"
 
 	"github.com/davecgh/go-spew/spew"
