@@ -6,6 +6,7 @@ package block
 
 import (
 	"fmt"
+	. "github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/factoid/wallet"
 
 	. "github.com/FactomProject/factomd/common/interfaces"
@@ -31,7 +32,7 @@ func UpdateAmount(amt uint64) {
 func GetCoinbase(ftime uint64) ITransaction {
 
 	if false && adrs == nil {
-		var w wallet.ISCWallet
+		var w ISCWallet
 		w = new(wallet.SCWallet)
 		w.Init()
 

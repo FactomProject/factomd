@@ -13,19 +13,19 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
-// The default signature doesn't care about indexing.  We will extend this
-// signature for multisig
-type Signature struct {
-	signature [SIGNATURE_LENGTH]byte // The signature
+// The default FactoidSignature doesn't care about indexing.  We will extend this
+// FactoidSignature for multisig
+type FactoidSignature struct {
+	FactoidSignature [SIGNATURE_LENGTH]byte // The FactoidSignature
 }
 
-var _ ISignature = (*Signature)(nil)
+var _ ISignature = (*FactoidSignature)(nil)
 
-func (t *Signature) GetHash() IHash {
+func (t *FactoidSignature) GetHash() IHash {
 	return nil
 }
 
-func (b Signature) String() string {
+func (b FactoidSignature) String() string {
 	txt, err := b.CustomMarshalText()
 	if err != nil {
 		return "<error>"
@@ -33,62 +33,62 @@ func (b Signature) String() string {
 	return string(txt)
 }
 
-func (Signature) GetDBHash() IHash {
+func (FactoidSignature) GetDBHash() IHash {
 	return primitives.Sha([]byte("Signature"))
 }
 
-func (w1 Signature) GetNewInstance() IBlock {
-	return new(Signature)
+func (w1 FactoidSignature) GetNewInstance() IBlock {
+	return new(FactoidSignature)
 }
 
-// Checks that the signatures are the same.
-func (s1 *Signature) IsEqual(sig IBlock) []IBlock {
-	s2, ok := sig.(*Signature)
+// Checks that the FactoidSignatures are the same.
+func (s1 *FactoidSignature) IsEqual(sig IBlock) []IBlock {
+	s2, ok := sig.(*FactoidSignature)
 	if !ok || // Not the right kind of IBlock
-		s1.signature != s2.signature { // Not the right rcd
+		s1.FactoidSignature != s2.FactoidSignature { // Not the right rcd
 		r := make([]IBlock, 0, 5)
 		return append(r, s1)
 	}
 	return nil
 }
 
-// Index is ignored.  We only have one signature
-func (s *Signature) SetSignature(sig []byte) error {
+// Index is ignored.  We only have one FactoidSignature
+func (s *FactoidSignature) SetSignature(sig []byte) error {
 	if len(sig) != SIGNATURE_LENGTH {
-		return fmt.Errorf("Bad signature.  Should not happen")
+		return fmt.Errorf("Bad FactoidSignature.  Should not happen")
 	}
-	copy(s.signature[:], sig)
+	copy(s.FactoidSignature[:], sig)
 	return nil
 }
 
-func (s *Signature) GetSignature() *[SIGNATURE_LENGTH]byte {
-	return &s.signature
+func (s *FactoidSignature) GetSignature() *[SIGNATURE_LENGTH]byte {
+	return &s.FactoidSignature
 }
 
-func (s Signature) MarshalBinary() ([]byte, error) {
+func (s FactoidSignature) MarshalBinary() ([]byte, error) {
 	var out bytes.Buffer
 
-	out.Write(s.signature[:])
+	out.Write(s.FactoidSignature[:])
 
 	return out.Bytes(), nil
 }
 
-func (s Signature) CustomMarshalText() ([]byte, error) {
+func (s FactoidSignature) CustomMarshalText() ([]byte, error) {
 	var out bytes.Buffer
 
-	out.WriteString(" signature: ")
-	out.WriteString(hex.EncodeToString(s.signature[:]))
+	out.WriteString(" FactoidSignature: ")
+	out.WriteString(hex.EncodeToString(s.FactoidSignature[:]))
 	out.WriteString("\n")
 
 	return out.Bytes(), nil
 }
 
-func (s *Signature) UnmarshalBinaryData(data []byte) ([]byte, error) {
-	copy(s.signature[:], data[:SIGNATURE_LENGTH])
+func (s *FactoidSignature) UnmarshalBinaryData(data []byte) ([]byte, error) {
+	copy(s.FactoidSignature[:], data[:SIGNATURE_LENGTH])
 	return data[SIGNATURE_LENGTH:], nil
 }
 
-func (s *Signature) UnmarshalBinary(data []byte) error {
+func (s *FactoidSignature) UnmarshalBinary(data []byte) error {
 	_, err := s.UnmarshalBinaryData(data)
 	return err
 }

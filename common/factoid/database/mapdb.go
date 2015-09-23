@@ -7,14 +7,14 @@ package database
 import (
 	"bytes"
 	"fmt"
-	fct "github.com/FactomProject/factomd/common/factoid"
+	. "github.com/FactomProject/factomd/common/interfaces"
 )
 
 var _ = bytes.Compare
 
 type MapDB struct {
 	FDatabase
-	cache map[DBKey](fct.IBlock) // Our Cache
+	cache map[DBKey](IBlock) // Our Cache
 }
 
 var _ IFDatabase = (*MapDB)(nil)
@@ -22,11 +22,11 @@ var _ = fmt.Println
 
 func (MapDB) Close() {}
 
-func (MapDB) IsEqual(fct.IBlock) []fct.IBlock {
+func (MapDB) IsEqual(IBlock) []IBlock {
 	return nil
 }
 
-func (MapDB) GetNewInstance() fct.IBlock {
+func (MapDB) GetNewInstance() IBlock {
 	return new(MapDB)
 }
 
@@ -41,11 +41,11 @@ func (MapDB) UnmarshalBinary([]byte) error {
 func (MapDB) UnmarshalBinaryData([]byte) ([]byte, error) {
 	return nil, nil
 }
-func (b MapDB) GetKeysValues(bucket []byte) (keys [][]byte, values []fct.IBlock) {
+func (b MapDB) GetKeysValues(bucket []byte) (keys [][]byte, values []IBlock) {
 
 	if b.GetPersist() == nil || b.doNotPersist[string(bucket)] != nil {
 		keys = make([][]byte, 0, 32)
-		values = make([]fct.IBlock, 0, 32)
+		values = make([]IBlock, 0, 32)
 
 		for dbKey, v := range b.cache {
 			b := dbKey.GetBucket()
@@ -71,12 +71,12 @@ func (b MapDB) String() string {
 }
 
 func (db *MapDB) Init(a ...interface{}) {
-	db.cache = make(map[DBKey](fct.IBlock), 100)
+	db.cache = make(map[DBKey](IBlock), 100)
 	db.doNotCache = make(map[string][]byte, 5)
 	db.doNotPersist = make(map[string][]byte, 5)
 }
 
-func (db *MapDB) GetRaw(bucket []byte, key []byte) (value fct.IBlock) {
+func (db *MapDB) GetRaw(bucket []byte, key []byte) (value IBlock) {
 	dbkey := makeKey(bucket, key).(*DBKey)
 	value = db.cache[*dbkey]
 	if value == nil && db.GetBacker() != nil {
@@ -94,7 +94,7 @@ func (db *MapDB) GetRaw(bucket []byte, key []byte) (value fct.IBlock) {
 	return value
 }
 
-func (db *MapDB) PutRaw(bucket []byte, key []byte, value fct.IBlock) {
+func (db *MapDB) PutRaw(bucket []byte, key []byte, value IBlock) {
 	dbkey := makeKey(bucket, key).(*DBKey)
 	if db.doNotCache[string(bucket)] == nil {
 		db.cache[*dbkey] = value
@@ -118,20 +118,20 @@ func (db *MapDB) DeleteKey(bucket []byte, key []byte) {
 	}
 }
 
-func (db *MapDB) Get(bucket string, key fct.IHash) (value fct.IBlock) {
+func (db *MapDB) Get(bucket string, key IHash) (value IBlock) {
 	return db.GetRaw([]byte(bucket), key.Bytes())
 }
 
-func (db *MapDB) GetKey(key IDBKey) (value fct.IBlock) {
+func (db *MapDB) GetKey(key IDBKey) (value IBlock) {
 	return db.GetRaw(key.GetBucket(), key.GetKey())
 }
 
-func (db *MapDB) Put(bucket string, key fct.IHash, value fct.IBlock) {
+func (db *MapDB) Put(bucket string, key IHash, value IBlock) {
 	b := []byte(bucket)
 	k := key.Bytes()
 	db.PutRaw(b, k, value)
 }
 
-func (db *MapDB) PutKey(key IDBKey, value fct.IBlock) {
+func (db *MapDB) PutKey(key IDBKey, value IBlock) {
 	db.PutRaw(key.GetBucket(), key.GetKey(), value)
 }

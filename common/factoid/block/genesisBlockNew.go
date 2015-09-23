@@ -2,6 +2,7 @@ package block
 
 import (
 	"encoding/hex"
+	. "github.com/FactomProject/factomd/common/interfaces"
 )
 
 func GetGenesisFBlock() IFBlock {

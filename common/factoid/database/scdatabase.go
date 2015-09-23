@@ -5,7 +5,8 @@
 package database
 
 import (
-	"github.com/FactomProject/factomd/common/factoid"
+	. "github.com/FactomProject/factomd/common/constants"
+	. "github.com/FactomProject/factomd/common/interfaces"
 )
 
 type FDatabase struct {
@@ -23,15 +24,15 @@ var _ IFDatabase = (*FDatabase)(nil)
 
 func (FDatabase) Close() {}
 
-func (FDatabase) GetAddress() (factoid.IAddress, error) {
+func (FDatabase) GetAddress() (IAddress, error) {
 	return nil, nil
 }
 
-func (FDatabase) GetHash() factoid.IHash {
+func (FDatabase) GetHash() IHash {
 	return nil
 }
 
-func (FDatabase) GetDBHash() factoid.IHash {
+func (FDatabase) GetDBHash() IHash {
 	return nil
 }
 
@@ -57,23 +58,23 @@ func (FDatabase) UnmarshalBinaryData([]byte) ([]byte, error) {
 
 func (FDatabase) DeleteKey(bucket []byte, key []byte) {}
 
-func (FDatabase) Get(bucket string, key factoid.IHash) factoid.IBlock {
+func (FDatabase) Get(bucket string, key IHash) IBlock {
 	return nil
 }
 
-func (FDatabase) GetKey(key IDBKey) factoid.IBlock {
+func (FDatabase) GetKey(key IDBKey) IBlock {
 	return nil
 }
 
-func (FDatabase) GetKeysValues(bucket []byte) (keys [][]byte, values []factoid.IBlock) {
+func (FDatabase) GetKeysValues(bucket []byte) (keys [][]byte, values []IBlock) {
 	return nil, nil
 }
 
-func (FDatabase) IsEqual(factoid.IBlock) []factoid.IBlock {
+func (FDatabase) IsEqual(IBlock) []IBlock {
 	return nil
 }
 
-func (FDatabase) GetRaw(bucket []byte, key []byte) factoid.IBlock {
+func (FDatabase) GetRaw(bucket []byte, key []byte) IBlock {
 	return nil
 }
 
@@ -83,17 +84,17 @@ func (FDatabase) String() string {
 
 func (FDatabase) Init(a ...interface{}) {}
 
-func (FDatabase) Put(bucket string, key factoid.IHash, value factoid.IBlock) {}
+func (FDatabase) Put(bucket string, key IHash, value IBlock) {}
 
-func (FDatabase) PutKey(key IDBKey, value factoid.IBlock) {}
+func (FDatabase) PutKey(key IDBKey, value IBlock) {}
 
-func (FDatabase) PutRaw(bucket []byte, key []byte, value factoid.IBlock) {}
+func (FDatabase) PutRaw(bucket []byte, key []byte, value IBlock) {}
 
 /***************************************
  *       Methods
  ***************************************/
 
-func (FDatabase) GetNewInstance() factoid.IBlock {
+func (FDatabase) GetNewInstance() IBlock {
 	return new(FDatabase)
 }
 
@@ -157,8 +158,8 @@ func (db FDatabase) GetPersist() IFDatabase {
  *****************************************************************/
 
 type DBKey struct {
-	bucket [factoid.ADDRESS_LENGTH]byte
-	key    [factoid.KEY_LIMIT]byte
+	bucket [ADDRESS_LENGTH]byte
+	key    [KEY_LIMIT]byte
 }
 
 var _ IDBKey = (*DBKey)(nil)
@@ -173,7 +174,7 @@ func (k DBKey) GetKey() []byte {
 
 func makeKey(bucket []byte, key []byte) IDBKey {
 
-	if len(bucket) > factoid.ADDRESS_LENGTH || len(key) > factoid.KEY_LIMIT {
+	if len(bucket) > ADDRESS_LENGTH || len(key) > KEY_LIMIT {
 		panic("Key or bucket provided to IFDatabase is too long")
 	}
 

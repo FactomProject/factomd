@@ -10,20 +10,21 @@ package state
 import (
 	"bytes"
 	"encoding/binary"
-	fct "github.com/FactomProject/factomd/common/factoid"
+	. "github.com/FactomProject/factomd/common/interfaces"
+	. "github.com/FactomProject/factomd/common/primitives"
 )
 
 type FSbalance struct {
-	fct.IBlock
+	IBlock
 	number uint64
 }
 
-func (FSbalance) GetNewInstance() fct.IBlock {
+func (FSbalance) GetNewInstance() IBlock {
 	return new(FSbalance)
 }
 
-func (FSbalance) GetDBHash() fct.IHash {
-	return fct.Sha([]byte("FSbalance"))
+func (FSbalance) GetDBHash() IHash {
+	return Sha([]byte("FSbalance"))
 }
 
 func (f *FSbalance) UnmarshalBinaryData(data []byte) ([]byte, error) {

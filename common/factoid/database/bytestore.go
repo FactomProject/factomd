@@ -15,13 +15,14 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	fct "github.com/FactomProject/factomd/common/factoid"
+	. "github.com/FactomProject/factomd/common/interfaces"
+	. "github.com/FactomProject/factomd/common/primitives"
 )
 
 var _ = fmt.Println
 
 type IByteStore interface {
-	fct.IBlock
+	IBlock
 	Bytes() []byte
 	SetBytes([]byte)
 }
@@ -35,8 +36,8 @@ var _ IByteStore = (*ByteStore)(nil)
 func (b ByteStore) Bytes() []byte {
 	return b.byteData
 }
-func (b ByteStore) GetHash() fct.IHash {
-	return fct.Sha(b.byteData)
+func (b ByteStore) GetHash() IHash {
+	return Sha(b.byteData)
 }
 
 func (b *ByteStore) SetBytes(data []byte) {
@@ -47,8 +48,8 @@ func (b ByteStore) String() string {
 	return string(b.byteData)
 }
 
-func (ByteStore) GetDBHash() fct.IHash {
-	return fct.Sha([]byte("ByteStore"))
+func (ByteStore) GetDBHash() IHash {
+	return Sha([]byte("ByteStore"))
 }
 
 func (b ByteStore) CustomMarshalText() ([]byte, error) {
@@ -77,14 +78,14 @@ func (b ByteStore) MarshalBinary() ([]byte, error) {
 	return out.Bytes(), nil
 }
 
-func (b1 ByteStore) IsEqual(b fct.IBlock) []fct.IBlock {
+func (b1 ByteStore) IsEqual(b IBlock) []IBlock {
 	b2, ok := b.(*ByteStore)
 	if !ok || !bytes.Equal(b1.byteData, b2.byteData) {
-		return []fct.IBlock{&b1}
+		return []IBlock{&b1}
 	}
 	return nil
 }
 
-func (ByteStore) GetNewInstance() fct.IBlock {
+func (ByteStore) GetNewInstance() IBlock {
 	return new(ByteStore)
 }

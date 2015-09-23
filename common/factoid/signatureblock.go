@@ -94,7 +94,7 @@ func (s SignatureBlock) GetNewInstance() IBlock {
 func (s SignatureBlock) GetSignatures() []ISignature {
 	if s.signatures == nil {
 		s.signatures = make([]ISignature, 1, 1)
-		s.signatures[0] = new(Signature)
+		s.signatures[0] = new(FactoidSignature)
 	}
 	return s.signatures
 }
@@ -136,7 +136,7 @@ func (s SignatureBlock) CustomMarshalText() ([]byte, error) {
 func (s *SignatureBlock) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 
 	s.signatures = make([]ISignature, 1)
-	s.signatures[0] = new(Signature)
+	s.signatures[0] = new(FactoidSignature)
 	data, err = s.signatures[0].UnmarshalBinaryData(data)
 	if err != nil {
 		fmt.Println("error")

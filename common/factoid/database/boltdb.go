@@ -9,7 +9,8 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
-	fct "github.com/FactomProject/factomd/common/factoid"
+	. "github.com/FactomProject/factomd/common/interfaces"
+	. "github.com/FactomProject/factomd/common/primitives"
 
 	"github.com/boltdb/bolt"
 )
@@ -35,9 +36,9 @@ var _ = hex.EncodeToString
 type BoltDB struct {
 	FDatabase
 
-	db        *bolt.DB                // Pointer to the bolt db
-	instances map[[32]byte]fct.IBlock // Maps a hash to an instance of an IBlock
-	filename  string                  // location to write the db
+	db        *bolt.DB            // Pointer to the bolt db
+	instances map[[32]byte]IBlock // Maps a hash to an instance of an IBlock
+	filename  string              // location to write the db
 }
 
 var _ IFDatabase = (*BoltDB)(nil)
@@ -46,15 +47,15 @@ var _ IFDatabase = (*BoltDB)(nil)
  *       Stubs
  *************************************/
 
-func (BoltDB) GetAddress() (fct.IAddress, error) {
+func (BoltDB) GetAddress() (IAddress, error) {
 	return nil, nil
 }
 
-func (BoltDB) GetHash() fct.IHash {
+func (BoltDB) GetHash() IHash {
 	return nil
 }
 
-func (BoltDB) GetDBHash() fct.IHash {
+func (BoltDB) GetDBHash() IHash {
 	return nil
 }
 
@@ -81,19 +82,19 @@ func (BoltDB) UnmarshalBinaryData(data []byte) ([]byte, error) {
 /***************************************
  *       Methods
  ***************************************/
-func (bdb BoltDB) GetNewInstance() fct.IBlock {
+func (bdb BoltDB) GetNewInstance() IBlock {
 	return new(BoltDB)
 }
 
-func (bdb BoltDB) IsEqual(blk2 fct.IBlock) []fct.IBlock {
-	b := make([]fct.IBlock, 1, 1)
+func (bdb BoltDB) IsEqual(blk2 IBlock) []IBlock {
+	b := make([]IBlock, 1, 1)
 	b[0] = bdb
 	return b
 }
 
-func (bdb BoltDB) GetKeysValues(bucket []byte) (keys [][]byte, values []fct.IBlock) {
+func (bdb BoltDB) GetKeysValues(bucket []byte) (keys [][]byte, values []IBlock) {
 	keys = make([][]byte, 0, 32)
-	values = make([]fct.IBlock, 0, 32)
+	values = make([]IBlock, 0, 32)
 	bdb.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(bucket))
 		if b == nil {
@@ -154,9 +155,9 @@ func (d *BoltDB) Init(a ...interface{}) {
 	bucketList := a[0].([][]byte)
 
 	if d.instances == nil {
-		d.instances = a[1].(map[[32]byte]fct.IBlock)
+		d.instances = a[1].(map[[32]byte]IBlock)
 	} else {
-		for k, v := range a[1].(map[[32]byte]fct.IBlock) {
+		for k, v := range a[1].(map[[32]byte]IBlock) {
 			d.instances[k] = v
 		}
 	}
@@ -192,7 +193,7 @@ func (d *BoltDB) Close() {
 	d.db.Close()
 }
 
-func (d *BoltDB) GetRaw(bucket []byte, key []byte) (value fct.IBlock) {
+func (d *BoltDB) GetRaw(bucket []byte, key []byte) (value IBlock) {
 	var v []byte
 	d.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(bucket)
@@ -214,16 +215,16 @@ func (d *BoltDB) GetRaw(bucket []byte, key []byte) (value fct.IBlock) {
 
 // Return the instance, properly unmarshaled, given the entry in the database, which is
 // the hash for the Instance (vv) followed by the source from which to unmarshal (v)
-func (d *BoltDB) GetInstance(v []byte) fct.IBlock {
+func (d *BoltDB) GetInstance(v []byte) IBlock {
 
 	var vv [32]byte
 	copy(vv[:], v[:32])
 	v = v[32:]
 
-	var instance fct.IBlock = d.instances[vv]
+	var instance IBlock = d.instances[vv]
 	if instance == nil {
-		vp := fct.NewHash(vv[:])
-		fct.Prtln("Object hash: ", vp)
+		vp := NewHash(vv[:])
+		Prtln("Object hash: ", vp)
 		panic("This should not happen.  Object stored in the database has no IBlock instance")
 	}
 
@@ -234,7 +235,7 @@ func (d *BoltDB) GetInstance(v []byte) fct.IBlock {
 
 	datalen, v := binary.BigEndian.Uint32(v[0:4]), v[4:]
 	if len(v) != int(datalen) {
-		fct.Prtln("Lengths don't match.  Expected ", datalen, " and got ", len(v))
+		Prtln("Lengths don't match.  Expected ", datalen, " and got ", len(v))
 		panic("Data not returned properly")
 	}
 	err := r.UnmarshalBinary(v)
@@ -245,7 +246,7 @@ func (d *BoltDB) GetInstance(v []byte) fct.IBlock {
 	return r
 }
 
-func (d *BoltDB) PutRaw(bucket []byte, key []byte, value fct.IBlock) {
+func (d *BoltDB) PutRaw(bucket []byte, key []byte, value IBlock) {
 	var out bytes.Buffer
 	hash := value.GetDBHash()
 	out.Write(hash.Bytes())
@@ -274,20 +275,20 @@ func (d *BoltDB) DeleteKey(bucket []byte, key []byte) {
 
 }
 
-func (db *BoltDB) Get(bucket string, key fct.IHash) (value fct.IBlock) {
+func (db *BoltDB) Get(bucket string, key IHash) (value IBlock) {
 	return db.GetRaw([]byte(bucket), key.Bytes())
 }
 
-func (db *BoltDB) GetKey(key IDBKey) (value fct.IBlock) {
+func (db *BoltDB) GetKey(key IDBKey) (value IBlock) {
 	return db.GetRaw(key.GetBucket(), key.GetKey())
 }
 
-func (db *BoltDB) Put(bucket string, key fct.IHash, value fct.IBlock) {
+func (db *BoltDB) Put(bucket string, key IHash, value IBlock) {
 	b := []byte(bucket)
 	k := key.Bytes()
 	db.PutRaw(b, k, value)
 }
 
-func (db *BoltDB) PutKey(key IDBKey, value fct.IBlock) {
+func (db *BoltDB) PutKey(key IDBKey, value IBlock) {
 	db.PutRaw(key.GetBucket(), key.GetKey(), value)
 }
