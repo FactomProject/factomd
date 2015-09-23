@@ -7,7 +7,7 @@ package main
 import (
 	"os"
 
-	"github.com/FactomProject/factomd/factomlog"
+	"github.com/FactomProject/factomd/logger"
 	"github.com/FactomProject/factomd/util"
 )
 
@@ -20,5 +20,5 @@ var (
 
 // setup subsystem loggers
 var (
-	ftmdLog = factomlog.New(logfile, logLevel, "FTMD")
+	ftmdLog = logger.New(logfile, logLevel, "FTMD")
 )

@@ -7,7 +7,7 @@ package anchor
 import (
 	"os"
 
-	"github.com/FactomProject/factomd/factomlog"
+	"github.com/FactomProject/factomd/logger"
 	"github.com/FactomProject/factomd/util"
 )
 
@@ -20,5 +20,5 @@ var (
 
 // setup subsystem loggers
 var (
-	anchorLog = factomlog.New(logfile, logLevel, "ANCH")
+	anchorLog = logger.New(logfile, logLevel, "ANCH")
 )

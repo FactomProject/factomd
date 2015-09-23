@@ -1,4 +1,4 @@
-package factomlog
+package logger
 
 import (
 	"bytes"

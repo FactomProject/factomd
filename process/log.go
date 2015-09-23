@@ -7,7 +7,7 @@ package process
 import (
 	"os"
 
-	"github.com/FactomProject/factomd/factomlog"
+	"github.com/FactomProject/factomd/logger"
 	"github.com/FactomProject/factomd/util"
 )
 
@@ -20,5 +20,5 @@ var (
 
 // setup subsystem loggers
 var (
-	procLog = factomlog.New(logfile, logLevel, "PROC")
+	procLog = logger.New(logfile, logLevel, "PROC")
 )

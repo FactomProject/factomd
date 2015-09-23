@@ -7,7 +7,7 @@ package wsapi
 import (
 	"os"
 
-	"github.com/FactomProject/factomd/factomlog"
+	"github.com/FactomProject/factomd/logger"
 	"github.com/FactomProject/factomd/util"
 )
 
@@ -20,7 +20,7 @@ var (
 
 // setup subsystem loggers
 var (
-	rpcLog    = factomlog.New(logfile, logLevel, "RPC")
-	serverLog = factomlog.New(logfile, logLevel, "SERV")
-	wsLog     = factomlog.New(logfile, logLevel, "WSAPI")
+	rpcLog    = logger.New(logfile, logLevel, "RPC")
+	serverLog = logger.New(logfile, logLevel, "SERV")
+	wsLog     = logger.New(logfile, logLevel, "WSAPI")
 )

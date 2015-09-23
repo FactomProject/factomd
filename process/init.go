@@ -14,7 +14,7 @@ import (
 	"github.com/FactomProject/factomd/common/factoid/block"
 	"github.com/FactomProject/factomd/consensus"
 	cp "github.com/FactomProject/factomd/controlpanel"
-	"github.com/FactomProject/factomd/factomlog"
+	"github.com/FactomProject/factomd/logger"
 	"github.com/FactomProject/factomd/util"
 	"github.com/davecgh/go-spew/spew"
 	"runtime/debug"
@@ -122,7 +122,7 @@ func initECChain() {
 	exportECChain(ecchain)
 
 	// ONly for debugging
-	if procLog.Level() > factomlog.Info {
+	if procLog.Level() > logger.Info {
 		printCreditMap()
 	}
 
