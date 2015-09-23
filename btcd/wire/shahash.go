@@ -4,6 +4,7 @@
 
 package wire
 
+/*
 import (
 	"bytes"
 	"encoding/hex"
@@ -12,10 +13,10 @@ import (
 )
 
 // Size of array used to store sha hashes.  See ShaHash.
-const HashSize = 32
+const HASH_LENGTH = 32
 
 // MaxHashStringSize is the maximum length of a ShaHash hash string.
-const MaxHashStringSize = HashSize * 2
+const MaxHashStringSize = HASH_LENGTH * 2
 
 // ErrHashStrSize describes an error that indicates the caller specified a hash
 // string that has too many characters.
@@ -23,33 +24,33 @@ var ErrHashStrSize = fmt.Errorf("max hash string length is %v bytes", MaxHashStr
 
 // ShaHash is used in several of the bitcoin messages and common structures.  It
 // typically represents the double sha256 of data.
-type ShaHash [HashSize]byte
+type ShaHash [HASH_LENGTH]byte
 
 // To make it consistent with Factom Hash -------------------
 func (hash ShaHash) String() string {
-	//for i := 0; i < HashSize/2; i++ {
-	//hash[i], hash[HashSize-1-i] = hash[HashSize-1-i], hash[i]
+	//for i := 0; i < HASH_LENGTH/2; i++ {
+	//hash[i], hash[HASH_LENGTH-1-i] = hash[HASH_LENGTH-1-i], hash[i]
 	//}
 	return hex.EncodeToString(hash[:])
 }
 
 // Bytes returns the bytes which represent the hash as a byte slice.
 func (hash *ShaHash) Bytes() []byte {
-	newHash := make([]byte, HashSize)
+	newHash := make([]byte, HASH_LENGTH)
 	copy(newHash, hash[:])
 
 	return newHash
 }
 
 // SetBytes sets the bytes which represent the hash.  An error is returned if
-// the number of bytes passed in is not HashSize.
+// the number of bytes passed in is not HASH_LENGTH.
 func (hash *ShaHash) SetBytes(newHash []byte) error {
 	nhlen := len(newHash)
-	if nhlen != HashSize {
+	if nhlen != HASH_LENGTH {
 		return fmt.Errorf("invalid sha length of %v, want %v", nhlen,
-			HashSize)
+			HASH_LENGTH)
 	}
-	copy(hash[:], newHash[0:HashSize])
+	copy(hash[:], newHash[0:HASH_LENGTH])
 
 	return nil
 }
@@ -60,7 +61,7 @@ func (hash *ShaHash) IsEqual(target *ShaHash) bool {
 }
 
 // NewShaHash returns a new ShaHash from a byte slice.  An error is returned if
-// the number of bytes passed in is not HashSize.
+// the number of bytes passed in is not HASH_LENGTH.
 func NewShaHash(newHash []byte) (*ShaHash, error) {
 	var sh ShaHash
 	err := sh.SetBytes(newHash)
@@ -92,7 +93,7 @@ func NewShaHashFromStr(hash string) (*ShaHash, error) {
 
 	// Un-reverse the decoded bytes, copying into in leading bytes of a
 	// ShaHash.  There is no need to explicitly pad the result as any
-	// missing (when len(buf) < HashSize) bytes from the decoded hex string
+	// missing (when len(buf) < HASH_LENGTH) bytes from the decoded hex string
 	// will remain zeros at the end of the ShaHash.
 	var ret ShaHash
 	blen := len(buf)
@@ -119,3 +120,4 @@ func NewShaHashFromStruct(DataStruct interface{}) (*ShaHash, error) {
 
 	return NewShaHash(DoubleSha256(jsonbytes))
 }
+*/

@@ -52,7 +52,7 @@ const (
 	// consists of a zero hash plus the internal sha256 padding.  See
 	// the getworkDataLen comment for details about the internal sha256
 	// padding format.
-	hash1Len = (1 + ((wire.HashSize + 8) / fastsha256.BlockSize)) *
+	hash1Len = (1 + ((wire.HASH_LENGTH + 8) / fastsha256.BlockSize)) *
 		fastsha256.BlockSize
 
 	// gbtNonceRange is two 32-bit big-endian hexadecimal integers which
@@ -2700,8 +2700,8 @@ func handleGetWorkRequest(s *rpcServer) (interface{}, error) {
 	// useless, but it is required for compatibility with the reference
 	// implementation.
 	var hash1 [hash1Len]byte
-	hash1[wire.HashSize] = 0x80
-	binary.BigEndian.PutUint64(hash1[len(hash1)-8:], wire.HashSize*8)
+	hash1[wire.HASH_LENGTH] = 0x80
+	binary.BigEndian.PutUint64(hash1[len(hash1)-8:], wire.HASH_LENGTH*8)
 
 	// The final result reverses the each of the fields to little endian.
 	// In particular, the data, hash1, and midstate fields are treated as

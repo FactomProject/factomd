@@ -8,6 +8,9 @@ import (
 	"fmt"
 	"io"
 
+	. "github.com/FactomProject/factomd/common/constants"
+	. "github.com/FactomProject/factomd/common/interfaces"
+	. "github.com/FactomProject/factomd/common/primitives"
 	//"github.com/FactomProject/factomd/util"
 )
 
@@ -32,12 +35,12 @@ import (
 // closer to the genesis block you get.
 type MsgGetDirBlocks struct {
 	ProtocolVersion    uint32
-	BlockLocatorHashes []*ShaHash
-	HashStop           ShaHash
+	BlockLocatorHashes []IHash
+	HashStop           IHash
 }
 
 // AddBlockLocatorHash adds a new block locator hash to the message.
-func (msg *MsgGetDirBlocks) AddBlockLocatorHash(hash *ShaHash) error {
+func (msg *MsgGetDirBlocks) AddBlockLocatorHash(hash IHash) error {
 	//util.Trace()
 	if len(msg.BlockLocatorHashes)+1 > MaxBlockLocatorsPerMsg {
 		str := fmt.Sprintf("too many block locator hashes for message [max %v]",
@@ -69,14 +72,14 @@ func (msg *MsgGetDirBlocks) BtcDecode(r io.Reader, pver uint32) error {
 		return messageError("MsgGetDirBlocks.BtcDecode", str)
 	}
 
-	msg.BlockLocatorHashes = make([]*ShaHash, 0, count)
+	msg.BlockLocatorHashes = make([]IHash, 0, count)
 	for i := uint64(0); i < count; i++ {
-		sha := ShaHash{}
-		err := readElement(r, &sha)
+		sha := new(Hash)
+		err := readElement(r, sha)
 		if err != nil {
 			return err
 		}
-		msg.AddBlockLocatorHash(&sha)
+		msg.AddBlockLocatorHash(sha)
 	}
 
 	err = readElement(r, &msg.HashStop)
@@ -136,17 +139,17 @@ func (msg *MsgGetDirBlocks) MaxPayloadLength(pver uint32) uint32 {
 	// Protocol version 4 bytes + num hashes (varInt) + max block locator
 	// hashes + hash stop.
 	//util.Trace()
-	return 4 + MaxVarIntPayload + (MaxBlockLocatorsPerMsg * HashSize) + HashSize
+	return uint32(4 + MaxVarIntPayload + (MaxBlockLocatorsPerMsg * HASH_LENGTH) + HASH_LENGTH)
 }
 
 // NewMsgGetDirBlocks returns a new bitcoin getdirblocks message that conforms to the
 // Message interface using the passed parameters and defaults for the remaining
 // fields.
-func NewMsgGetDirBlocks(hashStop *ShaHash) *MsgGetDirBlocks {
+func NewMsgGetDirBlocks(hashStop IHash) *MsgGetDirBlocks {
 	//util.Trace()
 	return &MsgGetDirBlocks{
 		ProtocolVersion:    ProtocolVersion,
-		BlockLocatorHashes: make([]*ShaHash, 0, MaxBlockLocatorsPerMsg),
-		HashStop:           *hashStop,
+		BlockLocatorHashes: make([]IHash, 0, MaxBlockLocatorsPerMsg),
+		HashStop:           hashStop,
 	}
 }

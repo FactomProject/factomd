@@ -97,7 +97,7 @@ func (msg *MsgGetEntryData) Command() string {
 // receiver.  This is part of the Message interface implementation.
 func (msg *MsgGetEntryData) MaxPayloadLength(pver uint32) uint32 {
 	// Num inventory vectors (varInt) + max allowed inventory vectors.
-	return MaxVarIntPayload + (MaxInvPerMsg * maxInvVectPayload)
+	return uint32(MaxVarIntPayload + (MaxInvPerMsg * maxInvVectPayload))
 }
 
 // NewMsgGetEntryData returns a new factom get non dir data message that conforms to the

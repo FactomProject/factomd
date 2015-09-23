@@ -8,7 +8,8 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/FactomProject/factomd/common"
+	. "github.com/FactomProject/factomd/common/interfaces"
+	. "github.com/FactomProject/factomd/common/primitives"
 	"io"
 	"io/ioutil"
 )
@@ -38,10 +39,10 @@ const (
 
 type MsgAcknowledgement struct {
 	Height      uint32
-	ChainID     *common.Hash
+	ChainID     IHash
 	Index       uint32
 	Type        byte
-	Affirmation *ShaHash // affirmation value -- hash of the message/object in question
+	Affirmation IHash // affirmation value -- hash of the message/object in question
 	SerialHash  [32]byte
 	Signature   [64]byte
 }
@@ -86,7 +87,7 @@ func (msg *MsgAcknowledgement) BtcDecode(r io.Reader, pver uint32) error {
 
 	msg.Height, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
-	msg.ChainID = common.NewZeroHash()
+	msg.ChainID = NewZeroHash()
 	newData, _ = msg.ChainID.UnmarshalBinaryData(newData)
 
 	msg.Index, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
@@ -141,14 +142,14 @@ func (msg *MsgAcknowledgement) MaxPayloadLength(pver uint32) uint32 {
 
 // NewMsgAcknowledgement returns a new bitcoin ping message that conforms to the Message
 // interface.  See MsgAcknowledgement for details.
-func NewMsgAcknowledgement(height uint32, index uint32, affirm *ShaHash, ackType byte) *MsgAcknowledgement {
+func NewMsgAcknowledgement(height uint32, index uint32, affirm IHash, ackType byte) *MsgAcknowledgement {
 
 	if affirm == nil {
-		affirm = new(ShaHash)
+		affirm = new(Hash)
 	}
 	return &MsgAcknowledgement{
 		Height:      height,
-		ChainID:     common.NewZeroHash(), //TODO: get the correct chain id from processor
+		ChainID:     NewZeroHash(), //TODO: get the correct chain id from processor
 		Index:       index,
 		Affirmation: affirm,
 		Type:        ackType,
@@ -156,12 +157,12 @@ func NewMsgAcknowledgement(height uint32, index uint32, affirm *ShaHash, ackType
 }
 
 // Create a sha hash from the message binary (output of BtcEncode)
-func (msg *MsgAcknowledgement) Sha() (ShaHash, error) {
+func (msg *MsgAcknowledgement) Sha() (IHash, error) {
 
 	buf := bytes.NewBuffer(nil)
 	msg.BtcEncode(buf, ProtocolVersion)
-	var sha ShaHash
-	_ = sha.SetBytes(Sha256(buf.Bytes()))
+	sha := new(Hash)
+	err := sha.SetBytes(Sha256(buf.Bytes()))
 
-	return sha, nil
+	return sha, err
 }

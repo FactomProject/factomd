@@ -8,21 +8,22 @@ import (
 	"bytes"
 	"io"
 
-	"github.com/FactomProject/factomd/common"
+	. "github.com/FactomProject/factomd/common/EntryCreditBlock"
+	. "github.com/FactomProject/factomd/common/interfaces"
 )
 
 // MsgCommitEntry implements the Message interface and represents a factom
 // Commit-Entry message.  It is used by client to commit the entry before
 // revealing it.
 type MsgCommitEntry struct {
-	CommitEntry *common.CommitEntry
+	CommitEntry *CommitEntry
 }
 
 // NewMsgCommitEntry returns a new Commit Entry message that conforms to the
 // Message interface.
 func NewMsgCommitEntry() *MsgCommitEntry {
 	m := new(MsgCommitEntry)
-	m.CommitEntry = common.NewCommitEntry()
+	m.CommitEntry = NewCommitEntry()
 	return m
 }
 
@@ -44,13 +45,13 @@ func (msg *MsgCommitEntry) BtcEncode(w io.Writer, pver uint32) error {
 // BtcDecode decodes r using the bitcoin protocol encoding into the receiver.
 // This is part of the Message interface implementation.
 func (msg *MsgCommitEntry) BtcDecode(r io.Reader, pver uint32) error {
-	bytes, err := readVarBytes(r, pver, uint32(common.CommitEntrySize),
+	bytes, err := readVarBytes(r, pver, uint32(CommitEntrySize),
 		CmdEntry)
 	if err != nil {
 		return err
 	}
 
-	msg.CommitEntry = common.NewCommitEntry()
+	msg.CommitEntry = NewCommitEntry()
 	err = msg.CommitEntry.UnmarshalBinary(bytes)
 	if err != nil {
 		return err
@@ -78,11 +79,11 @@ func (msg *MsgCommitEntry) IsValid() bool {
 }
 
 // Create a sha hash from the message binary (output of BtcEncode)
-func (msg *MsgCommitEntry) Sha() (ShaHash, error) {
+func (msg *MsgCommitEntry) Sha() (IHash, error) {
 
 	buf := bytes.NewBuffer(nil)
 	msg.BtcEncode(buf, ProtocolVersion)
-	var sha ShaHash
+	var sha IHash
 	_ = sha.SetBytes(Sha256(buf.Bytes()))
 
 	return sha, nil

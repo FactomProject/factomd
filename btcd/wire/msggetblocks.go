@@ -6,6 +6,9 @@ package wire
 
 import (
 	"fmt"
+	. "github.com/FactomProject/factomd/common/constants"
+	. "github.com/FactomProject/factomd/common/interfaces"
+	. "github.com/FactomProject/factomd/common/primitives"
 	"io"
 )
 
@@ -30,12 +33,12 @@ const MaxBlockLocatorsPerMsg = 500
 // closer to the genesis block you get.
 type MsgGetBlocks struct {
 	ProtocolVersion    uint32
-	BlockLocatorHashes []*ShaHash
-	HashStop           ShaHash
+	BlockLocatorHashes []IHash
+	HashStop           IHash
 }
 
 // AddBlockLocatorHash adds a new block locator hash to the message.
-func (msg *MsgGetBlocks) AddBlockLocatorHash(hash *ShaHash) error {
+func (msg *MsgGetBlocks) AddBlockLocatorHash(hash IHash) error {
 	if len(msg.BlockLocatorHashes)+1 > MaxBlockLocatorsPerMsg {
 		str := fmt.Sprintf("too many block locator hashes for message [max %v]",
 			MaxBlockLocatorsPerMsg)
@@ -65,14 +68,14 @@ func (msg *MsgGetBlocks) BtcDecode(r io.Reader, pver uint32) error {
 		return messageError("MsgGetBlocks.BtcDecode", str)
 	}
 
-	msg.BlockLocatorHashes = make([]*ShaHash, 0, count)
+	msg.BlockLocatorHashes = make([]IHash, 0, count)
 	for i := uint64(0); i < count; i++ {
-		sha := ShaHash{}
-		err := readElement(r, &sha)
+		sha := new(Hash)
+		err := readElement(r, sha)
 		if err != nil {
 			return err
 		}
-		msg.AddBlockLocatorHash(&sha)
+		msg.AddBlockLocatorHash(sha)
 	}
 
 	err = readElement(r, &msg.HashStop)
@@ -129,16 +132,16 @@ func (msg *MsgGetBlocks) Command() string {
 func (msg *MsgGetBlocks) MaxPayloadLength(pver uint32) uint32 {
 	// Protocol version 4 bytes + num hashes (varInt) + max block locator
 	// hashes + hash stop.
-	return 4 + MaxVarIntPayload + (MaxBlockLocatorsPerMsg * HashSize) + HashSize
+	return uint32(4 + MaxVarIntPayload + (MaxBlockLocatorsPerMsg * HASH_LENGTH) + HASH_LENGTH)
 }
 
 // NewMsgGetBlocks returns a new bitcoin getblocks message that conforms to the
 // Message interface using the passed parameters and defaults for the remaining
 // fields.
-func NewMsgGetBlocks(hashStop *ShaHash) *MsgGetBlocks {
+func NewMsgGetBlocks(hashStop IHash) *MsgGetBlocks {
 	return &MsgGetBlocks{
 		ProtocolVersion:    ProtocolVersion,
-		BlockLocatorHashes: make([]*ShaHash, 0, MaxBlockLocatorsPerMsg),
-		HashStop:           *hashStop,
+		BlockLocatorHashes: make([]IHash, 0, MaxBlockLocatorsPerMsg),
+		HashStop:           hashStop,
 	}
 }

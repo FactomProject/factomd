@@ -4,6 +4,7 @@
 
 package wire
 
+/*
 import (
 	"github.com/FactomProject/factomd/common"
 )
@@ -23,3 +24,4 @@ func FactomHashToShaHash(ftmHash *common.Hash) *ShaHash {
 	return h
 
 }
+*/

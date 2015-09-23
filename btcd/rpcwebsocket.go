@@ -1501,7 +1501,7 @@ type rescanKeys struct {
 		uncompressedPubkeys map[[65]byte]struct{}
 	*/
 
-	addrHashes map[[wire.RCDHashSize]byte]struct{}
+	addrHashes map[[wire.RCDHASH_LENGTH]byte]struct{}
 	unspent    map[wire.OutPoint]struct{}
 }
 

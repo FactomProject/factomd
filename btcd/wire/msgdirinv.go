@@ -105,7 +105,7 @@ func (msg *MsgDirInv) Command() string {
 // receiver.  This is part of the Message interface implementation.
 func (msg *MsgDirInv) MaxPayloadLength(pver uint32) uint32 {
 	// Num inventory vectors (varInt) + max allowed inventory vectors.
-	return MaxVarIntPayload + (MaxInvPerMsg * maxInvVectPayload)
+	return uint32(MaxVarIntPayload + (MaxInvPerMsg * maxInvVectPayload))
 }
 
 // NewMsgDirInv returns a new bitcoin inv message that conforms to the Message

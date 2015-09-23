@@ -7,13 +7,13 @@ package wire
 import (
 	"io"
 
-	"github.com/FactomProject/factomd/common"
+	. "github.com/FactomProject/factomd/common/EntryBlock"
 )
 
 // MsgEBlock implements the Message interface and represents a factom
 // EBlock message.  It is used by client to download the EBlock.
 type MsgEBlock struct {
-	EBlk *common.EBlock
+	EBlk *EBlock
 }
 
 // BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
@@ -42,7 +42,7 @@ func (msg *MsgEBlock) BtcDecode(r io.Reader, pver uint32) error {
 		return err
 	}
 
-	msg.EBlk = common.NewEBlock()
+	msg.EBlk = NewEBlock()
 	err = msg.EBlk.UnmarshalBinary(bytes)
 	if err != nil {
 		return err

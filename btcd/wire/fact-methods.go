@@ -18,7 +18,10 @@ import (
 	//	"os"
 	"strconv"
 
+	. "github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/factoid"
+	. "github.com/FactomProject/factomd/common/interfaces"
+	. "github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/util"
 
 	"github.com/davecgh/go-spew/spew"
@@ -130,7 +133,7 @@ func writeBitfield(w io.Writer, pver uint32, sig *TxSig) error {
 func readOutPoint(r io.Reader, pver uint32, op *OutPoint) error {
 	//util.Trace()
 
-	_, err := io.ReadFull(r, op.Hash[:])
+	_, err := io.ReadFull(r, op.Hash.Bytes())
 	if err != nil {
 		return err
 	}
@@ -153,7 +156,7 @@ func readOutPoint(r io.Reader, pver uint32, op *OutPoint) error {
 
 // writeOutPoint encodes op to the protocol encoding for an OutPoint to w.
 func writeOutPoint(w io.Writer, pver uint32, op *OutPoint) error {
-	_, err := w.Write(op.Hash[:])
+	_, err := w.Write(op.Hash.Bytes())
 	if err != nil {
 		return err
 	}
@@ -203,7 +206,7 @@ func readTxOut(r io.Reader, pver uint32, to *TxOut) error {
 
 	to.Value = int64(value)
 
-	b := make([]byte, RCDHashSize)
+	b := make([]byte, RCDHASH_LENGTH)
 	_, err = io.ReadFull(r, b)
 
 	copy(to.RCDHash[:], b)
@@ -571,7 +574,7 @@ func writeECOut(w io.Writer, pver uint32, eco *TxEntryCreditOut) error {
 // SerializeSize returns the number of bytes it would take to serialize the
 // the transaction output.
 func (t *TxOut) SerializeSize() int {
-	return RCDHashSize + VarIntSerializeSize(uint64(t.Value))
+	return RCDHASH_LENGTH + VarIntSerializeSize(uint64(t.Value))
 }
 
 func (t *TxEntryCreditOut) SerializeSize() int {
@@ -644,8 +647,8 @@ func (msg *MsgTx) SerializeSize() int {
 	return n
 }
 
-// TxSha generates the ShaHash name for the transaction.
-func (msg *MsgTx) TxSha() (ShaHash, error) {
+// TxSha generates the IHash name for the transaction.
+func (msg *MsgTx) TxSha() (IHash, error) {
 	//util.Trace()
 
 	if !disableSpew {
@@ -660,7 +663,7 @@ func (msg *MsgTx) TxSha() (ShaHash, error) {
 	// regardless of input.
 	buf := bytes.NewBuffer(make([]byte, 0, msg.SerializeSize()))
 	_ = msg.Serialize(buf)
-	var sha ShaHash
+	sha := new(Hash)
 	_ = sha.SetBytes(DoubleSha256(buf.Bytes()))
 
 	// Even though this function can't currently fail, it still returns
@@ -762,9 +765,9 @@ func (o OutPoint) String() string {
 	// maximum message payload may increase in the future and this
 	// optimization may go unnoticed, so allocate space for 10 decimal
 	// digits, which will fit any uint32.
-	buf := make([]byte, 2*HashSize+1, 2*HashSize+1+10)
+	buf := make([]byte, 2*HASH_LENGTH+1, 2*HASH_LENGTH+1+10)
 	copy(buf, o.Hash.String())
-	buf[2*HashSize] = ':'
+	buf[2*HASH_LENGTH] = ':'
 	buf = strconv.AppendUint(buf, uint64(o.Index), 10)
 
 	return string(buf)

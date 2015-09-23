@@ -6,12 +6,13 @@ package wire
 
 import (
 	"github.com/FactomProject/factomd/common/factoid/block"
+	. "github.com/FactomProject/factomd/common/interfaces"
 	"io"
 )
 
 // factoid block
 type MsgFBlock struct {
-	SC block.IFBlock
+	SC IFBlock
 }
 
 // BtcEncode encodes the receiver to w using the bitcoin protocol encoding.

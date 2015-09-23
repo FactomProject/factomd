@@ -123,8 +123,7 @@ func (msg *MsgHeaders) Command() string {
 func (msg *MsgHeaders) MaxPayloadLength(pver uint32) uint32 {
 	// Num headers (varInt) + max allowed headers (header length + 1 byte
 	// for the number of transactions which is always 0).
-	return MaxVarIntPayload + ((blockHeaderLen + 1) *
-		MaxBlockHeadersPerMsg)
+	return uint32(MaxVarIntPayload + ((blockHeaderLen + 1) * MaxBlockHeadersPerMsg))
 }
 
 // NewMsgHeaders returns a new bitcoin headers message that conforms to the

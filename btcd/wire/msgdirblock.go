@@ -7,13 +7,13 @@ package wire
 import (
 	"io"
 
-	"github.com/FactomProject/factomd/common"
+	. "github.com/FactomProject/factomd/common/DirectoryBlock"
 )
 
 // MsgDirBlock implements the Message interface and represents a factom
 // DBlock message.  It is used by client to reveal the entry.
 type MsgDirBlock struct {
-	DBlk *common.DirectoryBlock
+	DBlk *DirectoryBlock
 }
 
 // BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
@@ -42,7 +42,7 @@ func (msg *MsgDirBlock) BtcDecode(r io.Reader, pver uint32) error {
 		return err
 	}
 
-	msg.DBlk = new(common.DirectoryBlock)
+	msg.DBlk = new(DirectoryBlock)
 	err = msg.DBlk.UnmarshalBinary(bytes)
 	if err != nil {
 		return err

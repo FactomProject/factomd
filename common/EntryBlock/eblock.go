@@ -25,7 +25,7 @@ type EBlock struct {
 
 var _ Printable = (*EBlock)(nil)
 var _ BinaryMarshallable = (*EBlock)(nil)
-var _ IIDBEntry = (*EBlock)(nil)
+var _ IDBEntry = (*EBlock)(nil)
 
 func (c *EBlock) GetChainID() IHash {
 	return c.Header.GetChainID()
@@ -377,4 +377,8 @@ func (e *EBlockHeader) JSONBuffer(b *bytes.Buffer) error {
 
 func (e *EBlockHeader) Spew() string {
 	return Spew(e)
+}
+
+func (c *EBlockHeader) GetChainID() IHash {
+	return c.ChainID
 }

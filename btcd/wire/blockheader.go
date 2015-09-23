@@ -7,13 +7,15 @@ package wire
 import (
 	"bytes"
 	"fmt"
-	"github.com/FactomProject/factomd/common"
+	. "github.com/FactomProject/factomd/common/constants"
+	. "github.com/FactomProject/factomd/common/interfaces"
+	. "github.com/FactomProject/factomd/common/primitives"
 	"io"
 )
 
 var (
 	// Shared constants
-	FChainID        *common.Hash
+	FChainID        *Hash
 	CreditsPerChain int32
 
 	// BTCD State Variables
@@ -25,7 +27,7 @@ var (
 func Init() {
 	barray := []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F}
-	FChainID = new(common.Hash)
+	FChainID = new(Hash)
 	FChainID.SetBytes(barray)
 
 	CreditsPerChain = 10 // Entry Credits to create a chain
@@ -38,13 +40,13 @@ func Init() {
 // BlockHeader defines information about a block and is used in the bitcoin
 // block (MsgBlock) and headers (MsgHeaders) messages.
 type BlockHeader struct {
-	ChainID    ShaHash  // ChainID.  But since this is a constant, we need not actually use space to store it.
-	MerkleRoot ShaHash  // Merkle root of the Factoid transactions which accompany this block.
-	PrevBlock  ShaHash  // Key Merkle root of previous block.
+	ChainID    IHash    // ChainID.  But since this is a constant, we need not actually use space to store it.
+	MerkleRoot IHash    // Merkle root of the Factoid transactions which accompany this block.
+	PrevBlock  IHash    // Key Merkle root of previous block.
 	PrevHash3  Sha3Hash // Sha3 of the previous Factoid Block
 	ExchRate   uint64   // Factoshis per Entry Credit
 	DBHeight   uint32   // Directory Block height
-	UTXOCommit ShaHash  // This field will hold a Merkle root of an array containing all unspent transactions.
+	UTXOCommit IHash    // This field will hold a Merkle root of an array containing all unspent transactions.
 
 	// transaction count & body size are "read-only" (future) fields since serialization logic is handling both
 	TransCnt uint64 // Count of transactions in this block
@@ -53,10 +55,10 @@ type BlockHeader struct {
 
 // blockHeaderLen is a constant that represents the number of bytes for a block
 // header.
-const blockHeaderLen = 28 + 5*HashSize
+const blockHeaderLen = 28 + 5*HASH_LENGTH
 
 // BlockSha computes the block identifier hash for the given block header.
-func (h *BlockHeader) BlockSha() (ShaHash, error) {
+func (h *BlockHeader) BlockSha() (IHash, error) {
 	// Encode the header and run double sha256 everything prior to the
 	// number of transactions.  Ignore the error returns since there is no
 	// way the encode could fail except being out of memory which would
@@ -64,7 +66,7 @@ func (h *BlockHeader) BlockSha() (ShaHash, error) {
 	// fact DoubleSha256 always returns a []byte of the right size
 	// regardless of input.
 	var buf bytes.Buffer
-	var sha ShaHash
+	sha := new(Hash)
 	_ = writeBlockHeader(&buf, 0, h)
 	fmt.Println("Len: ", len(buf.Bytes()), " ", blockHeaderLen)
 	_ = sha.SetBytes(DoubleSha256(buf.Bytes()[0:blockHeaderLen]))
@@ -96,11 +98,11 @@ func (h *BlockHeader) Serialize(w io.Writer) error {
 // NewBlockHeader returns a new BlockHeader using the provided previous block
 // hash, merkle root hash, difficulty bits, and nonce used to generate the
 // block with defaults for the remaining fields.
-func NewBlockHeader(prevHash *ShaHash, merkleRootHash *ShaHash) *BlockHeader {
+func NewBlockHeader(prevHash IHash, merkleRootHash IHash) *BlockHeader {
 
 	return &BlockHeader{
-		PrevBlock:  *prevHash,
-		MerkleRoot: *merkleRootHash,
+		PrevBlock:  prevHash,
+		MerkleRoot: merkleRootHash,
 	}
 }
 
@@ -123,7 +125,7 @@ func readBlockHeader(r io.Reader, pver uint32, bh *BlockHeader) error {
 // encoding block headers to be stored to disk, such as in a database, as
 // opposed to encoding for the wire.
 func writeBlockHeader(w io.Writer, pver uint32, bh *BlockHeader) error {
-	copy(bh.ChainID[:], FChainID.Bytes())
+	copy(bh.ChainID.Bytes()[:], FChainID.Bytes())
 	err := writeElements(w, &bh.ChainID, &bh.MerkleRoot, &bh.PrevBlock, &bh.PrevHash3, bh.ExchRate,
 		bh.DBHeight, &bh.UTXOCommit, &bh.TransCnt, bh.BodySize)
 

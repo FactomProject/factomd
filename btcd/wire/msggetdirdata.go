@@ -97,7 +97,7 @@ func (msg *MsgGetDirData) Command() string {
 // receiver.  This is part of the Message interface implementation.
 func (msg *MsgGetDirData) MaxPayloadLength(pver uint32) uint32 {
 	// Num inventory vectors (varInt) + max allowed inventory vectors.
-	return MaxVarIntPayload + (MaxInvPerMsg * maxInvVectPayload)
+	return uint32(MaxVarIntPayload + (MaxInvPerMsg * maxInvVectPayload))
 }
 
 // NewMsgGetDirData returns a new bitcoin getdata message that conforms to the

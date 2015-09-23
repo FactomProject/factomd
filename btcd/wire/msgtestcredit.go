@@ -10,7 +10,9 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/FactomProject/factomd/common"
+	. "github.com/FactomProject/factomd/common/EntryCreditBlock"
+	. "github.com/FactomProject/factomd/common/interfaces"
+	. "github.com/FactomProject/factomd/common/primitives"
 )
 
 type MsgTestCredit struct {
@@ -64,7 +66,7 @@ func (msg *MsgTestCredit) BtcEncode(w io.Writer, pver uint32) error {
 // BtcDecode decodes r using the bitcoin protocol encoding into the receiver.
 // This is part of the Message interface implementation.
 func (msg *MsgTestCredit) BtcDecode(r io.Reader, pver uint32) error {
-	bytes, err := readVarBytes(r, pver, uint32(common.CommitEntrySize),
+	bytes, err := readVarBytes(r, pver, uint32(CommitEntrySize),
 		CmdEntry)
 	if err != nil {
 		return err
@@ -90,12 +92,12 @@ func (msg *MsgTestCredit) MaxPayloadLength(pver uint32) uint32 {
 }
 
 // Create a sha hash from the message binary (output of BtcEncode)
-func (msg *MsgTestCredit) Sha() (ShaHash, error) {
+func (msg *MsgTestCredit) Sha() (IHash, error) {
 
 	buf := bytes.NewBuffer(nil)
 	msg.BtcEncode(buf, ProtocolVersion)
-	var sha ShaHash
-	_ = sha.SetBytes(Sha256(buf.Bytes()))
+	sha := new(Hash)
+	err := sha.SetBytes(Sha256(buf.Bytes()))
 
-	return sha, nil
+	return sha, err
 }

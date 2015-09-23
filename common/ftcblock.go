@@ -6,21 +6,17 @@ package common
 
 import (
 	"bytes"
-	"fmt"
-	"github.com/FactomProject/factomd/common/factoid/block"
-	"github.com/FactomProject/factomd/common/factoid/state"
+	. "github.com/FactomProject/factomd/common/interfaces"
 	"sync"
 )
 
-var _ = fmt.Println
-
-var FactoidState state.IFactoidState
+//var FactoidState state.IFactoidState
 
 // factoid Chain
 type FctChain struct {
-	ChainID *Hash
+	ChainID IHash
 
-	NextBlock       block.IFBlock
+	NextBlock       IFBlock
 	NextBlockHeight uint32
 	BlockMutex      sync.Mutex
 }

@@ -1,13 +1,16 @@
 package util
 
 import (
-	"github.com/FactomProject/factomd/common"
-	"github.com/FactomProject/factomd/common/factoid/block"
+	. "github.com/FactomProject/factomd/common/AdminBlock"
+	. "github.com/FactomProject/factomd/common/DirectoryBlock"
+	. "github.com/FactomProject/factomd/common/EntryBlock"
+	. "github.com/FactomProject/factomd/common/EntryCreditBlock"
+	. "github.com/FactomProject/factomd/common/interfaces"
 )
 
 //------------------------------------------------
 // DBlock array sorting implementation - accending
-type ByDBlockIDAccending []common.DirectoryBlock
+type ByDBlockIDAccending []DirectoryBlock
 
 func (f ByDBlockIDAccending) Len() int {
 	return len(f)
@@ -21,7 +24,7 @@ func (f ByDBlockIDAccending) Swap(i, j int) {
 
 //------------------------------------------------
 // CBlock array sorting implementation - accending
-type ByECBlockIDAccending []common.ECBlock
+type ByECBlockIDAccending []ECBlock
 
 func (f ByECBlockIDAccending) Len() int {
 	return len(f)
@@ -35,7 +38,7 @@ func (f ByECBlockIDAccending) Swap(i, j int) {
 
 //------------------------------------------------
 // ABlock array sorting implementation - accending
-type ByABlockIDAccending []common.AdminBlock
+type ByABlockIDAccending []AdminBlock
 
 func (f ByABlockIDAccending) Len() int {
 	return len(f)
@@ -49,7 +52,7 @@ func (f ByABlockIDAccending) Swap(i, j int) {
 
 //------------------------------------------------
 // ABlock array sorting implementation - accending
-type ByFBlockIDAccending []block.IFBlock
+type ByFBlockIDAccending []IFBlock
 
 func (f ByFBlockIDAccending) Len() int {
 	return len(f)
@@ -63,7 +66,7 @@ func (f ByFBlockIDAccending) Swap(i, j int) {
 
 //------------------------------------------------
 // EBlock array sorting implementation - accending
-type ByEBlockIDAccending []common.EBlock
+type ByEBlockIDAccending []EBlock
 
 func (f ByEBlockIDAccending) Len() int {
 	return len(f)

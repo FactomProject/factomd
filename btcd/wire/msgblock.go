@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 
+	. "github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/util"
 	"github.com/davecgh/go-spew/spew"
 )
@@ -239,13 +240,13 @@ func (msg *MsgBlock) MaxPayloadLength(pver uint32) uint32 {
 }
 
 // BlockSha computes the block identifier hash for this block.
-func (msg *MsgBlock) BlockSha() (ShaHash, error) {
+func (msg *MsgBlock) BlockSha() (IHash, error) {
 	return msg.Header.BlockSha()
 }
 
 // TxShas returns a slice of hashes of all of transactions in this block.
-func (msg *MsgBlock) TxShas() ([]ShaHash, error) {
-	shaList := make([]ShaHash, 0, len(msg.Transactions))
+func (msg *MsgBlock) TxShas() ([]IHash, error) {
+	shaList := make([]IHash, 0, len(msg.Transactions))
 	for _, tx := range msg.Transactions {
 		// Ignore error here since TxSha can't fail in the current
 		// implementation except due to run-time panics.

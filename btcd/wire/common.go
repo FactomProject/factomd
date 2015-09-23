@@ -11,6 +11,7 @@ import (
 	"io"
 	"math"
 
+	. "github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/fastsha256"
 )
 
@@ -98,7 +99,7 @@ func readElement(r io.Reader, element interface{}) error {
 		}
 		return nil
 
-	case *ShaHash:
+	case Hash:
 		_, err := io.ReadFull(r, e[:])
 		if err != nil {
 			return err
@@ -249,7 +250,7 @@ func writeElement(w io.Writer, element interface{}) error {
 		}
 		return nil
 
-	case *ShaHash:
+	case Hash:
 		_, err := w.Write(e[:])
 		if err != nil {
 			return err

@@ -15,9 +15,7 @@ import (
 	. "github.com/FactomProject/factomd/common/interfaces"
 )
 
-type Hash struct {
-	bytes [HASH_LENGTH]byte
-}
+type Hash [HASH_LENGTH]byte
 
 var _ Printable = (*Hash)(nil)
 var _ BinaryMarshallable = (*Hash)(nil)
@@ -28,7 +26,7 @@ func (c *Hash) MarshalledSize() uint64 {
 }
 
 func (h *Hash) MarshalText() ([]byte, error) {
-	return []byte(hex.EncodeToString(h.bytes[:])), nil
+	return []byte(hex.EncodeToString(h[:])), nil
 }
 
 func (h *Hash) UnmarshalText(b []byte) error {
@@ -36,12 +34,12 @@ func (h *Hash) UnmarshalText(b []byte) error {
 	if err != nil {
 		return err
 	}
-	copy(h.bytes[:], p)
+	copy(h[:], p)
 	return nil
 }
 
 func (h Hash) Fixed() [32]byte {
-	return h.bytes
+	return h
 }
 func (h *Hash) Bytes() []byte {
 	return h.GetBytes()
@@ -79,7 +77,7 @@ func CreateHash(entities ...BinaryMarshallable) (h IHash, err error) {
 
 func (h *Hash) MarshalBinary() ([]byte, error) {
 	var buf bytes.Buffer
-	buf.Write(h.bytes[:])
+	buf.Write(h[:])
 	return buf.Bytes(), nil
 }
 
@@ -89,7 +87,7 @@ func (h *Hash) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
 	}()
-	copy(h.bytes[:], p)
+	copy(h[:], p)
 	newData = p[HASH_LENGTH:]
 	return
 }
@@ -118,7 +116,7 @@ func (h Hash) NewBlock() IBlock {
 // value.
 func (h *Hash) GetBytes() []byte {
 	newHash := make([]byte, HASH_LENGTH)
-	copy(newHash, h.bytes[:])
+	copy(newHash, h[:])
 
 	return newHash
 }
@@ -130,7 +128,7 @@ func (hash *Hash) SetBytes(newHash []byte) error {
 	if nhlen != HASH_LENGTH {
 		return fmt.Errorf("invalid sha length of %v, want %v", nhlen, HASH_LENGTH)
 	}
-	copy(hash.bytes[:], newHash)
+	copy(hash[:], newHash)
 	return nil
 }
 
@@ -151,7 +149,7 @@ func Sha512Half(p []byte) (h *Hash) {
 	sha.Write(p)
 
 	h = new(Hash)
-	copy(h.bytes[:], sha.Sum(nil)[:32])
+	copy(h[:], sha.Sum(nil)[:32])
 	return h
 }
 
@@ -160,12 +158,12 @@ func (h *Hash) String() string {
 	if h == nil {
 		return hex.EncodeToString(nil)
 	} else {
-		return hex.EncodeToString(h.bytes[:])
+		return hex.EncodeToString(h[:])
 	}
 }
 
 func (h *Hash) ByteString() string {
-	return string(h.bytes[:])
+	return string(h[:])
 }
 
 func (h *Hash) HexToHash(hexStr string) (IHash, error) {
@@ -182,7 +180,7 @@ func HexToHash(hexStr string) (h IHash, err error) {
 // String returns the ShaHash in the standard bitcoin big-endian form.
 func (h *Hash) BTCString() string {
 	hashstr := ""
-	hash := h.bytes
+	hash := ([HASH_LENGTH]byte)(*h)
 	for i := range hash {
 		hashstr += fmt.Sprintf("%02x", hash[HASH_LENGTH-1-i])
 	}
@@ -196,7 +194,7 @@ func (a Hash) IsSameAs(b IHash) bool {
 		return false
 	}
 
-	if bytes.Compare(a.bytes[:], b.Bytes()) == 0 {
+	if bytes.Compare(a[:], b.Bytes()) == 0 {
 		return true
 	}
 
@@ -206,7 +204,7 @@ func (a Hash) IsSameAs(b IHash) bool {
 // Is the hash a minute marker (the last byte indicates the minute number)
 func (h *Hash) IsMinuteMarker() bool {
 
-	if bytes.Equal(h.bytes[:31], ZERO_HASH[:31]) {
+	if bytes.Equal(h[:31], ZERO_HASH[:31]) {
 		return true
 	}
 
@@ -215,7 +213,7 @@ func (h *Hash) IsMinuteMarker() bool {
 
 func (a Hash) CustomMarshalText() (text []byte, err error) {
 	var out bytes.Buffer
-	hash := hex.EncodeToString(a.bytes[:])
+	hash := hex.EncodeToString(a[:])
 	out.WriteString(hash)
 	return out.Bytes(), nil
 }

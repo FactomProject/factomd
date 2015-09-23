@@ -7,13 +7,13 @@ package wire
 import (
 	"io"
 
-	"github.com/FactomProject/factomd/common"
+	. "github.com/FactomProject/factomd/common/AdminBlock"
 )
 
 // MsgABlock implements the Message interface and represents a factom
 // Admin Block message.  It is used by client to download Admin Block.
 type MsgABlock struct {
-	ABlk *common.AdminBlock
+	ABlk *AdminBlock
 }
 
 // BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
@@ -42,7 +42,7 @@ func (msg *MsgABlock) BtcDecode(r io.Reader, pver uint32) error {
 		return err
 	}
 
-	msg.ABlk = new(common.AdminBlock)
+	msg.ABlk = new(AdminBlock)
 	err = msg.ABlk.UnmarshalBinary(bytes)
 	if err != nil {
 		return err
