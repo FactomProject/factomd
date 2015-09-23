@@ -3,7 +3,9 @@ package ldb
 import (
 	"encoding/binary"
 	"errors"
-	"github.com/FactomProject/factomd/common"
+	. "github.com/FactomProject/factomd/common/EntryBlock"
+	. "github.com/FactomProject/factomd/common/interfaces"
+	. "github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/goleveldb/leveldb"
 	"log"
 
@@ -11,7 +13,7 @@ import (
 )
 
 // ProcessEBlockBatche inserts the EBlock and update all it's ebentries in DB
-func (db *LevelDb) ProcessEBlockBatch(eblock *common.EBlock) error {
+func (db *LevelDb) ProcessEBlockBatch(eblock *EBlock) error {
 	if eblock != nil {
 		if db.lbatch == nil {
 			db.lbatch = new(leveldb.Batch)
@@ -82,7 +84,7 @@ func (db *LevelDb) ProcessEBlockBatch(eblock *common.EBlock) error {
 }
 
 // FetchEBlockByMR gets an entry block by merkle root from the database.
-func (db *LevelDb) FetchEBlockByMR(eBMR *common.Hash) (eBlock *common.EBlock, err error) {
+func (db *LevelDb) FetchEBlockByMR(eBMR IHash) (eBlock *EBlock, err error) {
 	eBlockHash, err := db.FetchEBHashByMR(eBMR)
 	if err != nil {
 		return nil, err
@@ -99,7 +101,7 @@ func (db *LevelDb) FetchEBlockByMR(eBMR *common.Hash) (eBlock *common.EBlock, er
 }
 
 // FetchEntryBlock gets an entry by hash from the database.
-func (db *LevelDb) FetchEBlockByHash(eBlockHash *common.Hash) (*common.EBlock, error) {
+func (db *LevelDb) FetchEBlockByHash(eBlockHash IHash) (*EBlock, error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -110,7 +112,7 @@ func (db *LevelDb) FetchEBlockByHash(eBlockHash *common.Hash) (*common.EBlock, e
 		return nil, err
 	}
 
-	eBlock := common.NewEBlock()
+	eBlock := NewEBlock()
 	if data != nil {
 		_, err := eBlock.UnmarshalBinaryData(data)
 		if err != nil {
@@ -122,7 +124,7 @@ func (db *LevelDb) FetchEBlockByHash(eBlockHash *common.Hash) (*common.EBlock, e
 
 // FetchEBlockByHeight gets an entry block by height from the database.
 // Need to rewrite since only the cross ref is stored in db ??
-/*func (db *LevelDb) FetchEBlockByHeight(chainID *common.Hash, eBlockHeight uint32) (*common.EBlock, error) {
+/*func (db *LevelDb) FetchEBlockByHeight(chainID IHash, eBlockHeight uint32) (*EBlock, error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -136,7 +138,7 @@ func (db *LevelDb) FetchEBlockByHash(eBlockHash *common.Hash) (*common.EBlock, e
 		return nil, err
 	}
 
-	eBlock := common.NewEBlock()
+	eBlock := NewEBlock()
 	if data != nil {
 		_, err:=eBlock.UnmarshalBinaryData(data)
 		if err!=nil {
@@ -148,7 +150,7 @@ func (db *LevelDb) FetchEBlockByHash(eBlockHash *common.Hash) (*common.EBlock, e
 */
 
 // FetchEBHashByMR gets an entry by hash from the database.
-func (db *LevelDb) FetchEBHashByMR(eBMR *common.Hash) (*common.Hash, error) {
+func (db *LevelDb) FetchEBHashByMR(eBMR IHash) (IHash, error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -159,7 +161,7 @@ func (db *LevelDb) FetchEBHashByMR(eBMR *common.Hash) (*common.Hash, error) {
 		return nil, err
 	}
 
-	eBlockHash := common.NewZeroHash()
+	eBlockHash := NewZeroHash()
 	_, err = eBlockHash.UnmarshalBinaryData(data)
 	if err != nil {
 		return nil, err
@@ -169,7 +171,7 @@ func (db *LevelDb) FetchEBHashByMR(eBMR *common.Hash) (*common.Hash, error) {
 }
 
 // InsertChain inserts the newly created chain into db
-func (db *LevelDb) InsertChain(chain *common.EChain) (err error) {
+func (db *LevelDb) InsertChain(chain *EChain) (err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -195,7 +197,7 @@ func (db *LevelDb) InsertChain(chain *common.EChain) (err error) {
 }
 
 // FetchChainByHash gets a chain by chainID
-func (db *LevelDb) FetchChainByHash(chainID *common.Hash) (*common.EChain, error) {
+func (db *LevelDb) FetchChainByHash(chainID IHash) (*EChain, error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -206,7 +208,7 @@ func (db *LevelDb) FetchChainByHash(chainID *common.Hash) (*common.EChain, error
 		return nil, err
 	}
 
-	chain := common.NewEChain()
+	chain := NewEChain()
 	if data != nil {
 		_, err := chain.UnmarshalBinaryData(data)
 		if err != nil {
@@ -217,18 +219,18 @@ func (db *LevelDb) FetchChainByHash(chainID *common.Hash) (*common.EChain, error
 }
 
 // FetchAllChains get all of the cahins
-func (db *LevelDb) FetchAllChains() (chains []*common.EChain, err error) {
+func (db *LevelDb) FetchAllChains() (chains []*EChain, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
 	var fromkey []byte = []byte{byte(TBL_CHAIN_HASH)}   // Table Name (1 bytes)
 	var tokey []byte = []byte{byte(TBL_CHAIN_HASH + 1)} // Table Name (1 bytes)
 
-	chainSlice := make([]*common.EChain, 0, 10)
+	chainSlice := make([]*EChain, 0, 10)
 
 	iter := db.lDb.NewIterator(&util.Range{Start: fromkey, Limit: tokey}, db.ro)
 	for iter.Next() {
-		chain := common.NewEChain()
+		chain := NewEChain()
 		_, err := chain.UnmarshalBinaryData(iter.Value())
 		if err != nil {
 			return nil, err
@@ -242,7 +244,7 @@ func (db *LevelDb) FetchAllChains() (chains []*common.EChain, err error) {
 }
 
 // FetchAllEBlocksByChain gets all of the blocks by chain id
-func (db *LevelDb) FetchAllEBlocksByChain(chainID *common.Hash) (eBlocks *[]common.EBlock, err error) {
+func (db *LevelDb) FetchAllEBlocksByChain(chainID IHash) (eBlocks *[]EBlock, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -250,12 +252,12 @@ func (db *LevelDb) FetchAllEBlocksByChain(chainID *common.Hash) (eBlocks *[]comm
 	fromkey = append(fromkey, chainID.Bytes()...)       // Chain Type (32 bytes)
 	var tokey []byte = addOneToByteArray(fromkey)
 
-	eBlockSlice := make([]common.EBlock, 0, 10)
+	eBlockSlice := make([]EBlock, 0, 10)
 
 	iter := db.lDb.NewIterator(&util.Range{Start: fromkey, Limit: tokey}, db.ro)
 
 	for iter.Next() {
-		eBlockHash := common.NewZeroHash()
+		eBlockHash := NewZeroHash()
 		_, err := eBlockHash.UnmarshalBinaryData(iter.Value())
 		if err != nil {
 			return nil, err
@@ -268,7 +270,7 @@ func (db *LevelDb) FetchAllEBlocksByChain(chainID *common.Hash) (eBlocks *[]comm
 			return nil, err
 		}
 
-		eBlock := common.NewEBlock()
+		eBlock := NewEBlock()
 		if data != nil {
 			_, err := eBlock.UnmarshalBinaryData(data)
 			if err != nil {

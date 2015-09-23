@@ -28,7 +28,9 @@ import (
 	"github.com/davecgh/go-spew/spew"
 
 	factomwire "github.com/FactomProject/factomd/btcd/wire"
-	"github.com/FactomProject/factomd/common"
+	. "github.com/FactomProject/factomd/common/DirectoryBlock"
+	. "github.com/FactomProject/factomd/common/interfaces"
+	. "github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database"
 	"github.com/FactomProject/factomd/util"
 )
@@ -37,8 +39,8 @@ var (
 	balances            []balance // unspent balance & address & its WIF
 	cfg                 *util.FactomdConfig
 	dclient, wclient    *btcrpcclient.Client
-	fee                 btcutil.Amount                  // tx fee for written into btc
-	dirBlockInfoMap     map[string]*common.DirBlockInfo //dbHash string as key
+	fee                 btcutil.Amount           // tx fee for written into btc
+	dirBlockInfoMap     map[string]*DirBlockInfo //dbHash string as key
 	db                  database.Db
 	walletLocked        bool
 	reAnchorAfter       = 10 // hours. For anchors that do not get bitcoin callback info for over 10 hours, then re-anchor them.
@@ -47,12 +49,12 @@ var (
 	confirmationsNeeded int
 
 	//Server Private key for milestone 1
-	serverPrivKey common.PrivateKey
+	serverPrivKey PrivateKey
 
 	//Server Entry Credit private key
-	serverECKey common.PrivateKey
+	serverECKey PrivateKey
 	//Anchor chain ID
-	anchorChainID *common.Hash
+	anchorChainID IHash
 	//InmsgQ for submitting the entry to server
 	inMsgQ chan factomwire.FtmInternalMsg
 )
@@ -81,7 +83,7 @@ type AnchorRecord struct {
 
 // SendRawTransactionToBTC is the main function used to anchor factom
 // dir block hash to bitcoin blockchain
-func SendRawTransactionToBTC(hash *common.Hash, blockHeight uint32) (*wire.ShaHash, error) {
+func SendRawTransactionToBTC(hash IHash, blockHeight uint32) (IHash, error) {
 	anchorLog.Debug("SendRawTransactionToBTC: hash=", hash.String(), ", dir block height=", blockHeight) //strconv.FormatUint(blockHeight, 10))
 	dirBlockInfo, err := sanityCheck(hash)
 	if err != nil {
@@ -90,7 +92,7 @@ func SendRawTransactionToBTC(hash *common.Hash, blockHeight uint32) (*wire.ShaHa
 	return doTransaction(hash, blockHeight, dirBlockInfo)
 }
 
-func doTransaction(hash *common.Hash, blockHeight uint32, dirBlockInfo *common.DirBlockInfo) (*wire.ShaHash, error) {
+func doTransaction(hash IHash, blockHeight uint32, dirBlockInfo *DirBlockInfo) (IHash, error) {
 	b := balances[0]
 	balances = balances[1:]
 	anchorLog.Info("new balances.len=", len(balances))
@@ -112,7 +114,7 @@ func doTransaction(hash *common.Hash, blockHeight uint32, dirBlockInfo *common.D
 	return shaHash, nil
 }
 
-func sanityCheck(hash *common.Hash) (*common.DirBlockInfo, error) {
+func sanityCheck(hash IHash) (*DirBlockInfo, error) {
 	dirBlockInfo := dirBlockInfoMap[hash.String()]
 	if dirBlockInfo == nil {
 		s := fmt.Sprintf("Anchor Error: hash %s does not exist in dirBlockInfoMap.\n", hash.String())
@@ -124,7 +126,7 @@ func sanityCheck(hash *common.Hash) (*common.DirBlockInfo, error) {
 		anchorLog.Error(s)
 		return nil, errors.New(s)
 	}
-	if !common.NewZeroHash().IsSameAs(dirBlockInfo.BTCTxHash) {
+	if !NewZeroHash().IsSameAs(dirBlockInfo.BTCTxHash) {
 		s := fmt.Sprintf("Anchor Warning: hash %s has already been anchored but not confirmed. btc tx hash is %s\n", hash.String(), dirBlockInfo.BTCTxHash.String())
 		anchorLog.Error(s)
 		return nil, errors.New(s)
@@ -291,7 +293,7 @@ func validateMsgTx(msgtx *wire.MsgTx, inputs []btcjson.ListUnspentResult) error 
 	return nil
 }
 
-func sendRawTransaction(msgtx *wire.MsgTx) (*wire.ShaHash, error) {
+func sendRawTransaction(msgtx *wire.MsgTx) (IHash, error) {
 	//anchorLog.Debug("sendRawTransaction: msgTx=", spew.Sdump(msgtx))
 	buf := bytes.Buffer{}
 	buf.Grow(msgtx.SerializeSize())
@@ -310,7 +312,7 @@ func sendRawTransaction(msgtx *wire.MsgTx) (*wire.ShaHash, error) {
 		return nil, fmt.Errorf("failed in rpcclient.SendRawTransaction: %s", err)
 	}
 	anchorLog.Info("btc txHash returned: ", shaHash) // new tx hash
-	return shaHash, nil
+	return (*Hash)(shaHash), nil
 }
 
 func createBtcwalletNotificationHandlers() btcrpcclient.NotificationHandlers {
@@ -369,7 +371,7 @@ func createBtcdNotificationHandlers() btcrpcclient.NotificationHandlers {
 
 // InitAnchor inits rpc clients for factom
 // and load up unconfirmed DirBlockInfo from leveldb
-func InitAnchor(ldb database.Db, q chan factomwire.FtmInternalMsg, serverKey common.PrivateKey) {
+func InitAnchor(ldb database.Db, q chan factomwire.FtmInternalMsg, serverKey PrivateKey) {
 	anchorLog.Debug("InitAnchor")
 	db = ldb
 	inMsgQ = q
@@ -426,11 +428,11 @@ func initRPCClient() error {
 
 	//Added anchor parameters
 	var err error
-	serverECKey, err = common.NewPrivateKeyFromHex(cfg.Anchor.ServerECKey)
+	serverECKey, err = NewPrivateKeyFromHex(cfg.Anchor.ServerECKey)
 	if err != nil {
 		panic("Cannot parse Server EC Key from configuration file: " + err.Error())
 	}
-	anchorChainID, err = common.HexToHash(cfg.Anchor.AnchorChainID)
+	anchorChainID, err = HexToHash(cfg.Anchor.AnchorChainID)
 	anchorLog.Debug("anchorChainID: ", anchorChainID)
 	if err != nil || anchorChainID == nil {
 		panic("Cannot parse Server AnchorChainID from configuration file: " + err.Error())
@@ -589,7 +591,7 @@ func saveDirBlockInfo(transaction *btcutil.Tx, details *btcjson.BlockDetails) {
 			dirBlockInfo.BTCTxOffset = int32(details.Index)
 			dirBlockInfo.BTCBlockHeight = details.Height
 			btcBlockHash, _ := wire.NewShaHashFromStr(details.Hash)
-			dirBlockInfo.BTCBlockHash = toHash(btcBlockHash)
+			dirBlockInfo.BTCBlockHash = toHash((*Hash)(btcBlockHash))
 			dirBlockInfo.BTCConfirmed = true
 			db.InsertDirBlockInfo(dirBlockInfo)
 			delete(dirBlockInfoMap, dirBlockInfo.DBMerkleRoot.String())
@@ -627,15 +629,15 @@ func saveDirBlockInfo(transaction *btcutil.Tx, details *btcjson.BlockDetails) {
 	}
 }
 
-func toHash(txHash *wire.ShaHash) *common.Hash {
-	h := new(common.Hash)
+func toHash(txHash IHash) IHash {
+	h := new(Hash)
 	h.SetBytes(txHash.Bytes())
 	return h
 }
 
 // UpdateDirBlockInfoMap allows factom processor to update DirBlockInfo
 // when a new Directory Block is saved to db
-func UpdateDirBlockInfoMap(dirBlockInfo *common.DirBlockInfo) {
+func UpdateDirBlockInfoMap(dirBlockInfo *DirBlockInfo) {
 	anchorLog.Debug("UpdateDirBlockInfoMap: ", spew.Sdump(dirBlockInfo))
 	dirBlockInfoMap[dirBlockInfo.DBMerkleRoot.String()] = dirBlockInfo
 }

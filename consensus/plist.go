@@ -2,6 +2,7 @@ package consensus
 
 import (
 	"github.com/FactomProject/factomd/btcd/wire"
+	. "github.com/FactomProject/factomd/common/interfaces"
 )
 
 // Process list contains a list of valid confirmation messages
@@ -17,7 +18,7 @@ type ProcessList struct {
 type ProcessListItem struct {
 	Ack     *wire.MsgAcknowledgement
 	Msg     wire.FtmInternalMsg
-	MsgHash *wire.ShaHash
+	MsgHash IHash
 }
 
 // create a new process list

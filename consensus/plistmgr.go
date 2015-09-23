@@ -2,7 +2,9 @@ package consensus
 
 import (
 	"github.com/FactomProject/factomd/btcd/wire"
-	"github.com/FactomProject/factomd/common"
+	. "github.com/FactomProject/factomd/common/constants"
+	. "github.com/FactomProject/factomd/common/interfaces"
+	. "github.com/FactomProject/factomd/common/primitives"
 	"sync"
 )
 
@@ -15,7 +17,7 @@ type ProcessListMgr struct {
 
 	NextDBlockHeight uint32
 	//Server Private key and Public key for milestone 1
-	serverPrivKey common.PrivateKey
+	serverPrivKey PrivateKey
 
 	// Orphan process list map to hold our of order confirmation messages
 	// key: MsgAcknowledgement.MsgHash.String()
@@ -23,7 +25,7 @@ type ProcessListMgr struct {
 }
 
 // create a new process list
-func NewProcessListMgr(height uint32, otherPLSize int, plSizeHint uint, privKey common.PrivateKey) *ProcessListMgr {
+func NewProcessListMgr(height uint32, otherPLSize int, plSizeHint uint, privKey PrivateKey) *ProcessListMgr {
 
 	plMgr := new(ProcessListMgr)
 	plMgr.MyProcessList = NewProcessList(plSizeHint)
@@ -108,7 +110,7 @@ func (plMgr *ProcessListMgr) InitProcessListFromOrphanMap() error {
 }
 
 // Create a new process list item and add it to the MyProcessList
-func (plMgr *ProcessListMgr) AddMyProcessListItem(msg wire.FtmInternalMsg, hash *wire.ShaHash, msgType byte) (ack *wire.MsgAcknowledgement, err error) {
+func (plMgr *ProcessListMgr) AddMyProcessListItem(msg wire.FtmInternalMsg, hash IHash, msgType byte) (ack *wire.MsgAcknowledgement, err error) {
 
 	ack = wire.NewMsgAcknowledgement(plMgr.NextDBlockHeight, uint32(plMgr.MyProcessList.nextIndex), hash, msgType)
 	// Sign the ack using server private keys
@@ -129,7 +131,7 @@ func (plMgr *ProcessListMgr) AddMyProcessListItem(msg wire.FtmInternalMsg, hash 
 
 // Sign the Ack --
 //TODO: to be moved into util package
-func (plMgr *ProcessListMgr) SignAck(bytes []byte) (sig common.Signature) {
+func (plMgr *ProcessListMgr) SignAck(bytes []byte) (sig Signature) {
 	sig = plMgr.serverPrivKey.Sign(bytes)
 	return sig
 }
@@ -137,6 +139,6 @@ func (plMgr *ProcessListMgr) SignAck(bytes []byte) (sig common.Signature) {
 // Check if the number of process list items is exceeding the size limit
 func (plMgr *ProcessListMgr) IsMyPListExceedingLimit() bool {
 
-	return (plMgr.MyProcessList.totalItems >= common.MAX_PLIST_SIZE)
+	return (plMgr.MyProcessList.totalItems >= MAX_PLIST_SIZE)
 
 }

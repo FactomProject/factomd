@@ -15,7 +15,8 @@ import (
 	"time"
 
 	factomwire "github.com/FactomProject/factomd/btcd/wire"
-	"github.com/FactomProject/factomd/common"
+	. "github.com/FactomProject/factomd/common/EntryBlock"
+	. "github.com/FactomProject/factomd/common/EntryCreditBlock"
 	"github.com/FactomProject/factomd/util"
 )
 
@@ -36,7 +37,7 @@ func submitEntryToAnchorChain(aRecord *AnchorRecord) error {
 	bufARecord.Write([]byte(hex.EncodeToString(aRecordSig.Sig[:])))
 
 	//Create a new entry
-	entry := common.NewEntry()
+	entry := NewEntry()
 	entry.ChainID = anchorChainID
 	anchorLog.Debug("anchorChainID: ", anchorChainID)
 	entry.Content = bufARecord.Bytes()
@@ -66,7 +67,7 @@ func submitEntryToAnchorChain(aRecord *AnchorRecord) error {
 	buf.Write(serverECKey.Pub.Key[:])
 	buf.Write(sig.Sig[:])
 
-	commit := common.NewCommitEntry()
+	commit := NewCommitEntry()
 	err = commit.UnmarshalBinary(buf.Bytes())
 	if err != nil {
 		return err

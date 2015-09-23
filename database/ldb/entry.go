@@ -4,13 +4,14 @@ import (
 	"log"
 	"strings"
 
-	"github.com/FactomProject/factomd/common"
+	. "github.com/FactomProject/factomd/common/EntryBlock"
+	. "github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/goleveldb/leveldb"
 	"github.com/FactomProject/goleveldb/leveldb/util"
 )
 
 // InsertEntry inserts an entry
-func (db *LevelDb) InsertEntry(entry *common.Entry) error {
+func (db *LevelDb) InsertEntry(entry *Entry) error {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -37,7 +38,7 @@ func (db *LevelDb) InsertEntry(entry *common.Entry) error {
 }
 
 // FetchEntry gets an entry by hash from the database.
-func (db *LevelDb) FetchEntryByHash(entrySha *common.Hash) (entry *common.Entry, err error) {
+func (db *LevelDb) FetchEntryByHash(entrySha IHash) (entry *Entry, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -46,7 +47,7 @@ func (db *LevelDb) FetchEntryByHash(entrySha *common.Hash) (entry *common.Entry,
 	data, err := db.lDb.Get(key, db.ro)
 
 	if data != nil {
-		entry = new(common.Entry)
+		entry = new(Entry)
 		_, err := entry.UnmarshalBinaryData(data)
 		if err != nil {
 			return nil, err
@@ -67,7 +68,7 @@ func (db *LevelDb) InitializeExternalIDMap() (extIDMap map[string]bool, err erro
 	iter := db.lDb.NewIterator(&util.Range{Start: fromkey, Limit: tokey}, db.ro)
 
 	for iter.Next() {
-		entry := new(common.Entry)
+		entry := new(Entry)
 		_, err := entry.UnmarshalBinaryData(iter.Value())
 		if err != nil {
 			return nil, err

@@ -3,15 +3,16 @@ package ldb
 import (
 	//	"errors"
 	"encoding/binary"
-	"github.com/FactomProject/factomd/common"
+	. "github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/factoid/block"
+	. "github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/goleveldb/leveldb"
 	"github.com/FactomProject/goleveldb/leveldb/util"
 	"log"
 )
 
 // ProcessFBlockBatch inserts the factoid block
-func (db *LevelDb) ProcessFBlockBatch(block block.IFBlock) error {
+func (db *LevelDb) ProcessFBlockBatch(block IFBlock) error {
 
 	if block != nil {
 		if db.lbatch == nil {
@@ -42,7 +43,7 @@ func (db *LevelDb) ProcessFBlockBatch(block block.IFBlock) error {
 
 		// Update the chain head reference
 		key = []byte{byte(TBL_CHAIN_HEAD)}
-		key = append(key, common.FACTOID_CHAINID...)
+		key = append(key, FACTOID_CHAINID...)
 		db.lbatch.Put(key, scHash.Bytes())
 
 		err = db.lDb.Write(db.lbatch, db.wo)
@@ -56,7 +57,7 @@ func (db *LevelDb) ProcessFBlockBatch(block block.IFBlock) error {
 }
 
 // FetchFBlockByHash gets an factoid block by hash from the database.
-func (db *LevelDb) FetchFBlockByHash(hash *common.Hash) (FBlock block.IFBlock, err error) {
+func (db *LevelDb) FetchFBlockByHash(hash IHash) (FBlock IFBlock, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -75,14 +76,14 @@ func (db *LevelDb) FetchFBlockByHash(hash *common.Hash) (FBlock block.IFBlock, e
 }
 
 // FetchAllFBlocks gets all of the factoid blocks
-func (db *LevelDb) FetchAllFBlocks() (FBlocks []block.IFBlock, err error) {
+func (db *LevelDb) FetchAllFBlocks() (FBlocks []IFBlock, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
 	var fromkey []byte = []byte{byte(TBL_SC)}   // Table Name (1 bytes)						// Timestamp  (8 bytes)
 	var tokey []byte = []byte{byte(TBL_SC + 1)} // Table Name (1 bytes)
 
-	FBlockSlice := make([]block.IFBlock, 0, 10)
+	FBlockSlice := make([]IFBlock, 0, 10)
 
 	iter := db.lDb.NewIterator(&util.Range{Start: fromkey, Limit: tokey}, db.ro)
 

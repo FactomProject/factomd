@@ -5,9 +5,11 @@
 package database
 
 import (
-	"github.com/FactomProject/factomd/btcd/wire"
-	"github.com/FactomProject/factomd/common"
-	"github.com/FactomProject/factomd/common/factoid/block"
+	. "github.com/FactomProject/factomd/common/AdminBlock"
+	. "github.com/FactomProject/factomd/common/DirectoryBlock"
+	. "github.com/FactomProject/factomd/common/EntryBlock"
+	. "github.com/FactomProject/factomd/common/EntryCreditBlock"
+	. "github.com/FactomProject/factomd/common/interfaces"
 )
 
 // AllShas is a special value that can be used as the final sha when requesting
@@ -28,129 +30,129 @@ type Db interface {
 	Sync() (err error)
 
 	// InsertEntry inserts an entry
-	InsertEntry(entry *common.Entry) (err error)
+	InsertEntry(entry *Entry) (err error)
 
 	// FetchEntry gets an entry by hash from the database.
-	FetchEntryByHash(entrySha *common.Hash) (entry *common.Entry, err error)
+	FetchEntryByHash(entrySha IHash) (entry *Entry, err error)
 
 	// FetchEBEntriesFromQueue gets all of the ebentries that have not been processed
-	//FetchEBEntriesFromQueue(chainID *[]byte, startTime *[]byte) (ebentries []*common.EBEntry, err error)
+	//FetchEBEntriesFromQueue(chainID *[]byte, startTime *[]byte) (ebentries []*EBEntry, err error)
 
 	// ProcessEBlockBatche inserts the EBlock and update all it's ebentries in DB
-	ProcessEBlockBatch(eblock *common.EBlock) error
+	ProcessEBlockBatch(eblock *EBlock) error
 
 	// FetchDBEntriesFromQueue gets all of the dbentries that have not been processed
-	//FetchDBEntriesFromQueue(startTime *[]byte) (dbentries []*common.DBEntry, err error)
+	//FetchDBEntriesFromQueue(startTime *[]byte) (dbentries []*DBEntry, err error)
 
 	// InsertChain inserts the newly created chain into db
-	InsertChain(chain *common.EChain) (err error)
+	InsertChain(chain *EChain) (err error)
 
 	// FetchChainByHash gets a chain by chainID
-	FetchChainByHash(chainID *common.Hash) (chain *common.EChain, err error)
+	FetchChainByHash(chainID IHash) (chain *EChain, err error)
 
 	//FetchAllChains gets all of the chains
-	FetchAllChains() (chains []*common.EChain, err error)
+	FetchAllChains() (chains []*EChain, err error)
 
 	// FetchEntryInfoBranchByHash gets an EntryInfo obj
-	//FetchEntryInfoByHash(entryHash *common.Hash) (entryInfo *common.EntryInfo, err error)
+	//FetchEntryInfoByHash(entryHash IHash) (entryInfo *EntryInfo, err error)
 
 	// FetchEntryInfoBranchByHash gets an EntryInfoBranch obj
-	// FetchEntryInfoBranchByHash(entryHash *common.Hash) (entryInfoBranch *common.EntryInfoBranch, err error)
+	// FetchEntryInfoBranchByHash(entryHash IHash) (entryInfoBranch *EntryInfoBranch, err error)
 
 	// FetchEntryBlock gets an entry by hash from the database.
-	FetchEBlockByHash(eBlockHash *common.Hash) (eBlock *common.EBlock, err error)
+	FetchEBlockByHash(eBlockHash IHash) (eBlock *EBlock, err error)
 
 	// FetchEBlockByMR gets an entry block by merkle root from the database.
-	FetchEBlockByMR(eBMR *common.Hash) (eBlock *common.EBlock, err error)
+	FetchEBlockByMR(eBMR IHash) (eBlock *EBlock, err error)
 
 	// FetchEBlockByHeight gets an entry block by height from the database.
-	//FetchEBlockByHeight(chainID * common.Hash, eBlockHeight uint32) (eBlock *common.EBlock, err error)
+	//FetchEBlockByHeight(chainID * Hash, eBlockHeight uint32) (eBlock *EBlock, err error)
 
 	// FetchEBHashByMR gets an entry by hash from the database.
-	FetchEBHashByMR(eBMR *common.Hash) (eBlockHash *common.Hash, err error)
+	FetchEBHashByMR(eBMR IHash) (eBlockHash IHash, err error)
 
 	// FetchAllEBlocksByChain gets all of the blocks by chain id
-	FetchAllEBlocksByChain(chainID *common.Hash) (eBlocks *[]common.EBlock, err error)
+	FetchAllEBlocksByChain(chainID IHash) (eBlocks *[]EBlock, err error)
 
 	// FetchDBlock gets an entry by hash from the database.
-	FetchDBlockByHash(dBlockHash *common.Hash) (dBlock *common.DirectoryBlock, err error)
+	FetchDBlockByHash(dBlockHash IHash) (dBlock *DirectoryBlock, err error)
 
 	// FetchDBlockByMR gets a directory block by merkle root from the database.
-	FetchDBlockByMR(dBMR *common.Hash) (dBlock *common.DirectoryBlock, err error)
+	FetchDBlockByMR(dBMR IHash) (dBlock *DirectoryBlock, err error)
 
 	// FetchDBHashByMR gets a DBHash by MR from the database.
-	FetchDBHashByMR(dBMR *common.Hash) (dBlockHash *common.Hash, err error)
+	FetchDBHashByMR(dBMR IHash) (dBlockHash IHash, err error)
 
 	// FetchDBBatchByHash gets an FBBatch obj
-	FetchDirBlockInfoByHash(dbHash *common.Hash) (dirBlockInfo *common.DirBlockInfo, err error)
+	FetchDirBlockInfoByHash(dbHash IHash) (dirBlockInfo *DirBlockInfo, err error)
 
 	// Insert the Directory Block meta data into db
-	InsertDirBlockInfo(dirBlockInfo *common.DirBlockInfo) (err error)
+	InsertDirBlockInfo(dirBlockInfo *DirBlockInfo) (err error)
 
 	// FetchAllDirBlockInfo gets all of the dirBlockInfo
-	FetchAllDirBlockInfo() (ddirBlockInfoMap map[string]*common.DirBlockInfo, err error)
+	FetchAllDirBlockInfo() (ddirBlockInfoMap map[string]*DirBlockInfo, err error)
 
 	// FetchAllUnconfirmedDirBlockInfo gets all of the dirBlockInfos that have BTC Anchor confirmation
-	//FetchAllUnconfirmedDirBlockInfo() (dBInfoSlice []common.DirBlockInfo, err error)
-	FetchAllUnconfirmedDirBlockInfo() (dirBlockInfoMap map[string]*common.DirBlockInfo, err error)
+	//FetchAllUnconfirmedDirBlockInfo() (dBInfoSlice []DirBlockInfo, err error)
+	FetchAllUnconfirmedDirBlockInfo() (dirBlockInfoMap map[string]*DirBlockInfo, err error)
 
 	// ProcessDBlockBatche inserts the EBlock and update all it's ebentries in DB
-	ProcessDBlockBatch(block *common.DirectoryBlock) error
+	ProcessDBlockBatch(block *DirectoryBlock) error
 
 	// FetchHeightRange looks up a range of blocks by the start and ending
 	// heights.  Fetch is inclusive of the start height and exclusive of the
 	// ending height. To fetch all hashes from the start height until no
 	// more are present, use the special id `AllShas'.
-	FetchHeightRange(startHeight, endHeight int64) (rshalist []wire.ShaHash, err error)
+	FetchHeightRange(startHeight, endHeight int64) (rshalist []IHash, err error)
 
 	// FetchBlockHeightBySha returns the block height for the given hash.  This is
 	// part of the database.Db interface implementation.
-	FetchBlockHeightBySha(sha *wire.ShaHash) (int64, error)
+	FetchBlockHeightBySha(sha IHash) (int64, error)
 
 	// FetchAllECBlocks gets all of the entry credit blocks
-	FetchAllECBlocks() (cBlocks []common.ECBlock, err error)
+	FetchAllECBlocks() (cBlocks []ECBlock, err error)
 
 	// FetchAllFBInfo gets all of the fbInfo
-	FetchAllDBlocks() (fBlocks []common.DirectoryBlock, err error)
+	FetchAllDBlocks() (fBlocks []DirectoryBlock, err error)
 
 	// FetchDBHashByHeight gets a dBlockHash from the database.
-	FetchDBHashByHeight(dBlockHeight uint32) (dBlockHash *common.Hash, err error)
+	FetchDBHashByHeight(dBlockHeight uint32) (dBlockHash IHash, err error)
 
 	// FetchDBlockByHeight gets an directory block by height from the database.
-	FetchDBlockByHeight(dBlockHeight uint32) (dBlock *common.DirectoryBlock, err error)
+	FetchDBlockByHeight(dBlockHeight uint32) (dBlock *DirectoryBlock, err error)
 
 	// ProcessECBlockBatche inserts the ECBlock and update all it's ecbentries in DB
-	ProcessECBlockBatch(block *common.ECBlock) (err error)
+	ProcessECBlockBatch(block *ECBlock) (err error)
 
 	// FetchECBlockByHash gets an Entry Credit block by hash from the database.
-	FetchECBlockByHash(cBlockHash *common.Hash) (ecBlock *common.ECBlock, err error)
+	FetchECBlockByHash(cBlockHash IHash) (ecBlock *ECBlock, err error)
 
 	// Initialize External ID map for explorer search
 	InitializeExternalIDMap() (extIDMap map[string]bool, err error)
 
 	// ProcessABlockBatch inserts the AdminBlock
-	ProcessABlockBatch(block *common.AdminBlock) error
+	ProcessABlockBatch(block *AdminBlock) error
 
 	// FetchABlockByHash gets an admin block by hash from the database.
-	FetchABlockByHash(aBlockHash *common.Hash) (aBlock *common.AdminBlock, err error)
+	FetchABlockByHash(aBlockHash IHash) (aBlock *AdminBlock, err error)
 
 	// FetchAllABlocks gets all of the admin blocks
-	FetchAllABlocks() (aBlocks []common.AdminBlock, err error)
+	FetchAllABlocks() (aBlocks []AdminBlock, err error)
 
 	// ProcessABlockBatch inserts the AdminBlock
-	ProcessFBlockBatch(block.IFBlock) error
+	ProcessFBlockBatch(IFBlock) error
 
 	// FetchABlockByHash gets an admin block by hash from the database.
-	FetchFBlockByHash(*common.Hash) (block.IFBlock, error)
+	FetchFBlockByHash(IHash) (IFBlock, error)
 
 	// FetchAllABlocks gets all of the admin blocks
-	FetchAllFBlocks() ([]block.IFBlock, error)
+	FetchAllFBlocks() ([]IFBlock, error)
 
 	// UpdateBlockHeightCache updates the dir block height cache in db
-	UpdateBlockHeightCache(dirBlkHeigh uint32, dirBlkHash *common.Hash) error
+	UpdateBlockHeightCache(dirBlkHeigh uint32, dirBlkHash IHash) error
 
 	// FetchBlockHeightCache returns the hash and block height of the most recent dir block
-	FetchBlockHeightCache() (sha *wire.ShaHash, height int64, err error)
+	FetchBlockHeightCache() (sha IHash, height int64, err error)
 
 	// UpdateNextBlockHeightCache updates the next dir block height cache (from server) in db
 	UpdateNextBlockHeightCache(dirBlkHeigh uint32) error
@@ -159,5 +161,5 @@ type Db interface {
 	FetchNextBlockHeightCache() (height int64)
 
 	// FtchHeadMRByChainID gets a MR of the highest block from the database.
-	FetchHeadMRByChainID(chainID *common.Hash) (blkMR *common.Hash, err error)
+	FetchHeadMRByChainID(chainID IHash) (blkMR IHash, err error)
 }

@@ -9,6 +9,8 @@ import (
 	"math/big"
 
 	"github.com/FactomProject/factomd/btcd/wire"
+	. "github.com/FactomProject/factomd/common/interfaces"
+	. "github.com/FactomProject/factomd/common/primitives"
 )
 
 // These variables are the chain proof-of-work limit parameters for each default
@@ -45,7 +47,7 @@ var (
 // selection criteria.
 type Checkpoint struct {
 	Height int64
-	Hash   *wire.ShaHash
+	Hash   IHash
 }
 
 // Params defines a Bitcoin network by its parameters.  These parameters may be
@@ -416,8 +418,8 @@ func HDPrivateKeyToPublicKeyID(id []byte) ([]byte, error) {
 // wire.ShaHash.  It only differs from the one available in wire in that
 // it panics on an error since it will only (and must only) be called with
 // hard-coded, and therefore known good, hashes.
-func newShaHashFromStr(hexStr string) *wire.ShaHash {
-	sha, err := wire.NewShaHashFromStr(hexStr)
+func newShaHashFromStr(hexStr string) IHash {
+	sha, err := HexToHash(hexStr)
 	if err != nil {
 		// Ordinarily I don't like panics in library code since it
 		// can take applications down without them having a chance to

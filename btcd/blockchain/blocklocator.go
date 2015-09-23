@@ -5,7 +5,7 @@
 package blockchain
 
 import (
-	"github.com/FactomProject/factomd/btcd/wire"
+	. "github.com/FactomProject/factomd/common/interfaces"
 )
 
 // BlockLocator is used to help locate a specific block.  The algorithm for
@@ -23,4 +23,4 @@ import (
 //
 // The block locator for block 17a would be the hashes of blocks:
 // [17a 16a 15 14 13 12 11 10 9 8 6 2 genesis]
-type BlockLocator []*wire.ShaHash
+type BlockLocator []IHash

@@ -14,7 +14,7 @@ import (
 
 	"github.com/FactomProject/factomd/database"
 
-	"github.com/FactomProject/factomd/btcd/wire"
+	. "github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/goleveldb/leveldb"
 	//	"github.com/FactomProject/goleveldb/leveldb/cache"
 	"github.com/FactomProject/goleveldb/leveldb/opt"
@@ -73,7 +73,7 @@ var currentChainType uint32 = 1
 var isLookupDB bool = true // to be put in property file
 
 type tTxInsertData struct {
-	txsha   *wire.ShaHash
+	txsha   IHash
 	blockid int64
 	txoff   int
 	txlen   int
@@ -94,7 +94,7 @@ type LevelDb struct {
 	nextDirBlockHeight int64
 
 	lastDirBlkShaCached bool
-	lastDirBlkSha       *wire.ShaHash
+	lastDirBlkSha       IHash
 	lastDirBlkHeight    int64
 }
 
@@ -216,18 +216,18 @@ func int64ToKey(keyint int64) []byte {
 	return []byte(key)
 }
 
-func shaBlkToKey(sha *wire.ShaHash) []byte {
+func shaBlkToKey(sha IHash) []byte {
 	shaB := sha.Bytes()
 	return shaB
 }
 
-func shaTxToKey(sha *wire.ShaHash) []byte {
+func shaTxToKey(sha IHash) []byte {
 	shaB := sha.Bytes()
 	shaB = append(shaB, "tx"...)
 	return shaB
 }
 
-func shaSpentTxToKey(sha *wire.ShaHash) []byte {
+func shaSpentTxToKey(sha IHash) []byte {
 	shaB := sha.Bytes()
 	shaB = append(shaB, "sx"...)
 	return shaB

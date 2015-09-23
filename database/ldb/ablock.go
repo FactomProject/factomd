@@ -3,14 +3,16 @@ package ldb
 import (
 	//	"errors"
 	"encoding/binary"
-	"github.com/FactomProject/factomd/common"
+	. "github.com/FactomProject/factomd/common/AdminBlock"
+	. "github.com/FactomProject/factomd/common/constants"
+	. "github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/goleveldb/leveldb"
 	"github.com/FactomProject/goleveldb/leveldb/util"
 	"log"
 )
 
 // ProcessABlockBatch inserts the AdminBlock
-func (db *LevelDb) ProcessABlockBatch(block *common.AdminBlock) error {
+func (db *LevelDb) ProcessABlockBatch(block *AdminBlock) error {
 
 	if block != nil {
 		if db.lbatch == nil {
@@ -44,7 +46,7 @@ func (db *LevelDb) ProcessABlockBatch(block *common.AdminBlock) error {
 
 		// Update the chain head reference
 		key = []byte{byte(TBL_CHAIN_HEAD)}
-		key = append(key, common.ADMIN_CHAINID...)
+		key = append(key, ADMIN_CHAINID...)
 		db.lbatch.Put(key, abHash.Bytes())
 
 		err = db.lDb.Write(db.lbatch, db.wo)
@@ -58,7 +60,7 @@ func (db *LevelDb) ProcessABlockBatch(block *common.AdminBlock) error {
 }
 
 // FetchABlockByHash gets an admin block by hash from the database.
-func (db *LevelDb) FetchABlockByHash(aBlockHash *common.Hash) (aBlock *common.AdminBlock, err error) {
+func (db *LevelDb) FetchABlockByHash(aBlockHash IHash) (aBlock *AdminBlock, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -67,7 +69,7 @@ func (db *LevelDb) FetchABlockByHash(aBlockHash *common.Hash) (aBlock *common.Ad
 	data, err := db.lDb.Get(key, db.ro)
 
 	if data != nil {
-		aBlock = new(common.AdminBlock)
+		aBlock = new(AdminBlock)
 		_, err := aBlock.UnmarshalBinaryData(data)
 		if err != nil {
 			return nil, err
@@ -77,19 +79,19 @@ func (db *LevelDb) FetchABlockByHash(aBlockHash *common.Hash) (aBlock *common.Ad
 }
 
 // FetchAllABlocks gets all of the admin blocks
-func (db *LevelDb) FetchAllABlocks() (aBlocks []common.AdminBlock, err error) {
+func (db *LevelDb) FetchAllABlocks() (aBlocks []AdminBlock, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
 	var fromkey []byte = []byte{byte(TBL_AB)}   // Table Name (1 bytes)						// Timestamp  (8 bytes)
 	var tokey []byte = []byte{byte(TBL_AB + 1)} // Table Name (1 bytes)
 
-	aBlockSlice := make([]common.AdminBlock, 0, 10)
+	aBlockSlice := make([]AdminBlock, 0, 10)
 
 	iter := db.lDb.NewIterator(&util.Range{Start: fromkey, Limit: tokey}, db.ro)
 
 	for iter.Next() {
-		var aBlock common.AdminBlock
+		var aBlock AdminBlock
 		_, err := aBlock.UnmarshalBinaryData(iter.Value())
 		if err != nil {
 			return nil, err

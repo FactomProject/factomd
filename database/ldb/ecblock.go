@@ -2,14 +2,16 @@ package ldb
 
 import (
 	//	"errors"
-	"github.com/FactomProject/factomd/common"
+	. "github.com/FactomProject/factomd/common/EntryCreditBlock"
+	. "github.com/FactomProject/factomd/common/constants"
+	. "github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/goleveldb/leveldb"
 	"github.com/FactomProject/goleveldb/leveldb/util"
 	"log"
 )
 
 // ProcessECBlockBatche inserts the ECBlock and update all it's cbentries in DB
-func (db *LevelDb) ProcessECBlockBatch(block *common.ECBlock) error {
+func (db *LevelDb) ProcessECBlockBatch(block *ECBlock) error {
 
 	if block != nil {
 		if db.lbatch == nil {
@@ -34,7 +36,7 @@ func (db *LevelDb) ProcessECBlockBatch(block *common.ECBlock) error {
 
 		// Update the chain head reference
 		key = []byte{byte(TBL_CHAIN_HEAD)}
-		key = append(key, common.EC_CHAINID...)
+		key = append(key, EC_CHAINID...)
 		hash, err = block.HeaderHash()
 		if err != nil {
 			return err
@@ -52,7 +54,7 @@ func (db *LevelDb) ProcessECBlockBatch(block *common.ECBlock) error {
 }
 
 // FetchECBlockByHash gets an Entry Credit block by hash from the database.
-func (db *LevelDb) FetchECBlockByHash(ecBlockHash *common.Hash) (ecBlock *common.ECBlock, err error) {
+func (db *LevelDb) FetchECBlockByHash(ecBlockHash IHash) (ecBlock *ECBlock, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -61,7 +63,7 @@ func (db *LevelDb) FetchECBlockByHash(ecBlockHash *common.Hash) (ecBlock *common
 	data, err := db.lDb.Get(key, db.ro)
 
 	if data != nil {
-		ecBlock = common.NewECBlock()
+		ecBlock = NewECBlock()
 		_, err := ecBlock.UnmarshalBinaryData(data)
 		if err != nil {
 			return nil, err
@@ -71,19 +73,19 @@ func (db *LevelDb) FetchECBlockByHash(ecBlockHash *common.Hash) (ecBlock *common
 }
 
 // FetchAllECBlocks gets all of the entry credit blocks
-func (db *LevelDb) FetchAllECBlocks() (ecBlocks []common.ECBlock, err error) {
+func (db *LevelDb) FetchAllECBlocks() (ecBlocks []ECBlock, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
 	var fromkey []byte = []byte{byte(TBL_CB)}   // Table Name (1 bytes)						// Timestamp  (8 bytes)
 	var tokey []byte = []byte{byte(TBL_CB + 1)} // Table Name (1 bytes)
 
-	ecBlockSlice := make([]common.ECBlock, 0, 10)
+	ecBlockSlice := make([]ECBlock, 0, 10)
 
 	iter := db.lDb.NewIterator(&util.Range{Start: fromkey, Limit: tokey}, db.ro)
 
 	for iter.Next() {
-		ecBlock := common.NewECBlock()
+		ecBlock := NewECBlock()
 		_, err := ecBlock.UnmarshalBinaryData(iter.Value())
 		if err != nil {
 			return nil, err
