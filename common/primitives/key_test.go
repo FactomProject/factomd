@@ -4,7 +4,7 @@ import (
 	"encoding/hex"
 	"testing"
 
-	. "github.com/FactomProject/factomd/common"
+	. "github.com/FactomProject/factomd/common/primitives"
 )
 
 func TestGenerateKey(t *testing.T) {

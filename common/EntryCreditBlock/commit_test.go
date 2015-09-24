@@ -1,4 +1,4 @@
-package common_test
+package EntryCreditBlock_test
 
 import (
 	"crypto/rand"
@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	ed "github.com/FactomProject/ed25519"
-	"github.com/FactomProject/factomd/common"
+	. "github.com/FactomProject/factomd/common/EntryCreditBlock"
 )
 
 var (
@@ -17,12 +17,12 @@ var (
 func TestCommitEntryMarshal(t *testing.T) {
 	fmt.Printf("---\nTestCommitEntryMarshal\n---\n")
 
-	ce := common.NewCommitEntry()
+	ce := NewCommitEntry()
 
 	// test MarshalBinary on a zeroed CommitEntry
 	if p, err := ce.MarshalBinary(); err != nil {
 		t.Error(err)
-	} else if z := make([]byte, common.CommitEntrySize); string(p) != string(z) {
+	} else if z := make([]byte, CommitEntrySize); string(p) != string(z) {
 		t.Errorf("Marshal failed on zeroed CommitEntry")
 	}
 
@@ -42,7 +42,7 @@ func TestCommitEntryMarshal(t *testing.T) {
 	}
 
 	// marshal and unmarshal the commit and see if it matches
-	ce2 := common.NewCommitEntry()
+	ce2 := NewCommitEntry()
 	if p, err := ce.MarshalBinary(); err != nil {
 		t.Error(err)
 	} else {
@@ -58,12 +58,12 @@ func TestCommitEntryMarshal(t *testing.T) {
 func TestCommitChainMarshal(t *testing.T) {
 	fmt.Printf("---\nTestCommitChainMarshal\n---\n")
 
-	cc := common.NewCommitChain()
+	cc := NewCommitChain()
 
 	// test MarshalBinary on a zeroed CommitChain
 	if p, err := cc.MarshalBinary(); err != nil {
 		t.Error(err)
-	} else if z := make([]byte, common.CommitChainSize); string(p) != string(z) {
+	} else if z := make([]byte, CommitChainSize); string(p) != string(z) {
 		t.Errorf("Marshal failed on zeroed CommitChain")
 	}
 
@@ -87,7 +87,7 @@ func TestCommitChainMarshal(t *testing.T) {
 	}
 
 	// marshal and unmarshal the commit and see if it matches
-	cc2 := common.NewCommitChain()
+	cc2 := NewCommitChain()
 	if p, err := cc.MarshalBinary(); err != nil {
 		t.Error(err)
 	} else {
