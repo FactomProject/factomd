@@ -6,14 +6,20 @@ package process
 
 import (
 	"fmt"
-	"github.com/FactomProject/factomd/common"
-	"github.com/FactomProject/factomd/common/factoid/block"
 	"github.com/FactomProject/factomd/logger"
 	"github.com/FactomProject/factomd/util"
 	"github.com/davecgh/go-spew/spew"
 	"io/ioutil"
 	"os"
 	"sort"
+
+	. "github.com/FactomProject/factomd/common"
+	. "github.com/FactomProject/factomd/common/AdminBlock"
+	. "github.com/FactomProject/factomd/common/DirectoryBlock"
+	. "github.com/FactomProject/factomd/common/EntryBlock"
+	. "github.com/FactomProject/factomd/common/EntryCreditBlock"
+	. "github.com/FactomProject/factomd/common/interfaces"
+	. "github.com/FactomProject/factomd/common/primitives"
 )
 
 var _ = util.Trace
@@ -24,7 +30,7 @@ func GetEntryCreditBalance(pubKey *[32]byte) (int32, error) {
 	return eCreditMap[string(pubKey[:])], nil
 }
 
-func exportDChain(chain *common.DChain) {
+func exportDChain(chain *DChain) {
 	if len(chain.Blocks) == 0 || procLog.Level() < logger.Info {
 		//log.Println("no blocks to save for chain: " + string (*chain.ChainID))
 		return
@@ -57,7 +63,7 @@ func exportDChain(chain *common.DChain) {
 	}
 }
 
-func exportEChain(chain *common.EChain) {
+func exportEChain(chain *EChain) {
 	if procLog.Level() < logger.Info {
 		return
 	}
@@ -89,7 +95,7 @@ func exportEChain(chain *common.EChain) {
 	}
 }
 
-func exportECChain(chain *common.ECChain) {
+func exportECChain(chain *ECChain) {
 	if procLog.Level() < logger.Info {
 		return
 	}
@@ -119,7 +125,7 @@ func exportECChain(chain *common.ECChain) {
 	}
 }
 
-func exportAChain(chain *common.AdminChain) {
+func exportAChain(chain *AdminChain) {
 	if procLog.Level() < logger.Info {
 		return
 	}
@@ -150,7 +156,7 @@ func exportAChain(chain *common.AdminChain) {
 	}
 }
 
-func exportFctChain(chain *common.FctChain) {
+func exportFctChain(chain *FctChain) {
 	if procLog.Level() < logger.Info {
 		return
 	}
@@ -182,7 +188,7 @@ func exportFctChain(chain *common.FctChain) {
 }
 
 // to export individual block once at a time - for debugging ------------------------
-func exportDBlock(block *common.DirectoryBlock) {
+func exportDBlock(block *DirectoryBlock) {
 	if block == nil || procLog.Level() < logger.Info {
 		//log.Println("no blocks to save for chain: " + string (*chain.ChainID))
 		return
@@ -209,7 +215,7 @@ func exportDBlock(block *common.DirectoryBlock) {
 
 }
 
-func exportEBlock(block *common.EBlock) {
+func exportEBlock(block *EBlock) {
 	if block == nil || procLog.Level() < logger.Info {
 		return
 	}
@@ -236,7 +242,7 @@ func exportEBlock(block *common.EBlock) {
 
 }
 
-func exportECBlock(block *common.ECBlock) {
+func exportECBlock(block *ECBlock) {
 	if block == nil || procLog.Level() < logger.Info {
 		return
 	}
@@ -262,7 +268,7 @@ func exportECBlock(block *common.ECBlock) {
 
 }
 
-func exportABlock(block *common.AdminBlock) {
+func exportABlock(block *AdminBlock) {
 	if block == nil || procLog.Level() < logger.Info {
 		return
 	}
@@ -288,7 +294,7 @@ func exportABlock(block *common.AdminBlock) {
 
 }
 
-func exportFctBlock(block block.IFBlock) {
+func exportFctBlock(block IFBlock) {
 	if block == nil || procLog.Level() < logger.Info {
 		return
 	}
@@ -316,7 +322,7 @@ func exportFctBlock(block block.IFBlock) {
 
 //--------------------------------------
 
-func getPrePaidChainKey(entryHash *common.Hash, chainIDHash *common.Hash) string {
+func getPrePaidChainKey(entryHash *Hash, chainIDHash *Hash) string {
 	return chainIDHash.String() + entryHash.String()
 }
 
@@ -352,7 +358,7 @@ func fileNotExists(name string) bool {
 // be like part of the main chain, on a side chain, or in the orphan pool.
 //
 // This function is NOT safe for concurrent access.
-func HaveBlockInDB(hash *common.Hash) (bool, error) {
+func HaveBlockInDB(hash *Hash) (bool, error) {
 	//util.Trace(spew.Sdump(hash))
 
 	if hash == nil || dchain.Blocks == nil || len(dchain.Blocks) == 0 {
@@ -365,7 +371,7 @@ func HaveBlockInDB(hash *common.Hash) (bool, error) {
 			continue
 		}
 		if dchain.Blocks[i].DBHash == nil {
-			dchain.Blocks[i].DBHash, _ = common.CreateHash(dchain.Blocks[i])
+			dchain.Blocks[i].DBHash, _ = CreateHash(dchain.Blocks[i])
 		}
 		if dchain.Blocks[i].DBHash.IsSameAs(hash) {
 			return true, nil

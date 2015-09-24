@@ -15,7 +15,7 @@ import (
 
 var (
 	// Shared constants
-	FChainID        *Hash
+	FChainID        IHash
 	CreditsPerChain int32
 
 	// BTCD State Variables

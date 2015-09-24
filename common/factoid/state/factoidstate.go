@@ -21,6 +21,7 @@ import (
 
 var _ = time.Sleep
 var FACTOID_CHAINID_HASH = NewHash(FACTOID_CHAINID)
+var FactoidStateGlobal IFactoidState
 
 type FactoidState struct {
 	database        IFDatabase

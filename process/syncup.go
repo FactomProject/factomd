@@ -9,12 +9,18 @@ import (
 	"encoding/hex"
 	"errors"
 	"github.com/FactomProject/factomd/btcd/wire"
-	"github.com/FactomProject/factomd/common"
 	cp "github.com/FactomProject/factomd/controlpanel"
 	"github.com/FactomProject/factomd/database"
 	"github.com/davecgh/go-spew/spew"
 	"strconv"
 	"time"
+
+	. "github.com/FactomProject/factomd/common/AdminBlock"
+	. "github.com/FactomProject/factomd/common/DirectoryBlock"
+	. "github.com/FactomProject/factomd/common/EntryBlock"
+	. "github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/factoid/state"
+	. "github.com/FactomProject/factomd/common/primitives"
 )
 
 // processDirBlock validates dir block and save it to factom db.
@@ -22,7 +28,7 @@ import (
 func processDirBlock(msg *wire.MsgDirBlock) error {
 
 	// Error condiftion for Milestone 1
-	if nodeMode == common.SERVER_NODE {
+	if nodeMode == SERVER_NODE {
 		return errors.New("Server received msg:" + msg.Command())
 	}
 
@@ -60,7 +66,7 @@ func processDirBlock(msg *wire.MsgDirBlock) error {
 func processFBlock(msg *wire.MsgFBlock) error {
 
 	// Error condiftion for Milestone 1
-	if nodeMode == common.SERVER_NODE {
+	if nodeMode == SERVER_NODE {
 		return errors.New("Server received msg:" + msg.Command())
 	}
 
@@ -79,7 +85,7 @@ func processFBlock(msg *wire.MsgFBlock) error {
 func processABlock(msg *wire.MsgABlock) error {
 
 	// Error condiftion for Milestone 1
-	if nodeMode == common.SERVER_NODE {
+	if nodeMode == SERVER_NODE {
 		return errors.New("Server received msg:" + msg.Command())
 	}
 
@@ -100,7 +106,7 @@ func processABlock(msg *wire.MsgABlock) error {
 func procesECBlock(msg *wire.MsgECBlock) error {
 
 	// Error condiftion for Milestone 1
-	if nodeMode == common.SERVER_NODE {
+	if nodeMode == SERVER_NODE {
 		return errors.New("Server received msg:" + msg.Command())
 	}
 
@@ -121,7 +127,7 @@ func procesECBlock(msg *wire.MsgECBlock) error {
 func processEBlock(msg *wire.MsgEBlock) error {
 
 	// Error condiftion for Milestone 1
-	if nodeMode == common.SERVER_NODE {
+	if nodeMode == SERVER_NODE {
 		return errors.New("Server received msg:" + msg.Command())
 	}
 	/*
@@ -146,7 +152,7 @@ func processEBlock(msg *wire.MsgEBlock) error {
 func processEntry(msg *wire.MsgEntry) error {
 
 	// Error condiftion for Milestone 1
-	if nodeMode == common.SERVER_NODE {
+	if nodeMode == SERVER_NODE {
 		return errors.New("Server received msg:" + msg.Command())
 	}
 
@@ -160,10 +166,10 @@ func processEntry(msg *wire.MsgEntry) error {
 }
 
 // Validate the new blocks in mem pool and store them in db
-func validateAndStoreBlocks(fMemPool *ftmMemPool, db database.Db, dchain *common.DChain, outCtlMsgQ chan wire.FtmInternalMsg) {
+func validateAndStoreBlocks(fMemPool *ftmMemPool, db database.Db, dchain *DChain, outCtlMsgQ chan wire.FtmInternalMsg) {
 	var myDBHeight int64
 	var sleeptime int
-	var dblk *common.DirectoryBlock
+	var dblk *DirectoryBlock
 
 	for true {
 		dblk = nil
@@ -201,14 +207,14 @@ func validateAndStoreBlocks(fMemPool *ftmMemPool, db database.Db, dchain *common
 }
 
 // Validate the new blocks in mem pool and store them in db
-func validateBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db database.Db) bool {
+func validateBlocksFromMemPool(b *DirectoryBlock, fMemPool *ftmMemPool, db database.Db) bool {
 
 	// Validate the genesis block
 	if b.Header.DBHeight == 0 {
-		h, _ := common.CreateHash(b)
-		if h.String() != common.GENESIS_DIR_BLOCK_HASH {
+		h, _ := CreateHash(b)
+		if h.String() != GENESIS_DIR_BLOCK_HASH {
 			// panic for milestone 1
-			panic("\nGenesis block hash expected: " + common.GENESIS_DIR_BLOCK_HASH +
+			panic("\nGenesis block hash expected: " + GENESIS_DIR_BLOCK_HASH +
 				"\nGenesis block hash found:    " + h.String() + "\n")
 			//procLog.Errorf("Genesis dir block is not as expected: " + h.String())
 		}
@@ -242,7 +248,7 @@ func validateBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, d
 				// validate every entry in EBlock
 				for _, ebEntry := range eBlkMsg.EBlk.Body.EBEntries {
 					if _, foundInMemPool := fMemPool.blockpool[ebEntry.String()]; !foundInMemPool {
-						if !bytes.Equal(ebEntry.Bytes()[:31], common.ZERO_HASH[:31]) {
+						if !bytes.Equal(ebEntry.Bytes()[:31], ZERO_HASH[:31]) {
 							// continue if the entry arleady exists in db
 							entry, _ := db.FetchEntryByHash(ebEntry)
 							if entry == nil {
@@ -260,7 +266,7 @@ func validateBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, d
 
 // Validate the new blocks in mem pool and store them in db
 // Need to make a batch insert in db in milestone 2
-func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db database.Db) error {
+func storeBlocksFromMemPool(b *DirectoryBlock, fMemPool *ftmMemPool, db database.Db) error {
 
 	for _, dbEntry := range b.DBEntries {
 		switch dbEntry.ChainID.String() {
@@ -289,7 +295,7 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 				return err
 			}
 			// Initialize the Factoid State
-			err = common.FactoidState.AddTransactionBlock(fBlkMsg.SC)
+			err = state.FactoidStateGlobal.AddTransactionBlock(fBlkMsg.SC)
 			FactoshisPerCredit = fBlkMsg.SC.GetExchRate()
 			if err != nil {
 				return err
@@ -318,7 +324,7 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 			// create a chain in db if it's not existing
 			chain := chainIDMap[eBlkMsg.EBlk.Header.ChainID.String()]
 			if chain == nil {
-				chain = new(common.EChain)
+				chain = new(EChain)
 				chain.ChainID = eBlkMsg.EBlk.Header.ChainID
 				if eBlkMsg.EBlk.Header.EBSequence == 0 {
 					chain.FirstEntry, _ = db.FetchEntryByHash(eBlkMsg.EBlk.Body.EBEntries[0])
@@ -342,7 +348,7 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 	}
 
 	// Update dir block height cache in db
-	commonHash, _ := common.CreateHash(b)
+	commonHash, _ := CreateHash(b)
 	db.UpdateBlockHeightCache(b.Header.DBHeight, commonHash)
 
 	// for debugging
@@ -352,7 +358,7 @@ func storeBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool, db d
 }
 
 // Validate the new blocks in mem pool and store them in db
-func deleteBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool) error {
+func deleteBlocksFromMemPool(b *DirectoryBlock, fMemPool *ftmMemPool) error {
 
 	for _, dbEntry := range b.DBEntries {
 		switch dbEntry.ChainID.String() {
@@ -375,7 +381,7 @@ func deleteBlocksFromMemPool(b *common.DirectoryBlock, fMemPool *ftmMemPool) err
 	return nil
 }
 
-func validateDBSignature(aBlock *common.AdminBlock, dchain *common.DChain) bool {
+func validateDBSignature(aBlock *AdminBlock, dchain *DChain) bool {
 
 	dbSigEntry := aBlock.GetDBSignature()
 	if dbSigEntry == nil {
@@ -385,7 +391,7 @@ func validateDBSignature(aBlock *common.AdminBlock, dchain *common.DChain) bool 
 			return false
 		}
 	} else {
-		dbSig := dbSigEntry.(*common.DBSignatureEntry)
+		dbSig := dbSigEntry.(*DBSignatureEntry)
 		if serverPubKey.String() != dbSig.PubKey.String() {
 			return false
 		} else {

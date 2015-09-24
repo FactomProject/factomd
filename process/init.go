@@ -9,9 +9,9 @@ import (
 	"errors"
 	"fmt"
 	"github.com/FactomProject/factomd/btcd/wire"
-	"github.com/FactomProject/factomd/common"
 	fct "github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/factoid/block"
+	"github.com/FactomProject/factomd/common/factoid/state"
 	"github.com/FactomProject/factomd/consensus"
 	cp "github.com/FactomProject/factomd/controlpanel"
 	"github.com/FactomProject/factomd/logger"
@@ -20,24 +20,33 @@ import (
 	"runtime/debug"
 	"sort"
 	"strconv"
+
+	. "github.com/FactomProject/factomd/common"
+	. "github.com/FactomProject/factomd/common/AdminBlock"
+	. "github.com/FactomProject/factomd/common/DirectoryBlock"
+	. "github.com/FactomProject/factomd/common/EntryBlock"
+	. "github.com/FactomProject/factomd/common/EntryCreditBlock"
+	. "github.com/FactomProject/factomd/common/constants"
+	. "github.com/FactomProject/factomd/common/interfaces"
+	. "github.com/FactomProject/factomd/common/primitives"
 )
 
 var _ = debug.PrintStack
 
 // Initialize Directory Block Chain from database
 func initDChain() {
-	dchain = new(common.DChain)
+	dchain = new(DChain)
 
 	//Initialize the Directory Block Chain ID
-	dchain.ChainID = new(common.Hash)
-	barray := common.D_CHAINID
+	dchain.ChainID = new(Hash)
+	barray := D_CHAINID
 	dchain.ChainID.SetBytes(barray)
 
 	// get all dBlocks from db
 	dBlocks, _ := db.FetchAllDBlocks()
 	sort.Sort(util.ByDBlockIDAccending(dBlocks))
 
-	dchain.Blocks = make([]*common.DirectoryBlock, len(dBlocks), len(dBlocks)+1)
+	dchain.Blocks = make([]*DirectoryBlock, len(dBlocks), len(dBlocks)+1)
 
 	for i := 0; i < len(dBlocks); i = i + 1 {
 		if dBlocks[i].Header.DBHeight != uint32(i) {
@@ -59,10 +68,10 @@ func initDChain() {
 	//Create an empty block and append to the chain
 	if len(dchain.Blocks) == 0 {
 		dchain.NextDBHeight = 0
-		dchain.NextBlock, _ = common.CreateDBlock(dchain, nil, 10)
+		dchain.NextBlock, _ = CreateDBlock(dchain, nil, 10)
 	} else {
 		dchain.NextDBHeight = uint32(len(dchain.Blocks))
-		dchain.NextBlock, _ = common.CreateDBlock(dchain, dchain.Blocks[len(dchain.Blocks)-1], 10)
+		dchain.NextBlock, _ = CreateDBlock(dchain, dchain.Blocks[len(dchain.Blocks)-1], 10)
 		// Update dir block height cache in db
 		db.UpdateBlockHeightCache(dchain.NextDBHeight-1, dchain.NextBlock.Header.PrevLedgerKeyMR)
 	}
@@ -82,7 +91,7 @@ func initECChain() {
 	eCreditMap = make(map[string]int32)
 
 	//Initialize the Entry Credit Chain ID
-	ecchain = common.NewECChain()
+	ecchain = NewECChain()
 
 	// get all ecBlocks from db
 	ecBlocks, _ := db.FetchAllECBlocks()
@@ -100,10 +109,10 @@ func initECChain() {
 	//Create an empty block and append to the chain
 	if len(ecBlocks) == 0 || dchain.NextDBHeight == 0 {
 		ecchain.NextBlockHeight = 0
-		ecchain.NextBlock = common.NewECBlock()
+		ecchain.NextBlock = NewECBlock()
 		ecchain.NextBlock.AddEntry(serverIndex)
 		for i := 0; i < 10; i++ {
-			marker := common.NewMinuteNumber()
+			marker := NewMinuteNumber()
 			marker.Number = uint8(i + 1)
 			ecchain.NextBlock.AddEntry(marker)
 		}
@@ -111,7 +120,7 @@ func initECChain() {
 		// Entry Credit Chain should have the same height as the dir chain
 		ecchain.NextBlockHeight = dchain.NextDBHeight
 		var err error
-		ecchain.NextBlock, err = common.NextECBlock(&ecBlocks[ecchain.NextBlockHeight-1])
+		ecchain.NextBlock, err = NextECBlock(&ecBlocks[ecchain.NextBlockHeight-1])
 		if err != nil {
 			panic(err)
 		}
@@ -132,9 +141,9 @@ func initECChain() {
 func initAChain() {
 
 	//Initialize the Admin Chain ID
-	achain = new(common.AdminChain)
-	achain.ChainID = new(common.Hash)
-	achain.ChainID.SetBytes(common.ADMIN_CHAINID)
+	achain = new(AdminChain)
+	achain.ChainID = new(Hash)
+	achain.ChainID.SetBytes(ADMIN_CHAINID)
 
 	// get all aBlocks from db
 	aBlocks, _ := db.FetchAllABlocks()
@@ -153,12 +162,12 @@ func initAChain() {
 	//Create an empty block and append to the chain
 	if len(aBlocks) == 0 || dchain.NextDBHeight == 0 {
 		achain.NextBlockHeight = 0
-		achain.NextBlock, _ = common.CreateAdminBlock(achain, nil, 10)
+		achain.NextBlock, _ = CreateAdminBlock(achain, nil, 10)
 
 	} else {
 		// Entry Credit Chain should have the same height as the dir chain
 		achain.NextBlockHeight = dchain.NextDBHeight
-		achain.NextBlock, _ = common.CreateAdminBlock(achain, &aBlocks[achain.NextBlockHeight-1], 10)
+		achain.NextBlock, _ = CreateAdminBlock(achain, &aBlocks[achain.NextBlockHeight-1], 10)
 	}
 
 	exportAChain(achain)
@@ -169,9 +178,9 @@ func initAChain() {
 func initFctChain() {
 
 	//Initialize the Admin Chain ID
-	fchain = new(common.FctChain)
-	fchain.ChainID = new(common.Hash)
-	fchain.ChainID.SetBytes(fct.FACTOID_CHAINID)
+	fchain = new(FctChain)
+	fchain.ChainID = new(Hash)
+	fchain.ChainID.SetBytes(FACTOID_CHAINID)
 
 	// get all aBlocks from db
 	fBlocks, _ := db.FetchAllFBlocks()
@@ -185,9 +194,9 @@ func initFctChain() {
 				fmt.Sprintf("%v", fBlocks[i].GetDBHeight())))
 		} else {
 			FactoshisPerCredit = fBlocks[i].GetExchRate()
-			common.FactoidState.SetFactoshisPerEC(FactoshisPerCredit)
+			state.FactoidStateGlobal.SetFactoshisPerEC(FactoshisPerCredit)
 			// initialize the FactoidState in sequence
-			err := common.FactoidState.AddTransactionBlock(fBlocks[i])
+			err := state.FactoidStateGlobal.AddTransactionBlock(fBlocks[i])
 			if err != nil {
 				panic("Failed to rebuild factoid state: " + err.Error())
 			}
@@ -196,7 +205,7 @@ func initFctChain() {
 
 	//Create an empty block and append to the chain
 	if len(fBlocks) == 0 || dchain.NextDBHeight == 0 {
-		common.FactoidState.SetFactoshisPerEC(FactoshisPerCredit)
+		state.FactoidStateGlobal.SetFactoshisPerEC(FactoshisPerCredit)
 		fchain.NextBlockHeight = 0
 		// func GetGenesisFBlock(ftime uint64, ExRate uint64, addressCnt int, Factoids uint64 ) IFBlock {
 		//fchain.NextBlock = block.GetGenesisFBlock(0, FactoshisPerCredit, 10, 200000000000)
@@ -204,8 +213,8 @@ func initFctChain() {
 		gb := fchain.NextBlock
 
 		// If a client, this block is going to get downloaded and added.  Don't do it twice.
-		if nodeMode == common.SERVER_NODE {
-			err := common.FactoidState.AddTransactionBlock(gb)
+		if nodeMode == SERVER_NODE {
+			err := state.FactoidStateGlobal.AddTransactionBlock(gb)
 			if err != nil {
 				panic(err)
 			}
@@ -213,8 +222,8 @@ func initFctChain() {
 
 	} else {
 		fchain.NextBlockHeight = dchain.NextDBHeight
-		common.FactoidState.ProcessEndOfBlock2(dchain.NextDBHeight)
-		fchain.NextBlock = common.FactoidState.GetCurrentBlock()
+		state.FactoidStateGlobal.ProcessEndOfBlock2(dchain.NextDBHeight)
+		fchain.NextBlock = state.FactoidStateGlobal.GetCurrentBlock()
 	}
 
 	exportFctChain(fchain)
@@ -224,7 +233,7 @@ func initFctChain() {
 // Initialize Entry Block Chains from database
 func initEChains() {
 
-	chainIDMap = make(map[string]*common.EChain)
+	chainIDMap = make(map[string]*EChain)
 
 	chains, err := db.FetchAllChains()
 
@@ -241,24 +250,24 @@ func initEChains() {
 }
 
 // Re-calculate Entry Credit Balance Map with a new Entry Credit Block
-func initializeECreditMap(block *common.ECBlock) {
+func initializeECreditMap(block *ECBlock) {
 	for _, entry := range block.Body.Entries {
 		// Only process: ECIDChainCommit, ECIDEntryCommit, ECIDBalanceIncrease
 		switch entry.ECID() {
-		case common.ECIDChainCommit:
-			e := entry.(*common.CommitChain)
+		case ECIDChainCommit:
+			e := entry.(*CommitChain)
 			eCreditMap[string(e.ECPubKey[:])] -= int32(e.Credits)
-			common.FactoidState.UpdateECBalance(fct.NewAddress(e.ECPubKey[:]), int64(e.Credits))
-		case common.ECIDEntryCommit:
-			e := entry.(*common.CommitEntry)
+			state.FactoidStateGlobal.UpdateECBalance(fct.NewAddress(e.ECPubKey[:]), int64(e.Credits))
+		case ECIDEntryCommit:
+			e := entry.(*CommitEntry)
 			eCreditMap[string(e.ECPubKey[:])] -= int32(e.Credits)
-			common.FactoidState.UpdateECBalance(fct.NewAddress(e.ECPubKey[:]), int64(e.Credits))
-		case common.ECIDBalanceIncrease:
-			e := entry.(*common.IncreaseBalance)
+			state.FactoidStateGlobal.UpdateECBalance(fct.NewAddress(e.ECPubKey[:]), int64(e.Credits))
+		case ECIDBalanceIncrease:
+			e := entry.(*IncreaseBalance)
 			eCreditMap[string(e.ECPubKey[:])] += int32(e.NumEC)
 			// Don't add the Increases to Factoid state, the Factoid processing will do that.
-		case common.ECIDServerIndexNumber:
-		case common.ECIDMinuteNumber:
+		case ECIDServerIndexNumber:
+		case ECIDMinuteNumber:
 		default:
 			panic("Unknow entry type:" + string(entry.ECID()) + " for ECBlock:" + strconv.FormatUint(uint64(block.Header.DBHeight), 10))
 		}
@@ -267,15 +276,15 @@ func initializeECreditMap(block *common.ECBlock) {
 
 // Initialize server private key and server public key for milestone 1
 func initServerKeys() {
-	if nodeMode == common.SERVER_NODE {
+	if nodeMode == SERVER_NODE {
 		var err error
-		serverPrivKey, err = common.NewPrivateKeyFromHex(serverPrivKeyHex)
+		serverPrivKey, err = NewPrivateKeyFromHex(serverPrivKeyHex)
 		if err != nil {
 			panic("Cannot parse Server Private Key from configuration file: " + err.Error())
 		}
 	}
 
-	serverPubKey = common.PubKeyFromString(common.SERVER_PUB_KEY)
+	serverPubKey = PubKeyFromString(SERVER_PUB_KEY)
 
 }
 
@@ -286,7 +295,7 @@ func initProcessListMgr() {
 }
 
 // Initialize the entry chains in memory from db
-func initEChainFromDB(chain *common.EChain) {
+func initEChainFromDB(chain *EChain) {
 
 	eBlocks, _ := db.FetchAllEBlocksByChain(chain.ChainID)
 	sort.Sort(util.ByEBlockIDAccending(*eBlocks))
@@ -300,20 +309,20 @@ func initEChainFromDB(chain *common.EChain) {
 	var err error
 	if len(*eBlocks) == 0 {
 		chain.NextBlockHeight = 0
-		chain.NextBlock, err = common.MakeEBlock(chain, nil)
+		chain.NextBlock, err = MakeEBlock(chain, nil)
 		if err != nil {
 			panic(err)
 		}
 	} else {
 		chain.NextBlockHeight = uint32(len(*eBlocks))
-		chain.NextBlock, err = common.MakeEBlock(chain, &(*eBlocks)[len(*eBlocks)-1])
+		chain.NextBlock, err = MakeEBlock(chain, &(*eBlocks)[len(*eBlocks)-1])
 		if err != nil {
 			panic(err)
 		}
 	}
 
 	// Initialize chain with the first entry (Name and rules) for non-server mode
-	if nodeMode != common.SERVER_NODE && chain.FirstEntry == nil && len(*eBlocks) > 0 {
+	if nodeMode != SERVER_NODE && chain.FirstEntry == nil && len(*eBlocks) > 0 {
 		chain.FirstEntry, _ = db.FetchEntryByHash((*eBlocks)[0].Body.EBEntries[0])
 		if chain.FirstEntry != nil {
 			db.InsertChain(chain)
@@ -323,9 +332,9 @@ func initEChainFromDB(chain *common.EChain) {
 }
 
 // Validate dir chain from genesis block
-func validateDChain(c *common.DChain) error {
+func validateDChain(c *DChain) error {
 
-	if nodeMode != common.SERVER_NODE && len(c.Blocks) == 0 {
+	if nodeMode != SERVER_NODE && len(c.Blocks) == 0 {
 		return nil
 	}
 
@@ -341,10 +350,10 @@ func validateDChain(c *common.DChain) error {
 
 	//validate the genesis block
 	//prevBlkHash is the block hash for c.Blocks[0]
-	if prevBlkHash == nil || prevBlkHash.String() != common.GENESIS_DIR_BLOCK_HASH {
+	if prevBlkHash == nil || prevBlkHash.String() != GENESIS_DIR_BLOCK_HASH {
 
 		str := fmt.Sprintf("<pre>" +
-			"Expected: " + common.GENESIS_DIR_BLOCK_HASH + "<br>" +
+			"Expected: " + GENESIS_DIR_BLOCK_HASH + "<br>" +
 			"Found:    " + prevBlkHash.String() + "</pre><br><br>")
 		cp.CP.AddUpdate(
 			"GenHash",                    // tag
@@ -354,7 +363,7 @@ func validateDChain(c *common.DChain) error {
 			0)
 		// panic for Milestone 1
 		panic("Genesis Block wasn't as expected:\n" +
-			"    Expected: " + common.GENESIS_DIR_BLOCK_HASH + "\n" +
+			"    Expected: " + GENESIS_DIR_BLOCK_HASH + "\n" +
 			"    Found:    " + prevBlkHash.String())
 
 	}
@@ -381,7 +390,7 @@ func validateDChain(c *common.DChain) error {
 }
 
 // Validate a dir block
-func validateDBlock(c *common.DChain, b *common.DirectoryBlock) (merkleRoot *common.Hash, dbHash *common.Hash, err error) {
+func validateDBlock(c *DChain, b *DirectoryBlock) (merkleRoot IHash, dbHash IHash, err error) {
 
 	bodyMR, err := b.BuildBodyMR()
 	if err != nil {
@@ -417,14 +426,14 @@ func validateDBlock(c *common.DChain, b *common.DirectoryBlock) (merkleRoot *com
 		}
 	}
 
-	b.DBHash, _ = common.CreateHash(b)
+	b.DBHash, _ = CreateHash(b)
 	b.BuildKeyMerkleRoot()
 
 	return b.KeyMR, b.DBHash, nil
 }
 
 // Validate Entry Credit Block by merkle root
-func validateCBlockByMR(mr *common.Hash) error {
+func validateCBlockByMR(mr IHash) error {
 	cb, _ := db.FetchECBlockByHash(mr)
 
 	if cb == nil {
@@ -435,7 +444,7 @@ func validateCBlockByMR(mr *common.Hash) error {
 }
 
 // Validate Admin Block by merkle root
-func validateABlockByMR(mr *common.Hash) error {
+func validateABlockByMR(mr IHash) error {
 	b, _ := db.FetchABlockByHash(mr)
 
 	if b == nil {
@@ -446,7 +455,7 @@ func validateABlockByMR(mr *common.Hash) error {
 }
 
 // Validate FBlock by merkle root
-func validateFBlockByMR(mr *common.Hash) error {
+func validateFBlockByMR(mr IHash) error {
 	b, _ := db.FetchFBlockByHash(mr)
 
 	if b == nil {
@@ -465,7 +474,7 @@ func validateFBlockByMR(mr *common.Hash) error {
 }
 
 // Validate Entry Block by merkle root
-func validateEBlockByMR(cid *common.Hash, mr *common.Hash) error {
+func validateEBlockByMR(cid IHash, mr IHash) error {
 
 	eb, err := db.FetchEBlockByMR(mr)
 	if err != nil {
@@ -484,7 +493,7 @@ func validateEBlockByMR(cid *common.Hash, mr *common.Hash) error {
 	}
 
 	for _, ebEntry := range eb.Body.EBEntries {
-		if !bytes.Equal(ebEntry.Bytes()[:31], common.ZERO_HASH[:31]) {
+		if !bytes.Equal(ebEntry.Bytes()[:31], ZERO_HASH[:31]) {
 			entry, _ := db.FetchEntryByHash(ebEntry)
 			if entry == nil {
 				return errors.New("Entry not found in db for entry hash: " + ebEntry.String())
