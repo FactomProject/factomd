@@ -16,4 +16,5 @@ type IHash interface {
 	IsSameAs(IHash) bool                               // Compare two Hashes
 	CreateHash(a ...BinaryMarshallable) (IHash, error) // Create a serial Hash from arguments
 	HexToHash(hexStr string) (IHash, error)            // Convert a Hex string to a Hash
+	IsMinuteMarker() bool
 }

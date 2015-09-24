@@ -29,6 +29,18 @@ func (h *Hash) MarshalText() ([]byte, error) {
 	return []byte(hex.EncodeToString(h[:])), nil
 }
 
+// NewShaHashFromStr creates a ShaHash from a hash string.  The string should be
+// the hexadecimal string of a byte-reversed hash, but any missing characters
+// result in zero padding at the end of the ShaHash.
+func NewShaHashFromStr(hash string) (*Hash, error) {
+	h := new(Hash)
+	err := h.UnmarshalText([]byte(hash))
+	if err != nil {
+		return nil, err
+	}
+	return h, nil
+}
+
 func (h *Hash) UnmarshalText(b []byte) error {
 	p, err := hex.DecodeString(string(b))
 	if err != nil {
@@ -106,6 +118,7 @@ func (t Hash) IsEqual(hash IBlock) []IBlock {
 
 	return nil
 }
+
 func (h Hash) NewBlock() IBlock {
 	h2 := new(Hash)
 	return h2

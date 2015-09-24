@@ -25,6 +25,7 @@ import (
 	"github.com/FactomProject/go-socks/socks"
 	"github.com/davecgh/go-spew/spew"
 
+	. "github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/util"
 )
 
@@ -71,7 +72,7 @@ var (
 )
 
 // zeroHash is the zero value hash (all zeros).  It is defined as a convenience.
-var zeroHash wire.ShaHash
+var zeroHash IHash
 
 // minUint32 is a helper function to return the minimum of two uint32s.
 // This avoids a math import and the need to cast to floats.
@@ -160,18 +161,18 @@ type peer struct {
 	knownAddresses     map[string]struct{}
 	knownInventory     *MruInventoryMap
 	knownInvMutex      sync.Mutex
-	requestedTxns      map[wire.ShaHash]struct{} // owned by blockmanager
-	requestedBlocks    map[wire.ShaHash]struct{} // owned by blockmanager
+	requestedTxns      map[IHash]struct{} // owned by blockmanager
+	requestedBlocks    map[IHash]struct{} // owned by blockmanager
 	retryCount         int64
-	prevGetBlocksBegin *wire.ShaHash // owned by blockmanager
-	prevGetBlocksStop  *wire.ShaHash // owned by blockmanager
-	prevGetHdrsBegin   *wire.ShaHash // owned by blockmanager
-	prevGetHdrsStop    *wire.ShaHash // owned by blockmanager
+	prevGetBlocksBegin IHash // owned by blockmanager
+	prevGetBlocksStop  IHash // owned by blockmanager
+	prevGetHdrsBegin   IHash // owned by blockmanager
+	prevGetHdrsStop    IHash // owned by blockmanager
 	requestQueue       []*wire.InvVect
 	//	filter             *bloom.Filter
 	relayMtx        sync.Mutex
 	disableRelayTx  bool
-	continueHash    *wire.ShaHash
+	continueHash    IHash
 	outputQueue     chan outMsg
 	sendQueue       chan outMsg
 	sendDoneQueue   chan struct{}
@@ -487,7 +488,7 @@ func (p *peer) handleVersionMsg(msg *wire.MsgVersion) {
 
 // pushTxMsg sends a tx message for the provided transaction hash to the
 // connected peer.  An error is returned if the transaction hash is not known.
-func (p *peer) pushTxMsg(sha *wire.ShaHash, doneChan, waitChan chan struct{}) error {
+func (p *peer) pushTxMsg(sha IHash, doneChan, waitChan chan struct{}) error {
 	panic(errors.New("NOT IMPLEMENTED: Factoid1"))
 	/*
 		// Attempt to fetch the requested transaction from the pool.  A
@@ -517,7 +518,7 @@ func (p *peer) pushTxMsg(sha *wire.ShaHash, doneChan, waitChan chan struct{}) er
 
 // pushBlockMsg sends a block message for the provided block hash to the
 // connected peer.  An error is returned if the block hash is not known.
-func (p *peer) pushBlockMsg(sha *wire.ShaHash, doneChan, waitChan chan struct{}) error {
+func (p *peer) pushBlockMsg(sha IHash, doneChan, waitChan chan struct{}) error {
 	//util.Trace("NOT IMPLEMENTED - NEEDED???")
 	panic(1111)
 	/*
@@ -540,7 +541,7 @@ func (p *peer) pushBlockMsg(sha *wire.ShaHash, doneChan, waitChan chan struct{})
 		// We only send the channel for this message if we aren't sending
 		// an inv straight after.
 		var dc chan struct{}
-		sendInv := p.continueHash != nil && p.continueHash.IsEqual(sha)
+		sendInv := p.continueHash != nil && p.continueHash.IsSameAs(sha)
 		if !sendInv {
 			dc = doneChan
 		}
@@ -551,7 +552,7 @@ func (p *peer) pushBlockMsg(sha *wire.ShaHash, doneChan, waitChan chan struct{})
 		// would fit into a single message, send it a new inventory message
 		// to trigger it to issue another getblocks message for the next
 		// batch of inventory.
-		if p.continueHash != nil && p.continueHash.IsEqual(sha) {
+		if p.continueHash != nil && p.continueHash.IsSameAs(sha) {
 			hash, _, err := p.server.db.NewestSha()
 			if err == nil {
 				invMsg := wire.NewMsgInvSizeHint(1)
@@ -572,7 +573,7 @@ func (p *peer) pushBlockMsg(sha *wire.ShaHash, doneChan, waitChan chan struct{})
 // the connected peer.  Since a merkle block requires the peer to have a filter
 // loaded, this call will simply be ignored if there is no filter loaded.  An
 // error is returned if the block hash is not known.
-func (p *peer) pushMerkleBlockMsg(sha *wire.ShaHash, doneChan, waitChan chan struct{}) error {
+func (p *peer) pushMerkleBlockMsg(sha IHash, doneChan, waitChan chan struct{}) error {
 	// Do not send a response if the peer doesn't have a filter loaded.
 	if !p.filter.IsLoaded() {
 		if doneChan != nil {
@@ -647,19 +648,19 @@ func (p *peer) pushMerkleBlockMsg(sha *wire.ShaHash, doneChan, waitChan chan str
 
 // PushGetBlocksMsg sends a getblocks message for the provided block locator
 // and stop hash.  It will ignore back-to-back duplicate requests.
-func (p *peer) PushGetBlocksMsg(locator blockchain.BlockLocator, stopHash *wire.ShaHash) error {
+func (p *peer) PushGetBlocksMsg(locator blockchain.BlockLocator, stopHash IHash) error {
 	// Extract the begin hash from the block locator, if one was specified,
 	// to use for filtering duplicate getblocks requests.
 	// request.
-	var beginHash *wire.ShaHash
+	var beginHash IHash
 	if len(locator) > 0 {
 		beginHash = locator[0]
 	}
 
 	// Filter duplicate getblocks requests.
 	if p.prevGetBlocksStop != nil && p.prevGetBlocksBegin != nil &&
-		beginHash != nil && stopHash.IsEqual(p.prevGetBlocksStop) &&
-		beginHash.IsEqual(p.prevGetBlocksBegin) {
+		beginHash != nil && stopHash.IsSameAs(p.prevGetBlocksStop) &&
+		beginHash.IsSameAs(p.prevGetBlocksBegin) {
 
 		peerLog.Tracef("Filtering duplicate [getblocks] with begin "+
 			"hash %v, stop hash %v", beginHash, stopHash)
@@ -686,18 +687,18 @@ func (p *peer) PushGetBlocksMsg(locator blockchain.BlockLocator, stopHash *wire.
 /*
 // PushGetHeadersMsg sends a getblocks message for the provided block locator
 // and stop hash.  It will ignore back-to-back duplicate requests.
-func (p *peer) PushGetHeadersMsg(locator blockchain.BlockLocator, stopHash *wire.ShaHash) error {
+func (p *peer) PushGetHeadersMsg(locator blockchain.BlockLocator, stopHash IHash) error {
 	// Extract the begin hash from the block locator, if one was specified,
 	// to use for filtering duplicate getheaders requests.
-	var beginHash *wire.ShaHash
+	var beginHash IHash
 	if len(locator) > 0 {
 		beginHash = locator[0]
 	}
 
 	// Filter duplicate getheaders requests.
 	if p.prevGetHdrsStop != nil && p.prevGetHdrsBegin != nil &&
-		beginHash != nil && stopHash.IsEqual(p.prevGetHdrsStop) &&
-		beginHash.IsEqual(p.prevGetHdrsBegin) {
+		beginHash != nil && stopHash.IsSameAs(p.prevGetHdrsStop) &&
+		beginHash.IsSameAs(p.prevGetHdrsBegin) {
 
 		peerLog.Tracef("Filtering duplicate [getheaders] with begin "+
 			"hash %v", beginHash)
@@ -727,7 +728,7 @@ func (p *peer) PushGetHeadersMsg(locator blockchain.BlockLocator, stopHash *wire
 // and reject reason, and hash.  The hash will only be used when the command
 // is a tx or block and should be nil in other cases.  The wait parameter will
 // cause the function to block until the reject message has actually been sent.
-func (p *peer) PushRejectMsg(command string, code wire.RejectCode, reason string, hash *wire.ShaHash, wait bool) {
+func (p *peer) PushRejectMsg(command string, code wire.RejectCode, reason string, hash IHash, wait bool) {
 	// Don't bother sending the reject message if the protocol version
 	// is too low.
 	if p.VersionKnown() && p.ProtocolVersion() < wire.RejectVersion {
@@ -740,9 +741,9 @@ func (p *peer) PushRejectMsg(command string, code wire.RejectCode, reason string
 			peerLog.Warnf("Sending a reject message for command "+
 				"type %v which should have specified a hash "+
 				"but does not", command)
-			hash = &zeroHash
+			hash = zeroHash
 		}
-		msg.Hash = *hash
+		msg.Hash = hash
 	}
 
 	// Send the message without waiting if the caller has not requested it.
@@ -895,14 +896,14 @@ func (p *peer) handleGetDataMsg(msg *wire.MsgGetData) {
 		var err error
 		switch iv.Type {
 		case wire.InvTypeTx:
-			err = p.pushTxMsg(&iv.Hash, c, waitChan)
+			err = p.pushTxMsg(iv.Hash, c, waitChan)
 		case wire.InvTypeBlock:
-			err = p.pushBlockMsg(&iv.Hash, c, waitChan)
+			err = p.pushBlockMsg(iv.Hash, c, waitChan)
 		case wire.InvTypeFactomDirBlock:
-			err = p.pushDirBlockMsg(&iv.Hash, c, waitChan)
+			err = p.pushDirBlockMsg(iv.Hash, c, waitChan)
 			/*
 				case wire.InvTypeFilteredBlock:
-					err = p.pushMerkleBlockMsg(&iv.Hash, c, waitChan)
+					err = p.pushMerkleBlockMsg(iv.Hash, c, waitChan)
 			*/
 		default:
 			peerLog.Warnf("Unknown type in inventory request %d",
@@ -947,7 +948,7 @@ func (p *peer) handleGetBlocksMsg(msg *wire.MsgGetBlocks) {
 		// no stop hash was specified.
 		// Attempt to find the ending index of the stop hash if specified.
 		endIdx := database.AllShas
-		if !msg.HashStop.IsEqual(&zeroHash) {
+		if !msg.HashStop.IsSameAs(zeroHash) {
 			height, err := p.server.db.FetchBlockHeightBySha(&msg.HashStop)
 			if err == nil {
 				endIdx = height + 1
@@ -2036,8 +2037,8 @@ func newPeerBase(s *server, inbound bool) *peer {
 		inbound:         inbound,
 		knownAddresses:  make(map[string]struct{}),
 		knownInventory:  NewMruInventoryMap(maxKnownInventory),
-		requestedTxns:   make(map[wire.ShaHash]struct{}),
-		requestedBlocks: make(map[wire.ShaHash]struct{}),
+		requestedTxns:   make(map[IHash]struct{}),
+		requestedBlocks: make(map[IHash]struct{}),
 		//		filter:          bloom.LoadFilter(nil),
 		outputQueue:    make(chan outMsg, outputBufferSize),
 		sendQueue:      make(chan outMsg, 1),   // nonblocking sync

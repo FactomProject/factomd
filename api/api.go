@@ -9,10 +9,14 @@ import (
 	"fmt"
 
 	"github.com/FactomProject/factomd/btcd/wire"
-	"github.com/FactomProject/factomd/common"
-	fct "github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/database"
 	"github.com/FactomProject/factomd/process"
+
+	. "github.com/FactomProject/factomd/common/DirectoryBlock"
+	. "github.com/FactomProject/factomd/common/EntryBlock"
+	"github.com/FactomProject/factomd/common/EntryCreditBlock"
+	. "github.com/FactomProject/factomd/common/interfaces"
+	. "github.com/FactomProject/factomd/common/primitives"
 )
 
 var (
@@ -20,7 +24,7 @@ var (
 	inMsgQ chan wire.FtmInternalMsg
 )
 
-func ChainHead(chainid string) (*common.Hash, error) {
+func ChainHead(chainid string) (IHash, error) {
 	h, err := atoh(chainid)
 	if err != nil {
 		return nil, err
@@ -32,28 +36,28 @@ func ChainHead(chainid string) (*common.Hash, error) {
 	return c, nil
 }
 
-func CommitChain(c *common.CommitChain) error {
+func CommitChain(c *EntryCreditBlock.CommitChain) error {
 	m := wire.NewMsgCommitChain()
 	m.CommitChain = c
 	inMsgQ <- m
 	return nil
 }
 
-func CommitEntry(c *common.CommitEntry) error {
+func CommitEntry(c *EntryCreditBlock.CommitEntry) error {
 	m := wire.NewMsgCommitEntry()
 	m.CommitEntry = c
 	inMsgQ <- m
 	return nil
 }
 
-func FactoidTX(t fct.ITransaction) error {
+func FactoidTX(t ITransaction) error {
 	m := new(wire.MsgFactoidTX)
 	m.SetTransaction(t)
 	inMsgQ <- m
 	return nil
 }
 
-func DBlockByKeyMR(keymr string) (*common.DirectoryBlock, error) {
+func DBlockByKeyMR(keymr string) (*DirectoryBlock, error) {
 	key, err := atoh(keymr)
 	if err != nil {
 		return nil, err
@@ -65,7 +69,7 @@ func DBlockByKeyMR(keymr string) (*common.DirectoryBlock, error) {
 	return r, nil
 }
 
-func DBlockHead() (*common.DirectoryBlock, error) {
+func DBlockHead() (*DirectoryBlock, error) {
 	_, height, err := db.FetchBlockHeightCache()
 	if err != nil {
 		return nil, err
@@ -78,7 +82,7 @@ func DBlockHead() (*common.DirectoryBlock, error) {
 	return block, nil
 }
 
-func EBlockByKeyMR(keymr string) (*common.EBlock, error) {
+func EBlockByKeyMR(keymr string) (*EBlock, error) {
 	h, err := atoh(keymr)
 	if err != nil {
 		return nil, err
@@ -101,7 +105,7 @@ func ECBalance(eckey string) (uint32, error) {
 	return uint32(val), nil
 }
 
-func EntryByHash(hash string) (*common.Entry, error) {
+func EntryByHash(hash string) (*Entry, error) {
 	h, err := atoh(hash)
 	if err != nil {
 		return nil, err
@@ -116,7 +120,7 @@ func EntryByHash(hash string) (*common.Entry, error) {
 	return r, nil
 }
 
-func RevealEntry(e *common.Entry) error {
+func RevealEntry(e *Entry) error {
 	m := wire.NewMsgRevealEntry()
 	m.Entry = e
 	inMsgQ <- m
@@ -131,8 +135,8 @@ func SetInMsgQueue(q chan wire.FtmInternalMsg) {
 	inMsgQ = q
 }
 
-func atoh(a string) (*common.Hash, error) {
-	h := common.NewZeroHash()
+func atoh(a string) (IHash, error) {
+	h := NewZeroHash()
 	p, err := hex.DecodeString(a)
 	if err != nil {
 		return h, err

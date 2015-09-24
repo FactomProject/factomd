@@ -24,6 +24,8 @@ import (
 	//	"github.com/FactomProject/btcutil"
 	"github.com/FactomProject/fastsha256"
 	"github.com/FactomProject/websocket"
+
+	. "github.com/FactomProject/factomd/common/primitives"
 )
 
 const (
@@ -1435,7 +1437,7 @@ func handleNotifySpent(wsc *wsClient, icmd btcjson.Cmd) (interface{}, *btcjson.E
 
 	outpoints := make([]*wire.OutPoint, 0, len(cmd.OutPoints))
 	for i := range cmd.OutPoints {
-		blockHash, err := wire.NewShaHashFromStr(cmd.OutPoints[i].Hash)
+		blockHash, err := NewShaHashFromStr(cmd.OutPoints[i].Hash)
 		if err != nil {
 			return nil, &btcjson.Error{
 				Code:    btcjson.ErrParse.Code,

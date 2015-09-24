@@ -4,6 +4,12 @@
 
 package wire
 
+import (
+	"encoding/json"
+	"fmt"
+	. "github.com/FactomProject/factomd/common/primitives"
+)
+
 /*
 import (
 	"bytes"
@@ -106,9 +112,9 @@ func NewShaHashFromStr(hash string) (*ShaHash, error) {
 		ret[i], ret[blen-i] = buf[blen-i], b
 	}
 	return &ret, nil
-}
+}*/
 
-func NewShaHashFromStruct(DataStruct interface{}) (*ShaHash, error) {
+func NewShaHashFromStruct(DataStruct interface{}) (*Hash, error) {
 
 	jsonbytes, err := json.Marshal(DataStruct)
 	if err != nil {
@@ -120,4 +126,3 @@ func NewShaHashFromStruct(DataStruct interface{}) (*ShaHash, error) {
 
 	return NewShaHash(DoubleSha256(jsonbytes))
 }
-*/

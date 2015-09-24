@@ -16,6 +16,7 @@ import (
 	//	"github.com/FactomProject/factomd/btcd/database"
 	"github.com/FactomProject/btclog"
 	"github.com/FactomProject/factomd/btcd/wire"
+	. "github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/seelog"
 )
 
@@ -269,7 +270,7 @@ func invSummary(invList []*wire.InvVect) string {
 }
 
 // locatorSummary returns a block locator as a human-readable string.
-func locatorSummary(locator []*wire.ShaHash, stopHash *wire.ShaHash) string {
+func locatorSummary(locator []IHash, stopHash IHash) string {
 	if len(locator) > 0 {
 		return fmt.Sprintf("locator %s, stop %s", locator[0], stopHash)
 	}
@@ -351,10 +352,10 @@ func messageSummary(msg wire.Message) string {
 		return invSummary(msg.InvList)
 
 	case *wire.MsgGetBlocks:
-		return locatorSummary(msg.BlockLocatorHashes, &msg.HashStop)
+		return locatorSummary(msg.BlockLocatorHashes, msg.HashStop)
 
 	case *wire.MsgGetHeaders:
-		return locatorSummary(msg.BlockLocatorHashes, &msg.HashStop)
+		return locatorSummary(msg.BlockLocatorHashes, msg.HashStop)
 
 		/*
 			case *wire.MsgHeaders:

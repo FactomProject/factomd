@@ -9,7 +9,8 @@ import (
 	"github.com/FactomProject/factomd/btcd"
 	"github.com/FactomProject/factomd/btcd/limits"
 	"github.com/FactomProject/factomd/btcd/wire"
-	"github.com/FactomProject/factomd/common"
+	. "github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/factoid/state"
 	"github.com/FactomProject/factomd/common/factoid/state/stateinit"
 	cp "github.com/FactomProject/factomd/controlpanel"
 	"github.com/FactomProject/factomd/database"
@@ -123,7 +124,7 @@ func factomdMain() error {
 	}
 
 	// Start the factoid (btcd) component and P2P component
-	btcd.Start_btcd(db, inMsgQueue, outMsgQueue, inCtlMsgQueue, outCtlMsgQueue, process.FactomdUser, process.FactomdPass, common.SERVER_NODE != cfg.App.NodeMode)
+	btcd.Start_btcd(db, inMsgQueue, outMsgQueue, inCtlMsgQueue, outCtlMsgQueue, process.FactomdUser, process.FactomdPass, SERVER_NODE != cfg.App.NodeMode)
 
 	return nil
 }
@@ -144,7 +145,7 @@ func initDB() {
 
 	//init factoid_bolt db
 	fmt.Println("boltDBpath:", boltDBpath)
-	common.FactoidState = stateinit.NewFactoidState(boltDBpath + "factoid_bolt.db")
+	state.FactoidStateGlobal = stateinit.NewFactoidState(boltDBpath + "factoid_bolt.db")
 
 	//init db
 	var err error

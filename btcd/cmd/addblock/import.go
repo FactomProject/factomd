@@ -120,7 +120,7 @@ func (bi *blockImporter) processBlock(serializedBlock []byte) (bool, error) {
 
 	// Don't bother trying to process orphans.
 	prevHash := &block.MsgBlock().Header.PrevBlock
-	if !prevHash.IsEqual(&zeroHash) {
+	if !prevHash.IsEqual(zeroHash) {
 		exists, err := bi.db.ExistsSha(prevHash)
 		if err != nil {
 			return false, err

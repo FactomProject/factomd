@@ -7,7 +7,10 @@ package btcd
 import (
 	"github.com/FactomProject/factomd/btcd/blockchain"
 	"github.com/FactomProject/factomd/btcd/wire"
-	"github.com/FactomProject/factomd/common"
+
+	. "github.com/FactomProject/factomd/common/constants"
+	. "github.com/FactomProject/factomd/common/interfaces"
+	. "github.com/FactomProject/factomd/common/primitives"
 )
 
 // DirBlockLocatorFromHash returns a block locator for the passed block hash.
@@ -20,15 +23,14 @@ import (
 //    therefore the block locator will only consist of the genesis hash
 //  - If the passed hash is not currently known, the block locator will only
 //    consist of the passed hash
-func DirBlockLocatorFromHash(hash *wire.ShaHash) blockchain.BlockLocator {
+func DirBlockLocatorFromHash(hash IHash) blockchain.BlockLocator {
 	// The locator contains the requested hash at the very least.
 	locator := make(blockchain.BlockLocator, 0, wire.MaxBlockLocatorsPerMsg)
 	locator = append(locator, hash)
 
-	h, _ := common.HexToHash(common.GENESIS_DIR_BLOCK_HASH)
-	genesisHash := wire.FactomHashToShaHash(h)
+	genesisHash, _ := HexToHash(GENESIS_DIR_BLOCK_HASH)
 	// Nothing more to do if a locator for the genesis hash was requested.
-	if genesisHash.IsEqual(hash) {
+	if genesisHash.IsSameAs(hash) {
 		return locator
 	}
 
@@ -41,7 +43,7 @@ func DirBlockLocatorFromHash(hash *wire.ShaHash) blockchain.BlockLocator {
 	// in the BlockLocator comment and make sure to leave room for the
 	// final genesis hash.
 
-	dblock, _ := db.FetchDBlockByHash(hash.ToFactomHash())
+	dblock, _ := db.FetchDBlockByHash(hash)
 	if dblock != nil {
 		blockHeight = int64(dblock.Header.DBHeight)
 	}
@@ -61,10 +63,10 @@ func DirBlockLocatorFromHash(hash *wire.ShaHash) blockchain.BlockLocator {
 		if blk == nil {
 			continue
 		} else if blk.DBHash == nil {
-			blk.DBHash, _ = common.CreateHash(blk)
+			blk.DBHash, _ = CreateHash(blk)
 		}
 
-		locator = append(locator, wire.FactomHashToShaHash(blk.DBHash))
+		locator = append(locator, blk.DBHash)
 	}
 
 	// Append the appropriate genesis block.
@@ -78,7 +80,7 @@ func LatestDirBlockLocator() (blockchain.BlockLocator, error) {
 	latestDirBlockHash, _, _ := db.FetchBlockHeightCache()
 
 	if latestDirBlockHash == nil {
-		latestDirBlockHash = &zeroHash
+		latestDirBlockHash = zeroHash
 	}
 
 	// The best chain is set, so use its hash.

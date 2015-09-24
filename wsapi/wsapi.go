@@ -13,11 +13,16 @@ import (
 
 	factomapi "github.com/FactomProject/factomd/api"
 	"github.com/FactomProject/factomd/btcd/wire"
-	"github.com/FactomProject/factomd/common"
 	fct "github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/database"
 	"github.com/FactomProject/factomd/util"
 	"github.com/hoisie/web"
+
+	. "github.com/FactomProject/factomd/common/EntryBlock"
+	. "github.com/FactomProject/factomd/common/EntryCreditBlock"
+	. "github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/factoid/state"
+	. "github.com/FactomProject/factomd/common/primitives"
 )
 
 const (
@@ -91,7 +96,7 @@ func handleCommitChain(ctx *web.Context) {
 		}
 	}
 
-	commit := common.NewCommitChain()
+	commit := NewCommitChain()
 	if p, err := hex.DecodeString(c.CommitChainMsg); err != nil {
 		wsLog.Error(err)
 		ctx.WriteHeader(httpBad)
@@ -141,7 +146,7 @@ func handleCommitEntry(ctx *web.Context) {
 		}
 	}
 
-	commit := common.NewCommitEntry()
+	commit := NewCommitEntry()
 	if p, err := hex.DecodeString(c.CommitEntryMsg); err != nil {
 		wsLog.Error(err)
 		ctx.WriteHeader(httpBad)
@@ -185,7 +190,7 @@ func handleRevealEntry(ctx *web.Context) {
 		}
 	}
 
-	entry := common.NewEntry()
+	entry := NewEntry()
 	if p, err := hex.DecodeString(e.Entry); err != nil {
 		wsLog.Error(err)
 		ctx.WriteHeader(httpBad)
@@ -419,7 +424,7 @@ func handleEntryCreditBalance(ctx *web.Context, eckey string) {
 	}
 	var b ecbal
 	adr, err := hex.DecodeString(eckey)
-	if err == nil && len(adr) != common.HASH_LENGTH {
+	if err == nil && len(adr) != HASH_LENGTH {
 		b = ecbal{Response: "Invalid Address", Success: false}
 	}
 	if err == nil {
@@ -450,11 +455,11 @@ func handleFactoidBalance(ctx *web.Context, eckey string) {
 	}
 	var b fbal
 	adr, err := hex.DecodeString(eckey)
-	if err == nil && len(adr) != common.HASH_LENGTH {
+	if err == nil && len(adr) != HASH_LENGTH {
 		b = fbal{Response: "Invalid Address", Success: false}
 	}
 	if err == nil {
-		v := int64(common.FactoidState.GetBalance(fct.NewAddress(adr)))
+		v := int64(state.FactoidStateGlobal.GetBalance(fct.NewAddress(adr)))
 		str := fmt.Sprintf("%d", v)
 		b = fbal{Response: str, Success: true}
 	} else {
@@ -516,7 +521,7 @@ func handleFactoidSubmit(ctx *web.Context) {
 		return
 	}
 
-	err = common.FactoidState.Validate(1, msg.Transaction)
+	err = state.FactoidStateGlobal.Validate(1, msg.Transaction)
 	if err != nil {
 		returnMsg(ctx, err.Error(), false)
 		return
@@ -531,7 +536,7 @@ func handleFactoidSubmit(ctx *web.Context) {
 func handleGetFee(ctx *web.Context) {
 	type x struct{ Fee int64 }
 	b := new(x)
-	b.Fee = int64(common.FactoidState.GetFactoshisPerEC())
+	b.Fee = int64(state.FactoidStateGlobal.GetFactoshisPerEC())
 	if p, err := json.Marshal(b); err != nil {
 		wsLog.Error(err)
 		ctx.WriteHeader(httpBad)
@@ -545,10 +550,10 @@ func handleGetRaw(ctx *web.Context, hashkey string) {
 	type rawData struct {
 		Data string
 	}
-	//TODO: var block common.BinaryMarshallable
+	//TODO: var block BinaryMarshallable
 	d := new(rawData)
 
-	h, err := common.HexToHash(hashkey)
+	h, err := HexToHash(hashkey)
 	if err != nil {
 		wsLog.Error(err)
 		ctx.WriteHeader(httpBad)

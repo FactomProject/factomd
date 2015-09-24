@@ -8,7 +8,8 @@ import (
 	"container/list"
 	"fmt"
 	"github.com/FactomProject/factomd/btcd/wire"
-	"github.com/FactomProject/factomd/common"
+	. "github.com/FactomProject/factomd/common/DirectoryBlock"
+	. "github.com/FactomProject/factomd/common/constants"
 	cp "github.com/FactomProject/factomd/controlpanel"
 	"github.com/FactomProject/factomd/util"
 	"github.com/davecgh/go-spew/spew"
@@ -18,7 +19,7 @@ import (
 // dirBlockMsg packages a directory block message and the peer it came from together
 // so the block handler has access to that information.
 type dirBlockMsg struct {
-	block *common.DirectoryBlock
+	block *DirectoryBlock
 	peer  *peer
 }
 
@@ -92,8 +93,8 @@ func (b *blockManager) handleDirInvMsg(imsg *dirInvMsg) {
 				// final one the remote peer knows about (zero
 				// stop hash).
 				bmgrLog.Debug("push for more dir blocks: PushGetDirBlocksMsg")
-				locator := DirBlockLocatorFromHash(&iv.Hash)
-				imsg.peer.PushGetDirBlocksMsg(locator, &zeroHash)
+				locator := DirBlockLocatorFromHash(iv.Hash)
+				imsg.peer.PushGetDirBlocksMsg(locator, zeroHash)
 			}
 		}
 	}
@@ -225,7 +226,7 @@ func (b *blockManager) startSyncFactom(peers *list.List) {
 			str, // Message
 			60)
 
-		bestPeer.PushGetDirBlocksMsg(locator, &zeroHash)
+		bestPeer.PushGetDirBlocksMsg(locator, zeroHash)
 		b.syncPeer = bestPeer
 	} else {
 		bmgrLog.Warnf("No sync peer candidates available")
@@ -236,7 +237,7 @@ func (b *blockManager) startSyncFactom(peers *list.List) {
 // syncing from.
 func (b *blockManager) isSyncCandidateFactom(p *peer) bool {
 	// Typically a peer is not a candidate for sync if it's not a Factom SERVER node,
-	if common.SERVER_NODE == util.ReadConfig().App.NodeMode {
+	if SERVER_NODE == util.ReadConfig().App.NodeMode {
 		return true
 	}
 	return true

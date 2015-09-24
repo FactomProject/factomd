@@ -35,6 +35,8 @@ import (
 	"github.com/FactomProject/fastsha256"
 	"github.com/FactomProject/websocket"
 
+	. "github.com/FactomProject/factomd/common/constants"
+
 	//	"github.com/davecgh/go-spew/spew"
 )
 
@@ -52,7 +54,7 @@ const (
 	// consists of a zero hash plus the internal sha256 padding.  See
 	// the getworkDataLen comment for details about the internal sha256
 	// padding format.
-	hash1Len = (1 + ((wire.HASH_LENGTH + 8) / fastsha256.BlockSize)) *
+	hash1Len = (1 + ((HASH_LENGTH + 8) / fastsha256.BlockSize)) *
 		fastsha256.BlockSize
 
 	// gbtNonceRange is two 32-bit big-endian hexadecimal integers which
