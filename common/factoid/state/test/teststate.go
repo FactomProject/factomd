@@ -7,9 +7,10 @@ package test
 import (
 	"bytes"
 	"fmt"
-	fct "github.com/FactomProject/factomd/common/factoid"
+	. "github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/factoid/state"
-	"github.com/FactomProject/factomd/common/factoid/wallet"
+	. "github.com/FactomProject/factomd/common/interfaces"
+	. "github.com/FactomProject/factomd/common/primitives"
 	"math/rand"
 	"strings"
 	"time"
@@ -44,14 +45,14 @@ func (s Stats) logError(err string) {
 type Test_state struct {
 	state.FactoidState
 	clock             int64
-	twallet           wallet.ISCWallet
-	inputAddresses    []fct.IAddress // Genesis Address funds 10 addresses
-	outputAddresses   []fct.IAddress // We consider our inputs and ten more addresses
-	ecoutputAddresses []fct.IAddress // Entry Credit Addresses
+	twallet           ISCWallet
+	inputAddresses    []IAddress // Genesis Address funds 10 addresses
+	outputAddresses   []IAddress // We consider our inputs and ten more addresses
+	ecoutputAddresses []IAddress // Entry Credit Addresses
 	stats             Stats
 }
 
-func (fs *Test_state) GetWallet() wallet.ISCWallet {
+func (fs *Test_state) GetWallet() ISCWallet {
 	return fs.twallet
 }
 
@@ -63,9 +64,9 @@ func (fs *Test_state) GetTime32() int64 {
 	return time.Now().Unix()
 }
 
-func (fs *Test_state) newTransaction(maxIn, maxOut int) fct.ITransaction {
+func (fs *Test_state) newTransaction(maxIn, maxOut int) ITransaction {
 	var max, max2 uint64
-	fs.inputAddresses = make([]fct.IAddress, 0, 20)
+	fs.inputAddresses = make([]IAddress, 0, 20)
 	for _, output := range fs.outputAddresses {
 		bal := fs.GetBalance(output)
 		if bal > 100000 {
@@ -84,8 +85,8 @@ func (fs *Test_state) newTransaction(maxIn, maxOut int) fct.ITransaction {
 	// The following code is a function that creates an array
 	// of addresses pulled from some source array of addresses
 	// selected randomly.
-	var makeList = func(source []fct.IAddress, cnt int) []fct.IAddress {
-		adrs := make([]fct.IAddress, 0, cnt)
+	var makeList = func(source []IAddress, cnt int) []IAddress {
+		adrs := make([]IAddress, 0, cnt)
 		for len(adrs) < cnt {
 			i := rand.Int() % len(source)
 			adr := source[i]
@@ -127,7 +128,7 @@ func (fs *Test_state) newTransaction(maxIn, maxOut int) fct.ITransaction {
 		paid = toPay + paid
 		fs.twallet.AddInput(t, adr, toPay)
 		//fmt.Print("\033[10;3H")
-		//fmt.Printf("%s %s    \n",adr.String(),fct.ConvertDecimal(toPay))
+		//fmt.Printf("%s %s    \n",adr.String(),ConvertDecimal(toPay))
 		//fmt.Print("\033[40;3H")
 	}
 
@@ -147,14 +148,14 @@ func (fs *Test_state) newTransaction(maxIn, maxOut int) fct.ITransaction {
 
 	valid, err1 := fs.twallet.SignInputs(t)
 	if err1 != nil {
-		fct.Prtln("Failed to sign transaction")
+		Prtln("Failed to sign transaction")
 	}
 	if !valid {
-		fct.Prtln("Transaction is not valid")
+		Prtln("Transaction is not valid")
 	}
 	if err := fs.Validate(len(fs.GetCurrentBlock().GetTransactions()), t); err != nil || err1 != nil {
 
-		fs.GetDB().Put(fct.DB_BAD_TRANS, t.GetHash(), t)
+		fs.GetDB().Put(DB_BAD_TRANS, t.GetHash(), t)
 
 		fs.stats.badAddresses += 1
 

@@ -5,7 +5,8 @@ import (
 	"os"
 	//"fmt"
 	"code.google.com/p/gcfg"
-	"github.com/FactomProject/factomd/common"
+	. "github.com/FactomProject/factomd/common/interfaces"
+	. "github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/util"
 )
 
@@ -59,22 +60,22 @@ func loadConfigurations() {
 
 }
 
-func SignData(data []byte) common.Signature {
+func SignData(data []byte) Signature {
 	return keyManager.keyPair.Sign(data)
 }
 
 //impliment Signer
-func Sign(d []byte) common.Signature { return SignData(d) }
+func Sign(d []byte) Signature { return SignData(d) }
 
-func ClientPublicKey() common.PublicKey {
+func ClientPublicKey() PublicKey {
 	return keyManager.keyPair.Pub
 }
 
-func MarshalSign(msg common.BinaryMarshallable) common.Signature {
+func MarshalSign(msg BinaryMarshallable) Signature {
 	return keyManager.keyPair.MarshalSign(msg)
 }
 
-func DetachMarshalSign(msg common.BinaryMarshallable) *common.DetachedSignature {
+func DetachMarshalSign(msg BinaryMarshallable) *DetachedSignature {
 	sig := MarshalSign(msg)
 	return sig.DetachSig()
 }

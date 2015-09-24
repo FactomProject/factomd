@@ -8,25 +8,26 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/FactomProject/ed25519"
-	sc "github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/factoid/block"
 	"github.com/FactomProject/factomd/common/factoid/wallet"
+	. "github.com/FactomProject/factomd/common/interfaces"
+	. "github.com/FactomProject/factomd/common/primitives"
 	"math/rand"
 	cv "strconv"
 	"testing"
 	"time"
 )
 
-var _ = sc.Prt
+var _ = Prt
 var _ = fmt.Printf
 var _ = ed25519.Sign
 var _ = rand.New
 var _ = binary.Write
 
-var fakeAddr sc.IHash = new(sc.Hash)
+var fakeAddr IHash = new(Hash)
 
-func newFakeAddr() sc.IAddress {
-	fakeAddr = sc.Sha(fakeAddr.Bytes())
+func newFakeAddr() IAddress {
+	fakeAddr = Sha(fakeAddr.Bytes())
 	return fakeAddr
 }
 
@@ -41,32 +42,32 @@ func Test_create_block(test *testing.T) {
 	for i := 0; i < 3; i++ {
 		h0, err := w.GenerateFctAddress([]byte("test "+cv.Itoa(i)+"-0"), 1, 1)
 		if err != nil {
-			sc.Prtln("Error 1")
+			Prtln("Error 1")
 			test.Fail()
 		}
 		h1, err := w.GenerateFctAddress([]byte("test "+cv.Itoa(i)+"-1"), 1, 1)
 		if err != nil {
-			sc.Prtln("Error 2")
+			Prtln("Error 2")
 			test.Fail()
 		}
 		h2, err := w.GenerateFctAddress([]byte("test "+cv.Itoa(i)+"-2"), 1, 1)
 		if err != nil {
-			sc.Prtln("Error 3")
+			Prtln("Error 3")
 			test.Fail()
 		}
 		h3, err := w.GenerateFctAddress([]byte("test "+cv.Itoa(i)+"-3"), 1, 1)
 		if err != nil {
-			sc.Prtln("Error 4")
+			Prtln("Error 4")
 			test.Fail()
 		}
 		h4, err := w.GenerateFctAddress([]byte("test "+cv.Itoa(i)+"-4"), 1, 1)
 		if err != nil {
-			sc.Prtln("Error 5")
+			Prtln("Error 5")
 			test.Fail()
 		}
 		h5, err := w.GenerateFctAddress([]byte("test "+cv.Itoa(i)+"-5"), 1, 1)
 		if err != nil {
-			sc.Prtln("Error 6")
+			Prtln("Error 6")
 			test.Fail()
 		}
 
@@ -83,19 +84,19 @@ func Test_create_block(test *testing.T) {
 
 		signed, err := w.SignInputs(t)
 		if err != nil {
-			sc.Prtln("Error found: ", err)
+			Prtln("Error found: ", err)
 			test.Fail()
 			return
 		}
 		if !signed {
-			sc.Prtln("Not valid")
+			Prtln("Not valid")
 			test.Fail()
 			return
 		}
 
 		err = scb.AddTransaction(t)
 		if err != nil {
-			sc.Prtln("Error found: ", err)
+			Prtln("Error found: ", err)
 			test.Fail()
 			return
 		}
@@ -116,7 +117,7 @@ func Test_create_block(test *testing.T) {
 		test.Fail()
 		return
 	}
-	//sc.Prtln("FIRST\n",scb,"SECOND\n",scb2)
+	//Prtln("FIRST\n",scb,"SECOND\n",scb2)
 	if scb.IsEqual(scb2) != nil {
 		fmt.Println(err)
 		test.Fail()

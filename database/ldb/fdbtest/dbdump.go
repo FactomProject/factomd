@@ -4,7 +4,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/FactomProject/factomd/common"
+	. "github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/goleveldb/leveldb"
 	"github.com/FactomProject/goleveldb/leveldb/opt"
 	"github.com/FactomProject/goleveldb/leveldb/util"
@@ -45,7 +45,7 @@ func main() {
 	for iter.Next() {
 		key := iter.Key()
 
-		fmt.Printf("key: %v\n", common.EncodeBinary(&key))
+		fmt.Printf("key: %v\n", EncodeBinary(&key))
 		//		fmt.Println("  value:%v", iter.Value())
 
 		buf := iter.Value()

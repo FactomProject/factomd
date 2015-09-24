@@ -4,7 +4,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/FactomProject/factomd/common"
+	. "github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/goleveldb/leveldb"
 	"github.com/FactomProject/goleveldb/leveldb/opt"
 	"github.com/FactomProject/goleveldb/leveldb/util"
@@ -40,9 +40,9 @@ func main() {
 
 	for iter.Next() {
 		key := iter.Key()
-		fmt.Printf("key:%v", common.EncodeBinary(&key))
+		fmt.Printf("key:%v", EncodeBinary(&key))
 		value := iter.Value()
-		fmt.Printf("  value:%v\n", common.EncodeBinary(&value))
+		fmt.Printf("  value:%v\n", EncodeBinary(&value))
 		t := new(tst)
 
 		//t.key = binary.BigEndian.Uint32(key[:4])

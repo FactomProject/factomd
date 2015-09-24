@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"bytes"
-	"github.com/FactomProject/factomd/common"
+	. "github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/goleveldb/leveldb"
 	"github.com/FactomProject/goleveldb/leveldb/opt"
 	"github.com/FactomProject/goleveldb/leveldb/util"
@@ -53,11 +53,11 @@ func main() {
 		value2, _ := ldb2.Get(key, ro)
 
 		if value2 == nil {
-			fmt.Printf("key:%v\n", common.EncodeBinary(&key))
+			fmt.Printf("key:%v\n", EncodeBinary(&key))
 		} else if bytes.Compare(value, value2) != 0 {
-			fmt.Printf("Key with different values:%v\n", common.EncodeBinary(&key))
-			fmt.Printf("value1:%v\n", common.EncodeBinary(&value))
-			fmt.Printf("value2:%v\n", common.EncodeBinary(&value2))
+			fmt.Printf("Key with different values:%v\n", EncodeBinary(&key))
+			fmt.Printf("value1:%v\n", EncodeBinary(&value))
+			fmt.Printf("value2:%v\n", EncodeBinary(&value2))
 		}
 
 		elice = append(elice, t)

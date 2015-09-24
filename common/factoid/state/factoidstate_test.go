@@ -9,8 +9,11 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/FactomProject/ed25519"
-	fct "github.com/FactomProject/factomd/common/factoid"
+	. "github.com/FactomProject/factomd/common/constants"
+	. "github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/factoid/database"
+	. "github.com/FactomProject/factomd/common/interfaces"
+	. "github.com/FactomProject/factomd/common/primitives"
 	"math/rand"
 	"testing"
 )
@@ -20,13 +23,13 @@ var _ = fmt.Printf
 var _ = ed25519.Sign
 var _ = rand.New
 var _ = binary.Write
-var _ = fct.Prtln
+var _ = Prtln
 
-func GetDatabase() database.IFDatabase {
+func GetDatabase() IFDatabase {
 
 	var bucketList [][]byte
-	var instances map[[fct.ADDRESS_LENGTH]byte]fct.IBlock
-	var addinstance = func(b fct.IBlock) {
+	var instances map[[ADDRESS_LENGTH]byte]IBlock
+	var addinstance = func(b IBlock) {
 		key := new([32]byte)
 		copy(key[:], b.GetDBHash().Bytes())
 		instances[*key] = b
@@ -38,17 +41,17 @@ func GetDatabase() database.IFDatabase {
 	bucketList[0] = []byte("factoidOrphans_balances")
 	bucketList[0] = []byte("factomAddress_balances")
 
-	instances = make(map[[fct.ADDRESS_LENGTH]byte]fct.IBlock)
+	instances = make(map[[ADDRESS_LENGTH]byte]IBlock)
 
-	addinstance(new(fct.Address))
-	addinstance(new(fct.Hash))
-	addinstance(new(fct.InAddress))
-	addinstance(new(fct.OutAddress))
-	addinstance(new(fct.OutECAddress))
-	addinstance(new(fct.RCD_1))
-	addinstance(new(fct.RCD_2))
-	addinstance(new(fct.Signature))
-	addinstance(new(fct.Transaction))
+	addinstance(new(Address))
+	addinstance(new(Hash))
+	addinstance(new(InAddress))
+	addinstance(new(OutAddress))
+	addinstance(new(OutECAddress))
+	addinstance(new(RCD_1))
+	addinstance(new(RCD_2))
+	addinstance(new(FactoidSignature))
+	addinstance(new(Transaction))
 	addinstance(new(FSbalance))
 
 	db := new(database.BoltDB)

@@ -2,12 +2,12 @@ package wallet
 
 import (
 	"errors"
-	"github.com/FactomProject/factomd/common"
+	. "github.com/FactomProject/factomd/common/primitives"
 	"os"
 )
 
 type KeyManager struct {
-	keyPair   *common.PrivateKey
+	keyPair   *PrivateKey
 	storePath string
 	storeFile string
 }
@@ -80,7 +80,7 @@ func (km *KeyManager) LoadOrGenerateKeys() (err error) {
 
 func (km *KeyManager) LoadKeys(file *os.File) (err error) {
 	//load file
-	km.keyPair = new(common.PrivateKey)
+	km.keyPair = new(PrivateKey)
 	km.keyPair.AllocateNew()
 
 	n, err := file.Read(km.keyPair.Key[:])
@@ -123,7 +123,7 @@ func (km *KeyManager) WriteKeys(file *os.File) (err error) {
 }
 
 func (km *KeyManager) GenerateNewKey() (err error) {
-	km.keyPair = new(common.PrivateKey)
+	km.keyPair = new(PrivateKey)
 	err = km.keyPair.GenerateKey()
 	return
 }

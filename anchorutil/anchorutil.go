@@ -13,7 +13,11 @@ import (
 	"fmt"
 
 	"github.com/FactomProject/factomd/anchor"
-	"github.com/FactomProject/factomd/common"
+	. "github.com/FactomProject/factomd/common/DirectoryBlock"
+	. "github.com/FactomProject/factomd/common/EntryBlock"
+	. "github.com/FactomProject/factomd/common/constants"
+	. "github.com/FactomProject/factomd/common/interfaces"
+	. "github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database"
 	"github.com/FactomProject/factomd/database/ldb"
 	"github.com/FactomProject/factomd/util"
@@ -32,19 +36,19 @@ func main() {
 	ldbpath := cfg.App.LdbPath
 	initDB(ldbpath)
 
-	anchorChainID, _ := common.HexToHash(cfg.Anchor.AnchorChainID)
+	anchorChainID, _ := HexToHash(cfg.Anchor.AnchorChainID)
 	//fmt.Println("anchorChainID: ", cfg.Anchor.AnchorChainID)
 
 	processAnchorChain(anchorChainID)
 
 	//initDB("/home/bw/.factom/ldb.prd")
-	//dirBlockInfoMap, _ := db.FetchAllDirBlockInfo() // map[string]*common.DirBlockInfo
+	//dirBlockInfoMap, _ := db.FetchAllDirBlockInfo() // map[string]*DirBlockInfo
 	//for _, dirBlockInfo := range dirBlockInfoMap {
 	//fmt.Printf("dirBlockInfo: %s\n", spew.Sdump(dirBlockInfo))
 	//}
 }
 
-func processAnchorChain(anchorChainID *common.Hash) {
+func processAnchorChain(anchorChainID IHash) {
 	eblocks, _ := db.FetchAllEBlocksByChain(anchorChainID)
 	//fmt.Println("anchorChain length: ", len(*eblocks))
 	for _, eblock := range *eblocks {
@@ -70,13 +74,13 @@ func processAnchorChain(anchorChainID *common.Hash) {
 	}
 }
 
-func dirBlockInfoToAnchorChain(aRecord *anchor.AnchorRecord) (*common.DirBlockInfo, error) {
-	dirBlockInfo := new(common.DirBlockInfo)
+func dirBlockInfoToAnchorChain(aRecord *anchor.AnchorRecord) (*DirBlockInfo, error) {
+	dirBlockInfo := new(DirBlockInfo)
 	dirBlockInfo.DBHeight = aRecord.DBHeight
 	dirBlockInfo.BTCTxOffset = aRecord.Bitcoin.Offset
 	dirBlockInfo.BTCBlockHeight = aRecord.Bitcoin.BlockHeight
 	mrBytes, _ := hex.DecodeString(aRecord.KeyMR)
-	dirBlockInfo.DBMerkleRoot, _ = common.NewShaHash(mrBytes)
+	dirBlockInfo.DBMerkleRoot, _ = NewShaHash(mrBytes)
 	dirBlockInfo.BTCConfirmed = true
 
 	txSha, _ := wire.NewShaHashFromStr(aRecord.Bitcoin.TXID)
@@ -87,7 +91,7 @@ func dirBlockInfoToAnchorChain(aRecord *anchor.AnchorRecord) (*common.DirBlockIn
 	dblock, err := db.FetchDBlockByHeight(aRecord.DBHeight)
 	if err != nil {
 		fmt.Printf("err in FetchDBlockByHeight: %d\n", aRecord.DBHeight)
-		dirBlockInfo.DBHash = new(common.Hash)
+		dirBlockInfo.DBHash = new(Hash)
 	} else {
 		dirBlockInfo.Timestamp = int64(dblock.Header.Timestamp)
 		dirBlockInfo.DBHash = dblock.DBHash
@@ -96,7 +100,7 @@ func dirBlockInfoToAnchorChain(aRecord *anchor.AnchorRecord) (*common.DirBlockIn
 	return dirBlockInfo, nil
 }
 
-func entryToAnchorRecord(entry *common.Entry) (*anchor.AnchorRecord, error) {
+func entryToAnchorRecord(entry *Entry) (*anchor.AnchorRecord, error) {
 	content := entry.Content
 	jsonARecord := content[:(len(content) - 128)]
 	jsonSigBytes := content[(len(content) - 128):]
@@ -110,9 +114,9 @@ func entryToAnchorRecord(entry *common.Entry) (*anchor.AnchorRecord, error) {
 	//fmt.Printf("    jsonSig: %s\n", string(jsonSigBytes))
 
 	pubKeySlice := make([]byte, 32, 32)
-	pubKey := common.PubKeyFromString(common.SERVER_PUB_KEY)
+	pubKey := PubKeyFromString(SERVER_PUB_KEY)
 	copy(pubKeySlice, pubKey.Key[:])
-	verified := common.VerifySlice(pubKeySlice, jsonARecord, jsonSig)
+	verified := VerifySlice(pubKeySlice, jsonARecord, jsonSig)
 
 	if !verified {
 		fmt.Printf("*** anchor chain signature does NOT match:\n")
@@ -147,8 +151,8 @@ func initDB(ldbpath string) {
 	fmt.Println("Database started from: " + ldbpath)
 }
 
-func toHash(txHash *wire.ShaHash) *common.Hash {
-	h := new(common.Hash)
+func toHash(txHash *wire.ShaHash) *Hash {
+	h := new(Hash)
 	h.SetBytes(txHash.Bytes())
 	return h
 }

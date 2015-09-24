@@ -6,7 +6,7 @@ package process
 
 import (
 	"fmt"
-	fct "github.com/FactomProject/factomd/common/factoid"
+	. "github.com/FactomProject/factomd/common/primitives"
 	"math/rand"
 	"testing"
 	"time"
@@ -29,7 +29,7 @@ func Test_Replay(test *testing.T) {
 
 	for i := 0; i < 5000; i++ {
 		h[i] = new(mh)
-		h[i].hash = fct.Sha([]byte(fmt.Sprintf("h%d", i))).Bytes()
+		h[i].hash = Sha([]byte(fmt.Sprintf("h%d", i))).Bytes()
 		h[i].time = now + (rand.Int63() % 24 * hour) - 12*hour
 
 		if !IsTSValid_(h[i].hash, h[i].time, now) {

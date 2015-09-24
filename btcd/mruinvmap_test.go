@@ -9,6 +9,8 @@ import (
 	"testing"
 
 	"github.com/FactomProject/factomd/btcd/wire"
+	. "github.com/FactomProject/factomd/common/constants"
+	. "github.com/FactomProject/factomd/common/primitives"
 )
 
 // BenchmarkMruInventoryList performs basic benchmarks on the most recently
@@ -20,9 +22,9 @@ func BenchmarkMruInventoryList(b *testing.B) {
 	numInvVects := 100000
 	invVects := make([]*wire.InvVect, 0, numInvVects)
 	for i := 0; i < numInvVects; i++ {
-		hashBytes := make([]byte, wire.HASH_LENGTH)
+		hashBytes := make([]byte, HASH_LENGTH)
 		rand.Read(hashBytes)
-		hash, _ := wire.NewShaHash(hashBytes)
+		hash, _ := NewShaHash(hashBytes)
 		iv := wire.NewInvVect(wire.InvTypeBlock, hash)
 		invVects = append(invVects, iv)
 	}

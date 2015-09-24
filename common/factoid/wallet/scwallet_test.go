@@ -10,7 +10,8 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/FactomProject/ed25519"
-	fct "github.com/FactomProject/factomd/common/factoid"
+	. "github.com/FactomProject/factomd/common/factoid"
+	. "github.com/FactomProject/factomd/common/primitives"
 	"math/rand"
 	"testing"
 )
@@ -20,7 +21,7 @@ var _ = fmt.Printf
 var _ = ed25519.Sign
 var _ = rand.New
 var _ = binary.Write
-var _ = fct.Prtln
+var _ = Prtln
 
 func TestGenerateKeyFromPrivateKey(t *testing.T) {
 	w := new(SCWallet) // make me a wallet
@@ -48,12 +49,12 @@ func Test_create_scwallet(test *testing.T) {
 	w.Init()
 	w.NewSeed([]byte("lkdfsgjlagkjlasd"))
 	we := new(WalletEntry)
-	rcd := new(fct.RCD_1)
+	rcd := new(RCD_1)
 	name := "John Smith"
 	pub, pri, err := w.generateKey()
 
 	if err != nil {
-		fct.Prtln("Generate Failed")
+		Prtln("Generate Failed")
 		test.Fail()
 	}
 
@@ -63,7 +64,7 @@ func Test_create_scwallet(test *testing.T) {
 
 	txt, err := we.CustomMarshalText()
 	var _ = txt
-	// fct.Prtln(string(txt))
+	// Prtln(string(txt))
 
 }
 
@@ -111,19 +112,19 @@ func Test_CreateTransaction_swcallet(test *testing.T) {
 
 	signed, err := w.SignInputs(t)
 	if !signed || err != nil {
-		fct.Prtln("Signed Fail: ", signed, err)
+		Prtln("Signed Fail: ", signed, err)
 		test.Fail()
 	}
 
 	fee, err := t.CalculateFee(1000)
 	if fee != 12000 || err != nil {
-		fct.Prtln("Fee Calculation Failed", fee, err)
+		Prtln("Fee Calculation Failed", fee, err)
 		test.Fail()
 	}
 
 	err2 := w.Validate(1, t)
 	if err2 != nil {
-		fct.Prtln(err2)
+		Prtln(err2)
 		test.Fail()
 	}
 
@@ -166,16 +167,16 @@ func Test_SignTransaction_swcallet(test *testing.T) {
 	signed, err := w.SignInputs(t)
 
 	if !signed || err != nil {
-		fct.Prtln("Signed Fail: ", signed, err)
+		Prtln("Signed Fail: ", signed, err)
 		test.Fail()
 	}
 
 	txt, err := t.CustomMarshalText()
-	fct.Prtln(string(txt), "\n ", fee)
+	Prtln(string(txt), "\n ", fee)
 
 	err = w.ValidateSignatures(t)
 	if err != nil {
-		fct.Prtln(err)
+		Prtln(err)
 		test.Fail()
 	}
 
