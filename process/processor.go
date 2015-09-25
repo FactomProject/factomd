@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"sort"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/FactomProject/factomd/anchor"
@@ -1143,11 +1142,11 @@ func newFactoidBlock(chain *FctChain) IFBlock {
 	FactoshisPerCredit = cfg.App.ExchangeRate
 
 	rate := fmt.Sprintf("Current Exchange rate is %v",
-		strings.TrimSpace(ConvertDecimal(FactoshisPerCredit)))
+		ConvertDecimalToString(FactoshisPerCredit))
 	if older != FactoshisPerCredit {
 
 		orate := fmt.Sprintf("The Exchange rate was    %v\n",
-			strings.TrimSpace(ConvertDecimal(older)))
+			ConvertDecimalToString(older))
 
 		cp.CP.AddUpdate(
 			"Fee",    // tag

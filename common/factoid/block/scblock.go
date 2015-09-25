@@ -9,7 +9,6 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
-	"strings"
 
 	. "github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/factoid"
@@ -465,10 +464,10 @@ func (b FBlock) ValidateTransaction(index int, trans ITransaction) error {
 	if tin < sum {
 		return fmt.Errorf("The inputs %s do not cover the outputs %s,\n"+
 			"the Entry Credit outputs %s, and the required fee %s",
-			strings.TrimSpace(ConvertDecimal(tin)),
-			strings.TrimSpace(ConvertDecimal(tout)),
-			strings.TrimSpace(ConvertDecimal(tec)),
-			strings.TrimSpace(ConvertDecimal(fee)))
+			ConvertDecimalToString(tin),
+			ConvertDecimalToString(tout),
+			ConvertDecimalToString(tec),
+			ConvertDecimalToString(fee))
 	}
 	return nil
 }

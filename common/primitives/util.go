@@ -177,12 +177,6 @@ func ConvertDecimalToPaddedString(v uint64) string {
 	return str
 }
 
-// Take fixed point data and produce a nice decimial point
-// sort of output that users can handle.
-func ConvertDecimal(v uint64) string {
-	return ConvertDecimalToPaddedString(v)
-}
-
 // Convert Decimal point input to FixedPoint (no decimal point)
 // output suitable for Factom to chew on.
 func ConvertFixedPoint(amt string) (string, error) {
