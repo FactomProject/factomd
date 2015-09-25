@@ -141,6 +141,14 @@ func PublicKeyToFactoidAddress(public []byte) (factoid.IAddress, error) {
 /******************************Combined****************************************/
 /******************************************************************************/
 
+func HumanReadiblePrivateKeyStringToEverythingString(private string) (string, string, string, error) {
+	priv, err := HumanReadableFactoidPrivateKeyToPrivateKeyString(private)
+	if err != nil {
+		return "", "", "", err
+	}
+	return PrivateKeyStringToEverythingString(priv)
+}
+
 func PrivateKeyStringToEverythingString(private string) (string, string, string, error) {
 	pub, err := PrivateKeyStringToPublicKeyString(private)
 	if err != nil {
