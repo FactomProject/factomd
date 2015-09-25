@@ -13,6 +13,7 @@ import (
 	. "github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/factoid"
 	. "github.com/FactomProject/factomd/common/factoid/block"
+	. "github.com/FactomProject/factomd/common/factoid/block/coinbase"
 	. "github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
 	cp "github.com/FactomProject/factomd/controlpanel"

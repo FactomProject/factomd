@@ -24,13 +24,13 @@ const (
 
 type CommitChain struct {
 	Version     uint8
-	MilliTime   *[6]byte
+	MilliTime   *ByteSlice6
 	ChainIDHash IHash
 	Weld        IHash
 	EntryHash   IHash
 	Credits     uint8
-	ECPubKey    *[32]byte
-	Sig         *[64]byte
+	ECPubKey    *ByteSlice32
+	Sig         *ByteSlice64
 }
 
 var _ Printable = (*CommitChain)(nil)
@@ -45,13 +45,13 @@ func (c *CommitChain) MarshalledSize() uint64 {
 func NewCommitChain() *CommitChain {
 	c := new(CommitChain)
 	c.Version = 0
-	c.MilliTime = new([6]byte)
+	c.MilliTime = new(ByteSlice6)
 	c.ChainIDHash = NewZeroHash()
 	c.Weld = NewZeroHash()
 	c.EntryHash = NewZeroHash()
 	c.Credits = 0
-	c.ECPubKey = new([32]byte)
-	c.Sig = new([64]byte)
+	c.ECPubKey = new(ByteSlice32)
+	c.Sig = new(ByteSlice64)
 	return c
 }
 
@@ -107,7 +107,7 @@ func (c *CommitChain) IsValid() bool {
 		return false
 	}
 
-	return ed.VerifyCanonical(c.ECPubKey, c.CommitMsg(), c.Sig)
+	return ed.VerifyCanonical((*[32]byte)(c.ECPubKey), c.CommitMsg(), (*[64]byte)(c.Sig))
 }
 
 func (c *CommitChain) GetHash() IHash {

@@ -24,11 +24,11 @@ const (
 
 type CommitEntry struct {
 	Version   uint8
-	MilliTime *[6]byte
+	MilliTime *ByteSlice6
 	EntryHash IHash
 	Credits   uint8
-	ECPubKey  *[32]byte
-	Sig       *[64]byte
+	ECPubKey  *ByteSlice32
+	Sig       *ByteSlice64
 }
 
 var _ Printable = (*CommitEntry)(nil)
@@ -43,11 +43,11 @@ func (c *CommitEntry) MarshalledSize() uint64 {
 func NewCommitEntry() *CommitEntry {
 	c := new(CommitEntry)
 	c.Version = 0
-	c.MilliTime = new([6]byte)
+	c.MilliTime = new(ByteSlice6)
 	c.EntryHash = NewZeroHash()
 	c.Credits = 0
-	c.ECPubKey = new([32]byte)
-	c.Sig = new([64]byte)
+	c.ECPubKey = new(ByteSlice32)
+	c.Sig = new(ByteSlice64)
 	return c
 }
 
@@ -101,8 +101,7 @@ func (c *CommitEntry) IsValid() bool {
 	if c.Credits < 1 || c.Version != 0 {
 		return false
 	}
-
-	return ed.VerifyCanonical(c.ECPubKey, c.CommitMsg(), c.Sig)
+	return ed.VerifyCanonical((*[32]byte)(c.ECPubKey), c.CommitMsg(), (*[64]byte)(c.Sig))
 }
 
 func (c *CommitEntry) GetHash() IHash {

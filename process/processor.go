@@ -732,7 +732,7 @@ func processCommitChain(msg *wire.MsgCommitChain) error {
 func processBuyEntryCredit(msg *wire.MsgFactoidTX) error {
 	// Update the credit balance in memory
 	for _, v := range msg.Transaction.GetECOutputs() {
-		pub := new([32]byte)
+		pub := new(ByteSlice32)
 		copy(pub[:], v.GetAddress().Bytes())
 
 		cred := int32(v.GetAmount() / uint64(FactoshisPerCredit))
@@ -808,7 +808,7 @@ func buildIncreaseBalance(msg *wire.MsgFactoidTX) {
 	for i, ecout := range t.GetECOutputs() {
 		ib := NewIncreaseBalance()
 
-		pub := new([32]byte)
+		pub := new(ByteSlice32)
 		copy(pub[:], ecout.GetAddress().Bytes())
 		ib.ECPubKey = pub
 
