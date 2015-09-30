@@ -279,7 +279,6 @@ func storeBlocksFromMemPool(b *DirectoryBlock, fMemPool *ftmMemPool, db database
 			// needs to be improved??
 			initializeECreditMap(ecBlkMsg.ECBlock)
 			// for debugging
-			exportECBlock(ecBlkMsg.ECBlock)
 		case achain.ChainID.String():
 			aBlkMsg := fMemPool.blockpool[dbEntry.KeyMR.String()].(*wire.MsgABlock)
 			err := db.ProcessABlockBatch(aBlkMsg.ABlk)
@@ -287,7 +286,6 @@ func storeBlocksFromMemPool(b *DirectoryBlock, fMemPool *ftmMemPool, db database
 				return err
 			}
 			// for debugging
-			exportABlock(aBlkMsg.ABlk)
 		case fchain.ChainID.String():
 			fBlkMsg := fMemPool.blockpool[dbEntry.KeyMR.String()].(*wire.MsgFBlock)
 			err := db.ProcessFBlockBatch(fBlkMsg.SC)
@@ -302,7 +300,6 @@ func storeBlocksFromMemPool(b *DirectoryBlock, fMemPool *ftmMemPool, db database
 			}
 
 			// for debugging
-			exportFctBlock(fBlkMsg.SC)
 		default:
 			// handle Entry Block
 			eBlkMsg, _ := fMemPool.blockpool[dbEntry.KeyMR.String()].(*wire.MsgEBlock)
@@ -337,7 +334,6 @@ func storeBlocksFromMemPool(b *DirectoryBlock, fMemPool *ftmMemPool, db database
 			}
 
 			// for debugging
-			exportEBlock(eBlkMsg.EBlk)
 		}
 	}
 
@@ -350,9 +346,6 @@ func storeBlocksFromMemPool(b *DirectoryBlock, fMemPool *ftmMemPool, db database
 	// Update dir block height cache in db
 	commonHash, _ := CreateHash(b)
 	db.UpdateBlockHeightCache(b.Header.DBHeight, commonHash)
-
-	// for debugging
-	exportDBlock(b)
 
 	return nil
 }

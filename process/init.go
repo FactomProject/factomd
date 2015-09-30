@@ -76,8 +76,6 @@ func initDChain() {
 		db.UpdateBlockHeightCache(dchain.NextDBHeight-1, dchain.NextBlock.Header.PrevLedgerKeyMR)
 	}
 
-	exportDChain(dchain)
-
 	//Double check the sealed flag
 	if dchain.NextBlock.IsSealed == true {
 		panic("dchain.Blocks[dchain.NextBlockID].IsSealed for chain:" + dchain.ChainID.String())
@@ -128,7 +126,6 @@ func initECChain() {
 
 	// create a backup copy before processing entries
 	copyCreditMap(eCreditMap, eCreditMapBackup)
-	exportECChain(ecchain)
 
 	// ONly for debugging
 	if procLog.Level() > logger.Info {
@@ -169,8 +166,6 @@ func initAChain() {
 		achain.NextBlockHeight = dchain.NextDBHeight
 		achain.NextBlock, _ = CreateAdminBlock(achain, &aBlocks[achain.NextBlockHeight-1], 10)
 	}
-
-	exportAChain(achain)
 
 }
 
@@ -225,9 +220,6 @@ func initFctChain() {
 		state.FactoidStateGlobal.ProcessEndOfBlock2(dchain.NextDBHeight)
 		fchain.NextBlock = state.FactoidStateGlobal.GetCurrentBlock()
 	}
-
-	exportFctChain(fchain)
-
 }
 
 // Initialize Entry Block Chains from database
@@ -244,7 +236,6 @@ func initEChains() {
 	for _, chain := range chains {
 		var newChain = chain
 		chainIDMap[newChain.ChainID.String()] = newChain
-		exportEChain(chain)
 	}
 
 }

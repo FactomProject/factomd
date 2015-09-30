@@ -900,20 +900,17 @@ func buildGenesisBlocks() error {
 	cBlock := newEntryCreditBlock(ecchain)
 	procLog.Debugf("buildGenesisBlocks: cBlock=%s\n", spew.Sdump(cBlock))
 	dchain.AddECBlockToDBEntry(cBlock)
-	exportECChain(ecchain)
 
 	// Admin chain
 	aBlock := newAdminBlock(achain)
 	procLog.Debugf("buildGenesisBlocks: aBlock=%s\n", spew.Sdump(aBlock))
 	dchain.AddABlockToDBEntry(aBlock)
-	exportAChain(achain)
 
 	// factoid Genesis Address
 	//fchain.NextBlock = block.GetGenesisFBlock(0, FactoshisPerCredit, 10, 200000000000)
 	fchain.NextBlock = block.GetGenesisFBlock()
 	FBlock := newFactoidBlock(fchain)
 	dchain.AddFBlockToDBEntry(FBlock)
-	exportFctChain(fchain)
 
 	// Directory Block chain
 	procLog.Debug("in buildGenesisBlocks")
@@ -925,8 +922,6 @@ func buildGenesisBlocks() error {
 		panic("\nGenesis block hash expected: " + GENESIS_DIR_BLOCK_HASH +
 			"\nGenesis block hash found:    " + dbBlock.DBHash.String() + "\n")
 	}
-
-	exportDChain(dchain)
 
 	// place an anchor into btc
 	placeAnchor(dbBlock)
@@ -949,19 +944,16 @@ func buildBlocks() error {
 	// Entry Credit Chain
 	ecBlock := newEntryCreditBlock(ecchain)
 	dchain.AddECBlockToDBEntry(ecBlock)
-	exportECBlock(ecBlock)
 
 	// Admin chain
 	aBlock := newAdminBlock(achain)
 
 	dchain.AddABlockToDBEntry(aBlock)
-	exportABlock(aBlock)
 
 	// Factoid chain
 	fBlock := newFactoidBlock(fchain)
 
 	dchain.AddFBlockToDBEntry(fBlock)
-	exportFctBlock(fBlock)
 
 	// sort the echains by chain id
 	var keys []string
@@ -977,7 +969,6 @@ func buildBlocks() error {
 		if eblock != nil {
 			dchain.AddEBlockToDBEntry(eblock)
 		}
-		exportEBlock(eblock)
 	}
 
 	// Directory Block chain
@@ -993,8 +984,6 @@ func buildBlocks() error {
 	// Update dir block height cache in db
 	db.UpdateBlockHeightCache(dbBlock.Header.DBHeight, commonHash)
 	db.UpdateNextBlockHeightCache(dchain.NextDBHeight)
-
-	exportDBlock(dbBlock)
 
 	// re-initialize the process lit manager
 	initProcessListMgr()
