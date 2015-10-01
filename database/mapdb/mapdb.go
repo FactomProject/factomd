@@ -38,6 +38,16 @@ func (db *MapDB) Put(bucket, key []byte, data BinaryMarshallable) error {
 	return nil
 }
 
+func (db *MapDB) PutInBatch(records []Record) error {
+	for _, v := range records {
+		err := db.Put(v.Bucket, v.Key, v.Data)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (db *MapDB) Get(bucket, key []byte, destination BinaryMarshallable) (BinaryMarshallable, error) {
 	_, ok := db.cache[string(bucket)]
 	if ok == false {

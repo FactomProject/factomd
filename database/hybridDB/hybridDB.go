@@ -51,6 +51,18 @@ func (db *HybridDB) Put(bucket, key []byte, data BinaryMarshallable) error {
 	return nil
 }
 
+func (db *HybridDB) PutInBatch(records []Record) error {
+	err := db.persistentStorage.PutInBatch(records)
+	if err != nil {
+		return err
+	}
+	err = db.temporaryStorage.PutInBatch(records)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (db *HybridDB) Get(bucket, key []byte, destination BinaryMarshallable) (BinaryMarshallable, error) {
 	answer, err := db.temporaryStorage.Get(bucket, key, destination)
 	if err != nil {

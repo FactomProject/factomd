@@ -89,6 +89,17 @@ func (d *BoltDB) Put(bucket []byte, key []byte, data BinaryMarshallable) error {
 	return err
 }
 
+func (db *BoltDB) PutInBatch(records []Record) error {
+	//TODO: put in actual batch if possible
+	for _, v := range records {
+		err := db.Put(v.Bucket, v.Key, v.Data)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (d *BoltDB) Clear(bucket []byte) error {
 	err := d.db.Update(func(tx *bolt.Tx) error {
 		err := tx.DeleteBucket(bucket)

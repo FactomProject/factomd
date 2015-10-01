@@ -19,5 +19,5 @@ type IDatabase interface {
 type Record struct {
 	Bucket []byte
 	Key    []byte
-	data   BinaryMarshallable
+	Data   BinaryMarshallable
 }
