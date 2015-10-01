@@ -2,8 +2,9 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-package database
+package boltdb
 
+/*
 import (
 	"encoding/binary"
 	"fmt"
@@ -90,3 +91,4 @@ func Test_bolt_init(t *testing.T) {
 		t.Fail()
 	}
 }
+*/

@@ -6,10 +6,11 @@ package interfaces
 
 import ()
 
-type Database interface {
+type IDatabase interface {
 	Close() error
-	Save(bucket, key string, data BinaryMarshallable) error
-	Load(bucket, key string, destination BinaryMarshallable) (BinaryMarshallable, error)
-	Delete(bucket, key string) error
-	ListAllKeys(bucket string) ([]string, error)
+	Put(bucket, key []byte, data BinaryMarshallable) error
+	Get(bucket, key []byte, destination BinaryMarshallable) (BinaryMarshallable, error)
+	Delete(bucket, key []byte) error
+	ListAllKeys(bucket []byte) ([][]byte, error)
+	Clear(bucket []byte) error
 }
