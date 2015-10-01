@@ -16,10 +16,7 @@ import (
 	"github.com/FactomProject/factomd/database/hybridDB"
 
 	. "github.com/FactomProject/factomd/common/constants"
-	. "github.com/FactomProject/factomd/common/factoid"
-	"github.com/FactomProject/factomd/common/factoid/block"
 	. "github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
 )
 
 var _ = fmt.Printf
@@ -30,7 +27,6 @@ func NewFactoidState(filename string) IFactoidState {
 	wall.Init()
 
 	fs.SetWallet(wall)
-	fs.GetWallet().GetDB().Init()
 
 	// Use Bolt DB
 	fs.SetDB(GetDatabase(filename))

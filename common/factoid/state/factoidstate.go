@@ -231,7 +231,10 @@ func (fs *FactoidState) ProcessEndOfBlock2(nextBlkHeight uint32) {
 
 func (fs *FactoidState) LoadState() error {
 	var hashes []IHash
-	cblk := fs.GetTransactionBlock(FACTOID_CHAINID_HASH)
+	cblk, err := fs.GetTransactionBlock(FACTOID_CHAINID_HASH)
+	if err != nil {
+		return err
+	}
 	// If there is no head for the Factoids in the database, we have an
 	// uninitialized database.  We need to add the Genesis  TODO
 	if cblk == nil {
@@ -270,7 +273,10 @@ func (fs *FactoidState) LoadState() error {
 		if bytes.Compare(blk.GetPrevKeyMR().Bytes(), ZERO_HASH) == 0 {
 			break
 		}
-		tblk := fs.GetTransactionBlock(blk.GetPrevKeyMR())
+		tblk, err := fs.GetTransactionBlock(blk.GetPrevKeyMR())
+		if err != nil {
+			return err
+		}
 		if tblk == nil {
 			return fmt.Errorf("Failed to find the block at height: %d", blk.GetDBHeight()-1)
 		}
@@ -290,7 +296,10 @@ func (fs *FactoidState) LoadState() error {
 
 	// Now run forward, and build our accounting
 	for i := len(hashes) - 1; i >= 0; i-- {
-		blk = fs.GetTransactionBlock(hashes[i])
+		blk, err = fs.GetTransactionBlock(hashes[i])
+		if err != nil {
+			return err
+		}
 		if blk == nil {
 			return fmt.Errorf("Should never happen.  Block not found in the Database\n"+
 				"No block found for: %s", hashes[i].String())
@@ -346,16 +355,19 @@ func (fs *FactoidState) SetFactoshisPerEC(factoshisPerEC uint64) {
 	fs.factoshisPerEC = factoshisPerEC
 }
 
-func (fs *FactoidState) PutTransactionBlock(hash IHash, trans IFBlock) {
-	fs.database.Put(DB_FACTOID_BLOCKS, hash, trans)
+func (fs *FactoidState) PutTransactionBlock(hash IHash, trans IFBlock) error {
+	return fs.database.Put([]byte(DB_FACTOID_BLOCKS), hash.Bytes(), trans)
 }
 
-func (fs *FactoidState) GetTransactionBlock(hash IHash) IFBlock {
-	transblk := fs.database.Get(DB_FACTOID_BLOCKS, hash)
-	if transblk == nil {
-		return nil
+func (fs *FactoidState) GetTransactionBlock(hash IHash) (IFBlock, error) {
+	transblk, err := fs.database.Get([]byte(DB_FACTOID_BLOCKS), hash.Bytes(), new(FBlock))
+	if err != nil {
+		return nil, err
 	}
-	return transblk.(IFBlock)
+	if transblk == nil {
+		return nil, nil
+	}
+	return transblk.(IFBlock), nil
 }
 
 func (fs *FactoidState) GetTimeMilli() uint64 {
@@ -377,7 +389,7 @@ func (fs *FactoidState) GetDB() IDatabase {
 // Any address that is not defined has a zero balance.
 func (fs *FactoidState) GetBalance(address IAddress) uint64 {
 	balance := uint64(0)
-	b := fs.database.GetRaw([]byte(DB_F_BALANCES), address.Bytes())
+	b, _ := fs.database.Get([]byte(DB_F_BALANCES), address.Bytes(), new(FSbalance))
 	if b != nil {
 		balance = b.(*FSbalance).number
 	}
@@ -387,7 +399,7 @@ func (fs *FactoidState) GetBalance(address IAddress) uint64 {
 // Any address that is not defined has a zero balance.
 func (fs *FactoidState) GetECBalance(address IAddress) uint64 {
 	balance := uint64(0)
-	b := fs.database.GetRaw([]byte(DB_EC_BALANCES), address.Bytes())
+	b, _ := fs.database.Get([]byte(DB_EC_BALANCES), address.Bytes(), new(FSbalance))
 	if b != nil {
 		balance = b.(*FSbalance).number
 	}
@@ -401,9 +413,8 @@ func (fs *FactoidState) UpdateBalance(address IAddress, amount int64) error {
 		return fmt.Errorf("The update to this address would drive the balance negative.")
 	}
 	balance := uint64(nbalance)
-	fs.database.PutRaw([]byte(DB_F_BALANCES), address.Bytes(), &FSbalance{number: balance})
-
-	return nil
+	err := fs.database.Put([]byte(DB_F_BALANCES), address.Bytes(), &FSbalance{number: balance})
+	return err
 }
 
 // Update ec balance throws an error if your update will drive the balance negative.
@@ -413,9 +424,8 @@ func (fs *FactoidState) UpdateECBalance(address IAddress, amount int64) error {
 		return fmt.Errorf("The update to this Entry Credit address would drive the balance negative.")
 	}
 	balance := uint64(nbalance)
-	fs.database.PutRaw([]byte(DB_EC_BALANCES), address.Bytes(), &FSbalance{number: balance})
-
-	return nil
+	err := fs.database.Put([]byte(DB_EC_BALANCES), address.Bytes(), &FSbalance{number: balance})
+	return err
 }
 
 // Add to Entry Credit Balance.  Note Entry Credit balances are maintained
@@ -424,8 +434,8 @@ func (fs *FactoidState) UpdateECBalance(address IAddress, amount int64) error {
 func (fs *FactoidState) AddToECBalance(address IAddress, amount uint64) error {
 	ecs := amount / fs.GetFactoshisPerEC()
 	balance := fs.GetECBalance(address) + ecs
-	fs.database.PutRaw([]byte(DB_EC_BALANCES), address.Bytes(), &FSbalance{number: balance})
-	return nil
+	err := fs.database.Put([]byte(DB_EC_BALANCES), address.Bytes(), &FSbalance{number: balance})
+	return err
 }
 
 // Use Entry Credits.  Note Entry Credit balances are maintained
@@ -436,6 +446,6 @@ func (fs *FactoidState) UseECs(address IAddress, amount uint64) error {
 	if balance < 0 {
 		return fmt.Errorf("Overdraft of Entry Credits attempted.")
 	}
-	fs.database.PutRaw([]byte(DB_EC_BALANCES), address.Bytes(), &FSbalance{number: balance})
-	return nil
+	err := fs.database.Put([]byte(DB_EC_BALANCES), address.Bytes(), &FSbalance{number: balance})
+	return err
 }

@@ -53,9 +53,9 @@ type IFactoidState interface {
 
 	// Return the Factoid block with this hash.  If unknown, returns
 	// a null.
-	GetTransactionBlock(IHash) IFBlock
+	GetTransactionBlock(IHash) (IFBlock, error)
 	// Put a Factoid block with this hash into the database.
-	PutTransactionBlock(IHash, IFBlock)
+	PutTransactionBlock(IHash, IFBlock) error
 
 	// Time is something that can vary across multiple systems, and
 	// must be controlled in order to build reliable, repeatable
