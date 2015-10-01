@@ -11,9 +11,9 @@ package stateinit
 
 import (
 	"fmt"
-	"github.com/FactomProject/factomd/common/factoid/database"
 	"github.com/FactomProject/factomd/common/factoid/state"
 	"github.com/FactomProject/factomd/common/factoid/wallet"
+	"github.com/FactomProject/factomd/database/hybridDB"
 
 	. "github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/factoid"
@@ -33,32 +33,13 @@ func NewFactoidState(filename string) IFactoidState {
 	fs.GetWallet().GetDB().Init()
 
 	// Use Bolt DB
-	if true {
-		fs.SetDB(new(database.MapDB))
-		fs.GetDB().Init()
-		db := GetDatabase(filename)
-		fs.GetDB().SetPersist(db)
-		fs.GetDB().SetBacker(db)
-		fs.GetWallet().GetDB().SetPersist(db)
-		fs.GetWallet().GetDB().SetBacker(db)
-
-		fs.GetDB().DoNotPersist(DB_F_BALANCES)
-		fs.GetDB().DoNotPersist(DB_EC_BALANCES)
-		fs.GetDB().DoNotPersist(DB_BUILD_TRANS)
-		fs.GetDB().DoNotCache(DB_FACTOID_BLOCKS)
-		fs.GetDB().DoNotCache(DB_TRANSACTIONS)
-
-	} else {
-		fs.SetDB(GetDatabase(filename))
-	}
+	fs.SetDB(GetDatabase(filename))
 
 	return fs
 }
 
-func GetDatabase(filename string) IFDatabase {
-
+func GetDatabase(filename string) IDatabase {
 	var bucketList [][]byte
-	var instances map[[ADDRESS_LENGTH]byte]IBlock
 
 	bucketList = make([][]byte, 0, 5)
 
@@ -75,28 +56,6 @@ func GetDatabase(filename string) IFDatabase {
 	bucketList = append(bucketList, []byte(W_SEEDS))
 	bucketList = append(bucketList, []byte(W_SEED_HEADS))
 
-	instances = make(map[[ADDRESS_LENGTH]byte]IBlock)
-
-	var addinstance = func(b IBlock) {
-		key := new([32]byte)
-		copy(key[:], b.GetDBHash().Bytes())
-		instances[*key] = b
-	}
-	addinstance(new(database.ByteStore))
-	addinstance(new(Address))
-	addinstance(new(Hash))
-	addinstance(new(InAddress))
-	addinstance(new(OutAddress))
-	addinstance(new(OutECAddress))
-	addinstance(new(RCD_1))
-	addinstance(new(RCD_2))
-	addinstance(new(FactoidSignature))
-	addinstance(new(Transaction))
-	addinstance(new(block.FBlock))
-	addinstance(new(state.FSbalance))
-	addinstance(new(wallet.WalletEntry))
-
-	db := new(database.BoltDB)
-	db.Init(bucketList, instances, filename)
+	db := hybridDB.NewBoltMapHybridDB(bucketList, filename)
 	return db
 }

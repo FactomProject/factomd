@@ -24,7 +24,7 @@ type ISCWallet interface {
 	// Set the current deterministic root (Initialization function)
 	SetRoot([]byte)
 	// Returns the backing database for the wallet
-	GetDB() IFDatabase
+	GetDB() IDatabase
 	// Import a key pair.  If the private key is null, this is treated as an
 	// external address, useful only as a destination
 	AddKeyPair(addrtype string, name []byte, public []byte, private []byte, generateRandomIfAddressPresent bool) (IAddress, error)
@@ -47,7 +47,7 @@ type ISCWallet interface {
 	GenerateFctAddressFromMnemonic(name []byte, mnemonic string, m int, n int) (IAddress, error)
 
 	// Get details for an address
-	GetAddressDetailsAddr(addr []byte) IWalletEntry
+	GetAddressDetailsAddr(addr []byte) (IWalletEntry, error)
 	// Returns the Address hash (what we use for inputs) given the public key
 	GetAddressHash(IAddress) (IAddress, error)
 

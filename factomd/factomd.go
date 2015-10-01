@@ -14,7 +14,7 @@ import (
 	"github.com/FactomProject/factomd/common/factoid/state/stateinit"
 	cp "github.com/FactomProject/factomd/controlpanel"
 	"github.com/FactomProject/factomd/database"
-	"github.com/FactomProject/factomd/database/ldb"
+	"github.com/FactomProject/factomd/databaseOld/ldb"
 	"github.com/FactomProject/factomd/process"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"

@@ -17,15 +17,16 @@ import (
 	"github.com/FactomProject/ed25519"
 	. "github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/factoid"
-	"github.com/FactomProject/factomd/common/factoid/database"
 	. "github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/database/bytestore"
+	"github.com/FactomProject/factomd/database/mapdb"
 )
 
 var factoshisPerEC uint64 = 100000
 
 type SCWallet struct {
-	db            database.MapDB
+	db            mapdb.MapDB
 	isInitialized bool //defaults to 0 and false
 	RootSeed      []byte
 	NextSeed      []byte
@@ -49,7 +50,7 @@ func (w *SCWallet) SetRoot(root []byte) {
 	w.RootSeed = root
 }
 
-func (w *SCWallet) GetDB() IFDatabase {
+func (w *SCWallet) GetDB() IDatabase {
 	return &w.db
 }
 
@@ -72,7 +73,11 @@ func (w *SCWallet) SignInputs(trans ITransaction) (bool, error) {
 		rcd1, ok := rcd.(*RCD_1)
 		if ok {
 			pub := rcd1.GetPublicKey()
-			we := w.db.GetRaw([]byte(W_ADDRESS_PUB_KEY), pub).(*WalletEntry)
+			wex, err := w.db.Get([]byte(W_ADDRESS_PUB_KEY), pub, new(WalletEntry))
+			if err != nil {
+				return false, err
+			}
+			we := wex.(*WalletEntry)
 			if we != nil {
 				var pri [SIGNATURE_LENGTH]byte
 				copy(pri[:], we.private[0])
@@ -108,8 +113,9 @@ func (w *SCWallet) GetECRate() uint64 {
 	return factoshisPerEC
 }
 
-func (w *SCWallet) GetAddressDetailsAddr(name []byte) IWalletEntry {
-	return w.db.GetRaw([]byte("wallet.address.addr"), name).(IWalletEntry)
+func (w *SCWallet) GetAddressDetailsAddr(name []byte) (IWalletEntry, error) {
+	we, err := w.db.Get([]byte("wallet.address.addr"), name, new(WalletEntry))
+	return we.(IWalletEntry), err
 }
 
 func (w *SCWallet) generateAddressFromPrivateKey(addrtype string, name []byte, privateKey []byte, m int, n int) (IAddress, error) {
@@ -144,7 +150,10 @@ func (w *SCWallet) AddKeyPair(addrtype string, name []byte, pub []byte, pri []by
 
 	we := new(WalletEntry)
 
-	nm := w.db.GetRaw([]byte(W_NAME), name)
+	nm, err := w.db.Get([]byte(W_NAME), name, new(WalletEntry))
+	if err != nil {
+		return nil, err
+	}
 	if nm != nil {
 		str := fmt.Sprintf("The name '%s' already exists. Duplicate names are not supported", string(name))
 		return nil, fmt.Errorf(str)
@@ -152,7 +161,11 @@ func (w *SCWallet) AddKeyPair(addrtype string, name []byte, pub []byte, pri []by
 
 	// Make sure we have not generated this pair before;  Keep
 	// generating until we have a unique pair.
-	for w.db.GetRaw([]byte(W_ADDRESS_PUB_KEY), pub) != nil {
+	for {
+		p, err := w.db.Get([]byte(W_ADDRESS_PUB_KEY), pub, new(WalletEntry))
+		if p == nil {
+			break
+		}
 		if generateRandomIfAddressPresent {
 			pub, pri, err = w.generateKey()
 			if err != nil {
@@ -173,9 +186,18 @@ func (w *SCWallet) AddKeyPair(addrtype string, name []byte, pub []byte, pri []by
 	}
 	//
 	address, _ = we.GetAddress()
-	w.db.PutRaw([]byte(W_RCD_ADDRESS_HASH), address.Bytes(), we)
-	w.db.PutRaw([]byte(W_ADDRESS_PUB_KEY), pub, we)
-	w.db.PutRaw([]byte(W_NAME), name, we)
+	err = w.db.Put([]byte(W_RCD_ADDRESS_HASH), address.Bytes(), we)
+	if err != nil {
+		return nil, err
+	}
+	err = w.db.Put([]byte(W_ADDRESS_PUB_KEY), pub, we)
+	if err != nil {
+		return nil, err
+	}
+	err = w.db.Put([]byte(W_NAME), name, we)
+	if err != nil {
+		return nil, err
+	}
 
 	return
 }
@@ -227,7 +249,7 @@ func (w *SCWallet) NewSeed(data []byte) {
 	seedhash := hasher.Sum(nil)
 	w.NextSeed = seedhash
 	w.RootSeed = seedhash
-	b := new(database.ByteStore)
+	b := new(bytestore.ByteStore)
 	b.SetBytes(w.RootSeed)
 	w.db.PutRaw([]byte(W_SEEDS), CURRENT_SEED[:], b)
 	w.db.PutRaw([]byte(W_SEEDS), w.RootSeed[:32], b)
@@ -237,7 +259,7 @@ func (w *SCWallet) NewSeed(data []byte) {
 func (w *SCWallet) SetSeed(seed []byte) {
 	w.NextSeed = seed
 	w.RootSeed = seed
-	b := new(database.ByteStore)
+	b := new(bytestore.ByteStore)
 	b.SetBytes(w.RootSeed)
 	w.db.PutRaw([]byte(W_SEEDS), CURRENT_SEED[:], b)
 	w.db.PutRaw([]byte(W_SEEDS), w.RootSeed[:32], b)
@@ -256,7 +278,7 @@ func (w *SCWallet) GetSeed() []byte {
 	seedhash := hasher.Sum(nil)
 	w.NextSeed = seedhash
 
-	b := new(database.ByteStore)
+	b := new(bytestore.ByteStore)
 	b.SetBytes(w.NextSeed)
 	w.db.PutRaw([]byte(W_SEED_HEADS), w.RootSeed[:32], b)
 

@@ -5,12 +5,9 @@
 package boltdb
 
 import (
-	"bytes"
-	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 	. "github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
 
 	"github.com/boltdb/bolt"
 )
@@ -44,27 +41,29 @@ var _ IDatabase = (*BoltDB)(nil)
  ***************************************/
 
 // We don't care if delete works or not.  If the key isn't there, that's ok
-func (d *BoltDB) Delete(bucket []byte, key []byte) {
+func (d *BoltDB) Delete(bucket []byte, key []byte) error {
 	d.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(bucket)
 		b.Delete(key)
 		return nil
 	})
+	return nil
 }
 
-func (d *BoltDB) Close() {
+func (d *BoltDB) Close() error {
 	d.db.Close()
+	return nil
 }
 
 func (d *BoltDB) Get(bucket []byte, key []byte, destination BinaryMarshallable) (BinaryMarshallable, error) {
 	var v []byte
 	d.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(bucket)
-		v1 := b.Get(key)
-		if v1 == nil {
+		v = b.Get(key)
+		if v == nil {
 			return nil
 		}
-		return v1[:]
+		return nil
 	})
 	if v == nil || len(v) < 32 { // If the value is undefined, return nil
 		return nil, nil
@@ -78,7 +77,7 @@ func (d *BoltDB) Get(bucket []byte, key []byte, destination BinaryMarshallable) 
 }
 
 func (d *BoltDB) Put(bucket []byte, key []byte, data BinaryMarshallable) error {
-	hex, err := value.MarshalBinary()
+	hex, err := data.MarshalBinary()
 	if err != nil {
 		return err
 	}
@@ -91,7 +90,7 @@ func (d *BoltDB) Put(bucket []byte, key []byte, data BinaryMarshallable) error {
 }
 
 func (d *BoltDB) Clear(bucket []byte) error {
-	err = d.Update(func(tx *bolt.Tx) error {
+	err := d.db.Update(func(tx *bolt.Tx) error {
 		err := tx.DeleteBucket(bucket)
 		if err != nil {
 			return fmt.Errorf("No bucket: %s", err)

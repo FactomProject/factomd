@@ -25,7 +25,7 @@ var FACTOID_CHAINID_HASH = NewHash(FACTOID_CHAINID)
 var FactoidStateGlobal IFactoidState
 
 type FactoidState struct {
-	database        IFDatabase
+	database        IDatabase
 	factoshisPerEC  uint64
 	currentBlock    IFBlock
 	dbheight        uint32
@@ -292,7 +292,6 @@ func (fs *FactoidState) LoadState() error {
 	for i := len(hashes) - 1; i >= 0; i-- {
 		blk = fs.GetTransactionBlock(hashes[i])
 		if blk == nil {
-
 			return fmt.Errorf("Should never happen.  Block not found in the Database\n"+
 				"No block found for: %s", hashes[i].String())
 
@@ -367,11 +366,11 @@ func (fs *FactoidState) GetTime() uint64 {
 	return uint64(time.Now().Unix())
 }
 
-func (fs *FactoidState) SetDB(database IFDatabase) {
+func (fs *FactoidState) SetDB(database IDatabase) {
 	fs.database = database
 }
 
-func (fs *FactoidState) GetDB() IFDatabase {
+func (fs *FactoidState) GetDB() IDatabase {
 	return fs.database
 }
 

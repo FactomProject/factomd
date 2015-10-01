@@ -26,11 +26,13 @@ func (db *HybridDB) Close() error {
 func NewBoltMapHybridDB(bucketList [][]byte, filename string) *HybridDB {
 	answer := new(HybridDB)
 
-	answer.temporaryStorage = new(mapdb.MapDB)
-	answer.temporaryStorage.Init(bucketList)
+	m := new(mapdb.MapDB)
+	m.Init(bucketList)
+	answer.temporaryStorage = m
 
-	answer.persistentStorage = new(boltdb.BoltDB)
-	answer.persistentStorage.Init(bucketList, filename)
+	b := new(boltdb.BoltDB)
+	b.Init(bucketList, filename)
+	answer.persistentStorage = b
 
 	return answer
 }
@@ -76,7 +78,6 @@ func (db *HybridDB) Delete(bucket, key []byte) error {
 	if err != nil {
 		return err
 	}
-
 	return nil
 }
 
@@ -94,4 +95,5 @@ func (db *HybridDB) Clear(bucket []byte) error {
 	if err != nil {
 		return err
 	}
+	return nil
 }

@@ -2,16 +2,14 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-package database
+package mapdb
 
 import (
-	"bytes"
-	"fmt"
 	. "github.com/FactomProject/factomd/common/interfaces"
 )
 
 type MapDB struct {
-	cache map[[]byte]map[[]byte][]byte // Our Cache
+	cache map[string]map[string][]byte // Our Cache
 }
 
 var _ IDatabase = (*MapDB)(nil)
@@ -21,31 +19,31 @@ func (MapDB) Close() error {
 }
 
 func (db *MapDB) Init(bucketList [][]byte) {
-	db.cache = map[[]byte]map[[]byte][]byte{}
+	db.cache = map[string]map[string][]byte{}
 	for _, v := range bucketList {
-		db.cache[v] = map[[]byte][]byte{}
+		db.cache[string(v)] = map[string][]byte{}
 	}
 }
 
 func (db *MapDB) Put(bucket, key []byte, data BinaryMarshallable) error {
-	_, ok := db.cache[bucket]
+	_, ok := db.cache[string(bucket)]
 	if ok == false {
-		db.cache[bucket] = map[[]byte][]byte{}
+		db.cache[string(bucket)] = map[string][]byte{}
 	}
-	hex, err := value.MarshalBinary()
+	hex, err := data.MarshalBinary()
 	if err != nil {
 		return err
 	}
-	db.cache[bucket][key] = hex
+	db.cache[string(bucket)][string(key)] = hex
 	return nil
 }
 
 func (db *MapDB) Get(bucket, key []byte, destination BinaryMarshallable) (BinaryMarshallable, error) {
-	_, ok := db.cache[bucket]
+	_, ok := db.cache[string(bucket)]
 	if ok == false {
-		db.cache[bucket] = map[[]byte][]byte{}
+		db.cache[string(bucket)] = map[string][]byte{}
 	}
-	v, ok := db.cache[bucket][key]
+	v, ok := db.cache[string(bucket)][string(key)]
 	if ok == false {
 		return nil, nil
 	}
@@ -57,27 +55,27 @@ func (db *MapDB) Get(bucket, key []byte, destination BinaryMarshallable) (Binary
 }
 
 func (db *MapDB) Delete(bucket, key []byte) error {
-	_, ok := db.cache[bucket]
+	_, ok := db.cache[string(bucket)]
 	if ok == false {
-		db.cache[bucket] = map[[]byte][]byte{}
+		db.cache[string(bucket)] = map[string][]byte{}
 	}
-	delete(db.cache[bucket], key)
+	delete(db.cache[string(bucket)], string(key))
 	return nil
 }
 
 func (db *MapDB) ListAllKeys(bucket []byte) ([][]byte, error) {
-	_, ok := db.cache[bucket]
+	_, ok := db.cache[string(bucket)]
 	if ok == false {
-		db.cache[bucket] = map[[]byte][]byte{}
+		db.cache[string(bucket)] = map[string][]byte{}
 	}
 	answer := [][]byte{}
-	for k, _ := range db.cache[bucket] {
-		answer = append(answer, k)
+	for k, _ := range db.cache[string(bucket)] {
+		answer = append(answer, []byte(k))
 	}
-	return asnwer, nil
+	return answer, nil
 }
 
 func (db *MapDB) Clear(bucket []byte) error {
-	delete(db.cache, bucket)
+	delete(db.cache, string(bucket))
 	return nil
 }
