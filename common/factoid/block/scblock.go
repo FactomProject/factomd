@@ -182,6 +182,11 @@ func (b *FBlock) MarshalBinary() ([]byte, error) {
 	return out.Bytes(), nil
 }
 
+func (b FBlock) MarshalledSize() uint64 {
+	hex, _ := b.MarshalBinary()
+	return uint64(len(hex))
+}
+
 // UnmarshalBinary assumes that the Binary is all good.  We do error
 // out if there isn't enough data, or the transaction is too large.
 func (b *FBlock) UnmarshalBinaryData(data []byte) (newdata []byte, err error) {

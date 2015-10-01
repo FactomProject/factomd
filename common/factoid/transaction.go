@@ -577,6 +577,11 @@ func (t Transaction) MarshalBinary() ([]byte, error) {
 	return out.Bytes(), nil
 }
 
+func (b Transaction) MarshalledSize() uint64 {
+	hex, _ := b.MarshalBinary()
+	return uint64(len(hex))
+}
+
 // Helper function for building transactions.  Add an input to
 // the transaction.  I'm guessing 5 inputs is about all anyone
 // will need, so I'll default to 5.  Of course, go will grow

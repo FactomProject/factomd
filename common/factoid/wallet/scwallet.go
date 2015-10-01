@@ -251,9 +251,18 @@ func (w *SCWallet) NewSeed(data []byte) {
 	w.RootSeed = seedhash
 	b := new(bytestore.ByteStore)
 	b.SetBytes(w.RootSeed)
-	w.db.PutRaw([]byte(W_SEEDS), CURRENT_SEED[:], b)
-	w.db.PutRaw([]byte(W_SEEDS), w.RootSeed[:32], b)
-	w.db.PutRaw([]byte(W_SEED_HEADS), w.RootSeed[:32], b)
+	err := w.db.Put([]byte(W_SEEDS), CURRENT_SEED[:], b)
+	if err != nil {
+		panic(err)
+	}
+	err = w.db.Put([]byte(W_SEEDS), w.RootSeed[:32], b)
+	if err != nil {
+		panic(err)
+	}
+	err = w.db.Put([]byte(W_SEED_HEADS), w.RootSeed[:32], b)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func (w *SCWallet) SetSeed(seed []byte) {
@@ -261,13 +270,25 @@ func (w *SCWallet) SetSeed(seed []byte) {
 	w.RootSeed = seed
 	b := new(bytestore.ByteStore)
 	b.SetBytes(w.RootSeed)
-	w.db.PutRaw([]byte(W_SEEDS), CURRENT_SEED[:], b)
-	w.db.PutRaw([]byte(W_SEEDS), w.RootSeed[:32], b)
-	w.db.PutRaw([]byte(W_SEED_HEADS), w.RootSeed[:32], b)
+	err := w.db.Put([]byte(W_SEEDS), CURRENT_SEED[:], b)
+	if err != nil {
+		panic(err)
+	}
+	err = w.db.Put([]byte(W_SEEDS), w.RootSeed[:32], b)
+	if err != nil {
+		panic(err)
+	}
+	err = w.db.Put([]byte(W_SEED_HEADS), w.RootSeed[:32], b)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func (w *SCWallet) GetSeed() []byte {
-	iroot := w.db.GetRaw([]byte(W_SEEDS), CURRENT_SEED[:])
+	iroot, err := w.db.Get([]byte(W_SEEDS), CURRENT_SEED[:], new(bytestore.ByteStore))
+	if err != nil {
+		panic(err)
+	}
 	if iroot == nil {
 		randomstuff := make([]byte, 1024)
 		rand.Read(randomstuff)
@@ -280,8 +301,10 @@ func (w *SCWallet) GetSeed() []byte {
 
 	b := new(bytestore.ByteStore)
 	b.SetBytes(w.NextSeed)
-	w.db.PutRaw([]byte(W_SEED_HEADS), w.RootSeed[:32], b)
-
+	err = w.db.Put([]byte(W_SEED_HEADS), w.RootSeed[:32], b)
+	if err != nil {
+		panic(err)
+	}
 	return w.NextSeed
 }
 
@@ -290,7 +313,7 @@ func (w *SCWallet) Init(a ...interface{}) {
 		return
 	}
 	w.isInitialized = true
-	w.db.Init()
+	w.db.Init(nil)
 }
 
 // This function pulls the next private key from the deterministic
@@ -340,7 +363,10 @@ func (w *SCWallet) CreateTransaction(time uint64) ITransaction {
 
 func (w *SCWallet) getWalletEntry(bucket []byte, address IAddress) (IWalletEntry, IAddress, error) {
 
-	v := w.db.GetRaw([]byte(W_RCD_ADDRESS_HASH), address.Bytes())
+	v, err := w.db.Get([]byte(W_RCD_ADDRESS_HASH), address.Bytes(), new(WalletEntry))
+	if err != nil {
+		return nil, nil, err
+	}
 	if v == nil {
 		return nil, nil, fmt.Errorf("Unknown address")
 	}

@@ -10,8 +10,8 @@ type IFactoidState interface {
 	// Set the database for the Coin State.  This is where
 	// we manage the balances for transactions.  We also look
 	// for previous blocks here.
-	SetDB(IFDatabase)
-	GetDB() IFDatabase
+	SetDB(IDatabase)
+	GetDB() IDatabase
 
 	// Load the address state of Factoids
 	LoadState() error

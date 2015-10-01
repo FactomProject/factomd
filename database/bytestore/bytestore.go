@@ -78,6 +78,11 @@ func (b ByteStore) MarshalBinary() ([]byte, error) {
 	return out.Bytes(), nil
 }
 
+func (b ByteStore) MarshalledSize() uint64 {
+	hex, _ := b.MarshalBinary()
+	return uint64(len(hex))
+}
+
 func (b1 ByteStore) IsEqual(b IBlock) []IBlock {
 	b2, ok := b.(*ByteStore)
 	if !ok || !bytes.Equal(b1.byteData, b2.byteData) {

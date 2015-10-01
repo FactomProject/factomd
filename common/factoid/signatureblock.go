@@ -114,6 +114,11 @@ func (a SignatureBlock) MarshalBinary() ([]byte, error) {
 	return out.Bytes(), nil
 }
 
+func (b SignatureBlock) MarshalledSize() uint64 {
+	hex, _ := b.MarshalBinary()
+	return uint64(len(hex))
+}
+
 func (s SignatureBlock) CustomMarshalText() ([]byte, error) {
 	var out bytes.Buffer
 
