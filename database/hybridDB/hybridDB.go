@@ -64,6 +64,7 @@ func (db *HybridDB) Get(bucket, key []byte, destination BinaryMarshallable) (Bin
 	if err != nil {
 		return nil, err
 	}
+	db.temporaryStorage.Put(bucket, key, answer) //storing the data for later re-fetching
 
 	return answer, nil
 }

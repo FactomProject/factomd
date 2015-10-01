@@ -13,4 +13,11 @@ type IDatabase interface {
 	Delete(bucket, key []byte) error
 	ListAllKeys(bucket []byte) ([][]byte, error)
 	Clear(bucket []byte) error
+	PutInBatch(records []Record) error
+}
+
+type Record struct {
+	Bucket []byte
+	Key    []byte
+	data   BinaryMarshallable
 }
