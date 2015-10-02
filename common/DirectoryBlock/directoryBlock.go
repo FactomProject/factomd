@@ -675,6 +675,11 @@ func (b *DirBlockInfo) MarshalBinary() (data []byte, err error) {
 	return buf.Bytes(), err
 }
 
+func (e *DirBlockInfo) MarshalledSize() uint64 {
+	hex, _:=e.MarshalBinary()
+	return uint64(len(hex))
+}
+
 func (b *DirBlockInfo) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {

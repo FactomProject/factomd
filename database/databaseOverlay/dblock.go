@@ -9,7 +9,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"github.com/FactomProject/factomd/btcd/wire"*/
-	//. "github.com/FactomProject/factomd/common/DirectoryBlock"
+	. "github.com/FactomProject/factomd/common/DirectoryBlock"
 	//. "github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
@@ -20,7 +20,7 @@ import (
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
-	var fromkey []byte = []byte{byte(TBL_EB_QUEUE)} // Table Name (1 bytes)
+	var fromkey []byte = []byte{byte(TBL_EB_QUEUE)}
 	fromkey = append(fromkey, *startTime...)        // Timestamp  (8 bytes)
 
 	var tokey []byte = []byte{byte(TBL_EB_QUEUE)} // Table Name (4 bytes)
@@ -121,11 +121,12 @@ func (db *Overlay) UpdateBlockHeightCache(dirBlkHeigh uint32, dirBlkHash IHash) 
 	db.lastDirBlkShaCached = true
 	return nil
 }
-/*
+
 // FetchBlockHeightCache returns the hash and block height of the most recent
 func (db *Overlay) FetchBlockHeightCache() (sha IHash, height int64, err error) {
 	return db.lastDirBlkSha, db.lastDirBlkHeight, nil
 }
+/*
 // FetchHeightRange looks up a range of blocks by the start and ending
 // heights.  Fetch is inclusive of the start height and exclusive of the
 // ending height. To fetch all hashes from the start height until no
@@ -171,35 +172,25 @@ func (db *Overlay) FetchBlockHeightBySha(sha IHash) (int64, error) {
 	}
 
 	return height, nil
-}
+}*/
 
 // Insert the Directory Block meta data into db
-func (db *Overlay) InsertDirBlockInfo(dirBlockInfo *DirBlockInfo) (err error) {
+func (db *Overlay) InsertDirBlockInfo(dirBlockInfo *DirBlockInfo) error {
 	if dirBlockInfo.BTCTxHash == nil {
-		return
+		return nil
 	}
 
-	db.dbLock.Lock()
-	defer db.dbLock.Unlock()
+	bucket := []byte{byte(TBL_DB_INFO)}
+	key := dirBlockInfo.DBHash.Bytes()
 
-	if db.lbatch == nil {
-		db.lbatch = new(leveldb.Batch)
-	}
-	defer db.lbatch.Reset()
-
-	var key []byte = []byte{byte(TBL_DB_INFO)} // Table Name (1 bytes)
-	key = append(key, dirBlockInfo.DBHash.Bytes()...)
-	binaryDirBlockInfo, _ := dirBlockInfo.MarshalBinary()
-	db.lbatch.Put(key, binaryDirBlockInfo)
-
-	err = db.lDb.Write(db.lbatch, db.wo)
-	if err != nil {
+	err:=db.DB.Put(bucket, key, dirBlockInfo)
+	if err!=nil {
 		return err
 	}
 
 	return nil
 }
-
+/*
 // FetchDirBlockInfoByHash gets an DirBlockInfo obj
 func (db *Overlay) FetchDirBlockInfoByHash(dbHash IHash) (dirBlockInfo *DirBlockInfo, err error) {
 	db.dbLock.Lock()
@@ -350,8 +341,8 @@ func (db *Overlay) FetchAllDBlocks() (dBlocks []DirectoryBlock, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
-	var fromkey []byte = []byte{byte(TBL_DB)}   // Table Name (1 bytes)						// Timestamp  (8 bytes)
-	var tokey []byte = []byte{byte(TBL_DB + 1)} // Table Name (1 bytes)
+	var fromkey []byte = []byte{byte(TBL_DB)}  						// Timestamp  (8 bytes)
+	var tokey []byte = []byte{byte(TBL_DB + 1)}
 
 	dBlockSlice := make([]DirectoryBlock, 0, 10)
 
@@ -380,8 +371,8 @@ func (db *Overlay) FetchAllDirBlockInfo() (dirBlockInfoMap map[string]*DirBlockI
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
-	var fromkey []byte = []byte{byte(TBL_DB_INFO)}   // Table Name (1 bytes)
-	var tokey []byte = []byte{byte(TBL_DB_INFO + 1)} // Table Name (1 bytes)
+	var fromkey []byte = []byte{byte(TBL_DB_INFO)}  
+	var tokey []byte = []byte{byte(TBL_DB_INFO + 1)}
 
 	dirBlockInfoMap = make(map[string]*DirBlockInfo)
 
@@ -399,33 +390,24 @@ func (db *Overlay) FetchAllDirBlockInfo() (dirBlockInfoMap map[string]*DirBlockI
 	err = iter.Error()
 	return dirBlockInfoMap, err
 }*/
-/*
+
 // FetchAllUnconfirmedDirBlockInfo gets all of the dirBlockInfos that have BTC Anchor confirmation
 func (db *Overlay) FetchAllUnconfirmedDirBlockInfo() (dirBlockInfoMap map[string]*DirBlockInfo, err error) {
-	db.dbLock.Lock()
-	defer db.dbLock.Unlock()
+	bucket:= []byte{byte(TBL_DB_INFO)}
 
-	var fromkey []byte = []byte{byte(TBL_DB_INFO)}   // Table Name (1 bytes)
-	var tokey []byte = []byte{byte(TBL_DB_INFO + 1)} // Table Name (1 bytes)
+	all, err:=db.DB.GetAll(bucket, new(DirBlockInfo))
+	if err!=nil {
+		return nil, err
+	}
 
 	dirBlockInfoMap = make(map[string]*DirBlockInfo)
 
-	iter := db.lDb.NewIterator(&util.Range{Start: fromkey, Limit: tokey}, db.ro)
-
-	for iter.Next() {
-		dBInfo := new(DirBlockInfo)
-
-		// The last byte stores the confirmation flag
-		if iter.Value()[len(iter.Value())-1] == 0 {
-			_, err := dBInfo.UnmarshalBinaryData(iter.Value())
-			if err != nil {
-				return dirBlockInfoMap, err
-			}
+	for _, v:=range(all) {
+		dBInfo := v.(*DirBlockInfo)
+		if dBInfo.BTCConfirmed == false {
 			dirBlockInfoMap[dBInfo.DBMerkleRoot.String()] = dBInfo
 		}
 	}
-	iter.Release()
-	err = iter.Error()
-	return dirBlockInfoMap, err
+
+	return dirBlockInfoMap, nil
 }
-*/

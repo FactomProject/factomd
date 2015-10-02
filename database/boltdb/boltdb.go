@@ -143,6 +143,7 @@ func (db *BoltDB) GetAll(bucket []byte, sample BinaryMarshallable) ([]BinaryMars
 					return err
 				}
 				answer = append(answer, tmp)
+				return nil
 			})
 			return nil
 		}

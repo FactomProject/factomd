@@ -115,6 +115,10 @@ func (db *HybridDB) ListAllKeys(bucket []byte) ([][]byte, error) {
 	return db.persistentStorage.ListAllKeys(bucket)
 }
 
+func (db *HybridDB) GetAll(bucket []byte, sample BinaryMarshallable) ([]BinaryMarshallable, error) {
+	return db.persistentStorage.GetAll(bucket, sample)
+}
+
 func (db *HybridDB) Clear(bucket []byte) error {
 	err := db.persistentStorage.Clear(bucket)
 	if err != nil {
