@@ -1,42 +1,24 @@
 package databaseOverlay
-/*
-import (
-	"log"
-	"strings"
 
+import (
 	. "github.com/FactomProject/factomd/common/EntryBlock"
-	. "github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/goleveldb/leveldb"
-	"github.com/FactomProject/goleveldb/leveldb/util"
+	//. "github.com/FactomProject/factomd/common/interfaces"
 )
+
+
 
 // InsertEntry inserts an entry
 func (db *Overlay) InsertEntry(entry *Entry) error {
-	db.dbLock.Lock()
-	defer db.dbLock.Unlock()
-
-	if db.lbatch == nil {
-		db.lbatch = new(leveldb.Batch)
-	}
-	defer db.lbatch.Reset()
-
-	binaryEntry, err := entry.MarshalBinary()
-	if err != nil {
+	bucket := []byte{byte(TBL_ENTRY)}
+	key := entry.Hash().Bytes()
+	err:=db.DB.Put(bucket, key, entry)
+	if err!=nil {
 		return err
 	}
-	var entryKey []byte = []byte{byte(TBL_ENTRY)}
-	entryKey = append(entryKey, entry.Hash().Bytes()...)
-	db.lbatch.Put(entryKey, binaryEntry)
-
-	err = db.lDb.Write(db.lbatch, db.wo)
-	if err != nil {
-		log.Println("batch failed %v\n", err)
-		return err
-	}
-
 	return nil
 }
 
+/*
 // FetchEntry gets an entry by hash from the database.
 func (db *Overlay) FetchEntryByHash(entrySha IHash) (entry *Entry, err error) {
 	db.dbLock.Lock()

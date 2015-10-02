@@ -33,6 +33,12 @@ type ByteStore struct {
 
 var _ IByteStore = (*ByteStore)(nil)
 
+func NewByteStore(data []byte) IByteStore {
+	bs:=new(ByteStore)
+	bs.SetBytes(data)
+	return bs
+}
+
 func (b ByteStore) Bytes() []byte {
 	return b.byteData
 }

@@ -3,21 +3,18 @@
 // license that can be found in the LICENSE file.
 
 package databaseOverlay
-/*
+
 import (
-	"bytes"
+	/*"bytes"
 	"encoding/binary"
 	"errors"
-	"github.com/FactomProject/factomd/btcd/wire"
-	. "github.com/FactomProject/factomd/common/DirectoryBlock"
-	. "github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/btcd/wire"*/
+	//. "github.com/FactomProject/factomd/common/DirectoryBlock"
+	//. "github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/database"
-	"github.com/FactomProject/goleveldb/leveldb"
-	"github.com/FactomProject/goleveldb/leveldb/util"
 )
-
+/*
 // FetchDBEntriesFromQueue gets all of the dbentries that have not been processed
 /*func (db *Overlay) FetchDBEntriesFromQueue(startTime *[]byte) (dbentries []*DBEntry, err error) {
 	db.dbLock.Lock()
@@ -114,18 +111,17 @@ func (db *Overlay) ProcessDBlockBatch(dblock *DirectoryBlock) error {
 
 	}
 	return nil
-}
+}*/
 
 // UpdateBlockHeightCache updates the dir block height cache in db
 func (db *Overlay) UpdateBlockHeightCache(dirBlkHeigh uint32, dirBlkHash IHash) error {
-
 	// Update DirBlock Height cache
 	db.lastDirBlkHeight = int64(dirBlkHeigh)
 	db.lastDirBlkSha, _ = NewShaHash(dirBlkHash.Bytes())
 	db.lastDirBlkShaCached = true
 	return nil
 }
-
+/*
 // FetchBlockHeightCache returns the hash and block height of the most recent
 func (db *Overlay) FetchBlockHeightCache() (sha IHash, height int64, err error) {
 	return db.lastDirBlkSha, db.lastDirBlkHeight, nil

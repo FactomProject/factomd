@@ -3,21 +3,18 @@
 // license that can be found in the LICENSE file.
 
 package databaseOverlay
-/*
+
 import (
-	"encoding/binary"
+	/*"encoding/binary"
 	"fmt"
 	"log"
 	"os"
 	"strconv"
 	"sync"
 
-	"github.com/FactomProject/factomd/database"
+	"github.com/FactomProject/factomd/database"*/
 
 	. "github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/goleveldb/leveldb"
-	//	"github.com/FactomProject/goleveldb/leveldb/cache"
-	"github.com/FactomProject/goleveldb/leveldb/opt"
 )
 
 const (
@@ -71,7 +68,7 @@ const (
 var currentChainType uint32 = 1
 
 var isLookupDB bool = true // to be put in property file
-
+/*
 type tTxInsertData struct {
 	txsha   IHash
 	blockid int64
@@ -83,11 +80,10 @@ type tTxInsertData struct {
 type Overlay struct {
 	// leveldb pieces
 	DB IDatabase
-	/*
-		lastDirBlkShaCached bool
-		lastDirBlkSha       IHash
-		lastDirBlkHeight    int64
-	*/
+	
+	lastDirBlkShaCached bool
+	lastDirBlkSha       IHash
+	lastDirBlkHeight    int64
 }
 
 func NewOverlay(db IDatabase) *Overlay{

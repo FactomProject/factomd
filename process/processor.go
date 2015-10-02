@@ -789,9 +789,12 @@ func buildRevealEntry(msg *wire.MsgRevealEntry) {
 	chain := chainIDMap[msg.Entry.ChainID.String()]
 
 	// store the new entry in db
-	db.InsertEntry(msg.Entry)
+	err := db.InsertEntry(msg.Entry)
+	if err != nil {
+		panic("Error while adding inserting Entry:" + err.Error())
+	}
 
-	err := chain.NextBlock.AddEBEntry(msg.Entry)
+	err = chain.NextBlock.AddEBEntry(msg.Entry)
 
 	if err != nil {
 		panic("Error while adding Entity to Block:" + err.Error())

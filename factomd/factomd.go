@@ -13,11 +13,10 @@ import (
 	"github.com/FactomProject/factomd/common/factoid/state"
 	"github.com/FactomProject/factomd/common/factoid/state/stateinit"
 	cp "github.com/FactomProject/factomd/controlpanel"
-	"github.com/FactomProject/factomd/database"
-	"github.com/FactomProject/factomd/databaseOld/ldb"
 	"github.com/FactomProject/factomd/process"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
+	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"os"
 	"runtime"
 	"strings"
@@ -30,7 +29,7 @@ var (
 	shutdownChannel = make(chan struct{})
 	ldbpath         = ""
 	boltDBpath      = ""
-	db              database.Db                           // database
+	db              databaseOverlay.Overlay                           // database
 	inMsgQueue      = make(chan wire.FtmInternalMsg, 100) //incoming message queue for factom application messages
 	outMsgQueue     = make(chan wire.FtmInternalMsg, 100) //outgoing message queue for factom application messages
 	inCtlMsgQueue   = make(chan wire.FtmInternalMsg, 100) //incoming message queue for factom application messages

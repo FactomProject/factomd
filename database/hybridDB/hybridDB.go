@@ -31,7 +31,7 @@ func NewLevelMapHybridDB(filename string, create bool) (*HybridDB, error) {
 	m.Init(nil)
 	answer.temporaryStorage = m
 
-	b, err := NewLevelDB(filename, create)
+	b, err := leveldb.NewLevelDB(filename, create)
 	if err != nil {
 		return nil, err
 	}

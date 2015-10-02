@@ -2,23 +2,24 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-package boltdb
+package leveldb
 
 import (
-	"encoding/hex"
-	"fmt"
 	. "github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/goleveldb/leveldb"
 	"github.com/FactomProject/goleveldb/leveldb/util"
+	"github.com/FactomProject/goleveldb/leveldb/opt"
 	"sync"
+	"os"
 )
 
 type LevelDB struct {
 	// lock preventing multiple entry
-	dbLock sync.Mutex
-	lDB    *leveldb.DB
-	lbatch *leveldb.Batch
-	ro     *opt.ReadOptions
+	dbLock	sync.Mutex
+	lDB		*leveldb.DB
+	lbatch	*leveldb.Batch
+	ro		*opt.ReadOptions
+	wo  	*opt.WriteOptions
 }
 
 var _ IDatabase = (*LevelDB)(nil)
@@ -39,13 +40,13 @@ func (db *LevelDB) Get(bucket []byte, key []byte, destination BinaryMarshallable
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
-	ldbKey := append(bucket, key)
-	data, err := db.lDb.Get(ldbKey, db.ro)
+	ldbKey := append(bucket, key...)
+	data, err := db.lDB.Get(ldbKey, db.ro)
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = destination.UnmarshalBinaryData(v)
+	_, err = destination.UnmarshalBinaryData(data)
 	if err != nil {
 		return nil, err
 	}
@@ -60,14 +61,18 @@ func (db *LevelDB) Put(bucket []byte, key []byte, data BinaryMarshallable) error
 
 	defer db.lbatch.Reset()
 
-	ldbKey := append(bucket, key)
-	db.lbatch.Put(ldbKey, data.Bytes())
+	ldbKey := append(bucket, key...)
+	hex, err:=data.MarshalBinary()
+	if err!=nil {
+		return err
+	}
+	db.lbatch.Put(ldbKey, hex)
 
 	err = db.lDB.Write(db.lbatch, db.wo)
 	if err != nil {
-		log.Println("batch failed %v\n", err)
 		return err
 	}
+	return nil
 }
 
 func (db *LevelDB) PutInBatch(records []Record) error {
@@ -78,13 +83,16 @@ func (db *LevelDB) PutInBatch(records []Record) error {
 	defer db.lbatch.Reset()
 
 	for _, v := range records {
-		ldbKey := append(v.Bucket, v.Key)
-		db.lbatch.Put(ldbKey, v.Data.Bytes())
+		ldbKey := append(v.Bucket, v.Key...)
+		hex, err:=v.Data.MarshalBinary()
+		if err!=nil {
+			return err
+		}
+		db.lbatch.Put(ldbKey, hex)
 	}
 
-	err = db.lDB.Write(db.lbatch, db.wo)
+	err := db.lDB.Write(db.lbatch, db.wo)
 	if err != nil {
-		log.Println("batch failed %v\n", err)
 		return err
 	}
 	return nil
@@ -103,7 +111,7 @@ func (db *LevelDB) ListAllKeys(bucket []byte) (keys [][]byte, err error) {
 	var toKey []byte = bucket[:]
 	toKey = addOneToByteArray(toKey)
 
-	iter := db.lDb.NewIterator(&util.Range{Start: fromKey, Limit: toKey}, db.ro)
+	iter := db.lDB.NewIterator(&util.Range{Start: fromKey, Limit: toKey}, db.ro)
 
 	var answer [][]byte
 
@@ -112,15 +120,15 @@ func (db *LevelDB) ListAllKeys(bucket []byte) (keys [][]byte, err error) {
 		answer = append(answer, key[len(bucket):])
 	}
 	iter.Release()
-	err := iter.Error()
+	err = iter.Error()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	return answer, nil
 }
 
-func NewLevelDB(filename string, create bool) (*IDatabase, error) {
+func NewLevelDB(filename string, create bool) (IDatabase, error) {
 	db := new(LevelDB)
 	var err error
 
@@ -129,7 +137,6 @@ func NewLevelDB(filename string, create bool) (*IDatabase, error) {
 	if create == true {
 		err = os.MkdirAll(filename, 0750)
 		if err != nil {
-			log.Println("mkdir failed %v %v", filename, err)
 			return nil, err
 		}
 	} else {
