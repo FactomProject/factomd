@@ -398,8 +398,8 @@ func (db *Overlay) FetchAllDirBlockInfo() (dirBlockInfoMap map[string]*DirBlockI
 	iter.Release()
 	err = iter.Error()
 	return dirBlockInfoMap, err
-}
-
+}*/
+/*
 // FetchAllUnconfirmedDirBlockInfo gets all of the dirBlockInfos that have BTC Anchor confirmation
 func (db *Overlay) FetchAllUnconfirmedDirBlockInfo() (dirBlockInfoMap map[string]*DirBlockInfo, err error) {
 	db.dbLock.Lock()

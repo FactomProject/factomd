@@ -10,6 +10,7 @@ import (
 	. "github.com/FactomProject/factomd/common/interfaces"
 
 	"github.com/boltdb/bolt"
+	"reflect"
 )
 
 var _ = hex.EncodeToString
@@ -126,6 +127,31 @@ func (bdb *BoltDB) ListAllKeys(bucket []byte) (keys [][]byte, err error) {
 		return nil
 	})
 	return
+}
+
+func (db *BoltDB) GetAll(bucket []byte, sample BinaryMarshallable) ([]BinaryMarshallable, error) {
+	answer:=[]BinaryMarshallable{}
+	err:=db.db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte(bucket))
+		if b == nil {
+			fmt.Println("bucket '", bucket, "' not found")
+		} else {
+			b.ForEach(func(k, v []byte) error {
+				tmp:=((interface{})(reflect.New(reflect.TypeOf(sample)))).(BinaryMarshallable)
+				err:=tmp.UnmarshalBinary(v)
+				if err!=nil {
+					return err
+				}
+				answer = append(answer, tmp)
+			})
+			return nil
+		}
+		return nil
+	})
+	if err!=nil {
+		return nil, err
+	}
+	return answer, nil
 }
 
 // We have to make accomadation for many Init functions.  But what we really

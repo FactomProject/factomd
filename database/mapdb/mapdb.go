@@ -6,6 +6,7 @@ package mapdb
 
 import (
 	. "github.com/FactomProject/factomd/common/interfaces"
+	"reflect"
 )
 
 type MapDB struct {
@@ -81,6 +82,23 @@ func (db *MapDB) ListAllKeys(bucket []byte) ([][]byte, error) {
 	answer := [][]byte{}
 	for k, _ := range db.cache[string(bucket)] {
 		answer = append(answer, []byte(k))
+	}
+	return answer, nil
+}
+
+func (db *MapDB) GetAll(bucket []byte, sample BinaryMarshallable) ([]BinaryMarshallable, error) {
+	_, ok := db.cache[string(bucket)]
+	if ok == false {
+		db.cache[string(bucket)] = map[string][]byte{}
+	}
+	answer := []BinaryMarshallable{}
+	for _, v := range db.cache[string(bucket)] {
+		tmp:=((interface{})(reflect.New(reflect.TypeOf(sample)))).(BinaryMarshallable)
+		err:=tmp.UnmarshalBinary(v)
+		if err!=nil {
+			return nil, err
+		}
+		answer = append(answer, tmp)
 	}
 	return answer, nil
 }

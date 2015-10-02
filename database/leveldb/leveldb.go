@@ -11,6 +11,7 @@ import (
 	"github.com/FactomProject/goleveldb/leveldb/opt"
 	"sync"
 	"os"
+	"reflect"
 )
 
 type LevelDB struct {
@@ -121,6 +122,36 @@ func (db *LevelDB) ListAllKeys(bucket []byte) (keys [][]byte, err error) {
 	}
 	iter.Release()
 	err = iter.Error()
+	if err != nil {
+		return nil, err
+	}
+
+	return answer, nil
+}
+
+func (db *LevelDB) GetAll(bucket []byte, sample BinaryMarshallable) ([]BinaryMarshallable, error) {
+	db.dbLock.Lock()
+	defer db.dbLock.Unlock()
+
+	var fromKey []byte = bucket[:]
+	var toKey []byte = bucket[:]
+	toKey = addOneToByteArray(toKey)
+
+	iter := db.lDB.NewIterator(&util.Range{Start: fromKey, Limit: toKey}, db.ro)
+
+	answer := []BinaryMarshallable{}
+
+	for iter.Next() {
+		v := iter.Value()
+		tmp:=((interface{})(reflect.New(reflect.TypeOf(sample)))).(BinaryMarshallable)
+		err:=tmp.UnmarshalBinary(v)
+		if err!=nil {
+			return nil, err
+		}
+		answer = append(answer, tmp)
+	}
+	iter.Release()
+	err := iter.Error()
 	if err != nil {
 		return nil, err
 	}

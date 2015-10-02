@@ -12,6 +12,7 @@ type IDatabase interface {
 	Get(bucket, key []byte, destination BinaryMarshallable) (BinaryMarshallable, error)
 	Delete(bucket, key []byte) error
 	ListAllKeys(bucket []byte) ([][]byte, error)
+	GetAll(bucket []byte, sample BinaryMarshallable) ([]BinaryMarshallable, error)
 	Clear(bucket []byte) error
 	PutInBatch(records []Record) error
 }
