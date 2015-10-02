@@ -25,7 +25,7 @@ import (
 	"github.com/FactomProject/factomd/common/factoid/block"
 	"github.com/FactomProject/factomd/consensus"
 	cp "github.com/FactomProject/factomd/controlpanel"
-	"github.com/FactomProject/factomd/database"
+	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/util"
 	"github.com/davecgh/go-spew/spew"
 
@@ -45,7 +45,8 @@ var _ = (*block.FBlock)(nil)
 var _ = util.Trace
 
 var (
-	db       database.Db // database
+	db       databaseOverlay.Overlay // database
+
 	dchain   *DChain     //Directory Block Chain
 	ecchain  *ECChain    //Entry Credit Chain
 	achain   *AdminChain //Admin Chain
@@ -179,12 +180,13 @@ func initProcessor() {
 
 // Started from factomd
 func Start_Processor(
-	ldb database.Db,
+	dbase IDatabase,
 	inMsgQ chan wire.FtmInternalMsg,
 	outMsgQ chan wire.FtmInternalMsg,
 	inCtlMsgQ chan wire.FtmInternalMsg,
 	outCtlMsgQ chan wire.FtmInternalMsg) {
-	db = ldb
+
+	db = databaseOverlay.NewOverlay(dbase)
 
 	inMsgQueue = inMsgQ
 	outMsgQueue = outMsgQ
@@ -494,11 +496,6 @@ func processAcknowledgement(msg *wire.MsgAcknowledgement) error {
 	// Update the next block height in dchain
 	if msg.Height > dchain.NextDBHeight {
 		dchain.NextDBHeight = msg.Height
-	}
-
-	// Update the next block height in db
-	if int64(msg.Height) > db.FetchNextBlockHeightCache() {
-		db.UpdateNextBlockHeightCache(msg.Height)
 	}
 
 	return nil
@@ -983,7 +980,6 @@ func buildBlocks() error {
 
 	// Update dir block height cache in db
 	db.UpdateBlockHeightCache(dbBlock.Header.DBHeight, commonHash)
-	db.UpdateNextBlockHeightCache(dchain.NextDBHeight)
 
 	// re-initialize the process lit manager
 	initProcessListMgr()

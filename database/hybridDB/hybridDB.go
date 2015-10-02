@@ -4,6 +4,7 @@ import (
 	. "github.com/FactomProject/factomd/common/interfaces"
 
 	"github.com/FactomProject/factomd/database/boltdb"
+	"github.com/FactomProject/factomd/database/leveldb"
 	"github.com/FactomProject/factomd/database/mapdb"
 )
 
@@ -21,6 +22,22 @@ func (db *HybridDB) Close() error {
 	}
 	err = db.persistentStorage.Close()
 	return err
+}
+
+func NewLevelMapHybridDB(filename string, create bool) (*HybridDB, error) {
+	answer := new(HybridDB)
+
+	m := new(mapdb.MapDB)
+	m.Init(nil)
+	answer.temporaryStorage = m
+
+	b, err := NewLevelDB(filename, create)
+	if err != nil {
+		return nil, err
+	}
+	answer.persistentStorage = b
+
+	return answer, nil
 }
 
 func NewBoltMapHybridDB(bucketList [][]byte, filename string) *HybridDB {

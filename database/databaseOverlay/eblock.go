@@ -1,5 +1,5 @@
-package ldb
-
+package databaseOverlay
+/*
 import (
 	"encoding/binary"
 	"errors"
@@ -13,7 +13,7 @@ import (
 )
 
 // ProcessEBlockBatche inserts the EBlock and update all it's ebentries in DB
-func (db *LevelDb) ProcessEBlockBatch(eblock *EBlock) error {
+func (db *Overlay) ProcessEBlockBatch(eblock *EBlock) error {
 	if eblock != nil {
 		if db.lbatch == nil {
 			db.lbatch = new(leveldb.Batch)
@@ -84,7 +84,7 @@ func (db *LevelDb) ProcessEBlockBatch(eblock *EBlock) error {
 }
 
 // FetchEBlockByMR gets an entry block by merkle root from the database.
-func (db *LevelDb) FetchEBlockByMR(eBMR IHash) (eBlock *EBlock, err error) {
+func (db *Overlay) FetchEBlockByMR(eBMR IHash) (eBlock *EBlock, err error) {
 	eBlockHash, err := db.FetchEBHashByMR(eBMR)
 	if err != nil {
 		return nil, err
@@ -101,7 +101,7 @@ func (db *LevelDb) FetchEBlockByMR(eBMR IHash) (eBlock *EBlock, err error) {
 }
 
 // FetchEntryBlock gets an entry by hash from the database.
-func (db *LevelDb) FetchEBlockByHash(eBlockHash IHash) (*EBlock, error) {
+func (db *Overlay) FetchEBlockByHash(eBlockHash IHash) (*EBlock, error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -124,7 +124,7 @@ func (db *LevelDb) FetchEBlockByHash(eBlockHash IHash) (*EBlock, error) {
 
 // FetchEBlockByHeight gets an entry block by height from the database.
 // Need to rewrite since only the cross ref is stored in db ??
-/*func (db *LevelDb) FetchEBlockByHeight(chainID IHash, eBlockHeight uint32) (*EBlock, error) {
+/*func (db *Overlay) FetchEBlockByHeight(chainID IHash, eBlockHeight uint32) (*EBlock, error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -147,10 +147,10 @@ func (db *LevelDb) FetchEBlockByHash(eBlockHash IHash) (*EBlock, error) {
 	}
 	return eBlock, nil
 }
-*/
+*//*
 
 // FetchEBHashByMR gets an entry by hash from the database.
-func (db *LevelDb) FetchEBHashByMR(eBMR IHash) (IHash, error) {
+func (db *Overlay) FetchEBHashByMR(eBMR IHash) (IHash, error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -171,7 +171,7 @@ func (db *LevelDb) FetchEBHashByMR(eBMR IHash) (IHash, error) {
 }
 
 // InsertChain inserts the newly created chain into db
-func (db *LevelDb) InsertChain(chain *EChain) (err error) {
+func (db *Overlay) InsertChain(chain *EChain) (err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -197,7 +197,7 @@ func (db *LevelDb) InsertChain(chain *EChain) (err error) {
 }
 
 // FetchChainByHash gets a chain by chainID
-func (db *LevelDb) FetchChainByHash(chainID IHash) (*EChain, error) {
+func (db *Overlay) FetchChainByHash(chainID IHash) (*EChain, error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -219,7 +219,7 @@ func (db *LevelDb) FetchChainByHash(chainID IHash) (*EChain, error) {
 }
 
 // FetchAllChains get all of the cahins
-func (db *LevelDb) FetchAllChains() (chains []*EChain, err error) {
+func (db *Overlay) FetchAllChains() (chains []*EChain, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -244,7 +244,7 @@ func (db *LevelDb) FetchAllChains() (chains []*EChain, err error) {
 }
 
 // FetchAllEBlocksByChain gets all of the blocks by chain id
-func (db *LevelDb) FetchAllEBlocksByChain(chainID IHash) (eBlocks *[]EBlock, err error) {
+func (db *Overlay) FetchAllEBlocksByChain(chainID IHash) (eBlocks *[]EBlock, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -284,19 +284,4 @@ func (db *LevelDb) FetchAllEBlocksByChain(chainID IHash) (eBlocks *[]EBlock, err
 
 	return &eBlockSlice, nil
 }
-
-// Internal db use only
-func addOneToByteArray(input []byte) (output []byte) {
-	if input == nil {
-		return []byte{byte(1)}
-	}
-	output = make([]byte, len(input))
-	copy(output, input)
-	for i := len(input); i > 0; i-- {
-		if output[i-1] <= 255 {
-			output[i-1] = output[i-1] + 1
-			break
-		}
-	}
-	return output
-}
+*/

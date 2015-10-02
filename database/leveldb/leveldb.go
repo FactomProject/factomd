@@ -101,7 +101,7 @@ func (db *LevelDB) ListAllKeys(bucket []byte) (keys [][]byte, err error) {
 
 	var fromKey []byte = bucket[:]
 	var toKey []byte = bucket[:]
-	toKey[len(toKey)-1] = toKey[len(toKey)-1] + 1
+	toKey = addOneToByteArray(toKey)
 
 	iter := db.lDb.NewIterator(&util.Range{Start: fromKey, Limit: toKey}, db.ro)
 
@@ -150,4 +150,20 @@ func NewLevelDB(filename string, create bool) (*IDatabase, error) {
 	db.lDB = tlDB
 
 	return db, nil
+}
+
+// Internal db use only
+func addOneToByteArray(input []byte) (output []byte) {
+	if input == nil {
+		return []byte{byte(1)}
+	}
+	output = make([]byte, len(input))
+	copy(output, input)
+	for i := len(input); i > 0; i-- {
+		if output[i-1] <= 255 {
+			output[i-1] = output[i-1] + 1
+			break
+		}
+	}
+	return output
 }

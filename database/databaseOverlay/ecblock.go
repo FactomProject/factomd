@@ -1,5 +1,5 @@
-package ldb
-
+package databaseOverlay
+/*
 import (
 	//	"errors"
 	. "github.com/FactomProject/factomd/common/EntryCreditBlock"
@@ -11,7 +11,7 @@ import (
 )
 
 // ProcessECBlockBatche inserts the ECBlock and update all it's cbentries in DB
-func (db *LevelDb) ProcessECBlockBatch(block *ECBlock) error {
+func (db *Overlay) ProcessECBlockBatch(block *ECBlock) error {
 
 	if block != nil {
 		if db.lbatch == nil {
@@ -54,7 +54,7 @@ func (db *LevelDb) ProcessECBlockBatch(block *ECBlock) error {
 }
 
 // FetchECBlockByHash gets an Entry Credit block by hash from the database.
-func (db *LevelDb) FetchECBlockByHash(ecBlockHash IHash) (ecBlock *ECBlock, err error) {
+func (db *Overlay) FetchECBlockByHash(ecBlockHash IHash) (ecBlock *ECBlock, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -73,7 +73,7 @@ func (db *LevelDb) FetchECBlockByHash(ecBlockHash IHash) (ecBlock *ECBlock, err 
 }
 
 // FetchAllECBlocks gets all of the entry credit blocks
-func (db *LevelDb) FetchAllECBlocks() (ecBlocks []ECBlock, err error) {
+func (db *Overlay) FetchAllECBlocks() (ecBlocks []ECBlock, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -97,3 +97,4 @@ func (db *LevelDb) FetchAllECBlocks() (ecBlocks []ECBlock, err error) {
 
 	return ecBlockSlice, nil
 }
+*/

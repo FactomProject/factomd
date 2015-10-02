@@ -1,5 +1,5 @@
-package ldb
-
+package databaseOverlay
+/*
 import (
 	//	"errors"
 	"encoding/binary"
@@ -12,7 +12,7 @@ import (
 )
 
 // ProcessFBlockBatch inserts the factoid block
-func (db *LevelDb) ProcessFBlockBatch(block IFBlock) error {
+func (db *Overlay) ProcessFBlockBatch(block IFBlock) error {
 
 	if block != nil {
 		if db.lbatch == nil {
@@ -57,7 +57,7 @@ func (db *LevelDb) ProcessFBlockBatch(block IFBlock) error {
 }
 
 // FetchFBlockByHash gets an factoid block by hash from the database.
-func (db *LevelDb) FetchFBlockByHash(hash IHash) (FBlock IFBlock, err error) {
+func (db *Overlay) FetchFBlockByHash(hash IHash) (FBlock IFBlock, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -76,7 +76,7 @@ func (db *LevelDb) FetchFBlockByHash(hash IHash) (FBlock IFBlock, err error) {
 }
 
 // FetchAllFBlocks gets all of the factoid blocks
-func (db *LevelDb) FetchAllFBlocks() (FBlocks []IFBlock, err error) {
+func (db *Overlay) FetchAllFBlocks() (FBlocks []IFBlock, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -102,3 +102,4 @@ func (db *LevelDb) FetchAllFBlocks() (FBlocks []IFBlock, err error) {
 
 	return FBlockSlice, nil
 }
+*/

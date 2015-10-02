@@ -1,5 +1,5 @@
-package ldb
-
+package databaseOverlay
+/*
 import (
 	"log"
 	"strings"
@@ -11,7 +11,7 @@ import (
 )
 
 // InsertEntry inserts an entry
-func (db *LevelDb) InsertEntry(entry *Entry) error {
+func (db *Overlay) InsertEntry(entry *Entry) error {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -38,7 +38,7 @@ func (db *LevelDb) InsertEntry(entry *Entry) error {
 }
 
 // FetchEntry gets an entry by hash from the database.
-func (db *LevelDb) FetchEntryByHash(entrySha IHash) (entry *Entry, err error) {
+func (db *Overlay) FetchEntryByHash(entrySha IHash) (entry *Entry, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -57,7 +57,7 @@ func (db *LevelDb) FetchEntryByHash(entrySha IHash) (entry *Entry, err error) {
 }
 
 // Initialize External ID map for explorer search
-func (db *LevelDb) InitializeExternalIDMap() (extIDMap map[string]bool, err error) {
+func (db *Overlay) InitializeExternalIDMap() (extIDMap map[string]bool, err error) {
 
 	var fromkey []byte = []byte{byte(TBL_ENTRY)} // Table Name (1 bytes)
 
@@ -87,3 +87,4 @@ func (db *LevelDb) InitializeExternalIDMap() (extIDMap map[string]bool, err erro
 
 	return extIDMap, nil
 }
+*/

@@ -1,4 +1,4 @@
-package ldb
+package databaseOverlay
 
 import (
 	"github.com/FactomProject/factomd/database"

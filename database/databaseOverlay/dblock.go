@@ -2,8 +2,8 @@
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
-package ldb
-
+package databaseOverlay
+/*
 import (
 	"bytes"
 	"encoding/binary"
@@ -19,7 +19,7 @@ import (
 )
 
 // FetchDBEntriesFromQueue gets all of the dbentries that have not been processed
-/*func (db *LevelDb) FetchDBEntriesFromQueue(startTime *[]byte) (dbentries []*DBEntry, err error) {
+/*func (db *Overlay) FetchDBEntriesFromQueue(startTime *[]byte) (dbentries []*DBEntry, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -55,9 +55,9 @@ import (
 
 	return fbEntrySlice, nil
 }
-*/
+*//*
 // ProcessDBlockBatche inserts the DBlock and update all it's dbentries in DB
-func (db *LevelDb) ProcessDBlockBatch(dblock *DirectoryBlock) error {
+func (db *Overlay) ProcessDBlockBatch(dblock *DirectoryBlock) error {
 
 	if dblock != nil {
 		if db.lbatch == nil {
@@ -117,7 +117,7 @@ func (db *LevelDb) ProcessDBlockBatch(dblock *DirectoryBlock) error {
 }
 
 // UpdateBlockHeightCache updates the dir block height cache in db
-func (db *LevelDb) UpdateBlockHeightCache(dirBlkHeigh uint32, dirBlkHash IHash) error {
+func (db *Overlay) UpdateBlockHeightCache(dirBlkHeigh uint32, dirBlkHash IHash) error {
 
 	// Update DirBlock Height cache
 	db.lastDirBlkHeight = int64(dirBlkHeigh)
@@ -127,28 +127,14 @@ func (db *LevelDb) UpdateBlockHeightCache(dirBlkHeigh uint32, dirBlkHash IHash) 
 }
 
 // FetchBlockHeightCache returns the hash and block height of the most recent
-func (db *LevelDb) FetchBlockHeightCache() (sha IHash, height int64, err error) {
+func (db *Overlay) FetchBlockHeightCache() (sha IHash, height int64, err error) {
 	return db.lastDirBlkSha, db.lastDirBlkHeight, nil
 }
-
-// UpdateNextBlockHeightCache updates the next dir block height cache (from server) in db
-func (db *LevelDb) UpdateNextBlockHeightCache(dirBlkHeigh uint32) error {
-
-	// Update DirBlock Height cache
-	db.nextDirBlockHeight = int64(dirBlkHeigh)
-	return nil
-}
-
-// FetchNextBlockHeightCache returns the next block height from server
-func (db *LevelDb) FetchNextBlockHeightCache() (height int64) {
-	return db.nextDirBlockHeight
-}
-
 // FetchHeightRange looks up a range of blocks by the start and ending
 // heights.  Fetch is inclusive of the start height and exclusive of the
 // ending height. To fetch all hashes from the start height until no
 // more are present, use the special id `AllShas'.
-func (db *LevelDb) FetchHeightRange(startHeight, endHeight int64) (rshalist []IHash, err error) {
+func (db *Overlay) FetchHeightRange(startHeight, endHeight int64) (rshalist []IHash, err error) {
 
 	var endidx int64
 	if endHeight == database.AllShas {
@@ -179,7 +165,7 @@ func (db *LevelDb) FetchHeightRange(startHeight, endHeight int64) (rshalist []IH
 
 // FetchBlockHeightBySha returns the block height for the given hash.  This is
 // part of the database.Db interface implementation.
-func (db *LevelDb) FetchBlockHeightBySha(sha IHash) (int64, error) {
+func (db *Overlay) FetchBlockHeightBySha(sha IHash) (int64, error) {
 
 	dblk, _ := db.FetchDBlockByHash(sha)
 
@@ -192,7 +178,7 @@ func (db *LevelDb) FetchBlockHeightBySha(sha IHash) (int64, error) {
 }
 
 // Insert the Directory Block meta data into db
-func (db *LevelDb) InsertDirBlockInfo(dirBlockInfo *DirBlockInfo) (err error) {
+func (db *Overlay) InsertDirBlockInfo(dirBlockInfo *DirBlockInfo) (err error) {
 	if dirBlockInfo.BTCTxHash == nil {
 		return
 	}
@@ -219,7 +205,7 @@ func (db *LevelDb) InsertDirBlockInfo(dirBlockInfo *DirBlockInfo) (err error) {
 }
 
 // FetchDirBlockInfoByHash gets an DirBlockInfo obj
-func (db *LevelDb) FetchDirBlockInfoByHash(dbHash IHash) (dirBlockInfo *DirBlockInfo, err error) {
+func (db *Overlay) FetchDirBlockInfoByHash(dbHash IHash) (dirBlockInfo *DirBlockInfo, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -239,7 +225,7 @@ func (db *LevelDb) FetchDirBlockInfoByHash(dbHash IHash) (dirBlockInfo *DirBlock
 }
 
 // FetchDBlock gets an entry by hash from the database.
-func (db *LevelDb) FetchDBlockByHash(dBlockHash IHash) (*DirectoryBlock, error) {
+func (db *Overlay) FetchDBlockByHash(dBlockHash IHash) (*DirectoryBlock, error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -263,7 +249,7 @@ func (db *LevelDb) FetchDBlockByHash(dBlockHash IHash) (*DirectoryBlock, error) 
 }
 
 // FetchDBlockByHeight gets an directory block by height from the database.
-func (db *LevelDb) FetchDBlockByHeight(dBlockHeight uint32) (dBlock *DirectoryBlock, err error) {
+func (db *Overlay) FetchDBlockByHeight(dBlockHeight uint32) (dBlock *DirectoryBlock, err error) {
 	dBlockHash, err := db.FetchDBHashByHeight(dBlockHeight)
 	if err != nil {
 		return nil, err
@@ -280,7 +266,7 @@ func (db *LevelDb) FetchDBlockByHeight(dBlockHeight uint32) (dBlock *DirectoryBl
 }
 
 // FetchDBHashByHeight gets a dBlockHash from the database.
-func (db *LevelDb) FetchDBHashByHeight(dBlockHeight uint32) (IHash, error) {
+func (db *Overlay) FetchDBHashByHeight(dBlockHeight uint32) (IHash, error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -303,7 +289,7 @@ func (db *LevelDb) FetchDBHashByHeight(dBlockHeight uint32) (IHash, error) {
 }
 
 // FetchDBHashByMR gets a DBHash by MR from the database.
-func (db *LevelDb) FetchDBHashByMR(dBMR IHash) (IHash, error) {
+func (db *Overlay) FetchDBHashByMR(dBMR IHash) (IHash, error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -324,7 +310,7 @@ func (db *LevelDb) FetchDBHashByMR(dBMR IHash) (IHash, error) {
 }
 
 // FetchDBlockByMR gets a directory block by merkle root from the database.
-func (db *LevelDb) FetchDBlockByMR(dBMR IHash) (*DirectoryBlock, error) {
+func (db *Overlay) FetchDBlockByMR(dBMR IHash) (*DirectoryBlock, error) {
 	dBlockHash, err := db.FetchDBHashByMR(dBMR)
 	if err != nil {
 		return nil, err
@@ -339,7 +325,7 @@ func (db *LevelDb) FetchDBlockByMR(dBMR IHash) (*DirectoryBlock, error) {
 }
 
 // FetchHeadMRByChainID gets a MR of the highest block from the database.
-func (db *LevelDb) FetchHeadMRByChainID(chainID IHash) (blkMR IHash, err error) {
+func (db *Overlay) FetchHeadMRByChainID(chainID IHash) (blkMR IHash, err error) {
 	if chainID == nil {
 		return nil, nil
 	}
@@ -364,7 +350,7 @@ func (db *LevelDb) FetchHeadMRByChainID(chainID IHash) (blkMR IHash, err error) 
 }
 
 // FetchAllDBlocks gets all of the fbInfo
-func (db *LevelDb) FetchAllDBlocks() (dBlocks []DirectoryBlock, err error) {
+func (db *Overlay) FetchAllDBlocks() (dBlocks []DirectoryBlock, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -394,7 +380,7 @@ func (db *LevelDb) FetchAllDBlocks() (dBlocks []DirectoryBlock, err error) {
 }
 
 // FetchAllDirBlockInfo gets all of the dirBlockInfo
-func (db *LevelDb) FetchAllDirBlockInfo() (dirBlockInfoMap map[string]*DirBlockInfo, err error) {
+func (db *Overlay) FetchAllDirBlockInfo() (dirBlockInfoMap map[string]*DirBlockInfo, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -419,7 +405,7 @@ func (db *LevelDb) FetchAllDirBlockInfo() (dirBlockInfoMap map[string]*DirBlockI
 }
 
 // FetchAllUnconfirmedDirBlockInfo gets all of the dirBlockInfos that have BTC Anchor confirmation
-func (db *LevelDb) FetchAllUnconfirmedDirBlockInfo() (dirBlockInfoMap map[string]*DirBlockInfo, err error) {
+func (db *Overlay) FetchAllUnconfirmedDirBlockInfo() (dirBlockInfoMap map[string]*DirBlockInfo, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -446,3 +432,4 @@ func (db *LevelDb) FetchAllUnconfirmedDirBlockInfo() (dirBlockInfoMap map[string
 	err = iter.Error()
 	return dirBlockInfoMap, err
 }
+*/

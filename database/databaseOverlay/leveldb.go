@@ -2,8 +2,8 @@
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
-package ldb
-
+package databaseOverlay
+/*
 import (
 	"encoding/binary"
 	"fmt"
@@ -78,26 +78,25 @@ type tTxInsertData struct {
 	txoff   int
 	txlen   int
 	usedbuf []byte
-}
+}*/
 
-type LevelDb struct {
-	// lock preventing multiple entry
-	dbLock sync.Mutex
-
+type Overlay struct {
 	// leveldb pieces
-	lDb *leveldb.DB
-	ro  *opt.ReadOptions
-	wo  *opt.WriteOptions
-
-	lbatch *leveldb.Batch
-
-	nextDirBlockHeight int64
-
-	lastDirBlkShaCached bool
-	lastDirBlkSha       IHash
-	lastDirBlkHeight    int64
+	DB IDatabase
+	/*
+		lastDirBlkShaCached bool
+		lastDirBlkSha       IHash
+		lastDirBlkHeight    int64
+	*/
 }
 
+func NewOverlay(db IDatabase) *Overlay{
+	answer:=new(Overlay)
+	answer.DB = db
+	return answer
+}
+
+/*
 var CurrentDBVersion int32 = 1
 
 func OpenLevelDB(dbpath string, create bool) (pbdb database.Db, err error) {
@@ -105,7 +104,7 @@ func OpenLevelDB(dbpath string, create bool) (pbdb database.Db, err error) {
 }
 
 func openDB(dbpath string, create bool) (pbdb database.Db, err error) {
-	var db LevelDb
+	var db Overlay
 	var tlDb *leveldb.DB
 	var dbversion int32
 
@@ -188,13 +187,13 @@ func openDB(dbpath string, create bool) (pbdb database.Db, err error) {
 	return
 }
 
-func (db *LevelDb) close() error {
+func (db *Overlay) close() error {
 	return db.lDb.Close()
 }
 
 // Sync verifies that the database is coherent on disk,
 // and no outstanding transactions are in flight.
-func (db *LevelDb) Sync() error {
+func (db *Overlay) Sync() error {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -204,7 +203,7 @@ func (db *LevelDb) Sync() error {
 }
 
 // Close cleanly shuts down database, syncing all data.
-func (db *LevelDb) Close() error {
+func (db *Overlay) Close() error {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -233,16 +232,17 @@ func shaSpentTxToKey(sha IHash) []byte {
 	return shaB
 }
 
-func (db *LevelDb) lBatch() *leveldb.Batch {
+func (db *Overlay) lBatch() *leveldb.Batch {
 	if db.lbatch == nil {
 		db.lbatch = new(leveldb.Batch)
 	}
 	return db.lbatch
 }
 
-func (db *LevelDb) RollbackClose() error {
+func (db *Overlay) RollbackClose() error {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
 	return db.close()
 }
+*/

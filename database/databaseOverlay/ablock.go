@@ -1,5 +1,5 @@
-package ldb
-
+package databaseOverlay
+/*
 import (
 	//	"errors"
 	"encoding/binary"
@@ -12,7 +12,7 @@ import (
 )
 
 // ProcessABlockBatch inserts the AdminBlock
-func (db *LevelDb) ProcessABlockBatch(block *AdminBlock) error {
+func (db *Overlay) ProcessABlockBatch(block *AdminBlock) error {
 
 	if block != nil {
 		if db.lbatch == nil {
@@ -60,7 +60,7 @@ func (db *LevelDb) ProcessABlockBatch(block *AdminBlock) error {
 }
 
 // FetchABlockByHash gets an admin block by hash from the database.
-func (db *LevelDb) FetchABlockByHash(aBlockHash IHash) (aBlock *AdminBlock, err error) {
+func (db *Overlay) FetchABlockByHash(aBlockHash IHash) (aBlock *AdminBlock, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -79,7 +79,7 @@ func (db *LevelDb) FetchABlockByHash(aBlockHash IHash) (aBlock *AdminBlock, err 
 }
 
 // FetchAllABlocks gets all of the admin blocks
-func (db *LevelDb) FetchAllABlocks() (aBlocks []AdminBlock, err error) {
+func (db *Overlay) FetchAllABlocks() (aBlocks []AdminBlock, err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -110,3 +110,4 @@ func (db *LevelDb) FetchAllABlocks() (aBlocks []AdminBlock, err error) {
 
 	return aBlockSlice, nil
 }
+*/

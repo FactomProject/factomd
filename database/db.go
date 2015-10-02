@@ -4,6 +4,7 @@
 
 package database
 
+/*
 import (
 	. "github.com/FactomProject/factomd/common/AdminBlock"
 	. "github.com/FactomProject/factomd/common/DirectoryBlock"
@@ -163,3 +164,4 @@ type Db interface {
 	// FtchHeadMRByChainID gets a MR of the highest block from the database.
 	FetchHeadMRByChainID(chainID IHash) (blkMR IHash, err error)
 }
+*/
