@@ -5,7 +5,7 @@ import (
 	"errors"
 	. "github.com/FactomProject/factomd/common/EntryBlock"
 	. "github.com/FactomProject/factomd/common/interfaces"
-	//. "github.com/FactomProject/factomd/common/primitives"
+	. "github.com/FactomProject/factomd/common/primitives"
 
 	"github.com/FactomProject/factomd/database/bytestore"
 
@@ -221,46 +221,26 @@ func (db *Overlay) FetchAllChains() (chains []*EChain, err error) {
 
 	return chainSlice, err
 }
+*/
 
 // FetchAllEBlocksByChain gets all of the blocks by chain id
-func (db *Overlay) FetchAllEBlocksByChain(chainID IHash) (eBlocks *[]EBlock, err error) {
-	db.dbLock.Lock()
-	defer db.dbLock.Unlock()
+func (db *Overlay) FetchAllEBlocksByChain(chainID IHash) ([]*EBlock, error) {
+	bucket := append([]byte{byte(TBL_EB_CHAIN_NUM)}, chainID.Bytes()...)
 
-	var fromkey []byte = []byte{byte(TBL_EB_CHAIN_NUM)} // Table Name (1 bytes)
-	fromkey = append(fromkey, chainID.Bytes()...)       // Chain Type (32 bytes)
-	var tokey []byte = addOneToByteArray(fromkey)
-
-	eBlockSlice := make([]EBlock, 0, 10)
-
-	iter := db.lDb.NewIterator(&util.Range{Start: fromkey, Limit: tokey}, db.ro)
-
-	for iter.Next() {
-		eBlockHash := NewZeroHash()
-		_, err := eBlockHash.UnmarshalBinaryData(iter.Value())
-		if err != nil {
-			return nil, err
-		}
-
-		var key []byte = []byte{byte(TBL_EB)}
-		key = append(key, eBlockHash.Bytes()...)
-		data, err := db.lDb.Get(key, db.ro)
-		if err != nil {
-			return nil, err
-		}
-
-		eBlock := NewEBlock()
-		if data != nil {
-			_, err := eBlock.UnmarshalBinaryData(data)
-			if err != nil {
-				return nil, err
-			}
-			eBlockSlice = append(eBlockSlice, *eBlock)
-		}
+	list, err:=db.DB.GetAll(bucket, new(Hash))
+	if err!=nil {
+		return nil, err
 	}
-	iter.Release()
-	err = iter.Error()
+	bucket = []byte{byte(TBL_EB)}
+	answer:=make([]*EBlock, len(list))
+	for i, v:=range(list) {
+		key := v.(*Hash).Bytes()
 
-	return &eBlockSlice, nil
+		data, err:=db.DB.Get(bucket, key, new(EBlock))
+		if err!= nil {
+			return nil, err
+		}
+		answer[i] = data.(*EBlock)
+	}
+	return answer, nil
 }
-*/

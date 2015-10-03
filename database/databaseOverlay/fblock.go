@@ -1,16 +1,12 @@
 package databaseOverlay
-/*
+
 import (
-	//	"errors"
-	"encoding/binary"
-	. "github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/common/factoid/block"
+	//. "github.com/FactomProject/factomd/common/constants"
+	. "github.com/FactomProject/factomd/common/factoid/block"
 	. "github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/goleveldb/leveldb"
-	"github.com/FactomProject/goleveldb/leveldb/util"
-	"log"
 )
 
+/*
 // ProcessFBlockBatch inserts the factoid block
 func (db *Overlay) ProcessFBlockBatch(block IFBlock) error {
 
@@ -73,33 +69,19 @@ func (db *Overlay) FetchFBlockByHash(hash IHash) (FBlock IFBlock, err error) {
 		}
 	}
 	return FBlock, nil
-}
+}*/
 
 // FetchAllFBlocks gets all of the factoid blocks
 func (db *Overlay) FetchAllFBlocks() (FBlocks []IFBlock, err error) {
-	db.dbLock.Lock()
-	defer db.dbLock.Unlock()
+	bucket := []byte{byte(TBL_SC)}
 
-	var fromkey []byte = []byte{byte(TBL_SC)}   // Table Name (1 bytes)						// Timestamp  (8 bytes)
-	var tokey []byte = []byte{byte(TBL_SC + 1)} // Table Name (1 bytes)
-
-	FBlockSlice := make([]IFBlock, 0, 10)
-
-	iter := db.lDb.NewIterator(&util.Range{Start: fromkey, Limit: tokey}, db.ro)
-
-	for iter.Next() {
-		FBlock := new(block.FBlock)
-		_, err := FBlock.UnmarshalBinaryData(iter.Value())
-		if err != nil {
-			return nil, err
-		}
-
-		FBlockSlice = append(FBlockSlice, FBlock)
-
+	list, err:=db.DB.GetAll(bucket, new(FBlock))
+	if err!=nil {
+		return nil, err
 	}
-	iter.Release()
-	err = iter.Error()
-
-	return FBlockSlice, nil
+	answer:=make([]IFBlock, len(list))
+	for i, v:=range(list) {
+		answer[i] = v.(*FBlock)
+	}
+	return answer, nil
 }
-*/

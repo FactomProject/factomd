@@ -55,7 +55,7 @@ func initDChain() {
 		dBlocks[i].Chain = dchain
 		dBlocks[i].IsSealed = true
 		dBlocks[i].IsSavedInDB = true
-		dchain.Blocks[i] = &dBlocks[i]
+		dchain.Blocks[i] = dBlocks[i]
 	}
 
 	// double check the block ids
@@ -101,7 +101,7 @@ func initECChain() {
 		}
 
 		// Calculate the EC balance for each account
-		initializeECreditMap(&v)
+		initializeECreditMap(v)
 	}
 
 	//Create an empty block and append to the chain
@@ -118,7 +118,7 @@ func initECChain() {
 		// Entry Credit Chain should have the same height as the dir chain
 		ecchain.NextBlockHeight = dchain.NextDBHeight
 		var err error
-		ecchain.NextBlock, err = NextECBlock(&ecBlocks[ecchain.NextBlockHeight-1])
+		ecchain.NextBlock, err = NextECBlock(ecBlocks[ecchain.NextBlockHeight-1])
 		if err != nil {
 			panic(err)
 		}
@@ -151,7 +151,7 @@ func initAChain() {
 		if uint32(i) != aBlocks[i].Header.DBHeight {
 			panic(errors.New("BlockID does not equal index for chain:" + achain.ChainID.String() + " block:" + fmt.Sprintf("%v", aBlocks[i].Header.DBHeight)))
 		}
-		if !validateDBSignature(&aBlocks[i], dchain) {
+		if !validateDBSignature(aBlocks[i], dchain) {
 			panic(errors.New("No valid signature found in Admin Block = " + fmt.Sprintf("%s\n", spew.Sdump(aBlocks[i]))))
 		}
 	}
@@ -164,7 +164,7 @@ func initAChain() {
 	} else {
 		// Entry Credit Chain should have the same height as the dir chain
 		achain.NextBlockHeight = dchain.NextDBHeight
-		achain.NextBlock, _ = CreateAdminBlock(achain, &aBlocks[achain.NextBlockHeight-1], 10)
+		achain.NextBlock, _ = CreateAdminBlock(achain, aBlocks[achain.NextBlockHeight-1], 10)
 	}
 
 }
@@ -289,32 +289,32 @@ func initProcessListMgr() {
 func initEChainFromDB(chain *EChain) {
 
 	eBlocks, _ := db.FetchAllEBlocksByChain(chain.ChainID)
-	sort.Sort(util.ByEBlockIDAccending(*eBlocks))
+	sort.Sort(util.ByEBlockIDAccending(eBlocks))
 
-	for i := 0; i < len(*eBlocks); i = i + 1 {
-		if uint32(i) != (*eBlocks)[i].Header.EBSequence {
-			panic(errors.New("BlockID does not equal index for chain:" + chain.ChainID.String() + " block:" + fmt.Sprintf("%v", (*eBlocks)[i].Header.EBSequence)))
+	for i := 0; i < len(eBlocks); i = i + 1 {
+		if uint32(i) != (eBlocks)[i].Header.EBSequence {
+			panic(errors.New("BlockID does not equal index for chain:" + chain.ChainID.String() + " block:" + fmt.Sprintf("%v", (eBlocks)[i].Header.EBSequence)))
 		}
 	}
 
 	var err error
-	if len(*eBlocks) == 0 {
+	if len(eBlocks) == 0 {
 		chain.NextBlockHeight = 0
 		chain.NextBlock, err = MakeEBlock(chain, nil)
 		if err != nil {
 			panic(err)
 		}
 	} else {
-		chain.NextBlockHeight = uint32(len(*eBlocks))
-		chain.NextBlock, err = MakeEBlock(chain, &(*eBlocks)[len(*eBlocks)-1])
+		chain.NextBlockHeight = uint32(len(eBlocks))
+		chain.NextBlock, err = MakeEBlock(chain, eBlocks[len(eBlocks)-1])
 		if err != nil {
 			panic(err)
 		}
 	}
 
 	// Initialize chain with the first entry (Name and rules) for non-server mode
-	if nodeMode != SERVER_NODE && chain.FirstEntry == nil && len(*eBlocks) > 0 {
-		chain.FirstEntry, _ = db.FetchEntryByHash((*eBlocks)[0].Body.EBEntries[0])
+	if nodeMode != SERVER_NODE && chain.FirstEntry == nil && len(eBlocks) > 0 {
+		chain.FirstEntry, _ = db.FetchEntryByHash(eBlocks[0].Body.EBEntries[0])
 		if chain.FirstEntry != nil {
 			db.InsertChain(chain)
 		}

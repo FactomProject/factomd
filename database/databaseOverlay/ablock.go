@@ -1,16 +1,12 @@
 package databaseOverlay
-/*
+
 import (
 	//	"errors"
-	"encoding/binary"
 	. "github.com/FactomProject/factomd/common/AdminBlock"
-	. "github.com/FactomProject/factomd/common/constants"
-	. "github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/goleveldb/leveldb"
-	"github.com/FactomProject/goleveldb/leveldb/util"
-	"log"
+	//. "github.com/FactomProject/factomd/common/constants"
+	//. "github.com/FactomProject/factomd/common/interfaces"
 )
-
+/*
 // ProcessABlockBatch inserts the AdminBlock
 func (db *Overlay) ProcessABlockBatch(block *AdminBlock) error {
 
@@ -77,37 +73,19 @@ func (db *Overlay) FetchABlockByHash(aBlockHash IHash) (aBlock *AdminBlock, err 
 	}
 	return aBlock, nil
 }
+*/
 
 // FetchAllABlocks gets all of the admin blocks
-func (db *Overlay) FetchAllABlocks() (aBlocks []AdminBlock, err error) {
-	db.dbLock.Lock()
-	defer db.dbLock.Unlock()
+func (db *Overlay) FetchAllABlocks() (aBlocks []*AdminBlock, err error) {
+	bucket := []byte{byte(TBL_AB)}
 
-	var fromkey []byte = []byte{byte(TBL_AB)}   // Table Name (1 bytes)						// Timestamp  (8 bytes)
-	var tokey []byte = []byte{byte(TBL_AB + 1)} // Table Name (1 bytes)
-
-	aBlockSlice := make([]AdminBlock, 0, 10)
-
-	iter := db.lDb.NewIterator(&util.Range{Start: fromkey, Limit: tokey}, db.ro)
-
-	for iter.Next() {
-		var aBlock AdminBlock
-		_, err := aBlock.UnmarshalBinaryData(iter.Value())
-		if err != nil {
-			return nil, err
-		}
-		//TODO: to be optimized??
-		_, err = aBlock.PartialHash()
-		if err != nil {
-			return nil, err
-		}
-
-		aBlockSlice = append(aBlockSlice, aBlock)
-
+	list, err:=db.DB.GetAll(bucket, new(AdminBlock))
+	if err!=nil {
+		return nil, err
 	}
-	iter.Release()
-	err = iter.Error()
-
-	return aBlockSlice, nil
+	answer:=make([]*AdminBlock, len(list))
+	for i, v:=range(list) {
+		answer[i] = v.(*AdminBlock)
+	}
+	return answer, nil
 }
-*/

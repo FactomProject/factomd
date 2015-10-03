@@ -10,7 +10,7 @@ import (
 
 //------------------------------------------------
 // DBlock array sorting implementation - accending
-type ByDBlockIDAccending []DirectoryBlock
+type ByDBlockIDAccending []*DirectoryBlock
 
 func (f ByDBlockIDAccending) Len() int {
 	return len(f)
@@ -24,7 +24,7 @@ func (f ByDBlockIDAccending) Swap(i, j int) {
 
 //------------------------------------------------
 // CBlock array sorting implementation - accending
-type ByECBlockIDAccending []ECBlock
+type ByECBlockIDAccending []*ECBlock
 
 func (f ByECBlockIDAccending) Len() int {
 	return len(f)
@@ -38,7 +38,7 @@ func (f ByECBlockIDAccending) Swap(i, j int) {
 
 //------------------------------------------------
 // ABlock array sorting implementation - accending
-type ByABlockIDAccending []AdminBlock
+type ByABlockIDAccending []*AdminBlock
 
 func (f ByABlockIDAccending) Len() int {
 	return len(f)
@@ -66,7 +66,7 @@ func (f ByFBlockIDAccending) Swap(i, j int) {
 
 //------------------------------------------------
 // EBlock array sorting implementation - accending
-type ByEBlockIDAccending []EBlock
+type ByEBlockIDAccending []*EBlock
 
 func (f ByEBlockIDAccending) Len() int {
 	return len(f)

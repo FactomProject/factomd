@@ -126,6 +126,7 @@ func (db *Overlay) UpdateBlockHeightCache(dirBlkHeigh uint32, dirBlkHash IHash) 
 func (db *Overlay) FetchBlockHeightCache() (sha IHash, height int64, err error) {
 	return db.lastDirBlkSha, db.lastDirBlkHeight, nil
 }
+
 /*
 // FetchHeightRange looks up a range of blocks by the start and ending
 // heights.  Fetch is inclusive of the start height and exclusive of the
@@ -334,38 +335,24 @@ func (db *Overlay) FetchHeadMRByChainID(chainID IHash) (blkMR IHash, err error) 
 	}
 
 	return blkMR, nil
-}
+}*/
 
 // FetchAllDBlocks gets all of the fbInfo
-func (db *Overlay) FetchAllDBlocks() (dBlocks []DirectoryBlock, err error) {
-	db.dbLock.Lock()
-	defer db.dbLock.Unlock()
+func (db *Overlay) FetchAllDBlocks() (dBlocks []*DirectoryBlock, err error) {
+	bucket := []byte{byte(TBL_DB)}
 
-	var fromkey []byte = []byte{byte(TBL_DB)}  						// Timestamp  (8 bytes)
-	var tokey []byte = []byte{byte(TBL_DB + 1)}
-
-	dBlockSlice := make([]DirectoryBlock, 0, 10)
-
-	iter := db.lDb.NewIterator(&util.Range{Start: fromkey, Limit: tokey}, db.ro)
-
-	for iter.Next() {
-		var dBlock DirectoryBlock
-		_, err := dBlock.UnmarshalBinaryData(iter.Value())
-		if err != nil {
-			return nil, err
-		}
-		//TODO: to be optimized??
-		dBlock.DBHash = Sha(iter.Value())
-
-		dBlockSlice = append(dBlockSlice, dBlock)
-
+	list, err:=db.DB.GetAll(bucket, new(DirectoryBlock))
+	if err!=nil {
+		return nil, err
 	}
-	iter.Release()
-	err = iter.Error()
-
-	return dBlockSlice, nil
+	answer:=make([]*DirectoryBlock, len(list))
+	for i, v:=range(list) {
+		answer[i] = v.(*DirectoryBlock)
+	}
+	return answer, nil
 }
 
+/*
 // FetchAllDirBlockInfo gets all of the dirBlockInfo
 func (db *Overlay) FetchAllDirBlockInfo() (dirBlockInfoMap map[string]*DirBlockInfo, err error) {
 	db.dbLock.Lock()

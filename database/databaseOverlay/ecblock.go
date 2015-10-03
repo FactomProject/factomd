@@ -1,15 +1,12 @@
 package databaseOverlay
-/*
+
 import (
 	//	"errors"
 	. "github.com/FactomProject/factomd/common/EntryCreditBlock"
-	. "github.com/FactomProject/factomd/common/constants"
-	. "github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/goleveldb/leveldb"
-	"github.com/FactomProject/goleveldb/leveldb/util"
-	"log"
+	//. "github.com/FactomProject/factomd/common/constants"
+	//. "github.com/FactomProject/factomd/common/interfaces"
 )
-
+/*
 // ProcessECBlockBatche inserts the ECBlock and update all it's cbentries in DB
 func (db *Overlay) ProcessECBlockBatch(block *ECBlock) error {
 
@@ -71,30 +68,19 @@ func (db *Overlay) FetchECBlockByHash(ecBlockHash IHash) (ecBlock *ECBlock, err 
 	}
 	return ecBlock, nil
 }
+*/
 
 // FetchAllECBlocks gets all of the entry credit blocks
-func (db *Overlay) FetchAllECBlocks() (ecBlocks []ECBlock, err error) {
-	db.dbLock.Lock()
-	defer db.dbLock.Unlock()
+func (db *Overlay) FetchAllECBlocks() ([]*ECBlock, error) {
+	bucket := []byte{byte(TBL_CB)}
 
-	var fromkey []byte = []byte{byte(TBL_CB)}   // Table Name (1 bytes)						// Timestamp  (8 bytes)
-	var tokey []byte = []byte{byte(TBL_CB + 1)} // Table Name (1 bytes)
-
-	ecBlockSlice := make([]ECBlock, 0, 10)
-
-	iter := db.lDb.NewIterator(&util.Range{Start: fromkey, Limit: tokey}, db.ro)
-
-	for iter.Next() {
-		ecBlock := NewECBlock()
-		_, err := ecBlock.UnmarshalBinaryData(iter.Value())
-		if err != nil {
-			return nil, err
-		}
-		ecBlockSlice = append(ecBlockSlice, *ecBlock)
+	list, err:=db.DB.GetAll(bucket, new(ECBlock))
+	if err!=nil {
+		return nil, err
 	}
-	iter.Release()
-	err = iter.Error()
-
-	return ecBlockSlice, nil
+	answer:=make([]*ECBlock, len(list))
+	for i, v:=range(list) {
+		answer[i] = v.(*ECBlock)
+	}
+	return answer, nil
 }
-*/
