@@ -6,14 +6,21 @@ package databaseOverlay
 
 import (
 	/*"bytes"
-	"encoding/binary"
-	"errors"
-	"github.com/FactomProject/factomd/btcd/wire"*/
+	"errors"*/
+	//TODO: remove dependency on /wire
+	"github.com/FactomProject/factomd/btcd/wire"
 	. "github.com/FactomProject/factomd/common/DirectoryBlock"
-	//. "github.com/FactomProject/factomd/common/constants"
+	. "github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
+
+	"encoding/binary"
 )
+
+// AllShas is a special value that can be used as the final sha when requesting
+// a range of shas by height to request them all.
+const AllShas = int64(^uint64(0) >> 1)
+
 /*
 // FetchDBEntriesFromQueue gets all of the dbentries that have not been processed
 /*func (db *Overlay) FetchDBEntriesFromQueue(startTime *[]byte) (dbentries []*DBEntry, err error) {
@@ -52,66 +59,53 @@ import (
 
 	return fbEntrySlice, nil
 }
-*//*
+*/
+
 // ProcessDBlockBatche inserts the DBlock and update all it's dbentries in DB
 func (db *Overlay) ProcessDBlockBatch(dblock *DirectoryBlock) error {
-
-	if dblock != nil {
-		if db.lbatch == nil {
-			db.lbatch = new(leveldb.Batch)
-		}
-
-		defer db.lbatch.Reset()
-
-		binaryDblock, err := dblock.MarshalBinary()
-		if err != nil {
-			return err
-		}
-
-		if dblock.DBHash == nil {
-			dblock.DBHash = Sha(binaryDblock)
-		}
-
-		if dblock.KeyMR == nil {
-			dblock.BuildKeyMerkleRoot()
-		}
-
-		// Insert the binary directory block
-		var key []byte = []byte{byte(TBL_DB)}
-		key = append(key, dblock.DBHash.Bytes()...)
-		db.lbatch.Put(key, binaryDblock)
-
-		// Insert block height cross reference
-		var dbNumkey []byte = []byte{byte(TBL_DB_NUM)}
-		var buf bytes.Buffer
-		binary.Write(&buf, binary.BigEndian, dblock.Header.DBHeight)
-		dbNumkey = append(dbNumkey, buf.Bytes()...)
-		db.lbatch.Put(dbNumkey, dblock.DBHash.Bytes())
-
-		// Insert the directory block merkle root cross reference
-		key = []byte{byte(TBL_DB_MR)}
-		key = append(key, dblock.KeyMR.Bytes()...)
-		binaryDBHash, _ := dblock.DBHash.MarshalBinary()
-		db.lbatch.Put(key, binaryDBHash)
-
-		// Update the chain head reference
-		key = []byte{byte(TBL_CHAIN_HEAD)}
-		key = append(key, D_CHAINID...)
-		db.lbatch.Put(key, dblock.KeyMR.Bytes())
-
-		err = db.lDb.Write(db.lbatch, db.wo)
-		if err != nil {
-			return err
-		}
-
-		// Update DirBlock Height cache
-		db.lastDirBlkHeight = int64(dblock.Header.DBHeight)
-		db.lastDirBlkSha, _ = NewShaHash(dblock.DBHash.Bytes())
-		db.lastDirBlkShaCached = true
-
+	if dblock == nil {
+		return nil
 	}
+
+	binaryDblock, err := dblock.MarshalBinary()
+	if err != nil {
+		return err
+	}
+
+	if dblock.DBHash == nil {
+		dblock.DBHash = Sha(binaryDblock)
+	}
+	if dblock.KeyMR == nil {
+		dblock.BuildKeyMerkleRoot()
+	}
+
+	batch := []Record{}
+
+	// Insert the binary directory block
+	batch = append(batch, Record{[]byte{byte(TBL_DB)}, dblock.DBHash.Bytes(), dblock})
+
+	// Insert block height cross reference
+	bytes := make([]byte, 4)
+	binary.BigEndian.PutUint32(bytes, dblock.Header.DBHeight)
+	batch = append(batch, Record{[]byte{byte(TBL_DB_NUM)}, bytes, dblock.DBHash})
+
+	// Insert the directory block merkle root cross reference
+	batch = append(batch, Record{[]byte{byte(TBL_DB_MR)}, dblock.KeyMR.Bytes(), dblock.DBHash})
+
+	// Update the chain head reference
+	batch = append(batch, Record{[]byte{byte(TBL_CHAIN_HEAD)}, D_CHAINID, dblock.KeyMR})
+
+	err = db.DB.PutInBatch(batch)
+	if err != nil {
+		return err
+	}
+	// Update DirBlock Height cache
+	db.lastDirBlkHeight = int64(dblock.Header.DBHeight)
+	db.lastDirBlkSha, _ = NewShaHash(dblock.DBHash.Bytes())
+	db.lastDirBlkShaCached = true
+
 	return nil
-}*/
+}
 
 // UpdateBlockHeightCache updates the dir block height cache in db
 func (db *Overlay) UpdateBlockHeightCache(dirBlkHeigh uint32, dirBlkHash IHash) error {
@@ -127,15 +121,13 @@ func (db *Overlay) FetchBlockHeightCache() (sha IHash, height int64, err error) 
 	return db.lastDirBlkSha, db.lastDirBlkHeight, nil
 }
 
-/*
 // FetchHeightRange looks up a range of blocks by the start and ending
 // heights.  Fetch is inclusive of the start height and exclusive of the
 // ending height. To fetch all hashes from the start height until no
 // more are present, use the special id `AllShas'.
-func (db *Overlay) FetchHeightRange(startHeight, endHeight int64) (rshalist []IHash, err error) {
-
+func (db *Overlay) FetchHeightRange(startHeight, endHeight int64) ([]IHash, error) {
 	var endidx int64
-	if endHeight == database.AllShas {
+	if endHeight == AllShas {
 		endidx = startHeight + wire.MaxBlocksPerMsg
 	} else {
 		endidx = endHeight
@@ -145,16 +137,15 @@ func (db *Overlay) FetchHeightRange(startHeight, endHeight int64) (rshalist []IH
 	for height := startHeight; height < endidx; height++ {
 		// TODO(drahn) fix blkFile from height
 
-		dbhash, lerr := db.FetchDBHashByHeight(uint32(height))
-		if lerr != nil || dbhash == nil {
+		dbhash, err := db.FetchDBHashByHeight(uint32(height))
+		if err != nil {
+			return nil, err
+		}
+		if dbhash == nil {
 			break
 		}
 
 		shalist = append(shalist, dbhash)
-	}
-
-	if err != nil {
-		return
 	}
 	//log.Tracef("FetchIdxRange idx %v %v returned %v shas err %v", startHeight, endHeight, len(shalist), err)
 
@@ -164,8 +155,10 @@ func (db *Overlay) FetchHeightRange(startHeight, endHeight int64) (rshalist []IH
 // FetchBlockHeightBySha returns the block height for the given hash.  This is
 // part of the database.Db interface implementation.
 func (db *Overlay) FetchBlockHeightBySha(sha IHash) (int64, error) {
-
-	dblk, _ := db.FetchDBlockByHash(sha)
+	dblk, err := db.FetchDBlockByHash(sha)
+	if err != nil {
+		return -1, err
+	}
 
 	var height int64 = -1
 	if dblk != nil {
@@ -173,7 +166,7 @@ func (db *Overlay) FetchBlockHeightBySha(sha IHash) (int64, error) {
 	}
 
 	return height, nil
-}*/
+}
 
 // Insert the Directory Block meta data into db
 func (db *Overlay) InsertDirBlockInfo(dirBlockInfo *DirBlockInfo) error {
@@ -184,13 +177,14 @@ func (db *Overlay) InsertDirBlockInfo(dirBlockInfo *DirBlockInfo) error {
 	bucket := []byte{byte(TBL_DB_INFO)}
 	key := dirBlockInfo.DBHash.Bytes()
 
-	err:=db.DB.Put(bucket, key, dirBlockInfo)
-	if err!=nil {
+	err := db.DB.Put(bucket, key, dirBlockInfo)
+	if err != nil {
 		return err
 	}
 
 	return nil
 }
+
 /*
 // FetchDirBlockInfoByHash gets an DirBlockInfo obj
 func (db *Overlay) FetchDirBlockInfoByHash(dbHash IHash) (dirBlockInfo *DirBlockInfo, err error) {
@@ -210,30 +204,18 @@ func (db *Overlay) FetchDirBlockInfoByHash(dbHash IHash) (dirBlockInfo *DirBlock
 	}
 
 	return dirBlockInfo, nil
-}
+}*/
 
 // FetchDBlock gets an entry by hash from the database.
 func (db *Overlay) FetchDBlockByHash(dBlockHash IHash) (*DirectoryBlock, error) {
-	db.dbLock.Lock()
-	defer db.dbLock.Unlock()
+	bucket := []byte{byte(TBL_DB)}
+	key := dBlockHash.Bytes()
 
-	var key []byte = []byte{byte(TBL_DB)}
-	key = append(key, dBlockHash.Bytes()...)
-	data, _ := db.lDb.Get(key, db.ro)
-
-	dBlock := NewDBlock()
-	if data == nil {
-		return nil, errors.New("DBlock not found for Hash: " + dBlockHash.String())
-	} else {
-		_, err := dBlock.UnmarshalBinaryData(data)
-		if err != nil {
-			return nil, err
-		}
+	block, err := db.DB.Get(bucket, key, new(DirectoryBlock))
+	if err != nil {
+		return nil, err
 	}
-
-	dBlock.DBHash = dBlockHash
-
-	return dBlock, nil
+	return block.(*DirectoryBlock), nil
 }
 
 // FetchDBlockByHeight gets an directory block by height from the database.
@@ -255,46 +237,27 @@ func (db *Overlay) FetchDBlockByHeight(dBlockHeight uint32) (dBlock *DirectoryBl
 
 // FetchDBHashByHeight gets a dBlockHash from the database.
 func (db *Overlay) FetchDBHashByHeight(dBlockHeight uint32) (IHash, error) {
-	db.dbLock.Lock()
-	defer db.dbLock.Unlock()
+	bucket := []byte{byte(TBL_DB_NUM)}
+	key := make([]byte, 4)
+	binary.BigEndian.PutUint32(key, dBlockHeight)
 
-	var key []byte = []byte{byte(TBL_DB_NUM)}
-	var buf bytes.Buffer
-	binary.Write(&buf, binary.BigEndian, dBlockHeight)
-	key = append(key, buf.Bytes()...)
-	data, err := db.lDb.Get(key, db.ro)
+	block, err := db.DB.Get(bucket, key, new(Hash))
 	if err != nil {
 		return nil, err
 	}
-
-	dBlockHash := NewZeroHash()
-	_, err = dBlockHash.UnmarshalBinaryData(data)
-	if err != nil {
-		return nil, err
-	}
-
-	return dBlockHash, nil
+	return block.(*Hash), nil
 }
 
 // FetchDBHashByMR gets a DBHash by MR from the database.
 func (db *Overlay) FetchDBHashByMR(dBMR IHash) (IHash, error) {
-	db.dbLock.Lock()
-	defer db.dbLock.Unlock()
+	bucket := []byte{byte(TBL_DB_MR)}
+	key := dBMR.Bytes()
 
-	var key []byte = []byte{byte(TBL_DB_MR)}
-	key = append(key, dBMR.Bytes()...)
-	data, err := db.lDb.Get(key, db.ro)
+	block, err := db.DB.Get(bucket, key, new(Hash))
 	if err != nil {
 		return nil, err
 	}
-
-	dBlockHash := NewZeroHash()
-	_, err = dBlockHash.UnmarshalBinaryData(data)
-	if err != nil {
-		return nil, err
-	}
-
-	return dBlockHash, nil
+	return block.(*Hash), nil
 }
 
 // FetchDBlockByMR gets a directory block by merkle root from the database.
@@ -313,40 +276,31 @@ func (db *Overlay) FetchDBlockByMR(dBMR IHash) (*DirectoryBlock, error) {
 }
 
 // FetchHeadMRByChainID gets a MR of the highest block from the database.
-func (db *Overlay) FetchHeadMRByChainID(chainID IHash) (blkMR IHash, err error) {
+func (db *Overlay) FetchHeadMRByChainID(chainID IHash) (IHash, error) {
 	if chainID == nil {
 		return nil, nil
 	}
 
-	db.dbLock.Lock()
-	defer db.dbLock.Unlock()
+	bucket := []byte{byte(TBL_CHAIN_HEAD)}
+	key := chainID.Bytes()
 
-	var key []byte = []byte{byte(TBL_CHAIN_HEAD)}
-	key = append(key, chainID.Bytes()...)
-	data, err := db.lDb.Get(key, db.ro)
+	block, err := db.DB.Get(bucket, key, new(Hash))
 	if err != nil {
 		return nil, err
 	}
-
-	blkMR = NewZeroHash()
-	_, err = blkMR.UnmarshalBinaryData(data)
-	if err != nil {
-		return nil, err
-	}
-
-	return blkMR, nil
-}*/
+	return block.(*Hash), nil
+}
 
 // FetchAllDBlocks gets all of the fbInfo
 func (db *Overlay) FetchAllDBlocks() (dBlocks []*DirectoryBlock, err error) {
 	bucket := []byte{byte(TBL_DB)}
 
-	list, err:=db.DB.GetAll(bucket, new(DirectoryBlock))
-	if err!=nil {
+	list, err := db.DB.GetAll(bucket, new(DirectoryBlock))
+	if err != nil {
 		return nil, err
 	}
-	answer:=make([]*DirectoryBlock, len(list))
-	for i, v:=range(list) {
+	answer := make([]*DirectoryBlock, len(list))
+	for i, v := range list {
 		answer[i] = v.(*DirectoryBlock)
 	}
 	return answer, nil
@@ -358,7 +312,7 @@ func (db *Overlay) FetchAllDirBlockInfo() (dirBlockInfoMap map[string]*DirBlockI
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
-	var fromkey []byte = []byte{byte(TBL_DB_INFO)}  
+	var fromkey []byte = []byte{byte(TBL_DB_INFO)}
 	var tokey []byte = []byte{byte(TBL_DB_INFO + 1)}
 
 	dirBlockInfoMap = make(map[string]*DirBlockInfo)
@@ -380,16 +334,16 @@ func (db *Overlay) FetchAllDirBlockInfo() (dirBlockInfoMap map[string]*DirBlockI
 
 // FetchAllUnconfirmedDirBlockInfo gets all of the dirBlockInfos that have BTC Anchor confirmation
 func (db *Overlay) FetchAllUnconfirmedDirBlockInfo() (dirBlockInfoMap map[string]*DirBlockInfo, err error) {
-	bucket:= []byte{byte(TBL_DB_INFO)}
+	bucket := []byte{byte(TBL_DB_INFO)}
 
-	all, err:=db.DB.GetAll(bucket, new(DirBlockInfo))
-	if err!=nil {
+	all, err := db.DB.GetAll(bucket, new(DirBlockInfo))
+	if err != nil {
 		return nil, err
 	}
 
 	dirBlockInfoMap = make(map[string]*DirBlockInfo)
 
-	for _, v:=range(all) {
+	for _, v := range all {
 		dBInfo := v.(*DirBlockInfo)
 		if dBInfo.BTCConfirmed == false {
 			dirBlockInfoMap[dBInfo.DBMerkleRoot.String()] = dBInfo

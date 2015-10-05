@@ -45,7 +45,7 @@ var _ = (*block.FBlock)(nil)
 var _ = util.Trace
 
 var (
-	db       databaseOverlay.Overlay // database
+	db *databaseOverlay.Overlay // database
 
 	dchain   *DChain     //Directory Block Chain
 	ecchain  *ECChain    //Entry Credit Chain
@@ -180,13 +180,13 @@ func initProcessor() {
 
 // Started from factomd
 func Start_Processor(
-	dbase IDatabase,
+	dbase *databaseOverlay.Overlay,
 	inMsgQ chan wire.FtmInternalMsg,
 	outMsgQ chan wire.FtmInternalMsg,
 	inCtlMsgQ chan wire.FtmInternalMsg,
 	outCtlMsgQ chan wire.FtmInternalMsg) {
 
-	db = databaseOverlay.NewOverlay(dbase)
+	db = dbase
 
 	inMsgQueue = inMsgQ
 	outMsgQueue = outMsgQ

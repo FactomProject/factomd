@@ -2,42 +2,33 @@ package databaseOverlay
 
 import (
 	. "github.com/FactomProject/factomd/common/EntryBlock"
-	//. "github.com/FactomProject/factomd/common/interfaces"
+	. "github.com/FactomProject/factomd/common/interfaces"
 )
-
-
 
 // InsertEntry inserts an entry
 func (db *Overlay) InsertEntry(entry *Entry) error {
 	bucket := []byte{byte(TBL_ENTRY)}
 	key := entry.Hash().Bytes()
-	err:=db.DB.Put(bucket, key, entry)
-	if err!=nil {
+	err := db.DB.Put(bucket, key, entry)
+	if err != nil {
 		return err
 	}
 	return nil
 }
 
-/*
 // FetchEntry gets an entry by hash from the database.
-func (db *Overlay) FetchEntryByHash(entrySha IHash) (entry *Entry, err error) {
-	db.dbLock.Lock()
-	defer db.dbLock.Unlock()
+func (db *Overlay) FetchEntryByHash(entrySha IHash) (*Entry, error) {
+	bucket := []byte{byte(TBL_ENTRY)}
+	key := entrySha.Bytes()
 
-	var key []byte = []byte{byte(TBL_ENTRY)}
-	key = append(key, entrySha.Bytes()...)
-	data, err := db.lDb.Get(key, db.ro)
-
-	if data != nil {
-		entry = new(Entry)
-		_, err := entry.UnmarshalBinaryData(data)
-		if err != nil {
-			return nil, err
-		}
+	entry, err := db.DB.Get(bucket, key, new(Entry))
+	if err != nil {
+		return nil, err
 	}
-	return entry, nil
+	return entry.(*Entry), nil
 }
 
+/*
 // Initialize External ID map for explorer search
 func (db *Overlay) InitializeExternalIDMap() (extIDMap map[string]bool, err error) {
 

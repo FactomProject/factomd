@@ -8,8 +8,6 @@ import (
 	. "github.com/FactomProject/factomd/common/primitives"
 
 	"github.com/FactomProject/factomd/database/bytestore"
-
-
 )
 
 // ProcessEBlockBatche inserts the EBlock and update all it's ebentries in DB
@@ -21,8 +19,8 @@ func (db *Overlay) ProcessEBlockBatch(eblock *EBlock) error {
 	if len(eblock.Body.EBEntries) < 1 {
 		return errors.New("Empty eblock!")
 	}
-	
-	batch:=[]Record{}
+
+	batch := []Record{}
 
 	// Insert the binary entry block
 	bucket := []byte{byte(TBL_EB)}
@@ -48,15 +46,14 @@ func (db *Overlay) ProcessEBlockBatch(eblock *EBlock) error {
 	}
 	batch = append(batch, Record{bucket, key, eBlockHash})
 
-
 	// Insert the entry block number cross reference
 	bucket = []byte{byte(TBL_EB_CHAIN_NUM)}
 	key = eblock.Header.ChainID.Bytes()
 
 	bytes := make([]byte, 4)
 	binary.BigEndian.PutUint32(bytes, eblock.Header.EBSequence)
-	
-	bs:=bytestore.NewByteStore(bytes)
+
+	bs := bytestore.NewByteStore(bytes)
 
 	batch = append(batch, Record{bucket, key, bs})
 
@@ -70,13 +67,13 @@ func (db *Overlay) ProcessEBlockBatch(eblock *EBlock) error {
 	batch = append(batch, Record{bucket, key, keyMR})
 
 	err = db.DB.PutInBatch(batch)
-	if err!=nil {
+	if err != nil {
 		return err
 	}
-	
+
 	return nil
 }
-/*
+
 // FetchEBlockByMR gets an entry block by merkle root from the database.
 func (db *Overlay) FetchEBlockByMR(eBMR IHash) (eBlock *EBlock, err error) {
 	eBlockHash, err := db.FetchEBHashByMR(eBMR)
@@ -96,26 +93,17 @@ func (db *Overlay) FetchEBlockByMR(eBMR IHash) (eBlock *EBlock, err error) {
 
 // FetchEntryBlock gets an entry by hash from the database.
 func (db *Overlay) FetchEBlockByHash(eBlockHash IHash) (*EBlock, error) {
-	db.dbLock.Lock()
-	defer db.dbLock.Unlock()
+	bucket := []byte{byte(TBL_EB)}
+	key := eBlockHash.Bytes()
 
-	var key []byte = []byte{byte(TBL_EB)}
-	key = append(key, eBlockHash.Bytes()...)
-	data, err := db.lDb.Get(key, db.ro)
+	entry, err := db.DB.Get(bucket, key, new(EBlock))
 	if err != nil {
 		return nil, err
 	}
-
-	eBlock := NewEBlock()
-	if data != nil {
-		_, err := eBlock.UnmarshalBinaryData(data)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return eBlock, nil
+	return entry.(*EBlock), nil
 }
 
+/*
 // FetchEBlockByHeight gets an entry block by height from the database.
 // Need to rewrite since only the cross ref is stored in db ??
 /*func (db *Overlay) FetchEBlockByHeight(chainID IHash, eBlockHeight uint32) (*EBlock, error) {
@@ -141,39 +129,31 @@ func (db *Overlay) FetchEBlockByHash(eBlockHash IHash) (*EBlock, error) {
 	}
 	return eBlock, nil
 }
-*//*
+*/
 
 // FetchEBHashByMR gets an entry by hash from the database.
 func (db *Overlay) FetchEBHashByMR(eBMR IHash) (IHash, error) {
-	db.dbLock.Lock()
-	defer db.dbLock.Unlock()
+	bucket := []byte{byte(TBL_EB_MR)}
+	key := eBMR.Bytes()
 
-	var key []byte = []byte{byte(TBL_EB_MR)}
-	key = append(key, eBMR.Bytes()...)
-	data, err := db.lDb.Get(key, db.ro)
+	entry, err := db.DB.Get(bucket, key, new(Hash))
 	if err != nil {
 		return nil, err
 	}
-
-	eBlockHash := NewZeroHash()
-	_, err = eBlockHash.UnmarshalBinaryData(data)
-	if err != nil {
-		return nil, err
-	}
-
-	return eBlockHash, nil
-}*/
+	return entry.(*Hash), nil
+}
 
 // InsertChain inserts the newly created chain into db
-func (db *Overlay) InsertChain(chain *EChain) (error) {
+func (db *Overlay) InsertChain(chain *EChain) error {
 	bucket := []byte{byte(TBL_CHAIN_HASH)}
-	key :=chain.ChainID.Bytes()
+	key := chain.ChainID.Bytes()
 	err := db.DB.Put(bucket, key, chain)
 	if err != nil {
 		return err
 	}
 	return nil
 }
+
 /*
 // FetchChainByHash gets a chain by chainID
 func (db *Overlay) FetchChainByHash(chainID IHash) (*EChain, error) {
@@ -195,49 +175,38 @@ func (db *Overlay) FetchChainByHash(chainID IHash) (*EChain, error) {
 		}
 	}
 	return chain, nil
-}
+}*/
 
 // FetchAllChains get all of the cahins
 func (db *Overlay) FetchAllChains() (chains []*EChain, err error) {
-	db.dbLock.Lock()
-	defer db.dbLock.Unlock()
+	bucket := []byte{byte(TBL_CHAIN_HASH)}
 
-	var fromkey []byte = []byte{byte(TBL_CHAIN_HASH)}   // Table Name (1 bytes)
-	var tokey []byte = []byte{byte(TBL_CHAIN_HASH + 1)} // Table Name (1 bytes)
-
-	chainSlice := make([]*EChain, 0, 10)
-
-	iter := db.lDb.NewIterator(&util.Range{Start: fromkey, Limit: tokey}, db.ro)
-	for iter.Next() {
-		chain := NewEChain()
-		_, err := chain.UnmarshalBinaryData(iter.Value())
-		if err != nil {
-			return nil, err
-		}
-		chainSlice = append(chainSlice, chain)
+	list, err := db.DB.GetAll(bucket, new(Hash))
+	if err != nil {
+		return nil, err
 	}
-	iter.Release()
-	err = iter.Error()
-
-	return chainSlice, err
+	answer := make([]*EChain, len(list))
+	for i, v := range list {
+		answer[i] = v.(*EChain)
+	}
+	return answer, nil
 }
-*/
 
 // FetchAllEBlocksByChain gets all of the blocks by chain id
 func (db *Overlay) FetchAllEBlocksByChain(chainID IHash) ([]*EBlock, error) {
 	bucket := append([]byte{byte(TBL_EB_CHAIN_NUM)}, chainID.Bytes()...)
 
-	list, err:=db.DB.GetAll(bucket, new(Hash))
-	if err!=nil {
+	list, err := db.DB.GetAll(bucket, new(Hash))
+	if err != nil {
 		return nil, err
 	}
 	bucket = []byte{byte(TBL_EB)}
-	answer:=make([]*EBlock, len(list))
-	for i, v:=range(list) {
+	answer := make([]*EBlock, len(list))
+	for i, v := range list {
 		key := v.(*Hash).Bytes()
 
-		data, err:=db.DB.Get(bucket, key, new(EBlock))
-		if err!= nil {
+		data, err := db.DB.Get(bucket, key, new(EBlock))
+		if err != nil {
 			return nil, err
 		}
 		answer[i] = data.(*EBlock)

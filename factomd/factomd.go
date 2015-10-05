@@ -13,10 +13,11 @@ import (
 	"github.com/FactomProject/factomd/common/factoid/state"
 	"github.com/FactomProject/factomd/common/factoid/state/stateinit"
 	cp "github.com/FactomProject/factomd/controlpanel"
+	"github.com/FactomProject/factomd/database/databaseOverlay"
+	"github.com/FactomProject/factomd/database/hybridDB"
 	"github.com/FactomProject/factomd/process"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
-	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"os"
 	"runtime"
 	"strings"
@@ -29,7 +30,7 @@ var (
 	shutdownChannel = make(chan struct{})
 	ldbpath         = ""
 	boltDBpath      = ""
-	db              databaseOverlay.Overlay                           // database
+	db              *databaseOverlay.Overlay              // database
 	inMsgQueue      = make(chan wire.FtmInternalMsg, 100) //incoming message queue for factom application messages
 	outMsgQueue     = make(chan wire.FtmInternalMsg, 100) //outgoing message queue for factom application messages
 	inCtlMsgQueue   = make(chan wire.FtmInternalMsg, 100) //incoming message queue for factom application messages
@@ -148,21 +149,23 @@ func initDB() {
 
 	//init db
 	var err error
-	db, err = ldb.OpenLevelDB(ldbpath, false)
+	dbase, err := hybridDB.NewLevelMapHybridDB(ldbpath, false)
 
 	if err != nil {
 		ftmdLog.Errorf("err opening db: %v\n", err)
-
 	}
 
-	if db == nil {
+	if dbase == nil {
 		ftmdLog.Info("Creating new db ...")
-		db, err = ldb.OpenLevelDB(ldbpath, true)
+		dbase, err = hybridDB.NewLevelMapHybridDB(ldbpath, true)
 
 		if err != nil {
 			panic(err)
 		}
 	}
+
+	db = databaseOverlay.NewOverlay(dbase)
+
 	ftmdLog.Info("Database started from: " + ldbpath)
 
 }

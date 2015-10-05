@@ -9,7 +9,7 @@ import (
 
 	"github.com/FactomProject/factomd/btcd/blockchain"
 	"github.com/FactomProject/factomd/btcd/wire"
-	"github.com/FactomProject/factomd/database"
+	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/davecgh/go-spew/spew"
 	"time"
 
@@ -344,7 +344,7 @@ func (p *peer) handleGetDirBlocksMsg(msg *wire.MsgGetDirBlocks) {
 	// Return all block hashes to the latest one (up to max per message) if
 	// no stop hash was specified.
 	// Attempt to find the ending index of the stop hash if specified.
-	endIdx := database.AllShas //factom db
+	endIdx := databaseOverlay.AllShas //factom db
 	if !msg.HashStop.IsSameAs(zeroHash) {
 		height, err := db.FetchBlockHeightBySha(msg.HashStop)
 		if err == nil {

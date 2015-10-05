@@ -2,89 +2,64 @@ package databaseOverlay
 
 import (
 	//	"errors"
+	"encoding/binary"
 	. "github.com/FactomProject/factomd/common/AdminBlock"
-	//. "github.com/FactomProject/factomd/common/constants"
-	//. "github.com/FactomProject/factomd/common/interfaces"
+	. "github.com/FactomProject/factomd/common/constants"
+	. "github.com/FactomProject/factomd/common/interfaces"
 )
-/*
+
 // ProcessABlockBatch inserts the AdminBlock
 func (db *Overlay) ProcessABlockBatch(block *AdminBlock) error {
-
-	if block != nil {
-		if db.lbatch == nil {
-			db.lbatch = new(leveldb.Batch)
-		}
-
-		defer db.lbatch.Reset()
-
-		binaryBlock, err := block.MarshalBinary()
-		if err != nil {
-			return err
-		}
-
-		abHash, err := block.PartialHash()
-		if err != nil {
-			return err
-		}
-
-		// Insert the binary factom block
-		var key []byte = []byte{byte(TBL_AB)}
-		key = append(key, abHash.Bytes()...)
-		db.lbatch.Put(key, binaryBlock)
-
-		// Insert the admin block number cross reference
-		key = []byte{byte(TBL_AB_NUM)}
-		key = append(key, block.Header.AdminChainID.Bytes()...)
-		bytes := make([]byte, 4)
-		binary.BigEndian.PutUint32(bytes, block.Header.DBHeight)
-		key = append(key, bytes...)
-		db.lbatch.Put(key, abHash.Bytes())
-
-		// Update the chain head reference
-		key = []byte{byte(TBL_CHAIN_HEAD)}
-		key = append(key, ADMIN_CHAINID...)
-		db.lbatch.Put(key, abHash.Bytes())
-
-		err = db.lDb.Write(db.lbatch, db.wo)
-		if err != nil {
-			log.Println("batch failed %v\n", err)
-			return err
-		}
-
+	if block == nil {
+		return nil
 	}
+
+	batch := []Record{}
+
+	abHash, err := block.PartialHash()
+	if err != nil {
+		return err
+	}
+	batch = append(batch, Record{[]byte{byte(TBL_AB)}, abHash.Bytes(), block})
+
+	bytes := make([]byte, 4)
+	binary.BigEndian.PutUint32(bytes, block.Header.DBHeight)
+	//TODO: ignore the admin chain ID to make the key simpler?
+	bytes = append(block.Header.AdminChainID.Bytes(), bytes...)
+	batch = append(batch, Record{[]byte{byte(TBL_AB_NUM)}, bytes, abHash})
+
+	batch = append(batch, Record{[]byte{byte(TBL_CHAIN_HEAD)}, ADMIN_CHAINID, abHash})
+
+	err = db.DB.PutInBatch(batch)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
 // FetchABlockByHash gets an admin block by hash from the database.
-func (db *Overlay) FetchABlockByHash(aBlockHash IHash) (aBlock *AdminBlock, err error) {
-	db.dbLock.Lock()
-	defer db.dbLock.Unlock()
+func (db *Overlay) FetchABlockByHash(aBlockHash IHash) (*AdminBlock, error) {
+	bucket := []byte{byte(TBL_AB)}
+	key := aBlockHash.Bytes()
 
-	var key []byte = []byte{byte(TBL_AB)}
-	key = append(key, aBlockHash.Bytes()...)
-	data, err := db.lDb.Get(key, db.ro)
-
-	if data != nil {
-		aBlock = new(AdminBlock)
-		_, err := aBlock.UnmarshalBinaryData(data)
-		if err != nil {
-			return nil, err
-		}
+	block, err := db.DB.Get(bucket, key, new(AdminBlock))
+	if err != nil {
+		return nil, err
 	}
-	return aBlock, nil
+	return block.(*AdminBlock), nil
 }
-*/
 
 // FetchAllABlocks gets all of the admin blocks
 func (db *Overlay) FetchAllABlocks() (aBlocks []*AdminBlock, err error) {
 	bucket := []byte{byte(TBL_AB)}
 
-	list, err:=db.DB.GetAll(bucket, new(AdminBlock))
-	if err!=nil {
+	list, err := db.DB.GetAll(bucket, new(AdminBlock))
+	if err != nil {
 		return nil, err
 	}
-	answer:=make([]*AdminBlock, len(list))
-	for i, v:=range(list) {
+	answer := make([]*AdminBlock, len(list))
+	for i, v := range list {
 		answer[i] = v.(*AdminBlock)
 	}
 	return answer, nil
