@@ -136,8 +136,8 @@ func (p *peer) handleGetEntryDataMsg(msg *wire.MsgGetEntryData) {
 		}
 
 		for _, ebEntry := range blk.Body.EBEntries {
-			
-			//Skip the minute markers 
+
+			//Skip the minute markers
 			if ebEntry.IsMinuteMarker() {
 				continue
 			}

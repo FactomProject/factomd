@@ -8,9 +8,10 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/FactomProject/FactomCode/common"
 	"io"
 	"io/ioutil"
+
+	"github.com/FactomProject/FactomCode/common"
 )
 
 // Acknowledgement Type
@@ -32,8 +33,7 @@ const (
 	ACK_COMMIT_ENTRY
 
 	FORCE_FACTOID_GENESIS_REBUILD
-	//	FORCE_FACTOID_VALIDATION // at a specific block height; everything higher will be discarded by btcd-side (possibly creating orphaned blocks)
-	INFO_CURRENT_HEIGHT // info message to the wire-side to indicate the current known block height; a duplicate of FORCE_FACTOID_VALIDATION (???)
+	INFO_CURRENT_HEIGHT // info message to the wire-side to indicate the current known block height;
 )
 
 type MsgAcknowledgement struct {

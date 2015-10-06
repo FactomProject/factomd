@@ -1,12 +1,12 @@
-// Copyright (c) 2013-2014 Conformal Systems LLC.
+// Copyright (c) 2013-2014 The btcsuite developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
-package btcd
+package btcd //main
 
 import (
+	"bytes"
 	"container/list"
-	"errors"
 	"fmt"
 	"io"
 	prand "math/rand"
@@ -18,22 +18,22 @@ import (
 	"time"
 
 	"github.com/FactomProject/btcd/addrmgr"
-	"github.com/FactomProject/btcd/blockchain"
-	//	"github.com/FactomProject/btcd/database"
+	//"github.com/FactomProject/btcd/database"
 	"github.com/FactomProject/btcd/wire"
-	//	"github.com/FactomProject/btcutil"
+	//"github.com/FactomProject/btcutil"
+	//"github.com/FactomProject/btcutil/bloom"
 	"github.com/FactomProject/go-socks/socks"
 	"github.com/davecgh/go-spew/spew"
-
-	"github.com/FactomProject/FactomCode/util"
 )
 
-var _ = util.Trace
-
 const (
+	// We need the version for webservices, and the limit should not be the version
+	// anyway.
+	ProtocolVersion = 1005 // version starts from 1000 for Factom 
+	
 	// maxProtocolVersion is the max protocol version the peer supports.
-	maxProtocolVersion = 1005 //version starts from 1000 for Factom
-
+	maxProtocolVersion = ProtocolVersion
+	
 	// outputBufferSize is the number of elements the output channels use.
 	outputBufferSize = 50
 
@@ -56,11 +56,25 @@ const (
 
 	// pingTimeoutMinutes is the number of minutes since we last sent a
 	// message requiring a reply before we will ping a host.
-	//	pingTimeoutMinutes = 2
-	pingTimeoutMinutes = 1
+	pingTimeoutMinutes = 2
+
+	// connectionRetryInterval is the base amount of time to wait in between
+	// retries when connecting to persistent peers.  It is adjusted by the
+	// number of retries such that there is a retry backoff.
+	connectionRetryInterval = time.Second * 10
+
+	// maxConnectionRetryInterval is the max amount of time retrying of a
+	// persistent peer is allowed to grow to.  This is necessary since the
+	// retry logic uses a backoff mechanism which increases the interval
+	// base done the number of retries that have been done.
+	maxConnectionRetryInterval = time.Minute * 5
 )
 
 var (
+	// nodeCount is the total number of peer connections made since startup
+	// and is used to assign an id to a peer.
+	nodeCount int32
+
 	// userAgentName is the user agent name and is used to help identify
 	// ourselves to other bitcoin peers.
 	userAgentName = "btcd"
@@ -155,6 +169,7 @@ type peer struct {
 	conn               net.Conn
 	addr               string
 	na                 *wire.NetAddress
+	id                 int32
 	inbound            bool
 	persistent         bool
 	knownAddresses     map[string]struct{}
@@ -168,32 +183,37 @@ type peer struct {
 	prevGetHdrsBegin   *wire.ShaHash // owned by blockmanager
 	prevGetHdrsStop    *wire.ShaHash // owned by blockmanager
 	requestQueue       []*wire.InvVect
-	//	filter             *bloom.Filter
-	relayMtx        sync.Mutex
-	disableRelayTx  bool
-	continueHash    *wire.ShaHash
-	outputQueue     chan outMsg
-	sendQueue       chan outMsg
-	sendDoneQueue   chan struct{}
-	queueWg         sync.WaitGroup // TODO(oga) wg -> single use channel?
-	outputInvChan   chan *wire.InvVect
-	txProcessed     chan struct{}
-	blockProcessed  chan struct{}
-	quit            chan struct{}
-	StatsMtx        sync.Mutex // protects all statistics below here.
-	versionKnown    bool
-	protocolVersion uint32
-	services        wire.ServiceFlag
-	timeConnected   time.Time
-	lastSend        time.Time
-	lastRecv        time.Time
-	bytesReceived   uint64
-	bytesSent       uint64
-	userAgent       string
-	lastBlock       int32
-	lastPingNonce   uint64    // Set to nonce if we have a pending ping.
-	lastPingTime    time.Time // Time we sent last ping.
-	lastPingMicros  int64     // Time for last ping to return.
+	//filter             *bloom.Filter
+	relayMtx           sync.Mutex
+	disableRelayTx     bool
+	continueHash       *wire.ShaHash
+	outputQueue        chan outMsg
+	sendQueue          chan outMsg
+	sendDoneQueue      chan struct{}
+	queueWg            sync.WaitGroup // TODO(oga) wg -> single use channel?
+	outputInvChan      chan *wire.InvVect
+	txProcessed        chan struct{}
+	blockProcessed     chan struct{}
+	quit               chan struct{}
+	StatsMtx           sync.Mutex // protects all statistics below here.
+	versionKnown       bool
+	protocolVersion    uint32
+	versionSent        bool
+	verAckReceived     bool
+	services           wire.ServiceFlag
+	timeOffset         int64
+	timeConnected      time.Time
+	lastSend           time.Time
+	lastRecv           time.Time
+	bytesReceived      uint64
+	bytesSent          uint64
+	userAgent          string
+	startingHeight     int32
+	lastBlock          int32
+	lastAnnouncedBlock *wire.ShaHash
+	lastPingNonce      uint64    // Set to nonce if we have a pending ping.
+	lastPingTime       time.Time // Time we sent last ping.
+	lastPingMicros     int64     // Time for last ping to return.
 }
 
 // String returns the peer's address and directionality as a human-readable
@@ -212,6 +232,27 @@ func (p *peer) isKnownInventory(invVect *wire.InvVect) bool {
 		return true
 	}
 	return false
+}
+
+// UpdateLastBlockHeight updates the last known block for the peer. It is safe
+// for concurrent access.
+func (p *peer) UpdateLastBlockHeight(newHeight int32) {
+	p.StatsMtx.Lock()
+	defer p.StatsMtx.Unlock()
+
+	peerLog.Tracef("Updating last block height of peer %v from %v to %v",
+		p.addr, p.lastBlock, newHeight)
+	p.lastBlock = int32(newHeight)
+}
+
+// UpdateLastAnnouncedBlock updates meta-data about the last block sha this
+// peer is known to have announced. It is safe for concurrent access.
+func (p *peer) UpdateLastAnnouncedBlock(blkSha *wire.ShaHash) {
+	p.StatsMtx.Lock()
+	defer p.StatsMtx.Unlock()
+
+	peerLog.Tracef("Updating last blk for peer %v, %v", p.addr, blkSha)
+	p.lastAnnouncedBlock = blkSha
 }
 
 // AddKnownInventory adds the passed inventory to the cache of known inventory
@@ -413,6 +454,7 @@ func (p *peer) handleVersionMsg(msg *wire.MsgVersion) {
 	peerLog.Debugf("Negotiated protocol version %d for peer %s",
 		p.protocolVersion, p)
 	p.lastBlock = msg.LastBlock
+	p.startingHeight = msg.LastBlock
 
 	// Set the supported services for the peer to what the remote peer
 	// advertised.
@@ -420,6 +462,12 @@ func (p *peer) handleVersionMsg(msg *wire.MsgVersion) {
 
 	// Set the remote peer's user agent.
 	p.userAgent = msg.UserAgent
+
+	// Set the peer's time offset.
+	p.timeOffset = msg.Timestamp.Unix() - time.Now().Unix()
+
+	// Set the peer's ID.
+	p.id = atomic.AddInt32(&nodeCount, 1)
 
 	p.StatsMtx.Unlock()
 
@@ -466,7 +514,7 @@ func (p *peer) handleVersionMsg(msg *wire.MsgVersion) {
 
 	// Add the remote peer time as a sample for creating an offset against
 	// the local clock to keep the network time in sync.
-	//	p.server.timeSource.AddTimeSample(p.addr, msg.Timestamp)
+	//p.server.timeSource.AddTimeSample(p.addr, msg.Timestamp)
 
 	// Signal the block manager this peer is a new sync candidate.
 	p.server.blockManager.NewPeer(p)
@@ -485,89 +533,82 @@ func (p *peer) handleVersionMsg(msg *wire.MsgVersion) {
 	}
 }
 
+/*
 // pushTxMsg sends a tx message for the provided transaction hash to the
 // connected peer.  An error is returned if the transaction hash is not known.
 func (p *peer) pushTxMsg(sha *wire.ShaHash, doneChan, waitChan chan struct{}) error {
-	panic(errors.New("NOT IMPLEMENTED: Factoid1"))
-	/*
-		// Attempt to fetch the requested transaction from the pool.  A
-		// call could be made to check for existence first, but simply trying
-		// to fetch a missing transaction results in the same behavior.
-		tx, err := p.server.txMemPool.FetchTransaction(sha)
-		if err != nil {
-			peerLog.Tracef("Unable to fetch tx %v from transaction "+
-				"pool: %v", sha, err)
+	// Attempt to fetch the requested transaction from the pool.  A
+	// call could be made to check for existence first, but simply trying
+	// to fetch a missing transaction results in the same behavior.
+	tx, err := p.server.txMemPool.FetchTransaction(sha)
+	if err != nil {
+		peerLog.Tracef("Unable to fetch tx %v from transaction "+
+			"pool: %v", sha, err)
 
-			if doneChan != nil {
-				doneChan <- struct{}{}
-			}
-			return err
+		if doneChan != nil {
+			doneChan <- struct{}{}
 		}
+		return err
+	}
 
-		// Once we have fetched data wait for any previous operation to finish.
-		if waitChan != nil {
-			<-waitChan
-		}
+	// Once we have fetched data wait for any previous operation to finish.
+	if waitChan != nil {
+		<-waitChan
+	}
 
-		p.QueueMessage(tx.MsgTx(), doneChan)
-	*/
+	p.QueueMessage(tx.MsgTx(), doneChan)
 
-	//return nil
+	return nil
 }
 
 // pushBlockMsg sends a block message for the provided block hash to the
 // connected peer.  An error is returned if the block hash is not known.
 func (p *peer) pushBlockMsg(sha *wire.ShaHash, doneChan, waitChan chan struct{}) error {
-	//util.Trace("NOT IMPLEMENTED - NEEDED???")
-	panic(1111)
-	/*
-			blk, err := p.server.db.FetchBlockBySha(sha)
-			if err != nil {
-				peerLog.Tracef("Unable to fetch requested block sha %v: %v",
-					sha, err)
+	blk, err := p.server.db.FetchBlockBySha(sha)
+	if err != nil {
+		peerLog.Tracef("Unable to fetch requested block sha %v: %v",
+			sha, err)
 
-				if doneChan != nil {
-					doneChan <- struct{}{}
-				}
-				return err
-			}
-
-		// Once we have fetched data wait for any previous operation to finish.
-		if waitChan != nil {
-			<-waitChan
+		if doneChan != nil {
+			doneChan <- struct{}{}
 		}
+		return err
+	}
 
-		// We only send the channel for this message if we aren't sending
-		// an inv straight after.
-		var dc chan struct{}
-		sendInv := p.continueHash != nil && p.continueHash.IsEqual(sha)
-		if !sendInv {
-			dc = doneChan
-		}
-		p.QueueMessage(blk.MsgBlock(), dc)
+	// Once we have fetched data wait for any previous operation to finish.
+	if waitChan != nil {
+		<-waitChan
+	}
 
-		// When the peer requests the final block that was advertised in
-		// response to a getblocks message which requested more blocks than
-		// would fit into a single message, send it a new inventory message
-		// to trigger it to issue another getblocks message for the next
-		// batch of inventory.
-		if p.continueHash != nil && p.continueHash.IsEqual(sha) {
-			hash, _, err := p.server.db.NewestSha()
-			if err == nil {
-				invMsg := wire.NewMsgInvSizeHint(1)
-				iv := wire.NewInvVect(wire.InvTypeBlock, hash)
-				invMsg.AddInvVect(iv)
-				p.QueueMessage(invMsg, doneChan)
-				p.continueHash = nil
-			} else if doneChan != nil {
-				doneChan <- struct{}{}
-			}
+	// We only send the channel for this message if we aren't sending
+	// an inv straight after.
+	var dc chan struct{}
+	sendInv := p.continueHash != nil && p.continueHash.IsEqual(sha)
+	if !sendInv {
+		dc = doneChan
+	}
+	p.QueueMessage(blk.MsgBlock(), dc)
+
+	// When the peer requests the final block that was advertised in
+	// response to a getblocks message which requested more blocks than
+	// would fit into a single message, send it a new inventory message
+	// to trigger it to issue another getblocks message for the next
+	// batch of inventory.
+	if p.continueHash != nil && p.continueHash.IsEqual(sha) {
+		hash, _, err := p.server.db.NewestSha()
+		if err == nil {
+			invMsg := wire.NewMsgInvSizeHint(1)
+			iv := wire.NewInvVect(wire.InvTypeBlock, hash)
+			invMsg.AddInvVect(iv)
+			p.QueueMessage(invMsg, doneChan)
+			p.continueHash = nil
+		} else if doneChan != nil {
+			doneChan <- struct{}{}
 		}
-	*/
-	//return nil
+	}
+	return nil
 }
 
-/*
 // pushMerkleBlockMsg sends a merkleblock message for the provided block hash to
 // the connected peer.  Since a merkle block requires the peer to have a filter
 // loaded, this call will simply be ignored if there is no filter loaded.  An
@@ -593,28 +634,8 @@ func (p *peer) pushMerkleBlockMsg(sha *wire.ShaHash, doneChan, waitChan chan str
 	}
 
 	// Generate a merkle block by filtering the requested block according
-	// to the filter for the peer and fetch any matched transactions from
-	// the database.
-	merkle, matchedHashes := bloom.NewMerkleBlock(blk, p.filter)
-	txList := p.server.db.FetchTxByShaList(matchedHashes)
-
-	// Warn on any missing transactions which should not happen since the
-	// matched transactions come from an existing block.  Also, find the
-	// final valid transaction index for later.
-	finalValidTxIndex := -1
-	for i, txR := range txList {
-		if txR.Err != nil || txR.Tx == nil {
-			warnMsg := fmt.Sprintf("Failed to fetch transaction "+
-				"%v which was matched by merkle block %v",
-				txR.Sha, sha)
-			if txR.Err != nil {
-				warnMsg += ": " + err.Error()
-			}
-			peerLog.Warnf(warnMsg)
-			continue
-		}
-		finalValidTxIndex = i
-	}
+	// to the filter for the peer.
+	merkle, matchedTxIndices := bloom.NewMerkleBlock(blk, p.filter)
 
 	// Once we have fetched data wait for any previous operation to finish.
 	if waitChan != nil {
@@ -624,26 +645,26 @@ func (p *peer) pushMerkleBlockMsg(sha *wire.ShaHash, doneChan, waitChan chan str
 	// Send the merkleblock.  Only send the done channel with this message
 	// if no transactions will be sent afterwards.
 	var dc chan struct{}
-	if finalValidTxIndex == -1 {
+	if len(matchedTxIndices) == 0 {
 		dc = doneChan
 	}
 	p.QueueMessage(merkle, dc)
 
 	// Finally, send any matched transactions.
-	for i, txR := range txList {
+	blkTransactions := blk.MsgBlock().Transactions
+	for i, txIndex := range matchedTxIndices {
 		// Only send the done channel on the final transaction.
 		var dc chan struct{}
-		if i == finalValidTxIndex {
+		if i == len(matchedTxIndices)-1 {
 			dc = doneChan
 		}
-		if txR.Err == nil && txR.Tx != nil {
-			p.QueueMessage(txR.Tx, dc)
+		if txIndex < uint32(len(blkTransactions)) {
+			p.QueueMessage(blkTransactions[txIndex], dc)
 		}
 	}
 
 	return nil
 }
-*/
 
 // PushGetBlocksMsg sends a getblocks message for the provided block locator
 // and stop hash.  It will ignore back-to-back duplicate requests.
@@ -683,7 +704,6 @@ func (p *peer) PushGetBlocksMsg(locator blockchain.BlockLocator, stopHash *wire.
 	return nil
 }
 
-/*
 // PushGetHeadersMsg sends a getblocks message for the provided block locator
 // and stop hash.  It will ignore back-to-back duplicate requests.
 func (p *peer) PushGetHeadersMsg(locator blockchain.BlockLocator, stopHash *wire.ShaHash) error {
@@ -782,13 +802,13 @@ func (p *peer) handleMemPoolMsg(msg *wire.MsgMemPool) {
 		// Either add all transactions when there is no bloom filter,
 		// or only the transactions that match the filter when there is
 		// one.
-		//		if !p.filter.IsLoaded() || p.filter.MatchTxAndUpdate(txDesc.Tx) {
-		iv := wire.NewInvVect(wire.InvTypeTx, hash)
-		invMsg.AddInvVect(iv)
-		if i+1 >= wire.MaxInvPerMsg {
-			break
+		if !p.filter.IsLoaded() || p.filter.MatchTxAndUpdate(txDesc.Tx) {
+			iv := wire.NewInvVect(wire.InvTypeTx, hash)
+			invMsg.AddInvVect(iv)
+			if i+1 >= wire.MaxInvPerMsg {
+				break
+			}
 		}
-		//		}
 	}
 
 	// Send the inventory message if there is anything to send.
@@ -796,15 +816,12 @@ func (p *peer) handleMemPoolMsg(msg *wire.MsgMemPool) {
 		p.QueueMessage(invMsg, nil)
 	}
 }
-*/
 
-/*
 // handleTxMsg is invoked when a peer receives a tx bitcoin message.  It blocks
 // until the bitcoin transaction has been fully processed.  Unlock the block
 // handler this does not serialize all transactions through a single thread
 // transactions don't rely on the previous one in a linear fashion like blocks.
-func (p *peer) peer_HandleTxMsg(msg *wire.MsgTx) {
-
+func (p *peer) handleTxMsg(msg *wire.MsgTx) {
 	// Add the transaction to the known inventory for the peer.
 	// Convert the raw MsgTx to a btcutil.Tx which provides some convenience
 	// methods and things such as hash caching.
@@ -819,23 +836,17 @@ func (p *peer) peer_HandleTxMsg(msg *wire.MsgTx) {
 	// being disconnected) and wasting memory.
 	p.server.blockManager.QueueTx(tx, p)
 	<-p.txProcessed
-
 }
 
 // handleBlockMsg is invoked when a peer receives a block bitcoin message.  It
 // blocks until the bitcoin block has been fully processed.
-func (p *peer) peer_HandleBlockMsg(msg *wire.MsgBlock, buf []byte) {
+func (p *peer) handleBlockMsg(msg *wire.MsgBlock, buf []byte) {
 	// Convert the raw MsgBlock to a btcutil.Block which provides some
 	// convenience methods and things such as hash caching.
 	block := btcutil.NewBlockFromBlockAndBytes(msg, buf)
 
 	// Add the block to the known inventory for the peer.
-	hash, err := block.Sha()
-	if err != nil {
-		peerLog.Errorf("Unable to get block hash: %v", err)
-		return
-	}
-	iv := wire.NewInvVect(wire.InvTypeBlock, hash)
+	iv := wire.NewInvVect(wire.InvTypeBlock, block.Sha())
 	p.AddKnownInventory(iv)
 
 	// Queue the block up to be handled by the block
@@ -868,7 +879,6 @@ func (p *peer) handleInvMsg(msg *wire.MsgInv) {
 func (p *peer) handleHeadersMsg(msg *wire.MsgHeaders) {
 	p.server.blockManager.QueueHeaders(msg, p)
 }
-*/
 
 // handleGetData is invoked when a peer receives a getdata bitcoin message and
 // is used to deliver block and transaction information.
@@ -898,12 +908,8 @@ func (p *peer) handleGetDataMsg(msg *wire.MsgGetData) {
 			err = p.pushTxMsg(&iv.Hash, c, waitChan)
 		case wire.InvTypeBlock:
 			err = p.pushBlockMsg(&iv.Hash, c, waitChan)
-		case wire.InvTypeFactomDirBlock:
-			err = p.pushDirBlockMsg(&iv.Hash, c, waitChan)
-			/*
-				case wire.InvTypeFilteredBlock:
-					err = p.pushMerkleBlockMsg(&iv.Hash, c, waitChan)
-			*/
+		case wire.InvTypeFilteredBlock:
+			err = p.pushMerkleBlockMsg(&iv.Hash, c, waitChan)
 		default:
 			peerLog.Warnf("Unknown type in inventory request %d",
 				iv.Type)
@@ -940,92 +946,92 @@ func (p *peer) handleGetDataMsg(msg *wire.MsgGetData) {
 
 // handleGetBlocksMsg is invoked when a peer receives a getblocks bitcoin message.
 func (p *peer) handleGetBlocksMsg(msg *wire.MsgGetBlocks) {
-	panic(errors.New("NOT IMPLEMENTED: Factoid1"))
+	// Return all block hashes to the latest one (up to max per message) if
+	// no stop hash was specified.
+	// Attempt to find the ending index of the stop hash if specified.
+	endIdx := database.AllShas
+	if !msg.HashStop.IsEqual(&zeroHash) {
+		height, err := p.server.db.FetchBlockHeightBySha(&msg.HashStop)
+		if err == nil {
+			endIdx = height + 1
+		}
+	}
 
-	/*
-		// Return all block hashes to the latest one (up to max per message) if
-		// no stop hash was specified.
-		// Attempt to find the ending index of the stop hash if specified.
-		endIdx := database.AllShas
-		if !msg.HashStop.IsEqual(&zeroHash) {
-			height, err := p.server.db.FetchBlockHeightBySha(&msg.HashStop)
-			if err == nil {
-				endIdx = height + 1
-			}
+	// Find the most recent known block based on the block locator.
+	// Use the block after the genesis block if no other blocks in the
+	// provided locator are known.  This does mean the client will start
+	// over with the genesis block if unknown block locators are provided.
+	// This mirrors the behavior in the reference implementation.
+	startIdx := int32(1)
+	for _, hash := range msg.BlockLocatorHashes {
+		height, err := p.server.db.FetchBlockHeightBySha(hash)
+		if err == nil {
+			// Start with the next hash since we know this one.
+			startIdx = height + 1
+			break
+		}
+	}
+
+	// Don't attempt to fetch more than we can put into a single message.
+	autoContinue := false
+	if endIdx-startIdx > wire.MaxBlocksPerMsg {
+		endIdx = startIdx + wire.MaxBlocksPerMsg
+		autoContinue = true
+	}
+
+	// Generate inventory message.
+	//
+	// The FetchBlockBySha call is limited to a maximum number of hashes
+	// per invocation.  Since the maximum number of inventory per message
+	// might be larger, call it multiple times with the appropriate indices
+	// as needed.
+	invMsg := wire.NewMsgInv()
+	for start := startIdx; start < endIdx; {
+		// Fetch the inventory from the block database.
+		hashList, err := p.server.db.FetchHeightRange(start, endIdx)
+		if err != nil {
+			peerLog.Warnf("Block lookup failed: %v", err)
+			return
 		}
 
-		// Find the most recent known block based on the block locator.
-		// Use the block after the genesis block if no other blocks in the
-		// provided locator are known.  This does mean the client will start
-		// over with the genesis block if unknown block locators are provided.
-		// This mirrors the behavior in the reference implementation.
-		startIdx := int64(1)
-		for _, hash := range msg.BlockLocatorHashes {
-			height, err := p.server.db.FetchBlockHeightBySha(hash)
-			if err == nil {
-				// Start with the next hash since we know this one.
-				startIdx = height + 1
-				break
-			}
+		// The database did not return any further hashes.  Break out of
+		// the loop now.
+		if len(hashList) == 0 {
+			break
 		}
 
-		// Don't attempt to fetch more than we can put into a single message.
-		autoContinue := false
-		if endIdx-startIdx > wire.MaxBlocksPerMsg {
-			endIdx = startIdx + wire.MaxBlocksPerMsg
-			autoContinue = true
+		// Add block inventory to the message.
+		for _, hash := range hashList {
+			hashCopy := hash
+			iv := wire.NewInvVect(wire.InvTypeBlock, &hashCopy)
+			invMsg.AddInvVect(iv)
 		}
+		start += int32(len(hashList))
+	}
 
-		// Generate inventory message.
-		//
-		// The FetchBlockBySha call is limited to a maximum number of hashes
-		// per invocation.  Since the maximum number of inventory per message
-		// might be larger, call it multiple times with the appropriate indices
-		// as needed.
-		invMsg := wire.NewMsgInv()
-		for start := startIdx; start < endIdx; {
-			// Fetch the inventory from the block database.
-			hashList, err := p.server.db.FetchHeightRange(start, endIdx)
-			if err != nil {
-				peerLog.Warnf("Block lookup failed: %v", err)
-				return
-			}
-
-			// The database did not return any further hashes.  Break out of
-			// the loop now.
-			if len(hashList) == 0 {
-				break
-			}
-
-			// Add block inventory to the message.
-			for _, hash := range hashList {
-				hashCopy := hash
-				iv := wire.NewInvVect(wire.InvTypeBlock, &hashCopy)
-				invMsg.AddInvVect(iv)
-			}
-			start += int64(len(hashList))
+	// Send the inventory message if there is anything to send.
+	if len(invMsg.InvList) > 0 {
+		invListLen := len(invMsg.InvList)
+		if autoContinue && invListLen == wire.MaxBlocksPerMsg {
+			// Intentionally use a copy of the final hash so there
+			// is not a reference into the inventory slice which
+			// would prevent the entire slice from being eligible
+			// for GC as soon as it's sent.
+			continueHash := invMsg.InvList[invListLen-1].Hash
+			p.continueHash = &continueHash
 		}
-
-		// Send the inventory message if there is anything to send.
-		if len(invMsg.InvList) > 0 {
-			invListLen := len(invMsg.InvList)
-			if autoContinue && invListLen == wire.MaxBlocksPerMsg {
-				// Intentionally use a copy of the final hash so there
-				// is not a reference into the inventory slice which
-				// would prevent the entire slice from being eligible
-				// for GC as soon as it's sent.
-				continueHash := invMsg.InvList[invListLen-1].Hash
-				p.continueHash = &continueHash
-			}
-			p.QueueMessage(invMsg, nil)
-		}
-	*/
+		p.QueueMessage(invMsg, nil)
+	}
 }
 
-/*
 // handleGetHeadersMsg is invoked when a peer receives a getheaders bitcoin
 // message.
 func (p *peer) handleGetHeadersMsg(msg *wire.MsgGetHeaders) {
+	// Ignore getheaders requests if not in sync.
+	if !p.server.blockManager.IsCurrent() {
+		return
+	}
+
 	// Attempt to look up the height of the provided stop hash.
 	endIdx := database.AllShas
 	height, err := p.server.db.FetchBlockHeightBySha(&msg.HashStop)
@@ -1062,7 +1068,7 @@ func (p *peer) handleGetHeadersMsg(msg *wire.MsgGetHeaders) {
 	// provided locator are known.  This does mean the client will start
 	// over with the genesis block if unknown block locators are provided.
 	// This mirrors the behavior in the reference implementation.
-	startIdx := int64(1)
+	startIdx := int32(1)
 	for _, hash := range msg.BlockLocatorHashes {
 		height, err := p.server.db.FetchBlockHeightBySha(hash)
 		if err == nil {
@@ -1111,13 +1117,11 @@ func (p *peer) handleGetHeadersMsg(msg *wire.MsgGetHeaders) {
 
 		// Start at the next block header after the latest one on the
 		// next loop iteration.
-		start += int64(len(hashList))
+		start += int32(len(hashList))
 	}
 	p.QueueMessage(headersMsg, nil)
 }
-*/
 
-/*
 // handleFilterAddMsg is invoked when a peer receives a filteradd bitcoin
 // message and is used by remote peers to add data to an already loaded bloom
 // filter.  The peer will be disconnected if a filter is not loaded when this
@@ -1170,6 +1174,12 @@ func (p *peer) handleGetAddrMsg(msg *wire.MsgGetAddr) {
 	// public test network since it will not be able to learn about other
 	// peers that have not specifically been provided.
 	if cfg.SimNet {
+		return
+	}
+
+	// Do not accept getaddr requests from outbound peers.  This reduces
+	// fingerprinting attacks.
+	if !p.inbound {
 		return
 	}
 
@@ -1327,7 +1337,7 @@ func (p *peer) readMessage() (wire.Message, []byte, error) {
 
 	// Use closures to log expensive operations so they are only run when
 	// the logging level requires it.
-	peerLog.Debugf("read: %v", newLogClosure(func() string {
+	peerLog.Debugf("%v", newLogClosure(func() string {
 		// Debug summary of message.
 		summary := messageSummary(msg)
 		if len(summary) > 0 {
@@ -1336,12 +1346,12 @@ func (p *peer) readMessage() (wire.Message, []byte, error) {
 		return fmt.Sprintf("Received %v%s from %s",
 			msg.Command(), summary, p)
 	}))
-	peerLog.Debugf("read: %v", newLogClosure(func() string {
+	peerLog.Tracef("%v", newLogClosure(func() string {
 		return spew.Sdump(msg)
-	})) /*
-		peerLog.Debugf("%v", newLogClosure(func() string {
-			return spew.Sdump(buf)
-		})) */
+	}))
+	peerLog.Tracef("%v", newLogClosure(func() string {
+		return spew.Sdump(buf)
+	}))
 
 	return msg, buf, nil
 }
@@ -1367,7 +1377,7 @@ func (p *peer) writeMessage(msg wire.Message) {
 
 	// Use closures to log expensive operations so they are only run when
 	// the logging level requires it.
-	peerLog.Debugf("write: %v", newLogClosure(func() string {
+	peerLog.Debugf("%v", newLogClosure(func() string {
 		// Debug summary of message.
 		summary := messageSummary(msg)
 		if len(summary) > 0 {
@@ -1376,18 +1386,18 @@ func (p *peer) writeMessage(msg wire.Message) {
 		return fmt.Sprintf("Sending %v%s to %s", msg.Command(),
 			summary, p)
 	}))
-	peerLog.Debugf("write: %v", newLogClosure(func() string {
+	peerLog.Tracef("%v", newLogClosure(func() string {
 		return spew.Sdump(msg)
-	})) /*
-		peerLog.Debugf("%v", newLogClosure(func() string {
-			var buf bytes.Buffer
-			err := wire.WriteMessage(&buf, msg, p.ProtocolVersion(),
-				p.btcnet)
-			if err != nil {
-				return err.Error()
-			}
-			return spew.Sdump(buf.Bytes())
-		})) */
+	}))
+	peerLog.Tracef("%v", newLogClosure(func() string {
+		var buf bytes.Buffer
+		err := wire.WriteMessage(&buf, msg, p.ProtocolVersion(),
+			p.btcnet)
+		if err != nil {
+			return err.Error()
+		}
+		return spew.Sdump(buf.Bytes())
+	}))
 
 	// Write the message to the peer.
 	n, err := wire.WriteMessageN(p.conn, msg, p.ProtocolVersion(),
@@ -1505,28 +1515,36 @@ out:
 		}
 
 		// Handle each supported message type.
-		markConnected := false
 		switch msg := rmsg.(type) {
 		case *wire.MsgVersion:
 			p.handleVersionMsg(msg)
-			markConnected = true
 
 		case *wire.MsgVerAck:
-			// Do nothing.
+			p.StatsMtx.Lock()
+			versionSent := p.versionSent
+			verAckReceived := p.verAckReceived
+			p.StatsMtx.Unlock()
+
+			if !versionSent {
+				peerLog.Infof("Received 'verack' from peer %v "+
+					"before version was sent -- disconnecting", p)
+				break out
+			}
+			if verAckReceived {
+				peerLog.Infof("Already received 'verack' from "+
+					"peer %v -- disconnecting", p)
+				break out
+			}
+			p.verAckReceived = true
 
 		case *wire.MsgGetAddr:
-			/*
-				FIXME in Milestone2; disable for Milestone1 only
-					p.handleGetAddrMsg(msg)
-			*/
+			p.handleGetAddrMsg(msg) //disable for Milestone1 only
 
 		case *wire.MsgAddr:
 			p.handleAddrMsg(msg)
-			markConnected = true
 
 		case *wire.MsgPing:
 			p.handlePingMsg(msg)
-			markConnected = true
 
 		case *wire.MsgPong:
 			p.handlePongMsg(msg)
@@ -1541,27 +1559,20 @@ out:
 			// implementions' alert messages, we will not relay
 			// theirs.
 
-			/*
-				case *wire.MsgMemPool:
-					p.handleMemPoolMsg(msg)
-			*/
+		//case *wire.MsgMemPool:
+		//p.handleMemPoolMsg(msg)
 
-			/*
-				case *wire.MsgTx:
-					p.peer_HandleTxMsg(msg)
+		//case *wire.MsgTx:
+		//p.handleTxMsg(msg)
 
-				case *wire.MsgBlock:
-					p.peer_HandleBlockMsg(msg, buf)
-			*/
+		//case *wire.MsgBlock:
+		//p.handleBlockMsg(msg, buf)
 
 		case *wire.MsgInv:
 			p.handleInvMsg(msg)
-			markConnected = true
 
-			/*
-				case *wire.MsgHeaders:
-					p.handleHeadersMsg(msg)
-			*/
+		//case *wire.MsgHeaders:
+		//p.handleHeadersMsg(msg)
 
 		case *wire.MsgNotFound:
 			// TODO(davec): Ignore this for now, but ultimately
@@ -1569,26 +1580,23 @@ out:
 			// we requested needs to be re-requested from another
 			// peer.
 
-		case *wire.MsgGetData:
-			p.handleGetDataMsg(msg)
-			markConnected = true
+		//case *wire.MsgGetData:
+		//p.handleGetDataMsg(msg)
 
-		case *wire.MsgGetBlocks:
-			p.handleGetBlocksMsg(msg)
+		//case *wire.MsgGetBlocks:
+		//p.handleGetBlocksMsg(msg)
 
-			/*
-				case *wire.MsgGetHeaders:
-					p.handleGetHeadersMsg(msg)
+		//case *wire.MsgGetHeaders:
+		//p.handleGetHeadersMsg(msg)
 
-				case *wire.MsgFilterAdd:
-					p.handleFilterAddMsg(msg)
+		//case *wire.MsgFilterAdd:
+		//p.handleFilterAddMsg(msg)
 
-				case *wire.MsgFilterClear:
-					p.handleFilterClearMsg(msg)
+		//case *wire.MsgFilterClear:
+		//p.handleFilterClearMsg(msg)
 
-				case *wire.MsgFilterLoad:
-					p.handleFilterLoadMsg(msg)
-			*/
+		//case *wire.MsgFilterLoad:
+		//p.handleFilterLoadMsg(msg)
 
 		case *wire.MsgReject:
 			// Nothing to do currently.  Logging of the rejected
@@ -1597,23 +1605,18 @@ out:
 			// Factom additions
 		case *wire.MsgCommitChain:
 			p.handleCommitChainMsg(msg)
-			//p.FactomRelay(msg)
 
 		case *wire.MsgRevealChain:
 			p.handleRevealChainMsg(msg)
-			//p.FactomRelay(msg)
 
 		case *wire.MsgCommitEntry:
 			p.handleCommitEntryMsg(msg)
-			//p.FactomRelay(msg)
 
 		case *wire.MsgRevealEntry:
 			p.handleRevealEntryMsg(msg)
-			//p.FactomRelay(msg)
 
 		case *wire.MsgAcknowledgement:
 			p.handleAcknoledgementMsg(msg)
-			//p.FactomRelay(msg)
 
 			// Factom blocks downloading
 		case *wire.MsgGetDirBlocks:
@@ -1621,18 +1624,18 @@ out:
 
 		case *wire.MsgDirInv:
 			p.handleDirInvMsg(msg)
-			markConnected = true
+			//markConnected = true
 
 		case *wire.MsgGetDirData:
 			p.handleGetDirDataMsg(msg)
-			markConnected = true
+			//markConnected = true
 
 		case *wire.MsgDirBlock:
 			p.handleDirBlockMsg(msg, buf)
 
 		case *wire.MsgGetNonDirData:
 			p.handleGetNonDirDataMsg(msg)
-			markConnected = true
+			//markConnected = true
 
 		case *wire.MsgABlock:
 			p.handleABlockMsg(msg, buf)
@@ -1648,7 +1651,7 @@ out:
 
 		case *wire.MsgGetEntryData:
 			p.handleGetEntryDataMsg(msg)
-			markConnected = true
+			//markConnected = true
 
 		case *wire.MsgEntry:
 			p.handleEntryMsg(msg, buf)
@@ -1661,16 +1664,6 @@ out:
 				rmsg.Command())
 		}
 
-		// Mark the address as currently connected and working as of
-		// now if one of the messages that trigger it was processed.
-		if markConnected && atomic.LoadInt32(&p.disconnect) == 0 {
-			if p.na == nil {
-				peerLog.Warnf("we're getting stuff before we " +
-					"got a version message. that's bad")
-				continue
-			}
-			p.server.addrManager.Connected(p.na)
-		}
 		// ok we got a message, reset the timer.
 		// timer just calls p.Disconnect() after logging.
 		idleTimer.Reset(idleTimeoutMinutes * time.Minute)
@@ -1766,8 +1759,8 @@ out:
 
 			// Create and send as many inv messages as needed to
 			// drain the inventory send queue.
-			//invMsg := wire.NewMsgInv()
-			invMsg := wire.NewMsgDirInv()
+			//invMsg := wire.NewMsgInvSizeHint(uint(invSendQueue.Len()))
+			invMsg := wire.NewMsgDirInvSizeHint(uint(invSendQueue.Len()))
 			for e := invSendQueue.Front(); e != nil; e = invSendQueue.Front() {
 				iv := invSendQueue.Remove(e).(*wire.InvVect)
 
@@ -1782,8 +1775,8 @@ out:
 					waiting = queuePacket(
 						outMsg{msg: invMsg},
 						pendingMsgs, waiting)
-					//invMsg = wire.NewMsgInv()
-					invMsg = wire.NewMsgDirInv()
+					//invMsg = wire.NewMsgInvSizeHint(uint(invSendQueue.Len()))
+					invMsg = wire.NewMsgDirInvSizeHint(uint(invSendQueue.Len()))
 				}
 
 				// Add the inventory that is being relayed to
@@ -1856,7 +1849,10 @@ out:
 			reset := true
 			switch m := msg.msg.(type) {
 			case *wire.MsgVersion:
-				// should get an ack
+				// should get a verack
+				p.StatsMtx.Lock()
+				p.versionSent = true
+				p.StatsMtx.Unlock()
 			case *wire.MsgGetAddr:
 				// should get addresses
 			case *wire.MsgPing:
@@ -1868,12 +1864,12 @@ out:
 					p.lastPingTime = time.Now()
 				}
 				p.StatsMtx.Unlock()
-			case *wire.MsgMemPool:
-				// Should return an inv.
-			case *wire.MsgGetData:
-				// Should get us block, tx, or not found.
-			case *wire.MsgGetHeaders:
-				// Should get us headers back.
+			//case *wire.MsgMemPool:
+			// Should return an inv.
+			//case *wire.MsgGetData:
+			// Should get us block, tx, or not found.
+			//case *wire.MsgGetHeaders:
+			// Should get us headers back.
 			case *wire.MsgGetDirData:
 				// Should get us dir block, or not found for factom
 			default:
@@ -1977,9 +1973,16 @@ func (p *peer) Disconnect() {
 	if atomic.AddInt32(&p.disconnect, 1) != 1 {
 		return
 	}
-	peerLog.Tracef("disconnecting %s", p)
-	peerLog.Infof("disconnecting %s", p)
 
+	// Update the address' last seen time if the peer has acknowledged
+	// our version and has sent us its version as well.
+	p.StatsMtx.Lock()
+	if p.verAckReceived && p.versionKnown && p.na != nil {
+		p.server.addrManager.Connected(p.na)
+	}
+	p.StatsMtx.Unlock()
+
+	peerLog.Tracef("disconnecting %s", p)
 	close(p.quit)
 	if atomic.LoadInt32(&p.connected) != 0 {
 		p.conn.Close()
@@ -1995,7 +1998,6 @@ func (p *peer) Start() error {
 	}
 
 	peerLog.Tracef("Starting peer %s", p)
-	peerLog.Infof("Starting peer %s", p)
 
 	// Send an initial version message if this is an outbound connection.
 	if !p.inbound {
@@ -2038,7 +2040,7 @@ func newPeerBase(s *server, inbound bool) *peer {
 		knownInventory:  NewMruInventoryMap(maxKnownInventory),
 		requestedTxns:   make(map[wire.ShaHash]struct{}),
 		requestedBlocks: make(map[wire.ShaHash]struct{}),
-		//		filter:          bloom.LoadFilter(nil),
+		//filter:          bloom.LoadFilter(nil),
 		outputQueue:    make(chan outMsg, outputBufferSize),
 		sendQueue:      make(chan outMsg, 1),   // nonblocking sync
 		sendDoneQueue:  make(chan struct{}, 1), // nonblocking sync
@@ -2106,6 +2108,9 @@ func newOutboundPeer(s *server, addr string, persistent bool, retryCount int64) 
 		if p.retryCount > 0 {
 			scaledInterval := connectionRetryInterval.Nanoseconds() * p.retryCount / 2
 			scaledDuration := time.Duration(scaledInterval)
+			if scaledDuration > maxConnectionRetryInterval {
+				scaledDuration = maxConnectionRetryInterval
+			}
 			srvrLog.Debugf("Retrying connection to %s in %s", addr, scaledDuration)
 			time.Sleep(scaledDuration)
 		}

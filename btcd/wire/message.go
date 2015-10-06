@@ -109,11 +109,11 @@ func makeEmptyMessage(command string) (Message, error) {
 	case CmdAddr:
 		msg = &MsgAddr{}
 
-	case CmdGetBlocks:
-		msg = &MsgGetBlocks{}
+	//case CmdGetBlocks:
+	//msg = &MsgGetBlocks{}
 
-	case CmdBlock:
-		msg = &MsgBlock{}
+	//case CmdBlock:
+	//msg = &MsgBlock{}
 
 	case CmdInv:
 		msg = &MsgInv{}
@@ -135,26 +135,26 @@ func makeEmptyMessage(command string) (Message, error) {
 	case CmdPong:
 		msg = &MsgPong{}
 
-	case CmdGetHeaders:
-		msg = &MsgGetHeaders{}
+	//case CmdGetHeaders:
+	//msg = &MsgGetHeaders{}
 
-	case CmdHeaders:
-		msg = &MsgHeaders{}
+	//case CmdHeaders:
+	//msg = &MsgHeaders{}
 
 	case CmdAlert:
 		msg = &MsgAlert{}
 
-	case CmdMemPool:
-		msg = &MsgMemPool{}
+	//case CmdMemPool:
+	//msg = &MsgMemPool{}
 
-	case CmdFilterAdd:
-		msg = &MsgFilterAdd{}
+	//case CmdFilterAdd:
+	//msg = &MsgFilterAdd{}
 
-	case CmdFilterClear:
-		msg = &MsgFilterClear{}
+	//case CmdFilterClear:
+	//msg = &MsgFilterClear{}
 
-	case CmdFilterLoad:
-		msg = &MsgFilterLoad{}
+	//case CmdFilterLoad:
+	//msg = &MsgFilterLoad{}
 
 	case CmdReject:
 		msg = &MsgReject{}
