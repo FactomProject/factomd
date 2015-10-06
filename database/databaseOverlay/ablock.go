@@ -24,8 +24,6 @@ func (db *Overlay) ProcessABlockBatch(block *AdminBlock) error {
 
 	bytes := make([]byte, 4)
 	binary.BigEndian.PutUint32(bytes, block.Header.DBHeight)
-	//TODO: ignore the admin chain ID to make the key simpler?
-	bytes = append(block.Header.AdminChainID.Bytes(), bytes...)
 	batch = append(batch, Record{[]byte{byte(TBL_AB_NUM)}, bytes, abHash})
 
 	batch = append(batch, Record{[]byte{byte(TBL_CHAIN_HEAD)}, ADMIN_CHAINID, abHash})

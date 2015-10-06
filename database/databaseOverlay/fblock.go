@@ -21,8 +21,6 @@ func (db *Overlay) ProcessFBlockBatch(block IFBlock) error {
 	// Insert the sc block number cross reference
 	bytes := make([]byte, 4)
 	binary.BigEndian.PutUint32(bytes, block.GetDBHeight())
-	//TODO: ignore the chain ID to make the key simpler?
-	bytes = append(block.GetChainID().Bytes(), bytes...)
 	batch = append(batch, Record{[]byte{byte(TBL_SC_NUM)}, bytes, scHash})
 
 	batch = append(batch, Record{[]byte{byte(TBL_CHAIN_HEAD)}, FACTOID_CHAINID, scHash})
