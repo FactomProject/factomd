@@ -12,6 +12,8 @@ import (
 	"os"
 	"reflect"
 	"sync"
+
+	"strings"
 )
 
 type LevelDB struct {
@@ -26,8 +28,12 @@ type LevelDB struct {
 var _ IDatabase = (*LevelDB)(nil)
 
 func (db *LevelDB) Delete(bucket []byte, key []byte) error {
-	//TODO: do
-	return nil
+	db.dbLock.Lock()
+	defer db.dbLock.Unlock()
+
+	ldbKey := append(bucket, key...)
+	err := db.lDB.Delete(ldbKey, db.wo)
+	return err
 }
 
 func (db *LevelDB) Close() error {
@@ -44,6 +50,9 @@ func (db *LevelDB) Get(bucket []byte, key []byte, destination BinaryMarshallable
 	ldbKey := append(bucket, key...)
 	data, err := db.lDB.Get(ldbKey, db.ro)
 	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			return nil, nil
+		}
 		return nil, err
 	}
 
@@ -100,7 +109,29 @@ func (db *LevelDB) PutInBatch(records []Record) error {
 }
 
 func (db *LevelDB) Clear(bucket []byte) error {
-	//TODO: add
+	keys, err := db.ListAllKeys(bucket)
+	if err != nil {
+		return err
+	}
+
+	db.dbLock.Lock()
+	defer db.dbLock.Unlock()
+
+	if db.lbatch == nil {
+		db.lbatch = new(leveldb.Batch)
+	}
+
+	defer db.lbatch.Reset()
+
+	for _, key := range keys {
+		ldbKey := append(bucket, key...)
+		db.lbatch.Delete(ldbKey)
+	}
+	err = db.lDB.Write(db.lbatch, db.wo)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

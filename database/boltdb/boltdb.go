@@ -66,7 +66,7 @@ func (d *BoltDB) Get(bucket []byte, key []byte, destination BinaryMarshallable) 
 		}
 		return nil
 	})
-	if v == nil || len(v) < 32 { // If the value is undefined, return nil
+	if v == nil { // If the value is undefined, return nil
 		return nil, nil
 	}
 
