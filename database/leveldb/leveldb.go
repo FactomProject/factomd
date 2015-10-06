@@ -7,20 +7,20 @@ package leveldb
 import (
 	. "github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/goleveldb/leveldb"
-	"github.com/FactomProject/goleveldb/leveldb/util"
 	"github.com/FactomProject/goleveldb/leveldb/opt"
-	"sync"
+	"github.com/FactomProject/goleveldb/leveldb/util"
 	"os"
 	"reflect"
+	"sync"
 )
 
 type LevelDB struct {
 	// lock preventing multiple entry
-	dbLock	sync.Mutex
-	lDB		*leveldb.DB
-	lbatch	*leveldb.Batch
-	ro		*opt.ReadOptions
-	wo  	*opt.WriteOptions
+	dbLock sync.Mutex
+	lDB    *leveldb.DB
+	lbatch *leveldb.Batch
+	ro     *opt.ReadOptions
+	wo     *opt.WriteOptions
 }
 
 var _ IDatabase = (*LevelDB)(nil)
@@ -63,8 +63,8 @@ func (db *LevelDB) Put(bucket []byte, key []byte, data BinaryMarshallable) error
 	defer db.lbatch.Reset()
 
 	ldbKey := append(bucket, key...)
-	hex, err:=data.MarshalBinary()
-	if err!=nil {
+	hex, err := data.MarshalBinary()
+	if err != nil {
 		return err
 	}
 	db.lbatch.Put(ldbKey, hex)
@@ -85,8 +85,8 @@ func (db *LevelDB) PutInBatch(records []Record) error {
 
 	for _, v := range records {
 		ldbKey := append(v.Bucket, v.Key...)
-		hex, err:=v.Data.MarshalBinary()
-		if err!=nil {
+		hex, err := v.Data.MarshalBinary()
+		if err != nil {
 			return err
 		}
 		db.lbatch.Put(ldbKey, hex)
@@ -143,9 +143,9 @@ func (db *LevelDB) GetAll(bucket []byte, sample BinaryMarshallable) ([]BinaryMar
 
 	for iter.Next() {
 		v := iter.Value()
-		tmp:=((interface{})(reflect.New(reflect.TypeOf(sample)))).(BinaryMarshallable)
-		err:=tmp.UnmarshalBinary(v)
-		if err!=nil {
+		tmp := ((interface{})(reflect.New(reflect.TypeOf(sample)))).(BinaryMarshallable)
+		err := tmp.UnmarshalBinary(v)
+		if err != nil {
 			return nil, err
 		}
 		answer = append(answer, tmp)

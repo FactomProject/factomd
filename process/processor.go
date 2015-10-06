@@ -1195,7 +1195,7 @@ func newDirectoryBlock(chain *DChain) *DirectoryBlock {
 	block.IsSealed = true
 	chain.AddDBlockToDChain(block)
 	chain.NextDBHeight++
-	chain.NextBlock, _ = CreateDBlock(chain, block, 10)
+	chain.NextBlock, _ = CreateDBlock(chain.NextDBHeight, block, 10)
 	chain.BlockMutex.Unlock()
 
 	block.DBHash, _ = CreateHash(block)

@@ -92,11 +92,22 @@ func (d *BoltDB) Put(bucket []byte, key []byte, data BinaryMarshallable) error {
 
 func (db *BoltDB) PutInBatch(records []Record) error {
 	//TODO: put in actual batch if possible
-	for _, v := range records {
-		err := db.Put(v.Bucket, v.Key, v.Data)
-		if err != nil {
-			return err
+	err := db.db.Batch(func(tx *bolt.Tx) error {
+		for _, v := range records {
+			b := tx.Bucket(v.Bucket)
+			hex, err := v.Data.MarshalBinary()
+			if err != nil {
+				return err
+			}
+			err = b.Put(v.Key, hex)
+			if err != nil {
+				return err
+			}
 		}
+		return nil
+	})
+	if err != nil {
+		return err
 	}
 	return nil
 }
@@ -130,16 +141,16 @@ func (bdb *BoltDB) ListAllKeys(bucket []byte) (keys [][]byte, err error) {
 }
 
 func (db *BoltDB) GetAll(bucket []byte, sample BinaryMarshallable) ([]BinaryMarshallable, error) {
-	answer:=[]BinaryMarshallable{}
-	err:=db.db.View(func(tx *bolt.Tx) error {
+	answer := []BinaryMarshallable{}
+	err := db.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(bucket))
 		if b == nil {
 			fmt.Println("bucket '", bucket, "' not found")
 		} else {
 			b.ForEach(func(k, v []byte) error {
-				tmp:=((interface{})(reflect.New(reflect.TypeOf(sample)))).(BinaryMarshallable)
-				err:=tmp.UnmarshalBinary(v)
-				if err!=nil {
+				tmp := ((interface{})(reflect.New(reflect.TypeOf(sample)))).(BinaryMarshallable)
+				err := tmp.UnmarshalBinary(v)
+				if err != nil {
 					return err
 				}
 				answer = append(answer, tmp)
@@ -149,7 +160,7 @@ func (db *BoltDB) GetAll(bucket []byte, sample BinaryMarshallable) ([]BinaryMars
 		}
 		return nil
 	})
-	if err!=nil {
+	if err != nil {
 		return nil, err
 	}
 	return answer, nil

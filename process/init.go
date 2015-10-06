@@ -52,7 +52,6 @@ func initDChain() {
 		if dBlocks[i].Header.DBHeight != uint32(i) {
 			panic("Error in initializing dChain:" + dchain.ChainID.String())
 		}
-		dBlocks[i].Chain = dchain
 		dBlocks[i].IsSealed = true
 		dBlocks[i].IsSavedInDB = true
 		dchain.Blocks[i] = dBlocks[i]
@@ -68,10 +67,10 @@ func initDChain() {
 	//Create an empty block and append to the chain
 	if len(dchain.Blocks) == 0 {
 		dchain.NextDBHeight = 0
-		dchain.NextBlock, _ = CreateDBlock(dchain, nil, 10)
+		dchain.NextBlock, _ = CreateDBlock(dchain.NextDBHeight, nil, 10)
 	} else {
 		dchain.NextDBHeight = uint32(len(dchain.Blocks))
-		dchain.NextBlock, _ = CreateDBlock(dchain, dchain.Blocks[len(dchain.Blocks)-1], 10)
+		dchain.NextBlock, _ = CreateDBlock(dchain.NextDBHeight, dchain.Blocks[len(dchain.Blocks)-1], 10)
 		// Update dir block height cache in db
 		db.UpdateBlockHeightCache(dchain.NextDBHeight-1, dchain.NextBlock.Header.PrevLedgerKeyMR)
 	}

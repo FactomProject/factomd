@@ -42,7 +42,6 @@ type DirectoryBlock struct {
 	DBEntries []*DBEntry
 
 	//Not Marshalized
-	Chain       *DChain
 	IsSealed    bool
 	DBHash      IHash
 	KeyMR       IHash
@@ -375,10 +374,10 @@ func (b *DBlockHeader) UnmarshalBinary(data []byte) (err error) {
 	return
 }
 
-func CreateDBlock(chain *DChain, prev *DirectoryBlock, cap uint) (b *DirectoryBlock, err error) {
-	if prev == nil && chain.NextDBHeight != 0 {
+func CreateDBlock(nextDBHeight uint32, prev *DirectoryBlock, cap uint) (b *DirectoryBlock, err error) {
+	if prev == nil && nextDBHeight != 0 {
 		return nil, errors.New("Previous block cannot be nil")
-	} else if prev != nil && chain.NextDBHeight == 0 {
+	} else if prev != nil && nextDBHeight == 0 {
 		return nil, errors.New("Origin block cannot have a parent block")
 	}
 
@@ -398,8 +397,7 @@ func CreateDBlock(chain *DChain, prev *DirectoryBlock, cap uint) (b *DirectoryBl
 		b.Header.PrevKeyMR = prev.KeyMR
 	}
 
-	b.Header.DBHeight = chain.NextDBHeight
-	b.Chain = chain
+	b.Header.DBHeight = nextDBHeight
 	b.DBEntries = make([]*DBEntry, 0, cap)
 	b.IsSealed = false
 
@@ -676,7 +674,7 @@ func (b *DirBlockInfo) MarshalBinary() (data []byte, err error) {
 }
 
 func (e *DirBlockInfo) MarshalledSize() uint64 {
-	hex, _:=e.MarshalBinary()
+	hex, _ := e.MarshalBinary()
 	return uint64(len(hex))
 }
 
