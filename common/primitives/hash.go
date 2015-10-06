@@ -18,8 +18,12 @@ import (
 type Hash [HASH_LENGTH]byte
 
 var _ Printable = (*Hash)(nil)
-var _ BinaryMarshallable = (*Hash)(nil)
 var _ IHash = (*Hash)(nil)
+var _ BinaryMarshallableAndCopyable = (*Hash)(nil)
+
+func (c *Hash) New() BinaryMarshallableAndCopyable {
+	return new(Hash)
+}
 
 func (c *Hash) MarshalledSize() uint64 {
 	return uint64(HASH_LENGTH)

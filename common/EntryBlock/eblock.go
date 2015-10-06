@@ -24,8 +24,12 @@ type EBlock struct {
 }
 
 var _ Printable = (*EBlock)(nil)
-var _ BinaryMarshallable = (*EBlock)(nil)
 var _ IDBEntry = (*EBlock)(nil)
+var _ BinaryMarshallableAndCopyable = (*EBlock)(nil)
+
+func (c *EBlock) New() BinaryMarshallableAndCopyable {
+	return new(EBlock)
+}
 
 func (c *EBlock) GetChainID() IHash {
 	return c.Header.GetChainID()

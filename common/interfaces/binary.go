@@ -15,3 +15,8 @@ type BinaryMarshallable interface {
 	UnmarshalBinaryData([]byte) ([]byte, error)
 	MarshalledSize() uint64
 }
+
+type BinaryMarshallableAndCopyable interface {
+	BinaryMarshallable
+	New() BinaryMarshallableAndCopyable
+}

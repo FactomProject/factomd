@@ -10,7 +10,6 @@ import (
 	. "github.com/FactomProject/factomd/common/interfaces"
 
 	"github.com/boltdb/bolt"
-	"reflect"
 )
 
 var _ = hex.EncodeToString
@@ -144,15 +143,15 @@ func (bdb *BoltDB) ListAllKeys(bucket []byte) (keys [][]byte, err error) {
 	return
 }
 
-func (db *BoltDB) GetAll(bucket []byte, sample BinaryMarshallable) ([]BinaryMarshallable, error) {
-	answer := []BinaryMarshallable{}
+func (db *BoltDB) GetAll(bucket []byte, sample BinaryMarshallableAndCopyable) ([]BinaryMarshallableAndCopyable, error) {
+	answer := []BinaryMarshallableAndCopyable{}
 	err := db.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(bucket))
 		if b == nil {
 			fmt.Println("bucket '", bucket, "' not found")
 		} else {
 			b.ForEach(func(k, v []byte) error {
-				tmp := ((interface{})(reflect.New(reflect.TypeOf(sample)))).(BinaryMarshallable)
+				tmp := sample.New()
 				err := tmp.UnmarshalBinary(v)
 				if err != nil {
 					return err

@@ -19,7 +19,11 @@ type EChain struct {
 	BlockMutex      sync.Mutex
 }
 
-var _ BinaryMarshallable = (*EChain)(nil)
+var _ BinaryMarshallableAndCopyable = (*EChain)(nil)
+
+func (c *EChain) New() BinaryMarshallableAndCopyable {
+	return new(EChain)
+}
 
 func (c *EChain) MarshalledSize() uint64 {
 	panic("Function not implemented")

@@ -115,7 +115,7 @@ func (db *HybridDB) ListAllKeys(bucket []byte) ([][]byte, error) {
 	return db.persistentStorage.ListAllKeys(bucket)
 }
 
-func (db *HybridDB) GetAll(bucket []byte, sample BinaryMarshallable) ([]BinaryMarshallable, error) {
+func (db *HybridDB) GetAll(bucket []byte, sample BinaryMarshallableAndCopyable) ([]BinaryMarshallableAndCopyable, error) {
 	return db.persistentStorage.GetAll(bucket, sample)
 }
 

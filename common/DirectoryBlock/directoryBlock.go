@@ -50,7 +50,11 @@ type DirectoryBlock struct {
 }
 
 var _ Printable = (*DirectoryBlock)(nil)
-var _ BinaryMarshallable = (*DirectoryBlock)(nil)
+var _ BinaryMarshallableAndCopyable = (*DirectoryBlock)(nil)
+
+func (c *DirectoryBlock) New() BinaryMarshallableAndCopyable {
+	return new(DirectoryBlock)
+}
 
 func (c *DirectoryBlock) MarshalledSize() uint64 {
 	panic("Function not implemented")
@@ -117,6 +121,11 @@ type DirBlockInfo struct {
 }
 
 var _ Printable = (*DirBlockInfo)(nil)
+var _ BinaryMarshallableAndCopyable = (*DirBlockInfo)(nil)
+
+func (c *DirBlockInfo) New() BinaryMarshallableAndCopyable {
+	return new(DirBlockInfo)
+}
 
 func (e *DirBlockInfo) JSONByte() ([]byte, error) {
 	return EncodeJSON(e)

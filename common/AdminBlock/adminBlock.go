@@ -43,8 +43,12 @@ type AdminBlock struct {
 }
 
 var _ Printable = (*AdminBlock)(nil)
-var _ BinaryMarshallable = (*AdminBlock)(nil)
+var _ BinaryMarshallableAndCopyable = (*AdminBlock)(nil)
 var _ IDBEntry = (*AdminBlock)(nil)
+
+func (c *AdminBlock) New() BinaryMarshallableAndCopyable {
+	return new(AdminBlock)
+}
 
 func (c *AdminBlock) GetChainID() IHash {
 	return c.Header.AdminChainID

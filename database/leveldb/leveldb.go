@@ -10,7 +10,6 @@ import (
 	"github.com/FactomProject/goleveldb/leveldb/opt"
 	"github.com/FactomProject/goleveldb/leveldb/util"
 	"os"
-	"reflect"
 	"sync"
 
 	"strings"
@@ -160,7 +159,7 @@ func (db *LevelDB) ListAllKeys(bucket []byte) (keys [][]byte, err error) {
 	return answer, nil
 }
 
-func (db *LevelDB) GetAll(bucket []byte, sample BinaryMarshallable) ([]BinaryMarshallable, error) {
+func (db *LevelDB) GetAll(bucket []byte, sample BinaryMarshallableAndCopyable) ([]BinaryMarshallableAndCopyable, error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -170,11 +169,11 @@ func (db *LevelDB) GetAll(bucket []byte, sample BinaryMarshallable) ([]BinaryMar
 
 	iter := db.lDB.NewIterator(&util.Range{Start: fromKey, Limit: toKey}, db.ro)
 
-	answer := []BinaryMarshallable{}
+	answer := []BinaryMarshallableAndCopyable{}
 
 	for iter.Next() {
 		v := iter.Value()
-		tmp := ((interface{})(reflect.New(reflect.TypeOf(sample)))).(BinaryMarshallable)
+		tmp := sample.New()
 		err := tmp.UnmarshalBinary(v)
 		if err != nil {
 			return nil, err

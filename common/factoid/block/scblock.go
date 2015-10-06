@@ -41,6 +41,11 @@ type FBlock struct {
 
 var _ IFBlock = (*FBlock)(nil)
 var _ Printable = (*FBlock)(nil)
+var _ BinaryMarshallableAndCopyable = (*FBlock)(nil)
+
+func (c *FBlock) New() BinaryMarshallableAndCopyable {
+	return new(FBlock)
+}
 
 // Return the timestamp of the coinbase transaction
 func (b *FBlock) GetCoinbaseTimestamp() int64 {
