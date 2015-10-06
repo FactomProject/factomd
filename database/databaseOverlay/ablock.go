@@ -45,6 +45,9 @@ func (db *Overlay) FetchABlockByHash(aBlockHash IHash) (*AdminBlock, error) {
 	if err != nil {
 		return nil, err
 	}
+	if block == nil {
+		return nil, nil
+	}
 	return block.(*AdminBlock), nil
 }
 

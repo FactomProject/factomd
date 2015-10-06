@@ -245,6 +245,9 @@ func (db *Overlay) FetchDBHashByHeight(dBlockHeight uint32) (IHash, error) {
 	if err != nil {
 		return nil, err
 	}
+	if block == nil {
+		return nil, nil
+	}
 	return block.(*Hash), nil
 }
 
@@ -256,6 +259,9 @@ func (db *Overlay) FetchDBHashByMR(dBMR IHash) (IHash, error) {
 	block, err := db.DB.Get(bucket, key, new(Hash))
 	if err != nil {
 		return nil, err
+	}
+	if block == nil {
+		return nil, nil
 	}
 	return block.(*Hash), nil
 }
@@ -287,6 +293,9 @@ func (db *Overlay) FetchHeadMRByChainID(chainID IHash) (IHash, error) {
 	block, err := db.DB.Get(bucket, key, new(Hash))
 	if err != nil {
 		return nil, err
+	}
+	if block == nil {
+		return nil, nil
 	}
 	return block.(*Hash), nil
 }

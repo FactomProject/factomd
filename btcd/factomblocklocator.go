@@ -43,9 +43,11 @@ func DirBlockLocatorFromHash(hash IHash) blockchain.BlockLocator {
 	// in the BlockLocator comment and make sure to leave room for the
 	// final genesis hash.
 
-	dblock, _ := db.FetchDBlockByHash(hash)
-	if dblock != nil {
-		blockHeight = int64(dblock.Header.DBHeight)
+	if hash != nil {
+		dblock, _ := db.FetchDBlockByHash(hash)
+		if dblock != nil {
+			blockHeight = int64(dblock.Header.DBHeight)
+		}
 	}
 	increment := int64(1)
 	for len(locator) < wire.MaxBlockLocatorsPerMsg-1 {

@@ -100,6 +100,9 @@ func (db *Overlay) FetchEBlockByHash(eBlockHash IHash) (*EBlock, error) {
 	if err != nil {
 		return nil, err
 	}
+	if entry == nil {
+		return nil, nil
+	}
 	return entry.(*EBlock), nil
 }
 
@@ -139,6 +142,9 @@ func (db *Overlay) FetchEBHashByMR(eBMR IHash) (IHash, error) {
 	entry, err := db.DB.Get(bucket, key, new(Hash))
 	if err != nil {
 		return nil, err
+	}
+	if entry == nil {
+		return nil, nil
 	}
 	return entry.(*Hash), nil
 }

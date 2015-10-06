@@ -44,6 +44,9 @@ func (db *Overlay) FetchECBlockByHash(ecBlockHash IHash) (*ECBlock, error) {
 	if err != nil {
 		return nil, err
 	}
+	if block == nil {
+		return nil, nil
+	}
 	return block.(*ECBlock), nil
 }
 

@@ -42,6 +42,9 @@ func (db *Overlay) FetchFBlockByHash(hash IHash) (IFBlock, error) {
 	if err != nil {
 		return nil, err
 	}
+	if block == nil {
+		return nil, nil
+	}
 	return block.(*FBlock), nil
 }
 

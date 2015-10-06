@@ -34,9 +34,13 @@ func (db *MapDB) Put(bucket, key []byte, data BinaryMarshallable) error {
 	if ok == false {
 		db.cache[string(bucket)] = map[string][]byte{}
 	}
-	hex, err := data.MarshalBinary()
-	if err != nil {
-		return err
+	var hex []byte
+	var err error
+	if data != nil {
+		hex, err = data.MarshalBinary()
+		if err != nil {
+			return err
+		}
 	}
 	db.cache[string(bucket)][string(key)] = hex
 	return nil

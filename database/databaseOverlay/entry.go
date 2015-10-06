@@ -25,6 +25,9 @@ func (db *Overlay) FetchEntryByHash(entrySha IHash) (*Entry, error) {
 	if err != nil {
 		return nil, err
 	}
+	if entry == nil {
+		return nil, nil
+	}
 	return entry.(*Entry), nil
 }
 
