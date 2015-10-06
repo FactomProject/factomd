@@ -27,6 +27,9 @@ func (db *MapDB) Init(bucketList [][]byte) {
 }
 
 func (db *MapDB) Put(bucket, key []byte, data BinaryMarshallable) error {
+	if db.cache == nil {
+		db.cache = map[string]map[string][]byte{}
+	}
 	_, ok := db.cache[string(bucket)]
 	if ok == false {
 		db.cache[string(bucket)] = map[string][]byte{}
@@ -50,6 +53,9 @@ func (db *MapDB) PutInBatch(records []Record) error {
 }
 
 func (db *MapDB) Get(bucket, key []byte, destination BinaryMarshallable) (BinaryMarshallable, error) {
+	if db.cache == nil {
+		db.cache = map[string]map[string][]byte{}
+	}
 	_, ok := db.cache[string(bucket)]
 	if ok == false {
 		db.cache[string(bucket)] = map[string][]byte{}
@@ -66,6 +72,9 @@ func (db *MapDB) Get(bucket, key []byte, destination BinaryMarshallable) (Binary
 }
 
 func (db *MapDB) Delete(bucket, key []byte) error {
+	if db.cache == nil {
+		db.cache = map[string]map[string][]byte{}
+	}
 	_, ok := db.cache[string(bucket)]
 	if ok == false {
 		db.cache[string(bucket)] = map[string][]byte{}
@@ -75,6 +84,9 @@ func (db *MapDB) Delete(bucket, key []byte) error {
 }
 
 func (db *MapDB) ListAllKeys(bucket []byte) ([][]byte, error) {
+	if db.cache == nil {
+		db.cache = map[string]map[string][]byte{}
+	}
 	_, ok := db.cache[string(bucket)]
 	if ok == false {
 		db.cache[string(bucket)] = map[string][]byte{}
@@ -87,15 +99,18 @@ func (db *MapDB) ListAllKeys(bucket []byte) ([][]byte, error) {
 }
 
 func (db *MapDB) GetAll(bucket []byte, sample BinaryMarshallable) ([]BinaryMarshallable, error) {
+	if db.cache == nil {
+		db.cache = map[string]map[string][]byte{}
+	}
 	_, ok := db.cache[string(bucket)]
 	if ok == false {
 		db.cache[string(bucket)] = map[string][]byte{}
 	}
 	answer := []BinaryMarshallable{}
 	for _, v := range db.cache[string(bucket)] {
-		tmp:=((interface{})(reflect.New(reflect.TypeOf(sample)))).(BinaryMarshallable)
-		err:=tmp.UnmarshalBinary(v)
-		if err!=nil {
+		tmp := ((interface{})(reflect.New(reflect.TypeOf(sample)))).(BinaryMarshallable)
+		err := tmp.UnmarshalBinary(v)
+		if err != nil {
 			return nil, err
 		}
 		answer = append(answer, tmp)
@@ -104,6 +119,9 @@ func (db *MapDB) GetAll(bucket []byte, sample BinaryMarshallable) ([]BinaryMarsh
 }
 
 func (db *MapDB) Clear(bucket []byte) error {
+	if db.cache == nil {
+		db.cache = map[string]map[string][]byte{}
+	}
 	delete(db.cache, string(bucket))
 	return nil
 }

@@ -83,8 +83,12 @@ func (d *BoltDB) Put(bucket []byte, key []byte, data BinaryMarshallable) error {
 		return err
 	}
 	err = d.db.Update(func(tx *bolt.Tx) error {
+		_, err := tx.CreateBucketIfNotExists(bucket)
+		if err != nil {
+			return err
+		}
 		b := tx.Bucket(bucket)
-		err := b.Put(key, hex)
+		err = b.Put(key, hex)
 		return err
 	})
 	return err
