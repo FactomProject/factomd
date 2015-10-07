@@ -9,6 +9,7 @@ import (
 	"crypto/sha256"
 	"crypto/sha512"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 
 	. "github.com/FactomProject/factomd/common/constants"
@@ -284,4 +285,16 @@ func DoubleSha(data []byte) []byte {
 	h1 := sha256.Sum256(data)
 	h2 := sha256.Sum256(h1[:])
 	return h2[:]
+}
+
+func NewShaHashFromStruct(DataStruct interface{}) (IHash, error) {
+	jsonbytes, err := json.Marshal(DataStruct)
+	if err != nil {
+		//fmt.Printf("NewShaHash Json Marshal Error: %s\n", err)
+		return nil, err
+	}
+
+	//fmt.Println("NewShaHashFromStruct =", jsonbytes)
+
+	return NewShaHash(DoubleSha(jsonbytes))
 }

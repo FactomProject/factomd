@@ -15,6 +15,7 @@ import (
 	//	"github.com/FactomProject/btcutil"
 
 	"github.com/FactomProject/factomd/btcd/wire"
+	. "github.com/FactomProject/factomd/common/primitives"
 	cp "github.com/FactomProject/factomd/controlpanel"
 	"github.com/FactomProject/factomd/database"
 )
@@ -242,7 +243,7 @@ func (p *peer) handleAcknoledgementMsg(msg *wire.MsgAcknowledgement) {
 
 // returns true if the message should be relayed, false otherwise
 func (p *peer) shallRelay(msg interface{}) bool {
-	hash, _ := wire.NewIHashFromStruct(msg)
+	hash, _ := NewShaHashFromStruct(msg)
 	iv := wire.NewInvVect(wire.InvTypeFactomRaw, hash)
 
 	if !p.isKnownInventory(iv) {
