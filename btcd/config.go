@@ -20,7 +20,7 @@ import (
 	//	_ "github.com/FactomProject/factomd/btcd/database/ldb"
 	//	_ "github.com/FactomProject/factomd/btcd/database/memdb"
 	"github.com/FactomProject/factomd/btcd/wire"
-	//	"github.com/FactomProject/btcutil"
+	//"github.com/FactomProject/btcutil"
 	flags "github.com/FactomProject/go-flags"
 	"github.com/FactomProject/go-socks/socks"
 )

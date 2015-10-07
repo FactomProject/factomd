@@ -5,9 +5,8 @@
 package wire
 
 import (
-	"io"
-
 	. "github.com/FactomProject/factomd/common/EntryBlock"
+	"io"
 )
 
 // MsgEntry implements the Message interface and represents a factom

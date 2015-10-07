@@ -8,10 +8,11 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	. "github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
 	"io"
 	"io/ioutil"
+
+	. "github.com/FactomProject/factomd/common/interfaces"
+	. "github.com/FactomProject/factomd/common/primitives"
 )
 
 // Acknowledgement Type
@@ -33,8 +34,7 @@ const (
 	ACK_COMMIT_ENTRY
 
 	FORCE_FACTOID_GENESIS_REBUILD
-	//	FORCE_FACTOID_VALIDATION // at a specific block height; everything higher will be discarded by btcd-side (possibly creating orphaned blocks)
-	INFO_CURRENT_HEIGHT // info message to the wire-side to indicate the current known block height; a duplicate of FORCE_FACTOID_VALIDATION (???)
+	INFO_CURRENT_HEIGHT // info message to the wire-side to indicate the current known block height;
 )
 
 type MsgAcknowledgement struct {
@@ -87,14 +87,14 @@ func (msg *MsgAcknowledgement) BtcDecode(r io.Reader, pver uint32) error {
 
 	msg.Height, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
-	msg.ChainID = NewZeroHash()
+	msg.ChainID = new(Hash)
 	newData, _ = msg.ChainID.UnmarshalBinaryData(newData)
 
 	msg.Index, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
 	msg.Type, newData = newData[0], newData[1:]
 
-	msg.Affirmation, _ = NewShaHash(newData[0:32])
+	msg.Affirmation = NewHash(newData[0:32])
 	newData = newData[32:]
 
 	copy(msg.SerialHash[:], newData[0:32])
@@ -149,7 +149,7 @@ func NewMsgAcknowledgement(height uint32, index uint32, affirm IHash, ackType by
 	}
 	return &MsgAcknowledgement{
 		Height:      height,
-		ChainID:     NewZeroHash(), //TODO: get the correct chain id from processor
+		ChainID:     new(Hash), //TODO: get the correct chain id from processor
 		Index:       index,
 		Affirmation: affirm,
 		Type:        ackType,
@@ -161,8 +161,8 @@ func (msg *MsgAcknowledgement) Sha() (IHash, error) {
 
 	buf := bytes.NewBuffer(nil)
 	msg.BtcEncode(buf, ProtocolVersion)
-	sha := new(Hash)
-	err := sha.SetBytes(Sha256(buf.Bytes()))
+	var sha IHash
+	_ = sha.SetBytes(Sha256(buf.Bytes()))
 
-	return sha, err
+	return sha, nil
 }

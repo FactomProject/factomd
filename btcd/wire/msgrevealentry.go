@@ -8,7 +8,6 @@ import (
 	"bytes"
 	. "github.com/FactomProject/factomd/common/EntryBlock"
 	. "github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
 	"io"
 )
 
@@ -77,10 +76,10 @@ func (msg *MsgRevealEntry) Sha() (IHash, error) {
 
 	buf := bytes.NewBuffer(nil)
 	msg.BtcEncode(buf, ProtocolVersion)
-	sha := new(Hash)
-	err := sha.SetBytes(Sha256(buf.Bytes()))
+	var sha IHash
+	_ = sha.SetBytes(Sha256(buf.Bytes()))
 
-	return sha, err
+	return sha, nil
 }
 
 // Check whether the msg can pass the message level validations

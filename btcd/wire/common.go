@@ -11,7 +11,7 @@ import (
 	"io"
 	"math"
 
-	. "github.com/FactomProject/factomd/common/primitives"
+	. "github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/fastsha256"
 )
 
@@ -99,8 +99,8 @@ func readElement(r io.Reader, element interface{}) error {
 		}
 		return nil
 
-	case Hash:
-		_, err := io.ReadFull(r, e[:])
+	case IHash:
+		_, err := io.ReadFull(r, e.Bytes())
 		if err != nil {
 			return err
 		}
@@ -250,8 +250,8 @@ func writeElement(w io.Writer, element interface{}) error {
 		}
 		return nil
 
-	case Hash:
-		_, err := w.Write(e[:])
+	case IHash:
+		_, err := w.Write(e.Bytes())
 		if err != nil {
 			return err
 		}

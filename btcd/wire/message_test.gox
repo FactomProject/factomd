@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/FactomProject/factomd/btcd/wire"
+	"github.com/FactomProject/btcd/wire"
 	"github.com/davecgh/go-spew/spew"
 )
 
@@ -57,7 +57,7 @@ func TestMessage(t *testing.T) {
 	msgVerack := wire.NewMsgVerAck()
 	msgGetAddr := wire.NewMsgGetAddr()
 	msgAddr := wire.NewMsgAddr()
-	msgGetBlocks := wire.NewMsgGetBlocks(&wire.ShaHash{})
+	msgGetBlocks := wire.NewMsgGetBlocks(&IHash{})
 	msgBlock := &blockOne
 	msgInv := wire.NewMsgInv()
 	msgGetData := wire.NewMsgGetData()
@@ -72,7 +72,7 @@ func TestMessage(t *testing.T) {
 	msgFilterAdd := wire.NewMsgFilterAdd([]byte{0x01})
 	msgFilterClear := wire.NewMsgFilterClear()
 	msgFilterLoad := wire.NewMsgFilterLoad([]byte{0x01}, 10, 0, wire.BloomUpdateNone)
-	bh := wire.NewBlockHeader(&wire.ShaHash{}, &wire.ShaHash{}, &wire.Sha3Hash{})
+	bh := wire.NewBlockHeader(&IHash{}, &IHash{}, &wire.Sha3Hash{})
 	//	msgMerkleBlock := wire.NewMsgMerkleBlock(bh)
 	msgReject := wire.NewMsgReject("block", wire.RejectDuplicate, "duplicate block")
 

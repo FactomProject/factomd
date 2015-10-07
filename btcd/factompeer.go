@@ -9,22 +9,21 @@ import (
 
 	"github.com/FactomProject/factomd/btcd/blockchain"
 	"github.com/FactomProject/factomd/btcd/wire"
-	"github.com/FactomProject/factomd/database/databaseOverlay"
-	"github.com/davecgh/go-spew/spew"
-	"time"
-
 	. "github.com/FactomProject/factomd/common/DirectoryBlock"
 	. "github.com/FactomProject/factomd/common/EntryBlock"
 	. "github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
+	. "github.com/FactomProject/factomd/database/databaseOverlay"
+	"github.com/davecgh/go-spew/spew"
+	"time"
 )
 
 // handleFBlockMsg is invoked when a peer receives a factoid block message.
 func (p *peer) handleFBlockMsg(msg *wire.MsgFBlock, buf []byte) {
 	binary, _ := msg.SC.MarshalBinary()
 	commonHash := Sha(binary)
-	hash, _ := NewShaHash(commonHash.Bytes())
+	hash := NewHash(commonHash.Bytes())
 
 	iv := wire.NewInvVect(wire.InvTypeFactomFBlock, hash)
 	p.AddKnownInventory(iv)
@@ -35,7 +34,7 @@ func (p *peer) handleFBlockMsg(msg *wire.MsgFBlock, buf []byte) {
 func (p *peer) handleDirBlockMsg(msg *wire.MsgDirBlock, buf []byte) {
 	binary, _ := msg.DBlk.MarshalBinary()
 	commonHash := Sha(binary)
-	hash, _ := NewShaHash(commonHash.Bytes())
+	hash := NewHash(commonHash.Bytes())
 
 	iv := wire.NewInvVect(wire.InvTypeFactomDirBlock, hash)
 	p.AddKnownInventory(iv)
@@ -52,7 +51,7 @@ func (p *peer) handleDirBlockMsg(msg *wire.MsgDirBlock, buf []byte) {
 func (p *peer) handleABlockMsg(msg *wire.MsgABlock, buf []byte) {
 	binary, _ := msg.ABlk.MarshalBinary()
 	commonHash := Sha(binary)
-	hash, _ := NewShaHash(commonHash.Bytes())
+	hash := NewHash(commonHash.Bytes())
 
 	iv := wire.NewInvVect(wire.InvTypeFactomAdminBlock, hash)
 	p.AddKnownInventory(iv)
@@ -77,7 +76,7 @@ func (p *peer) handleECBlockMsg(msg *wire.MsgECBlock, buf []byte) {
 func (p *peer) handleEBlockMsg(msg *wire.MsgEBlock, buf []byte) {
 	binary, _ := msg.EBlk.MarshalBinary()
 	commonHash := Sha(binary)
-	hash, _ := NewShaHash(commonHash.Bytes())
+	hash := NewHash(commonHash.Bytes())
 
 	iv := wire.NewInvVect(wire.InvTypeFactomEntryBlock, hash)
 	p.AddKnownInventory(iv)
@@ -92,7 +91,7 @@ func (p *peer) handleEBlockMsg(msg *wire.MsgEBlock, buf []byte) {
 func (p *peer) handleEntryMsg(msg *wire.MsgEntry, buf []byte) {
 	binary, _ := msg.Entry.MarshalBinary()
 	commonHash := Sha(binary)
-	hash, _ := NewShaHash(commonHash.Bytes())
+	hash := NewHash(commonHash.Bytes())
 
 	iv := wire.NewInvVect(wire.InvTypeFactomEntry, hash)
 	p.AddKnownInventory(iv)
@@ -298,12 +297,12 @@ func (p *peer) handleGetDirDataMsg(msg *wire.MsgGetDirData) {
 		var err error
 		switch iv.Type {
 		//case wire.InvTypeTx:
-		//err = p.pushTxMsg(iv.Hash, c, waitChan)
+		//err = p.pushTxMsg(&iv.Hash, c, waitChan)
 		case wire.InvTypeFactomDirBlock:
 			err = p.pushDirBlockMsg(iv.Hash, c, waitChan)
 			/*
 				case wire.InvTypeFilteredBlock:
-					err = p.pushMerkleBlockMsg(iv.Hash, c, waitChan)
+					err = p.pushMerkleBlockMsg(&iv.Hash, c, waitChan)
 			*/
 		default:
 			peerLog.Warnf("Unknown type in inventory request %d",
@@ -344,7 +343,7 @@ func (p *peer) handleGetDirBlocksMsg(msg *wire.MsgGetDirBlocks) {
 	// Return all block hashes to the latest one (up to max per message) if
 	// no stop hash was specified.
 	// Attempt to find the ending index of the stop hash if specified.
-	endIdx := databaseOverlay.AllShas //factom db
+	endIdx := AllShas //factom db
 	if !msg.HashStop.IsSameAs(zeroHash) {
 		height, err := db.FetchBlockHeightBySha(msg.HashStop)
 		if err == nil {
@@ -531,7 +530,7 @@ func (p *peer) PushGetDirBlocksMsg(locator blockchain.BlockLocator, stopHash IHa
 func (p *peer) pushGetNonDirDataMsg(dblock *DirectoryBlock) {
 	binary, _ := dblock.MarshalBinary()
 	commonHash := Sha(binary)
-	hash, _ := NewShaHash(commonHash.Bytes())
+	hash := NewHash(commonHash.Bytes())
 
 	iv := wire.NewInvVect(wire.InvTypeFactomNonDirBlock, hash)
 	gdmsg := wire.NewMsgGetNonDirData()
@@ -546,7 +545,7 @@ func (p *peer) pushGetNonDirDataMsg(dblock *DirectoryBlock) {
 func (p *peer) pushGetEntryDataMsg(eblock *EBlock) {
 	binary, _ := eblock.MarshalBinary()
 	commonHash := Sha(binary)
-	hash, _ := NewShaHash(commonHash.Bytes())
+	hash := NewHash(commonHash.Bytes())
 
 	iv := wire.NewInvVect(wire.InvTypeFactomEntry, hash)
 	gdmsg := wire.NewMsgGetEntryData()
@@ -685,7 +684,7 @@ func (p *peer) pushEntryMsg(commonhash IHash, doneChan, waitChan chan struct{}) 
 func (p *peer) handleFactoidMsg(msg *wire.MsgFactoidTX, buf []byte) {
 	binary, _ := msg.Transaction.MarshalBinary()
 	commonHash := Sha(binary)
-	hash, _ := NewShaHash(commonHash.Bytes())
+	hash := NewHash(commonHash.Bytes())
 
 	iv := wire.NewInvVect(wire.InvTypeTx, hash)
 	p.AddKnownInventory(iv)

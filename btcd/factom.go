@@ -15,15 +15,16 @@ import (
 	//	"github.com/FactomProject/btcutil"
 
 	"github.com/FactomProject/factomd/btcd/wire"
+	. "github.com/FactomProject/factomd/common/primitives"
 	cp "github.com/FactomProject/factomd/controlpanel"
-	"github.com/FactomProject/factomd/database/databaseOverlay"
+	. "github.com/FactomProject/factomd/database/databaseOverlay"
 )
 
 var _ = fmt.Printf
 
 var (
 	local_Server *server
-	db           *databaseOverlay.Overlay // database
+	db           *Overlay                 // database
 	inMsgQueue   chan wire.FtmInternalMsg //incoming message queue for factom application messages
 	outMsgQueue  chan wire.FtmInternalMsg //outgoing message queue for factom application messages
 
@@ -45,7 +46,7 @@ func factomForkInit(s *server) {
 			switch msg.(type) {
 			case *wire.MsgInt_DirBlock:
 				dirBlock, _ := msg.(*wire.MsgInt_DirBlock)
-				iv := wire.NewInvVect(wire.InvTypeFactomDirBlock, dirBlock.ShaHash)
+				iv := wire.NewInvVect(wire.InvTypeFactomDirBlock, dirBlock.IHash)
 				s.RelayInventory(iv, nil)
 
 			case wire.Message:
@@ -132,7 +133,7 @@ func factomForkInit(s *server) {
 }
 
 func Start_btcd(
-	ldb *databaseOverlay.Overlay,
+	ldb *Overlay,
 	inMsgQ chan wire.FtmInternalMsg,
 	outMsgQ chan wire.FtmInternalMsg,
 	inCtlMsgQ chan wire.FtmInternalMsg,
@@ -242,7 +243,7 @@ func (p *peer) handleAcknoledgementMsg(msg *wire.MsgAcknowledgement) {
 
 // returns true if the message should be relayed, false otherwise
 func (p *peer) shallRelay(msg interface{}) bool {
-	hash, _ := wire.NewShaHashFromStruct(msg)
+	hash, _ := NewShaHashFromStruct(msg)
 	iv := wire.NewInvVect(wire.InvTypeFactomRaw, hash)
 
 	if !p.isKnownInventory(iv) {
@@ -268,8 +269,8 @@ func (p *peer) FactomRelay(msg wire.Message) {
 }
 
 /*
-// func (pl *ProcessList) AddFtmTxToProcessList(msg wire.Message, msgHash *wire.ShaHash) error {
-func fakehook1(msg wire.Message, msgHash *wire.ShaHash) error {
+// func (pl *ProcessList) AddFtmTxToProcessList(msg wire.Message, msgHash IHash) error {
+func fakehook1(msg wire.Message, msgHash IHash) error {
 	return nil
 }
 
@@ -282,7 +283,7 @@ func factom_PL_hook(tx *btcutil.Tx, label string) error {
 }
 
 // for Jack
-func global_DeleteMemPoolEntry(hash *wire.ShaHash) {
+func global_DeleteMemPoolEntry(hash IHash) {
 	// TODO: ensure mutex-protection
 }
 
@@ -315,16 +316,16 @@ func (b *blockManager) factomChecks() {
 func factomIngressTx_hook(tx *wire.MsgTx) error {
 	//util.Trace()
 
-	ecmap := make(map[wire.ShaHash]uint64)
+	ecmap := make(map[IHash]uint64)
 
 	txid, _ := tx.TxSha()
-	hash, _ := wire.NewShaHash(wire.Sha256(txid.Bytes()))
+	hash, _ := wire.NewIHash(wire.Sha256(txid.Bytes()))
 
 	ecmap[*hash] = 1
 
 	// Use wallet's public key to add EC??
 	sig := wallet.SignData(nil)
-	hash2 := new(wire.ShaHash)
+	hash2 := new(IHash)
 	hash2.SetBytes((*sig.Pub.Key)[:])
 
 	ecmap[*hash2] = 100
@@ -339,11 +340,11 @@ func factomIngressTx_hook(tx *wire.MsgTx) error {
 	return nil
 }
 
-func factomIngressBlock_hook(hash *wire.ShaHash) error {
+func factomIngressBlock_hook(hash IHash) error {
 	//util.Trace(fmt.Sprintf("hash: %s", hash))
 
 	fbo := &wire.MsgInt_FactoidBlock{
-		ShaHash: *hash}
+		IHash: *hash}
 
 	doneFBlockQueue <- fbo
 

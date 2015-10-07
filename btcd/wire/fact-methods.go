@@ -21,7 +21,6 @@ import (
 	. "github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/factoid"
 	. "github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/util"
 
 	"github.com/davecgh/go-spew/spew"
@@ -663,7 +662,7 @@ func (msg *MsgTx) TxSha() (IHash, error) {
 	// regardless of input.
 	buf := bytes.NewBuffer(make([]byte, 0, msg.SerializeSize()))
 	_ = msg.Serialize(buf)
-	sha := new(Hash)
+	var sha IHash
 	_ = sha.SetBytes(DoubleSha256(buf.Bytes()))
 
 	// Even though this function can't currently fail, it still returns

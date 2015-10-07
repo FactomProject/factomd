@@ -12,7 +12,6 @@ import (
 
 	. "github.com/FactomProject/factomd/common/EntryCreditBlock"
 	. "github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
 )
 
 type MsgTestCredit struct {
@@ -96,8 +95,8 @@ func (msg *MsgTestCredit) Sha() (IHash, error) {
 
 	buf := bytes.NewBuffer(nil)
 	msg.BtcEncode(buf, ProtocolVersion)
-	sha := new(Hash)
-	err := sha.SetBytes(Sha256(buf.Bytes()))
+	var sha IHash
+	_ = sha.SetBytes(Sha256(buf.Bytes()))
 
-	return sha, err
+	return sha, nil
 }

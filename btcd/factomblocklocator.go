@@ -7,7 +7,6 @@ package btcd
 import (
 	"github.com/FactomProject/factomd/btcd/blockchain"
 	"github.com/FactomProject/factomd/btcd/wire"
-
 	. "github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
@@ -43,11 +42,9 @@ func DirBlockLocatorFromHash(hash IHash) blockchain.BlockLocator {
 	// in the BlockLocator comment and make sure to leave room for the
 	// final genesis hash.
 
-	if hash != nil {
-		dblock, _ := db.FetchDBlockByHash(hash)
-		if dblock != nil {
-			blockHeight = int64(dblock.Header.DBHeight)
-		}
+	dblock, _ := db.FetchDBlockByHash(hash)
+	if dblock != nil {
+		blockHeight = int64(dblock.Header.DBHeight)
 	}
 	increment := int64(1)
 	for len(locator) < wire.MaxBlockLocatorsPerMsg-1 {

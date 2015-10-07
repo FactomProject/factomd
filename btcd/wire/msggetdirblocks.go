@@ -6,11 +6,11 @@ package wire
 
 import (
 	"fmt"
-	"io"
-
 	. "github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
+	"io"
+
 	//"github.com/FactomProject/factomd/util"
 )
 
