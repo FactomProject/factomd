@@ -8,7 +8,7 @@ import (
 	"container/list"
 	"fmt"
 
-	"github.com/FactomProject/btcd/wire"
+	"github.com/FactomProject/factomd/btcd/wire"
 )
 
 // MruInventoryMap provides a map that is limited to a maximum number of items

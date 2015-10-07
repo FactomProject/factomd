@@ -10,7 +10,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/FactomProject/btcd/btcjson"
+	"github.com/FactomProject/factomd/btcd/btcjson"
 )
 
 // TestAssignField tests the assignField function handles supported combinations

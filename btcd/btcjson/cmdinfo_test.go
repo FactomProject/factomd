@@ -8,7 +8,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/FactomProject/btcd/btcjson"
+	"github.com/FactomProject/factomd/btcd/btcjson"
 )
 
 // TestCmdMethod tests the CmdMethod function to ensure it retuns the expected

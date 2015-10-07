@@ -17,9 +17,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/FactomProject/btcd/addrmgr"
-	//"github.com/FactomProject/btcd/database"
-	"github.com/FactomProject/btcd/wire"
+	"github.com/FactomProject/factomd/btcd/addrmgr"
+	//"github.com/FactomProject/factomd/btcd/database"
+	"github.com/FactomProject/factomd/btcd/wire"
 	//"github.com/FactomProject/btcutil"
 	//"github.com/FactomProject/btcutil/bloom"
 	"github.com/FactomProject/go-socks/socks"

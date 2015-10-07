@@ -7,7 +7,7 @@ package btcjson_test
 import (
 	"testing"
 
-	"github.com/FactomProject/btcd/btcjson"
+	"github.com/FactomProject/factomd/btcd/btcjson"
 )
 
 // TestErrorCodeStringer tests the stringized output for the ErrorCode type.

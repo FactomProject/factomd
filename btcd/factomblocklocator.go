@@ -6,8 +6,8 @@ package btcd
 
 import (
 	"github.com/FactomProject/FactomCode/common"
-	"github.com/FactomProject/btcd/blockchain"
-	"github.com/FactomProject/btcd/wire"
+	"github.com/FactomProject/factomd/btcd/blockchain"
+	"github.com/FactomProject/factomd/btcd/wire"
 )
 
 // DirBlockLocatorFromHash returns a block locator for the passed block hash.

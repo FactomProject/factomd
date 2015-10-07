@@ -8,7 +8,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/FactomProject/btcd/btcjson"
+	"github.com/FactomProject/factomd/btcd/btcjson"
 )
 
 // TestHelpReflectInternals ensures the various help functions which deal with

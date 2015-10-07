@@ -11,7 +11,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/FactomProject/btcd/btcjson"
+	"github.com/FactomProject/factomd/btcd/btcjson"
 )
 
 // TestChainSvrCmds tests all of the chain server commands marshal and unmarshal

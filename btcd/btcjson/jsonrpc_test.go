@@ -9,7 +9,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/FactomProject/btcd/btcjson"
+	"github.com/FactomProject/factomd/btcd/btcjson"
 )
 
 // TestIsValidIDType ensures the IsValidIDType function behaves as expected.

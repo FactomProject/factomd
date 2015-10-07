@@ -11,12 +11,12 @@ import (
 	"fmt"
 	"os"
 
-	//	"github.com/FactomProject/btcd/chaincfg"
+	//	"github.com/FactomProject/factomd/btcd/chaincfg"
 	//	"github.com/FactomProject/btcutil"
 
 	cp "github.com/FactomProject/FactomCode/controlpanel"
 	"github.com/FactomProject/FactomCode/database"
-	"github.com/FactomProject/btcd/wire"
+	"github.com/FactomProject/factomd/btcd/wire"
 )
 
 var _ = fmt.Printf

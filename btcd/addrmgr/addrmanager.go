@@ -22,7 +22,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/FactomProject/btcd/wire"
+	"github.com/FactomProject/factomd/btcd/wire"
 )
 
 // AddrManager provides a concurrency safe address manager for caching potential

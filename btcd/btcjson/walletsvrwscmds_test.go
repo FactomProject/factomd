@@ -11,7 +11,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/FactomProject/btcd/btcjson"
+	"github.com/FactomProject/factomd/btcd/btcjson"
 )
 
 // TestWalletSvrWsCmds tests all of the wallet server websocket-specific

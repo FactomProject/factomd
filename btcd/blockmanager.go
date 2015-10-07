@@ -14,7 +14,7 @@ import (
 	//"github.com/btcsuite/btcd/chaincfg"
 	//"github.com/btcsuite/btcd/database"
 	"github.com/FactomProject/FactomCode/process"
-	"github.com/FactomProject/btcd/wire"
+	"github.com/FactomProject/factomd/btcd/wire"
 )
 
 const (

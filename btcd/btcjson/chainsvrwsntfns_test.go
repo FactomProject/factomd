@@ -11,7 +11,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/FactomProject/btcd/btcjson"
+	"github.com/FactomProject/factomd/btcd/btcjson"
 )
 
 // TestChainSvrWsNtfns tests all of the chain server websocket-specific
