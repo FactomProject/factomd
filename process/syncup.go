@@ -10,7 +10,7 @@ import (
 	"errors"
 	"github.com/FactomProject/factomd/btcd/wire"
 	cp "github.com/FactomProject/factomd/controlpanel"
-	"github.com/FactomProject/factomd/database/databaseOverlay"
+	"github.com/FactomProject/factomd/database"
 	"github.com/davecgh/go-spew/spew"
 	"strconv"
 	"time"
@@ -166,7 +166,7 @@ func processEntry(msg *wire.MsgEntry) error {
 }
 
 // Validate the new blocks in mem pool and store them in db
-func validateAndStoreBlocks(fMemPool *ftmMemPool, db *databaseOverlay.Overlay, dchain *DChain, outCtlMsgQ chan wire.FtmInternalMsg) {
+func validateAndStoreBlocks(fMemPool *ftmMemPool, db database.DBOverlay, dchain *DChain, outCtlMsgQ chan wire.FtmInternalMsg) {
 	var myDBHeight int64
 	var sleeptime int
 	var dblk *DirectoryBlock
@@ -207,7 +207,7 @@ func validateAndStoreBlocks(fMemPool *ftmMemPool, db *databaseOverlay.Overlay, d
 }
 
 // Validate the new blocks in mem pool and store them in db
-func validateBlocksFromMemPool(b *DirectoryBlock, fMemPool *ftmMemPool, db *databaseOverlay.Overlay) bool {
+func validateBlocksFromMemPool(b *DirectoryBlock, fMemPool *ftmMemPool, db database.DBOverlay) bool {
 
 	// Validate the genesis block
 	if b.Header.DBHeight == 0 {
@@ -266,7 +266,7 @@ func validateBlocksFromMemPool(b *DirectoryBlock, fMemPool *ftmMemPool, db *data
 
 // Validate the new blocks in mem pool and store them in db
 // Need to make a batch insert in db in milestone 2
-func storeBlocksFromMemPool(b *DirectoryBlock, fMemPool *ftmMemPool, db *databaseOverlay.Overlay) error {
+func storeBlocksFromMemPool(b *DirectoryBlock, fMemPool *ftmMemPool, db database.DBOverlay) error {
 
 	for _, dbEntry := range b.DBEntries {
 		switch dbEntry.ChainID.String() {

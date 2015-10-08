@@ -4,7 +4,6 @@
 
 package database
 
-/*
 import (
 	. "github.com/FactomProject/factomd/common/AdminBlock"
 	. "github.com/FactomProject/factomd/common/DirectoryBlock"
@@ -18,17 +17,17 @@ import (
 const AllShas = int64(^uint64(0) >> 1)
 
 // Db defines a generic interface that is used to request and insert data into db
-type Db interface {
+type DBOverlay interface {
 	// Close cleanly shuts down the database and syncs all data.
 	Close() (err error)
 
 	// RollbackClose discards the recent database changes to the previously
 	// saved data at last Sync and closes the database.
-	RollbackClose() (err error)
+	// RollbackClose() (err error)
 
 	// Sync verifies that the database is coherent on disk and no
 	// outstanding transactions are in flight.
-	Sync() (err error)
+	// Sync() (err error)
 
 	// InsertEntry inserts an entry
 	InsertEntry(entry *Entry) (err error)
@@ -49,7 +48,7 @@ type Db interface {
 	InsertChain(chain *EChain) (err error)
 
 	// FetchChainByHash gets a chain by chainID
-	FetchChainByHash(chainID IHash) (chain *EChain, err error)
+	// FetchChainByHash(chainID IHash) (chain *EChain, err error)
 
 	//FetchAllChains gets all of the chains
 	FetchAllChains() (chains []*EChain, err error)
@@ -73,7 +72,7 @@ type Db interface {
 	FetchEBHashByMR(eBMR IHash) (eBlockHash IHash, err error)
 
 	// FetchAllEBlocksByChain gets all of the blocks by chain id
-	FetchAllEBlocksByChain(chainID IHash) (eBlocks *[]EBlock, err error)
+	FetchAllEBlocksByChain(chainID IHash) (eBlocks []*EBlock, err error)
 
 	// FetchDBlock gets an entry by hash from the database.
 	FetchDBlockByHash(dBlockHash IHash) (dBlock *DirectoryBlock, err error)
@@ -85,13 +84,13 @@ type Db interface {
 	FetchDBHashByMR(dBMR IHash) (dBlockHash IHash, err error)
 
 	// FetchDBBatchByHash gets an FBBatch obj
-	FetchDirBlockInfoByHash(dbHash IHash) (dirBlockInfo *DirBlockInfo, err error)
+	// FetchDirBlockInfoByHash(dbHash IHash) (dirBlockInfo *DirBlockInfo, err error)
 
 	// Insert the Directory Block meta data into db
 	InsertDirBlockInfo(dirBlockInfo *DirBlockInfo) (err error)
 
 	// FetchAllDirBlockInfo gets all of the dirBlockInfo
-	FetchAllDirBlockInfo() (ddirBlockInfoMap map[string]*DirBlockInfo, err error)
+	// FetchAllDirBlockInfo() (ddirBlockInfoMap map[string]*DirBlockInfo, err error)
 
 	// FetchAllUnconfirmedDirBlockInfo gets all of the dirBlockInfos that have BTC Anchor confirmation
 	//FetchAllUnconfirmedDirBlockInfo() (dBInfoSlice []DirBlockInfo, err error)
@@ -111,10 +110,10 @@ type Db interface {
 	FetchBlockHeightBySha(sha IHash) (int64, error)
 
 	// FetchAllECBlocks gets all of the entry credit blocks
-	FetchAllECBlocks() (cBlocks []ECBlock, err error)
+	FetchAllECBlocks() (cBlocks []*ECBlock, err error)
 
 	// FetchAllFBInfo gets all of the fbInfo
-	FetchAllDBlocks() (fBlocks []DirectoryBlock, err error)
+	FetchAllDBlocks() (fBlocks []*DirectoryBlock, err error)
 
 	// FetchDBHashByHeight gets a dBlockHash from the database.
 	FetchDBHashByHeight(dBlockHeight uint32) (dBlockHash IHash, err error)
@@ -129,7 +128,7 @@ type Db interface {
 	FetchECBlockByHash(cBlockHash IHash) (ecBlock *ECBlock, err error)
 
 	// Initialize External ID map for explorer search
-	InitializeExternalIDMap() (extIDMap map[string]bool, err error)
+	// InitializeExternalIDMap() (extIDMap map[string]bool, err error)
 
 	// ProcessABlockBatch inserts the AdminBlock
 	ProcessABlockBatch(block *AdminBlock) error
@@ -138,7 +137,7 @@ type Db interface {
 	FetchABlockByHash(aBlockHash IHash) (aBlock *AdminBlock, err error)
 
 	// FetchAllABlocks gets all of the admin blocks
-	FetchAllABlocks() (aBlocks []AdminBlock, err error)
+	FetchAllABlocks() (aBlocks []*AdminBlock, err error)
 
 	// ProcessABlockBatch inserts the AdminBlock
 	ProcessFBlockBatch(IFBlock) error
@@ -156,12 +155,11 @@ type Db interface {
 	FetchBlockHeightCache() (sha IHash, height int64, err error)
 
 	// UpdateNextBlockHeightCache updates the next dir block height cache (from server) in db
-	UpdateNextBlockHeightCache(dirBlkHeigh uint32) error
+	// UpdateNextBlockHeightCache(dirBlkHeigh uint32) error
 
 	// FetchNextBlockHeightCache returns the next block height from server
-	FetchNextBlockHeightCache() (height int64)
+	//FetchNextBlockHeightCache() (height int64)
 
 	// FtchHeadMRByChainID gets a MR of the highest block from the database.
 	FetchHeadMRByChainID(chainID IHash) (blkMR IHash, err error)
 }
-*/

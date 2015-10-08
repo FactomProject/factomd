@@ -78,6 +78,10 @@ type Overlay struct {
 	lastDirBlkHeight    int64
 }
 
+func (db *Overlay) Close() (err error) {
+	return db.DB.Close()
+}
+
 func NewOverlay(db IDatabase) *Overlay {
 	answer := new(Overlay)
 	answer.DB = db

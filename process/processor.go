@@ -25,7 +25,7 @@ import (
 	"github.com/FactomProject/factomd/common/factoid/block"
 	"github.com/FactomProject/factomd/consensus"
 	cp "github.com/FactomProject/factomd/controlpanel"
-	"github.com/FactomProject/factomd/database/databaseOverlay"
+	"github.com/FactomProject/factomd/database"
 	"github.com/FactomProject/factomd/util"
 	"github.com/davecgh/go-spew/spew"
 
@@ -45,7 +45,7 @@ var _ = (*block.FBlock)(nil)
 var _ = util.Trace
 
 var (
-	db *databaseOverlay.Overlay // database
+	db database.DBOverlay // database
 
 	dchain   *DChain     //Directory Block Chain
 	ecchain  *ECChain    //Entry Credit Chain
@@ -180,7 +180,7 @@ func initProcessor() {
 
 // Started from factomd
 func Start_Processor(
-	dbase *databaseOverlay.Overlay,
+	dbase database.DBOverlay,
 	inMsgQ chan wire.FtmInternalMsg,
 	outMsgQ chan wire.FtmInternalMsg,
 	inCtlMsgQ chan wire.FtmInternalMsg,

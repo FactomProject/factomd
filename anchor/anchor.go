@@ -31,7 +31,7 @@ import (
 	. "github.com/FactomProject/factomd/common/DirectoryBlock"
 	. "github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/database/databaseOverlay"
+	"github.com/FactomProject/factomd/database"
 	"github.com/FactomProject/factomd/util"
 )
 
@@ -41,7 +41,7 @@ var (
 	dclient, wclient    *btcrpcclient.Client
 	fee                 btcutil.Amount           // tx fee for written into btc
 	dirBlockInfoMap     map[string]*DirBlockInfo //dbHash string as key
-	db                  *databaseOverlay.Overlay
+	db                  database.DBOverlay
 	walletLocked        bool
 	reAnchorAfter       = 10 // hours. For anchors that do not get bitcoin callback info for over 10 hours, then re-anchor them.
 	reAnchorCheckEvery  = 1  // hour. do re-anchor check every 1 hour.
@@ -371,7 +371,7 @@ func createBtcdNotificationHandlers() btcrpcclient.NotificationHandlers {
 
 // InitAnchor inits rpc clients for factom
 // and load up unconfirmed DirBlockInfo from leveldb
-func InitAnchor(do *databaseOverlay.Overlay, q chan factomwire.FtmInternalMsg, serverKey PrivateKey) {
+func InitAnchor(do database.DBOverlay, q chan factomwire.FtmInternalMsg, serverKey PrivateKey) {
 	anchorLog.Debug("InitAnchor")
 	db = do
 	inMsgQ = q
