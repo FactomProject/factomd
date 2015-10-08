@@ -30,7 +30,8 @@ import (
 const (
 	// We need the version for webservices, and the limit should not be the version
 	// anyway.
-	ProtocolVersion = 1005 // version starts from 1000 for Factom
+	//TODO: switch back to 1005 when the client can distinguish between BTCD and factomd versions
+	ProtocolVersion = 70002 // version starts from 1000 for Factom
 
 	// maxProtocolVersion is the max protocol version the peer supports.
 	maxProtocolVersion = ProtocolVersion
@@ -406,7 +407,7 @@ func (p *peer) handleVersionMsg(msg *wire.MsgVersion) {
 	if ClientOnly {
 		if isVersionMismatch(maxProtocolVersion, msg.ProtocolVersion) {
 			errmsg := "\n\n******************** - IMPORTANT - ****************************\n\n"
-			errmsg += "\n\n      VERSION MISMATCH -- Please upgrade your software! \n\n"
+			errmsg += fmt.Sprintf("\n\n      VERSION MISMATCH - %v vs %v -- Please upgrade your software! \n\n", maxProtocolVersion, msg.ProtocolVersion)
 			errmsg += "\n\n***************************************************************\n\n"
 			peerLog.Error(errmsg)
 			p.Disconnect()
