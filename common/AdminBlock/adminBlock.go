@@ -349,6 +349,7 @@ type ABEntry interface {
 	BinaryMarshallable
 	ShortInterpretable
 
+	MarshalledSize() uint64
 	Type() byte
 	Hash() IHash
 }
