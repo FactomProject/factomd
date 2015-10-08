@@ -161,7 +161,7 @@ echo "
 |  FactomCode    |
 +================+
 "
-go test -short  ./FactomCode/...
+go test -short  ./factomd/...
 
 echo "
 +================+
