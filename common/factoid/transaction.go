@@ -694,7 +694,3 @@ func (e *Transaction) JSONString() (string, error) {
 func (e *Transaction) JSONBuffer(b *bytes.Buffer) error {
 	return EncodeJSONToBuffer(e, b)
 }
-
-func (e *Transaction) Spew() string {
-	return Spew(e)
-}

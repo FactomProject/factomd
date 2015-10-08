@@ -111,10 +111,6 @@ func (e *DBSignatureEntry) JSONBuffer(b *bytes.Buffer) error {
 	return EncodeJSONToBuffer(e, b)
 }
 
-func (e *DBSignatureEntry) Spew() string {
-	return Spew(e)
-}
-
 func (e *DBSignatureEntry) IsInterpretable() bool {
 	return false
 }

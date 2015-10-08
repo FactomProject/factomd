@@ -360,10 +360,6 @@ func (e *ECBlock) JSONBuffer(b *bytes.Buffer) error {
 	return EncodeJSONToBuffer(e, b)
 }
 
-func (e *ECBlock) Spew() string {
-	return Spew(e)
-}
-
 type ECBlockBody struct {
 	Entries []ECBlockEntry
 }
@@ -386,10 +382,6 @@ func (e *ECBlockBody) JSONString() (string, error) {
 
 func (e *ECBlockBody) JSONBuffer(b *bytes.Buffer) error {
 	return EncodeJSONToBuffer(e, b)
-}
-
-func (e *ECBlockBody) Spew() string {
-	return Spew(e)
 }
 
 type ECBlockEntry interface {
@@ -436,8 +428,4 @@ func (e *ECBlockHeader) JSONString() (string, error) {
 
 func (e *ECBlockHeader) JSONBuffer(b *bytes.Buffer) error {
 	return EncodeJSONToBuffer(e, b)
-}
-
-func (e *ECBlockHeader) Spew() string {
-	return Spew(e)
 }

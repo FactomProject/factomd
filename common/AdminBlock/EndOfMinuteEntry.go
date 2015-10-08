@@ -69,10 +69,6 @@ func (e *EndOfMinuteEntry) JSONBuffer(b *bytes.Buffer) error {
 	return EncodeJSONToBuffer(e, b)
 }
 
-func (e *EndOfMinuteEntry) Spew() string {
-	return Spew(e)
-}
-
 func (e *EndOfMinuteEntry) IsInterpretable() bool {
 	return true
 }

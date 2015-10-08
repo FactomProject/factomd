@@ -26,7 +26,7 @@ type IBlock interface {
 
 type IFBlock interface {
 	IBlock
-	Printable
+	JSONable
 	// Get the ChainID. This is a constant for all Factoids.
 	GetChainID() IHash
 	// Validation functions

@@ -637,10 +637,6 @@ func (e *FBlock) JSONBuffer(b *bytes.Buffer) error {
 	return EncodeJSONToBuffer(e, b)
 }
 
-func (e *FBlock) Spew() string {
-	return Spew(e)
-}
-
 /**************************
  * Helper Functions
  **************************/

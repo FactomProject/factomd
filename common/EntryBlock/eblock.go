@@ -301,10 +301,6 @@ func (e *EBlock) JSONBuffer(b *bytes.Buffer) error {
 	return EncodeJSONToBuffer(e, b)
 }
 
-func (e *EBlock) Spew() string {
-	return Spew(e)
-}
-
 // EBlockBody is the series of Hashes that form the Entry Block Body.
 type EBlockBody struct {
 	EBEntries []IHash
@@ -337,10 +333,6 @@ func (e *EBlockBody) JSONString() (string, error) {
 
 func (e *EBlockBody) JSONBuffer(b *bytes.Buffer) error {
 	return EncodeJSONToBuffer(e, b)
-}
-
-func (e *EBlockBody) Spew() string {
-	return Spew(e)
 }
 
 // EBlockHeader holds relevent metadata about the Entry Block and the data
@@ -377,10 +369,6 @@ func (e *EBlockHeader) JSONString() (string, error) {
 
 func (e *EBlockHeader) JSONBuffer(b *bytes.Buffer) error {
 	return EncodeJSONToBuffer(e, b)
-}
-
-func (e *EBlockHeader) Spew() string {
-	return Spew(e)
 }
 
 func (c *EBlockHeader) GetChainID() IHash {

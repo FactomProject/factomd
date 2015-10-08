@@ -163,10 +163,6 @@ func (e *ByteSlice32) JSONBuffer(b *bytes.Buffer) error {
 	return EncodeJSONToBuffer(e, b)
 }
 
-func (e *ByteSlice32) Spew() string {
-	return Spew(e)
-}
-
 func (bs *ByteSlice32) String() string {
 	return fmt.Sprintf("%x", bs[:])
 }
@@ -216,10 +212,6 @@ func (e *ByteSlice64) JSONBuffer(b *bytes.Buffer) error {
 	return EncodeJSONToBuffer(e, b)
 }
 
-func (e *ByteSlice64) Spew() string {
-	return Spew(e)
-}
-
 func (bs *ByteSlice64) String() string {
 	return fmt.Sprintf("%x", bs[:])
 }
@@ -267,10 +259,6 @@ func (e *ByteSlice6) JSONString() (string, error) {
 
 func (e *ByteSlice6) JSONBuffer(b *bytes.Buffer) error {
 	return EncodeJSONToBuffer(e, b)
-}
-
-func (e *ByteSlice6) Spew() string {
-	return Spew(e)
 }
 
 func (bs *ByteSlice6) String() string {

@@ -86,7 +86,3 @@ func (e *MinuteNumber) JSONString() (string, error) {
 func (e *MinuteNumber) JSONBuffer(b *bytes.Buffer) error {
 	return EncodeJSONToBuffer(e, b)
 }
-
-func (e *MinuteNumber) Spew() string {
-	return Spew(e)
-}

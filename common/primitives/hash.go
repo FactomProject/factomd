@@ -248,10 +248,6 @@ func (e *Hash) JSONBuffer(b *bytes.Buffer) error {
 	return EncodeJSONToBuffer(e, b)
 }
 
-func (e *Hash) Spew() string {
-	return Spew(e)
-}
-
 /**********************
  * Support functions
  **********************/

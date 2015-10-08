@@ -230,10 +230,6 @@ func (e *AdminBlock) JSONBuffer(b *bytes.Buffer) error {
 	return EncodeJSONToBuffer(e, b)
 }
 
-func (e *AdminBlock) Spew() string {
-	return Spew(e)
-}
-
 // Admin Block Header
 type ABlockHeader struct {
 	AdminChainID    IHash
@@ -337,10 +333,6 @@ func (e *ABlockHeader) JSONString() (string, error) {
 
 func (e *ABlockHeader) JSONBuffer(b *bytes.Buffer) error {
 	return EncodeJSONToBuffer(e, b)
-}
-
-func (e *ABlockHeader) Spew() string {
-	return Spew(e)
 }
 
 // Generic admin block entry type

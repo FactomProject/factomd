@@ -7,7 +7,6 @@ package interfaces
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/davecgh/go-spew/spew"
 )
 
 //Interface for printing structures into JSON
@@ -17,15 +16,10 @@ type JSONable interface {
 	JSONBuffer(b *bytes.Buffer) error
 }
 
-//Interface for Spewing the structures for debugging
-type Spewable interface {
-	Spew() string
-}
-
 //Interface for both JSON and Spew
 type Printable interface {
 	JSONable
-	Spewable
+	//String() string
 }
 
 //Interface for short, reoccuring data structures to interpret themselves into human-friendly form
@@ -66,8 +60,4 @@ func EncodeJSONToBuffer(data interface{}, b *bytes.Buffer) error {
 	}
 	_, err = b.Write(encoded)
 	return err
-}
-
-func Spew(data interface{}) string {
-	return spew.Sdump(data)
 }
