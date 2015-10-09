@@ -53,6 +53,7 @@ func (c *AdminBlock) New() BinaryMarshallableAndCopyable {
 func (c *AdminBlock) GetChainID() IHash {
 	return c.Header.AdminChainID
 }
+
 func (c *AdminBlock) GetKeyMR() (IHash, error) {
 	return c.PartialHash()
 }
