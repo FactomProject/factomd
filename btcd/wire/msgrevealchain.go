@@ -6,7 +6,7 @@ package wire
 
 import (
 	"bytes"
-	. "github.com/FactomProject/factomd/common/EntryBlock"
+	. "github.com/FactomProject/factomd/common/entryBlock"
 	. "github.com/FactomProject/factomd/common/interfaces"
 	"io"
 )

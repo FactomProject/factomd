@@ -8,7 +8,7 @@ import (
 	"bytes"
 	"io"
 
-	. "github.com/FactomProject/factomd/common/EntryCreditBlock"
+	. "github.com/FactomProject/factomd/common/entryCreditBlock"
 	. "github.com/FactomProject/factomd/common/interfaces"
 )
 

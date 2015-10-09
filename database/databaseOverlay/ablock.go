@@ -3,7 +3,7 @@ package databaseOverlay
 import (
 	//	"errors"
 	"encoding/binary"
-	. "github.com/FactomProject/factomd/common/AdminBlock"
+	. "github.com/FactomProject/factomd/common/adminBlock"
 	. "github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/interfaces"
 )

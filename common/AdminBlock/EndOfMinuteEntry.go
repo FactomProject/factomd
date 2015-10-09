@@ -1,4 +1,4 @@
-package AdminBlock
+package adminBlock
 
 import (
 	"bytes"

@@ -7,7 +7,7 @@ package wire
 import (
 	"io"
 
-	. "github.com/FactomProject/factomd/common/AdminBlock"
+	. "github.com/FactomProject/factomd/common/adminBlock"
 )
 
 // MsgABlock implements the Message interface and represents a factom

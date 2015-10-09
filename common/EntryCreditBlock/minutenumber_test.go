@@ -1,10 +1,10 @@
-package EntryCreditBlock_test
+package entryCreditBlock_test
 
 import (
 	"fmt"
 	"testing"
 
-	. "github.com/FactomProject/factomd/common/EntryCreditBlock"
+	. "github.com/FactomProject/factomd/common/entryCreditBlock"
 )
 
 func TestMinuteNumberMarshalUnmarshal(t *testing.T) {

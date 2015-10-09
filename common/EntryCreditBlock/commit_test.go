@@ -1,4 +1,4 @@
-package EntryCreditBlock_test
+package entryCreditBlock_test
 
 import (
 	"crypto/rand"
@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	ed "github.com/FactomProject/ed25519"
-	. "github.com/FactomProject/factomd/common/EntryCreditBlock"
+	. "github.com/FactomProject/factomd/common/entryCreditBlock"
 	. "github.com/FactomProject/factomd/common/primitives"
 )
 
