@@ -1,10 +1,10 @@
 package util
 
 import (
-	. "github.com/FactomProject/factomd/common/AdminBlock"
 	. "github.com/FactomProject/factomd/common/DirectoryBlock"
-	. "github.com/FactomProject/factomd/common/EntryBlock"
-	. "github.com/FactomProject/factomd/common/EntryCreditBlock"
+	. "github.com/FactomProject/factomd/common/adminBlock"
+	. "github.com/FactomProject/factomd/common/entryBlock"
+	. "github.com/FactomProject/factomd/common/entryCreditBlock"
 	. "github.com/FactomProject/factomd/common/interfaces"
 )
 

@@ -168,6 +168,7 @@ func (db *Overlay) FetchBlockHeightBySha(sha IHash) (int64, error) {
 	return height, nil
 }
 
+/*
 // Insert the Directory Block meta data into db
 func (db *Overlay) InsertDirBlockInfo(dirBlockInfo *DirBlockInfo) error {
 	if dirBlockInfo.BTCTxHash == nil {
@@ -183,7 +184,7 @@ func (db *Overlay) InsertDirBlockInfo(dirBlockInfo *DirBlockInfo) error {
 	}
 
 	return nil
-}
+}*/
 
 /*
 // FetchDirBlockInfoByHash gets an DirBlockInfo obj
@@ -340,7 +341,7 @@ func (db *Overlay) FetchAllDirBlockInfo() (dirBlockInfoMap map[string]*DirBlockI
 	err = iter.Error()
 	return dirBlockInfoMap, err
 }*/
-
+/*
 // FetchAllUnconfirmedDirBlockInfo gets all of the dirBlockInfos that have BTC Anchor confirmation
 func (db *Overlay) FetchAllUnconfirmedDirBlockInfo() (dirBlockInfoMap map[string]*DirBlockInfo, err error) {
 	bucket := []byte{byte(TBL_DB_INFO)}
@@ -361,3 +362,4 @@ func (db *Overlay) FetchAllUnconfirmedDirBlockInfo() (dirBlockInfoMap map[string
 
 	return dirBlockInfoMap, nil
 }
+*/

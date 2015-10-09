@@ -2,7 +2,7 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-package EntryBlock
+package entryBlock
 
 import (
 	"bytes"
@@ -13,7 +13,7 @@ import (
 
 type EChain struct {
 	ChainID         IHash
-	FirstEntry      *Entry
+	FirstEntry      IEBEntry
 	NextBlock       *EBlock
 	NextBlockHeight uint32
 	BlockMutex      sync.Mutex

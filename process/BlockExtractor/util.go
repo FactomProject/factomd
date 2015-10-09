@@ -14,18 +14,19 @@ import (
 	"sort"
 
 	. "github.com/FactomProject/factomd/common"
-	. "github.com/FactomProject/factomd/common/AdminBlock"
 	. "github.com/FactomProject/factomd/common/DirectoryBlock"
-	. "github.com/FactomProject/factomd/common/EntryBlock"
-	. "github.com/FactomProject/factomd/common/EntryCreditBlock"
+	. "github.com/FactomProject/factomd/common/adminBlock"
+	. "github.com/FactomProject/factomd/common/entryBlock"
+	. "github.com/FactomProject/factomd/common/entryCreditBlock"
 	. "github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/database"
 )
 
 var _ = util.Trace
 var _ = spew.Sdump
 
-func exportDChain(chain *DChain, db database.Db) {
+func exportDChain(chain *DChain, db database.DBOverlay) {
 	// get all ecBlocks from db
 	dBlocks, _ := db.FetchAllDBlocks()
 	sort.Sort(util.ByDBlockIDAccending(dBlocks))
@@ -53,7 +54,7 @@ func exportDChain(chain *DChain, db database.Db) {
 	}
 }
 
-func exportEChain(chain *EChain, db database.Db) {
+func exportEChain(chain *EChain, db database.DBOverlay) {
 	eBlocks, _ := db.FetchAllEBlocksByChain(chain.ChainID)
 	sort.Sort(util.ByEBlockIDAccending(*eBlocks))
 
@@ -81,7 +82,7 @@ func exportEChain(chain *EChain, db database.Db) {
 	}
 }
 
-func exportECChain(chain *ECChain, db database.Db) {
+func exportECChain(chain *ECChain, db database.DBOverlay) {
 	// get all ecBlocks from db
 	ecBlocks, _ := db.FetchAllECBlocks()
 	sort.Sort(util.ByECBlockIDAccending(ecBlocks))
@@ -108,7 +109,7 @@ func exportECChain(chain *ECChain, db database.Db) {
 	}
 }
 
-func exportAChain(chain *AdminChain, db database.Db) {
+func exportAChain(chain *AdminChain, db database.DBOverlay) {
 	// get all aBlocks from db
 	aBlocks, _ := db.FetchAllABlocks()
 	sort.Sort(util.ByABlockIDAccending(aBlocks))
@@ -136,7 +137,7 @@ func exportAChain(chain *AdminChain, db database.Db) {
 	}
 }
 
-func exportFctChain(chain *FctChain, db database.Db) {
+func exportFctChain(chain *FctChain, db database.DBOverlay) {
 	// get all aBlocks from db
 	FBlocks, _ := db.FetchAllFBlocks()
 	sort.Sort(util.ByFBlockIDAccending(FBlocks))
@@ -165,7 +166,7 @@ func exportFctChain(chain *FctChain, db database.Db) {
 }
 
 // to export individual block once at a time - for debugging ------------------------
-func exportDBlock(block *DirectoryBlock, db database.Db) {
+func exportDBlock(block *DirectoryBlock, db database.DBOverlay) {
 	if block == nil {
 		//log.Println("no blocks to save for chain: " + string (*chain.ChainID))
 		return
@@ -192,7 +193,7 @@ func exportDBlock(block *DirectoryBlock, db database.Db) {
 
 }
 
-func exportEBlock(block *EBlock, db database.Db) {
+func exportEBlock(block *EBlock, db database.DBOverlay) {
 	if block == nil {
 		return
 	}
@@ -219,7 +220,7 @@ func exportEBlock(block *EBlock, db database.Db) {
 
 }
 
-func exportECBlock(block *ECBlock, db database.Db) {
+func exportECBlock(block *ECBlock, db database.DBOverlay) {
 	if block == nil {
 		return
 	}
@@ -245,7 +246,7 @@ func exportECBlock(block *ECBlock, db database.Db) {
 
 }
 
-func exportABlock(block *AdminBlock, db database.Db) {
+func exportABlock(block *AdminBlock, db database.DBOverlay) {
 	if block == nil {
 		return
 	}
@@ -271,7 +272,7 @@ func exportABlock(block *AdminBlock, db database.Db) {
 
 }
 
-func exportFctBlock(block IFBlock, db database.Db) {
+func exportFctBlock(block IFBlock, db database.DBOverlay) {
 	if block == nil {
 		return
 	}

@@ -2,7 +2,7 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-package EntryBlock
+package entryBlock
 
 import (
 	"bytes"
@@ -23,8 +23,7 @@ type Entry struct {
 	Content []byte
 }
 
-var _ Printable = (*Entry)(nil)
-var _ BinaryMarshallable = (*Entry)(nil)
+var _ IEBEntry = (*Entry)(nil)
 
 func (c *Entry) MarshalledSize() uint64 {
 	panic("Function not implemented")
@@ -41,16 +40,28 @@ func NewEntry() *Entry {
 
 // NewChainID generates a ChainID from an entry. ChainID = Sha(Sha(ExtIDs[0]) +
 // Sha(ExtIDs[1] + ... + Sha(ExtIDs[n]))
-func NewChainID(e *Entry) IHash {
+func NewChainID(e IEBEntry) IHash {
 	id := new(Hash)
 	sum := sha256.New()
-	for _, v := range e.ExtIDs {
+	for _, v := range e.ExternalIDs() {
 		x := sha256.Sum256(v)
 		sum.Write(x[:])
 	}
 	id.SetBytes(sum.Sum(nil))
 
 	return id
+}
+
+func (e *Entry) GetContent() []byte {
+	return e.Content
+}
+
+func (e *Entry) GetChainID() IHash {
+	return e.ChainID
+}
+
+func (e *Entry) ExternalIDs() [][]byte {
+	return e.ExtIDs
 }
 
 func (e *Entry) IsValid() bool {

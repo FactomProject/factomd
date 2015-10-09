@@ -2,12 +2,12 @@ package state
 
 import (
 	. "github.com/FactomProject/factomd/common/interfaces"
-	
 )
 
 type State struct {
-	DB IDatabase
+	DB                    IDatabase
 	currentDirectoryBlock IDirectoryBlock
+	dBHeight              int
 }
 
 var _ IState = (*State)(nil)
@@ -26,4 +26,13 @@ func (s *State) DB() IDatabase {
 
 func (s *State) SetDB(IDatabase) {
 	s.DB = dirblk
+}
+
+
+func (s *State) DBHeight() int {
+	return s.dBHeight
+}
+
+func (s *State) SetDBHeight(dbheight int) {
+	s.dBHeight = dbheight
 }

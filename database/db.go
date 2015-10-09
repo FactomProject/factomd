@@ -5,11 +5,12 @@
 package database
 
 import (
-	. "github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/AdminBlock"
 	. "github.com/FactomProject/factomd/common/directoryblock"
-	. "github.com/FactomProject/factomd/common/EntryBlock"
-	. "github.com/FactomProject/factomd/common/EntryCreditBlock"
+	. "github.com/FactomProject/factomd/common/adminBlock"
+	. "github.com/FactomProject/factomd/common/entryBlock"
+	. "github.com/FactomProject/factomd/common/entryCreditBlock"
+	. "github.com/FactomProject/factomd/common/interfaces"
 )
 
 // AllShas is a special value that can be used as the final sha when requesting
@@ -30,10 +31,10 @@ type DBOverlay interface {
 	// Sync() (err error)
 
 	// InsertEntry inserts an entry
-	InsertEntry(entry *Entry) (err error)
+	InsertEntry(entry IEntry) (err error)
 
 	// FetchEntry gets an entry by hash from the database.
-	FetchEntryByHash(entrySha IHash) (entry *Entry, err error)
+	FetchEntryByHash(entrySha IHash) (entry IEntry, err error)
 
 	// FetchEBEntriesFromQueue gets all of the ebentries that have not been processed
 	//FetchEBEntriesFromQueue(chainID *[]byte, startTime *[]byte) (ebentries []*EBEntry, err error)

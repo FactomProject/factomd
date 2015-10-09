@@ -1,7 +1,7 @@
-package EntryBlock_test
+package entryBlock_test
 
 import (
-	. "github.com/FactomProject/factomd/common/EntryBlock"
+	. "github.com/FactomProject/factomd/common/entryBlock"
 	. "github.com/FactomProject/factomd/common/primitives"
 	"testing"
 )

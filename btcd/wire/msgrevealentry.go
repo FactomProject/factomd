@@ -6,7 +6,7 @@ package wire
 
 import (
 	"bytes"
-	. "github.com/FactomProject/factomd/common/EntryBlock"
+	. "github.com/FactomProject/factomd/common/entryBlock"
 	. "github.com/FactomProject/factomd/common/interfaces"
 	"io"
 )
@@ -14,7 +14,7 @@ import (
 // MsgRevealEntry implements the Message interface and represents a factom
 // Reveal-Entry message.  It is used by client to reveal the entry.
 type MsgRevealEntry struct {
-	Entry *Entry
+	Entry IEBEntry
 }
 
 // BtcEncode encodes the receiver to w using the bitcoin protocol encoding.

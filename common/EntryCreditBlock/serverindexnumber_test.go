@@ -2,10 +2,10 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-package EntryCreditBlock_test
+package entryCreditBlock_test
 
 import (
-	. "github.com/FactomProject/factomd/common/EntryCreditBlock"
+	. "github.com/FactomProject/factomd/common/entryCreditBlock"
 	"testing"
 )
 

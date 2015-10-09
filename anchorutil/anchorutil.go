@@ -14,8 +14,8 @@ import (
 
 	"github.com/FactomProject/factomd/anchor"
 	. "github.com/FactomProject/factomd/common/DirectoryBlock"
-	. "github.com/FactomProject/factomd/common/EntryBlock"
 	. "github.com/FactomProject/factomd/common/constants"
+	. "github.com/FactomProject/factomd/common/entryBlock"
 	. "github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database"
@@ -100,8 +100,8 @@ func dirBlockInfoToAnchorChain(aRecord *anchor.AnchorRecord) (*DirBlockInfo, err
 	return dirBlockInfo, nil
 }
 
-func entryToAnchorRecord(entry *Entry) (*anchor.AnchorRecord, error) {
-	content := entry.Content
+func entryToAnchorRecord(entry IEBEntry) (*anchor.AnchorRecord, error) {
+	content := entry.GetContent()
 	jsonARecord := content[:(len(content) - 128)]
 	jsonSigBytes := content[(len(content) - 128):]
 	jsonSig, err := hex.DecodeString(string(jsonSigBytes))

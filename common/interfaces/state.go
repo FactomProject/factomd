@@ -18,9 +18,9 @@ type IState interface {
 	SetDB(IDatabase)
 	
 	// Directory Block State
-	CurrentDirectoryBlock() IDirectoryBlock
+	CurrentDirectoryBlock() IDirectoryBlock			// The directory block under construction
 	SetCurrentDirectoryBlock(IDirectoryBlock)
-	
-	
+	DBHeight() int                                  // The index of the directory block under construction.
+	SetDBHeight(int)                                 
 }
 

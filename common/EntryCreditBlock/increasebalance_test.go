@@ -1,17 +1,18 @@
-package EntryCreditBlock_test
+package entryCreditBlock_test
 
 import (
 	"fmt"
 	"testing"
 
-	. "github.com/FactomProject/factomd/common/EntryCreditBlock"
+	. "github.com/FactomProject/factomd/common/entryCreditBlock"
+	. "github.com/FactomProject/factomd/common/primitives"
 )
 
 func TestIncreaseBalanceMarshalUnmarshal(t *testing.T) {
 	ib1 := NewIncreaseBalance()
 	pub := new([32]byte)
 	copy(pub[:], byteof(0xaa))
-	ib1.ECPubKey = pub
+	ib1.ECPubKey = (*ByteSlice32)(pub)
 	ib1.TXID.SetBytes(byteof(0xbb))
 	ib1.NumEC = uint64(13)
 	p, err := ib1.MarshalBinary()

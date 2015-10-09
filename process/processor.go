@@ -30,11 +30,11 @@ import (
 	"github.com/davecgh/go-spew/spew"
 
 	. "github.com/FactomProject/factomd/common"
-	. "github.com/FactomProject/factomd/common/AdminBlock"
 	. "github.com/FactomProject/factomd/common/DirectoryBlock"
-	. "github.com/FactomProject/factomd/common/EntryBlock"
-	. "github.com/FactomProject/factomd/common/EntryCreditBlock"
+	. "github.com/FactomProject/factomd/common/adminBlock"
 	. "github.com/FactomProject/factomd/common/constants"
+	. "github.com/FactomProject/factomd/common/entryBlock"
+	. "github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid/state"
 	. "github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
@@ -508,16 +508,16 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 	h, _ := NewShaHash(e.Hash().Bytes())
 
 	// Check if the chain id is valid
-	if e.ChainID.IsSameAs(zeroHash) || e.ChainID.IsSameAs(dchain.ChainID) || e.ChainID.IsSameAs(achain.ChainID) ||
-		e.ChainID.IsSameAs(ecchain.ChainID) || e.ChainID.IsSameAs(fchain.ChainID) {
-		return fmt.Errorf("This entry chain is not supported: %s", e.ChainID.String())
+	if e.GetChainID().IsSameAs(zeroHash) || e.GetChainID().IsSameAs(dchain.ChainID) || e.GetChainID().IsSameAs(achain.ChainID) ||
+		e.GetChainID().IsSameAs(ecchain.ChainID) || e.GetChainID().IsSameAs(fchain.ChainID) {
+		return fmt.Errorf("This entry chain is not supported: %s", e.GetChainID().String())
 	}
 
 	if c, ok := commitEntryMap[e.Hash().String()]; ok {
-		if chainIDMap[e.ChainID.String()] == nil {
+		if chainIDMap[e.GetChainID().String()] == nil {
 			fMemPool.addOrphanMsg(msg, h)
 			return fmt.Errorf("This chain is not supported: %s",
-				msg.Entry.ChainID.String())
+				msg.Entry.GetChainID().String())
 		}
 
 		// Calculate the entry credits required for the entry
@@ -554,17 +554,17 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 		delete(commitEntryMap, e.Hash().String())
 		return nil
 	} else if c, ok := commitChainMap[e.Hash().String()]; ok { //Reveal chain ---------------------------
-		if chainIDMap[e.ChainID.String()] != nil {
+		if chainIDMap[e.GetChainID().String()] != nil {
 			fMemPool.addOrphanMsg(msg, h)
 			return fmt.Errorf("This chain is not supported: %s",
-				msg.Entry.ChainID.String())
+				msg.Entry.GetChainID().String())
 		}
 
 		// add new chain to chainIDMap
 		newChain := NewEChain()
-		newChain.ChainID = e.ChainID
+		newChain.ChainID = e.GetChainID()
 		newChain.FirstEntry = e
-		chainIDMap[e.ChainID.String()] = newChain
+		chainIDMap[e.GetChainID().String()] = newChain
 
 		// Calculate the entry credits required for the entry
 		cred, err := util.EntryCost(bin)
@@ -580,18 +580,18 @@ func processRevealEntry(msg *wire.MsgRevealEntry) error {
 
 		//validate chain id for the first entry
 		expectedChainID := NewChainID(e)
-		if !expectedChainID.IsSameAs(e.ChainID) {
+		if !expectedChainID.IsSameAs(e.GetChainID()) {
 			return fmt.Errorf("Invalid ChainID for entry: %s", e.Hash().String())
 		}
 
 		//validate chainid hash in the commitChain
-		chainIDHash := DoubleSha(e.ChainID.Bytes())
+		chainIDHash := DoubleSha(e.GetChainID().Bytes())
 		if !bytes.Equal(c.ChainIDHash.Bytes()[:], chainIDHash[:]) {
 			return fmt.Errorf("RevealChain's chainid hash does not match with CommitChain: %s", e.Hash().String())
 		}
 
 		//validate Weld in the commitChain
-		weld := DoubleSha(append(c.EntryHash.Bytes(), e.ChainID.Bytes()...))
+		weld := DoubleSha(append(c.EntryHash.Bytes(), e.GetChainID().Bytes()...))
 		if !bytes.Equal(c.Weld.Bytes()[:], weld[:]) {
 			return fmt.Errorf("RevealChain's weld does not match with CommitChain: %s", e.Hash().String())
 		}
@@ -786,7 +786,7 @@ func processFromOrphanPool() error {
 }
 
 func buildRevealEntry(msg *wire.MsgRevealEntry) {
-	chain := chainIDMap[msg.Entry.ChainID.String()]
+	chain := chainIDMap[msg.Entry.GetChainID().String()]
 
 	// store the new entry in db
 	err := db.InsertEntry(msg.Entry)
@@ -833,7 +833,7 @@ func buildCommitChain(msg *wire.MsgCommitChain) {
 }
 
 func buildRevealChain(msg *wire.MsgRevealEntry) {
-	chain := chainIDMap[msg.Entry.ChainID.String()]
+	chain := chainIDMap[msg.Entry.GetChainID().String()]
 
 	// Store the new chain in db
 	db.InsertChain(chain)
@@ -859,7 +859,7 @@ func buildEndOfMinute(pl *consensus.ProcessList, pli *consensus.ProcessListItem)
 	for _, v := range pl.GetPLItems()[:pli.Ack.Index] {
 		if v.Ack.Type == wire.ACK_REVEAL_ENTRY ||
 			v.Ack.Type == wire.ACK_REVEAL_CHAIN {
-			cid := v.Msg.(*wire.MsgRevealEntry).Entry.ChainID.String()
+			cid := v.Msg.(*wire.MsgRevealEntry).Entry.GetChainID().String()
 			tmpChains[cid] = chainIDMap[cid]
 		} else if wire.END_MINUTE_1 <= v.Ack.Type &&
 			v.Ack.Type <= wire.END_MINUTE_10 {
