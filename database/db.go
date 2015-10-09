@@ -87,14 +87,14 @@ type DBOverlay interface {
 	// FetchDirBlockInfoByHash(dbHash IHash) (dirBlockInfo *DirBlockInfo, err error)
 
 	// Insert the Directory Block meta data into db
-	InsertDirBlockInfo(dirBlockInfo *DirBlockInfo) (err error)
+	//InsertDirBlockInfo(dirBlockInfo *DirBlockInfo) (err error)
 
 	// FetchAllDirBlockInfo gets all of the dirBlockInfo
 	// FetchAllDirBlockInfo() (ddirBlockInfoMap map[string]*DirBlockInfo, err error)
 
 	// FetchAllUnconfirmedDirBlockInfo gets all of the dirBlockInfos that have BTC Anchor confirmation
 	//FetchAllUnconfirmedDirBlockInfo() (dBInfoSlice []DirBlockInfo, err error)
-	FetchAllUnconfirmedDirBlockInfo() (dirBlockInfoMap map[string]*DirBlockInfo, err error)
+	//FetchAllUnconfirmedDirBlockInfo() (dirBlockInfoMap map[string]*DirBlockInfo, err error)
 
 	// ProcessDBlockBatche inserts the EBlock and update all it's ebentries in DB
 	ProcessDBlockBatch(block *DirectoryBlock) error
