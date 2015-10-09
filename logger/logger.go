@@ -38,6 +38,11 @@ type FLogger struct {
 	prefix string
 }
 
+func NewLogFromConfig(logPath, logLevel, prefix string) *FLogger {
+	logFile, _ := os.OpenFile(logPath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0660)
+	return New(logFile, logLevel, prefix)
+}
+
 func New(w io.Writer, level, prefix string) *FLogger {
 	return &FLogger{
 		out:    w,
