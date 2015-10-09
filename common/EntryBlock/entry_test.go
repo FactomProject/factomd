@@ -1,14 +1,17 @@
-package common_test
+package EntryBlock_test
 
 import (
 	"bytes"
-	"encoding/hex"
+	//"encoding/hex"
 	"fmt"
 	"testing"
 
-	. "github.com/FactomProject/factomd/common"
+	. "github.com/FactomProject/factomd/common/EntryBlock"
+	. "github.com/FactomProject/factomd/common/constants"
+	. "github.com/FactomProject/factomd/common/primitives"
 )
 
+/*
 func TestUnmarshal(t *testing.T) {
 	fmt.Printf("TestNewUnmarshal\n---\n")
 	e := new(Entry)
@@ -23,7 +26,7 @@ func TestUnmarshal(t *testing.T) {
 	}
 
 	t.Log(e)
-}
+}*/
 
 func TestFirstEntry(t *testing.T) {
 	fmt.Println("\nTestFirstEntry===========================================================================")
