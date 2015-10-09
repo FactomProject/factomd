@@ -19,7 +19,7 @@ import (
 	. "github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database"
-	"github.com/FactomProject/factomd/database/ldb"
+	ldb "github.com/FactomProject/factomd/database/leveldb"
 	"github.com/FactomProject/factomd/util"
 	"github.com/btcsuite/btcd/wire"
 	"github.com/davecgh/go-spew/spew"
