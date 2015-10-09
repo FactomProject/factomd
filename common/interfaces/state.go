@@ -13,5 +13,14 @@ import ()
 // accidentally 
 type IState interface {
 	
+	// Database
+	DB IDatabase
+	SetDB(IDatabase)
+	
+	// Directory Block State
+	CurrentDirectoryBlock() IDirectoryBlock
+	SetCurrentDirectoryBlock(IDirectoryBlock)
+	
+	
 }
 
