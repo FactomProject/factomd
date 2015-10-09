@@ -1,6 +1,7 @@
 package primitives
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"runtime"
@@ -19,7 +20,7 @@ func Log(format string, args ...interface{}) {
 func LogJSONs(format string, args ...interface{}) {
 	jsons := []interface{}{}
 	for _, v := range args {
-		j, _ := encodeJSONString(v)
+		j, _ := EncodeJSONString(v)
 		jsons = append(jsons, j)
 	}
 	_, file, line, ok := runtime.Caller(1)
@@ -30,7 +31,12 @@ func LogJSONs(format string, args ...interface{}) {
 	fmt.Printf(file+":"+strconv.Itoa(line)+" - "+format+"\n", jsons...)
 }
 
-func encodeJSON(data interface{}) ([]byte, error) {
+func DecodeJSON(data []byte, v interface{}) error {
+	err := json.Unmarshal(data, &v)
+	return err
+}
+
+func EncodeJSON(data interface{}) ([]byte, error) {
 	encoded, err := json.Marshal(data)
 	if err != nil {
 		return nil, err
@@ -38,10 +44,23 @@ func encodeJSON(data interface{}) ([]byte, error) {
 	return encoded, nil
 }
 
-func encodeJSONString(data interface{}) (string, error) {
-	encoded, err := encodeJSON(data)
+func EncodeJSONString(data interface{}) (string, error) {
+	encoded, err := EncodeJSON(data)
 	if err != nil {
 		return "", err
 	}
 	return string(encoded), err
+}
+
+func DecodeJSONString(data string, v interface{}) error {
+	return DecodeJSON([]byte(data), v)
+}
+
+func EncodeJSONToBuffer(data interface{}, b *bytes.Buffer) error {
+	encoded, err := EncodeJSON(data)
+	if err != nil {
+		return err
+	}
+	_, err = b.Write(encoded)
+	return err
 }

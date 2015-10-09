@@ -17,7 +17,7 @@ import (
 	"strings"
 
 	. "github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/primitives"
+	. "github.com/FactomProject/factomd/common/primitives"
 )
 
 type TransAddress struct {
@@ -33,7 +33,7 @@ func (t *TransAddress) GetHash() IHash {
 }
 
 func (t *TransAddress) GetDBHash() IHash {
-	return primitives.Sha([]byte("TransAddress"))
+	return Sha([]byte("TransAddress"))
 }
 
 func (t *TransAddress) GetNewInstance() IBlock {
@@ -86,7 +86,7 @@ func (t *TransAddress) UnmarshalBinaryData(data []byte) (newData []byte, err err
 		return nil, fmt.Errorf("Data source too short to UnmarshalBinary() an address: %d", len(data))
 	}
 
-	t.Amount, data = primitives.DecodeVarInt(data)
+	t.Amount, data = DecodeVarInt(data)
 	t.Address = new(Address)
 
 	data, err = t.Address.UnmarshalBinaryData(data)
@@ -98,7 +98,7 @@ func (t *TransAddress) UnmarshalBinaryData(data []byte) (newData []byte, err err
 func (a TransAddress) MarshalBinary() ([]byte, error) {
 	var out bytes.Buffer
 
-	err := primitives.EncodeVarInt(&out, a.Amount)
+	err := EncodeVarInt(&out, a.Amount)
 	if err != nil {
 		return nil, err
 	}
@@ -146,14 +146,14 @@ func (ta *TransAddress) SetAddress(address IAddress) {
 func (ta TransAddress) CustomMarshalTextAll(fct bool, label string) ([]byte, error) {
 	var out bytes.Buffer
 	out.WriteString(fmt.Sprintf("   %8s:", label))
-	v := primitives.ConvertDecimalToPaddedString(ta.Amount)
+	v := ConvertDecimalToPaddedString(ta.Amount)
 	fill := 8 - len(v) + strings.Index(v, ".") + 1
 	fstr := fmt.Sprintf("%%%vs%%%vs ", 18-fill, fill)
 	out.WriteString(fmt.Sprintf(fstr, v, ""))
 	if fct {
-		out.WriteString(primitives.ConvertFctAddressToUserStr(ta.Address))
+		out.WriteString(ConvertFctAddressToUserStr(ta.Address))
 	} else {
-		out.WriteString(primitives.ConvertECAddressToUserStr(ta.Address))
+		out.WriteString(ConvertECAddressToUserStr(ta.Address))
 	}
 	str := fmt.Sprintf("\n                  %016x %038s\n\n", ta.Amount, string(hex.EncodeToString(ta.GetAddress().Bytes())))
 	out.WriteString(str)
