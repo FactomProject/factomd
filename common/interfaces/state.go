@@ -14,7 +14,7 @@ import ()
 type IState interface {
 	
 	// Database
-	DB IDatabase
+	DB() IDatabase
 	SetDB(IDatabase)
 	
 	// Directory Block State

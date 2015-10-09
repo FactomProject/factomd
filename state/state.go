@@ -5,7 +5,7 @@ import (
 )
 
 type State struct {
-	DB                    IDatabase
+	db                    IDatabase
 	currentDirectoryBlock IDirectoryBlock
 	dBHeight              int
 }
@@ -21,11 +21,11 @@ func (s *State) SetCurrentDirectoryBlock(dirblk IDirectoryBlock) {
 }
 
 func (s *State) DB() IDatabase {
-	return s.DB
+	return s.db
 }
 
-func (s *State) SetDB(IDatabase) {
-	s.DB = dirblk
+func (s *State) SetDB(db IDatabase) {
+	s.db = db
 }
 
 
