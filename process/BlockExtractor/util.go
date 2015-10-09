@@ -6,7 +6,6 @@ package BlockExtractor
 
 import (
 	"fmt"
-	"github.com/FactomProject/factomd/logger"
 	"github.com/FactomProject/factomd/util"
 	"github.com/davecgh/go-spew/spew"
 	"io/ioutil"
@@ -19,12 +18,14 @@ import (
 	. "github.com/FactomProject/factomd/common/entryBlock"
 	. "github.com/FactomProject/factomd/common/entryCreditBlock"
 	. "github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database"
 )
 
 var _ = util.Trace
 var _ = spew.Sdump
+
+var dataStorePath string
+var dchain *DChain
 
 func exportDChain(chain *DChain, db database.DBOverlay) {
 	// get all ecBlocks from db
@@ -56,9 +57,9 @@ func exportDChain(chain *DChain, db database.DBOverlay) {
 
 func exportEChain(chain *EChain, db database.DBOverlay) {
 	eBlocks, _ := db.FetchAllEBlocksByChain(chain.ChainID)
-	sort.Sort(util.ByEBlockIDAccending(*eBlocks))
+	sort.Sort(util.ByEBlockIDAccending(eBlocks))
 
-	for _, block := range *eBlocks {
+	for _, block := range eBlocks {
 
 		data, err := block.MarshalBinary()
 		if err != nil {
