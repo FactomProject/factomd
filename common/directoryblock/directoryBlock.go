@@ -2,7 +2,7 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-package directoryblock
+package directoryBlock
 
 import (
 	"bytes"
@@ -39,7 +39,6 @@ func (c *DirectoryBlock) MarshalledSize() uint64 {
 	panic("Function not implemented")
 	return 0
 }
-
 
 func (e *DirectoryBlock) JSONByte() ([]byte, error) {
 	return EncodeJSON(e)
@@ -159,11 +158,11 @@ func (b *DirectoryBlock) EncodableFields() map[string]reflect.Value {
 func NewDirectoryBlock() *DirectoryBlock {
 	d := new(DirectoryBlock)
 	d.Header = NewDBlockHeader()
-	
+
 	d.DBEntries = make([]*DBEntry, 0)
 	d.DBHash = NewZeroHash()
 	d.KeyMR = NewZeroHash()
-	
+
 	return d
 }
 
@@ -177,12 +176,12 @@ func CreateDBlock(nextDBHeight uint32, prev *DirectoryBlock, cap uint) (b *Direc
 	} else if prev != nil && nextDBHeight == 0 {
 		return nil, errors.New("Origin block cannot have a parent block")
 	}
-	
+
 	b = new(DirectoryBlock)
-	
+
 	b.Header = new(DBlockHeader)
 	b.Header.Version = VERSION_0
-	
+
 	if prev == nil {
 		b.Header.PrevLedgerKeyMR = NewZeroHash()
 		b.Header.PrevKeyMR = NewZeroHash()
@@ -193,11 +192,10 @@ func CreateDBlock(nextDBHeight uint32, prev *DirectoryBlock, cap uint) (b *Direc
 		}
 		b.Header.PrevKeyMR = prev.KeyMR
 	}
-	
+
 	b.Header.DBHeight = nextDBHeight
 	b.DBEntries = make([]*DBEntry, 0, cap)
 	b.IsSealed = false
-	
+
 	return b, err
 }
-

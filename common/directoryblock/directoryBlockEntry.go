@@ -1,4 +1,4 @@
-package directoryblock
+package directoryBlock
 
 import (
 	"bytes"

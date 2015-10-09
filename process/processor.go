@@ -30,9 +30,9 @@ import (
 	"github.com/davecgh/go-spew/spew"
 
 	. "github.com/FactomProject/factomd/common"
-	. "github.com/FactomProject/factomd/common/DirectoryBlock"
 	. "github.com/FactomProject/factomd/common/adminBlock"
 	. "github.com/FactomProject/factomd/common/constants"
+	. "github.com/FactomProject/factomd/common/directoryBlock"
 	. "github.com/FactomProject/factomd/common/entryBlock"
 	. "github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid/state"

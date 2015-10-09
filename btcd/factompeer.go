@@ -9,8 +9,8 @@ import (
 
 	"github.com/FactomProject/factomd/btcd/blockchain"
 	"github.com/FactomProject/factomd/btcd/wire"
-	. "github.com/FactomProject/factomd/common/DirectoryBlock"
 	. "github.com/FactomProject/factomd/common/constants"
+	. "github.com/FactomProject/factomd/common/directoryBlock"
 	. "github.com/FactomProject/factomd/common/entryBlock"
 	. "github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"

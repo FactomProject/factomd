@@ -7,7 +7,7 @@ package wire
 import (
 	"io"
 
-	. "github.com/FactomProject/factomd/common/DirectoryBlock"
+	. "github.com/FactomProject/factomd/common/directoryBlock"
 )
 
 // MaxBlocksPerMsg is the maximum number of blocks allowed per message.
