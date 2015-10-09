@@ -6,7 +6,14 @@ package interfaces
 
 import ()
 
-type IEntry interface {
-	GetChainID() IHash
-	GetKeyMR() (IHash, error)
+type IDirectoryBlock interface {
+	
+}
+
+type IDirectoryBlockHeader interface {
+	
+}
+
+type IDBEntry interface {
+	
 }
