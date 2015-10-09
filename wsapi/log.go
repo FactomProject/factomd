@@ -11,7 +11,7 @@ import (
 
 // setup subsystem loggers
 var (
-	rpcLog    = logger.NewLogFromConfig(util.ReadConfig().Log.LogPath, util.ReadConfig().Log.logLevel, "RPC")
-	serverLog = logger.NewLogFromConfig(util.ReadConfig().Log.LogPath, util.ReadConfig().Log.logLevel, "SERV")
-	wsLog     = logger.NewLogFromConfig(util.ReadConfig().Log.LogPath, util.ReadConfig().Log.logLevel, "WSAPI")
+	rpcLog    = logger.NewLogFromConfig(util.ReadConfig().Log.LogPath, util.ReadConfig().Log.LogLevel, "RPC")
+	serverLog = logger.NewLogFromConfig(util.ReadConfig().Log.LogPath, util.ReadConfig().Log.LogLevel, "SERV")
+	wsLog     = logger.NewLogFromConfig(util.ReadConfig().Log.LogPath, util.ReadConfig().Log.LogLevel, "WSAPI")
 )

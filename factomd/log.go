@@ -11,5 +11,5 @@ import (
 
 // setup subsystem loggers
 var (
-	ftmdLog = logger.NewLogFromConfig(util.ReadConfig().Log.LogPath, util.ReadConfig().Log.logLevel, "FTMD")
+	ftmdLog = logger.NewLogFromConfig(util.ReadConfig().Log.LogPath, util.ReadConfig().Log.LogLevel, "FTMD")
 )

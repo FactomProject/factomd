@@ -13,5 +13,5 @@ import (
 
 // setup subsystem loggers
 var (
-	procLog = logger.NewLogFromConfig(util.ReadConfig().Log.LogPath, util.ReadConfig().Log.logLevel, "PROC")
+	procLog = logger.NewLogFromConfig(util.ReadConfig().Log.LogPath, util.ReadConfig().Log.LogLevel, "PROC")
 )

@@ -11,5 +11,5 @@ import (
 
 // setup subsystem loggers
 var (
-	anchorLog = logger.NewLogFromConfig(util.ReadConfig().Log.LogPath, util.ReadConfig().Log.logLevel, "ANCH")
+	anchorLog = logger.NewLogFromConfig(util.ReadConfig().Log.LogPath, util.ReadConfig().Log.LogLevel, "ANCH")
 )
