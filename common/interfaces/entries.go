@@ -6,7 +6,7 @@ package interfaces
 
 import ()
 
-type IDBEntry interface {
+type IEntry interface {
 	GetChainID() IHash
 	GetKeyMR() (IHash, error)
 }
