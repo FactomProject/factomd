@@ -8,7 +8,6 @@ import ()
 
 type IHash interface {
 	IBlock // Implements IBlock
-	Printable
 
 	Fixed() [32]byte                                   // Returns the fixed array for use in maps
 	Bytes() []byte                                     // Return the byte slice for this Hash

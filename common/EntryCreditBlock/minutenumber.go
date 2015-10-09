@@ -86,3 +86,8 @@ func (e *MinuteNumber) JSONString() (string, error) {
 func (e *MinuteNumber) JSONBuffer(b *bytes.Buffer) error {
 	return EncodeJSONToBuffer(e, b)
 }
+
+func (e *MinuteNumber) String() string {
+	str, _ := e.JSONString()
+	return str
+}

@@ -114,3 +114,8 @@ func (e *IncreaseBalance) JSONString() (string, error) {
 func (e *IncreaseBalance) JSONBuffer(b *bytes.Buffer) error {
 	return EncodeJSONToBuffer(e, b)
 }
+
+func (e *IncreaseBalance) String() string {
+	str, _ := e.JSONString()
+	return str
+}

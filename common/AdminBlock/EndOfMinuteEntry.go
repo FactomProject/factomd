@@ -69,6 +69,11 @@ func (e *EndOfMinuteEntry) JSONBuffer(b *bytes.Buffer) error {
 	return EncodeJSONToBuffer(e, b)
 }
 
+func (e *EndOfMinuteEntry) String() string {
+	str, _ := e.JSONString()
+	return str
+}
+
 func (e *EndOfMinuteEntry) IsInterpretable() bool {
 	return true
 }

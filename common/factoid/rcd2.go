@@ -61,6 +61,18 @@ func (b RCD_2) CheckSig(trans ITransaction, sigblk ISignatureBlock) bool {
 	return false
 }
 
+func (e *RCD_2) JSONByte() ([]byte, error) {
+	return EncodeJSON(e)
+}
+
+func (e *RCD_2) JSONString() (string, error) {
+	return EncodeJSONString(e)
+}
+
+func (e *RCD_2) JSONBuffer(b *bytes.Buffer) error {
+	return EncodeJSONToBuffer(e, b)
+}
+
 func (b RCD_2) String() string {
 	txt, err := b.CustomMarshalText()
 	if err != nil {

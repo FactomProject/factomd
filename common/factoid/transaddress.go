@@ -49,6 +49,18 @@ func (t *TransAddress) CustomMarshalText() ([]byte, error) {
 	return nil, nil
 }
 
+func (e *TransAddress) JSONByte() ([]byte, error) {
+	return EncodeJSON(e)
+}
+
+func (e *TransAddress) JSONString() (string, error) {
+	return EncodeJSONString(e)
+}
+
+func (e *TransAddress) JSONBuffer(b *bytes.Buffer) error {
+	return EncodeJSONToBuffer(e, b)
+}
+
 func (t *TransAddress) String() string {
 	txt, _ := t.CustomMarshalText()
 	return (string(txt))

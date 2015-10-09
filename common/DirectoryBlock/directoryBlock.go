@@ -88,6 +88,11 @@ func (e *DirectoryBlock) JSONBuffer(b *bytes.Buffer) error {
 	return EncodeJSONToBuffer(e, b)
 }
 
+func (e *DirectoryBlock) String() string {
+	str, _ := e.JSONString()
+	return str
+}
+
 type DirBlockInfo struct {
 	// Serial hash for the directory block
 	DBHash IHash
@@ -135,6 +140,11 @@ func (e *DirBlockInfo) JSONBuffer(b *bytes.Buffer) error {
 	return EncodeJSONToBuffer(e, b)
 }
 
+func (e *DirBlockInfo) String() string {
+	str, _ := e.JSONString()
+	return str
+}
+
 type DBlockHeader struct {
 	Version   byte
 	NetworkID uint32
@@ -170,6 +180,11 @@ func (e *DBlockHeader) JSONString() (string, error) {
 
 func (e *DBlockHeader) JSONBuffer(b *bytes.Buffer) error {
 	return EncodeJSONToBuffer(e, b)
+}
+
+func (e *DBlockHeader) String() string {
+	str, _ := e.JSONString()
+	return str
 }
 
 func NewDirBlockInfoFromDBlock(b *DirectoryBlock) *DirBlockInfo {
@@ -263,6 +278,11 @@ func (e *DBEntry) JSONString() (string, error) {
 
 func (e *DBEntry) JSONBuffer(b *bytes.Buffer) error {
 	return EncodeJSONToBuffer(e, b)
+}
+
+func (e *DBEntry) String() string {
+	str, _ := e.JSONString()
+	return str
 }
 
 func (b *DBlockHeader) EncodableFields() map[string]reflect.Value {

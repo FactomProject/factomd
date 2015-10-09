@@ -35,6 +35,18 @@ func (b SignatureBlock) UnmarshalBinary(data []byte) error {
 	return err
 }
 
+func (e *SignatureBlock) JSONByte() ([]byte, error) {
+	return EncodeJSON(e)
+}
+
+func (e *SignatureBlock) JSONString() (string, error) {
+	return EncodeJSONString(e)
+}
+
+func (e *SignatureBlock) JSONBuffer(b *bytes.Buffer) error {
+	return EncodeJSONToBuffer(e, b)
+}
+
 func (b SignatureBlock) String() string {
 	txt, err := b.CustomMarshalText()
 	if err != nil {

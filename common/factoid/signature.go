@@ -25,6 +25,18 @@ func (t *FactoidSignature) GetHash() IHash {
 	return nil
 }
 
+func (e *FactoidSignature) JSONByte() ([]byte, error) {
+	return EncodeJSON(e)
+}
+
+func (e *FactoidSignature) JSONString() (string, error) {
+	return EncodeJSONString(e)
+}
+
+func (e *FactoidSignature) JSONBuffer(b *bytes.Buffer) error {
+	return EncodeJSONToBuffer(e, b)
+}
+
 func (b FactoidSignature) String() string {
 	txt, err := b.CustomMarshalText()
 	if err != nil {

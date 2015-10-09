@@ -111,6 +111,11 @@ func (e *DBSignatureEntry) JSONBuffer(b *bytes.Buffer) error {
 	return EncodeJSONToBuffer(e, b)
 }
 
+func (e *DBSignatureEntry) String() string {
+	str, _ := e.JSONString()
+	return str
+}
+
 func (e *DBSignatureEntry) IsInterpretable() bool {
 	return false
 }

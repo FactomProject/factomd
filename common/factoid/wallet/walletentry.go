@@ -269,3 +269,15 @@ func (we *WalletEntry) GetPrivKey(i int) []byte {
 func (w *WalletEntry) SetName(name []byte) {
 	w.name = name
 }
+
+func (e *WalletEntry) JSONByte() ([]byte, error) {
+	return EncodeJSON(e)
+}
+
+func (e *WalletEntry) JSONString() (string, error) {
+	return EncodeJSONString(e)
+}
+
+func (e *WalletEntry) JSONBuffer(b *bytes.Buffer) error {
+	return EncodeJSONToBuffer(e, b)
+}

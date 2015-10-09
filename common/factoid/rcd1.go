@@ -42,6 +42,19 @@ func (b RCD_1) UnmarshalBinary(data []byte) error {
 	_, err := b.UnmarshalBinaryData(data)
 	return err
 }
+
+func (e *RCD_1) JSONByte() ([]byte, error) {
+	return EncodeJSON(e)
+}
+
+func (e *RCD_1) JSONString() (string, error) {
+	return EncodeJSONString(e)
+}
+
+func (e *RCD_1) JSONBuffer(b *bytes.Buffer) error {
+	return EncodeJSONToBuffer(e, b)
+}
+
 func (b RCD_1) String() string {
 	txt, err := b.CustomMarshalText()
 	if err != nil {

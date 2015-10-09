@@ -8,13 +8,14 @@ import ()
 
 type IBlock interface {
 	BinaryMarshallable
+	Printable
 
 	CustomMarshalText() ([]byte, error)
 
 	// We need the progress through the slice, so we really can't use the stock spec
 	// for the UnmarshalBinary() method from encode.  We define our own method that
 	// makes the code easier to read and way more efficent.
-	String() string // Makes debugging, logging, and error reporting easier
+	//String() string // Makes debugging, logging, and error reporting easier
 
 	IsEqual(IBlock) []IBlock // Check if this block is the same as itself.
 	//   Returns nil, or the path to the first difference.
@@ -26,7 +27,7 @@ type IBlock interface {
 
 type IFBlock interface {
 	IBlock
-	JSONable
+
 	// Get the ChainID. This is a constant for all Factoids.
 	GetChainID() IHash
 	// Validation functions

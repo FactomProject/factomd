@@ -86,3 +86,8 @@ func (e *ServerIndexNumber) JSONString() (string, error) {
 func (e *ServerIndexNumber) JSONBuffer(b *bytes.Buffer) error {
 	return EncodeJSONToBuffer(e, b)
 }
+
+func (e *ServerIndexNumber) String() string {
+	str, _ := e.JSONString()
+	return str
+}

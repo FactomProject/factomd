@@ -34,7 +34,7 @@ type ByteStore struct {
 var _ IByteStore = (*ByteStore)(nil)
 
 func NewByteStore(data []byte) IByteStore {
-	bs:=new(ByteStore)
+	bs := new(ByteStore)
 	bs.SetBytes(data)
 	return bs
 }
@@ -99,4 +99,16 @@ func (b1 ByteStore) IsEqual(b IBlock) []IBlock {
 
 func (ByteStore) GetNewInstance() IBlock {
 	return new(ByteStore)
+}
+
+func (e ByteStore) JSONByte() ([]byte, error) {
+	return EncodeJSON(e)
+}
+
+func (e ByteStore) JSONString() (string, error) {
+	return EncodeJSONString(e)
+}
+
+func (e ByteStore) JSONBuffer(b *bytes.Buffer) error {
+	return EncodeJSONToBuffer(e, b)
 }

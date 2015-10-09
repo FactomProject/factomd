@@ -233,3 +233,8 @@ func (e *CommitEntry) JSONString() (string, error) {
 func (e *CommitEntry) JSONBuffer(b *bytes.Buffer) error {
 	return EncodeJSONToBuffer(e, b)
 }
+
+func (e *CommitEntry) String() string {
+	str, _ := e.JSONString()
+	return str
+}

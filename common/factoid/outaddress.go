@@ -8,6 +8,7 @@
 package factoid
 
 import (
+	"bytes"
 	. "github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
 )
@@ -17,6 +18,18 @@ type OutAddress struct {
 }
 
 var _ IOutAddress = (*OutAddress)(nil)
+
+func (e *OutAddress) JSONByte() ([]byte, error) {
+	return EncodeJSON(e)
+}
+
+func (e *OutAddress) JSONString() (string, error) {
+	return EncodeJSONString(e)
+}
+
+func (e *OutAddress) JSONBuffer(b *bytes.Buffer) error {
+	return EncodeJSONToBuffer(e, b)
+}
 
 func (b OutAddress) String() string {
 	txt, err := b.CustomMarshalText()

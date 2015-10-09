@@ -35,4 +35,9 @@ func (e *FctChain) JSONBuffer(b *bytes.Buffer) error {
 	return EncodeJSONToBuffer(e, b)
 }
 
+func (e *FctChain) String() string {
+	str, _ := e.JSONString()
+	return str
+}
+
 // factoid Block

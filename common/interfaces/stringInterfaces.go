@@ -19,7 +19,7 @@ type JSONable interface {
 //Interface for both JSON and Spew
 type Printable interface {
 	JSONable
-	//String() string
+	String() string
 }
 
 //Interface for short, reoccuring data structures to interpret themselves into human-friendly form

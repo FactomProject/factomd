@@ -11,6 +11,7 @@ package factoid
 // Entry Credit Addresses are always outputs.
 
 import (
+	"bytes"
 	. "github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
 )
@@ -20,6 +21,18 @@ type OutECAddress struct {
 }
 
 var _ IOutECAddress = (*OutECAddress)(nil)
+
+func (e *OutECAddress) JSONByte() ([]byte, error) {
+	return EncodeJSON(e)
+}
+
+func (e *OutECAddress) JSONString() (string, error) {
+	return EncodeJSONString(e)
+}
+
+func (e *OutECAddress) JSONBuffer(b *bytes.Buffer) error {
+	return EncodeJSONToBuffer(e, b)
+}
 
 func (b OutECAddress) String() string {
 	txt, err := b.CustomMarshalText()
