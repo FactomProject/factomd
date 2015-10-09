@@ -43,19 +43,19 @@ func NewDBEntry(entry IEntry) (*DBEntry, error) {
 
 func (e *DBEntry) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
-	
+
 	data, err = e.ChainID.MarshalBinary()
 	if err != nil {
 		return
 	}
 	buf.Write(data)
-	
+
 	data, err = e.KeyMR.MarshalBinary()
 	if err != nil {
 		return
 	}
 	buf.Write(data)
-	
+
 	return buf.Bytes(), nil
 }
 
@@ -71,13 +71,13 @@ func (e *DBEntry) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	if err != nil {
 		return
 	}
-	
+
 	e.KeyMR = new(Hash)
 	newData, err = e.KeyMR.UnmarshalBinaryData(newData)
 	if err != nil {
 		return
 	}
-	
+
 	return
 }
 

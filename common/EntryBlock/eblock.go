@@ -76,7 +76,7 @@ func NewEBlock() *EBlock {
 
 // AddEBEntry creates a new Entry Block Entry from the provided Factom Entry
 // and adds it to the Entry Block Body.
-func (e *EBlock) AddEBEntry(entry IEntry) error {
+func (e *EBlock) AddEBEntry(entry IEBEntry) error {
 	e.Body.EBEntries = append(e.Body.EBEntries, entry.Hash())
 	return nil
 }

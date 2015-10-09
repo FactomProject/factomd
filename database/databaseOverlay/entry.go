@@ -6,7 +6,7 @@ import (
 )
 
 // InsertEntry inserts an entry
-func (db *Overlay) InsertEntry(entry IEntry) error {
+func (db *Overlay) InsertEntry(entry IEBEntry) error {
 	bucket := []byte{byte(TBL_ENTRY)}
 	key := entry.Hash().Bytes()
 	err := db.DB.Put(bucket, key, entry)
@@ -17,7 +17,7 @@ func (db *Overlay) InsertEntry(entry IEntry) error {
 }
 
 // FetchEntry gets an entry by hash from the database.
-func (db *Overlay) FetchEntryByHash(entrySha IHash) (IEntry, error) {
+func (db *Overlay) FetchEntryByHash(entrySha IHash) (IEBEntry, error) {
 	bucket := []byte{byte(TBL_ENTRY)}
 	key := entrySha.Bytes()
 
@@ -28,7 +28,7 @@ func (db *Overlay) FetchEntryByHash(entrySha IHash) (IEntry, error) {
 	if entry == nil {
 		return nil, nil
 	}
-	return entry.(IEntry), nil
+	return entry.(IEBEntry), nil
 }
 
 /*

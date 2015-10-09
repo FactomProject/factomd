@@ -14,7 +14,7 @@ import (
 // MsgRevealEntry implements the Message interface and represents a factom
 // Reveal-Entry message.  It is used by client to reveal the entry.
 type MsgRevealEntry struct {
-	Entry IEntry
+	Entry IEBEntry
 }
 
 // BtcEncode encodes the receiver to w using the bitcoin protocol encoding.

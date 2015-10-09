@@ -100,7 +100,7 @@ func dirBlockInfoToAnchorChain(aRecord *anchor.AnchorRecord) (*DirBlockInfo, err
 	return dirBlockInfo, nil
 }
 
-func entryToAnchorRecord(entry IEntry) (*anchor.AnchorRecord, error) {
+func entryToAnchorRecord(entry IEBEntry) (*anchor.AnchorRecord, error) {
 	content := entry.GetContent()
 	jsonARecord := content[:(len(content) - 128)]
 	jsonSigBytes := content[(len(content) - 128):]

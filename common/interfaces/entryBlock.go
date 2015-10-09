@@ -6,7 +6,7 @@ package interfaces
 
 import ()
 
-type IEntry interface {
+type IEBEntry interface {
 	Printable
 	BinaryMarshallable
 

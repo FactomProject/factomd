@@ -23,7 +23,7 @@ type Entry struct {
 	Content []byte
 }
 
-var _ IEntry = (*Entry)(nil)
+var _ IEBEntry = (*Entry)(nil)
 
 func (c *Entry) MarshalledSize() uint64 {
 	panic("Function not implemented")
@@ -40,7 +40,7 @@ func NewEntry() *Entry {
 
 // NewChainID generates a ChainID from an entry. ChainID = Sha(Sha(ExtIDs[0]) +
 // Sha(ExtIDs[1] + ... + Sha(ExtIDs[n]))
-func NewChainID(e IEntry) IHash {
+func NewChainID(e IEBEntry) IHash {
 	id := new(Hash)
 	sum := sha256.New()
 	for _, v := range e.ExternalIDs() {
