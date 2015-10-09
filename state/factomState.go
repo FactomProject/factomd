@@ -5,5 +5,5 @@ import (
 )
 
 type FactoidState struct {
-	DB database.Db
+	DB database.DBOverlay
 }
