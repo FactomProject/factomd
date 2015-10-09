@@ -105,7 +105,7 @@ func ECBalance(eckey string) (uint32, error) {
 	return uint32(val), nil
 }
 
-func EntryByHash(hash string) (*Entry, error) {
+func EntryByHash(hash string) (IEntry, error) {
 	h, err := atoh(hash)
 	if err != nil {
 		return nil, err
@@ -120,7 +120,7 @@ func EntryByHash(hash string) (*Entry, error) {
 	return r, nil
 }
 
-func RevealEntry(e *Entry) error {
+func RevealEntry(e IEntry) error {
 	m := wire.NewMsgRevealEntry()
 	m.Entry = e
 	inMsgQ <- m

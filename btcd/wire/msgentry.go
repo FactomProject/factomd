@@ -6,13 +6,14 @@ package wire
 
 import (
 	. "github.com/FactomProject/factomd/common/EntryBlock"
+	. "github.com/FactomProject/factomd/common/interfaces"
 	"io"
 )
 
 // MsgEntry implements the Message interface and represents a factom
 // Entry message.  It is used by client to reveal the entry.
 type MsgEntry struct {
-	Entry *Entry
+	Entry IEntry
 }
 
 // BtcEncode encodes the receiver to w using the bitcoin protocol encoding.

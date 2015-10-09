@@ -13,7 +13,7 @@ import (
 
 type EChain struct {
 	ChainID         IHash
-	FirstEntry      *Entry
+	FirstEntry      IEntry
 	NextBlock       *EBlock
 	NextBlockHeight uint32
 	BlockMutex      sync.Mutex

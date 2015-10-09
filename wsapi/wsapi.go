@@ -358,22 +358,22 @@ func handleEntryBlock(ctx *web.Context, keymr string) {
 }
 
 func handleEntry(ctx *web.Context, hash string) {
-	type entry struct {
+	type entryStruct struct {
 		ChainID string
 		Content string
 		ExtIDs  []string
 	}
 
-	e := new(entry)
+	e := new(entryStruct)
 	if entry, err := factomapi.EntryByHash(hash); err != nil {
 		wsLog.Error(err)
 		ctx.WriteHeader(httpBad)
 		ctx.Write([]byte(err.Error()))
 		return
 	} else {
-		e.ChainID = entry.ChainID.String()
-		e.Content = hex.EncodeToString(entry.Content)
-		for _, v := range entry.ExtIDs {
+		e.ChainID = entry.GetChainID().String()
+		e.Content = hex.EncodeToString(entry.GetContent())
+		for _, v := range entry.ExternalIDs() {
 			e.ExtIDs = append(e.ExtIDs, hex.EncodeToString(v))
 		}
 	}

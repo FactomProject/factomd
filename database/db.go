@@ -30,10 +30,10 @@ type DBOverlay interface {
 	// Sync() (err error)
 
 	// InsertEntry inserts an entry
-	InsertEntry(entry *Entry) (err error)
+	InsertEntry(entry IEntry) (err error)
 
 	// FetchEntry gets an entry by hash from the database.
-	FetchEntryByHash(entrySha IHash) (entry *Entry, err error)
+	FetchEntryByHash(entrySha IHash) (entry IEntry, err error)
 
 	// FetchEBEntriesFromQueue gets all of the ebentries that have not been processed
 	//FetchEBEntriesFromQueue(chainID *[]byte, startTime *[]byte) (ebentries []*EBEntry, err error)
