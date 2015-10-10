@@ -7,7 +7,6 @@ package process
 import (
 	"github.com/FactomProject/factomd/util"
 	"github.com/davecgh/go-spew/spew"
-	"os"
 
 	. "github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"

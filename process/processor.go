@@ -97,7 +97,6 @@ var (
 func LoadConfigurations(cfg *util.FactomdConfig) {
 
 	//setting the variables by the valued form the config file
-	logLevel = cfg.Log.LogLevel
 	dataStorePath = cfg.App.DataStorePath
 	ldbpath = cfg.App.LdbPath
 	directoryBlockInSeconds = cfg.App.DirectoryBlockInSeconds

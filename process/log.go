@@ -5,8 +5,6 @@
 package process
 
 import (
-	"os"
-
 	"github.com/FactomProject/factomd/logger"
 	"github.com/FactomProject/factomd/util"
 )
