@@ -15,6 +15,9 @@ const (
 	MAX_TRANSACTION_SIZE = 10240 // 10K like everything else?
 	MINIMUM_AMOUNT       = 1     // Not sure if we need a minimum amount.  Set at 1 Factoshi
 
+	// Msg
+	EOM_MSG				= 1
+	
 	// Database
 	KEY_LIMIT = ADDRESS_LENGTH * 2 // Limit on size of keys, since Maps in Go can't
 	// handle variable length keys.

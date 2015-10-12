@@ -13,6 +13,18 @@ import ()
 // accidentally 
 type IState interface {
 	
+	Cfg()				IFactomConfig
+	
+	//Network
+	NetworkNumber()		int			// Encoded into Directory Blocks
+	NetworkName()		string		// Some networks have defined names
+	NetworkPublicKey()	[]byte		//   and public keys.
+	
+	// Number of Servers acknowledged by Factom
+	TotalServers() int 
+	ServerState()  int      // (0 if client, 1 if server, 2 if audit server
+	Matryoshka()   []IHash  // Reverse Hash
+	
 	// Database
 	DB() IDatabase
 	SetDB(IDatabase)
@@ -21,6 +33,9 @@ type IState interface {
 	CurrentDirectoryBlock() IDirectoryBlock			// The directory block under construction
 	SetCurrentDirectoryBlock(IDirectoryBlock)
 	DBHeight() int                                  // The index of the directory block under construction.
-	SetDBHeight(int)                                 
+	SetDBHeight(int)    
+	
+	// Message State
+	LastAck() IMsg					// Return the last Acknowledgement set by this server
 }
 
