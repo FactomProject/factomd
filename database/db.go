@@ -7,9 +7,8 @@ package database
 import (
 	. "github.com/FactomProject/factomd/common/AdminBlock"
 	. "github.com/FactomProject/factomd/common/directoryblock"
-	. "github.com/FactomProject/factomd/common/adminBlock"
-	. "github.com/FactomProject/factomd/common/entryBlock"
-	. "github.com/FactomProject/factomd/common/entryCreditBlock"
+	. "github.com/FactomProject/factomd/common/EntryBlock"
+	. "github.com/FactomProject/factomd/common/EntryCreditBlock"
 	. "github.com/FactomProject/factomd/common/interfaces"
 )
 
@@ -31,10 +30,10 @@ type DBOverlay interface {
 	// Sync() (err error)
 
 	// InsertEntry inserts an entry
-	InsertEntry(entry IEntry) (err error)
+	InsertEntry(entry IEBEntry) (err error)
 
 	// FetchEntry gets an entry by hash from the database.
-	FetchEntryByHash(entrySha IHash) (entry IEntry, err error)
+	FetchEntryByHash(entrySha IHash) (entry IEBEntry, err error)
 
 	// FetchEBEntriesFromQueue gets all of the ebentries that have not been processed
 	//FetchEBEntriesFromQueue(chainID *[]byte, startTime *[]byte) (ebentries []*EBEntry, err error)

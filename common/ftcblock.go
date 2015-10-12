@@ -7,6 +7,7 @@ package common
 import (
 	"bytes"
 	. "github.com/FactomProject/factomd/common/interfaces"
+	. "github.com/FactomProject/factomd/common/primitives"
 	"sync"
 )
 

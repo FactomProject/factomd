@@ -155,7 +155,7 @@ func (fs *Test_state) newTransaction(maxIn, maxOut int) ITransaction {
 	}
 	if err := fs.Validate(len(fs.GetCurrentBlock().GetTransactions()), t); err != nil || err1 != nil {
 
-		fs.GetDB().Put(DB_BAD_TRANS, t.GetHash(), t)
+		fs.GetDB().Put([]byte(DB_BAD_TRANS), t.GetHash().Bytes(), t)
 
 		fs.stats.badAddresses += 1
 

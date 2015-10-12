@@ -31,10 +31,8 @@ const (
 )
 
 var (
-	cfg             = util.ReadConfig().Wsapi
-	portNumber      = cfg.PortNumber
-	applicationName = cfg.ApplicationName
-	dataStorePath   = "/tmp/store/seed/csv"
+	portNumber    = util.ReadConfig().Wsapi.PortNumber
+	dataStorePath = "/tmp/store/seed/csv"
 )
 
 var _ = fmt.Println

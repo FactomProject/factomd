@@ -7,7 +7,6 @@ package process
 import (
 	"github.com/FactomProject/factomd/util"
 	"github.com/davecgh/go-spew/spew"
-	"os"
 
 	. "github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
@@ -44,14 +43,6 @@ func printCreditMap() {
 	for key := range eCreditMap {
 		procLog.Debugf("Entry credit Key: %x Value %d", key, eCreditMap[key])
 	}
-}
-
-func fileNotExists(name string) bool {
-	_, err := os.Stat(name)
-	if os.IsNotExist(err) {
-		return true
-	}
-	return err != nil
 }
 
 // HaveBlockInDB returns whether or not the chain instance has the block represented

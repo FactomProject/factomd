@@ -2,7 +2,7 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-package directoryblock
+package directoryBlock
 
 import (
 	"bytes"
@@ -48,7 +48,6 @@ func (e *DBlockHeader) String() string {
 	str, _ := e.JSONString()
 	return str
 }
-
 
 func (b *DBlockHeader) EncodableFields() map[string]reflect.Value {
 	fields := map[string]reflect.Value{
@@ -152,7 +151,6 @@ func (b *DBlockHeader) UnmarshalBinary(data []byte) (err error) {
 	return
 }
 
-
 /************************************************
  * Support Functions
  ************************************************/
@@ -162,9 +160,6 @@ func NewDBlockHeader() *DBlockHeader {
 	d.BodyMR = NewZeroHash()
 	d.PrevKeyMR = NewZeroHash()
 	d.PrevLedgerKeyMR = NewZeroHash()
-	
+
 	return d
 }
-
-
-
