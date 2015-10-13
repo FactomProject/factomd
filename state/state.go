@@ -2,8 +2,9 @@ package state
 
 import (
 	. "github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/database"
-	. "github.com/FactomProject/factomd/database/hybridDB"
+	"github.com/FactomProject/factomd/database/databaseOverlay"
+
+	"github.com/FactomProject/factomd/database/hybridDB"
 	"github.com/FactomProject/factomd/util"
 	"log"
 	"sync"
@@ -23,7 +24,7 @@ type State struct {
 	matryoshka   []IHash // Reverse Hash
 
 	// Database
-	db *database.DBOverlay
+	db *databaseOverlay.Overlay
 
 	// Directory Block State
 	currentDirectoryBlock IDirectoryBlock
@@ -122,7 +123,7 @@ func (s *State) InitLevelDB() error {
 func (s *State) InitBoltDB() error {
 	path := cfg.App.BoltDBPath + "/" + cfg.App.Network + "/" + "factoid_bolt.db"
 	dbase := hybridDB.NewBoltMapHybridDB(nil, path)
-	s.db = dbase
+	s.db = databaseOverlay.NewOverlay(dbase)
 	return nil
 }
 
@@ -147,11 +148,11 @@ func (s *State) SetCurrentDirectoryBlock(dirblk IDirectoryBlock) {
 	s.currentDirectoryBlock = dirblk
 }
 
-func (s *State) DB() IDatabase {
+func (s *State) DB() *databaseOverlay.Overlay {
 	return s.db
 }
 
-func (s *State) SetDB(db IDatabase) {
+func (s *State) SetDB(db *databaseOverlay.Overlay) {
 	s.db = db
 }
 
