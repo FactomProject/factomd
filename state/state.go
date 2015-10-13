@@ -102,6 +102,7 @@ func (s *State) Init() {
 }
 
 func (s *State) InitLevelDB() error {
+	cfg := s.Cfg().(*util.FactomdConfig)
 	path := cfg.App.LdbPath + "/" + cfg.App.Network + "/" + "factoid_level.db"
 	dbase, err := hybridDB.NewLevelMapHybridDB(path, false)
 
@@ -121,6 +122,7 @@ func (s *State) InitLevelDB() error {
 }
 
 func (s *State) InitBoltDB() error {
+	cfg := s.Cfg().(*util.FactomdConfig)
 	path := cfg.App.BoltDBPath + "/" + cfg.App.Network + "/" + "factoid_bolt.db"
 	dbase := hybridDB.NewBoltMapHybridDB(nil, path)
 	s.db = databaseOverlay.NewOverlay(dbase)
