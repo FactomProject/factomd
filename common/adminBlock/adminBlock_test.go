@@ -1,4 +1,4 @@
-package adminBlock_test
+package adminBlock
 
 import (
 	"bytes"
@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"testing"
 
-	. "github.com/FactomProject/factomd/common/adminBlock"
 	. "github.com/FactomProject/factomd/common/primitives"
 )
 
