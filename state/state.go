@@ -75,10 +75,17 @@ func (s *State) LastAck() IMsg {
 	
 
 func (s *State) Init() {
+	
+	// Get our factomd configuration information.
+	cfg := s.Cfg().(*util.FactomdConfig)
+
 	s.inMsgQueue      = make(chan IMsg, 10000) //incoming message queue for factom application messages
 	s.outMsgQueue     = make(chan IMsg, 10000) //outgoing message queue for factom application messages
+	
+	//Database
+	
+	
 	//Network
-	cfg := s.Cfg().(*util.FactomdConfig)
 	switch cfg.App.Network {
 		case "MAIN" :
 			s.networkNumber = 0

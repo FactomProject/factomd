@@ -200,11 +200,11 @@ func(s *FactomdConfig) String() string {
 
 
 func ConfigFilename () string {
-	return GetHomeDir() + "/.factom/factomd.conf"
+	return GetHomeDir() + "/.factom/m2/factomd.conf"
 }
 
 func ReadConfig() *FactomdConfig {
-	filename := GetHomeDir() + "/.factom/factomd.conf"
+	filename := ConfigFilename()
 	cfg := new(FactomdConfig)
 
     // This makes factom config file located at
