@@ -5,14 +5,15 @@
 package databaseOverlay
 
 import (
-	/*"encoding/binary"
-	"fmt"
-	"log"
-	"os"
-	"strconv"
-	"sync"
+	"encoding/binary"
+	/*
+		"fmt"
+		"log"
+		"os"
+		"strconv"
+		"sync"
 
-	"github.com/FactomProject/factomd/database"*/
+		"github.com/FactomProject/factomd/database"*/
 
 	. "github.com/FactomProject/factomd/common/interfaces"
 )
@@ -89,4 +90,54 @@ func NewOverlay(db IDatabase) *Overlay {
 	answer.lastDirBlkHeight = -1
 
 	return answer
+}
+
+func (db *Overlay) FetchBlockByHash(bucket []byte, key IHash, dst BinaryMarshallable) (BinaryMarshallable, error) {
+	block, err := db.DB.Get(bucket, key.Bytes(), dst)
+	if err != nil {
+		return nil, err
+	}
+	if block == nil {
+		return nil, nil
+	}
+	return block, nil
+}
+
+func (db *Overlay) FetchAllBlocksFromBucket(bucket []byte, sample BinaryMarshallableAndCopyable) ([]BinaryMarshallableAndCopyable, error) {
+	answer, err := db.DB.GetAll(bucket, sample)
+	if err != nil {
+		return nil, err
+	}
+	return answer, nil
+}
+
+type DatabaseBatchable interface {
+	BinaryMarshallable
+	GetDBHeight() uint32
+	GetHash() IHash //block.GetHash().Bytes()
+	GetChainID() []byte
+}
+
+func (db *Overlay) ProcessBlockBatch(blockBucket, numberBucket []byte, block DatabaseBatchable) error {
+	if block == nil {
+		return nil
+	}
+
+	batch := []Record{}
+
+	batch = append(batch, Record{blockBucket, block.GetHash().Bytes(), block})
+
+	// Insert the sc block number cross reference
+	bytes := make([]byte, 4)
+	binary.BigEndian.PutUint32(bytes, block.GetDBHeight())
+	batch = append(batch, Record{numberBucket, bytes, block.GetHash()})
+
+	batch = append(batch, Record{[]byte{TBL_CHAIN_HEAD}, block.GetChainID(), block.GetHash()})
+
+	err := db.DB.PutInBatch(batch)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

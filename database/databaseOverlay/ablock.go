@@ -1,67 +1,20 @@
 package databaseOverlay
 
 import (
-	//	"errors"
-	"encoding/binary"
-	. "github.com/FactomProject/factomd/common/adminBlock"
-	. "github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/interfaces"
 )
 
 // ProcessABlockBatch inserts the AdminBlock
-func (db *Overlay) ProcessABlockBatch(block *AdminBlock) error {
-	if block == nil {
-		return nil
-	}
-
-	batch := []Record{}
-
-	abHash, err := block.PartialHash()
-	if err != nil {
-		return err
-	}
-	batch = append(batch, Record{[]byte{byte(TBL_AB)}, abHash.Bytes(), block})
-
-	bytes := make([]byte, 4)
-	binary.BigEndian.PutUint32(bytes, block.Header.DBHeight)
-	batch = append(batch, Record{[]byte{byte(TBL_AB_NUM)}, bytes, abHash})
-
-	batch = append(batch, Record{[]byte{byte(TBL_CHAIN_HEAD)}, ADMIN_CHAINID, abHash})
-
-	err = db.DB.PutInBatch(batch)
-	if err != nil {
-		return err
-	}
-
-	return nil
+func (db *Overlay) ProcessABlockBatch(block DatabaseBatchable) error {
+	return db.ProcessBlockBatch([]byte{byte(TBL_AB)}, []byte{byte(TBL_AB_NUM)}, block)
 }
 
 // FetchABlockByHash gets an admin block by hash from the database.
-func (db *Overlay) FetchABlockByHash(aBlockHash IHash) (*AdminBlock, error) {
-	bucket := []byte{byte(TBL_AB)}
-	key := aBlockHash.Bytes()
-
-	block, err := db.DB.Get(bucket, key, new(AdminBlock))
-	if err != nil {
-		return nil, err
-	}
-	if block == nil {
-		return nil, nil
-	}
-	return block.(*AdminBlock), nil
+func (db *Overlay) FetchABlockByHash(hash IHash, dst BinaryMarshallable) (BinaryMarshallable, error) {
+	return db.FetchBlockByHash([]byte{byte(TBL_AB)}, hash, dst)
 }
 
 // FetchAllABlocks gets all of the admin blocks
-func (db *Overlay) FetchAllABlocks() (aBlocks []*AdminBlock, err error) {
-	bucket := []byte{byte(TBL_AB)}
-
-	list, err := db.DB.GetAll(bucket, new(AdminBlock))
-	if err != nil {
-		return nil, err
-	}
-	answer := make([]*AdminBlock, len(list))
-	for i, v := range list {
-		answer[i] = v.(*AdminBlock)
-	}
-	return answer, nil
+func (db *Overlay) FetchAllABlocks(sample BinaryMarshallableAndCopyable) ([]BinaryMarshallableAndCopyable, error) {
+	return db.FetchAllBlocksFromBucket([]byte{byte(TBL_AB)}, sample)
 }

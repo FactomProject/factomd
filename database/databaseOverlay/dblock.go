@@ -21,46 +21,6 @@ import (
 // a range of shas by height to request them all.
 const AllShas = int64(^uint64(0) >> 1)
 
-/*
-// FetchDBEntriesFromQueue gets all of the dbentries that have not been processed
-/*func (db *Overlay) FetchDBEntriesFromQueue(startTime *[]byte) (dbentries []*DBEntry, err error) {
-	db.dbLock.Lock()
-	defer db.dbLock.Unlock()
-
-	var fromkey []byte = []byte{byte(TBL_EB_QUEUE)}
-	fromkey = append(fromkey, *startTime...)        // Timestamp  (8 bytes)
-
-	var tokey []byte = []byte{byte(TBL_EB_QUEUE)} // Table Name (4 bytes)
-	binaryTimestamp := make([]byte, 8)
-	binary.BigEndian.PutUint64(binaryTimestamp, uint64(time.Now().Unix()))
-	tokey = append(tokey, binaryTimestamp...) // Timestamp  (8 bytes)
-
-	fbEntrySlice := make([]*DBEntry, 0, 10)
-
-	iter := db.lDb.NewIterator(&util.Range{Start: fromkey, Limit: tokey}, db.ro)
-
-	for iter.Next() {
-		if bytes.Equal(iter.Value(), []byte{byte(STATUS_IN_QUEUE)}) {
-			key := make([]byte, len(iter.Key()))
-			copy(key, iter.Key())
-			dbEntry := new(DBEntry)
-
-			dbEntry.SetTimestamp(key[1:9]) // Timestamp (8 bytes)
-			cid := key[9:41]
-			dbEntry.ChainID = new(Hash)
-			dbEntry.ChainID.Bytes = cid // Chain id (32 bytes)
-			dbEntry.SetHash(key[41:73]) // Entry Hash (32 bytes)
-
-			fbEntrySlice = append(fbEntrySlice, dbEntry)
-		}
-	}
-	iter.Release()
-	err = iter.Error()
-
-	return fbEntrySlice, nil
-}
-*/
-
 // ProcessDBlockBatche inserts the DBlock and update all it's dbentries in DB
 func (db *Overlay) ProcessDBlockBatch(dblock *DirectoryBlock) error {
 	if dblock == nil {
@@ -167,45 +127,6 @@ func (db *Overlay) FetchBlockHeightBySha(sha IHash) (int64, error) {
 
 	return height, nil
 }
-
-/*
-// Insert the Directory Block meta data into db
-func (db *Overlay) InsertDirBlockInfo(dirBlockInfo *DirBlockInfo) error {
-	if dirBlockInfo.BTCTxHash == nil {
-		return nil
-	}
-
-	bucket := []byte{byte(TBL_DB_INFO)}
-	key := dirBlockInfo.DBHash.Bytes()
-
-	err := db.DB.Put(bucket, key, dirBlockInfo)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}*/
-
-/*
-// FetchDirBlockInfoByHash gets an DirBlockInfo obj
-func (db *Overlay) FetchDirBlockInfoByHash(dbHash IHash) (dirBlockInfo *DirBlockInfo, err error) {
-	db.dbLock.Lock()
-	defer db.dbLock.Unlock()
-
-	var key []byte = []byte{byte(TBL_DB_INFO)}
-	key = append(key, dbHash.Bytes()...)
-	data, err := db.lDb.Get(key, db.ro)
-
-	if data != nil {
-		dirBlockInfo = new(DirBlockInfo)
-		_, err := dirBlockInfo.UnmarshalBinaryData(data)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return dirBlockInfo, nil
-}*/
 
 // FetchDBlock gets an entry by hash from the database.
 func (db *Overlay) FetchDBlockByHash(dBlockHash IHash) (*DirectoryBlock, error) {
@@ -315,51 +236,3 @@ func (db *Overlay) FetchAllDBlocks() (dBlocks []*DirectoryBlock, err error) {
 	}
 	return answer, nil
 }
-
-/*
-// FetchAllDirBlockInfo gets all of the dirBlockInfo
-func (db *Overlay) FetchAllDirBlockInfo() (dirBlockInfoMap map[string]*DirBlockInfo, err error) {
-	db.dbLock.Lock()
-	defer db.dbLock.Unlock()
-
-	var fromkey []byte = []byte{byte(TBL_DB_INFO)}
-	var tokey []byte = []byte{byte(TBL_DB_INFO + 1)}
-
-	dirBlockInfoMap = make(map[string]*DirBlockInfo)
-
-	iter := db.lDb.NewIterator(&util.Range{Start: fromkey, Limit: tokey}, db.ro)
-
-	for iter.Next() {
-		dBInfo := new(DirBlockInfo)
-		_, err := dBInfo.UnmarshalBinaryData(iter.Value())
-		if err != nil {
-			return nil, err
-		}
-		dirBlockInfoMap[dBInfo.DBMerkleRoot.String()] = dBInfo
-	}
-	iter.Release()
-	err = iter.Error()
-	return dirBlockInfoMap, err
-}*/
-/*
-// FetchAllUnconfirmedDirBlockInfo gets all of the dirBlockInfos that have BTC Anchor confirmation
-func (db *Overlay) FetchAllUnconfirmedDirBlockInfo() (dirBlockInfoMap map[string]*DirBlockInfo, err error) {
-	bucket := []byte{byte(TBL_DB_INFO)}
-
-	all, err := db.DB.GetAll(bucket, new(DirBlockInfo))
-	if err != nil {
-		return nil, err
-	}
-
-	dirBlockInfoMap = make(map[string]*DirBlockInfo)
-
-	for _, v := range all {
-		dBInfo := v.(*DirBlockInfo)
-		if dBInfo.BTCConfirmed == false {
-			dirBlockInfoMap[dBInfo.DBMerkleRoot.String()] = dBInfo
-		}
-	}
-
-	return dirBlockInfoMap, nil
-}
-*/
