@@ -33,6 +33,7 @@ type State struct {
 	// Message State
 	lastAck IMsg // Return the last Acknowledgement set by this server
 
+	factoidState *FactoidState
 }
 
 //var _ IState = (*State)(nil)

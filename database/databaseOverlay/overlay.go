@@ -207,10 +207,6 @@ func (db *Overlay) FetchHeadIndexByChainID(chainID IHash) (IHash, error) {
 	return block.(*Hash), nil
 }
 
-// AllShas is a special value that can be used as the final sha when requesting
-// a range of shas by height to request them all.
-const AllShas = int64(^uint64(0) >> 1)
-
 func (db *Overlay) FetchBlockIndexesInHeightRange(numberBucket []byte, startHeight, endHeight int64) ([]IHash, error) {
 	//TODO: deprecate AllShas
 	var endidx int64

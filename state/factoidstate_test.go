@@ -4,6 +4,7 @@
 
 package state
 
+/*
 import (
 	"encoding/binary"
 	"encoding/hex"
@@ -43,4 +44,4 @@ func Test_updating_balances_FactoidState(test *testing.T) {
 	fs := new(FactoidState)
 	fs.database = GetDatabase()
 
-}
+}*/

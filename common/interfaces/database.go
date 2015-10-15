@@ -24,7 +24,7 @@ type Record struct {
 }
 
 type DatabaseBatchable interface {
-	BinaryMarshallable
+	BinaryMarshallableAndCopyable
 	GetDatabaseHeight() uint32
 
 	DatabasePrimaryIndex() IHash   //block.KeyMR()
