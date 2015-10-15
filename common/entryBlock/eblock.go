@@ -31,11 +31,22 @@ func (c *EBlock) New() BinaryMarshallableAndCopyable {
 	return new(EBlock)
 }
 
-func (c *EBlock) GetChainID() IHash {
-	return c.Header.GetChainID()
+func (c *EBlock) GetChainID() []byte {
+	return c.Header.GetChainID().Bytes()
 }
-func (c *EBlock) GetKeyMR() (IHash, error) {
-	return c.KeyMR()
+
+func (c *EBlock) GetKeyMR() IHash {
+	key, _ := c.KeyMR()
+	return key
+}
+
+func (c *EBlock) GetDBHeight() uint32 {
+	return c.Header.EBSequence
+}
+
+func (c *EBlock) GetHash() IHash {
+	h, _ := c.Hash()
+	return h
 }
 
 func (c *EBlock) MarshalledSize() uint64 {

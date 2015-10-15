@@ -6,12 +6,12 @@ import (
 
 // ProcessABlockBatch inserts the AdminBlock
 func (db *Overlay) ProcessABlockBatch(block DatabaseBatchable) error {
-	return db.ProcessBlockBatch([]byte{byte(TBL_AB)}, []byte{byte(TBL_AB_NUM)}, block)
+	return db.ProcessBlockBatch([]byte{byte(TBL_AB)}, []byte{byte(TBL_AB_NUM)}, nil, block)
 }
 
 // FetchABlockByHash gets an admin block by hash from the database.
-func (db *Overlay) FetchABlockByHash(hash IHash, dst BinaryMarshallable) (BinaryMarshallable, error) {
-	return db.FetchBlockByHash([]byte{byte(TBL_AB)}, hash, dst)
+func (db *Overlay) FetchABlockByHash(hash IHash, dst DatabaseBatchable) (DatabaseBatchable, error) {
+	return db.FetchBlock([]byte{byte(TBL_AB)}, hash, dst)
 }
 
 // FetchAllABlocks gets all of the admin blocks

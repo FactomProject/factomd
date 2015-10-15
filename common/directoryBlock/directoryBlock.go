@@ -140,6 +140,32 @@ func (b *DirectoryBlock) UnmarshalBinary(data []byte) (err error) {
 	return
 }
 
+func (b *DirectoryBlock) GetDBHeight() uint32 {
+	return b.Header.DBHeight
+}
+
+func (b *DirectoryBlock) GetHash() IHash {
+	if b.DBHash == nil {
+		binaryDblock, err := b.MarshalBinary()
+		if err != nil {
+			return nil
+		}
+		b.DBHash = Sha(binaryDblock)
+	}
+	return b.DBHash
+}
+
+func (b *DirectoryBlock) GetKeyMR() IHash {
+	if b.KeyMR == nil {
+		b.BuildKeyMerkleRoot()
+	}
+	return b.KeyMR
+}
+
+func (b *DirectoryBlock) GetChainID() []byte {
+	return D_CHAINID
+}
+
 /**
 func (b *DirectoryBlock) EncodableFields() map[string]reflect.Value {
 	fields := map[string]reflect.Value{

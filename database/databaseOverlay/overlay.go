@@ -6,16 +6,9 @@ package databaseOverlay
 
 import (
 	"encoding/binary"
-	/*
-		"fmt"
-		"log"
-		"os"
-		"strconv"
-		"sync"
-
-		"github.com/FactomProject/factomd/database"*/
-
+	"github.com/FactomProject/factomd/btcd/wire"
 	. "github.com/FactomProject/factomd/common/interfaces"
+	. "github.com/FactomProject/factomd/common/primitives"
 )
 
 const (
@@ -92,7 +85,54 @@ func NewOverlay(db IDatabase) *Overlay {
 	return answer
 }
 
-func (db *Overlay) FetchBlockByHash(bucket []byte, key IHash, dst BinaryMarshallable) (BinaryMarshallable, error) {
+func (db *Overlay) FetchBlockByHeight(heightBucket []byte, blockBucket []byte, blockHeight uint32, dst DatabaseBatchable) (DatabaseBatchable, error) {
+	index, err := db.FetchBlockIndexByHeight(heightBucket, blockHeight)
+	if err != nil {
+		return nil, err
+	}
+	if index == nil {
+		return nil, nil
+	}
+	return db.FetchBlock(blockBucket, index, dst)
+}
+
+func (db *Overlay) FetchBlockIndexByHeight(bucket []byte, blockHeight uint32) (IHash, error) {
+	key := make([]byte, 4)
+	binary.BigEndian.PutUint32(key, blockHeight)
+
+	block, err := db.DB.Get(bucket, key, new(Hash))
+	if err != nil {
+		return nil, err
+	}
+	if block == nil {
+		return nil, nil
+	}
+	return block.(*Hash), nil
+}
+
+func (db *Overlay) FetchPrimaryIndexBySecondaryIndex(bucket []byte, key IHash) (IHash, error) {
+	block, err := db.DB.Get(bucket, key.Bytes(), new(Hash))
+	if err != nil {
+		return nil, err
+	}
+	if block == nil {
+		return nil, nil
+	}
+	return block.(*Hash), nil
+}
+
+func (db *Overlay) FetchBlockBySecondaryIndex(secondaryIndexBucket, blockBucket []byte, index IHash, dst DatabaseBatchable) (DatabaseBatchable, error) {
+	hash, err := db.FetchPrimaryIndexBySecondaryIndex(secondaryIndexBucket, index)
+	if err != nil {
+		return nil, err
+	}
+	if hash == nil {
+		return nil, nil
+	}
+	return db.FetchBlock(blockBucket, hash, dst)
+}
+
+func (db *Overlay) FetchBlock(bucket []byte, key IHash, dst DatabaseBatchable) (DatabaseBatchable, error) {
 	block, err := db.DB.Get(bucket, key.Bytes(), dst)
 	if err != nil {
 		return nil, err
@@ -100,7 +140,7 @@ func (db *Overlay) FetchBlockByHash(bucket []byte, key IHash, dst BinaryMarshall
 	if block == nil {
 		return nil, nil
 	}
-	return block, nil
+	return block.(DatabaseBatchable), nil
 }
 
 func (db *Overlay) FetchAllBlocksFromBucket(bucket []byte, sample BinaryMarshallableAndCopyable) ([]BinaryMarshallableAndCopyable, error) {
@@ -113,26 +153,42 @@ func (db *Overlay) FetchAllBlocksFromBucket(bucket []byte, sample BinaryMarshall
 
 type DatabaseBatchable interface {
 	BinaryMarshallable
-	GetDBHeight() uint32
-	GetHash() IHash //block.GetHash().Bytes()
+	GetDatabaseHeight() uint32
+
+	DatabasePrimaryIndex() IHash   //block.KeyMR()
+	DatabaseSecondaryIndex() IHash //block.GetHash()
+
 	GetChainID() []byte
 }
 
-func (db *Overlay) ProcessBlockBatch(blockBucket, numberBucket []byte, block DatabaseBatchable) error {
+func (db *Overlay) Insert(bucket []byte, entry DatabaseBatchable) error {
+	err := db.DB.Put(bucket, entry.DatabasePrimaryIndex().Bytes(), entry)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (db *Overlay) ProcessBlockBatch(blockBucket, numberBucket, secondaryIndexBucket []byte, block DatabaseBatchable) error {
 	if block == nil {
 		return nil
 	}
 
 	batch := []Record{}
 
-	batch = append(batch, Record{blockBucket, block.GetHash().Bytes(), block})
+	batch = append(batch, Record{blockBucket, block.DatabasePrimaryIndex().Bytes(), block})
 
-	// Insert the sc block number cross reference
-	bytes := make([]byte, 4)
-	binary.BigEndian.PutUint32(bytes, block.GetDBHeight())
-	batch = append(batch, Record{numberBucket, bytes, block.GetHash()})
+	if numberBucket != nil {
+		bytes := make([]byte, 4)
+		binary.BigEndian.PutUint32(bytes, block.GetDatabaseHeight())
+		batch = append(batch, Record{numberBucket, bytes, block.DatabasePrimaryIndex()})
+	}
 
-	batch = append(batch, Record{[]byte{TBL_CHAIN_HEAD}, block.GetChainID(), block.GetHash()})
+	if secondaryIndexBucket != nil {
+		batch = append(batch, Record{secondaryIndexBucket, block.DatabaseSecondaryIndex().Bytes(), block.DatabasePrimaryIndex()})
+	}
+
+	batch = append(batch, Record{[]byte{TBL_CHAIN_HEAD}, block.GetChainID(), block.DatabasePrimaryIndex()})
 
 	err := db.DB.PutInBatch(batch)
 	if err != nil {
@@ -140,4 +196,52 @@ func (db *Overlay) ProcessBlockBatch(blockBucket, numberBucket []byte, block Dat
 	}
 
 	return nil
+}
+
+// FetchHeadMRByChainID gets an index of the highest block from the database.
+func (db *Overlay) FetchHeadIndexByChainID(chainID IHash) (IHash, error) {
+	if chainID == nil {
+		return nil, nil
+	}
+
+	bucket := []byte{byte(TBL_CHAIN_HEAD)}
+	key := chainID.Bytes()
+
+	block, err := db.DB.Get(bucket, key, new(Hash))
+	if err != nil {
+		return nil, err
+	}
+	if block == nil {
+		return nil, nil
+	}
+	return block.(*Hash), nil
+}
+
+// AllShas is a special value that can be used as the final sha when requesting
+// a range of shas by height to request them all.
+const AllShas = int64(^uint64(0) >> 1)
+
+func (db *Overlay) FetchBlockIndexesInHeightRange(numberBucket []byte, startHeight, endHeight int64) ([]IHash, error) {
+	//TODO: deprecate AllShas
+	var endidx int64
+	if endHeight == AllShas {
+		endidx = startHeight + wire.MaxBlocksPerMsg
+	} else {
+		endidx = endHeight
+	}
+
+	shalist := make([]IHash, 0, endidx-startHeight)
+	for height := startHeight; height < endidx; height++ {
+		dbhash, err := db.FetchBlockIndexByHeight(numberBucket, uint32(height))
+		if err != nil {
+			return nil, err
+		}
+		if dbhash == nil {
+			break
+		}
+
+		shalist = append(shalist, dbhash)
+	}
+
+	return shalist, nil
 }
