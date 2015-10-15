@@ -93,10 +93,6 @@ func (t *Transaction) AddRCD(rcd IRCD) {
 	t.clearCaches()
 }
 
-func (Transaction) GetDBHash() IHash {
-	return Sha([]byte("Transaction"))
-}
-
 func (w1 Transaction) GetNewInstance() IBlock {
 	return new(Transaction)
 }

@@ -95,10 +95,6 @@ func (s SignatureBlock) GetSignature(index int) ISignature {
 	return s.signatures[index]
 }
 
-func (SignatureBlock) GetDBHash() IHash {
-	return Sha([]byte("SignatureBlock"))
-}
-
 func (s SignatureBlock) GetNewInstance() IBlock {
 	return new(SignatureBlock)
 }

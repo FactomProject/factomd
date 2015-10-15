@@ -94,10 +94,6 @@ func (w1 WalletEntry) GetAddress() (IAddress, error) {
 	return adr, nil
 }
 
-func (w1 WalletEntry) GetDBHash() IHash {
-	return Sha([]byte("WalletEntry"))
-}
-
 func (WalletEntry) GetNewInstance() IBlock {
 	return new(WalletEntry)
 }

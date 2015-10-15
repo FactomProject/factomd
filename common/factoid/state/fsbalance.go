@@ -11,7 +11,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	. "github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
 )
 
 type FSbalance struct {
@@ -21,10 +20,6 @@ type FSbalance struct {
 
 func (FSbalance) GetNewInstance() IBlock {
 	return new(FSbalance)
-}
-
-func (FSbalance) GetDBHash() IHash {
-	return Sha([]byte("FSbalance"))
 }
 
 func (f *FSbalance) UnmarshalBinaryData(data []byte) ([]byte, error) {

@@ -92,10 +92,6 @@ func (w RCD_2) Clone() IRCD {
 	return c
 }
 
-func (RCD_2) GetDBHash() IHash {
-	return Sha([]byte("RCD_2"))
-}
-
 func (w1 RCD_2) GetNewInstance() IBlock {
 	return new(RCD_2)
 }

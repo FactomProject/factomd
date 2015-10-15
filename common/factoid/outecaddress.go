@@ -42,10 +42,6 @@ func (b OutECAddress) String() string {
 	return string(txt)
 }
 
-func (OutECAddress) GetDBHash() IHash {
-	return Sha([]byte("OutECAddress"))
-}
-
 func (w1 OutECAddress) GetNewInstance() IBlock {
 	return new(OutECAddress)
 }

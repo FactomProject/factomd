@@ -32,10 +32,6 @@ func (t *TransAddress) GetHash() IHash {
 	return nil
 }
 
-func (t *TransAddress) GetDBHash() IHash {
-	return Sha([]byte("TransAddress"))
-}
-
 func (t *TransAddress) GetNewInstance() IBlock {
 	return new(TransAddress)
 }

@@ -75,10 +75,6 @@ func (b FBlock) GetNewInstance() IBlock {
 	return new(FBlock)
 }
 
-func (FBlock) GetDBHash() IHash {
-	return Sha([]byte("FBlock"))
-}
-
 func (b *FBlock) GetHash() IHash {
 	kmr := b.GetKeyMR()
 

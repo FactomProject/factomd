@@ -36,10 +36,6 @@ func (b Address) String() string {
 	return string(txt)
 }
 
-func (Address) GetDBHash() IHash {
-	return Sha([]byte("Address"))
-}
-
 func (a Address) CustomMarshalText() (text []byte, err error) {
 	var out bytes.Buffer
 	addr := hex.EncodeToString(a.Bytes())

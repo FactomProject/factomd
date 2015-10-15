@@ -95,10 +95,6 @@ func (w RCD_1) GetAddress() (IAddress, error) {
 	return CreateAddress(Shad(data)), nil
 }
 
-func (RCD_1) GetDBHash() IHash {
-	return Sha([]byte("RCD_1"))
-}
-
 func (w1 RCD_1) GetNewInstance() IBlock {
 	return new(RCD_1)
 }

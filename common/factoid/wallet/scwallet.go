@@ -18,7 +18,6 @@ import (
 	. "github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/factoid"
 	. "github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/bytestore"
 	"github.com/FactomProject/factomd/database/mapdb"
 )
@@ -52,10 +51,6 @@ func (w *SCWallet) SetRoot(root []byte) {
 
 func (w *SCWallet) GetDB() IDatabase {
 	return &w.db
-}
-
-func (SCWallet) GetDBHash() IHash {
-	return Sha([]byte("SCWallet"))
 }
 
 func (w *SCWallet) SignInputs(trans ITransaction) (bool, error) {

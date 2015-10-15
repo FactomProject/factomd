@@ -66,10 +66,6 @@ func (Hash) GetHash() IHash {
 	return nil
 }
 
-func (w1 Hash) GetDBHash() IHash {
-	return Sha([]byte("Hash"))
-}
-
 func (w1 Hash) GetNewInstance() IBlock {
 	return new(Hash)
 }

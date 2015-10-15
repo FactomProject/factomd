@@ -45,10 +45,6 @@ func (b FactoidSignature) String() string {
 	return string(txt)
 }
 
-func (FactoidSignature) GetDBHash() IHash {
-	return Sha([]byte("Signature"))
-}
-
 func (w1 FactoidSignature) GetNewInstance() IBlock {
 	return new(FactoidSignature)
 }

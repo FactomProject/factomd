@@ -54,10 +54,6 @@ func (b ByteStore) String() string {
 	return string(b.byteData)
 }
 
-func (ByteStore) GetDBHash() IHash {
-	return Sha([]byte("ByteStore"))
-}
-
 func (b ByteStore) CustomMarshalText() ([]byte, error) {
 	return b.byteData, nil
 }

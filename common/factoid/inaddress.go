@@ -39,10 +39,6 @@ func (b InAddress) String() string {
 	return string(txt)
 }
 
-func (InAddress) GetDBHash() IHash {
-	return Sha([]byte("InAddress"))
-}
-
 func (i InAddress) GetNewInstance() IBlock {
 	return new(InAddress)
 }
