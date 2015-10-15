@@ -13,7 +13,14 @@ import ()
 // accidentally 
 type IState interface {
 	
-	Cfg()				IFactomConfig
+	Cfg()					IFactomConfig
+	Init()		
+	
+	// Channels
+	InMsgQueue()            chan IMsg
+	LeaderInMsgQueue() 		chan IMsg
+	FollowerInMsgQueue()	chan IMsg
+	OutMsgQueue()			chan IMsg		
 	
 	//Network
 	NetworkNumber()		int			// Encoded into Directory Blocks

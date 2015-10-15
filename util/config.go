@@ -1,3 +1,4 @@
+
 package util
 
 import (
@@ -27,8 +28,9 @@ type FactomdConfig struct {
         ExchangeRate            uint64
     }
     Anchor struct {
-        ServerECKey         string
-        AnchorChainID       string
+		ServerECPrivKey     string
+		ServerECPublicKey   string
+		AnchorChainID       string
         ConfirmationsNeeded int
     }
     Btc struct {
@@ -98,7 +100,8 @@ LocalServerPublicKey                  = cc1985cdfae4e32b5a454dfda8ce5e1361558482
 ExchangeRate                          = 00100000
 
 [anchor]
-ServerECKey                           = 397c49e182caa97737c6b394591c614156fbe7998d7bf5d76273961e9fa1edd406ed9e69bfdf85db8aa69820f348d096985bc0b11cc9fc9dcee3b8c68b41dfd5
+ServerECPrivKey                       = 397c49e182caa97737c6b394591c614156fbe7998d7bf5d76273961e9fa1edd4
+ServerECPublicKey                     = 06ed9e69bfdf85db8aa69820f348d096985bc0b11cc9fc9dcee3b8c68b41dfd5
 AnchorChainID                         = df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604
 ConfirmationsNeeded                   = 20
 
@@ -155,7 +158,8 @@ func(s *FactomdConfig) String() string {
 	out.WriteString(fmt.Sprintf("\n    ExchangeRate            %v", s.App.ExchangeRate))
 	
 	out.WriteString(fmt.Sprintf("\n  Anchor"))
-	out.WriteString(fmt.Sprintf("\n    ServerECKey             %v", s.Anchor.ServerECKey))
+	out.WriteString(fmt.Sprintf("\n    ServerECPrivKey         %v", s.Anchor.ServerECPrivKey))
+	out.WriteString(fmt.Sprintf("\n    ServerECPublicKey       %v", s.Anchor.ServerECPublicKey))
 	out.WriteString(fmt.Sprintf("\n    AnchorChainID           %v", s.Anchor.AnchorChainID))
 	out.WriteString(fmt.Sprintf("\n    ConfirmationsNeeded     %v", s.Anchor.ConfirmationsNeeded))
 	
@@ -188,11 +192,11 @@ func(s *FactomdConfig) String() string {
 	out.WriteString(fmt.Sprintf("\n    LogLevel                %v", s.Log.LogLevel))
 	
 	out.WriteString(fmt.Sprintf("\n  Wallet"))
-	out.WriteString(fmt.Sprintf("\n    Address               %v", s.Wallet.Address))
-	out.WriteString(fmt.Sprintf("\n    Port                  %v", s.Wallet.Port))
-	out.WriteString(fmt.Sprintf("\n    DataFile              %v", s.Wallet.DataFile))
-	out.WriteString(fmt.Sprintf("\n    RefreshInSeconds      %v", s.Wallet.RefreshInSeconds))
-	out.WriteString(fmt.Sprintf("\n    BoltDBPath            %v", s.Wallet.BoltDBPath))
+	out.WriteString(fmt.Sprintf("\n    Address                 %v", s.Wallet.Address))
+	out.WriteString(fmt.Sprintf("\n    Port                    %v", s.Wallet.Port))
+	out.WriteString(fmt.Sprintf("\n    DataFile                %v", s.Wallet.DataFile))
+	out.WriteString(fmt.Sprintf("\n    RefreshInSeconds        %v", s.Wallet.RefreshInSeconds))
+	out.WriteString(fmt.Sprintf("\n    BoltDBPath              %v", s.Wallet.BoltDBPath))
 
 	return out.String()
 }

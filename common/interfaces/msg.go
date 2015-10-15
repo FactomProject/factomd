@@ -1,3 +1,5 @@
+
+
 // Copyright 2015 Factom Foundation
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
@@ -14,9 +16,9 @@ import ()
 
 type IMsg interface {
 	// Returns a byte indicating the type of message.
-	GetType() byte
+	Type() 		int
 	// Returns the binary payload of the message
-	GetPayload() []byte
+	Payload() 	[]byte
 	
 	// Validate the message, given the state.  Three possible results:
 	//  < 0 -- Message is invalid.  Discard
