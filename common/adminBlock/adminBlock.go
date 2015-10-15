@@ -45,13 +45,28 @@ type AdminBlock struct {
 var _ Printable = (*AdminBlock)(nil)
 var _ BinaryMarshallableAndCopyable = (*AdminBlock)(nil)
 var _ IDBEntry = (*AdminBlock)(nil)
+var _ DatabaseBatchable = (*AdminBlock)(nil)
 
 func (c *AdminBlock) New() BinaryMarshallableAndCopyable {
 	return new(AdminBlock)
 }
 
-func (c *AdminBlock) GetChainID() IHash {
-	return c.Header.AdminChainID
+func (c *AdminBlock) GetDatabaseHeight() uint32 {
+	return c.Header.DBHeight
+}
+
+func (c *AdminBlock) GetChainID() []byte {
+	return c.Header.AdminChainID.Bytes()
+}
+
+func (c *AdminBlock) DatabasePrimaryIndex() IHash {
+	key, _ := c.PartialHash()
+	return key
+}
+
+func (c *AdminBlock) DatabaseSecondaryIndex() IHash {
+	key, _ := c.LedgerKeyMR()
+	return key
 }
 
 func (c *AdminBlock) GetKeyMR() (IHash, error) {

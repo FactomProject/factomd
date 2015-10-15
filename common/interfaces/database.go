@@ -22,3 +22,13 @@ type Record struct {
 	Key    []byte
 	Data   BinaryMarshallable
 }
+
+type DatabaseBatchable interface {
+	BinaryMarshallable
+	GetDatabaseHeight() uint32
+
+	DatabasePrimaryIndex() IHash   //block.KeyMR()
+	DatabaseSecondaryIndex() IHash //block.GetHash()
+
+	GetChainID() []byte
+}

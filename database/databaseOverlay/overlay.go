@@ -151,16 +151,6 @@ func (db *Overlay) FetchAllBlocksFromBucket(bucket []byte, sample BinaryMarshall
 	return answer, nil
 }
 
-type DatabaseBatchable interface {
-	BinaryMarshallable
-	GetDatabaseHeight() uint32
-
-	DatabasePrimaryIndex() IHash   //block.KeyMR()
-	DatabaseSecondaryIndex() IHash //block.GetHash()
-
-	GetChainID() []byte
-}
-
 func (db *Overlay) Insert(bucket []byte, entry DatabaseBatchable) error {
 	err := db.DB.Put(bucket, entry.DatabasePrimaryIndex().Bytes(), entry)
 	if err != nil {

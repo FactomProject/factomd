@@ -30,9 +30,26 @@ type DirectoryBlock struct {
 var _ Printable = (*DirectoryBlock)(nil)
 var _ BinaryMarshallableAndCopyable = (*DirectoryBlock)(nil)
 var _ IDirectoryBlock = (*DirectoryBlock)(nil)
+var _ DatabaseBatchable = (*DirectoryBlock)(nil)
 
 func (c *DirectoryBlock) New() BinaryMarshallableAndCopyable {
 	return new(DirectoryBlock)
+}
+
+func (c *DirectoryBlock) GetDatabaseHeight() uint32 {
+	return c.Header.DBHeight
+}
+
+func (c *DirectoryBlock) GetChainID() []byte {
+	return D_CHAINID
+}
+
+func (c *DirectoryBlock) DatabasePrimaryIndex() IHash {
+	return c.GetKeyMR()
+}
+
+func (c *DirectoryBlock) DatabaseSecondaryIndex() IHash {
+	return c.GetHash()
 }
 
 func (c *DirectoryBlock) MarshalledSize() uint64 {
@@ -94,7 +111,6 @@ func (b *DirectoryBlock) BuildBodyMR() (mr IHash, err error) {
 }
 
 func (b *DirectoryBlock) BuildKeyMerkleRoot() (keyMR IHash, err error) {
-
 	// Create the Entry Block Key Merkle Root from the hash of Header and the Body Merkle Root
 	hashes := make([]IHash, 0, 2)
 	binaryEBHeader, _ := b.Header.MarshalBinary()
@@ -160,10 +176,6 @@ func (b *DirectoryBlock) GetKeyMR() IHash {
 		b.BuildKeyMerkleRoot()
 	}
 	return b.KeyMR
-}
-
-func (b *DirectoryBlock) GetChainID() []byte {
-	return D_CHAINID
 }
 
 /**

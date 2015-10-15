@@ -33,16 +33,28 @@ type ECBlock struct {
 var _ Printable = (*ECBlock)(nil)
 var _ IDBEntry = (*ECBlock)(nil)
 var _ BinaryMarshallableAndCopyable = (*ECBlock)(nil)
+var _ DatabaseBatchable = (*ECBlock)(nil)
 
 func (c *ECBlock) New() BinaryMarshallableAndCopyable {
 	return new(ECBlock)
 }
 
-func (c *ECBlock) GetChainID() IHash {
-	return c.Header.ECChainID
+func (c *ECBlock) GetDatabaseHeight() uint32 {
+	return c.Header.DBHeight
 }
-func (c *ECBlock) GetKeyMR() (IHash, error) {
-	return c.HeaderHash()
+
+func (c *ECBlock) GetChainID() []byte {
+	return c.Header.ECChainID.Bytes()
+}
+
+func (c *ECBlock) DatabasePrimaryIndex() IHash {
+	key, _ := c.Hash()
+	return key
+}
+
+func (c *ECBlock) DatabaseSecondaryIndex() IHash {
+	key, _ := c.HeaderHash()
+	return key
 }
 
 func (c *ECBlock) MarshalledSize() uint64 {

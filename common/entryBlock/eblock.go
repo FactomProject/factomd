@@ -26,25 +26,26 @@ type EBlock struct {
 var _ Printable = (*EBlock)(nil)
 var _ IDBEntry = (*EBlock)(nil)
 var _ BinaryMarshallableAndCopyable = (*EBlock)(nil)
+var _ DatabaseBatchable = (*EBlock)(nil)
 
 func (c *EBlock) New() BinaryMarshallableAndCopyable {
 	return new(EBlock)
+}
+
+func (c *EBlock) GetDatabaseHeight() uint32 {
+	return c.Header.EBSequence
 }
 
 func (c *EBlock) GetChainID() []byte {
 	return c.Header.GetChainID().Bytes()
 }
 
-func (c *EBlock) GetKeyMR() IHash {
+func (c *EBlock) DatabasePrimaryIndex() IHash {
 	key, _ := c.KeyMR()
 	return key
 }
 
-func (c *EBlock) GetDBHeight() uint32 {
-	return c.Header.EBSequence
-}
-
-func (c *EBlock) GetHash() IHash {
+func (c *EBlock) DatabaseSecondaryIndex() IHash {
 	h, _ := c.Hash()
 	return h
 }
