@@ -7,13 +7,13 @@ package entryCreditBlock
 import (
 	"bytes"
 	"github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 //var IncreaseBalanceSize int = 32 + 4 + 32
 
 type IncreaseBalance struct {
-	ECPubKey *ByteSlice32
+	ECPubKey *primitives.ByteSlice32
 	TXID     interfaces.IHash
 	Index    uint64
 	NumEC    uint64
@@ -31,7 +31,7 @@ var _ ECBlockEntry = (*IncreaseBalance)(nil)
 
 func NewIncreaseBalance() *IncreaseBalance {
 	r := new(IncreaseBalance)
-	r.TXID = NewZeroHash()
+	r.TXID = primitives.NewZeroHash()
 	return r
 }
 
@@ -40,7 +40,7 @@ func (e *IncreaseBalance) Hash() interfaces.IHash {
 	if err != nil {
 		panic(err)
 	}
-	return Sha(bin)
+	return primitives.Sha(bin)
 }
 
 func (b *IncreaseBalance) ECID() byte {
@@ -62,9 +62,9 @@ func (b *IncreaseBalance) MarshalBinary() ([]byte, error) {
 
 	buf.Write(b.TXID.Bytes())
 
-	EncodeVarInt(buf, b.Index)
+	primitives.EncodeVarInt(buf, b.Index)
 
-	EncodeVarInt(buf, b.NumEC)
+	primitives.EncodeVarInt(buf, b.NumEC)
 
 	return buf.Bytes(), nil
 }
@@ -77,7 +77,7 @@ func (b *IncreaseBalance) UnmarshalBinaryData(data []byte) (newData []byte, err 
 	if err != nil {
 		return
 	}
-	b.ECPubKey = new(ByteSlice32)
+	b.ECPubKey = new(primitives.ByteSlice32)
 	copy(b.ECPubKey[:], hash)
 
 	_, err = buf.Read(hash)
@@ -85,14 +85,14 @@ func (b *IncreaseBalance) UnmarshalBinaryData(data []byte) (newData []byte, err 
 		return
 	}
 	if b.TXID == nil {
-		b.TXID = NewZeroHash()
+		b.TXID = primitives.NewZeroHash()
 	}
 	b.TXID.SetBytes(hash)
 
 	tmp := make([]byte, 0)
-	b.Index, tmp = DecodeVarInt(buf.Bytes())
+	b.Index, tmp = primitives.DecodeVarInt(buf.Bytes())
 
-	b.NumEC, tmp = DecodeVarInt(tmp)
+	b.NumEC, tmp = primitives.DecodeVarInt(tmp)
 
 	newData = tmp
 	return
@@ -104,15 +104,15 @@ func (b *IncreaseBalance) UnmarshalBinary(data []byte) (err error) {
 }
 
 func (e *IncreaseBalance) JSONByte() ([]byte, error) {
-	return EncodeJSON(e)
+	return primitives.EncodeJSON(e)
 }
 
 func (e *IncreaseBalance) JSONString() (string, error) {
-	return EncodeJSONString(e)
+	return primitives.EncodeJSONString(e)
 }
 
 func (e *IncreaseBalance) JSONBuffer(b *bytes.Buffer) error {
-	return EncodeJSONToBuffer(e, b)
+	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (e *IncreaseBalance) String() string {

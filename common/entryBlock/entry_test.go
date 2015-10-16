@@ -8,7 +8,7 @@ import (
 
 	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/entryBlock"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 /*
@@ -37,7 +37,7 @@ func TestFirstEntry(t *testing.T) {
 	entry.ExtIDs = append(entry.ExtIDs, []byte("1asdfadfasdf"))
 	entry.ExtIDs = append(entry.ExtIDs, []byte(""))
 	entry.ExtIDs = append(entry.ExtIDs, []byte("3"))
-	entry.ChainID = new(Hash)
+	entry.ChainID = new(primitives.Hash)
 	err := entry.ChainID.SetBytes(constants.EC_CHAINID)
 	if err != nil {
 		t.Errorf("Error:%v", err)
@@ -72,7 +72,7 @@ func TestEntry(t *testing.T) {
 	entry.ExtIDs = append(entry.ExtIDs, []byte("1asdfadfasdf"))
 	entry.ExtIDs = append(entry.ExtIDs, []byte("2asdfas asfasfasfafas "))
 	entry.ExtIDs = append(entry.ExtIDs, []byte("3sd fasfas fsaf asf asfasfsafsfa"))
-	entry.ChainID = new(Hash)
+	entry.ChainID = new(primitives.Hash)
 	err := entry.ChainID.SetBytes(constants.EC_CHAINID)
 	if err != nil {
 		t.Errorf("Error:%v", err)

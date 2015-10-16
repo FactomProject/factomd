@@ -11,7 +11,7 @@ import (
 	"github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 /**************************
@@ -44,15 +44,15 @@ func (b RCD_1) UnmarshalBinary(data []byte) error {
 }
 
 func (e *RCD_1) JSONByte() ([]byte, error) {
-	return EncodeJSON(e)
+	return primitives.EncodeJSON(e)
 }
 
 func (e *RCD_1) JSONString() (string, error) {
-	return EncodeJSONString(e)
+	return primitives.EncodeJSONString(e)
 }
 
 func (e *RCD_1) JSONBuffer(b *bytes.Buffer) error {
-	return EncodeJSONToBuffer(e, b)
+	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (b RCD_1) String() string {
@@ -92,7 +92,7 @@ func (w RCD_1) Clone() interfaces.IRCD {
 func (w RCD_1) GetAddress() (interfaces.IAddress, error) {
 	data := []byte{1}
 	data = append(data, w.publicKey[:]...)
-	return CreateAddress(Shad(data)), nil
+	return CreateAddress(primitives.Shad(data)), nil
 }
 
 func (w1 RCD_1) GetNewInstance() interfaces.IBlock {
@@ -153,7 +153,7 @@ func (b RCD_1) MarshalledSize() uint64 {
 func (a RCD_1) CustomMarshalText() (text []byte, err error) {
 	var out bytes.Buffer
 	out.WriteString("RCD 1: ")
-	WriteNumber8(&out, uint8(1)) // Type Zero Authorization
+	primitives.WriteNumber8(&out, uint8(1)) // Type Zero Authorization
 	out.WriteString(" ")
 	out.WriteString(hex.EncodeToString(a.publicKey[:]))
 	out.WriteString("\n")

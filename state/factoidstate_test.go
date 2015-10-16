@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives"
 	. "github.com/FactomProject/factomd/database/boltdb"
 	"math/rand"
 	"testing"

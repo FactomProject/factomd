@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 // The default FactoidSignature doesn't care about indexing.  We will extend this
@@ -26,15 +26,15 @@ func (t *FactoidSignature) GetHash() interfaces.IHash {
 }
 
 func (e *FactoidSignature) JSONByte() ([]byte, error) {
-	return EncodeJSON(e)
+	return primitives.EncodeJSON(e)
 }
 
 func (e *FactoidSignature) JSONString() (string, error) {
-	return EncodeJSONString(e)
+	return primitives.EncodeJSONString(e)
 }
 
 func (e *FactoidSignature) JSONBuffer(b *bytes.Buffer) error {
-	return EncodeJSONToBuffer(e, b)
+	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (b FactoidSignature) String() string {

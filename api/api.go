@@ -16,7 +16,7 @@ import (
 	. "github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 var (
@@ -136,7 +136,7 @@ func SetInMsgQueue(q chan wire.FtmInternalMsg) {
 }
 
 func atoh(a string) (interfaces.IHash, error) {
-	h := NewZeroHash()
+	h := primitives.NewZeroHash()
 	p, err := hex.DecodeString(a)
 	if err != nil {
 		return h, err

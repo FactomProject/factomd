@@ -40,7 +40,7 @@ func (db *Overlay) InsertChain(chain *EChain) error {
 func (db *Overlay) FetchAllChains() (chains []*EChain, err error) {
 	bucket := []byte{byte(TBL_CHAIN_HASH)}
 
-	list, err := db.DB.GetAll(bucket, new(Hash))
+	list, err := db.DB.GetAll(bucket, new(primitives.Hash))
 	if err != nil {
 		return nil, err
 	}

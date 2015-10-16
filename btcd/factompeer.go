@@ -13,7 +13,7 @@ import (
 	. "github.com/FactomProject/factomd/common/directoryBlock"
 	. "github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database"
 	"github.com/davecgh/go-spew/spew"
 	"time"
@@ -22,8 +22,8 @@ import (
 // handleFBlockMsg is invoked when a peer receives a factoid block message.
 func (p *peer) handleFBlockMsg(msg *wire.MsgFBlock, buf []byte) {
 	binary, _ := msg.SC.MarshalBinary()
-	commonHash := Sha(binary)
-	hash := NewHash(commonHash.Bytes())
+	commonHash := primitives.Sha(binary)
+	hash := primitives.NewHash(commonHash.Bytes())
 
 	iv := wire.NewInvVect(wire.InvTypeFactomFBlock, hash)
 	p.AddKnownInventory(iv)
@@ -33,8 +33,8 @@ func (p *peer) handleFBlockMsg(msg *wire.MsgFBlock, buf []byte) {
 // handleDirBlockMsg is invoked when a peer receives a dir block message.
 func (p *peer) handleDirBlockMsg(msg *wire.MsgDirBlock, buf []byte) {
 	binary, _ := msg.DBlk.MarshalBinary()
-	commonHash := Sha(binary)
-	hash := NewHash(commonHash.Bytes())
+	commonHash := primitives.Sha(binary)
+	hash := primitives.NewHash(commonHash.Bytes())
 
 	iv := wire.NewInvVect(wire.InvTypeFactomDirBlock, hash)
 	p.AddKnownInventory(iv)
@@ -50,8 +50,8 @@ func (p *peer) handleDirBlockMsg(msg *wire.MsgDirBlock, buf []byte) {
 // handleABlockMsg is invoked when a peer receives a entry credit block message.
 func (p *peer) handleABlockMsg(msg *wire.MsgABlock, buf []byte) {
 	binary, _ := msg.ABlk.MarshalBinary()
-	commonHash := Sha(binary)
-	hash := NewHash(commonHash.Bytes())
+	commonHash := primitives.Sha(binary)
+	hash := primitives.NewHash(commonHash.Bytes())
 
 	iv := wire.NewInvVect(wire.InvTypeFactomAdminBlock, hash)
 	p.AddKnownInventory(iv)
@@ -75,8 +75,8 @@ func (p *peer) handleECBlockMsg(msg *wire.MsgECBlock, buf []byte) {
 // handleEBlockMsg is invoked when a peer receives an entry block bitcoin message.
 func (p *peer) handleEBlockMsg(msg *wire.MsgEBlock, buf []byte) {
 	binary, _ := msg.EBlk.MarshalBinary()
-	commonHash := Sha(binary)
-	hash := NewHash(commonHash.Bytes())
+	commonHash := primitives.Sha(binary)
+	hash := primitives.NewHash(commonHash.Bytes())
 
 	iv := wire.NewInvVect(wire.InvTypeFactomEntryBlock, hash)
 	p.AddKnownInventory(iv)
@@ -90,8 +90,8 @@ func (p *peer) handleEBlockMsg(msg *wire.MsgEBlock, buf []byte) {
 // handleEntryMsg is invoked when a peer receives a EBlock Entry message.
 func (p *peer) handleEntryMsg(msg *wire.MsgEntry, buf []byte) {
 	binary, _ := msg.Entry.MarshalBinary()
-	commonHash := Sha(binary)
-	hash := NewHash(commonHash.Bytes())
+	commonHash := primitives.Sha(binary)
+	hash := primitives.NewHash(commonHash.Bytes())
 
 	iv := wire.NewInvVect(wire.InvTypeFactomEntry, hash)
 	p.AddKnownInventory(iv)
@@ -424,7 +424,7 @@ func (p *peer) handleGetDirBlocksMsg(msg *wire.MsgGetDirBlocks) {
 // pushDirBlockMsg sends a dir block message for the provided block hash to the
 // connected peer.  An error is returned if the block hash is not known.
 func (p *peer) pushDirBlockMsg(sha interfaces.IHash, doneChan, waitChan chan struct{}) error {
-	commonhash := new(Hash)
+	commonhash := new(primitives.Hash)
 	commonhash.SetBytes(sha.Bytes())
 	blk, err := db.FetchDBlockByHash(commonhash)
 
@@ -529,8 +529,8 @@ func (p *peer) PushGetDirBlocksMsg(locator blockchain.BlockLocator, stopHash int
 // EC block, Entry block, and Entry
 func (p *peer) pushGetNonDirDataMsg(dblock *DirectoryBlock) {
 	binary, _ := dblock.MarshalBinary()
-	commonHash := Sha(binary)
-	hash := NewHash(commonHash.Bytes())
+	commonHash := primitives.Sha(binary)
+	hash := primitives.NewHash(commonHash.Bytes())
 
 	iv := wire.NewInvVect(wire.InvTypeFactomNonDirBlock, hash)
 	gdmsg := wire.NewMsgGetNonDirData()
@@ -544,8 +544,8 @@ func (p *peer) pushGetNonDirDataMsg(dblock *DirectoryBlock) {
 // and return all the corresponding EBEntries
 func (p *peer) pushGetEntryDataMsg(eblock *EBlock) {
 	binary, _ := eblock.MarshalBinary()
-	commonHash := Sha(binary)
-	hash := NewHash(commonHash.Bytes())
+	commonHash := primitives.Sha(binary)
+	hash := primitives.NewHash(commonHash.Bytes())
 
 	iv := wire.NewInvVect(wire.InvTypeFactomEntry, hash)
 	gdmsg := wire.NewMsgGetEntryData()
@@ -683,8 +683,8 @@ func (p *peer) pushEntryMsg(commonhash interfaces.IHash, doneChan, waitChan chan
 // handleFactoidMsg
 func (p *peer) handleFactoidMsg(msg *wire.MsgFactoidTX, buf []byte) {
 	binary, _ := msg.Transaction.MarshalBinary()
-	commonHash := Sha(binary)
-	hash := NewHash(commonHash.Bytes())
+	commonHash := primitives.Sha(binary)
+	hash := primitives.NewHash(commonHash.Bytes())
 
 	iv := wire.NewInvVect(wire.InvTypeTx, hash)
 	p.AddKnownInventory(iv)

@@ -12,7 +12,7 @@ import (
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 type DBlockHeader struct {
@@ -33,15 +33,15 @@ var _ interfaces.BinaryMarshallable = (*DBlockHeader)(nil)
 var _ interfaces.IDirectoryBlockHeader = (*DBlockHeader)(nil)
 
 func (e *DBlockHeader) JSONByte() ([]byte, error) {
-	return EncodeJSON(e)
+	return primitives.EncodeJSON(e)
 }
 
 func (e *DBlockHeader) JSONString() (string, error) {
-	return EncodeJSONString(e)
+	return primitives.EncodeJSONString(e)
 }
 
 func (e *DBlockHeader) JSONBuffer(b *bytes.Buffer) error {
-	return EncodeJSONToBuffer(e, b)
+	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (e *DBlockHeader) String() string {
@@ -66,7 +66,7 @@ func (b *DBlockHeader) MarshalBinary() (data []byte, err error) {
 	binary.Write(&buf, binary.BigEndian, b.NetworkID)
 
 	if b.BodyMR == nil {
-		b.BodyMR = new(Hash)
+		b.BodyMR = new(primitives.Hash)
 		b.BodyMR.SetBytes(new([32]byte)[:])
 	}
 	data, err = b.BodyMR.MarshalBinary()
@@ -121,19 +121,19 @@ func (b *DBlockHeader) UnmarshalBinaryData(data []byte) (newData []byte, err err
 
 	b.NetworkID, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
-	b.BodyMR = new(Hash)
+	b.BodyMR = new(primitives.Hash)
 	newData, err = b.BodyMR.UnmarshalBinaryData(newData)
 	if err != nil {
 		return
 	}
 
-	b.PrevKeyMR = new(Hash)
+	b.PrevKeyMR = new(primitives.Hash)
 	newData, err = b.PrevKeyMR.UnmarshalBinaryData(newData)
 	if err != nil {
 		return
 	}
 
-	b.PrevLedgerKeyMR = new(Hash)
+	b.PrevLedgerKeyMR = new(primitives.Hash)
 	newData, err = b.PrevLedgerKeyMR.UnmarshalBinaryData(newData)
 	if err != nil {
 		return
@@ -157,9 +157,9 @@ func (b *DBlockHeader) UnmarshalBinary(data []byte) (err error) {
 
 func NewDBlockHeader() *DBlockHeader {
 	d := new(DBlockHeader)
-	d.BodyMR = NewZeroHash()
-	d.PrevKeyMR = NewZeroHash()
-	d.PrevLedgerKeyMR = NewZeroHash()
+	d.BodyMR = primitives.NewZeroHash()
+	d.PrevKeyMR = primitives.NewZeroHash()
+	d.PrevLedgerKeyMR = primitives.NewZeroHash()
 
 	return d
 }

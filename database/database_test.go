@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives"
 	"math/rand"
 	"testing"
 )
@@ -30,7 +30,7 @@ func Test_Auth1_Equals(test *testing.T) {
 	scd := new(MapDB) // Get me a database
 	scd.Init()
 
-	ecAdr := Sha([]byte("ec one")) // Get me an address
+	ecAdr := primitives.Sha([]byte("ec one")) // Get me an address
 	b := new(t_balance)            // Get a balance interfaces.IBlock
 	b.balance = 1000               // Set the balance
 

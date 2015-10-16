@@ -10,7 +10,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 /************************
@@ -62,15 +62,15 @@ func (b RCD_2) CheckSig(trans interfaces.ITransaction, sigblk interfaces.ISignat
 }
 
 func (e *RCD_2) JSONByte() ([]byte, error) {
-	return EncodeJSON(e)
+	return primitives.EncodeJSON(e)
 }
 
 func (e *RCD_2) JSONString() (string, error) {
-	return EncodeJSONString(e)
+	return primitives.EncodeJSONString(e)
 }
 
 func (e *RCD_2) JSONBuffer(b *bytes.Buffer) error {
-	return EncodeJSONToBuffer(e, b)
+	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (b RCD_2) String() string {
@@ -165,11 +165,11 @@ func (b RCD_2) MarshalledSize() uint64 {
 func (a RCD_2) CustomMarshalText() ([]byte, error) {
 	var out bytes.Buffer
 
-	WriteNumber8(&out, uint8(2)) // Type 2 Authorization
+	primitives.WriteNumber8(&out, uint8(2)) // Type 2 Authorization
 	out.WriteString("\n n: ")
-	WriteNumber16(&out, uint16(a.n))
+	primitives.WriteNumber16(&out, uint16(a.n))
 	out.WriteString(" m: ")
-	WriteNumber16(&out, uint16(a.m))
+	primitives.WriteNumber16(&out, uint16(a.m))
 	out.WriteString("\n")
 	for i := 0; i < a.m; i++ {
 		out.WriteString("  m: ")

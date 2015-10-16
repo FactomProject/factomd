@@ -16,13 +16,13 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 var _ = fmt.Println
 
 type Address struct {
-	Hash // Since Hash implements interfaces.IHash, and interfaces.IAddress is just a
+	primitives.Hash // Since Hash implements interfaces.IHash, and interfaces.IAddress is just a
 } // alais for interfaces.IHash, then I don't have to (nor can I) make
 // Address implement interfaces.IAddress... Weird, but that's the way it is.
 

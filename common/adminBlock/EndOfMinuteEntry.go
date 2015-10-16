@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 type EndOfMinuteEntry struct {
@@ -58,15 +58,15 @@ func (e *EndOfMinuteEntry) UnmarshalBinary(data []byte) (err error) {
 }
 
 func (e *EndOfMinuteEntry) JSONByte() ([]byte, error) {
-	return EncodeJSON(e)
+	return primitives.EncodeJSON(e)
 }
 
 func (e *EndOfMinuteEntry) JSONString() (string, error) {
-	return EncodeJSONString(e)
+	return primitives.EncodeJSONString(e)
 }
 
 func (e *EndOfMinuteEntry) JSONBuffer(b *bytes.Buffer) error {
-	return EncodeJSONToBuffer(e, b)
+	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (e *EndOfMinuteEntry) String() string {
@@ -87,5 +87,5 @@ func (e *EndOfMinuteEntry) Hash() interfaces.IHash {
 	if err != nil {
 		panic(err)
 	}
-	return Sha(bin)
+	return primitives.Sha(bin)
 }

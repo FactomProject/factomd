@@ -9,7 +9,7 @@ import (
 	"github.com/davecgh/go-spew/spew"
 
 	"github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 var _ = util.Trace

@@ -8,7 +8,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 /**************************************
@@ -36,15 +36,15 @@ func (b SignatureBlock) UnmarshalBinary(data []byte) error {
 }
 
 func (e *SignatureBlock) JSONByte() ([]byte, error) {
-	return EncodeJSON(e)
+	return primitives.EncodeJSON(e)
 }
 
 func (e *SignatureBlock) JSONString() (string, error) {
-	return EncodeJSONString(e)
+	return primitives.EncodeJSONString(e)
 }
 
 func (e *SignatureBlock) JSONBuffer(b *bytes.Buffer) error {
-	return EncodeJSONToBuffer(e, b)
+	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (b SignatureBlock) String() string {

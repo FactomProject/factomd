@@ -12,7 +12,7 @@ import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives"
 	"sync"
 )
 
@@ -107,7 +107,7 @@ func CreateAdminBlock(chain *AdminChain, prev *AdminBlock, cap uint) (b *AdminBl
 	b.Header.AdminChainID = chain.ChainID
 
 	if prev == nil {
-		b.Header.PrevLedgerKeyMR = NewZeroHash()
+		b.Header.PrevLedgerKeyMR = primitives.NewZeroHash()
 	} else {
 		b.Header.PrevLedgerKeyMR, err = prev.LedgerKeyMR()
 		if err != nil {
@@ -128,7 +128,7 @@ func (b *AdminBlock) buildFullBHash() (err error) {
 	if err != nil {
 		return
 	}
-	b.fullHash = Sha512Half(binaryAB)
+	b.fullHash = primitives.Sha512Half(binaryAB)
 	return
 }
 
@@ -139,7 +139,7 @@ func (b *AdminBlock) buildPartialHash() (err error) {
 	if err != nil {
 		return
 	}
-	b.partialHash = Sha(binaryAB)
+	b.partialHash = primitives.Sha(binaryAB)
 	return
 }
 
@@ -235,15 +235,15 @@ func (b *AdminBlock) GetDBSignature() ABEntry {
 }
 
 func (e *AdminBlock) JSONByte() ([]byte, error) {
-	return EncodeJSON(e)
+	return primitives.EncodeJSON(e)
 }
 
 func (e *AdminBlock) JSONString() (string, error) {
-	return EncodeJSONString(e)
+	return primitives.EncodeJSONString(e)
 }
 
 func (e *AdminBlock) JSONBuffer(b *bytes.Buffer) error {
-	return EncodeJSONToBuffer(e, b)
+	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (e *AdminBlock) String() string {
@@ -285,7 +285,7 @@ func (b *ABlockHeader) MarshalBinary() (data []byte, err error) {
 
 	binary.Write(&buf, binary.BigEndian, b.DBHeight)
 
-	EncodeVarInt(&buf, b.HeaderExpansionSize)
+	primitives.EncodeVarInt(&buf, b.HeaderExpansionSize)
 	buf.Write(b.HeaderExpansionArea)
 
 	binary.Write(&buf, binary.BigEndian, b.MessageCount)
@@ -297,13 +297,13 @@ func (b *ABlockHeader) MarshalBinary() (data []byte, err error) {
 func (b *ABlockHeader) MarshalledSize() uint64 {
 	var size uint64 = 0
 
-	size += uint64(constants.HASH_LENGTH)       //AdminChainID
-	size += uint64(constants.HASH_LENGTH)       //PrevFullHash
-	size += 4                                   //DBHeight
-	size += VarIntLength(b.HeaderExpansionSize) //HeaderExpansionSize
-	size += b.HeaderExpansionSize               //HeadderExpansionArea
-	size += 4                                   //MessageCount
-	size += 4                                   //BodySize
+	size += uint64(constants.HASH_LENGTH)                  //AdminChainID
+	size += uint64(constants.HASH_LENGTH)                  //PrevFullHash
+	size += 4                                              //DBHeight
+	size += primitives.VarIntLength(b.HeaderExpansionSize) //HeaderExpansionSize
+	size += b.HeaderExpansionSize                          //HeadderExpansionArea
+	size += 4                                              //MessageCount
+	size += 4                                              //BodySize
 
 	return size
 }
@@ -315,13 +315,13 @@ func (b *ABlockHeader) UnmarshalBinaryData(data []byte) (newData []byte, err err
 		}
 	}()
 	newData = data
-	b.AdminChainID = new(Hash)
+	b.AdminChainID = new(primitives.Hash)
 	newData, err = b.AdminChainID.UnmarshalBinaryData(newData)
 	if err != nil {
 		return
 	}
 
-	b.PrevLedgerKeyMR = new(Hash)
+	b.PrevLedgerKeyMR = new(primitives.Hash)
 	newData, err = b.PrevLedgerKeyMR.UnmarshalBinaryData(newData)
 	if err != nil {
 		return
@@ -329,7 +329,7 @@ func (b *ABlockHeader) UnmarshalBinaryData(data []byte) (newData []byte, err err
 
 	b.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
-	b.HeaderExpansionSize, newData = DecodeVarInt(newData)
+	b.HeaderExpansionSize, newData = primitives.DecodeVarInt(newData)
 	b.HeaderExpansionArea, newData = newData[:b.HeaderExpansionSize], newData[b.HeaderExpansionSize:]
 
 	b.MessageCount, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
@@ -345,15 +345,15 @@ func (b *ABlockHeader) UnmarshalBinary(data []byte) (err error) {
 }
 
 func (e *ABlockHeader) JSONByte() ([]byte, error) {
-	return EncodeJSON(e)
+	return primitives.EncodeJSON(e)
 }
 
 func (e *ABlockHeader) JSONString() (string, error) {
-	return EncodeJSONString(e)
+	return primitives.EncodeJSONString(e)
 }
 
 func (e *ABlockHeader) JSONBuffer(b *bytes.Buffer) error {
-	return EncodeJSONToBuffer(e, b)
+	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (e *ABlockHeader) String() string {

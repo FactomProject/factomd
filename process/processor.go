@@ -37,7 +37,7 @@ import (
 	. "github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid/state"
 	"github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 var _ = (*block.FBlock)(nil)
@@ -80,7 +80,7 @@ var (
 	FactomdUser string
 	FactomdPass string
 
-	zeroHash = NewZeroHash()
+	zeroHash = primitives.NewZeroHash()
 )
 
 var (
@@ -120,7 +120,7 @@ func initProcessor() {
 	fMemPool.init_ftmMemPool()
 
 	// init wire.FChainID
-	wire.FChainID = NewZeroHash()
+	wire.FChainID = primitives.NewZeroHash()
 	wire.FChainID.SetBytes(constants.FACTOID_CHAINID)
 
 	FactoshisPerCredit = 666666 // .001 / .15 * 100000000 (assuming a Factoid is .15 cents, entry credit = .1 cents
@@ -727,7 +727,7 @@ func processCommitChain(msg *wire.MsgCommitChain) error {
 func processBuyEntryCredit(msg *wire.MsgFactoidTX) error {
 	// Update the credit balance in memory
 	for _, v := range msg.Transaction.GetECOutputs() {
-		pub := new(ByteSlice32)
+		pub := new(primitives.ByteSlice32)
 		copy(pub[:], v.GetAddress().Bytes())
 
 		cred := int32(v.GetAmount() / uint64(FactoshisPerCredit))
@@ -806,11 +806,11 @@ func buildIncreaseBalance(msg *wire.MsgFactoidTX) {
 	for i, ecout := range t.GetECOutputs() {
 		ib := NewIncreaseBalance()
 
-		pub := new(ByteSlice32)
+		pub := new(primitives.ByteSlice32)
 		copy(pub[:], ecout.GetAddress().Bytes())
 		ib.ECPubKey = pub
 
-		th := NewZeroHash()
+		th := primitives.NewZeroHash()
 		th.SetBytes(t.GetHash().Bytes())
 		ib.TXID = th
 
@@ -976,7 +976,7 @@ func buildBlocks() error {
 
 	// Generate the inventory vector and relay it.
 	binary, _ := dbBlock.MarshalBinary()
-	commonHash := Sha(binary)
+	commonHash := primitives.Sha(binary)
 	hash, _ := NewShaHash(commonHash.Bytes())
 	outMsgQueue <- (&wire.MsgInt_DirBlock{hash})
 
@@ -1129,11 +1129,11 @@ func newFactoidBlock(chain *FctChain) interfaces.IFBlock {
 	FactoshisPerCredit = cfg.App.ExchangeRate
 
 	rate := fmt.Sprintf("Current Exchange rate is %v",
-		ConvertDecimalToString(FactoshisPerCredit))
+		primitives.ConvertDecimalToString(FactoshisPerCredit))
 	if older != FactoshisPerCredit {
 
 		orate := fmt.Sprintf("The Exchange rate was    %v\n",
-			ConvertDecimalToString(older))
+			primitives.ConvertDecimalToString(older))
 
 		cp.CP.AddUpdate(
 			"Fee",    // tag
@@ -1218,7 +1218,7 @@ func SignDirectoryBlock() error {
 		// get the previous directory block from db
 		dbBlock, _ := db.FetchDBlockByHeight(dchain.NextDBHeight - 1)
 		dbHeaderBytes, _ := dbBlock.Header.MarshalBinary()
-		identityChainID := NewZeroHash() // 0 ID for milestone 1
+		identityChainID := primitives.NewZeroHash() // 0 ID for milestone 1
 		sig := serverPrivKey.Sign(dbHeaderBytes)
 		achain.NextBlock.AddABEntry(NewDBSignatureEntry(identityChainID, sig))
 	}

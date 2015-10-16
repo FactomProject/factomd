@@ -8,7 +8,7 @@ import (
 	"encoding/binary"
 	"github.com/FactomProject/factomd/btcd/wire"
 	"github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 const (
@@ -100,7 +100,7 @@ func (db *Overlay) FetchBlockIndexByHeight(bucket []byte, blockHeight uint32) (i
 	key := make([]byte, 4)
 	binary.BigEndian.PutUint32(key, blockHeight)
 
-	block, err := db.DB.Get(bucket, key, new(Hash))
+	block, err := db.DB.Get(bucket, key, new(primitives.Hash))
 	if err != nil {
 		return nil, err
 	}
@@ -111,7 +111,7 @@ func (db *Overlay) FetchBlockIndexByHeight(bucket []byte, blockHeight uint32) (i
 }
 
 func (db *Overlay) FetchPrimaryIndexBySecondaryIndex(bucket []byte, key interfaces.IHash) (interfaces.IHash, error) {
-	block, err := db.DB.Get(bucket, key.Bytes(), new(Hash))
+	block, err := db.DB.Get(bucket, key.Bytes(), new(primitives.Hash))
 	if err != nil {
 		return nil, err
 	}
@@ -197,7 +197,7 @@ func (db *Overlay) FetchHeadIndexByChainID(chainID interfaces.IHash) (interfaces
 	bucket := []byte{byte(TBL_CHAIN_HEAD)}
 	key := chainID.Bytes()
 
-	block, err := db.DB.Get(bucket, key, new(Hash))
+	block, err := db.DB.Get(bucket, key, new(primitives.Hash))
 	if err != nil {
 		return nil, err
 	}

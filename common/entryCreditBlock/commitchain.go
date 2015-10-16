@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives"
 	"io"
 	"time"
 
@@ -24,13 +24,13 @@ const (
 
 type CommitChain struct {
 	Version     uint8
-	MilliTime   *ByteSlice6
+	MilliTime   *primitives.ByteSlice6
 	ChainIDHash interfaces.IHash
 	Weld        interfaces.IHash
 	EntryHash   interfaces.IHash
 	Credits     uint8
-	ECPubKey    *ByteSlice32
-	Sig         *ByteSlice64
+	ECPubKey    *primitives.ByteSlice32
+	Sig         *primitives.ByteSlice64
 }
 
 var _ interfaces.Printable = (*CommitChain)(nil)
@@ -45,13 +45,13 @@ func (c *CommitChain) MarshalledSize() uint64 {
 func NewCommitChain() *CommitChain {
 	c := new(CommitChain)
 	c.Version = 0
-	c.MilliTime = new(ByteSlice6)
-	c.ChainIDHash = NewZeroHash()
-	c.Weld = NewZeroHash()
-	c.EntryHash = NewZeroHash()
+	c.MilliTime = new(primitives.ByteSlice6)
+	c.ChainIDHash = primitives.NewZeroHash()
+	c.Weld = primitives.NewZeroHash()
+	c.EntryHash = primitives.NewZeroHash()
 	c.Credits = 0
-	c.ECPubKey = new(ByteSlice32)
-	c.Sig = new(ByteSlice64)
+	c.ECPubKey = new(primitives.ByteSlice32)
+	c.Sig = new(primitives.ByteSlice64)
 	return c
 }
 
@@ -60,7 +60,7 @@ func (e *CommitChain) Hash() interfaces.IHash {
 	if err != nil {
 		panic(err)
 	}
-	return Sha(bin)
+	return primitives.Sha(bin)
 }
 
 func (b *CommitChain) IsInterpretable() bool {
@@ -112,12 +112,12 @@ func (c *CommitChain) IsValid() bool {
 
 func (c *CommitChain) GetHash() interfaces.IHash {
 	data, _ := c.MarshalBinary()
-	return Sha(data)
+	return primitives.Sha(data)
 }
 
 func (c *CommitChain) GetSigHash() interfaces.IHash {
 	data := c.CommitMsg()
-	return Sha(data)
+	return primitives.Sha(data)
 }
 
 func (c *CommitChain) MarshalBinary() ([]byte, error) {
@@ -254,15 +254,15 @@ func (c *CommitChain) UnmarshalBinary(data []byte) (err error) {
 }
 
 func (e *CommitChain) JSONByte() ([]byte, error) {
-	return EncodeJSON(e)
+	return primitives.EncodeJSON(e)
 }
 
 func (e *CommitChain) JSONString() (string, error) {
-	return EncodeJSONString(e)
+	return primitives.EncodeJSONString(e)
 }
 
 func (e *CommitChain) JSONBuffer(b *bytes.Buffer) error {
-	return EncodeJSONToBuffer(e, b)
+	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (e *CommitChain) String() string {

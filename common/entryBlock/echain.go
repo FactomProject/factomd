@@ -7,7 +7,7 @@ package entryBlock
 import (
 	"bytes"
 	"github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives"
 	"sync"
 )
 
@@ -32,7 +32,7 @@ func (c *EChain) MarshalledSize() uint64 {
 
 func NewEChain() *EChain {
 	e := new(EChain)
-	e.ChainID = NewZeroHash()
+	e.ChainID = primitives.NewZeroHash()
 	e.FirstEntry = NewEntry()
 	e.NextBlock = NewEBlock()
 	return e

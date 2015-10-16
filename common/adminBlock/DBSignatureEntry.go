@@ -5,14 +5,14 @@ import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 // DB Signature Entry -------------------------
 type DBSignatureEntry struct {
 	entryType            byte
 	IdentityAdminChainID interfaces.IHash
-	PubKey               PublicKey
+	PubKey               primitives.PublicKey
 	PrevDBSig            *Sig
 }
 
@@ -20,7 +20,7 @@ var _ ABEntry = (*DBSignatureEntry)(nil)
 var _ interfaces.BinaryMarshallable = (*DBSignatureEntry)(nil)
 
 // Create a new DB Signature Entry
-func NewDBSignatureEntry(identityAdminChainID interfaces.IHash, sig Signature) (e *DBSignatureEntry) {
+func NewDBSignatureEntry(identityAdminChainID interfaces.IHash, sig primitives.Signature) (e *DBSignatureEntry) {
 	e = new(DBSignatureEntry)
 	e.entryType = constants.TYPE_DB_SIGNATURE
 	e.IdentityAdminChainID = identityAdminChainID
@@ -76,7 +76,7 @@ func (e *DBSignatureEntry) UnmarshalBinaryData(data []byte) (newData []byte, err
 	newData = data
 	e.entryType, newData = newData[0], newData[1:]
 
-	e.IdentityAdminChainID = new(Hash)
+	e.IdentityAdminChainID = new(primitives.Hash)
 	newData, err = e.IdentityAdminChainID.UnmarshalBinaryData(newData)
 	if err != nil {
 		return
@@ -100,15 +100,15 @@ func (e *DBSignatureEntry) UnmarshalBinary(data []byte) (err error) {
 }
 
 func (e *DBSignatureEntry) JSONByte() ([]byte, error) {
-	return EncodeJSON(e)
+	return primitives.EncodeJSON(e)
 }
 
 func (e *DBSignatureEntry) JSONString() (string, error) {
-	return EncodeJSONString(e)
+	return primitives.EncodeJSONString(e)
 }
 
 func (e *DBSignatureEntry) JSONBuffer(b *bytes.Buffer) error {
-	return EncodeJSONToBuffer(e, b)
+	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (e *DBSignatureEntry) String() string {
@@ -129,5 +129,5 @@ func (e *DBSignatureEntry) Hash() interfaces.IHash {
 	if err != nil {
 		panic(err)
 	}
-	return Sha(bin)
+	return primitives.Sha(bin)
 }

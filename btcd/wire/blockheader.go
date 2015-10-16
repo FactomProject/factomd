@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives"
 	"io"
 )
 
@@ -27,7 +27,7 @@ var (
 func Init() {
 	barray := []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F}
-	FChainID = new(Hash)
+	FChainID = new(primitives.Hash)
 	FChainID.SetBytes(barray)
 
 	CreditsPerChain = 10 // Entry Credits to create a chain

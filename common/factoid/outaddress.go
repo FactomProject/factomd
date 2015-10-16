@@ -10,7 +10,7 @@ package factoid
 import (
 	"bytes"
 	"github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 type OutAddress struct {
@@ -20,15 +20,15 @@ type OutAddress struct {
 var _ interfaces.IOutAddress = (*OutAddress)(nil)
 
 func (e *OutAddress) JSONByte() ([]byte, error) {
-	return EncodeJSON(e)
+	return primitives.EncodeJSON(e)
 }
 
 func (e *OutAddress) JSONString() (string, error) {
-	return EncodeJSONString(e)
+	return primitives.EncodeJSONString(e)
 }
 
 func (e *OutAddress) JSONBuffer(b *bytes.Buffer) error {
-	return EncodeJSONToBuffer(e, b)
+	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (b OutAddress) String() string {

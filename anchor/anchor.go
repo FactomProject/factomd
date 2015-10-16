@@ -30,7 +30,7 @@ import (
 	factomwire "github.com/FactomProject/factomd/btcd/wire"
 	. "github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database"
 	"github.com/FactomProject/factomd/util"
 )
@@ -548,7 +548,7 @@ func prependBlockHeight(height uint32, hash []byte) ([]byte, error) {
 }
 
 func toHash(txHash interfaces.IHash) interfaces.IHash {
-	h := new(Hash)
+	h := new(primitives.Hash)
 	h.SetBytes(txHash.Bytes())
 	return h
 }

@@ -98,7 +98,7 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives"
 	"math/rand"
 	"testing"
 )
@@ -143,7 +143,7 @@ func Test_bolt_init(t *testing.T) {
 		var a interfaces.IBlock
 		a = new(Address)
 		instances[cp(a.GetDBHash())] = a
-		a = new(Hash)
+		a = new(primitives.Hash)
 		instances[cp(a.GetDBHash())] = a
 		a = new(InAddress)
 		instances[cp(a.GetDBHash())] = a
@@ -163,15 +163,15 @@ func Test_bolt_init(t *testing.T) {
 	db.Init(bucketList, instances)
 	a := new(Address)
 	a.SetBytes(Sha([]byte("I came, I saw")).Bytes())
-	db.Put("one", Sha([]byte("one")), a)
-	r := db.Get("one", Sha([]byte("one")))
+	db.Put("one", primitives.Sha([]byte("one")), a)
+	r := db.Get("one", primitives.Sha([]byte("one")))
 
 	if a.IsEqual(r) != nil {
 		t.Fail()
 	}
 
-	db.DeleteKey([]byte("one"), Sha([]byte("one")).Bytes())
-	r = db.Get("one", Sha([]byte("one")))
+	db.DeleteKey([]byte("one"), primitives.Sha([]byte("one")).Bytes())
+	r = db.Get("one", primitives.Sha([]byte("one")))
 
 	if r != nil {
 		t.Fail()

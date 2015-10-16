@@ -8,7 +8,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 type DBEntry struct {
@@ -70,13 +70,13 @@ func (e *DBEntry) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 		}
 	}()
 	newData = data
-	e.ChainID = new(Hash)
+	e.ChainID = new(primitives.Hash)
 	newData, err = e.ChainID.UnmarshalBinaryData(newData)
 	if err != nil {
 		return
 	}
 
-	e.KeyMR = new(Hash)
+	e.KeyMR = new(primitives.Hash)
 	newData, err = e.KeyMR.UnmarshalBinaryData(newData)
 	if err != nil {
 		return
@@ -92,19 +92,19 @@ func (e *DBEntry) UnmarshalBinary(data []byte) (err error) {
 
 func (e *DBEntry) ShaHash() interfaces.IHash {
 	byteArray, _ := e.MarshalBinary()
-	return Sha(byteArray)
+	return primitives.Sha(byteArray)
 }
 
 func (e *DBEntry) JSONByte() ([]byte, error) {
-	return EncodeJSON(e)
+	return primitives.EncodeJSON(e)
 }
 
 func (e *DBEntry) JSONString() (string, error) {
-	return EncodeJSONString(e)
+	return primitives.EncodeJSONString(e)
 }
 
 func (e *DBEntry) JSONBuffer(b *bytes.Buffer) error {
-	return EncodeJSONToBuffer(e, b)
+	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (e *DBEntry) String() string {

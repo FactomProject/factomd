@@ -11,7 +11,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 // An Entry is the element which carries user data
@@ -32,16 +32,16 @@ func (c *Entry) MarshalledSize() uint64 {
 
 func NewEntry() *Entry {
 	e := new(Entry)
-	e.ChainID = NewZeroHash()
+	e.ChainID = primitives.NewZeroHash()
 	e.ExtIDs = make([][]byte, 0)
 	e.Content = make([]byte, 0)
 	return e
 }
 
-// NewChainID generates a ChainID from an entry. ChainID = Sha(Sha(ExtIDs[0]) +
+// NewChainID generates a ChainID from an entry. ChainID = primitives.Sha(Sha(ExtIDs[0]) +
 // Sha(ExtIDs[1] + ... + Sha(ExtIDs[n]))
 func NewChainID(e interfaces.IEBEntry) interfaces.IHash {
-	id := new(Hash)
+	id := new(primitives.Hash)
 	sum := sha256.New()
 	for _, v := range e.ExternalIDs() {
 		x := sha256.Sum256(v)
@@ -75,7 +75,7 @@ func (e *Entry) IsValid() bool {
 }
 
 func (e *Entry) Hash() interfaces.IHash {
-	h := NewZeroHash()
+	h := primitives.NewZeroHash()
 	entry, err := e.MarshalBinary()
 	if err != nil {
 		return h
@@ -148,7 +148,7 @@ func (e *Entry) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	}
 
 	// 32 byte ChainID
-	e.ChainID = NewZeroHash()
+	e.ChainID = primitives.NewZeroHash()
 	if _, err = buf.Read(hash); err != nil {
 		return
 	} else if err = e.ChainID.SetBytes(hash); err != nil {
@@ -200,15 +200,15 @@ func (e *Entry) UnmarshalBinary(data []byte) (err error) {
 }
 
 func (e *Entry) JSONByte() ([]byte, error) {
-	return EncodeJSON(e)
+	return primitives.EncodeJSON(e)
 }
 
 func (e *Entry) JSONString() (string, error) {
-	return EncodeJSONString(e)
+	return primitives.EncodeJSONString(e)
 }
 
 func (e *Entry) JSONBuffer(b *bytes.Buffer) error {
-	return EncodeJSONToBuffer(e, b)
+	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (e *Entry) String() string {

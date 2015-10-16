@@ -8,7 +8,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 const (
@@ -29,7 +29,7 @@ func (e *MinuteNumber) Hash() interfaces.IHash {
 	if err != nil {
 		panic(err)
 	}
-	return Sha(bin)
+	return primitives.Sha(bin)
 }
 
 func (b *MinuteNumber) IsInterpretable() bool {
@@ -76,15 +76,15 @@ func (m *MinuteNumber) UnmarshalBinary(data []byte) (err error) {
 }
 
 func (e *MinuteNumber) JSONByte() ([]byte, error) {
-	return EncodeJSON(e)
+	return primitives.EncodeJSON(e)
 }
 
 func (e *MinuteNumber) JSONString() (string, error) {
-	return EncodeJSONString(e)
+	return primitives.EncodeJSONString(e)
 }
 
 func (e *MinuteNumber) JSONBuffer(b *bytes.Buffer) error {
-	return EncodeJSONToBuffer(e, b)
+	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (e *MinuteNumber) String() string {

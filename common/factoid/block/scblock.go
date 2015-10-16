@@ -13,7 +13,7 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 // FBlockHeader defines information about a block and is used in the bitcoin
@@ -120,7 +120,7 @@ func (b *FBlock) MarshalHeader() ([]byte, error) {
 	out.Write(constants.FACTOID_CHAINID)
 
 	if b.BodyMR == nil {
-		b.BodyMR = new(Hash)
+		b.BodyMR = new(primitives.Hash)
 	}
 	data, err := b.BodyMR.MarshalBinary()
 	if err != nil {
@@ -129,7 +129,7 @@ func (b *FBlock) MarshalHeader() ([]byte, error) {
 	out.Write(data)
 
 	if b.PrevKeyMR == nil {
-		b.PrevKeyMR = new(Hash)
+		b.PrevKeyMR = new(primitives.Hash)
 	}
 	data, err = b.PrevKeyMR.MarshalBinary()
 	if err != nil {
@@ -138,7 +138,7 @@ func (b *FBlock) MarshalHeader() ([]byte, error) {
 	out.Write(data)
 
 	if b.PrevLedgerKeyMR == nil {
-		b.PrevLedgerKeyMR = new(Hash)
+		b.PrevLedgerKeyMR = new(primitives.Hash)
 	}
 	data, err = b.PrevLedgerKeyMR.MarshalBinary()
 	if err != nil {
@@ -149,7 +149,7 @@ func (b *FBlock) MarshalHeader() ([]byte, error) {
 	binary.Write(&out, binary.BigEndian, uint64(b.ExchRate))
 	binary.Write(&out, binary.BigEndian, uint32(b.DBHeight))
 
-	EncodeVarInt(&out, 0) // At this point in time, nothing in the Expansion Header
+	primitives.EncodeVarInt(&out, 0) // At this point in time, nothing in the Expansion Header
 	// so we just write out a zero.
 
 	binary.Write(&out, binary.BigEndian, uint32(len(b.Transactions)))
@@ -207,19 +207,19 @@ func (b *FBlock) UnmarshalBinaryData(data []byte) (newdata []byte, err error) {
 	}
 	data = data[32:]
 
-	b.BodyMR = new(Hash)
+	b.BodyMR = new(primitives.Hash)
 	data, err = b.BodyMR.UnmarshalBinaryData(data)
 	if err != nil {
 		return nil, err
 	}
 
-	b.PrevKeyMR = new(Hash)
+	b.PrevKeyMR = new(primitives.Hash)
 	data, err = b.PrevKeyMR.UnmarshalBinaryData(data)
 	if err != nil {
 		return nil, err
 	}
 
-	b.PrevLedgerKeyMR = new(Hash)
+	b.PrevLedgerKeyMR = new(primitives.Hash)
 	data, err = b.PrevLedgerKeyMR.UnmarshalBinaryData(data)
 	if err != nil {
 		return nil, err
@@ -228,8 +228,8 @@ func (b *FBlock) UnmarshalBinaryData(data []byte) (newdata []byte, err error) {
 	b.ExchRate, data = binary.BigEndian.Uint64(data[0:8]), data[8:]
 	b.DBHeight, data = binary.BigEndian.Uint32(data[0:4]), data[4:]
 
-	skip, data := DecodeVarInt(data) // Skip the Expansion Header, if any, since
-	data = data[skip:]               // we don't know what to do with it.
+	skip, data := primitives.DecodeVarInt(data) // Skip the Expansion Header, if any, since
+	data = data[skip:]                          // we don't know what to do with it.
 
 	cnt, data := binary.BigEndian.Uint32(data[0:4]), data[4:]
 
@@ -308,7 +308,7 @@ func (b1 *FBlock) IsEqual(block interfaces.IBlock) []interfaces.IBlock {
 	return nil
 }
 func (b *FBlock) GetChainID() interfaces.IHash {
-	h := new(Hash)
+	h := new(primitives.Hash)
 	h.SetBytes(constants.FACTOID_CHAINID)
 	return h
 }
@@ -322,9 +322,9 @@ func (b *FBlock) GetKeyMR() interfaces.IHash {
 	if err != nil {
 		panic("Failed to create KeyMR: " + err.Error())
 	}
-	headerHash := Sha(data)
+	headerHash := primitives.Sha(data)
 	cat := append(headerHash.Bytes(), bodyMR.Bytes()...)
-	kmr := Sha(cat)
+	kmr := primitives.Sha(cat)
 	return kmr
 }
 
@@ -337,9 +337,9 @@ func (b *FBlock) GetLedgerKeyMR() interfaces.IHash {
 	if err != nil {
 		panic("Failed to create LedgerKeyMR: " + err.Error())
 	}
-	headerHash := Sha(data)
+	headerHash := primitives.Sha(data)
 	cat := append(ledgerMR.Bytes(), headerHash.Bytes()...)
-	lkmr := Sha(cat)
+	lkmr := primitives.Sha(cat)
 
 	return lkmr
 }
@@ -354,10 +354,10 @@ func (b *FBlock) GetLedgerMR() interfaces.IHash {
 	for i, trans := range b.Transactions {
 		for marker < len(b.endOfPeriod) && i != 0 && i == b.endOfPeriod[marker] {
 			marker++
-			hashes = append(hashes, Sha(constants.ZERO))
+			hashes = append(hashes, primitives.Sha(constants.ZERO))
 		}
 		data, err := trans.MarshalBinarySig()
-		hash := Sha(data)
+		hash := primitives.Sha(data)
 		if err != nil {
 			panic("Failed to get LedgerMR: " + err.Error())
 		}
@@ -367,9 +367,9 @@ func (b *FBlock) GetLedgerMR() interfaces.IHash {
 	// Add any lagging markers
 	for marker < len(b.endOfPeriod) {
 		marker++
-		hashes = append(hashes, Sha(constants.ZERO))
+		hashes = append(hashes, primitives.Sha(constants.ZERO))
 	}
-	lmr := ComputeMerkleRoot(hashes)
+	lmr := primitives.ComputeMerkleRoot(hashes)
 	return lmr
 }
 
@@ -382,17 +382,17 @@ func (b *FBlock) GetBodyMR() interfaces.IHash {
 	for i, trans := range b.Transactions {
 		for marker < len(b.endOfPeriod) && i != 0 && i == b.endOfPeriod[marker] {
 			marker++
-			hashes = append(hashes, Sha(constants.ZERO))
+			hashes = append(hashes, primitives.Sha(constants.ZERO))
 		}
 		hashes = append(hashes, trans.GetHash())
 	}
 	// Add any lagging markers
 	for marker < len(b.endOfPeriod) {
 		marker++
-		hashes = append(hashes, Sha(constants.ZERO))
+		hashes = append(hashes, primitives.Sha(constants.ZERO))
 	}
 
-	b.BodyMR = ComputeMerkleRoot(hashes)
+	b.BodyMR = primitives.ComputeMerkleRoot(hashes)
 
 	return b.BodyMR
 }
@@ -401,7 +401,7 @@ func (b *FBlock) GetPrevKeyMR() interfaces.IHash {
 	return b.PrevKeyMR
 }
 func (b *FBlock) SetPrevKeyMR(hash []byte) {
-	h := NewHash(hash)
+	h := primitives.NewHash(hash)
 	b.PrevKeyMR = h
 }
 func (b *FBlock) GetPrevLedgerKeyMR() interfaces.IHash {
@@ -470,10 +470,10 @@ func (b FBlock) ValidateTransaction(index int, trans interfaces.ITransaction) er
 	if tin < sum {
 		return fmt.Errorf("The inputs %s do not cover the outputs %s,\n"+
 			"the Entry Credit outputs %s, and the required fee %s",
-			ConvertDecimalToString(tin),
-			ConvertDecimalToString(tout),
-			ConvertDecimalToString(tec),
-			ConvertDecimalToString(fee))
+			primitives.ConvertDecimalToString(tin),
+			primitives.ConvertDecimalToString(tout),
+			primitives.ConvertDecimalToString(tec),
+			primitives.ConvertDecimalToString(fee))
 	}
 	return nil
 }
@@ -572,36 +572,36 @@ func (b FBlock) CustomMarshalText() (text []byte, err error) {
 	out.WriteString("  ChainID:       ")
 	out.WriteString(hex.EncodeToString(constants.FACTOID_CHAINID))
 	if b.BodyMR == nil {
-		b.BodyMR = new(Hash)
+		b.BodyMR = new(primitives.Hash)
 	}
 	out.WriteString("\n  BodyMR:        ")
 	out.WriteString(b.BodyMR.String())
 	if b.PrevKeyMR == nil {
-		b.PrevKeyMR = new(Hash)
+		b.PrevKeyMR = new(primitives.Hash)
 	}
 	out.WriteString("\n  PrevKeyMR:     ")
 	out.WriteString(b.PrevKeyMR.String())
 	if b.PrevLedgerKeyMR == nil {
-		b.PrevLedgerKeyMR = new(Hash)
+		b.PrevLedgerKeyMR = new(primitives.Hash)
 	}
 	out.WriteString("\n  PrevLedgerKeyMR:  ")
 	out.WriteString(b.PrevLedgerKeyMR.String())
 	out.WriteString("\n  ExchRate:      ")
-	WriteNumber64(&out, b.ExchRate)
+	primitives.WriteNumber64(&out, b.ExchRate)
 	out.WriteString("\n  DBHeight:      ")
-	WriteNumber32(&out, b.DBHeight)
+	primitives.WriteNumber32(&out, b.DBHeight)
 	out.WriteString("\n  Period Marks:  ")
 	for _, mark := range b.endOfPeriod {
 		out.WriteString(fmt.Sprintf("%d ", mark))
 	}
 	out.WriteString("\n  #Transactions: ")
-	WriteNumber32(&out, uint32(len(b.Transactions)))
+	primitives.WriteNumber32(&out, uint32(len(b.Transactions)))
 	transdata, err := b.MarshalTrans()
 	if err != nil {
 		return out.Bytes(), err
 	}
 	out.WriteString("\n  Body Size:     ")
-	WriteNumber32(&out, uint32(len(transdata)))
+	primitives.WriteNumber32(&out, uint32(len(transdata)))
 	out.WriteString("\n\n")
 	markPeriod := 0
 
@@ -622,15 +622,15 @@ func (b FBlock) CustomMarshalText() (text []byte, err error) {
 }
 
 func (e *FBlock) JSONByte() ([]byte, error) {
-	return EncodeJSON(e)
+	return primitives.EncodeJSON(e)
 }
 
 func (e *FBlock) JSONString() (string, error) {
-	return EncodeJSONString(e)
+	return primitives.EncodeJSONString(e)
 }
 
 func (e *FBlock) JSONBuffer(b *bytes.Buffer) error {
-	return EncodeJSONToBuffer(e, b)
+	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 /**************************
@@ -639,9 +639,9 @@ func (e *FBlock) JSONBuffer(b *bytes.Buffer) error {
 
 func NewFBlock(ExchRate uint64, DBHeight uint32) interfaces.IFBlock {
 	scb := new(FBlock)
-	scb.BodyMR = new(Hash)
-	scb.PrevKeyMR = new(Hash)
-	scb.PrevLedgerKeyMR = new(Hash)
+	scb.BodyMR = new(primitives.Hash)
+	scb.PrevKeyMR = new(primitives.Hash)
+	scb.PrevLedgerKeyMR = new(primitives.Hash)
 	scb.ExchRate = ExchRate
 	scb.DBHeight = DBHeight
 	return scb

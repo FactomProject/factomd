@@ -10,7 +10,7 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/factoid/state"
 	"github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives"
 	"math/rand"
 	"strings"
 	"time"
@@ -128,7 +128,7 @@ func (fs *Test_state) newTransaction(maxIn, maxOut int) interfaces.ITransaction 
 		paid = toPay + paid
 		fs.twallet.AddInput(t, adr, toPay)
 		//fmt.Print("\033[10;3H")
-		//fmt.Printf("%s %s    \n",adr.String(),ConvertDecimal(toPay))
+		//fmt.Printf("%s %s    \n",adr.String(),primitives.ConvertDecimal(toPay))
 		//fmt.Print("\033[40;3H")
 	}
 

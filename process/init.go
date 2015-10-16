@@ -28,7 +28,7 @@ import (
 	. "github.com/FactomProject/factomd/common/entryBlock"
 	. "github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 var _ = debug.PrintStack
@@ -38,7 +38,7 @@ func initDChain() {
 	dchain = new(DChain)
 
 	//Initialize the Directory Block Chain ID
-	dchain.ChainID = new(Hash)
+	dchain.ChainID = new(primitives.Hash)
 	barray := constants.D_CHAINID
 	dchain.ChainID.SetBytes(barray)
 
@@ -138,7 +138,7 @@ func initAChain() {
 
 	//Initialize the Admin Chain ID
 	achain = new(AdminChain)
-	achain.ChainID = new(Hash)
+	achain.ChainID = new(primitives.Hash)
 	achain.ChainID.SetBytes(ADMIN_CHAINID)
 
 	// get all aBlocks from db
@@ -173,7 +173,7 @@ func initFctChain() {
 
 	//Initialize the Admin Chain ID
 	fchain = new(FctChain)
-	fchain.ChainID = new(Hash)
+	fchain.ChainID = new(primitives.Hash)
 	fchain.ChainID.SetBytes(constants.FACTOID_CHAINID)
 
 	// get all aBlocks from db

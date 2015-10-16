@@ -17,7 +17,7 @@ import (
 	. "github.com/FactomProject/factomd/common/directoryBlock"
 	. "github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database"
 	ldb "github.com/FactomProject/factomd/database/leveldb"
 	"github.com/FactomProject/factomd/util"
@@ -91,7 +91,7 @@ func dirBlockInfoToAnchorChain(aRecord *anchor.AnchorRecord) (*DirBlockInfo, err
 	dblock, err := db.FetchDBlockByHeight(aRecord.DBHeight)
 	if err != nil {
 		fmt.Printf("err in FetchDBlockByHeight: %d\n", aRecord.DBHeight)
-		dirBlockInfo.DBHash = new(Hash)
+		dirBlockInfo.DBHash = new(primitives.Hash)
 	} else {
 		dirBlockInfo.Timestamp = int64(dblock.Header.Timestamp)
 		dirBlockInfo.DBHash = dblock.DBHash
@@ -152,7 +152,7 @@ func initDB(ldbpath string) {
 }
 
 func toHash(txHash *wire.ShaHash) *Hash {
-	h := new(Hash)
+	h := new(primitives.Hash)
 	h.SetBytes(txHash.Bytes())
 	return h
 }

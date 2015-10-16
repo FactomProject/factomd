@@ -1541,7 +1541,7 @@ func (state *gbtWorkState) updateBlockTemplate(s *rpcServer, useCoinbaseValue bo
 
 			// Update the merkle root.
 			block := btcutil.NewBlock(template.block)
-			merkles := blockchain.BuildMerkleTreeStore(block.Transactions())
+			merkles := blockchain.primitives.BuildMerkleTreeStore(block.Transactions())
 			template.block.Header.MerkleRoot = *merkles[len(merkles)-1]
 		}
 
@@ -2789,7 +2789,7 @@ func handleGetWorkSubmission(s *rpcServer, hexData string) (interface{}, error) 
 	msgBlock.Header.Timestamp = submittedHeader.Timestamp
 	msgBlock.Header.Nonce = submittedHeader.Nonce
 	msgBlock.Transactions[0].TxIn[0].SignatureScript = blockInfo.signatureScript
-	merkles := blockchain.BuildMerkleTreeStore(block.Transactions())
+	merkles := blockchain.primitives.BuildMerkleTreeStore(block.Transactions())
 	msgBlock.Header.MerkleRoot = *merkles[len(merkles)-1]
 
 	// Ensure the submitted block hash is less than the target difficulty.

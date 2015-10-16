@@ -11,7 +11,7 @@ import (
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 type DirectoryBlock struct {
@@ -58,15 +58,15 @@ func (c *DirectoryBlock) MarshalledSize() uint64 {
 }
 
 func (e *DirectoryBlock) JSONByte() ([]byte, error) {
-	return EncodeJSON(e)
+	return primitives.EncodeJSON(e)
 }
 
 func (e *DirectoryBlock) JSONString() (string, error) {
-	return EncodeJSONString(e)
+	return primitives.EncodeJSONString(e)
 }
 
 func (e *DirectoryBlock) JSONBuffer(b *bytes.Buffer) error {
-	return EncodeJSONToBuffer(e, b)
+	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (e *DirectoryBlock) String() string {
@@ -99,14 +99,14 @@ func (b *DirectoryBlock) BuildBodyMR() (mr interfaces.IHash, err error) {
 	hashes := make([]interfaces.IHash, len(b.DBEntries))
 	for i, entry := range b.DBEntries {
 		data, _ := entry.MarshalBinary()
-		hashes[i] = Sha(data)
+		hashes[i] = primitives.Sha(data)
 	}
 
 	if len(hashes) == 0 {
-		hashes = append(hashes, Sha(nil))
+		hashes = append(hashes, primitives.Sha(nil))
 	}
 
-	merkle := BuildMerkleTreeStore(hashes)
+	merkle := primitives.BuildMerkleTreeStore(hashes)
 	return merkle[len(merkle)-1], nil
 }
 
@@ -114,9 +114,9 @@ func (b *DirectoryBlock) BuildKeyMerkleRoot() (keyMR interfaces.IHash, err error
 	// Create the Entry Block Key Merkle Root from the hash of Header and the Body Merkle Root
 	hashes := make([]interfaces.IHash, 0, 2)
 	binaryEBHeader, _ := b.Header.MarshalBinary()
-	hashes = append(hashes, Sha(binaryEBHeader))
+	hashes = append(hashes, primitives.Sha(binaryEBHeader))
 	hashes = append(hashes, b.Header.BodyMR)
-	merkle := BuildMerkleTreeStore(hashes)
+	merkle := primitives.BuildMerkleTreeStore(hashes)
 	keyMR = merkle[len(merkle)-1] // MerkleRoot is not marshalized in Dir Block
 
 	return keyMR, nil
@@ -166,7 +166,7 @@ func (b *DirectoryBlock) GetHash() interfaces.IHash {
 		if err != nil {
 			return nil
 		}
-		b.DBHash = Sha(binaryDblock)
+		b.DBHash = primitives.Sha(binaryDblock)
 	}
 	return b.DBHash
 }
@@ -198,8 +198,8 @@ func NewDirectoryBlock() *DirectoryBlock {
 	d.Header = NewDBlockHeader()
 
 	d.DBEntries = make([]*DBEntry, 0)
-	d.DBHash = NewZeroHash()
-	d.KeyMR = NewZeroHash()
+	d.DBHash = primitives.NewZeroHash()
+	d.KeyMR = primitives.NewZeroHash()
 
 	return d
 }
@@ -221,10 +221,10 @@ func CreateDBlock(nextDBHeight uint32, prev *DirectoryBlock, cap uint) (b *Direc
 	b.Header.Version = constants.VERSION_0
 
 	if prev == nil {
-		b.Header.PrevLedgerKeyMR = NewZeroHash()
-		b.Header.PrevKeyMR = NewZeroHash()
+		b.Header.PrevLedgerKeyMR = primitives.NewZeroHash()
+		b.Header.PrevKeyMR = primitives.NewZeroHash()
 	} else {
-		b.Header.PrevLedgerKeyMR, err = CreateHash(prev)
+		b.Header.PrevLedgerKeyMR, err = primitives.CreateHash(prev)
 		if prev.KeyMR == nil {
 			prev.BuildKeyMerkleRoot()
 		}

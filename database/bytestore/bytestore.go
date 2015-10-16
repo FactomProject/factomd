@@ -16,7 +16,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 var _ = fmt.Println
@@ -43,7 +43,7 @@ func (b ByteStore) Bytes() []byte {
 	return b.byteData
 }
 func (b ByteStore) GetHash() interfaces.IHash {
-	return Sha(b.byteData)
+	return primitives.Sha(b.byteData)
 }
 
 func (b *ByteStore) SetBytes(data []byte) {
@@ -98,13 +98,13 @@ func (ByteStore) GetNewInstance() interfaces.IBlock {
 }
 
 func (e ByteStore) JSONByte() ([]byte, error) {
-	return EncodeJSON(e)
+	return primitives.EncodeJSON(e)
 }
 
 func (e ByteStore) JSONString() (string, error) {
-	return EncodeJSONString(e)
+	return primitives.EncodeJSONString(e)
 }
 
 func (e ByteStore) JSONBuffer(b *bytes.Buffer) error {
-	return EncodeJSONToBuffer(e, b)
+	return primitives.EncodeJSONToBuffer(e, b)
 }

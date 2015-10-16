@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives"
 	"io"
 
 	//"github.com/FactomProject/factomd/util"
@@ -74,7 +74,7 @@ func (msg *MsgGetDirBlocks) BtcDecode(r io.Reader, pver uint32) error {
 
 	msg.BlockLocatorHashes = make([]interfaces.IHash, 0, count)
 	for i := uint64(0); i < count; i++ {
-		sha := new(Hash)
+		sha := new(primitives.Hash)
 		err := readElement(r, sha)
 		if err != nil {
 			return err

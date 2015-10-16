@@ -17,7 +17,7 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 type WalletEntry struct {
@@ -85,7 +85,7 @@ func (w1 WalletEntry) GetAddress() (interfaces.IAddress, error) {
 		if len(w1.public) == 0 {
 			err = fmt.Errorf("No Public Key for WalletEntry")
 		} else {
-			adr = NewHash(w1.public[0])
+			adr = primitives.NewHash(w1.public[0])
 		}
 	}
 	if err != nil {
@@ -210,7 +210,7 @@ func (w WalletEntry) CustomMarshalText() (text []byte, err error) {
 
 	out.WriteString("\n public:  ")
 	for i, public := range w.public {
-		WriteNumber16(&out, uint16(i))
+		primitives.WriteNumber16(&out, uint16(i))
 		out.WriteString(" ")
 		addr := hex.EncodeToString(public)
 		out.WriteString(addr)
@@ -219,7 +219,7 @@ func (w WalletEntry) CustomMarshalText() (text []byte, err error) {
 
 	out.WriteString("\n private:  ")
 	for i, private := range w.private {
-		WriteNumber16(&out, uint16(i))
+		primitives.WriteNumber16(&out, uint16(i))
 		out.WriteString(" ")
 		addr := hex.EncodeToString(private)
 		out.WriteString(addr)
@@ -267,13 +267,13 @@ func (w *WalletEntry) SetName(name []byte) {
 }
 
 func (e *WalletEntry) JSONByte() ([]byte, error) {
-	return EncodeJSON(e)
+	return primitives.EncodeJSON(e)
 }
 
 func (e *WalletEntry) JSONString() (string, error) {
-	return EncodeJSONString(e)
+	return primitives.EncodeJSONString(e)
 }
 
 func (e *WalletEntry) JSONBuffer(b *bytes.Buffer) error {
-	return EncodeJSONToBuffer(e, b)
+	return primitives.EncodeJSONToBuffer(e, b)
 }

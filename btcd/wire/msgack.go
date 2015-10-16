@@ -12,7 +12,7 @@ import (
 	"io/ioutil"
 
 	"github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 // Acknowledgement Type
@@ -87,14 +87,14 @@ func (msg *MsgAcknowledgement) BtcDecode(r io.Reader, pver uint32) error {
 
 	msg.Height, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
-	msg.ChainID = new(Hash)
+	msg.ChainID = new(primitives.Hash)
 	newData, _ = msg.ChainID.UnmarshalBinaryData(newData)
 
 	msg.Index, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
 	msg.Type, newData = newData[0], newData[1:]
 
-	msg.Affirmation = NewHash(newData[0:32])
+	msg.Affirmation = primitives.NewHash(newData[0:32])
 	newData = newData[32:]
 
 	copy(msg.SerialHash[:], newData[0:32])
@@ -145,11 +145,11 @@ func (msg *MsgAcknowledgement) MaxPayloadLength(pver uint32) uint32 {
 func NewMsgAcknowledgement(height uint32, index uint32, affirm interfaces.IHash, ackType byte) *MsgAcknowledgement {
 
 	if affirm == nil {
-		affirm = new(Hash)
+		affirm = new(primitives.Hash)
 	}
 	return &MsgAcknowledgement{
 		Height:      height,
-		ChainID:     new(Hash), //TODO: get the correct chain id from processor
+		ChainID:     new(primitives.Hash), //TODO: get the correct chain id from processor
 		Index:       index,
 		Affirmation: affirm,
 		Type:        ackType,

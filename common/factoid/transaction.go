@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives"
 	"time"
 )
 
@@ -47,7 +47,7 @@ func (t Transaction) GetHash() interfaces.IHash {
 	if err != nil {
 		return nil
 	}
-	return Sha(m)
+	return primitives.Sha(m)
 }
 
 func (t Transaction) GetSigHash() interfaces.IHash {
@@ -55,7 +55,7 @@ func (t Transaction) GetSigHash() interfaces.IHash {
 	if err != nil {
 		return nil
 	}
-	return Sha(m)
+	return primitives.Sha(m)
 }
 
 func (t Transaction) String() string {
@@ -244,7 +244,7 @@ func (t Transaction) Validate(index int) error {
 		}
 	} else {
 		if index == 0 {
-			PrtStk()
+			primitives.PrtStk()
 			fmt.Println(index, t)
 			return fmt.Errorf("Coinbase transactions cannot have inputs.")
 		}
@@ -426,7 +426,7 @@ func (t *Transaction) UnmarshalBinaryData(data []byte) (newData []byte, err erro
 
 	// To capture the panic, my code needs to be in a function.  So I'm
 	// creating one here, and call it at the end of this function.
-	v, data := DecodeVarInt(data)
+	v, data := primitives.DecodeVarInt(data)
 	if v != t.GetVersion() {
 		return nil, fmt.Errorf("Wrong Transaction Version encountered. Expected %v and found %v", t.GetVersion(), v)
 	}
@@ -497,7 +497,7 @@ func (t *Transaction) UnmarshalBinary(data []byte) (err error) {
 func (t *Transaction) MarshalBinarySig() (newData []byte, err error) {
 	var out bytes.Buffer
 
-	EncodeVarInt(&out, t.GetVersion())
+	primitives.EncodeVarInt(&out, t.GetVersion())
 
 	hd := uint32(t.MilliTimestamp >> 16)
 	ld := uint16(t.MilliTimestamp & 0xFFFF)
@@ -625,17 +625,17 @@ func (t *Transaction) CustomMarshalText() (text []byte, err error) {
 	var out bytes.Buffer
 	out.WriteString(fmt.Sprintf("Transaction (size %d):\n", len(data)))
 	out.WriteString("                 Version: ")
-	WriteNumber64(&out, uint64(t.GetVersion()))
+	primitives.WriteNumber64(&out, uint64(t.GetVersion()))
 	out.WriteString("\n          MilliTimestamp: ")
-	WriteNumber64(&out, uint64(t.MilliTimestamp))
+	primitives.WriteNumber64(&out, uint64(t.MilliTimestamp))
 	ts := time.Unix(0, int64(t.MilliTimestamp*1000000))
 	out.WriteString(ts.UTC().Format(" Jan 2, 2006 at 3:04am (MST)"))
 	out.WriteString("\n                # Inputs: ")
-	WriteNumber16(&out, uint16(len(t.Inputs)))
+	primitives.WriteNumber16(&out, uint16(len(t.Inputs)))
 	out.WriteString("\n               # Outputs: ")
-	WriteNumber16(&out, uint16(len(t.Outputs)))
+	primitives.WriteNumber16(&out, uint16(len(t.Outputs)))
 	out.WriteString("\n   # EntryCredit Outputs: ")
-	WriteNumber16(&out, uint16(len(t.OutECs)))
+	primitives.WriteNumber16(&out, uint16(len(t.OutECs)))
 	out.WriteString("\n")
 	for _, address := range t.Inputs {
 		text, _ := address.CustomMarshalText()
@@ -680,13 +680,13 @@ func (t *Transaction) AddAuthorization(auth interfaces.IRCD) {
 }
 
 func (e *Transaction) JSONByte() ([]byte, error) {
-	return EncodeJSON(e)
+	return primitives.EncodeJSON(e)
 }
 
 func (e *Transaction) JSONString() (string, error) {
-	return EncodeJSONString(e)
+	return primitives.EncodeJSONString(e)
 }
 
 func (e *Transaction) JSONBuffer(b *bytes.Buffer) error {
-	return EncodeJSONToBuffer(e, b)
+	return primitives.EncodeJSONToBuffer(e, b)
 }

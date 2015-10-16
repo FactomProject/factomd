@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives"
 	"io"
 )
 
@@ -93,7 +93,7 @@ func (e *ECBlock) Hash() (interfaces.IHash, error) {
 	if err != nil {
 		return nil, err
 	}
-	return Sha(p), nil
+	return primitives.Sha(p), nil
 }
 
 func (e *ECBlock) HeaderHash() (interfaces.IHash, error) {
@@ -101,7 +101,7 @@ func (e *ECBlock) HeaderHash() (interfaces.IHash, error) {
 	if err != nil {
 		return nil, err
 	}
-	return Sha(p), nil
+	return primitives.Sha(p), nil
 }
 
 func (e *ECBlock) MarshalBinary() ([]byte, error) {
@@ -134,7 +134,7 @@ func (e *ECBlock) BuildHeader() error {
 		return err
 	}
 
-	e.Header.BodyHash = Sha(p)
+	e.Header.BodyHash = primitives.Sha(p)
 	e.Header.ObjectCount = uint64(len(e.Body.Entries))
 	e.Header.BodySize = uint64(len(p))
 
@@ -198,7 +198,7 @@ func (e *ECBlock) marshalHeaderBinary() ([]byte, error) {
 	}
 
 	// variable Header Expansion Size
-	if err := EncodeVarInt(buf,
+	if err := primitives.EncodeVarInt(buf,
 		uint64(len(e.Header.HeaderExpansionArea))); err != nil {
 		return buf.Bytes(), err
 	}
@@ -336,7 +336,7 @@ func (e *ECBlock) unmarshalHeaderBinaryData(data []byte) (newData []byte, err er
 	}
 
 	// read the Header Expansion Area
-	hesize, tmp := DecodeVarInt(buf.Bytes())
+	hesize, tmp := primitives.DecodeVarInt(buf.Bytes())
 	buf = bytes.NewBuffer(tmp)
 	e.Header.HeaderExpansionArea = make([]byte, hesize)
 	if _, err = buf.Read(e.Header.HeaderExpansionArea); err != nil {
@@ -361,15 +361,15 @@ func (e *ECBlock) unmarshalHeaderBinary(data []byte) error {
 }
 
 func (e *ECBlock) JSONByte() ([]byte, error) {
-	return EncodeJSON(e)
+	return primitives.EncodeJSON(e)
 }
 
 func (e *ECBlock) JSONString() (string, error) {
-	return EncodeJSONString(e)
+	return primitives.EncodeJSONString(e)
 }
 
 func (e *ECBlock) JSONBuffer(b *bytes.Buffer) error {
-	return EncodeJSONToBuffer(e, b)
+	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (e *ECBlock) String() string {
@@ -390,15 +390,15 @@ func NewECBlockBody() *ECBlockBody {
 }
 
 func (e *ECBlockBody) JSONByte() ([]byte, error) {
-	return EncodeJSON(e)
+	return primitives.EncodeJSON(e)
 }
 
 func (e *ECBlockBody) JSONString() (string, error) {
-	return EncodeJSONString(e)
+	return primitives.EncodeJSONString(e)
 }
 
 func (e *ECBlockBody) JSONBuffer(b *bytes.Buffer) error {
-	return EncodeJSONToBuffer(e, b)
+	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (e *ECBlockBody) String() string {
@@ -431,25 +431,25 @@ var _ interfaces.Printable = (*ECBlockHeader)(nil)
 
 func NewECBlockHeader() *ECBlockHeader {
 	h := new(ECBlockHeader)
-	h.ECChainID = NewZeroHash()
+	h.ECChainID = primitives.NewZeroHash()
 	h.ECChainID.SetBytes(constants.EC_CHAINID)
-	h.BodyHash = NewZeroHash()
-	h.PrevHeaderHash = NewZeroHash()
-	h.PrevLedgerKeyMR = NewZeroHash()
+	h.BodyHash = primitives.NewZeroHash()
+	h.PrevHeaderHash = primitives.NewZeroHash()
+	h.PrevLedgerKeyMR = primitives.NewZeroHash()
 	h.HeaderExpansionArea = make([]byte, 0)
 	return h
 }
 
 func (e *ECBlockHeader) JSONByte() ([]byte, error) {
-	return EncodeJSON(e)
+	return primitives.EncodeJSON(e)
 }
 
 func (e *ECBlockHeader) JSONString() (string, error) {
-	return EncodeJSONString(e)
+	return primitives.EncodeJSONString(e)
 }
 
 func (e *ECBlockHeader) JSONBuffer(b *bytes.Buffer) error {
-	return EncodeJSONToBuffer(e, b)
+	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (e *ECBlockHeader) String() string {

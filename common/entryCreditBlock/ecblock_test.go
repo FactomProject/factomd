@@ -7,7 +7,7 @@ import (
 
 	ed "github.com/FactomProject/ed25519"
 	. "github.com/FactomProject/factomd/common/entryCreditBlock"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/davecgh/go-spew/spew"
 )
 
@@ -19,7 +19,7 @@ func TestECBlockMarshal(t *testing.T) {
 	// build a CommitChain for testing
 	cc := NewCommitChain()
 	cc.Version = 0
-	cc.MilliTime = (*ByteSlice6)(&[6]byte{1, 1, 1, 1, 1, 1})
+	cc.MilliTime = (*primitives.ByteSlice6)(&[6]byte{1, 1, 1, 1, 1, 1})
 	cc.ChainIDHash.SetBytes(byteof(0xaa))
 	cc.Weld.SetBytes(byteof(0xbb))
 	cc.EntryHash.SetBytes(byteof(0xcc))
@@ -29,8 +29,8 @@ func TestECBlockMarshal(t *testing.T) {
 	if pub, privkey, err := ed.GenerateKey(rand.Reader); err != nil {
 		t.Error(err)
 	} else {
-		cc.ECPubKey = (*ByteSlice32)(pub)
-		cc.Sig = (*ByteSlice64)(ed.Sign(privkey, cc.CommitMsg()))
+		cc.ECPubKey = (*primitives.ByteSlice32)(pub)
+		cc.Sig = (*primitives.ByteSlice64)(ed.Sign(privkey, cc.CommitMsg()))
 	}
 
 	// create a ECBlock for testing
@@ -56,7 +56,7 @@ func TestECBlockMarshal(t *testing.T) {
 
 	// create an IncreaseBalance for testing
 	ib := NewIncreaseBalance()
-	pub := new(ByteSlice32)
+	pub := new(primitives.ByteSlice32)
 	copy(pub[:], byteof(0xaa))
 	ib.ECPubKey = pub
 	ib.TXID.SetBytes(byteof(0xbb))
