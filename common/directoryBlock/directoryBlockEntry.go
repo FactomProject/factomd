@@ -20,11 +20,6 @@ var _ interfaces.Printable = (*DBEntry)(nil)
 var _ interfaces.BinaryMarshallable = (*DBEntry)(nil)
 var _ interfaces.IDBEntry = (*DBEntry)(nil)
 
-func (c *DBEntry) MarshalledSize() uint64 {
-	panic("Function not implemented")
-	return 0
-}
-
 func (c *DBEntry) GetChainID() interfaces.IHash {
 	return c.ChainID
 }

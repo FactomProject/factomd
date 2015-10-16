@@ -80,10 +80,6 @@ func (s FactoidSignature) MarshalBinary() ([]byte, error) {
 
 	return out.Bytes(), nil
 }
-func (b FactoidSignature) MarshalledSize() uint64 {
-	hex, _ := b.MarshalBinary()
-	return uint64(len(hex))
-}
 
 func (s FactoidSignature) CustomMarshalText() ([]byte, error) {
 	var out bytes.Buffer

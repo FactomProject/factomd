@@ -145,11 +145,6 @@ func (a RCD_1) MarshalBinary() ([]byte, error) {
 	return out.Bytes(), nil
 }
 
-func (b RCD_1) MarshalledSize() uint64 {
-	hex, _ := b.MarshalBinary()
-	return uint64(len(hex))
-}
-
 func (a RCD_1) CustomMarshalText() (text []byte, err error) {
 	var out bytes.Buffer
 	out.WriteString("RCD 1: ")

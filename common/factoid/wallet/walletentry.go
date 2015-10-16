@@ -193,11 +193,6 @@ func (w WalletEntry) MarshalBinary() ([]byte, error) {
 	return out.Bytes(), nil
 }
 
-func (w WalletEntry) MarshalledSize() uint64 {
-	hex, _ := w.MarshalBinary()
-	return uint64(len(hex))
-}
-
 func (w WalletEntry) CustomMarshalText() (text []byte, err error) {
 	var out bytes.Buffer
 

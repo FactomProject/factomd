@@ -57,11 +57,6 @@ func (c *ECBlock) DatabaseSecondaryIndex() interfaces.IHash {
 	return key
 }
 
-func (c *ECBlock) MarshalledSize() uint64 {
-	panic("Function not implemented")
-	return 0
-}
-
 func NewECBlock() *ECBlock {
 	e := new(ECBlock)
 	e.Header = NewECBlockHeader()

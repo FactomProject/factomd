@@ -52,11 +52,6 @@ func (c *DirectoryBlock) DatabaseSecondaryIndex() interfaces.IHash {
 	return c.GetHash()
 }
 
-func (c *DirectoryBlock) MarshalledSize() uint64 {
-	panic("Function not implemented")
-	return 0
-}
-
 func (e *DirectoryBlock) JSONByte() ([]byte, error) {
 	return primitives.EncodeJSON(e)
 }

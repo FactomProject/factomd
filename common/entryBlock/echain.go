@@ -25,11 +25,6 @@ func (c *EChain) New() interfaces.BinaryMarshallableAndCopyable {
 	return new(EChain)
 }
 
-func (c *EChain) MarshalledSize() uint64 {
-	panic("Function not implemented")
-	return 0
-}
-
 func NewEChain() *EChain {
 	e := new(EChain)
 	e.ChainID = primitives.NewZeroHash()

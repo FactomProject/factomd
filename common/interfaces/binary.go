@@ -13,7 +13,6 @@ type BinaryMarshallable interface {
 	encoding.BinaryUnmarshaler
 
 	UnmarshalBinaryData([]byte) ([]byte, error)
-	//MarshalledSize() uint64
 }
 
 type BinaryMarshallableAndCopyable interface {

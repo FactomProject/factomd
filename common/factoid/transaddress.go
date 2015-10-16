@@ -104,11 +104,6 @@ func (a TransAddress) MarshalBinary() ([]byte, error) {
 	return out.Bytes(), err
 }
 
-func (b TransAddress) MarshalledSize() uint64 {
-	hex, _ := b.MarshalBinary()
-	return uint64(len(hex))
-}
-
 // Accessor. Default to a zero length string.  This is a debug
 // thing for looking out what we have built. Used by
 // CustomMarshalText
