@@ -34,7 +34,7 @@ func NewFactoidState(filename string) IFactoidState {
 	return fs
 }
 
-func GetDatabase(filename string) interfaces. {
+func GetDatabase(filename string) interfaces.IDatabase {
 	var bucketList [][]byte
 
 	bucketList = make([][]byte, 0, 5)
