@@ -21,8 +21,8 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/entryBlock"
 	. "github.com/FactomProject/factomd/common/entryCreditBlock"
-	"github.com/FactomProject/factomd/common/factoid/state"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/state"
 )
 
 const (

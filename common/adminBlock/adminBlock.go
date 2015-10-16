@@ -152,7 +152,7 @@ func (b *AdminBlock) AddABEntry(e ABEntry) (err error) {
 // Add the end-of-minute marker into the admin block
 func (b *AdminBlock) AddEndOfMinuteMarker(eomType byte) (err error) {
 	eOMEntry := &EndOfMinuteEntry{
-		entryType: constants.TYPE_MINUTE_NUM,
+		EntryType: constants.TYPE_MINUTE_NUM,
 		EOM_Type:  eomType}
 
 	b.AddABEntry(eOMEntry)

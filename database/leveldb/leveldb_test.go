@@ -81,7 +81,7 @@ func TestPutGetDelete(t *testing.T) {
 	}
 }
 
-func CleanupTest(t *testing.T, b interfaces.) {
+func CleanupTest(t *testing.T, b interfaces.IDatabase) {
 	err := b.Close()
 	if err != nil {
 		t.Errorf("%v", err)

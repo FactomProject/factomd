@@ -8,7 +8,7 @@ import (
 )
 
 type EndOfMinuteEntry struct {
-	entryType byte
+	EntryType byte
 	EOM_Type  byte
 }
 
@@ -17,13 +17,13 @@ var _ interfaces.BinaryMarshallable = (*EndOfMinuteEntry)(nil)
 var _ ABEntry = (*EndOfMinuteEntry)(nil)
 
 func (m *EndOfMinuteEntry) Type() byte {
-	return m.entryType
+	return m.EntryType
 }
 
 func (e *EndOfMinuteEntry) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
 
-	buf.Write([]byte{e.entryType})
+	buf.Write([]byte{e.EntryType})
 
 	buf.Write([]byte{e.EOM_Type})
 
@@ -46,7 +46,7 @@ func (e *EndOfMinuteEntry) UnmarshalBinaryData(data []byte) (newData []byte, err
 	}()
 	newData = data
 
-	e.entryType, newData = newData[0], newData[1:]
+	e.EntryType, newData = newData[0], newData[1:]
 	e.EOM_Type, newData = newData[0], newData[1:]
 
 	return

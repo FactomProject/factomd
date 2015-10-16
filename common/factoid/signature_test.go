@@ -67,7 +67,7 @@ func Test_Marshal_Signature_(test *testing.T) {
 
 	if s1.IsEqual(s2) != nil {
 		primitives.PrtStk()
-		Prtln(err)
+		primitives.Prtln(err)
 		test.Fail()
 	}
 

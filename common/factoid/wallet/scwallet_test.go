@@ -21,7 +21,7 @@ var _ = fmt.Printf
 var _ = ed25519.Sign
 var _ = rand.New
 var _ = binary.Write
-var _ = Prtln
+var _ = primitives.Prtln
 
 func TestGenerateKeyFromPrivateKey(t *testing.T) {
 	w := new(SCWallet) // make me a wallet
@@ -54,7 +54,7 @@ func Test_create_scwallet(test *testing.T) {
 	pub, pri, err := w.generateKey()
 
 	if err != nil {
-		Prtln("Generate Failed")
+		primitives.Prtln("Generate Failed")
 		test.Fail()
 	}
 
@@ -64,7 +64,7 @@ func Test_create_scwallet(test *testing.T) {
 
 	txt, err := we.CustomMarshalText()
 	var _ = txt
-	// Prtln(string(txt))
+	// primitives.Prtln(string(txt))
 
 }
 
@@ -112,19 +112,19 @@ func Test_CreateTransaction_swcallet(test *testing.T) {
 
 	signed, err := w.SignInputs(t)
 	if !signed || err != nil {
-		Prtln("Signed Fail: ", signed, err)
+		primitives.Prtln("Signed Fail: ", signed, err)
 		test.Fail()
 	}
 
 	fee, err := t.CalculateFee(1000)
 	if fee != 12000 || err != nil {
-		Prtln("Fee Calculation Failed", fee, err)
+		primitives.Prtln("Fee Calculation Failed", fee, err)
 		test.Fail()
 	}
 
 	err2 := w.Validate(1, t)
 	if err2 != nil {
-		Prtln(err2)
+		primitives.Prtln(err2)
 		test.Fail()
 	}
 
@@ -167,16 +167,16 @@ func Test_SignTransaction_swcallet(test *testing.T) {
 	signed, err := w.SignInputs(t)
 
 	if !signed || err != nil {
-		Prtln("Signed Fail: ", signed, err)
+		primitives.Prtln("Signed Fail: ", signed, err)
 		test.Fail()
 	}
 
 	txt, err := t.CustomMarshalText()
-	Prtln(string(txt), "\n ", fee)
+	primitives.Prtln(string(txt), "\n ", fee)
 
 	err = w.ValidateSignatures(t)
 	if err != nil {
-		Prtln(err)
+		primitives.Prtln(err)
 		test.Fail()
 	}
 

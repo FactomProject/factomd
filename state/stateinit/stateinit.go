@@ -11,9 +11,9 @@ package stateinit
 
 import (
 	"fmt"
-	"github.com/FactomProject/factomd/common/factoid/state"
 	"github.com/FactomProject/factomd/common/factoid/wallet"
 	"github.com/FactomProject/factomd/database/hybridDB"
+	"github.com/FactomProject/factomd/state"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"

@@ -30,7 +30,7 @@ func Test_create_walletentry(test *testing.T) {
 	pub, pri, err := w.generateKey()
 
 	if err != nil {
-		Prtln("Generate Failed")
+		primitives.Prtln("Generate Failed")
 		test.Fail()
 	}
 
