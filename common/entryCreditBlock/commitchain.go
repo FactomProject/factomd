@@ -8,7 +8,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	. "github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
 	"io"
@@ -97,7 +97,7 @@ func (c *CommitChain) InTime() bool {
 	sec := c.GetMilliTime() / 1000
 	t := time.Unix(sec, 0)
 
-	return t.After(now.Add(-COMMIT_TIME_WINDOW*time.Hour)) && t.Before(now.Add(COMMIT_TIME_WINDOW*time.Hour))
+	return t.After(now.Add(-constants.COMMIT_TIME_WINDOW*time.Hour)) && t.Before(now.Add(constants.COMMIT_TIME_WINDOW*time.Hour))
 }
 
 func (c *CommitChain) IsValid() bool {

@@ -6,7 +6,7 @@ package wire
 
 import (
 	"fmt"
-	. "github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
 	"io"
@@ -130,7 +130,7 @@ func (msg *MsgGetHeaders) Command() string {
 func (msg *MsgGetHeaders) MaxPayloadLength(pver uint32) uint32 {
 	// Version 4 bytes + num block locator hashes (varInt) + max allowed block
 	// locators + hash stop.
-	return uint32(4 + MaxVarIntPayload + (MaxBlockLocatorsPerMsg * HASH_LENGTH) + HASH_LENGTH)
+	return uint32(4 + MaxVarIntPayload + (MaxBlockLocatorsPerMsg * constants.HASH_LENGTH) + constants.HASH_LENGTH)
 }
 
 // NewMsgGetHeaders returns a new bitcoin getheaders message that conforms to

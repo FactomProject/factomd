@@ -7,7 +7,7 @@ package wire
 import (
 	"bytes"
 	"fmt"
-	. "github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
 	"io"
@@ -55,7 +55,7 @@ type BlockHeader struct {
 
 // blockHeaderLen is a constant that represents the number of bytes for a block
 // header.
-const blockHeaderLen = 28 + 5*HASH_LENGTH
+const blockHeaderLen = 28 + 5*constants.HASH_LENGTH
 
 // BlockSha computes the block identifier hash for the given block header.
 func (h *BlockHeader) BlockSha() (IHash, error) {

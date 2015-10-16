@@ -18,7 +18,7 @@ import (
 	//	"os"
 	"strconv"
 
-	. "github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/factoid"
 	. "github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/util"
@@ -205,7 +205,7 @@ func readTxOut(r io.Reader, pver uint32, to *TxOut) error {
 
 	to.Value = int64(value)
 
-	b := make([]byte, RCDHASH_LENGTH)
+	b := make([]byte, RCDconstants.HASH_LENGTH)
 	_, err = io.ReadFull(r, b)
 
 	copy(to.RCDHash[:], b)
@@ -573,7 +573,7 @@ func writeECOut(w io.Writer, pver uint32, eco *TxEntryCreditOut) error {
 // SerializeSize returns the number of bytes it would take to serialize the
 // the transaction output.
 func (t *TxOut) SerializeSize() int {
-	return RCDHASH_LENGTH + VarIntSerializeSize(uint64(t.Value))
+	return RCDconstants.HASH_LENGTH + VarIntSerializeSize(uint64(t.Value))
 }
 
 func (t *TxEntryCreditOut) SerializeSize() int {
@@ -764,9 +764,9 @@ func (o OutPoint) String() string {
 	// maximum message payload may increase in the future and this
 	// optimization may go unnoticed, so allocate space for 10 decimal
 	// digits, which will fit any uint32.
-	buf := make([]byte, 2*HASH_LENGTH+1, 2*HASH_LENGTH+1+10)
+	buf := make([]byte, 2*constants.HASH_LENGTH+1, 2*constants.HASH_LENGTH+1+10)
 	copy(buf, o.Hash.String())
-	buf[2*HASH_LENGTH] = ':'
+	buf[2*constants.HASH_LENGTH] = ':'
 	buf = strconv.AppendUint(buf, uint64(o.Index), 10)
 
 	return string(buf)

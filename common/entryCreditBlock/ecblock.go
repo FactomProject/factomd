@@ -8,7 +8,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	. "github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
 	"io"
@@ -432,7 +432,7 @@ var _ Printable = (*ECBlockHeader)(nil)
 func NewECBlockHeader() *ECBlockHeader {
 	h := new(ECBlockHeader)
 	h.ECChainID = NewZeroHash()
-	h.ECChainID.SetBytes(EC_CHAINID)
+	h.ECChainID.SetBytes(constants.EC_CHAINID)
 	h.BodyHash = NewZeroHash()
 	h.PrevHeaderHash = NewZeroHash()
 	h.PrevLedgerKeyMR = NewZeroHash()

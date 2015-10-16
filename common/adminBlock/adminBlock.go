@@ -10,7 +10,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	. "github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
 	"sync"
@@ -152,7 +152,7 @@ func (b *AdminBlock) AddABEntry(e ABEntry) (err error) {
 // Add the end-of-minute marker into the admin block
 func (b *AdminBlock) AddEndOfMinuteMarker(eomType byte) (err error) {
 	eOMEntry := &EndOfMinuteEntry{
-		entryType: TYPE_MINUTE_NUM,
+		entryType: constants.TYPE_MINUTE_NUM,
 		EOM_Type:  eomType}
 
 	b.AddABEntry(eOMEntry)
@@ -203,9 +203,9 @@ func (b *AdminBlock) UnmarshalBinaryData(data []byte) (newData []byte, err error
 
 	b.ABEntries = make([]ABEntry, b.Header.MessageCount)
 	for i := uint32(0); i < b.Header.MessageCount; i++ {
-		if newData[0] == TYPE_DB_SIGNATURE {
+		if newData[0] == constants.TYPE_DB_SIGNATURE {
 			b.ABEntries[i] = new(DBSignatureEntry)
-		} else if newData[0] == TYPE_MINUTE_NUM {
+		} else if newData[0] == constants.TYPE_MINUTE_NUM {
 			b.ABEntries[i] = new(EndOfMinuteEntry)
 		}
 		newData, err = b.ABEntries[i].UnmarshalBinaryData(newData)
@@ -226,7 +226,7 @@ func (b *AdminBlock) UnmarshalBinary(data []byte) (err error) {
 func (b *AdminBlock) GetDBSignature() ABEntry {
 
 	for i := uint32(0); i < b.Header.MessageCount; i++ {
-		if b.ABEntries[i].Type() == TYPE_DB_SIGNATURE {
+		if b.ABEntries[i].Type() == constants.TYPE_DB_SIGNATURE {
 			return b.ABEntries[i]
 		}
 	}
@@ -297,8 +297,8 @@ func (b *ABlockHeader) MarshalBinary() (data []byte, err error) {
 func (b *ABlockHeader) MarshalledSize() uint64 {
 	var size uint64 = 0
 
-	size += uint64(HASH_LENGTH)                 //AdminChainID
-	size += uint64(HASH_LENGTH)                 //PrevFullHash
+	size += uint64(constants.HASH_LENGTH)       //AdminChainID
+	size += uint64(constants.HASH_LENGTH)       //PrevFullHash
 	size += 4                                   //DBHeight
 	size += VarIntLength(b.HeaderExpansionSize) //HeaderExpansionSize
 	size += b.HeaderExpansionSize               //HeadderExpansionArea

@@ -9,7 +9,7 @@ import (
 	"github.com/FactomProject/factomd/btcd"
 	"github.com/FactomProject/factomd/btcd/limits"
 	"github.com/FactomProject/factomd/btcd/wire"
-	. "github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/factoid/state"
 	"github.com/FactomProject/factomd/common/factoid/state/stateinit"
 	cp "github.com/FactomProject/factomd/controlpanel"

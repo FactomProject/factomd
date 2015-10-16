@@ -10,42 +10,42 @@ package state
 import (
 	"bytes"
 	"fmt"
-	. "github.com/FactomProject/factomd/common/constants"
-	. "github.com/FactomProject/factomd/common/factoid"
-	. "github.com/FactomProject/factomd/common/factoid/block"
-	. "github.com/FactomProject/factomd/common/factoid/block/coinbase"
-	. "github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/factoid"
+	"github.com/FactomProject/factomd/common/factoid/block"
+	"github.com/FactomProject/factomd/common/factoid/block/coinbase"
+	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 	cp "github.com/FactomProject/factomd/controlpanel"
 	"time"
 )
 
-var FACTOID_CHAINID_HASH = NewHash(FACTOID_CHAINID)
+var FACTOID_CHAINID_HASH = primitives.NewHash(constants.FACTOID_CHAINID)
 
 type FactoidState struct {
-	database        DBOverlay
+	database        interfaces.DBOverlay
 	factoshisPerEC  uint64
-	currentBlock    IFBlock
+	currentBlock    interfaces.IFBlock
 	dbheight        uint32
-	wallet          ISCWallet
+	wallet          interfaces.ISCWallet
 	numTransactions int
 }
 
-var _ IFactoidState = (*FactoidState)(nil)
+var _ interfaces.IFactoidState = (*FactoidState)(nil)
 
 func (fs *FactoidState) EndOfPeriod(period int) {
 	fs.GetCurrentBlock().EndOfPeriod(period)
 }
 
-func (fs *FactoidState) GetWallet() ISCWallet {
+func (fs *FactoidState) GetWallet() interfaces.ISCWallet {
 	return fs.wallet
 }
 
-func (fs *FactoidState) SetWallet(w ISCWallet) {
+func (fs *FactoidState) SetWallet(w interfaces.ISCWallet) {
 	fs.wallet = w
 }
 
-func (fs *FactoidState) GetCurrentBlock() IFBlock {
+func (fs *FactoidState) GetCurrentBlock() interfaces.IFBlock {
 	return fs.currentBlock
 }
 
@@ -55,7 +55,7 @@ func (fs *FactoidState) GetDBHeight() uint32 {
 
 // When we are playing catchup, adding the transaction block is a pretty
 // useful feature.
-func (fs *FactoidState) AddTransactionBlock(blk IFBlock) error {
+func (fs *FactoidState) AddTransactionBlock(blk interfaces.IFBlock) error {
 
 	if err := blk.Validate(); err != nil {
 		return err
@@ -84,7 +84,7 @@ func (fs *FactoidState) AddTransactionBlock(blk IFBlock) error {
 // Checks the transaction timestamp for validity in being included in the current
 // No node has any responsiblity to forward on transactions that do not fall within
 // the timeframe around a block defined by TRANSACTION_PRIOR_LIMIT and TRANSACTION_POST_LIMIT
-func (fs *FactoidState) ValidateTransactionAge(trans ITransaction) error {
+func (fs *FactoidState) ValidateTransactionAge(trans interfaces.ITransaction) error {
 	tsblk := fs.GetCurrentBlock().GetCoinbaseTimestamp()
 	if tsblk < 0 {
 		return fmt.Errorf("Block has no coinbase transaction at this time")
@@ -92,18 +92,18 @@ func (fs *FactoidState) ValidateTransactionAge(trans ITransaction) error {
 
 	tstrans := int64(trans.GetMilliTimestamp())
 
-	if tsblk-tstrans > TRANSACTION_PRIOR_LIMIT {
+	if tsblk-tstrans > constants.TRANSACTION_PRIOR_LIMIT {
 		return fmt.Errorf("Transaction is too old to be included in the current block")
 	}
 
-	if tstrans-tsblk > TRANSACTION_POST_LIMIT {
+	if tstrans-tsblk > constants.TRANSACTION_POST_LIMIT {
 		return fmt.Errorf("Transaction is dated too far in the future to be included in the current block")
 	}
 	return nil
 }
 
 // Only add valid transactions to the current
-func (fs *FactoidState) AddTransaction(index int, trans ITransaction) error {
+func (fs *FactoidState) AddTransaction(index int, trans interfaces.ITransaction) error {
 	if err := fs.Validate(index, trans); err != nil {
 		return err
 	}
@@ -121,7 +121,7 @@ func (fs *FactoidState) AddTransaction(index int, trans ITransaction) error {
 }
 
 // Assumes validation has already been done.
-func (fs *FactoidState) UpdateTransaction(trans ITransaction) error {
+func (fs *FactoidState) UpdateTransaction(trans interfaces.ITransaction) error {
 	for _, input := range trans.GetInputs() {
 		err := fs.database.UpdateBalance(input.GetAddress(), -int64(input.GetAmount()))
 		if err != nil {
@@ -158,7 +158,7 @@ func (fs *FactoidState) ProcessEndOfMinute() {
 // End of Block means packing the current block away, and setting
 // up the next
 func (fs *FactoidState) ProcessEndOfBlock() {
-	var hash, hash2 IHash
+	var hash, hash2 interfaces.IHash
 
 	if fs.GetCurrentBlock() == nil {
 		panic("Invalid state on initialization")
@@ -171,9 +171,9 @@ func (fs *FactoidState) ProcessEndOfBlock() {
 	fs.database.PutTransactionBlock(FACTOID_CHAINID_HASH, fs.currentBlock)
 
 	fs.dbheight += 1
-	fs.currentBlock = NewFBlock(fs.GetFactoshisPerEC(), fs.dbheight)
+	fs.currentBlock = block.NewFBlock(fs.GetFactoshisPerEC(), fs.dbheight)
 
-	t := GetCoinbase(GetTimeMilli())
+	t := coinbase.GetCoinbase(primitives.GetTimeMilli())
 	err := fs.currentBlock.AddCoinbase(t)
 	if err != nil {
 		panic(err.Error())
@@ -197,16 +197,16 @@ func (fs *FactoidState) ProcessEndOfBlock() {
 // up the next
 // this function is to replace the existing function: ProcessEndOfBlock
 func (fs *FactoidState) ProcessEndOfBlock2(nextBlkHeight uint32) {
-	var hash, hash2 IHash
+	var hash, hash2 interfaces.IHash
 
 	if fs.currentBlock != nil { // If no blocks, the current block is nil
 		hash = fs.currentBlock.GetHash()
 		hash2 = fs.currentBlock.GetLedgerKeyMR()
 	}
 
-	fs.currentBlock = NewFBlock(fs.GetFactoshisPerEC(), nextBlkHeight)
+	fs.currentBlock = block.NewFBlock(fs.GetFactoshisPerEC(), nextBlkHeight)
 
-	t := GetCoinbase(GetTimeMilli())
+	t := coinbase.GetCoinbase(primitives.GetTimeMilli())
 	err := fs.currentBlock.AddCoinbase(t)
 	if err != nil {
 		panic(err.Error())
@@ -228,7 +228,7 @@ func (fs *FactoidState) ProcessEndOfBlock2(nextBlkHeight uint32) {
 }
 
 func (fs *FactoidState) LoadState() error {
-	var hashes []IHash
+	var hashes []interfaces.IHash
 	cblk, err := fs.GetTransactionBlock(FACTOID_CHAINID_HASH)
 	if err != nil {
 		return err
@@ -243,12 +243,12 @@ func (fs *FactoidState) LoadState() error {
 			"", // Msg
 			60) // Expire
 		//gb := GetGenesisFBlock(GetTimeMilli(), 1000000,10,200000000000)
-		gb := GetGenesisFBlock()
+		gb := block.GetGenesisFBlock()
 		fs.database.PutTransactionBlock(gb.GetHash(), gb)
 		fs.database.PutTransactionBlock(FACTOID_CHAINID_HASH, gb)
 		err := fs.AddTransactionBlock(gb)
 		if err != nil {
-			Prtln("Failed to build initial state.\n", err)
+			primitives.Prtln("Failed to build initial state.\n", err)
 			return err
 		}
 		fs.ProcessEndOfBlock()
@@ -268,7 +268,7 @@ func (fs *FactoidState) LoadState() error {
 			}
 		}
 		hashes = append(hashes, h)
-		if bytes.Compare(blk.GetPrevKeyMR().Bytes(), ZERO_HASH) == 0 {
+		if bytes.Compare(blk.GetPrevKeyMR().Bytes(), constants.ZERO_HASH) == 0 {
 			break
 		}
 		tblk, err := fs.GetTransactionBlock(blk.GetPrevKeyMR())
@@ -306,7 +306,7 @@ func (fs *FactoidState) LoadState() error {
 
 		err := fs.AddTransactionBlock(blk) // updates accounting for this block
 		if err != nil {
-			Prtln("Failed to rebuild state.\n", err)
+			primitives.Prtln("Failed to rebuild state.\n", err)
 			return err
 		}
 		time.Sleep(time.Second / 100)
@@ -325,7 +325,7 @@ func (fs *FactoidState) LoadState() error {
 
 // Returns an error message about what is wrong with the transaction if it is
 // invalid, otherwise you are good to go.
-func (fs *FactoidState) Validate(index int, trans ITransaction) error {
+func (fs *FactoidState) Validate(index int, trans interfaces.ITransaction) error {
 	err := fs.currentBlock.ValidateTransaction(index, trans)
 	if err != nil {
 		return err
@@ -333,7 +333,7 @@ func (fs *FactoidState) Validate(index int, trans ITransaction) error {
 
 	var sums = make(map[[32]byte]uint64, 10)  // Look at the sum of an address's inputs
 	for _, input := range trans.GetInputs() { //    to a transaction.
-		bal, err := ValidateAmounts(sums[input.GetAddress().Fixed()], input.GetAmount())
+		bal, err := factoid.ValidateAmounts(sums[input.GetAddress().Fixed()], input.GetAmount())
 		if err != nil {
 			return err
 		}
@@ -353,10 +353,10 @@ func (fs *FactoidState) SetFactoshisPerEC(factoshisPerEC uint64) {
 	fs.factoshisPerEC = factoshisPerEC
 }
 
-func (fs *FactoidState) SetDB(database DBOverlay) {
+func (fs *FactoidState) SetDB(database interfaces.DBOverlay) {
 	fs.database = database
 }
 
-func (fs *FactoidState) GetTransactionBlock(hash IHash) (IFBlock, error) {
-	return fs.database.GetTransactionBlock(hash, new(FBlock))
+func (fs *FactoidState) GetTransactionBlock(hash interfaces.IHash) (interfaces.IFBlock, error) {
+	return fs.database.GetTransactionBlock(hash, new(block.FBlock))
 }

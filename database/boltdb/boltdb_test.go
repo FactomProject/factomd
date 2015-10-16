@@ -95,7 +95,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/FactomProject/ed25519"
-	. "github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/factoid"
 	. "github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
@@ -121,8 +121,8 @@ var _ = binary.Read
 // can provide the hash, we don't need two maps.  Just the Hash to the
 // IBlock.
 
-func cp(a IHash) [ADDRESS_LENGTH]byte {
-	r := new([ADDRESS_LENGTH]byte)
+func cp(a IHash) [constants.ADDRESS_LENGTH]byte {
+	r := new([constants.ADDRESS_LENGTH]byte)
 	copy(r[:], a.Bytes())
 	return *r
 }
@@ -138,7 +138,7 @@ func Test_bolt_init(t *testing.T) {
 	bucketList[3] = []byte("four")
 	bucketList[4] = []byte("five")
 
-	instances := make(map[[ADDRESS_LENGTH]byte]IBlock)
+	instances := make(map[[constants.ADDRESS_LENGTH]byte]IBlock)
 	{
 		var a IBlock
 		a = new(Address)

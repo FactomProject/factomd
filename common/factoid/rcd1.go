@@ -9,7 +9,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/FactomProject/ed25519"
-	. "github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
 )
@@ -21,7 +21,7 @@ import (
 // In this case, we are simply validating one address to ensure it signed
 // this transaction.
 type RCD_1 struct {
-	publicKey [ADDRESS_LENGTH]byte
+	publicKey [constants.ADDRESS_LENGTH]byte
 }
 
 var _ IRCD = (*RCD_1)(nil)
@@ -127,12 +127,12 @@ func (t *RCD_1) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 		return nil, fmt.Errorf("Bad type byte: %d", typ)
 	}
 
-	if len(data) < ADDRESS_LENGTH {
+	if len(data) < constants.ADDRESS_LENGTH {
 		return nil, fmt.Errorf("Data source too short to unmarshal an address: %d", len(data))
 	}
 
-	copy(t.publicKey[:], data[:ADDRESS_LENGTH])
-	data = data[ADDRESS_LENGTH:]
+	copy(t.publicKey[:], data[:constants.ADDRESS_LENGTH])
+	data = data[constants.ADDRESS_LENGTH:]
 
 	return data, nil
 }

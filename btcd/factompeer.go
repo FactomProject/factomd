@@ -9,7 +9,7 @@ import (
 
 	"github.com/FactomProject/factomd/btcd/blockchain"
 	"github.com/FactomProject/factomd/btcd/wire"
-	. "github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/directoryBlock"
 	. "github.com/FactomProject/factomd/common/entryBlock"
 	. "github.com/FactomProject/factomd/common/interfaces"
@@ -221,7 +221,7 @@ func (p *peer) handleGetNonDirDataMsg(msg *wire.MsgGetNonDirData) {
 
 			var err error
 			switch dbEntry.ChainID.String() {
-			case hex.EncodeToString(EC_CHAINID[:]):
+			case hex.EncodeToString(constants.EC_CHAINID[:]):
 				err = p.pushECBlockMsg(dbEntry.KeyMR, c, waitChan)
 
 			case hex.EncodeToString(ADMIN_CHAINID[:]):

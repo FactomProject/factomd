@@ -6,7 +6,7 @@ package primitives
 
 import (
 	"fmt"
-	. "github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/interfaces"
 	"math"
 )
@@ -32,9 +32,9 @@ func nextPowerOfTwo(n int) int {
 // function used to aid in the generation of a merkle tree.
 func hashMerkleBranches(left IHash, right IHash) IHash {
 	// Concatenate the left and right nodes.
-	var barray []byte = make([]byte, ADDRESS_LENGTH*2)
-	copy(barray[:ADDRESS_LENGTH], left.Bytes())
-	copy(barray[ADDRESS_LENGTH:], right.Bytes())
+	var barray []byte = make([]byte, constants.ADDRESS_LENGTH*2)
+	copy(barray[:constants.ADDRESS_LENGTH], left.Bytes())
+	copy(barray[constants.ADDRESS_LENGTH:], right.Bytes())
 
 	newSha := Sha(barray)
 	return newSha

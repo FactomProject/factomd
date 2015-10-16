@@ -18,7 +18,7 @@ import (
 	"github.com/FactomProject/factomd/util"
 	"github.com/hoisie/web"
 
-	. "github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/entryBlock"
 	. "github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid/state"
@@ -422,7 +422,7 @@ func handleEntryCreditBalance(ctx *web.Context, eckey string) {
 	}
 	var b ecbal
 	adr, err := hex.DecodeString(eckey)
-	if err == nil && len(adr) != HASH_LENGTH {
+	if err == nil && len(adr) != constants.HASH_LENGTH {
 		b = ecbal{Response: "Invalid Address", Success: false}
 	}
 	if err == nil {
@@ -453,7 +453,7 @@ func handleFactoidBalance(ctx *web.Context, eckey string) {
 	}
 	var b fbal
 	adr, err := hex.DecodeString(eckey)
-	if err == nil && len(adr) != HASH_LENGTH {
+	if err == nil && len(adr) != constants.HASH_LENGTH {
 		b = fbal{Response: "Invalid Address", Success: false}
 	}
 	if err == nil {

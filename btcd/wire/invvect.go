@@ -6,7 +6,7 @@ package wire
 
 import (
 	"fmt"
-	. "github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/interfaces"
 	"io"
 )
@@ -17,7 +17,7 @@ const (
 	MaxInvPerMsg = 50000
 
 	// Maximum payload size for an inventory vector.
-	maxInvVectPayload = 4 + HASH_LENGTH
+	maxInvVectPayload = 4 + constants.HASH_LENGTH
 )
 
 // InvType represents the allowed types of inventory vectors.  See InvVect.

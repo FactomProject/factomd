@@ -12,11 +12,11 @@ import (
 	"encoding/json"
 	"fmt"
 
-	. "github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/interfaces"
 )
 
-type Hash [HASH_LENGTH]byte
+type Hash [constants.HASH_LENGTH]byte
 
 var _ Printable = (*Hash)(nil)
 var _ IHash = (*Hash)(nil)
@@ -27,7 +27,7 @@ func (c *Hash) New() BinaryMarshallableAndCopyable {
 }
 
 func (c *Hash) MarshalledSize() uint64 {
-	return uint64(HASH_LENGTH)
+	return uint64(constants.HASH_LENGTH)
 }
 
 func (h *Hash) MarshalText() ([]byte, error) {
@@ -101,7 +101,7 @@ func (h *Hash) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 		}
 	}()
 	copy(h[:], p)
-	newData = p[HASH_LENGTH:]
+	newData = p[constants.HASH_LENGTH:]
 	return
 }
 
@@ -129,25 +129,25 @@ func (h Hash) NewBlock() IBlock {
 // reflected in the source hash.  You have to do a SetBytes to change the source
 // value.
 func (h *Hash) GetBytes() []byte {
-	newHash := make([]byte, HASH_LENGTH)
+	newHash := make([]byte, constants.HASH_LENGTH)
 	copy(newHash, h[:])
 
 	return newHash
 }
 
 // SetBytes sets the bytes which represent the hash.  An error is returned if
-// the number of bytes passed in is not HASH_LENGTH.
+// the number of bytes passed in is not constants.HASH_LENGTH.
 func (hash *Hash) SetBytes(newHash []byte) error {
 	nhlen := len(newHash)
-	if nhlen != HASH_LENGTH {
-		return fmt.Errorf("invalid sha length of %v, want %v", nhlen, HASH_LENGTH)
+	if nhlen != constants.HASH_LENGTH {
+		return fmt.Errorf("invalid sha length of %v, want %v", nhlen, constants.HASH_LENGTH)
 	}
 	copy(hash[:], newHash)
 	return nil
 }
 
 // NewShaHash returns a new ShaHash from a byte slice.  An error is returned if
-// the number of bytes passed in is not HASH_LENGTH.
+// the number of bytes passed in is not constants.HASH_LENGTH.
 func NewShaHash(newHash []byte) (*Hash, error) {
 	var sh Hash
 	err := sh.SetBytes(newHash)
@@ -194,9 +194,9 @@ func HexToHash(hexStr string) (h IHash, err error) {
 // String returns the ShaHash in the standard bitcoin big-endian form.
 func (h *Hash) BTCString() string {
 	hashstr := ""
-	hash := ([HASH_LENGTH]byte)(*h)
+	hash := ([constants.HASH_LENGTH]byte)(*h)
 	for i := range hash {
-		hashstr += fmt.Sprintf("%02x", hash[HASH_LENGTH-1-i])
+		hashstr += fmt.Sprintf("%02x", hash[constants.HASH_LENGTH-1-i])
 	}
 
 	return hashstr
@@ -218,7 +218,7 @@ func (a Hash) IsSameAs(b IHash) bool {
 // Is the hash a minute marker (the last byte indicates the minute number)
 func (h *Hash) IsMinuteMarker() bool {
 
-	if bytes.Equal(h[:31], ZERO_HASH[:31]) {
+	if bytes.Equal(h[:31], constants.ZERO_HASH[:31]) {
 		return true
 	}
 

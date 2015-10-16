@@ -8,7 +8,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	. "github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
 	"time"
@@ -119,7 +119,7 @@ func (t Transaction) CalculateFee(factoshisPerEC uint64) (uint64, error) {
 	if err != nil {
 		return 0, fmt.Errorf("Can't Marshal the Transaction")
 	}
-	if len(data) > MAX_TRANSACTION_SIZE { // Can't be bigger than our limits
+	if len(data) > constants.MAX_TRANSACTION_SIZE { // Can't be bigger than our limits
 		return 0, fmt.Errorf("Transaction is greater than the max transaction size")
 	}
 	// Okay, we know the transaction is mostly good. Let's calculate

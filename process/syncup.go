@@ -16,7 +16,7 @@ import (
 	"time"
 
 	. "github.com/FactomProject/factomd/common/adminBlock"
-	. "github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/directoryBlock"
 	. "github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/factoid/state"
@@ -248,7 +248,7 @@ func validateBlocksFromMemPool(b *DirectoryBlock, fMemPool *ftmMemPool, db datab
 				// validate every entry in EBlock
 				for _, ebEntry := range eBlkMsg.EBlk.Body.EBEntries {
 					if _, foundInMemPool := fMemPool.blockpool[ebEntry.String()]; !foundInMemPool {
-						if !bytes.Equal(ebEntry.Bytes()[:31], ZERO_HASH[:31]) {
+						if !bytes.Equal(ebEntry.Bytes()[:31], constants.ZERO_HASH[:31]) {
 							// continue if the entry arleady exists in db
 							entry, _ := db.FetchEntryByHash(ebEntry)
 							if entry == nil {

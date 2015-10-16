@@ -6,7 +6,7 @@ package factoid
 
 import (
 	"fmt"
-	. "github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/interfaces"
 )
 
@@ -38,7 +38,7 @@ func UnmarshalBinaryAuth(data []byte) (a IRCD, newData []byte, err error) {
 }
 
 func NewRCD_1(publicKey []byte) IRCD {
-	if len(publicKey) != ADDRESS_LENGTH {
+	if len(publicKey) != constants.ADDRESS_LENGTH {
 		panic("Bad publickey.  This should not happen")
 	}
 	a := new(RCD_1)

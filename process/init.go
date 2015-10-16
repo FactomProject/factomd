@@ -23,7 +23,7 @@ import (
 
 	. "github.com/FactomProject/factomd/common"
 	. "github.com/FactomProject/factomd/common/adminBlock"
-	. "github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/directoryBlock"
 	. "github.com/FactomProject/factomd/common/entryBlock"
 	. "github.com/FactomProject/factomd/common/entryCreditBlock"
@@ -39,7 +39,7 @@ func initDChain() {
 
 	//Initialize the Directory Block Chain ID
 	dchain.ChainID = new(Hash)
-	barray := D_CHAINID
+	barray := constants.D_CHAINID
 	dchain.ChainID.SetBytes(barray)
 
 	// get all dBlocks from db
@@ -174,7 +174,7 @@ func initFctChain() {
 	//Initialize the Admin Chain ID
 	fchain = new(FctChain)
 	fchain.ChainID = new(Hash)
-	fchain.ChainID.SetBytes(FACTOID_CHAINID)
+	fchain.ChainID.SetBytes(constants.FACTOID_CHAINID)
 
 	// get all aBlocks from db
 	fBlocks, _ := db.FetchAllFBlocks()
@@ -483,7 +483,7 @@ func validateEBlockByMR(cid IHash, mr IHash) error {
 	}
 
 	for _, ebEntry := range eb.Body.EBEntries {
-		if !bytes.Equal(ebEntry.Bytes()[:31], ZERO_HASH[:31]) {
+		if !bytes.Equal(ebEntry.Bytes()[:31], constants.ZERO_HASH[:31]) {
 			entry, _ := db.FetchEntryByHash(ebEntry)
 			if entry == nil {
 				return errors.New("Entry not found in db for entry hash: " + ebEntry.String())

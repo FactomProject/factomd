@@ -8,7 +8,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	. "github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
 )
@@ -16,7 +16,7 @@ import (
 // The default FactoidSignature doesn't care about indexing.  We will extend this
 // FactoidSignature for multisig
 type FactoidSignature struct {
-	FactoidSignature [SIGNATURE_LENGTH]byte // The FactoidSignature
+	FactoidSignature [constants.SIGNATURE_LENGTH]byte // The FactoidSignature
 }
 
 var _ ISignature = (*FactoidSignature)(nil)
@@ -62,14 +62,14 @@ func (s1 *FactoidSignature) IsEqual(sig IBlock) []IBlock {
 
 // Index is ignored.  We only have one FactoidSignature
 func (s *FactoidSignature) SetSignature(sig []byte) error {
-	if len(sig) != SIGNATURE_LENGTH {
+	if len(sig) != constants.SIGNATURE_LENGTH {
 		return fmt.Errorf("Bad FactoidSignature.  Should not happen")
 	}
 	copy(s.FactoidSignature[:], sig)
 	return nil
 }
 
-func (s *FactoidSignature) GetSignature() *[SIGNATURE_LENGTH]byte {
+func (s *FactoidSignature) GetSignature() *[constants.SIGNATURE_LENGTH]byte {
 	return &s.FactoidSignature
 }
 
@@ -96,8 +96,8 @@ func (s FactoidSignature) CustomMarshalText() ([]byte, error) {
 }
 
 func (s *FactoidSignature) UnmarshalBinaryData(data []byte) ([]byte, error) {
-	copy(s.FactoidSignature[:], data[:SIGNATURE_LENGTH])
-	return data[SIGNATURE_LENGTH:], nil
+	copy(s.FactoidSignature[:], data[:constants.SIGNATURE_LENGTH])
+	return data[constants.SIGNATURE_LENGTH:], nil
 }
 
 func (s *FactoidSignature) UnmarshalBinary(data []byte) error {

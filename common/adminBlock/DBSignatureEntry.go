@@ -3,7 +3,7 @@ package adminBlock
 import (
 	"bytes"
 	"fmt"
-	. "github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
 )
@@ -22,7 +22,7 @@ var _ BinaryMarshallable = (*DBSignatureEntry)(nil)
 // Create a new DB Signature Entry
 func NewDBSignatureEntry(identityAdminChainID IHash, sig Signature) (e *DBSignatureEntry) {
 	e = new(DBSignatureEntry)
-	e.entryType = TYPE_DB_SIGNATURE
+	e.entryType = constants.TYPE_DB_SIGNATURE
 	e.IdentityAdminChainID = identityAdminChainID
 	e.PubKey = sig.Pub
 	e.PrevDBSig = (*Sig)(sig.Sig)
@@ -60,9 +60,9 @@ func (e *DBSignatureEntry) MarshalBinary() (data []byte, err error) {
 func (e *DBSignatureEntry) MarshalledSize() uint64 {
 	var size uint64 = 0
 	size += 1 // Type (byte)
-	size += uint64(HASH_LENGTH)
-	size += uint64(HASH_LENGTH)
-	size += uint64(SIG_LENGTH)
+	size += uint64(constants.HASH_LENGTH)
+	size += uint64(constants.HASH_LENGTH)
+	size += uint64(constants.SIG_LENGTH)
 
 	return size
 }
@@ -82,14 +82,14 @@ func (e *DBSignatureEntry) UnmarshalBinaryData(data []byte) (newData []byte, err
 		return
 	}
 
-	e.PubKey.Key = new([HASH_LENGTH]byte)
-	copy(e.PubKey.Key[:], newData[:HASH_LENGTH])
-	newData = newData[HASH_LENGTH:]
+	e.PubKey.Key = new([constants.HASH_LENGTH]byte)
+	copy(e.PubKey.Key[:], newData[:constants.HASH_LENGTH])
+	newData = newData[constants.HASH_LENGTH:]
 
 	e.PrevDBSig = new(Sig)
-	copy(e.PrevDBSig[:], newData[:SIG_LENGTH])
+	copy(e.PrevDBSig[:], newData[:constants.SIG_LENGTH])
 
-	newData = newData[SIG_LENGTH:]
+	newData = newData[constants.SIG_LENGTH:]
 
 	return
 }

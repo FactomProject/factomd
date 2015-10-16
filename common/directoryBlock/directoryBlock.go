@@ -9,7 +9,7 @@ import (
 	"errors"
 	"fmt"
 
-	. "github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
 )
@@ -41,7 +41,7 @@ func (c *DirectoryBlock) GetDatabaseHeight() uint32 {
 }
 
 func (c *DirectoryBlock) GetChainID() []byte {
-	return D_CHAINID
+	return constants.D_CHAINID
 }
 
 func (c *DirectoryBlock) DatabasePrimaryIndex() IHash {
@@ -218,7 +218,7 @@ func CreateDBlock(nextDBHeight uint32, prev *DirectoryBlock, cap uint) (b *Direc
 	b = new(DirectoryBlock)
 
 	b.Header = new(DBlockHeader)
-	b.Header.Version = VERSION_0
+	b.Header.Version = constants.VERSION_0
 
 	if prev == nil {
 		b.Header.PrevLedgerKeyMR = NewZeroHash()

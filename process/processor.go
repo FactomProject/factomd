@@ -31,7 +31,7 @@ import (
 
 	. "github.com/FactomProject/factomd/common"
 	. "github.com/FactomProject/factomd/common/adminBlock"
-	. "github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/directoryBlock"
 	. "github.com/FactomProject/factomd/common/entryBlock"
 	. "github.com/FactomProject/factomd/common/entryCreditBlock"
@@ -121,7 +121,7 @@ func initProcessor() {
 
 	// init wire.FChainID
 	wire.FChainID = NewZeroHash()
-	wire.FChainID.SetBytes(FACTOID_CHAINID)
+	wire.FChainID.SetBytes(constants.FACTOID_CHAINID)
 
 	FactoshisPerCredit = 666666 // .001 / .15 * 100000000 (assuming a Factoid is .15 cents, entry credit = .1 cents
 
@@ -876,7 +876,7 @@ func buildEndOfMinute(pl *consensus.ProcessList, pli *consensus.ProcessListItem)
 
 	// Add it to the admin chain
 	abEntries := achain.NextBlock.ABEntries
-	if len(abEntries) > 0 && abEntries[len(abEntries)-1].Type() != TYPE_MINUTE_NUM {
+	if len(abEntries) > 0 && abEntries[len(abEntries)-1].Type() != constants.TYPE_MINUTE_NUM {
 		achain.NextBlock.AddEndOfMinuteMarker(pli.Ack.Type)
 	}
 }

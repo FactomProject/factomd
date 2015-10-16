@@ -6,7 +6,7 @@ package wire
 
 import (
 	"fmt"
-	. "github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
 	"io"
@@ -139,7 +139,7 @@ func (msg *MsgGetDirBlocks) MaxPayloadLength(pver uint32) uint32 {
 	// Protocol version 4 bytes + num hashes (varInt) + max block locator
 	// hashes + hash stop.
 	//util.Trace()
-	return uint32(4 + MaxVarIntPayload + (MaxBlockLocatorsPerMsg * HASH_LENGTH) + HASH_LENGTH)
+	return uint32(4 + MaxVarIntPayload + (MaxBlockLocatorsPerMsg * constants.HASH_LENGTH) + constants.HASH_LENGTH)
 }
 
 // NewMsgGetDirBlocks returns a new bitcoin getdirblocks message that conforms to the

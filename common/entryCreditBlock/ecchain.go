@@ -7,7 +7,7 @@ package entryCreditBlock
 import (
 	"bytes"
 	"encoding/binary"
-	. "github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
 	"sync"
@@ -24,7 +24,7 @@ type ECChain struct {
 func NewECChain() *ECChain {
 	c := new(ECChain)
 	c.ChainID = NewZeroHash()
-	c.ChainID.SetBytes(EC_CHAINID)
+	c.ChainID.SetBytes(constants.EC_CHAINID)
 	c.Name = make([][]byte, 0)
 	return c
 }

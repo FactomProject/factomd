@@ -10,7 +10,7 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	. "github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/factoid"
 	. "github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
@@ -92,7 +92,7 @@ func (b *FBlock) MarshalTrans() ([]byte, error) {
 			b.endOfPeriod[periodMark] > 0 && // Ignore if markers are not set
 			i == b.endOfPeriod[periodMark] {
 
-			out.WriteByte(MARKER)
+			out.WriteByte(constants.MARKER)
 			periodMark++
 		}
 
@@ -106,7 +106,7 @@ func (b *FBlock) MarshalTrans() ([]byte, error) {
 		}
 	}
 	for periodMark < len(b.endOfPeriod) {
-		out.WriteByte(MARKER)
+		out.WriteByte(constants.MARKER)
 		periodMark++
 	}
 	return out.Bytes(), nil
@@ -117,7 +117,7 @@ func (b *FBlock) MarshalHeader() ([]byte, error) {
 
 	b.EndOfPeriod(0) // Clean up end of minute markers, if needed.
 
-	out.Write(FACTOID_CHAINID)
+	out.Write(constants.FACTOID_CHAINID)
 
 	if b.BodyMR == nil {
 		b.BodyMR = new(Hash)
@@ -202,7 +202,7 @@ func (b *FBlock) UnmarshalBinaryData(data []byte) (newdata []byte, err error) {
 
 	// To capture the panic, my code needs to be in a function.  So I'm
 	// creating one here, and call it at the end of this function.
-	if bytes.Compare(data[:ADDRESS_LENGTH], FACTOID_CHAINID[:]) != 0 {
+	if bytes.Compare(data[:constants.ADDRESS_LENGTH], constants.FACTOID_CHAINID[:]) != 0 {
 		return nil, fmt.Errorf("Block does not begin with the Factoid ChainID")
 	}
 	data = data[32:]
@@ -242,7 +242,7 @@ func (b *FBlock) UnmarshalBinaryData(data []byte) (newdata []byte, err error) {
 	var periodMark = 0
 	for i := uint32(0); i < cnt; i++ {
 
-		for data[0] == MARKER {
+		for data[0] == constants.MARKER {
 			b.endOfPeriod[periodMark] = int(i)
 			data = data[1:]
 			periodMark++
@@ -309,7 +309,7 @@ func (b1 *FBlock) IsEqual(block IBlock) []IBlock {
 }
 func (b *FBlock) GetChainID() IHash {
 	h := new(Hash)
-	h.SetBytes(FACTOID_CHAINID)
+	h.SetBytes(constants.FACTOID_CHAINID)
 	return h
 }
 
@@ -354,7 +354,7 @@ func (b *FBlock) GetLedgerMR() IHash {
 	for i, trans := range b.Transactions {
 		for marker < len(b.endOfPeriod) && i != 0 && i == b.endOfPeriod[marker] {
 			marker++
-			hashes = append(hashes, Sha(ZERO))
+			hashes = append(hashes, Sha(constants.ZERO))
 		}
 		data, err := trans.MarshalBinarySig()
 		hash := Sha(data)
@@ -367,7 +367,7 @@ func (b *FBlock) GetLedgerMR() IHash {
 	// Add any lagging markers
 	for marker < len(b.endOfPeriod) {
 		marker++
-		hashes = append(hashes, Sha(ZERO))
+		hashes = append(hashes, Sha(constants.ZERO))
 	}
 	lmr := ComputeMerkleRoot(hashes)
 	return lmr
@@ -382,14 +382,14 @@ func (b *FBlock) GetBodyMR() IHash {
 	for i, trans := range b.Transactions {
 		for marker < len(b.endOfPeriod) && i != 0 && i == b.endOfPeriod[marker] {
 			marker++
-			hashes = append(hashes, Sha(ZERO))
+			hashes = append(hashes, Sha(constants.ZERO))
 		}
 		hashes = append(hashes, trans.GetHash())
 	}
 	// Add any lagging markers
 	for marker < len(b.endOfPeriod) {
 		marker++
-		hashes = append(hashes, Sha(ZERO))
+		hashes = append(hashes, Sha(constants.ZERO))
 	}
 
 	b.BodyMR = ComputeMerkleRoot(hashes)
@@ -570,7 +570,7 @@ func (b FBlock) CustomMarshalText() (text []byte, err error) {
 
 	out.WriteString("Transaction Block\n")
 	out.WriteString("  ChainID:       ")
-	out.WriteString(hex.EncodeToString(FACTOID_CHAINID))
+	out.WriteString(hex.EncodeToString(constants.FACTOID_CHAINID))
 	if b.BodyMR == nil {
 		b.BodyMR = new(Hash)
 	}

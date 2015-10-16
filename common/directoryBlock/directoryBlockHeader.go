@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"reflect"
 
-	. "github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
 )
@@ -100,9 +100,9 @@ func (b *DBlockHeader) MarshalledSize() uint64 {
 	var size uint64 = 0
 	size += 1 //Version
 	size += 4 //NetworkID
-	size += uint64(HASH_LENGTH)
-	size += uint64(HASH_LENGTH)
-	size += uint64(HASH_LENGTH)
+	size += uint64(constants.HASH_LENGTH)
+	size += uint64(constants.HASH_LENGTH)
+	size += uint64(constants.HASH_LENGTH)
 	size += 4 //Timestamp
 	size += 4 //DBHeight
 	size += 4 //BlockCount
