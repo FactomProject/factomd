@@ -7,32 +7,32 @@ package directoryblock
 import (
 	"bytes"
 	"fmt"
-	. "github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
 )
 
 type DBEntry struct {
-	ChainID IHash
-	KeyMR   IHash // Different MR in EBlockHeader
+	ChainID interfaces.IHash
+	KeyMR   interfaces.IHash // Different MR in EBlockHeader
 }
 
-var _ Printable = (*DBEntry)(nil)
-var _ BinaryMarshallable = (*DBEntry)(nil)
-var _ IDBEntry = (*DBEntry)(nil)
+var _ interfaces.Printable = (*DBEntry)(nil)
+var _ interfaces.BinaryMarshallable = (*DBEntry)(nil)
+var _ interfaces.IDBEntry = (*DBEntry)(nil)
 
 func (c *DBEntry) MarshalledSize() uint64 {
 	panic("Function not implemented")
 	return 0
 }
 
-func (c *DBEntry) GetChainID() IHash {
+func (c *DBEntry) GetChainID() interfaces.IHash {
 	return c.ChainID
 }
-func (c *DBEntry) GetKeyMR() (IHash, error) {
+func (c *DBEntry) GetKeyMR() (interfaces.IHash, error) {
 	return c.KeyMR, nil
 }
 
-func NewDBEntry(entry IEntry) (*DBEntry, error) {
+func NewDBEntry(entry interfaces.IEntry) (*DBEntry, error) {
 	e := new(DBEntry)
 
 	e.ChainID = entry.GetChainID()
@@ -90,7 +90,7 @@ func (e *DBEntry) UnmarshalBinary(data []byte) (err error) {
 	return
 }
 
-func (e *DBEntry) ShaHash() IHash {
+func (e *DBEntry) ShaHash() interfaces.IHash {
 	byteArray, _ := e.MarshalBinary()
 	return Sha(byteArray)
 }

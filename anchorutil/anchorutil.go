@@ -16,7 +16,7 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/directoryBlock"
 	. "github.com/FactomProject/factomd/common/entryBlock"
-	. "github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database"
 	ldb "github.com/FactomProject/factomd/database/leveldb"
@@ -48,7 +48,7 @@ func main() {
 	//}
 }
 
-func processAnchorChain(anchorChainID IHash) {
+func processAnchorChain(anchorChainID interfaces.IHash) {
 	eblocks, _ := db.FetchAllEBlocksByChain(anchorChainID)
 	//fmt.Println("anchorChain length: ", len(*eblocks))
 	for _, eblock := range *eblocks {
@@ -100,7 +100,7 @@ func dirBlockInfoToAnchorChain(aRecord *anchor.AnchorRecord) (*DirBlockInfo, err
 	return dirBlockInfo, nil
 }
 
-func entryToAnchorRecord(entry IEBEntry) (*anchor.AnchorRecord, error) {
+func entryToAnchorRecord(entry interfaces.IEBEntry) (*anchor.AnchorRecord, error) {
 	content := entry.GetContent()
 	jsonARecord := content[:(len(content) - 128)]
 	jsonSigBytes := content[(len(content) - 128):]

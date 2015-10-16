@@ -9,7 +9,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/FactomProject/factomd/common/constants"
-	. "github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
 )
 
@@ -19,9 +19,9 @@ type FactoidSignature struct {
 	FactoidSignature [constants.SIGNATURE_LENGTH]byte // The FactoidSignature
 }
 
-var _ ISignature = (*FactoidSignature)(nil)
+var _ interfaces.ISignature = (*FactoidSignature)(nil)
 
-func (t *FactoidSignature) GetHash() IHash {
+func (t *FactoidSignature) GetHash() interfaces.IHash {
 	return nil
 }
 
@@ -45,16 +45,16 @@ func (b FactoidSignature) String() string {
 	return string(txt)
 }
 
-func (w1 FactoidSignature) GetNewInstance() IBlock {
+func (w1 FactoidSignature) GetNewInstance() interfaces.IBlock {
 	return new(FactoidSignature)
 }
 
 // Checks that the FactoidSignatures are the same.
-func (s1 *FactoidSignature) IsEqual(sig IBlock) []IBlock {
+func (s1 *FactoidSignature) IsEqual(sig interfaces.IBlock) []interfaces.IBlock {
 	s2, ok := sig.(*FactoidSignature)
-	if !ok || // Not the right kind of IBlock
+	if !ok || // Not the right kind of interfaces.IBlock
 		s1.FactoidSignature != s2.FactoidSignature { // Not the right rcd
-		r := make([]IBlock, 0, 5)
+		r := make([]interfaces.IBlock, 0, 5)
 		return append(r, s1)
 	}
 	return nil

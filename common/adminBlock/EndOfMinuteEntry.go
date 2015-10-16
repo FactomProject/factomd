@@ -3,7 +3,7 @@ package adminBlock
 import (
 	"bytes"
 	"fmt"
-	. "github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
 )
 
@@ -12,8 +12,8 @@ type EndOfMinuteEntry struct {
 	EOM_Type  byte
 }
 
-var _ Printable = (*EndOfMinuteEntry)(nil)
-var _ BinaryMarshallable = (*EndOfMinuteEntry)(nil)
+var _ interfaces.Printable = (*EndOfMinuteEntry)(nil)
+var _ interfaces.BinaryMarshallable = (*EndOfMinuteEntry)(nil)
 var _ ABEntry = (*EndOfMinuteEntry)(nil)
 
 func (m *EndOfMinuteEntry) Type() byte {
@@ -82,7 +82,7 @@ func (e *EndOfMinuteEntry) Interpret() string {
 	return fmt.Sprintf("End of Minute %v", e.EOM_Type)
 }
 
-func (e *EndOfMinuteEntry) Hash() IHash {
+func (e *EndOfMinuteEntry) Hash() interfaces.IHash {
 	bin, err := e.MarshalBinary()
 	if err != nil {
 		panic(err)

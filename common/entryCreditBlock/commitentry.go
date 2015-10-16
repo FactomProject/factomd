@@ -9,7 +9,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/FactomProject/factomd/common/constants"
-	. "github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
 	"io"
 	"time"
@@ -25,15 +25,15 @@ const (
 type CommitEntry struct {
 	Version   uint8
 	MilliTime *ByteSlice6
-	EntryHash IHash
+	EntryHash interfaces.IHash
 	Credits   uint8
 	ECPubKey  *ByteSlice32
 	Sig       *ByteSlice64
 }
 
-var _ Printable = (*CommitEntry)(nil)
-var _ BinaryMarshallable = (*CommitEntry)(nil)
-var _ ShortInterpretable = (*CommitEntry)(nil)
+var _ interfaces.Printable = (*CommitEntry)(nil)
+var _ interfaces.BinaryMarshallable = (*CommitEntry)(nil)
+var _ interfaces.ShortInterpretable = (*CommitEntry)(nil)
 var _ ECBlockEntry = (*CommitEntry)(nil)
 
 func (c *CommitEntry) MarshalledSize() uint64 {
@@ -51,7 +51,7 @@ func NewCommitEntry() *CommitEntry {
 	return c
 }
 
-func (e *CommitEntry) Hash() IHash {
+func (e *CommitEntry) Hash() interfaces.IHash {
 	bin, err := e.MarshalBinary()
 	if err != nil {
 		panic(err)
@@ -104,12 +104,12 @@ func (c *CommitEntry) IsValid() bool {
 	return ed.VerifyCanonical((*[32]byte)(c.ECPubKey), c.CommitMsg(), (*[64]byte)(c.Sig))
 }
 
-func (c *CommitEntry) GetHash() IHash {
+func (c *CommitEntry) GetHash() interfaces.IHash {
 	h, _ := c.MarshalBinary()
 	return Sha(h)
 }
 
-func (c *CommitEntry) GetSigHash() IHash {
+func (c *CommitEntry) GetSigHash() interfaces.IHash {
 	data := c.CommitMsg()
 	return Sha(data)
 }

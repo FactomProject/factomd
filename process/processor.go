@@ -36,7 +36,7 @@ import (
 	. "github.com/FactomProject/factomd/common/entryBlock"
 	. "github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid/state"
-	. "github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
 )
 
@@ -1121,7 +1121,7 @@ func newAdminBlock(chain *AdminChain) *AdminBlock {
 }
 
 // Seals the current open block, store it in db and create the next open block
-func newFactoidBlock(chain *FctChain) IFBlock {
+func newFactoidBlock(chain *FctChain) interfaces.IFBlock {
 
 	older := FactoshisPerCredit
 

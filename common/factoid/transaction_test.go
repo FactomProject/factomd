@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factomd/common/constants"
-	. "github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"math/rand"
 	"testing"
@@ -37,7 +37,7 @@ func (zeroReader) Read(buf []byte) (int, error) {
 
 var zero zeroReader
 
-func nextAddress() IAddress {
+func nextAddress() interfaces.IAddress {
 
 	public, _, _ := ed25519.GenerateKey(zero)
 
@@ -53,13 +53,13 @@ func nextSig() []byte {
 	return public[:]
 }
 
-func nextAuth2() IRCD {
+func nextAuth2() interfaces.IRCD {
 	if r == nil {
 		r = rand.New(rand.NewSource(1))
 	}
 	n := r.Int()%4 + 1
 	m := r.Int()%4 + n
-	addresses := make([]IAddress, m, m)
+	addresses := make([]interfaces.IAddress, m, m)
 	for j := 0; j < m; j++ {
 		addresses[j] = nextAddress()
 	}
@@ -68,9 +68,9 @@ func nextAuth2() IRCD {
 	return rcd
 }
 
-var nb IBlock
+var nb interfaces.IBlock
 
-func getSignedTrans() IBlock {
+func getSignedTrans() interfaces.IBlock {
 
 	if nb != nil {
 		return nb

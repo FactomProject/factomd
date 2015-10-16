@@ -7,7 +7,7 @@ package databaseOverlay
 import (
 	"encoding/binary"
 	"github.com/FactomProject/factomd/btcd/wire"
-	. "github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
 )
 
@@ -65,10 +65,10 @@ var isLookupDB bool = true // to be put in property file
 
 type Overlay struct {
 	// leveldb pieces
-	DB IDatabase
+	DB interfaces.
 
 	lastDirBlkShaCached bool
-	lastDirBlkSha       IHash
+	lastDirBlkSha       interfaces.IHash
 	lastDirBlkHeight    int64
 }
 
@@ -76,7 +76,7 @@ func (db *Overlay) Close() (err error) {
 	return db.DB.Close()
 }
 
-func NewOverlay(db IDatabase) *Overlay {
+func NewOverlay(db interfaces.) *Overlay {
 	answer := new(Overlay)
 	answer.DB = db
 
@@ -85,7 +85,7 @@ func NewOverlay(db IDatabase) *Overlay {
 	return answer
 }
 
-func (db *Overlay) FetchBlockByHeight(heightBucket []byte, blockBucket []byte, blockHeight uint32, dst DatabaseBatchable) (DatabaseBatchable, error) {
+func (db *Overlay) FetchBlockByHeight(heightBucket []byte, blockBucket []byte, blockHeight uint32, dst interfaces.DatabaseBatchable) (interfaces.DatabaseBatchable, error) {
 	index, err := db.FetchBlockIndexByHeight(heightBucket, blockHeight)
 	if err != nil {
 		return nil, err
@@ -96,7 +96,7 @@ func (db *Overlay) FetchBlockByHeight(heightBucket []byte, blockBucket []byte, b
 	return db.FetchBlock(blockBucket, index, dst)
 }
 
-func (db *Overlay) FetchBlockIndexByHeight(bucket []byte, blockHeight uint32) (IHash, error) {
+func (db *Overlay) FetchBlockIndexByHeight(bucket []byte, blockHeight uint32) (interfaces.IHash, error) {
 	key := make([]byte, 4)
 	binary.BigEndian.PutUint32(key, blockHeight)
 
@@ -110,7 +110,7 @@ func (db *Overlay) FetchBlockIndexByHeight(bucket []byte, blockHeight uint32) (I
 	return block.(*Hash), nil
 }
 
-func (db *Overlay) FetchPrimaryIndexBySecondaryIndex(bucket []byte, key IHash) (IHash, error) {
+func (db *Overlay) FetchPrimaryIndexBySecondaryIndex(bucket []byte, key interfaces.IHash) (interfaces.IHash, error) {
 	block, err := db.DB.Get(bucket, key.Bytes(), new(Hash))
 	if err != nil {
 		return nil, err
@@ -121,7 +121,7 @@ func (db *Overlay) FetchPrimaryIndexBySecondaryIndex(bucket []byte, key IHash) (
 	return block.(*Hash), nil
 }
 
-func (db *Overlay) FetchBlockBySecondaryIndex(secondaryIndexBucket, blockBucket []byte, index IHash, dst DatabaseBatchable) (DatabaseBatchable, error) {
+func (db *Overlay) FetchBlockBySecondaryIndex(secondaryIndexBucket, blockBucket []byte, index interfaces.IHash, dst interfaces.DatabaseBatchable) (interfaces.DatabaseBatchable, error) {
 	hash, err := db.FetchPrimaryIndexBySecondaryIndex(secondaryIndexBucket, index)
 	if err != nil {
 		return nil, err
@@ -132,7 +132,7 @@ func (db *Overlay) FetchBlockBySecondaryIndex(secondaryIndexBucket, blockBucket 
 	return db.FetchBlock(blockBucket, hash, dst)
 }
 
-func (db *Overlay) FetchBlock(bucket []byte, key IHash, dst DatabaseBatchable) (DatabaseBatchable, error) {
+func (db *Overlay) FetchBlock(bucket []byte, key interfaces.IHash, dst interfaces.DatabaseBatchable) (interfaces.DatabaseBatchable, error) {
 	block, err := db.DB.Get(bucket, key.Bytes(), dst)
 	if err != nil {
 		return nil, err
@@ -140,10 +140,10 @@ func (db *Overlay) FetchBlock(bucket []byte, key IHash, dst DatabaseBatchable) (
 	if block == nil {
 		return nil, nil
 	}
-	return block.(DatabaseBatchable), nil
+	return block.(interfaces.DatabaseBatchable), nil
 }
 
-func (db *Overlay) FetchAllBlocksFromBucket(bucket []byte, sample BinaryMarshallableAndCopyable) ([]BinaryMarshallableAndCopyable, error) {
+func (db *Overlay) FetchAllBlocksFromBucket(bucket []byte, sample interfaces.BinaryMarshallableAndCopyable) ([]interfaces.BinaryMarshallableAndCopyable, error) {
 	answer, err := db.DB.GetAll(bucket, sample)
 	if err != nil {
 		return nil, err
@@ -151,7 +151,7 @@ func (db *Overlay) FetchAllBlocksFromBucket(bucket []byte, sample BinaryMarshall
 	return answer, nil
 }
 
-func (db *Overlay) Insert(bucket []byte, entry DatabaseBatchable) error {
+func (db *Overlay) Insert(bucket []byte, entry interfaces.DatabaseBatchable) error {
 	err := db.DB.Put(bucket, entry.DatabasePrimaryIndex().Bytes(), entry)
 	if err != nil {
 		return err
@@ -159,7 +159,7 @@ func (db *Overlay) Insert(bucket []byte, entry DatabaseBatchable) error {
 	return nil
 }
 
-func (db *Overlay) ProcessBlockBatch(blockBucket, numberBucket, secondaryIndexBucket []byte, block DatabaseBatchable) error {
+func (db *Overlay) ProcessBlockBatch(blockBucket, numberBucket, secondaryIndexBucket []byte, block interfaces.DatabaseBatchable) error {
 	if block == nil {
 		return nil
 	}
@@ -189,7 +189,7 @@ func (db *Overlay) ProcessBlockBatch(blockBucket, numberBucket, secondaryIndexBu
 }
 
 // FetchHeadMRByChainID gets an index of the highest block from the database.
-func (db *Overlay) FetchHeadIndexByChainID(chainID IHash) (IHash, error) {
+func (db *Overlay) FetchHeadIndexByChainID(chainID interfaces.IHash) (interfaces.IHash, error) {
 	if chainID == nil {
 		return nil, nil
 	}
@@ -207,7 +207,7 @@ func (db *Overlay) FetchHeadIndexByChainID(chainID IHash) (IHash, error) {
 	return block.(*Hash), nil
 }
 
-func (db *Overlay) FetchBlockIndexesInHeightRange(numberBucket []byte, startHeight, endHeight int64) ([]IHash, error) {
+func (db *Overlay) FetchBlockIndexesInHeightRange(numberBucket []byte, startHeight, endHeight int64) ([]interfaces.IHash, error) {
 	//TODO: deprecate AllShas
 	var endidx int64
 	if endHeight == AllShas {
@@ -216,7 +216,7 @@ func (db *Overlay) FetchBlockIndexesInHeightRange(numberBucket []byte, startHeig
 		endidx = endHeight
 	}
 
-	shalist := make([]IHash, 0, endidx-startHeight)
+	shalist := make([]interfaces.IHash, 0, endidx-startHeight)
 	for height := startHeight; height < endidx; height++ {
 		dbhash, err := db.FetchBlockIndexByHeight(numberBucket, uint32(height))
 		if err != nil {

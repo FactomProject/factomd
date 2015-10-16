@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/factoid/state"
-	. "github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
 	"math/rand"
 	"strings"
@@ -45,14 +45,14 @@ func (s Stats) logError(err string) {
 type Test_state struct {
 	state.FactoidState
 	clock             int64
-	twallet           ISCWallet
-	inputAddresses    []IAddress // Genesis Address funds 10 addresses
-	outputAddresses   []IAddress // We consider our inputs and ten more addresses
-	ecoutputAddresses []IAddress // Entry Credit Addresses
+	twallet           interfaces.ISCWallet
+	inputAddresses    []interfaces.IAddress // Genesis Address funds 10 addresses
+	outputAddresses   []interfaces.IAddress // We consider our inputs and ten more addresses
+	ecoutputAddresses []interfaces.IAddress // Entry Credit Addresses
 	stats             Stats
 }
 
-func (fs *Test_state) GetWallet() ISCWallet {
+func (fs *Test_state) GetWallet() interfaces.ISCWallet {
 	return fs.twallet
 }
 
@@ -64,9 +64,9 @@ func (fs *Test_state) GetTime32() int64 {
 	return time.Now().Unix()
 }
 
-func (fs *Test_state) newTransaction(maxIn, maxOut int) ITransaction {
+func (fs *Test_state) newTransaction(maxIn, maxOut int) interfaces.ITransaction {
 	var max, max2 uint64
-	fs.inputAddresses = make([]IAddress, 0, 20)
+	fs.inputAddresses = make([]interfaces.IAddress, 0, 20)
 	for _, output := range fs.outputAddresses {
 		bal := fs.GetBalance(output)
 		if bal > 100000 {
@@ -85,8 +85,8 @@ func (fs *Test_state) newTransaction(maxIn, maxOut int) ITransaction {
 	// The following code is a function that creates an array
 	// of addresses pulled from some source array of addresses
 	// selected randomly.
-	var makeList = func(source []IAddress, cnt int) []IAddress {
-		adrs := make([]IAddress, 0, cnt)
+	var makeList = func(source []interfaces.IAddress, cnt int) []interfaces.IAddress {
+		adrs := make([]interfaces.IAddress, 0, cnt)
 		for len(adrs) < cnt {
 			i := rand.Int() % len(source)
 			adr := source[i]

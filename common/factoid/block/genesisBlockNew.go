@@ -2,10 +2,10 @@ package block
 
 import (
 	"encoding/hex"
-	. "github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/interfaces"
 )
 
-func GetGenesisFBlock() IFBlock {
+func GetGenesisFBlock() interfaces.IFBlock {
 	block := new(FBlock)
 	data, err := hex.DecodeString(GenesisBlockStr)
 	if err != nil {

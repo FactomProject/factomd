@@ -7,14 +7,14 @@ package wire
 import (
 	"bytes"
 	. "github.com/FactomProject/factomd/common/entryBlock"
-	. "github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/interfaces"
 	"io"
 )
 
 // MsgRevealChain implements the Message interface and represents a factom
 // Reveal-Chain message.  It is used by client to reveal the chain.
 type MsgRevealChain struct {
-	FirstEntry IEBEntry
+	FirstEntry interfaces.IEBEntry
 }
 
 // BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
@@ -72,11 +72,11 @@ func NewMsgRevealChain() *MsgRevealChain {
 }
 
 // Create a sha hash from the message binary (output of BtcEncode)
-func (msg *MsgRevealChain) Sha() (IHash, error) {
+func (msg *MsgRevealChain) Sha() (interfaces.IHash, error) {
 
 	buf := bytes.NewBuffer(nil)
 	msg.BtcEncode(buf, ProtocolVersion)
-	var sha IHash
+	var sha interfaces.IHash
 	_ = sha.SetBytes(Sha256(buf.Bytes()))
 
 	return sha, nil

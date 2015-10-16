@@ -16,7 +16,7 @@ import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/factoid"
-	. "github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
 )
 
@@ -25,20 +25,20 @@ type WalletEntry struct {
 	addrtype string
 	// 2 byte length not included here
 	name []byte
-	rcd  IRCD // Verification block for this IWalletEntry
+	rcd  interfaces.IRCD // Verification block for this interfaces.IWalletEntry
 	// 1 byte count of public keys
 	public [][]byte // Set of public keys necessary towe sign the rcd
 	// 1 byte count of private keys
 	private [][]byte // Set of private keys necessary to sign the rcd
 }
 
-var _ IWalletEntry = (*WalletEntry)(nil)
+var _ interfaces.IWalletEntry = (*WalletEntry)(nil)
 
 /*************************************
  *       Stubs
  *************************************/
 
-func (b WalletEntry) GetHash() IHash {
+func (b WalletEntry) GetHash() interfaces.IHash {
 	return nil
 }
 
@@ -73,11 +73,11 @@ func (b WalletEntry) String() string {
 	return string(txt)
 }
 
-func (w1 WalletEntry) GetAddress() (IAddress, error) {
+func (w1 WalletEntry) GetAddress() (interfaces.IAddress, error) {
 	if w1.rcd == nil {
 		return nil, fmt.Errorf("Should never happen. Missing the rcd block")
 	}
-	var adr IHash
+	var adr interfaces.IHash
 	var err error
 	if w1.addrtype == "fct" {
 		adr, err = w1.rcd.GetAddress()
@@ -94,20 +94,20 @@ func (w1 WalletEntry) GetAddress() (IAddress, error) {
 	return adr, nil
 }
 
-func (WalletEntry) GetNewInstance() IBlock {
+func (WalletEntry) GetNewInstance() interfaces.IBlock {
 	return new(WalletEntry)
 }
 
-func (w1 *WalletEntry) IsEqual(w IBlock) []IBlock {
+func (w1 *WalletEntry) IsEqual(w interfaces.IBlock) []interfaces.IBlock {
 	w2, ok := w.(*WalletEntry)
 	if !ok || w1.GetType() != w2.GetType() {
-		r := make([]IBlock, 0, 3)
+		r := make([]interfaces.IBlock, 0, 3)
 		return append(r, w1)
 	}
 
 	for i, public := range w1.public {
 		if bytes.Compare(w2.public[i], public) != 0 {
-			r := make([]IBlock, 0, 3)
+			r := make([]interfaces.IBlock, 0, 3)
 			return append(r, w1)
 		}
 	}
@@ -229,11 +229,11 @@ func (w WalletEntry) CustomMarshalText() (text []byte, err error) {
 	return out.Bytes(), nil
 }
 
-func (w *WalletEntry) SetRCD(rcd IRCD) {
+func (w *WalletEntry) SetRCD(rcd interfaces.IRCD) {
 	w.rcd = rcd
 }
 
-func (w WalletEntry) GetRCD() IRCD {
+func (w WalletEntry) GetRCD() interfaces.IRCD {
 	return w.rcd
 }
 

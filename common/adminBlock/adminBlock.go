@@ -11,14 +11,14 @@ import (
 	"errors"
 	"fmt"
 	"github.com/FactomProject/factomd/common/constants"
-	. "github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
 	"sync"
 )
 
 // Administrative Chain
 type AdminChain struct {
-	ChainID IHash
+	ChainID interfaces.IHash
 	Name    [][]byte
 
 	NextBlock       *AdminBlock
@@ -38,16 +38,16 @@ type AdminBlock struct {
 	ABEntries []ABEntry //Interface
 
 	//Not Marshalized
-	fullHash    IHash //SHA512Half
-	partialHash IHash //SHA256
+	fullHash    interfaces.IHash //SHA512Half
+	partialHash interfaces.IHash //SHA256
 }
 
-var _ Printable = (*AdminBlock)(nil)
-var _ BinaryMarshallableAndCopyable = (*AdminBlock)(nil)
-var _ IDBEntry = (*AdminBlock)(nil)
-var _ DatabaseBatchable = (*AdminBlock)(nil)
+var _ interfaces.Printable = (*AdminBlock)(nil)
+var _ interfaces.BinaryMarshallableAndCopyable = (*AdminBlock)(nil)
+var _ interfaces.IDBEntry = (*AdminBlock)(nil)
+var _ interfaces.DatabaseBatchable = (*AdminBlock)(nil)
 
-func (c *AdminBlock) New() BinaryMarshallableAndCopyable {
+func (c *AdminBlock) New() interfaces.BinaryMarshallableAndCopyable {
 	return new(AdminBlock)
 }
 
@@ -59,21 +59,21 @@ func (c *AdminBlock) GetChainID() []byte {
 	return c.Header.AdminChainID.Bytes()
 }
 
-func (c *AdminBlock) DatabasePrimaryIndex() IHash {
+func (c *AdminBlock) DatabasePrimaryIndex() interfaces.IHash {
 	key, _ := c.PartialHash()
 	return key
 }
 
-func (c *AdminBlock) DatabaseSecondaryIndex() IHash {
+func (c *AdminBlock) DatabaseSecondaryIndex() interfaces.IHash {
 	key, _ := c.LedgerKeyMR()
 	return key
 }
 
-func (c *AdminBlock) GetKeyMR() (IHash, error) {
+func (c *AdminBlock) GetKeyMR() (interfaces.IHash, error) {
 	return c.PartialHash()
 }
 
-func (ab *AdminBlock) LedgerKeyMR() (IHash, error) {
+func (ab *AdminBlock) LedgerKeyMR() (interfaces.IHash, error) {
 	if ab.fullHash == nil {
 		err := ab.buildFullBHash()
 		if err != nil {
@@ -83,7 +83,7 @@ func (ab *AdminBlock) LedgerKeyMR() (IHash, error) {
 	return ab.fullHash, nil
 }
 
-func (ab *AdminBlock) PartialHash() (IHash, error) {
+func (ab *AdminBlock) PartialHash() (interfaces.IHash, error) {
 	if ab.partialHash == nil {
 		err := ab.buildPartialHash()
 		if err != nil {
@@ -253,8 +253,8 @@ func (e *AdminBlock) String() string {
 
 // Admin Block Header
 type ABlockHeader struct {
-	AdminChainID    IHash
-	PrevLedgerKeyMR IHash
+	AdminChainID    interfaces.IHash
+	PrevLedgerKeyMR interfaces.IHash
 	DBHeight        uint32
 
 	HeaderExpansionSize uint64
@@ -264,8 +264,8 @@ type ABlockHeader struct {
 	BodySize     uint32
 }
 
-var _ Printable = (*ABlockHeader)(nil)
-var _ BinaryMarshallable = (*ABlockHeader)(nil)
+var _ interfaces.Printable = (*ABlockHeader)(nil)
+var _ interfaces.BinaryMarshallable = (*ABlockHeader)(nil)
 
 // Write out the ABlockHeader to binary.
 func (b *ABlockHeader) MarshalBinary() (data []byte, err error) {
@@ -363,13 +363,13 @@ func (e *ABlockHeader) String() string {
 
 // Generic admin block entry type
 type ABEntry interface {
-	Printable
-	BinaryMarshallable
-	ShortInterpretable
+	interfaces.Printable
+	interfaces.BinaryMarshallable
+	interfaces.ShortInterpretable
 
 	MarshalledSize() uint64
 	Type() byte
-	Hash() IHash
+	Hash() interfaces.IHash
 }
 
 type Sig [64]byte

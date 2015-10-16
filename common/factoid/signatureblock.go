@@ -7,7 +7,7 @@ package factoid
 import (
 	"bytes"
 	"fmt"
-	. "github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
 )
 
@@ -22,13 +22,13 @@ import (
  **************************************/
 
 type SignatureBlock struct {
-	signatures []ISignature
+	signatures []interfaces.ISignature
 }
 
-var _ ISignatureBlock = (*SignatureBlock)(nil)
-var _ IBlock = (*SignatureBlock)(nil)
+var _ interfaces.ISignatureBlock = (*SignatureBlock)(nil)
+var _ interfaces.IBlock = (*SignatureBlock)(nil)
 
-func (b SignatureBlock) GetHash() IHash { return nil }
+func (b SignatureBlock) GetHash() interfaces.IHash { return nil }
 
 func (b SignatureBlock) UnmarshalBinary(data []byte) error {
 	_, err := b.UnmarshalBinaryData(data)
@@ -55,19 +55,19 @@ func (b SignatureBlock) String() string {
 	return string(txt)
 }
 
-func (s *SignatureBlock) IsEqual(signatureBlock IBlock) []IBlock {
+func (s *SignatureBlock) IsEqual(signatureBlock interfaces.IBlock) []interfaces.IBlock {
 
-	sb, ok := signatureBlock.(ISignatureBlock)
+	sb, ok := signatureBlock.(interfaces.ISignatureBlock)
 
 	if !ok {
-		r := make([]IBlock, 0, 5)
+		r := make([]interfaces.IBlock, 0, 5)
 		return append(r, s)
 	}
 
 	sigs1 := s.GetSignatures()
 	sigs2 := sb.GetSignatures()
 	if len(sigs1) != len(sigs2) {
-		r := make([]IBlock, 0, 5)
+		r := make([]interfaces.IBlock, 0, 5)
 		return append(r, s)
 	}
 	for i, sig := range sigs1 {
@@ -80,7 +80,7 @@ func (s *SignatureBlock) IsEqual(signatureBlock IBlock) []IBlock {
 	return nil
 }
 
-func (s *SignatureBlock) AddSignature(sig ISignature) {
+func (s *SignatureBlock) AddSignature(sig interfaces.ISignature) {
 	if len(s.signatures) > 0 {
 		s.signatures[0] = sig
 	} else {
@@ -88,20 +88,20 @@ func (s *SignatureBlock) AddSignature(sig ISignature) {
 	}
 }
 
-func (s SignatureBlock) GetSignature(index int) ISignature {
+func (s SignatureBlock) GetSignature(index int) interfaces.ISignature {
 	if len(s.signatures) <= index {
 		return nil
 	}
 	return s.signatures[index]
 }
 
-func (s SignatureBlock) GetNewInstance() IBlock {
+func (s SignatureBlock) GetNewInstance() interfaces.IBlock {
 	return new(SignatureBlock)
 }
 
-func (s SignatureBlock) GetSignatures() []ISignature {
+func (s SignatureBlock) GetSignatures() []interfaces.ISignature {
 	if s.signatures == nil {
-		s.signatures = make([]ISignature, 1, 1)
+		s.signatures = make([]interfaces.ISignature, 1, 1)
 		s.signatures[0] = new(FactoidSignature)
 	}
 	return s.signatures
@@ -148,7 +148,7 @@ func (s SignatureBlock) CustomMarshalText() ([]byte, error) {
 
 func (s *SignatureBlock) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 
-	s.signatures = make([]ISignature, 1)
+	s.signatures = make([]interfaces.ISignature, 1)
 	s.signatures[0] = new(FactoidSignature)
 	data, err = s.signatures[0].UnmarshalBinaryData(data)
 	if err != nil {

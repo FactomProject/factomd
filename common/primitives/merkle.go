@@ -7,7 +7,7 @@ package primitives
 import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/constants"
-	. "github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/interfaces"
 	"math"
 )
 
@@ -30,7 +30,7 @@ func nextPowerOfTwo(n int) int {
 // HashMerkleBranches takes two hashes, treated as the left and right tree
 // nodes, and returns the hash of their concatenation.  This is a helper
 // function used to aid in the generation of a merkle tree.
-func hashMerkleBranches(left IHash, right IHash) IHash {
+func hashMerkleBranches(left interfaces.IHash, right interfaces.IHash) interfaces.IHash {
 	// Concatenate the left and right nodes.
 	var barray []byte = make([]byte, constants.ADDRESS_LENGTH*2)
 	copy(barray[:constants.ADDRESS_LENGTH], left.Bytes())
@@ -41,22 +41,22 @@ func hashMerkleBranches(left IHash, right IHash) IHash {
 }
 
 // Give a list of hashes, return the root of the Merkle Tree
-func ComputeMerkleRoot(hashes []IHash) IHash {
+func ComputeMerkleRoot(hashes []interfaces.IHash) interfaces.IHash {
 	merkles := BuildMerkleTreeStore(hashes)
 	return merkles[len(merkles)-1]
 }
 
 // The root of the Merkle Tree is returned in merkles[len(merkles)-1]
-func BuildMerkleTreeStore(hashes []IHash) (merkles []IHash) {
+func BuildMerkleTreeStore(hashes []interfaces.IHash) (merkles []interfaces.IHash) {
 	if len(hashes) == 0 {
-		return append(make([]IHash, 0, 1), new(Hash))
+		return append(make([]interfaces.IHash, 0, 1), new(Hash))
 	}
 	// Calculate how many entries are required to hold the binary merkle
 	// tree as a linear array and create an array of that size.
 	nextPoT := nextPowerOfTwo(len(hashes))
 	arraySize := nextPoT*2 - 1
 	//	fmt.Println("hashes.len=", len(hashes), ", nextPoT=", nextPoT, ", array.size=", arraySize)
-	merkles = make([]IHash, arraySize)
+	merkles = make([]interfaces.IHash, arraySize)
 
 	// Create the base transaction shas and populate the array with them.
 	//for i, entity := range entities {

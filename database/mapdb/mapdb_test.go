@@ -1,7 +1,7 @@
 package mapdb_test
 
 import (
-	. "github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/database/mapdb"
 	"testing"
 )
@@ -27,7 +27,7 @@ func (t *TestData) UnmarshalBinary(data []byte) (err error) {
 	return
 }
 
-var _ BinaryMarshallable = (*TestData)(nil)
+var _ interfaces.BinaryMarshallable = (*TestData)(nil)
 
 func TestPutGetDelete(t *testing.T) {
 	m := new(MapDB)

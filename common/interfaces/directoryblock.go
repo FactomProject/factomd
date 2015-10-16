@@ -7,13 +7,10 @@ package interfaces
 import ()
 
 type IDirectoryBlock interface {
-	
 }
 
 type IDirectoryBlockHeader interface {
-	
 }
 
 type IDBEntry interface {
-	
 }

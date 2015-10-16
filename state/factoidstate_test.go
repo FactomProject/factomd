@@ -10,7 +10,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/FactomProject/ed25519"
-	. "github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
 	. "github.com/FactomProject/factomd/database/boltdb"
 	"math/rand"
@@ -24,7 +24,7 @@ var _ = rand.New
 var _ = binary.Write
 var _ = Prtln
 
-func GetDatabase() IDatabase {
+func GetDatabase() interfaces. {
 	var bucketList [][]byte
 
 	bucketList = make([][]byte, 5, 5)

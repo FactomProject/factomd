@@ -9,7 +9,7 @@ import (
 	"io"
 
 	. "github.com/FactomProject/factomd/common/entryCreditBlock"
-	. "github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/interfaces"
 )
 
 // MsgCommitEntry implements the Message interface and represents a factom
@@ -77,11 +77,11 @@ func (msg *MsgCommitChain) IsValid() bool {
 }
 
 // Create a sha hash from the message binary (output of BtcEncode)
-func (msg *MsgCommitChain) Sha() (IHash, error) {
+func (msg *MsgCommitChain) Sha() (interfaces.IHash, error) {
 
 	buf := bytes.NewBuffer(nil)
 	msg.BtcEncode(buf, ProtocolVersion)
-	var sha IHash
+	var sha interfaces.IHash
 	_ = sha.SetBytes(Sha256(buf.Bytes()))
 
 	return sha, nil

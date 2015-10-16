@@ -548,7 +548,7 @@ func handleGetRaw(ctx *web.Context, hashkey string) {
 	type rawData struct {
 		Data string
 	}
-	//TODO: var block BinaryMarshallable
+	//TODO: var block interfaces.BinaryMarshallable
 	d := new(rawData)
 
 	h, err := HexToHash(hashkey)

@@ -10,7 +10,7 @@ import (
 	"crypto/sha512"
 	"encoding/binary"
 	"fmt"
-	. "github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
 )
 
@@ -18,12 +18,12 @@ import (
 // https://github.com/FactomProject/FactomDocs/blob/master/factomDataStructureDetails.md#entry
 type Entry struct {
 	Version uint8
-	ChainID IHash
+	ChainID interfaces.IHash
 	ExtIDs  [][]byte
 	Content []byte
 }
 
-var _ IEBEntry = (*Entry)(nil)
+var _ interfaces.IEBEntry = (*Entry)(nil)
 
 func (c *Entry) MarshalledSize() uint64 {
 	panic("Function not implemented")
@@ -40,7 +40,7 @@ func NewEntry() *Entry {
 
 // NewChainID generates a ChainID from an entry. ChainID = Sha(Sha(ExtIDs[0]) +
 // Sha(ExtIDs[1] + ... + Sha(ExtIDs[n]))
-func NewChainID(e IEBEntry) IHash {
+func NewChainID(e interfaces.IEBEntry) interfaces.IHash {
 	id := new(Hash)
 	sum := sha256.New()
 	for _, v := range e.ExternalIDs() {
@@ -56,7 +56,7 @@ func (e *Entry) GetContent() []byte {
 	return e.Content
 }
 
-func (e *Entry) GetChainID() IHash {
+func (e *Entry) GetChainID() interfaces.IHash {
 	return e.ChainID
 }
 
@@ -74,7 +74,7 @@ func (e *Entry) IsValid() bool {
 	return true
 }
 
-func (e *Entry) Hash() IHash {
+func (e *Entry) Hash() interfaces.IHash {
 	h := NewZeroHash()
 	entry, err := e.MarshalBinary()
 	if err != nil {

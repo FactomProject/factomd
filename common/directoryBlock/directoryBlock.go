@@ -10,7 +10,7 @@ import (
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/constants"
-	. "github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
 )
 
@@ -21,18 +21,18 @@ type DirectoryBlock struct {
 
 	//Not Marshalized
 	IsSealed    bool
-	DBHash      IHash
-	KeyMR       IHash
+	DBHash      interfaces.IHash
+	KeyMR       interfaces.IHash
 	IsSavedInDB bool
 	IsValidated bool
 }
 
-var _ Printable = (*DirectoryBlock)(nil)
-var _ BinaryMarshallableAndCopyable = (*DirectoryBlock)(nil)
-var _ IDirectoryBlock = (*DirectoryBlock)(nil)
-var _ DatabaseBatchable = (*DirectoryBlock)(nil)
+var _ interfaces.Printable = (*DirectoryBlock)(nil)
+var _ interfaces.BinaryMarshallableAndCopyable = (*DirectoryBlock)(nil)
+var _ interfaces.IDirectoryBlock = (*DirectoryBlock)(nil)
+var _ interfaces.DatabaseBatchable = (*DirectoryBlock)(nil)
 
-func (c *DirectoryBlock) New() BinaryMarshallableAndCopyable {
+func (c *DirectoryBlock) New() interfaces.BinaryMarshallableAndCopyable {
 	return new(DirectoryBlock)
 }
 
@@ -44,11 +44,11 @@ func (c *DirectoryBlock) GetChainID() []byte {
 	return constants.D_CHAINID
 }
 
-func (c *DirectoryBlock) DatabasePrimaryIndex() IHash {
+func (c *DirectoryBlock) DatabasePrimaryIndex() interfaces.IHash {
 	return c.GetKeyMR()
 }
 
-func (c *DirectoryBlock) DatabaseSecondaryIndex() IHash {
+func (c *DirectoryBlock) DatabaseSecondaryIndex() interfaces.IHash {
 	return c.GetHash()
 }
 
@@ -95,8 +95,8 @@ func (b *DirectoryBlock) MarshalBinary() (data []byte, err error) {
 	return buf.Bytes(), err
 }
 
-func (b *DirectoryBlock) BuildBodyMR() (mr IHash, err error) {
-	hashes := make([]IHash, len(b.DBEntries))
+func (b *DirectoryBlock) BuildBodyMR() (mr interfaces.IHash, err error) {
+	hashes := make([]interfaces.IHash, len(b.DBEntries))
 	for i, entry := range b.DBEntries {
 		data, _ := entry.MarshalBinary()
 		hashes[i] = Sha(data)
@@ -110,9 +110,9 @@ func (b *DirectoryBlock) BuildBodyMR() (mr IHash, err error) {
 	return merkle[len(merkle)-1], nil
 }
 
-func (b *DirectoryBlock) BuildKeyMerkleRoot() (keyMR IHash, err error) {
+func (b *DirectoryBlock) BuildKeyMerkleRoot() (keyMR interfaces.IHash, err error) {
 	// Create the Entry Block Key Merkle Root from the hash of Header and the Body Merkle Root
-	hashes := make([]IHash, 0, 2)
+	hashes := make([]interfaces.IHash, 0, 2)
 	binaryEBHeader, _ := b.Header.MarshalBinary()
 	hashes = append(hashes, Sha(binaryEBHeader))
 	hashes = append(hashes, b.Header.BodyMR)
@@ -160,7 +160,7 @@ func (b *DirectoryBlock) GetDBHeight() uint32 {
 	return b.Header.DBHeight
 }
 
-func (b *DirectoryBlock) GetHash() IHash {
+func (b *DirectoryBlock) GetHash() interfaces.IHash {
 	if b.DBHash == nil {
 		binaryDblock, err := b.MarshalBinary()
 		if err != nil {
@@ -171,7 +171,7 @@ func (b *DirectoryBlock) GetHash() IHash {
 	return b.DBHash
 }
 
-func (b *DirectoryBlock) GetKeyMR() IHash {
+func (b *DirectoryBlock) GetKeyMR() interfaces.IHash {
 	if b.KeyMR == nil {
 		b.BuildKeyMerkleRoot()
 	}

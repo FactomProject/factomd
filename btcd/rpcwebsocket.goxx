@@ -1435,7 +1435,7 @@ func handleNotifySpent(wsc *wsClient, icmd btcjson.Cmd) (interface{}, *btcjson.E
 
 	outpoints := make([]*wire.OutPoint, 0, len(cmd.OutPoints))
 	for i := range cmd.OutPoints {
-		blockHash, err := wire.NewIHashFromStr(cmd.OutPoints[i].Hash)
+		blockHash, err := wire.Newinterfaces.IHashFromStr(cmd.OutPoints[i].Hash)
 		if err != nil {
 			return nil, &btcjson.Error{
 				Code:    btcjson.ErrParse.Code,
@@ -1683,7 +1683,7 @@ func rescanBlock(wsc *wsClient, lookups *rescanKeys, blk *btcutil.Block) {
 // range of blocks.  If this condition does not hold true, the JSON-RPC error
 // for an unrecoverable reorganize is returned.
 func recoverFromReorg(db database.Db, minBlock, maxBlock int64,
-	lastBlock *btcutil.Block) ([]IHash, *btcjson.Error) {
+	lastBlock *btcutil.Block) ([]interfaces.IHash, *btcjson.Error) {
 
 	//util.Trace("wallet-related")
 

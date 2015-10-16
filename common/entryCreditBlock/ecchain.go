@@ -8,13 +8,13 @@ import (
 	"bytes"
 	"encoding/binary"
 	"github.com/FactomProject/factomd/common/constants"
-	. "github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
 	"sync"
 )
 
 type ECChain struct {
-	ChainID         IHash
+	ChainID         interfaces.IHash
 	Name            [][]byte
 	NextBlock       *ECBlock
 	NextBlockHeight uint32

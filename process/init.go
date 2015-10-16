@@ -27,7 +27,7 @@ import (
 	. "github.com/FactomProject/factomd/common/directoryBlock"
 	. "github.com/FactomProject/factomd/common/entryBlock"
 	. "github.com/FactomProject/factomd/common/entryCreditBlock"
-	. "github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
 )
 
@@ -201,7 +201,7 @@ func initFctChain() {
 	if len(fBlocks) == 0 || dchain.NextDBHeight == 0 {
 		state.FactoidStateGlobal.SetFactoshisPerEC(FactoshisPerCredit)
 		fchain.NextBlockHeight = 0
-		// func GetGenesisFBlock(ftime uint64, ExRate uint64, addressCnt int, Factoids uint64 ) IFBlock {
+		// func GetGenesisFBlock(ftime uint64, ExRate uint64, addressCnt int, Factoids uint64 ) interfaces.IFBlock {
 		//fchain.NextBlock = block.GetGenesisFBlock(0, FactoshisPerCredit, 10, 200000000000)
 		fchain.NextBlock = block.GetGenesisFBlock()
 		gb := fchain.NextBlock
@@ -380,7 +380,7 @@ func validateDChain(c *DChain) error {
 }
 
 // Validate a dir block
-func validateDBlock(c *DChain, b *DirectoryBlock) (merkleRoot IHash, dbHash IHash, err error) {
+func validateDBlock(c *DChain, b *DirectoryBlock) (merkleRoot interfaces.IHash, dbHash interfaces.IHash, err error) {
 
 	bodyMR, err := b.BuildBodyMR()
 	if err != nil {
@@ -423,7 +423,7 @@ func validateDBlock(c *DChain, b *DirectoryBlock) (merkleRoot IHash, dbHash IHas
 }
 
 // Validate Entry Credit Block by merkle root
-func validateCBlockByMR(mr IHash) error {
+func validateCBlockByMR(mr interfaces.IHash) error {
 	cb, _ := db.FetchECBlockByHash(mr)
 
 	if cb == nil {
@@ -434,7 +434,7 @@ func validateCBlockByMR(mr IHash) error {
 }
 
 // Validate Admin Block by merkle root
-func validateABlockByMR(mr IHash) error {
+func validateABlockByMR(mr interfaces.IHash) error {
 	b, _ := db.FetchABlockByHash(mr)
 
 	if b == nil {
@@ -445,7 +445,7 @@ func validateABlockByMR(mr IHash) error {
 }
 
 // Validate FBlock by merkle root
-func validateFBlockByMR(mr IHash) error {
+func validateFBlockByMR(mr interfaces.IHash) error {
 	b, _ := db.FetchFBlockByHash(mr)
 
 	if b == nil {
@@ -464,7 +464,7 @@ func validateFBlockByMR(mr IHash) error {
 }
 
 // Validate Entry Block by merkle root
-func validateEBlockByMR(cid IHash, mr IHash) error {
+func validateEBlockByMR(cid interfaces.IHash, mr interfaces.IHash) error {
 
 	eb, err := db.FetchEBlockByMR(mr)
 	if err != nil {

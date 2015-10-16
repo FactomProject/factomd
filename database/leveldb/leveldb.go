@@ -5,7 +5,7 @@
 package leveldb
 
 import (
-	. "github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/goleveldb/leveldb"
 	"github.com/FactomProject/goleveldb/leveldb/opt"
 	"github.com/FactomProject/goleveldb/leveldb/util"
@@ -24,7 +24,7 @@ type LevelDB struct {
 	wo     *opt.WriteOptions
 }
 
-var _ IDatabase = (*LevelDB)(nil)
+var _ interfaces.IDatabase = (*LevelDB)(nil)
 
 func (db *LevelDB) Delete(bucket []byte, key []byte) error {
 	db.dbLock.Lock()
@@ -42,7 +42,7 @@ func (db *LevelDB) Close() error {
 	return db.lDB.Close()
 }
 
-func (db *LevelDB) Get(bucket []byte, key []byte, destination BinaryMarshallable) (BinaryMarshallable, error) {
+func (db *LevelDB) Get(bucket []byte, key []byte, destination interfaces.BinaryMarshallable) (interfaces.BinaryMarshallable, error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -63,7 +63,7 @@ func (db *LevelDB) Get(bucket []byte, key []byte, destination BinaryMarshallable
 	return destination, nil
 }
 
-func (db *LevelDB) Put(bucket []byte, key []byte, data BinaryMarshallable) error {
+func (db *LevelDB) Put(bucket []byte, key []byte, data interfaces.BinaryMarshallable) error {
 	if db.lbatch == nil {
 		db.lbatch = new(leveldb.Batch)
 	}
@@ -84,7 +84,7 @@ func (db *LevelDB) Put(bucket []byte, key []byte, data BinaryMarshallable) error
 	return nil
 }
 
-func (db *LevelDB) PutInBatch(records []Record) error {
+func (db *LevelDB) PutInBatch(records []interfaces.Record) error {
 	if db.lbatch == nil {
 		db.lbatch = new(leveldb.Batch)
 	}
@@ -159,7 +159,7 @@ func (db *LevelDB) ListAllKeys(bucket []byte) (keys [][]byte, err error) {
 	return answer, nil
 }
 
-func (db *LevelDB) GetAll(bucket []byte, sample BinaryMarshallableAndCopyable) ([]BinaryMarshallableAndCopyable, error) {
+func (db *LevelDB) GetAll(bucket []byte, sample interfaces.BinaryMarshallableAndCopyable) ([]interfaces.BinaryMarshallableAndCopyable, error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
@@ -169,7 +169,7 @@ func (db *LevelDB) GetAll(bucket []byte, sample BinaryMarshallableAndCopyable) (
 
 	iter := db.lDB.NewIterator(&util.Range{Start: fromKey, Limit: toKey}, db.ro)
 
-	answer := []BinaryMarshallableAndCopyable{}
+	answer := []interfaces.BinaryMarshallableAndCopyable{}
 
 	for iter.Next() {
 		v := iter.Value()
@@ -189,7 +189,7 @@ func (db *LevelDB) GetAll(bucket []byte, sample BinaryMarshallableAndCopyable) (
 	return answer, nil
 }
 
-func NewLevelDB(filename string, create bool) (IDatabase, error) {
+func NewLevelDB(filename string, create bool) (interfaces.IDatabase, error) {
 	db := new(LevelDB)
 	var err error
 

@@ -5,7 +5,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"github.com/FactomProject/ed25519"
-	. "github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/interfaces"
 )
 
 // Verifyer objects can Verify signed messages
@@ -83,7 +83,7 @@ func (pk PrivateKey) Sign(msg []byte) (sig Signature) {
 }
 
 // Sign signs msg with PrivateKey and return Signature
-func (pk PrivateKey) MarshalSign(msg BinaryMarshallable) (sig Signature) {
+func (pk PrivateKey) MarshalSign(msg interfaces.BinaryMarshallable) (sig Signature) {
 	data, _ := msg.MarshalBinary()
 	return pk.Sign(data)
 }

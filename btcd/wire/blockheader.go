@@ -8,14 +8,14 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/FactomProject/factomd/common/constants"
-	. "github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
 	"io"
 )
 
 var (
 	// Shared constants
-	FChainID        IHash
+	FChainID        interfaces.IHash
 	CreditsPerChain int32
 
 	// BTCD State Variables
@@ -40,13 +40,13 @@ func Init() {
 // BlockHeader defines information about a block and is used in the bitcoin
 // block (MsgBlock) and headers (MsgHeaders) messages.
 type BlockHeader struct {
-	ChainID    IHash    // ChainID.  But since this is a constant, we need not actually use space to store it.
-	MerkleRoot IHash    // Merkle root of the Factoid transactions which accompany this block.
-	PrevBlock  IHash    // Key Merkle root of previous block.
-	PrevHash3  Sha3Hash // Sha3 of the previous Factoid Block
-	ExchRate   uint64   // Factoshis per Entry Credit
-	DBHeight   uint32   // Directory Block height
-	UTXOCommit IHash    // This field will hold a Merkle root of an array containing all unspent transactions.
+	ChainID    interfaces.IHash // ChainID.  But since this is a constant, we need not actually use space to store it.
+	MerkleRoot interfaces.IHash // Merkle root of the Factoid transactions which accompany this block.
+	PrevBlock  interfaces.IHash // Key Merkle root of previous block.
+	PrevHash3  Sha3Hash         // Sha3 of the previous Factoid Block
+	ExchRate   uint64           // Factoshis per Entry Credit
+	DBHeight   uint32           // Directory Block height
+	UTXOCommit interfaces.IHash // This field will hold a Merkle root of an array containing all unspent transactions.
 
 	// transaction count & body size are "read-only" (future) fields since serialization logic is handling both
 	TransCnt uint64 // Count of transactions in this block
@@ -58,7 +58,7 @@ type BlockHeader struct {
 const blockHeaderLen = 28 + 5*constants.HASH_LENGTH
 
 // BlockSha computes the block identifier hash for the given block header.
-func (h *BlockHeader) BlockSha() (IHash, error) {
+func (h *BlockHeader) BlockSha() (interfaces.IHash, error) {
 	// Encode the header and run double sha256 everything prior to the
 	// number of transactions.  Ignore the error returns since there is no
 	// way the encode could fail except being out of memory which would
@@ -66,7 +66,7 @@ func (h *BlockHeader) BlockSha() (IHash, error) {
 	// fact DoubleSha256 always returns a []byte of the right size
 	// regardless of input.
 	var buf bytes.Buffer
-	var sha IHash
+	var sha interfaces.IHash
 	_ = writeBlockHeader(&buf, 0, h)
 	fmt.Println("Len: ", len(buf.Bytes()), " ", blockHeaderLen)
 	_ = sha.SetBytes(DoubleSha256(buf.Bytes()[0:blockHeaderLen]))
@@ -98,7 +98,7 @@ func (h *BlockHeader) Serialize(w io.Writer) error {
 // NewBlockHeader returns a new BlockHeader using the provided previous block
 // hash, merkle root hash, difficulty bits, and nonce used to generate the
 // block with defaults for the remaining fields.
-func NewBlockHeader(prevHash IHash, merkleRootHash IHash) *BlockHeader {
+func NewBlockHeader(prevHash interfaces.IHash, merkleRootHash interfaces.IHash) *BlockHeader {
 
 	return &BlockHeader{
 		PrevBlock:  prevHash,

@@ -12,7 +12,7 @@ package factoid
 
 import (
 	"bytes"
-	. "github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
 )
 
@@ -20,7 +20,7 @@ type OutECAddress struct {
 	TransAddress
 }
 
-var _ IOutECAddress = (*OutECAddress)(nil)
+var _ interfaces.IOutECAddress = (*OutECAddress)(nil)
 
 func (e *OutECAddress) JSONByte() ([]byte, error) {
 	return EncodeJSON(e)
@@ -42,7 +42,7 @@ func (b OutECAddress) String() string {
 	return string(txt)
 }
 
-func (w1 OutECAddress) GetNewInstance() IBlock {
+func (w1 OutECAddress) GetNewInstance() interfaces.IBlock {
 	return new(OutECAddress)
 }
 
@@ -58,7 +58,7 @@ func (a OutECAddress) CustomMarshalText() (text []byte, err error) {
  * Helper functions
  ******************************/
 
-func NewOutECAddress(address IAddress, amount uint64) IOutAddress {
+func NewOutECAddress(address interfaces.IAddress, amount uint64) interfaces.IOutAddress {
 	oa := new(OutECAddress)
 	oa.Amount = amount
 	oa.Address = address

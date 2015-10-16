@@ -9,7 +9,7 @@ package factoid
 
 import (
 	"bytes"
-	. "github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
 )
 
@@ -17,7 +17,7 @@ type InAddress struct {
 	TransAddress
 }
 
-var _ IInAddress = (*InAddress)(nil)
+var _ interfaces.IInAddress = (*InAddress)(nil)
 
 func (e *InAddress) JSONByte() ([]byte, error) {
 	return EncodeJSON(e)
@@ -39,7 +39,7 @@ func (b InAddress) String() string {
 	return string(txt)
 }
 
-func (i InAddress) GetNewInstance() IBlock {
+func (i InAddress) GetNewInstance() interfaces.IBlock {
 	return new(InAddress)
 }
 
@@ -51,7 +51,7 @@ func (a InAddress) CustomMarshalText() (text []byte, err error) {
  * Helper functions
  ******************************/
 
-func NewInAddress(address IAddress, amount uint64) IInAddress {
+func NewInAddress(address interfaces.IAddress, amount uint64) interfaces.IInAddress {
 	oa := new(InAddress)
 	oa.Amount = amount
 	oa.Address = address

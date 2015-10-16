@@ -13,16 +13,16 @@ import (
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/constants"
-	. "github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/interfaces"
 )
 
 type Hash [constants.HASH_LENGTH]byte
 
-var _ Printable = (*Hash)(nil)
-var _ IHash = (*Hash)(nil)
-var _ BinaryMarshallableAndCopyable = (*Hash)(nil)
+var _ interfaces.Printable = (*Hash)(nil)
+var _ interfaces.IHash = (*Hash)(nil)
+var _ interfaces.BinaryMarshallableAndCopyable = (*Hash)(nil)
 
-func (c *Hash) New() BinaryMarshallableAndCopyable {
+func (c *Hash) New() interfaces.BinaryMarshallableAndCopyable {
 	return new(Hash)
 }
 
@@ -62,19 +62,19 @@ func (h *Hash) Bytes() []byte {
 	return h.GetBytes()
 }
 
-func (Hash) GetHash() IHash {
+func (Hash) GetHash() interfaces.IHash {
 	return nil
 }
 
-func (w1 Hash) GetNewInstance() IBlock {
+func (w1 Hash) GetNewInstance() interfaces.IBlock {
 	return new(Hash)
 }
 
-func (h *Hash) CreateHash(entities ...BinaryMarshallable) (IHash, error) {
+func (h *Hash) CreateHash(entities ...interfaces.BinaryMarshallable) (interfaces.IHash, error) {
 	return CreateHash(entities...)
 }
 
-func CreateHash(entities ...BinaryMarshallable) (h IHash, err error) {
+func CreateHash(entities ...interfaces.BinaryMarshallable) (h interfaces.IHash, err error) {
 	sha := sha256.New()
 	h = new(Hash)
 	for _, entity := range entities {
@@ -110,17 +110,17 @@ func (h *Hash) UnmarshalBinary(p []byte) (err error) {
 	return
 }
 
-func (t Hash) IsEqual(hash IBlock) []IBlock {
-	h, ok := hash.(IHash)
+func (t Hash) IsEqual(hash interfaces.IBlock) []interfaces.IBlock {
+	h, ok := hash.(interfaces.IHash)
 	if !ok || !h.IsSameAs(&t) {
-		r := make([]IBlock, 0, 5)
+		r := make([]interfaces.IBlock, 0, 5)
 		return append(r, &t)
 	}
 
 	return nil
 }
 
-func (h Hash) NewBlock() IBlock {
+func (h Hash) NewBlock() interfaces.IBlock {
 	h2 := new(Hash)
 	return h2
 }
@@ -180,11 +180,11 @@ func (h *Hash) ByteString() string {
 	return string(h[:])
 }
 
-func (h *Hash) HexToHash(hexStr string) (IHash, error) {
+func (h *Hash) HexToHash(hexStr string) (interfaces.IHash, error) {
 	return HexToHash(hexStr)
 }
 
-func HexToHash(hexStr string) (h IHash, err error) {
+func HexToHash(hexStr string) (h interfaces.IHash, err error) {
 	h = new(Hash)
 	v, err := hex.DecodeString(hexStr)
 	err = h.SetBytes(v)
@@ -203,7 +203,7 @@ func (h *Hash) BTCString() string {
 }
 
 // Compare two Hashes
-func (a Hash) IsSameAs(b IHash) bool {
+func (a Hash) IsSameAs(b interfaces.IHash) bool {
 	if b == nil {
 		return false
 	}
@@ -249,7 +249,7 @@ func (e *Hash) JSONBuffer(b *bytes.Buffer) error {
  **********************/
 
 // Create a Sha256 Hash from a byte array
-func Sha(p []byte) IHash {
+func Sha(p []byte) interfaces.IHash {
 	h := new(Hash)
 	b := sha256.Sum256(p)
 	h.SetBytes(b[:])
@@ -257,7 +257,7 @@ func Sha(p []byte) IHash {
 }
 
 // Shad Double Sha256 Hash; sha256(sha256(data))
-func Shad(data []byte) IHash {
+func Shad(data []byte) interfaces.IHash {
 	h1 := sha256.Sum256(data)
 	h2 := sha256.Sum256(h1[:])
 	h := new(Hash)
@@ -265,12 +265,12 @@ func Shad(data []byte) IHash {
 	return h
 }
 
-func NewZeroHash() IHash {
+func NewZeroHash() interfaces.IHash {
 	h := new(Hash)
 	return h
 }
 
-func NewHash(b []byte) IHash {
+func NewHash(b []byte) interfaces.IHash {
 	h := new(Hash)
 	h.SetBytes(b)
 	return h
@@ -283,7 +283,7 @@ func DoubleSha(data []byte) []byte {
 	return h2[:]
 }
 
-func NewShaHashFromStruct(DataStruct interface{}) (IHash, error) {
+func NewShaHashFromStruct(DataStruct interface{}) (interfaces.IHash, error) {
 	jsonbytes, err := json.Marshal(DataStruct)
 	if err != nil {
 		//fmt.Printf("NewShaHash Json Marshal Error: %s\n", err)

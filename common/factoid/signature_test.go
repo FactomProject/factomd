@@ -7,7 +7,7 @@ package factoid
 import (
 	"fmt"
 	"github.com/FactomProject/ed25519"
-	. "github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
 	"math/rand"
 	"testing"
@@ -20,7 +20,7 @@ var _ = rand.New
 var sig1 [64]byte
 var sig2 [64]byte
 
-var s1, s2 ISignature
+var s1, s2 interfaces.ISignature
 
 func Test_Setup_Signature(test *testing.T) {
 	sh11 := Sha([]byte("sig first half  one")).Bytes()

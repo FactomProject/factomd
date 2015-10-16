@@ -11,7 +11,7 @@ import (
 	"io"
 
 	. "github.com/FactomProject/factomd/common/entryCreditBlock"
-	. "github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/interfaces"
 )
 
 type MsgTestCredit struct {
@@ -91,11 +91,11 @@ func (msg *MsgTestCredit) MaxPayloadLength(pver uint32) uint32 {
 }
 
 // Create a sha hash from the message binary (output of BtcEncode)
-func (msg *MsgTestCredit) Sha() (IHash, error) {
+func (msg *MsgTestCredit) Sha() (interfaces.IHash, error) {
 
 	buf := bytes.NewBuffer(nil)
 	msg.BtcEncode(buf, ProtocolVersion)
-	var sha IHash
+	var sha interfaces.IHash
 	_ = sha.SetBytes(Sha256(buf.Bytes()))
 
 	return sha, nil

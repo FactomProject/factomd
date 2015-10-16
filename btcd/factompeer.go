@@ -12,7 +12,7 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/directoryBlock"
 	. "github.com/FactomProject/factomd/common/entryBlock"
-	. "github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database"
 	"github.com/davecgh/go-spew/spew"
@@ -423,7 +423,7 @@ func (p *peer) handleGetDirBlocksMsg(msg *wire.MsgGetDirBlocks) {
 
 // pushDirBlockMsg sends a dir block message for the provided block hash to the
 // connected peer.  An error is returned if the block hash is not known.
-func (p *peer) pushDirBlockMsg(sha IHash, doneChan, waitChan chan struct{}) error {
+func (p *peer) pushDirBlockMsg(sha interfaces.IHash, doneChan, waitChan chan struct{}) error {
 	commonhash := new(Hash)
 	commonhash.SetBytes(sha.Bytes())
 	blk, err := db.FetchDBlockByHash(commonhash)
@@ -487,12 +487,12 @@ func (p *peer) pushDirBlockMsg(sha IHash, doneChan, waitChan chan struct{}) erro
 
 // PushGetDirBlocksMsg sends a getdirblocks message for the provided block locator
 // and stop hash.  It will ignore back-to-back duplicate requests.
-func (p *peer) PushGetDirBlocksMsg(locator blockchain.BlockLocator, stopHash IHash) error {
+func (p *peer) PushGetDirBlocksMsg(locator blockchain.BlockLocator, stopHash interfaces.IHash) error {
 
 	// Extract the begin hash from the block locator, if one was specified,
 	// to use for filtering duplicate getblocks requests.
 	// request.
-	var beginHash IHash
+	var beginHash interfaces.IHash
 	if len(locator) > 0 {
 		beginHash = locator[0]
 	}
@@ -557,7 +557,7 @@ func (p *peer) pushGetEntryDataMsg(eblock *EBlock) {
 
 // pushFBlockMsg sends an factoid block message for the provided block hash to the
 // connected peer.  An error is returned if the block hash is not known.
-func (p *peer) pushFBlockMsg(commonhash IHash, doneChan, waitChan chan struct{}) error {
+func (p *peer) pushFBlockMsg(commonhash interfaces.IHash, doneChan, waitChan chan struct{}) error {
 	blk, err := db.FetchFBlockByHash(commonhash)
 
 	if err != nil || blk == nil {
@@ -583,7 +583,7 @@ func (p *peer) pushFBlockMsg(commonhash IHash, doneChan, waitChan chan struct{})
 
 // pushABlockMsg sends an admin block message for the provided block hash to the
 // connected peer.  An error is returned if the block hash is not known.
-func (p *peer) pushABlockMsg(commonhash IHash, doneChan, waitChan chan struct{}) error {
+func (p *peer) pushABlockMsg(commonhash interfaces.IHash, doneChan, waitChan chan struct{}) error {
 	blk, err := db.FetchABlockByHash(commonhash)
 
 	if err != nil || blk == nil {
@@ -609,7 +609,7 @@ func (p *peer) pushABlockMsg(commonhash IHash, doneChan, waitChan chan struct{})
 // pushECBlockMsg sends a entry credit block message for the provided block
 // hash to the connected peer.  An error is returned if the block hash is not
 // known.
-func (p *peer) pushECBlockMsg(commonhash IHash, doneChan, waitChan chan struct{}) error {
+func (p *peer) pushECBlockMsg(commonhash interfaces.IHash, doneChan, waitChan chan struct{}) error {
 	blk, err := db.FetchECBlockByHash(commonhash)
 	if err != nil || blk == nil {
 		peerLog.Tracef("Unable to fetch requested Entry Credit block sha %v: %v",
@@ -634,7 +634,7 @@ func (p *peer) pushECBlockMsg(commonhash IHash, doneChan, waitChan chan struct{}
 
 // pushEBlockMsg sends a entry block message for the provided block hash to the
 // connected peer.  An error is returned if the block hash is not known.
-func (p *peer) pushEBlockMsg(commonhash IHash, doneChan, waitChan chan struct{}) error {
+func (p *peer) pushEBlockMsg(commonhash interfaces.IHash, doneChan, waitChan chan struct{}) error {
 	blk, err := db.FetchEBlockByMR(commonhash)
 	if err != nil {
 		if doneChan != nil || blk == nil {
@@ -658,7 +658,7 @@ func (p *peer) pushEBlockMsg(commonhash IHash, doneChan, waitChan chan struct{})
 
 // pushEntryMsg sends a EBlock entry message for the provided ebentry hash to the
 // connected peer.  An error is returned if the block hash is not known.
-func (p *peer) pushEntryMsg(commonhash IHash, doneChan, waitChan chan struct{}) error {
+func (p *peer) pushEntryMsg(commonhash interfaces.IHash, doneChan, waitChan chan struct{}) error {
 	entry, err := db.FetchEntryByHash(commonhash)
 	if err != nil || entry == nil {
 		peerLog.Tracef("Unable to fetch requested Entry sha %v: %v",

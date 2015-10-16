@@ -12,7 +12,7 @@ import (
 
 	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/factoid"
-	. "github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
 )
 
@@ -22,16 +22,16 @@ import (
 // https://github.com/FactomProject/FactomDocs/blob/master/factomDataStructureDetails.md#factoid-block
 //
 type FBlock struct {
-	//  ChainID         IHash     // ChainID.  But since this is a constant, we need not actually use space to store it.
-	BodyMR          IHash  // Merkle root of the Factoid transactions which accompany this block.
-	PrevKeyMR       IHash  // Key Merkle root of previous block.
-	PrevLedgerKeyMR IHash  // Sha3 of the previous Factoid Block
-	ExchRate        uint64 // Factoshis per Entry Credit
-	DBHeight        uint32 // Directory Block height
+	//  ChainID         interfaces.IHash     // ChainID.  But since this is a constant, we need not actually use space to store it.
+	BodyMR          interfaces.IHash // Merkle root of the Factoid transactions which accompany this block.
+	PrevKeyMR       interfaces.IHash // Key Merkle root of previous block.
+	PrevLedgerKeyMR interfaces.IHash // Sha3 of the previous Factoid Block
+	ExchRate        uint64           // Factoshis per Entry Credit
+	DBHeight        uint32           // Directory Block height
 	// Header Expansion Size  varint
 	// Transaction count
 	// body size
-	Transactions []ITransaction // List of transactions in this block
+	Transactions []interfaces.ITransaction // List of transactions in this block
 
 	endOfPeriod [10]int // End of Minute transaction heights.  The mark the height of the first entry of
 	// the NEXT period.  This entry may not exist.  The Coinbase transaction is considered
@@ -39,11 +39,11 @@ type FBlock struct {
 	// there will be 10 of them.  This may change in the future.
 }
 
-var _ IFBlock = (*FBlock)(nil)
-var _ Printable = (*FBlock)(nil)
-var _ BinaryMarshallableAndCopyable = (*FBlock)(nil)
+var _ interfaces.IFBlock = (*FBlock)(nil)
+var _ interfaces.Printable = (*FBlock)(nil)
+var _ interfaces.BinaryMarshallableAndCopyable = (*FBlock)(nil)
 
-func (c *FBlock) New() BinaryMarshallableAndCopyable {
+func (c *FBlock) New() interfaces.BinaryMarshallableAndCopyable {
 	return new(FBlock)
 }
 
@@ -67,15 +67,15 @@ func (b *FBlock) EndOfPeriod(period int) {
 	}
 }
 
-func (b *FBlock) GetTransactions() []ITransaction {
+func (b *FBlock) GetTransactions() []interfaces.ITransaction {
 	return b.Transactions
 }
 
-func (b FBlock) GetNewInstance() IBlock {
+func (b FBlock) GetNewInstance() interfaces.IBlock {
 	return new(FBlock)
 }
 
-func (b *FBlock) GetHash() IHash {
+func (b *FBlock) GetHash() interfaces.IHash {
 	kmr := b.GetKeyMR()
 
 	return kmr
@@ -85,7 +85,7 @@ func (b *FBlock) MarshalTrans() ([]byte, error) {
 	var out bytes.Buffer
 	var periodMark = 0
 	var i int
-	var trans ITransaction
+	var trans interfaces.ITransaction
 	for i, trans = range b.Transactions {
 
 		for periodMark < len(b.endOfPeriod) &&
@@ -235,7 +235,7 @@ func (b *FBlock) UnmarshalBinaryData(data []byte) (newdata []byte, err error) {
 
 	data = data[4:] // Just skip the size... We don't really need it.
 
-	b.Transactions = make([]ITransaction, cnt, cnt)
+	b.Transactions = make([]interfaces.ITransaction, cnt, cnt)
 	for i, _ := range b.endOfPeriod {
 		b.endOfPeriod[i] = 0
 	}
@@ -268,16 +268,16 @@ func (b *FBlock) UnmarshalBinary(data []byte) (err error) {
 // Tests if the transaction is equal in all of its structures, and
 // in order of the structures.  Largely used to test and debug, but
 // generally useful.
-func (b1 *FBlock) IsEqual(block IBlock) []IBlock {
+func (b1 *FBlock) IsEqual(block interfaces.IBlock) []interfaces.IBlock {
 
 	b1.EndOfPeriod(0) // Clean up end of minute markers, if needed.
 
 	b2, ok := block.(*FBlock)
 
-	if !ok || // Not the right kind of IBlock
+	if !ok || // Not the right kind of interfaces.IBlock
 		b1.ExchRate != b2.ExchRate ||
 		b1.DBHeight != b2.DBHeight {
-		r := make([]IBlock, 0, 3)
+		r := make([]interfaces.IBlock, 0, 3)
 		return append(r, b1)
 	}
 
@@ -307,14 +307,14 @@ func (b1 *FBlock) IsEqual(block IBlock) []IBlock {
 
 	return nil
 }
-func (b *FBlock) GetChainID() IHash {
+func (b *FBlock) GetChainID() interfaces.IHash {
 	h := new(Hash)
 	h.SetBytes(constants.FACTOID_CHAINID)
 	return h
 }
 
 // Calculates the Key Merkle Root for this block and returns it.
-func (b *FBlock) GetKeyMR() IHash {
+func (b *FBlock) GetKeyMR() interfaces.IHash {
 
 	bodyMR := b.GetBodyMR()
 
@@ -329,7 +329,7 @@ func (b *FBlock) GetKeyMR() IHash {
 }
 
 // Calculates the Key Merkle Root for this block and returns it.
-func (b *FBlock) GetLedgerKeyMR() IHash {
+func (b *FBlock) GetLedgerKeyMR() interfaces.IHash {
 
 	ledgerMR := b.GetLedgerMR()
 
@@ -345,11 +345,11 @@ func (b *FBlock) GetLedgerKeyMR() IHash {
 }
 
 // Returns the LedgerMR for this block.
-func (b *FBlock) GetLedgerMR() IHash {
+func (b *FBlock) GetLedgerMR() interfaces.IHash {
 
 	b.EndOfPeriod(0) // Clean up end of minute markers, if needed.
 
-	hashes := make([]IHash, 0, len(b.Transactions))
+	hashes := make([]interfaces.IHash, 0, len(b.Transactions))
 	marker := 0
 	for i, trans := range b.Transactions {
 		for marker < len(b.endOfPeriod) && i != 0 && i == b.endOfPeriod[marker] {
@@ -373,11 +373,11 @@ func (b *FBlock) GetLedgerMR() IHash {
 	return lmr
 }
 
-func (b *FBlock) GetBodyMR() IHash {
+func (b *FBlock) GetBodyMR() interfaces.IHash {
 
 	b.EndOfPeriod(0) // Clean up end of minute markers, if needed.
 
-	hashes := make([]IHash, 0, len(b.Transactions))
+	hashes := make([]interfaces.IHash, 0, len(b.Transactions))
 	marker := 0
 	for i, trans := range b.Transactions {
 		for marker < len(b.endOfPeriod) && i != 0 && i == b.endOfPeriod[marker] {
@@ -397,14 +397,14 @@ func (b *FBlock) GetBodyMR() IHash {
 	return b.BodyMR
 }
 
-func (b *FBlock) GetPrevKeyMR() IHash {
+func (b *FBlock) GetPrevKeyMR() interfaces.IHash {
 	return b.PrevKeyMR
 }
 func (b *FBlock) SetPrevKeyMR(hash []byte) {
 	h := NewHash(hash)
 	b.PrevKeyMR = h
 }
-func (b *FBlock) GetPrevLedgerKeyMR() IHash {
+func (b *FBlock) GetPrevLedgerKeyMR() interfaces.IHash {
 	return b.PrevLedgerKeyMR
 }
 func (b *FBlock) SetPrevLedgerKeyMR(hash []byte) {
@@ -429,7 +429,7 @@ func (b *FBlock) GetExchRate() uint64 {
 	return b.ExchRate
 }
 
-func (b FBlock) ValidateTransaction(index int, trans ITransaction) error {
+func (b FBlock) ValidateTransaction(index int, trans interfaces.ITransaction) error {
 	// Calculate the fee due.
 	{
 		err := trans.Validate(index)
@@ -513,7 +513,7 @@ func (b FBlock) Validate() error {
 // Add the first transaction of a block.  This transaction makes the
 // payout to the servers, so it has no inputs.   This transaction must
 // be deterministic so that all servers will know and expect its output.
-func (b *FBlock) AddCoinbase(trans ITransaction) error {
+func (b *FBlock) AddCoinbase(trans interfaces.ITransaction) error {
 	b.BodyMR = nil
 	if len(b.Transactions) != 0 {
 		return fmt.Errorf("The coinbase transaction must be the first transaction")
@@ -539,7 +539,7 @@ func (b *FBlock) AddCoinbase(trans ITransaction) error {
 
 // Add the given transaction to this block.  Reports an error if this
 // cannot be done, or if the transaction is invalid.
-func (b *FBlock) AddTransaction(trans ITransaction) error {
+func (b *FBlock) AddTransaction(trans interfaces.ITransaction) error {
 	// These tests check that the Transaction itself is valid.  If it
 	// is not internally valid, it never will be valid.
 	b.BodyMR = nil
@@ -637,7 +637,7 @@ func (e *FBlock) JSONBuffer(b *bytes.Buffer) error {
  * Helper Functions
  **************************/
 
-func NewFBlock(ExchRate uint64, DBHeight uint32) IFBlock {
+func NewFBlock(ExchRate uint64, DBHeight uint32) interfaces.IFBlock {
 	scb := new(FBlock)
 	scb.BodyMR = new(Hash)
 	scb.PrevKeyMR = new(Hash)

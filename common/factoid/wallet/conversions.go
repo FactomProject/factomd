@@ -6,9 +6,12 @@ import (
 	"strings"
 
 	"github.com/FactomProject/btcutil/base58"
-	"github.com/FactomProject/factoid"
 	"github.com/FactomProject/go-bip32"
 	"github.com/FactomProject/go-bip39"
+
+	"github.com/FactomProject/factomd/common/factoid"
+	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 func MnemonicStringToPrivateKey(mnemonic string) ([]byte, error) {
@@ -125,10 +128,10 @@ func PublicKeyStringToFactoidAddressString(public string) (string, error) {
 		return "", err
 	}
 
-	return factoid.ConvertFctAddressToUserStr(add), nil
+	return primitives.ConvertFctAddressToUserStr(add), nil
 }
 
-func PublicKeyToFactoidAddress(public []byte) (factoid.IAddress, error) {
+func PublicKeyToFactoidAddress(public []byte) (interfaces.IAddress, error) {
 	rcd := factoid.NewRCD_1(public)
 	add, err := rcd.GetAddress()
 	if err != nil {

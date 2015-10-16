@@ -16,23 +16,23 @@ import (
 	"fmt"
 	"strings"
 
-	. "github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
 )
 
 type TransAddress struct {
 	Amount  uint64
-	Address IAddress
+	Address interfaces.IAddress
 }
 
-var _ ITransAddress = (*TransAddress)(nil)
+var _ interfaces.ITransAddress = (*TransAddress)(nil)
 
 // Not useful on TransAddress objects
-func (t *TransAddress) GetHash() IHash {
+func (t *TransAddress) GetHash() interfaces.IHash {
 	return nil
 }
 
-func (t *TransAddress) GetNewInstance() IBlock {
+func (t *TransAddress) GetNewInstance() interfaces.IBlock {
 	return new(TransAddress)
 }
 
@@ -62,11 +62,11 @@ func (t *TransAddress) String() string {
 	return (string(txt))
 }
 
-func (t *TransAddress) IsEqual(addr IBlock) []IBlock {
-	a, ok := addr.(ITransAddress)
-	if !ok || // Not the right kind of IBlock
+func (t *TransAddress) IsEqual(addr interfaces.IBlock) []interfaces.IBlock {
+	a, ok := addr.(interfaces.ITransAddress)
+	if !ok || // Not the right kind of interfaces.IBlock
 		a.GetAmount() != t.GetAmount() {
-		r := make([]IBlock, 0, 5)
+		r := make([]interfaces.IBlock, 0, 5)
 		return append(r, t)
 	} // Amount is different
 	r := a.GetAddress().IsEqual(t.GetAddress()) // Address is different
@@ -128,13 +128,13 @@ func (ta *TransAddress) SetAmount(amount uint64) {
 
 // Accessor.  Get the raw address.  Could be an actual address,
 // or a hash of an authorization block.  See authorization.go
-func (ta TransAddress) GetAddress() IAddress {
+func (ta TransAddress) GetAddress() interfaces.IAddress {
 	return ta.Address
 }
 
 // Accessor.  Get the raw address.  Could be an actual address,
 // or a hash of an authorization block.  See authorization.go
-func (ta *TransAddress) SetAddress(address IAddress) {
+func (ta *TransAddress) SetAddress(address interfaces.IAddress) {
 	ta.Address = address
 }
 

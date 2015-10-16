@@ -9,7 +9,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/FactomProject/factomd/common/constants"
-	. "github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
 	"io"
 )
@@ -30,12 +30,12 @@ type ECBlock struct {
 	Body   *ECBlockBody
 }
 
-var _ Printable = (*ECBlock)(nil)
-var _ IDBEntry = (*ECBlock)(nil)
-var _ BinaryMarshallableAndCopyable = (*ECBlock)(nil)
-var _ DatabaseBatchable = (*ECBlock)(nil)
+var _ interfaces.Printable = (*ECBlock)(nil)
+var _ interfaces.IDBEntry = (*ECBlock)(nil)
+var _ interfaces.BinaryMarshallableAndCopyable = (*ECBlock)(nil)
+var _ interfaces.DatabaseBatchable = (*ECBlock)(nil)
 
-func (c *ECBlock) New() BinaryMarshallableAndCopyable {
+func (c *ECBlock) New() interfaces.BinaryMarshallableAndCopyable {
 	return new(ECBlock)
 }
 
@@ -47,12 +47,12 @@ func (c *ECBlock) GetChainID() []byte {
 	return c.Header.ECChainID.Bytes()
 }
 
-func (c *ECBlock) DatabasePrimaryIndex() IHash {
+func (c *ECBlock) DatabasePrimaryIndex() interfaces.IHash {
 	key, _ := c.Hash()
 	return key
 }
 
-func (c *ECBlock) DatabaseSecondaryIndex() IHash {
+func (c *ECBlock) DatabaseSecondaryIndex() interfaces.IHash {
 	key, _ := c.HeaderHash()
 	return key
 }
@@ -88,7 +88,7 @@ func (e *ECBlock) AddEntry(entries ...ECBlockEntry) {
 	e.Body.Entries = append(e.Body.Entries, entries...)
 }
 
-func (e *ECBlock) Hash() (IHash, error) {
+func (e *ECBlock) Hash() (interfaces.IHash, error) {
 	p, err := e.MarshalBinary()
 	if err != nil {
 		return nil, err
@@ -96,7 +96,7 @@ func (e *ECBlock) Hash() (IHash, error) {
 	return Sha(p), nil
 }
 
-func (e *ECBlock) HeaderHash() (IHash, error) {
+func (e *ECBlock) HeaderHash() (interfaces.IHash, error) {
 	p, err := e.marshalHeaderBinary()
 	if err != nil {
 		return nil, err
@@ -381,7 +381,7 @@ type ECBlockBody struct {
 	Entries []ECBlockEntry
 }
 
-var _ Printable = (*ECBlockBody)(nil)
+var _ interfaces.Printable = (*ECBlockBody)(nil)
 
 func NewECBlockBody() *ECBlockBody {
 	b := new(ECBlockBody)
@@ -407,27 +407,27 @@ func (e *ECBlockBody) String() string {
 }
 
 type ECBlockEntry interface {
-	Printable
-	ShortInterpretable
+	interfaces.Printable
+	interfaces.ShortInterpretable
 
 	ECID() byte
 	MarshalBinary() ([]byte, error)
 	UnmarshalBinary(data []byte) error
-	Hash() IHash
+	Hash() interfaces.IHash
 }
 
 type ECBlockHeader struct {
-	ECChainID           IHash
-	BodyHash            IHash
-	PrevHeaderHash      IHash
-	PrevLedgerKeyMR     IHash
+	ECChainID           interfaces.IHash
+	BodyHash            interfaces.IHash
+	PrevHeaderHash      interfaces.IHash
+	PrevLedgerKeyMR     interfaces.IHash
 	DBHeight            uint32
 	HeaderExpansionArea []byte
 	ObjectCount         uint64
 	BodySize            uint64
 }
 
-var _ Printable = (*ECBlockHeader)(nil)
+var _ interfaces.Printable = (*ECBlockHeader)(nil)
 
 func NewECBlockHeader() *ECBlockHeader {
 	h := new(ECBlockHeader)

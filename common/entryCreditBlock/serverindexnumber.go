@@ -7,7 +7,7 @@ package entryCreditBlock
 import (
 	"bytes"
 	"fmt"
-	. "github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
 )
 
@@ -19,12 +19,12 @@ type ServerIndexNumber struct {
 	Number uint8
 }
 
-var _ Printable = (*ServerIndexNumber)(nil)
-var _ BinaryMarshallable = (*ServerIndexNumber)(nil)
-var _ ShortInterpretable = (*ServerIndexNumber)(nil)
+var _ interfaces.Printable = (*ServerIndexNumber)(nil)
+var _ interfaces.BinaryMarshallable = (*ServerIndexNumber)(nil)
+var _ interfaces.ShortInterpretable = (*ServerIndexNumber)(nil)
 var _ ECBlockEntry = (*ServerIndexNumber)(nil)
 
-func (e *ServerIndexNumber) Hash() IHash {
+func (e *ServerIndexNumber) Hash() interfaces.IHash {
 	bin, err := e.MarshalBinary()
 	if err != nil {
 		panic(err)

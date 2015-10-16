@@ -9,7 +9,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
-	. "github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/btcsuitereleases/btcutil/base58"
 	"runtime/debug"
 	"strconv"
@@ -222,7 +222,7 @@ func ConvertFixedPoint(amt string) (string, error) {
 //
 //  Creates the binary form.  Just needs the conversion to base58
 //  for display.
-func ConvertAddressToUser(prefix []byte, addr IAddress) []byte {
+func ConvertAddressToUser(prefix []byte, addr interfaces.IAddress) []byte {
 	dat := prefix
 	dat = append(dat, addr.Bytes()...)
 	sha256d := Sha(Sha(dat).Bytes()).Bytes()
@@ -233,25 +233,25 @@ func ConvertAddressToUser(prefix []byte, addr IAddress) []byte {
 }
 
 // Convert Factoid Addresses
-func ConvertFctAddressToUserStr(addr IAddress) string {
+func ConvertFctAddressToUserStr(addr interfaces.IAddress) string {
 	userd := ConvertAddressToUser(FactoidPrefix, addr)
 	return base58.Encode(userd)
 }
 
 // Convert Factoid Private Key
-func ConvertFctPrivateToUserStr(addr IAddress) string {
+func ConvertFctPrivateToUserStr(addr interfaces.IAddress) string {
 	userd := ConvertAddressToUser(FactoidPrivatePrefix, addr)
 	return base58.Encode(userd)
 }
 
 // Convert Entry Credits
-func ConvertECAddressToUserStr(addr IAddress) string {
+func ConvertECAddressToUserStr(addr interfaces.IAddress) string {
 	userd := ConvertAddressToUser(EntryCreditPrefix, addr)
 	return base58.Encode(userd)
 }
 
 // Convert Entry Credit Private key
-func ConvertECPrivateToUserStr(addr IAddress) string {
+func ConvertECPrivateToUserStr(addr interfaces.IAddress) string {
 	userd := ConvertAddressToUser(EntryCreditPrivatePrefix, addr)
 	return base58.Encode(userd)
 }

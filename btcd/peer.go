@@ -18,7 +18,7 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/btcd/addrmgr"
-	. "github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/interfaces"
 	//"github.com/FactomProject/factomd/btcd/database"
 	"github.com/FactomProject/factomd/btcd/wire"
 	//"github.com/FactomProject/btcutil"
@@ -87,7 +87,7 @@ var (
 )
 
 // zeroHash is the zero value hash (all zeros).  It is defined as a convenience.
-var zeroHash IHash
+var zeroHash interfaces.IHash
 
 // minUint32 is a helper function to return the minimum of two uint32s.
 // This avoids a math import and the need to cast to floats.
@@ -177,18 +177,18 @@ type peer struct {
 	knownAddresses     map[string]struct{}
 	knownInventory     *MruInventoryMap
 	knownInvMutex      sync.Mutex
-	requestedTxns      map[IHash]struct{} // owned by blockmanager
-	requestedBlocks    map[IHash]struct{} // owned by blockmanager
+	requestedTxns      map[interfaces.IHash]struct{} // owned by blockmanager
+	requestedBlocks    map[interfaces.IHash]struct{} // owned by blockmanager
 	retryCount         int64
-	prevGetBlocksBegin IHash // owned by blockmanager
-	prevGetBlocksStop  IHash // owned by blockmanager
-	prevGetHdrsBegin   IHash // owned by blockmanager
-	prevGetHdrsStop    IHash // owned by blockmanager
+	prevGetBlocksBegin interfaces.IHash // owned by blockmanager
+	prevGetBlocksStop  interfaces.IHash // owned by blockmanager
+	prevGetHdrsBegin   interfaces.IHash // owned by blockmanager
+	prevGetHdrsStop    interfaces.IHash // owned by blockmanager
 	requestQueue       []*wire.InvVect
 	//filter             *bloom.Filter
 	relayMtx           sync.Mutex
 	disableRelayTx     bool
-	continueHash       IHash
+	continueHash       interfaces.IHash
 	outputQueue        chan outMsg
 	sendQueue          chan outMsg
 	sendDoneQueue      chan struct{}
@@ -212,7 +212,7 @@ type peer struct {
 	userAgent          string
 	startingHeight     int32
 	lastBlock          int32
-	lastAnnouncedBlock IHash
+	lastAnnouncedBlock interfaces.IHash
 	lastPingNonce      uint64    // Set to nonce if we have a pending ping.
 	lastPingTime       time.Time // Time we sent last ping.
 	lastPingMicros     int64     // Time for last ping to return.
@@ -249,7 +249,7 @@ func (p *peer) UpdateLastBlockHeight(newHeight int32) {
 
 // UpdateLastAnnouncedBlock updates meta-data about the last block sha this
 // peer is known to have announced. It is safe for concurrent access.
-func (p *peer) UpdateLastAnnouncedBlock(blkSha IHash) {
+func (p *peer) UpdateLastAnnouncedBlock(blkSha interfaces.IHash) {
 	p.StatsMtx.Lock()
 	defer p.StatsMtx.Unlock()
 
@@ -538,7 +538,7 @@ func (p *peer) handleVersionMsg(msg *wire.MsgVersion) {
 /*
 // pushTxMsg sends a tx message for the provided transaction hash to the
 // connected peer.  An error is returned if the transaction hash is not known.
-func (p *peer) pushTxMsg(sha IHash, doneChan, waitChan chan struct{}) error {
+func (p *peer) pushTxMsg(sha interfaces.IHash, doneChan, waitChan chan struct{}) error {
 	// Attempt to fetch the requested transaction from the pool.  A
 	// call could be made to check for existence first, but simply trying
 	// to fetch a missing transaction results in the same behavior.
@@ -565,7 +565,7 @@ func (p *peer) pushTxMsg(sha IHash, doneChan, waitChan chan struct{}) error {
 
 // pushBlockMsg sends a block message for the provided block hash to the
 // connected peer.  An error is returned if the block hash is not known.
-func (p *peer) pushBlockMsg(sha IHash, doneChan, waitChan chan struct{}) error {
+func (p *peer) pushBlockMsg(sha interfaces.IHash, doneChan, waitChan chan struct{}) error {
 	blk, err := p.server.db.FetchBlockBySha(sha)
 	if err != nil {
 		peerLog.Tracef("Unable to fetch requested block sha %v: %v",
@@ -615,7 +615,7 @@ func (p *peer) pushBlockMsg(sha IHash, doneChan, waitChan chan struct{}) error {
 // the connected peer.  Since a merkle block requires the peer to have a filter
 // loaded, this call will simply be ignored if there is no filter loaded.  An
 // error is returned if the block hash is not known.
-func (p *peer) pushMerkleBlockMsg(sha IHash, doneChan, waitChan chan struct{}) error {
+func (p *peer) pushMerkleBlockMsg(sha interfaces.IHash, doneChan, waitChan chan struct{}) error {
 	// Do not send a response if the peer doesn't have a filter loaded.
 	if !p.filter.IsLoaded() {
 		if doneChan != nil {
@@ -670,11 +670,11 @@ func (p *peer) pushMerkleBlockMsg(sha IHash, doneChan, waitChan chan struct{}) e
 
 // PushGetBlocksMsg sends a getblocks message for the provided block locator
 // and stop hash.  It will ignore back-to-back duplicate requests.
-func (p *peer) PushGetBlocksMsg(locator blockchain.BlockLocator, stopHash IHash) error {
+func (p *peer) PushGetBlocksMsg(locator blockchain.BlockLocator, stopHash interfaces.IHash) error {
 	// Extract the begin hash from the block locator, if one was specified,
 	// to use for filtering duplicate getblocks requests.
 	// request.
-	var beginHash IHash
+	var beginHash interfaces.IHash
 	if len(locator) > 0 {
 		beginHash = locator[0]
 	}
@@ -708,10 +708,10 @@ func (p *peer) PushGetBlocksMsg(locator blockchain.BlockLocator, stopHash IHash)
 
 // PushGetHeadersMsg sends a getblocks message for the provided block locator
 // and stop hash.  It will ignore back-to-back duplicate requests.
-func (p *peer) PushGetHeadersMsg(locator blockchain.BlockLocator, stopHash IHash) error {
+func (p *peer) PushGetHeadersMsg(locator blockchain.BlockLocator, stopHash interfaces.IHash) error {
 	// Extract the begin hash from the block locator, if one was specified,
 	// to use for filtering duplicate getheaders requests.
-	var beginHash IHash
+	var beginHash interfaces.IHash
 	if len(locator) > 0 {
 		beginHash = locator[0]
 	}
@@ -749,7 +749,7 @@ func (p *peer) PushGetHeadersMsg(locator blockchain.BlockLocator, stopHash IHash
 // and reject reason, and hash.  The hash will only be used when the command
 // is a tx or block and should be nil in other cases.  The wait parameter will
 // cause the function to block until the reject message has actually been sent.
-func (p *peer) PushRejectMsg(command string, code wire.RejectCode, reason string, hash IHash, wait bool) {
+func (p *peer) PushRejectMsg(command string, code wire.RejectCode, reason string, hash interfaces.IHash, wait bool) {
 	// Don't bother sending the reject message if the protocol version
 	// is too low.
 	if p.VersionKnown() && p.ProtocolVersion() < wire.RejectVersion {
@@ -2040,8 +2040,8 @@ func newPeerBase(s *server, inbound bool) *peer {
 		inbound:         inbound,
 		knownAddresses:  make(map[string]struct{}),
 		knownInventory:  NewMruInventoryMap(maxKnownInventory),
-		requestedTxns:   make(map[IHash]struct{}),
-		requestedBlocks: make(map[IHash]struct{}),
+		requestedTxns:   make(map[interfaces.IHash]struct{}),
+		requestedBlocks: make(map[interfaces.IHash]struct{}),
 		//filter:          bloom.LoadFilter(nil),
 		outputQueue:    make(chan outMsg, outputBufferSize),
 		sendQueue:      make(chan outMsg, 1),   // nonblocking sync

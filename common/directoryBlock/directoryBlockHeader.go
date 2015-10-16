@@ -11,7 +11,7 @@ import (
 	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
-	. "github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
 )
 
@@ -19,18 +19,18 @@ type DBlockHeader struct {
 	Version   byte
 	NetworkID uint32
 
-	BodyMR          IHash
-	PrevKeyMR       IHash
-	PrevLedgerKeyMR IHash
+	BodyMR          interfaces.IHash
+	PrevKeyMR       interfaces.IHash
+	PrevLedgerKeyMR interfaces.IHash
 
 	Timestamp  uint32
 	DBHeight   uint32
 	BlockCount uint32
 }
 
-var _ Printable = (*DBlockHeader)(nil)
-var _ BinaryMarshallable = (*DBlockHeader)(nil)
-var _ IDirectoryBlockHeader = (*DBlockHeader)(nil)
+var _ interfaces.Printable = (*DBlockHeader)(nil)
+var _ interfaces.BinaryMarshallable = (*DBlockHeader)(nil)
+var _ interfaces.IDirectoryBlockHeader = (*DBlockHeader)(nil)
 
 func (e *DBlockHeader) JSONByte() ([]byte, error) {
 	return EncodeJSON(e)

@@ -6,7 +6,7 @@ package common
 
 import (
 	"bytes"
-	. "github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
 	"sync"
 )
@@ -15,14 +15,14 @@ import (
 
 // factoid Chain
 type FctChain struct {
-	ChainID IHash
+	ChainID interfaces.IHash
 
-	NextBlock       IFBlock
+	NextBlock       interfaces.IFBlock
 	NextBlockHeight uint32
 	BlockMutex      sync.Mutex
 }
 
-var _ Printable = (*FctChain)(nil)
+var _ interfaces.Printable = (*FctChain)(nil)
 
 func (e *FctChain) JSONByte() ([]byte, error) {
 	return EncodeJSON(e)

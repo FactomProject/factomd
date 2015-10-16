@@ -958,7 +958,7 @@ func main() {
 	// command with the verbose flag set to true and the verboseTx flag
 	// set to false.
 	genesisHashStr := "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f"
-	blockHash, err := wire.NewIHashFromStr(genesisHashStr)
+	blockHash, err := wire.Newinterfaces.IHashFromStr(genesisHashStr)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -1022,10 +1022,10 @@ func main() {
 	// Setup handlers for blockconnected and blockdisconnected
 	// notifications.
 	ntfnHandlers := btcrpcclient.NotificationHandlers{
-		OnBlockConnected: func(hash IHash, height int32) {
+		OnBlockConnected: func(hash interfaces.IHash, height int32) {
 			log.Printf("Block connected: %v (%d)", hash, height)
 		},
-		OnBlockDisconnected: func(hash IHash, height int32) {
+		OnBlockDisconnected: func(hash interfaces.IHash, height int32) {
 			log.Printf("Block disconnected: %v", hash, height)
 		},
 	}

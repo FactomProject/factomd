@@ -5,7 +5,7 @@ import (
 	. "github.com/FactomProject/factomd/common/directoryBlock"
 	. "github.com/FactomProject/factomd/common/entryBlock"
 	. "github.com/FactomProject/factomd/common/entryCreditBlock"
-	. "github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/interfaces"
 )
 
 //------------------------------------------------
@@ -52,7 +52,7 @@ func (f ByABlockIDAccending) Swap(i, j int) {
 
 //------------------------------------------------
 // ABlock array sorting implementation - accending
-type ByFBlockIDAccending []IFBlock
+type ByFBlockIDAccending []interfaces.IFBlock
 
 func (f ByFBlockIDAccending) Len() int {
 	return len(f)

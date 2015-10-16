@@ -7,7 +7,7 @@ package wire
 import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/constants"
-	. "github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
 	"io"
 )
@@ -33,12 +33,12 @@ const MaxBlockLocatorsPerMsg = 500
 // closer to the genesis block you get.
 type MsgGetBlocks struct {
 	ProtocolVersion    uint32
-	BlockLocatorHashes []IHash
-	HashStop           IHash
+	BlockLocatorHashes []interfaces.IHash
+	HashStop           interfaces.IHash
 }
 
 // AddBlockLocatorHash adds a new block locator hash to the message.
-func (msg *MsgGetBlocks) AddBlockLocatorHash(hash IHash) error {
+func (msg *MsgGetBlocks) AddBlockLocatorHash(hash interfaces.IHash) error {
 	if len(msg.BlockLocatorHashes)+1 > MaxBlockLocatorsPerMsg {
 		str := fmt.Sprintf("too many block locator hashes for message [max %v]",
 			MaxBlockLocatorsPerMsg)
@@ -68,7 +68,7 @@ func (msg *MsgGetBlocks) BtcDecode(r io.Reader, pver uint32) error {
 		return messageError("MsgGetBlocks.BtcDecode", str)
 	}
 
-	msg.BlockLocatorHashes = make([]IHash, 0, count)
+	msg.BlockLocatorHashes = make([]interfaces.IHash, 0, count)
 	for i := uint64(0); i < count; i++ {
 		sha := new(Hash)
 		err := readElement(r, sha)
@@ -138,10 +138,10 @@ func (msg *MsgGetBlocks) MaxPayloadLength(pver uint32) uint32 {
 // NewMsgGetBlocks returns a new bitcoin getblocks message that conforms to the
 // Message interface using the passed parameters and defaults for the remaining
 // fields.
-func NewMsgGetBlocks(hashStop IHash) *MsgGetBlocks {
+func NewMsgGetBlocks(hashStop interfaces.IHash) *MsgGetBlocks {
 	return &MsgGetBlocks{
 		ProtocolVersion:    ProtocolVersion,
-		BlockLocatorHashes: make([]IHash, 0, MaxBlockLocatorsPerMsg),
+		BlockLocatorHashes: make([]interfaces.IHash, 0, MaxBlockLocatorsPerMsg),
 		HashStop:           hashStop,
 	}
 }

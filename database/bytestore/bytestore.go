@@ -15,14 +15,14 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	. "github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
 )
 
 var _ = fmt.Println
 
 type IByteStore interface {
-	IBlock
+	interfaces.IBlock
 	Bytes() []byte
 	SetBytes([]byte)
 }
@@ -42,7 +42,7 @@ func NewByteStore(data []byte) IByteStore {
 func (b ByteStore) Bytes() []byte {
 	return b.byteData
 }
-func (b ByteStore) GetHash() IHash {
+func (b ByteStore) GetHash() interfaces.IHash {
 	return Sha(b.byteData)
 }
 
@@ -85,15 +85,15 @@ func (b ByteStore) MarshalledSize() uint64 {
 	return uint64(len(hex))
 }
 
-func (b1 ByteStore) IsEqual(b IBlock) []IBlock {
+func (b1 ByteStore) IsEqual(b interfaces.IBlock) []interfaces.IBlock {
 	b2, ok := b.(*ByteStore)
 	if !ok || !bytes.Equal(b1.byteData, b2.byteData) {
-		return []IBlock{&b1}
+		return []interfaces.IBlock{&b1}
 	}
 	return nil
 }
 
-func (ByteStore) GetNewInstance() IBlock {
+func (ByteStore) GetNewInstance() interfaces.IBlock {
 	return new(ByteStore)
 }
 

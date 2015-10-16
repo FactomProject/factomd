@@ -6,7 +6,7 @@ package entryCreditBlock
 
 import (
 	"bytes"
-	. "github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
 )
 
@@ -14,15 +14,15 @@ import (
 
 type IncreaseBalance struct {
 	ECPubKey *ByteSlice32
-	TXID     IHash
+	TXID     interfaces.IHash
 	Index    uint64
 	NumEC    uint64
 }
 
-var _ Printable = (*IncreaseBalance)(nil)
+var _ interfaces.Printable = (*IncreaseBalance)(nil)
 
-//var _ BinaryMarshallable = (*IncreaseBalance)(nil)
-var _ ShortInterpretable = (*IncreaseBalance)(nil)
+//var _ interfaces.BinaryMarshallable = (*IncreaseBalance)(nil)
+var _ interfaces.ShortInterpretable = (*IncreaseBalance)(nil)
 var _ ECBlockEntry = (*IncreaseBalance)(nil)
 
 //func (c *IncreaseBalance) MarshalledSize() uint64 {
@@ -35,7 +35,7 @@ func NewIncreaseBalance() *IncreaseBalance {
 	return r
 }
 
-func (e *IncreaseBalance) Hash() IHash {
+func (e *IncreaseBalance) Hash() interfaces.IHash {
 	bin, err := e.MarshalBinary()
 	if err != nil {
 		panic(err)

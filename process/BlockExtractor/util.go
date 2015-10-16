@@ -17,7 +17,7 @@ import (
 	. "github.com/FactomProject/factomd/common/directoryBlock"
 	. "github.com/FactomProject/factomd/common/entryBlock"
 	. "github.com/FactomProject/factomd/common/entryCreditBlock"
-	. "github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/database"
 )
 
@@ -273,7 +273,7 @@ func exportABlock(block *AdminBlock, db database.DBOverlay) {
 
 }
 
-func exportFctBlock(block IFBlock, db database.DBOverlay) {
+func exportFctBlock(block interfaces.IFBlock, db database.DBOverlay) {
 	if block == nil {
 		return
 	}

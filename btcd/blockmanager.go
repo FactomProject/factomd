@@ -14,7 +14,7 @@ import (
 	//"github.com/btcsuite/btcd/chaincfg"
 	//"github.com/btcsuite/btcd/database"
 	"github.com/FactomProject/factomd/btcd/wire"
-	. "github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/process"
 )
 
@@ -157,7 +157,7 @@ type pauseMsg struct {
 // between checkpoints.
 type headerNode struct {
 	height int32
-	sha    IHash
+	sha    interfaces.IHash
 }
 
 // chainState tracks the state of the best chain as blocks are inserted.  This
@@ -168,7 +168,7 @@ type headerNode struct {
 // is inserted and protecting it with a mutex.
 type chainState struct {
 	sync.Mutex
-	newestHash        IHash
+	newestHash        interfaces.IHash
 	newestHeight      int32
 	pastMedianTime    time.Time
 	pastMedianTimeErr error
@@ -178,7 +178,7 @@ type chainState struct {
 // chain.
 //
 // This function is safe for concurrent access.
-func (c *chainState) Best() (IHash, int32) {
+func (c *chainState) Best() (interfaces.IHash, int32) {
 	c.Lock()
 	defer c.Unlock()
 
@@ -192,8 +192,8 @@ type blockManager struct {
 	started  int32
 	shutdown int32
 	//blockChain        *blockchain.BlockChain
-	requestedTxns   map[IHash]struct{}
-	requestedBlocks map[IHash]struct{}
+	requestedTxns   map[interfaces.IHash]struct{}
+	requestedBlocks map[interfaces.IHash]struct{}
 	//progressLogger    *blockProgressLogger
 	receivedLogBlocks int64
 	receivedLogTx     int64
@@ -214,7 +214,7 @@ type blockManager struct {
 /*
 // resetHeaderState sets the headers-first mode state to values appropriate for
 // syncing from a new peer.
-func (b *blockManager) resetHeaderState(newestHash IHash, newestHeight int32) {
+func (b *blockManager) resetHeaderState(newestHash interfaces.IHash, newestHeight int32) {
 	b.headersFirstMode = false
 	b.headerList.Init()
 	b.startHeader = nil
@@ -233,7 +233,7 @@ func (b *blockManager) resetHeaderState(newestHash IHash, newestHeight int32) {
 // This allows fast access to chain information since btcchain is currently not
 // safe for concurrent access and the block manager is typically quite busy
 // processing block and inventory.
-func (b *blockManager) updateChainState(newestHash IHash, newestHeight int32) {
+func (b *blockManager) updateChainState(newestHash interfaces.IHash, newestHeight int32) {
 	b.chainState.Lock()
 	defer b.chainState.Unlock()
 
@@ -630,7 +630,7 @@ func (b *blockManager) handleBlockMsg(bmsg *blockMsg) {
 	// if we are actively syncing while the chain is not yet current or
 	// who may have lost the lock announcment race.
 	var heightUpdate int32
-	var blkShaUpdate IHash
+	var blkShaUpdate interfaces.IHash
 
 	// Request the parents for the orphan block from the peer that sent it.
 	if isOrphan {
@@ -724,7 +724,7 @@ func (b *blockManager) handleBlockMsg(bmsg *blockMsg) {
 	prevHash := b.nextCheckpoint.Hash
 	b.nextCheckpoint = b.findNextHeaderCheckpoint(prevHeight)
 	if b.nextCheckpoint != nil {
-		locator := blockchain.BlockLocator([]IHash{prevHash})
+		locator := blockchain.BlockLocator([]interfaces.IHash{prevHash})
 		err := bmsg.peer.PushGetHeadersMsg(locator, b.nextCheckpoint.Hash)
 		if err != nil {
 			bmgrLog.Warnf("Failed to send getheaders message to "+
@@ -743,7 +743,7 @@ func (b *blockManager) handleBlockMsg(bmsg *blockMsg) {
 	b.headersFirstMode = false
 	b.headerList.Init()
 	bmgrLog.Infof("Reached the final checkpoint -- switching to normal mode")
-	locator := blockchain.BlockLocator([]IHash{blockSha})
+	locator := blockchain.BlockLocator([]interfaces.IHash{blockSha})
 	err = bmsg.peer.PushGetBlocksMsg(locator, &zeroHash)
 	if err != nil {
 		bmgrLog.Warnf("Failed to send getblocks message to peer %s: %v",
@@ -816,7 +816,7 @@ func (b *blockManager) handleHeadersMsg(hmsg *headersMsg) {
 	// Process all of the received headers ensuring each one connects to the
 	// previous and that checkpoints match.
 	receivedCheckpoint := false
-	var finalHash IHash
+	var finalHash interfaces.IHash
 	for _, blockHeader := range msg.Headers {
 		blockHash := blockHeader.BlockSha()
 		finalHash = &blockHash
@@ -887,7 +887,7 @@ func (b *blockManager) handleHeadersMsg(hmsg *headersMsg) {
 	// This header is not a checkpoint, so request the next batch of
 	// headers starting from the latest known header and ending with the
 	// next checkpoint.
-	locator := blockchain.BlockLocator([]IHash{finalHash})
+	locator := blockchain.BlockLocator([]interfaces.IHash{finalHash})
 	err := hmsg.peer.PushGetHeadersMsg(locator, b.nextCheckpoint.Hash)
 	if err != nil {
 		bmgrLog.Warnf("Failed to send getheaders message to "+
@@ -1490,8 +1490,8 @@ func newBlockManager(s *server) (*blockManager, error) {
 
 	bm := blockManager{
 		server:          s,
-		requestedTxns:   make(map[IHash]struct{}),
-		requestedBlocks: make(map[IHash]struct{}),
+		requestedTxns:   make(map[interfaces.IHash]struct{}),
+		requestedBlocks: make(map[interfaces.IHash]struct{}),
 		//progressLogger:  newBlockProgressLogger("Processed", bmgrLog),
 		msgChan: make(chan interface{}, cfg.MaxPeers*3),
 		//headerList:      list.New(),

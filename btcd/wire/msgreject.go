@@ -6,7 +6,7 @@ package wire
 
 import (
 	"fmt"
-	. "github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/interfaces"
 	"io"
 )
 
@@ -67,7 +67,7 @@ type MsgReject struct {
 
 	// Hash identifies a specific block or transaction that was rejected
 	// and therefore only applies the MsgBlock and MsgTx messages.
-	Hash IHash
+	Hash interfaces.IHash
 }
 
 // BtcDecode decodes r using the bitcoin protocol encoding into the receiver.

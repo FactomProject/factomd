@@ -15,7 +15,7 @@ import (
 	. "github.com/FactomProject/factomd/common/directoryBlock"
 	. "github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
-	. "github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
 )
 
@@ -24,7 +24,7 @@ var (
 	inMsgQ chan wire.FtmInternalMsg
 )
 
-func ChainHead(chainid string) (IHash, error) {
+func ChainHead(chainid string) (interfaces.IHash, error) {
 	h, err := atoh(chainid)
 	if err != nil {
 		return nil, err
@@ -50,7 +50,7 @@ func CommitEntry(c *EntryCreditBlock.CommitEntry) error {
 	return nil
 }
 
-func FactoidTX(t ITransaction) error {
+func FactoidTX(t interfaces.ITransaction) error {
 	m := new(wire.MsgFactoidTX)
 	m.SetTransaction(t)
 	inMsgQ <- m
@@ -105,7 +105,7 @@ func ECBalance(eckey string) (uint32, error) {
 	return uint32(val), nil
 }
 
-func EntryByHash(hash string) (IEBEntry, error) {
+func EntryByHash(hash string) (interfaces.IEBEntry, error) {
 	h, err := atoh(hash)
 	if err != nil {
 		return nil, err
@@ -120,7 +120,7 @@ func EntryByHash(hash string) (IEBEntry, error) {
 	return r, nil
 }
 
-func RevealEntry(e IEBEntry) error {
+func RevealEntry(e interfaces.IEBEntry) error {
 	m := wire.NewMsgRevealEntry()
 	m.Entry = e
 	inMsgQ <- m
@@ -135,7 +135,7 @@ func SetInMsgQueue(q chan wire.FtmInternalMsg) {
 	inMsgQ = q
 }
 
-func atoh(a string) (IHash, error) {
+func atoh(a string) (interfaces.IHash, error) {
 	h := NewZeroHash()
 	p, err := hex.DecodeString(a)
 	if err != nil {

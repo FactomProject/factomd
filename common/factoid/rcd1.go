@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factomd/common/constants"
-	. "github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
 )
 
@@ -24,13 +24,13 @@ type RCD_1 struct {
 	publicKey [constants.ADDRESS_LENGTH]byte
 }
 
-var _ IRCD = (*RCD_1)(nil)
+var _ interfaces.IRCD = (*RCD_1)(nil)
 
 /*************************************
  *       Stubs
  *************************************/
 
-func (b RCD_1) GetHash() IHash {
+func (b RCD_1) GetHash() interfaces.IHash {
 	return nil
 }
 
@@ -63,7 +63,7 @@ func (b RCD_1) String() string {
 	return string(txt)
 }
 
-func (w RCD_1) CheckSig(trans ITransaction, sigblk ISignatureBlock) bool {
+func (w RCD_1) CheckSig(trans interfaces.ITransaction, sigblk interfaces.ISignatureBlock) bool {
 	if sigblk == nil {
 		return false
 	}
@@ -83,19 +83,19 @@ func (w RCD_1) CheckSig(trans ITransaction, sigblk ISignatureBlock) bool {
 	return ed25519.VerifyCanonical(&w.publicKey, data, cryptosig)
 }
 
-func (w RCD_1) Clone() IRCD {
+func (w RCD_1) Clone() interfaces.IRCD {
 	c := new(RCD_1)
 	copy(c.publicKey[:], w.publicKey[:])
 	return c
 }
 
-func (w RCD_1) GetAddress() (IAddress, error) {
+func (w RCD_1) GetAddress() (interfaces.IAddress, error) {
 	data := []byte{1}
 	data = append(data, w.publicKey[:]...)
 	return CreateAddress(Shad(data)), nil
 }
 
-func (w1 RCD_1) GetNewInstance() IBlock {
+func (w1 RCD_1) GetNewInstance() interfaces.IBlock {
 	return new(RCD_1)
 }
 
@@ -107,11 +107,11 @@ func (w1 RCD_1) NumberOfSignatures() int {
 	return 1
 }
 
-func (a1 *RCD_1) IsEqual(addr IBlock) []IBlock {
+func (a1 *RCD_1) IsEqual(addr interfaces.IBlock) []interfaces.IBlock {
 	a2, ok := addr.(*RCD_1)
 
 	if !ok || a1.publicKey != a2.publicKey { // Not the right object or sigature
-		r := make([]IBlock, 0, 5)
+		r := make([]interfaces.IBlock, 0, 5)
 		return append(r, a1)
 	}
 

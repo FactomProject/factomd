@@ -10,7 +10,7 @@ import (
 	"github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factomd/common/factoid/block"
 	"github.com/FactomProject/factomd/common/factoid/wallet"
-	. "github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
 	"math/rand"
 	cv "strconv"
@@ -24,9 +24,9 @@ var _ = ed25519.Sign
 var _ = rand.New
 var _ = binary.Write
 
-var fakeAddr IHash = new(Hash)
+var fakeAddr interfaces.IHash = new(Hash)
 
-func newFakeAddr() IAddress {
+func newFakeAddr() interfaces.IAddress {
 	fakeAddr = Sha(fakeAddr.Bytes())
 	return fakeAddr
 }

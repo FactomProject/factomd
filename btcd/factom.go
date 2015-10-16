@@ -46,7 +46,7 @@ func factomForkInit(s *server) {
 			switch msg.(type) {
 			case *wire.MsgInt_DirBlock:
 				dirBlock, _ := msg.(*wire.MsgInt_DirBlock)
-				iv := wire.NewInvVect(wire.InvTypeFactomDirBlock, dirBlock.IHash)
+				iv := wire.NewInvVect(wire.InvTypeFactomDirBlock, dirBlock.interfaces.IHash)
 				s.RelayInventory(iv, nil)
 
 			case wire.Message:
@@ -269,8 +269,8 @@ func (p *peer) FactomRelay(msg wire.Message) {
 }
 
 /*
-// func (pl *ProcessList) AddFtmTxToProcessList(msg wire.Message, msgHash IHash) error {
-func fakehook1(msg wire.Message, msgHash IHash) error {
+// func (pl *ProcessList) AddFtmTxToProcessList(msg wire.Message, msgHash interfaces.IHash) error {
+func fakehook1(msg wire.Message, msgHash interfaces.IHash) error {
 	return nil
 }
 
@@ -283,7 +283,7 @@ func factom_PL_hook(tx *btcutil.Tx, label string) error {
 }
 
 // for Jack
-func global_DeleteMemPoolEntry(hash IHash) {
+func global_DeleteMemPoolEntry(hash interfaces.IHash) {
 	// TODO: ensure mutex-protection
 }
 
@@ -316,16 +316,16 @@ func (b *blockManager) factomChecks() {
 func factomIngressTx_hook(tx *wire.MsgTx) error {
 	//util.Trace()
 
-	ecmap := make(map[IHash]uint64)
+	ecmap := make(map[interfaces.IHash]uint64)
 
 	txid, _ := tx.TxSha()
-	hash, _ := wire.NewIHash(wire.Sha256(txid.Bytes()))
+	hash, _ := wire.Newinterfaces.IHash(wire.Sha256(txid.Bytes()))
 
 	ecmap[*hash] = 1
 
 	// Use wallet's public key to add EC??
 	sig := wallet.SignData(nil)
-	hash2 := new(IHash)
+	hash2 := new(interfaces.IHash)
 	hash2.SetBytes((*sig.Pub.Key)[:])
 
 	ecmap[*hash2] = 100
@@ -340,11 +340,11 @@ func factomIngressTx_hook(tx *wire.MsgTx) error {
 	return nil
 }
 
-func factomIngressBlock_hook(hash IHash) error {
+func factomIngressBlock_hook(hash interfaces.IHash) error {
 	//util.Trace(fmt.Sprintf("hash: %s", hash))
 
 	fbo := &wire.MsgInt_FactoidBlock{
-		IHash: *hash}
+		interfaces.IHash: *hash}
 
 	doneFBlockQueue <- fbo
 
