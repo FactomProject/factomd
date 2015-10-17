@@ -173,17 +173,6 @@ func (b *DirectoryBlock) GetKeyMR() interfaces.IHash {
 	return b.KeyMR
 }
 
-/**
-func (b *DirectoryBlock) EncodableFields() map[string]reflect.Value {
-	fields := map[string]reflect.Value{
-		`Header`:    reflect.ValueOf(b.Header),
-		`DBEntries`: reflect.ValueOf(b.DBEntries),
-		`DBHash`:    reflect.ValueOf(b.DBHash),
-	}
-	return fields
-}
-**/
-
 /************************************************
  * Support Functions
  ************************************************/

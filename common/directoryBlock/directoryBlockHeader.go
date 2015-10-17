@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -47,16 +46,6 @@ func (e *DBlockHeader) JSONBuffer(b *bytes.Buffer) error {
 func (e *DBlockHeader) String() string {
 	str, _ := e.JSONString()
 	return str
-}
-
-func (b *DBlockHeader) EncodableFields() map[string]reflect.Value {
-	fields := map[string]reflect.Value{
-		`DBHeight`:        reflect.ValueOf(b.DBHeight),
-		`BlockCount`:      reflect.ValueOf(b.BlockCount),
-		`BodyMR`:          reflect.ValueOf(b.BodyMR),
-		`PrevLedgerKeyMR`: reflect.ValueOf(b.PrevLedgerKeyMR),
-	}
-	return fields
 }
 
 func (b *DBlockHeader) MarshalBinary() (data []byte, err error) {
