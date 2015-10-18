@@ -2,18 +2,18 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-package confirmation
+package interfaces
 
 import (
 )
 
-type IConfirmation Interface {
+type IConfirmation interface {
 	BinaryMarshallable
 	Printable
+	IMsg
 	
-	Type()			int			// Confirmation Type
 	DBHeight()		int			// Directory Block Height
-	ChainID[]		[]byte		// ChainID of the sending server
+	ChainID()		[]byte		// ChainID of the sending server
 	ListHeight()	int			// Height in the Process List
 	Value()			[]byte		// Value.  Different for each confirmation type
 	SerialHash()	[]byte		// Serial Hash so far

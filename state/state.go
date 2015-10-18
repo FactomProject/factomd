@@ -2,7 +2,8 @@ package state
 
 import (
 	"github.com/FactomProject/factomd/common/interfaces"
-
+	"github.com/FactomProject/factomd/common/hash"
+	
 	"github.com/FactomProject/factomd/database/hybridDB"
 	"github.com/FactomProject/factomd/util"
 	"log"
@@ -192,4 +193,8 @@ func (s *State) DBHeight() int {
 
 func (s *State) SetDBHeight(dbheight int) {
 	s.dBHeight = dbheight
+}
+
+func (s *State) NewHash() IHash {
+	return new(hash.Hash)
 }

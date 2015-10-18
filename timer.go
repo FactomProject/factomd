@@ -7,9 +7,28 @@ package main
 import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/util"
 	"time"
 )
+
+type timer struct {
+	int minute		// Really a 10th of the period... Usually a minute	
+}
+
+var _ interfaces.IMsg = (*timer)(nil)
+
+func (timer) Type() int {
+	return constants.EOM_MSG
+}
+
+func (t *timer) Payload() {
+	payload := append([]byte, byte(t.minute))
+	return payload
+}
+
+func (t *timer) Validate(state IState) int {
+	
 
 func Timer(state interfaces.IState) {
 	cfg := state.Cfg().(*util.FactomdConfig)
@@ -31,8 +50,8 @@ func Timer(state interfaces.IState) {
 
 	for {
 		for i := 0; i < 10; i++ {
-			fmt.Println("Period",i+1,"--",time.Now())
-			
+			IMsg
+			state.In	
 			now = time.Now().UnixNano() 
 			wait := next - now
 			next += tenthPeriod

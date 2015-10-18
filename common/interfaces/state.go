@@ -44,5 +44,7 @@ type IState interface {
 	
 	// Message State
 	LastAck() IMsg					// Return the last Acknowledgement set by this server
+	
+	NewHash() IHash					// Return a new Hash object
 }
 
