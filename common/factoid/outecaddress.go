@@ -42,10 +42,6 @@ func (b OutECAddress) String() string {
 	return string(txt)
 }
 
-func (w1 OutECAddress) GetNewInstance() interfaces.IBlock {
-	return new(OutECAddress)
-}
-
 func (oa OutECAddress) GetName() string {
 	return "outEC"
 }

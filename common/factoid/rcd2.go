@@ -92,10 +92,6 @@ func (w RCD_2) Clone() interfaces.IRCD {
 	return c
 }
 
-func (w1 RCD_2) GetNewInstance() interfaces.IBlock {
-	return new(RCD_2)
-}
-
 func (a1 *RCD_2) IsEqual(addr interfaces.IBlock) []interfaces.IBlock {
 	a2, ok := addr.(*RCD_2)
 	if !ok || // Not the right kind of interfaces.IBlock

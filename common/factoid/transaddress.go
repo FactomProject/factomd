@@ -32,10 +32,6 @@ func (t *TransAddress) GetHash() interfaces.IHash {
 	return nil
 }
 
-func (t *TransAddress) GetNewInstance() interfaces.IBlock {
-	return new(TransAddress)
-}
-
 func (t *TransAddress) UnmarshalBinary(data []byte) error {
 	_, err := t.UnmarshalBinaryData(data)
 	return err

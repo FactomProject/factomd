@@ -13,10 +13,6 @@ type FSbalance struct {
 	number uint64
 }
 
-func (FSbalance) GetNewInstance() interfaces.IBlock {
-	return new(FSbalance)
-}
-
 func (f *FSbalance) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	num, data := binary.BigEndian.Uint64(data), data[8:]
 	f.number = num

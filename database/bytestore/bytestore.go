@@ -88,10 +88,6 @@ func (b1 ByteStore) IsEqual(b interfaces.IBlock) []interfaces.IBlock {
 	return nil
 }
 
-func (ByteStore) GetNewInstance() interfaces.IBlock {
-	return new(ByteStore)
-}
-
 func (e ByteStore) JSONByte() ([]byte, error) {
 	return primitives.EncodeJSON(e)
 }

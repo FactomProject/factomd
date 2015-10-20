@@ -20,8 +20,7 @@ type IBlock interface {
 	IsEqual(IBlock) []IBlock // Check if this block is the same as itself.
 	//   Returns nil, or the path to the first difference.
 
-	GetHash() IHash         // Returns the hash of the object
-	GetNewInstance() IBlock // Get a new instance of this object
+	GetHash() IHash // Returns the hash of the object
 }
 
 type IFBlock interface {
@@ -77,4 +76,6 @@ type IFBlock interface {
 	// TRANSACTION_PRIOR_LIMIT or after the TRANSACTION_POST_LIMIT are considered invalid
 	// for this block. -1 is returned if no coinbase transaction is found.
 	GetCoinbaseTimestamp() int64
+
+	GetNewInstance() IFBlock // Get a new instance of this object
 }

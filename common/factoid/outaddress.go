@@ -39,10 +39,6 @@ func (b OutAddress) String() string {
 	return string(txt)
 }
 
-func (w1 OutAddress) GetNewInstance() interfaces.IBlock {
-	return new(OutAddress)
-}
-
 func (oa OutAddress) GetName() string {
 	return "out"
 }

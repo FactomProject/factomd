@@ -66,10 +66,6 @@ func (Hash) GetHash() interfaces.IHash {
 	return nil
 }
 
-func (w1 Hash) GetNewInstance() interfaces.IBlock {
-	return new(Hash)
-}
-
 func (h *Hash) CreateHash(entities ...interfaces.BinaryMarshallable) (interfaces.IHash, error) {
 	return CreateHash(entities...)
 }

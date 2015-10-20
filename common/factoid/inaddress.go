@@ -39,10 +39,6 @@ func (b InAddress) String() string {
 	return string(txt)
 }
 
-func (i InAddress) GetNewInstance() interfaces.IBlock {
-	return new(InAddress)
-}
-
 func (a InAddress) CustomMarshalText() (text []byte, err error) {
 	return a.CustomMarshalText2("input")
 }

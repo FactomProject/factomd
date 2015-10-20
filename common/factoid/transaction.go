@@ -93,10 +93,6 @@ func (t *Transaction) AddRCD(rcd interfaces.IRCD) {
 	t.clearCaches()
 }
 
-func (w1 Transaction) GetNewInstance() interfaces.IBlock {
-	return new(Transaction)
-}
-
 // Fee structure can be found:
 // https://github.com/FactomProject/FactomDocs/blob/master/factomDataStructureDetails.md#sighash-type
 //
