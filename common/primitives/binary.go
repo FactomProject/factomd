@@ -3,63 +3,10 @@ package primitives
 import (
 	"bytes"
 	"encoding/binary"
-	"errors"
 	"fmt"
-	"math/big"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 )
-
-func bigIntMarshalBinary(i *big.Int) (data []byte, err error) {
-	intd, err := i.GobEncode()
-	if err != nil {
-		return
-	}
-
-	size := len(intd)
-	if size > 255 {
-		return nil, errors.New("Big int is too big")
-	}
-
-	data = make([]byte, size+1)
-	data[0] = byte(size)
-	copy(data[1:], intd)
-	return
-}
-
-func bigIntMarshalledSize(i *big.Int) uint64 {
-	intd, err := i.GobEncode()
-	if err != nil {
-		return 0
-	}
-
-	return uint64(1 + len(intd))
-}
-
-func bigIntUnmarshalBinary(data []byte) (retd []byte, i *big.Int, err error) {
-	size, data := uint8(data[0]), data[1:]
-
-	i = new(big.Int)
-	err, retd = i.GobDecode(data[:size]), data[size:]
-
-	return
-}
-
-type SimpleData struct {
-	Data []byte
-}
-
-func (d *SimpleData) MarshalBinary() ([]byte, error) {
-	return d.Data, nil
-}
-
-func (d *SimpleData) MarshalledSize() uint64 {
-	return uint64(len(d.Data))
-}
-
-func (d *SimpleData) UnmarshalBinary([]byte) error {
-	return errors.New("SimpleData cannot be unmarshalled")
-}
 
 type ByteArray []byte
 

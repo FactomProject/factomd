@@ -6,6 +6,7 @@ package primitives_test
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factomd/common/constants"
@@ -178,6 +179,15 @@ func TestHashMisc(t *testing.T) {
 
 	if hash2.ByteString() != "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@" {
 		t.Errorf("Error in ByteString - received %v", hash2.ByteString())
+	}
+
+	h, err := hex.DecodeString(base)
+	if err != nil {
+		t.Error(err)
+	}
+	hash = NewHash(h)
+	if hash.String() != base {
+		t.Error("Error in NewHash")
 	}
 
 	//***********************
