@@ -8,35 +8,37 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 )
 
-type ByteArray []byte
+type ByteArray struct {
+	Array []byte
+}
 
-func (ba ByteArray) Bytes() []byte {
-	newArray := make([]byte, len(ba))
-	copy(newArray, ba[:])
+func (ba *ByteArray) Bytes() []byte {
+	newArray := make([]byte, len(ba.Array))
+	copy(newArray, ba.Array[:])
 	return newArray
 }
 
-func (ba ByteArray) SetBytes(newArray []byte) error {
-	copy(ba[:], newArray[:])
+func (ba *ByteArray) SetBytes(newArray []byte) error {
+	ba.Array = newArray[:]
 	return nil
 }
 
-func (ba ByteArray) MarshalBinary() ([]byte, error) {
+func (ba *ByteArray) MarshalBinary() ([]byte, error) {
 	var buf bytes.Buffer
 
 	//fmt.Println("uint64(len(ba) ",uint64(len(ba)))
 
-	binary.Write(&buf, binary.BigEndian, uint64(len(ba)))
-	buf.Write(ba)
+	binary.Write(&buf, binary.BigEndian, uint64(len(ba.Array)))
+	buf.Write(ba.Array)
 	return buf.Bytes(), nil
 }
 
-func (ba ByteArray) MarshalledSize() uint64 {
+func (ba *ByteArray) MarshalledSize() uint64 {
 	//fmt.Println("uint64(len(ba) + 8)",uint64(len(ba) + 8))
-	return uint64(len(ba) + 8)
+	return uint64(len(ba.Array) + 8)
 }
 
-func (ba ByteArray) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+func (ba *ByteArray) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
@@ -50,23 +52,25 @@ func (ba ByteArray) UnmarshalBinaryData(data []byte) (newData []byte, err error)
 	tmp := make([]byte, count)
 
 	copy(tmp[:], newData[:count])
+	ba.SetBytes(tmp)
+
 	newData = newData[count:]
 
 	return
 }
 
-func (ba ByteArray) UnmarshalBinary(data []byte) (err error) {
+func (ba *ByteArray) UnmarshalBinary(data []byte) (err error) {
 	_, err = ba.UnmarshalBinaryData(data)
 	return
 }
 
 func NewByteArray(newHash []byte) (*ByteArray, error) {
-	var sh ByteArray
-	err := sh.SetBytes(newHash)
+	ba := new(ByteArray)
+	err := ba.SetBytes(newHash)
 	if err != nil {
 		return nil, err
 	}
-	return &sh, err
+	return ba, err
 }
 
 type ByteSlice32 [32]byte
