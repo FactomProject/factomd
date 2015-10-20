@@ -160,3 +160,44 @@ func TestIsSameAs(t *testing.T) {
 		t.Error("Identical hashes not recognized as such")
 	}
 }
+
+func TestHashMisc(t *testing.T) {
+	base := "4040404040404040404040404040404040404040404040404040404040404040"
+	hash, err := HexToHash(base)
+	if err != nil {
+		t.Error(err)
+	}
+	if hash.String() != base {
+		t.Error("Error in String")
+	}
+
+	hash2, err := NewShaHashFromStr(base)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if hash2.ByteString() != "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@" {
+		t.Errorf("Error in ByteString - received %v", hash2.ByteString())
+	}
+
+	//***********************
+
+	if hash.IsSameAs(nil) != false {
+		t.Error("Error in IsSameAs")
+	}
+
+	//***********************
+
+	minuteHash, err := HexToHash("0000000000000000000000000000000000000000000000000000000000000001")
+	if err != nil {
+		t.Error(err)
+	}
+	if minuteHash.IsMinuteMarker() == false {
+		t.Error("Error in IsMinuteMarker")
+	}
+
+	hash = NewZeroHash()
+	if hash.String() != "0000000000000000000000000000000000000000000000000000000000000000" {
+		t.Error("Error in NewZeroHash")
+	}
+}

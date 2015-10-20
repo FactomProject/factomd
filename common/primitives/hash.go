@@ -217,7 +217,6 @@ func (a Hash) IsSameAs(b interfaces.IHash) bool {
 
 // Is the hash a minute marker (the last byte indicates the minute number)
 func (h *Hash) IsMinuteMarker() bool {
-
 	if bytes.Equal(h[:31], constants.ZERO_HASH[:31]) {
 		return true
 	}

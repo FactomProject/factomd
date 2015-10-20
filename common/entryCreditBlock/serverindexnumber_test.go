@@ -32,3 +32,20 @@ func TestServerIndexMarshalUnmarshal(t *testing.T) {
 		t.Error("Invalid data unmarshalled")
 	}
 }
+
+func TestServerIndexNumberMisc(t *testing.T) {
+	si := NewServerIndexNumber()
+	si.Number = 4
+	if si.IsInterpretable() == false {
+		t.Fail()
+	}
+	if si.Interpret() != "ServerIndexNumber 4" {
+		t.Fail()
+	}
+	if si.MarshalledSize() != uint64(1) {
+		t.Fail()
+	}
+	if si.Hash().String() != "e52d9c508c502347344d8c07ad91cbd6068afc75ff6292f062a09ca381c89e71" {
+		t.Fail()
+	}
+}
