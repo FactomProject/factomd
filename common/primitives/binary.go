@@ -2,7 +2,6 @@ package primitives
 
 import (
 	"bytes"
-	"encoding/binary"
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -13,26 +12,26 @@ type ByteSlice32 [32]byte
 var _ interfaces.Printable = (*ByteSlice32)(nil)
 var _ interfaces.BinaryMarshallable = (*ByteSlice32)(nil)
 
-func (bs ByteSlice32) MarshalBinary() ([]byte, error) {
+func (bs *ByteSlice32) MarshalBinary() ([]byte, error) {
 	return bs[:], nil
 }
 
-func (bs ByteSlice32) MarshalledSize() uint64 {
+func (bs *ByteSlice32) MarshalledSize() uint64 {
 	return 32
 }
 
-func (bs ByteSlice32) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+func (bs *ByteSlice32) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
 	}()
 	copy(bs[:], data[:32])
-	newData = data[:32]
+	newData = data[32:]
 	return
 }
 
-func (bs ByteSlice32) UnmarshalBinary(data []byte) (err error) {
+func (bs *ByteSlice32) UnmarshalBinary(data []byte) (err error) {
 	copy(bs[:], data[:32])
 	return
 }
@@ -53,7 +52,7 @@ func (bs *ByteSlice32) String() string {
 	return fmt.Sprintf("%x", bs[:])
 }
 
-func (bs ByteSlice32) MarshalText() ([]byte, error) {
+func (bs *ByteSlice32) MarshalText() ([]byte, error) {
 	return []byte(bs.String()), nil
 }
 
@@ -62,26 +61,26 @@ type ByteSlice64 [64]byte
 var _ interfaces.Printable = (*ByteSlice64)(nil)
 var _ interfaces.BinaryMarshallable = (*ByteSlice64)(nil)
 
-func (bs ByteSlice64) MarshalBinary() ([]byte, error) {
+func (bs *ByteSlice64) MarshalBinary() ([]byte, error) {
 	return bs[:], nil
 }
 
-func (bs ByteSlice64) MarshalledSize() uint64 {
+func (bs *ByteSlice64) MarshalledSize() uint64 {
 	return 64
 }
 
-func (bs ByteSlice64) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+func (bs *ByteSlice64) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
 	}()
 	copy(bs[:], data[:64])
-	newData = data[:64]
+	newData = data[64:]
 	return
 }
 
-func (bs ByteSlice64) UnmarshalBinary(data []byte) (err error) {
+func (bs *ByteSlice64) UnmarshalBinary(data []byte) (err error) {
 	copy(bs[:], data[:64])
 	return
 }
@@ -102,7 +101,7 @@ func (bs *ByteSlice64) String() string {
 	return fmt.Sprintf("%x", bs[:])
 }
 
-func (bs ByteSlice64) MarshalText() ([]byte, error) {
+func (bs *ByteSlice64) MarshalText() ([]byte, error) {
 	return []byte(bs.String()), nil
 }
 
@@ -111,26 +110,26 @@ type ByteSlice6 [6]byte
 var _ interfaces.Printable = (*ByteSlice6)(nil)
 var _ interfaces.BinaryMarshallable = (*ByteSlice6)(nil)
 
-func (bs ByteSlice6) MarshalBinary() ([]byte, error) {
+func (bs *ByteSlice6) MarshalBinary() ([]byte, error) {
 	return bs[:], nil
 }
 
-func (bs ByteSlice6) MarshalledSize() uint64 {
+func (bs *ByteSlice6) MarshalledSize() uint64 {
 	return 6
 }
 
-func (bs ByteSlice6) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+func (bs *ByteSlice6) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
 	}()
 	copy(bs[:], data[:6])
-	newData = data[:6]
+	newData = data[6:]
 	return
 }
 
-func (bs ByteSlice6) UnmarshalBinary(data []byte) (err error) {
+func (bs *ByteSlice6) UnmarshalBinary(data []byte) (err error) {
 	copy(bs[:], data[:6])
 	return
 }
@@ -151,6 +150,6 @@ func (bs *ByteSlice6) String() string {
 	return fmt.Sprintf("%x", bs[:])
 }
 
-func (bs ByteSlice6) MarshalText() ([]byte, error) {
+func (bs *ByteSlice6) MarshalText() ([]byte, error) {
 	return []byte(bs.String()), nil
 }
