@@ -92,7 +92,7 @@ func TestSha(t *testing.T) {
 	testVector["abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmnhijklmnoijklmnopjklmnopqklmnopqrlmnopqrsmnopqrstnopqrstu"] = "cf5b16a778af8380036ce59e7b0492370b249b11e8f07a51afac45037afee9d1"
 
 	for k, v := range testVector {
-		answer, err := DecodeBinary(&v)
+		answer, err := DecodeBinary(v)
 		if err != nil {
 			t.Error(err)
 			t.FailNow()
@@ -116,7 +116,7 @@ func TestSha512Half(t *testing.T) {
 	testVector["abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmnhijklmnoijklmnopjklmnopqklmnopqrlmnopqrsmnopqrstnopqrstu"] = "8e959b75dae313da8cf4f72814fc143f8f7779c6eb9f7fa17299aeadb6889018"
 
 	for k, v := range testVector {
-		answer, err := DecodeBinary(&v)
+		answer, err := DecodeBinary(v)
 		if err != nil {
 			t.Error(err)
 			t.FailNow()
@@ -149,7 +149,7 @@ func TestIsSameAs(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	hex, err := DecodeBinary(&base)
+	hex, err := DecodeBinary(base)
 	if err != nil {
 		t.Error(err)
 	}

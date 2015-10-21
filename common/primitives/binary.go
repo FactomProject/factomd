@@ -2,10 +2,19 @@ package primitives
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 )
+
+func EncodeBinary(bytes []byte) string {
+	return hex.EncodeToString(bytes)
+}
+
+func DecodeBinary(bytes string) ([]byte, error) {
+	return hex.DecodeString(bytes)
+}
 
 type ByteSlice32 [32]byte
 

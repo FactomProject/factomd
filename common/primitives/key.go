@@ -24,13 +24,15 @@ type PrivateKey struct {
 	Pub PublicKey
 }
 
-func (pk PrivateKey) Public() []byte {
+var _ Signer = (*PrivateKey)(nil)
+
+func (pk *PrivateKey) Public() []byte {
 	return (*pk.Pub.Key)[:]
 }
 
 func (pk *PrivateKey) AllocateNew() {
-	pk.Key = new([64]byte)
-	pk.Pub.Key = new([32]byte)
+	pk.Key = new([ed25519.PrivateKeySize]byte)
+	pk.Pub.Key = new([ed25519.PublicKeySize]byte)
 }
 
 // Create a new private key from a hex string
@@ -41,9 +43,30 @@ func NewPrivateKeyFromHex(s string) (pk PrivateKey, err error) {
 	}
 	pk.AllocateNew()
 	copy(pk.Key[:], privKeybytes)
-	copy(pk.Pub.Key[:], privKeybytes[32:])
+	copy(pk.Pub.Key[:], privKeybytes[ed25519.PublicKeySize:])
 	return
 }
+
+// Sign signs msg with PrivateKey and return Signature
+func (pk *PrivateKey) Sign(msg []byte) (sig Signature) {
+	sig.Pub = pk.Pub
+	sig.Sig = ed25519.Sign(pk.Key, msg)
+	return
+}
+
+// Sign signs msg with PrivateKey and return Signature
+func (pk *PrivateKey) MarshalSign(msg interfaces.BinaryMarshallable) (sig Signature) {
+	data, _ := msg.MarshalBinary()
+	return pk.Sign(data)
+}
+
+//Generate creates new PrivateKey / PublciKey pair or returns error
+func (pk *PrivateKey) GenerateKey() (err error) {
+	pk.Pub.Key, pk.Key, err = ed25519.GenerateKey(rand.Reader)
+	return err
+}
+
+/******************PublicKey*******************************/
 
 // PublicKey contains only Public part of Public/Private key pair
 type PublicKey struct {
@@ -59,47 +82,23 @@ func (pk *PublicKey) UnmarshalText(b []byte) error {
 	if err != nil {
 		return err
 	}
-	pk.Key = new([32]byte)
+	pk.Key = new([ed25519.PublicKeySize]byte)
 	copy(pk.Key[:], p)
 	return nil
 }
 
-func (pk PublicKey) String() string {
+func (pk *PublicKey) String() string {
 	return hex.EncodeToString((*pk.Key)[:])
 }
 
 func PubKeyFromString(instr string) (pk PublicKey) {
 	p, _ := hex.DecodeString(instr)
-	pk.Key = new([32]byte)
+	pk.Key = new([ed25519.PublicKeySize]byte)
 	copy(pk.Key[:], p)
 	return
 }
 
-// Sign signs msg with PrivateKey and return Signature
-func (pk PrivateKey) Sign(msg []byte) (sig Signature) {
-	sig.Pub = pk.Pub
-	sig.Sig = ed25519.Sign(pk.Key, msg)
-	return
-}
-
-// Sign signs msg with PrivateKey and return Signature
-func (pk PrivateKey) MarshalSign(msg interfaces.BinaryMarshallable) (sig Signature) {
-	data, _ := msg.MarshalBinary()
-	return pk.Sign(data)
-}
-
-// Verify returns true iff sig is a valid signature of msg by PublicKey.
-func (sig Signature) Verify(msg []byte) bool {
-	return ed25519.VerifyCanonical(sig.Pub.Key, msg, sig.Sig)
-}
-
-//Generate creates new PrivateKey / PublciKey pair or returns error
-func (pk *PrivateKey) GenerateKey() (err error) {
-	pk.Pub.Key, pk.Key, err = ed25519.GenerateKey(rand.Reader)
-	return err
-}
-
-func (k PublicKey) Verify(msg []byte, sig *[ed25519.SignatureSize]byte) bool {
+func (k *PublicKey) Verify(msg []byte, sig *[ed25519.SignatureSize]byte) bool {
 	return ed25519.VerifyCanonical(k.Key, msg, sig)
 }
 
@@ -110,9 +109,8 @@ func Verify(publicKey *[ed25519.PublicKeySize]byte, message []byte, sig *[ed2551
 
 // Verify returns true iff sig is a valid signature of message by publicKey.
 func VerifySlice(p []byte, message []byte, s []byte) bool {
-
-	sig := new([64]byte)
-	pub := new([32]byte)
+	sig := new([ed25519.PrivateKeySize]byte)
+	pub := new([ed25519.PublicKeySize]byte)
 	copy(sig[:], s)
 	copy(pub[:], p)
 	return Verify(pub, message, sig)
