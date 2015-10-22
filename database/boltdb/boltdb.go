@@ -94,9 +94,12 @@ func (d *BoltDB) Put(bucket []byte, key []byte, data interfaces.BinaryMarshallab
 }
 
 func (db *BoltDB) PutInBatch(records []interfaces.Record) error {
-	//TODO: put in actual batch if possible
 	err := db.db.Batch(func(tx *bolt.Tx) error {
 		for _, v := range records {
+			_, err := tx.CreateBucketIfNotExists(v.Bucket)
+			if err != nil {
+				return err
+			}
 			b := tx.Bucket(v.Bucket)
 			hex, err := v.Data.MarshalBinary()
 			if err != nil {

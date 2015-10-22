@@ -148,7 +148,9 @@ func (db *LevelDB) ListAllKeys(bucket []byte) (keys [][]byte, err error) {
 
 	for iter.Next() {
 		key := iter.Key()
-		answer = append(answer, key[len(bucket):])
+		tmp := make([]byte, len(key[len(bucket):]))
+		copy(tmp, key[len(bucket):])
+		answer = append(answer, tmp)
 	}
 	iter.Release()
 	err = iter.Error()
