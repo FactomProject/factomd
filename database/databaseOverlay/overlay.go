@@ -65,7 +65,7 @@ var isLookupDB bool = true // to be put in property file
 
 type Overlay struct {
 	// leveldb pieces
-	DB interfaces.
+	DB interfaces.IDatabase
 
 	lastDirBlkShaCached bool
 	lastDirBlkSha       interfaces.IHash
@@ -76,7 +76,7 @@ func (db *Overlay) Close() (err error) {
 	return db.DB.Close()
 }
 
-func NewOverlay(db interfaces.) *Overlay {
+func NewOverlay(db interfaces.IDatabase) *Overlay {
 	answer := new(Overlay)
 	answer.DB = db
 
@@ -107,7 +107,7 @@ func (db *Overlay) FetchBlockIndexByHeight(bucket []byte, blockHeight uint32) (i
 	if block == nil {
 		return nil, nil
 	}
-	return block.(*Hash), nil
+	return block.(interfaces.IHash), nil
 }
 
 func (db *Overlay) FetchPrimaryIndexBySecondaryIndex(bucket []byte, key interfaces.IHash) (interfaces.IHash, error) {
@@ -118,7 +118,7 @@ func (db *Overlay) FetchPrimaryIndexBySecondaryIndex(bucket []byte, key interfac
 	if block == nil {
 		return nil, nil
 	}
-	return block.(*Hash), nil
+	return block.(interfaces.IHash), nil
 }
 
 func (db *Overlay) FetchBlockBySecondaryIndex(secondaryIndexBucket, blockBucket []byte, index interfaces.IHash, dst interfaces.DatabaseBatchable) (interfaces.DatabaseBatchable, error) {
@@ -164,21 +164,21 @@ func (db *Overlay) ProcessBlockBatch(blockBucket, numberBucket, secondaryIndexBu
 		return nil
 	}
 
-	batch := []Record{}
+	batch := []interfaces.Record{}
 
-	batch = append(batch, Record{blockBucket, block.DatabasePrimaryIndex().Bytes(), block})
+	batch = append(batch, interfaces.Record{blockBucket, block.DatabasePrimaryIndex().Bytes(), block})
 
 	if numberBucket != nil {
 		bytes := make([]byte, 4)
 		binary.BigEndian.PutUint32(bytes, block.GetDatabaseHeight())
-		batch = append(batch, Record{numberBucket, bytes, block.DatabasePrimaryIndex()})
+		batch = append(batch, interfaces.Record{numberBucket, bytes, block.DatabasePrimaryIndex()})
 	}
 
 	if secondaryIndexBucket != nil {
-		batch = append(batch, Record{secondaryIndexBucket, block.DatabaseSecondaryIndex().Bytes(), block.DatabasePrimaryIndex()})
+		batch = append(batch, interfaces.Record{secondaryIndexBucket, block.DatabaseSecondaryIndex().Bytes(), block.DatabasePrimaryIndex()})
 	}
 
-	batch = append(batch, Record{[]byte{TBL_CHAIN_HEAD}, block.GetChainID(), block.DatabasePrimaryIndex()})
+	batch = append(batch, interfaces.Record{[]byte{TBL_CHAIN_HEAD}, block.GetChainID(), block.DatabasePrimaryIndex()})
 
 	err := db.DB.PutInBatch(batch)
 	if err != nil {
@@ -204,13 +204,13 @@ func (db *Overlay) FetchHeadIndexByChainID(chainID interfaces.IHash) (interfaces
 	if block == nil {
 		return nil, nil
 	}
-	return block.(*Hash), nil
+	return block.(interfaces.IHash), nil
 }
 
 func (db *Overlay) FetchBlockIndexesInHeightRange(numberBucket []byte, startHeight, endHeight int64) ([]interfaces.IHash, error) {
 	//TODO: deprecate AllShas
 	var endidx int64
-	if endHeight == AllShas {
+	if endHeight == interfaces.AllShas {
 		endidx = startHeight + wire.MaxBlocksPerMsg
 	} else {
 		endidx = endHeight

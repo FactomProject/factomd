@@ -17,7 +17,7 @@ type ProcessListMgr struct {
 
 	NextDBlockHeight uint32
 	//Server Private key and Public key for milestone 1
-	serverPrivKey PrivateKey
+	serverPrivKey primitives.PrivateKey
 
 	// Orphan process list map to hold our of order confirmation messages
 	// key: MsgAcknowledgement.MsgHash.String()
@@ -25,7 +25,7 @@ type ProcessListMgr struct {
 }
 
 // create a new process list
-func NewProcessListMgr(height uint32, otherPLSize int, plSizeHint uint, privKey PrivateKey) *ProcessListMgr {
+func NewProcessListMgr(height uint32, otherPLSize int, plSizeHint uint, privKey primitives.PrivateKey) *ProcessListMgr {
 
 	plMgr := new(ProcessListMgr)
 	plMgr.MyProcessList = NewProcessList(plSizeHint)
@@ -131,7 +131,7 @@ func (plMgr *ProcessListMgr) AddMyProcessListItem(msg wire.FtmInternalMsg, hash 
 
 // Sign the Ack --
 //TODO: to be moved into util package
-func (plMgr *ProcessListMgr) SignAck(bytes []byte) (sig Signature) {
+func (plMgr *ProcessListMgr) SignAck(bytes []byte) (sig primitives.Signature) {
 	sig = plMgr.serverPrivKey.Sign(bytes)
 	return sig
 }
@@ -139,6 +139,6 @@ func (plMgr *ProcessListMgr) SignAck(bytes []byte) (sig Signature) {
 // Check if the number of process list items is exceeding the size limit
 func (plMgr *ProcessListMgr) IsMyPListExceedingLimit() bool {
 
-	return (plMgr.MyProcessList.totalItems >= MAX_PLIST_SIZE)
+	return (plMgr.MyProcessList.totalItems >= constants.MAX_PLIST_SIZE)
 
 }

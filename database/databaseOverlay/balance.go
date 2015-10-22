@@ -33,7 +33,7 @@ func (f FSbalance) MarshalBinary() ([]byte, error) {
 // Any address that is not defined has a zero balance.
 func (db *Overlay) GetBalance(address interfaces.IAddress) uint64 {
 	balance := uint64(0)
-	b, _ := db.DB.Get([]byte(DB_F_BALANCES), address.Bytes(), new(FSbalance))
+	b, _ := db.DB.Get([]byte(constants.DB_F_BALANCES), address.Bytes(), new(FSbalance))
 	if b != nil {
 		balance = b.(*FSbalance).number
 	}
@@ -43,7 +43,7 @@ func (db *Overlay) GetBalance(address interfaces.IAddress) uint64 {
 // Any address that is not defined has a zero balance.
 func (db *Overlay) GetECBalance(address interfaces.IAddress) uint64 {
 	balance := uint64(0)
-	b, _ := db.DB.Get([]byte(DB_EC_BALANCES), address.Bytes(), new(FSbalance))
+	b, _ := db.DB.Get([]byte(constants.DB_EC_BALANCES), address.Bytes(), new(FSbalance))
 	if b != nil {
 		balance = b.(*FSbalance).number
 	}
@@ -57,7 +57,7 @@ func (db *Overlay) UpdateBalance(address interfaces.IAddress, amount int64) erro
 		return fmt.Errorf("The update to this address would drive the balance negative.")
 	}
 	balance := uint64(nbalance)
-	err := db.DB.Put([]byte(DB_F_BALANCES), address.Bytes(), &FSbalance{number: balance})
+	err := db.DB.Put([]byte(constants.DB_F_BALANCES), address.Bytes(), &FSbalance{number: balance})
 	return err
 }
 
@@ -68,7 +68,7 @@ func (db *Overlay) UpdateECBalance(address interfaces.IAddress, amount int64) er
 		return fmt.Errorf("The update to this Entry Credit address would drive the balance negative.")
 	}
 	balance := uint64(nbalance)
-	err := db.DB.Put([]byte(DB_EC_BALANCES), address.Bytes(), &FSbalance{number: balance})
+	err := db.DB.Put([]byte(constants.DB_EC_BALANCES), address.Bytes(), &FSbalance{number: balance})
 	return err
 }
 
@@ -78,7 +78,7 @@ func (db *Overlay) UpdateECBalance(address interfaces.IAddress, amount int64) er
 func (db *Overlay) AddToECBalance(address interfaces.IAddress, amount uint64, factoshisPerEC uint64) error {
 	ecs := amount / factoshisPerEC
 	balance := db.GetECBalance(address) + ecs
-	err := db.DB.Put([]byte(DB_EC_BALANCES), address.Bytes(), &FSbalance{number: balance})
+	err := db.DB.Put([]byte(constants.DB_EC_BALANCES), address.Bytes(), &FSbalance{number: balance})
 	return err
 }
 
@@ -90,16 +90,16 @@ func (db *Overlay) UseECs(address interfaces.IAddress, amount uint64) error {
 	if balance < 0 {
 		return fmt.Errorf("Overdraft of Entry Credits attempted.")
 	}
-	err := db.DB.Put([]byte(DB_EC_BALANCES), address.Bytes(), &FSbalance{number: balance})
+	err := db.DB.Put([]byte(constants.DB_EC_BALANCES), address.Bytes(), &FSbalance{number: balance})
 	return err
 }
 
 func (db *Overlay) PutTransactionBlock(hash interfaces.IHash, trans interfaces.IFBlock) error {
-	return db.DB.Put([]byte(DB_FACTOID_BLOCKS), hash.Bytes(), trans)
+	return db.DB.Put([]byte(constants.DB_FACTOID_BLOCKS), hash.Bytes(), trans)
 }
 
 func (db *Overlay) GetTransactionBlock(hash interfaces.IHash, dst interfaces.IFBlock) (interfaces.IFBlock, error) {
-	transblk, err := db.DB.Get([]byte(DB_FACTOID_BLOCKS), hash.Bytes(), dst)
+	transblk, err := db.DB.Get([]byte(constants.DB_FACTOID_BLOCKS), hash.Bytes(), dst)
 	if err != nil {
 		return nil, err
 	}

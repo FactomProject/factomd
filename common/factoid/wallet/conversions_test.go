@@ -157,5 +157,4 @@ func TestCombined(t *testing.T) {
 	if add != "FA3Y1tBWnFpyoZUPr9ZH51R1gSC8r5x5kqvkXL3wy4uRvzFnuWLB" {
 		t.Error("Wrong address returned")
 	}
-
 }

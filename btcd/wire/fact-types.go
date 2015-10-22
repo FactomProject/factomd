@@ -8,10 +8,10 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 )
 
-const RCDconstants.HASH_LENGTH = 32
+const RCDHASH_LENGTH = 32
 const PubKeySize = 32
 
-type RCDHash [RCDconstants.HASH_LENGTH]byte // this is out factoid address
+type RCDHash [RCDHASH_LENGTH]byte // this is out factoid address
 type ECPubKey [PubKeySize]byte
 type PubKey [PubKeySize]byte
 
