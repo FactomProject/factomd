@@ -7,8 +7,8 @@ package process
 import (
 	"errors"
 	"github.com/FactomProject/factomd/btcd/wire"
-	. "github.com/FactomProject/factomd/common/constants"
-	. "github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/interfaces"
 	"sync"
 	"time"
 )
@@ -17,8 +17,8 @@ import (
 // (CommitChain, RevealChain, CommitEntry, RevealEntry)
 type ftmMemPool struct {
 	sync.RWMutex
-	pool        map[IHash]wire.Message
-	orphans     map[IHash]wire.Message
+	pool        map[interfaces.IHash]wire.Message
+	orphans     map[interfaces.IHash]wire.Message
 	blockpool   map[string]wire.Message // to hold the blocks or entries downloaded from peers
 	lastUpdated time.Time               // last time pool was updated
 }
@@ -26,15 +26,15 @@ type ftmMemPool struct {
 // Add a factom message to the orphan pool
 func (mp *ftmMemPool) init_ftmMemPool() error {
 
-	mp.pool = make(map[IHash]wire.Message)
-	mp.orphans = make(map[IHash]wire.Message)
+	mp.pool = make(map[interfaces.IHash]wire.Message)
+	mp.orphans = make(map[interfaces.IHash]wire.Message)
 	mp.blockpool = make(map[string]wire.Message)
 
 	return nil
 }
 
 // Add a factom message to the  Mem pool
-func (mp *ftmMemPool) addMsg(msg wire.Message, hash IHash) error {
+func (mp *ftmMemPool) addMsg(msg wire.Message, hash interfaces.IHash) error {
 
 	if len(mp.pool) > MAX_TX_POOL_SIZE {
 		return errors.New("Transaction mem pool exceeds the limit.")
@@ -46,7 +46,7 @@ func (mp *ftmMemPool) addMsg(msg wire.Message, hash IHash) error {
 }
 
 // Add a factom message to the orphan pool
-func (mp *ftmMemPool) addOrphanMsg(msg wire.Message, hash IHash) error {
+func (mp *ftmMemPool) addOrphanMsg(msg wire.Message, hash interfaces.IHash) error {
 
 	if len(mp.orphans) > MAX_ORPHAN_SIZE {
 		errors.New("Ophan mem pool exceeds the limit.")

@@ -10,8 +10,7 @@ type IFactoidState interface {
 	// Set the database for the Coin State.  This is where
 	// we manage the balances for transactions.  We also look
 	// for previous blocks here.
-	SetDB(IDatabase)
-	GetDB() IDatabase
+	SetDB(DBOverlay)
 
 	// Load the address state of Factoids
 	LoadState() error
@@ -29,40 +28,12 @@ type IFactoidState interface {
 	// Get the current transaction block
 	GetCurrentBlock() IFBlock
 
-	// Update balance updates the balance for a Factoid address in
-	// the database.  Note that we take an int64 to allow debits
-	// as well as credits
-	UpdateBalance(address IAddress, amount int64) error
-
-	// Update balance updates the balance for an Entry Credit address
-	// in the database.  Note that we take an int64 to allow debits
-	// as well as credits
-	UpdateECBalance(address IAddress, amount int64) error
-
-	// Use Entry Credits, which lowers their balance
-	UseECs(address IAddress, amount uint64) error
-
-	// Return the Factoid balance for an address
-	GetBalance(address IAddress) uint64
-
-	// Return the Entry Credit balance for an address
-	GetECBalance(address IAddress) uint64
-
 	// Add a transaction   Useful for catching up with the network.
 	AddTransactionBlock(IFBlock) error
 
 	// Return the Factoid block with this hash.  If unknown, returns
 	// a null.
 	GetTransactionBlock(IHash) (IFBlock, error)
-	// Put a Factoid block with this hash into the database.
-	PutTransactionBlock(IHash, IFBlock) error
-
-	// Time is something that can vary across multiple systems, and
-	// must be controlled in order to build reliable, repeatable
-	// tests.  Therefore, no node should directly querry system
-	// time.
-	GetTimeMilli() uint64 // Count of milliseconds from Jan 1,1970
-	GetTime() uint64      // Count of seconds from Jan 1, 1970
 
 	// Validate transaction
 	// Return zero len string if the balance of an address covers each input

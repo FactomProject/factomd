@@ -10,15 +10,15 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	. "github.com/FactomProject/factomd/common/constants"
-	. "github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 	"sync"
 )
 
 // Administrative Chain
 type AdminChain struct {
-	ChainID IHash
+	ChainID interfaces.IHash
 	Name    [][]byte
 
 	NextBlock       *AdminBlock
@@ -38,16 +38,16 @@ type AdminBlock struct {
 	ABEntries []ABEntry //Interface
 
 	//Not Marshalized
-	fullHash    IHash //SHA512Half
-	partialHash IHash //SHA256
+	fullHash    interfaces.IHash //SHA512Half
+	partialHash interfaces.IHash //SHA256
 }
 
-var _ Printable = (*AdminBlock)(nil)
-var _ BinaryMarshallableAndCopyable = (*AdminBlock)(nil)
-var _ IDBEntry = (*AdminBlock)(nil)
-var _ DatabaseBatchable = (*AdminBlock)(nil)
+var _ interfaces.Printable = (*AdminBlock)(nil)
+var _ interfaces.BinaryMarshallableAndCopyable = (*AdminBlock)(nil)
+var _ interfaces.IDBEntry = (*AdminBlock)(nil)
+var _ interfaces.DatabaseBatchable = (*AdminBlock)(nil)
 
-func (c *AdminBlock) New() BinaryMarshallableAndCopyable {
+func (c *AdminBlock) New() interfaces.BinaryMarshallableAndCopyable {
 	return new(AdminBlock)
 }
 
@@ -59,21 +59,21 @@ func (c *AdminBlock) GetChainID() []byte {
 	return c.Header.AdminChainID.Bytes()
 }
 
-func (c *AdminBlock) DatabasePrimaryIndex() IHash {
+func (c *AdminBlock) DatabasePrimaryIndex() interfaces.IHash {
 	key, _ := c.PartialHash()
 	return key
 }
 
-func (c *AdminBlock) DatabaseSecondaryIndex() IHash {
+func (c *AdminBlock) DatabaseSecondaryIndex() interfaces.IHash {
 	key, _ := c.LedgerKeyMR()
 	return key
 }
 
-func (c *AdminBlock) GetKeyMR() (IHash, error) {
+func (c *AdminBlock) GetKeyMR() (interfaces.IHash, error) {
 	return c.PartialHash()
 }
 
-func (ab *AdminBlock) LedgerKeyMR() (IHash, error) {
+func (ab *AdminBlock) LedgerKeyMR() (interfaces.IHash, error) {
 	if ab.fullHash == nil {
 		err := ab.buildFullBHash()
 		if err != nil {
@@ -83,7 +83,7 @@ func (ab *AdminBlock) LedgerKeyMR() (IHash, error) {
 	return ab.fullHash, nil
 }
 
-func (ab *AdminBlock) PartialHash() (IHash, error) {
+func (ab *AdminBlock) PartialHash() (interfaces.IHash, error) {
 	if ab.partialHash == nil {
 		err := ab.buildPartialHash()
 		if err != nil {
@@ -107,7 +107,7 @@ func CreateAdminBlock(chain *AdminChain, prev *AdminBlock, cap uint) (b *AdminBl
 	b.Header.AdminChainID = chain.ChainID
 
 	if prev == nil {
-		b.Header.PrevLedgerKeyMR = NewZeroHash()
+		b.Header.PrevLedgerKeyMR = primitives.NewZeroHash()
 	} else {
 		b.Header.PrevLedgerKeyMR, err = prev.LedgerKeyMR()
 		if err != nil {
@@ -128,7 +128,7 @@ func (b *AdminBlock) buildFullBHash() (err error) {
 	if err != nil {
 		return
 	}
-	b.fullHash = Sha512Half(binaryAB)
+	b.fullHash = primitives.Sha512Half(binaryAB)
 	return
 }
 
@@ -139,7 +139,7 @@ func (b *AdminBlock) buildPartialHash() (err error) {
 	if err != nil {
 		return
 	}
-	b.partialHash = Sha(binaryAB)
+	b.partialHash = primitives.Sha(binaryAB)
 	return
 }
 
@@ -152,7 +152,7 @@ func (b *AdminBlock) AddABEntry(e ABEntry) (err error) {
 // Add the end-of-minute marker into the admin block
 func (b *AdminBlock) AddEndOfMinuteMarker(eomType byte) (err error) {
 	eOMEntry := &EndOfMinuteEntry{
-		entryType: TYPE_MINUTE_NUM,
+		EntryType: constants.TYPE_MINUTE_NUM,
 		EOM_Type:  eomType}
 
 	b.AddABEntry(eOMEntry)
@@ -203,9 +203,9 @@ func (b *AdminBlock) UnmarshalBinaryData(data []byte) (newData []byte, err error
 
 	b.ABEntries = make([]ABEntry, b.Header.MessageCount)
 	for i := uint32(0); i < b.Header.MessageCount; i++ {
-		if newData[0] == TYPE_DB_SIGNATURE {
+		if newData[0] == constants.TYPE_DB_SIGNATURE {
 			b.ABEntries[i] = new(DBSignatureEntry)
-		} else if newData[0] == TYPE_MINUTE_NUM {
+		} else if newData[0] == constants.TYPE_MINUTE_NUM {
 			b.ABEntries[i] = new(EndOfMinuteEntry)
 		}
 		newData, err = b.ABEntries[i].UnmarshalBinaryData(newData)
@@ -226,7 +226,7 @@ func (b *AdminBlock) UnmarshalBinary(data []byte) (err error) {
 func (b *AdminBlock) GetDBSignature() ABEntry {
 
 	for i := uint32(0); i < b.Header.MessageCount; i++ {
-		if b.ABEntries[i].Type() == TYPE_DB_SIGNATURE {
+		if b.ABEntries[i].Type() == constants.TYPE_DB_SIGNATURE {
 			return b.ABEntries[i]
 		}
 	}
@@ -235,15 +235,15 @@ func (b *AdminBlock) GetDBSignature() ABEntry {
 }
 
 func (e *AdminBlock) JSONByte() ([]byte, error) {
-	return EncodeJSON(e)
+	return primitives.EncodeJSON(e)
 }
 
 func (e *AdminBlock) JSONString() (string, error) {
-	return EncodeJSONString(e)
+	return primitives.EncodeJSONString(e)
 }
 
 func (e *AdminBlock) JSONBuffer(b *bytes.Buffer) error {
-	return EncodeJSONToBuffer(e, b)
+	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (e *AdminBlock) String() string {
@@ -253,8 +253,8 @@ func (e *AdminBlock) String() string {
 
 // Admin Block Header
 type ABlockHeader struct {
-	AdminChainID    IHash
-	PrevLedgerKeyMR IHash
+	AdminChainID    interfaces.IHash
+	PrevLedgerKeyMR interfaces.IHash
 	DBHeight        uint32
 
 	HeaderExpansionSize uint64
@@ -264,8 +264,8 @@ type ABlockHeader struct {
 	BodySize     uint32
 }
 
-var _ Printable = (*ABlockHeader)(nil)
-var _ BinaryMarshallable = (*ABlockHeader)(nil)
+var _ interfaces.Printable = (*ABlockHeader)(nil)
+var _ interfaces.BinaryMarshallable = (*ABlockHeader)(nil)
 
 // Write out the ABlockHeader to binary.
 func (b *ABlockHeader) MarshalBinary() (data []byte, err error) {
@@ -285,7 +285,7 @@ func (b *ABlockHeader) MarshalBinary() (data []byte, err error) {
 
 	binary.Write(&buf, binary.BigEndian, b.DBHeight)
 
-	EncodeVarInt(&buf, b.HeaderExpansionSize)
+	primitives.EncodeVarInt(&buf, b.HeaderExpansionSize)
 	buf.Write(b.HeaderExpansionArea)
 
 	binary.Write(&buf, binary.BigEndian, b.MessageCount)
@@ -297,13 +297,13 @@ func (b *ABlockHeader) MarshalBinary() (data []byte, err error) {
 func (b *ABlockHeader) MarshalledSize() uint64 {
 	var size uint64 = 0
 
-	size += uint64(HASH_LENGTH)                 //AdminChainID
-	size += uint64(HASH_LENGTH)                 //PrevFullHash
-	size += 4                                   //DBHeight
-	size += VarIntLength(b.HeaderExpansionSize) //HeaderExpansionSize
-	size += b.HeaderExpansionSize               //HeadderExpansionArea
-	size += 4                                   //MessageCount
-	size += 4                                   //BodySize
+	size += uint64(constants.HASH_LENGTH)                  //AdminChainID
+	size += uint64(constants.HASH_LENGTH)                  //PrevFullHash
+	size += 4                                              //DBHeight
+	size += primitives.VarIntLength(b.HeaderExpansionSize) //HeaderExpansionSize
+	size += b.HeaderExpansionSize                          //HeadderExpansionArea
+	size += 4                                              //MessageCount
+	size += 4                                              //BodySize
 
 	return size
 }
@@ -315,13 +315,13 @@ func (b *ABlockHeader) UnmarshalBinaryData(data []byte) (newData []byte, err err
 		}
 	}()
 	newData = data
-	b.AdminChainID = new(Hash)
+	b.AdminChainID = new(primitives.Hash)
 	newData, err = b.AdminChainID.UnmarshalBinaryData(newData)
 	if err != nil {
 		return
 	}
 
-	b.PrevLedgerKeyMR = new(Hash)
+	b.PrevLedgerKeyMR = new(primitives.Hash)
 	newData, err = b.PrevLedgerKeyMR.UnmarshalBinaryData(newData)
 	if err != nil {
 		return
@@ -329,7 +329,7 @@ func (b *ABlockHeader) UnmarshalBinaryData(data []byte) (newData []byte, err err
 
 	b.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
-	b.HeaderExpansionSize, newData = DecodeVarInt(newData)
+	b.HeaderExpansionSize, newData = primitives.DecodeVarInt(newData)
 	b.HeaderExpansionArea, newData = newData[:b.HeaderExpansionSize], newData[b.HeaderExpansionSize:]
 
 	b.MessageCount, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
@@ -345,15 +345,15 @@ func (b *ABlockHeader) UnmarshalBinary(data []byte) (err error) {
 }
 
 func (e *ABlockHeader) JSONByte() ([]byte, error) {
-	return EncodeJSON(e)
+	return primitives.EncodeJSON(e)
 }
 
 func (e *ABlockHeader) JSONString() (string, error) {
-	return EncodeJSONString(e)
+	return primitives.EncodeJSONString(e)
 }
 
 func (e *ABlockHeader) JSONBuffer(b *bytes.Buffer) error {
-	return EncodeJSONToBuffer(e, b)
+	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (e *ABlockHeader) String() string {
@@ -363,13 +363,13 @@ func (e *ABlockHeader) String() string {
 
 // Generic admin block entry type
 type ABEntry interface {
-	Printable
-	BinaryMarshallable
-	ShortInterpretable
+	interfaces.Printable
+	interfaces.BinaryMarshallable
+	interfaces.ShortInterpretable
 
 	MarshalledSize() uint64
 	Type() byte
-	Hash() IHash
+	Hash() interfaces.IHash
 }
 
 type Sig [64]byte

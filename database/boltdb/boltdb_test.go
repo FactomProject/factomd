@@ -5,7 +5,7 @@
 package boltdb_test
 
 import (
-	. "github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/database/boltdb"
 	"os"
 	"testing"
@@ -32,7 +32,7 @@ func (t *TestData) UnmarshalBinary(data []byte) (err error) {
 	return
 }
 
-var _ BinaryMarshallable = (*TestData)(nil)
+var _ interfaces.BinaryMarshallable = (*TestData)(nil)
 
 var dbFilename string = "boltTest.db"
 
@@ -95,10 +95,10 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/FactomProject/ed25519"
-	. "github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/factoid"
-	. "github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 	"math/rand"
 	"testing"
 )
@@ -108,21 +108,21 @@ var _ = ed25519.Sign
 var _ = rand.New
 var _ = binary.Read
 
-// This database stores and retrieves IBlock instances.  To do that, it
+// This database stores and retrieves interfaces.IBlock instances.  To do that, it
 // needs a list of buckets that the using function wants, so it can make sure
 // all those buckets exist.  (Avoids checking and building buckets in every
 // write).
 //
-// It also needs a map of a hash to a IBlock instance.  To support this,
+// It also needs a map of a hash to a interfaces.IBlock instance.  To support this,
 // every block needs to be able to give the database a Hash for its type.
 // This has to match the reverse, where looking up the hash gives the
 // database the type for the hash.  This way, the database can marshal
-// and unmarshal IBlocks for storage in the database.  And since the IBlocks
+// and unmarshal interfaces.IBlocks for storage in the database.  And since the interfaces.IBlocks
 // can provide the hash, we don't need two maps.  Just the Hash to the
-// IBlock.
+// interfaces.IBlock.
 
-func cp(a IHash) [ADDRESS_LENGTH]byte {
-	r := new([ADDRESS_LENGTH]byte)
+func cp(a interfaces.IHash) [constants.ADDRESS_LENGTH]byte {
+	r := new([constants.ADDRESS_LENGTH]byte)
 	copy(r[:], a.Bytes())
 	return *r
 }
@@ -138,12 +138,12 @@ func Test_bolt_init(t *testing.T) {
 	bucketList[3] = []byte("four")
 	bucketList[4] = []byte("five")
 
-	instances := make(map[[ADDRESS_LENGTH]byte]IBlock)
+	instances := make(map[[constants.ADDRESS_LENGTH]byte]interfaces.IBlock)
 	{
-		var a IBlock
+		var a interfaces.IBlock
 		a = new(Address)
 		instances[cp(a.GetDBHash())] = a
-		a = new(Hash)
+		a = new(primitives.Hash)
 		instances[cp(a.GetDBHash())] = a
 		a = new(InAddress)
 		instances[cp(a.GetDBHash())] = a
@@ -163,15 +163,15 @@ func Test_bolt_init(t *testing.T) {
 	db.Init(bucketList, instances)
 	a := new(Address)
 	a.SetBytes(Sha([]byte("I came, I saw")).Bytes())
-	db.Put("one", Sha([]byte("one")), a)
-	r := db.Get("one", Sha([]byte("one")))
+	db.Put("one", primitives.Sha([]byte("one")), a)
+	r := db.Get("one", primitives.Sha([]byte("one")))
 
 	if a.IsEqual(r) != nil {
 		t.Fail()
 	}
 
-	db.DeleteKey([]byte("one"), Sha([]byte("one")).Bytes())
-	r = db.Get("one", Sha([]byte("one")))
+	db.DeleteKey([]byte("one"), primitives.Sha([]byte("one")).Bytes())
+	r = db.Get("one", primitives.Sha([]byte("one")))
 
 	if r != nil {
 		t.Fail()

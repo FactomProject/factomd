@@ -10,24 +10,23 @@ import (
 	"github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factomd/common/factoid/block"
 	"github.com/FactomProject/factomd/common/factoid/wallet"
-	. "github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 	"math/rand"
 	cv "strconv"
 	"testing"
 	"time"
 )
 
-var _ = Prt
 var _ = fmt.Printf
 var _ = ed25519.Sign
 var _ = rand.New
 var _ = binary.Write
 
-var fakeAddr IHash = new(Hash)
+var fakeAddr interfaces.IHash = new(primitives.Hash)
 
-func newFakeAddr() IAddress {
-	fakeAddr = Sha(fakeAddr.Bytes())
+func newFakeAddr() interfaces.IAddress {
+	fakeAddr = primitives.Sha(fakeAddr.Bytes())
 	return fakeAddr
 }
 
@@ -42,32 +41,32 @@ func Test_create_block(test *testing.T) {
 	for i := 0; i < 3; i++ {
 		h0, err := w.GenerateFctAddress([]byte("test "+cv.Itoa(i)+"-0"), 1, 1)
 		if err != nil {
-			Prtln("Error 1")
+			primitives.Prtln("Error 1")
 			test.Fail()
 		}
 		h1, err := w.GenerateFctAddress([]byte("test "+cv.Itoa(i)+"-1"), 1, 1)
 		if err != nil {
-			Prtln("Error 2")
+			primitives.Prtln("Error 2")
 			test.Fail()
 		}
 		h2, err := w.GenerateFctAddress([]byte("test "+cv.Itoa(i)+"-2"), 1, 1)
 		if err != nil {
-			Prtln("Error 3")
+			primitives.Prtln("Error 3")
 			test.Fail()
 		}
 		h3, err := w.GenerateFctAddress([]byte("test "+cv.Itoa(i)+"-3"), 1, 1)
 		if err != nil {
-			Prtln("Error 4")
+			primitives.Prtln("Error 4")
 			test.Fail()
 		}
 		h4, err := w.GenerateFctAddress([]byte("test "+cv.Itoa(i)+"-4"), 1, 1)
 		if err != nil {
-			Prtln("Error 5")
+			primitives.Prtln("Error 5")
 			test.Fail()
 		}
 		h5, err := w.GenerateFctAddress([]byte("test "+cv.Itoa(i)+"-5"), 1, 1)
 		if err != nil {
-			Prtln("Error 6")
+			primitives.Prtln("Error 6")
 			test.Fail()
 		}
 
@@ -84,19 +83,19 @@ func Test_create_block(test *testing.T) {
 
 		signed, err := w.SignInputs(t)
 		if err != nil {
-			Prtln("Error found: ", err)
+			primitives.Prtln("Error found: ", err)
 			test.Fail()
 			return
 		}
 		if !signed {
-			Prtln("Not valid")
+			primitives.Prtln("Not valid")
 			test.Fail()
 			return
 		}
 
 		err = scb.AddTransaction(t)
 		if err != nil {
-			Prtln("Error found: ", err)
+			primitives.Prtln("Error found: ", err)
 			test.Fail()
 			return
 		}
@@ -117,7 +116,7 @@ func Test_create_block(test *testing.T) {
 		test.Fail()
 		return
 	}
-	//Prtln("FIRST\n",scb,"SECOND\n",scb2)
+	//primitives.Prtln("FIRST\n",scb,"SECOND\n",scb2)
 	if scb.IsEqual(scb2) != nil {
 		fmt.Println(err)
 		test.Fail()

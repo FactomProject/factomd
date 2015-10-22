@@ -9,12 +9,12 @@ import (
 	. "github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/factoid/wallet"
 
-	. "github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/interfaces"
 )
 
 var _ = fmt.Println
 
-var adrs []IAddress
+var adrs []interfaces.IAddress
 var amount uint64 = 5000000000 // One Factoid (remember, fixed point math!
 var addressCnt int = 0         // No coinbase payments until Milestone 3
 
@@ -29,14 +29,14 @@ func UpdateAmount(amt uint64) {
 //
 // Currently we are paying just a few fixed addresses.
 //
-func GetCoinbase(ftime uint64) ITransaction {
+func GetCoinbase(ftime uint64) interfaces.ITransaction {
 
 	if false && adrs == nil {
-		var w ISCWallet
+		var w interfaces.ISCWallet
 		w = new(wallet.SCWallet)
 		w.Init()
 
-		adrs = make([]IAddress, addressCnt)
+		adrs = make([]interfaces.IAddress, addressCnt)
 		for i := 0; i < addressCnt; i++ {
 			adr, _ := w.GenerateFctAddress([]byte("adr"+string(i)), 1, 1)
 			adrs[i] = adr

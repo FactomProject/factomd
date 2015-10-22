@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"testing"
 
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 func TestAdminBlockPreviousHash(t *testing.T) {
@@ -297,13 +297,13 @@ func createTestAdminBlock() *AdminBlock {
 	block.Header = createTestAdminHeader()
 
 	p, _ := hex.DecodeString("cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc")
-	hash, _ := NewShaHash(p)
+	hash, _ := primitives.NewShaHash(p)
 	sigBytes := make([]byte, 96)
 	for i := 0; i < 5; i++ {
 		for j := range sigBytes {
 			sigBytes[j] = byte(i)
 		}
-		sig := UnmarshalBinarySignature(sigBytes)
+		sig := primitives.UnmarshalBinarySignature(sigBytes)
 		entry := NewDBSignatureEntry(hash, sig)
 		block.ABEntries = append(block.ABEntries, entry)
 	}
@@ -323,10 +323,10 @@ func createTestAdminHeader() *ABlockHeader {
 	header := new(ABlockHeader)
 
 	p, _ := hex.DecodeString("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
-	hash, _ := NewShaHash(p)
+	hash, _ := primitives.NewShaHash(p)
 	header.AdminChainID = hash
 	p, _ = hex.DecodeString("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
-	hash, _ = NewShaHash(p)
+	hash, _ = primitives.NewShaHash(p)
 	header.PrevLedgerKeyMR = hash
 	header.DBHeight = 123
 
@@ -342,10 +342,10 @@ func createSmallTestAdminHeader() *ABlockHeader {
 	header := new(ABlockHeader)
 
 	p, _ := hex.DecodeString("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
-	hash, _ := NewShaHash(p)
+	hash, _ := primitives.NewShaHash(p)
 	header.AdminChainID = hash
 	p, _ = hex.DecodeString("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
-	hash, _ = NewShaHash(p)
+	hash, _ = primitives.NewShaHash(p)
 	header.PrevLedgerKeyMR = hash
 	header.DBHeight = 123
 

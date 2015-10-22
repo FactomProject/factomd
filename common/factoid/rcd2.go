@@ -9,8 +9,8 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
-	. "github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 /************************
@@ -25,22 +25,22 @@ import (
 // multisig.  It just works.
 
 type RCD_2 struct {
-	m           int        // Number signatures required
-	n           int        // Total sigatures possible
-	n_addresses []IAddress // n addresses
+	m           int                   // Number signatures required
+	n           int                   // Total sigatures possible
+	n_addresses []interfaces.IAddress // n addresses
 }
 
-var _ IRCD = (*RCD_2)(nil)
+var _ interfaces.IRCD = (*RCD_2)(nil)
 
 /*************************************
  *       Stubs
  *************************************/
 
-func (b RCD_2) GetAddress() (IAddress, error) {
+func (b RCD_2) GetAddress() (interfaces.IAddress, error) {
 	return nil, nil
 }
 
-func (b RCD_2) GetHash() IHash {
+func (b RCD_2) GetHash() interfaces.IHash {
 	return nil
 }
 
@@ -57,20 +57,20 @@ func (b RCD_2) UnmarshalBinary(data []byte) error {
 	return err
 }
 
-func (b RCD_2) CheckSig(trans ITransaction, sigblk ISignatureBlock) bool {
+func (b RCD_2) CheckSig(trans interfaces.ITransaction, sigblk interfaces.ISignatureBlock) bool {
 	return false
 }
 
 func (e *RCD_2) JSONByte() ([]byte, error) {
-	return EncodeJSON(e)
+	return primitives.EncodeJSON(e)
 }
 
 func (e *RCD_2) JSONString() (string, error) {
-	return EncodeJSONString(e)
+	return primitives.EncodeJSONString(e)
 }
 
 func (e *RCD_2) JSONBuffer(b *bytes.Buffer) error {
-	return EncodeJSONToBuffer(e, b)
+	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (b RCD_2) String() string {
@@ -81,28 +81,28 @@ func (b RCD_2) String() string {
 	return string(txt)
 }
 
-func (w RCD_2) Clone() IRCD {
+func (w RCD_2) Clone() interfaces.IRCD {
 	c := new(RCD_2)
 	c.m = w.m
 	c.n = w.n
-	c.n_addresses = make([]IAddress, len(w.n_addresses))
+	c.n_addresses = make([]interfaces.IAddress, len(w.n_addresses))
 	for i, address := range w.n_addresses {
 		c.n_addresses[i] = CreateAddress(address)
 	}
 	return c
 }
 
-func (w1 RCD_2) GetNewInstance() IBlock {
+func (w1 RCD_2) GetNewInstance() interfaces.IBlock {
 	return new(RCD_2)
 }
 
-func (a1 *RCD_2) IsEqual(addr IBlock) []IBlock {
+func (a1 *RCD_2) IsEqual(addr interfaces.IBlock) []interfaces.IBlock {
 	a2, ok := addr.(*RCD_2)
-	if !ok || // Not the right kind of IBlock
+	if !ok || // Not the right kind of interfaces.IBlock
 		a1.n != a2.n || // Size of sig has to match
 		a1.m != a2.m || // Size of sig has to match
 		len(a1.n_addresses) != len(a2.n_addresses) { // Size of arrays has to match
-		r := make([]IBlock, 0, 5)
+		r := make([]interfaces.IBlock, 0, 5)
 		return append(r, a1)
 	}
 
@@ -127,7 +127,7 @@ func (t *RCD_2) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	t.n, data = int(binary.BigEndian.Uint16(data[0:2])), data[2:]
 	t.m, data = int(binary.BigEndian.Uint16(data[0:2])), data[2:]
 
-	t.n_addresses = make([]IAddress, t.m, t.m)
+	t.n_addresses = make([]interfaces.IAddress, t.m, t.m)
 
 	for i, _ := range t.n_addresses {
 		t.n_addresses[i] = new(Address)
@@ -157,19 +157,14 @@ func (a RCD_2) MarshalBinary() ([]byte, error) {
 	return out.Bytes(), nil
 }
 
-func (b RCD_2) MarshalledSize() uint64 {
-	hex, _ := b.MarshalBinary()
-	return uint64(len(hex))
-}
-
 func (a RCD_2) CustomMarshalText() ([]byte, error) {
 	var out bytes.Buffer
 
-	WriteNumber8(&out, uint8(2)) // Type 2 Authorization
+	primitives.WriteNumber8(&out, uint8(2)) // Type 2 Authorization
 	out.WriteString("\n n: ")
-	WriteNumber16(&out, uint16(a.n))
+	primitives.WriteNumber16(&out, uint16(a.n))
 	out.WriteString(" m: ")
-	WriteNumber16(&out, uint16(a.m))
+	primitives.WriteNumber16(&out, uint16(a.m))
 	out.WriteString("\n")
 	for i := 0; i < a.m; i++ {
 		out.WriteString("  m: ")

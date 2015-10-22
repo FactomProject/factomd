@@ -8,7 +8,7 @@ import (
 
 	ed "github.com/FactomProject/ed25519"
 	. "github.com/FactomProject/factomd/common/entryCreditBlock"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 var (
@@ -29,7 +29,7 @@ func TestCommitEntryMarshal(t *testing.T) {
 
 	// build a CommitEntry for testing
 	ce.Version = 0
-	ce.MilliTime = (*ByteSlice6)(&[6]byte{1, 1, 1, 1, 1, 1})
+	ce.MilliTime = (*primitives.ByteSlice6)(&[6]byte{1, 1, 1, 1, 1, 1})
 	p, _ := hex.DecodeString("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
 	ce.EntryHash.SetBytes(p)
 	ce.Credits = 1
@@ -38,8 +38,8 @@ func TestCommitEntryMarshal(t *testing.T) {
 	if pub, privkey, err := ed.GenerateKey(rand.Reader); err != nil {
 		t.Error(err)
 	} else {
-		ce.ECPubKey = (*ByteSlice32)(pub)
-		ce.Sig = (*ByteSlice64)(ed.Sign(privkey, ce.CommitMsg()))
+		ce.ECPubKey = (*primitives.ByteSlice32)(pub)
+		ce.Sig = (*primitives.ByteSlice64)(ed.Sign(privkey, ce.CommitMsg()))
 	}
 
 	// marshal and unmarshal the commit and see if it matches
@@ -70,7 +70,7 @@ func TestCommitChainMarshal(t *testing.T) {
 
 	// build a CommitChain for testing
 	cc.Version = 0
-	cc.MilliTime = (*ByteSlice6)(&[6]byte{1, 1, 1, 1, 1, 1})
+	cc.MilliTime = (*primitives.ByteSlice6)(&[6]byte{1, 1, 1, 1, 1, 1})
 	p, _ := hex.DecodeString("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
 	cc.ChainIDHash.SetBytes(p)
 	p, _ = hex.DecodeString("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
@@ -83,8 +83,8 @@ func TestCommitChainMarshal(t *testing.T) {
 	if pub, privkey, err := ed.GenerateKey(rand.Reader); err != nil {
 		t.Error(err)
 	} else {
-		cc.ECPubKey = (*ByteSlice32)(pub)
-		cc.Sig = (*ByteSlice64)(ed.Sign(privkey, cc.CommitMsg()))
+		cc.ECPubKey = (*primitives.ByteSlice32)(pub)
+		cc.Sig = (*primitives.ByteSlice64)(ed.Sign(privkey, cc.CommitMsg()))
 	}
 
 	// marshal and unmarshal the commit and see if it matches

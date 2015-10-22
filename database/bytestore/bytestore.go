@@ -15,14 +15,14 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	. "github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 var _ = fmt.Println
 
 type IByteStore interface {
-	IBlock
+	interfaces.IBlock
 	Bytes() []byte
 	SetBytes([]byte)
 }
@@ -42,8 +42,8 @@ func NewByteStore(data []byte) IByteStore {
 func (b ByteStore) Bytes() []byte {
 	return b.byteData
 }
-func (b ByteStore) GetHash() IHash {
-	return Sha(b.byteData)
+func (b ByteStore) GetHash() interfaces.IHash {
+	return primitives.Sha(b.byteData)
 }
 
 func (b *ByteStore) SetBytes(data []byte) {
@@ -80,31 +80,26 @@ func (b ByteStore) MarshalBinary() ([]byte, error) {
 	return out.Bytes(), nil
 }
 
-func (b ByteStore) MarshalledSize() uint64 {
-	hex, _ := b.MarshalBinary()
-	return uint64(len(hex))
-}
-
-func (b1 ByteStore) IsEqual(b IBlock) []IBlock {
+func (b1 ByteStore) IsEqual(b interfaces.IBlock) []interfaces.IBlock {
 	b2, ok := b.(*ByteStore)
 	if !ok || !bytes.Equal(b1.byteData, b2.byteData) {
-		return []IBlock{&b1}
+		return []interfaces.IBlock{&b1}
 	}
 	return nil
 }
 
-func (ByteStore) GetNewInstance() IBlock {
+func (ByteStore) GetNewInstance() interfaces.IBlock {
 	return new(ByteStore)
 }
 
 func (e ByteStore) JSONByte() ([]byte, error) {
-	return EncodeJSON(e)
+	return primitives.EncodeJSON(e)
 }
 
 func (e ByteStore) JSONString() (string, error) {
-	return EncodeJSONString(e)
+	return primitives.EncodeJSONString(e)
 }
 
 func (e ByteStore) JSONBuffer(b *bytes.Buffer) error {
-	return EncodeJSONToBuffer(e, b)
+	return primitives.EncodeJSONToBuffer(e, b)
 }

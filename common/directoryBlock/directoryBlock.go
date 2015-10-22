@@ -9,64 +9,78 @@ import (
 	"errors"
 	"fmt"
 
-	. "github.com/FactomProject/factomd/common/constants"
-	. "github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 type DirectoryBlock struct {
 	//Marshalized
-	Header    *DBlockHeader
-	DBEntries []*DBEntry
+	header    interfaces.IDirectoryBlockHeader
+	dbEntries []interfaces.IDBEntry
 
 	//Not Marshalized
 	IsSealed    bool
-	DBHash      IHash
-	KeyMR       IHash
-	IsSavedInDB bool
-	IsValidated bool
+	DBHash      interfaces.IHash
+	keyMR       interfaces.IHash
 }
 
-var _ Printable = (*DirectoryBlock)(nil)
-var _ BinaryMarshallableAndCopyable = (*DirectoryBlock)(nil)
-var _ IDirectoryBlock = (*DirectoryBlock)(nil)
-var _ DatabaseBatchable = (*DirectoryBlock)(nil)
+var _ interfaces.Printable = (*DirectoryBlock)(nil)
+var _ interfaces.BinaryMarshallableAndCopyable = (*DirectoryBlock)(nil)
+var _ interfaces.IDirectoryBlock = (*DirectoryBlock)(nil)
+var _ interfaces.DatabaseBatchable = (*DirectoryBlock)(nil)
 
-func (c *DirectoryBlock) New() BinaryMarshallableAndCopyable {
+func (c *DirectoryBlock) DBEntries() []interfaces.IDBEntry {
+	return c.dbEntries
+}
+
+func (c *DirectoryBlock) KeyMR() interfaces.IHash {
+	return c.keyMR
+}
+
+func (c *DirectoryBlock) Header() interfaces.IDirectoryBlockHeader {
+	return c.header
+}
+
+func (c *DirectoryBlock) SetHeader(header interfaces.IDirectoryBlockHeader) {
+	c.header = header
+}
+
+
+func (c *DirectoryBlock) SetDBEntries(dbEntries []interfaces.IDBEntry) {
+	c.dbEntries = dbEntries
+}
+
+func (c *DirectoryBlock) New() interfaces.BinaryMarshallableAndCopyable {
 	return new(DirectoryBlock)
 }
 
 func (c *DirectoryBlock) GetDatabaseHeight() uint32 {
-	return c.Header.DBHeight
+	return c.Header().DBHeight()
 }
 
 func (c *DirectoryBlock) GetChainID() []byte {
-	return D_CHAINID
+	return constants.D_CHAINID
 }
 
-func (c *DirectoryBlock) DatabasePrimaryIndex() IHash {
+func (c *DirectoryBlock) DatabasePrimaryIndex() interfaces.IHash {
 	return c.GetKeyMR()
 }
 
-func (c *DirectoryBlock) DatabaseSecondaryIndex() IHash {
+func (c *DirectoryBlock) DatabaseSecondaryIndex() interfaces.IHash {
 	return c.GetHash()
 }
 
-func (c *DirectoryBlock) MarshalledSize() uint64 {
-	panic("Function not implemented")
-	return 0
-}
-
 func (e *DirectoryBlock) JSONByte() ([]byte, error) {
-	return EncodeJSON(e)
+	return primitives.EncodeJSON(e)
 }
 
 func (e *DirectoryBlock) JSONString() (string, error) {
-	return EncodeJSONString(e)
+	return primitives.EncodeJSONString(e)
 }
 
 func (e *DirectoryBlock) JSONBuffer(b *bytes.Buffer) error {
-	return EncodeJSONToBuffer(e, b)
+	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (e *DirectoryBlock) String() string {
@@ -77,15 +91,15 @@ func (e *DirectoryBlock) String() string {
 func (b *DirectoryBlock) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
 
-	data, err = b.Header.MarshalBinary()
+	data, err = b.Header().MarshalBinary()
 	if err != nil {
 		return
 	}
 	buf.Write(data)
 
-	count := uint32(len(b.DBEntries))
+	count := uint32(len(b.DBEntries()))
 	for i := uint32(0); i < count; i = i + 1 {
-		data, err = b.DBEntries[i].MarshalBinary()
+		data, err = b.DBEntries()[i].MarshalBinary()
 		if err != nil {
 			return
 		}
@@ -95,28 +109,28 @@ func (b *DirectoryBlock) MarshalBinary() (data []byte, err error) {
 	return buf.Bytes(), err
 }
 
-func (b *DirectoryBlock) BuildBodyMR() (mr IHash, err error) {
-	hashes := make([]IHash, len(b.DBEntries))
-	for i, entry := range b.DBEntries {
+func (b *DirectoryBlock) BuildBodyMR() (mr interfaces.IHash, err error) {
+	hashes := make([]interfaces.IHash, len(b.DBEntries()))
+	for i, entry := range b.DBEntries() {
 		data, _ := entry.MarshalBinary()
-		hashes[i] = Sha(data)
+		hashes[i] = primitives.Sha(data)
 	}
 
 	if len(hashes) == 0 {
-		hashes = append(hashes, Sha(nil))
+		hashes = append(hashes, primitives.Sha(nil))
 	}
 
-	merkle := BuildMerkleTreeStore(hashes)
+	merkle := primitives.BuildMerkleTreeStore(hashes)
 	return merkle[len(merkle)-1], nil
 }
 
-func (b *DirectoryBlock) BuildKeyMerkleRoot() (keyMR IHash, err error) {
+func (b *DirectoryBlock) BuildKeyMerkleRoot() (keyMR interfaces.IHash, err error) {
 	// Create the Entry Block Key Merkle Root from the hash of Header and the Body Merkle Root
-	hashes := make([]IHash, 0, 2)
-	binaryEBHeader, _ := b.Header.MarshalBinary()
-	hashes = append(hashes, Sha(binaryEBHeader))
-	hashes = append(hashes, b.Header.BodyMR)
-	merkle := BuildMerkleTreeStore(hashes)
+	hashes := make([]interfaces.IHash, 0, 2)
+	binaryEBHeader, _ := b.Header().MarshalBinary()
+	hashes = append(hashes, primitives.Sha(binaryEBHeader))
+	hashes = append(hashes, b.Header().BodyMR())
+	merkle := primitives.BuildMerkleTreeStore(hashes)
 	keyMR = merkle[len(merkle)-1] // MerkleRoot is not marshalized in Dir Block
 
 	return keyMR, nil
@@ -131,18 +145,19 @@ func (b *DirectoryBlock) UnmarshalBinaryData(data []byte) (newData []byte, err e
 
 	newData = data
 
-	fbh := new(DBlockHeader)
+	var fbh interfaces.IDirectoryBlockHeader = new(DBlockHeader)
+	
 	newData, err = fbh.UnmarshalBinaryData(newData)
 	if err != nil {
 		return
 	}
-	b.Header = fbh
+	b.SetHeader(fbh)
 
-	count := b.Header.BlockCount
-	b.DBEntries = make([]*DBEntry, count)
+	count := b.Header().BlockCount()
+	b.SetDBEntries(make([]interfaces.IDBEntry, count))
 	for i := uint32(0); i < count; i++ {
-		b.DBEntries[i] = new(DBEntry)
-		newData, err = b.DBEntries[i].UnmarshalBinaryData(newData)
+		b.DBEntries()[i] = new(DBEntry)
+		newData, err = b.DBEntries()[i].UnmarshalBinaryData(newData)
 		if err != nil {
 			return
 		}
@@ -156,38 +171,28 @@ func (b *DirectoryBlock) UnmarshalBinary(data []byte) (err error) {
 	return
 }
 
-func (b *DirectoryBlock) GetDBHeight() uint32 {
-	return b.Header.DBHeight
+func (b *DirectoryBlock) DBHeight() uint32 {
+	return b.Header().DBHeight()
 }
 
-func (b *DirectoryBlock) GetHash() IHash {
+func (b *DirectoryBlock) GetHash() interfaces.IHash {
 	if b.DBHash == nil {
 		binaryDblock, err := b.MarshalBinary()
 		if err != nil {
 			return nil
 		}
-		b.DBHash = Sha(binaryDblock)
+		b.DBHash = primitives.Sha(binaryDblock)
 	}
 	return b.DBHash
 }
 
-func (b *DirectoryBlock) GetKeyMR() IHash {
-	if b.KeyMR == nil {
-		b.BuildKeyMerkleRoot()
+func (b *DirectoryBlock) GetKeyMR() interfaces.IHash {
+	hash, err := b.BuildKeyMerkleRoot()
+	if err != nil {
+		return nil
 	}
-	return b.KeyMR
+	return hash
 }
-
-/**
-func (b *DirectoryBlock) EncodableFields() map[string]reflect.Value {
-	fields := map[string]reflect.Value{
-		`Header`:    reflect.ValueOf(b.Header),
-		`DBEntries`: reflect.ValueOf(b.DBEntries),
-		`DBHash`:    reflect.ValueOf(b.DBHash),
-	}
-	return fields
-}
-**/
 
 /************************************************
  * Support Functions
@@ -195,11 +200,9 @@ func (b *DirectoryBlock) EncodableFields() map[string]reflect.Value {
 
 func NewDirectoryBlock() *DirectoryBlock {
 	d := new(DirectoryBlock)
-	d.Header = NewDBlockHeader()
+	d.SetHeader(NewDBlockHeader())
 
-	d.DBEntries = make([]*DBEntry, 0)
-	d.DBHash = NewZeroHash()
-	d.KeyMR = NewZeroHash()
+	d.SetDBEntries( make([]interfaces.IDBEntry, 0))
 
 	return d
 }
@@ -208,7 +211,7 @@ func NewDBlock() *DirectoryBlock {
 	return NewDirectoryBlock()
 }
 
-func CreateDBlock(nextDBHeight uint32, prev *DirectoryBlock, cap uint) (b *DirectoryBlock, err error) {
+func CreateDBlock(nextDBHeight uint32, prev interfaces.IDirectoryBlock, cap uint) (b interfaces.IDirectoryBlock, err error) {
 	if prev == nil && nextDBHeight != 0 {
 		return nil, errors.New("Previous block cannot be nil")
 	} else if prev != nil && nextDBHeight == 0 {
@@ -217,23 +220,27 @@ func CreateDBlock(nextDBHeight uint32, prev *DirectoryBlock, cap uint) (b *Direc
 
 	b = new(DirectoryBlock)
 
-	b.Header = new(DBlockHeader)
-	b.Header.Version = VERSION_0
+	b.SetHeader(new(DBlockHeader))
+	b.Header().SetVersion(constants.VERSION_0)
 
 	if prev == nil {
-		b.Header.PrevLedgerKeyMR = NewZeroHash()
-		b.Header.PrevKeyMR = NewZeroHash()
+		b.Header().SetPrevLedgerKeyMR(primitives.NewZeroHash())
+		b.Header().SetPrevKeyMR(primitives.NewZeroHash())
 	} else {
-		b.Header.PrevLedgerKeyMR, err = CreateHash(prev)
-		if prev.KeyMR == nil {
-			prev.BuildKeyMerkleRoot()
+		prevLedgerKeyMR, err := primitives.CreateHash(prev)
+		if err != nil {
+			return nil, err
 		}
-		b.Header.PrevKeyMR = prev.KeyMR
+		b.Header().SetPrevLedgerKeyMR(prevLedgerKeyMR)
+		keyMR, err := prev.BuildKeyMerkleRoot()
+		if err != nil {
+			return nil, err
+		}
+		b.Header().SetPrevKeyMR(keyMR)
 	}
 
-	b.Header.DBHeight = nextDBHeight
-	b.DBEntries = make([]*DBEntry, 0, cap)
-	b.IsSealed = false
+	b.Header().SetDBHeight(nextDBHeight)
+	b.SetDBEntries(make([]interfaces.IDBEntry, 0, cap))
 
 	return b, err
 }

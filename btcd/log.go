@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/btcd/addrmgr"
-	. "github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/interfaces"
 
 	//	"github.com/FactomProject/factomd/btcd/blockchain"
 	//	"github.com/FactomProject/factomd/btcd/database"
@@ -270,7 +270,7 @@ func invSummary(invList []*wire.InvVect) string {
 }
 
 // locatorSummary returns a block locator as a human-readable string.
-func locatorSummary(locator []IHash, stopHash IHash) string {
+func locatorSummary(locator []interfaces.IHash, stopHash interfaces.IHash) string {
 	if len(locator) > 0 {
 		return fmt.Sprintf("locator %s, stop %s", locator[0], stopHash)
 	}

@@ -29,8 +29,8 @@ import (
 
 	factomwire "github.com/FactomProject/factomd/btcd/wire"
 	. "github.com/FactomProject/factomd/common/directoryBlock"
-	. "github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database"
 	"github.com/FactomProject/factomd/util"
 )
@@ -53,7 +53,7 @@ var (
 	//Server Entry Credit private key
 	serverECKey PrivateKey
 	//Anchor chain ID
-	anchorChainID IHash
+	anchorChainID interfaces.IHash
 	//InmsgQ for submitting the entry to server
 	inMsgQ chan factomwire.FtmInternalMsg
 )
@@ -82,7 +82,7 @@ type AnchorRecord struct {
 
 // SendRawTransactionToBTC is the main function used to anchor factom
 // dir block hash to bitcoin blockchain
-func SendRawTransactionToBTC(hash IHash, blockHeight uint32) (IHash, error) {
+func SendRawTransactionToBTC(hash interfaces.IHash, blockHeight uint32) (interfaces.IHash, error) {
 	anchorLog.Debug("SendRawTransactionToBTC: hash=", hash.String(), ", dir block height=", blockHeight) //strconv.FormatUint(blockHeight, 10))
 	err := sanityCheck(hash)
 	if err != nil {
@@ -91,7 +91,7 @@ func SendRawTransactionToBTC(hash IHash, blockHeight uint32) (IHash, error) {
 	return doTransaction(hash, blockHeight)
 }
 
-func doTransaction(hash IHash, blockHeight uint32) (IHash, error) {
+func doTransaction(hash interfaces.IHash, blockHeight uint32) (interfaces.IHash, error) {
 	b := balances[0]
 	balances = balances[1:]
 	anchorLog.Info("new balances.len=", len(balances))
@@ -109,7 +109,7 @@ func doTransaction(hash IHash, blockHeight uint32) (IHash, error) {
 	return shaHash, nil
 }
 
-func sanityCheck(hash IHash) error {
+func sanityCheck(hash interfaces.IHash) error {
 	if dclient == nil || wclient == nil {
 		s := fmt.Sprintf("\n\n$$$ WARNING: rpc clients and/or wallet are not initiated successfully. No anchoring for now.\n")
 		anchorLog.Warning(s)
@@ -272,7 +272,7 @@ func validateMsgTx(msgtx *wire.MsgTx, inputs []btcjson.ListUnspentResult) error 
 	return nil
 }
 
-func sendRawTransaction(msgtx *wire.MsgTx) (IHash, error) {
+func sendRawTransaction(msgtx *wire.MsgTx) (interfaces.IHash, error) {
 	//anchorLog.Debug("sendRawTransaction: msgTx=", spew.Sdump(msgtx))
 	buf := bytes.Buffer{}
 	buf.Grow(msgtx.SerializeSize())
@@ -547,8 +547,8 @@ func prependBlockHeight(height uint32, hash []byte) ([]byte, error) {
 	return newdata, nil
 }
 
-func toHash(txHash IHash) IHash {
-	h := new(Hash)
+func toHash(txHash interfaces.IHash) interfaces.IHash {
+	h := new(primitives.Hash)
 	h.SetBytes(txHash.Bytes())
 	return h
 }

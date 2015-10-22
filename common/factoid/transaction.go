@@ -8,9 +8,9 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	. "github.com/FactomProject/factomd/common/constants"
-	. "github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 	"time"
 )
 
@@ -20,17 +20,17 @@ type Transaction struct {
 	// #inputs     uint8          number of inputs
 	// #outputs    uint8          number of outputs
 	// #ecoutputs  uint8          number of outECs (Number of EntryCredits)
-	Inputs    []IInAddress
-	Outputs   []IOutAddress
-	OutECs    []IOutECAddress
-	RCDs      []IRCD
-	SigBlocks []ISignatureBlock
+	Inputs    []interfaces.IInAddress
+	Outputs   []interfaces.IOutAddress
+	OutECs    []interfaces.IOutECAddress
+	RCDs      []interfaces.IRCD
+	SigBlocks []interfaces.ISignatureBlock
 
-	MarshalSig IHash // cache to avoid unnecessary marshal/unmarshals
+	MarshalSig interfaces.IHash // cache to avoid unnecessary marshal/unmarshals
 }
 
-var _ ITransaction = (*Transaction)(nil)
-var _ Printable = (*Transaction)(nil)
+var _ interfaces.ITransaction = (*Transaction)(nil)
+var _ interfaces.Printable = (*Transaction)(nil)
 
 // Clears caches if they are no long valid.
 func (t *Transaction) clearCaches() {
@@ -42,20 +42,20 @@ func (Transaction) GetVersion() uint64 {
 	return 2
 }
 
-func (t Transaction) GetHash() IHash {
+func (t Transaction) GetHash() interfaces.IHash {
 	m, err := t.MarshalBinary()
 	if err != nil {
 		return nil
 	}
-	return Sha(m)
+	return primitives.Sha(m)
 }
 
-func (t Transaction) GetSigHash() IHash {
+func (t Transaction) GetSigHash() interfaces.IHash {
 	m, err := t.MarshalBinarySig()
 	if err != nil {
 		return nil
 	}
-	return Sha(m)
+	return primitives.Sha(m)
 }
 
 func (t Transaction) String() string {
@@ -74,26 +74,26 @@ func (t *Transaction) SetMilliTimestamp(ts uint64) {
 	t.MilliTimestamp = ts
 }
 
-func (t *Transaction) SetSignatureBlock(i int, sig ISignatureBlock) {
+func (t *Transaction) SetSignatureBlock(i int, sig interfaces.ISignatureBlock) {
 	for len(t.SigBlocks) <= i {
 		t.SigBlocks = append(t.SigBlocks, new(SignatureBlock))
 	}
 	t.SigBlocks[i] = sig
 }
 
-func (t *Transaction) GetSignatureBlock(i int) ISignatureBlock {
+func (t *Transaction) GetSignatureBlock(i int) interfaces.ISignatureBlock {
 	for len(t.SigBlocks) <= i {
 		t.SigBlocks = append(t.SigBlocks, new(SignatureBlock))
 	}
 	return t.SigBlocks[i]
 }
 
-func (t *Transaction) AddRCD(rcd IRCD) {
+func (t *Transaction) AddRCD(rcd interfaces.IRCD) {
 	t.RCDs = append(t.RCDs, rcd)
 	t.clearCaches()
 }
 
-func (w1 Transaction) GetNewInstance() IBlock {
+func (w1 Transaction) GetNewInstance() interfaces.IBlock {
 	return new(Transaction)
 }
 
@@ -119,7 +119,7 @@ func (t Transaction) CalculateFee(factoshisPerEC uint64) (uint64, error) {
 	if err != nil {
 		return 0, fmt.Errorf("Can't Marshal the Transaction")
 	}
-	if len(data) > MAX_TRANSACTION_SIZE { // Can't be bigger than our limits
+	if len(data) > constants.MAX_TRANSACTION_SIZE { // Can't be bigger than our limits
 		return 0, fmt.Errorf("Transaction is greater than the max transaction size")
 	}
 	// Okay, we know the transaction is mostly good. Let's calculate
@@ -244,7 +244,7 @@ func (t Transaction) Validate(index int) error {
 		}
 	} else {
 		if index == 0 {
-			PrtStk()
+			primitives.PrtStk()
 			fmt.Println(index, t)
 			return fmt.Errorf("Coinbase transactions cannot have inputs.")
 		}
@@ -273,7 +273,7 @@ func (t Transaction) Validate(index int) error {
 	return nil
 }
 
-// This call ONLY checks signatures.  Call ITransaction.Validate() to check the structure of the
+// This call ONLY checks signatures.  Call interfaces.ITransaction.Validate() to check the structure of the
 // transaction.
 //
 func (t Transaction) ValidateSignatures() error {
@@ -294,23 +294,23 @@ func (t Transaction) ValidateSignatures() error {
 // Tests if the transaction is equal in all of its structures, and
 // in order of the structures.  Largely used to test and debug, but
 // generally useful.
-func (t1 *Transaction) IsEqual(trans IBlock) []IBlock {
+func (t1 *Transaction) IsEqual(trans interfaces.IBlock) []interfaces.IBlock {
 
-	t2, ok := trans.(ITransaction)
+	t2, ok := trans.(interfaces.ITransaction)
 
-	if !ok || // Not the right kind of IBlock
+	if !ok || // Not the right kind of interfaces.IBlock
 		len(t1.Inputs) != len(t2.GetInputs()) || // Size of arrays has to match
 		len(t1.Outputs) != len(t2.GetOutputs()) || // Size of arrays has to match
 		len(t1.OutECs) != len(t2.GetECOutputs()) { // Size of arrays has to match
 
-		r := make([]IBlock, 0, 5)
+		r := make([]interfaces.IBlock, 0, 5)
 		return append(r, t1)
 	}
 
 	for i, input := range t1.GetInputs() {
 		adr, err := t2.GetInput(i)
 		if err != nil {
-			r := make([]IBlock, 0, 5)
+			r := make([]interfaces.IBlock, 0, 5)
 			return append(r, t1)
 		}
 		r := input.IsEqual(adr)
@@ -322,7 +322,7 @@ func (t1 *Transaction) IsEqual(trans IBlock) []IBlock {
 	for i, output := range t1.GetOutputs() {
 		adr, err := t2.GetOutput(i)
 		if err != nil {
-			r := make([]IBlock, 0, 5)
+			r := make([]interfaces.IBlock, 0, 5)
 			return append(r, t1)
 		}
 		r := output.IsEqual(adr)
@@ -334,7 +334,7 @@ func (t1 *Transaction) IsEqual(trans IBlock) []IBlock {
 	for i, outEC := range t1.GetECOutputs() {
 		adr, err := t2.GetECOutput(i)
 		if err != nil {
-			r := make([]IBlock, 0, 5)
+			r := make([]interfaces.IBlock, 0, 5)
 			return append(r, t1)
 		}
 		r := outEC.IsEqual(adr)
@@ -346,7 +346,7 @@ func (t1 *Transaction) IsEqual(trans IBlock) []IBlock {
 	for i, a := range t1.RCDs {
 		adr, err := t2.GetRCD(i)
 		if err != nil {
-			r := make([]IBlock, 0, 5)
+			r := make([]interfaces.IBlock, 0, 5)
 			return append(r, t1)
 		}
 		r := a.IsEqual(adr)
@@ -365,12 +365,12 @@ func (t1 *Transaction) IsEqual(trans IBlock) []IBlock {
 	return nil
 }
 
-func (t Transaction) GetInputs() []IInAddress       { return t.Inputs }
-func (t Transaction) GetOutputs() []IOutAddress     { return t.Outputs }
-func (t Transaction) GetECOutputs() []IOutECAddress { return t.OutECs }
-func (t Transaction) GetRCDs() []IRCD               { return t.RCDs }
+func (t Transaction) GetInputs() []interfaces.IInAddress       { return t.Inputs }
+func (t Transaction) GetOutputs() []interfaces.IOutAddress     { return t.Outputs }
+func (t Transaction) GetECOutputs() []interfaces.IOutECAddress { return t.OutECs }
+func (t Transaction) GetRCDs() []interfaces.IRCD               { return t.RCDs }
 
-func (t *Transaction) GetSignatureBlocks() []ISignatureBlock {
+func (t *Transaction) GetSignatureBlocks() []interfaces.ISignatureBlock {
 	if len(t.SigBlocks) > len(t.Inputs) { // If too long, nil out
 		for i := len(t.Inputs); i < len(t.SigBlocks); i++ { // the extra entries, and
 			t.SigBlocks[i] = nil // cut it to length.
@@ -384,28 +384,28 @@ func (t *Transaction) GetSignatureBlocks() []ISignatureBlock {
 	return t.SigBlocks
 }
 
-func (t *Transaction) GetInput(i int) (IInAddress, error) {
+func (t *Transaction) GetInput(i int) (interfaces.IInAddress, error) {
 	if i > len(t.Inputs) {
 		return nil, fmt.Errorf("Index out of Range")
 	}
 	return t.Inputs[i], nil
 }
 
-func (t *Transaction) GetOutput(i int) (IOutAddress, error) {
+func (t *Transaction) GetOutput(i int) (interfaces.IOutAddress, error) {
 	if i > len(t.Outputs) {
 		return nil, fmt.Errorf("Index out of Range")
 	}
 	return t.Outputs[i], nil
 }
 
-func (t *Transaction) GetECOutput(i int) (IOutECAddress, error) {
+func (t *Transaction) GetECOutput(i int) (interfaces.IOutECAddress, error) {
 	if i > len(t.OutECs) {
 		return nil, fmt.Errorf("Index out of Range")
 	}
 	return t.OutECs[i], nil
 }
 
-func (t *Transaction) GetRCD(i int) (IRCD, error) {
+func (t *Transaction) GetRCD(i int) (interfaces.IRCD, error) {
 	if i > len(t.RCDs) {
 		return nil, fmt.Errorf("Index out of Range")
 	}
@@ -426,7 +426,7 @@ func (t *Transaction) UnmarshalBinaryData(data []byte) (newData []byte, err erro
 
 	// To capture the panic, my code needs to be in a function.  So I'm
 	// creating one here, and call it at the end of this function.
-	v, data := DecodeVarInt(data)
+	v, data := primitives.DecodeVarInt(data)
 	if v != t.GetVersion() {
 		return nil, fmt.Errorf("Wrong Transaction Version encountered. Expected %v and found %v", t.GetVersion(), v)
 	}
@@ -441,9 +441,9 @@ func (t *Transaction) UnmarshalBinaryData(data []byte) (newData []byte, err erro
 	numOutECs := int(data[0])
 	data = data[1:]
 
-	t.Inputs = make([]IInAddress, numInputs, numInputs)
-	t.Outputs = make([]IOutAddress, numOutputs, numOutputs)
-	t.OutECs = make([]IOutECAddress, numOutECs, numOutECs)
+	t.Inputs = make([]interfaces.IInAddress, numInputs, numInputs)
+	t.Outputs = make([]interfaces.IOutAddress, numOutputs, numOutputs)
+	t.OutECs = make([]interfaces.IOutECAddress, numOutECs, numOutECs)
 
 	for i, _ := range t.Inputs {
 		t.Inputs[i] = new(InAddress)
@@ -467,8 +467,8 @@ func (t *Transaction) UnmarshalBinaryData(data []byte) (newData []byte, err erro
 		}
 	}
 
-	t.RCDs = make([]IRCD, len(t.Inputs))
-	t.SigBlocks = make([]ISignatureBlock, len(t.Inputs))
+	t.RCDs = make([]interfaces.IRCD, len(t.Inputs))
+	t.SigBlocks = make([]interfaces.ISignatureBlock, len(t.Inputs))
 
 	for i := 0; i < len(t.Inputs); i++ {
 		t.RCDs[i] = CreateRCD(data)
@@ -497,7 +497,7 @@ func (t *Transaction) UnmarshalBinary(data []byte) (err error) {
 func (t *Transaction) MarshalBinarySig() (newData []byte, err error) {
 	var out bytes.Buffer
 
-	EncodeVarInt(&out, t.GetVersion())
+	primitives.EncodeVarInt(&out, t.GetVersion())
 
 	hd := uint32(t.MilliTimestamp >> 16)
 	ld := uint16(t.MilliTimestamp & 0xFFFF)
@@ -573,18 +573,13 @@ func (t Transaction) MarshalBinary() ([]byte, error) {
 	return out.Bytes(), nil
 }
 
-func (b Transaction) MarshalledSize() uint64 {
-	hex, _ := b.MarshalBinary()
-	return uint64(len(hex))
-}
-
 // Helper function for building transactions.  Add an input to
 // the transaction.  I'm guessing 5 inputs is about all anyone
 // will need, so I'll default to 5.  Of course, go will grow
 // past that if needed.
-func (t *Transaction) AddInput(input IAddress, amount uint64) {
+func (t *Transaction) AddInput(input interfaces.IAddress, amount uint64) {
 	if t.Inputs == nil {
-		t.Inputs = make([]IInAddress, 0, 5)
+		t.Inputs = make([]interfaces.IInAddress, 0, 5)
 	}
 	out := NewInAddress(input, amount)
 	t.Inputs = append(t.Inputs, out)
@@ -595,9 +590,9 @@ func (t *Transaction) AddInput(input IAddress, amount uint64) {
 // the transaction.  I'm guessing 5 outputs is about all anyone
 // will need, so I'll default to 5.  Of course, go will grow
 // past that if needed.
-func (t *Transaction) AddOutput(output IAddress, amount uint64) {
+func (t *Transaction) AddOutput(output interfaces.IAddress, amount uint64) {
 	if t.Outputs == nil {
-		t.Outputs = make([]IOutAddress, 0, 5)
+		t.Outputs = make([]interfaces.IOutAddress, 0, 5)
 	}
 	out := NewOutAddress(output, amount)
 	t.Outputs = append(t.Outputs, out)
@@ -607,9 +602,9 @@ func (t *Transaction) AddOutput(output IAddress, amount uint64) {
 // Add a EntryCredit output.  Validating this is going to require
 // access to the exchange rate.  This is literally how many entry
 // credits are being added to the specified Entry Credit address.
-func (t *Transaction) AddECOutput(ecoutput IAddress, amount uint64) {
+func (t *Transaction) AddECOutput(ecoutput interfaces.IAddress, amount uint64) {
 	if t.OutECs == nil {
-		t.OutECs = make([]IOutECAddress, 0, 5)
+		t.OutECs = make([]interfaces.IOutECAddress, 0, 5)
 	}
 	out := NewOutECAddress(ecoutput, amount)
 	t.OutECs = append(t.OutECs, out)
@@ -625,17 +620,17 @@ func (t *Transaction) CustomMarshalText() (text []byte, err error) {
 	var out bytes.Buffer
 	out.WriteString(fmt.Sprintf("Transaction (size %d):\n", len(data)))
 	out.WriteString("                 Version: ")
-	WriteNumber64(&out, uint64(t.GetVersion()))
+	primitives.WriteNumber64(&out, uint64(t.GetVersion()))
 	out.WriteString("\n          MilliTimestamp: ")
-	WriteNumber64(&out, uint64(t.MilliTimestamp))
+	primitives.WriteNumber64(&out, uint64(t.MilliTimestamp))
 	ts := time.Unix(0, int64(t.MilliTimestamp*1000000))
 	out.WriteString(ts.UTC().Format(" Jan 2, 2006 at 3:04am (MST)"))
 	out.WriteString("\n                # Inputs: ")
-	WriteNumber16(&out, uint16(len(t.Inputs)))
+	primitives.WriteNumber16(&out, uint16(len(t.Inputs)))
 	out.WriteString("\n               # Outputs: ")
-	WriteNumber16(&out, uint16(len(t.Outputs)))
+	primitives.WriteNumber16(&out, uint16(len(t.Outputs)))
 	out.WriteString("\n   # EntryCredit Outputs: ")
-	WriteNumber16(&out, uint16(len(t.OutECs)))
+	primitives.WriteNumber16(&out, uint16(len(t.OutECs)))
 	out.WriteString("\n")
 	for _, address := range t.Inputs {
 		text, _ := address.CustomMarshalText()
@@ -672,21 +667,21 @@ func (t *Transaction) CustomMarshalText() (text []byte, err error) {
 // Helper Function.  This simply adds an Authorization to a
 // transaction.  DOES NO VALIDATION.  Not the job of construction.
 // That's why we have a validation call.
-func (t *Transaction) AddAuthorization(auth IRCD) {
+func (t *Transaction) AddAuthorization(auth interfaces.IRCD) {
 	if t.RCDs == nil {
-		t.RCDs = make([]IRCD, 0, 5)
+		t.RCDs = make([]interfaces.IRCD, 0, 5)
 	}
 	t.RCDs = append(t.RCDs, auth)
 }
 
 func (e *Transaction) JSONByte() ([]byte, error) {
-	return EncodeJSON(e)
+	return primitives.EncodeJSON(e)
 }
 
 func (e *Transaction) JSONString() (string, error) {
-	return EncodeJSONString(e)
+	return primitives.EncodeJSONString(e)
 }
 
 func (e *Transaction) JSONBuffer(b *bytes.Buffer) error {
-	return EncodeJSONToBuffer(e, b)
+	return primitives.EncodeJSONToBuffer(e, b)
 }

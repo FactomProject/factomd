@@ -1,7 +1,7 @@
 package wire
 
 import (
-	. "github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/interfaces"
 )
 
 // Commands used in bitcoin message headers which describe the type of message.
@@ -43,7 +43,7 @@ func (msg *MsgInt_EOM) Command() string {
 
 // Factoid block message for internal communication
 type MsgInt_FactoidBlock struct {
-	IHash              IHash
+	interfaces.IHash              interfaces.IHash
 	BlockHeight        uint32
 	FactoidBlockStatus byte
 }
@@ -55,7 +55,7 @@ func (msg *MsgInt_FactoidBlock) Command() string {
 
 // Dir block message for internal communication
 type MsgInt_DirBlock struct {
-	IHash IHash
+	interfaces.IHash interfaces.IHash
 	//BlockHeight uint64
 }
 

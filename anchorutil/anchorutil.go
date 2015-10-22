@@ -13,11 +13,11 @@ import (
 	"fmt"
 
 	"github.com/FactomProject/factomd/anchor"
-	. "github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/directoryBlock"
 	. "github.com/FactomProject/factomd/common/entryBlock"
-	. "github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database"
 	ldb "github.com/FactomProject/factomd/database/leveldb"
 	"github.com/FactomProject/factomd/util"
@@ -48,7 +48,7 @@ func main() {
 	//}
 }
 
-func processAnchorChain(anchorChainID IHash) {
+func processAnchorChain(anchorChainID interfaces.IHash) {
 	eblocks, _ := db.FetchAllEBlocksByChain(anchorChainID)
 	//fmt.Println("anchorChain length: ", len(*eblocks))
 	for _, eblock := range *eblocks {
@@ -91,7 +91,7 @@ func dirBlockInfoToAnchorChain(aRecord *anchor.AnchorRecord) (*DirBlockInfo, err
 	dblock, err := db.FetchDBlockByHeight(aRecord.DBHeight)
 	if err != nil {
 		fmt.Printf("err in FetchDBlockByHeight: %d\n", aRecord.DBHeight)
-		dirBlockInfo.DBHash = new(Hash)
+		dirBlockInfo.DBHash = new(primitives.Hash)
 	} else {
 		dirBlockInfo.Timestamp = int64(dblock.Header.Timestamp)
 		dirBlockInfo.DBHash = dblock.DBHash
@@ -100,7 +100,7 @@ func dirBlockInfoToAnchorChain(aRecord *anchor.AnchorRecord) (*DirBlockInfo, err
 	return dirBlockInfo, nil
 }
 
-func entryToAnchorRecord(entry IEBEntry) (*anchor.AnchorRecord, error) {
+func entryToAnchorRecord(entry interfaces.IEBEntry) (*anchor.AnchorRecord, error) {
 	content := entry.GetContent()
 	jsonARecord := content[:(len(content) - 128)]
 	jsonSigBytes := content[(len(content) - 128):]
@@ -152,7 +152,7 @@ func initDB(ldbpath string) {
 }
 
 func toHash(txHash *wire.ShaHash) *Hash {
-	h := new(Hash)
+	h := new(primitives.Hash)
 	h.SetBytes(txHash.Bytes())
 	return h
 }

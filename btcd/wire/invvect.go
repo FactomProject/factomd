@@ -6,8 +6,8 @@ package wire
 
 import (
 	"fmt"
-	. "github.com/FactomProject/factomd/common/constants"
-	. "github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/interfaces"
 	"io"
 )
 
@@ -17,7 +17,7 @@ const (
 	MaxInvPerMsg = 50000
 
 	// Maximum payload size for an inventory vector.
-	maxInvVectPayload = 4 + HASH_LENGTH
+	maxInvVectPayload = 4 + constants.HASH_LENGTH
 )
 
 // InvType represents the allowed types of inventory vectors.  See InvVect.
@@ -74,12 +74,12 @@ func (invtype InvType) String() string {
 // as specified by the Type field, that a peer wants, has, or does not have to
 // another peer.
 type InvVect struct {
-	Type InvType // Type of data
-	Hash IHash   // Hash of the data
+	Type InvType          // Type of data
+	Hash interfaces.IHash // Hash of the data
 }
 
 // NewInvVect returns a new InvVect using the provided type and hash.
-func NewInvVect(typ InvType, hash IHash) *InvVect {
+func NewInvVect(typ InvType, hash interfaces.IHash) *InvVect {
 	return &InvVect{
 		Type: typ,
 		Hash: hash,

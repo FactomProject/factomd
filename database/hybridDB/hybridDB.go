@@ -1,7 +1,7 @@
 package hybridDB
 
 import (
-	. "github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/interfaces"
 
 	"github.com/FactomProject/factomd/database/boltdb"
 	"github.com/FactomProject/factomd/database/leveldb"
@@ -9,11 +9,11 @@ import (
 )
 
 type HybridDB struct {
-	temporaryStorage  IDatabase
-	persistentStorage IDatabase
+	temporaryStorage  interfaces.IDatabase
+	persistentStorage interfaces.IDatabase
 }
 
-var _ IDatabase = (*HybridDB)(nil)
+var _ interfaces.IDatabase = (*HybridDB)(nil)
 
 func (db *HybridDB) Close() error {
 	err := db.temporaryStorage.Close()
@@ -54,7 +54,7 @@ func NewBoltMapHybridDB(bucketList [][]byte, filename string) *HybridDB {
 	return answer
 }
 
-func (db *HybridDB) Put(bucket, key []byte, data BinaryMarshallable) error {
+func (db *HybridDB) Put(bucket, key []byte, data interfaces.BinaryMarshallable) error {
 	err := db.persistentStorage.Put(bucket, key, data)
 	if err != nil {
 		return err
@@ -68,7 +68,7 @@ func (db *HybridDB) Put(bucket, key []byte, data BinaryMarshallable) error {
 	return nil
 }
 
-func (db *HybridDB) PutInBatch(records []Record) error {
+func (db *HybridDB) PutInBatch(records []interfaces.Record) error {
 	err := db.persistentStorage.PutInBatch(records)
 	if err != nil {
 		return err
@@ -80,7 +80,7 @@ func (db *HybridDB) PutInBatch(records []Record) error {
 	return nil
 }
 
-func (db *HybridDB) Get(bucket, key []byte, destination BinaryMarshallable) (BinaryMarshallable, error) {
+func (db *HybridDB) Get(bucket, key []byte, destination interfaces.BinaryMarshallable) (interfaces.BinaryMarshallable, error) {
 	answer, err := db.temporaryStorage.Get(bucket, key, destination)
 	if err != nil {
 		return nil, err
@@ -115,7 +115,7 @@ func (db *HybridDB) ListAllKeys(bucket []byte) ([][]byte, error) {
 	return db.persistentStorage.ListAllKeys(bucket)
 }
 
-func (db *HybridDB) GetAll(bucket []byte, sample BinaryMarshallableAndCopyable) ([]BinaryMarshallableAndCopyable, error) {
+func (db *HybridDB) GetAll(bucket []byte, sample interfaces.BinaryMarshallableAndCopyable) ([]interfaces.BinaryMarshallableAndCopyable, error) {
 	return db.persistentStorage.GetAll(bucket, sample)
 }
 

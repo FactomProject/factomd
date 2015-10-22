@@ -7,9 +7,9 @@ package btcd
 import (
 	"github.com/FactomProject/factomd/btcd/blockchain"
 	"github.com/FactomProject/factomd/btcd/wire"
-	. "github.com/FactomProject/factomd/common/constants"
-	. "github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 // DirBlockLocatorFromHash returns a block locator for the passed block hash.
@@ -22,7 +22,7 @@ import (
 //    therefore the block locator will only consist of the genesis hash
 //  - If the passed hash is not currently known, the block locator will only
 //    consist of the passed hash
-func DirBlockLocatorFromHash(hash IHash) blockchain.BlockLocator {
+func DirBlockLocatorFromHash(hash interfaces.IHash) blockchain.BlockLocator {
 	// The locator contains the requested hash at the very least.
 	locator := make(blockchain.BlockLocator, 0, wire.MaxBlockLocatorsPerMsg)
 	locator = append(locator, hash)

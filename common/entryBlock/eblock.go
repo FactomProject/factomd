@@ -7,8 +7,8 @@ package entryBlock
 import (
 	"bytes"
 	"encoding/binary"
-	. "github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 const (
@@ -23,12 +23,12 @@ type EBlock struct {
 	Body   *EBlockBody
 }
 
-var _ Printable = (*EBlock)(nil)
-var _ IDBEntry = (*EBlock)(nil)
-var _ BinaryMarshallableAndCopyable = (*EBlock)(nil)
-var _ DatabaseBatchable = (*EBlock)(nil)
+var _ interfaces.Printable = (*EBlock)(nil)
+var _ interfaces.IDBEntry = (*EBlock)(nil)
+var _ interfaces.BinaryMarshallableAndCopyable = (*EBlock)(nil)
+var _ interfaces.DatabaseBatchable = (*EBlock)(nil)
 
-func (c *EBlock) New() BinaryMarshallableAndCopyable {
+func (c *EBlock) New() interfaces.BinaryMarshallableAndCopyable {
 	return new(EBlock)
 }
 
@@ -40,12 +40,12 @@ func (c *EBlock) GetChainID() []byte {
 	return c.Header.GetChainID().Bytes()
 }
 
-func (c *EBlock) DatabasePrimaryIndex() IHash {
+func (c *EBlock) DatabasePrimaryIndex() interfaces.IHash {
 	key, _ := c.KeyMR()
 	return key
 }
 
-func (c *EBlock) DatabaseSecondaryIndex() IHash {
+func (c *EBlock) DatabaseSecondaryIndex() interfaces.IHash {
 	h, _ := c.Hash()
 	return h
 }
@@ -88,7 +88,7 @@ func NewEBlock() *EBlock {
 
 // AddEBEntry creates a new Entry Block Entry from the provided Factom Entry
 // and adds it to the Entry Block Body.
-func (e *EBlock) AddEBEntry(entry IEBEntry) error {
+func (e *EBlock) AddEBEntry(entry interfaces.IEBEntry) error {
 	e.Body.EBEntries = append(e.Body.EBEntries, entry.Hash())
 	return nil
 }
@@ -99,7 +99,7 @@ func (e *EBlock) AddEBEntry(entry IEBEntry) error {
 func (e *EBlock) AddEndOfMinuteMarker(m byte) {
 	h := make([]byte, 32)
 	h[len(h)-1] = m
-	hash := NewZeroHash()
+	hash := primitives.NewZeroHash()
 	hash.SetBytes(h)
 	e.Body.EBEntries = append(e.Body.EBEntries, hash)
 }
@@ -115,27 +115,27 @@ func (e *EBlock) BuildHeader() error {
 
 // Hash returns the simple Sha256 hash of the serialized Entry Block. Hash is
 // used to provide the PrevLedgerKeyMR to the next Entry Block in a Chain.
-func (e *EBlock) Hash() (IHash, error) {
+func (e *EBlock) Hash() (interfaces.IHash, error) {
 	p, err := e.MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
-	return Sha(p), nil
+	return primitives.Sha(p), nil
 }
 
 // KeyMR returns the hash of the hash of the Entry Block Header concatinated
 // with the Merkle Root of the Entry Block Body. The Body Merkle Root is
 // calculated by the func (e *EBlockBody) MR() which is called by the func
 // (e *EBlock) BuildHeader().
-func (e *EBlock) KeyMR() (IHash, error) {
+func (e *EBlock) KeyMR() (interfaces.IHash, error) {
 	// Sha(Sha(header) + BodyMR)
 	e.BuildHeader()
 	header, err := e.marshalHeaderBinary()
 	if err != nil {
 		return nil, err
 	}
-	h := Sha(header)
-	return Sha(append(h.Bytes(), e.Header.BodyMR.Bytes()...)), nil
+	h := primitives.Sha(header)
+	return primitives.Sha(append(h.Bytes(), e.Header.BodyMR.Bytes()...)), nil
 }
 
 // MarshalBinary returns the serialized binary form of the Entry Block.
@@ -235,7 +235,7 @@ func (e *EBlock) unmarshalBodyBinaryData(data []byte) (newData []byte, err error
 			return buf.Bytes(), err
 		}
 
-		h := NewZeroHash()
+		h := primitives.NewZeroHash()
 		h.SetBytes(hash)
 		e.Body.EBEntries = append(e.Body.EBEntries, h)
 	}
@@ -302,15 +302,15 @@ func (e *EBlock) unmarshalHeaderBinary(data []byte) (err error) {
 }
 
 func (e *EBlock) JSONByte() ([]byte, error) {
-	return EncodeJSON(e)
+	return primitives.EncodeJSON(e)
 }
 
 func (e *EBlock) JSONString() (string, error) {
-	return EncodeJSONString(e)
+	return primitives.EncodeJSONString(e)
 }
 
 func (e *EBlock) JSONBuffer(b *bytes.Buffer) error {
-	return EncodeJSONToBuffer(e, b)
+	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (e *EBlock) String() string {
@@ -320,36 +320,36 @@ func (e *EBlock) String() string {
 
 // EBlockBody is the series of Hashes that form the Entry Block Body.
 type EBlockBody struct {
-	EBEntries []IHash
+	EBEntries []interfaces.IHash
 }
 
-var _ Printable = (*EBlockBody)(nil)
+var _ interfaces.Printable = (*EBlockBody)(nil)
 
 // NewEBlockBody initalizes an empty Entry Block Body.
 func NewEBlockBody() *EBlockBody {
 	e := new(EBlockBody)
-	e.EBEntries = make([]IHash, 0)
+	e.EBEntries = make([]interfaces.IHash, 0)
 	return e
 }
 
 // MR calculates the Merkle Root of the Entry Block Body. See func
-// BuildMerkleTreeStore(hashes []IHash) (merkles []IHash) in common/merkle.go.
-func (e *EBlockBody) MR() IHash {
-	mrs := BuildMerkleTreeStore(e.EBEntries)
+// primitives.BuildMerkleTreeStore(hashes []interfaces.IHash) (merkles []interfaces.IHash) in common/merkle.go.
+func (e *EBlockBody) MR() interfaces.IHash {
+	mrs := primitives.BuildMerkleTreeStore(e.EBEntries)
 	r := mrs[len(mrs)-1]
 	return r
 }
 
 func (e *EBlockBody) JSONByte() ([]byte, error) {
-	return EncodeJSON(e)
+	return primitives.EncodeJSON(e)
 }
 
 func (e *EBlockBody) JSONString() (string, error) {
-	return EncodeJSONString(e)
+	return primitives.EncodeJSONString(e)
 }
 
 func (e *EBlockBody) JSONBuffer(b *bytes.Buffer) error {
-	return EncodeJSONToBuffer(e, b)
+	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (e *EBlockBody) String() string {
@@ -360,37 +360,37 @@ func (e *EBlockBody) String() string {
 // EBlockHeader holds relevent metadata about the Entry Block and the data
 // nessisary to verify the previous block in the Entry Block Chain.
 type EBlockHeader struct {
-	ChainID         IHash
-	BodyMR          IHash
-	PrevKeyMR       IHash
-	PrevLedgerKeyMR IHash
+	ChainID         interfaces.IHash
+	BodyMR          interfaces.IHash
+	PrevKeyMR       interfaces.IHash
+	PrevLedgerKeyMR interfaces.IHash
 	EBSequence      uint32
 	DBHeight        uint32
 	EntryCount      uint32
 }
 
-var _ Printable = (*EBlockHeader)(nil)
+var _ interfaces.Printable = (*EBlockHeader)(nil)
 
 // NewEBlockHeader initializes a new empty Entry Block Header.
 func NewEBlockHeader() *EBlockHeader {
 	e := new(EBlockHeader)
-	e.ChainID = NewZeroHash()
-	e.BodyMR = NewZeroHash()
-	e.PrevKeyMR = NewZeroHash()
-	e.PrevLedgerKeyMR = NewZeroHash()
+	e.ChainID = primitives.NewZeroHash()
+	e.BodyMR = primitives.NewZeroHash()
+	e.PrevKeyMR = primitives.NewZeroHash()
+	e.PrevLedgerKeyMR = primitives.NewZeroHash()
 	return e
 }
 
 func (e *EBlockHeader) JSONByte() ([]byte, error) {
-	return EncodeJSON(e)
+	return primitives.EncodeJSON(e)
 }
 
 func (e *EBlockHeader) JSONString() (string, error) {
-	return EncodeJSONString(e)
+	return primitives.EncodeJSONString(e)
 }
 
 func (e *EBlockHeader) JSONBuffer(b *bytes.Buffer) error {
-	return EncodeJSONToBuffer(e, b)
+	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (e *EBlockHeader) String() string {
@@ -398,6 +398,6 @@ func (e *EBlockHeader) String() string {
 	return str
 }
 
-func (c *EBlockHeader) GetChainID() IHash {
+func (c *EBlockHeader) GetChainID() interfaces.IHash {
 	return c.ChainID
 }

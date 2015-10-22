@@ -15,18 +15,18 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	. "github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 var _ = fmt.Println
 
 type Address struct {
-	Hash // Since Hash implements IHash, and IAddress is just a
-} // alais for IHash, then I don't have to (nor can I) make
-// Address implement IAddress... Weird, but that's the way it is.
+	primitives.Hash // Since Hash implements interfaces.IHash, and interfaces.IAddress is just a
+} // alais for interfaces.IHash, then I don't have to (nor can I) make
+// Address implement interfaces.IAddress... Weird, but that's the way it is.
 
-var _ IAddress = (*Address)(nil)
+var _ interfaces.IAddress = (*Address)(nil)
 
 func (b Address) String() string {
 	txt, err := b.CustomMarshalText()
@@ -44,12 +44,12 @@ func (a Address) CustomMarshalText() (text []byte, err error) {
 	return out.Bytes(), nil
 }
 
-func NewAddress(b []byte) IAddress {
+func NewAddress(b []byte) interfaces.IAddress {
 	a := new(Address)
 	a.SetBytes(b)
 	return a
 }
 
-func CreateAddress(hash IHash) IAddress {
+func CreateAddress(hash interfaces.IHash) interfaces.IAddress {
 	return NewAddress(hash.Bytes())
 }

@@ -7,25 +7,25 @@ package boltdb
 import (
 	"encoding/hex"
 	"fmt"
-	. "github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/interfaces"
 
 	"github.com/boltdb/bolt"
 )
 
 var _ = hex.EncodeToString
 
-// This database stores and retrieves IBlock instances.  To do that, it
+// This database stores and retrieves interfaces.IBlock instances.  To do that, it
 // needs a list of buckets that the using function wants, so it can make sure
 // all those buckets exist.  (Avoids checking and building buckets in every
 // write).
 //
-// It also needs a map of a hash to a IBlock instance.  To support this,
+// It also needs a map of a hash to a interfaces.IBlock instance.  To support this,
 // every block needs to be able to give the database a Hash for its type.
 // This has to match the reverse, where looking up the hash gives the
 // database the type for the hash.  This way, the database can marshal
-// and unmarshal IBlocks for storage in the database.  And since the IBlocks
+// and unmarshal interfaces.IBlocks for storage in the database.  And since the interfaces.IBlocks
 // can provide the hash, we don't need two maps.  Just the Hash to the
-// IBlock.
+// interfaces.IBlock.
 //
 // Lastly it needs a filename with a full path.  If none is specified, it will
 // use "/tmp/bolt_my.db".  Not the best idea to let this code default.
@@ -34,7 +34,7 @@ type BoltDB struct {
 	db *bolt.DB // Pointer to the bolt db
 }
 
-var _ IDatabase = (*BoltDB)(nil)
+var _ interfaces.IDatabase = (*BoltDB)(nil)
 
 /***************************************
  *       Methods
@@ -55,7 +55,7 @@ func (d *BoltDB) Close() error {
 	return nil
 }
 
-func (d *BoltDB) Get(bucket []byte, key []byte, destination BinaryMarshallable) (BinaryMarshallable, error) {
+func (d *BoltDB) Get(bucket []byte, key []byte, destination interfaces.BinaryMarshallable) (interfaces.BinaryMarshallable, error) {
 	var v []byte
 	d.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(bucket)
@@ -76,7 +76,7 @@ func (d *BoltDB) Get(bucket []byte, key []byte, destination BinaryMarshallable) 
 	return destination, nil
 }
 
-func (d *BoltDB) Put(bucket []byte, key []byte, data BinaryMarshallable) error {
+func (d *BoltDB) Put(bucket []byte, key []byte, data interfaces.BinaryMarshallable) error {
 	hex, err := data.MarshalBinary()
 	if err != nil {
 		return err
@@ -93,7 +93,7 @@ func (d *BoltDB) Put(bucket []byte, key []byte, data BinaryMarshallable) error {
 	return err
 }
 
-func (db *BoltDB) PutInBatch(records []Record) error {
+func (db *BoltDB) PutInBatch(records []interfaces.Record) error {
 	//TODO: put in actual batch if possible
 	err := db.db.Batch(func(tx *bolt.Tx) error {
 		for _, v := range records {
@@ -143,8 +143,8 @@ func (bdb *BoltDB) ListAllKeys(bucket []byte) (keys [][]byte, err error) {
 	return
 }
 
-func (db *BoltDB) GetAll(bucket []byte, sample BinaryMarshallableAndCopyable) ([]BinaryMarshallableAndCopyable, error) {
-	answer := []BinaryMarshallableAndCopyable{}
+func (db *BoltDB) GetAll(bucket []byte, sample interfaces.BinaryMarshallableAndCopyable) ([]interfaces.BinaryMarshallableAndCopyable, error) {
+	answer := []interfaces.BinaryMarshallableAndCopyable{}
 	err := db.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(bucket))
 		if b == nil {

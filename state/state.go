@@ -2,8 +2,7 @@ package state
 
 import (
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/hash"
-	
+	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/hybridDB"
 	"github.com/FactomProject/factomd/util"
 	"log"
@@ -15,11 +14,12 @@ type State struct {
 	once        		sync.Once
 	cfg         		interfaces.IFactomConfig
 	
-	leaderInMsgQueue	chan interfaces.IMsg
 	inMsgQueue			chan interfaces.IMsg
+	leaderInMsgQueue	chan interfaces.IMsg
 	followerInMsgQueue	chan interfaces.IMsg
 	outMsgQueue			chan interfaces.IMsg
-	//Network
+
+	//Network MAIN = 0, TEST = 1, LOCAL = 2, CUSTOM = 3
 	networkNumber 		int // Encoded into Directory Blocks
 
 	// Number of Servers acknowledged by Factom
@@ -37,6 +37,22 @@ type State struct {
 	// Message State
 	lastAck interfaces.IMsg // Return the last Acknowledgement set by this server
 
+	factoidState *FactoidState
+}
+
+// Tests the given hash, and returns true if this server is the leader for this key.
+// For example, keys we test include:
+//
+// The Hash of the Factoid Hash
+// Entry Credit Addresses
+// ChainIDs
+// ...
+
+func (s *State) LeaderFor([]byte) bool {
+	if s.totalServers == 1 && s.serverState == 1 && s.networkNumber == 2 {
+		return true
+	}
+	return false
 }
 
 func (s *State) InMsgQueue() (chan interfaces.IMsg) {
@@ -167,10 +183,6 @@ func (s *State) NetworkName() string {
 
 }
 
-func (s *State) NetworkPublicKey() []byte {
-	return nil // TODO add our keys here...
-}
-
 func (s *State) CurrentDirectoryBlock() interfaces.IDirectoryBlock {
 	return s.currentDirectoryBlock
 }
@@ -195,6 +207,6 @@ func (s *State) SetDBHeight(dbheight int) {
 	s.dBHeight = dbheight
 }
 
-func (s *State) NewHash() IHash {
-	return new(hash.Hash)
+func (s *State) NewHash() interfaces.IHash {
+	return new(primitives.Hash)
 }

@@ -13,6 +13,7 @@ import ()
 // accidentally 
 type IState interface {
 	
+	// Server
 	Cfg()					IFactomConfig
 	Init()		
 	
@@ -22,15 +23,16 @@ type IState interface {
 	FollowerInMsgQueue()	chan IMsg
 	OutMsgQueue()			chan IMsg		
 	
-	//Network
+	//Network MAIN = 0, TEST = 1, LOCAL = 2, CUSTOM = 3
 	NetworkNumber()		int			// Encoded into Directory Blocks
 	NetworkName()		string		// Some networks have defined names
-	NetworkPublicKey()	[]byte		//   and public keys.
 	
 	// Number of Servers acknowledged by Factom
 	TotalServers() int 
-	ServerState()  int      // (0 if client, 1 if server, 2 if audit server
-	Matryoshka()   []IHash  // Reverse Hash
+	ServerState()  int      		// (0 if client, 1 if server, 2 if audit server
+	Matryoshka()   []IHash  		// Reverse Hash
+	
+	LeaderFor([]byte) bool			// Tests if this server is the leader for this key
 	
 	// Database
 	DB() IDatabase

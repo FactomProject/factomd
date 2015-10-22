@@ -18,11 +18,11 @@ import (
 	"github.com/FactomProject/factomd/util"
 	"github.com/hoisie/web"
 
-	. "github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/entryBlock"
 	. "github.com/FactomProject/factomd/common/entryCreditBlock"
-	"github.com/FactomProject/factomd/common/factoid/state"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/state"
 )
 
 const (
@@ -422,7 +422,7 @@ func handleEntryCreditBalance(ctx *web.Context, eckey string) {
 	}
 	var b ecbal
 	adr, err := hex.DecodeString(eckey)
-	if err == nil && len(adr) != HASH_LENGTH {
+	if err == nil && len(adr) != constants.HASH_LENGTH {
 		b = ecbal{Response: "Invalid Address", Success: false}
 	}
 	if err == nil {
@@ -453,7 +453,7 @@ func handleFactoidBalance(ctx *web.Context, eckey string) {
 	}
 	var b fbal
 	adr, err := hex.DecodeString(eckey)
-	if err == nil && len(adr) != HASH_LENGTH {
+	if err == nil && len(adr) != constants.HASH_LENGTH {
 		b = fbal{Response: "Invalid Address", Success: false}
 	}
 	if err == nil {
@@ -548,7 +548,7 @@ func handleGetRaw(ctx *web.Context, hashkey string) {
 	type rawData struct {
 		Data string
 	}
-	//TODO: var block BinaryMarshallable
+	//TODO: var block interfaces.BinaryMarshallable
 	d := new(rawData)
 
 	h, err := HexToHash(hashkey)

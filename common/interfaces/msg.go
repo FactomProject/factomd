@@ -1,5 +1,3 @@
-
-
 // Copyright 2015 Factom Foundation
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
@@ -14,7 +12,9 @@ import ()
  * https://github.com/FactomProject/FactomDocs/blob/master/factomDataStructureDetails.md#factoid-transaction
  **************************/
 
-type IMsg interface {
+type IMsg interface {	
+	Printable
+	
 	// Returns a byte indicating the type of message.
 	Type() 		int
 	
@@ -23,14 +23,14 @@ type IMsg interface {
 	
 	// Return the []byte value of the message, if defined
 	Bytes() []byte
-	
+		
 	// Validate the message, given the state.  Three possible results:
 	//  < 0 -- Message is invalid.  Discard
 	//  0   -- Cannot tell if message is Valid
 	//  1   -- Message is valid
 	Validate(IState) int
-	
-	// Returns true if this is a message for this server to execute as 
+
+	// Returns true if this is a message for this server to execute as
 	// a leader.
 	Leader(IState) bool
 

@@ -5,8 +5,8 @@ import (
 	"os"
 	//"fmt"
 	"code.google.com/p/gcfg"
-	. "github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/util"
 )
 
@@ -71,11 +71,11 @@ func ClientPublicKey() PublicKey {
 	return keyManager.keyPair.Pub
 }
 
-func MarshalSign(msg BinaryMarshallable) Signature {
+func MarshalSign(msg interfaces.BinaryMarshallable) Signature {
 	return keyManager.keyPair.MarshalSign(msg)
 }
 
-func DetachMarshalSign(msg BinaryMarshallable) *DetachedSignature {
+func DetachMarshalSign(msg interfaces.BinaryMarshallable) *DetachedSignature {
 	sig := MarshalSign(msg)
 	return sig.DetachSig()
 }

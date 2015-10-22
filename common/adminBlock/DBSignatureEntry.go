@@ -3,26 +3,26 @@ package adminBlock
 import (
 	"bytes"
 	"fmt"
-	. "github.com/FactomProject/factomd/common/constants"
-	. "github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 // DB Signature Entry -------------------------
 type DBSignatureEntry struct {
 	entryType            byte
-	IdentityAdminChainID IHash
-	PubKey               PublicKey
+	IdentityAdminChainID interfaces.IHash
+	PubKey               primitives.PublicKey
 	PrevDBSig            *Sig
 }
 
 var _ ABEntry = (*DBSignatureEntry)(nil)
-var _ BinaryMarshallable = (*DBSignatureEntry)(nil)
+var _ interfaces.BinaryMarshallable = (*DBSignatureEntry)(nil)
 
 // Create a new DB Signature Entry
-func NewDBSignatureEntry(identityAdminChainID IHash, sig Signature) (e *DBSignatureEntry) {
+func NewDBSignatureEntry(identityAdminChainID interfaces.IHash, sig primitives.Signature) (e *DBSignatureEntry) {
 	e = new(DBSignatureEntry)
-	e.entryType = TYPE_DB_SIGNATURE
+	e.entryType = constants.TYPE_DB_SIGNATURE
 	e.IdentityAdminChainID = identityAdminChainID
 	e.PubKey = sig.Pub
 	e.PrevDBSig = (*Sig)(sig.Sig)
@@ -60,9 +60,9 @@ func (e *DBSignatureEntry) MarshalBinary() (data []byte, err error) {
 func (e *DBSignatureEntry) MarshalledSize() uint64 {
 	var size uint64 = 0
 	size += 1 // Type (byte)
-	size += uint64(HASH_LENGTH)
-	size += uint64(HASH_LENGTH)
-	size += uint64(SIG_LENGTH)
+	size += uint64(constants.HASH_LENGTH)
+	size += uint64(constants.HASH_LENGTH)
+	size += uint64(constants.SIG_LENGTH)
 
 	return size
 }
@@ -76,20 +76,20 @@ func (e *DBSignatureEntry) UnmarshalBinaryData(data []byte) (newData []byte, err
 	newData = data
 	e.entryType, newData = newData[0], newData[1:]
 
-	e.IdentityAdminChainID = new(Hash)
+	e.IdentityAdminChainID = new(primitives.Hash)
 	newData, err = e.IdentityAdminChainID.UnmarshalBinaryData(newData)
 	if err != nil {
 		return
 	}
 
-	e.PubKey.Key = new([HASH_LENGTH]byte)
-	copy(e.PubKey.Key[:], newData[:HASH_LENGTH])
-	newData = newData[HASH_LENGTH:]
+	e.PubKey.Key = new([constants.HASH_LENGTH]byte)
+	copy(e.PubKey.Key[:], newData[:constants.HASH_LENGTH])
+	newData = newData[constants.HASH_LENGTH:]
 
 	e.PrevDBSig = new(Sig)
-	copy(e.PrevDBSig[:], newData[:SIG_LENGTH])
+	copy(e.PrevDBSig[:], newData[:constants.SIG_LENGTH])
 
-	newData = newData[SIG_LENGTH:]
+	newData = newData[constants.SIG_LENGTH:]
 
 	return
 }
@@ -100,15 +100,15 @@ func (e *DBSignatureEntry) UnmarshalBinary(data []byte) (err error) {
 }
 
 func (e *DBSignatureEntry) JSONByte() ([]byte, error) {
-	return EncodeJSON(e)
+	return primitives.EncodeJSON(e)
 }
 
 func (e *DBSignatureEntry) JSONString() (string, error) {
-	return EncodeJSONString(e)
+	return primitives.EncodeJSONString(e)
 }
 
 func (e *DBSignatureEntry) JSONBuffer(b *bytes.Buffer) error {
-	return EncodeJSONToBuffer(e, b)
+	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (e *DBSignatureEntry) String() string {
@@ -124,10 +124,10 @@ func (e *DBSignatureEntry) Interpret() string {
 	return ""
 }
 
-func (e *DBSignatureEntry) Hash() IHash {
+func (e *DBSignatureEntry) Hash() interfaces.IHash {
 	bin, err := e.MarshalBinary()
 	if err != nil {
 		panic(err)
 	}
-	return Sha(bin)
+	return primitives.Sha(bin)
 }

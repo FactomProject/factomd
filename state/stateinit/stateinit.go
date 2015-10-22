@@ -11,12 +11,12 @@ package stateinit
 
 import (
 	"fmt"
-	"github.com/FactomProject/factomd/common/factoid/state"
 	"github.com/FactomProject/factomd/common/factoid/wallet"
 	"github.com/FactomProject/factomd/database/hybridDB"
+	"github.com/FactomProject/factomd/state"
 
-	. "github.com/FactomProject/factomd/common/constants"
-	. "github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/interfaces"
 )
 
 var _ = fmt.Printf
@@ -34,7 +34,7 @@ func NewFactoidState(filename string) IFactoidState {
 	return fs
 }
 
-func GetDatabase(filename string) IDatabase {
+func GetDatabase(filename string) interfaces.IDatabase {
 	var bucketList [][]byte
 
 	bucketList = make([][]byte, 0, 5)

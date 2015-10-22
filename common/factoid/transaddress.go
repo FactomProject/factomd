@@ -16,23 +16,23 @@ import (
 	"fmt"
 	"strings"
 
-	. "github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 type TransAddress struct {
 	Amount  uint64
-	Address IAddress
+	Address interfaces.IAddress
 }
 
-var _ ITransAddress = (*TransAddress)(nil)
+var _ interfaces.ITransAddress = (*TransAddress)(nil)
 
 // Not useful on TransAddress objects
-func (t *TransAddress) GetHash() IHash {
+func (t *TransAddress) GetHash() interfaces.IHash {
 	return nil
 }
 
-func (t *TransAddress) GetNewInstance() IBlock {
+func (t *TransAddress) GetNewInstance() interfaces.IBlock {
 	return new(TransAddress)
 }
 
@@ -46,15 +46,15 @@ func (t *TransAddress) CustomMarshalText() ([]byte, error) {
 }
 
 func (e *TransAddress) JSONByte() ([]byte, error) {
-	return EncodeJSON(e)
+	return primitives.EncodeJSON(e)
 }
 
 func (e *TransAddress) JSONString() (string, error) {
-	return EncodeJSONString(e)
+	return primitives.EncodeJSONString(e)
 }
 
 func (e *TransAddress) JSONBuffer(b *bytes.Buffer) error {
-	return EncodeJSONToBuffer(e, b)
+	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (t *TransAddress) String() string {
@@ -62,11 +62,11 @@ func (t *TransAddress) String() string {
 	return (string(txt))
 }
 
-func (t *TransAddress) IsEqual(addr IBlock) []IBlock {
-	a, ok := addr.(ITransAddress)
-	if !ok || // Not the right kind of IBlock
+func (t *TransAddress) IsEqual(addr interfaces.IBlock) []interfaces.IBlock {
+	a, ok := addr.(interfaces.ITransAddress)
+	if !ok || // Not the right kind of interfaces.IBlock
 		a.GetAmount() != t.GetAmount() {
-		r := make([]IBlock, 0, 5)
+		r := make([]interfaces.IBlock, 0, 5)
 		return append(r, t)
 	} // Amount is different
 	r := a.GetAddress().IsEqual(t.GetAddress()) // Address is different
@@ -82,7 +82,7 @@ func (t *TransAddress) UnmarshalBinaryData(data []byte) (newData []byte, err err
 		return nil, fmt.Errorf("Data source too short to UnmarshalBinary() an address: %d", len(data))
 	}
 
-	t.Amount, data = DecodeVarInt(data)
+	t.Amount, data = primitives.DecodeVarInt(data)
 	t.Address = new(Address)
 
 	data, err = t.Address.UnmarshalBinaryData(data)
@@ -94,7 +94,7 @@ func (t *TransAddress) UnmarshalBinaryData(data []byte) (newData []byte, err err
 func (a TransAddress) MarshalBinary() ([]byte, error) {
 	var out bytes.Buffer
 
-	err := EncodeVarInt(&out, a.Amount)
+	err := primitives.EncodeVarInt(&out, a.Amount)
 	if err != nil {
 		return nil, err
 	}
@@ -102,11 +102,6 @@ func (a TransAddress) MarshalBinary() ([]byte, error) {
 	out.Write(data)
 
 	return out.Bytes(), err
-}
-
-func (b TransAddress) MarshalledSize() uint64 {
-	hex, _ := b.MarshalBinary()
-	return uint64(len(hex))
 }
 
 // Accessor. Default to a zero length string.  This is a debug
@@ -128,13 +123,13 @@ func (ta *TransAddress) SetAmount(amount uint64) {
 
 // Accessor.  Get the raw address.  Could be an actual address,
 // or a hash of an authorization block.  See authorization.go
-func (ta TransAddress) GetAddress() IAddress {
+func (ta TransAddress) GetAddress() interfaces.IAddress {
 	return ta.Address
 }
 
 // Accessor.  Get the raw address.  Could be an actual address,
 // or a hash of an authorization block.  See authorization.go
-func (ta *TransAddress) SetAddress(address IAddress) {
+func (ta *TransAddress) SetAddress(address interfaces.IAddress) {
 	ta.Address = address
 }
 
@@ -142,14 +137,14 @@ func (ta *TransAddress) SetAddress(address IAddress) {
 func (ta TransAddress) CustomMarshalTextAll(fct bool, label string) ([]byte, error) {
 	var out bytes.Buffer
 	out.WriteString(fmt.Sprintf("   %8s:", label))
-	v := ConvertDecimalToPaddedString(ta.Amount)
+	v := primitives.ConvertDecimalToPaddedString(ta.Amount)
 	fill := 8 - len(v) + strings.Index(v, ".") + 1
 	fstr := fmt.Sprintf("%%%vs%%%vs ", 18-fill, fill)
 	out.WriteString(fmt.Sprintf(fstr, v, ""))
 	if fct {
-		out.WriteString(ConvertFctAddressToUserStr(ta.Address))
+		out.WriteString(primitives.ConvertFctAddressToUserStr(ta.Address))
 	} else {
-		out.WriteString(ConvertECAddressToUserStr(ta.Address))
+		out.WriteString(primitives.ConvertECAddressToUserStr(ta.Address))
 	}
 	str := fmt.Sprintf("\n                  %016x %038s\n\n", ta.Amount, string(hex.EncodeToString(ta.GetAddress().Bytes())))
 	out.WriteString(str)

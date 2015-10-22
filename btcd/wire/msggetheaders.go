@@ -6,9 +6,9 @@ package wire
 
 import (
 	"fmt"
-	. "github.com/FactomProject/factomd/common/constants"
-	. "github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 	"io"
 )
 
@@ -30,12 +30,12 @@ import (
 // closer to the genesis block you get.
 type MsgGetHeaders struct {
 	ProtocolVersion    uint32
-	BlockLocatorHashes []IHash
-	HashStop           IHash
+	BlockLocatorHashes []interfaces.IHash
+	HashStop           interfaces.IHash
 }
 
 // AddBlockLocatorHash adds a new block locator hash to the message.
-func (msg *MsgGetHeaders) AddBlockLocatorHash(hash IHash) error {
+func (msg *MsgGetHeaders) AddBlockLocatorHash(hash interfaces.IHash) error {
 	if len(msg.BlockLocatorHashes)+1 > MaxBlockLocatorsPerMsg {
 		str := fmt.Sprintf("too many block locator hashes for message [max %v]",
 			MaxBlockLocatorsPerMsg)
@@ -65,9 +65,9 @@ func (msg *MsgGetHeaders) BtcDecode(r io.Reader, pver uint32) error {
 		return messageError("MsgGetHeaders.BtcDecode", str)
 	}
 
-	msg.BlockLocatorHashes = make([]IHash, 0, count)
+	msg.BlockLocatorHashes = make([]interfaces.IHash, 0, count)
 	for i := uint64(0); i < count; i++ {
-		sha := new(Hash)
+		sha := new(primitives.Hash)
 		err := readElement(r, sha)
 		if err != nil {
 			return err
@@ -130,13 +130,13 @@ func (msg *MsgGetHeaders) Command() string {
 func (msg *MsgGetHeaders) MaxPayloadLength(pver uint32) uint32 {
 	// Version 4 bytes + num block locator hashes (varInt) + max allowed block
 	// locators + hash stop.
-	return uint32(4 + MaxVarIntPayload + (MaxBlockLocatorsPerMsg * HASH_LENGTH) + HASH_LENGTH)
+	return uint32(4 + MaxVarIntPayload + (MaxBlockLocatorsPerMsg * constants.HASH_LENGTH) + constants.HASH_LENGTH)
 }
 
 // NewMsgGetHeaders returns a new bitcoin getheaders message that conforms to
 // the Message interface.  See MsgGetHeaders for details.
 func NewMsgGetHeaders() *MsgGetHeaders {
 	return &MsgGetHeaders{
-		BlockLocatorHashes: make([]IHash, 0, MaxBlockLocatorsPerMsg),
+		BlockLocatorHashes: make([]interfaces.IHash, 0, MaxBlockLocatorsPerMsg),
 	}
 }

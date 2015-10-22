@@ -9,11 +9,11 @@ import (
 
 	"github.com/FactomProject/factomd/btcd/blockchain"
 	"github.com/FactomProject/factomd/btcd/wire"
-	. "github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/directoryBlock"
 	. "github.com/FactomProject/factomd/common/entryBlock"
-	. "github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database"
 	"github.com/davecgh/go-spew/spew"
 	"time"
@@ -22,8 +22,8 @@ import (
 // handleFBlockMsg is invoked when a peer receives a factoid block message.
 func (p *peer) handleFBlockMsg(msg *wire.MsgFBlock, buf []byte) {
 	binary, _ := msg.SC.MarshalBinary()
-	commonHash := Sha(binary)
-	hash := NewHash(commonHash.Bytes())
+	commonHash := primitives.Sha(binary)
+	hash := primitives.NewHash(commonHash.Bytes())
 
 	iv := wire.NewInvVect(wire.InvTypeFactomFBlock, hash)
 	p.AddKnownInventory(iv)
@@ -33,8 +33,8 @@ func (p *peer) handleFBlockMsg(msg *wire.MsgFBlock, buf []byte) {
 // handleDirBlockMsg is invoked when a peer receives a dir block message.
 func (p *peer) handleDirBlockMsg(msg *wire.MsgDirBlock, buf []byte) {
 	binary, _ := msg.DBlk.MarshalBinary()
-	commonHash := Sha(binary)
-	hash := NewHash(commonHash.Bytes())
+	commonHash := primitives.Sha(binary)
+	hash := primitives.NewHash(commonHash.Bytes())
 
 	iv := wire.NewInvVect(wire.InvTypeFactomDirBlock, hash)
 	p.AddKnownInventory(iv)
@@ -50,8 +50,8 @@ func (p *peer) handleDirBlockMsg(msg *wire.MsgDirBlock, buf []byte) {
 // handleABlockMsg is invoked when a peer receives a entry credit block message.
 func (p *peer) handleABlockMsg(msg *wire.MsgABlock, buf []byte) {
 	binary, _ := msg.ABlk.MarshalBinary()
-	commonHash := Sha(binary)
-	hash := NewHash(commonHash.Bytes())
+	commonHash := primitives.Sha(binary)
+	hash := primitives.NewHash(commonHash.Bytes())
 
 	iv := wire.NewInvVect(wire.InvTypeFactomAdminBlock, hash)
 	p.AddKnownInventory(iv)
@@ -75,8 +75,8 @@ func (p *peer) handleECBlockMsg(msg *wire.MsgECBlock, buf []byte) {
 // handleEBlockMsg is invoked when a peer receives an entry block bitcoin message.
 func (p *peer) handleEBlockMsg(msg *wire.MsgEBlock, buf []byte) {
 	binary, _ := msg.EBlk.MarshalBinary()
-	commonHash := Sha(binary)
-	hash := NewHash(commonHash.Bytes())
+	commonHash := primitives.Sha(binary)
+	hash := primitives.NewHash(commonHash.Bytes())
 
 	iv := wire.NewInvVect(wire.InvTypeFactomEntryBlock, hash)
 	p.AddKnownInventory(iv)
@@ -90,8 +90,8 @@ func (p *peer) handleEBlockMsg(msg *wire.MsgEBlock, buf []byte) {
 // handleEntryMsg is invoked when a peer receives a EBlock Entry message.
 func (p *peer) handleEntryMsg(msg *wire.MsgEntry, buf []byte) {
 	binary, _ := msg.Entry.MarshalBinary()
-	commonHash := Sha(binary)
-	hash := NewHash(commonHash.Bytes())
+	commonHash := primitives.Sha(binary)
+	hash := primitives.NewHash(commonHash.Bytes())
 
 	iv := wire.NewInvVect(wire.InvTypeFactomEntry, hash)
 	p.AddKnownInventory(iv)
@@ -221,7 +221,7 @@ func (p *peer) handleGetNonDirDataMsg(msg *wire.MsgGetNonDirData) {
 
 			var err error
 			switch dbEntry.ChainID.String() {
-			case hex.EncodeToString(EC_CHAINID[:]):
+			case hex.EncodeToString(constants.EC_CHAINID[:]):
 				err = p.pushECBlockMsg(dbEntry.KeyMR, c, waitChan)
 
 			case hex.EncodeToString(ADMIN_CHAINID[:]):
@@ -423,8 +423,8 @@ func (p *peer) handleGetDirBlocksMsg(msg *wire.MsgGetDirBlocks) {
 
 // pushDirBlockMsg sends a dir block message for the provided block hash to the
 // connected peer.  An error is returned if the block hash is not known.
-func (p *peer) pushDirBlockMsg(sha IHash, doneChan, waitChan chan struct{}) error {
-	commonhash := new(Hash)
+func (p *peer) pushDirBlockMsg(sha interfaces.IHash, doneChan, waitChan chan struct{}) error {
+	commonhash := new(primitives.Hash)
 	commonhash.SetBytes(sha.Bytes())
 	blk, err := db.FetchDBlockByHash(commonhash)
 
@@ -487,12 +487,12 @@ func (p *peer) pushDirBlockMsg(sha IHash, doneChan, waitChan chan struct{}) erro
 
 // PushGetDirBlocksMsg sends a getdirblocks message for the provided block locator
 // and stop hash.  It will ignore back-to-back duplicate requests.
-func (p *peer) PushGetDirBlocksMsg(locator blockchain.BlockLocator, stopHash IHash) error {
+func (p *peer) PushGetDirBlocksMsg(locator blockchain.BlockLocator, stopHash interfaces.IHash) error {
 
 	// Extract the begin hash from the block locator, if one was specified,
 	// to use for filtering duplicate getblocks requests.
 	// request.
-	var beginHash IHash
+	var beginHash interfaces.IHash
 	if len(locator) > 0 {
 		beginHash = locator[0]
 	}
@@ -529,8 +529,8 @@ func (p *peer) PushGetDirBlocksMsg(locator blockchain.BlockLocator, stopHash IHa
 // EC block, Entry block, and Entry
 func (p *peer) pushGetNonDirDataMsg(dblock *DirectoryBlock) {
 	binary, _ := dblock.MarshalBinary()
-	commonHash := Sha(binary)
-	hash := NewHash(commonHash.Bytes())
+	commonHash := primitives.Sha(binary)
+	hash := primitives.NewHash(commonHash.Bytes())
 
 	iv := wire.NewInvVect(wire.InvTypeFactomNonDirBlock, hash)
 	gdmsg := wire.NewMsgGetNonDirData()
@@ -544,8 +544,8 @@ func (p *peer) pushGetNonDirDataMsg(dblock *DirectoryBlock) {
 // and return all the corresponding EBEntries
 func (p *peer) pushGetEntryDataMsg(eblock *EBlock) {
 	binary, _ := eblock.MarshalBinary()
-	commonHash := Sha(binary)
-	hash := NewHash(commonHash.Bytes())
+	commonHash := primitives.Sha(binary)
+	hash := primitives.NewHash(commonHash.Bytes())
 
 	iv := wire.NewInvVect(wire.InvTypeFactomEntry, hash)
 	gdmsg := wire.NewMsgGetEntryData()
@@ -557,7 +557,7 @@ func (p *peer) pushGetEntryDataMsg(eblock *EBlock) {
 
 // pushFBlockMsg sends an factoid block message for the provided block hash to the
 // connected peer.  An error is returned if the block hash is not known.
-func (p *peer) pushFBlockMsg(commonhash IHash, doneChan, waitChan chan struct{}) error {
+func (p *peer) pushFBlockMsg(commonhash interfaces.IHash, doneChan, waitChan chan struct{}) error {
 	blk, err := db.FetchFBlockByHash(commonhash)
 
 	if err != nil || blk == nil {
@@ -583,7 +583,7 @@ func (p *peer) pushFBlockMsg(commonhash IHash, doneChan, waitChan chan struct{})
 
 // pushABlockMsg sends an admin block message for the provided block hash to the
 // connected peer.  An error is returned if the block hash is not known.
-func (p *peer) pushABlockMsg(commonhash IHash, doneChan, waitChan chan struct{}) error {
+func (p *peer) pushABlockMsg(commonhash interfaces.IHash, doneChan, waitChan chan struct{}) error {
 	blk, err := db.FetchABlockByHash(commonhash)
 
 	if err != nil || blk == nil {
@@ -609,7 +609,7 @@ func (p *peer) pushABlockMsg(commonhash IHash, doneChan, waitChan chan struct{})
 // pushECBlockMsg sends a entry credit block message for the provided block
 // hash to the connected peer.  An error is returned if the block hash is not
 // known.
-func (p *peer) pushECBlockMsg(commonhash IHash, doneChan, waitChan chan struct{}) error {
+func (p *peer) pushECBlockMsg(commonhash interfaces.IHash, doneChan, waitChan chan struct{}) error {
 	blk, err := db.FetchECBlockByHash(commonhash)
 	if err != nil || blk == nil {
 		peerLog.Tracef("Unable to fetch requested Entry Credit block sha %v: %v",
@@ -634,7 +634,7 @@ func (p *peer) pushECBlockMsg(commonhash IHash, doneChan, waitChan chan struct{}
 
 // pushEBlockMsg sends a entry block message for the provided block hash to the
 // connected peer.  An error is returned if the block hash is not known.
-func (p *peer) pushEBlockMsg(commonhash IHash, doneChan, waitChan chan struct{}) error {
+func (p *peer) pushEBlockMsg(commonhash interfaces.IHash, doneChan, waitChan chan struct{}) error {
 	blk, err := db.FetchEBlockByMR(commonhash)
 	if err != nil {
 		if doneChan != nil || blk == nil {
@@ -658,7 +658,7 @@ func (p *peer) pushEBlockMsg(commonhash IHash, doneChan, waitChan chan struct{})
 
 // pushEntryMsg sends a EBlock entry message for the provided ebentry hash to the
 // connected peer.  An error is returned if the block hash is not known.
-func (p *peer) pushEntryMsg(commonhash IHash, doneChan, waitChan chan struct{}) error {
+func (p *peer) pushEntryMsg(commonhash interfaces.IHash, doneChan, waitChan chan struct{}) error {
 	entry, err := db.FetchEntryByHash(commonhash)
 	if err != nil || entry == nil {
 		peerLog.Tracef("Unable to fetch requested Entry sha %v: %v",
@@ -683,8 +683,8 @@ func (p *peer) pushEntryMsg(commonhash IHash, doneChan, waitChan chan struct{}) 
 // handleFactoidMsg
 func (p *peer) handleFactoidMsg(msg *wire.MsgFactoidTX, buf []byte) {
 	binary, _ := msg.Transaction.MarshalBinary()
-	commonHash := Sha(binary)
-	hash := NewHash(commonHash.Bytes())
+	commonHash := primitives.Sha(binary)
+	hash := primitives.NewHash(commonHash.Bytes())
 
 	iv := wire.NewInvVect(wire.InvTypeTx, hash)
 	p.AddKnownInventory(iv)

@@ -7,32 +7,27 @@ package directoryblock
 import (
 	"bytes"
 	"fmt"
-	. "github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 type DBEntry struct {
-	ChainID IHash
-	KeyMR   IHash // Different MR in EBlockHeader
+	ChainID interfaces.IHash
+	KeyMR   interfaces.IHash // Different MR in EBlockHeader
 }
 
-var _ Printable = (*DBEntry)(nil)
-var _ BinaryMarshallable = (*DBEntry)(nil)
-var _ IDBEntry = (*DBEntry)(nil)
+var _ interfaces.Printable = (*DBEntry)(nil)
+var _ interfaces.BinaryMarshallable = (*DBEntry)(nil)
+var _ interfaces.IDBEntry = (*DBEntry)(nil)
 
-func (c *DBEntry) MarshalledSize() uint64 {
-	panic("Function not implemented")
-	return 0
-}
-
-func (c *DBEntry) GetChainID() IHash {
+func (c *DBEntry) GetChainID() interfaces.IHash {
 	return c.ChainID
 }
-func (c *DBEntry) GetKeyMR() (IHash, error) {
+func (c *DBEntry) GetKeyMR() (interfaces.IHash, error) {
 	return c.KeyMR, nil
 }
 
-func NewDBEntry(entry IEntry) (*DBEntry, error) {
+func NewDBEntry(entry interfaces.IEntry) (*DBEntry, error) {
 	e := new(DBEntry)
 
 	e.ChainID = entry.GetChainID()
@@ -70,13 +65,13 @@ func (e *DBEntry) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 		}
 	}()
 	newData = data
-	e.ChainID = new(Hash)
+	e.ChainID = new(primitives.Hash)
 	newData, err = e.ChainID.UnmarshalBinaryData(newData)
 	if err != nil {
 		return
 	}
 
-	e.KeyMR = new(Hash)
+	e.KeyMR = new(primitives.Hash)
 	newData, err = e.KeyMR.UnmarshalBinaryData(newData)
 	if err != nil {
 		return
@@ -90,21 +85,21 @@ func (e *DBEntry) UnmarshalBinary(data []byte) (err error) {
 	return
 }
 
-func (e *DBEntry) ShaHash() IHash {
+func (e *DBEntry) ShaHash() interfaces.IHash {
 	byteArray, _ := e.MarshalBinary()
-	return Sha(byteArray)
+	return primitives.Sha(byteArray)
 }
 
 func (e *DBEntry) JSONByte() ([]byte, error) {
-	return EncodeJSON(e)
+	return primitives.EncodeJSON(e)
 }
 
 func (e *DBEntry) JSONString() (string, error) {
-	return EncodeJSONString(e)
+	return primitives.EncodeJSONString(e)
 }
 
 func (e *DBEntry) JSONBuffer(b *bytes.Buffer) error {
-	return EncodeJSONToBuffer(e, b)
+	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (e *DBEntry) String() string {

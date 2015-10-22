@@ -14,10 +14,10 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
-	. "github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/factoid"
-	. "github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 type WalletEntry struct {
@@ -25,20 +25,20 @@ type WalletEntry struct {
 	addrtype string
 	// 2 byte length not included here
 	name []byte
-	rcd  IRCD // Verification block for this IWalletEntry
+	rcd  interfaces.IRCD // Verification block for this interfaces.IWalletEntry
 	// 1 byte count of public keys
 	public [][]byte // Set of public keys necessary towe sign the rcd
 	// 1 byte count of private keys
 	private [][]byte // Set of private keys necessary to sign the rcd
 }
 
-var _ IWalletEntry = (*WalletEntry)(nil)
+var _ interfaces.IWalletEntry = (*WalletEntry)(nil)
 
 /*************************************
  *       Stubs
  *************************************/
 
-func (b WalletEntry) GetHash() IHash {
+func (b WalletEntry) GetHash() interfaces.IHash {
 	return nil
 }
 
@@ -73,11 +73,11 @@ func (b WalletEntry) String() string {
 	return string(txt)
 }
 
-func (w1 WalletEntry) GetAddress() (IAddress, error) {
+func (w1 WalletEntry) GetAddress() (interfaces.IAddress, error) {
 	if w1.rcd == nil {
 		return nil, fmt.Errorf("Should never happen. Missing the rcd block")
 	}
-	var adr IHash
+	var adr interfaces.IHash
 	var err error
 	if w1.addrtype == "fct" {
 		adr, err = w1.rcd.GetAddress()
@@ -85,7 +85,7 @@ func (w1 WalletEntry) GetAddress() (IAddress, error) {
 		if len(w1.public) == 0 {
 			err = fmt.Errorf("No Public Key for WalletEntry")
 		} else {
-			adr = NewHash(w1.public[0])
+			adr = primitives.NewHash(w1.public[0])
 		}
 	}
 	if err != nil {
@@ -94,20 +94,20 @@ func (w1 WalletEntry) GetAddress() (IAddress, error) {
 	return adr, nil
 }
 
-func (WalletEntry) GetNewInstance() IBlock {
+func (WalletEntry) GetNewInstance() interfaces.IBlock {
 	return new(WalletEntry)
 }
 
-func (w1 *WalletEntry) IsEqual(w IBlock) []IBlock {
+func (w1 *WalletEntry) IsEqual(w interfaces.IBlock) []interfaces.IBlock {
 	w2, ok := w.(*WalletEntry)
 	if !ok || w1.GetType() != w2.GetType() {
-		r := make([]IBlock, 0, 3)
+		r := make([]interfaces.IBlock, 0, 3)
 		return append(r, w1)
 	}
 
 	for i, public := range w1.public {
 		if bytes.Compare(w2.public[i], public) != 0 {
-			r := make([]IBlock, 0, 3)
+			r := make([]interfaces.IBlock, 0, 3)
 			return append(r, w1)
 		}
 	}
@@ -144,17 +144,17 @@ func (w *WalletEntry) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	blen, data := data[0], data[1:]
 	w.public = make([][]byte, len, len)
 	for i := 0; i < int(blen); i++ {
-		w.public[i] = make([]byte, ADDRESS_LENGTH, ADDRESS_LENGTH)
-		copy(w.public[i], data[:ADDRESS_LENGTH])
-		data = data[ADDRESS_LENGTH:]
+		w.public[i] = make([]byte, constants.ADDRESS_LENGTH, constants.ADDRESS_LENGTH)
+		copy(w.public[i], data[:constants.ADDRESS_LENGTH])
+		data = data[constants.ADDRESS_LENGTH:]
 	}
 
 	blen, data = data[0], data[1:]
 	w.private = make([][]byte, len, len)
 	for i := 0; i < int(blen); i++ {
-		w.private[i] = make([]byte, PRIVATE_LENGTH, PRIVATE_LENGTH)
-		copy(w.private[i], data[:PRIVATE_LENGTH])
-		data = data[PRIVATE_LENGTH:]
+		w.private[i] = make([]byte, constants.PRIVATE_LENGTH, constants.PRIVATE_LENGTH)
+		copy(w.private[i], data[:constants.PRIVATE_LENGTH])
+		data = data[constants.PRIVATE_LENGTH:]
 	}
 	return data, nil
 }
@@ -193,11 +193,6 @@ func (w WalletEntry) MarshalBinary() ([]byte, error) {
 	return out.Bytes(), nil
 }
 
-func (w WalletEntry) MarshalledSize() uint64 {
-	hex, _ := w.MarshalBinary()
-	return uint64(len(hex))
-}
-
 func (w WalletEntry) CustomMarshalText() (text []byte, err error) {
 	var out bytes.Buffer
 
@@ -210,7 +205,7 @@ func (w WalletEntry) CustomMarshalText() (text []byte, err error) {
 
 	out.WriteString("\n public:  ")
 	for i, public := range w.public {
-		WriteNumber16(&out, uint16(i))
+		primitives.WriteNumber16(&out, uint16(i))
 		out.WriteString(" ")
 		addr := hex.EncodeToString(public)
 		out.WriteString(addr)
@@ -219,7 +214,7 @@ func (w WalletEntry) CustomMarshalText() (text []byte, err error) {
 
 	out.WriteString("\n private:  ")
 	for i, private := range w.private {
-		WriteNumber16(&out, uint16(i))
+		primitives.WriteNumber16(&out, uint16(i))
 		out.WriteString(" ")
 		addr := hex.EncodeToString(private)
 		out.WriteString(addr)
@@ -229,22 +224,22 @@ func (w WalletEntry) CustomMarshalText() (text []byte, err error) {
 	return out.Bytes(), nil
 }
 
-func (w *WalletEntry) SetRCD(rcd IRCD) {
+func (w *WalletEntry) SetRCD(rcd interfaces.IRCD) {
 	w.rcd = rcd
 }
 
-func (w WalletEntry) GetRCD() IRCD {
+func (w WalletEntry) GetRCD() interfaces.IRCD {
 	return w.rcd
 }
 
 func (w *WalletEntry) AddKey(public, private []byte) {
-	if len(public) != ADDRESS_LENGTH || (len(private) != ADDRESS_LENGTH &&
-		len(private) != PRIVATE_LENGTH) {
+	if len(public) != constants.ADDRESS_LENGTH || (len(private) != constants.ADDRESS_LENGTH &&
+		len(private) != constants.PRIVATE_LENGTH) {
 		panic(fmt.Sprintf("Bad Keys presented to AddKey.  Should not happen."+
 			"\n  public: %x\n  private: %x", public, private))
 	}
-	pu := make([]byte, ADDRESS_LENGTH, ADDRESS_LENGTH)
-	pr := make([]byte, PRIVATE_LENGTH, PRIVATE_LENGTH)
+	pu := make([]byte, constants.ADDRESS_LENGTH, constants.ADDRESS_LENGTH)
+	pr := make([]byte, constants.PRIVATE_LENGTH, constants.PRIVATE_LENGTH)
 	copy(pu, public)
 	copy(pr[:32], private)
 	copy(pr[32:], public)
@@ -267,13 +262,13 @@ func (w *WalletEntry) SetName(name []byte) {
 }
 
 func (e *WalletEntry) JSONByte() ([]byte, error) {
-	return EncodeJSON(e)
+	return primitives.EncodeJSON(e)
 }
 
 func (e *WalletEntry) JSONString() (string, error) {
-	return EncodeJSONString(e)
+	return primitives.EncodeJSONString(e)
 }
 
 func (e *WalletEntry) JSONBuffer(b *bytes.Buffer) error {
-	return EncodeJSONToBuffer(e, b)
+	return primitives.EncodeJSONToBuffer(e, b)
 }

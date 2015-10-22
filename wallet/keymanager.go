@@ -2,7 +2,7 @@ package wallet
 
 import (
 	"errors"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives"
 	"os"
 )
 

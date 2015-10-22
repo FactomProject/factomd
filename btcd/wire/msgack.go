@@ -11,8 +11,8 @@ import (
 	"io"
 	"io/ioutil"
 
-	. "github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 // Acknowledgement Type
@@ -39,10 +39,10 @@ const (
 
 type MsgAcknowledgement struct {
 	Height      uint32
-	ChainID     IHash
+	ChainID     interfaces.IHash
 	Index       uint32
 	Type        byte
-	Affirmation IHash // affirmation value -- hash of the message/object in question
+	Affirmation interfaces.IHash // affirmation value -- hash of the message/object in question
 	SerialHash  [32]byte
 	Signature   [64]byte
 }
@@ -87,14 +87,14 @@ func (msg *MsgAcknowledgement) BtcDecode(r io.Reader, pver uint32) error {
 
 	msg.Height, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
-	msg.ChainID = new(Hash)
+	msg.ChainID = new(primitives.Hash)
 	newData, _ = msg.ChainID.UnmarshalBinaryData(newData)
 
 	msg.Index, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
 	msg.Type, newData = newData[0], newData[1:]
 
-	msg.Affirmation = NewHash(newData[0:32])
+	msg.Affirmation = primitives.NewHash(newData[0:32])
 	newData = newData[32:]
 
 	copy(msg.SerialHash[:], newData[0:32])
@@ -142,14 +142,14 @@ func (msg *MsgAcknowledgement) MaxPayloadLength(pver uint32) uint32 {
 
 // NewMsgAcknowledgement returns a new bitcoin ping message that conforms to the Message
 // interface.  See MsgAcknowledgement for details.
-func NewMsgAcknowledgement(height uint32, index uint32, affirm IHash, ackType byte) *MsgAcknowledgement {
+func NewMsgAcknowledgement(height uint32, index uint32, affirm interfaces.IHash, ackType byte) *MsgAcknowledgement {
 
 	if affirm == nil {
-		affirm = new(Hash)
+		affirm = new(primitives.Hash)
 	}
 	return &MsgAcknowledgement{
 		Height:      height,
-		ChainID:     new(Hash), //TODO: get the correct chain id from processor
+		ChainID:     new(primitives.Hash), //TODO: get the correct chain id from processor
 		Index:       index,
 		Affirmation: affirm,
 		Type:        ackType,
@@ -157,11 +157,11 @@ func NewMsgAcknowledgement(height uint32, index uint32, affirm IHash, ackType by
 }
 
 // Create a sha hash from the message binary (output of BtcEncode)
-func (msg *MsgAcknowledgement) Sha() (IHash, error) {
+func (msg *MsgAcknowledgement) Sha() (interfaces.IHash, error) {
 
 	buf := bytes.NewBuffer(nil)
 	msg.BtcEncode(buf, ProtocolVersion)
-	var sha IHash
+	var sha interfaces.IHash
 	_ = sha.SetBytes(Sha256(buf.Bytes()))
 
 	return sha, nil

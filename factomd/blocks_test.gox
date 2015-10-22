@@ -27,11 +27,11 @@ func TestBlocks(t *testing.T) {
 
 	//EC chain ------------------------------------
 	ecchainid := new(common.Hash)
-	ecchainid.SetBytes(common.EC_CHAINID)
+	ecchainid.SetBytes(common.constants.EC_CHAINID)
 
 	//factoid chain ------------------------------------
 	fchainid := new(common.Hash)
-	fchainid.SetBytes(common.FACTOID_CHAINID)
+	fchainid.SetBytes(common.constants.FACTOID_CHAINID)
 
 	for _, dbEntry := range dblk.DBEntries {
 		switch dbEntry.ChainID.String() {

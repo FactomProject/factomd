@@ -5,13 +5,13 @@
 package wire
 
 import (
-	. "github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/interfaces"
 )
 
-const RCDHASH_LENGTH = 32
+const RCDconstants.HASH_LENGTH = 32
 const PubKeySize = 32
 
-type RCDHash [RCDHASH_LENGTH]byte // this is out factoid address
+type RCDHash [RCDconstants.HASH_LENGTH]byte // this is out factoid address
 type ECPubKey [PubKeySize]byte
 type PubKey [PubKeySize]byte
 
@@ -49,13 +49,13 @@ type TxIn struct {
 // OutPoint defines a bitcoin data type that is used to track previous
 // transaction outputs.
 type OutPoint struct {
-	Hash  IHash
+	Hash  interfaces.IHash
 	Index uint32
 }
 
 // NewOutPoint returns a new bitcoin transaction outpoint point with the
 // provided hash and index.
-func NewOutPoint(hash IHash, index uint32) *OutPoint {
+func NewOutPoint(hash interfaces.IHash, index uint32) *OutPoint {
 	return &OutPoint{
 		Hash:  hash,
 		Index: index,

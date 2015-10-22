@@ -8,7 +8,7 @@ import (
 	"bytes"
 	"fmt"
 	. "github.com/FactomProject/factomd/common/factoid"
-	. "github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/interfaces"
 	"io"
 )
 
@@ -16,7 +16,7 @@ var _ = fmt.Printf
 
 type IMsgFactoidTX interface {
 	// Set the Transaction to be carried by this message.
-	SetTransaction(ITransaction)
+	SetTransaction(interfaces.ITransaction)
 	// BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
 	// This is part of the Message interface implementation.
 	BtcEncode(w io.Writer, pver uint32) error
@@ -36,7 +36,7 @@ type IMsgFactoidTX interface {
 	// such as timestamp, signiture and etc
 	IsValid() bool
 	// Create a sha hash from the message binary (output of BtcEncode)
-	Sha() (IHash, error)
+	Sha() (interfaces.IHash, error)
 }
 
 // MsgCommitEntry implements the Message interface and represents a factom
@@ -44,11 +44,11 @@ type IMsgFactoidTX interface {
 // revealing it.
 type MsgFactoidTX struct {
 	IMsgFactoidTX
-	Transaction ITransaction
+	Transaction interfaces.ITransaction
 }
 
 // Accessor to set the Transaction for a message.
-func (msg *MsgFactoidTX) SetTransaction(transaction ITransaction) {
+func (msg *MsgFactoidTX) SetTransaction(transaction interfaces.ITransaction) {
 	msg.Transaction = transaction
 }
 
@@ -120,11 +120,11 @@ func (msg *MsgFactoidTX) IsValid() bool {
 }
 
 // Create a sha hash from the message binary (output of BtcEncode)
-func (msg *MsgFactoidTX) Sha() (IHash, error) {
+func (msg *MsgFactoidTX) Sha() (interfaces.IHash, error) {
 
 	buf := bytes.NewBuffer(nil)
 	msg.BtcEncode(buf, ProtocolVersion)
-	var sha IHash
+	var sha interfaces.IHash
 	_ = sha.SetBytes(Sha256(buf.Bytes()))
 
 	return sha, nil

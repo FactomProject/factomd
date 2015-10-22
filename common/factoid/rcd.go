@@ -6,12 +6,12 @@ package factoid
 
 import (
 	"fmt"
-	. "github.com/FactomProject/factomd/common/constants"
-	. "github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/interfaces"
 )
 
 /**************************
- * IRCD  Interface for Redeem Condition Datastructures (RCD)
+ * interfaces.IRCD  Interface for Redeem Condition Datastructures (RCD)
  *
  * https://github.com/FactomProject/FactomDocs/blob/master/factomDataStructureDetails.md#factoid-transaction
  **************************/
@@ -20,11 +20,11 @@ import (
  * Helper Functions
  ***********************/
 
-func UnmarshalBinaryAuth(data []byte) (a IRCD, newData []byte, err error) {
+func UnmarshalBinaryAuth(data []byte) (a interfaces.IRCD, newData []byte, err error) {
 
 	t := data[0]
 
-	var auth IRCD
+	var auth interfaces.IRCD
 	switch int(t) {
 	case 1:
 		auth = new(RCD_1)
@@ -37,8 +37,8 @@ func UnmarshalBinaryAuth(data []byte) (a IRCD, newData []byte, err error) {
 	return auth, data, err
 }
 
-func NewRCD_1(publicKey []byte) IRCD {
-	if len(publicKey) != ADDRESS_LENGTH {
+func NewRCD_1(publicKey []byte) interfaces.IRCD {
+	if len(publicKey) != constants.ADDRESS_LENGTH {
 		panic("Bad publickey.  This should not happen")
 	}
 	a := new(RCD_1)
@@ -46,7 +46,7 @@ func NewRCD_1(publicKey []byte) IRCD {
 	return a
 }
 
-func NewRCD_2(n int, m int, addresses []IAddress) (IRCD, error) {
+func NewRCD_2(n int, m int, addresses []interfaces.IAddress) (interfaces.IRCD, error) {
 	if len(addresses) != m {
 		return nil, fmt.Errorf("Improper number of addresses.  m = %d n = %d #addresses = %d", m, n, len(addresses))
 	}
@@ -54,13 +54,13 @@ func NewRCD_2(n int, m int, addresses []IAddress) (IRCD, error) {
 	au := new(RCD_2)
 	au.n = n
 	au.m = m
-	au.n_addresses = make([]IAddress, len(addresses), len(addresses))
+	au.n_addresses = make([]interfaces.IAddress, len(addresses), len(addresses))
 	copy(au.n_addresses, addresses)
 
 	return au, nil
 }
 
-func CreateRCD(data []byte) IRCD {
+func CreateRCD(data []byte) interfaces.IRCD {
 	switch data[0] {
 	case 1:
 		return new(RCD_1)

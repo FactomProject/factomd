@@ -6,33 +6,28 @@ package entryBlock
 
 import (
 	"bytes"
-	. "github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 	"sync"
 )
 
 type EChain struct {
-	ChainID         IHash
-	FirstEntry      IEBEntry
+	ChainID         interfaces.IHash
+	FirstEntry      interfaces.IEBEntry
 	NextBlock       *EBlock
 	NextBlockHeight uint32
 	BlockMutex      sync.Mutex
 }
 
-var _ BinaryMarshallableAndCopyable = (*EChain)(nil)
+var _ interfaces.BinaryMarshallableAndCopyable = (*EChain)(nil)
 
-func (c *EChain) New() BinaryMarshallableAndCopyable {
+func (c *EChain) New() interfaces.BinaryMarshallableAndCopyable {
 	return new(EChain)
-}
-
-func (c *EChain) MarshalledSize() uint64 {
-	panic("Function not implemented")
-	return 0
 }
 
 func NewEChain() *EChain {
 	e := new(EChain)
-	e.ChainID = NewZeroHash()
+	e.ChainID = primitives.NewZeroHash()
 	e.FirstEntry = NewEntry()
 	e.NextBlock = NewEBlock()
 	return e

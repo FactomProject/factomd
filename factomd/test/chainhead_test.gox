@@ -16,7 +16,7 @@ func TestDblock(t *testing.T) {
 
 	// directory block ------------------
 	dchainid := new(common.Hash)
-	dchainid.SetBytes(common.D_CHAINID)
+	dchainid.SetBytes(common.constants.D_CHAINID)
 
 	dbMR, _ := db.FetchHeadMRByChainID(dchainid)
 
@@ -36,7 +36,7 @@ func TestDblock(t *testing.T) {
 
 	//EC block ------------------------------------
 	ecchainid := new(common.Hash)
-	ecchainid.SetBytes(common.EC_CHAINID)
+	ecchainid.SetBytes(common.constants.EC_CHAINID)
 
 	ecbMR, _ := db.FetchHeadMRByChainID(ecchainid)
 
@@ -46,7 +46,7 @@ func TestDblock(t *testing.T) {
 
 	//factoid block ------------------------------------
 	fchainid := new(common.Hash)
-	fchainid.SetBytes(common.FACTOID_CHAINID)
+	fchainid.SetBytes(common.constants.FACTOID_CHAINID)
 
 	fbMR, _ := db.FetchHeadMRByChainID(fchainid)
 

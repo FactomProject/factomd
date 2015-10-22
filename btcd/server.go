@@ -19,7 +19,7 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/btcd/addrmgr"
-	. "github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/interfaces"
 	//"github.com/FactomProject/factomd/btcd/blockchain"
 	"github.com/FactomProject/factomd/btcd/btcjson"
 	"github.com/FactomProject/factomd/btcd/chaincfg"
@@ -73,7 +73,7 @@ type relayMsg struct {
 // updates, peer heights will be kept up to date, allowing for fresh data when
 // selecting sync peer candidacy.
 type updatePeerHeightsMsg struct {
-	newSha     IHash
+	newSha     interfaces.IHash
 	newHeight  int32
 	originPeer *peer
 }
@@ -961,7 +961,7 @@ func (s *server) NetTotals() (uint64, uint64) {
 // the latest connected main chain block, or a recognized orphan. These height
 // updates allow us to dynamically refresh peer heights, ensuring sync peer
 // selection has access to the latest block heights for each peer.
-func (s *server) UpdatePeerHeights(latestBlkSha IHash, latestHeight int32, updateSource *peer) {
+func (s *server) UpdatePeerHeights(latestBlkSha interfaces.IHash, latestHeight int32, updateSource *peer) {
 	s.peerHeightsUpdate <- updatePeerHeightsMsg{
 		newSha:     latestBlkSha,
 		newHeight:  latestHeight,

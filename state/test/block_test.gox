@@ -13,8 +13,8 @@ import (
 	fct "github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/factoid/block"
 	"github.com/FactomProject/factomd/common/factoid/database"
-	"github.com/FactomProject/factomd/common/factoid/state"
-	"github.com/FactomProject/factomd/common/factoid/state/stateinit"
+	"github.com/FactomProject/factomd/state"
+	"github.com/FactomProject/factomd/state/stateinit"
 	"github.com/FactomProject/factomd/common/factoid/wallet"
 	"math/rand"
 	cv "strconv"
@@ -44,9 +44,9 @@ func Test_setup_FactoidState(test *testing.T) {
 	fs.stats.errors = make(map[string]int, 100)
 	fs.stats.full = make(map[string]string, 100)
 
-	fs.inputAddresses = make([]fct.IAddress, 0, 10)
-	fs.outputAddresses = make([]fct.IAddress, 0, 10)
-	fs.ecoutputAddresses = make([]fct.IAddress, 0, 10)
+	fs.inputAddresses = make([]fct.interfaces.IAddress, 0, 10)
+	fs.outputAddresses = make([]fct.interfaces.IAddress, 0, 10)
+	fs.ecoutputAddresses = make([]fct.interfaces.IAddress, 0, 10)
 	fs.twallet = new(wallet.SCWallet) // Wallet for our tests
 	fs.twallet.Init()
 
@@ -255,7 +255,7 @@ func Test_create_genesis_FactoidState(test *testing.T) {
 			test.Fail()
 			return
 		}
-		blk := fs.GetCurrentBlock().GetNewInstance().(block.IFBlock)
+		blk := fs.GetCurrentBlock().GetNewInstance().(block.interfaces.IFBlock)
 		err = blk.UnmarshalBinary(blkdata)
 		if err != nil {
 			test.Fail()

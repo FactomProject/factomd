@@ -5,14 +5,14 @@
 package mapdb
 
 import (
-	. "github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/interfaces"
 )
 
 type MapDB struct {
 	cache map[string]map[string][]byte // Our Cache
 }
 
-var _ IDatabase = (*MapDB)(nil)
+var _ interfaces.IDatabase = (*MapDB)(nil)
 
 func (MapDB) Close() error {
 	return nil
@@ -25,7 +25,7 @@ func (db *MapDB) Init(bucketList [][]byte) {
 	}
 }
 
-func (db *MapDB) Put(bucket, key []byte, data BinaryMarshallable) error {
+func (db *MapDB) Put(bucket, key []byte, data interfaces.BinaryMarshallable) error {
 	if db.cache == nil {
 		db.cache = map[string]map[string][]byte{}
 	}
@@ -45,7 +45,7 @@ func (db *MapDB) Put(bucket, key []byte, data BinaryMarshallable) error {
 	return nil
 }
 
-func (db *MapDB) PutInBatch(records []Record) error {
+func (db *MapDB) PutInBatch(records []interfaces.Record) error {
 	for _, v := range records {
 		err := db.Put(v.Bucket, v.Key, v.Data)
 		if err != nil {
@@ -55,7 +55,7 @@ func (db *MapDB) PutInBatch(records []Record) error {
 	return nil
 }
 
-func (db *MapDB) Get(bucket, key []byte, destination BinaryMarshallable) (BinaryMarshallable, error) {
+func (db *MapDB) Get(bucket, key []byte, destination interfaces.BinaryMarshallable) (interfaces.BinaryMarshallable, error) {
 	if db.cache == nil {
 		db.cache = map[string]map[string][]byte{}
 	}
@@ -101,7 +101,7 @@ func (db *MapDB) ListAllKeys(bucket []byte) ([][]byte, error) {
 	return answer, nil
 }
 
-func (db *MapDB) GetAll(bucket []byte, sample BinaryMarshallableAndCopyable) ([]BinaryMarshallableAndCopyable, error) {
+func (db *MapDB) GetAll(bucket []byte, sample interfaces.BinaryMarshallableAndCopyable) ([]interfaces.BinaryMarshallableAndCopyable, error) {
 	if db.cache == nil {
 		db.cache = map[string]map[string][]byte{}
 	}
@@ -109,7 +109,7 @@ func (db *MapDB) GetAll(bucket []byte, sample BinaryMarshallableAndCopyable) ([]
 	if ok == false {
 		db.cache[string(bucket)] = map[string][]byte{}
 	}
-	answer := []BinaryMarshallableAndCopyable{}
+	answer := []interfaces.BinaryMarshallableAndCopyable{}
 	for _, v := range db.cache[string(bucket)] {
 		tmp := sample.New()
 		err := tmp.UnmarshalBinary(v)

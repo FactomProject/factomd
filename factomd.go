@@ -37,6 +37,9 @@ func main() {
 	state.Init()
 	
 	go Timer(state)
+	go Validator(state)
+	go Leader(state)
+	go Follower(state)
 	
 	for {
 		time.Sleep(time.Duration(5)*time.Second)

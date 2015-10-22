@@ -11,10 +11,10 @@ import (
 	"github.com/FactomProject/factomd/btcd/wire"
 	fct "github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/factoid/block"
-	"github.com/FactomProject/factomd/common/factoid/state"
 	"github.com/FactomProject/factomd/consensus"
 	cp "github.com/FactomProject/factomd/controlpanel"
 	"github.com/FactomProject/factomd/logger"
+	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/util"
 	"github.com/davecgh/go-spew/spew"
 	"runtime/debug"
@@ -23,12 +23,12 @@ import (
 
 	. "github.com/FactomProject/factomd/common"
 	. "github.com/FactomProject/factomd/common/adminBlock"
-	. "github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/directoryBlock"
 	. "github.com/FactomProject/factomd/common/entryBlock"
 	. "github.com/FactomProject/factomd/common/entryCreditBlock"
-	. "github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 var _ = debug.PrintStack
@@ -38,8 +38,8 @@ func initDChain() {
 	dchain = new(DChain)
 
 	//Initialize the Directory Block Chain ID
-	dchain.ChainID = new(Hash)
-	barray := D_CHAINID
+	dchain.ChainID = new(primitives.Hash)
+	barray := constants.D_CHAINID
 	dchain.ChainID.SetBytes(barray)
 
 	// get all dBlocks from db
@@ -138,7 +138,7 @@ func initAChain() {
 
 	//Initialize the Admin Chain ID
 	achain = new(AdminChain)
-	achain.ChainID = new(Hash)
+	achain.ChainID = new(primitives.Hash)
 	achain.ChainID.SetBytes(ADMIN_CHAINID)
 
 	// get all aBlocks from db
@@ -173,8 +173,8 @@ func initFctChain() {
 
 	//Initialize the Admin Chain ID
 	fchain = new(FctChain)
-	fchain.ChainID = new(Hash)
-	fchain.ChainID.SetBytes(FACTOID_CHAINID)
+	fchain.ChainID = new(primitives.Hash)
+	fchain.ChainID.SetBytes(constants.FACTOID_CHAINID)
 
 	// get all aBlocks from db
 	fBlocks, _ := db.FetchAllFBlocks()
@@ -201,7 +201,7 @@ func initFctChain() {
 	if len(fBlocks) == 0 || dchain.NextDBHeight == 0 {
 		state.FactoidStateGlobal.SetFactoshisPerEC(FactoshisPerCredit)
 		fchain.NextBlockHeight = 0
-		// func GetGenesisFBlock(ftime uint64, ExRate uint64, addressCnt int, Factoids uint64 ) IFBlock {
+		// func GetGenesisFBlock(ftime uint64, ExRate uint64, addressCnt int, Factoids uint64 ) interfaces.IFBlock {
 		//fchain.NextBlock = block.GetGenesisFBlock(0, FactoshisPerCredit, 10, 200000000000)
 		fchain.NextBlock = block.GetGenesisFBlock()
 		gb := fchain.NextBlock
@@ -380,7 +380,7 @@ func validateDChain(c *DChain) error {
 }
 
 // Validate a dir block
-func validateDBlock(c *DChain, b *DirectoryBlock) (merkleRoot IHash, dbHash IHash, err error) {
+func validateDBlock(c *DChain, b *DirectoryBlock) (merkleRoot interfaces.IHash, dbHash interfaces.IHash, err error) {
 
 	bodyMR, err := b.BuildBodyMR()
 	if err != nil {
@@ -423,7 +423,7 @@ func validateDBlock(c *DChain, b *DirectoryBlock) (merkleRoot IHash, dbHash IHas
 }
 
 // Validate Entry Credit Block by merkle root
-func validateCBlockByMR(mr IHash) error {
+func validateCBlockByMR(mr interfaces.IHash) error {
 	cb, _ := db.FetchECBlockByHash(mr)
 
 	if cb == nil {
@@ -434,7 +434,7 @@ func validateCBlockByMR(mr IHash) error {
 }
 
 // Validate Admin Block by merkle root
-func validateABlockByMR(mr IHash) error {
+func validateABlockByMR(mr interfaces.IHash) error {
 	b, _ := db.FetchABlockByHash(mr)
 
 	if b == nil {
@@ -445,7 +445,7 @@ func validateABlockByMR(mr IHash) error {
 }
 
 // Validate FBlock by merkle root
-func validateFBlockByMR(mr IHash) error {
+func validateFBlockByMR(mr interfaces.IHash) error {
 	b, _ := db.FetchFBlockByHash(mr)
 
 	if b == nil {
@@ -464,7 +464,7 @@ func validateFBlockByMR(mr IHash) error {
 }
 
 // Validate Entry Block by merkle root
-func validateEBlockByMR(cid IHash, mr IHash) error {
+func validateEBlockByMR(cid interfaces.IHash, mr interfaces.IHash) error {
 
 	eb, err := db.FetchEBlockByMR(mr)
 	if err != nil {
@@ -483,7 +483,7 @@ func validateEBlockByMR(cid IHash, mr IHash) error {
 	}
 
 	for _, ebEntry := range eb.Body.EBEntries {
-		if !bytes.Equal(ebEntry.Bytes()[:31], ZERO_HASH[:31]) {
+		if !bytes.Equal(ebEntry.Bytes()[:31], constants.ZERO_HASH[:31]) {
 			entry, _ := db.FetchEntryByHash(ebEntry)
 			if entry == nil {
 				return errors.New("Entry not found in db for entry hash: " + ebEntry.String())

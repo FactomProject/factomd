@@ -10,7 +10,8 @@ import (
 	"fmt"
 	"testing"
 
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/interfaces"
 )
 
 func TestMarshalUnmarshalDirectoryBlockHeader(t *testing.T) {
@@ -162,13 +163,13 @@ func TestInvalidUnmarshalDirectoryBlock(t *testing.T) {
 func TestMakeSureBlockCountIsNotDuplicates(t *testing.T) {
 	fmt.Println("\n---\nTestMakeSureBlockCountIsNotDuplicates\n---\n")
 	block := createTestDirectoryBlock()
-	block.DBEntries = []*DBEntry{}
+	block.SetDBEntries([]interfaces.IDBEntry{})
 	min := 1000
 	max := -1
 
 	for i := 0; i < 100; i++ {
 		//Update the BlockCount in header
-		block.Header.BlockCount = uint32(len(block.DBEntries))
+		block.Header().SetBlockCount(uint32(len(block.DBEntries())))
 		//Marshal the block
 		marshalled, err := block.MarshalBinary()
 		if err != nil {
@@ -176,7 +177,7 @@ func TestMakeSureBlockCountIsNotDuplicates(t *testing.T) {
 		}
 		//Get the byte representation of BlockCount
 		var buf bytes.Buffer
-		binary.Write(&buf, binary.BigEndian, block.Header.BlockCount)
+		binary.Write(&buf, binary.BigEndian, block.Header().BlockCount())
 		hex := buf.Bytes()
 
 		//How many times does BlockCount appear in the marshalled slice?
@@ -189,10 +190,10 @@ func TestMakeSureBlockCountIsNotDuplicates(t *testing.T) {
 		}
 
 		de := new(DBEntry)
-		de.ChainID = NewZeroHash()
-		de.KeyMR = NewZeroHash()
+		de.ChainID = primitives.NewZeroHash()
+		de.KeyMR = primitives.NewZeroHash()
 
-		block.DBEntries = append(block.DBEntries, de)
+		block.SetDBEntries(append(block.DBEntries(), de))
 	}
 	t.Logf("Min count - %v, max count - %v", min, max)
 	if min != 1 {
@@ -203,16 +204,16 @@ func TestMakeSureBlockCountIsNotDuplicates(t *testing.T) {
 func createTestDirectoryBlock() *DirectoryBlock {
 	dblock := new(DirectoryBlock)
 
-	dblock.Header = createTestDirectoryBlockHeader()
+	dblock.SetHeader(createTestDirectoryBlockHeader())
 
-	dblock.DBEntries = make([]*DBEntry, 0, 5)
+	dblock.SetDBEntries(make([]interfaces.IDBEntry, 0, 5))
 
 	de := new(DBEntry)
-	de.ChainID = NewZeroHash()
-	de.KeyMR = NewZeroHash()
+	de.ChainID = primitives.NewZeroHash()
+	de.KeyMR = primitives.NewZeroHash()
 
-	dblock.DBEntries = append(dblock.DBEntries, de)
-	dblock.Header.BlockCount = uint32(len(dblock.DBEntries))
+	dblock.SetDBEntries(append(dblock.DBEntries(), de))
+	dblock.Header().SetBlockCount(uint32(len(dblock.DBEntries())))
 
 	return dblock
 }
@@ -220,14 +221,14 @@ func createTestDirectoryBlock() *DirectoryBlock {
 func createTestDirectoryBlockHeader() *DBlockHeader {
 	header := new(DBlockHeader)
 
-	header.DBHeight = 1
-	header.BodyMR = NewZeroHash()
-	header.BlockCount = 0
-	header.NetworkID = 9
-	header.PrevLedgerKeyMR = NewZeroHash()
-	header.PrevKeyMR = NewZeroHash()
-	header.Timestamp = 1234
-	header.Version = 1
+	header.SetDBHeight(1)
+	header.SetBodyMR(primitives.Sha(primitives.NewZeroHash().Bytes()))
+	header.SetBlockCount(0)
+	header.SetNetworkID(0xffff)
+	header.SetPrevLedgerKeyMR(primitives.NewZeroHash())
+	header.SetPrevKeyMR(primitives.NewZeroHash())
+	header.SetTimestamp(1234)
+	header.SetVersion(1)
 
 	return header
 }

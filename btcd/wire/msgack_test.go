@@ -3,7 +3,7 @@ package wire_test
 import (
 	"bytes"
 	"github.com/FactomProject/factomd/btcd/wire"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/consensus"
 	"testing"
 )

@@ -8,9 +8,9 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	. "github.com/FactomProject/factomd/common/constants"
-	. "github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 	"io"
 	"time"
 
@@ -24,16 +24,16 @@ const (
 
 type CommitEntry struct {
 	Version   uint8
-	MilliTime *ByteSlice6
-	EntryHash IHash
+	MilliTime *primitives.ByteSlice6
+	EntryHash interfaces.IHash
 	Credits   uint8
-	ECPubKey  *ByteSlice32
-	Sig       *ByteSlice64
+	ECPubKey  *primitives.ByteSlice32
+	Sig       *primitives.ByteSlice64
 }
 
-var _ Printable = (*CommitEntry)(nil)
-var _ BinaryMarshallable = (*CommitEntry)(nil)
-var _ ShortInterpretable = (*CommitEntry)(nil)
+var _ interfaces.Printable = (*CommitEntry)(nil)
+var _ interfaces.BinaryMarshallable = (*CommitEntry)(nil)
+var _ interfaces.ShortInterpretable = (*CommitEntry)(nil)
 var _ ECBlockEntry = (*CommitEntry)(nil)
 
 func (c *CommitEntry) MarshalledSize() uint64 {
@@ -43,20 +43,20 @@ func (c *CommitEntry) MarshalledSize() uint64 {
 func NewCommitEntry() *CommitEntry {
 	c := new(CommitEntry)
 	c.Version = 0
-	c.MilliTime = new(ByteSlice6)
-	c.EntryHash = NewZeroHash()
+	c.MilliTime = new(primitives.ByteSlice6)
+	c.EntryHash = primitives.NewZeroHash()
 	c.Credits = 0
-	c.ECPubKey = new(ByteSlice32)
-	c.Sig = new(ByteSlice64)
+	c.ECPubKey = new(primitives.ByteSlice32)
+	c.Sig = new(primitives.ByteSlice64)
 	return c
 }
 
-func (e *CommitEntry) Hash() IHash {
+func (e *CommitEntry) Hash() interfaces.IHash {
 	bin, err := e.MarshalBinary()
 	if err != nil {
 		panic(err)
 	}
-	return Sha(bin)
+	return primitives.Sha(bin)
 }
 
 func (b *CommitEntry) IsInterpretable() bool {
@@ -92,7 +92,7 @@ func (c *CommitEntry) InTime() bool {
 	sec := c.GetMilliTime() / 1000
 	t := time.Unix(sec, 0)
 
-	return t.After(now.Add(-COMMIT_TIME_WINDOW*time.Hour)) && t.Before(now.Add(COMMIT_TIME_WINDOW*time.Hour))
+	return t.After(now.Add(-constants.COMMIT_TIME_WINDOW*time.Hour)) && t.Before(now.Add(constants.COMMIT_TIME_WINDOW*time.Hour))
 }
 
 func (c *CommitEntry) IsValid() bool {
@@ -104,14 +104,14 @@ func (c *CommitEntry) IsValid() bool {
 	return ed.VerifyCanonical((*[32]byte)(c.ECPubKey), c.CommitMsg(), (*[64]byte)(c.Sig))
 }
 
-func (c *CommitEntry) GetHash() IHash {
+func (c *CommitEntry) GetHash() interfaces.IHash {
 	h, _ := c.MarshalBinary()
-	return Sha(h)
+	return primitives.Sha(h)
 }
 
-func (c *CommitEntry) GetSigHash() IHash {
+func (c *CommitEntry) GetSigHash() interfaces.IHash {
 	data := c.CommitMsg()
-	return Sha(data)
+	return primitives.Sha(data)
 }
 
 func (c *CommitEntry) MarshalBinary() ([]byte, error) {
@@ -223,15 +223,15 @@ func (c *CommitEntry) UnmarshalBinary(data []byte) (err error) {
 }
 
 func (e *CommitEntry) JSONByte() ([]byte, error) {
-	return EncodeJSON(e)
+	return primitives.EncodeJSON(e)
 }
 
 func (e *CommitEntry) JSONString() (string, error) {
-	return EncodeJSONString(e)
+	return primitives.EncodeJSONString(e)
 }
 
 func (e *CommitEntry) JSONBuffer(b *bytes.Buffer) error {
-	return EncodeJSONToBuffer(e, b)
+	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (e *CommitEntry) String() string {

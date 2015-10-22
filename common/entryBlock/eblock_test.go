@@ -2,7 +2,7 @@ package entryBlock_test
 
 import (
 	. "github.com/FactomProject/factomd/common/entryBlock"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives"
 	"testing"
 )
 
@@ -18,9 +18,9 @@ func TestEBlockMarshal(t *testing.T) {
 	eb.Header.EBSequence = 5
 	eb.Header.DBHeight = 6
 	eb.Header.EntryCount = 7
-	ha := NewZeroHash()
+	ha := primitives.NewZeroHash()
 	ha.SetBytes(byteof(0xaa))
-	hb := NewZeroHash()
+	hb := primitives.NewZeroHash()
 	hb.SetBytes(byteof(0xbb))
 	eb.Body.EBEntries = append(eb.Body.EBEntries, ha)
 	eb.AddEndOfMinuteMarker(0xcc)
