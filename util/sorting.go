@@ -6,6 +6,8 @@ import (
 	. "github.com/FactomProject/factomd/common/entryBlock"
 	. "github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
+
+	"bytes"
 )
 
 //------------------------------------------------
@@ -75,5 +77,19 @@ func (f ByEBlockIDAccending) Less(i, j int) bool {
 	return f[i].Header.EBSequence < f[j].Header.EBSequence
 }
 func (f ByEBlockIDAccending) Swap(i, j int) {
+	f[i], f[j] = f[j], f[i]
+}
+
+//------------------------------------------------
+// Byte array sorting - ascending
+type ByByteArray [][]byte
+
+func (f ByByteArray) Len() int {
+	return len(f)
+}
+func (f ByByteArray) Less(i, j int) bool {
+	return bytes.Compare(f[i], f[j]) < 0
+}
+func (f ByByteArray) Swap(i, j int) {
 	f[i], f[j] = f[j], f[i]
 }

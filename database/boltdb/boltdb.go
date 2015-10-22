@@ -36,6 +36,12 @@ type BoltDB struct {
 
 var _ interfaces.IDatabase = (*BoltDB)(nil)
 
+func NewBoltDB(bucketList [][]byte, filename string) *BoltDB {
+	db := new(BoltDB)
+	db.Init(bucketList, filename)
+	return db
+}
+
 /***************************************
  *       Methods
  ***************************************/
