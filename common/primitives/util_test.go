@@ -35,6 +35,30 @@ func TestConversions(test *testing.T) {
 	}
 }
 
+func TestWriteNumber(t *testing.T) {
+	out := new(bytes.Buffer)
+
+	WriteNumber8(out, 0x01)
+	WriteNumber16(out, 0x0203)
+	WriteNumber32(out, 0x04050607)
+	WriteNumber64(out, 0x0809101112131415)
+
+	answer := "010203040506070809101112131415"
+	if out.String() != answer {
+		t.Errorf("Failed WriteNumbers. Expected %v, got %v", out.String())
+	}
+}
+
+func TestConvertion(t *testing.T) {
+	var num uint64 = 123456789
+	if ConvertDecimalToString(num) != "1.23456789" {
+		t.Error("Failed ConvertDecimalToString")
+	}
+	if ConvertDecimalToPaddedString(num) != "            1.23456789" {
+		t.Errorf("Failed ConvertDecimalToPaddedString - '%v'", ConvertDecimalToPaddedString(num))
+	}
+}
+
 // func DecodeVarInt(data []byte)                   (uint64, []byte)
 // func EncodeVarInt(out *bytes.Buffer, v uint64)   error
 

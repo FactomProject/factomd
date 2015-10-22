@@ -95,10 +95,6 @@ func (s SignatureBlock) GetSignature(index int) interfaces.ISignature {
 	return s.signatures[index]
 }
 
-func (s SignatureBlock) GetNewInstance() interfaces.IBlock {
-	return new(SignatureBlock)
-}
-
 func (s SignatureBlock) GetSignatures() []interfaces.ISignature {
 	if s.signatures == nil {
 		s.signatures = make([]interfaces.ISignature, 1, 1)

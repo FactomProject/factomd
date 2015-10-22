@@ -71,7 +71,7 @@ func (b *FBlock) GetTransactions() []interfaces.ITransaction {
 	return b.Transactions
 }
 
-func (b FBlock) GetNewInstance() interfaces.IBlock {
+func (b FBlock) GetNewInstance() interfaces.IFBlock {
 	return new(FBlock)
 }
 

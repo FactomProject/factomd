@@ -2,7 +2,7 @@ package entryBlock_test
 
 import (
 	"bytes"
-	//"encoding/hex"
+	"encoding/hex"
 	"fmt"
 	"testing"
 
@@ -96,4 +96,38 @@ func TestEntry(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error:%v", err)
 	}
+}
+
+func TestEntryMisc(t *testing.T) {
+	e := newEntry()
+	if e.IsValid() == false {
+		t.Fail()
+	}
+	if e.Hash().String() != "24674e6bc3094eb773297de955ee095a05830e431da13a37382dcdc89d73c7d7" {
+		t.Fail()
+	}
+	if e.GetChainID().String() != "df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604" {
+		t.Fail()
+	}
+	ids := e.ExternalIDs()
+	if len(ids) != 1 {
+		t.Fail()
+	}
+	if NewChainID(e).String() != "df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604" {
+		t.Fail()
+	}
+}
+
+func newEntry() *Entry {
+	e := NewEntry()
+	entryStr := "00df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e60400130011466163746f6d416e63686f72436861696e546869732069732074686520466163746f6d20616e63686f7220636861696e2c207768696368207265636f7264732074686520616e63686f727320466163746f6d2070757473206f6e20426974636f696e20616e64206f74686572206e6574776f726b732e0a"
+	h, err := hex.DecodeString(entryStr)
+	if err != nil {
+		panic(err)
+	}
+	err = e.UnmarshalBinary(h)
+	if err != nil {
+		panic(err)
+	}
+	return e
 }

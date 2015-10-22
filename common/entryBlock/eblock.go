@@ -29,7 +29,7 @@ var _ interfaces.BinaryMarshallableAndCopyable = (*EBlock)(nil)
 var _ interfaces.DatabaseBatchable = (*EBlock)(nil)
 
 func (c *EBlock) New() interfaces.BinaryMarshallableAndCopyable {
-	return new(EBlock)
+	return NewEBlock()
 }
 
 func (c *EBlock) GetDatabaseHeight() uint32 {

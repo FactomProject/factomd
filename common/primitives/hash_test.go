@@ -6,6 +6,7 @@ package primitives_test
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factomd/common/constants"
@@ -91,7 +92,7 @@ func TestSha(t *testing.T) {
 	testVector["abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmnhijklmnoijklmnopjklmnopqklmnopqrlmnopqrsmnopqrstnopqrstu"] = "cf5b16a778af8380036ce59e7b0492370b249b11e8f07a51afac45037afee9d1"
 
 	for k, v := range testVector {
-		answer, err := DecodeBinary(&v)
+		answer, err := DecodeBinary(v)
 		if err != nil {
 			t.Error(err)
 			t.FailNow()
@@ -115,7 +116,7 @@ func TestSha512Half(t *testing.T) {
 	testVector["abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmnhijklmnoijklmnopjklmnopqklmnopqrlmnopqrsmnopqrstnopqrstu"] = "8e959b75dae313da8cf4f72814fc143f8f7779c6eb9f7fa17299aeadb6889018"
 
 	for k, v := range testVector {
-		answer, err := DecodeBinary(&v)
+		answer, err := DecodeBinary(v)
 		if err != nil {
 			t.Error(err)
 			t.FailNow()
@@ -148,7 +149,7 @@ func TestIsSameAs(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	hex, err := DecodeBinary(&base)
+	hex, err := DecodeBinary(base)
 	if err != nil {
 		t.Error(err)
 	}
@@ -158,5 +159,55 @@ func TestIsSameAs(t *testing.T) {
 	}
 	if hash.IsSameAs(hash2) == false {
 		t.Error("Identical hashes not recognized as such")
+	}
+}
+
+func TestHashMisc(t *testing.T) {
+	base := "4040404040404040404040404040404040404040404040404040404040404040"
+	hash, err := HexToHash(base)
+	if err != nil {
+		t.Error(err)
+	}
+	if hash.String() != base {
+		t.Error("Error in String")
+	}
+
+	hash2, err := NewShaHashFromStr(base)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if hash2.ByteString() != "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@" {
+		t.Errorf("Error in ByteString - received %v", hash2.ByteString())
+	}
+
+	h, err := hex.DecodeString(base)
+	if err != nil {
+		t.Error(err)
+	}
+	hash = NewHash(h)
+	if hash.String() != base {
+		t.Error("Error in NewHash")
+	}
+
+	//***********************
+
+	if hash.IsSameAs(nil) != false {
+		t.Error("Error in IsSameAs")
+	}
+
+	//***********************
+
+	minuteHash, err := HexToHash("0000000000000000000000000000000000000000000000000000000000000001")
+	if err != nil {
+		t.Error(err)
+	}
+	if minuteHash.IsMinuteMarker() == false {
+		t.Error("Error in IsMinuteMarker")
+	}
+
+	hash = NewZeroHash()
+	if hash.String() != "0000000000000000000000000000000000000000000000000000000000000000" {
+		t.Error("Error in NewZeroHash")
 	}
 }

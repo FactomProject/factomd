@@ -75,10 +75,11 @@ func MarshalSign(msg interfaces.BinaryMarshallable) Signature {
 	return keyManager.keyPair.MarshalSign(msg)
 }
 
+/*
 func DetachMarshalSign(msg interfaces.BinaryMarshallable) *DetachedSignature {
 	sig := MarshalSign(msg)
 	return sig.DetachSig()
-}
+}*/
 
 func ClientPublicKeyStr() string {
 	return ClientPublicKey().String()

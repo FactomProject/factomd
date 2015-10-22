@@ -45,10 +45,6 @@ func (b FactoidSignature) String() string {
 	return string(txt)
 }
 
-func (w1 FactoidSignature) GetNewInstance() interfaces.IBlock {
-	return new(FactoidSignature)
-}
-
 // Checks that the FactoidSignatures are the same.
 func (s1 *FactoidSignature) IsEqual(sig interfaces.IBlock) []interfaces.IBlock {
 	s2, ok := sig.(*FactoidSignature)

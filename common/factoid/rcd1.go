@@ -95,10 +95,6 @@ func (w RCD_1) GetAddress() (interfaces.IAddress, error) {
 	return CreateAddress(primitives.Shad(data)), nil
 }
 
-func (w1 RCD_1) GetNewInstance() interfaces.IBlock {
-	return new(RCD_1)
-}
-
 func (a RCD_1) GetPublicKey() []byte {
 	return a.publicKey[:]
 }

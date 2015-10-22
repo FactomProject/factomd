@@ -94,10 +94,6 @@ func (w1 WalletEntry) GetAddress() (interfaces.IAddress, error) {
 	return adr, nil
 }
 
-func (WalletEntry) GetNewInstance() interfaces.IBlock {
-	return new(WalletEntry)
-}
-
 func (w1 *WalletEntry) IsEqual(w interfaces.IBlock) []interfaces.IBlock {
 	w2, ok := w.(*WalletEntry)
 	if !ok || w1.GetType() != w2.GetType() {

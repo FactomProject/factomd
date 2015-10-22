@@ -255,7 +255,7 @@ func Test_create_genesis_FactoidState(test *testing.T) {
 			test.Fail()
 			return
 		}
-		blk := fs.GetCurrentBlock().GetNewInstance().(block.interfaces.IFBlock)
+		blk := fs.GetCurrentBlock().(block.interfaces.IFBlock).GetNewInstance()
 		err = blk.UnmarshalBinary(blkdata)
 		if err != nil {
 			test.Fail()
