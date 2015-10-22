@@ -9,27 +9,92 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
 type DBlockHeader struct {
-	Version   byte
-	NetworkID uint32
+	version   byte
+	networkID uint32
 
-	BodyMR          interfaces.IHash
-	PrevKeyMR       interfaces.IHash
-	PrevLedgerKeyMR interfaces.IHash
+	bodyMR          interfaces.IHash
+	prevKeyMR       interfaces.IHash
+	prevLedgerKeyMR interfaces.IHash
 
-	Timestamp  uint32
-	DBHeight   uint32
-	BlockCount uint32
+	timestamp  uint32
+	dbHeight   uint32
+	blockCount uint32
 }
 
 var _ interfaces.Printable = (*DBlockHeader)(nil)
 var _ interfaces.BinaryMarshallable = (*DBlockHeader)(nil)
 var _ interfaces.IDirectoryBlockHeader = (*DBlockHeader)(nil)
+
+func (h *DBlockHeader) Version()   byte {
+	return h.version
+}
+
+func (h *DBlockHeader) SetVersion(version byte)   {
+	h.version = version
+}
+
+func (h *DBlockHeader) NetworkID() uint32 {
+	return h.networkID
+}
+
+func (h *DBlockHeader) SetNetworkID(networkID uint32)   {
+	h.networkID = networkID
+}
+
+func (h *DBlockHeader) BodyMR()          interfaces.IHash {
+	return h.bodyMR
+}
+
+func (h *DBlockHeader) SetBodyMR(bodyMR interfaces.IHash) {
+	h.bodyMR = bodyMR
+}
+
+func (h *DBlockHeader) PrevKeyMR()       interfaces.IHash {
+	return h.prevKeyMR
+}
+
+func (h *DBlockHeader) SetPrevKeyMR(prevKeyMR interfaces.IHash) {
+	h.prevKeyMR = prevKeyMR
+}
+
+func (h *DBlockHeader) PrevLedgerKeyMR() interfaces.IHash {
+	return h.prevLedgerKeyMR
+}
+
+func (h *DBlockHeader) SetPrevLedgerKeyMR(PrevLedgerKeyMR interfaces.IHash) {
+	h.prevLedgerKeyMR = PrevLedgerKeyMR
+}
+
+func (h *DBlockHeader) Timestamp()  uint32 {
+	return h.timestamp
+}
+
+func (h *DBlockHeader) SetTimestamp(timestamp uint32) {
+	h.timestamp = timestamp
+}
+
+func (h *DBlockHeader) DBHeight()   uint32 {
+	return h.dbHeight
+}
+
+func (h *DBlockHeader) SetDBHeight(dbheight uint32) {
+	h.dbHeight = dbheight
+}
+
+
+func (h *DBlockHeader) BlockCount() uint32 {
+	return h.blockCount
+}
+
+func (h *DBlockHeader) SetBlockCount(blockcount uint32) {
+	h.blockCount = blockcount
+}
+
 
 func (e *DBlockHeader) JSONByte() ([]byte, error) {
 	return primitives.EncodeJSON(e)
@@ -51,52 +116,38 @@ func (e *DBlockHeader) String() string {
 func (b *DBlockHeader) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
 
-	buf.Write([]byte{b.Version})
-	binary.Write(&buf, binary.BigEndian, b.NetworkID)
-
+	buf.WriteByte(b.version)
+	binary.Write(&buf, binary.BigEndian, b.NetworkID())
+	
 	if b.BodyMR == nil {
-		b.BodyMR = new(primitives.Hash)
-		b.BodyMR.SetBytes(new([32]byte)[:])
+		b.SetBodyMR(new(primitives.Hash))
+		b.BodyMR().SetBytes(new([32]byte)[:])
 	}
-	data, err = b.BodyMR.MarshalBinary()
+	data, err = b.BodyMR().MarshalBinary()
 	if err != nil {
 		return
 	}
 	buf.Write(data)
 
-	data, err = b.PrevKeyMR.MarshalBinary()
+	data, err = b.PrevKeyMR().MarshalBinary()
 	if err != nil {
 		return
 	}
 	buf.Write(data)
 
-	data, err = b.PrevLedgerKeyMR.MarshalBinary()
+	data, err = b.PrevLedgerKeyMR().MarshalBinary()
 	if err != nil {
 		return
 	}
 	buf.Write(data)
 
-	binary.Write(&buf, binary.BigEndian, b.Timestamp)
+	binary.Write(&buf, binary.BigEndian, b.Timestamp())
 
-	binary.Write(&buf, binary.BigEndian, b.DBHeight)
+	binary.Write(&buf, binary.BigEndian, b.DBHeight())
 
-	binary.Write(&buf, binary.BigEndian, b.BlockCount)
+	binary.Write(&buf, binary.BigEndian, b.BlockCount())
 
 	return buf.Bytes(), err
-}
-
-func (b *DBlockHeader) MarshalledSize() uint64 {
-	var size uint64 = 0
-	size += 1 //Version
-	size += 4 //NetworkID
-	size += uint64(constants.HASH_LENGTH)
-	size += uint64(constants.HASH_LENGTH)
-	size += uint64(constants.HASH_LENGTH)
-	size += 4 //Timestamp
-	size += 4 //DBHeight
-	size += 4 //BlockCount
-
-	return size
 }
 
 func (b *DBlockHeader) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
@@ -106,31 +157,31 @@ func (b *DBlockHeader) UnmarshalBinaryData(data []byte) (newData []byte, err err
 		}
 	}()
 	newData = data
-	b.Version, newData = newData[0], newData[1:]
+	b.version, newData = newData[0], newData[1:]
 
-	b.NetworkID, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+	b.networkID, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
-	b.BodyMR = new(primitives.Hash)
-	newData, err = b.BodyMR.UnmarshalBinaryData(newData)
+	b.bodyMR = new(primitives.Hash)
+	newData, err = b.BodyMR().UnmarshalBinaryData(newData)
 	if err != nil {
 		return
 	}
 
-	b.PrevKeyMR = new(primitives.Hash)
-	newData, err = b.PrevKeyMR.UnmarshalBinaryData(newData)
+	b.prevKeyMR = new(primitives.Hash)
+	newData, err = b.PrevKeyMR().UnmarshalBinaryData(newData)
 	if err != nil {
 		return
 	}
 
-	b.PrevLedgerKeyMR = new(primitives.Hash)
-	newData, err = b.PrevLedgerKeyMR.UnmarshalBinaryData(newData)
+	b.prevLedgerKeyMR = new(primitives.Hash)
+	newData, err = b.PrevLedgerKeyMR().UnmarshalBinaryData(newData)
 	if err != nil {
 		return
 	}
 
-	b.Timestamp, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
-	b.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
-	b.BlockCount, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+	b.timestamp, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+	b.dbHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+	b.blockCount, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
 	return
 }
@@ -146,9 +197,9 @@ func (b *DBlockHeader) UnmarshalBinary(data []byte) (err error) {
 
 func NewDBlockHeader() *DBlockHeader {
 	d := new(DBlockHeader)
-	d.BodyMR = primitives.NewZeroHash()
-	d.PrevKeyMR = primitives.NewZeroHash()
-	d.PrevLedgerKeyMR = primitives.NewZeroHash()
+	d.bodyMR = primitives.NewZeroHash()
+	d.prevKeyMR = primitives.NewZeroHash()
+	d.prevLedgerKeyMR = primitives.NewZeroHash()
 
 	return d
 }

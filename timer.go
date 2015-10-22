@@ -7,9 +7,15 @@ package main
 import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/util"
 	"time"
 )
+
+type timer struct {
+	minute			int			// Really a 10th of the period... Usually a minute	
+}
+
 
 func Timer(state interfaces.IState) {
 	cfg := state.Cfg().(*util.FactomdConfig)
@@ -20,7 +26,7 @@ func Timer(state interfaces.IState) {
 	
 	now := time.Now().UnixNano()	// Time in billionths of a second
 	
-	wait := period - (now % period)
+	wait := tenthPeriod - (now % tenthPeriod)
 
 	next  := now + wait + tenthPeriod
 	
@@ -28,11 +34,10 @@ func Timer(state interfaces.IState) {
 	fmt.Println("Waiting", wait/billion, "seconds to the top of the period")
 	time.Sleep(time.Duration(wait))
 	fmt.Println("Starting Timer!",time.Now())
-
 	for {
 		for i := 0; i < 10; i++ {
-			fmt.Println("Period",i+1,"--",time.Now())
-			
+			eom := messages.NewEOM(state,i)
+			state.InMsgQueue() <- eom
 			now = time.Now().UnixNano() 
 			wait := next - now
 			next += tenthPeriod

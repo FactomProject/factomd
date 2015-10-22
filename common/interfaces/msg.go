@@ -12,12 +12,18 @@ import ()
  * https://github.com/FactomProject/FactomDocs/blob/master/factomDataStructureDetails.md#factoid-transaction
  **************************/
 
-type IMsg interface {
+type IMsg interface {	
+	Printable
+	
 	// Returns a byte indicating the type of message.
-	Type() int
-	// Returns the binary payload of the message
-	Payload() []byte
-
+	Type() 		int
+	
+	// Return the int value of the message, if defined
+	Int() int
+	
+	// Return the []byte value of the message, if defined
+	Bytes() []byte
+		
 	// Validate the message, given the state.  Three possible results:
 	//  < 0 -- Message is invalid.  Discard
 	//  0   -- Cannot tell if message is Valid
@@ -26,11 +32,14 @@ type IMsg interface {
 
 	// Returns true if this is a message for this server to execute as
 	// a leader.
-	Leader(IState)
-	// Execute the leader functions of the given message
-	LeaderExecute(IState)
+	Leader(IState) bool
 
+	// Execute the leader functions of the given message
+	LeaderExecute(IState) error
+	
 	// Returns true if this is a message for this server to execute as a follower
-	Follower(IState)
-	FollowerExecute(IState)
+	Follower(IState) bool
+	
+	// Exeucte the follower functions of the given message
+	FollowerExecute(IState) error
 }

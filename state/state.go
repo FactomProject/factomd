@@ -2,32 +2,33 @@ package state
 
 import (
 	"github.com/FactomProject/factomd/common/interfaces"
-
-	"fmt"
+	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/hybridDB"
 	"github.com/FactomProject/factomd/util"
 	"log"
 	"sync"
+	"fmt"
 )
 
 type State struct {
-	once sync.Once
-	cfg  interfaces.IFactomConfig
+	once        		sync.Once
+	cfg         		interfaces.IFactomConfig
+	
+	inMsgQueue			chan interfaces.IMsg
+	leaderInMsgQueue	chan interfaces.IMsg
+	followerInMsgQueue	chan interfaces.IMsg
+	outMsgQueue			chan interfaces.IMsg
 
-	leaderInMsgQueue   chan interfaces.IMsg
-	inMsgQueue         chan interfaces.IMsg
-	followerInMsgQueue chan interfaces.IMsg
-	outMsgQueue        chan interfaces.IMsg
-	//Network
-	networkNumber int // Encoded into Directory Blocks
+	//Network MAIN = 0, TEST = 1, LOCAL = 2, CUSTOM = 3
+	networkNumber 		int // Encoded into Directory Blocks
 
 	// Number of Servers acknowledged by Factom
-	totalServers int
-	serverState  int                // (0 if client, 1 if server, 2 if audit server
-	matryoshka   []interfaces.IHash // Reverse Hash
+	totalServers 		int
+	serverState  		int     // (0 if client, 1 if server, 2 if audit server
+	matryoshka   		[]interfaces.IHash // Reverse Hash
 
 	// Database
-	db interfaces.IDatabase
+	db 					interfaces.IDatabase
 
 	// Directory Block State
 	currentDirectoryBlock interfaces.IDirectoryBlock
@@ -39,19 +40,34 @@ type State struct {
 	factoidState *FactoidState
 }
 
-func (s *State) InMsgQueue() chan interfaces.IMsg {
+// Tests the given hash, and returns true if this server is the leader for this key.
+// For example, keys we test include:
+//
+// The Hash of the Factoid Hash
+// Entry Credit Addresses
+// ChainIDs
+// ...
+
+func (s *State) LeaderFor([]byte) bool {
+	if s.totalServers == 1 && s.serverState == 1 && s.networkNumber == 2 {
+		return true
+	}
+	return false
+}
+
+func (s *State) InMsgQueue() (chan interfaces.IMsg) {
 	return s.inMsgQueue
 }
 
-func (s *State) LeaderInMsgQueue() chan interfaces.IMsg {
+func (s *State) LeaderInMsgQueue() (chan interfaces.IMsg) {
 	return s.leaderInMsgQueue
 }
 
-func (s *State) FollowerInMsgQueue() chan interfaces.IMsg {
+func (s *State) FollowerInMsgQueue() (chan interfaces.IMsg) {
 	return s.followerInMsgQueue
 }
 
-func (s *State) OutMsgQueue() chan interfaces.IMsg {
+func (s *State) OutMsgQueue() (chan interfaces.IMsg) {
 	return s.outMsgQueue
 }
 
@@ -100,14 +116,14 @@ func (s *State) Init() {
 	// Get our factomd configuration information.
 	cfg := s.Cfg().(*util.FactomdConfig)
 
-	s.inMsgQueue = make(chan interfaces.IMsg, 10000)         //incoming message queue for factom application messages
-	s.leaderInMsgQueue = make(chan interfaces.IMsg, 10000)   //incoming message queue for factom application messages
-	s.followerInMsgQueue = make(chan interfaces.IMsg, 10000) //incoming message queue for factom application messages
-	s.outMsgQueue = make(chan interfaces.IMsg, 10000)        //outgoing message queue for factom application messages
+	s.inMsgQueue         = make(chan interfaces.IMsg, 10000)  //incoming message queue for factom application messages
+	s.leaderInMsgQueue   = make(chan interfaces.IMsg, 10000)  //incoming message queue for factom application messages
+	s.followerInMsgQueue = make(chan interfaces.IMsg, 10000)  //incoming message queue for factom application messages
+	s.outMsgQueue        = make(chan interfaces.IMsg, 10000) //outgoing message queue for factom application messages
 
 	s.totalServers = 1
-	s.serverState = 1
-
+	s.serverState  = 1
+	
 	//Database
 
 	//Network
@@ -130,9 +146,9 @@ func (s *State) Init() {
 func (s *State) InitLevelDB() error {
 	cfg := s.Cfg().(*util.FactomdConfig)
 	path := cfg.App.LdbPath + "/" + cfg.App.Network + "/" + "factoid_level.db"
-
-	fmt.Println("Creating Database at ", path)
-
+	
+	fmt.Println("Creating Database at ",path)
+	
 	dbase, err := hybridDB.NewLevelMapHybridDB(path, false)
 
 	if err != nil {
@@ -167,10 +183,6 @@ func (s *State) NetworkName() string {
 
 }
 
-func (s *State) NetworkPublicKey() []byte {
-	return nil // TODO add our keys here...
-}
-
 func (s *State) CurrentDirectoryBlock() interfaces.IDirectoryBlock {
 	return s.currentDirectoryBlock
 }
@@ -193,4 +205,8 @@ func (s *State) DBHeight() int {
 
 func (s *State) SetDBHeight(dbheight int) {
 	s.dBHeight = dbheight
+}
+
+func (s *State) NewHash() interfaces.IHash {
+	return new(primitives.Hash)
 }
