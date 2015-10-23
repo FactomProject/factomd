@@ -7,6 +7,7 @@ package messages
 import (
 	"fmt"
 	"bytes"
+	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
@@ -126,6 +127,10 @@ func (m *EOM) LeaderExecute(state interfaces.IState) error {
 				panic(err.Error())
 			}
 			state.SetCurrentDirectoryBlock(db)
+			db.AddEntry(primitives.NewHash(constants.ADMIN_CHAINID),   primitives.NewZeroHash()) // AdminBlock
+			db.AddEntry(primitives.NewHash(constants.EC_CHAINID),      primitives.NewZeroHash()) // AdminBlock
+			db.AddEntry(primitives.NewHash(constants.FACTOID_CHAINID), primitives.NewZeroHash()) // AdminBlock
+
 			if olddb != nil {
 				bodyMR, err := olddb.BuildBodyMR()
 				if err != nil {

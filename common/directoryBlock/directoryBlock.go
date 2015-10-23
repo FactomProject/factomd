@@ -96,13 +96,15 @@ func (e *DirectoryBlock) String() string {
 func (b *DirectoryBlock) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
 
+	count := uint32(len(b.GetDBEntries()))
+	b.GetHeader().SetBlockCount(count)
+	
 	data, err = b.GetHeader().MarshalBinary()
 	if err != nil {
 		return
 	}
 	buf.Write(data)
 
-	count := uint32(len(b.GetDBEntries()))
 	for i := uint32(0); i < count; i = i + 1 {
 		data, err = b.GetDBEntries()[i].MarshalBinary()
 		if err != nil {
