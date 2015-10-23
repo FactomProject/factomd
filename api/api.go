@@ -9,7 +9,6 @@ import (
 	"fmt"
 
 	"github.com/FactomProject/factomd/btcd/wire"
-	"github.com/FactomProject/factomd/database"
 	"github.com/FactomProject/factomd/process"
 
 	. "github.com/FactomProject/factomd/common/directoryBlock"
@@ -20,7 +19,7 @@ import (
 )
 
 var (
-	db     database.DBOverlay
+	db     interfaces.DBOverlay
 	inMsgQ chan wire.FtmInternalMsg
 )
 
@@ -127,7 +126,7 @@ func RevealEntry(e interfaces.IEBEntry) error {
 	return nil
 }
 
-func SetDB(d database.DBOverlay) {
+func SetDB(d interfaces.DBOverlay) {
 	db = d
 }
 

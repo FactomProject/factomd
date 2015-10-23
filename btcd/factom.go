@@ -15,16 +15,16 @@ import (
 	//	"github.com/FactomProject/btcutil"
 
 	"github.com/FactomProject/factomd/btcd/wire"
+	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	cp "github.com/FactomProject/factomd/controlpanel"
-	"github.com/FactomProject/factomd/database"
 )
 
 var _ = fmt.Printf
 
 var (
 	local_Server *server
-	db           database.DBOverlay       // database
+	db           interfaces.DBOverlay     // database
 	inMsgQueue   chan wire.FtmInternalMsg //incoming message queue for factom application messages
 	outMsgQueue  chan wire.FtmInternalMsg //outgoing message queue for factom application messages
 
@@ -133,7 +133,7 @@ func factomForkInit(s *server) {
 }
 
 func Start_btcd(
-	ldb database.DBOverlay,
+	ldb interfaces.DBOverlay,
 	inMsgQ chan wire.FtmInternalMsg,
 	outMsgQ chan wire.FtmInternalMsg,
 	inCtlMsgQ chan wire.FtmInternalMsg,
