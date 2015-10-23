@@ -18,7 +18,7 @@ type timer struct {
 
 
 func Timer(state interfaces.IState) {
-	cfg := state.Cfg().(*util.FactomdConfig)
+	cfg := state.GetCfg().(*util.FactomdConfig)
 
 	billion     := int64(1000000000)
 	period      := int64(cfg.App.DirectoryBlockInSeconds)*billion

@@ -31,7 +31,6 @@ type ECBlock struct {
 }
 
 var _ interfaces.Printable = (*ECBlock)(nil)
-var _ interfaces.IDBEntry = (*ECBlock)(nil)
 var _ interfaces.BinaryMarshallableAndCopyable = (*ECBlock)(nil)
 var _ interfaces.DatabaseBatchable = (*ECBlock)(nil)
 

@@ -23,22 +23,19 @@ var _ interfaces.IDBEntry = (*DBEntry)(nil)
 func (c *DBEntry) GetChainID() interfaces.IHash {
 	return c.ChainID
 }
-func (c *DBEntry) GetKeyMR() (interfaces.IHash, error) {
-	return c.KeyMR, nil
+
+func (c *DBEntry) SetChainID(chainID interfaces.IHash) {
+	c.ChainID = chainID
 }
 
-func NewDBEntry(entry interfaces.IEntry) (*DBEntry, error) {
-	e := new(DBEntry)
-
-	e.ChainID = entry.GetChainID()
-	var err error
-	e.KeyMR, err = entry.GetKeyMR()
-	if err != nil {
-		return nil, err
-	}
-
-	return e, nil
+func (c *DBEntry) GetKeyMR() interfaces.IHash  {
+	return c.KeyMR
 }
+
+func (c *DBEntry) SetKeyMR(keyMR interfaces.IHash) {
+	c.KeyMR = keyMR
+}
+
 
 func (e *DBEntry) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer

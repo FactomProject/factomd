@@ -3,16 +3,19 @@ package state
 import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/database/hybridDB"
 	"github.com/FactomProject/factomd/util"
 	"log"
 	"sync"
 	"fmt"
+	"os"
 )
 
 type State struct {
 	once        		sync.Once
-	cfg         		interfaces.IFactomConfig
+	Cfg         		interfaces.IFactomConfig
 	
 	inMsgQueue			chan interfaces.IMsg
 	leaderInMsgQueue	chan interfaces.IMsg
@@ -20,24 +23,24 @@ type State struct {
 	outMsgQueue			chan interfaces.IMsg
 
 	//Network MAIN = 0, TEST = 1, LOCAL = 2, CUSTOM = 3
-	networkNumber 		int // Encoded into Directory Blocks
+	NetworkNumber 		int // Encoded into Directory Blocks
 
 	// Number of Servers acknowledged by Factom
-	totalServers 		int
-	serverState  		int     // (0 if client, 1 if server, 2 if audit server
-	matryoshka   		[]interfaces.IHash // Reverse Hash
+	TotalServers 		int
+	ServerState  		int     // (0 if client, 1 if server, 2 if audit server
+	Matryoshka   		[]interfaces.IHash // Reverse Hash
 
 	// Database
-	db 					interfaces.IDatabase
+	DB 					interfaces.IDatabase
 
 	// Directory Block State
-	currentDirectoryBlock interfaces.IDirectoryBlock
-	dBHeight              int
+	CurrentDirectoryBlock interfaces.IDirectoryBlock
+	DBHeight              uint32
 
 	// Message State
-	lastAck interfaces.IMsg // Return the last Acknowledgement set by this server
+	LastAck interfaces.IMsg // Return the last Acknowledgement set by this server
 
-	factoidState *FactoidState
+	FactoidState 		interfaces.IFactoidState
 }
 
 // Tests the given hash, and returns true if this server is the leader for this key.
@@ -49,7 +52,7 @@ type State struct {
 // ...
 
 func (s *State) LeaderFor([]byte) bool {
-	if s.totalServers == 1 && s.serverState == 1 && s.networkNumber == 2 {
+	if s.TotalServers == 1 && s.ServerState == 1 && s.NetworkNumber == 2 {
 		return true
 	}
 	return false
@@ -75,76 +78,87 @@ func (s *State) OutMsgQueue() (chan interfaces.IMsg) {
 
 // Getting the cfg state for Factom doesn't force a read of the config file unless
 // it hasn;t been read yet.
-func (s *State) Cfg() interfaces.IFactomConfig {
+func (s *State) GetCfg() interfaces.IFactomConfig {
 	s.once.Do(func() {
 		log.Println("read factom config file: ", util.ConfigFilename())
-		s.cfg = util.ReadConfig()
+		s.Cfg = util.ReadConfig()
 	})
-	return s.cfg
+	return s.Cfg
 }
 
 // ReadCfg forces a read of the factom config file.  However, it does not change the
 // state of any cfg object held by other processes... Only what will be returned by
 // future calls to Cfg().
 func (s *State) ReadCfg() interfaces.IFactomConfig {
-	s.cfg = util.ReadConfig()
-	return s.cfg
+	s.Cfg = util.ReadConfig()
+	return s.Cfg
 }
 
-func (s *State) TotalServers() int {
-	return s.totalServers
+func (s *State) GetTotalServers() int {
+	return s.TotalServers
 }
 
-func (s *State) ServerState() int {
-	return s.serverState
+func (s *State) GetServerState() int {
+	return s.ServerState
 }
 
-func (s *State) NetworkNumber() int {
-	return s.networkNumber
+func (s *State) GetNetworkNumber() int {
+	return s.NetworkNumber
 }
 
-func (s *State) Matryoshka() []interfaces.IHash {
-	return s.matryoshka
+func (s *State) GetMatryoshka() []interfaces.IHash {
+	return s.Matryoshka
 }
 
-func (s *State) LastAck() interfaces.IMsg {
-	return s.lastAck
+func (s *State) GetLastAck() interfaces.IMsg {
+	return s.LastAck
 }
 
 func (s *State) Init() {
 
 	// Get our factomd configuration information.
-	cfg := s.Cfg().(*util.FactomdConfig)
+	cfg := s.GetCfg().(*util.FactomdConfig)
 
 	s.inMsgQueue         = make(chan interfaces.IMsg, 10000)  //incoming message queue for factom application messages
 	s.leaderInMsgQueue   = make(chan interfaces.IMsg, 10000)  //incoming message queue for factom application messages
 	s.followerInMsgQueue = make(chan interfaces.IMsg, 10000)  //incoming message queue for factom application messages
 	s.outMsgQueue        = make(chan interfaces.IMsg, 10000) //outgoing message queue for factom application messages
 
-	s.totalServers = 1
-	s.serverState  = 1
+	s.TotalServers = 1
+	s.ServerState  = 1
 	
 	//Database
 
 	//Network
 	switch cfg.App.Network {
 	case "MAIN":
-		s.networkNumber = 0
+		s.NetworkNumber = 0
 	case "TEST":
-		s.networkNumber = 1
+		s.NetworkNumber = 1
 	case "LOCAL":
-		s.networkNumber = 2
+		s.NetworkNumber = 2
 	case "CUSTOM":
-		s.networkNumber = 3
+		s.NetworkNumber = 3
 	default:
 		panic("Bad value for Network in factomd.conf")
 	}
 
-	s.InitLevelDB()
+	if err := s.InitBoltDB(); err != nil {
+		fmt.Println("Error initializing the database: ",err)
+	}
+	
+	dirblk := new(directoryblock.DirectoryBlock)
+	_, err := s.DB.Get([]byte(constants.DB_DIRECTORY_BLOCKS), constants.D_CHAINID, dirblk) 
+	if err != nil {
+		panic(err.Error())
+	}
+	s.SetCurrentDirectoryBlock(dirblk)
+	s.SetDBHeight(dirblk.GetHeader().GetDBHeight()+1)
+	s.FactoidState = new(FactoidState)
 }
 
 func (s *State) InitLevelDB() error {
-	cfg := s.Cfg().(*util.FactomdConfig)
+	cfg := s.Cfg.(*util.FactomdConfig)
 	path := cfg.App.LdbPath + "/" + cfg.App.Network + "/" + "factoid_level.db"
 	
 	fmt.Println("Creating Database at ",path)
@@ -167,46 +181,47 @@ func (s *State) InitLevelDB() error {
 }
 
 func (s *State) InitBoltDB() error {
-	//cfg := s.Cfg().(*util.FactomdConfig)
-	//path := cfg.App.BoltDBPath + "/" + cfg.App.Network + "/" + "factoid_bolt.db"
-	//dbase := hybridDB.NewBoltMapHybridDB(nil, path)
-	//s.db = databaseOverlay.NewOverlay(dbase)
+	cfg := s.Cfg.(*util.FactomdConfig)
+	path := cfg.App.BoltDBPath + "/" + cfg.App.Network + "/" 
+	os.MkdirAll(path, 0777)
+	dbase := hybridDB.NewBoltMapHybridDB(nil, path+"FactomBolt.db")
+	s.DB = dbase
 	return nil
 }
 
 func (s *State) String() string {
-	return (s.cfg.(*util.FactomdConfig)).String()
+	return (s.Cfg.(*util.FactomdConfig)).String()
 }
 
-func (s *State) NetworkName() string {
-	return (s.Cfg().(util.FactomdConfig)).App.Network
+func (s *State) GetNetworkName() string {
+	return (s.Cfg.(util.FactomdConfig)).App.Network
 
 }
 
-func (s *State) CurrentDirectoryBlock() interfaces.IDirectoryBlock {
-	return s.currentDirectoryBlock
+func (s *State) GetCurrentDirectoryBlock() interfaces.IDirectoryBlock {
+	return s.CurrentDirectoryBlock
 }
 
 func (s *State) SetCurrentDirectoryBlock(dirblk interfaces.IDirectoryBlock) {
-	s.currentDirectoryBlock = dirblk
+	s.CurrentDirectoryBlock = dirblk
 }
 
-func (s *State) DB() interfaces.IDatabase {
-	return s.db
+func (s *State) GetDB() interfaces.IDatabase {
+	return s.DB
 }
 
 func (s *State) SetDB(db interfaces.IDatabase) {
-	s.db = db
+	s.DB = db
 }
 
-func (s *State) DBHeight() int {
-	return s.dBHeight
+func (s *State) GetDBHeight() uint32 {
+	return s.DBHeight
 }
 
-func (s *State) SetDBHeight(dbheight int) {
-	s.dBHeight = dbheight
+func (s *State) SetDBHeight(dbheight uint32) {
+	s.DBHeight = dbheight
 }
 
-func (s *State) NewHash() interfaces.IHash {
+func (s *State) GetNewHash() interfaces.IHash {
 	return new(primitives.Hash)
 }

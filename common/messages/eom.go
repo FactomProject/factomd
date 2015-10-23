@@ -15,9 +15,9 @@ import (
 type EOM struct {
 	minute 		int
 	
-	dbHeight 	int
+	dbHeight 	uint32
 	chainID     interfaces.IHash
-	listHeight  int
+	listHeight  uint32
 	serialHash  interfaces.IHash
 	signature   []byte
 }
@@ -96,7 +96,7 @@ func (m *EOM) Validate(interfaces.IState) int {
 // Returns true if this is a message for this server to execute as 
 // a leader.
 func (m *EOM) Leader(state interfaces.IState) bool {
-	switch state.NetworkNumber() {
+	switch state.GetNetworkNumber() {
 		case 0 : // Main Network
 			panic("Not implemented yet")
 		case 1 : // Test Network
@@ -105,7 +105,7 @@ func (m *EOM) Leader(state interfaces.IState) bool {
 			
 			// Note!  We should validate that we are the server for this network
 			// by checking keys!
-			if state.ServerState() == 1 {
+			if state.GetServerState() == 1 {
 				return true
 			}else{
 				return false
@@ -117,13 +117,33 @@ func (m *EOM) Leader(state interfaces.IState) bool {
 }
 // Execute the leader functions of the given message
 func (m *EOM) LeaderExecute(state interfaces.IState) error {
-	if state.ServerState() == 1 {
+	if state.GetServerState() == 1 {
 		if m.minute == 9 {
-			db, err := directoryblock.CreateDBlock(uint32(state.DBHeight()),state.CurrentDirectoryBlock(),10)
+			olddb := state.GetCurrentDirectoryBlock()
+			db, err := directoryblock.CreateDBlock(uint32(state.GetDBHeight()),olddb,10)
+			state.SetDBHeight(state.GetDBHeight()+1)
 			if err != nil {
 				panic(err.Error())
 			}
 			state.SetCurrentDirectoryBlock(db)
+			if olddb != nil {
+				bodyMR, err := olddb.BuildBodyMR()
+				if err != nil {
+					return err
+				}
+				olddb.GetHeader().SetBodyMR(bodyMR)
+				err = state.GetDB().Put([]byte(constants.DB_DIRECTORY_BLOCKS), olddb.GetKeyMR().Bytes(), olddb)
+				if err != nil {
+					return err 
+				}
+				err = state.GetDB().Put([]byte(constants.DB_DIRECTORY_BLOCKS), constants.D_CHAINID, olddb)
+				if err != nil {
+					return err 
+				}
+				fmt.Println(olddb)
+			}else{
+				fmt.Println("No old db")
+			}
 		}
 	}
 	return nil
@@ -155,6 +175,6 @@ func (m *EOM) JSONBuffer(b *bytes.Buffer) error {
 func NewEOM(state interfaces.IState, minute int) interfaces.IMsg {
 	eom := new(EOM)
 	eom.minute = minute
-	eom.dbHeight = state.DBHeight()
+	eom.dbHeight = state.GetDBHeight()
 	return eom
 }

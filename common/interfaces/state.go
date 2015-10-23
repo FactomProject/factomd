@@ -14,7 +14,7 @@ import ()
 type IState interface {
 	
 	// Server
-	Cfg()					IFactomConfig
+	GetCfg()					IFactomConfig
 	Init()		
 	
 	// Channels
@@ -24,29 +24,29 @@ type IState interface {
 	OutMsgQueue()			chan IMsg		
 	
 	//Network MAIN = 0, TEST = 1, LOCAL = 2, CUSTOM = 3
-	NetworkNumber()		int			// Encoded into Directory Blocks
-	NetworkName()		string		// Some networks have defined names
+	GetNetworkNumber()		int			// Encoded into Directory Blocks
+	GetNetworkName()		string		// Some networks have defined names
 	
 	// Number of Servers acknowledged by Factom
-	TotalServers() int 
-	ServerState()  int      		// (0 if client, 1 if server, 2 if audit server
-	Matryoshka()   []IHash  		// Reverse Hash
+	GetTotalServers() int 
+	GetServerState()  int      		// (0 if client, 1 if server, 2 if audit server
+	GetMatryoshka()   []IHash  		// Reverse Hash
 	
 	LeaderFor([]byte) bool			// Tests if this server is the leader for this key
 	
 	// Database
-	DB() IDatabase
+	GetDB() IDatabase
 	SetDB(IDatabase)
 	
 	// Directory Block State
-	CurrentDirectoryBlock() IDirectoryBlock			// The directory block under construction
+	GetCurrentDirectoryBlock() IDirectoryBlock			// The directory block under construction
 	SetCurrentDirectoryBlock(IDirectoryBlock)
-	DBHeight() int                                  // The index of the directory block under construction.
-	SetDBHeight(int)    
+	GetDBHeight() uint32                                  // The index of the directory block under construction.
+	SetDBHeight(uint32)    
 	
 	// Message State
-	LastAck() IMsg					// Return the last Acknowledgement set by this server
+	GetLastAck() IMsg					// Return the last Acknowledgement set by this server
 	
-	NewHash() IHash					// Return a new Hash object
+	GetNewHash() IHash					// Return a new Hash object
 }
 

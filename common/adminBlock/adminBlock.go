@@ -44,7 +44,6 @@ type AdminBlock struct {
 
 var _ interfaces.Printable = (*AdminBlock)(nil)
 var _ interfaces.BinaryMarshallableAndCopyable = (*AdminBlock)(nil)
-var _ interfaces.IDBEntry = (*AdminBlock)(nil)
 var _ interfaces.DatabaseBatchable = (*AdminBlock)(nil)
 
 func (c *AdminBlock) New() interfaces.BinaryMarshallableAndCopyable {

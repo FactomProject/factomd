@@ -24,7 +24,6 @@ type EBlock struct {
 }
 
 var _ interfaces.Printable = (*EBlock)(nil)
-var _ interfaces.IDBEntry = (*EBlock)(nil)
 var _ interfaces.BinaryMarshallableAndCopyable = (*EBlock)(nil)
 var _ interfaces.DatabaseBatchable = (*EBlock)(nil)
 

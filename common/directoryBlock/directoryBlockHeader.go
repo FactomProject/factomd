@@ -14,85 +14,86 @@ import (
 )
 
 type DBlockHeader struct {
-	version   byte
-	networkID uint32
+	
+	Version   byte
+	NetworkID uint32
 
-	bodyMR          interfaces.IHash
-	prevKeyMR       interfaces.IHash
-	prevLedgerKeyMR interfaces.IHash
+	BodyMR          interfaces.IHash
+	PrevKeyMR       interfaces.IHash
+	PrevLedgerKeyMR interfaces.IHash
 
-	timestamp  uint32
-	dbHeight   uint32
-	blockCount uint32
+	Timestamp  uint32
+	DBHeight   uint32
+	BlockCount uint32
 }
 
 var _ interfaces.Printable = (*DBlockHeader)(nil)
 var _ interfaces.BinaryMarshallable = (*DBlockHeader)(nil)
 var _ interfaces.IDirectoryBlockHeader = (*DBlockHeader)(nil)
 
-func (h *DBlockHeader) Version()   byte {
-	return h.version
+func (h *DBlockHeader) GetVersion()   byte {
+	return h.Version
 }
 
 func (h *DBlockHeader) SetVersion(version byte)   {
-	h.version = version
+	h.Version = version
 }
 
-func (h *DBlockHeader) NetworkID() uint32 {
-	return h.networkID
+func (h *DBlockHeader) GetNetworkID() uint32 {
+	return h.NetworkID
 }
 
 func (h *DBlockHeader) SetNetworkID(networkID uint32)   {
-	h.networkID = networkID
+	h.NetworkID = networkID
 }
 
-func (h *DBlockHeader) BodyMR()          interfaces.IHash {
-	return h.bodyMR
+func (h *DBlockHeader) GetBodyMR()          interfaces.IHash {
+	return h.BodyMR
 }
 
 func (h *DBlockHeader) SetBodyMR(bodyMR interfaces.IHash) {
-	h.bodyMR = bodyMR
+	h.BodyMR = bodyMR
 }
 
-func (h *DBlockHeader) PrevKeyMR()       interfaces.IHash {
-	return h.prevKeyMR
+func (h *DBlockHeader) GetPrevKeyMR()       interfaces.IHash {
+	return h.PrevKeyMR
 }
 
 func (h *DBlockHeader) SetPrevKeyMR(prevKeyMR interfaces.IHash) {
-	h.prevKeyMR = prevKeyMR
+	h.PrevKeyMR = prevKeyMR
 }
 
-func (h *DBlockHeader) PrevLedgerKeyMR() interfaces.IHash {
-	return h.prevLedgerKeyMR
+func (h *DBlockHeader) GetPrevLedgerKeyMR() interfaces.IHash {
+	return h.PrevLedgerKeyMR
 }
 
 func (h *DBlockHeader) SetPrevLedgerKeyMR(PrevLedgerKeyMR interfaces.IHash) {
-	h.prevLedgerKeyMR = PrevLedgerKeyMR
+	h.PrevLedgerKeyMR = PrevLedgerKeyMR
 }
 
-func (h *DBlockHeader) Timestamp()  uint32 {
-	return h.timestamp
+func (h *DBlockHeader) GetTimestamp()  uint32 {
+	return h.Timestamp
 }
 
 func (h *DBlockHeader) SetTimestamp(timestamp uint32) {
-	h.timestamp = timestamp
+	h.Timestamp = timestamp
 }
 
-func (h *DBlockHeader) DBHeight()   uint32 {
-	return h.dbHeight
+func (h *DBlockHeader) GetDBHeight()   uint32 {
+	return h.DBHeight
 }
 
 func (h *DBlockHeader) SetDBHeight(dbheight uint32) {
-	h.dbHeight = dbheight
+	h.DBHeight = dbheight
 }
 
 
-func (h *DBlockHeader) BlockCount() uint32 {
-	return h.blockCount
+func (h *DBlockHeader) GetBlockCount() uint32 {
+	return h.BlockCount
 }
 
 func (h *DBlockHeader) SetBlockCount(blockcount uint32) {
-	h.blockCount = blockcount
+	h.BlockCount = blockcount
 }
 
 
@@ -113,39 +114,39 @@ func (e *DBlockHeader) String() string {
 	return str
 }
 
-func (b *DBlockHeader) MarshalBinary() (data []byte, err error) {
+func (b *DBlockHeader) MarshalBinary() ([]byte, error) {
 	var buf bytes.Buffer
 
-	buf.WriteByte(b.version)
-	binary.Write(&buf, binary.BigEndian, b.NetworkID())
+	buf.WriteByte(b.Version)
+	binary.Write(&buf, binary.BigEndian, b.NetworkID)
 	
 	if b.BodyMR == nil {
 		b.SetBodyMR(new(primitives.Hash))
-		b.BodyMR().SetBytes(new([32]byte)[:])
+		b.BodyMR.SetBytes(new([32]byte)[:])
 	}
-	data, err = b.BodyMR().MarshalBinary()
+	data, err := b.BodyMR.MarshalBinary()
 	if err != nil {
-		return
+		return nil, err
 	}
 	buf.Write(data)
 
-	data, err = b.PrevKeyMR().MarshalBinary()
+	data, err = b.PrevKeyMR.MarshalBinary()
 	if err != nil {
-		return
+		return nil, err 
 	}
 	buf.Write(data)
 
-	data, err = b.PrevLedgerKeyMR().MarshalBinary()
+	data, err = b.PrevLedgerKeyMR.MarshalBinary()
 	if err != nil {
-		return
+		return nil, err 
 	}
 	buf.Write(data)
 
-	binary.Write(&buf, binary.BigEndian, b.Timestamp())
+	binary.Write(&buf, binary.BigEndian, b.Timestamp)
 
-	binary.Write(&buf, binary.BigEndian, b.DBHeight())
+	binary.Write(&buf, binary.BigEndian, b.DBHeight)
 
-	binary.Write(&buf, binary.BigEndian, b.BlockCount())
+	binary.Write(&buf, binary.BigEndian, b.BlockCount)
 
 	return buf.Bytes(), err
 }
@@ -157,31 +158,31 @@ func (b *DBlockHeader) UnmarshalBinaryData(data []byte) (newData []byte, err err
 		}
 	}()
 	newData = data
-	b.version, newData = newData[0], newData[1:]
+	b.Version, newData = newData[0], newData[1:]
 
-	b.networkID, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+	b.NetworkID, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
-	b.bodyMR = new(primitives.Hash)
-	newData, err = b.BodyMR().UnmarshalBinaryData(newData)
+	b.BodyMR = new(primitives.Hash)
+	newData, err = b.BodyMR.UnmarshalBinaryData(newData)
 	if err != nil {
 		return
 	}
 
-	b.prevKeyMR = new(primitives.Hash)
-	newData, err = b.PrevKeyMR().UnmarshalBinaryData(newData)
+	b.PrevKeyMR = new(primitives.Hash)
+	newData, err = b.PrevKeyMR.UnmarshalBinaryData(newData)
 	if err != nil {
 		return
 	}
 
-	b.prevLedgerKeyMR = new(primitives.Hash)
-	newData, err = b.PrevLedgerKeyMR().UnmarshalBinaryData(newData)
+	b.PrevLedgerKeyMR = new(primitives.Hash)
+	newData, err = b.PrevLedgerKeyMR.UnmarshalBinaryData(newData)
 	if err != nil {
 		return
 	}
 
-	b.timestamp, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
-	b.dbHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
-	b.blockCount, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+	b.Timestamp, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+	b.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+	b.BlockCount, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
 	return
 }
@@ -197,9 +198,9 @@ func (b *DBlockHeader) UnmarshalBinary(data []byte) (err error) {
 
 func NewDBlockHeader() *DBlockHeader {
 	d := new(DBlockHeader)
-	d.bodyMR = primitives.NewZeroHash()
-	d.prevKeyMR = primitives.NewZeroHash()
-	d.prevLedgerKeyMR = primitives.NewZeroHash()
+	d.BodyMR = primitives.NewZeroHash()
+	d.PrevKeyMR = primitives.NewZeroHash()
+	d.PrevLedgerKeyMR = primitives.NewZeroHash()
 
 	return d
 }
