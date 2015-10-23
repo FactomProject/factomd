@@ -418,8 +418,8 @@ func HDPrivateKeyToPublicKeyID(id []byte) ([]byte, error) {
 // interfaces.IHash.  It only differs from the one available in wire in that
 // it panics on an error since it will only (and must only) be called with
 // hard-coded, and therefore known good, hashes.
-func newinterfaces.IHashFromStr(hexStr string) interfaces.IHash {
-	sha, err := NewShaHashFromStr(hexStr)
+func newIHashFromStr(hexStr string) interfaces.IHash {
+	sha, err := primitives.NewShaHashFromStr(hexStr)
 	if err != nil {
 		// Ordinarily I don't like panics in library code since it
 		// can take applications down without them having a chance to

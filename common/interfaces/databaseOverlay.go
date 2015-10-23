@@ -24,10 +24,10 @@ type DBOverlay interface {
 	// Sync() (err error)
 
 	// InsertEntry inserts an entry
-	InsertEntry(entry IEBEntry) (err error)
+	InsertEntry(entry DatabaseBatchable) (err error)
 
 	// FetchEntry gets an entry by hash from the database.
-	FetchEntryByHash(entrySha IHash) (entry IEBEntry, err error)
+	FetchEntryByHash(entrySha IHash, dst DatabaseBatchable) (entry DatabaseBatchable, err error)
 
 	// FetchEBEntriesFromQueue gets all of the ebentries that have not been processed
 	//FetchEBEntriesFromQueue(chainID []byte, startTime []byte) (ebentries []EBEntry, err error)
@@ -54,25 +54,25 @@ type DBOverlay interface {
 	// FetchEntryInfoBranchByHash(entryHash IHash) (entryInfoBranch EntryInfoBranch, err error)
 
 	// FetchEntryBlock gets an entry by hash from the database.
-	FetchEBlockByHash(eBlockHash IHash) (eBlock DatabaseBatchable, err error)
+	FetchEBlockByHash(eBlockHash IHash, dst DatabaseBatchable) (eBlock DatabaseBatchable, err error)
 
 	// FetchEBlockByMR gets an entry block by merkle root from the database.
-	FetchEBlockByMR(eBMR IHash) (eBlock DatabaseBatchable, err error)
+	//FetchEBlockByMR(eBMR IHash) (eBlock DatabaseBatchable, err error)
 
 	// FetchEBlockByHeight gets an entry block by height from the database.
 	//FetchEBlockByHeight(chainID  Hash, eBlockHeight uint32) (eBlock EBlock, err error)
 
 	// FetchEBHashByMR gets an entry by hash from the database.
-	FetchEBHashByMR(eBMR IHash) (eBlockHash IHash, err error)
+	//FetchEBHashByMR(eBMR IHash) (eBlockHash IHash, err error)
 
 	// FetchAllEBlocksByChain gets all of the blocks by chain id
-	FetchAllEBlocksByChain(chainID IHash) (eBlocks []BinaryMarshallableAndCopyable, err error)
+	FetchAllEBlocksByChain(chainID IHash, sample BinaryMarshallableAndCopyable) (eBlocks []BinaryMarshallableAndCopyable, err error)
 
 	// FetchDBlock gets an entry by hash from the database.
-	FetchDBlockByHash(dBlockHash IHash) (dBlock DatabaseBatchable, err error)
+	FetchDBlockByHash(dBlockHash IHash, dst DatabaseBatchable) (dBlock DatabaseBatchable, err error)
 
 	// FetchDBlockByMR gets a directory block by merkle root from the database.
-	FetchDBlockByMR(dBMR IHash) (dBlock DatabaseBatchable, err error)
+	//FetchDBlockByMR(dBMR IHash) (dBlock DatabaseBatchable, err error)
 
 	// FetchDBHashByMR gets a DBHash by MR from the database.
 	FetchDBHashByMR(dBMR IHash) (dBlockHash IHash, err error)
@@ -101,19 +101,19 @@ type DBOverlay interface {
 
 	// FetchBlockHeightBySha returns the block height for the given hash.  This is
 	// part of the database.Db interface implementation.
-	FetchBlockHeightBySha(sha IHash) (int64, error)
+	//FetchBlockHeightBySha(sha IHash) (int64, error)
 
 	// FetchAllECBlocks gets all of the entry credit blocks
 	FetchAllECBlocks(sample BinaryMarshallableAndCopyable) (cBlocks []BinaryMarshallableAndCopyable, err error)
 
 	// FetchAllFBInfo gets all of the fbInfo
-	FetchAllDBlocks() (fBlocks []BinaryMarshallableAndCopyable, err error)
+	FetchAllDBlocks(BinaryMarshallableAndCopyable) (fBlocks []BinaryMarshallableAndCopyable, err error)
 
 	// FetchDBHashByHeight gets a dBlockHash from the database.
 	FetchDBHashByHeight(dBlockHeight uint32) (dBlockHash IHash, err error)
 
 	// FetchDBlockByHeight gets an directory block by height from the database.
-	FetchDBlockByHeight(dBlockHeight uint32) (dBlock DatabaseBatchable, err error)
+	FetchDBlockByHeight(dBlockHeight uint32, dst DatabaseBatchable) (dBlock DatabaseBatchable, err error)
 
 	// ProcessECBlockBatche inserts the ECBlock and update all it's ecbentries in DB
 	ProcessECBlockBatch(block DatabaseBatchable) (err error)
@@ -128,25 +128,25 @@ type DBOverlay interface {
 	ProcessABlockBatch(block DatabaseBatchable) error
 
 	// FetchABlockByHash gets an admin block by hash from the database.
-	FetchABlockByHash(aBlockHash IHash) (aBlock DatabaseBatchable, err error)
+	FetchABlockByHash(aBlockHash IHash, dst DatabaseBatchable) (aBlock DatabaseBatchable, err error)
 
 	// FetchAllABlocks gets all of the admin blocks
-	FetchAllABlocks() (aBlocks []BinaryMarshallableAndCopyable, err error)
+	FetchAllABlocks(BinaryMarshallableAndCopyable) (aBlocks []BinaryMarshallableAndCopyable, err error)
 
 	// ProcessFBlockBatch inserts the Factoid
-	ProcessFBlockBatch(IFBlock) error
+	ProcessFBlockBatch(DatabaseBatchable) error
 
 	// FetchFBlockByHash gets an admin block by hash from the database.
-	FetchFBlockByHash(IHash) (IFBlock, error)
+	FetchFBlockByHash(IHash, DatabaseBatchable) (DatabaseBatchable, error)
 
 	// FetchAllFBlocks gets all of the admin blocks
-	FetchAllFBlocks() ([]IFBlock, error)
+	FetchAllFBlocks(BinaryMarshallableAndCopyable) ([]BinaryMarshallableAndCopyable, error)
 
 	// UpdateBlockHeightCache updates the dir block height cache in db
-	UpdateBlockHeightCache(dirBlkHeigh uint32, dirBlkHash IHash) error
+	//UpdateBlockHeightCache(dirBlkHeigh uint32, dirBlkHash IHash) error
 
 	// FetchBlockHeightCache returns the hash and block height of the most recent dir block
-	FetchBlockHeightCache() (sha IHash, height int64, err error)
+	//FetchBlockHeightCache() (sha IHash, height int64, err error)
 
 	// UpdateNextBlockHeightCache updates the next dir block height cache (from server) in db
 	// UpdateNextBlockHeightCache(dirBlkHeigh uint32) error
@@ -155,7 +155,7 @@ type DBOverlay interface {
 	//FetchNextBlockHeightCache() (height int64)
 
 	// FtchHeadMRByChainID gets a MR of the highest block from the database.
-	FetchHeadMRByChainID(chainID IHash) (blkMR IHash, err error)
+	//FetchHeadMRByChainID(chainID IHash) (blkMR IHash, err error)
 
 	// Return the Factoid block with this hash.  If unknown, returns
 	// a null.

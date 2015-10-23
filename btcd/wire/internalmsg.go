@@ -43,7 +43,7 @@ func (msg *MsgInt_EOM) Command() string {
 
 // Factoid block message for internal communication
 type MsgInt_FactoidBlock struct {
-	interfaces.IHash              interfaces.IHash
+	IHash              interfaces.IHash
 	BlockHeight        uint32
 	FactoidBlockStatus byte
 }
@@ -55,7 +55,7 @@ func (msg *MsgInt_FactoidBlock) Command() string {
 
 // Dir block message for internal communication
 type MsgInt_DirBlock struct {
-	interfaces.IHash interfaces.IHash
+	IHash interfaces.IHash
 	//BlockHeight uint64
 }
 

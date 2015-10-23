@@ -205,7 +205,7 @@ func readTxOut(r io.Reader, pver uint32, to *TxOut) error {
 
 	to.Value = int64(value)
 
-	b := make([]byte, RCDconstants.HASH_LENGTH)
+	b := make([]byte, RCDHASH_LENGTH)
 	_, err = io.ReadFull(r, b)
 
 	copy(to.RCDHash[:], b)
@@ -573,7 +573,7 @@ func writeECOut(w io.Writer, pver uint32, eco *TxEntryCreditOut) error {
 // SerializeSize returns the number of bytes it would take to serialize the
 // the transaction output.
 func (t *TxOut) SerializeSize() int {
-	return RCDconstants.HASH_LENGTH + VarIntSerializeSize(uint64(t.Value))
+	return RCDHASH_LENGTH + VarIntSerializeSize(uint64(t.Value))
 }
 
 func (t *TxEntryCreditOut) SerializeSize() int {

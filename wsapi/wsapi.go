@@ -14,7 +14,7 @@ import (
 	factomapi "github.com/FactomProject/factomd/api"
 	"github.com/FactomProject/factomd/btcd/wire"
 	fct "github.com/FactomProject/factomd/common/factoid"
-	"github.com/FactomProject/factomd/database"
+	fct "github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/util"
 	"github.com/hoisie/web"
 
@@ -41,10 +41,10 @@ var server = web.NewServer()
 
 var (
 	inMessageQ chan wire.FtmInternalMsg
-	dbase      database.DBOverlay
+	dbase      interfaces.DBOverlay
 )
 
-func Start(db database.DBOverlay, inMsgQ chan wire.FtmInternalMsg) {
+func Start(db interfaces.DBOverlay, inMsgQ chan wire.FtmInternalMsg) {
 	factomapi.SetDB(db)
 	dbase = db
 	factomapi.SetInMsgQueue(inMsgQ)

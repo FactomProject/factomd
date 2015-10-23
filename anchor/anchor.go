@@ -31,7 +31,6 @@ import (
 	. "github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/database"
 	"github.com/FactomProject/factomd/util"
 )
 
@@ -40,7 +39,7 @@ var (
 	cfg                 *util.FactomdConfig
 	dclient, wclient    *btcrpcclient.Client
 	fee                 btcutil.Amount // tx fee for written into btc
-	db                  database.DBOverlay
+	db                  interfaces.DBOverlay
 	walletLocked        bool
 	reAnchorAfter       = 10 // hours. For anchors that do not get bitcoin callback info for over 10 hours, then re-anchor them.
 	reAnchorCheckEvery  = 1  // hour. do re-anchor check every 1 hour.
@@ -48,10 +47,10 @@ var (
 	confirmationsNeeded int
 
 	//Server Private key for milestone 1
-	serverPrivKey PrivateKey
+	serverPrivKey primitives.PrivateKey
 
 	//Server Entry Credit private key
-	serverECKey PrivateKey
+	serverECKey primitives.PrivateKey
 	//Anchor chain ID
 	anchorChainID interfaces.IHash
 	//InmsgQ for submitting the entry to server
@@ -82,7 +81,7 @@ type AnchorRecord struct {
 
 // SendRawTransactionToBTC is the main function used to anchor factom
 // dir block hash to bitcoin blockchain
-func SendRawTransactionToBTC(hash interfaces.IHash, blockHeight uint32) (interfaces.IHash, error) {
+func SendRawTransactionToBTC(hash interfaces.IHash, blockHeight uint32) (*wire.ShaHash, error) {
 	anchorLog.Debug("SendRawTransactionToBTC: hash=", hash.String(), ", dir block height=", blockHeight) //strconv.FormatUint(blockHeight, 10))
 	err := sanityCheck(hash)
 	if err != nil {
@@ -91,7 +90,7 @@ func SendRawTransactionToBTC(hash interfaces.IHash, blockHeight uint32) (interfa
 	return doTransaction(hash, blockHeight)
 }
 
-func doTransaction(hash interfaces.IHash, blockHeight uint32) (interfaces.IHash, error) {
+func doTransaction(hash interfaces.IHash, blockHeight uint32) (*wire.ShaHash, error) {
 	b := balances[0]
 	balances = balances[1:]
 	anchorLog.Info("new balances.len=", len(balances))
@@ -272,7 +271,7 @@ func validateMsgTx(msgtx *wire.MsgTx, inputs []btcjson.ListUnspentResult) error 
 	return nil
 }
 
-func sendRawTransaction(msgtx *wire.MsgTx) (interfaces.IHash, error) {
+func sendRawTransaction(msgtx *wire.MsgTx) (*wire.ShaHash, error) {
 	//anchorLog.Debug("sendRawTransaction: msgTx=", spew.Sdump(msgtx))
 	buf := bytes.Buffer{}
 	buf.Grow(msgtx.SerializeSize())
@@ -291,7 +290,7 @@ func sendRawTransaction(msgtx *wire.MsgTx) (interfaces.IHash, error) {
 		return nil, fmt.Errorf("failed in rpcclient.SendRawTransaction: %s", err)
 	}
 	anchorLog.Info("btc txHash returned: ", shaHash) // new tx hash
-	return (*Hash)(shaHash), nil
+	return shaHash, nil
 }
 
 func createBtcwalletNotificationHandlers() btcrpcclient.NotificationHandlers {
@@ -344,7 +343,7 @@ func createBtcdNotificationHandlers() btcrpcclient.NotificationHandlers {
 
 // InitAnchor inits rpc clients for factom
 // and load up unconfirmed DirBlockInfo from leveldb
-func InitAnchor(do database.DBOverlay, q chan factomwire.FtmInternalMsg, serverKey PrivateKey) {
+func InitAnchor(do interfaces.DBOverlay, q chan factomwire.FtmInternalMsg, serverKey primitives.PrivateKey) {
 	anchorLog.Debug("InitAnchor")
 	db = do
 	inMsgQ = q
@@ -393,11 +392,12 @@ func initRPCClient() error {
 
 	//Added anchor parameters
 	var err error
-	serverECKey, err = NewPrivateKeyFromHex(cfg.Anchor.ServerECKey)
+	//TODO: double check if the key is properly generated
+	serverECKey, err = primitives.NewPrivateKeyFromHex(cfg.Anchor.ServerECPrivKey)
 	if err != nil {
 		panic("Cannot parse Server EC Key from configuration file: " + err.Error())
 	}
-	anchorChainID, err = HexToHash(cfg.Anchor.AnchorChainID)
+	anchorChainID, err = primitives.HexToHash(cfg.Anchor.AnchorChainID)
 	anchorLog.Debug("anchorChainID: ", anchorChainID)
 	if err != nil || anchorChainID == nil {
 		panic("Cannot parse Server AnchorChainID from configuration file: " + err.Error())
