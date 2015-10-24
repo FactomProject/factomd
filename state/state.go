@@ -1,37 +1,36 @@
 package state
 
 import (
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
+	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/hybridDB"
+	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/util"
-	"log"
-	"sync"
-	"fmt"
 	"os"
+	"sync"
 )
 
 type State struct {
-	once        		sync.Once
-	Cfg         		interfaces.IFactomConfig
-	
-	inMsgQueue			chan interfaces.IMsg
-	leaderInMsgQueue	chan interfaces.IMsg
-	followerInMsgQueue	chan interfaces.IMsg
-	outMsgQueue			chan interfaces.IMsg
+	once sync.Once
+	Cfg  interfaces.IFactomConfig
+
+	inMsgQueue         chan interfaces.IMsg
+	leaderInMsgQueue   chan interfaces.IMsg
+	followerInMsgQueue chan interfaces.IMsg
+	outMsgQueue        chan interfaces.IMsg
 
 	//Network MAIN = 0, TEST = 1, LOCAL = 2, CUSTOM = 3
-	NetworkNumber 		int // Encoded into Directory Blocks
+	NetworkNumber int // Encoded into Directory Blocks
 
 	// Number of Servers acknowledged by Factom
-	TotalServers 		int
-	ServerState  		int     // (0 if client, 1 if server, 2 if audit server
-	Matryoshka   		[]interfaces.IHash // Reverse Hash
+	TotalServers int
+	ServerState  int                // (0 if client, 1 if server, 2 if audit server
+	Matryoshka   []interfaces.IHash // Reverse Hash
 
 	// Database
-	DB 					interfaces.IDatabase
+	DB interfaces.IDatabase
 
 	// Directory Block State
 	CurrentDirectoryBlock interfaces.IDirectoryBlock
@@ -40,7 +39,7 @@ type State struct {
 	// Message State
 	LastAck interfaces.IMsg // Return the last Acknowledgement set by this server
 
-	FactoidState 		interfaces.IFactoidState
+	FactoidState interfaces.IFactoidState
 }
 
 // Tests the given hash, and returns true if this server is the leader for this key.
@@ -58,19 +57,19 @@ func (s *State) LeaderFor([]byte) bool {
 	return false
 }
 
-func (s *State) InMsgQueue() (chan interfaces.IMsg) {
+func (s *State) InMsgQueue() chan interfaces.IMsg {
 	return s.inMsgQueue
 }
 
-func (s *State) LeaderInMsgQueue() (chan interfaces.IMsg) {
+func (s *State) LeaderInMsgQueue() chan interfaces.IMsg {
 	return s.leaderInMsgQueue
 }
 
-func (s *State) FollowerInMsgQueue() (chan interfaces.IMsg) {
+func (s *State) FollowerInMsgQueue() chan interfaces.IMsg {
 	return s.followerInMsgQueue
 }
 
-func (s *State) OutMsgQueue() (chan interfaces.IMsg) {
+func (s *State) OutMsgQueue() chan interfaces.IMsg {
 	return s.outMsgQueue
 }
 
@@ -80,7 +79,7 @@ func (s *State) OutMsgQueue() (chan interfaces.IMsg) {
 // it hasn;t been read yet.
 func (s *State) GetCfg() interfaces.IFactomConfig {
 	s.once.Do(func() {
-		log.Println("read factom config file: ", util.ConfigFilename())
+		log.Printfln("read factom config file: %v", util.ConfigFilename())
 		s.Cfg = util.ReadConfig()
 	})
 	return s.Cfg
@@ -119,14 +118,16 @@ func (s *State) Init() {
 	// Get our factomd configuration information.
 	cfg := s.GetCfg().(*util.FactomdConfig)
 
-	s.inMsgQueue         = make(chan interfaces.IMsg, 10000)  //incoming message queue for factom application messages
-	s.leaderInMsgQueue   = make(chan interfaces.IMsg, 10000)  //incoming message queue for factom application messages
-	s.followerInMsgQueue = make(chan interfaces.IMsg, 10000)  //incoming message queue for factom application messages
-	s.outMsgQueue        = make(chan interfaces.IMsg, 10000) //outgoing message queue for factom application messages
+	log.SetLevel(cfg.Log.ConsoleLogLevel)
+
+	s.inMsgQueue = make(chan interfaces.IMsg, 10000)         //incoming message queue for factom application messages
+	s.leaderInMsgQueue = make(chan interfaces.IMsg, 10000)   //incoming message queue for factom application messages
+	s.followerInMsgQueue = make(chan interfaces.IMsg, 10000) //incoming message queue for factom application messages
+	s.outMsgQueue = make(chan interfaces.IMsg, 10000)        //outgoing message queue for factom application messages
 
 	s.TotalServers = 1
-	s.ServerState  = 1
-	
+	s.ServerState = 1
+
 	//Database
 
 	//Network
@@ -144,25 +145,25 @@ func (s *State) Init() {
 	}
 
 	if err := s.InitBoltDB(); err != nil {
-		fmt.Println("Error initializing the database: ",err)
+		log.Printfln("Error initializing the database: %v", err)
 	}
-	
+
 	dirblk := new(directoryblock.DirectoryBlock)
-	_, err := s.DB.Get([]byte(constants.DB_DIRECTORY_BLOCKS), constants.D_CHAINID, dirblk) 
+	_, err := s.DB.Get([]byte(constants.DB_DIRECTORY_BLOCKS), constants.D_CHAINID, dirblk)
 	if err != nil {
 		panic(err.Error())
 	}
 	s.SetCurrentDirectoryBlock(dirblk)
-	s.SetDBHeight(dirblk.GetHeader().GetDBHeight()+1)
+	s.SetDBHeight(dirblk.GetHeader().GetDBHeight() + 1)
 	s.FactoidState = new(FactoidState)
 }
 
 func (s *State) InitLevelDB() error {
 	cfg := s.Cfg.(*util.FactomdConfig)
 	path := cfg.App.LdbPath + "/" + cfg.App.Network + "/" + "factoid_level.db"
-	
-	fmt.Println("Creating Database at ",path)
-	
+
+	log.Printfln("Creating Database at %v", path)
+
 	dbase, err := hybridDB.NewLevelMapHybridDB(path, false)
 
 	if err != nil {
@@ -182,7 +183,7 @@ func (s *State) InitLevelDB() error {
 
 func (s *State) InitBoltDB() error {
 	cfg := s.Cfg.(*util.FactomdConfig)
-	path := cfg.App.BoltDBPath + "/" + cfg.App.Network + "/" 
+	path := cfg.App.BoltDBPath + "/" + cfg.App.Network + "/"
 	os.MkdirAll(path, 0777)
 	dbase := hybridDB.NewBoltMapHybridDB(nil, path+"FactomBolt.db")
 	s.DB = dbase

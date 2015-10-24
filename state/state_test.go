@@ -5,13 +5,12 @@
 package state
 
 import (
-	"fmt"
+	"github.com/FactomProject/factomd/log"
 	"testing"
 )
 
 func TestInit(t *testing.T) {
 	state := new(State)
 	state.Init()
-	fmt.Println(state)
+	log.Println(state)
 }
-

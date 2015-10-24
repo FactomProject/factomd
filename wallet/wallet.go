@@ -1,7 +1,7 @@
 package wallet
 
 import (
-	"log"
+	"github.com/FactomProject/factomd/log"
 	"os"
 	//"fmt"
 	"code.google.com/p/gcfg"

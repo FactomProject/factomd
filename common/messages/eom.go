@@ -5,22 +5,23 @@
 package messages
 
 import (
-	"fmt"
 	"bytes"
-	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/common/interfaces"
+	"fmt"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
+	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/log"
 )
 
 type EOM struct {
-	minute 		int
-	
-	dbHeight 	uint32
-	chainID     interfaces.IHash
-	listHeight  uint32
-	serialHash  interfaces.IHash
-	signature   []byte
+	minute int
+
+	dbHeight   uint32
+	chainID    interfaces.IHash
+	listHeight uint32
+	serialHash interfaces.IHash
+	signature  []byte
 }
 
 var _ interfaces.IConfirmation = (*EOM)(nil)
@@ -34,7 +35,7 @@ func (m *EOM) Bytes() []byte {
 	return append(ret, byte(m.minute))
 }
 
-func (m *EOM) UnmarshalBinaryData(data [] byte) (newdata []byte, err error){
+func (m *EOM) UnmarshalBinaryData(data []byte) (newdata []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
@@ -45,14 +46,14 @@ func (m *EOM) UnmarshalBinaryData(data [] byte) (newdata []byte, err error){
 	if m.minute < 0 || m.minute >= 10 {
 		return nil, fmt.Errorf("Minute number is out of range")
 	}
-	
+
 	//m.dbHeight, data = binary.BigEndian.Uint32(data[:]), data[4:]
 
 	return data, nil
 }
 
-func (m *EOM) UnmarshalBinary(data []byte) error{
-	_,err := m.UnmarshalBinaryData(data)
+func (m *EOM) UnmarshalBinary(data []byte) error {
+	_, err := m.UnmarshalBinaryData(data)
 	return err
 }
 
@@ -61,14 +62,13 @@ func (m *EOM) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *EOM) String() string {
-	return fmt.Sprintf("EOM(%d)",m.minute+1)
+	return fmt.Sprintf("EOM(%d)", m.minute+1)
 }
-	
 
 func (m *EOM) Type() int {
 	return constants.EOM_MSG
 }
-func (m *EOM) DBHeight() int	{
+func (m *EOM) DBHeight() int {
 	return 0
 }
 func (m *EOM) ChainID() []byte {
@@ -85,7 +85,6 @@ func (m *EOM) Signature() []byte {
 	return nil
 }
 
-
 // Validate the message, given the state.  Three possible results:
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
@@ -94,41 +93,42 @@ func (m *EOM) Validate(interfaces.IState) int {
 	return 1
 }
 
-// Returns true if this is a message for this server to execute as 
+// Returns true if this is a message for this server to execute as
 // a leader.
 func (m *EOM) Leader(state interfaces.IState) bool {
 	switch state.GetNetworkNumber() {
-		case 0 : // Main Network
-			panic("Not implemented yet")
-		case 1 : // Test Network
-			panic("Not implemented yet")
-		case 2 : // Local Network
-			
-			// Note!  We should validate that we are the server for this network
-			// by checking keys!
-			if state.GetServerState() == 1 {
-				return true
-			}else{
-				return false
-			}
-		default :
-			panic("Not implemented yet")
+	case 0: // Main Network
+		panic("Not implemented yet")
+	case 1: // Test Network
+		panic("Not implemented yet")
+	case 2: // Local Network
+
+		// Note!  We should validate that we are the server for this network
+		// by checking keys!
+		if state.GetServerState() == 1 {
+			return true
+		} else {
+			return false
+		}
+	default:
+		panic("Not implemented yet")
 	}
-	
+
 }
+
 // Execute the leader functions of the given message
 func (m *EOM) LeaderExecute(state interfaces.IState) error {
 	if state.GetServerState() == 1 {
 		if m.minute == 9 {
 			olddb := state.GetCurrentDirectoryBlock()
-			db, err := directoryblock.CreateDBlock(uint32(state.GetDBHeight()),olddb,10)
-			state.SetDBHeight(state.GetDBHeight()+1)
+			db, err := directoryblock.CreateDBlock(uint32(state.GetDBHeight()), olddb, 10)
+			state.SetDBHeight(state.GetDBHeight() + 1)
 			if err != nil {
 				panic(err.Error())
 			}
 			state.SetCurrentDirectoryBlock(db)
-			db.AddEntry(primitives.NewHash(constants.ADMIN_CHAINID),   primitives.NewZeroHash()) // AdminBlock
-			db.AddEntry(primitives.NewHash(constants.EC_CHAINID),      primitives.NewZeroHash()) // AdminBlock
+			db.AddEntry(primitives.NewHash(constants.ADMIN_CHAINID), primitives.NewZeroHash())   // AdminBlock
+			db.AddEntry(primitives.NewHash(constants.EC_CHAINID), primitives.NewZeroHash())      // AdminBlock
 			db.AddEntry(primitives.NewHash(constants.FACTOID_CHAINID), primitives.NewZeroHash()) // AdminBlock
 
 			if olddb != nil {
@@ -139,15 +139,15 @@ func (m *EOM) LeaderExecute(state interfaces.IState) error {
 				olddb.GetHeader().SetBodyMR(bodyMR)
 				err = state.GetDB().Put([]byte(constants.DB_DIRECTORY_BLOCKS), olddb.GetKeyMR().Bytes(), olddb)
 				if err != nil {
-					return err 
+					return err
 				}
 				err = state.GetDB().Put([]byte(constants.DB_DIRECTORY_BLOCKS), constants.D_CHAINID, olddb)
 				if err != nil {
-					return err 
+					return err
 				}
-				fmt.Println(olddb)
-			}else{
-				fmt.Println("No old db")
+				log.Printfln("%v", olddb)
+			} else {
+				log.Println("No old db")
 			}
 		}
 	}

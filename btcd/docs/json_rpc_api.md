@@ -862,7 +862,7 @@ import (
 	"github.com/btcsuite/btcrpcclient"
 	"github.com/btcsuite/btcutil"
 	"io/ioutil"
-	"log"
+	"github.com/FactomProject/factomd/log"
 	"path/filepath"
 )
 
@@ -923,7 +923,7 @@ import (
 	"github.com/btcsuite/btcutil"
 	"github.com/btcsuite/btcd/wire"
 	"io/ioutil"
-	"log"
+	"github.com/FactomProject/factomd/log"
 	"path/filepath"
 	"time"
 )
@@ -1013,7 +1013,7 @@ import (
 	"github.com/btcsuite/btcutil"
 	"github.com/btcsuite/btcd/wire"
 	"io/ioutil"
-	"log"
+	"github.com/FactomProject/factomd/log"
 	"path/filepath"
 	"time"
 )

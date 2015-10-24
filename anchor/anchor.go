@@ -14,8 +14,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/FactomProject/factomd/log"
 	"io/ioutil"
-	"log"
 	"path/filepath"
 	"time"
 
