@@ -9,7 +9,7 @@ package controlpanel
 import (
 	"bytes"
 	"fmt"
-	"log"
+	"github.com/FactomProject/factomd/log"
 	"net/http"
 	"strings"
 	"time"
@@ -159,5 +159,5 @@ func handlerGetReport2(w http.ResponseWriter, r *http.Request) {
 func runPanel() {
 	http.HandleFunc("/controlpanel", handler)
 	http.HandleFunc("/getreport", handlerGetReport)
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", CP.GetPort()), nil))
+	log.Fatal("%v", http.ListenAndServe(fmt.Sprintf(":%s", CP.GetPort()), nil))
 }

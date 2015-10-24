@@ -5,21 +5,20 @@
 package main
 
 import (
-	"fmt"
 	"github.com/FactomProject/factomd/common/interfaces"
-	
+	"github.com/FactomProject/factomd/log"
 )
 
 func Leader(state interfaces.IState) {
-	
+
 	for {
-		msg := <- state.LeaderInMsgQueue() 
-		fmt.Printf("%20s %s\n","Leader:", msg.String())
+		msg := <-state.LeaderInMsgQueue()
+		log.Printf("%20s %s\n", "Leader:", msg.String())
 		msg.LeaderExecute(state)
-		
+
 		if msg.Follower(state) {
 			state.FollowerInMsgQueue() <- msg
 		}
 	}
-	
+
 }

@@ -8,39 +8,38 @@ import ()
 
 type IDirectoryBlock interface {
 	BinaryMarshallable
-	
-	GetHeader() 						IDirectoryBlockHeader
+
+	GetHeader() IDirectoryBlockHeader
 	SetHeader(IDirectoryBlockHeader)
-	GetDBEntries() 						[]IDBEntry
-	SetDBEntries([] IDBEntry)
+	GetDBEntries() []IDBEntry
+	SetDBEntries([]IDBEntry)
 	AddEntry(chainID IHash, keyMR IHash)
-	BuildKeyMerkleRoot()				(IHash, error)
-	BuildBodyMR()						(IHash, error)
-	GetKeyMR()							IHash
+	BuildKeyMerkleRoot() (IHash, error)
+	BuildBodyMR() (IHash, error)
+	GetKeyMR() IHash
 }
 
 type IDirectoryBlockHeader interface {
 	BinaryMarshallable
-	
-	GetVersion()						byte
-	SetVersion(byte)	
-	GetPrevLedgerKeyMR() 				IHash
+
+	GetVersion() byte
+	SetVersion(byte)
+	GetPrevLedgerKeyMR() IHash
 	SetPrevLedgerKeyMR(IHash)
-	GetBodyMR()							IHash
+	GetBodyMR() IHash
 	SetBodyMR(IHash)
-	GetPrevKeyMR()						IHash
+	GetPrevKeyMR() IHash
 	SetPrevKeyMR(IHash)
-	GetDBHeight()						uint32
+	GetDBHeight() uint32
 	SetDBHeight(uint32)
-	GetBlockCount()						uint32
+	GetBlockCount() uint32
 	SetBlockCount(uint32)
-	
 }
 
 type IDBEntry interface {
 	BinaryMarshallable
-	GetChainID()						IHash
+	GetChainID() IHash
 	SetChainID(IHash)
-	GetKeyMR()							IHash
+	GetKeyMR() IHash
 	SetKeyMR(IHash)
 }

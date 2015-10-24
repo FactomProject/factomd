@@ -2,21 +2,22 @@ package util
 
 import (
 	"fmt"
+	"github.com/FactomProject/factomd/log"
 	"runtime"
 	"time"
 )
 
 // a simple file/line trace function, with optional comment(s)
 func Trace(params ...string) {
-	fmt.Printf("##")
+	log.Printf("##")
 
 	if 0 < len(params) {
 		for i := range params {
-			fmt.Printf(" %s", params[i])
+			log.Printf(" %s", params[i])
 		}
-		fmt.Printf(" #### ")
+		log.Printf(" #### ")
 	} else {
-		fmt.Printf(" ")
+		log.Printf(" ")
 	}
 
 	pc := make([]uintptr, 10) // at least 1 entry needed
@@ -27,7 +28,7 @@ func Trace(params ...string) {
 	tutc := time.Now().UTC()
 	timestamp := tutc.Format("2006-01-02.15:04:05")
 
-	fmt.Printf("TRACE: %s line %d %s file: %s\n", timestamp, line, f.Name(), file)
+	log.Printf("TRACE: %s line %d %s file: %s\n", timestamp, line, f.Name(), file)
 }
 
 // Calculate the entry credits needed for the entry

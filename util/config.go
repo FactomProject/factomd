@@ -1,82 +1,82 @@
-
 package util
 
 import (
-    "log"
-    "os"
-	"fmt"
 	"bytes"
-    "os/user"
-  
-    "code.google.com/p/gcfg"
+	"fmt"
+	"github.com/FactomProject/factomd/log"
+	"os"
+	"os/user"
+
+	"code.google.com/p/gcfg"
 )
 
 var _ = fmt.Print
 
 type FactomdConfig struct {
-    App struct {
-        PortNumber              int
-        HomeDir                 string
-        LdbPath                 string
-        BoltDBPath              string
-        DataStorePath           string
-        DirectoryBlockInSeconds int
-        Network                 string
-        NodeMode                string
-        LocalServerPrivKey      string
-        LocalServerPublicKey    string
-        ExchangeRate            uint64
-    }
-    Anchor struct {
+	App struct {
+		PortNumber              int
+		HomeDir                 string
+		LdbPath                 string
+		BoltDBPath              string
+		DataStorePath           string
+		DirectoryBlockInSeconds int
+		Network                 string
+		NodeMode                string
+		LocalServerPrivKey      string
+		LocalServerPublicKey    string
+		ExchangeRate            uint64
+	}
+	Anchor struct {
 		ServerECPrivKey     string
 		ServerECPublicKey   string
 		AnchorChainID       string
-        ConfirmationsNeeded int
-    }
-    Btc struct {
-        BTCPubAddr         string
-        SendToBTCinSeconds int
-        WalletPassphrase   string
-        CertHomePath       string
-        RpcClientHost      string
-        RpcClientEndpoint  string
-        RpcClientUser      string
-        RpcClientPass      string
-        BtcTransFee        float64
-        CertHomePathBtcd   string
-        RpcBtcdHost        string
-        RpcUser            string
-        RpcPass            string
-    }
-    Rpc struct {
-        PortNumber       int
-        ApplicationName  string
-        RefreshInSeconds int
-    }
-    Wsapi struct {
-        PortNumber      int
-        ApplicationName string
-    }
-    Log struct {
-        LogPath  string
-        LogLevel string
-    }
-    Wallet struct {
-        Address          string
-        Port             int
-        DataFile         string
-        RefreshInSeconds string
-        BoltDBPath       string
-    }
+		ConfirmationsNeeded int
+	}
+	Btc struct {
+		BTCPubAddr         string
+		SendToBTCinSeconds int
+		WalletPassphrase   string
+		CertHomePath       string
+		RpcClientHost      string
+		RpcClientEndpoint  string
+		RpcClientUser      string
+		RpcClientPass      string
+		BtcTransFee        float64
+		CertHomePathBtcd   string
+		RpcBtcdHost        string
+		RpcUser            string
+		RpcPass            string
+	}
+	Rpc struct {
+		PortNumber       int
+		ApplicationName  string
+		RefreshInSeconds int
+	}
+	Wsapi struct {
+		PortNumber      int
+		ApplicationName string
+	}
+	Log struct {
+		LogPath         string
+		LogLevel        string
+		ConsoleLogLevel string
+	}
+	Wallet struct {
+		Address          string
+		Port             int
+		DataFile         string
+		RefreshInSeconds string
+		BoltDBPath       string
+	}
 
-    //    AddPeers     []string `short:"a" long:"addpeer" description:"Add a peer to connect with at startup"`
-    //    ConnectPeers []string `long:"connect" description:"Connect only to the specified peers at startup"`
+	//    AddPeers     []string `short:"a" long:"addpeer" description:"Add a peer to connect with at startup"`
+	//    ConnectPeers []string `long:"connect" description:"Connect only to the specified peers at startup"`
 
-    Proxy          string `long:"proxy" description:"Connect via SOCKS5 proxy (eg. 127.0.0.1:9050)"`
-    DisableListen  bool   `long:"nolisten" description:"Disable listening for incoming connections -- NOTE: Listening is automatically disabled if the --connect or --proxy options are used without also specifying listen interfaces via --listen"`
-    DisableRPC     bool   `long:"norpc" description:"Disable built-in RPC server -- NOTE: The RPC server is disabled by default if no rpcuser/rpcpass is specified"`
-    DisableTLS     bool   `long:"notls" description:"Disable TLS for the RPC server -- NOTE: This is only allowed if the RPC server is bound to localhost"`
-    DisableDNSSeed bool   `long:"nodnsseed" description:"Disable DNS seeding for peers"`
+	Proxy          string `long:"proxy" description:"Connect via SOCKS5 proxy (eg. 127.0.0.1:9050)"`
+	DisableListen  bool   `long:"nolisten" description:"Disable listening for incoming connections -- NOTE: Listening is automatically disabled if the --connect or --proxy options are used without also specifying listen interfaces via --listen"`
+	DisableRPC     bool   `long:"norpc" description:"Disable built-in RPC server -- NOTE: The RPC server is disabled by default if no rpcuser/rpcpass is specified"`
+	DisableTLS     bool   `long:"notls" description:"Disable TLS for the RPC server -- NOTE: This is only allowed if the RPC server is bound to localhost"`
+	DisableDNSSeed bool   `long:"nodnsseed" description:"Disable DNS seeding for peers"`
 }
 
 // defaultConfig
@@ -124,10 +124,12 @@ PortNumber                            =8088
 
 ; ------------------------------------------------------------------------------
 ; logLevel - allowed values are: debug, info, notice, warning, error, critical, alert, emergency and none
+; ConsoleLogLevel - allowed values are: debug, standard
 ; ------------------------------------------------------------------------------
 [log]
 logLevel                              =debug
 LogPath                               = "m2factom-d.log"
+ConsoleLogLevel                       =debug
 
 ; ------------------------------------------------------------------------------
 ; Configurations for fctwallet
@@ -140,9 +142,9 @@ RefreshInSeconds                      = 60
 BoltDBPath                            = ""
 `
 
-func(s *FactomdConfig) String() string {
+func (s *FactomdConfig) String() string {
 	var out bytes.Buffer
-	
+
 	out.WriteString(fmt.Sprintf("\nFactomd Config"))
 	out.WriteString(fmt.Sprintf("\n  App"))
 	out.WriteString(fmt.Sprintf("\n    PortNumber              %v", s.App.PortNumber))
@@ -156,13 +158,13 @@ func(s *FactomdConfig) String() string {
 	out.WriteString(fmt.Sprintf("\n    LocalServerPrivKey      %v", s.App.LocalServerPrivKey))
 	out.WriteString(fmt.Sprintf("\n    LocalServerPublicKey    %v", s.App.LocalServerPublicKey))
 	out.WriteString(fmt.Sprintf("\n    ExchangeRate            %v", s.App.ExchangeRate))
-	
+
 	out.WriteString(fmt.Sprintf("\n  Anchor"))
 	out.WriteString(fmt.Sprintf("\n    ServerECPrivKey         %v", s.Anchor.ServerECPrivKey))
 	out.WriteString(fmt.Sprintf("\n    ServerECPublicKey       %v", s.Anchor.ServerECPublicKey))
 	out.WriteString(fmt.Sprintf("\n    AnchorChainID           %v", s.Anchor.AnchorChainID))
 	out.WriteString(fmt.Sprintf("\n    ConfirmationsNeeded     %v", s.Anchor.ConfirmationsNeeded))
-	
+
 	out.WriteString(fmt.Sprintf("\n  Btc"))
 	out.WriteString(fmt.Sprintf("\n    BTCPubAddr              %v", s.Btc.BTCPubAddr))
 	out.WriteString(fmt.Sprintf("\n    SendToBTCinSeconds      %v", s.Btc.SendToBTCinSeconds))
@@ -177,20 +179,21 @@ func(s *FactomdConfig) String() string {
 	out.WriteString(fmt.Sprintf("\n    RpcBtcdHost             %v", s.Btc.RpcBtcdHost))
 	out.WriteString(fmt.Sprintf("\n    RpcUser                 %v", s.Btc.RpcUser))
 	out.WriteString(fmt.Sprintf("\n    RpcPass                 %v", s.Btc.RpcPass))
-	
+
 	out.WriteString(fmt.Sprintf("\n  Rpc"))
 	out.WriteString(fmt.Sprintf("\n    PortNumber              %v", s.Rpc.PortNumber))
 	out.WriteString(fmt.Sprintf("\n    ApplicationName         %v", s.Rpc.ApplicationName))
 	out.WriteString(fmt.Sprintf("\n    RefreshInSeconds        %v", s.Rpc.RefreshInSeconds))
-	
+
 	out.WriteString(fmt.Sprintf("\n  Wsapi"))
 	out.WriteString(fmt.Sprintf("\n    PortNumber              %v", s.Wsapi.PortNumber))
 	out.WriteString(fmt.Sprintf("\n    ApplicationName         %v", s.Wsapi.ApplicationName))
-	
+
 	out.WriteString(fmt.Sprintf("\n  Log"))
 	out.WriteString(fmt.Sprintf("\n    LogPath                 %v", s.Log.LogPath))
 	out.WriteString(fmt.Sprintf("\n    LogLevel                %v", s.Log.LogLevel))
-	
+	out.WriteString(fmt.Sprintf("\n    ConsoleLogLevel         %v", s.Log.ConsoleLogLevel))
+
 	out.WriteString(fmt.Sprintf("\n  Wallet"))
 	out.WriteString(fmt.Sprintf("\n    Address                 %v", s.Wallet.Address))
 	out.WriteString(fmt.Sprintf("\n    Port                    %v", s.Wallet.Port))
@@ -201,9 +204,7 @@ func(s *FactomdConfig) String() string {
 	return out.String()
 }
 
-
-
-func ConfigFilename () string {
+func ConfigFilename() string {
 	return GetHomeDir() + "/.factom/m2/factomd.conf"
 }
 
@@ -211,53 +212,53 @@ func ReadConfig() *FactomdConfig {
 	filename := ConfigFilename()
 	cfg := new(FactomdConfig)
 
-    // This makes factom config file located at
-    //   POSIX (Linux/BSD): ~/.factom/factom.conf
-    //   Mac OS: $HOME/Library/Application Support/Factom/factom.conf
-    //   Windows: %LOCALAPPDATA%\Factom\factom.conf
-    //   Plan 9: $home/factom/factom.conf
-    //factomHomeDir := btcutil.AppDataDir("factom", false)
-    //defaultConfigFile := filepath.Join(factomHomeDir, "factomd.conf")
-    //
-    // eventually we need to make data dir as following
-    //defaultDataDir   = filepath.Join(factomHomeDir, "data")
-    //LdbPath                     = filepath.Join(defaultDataDir, "ldb9")
-    //DataStorePath         = filepath.Join(defaultDataDir, "store/seed/")
+	// This makes factom config file located at
+	//   POSIX (Linux/BSD): ~/.factom/factom.conf
+	//   Mac OS: $HOME/Library/Application Support/Factom/factom.conf
+	//   Windows: %LOCALAPPDATA%\Factom\factom.conf
+	//   Plan 9: $home/factom/factom.conf
+	//factomHomeDir := btcutil.AppDataDir("factom", false)
+	//defaultConfigFile := filepath.Join(factomHomeDir, "factomd.conf")
+	//
+	// eventually we need to make data dir as following
+	//defaultDataDir   = filepath.Join(factomHomeDir, "data")
+	//LdbPath                     = filepath.Join(defaultDataDir, "ldb9")
+	//DataStorePath         = filepath.Join(defaultDataDir, "store/seed/")
 
-    err := gcfg.ReadFileInto(cfg, filename)
-    if err != nil {
-        log.Println("ERROR Reading config file!\nServer starting with default settings...\n", err)
-        gcfg.ReadStringInto(cfg, defaultConfig)
-    }
+	err := gcfg.ReadFileInto(cfg, filename)
+	if err != nil {
+		log.Printfln("ERROR Reading config file!\nServer starting with default settings...\n%v\n", err)
+		gcfg.ReadStringInto(cfg, defaultConfig)
+	}
 
-    // Default to home directory if not set
-    if len(cfg.App.HomeDir) < 1 {
-        cfg.App.HomeDir = GetHomeDir() + "/.factom/m2/"
-    }
+	// Default to home directory if not set
+	if len(cfg.App.HomeDir) < 1 {
+		cfg.App.HomeDir = GetHomeDir() + "/.factom/m2/"
+	}
 
-    // TODO: improve the paths after milestone 1
-    cfg.App.LdbPath = cfg.App.HomeDir + cfg.App.LdbPath
-    cfg.App.BoltDBPath = cfg.App.HomeDir + cfg.App.BoltDBPath
-    cfg.App.DataStorePath = cfg.App.HomeDir + cfg.App.DataStorePath
-    cfg.Log.LogPath = cfg.App.HomeDir + cfg.Log.LogPath
-    cfg.Wallet.BoltDBPath = cfg.App.HomeDir + cfg.Wallet.BoltDBPath
+	// TODO: improve the paths after milestone 1
+	cfg.App.LdbPath = cfg.App.HomeDir + cfg.App.LdbPath
+	cfg.App.BoltDBPath = cfg.App.HomeDir + cfg.App.BoltDBPath
+	cfg.App.DataStorePath = cfg.App.HomeDir + cfg.App.DataStorePath
+	cfg.Log.LogPath = cfg.App.HomeDir + cfg.Log.LogPath
+	cfg.Wallet.BoltDBPath = cfg.App.HomeDir + cfg.Wallet.BoltDBPath
 
-    return cfg
+	return cfg
 }
 
 func GetHomeDir() string {
-    // Get the OS specific home directory via the Go standard lib.
-    var homeDir string
-    usr, err := user.Current()
-    if err == nil {
-        homeDir = usr.HomeDir
-    }
+	// Get the OS specific home directory via the Go standard lib.
+	var homeDir string
+	usr, err := user.Current()
+	if err == nil {
+		homeDir = usr.HomeDir
+	}
 
-    // Fall back to standard HOME environment variable that works
-    // for most POSIX OSes if the directory from the Go standard
-    // lib failed.
-    if err != nil || homeDir == "" {
-        homeDir = os.Getenv("HOME")
-    }
-    return homeDir
+	// Fall back to standard HOME environment variable that works
+	// for most POSIX OSes if the directory from the Go standard
+	// lib failed.
+	if err != nil || homeDir == "" {
+		homeDir = os.Getenv("HOME")
+	}
+	return homeDir
 }

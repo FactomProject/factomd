@@ -17,6 +17,7 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	cp "github.com/FactomProject/factomd/controlpanel"
+	"github.com/FactomProject/factomd/log"
 	"time"
 )
 
@@ -248,7 +249,7 @@ func (fs *FactoidState) LoadState() error {
 		fs.database.PutTransactionBlock(FACTOID_CHAINID_HASH, gb)
 		err := fs.AddTransactionBlock(gb)
 		if err != nil {
-			primitives.Prtln("Failed to build initial state.\n", err)
+			log.Printfln("Failed to build initial state.\n%v", err)
 			return err
 		}
 		fs.ProcessEndOfBlock()
@@ -306,7 +307,7 @@ func (fs *FactoidState) LoadState() error {
 
 		err := fs.AddTransactionBlock(blk) // updates accounting for this block
 		if err != nil {
-			primitives.Prtln("Failed to rebuild state.\n", err)
+			log.Printfln("Failed to rebuild state.\n%v", err)
 			return err
 		}
 		time.Sleep(time.Second / 100)

@@ -4,17 +4,15 @@
 
 package interfaces
 
-import (
-)
+import ()
 
 type IConfirmation interface {
 	BinaryMarshallable
 	IMsg
-	
-	DBHeight()		int			// Directory Block Height
-	ChainID()		[]byte		// ChainID of the sending server
-	ListHeight()	int			// Height in the Process List
-	SerialHash()	[]byte		// Serial Hash so far
-	Signature()		[]byte		// Signature
-}
 
+	DBHeight() int      // Directory Block Height
+	ChainID() []byte    // ChainID of the sending server
+	ListHeight() int    // Height in the Process List
+	SerialHash() []byte // Serial Hash so far
+	Signature() []byte  // Signature
+}

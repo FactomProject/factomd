@@ -5,7 +5,7 @@ package anchor
 
 import (
 	"fmt"
-	"log"
+	"github.com/FactomProject/factomd/log"
 	"reflect"
 	"testing"
 	"time"

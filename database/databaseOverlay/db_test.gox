@@ -3,7 +3,7 @@ package databaseOverlay
 import (
 	"github.com/FactomProject/factomd/database"
 	"github.com/FactomProject/factomd/common"	
-	"log"
+	"github.com/FactomProject/factomd/log"
 	"testing"
 )
 

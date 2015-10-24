@@ -13,6 +13,7 @@ import (
 	cp "github.com/FactomProject/factomd/controlpanel"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/database/hybridDB"
+	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/process"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/state/stateinit"
@@ -25,7 +26,6 @@ import (
 )
 
 var (
-	_               = fmt.Print
 	cfg             *util.FactomdConfig
 	shutdownChannel = make(chan struct{})
 	ldbpath         = ""
@@ -48,7 +48,7 @@ func main() {
 	ftmdLog.Info("//////////////////////// license that can be found in the LICENSE file.")
 
 	ftmdLog.Warning("Go compiler version: %s", runtime.Version())
-	fmt.Println("Go compiler version: ", runtime.Version())
+	log.Println("Go compiler version: ", runtime.Version())
 	cp.CP.AddUpdate("gocompiler",
 		"system",
 		fmt.Sprintln("Go compiler version: ", runtime.Version()),
@@ -64,7 +64,7 @@ func main() {
 
 	if !isCompilerVersionOK() {
 		for i := 0; i < 30; i++ {
-			fmt.Println("!!! !!! !!! ERROR: unsupported compiler version !!! !!! !!!")
+			log.Println("!!! !!! !!! ERROR: unsupported compiler version !!! !!! !!!")
 		}
 		time.Sleep(time.Second)
 		os.Exit(1)
@@ -116,11 +116,11 @@ func factomdMain() error {
 	if len(os.Args) >= 2 {
 		if os.Args[1] == "initializeonly" {
 			time.Sleep(time.Second)
-			fmt.Println("Initializing only.")
+			log.Println("Initializing only.")
 			os.Exit(0)
 		}
 	} else {
-		fmt.Println("\n'factomd initializeonly' will do just that.  Initialize and stop.")
+		log.Println("\n'factomd initializeonly' will do just that.  Initialize and stop.")
 	}
 
 	// Start the factoid (btcd) component and P2P component
@@ -144,7 +144,7 @@ func loadConfigurations() {
 func initDB() {
 
 	//init factoid_bolt db
-	fmt.Println("boltDBpath:", boltDBpath)
+	log.Println("boltDBpath:", boltDBpath)
 	state.FactoidStateGlobal = stateinit.NewFactoidState(boltDBpath + "factoid_bolt.db")
 
 	//init db
