@@ -148,12 +148,14 @@ func (s *State) Init() {
 	}
 	
 	dirblk := new(directoryblock.DirectoryBlock)
-	_, err := s.DB.Get([]byte(constants.DB_DIRECTORY_BLOCKS), constants.D_CHAINID, dirblk) 
+	dblk, err := s.DB.Get([]byte(constants.DB_DIRECTORY_BLOCKS), constants.D_CHAINID, dirblk) 
 	if err != nil {
 		panic(err.Error())
 	}
-	s.SetCurrentDirectoryBlock(dirblk)
-	s.SetDBHeight(dirblk.GetHeader().GetDBHeight()+1)
+	if dblk != nil {
+		s.SetCurrentDirectoryBlock(dirblk)
+		s.SetDBHeight(dirblk.GetHeader().GetDBHeight()+1)
+	}
 	s.FactoidState = new(FactoidState)
 }
 

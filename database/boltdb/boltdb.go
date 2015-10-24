@@ -65,6 +65,9 @@ func (d *BoltDB) Get(bucket []byte, key []byte, destination interfaces.BinaryMar
 	var v []byte
 	d.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(bucket)
+		if b == nil {
+			return nil
+		}
 		v = b.Get(key)
 		if v == nil {
 			return nil

@@ -8,7 +8,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-
+	"encoding/json"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -89,8 +89,8 @@ func (e *DirectoryBlock) JSONBuffer(b *bytes.Buffer) error {
 }
 
 func (e *DirectoryBlock) String() string {
-	str, _ := e.JSONString()
-	return str
+	pretty, _ := json.MarshalIndent(e, "", "  ")
+	return string(pretty)
 }
 
 func (b *DirectoryBlock) MarshalBinary() (data []byte, err error) {
