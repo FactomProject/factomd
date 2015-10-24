@@ -21,20 +21,20 @@ const (
 	// Database
 	KEY_LIMIT = ADDRESS_LENGTH * 2 // Limit on size of keys, since Maps in Go can't
 	// handle variable length keys.
-	DB_DIRECTORY_BLOCKS	= "Factom_Directory_Blocks"
-	DB_FACTOID_BLOCKS 	= "Factoid_Transaction_Blocks"
-	DB_BAD_TRANS      	= "Bad_Transactions_Encountered"
-	DB_F_BALANCES     	= "Factoid_Address_balances"
-	DB_EC_BALANCES    	= "Entry_Credit_Address_balances"
+	DB_DIRECTORY_BLOCKS = "Factom_Directory_Blocks"
+	DB_FACTOID_BLOCKS   = "Factoid_Transaction_Blocks"
+	DB_BAD_TRANS        = "Bad_Transactions_Encountered"
+	DB_F_BALANCES       = "Factoid_Address_balances"
+	DB_EC_BALANCES      = "Entry_Credit_Address_balances"
 
 	// Wallet
-	W_SEEDS            	= "wallet.address.seeds"      // Holds the root seeds for address generation
-	W_SEED_HEADS       	= "wallet.address.seed.heads" // Holds the latest generated seed for each root seed.
-	W_RCD_ADDRESS_HASH 	= "wallet.address.addr"
-	W_ADDRESS_PUB_KEY  	= "wallet.public.key"
-	W_NAME             	= "wallet.address.name"
-	DB_BUILD_TRANS     	= "Transactions_Under_Construction"
-	DB_TRANSACTIONS    	= "Transactions_For_Addresses"
+	W_SEEDS            = "wallet.address.seeds"      // Holds the root seeds for address generation
+	W_SEED_HEADS       = "wallet.address.seed.heads" // Holds the latest generated seed for each root seed.
+	W_RCD_ADDRESS_HASH = "wallet.address.addr"
+	W_ADDRESS_PUB_KEY  = "wallet.public.key"
+	W_NAME             = "wallet.address.name"
+	DB_BUILD_TRANS     = "Transactions_Under_Construction"
+	DB_TRANSACTIONS    = "Transactions_For_Addresses"
 
 	// Block
 	MARKER                  = 0x00                       // Byte used to mark minute boundries in Factoid blocks

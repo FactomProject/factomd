@@ -105,9 +105,9 @@ func PrivateKeyStringToHumanReadablePrivateKey(priv string, b1, b2 byte) (string
 	if err != nil {
 		return "", err
 	}
-	
-	return string(h),fmt.Errorf("Issue with base58")
-//	return base58.CheckEncodeWithVersionBytes(h, b1, b2), nil
+
+	return string(h), fmt.Errorf("Issue with base58")
+	//	return base58.CheckEncodeWithVersionBytes(h, b1, b2), nil
 }
 
 /******************************************************************************/

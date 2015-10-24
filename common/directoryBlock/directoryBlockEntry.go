@@ -28,14 +28,13 @@ func (c *DBEntry) SetChainID(chainID interfaces.IHash) {
 	c.ChainID = chainID
 }
 
-func (c *DBEntry) GetKeyMR() interfaces.IHash  {
+func (c *DBEntry) GetKeyMR() interfaces.IHash {
 	return c.KeyMR
 }
 
 func (c *DBEntry) SetKeyMR(keyMR interfaces.IHash) {
 	c.KeyMR = keyMR
 }
-
 
 func (e *DBEntry) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer

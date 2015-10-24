@@ -20,9 +20,9 @@ type DirectoryBlock struct {
 	DBEntries []interfaces.IDBEntry
 
 	//Not Marshalized
-	IsSealed    bool
-	DBHash      interfaces.IHash
-	KeyMR       interfaces.IHash
+	IsSealed bool
+	DBHash   interfaces.IHash
+	KeyMR    interfaces.IHash
 }
 
 var _ interfaces.Printable = (*DirectoryBlock)(nil)
@@ -50,7 +50,6 @@ func (c *DirectoryBlock) GetHeader() interfaces.IDirectoryBlockHeader {
 func (c *DirectoryBlock) SetHeader(header interfaces.IDirectoryBlockHeader) {
 	c.Header = header
 }
-
 
 func (c *DirectoryBlock) SetDBEntries(dbEntries []interfaces.IDBEntry) {
 	c.DBEntries = dbEntries
@@ -98,7 +97,7 @@ func (b *DirectoryBlock) MarshalBinary() (data []byte, err error) {
 
 	count := uint32(len(b.GetDBEntries()))
 	b.GetHeader().SetBlockCount(count)
-	
+
 	data, err = b.GetHeader().MarshalBinary()
 	if err != nil {
 		return
@@ -153,7 +152,7 @@ func (b *DirectoryBlock) UnmarshalBinaryData(data []byte) (newData []byte, err e
 	newData = data
 
 	var fbh interfaces.IDirectoryBlockHeader = new(DBlockHeader)
-	
+
 	newData, err = fbh.UnmarshalBinaryData(newData)
 	if err != nil {
 		return
@@ -194,13 +193,12 @@ func (b *DirectoryBlock) GetHash() interfaces.IHash {
 }
 
 func (b *DirectoryBlock) AddEntry(chainID interfaces.IHash, keyMR interfaces.IHash) {
-	var dbentry interfaces.IDBEntry 
+	var dbentry interfaces.IDBEntry
 	dbentry = new(DBEntry)
 	dbentry.SetChainID(chainID)
 	dbentry.SetKeyMR(keyMR)
 	b.SetDBEntries(append(b.DBEntries, dbentry))
 }
-
 
 /************************************************
  * Support Functions
