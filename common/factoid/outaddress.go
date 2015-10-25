@@ -8,9 +8,7 @@
 package factoid
 
 import (
-	"bytes"
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/primitives"
 )
 
 type OutAddress struct {
@@ -18,18 +16,6 @@ type OutAddress struct {
 }
 
 var _ interfaces.IOutAddress = (*OutAddress)(nil)
-
-func (e *OutAddress) JSONByte() ([]byte, error) {
-	return primitives.EncodeJSON(e)
-}
-
-func (e *OutAddress) JSONString() (string, error) {
-	return primitives.EncodeJSONString(e)
-}
-
-func (e *OutAddress) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
-}
 
 func (b OutAddress) String() string {
 	txt, err := b.CustomMarshalText()
@@ -52,8 +38,8 @@ func (a OutAddress) CustomMarshalText() (text []byte, err error) {
  ******************************/
 
 func NewOutAddress(address interfaces.IAddress, amount uint64) interfaces.IOutAddress {
-	oa := new(OutAddress)
-	oa.Amount = amount
-	oa.Address = address
-	return oa
+	ta := new(OutAddress)
+	ta.Amount = amount
+	ta.Address = address
+	return ta
 }

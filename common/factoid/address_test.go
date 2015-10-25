@@ -2,15 +2,17 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-package factoid
+package factoid_test
 
 import (
 	"bytes"
 	"fmt"
 	"github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factomd/common/constants"
+	. "github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/primitives"
 	"math/rand"
+	"strings"
 	"testing"
 )
 
@@ -124,5 +126,20 @@ func Test_Entry_Credit_Addresses(test *testing.T) {
 			}
 			buaddr[i] = v
 		}
+	}
+}
+
+func TestAddressMisc(t *testing.T) {
+	h, err := primitives.HexToHash("ec9f1cefa00406b80d46135a53504f1f4182d4c0f3fed6cca9281bc020eff973")
+	if err != nil {
+		t.Error(err)
+	}
+	add := CreateAddress(h)
+	str := add.String()
+	if strings.Contains(str, "addr") == false {
+		t.Error("String doesn't contain 'addr'")
+	}
+	if strings.Contains(str, "ec9f1cefa00406b80d46135a53504f1f4182d4c0f3fed6cca9281bc020eff973") == false {
+		t.Error("String doesn't contain an expected address")
 	}
 }
