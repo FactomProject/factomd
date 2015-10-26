@@ -163,14 +163,16 @@ func (m *EOM) FollowerExecute(interfaces.IState) error {
 	return nil
 }
 
-func (m *EOM) JSONByte() ([]byte, error) {
-	return nil, nil
+func (e *EOM) JSONByte() ([]byte, error) {
+	return primitives.EncodeJSON(e)
 }
-func (m *EOM) JSONString() (string, error) {
-	return "", nil
+
+func (e *EOM) JSONString() (string, error) {
+	return primitives.EncodeJSONString(e)
 }
-func (m *EOM) JSONBuffer(b *bytes.Buffer) error {
-	return nil
+
+func (e *EOM) JSONBuffer(b *bytes.Buffer) error {
+	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 /**********************************************************************
