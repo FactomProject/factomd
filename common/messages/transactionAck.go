@@ -5,6 +5,7 @@
 package messages
 
 import (
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 )
 
@@ -16,7 +17,7 @@ type TransactionAck struct {
 var _ interfaces.IMsg = (*TransactionAck)(nil)
 
 func (m *TransactionAck) Type() int {
-	return -1
+	return constants.TRANSACTION_ACK_MSG
 }
 
 func (m *TransactionAck) Int() int {

@@ -7,6 +7,7 @@ package messages
 import (
 	"bytes"
 	"fmt"
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 )
@@ -18,7 +19,7 @@ type InvalidDirectoryBlock struct {
 var _ interfaces.IMsg = (*InvalidDirectoryBlock)(nil)
 
 func (m *InvalidDirectoryBlock) Type() int {
-	return -1
+	return constants.INVALID_DIRECTORY_BLOCK_MSG
 }
 
 func (m *InvalidDirectoryBlock) Int() int {

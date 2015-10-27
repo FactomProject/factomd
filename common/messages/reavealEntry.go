@@ -7,6 +7,7 @@ package messages
 import (
 	"bytes"
 	"fmt"
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 )
@@ -18,7 +19,7 @@ type RevealEntry struct {
 var _ interfaces.IMsg = (*RevealEntry)(nil)
 
 func (m *RevealEntry) Type() int {
-	return -1
+	return constants.REVEAL_ENTRY_MSG
 }
 
 func (m *RevealEntry) Int() int {

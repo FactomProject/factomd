@@ -7,6 +7,7 @@ package messages
 import (
 	"bytes"
 	"fmt"
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 )
@@ -18,7 +19,7 @@ type DirectoryBlockSignature struct {
 var _ interfaces.IMsg = (*DirectoryBlockSignature)(nil)
 
 func (m *DirectoryBlockSignature) Type() int {
-	return -1
+	return constants.DIRECTORY_BLOCK_SIGNATURE_MSG
 }
 
 func (m *DirectoryBlockSignature) Int() int {

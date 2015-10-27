@@ -7,6 +7,7 @@ package messages
 import (
 	"bytes"
 	"fmt"
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 )
@@ -18,7 +19,7 @@ type EOMTimeout struct {
 var _ interfaces.IMsg = (*EOMTimeout)(nil)
 
 func (m *EOMTimeout) Type() int {
-	return -1
+	return constants.EOM_TIMEOUT_MSG
 }
 
 func (m *EOMTimeout) Int() int {

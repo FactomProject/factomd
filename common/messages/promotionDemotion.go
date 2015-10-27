@@ -7,6 +7,7 @@ package messages
 import (
 	"bytes"
 	"fmt"
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 )
@@ -18,7 +19,7 @@ type PromotionDemotion struct {
 var _ interfaces.IMsg = (*PromotionDemotion)(nil)
 
 func (m *PromotionDemotion) Type() int {
-	return -1
+	return constants.PROMOTION_DEMOTION_MSG
 }
 
 func (m *PromotionDemotion) Int() int {

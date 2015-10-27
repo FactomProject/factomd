@@ -5,6 +5,7 @@
 package messages
 
 import (
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 )
 
@@ -16,7 +17,7 @@ type RevealEntryAck struct {
 var _ interfaces.IMsg = (*RevealEntryAck)(nil)
 
 func (m *RevealEntryAck) Type() int {
-	return -1
+	return constants.REVEAL_ENTRY_ACK_MSG
 }
 
 func (m *RevealEntryAck) Int() int {

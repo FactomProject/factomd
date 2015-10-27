@@ -7,6 +7,7 @@ package messages
 import (
 	"bytes"
 	"fmt"
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 )
@@ -18,7 +19,7 @@ type CommitChainMsg struct {
 var _ interfaces.IMsg = (*CommitChainMsg)(nil)
 
 func (m *CommitChainMsg) Type() int {
-	return -1
+	return constants.COMMIT_CHAIN_MSG
 }
 
 func (m *CommitChainMsg) Int() int {

@@ -8,15 +8,36 @@ import (
 	"time"
 )
 
+// Messages
+const (
+	EOM_MSG = iota
+	AUDIT_SERVER_FAULT_MSG
+	COMMIT_CHAIN_MSG
+	COMMIT_CHAIN_ACK_MSG
+	COMMIT_ENTRY_MSG
+	COMMIT_ENTRY_ACK_MSG
+	DIRECTORY_BLOCK_SIGNATURE_MSG
+	DUPLICATE_HEIGHT_ACK_MSG
+	EOM_TIMEOUT_MSG
+	FACTOID_TRANSACTION_MSG
+	HEARTBEAT_MSG
+	INVALID_ACK_MSG
+	INVALID_DIRECTORY_BLOCK_MSG
+	MISSING_ACK_MSG
+	PROMOTION_DEMOTION_MSG
+	REVEAL_ENTRY_MSG
+	REQUEST_BLOCK_MSG
+	REVEAL_ENTRY_ACK_MSG
+	SIGNATURE_TIMEOUT_MSG
+	TRANSACTION_ACK_MSG
+)
+
 const (
 	ADDRESS_LENGTH       = 32    // Length of an Address or a Hash or Public Key
 	PRIVATE_LENGTH       = 64    // length of a Private Key
 	SIGNATURE_LENGTH     = 64    // Length of a signature
 	MAX_TRANSACTION_SIZE = 10240 // 10K like everything else?
 	MINIMUM_AMOUNT       = 1     // Not sure if we need a minimum amount.  Set at 1 Factoshi
-
-	// Msg
-	EOM_MSG = 1
 
 	// Database
 	KEY_LIMIT = ADDRESS_LENGTH * 2 // Limit on size of keys, since Maps in Go can't

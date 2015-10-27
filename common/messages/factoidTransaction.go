@@ -7,6 +7,7 @@ package messages
 import (
 	"bytes"
 	"fmt"
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 )
@@ -18,7 +19,7 @@ type FactoidTransaction struct {
 var _ interfaces.IMsg = (*FactoidTransaction)(nil)
 
 func (m *FactoidTransaction) Type() int {
-	return -1
+	return constants.FACTOID_TRANSACTION_MSG
 }
 
 func (m *FactoidTransaction) Int() int {

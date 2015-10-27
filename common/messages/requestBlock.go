@@ -7,6 +7,7 @@ package messages
 import (
 	"bytes"
 	"fmt"
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 )
@@ -18,7 +19,7 @@ type RequestBlock struct {
 var _ interfaces.IMsg = (*RequestBlock)(nil)
 
 func (m *RequestBlock) Type() int {
-	return -1
+	return constants.REQUEST_BLOCK_MSG
 }
 
 func (m *RequestBlock) Int() int {

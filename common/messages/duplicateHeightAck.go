@@ -5,6 +5,7 @@
 package messages
 
 import (
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 )
 
@@ -16,7 +17,7 @@ type DuplicateHeightAck struct {
 var _ interfaces.IMsg = (*DuplicateHeightAck)(nil)
 
 func (m *DuplicateHeightAck) Type() int {
-	return -1
+	return constants.DUPLICATE_HEIGHT_ACK_MSG
 }
 
 func (m *DuplicateHeightAck) Int() int {

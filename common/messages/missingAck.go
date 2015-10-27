@@ -7,6 +7,7 @@ package messages
 import (
 	"bytes"
 	"fmt"
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 )
@@ -18,7 +19,7 @@ type MissingAck struct {
 var _ interfaces.IMsg = (*MissingAck)(nil)
 
 func (m *MissingAck) Type() int {
-	return -1
+	return constants.MISSING_ACK_MSG
 }
 
 func (m *MissingAck) Int() int {

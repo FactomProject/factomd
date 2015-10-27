@@ -7,6 +7,7 @@ package messages
 import (
 	"bytes"
 	"fmt"
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 )
@@ -18,7 +19,7 @@ type SignatureTimeout struct {
 var _ interfaces.IMsg = (*SignatureTimeout)(nil)
 
 func (m *SignatureTimeout) Type() int {
-	return -1
+	return constants.SIGNATURE_TIMEOUT_MSG
 }
 
 func (m *SignatureTimeout) Int() int {

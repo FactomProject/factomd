@@ -7,6 +7,7 @@ package messages
 import (
 	"bytes"
 	"fmt"
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 )
@@ -18,7 +19,7 @@ type Heartbeat struct {
 var _ interfaces.IMsg = (*Heartbeat)(nil)
 
 func (m *Heartbeat) Type() int {
-	return -1
+	return constants.HEARTBEAT_MSG
 }
 
 func (m *Heartbeat) Int() int {

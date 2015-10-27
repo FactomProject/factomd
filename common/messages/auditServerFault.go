@@ -7,6 +7,7 @@ package messages
 import (
 	"bytes"
 	"fmt"
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 )
@@ -18,7 +19,7 @@ type AuditServerFault struct {
 var _ interfaces.IMsg = (*AuditServerFault)(nil)
 
 func (m *AuditServerFault) Type() int {
-	return -1
+	return constants.AUDIT_SERVER_FAULT_MSG
 }
 
 func (m *AuditServerFault) Int() int {
