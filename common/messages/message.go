@@ -7,11 +7,8 @@ package messages
 import (
 	"bytes"
 	"fmt"
-	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/log"
 )
 
 //A placeholder structure for messages
@@ -19,6 +16,10 @@ type Message struct {
 }
 
 var _ interfaces.IMsg = (*Message)(nil)
+
+func (m *Message) Type() int {
+	return -1
+}
 
 func (m *Message) Int() int {
 	return -1
@@ -51,15 +52,14 @@ func (m *Message) String() string {
 	return ""
 }
 
-func (m *Message) Type() int {
-	return -1
-}
 func (m *Message) DBHeight() int {
 	return 0
 }
+
 func (m *Message) ChainID() []byte {
 	return nil
 }
+
 func (m *Message) ListHeight() int {
 	return 0
 }
@@ -67,6 +67,7 @@ func (m *Message) ListHeight() int {
 func (m *Message) SerialHash() []byte {
 	return nil
 }
+
 func (m *Message) Signature() []byte {
 	return nil
 }
