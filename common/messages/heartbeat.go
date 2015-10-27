@@ -14,6 +14,7 @@ import (
 
 //A placeholder structure for messages
 type Heartbeat struct {
+	Timestamp 	int64
 }
 
 var _ interfaces.IMsg = (*Heartbeat)(nil)

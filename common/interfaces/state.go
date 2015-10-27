@@ -16,7 +16,8 @@ type IState interface {
 	// Server
 	GetCfg() IFactomConfig
 	Init()
-
+	String() string
+	
 	// Channels
 	InMsgQueue() chan IMsg
 	LeaderInMsgQueue() chan IMsg
