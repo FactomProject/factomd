@@ -12,6 +12,7 @@ import (
 
 //General acknowledge message
 type Ack struct {
+	Timestamp
 	OriginalHash interfaces.IHash
 }
 
@@ -40,7 +41,7 @@ func (m *Ack) UnmarshalBinary(data []byte) error {
 }
 
 func (m *Ack) MarshalBinary() (data []byte, err error) {
-	return m.OriginalHash.MarshalBinary()
+	return MarshalAck(m)
 }
 
 func (m *Ack) String() string {
@@ -95,4 +96,22 @@ func (e *Ack) JSONString() (string, error) {
 
 func (e *Ack) JSONBuffer(b *bytes.Buffer) error {
 	return primitives.EncodeJSONToBuffer(e, b)
+}
+
+type IAck interface {
+	Type() int
+	GetTimeByte() ([]byte, error)
+	Bytes() []byte
+}
+
+func MarshalAck(ack IAck) ([]byte, error) {
+	resp := []byte{}
+	resp = append(resp, byte(ack.Type()))
+	timeByte, err := ack.GetTimeByte()
+	if err != nil {
+		return nil, err
+	}
+	resp = append(resp, timeByte...)
+	resp = append(resp, ack.Bytes()...)
+	return resp, nil
 }

@@ -28,6 +28,10 @@ func (m *CommitEntryAck) String() string {
 	return ""
 }
 
+func (m *CommitEntryAck) MarshalBinary() (data []byte, err error) {
+	return MarshalAck(m)
+}
+
 // Validate the message, given the state.  Three possible results:
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
