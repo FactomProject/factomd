@@ -6,8 +6,10 @@ package messages
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/log"
 )
 
 //General acknowledge message
@@ -30,9 +32,23 @@ func (m *Ack) Bytes() []byte {
 	return m.OriginalHash.Bytes()
 }
 
-func (m *Ack) UnmarshalBinaryData(data []byte) (newdata []byte, err error) {
+func (m *Ack) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("Error unmarshalling: %v", r)
+		}
+	}()
+	newData = data[1:]
+	newData, err = m.SetTimeFromBytes(newData)
+	if err != nil {
+		return nil, err
+	}
 	m.OriginalHash = new(primitives.Hash)
-	return m.OriginalHash.UnmarshalBinaryData(data)
+	newData, err = m.OriginalHash.UnmarshalBinaryData(newData)
+	if err != nil {
+		return nil, err
+	}
+	return
 }
 
 func (m *Ack) UnmarshalBinary(data []byte) error {
@@ -45,7 +61,9 @@ func (m *Ack) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *Ack) String() string {
-	return ""
+	str, _ := m.JSONString()
+	log.Printf("str - %v", str)
+	return str
 }
 
 // Validate the message, given the state.  Three possible results:

@@ -24,10 +24,6 @@ func (m *CommitChainAck) Int() int {
 	return -1
 }
 
-func (m *CommitChainAck) String() string {
-	return ""
-}
-
 func (m *CommitChainAck) MarshalBinary() (data []byte, err error) {
 	return MarshalAck(m)
 }

@@ -41,7 +41,7 @@ func UnmarshalMessage(data []byte) (interfaces.IMsg, error) {
 		}
 		return msg, nil
 	case constants.COMMIT_CHAIN_ACK_MSG:
-		msg := new(CommitChainMsg)
+		msg := new(CommitChainAck)
 		err := msg.UnmarshalBinary(data)
 		if err != nil {
 			return nil, err

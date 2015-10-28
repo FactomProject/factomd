@@ -21,6 +21,10 @@ func (t *Timestamp) SetTime(sec, nsec int64) {
 	t.Time = time.Unix(sec, nsec)
 }
 
+func (t *Timestamp) SetTimeFromBytes(data []byte) (newData []byte, err error) {
+	return data[15:], t.Time.UnmarshalBinary(data[:15])
+}
+
 func (t *Timestamp) GetTime() time.Time {
 	return t.Time
 }
