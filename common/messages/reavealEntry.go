@@ -14,6 +14,8 @@ import (
 
 //A placeholder structure for messages
 type RevealEntry struct {
+	Timestamp
+	EntryHash interfaces.IHash
 }
 
 var _ interfaces.IMsg = (*RevealEntry)(nil)

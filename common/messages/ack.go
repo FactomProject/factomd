@@ -14,7 +14,7 @@ import (
 
 //General acknowledge message
 type Ack struct {
-	Timestamp
+	Timestamp    Timestamp
 	OriginalHash interfaces.IHash
 }
 
@@ -32,6 +32,10 @@ func (m *Ack) Bytes() []byte {
 	return m.OriginalHash.Bytes()
 }
 
+func (m *Ack) GetTimestamp() *Timestamp {
+	return &m.Timestamp
+}
+
 func (m *Ack) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -39,7 +43,7 @@ func (m *Ack) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 		}
 	}()
 	newData = data[1:]
-	newData, err = m.SetTimeFromBytes(newData)
+	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
 	}
@@ -118,14 +122,14 @@ func (e *Ack) JSONBuffer(b *bytes.Buffer) error {
 
 type IAck interface {
 	Type() int
-	GetTimeByte() ([]byte, error)
+	GetTimestamp() *Timestamp
 	Bytes() []byte
 }
 
 func MarshalAck(ack IAck) ([]byte, error) {
 	resp := []byte{}
 	resp = append(resp, byte(ack.Type()))
-	timeByte, err := ack.GetTimeByte()
+	timeByte, err := ack.GetTimestamp().MarshalBinary()
 	if err != nil {
 		return nil, err
 	}

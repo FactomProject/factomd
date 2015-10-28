@@ -14,6 +14,10 @@ import (
 
 //A placeholder structure for messages
 type CommitEntryMsg struct {
+	EntryHash            interfaces.IHash
+	NumberOfEntryCredits uint32
+
+	//Signature []byte //Signed by EC Address
 }
 
 var _ interfaces.IMsg = (*CommitEntryMsg)(nil)

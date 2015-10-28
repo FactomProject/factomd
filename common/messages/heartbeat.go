@@ -14,7 +14,13 @@ import (
 
 //A placeholder structure for messages
 type Heartbeat struct {
-	Timestamp 	int64
+	DBlockHash      interfaces.IHash //Hash of last Directory Block
+	IdentityChainID interfaces.IHash //Identity Chain ID
+
+	Timestamp int64
+
+	//Signature []byte //Signed by Audit Server
+
 }
 
 var _ interfaces.IMsg = (*Heartbeat)(nil)

@@ -14,6 +14,9 @@ import (
 
 //A placeholder structure for messages
 type CommitChainMsg struct {
+	//ChainID          interfaces.IHash
+	ChainIDEntryHash interfaces.IHash
+	//EntryHash        interfaces.IHash
 }
 
 var _ interfaces.IMsg = (*CommitChainMsg)(nil)

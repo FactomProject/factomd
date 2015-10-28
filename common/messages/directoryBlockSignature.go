@@ -14,6 +14,11 @@ import (
 
 //A placeholder structure for messages
 type DirectoryBlockSignature struct {
+	DirectoryBlockHeight  uint32
+	DirectoryBlockKeyMR   interfaces.IHash
+	ServerIdentityChainID interfaces.IHash
+
+	//Signature []byte //Signed by Federated Server
 }
 
 var _ interfaces.IMsg = (*DirectoryBlockSignature)(nil)
