@@ -16,14 +16,8 @@ func Test(t *testing.T) {
 	t.Log(ack.String())
 }
 
-func TestAck(t *testing.T) {
-	ack := new(Ack)
-	//ack.Timestamp.SetTimeNow()
-	hash, err := primitives.NewShaHashFromStr("cbd3d09db6defdc25dfc7d57f3479b339a077183cd67022e6d1ef6c041522b40")
-	if err != nil {
-		t.Error(err)
-	}
-	ack.OriginalHash = hash
+func TestMarshalUnmarshalAck(t *testing.T) {
+	ack := newAck()
 	hex, err := MarshalAck(ack)
 	if err != nil {
 		t.Error(err)
@@ -40,4 +34,39 @@ func TestAck(t *testing.T) {
 	if ack2.Type() != constants.ACK_MSG {
 		t.Error("Invalid message type unmarshalled")
 	}
+}
+
+func TestSignAndVerifyAck(t *testing.T) {
+	ack := newAck()
+	key, err := primitives.NewPrivateKeyFromHex("07c0d52cb74f4ca3106d80c4a70488426886bccc6ebc10c6bafb37bf8a65f4c38cee85c62a9e48039d4ac294da97943c2001be1539809ea5f54721f0c5477a0a")
+	if err != nil {
+		t.Error(err)
+	}
+	err = ack.Sign(&key)
+	if err != nil {
+		t.Error(err)
+	}
+	hex, err := MarshalAck(ack)
+	if err != nil {
+		t.Error(err)
+	}
+	t.Logf("Marshalled - %x", hex)
+
+	t.Logf("Sig - %x", *ack.Signature.Sig)
+
+	valid, err := ack.VerifySignature()
+	if err != nil {
+		t.Error(err)
+	}
+	if valid == false {
+		t.Error("Signature is not valid")
+	}
+}
+
+func newAck() *Ack {
+	ack := new(Ack)
+	ack.Timestamp.SetTimeNow()
+	hash, _ := primitives.NewShaHashFromStr("cbd3d09db6defdc25dfc7d57f3479b339a077183cd67022e6d1ef6c041522b40")
+	ack.OriginalHash = hash
+	return ack
 }

@@ -15,7 +15,7 @@ type Verifyer interface {
 
 // Signer object can Sign msg
 type Signer interface {
-	Sign(msg []byte) Signature
+	Sign(msg []byte) *Signature
 }
 
 // PrivateKey contains Public/Private key pair
@@ -48,14 +48,15 @@ func NewPrivateKeyFromHex(s string) (pk PrivateKey, err error) {
 }
 
 // Sign signs msg with PrivateKey and return Signature
-func (pk *PrivateKey) Sign(msg []byte) (sig Signature) {
+func (pk *PrivateKey) Sign(msg []byte) (sig *Signature) {
+	sig = new(Signature)
 	sig.Pub = pk.Pub
 	sig.Sig = ed25519.Sign(pk.Key, msg)
 	return
 }
 
 // Sign signs msg with PrivateKey and return Signature
-func (pk *PrivateKey) MarshalSign(msg interfaces.BinaryMarshallable) (sig Signature) {
+func (pk *PrivateKey) MarshalSign(msg interfaces.BinaryMarshallable) (sig *Signature) {
 	data, _ := msg.MarshalBinary()
 	return pk.Sign(data)
 }

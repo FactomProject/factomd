@@ -17,6 +17,8 @@ import (
 type Ack struct {
 	Timestamp    Timestamp
 	OriginalHash interfaces.IHash
+
+	Signature *primitives.Signature
 }
 
 var _ interfaces.IMsg = (*Ack)(nil)
@@ -53,12 +55,24 @@ func (m *Ack) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	if err != nil {
 		return nil, err
 	}
+	if len(newData) > 0 {
+		sig := new(primitives.Signature)
+		newData, err = sig.UnmarshalBinaryData(newData)
+		if err != nil {
+			return nil, err
+		}
+		m.Signature = sig
+	}
 	return
 }
 
 func (m *Ack) UnmarshalBinary(data []byte) error {
 	_, err := m.UnmarshalBinaryData(data)
 	return err
+}
+
+func (m *Ack) MarshalForSignature() (data []byte, err error) {
+	return MarshalAckForSignature(m)
 }
 
 func (m *Ack) MarshalBinary() (data []byte, err error) {
@@ -121,13 +135,31 @@ func (e *Ack) JSONBuffer(b *bytes.Buffer) error {
 	return primitives.EncodeJSONToBuffer(e, b)
 }
 
+func (m *Ack) Sign(key primitives.Signer) error {
+	signature, err := SignSignable(m, key)
+	if err != nil {
+		return err
+	}
+	m.Signature = signature
+	return nil
+}
+
+func (m *Ack) GetSignature() *primitives.Signature {
+	return m.Signature
+}
+
+func (m *Ack) VerifySignature() (bool, error) {
+	return VerifyMessage(m)
+}
+
 type IAck interface {
 	Type() int
 	GetTimestamp() *Timestamp
 	Bytes() []byte
+	GetSignature() *primitives.Signature
 }
 
-func MarshalAck(ack IAck) ([]byte, error) {
+func MarshalAckForSignature(ack IAck) ([]byte, error) {
 	resp := []byte{}
 	resp = append(resp, byte(ack.Type()))
 	timeByte, err := ack.GetTimestamp().MarshalBinary()
@@ -136,5 +168,22 @@ func MarshalAck(ack IAck) ([]byte, error) {
 	}
 	resp = append(resp, timeByte...)
 	resp = append(resp, ack.Bytes()...)
+	return resp, nil
+}
+
+func MarshalAck(ack IAck) ([]byte, error) {
+	resp, err := MarshalAckForSignature(ack)
+	if err != nil {
+		return nil, err
+	}
+	sig := ack.GetSignature()
+
+	if sig != nil {
+		sigBytes, err := sig.MarshalBinary()
+		if err != nil {
+			return nil, err
+		}
+		return append(resp, sigBytes...), nil
+	}
 	return resp, nil
 }
