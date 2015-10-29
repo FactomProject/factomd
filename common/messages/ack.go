@@ -22,6 +22,7 @@ type Ack struct {
 }
 
 var _ interfaces.IMsg = (*Ack)(nil)
+var _ Signable = (*Ack)(nil)
 
 func (m *Ack) Type() int {
 	return constants.ACK_MSG
@@ -72,11 +73,32 @@ func (m *Ack) UnmarshalBinary(data []byte) error {
 }
 
 func (m *Ack) MarshalForSignature() (data []byte, err error) {
-	return MarshalAckForSignature(m)
+	resp := []byte{}
+	resp = append(resp, byte(m.Type()))
+	timeByte, err := m.GetTimestamp().MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	resp = append(resp, timeByte...)
+	resp = append(resp, m.Bytes()...)
+	return resp, nil
 }
 
 func (m *Ack) MarshalBinary() (data []byte, err error) {
-	return MarshalAck(m)
+	resp, err := m.MarshalForSignature()
+	if err != nil {
+		return nil, err
+	}
+	sig := m.GetSignature()
+
+	if sig != nil {
+		sigBytes, err := sig.MarshalBinary()
+		if err != nil {
+			return nil, err
+		}
+		return append(resp, sigBytes...), nil
+	}
+	return resp, nil
 }
 
 func (m *Ack) String() string {
@@ -106,7 +128,6 @@ func (m *Ack) Leader(state interfaces.IState) bool {
 	default:
 		panic("Not implemented yet")
 	}
-
 }
 
 // Execute the leader functions of the given message
@@ -150,40 +171,4 @@ func (m *Ack) GetSignature() *primitives.Signature {
 
 func (m *Ack) VerifySignature() (bool, error) {
 	return VerifyMessage(m)
-}
-
-type IAck interface {
-	Type() int
-	GetTimestamp() *Timestamp
-	Bytes() []byte
-	GetSignature() *primitives.Signature
-}
-
-func MarshalAckForSignature(ack IAck) ([]byte, error) {
-	resp := []byte{}
-	resp = append(resp, byte(ack.Type()))
-	timeByte, err := ack.GetTimestamp().MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
-	resp = append(resp, timeByte...)
-	resp = append(resp, ack.Bytes()...)
-	return resp, nil
-}
-
-func MarshalAck(ack IAck) ([]byte, error) {
-	resp, err := MarshalAckForSignature(ack)
-	if err != nil {
-		return nil, err
-	}
-	sig := ack.GetSignature()
-
-	if sig != nil {
-		sigBytes, err := sig.MarshalBinary()
-		if err != nil {
-			return nil, err
-		}
-		return append(resp, sigBytes...), nil
-	}
-	return resp, nil
 }

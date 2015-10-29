@@ -14,5 +14,5 @@ type IConfirmation interface {
 	ChainID() []byte    // ChainID of the sending server
 	ListHeight() int    // Height in the Process List
 	SerialHash() []byte // Serial Hash so far
-	Signature() []byte  // Signature
+	//Signature() []byte  // Signature
 }

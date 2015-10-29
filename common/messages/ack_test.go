@@ -18,7 +18,7 @@ func Test(t *testing.T) {
 
 func TestMarshalUnmarshalAck(t *testing.T) {
 	ack := newAck()
-	hex, err := MarshalAck(ack)
+	hex, err := ack.MarshalBinary()
 	if err != nil {
 		t.Error(err)
 	}
@@ -46,7 +46,7 @@ func TestSignAndVerifyAck(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	hex, err := MarshalAck(ack)
+	hex, err := ack.MarshalBinary()
 	if err != nil {
 		t.Error(err)
 	}

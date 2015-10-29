@@ -18,10 +18,11 @@ type DirectoryBlockSignature struct {
 	DirectoryBlockKeyMR   interfaces.IHash
 	ServerIdentityChainID interfaces.IHash
 
-	//Signature []byte //Signed by Federated Server
+	Signature *primitives.Signature
 }
 
 var _ interfaces.IMsg = (*DirectoryBlockSignature)(nil)
+var _ Signable = (*DirectoryBlockSignature)(nil)
 
 func (m *DirectoryBlockSignature) Type() int {
 	return constants.DIRECTORY_BLOCK_SIGNATURE_MSG
@@ -50,8 +51,25 @@ func (m *DirectoryBlockSignature) UnmarshalBinary(data []byte) error {
 	return err
 }
 
-func (m *DirectoryBlockSignature) MarshalBinary() (data []byte, err error) {
+func (m *DirectoryBlockSignature) MarshalForSignature() (data []byte, err error) {
 	return nil, nil
+}
+
+func (m *DirectoryBlockSignature) MarshalBinary() (data []byte, err error) {
+	resp, err := m.MarshalForSignature()
+	if err != nil {
+		return nil, err
+	}
+	sig := m.GetSignature()
+
+	if sig != nil {
+		sigBytes, err := sig.MarshalBinary()
+		if err != nil {
+			return nil, err
+		}
+		return append(resp, sigBytes...), nil
+	}
+	return resp, nil
 }
 
 func (m *DirectoryBlockSignature) String() string {
@@ -71,10 +89,6 @@ func (m *DirectoryBlockSignature) ListHeight() int {
 }
 
 func (m *DirectoryBlockSignature) SerialHash() []byte {
-	return nil
-}
-
-func (m *DirectoryBlockSignature) Signature() []byte {
 	return nil
 }
 
@@ -126,4 +140,21 @@ func (e *DirectoryBlockSignature) JSONString() (string, error) {
 
 func (e *DirectoryBlockSignature) JSONBuffer(b *bytes.Buffer) error {
 	return primitives.EncodeJSONToBuffer(e, b)
+}
+
+func (m *DirectoryBlockSignature) Sign(key primitives.Signer) error {
+	signature, err := SignSignable(m, key)
+	if err != nil {
+		return err
+	}
+	m.Signature = signature
+	return nil
+}
+
+func (m *DirectoryBlockSignature) GetSignature() *primitives.Signature {
+	return m.Signature
+}
+
+func (m *DirectoryBlockSignature) VerifySignature() (bool, error) {
+	return VerifyMessage(m)
 }

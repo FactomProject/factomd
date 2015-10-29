@@ -19,11 +19,11 @@ type Heartbeat struct {
 
 	Timestamp int64
 
-	//Signature []byte //Signed by Audit Server
-
+	Signature *primitives.Signature
 }
 
 var _ interfaces.IMsg = (*Heartbeat)(nil)
+var _ Signable = (*Heartbeat)(nil)
 
 func (m *Heartbeat) Type() int {
 	return constants.HEARTBEAT_MSG
@@ -52,8 +52,25 @@ func (m *Heartbeat) UnmarshalBinary(data []byte) error {
 	return err
 }
 
-func (m *Heartbeat) MarshalBinary() (data []byte, err error) {
+func (m *Heartbeat) MarshalForSignature() (data []byte, err error) {
 	return nil, nil
+}
+
+func (m *Heartbeat) MarshalBinary() (data []byte, err error) {
+	resp, err := m.MarshalForSignature()
+	if err != nil {
+		return nil, err
+	}
+	sig := m.GetSignature()
+
+	if sig != nil {
+		sigBytes, err := sig.MarshalBinary()
+		if err != nil {
+			return nil, err
+		}
+		return append(resp, sigBytes...), nil
+	}
+	return resp, nil
 }
 
 func (m *Heartbeat) String() string {
@@ -73,10 +90,6 @@ func (m *Heartbeat) ListHeight() int {
 }
 
 func (m *Heartbeat) SerialHash() []byte {
-	return nil
-}
-
-func (m *Heartbeat) Signature() []byte {
 	return nil
 }
 
@@ -128,4 +141,21 @@ func (e *Heartbeat) JSONString() (string, error) {
 
 func (e *Heartbeat) JSONBuffer(b *bytes.Buffer) error {
 	return primitives.EncodeJSONToBuffer(e, b)
+}
+
+func (m *Heartbeat) Sign(key primitives.Signer) error {
+	signature, err := SignSignable(m, key)
+	if err != nil {
+		return err
+	}
+	m.Signature = signature
+	return nil
+}
+
+func (m *Heartbeat) GetSignature() *primitives.Signature {
+	return m.Signature
+}
+
+func (m *Heartbeat) VerifySignature() (bool, error) {
+	return VerifyMessage(m)
 }

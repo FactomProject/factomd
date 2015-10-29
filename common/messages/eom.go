@@ -21,10 +21,12 @@ type EOM struct {
 	chainID    interfaces.IHash
 	listHeight uint32
 	serialHash interfaces.IHash
-	signature  []byte
+
+	Signature *primitives.Signature
 }
 
 var _ interfaces.IConfirmation = (*EOM)(nil)
+var _ Signable = (*EOM)(nil)
 
 func (m *EOM) Int() int {
 	return m.minute
@@ -57,8 +59,25 @@ func (m *EOM) UnmarshalBinary(data []byte) error {
 	return err
 }
 
-func (m *EOM) MarshalBinary() (data []byte, err error) {
+func (m *EOM) MarshalForSignature() (data []byte, err error) {
 	return m.Bytes(), nil
+}
+
+func (m *EOM) MarshalBinary() (data []byte, err error) {
+	resp, err := m.MarshalForSignature()
+	if err != nil {
+		return nil, err
+	}
+	sig := m.GetSignature()
+
+	if sig != nil {
+		sigBytes, err := sig.MarshalBinary()
+		if err != nil {
+			return nil, err
+		}
+		return append(resp, sigBytes...), nil
+	}
+	return resp, nil
 }
 
 func (m *EOM) String() string {
@@ -79,9 +98,6 @@ func (m *EOM) ListHeight() int {
 }
 
 func (m *EOM) SerialHash() []byte {
-	return nil
-}
-func (m *EOM) Signature() []byte {
 	return nil
 }
 
@@ -173,6 +189,23 @@ func (e *EOM) JSONString() (string, error) {
 
 func (e *EOM) JSONBuffer(b *bytes.Buffer) error {
 	return primitives.EncodeJSONToBuffer(e, b)
+}
+
+func (m *EOM) Sign(key primitives.Signer) error {
+	signature, err := SignSignable(m, key)
+	if err != nil {
+		return err
+	}
+	m.Signature = signature
+	return nil
+}
+
+func (m *EOM) GetSignature() *primitives.Signature {
+	return m.Signature
+}
+
+func (m *EOM) VerifySignature() (bool, error) {
+	return VerifyMessage(m)
 }
 
 /**********************************************************************
