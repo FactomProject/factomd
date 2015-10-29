@@ -53,6 +53,9 @@ func TestSignAndVerifyAck(t *testing.T) {
 	t.Logf("Marshalled - %x", hex)
 
 	t.Logf("Sig - %x", *ack.Signature.Sig)
+	if len(*ack.Signature.Sig) == 0 {
+		t.Error("Signature not present")
+	}
 
 	valid, err := ack.VerifySignature()
 	if err != nil {
@@ -61,6 +64,25 @@ func TestSignAndVerifyAck(t *testing.T) {
 	if valid == false {
 		t.Error("Signature is not valid")
 	}
+
+	ack2, err := UnmarshalMessage(hex)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if ack2.Type() != constants.ACK_MSG {
+		t.Error("Invalid message type unmarshalled")
+	}
+	ackProper := ack2.(*Ack)
+
+	valid, err = ackProper.VerifySignature()
+	if err != nil {
+		t.Error(err)
+	}
+	if valid == false {
+		t.Error("Signature 2 is not valid")
+	}
+
 }
 
 func newAck() *Ack {
