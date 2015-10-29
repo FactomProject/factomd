@@ -17,7 +17,7 @@ func Test(t *testing.T) {
 }
 
 func TestAck(t *testing.T) {
-	ack := new(CommitChainAck)
+	ack := new(Ack)
 	//ack.Timestamp.SetTimeNow()
 	hash, err := primitives.NewShaHashFromStr("cbd3d09db6defdc25dfc7d57f3479b339a077183cd67022e6d1ef6c041522b40")
 	if err != nil {
@@ -37,7 +37,7 @@ func TestAck(t *testing.T) {
 	str := ack2.String()
 	t.Logf("str - %v", str)
 
-	if ack2.Type() != constants.COMMIT_CHAIN_ACK_MSG {
+	if ack2.Type() != constants.ACK_MSG {
 		t.Error("Invalid message type unmarshalled")
 	}
 }

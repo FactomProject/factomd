@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 func UnmarshalMessage(data []byte) (interfaces.IMsg, error) {
@@ -23,6 +24,13 @@ func UnmarshalMessage(data []byte) (interfaces.IMsg, error) {
 	switch messageType {
 	case constants.EOM_MSG:
 		msg := new(EOM)
+		err := msg.UnmarshalBinary(data)
+		if err != nil {
+			return nil, err
+		}
+		return msg, nil
+	case constants.ACK_MSG:
+		msg := new(Ack)
 		err := msg.UnmarshalBinary(data)
 		if err != nil {
 			return nil, err
@@ -42,13 +50,6 @@ func UnmarshalMessage(data []byte) (interfaces.IMsg, error) {
 			return nil, err
 		}
 		return msg, nil
-	case constants.COMMIT_CHAIN_ACK_MSG:
-		msg := new(CommitChainAck)
-		err := msg.UnmarshalBinary(data)
-		if err != nil {
-			return nil, err
-		}
-		return msg, nil
 	case constants.COMMIT_ENTRY_MSG:
 		msg := new(CommitEntryMsg)
 		err := msg.UnmarshalBinary(data)
@@ -56,22 +57,8 @@ func UnmarshalMessage(data []byte) (interfaces.IMsg, error) {
 			return nil, err
 		}
 		return msg, nil
-	case constants.COMMIT_ENTRY_ACK_MSG:
-		msg := new(CommitEntryAck)
-		err := msg.UnmarshalBinary(data)
-		if err != nil {
-			return nil, err
-		}
-		return msg, nil
 	case constants.DIRECTORY_BLOCK_SIGNATURE_MSG:
 		msg := new(DirectoryBlockSignature)
-		err := msg.UnmarshalBinary(data)
-		if err != nil {
-			return nil, err
-		}
-		return msg, nil
-	case constants.DUPLICATE_HEIGHT_ACK_MSG:
-		msg := new(DuplicateHeightAck)
 		err := msg.UnmarshalBinary(data)
 		if err != nil {
 			return nil, err
@@ -140,22 +127,8 @@ func UnmarshalMessage(data []byte) (interfaces.IMsg, error) {
 			return nil, err
 		}
 		return msg, nil
-	case constants.REVEAL_ENTRY_ACK_MSG:
-		msg := new(RevealEntryAck)
-		err := msg.UnmarshalBinary(data)
-		if err != nil {
-			return nil, err
-		}
-		return msg, nil
 	case constants.SIGNATURE_TIMEOUT_MSG:
 		msg := new(SignatureTimeout)
-		err := msg.UnmarshalBinary(data)
-		if err != nil {
-			return nil, err
-		}
-		return msg, nil
-	case constants.TRANSACTION_ACK_MSG:
-		msg := new(TransactionAck)
 		err := msg.UnmarshalBinary(data)
 		if err != nil {
 			return nil, err
@@ -165,4 +138,18 @@ func UnmarshalMessage(data []byte) (interfaces.IMsg, error) {
 		return nil, fmt.Errorf("Unknown message type")
 	}
 	return nil, fmt.Errorf("Unknown message type")
+}
+
+type Signable interface {
+	Sign(primitives.Signer)
+	MarshalForSignature() ([]byte, error)
+}
+
+func SignSignable(s Signable, key *primitives.PrivateKey) (primitives.Signature, error) {
+	toSign, err := s.MarshalForSignature()
+	if err != nil {
+		return primitives.Signature{}, err
+	}
+	sig := key.Sign(toSign)
+	return sig, nil
 }
