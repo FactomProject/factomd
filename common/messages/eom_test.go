@@ -11,48 +11,48 @@ import (
 	"testing"
 )
 
-func TestMarshalUnmarshalAck(t *testing.T) {
-	ack := newAck()
-	hex, err := ack.MarshalBinary()
+func TestMarshalUnmarshalEOM(t *testing.T) {
+	eom := newEOM()
+	hex, err := eom.MarshalBinary()
 	if err != nil {
 		t.Error(err)
 	}
 	t.Logf("Marshalled - %x", hex)
 
-	ack2, err := UnmarshalMessage(hex)
+	eom2, err := UnmarshalMessage(hex)
 	if err != nil {
 		t.Error(err)
 	}
-	str := ack2.String()
+	str := eom2.String()
 	t.Logf("str - %v", str)
 
-	if ack2.Type() != constants.ACK_MSG {
+	if eom2.Type() != constants.EOM_MSG {
 		t.Error("Invalid message type unmarshalled")
 	}
 }
 
-func TestSignAndVerifyAck(t *testing.T) {
-	ack := newAck()
+func TestSignAndVerifyEOM(t *testing.T) {
+	eom := newEOM()
 	key, err := primitives.NewPrivateKeyFromHex("07c0d52cb74f4ca3106d80c4a70488426886bccc6ebc10c6bafb37bf8a65f4c38cee85c62a9e48039d4ac294da97943c2001be1539809ea5f54721f0c5477a0a")
 	if err != nil {
 		t.Error(err)
 	}
-	err = ack.Sign(&key)
+	err = eom.Sign(&key)
 	if err != nil {
 		t.Error(err)
 	}
-	hex, err := ack.MarshalBinary()
+	hex, err := eom.MarshalBinary()
 	if err != nil {
 		t.Error(err)
 	}
 	t.Logf("Marshalled - %x", hex)
 
-	t.Logf("Sig - %x", *ack.Signature.Sig)
-	if len(*ack.Signature.Sig) == 0 {
+	t.Logf("Sig - %x", *eom.Signature.Sig)
+	if len(*eom.Signature.Sig) == 0 {
 		t.Error("Signature not present")
 	}
 
-	valid, err := ack.VerifySignature()
+	valid, err := eom.VerifySignature()
 	if err != nil {
 		t.Error(err)
 	}
@@ -60,17 +60,17 @@ func TestSignAndVerifyAck(t *testing.T) {
 		t.Error("Signature is not valid")
 	}
 
-	ack2, err := UnmarshalMessage(hex)
+	eom2, err := UnmarshalMessage(hex)
 	if err != nil {
 		t.Error(err)
 	}
 
-	if ack2.Type() != constants.ACK_MSG {
+	if eom2.Type() != constants.EOM_MSG {
 		t.Error("Invalid message type unmarshalled")
 	}
-	ackProper := ack2.(*Ack)
+	eomProper := eom2.(*EOM)
 
-	valid, err = ackProper.VerifySignature()
+	valid, err = eomProper.VerifySignature()
 	if err != nil {
 		t.Error(err)
 	}
@@ -80,10 +80,11 @@ func TestSignAndVerifyAck(t *testing.T) {
 
 }
 
-func newAck() *Ack {
-	ack := new(Ack)
-	ack.Timestamp.SetTimeNow()
+func newEOM() *EOM {
+	eom := new(EOM)
+	eom.Minute = 3
+	eom.DirectoryBlockHeight = 123456
 	hash, _ := primitives.NewShaHashFromStr("cbd3d09db6defdc25dfc7d57f3479b339a077183cd67022e6d1ef6c041522b40")
-	ack.OriginalHash = hash
-	return ack
+	eom.IdentityChainID = hash
+	return eom
 }

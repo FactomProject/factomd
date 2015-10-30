@@ -52,7 +52,7 @@ func (m *EOM) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	m.DirectoryBlockHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
 	hash := new(primitives.Hash)
-	newData, err = hash.UnmarshalBinaryData(data)
+	newData, err = hash.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
 	}
