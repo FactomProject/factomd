@@ -122,22 +122,6 @@ func (m *DirectoryBlockSignature) String() string {
 	return ""
 }
 
-func (m *DirectoryBlockSignature) DBHeight() int {
-	return 0
-}
-
-func (m *DirectoryBlockSignature) ChainID() []byte {
-	return nil
-}
-
-func (m *DirectoryBlockSignature) ListHeight() int {
-	return 0
-}
-
-func (m *DirectoryBlockSignature) SerialHash() []byte {
-	return nil
-}
-
 // Validate the message, given the state.  Three possible results:
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
