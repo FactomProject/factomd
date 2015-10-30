@@ -66,26 +66,6 @@ func (m *RevealEntry) String() string {
 	return ""
 }
 
-func (m *RevealEntry) DBHeight() int {
-	return 0
-}
-
-func (m *RevealEntry) ChainID() []byte {
-	return nil
-}
-
-func (m *RevealEntry) ListHeight() int {
-	return 0
-}
-
-func (m *RevealEntry) SerialHash() []byte {
-	return nil
-}
-
-func (m *RevealEntry) Signature() []byte {
-	return nil
-}
-
 // Validate the message, given the state.  Three possible results:
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
