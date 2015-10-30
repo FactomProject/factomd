@@ -8,14 +8,14 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
 //A placeholder structure for messages
 type RevealEntry struct {
-	Timestamp
-	EntryHash interfaces.IHash
+	Entry *entryBlock.Entry
 }
 
 var _ interfaces.IMsg = (*RevealEntry)(nil)
@@ -32,14 +32,20 @@ func (m *RevealEntry) Bytes() []byte {
 	return nil
 }
 
-func (m *RevealEntry) UnmarshalBinaryData(data []byte) (newdata []byte, err error) {
+func (m *RevealEntry) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
 	}()
-
-	return nil, nil
+	newData = data[1:]
+	e := new(entryBlock.Entry)
+	newData, err = e.UnmarshalBinaryData(newData)
+	if err != nil {
+		return nil, err
+	}
+	m.Entry = e
+	return newData, nil
 }
 
 func (m *RevealEntry) UnmarshalBinary(data []byte) error {
@@ -48,7 +54,12 @@ func (m *RevealEntry) UnmarshalBinary(data []byte) error {
 }
 
 func (m *RevealEntry) MarshalBinary() (data []byte, err error) {
-	return nil, nil
+	data, err = m.Entry.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	data = append([]byte{byte(m.Type())}, data...)
+	return data, nil
 }
 
 func (m *RevealEntry) String() string {

@@ -143,7 +143,6 @@ func (m *DirectoryBlockSignature) Leader(state interfaces.IState) bool {
 	default:
 		panic("Not implemented yet")
 	}
-
 }
 
 // Execute the leader functions of the given message
