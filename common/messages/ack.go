@@ -10,7 +10,6 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/log"
 )
 
 //General acknowledge message
@@ -103,7 +102,6 @@ func (m *Ack) MarshalBinary() (data []byte, err error) {
 
 func (m *Ack) String() string {
 	str, _ := m.JSONString()
-	log.Printf("str - %v", str)
 	return str
 }
 

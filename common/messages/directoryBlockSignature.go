@@ -6,6 +6,7 @@ package messages
 
 import (
 	"bytes"
+	"encoding/binary"
 	"fmt"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -36,12 +37,37 @@ func (m *DirectoryBlockSignature) Bytes() []byte {
 	return nil
 }
 
-func (m *DirectoryBlockSignature) UnmarshalBinaryData(data []byte) (newdata []byte, err error) {
+func (m *DirectoryBlockSignature) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
 	}()
+
+	m.DirectoryBlockHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+
+	hash := new(primitives.Hash)
+	newData, err = hash.UnmarshalBinaryData(data)
+	if err != nil {
+		return nil, err
+	}
+	m.DirectoryBlockKeyMR = hash
+
+	hash = new(primitives.Hash)
+	newData, err = hash.UnmarshalBinaryData(newData)
+	if err != nil {
+		return nil, err
+	}
+	m.ServerIdentityChainID = hash
+
+	if len(newData) > 0 {
+		sig := new(primitives.Signature)
+		newData, err = sig.UnmarshalBinaryData(newData)
+		if err != nil {
+			return nil, err
+		}
+		m.Signature = sig
+	}
 
 	return nil, nil
 }
@@ -51,8 +77,26 @@ func (m *DirectoryBlockSignature) UnmarshalBinary(data []byte) error {
 	return err
 }
 
-func (m *DirectoryBlockSignature) MarshalForSignature() (data []byte, err error) {
-	return nil, nil
+func (m *DirectoryBlockSignature) MarshalForSignature() ([]byte, error) {
+	if m.DirectoryBlockKeyMR == nil || m.ServerIdentityChainID == nil {
+		return nil, fmt.Errorf("Message is incomplete")
+	}
+
+	var buf bytes.Buffer
+
+	binary.Write(&buf, binary.BigEndian, m.DirectoryBlockHeight)
+	hash, err := m.DirectoryBlockKeyMR.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	buf.Write(hash)
+	hash, err = m.ServerIdentityChainID.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	buf.Write(hash)
+
+	return buf.Bytes(), nil
 }
 
 func (m *DirectoryBlockSignature) MarshalBinary() (data []byte, err error) {
