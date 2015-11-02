@@ -76,15 +76,19 @@ func (m *Heartbeat) MarshalForSignature() (data []byte, err error) {
 	if m.DBlockHash == nil || m.IdentityChainID == nil {
 		return nil, fmt.Errorf("Message is incomplete")
 	}
+	answer := []byte{}
+	answer = append(answer, byte(m.Type()))
 	hash, err := m.DBlockHash.MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
+	answer = append(answer, hash...)
 	hash2, err := m.IdentityChainID.MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
-	return append(hash, hash2...), nil
+	answer = append(answer, hash2...)
+	return answer, nil
 }
 
 func (m *Heartbeat) MarshalBinary() (data []byte, err error) {

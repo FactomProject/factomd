@@ -8,16 +8,14 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
 //A placeholder structure for messages
 type CommitEntryMsg struct {
-	EntryHash            interfaces.IHash
-	NumberOfEntryCredits uint32
-
-	//Signature []byte //Signed by EC Address
+	CommitEntry *entryCreditBlock.CommitEntry
 }
 
 var _ interfaces.IMsg = (*CommitEntryMsg)(nil)
@@ -34,14 +32,20 @@ func (m *CommitEntryMsg) Bytes() []byte {
 	return nil
 }
 
-func (m *CommitEntryMsg) UnmarshalBinaryData(data []byte) (newdata []byte, err error) {
+func (m *CommitEntryMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
 	}()
-
-	return nil, nil
+	newData = data[1:]
+	ce := new(entryCreditBlock.CommitEntry)
+	newData, err = ce.UnmarshalBinaryData(newData)
+	if err != nil {
+		return nil, err
+	}
+	m.CommitEntry = ce
+	return newData, nil
 }
 
 func (m *CommitEntryMsg) UnmarshalBinary(data []byte) error {
@@ -50,7 +54,12 @@ func (m *CommitEntryMsg) UnmarshalBinary(data []byte) error {
 }
 
 func (m *CommitEntryMsg) MarshalBinary() (data []byte, err error) {
-	return nil, nil
+	data, err = m.CommitEntry.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	data = append([]byte{byte(m.Type())}, data...)
+	return data, nil
 }
 
 func (m *CommitEntryMsg) String() string {

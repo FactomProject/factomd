@@ -11,48 +11,48 @@ import (
 	"testing"
 )
 
-func TestMarshalUnmarshalAck(t *testing.T) {
-	ack := newAck()
-	hex, err := ack.MarshalBinary()
+func TestMarshalUnmarshalDirectoryBlockSignature(t *testing.T) {
+	dbs := newDirectoryBlockSignature()
+	hex, err := dbs.MarshalBinary()
 	if err != nil {
 		t.Error(err)
 	}
 	t.Logf("Marshalled - %x", hex)
 
-	ack2, err := UnmarshalMessage(hex)
+	dbs2, err := UnmarshalMessage(hex)
 	if err != nil {
 		t.Error(err)
 	}
-	str := ack2.String()
+	str := dbs2.String()
 	t.Logf("str - %v", str)
 
-	if ack2.Type() != constants.ACK_MSG {
+	if dbs2.Type() != constants.DIRECTORY_BLOCK_SIGNATURE_MSG {
 		t.Error("Invalid message type unmarshalled")
 	}
 }
 
-func TestSignAndVerifyAck(t *testing.T) {
-	ack := newAck()
+func TestSignAndVerifyDirectoryBlockSignature(t *testing.T) {
+	dbs := newDirectoryBlockSignature()
 	key, err := primitives.NewPrivateKeyFromHex("07c0d52cb74f4ca3106d80c4a70488426886bccc6ebc10c6bafb37bf8a65f4c38cee85c62a9e48039d4ac294da97943c2001be1539809ea5f54721f0c5477a0a")
 	if err != nil {
 		t.Error(err)
 	}
-	err = ack.Sign(&key)
+	err = dbs.Sign(&key)
 	if err != nil {
 		t.Error(err)
 	}
-	hex, err := ack.MarshalBinary()
+	hex, err := dbs.MarshalBinary()
 	if err != nil {
 		t.Error(err)
 	}
 	t.Logf("Marshalled - %x", hex)
 
-	t.Logf("Sig - %x", *ack.Signature.Sig)
-	if len(*ack.Signature.Sig) == 0 {
+	t.Logf("Sig - %x", *dbs.Signature.Sig)
+	if len(*dbs.Signature.Sig) == 0 {
 		t.Error("Signature not present")
 	}
 
-	valid, err := ack.VerifySignature()
+	valid, err := dbs.VerifySignature()
 	if err != nil {
 		t.Error(err)
 	}
@@ -60,17 +60,17 @@ func TestSignAndVerifyAck(t *testing.T) {
 		t.Error("Signature is not valid")
 	}
 
-	ack2, err := UnmarshalMessage(hex)
+	dbs2, err := UnmarshalMessage(hex)
 	if err != nil {
 		t.Error(err)
 	}
 
-	if ack2.Type() != constants.ACK_MSG {
+	if dbs2.Type() != constants.DIRECTORY_BLOCK_SIGNATURE_MSG {
 		t.Error("Invalid message type unmarshalled")
 	}
-	ackProper := ack2.(*Ack)
+	dbsProper := dbs2.(*DirectoryBlockSignature)
 
-	valid, err = ackProper.VerifySignature()
+	valid, err = dbsProper.VerifySignature()
 	if err != nil {
 		t.Error(err)
 	}
@@ -80,10 +80,12 @@ func TestSignAndVerifyAck(t *testing.T) {
 
 }
 
-func newAck() *Ack {
-	ack := new(Ack)
-	ack.Timestamp.SetTimeNow()
+func newDirectoryBlockSignature() *DirectoryBlockSignature {
+	dbs := new(DirectoryBlockSignature)
+	dbs.DirectoryBlockHeight = 123456
 	hash, _ := primitives.NewShaHashFromStr("cbd3d09db6defdc25dfc7d57f3479b339a077183cd67022e6d1ef6c041522b40")
-	ack.OriginalHash = hash
-	return ack
+	dbs.DirectoryBlockKeyMR = hash
+	hash, _ = primitives.NewShaHashFromStr("a077183cd67022e6d1ef6c041522b40cbd3d09db6defdc25dfc7d57f3479b339")
+	dbs.ServerIdentityChainID = hash
+	return dbs
 }

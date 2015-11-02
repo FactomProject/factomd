@@ -43,11 +43,12 @@ func (m *DirectoryBlockSignature) UnmarshalBinaryData(data []byte) (newData []by
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
 	}()
+	newData = data[1:]
 
 	m.DirectoryBlockHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
 	hash := new(primitives.Hash)
-	newData, err = hash.UnmarshalBinaryData(data)
+	newData, err = hash.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
 	}
@@ -83,6 +84,7 @@ func (m *DirectoryBlockSignature) MarshalForSignature() ([]byte, error) {
 	}
 
 	var buf bytes.Buffer
+	buf.Write([]byte{byte(m.Type())})
 
 	binary.Write(&buf, binary.BigEndian, m.DirectoryBlockHeight)
 	hash, err := m.DirectoryBlockKeyMR.MarshalBinary()
@@ -120,22 +122,6 @@ func (m *DirectoryBlockSignature) String() string {
 	return ""
 }
 
-func (m *DirectoryBlockSignature) DBHeight() int {
-	return 0
-}
-
-func (m *DirectoryBlockSignature) ChainID() []byte {
-	return nil
-}
-
-func (m *DirectoryBlockSignature) ListHeight() int {
-	return 0
-}
-
-func (m *DirectoryBlockSignature) SerialHash() []byte {
-	return nil
-}
-
 // Validate the message, given the state.  Three possible results:
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
@@ -157,7 +143,6 @@ func (m *DirectoryBlockSignature) Leader(state interfaces.IState) bool {
 	default:
 		panic("Not implemented yet")
 	}
-
 }
 
 // Execute the leader functions of the given message

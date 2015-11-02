@@ -6,6 +6,7 @@ package messages
 
 import (
 	"bytes"
+	"encoding/binary"
 	"fmt"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
@@ -15,41 +16,56 @@ import (
 )
 
 type EOM struct {
-	minute int
+	Minute byte
 
-	dbHeight   uint32
-	chainID    interfaces.IHash
-	listHeight uint32
-	serialHash interfaces.IHash
+	DirectoryBlockHeight uint32
+	IdentityChainID      interfaces.IHash
 
 	Signature *primitives.Signature
 }
 
-var _ interfaces.IConfirmation = (*EOM)(nil)
+//var _ interfaces.IConfirmation = (*EOM)(nil)
 var _ Signable = (*EOM)(nil)
 
 func (m *EOM) Int() int {
-	return m.minute
+	return int(m.Minute)
 }
 
 func (m *EOM) Bytes() []byte {
 	var ret []byte
-	return append(ret, byte(m.minute))
+	return append(ret, m.Minute)
 }
 
-func (m *EOM) UnmarshalBinaryData(data []byte) (newdata []byte, err error) {
+func (m *EOM) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
 	}()
-	m.minute, data = int(data[0]), data[1:]
+	newData = data[1:]
+	m.Minute, newData = newData[0], newData[1:]
 
-	if m.minute < 0 || m.minute >= 10 {
+	if m.Minute < 0 || m.Minute >= 10 {
 		return nil, fmt.Errorf("Minute number is out of range")
 	}
 
-	//m.dbHeight, data = binary.BigEndian.Uint32(data[:]), data[4:]
+	m.DirectoryBlockHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+
+	hash := new(primitives.Hash)
+	newData, err = hash.UnmarshalBinaryData(newData)
+	if err != nil {
+		return nil, err
+	}
+	m.IdentityChainID = hash
+
+	if len(newData) > 0 {
+		sig := new(primitives.Signature)
+		newData, err = sig.UnmarshalBinaryData(newData)
+		if err != nil {
+			return nil, err
+		}
+		m.Signature = sig
+	}
 
 	return data, nil
 }
@@ -60,7 +76,17 @@ func (m *EOM) UnmarshalBinary(data []byte) error {
 }
 
 func (m *EOM) MarshalForSignature() (data []byte, err error) {
-	return m.Bytes(), nil
+	var buf bytes.Buffer
+	buf.Write([]byte{byte(m.Type())})
+	binary.Write(&buf, binary.BigEndian, m.Minute)
+	binary.Write(&buf, binary.BigEndian, m.DirectoryBlockHeight)
+	hash, err := m.IdentityChainID.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	buf.Write(hash)
+
+	return buf.Bytes(), nil
 }
 
 func (m *EOM) MarshalBinary() (data []byte, err error) {
@@ -81,24 +107,11 @@ func (m *EOM) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *EOM) String() string {
-	return fmt.Sprintf("EOM(%d)", m.minute+1)
+	return fmt.Sprintf("EOM(%d)", m.Minute+1)
 }
 
 func (m *EOM) Type() int {
 	return constants.EOM_MSG
-}
-func (m *EOM) DBHeight() int {
-	return 0
-}
-func (m *EOM) ChainID() []byte {
-	return nil
-}
-func (m *EOM) ListHeight() int {
-	return 0
-}
-
-func (m *EOM) SerialHash() []byte {
-	return nil
 }
 
 // Validate the message, given the state.  Three possible results:
@@ -135,7 +148,7 @@ func (m *EOM) Leader(state interfaces.IState) bool {
 // Execute the leader functions of the given message
 func (m *EOM) LeaderExecute(state interfaces.IState) error {
 	if state.GetServerState() == 1 {
-		if m.minute == 9 {
+		if m.Minute == 9 {
 			olddb := state.GetCurrentDirectoryBlock()
 			db, err := directoryblock.CreateDBlock(uint32(state.GetDBHeight()), olddb, 10)
 			state.SetDBHeight(state.GetDBHeight() + 1)
@@ -212,9 +225,8 @@ func (m *EOM) VerifySignature() (bool, error) {
  * Support
  **********************************************************************/
 
-func NewEOM(state interfaces.IState, minute int) interfaces.IMsg {
+func NewEOM(minute int) interfaces.IMsg {
 	eom := new(EOM)
-	eom.minute = minute
-	eom.dbHeight = state.GetDBHeight()
+	eom.Minute = byte(minute)
 	return eom
 }
