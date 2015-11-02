@@ -36,6 +36,7 @@ func main() {
 	state := new(state.State)
 	state.Init()
 
+	go NetworkProcessor(state)
 	go Timer(state)
 	go Validator(state)
 	go Leader(state)

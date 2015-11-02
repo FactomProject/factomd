@@ -16,6 +16,7 @@ type State struct {
 	once sync.Once
 	Cfg  interfaces.IFactomConfig
 
+	netInMsgQueue      chan interfaces.IMsg
 	inMsgQueue         chan interfaces.IMsg
 	leaderInMsgQueue   chan interfaces.IMsg
 	followerInMsgQueue chan interfaces.IMsg
@@ -36,10 +37,30 @@ type State struct {
 	CurrentDirectoryBlock interfaces.IDirectoryBlock
 	DBHeight              uint32
 
+	// Web Services
+	Port	int
+	
 	// Message State
 	LastAck interfaces.IMsg // Return the last Acknowledgement set by this server
 
 	FactoidState interfaces.IFactoidState
+}
+
+func (s *State) GetFactoidState() interfaces.IFactoidState {
+	return s.FactoidState
+}
+
+// Allow us the ability to update the port number at run time.... 
+func (s *State) SetPort(port int) {
+	// Get our factomd configuration information.
+	cfg := s.GetCfg().(*util.FactomdConfig)
+	cfg.Wsapi.PortNumber = port
+}
+
+
+func (s *State) GetPort() int {
+	cfg := s.GetCfg().(*util.FactomdConfig)
+	return cfg.Wsapi.PortNumber
 }
 
 // Tests the given hash, and returns true if this server is the leader for this key.
@@ -49,12 +70,15 @@ type State struct {
 // Entry Credit Addresses
 // ChainIDs
 // ...
-
 func (s *State) LeaderFor([]byte) bool {
 	if s.TotalServers == 1 && s.ServerState == 1 && s.NetworkNumber == 2 {
 		return true
 	}
 	return false
+}
+
+func (s *State) NetworkInMsgQueue() chan interfaces.IMsg {
+	return s.netInMsgQueue
 }
 
 func (s *State) InMsgQueue() chan interfaces.IMsg {
@@ -120,10 +144,11 @@ func (s *State) Init() {
 
 	log.SetLevel(cfg.Log.ConsoleLogLevel)
 
+	s.netInMsgQueue = make(chan interfaces.IMsg, 10000)      //incoming message queue from the network messages
 	s.inMsgQueue = make(chan interfaces.IMsg, 10000)         //incoming message queue for factom application messages
-	s.leaderInMsgQueue = make(chan interfaces.IMsg, 10000)   //incoming message queue for factom application messages
-	s.followerInMsgQueue = make(chan interfaces.IMsg, 10000) //incoming message queue for factom application messages
-	s.outMsgQueue = make(chan interfaces.IMsg, 10000)        //outgoing message queue for factom application messages
+	s.leaderInMsgQueue = make(chan interfaces.IMsg, 10000)   //Leader Messages
+	s.followerInMsgQueue = make(chan interfaces.IMsg, 10000) //Follower Messages
+	s.outMsgQueue = make(chan interfaces.IMsg, 10000)        //Messages to be broadcast to the network
 
 	s.TotalServers = 1
 	s.ServerState = 1

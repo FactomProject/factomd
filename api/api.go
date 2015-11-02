@@ -8,9 +8,6 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"github.com/FactomProject/factomd/btcd/wire"
-	"github.com/FactomProject/factomd/process"
-
 	. "github.com/FactomProject/factomd/common/directoryBlock"
 	. "github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"

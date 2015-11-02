@@ -19,6 +19,7 @@ type IState interface {
 	String() string
 	
 	// Channels
+	NetworkInMsgQueue() chan IMsg
 	InMsgQueue() chan IMsg
 	LeaderInMsgQueue() chan IMsg
 	FollowerInMsgQueue() chan IMsg
@@ -48,5 +49,12 @@ type IState interface {
 	// Message State
 	GetLastAck() IMsg // Return the last Acknowledgement set by this server
 
+	// Web Services
+	SetPort(int)
+	GetPort() int
+	
+	// Factoid State
+	GetFactoidState() IFactoidState
+	
 	GetNewHash() IHash // Return a new Hash object
 }

@@ -7,13 +7,6 @@ package interfaces
 import ()
 
 type IFactoidState interface {
-	// Set the database for the Coin State.  This is where
-	// we manage the balances for transactions.  We also look
-	// for previous blocks here.
-	SetDB(DBOverlay)
-
-	// Load the address state of Factoids
-	LoadState() error
 
 	// Get the wallet used to help manage the Factoid State in
 	// some applications.
@@ -30,10 +23,6 @@ type IFactoidState interface {
 
 	// Add a transaction   Useful for catching up with the network.
 	AddTransactionBlock(IFBlock) error
-
-	// Return the Factoid block with this hash.  If unknown, returns
-	// a null.
-	GetTransactionBlock(IHash) (IFBlock, error)
 
 	// Validate transaction
 	// Return zero len string if the balance of an address covers each input
@@ -59,9 +48,6 @@ type IFactoidState interface {
 	// Process End of
 	ProcessEndOfBlock() // to be replaced by ProcessEndOfBlock2
 	ProcessEndOfBlock2(uint32)
-
-	// Get the current Directory Block Height
-	GetDBHeight() uint32
 
 	// Set the End of Period.  Currently, each block in Factom is broken
 	// into ten, one minute periods.
