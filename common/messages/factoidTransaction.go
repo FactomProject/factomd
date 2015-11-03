@@ -16,15 +16,11 @@ import (
 //A placeholder structure for messages
 type FactoidTransaction struct {
 	Transaction interfaces.ITransaction
-	Data        []byte
 }
 
 var _ interfaces.IMsg = (*FactoidTransaction)(nil)
 
 func (m *FactoidTransaction) GetTransaction() interfaces.ITransaction {
-	if m.Transaction == nil {
-		m.UnmarshalBinaryData(m.Data)
-	}
 	return m.Transaction
 }
 
@@ -41,25 +37,21 @@ func (m *FactoidTransaction) Int() int {
 }
 
 func (m *FactoidTransaction) Bytes() []byte {
-	return m.Data
+	return nil
 }
 
-func (m *FactoidTransaction) SetBytes(b []byte) {
-	m.Data = make([]byte, len(b))
-	copy(m.Data, b)
-}
-
-func (m *FactoidTransaction) UnmarshalBinaryData(data []byte) (newdata []byte, err error) {
+func (m *FactoidTransaction) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
 	}()
+	newData = data[1:]
 
 	m.Transaction = new(factoid.Transaction)
-	newdata, err = m.UnmarshalBinaryData(data)
+	newData, err = m.Transaction.UnmarshalBinaryData(newData)
 
-	return newdata, err
+	return newData, err
 }
 
 func (m *FactoidTransaction) UnmarshalBinary(data []byte) error {
@@ -68,31 +60,16 @@ func (m *FactoidTransaction) UnmarshalBinary(data []byte) error {
 }
 
 func (m *FactoidTransaction) MarshalBinary() (data []byte, err error) {
-	return nil, nil
+	data, err = m.Transaction.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	data = append([]byte{byte(m.Type())}, data...)
+	return data, nil
 }
 
 func (m *FactoidTransaction) String() string {
 	return ""
-}
-
-func (m *FactoidTransaction) DBHeight() int {
-	return 0
-}
-
-func (m *FactoidTransaction) ChainID() []byte {
-	return nil
-}
-
-func (m *FactoidTransaction) ListHeight() int {
-	return 0
-}
-
-func (m *FactoidTransaction) SerialHash() []byte {
-	return nil
-}
-
-func (m *FactoidTransaction) Signature() []byte {
-	return nil
 }
 
 // Validate the message, given the state.  Three possible results:
