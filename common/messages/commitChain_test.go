@@ -6,8 +6,8 @@ package messages_test
 
 import (
 	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	. "github.com/FactomProject/factomd/common/messages"
-	//"github.com/FactomProject/factomd/common/primitives"
 	"testing"
 )
 
@@ -33,6 +33,12 @@ func TestMarshalUnmarshalCommitChain(t *testing.T) {
 
 func newCommitChain() *CommitChainMsg {
 	cc := new(CommitChainMsg)
+
+	chain := entryCreditBlock.NewCommitChain()
+
+	chain.Version = 1
+
+	cc.CommitChain = chain
 
 	return cc
 }

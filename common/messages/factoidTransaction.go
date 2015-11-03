@@ -7,8 +7,8 @@ package messages
 import (
 	"bytes"
 	"fmt"
-	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 )
@@ -16,7 +16,7 @@ import (
 //A placeholder structure for messages
 type FactoidTransaction struct {
 	Transaction interfaces.ITransaction
-	Data [] byte
+	Data        []byte
 }
 
 var _ interfaces.IMsg = (*FactoidTransaction)(nil)
@@ -32,8 +32,6 @@ func (m *FactoidTransaction) SetTransaction(transaction interfaces.ITransaction)
 	m.Transaction = transaction
 }
 
-
-	
 func (m *FactoidTransaction) Type() int {
 	return constants.FACTOID_TRANSACTION_MSG
 }
@@ -47,8 +45,8 @@ func (m *FactoidTransaction) Bytes() []byte {
 }
 
 func (m *FactoidTransaction) SetBytes(b []byte) {
-	m.Data = make([]byte,len(b))
-	copy(m.Data,b)
+	m.Data = make([]byte, len(b))
+	copy(m.Data, b)
 }
 
 func (m *FactoidTransaction) UnmarshalBinaryData(data []byte) (newdata []byte, err error) {
@@ -60,7 +58,7 @@ func (m *FactoidTransaction) UnmarshalBinaryData(data []byte) (newdata []byte, e
 
 	m.Transaction = new(factoid.Transaction)
 	newdata, err = m.UnmarshalBinaryData(data)
-	
+
 	return newdata, err
 }
 
