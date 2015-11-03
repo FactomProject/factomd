@@ -6,13 +6,14 @@ package messages_test
 
 import (
 	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/entryBlock"
 	. "github.com/FactomProject/factomd/common/messages"
-	//"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives"
 	"testing"
 )
 
 func TestMarshalUnmarshalRevealEntry(t *testing.T) {
-	re := newDirectoryBlockSignature()
+	re := newRevealEntry()
 	hex, err := re.MarshalBinary()
 	if err != nil {
 		t.Error(err)
@@ -27,12 +28,38 @@ func TestMarshalUnmarshalRevealEntry(t *testing.T) {
 	t.Logf("str - %v", str)
 
 	if re2.Type() != constants.REVEAL_ENTRY_MSG {
-		t.Error("Invalid message type unmarshalled")
+		t.Errorf("Invalid message type unmarshalled - got %v, expected %v", re2.Type(), constants.REVEAL_ENTRY_MSG)
+	}
+
+	hex2, err := re2.(*RevealEntry).MarshalBinary()
+	if err != nil {
+		t.Error(err)
+	}
+	if len(hex) != len(hex2) {
+		t.Error("Hexes aren't of identical length")
+	}
+	for i := range hex {
+		if hex[i] != hex2[i] {
+			t.Error("Hexes do not match")
+		}
 	}
 }
 
 func newRevealEntry() *RevealEntry {
 	re := new(RevealEntry)
+
+	entry := new(entryBlock.Entry)
+
+	entry.ExtIDs = make([][]byte, 0, 5)
+	entry.ExtIDs = append(entry.ExtIDs, []byte("1asdfadfasdf"))
+	entry.ExtIDs = append(entry.ExtIDs, []byte(""))
+	entry.ExtIDs = append(entry.ExtIDs, []byte("3"))
+	entry.ChainID = new(primitives.Hash)
+	entry.ChainID.SetBytes(constants.EC_CHAINID)
+
+	entry.Content = []byte("1asdf asfas dfsg\"08908098(*)*^*&%&%&$^#%##%$$@$@#$!$#!$#@!~@!#@!%#@^$#^&$*%())_+_*^*&^&\"\"?>?<<>/./,")
+
+	re.Entry = entry
 
 	return re
 }

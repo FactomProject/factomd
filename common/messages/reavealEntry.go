@@ -39,7 +39,7 @@ func (m *RevealEntry) UnmarshalBinaryData(data []byte) (newData []byte, err erro
 		}
 	}()
 	newData = data[1:]
-	e := new(entryBlock.Entry)
+	e := entryBlock.NewEntry()
 	newData, err = e.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err

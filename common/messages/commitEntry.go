@@ -39,7 +39,7 @@ func (m *CommitEntryMsg) UnmarshalBinaryData(data []byte) (newData []byte, err e
 		}
 	}()
 	newData = data[1:]
-	ce := new(entryCreditBlock.CommitEntry)
+	ce := entryCreditBlock.NewCommitEntry()
 	newData, err = ce.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
