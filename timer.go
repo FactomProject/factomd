@@ -35,7 +35,7 @@ func Timer(state interfaces.IState) {
 	log.Printfln("Starting Timer! %v", time.Now())
 	for {
 		for i := 0; i < 10; i++ {
-			eom := messages.NewEOM(state, i)
+			eom := messages.NewEOM(i)
 			state.InMsgQueue() <- eom
 			now = time.Now().UnixNano()
 			wait := next - now

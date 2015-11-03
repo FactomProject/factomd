@@ -21,12 +21,12 @@ import (
 var FACTOID_CHAINID_HASH = primitives.NewHash(constants.FACTOID_CHAINID)
 
 type FactoidState struct {
-	State			interfaces.IState
+	State           interfaces.IState
 	FactoshisPerEC  uint64
 	CurrentBlock    interfaces.IFBlock
 	Wallet          interfaces.ISCWallet
 	NumTransactions int
-	Balances        map[[32]byte] int64
+	Balances        map[[32]byte]int64
 }
 
 var _ interfaces.IFactoidState = (*FactoidState)(nil)
@@ -46,7 +46,6 @@ func (fs *FactoidState) SetWallet(w interfaces.ISCWallet) {
 func (fs *FactoidState) GetCurrentBlock() interfaces.IFBlock {
 	return fs.CurrentBlock
 }
-
 
 // When we are playing catchup, adding the transaction block is a pretty
 // useful feature.
@@ -288,7 +287,6 @@ func (fs *FactoidState) LoadState() error {
 }
 **/
 
-
 // Returns an error message about what is wrong with the transaction if it is
 // invalid, otherwise you are good to go.
 func (fs *FactoidState) Validate(index int, trans interfaces.ITransaction) error {
@@ -318,5 +316,3 @@ func (fs *FactoidState) GetFactoshisPerEC() uint64 {
 func (fs *FactoidState) SetFactoshisPerEC(factoshisPerEC uint64) {
 	fs.FactoshisPerEC = factoshisPerEC
 }
-
-

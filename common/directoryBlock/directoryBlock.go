@@ -234,6 +234,9 @@ func CreateDBlock(nextDBHeight uint32, prev interfaces.IDirectoryBlock, cap uint
 
 	b.GetHeader().SetDBHeight(nextDBHeight)
 	b.SetDBEntries(make([]interfaces.IDBEntry, 0, cap))
-
+	b.AddEntry(primitives.NewHash(constants.ADMIN_CHAINID), nil)
+	b.AddEntry(primitives.NewHash(constants.EC_CHAINID), nil)
+	b.AddEntry(primitives.NewHash(constants.FACTOID_CHAINID), nil)
+	
 	return b, err
 }

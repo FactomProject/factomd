@@ -5,6 +5,7 @@ import (
 	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/factoid/block"
 	"github.com/FactomProject/factomd/database/hybridDB"
 	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/util"
@@ -154,35 +155,61 @@ func (s *State) Init() {
 	s.ServerState = 1
 
 	//Database
-
-	//Network
-	switch cfg.App.Network {
-	case "MAIN":
-		s.NetworkNumber = 0
-	case "TEST":
-		s.NetworkNumber = 1
-	case "LOCAL":
-		s.NetworkNumber = 2
-	case "CUSTOM":
-		s.NetworkNumber = 3
-	default:
-		panic("Bad value for Network in factomd.conf")
-	}
-
 	if err := s.InitBoltDB(); err != nil {
 		log.Printfln("Error initializing the database: %v", err)
 	}
+		
+	//Network
+	switch cfg.App.Network {
+	case "MAIN":
+		s.NetworkNumber = constants.NETWORK_MAIN
+	case "TEST":
+		s.NetworkNumber = constants.NETWORK_TEST
+	case "LOCAL":
+		s.NetworkNumber = constants.NETWORK_LOCAL
+	case "CUSTOM":
+		s.NetworkNumber = constants.NETWORK_CUSTOM
+	default:
+		panic("Bad value for Network in factomd.conf")
+	}
+	
+	s.loadDatabase()
+	
+}
 
-	dirblk := new(directoryblock.DirectoryBlock)
-	dblk, err := s.DB.Get([]byte(constants.DB_DIRECTORY_BLOCKS), constants.D_CHAINID, dirblk) 
+func (s *State) loadDatabase() {
+	
+	dblk := new(directoryblock.DirectoryBlock)
+	_, err := s.DB.Get([]byte(constants.DB_DIRECTORY_BLOCKS), constants.D_CHAINID, dblk) 
 	if err != nil {
 		panic(err.Error())
 	}
-	if dblk != nil {
-		s.SetCurrentDirectoryBlock(dirblk)
-		s.SetDBHeight(dirblk.GetHeader().GetDBHeight()+1)
+	
+	if dblk == nil && s.NetworkNumber == constants.NETWORK_LOCAL {
+		dblk, err := directoryblock.CreateDBlock(0,nil,4)
+		if err != nil {
+			panic("Failed to initialize Factoids: "+err.Error())
+		}
+		
+		//TODO Also need to set Admin block and EC Credit block
+		
+		fblk  := block.GetGenesisFBlock()
+		s.GetDB().Put([]byte(constants.DB_FACTOID_BLOCKS), primitives.Sha(constants.FACTOID_CHAINID).Bytes(), fblk)
+		
+		dblk.GetDBEntries()[2].SetKeyMR(fblk.GetKeyMR()) 
+		
+		s.SetCurrentDirectoryBlock(dblk)
+		s.SetDBHeight(dblk.GetHeader().GetDBHeight()+1)
+		
+		s.FactoidState = new(FactoidState)
+		if err := s.FactoidState.AddTransactionBlock(fblk); err != nil {
+			panic("Failed to initialize Factoids: "+err.Error())
+		}
+		dblk, err = directoryblock.CreateDBlock(1,dblk,4)
 	}
-	s.FactoidState = new(FactoidState)
+	s.SetDBHeight(dblk.GetHeader().GetDBHeight())
+	s.SetCurrentDirectoryBlock(dblk)
+	
 }
 
 func (s *State) InitLevelDB() error {

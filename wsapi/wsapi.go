@@ -75,14 +75,14 @@ func handleFactoidSubmit(ctx *web.Context) {
 		return
 	}
 
-	err = state.FactoidStateGlobal.Validate(1, msg.Transaction)
+	err = state.GetFactoidState().Validate(1, msg.Transaction)
 
 	if err != nil {
 		returnMsg(ctx, err.Error(), false)
 		return
 	}
 
-	stage.NetworkInMsgQueue <- msg
+	state.NetworkInMsgQueue() <- msg
 
 	returnMsg(ctx, "Successfully submitted the transaction", true)
 

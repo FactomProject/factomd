@@ -38,7 +38,7 @@ const (
 	// Database
 	//==================
 	// Limit on size of keys, since Maps in Go can't handle variable length keys.
-	KEY_LIMIT = ADDRESS_LENGTH * 2 
+	KEY_LIMIT               = ADDRESS_LENGTH * 2
 	DB_DIRECTORY_BLOCKS     = "Factom_Directory_Blocks"
 	DB_FACTOID_BLOCKS       = "Factoid_Transaction_Blocks"
 	DB_ADMIN_BLOCKS         = "Factom_Admin_Blocks"
@@ -49,8 +49,7 @@ const (
 	DB_FACTOID_FORWARD      = "Factoid_Block_Forward_Hashes"
 	DB_ENTRY_CREDIT_FORWARD = "Entry_Credit_Forward_Hashes"
 	DB_ENTRY_CHAIN_FORWARD  = "Entry_Chain_Forward_Hashes"
-	
-	
+
 	// Wallet
 	//==================
 	W_SEEDS            = "wallet.address.seeds"      // Holds the root seeds for address generation
@@ -86,12 +85,19 @@ const (
 
 	COMMIT_TIME_WINDOW = time.Duration(12) //Time windows for commit chain and commit entry +/- 12 hours
 
-	//Common constants
+	//NETWORK constants
 	//==================
 	VERSION_0     = byte(0)
 	NETWORK_ID_DB = uint32(4203931041) //0xFA92E5A1
 	NETWORK_ID_EB = uint32(4203931042) //0xFA92E5A2
 	NETWORK_ID_CB = uint32(4203931043) //0xFA92E5A3
+
+	// NETWORKS:
+
+	NETWORK_MAIN   int = iota // 0
+	NETWORK_TEST              // 1
+	NETWORK_LOCAL             // 2
+	NETWORK_CUSTOM            // 3
 
 	//For Factom TestNet
 	//==================
@@ -137,13 +143,13 @@ var ZERO = []byte{0}
 // https://github.com/FactomProject/FactomDocs/blob/master/factomDataStructureDetails.md#adminid-bytes
 //---------------------------------------------------------------
 const (
-	TYPE_MINUTE_NUM uint8 = iota // 0
-	TYPE_DB_SIGNATURE // 1
-	TYPE_REVEAL_MATRYOSHKA // 2
-	TYPE_ADD_MATRYOSHKA // 3
-	TYPE_ADD_SERVER_COUNT // 4
-	TYPE_ADD_FED_SERVER // 5
-	TYPE_REMOVE_FED_SERVER // 6 
-	TYPE_ADD_FED_SERVER_KEY // 7
-	TYPE_ADD_BTC_ANCHOR_KEY //8
+	TYPE_MINUTE_NUM         uint8 = iota // 0
+	TYPE_DB_SIGNATURE                    // 1
+	TYPE_REVEAL_MATRYOSHKA               // 2
+	TYPE_ADD_MATRYOSHKA                  // 3
+	TYPE_ADD_SERVER_COUNT                // 4
+	TYPE_ADD_FED_SERVER                  // 5
+	TYPE_REMOVE_FED_SERVER               // 6
+	TYPE_ADD_FED_SERVER_KEY              // 7
+	TYPE_ADD_BTC_ANCHOR_KEY              //8
 )
