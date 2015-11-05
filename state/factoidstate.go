@@ -158,8 +158,6 @@ func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
 	}
 }
 
-
-
 /**
 func (fs *FactoidState) LoadState() error {
 	var hashes []interfaces.IHash

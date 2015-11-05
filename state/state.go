@@ -3,9 +3,9 @@ package state
 import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
+	"github.com/FactomProject/factomd/common/factoid/block"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/common/factoid/block"
 	"github.com/FactomProject/factomd/database/hybridDB"
 	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/util"
@@ -17,12 +17,12 @@ type State struct {
 	once sync.Once
 	Cfg  interfaces.IFactomConfig
 
-	networkInMsgQueue		chan interfaces.IMsg
-	networkOutMsgQueue		chan interfaces.IMsg
-	networkInvalidMsgQueue	chan interfaces.IMsg
-	inMsgQueue         		chan interfaces.IMsg
-	leaderInMsgQueue   		chan interfaces.IMsg
-	followerInMsgQueue 		chan interfaces.IMsg
+	networkInMsgQueue      chan interfaces.IMsg
+	networkOutMsgQueue     chan interfaces.IMsg
+	networkInvalidMsgQueue chan interfaces.IMsg
+	inMsgQueue             chan interfaces.IMsg
+	leaderInMsgQueue       chan interfaces.IMsg
+	followerInMsgQueue     chan interfaces.IMsg
 
 	//Network MAIN = 0, TEST = 1, LOCAL = 2, CUSTOM = 3
 	NetworkNumber int // Encoded into Directory Blocks
@@ -40,37 +40,35 @@ type State struct {
 	DBHeight              uint32
 
 	// Web Services
-	Port	int
-	
+	Port int
+
 	// Message State
 	LastAck interfaces.IMsg // Return the last Acknowledgement set by this server
 
-	FactoidState interfaces.IFactoidState
+	FactoidState      interfaces.IFactoidState
 	CurrentAdminBlock interfaces.IAdminBlock
 }
 
 var _ interfaces.IState = (*State)(nil)
 
-func(s *State) GetCurrentAdminBlock() interfaces.IAdminBlock {
-	return s.CurrentAdminBlock 
+func (s *State) GetCurrentAdminBlock() interfaces.IAdminBlock {
+	return s.CurrentAdminBlock
 }
 
-func(s *State) SetCurrentAdminBlock(adblock interfaces.IAdminBlock) {
+func (s *State) SetCurrentAdminBlock(adblock interfaces.IAdminBlock) {
 	s.CurrentAdminBlock = adblock
 }
-
 
 func (s *State) GetFactoidState() interfaces.IFactoidState {
 	return s.FactoidState
 }
 
-// Allow us the ability to update the port number at run time.... 
+// Allow us the ability to update the port number at run time....
 func (s *State) SetPort(port int) {
 	// Get our factomd configuration information.
 	cfg := s.GetCfg().(*util.FactomdConfig)
 	cfg.Wsapi.PortNumber = port
 }
-
 
 func (s *State) GetPort() int {
 	cfg := s.GetCfg().(*util.FactomdConfig)
@@ -114,7 +112,6 @@ func (s *State) LeaderInMsgQueue() chan interfaces.IMsg {
 func (s *State) FollowerInMsgQueue() chan interfaces.IMsg {
 	return s.followerInMsgQueue
 }
-
 
 //var _ IState = (*State)(nil)
 
@@ -163,12 +160,12 @@ func (s *State) Init() {
 
 	log.SetLevel(cfg.Log.ConsoleLogLevel)
 
-	s.networkInMsgQueue 		= make(chan interfaces.IMsg, 10000) //incoming message queue from the network messages
-	s.networkInvalidMsgQueue 	= make(chan interfaces.IMsg, 10000) //incoming message queue from the network messages
-	s.networkOutMsgQueue 		= make(chan interfaces.IMsg, 10000) //Messages to be broadcast to the network
-	s.inMsgQueue 				= make(chan interfaces.IMsg, 10000) //incoming message queue for factom application messages
-	s.leaderInMsgQueue 			= make(chan interfaces.IMsg, 10000) //Leader Messages
-	s.followerInMsgQueue 		= make(chan interfaces.IMsg, 10000) //Follower Messages
+	s.networkInMsgQueue = make(chan interfaces.IMsg, 10000)      //incoming message queue from the network messages
+	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 10000) //incoming message queue from the network messages
+	s.networkOutMsgQueue = make(chan interfaces.IMsg, 10000)     //Messages to be broadcast to the network
+	s.inMsgQueue = make(chan interfaces.IMsg, 10000)             //incoming message queue for factom application messages
+	s.leaderInMsgQueue = make(chan interfaces.IMsg, 10000)       //Leader Messages
+	s.followerInMsgQueue = make(chan interfaces.IMsg, 10000)     //Follower Messages
 
 	s.TotalServers = 1
 	s.ServerState = 1
@@ -177,7 +174,7 @@ func (s *State) Init() {
 	if err := s.InitBoltDB(); err != nil {
 		log.Printfln("Error initializing the database: %v", err)
 	}
-		
+
 	//Network
 	switch cfg.App.Network {
 	case "MAIN":
@@ -191,44 +188,44 @@ func (s *State) Init() {
 	default:
 		panic("Bad value for Network in factomd.conf")
 	}
-	
+
 	s.loadDatabase()
-	
+
 }
 
 func (s *State) loadDatabase() {
-	
+
 	dblk := new(directoryblock.DirectoryBlock)
-	_, err := s.DB.Get([]byte(constants.DB_DIRECTORY_BLOCKS), constants.D_CHAINID, dblk) 
+	_, err := s.DB.Get([]byte(constants.DB_DIRECTORY_BLOCKS), constants.D_CHAINID, dblk)
 	if err != nil {
 		panic(err.Error())
 	}
-	
+
 	if dblk == nil && s.NetworkNumber == constants.NETWORK_LOCAL {
-		dblk, err := directoryblock.CreateDBlock(0,nil,4)
+		dblk, err := directoryblock.CreateDBlock(0, nil, 4)
 		if err != nil {
-			panic("Failed to initialize Factoids: "+err.Error())
+			panic("Failed to initialize Factoids: " + err.Error())
 		}
-		
+
 		//TODO Also need to set Admin block and EC Credit block
-		
-		fblk  := block.GetGenesisFBlock()
+
+		fblk := block.GetGenesisFBlock()
 		s.GetDB().Put([]byte(constants.DB_FACTOID_BLOCKS), primitives.Sha(constants.FACTOID_CHAINID).Bytes(), fblk)
-		
-		dblk.GetDBEntries()[2].SetKeyMR(fblk.GetKeyMR()) 
-		
+
+		dblk.GetDBEntries()[2].SetKeyMR(fblk.GetKeyMR())
+
 		s.SetCurrentDirectoryBlock(dblk)
-		s.SetDBHeight(dblk.GetHeader().GetDBHeight()+1)
-		
+		s.SetDBHeight(dblk.GetHeader().GetDBHeight() + 1)
+
 		s.FactoidState = new(FactoidState)
 		if err := s.FactoidState.AddTransactionBlock(fblk); err != nil {
-			panic("Failed to initialize Factoids: "+err.Error())
+			panic("Failed to initialize Factoids: " + err.Error())
 		}
-		dblk, err = directoryblock.CreateDBlock(1,dblk,4)
+		dblk, err = directoryblock.CreateDBlock(1, dblk, 4)
 	}
 	s.SetDBHeight(dblk.GetHeader().GetDBHeight())
 	s.SetCurrentDirectoryBlock(dblk)
-	
+
 }
 
 func (s *State) InitLevelDB() error {

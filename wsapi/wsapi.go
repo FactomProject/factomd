@@ -5,17 +5,15 @@
 package wsapi
 
 import (
-	
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"encoding/json"
-	"encoding/hex"
-	
+
+	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/log"
-	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/hoisie/web"
-
 )
 
 const (
@@ -23,13 +21,13 @@ const (
 	httpBad = 400
 )
 
-var Servers map[int] *web.Server
+var Servers map[int]*web.Server
 
 func Start(state interfaces.IState) {
-	server := web.NewServer()	
+	server := web.NewServer()
 	Servers[state.GetPort()] = server
 	server.Env["state"] = state
-	
+
 	server.Post("/v1/factoid-submit/?", handleFactoidSubmit)
 
 	log.Print("Starting server")
@@ -40,11 +38,10 @@ func Stop(state interfaces.IState) {
 	Servers[state.GetPort()].Close()
 }
 
-
 func handleFactoidSubmit(ctx *web.Context) {
-	
+
 	state := ctx.Server.Env["state"].(interfaces.IState)
-	
+
 	type x struct{ Transaction string }
 	t := new(x)
 
@@ -98,7 +95,7 @@ func returnMsg(ctx *web.Context, msg string, success bool) {
 		Success  bool
 	}
 	r := rtn{Response: msg, Success: success}
-	
+
 	if p, err := json.Marshal(r); err != nil {
 		wsLog.Error(err)
 		return
