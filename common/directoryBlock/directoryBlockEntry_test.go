@@ -2,9 +2,10 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-package directoryblock
+package directoryblock_test
 
 import (
+	. "github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/primitives"
 	"testing"
 )
@@ -26,33 +27,31 @@ func TestDBSEMisc(t *testing.T) {
 	if hash.String() != "000000000000000000000000000000000000000000000000000000000000000a" {
 		t.Fail()
 	}
-	hash, err = dbe.GetKeyMR()
-	if err != nil {
-		t.Error(err)
-	}
+	hash = dbe.GetKeyMR()
 	if hash.String() != "000000000000000000000000000000000000000000000000000000000000000b" {
 		t.Fail()
 	}
+	/*
+		dbe2, err := NewDBEntry(dbe)
+		if err != nil {
+			t.Error(err)
+		}
+		if dbe2 == nil {
+			t.Fail()
+		}
 
-	dbe2, err := NewDBEntry(dbe)
-	if err != nil {
-		t.Error(err)
-	}
-	if dbe2 == nil {
-		t.Fail()
-	}
-
-	hash = dbe2.GetChainID()
-	if hash.String() != "000000000000000000000000000000000000000000000000000000000000000a" {
-		t.Fail()
-	}
-	hash, err = dbe2.GetKeyMR()
-	if err != nil {
-		t.Error(err)
-	}
-	if hash.String() != "000000000000000000000000000000000000000000000000000000000000000b" {
-		t.Fail()
-	}
+		hash = dbe2.GetChainID()
+		if hash.String() != "000000000000000000000000000000000000000000000000000000000000000a" {
+			t.Fail()
+		}
+		hash, err = dbe2.GetKeyMR()
+		if err != nil {
+			t.Error(err)
+		}
+		if hash.String() != "000000000000000000000000000000000000000000000000000000000000000b" {
+			t.Fail()
+		}
+	*/
 }
 
 func TestDBSEMarshalUnmarshal(t *testing.T) {

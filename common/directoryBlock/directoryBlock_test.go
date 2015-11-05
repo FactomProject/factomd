@@ -2,7 +2,7 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-package directoryblock
+package directoryblock_test
 
 import (
 	"bytes"
@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"testing"
 
+	. "github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 )
@@ -169,7 +170,7 @@ func TestMakeSureBlockCountIsNotDuplicates(t *testing.T) {
 
 	for i := 0; i < 100; i++ {
 		//Update the BlockCount in header
-		block.Header().SetBlockCount(uint32(len(block.DBEntries())))
+		block.GetHeader().SetBlockCount(uint32(len(block.GetDBEntries())))
 		//Marshal the block
 		marshalled, err := block.MarshalBinary()
 		if err != nil {
@@ -177,7 +178,7 @@ func TestMakeSureBlockCountIsNotDuplicates(t *testing.T) {
 		}
 		//Get the byte representation of BlockCount
 		var buf bytes.Buffer
-		binary.Write(&buf, binary.BigEndian, block.Header().BlockCount())
+		binary.Write(&buf, binary.BigEndian, block.GetHeader().GetBlockCount())
 		hex := buf.Bytes()
 
 		//How many times does BlockCount appear in the marshalled slice?
@@ -193,7 +194,7 @@ func TestMakeSureBlockCountIsNotDuplicates(t *testing.T) {
 		de.ChainID = primitives.NewZeroHash()
 		de.KeyMR = primitives.NewZeroHash()
 
-		block.SetDBEntries(append(block.DBEntries(), de))
+		block.SetDBEntries(append(block.GetDBEntries(), de))
 	}
 	t.Logf("Min count - %v, max count - %v", min, max)
 	if min != 1 {
@@ -212,8 +213,8 @@ func createTestDirectoryBlock() *DirectoryBlock {
 	de.ChainID = primitives.NewZeroHash()
 	de.KeyMR = primitives.NewZeroHash()
 
-	dblock.SetDBEntries(append(dblock.DBEntries(), de))
-	dblock.Header().SetBlockCount(uint32(len(dblock.DBEntries())))
+	dblock.SetDBEntries(append(dblock.GetDBEntries(), de))
+	dblock.GetHeader().SetBlockCount(uint32(len(dblock.GetDBEntries())))
 
 	return dblock
 }
