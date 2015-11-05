@@ -13,6 +13,7 @@ import (
 	"github.com/FactomProject/factomd/wsapi"
 	"os"
 	"fmt"
+	"bytes"
 )
 
 var _ = fmt.Print
@@ -28,7 +29,7 @@ type State struct {
 	followerInMsgQueue     chan interfaces.IMsg
 
 	//Network MAIN = 0, TEST = 1, LOCAL = 2, CUSTOM = 3
-	NetworkNumber int // Encoded into Directory Blocks
+	NetworkNumber int // Encoded into Directory Blocks(s.Cfg.(*util.FactomdConfig)).String()
 
 	// Number of Servers acknowledged by Factom
 	TotalServers int
@@ -126,7 +127,7 @@ func (s *State) GetCfg() interfaces.IFactomConfig {
 
 // ReadCfg forces a read of the factom config file.  However, it does not change the
 // state of any cfg object held by other processes... Only what will be returned by
-// future calls to Cfg().
+// future calls to Cfg().(s.Cfg.(*util.FactomdConfig)).String()
 func (s *State) ReadCfg(filename string) interfaces.IFactomConfig {
 	s.Cfg = util.ReadConfig(filename)
 	return s.Cfg
@@ -293,7 +294,18 @@ func (s *State) InitMapDB() error {
 }
 
 func (s *State) String() string {
-	return (s.Cfg.(*util.FactomdConfig)).String()
+	var out bytes.Buffer
+	
+	out.WriteString(fmt.Sprintf("Queues: NetIn %d NetOut %d NetInvalid %d InMsg %d Leader %d Follower %d",
+								len(s.NetworkInMsgQueue()),
+								len(s.NetworkOutMsgQueue()),
+								len(s.NetworkInvalidMsgQueue()),
+								len(s.InMsgQueue()),
+								len(s.LeaderInMsgQueue()),
+								len(s.FollowerInMsgQueue())))
+	
+	return out.String() 
+	
 }
 
 func (s *State) GetNetworkName() string {
