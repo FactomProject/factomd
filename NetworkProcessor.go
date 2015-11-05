@@ -5,14 +5,17 @@
 package main
 
 import (
+	"fmt"
 	"time"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/log"
 )
 
+var _ = fmt.Print
+
 func NetworkProcessor(state interfaces.IState) {
 
-	for {
+	netloop: for {
 		
 		// This loop looks at the input queues and the invalid queues and 
 		// Handles messages as they come in.   If nothing is read, it sleeps
@@ -24,17 +27,19 @@ func NetworkProcessor(state interfaces.IState) {
 				if ok {
 					log.Printf("%20s %s\n", "In Network:", msg.String())
 					state.InMsgQueue() <- msg
-					continue
+					continue netloop
 				}
+			default :
 		}
 
 		select {
 			case msg, ok := <- state.NetworkOutMsgQueue():
 				if ok {
 					log.Printf("%20s %s\n", "Network Broadcast:", msg.String())
-					state.InMsgQueue() <- msg
-					continue
+					// Ignore for now
+					continue netloop
 				}
+			default :
 		}
 		
 		select {
@@ -42,10 +47,10 @@ func NetworkProcessor(state interfaces.IState) {
 				if ok {
 					log.Printf("%20s %s\n", "Network Invalid Msg:", msg.String())
 					// Ignore for now
-					continue
+					continue netloop
 				}
+			default :
 		}
-		
 		time.Sleep(time.Duration(500) * time.Millisecond)
 	}
 

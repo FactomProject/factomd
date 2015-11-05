@@ -5,6 +5,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/log"
 )
@@ -27,6 +28,7 @@ func Validator(state interfaces.IState) {
 		case -1: // Drop if invalid.
 			// Invalid.  Just do nothing.
 		}
+		fmt.Println(state)
 	}
 
 }

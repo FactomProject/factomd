@@ -12,7 +12,11 @@ import (
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
 	"os"
+	"fmt"
+	"bytes"
 )
+
+var _ = fmt.Print
 
 type State struct {
 	Cfg interfaces.IFactomConfig
@@ -25,7 +29,7 @@ type State struct {
 	followerInMsgQueue     chan interfaces.IMsg
 
 	//Network MAIN = 0, TEST = 1, LOCAL = 2, CUSTOM = 3
-	NetworkNumber int // Encoded into Directory Blocks
+	NetworkNumber int // Encoded into Directory Blocks(s.Cfg.(*util.FactomdConfig)).String()
 
 	// Number of Servers acknowledged by Factom
 	TotalServers int
@@ -123,7 +127,7 @@ func (s *State) GetCfg() interfaces.IFactomConfig {
 
 // ReadCfg forces a read of the factom config file.  However, it does not change the
 // state of any cfg object held by other processes... Only what will be returned by
-// future calls to Cfg().
+// future calls to Cfg().(s.Cfg.(*util.FactomdConfig)).String()
 func (s *State) ReadCfg(filename string) interfaces.IFactomConfig {
 	s.Cfg = util.ReadConfig(filename)
 	return s.Cfg
@@ -171,21 +175,20 @@ func (s *State) Init(filename string) {
 
 	//Database
 	switch cfg.App.DBType {
-	case "LDB":
-		if err := s.InitLevelDB(); err != nil {
-			log.Printfln("Error initializing the database: %v", err)
-		}
-		break
-	case "Bolt":
-		if err := s.InitBoltDB(); err != nil {
-			log.Printfln("Error initializing the database: %v", err)
-		}
-		break
-	case "Map":
-		if err := s.InitMapDB(); err != nil {
-			log.Printfln("Error initializing the database: %v", err)
-		}
-		break
+		case "LDB":
+			if err := s.InitLevelDB(); err != nil {
+				log.Printfln("Error initializing the database: %v", err)
+			}
+		case "Bolt":
+			if err := s.InitBoltDB(); err != nil {
+				log.Printfln("Error initializing the database: %v", err)
+			}
+		case "Map":
+			if err := s.InitMapDB(); err != nil {
+				log.Printfln("Error initializing the database: %v", err)
+			}
+		default :
+			panic("No Database type specified")
 	}
 
 	//Network
@@ -208,7 +211,7 @@ func (s *State) Init(filename string) {
 
 func (s *State) loadDatabase() {
 
-	dblk := new(directoryblock.DirectoryBlock)
+	var dblk interfaces.IDirectoryBlock = new(directoryblock.DirectoryBlock)
 	blk, err := s.DB.Get([]byte(constants.DB_DIRECTORY_BLOCKS), constants.D_CHAINID, dblk)
 	if err != nil {
 		panic(err.Error())
@@ -219,8 +222,9 @@ func (s *State) loadDatabase() {
 		dblk = blk.(*directoryblock.DirectoryBlock)
 	}
 
+	
 	if dblk == nil && s.NetworkNumber == constants.NETWORK_LOCAL {
-		dblk, err := directoryblock.CreateDBlock(0, nil, 4)
+		dblk, err = directoryblock.CreateDBlock(0, nil, 4)
 		if err != nil {
 			panic("Failed to initialize Factoids: " + err.Error())
 		}
@@ -240,7 +244,11 @@ func (s *State) loadDatabase() {
 			panic("Failed to initialize Factoids: " + err.Error())
 		}
 		dblk, err = directoryblock.CreateDBlock(1, dblk, 4)
+		if dblk == nil {
+			panic("dblk should never be nil")
+		}
 	}
+		
 	s.SetDBHeight(dblk.GetHeader().GetDBHeight())
 	s.SetCurrentDirectoryBlock(dblk)
 
@@ -286,7 +294,18 @@ func (s *State) InitMapDB() error {
 }
 
 func (s *State) String() string {
-	return (s.Cfg.(*util.FactomdConfig)).String()
+	var out bytes.Buffer
+	
+	out.WriteString(fmt.Sprintf("Queues: NetIn %d NetOut %d NetInvalid %d InMsg %d Leader %d Follower %d",
+								len(s.NetworkInMsgQueue()),
+								len(s.NetworkOutMsgQueue()),
+								len(s.NetworkInvalidMsgQueue()),
+								len(s.InMsgQueue()),
+								len(s.LeaderInMsgQueue()),
+								len(s.FollowerInMsgQueue())))
+	
+	return out.String() 
+	
 }
 
 func (s *State) GetNetworkName() string {

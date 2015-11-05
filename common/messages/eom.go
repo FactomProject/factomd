@@ -173,18 +173,17 @@ func (m *EOM) Follower(interfaces.IState) bool {
 
 func (m *EOM) FollowerExecute(state interfaces.IState) error {
 
-	fmt.Println(state.GetFactoidState())
 	state.GetFactoidState().EndOfPeriod(int(m.Minute))
 
 	switch state.GetNetworkNumber() {
-	case 0: // Main Network
+	case constants.NETWORK_MAIN: // Main Network
 		panic("Not implemented yet")
-	case 1: // Test Network
+	case constants.NETWORK_TEST: // Test Network
 		panic("Not implemented yet")
-	case 2: // Local Network
+	case constants.NETWORK_LOCAL: // Local Network
 
 	default:
-		panic("Not implemented yet")
+		panic(fmt.Sprintf("Not implemented yet: Network Number %d",state.GetNetworkNumber()))
 	}
 		
 	if state.GetServerState() == constants.SERVER_MODE {

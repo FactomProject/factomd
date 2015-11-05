@@ -7,6 +7,7 @@ package directoryblock
 import (
 	"bytes"
 	"fmt"
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 )
@@ -45,7 +46,11 @@ func (e *DBEntry) MarshalBinary() (data []byte, err error) {
 	}
 	buf.Write(data)
 
-	data, err = e.KeyMR.MarshalBinary()
+	if e.KeyMR == nil {
+		data, err = primitives.NewHash(constants.ZERO_HASH).MarshalBinary()
+	}else{
+		data, err = e.KeyMR.MarshalBinary()
+	}
 	if err != nil {
 		return
 	}
