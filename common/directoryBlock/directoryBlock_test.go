@@ -233,3 +233,25 @@ func createTestDirectoryBlockHeader() *DBlockHeader {
 
 	return header
 }
+
+func TestDBlockMisc(t *testing.T) {
+	b, err := CreateDBlock(0, nil, 10)
+	if err != nil {
+		t.Error(err)
+	}
+	if b == nil {
+		t.Error("CreateDBlock returned nil nil")
+	}
+	b2, err := CreateDBlock(1, b, 10)
+	if err != nil {
+		t.Error(err)
+	}
+	if b2 == nil {
+		t.Error("CreateDBlock returned nil nil")
+	}
+	_, err = b2.BuildBodyMR()
+	if err != nil {
+		t.Error(err)
+	}
+
+}
