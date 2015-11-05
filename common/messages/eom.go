@@ -130,6 +130,7 @@ func (m *EOM) Leader(state interfaces.IState) bool {
 
 // Execute the leader functions of the given message
 func (m *EOM) LeaderExecute(state interfaces.IState) error {
+	fmt.Println("Leader")
 	olddb := state.GetCurrentDirectoryBlock()
 	state.GetFactoidState().ProcessEndOfBlock(state)
 
@@ -172,6 +173,7 @@ func (m *EOM) Follower(interfaces.IState) bool {
 
 func (m *EOM) FollowerExecute(state interfaces.IState) error {
 
+	fmt.Println(state.GetFactoidState())
 	state.GetFactoidState().EndOfPeriod(int(m.Minute))
 
 	switch state.GetNetworkNumber() {
@@ -185,8 +187,7 @@ func (m *EOM) FollowerExecute(state interfaces.IState) error {
 		panic("Not implemented yet")
 	}
 		
-	if m.Minute == 9 && state.GetServerState() == constants.SERVER_MODE {
-		state.GetFactoidState().ProcessEndOfBlock(state)
+	if state.GetServerState() == constants.SERVER_MODE {
 		state.LeaderInMsgQueue() <- m
 	}
 	
