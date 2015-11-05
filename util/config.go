@@ -16,6 +16,7 @@ type FactomdConfig struct {
 	App struct {
 		PortNumber              int
 		HomeDir                 string
+		DBType                  string
 		LdbPath                 string
 		BoltDBPath              string
 		DataStorePath           string
@@ -87,6 +88,8 @@ const defaultConfig = `
 [app]
 PortNumber                            = 8088
 HomeDir                               = ""
+; --------------- DBType: LDB | Bolt | Map 
+DBType                                = "LDB"
 LdbPath                               = "ldb"
 BoltDBPath                            = ""
 DataStorePath                         = "data/export/"
@@ -149,6 +152,7 @@ func (s *FactomdConfig) String() string {
 	out.WriteString(fmt.Sprintf("\n  App"))
 	out.WriteString(fmt.Sprintf("\n    PortNumber              %v", s.App.PortNumber))
 	out.WriteString(fmt.Sprintf("\n    HomeDir                 %v", s.App.HomeDir))
+	out.WriteString(fmt.Sprintf("\n    DBType                 %v", s.App.DBType))
 	out.WriteString(fmt.Sprintf("\n    LdbPath                 %v", s.App.LdbPath))
 	out.WriteString(fmt.Sprintf("\n    BoltDBPath              %v", s.App.BoltDBPath))
 	out.WriteString(fmt.Sprintf("\n    DataStorePath           %v", s.App.DataStorePath))
@@ -208,8 +212,10 @@ func ConfigFilename() string {
 	return GetHomeDir() + "/.factom/m2/factomd.conf"
 }
 
-func ReadConfig() *FactomdConfig {
-	filename := ConfigFilename()
+func ReadConfig(filename string) *FactomdConfig {
+	if filename == "" {
+		filename = ConfigFilename()
+	}
 	cfg := new(FactomdConfig)
 
 	// This makes factom config file located at

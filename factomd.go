@@ -32,9 +32,13 @@ func main() {
 		time.Sleep(3 * time.Second)
 		os.Exit(1)
 	}
+	cfgFilename := ""
+	if len(os.Args) > 0 {
+		cfgFilename = os.Args[0]
+	}
 
 	state := new(state.State)
-	state.Init()
+	state.Init(cfgFilename)
 
 	go NetworkProcessor(state)
 	go Timer(state)

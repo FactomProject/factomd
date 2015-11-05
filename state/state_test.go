@@ -11,6 +11,6 @@ import (
 
 func TestInit(t *testing.T) {
 	state := new(State)
-	state.Init()
+	state.Init("")
 	log.Println(state.String())
 }

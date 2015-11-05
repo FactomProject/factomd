@@ -14,8 +14,8 @@ import ()
 type IState interface {
 
 	// Server
-	GetCfg() IFactomConfig
-	Init()
+	GetCfg(string) IFactomConfig
+	Init(string)
 	String() string
 
 	// Channels

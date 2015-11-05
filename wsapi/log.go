@@ -6,12 +6,17 @@ package wsapi
 
 import (
 	"github.com/FactomProject/factomd/logger"
-	"github.com/FactomProject/factomd/util"
 )
 
 // setup subsystem loggers
 var (
-	rpcLog    = logger.NewLogFromConfig(util.ReadConfig().Log.LogPath, util.ReadConfig().Log.LogLevel, "RPC")
-	serverLog = logger.NewLogFromConfig(util.ReadConfig().Log.LogPath, util.ReadConfig().Log.LogLevel, "SERV")
-	wsLog     = logger.NewLogFromConfig(util.ReadConfig().Log.LogPath, util.ReadConfig().Log.LogLevel, "WSAPI")
+	rpcLog    *logger.FLogger
+	serverLog *logger.FLogger
+	wsLog     *logger.FLogger
 )
+
+func InitLogs(logPath, logLevel string) {
+	rpcLog = logger.NewLogFromConfig(logPath, logLevel, "RPC")
+	serverLog = logger.NewLogFromConfig(logPath, logLevel, "SERV")
+	wsLog = logger.NewLogFromConfig(logPath, logLevel, "WSAPI")
+}

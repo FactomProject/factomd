@@ -220,6 +220,7 @@ func CreateDBlock(nextDBHeight uint32, prev interfaces.IDirectoryBlock, cap uint
 		b.GetHeader().SetPrevLedgerKeyMR(primitives.NewZeroHash())
 		b.GetHeader().SetPrevKeyMR(primitives.NewZeroHash())
 	} else {
+		fmt.Println(prev.String())
 		prevLedgerKeyMR, err := primitives.CreateHash(prev)
 		if err != nil {
 			return nil, err

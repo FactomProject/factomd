@@ -116,6 +116,9 @@ func (fs *FactoidState) AddTransaction(index int, trans interfaces.ITransaction)
 
 // Assumes validation has already been done.
 func (fs *FactoidState) UpdateTransaction(trans interfaces.ITransaction) error {
+	if fs.Balances == nil {
+		fs.Balances = map[[32]byte]int64{}
+	}
 	for _, input := range trans.GetInputs() {
 		fs.Balances[input.GetAddress().Fixed()] = fs.Balances[input.GetAddress().Fixed()] - int64(input.GetAmount())
 	}

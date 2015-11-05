@@ -8,6 +8,7 @@ import ()
 
 type IDirectoryBlock interface {
 	BinaryMarshallable
+	Printable
 
 	GetHeader() IDirectoryBlockHeader
 	SetHeader(IDirectoryBlockHeader)

@@ -9,13 +9,12 @@ import (
 	"github.com/FactomProject/factomd/database/hybridDB"
 	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/util"
+	"github.com/FactomProject/factomd/wsapi"
 	"os"
-	"sync"
 )
 
 type State struct {
-	once sync.Once
-	Cfg  interfaces.IFactomConfig
+	Cfg interfaces.IFactomConfig
 
 	networkInMsgQueue      chan interfaces.IMsg
 	networkOutMsgQueue     chan interfaces.IMsg
@@ -66,12 +65,12 @@ func (s *State) GetFactoidState() interfaces.IFactoidState {
 // Allow us the ability to update the port number at run time....
 func (s *State) SetPort(port int) {
 	// Get our factomd configuration information.
-	cfg := s.GetCfg().(*util.FactomdConfig)
+	cfg := s.GetCfg("").(*util.FactomdConfig)
 	cfg.Wsapi.PortNumber = port
 }
 
 func (s *State) GetPort() int {
-	cfg := s.GetCfg().(*util.FactomdConfig)
+	cfg := s.GetCfg("").(*util.FactomdConfig)
 	return cfg.Wsapi.PortNumber
 }
 
@@ -116,20 +115,20 @@ func (s *State) FollowerInMsgQueue() chan interfaces.IMsg {
 //var _ IState = (*State)(nil)
 
 // Getting the cfg state for Factom doesn't force a read of the config file unless
-// it hasn;t been read yet.
-func (s *State) GetCfg() interfaces.IFactomConfig {
-	s.once.Do(func() {
+// it hasn't been read yet.
+func (s *State) GetCfg(filename string) interfaces.IFactomConfig {
+	if s.Cfg == nil {
 		log.Printfln("read factom config file: %v", util.ConfigFilename())
-		s.Cfg = util.ReadConfig()
-	})
+		s.Cfg = util.ReadConfig(filename)
+	}
 	return s.Cfg
 }
 
 // ReadCfg forces a read of the factom config file.  However, it does not change the
 // state of any cfg object held by other processes... Only what will be returned by
 // future calls to Cfg().
-func (s *State) ReadCfg() interfaces.IFactomConfig {
-	s.Cfg = util.ReadConfig()
+func (s *State) ReadCfg(filename string) interfaces.IFactomConfig {
+	s.Cfg = util.ReadConfig(filename)
 	return s.Cfg
 }
 
@@ -153,10 +152,12 @@ func (s *State) GetLastAck() interfaces.IMsg {
 	return s.LastAck
 }
 
-func (s *State) Init() {
+func (s *State) Init(filename string) {
 
 	// Get our factomd configuration information.
-	cfg := s.GetCfg().(*util.FactomdConfig)
+	cfg := s.GetCfg(filename).(*util.FactomdConfig)
+
+	wsapi.InitLogs(cfg.Log.LogPath, cfg.Log.LogLevel)
 
 	log.SetLevel(cfg.Log.ConsoleLogLevel)
 
@@ -196,9 +197,14 @@ func (s *State) Init() {
 func (s *State) loadDatabase() {
 
 	dblk := new(directoryblock.DirectoryBlock)
-	_, err := s.DB.Get([]byte(constants.DB_DIRECTORY_BLOCKS), constants.D_CHAINID, dblk)
+	blk, err := s.DB.Get([]byte(constants.DB_DIRECTORY_BLOCKS), constants.D_CHAINID, dblk)
 	if err != nil {
 		panic(err.Error())
+	}
+	if blk == nil {
+		dblk = nil
+	} else {
+		dblk = blk.(*directoryblock.DirectoryBlock)
 	}
 
 	if dblk == nil && s.NetworkNumber == constants.NETWORK_LOCAL {
