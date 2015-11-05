@@ -184,7 +184,12 @@ func (m *EOM) FollowerExecute(state interfaces.IState) error {
 	default:
 		panic("Not implemented yet")
 	}
-
+		
+	if m.Minute == 9 && state.GetServerState() == constants.SERVER_MODE {
+		state.GetFactoidState().ProcessEndOfBlock(state)
+		state.LeaderInMsgQueue() <- m
+	}
+	
 	return nil
 }
 

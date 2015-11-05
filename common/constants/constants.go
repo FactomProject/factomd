@@ -109,6 +109,11 @@ const (
 	FULL_NODE   = "FULL"
 	SERVER_NODE = "SERVER"
 	LIGHT_NODE  = "LIGHT"
+	
+	CLIENT_MODE int = iota // 0
+	SERVER_MODE 		   // 1 	
+	AUDIT_SERVER_MODE	   // 2
+	
 	//Server public key for milestone 1
 	SERVER_PUB_KEY = "0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a"
 	//Genesis directory block timestamp in RFC3339 format
