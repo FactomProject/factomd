@@ -14,7 +14,7 @@ import ()
 type IState interface {
 
 	// Server
-	GetCfg(string) IFactomConfig
+	GetCfg() IFactomConfig
 	Init(string)
 	String() string
 

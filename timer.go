@@ -13,7 +13,7 @@ import (
 )
 
 func Timer(state interfaces.IState) {
-	cfg := state.GetCfg("").(*util.FactomdConfig)
+	cfg := state.GetCfg().(*util.FactomdConfig)
 
 	billion := int64(1000000000)
 	period := int64(cfg.App.DirectoryBlockInSeconds) * billion
@@ -31,7 +31,6 @@ func Timer(state interfaces.IState) {
 	log.Printfln("Starting Timer! %v", time.Now())
 	for {
 		for i := 0; i < 10; i++ {
-
 			// End of the last period, and this is a server, send messages that
 			// close off the minute.
 			if state.GetServerState() == 1 {

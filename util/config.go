@@ -89,7 +89,7 @@ const defaultConfig = `
 PortNumber                            = 8088
 HomeDir                               = ""
 ; --------------- DBType: LDB | Bolt | Map 
-DBType                                = "LDB"
+DBType                                = "Bolt"
 LdbPath                               = "ldb"
 BoltDBPath                            = ""
 DataStorePath                         = "data/export/"

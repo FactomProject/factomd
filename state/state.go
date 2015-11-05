@@ -7,6 +7,7 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/hybridDB"
+	"github.com/FactomProject/factomd/database/mapdb"
 	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
@@ -65,12 +66,12 @@ func (s *State) GetFactoidState() interfaces.IFactoidState {
 // Allow us the ability to update the port number at run time....
 func (s *State) SetPort(port int) {
 	// Get our factomd configuration information.
-	cfg := s.GetCfg("").(*util.FactomdConfig)
+	cfg := s.GetCfg().(*util.FactomdConfig)
 	cfg.Wsapi.PortNumber = port
 }
 
 func (s *State) GetPort() int {
-	cfg := s.GetCfg("").(*util.FactomdConfig)
+	cfg := s.GetCfg().(*util.FactomdConfig)
 	return cfg.Wsapi.PortNumber
 }
 
@@ -116,11 +117,7 @@ func (s *State) FollowerInMsgQueue() chan interfaces.IMsg {
 
 // Getting the cfg state for Factom doesn't force a read of the config file unless
 // it hasn't been read yet.
-func (s *State) GetCfg(filename string) interfaces.IFactomConfig {
-	if s.Cfg == nil {
-		log.Printfln("read factom config file: %v", util.ConfigFilename())
-		s.Cfg = util.ReadConfig(filename)
-	}
+func (s *State) GetCfg() interfaces.IFactomConfig {
 	return s.Cfg
 }
 
@@ -154,8 +151,9 @@ func (s *State) GetLastAck() interfaces.IMsg {
 
 func (s *State) Init(filename string) {
 
+	s.ReadCfg(filename)
 	// Get our factomd configuration information.
-	cfg := s.GetCfg(filename).(*util.FactomdConfig)
+	cfg := s.GetCfg().(*util.FactomdConfig)
 
 	wsapi.InitLogs(cfg.Log.LogPath, cfg.Log.LogLevel)
 
@@ -172,8 +170,22 @@ func (s *State) Init(filename string) {
 	s.ServerState = 1
 
 	//Database
-	if err := s.InitBoltDB(); err != nil {
-		log.Printfln("Error initializing the database: %v", err)
+	switch cfg.App.DBType {
+	case "LDB":
+		if err := s.InitLevelDB(); err != nil {
+			log.Printfln("Error initializing the database: %v", err)
+		}
+		break
+	case "Bolt":
+		if err := s.InitBoltDB(); err != nil {
+			log.Printfln("Error initializing the database: %v", err)
+		}
+		break
+	case "Map":
+		if err := s.InitMapDB(); err != nil {
+			log.Printfln("Error initializing the database: %v", err)
+		}
+		break
 	}
 
 	//Network
@@ -262,6 +274,13 @@ func (s *State) InitBoltDB() error {
 	path := cfg.App.BoltDBPath + "/" + cfg.App.Network + "/"
 	os.MkdirAll(path, 0777)
 	dbase := hybridDB.NewBoltMapHybridDB(nil, path+"FactomBolt.db")
+	s.DB = dbase
+	return nil
+}
+
+func (s *State) InitMapDB() error {
+	dbase := new(mapdb.MapDB)
+	dbase.Init(nil)
 	s.DB = dbase
 	return nil
 }
