@@ -132,10 +132,9 @@ func (m *EOM) Leader(state interfaces.IState) bool {
 func (m *EOM) LeaderExecute(state interfaces.IState) error {
 	olddb := state.GetCurrentDirectoryBlock()
 	state.GetFactoidState().ProcessEndOfBlock(state)
-	
-	
+
 	db, err := directoryblock.CreateDBlock(uint32(state.GetDBHeight()), olddb, 10)
-	
+
 	state.SetDBHeight(state.GetDBHeight() + 1)
 	if err != nil {
 		panic(err.Error())
@@ -172,20 +171,20 @@ func (m *EOM) Follower(interfaces.IState) bool {
 }
 
 func (m *EOM) FollowerExecute(state interfaces.IState) error {
-	
+
 	state.GetFactoidState().EndOfPeriod(int(m.Minute))
-	
+
 	switch state.GetNetworkNumber() {
-		case 0: // Main Network
-			panic("Not implemented yet")
-		case 1: // Test Network
-			panic("Not implemented yet")
-		case 2: // Local Network
-			
-		default:
-			panic("Not implemented yet")
+	case 0: // Main Network
+		panic("Not implemented yet")
+	case 1: // Test Network
+		panic("Not implemented yet")
+	case 2: // Local Network
+
+	default:
+		panic("Not implemented yet")
 	}
-	
+
 	return nil
 }
 
@@ -223,7 +222,7 @@ func (m *EOM) VerifySignature() (bool, error) {
  **********************************************************************/
 
 func NewEOM(state interfaces.IState, minute int) interfaces.IMsg {
-	// The construction of the EOM message needs information from the state of 
+	// The construction of the EOM message needs information from the state of
 	// the server to create the proper serial hashes and such.  Right now
 	// I am ignoring all of that.
 	eom := new(EOM)

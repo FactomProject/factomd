@@ -23,7 +23,7 @@ func NewDBSignatureEntry(identityAdminChainID interfaces.IHash, sig primitives.S
 	e = new(DBSignatureEntry)
 	e.entryType = constants.TYPE_DB_SIGNATURE
 	e.IdentityAdminChainID = identityAdminChainID
-	copy (e.PrevDBSig.Pub.Key[:], sig.Pub.Key[:]) 
+	copy(e.PrevDBSig.Pub.Key[:], sig.Pub.Key[:])
 	copy(e.PrevDBSig.Sig[:], sig.Sig[:])
 	return
 }

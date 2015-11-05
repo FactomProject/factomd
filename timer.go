@@ -31,7 +31,7 @@ func Timer(state interfaces.IState) {
 	log.Printfln("Starting Timer! %v", time.Now())
 	for {
 		for i := 0; i < 10; i++ {
-			
+
 			// End of the last period, and this is a server, send messages that
 			// close off the minute.
 			if i == 9 && state.GetServerState() == 1 {
@@ -39,7 +39,7 @@ func Timer(state interfaces.IState) {
 				state.InMsgQueue() <- eom
 				state.NetworkOutMsgQueue() <- eom
 			}
-			
+
 			now = time.Now().UnixNano()
 			wait := next - now
 			next += tenthPeriod

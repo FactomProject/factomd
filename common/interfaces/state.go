@@ -17,14 +17,14 @@ type IState interface {
 	GetCfg() IFactomConfig
 	Init()
 	String() string
-	
+
 	// Channels
 	//==========
 	// Network Processor
-	NetworkInMsgQueue() chan IMsg 	// Not sure that IMsg is the right type... TBD
+	NetworkInMsgQueue() chan IMsg // Not sure that IMsg is the right type... TBD
 	NetworkOutMsgQueue() chan IMsg
 	NetworkInvalidMsgQueue() chan IMsg
-	
+
 	// Consensus
 	InMsgQueue() chan IMsg
 	LeaderInMsgQueue() chan IMsg
@@ -59,9 +59,9 @@ type IState interface {
 	// Web Services
 	SetPort(int)
 	GetPort() int
-	
+
 	// Factoid State
 	GetFactoidState() IFactoidState
-	
+
 	GetNewHash() IHash // Return a new Hash object
 }

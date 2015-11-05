@@ -13,19 +13,19 @@ package interfaces
 type IAdminBlock interface {
 	Printable
 	DatabaseBatchable
-	GetHeader()    IABlockHeader
+	GetHeader() IABlockHeader
 	SetHeader(IABlockHeader)
-	GetABEntries() []IABEntry 
-	SetABEntries([]IABEntry) 
-	GetDBHeight() uint32 
-	GetKeyMR() (IHash, error) 
-	LedgerKeyMR() (IHash, error) 
+	GetABEntries() []IABEntry
+	SetABEntries([]IABEntry)
+	GetDBHeight() uint32
+	GetKeyMR() (IHash, error)
+	LedgerKeyMR() (IHash, error)
 	PartialHash() (IHash, error)
-	BuildFullBHash() (err error) 
+	BuildFullBHash() (err error)
 	BuildPartialHash() (err error)
-	AddABEntry(e IABEntry) (err error) 
-	AddEndOfMinuteMarker(eomType byte) (err error) 
-	GetDBSignature() IABEntry 
+	AddABEntry(e IABEntry) (err error)
+	AddEndOfMinuteMarker(eomType byte) (err error)
+	GetDBSignature() IABEntry
 }
 
 // Admin Block Header
@@ -33,15 +33,15 @@ type IABlockHeader interface {
 	Printable
 	BinaryMarshallable
 
-	GetAdminChainID()    IHash
+	GetAdminChainID() IHash
 	GetPrevLedgerKeyMR() IHash
 	SetPrevLedgerKeyMR(IHash)
-	GetDBHeight()        uint32
+	GetDBHeight() uint32
 	SetDBHeight(uint32)
-	
+
 	GetHeaderExpansionArea() []byte
 	SetHeaderExpansionArea([]byte)
-	
+
 	GetMessageCount() uint32
 	SetMessageCount(uint32)
 	GetBodySize() uint32
@@ -52,9 +52,8 @@ type IABEntry interface {
 	Printable
 	BinaryMarshallable
 	ShortInterpretable
-	
+
 	MarshalledSize() uint64
 	Type() byte
 	Hash() IHash
 }
-

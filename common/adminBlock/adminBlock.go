@@ -33,17 +33,16 @@ var _ interfaces.Printable = (*AdminBlock)(nil)
 var _ interfaces.BinaryMarshallableAndCopyable = (*AdminBlock)(nil)
 var _ interfaces.DatabaseBatchable = (*AdminBlock)(nil)
 
-
 func (c *AdminBlock) GetHeader() interfaces.IABlockHeader {
 	return c.Header
 }
 
 func (c *AdminBlock) SetHeader(header interfaces.IABlockHeader) {
-	c.Header= header
+	c.Header = header
 }
 
 func (c *AdminBlock) GetABEntries() []interfaces.IABEntry {
-	return c.ABEntries 
+	return c.ABEntries
 }
 
 func (c *AdminBlock) GetDBHeight() uint32 {
@@ -100,7 +99,6 @@ func (ab *AdminBlock) PartialHash() (interfaces.IHash, error) {
 	return ab.partialHash, nil
 }
 
-
 // Build the SHA512Half hash for the admin block
 func (b *AdminBlock) BuildFullBHash() (err error) {
 	var binaryAB []byte
@@ -154,7 +152,6 @@ func (b *AdminBlock) MarshalBinary() (data []byte, err error) {
 	return buf.Bytes(), err
 }
 
-
 func (b *AdminBlock) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -200,7 +197,7 @@ func (b *AdminBlock) GetDBSignature() interfaces.IABEntry {
 	}
 
 	return nil
-} 
+}
 
 func (e *AdminBlock) JSONByte() ([]byte, error) {
 	return primitives.EncodeJSON(e)

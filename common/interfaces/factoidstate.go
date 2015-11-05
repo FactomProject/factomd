@@ -43,8 +43,8 @@ type IFactoidState interface {
 	AddTransaction(int, ITransaction) error
 
 	// Process End of Block
-	ProcessEndOfBlock(IState) 
-	
+	ProcessEndOfBlock(IState)
+
 	// Set the End of Period.  Currently, each block in Factom is broken
 	// into ten, one minute periods.
 	EndOfPeriod(period int)

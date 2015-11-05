@@ -20,28 +20,27 @@ type ABlockHeader struct {
 
 	HeaderExpansionSize uint64
 	HeaderExpansionArea []byte
-	MessageCount	uint32
-	BodySize uint32
+	MessageCount        uint32
+	BodySize            uint32
 }
 
 var _ interfaces.Printable = (*ABlockHeader)(nil)
 var _ interfaces.BinaryMarshallable = (*ABlockHeader)(nil)
 
-
-func (b *ABlockHeader) GetMessageCount() uint32{
+func (b *ABlockHeader) GetMessageCount() uint32 {
 	return b.MessageCount
 }
 
-func (b *ABlockHeader) SetMessageCount(messageCount uint32){
-	b.MessageCount = messageCount	
+func (b *ABlockHeader) SetMessageCount(messageCount uint32) {
+	b.MessageCount = messageCount
 }
 
-func (b *ABlockHeader) GetBodySize() uint32{
+func (b *ABlockHeader) GetBodySize() uint32 {
 	return b.BodySize
 }
 
-func (b *ABlockHeader) SetBodySize(bodySize uint32){
-	b.BodySize = bodySize	
+func (b *ABlockHeader) SetBodySize(bodySize uint32) {
+	b.BodySize = bodySize
 }
 
 func (b *ABlockHeader) GetAdminChainID() interfaces.IHash {
@@ -168,6 +167,3 @@ func (e *ABlockHeader) String() string {
 	str, _ := e.JSONString()
 	return str
 }
-
-
-

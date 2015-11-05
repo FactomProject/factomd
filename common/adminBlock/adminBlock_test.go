@@ -6,13 +6,13 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 func TestAdminBlockPreviousHash(t *testing.T) {
 	fmt.Printf("\n---\nTestAdminBlockMarshalUnmarshal\n---\n")
-	
+
 	block := new(AdminBlock)
 	data, _ := hex.DecodeString("000000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000")
 	_, err := block.UnmarshalBinaryData(data)
@@ -38,34 +38,34 @@ func TestAdminBlockPreviousHash(t *testing.T) {
 	if partialHash.String() != "4fb409d5369fad6aa7768dc620f11cd219f9b885956b631ad050962ca934052e" {
 		t.Error("Invalid partialHash")
 	}
-/*
-	block2, err := CreateAdminBlock(s, block, 5)
-	if err != nil {
-		t.Error(err)
-	}
+	/*
+		block2, err := CreateAdminBlock(s, block, 5)
+		if err != nil {
+			t.Error(err)
+		}
 
-	fullHash2, err := block2.LedgerKeyMR()
-	if err != nil {
-		t.Error(err)
-	}
+		fullHash2, err := block2.LedgerKeyMR()
+		if err != nil {
+			t.Error(err)
+		}
 
-	partialHash2, err := block2.PartialHash()
-	if err != nil {
-		t.Error(err)
-	}
+		partialHash2, err := block2.PartialHash()
+		if err != nil {
+			t.Error(err)
+		}
 
-	t.Logf("Second hashes - %s, %s", fullHash2.String(), partialHash2.String())
-	t.Logf("Previous hash - %s", block2.Header.PrevLedgerKeyMR.String())
+		t.Logf("Second hashes - %s, %s", fullHash2.String(), partialHash2.String())
+		t.Logf("Previous hash - %s", block2.Header.PrevLedgerKeyMR.String())
 
-	marshalled, err := block2.MarshalBinary()
-	if err != nil {
-		t.Error(err)
-	}
-	t.Logf("Marshalled - %X", marshalled)
+		marshalled, err := block2.MarshalBinary()
+		if err != nil {
+			t.Error(err)
+		}
+		t.Logf("Marshalled - %X", marshalled)
 
-	if block2.Header.PrevLedgerKeyMR.String() != fullHash.String() {
-		t.Error("PrevLedgerKeyMR does not match ABHash")
-	}
+		if block2.Header.PrevLedgerKeyMR.String() != fullHash.String() {
+			t.Error("PrevLedgerKeyMR does not match ABHash")
+		}
 	*/
 }
 
@@ -298,7 +298,7 @@ func createTestAdminBlock() (block interfaces.IAdminBlock) {
 	hash := primitives.Sha(p)
 	sigBytes := make([]byte, 96)
 	for i := 0; i < 5; i++ {
-		for j := range sigBytes {                      // Don't know why this fails.cd 
+		for j := range sigBytes {                      // Don't know why this fails.cd
 			sigBytes[j] = byte(i)
 		}
 		sig := primitives.UnmarshalBinarySignature(sigBytes)

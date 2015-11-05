@@ -6,9 +6,9 @@ package directoryblock
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
-	"encoding/json"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -237,6 +237,6 @@ func CreateDBlock(nextDBHeight uint32, prev interfaces.IDirectoryBlock, cap uint
 	b.AddEntry(primitives.NewHash(constants.ADMIN_CHAINID), nil)
 	b.AddEntry(primitives.NewHash(constants.EC_CHAINID), nil)
 	b.AddEntry(primitives.NewHash(constants.FACTOID_CHAINID), nil)
-	
+
 	return b, err
 }
