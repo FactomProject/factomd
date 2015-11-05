@@ -17,11 +17,12 @@ type State struct {
 	once sync.Once
 	Cfg  interfaces.IFactomConfig
 
-	netInMsgQueue      chan interfaces.IMsg
-	inMsgQueue         chan interfaces.IMsg
-	leaderInMsgQueue   chan interfaces.IMsg
-	followerInMsgQueue chan interfaces.IMsg
-	outMsgQueue        chan interfaces.IMsg
+	networkInMsgQueue		chan interfaces.IMsg
+	networkOutMsgQueue		chan interfaces.IMsg
+	networkInvalidMsgQueue	chan interfaces.IMsg
+	inMsgQueue         		chan interfaces.IMsg
+	leaderInMsgQueue   		chan interfaces.IMsg
+	followerInMsgQueue 		chan interfaces.IMsg
 
 	//Network MAIN = 0, TEST = 1, LOCAL = 2, CUSTOM = 3
 	NetworkNumber int // Encoded into Directory Blocks
@@ -45,7 +46,19 @@ type State struct {
 	LastAck interfaces.IMsg // Return the last Acknowledgement set by this server
 
 	FactoidState interfaces.IFactoidState
+	CurrentAdminBlock interfaces.IAdminBlock
 }
+
+var _ interfaces.IState = (*State)(nil)
+
+func(s *State) GetCurrentAdminBlock() interfaces.IAdminBlock {
+	return s.CurrentAdminBlock 
+}
+
+func(s *State) SetCurrentAdminBlock(adblock interfaces.IAdminBlock) {
+	s.CurrentAdminBlock = adblock
+}
+
 
 func (s *State) GetFactoidState() interfaces.IFactoidState {
 	return s.FactoidState
@@ -79,7 +92,15 @@ func (s *State) LeaderFor([]byte) bool {
 }
 
 func (s *State) NetworkInMsgQueue() chan interfaces.IMsg {
-	return s.netInMsgQueue
+	return s.networkInMsgQueue
+}
+
+func (s *State) NetworkInvalidMsgQueue() chan interfaces.IMsg {
+	return s.networkInvalidMsgQueue
+}
+
+func (s *State) NetworkOutMsgQueue() chan interfaces.IMsg {
+	return s.networkOutMsgQueue
 }
 
 func (s *State) InMsgQueue() chan interfaces.IMsg {
@@ -94,9 +115,6 @@ func (s *State) FollowerInMsgQueue() chan interfaces.IMsg {
 	return s.followerInMsgQueue
 }
 
-func (s *State) OutMsgQueue() chan interfaces.IMsg {
-	return s.outMsgQueue
-}
 
 //var _ IState = (*State)(nil)
 
@@ -145,11 +163,12 @@ func (s *State) Init() {
 
 	log.SetLevel(cfg.Log.ConsoleLogLevel)
 
-	s.netInMsgQueue = make(chan interfaces.IMsg, 10000)      //incoming message queue from the network messages
-	s.inMsgQueue = make(chan interfaces.IMsg, 10000)         //incoming message queue for factom application messages
-	s.leaderInMsgQueue = make(chan interfaces.IMsg, 10000)   //Leader Messages
-	s.followerInMsgQueue = make(chan interfaces.IMsg, 10000) //Follower Messages
-	s.outMsgQueue = make(chan interfaces.IMsg, 10000)        //Messages to be broadcast to the network
+	s.networkInMsgQueue 		= make(chan interfaces.IMsg, 10000) //incoming message queue from the network messages
+	s.networkInvalidMsgQueue 	= make(chan interfaces.IMsg, 10000) //incoming message queue from the network messages
+	s.networkOutMsgQueue 		= make(chan interfaces.IMsg, 10000) //Messages to be broadcast to the network
+	s.inMsgQueue 				= make(chan interfaces.IMsg, 10000) //incoming message queue for factom application messages
+	s.leaderInMsgQueue 			= make(chan interfaces.IMsg, 10000) //Leader Messages
+	s.followerInMsgQueue 		= make(chan interfaces.IMsg, 10000) //Follower Messages
 
 	s.TotalServers = 1
 	s.ServerState = 1

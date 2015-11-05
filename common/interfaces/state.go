@@ -19,11 +19,16 @@ type IState interface {
 	String() string
 	
 	// Channels
-	NetworkInMsgQueue() chan IMsg
+	//==========
+	// Network Processor
+	NetworkInMsgQueue() chan IMsg 	// Not sure that IMsg is the right type... TBD
+	NetworkOutMsgQueue() chan IMsg
+	NetworkInvalidMsgQueue() chan IMsg
+	
+	// Consensus
 	InMsgQueue() chan IMsg
 	LeaderInMsgQueue() chan IMsg
 	FollowerInMsgQueue() chan IMsg
-	OutMsgQueue() chan IMsg
 
 	//Network MAIN = 0, TEST = 1, LOCAL = 2, CUSTOM = 3
 	GetNetworkNumber() int  // Encoded into Directory Blocks
@@ -41,6 +46,8 @@ type IState interface {
 	SetDB(IDatabase)
 
 	// Directory Block State
+	GetCurrentAdminBlock() IAdminBlock
+	SetCurrentAdminBlock(IAdminBlock)
 	GetCurrentDirectoryBlock() IDirectoryBlock // The directory block under construction
 	SetCurrentDirectoryBlock(IDirectoryBlock)
 	GetDBHeight() uint32 // The index of the directory block under construction.

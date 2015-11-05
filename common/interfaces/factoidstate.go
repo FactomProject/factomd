@@ -42,13 +42,9 @@ type IFactoidState interface {
 	// inputs.  Returns true if the transaction is added.
 	AddTransaction(int, ITransaction) error
 
-	// Process End of Minute.
-	ProcessEndOfMinute()
-
-	// Process End of
-	ProcessEndOfBlock() // to be replaced by ProcessEndOfBlock2
-	ProcessEndOfBlock2(uint32)
-
+	// Process End of Block
+	ProcessEndOfBlock(IState) 
+	
 	// Set the End of Period.  Currently, each block in Factom is broken
 	// into ten, one minute periods.
 	EndOfPeriod(period int)

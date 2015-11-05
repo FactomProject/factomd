@@ -128,12 +128,9 @@ func (fs *FactoidState) UpdateTransaction(trans interfaces.ITransaction) error {
 	return nil
 }
 
-func (fs *FactoidState) ProcessEndOfMinute() {
-}
-
 // End of Block means packing the current block away, and setting
 // up the next
-func (fs *FactoidState) ProcessEndOfBlock() {
+func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
 	var hash, hash2 interfaces.IHash
 
 	if fs.GetCurrentBlock() == nil {
@@ -143,8 +140,8 @@ func (fs *FactoidState) ProcessEndOfBlock() {
 	hash = fs.CurrentBlock.GetHash()
 	hash2 = fs.CurrentBlock.GetLedgerKeyMR()
 
-	fs.State.GetDB().Put([]byte(constants.DB_FACTOID_BLOCKS), hash.Bytes(), fs.CurrentBlock)
-	fs.State.GetDB().Put([]byte(constants.DB_FACTOID_BLOCKS), constants.FACTOID_CHAINID, fs.CurrentBlock)
+	state.GetDB().Put([]byte(constants.DB_FACTOID_BLOCKS), hash.Bytes(), fs.CurrentBlock)
+	state.GetDB().Put([]byte(constants.DB_FACTOID_BLOCKS), constants.FACTOID_CHAINID, fs.CurrentBlock)
 
 	fs.CurrentBlock = block.NewFBlock(fs.GetFactoshisPerEC(), fs.State.GetDBHeight()+1)
 
@@ -159,42 +156,9 @@ func (fs *FactoidState) ProcessEndOfBlock() {
 		fs.CurrentBlock.SetPrevKeyMR(hash.Bytes())
 		fs.CurrentBlock.SetPrevLedgerKeyMR(hash2.Bytes())
 	}
-
 }
 
-// End of Block means packing the current block away, and setting
-// up the next
-// this function is to replace the existing function: ProcessEndOfBlock
-func (fs *FactoidState) ProcessEndOfBlock2(nextBlkHeight uint32) {
-	var hash, hash2 interfaces.IHash
 
-	if fs.CurrentBlock != nil { // If no blocks, the current block is nil
-		hash = fs.CurrentBlock.GetHash()
-		hash2 = fs.CurrentBlock.GetLedgerKeyMR()
-	}
-
-	fs.CurrentBlock = block.NewFBlock(fs.GetFactoshisPerEC(), nextBlkHeight)
-
-	t := coinbase.GetCoinbase(primitives.GetTimeMilli())
-	err := fs.CurrentBlock.AddCoinbase(t)
-	if err != nil {
-		panic(err.Error())
-	}
-	fs.UpdateTransaction(t)
-
-	if hash != nil {
-		fs.CurrentBlock.SetPrevKeyMR(hash.Bytes())
-		fs.CurrentBlock.SetPrevLedgerKeyMR(hash2.Bytes())
-	}
-
-	cp.CP.AddUpdate(
-		"blockheight", // tag
-		"status",      // Category
-		fmt.Sprintf("Directory Block Height: %d", nextBlkHeight), // Title
-		"", // Msg
-		0)
-
-}
 
 /**
 func (fs *FactoidState) LoadState() error {

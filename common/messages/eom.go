@@ -125,60 +125,43 @@ func (m *EOM) Validate(interfaces.IState) int {
 // Returns true if this is a message for this server to execute as
 // a leader.
 func (m *EOM) Leader(state interfaces.IState) bool {
-	switch state.GetNetworkNumber() {
-	case 0: // Main Network
-		panic("Not implemented yet")
-	case 1: // Test Network
-		panic("Not implemented yet")
-	case 2: // Local Network
-
-		// Note!  We should validate that we are the server for this network
-		// by checking keys!
-		if state.GetServerState() == 1 {
-			return true
-		} else {
-			return false
-		}
-	default:
-		panic("Not implemented yet")
-	}
-
+	return false
 }
 
 // Execute the leader functions of the given message
 func (m *EOM) LeaderExecute(state interfaces.IState) error {
-	if state.GetServerState() == 1 {
-		if m.Minute == 9 {
-			olddb := state.GetCurrentDirectoryBlock()
-			db, err := directoryblock.CreateDBlock(uint32(state.GetDBHeight()), olddb, 10)
-			state.SetDBHeight(state.GetDBHeight() + 1)
-			if err != nil {
-				panic(err.Error())
-			}
-			state.SetCurrentDirectoryBlock(db)
-			db.AddEntry(primitives.NewHash(constants.ADMIN_CHAINID), primitives.NewZeroHash())   // AdminBlock
-			db.AddEntry(primitives.NewHash(constants.EC_CHAINID), primitives.NewZeroHash())      // AdminBlock
-			db.AddEntry(primitives.NewHash(constants.FACTOID_CHAINID), primitives.NewZeroHash()) // AdminBlock
+	olddb := state.GetCurrentDirectoryBlock()
+	state.GetFactoidState().ProcessEndOfBlock(state)
+	
+	
+	db, err := directoryblock.CreateDBlock(uint32(state.GetDBHeight()), olddb, 10)
+	
+	state.SetDBHeight(state.GetDBHeight() + 1)
+	if err != nil {
+		panic(err.Error())
+	}
+	state.SetCurrentDirectoryBlock(db)
+	db.AddEntry(primitives.NewHash(constants.ADMIN_CHAINID), primitives.NewZeroHash())   // AdminBlock
+	db.AddEntry(primitives.NewHash(constants.EC_CHAINID), primitives.NewZeroHash())      // AdminBlock
+	db.AddEntry(primitives.NewHash(constants.FACTOID_CHAINID), primitives.NewZeroHash()) // AdminBlock
 
-			if olddb != nil {
-				bodyMR, err := olddb.BuildBodyMR()
-				if err != nil {
-					return err
-				}
-				olddb.GetHeader().SetBodyMR(bodyMR)
-				err = state.GetDB().Put([]byte(constants.DB_DIRECTORY_BLOCKS), olddb.GetKeyMR().Bytes(), olddb)
-				if err != nil {
-					return err
-				}
-				err = state.GetDB().Put([]byte(constants.DB_DIRECTORY_BLOCKS), constants.D_CHAINID, olddb)
-				if err != nil {
-					return err
-				}
-				log.Printfln("%v", olddb)
-			} else {
-				log.Println("No old db")
-			}
+	if olddb != nil {
+		bodyMR, err := olddb.BuildBodyMR()
+		if err != nil {
+			return err
 		}
+		olddb.GetHeader().SetBodyMR(bodyMR)
+		err = state.GetDB().Put([]byte(constants.DB_DIRECTORY_BLOCKS), olddb.GetKeyMR().Bytes(), olddb)
+		if err != nil {
+			return err
+		}
+		err = state.GetDB().Put([]byte(constants.DB_DIRECTORY_BLOCKS), constants.D_CHAINID, olddb)
+		if err != nil {
+			return err
+		}
+		log.Printfln("%v", olddb)
+	} else {
+		log.Println("No old db")
 	}
 	return nil
 }
@@ -188,7 +171,21 @@ func (m *EOM) Follower(interfaces.IState) bool {
 	return true
 }
 
-func (m *EOM) FollowerExecute(interfaces.IState) error {
+func (m *EOM) FollowerExecute(state interfaces.IState) error {
+	
+	state.GetFactoidState().EndOfPeriod(int(m.Minute))
+	
+	switch state.GetNetworkNumber() {
+		case 0: // Main Network
+			panic("Not implemented yet")
+		case 1: // Test Network
+			panic("Not implemented yet")
+		case 2: // Local Network
+			
+		default:
+			panic("Not implemented yet")
+	}
+	
 	return nil
 }
 
@@ -225,7 +222,10 @@ func (m *EOM) VerifySignature() (bool, error) {
  * Support
  **********************************************************************/
 
-func NewEOM(minute int) interfaces.IMsg {
+func NewEOM(state interfaces.IState, minute int) interfaces.IMsg {
+	// The construction of the EOM message needs information from the state of 
+	// the server to create the proper serial hashes and such.  Right now
+	// I am ignoring all of that.
 	eom := new(EOM)
 	eom.Minute = byte(minute)
 	return eom

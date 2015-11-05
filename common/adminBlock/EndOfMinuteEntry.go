@@ -14,7 +14,7 @@ type EndOfMinuteEntry struct {
 
 var _ interfaces.Printable = (*EndOfMinuteEntry)(nil)
 var _ interfaces.BinaryMarshallable = (*EndOfMinuteEntry)(nil)
-var _ ABEntry = (*EndOfMinuteEntry)(nil)
+var _ interfaces.IABEntry = (*EndOfMinuteEntry)(nil)
 
 func (m *EndOfMinuteEntry) Type() byte {
 	return m.EntryType

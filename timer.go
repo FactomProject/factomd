@@ -12,10 +12,6 @@ import (
 	"time"
 )
 
-type timer struct {
-	minute int // Really a 10th of the period... Usually a minute
-}
-
 func Timer(state interfaces.IState) {
 	cfg := state.GetCfg().(*util.FactomdConfig)
 
@@ -35,8 +31,15 @@ func Timer(state interfaces.IState) {
 	log.Printfln("Starting Timer! %v", time.Now())
 	for {
 		for i := 0; i < 10; i++ {
-			eom := messages.NewEOM(i)
-			state.InMsgQueue() <- eom
+			
+			// End of the last period, and this is a server, send messages that
+			// close off the minute.
+			if i == 9 && state.GetServerState() == 1 {
+				eom := messages.NewEOM(state, i)
+				state.InMsgQueue() <- eom
+				state.NetworkOutMsgQueue() <- eom
+			}
+			
 			now = time.Now().UnixNano()
 			wait := next - now
 			next += tenthPeriod

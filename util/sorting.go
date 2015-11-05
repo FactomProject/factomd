@@ -1,7 +1,6 @@
 package util
 
 import (
-	. "github.com/FactomProject/factomd/common/adminBlock"
 	. "github.com/FactomProject/factomd/common/directoryBlock"
 	. "github.com/FactomProject/factomd/common/entryBlock"
 	. "github.com/FactomProject/factomd/common/entryCreditBlock"
@@ -40,13 +39,13 @@ func (f ByECBlockIDAccending) Swap(i, j int) {
 
 //------------------------------------------------
 // ABlock array sorting implementation - accending
-type ByABlockIDAccending []*AdminBlock
+type ByABlockIDAccending []interfaces.IAdminBlock
 
 func (f ByABlockIDAccending) Len() int {
 	return len(f)
 }
 func (f ByABlockIDAccending) Less(i, j int) bool {
-	return f[i].Header.DBHeight < f[j].Header.DBHeight
+	return f[i].GetHeader().GetDBHeight() < f[j].GetHeader().GetDBHeight()
 }
 func (f ByABlockIDAccending) Swap(i, j int) {
 	f[i], f[j] = f[j], f[i]

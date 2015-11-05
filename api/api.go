@@ -10,7 +10,6 @@ import (
 
 	. "github.com/FactomProject/factomd/common/directoryBlock"
 	. "github.com/FactomProject/factomd/common/entryBlock"
-	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 )
@@ -25,7 +24,7 @@ func ChainHead(chainid string) (interfaces.IHash, error) {
 	if err != nil {
 		return nil, err
 	}
-	c, err := db.FetchHeadMRByChainID(h)
+	c, err := db.
 	if err != nil {
 		return nil, fmt.Errorf("Chain not found")
 	}

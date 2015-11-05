@@ -6,25 +6,11 @@ package adminBlock
 
 import (
 	"bytes"
-	"encoding/binary"
-	"encoding/hex"
-	"errors"
 	"fmt"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-	"sync"
 )
-
-// Administrative Chain
-type AdminChain struct {
-	ChainID interfaces.IHash
-	Name    [][]byte
-
-	NextBlock       *AdminBlock
-	NextBlockHeight uint32
-	BlockMutex      sync.Mutex
-}
 
 // Administrative Block
 // This is a special block which accompanies this Directory Block.
@@ -34,28 +20,50 @@ type AdminChain struct {
 // https://github.com/FactomProject/FactomDocs/blob/master/factomDataStructureDetails.md#administrative-block
 type AdminBlock struct {
 	//Marshalized
-	Header    *ABlockHeader
-	ABEntries []ABEntry //Interface
+	Header    interfaces.IABlockHeader
+	ABEntries []interfaces.IABEntry //Interface
 
 	//Not Marshalized
 	fullHash    interfaces.IHash //SHA512Half
 	partialHash interfaces.IHash //SHA256
 }
 
+var _ interfaces.IAdminBlock = (*AdminBlock)(nil)
 var _ interfaces.Printable = (*AdminBlock)(nil)
 var _ interfaces.BinaryMarshallableAndCopyable = (*AdminBlock)(nil)
 var _ interfaces.DatabaseBatchable = (*AdminBlock)(nil)
+
+
+func (c *AdminBlock) GetHeader() interfaces.IABlockHeader {
+	return c.Header
+}
+
+func (c *AdminBlock) SetHeader(header interfaces.IABlockHeader) {
+	c.Header= header
+}
+
+func (c *AdminBlock) GetABEntries() []interfaces.IABEntry {
+	return c.ABEntries 
+}
+
+func (c *AdminBlock) GetDBHeight() uint32 {
+	return c.Header.GetDBHeight()
+}
+
+func (c *AdminBlock) SetABEntries(abentries []interfaces.IABEntry) {
+	c.ABEntries = abentries
+}
 
 func (c *AdminBlock) New() interfaces.BinaryMarshallableAndCopyable {
 	return new(AdminBlock)
 }
 
 func (c *AdminBlock) GetDatabaseHeight() uint32 {
-	return c.Header.DBHeight
+	return c.Header.GetDBHeight()
 }
 
 func (c *AdminBlock) GetChainID() []byte {
-	return c.Header.AdminChainID.Bytes()
+	return c.Header.GetAdminChainID().Bytes()
 }
 
 func (c *AdminBlock) DatabasePrimaryIndex() interfaces.IHash {
@@ -74,7 +82,7 @@ func (c *AdminBlock) GetKeyMR() (interfaces.IHash, error) {
 
 func (ab *AdminBlock) LedgerKeyMR() (interfaces.IHash, error) {
 	if ab.fullHash == nil {
-		err := ab.buildFullBHash()
+		err := ab.BuildFullBHash()
 		if err != nil {
 			return nil, err
 		}
@@ -84,7 +92,7 @@ func (ab *AdminBlock) LedgerKeyMR() (interfaces.IHash, error) {
 
 func (ab *AdminBlock) PartialHash() (interfaces.IHash, error) {
 	if ab.partialHash == nil {
-		err := ab.buildPartialHash()
+		err := ab.BuildPartialHash()
 		if err != nil {
 			return nil, err
 		}
@@ -92,36 +100,9 @@ func (ab *AdminBlock) PartialHash() (interfaces.IHash, error) {
 	return ab.partialHash, nil
 }
 
-// Create an empty Admin Block
-func CreateAdminBlock(chain *AdminChain, prev *AdminBlock, cap uint) (b *AdminBlock, err error) {
-	if prev == nil && chain.NextBlockHeight != 0 {
-		return nil, errors.New("Previous block cannot be nil")
-	} else if prev != nil && chain.NextBlockHeight == 0 {
-		return nil, errors.New("Origin block cannot have a parent block")
-	}
-
-	b = new(AdminBlock)
-
-	b.Header = new(ABlockHeader)
-	b.Header.AdminChainID = chain.ChainID
-
-	if prev == nil {
-		b.Header.PrevLedgerKeyMR = primitives.NewZeroHash()
-	} else {
-		b.Header.PrevLedgerKeyMR, err = prev.LedgerKeyMR()
-		if err != nil {
-			return
-		}
-	}
-
-	b.Header.DBHeight = chain.NextBlockHeight
-	b.ABEntries = make([]ABEntry, 0, cap)
-
-	return b, err
-}
 
 // Build the SHA512Half hash for the admin block
-func (b *AdminBlock) buildFullBHash() (err error) {
+func (b *AdminBlock) BuildFullBHash() (err error) {
 	var binaryAB []byte
 	binaryAB, err = b.MarshalBinary()
 	if err != nil {
@@ -132,7 +113,7 @@ func (b *AdminBlock) buildFullBHash() (err error) {
 }
 
 // Build the SHA256 hash for the admin block
-func (b *AdminBlock) buildPartialHash() (err error) {
+func (b *AdminBlock) BuildPartialHash() (err error) {
 	var binaryAB []byte
 	binaryAB, err = b.MarshalBinary()
 	if err != nil {
@@ -143,7 +124,7 @@ func (b *AdminBlock) buildPartialHash() (err error) {
 }
 
 // Add an Admin Block entry to the block
-func (b *AdminBlock) AddABEntry(e ABEntry) (err error) {
+func (b *AdminBlock) AddABEntry(e interfaces.IABEntry) (err error) {
 	b.ABEntries = append(b.ABEntries, e)
 	return
 }
@@ -166,25 +147,13 @@ func (b *AdminBlock) MarshalBinary() (data []byte, err error) {
 	data, _ = b.Header.MarshalBinary()
 	buf.Write(data)
 
-	for i := uint32(0); i < b.Header.MessageCount; i++ {
-		data, _ := b.ABEntries[i].MarshalBinary()
+	for _, v := range b.ABEntries {
+		data, _ := v.MarshalBinary()
 		buf.Write(data)
 	}
 	return buf.Bytes(), err
 }
 
-// Admin Block size
-func (b *AdminBlock) MarshalledSize() uint64 {
-	var size uint64 = 0
-
-	size += b.Header.MarshalledSize()
-
-	for _, entry := range b.ABEntries {
-		size += entry.MarshalledSize()
-	}
-
-	return size
-}
 
 func (b *AdminBlock) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
@@ -200,8 +169,8 @@ func (b *AdminBlock) UnmarshalBinaryData(data []byte) (newData []byte, err error
 	}
 	b.Header = h
 
-	b.ABEntries = make([]ABEntry, b.Header.MessageCount)
-	for i := uint32(0); i < b.Header.MessageCount; i++ {
+	b.ABEntries = make([]interfaces.IABEntry, 0)
+	for i := uint32(0); i < b.Header.GetMessageCount(); i++ {
 		if newData[0] == constants.TYPE_DB_SIGNATURE {
 			b.ABEntries[i] = new(DBSignatureEntry)
 		} else if newData[0] == constants.TYPE_MINUTE_NUM {
@@ -222,16 +191,16 @@ func (b *AdminBlock) UnmarshalBinary(data []byte) (err error) {
 }
 
 // Read in the binary into the Admin block.
-func (b *AdminBlock) GetDBSignature() ABEntry {
+func (b *AdminBlock) GetDBSignature() interfaces.IABEntry {
 
-	for i := uint32(0); i < b.Header.MessageCount; i++ {
+	for i := uint32(0); i < b.Header.GetMessageCount(); i++ {
 		if b.ABEntries[i].Type() == constants.TYPE_DB_SIGNATURE {
 			return b.ABEntries[i]
 		}
 	}
 
 	return nil
-}
+} 
 
 func (e *AdminBlock) JSONByte() ([]byte, error) {
 	return primitives.EncodeJSON(e)
@@ -250,138 +219,6 @@ func (e *AdminBlock) String() string {
 	return str
 }
 
-// Admin Block Header
-type ABlockHeader struct {
-	AdminChainID    interfaces.IHash
-	PrevLedgerKeyMR interfaces.IHash
-	DBHeight        uint32
-
-	HeaderExpansionSize uint64
-	HeaderExpansionArea []byte
-
-	MessageCount uint32
-	BodySize     uint32
-}
-
-var _ interfaces.Printable = (*ABlockHeader)(nil)
-var _ interfaces.BinaryMarshallable = (*ABlockHeader)(nil)
-
-// Write out the ABlockHeader to binary.
-func (b *ABlockHeader) MarshalBinary() (data []byte, err error) {
-	var buf bytes.Buffer
-
-	data, err = b.AdminChainID.MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
-	buf.Write(data)
-
-	data, err = b.PrevLedgerKeyMR.MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
-	buf.Write(data)
-
-	binary.Write(&buf, binary.BigEndian, b.DBHeight)
-
-	primitives.EncodeVarInt(&buf, b.HeaderExpansionSize)
-	buf.Write(b.HeaderExpansionArea)
-
-	binary.Write(&buf, binary.BigEndian, b.MessageCount)
-	binary.Write(&buf, binary.BigEndian, b.BodySize)
-
-	return buf.Bytes(), err
-}
-
-func (b *ABlockHeader) MarshalledSize() uint64 {
-	var size uint64 = 0
-
-	size += uint64(constants.HASH_LENGTH)                  //AdminChainID
-	size += uint64(constants.HASH_LENGTH)                  //PrevFullHash
-	size += 4                                              //DBHeight
-	size += primitives.VarIntLength(b.HeaderExpansionSize) //HeaderExpansionSize
-	size += b.HeaderExpansionSize                          //HeadderExpansionArea
-	size += 4                                              //MessageCount
-	size += 4                                              //BodySize
-
-	return size
-}
-
-func (b *ABlockHeader) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
-		}
-	}()
-	newData = data
-	b.AdminChainID = new(primitives.Hash)
-	newData, err = b.AdminChainID.UnmarshalBinaryData(newData)
-	if err != nil {
-		return
-	}
-
-	b.PrevLedgerKeyMR = new(primitives.Hash)
-	newData, err = b.PrevLedgerKeyMR.UnmarshalBinaryData(newData)
-	if err != nil {
-		return
-	}
-
-	b.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
-
-	b.HeaderExpansionSize, newData = primitives.DecodeVarInt(newData)
-	b.HeaderExpansionArea, newData = newData[:b.HeaderExpansionSize], newData[b.HeaderExpansionSize:]
-
-	b.MessageCount, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
-	b.BodySize, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
-
-	return
-}
-
-// Read in the binary into the ABlockHeader.
-func (b *ABlockHeader) UnmarshalBinary(data []byte) (err error) {
-	_, err = b.UnmarshalBinaryData(data)
-	return
-}
-
-func (e *ABlockHeader) JSONByte() ([]byte, error) {
-	return primitives.EncodeJSON(e)
-}
-
-func (e *ABlockHeader) JSONString() (string, error) {
-	return primitives.EncodeJSONString(e)
-}
-
-func (e *ABlockHeader) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
-}
-
-func (e *ABlockHeader) String() string {
-	str, _ := e.JSONString()
-	return str
-}
-
-// Generic admin block entry type
-type ABEntry interface {
-	interfaces.Printable
-	interfaces.BinaryMarshallable
-	interfaces.ShortInterpretable
-
-	MarshalledSize() uint64
-	Type() byte
-	Hash() interfaces.IHash
-}
-
-type Sig [64]byte
-
-func (s *Sig) MarshalText() ([]byte, error) {
-	return []byte(hex.EncodeToString(s[:])), nil
-}
-
-func (s *Sig) UnmarshalText(b []byte) error {
-	p, err := hex.DecodeString(string(b))
-	if err != nil {
-		return err
-	}
-	copy(s[:], p)
-	return nil
-}
+/************************************************************************
+ * Support functions
+ ************************************************************************/

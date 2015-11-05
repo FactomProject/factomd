@@ -12,11 +12,10 @@ import (
 type DBSignatureEntry struct {
 	entryType            byte
 	IdentityAdminChainID interfaces.IHash
-	PubKey               primitives.PublicKey
-	PrevDBSig            *Sig
+	PrevDBSig            primitives.Signature
 }
 
-var _ ABEntry = (*DBSignatureEntry)(nil)
+var _ interfaces.IABEntry = (*DBSignatureEntry)(nil)
 var _ interfaces.BinaryMarshallable = (*DBSignatureEntry)(nil)
 
 // Create a new DB Signature Entry
@@ -24,8 +23,8 @@ func NewDBSignatureEntry(identityAdminChainID interfaces.IHash, sig primitives.S
 	e = new(DBSignatureEntry)
 	e.entryType = constants.TYPE_DB_SIGNATURE
 	e.IdentityAdminChainID = identityAdminChainID
-	e.PubKey = sig.Pub
-	e.PrevDBSig = (*Sig)(sig.Sig)
+	copy (e.PrevDBSig.Pub.Key[:], sig.Pub.Key[:]) 
+	copy(e.PrevDBSig.Sig[:], sig.Sig[:])
 	return
 }
 
@@ -44,12 +43,12 @@ func (e *DBSignatureEntry) MarshalBinary() (data []byte, err error) {
 	}
 	buf.Write(data)
 
-	_, err = buf.Write(e.PubKey.Key[:])
+	_, err = buf.Write(e.PrevDBSig.Pub.Key[:])
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = buf.Write(e.PrevDBSig[:])
+	_, err = buf.Write(e.PrevDBSig.Sig[:])
 	if err != nil {
 		return nil, err
 	}
@@ -82,14 +81,7 @@ func (e *DBSignatureEntry) UnmarshalBinaryData(data []byte) (newData []byte, err
 		return
 	}
 
-	e.PubKey.Key = new([constants.HASH_LENGTH]byte)
-	copy(e.PubKey.Key[:], newData[:constants.HASH_LENGTH])
-	newData = newData[constants.HASH_LENGTH:]
-
-	e.PrevDBSig = new(Sig)
-	copy(e.PrevDBSig[:], newData[:constants.SIG_LENGTH])
-
-	newData = newData[constants.SIG_LENGTH:]
+	newData, err = e.PrevDBSig.UnmarshalBinaryData(newData)
 
 	return
 }
