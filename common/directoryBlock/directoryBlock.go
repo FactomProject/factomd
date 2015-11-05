@@ -178,10 +178,6 @@ func (b *DirectoryBlock) UnmarshalBinary(data []byte) (err error) {
 	return
 }
 
-func (b *DirectoryBlock) GetDBHeight() uint32 {
-	return b.GetHeader().GetDBHeight()
-}
-
 func (b *DirectoryBlock) GetHash() interfaces.IHash {
 	if b.DBHash == nil {
 		binaryDblock, err := b.MarshalBinary()
@@ -221,7 +217,6 @@ func CreateDBlock(nextDBHeight uint32, prev interfaces.IDirectoryBlock, cap uint
 		b.GetHeader().SetPrevLedgerKeyMR(primitives.NewZeroHash())
 		b.GetHeader().SetPrevKeyMR(primitives.NewZeroHash())
 	} else {
-		fmt.Println(prev.String())
 		prevLedgerKeyMR, err := primitives.CreateHash(prev)
 		if err != nil {
 			return nil, err
