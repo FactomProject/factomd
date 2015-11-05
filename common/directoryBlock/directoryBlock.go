@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -233,6 +234,8 @@ func CreateDBlock(nextDBHeight uint32, prev interfaces.IDirectoryBlock, cap uint
 		b.GetHeader().SetPrevKeyMR(keyMR)
 	}
 
+	adminblk := adminblock.NewAdminBlock(state)
+	
 	b.GetHeader().SetDBHeight(nextDBHeight)
 	b.SetDBEntries(make([]interfaces.IDBEntry, 0, cap))
 	b.AddEntry(primitives.NewHash(constants.ADMIN_CHAINID), nil)

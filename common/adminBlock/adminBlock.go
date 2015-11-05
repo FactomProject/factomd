@@ -219,3 +219,9 @@ func (e *AdminBlock) String() string {
 /************************************************************************
  * Support functions
  ************************************************************************/
+
+func NewAdminBlock(state interfaces.IState) IAdminBlock {
+	ab := new(AdminBlock)
+	ab.Header = NewAdminBlockHeader(state)
+	return ab
+}

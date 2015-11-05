@@ -102,20 +102,6 @@ func (b *ABlockHeader) MarshalBinary() (data []byte, err error) {
 	return buf.Bytes(), err
 }
 
-func (b *ABlockHeader) MarshalledSize() uint64 {
-	var size uint64 = 0
-
-	size += uint64(constants.HASH_LENGTH)                  //AdminChainID
-	size += uint64(constants.HASH_LENGTH)                  //PrevFullHash
-	size += 4                                              //DBHeight
-	size += primitives.VarIntLength(b.HeaderExpansionSize) //HeaderExpansionSize
-	size += b.HeaderExpansionSize                          //HeadderExpansionArea
-	size += 4                                              //MessageCount
-	size += 4                                              //BodySize
-
-	return size
-}
-
 func (b *ABlockHeader) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -166,4 +152,18 @@ func (e *ABlockHeader) JSONBuffer(b *bytes.Buffer) error {
 func (e *ABlockHeader) String() string {
 	str, _ := e.JSONString()
 	return str
+}
+
+/**********************************************************************
+ * Support Functions
+ **********************************************************************/
+
+func NewAdminBlockHeader(state interfaces.IState) IABlockHeader {
+	header := new(ABlockHeader)
+	header.DBHeight = state.GetDBHeight()
+	header.PrevLedgerKeyMR,_ = state.GetCurrentAdminBlock().LedgerKeyMR()
+	header.HeaderExpansionSize = 0
+	header.HeaderExpansionArea = make([]byte,0)
+	header.MessageCount = 0
+	header.BodySize = 0
 }
