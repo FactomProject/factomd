@@ -91,7 +91,7 @@ HomeDir                               = ""
 ; --------------- DBType: LDB | Bolt | Map 
 DBType                                = "Bolt"
 LdbPath                               = "ldb"
-BoltDBPath                            = ""
+BoltDBPath                            = "bolt"
 DataStorePath                         = "data/export/"
 DirectoryBlockInSeconds               = 600
 ; --------------- Network: MAIN | TEST | LOCAL 
@@ -233,6 +233,7 @@ func ReadConfig(filename string) *FactomdConfig {
 
 	err := gcfg.ReadFileInto(cfg, filename)
 	if err != nil {
+		log.Printfln("Reading from '%s'",filename)
 		log.Printfln("ERROR Reading config file!\nServer starting with default settings...\n%v\n", err)
 		gcfg.ReadStringInto(cfg, defaultConfig)
 	}

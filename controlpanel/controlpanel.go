@@ -76,7 +76,7 @@ func (cp *ControlPanel) SetPort(port string) {
 
 func (cp *ControlPanel) GetPort() string {
 	if len(cp.port) == 0 {
-		cp.port = "8090" // Default to Factom Control Panel
+		cp.port = "9090" // Default to Factom Control Panel
 	}
 	return cp.port
 }

@@ -12,7 +12,10 @@ import (
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
 	"os"
+	"fmt"
 )
+
+var _ = fmt.Print
 
 type State struct {
 	Cfg interfaces.IFactomConfig
@@ -171,21 +174,20 @@ func (s *State) Init(filename string) {
 
 	//Database
 	switch cfg.App.DBType {
-	case "LDB":
-		if err := s.InitLevelDB(); err != nil {
-			log.Printfln("Error initializing the database: %v", err)
-		}
-		break
-	case "Bolt":
-		if err := s.InitBoltDB(); err != nil {
-			log.Printfln("Error initializing the database: %v", err)
-		}
-		break
-	case "Map":
-		if err := s.InitMapDB(); err != nil {
-			log.Printfln("Error initializing the database: %v", err)
-		}
-		break
+		case "LDB":
+			if err := s.InitLevelDB(); err != nil {
+				log.Printfln("Error initializing the database: %v", err)
+			}
+		case "Bolt":
+			if err := s.InitBoltDB(); err != nil {
+				log.Printfln("Error initializing the database: %v", err)
+			}
+		case "Map":
+			if err := s.InitMapDB(); err != nil {
+				log.Printfln("Error initializing the database: %v", err)
+			}
+		default :
+			panic("No Database type specified")
 	}
 
 	//Network
@@ -240,7 +242,13 @@ func (s *State) loadDatabase() {
 			panic("Failed to initialize Factoids: " + err.Error())
 		}
 		dblk, err = directoryblock.CreateDBlock(1, dblk, 4)
+		if dblk == nil {
+			panic("dblk should never be nil")
+		}
 	}
+	
+	fmt.Println("oooooooooooooooooooooooooooooooooooooooooooo ",dblk, s.NetworkNumber, constants.NETWORK_LOCAL)
+	
 	s.SetDBHeight(dblk.GetHeader().GetDBHeight())
 	s.SetCurrentDirectoryBlock(dblk)
 
