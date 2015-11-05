@@ -210,7 +210,7 @@ func (s *State) Init(filename string) {
 
 func (s *State) loadDatabase() {
 
-	dblk := new(directoryblock.DirectoryBlock)
+	var dblk interfaces.IDirectoryBlock = new(directoryblock.DirectoryBlock)
 	blk, err := s.DB.Get([]byte(constants.DB_DIRECTORY_BLOCKS), constants.D_CHAINID, dblk)
 	if err != nil {
 		panic(err.Error())
@@ -221,8 +221,9 @@ func (s *State) loadDatabase() {
 		dblk = blk.(*directoryblock.DirectoryBlock)
 	}
 
+	
 	if dblk == nil && s.NetworkNumber == constants.NETWORK_LOCAL {
-		dblk, err := directoryblock.CreateDBlock(0, nil, 4)
+		dblk, err = directoryblock.CreateDBlock(0, nil, 4)
 		if err != nil {
 			panic("Failed to initialize Factoids: " + err.Error())
 		}
@@ -246,9 +247,7 @@ func (s *State) loadDatabase() {
 			panic("dblk should never be nil")
 		}
 	}
-	
-	fmt.Println("oooooooooooooooooooooooooooooooooooooooooooo ",dblk, s.NetworkNumber, constants.NETWORK_LOCAL)
-	
+		
 	s.SetDBHeight(dblk.GetHeader().GetDBHeight())
 	s.SetCurrentDirectoryBlock(dblk)
 
