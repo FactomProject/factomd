@@ -15,10 +15,6 @@ func Leader(state interfaces.IState) {
 		msg := <-state.LeaderInMsgQueue()
 		log.Printf("%20s %s\n", "Leader:", msg.String())
 		msg.LeaderExecute(state)
-
-		if msg.Follower(state) {
-			state.FollowerInMsgQueue() <- msg
-		}
 	}
 
 }
