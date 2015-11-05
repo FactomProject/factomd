@@ -5,6 +5,8 @@
 package databaseOverlay
 
 import (
+	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 )
 
@@ -65,4 +67,19 @@ func (db *Overlay) FetchDBlockByHash(dBMR interfaces.IHash, dst interfaces.Datab
 // FetchAllDBlocks gets all of the fbInfo
 func (db *Overlay) FetchAllDBlocks(sample interfaces.BinaryMarshallableAndCopyable) ([]interfaces.BinaryMarshallableAndCopyable, error) {
 	return db.FetchAllBlocksFromBucket([]byte{byte(TBL_DB)}, sample)
+}
+
+//TODO: figure out what we're fetching
+func (db *Overlay) FetchDirectoryBlockHead() (interfaces.IDirectoryBlock, error) {
+	var dblk interfaces.IDirectoryBlock = new(directoryblock.DirectoryBlock)
+	blk, err := db.DB.Get([]byte(constants.DB_DIRECTORY_BLOCKS), constants.D_CHAINID, dblk)
+	if err != nil {
+		return nil, err
+	}
+	if blk == nil {
+		dblk = nil
+	} else {
+		dblk = blk.(*directoryblock.DirectoryBlock)
+	}
+	return dblk, nil
 }

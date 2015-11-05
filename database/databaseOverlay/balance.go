@@ -3,7 +3,7 @@ package databaseOverlay
 import (
 	"bytes"
 	"encoding/binary"
-	"fmt"
+	//"fmt"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 )
@@ -30,6 +30,7 @@ func (f FSbalance) MarshalBinary() ([]byte, error) {
 	return out.Bytes(), nil
 }
 
+/*
 // Any address that is not defined has a zero balance.
 func (db *Overlay) GetBalance(address interfaces.IAddress) uint64 {
 	balance := uint64(0)
@@ -92,7 +93,7 @@ func (db *Overlay) UseECs(address interfaces.IAddress, amount uint64) error {
 	}
 	err := db.DB.Put([]byte(constants.DB_EC_BALANCES), address.Bytes(), &FSbalance{number: balance})
 	return err
-}
+}*/
 
 func (db *Overlay) PutTransactionBlock(hash interfaces.IHash, trans interfaces.IFBlock) error {
 	return db.DB.Put([]byte(constants.DB_FACTOID_BLOCKS), hash.Bytes(), trans)

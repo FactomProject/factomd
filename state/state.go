@@ -1,19 +1,20 @@
 package state
 
 import (
+	"bytes"
+	"fmt"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/factoid/block"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/database/hybridDB"
 	"github.com/FactomProject/factomd/database/mapdb"
 	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
 	"os"
-	"fmt"
-	"bytes"
 )
 
 var _ = fmt.Print
@@ -37,7 +38,7 @@ type State struct {
 	Matryoshka   []interfaces.IHash // Reverse Hash
 
 	// Database
-	DB interfaces.IDatabase
+	DB *databaseOverlay.Overlay
 
 	// Directory Block State
 	CurrentDirectoryBlock interfaces.IDirectoryBlock
@@ -175,20 +176,20 @@ func (s *State) Init(filename string) {
 
 	//Database
 	switch cfg.App.DBType {
-		case "LDB":
-			if err := s.InitLevelDB(); err != nil {
-				log.Printfln("Error initializing the database: %v", err)
-			}
-		case "Bolt":
-			if err := s.InitBoltDB(); err != nil {
-				log.Printfln("Error initializing the database: %v", err)
-			}
-		case "Map":
-			if err := s.InitMapDB(); err != nil {
-				log.Printfln("Error initializing the database: %v", err)
-			}
-		default :
-			panic("No Database type specified")
+	case "LDB":
+		if err := s.InitLevelDB(); err != nil {
+			log.Printfln("Error initializing the database: %v", err)
+		}
+	case "Bolt":
+		if err := s.InitBoltDB(); err != nil {
+			log.Printfln("Error initializing the database: %v", err)
+		}
+	case "Map":
+		if err := s.InitMapDB(); err != nil {
+			log.Printfln("Error initializing the database: %v", err)
+		}
+	default:
+		panic("No Database type specified")
 	}
 
 	//Network
@@ -210,19 +211,11 @@ func (s *State) Init(filename string) {
 }
 
 func (s *State) loadDatabase() {
-
-	var dblk interfaces.IDirectoryBlock = new(directoryblock.DirectoryBlock)
-	blk, err := s.DB.Get([]byte(constants.DB_DIRECTORY_BLOCKS), constants.D_CHAINID, dblk)
+	dblk, err := s.DB.FetchDirectoryBlockHead()
 	if err != nil {
 		panic(err.Error())
 	}
-	if blk == nil {
-		dblk = nil
-	} else {
-		dblk = blk.(*directoryblock.DirectoryBlock)
-	}
 
-	
 	if dblk == nil && s.NetworkNumber == constants.NETWORK_LOCAL {
 		dblk, err = directoryblock.CreateDBlock(0, nil, 4)
 		if err != nil {
@@ -248,7 +241,7 @@ func (s *State) loadDatabase() {
 			panic("dblk should never be nil")
 		}
 	}
-		
+
 	s.SetDBHeight(dblk.GetHeader().GetDBHeight())
 	s.SetCurrentDirectoryBlock(dblk)
 
@@ -273,7 +266,7 @@ func (s *State) InitLevelDB() error {
 		}
 	}
 
-	//s.db = databaseOverlay.NewOverlay(dbase)
+	s.DB = databaseOverlay.NewOverlay(dbase)
 	return nil
 }
 
@@ -282,30 +275,30 @@ func (s *State) InitBoltDB() error {
 	path := cfg.App.BoltDBPath + "/" + cfg.App.Network + "/"
 	os.MkdirAll(path, 0777)
 	dbase := hybridDB.NewBoltMapHybridDB(nil, path+"FactomBolt.db")
-	s.DB = dbase
+	s.DB = databaseOverlay.NewOverlay(dbase)
 	return nil
 }
 
 func (s *State) InitMapDB() error {
 	dbase := new(mapdb.MapDB)
 	dbase.Init(nil)
-	s.DB = dbase
+	s.DB = databaseOverlay.NewOverlay(dbase)
 	return nil
 }
 
 func (s *State) String() string {
 	var out bytes.Buffer
-	
+
 	out.WriteString(fmt.Sprintf("Queues: NetIn %d NetOut %d NetInvalid %d InMsg %d Leader %d Follower %d",
-								len(s.NetworkInMsgQueue()),
-								len(s.NetworkOutMsgQueue()),
-								len(s.NetworkInvalidMsgQueue()),
-								len(s.InMsgQueue()),
-								len(s.LeaderInMsgQueue()),
-								len(s.FollowerInMsgQueue())))
-	
-	return out.String() 
-	
+		len(s.NetworkInMsgQueue()),
+		len(s.NetworkOutMsgQueue()),
+		len(s.NetworkInvalidMsgQueue()),
+		len(s.InMsgQueue()),
+		len(s.LeaderInMsgQueue()),
+		len(s.FollowerInMsgQueue())))
+
+	return out.String()
+
 }
 
 func (s *State) GetNetworkName() string {
@@ -322,11 +315,11 @@ func (s *State) SetCurrentDirectoryBlock(dirblk interfaces.IDirectoryBlock) {
 }
 
 func (s *State) GetDB() interfaces.IDatabase {
-	return s.DB
+	return s.DB.DB
 }
 
-func (s *State) SetDB(db interfaces.IDatabase) {
-	s.DB = db
+func (s *State) SetDB(dbase interfaces.IDatabase) {
+	s.DB = databaseOverlay.NewOverlay(dbase)
 }
 
 func (s *State) GetDBHeight() uint32 {
