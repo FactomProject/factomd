@@ -11,6 +11,8 @@ import (
 	"github.com/FactomProject/factomd/log"
 )
 
+
+var _ = log.Printf
 var _ = fmt.Print
 
 func NetworkProcessor(state interfaces.IState) {
@@ -25,7 +27,7 @@ func NetworkProcessor(state interfaces.IState) {
 		select {
 			case msg, ok := <- state.NetworkInMsgQueue():
 				if ok {
-					log.Printf("%20s %s\n", "In Network:", msg.String())
+					//log.Printf("%20s %s\n", "In Network:", msg.String())
 					state.InMsgQueue() <- msg
 					continue netloop
 				}
@@ -35,7 +37,8 @@ func NetworkProcessor(state interfaces.IState) {
 		select {
 			case msg, ok := <- state.NetworkOutMsgQueue():
 				if ok {
-					log.Printf("%20s %s\n", "Network Broadcast:", msg.String())
+					var _ = msg
+					//log.Printf("%20s %s\n", "Network Broadcast:", msg.String())
 					// Ignore for now
 					continue netloop
 				}
@@ -45,7 +48,8 @@ func NetworkProcessor(state interfaces.IState) {
 		select {
 			case msg, ok := <- state.NetworkInvalidMsgQueue():
 				if ok {
-					log.Printf("%20s %s\n", "Network Invalid Msg:", msg.String())
+					var _ = msg
+					//log.Printf("%20s %s\n", "Network Invalid Msg:", msg.String())
 					// Ignore for now
 					continue netloop
 				}

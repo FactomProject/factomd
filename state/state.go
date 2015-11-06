@@ -65,6 +65,9 @@ func (s *State) SetCurrentAdminBlock(adblock interfaces.IAdminBlock) {
 }
 
 func (s *State) GetFactoidState() interfaces.IFactoidState {
+	if s.FactoidState == nil {
+		s.FactoidState = new(FactoidState)
+	}
 	return s.FactoidState
 }
 
@@ -240,11 +243,23 @@ func (s *State) loadDatabase() {
 		if dblk == nil {
 			panic("dblk should never be nil")
 		}
+	}else{
+		fs := s.GetFactoidState()
+		fblk := new(block.FBlock)
+		_,err = s.GetDB().Get([]byte(constants.DB_FACTOID_BLOCKS), primitives.Sha(constants.FACTOID_CHAINID).Bytes(),fblk)
+		if err != nil {
+			panic(err.Error())
+		}
+		for fblk != nil {
+			fs.AddTransactionBlock(fblk)
+			_,err = s.GetDB().Get([]byte(constants.DB_FACTOID_FORWARD),fblk.GetKeyMR().Bytes(),fblk)
+			if err != nil {
+				panic(err.Error())
+			}
+		}
 	}
-
 	s.SetDBHeight(dblk.GetHeader().GetDBHeight())
 	s.SetCurrentDirectoryBlock(dblk)
-
 }
 
 func (s *State) InitLevelDB() error {

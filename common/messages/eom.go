@@ -185,7 +185,9 @@ func (m *EOM) FollowerExecute(state interfaces.IState) error {
 	default:
 		panic(fmt.Sprintf("Not implemented yet: Network Number %d",state.GetNetworkNumber()))
 	}
-		
+	
+	fmt.Println(state.GetServerState(), constants.SERVER_MODE)
+	
 	if state.GetServerState() == constants.SERVER_MODE {
 		state.LeaderInMsgQueue() <- m
 	}

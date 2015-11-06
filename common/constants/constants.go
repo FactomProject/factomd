@@ -93,7 +93,8 @@ const (
 	NETWORK_ID_CB = uint32(4203931043) //0xFA92E5A3
 
 	// NETWORKS:
-
+)
+const (
 	NETWORK_MAIN   int = iota // 0
 	NETWORK_TEST              // 1
 	NETWORK_LOCAL             // 2
@@ -109,7 +110,9 @@ const (
 	FULL_NODE   = "FULL"
 	SERVER_NODE = "SERVER"
 	LIGHT_NODE  = "LIGHT"
-	
+)
+
+const(
 	CLIENT_MODE int = iota // 0
 	SERVER_MODE 		   // 1 	
 	AUDIT_SERVER_MODE	   // 2

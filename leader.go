@@ -9,11 +9,13 @@ import (
 	"github.com/FactomProject/factomd/log"
 )
 
+var _ = log.Print
+
 func Leader(state interfaces.IState) {
 
 	for {
 		msg := <-state.LeaderInMsgQueue()
-		log.Printf("%20s %s\n", "Leader:", msg.String())
+		//log.Printf("%20s %s\n", "Leader:", msg.String())
 		msg.LeaderExecute(state)
 	}
 
