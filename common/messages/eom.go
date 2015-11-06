@@ -134,7 +134,7 @@ func (m *EOM) LeaderExecute(state interfaces.IState) error {
 	olddb := state.GetCurrentDirectoryBlock()
 	state.GetFactoidState().ProcessEndOfBlock(state)
 
-	db, err := directoryblock.CreateDBlock(uint32(state.GetDBHeight()), olddb, 10)
+	db, err := directoryblock.CreateDBlock(state)
 
 	state.SetDBHeight(state.GetDBHeight() + 1)
 	if err != nil {
@@ -185,7 +185,9 @@ func (m *EOM) FollowerExecute(state interfaces.IState) error {
 	default:
 		panic(fmt.Sprintf("Not implemented yet: Network Number %d",state.GetNetworkNumber()))
 	}
-		
+	
+	fmt.Println(state.GetServerState(), constants.SERVER_MODE)
+	
 	if state.GetServerState() == constants.SERVER_MODE {
 		state.LeaderInMsgQueue() <- m
 	}

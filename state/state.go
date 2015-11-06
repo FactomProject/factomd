@@ -51,10 +51,20 @@ type State struct {
 	LastAck interfaces.IMsg // Return the last Acknowledgement set by this server
 
 	FactoidState      interfaces.IFactoidState
+	PrevFactoidKeyMR  interfaces.IHash
 	CurrentAdminBlock interfaces.IAdminBlock
 }
 
 var _ interfaces.IState = (*State)(nil)
+
+func (s *State) GetPrevFactoidKeyMR() interfaces.IHash {
+	return s.PrevFactoidKeyMR
+}
+
+func (s *State) SetPrevFactoidKeyMR(hash interfaces.IHash) {
+	s.PrevFactoidKeyMR = hash
+}
+
 
 func (s *State) GetCurrentAdminBlock() interfaces.IAdminBlock {
 	return s.CurrentAdminBlock
@@ -65,6 +75,9 @@ func (s *State) SetCurrentAdminBlock(adblock interfaces.IAdminBlock) {
 }
 
 func (s *State) GetFactoidState() interfaces.IFactoidState {
+	if s.FactoidState == nil {
+		s.FactoidState = new(FactoidState)
+	}
 	return s.FactoidState
 }
 
@@ -217,7 +230,7 @@ func (s *State) loadDatabase() {
 	}
 
 	if dblk == nil && s.NetworkNumber == constants.NETWORK_LOCAL {
-		dblk, err = directoryblock.CreateDBlock(0, nil, 4)
+		dblk, err = directoryblock.CreateDBlock(s)
 		if err != nil {
 			panic("Failed to initialize Factoids: " + err.Error())
 		}
@@ -236,15 +249,30 @@ func (s *State) loadDatabase() {
 		if err := s.FactoidState.AddTransactionBlock(fblk); err != nil {
 			panic("Failed to initialize Factoids: " + err.Error())
 		}
-		dblk, err = directoryblock.CreateDBlock(1, dblk, 4)
+		dblk, err = directoryblock.CreateDBlock(s)
 		if dblk == nil {
 			panic("dblk should never be nil")
 		}
+	}else{
+		fs := s.GetFactoidState()
+		fblk := new(block.FBlock)
+		_,err = s.GetDB().Get([]byte(constants.DB_FACTOID_BLOCKS), primitives.Sha(constants.FACTOID_CHAINID).Bytes(),fblk)
+		if err != nil {
+			panic(err.Error())
+		}
+		hash := primitives.NewHash(constants.ZERO_HASH)  // Just get me some working space...
+		var h interfaces.BinaryMarshallable = hash
+		for h != nil {
+			fs.AddTransactionBlock(fblk)
+			h, err = s.GetDB().Get([]byte(constants.DB_FACTOID_FORWARD),fblk.GetKeyMR().Bytes(),hash)
+			if err != nil {
+				panic(err.Error())
+			}
+			_,err = s.GetDB().Get([]byte(constants.DB_FACTOID_BLOCKS), hash.Bytes(),fblk)
+		}
 	}
-
 	s.SetDBHeight(dblk.GetHeader().GetDBHeight())
 	s.SetCurrentDirectoryBlock(dblk)
-
 }
 
 func (s *State) InitLevelDB() error {

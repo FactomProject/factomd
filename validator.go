@@ -10,6 +10,9 @@ import (
 	"github.com/FactomProject/factomd/log"
 )
 
+var _ = fmt.Print
+var _ = log.Printf
+
 func Validator(state interfaces.IState) {
 
 	for {
@@ -17,7 +20,7 @@ func Validator(state interfaces.IState) {
 
 		switch msg.Validate(state) { // Validate the message.
 		case 1: // Process if valid
-			log.Printf("%20s %s\n", "Validator:", msg.String())
+//			log.Printf("%20s %s\n", "Validator:", msg.String())
 			if msg.Leader(state) {
 				state.LeaderInMsgQueue() <- msg
 			} else if msg.Follower(state) {
@@ -28,7 +31,7 @@ func Validator(state interfaces.IState) {
 		case -1: // Drop if invalid.
 			// Invalid.  Just do nothing.
 		}
-		fmt.Println(state)
+	//	fmt.Println(state)
 	}
 
 }
