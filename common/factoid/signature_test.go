@@ -2,11 +2,12 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-package factoid
+package factoid_test
 
 import (
 	"fmt"
 	"github.com/FactomProject/ed25519"
+	. "github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"math/rand"

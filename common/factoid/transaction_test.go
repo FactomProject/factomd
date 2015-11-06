@@ -2,12 +2,13 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-package factoid
+package factoid_test
 
 import (
 	"fmt"
 	"github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factomd/common/constants"
+	. "github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"math/rand"
@@ -22,6 +23,8 @@ var adr1 = [constants.ADDRESS_LENGTH]byte{
 
 type zeroReader struct{}
 
+var zero zeroReader
+
 var r *rand.Rand
 
 func (zeroReader) Read(buf []byte) (int, error) {
@@ -34,8 +37,6 @@ func (zeroReader) Read(buf []byte) (int, error) {
 	}
 	return len(buf), nil
 }
-
-var zero zeroReader
 
 func nextAddress() interfaces.IAddress {
 
@@ -106,7 +107,7 @@ func getSignedTrans() interfaces.IBlock {
 
 // This test prints bunches of stuff that must be visually checked.
 // Mostly we keep it commented out.
-func xTestTransaction(test *testing.T) {
+func TestTransaction(test *testing.T) {
 	nb = getSignedTrans()
 	bytes, _ := nb.CustomMarshalText()
 	fmt.Printf("Transaction:\n%slen: %d\n", string(bytes), len(bytes))
@@ -143,7 +144,7 @@ func Test_Multisig_MarshalUnMarshal(test *testing.T) {
 	}
 }
 
-func xTest_Transaction_MarshalUnMarshal(test *testing.T) {
+func Test_Transaction_MarshalUnMarshal(test *testing.T) {
 
 	getSignedTrans()                // Make sure we have a signed transaction
 	data, err := nb.MarshalBinary() // Marshal our signed transaction
