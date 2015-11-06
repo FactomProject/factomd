@@ -62,6 +62,8 @@ type IState interface {
 
 	// Factoid State
 	GetFactoidState() IFactoidState
-
+	GetPrevFactoidKeyMR() IHash
+	SetPrevFactoidKeyMR(IHash)
+	
 	GetNewHash() IHash // Return a new Hash object
 }

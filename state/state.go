@@ -51,10 +51,20 @@ type State struct {
 	LastAck interfaces.IMsg // Return the last Acknowledgement set by this server
 
 	FactoidState      interfaces.IFactoidState
+	PrevFactoidKeyMR  interfaces.IHash
 	CurrentAdminBlock interfaces.IAdminBlock
 }
 
 var _ interfaces.IState = (*State)(nil)
+
+func (s *State) GetPrevFactoidKeyMR() interfaces.IHash {
+	return s.PrevFactoidKeyMR
+}
+
+func (s *State) SetPrevFactoidKeyMR(hash interfaces.IHash) {
+	s.PrevFactoidKeyMR = hash
+}
+
 
 func (s *State) GetCurrentAdminBlock() interfaces.IAdminBlock {
 	return s.CurrentAdminBlock
@@ -250,12 +260,15 @@ func (s *State) loadDatabase() {
 		if err != nil {
 			panic(err.Error())
 		}
-		for fblk != nil {
+		hash := primitives.NewHash(constants.ZERO_HASH)  // Just get me some working space...
+		var h interfaces.BinaryMarshallable = hash
+		for h != nil {
 			fs.AddTransactionBlock(fblk)
-			_,err = s.GetDB().Get([]byte(constants.DB_FACTOID_FORWARD),fblk.GetKeyMR().Bytes(),fblk)
+			h, err = s.GetDB().Get([]byte(constants.DB_FACTOID_FORWARD),fblk.GetKeyMR().Bytes(),hash)
 			if err != nil {
 				panic(err.Error())
 			}
+			_,err = s.GetDB().Get([]byte(constants.DB_FACTOID_BLOCKS), hash.Bytes(),fblk)
 		}
 	}
 	s.SetDBHeight(dblk.GetHeader().GetDBHeight())
