@@ -130,7 +130,7 @@ func (m *EOM) Leader(state interfaces.IState) bool {
 
 // Execute the leader functions of the given message
 func (m *EOM) LeaderExecute(state interfaces.IState) error {
-	fmt.Println("Leader")
+	log.Println("Leader")
 	olddb := state.GetCurrentDirectoryBlock()
 	state.GetFactoidState().ProcessEndOfBlock(state)
 
@@ -141,9 +141,11 @@ func (m *EOM) LeaderExecute(state interfaces.IState) error {
 		panic(err.Error())
 	}
 	state.SetCurrentDirectoryBlock(db)
-	db.AddEntry(primitives.NewHash(constants.ADMIN_CHAINID), primitives.NewZeroHash())   // AdminBlock
-	db.AddEntry(primitives.NewHash(constants.EC_CHAINID), primitives.NewZeroHash())      // AdminBlock
-	db.AddEntry(primitives.NewHash(constants.FACTOID_CHAINID), primitives.NewZeroHash()) // AdminBlock
+	/*
+		db.AddEntry(primitives.NewHash(constants.ADMIN_CHAINID), primitives.NewZeroHash())   // AdminBlock
+		db.AddEntry(primitives.NewHash(constants.EC_CHAINID), primitives.NewZeroHash())      // EntryCredit Block
+		db.AddEntry(primitives.NewHash(constants.FACTOID_CHAINID), primitives.NewZeroHash()) // Factoid Block
+	*/
 
 	if olddb != nil {
 		bodyMR, err := olddb.BuildBodyMR()
@@ -183,15 +185,15 @@ func (m *EOM) FollowerExecute(state interfaces.IState) error {
 	case constants.NETWORK_LOCAL: // Local Network
 
 	default:
-		panic(fmt.Sprintf("Not implemented yet: Network Number %d",state.GetNetworkNumber()))
+		panic(fmt.Sprintf("Not implemented yet: Network Number %d", state.GetNetworkNumber()))
 	}
-	
+
 	fmt.Println(state.GetServerState(), constants.SERVER_MODE)
-	
+
 	if state.GetServerState() == constants.SERVER_MODE {
 		state.LeaderInMsgQueue() <- m
 	}
-	
+
 	return nil
 }
 

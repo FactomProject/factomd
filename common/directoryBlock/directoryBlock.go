@@ -207,7 +207,7 @@ func CreateDBlock(state interfaces.IState) (b interfaces.IDirectoryBlock, err er
 
 	b.SetHeader(new(DBlockHeader))
 	b.GetHeader().SetVersion(constants.VERSION_0)
-	
+
 	if prev == nil {
 		b.GetHeader().SetPrevLedgerKeyMR(primitives.NewZeroHash())
 		b.GetHeader().SetPrevKeyMR(primitives.NewZeroHash())
@@ -225,15 +225,15 @@ func CreateDBlock(state interfaces.IState) (b interfaces.IDirectoryBlock, err er
 	}
 
 	adminblk := adminBlock.NewAdminBlock(state)
-	keymr,err := adminblk.GetKeyMR()
+	keymr, err := adminblk.GetKeyMR()
 	if err != nil {
 		panic(err.Error())
 	}
 	b.GetHeader().SetDBHeight(state.GetDBHeight())
 	b.SetDBEntries(make([]interfaces.IDBEntry, 0))
 	b.AddEntry(primitives.NewHash(constants.ADMIN_CHAINID), keymr)
-	b.AddEntry(primitives.NewHash(constants.EC_CHAINID), nil)
-	b.AddEntry(primitives.NewHash(constants.FACTOID_CHAINID), nil)
+	b.AddEntry(primitives.NewHash(constants.EC_CHAINID), primitives.NewZeroHash())
+	b.AddEntry(primitives.NewHash(constants.FACTOID_CHAINID), primitives.NewZeroHash())
 
 	return b, err
 }

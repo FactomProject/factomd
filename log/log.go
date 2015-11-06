@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"runtime/debug"
 	"strconv"
 	"strings"
 )
@@ -34,6 +35,10 @@ func debugPrefix() string {
 		line = 0
 	}
 	return file + ":" + strconv.Itoa(line) + " - "
+}
+
+func PrintStack() {
+	debug.PrintStack()
 }
 
 func Fatal(str string, args ...interface{}) {
