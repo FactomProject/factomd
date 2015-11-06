@@ -158,12 +158,21 @@ func (e *ABlockHeader) String() string {
  * Support Functions
  **********************************************************************/
 
-func NewAdminBlockHeader(state interfaces.IState) IABlockHeader {
+func NewAdminBlockHeader(state interfaces.IState) interfaces.IABlockHeader {
 	header := new(ABlockHeader)
 	header.DBHeight = state.GetDBHeight()
-	header.PrevLedgerKeyMR,_ = state.GetCurrentAdminBlock().LedgerKeyMR()
+	if state.GetCurrentAdminBlock() == nil {
+		header.PrevLedgerKeyMR = primitives.NewHash(constants.ZERO_HASH)
+	}else{
+		keymr, err := state.GetCurrentAdminBlock().LedgerKeyMR()
+		if err != nil {
+			panic(err.Error())
+		}
+		header.PrevLedgerKeyMR = keymr
+	}
 	header.HeaderExpansionSize = 0
 	header.HeaderExpansionArea = make([]byte,0)
 	header.MessageCount = 0
 	header.BodySize = 0
+	return header
 }

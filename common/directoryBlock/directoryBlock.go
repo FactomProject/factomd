@@ -7,7 +7,6 @@ package directoryblock
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
@@ -201,18 +200,14 @@ func (b *DirectoryBlock) AddEntry(chainID interfaces.IHash, keyMR interfaces.IHa
  * Support Functions
  ************************************************/
 
-func CreateDBlock(nextDBHeight uint32, prev interfaces.IDirectoryBlock, cap uint) (b interfaces.IDirectoryBlock, err error) {
-	if prev == nil && nextDBHeight != 0 {
-		return nil, errors.New("Previous block cannot be nil")
-	} else if prev != nil && nextDBHeight == 0 {
-		return nil, errors.New("Origin block cannot have a parent block")
-	}
+func CreateDBlock(state interfaces.IState) (b interfaces.IDirectoryBlock, err error) {
 
+	prev := state.GetCurrentDirectoryBlock()
 	b = new(DirectoryBlock)
 
 	b.SetHeader(new(DBlockHeader))
 	b.GetHeader().SetVersion(constants.VERSION_0)
-
+	
 	if prev == nil {
 		b.GetHeader().SetPrevLedgerKeyMR(primitives.NewZeroHash())
 		b.GetHeader().SetPrevKeyMR(primitives.NewZeroHash())
@@ -229,11 +224,14 @@ func CreateDBlock(nextDBHeight uint32, prev interfaces.IDirectoryBlock, cap uint
 		b.GetHeader().SetPrevKeyMR(keyMR)
 	}
 
-	adminblk := adminblock.NewAdminBlock(state)
-	
-	b.GetHeader().SetDBHeight(nextDBHeight)
-	b.SetDBEntries(make([]interfaces.IDBEntry, 0, cap))
-	b.AddEntry(primitives.NewHash(constants.ADMIN_CHAINID), nil)
+	adminblk := adminBlock.NewAdminBlock(state)
+	keymr,err := adminblk.GetKeyMR()
+	if err != nil {
+		panic(err.Error())
+	}
+	b.GetHeader().SetDBHeight(state.GetDBHeight())
+	b.SetDBEntries(make([]interfaces.IDBEntry, 0))
+	b.AddEntry(primitives.NewHash(constants.ADMIN_CHAINID), keymr)
 	b.AddEntry(primitives.NewHash(constants.EC_CHAINID), nil)
 	b.AddEntry(primitives.NewHash(constants.FACTOID_CHAINID), nil)
 

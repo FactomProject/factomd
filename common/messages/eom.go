@@ -134,7 +134,7 @@ func (m *EOM) LeaderExecute(state interfaces.IState) error {
 	olddb := state.GetCurrentDirectoryBlock()
 	state.GetFactoidState().ProcessEndOfBlock(state)
 
-	db, err := directoryblock.CreateDBlock(uint32(state.GetDBHeight()), olddb, 10)
+	db, err := directoryblock.CreateDBlock(state)
 
 	state.SetDBHeight(state.GetDBHeight() + 1)
 	if err != nil {

@@ -217,7 +217,7 @@ func (s *State) loadDatabase() {
 	}
 
 	if dblk == nil && s.NetworkNumber == constants.NETWORK_LOCAL {
-		dblk, err = directoryblock.CreateDBlock(0, nil, 4)
+		dblk, err = directoryblock.CreateDBlock(s)
 		if err != nil {
 			panic("Failed to initialize Factoids: " + err.Error())
 		}
@@ -236,7 +236,7 @@ func (s *State) loadDatabase() {
 		if err := s.FactoidState.AddTransactionBlock(fblk); err != nil {
 			panic("Failed to initialize Factoids: " + err.Error())
 		}
-		dblk, err = directoryblock.CreateDBlock(1, dblk, 4)
+		dblk, err = directoryblock.CreateDBlock(s)
 		if dblk == nil {
 			panic("dblk should never be nil")
 		}
