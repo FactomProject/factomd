@@ -2,7 +2,7 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-package directoryblock
+package directoryBlock
 
 import (
 	"bytes"
@@ -48,7 +48,7 @@ func (e *DBEntry) MarshalBinary() (data []byte, err error) {
 
 	if e.KeyMR == nil {
 		data, err = primitives.NewHash(constants.ZERO_HASH).MarshalBinary()
-	}else{
+	} else {
 		data, err = e.KeyMR.MarshalBinary()
 	}
 	if err != nil {

@@ -215,21 +215,3 @@ func (e *AdminBlock) String() string {
 	str, _ := e.JSONString()
 	return str
 }
-
-/************************************************************************
- * Support functions
- ************************************************************************/
-
-func NewAdminBlock(state interfaces.IState) interfaces.IAdminBlock {
-	ab := new(AdminBlock)
-	ab.Header = NewAdminBlockHeader(state)
-	
-	keymr,err := ab.GetKeyMR()
-	if err != nil {
-		panic(err.Error())
-	}
-	state.GetDB().Put([]byte(constants.DB_ADMIN_BLOCKS),keymr.Bytes(),ab)
-	state.GetDB().Put([]byte(constants.DB_ADMIN_BLOCKS),constants.ADMIN_CHAINID,ab)
-	
-	return ab
-}

@@ -2,13 +2,12 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-package directoryblock
+package directoryBlock
 
 import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -194,46 +193,4 @@ func (b *DirectoryBlock) AddEntry(chainID interfaces.IHash, keyMR interfaces.IHa
 	dbentry.SetChainID(chainID)
 	dbentry.SetKeyMR(keyMR)
 	b.SetDBEntries(append(b.DBEntries, dbentry))
-}
-
-/************************************************
- * Support Functions
- ************************************************/
-
-func CreateDBlock(state interfaces.IState) (b interfaces.IDirectoryBlock, err error) {
-
-	prev := state.GetCurrentDirectoryBlock()
-	b = new(DirectoryBlock)
-
-	b.SetHeader(new(DBlockHeader))
-	b.GetHeader().SetVersion(constants.VERSION_0)
-
-	if prev == nil {
-		b.GetHeader().SetPrevLedgerKeyMR(primitives.NewZeroHash())
-		b.GetHeader().SetPrevKeyMR(primitives.NewZeroHash())
-	} else {
-		prevLedgerKeyMR, err := primitives.CreateHash(prev)
-		if err != nil {
-			return nil, err
-		}
-		b.GetHeader().SetPrevLedgerKeyMR(prevLedgerKeyMR)
-		keyMR, err := prev.BuildKeyMerkleRoot()
-		if err != nil {
-			return nil, err
-		}
-		b.GetHeader().SetPrevKeyMR(keyMR)
-	}
-
-	adminblk := adminBlock.NewAdminBlock(state)
-	keymr, err := adminblk.GetKeyMR()
-	if err != nil {
-		panic(err.Error())
-	}
-	b.GetHeader().SetDBHeight(state.GetDBHeight())
-	b.SetDBEntries(make([]interfaces.IDBEntry, 0))
-	b.AddEntry(primitives.NewHash(constants.ADMIN_CHAINID), keymr)
-	b.AddEntry(primitives.NewHash(constants.EC_CHAINID), primitives.NewZeroHash())
-	b.AddEntry(primitives.NewHash(constants.FACTOID_CHAINID), primitives.NewZeroHash())
-
-	return b, err
 }

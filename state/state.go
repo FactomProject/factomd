@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/factoid/block"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -64,7 +63,6 @@ func (s *State) GetPrevFactoidKeyMR() interfaces.IHash {
 func (s *State) SetPrevFactoidKeyMR(hash interfaces.IHash) {
 	s.PrevFactoidKeyMR = hash
 }
-
 
 func (s *State) GetCurrentAdminBlock() interfaces.IAdminBlock {
 	return s.CurrentAdminBlock
@@ -230,7 +228,7 @@ func (s *State) loadDatabase() {
 	}
 
 	if dblk == nil && s.NetworkNumber == constants.NETWORK_LOCAL {
-		dblk, err = directoryblock.CreateDBlock(s)
+		dblk, err = s.CreateDBlock()
 		if err != nil {
 			panic("Failed to initialize Factoids: " + err.Error())
 		}
@@ -249,26 +247,26 @@ func (s *State) loadDatabase() {
 		if err := s.FactoidState.AddTransactionBlock(fblk); err != nil {
 			panic("Failed to initialize Factoids: " + err.Error())
 		}
-		dblk, err = directoryblock.CreateDBlock(s)
+		dblk, err = s.CreateDBlock()
 		if dblk == nil {
 			panic("dblk should never be nil")
 		}
-	}else{
+	} else {
 		fs := s.GetFactoidState()
 		fblk := new(block.FBlock)
-		_,err = s.GetDB().Get([]byte(constants.DB_FACTOID_BLOCKS), primitives.Sha(constants.FACTOID_CHAINID).Bytes(),fblk)
+		_, err = s.GetDB().Get([]byte(constants.DB_FACTOID_BLOCKS), primitives.Sha(constants.FACTOID_CHAINID).Bytes(), fblk)
 		if err != nil {
 			panic(err.Error())
 		}
-		hash := primitives.NewHash(constants.ZERO_HASH)  // Just get me some working space...
+		hash := primitives.NewHash(constants.ZERO_HASH) // Just get me some working space...
 		var h interfaces.BinaryMarshallable = hash
 		for h != nil {
 			fs.AddTransactionBlock(fblk)
-			h, err = s.GetDB().Get([]byte(constants.DB_FACTOID_FORWARD),fblk.GetKeyMR().Bytes(),hash)
+			h, err = s.GetDB().Get([]byte(constants.DB_FACTOID_FORWARD), fblk.GetKeyMR().Bytes(), hash)
 			if err != nil {
 				panic(err.Error())
 			}
-			_,err = s.GetDB().Get([]byte(constants.DB_FACTOID_BLOCKS), hash.Bytes(),fblk)
+			_, err = s.GetDB().Get([]byte(constants.DB_FACTOID_BLOCKS), hash.Bytes(), fblk)
 		}
 	}
 	s.SetDBHeight(dblk.GetHeader().GetDBHeight())

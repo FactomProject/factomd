@@ -18,3 +18,7 @@ func (db *Overlay) FetchABlockByHash(hash interfaces.IHash, dst interfaces.Datab
 func (db *Overlay) FetchAllABlocks(sample interfaces.BinaryMarshallableAndCopyable) ([]interfaces.BinaryMarshallableAndCopyable, error) {
 	return db.FetchAllBlocksFromBucket([]byte{byte(TBL_AB)}, sample)
 }
+
+func (db *Overlay) SaveABlockHead(block interfaces.DatabaseBatchable) error {
+	return db.ProcessABlockBatch(block)
+}

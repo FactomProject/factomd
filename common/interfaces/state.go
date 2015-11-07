@@ -64,6 +64,8 @@ type IState interface {
 	GetFactoidState() IFactoidState
 	GetPrevFactoidKeyMR() IHash
 	SetPrevFactoidKeyMR(IHash)
-	
+
 	GetNewHash() IHash // Return a new Hash object
+
+	CreateDBlock() (b IDirectoryBlock, err error)
 }
