@@ -20,6 +20,21 @@ type FactoidTransaction struct {
 
 var _ interfaces.IMsg = (*FactoidTransaction)(nil)
 
+func (m *FactoidTransaction) GetHash() interfaces.IHash {
+	if m.hash == nil {
+		data,err := m.Transaction.MarshalBinarySig()
+		if err != nil {
+			panic(fmt.Sprintf("Error in CommitChain.GetHash(): %s",err.Error()))
+		}
+		m.hash = primitives.Sha(data)
+	}
+	return m.hash
+}
+
+func (m *FactoidTransaction) GetTimestamp() interfaces.Timestamp {
+	return Timestamp(m.Transaction.GetMilliTimestamp())
+}
+
 func (m *FactoidTransaction) GetTransaction() interfaces.ITransaction {
 	return m.Transaction
 }

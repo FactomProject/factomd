@@ -15,15 +15,34 @@ import (
 
 //A placeholder structure for messages
 type DirectoryBlockSignature struct {
+	Timestamp interfaces.Timestamp
 	DirectoryBlockHeight  uint32
 	DirectoryBlockKeyMR   interfaces.IHash
 	ServerIdentityChainID interfaces.IHash
 
 	Signature *primitives.Signature
+	
+	hash interfaces.IHash
 }
 
 var _ interfaces.IMsg = (*DirectoryBlockSignature)(nil)
 var _ Signable = (*DirectoryBlockSignature)(nil)
+
+func (m *DirectoryBlockSignature) GetHash() interfaces.IHash {
+	if m.hash == nil {
+		data,err := m.MarshalForSignature()
+		if err != nil {
+			panic(fmt.Sprintf("Error in CommitChain.GetHash(): %s",err.Error()))
+		}
+		m.hash = primitives.Sha(data)
+	}
+	return m.hash
+}
+
+func (m *DirectoryBlockSignature) GetTimestamp() interfaces.Timestamp {
+	return m.Timestamp
+}
+
 
 func (m *DirectoryBlockSignature) Type() int {
 	return constants.DIRECTORY_BLOCK_SIGNATURE_MSG

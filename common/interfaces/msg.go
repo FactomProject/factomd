@@ -18,9 +18,12 @@ type IMsg interface {
 	// Returns a byte indicating the type of message.
 	Type() int
 
-	// Return the int value of the message, if defined
-	Int() int
+	// Returns the timestamp for a message
+	GetTimestamp() Timestamp
 
+	// Hash (does not include the signature)
+	GetHash() IHash
+	
 	// Return the []byte value of the message, if defined
 	Bytes() []byte
 

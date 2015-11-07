@@ -15,10 +15,27 @@ import (
 
 //A placeholder structure for messages
 type CommitEntryMsg struct {
+	Timestamp interfaces.Timestamp
 	CommitEntry *entryCreditBlock.CommitEntry
+	hash interfaces.IHash
 }
 
 var _ interfaces.IMsg = (*CommitEntryMsg)(nil)
+
+func (m *CommitEntryMsg) GetHash() interfaces.IHash {
+	if m.hash == nil {
+		data,err := m.CommitEntry.MarshalBinary()
+		if err != nil {
+			panic(fmt.Sprintf("Error in CommitChain.GetHash(): %s",err.Error()))
+		}
+		m.hash = primitives.Sha(data)
+	}
+	return m.hash
+}
+
+func (m *CommitEntryMsg) GetTimestamp() interfaces.Timestamp {
+	return m.Timestamp
+}
 
 func (m *CommitEntryMsg) Type() int {
 	return constants.COMMIT_ENTRY_MSG

@@ -14,9 +14,19 @@ import (
 
 //A placeholder structure for messages
 type AuditServerFault struct {
+	Timestamp interfaces.Timestamp
 }
 
 var _ interfaces.IMsg = (*AuditServerFault)(nil)
+
+func (m *AuditServerFault) GetTimestamp() interfaces.Timestamp {
+	return m.Timestamp
+}
+
+func (m *AuditServerFault) GetHash() interfaces.IHash {
+	
+	return nil
+}
 
 func (m *AuditServerFault) Type() int {
 	return constants.AUDIT_SERVER_FAULT_MSG

@@ -14,9 +14,18 @@ import (
 
 //A placeholder structure for messages
 type EOMTimeout struct {
+	Timestamp interfaces.Timestamp
 }
 
 var _ interfaces.IMsg = (*EOMTimeout)(nil)
+
+func (m *EOMTimeout) GetHash() interfaces.IHash {
+	return nil
+}
+
+func (m *EOMTimeout) GetTimestamp() interfaces.Timestamp {
+	return m.Timestamp
+}
 
 func (m *EOMTimeout) Type() int {
 	return constants.EOM_TIMEOUT_MSG

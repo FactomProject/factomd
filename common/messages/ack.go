@@ -14,14 +14,27 @@ import (
 
 //General acknowledge message
 type Ack struct {
-	Timestamp    Timestamp
+	Timestamp    interfaces.Timestamp
 	OriginalHash interfaces.IHash
 
 	Signature *primitives.Signature
+	
+	hash interfaces.IHash
 }
 
 var _ interfaces.IMsg = (*Ack)(nil)
 var _ Signable = (*Ack)(nil)
+
+func (m *Ack) GetHash() interfaces.IHash {
+	if m.hash == nil {
+		data,err := m.MarshalForSignature()
+		if err != nil {
+			panic(fmt.Sprintf("Error in Ack.GetHash(): %s",err.Error()))
+		}
+		m.hash = primitives.Sha(data)
+	}
+	return m.hash
+}
 
 func (m *Ack) Type() int {
 	return constants.ACK_MSG
@@ -35,8 +48,8 @@ func (m *Ack) Bytes() []byte {
 	return m.OriginalHash.Bytes()
 }
 
-func (m *Ack) GetTimestamp() *Timestamp {
-	return &m.Timestamp
+func (m *Ack) GetTimestamp() interfaces.Timestamp {
+	return m.Timestamp
 }
 
 func (m *Ack) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
@@ -74,7 +87,8 @@ func (m *Ack) UnmarshalBinary(data []byte) error {
 func (m *Ack) MarshalForSignature() (data []byte, err error) {
 	resp := []byte{}
 	resp = append(resp, byte(m.Type()))
-	timeByte, err := m.GetTimestamp().MarshalBinary()
+	t := m.GetTimestamp()
+	timeByte, err := t.MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
