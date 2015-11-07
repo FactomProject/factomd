@@ -7,8 +7,8 @@ package interfaces
 import ()
 
 type IDirectoryBlock interface {
-	BinaryMarshallable
 	Printable
+	DatabaseBatchable
 
 	GetHeader() IDirectoryBlockHeader
 	SetHeader(IDirectoryBlockHeader)

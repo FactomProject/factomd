@@ -207,6 +207,17 @@ func (db *Overlay) FetchHeadIndexByChainID(chainID interfaces.IHash) (interfaces
 	return block.(interfaces.IHash), nil
 }
 
+func (db *Overlay) FetchChainHeadByChainID(bucket []byte, chainID interfaces.IHash, dst interfaces.DatabaseBatchable) (interfaces.DatabaseBatchable, error) {
+	blockHash, err := db.FetchHeadIndexByChainID(chainID)
+	if err != nil {
+		return nil, err
+	}
+	if blockHash == nil {
+		return nil, nil
+	}
+	return db.FetchBlock(bucket, blockHash, dst)
+}
+
 func (db *Overlay) FetchBlockIndexesInHeightRange(numberBucket []byte, startHeight, endHeight int64) ([]interfaces.IHash, error) {
 	//TODO: deprecate AllShas
 	var endidx int64

@@ -5,9 +5,9 @@
 package databaseOverlay
 
 import (
-	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 // ProcessDBlockBatche inserts the DBlock and update all it's dbentries in DB
@@ -69,17 +69,19 @@ func (db *Overlay) FetchAllDBlocks(sample interfaces.BinaryMarshallableAndCopyab
 	return db.FetchAllBlocksFromBucket([]byte{byte(TBL_DB)}, sample)
 }
 
+func (db *Overlay) SaveDirectoryBlockHead(dblock interfaces.DatabaseBatchable) error {
+	return db.ProcessDBlockBatch(dblock)
+}
+
 //TODO: figure out what we're fetching
 func (db *Overlay) FetchDirectoryBlockHead() (interfaces.IDirectoryBlock, error) {
-	var dblk interfaces.IDirectoryBlock = new(directoryblock.DirectoryBlock)
-	blk, err := db.DB.Get([]byte(constants.DB_DIRECTORY_BLOCKS), constants.D_CHAINID, dblk)
+	dblk := new(directoryblock.DirectoryBlock)
+	block, err := db.FetchChainHeadByChainID([]byte{byte(TBL_DB)}, primitives.NewHash(dblk.GetChainID()), dblk)
 	if err != nil {
 		return nil, err
 	}
-	if blk == nil {
-		dblk = nil
-	} else {
-		dblk = blk.(*directoryblock.DirectoryBlock)
+	if block == nil {
+		return nil, nil
 	}
-	return dblk, nil
+	return block.(interfaces.IDirectoryBlock), nil
 }

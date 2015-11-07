@@ -12,6 +12,7 @@ import (
 	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/log"
 )
 
@@ -153,11 +154,8 @@ func (m *EOM) LeaderExecute(state interfaces.IState) error {
 			return err
 		}
 		olddb.GetHeader().SetBodyMR(bodyMR)
-		err = state.GetDB().Put([]byte(constants.DB_DIRECTORY_BLOCKS), olddb.GetKeyMR().Bytes(), olddb)
-		if err != nil {
-			return err
-		}
-		err = state.GetDB().Put([]byte(constants.DB_DIRECTORY_BLOCKS), constants.D_CHAINID, olddb)
+		database := databaseOverlay.NewOverlay(state.GetDB())
+		err = database.SaveDirectoryBlockHead(olddb)
 		if err != nil {
 			return err
 		}
