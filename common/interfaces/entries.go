@@ -6,6 +6,11 @@ package interfaces
 
 import ()
 
+type IEBEntry interface {
+	GetHash() IHash
+	ExternalIDs() [][]byte
+}
+
 type IEntry interface {
 	GetChainID() IHash
 	GetKeyMR() (IHash, error)

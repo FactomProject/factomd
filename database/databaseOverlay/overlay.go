@@ -6,8 +6,8 @@ package databaseOverlay
 
 import (
 	"encoding/binary"
-	"github.com/FactomProject/factomd/btcd/wire"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
@@ -222,7 +222,7 @@ func (db *Overlay) FetchBlockIndexesInHeightRange(numberBucket []byte, startHeig
 	//TODO: deprecate AllShas
 	var endidx int64
 	if endHeight == interfaces.AllShas {
-		endidx = startHeight + wire.MaxBlocksPerMsg
+		endidx = startHeight + constants.MaxBlocksPerMsg
 	} else {
 		endidx = endHeight
 	}

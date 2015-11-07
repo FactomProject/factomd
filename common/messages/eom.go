@@ -9,9 +9,9 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/log"
 )
 
@@ -134,18 +134,11 @@ func (m *EOM) LeaderExecute(state interfaces.IState) error {
 	olddb := state.GetCurrentDirectoryBlock()
 	state.GetFactoidState().ProcessEndOfBlock(state)
 
-	db, err := state.CreateDBlock()
+	db := new(directoryBlock.DirectoryBlock)
 
 	state.SetDBHeight(state.GetDBHeight() + 1)
-	if err != nil {
-		panic(err.Error())
-	}
+	
 	state.SetCurrentDirectoryBlock(db)
-	/*
-		db.AddEntry(primitives.NewHash(constants.ADMIN_CHAINID), primitives.NewZeroHash())   // AdminBlock
-		db.AddEntry(primitives.NewHash(constants.EC_CHAINID), primitives.NewZeroHash())      // EntryCredit Block
-		db.AddEntry(primitives.NewHash(constants.FACTOID_CHAINID), primitives.NewZeroHash()) // Factoid Block
-	*/
 
 	if olddb != nil {
 		bodyMR, err := olddb.BuildBodyMR()
@@ -153,11 +146,14 @@ func (m *EOM) LeaderExecute(state interfaces.IState) error {
 			return err
 		}
 		olddb.GetHeader().SetBodyMR(bodyMR)
-		database := databaseOverlay.NewOverlay(state.GetDB())
-		err = database.SaveDirectoryBlockHead(olddb)
-		if err != nil {
+		keymr := olddb.GetKeyMR()
+		if err = state.GetDB().Put([]byte(constants.DB_DIRECTORY_BLOCKS), keymr.Bytes(), olddb); err != nil {
 			return err
 		}
+		if err = state.GetDB().Put([]byte(constants.DB_CHAIN_HEADS), constants.D_CHAINID, keymr); err != nil {
+			return err
+		}		
+		
 		log.Printfln("%v", olddb)
 	} else {
 		log.Println("No old db")

@@ -53,28 +53,6 @@ func (c *EBlock) MarshalledSize() uint64 {
 	return uint64(EBHeaderSize)
 }
 
-// MakeEBlock creates a new Entry Block belonging to the provieded Entry Chain.
-// Its PrevKeyMR and PrevLedgerKeyMR are populated by the provided previous
-// Entry Block. If The previous Entry Block is nil (the new Entry Block is
-// first in the Chain) the relevent Entry Block Header fields will contain
-// zeroed Hashes.
-func MakeEBlock(echain *EChain, prev *EBlock) (*EBlock, error) {
-	e := NewEBlock()
-	e.Header.ChainID = echain.ChainID
-	if prev != nil {
-		var err error
-		e.Header.PrevKeyMR, err = prev.KeyMR()
-		if err != nil {
-			return nil, err
-		}
-		e.Header.PrevLedgerKeyMR, err = prev.Hash()
-		if err != nil {
-			return nil, err
-		}
-	}
-	e.Header.EBSequence = echain.NextBlockHeight
-	return e, nil
-}
 
 // NewEBlock returns a blank initialized Entry Block with all of its fields
 // zeroed.
@@ -88,7 +66,7 @@ func NewEBlock() *EBlock {
 // AddEBEntry creates a new Entry Block Entry from the provided Factom Entry
 // and adds it to the Entry Block Body.
 func (e *EBlock) AddEBEntry(entry interfaces.IEBEntry) error {
-	e.Body.EBEntries = append(e.Body.EBEntries, entry.Hash())
+	e.Body.EBEntries = append(e.Body.EBEntries, entry.GetHash())
 	return nil
 }
 

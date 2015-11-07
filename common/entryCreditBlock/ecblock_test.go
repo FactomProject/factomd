@@ -14,7 +14,7 @@ import (
 var _ = fmt.Sprint("testing")
 
 func TestECBlockMarshal(t *testing.T) {
-	ecb1 := NewECBlock()
+	ecb1 := NewECBlock().(*ECBlock)
 
 	// build a CommitChain for testing
 	cc := NewCommitChain()

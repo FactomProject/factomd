@@ -6,13 +6,7 @@ package interfaces
 
 import ()
 
-type IEBEntry interface {
+type IEntryCreditBlock interface {
 	Printable
 	BinaryMarshallable
-
-	IsValid() bool
-	Hash() IHash
-	GetChainID() IHash
-	ExternalIDs() [][]byte
-	GetContent() []byte
 }

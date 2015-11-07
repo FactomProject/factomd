@@ -69,7 +69,7 @@ func (e *Entry) IsValid() bool {
 	return true
 }
 
-func (e *Entry) Hash() interfaces.IHash {
+func (e *Entry) GetHash() interfaces.IHash {
 	h := primitives.NewZeroHash()
 	entry, err := e.MarshalBinary()
 	if err != nil {

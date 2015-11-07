@@ -76,7 +76,8 @@ func TestCommitChainMarshalUnmarshalEmpty(t *testing.T) {
 		t.Error(err)
 	}
 
-	if !cc2.IsValid() {
-		t.Errorf("signature did not match after unmarshalbinary")
-	}
+	// Can't be valid if it isn't signed.
+	//if !cc2.IsValid() {
+	//	t.Errorf("signature did not match after unmarshalbinary")
+	//}
 }

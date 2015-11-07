@@ -103,7 +103,7 @@ func TestEntryMisc(t *testing.T) {
 	if e.IsValid() == false {
 		t.Fail()
 	}
-	if e.Hash().String() != "24674e6bc3094eb773297de955ee095a05830e431da13a37382dcdc89d73c7d7" {
+	if e.GetHash().String() != "24674e6bc3094eb773297de955ee095a05830e431da13a37382dcdc89d73c7d7" {
 		t.Fail()
 	}
 	if e.GetChainID().String() != "df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604" {
