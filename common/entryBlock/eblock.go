@@ -53,7 +53,6 @@ func (c *EBlock) MarshalledSize() uint64 {
 	return uint64(EBHeaderSize)
 }
 
-
 // NewEBlock returns a blank initialized Entry Block with all of its fields
 // zeroed.
 func NewEBlock() *EBlock {

@@ -16,17 +16,17 @@ import (
 //A placeholder structure for messages
 type RevealEntry struct {
 	Timestamp interfaces.Timestamp
-	Entry *entryBlock.Entry
-	hash interfaces.IHash
+	Entry     *entryBlock.Entry
+	hash      interfaces.IHash
 }
 
 var _ interfaces.IMsg = (*RevealEntry)(nil)
 
 func (m *RevealEntry) GetHash() interfaces.IHash {
 	if m.hash == nil {
-		data,err := m.Entry.MarshalBinary()
+		data, err := m.Entry.MarshalBinary()
 		if err != nil {
-			panic(fmt.Sprintf("Error in CommitChain.GetHash(): %s",err.Error()))
+			panic(fmt.Sprintf("Error in CommitChain.GetHash(): %s", err.Error()))
 		}
 		m.hash = primitives.Sha(data)
 	}
@@ -78,7 +78,6 @@ func (m *RevealEntry) MarshalBinary() (data []byte, err error) {
 	data = append([]byte{byte(m.Type())}, data...)
 	return data, nil
 }
-
 
 func (m *RevealEntry) String() string {
 	return ""

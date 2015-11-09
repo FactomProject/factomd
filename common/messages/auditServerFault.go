@@ -24,7 +24,7 @@ func (m *AuditServerFault) GetTimestamp() interfaces.Timestamp {
 }
 
 func (m *AuditServerFault) GetHash() interfaces.IHash {
-	
+
 	return nil
 }
 

@@ -18,7 +18,7 @@ type Ack struct {
 	OriginalHash interfaces.IHash
 
 	Signature *primitives.Signature
-	
+
 	hash interfaces.IHash
 }
 
@@ -27,9 +27,9 @@ var _ Signable = (*Ack)(nil)
 
 func (m *Ack) GetHash() interfaces.IHash {
 	if m.hash == nil {
-		data,err := m.MarshalForSignature()
+		data, err := m.MarshalForSignature()
 		if err != nil {
-			panic(fmt.Sprintf("Error in Ack.GetHash(): %s",err.Error()))
+			panic(fmt.Sprintf("Error in Ack.GetHash(): %s", err.Error()))
 		}
 		m.hash = primitives.Sha(data)
 	}

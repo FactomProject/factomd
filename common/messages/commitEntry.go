@@ -15,18 +15,18 @@ import (
 
 //A placeholder structure for messages
 type CommitEntryMsg struct {
-	Timestamp interfaces.Timestamp
+	Timestamp   interfaces.Timestamp
 	CommitEntry *entryCreditBlock.CommitEntry
-	hash interfaces.IHash
+	hash        interfaces.IHash
 }
 
 var _ interfaces.IMsg = (*CommitEntryMsg)(nil)
 
 func (m *CommitEntryMsg) GetHash() interfaces.IHash {
 	if m.hash == nil {
-		data,err := m.CommitEntry.MarshalBinary()
+		data, err := m.CommitEntry.MarshalBinary()
 		if err != nil {
-			panic(fmt.Sprintf("Error in CommitChain.GetHash(): %s",err.Error()))
+			panic(fmt.Sprintf("Error in CommitChain.GetHash(): %s", err.Error()))
 		}
 		m.hash = primitives.Sha(data)
 	}

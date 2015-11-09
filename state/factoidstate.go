@@ -144,14 +144,14 @@ func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
 	hash2 = fs.CurrentBlock.GetLedgerKeyMR()
 
 	state.GetCurrentDirectoryBlock().GetDBEntries()[2].SetKeyMR(hash)
-	
+
 	state.GetDB().Put([]byte(constants.DB_FACTOID_BLOCKS), hash.Bytes(), fs.CurrentBlock)
 	state.GetDB().Put([]byte(constants.DB_FACTOID_BLOCKS), constants.FACTOID_CHAINID, fs.CurrentBlock)
 	if prevKeyMR := state.GetPrevFactoidKeyMR(); prevKeyMR != nil {
 		state.GetDB().Put([]byte(constants.DB_FACTOID_FORWARD), prevKeyMR.Bytes(), hash)
 	}
 	state.SetPrevFactoidKeyMR(hash)
-	
+
 	fs.CurrentBlock = block.NewFBlock(fs.GetFactoshisPerEC(), state.GetDBHeight()+1)
 
 	t := coinbase.GetCoinbase(primitives.GetTimeMilli())

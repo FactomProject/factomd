@@ -15,16 +15,16 @@ import (
 //A placeholder structure for messages
 type InvalidDirectoryBlock struct {
 	Timestamp interfaces.Timestamp
-	hash interfaces.IHash
+	hash      interfaces.IHash
 }
 
 var _ interfaces.IMsg = (*InvalidDirectoryBlock)(nil)
 
 func (m *InvalidDirectoryBlock) GetHash() interfaces.IHash {
 	if m.hash == nil {
-		data,err := m.MarshalForSignature()
+		data, err := m.MarshalForSignature()
 		if err != nil {
-			panic(fmt.Sprintf("Error in CommitChain.GetHash(): %s",err.Error()))
+			panic(fmt.Sprintf("Error in CommitChain.GetHash(): %s", err.Error()))
 		}
 		m.hash = primitives.Sha(data)
 	}

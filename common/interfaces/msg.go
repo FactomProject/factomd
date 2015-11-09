@@ -15,7 +15,7 @@ import ()
 type IMsg interface {
 	Printable
 	BinaryMarshallable
-	
+
 	// Returns a byte indicating the type of message.
 	Type() int
 
@@ -24,7 +24,7 @@ type IMsg interface {
 
 	// Hash (does not include the signature)
 	GetHash() IHash
-	
+
 	// Return the []byte value of the message, if defined
 	Bytes() []byte
 

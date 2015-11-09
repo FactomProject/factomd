@@ -15,16 +15,16 @@ import (
 //A placeholder structure for messages
 type RequestBlock struct {
 	Timestamp interfaces.Timestamp
-	hash interfaces.IHash
+	hash      interfaces.IHash
 }
 
 var _ interfaces.IMsg = (*RequestBlock)(nil)
 
 func (m *RequestBlock) GetHash() interfaces.IHash {
 	if m.hash == nil {
-		data,err := m.MarshalForSignature()
+		data, err := m.MarshalForSignature()
 		if err != nil {
-			panic(fmt.Sprintf("Error in CommitChain.GetHash(): %s",err.Error()))
+			panic(fmt.Sprintf("Error in CommitChain.GetHash(): %s", err.Error()))
 		}
 		m.hash = primitives.Sha(data)
 	}

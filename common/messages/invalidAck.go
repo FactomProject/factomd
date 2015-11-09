@@ -15,16 +15,16 @@ import (
 //A placeholder structure for messages
 type InvalidAck struct {
 	Timestamp interfaces.Timestamp
-	hash interfaces.IHash
+	hash      interfaces.IHash
 }
 
 var _ interfaces.IMsg = (*InvalidAck)(nil)
 
 func (m *InvalidAck) GetHash() interfaces.IHash {
 	if m.hash == nil {
-		data,err := m.MarshalForSignature()
+		data, err := m.MarshalForSignature()
 		if err != nil {
-			panic(fmt.Sprintf("Error in CommitChain.GetHash(): %s",err.Error()))
+			panic(fmt.Sprintf("Error in CommitChain.GetHash(): %s", err.Error()))
 		}
 		m.hash = primitives.Sha(data)
 	}
@@ -54,9 +54,8 @@ func (m *InvalidAck) MarshalForSignature() (data []byte, err error) {
 		}
 	}()
 
-	return nil,nil
+	return nil, nil
 }
-
 
 func (m *InvalidAck) UnmarshalBinaryData(data []byte) (newdata []byte, err error) {
 	defer func() {

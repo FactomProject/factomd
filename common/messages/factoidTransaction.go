@@ -16,16 +16,16 @@ import (
 //A placeholder structure for messages
 type FactoidTransaction struct {
 	Transaction interfaces.ITransaction
-	hash interfaces.IHash
+	hash        interfaces.IHash
 }
 
 var _ interfaces.IMsg = (*FactoidTransaction)(nil)
 
 func (m *FactoidTransaction) GetHash() interfaces.IHash {
 	if m.hash == nil {
-		data,err := m.Transaction.MarshalBinarySig()
+		data, err := m.Transaction.MarshalBinarySig()
 		if err != nil {
-			panic(fmt.Sprintf("Error in CommitChain.GetHash(): %s",err.Error()))
+			panic(fmt.Sprintf("Error in CommitChain.GetHash(): %s", err.Error()))
 		}
 		m.hash = primitives.Sha(data)
 	}

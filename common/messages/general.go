@@ -63,7 +63,7 @@ func UnmarshalMessage(data []byte) (interfaces.IMsg, error) {
 		return nil, err
 	}
 	return msg, nil
-	
+
 }
 
 type Signable interface {

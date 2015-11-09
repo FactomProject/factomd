@@ -53,8 +53,8 @@ type State struct {
 	FactoidState      interfaces.IFactoidState
 	PrevFactoidKeyMR  interfaces.IHash
 	CurrentAdminBlock interfaces.IAdminBlock
-	
-	EntryCreditBlock  interfaces.IEntryCreditBlock
+
+	EntryCreditBlock interfaces.IEntryCreditBlock
 }
 
 var _ interfaces.IState = (*State)(nil)
@@ -66,7 +66,6 @@ func (s *State) GetEntryCreditBlock() interfaces.IEntryCreditBlock {
 func (s *State) SetEntryCreditBlock(ecblk interfaces.IEntryCreditBlock) {
 	s.EntryCreditBlock = ecblk
 }
-
 
 func (s *State) GetPrevFactoidKeyMR() interfaces.IHash {
 	return s.PrevFactoidKeyMR
@@ -259,9 +258,9 @@ func (s *State) loadDatabase() {
 		if err := s.FactoidState.AddTransactionBlock(fblk); err != nil {
 			panic("Failed to initialize Factoids: " + err.Error())
 		}
-		
+
 		s.EntryCreditBlock = entryCreditBlock.NewECBlock(s)
-		
+
 		dblk, err = s.CreateDBlock()
 		if dblk == nil {
 			panic("dblk should never be nil")

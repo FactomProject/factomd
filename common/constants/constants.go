@@ -88,12 +88,12 @@ const (
 
 	//NETWORK constants
 	//==================
-	VERSION_0     = byte(0)
-	NETWORK_ID_DB = uint32(4203931041) //0xFA92E5A1
-	NETWORK_ID_EB = uint32(4203931042) //0xFA92E5A2
-	NETWORK_ID_CB = uint32(4203931043) //0xFA92E5A3
+	VERSION_0       = byte(0)
+	NETWORK_ID_DB   = uint32(4203931041) //0xFA92E5A1
+	NETWORK_ID_EB   = uint32(4203931042) //0xFA92E5A2
+	NETWORK_ID_CB   = uint32(4203931043) //0xFA92E5A3
 	MaxBlocksPerMsg = 500
-	
+
 	// NETWORKS:
 )
 const (
@@ -114,11 +114,11 @@ const (
 	LIGHT_NODE  = "LIGHT"
 )
 
-const(
-	CLIENT_MODE int = iota // 0
-	SERVER_MODE 		   // 1 	
-	AUDIT_SERVER_MODE	   // 2
-	
+const (
+	CLIENT_MODE       int = iota // 0
+	SERVER_MODE                  // 1
+	AUDIT_SERVER_MODE            // 2
+
 	//Server public key for milestone 1
 	SERVER_PUB_KEY = "0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a"
 	//Genesis directory block timestamp in RFC3339 format
