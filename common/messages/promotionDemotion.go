@@ -14,9 +14,26 @@ import (
 
 //A placeholder structure for messages
 type PromotionDemotion struct {
+	Timestamp interfaces.Timestamp
+	hash interfaces.IHash
 }
 
 var _ interfaces.IMsg = (*PromotionDemotion)(nil)
+
+func (m *PromotionDemotion) GetHash() interfaces.IHash {
+	if m.hash == nil {
+		data,err := m.MarshalForSignature()
+		if err != nil {
+			panic(fmt.Sprintf("Error in CommitChain.GetHash(): %s",err.Error()))
+		}
+		m.hash = primitives.Sha(data)
+	}
+	return m.hash
+}
+
+func (m *PromotionDemotion) GetTimestamp() interfaces.Timestamp {
+	return m.Timestamp
+}
 
 func (m *PromotionDemotion) Type() int {
 	return constants.PROMOTION_DEMOTION_MSG
@@ -43,6 +60,10 @@ func (m *PromotionDemotion) UnmarshalBinaryData(data []byte) (newdata []byte, er
 func (m *PromotionDemotion) UnmarshalBinary(data []byte) error {
 	_, err := m.UnmarshalBinaryData(data)
 	return err
+}
+
+func (m *PromotionDemotion) MarshalForSignature() (data []byte, err error) {
+	return nil, nil
 }
 
 func (m *PromotionDemotion) MarshalBinary() (data []byte, err error) {

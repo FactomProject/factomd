@@ -13,9 +13,26 @@ import (
 
 //A placeholder structure for messages
 type Message struct {
+	Timestamp interfaces.Timestamp
+	hash interfaces.IHash
 }
 
 var _ interfaces.IMsg = (*Message)(nil)
+
+func (m *Message) GetHash() interfaces.IHash {
+	if m.hash == nil {
+		data,err := m.MarshalForSignature()
+		if err != nil {
+			panic(fmt.Sprintf("Error in CommitChain.GetHash(): %s",err.Error()))
+		}
+		m.hash = primitives.Sha(data)
+	}
+	return m.hash
+}
+
+func (m *Message) GetTimestamp() interfaces.Timestamp {
+	return m.Timestamp
+}
 
 func (m *Message) Type() int {
 	return -1
@@ -45,6 +62,10 @@ func (m *Message) UnmarshalBinary(data []byte) error {
 }
 
 func (m *Message) MarshalBinary() (data []byte, err error) {
+	return nil, nil
+}
+
+func (m *Message) MarshalForSignature() (data []byte, err error) {
 	return nil, nil
 }
 

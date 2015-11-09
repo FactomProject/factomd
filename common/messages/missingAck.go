@@ -14,9 +14,26 @@ import (
 
 //A placeholder structure for messages
 type MissingAck struct {
+	Timestamp interfaces.Timestamp
+	hash interfaces.IHash
 }
 
 var _ interfaces.IMsg = (*MissingAck)(nil)
+
+func (m *MissingAck) GetHash() interfaces.IHash {
+	if m.hash == nil {
+		data,err := m.MarshalForSignature()
+		if err != nil {
+			panic(fmt.Sprintf("Error in CommitChain.GetHash(): %s",err.Error()))
+		}
+		m.hash = primitives.Sha(data)
+	}
+	return m.hash
+}
+
+func (m *MissingAck) GetTimestamp() interfaces.Timestamp {
+	return m.Timestamp
+}
 
 func (m *MissingAck) Type() int {
 	return constants.MISSING_ACK_MSG
@@ -46,6 +63,10 @@ func (m *MissingAck) UnmarshalBinary(data []byte) error {
 }
 
 func (m *MissingAck) MarshalBinary() (data []byte, err error) {
+	return nil, nil
+}
+
+func (m *MissingAck) MarshalForSignature() (data []byte, err error) {
 	return nil, nil
 }
 

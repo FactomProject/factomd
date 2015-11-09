@@ -14,9 +14,26 @@ import (
 
 //A placeholder structure for messages
 type RequestBlock struct {
+	Timestamp interfaces.Timestamp
+	hash interfaces.IHash
 }
 
 var _ interfaces.IMsg = (*RequestBlock)(nil)
+
+func (m *RequestBlock) GetHash() interfaces.IHash {
+	if m.hash == nil {
+		data,err := m.MarshalForSignature()
+		if err != nil {
+			panic(fmt.Sprintf("Error in CommitChain.GetHash(): %s",err.Error()))
+		}
+		m.hash = primitives.Sha(data)
+	}
+	return m.hash
+}
+
+func (m *RequestBlock) GetTimestamp() interfaces.Timestamp {
+	return m.Timestamp
+}
 
 func (m *RequestBlock) Type() int {
 	return constants.REQUEST_BLOCK_MSG
@@ -43,6 +60,10 @@ func (m *RequestBlock) UnmarshalBinaryData(data []byte) (newdata []byte, err err
 func (m *RequestBlock) UnmarshalBinary(data []byte) error {
 	_, err := m.UnmarshalBinaryData(data)
 	return err
+}
+
+func (m *RequestBlock) MarshalForSignature() (data []byte, err error) {
+	return nil, nil
 }
 
 func (m *RequestBlock) MarshalBinary() (data []byte, err error) {

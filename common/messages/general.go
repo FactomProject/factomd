@@ -24,37 +24,37 @@ func UnmarshalMessage(data []byte) (interfaces.IMsg, error) {
 	var msg interfaces.IMsg
 	switch messageType {
 	case constants.EOM_MSG:
-		msg := new(EOM)
+		msg = new(EOM)
 	case constants.ACK_MSG:
-		msg := new(Ack)
+		msg = new(Ack)
 	case constants.AUDIT_SERVER_FAULT_MSG:
-		msg := new(AuditServerFault)
+		msg = new(AuditServerFault)
 	case constants.COMMIT_CHAIN_MSG:
-		msg := new(CommitChainMsg)
+		msg = new(CommitChainMsg)
 	case constants.COMMIT_ENTRY_MSG:
-		msg := new(CommitEntryMsg)
+		msg = new(CommitEntryMsg)
 	case constants.DIRECTORY_BLOCK_SIGNATURE_MSG:
-		msg := new(DirectoryBlockSignature)
+		msg = new(DirectoryBlockSignature)
 	case constants.EOM_TIMEOUT_MSG:
-		msg := new(EOMTimeout)
+		msg = new(EOMTimeout)
 	case constants.FACTOID_TRANSACTION_MSG:
-		msg := new(FactoidTransaction)
+		msg = new(FactoidTransaction)
 	case constants.HEARTBEAT_MSG:
-		msg := new(Heartbeat)
+		msg = new(Heartbeat)
 	case constants.INVALID_ACK_MSG:
-		msg := new(InvalidAck)
+		msg = new(InvalidAck)
 	case constants.INVALID_DIRECTORY_BLOCK_MSG:
-		msg := new(InvalidDirectoryBlock)
+		msg = new(InvalidDirectoryBlock)
 	case constants.MISSING_ACK_MSG:
-		msg := new(MissingAck)
+		msg = new(MissingAck)
 	case constants.PROMOTION_DEMOTION_MSG:
-		msg := new(PromotionDemotion)
+		msg = new(PromotionDemotion)
 	case constants.REVEAL_ENTRY_MSG:
-		msg := new(RevealEntry)
+		msg = new(RevealEntry)
 	case constants.REQUEST_BLOCK_MSG:
-		msg := new(RequestBlock)
+		msg = new(RequestBlock)
 	case constants.SIGNATURE_TIMEOUT_MSG:
-		msg := new(SignatureTimeout)
+		msg = new(SignatureTimeout)
 	default:
 		return nil, fmt.Errorf("Unknown message type")
 	}

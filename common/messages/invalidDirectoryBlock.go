@@ -14,9 +14,26 @@ import (
 
 //A placeholder structure for messages
 type InvalidDirectoryBlock struct {
+	Timestamp interfaces.Timestamp
+	hash interfaces.IHash
 }
 
 var _ interfaces.IMsg = (*InvalidDirectoryBlock)(nil)
+
+func (m *InvalidDirectoryBlock) GetHash() interfaces.IHash {
+	if m.hash == nil {
+		data,err := m.MarshalForSignature()
+		if err != nil {
+			panic(fmt.Sprintf("Error in CommitChain.GetHash(): %s",err.Error()))
+		}
+		m.hash = primitives.Sha(data)
+	}
+	return m.hash
+}
+
+func (m *InvalidDirectoryBlock) GetTimestamp() interfaces.Timestamp {
+	return m.Timestamp
+}
 
 func (m *InvalidDirectoryBlock) Type() int {
 	return constants.INVALID_DIRECTORY_BLOCK_MSG
@@ -46,6 +63,10 @@ func (m *InvalidDirectoryBlock) UnmarshalBinary(data []byte) error {
 }
 
 func (m *InvalidDirectoryBlock) MarshalBinary() (data []byte, err error) {
+	return nil, nil
+}
+
+func (m *InvalidDirectoryBlock) MarshalForSignature() (data []byte, err error) {
 	return nil, nil
 }
 

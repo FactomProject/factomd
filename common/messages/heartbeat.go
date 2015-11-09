@@ -14,14 +14,32 @@ import (
 
 //A placeholder structure for messages
 type Heartbeat struct {
+	Timestamp       interfaces.Timestamp
 	DBlockHash      interfaces.IHash //Hash of last Directory Block
 	IdentityChainID interfaces.IHash //Identity Chain ID
 
 	Signature *primitives.Signature
+	
+	hash interfaces.IHash
 }
 
 var _ interfaces.IMsg = (*Heartbeat)(nil)
 var _ Signable = (*Heartbeat)(nil)
+
+func (m *Heartbeat) GetHash() interfaces.IHash {
+	if m.hash == nil {
+		data,err := m.MarshalForSignature()
+		if err != nil {
+			panic(fmt.Sprintf("Error in CommitChain.GetHash(): %s",err.Error()))
+		}
+		m.hash = primitives.Sha(data)
+	}
+	return m.hash
+}
+
+func (m *Heartbeat) GetTimestamp() interfaces.Timestamp {
+	return m.Timestamp
+}
 
 func (m *Heartbeat) Type() int {
 	return constants.HEARTBEAT_MSG
@@ -35,13 +53,23 @@ func (m *Heartbeat) Bytes() []byte {
 	return nil
 }
 
+
 func (m *Heartbeat) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
 	}()
+	
+	data = data[1:] // skip type
+	
+	newData, err = m.Timestamp.UnmarshalBinaryData(data)
+	if err != nil {
+		return nil, err
+	}
+
 	hash := new(primitives.Hash)
+	
 	newData, err = hash.UnmarshalBinaryData(data)
 	if err != nil {
 		return nil, err
@@ -76,13 +104,23 @@ func (m *Heartbeat) MarshalForSignature() (data []byte, err error) {
 	if m.DBlockHash == nil || m.IdentityChainID == nil {
 		return nil, fmt.Errorf("Message is incomplete")
 	}
+	
 	answer := []byte{}
+	
 	answer = append(answer, byte(m.Type()))
+
+	ts,err := m.Timestamp.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	answer = append(answer, ts...)
+	
 	hash, err := m.DBlockHash.MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
 	answer = append(answer, hash...)
+	
 	hash2, err := m.IdentityChainID.MarshalBinary()
 	if err != nil {
 		return nil, err

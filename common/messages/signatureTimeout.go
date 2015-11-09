@@ -14,9 +14,26 @@ import (
 
 //A placeholder structure for messages
 type SignatureTimeout struct {
+	Timestamp interfaces.Timestamp
+	hash interfaces.IHash
 }
 
 var _ interfaces.IMsg = (*SignatureTimeout)(nil)
+
+func (m *SignatureTimeout) GetHash() interfaces.IHash {
+	if m.hash == nil {
+		data,err := m.MarshalForSignature()
+		if err != nil {
+			panic(fmt.Sprintf("Error in CommitChain.GetHash(): %s",err.Error()))
+		}
+		m.hash = primitives.Sha(data)
+	}
+	return m.hash
+}
+
+func (m *SignatureTimeout) GetTimestamp() interfaces.Timestamp {
+	return m.Timestamp
+}
 
 func (m *SignatureTimeout) Type() int {
 	return constants.SIGNATURE_TIMEOUT_MSG
@@ -43,6 +60,10 @@ func (m *SignatureTimeout) UnmarshalBinaryData(data []byte) (newdata []byte, err
 func (m *SignatureTimeout) UnmarshalBinary(data []byte) error {
 	_, err := m.UnmarshalBinaryData(data)
 	return err
+}
+
+func (m *SignatureTimeout) MarshalForSignature() (data []byte, err error) {
+	return nil, nil
 }
 
 func (m *SignatureTimeout) MarshalBinary() (data []byte, err error) {
