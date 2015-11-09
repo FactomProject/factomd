@@ -16,6 +16,7 @@ import (
 //A placeholder structure for messages
 type FactoidTransaction struct {
 	Transaction interfaces.ITransaction
+	hash interfaces.IHash
 }
 
 var _ interfaces.IMsg = (*FactoidTransaction)(nil)
@@ -32,7 +33,7 @@ func (m *FactoidTransaction) GetHash() interfaces.IHash {
 }
 
 func (m *FactoidTransaction) GetTimestamp() interfaces.Timestamp {
-	return Timestamp(m.Transaction.GetMilliTimestamp())
+	return interfaces.Timestamp(m.Transaction.GetMilliTimestamp())
 }
 
 func (m *FactoidTransaction) GetTransaction() interfaces.ITransaction {

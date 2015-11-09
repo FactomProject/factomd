@@ -7,7 +7,6 @@ package interfaces
 import ()
 
 type IConfirmation interface {
-	BinaryMarshallable
 	IMsg
 
 	DBHeight() int      // Directory Block Height

@@ -14,7 +14,8 @@ import ()
 
 type IMsg interface {
 	Printable
-
+	BinaryMarshallable
+	
 	// Returns a byte indicating the type of message.
 	Type() int
 

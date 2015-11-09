@@ -17,15 +17,33 @@ import (
 
 type EOM struct {
 	Minute byte
-
+	
+	Timestamp interfaces.Timestamp
+	
 	DirectoryBlockHeight uint32
 	IdentityChainID      interfaces.IHash
 
 	Signature *primitives.Signature
+	hash interfaces.IHash
 }
 
 //var _ interfaces.IConfirmation = (*EOM)(nil)
 var _ Signable = (*EOM)(nil)
+
+func (m *EOM) GetHash() interfaces.IHash {
+	if m.hash == nil {
+		data,err := m.MarshalForSignature()
+		if err != nil {
+			panic(fmt.Sprintf("Error in EOM.GetHash(): %s",err.Error()))
+		}
+		m.hash = primitives.Sha(data)
+	}
+	return m.hash
+}
+
+func (m *EOM) GetTimestamp() interfaces.Timestamp {
+	return m.Timestamp
+}
 
 func (m *EOM) Int() int {
 	return int(m.Minute)
@@ -42,7 +60,14 @@ func (m *EOM) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
 	}()
+	
 	newData = data[1:]
+	
+	newData, err = m.Timestamp.UnmarshalBinaryData(data)
+	if err != nil {
+		return nil, err
+	}
+	
 	m.Minute, newData = newData[0], newData[1:]
 
 	if m.Minute < 0 || m.Minute >= 10 {
@@ -78,6 +103,11 @@ func (m *EOM) UnmarshalBinary(data []byte) error {
 func (m *EOM) MarshalForSignature() (data []byte, err error) {
 	var buf bytes.Buffer
 	buf.Write([]byte{byte(m.Type())})
+	if d,err := m.Timestamp.MarshalBinary(); err != nil {
+		return nil, err
+	}else{
+		buf.Write(d)
+	}
 	binary.Write(&buf, binary.BigEndian, m.Minute)
 	binary.Write(&buf, binary.BigEndian, m.DirectoryBlockHeight)
 	hash, err := m.IdentityChainID.MarshalBinary()
