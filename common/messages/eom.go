@@ -213,7 +213,7 @@ func (m *EOM) FollowerExecute(state interfaces.IState) error {
 
 	fmt.Println(state.GetServerState(), constants.SERVER_MODE)
 
-	if state.GetServerState() == constants.SERVER_MODE {
+	if m.Minute == 9 && state.GetServerState() == constants.SERVER_MODE {
 		state.LeaderInMsgQueue() <- m
 	}
 
