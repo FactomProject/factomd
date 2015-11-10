@@ -152,9 +152,11 @@ func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
 		panic(err)
 	}
 
-	if prevKeyMR := state.GetPrevFactoidKeyMR(); prevKeyMR != nil {
+	//TODO: figure out how we want to handle forward index saving
+	/*if prevKeyMR := state.GetPrevFactoidKeyMR(); prevKeyMR != nil {
 		state.GetDB().Put([]byte(constants.DB_FACTOID_FORWARD), prevKeyMR.Bytes(), hash)
-	}
+	}*/
+
 	state.SetPrevFactoidKeyMR(hash)
 
 	fs.CurrentBlock = block.NewFBlock(fs.GetFactoshisPerEC(), state.GetDBHeight()+1)

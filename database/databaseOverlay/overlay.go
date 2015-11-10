@@ -53,6 +53,9 @@ const (
 
 	//Entry
 	ENTRY
+
+	//??? TODO: figure out if we need these:
+	FACTOID_TRANSACTION_BLOCKS
 )
 
 // the process status in db

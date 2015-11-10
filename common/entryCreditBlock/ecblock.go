@@ -56,15 +56,15 @@ func (c *ECBlock) DatabaseSecondaryIndex() interfaces.IHash {
 	return key
 }
 
-func NewECBlock(state interfaces.IState) interfaces.IEntryCreditBlock {
+func NewECBlock() interfaces.IEntryCreditBlock {
 	e := new(ECBlock)
-	e.Header = NewECBlockHeader(state)
+	e.Header = NewECBlockHeader()
 	e.Body = NewECBlockBody()
 	return e
 }
 
-func NextECBlock(state interfaces.IState, prev *ECBlock) (*ECBlock, error) {
-	e := NewECBlock(state).(*ECBlock)
+func NextECBlock(prev *ECBlock) (*ECBlock, error) {
+	e := NewECBlock().(*ECBlock)
 	var err error
 	e.Header.PrevHeaderHash, err = prev.HeaderHash()
 	if err != nil {
@@ -423,7 +423,7 @@ type ECBlockHeader struct {
 
 var _ interfaces.Printable = (*ECBlockHeader)(nil)
 
-func NewECBlockHeader(state interfaces.IState) *ECBlockHeader {
+func NewECBlockHeader() *ECBlockHeader {
 	h := new(ECBlockHeader)
 	h.ECChainID = primitives.NewZeroHash()
 	h.ECChainID.SetBytes(constants.EC_CHAINID)

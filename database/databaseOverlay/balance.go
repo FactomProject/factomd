@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	//"fmt"
-	"github.com/FactomProject/factomd/common/constants"
+	//"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 )
 
@@ -96,11 +96,11 @@ func (db *Overlay) UseECs(address interfaces.IAddress, amount uint64) error {
 }*/
 
 func (db *Overlay) PutTransactionBlock(hash interfaces.IHash, trans interfaces.IFBlock) error {
-	return db.DB.Put([]byte(constants.DB_FACTOID_BLOCKS), hash.Bytes(), trans)
+	return db.DB.Put([]byte{byte(FACTOID_TRANSACTION_BLOCKS)}, hash.Bytes(), trans)
 }
 
 func (db *Overlay) GetTransactionBlock(hash interfaces.IHash, dst interfaces.IFBlock) (interfaces.IFBlock, error) {
-	transblk, err := db.DB.Get([]byte(constants.DB_FACTOID_BLOCKS), hash.Bytes(), dst)
+	transblk, err := db.DB.Get([]byte{byte(FACTOID_TRANSACTION_BLOCKS)}, hash.Bytes(), dst)
 	if err != nil {
 		return nil, err
 	}

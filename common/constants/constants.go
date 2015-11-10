@@ -38,18 +38,18 @@ const (
 	// Database
 	//==================
 	// Limit on size of keys, since Maps in Go can't handle variable length keys.
-	KEY_LIMIT               = ADDRESS_LENGTH * 2
-	DB_DIRECTORY_BLOCKS     = "Factom_Directory_Blocks"
-	DB_FACTOID_BLOCKS       = "Factoid_Transaction_Blocks"
-	DB_ADMIN_BLOCKS         = "Factom_Admin_Blocks"
-	DB_ENTRY_CREDIT_BLOCKS  = "Factom_Entry_Credit_Blocks"
-	DB_ENTRY_CHAIN_BLOCKS   = "Factom_Entry_Chain_Blocks"
-	DB_CHAIN_HEADS          = "Hashes of Chain Heads"
-	DB_ENTRIES              = "Factom_Entries"
-	DB_DB_FORWARD           = "Directory_Block_Forward_Hashes"
-	DB_FACTOID_FORWARD      = "Factoid_Block_Forward_Hashes"
-	DB_ENTRY_CREDIT_FORWARD = "Entry_Credit_Forward_Hashes"
-	DB_ENTRY_CHAIN_FORWARD  = "Entry_Chain_Forward_Hashes"
+	KEY_LIMIT = ADDRESS_LENGTH * 2
+	/*	DB_DIRECTORY_BLOCKS     = "Factom_Directory_Blocks"
+		DB_FACTOID_BLOCKS       = "Factoid_Transaction_Blocks"
+		DB_ADMIN_BLOCKS         = "Factom_Admin_Blocks"
+		DB_ENTRY_CREDIT_BLOCKS  = "Factom_Entry_Credit_Blocks"
+		DB_ENTRY_CHAIN_BLOCKS   = "Factom_Entry_Chain_Blocks"
+		DB_CHAIN_HEADS          = "Hashes of Chain Heads"
+		DB_ENTRIES              = "Factom_Entries"
+		DB_DB_FORWARD           = "Directory_Block_Forward_Hashes"
+		DB_FACTOID_FORWARD      = "Factoid_Block_Forward_Hashes"
+		DB_ENTRY_CREDIT_FORWARD = "Entry_Credit_Forward_Hashes"
+		DB_ENTRY_CHAIN_FORWARD  = "Entry_Chain_Forward_Hashes"*/
 
 	// Wallet
 	//==================

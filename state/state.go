@@ -247,43 +247,34 @@ func (s *State) loadDatabase() {
 		//TODO Also need to set Admin block and EC Credit block
 
 		fblk := block.GetGenesisFBlock()
-		s.GetDB().Put([]byte(constants.DB_FACTOID_BLOCKS), primitives.Sha(constants.FACTOID_CHAINID).Bytes(), fblk)
+		err = s.DB.SaveFactoidBlockHead(fblk)
+		if err != nil {
+			panic("Failed to initialize Factoids: " + err.Error())
+		}
 
 		dblk.GetDBEntries()[2].SetKeyMR(fblk.GetKeyMR())
 
 		s.SetCurrentDirectoryBlock(dblk)
-		s.SetDBHeight(dblk.GetHeader().GetDBHeight() + 1)
 
 		s.FactoidState = new(FactoidState)
 		if err := s.FactoidState.AddTransactionBlock(fblk); err != nil {
 			panic("Failed to initialize Factoids: " + err.Error())
 		}
 
-		s.EntryCreditBlock = entryCreditBlock.NewECBlock(s)
+		s.EntryCreditBlock = entryCreditBlock.NewECBlock()
 
 		dblk, err = s.CreateDBlock()
 		if dblk == nil {
 			panic("dblk should never be nil")
 		}
 	} else {
-		fs := s.GetFactoidState()
-		fblk := new(block.FBlock)
-		_, err = s.GetDB().Get([]byte(constants.DB_FACTOID_BLOCKS), primitives.Sha(constants.FACTOID_CHAINID).Bytes(), fblk)
+		fblk, err := s.DB.FetchFactoidBlockHead()
 		if err != nil {
 			panic(err.Error())
 		}
-		hash := primitives.NewHash(constants.ZERO_HASH) // Just get me some working space...
-		var h interfaces.BinaryMarshallable = hash
-		for h != nil {
-			fs.AddTransactionBlock(fblk)
-			h, err = s.GetDB().Get([]byte(constants.DB_FACTOID_FORWARD), fblk.GetKeyMR().Bytes(), hash)
-			if err != nil {
-				panic(err.Error())
-			}
-			_, err = s.GetDB().Get([]byte(constants.DB_FACTOID_BLOCKS), hash.Bytes(), fblk)
-		}
+		fs := s.GetFactoidState()
+		fs.AddTransactionBlock(fblk)
 	}
-	s.SetDBHeight(dblk.GetHeader().GetDBHeight())
 	s.SetCurrentDirectoryBlock(dblk)
 }
 
@@ -352,6 +343,7 @@ func (s *State) GetCurrentDirectoryBlock() interfaces.IDirectoryBlock {
 
 func (s *State) SetCurrentDirectoryBlock(dirblk interfaces.IDirectoryBlock) {
 	s.CurrentDirectoryBlock = dirblk
+	s.SetDBHeight(dirblk.GetHeader().GetDBHeight())
 }
 
 func (s *State) GetDB() interfaces.IDatabase {

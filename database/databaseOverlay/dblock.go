@@ -73,7 +73,6 @@ func (db *Overlay) SaveDirectoryBlockHead(dblock interfaces.DatabaseBatchable) e
 	return db.ProcessDBlockBatch(dblock)
 }
 
-//TODO: figure out what we're fetching
 func (db *Overlay) FetchDirectoryBlockHead() (interfaces.IDirectoryBlock, error) {
 	dblk := new(directoryBlock.DirectoryBlock)
 	block, err := db.FetchChainHeadByChainID([]byte{byte(DIRECTORYBLOCK)}, primitives.NewHash(dblk.GetChainID()), dblk)
