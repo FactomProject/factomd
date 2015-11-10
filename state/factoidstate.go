@@ -16,6 +16,7 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	cp "github.com/FactomProject/factomd/controlpanel"
+	"github.com/FactomProject/factomd/log"
 )
 
 var FACTOID_CHAINID_HASH = primitives.NewHash(constants.FACTOID_CHAINID)
@@ -145,6 +146,7 @@ func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
 
 	state.GetCurrentDirectoryBlock().GetDBEntries()[2].SetKeyMR(hash)
 
+	//TODO: save to DB using DBOverlay
 	state.GetDB().Put([]byte(constants.DB_FACTOID_BLOCKS), hash.Bytes(), fs.CurrentBlock)
 	state.GetDB().Put([]byte(constants.DB_FACTOID_BLOCKS), constants.FACTOID_CHAINID, fs.CurrentBlock)
 	if prevKeyMR := state.GetPrevFactoidKeyMR(); prevKeyMR != nil {

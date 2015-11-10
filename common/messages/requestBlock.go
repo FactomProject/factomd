@@ -15,7 +15,9 @@ import (
 //A placeholder structure for messages
 type RequestBlock struct {
 	Timestamp interfaces.Timestamp
-	hash      interfaces.IHash
+
+	//Not marshalled
+	hash interfaces.IHash
 }
 
 var _ interfaces.IMsg = (*RequestBlock)(nil)

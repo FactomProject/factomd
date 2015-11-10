@@ -17,7 +17,9 @@ import (
 type CommitEntryMsg struct {
 	Timestamp   interfaces.Timestamp
 	CommitEntry *entryCreditBlock.CommitEntry
-	hash        interfaces.IHash
+
+	//Not marshalled
+	hash interfaces.IHash
 }
 
 var _ interfaces.IMsg = (*CommitEntryMsg)(nil)

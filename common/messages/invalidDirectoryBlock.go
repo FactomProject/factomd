@@ -15,7 +15,9 @@ import (
 //A placeholder structure for messages
 type InvalidDirectoryBlock struct {
 	Timestamp interfaces.Timestamp
-	hash      interfaces.IHash
+
+	//Not marshalled
+	hash interfaces.IHash
 }
 
 var _ interfaces.IMsg = (*InvalidDirectoryBlock)(nil)

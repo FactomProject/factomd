@@ -22,6 +22,7 @@ type DirectoryBlockSignature struct {
 
 	Signature *primitives.Signature
 
+	//Not marshalled
 	hash interfaces.IHash
 }
 

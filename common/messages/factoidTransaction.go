@@ -16,7 +16,9 @@ import (
 //A placeholder structure for messages
 type FactoidTransaction struct {
 	Transaction interfaces.ITransaction
-	hash        interfaces.IHash
+
+	//Not marshalled
+	hash interfaces.IHash
 }
 
 var _ interfaces.IMsg = (*FactoidTransaction)(nil)

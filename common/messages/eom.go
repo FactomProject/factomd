@@ -9,7 +9,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/common/directoryBlock"
+	//"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/log"
@@ -24,7 +24,9 @@ type EOM struct {
 	IdentityChainID      interfaces.IHash
 
 	Signature *primitives.Signature
-	hash      interfaces.IHash
+
+	//Not marshalled
+	hash interfaces.IHash
 }
 
 //var _ interfaces.IConfirmation = (*EOM)(nil)
@@ -164,7 +166,10 @@ func (m *EOM) LeaderExecute(state interfaces.IState) error {
 	olddb := state.GetCurrentDirectoryBlock()
 	state.GetFactoidState().ProcessEndOfBlock(state)
 
-	db := new(directoryBlock.DirectoryBlock)
+	db, err := state.CreateDBlock()
+	if err != nil {
+		return err
+	}
 
 	state.SetDBHeight(state.GetDBHeight() + 1)
 

@@ -17,7 +17,9 @@ import (
 type RevealEntry struct {
 	Timestamp interfaces.Timestamp
 	Entry     *entryBlock.Entry
-	hash      interfaces.IHash
+
+	//Not marshalled
+	hash interfaces.IHash
 }
 
 var _ interfaces.IMsg = (*RevealEntry)(nil)

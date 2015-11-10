@@ -15,7 +15,9 @@ import (
 //A placeholder structure for messages
 type SignatureTimeout struct {
 	Timestamp interfaces.Timestamp
-	hash      interfaces.IHash
+
+	//Not marshalled
+	hash interfaces.IHash
 }
 
 var _ interfaces.IMsg = (*SignatureTimeout)(nil)

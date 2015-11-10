@@ -16,8 +16,10 @@ import (
 //A placeholder structure for messages
 type CommitChainMsg struct {
 	CommitChain *entryCreditBlock.CommitChain
-	hash        interfaces.IHash
 	Timestamp   interfaces.Timestamp
+
+	//Not marshalled
+	hash interfaces.IHash
 }
 
 var _ interfaces.IMsg = (*CommitChainMsg)(nil)

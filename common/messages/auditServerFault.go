@@ -15,6 +15,9 @@ import (
 //A placeholder structure for messages
 type AuditServerFault struct {
 	Timestamp interfaces.Timestamp
+
+	//Not marshalled
+	hash interfaces.IHash
 }
 
 var _ interfaces.IMsg = (*AuditServerFault)(nil)
