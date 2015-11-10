@@ -47,6 +47,18 @@ func (c *FBlock) New() interfaces.BinaryMarshallableAndCopyable {
 	return new(FBlock)
 }
 
+func (c *FBlock) DatabasePrimaryIndex() interfaces.IHash {
+	return c.GetKeyMR()
+}
+
+func (c *FBlock) DatabaseSecondaryIndex() interfaces.IHash {
+	return c.GetHash()
+}
+
+func (c *FBlock) GetDatabaseHeight() uint32 {
+	return c.DBHeight
+}
+
 // Return the timestamp of the coinbase transaction
 func (b *FBlock) GetCoinbaseTimestamp() int64 {
 	if len(b.Transactions) == 0 {
@@ -302,10 +314,8 @@ func (b1 *FBlock) IsEqual(block interfaces.IBlock) []interfaces.IBlock {
 
 	return nil
 }
-func (b *FBlock) GetChainID() interfaces.IHash {
-	h := new(primitives.Hash)
-	h.SetBytes(constants.FACTOID_CHAINID)
-	return h
+func (b *FBlock) GetChainID() []byte {
+	return constants.FACTOID_CHAINID
 }
 
 // Calculates the Key Merkle Root for this block and returns it.

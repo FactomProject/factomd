@@ -9,9 +9,9 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/FactomProject/factomd/common/constants"
-	//"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/log"
 )
 
@@ -181,15 +181,12 @@ func (m *EOM) LeaderExecute(state interfaces.IState) error {
 			return err
 		}
 		olddb.GetHeader().SetBodyMR(bodyMR)
-		keymr := olddb.GetKeyMR()
-		if err = state.GetDB().Put([]byte(constants.DB_DIRECTORY_BLOCKS), keymr.Bytes(), olddb); err != nil {
-			return err
-		}
-		if err = state.GetDB().Put([]byte(constants.DB_CHAIN_HEADS), constants.D_CHAINID, keymr); err != nil {
+
+		dbo := databaseOverlay.NewOverlay(state.GetDB())
+		if err = dbo.SaveDirectoryBlockHead(olddb); err != nil {
 			return err
 		}
 
-		log.Printfln("%v", olddb)
 	} else {
 		log.Println("No old db")
 	}

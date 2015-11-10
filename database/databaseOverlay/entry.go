@@ -6,10 +6,10 @@ import (
 
 // InsertEntry inserts an entry
 func (db *Overlay) InsertEntry(entry interfaces.DatabaseBatchable) error {
-	return db.Insert([]byte{byte(TBL_ENTRY)}, entry)
+	return db.Insert([]byte{byte(ENTRY)}, entry)
 }
 
 // FetchEntry gets an entry by hash from the database.
 func (db *Overlay) FetchEntryByHash(hash interfaces.IHash, dst interfaces.DatabaseBatchable) (interfaces.DatabaseBatchable, error) {
-	return db.FetchBlock([]byte{byte(TBL_ENTRY)}, hash, dst)
+	return db.FetchBlock([]byte{byte(ENTRY)}, hash, dst)
 }

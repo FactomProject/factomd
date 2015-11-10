@@ -21,36 +21,38 @@ const (
 const (
 
 	// Directory Block
-	TBL_DB uint8 = iota
-	TBL_DB_NUM
-	TBL_DB_MR
-	TBL_DB_INFO
+	DIRECTORYBLOCK uint8 = iota
+	DIRECTORYBLOCK_NUMBER
+	DIRECTORYBLOCK_KEYMR
 
 	// Admin Block
-	TBL_AB //4
-	TBL_AB_NUM
+	ADMINBLOCK //4
+	ADMINBLOCK_NUMBER
+	//ADMINBLOCK_KEYMR
 
-	TBL_SC
-	TBL_SC_NUM
+	//Factoid Block
+	FACTOIDBLOCK
+	FACTOIDBLOCK_NUMBER
+	//FACTOIDBLOCK_KEYMR
 
 	// Entry Credit Block
-	TBL_CB //8
-	TBL_CB_NUM
-	TBL_CB_MR
+	ENTRYCREDITBLOCK //8
+	//ENTRYCREDITBLOCK_NUMBER
+	//ENTRYCREDITBLOCK_KEYMR
 
 	// Entry Chain
-	TBL_CHAIN_HASH //11
+	ENTRYCHAIN //11
 
 	// The latest Block MR for chains including special chains
-	TBL_CHAIN_HEAD
+	CHAIN_HEAD
 
 	// Entry Block
-	TBL_EB //13
-	TBL_EB_CHAIN_NUM
-	TBL_EB_MR
+	ENTRYBLOCK //13
+	ENTRYBLOCK_CHAIN_NUMBER
+	ENTRYBLOCK_KEYMR
 
 	//Entry
-	TBL_ENTRY
+	ENTRY
 )
 
 // the process status in db
@@ -178,7 +180,7 @@ func (db *Overlay) ProcessBlockBatch(blockBucket, numberBucket, secondaryIndexBu
 		batch = append(batch, interfaces.Record{secondaryIndexBucket, block.DatabaseSecondaryIndex().Bytes(), block.DatabasePrimaryIndex()})
 	}
 
-	batch = append(batch, interfaces.Record{[]byte{TBL_CHAIN_HEAD}, block.GetChainID(), block.DatabasePrimaryIndex()})
+	batch = append(batch, interfaces.Record{[]byte{CHAIN_HEAD}, block.GetChainID(), block.DatabasePrimaryIndex()})
 
 	err := db.DB.PutInBatch(batch)
 	if err != nil {
@@ -194,7 +196,7 @@ func (db *Overlay) FetchHeadIndexByChainID(chainID interfaces.IHash) (interfaces
 		return nil, nil
 	}
 
-	bucket := []byte{byte(TBL_CHAIN_HEAD)}
+	bucket := []byte{byte(CHAIN_HEAD)}
 	key := chainID.Bytes()
 
 	block, err := db.DB.Get(bucket, key, new(primitives.Hash))

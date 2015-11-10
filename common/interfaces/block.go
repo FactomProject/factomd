@@ -26,8 +26,14 @@ type IBlock interface {
 type IFBlock interface {
 	IBlock
 
+	//DatabaseBatchable
+	GetDatabaseHeight() uint32
+	DatabasePrimaryIndex() IHash   //block.KeyMR()
+	DatabaseSecondaryIndex() IHash //block.GetHash()
+	New() BinaryMarshallableAndCopyable
+
 	// Get the ChainID. This is a constant for all Factoids.
-	GetChainID() IHash
+	GetChainID() []byte
 	// Validation functions
 	Validate() error
 	ValidateTransaction(int, ITransaction) error
