@@ -148,14 +148,9 @@ func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
 	state.GetCurrentDirectoryBlock().GetDBEntries()[2].SetKeyMR(hash)
 
 	dbo := databaseOverlay.NewOverlay(state.GetDB())
-	if err := dbo.SaveDirectoryBlockHead(fs.CurrentBlock); err != nil {
+	if err := dbo.SaveFactoidBlockHead(fs.CurrentBlock); err != nil {
 		panic(err)
 	}
-
-	//TODO: figure out how we want to handle forward index saving
-	/*if prevKeyMR := state.GetPrevFactoidKeyMR(); prevKeyMR != nil {
-		state.GetDB().Put([]byte(constants.DB_FACTOID_FORWARD), prevKeyMR.Bytes(), hash)
-	}*/
 
 	state.SetPrevFactoidKeyMR(hash)
 

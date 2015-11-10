@@ -1,5 +1,6 @@
 package databaseOverlay
 
+/*
 import (
 	"bytes"
 	"encoding/binary"
@@ -28,7 +29,7 @@ func (f FSbalance) MarshalBinary() ([]byte, error) {
 	var out bytes.Buffer
 	binary.Write(&out, binary.BigEndian, uint64(f.number))
 	return out.Bytes(), nil
-}
+}*/
 
 /*
 // Any address that is not defined has a zero balance.
@@ -94,7 +95,7 @@ func (db *Overlay) UseECs(address interfaces.IAddress, amount uint64) error {
 	err := db.DB.Put([]byte(constants.DB_EC_BALANCES), address.Bytes(), &FSbalance{number: balance})
 	return err
 }*/
-
+/*
 func (db *Overlay) PutTransactionBlock(hash interfaces.IHash, trans interfaces.IFBlock) error {
 	return db.DB.Put([]byte{byte(FACTOID_TRANSACTION_BLOCKS)}, hash.Bytes(), trans)
 }
@@ -109,3 +110,4 @@ func (db *Overlay) GetTransactionBlock(hash interfaces.IHash, dst interfaces.IFB
 	}
 	return transblk.(interfaces.IFBlock), nil
 }
+*/

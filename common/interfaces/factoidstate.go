@@ -50,8 +50,10 @@ type IFactoidState interface {
 	EndOfPeriod(period int)
 }
 
+/*
 type IFSbalance interface {
 	IBlock
 	getNumber() uint64
 	setNumber(uint64)
 }
+*/
