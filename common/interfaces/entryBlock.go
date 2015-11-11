@@ -8,5 +8,5 @@ import ()
 
 type IEntryCreditBlock interface {
 	Printable
-	BinaryMarshallable
+	DatabaseBatchable
 }

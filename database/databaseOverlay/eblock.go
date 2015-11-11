@@ -1,6 +1,7 @@
 package databaseOverlay
 
 import (
+	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 )
 
@@ -55,4 +56,20 @@ func (db *Overlay) FetchAllChains() (chains []*EChain, err error) {
 func (db *Overlay) FetchAllEBlocksByChain(chainID interfaces.IHash, sample interfaces.BinaryMarshallableAndCopyable) ([]interfaces.BinaryMarshallableAndCopyable, error) {
 	bucket := append([]byte{byte(ENTRYBLOCK_CHAIN_NUMBER)}, chainID.Bytes()...)
 	return db.FetchAllBlocksFromBucket(bucket, sample)
+}
+
+func (db *Overlay) SaveEBlockHead(block interfaces.DatabaseBatchable) error {
+	return db.ProcessEBlockBatch(block)
+}
+
+func (db *Overlay) FetchEBlockHead(chainID interfaces.IHash) (*entryBlock.EBlock, error) {
+	blk := new(entryBlock.EBlock)
+	block, err := db.FetchChainHeadByChainID([]byte{byte(ENTRYBLOCK)}, chainID, blk)
+	if err != nil {
+		return nil, err
+	}
+	if block == nil {
+		return nil, nil
+	}
+	return block.(*entryBlock.EBlock), nil
 }

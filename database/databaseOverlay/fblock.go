@@ -7,7 +7,7 @@ import (
 )
 
 func (db *Overlay) ProcessFBlockBatch(block interfaces.DatabaseBatchable) error {
-	return db.ProcessBlockBatch([]byte{byte(FACTOIDBLOCK)}, []byte{byte(FACTOIDBLOCK_NUMBER)}, nil, block)
+	return db.ProcessBlockBatch([]byte{byte(FACTOIDBLOCK)}, []byte{byte(FACTOIDBLOCK_NUMBER)}, []byte{byte(FACTOIDBLOCK_KEYMR)}, block)
 }
 
 func (db *Overlay) FetchFBlockByHash(hash interfaces.IHash, dst interfaces.DatabaseBatchable) (interfaces.DatabaseBatchable, error) {
@@ -18,9 +18,13 @@ func (db *Overlay) FetchAllFBlocks(sample interfaces.BinaryMarshallableAndCopyab
 	return db.FetchAllBlocksFromBucket([]byte{byte(FACTOIDBLOCK)}, sample)
 }
 
+func (db *Overlay) SaveFactoidBlockHead(fblock interfaces.DatabaseBatchable) error {
+	return db.ProcessFBlockBatch(fblock)
+}
+
 func (db *Overlay) FetchFactoidBlockHead() (interfaces.IFBlock, error) {
-	fblock := new(block.FBlock)
-	block, err := db.FetchChainHeadByChainID([]byte{byte(FACTOIDBLOCK)}, primitives.NewHash(fblock.GetChainID()), fblock)
+	blk := new(block.FBlock)
+	block, err := db.FetchChainHeadByChainID([]byte{byte(FACTOIDBLOCK)}, primitives.NewHash(blk.GetChainID()), blk)
 	if err != nil {
 		return nil, err
 	}
@@ -28,8 +32,4 @@ func (db *Overlay) FetchFactoidBlockHead() (interfaces.IFBlock, error) {
 		return nil, nil
 	}
 	return block.(interfaces.IFBlock), nil
-}
-
-func (db *Overlay) SaveFactoidBlockHead(fblock interfaces.DatabaseBatchable) error {
-	return db.ProcessFBlockBatch(fblock)
 }
