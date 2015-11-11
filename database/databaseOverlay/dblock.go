@@ -18,7 +18,7 @@ func (db *Overlay) ProcessDBlockBatch(dblock interfaces.DatabaseBatchable) error
 // FetchHeightRange looks up a range of blocks by the start and ending
 // heights.  Fetch is inclusive of the start height and exclusive of the
 // ending height. To fetch all hashes from the start height until no
-// more are present, use the special id `AllShas'.
+// more are present, use -1 as endHeight.
 func (db *Overlay) FetchHeightRange(startHeight, endHeight int64) ([]interfaces.IHash, error) {
 	return db.FetchBlockIndexesInHeightRange([]byte{byte(DIRECTORYBLOCK_NUMBER)}, startHeight, endHeight)
 }

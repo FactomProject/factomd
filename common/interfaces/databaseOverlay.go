@@ -6,10 +6,6 @@ package interfaces
 
 import ()
 
-// AllShas is a special value that can be used as the final sha when requesting
-// a range of shas by height to request them all.
-const AllShas = int64(^uint64(0) >> 1)
-
 // Db defines a generic interface that is used to request and insert data into db
 type DBOverlay interface {
 	// Close cleanly shuts down the database and syncs all data.
@@ -96,7 +92,7 @@ type DBOverlay interface {
 	// FetchHeightRange looks up a range of blocks by the start and ending
 	// heights.  Fetch is inclusive of the start height and exclusive of the
 	// ending height. To fetch all hashes from the start height until no
-	// more are present, use the special id `AllShas'.
+	// more are present, use -1 as endHeight.
 	FetchHeightRange(startHeight, endHeight int64) (rshalist []IHash, err error)
 
 	// FetchBlockHeightBySha returns the block height for the given hash.  This is

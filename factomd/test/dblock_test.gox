@@ -40,8 +40,8 @@ func TestDblock2(t *testing.T) {
 
 	t.Logf("height=%s\n", spew.Sdump(height))
 
-	list, _ = db.FetchHeightRange(0, database.AllShas)
-	t.Logf("db.FetchHeightRange(0, database.AllShas): list=%s\n", spew.Sdump(list))
+	list, _ = db.FetchHeightRange(0, -1)
+	t.Logf("db.FetchHeightRange(0, -1): list=%s\n", spew.Sdump(list))
 
 	height, _ = db.FetchBlockHeightBySha(&list[0])
 

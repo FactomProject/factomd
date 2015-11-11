@@ -11,15 +11,8 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
-const (
-	dbVersion     int = 2
-	dbMaxTransCnt     = 20000
-	dbMaxTransMem     = 64 * 1024 * 1024 // 64 MB
-)
-
 // the "table" prefix
 const (
-
 	// Directory Block
 	DIRECTORYBLOCK uint8 = iota
 	DIRECTORYBLOCK_NUMBER
@@ -55,23 +48,8 @@ const (
 	ENTRY
 )
 
-// the process status in db
-const (
-	STATUS_IN_QUEUE uint8 = iota
-	STATUS_PROCESSED
-)
-
-var currentChainType uint32 = 1
-
-var isLookupDB bool = true // to be put in property file
-
 type Overlay struct {
-	// leveldb pieces
 	DB interfaces.IDatabase
-
-	lastDirBlkShaCached bool
-	lastDirBlkSha       interfaces.IHash
-	lastDirBlkHeight    int64
 }
 
 func (db *Overlay) Close() (err error) {
@@ -81,9 +59,6 @@ func (db *Overlay) Close() (err error) {
 func NewOverlay(db interfaces.IDatabase) *Overlay {
 	answer := new(Overlay)
 	answer.DB = db
-
-	answer.lastDirBlkHeight = -1
-
 	return answer
 }
 
@@ -220,10 +195,10 @@ func (db *Overlay) FetchChainHeadByChainID(bucket []byte, chainID interfaces.IHa
 	return db.FetchBlock(bucket, blockHash, dst)
 }
 
+//Use endHeight of -1 (or other negative numbers) to fetch all / as many entries as possibe
 func (db *Overlay) FetchBlockIndexesInHeightRange(numberBucket []byte, startHeight, endHeight int64) ([]interfaces.IHash, error) {
-	//TODO: deprecate AllShas
 	var endidx int64
-	if endHeight == interfaces.AllShas {
+	if endHeight < 0 {
 		endidx = startHeight + constants.MaxBlocksPerMsg
 	} else {
 		endidx = endHeight
