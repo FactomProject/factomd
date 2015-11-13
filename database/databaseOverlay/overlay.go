@@ -21,7 +21,7 @@ const (
 	// Admin Block
 	ADMINBLOCK //4
 	ADMINBLOCK_NUMBER
-	//ADMINBLOCK_KEYMR
+	ADMINBLOCK_KEYMR
 
 	//Factoid Block
 	FACTOIDBLOCK
@@ -34,7 +34,7 @@ const (
 	ENTRYCREDITBLOCK_KEYMR
 
 	// Entry Chain
-	ENTRYCHAIN //11
+	//ENTRYCHAIN //11
 
 	// The latest Block MR for chains including special chains
 	CHAIN_HEAD

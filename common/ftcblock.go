@@ -4,6 +4,7 @@
 
 package common
 
+/*
 import (
 	"bytes"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -42,3 +43,4 @@ func (e *FctChain) String() string {
 }
 
 // factoid Block
+*/
