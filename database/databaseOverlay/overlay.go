@@ -87,8 +87,8 @@ func (db *Overlay) FetchBlockIndexByHeight(bucket []byte, blockHeight uint32) (i
 	return block.(interfaces.IHash), nil
 }
 
-func (db *Overlay) FetchPrimaryIndexBySecondaryIndex(bucket []byte, key interfaces.IHash) (interfaces.IHash, error) {
-	block, err := db.DB.Get(bucket, key.Bytes(), new(primitives.Hash))
+func (db *Overlay) FetchPrimaryIndexBySecondaryIndex(secondaryIndexBucket []byte, key interfaces.IHash) (interfaces.IHash, error) {
+	block, err := db.DB.Get(secondaryIndexBucket, key.Bytes(), new(primitives.Hash))
 	if err != nil {
 		return nil, err
 	}
@@ -181,6 +181,7 @@ func (db *Overlay) FetchHeadIndexByChainID(chainID interfaces.IHash) (interfaces
 	if block == nil {
 		return nil, nil
 	}
+
 	return block.(interfaces.IHash), nil
 }
 

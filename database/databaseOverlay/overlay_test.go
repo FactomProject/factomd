@@ -7,6 +7,7 @@ package databaseOverlay_test
 import (
 	"bytes"
 	"encoding/gob"
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	. "github.com/FactomProject/factomd/database/databaseOverlay"
@@ -45,7 +46,121 @@ func TestInsertFetch(t *testing.T) {
 	if AreBytesEqual(bytes1, bytes2) == false {
 		t.Errorf("Bytes are not equal - %x vs %x", bytes1, bytes2)
 	}
+}
 
+func TestFetchBy(t *testing.T) {
+	dbo := createOverlay()
+	defer dbo.Close()
+
+	blocks := []*DBTestObject{}
+
+	max := 10
+	for i := 0; i < max; i++ {
+		b := NewDBTestObject()
+		b.ChainID = primitives.NewHash(CopyZeroHash())
+		b.Data = []byte{byte(i), byte(i + 1), byte(i + 2), byte(i + 3)}
+
+		primaryIndex := CopyZeroHash()
+		primaryIndex[len(primaryIndex)-1] = byte(i)
+
+		secondaryIndex := CopyZeroHash()
+		secondaryIndex[0] = byte(i)
+
+		b.PrimaryIndex = primitives.NewHash(primaryIndex)
+		b.SecondaryIndex = primitives.NewHash(secondaryIndex)
+		b.DatabaseHeight = uint32(i)
+		blocks = append(blocks, b)
+
+		err := dbo.ProcessBlockBatch(TestBucket, TestNumberBucket, TestSecondaryIndexBucket, b)
+		if err != nil {
+			t.Error(err)
+		}
+	}
+	headIndex, err := dbo.FetchHeadIndexByChainID(primitives.NewHash(CopyZeroHash()))
+	if err != nil {
+		t.Error(err)
+	}
+	if headIndex.IsSameAs(blocks[max-1].PrimaryIndex) == false {
+		t.Error("Wrong chain head")
+	}
+
+	head, err := dbo.FetchChainHeadByChainID(TestBucket, primitives.NewHash(CopyZeroHash()), new(DBTestObject))
+	if err != nil {
+		t.Error(err)
+	}
+	if blocks[max-1].IsEqual(head.(*DBTestObject)) == false {
+		t.Error("Heads are not equal")
+	}
+
+	for i := 0; i < max; i++ {
+		primaryIndex := CopyZeroHash()
+		primaryIndex[len(primaryIndex)-1] = byte(i)
+
+		secondaryIndex := CopyZeroHash()
+		secondaryIndex[0] = byte(i)
+
+		dbHeight := uint32(i)
+
+		block, err := dbo.FetchBlockByHeight(TestNumberBucket, TestBucket, dbHeight, new(DBTestObject))
+		if err != nil {
+			t.Error(err)
+		}
+		if blocks[i].IsEqual(block.(*DBTestObject)) == false {
+			t.Error("Blocks are not equal")
+		}
+
+		index, err := dbo.FetchBlockIndexByHeight(TestNumberBucket, dbHeight)
+		if err != nil {
+			t.Error(err)
+		}
+		if AreBytesEqual(index.Bytes(), primaryIndex) == false {
+			t.Error("Wrong primary index returned")
+		}
+
+		index, err = dbo.FetchPrimaryIndexBySecondaryIndex(TestSecondaryIndexBucket, primitives.NewHash(secondaryIndex))
+		if err != nil {
+			t.Error(err)
+		}
+		if AreBytesEqual(index.Bytes(), primaryIndex) == false {
+			t.Error("Wrong primary index returned")
+		}
+
+		block, err = dbo.FetchBlockBySecondaryIndex(TestSecondaryIndexBucket, TestBucket, primitives.NewHash(secondaryIndex), new(DBTestObject))
+		if err != nil {
+			t.Error(err)
+		}
+		if blocks[i].IsEqual(block.(*DBTestObject)) == false {
+			t.Error("Blocks are not equal")
+		}
+	}
+
+	fetchedBlocks, err := dbo.FetchAllBlocksFromBucket(TestBucket, new(DBTestObject))
+	if err != nil {
+		t.Error(err)
+	}
+	if len(fetchedBlocks) != len(blocks) {
+		t.Error("Invalid amount of blocks returned")
+	}
+	for i := 0; i < max; i++ {
+		if blocks[i].IsEqual(fetchedBlocks[i].(*DBTestObject)) == false {
+			t.Error("Block from batch is not equal")
+		}
+	}
+
+	startIndex := 3
+	indexCount := 4
+	fetchedIndexes, err := dbo.FetchBlockIndexesInHeightRange(TestNumberBucket, int64(startIndex), int64(startIndex+indexCount))
+	if len(fetchedIndexes) != indexCount {
+		t.Error("Invalid amount of indexes returned")
+	}
+	for i := 0; i < indexCount; i++ {
+		primaryIndex := CopyZeroHash()
+		primaryIndex[len(primaryIndex)-1] = byte(i + startIndex)
+
+		if AreBytesEqual(primaryIndex, fetchedIndexes[i].Bytes()) == false {
+			t.Error("Index from batch is not equal")
+		}
+	}
 }
 
 func createOverlay() *Overlay {
@@ -53,6 +168,8 @@ func createOverlay() *Overlay {
 }
 
 var TestBucket []byte = []byte{0x01}
+var TestNumberBucket []byte = []byte{0x02}
+var TestSecondaryIndexBucket []byte = []byte{0x03}
 
 func AreBytesEqual(b1, b2 []byte) bool {
 	if len(b1) != len(b2) {
@@ -167,4 +284,33 @@ func (d *DBTestObject) MarshalBinary() ([]byte, error) {
 	}
 
 	return data.Bytes(), nil
+}
+
+func (d1 *DBTestObject) IsEqual(d2 *DBTestObject) bool {
+	if d1.DatabaseHeight != d2.DatabaseHeight {
+		return false
+	}
+
+	if AreBytesEqual(d1.Data, d2.Data) == false {
+		return false
+	}
+
+	if AreBytesEqual(d1.PrimaryIndex.Bytes(), d2.PrimaryIndex.Bytes()) == false {
+		return false
+	}
+
+	if AreBytesEqual(d1.SecondaryIndex.Bytes(), d2.SecondaryIndex.Bytes()) == false {
+		return false
+	}
+
+	if AreBytesEqual(d1.ChainID.Bytes(), d2.ChainID.Bytes()) == false {
+		return false
+	}
+
+	return true
+}
+
+func CopyZeroHash() []byte {
+	answer := make([]byte, len(constants.ZERO_HASH))
+	return answer
 }
