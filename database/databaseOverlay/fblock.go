@@ -10,12 +10,24 @@ func (db *Overlay) ProcessFBlockBatch(block interfaces.DatabaseBatchable) error 
 	return db.ProcessBlockBatch([]byte{byte(FACTOIDBLOCK)}, []byte{byte(FACTOIDBLOCK_NUMBER)}, []byte{byte(FACTOIDBLOCK_KEYMR)}, block)
 }
 
-func (db *Overlay) FetchFBlockByHash(hash interfaces.IHash, dst interfaces.DatabaseBatchable) (interfaces.DatabaseBatchable, error) {
-	return db.FetchBlock([]byte{byte(FACTOIDBLOCK)}, hash, dst)
+func (db *Overlay) FetchFBlockByHash(hash interfaces.IHash) (interfaces.DatabaseBatchable, error) {
+	return db.FetchBlock([]byte{byte(FACTOIDBLOCK)}, hash, new(block.FBlock))
 }
 
-func (db *Overlay) FetchAllFBlocks(sample interfaces.BinaryMarshallableAndCopyable) ([]interfaces.BinaryMarshallableAndCopyable, error) {
-	return db.FetchAllBlocksFromBucket([]byte{byte(FACTOIDBLOCK)}, sample)
+func (db *Overlay) FetchAllFBlocks() ([]interfaces.IFBlock, error) {
+	list, err := db.FetchAllBlocksFromBucket([]byte{byte(FACTOIDBLOCK)}, new(block.FBlock))
+	if err != nil {
+		return nil, err
+	}
+	return toFactoidList(list), nil
+}
+
+func toFactoidList(source []interfaces.BinaryMarshallableAndCopyable) []interfaces.IFBlock {
+	answer := make([]interfaces.IFBlock, len(source))
+	for i, v := range source {
+		answer[i] = v.(interfaces.IFBlock)
+	}
+	return answer
 }
 
 func (db *Overlay) SaveFactoidBlockHead(fblock interfaces.DatabaseBatchable) error {

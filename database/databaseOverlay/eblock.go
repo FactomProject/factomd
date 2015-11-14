@@ -11,13 +11,13 @@ func (db *Overlay) ProcessEBlockBatch(eblock interfaces.DatabaseBatchable) error
 }
 
 // FetchEBlockByMR gets an entry block by merkle root from the database.
-func (db *Overlay) FetchEBlockByHash(hash interfaces.IHash, dst interfaces.DatabaseBatchable) (interfaces.DatabaseBatchable, error) {
-	return db.FetchBlockBySecondaryIndex([]byte{byte(ENTRYBLOCK_KEYMR)}, []byte{byte(ENTRYBLOCK)}, hash, dst)
+func (db *Overlay) FetchEBlockByHash(hash interfaces.IHash) (interfaces.DatabaseBatchable, error) {
+	return db.FetchBlockBySecondaryIndex([]byte{byte(ENTRYBLOCK_KEYMR)}, []byte{byte(ENTRYBLOCK)}, hash, entryBlock.NewEBlock())
 }
 
 // FetchEntryBlock gets an entry by hash from the database.
-func (db *Overlay) FetchEBlockByKeyMR(hash interfaces.IHash, dst interfaces.DatabaseBatchable) (interfaces.DatabaseBatchable, error) {
-	return db.FetchBlock([]byte{byte(ENTRYBLOCK)}, hash, dst)
+func (db *Overlay) FetchEBlockByKeyMR(hash interfaces.IHash) (interfaces.DatabaseBatchable, error) {
+	return db.FetchBlock([]byte{byte(ENTRYBLOCK)}, hash, entryBlock.NewEBlock())
 }
 
 // FetchEBHashByMR gets an entry by hash from the database.
@@ -53,9 +53,21 @@ func (db *Overlay) FetchAllChains() (chains []*EChain, err error) {
 }*/
 
 // FetchAllEBlocksByChain gets all of the blocks by chain id
-func (db *Overlay) FetchAllEBlocksByChain(chainID interfaces.IHash, sample interfaces.BinaryMarshallableAndCopyable) ([]interfaces.BinaryMarshallableAndCopyable, error) {
+func (db *Overlay) FetchAllEBlocksByChain(chainID interfaces.IHash) ([]*entryBlock.EBlock, error) {
 	bucket := append([]byte{byte(ENTRYBLOCK_CHAIN_NUMBER)}, chainID.Bytes()...)
-	return db.FetchAllBlocksFromBucket(bucket, sample)
+	list, err := db.FetchAllBlocksFromBucket(bucket, entryBlock.NewEBlock())
+	if err != nil {
+		return nil, err
+	}
+	return toEBlocksList(list), nil
+}
+
+func toEBlocksList(source []interfaces.BinaryMarshallableAndCopyable) []*entryBlock.EBlock {
+	answer := make([]*entryBlock.EBlock, len(source))
+	for i, v := range source {
+		answer[i] = v.(*entryBlock.EBlock)
+	}
+	return answer
 }
 
 func (db *Overlay) SaveEBlockHead(block interfaces.DatabaseBatchable) error {
@@ -63,8 +75,7 @@ func (db *Overlay) SaveEBlockHead(block interfaces.DatabaseBatchable) error {
 }
 
 func (db *Overlay) FetchEBlockHead(chainID interfaces.IHash) (*entryBlock.EBlock, error) {
-	blk := new(entryBlock.EBlock)
-	block, err := db.FetchChainHeadByChainID([]byte{byte(ENTRYBLOCK)}, chainID, blk)
+	block, err := db.FetchChainHeadByChainID([]byte{byte(ENTRYBLOCK)}, chainID, entryBlock.NewEBlock())
 	if err != nil {
 		return nil, err
 	}

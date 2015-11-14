@@ -25,8 +25,8 @@ func (db *Overlay) FetchHeightRange(startHeight, endHeight int64) ([]interfaces.
 
 // FetchBlockHeightBySha returns the block height for the given hash.  This is
 // part of the database.Db interface implementation.
-func (db *Overlay) FetchBlockHeightByKeyMR(sha interfaces.IHash, dst interfaces.DatabaseBatchable) (int64, error) {
-	dblk, err := db.FetchDBlockByKeyMR(sha, dst)
+func (db *Overlay) FetchBlockHeightByKeyMR(sha interfaces.IHash) (int64, error) {
+	dblk, err := db.FetchDBlockByKeyMR(sha)
 	if err != nil {
 		return -1, err
 	}
@@ -40,13 +40,13 @@ func (db *Overlay) FetchBlockHeightByKeyMR(sha interfaces.IHash, dst interfaces.
 }
 
 // FetchDBlock gets an entry by hash from the database.
-func (db *Overlay) FetchDBlockByKeyMR(keyMR interfaces.IHash, dst interfaces.DatabaseBatchable) (interfaces.DatabaseBatchable, error) {
-	return db.FetchBlock([]byte{byte(DIRECTORYBLOCK)}, keyMR, dst)
+func (db *Overlay) FetchDBlockByKeyMR(keyMR interfaces.IHash) (interfaces.DatabaseBatchable, error) {
+	return db.FetchBlock([]byte{byte(DIRECTORYBLOCK)}, keyMR, new(directoryBlock.DirectoryBlock))
 }
 
 // FetchDBlockByHeight gets an directory block by height from the database.
-func (db *Overlay) FetchDBlockByHeight(dBlockHeight uint32, dst interfaces.DatabaseBatchable) (interfaces.DatabaseBatchable, error) {
-	return db.FetchBlockByHeight([]byte{byte(DIRECTORYBLOCK_NUMBER)}, []byte{byte(DIRECTORYBLOCK_KEYMR)}, dBlockHeight, dst)
+func (db *Overlay) FetchDBlockByHeight(dBlockHeight uint32) (interfaces.DatabaseBatchable, error) {
+	return db.FetchBlockByHeight([]byte{byte(DIRECTORYBLOCK_NUMBER)}, []byte{byte(DIRECTORYBLOCK_KEYMR)}, dBlockHeight, new(directoryBlock.DirectoryBlock))
 }
 
 // FetchDBHashByHeight gets a dBlockHash from the database.
@@ -65,8 +65,20 @@ func (db *Overlay) FetchDBlockByHash(dBMR interfaces.IHash, dst interfaces.Datab
 }
 
 // FetchAllDBlocks gets all of the fbInfo
-func (db *Overlay) FetchAllDBlocks(sample interfaces.BinaryMarshallableAndCopyable) ([]interfaces.BinaryMarshallableAndCopyable, error) {
-	return db.FetchAllBlocksFromBucket([]byte{byte(DIRECTORYBLOCK)}, sample)
+func (db *Overlay) FetchAllDBlocks() ([]interfaces.IDirectoryBlock, error) {
+	list, err := db.FetchAllBlocksFromBucket([]byte{byte(DIRECTORYBLOCK)}, new(directoryBlock.DirectoryBlock))
+	if err != nil {
+		return nil, err
+	}
+	return toDBlocksList(list), nil
+}
+
+func toDBlocksList(source []interfaces.BinaryMarshallableAndCopyable) []interfaces.IDirectoryBlock {
+	answer := make([]interfaces.IDirectoryBlock, len(source))
+	for i, v := range source {
+		answer[i] = v.(interfaces.IDirectoryBlock)
+	}
+	return answer
 }
 
 func (db *Overlay) SaveDirectoryBlockHead(dblock interfaces.DatabaseBatchable) error {
@@ -74,8 +86,8 @@ func (db *Overlay) SaveDirectoryBlockHead(dblock interfaces.DatabaseBatchable) e
 }
 
 func (db *Overlay) FetchDirectoryBlockHead() (interfaces.IDirectoryBlock, error) {
-	dblk := new(directoryBlock.DirectoryBlock)
-	block, err := db.FetchChainHeadByChainID([]byte{byte(DIRECTORYBLOCK)}, primitives.NewHash(dblk.GetChainID()), dblk)
+	blk := new(directoryBlock.DirectoryBlock)
+	block, err := db.FetchChainHeadByChainID([]byte{byte(DIRECTORYBLOCK)}, primitives.NewHash(blk.GetChainID()), blk)
 	if err != nil {
 		return nil, err
 	}

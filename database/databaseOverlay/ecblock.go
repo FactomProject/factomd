@@ -12,13 +12,25 @@ func (db *Overlay) ProcessECBlockBatch(block interfaces.DatabaseBatchable) error
 }
 
 // FetchECBlockByHash gets an Entry Credit block by hash from the database.
-func (db *Overlay) FetchECBlockByHash(hash interfaces.IHash, dst interfaces.DatabaseBatchable) (interfaces.DatabaseBatchable, error) {
-	return db.FetchBlock([]byte{byte(ENTRYCREDITBLOCK)}, hash, dst)
+func (db *Overlay) FetchECBlockByHash(hash interfaces.IHash) (interfaces.DatabaseBatchable, error) {
+	return db.FetchBlock([]byte{byte(ENTRYCREDITBLOCK)}, hash, entryCreditBlock.NewECBlock())
 }
 
 // FetchAllECBlocks gets all of the entry credit blocks
-func (db *Overlay) FetchAllECBlocks(sample interfaces.BinaryMarshallableAndCopyable) ([]interfaces.BinaryMarshallableAndCopyable, error) {
-	return db.FetchAllBlocksFromBucket([]byte{byte(ENTRYCREDITBLOCK)}, sample)
+func (db *Overlay) FetchAllECBlocks() ([]interfaces.IEntryCreditBlock, error) {
+	list, err := db.FetchAllBlocksFromBucket([]byte{byte(ENTRYCREDITBLOCK)}, entryCreditBlock.NewECBlock())
+	if err != nil {
+		return nil, err
+	}
+	return toECBlocksList(list), nil
+}
+
+func toECBlocksList(source []interfaces.BinaryMarshallableAndCopyable) []interfaces.IEntryCreditBlock {
+	answer := make([]interfaces.IEntryCreditBlock, len(source))
+	for i, v := range source {
+		answer[i] = v.(interfaces.IEntryCreditBlock)
+	}
+	return answer
 }
 
 func (db *Overlay) SaveECBlockHead(block interfaces.DatabaseBatchable) error {
