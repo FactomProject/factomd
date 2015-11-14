@@ -142,6 +142,8 @@ func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
 		panic("Invalid state on initialization")
 	}
 
+	fmt.Println(state.GetCurrentDirectoryBlock())
+	
 	hash = fs.CurrentBlock.GetHash()
 	hash2 = fs.CurrentBlock.GetLedgerKeyMR()
 
