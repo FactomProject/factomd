@@ -35,6 +35,7 @@ type IDirectoryBlockHeader interface {
 	SetDBHeight(uint32)
 	GetBlockCount() uint32
 	SetBlockCount(uint32)
+	GetTimestamp() uint32
 }
 
 type IDBEntry interface {
