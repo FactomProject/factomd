@@ -15,9 +15,6 @@ import (
 	"github.com/FactomProject/factomd/common/factoid/block/coinbase"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-	cp "github.com/FactomProject/factomd/controlpanel"
-	"github.com/FactomProject/factomd/database/databaseOverlay"
-	//"github.com/FactomProject/factomd/log"
 )
 
 var FACTOID_CHAINID_HASH = primitives.NewHash(constants.FACTOID_CHAINID)
@@ -66,13 +63,6 @@ func (fs *FactoidState) AddTransactionBlock(blk interfaces.IFBlock) error {
 	}
 	fs.CurrentBlock = blk
 	fs.SetFactoshisPerEC(blk.GetExchRate())
-
-	cp.CP.AddUpdate(
-		"FAddBlk", // tag
-		"status",  // Category
-		fmt.Sprintf("Added Factoid Block %d", blk.GetDBHeight()), // Title
-		"", // message
-		60) // sixty seconds should be enough
 
 	return nil
 }
@@ -141,16 +131,13 @@ func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
 	if fs.GetCurrentBlock() == nil {
 		panic("Invalid state on initialization")
 	}
-
-	fmt.Println(state.GetCurrentDirectoryBlock())
 	
 	hash = fs.CurrentBlock.GetHash()
 	hash2 = fs.CurrentBlock.GetLedgerKeyMR()
 
 	state.GetCurrentDirectoryBlock().GetDBEntries()[2].SetKeyMR(hash)
 
-	dbo := databaseOverlay.NewOverlay(state.GetDB())
-	if err := dbo.SaveFactoidBlockHead(fs.CurrentBlock); err != nil {
+	if err := state.GetDB().SaveFactoidBlockHead(fs.CurrentBlock); err != nil {
 		panic(err)
 	}
 
@@ -169,6 +156,8 @@ func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
 		fs.CurrentBlock.SetPrevKeyMR(hash.Bytes())
 		fs.CurrentBlock.SetPrevLedgerKeyMR(hash2.Bytes())
 	}
+	
+	fmt.Println(state.GetCurrentDirectoryBlock())
 }
 
 /**

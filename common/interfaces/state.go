@@ -43,8 +43,8 @@ type IState interface {
 	LeaderFor([]byte) bool // Tests if this server is the leader for this key
 
 	// Database
-	GetDB() IDatabase
-	SetDB(IDatabase)
+	GetDB() DBOverlay
+	SetDB(DBOverlay)
 
 	// Directory Block State
 	GetCurrentAdminBlock() IAdminBlock

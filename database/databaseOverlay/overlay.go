@@ -52,8 +52,37 @@ type Overlay struct {
 	DB interfaces.IDatabase
 }
 
+func (db *Overlay) PutInBatch(records []interfaces.Record) error {
+	return db.DB.PutInBatch(records)
+}
+
+func (db *Overlay) Put(bucket, key []byte, data interfaces.BinaryMarshallable) error {
+	return db.DB.Put(bucket,key,data)
+}
+
+
+func (db *Overlay) ListAllKeys(bucket []byte) ([][]byte, error) {
+	return db.DB.ListAllKeys(bucket)
+}
+
+func (db *Overlay) GetAll(bucket []byte, sample interfaces.BinaryMarshallableAndCopyable) ([]interfaces.BinaryMarshallableAndCopyable, error) {
+	return db.DB.GetAll(bucket,sample)
+}
+
+func (db *Overlay) Get(bucket, key []byte, destination interfaces.BinaryMarshallable) (interfaces.BinaryMarshallable, error) {
+	return db.DB.Get(bucket,key,destination)
+}
+	
+func (db *Overlay) Clear(bucket []byte) error {
+	return db.DB.Clear(bucket)
+}
+
 func (db *Overlay) Close() (err error) {
 	return db.DB.Close()
+}
+
+func (db *Overlay) Delete(bucket, key []byte) error {
+	return db.DB.Delete(bucket,key)
 }
 
 func NewOverlay(db interfaces.IDatabase) *Overlay {

@@ -6,7 +6,7 @@ package interfaces
 
 import ()
 
-type IEntryBlock interface {
+type IEntryCreditBlock interface {
 	Printable
 	DatabaseBatchable
 }

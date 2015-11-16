@@ -8,9 +8,9 @@ import ()
 
 // Db defines a generic interface that is used to request and insert data into db
 type DBOverlay interface {
-	// Close cleanly shuts down the database and syncs all data.
-	Close() (err error)
-
+	// We let Database method calls flow through.
+	IDatabase
+	
 	// RollbackClose discards the recent database changes to the previously
 	// saved data at last Sync and closes the database.
 	// RollbackClose() (err error)
@@ -50,7 +50,7 @@ type DBOverlay interface {
 	// FetchEntryInfoBranchByHash(entryHash IHash) (entryInfoBranch EntryInfoBranch, err error)
 
 	// FetchEntryBlock gets an entry by hash from the database.
-	FetchEBlockByHash(eBlockHash IHash, dst DatabaseBatchable) (eBlock DatabaseBatchable, err error)
+	FetchEBlockByHash(IHash) (DatabaseBatchable, error)
 
 	// FetchEBlockByMR gets an entry block by merkle root from the database.
 	//FetchEBlockByMR(eBMR IHash) (eBlock DatabaseBatchable, err error)
@@ -60,9 +60,10 @@ type DBOverlay interface {
 
 	// FetchEBHashByMR gets an entry by hash from the database.
 	//FetchEBHashByMR(eBMR IHash) (eBlockHash IHash, err error)
-
+		
 	// FetchAllEBlocksByChain gets all of the blocks by chain id
-	FetchAllEBlocksByChain(chainID IHash, sample BinaryMarshallableAndCopyable) (eBlocks []BinaryMarshallableAndCopyable, err error)
+	FetchAllEBlocksByChain(IHash) ([]IEntryBlock, error)
+	
 
 	// FetchDBlock gets an entry by hash from the database.
 	FetchDBlockByHash(dBlockHash IHash, dst DatabaseBatchable) (dBlock DatabaseBatchable, err error)
@@ -100,22 +101,22 @@ type DBOverlay interface {
 	//FetchBlockHeightBySha(sha IHash) (int64, error)
 
 	// FetchAllECBlocks gets all of the entry credit blocks
-	FetchAllECBlocks(sample BinaryMarshallableAndCopyable) (cBlocks []BinaryMarshallableAndCopyable, err error)
-
+	FetchAllECBlocks() ([]IEntryCreditBlock, error)
+	
 	// FetchAllFBInfo gets all of the fbInfo
-	FetchAllDBlocks(BinaryMarshallableAndCopyable) (fBlocks []BinaryMarshallableAndCopyable, err error)
+	FetchAllDBlocks() ([]IDirectoryBlock, error)	
 
 	// FetchDBHashByHeight gets a dBlockHash from the database.
 	FetchDBHashByHeight(dBlockHeight uint32) (dBlockHash IHash, err error)
 
 	// FetchDBlockByHeight gets an directory block by height from the database.
-	FetchDBlockByHeight(dBlockHeight uint32, dst DatabaseBatchable) (dBlock DatabaseBatchable, err error)
+	FetchDBlockByHeight(uint32) (DatabaseBatchable, error)
 
 	// ProcessECBlockBatche inserts the ECBlock and update all it's ecbentries in DB
 	ProcessECBlockBatch(block DatabaseBatchable) (err error)
 
 	// FetchECBlockByHash gets an Entry Credit block by hash from the database.
-	FetchECBlockByHash(hash IHash, dst DatabaseBatchable) (DatabaseBatchable, error)
+	FetchECBlockByHash(IHash) (DatabaseBatchable, error)
 
 	// Initialize External ID map for explorer search
 	// InitializeExternalIDMap() (extIDMap map[string]bool, err error)
@@ -124,19 +125,19 @@ type DBOverlay interface {
 	ProcessABlockBatch(block DatabaseBatchable) error
 
 	// FetchABlockByHash gets an admin block by hash from the database.
-	FetchABlockByHash(aBlockHash IHash, dst DatabaseBatchable) (aBlock DatabaseBatchable, err error)
+	FetchABlockByHash(hash IHash) (IAdminBlock, error)
 
 	// FetchAllABlocks gets all of the admin blocks
-	FetchAllABlocks(BinaryMarshallableAndCopyable) (aBlocks []BinaryMarshallableAndCopyable, err error)
-
+	FetchAllABlocks() ([]IAdminBlock, error)
+	
 	// ProcessFBlockBatch inserts the Factoid
 	ProcessFBlockBatch(DatabaseBatchable) error
 
 	// FetchFBlockByHash gets an admin block by hash from the database.
-	FetchFBlockByHash(IHash, DatabaseBatchable) (DatabaseBatchable, error)
+	FetchFBlockByHash(IHash) (DatabaseBatchable, error)
 
 	// FetchAllFBlocks gets all of the admin blocks
-	FetchAllFBlocks(BinaryMarshallableAndCopyable) ([]BinaryMarshallableAndCopyable, error)
+	FetchAllFBlocks() ([]IFBlock, error)
 
 	// UpdateBlockHeightCache updates the dir block height cache in db
 	//UpdateBlockHeightCache(dirBlkHeigh uint32, dirBlkHash IHash) error
@@ -153,27 +154,6 @@ type DBOverlay interface {
 	// FtchHeadMRByChainID gets a MR of the highest block from the database.
 	//FetchHeadMRByChainID(chainID IHash) (blkMR IHash, err error)
 
-	// Return the Factoid block with this hash.  If unknown, returns
-	// a null.
-	GetTransactionBlock(IHash, IFBlock) (IFBlock, error)
-	// Put a Factoid block with this hash into the database.
-	PutTransactionBlock(IHash, IFBlock) error
-	// Use Entry Credits, which lowers their balance
-	UseECs(address IAddress, amount uint64) error
+	SaveFactoidBlockHead(fblock DatabaseBatchable) error
 
-	// Update balance updates the balance for a Factoid address in
-	// the database.  Note that we take an int64 to allow debits
-	// as well as credits
-	UpdateBalance(address IAddress, amount int64) error
-
-	// Update balance updates the balance for an Entry Credit address
-	// in the database.  Note that we take an int64 to allow debits
-	// as well as credits
-	UpdateECBalance(address IAddress, amount int64) error
-
-	// Return the Factoid balance for an address
-	GetBalance(address IAddress) uint64
-
-	// Return the Entry Credit balance for an address
-	GetECBalance(address IAddress) uint64
 }

@@ -309,6 +309,14 @@ func (s *State) loadDatabase() {
 			panic("dblk should never be nil")
 		}
 	} else {
+		dbPrev, err := s.DB.FetchDBlockByKeyMR(dblk.GetHeader().GetPrevKeyMR()) 
+		if dbPrev == nil {
+			panic("Did not find the Previous Directory Block in the database")
+		}
+		if err != nil {
+			panic("Failed to load the Previous Directory Block: "+ err.Error())
+		}
+		s.PreviousDirectoryBlock = dbPrev.(interfaces.IDirectoryBlock)
 		fblk, err := s.DB.FetchFactoidBlockHead()
 		if err != nil {
 			panic(err.Error())
@@ -391,11 +399,11 @@ func (s *State) SetCurrentDirectoryBlock(dirblk interfaces.IDirectoryBlock) {
 	s.SetDBHeight(dirblk.GetHeader().GetDBHeight())
 }
 
-func (s *State) GetDB() interfaces.IDatabase {
-	return s.DB.DB
+func (s *State) GetDB() interfaces.DBOverlay {
+	return s.DB
 }
 
-func (s *State) SetDB(dbase interfaces.IDatabase) {
+func (s *State) SetDB(dbase interfaces.DBOverlay) {
 	s.DB = databaseOverlay.NewOverlay(dbase)
 }
 
