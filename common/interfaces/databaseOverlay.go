@@ -25,9 +25,9 @@ type DBOverlay interface {
 
 	// FetchAllEBlocksByChain gets all of the blocks by chain id
 	FetchAllEBlocksByChain(IHash) ([]IEntryBlock, error)
-	
+
 	// FetchDBlock gets an entry by hash from the database.
-	FetchDBlockByHash(dBlockHash IHash, dst DatabaseBatchable) (dBlock DatabaseBatchable, err error)
+	FetchDBlockByHash(dBlockHash IHash) (dBlock IDirectoryBlock, err error)
 
 	// FetchDBHashByMR gets a DBHash by MR from the database.
 	FetchDBHashByMR(dBMR IHash) (dBlockHash IHash, err error)
@@ -43,15 +43,15 @@ type DBOverlay interface {
 
 	// FetchAllECBlocks gets all of the entry credit blocks
 	FetchAllECBlocks() ([]IEntryCreditBlock, error)
-	
+
 	// FetchAllFBInfo gets all of the fbInfo
-	FetchAllDBlocks() ([]IDirectoryBlock, error)	
+	FetchAllDBlocks() ([]IDirectoryBlock, error)
 
 	// FetchDBHashByHeight gets a dBlockHash from the database.
 	FetchDBHashByHeight(dBlockHeight uint32) (dBlockHash IHash, err error)
 
 	// FetchDBlockByHeight gets an directory block by height from the database.
-	FetchDBlockByHeight(uint32) (DatabaseBatchable, error)
+	FetchDBlockByHeight(uint32) (IDirectoryBlock, error)
 
 	// ProcessECBlockBatche inserts the ECBlock and update all it's ecbentries in DB
 	ProcessECBlockBatch(block DatabaseBatchable) (err error)
@@ -67,7 +67,7 @@ type DBOverlay interface {
 
 	// FetchAllABlocks gets all of the admin blocks
 	FetchAllABlocks() ([]IAdminBlock, error)
-	
+
 	// ProcessFBlockBatch inserts the Factoid
 	ProcessFBlockBatch(DatabaseBatchable) error
 
@@ -78,5 +78,4 @@ type DBOverlay interface {
 	FetchAllFBlocks() ([]IFBlock, error)
 
 	SaveFactoidBlockHead(fblock DatabaseBatchable) error
-
 }

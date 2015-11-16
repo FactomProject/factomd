@@ -12,9 +12,9 @@ import (
 
 // ProcessDBlockBatche inserts the DBlock and update all it's dbentries in DB
 func (db *Overlay) ProcessDBlockBatch(dblock interfaces.DatabaseBatchable) error {
-	return db.ProcessBlockBatch([]byte{byte(DIRECTORYBLOCK)}, 
-								[]byte{byte(DIRECTORYBLOCK_NUMBER)}, 
-								[]byte{byte(DIRECTORYBLOCK_KEYMR)}, dblock)
+	return db.ProcessBlockBatch([]byte{byte(DIRECTORYBLOCK)},
+		[]byte{byte(DIRECTORYBLOCK_NUMBER)},
+		[]byte{byte(DIRECTORYBLOCK_KEYMR)}, dblock)
 }
 
 // FetchHeightRange looks up a range of blocks by the start and ending
@@ -42,13 +42,27 @@ func (db *Overlay) FetchBlockHeightByKeyMR(sha interfaces.IHash) (int64, error) 
 }
 
 // FetchDBlock gets an entry by hash from the database.
-func (db *Overlay) FetchDBlockByKeyMR(keyMR interfaces.IHash) (interfaces.DatabaseBatchable, error) {
-	return db.FetchBlock([]byte{byte(DIRECTORYBLOCK_KEYMR)}, keyMR, new(directoryBlock.DirectoryBlock))
+func (db *Overlay) FetchDBlockByKeyMR(keyMR interfaces.IHash) (interfaces.IDirectoryBlock, error) {
+	block, err := db.FetchBlock([]byte{byte(DIRECTORYBLOCK_KEYMR)}, keyMR, new(directoryBlock.DirectoryBlock))
+	if err != nil {
+		return nil, err
+	}
+	if block == nil {
+		return nil, nil
+	}
+	return block.(interfaces.IDirectoryBlock), nil
 }
 
 // FetchDBlockByHeight gets an directory block by height from the database.
-func (db *Overlay) FetchDBlockByHeight(dBlockHeight uint32) (interfaces.DatabaseBatchable, error) {
-	return db.FetchBlockByHeight([]byte{byte(DIRECTORYBLOCK_NUMBER)}, []byte{byte(DIRECTORYBLOCK_KEYMR)}, dBlockHeight, new(directoryBlock.DirectoryBlock))
+func (db *Overlay) FetchDBlockByHeight(dBlockHeight uint32) (interfaces.IDirectoryBlock, error) {
+	block, err := db.FetchBlockByHeight([]byte{byte(DIRECTORYBLOCK_NUMBER)}, []byte{byte(DIRECTORYBLOCK_KEYMR)}, dBlockHeight, new(directoryBlock.DirectoryBlock))
+	if err != nil {
+		return nil, err
+	}
+	if block == nil {
+		return nil, nil
+	}
+	return block.(interfaces.IDirectoryBlock), nil
 }
 
 // FetchDBHashByHeight gets a dBlockHash from the database.
@@ -62,8 +76,15 @@ func (db *Overlay) FetchDBHashByMR(dBMR interfaces.IHash) (interfaces.IHash, err
 }
 
 // FetchDBlockByMR gets a directory block by merkle root from the database.
-func (db *Overlay) FetchDBlockByHash(dBMR interfaces.IHash, dst interfaces.DatabaseBatchable) (interfaces.DatabaseBatchable, error) {
-	return db.FetchBlockBySecondaryIndex([]byte{byte(DIRECTORYBLOCK_KEYMR)}, []byte{byte(DIRECTORYBLOCK)}, dBMR, dst)
+func (db *Overlay) FetchDBlockByHash(dBMR interfaces.IHash) (interfaces.IDirectoryBlock, error) {
+	block, err := db.FetchBlockBySecondaryIndex([]byte{byte(DIRECTORYBLOCK_KEYMR)}, []byte{byte(DIRECTORYBLOCK)}, dBMR, new(directoryBlock.DirectoryBlock))
+	if err != nil {
+		return nil, err
+	}
+	if block == nil {
+		return nil, nil
+	}
+	return block.(interfaces.IDirectoryBlock), nil
 }
 
 // FetchAllDBlocks gets all of the fbInfo
