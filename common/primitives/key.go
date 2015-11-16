@@ -15,7 +15,7 @@ type Verifyer interface {
 
 // Signer object can Sign msg
 type Signer interface {
-	Sign(msg []byte) *Signature
+	Sign(msg []byte) interfaces.IFullSignature
 }
 
 // PrivateKey contains Public/Private key pair
@@ -25,6 +25,11 @@ type PrivateKey struct {
 }
 
 var _ Signer = (*PrivateKey)(nil)
+
+
+func (pk *PrivateKey) CustomMarshalText2(string) ([]byte, error) {
+	return ([]byte)(hex.EncodeToString(pk.Key[:])+pk.Pub.String()), nil
+}
 
 func (pk *PrivateKey) Public() []byte {
 	return (*pk.Pub.Key)[:]
@@ -48,15 +53,16 @@ func NewPrivateKeyFromHex(s string) (pk PrivateKey, err error) {
 }
 
 // Sign signs msg with PrivateKey and return Signature
-func (pk *PrivateKey) Sign(msg []byte) (sig *Signature) {
+func (pk *PrivateKey) Sign(msg []byte) (sig interfaces.IFullSignature) {
 	sig = new(Signature)
-	sig.Pub = pk.Pub
-	sig.Sig = ed25519.Sign(pk.Key, msg)
+	sig.SetPub(pk.Pub.Key[:])
+	s := ed25519.Sign(pk.Key,msg)
+	sig.SetSignature(s[:])
 	return
 }
 
 // Sign signs msg with PrivateKey and return Signature
-func (pk *PrivateKey) MarshalSign(msg interfaces.BinaryMarshallable) (sig *Signature) {
+func (pk *PrivateKey) MarshalSign(msg interfaces.BinaryMarshallable) (sig interfaces.IFullSignature) {
 	data, _ := msg.MarshalBinary()
 	return pk.Sign(data)
 }

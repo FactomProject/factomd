@@ -69,10 +69,10 @@ func UnmarshalMessage(data []byte) (interfaces.IMsg, error) {
 type Signable interface {
 	Sign(primitives.Signer) error
 	MarshalForSignature() ([]byte, error)
-	GetSignature() *primitives.Signature
+	GetSignature() interfaces.IFullSignature
 }
 
-func SignSignable(s Signable, key primitives.Signer) (*primitives.Signature, error) {
+func SignSignable(s Signable, key primitives.Signer) (interfaces.IFullSignature, error) {
 	toSign, err := s.MarshalForSignature()
 	if err != nil {
 		return nil, err

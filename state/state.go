@@ -41,7 +41,8 @@ type State struct {
 	DB *databaseOverlay.Overlay
 
 	// Directory Block State
-	CurrentDirectoryBlock interfaces.IDirectoryBlock
+	PreviousDirectoryBlock interfaces.IDirectoryBlock
+	CurrentDirectoryBlock  interfaces.IDirectoryBlock
 	DBHeight              uint32
 
 	// Web Services
@@ -58,6 +59,46 @@ type State struct {
 }
 
 var _ interfaces.IState = (*State)(nil)
+
+func (s *State) Sign([]byte) interfaces.IFullSignature {
+	return new(primitives.Signature)
+}
+
+
+// This routine is called once we have everything to create a Directory Block.
+// It is called by the follower code.  It is requried to build the Directory Block
+// to validate the signatures we will get with the DirectoryBlockSignature messages.
+func (s *State) ProcessEndOfBlock() {
+	s.PreviousDirectoryBlock = s.CurrentDirectoryBlock
+	s.FactoidState.ProcessEndOfBlock(s) // Clean up Factoids
+	
+	db, err := s.CreateDBlock()
+	if err != nil {
+		panic("Failed to create a Directory Block")
+	}
+	
+	s.SetDBHeight(s.GetDBHeight() + 1)
+	
+	s.SetCurrentDirectoryBlock(db)
+	
+	if s.PreviousDirectoryBlock != nil {
+		bodyMR, err := s.PreviousDirectoryBlock.BuildBodyMR()
+		if err != nil {
+			panic(err.Error())
+		}
+		s.PreviousDirectoryBlock.GetHeader().SetBodyMR(bodyMR)
+		
+		dbo := databaseOverlay.NewOverlay(s.GetDB())
+		if err = dbo.SaveDirectoryBlockHead(s.PreviousDirectoryBlock); err != nil {
+			panic(err.Error())
+		}
+		
+	} else {
+		log.Println("No old db")
+	}
+	
+}
+
 
 func (s *State) GetEntryCreditBlock() interfaces.IEntryCreditBlock {
 	return s.EntryCreditBlock
@@ -335,6 +376,10 @@ func (s *State) String() string {
 func (s *State) GetNetworkName() string {
 	return (s.Cfg.(util.FactomdConfig)).App.Network
 
+}
+
+func (s *State) GetPreviousDirectoryBlock() interfaces.IDirectoryBlock {
+	return s.PreviousDirectoryBlock
 }
 
 func (s *State) GetCurrentDirectoryBlock() interfaces.IDirectoryBlock {

@@ -17,6 +17,7 @@ type IState interface {
 	GetCfg() IFactomConfig
 	Init(string)
 	String() string
+	Sign([]byte) IFullSignature
 
 	// Channels
 	//==========
@@ -48,6 +49,7 @@ type IState interface {
 	// Directory Block State
 	GetCurrentAdminBlock() IAdminBlock
 	SetCurrentAdminBlock(IAdminBlock)
+	GetPreviousDirectoryBlock() IDirectoryBlock // The previous directory block 
 	GetCurrentDirectoryBlock() IDirectoryBlock // The directory block under construction
 	SetCurrentDirectoryBlock(IDirectoryBlock)
 	GetDBHeight() uint32 // The index of the directory block under construction.
@@ -56,6 +58,9 @@ type IState interface {
 	// Message State
 	GetLastAck() IMsg // Return the last Acknowledgement set by this server
 
+	// Server Methods
+	ProcessEndOfBlock()
+	
 	// Web Services
 	SetPort(int)
 	GetPort() int

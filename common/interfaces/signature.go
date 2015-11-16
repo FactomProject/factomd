@@ -15,9 +15,19 @@ import ()
  **************************************/
 
 type ISignature interface {
-	IBlock
+	BinaryMarshallable
 	SetSignature(sig []byte) error // Set or update the signature
 	GetSignature() *[64]byte
+	CustomMarshalText() ([]byte, error)
+}
+
+type IFullSignature interface {
+	ISignature
+	SetPub(publicKey[]byte)
+	// Get the private key
+	GetKey() []byte 
+	// Validate data against this signature
+	Verify(data []byte) bool 
 }
 
 /**************************************
@@ -35,3 +45,4 @@ type ISignatureBlock interface {
 	AddSignature(sig ISignature)
 	GetSignature(int) ISignature
 }
+

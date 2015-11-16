@@ -20,7 +20,7 @@ type DirectoryBlockSignature struct {
 	DirectoryBlockKeyMR   interfaces.IHash
 	ServerIdentityChainID interfaces.IHash
 
-	Signature *primitives.Signature
+	Signature interfaces.IFullSignature
 
 	//Not marshalled
 	hash interfaces.IHash
@@ -199,7 +199,7 @@ func (m *DirectoryBlockSignature) Sign(key primitives.Signer) error {
 	return nil
 }
 
-func (m *DirectoryBlockSignature) GetSignature() *primitives.Signature {
+func (m *DirectoryBlockSignature) GetSignature() interfaces.IFullSignature {
 	return m.Signature
 }
 

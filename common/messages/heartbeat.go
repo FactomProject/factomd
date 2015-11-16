@@ -18,7 +18,7 @@ type Heartbeat struct {
 	DBlockHash      interfaces.IHash //Hash of last Directory Block
 	IdentityChainID interfaces.IHash //Identity Chain ID
 
-	Signature *primitives.Signature
+	Signature interfaces.IFullSignature
 
 	//Not marshalled
 	hash interfaces.IHash
@@ -225,7 +225,7 @@ func (m *Heartbeat) Sign(key primitives.Signer) error {
 	return nil
 }
 
-func (m *Heartbeat) GetSignature() *primitives.Signature {
+func (m *Heartbeat) GetSignature() interfaces.IFullSignature {
 	return m.Signature
 }
 

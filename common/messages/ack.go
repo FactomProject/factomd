@@ -17,7 +17,7 @@ type Ack struct {
 	Timestamp    interfaces.Timestamp
 	OriginalHash interfaces.IHash
 
-	Signature *primitives.Signature
+	Signature interfaces.IFullSignature
 
 	//Not marshalled
 	hash interfaces.IHash
@@ -178,7 +178,7 @@ func (m *Ack) Sign(key primitives.Signer) error {
 	return nil
 }
 
-func (m *Ack) GetSignature() *primitives.Signature {
+func (m *Ack) GetSignature() interfaces.IFullSignature {
 	return m.Signature
 }
 

@@ -11,7 +11,6 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/log"
 )
 
@@ -23,7 +22,7 @@ type EOM struct {
 	DirectoryBlockHeight uint32
 	IdentityChainID      interfaces.IHash
 
-	Signature *primitives.Signature
+	Signature interfaces.IFullSignature
 
 	//Not marshalled
 	hash interfaces.IHash
@@ -163,33 +162,13 @@ func (m *EOM) Leader(state interfaces.IState) bool {
 // Execute the leader functions of the given message
 func (m *EOM) LeaderExecute(state interfaces.IState) error {
 	log.Println("Leader")
-	olddb := state.GetCurrentDirectoryBlock()
-	state.GetFactoidState().ProcessEndOfBlock(state)
 
-	db, err := state.CreateDBlock()
-	if err != nil {
-		return err
-	}
-
-	state.SetDBHeight(state.GetDBHeight() + 1)
-
-	state.SetCurrentDirectoryBlock(db)
-
-	if olddb != nil {
-		bodyMR, err := olddb.BuildBodyMR()
-		if err != nil {
-			return err
-		}
-		olddb.GetHeader().SetBodyMR(bodyMR)
-
-		dbo := databaseOverlay.NewOverlay(state.GetDB())
-		if err = dbo.SaveDirectoryBlockHead(olddb); err != nil {
-			return err
-		}
-
-	} else {
-		log.Println("No old db")
-	}
+	DBM := new(DirectoryBlockSignature)
+	DBM.DirectoryBlockKeyMR = state.GetPreviousDirectoryBlock().GetKeyMR()
+	DBM.Sign(state)
+	state.NetworkOutMsgQueue() <- DBM
+	state.InMsgQueue() <- DBM
+	
 	return nil
 }
 
@@ -215,8 +194,11 @@ func (m *EOM) FollowerExecute(state interfaces.IState) error {
 
 	fmt.Println(state.GetServerState(), constants.SERVER_MODE)
 
-	if m.Minute == 9 && state.GetServerState() == constants.SERVER_MODE {
-		state.LeaderInMsgQueue() <- m
+	if m.Minute == 9 {
+		state.ProcessEndOfBlock()
+		if state.GetServerState() == constants.SERVER_MODE {
+			state.LeaderInMsgQueue() <- m
+		}
 	}
 
 	return nil
@@ -243,7 +225,7 @@ func (m *EOM) Sign(key primitives.Signer) error {
 	return nil
 }
 
-func (m *EOM) GetSignature() *primitives.Signature {
+func (m *EOM) GetSignature() interfaces.IFullSignature {
 	return m.Signature
 }
 

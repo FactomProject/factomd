@@ -7,6 +7,7 @@ package primitives
 import (
 	//"encoding/hex"
 	"fmt"
+	"encoding/hex"
 	"github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factomd/common/interfaces"
 )
@@ -22,10 +23,34 @@ type Signature struct {
 }
 
 var _ interfaces.BinaryMarshallable = (*Signature)(nil)
+var _ interfaces.IFullSignature = (*Signature)(nil)
 
-func (sig *Signature) Key() []byte {
+func (sig *Signature) CustomMarshalText() ([]byte, error) {
+	return ([]byte)(sig.Pub.String()+hex.EncodeToString(sig.Sig[:])),nil
+}
+
+func (sig *Signature) SetPub(publicKey[]byte) {
+	sig.Pub.Key = new([ed25519.PublicKeySize]byte)
+	copy(sig.Pub.Key[:],publicKey)
+}
+
+func (sig *Signature) GetKey() []byte {
 	return (*sig.Pub.Key)[:]
 }
+
+func (sig *Signature) SetSignature(signature []byte) error {
+	if len(signature) != ed25519.SignatureSize {
+		return fmt.Errorf("Signature wrong size")
+	}
+	sig.Sig = new([ed25519.SignatureSize]byte)
+	copy(sig.Sig[:],signature)
+	return nil
+}
+
+func (sig *Signature) GetSignature() *[ed25519.SignatureSize]byte {
+	return sig.Sig
+}
+
 
 func (s *Signature) MarshalBinary() ([]byte, error) {
 	if s.Pub.Key == nil || s.Sig == nil {
@@ -57,15 +82,6 @@ func (sig *Signature) DetachSig() *DetachedSignature {
 func (ds *DetachedSignature) String() string {
 	return hex.EncodeToString(ds[:])
 }*/
-
-func UnmarshalBinarySignature(data []byte) (sig Signature) {
-	sig.Pub.Key = new([ed25519.PublicKeySize]byte)
-	sig.Sig = new([ed25519.SignatureSize]byte)
-	copy(sig.Pub.Key[:], data[:ed25519.PublicKeySize])
-	data = data[ed25519.PublicKeySize:]
-	copy(sig.Sig[:], data[:ed25519.SignatureSize])
-	return
-}
 
 // Verify returns true iff sig is a valid signature of msg by PublicKey.
 func (sig *Signature) Verify(msg []byte) bool {
