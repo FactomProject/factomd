@@ -88,8 +88,10 @@ func (s *State) ProcessEndOfBlock() {
 		}
 		s.PreviousDirectoryBlock.GetHeader().SetBodyMR(bodyMR)
 		
-		dbo := databaseOverlay.NewOverlay(s.GetDB())
-		if err = dbo.SaveDirectoryBlockHead(s.PreviousDirectoryBlock); err != nil {
+		if err = s.DB.SaveDirectoryBlockHead(s.PreviousDirectoryBlock); err != nil {
+			panic(err.Error())
+		}
+		if err = s.DB.SaveDirectoryBlockHead(s.PreviousDirectoryBlock); err != nil {
 			panic(err.Error())
 		}
 		

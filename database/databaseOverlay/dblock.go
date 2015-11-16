@@ -12,7 +12,9 @@ import (
 
 // ProcessDBlockBatche inserts the DBlock and update all it's dbentries in DB
 func (db *Overlay) ProcessDBlockBatch(dblock interfaces.DatabaseBatchable) error {
-	return db.ProcessBlockBatch([]byte{byte(DIRECTORYBLOCK)}, []byte{byte(DIRECTORYBLOCK_NUMBER)}, []byte{byte(DIRECTORYBLOCK_KEYMR)}, dblock)
+	return db.ProcessBlockBatch([]byte{byte(DIRECTORYBLOCK)}, 
+								[]byte{byte(DIRECTORYBLOCK_NUMBER)}, 
+								[]byte{byte(DIRECTORYBLOCK_KEYMR)}, dblock)
 }
 
 // FetchHeightRange looks up a range of blocks by the start and ending
@@ -41,7 +43,7 @@ func (db *Overlay) FetchBlockHeightByKeyMR(sha interfaces.IHash) (int64, error) 
 
 // FetchDBlock gets an entry by hash from the database.
 func (db *Overlay) FetchDBlockByKeyMR(keyMR interfaces.IHash) (interfaces.DatabaseBatchable, error) {
-	return db.FetchBlock([]byte{byte(DIRECTORYBLOCK)}, keyMR, new(directoryBlock.DirectoryBlock))
+	return db.FetchBlock([]byte{byte(DIRECTORYBLOCK_KEYMR)}, keyMR, new(directoryBlock.DirectoryBlock))
 }
 
 // FetchDBlockByHeight gets an directory block by height from the database.
