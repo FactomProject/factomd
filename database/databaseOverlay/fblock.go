@@ -10,8 +10,26 @@ func (db *Overlay) ProcessFBlockBatch(block interfaces.DatabaseBatchable) error 
 	return db.ProcessBlockBatch([]byte{byte(FACTOIDBLOCK)}, []byte{byte(FACTOIDBLOCK_NUMBER)}, []byte{byte(FACTOIDBLOCK_KEYMR)}, block)
 }
 
-func (db *Overlay) FetchFBlockByHash(hash interfaces.IHash) (interfaces.DatabaseBatchable, error) {
-	return db.FetchBlock([]byte{byte(FACTOIDBLOCK)}, hash, new(block.FBlock))
+func (db *Overlay) FetchFBlockByHash(hash interfaces.IHash) (interfaces.IFBlock, error) {
+	block, err := db.FetchBlockBySecondaryIndex([]byte{byte(FACTOIDBLOCK_KEYMR)}, []byte{byte(FACTOIDBLOCK)}, hash, new(block.FBlock))
+	if err != nil {
+		return nil, err
+	}
+	if block == nil {
+		return nil, nil
+	}
+	return block.(interfaces.IFBlock), nil
+}
+
+func (db *Overlay) FetchFBlockByKeyMR(keyMR interfaces.IHash) (interfaces.IFBlock, error) {
+	block, err := db.FetchBlock([]byte{byte(FACTOIDBLOCK)}, keyMR, new(block.FBlock))
+	if err != nil {
+		return nil, err
+	}
+	if block == nil {
+		return nil, nil
+	}
+	return block.(interfaces.IFBlock), nil
 }
 
 func (db *Overlay) FetchAllFBlocks() ([]interfaces.IFBlock, error) {

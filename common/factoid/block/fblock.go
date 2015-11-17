@@ -642,12 +642,22 @@ func (e *FBlock) JSONBuffer(b *bytes.Buffer) error {
  * Helper Functions
  **************************/
 
-func NewFBlock(ExchRate uint64, DBHeight uint32) interfaces.IFBlock {
+func NewFBlock(exchRate uint64, dbHeight uint32) interfaces.IFBlock {
 	scb := new(FBlock)
 	scb.BodyMR = new(primitives.Hash)
 	scb.PrevKeyMR = new(primitives.Hash)
 	scb.PrevLedgerKeyMR = new(primitives.Hash)
-	scb.ExchRate = ExchRate
-	scb.DBHeight = DBHeight
+	scb.ExchRate = exchRate
+	scb.DBHeight = dbHeight
 	return scb
+}
+
+func NewFBlockFromPreviousBlock(exchangeRate uint64, prev interfaces.IFBlock) interfaces.IFBlock {
+	if prev != nil {
+		newBlock := NewFBlock(exchangeRate, prev.GetDBHeight()+1)
+		newBlock.SetPrevKeyMR(prev.GetKeyMR().Bytes())
+		newBlock.SetPrevLedgerKeyMR(prev.GetLedgerKeyMR().Bytes())
+		return newBlock
+	}
+	return NewFBlock(exchangeRate, 0)
 }
