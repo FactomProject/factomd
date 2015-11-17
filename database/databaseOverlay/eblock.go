@@ -11,13 +11,27 @@ func (db *Overlay) ProcessEBlockBatch(eblock interfaces.DatabaseBatchable) error
 }
 
 // FetchEBlockByMR gets an entry block by merkle root from the database.
-func (db *Overlay) FetchEBlockByHash(hash interfaces.IHash) (interfaces.DatabaseBatchable, error) {
-	return db.FetchBlockBySecondaryIndex([]byte{byte(ENTRYBLOCK_KEYMR)}, []byte{byte(ENTRYBLOCK)}, hash, entryBlock.NewEBlock())
+func (db *Overlay) FetchEBlockByHash(hash interfaces.IHash) (interfaces.IEntryBlock, error) {
+	block, err := db.FetchBlockBySecondaryIndex([]byte{byte(ENTRYBLOCK_KEYMR)}, []byte{byte(ENTRYBLOCK)}, hash, entryBlock.NewEBlock())
+	if err != nil {
+		return nil, err
+	}
+	if block == nil {
+		return nil, nil
+	}
+	return block.(interfaces.IEntryBlock), nil
 }
 
 // FetchEntryBlock gets an entry by hash from the database.
-func (db *Overlay) FetchEBlockByKeyMR(hash interfaces.IHash) (interfaces.DatabaseBatchable, error) {
-	return db.FetchBlock([]byte{byte(ENTRYBLOCK)}, hash, entryBlock.NewEBlock())
+func (db *Overlay) FetchEBlockByKeyMR(hash interfaces.IHash) (interfaces.IEntryBlock, error) {
+	block, err := db.FetchBlock([]byte{byte(ENTRYBLOCK)}, hash, entryBlock.NewEBlock())
+	if err != nil {
+		return nil, err
+	}
+	if block == nil {
+		return nil, nil
+	}
+	return block.(interfaces.IEntryBlock), nil
 }
 
 // FetchEBHashByMR gets an entry by hash from the database.

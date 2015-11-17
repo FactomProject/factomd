@@ -26,6 +26,7 @@ type EBlock struct {
 var _ interfaces.Printable = (*EBlock)(nil)
 var _ interfaces.BinaryMarshallableAndCopyable = (*EBlock)(nil)
 var _ interfaces.DatabaseBatchable = (*EBlock)(nil)
+var _ interfaces.IEntryBlock = (*EBlock)(nil)
 
 func (c *EBlock) New() interfaces.BinaryMarshallableAndCopyable {
 	return NewEBlock()
@@ -51,6 +52,10 @@ func (c *EBlock) DatabaseSecondaryIndex() interfaces.IHash {
 
 func (c *EBlock) MarshalledSize() uint64 {
 	return uint64(EBHeaderSize)
+}
+
+func (c *EBlock) GetHeader() *EBlockHeader {
+	return c.Header
 }
 
 // NewEBlock returns a blank initialized Entry Block with all of its fields
@@ -376,4 +381,12 @@ func (e *EBlockHeader) String() string {
 
 func (c *EBlockHeader) GetChainID() interfaces.IHash {
 	return c.ChainID
+}
+
+func (c *EBlockHeader) GetPrevKeyMR() interfaces.IHash {
+	return c.PrevKeyMR
+}
+
+func (c *EBlockHeader) GetPrevLedgerKeyMR() interfaces.IHash {
+	return c.PrevLedgerKeyMR
 }
