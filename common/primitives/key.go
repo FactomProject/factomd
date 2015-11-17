@@ -26,9 +26,8 @@ type PrivateKey struct {
 
 var _ Signer = (*PrivateKey)(nil)
 
-
 func (pk *PrivateKey) CustomMarshalText2(string) ([]byte, error) {
-	return ([]byte)(hex.EncodeToString(pk.Key[:])+pk.Pub.String()), nil
+	return ([]byte)(hex.EncodeToString(pk.Key[:]) + pk.Pub.String()), nil
 }
 
 func (pk *PrivateKey) Public() []byte {
@@ -56,7 +55,7 @@ func NewPrivateKeyFromHex(s string) (pk PrivateKey, err error) {
 func (pk *PrivateKey) Sign(msg []byte) (sig interfaces.IFullSignature) {
 	sig = new(Signature)
 	sig.SetPub(pk.Pub.Key[:])
-	s := ed25519.Sign(pk.Key,msg)
+	s := ed25519.Sign(pk.Key, msg)
 	sig.SetSignature(s[:])
 	return
 }

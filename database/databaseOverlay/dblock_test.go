@@ -69,6 +69,47 @@ func TestSaveLoadDBlockHead(t *testing.T) {
 	}
 }
 
+func TestSaveLoadDBlockChain(t *testing.T) {
+	blocks := []*DirectoryBlock{}
+	max := 10
+	var prev *DirectoryBlock = nil
+	dbo := NewOverlay(new(mapdb.MapDB))
+	for i := 0; i < max; i++ {
+		prev = createTestDirectoryBlock(prev)
+		blocks = append(blocks, prev)
+		err := dbo.SaveDirectoryBlockHead(prev)
+		if err != nil {
+			t.Error(err)
+		}
+	}
+
+	current, err := dbo.FetchDirectoryBlockHead()
+	if err != nil {
+		t.Error(err)
+	}
+	zero := primitives.NewZeroHash()
+	fetchedCount := 1
+	for {
+		keyMR := current.GetHeader().GetPrevKeyMR()
+		if keyMR.IsSameAs(zero) {
+			break
+		}
+		t.Logf("KeyMR - %v", keyMR.String())
+
+		current, err = dbo.FetchDBlockByKeyMR(keyMR)
+		if err != nil {
+			t.Error(err)
+		}
+		if current == nil {
+			t.Fatal("Block not found")
+		}
+		fetchedCount++
+	}
+	if fetchedCount != max {
+		t.Error("Wrong number of entries fetched - %v vs %v", fetchedCount, max)
+	}
+}
+
 func createTestDirectoryBlock(prevBlock *DirectoryBlock) *DirectoryBlock {
 	dblock := new(DirectoryBlock)
 

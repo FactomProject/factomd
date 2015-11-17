@@ -168,7 +168,7 @@ func (m *EOM) LeaderExecute(state interfaces.IState) error {
 	DBM.Sign(state)
 	state.NetworkOutMsgQueue() <- DBM
 	state.InMsgQueue() <- DBM
-	
+
 	return nil
 }
 

@@ -73,7 +73,7 @@ func (s *SignatureBlock) IsEqual(signatureBlock interfaces.IBlock) []interfaces.
 	for i, sig := range sigs1 {
 		a, err1 := sig.MarshalBinary()
 		b, err2 := sigs2[i].MarshalBinary()
-		if err1 != nil || err2 != nil || !bytes.Equal(a,b) {
+		if err1 != nil || err2 != nil || !bytes.Equal(a, b) {
 			r := make([]interfaces.IBlock, 0, 5)
 			return append(r, s)
 		}

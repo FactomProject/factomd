@@ -23,11 +23,11 @@ type ISignature interface {
 
 type IFullSignature interface {
 	ISignature
-	SetPub(publicKey[]byte)
+	SetPub(publicKey []byte)
 	// Get the private key
-	GetKey() []byte 
+	GetKey() []byte
 	// Validate data against this signature
-	Verify(data []byte) bool 
+	Verify(data []byte) bool
 }
 
 /**************************************
@@ -45,4 +45,3 @@ type ISignatureBlock interface {
 	AddSignature(sig ISignature)
 	GetSignature(int) ISignature
 }
-

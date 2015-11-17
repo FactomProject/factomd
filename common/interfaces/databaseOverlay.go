@@ -29,8 +29,8 @@ type DBOverlay interface {
 	// FetchDBlock gets an entry by hash from the database.
 	FetchDBlockByHash(dBlockHash IHash) (dBlock IDirectoryBlock, err error)
 
-	// FetchDBHashByMR gets a DBHash by MR from the database.
-	FetchDBHashByMR(dBMR IHash) (dBlockHash IHash, err error)
+	// FetchDBKeyMRByHash gets a DBlock KeyMR by hash.
+	FetchDBKeyMRByHash(hash IHash) (dBlockHash IHash, err error)
 
 	// ProcessDBlockBatche inserts the EBlock and update all it's ebentries in DB
 	ProcessDBlockBatch(block DatabaseBatchable) error
@@ -47,8 +47,8 @@ type DBOverlay interface {
 	// FetchAllFBInfo gets all of the fbInfo
 	FetchAllDBlocks() ([]IDirectoryBlock, error)
 
-	// FetchDBHashByHeight gets a dBlockHash from the database.
-	FetchDBHashByHeight(dBlockHeight uint32) (dBlockHash IHash, err error)
+	// FetchDBKeyMRByHeight gets a dBlock KeyMR from the database.
+	FetchDBKeyMRByHeight(dBlockHeight uint32) (dBlockKeyMR IHash, err error)
 
 	// FetchDBlockByHeight gets an directory block by height from the database.
 	FetchDBlockByHeight(uint32) (IDirectoryBlock, error)

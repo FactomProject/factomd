@@ -76,24 +76,15 @@ func (s *State) ProcessEndOfBlock() {
 		panic("Failed to create a Directory Block")
 	}
 
-	s.SetDBHeight(s.GetDBHeight() + 1)
-
 	s.SetCurrentDirectoryBlock(db)
 
 	if s.PreviousDirectoryBlock != nil {
-		bodyMR, err := s.PreviousDirectoryBlock.BuildBodyMR()
-		if err != nil {
-			panic(err.Error())
-		}
-		s.PreviousDirectoryBlock.GetHeader().SetBodyMR(bodyMR)
-
 		if err = s.DB.SaveDirectoryBlockHead(s.PreviousDirectoryBlock); err != nil {
 			panic(err.Error())
 		}
 	} else {
 		log.Println("No old db")
 	}
-
 }
 
 func (s *State) GetEntryCreditBlock() interfaces.IEntryCreditBlock {
@@ -392,7 +383,6 @@ func (s *State) GetCurrentDirectoryBlock() interfaces.IDirectoryBlock {
 
 func (s *State) SetCurrentDirectoryBlock(dirblk interfaces.IDirectoryBlock) {
 	s.CurrentDirectoryBlock = dirblk
-	s.SetDBHeight(dirblk.GetHeader().GetDBHeight())
 }
 
 func (s *State) GetDB() interfaces.DBOverlay {
@@ -404,11 +394,10 @@ func (s *State) SetDB(dbase interfaces.DBOverlay) {
 }
 
 func (s *State) GetDBHeight() uint32 {
-	return s.DBHeight
-}
-
-func (s *State) SetDBHeight(dbheight uint32) {
-	s.DBHeight = dbheight
+	if s.CurrentDirectoryBlock == nil {
+		return 0
+	}
+	return s.CurrentDirectoryBlock.GetHeader().GetDBHeight()
 }
 
 func (s *State) GetNewHash() interfaces.IHash {

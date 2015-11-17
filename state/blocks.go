@@ -1,6 +1,7 @@
 package state
 
 import (
+	"errors"
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
@@ -38,6 +39,7 @@ func (s *State) NewAdminBlockHeader() interfaces.IABlockHeader {
 
 func (s *State) CreateDBlock() (b interfaces.IDirectoryBlock, err error) {
 	prev := s.GetCurrentDirectoryBlock()
+
 	b = new(directoryBlock.DirectoryBlock)
 
 	b.SetHeader(new(directoryBlock.DBlockHeader))
@@ -46,17 +48,21 @@ func (s *State) CreateDBlock() (b interfaces.IDirectoryBlock, err error) {
 	if prev == nil {
 		b.GetHeader().SetPrevLedgerKeyMR(primitives.NewZeroHash())
 		b.GetHeader().SetPrevKeyMR(primitives.NewZeroHash())
+		b.GetHeader().SetDBHeight(0)
 	} else {
-		prevLedgerKeyMR, err := primitives.CreateHash(prev)
+		bodyMR, err := prev.BuildBodyMR()
 		if err != nil {
 			return nil, err
+		}
+		prev.GetHeader().SetBodyMR(bodyMR)
+
+		prevLedgerKeyMR := prev.GetHash()
+		if prevLedgerKeyMR == nil {
+			return nil, errors.New("prevLedgerKeyMR is nil")
 		}
 		b.GetHeader().SetPrevLedgerKeyMR(prevLedgerKeyMR)
-		keyMR, err := prev.BuildKeyMerkleRoot()
-		if err != nil {
-			return nil, err
-		}
-		b.GetHeader().SetPrevKeyMR(keyMR)
+		b.GetHeader().SetPrevKeyMR(prev.GetKeyMR())
+		b.GetHeader().SetDBHeight(prev.GetHeader().GetDBHeight() + 1)
 	}
 
 	adminblk := s.NewAdminBlock()
@@ -64,7 +70,6 @@ func (s *State) CreateDBlock() (b interfaces.IDirectoryBlock, err error) {
 	if err != nil {
 		panic(err.Error())
 	}
-	b.GetHeader().SetDBHeight(s.GetDBHeight())
 	b.SetDBEntries(make([]interfaces.IDBEntry, 0))
 	b.AddEntry(primitives.NewHash(constants.ADMIN_CHAINID), keymr)
 	b.AddEntry(primitives.NewHash(constants.EC_CHAINID), primitives.NewZeroHash())

@@ -6,8 +6,8 @@ package primitives
 
 import (
 	//"encoding/hex"
-	"fmt"
 	"encoding/hex"
+	"fmt"
 	"github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factomd/common/interfaces"
 )
@@ -26,12 +26,12 @@ var _ interfaces.BinaryMarshallable = (*Signature)(nil)
 var _ interfaces.IFullSignature = (*Signature)(nil)
 
 func (sig *Signature) CustomMarshalText() ([]byte, error) {
-	return ([]byte)(sig.Pub.String()+hex.EncodeToString(sig.Sig[:])),nil
+	return ([]byte)(sig.Pub.String() + hex.EncodeToString(sig.Sig[:])), nil
 }
 
-func (sig *Signature) SetPub(publicKey[]byte) {
+func (sig *Signature) SetPub(publicKey []byte) {
 	sig.Pub.Key = new([ed25519.PublicKeySize]byte)
-	copy(sig.Pub.Key[:],publicKey)
+	copy(sig.Pub.Key[:], publicKey)
 }
 
 func (sig *Signature) GetKey() []byte {
@@ -43,14 +43,13 @@ func (sig *Signature) SetSignature(signature []byte) error {
 		return fmt.Errorf("Signature wrong size")
 	}
 	sig.Sig = new([ed25519.SignatureSize]byte)
-	copy(sig.Sig[:],signature)
+	copy(sig.Sig[:], signature)
 	return nil
 }
 
 func (sig *Signature) GetSignature() *[ed25519.SignatureSize]byte {
 	return sig.Sig
 }
-
 
 func (s *Signature) MarshalBinary() ([]byte, error) {
 	if s.Pub.Key == nil || s.Sig == nil {

@@ -43,7 +43,7 @@ func (db *Overlay) FetchBlockHeightByKeyMR(sha interfaces.IHash) (int64, error) 
 
 // FetchDBlock gets an entry by hash from the database.
 func (db *Overlay) FetchDBlockByKeyMR(keyMR interfaces.IHash) (interfaces.IDirectoryBlock, error) {
-	block, err := db.FetchBlock([]byte{byte(DIRECTORYBLOCK_KEYMR)}, keyMR, new(directoryBlock.DirectoryBlock))
+	block, err := db.FetchBlock([]byte{byte(DIRECTORYBLOCK)}, keyMR, new(directoryBlock.DirectoryBlock))
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +55,7 @@ func (db *Overlay) FetchDBlockByKeyMR(keyMR interfaces.IHash) (interfaces.IDirec
 
 // FetchDBlockByHeight gets an directory block by height from the database.
 func (db *Overlay) FetchDBlockByHeight(dBlockHeight uint32) (interfaces.IDirectoryBlock, error) {
-	block, err := db.FetchBlockByHeight([]byte{byte(DIRECTORYBLOCK_NUMBER)}, []byte{byte(DIRECTORYBLOCK_KEYMR)}, dBlockHeight, new(directoryBlock.DirectoryBlock))
+	block, err := db.FetchBlockByHeight([]byte{byte(DIRECTORYBLOCK_NUMBER)}, []byte{byte(DIRECTORYBLOCK)}, dBlockHeight, new(directoryBlock.DirectoryBlock))
 	if err != nil {
 		return nil, err
 	}
@@ -65,14 +65,14 @@ func (db *Overlay) FetchDBlockByHeight(dBlockHeight uint32) (interfaces.IDirecto
 	return block.(interfaces.IDirectoryBlock), nil
 }
 
-// FetchDBHashByHeight gets a dBlockHash from the database.
-func (db *Overlay) FetchDBHashByHeight(dBlockHeight uint32) (interfaces.IHash, error) {
+// FetchDBKeyMRByHeight gets a dBlock KeyMR from the database.
+func (db *Overlay) FetchDBKeyMRByHeight(dBlockHeight uint32) (interfaces.IHash, error) {
 	return db.FetchBlockIndexByHeight([]byte{byte(DIRECTORYBLOCK_NUMBER)}, dBlockHeight)
 }
 
-// FetchDBHashByMR gets a DBHash by MR from the database.
-func (db *Overlay) FetchDBHashByMR(dBMR interfaces.IHash) (interfaces.IHash, error) {
-	return db.FetchPrimaryIndexBySecondaryIndex([]byte{byte(DIRECTORYBLOCK_KEYMR)}, dBMR)
+// FetchDBKeyMRByHash gets a DBlock KeyMR by hash.
+func (db *Overlay) FetchDBKeyMRByHash(hash interfaces.IHash) (interfaces.IHash, error) {
+	return db.FetchPrimaryIndexBySecondaryIndex([]byte{byte(DIRECTORYBLOCK_KEYMR)}, hash)
 }
 
 // FetchDBlockByMR gets a directory block by merkle root from the database.

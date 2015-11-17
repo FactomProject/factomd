@@ -138,6 +138,8 @@ func (b *DirectoryBlock) BuildKeyMerkleRoot() (keyMR interfaces.IHash, err error
 	merkle := primitives.BuildMerkleTreeStore(hashes)
 	keyMR = merkle[len(merkle)-1] // MerkleRoot is not marshalized in Dir Block
 
+	b.KeyMR = keyMR
+
 	return keyMR, nil
 }
 
