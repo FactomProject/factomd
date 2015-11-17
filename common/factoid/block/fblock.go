@@ -314,6 +314,7 @@ func (b1 *FBlock) IsEqual(block interfaces.IBlock) []interfaces.IBlock {
 
 	return nil
 }
+
 func (b *FBlock) GetChainID() []byte {
 	return constants.FACTOID_CHAINID
 }
@@ -405,13 +406,16 @@ func (b *FBlock) GetBodyMR() interfaces.IHash {
 func (b *FBlock) GetPrevKeyMR() interfaces.IHash {
 	return b.PrevKeyMR
 }
+
 func (b *FBlock) SetPrevKeyMR(hash []byte) {
 	h := primitives.NewHash(hash)
 	b.PrevKeyMR = h
 }
+
 func (b *FBlock) GetPrevLedgerKeyMR() interfaces.IHash {
 	return b.PrevLedgerKeyMR
 }
+
 func (b *FBlock) SetPrevLedgerKeyMR(hash []byte) {
 	b.PrevLedgerKeyMR.SetBytes(hash)
 }
@@ -424,12 +428,15 @@ func (b *FBlock) CalculateHashes() {
 func (b *FBlock) SetDBHeight(dbheight uint32) {
 	b.DBHeight = dbheight
 }
+
 func (b *FBlock) GetDBHeight() uint32 {
 	return b.DBHeight
 }
+
 func (b *FBlock) SetExchRate(rate uint64) {
 	b.ExchRate = rate
 }
+
 func (b *FBlock) GetExchRate() uint64 {
 	return b.ExchRate
 }
