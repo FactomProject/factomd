@@ -43,7 +43,7 @@ type State struct {
 	// Directory Block State
 	PreviousDirectoryBlock interfaces.IDirectoryBlock
 	CurrentDirectoryBlock  interfaces.IDirectoryBlock
-	DBHeight              uint32
+	DBHeight               uint32
 
 	// Web Services
 	Port int
@@ -64,43 +64,37 @@ func (s *State) Sign([]byte) interfaces.IFullSignature {
 	return new(primitives.Signature)
 }
 
-
 // This routine is called once we have everything to create a Directory Block.
 // It is called by the follower code.  It is requried to build the Directory Block
 // to validate the signatures we will get with the DirectoryBlockSignature messages.
 func (s *State) ProcessEndOfBlock() {
 	s.PreviousDirectoryBlock = s.CurrentDirectoryBlock
 	s.FactoidState.ProcessEndOfBlock(s) // Clean up Factoids
-	
+
 	db, err := s.CreateDBlock()
 	if err != nil {
 		panic("Failed to create a Directory Block")
 	}
-	
+
 	s.SetDBHeight(s.GetDBHeight() + 1)
-	
+
 	s.SetCurrentDirectoryBlock(db)
-	
+
 	if s.PreviousDirectoryBlock != nil {
 		bodyMR, err := s.PreviousDirectoryBlock.BuildBodyMR()
 		if err != nil {
 			panic(err.Error())
 		}
 		s.PreviousDirectoryBlock.GetHeader().SetBodyMR(bodyMR)
-		
+
 		if err = s.DB.SaveDirectoryBlockHead(s.PreviousDirectoryBlock); err != nil {
 			panic(err.Error())
 		}
-		if err = s.DB.SaveDirectoryBlockHead(s.PreviousDirectoryBlock); err != nil {
-			panic(err.Error())
-		}
-		
 	} else {
 		log.Println("No old db")
 	}
-	
-}
 
+}
 
 func (s *State) GetEntryCreditBlock() interfaces.IEntryCreditBlock {
 	return s.EntryCreditBlock
@@ -311,12 +305,12 @@ func (s *State) loadDatabase() {
 			panic("dblk should never be nil")
 		}
 	} else {
-		dbPrev, err := s.DB.FetchDBlockByKeyMR(dblk.GetHeader().GetPrevKeyMR()) 
+		dbPrev, err := s.DB.FetchDBlockByKeyMR(dblk.GetHeader().GetPrevKeyMR())
+		if err != nil {
+			panic("Failed to load the Previous Directory Block: " + err.Error())
+		}
 		if dbPrev == nil {
 			panic("Did not find the Previous Directory Block in the database")
-		}
-		if err != nil {
-			panic("Failed to load the Previous Directory Block: "+ err.Error())
 		}
 		s.PreviousDirectoryBlock = dbPrev.(interfaces.IDirectoryBlock)
 		fblk, err := s.DB.FetchFactoidBlockHead()
