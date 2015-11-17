@@ -3,6 +3,7 @@ package databaseOverlay
 import (
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 // ProcessABlockBatch inserts the AdminBlock
@@ -12,6 +13,18 @@ func (db *Overlay) ProcessABlockBatch(block interfaces.DatabaseBatchable) error 
 
 // FetchABlockByHash gets an admin block by hash from the database.
 func (db *Overlay) FetchABlockByHash(hash interfaces.IHash) (interfaces.IAdminBlock, error) {
+	block, err := db.FetchBlockBySecondaryIndex([]byte{byte(ADMINBLOCK_KEYMR)}, []byte{byte(ADMINBLOCK)}, hash, new(adminBlock.AdminBlock))
+	if err != nil {
+		return nil, err
+	}
+	if block == nil {
+		return nil, nil
+	}
+	return block.(interfaces.IAdminBlock), nil
+}
+
+// FetchABlockByKeyMR gets an admin block by keyMR from the database.
+func (db *Overlay) FetchABlockByKeyMR(hash interfaces.IHash) (interfaces.IAdminBlock, error) {
 	block, err := db.FetchBlock([]byte{byte(ADMINBLOCK)}, hash, new(adminBlock.AdminBlock))
 	if err != nil {
 		return nil, err
@@ -41,4 +54,16 @@ func toABlocksList(source []interfaces.BinaryMarshallableAndCopyable) []interfac
 
 func (db *Overlay) SaveABlockHead(block interfaces.DatabaseBatchable) error {
 	return db.ProcessABlockBatch(block)
+}
+
+func (db *Overlay) FetchABlockHead() (interfaces.IAdminBlock, error) {
+	blk := adminBlock.NewAdminBlock()
+	block, err := db.FetchChainHeadByChainID([]byte{byte(ADMINBLOCK)}, primitives.NewHash(blk.GetChainID()), blk)
+	if err != nil {
+		return nil, err
+	}
+	if block == nil {
+		return nil, nil
+	}
+	return block.(interfaces.IAdminBlock), nil
 }

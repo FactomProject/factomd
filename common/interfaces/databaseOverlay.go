@@ -65,6 +65,9 @@ type DBOverlay interface {
 	// FetchABlockByHash gets an admin block by hash from the database.
 	FetchABlockByHash(hash IHash) (IAdminBlock, error)
 
+	// FetchABlockByKeyMR gets an admin block by keyMR from the database.
+	FetchABlockByKeyMR(hash IHash) (IAdminBlock, error)
+
 	// FetchAllABlocks gets all of the admin blocks
 	FetchAllABlocks() ([]IAdminBlock, error)
 

@@ -266,30 +266,6 @@ func TestInvalidAdminBlockUnmarshal(t *testing.T) {
 	}
 }
 
-func TestMarshalledSize(t *testing.T) {
-	fmt.Printf("\n---\nTestMarshalledSize\n---\n")
-
-	header := createTestAdminHeader()
-	marshalled, err := header.MarshalBinary()
-	if err != nil {
-		t.Error(err)
-		t.FailNow()
-	}
-	if header.MarshalledSize() != uint64(len(marshalled)) {
-		t.Error("Predicted size does not match actual size")
-	}
-
-	header2 := createSmallTestAdminHeader()
-	marshalled2, err := header2.MarshalBinary()
-	if err != nil {
-		t.Error(err)
-		t.FailNow()
-	}
-	if header2.MarshalledSize() != uint64(len(marshalled2)) {
-		t.Error("Predicted size does not match actual size")
-	}
-}
-
 func createTestAdminBlock() (block interfaces.IAdminBlock) {
 	block = new(AdminBlock)
 	block.SetHeader(createTestAdminHeader())

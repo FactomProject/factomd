@@ -53,8 +53,14 @@ func (c *AdminBlock) SetABEntries(abentries []interfaces.IABEntry) {
 	c.ABEntries = abentries
 }
 
+func NewAdminBlock() interfaces.IAdminBlock {
+	block := new(AdminBlock)
+	block.Header = new(ABlockHeader)
+	return block
+}
+
 func (c *AdminBlock) New() interfaces.BinaryMarshallableAndCopyable {
-	return new(AdminBlock)
+	return NewAdminBlock()
 }
 
 func (c *AdminBlock) GetDatabaseHeight() uint32 {
@@ -66,17 +72,17 @@ func (c *AdminBlock) GetChainID() []byte {
 }
 
 func (c *AdminBlock) DatabasePrimaryIndex() interfaces.IHash {
-	key, _ := c.PartialHash()
-	return key
-}
-
-func (c *AdminBlock) DatabaseSecondaryIndex() interfaces.IHash {
 	key, _ := c.LedgerKeyMR()
 	return key
 }
 
+func (c *AdminBlock) DatabaseSecondaryIndex() interfaces.IHash {
+	key, _ := c.PartialHash()
+	return key
+}
+
 func (c *AdminBlock) GetKeyMR() (interfaces.IHash, error) {
-	return c.PartialHash()
+	return c.LedgerKeyMR()
 }
 
 func (ab *AdminBlock) LedgerKeyMR() (interfaces.IHash, error) {

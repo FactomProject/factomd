@@ -17,6 +17,7 @@ func TestSaveLoadDBlockHead(t *testing.T) {
 	b1 := createTestDirectoryBlock(nil)
 
 	dbo := NewOverlay(new(mapdb.MapDB))
+	defer dbo.Close()
 
 	err := dbo.SaveDirectoryBlockHead(b1)
 	if err != nil {
@@ -74,6 +75,8 @@ func TestSaveLoadDBlockChain(t *testing.T) {
 	max := 10
 	var prev *DirectoryBlock = nil
 	dbo := NewOverlay(new(mapdb.MapDB))
+	defer dbo.Close()
+
 	for i := 0; i < max; i++ {
 		prev = createTestDirectoryBlock(prev)
 		blocks = append(blocks, prev)
