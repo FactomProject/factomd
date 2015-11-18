@@ -26,24 +26,32 @@ const (
 // of primarily Commits and Balance Increases with Minute Markers and Server
 // Markers distributed throughout.
 type ECBlock struct {
-	Header *ECBlockHeader
-	Body   *ECBlockBody
+	Header interfaces.IECBlockHeader
+	Body   interfaces.IECBlockBody
 }
 
 var _ interfaces.Printable = (*ECBlock)(nil)
 var _ interfaces.BinaryMarshallableAndCopyable = (*ECBlock)(nil)
 var _ interfaces.IEntryCreditBlock = (*ECBlock)(nil)
 
+func (c *ECBlock) GetBody() interfaces.IECBlockBody {
+	return c.Body
+}
+
+func (c *ECBlock) GetHeader() interfaces.IECBlockHeader {
+	return c.Header
+}
+
 func (c *ECBlock) New() interfaces.BinaryMarshallableAndCopyable {
 	return new(ECBlock)
 }
 
 func (c *ECBlock) GetDatabaseHeight() uint32 {
-	return c.Header.DBHeight
+	return c.Header.GetDBHeight()
 }
 
 func (c *ECBlock) GetChainID() []byte {
-	return c.Header.ECChainID.Bytes()
+	return c.Header.GetECChainID().Bytes()
 }
 
 func (c *ECBlock) DatabasePrimaryIndex() interfaces.IHash {
@@ -63,23 +71,36 @@ func NewECBlock() interfaces.IEntryCreditBlock {
 	return e
 }
 
-func NextECBlock(prev *ECBlock) (*ECBlock, error) {
-	e := NewECBlock().(*ECBlock)
+func NextECBlock(prev interfaces.IEntryCreditBlock) (interfaces.IEntryCreditBlock, error) {
+	e := prev.New().(interfaces.IEntryCreditBlock)
 	var err error
-	e.Header.PrevHeaderHash, err = prev.HeaderHash()
+	
+	// Handle the really unusual case of the first block.
+	if prev == nil {
+		e.GetHeader().SetPrevHeaderHash(primitives.NewHash(constants.ZERO_HASH))
+		e.GetHeader().SetPrevLedgerKeyMR(primitives.NewHash(constants.ZERO_HASH))
+		e.GetHeader().SetDBHeight(1)
+		return e, nil
+	}
+	
+	v, err := prev.HeaderHash()
 	if err != nil {
 		return nil, err
 	}
-	e.Header.PrevLedgerKeyMR, err = prev.Hash()
+	e.GetHeader().SetPrevHeaderHash(v)
+	
+	v, err = prev.Hash()
 	if err != nil {
 		return nil, err
 	}
-	e.Header.DBHeight = prev.Header.DBHeight + 1
+	e.GetHeader().SetPrevLedgerKeyMR(v)
+
+	e.GetHeader().SetDBHeight(prev.GetHeader().GetDBHeight() + 1)
 	return e, nil
 }
 
-func (e *ECBlock) AddEntry(entries ...ECBlockEntry) {
-	e.Body.Entries = append(e.Body.Entries, entries...)
+func (e *ECBlock) AddEntry(entries ...interfaces.IECBlockEntry) {
+	e.GetBody().SetEntries(append(e.GetBody().GetEntries(), entries...))
 }
 
 func (e *ECBlock) Hash() (interfaces.IHash, error) {
@@ -128,9 +149,10 @@ func (e *ECBlock) BuildHeader() error {
 		return err
 	}
 
-	e.Header.BodyHash = primitives.Sha(p)
-	e.Header.ObjectCount = uint64(len(e.Body.Entries))
-	e.Header.BodySize = uint64(len(p))
+	header := e.Header.(*ECBlockHeader)
+	header.BodyHash = primitives.Sha(p)
+	header.ObjectCount = uint64(len(e.GetBody().GetEntries()))
+	header.BodySize = uint64(len(p))
 
 	return nil
 }
@@ -159,7 +181,7 @@ func (e *ECBlock) UnmarshalBinary(data []byte) (err error) {
 func (e *ECBlock) marshalBodyBinary() ([]byte, error) {
 	buf := new(bytes.Buffer)
 
-	for _, v := range e.Body.Entries {
+	for _, v := range e.GetBody().GetEntries() {
 		p, err := v.MarshalBinary()
 		if err != nil {
 			return buf.Bytes(), err
@@ -175,19 +197,19 @@ func (e *ECBlock) marshalHeaderBinary() ([]byte, error) {
 	buf := new(bytes.Buffer)
 
 	// 32 byte ECChainID
-	buf.Write(e.Header.ECChainID.Bytes())
+	buf.Write(e.GetHeader().GetECChainID().Bytes())
 
 	// 32 byte BodyHash
-	buf.Write(e.Header.BodyHash.Bytes())
+	buf.Write(e.GetHeader().GetBodyHash().Bytes())
 
 	// 32 byte Previous Header Hash
-	buf.Write(e.Header.PrevHeaderHash.Bytes())
+	buf.Write(e.GetHeader().GetPrevHeaderHash().Bytes())
 
 	// 32 byte Previous Full Hash
-	buf.Write(e.Header.PrevLedgerKeyMR.Bytes())
+	buf.Write(e.GetHeader().GetPrevLedgerKeyMR().Bytes())
 
 	// 4 byte Directory Block Height
-	if err := binary.Write(buf, binary.BigEndian, e.Header.DBHeight); err != nil {
+	if err := binary.Write(buf, binary.BigEndian, e.GetHeader().GetDBHeight()); err != nil {
 		return buf.Bytes(), err
 	}
 
@@ -372,12 +394,13 @@ func (e *ECBlock) String() string {
 }
 
 type ECBlockBody struct {
-	Entries []ECBlockEntry
+	Entries []interfaces.IECBlockEntry
 }
 
 var _ interfaces.Printable = (*ECBlockBody)(nil)
+var _ interfaces.IECBlockBody = (*ECBlockBody)(nil)
 
-func NewECBlockBody() *ECBlockBody {
+func NewECBlockBody() IECBlockBody {
 	b := new(ECBlockBody)
 	b.Entries = make([]ECBlockEntry, 0)
 	return b
@@ -400,53 +423,5 @@ func (e *ECBlockBody) String() string {
 	return str
 }
 
-type ECBlockEntry interface {
-	interfaces.Printable
-	interfaces.ShortInterpretable
 
-	ECID() byte
-	MarshalBinary() ([]byte, error)
-	UnmarshalBinary(data []byte) error
-	Hash() interfaces.IHash
-}
 
-type ECBlockHeader struct {
-	ECChainID           interfaces.IHash
-	BodyHash            interfaces.IHash
-	PrevHeaderHash      interfaces.IHash
-	PrevLedgerKeyMR     interfaces.IHash
-	DBHeight            uint32
-	HeaderExpansionArea []byte
-	ObjectCount         uint64
-	BodySize            uint64
-}
-
-var _ interfaces.Printable = (*ECBlockHeader)(nil)
-
-func NewECBlockHeader() *ECBlockHeader {
-	h := new(ECBlockHeader)
-	h.ECChainID = primitives.NewZeroHash()
-	h.ECChainID.SetBytes(constants.EC_CHAINID)
-	h.BodyHash = primitives.NewZeroHash()
-	h.PrevHeaderHash = primitives.NewZeroHash()
-	h.PrevLedgerKeyMR = primitives.NewZeroHash()
-	h.HeaderExpansionArea = make([]byte, 0)
-	return h
-}
-
-func (e *ECBlockHeader) JSONByte() ([]byte, error) {
-	return primitives.EncodeJSON(e)
-}
-
-func (e *ECBlockHeader) JSONString() (string, error) {
-	return primitives.EncodeJSONString(e)
-}
-
-func (e *ECBlockHeader) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
-}
-
-func (e *ECBlockHeader) String() string {
-	str, _ := e.JSONString()
-	return str
-}

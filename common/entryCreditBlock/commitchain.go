@@ -36,7 +36,7 @@ type CommitChain struct {
 var _ interfaces.Printable = (*CommitChain)(nil)
 var _ interfaces.BinaryMarshallable = (*CommitChain)(nil)
 var _ interfaces.ShortInterpretable = (*CommitChain)(nil)
-var _ ECBlockEntry = (*CommitChain)(nil)
+var _ interfaces.IECBlockEntry = (*CommitChain)(nil)
 
 func (c *CommitChain) MarshalledSize() uint64 {
 	return uint64(CommitChainSize)

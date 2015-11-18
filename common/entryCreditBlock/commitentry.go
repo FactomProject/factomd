@@ -34,7 +34,7 @@ type CommitEntry struct {
 var _ interfaces.Printable = (*CommitEntry)(nil)
 var _ interfaces.BinaryMarshallable = (*CommitEntry)(nil)
 var _ interfaces.ShortInterpretable = (*CommitEntry)(nil)
-var _ ECBlockEntry = (*CommitEntry)(nil)
+var _ interfaces.IECBlockEntry = (*CommitEntry)(nil)
 
 func (c *CommitEntry) MarshalledSize() uint64 {
 	return uint64(CommitEntrySize)
