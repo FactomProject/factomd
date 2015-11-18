@@ -55,12 +55,12 @@ func (c *ECBlock) GetChainID() []byte {
 }
 
 func (c *ECBlock) DatabasePrimaryIndex() interfaces.IHash {
-	key, _ := c.Hash()
+	key, _ := c.HeaderHash()
 	return key
 }
 
 func (c *ECBlock) DatabaseSecondaryIndex() interfaces.IHash {
-	key, _ := c.HeaderHash()
+	key, _ := c.Hash()
 	return key
 }
 
