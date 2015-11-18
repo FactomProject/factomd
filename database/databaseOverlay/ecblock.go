@@ -12,8 +12,27 @@ func (db *Overlay) ProcessECBlockBatch(block interfaces.DatabaseBatchable) error
 }
 
 // FetchECBlockByHash gets an Entry Credit block by hash from the database.
-func (db *Overlay) FetchECBlockByHash(hash interfaces.IHash) (interfaces.DatabaseBatchable, error) {
-	return db.FetchBlock([]byte{byte(ENTRYCREDITBLOCK)}, hash, entryCreditBlock.NewECBlock())
+func (db *Overlay) FetchECBlockByHash(hash interfaces.IHash) (interfaces.IEntryCreditBlock, error) {
+	block, err := db.FetchBlockBySecondaryIndex([]byte{byte(ENTRYCREDITBLOCK_KEYMR)}, []byte{byte(ENTRYCREDITBLOCK)}, hash, entryCreditBlock.NewECBlock())
+	if err != nil {
+		return nil, err
+	}
+	if block == nil {
+		return nil, nil
+	}
+	return block.(interfaces.IEntryCreditBlock), nil
+}
+
+// FetchECBlockByHash gets an Entry Credit block by hash from the database.
+func (db *Overlay) FetchECBlockByKeyMR(hash interfaces.IHash) (interfaces.IEntryCreditBlock, error) {
+	block, err := db.FetchBlock([]byte{byte(ENTRYCREDITBLOCK)}, hash, entryCreditBlock.NewECBlock())
+	if err != nil {
+		return nil, err
+	}
+	if block == nil {
+		return nil, nil
+	}
+	return block.(interfaces.IEntryCreditBlock), nil
 }
 
 // FetchAllECBlocks gets all of the entry credit blocks

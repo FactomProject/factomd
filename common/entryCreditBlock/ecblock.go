@@ -35,7 +35,7 @@ var _ interfaces.BinaryMarshallableAndCopyable = (*ECBlock)(nil)
 var _ interfaces.IEntryCreditBlock = (*ECBlock)(nil)
 
 func (c *ECBlock) New() interfaces.BinaryMarshallableAndCopyable {
-	return new(ECBlock)
+	return NewECBlock()
 }
 
 func (c *ECBlock) GetDatabaseHeight() uint32 {
@@ -47,12 +47,12 @@ func (c *ECBlock) GetChainID() []byte {
 }
 
 func (c *ECBlock) DatabasePrimaryIndex() interfaces.IHash {
-	key, _ := c.Hash()
+	key, _ := c.HeaderHash()
 	return key
 }
 
 func (c *ECBlock) DatabaseSecondaryIndex() interfaces.IHash {
-	key, _ := c.HeaderHash()
+	key, _ := c.Hash()
 	return key
 }
 
@@ -65,16 +65,23 @@ func NewECBlock() interfaces.IEntryCreditBlock {
 
 func NextECBlock(prev *ECBlock) (*ECBlock, error) {
 	e := NewECBlock().(*ECBlock)
-	var err error
-	e.Header.PrevHeaderHash, err = prev.HeaderHash()
-	if err != nil {
-		return nil, err
+	if prev != nil {
+		var err error
+		e.Header.PrevHeaderHash, err = prev.HeaderHash()
+		if err != nil {
+			return nil, err
+		}
+		e.Header.PrevLedgerKeyMR, err = prev.Hash()
+		if err != nil {
+			return nil, err
+		}
+		e.Header.DBHeight = prev.Header.DBHeight + 1
+		return e, nil
 	}
-	e.Header.PrevLedgerKeyMR, err = prev.Hash()
-	if err != nil {
-		return nil, err
-	}
-	e.Header.DBHeight = prev.Header.DBHeight + 1
+
+	e.Header.PrevHeaderHash = primitives.NewZeroHash()
+	e.Header.PrevLedgerKeyMR = primitives.NewZeroHash()
+	e.Header.DBHeight = 0
 	return e, nil
 }
 
