@@ -22,7 +22,7 @@ type ServerIndexNumber struct {
 var _ interfaces.Printable = (*ServerIndexNumber)(nil)
 var _ interfaces.BinaryMarshallable = (*ServerIndexNumber)(nil)
 var _ interfaces.ShortInterpretable = (*ServerIndexNumber)(nil)
-var _ ECBlockEntry = (*ServerIndexNumber)(nil)
+var _ interfaces.IECBlockEntry = (*ServerIndexNumber)(nil)
 
 func (e *ServerIndexNumber) Hash() interfaces.IHash {
 	bin, err := e.MarshalBinary()

@@ -22,7 +22,7 @@ type MinuteNumber struct {
 var _ interfaces.Printable = (*MinuteNumber)(nil)
 var _ interfaces.BinaryMarshallable = (*MinuteNumber)(nil)
 var _ interfaces.ShortInterpretable = (*MinuteNumber)(nil)
-var _ ECBlockEntry = (*MinuteNumber)(nil)
+var _ interfaces.IECBlockEntry = (*MinuteNumber)(nil)
 
 func (e *MinuteNumber) Hash() interfaces.IHash {
 	bin, err := e.MarshalBinary()

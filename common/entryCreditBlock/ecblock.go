@@ -215,20 +215,20 @@ func (e *ECBlock) marshalHeaderBinary() ([]byte, error) {
 
 	// variable Header Expansion Size
 	if err := primitives.EncodeVarInt(buf,
-		uint64(len(e.Header.HeaderExpansionArea))); err != nil {
+		uint64(len(e.GetHeader().GetHeaderExpansionArea()))); err != nil {
 		return buf.Bytes(), err
 	}
 
 	// varable byte Header Expansion Area
-	buf.Write(e.Header.HeaderExpansionArea)
+	buf.Write(e.Header.GetHeaderExpansionArea())
 
 	// 8 byte Object Count
-	if err := binary.Write(buf, binary.BigEndian, e.Header.ObjectCount); err != nil {
+	if err := binary.Write(buf, binary.BigEndian, e.Header.GetObjectCount()); err != nil {
 		return buf.Bytes(), err
 	}
 
 	// 8 byte size of the Body
-	if err := binary.Write(buf, binary.BigEndian, e.Header.BodySize); err != nil {
+	if err := binary.Write(buf, binary.BigEndian, e.Header.GetBodySize()); err != nil {
 		return buf.Bytes(), err
 	}
 
@@ -238,7 +238,7 @@ func (e *ECBlock) marshalHeaderBinary() ([]byte, error) {
 func (e *ECBlock) unmarshalBodyBinaryData(data []byte) (newData []byte, err error) {
 	buf := bytes.NewBuffer(data)
 
-	for i := uint64(0); i < e.Header.ObjectCount; i++ {
+	for i := uint64(0); i < e.Header.GetObjectCount(); i++ {
 		var id byte
 		id, err = buf.ReadByte()
 		if err != nil {
@@ -258,7 +258,7 @@ func (e *ECBlock) unmarshalBodyBinaryData(data []byte) (newData []byte, err erro
 				newData = buf.Bytes()
 				return
 			}
-			e.Body.Entries = append(e.Body.Entries, s)
+			e.Body.SetEntries(append(e.Body.GetEntries(), s))
 		case ECIDMinuteNumber:
 			m := NewMinuteNumber()
 			if buf.Len() < MinuteNumberSize {
@@ -271,7 +271,7 @@ func (e *ECBlock) unmarshalBodyBinaryData(data []byte) (newData []byte, err erro
 				newData = buf.Bytes()
 				return
 			}
-			e.Body.Entries = append(e.Body.Entries, m)
+			e.Body.SetEntries(append(e.Body.GetEntries(), m))
 		case ECIDChainCommit:
 			if buf.Len() < CommitChainSize {
 				err = io.EOF
@@ -283,7 +283,7 @@ func (e *ECBlock) unmarshalBodyBinaryData(data []byte) (newData []byte, err erro
 			if err != nil {
 				return
 			}
-			e.Body.Entries = append(e.Body.Entries, c)
+			e.Body.SetEntries(append(e.Body.GetEntries(), c))
 		case ECIDEntryCommit:
 			if buf.Len() < CommitEntrySize {
 				err = io.EOF
@@ -295,14 +295,14 @@ func (e *ECBlock) unmarshalBodyBinaryData(data []byte) (newData []byte, err erro
 			if err != nil {
 				return
 			}
-			e.Body.Entries = append(e.Body.Entries, c)
+			e.Body.SetEntries(append(e.Body.GetEntries(), c))
 		case ECIDBalanceIncrease:
 			c := NewIncreaseBalance()
 			tmp, err := c.UnmarshalBinaryData(buf.Bytes())
 			if err != nil {
 				return tmp, err
 			}
-			e.Body.Entries = append(e.Body.Entries, c)
+			e.Body.SetEntries(append(e.Body.GetEntries(), c))
 			buf = bytes.NewBuffer(tmp)
 		default:
 			err = fmt.Errorf("Unsupported ECID: %x\n", id)
@@ -326,44 +326,47 @@ func (e *ECBlock) unmarshalHeaderBinaryData(data []byte) (newData []byte, err er
 	if _, err = buf.Read(hash); err != nil {
 		return
 	} else {
-		e.Header.ECChainID.SetBytes(hash)
+		e.Header.GetECChainID().SetBytes(hash)
 	}
 
 	if _, err = buf.Read(hash); err != nil {
 		return
 	} else {
-		e.Header.BodyHash.SetBytes(hash)
+		e.Header.GetBodyHash().SetBytes(hash)
 	}
 
 	if _, err = buf.Read(hash); err != nil {
 		return
 	} else {
-		e.Header.PrevHeaderHash.SetBytes(hash)
+		e.Header.GetPrevHeaderHash().SetBytes(hash)
 	}
 
 	if _, err = buf.Read(hash); err != nil {
 		return
 	} else {
-		e.Header.PrevLedgerKeyMR.SetBytes(hash)
+		e.Header.GetPrevLedgerKeyMR().SetBytes(hash)
 	}
-
-	if err = binary.Read(buf, binary.BigEndian, &e.Header.DBHeight); err != nil {
+	
+	h := e.Header.GetDBHeight()
+	if err = binary.Read(buf, binary.BigEndian, &h); err != nil {
 		return
 	}
 
 	// read the Header Expansion Area
 	hesize, tmp := primitives.DecodeVarInt(buf.Bytes())
 	buf = bytes.NewBuffer(tmp)
-	e.Header.HeaderExpansionArea = make([]byte, hesize)
-	if _, err = buf.Read(e.Header.HeaderExpansionArea); err != nil {
+	e.Header.SetHeaderExpansionArea(make([]byte, hesize))
+	if _, err = buf.Read(e.Header.GetHeaderExpansionArea()); err != nil {
 		return
 	}
 
-	if err = binary.Read(buf, binary.BigEndian, &e.Header.ObjectCount); err != nil {
+	oc := e.Header.GetObjectCount()
+	if err = binary.Read(buf, binary.BigEndian, &oc); err != nil {
 		return
 	}
 
-	if err = binary.Read(buf, binary.BigEndian, &e.Header.BodySize); err != nil {
+	sz := e.Header.GetBodySize()
+	if err = binary.Read(buf, binary.BigEndian, &sz); err != nil {
 		return
 	}
 
@@ -400,10 +403,18 @@ type ECBlockBody struct {
 var _ interfaces.Printable = (*ECBlockBody)(nil)
 var _ interfaces.IECBlockBody = (*ECBlockBody)(nil)
 
-func NewECBlockBody() IECBlockBody {
+func NewECBlockBody() interfaces.IECBlockBody {
 	b := new(ECBlockBody)
-	b.Entries = make([]ECBlockEntry, 0)
+	b.Entries = make([]interfaces.IECBlockEntry, 0)
 	return b
+}
+
+func (e *ECBlockBody) GetEntries() ([]interfaces.IECBlockEntry) {
+	return e.Entries
+}
+
+func (e *ECBlockBody) SetEntries(entries []interfaces.IECBlockEntry) {
+	e.Entries = entries
 }
 
 func (e *ECBlockBody) JSONByte() ([]byte, error) {

@@ -21,7 +21,7 @@ type DBOverlay interface {
 	ProcessEBlockBatch(eblock DatabaseBatchable) error
 
 	// FetchEntryBlock gets an entry by hash from the database.
-	FetchEBlockByHash(IHash) (DatabaseBatchable, error)
+	FetchEBlockByHash(IHash) (IEntryBlock, error)
 
 	// FetchAllEBlocksByChain gets all of the blocks by chain id
 	FetchAllEBlocksByChain(IHash) ([]IEntryBlock, error)
@@ -57,7 +57,7 @@ type DBOverlay interface {
 	ProcessECBlockBatch(block DatabaseBatchable) (err error)
 
 	// FetchECBlockByHash gets an Entry Credit block by hash from the database.
-	FetchECBlockByHash(IHash) (DatabaseBatchable, error)
+	FetchECBlockByHash(IHash) (IEntryCreditBlock, error)
 
 	// ProcessABlockBatch inserts the AdminBlock
 	ProcessABlockBatch(block DatabaseBatchable) error
@@ -75,7 +75,7 @@ type DBOverlay interface {
 	ProcessFBlockBatch(DatabaseBatchable) error
 
 	// FetchFBlockByHash gets an admin block by hash from the database.
-	FetchFBlockByHash(IHash) (DatabaseBatchable, error)
+	FetchFBlockByHash(IHash) (IFBlock, error)
 
 	// FetchAllFBlocks gets all of the admin blocks
 	FetchAllFBlocks() ([]IFBlock, error)

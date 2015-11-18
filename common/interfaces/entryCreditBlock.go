@@ -27,6 +27,10 @@ type IECBlockHeader interface {
 	GetECChainID() IHash
 	SetHeaderExpansionArea([]byte)
 	GetHeaderExpansionArea() []byte
+	GetObjectCount() uint64
+	SetObjectCount(uint64)
+	GetBodySize() uint64
+	SetBodySize(uint64)
 }
 
 type IECBlockBody interface {
