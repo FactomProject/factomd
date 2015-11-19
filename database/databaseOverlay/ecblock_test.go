@@ -79,11 +79,11 @@ func TestSaveLoadECBlockChain(t *testing.T) {
 
 	for i := 0; i < max; i++ {
 		prev = createTestEntryCreditBlock(prev)
-		blocks = append(blocks, prev)
 		err := dbo.SaveECBlockHead(prev)
 		if err != nil {
 			t.Error(err)
 		}
+		blocks = append(blocks, prev)
 	}
 
 	current, err := dbo.FetchECBlockHead()
@@ -98,6 +98,7 @@ func TestSaveLoadECBlockChain(t *testing.T) {
 			break
 		}
 		t.Logf("KeyMR - %v", keyMR.String())
+		hash := current.GetHeader().GetPrevLedgerKeyMR()
 
 		current, err = dbo.FetchECBlockByKeyMR(keyMR)
 		if err != nil {
@@ -107,9 +108,38 @@ func TestSaveLoadECBlockChain(t *testing.T) {
 			t.Fatal("Block not found")
 		}
 		fetchedCount++
+
+		byHash, err := dbo.FetchECBlockByHash(hash)
+
+		same, err := primitives.AreBinaryMarshallablesEqual(current, byHash)
+		if err != nil {
+			t.Error(err)
+		}
+		if same == false {
+			t.Error("Blocks fetched by keyMR and hash are not identical")
+		}
+
 	}
 	if fetchedCount != max {
 		t.Error("Wrong number of entries fetched - %v vs %v", fetchedCount, max)
+	}
+
+	all, err := dbo.FetchAllECBlocks()
+	if err != nil {
+		t.Error(err)
+	}
+	if len(all) != max {
+		t.Error("Wrong number of entries fetched - %v vs %v", len(all), max)
+	}
+	for i := range all {
+		same, err := primitives.AreBinaryMarshallablesEqual(blocks[i], all[i])
+		if err != nil {
+			t.Error(err)
+		}
+		if same == false {
+			t.Error("Blocks fetched by all and original blocks are not identical")
+			t.Logf("\n%v\nvs\n%v", blocks[i].String(), all[i].String())
+		}
 	}
 }
 

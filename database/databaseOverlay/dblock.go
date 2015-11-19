@@ -8,6 +8,8 @@ import (
 	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/util"
+	"sort"
 )
 
 // ProcessDBlockBatche inserts the DBlock and update all it's dbentries in DB
@@ -101,6 +103,7 @@ func toDBlocksList(source []interfaces.BinaryMarshallableAndCopyable) []interfac
 	for i, v := range source {
 		answer[i] = v.(interfaces.IDirectoryBlock)
 	}
+	sort.Sort(util.ByDBlockIDAccending(answer))
 	return answer
 }
 

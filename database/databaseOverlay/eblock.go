@@ -3,6 +3,8 @@ package databaseOverlay
 import (
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
+	//"github.com/FactomProject/factomd/util"
+	//"sort"
 )
 
 // ProcessEBlockBatche inserts the EBlock and update all it's ebentries in DB
@@ -81,6 +83,7 @@ func toEBlocksList(source []interfaces.BinaryMarshallableAndCopyable) []interfac
 	for i, v := range source {
 		answer[i] = v.(interfaces.IEntryBlock)
 	}
+	//sort.Sort(util.ByEBlockIDAccending(answer))
 	return answer
 }
 

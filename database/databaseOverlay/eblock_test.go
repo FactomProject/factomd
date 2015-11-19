@@ -142,11 +142,11 @@ func createTestEntryBlock(prev *EBlock) *EBlock {
 			panic(err)
 		}
 
-		e.Header.PrevKeyMR = keyMR
-		e.Header.DBHeight = prev.Header.DBHeight + 1
+		e.Header.SetPrevKeyMR(keyMR)
+		e.Header.SetDBHeight(prev.Header.GetDBHeight() + 1)
 	} else {
-		e.Header.PrevKeyMR = primitives.NewZeroHash()
-		e.Header.DBHeight = 0
+		e.Header.SetPrevKeyMR(primitives.NewZeroHash())
+		e.Header.SetDBHeight(0)
 	}
 	return e
 }

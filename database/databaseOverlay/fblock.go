@@ -4,6 +4,8 @@ import (
 	"github.com/FactomProject/factomd/common/factoid/block"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/util"
+	"sort"
 )
 
 func (db *Overlay) ProcessFBlockBatch(block interfaces.DatabaseBatchable) error {
@@ -45,6 +47,7 @@ func toFactoidList(source []interfaces.BinaryMarshallableAndCopyable) []interfac
 	for i, v := range source {
 		answer[i] = v.(interfaces.IFBlock)
 	}
+	sort.Sort(util.ByFBlockIDAccending(answer))
 	return answer
 }
 

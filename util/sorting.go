@@ -1,17 +1,14 @@
 package util
 
 import (
-	. "github.com/FactomProject/factomd/common/directoryBlock"
-	. "github.com/FactomProject/factomd/common/entryBlock"
-	. "github.com/FactomProject/factomd/common/entryCreditBlock"
-	"github.com/FactomProject/factomd/common/interfaces"
+	. "github.com/FactomProject/factomd/common/interfaces"
 
 	"bytes"
 )
 
 //------------------------------------------------
 // DBlock array sorting implementation - accending
-type ByDBlockIDAccending []*DirectoryBlock
+type ByDBlockIDAccending []IDirectoryBlock
 
 func (f ByDBlockIDAccending) Len() int {
 	return len(f)
@@ -25,13 +22,13 @@ func (f ByDBlockIDAccending) Swap(i, j int) {
 
 //------------------------------------------------
 // CBlock array sorting implementation - accending
-type ByECBlockIDAccending []*ECBlock
+type ByECBlockIDAccending []IEntryCreditBlock
 
 func (f ByECBlockIDAccending) Len() int {
 	return len(f)
 }
 func (f ByECBlockIDAccending) Less(i, j int) bool {
-	return f[i].Header.GetDBHeight() < f[j].Header.GetDBHeight()
+	return f[i].GetHeader().GetDBHeight() < f[j].GetHeader().GetDBHeight()
 }
 func (f ByECBlockIDAccending) Swap(i, j int) {
 	f[i], f[j] = f[j], f[i]
@@ -39,7 +36,7 @@ func (f ByECBlockIDAccending) Swap(i, j int) {
 
 //------------------------------------------------
 // ABlock array sorting implementation - accending
-type ByABlockIDAccending []interfaces.IAdminBlock
+type ByABlockIDAccending []IAdminBlock
 
 func (f ByABlockIDAccending) Len() int {
 	return len(f)
@@ -53,7 +50,7 @@ func (f ByABlockIDAccending) Swap(i, j int) {
 
 //------------------------------------------------
 // ABlock array sorting implementation - accending
-type ByFBlockIDAccending []interfaces.IFBlock
+type ByFBlockIDAccending []IFBlock
 
 func (f ByFBlockIDAccending) Len() int {
 	return len(f)
@@ -67,13 +64,13 @@ func (f ByFBlockIDAccending) Swap(i, j int) {
 
 //------------------------------------------------
 // EBlock array sorting implementation - accending
-type ByEBlockIDAccending []*EBlock
+type ByEBlockIDAccending []IEntryBlock
 
 func (f ByEBlockIDAccending) Len() int {
 	return len(f)
 }
 func (f ByEBlockIDAccending) Less(i, j int) bool {
-	return f[i].Header.EBSequence < f[j].Header.EBSequence
+	return f[i].GetHeader().GetEBSequence() < f[j].GetHeader().GetEBSequence()
 }
 func (f ByEBlockIDAccending) Swap(i, j int) {
 	f[i], f[j] = f[j], f[i]

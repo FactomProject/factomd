@@ -6,7 +6,6 @@ package entryBlock
 
 import (
 	"bytes"
-	"encoding/binary"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 )
@@ -19,7 +18,7 @@ const (
 // Root is written into the Directory Blocks. Each Entry Block represents all
 // of the entries for a paticular Chain during a 10 minute period.
 type EBlock struct {
-	Header *EBlockHeader
+	Header interfaces.IEntryBlockHeader
 	Body   *EBlockBody
 }
 
@@ -33,7 +32,7 @@ func (c *EBlock) New() interfaces.BinaryMarshallableAndCopyable {
 }
 
 func (c *EBlock) GetDatabaseHeight() uint32 {
-	return c.Header.EBSequence
+	return c.Header.GetEBSequence()
 }
 
 func (c *EBlock) GetChainID() []byte {
@@ -54,7 +53,7 @@ func (c *EBlock) MarshalledSize() uint64 {
 	return uint64(EBHeaderSize)
 }
 
-func (c *EBlock) GetHeader() *EBlockHeader {
+func (c *EBlock) GetHeader() interfaces.IEntryBlockHeader {
 	return c.Header
 }
 
@@ -89,8 +88,8 @@ func (e *EBlock) AddEndOfMinuteMarker(m byte) {
 // Entry Block Body. BuildHeader should be run after the Entry Block Body has
 // included all of its EntryEntries.
 func (e *EBlock) BuildHeader() error {
-	e.Header.BodyMR = e.Body.MR()
-	e.Header.EntryCount = uint32(len(e.Body.EBEntries))
+	e.Header.SetBodyMR(e.Body.MR())
+	e.Header.SetEntryCount(uint32(len(e.Body.EBEntries)))
 	return nil
 }
 
@@ -111,12 +110,12 @@ func (e *EBlock) Hash() (interfaces.IHash, error) {
 func (e *EBlock) KeyMR() (interfaces.IHash, error) {
 	// Sha(Sha(header) + BodyMR)
 	e.BuildHeader()
-	header, err := e.marshalHeaderBinary()
+	header, err := e.Header.MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
 	h := primitives.Sha(header)
-	return primitives.Sha(append(h.Bytes(), e.Header.BodyMR.Bytes()...)), nil
+	return primitives.Sha(append(h.Bytes(), e.Header.GetBodyMR().Bytes()...)), nil
 }
 
 // MarshalBinary returns the serialized binary form of the Entry Block.
@@ -126,7 +125,7 @@ func (e *EBlock) MarshalBinary() ([]byte, error) {
 	if err := e.BuildHeader(); err != nil {
 		return buf.Bytes(), err
 	}
-	if p, err := e.marshalHeaderBinary(); err != nil {
+	if p, err := e.Header.MarshalBinary(); err != nil {
 		return buf.Bytes(), err
 	} else {
 		buf.Write(p)
@@ -146,7 +145,7 @@ func (e *EBlock) MarshalBinary() ([]byte, error) {
 func (e *EBlock) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	newData = data
 
-	newData, err = e.unmarshalHeaderBinaryData(newData)
+	newData, err = e.Header.UnmarshalBinaryData(newData)
 	if err != nil {
 		return
 	}
@@ -175,43 +174,12 @@ func (e *EBlock) marshalBodyBinary() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// marshalHeaderBinary returns a serialized binary Entry Block Header
-func (e *EBlock) marshalHeaderBinary() ([]byte, error) {
-	buf := new(bytes.Buffer)
-
-	// 32 byte ChainID
-	buf.Write(e.Header.ChainID.Bytes())
-
-	// 32 byte Body MR
-	buf.Write(e.Header.BodyMR.Bytes())
-
-	// 32 byte Previous Key MR
-	buf.Write(e.Header.PrevKeyMR.Bytes())
-
-	// 32 byte Previous Full Hash
-	buf.Write(e.Header.PrevLedgerKeyMR.Bytes())
-
-	if err := binary.Write(buf, binary.BigEndian, e.Header.EBSequence); err != nil {
-		return buf.Bytes(), err
-	}
-
-	if err := binary.Write(buf, binary.BigEndian, e.Header.DBHeight); err != nil {
-		return buf.Bytes(), err
-	}
-
-	if err := binary.Write(buf, binary.BigEndian, e.Header.EntryCount); err != nil {
-		return buf.Bytes(), err
-	}
-
-	return buf.Bytes(), nil
-}
-
 // unmarshalBodyBinary builds the Entry Block Body from the serialized binary.
 func (e *EBlock) unmarshalBodyBinaryData(data []byte) (newData []byte, err error) {
 	buf := bytes.NewBuffer(data)
 	hash := make([]byte, 32)
 
-	for i := uint32(0); i < e.Header.EntryCount; i++ {
+	for i := uint32(0); i < e.Header.GetEntryCount(); i++ {
 		if _, err = buf.Read(hash); err != nil {
 			return buf.Bytes(), err
 		}
@@ -227,58 +195,6 @@ func (e *EBlock) unmarshalBodyBinaryData(data []byte) (newData []byte, err error
 
 func (e *EBlock) unmarshalBodyBinary(data []byte) (err error) {
 	_, err = e.unmarshalBodyBinaryData(data)
-	return
-}
-
-// unmarshalHeaderBinary builds the Entry Block Header from the serialized binary.
-func (e *EBlock) unmarshalHeaderBinaryData(data []byte) (newData []byte, err error) {
-	buf := bytes.NewBuffer(data)
-	hash := make([]byte, 32)
-	newData = data
-
-	if _, err = buf.Read(hash); err != nil {
-		return
-	} else {
-		e.Header.ChainID.SetBytes(hash)
-	}
-
-	if _, err = buf.Read(hash); err != nil {
-		return
-	} else {
-		e.Header.BodyMR.SetBytes(hash)
-	}
-
-	if _, err = buf.Read(hash); err != nil {
-		return
-	} else {
-		e.Header.PrevKeyMR.SetBytes(hash)
-	}
-
-	if _, err = buf.Read(hash); err != nil {
-		return
-	} else {
-		e.Header.PrevLedgerKeyMR.SetBytes(hash)
-	}
-
-	if err = binary.Read(buf, binary.BigEndian, &e.Header.EBSequence); err != nil {
-		return
-	}
-
-	if err = binary.Read(buf, binary.BigEndian, &e.Header.DBHeight); err != nil {
-		return
-	}
-
-	if err = binary.Read(buf, binary.BigEndian, &e.Header.EntryCount); err != nil {
-		return
-	}
-
-	newData = buf.Bytes()
-
-	return
-}
-
-func (e *EBlock) unmarshalHeaderBinary(data []byte) (err error) {
-	_, err = e.unmarshalHeaderBinaryData(data)
 	return
 }
 
@@ -336,57 +252,4 @@ func (e *EBlockBody) JSONBuffer(b *bytes.Buffer) error {
 func (e *EBlockBody) String() string {
 	str, _ := e.JSONString()
 	return str
-}
-
-// EBlockHeader holds relevent metadata about the Entry Block and the data
-// nessisary to verify the previous block in the Entry Block Chain.
-type EBlockHeader struct {
-	ChainID         interfaces.IHash
-	BodyMR          interfaces.IHash
-	PrevKeyMR       interfaces.IHash
-	PrevLedgerKeyMR interfaces.IHash
-	EBSequence      uint32
-	DBHeight        uint32
-	EntryCount      uint32
-}
-
-var _ interfaces.Printable = (*EBlockHeader)(nil)
-
-// NewEBlockHeader initializes a new empty Entry Block Header.
-func NewEBlockHeader() *EBlockHeader {
-	e := new(EBlockHeader)
-	e.ChainID = primitives.NewZeroHash()
-	e.BodyMR = primitives.NewZeroHash()
-	e.PrevKeyMR = primitives.NewZeroHash()
-	e.PrevLedgerKeyMR = primitives.NewZeroHash()
-	return e
-}
-
-func (e *EBlockHeader) JSONByte() ([]byte, error) {
-	return primitives.EncodeJSON(e)
-}
-
-func (e *EBlockHeader) JSONString() (string, error) {
-	return primitives.EncodeJSONString(e)
-}
-
-func (e *EBlockHeader) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
-}
-
-func (e *EBlockHeader) String() string {
-	str, _ := e.JSONString()
-	return str
-}
-
-func (c *EBlockHeader) GetChainID() interfaces.IHash {
-	return c.ChainID
-}
-
-func (c *EBlockHeader) GetPrevKeyMR() interfaces.IHash {
-	return c.PrevKeyMR
-}
-
-func (c *EBlockHeader) GetPrevLedgerKeyMR() interfaces.IHash {
-	return c.PrevLedgerKeyMR
 }
