@@ -6,6 +6,7 @@ package entryCreditBlock
 
 import (
 	"bytes"
+	"encoding/binary"
 	"fmt"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -26,53 +27,52 @@ type ECBlockHeader struct {
 var _ = fmt.Print
 var _ interfaces.Printable = (*ECBlockHeader)(nil)
 
-func (e *ECBlockHeader) SetBodySize(cnt uint64){
+func (e *ECBlockHeader) SetBodySize(cnt uint64) {
 	e.BodySize = cnt
 }
 
-func (e *ECBlockHeader) GetBodySize() (uint64 ){
+func (e *ECBlockHeader) GetBodySize() uint64 {
 	return e.BodySize
 }
 
-func (e *ECBlockHeader) SetObjectCount(cnt uint64){
+func (e *ECBlockHeader) SetObjectCount(cnt uint64) {
 	e.ObjectCount = cnt
 }
 
-func (e *ECBlockHeader) GetObjectCount() (uint64 ){
+func (e *ECBlockHeader) GetObjectCount() uint64 {
 	return e.ObjectCount
 }
 
-func (e *ECBlockHeader) SetHeaderExpansionArea(area []byte){
+func (e *ECBlockHeader) SetHeaderExpansionArea(area []byte) {
 	e.HeaderExpansionArea = area
 }
 
-func (e *ECBlockHeader) GetHeaderExpansionArea() (area []byte ){
+func (e *ECBlockHeader) GetHeaderExpansionArea() (area []byte) {
 	return e.HeaderExpansionArea
 }
 
-func (e *ECBlockHeader) SetBodyHash(prev interfaces.IHash){
+func (e *ECBlockHeader) SetBodyHash(prev interfaces.IHash) {
 	e.BodyHash = prev
 }
 
-func (e *ECBlockHeader) GetBodyHash() (prev interfaces.IHash){
-	return e.BodyHash 
+func (e *ECBlockHeader) GetBodyHash() (prev interfaces.IHash) {
+	return e.BodyHash
 }
 
-
-func (e *ECBlockHeader) SetECChainID(prev interfaces.IHash){
+func (e *ECBlockHeader) SetECChainID(prev interfaces.IHash) {
 	e.ECChainID = prev
 }
 
-func (e *ECBlockHeader) GetECChainID() (prev interfaces.IHash){
-	return e.ECChainID 
+func (e *ECBlockHeader) GetECChainID() (prev interfaces.IHash) {
+	return e.ECChainID
 }
 
-func (e *ECBlockHeader) SetPrevHeaderHash(prev interfaces.IHash){
+func (e *ECBlockHeader) SetPrevHeaderHash(prev interfaces.IHash) {
 	e.PrevHeaderHash = prev
 }
 
-func (e *ECBlockHeader) GetPrevHeaderHash() (prev interfaces.IHash){
-	return e.PrevHeaderHash 
+func (e *ECBlockHeader) GetPrevHeaderHash() (prev interfaces.IHash) {
+	return e.PrevHeaderHash
 }
 
 func (e *ECBlockHeader) SetPrevLedgerKeyMR(prev interfaces.IHash) {
@@ -119,4 +119,101 @@ func (e *ECBlockHeader) String() string {
 	return str
 }
 
+func (e *ECBlockHeader) MarshalBinary() ([]byte, error) {
+	buf := new(bytes.Buffer)
 
+	// 32 byte ECChainID
+	buf.Write(e.GetECChainID().Bytes())
+
+	// 32 byte BodyHash
+	buf.Write(e.GetBodyHash().Bytes())
+
+	// 32 byte Previous Header Hash
+	buf.Write(e.GetPrevHeaderHash().Bytes())
+
+	// 32 byte Previous Full Hash
+	buf.Write(e.GetPrevLedgerKeyMR().Bytes())
+
+	// 4 byte Directory Block Height
+	if err := binary.Write(buf, binary.BigEndian, e.GetDBHeight()); err != nil {
+		return buf.Bytes(), err
+	}
+
+	// variable Header Expansion Size
+	if err := primitives.EncodeVarInt(buf,
+		uint64(len(e.GetHeaderExpansionArea()))); err != nil {
+		return buf.Bytes(), err
+	}
+
+	// varable byte Header Expansion Area
+	buf.Write(e.GetHeaderExpansionArea())
+
+	// 8 byte Object Count
+	if err := binary.Write(buf, binary.BigEndian, e.GetObjectCount()); err != nil {
+		return buf.Bytes(), err
+	}
+
+	// 8 byte size of the Body
+	if err := binary.Write(buf, binary.BigEndian, e.GetBodySize()); err != nil {
+		return buf.Bytes(), err
+	}
+
+	return buf.Bytes(), nil
+}
+
+func (e *ECBlockHeader) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+	buf := bytes.NewBuffer(data)
+	hash := make([]byte, 32)
+
+	if _, err = buf.Read(hash); err != nil {
+		return
+	} else {
+		e.ECChainID.SetBytes(hash)
+	}
+
+	if _, err = buf.Read(hash); err != nil {
+		return
+	} else {
+		e.BodyHash.SetBytes(hash)
+	}
+
+	if _, err = buf.Read(hash); err != nil {
+		return
+	} else {
+		e.PrevHeaderHash.SetBytes(hash)
+	}
+
+	if _, err = buf.Read(hash); err != nil {
+		return
+	} else {
+		e.PrevLedgerKeyMR.SetBytes(hash)
+	}
+
+	if err = binary.Read(buf, binary.BigEndian, &e.DBHeight); err != nil {
+		return
+	}
+
+	// read the Header Expansion Area
+	hesize, tmp := primitives.DecodeVarInt(buf.Bytes())
+	buf = bytes.NewBuffer(tmp)
+	e.HeaderExpansionArea = make([]byte, hesize)
+	if _, err = buf.Read(e.HeaderExpansionArea); err != nil {
+		return
+	}
+
+	if err = binary.Read(buf, binary.BigEndian, &e.ObjectCount); err != nil {
+		return
+	}
+
+	if err = binary.Read(buf, binary.BigEndian, &e.BodySize); err != nil {
+		return
+	}
+
+	newData = buf.Bytes()
+	return
+}
+
+func (e *ECBlockHeader) UnmarshalBinary(data []byte) error {
+	_, err := e.UnmarshalBinaryData(data)
+	return err
+}

@@ -8,6 +8,30 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 )
 
+func AreBytesEqual(b1, b2 []byte) bool {
+	if len(b1) != len(b2) {
+		return false
+	}
+	for i := range b1 {
+		if b1[i] != b2[i] {
+			return false
+		}
+	}
+	return true
+}
+
+func AreBinaryMarshallablesEqual(b1, b2 interfaces.BinaryMarshallable) (bool, error) {
+	bytes1, err := b1.MarshalBinary()
+	if err != nil {
+		return false, err
+	}
+	bytes2, err := b2.MarshalBinary()
+	if err != nil {
+		return false, err
+	}
+	return AreBytesEqual(bytes1, bytes2), nil
+}
+
 func EncodeBinary(bytes []byte) string {
 	return hex.EncodeToString(bytes)
 }

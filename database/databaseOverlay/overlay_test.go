@@ -43,7 +43,7 @@ func TestInsertFetch(t *testing.T) {
 	bytes1 := b.Data
 	bytes2 := bResp.Data
 
-	if AreBytesEqual(bytes1, bytes2) == false {
+	if primitives.AreBytesEqual(bytes1, bytes2) == false {
 		t.Errorf("Bytes are not equal - %x vs %x", bytes1, bytes2)
 	}
 }
@@ -113,7 +113,7 @@ func TestFetchBy(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		if AreBytesEqual(index.Bytes(), primaryIndex) == false {
+		if primitives.AreBytesEqual(index.Bytes(), primaryIndex) == false {
 			t.Error("Wrong primary index returned")
 		}
 
@@ -121,7 +121,7 @@ func TestFetchBy(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		if AreBytesEqual(index.Bytes(), primaryIndex) == false {
+		if primitives.AreBytesEqual(index.Bytes(), primaryIndex) == false {
 			t.Error("Wrong primary index returned")
 		}
 
@@ -157,7 +157,7 @@ func TestFetchBy(t *testing.T) {
 		primaryIndex := CopyZeroHash()
 		primaryIndex[len(primaryIndex)-1] = byte(i + startIndex)
 
-		if AreBytesEqual(primaryIndex, fetchedIndexes[i].Bytes()) == false {
+		if primitives.AreBytesEqual(primaryIndex, fetchedIndexes[i].Bytes()) == false {
 			t.Error("Index from batch is not equal")
 		}
 	}
@@ -170,18 +170,6 @@ func createOverlay() *Overlay {
 var TestBucket []byte = []byte{0x01}
 var TestNumberBucket []byte = []byte{0x02}
 var TestSecondaryIndexBucket []byte = []byte{0x03}
-
-func AreBytesEqual(b1, b2 []byte) bool {
-	if len(b1) != len(b2) {
-		return false
-	}
-	for i := range b1 {
-		if b1[i] != b2[i] {
-			return false
-		}
-	}
-	return true
-}
 
 type bareDBTestObject struct {
 	Data           []byte
@@ -291,19 +279,19 @@ func (d1 *DBTestObject) IsEqual(d2 *DBTestObject) bool {
 		return false
 	}
 
-	if AreBytesEqual(d1.Data, d2.Data) == false {
+	if primitives.AreBytesEqual(d1.Data, d2.Data) == false {
 		return false
 	}
 
-	if AreBytesEqual(d1.PrimaryIndex.Bytes(), d2.PrimaryIndex.Bytes()) == false {
+	if primitives.AreBytesEqual(d1.PrimaryIndex.Bytes(), d2.PrimaryIndex.Bytes()) == false {
 		return false
 	}
 
-	if AreBytesEqual(d1.SecondaryIndex.Bytes(), d2.SecondaryIndex.Bytes()) == false {
+	if primitives.AreBytesEqual(d1.SecondaryIndex.Bytes(), d2.SecondaryIndex.Bytes()) == false {
 		return false
 	}
 
-	if AreBytesEqual(d1.ChainID.Bytes(), d2.ChainID.Bytes()) == false {
+	if primitives.AreBytesEqual(d1.ChainID.Bytes(), d2.ChainID.Bytes()) == false {
 		return false
 	}
 

@@ -6,7 +6,6 @@ package entryCreditBlock
 
 import (
 	"bytes"
-	"encoding/binary"
 	"fmt"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -43,7 +42,7 @@ func (c *ECBlock) GetHeader() interfaces.IECBlockHeader {
 }
 
 func (c *ECBlock) New() interfaces.BinaryMarshallableAndCopyable {
-	return new(ECBlock)
+	return NewECBlock()
 }
 
 func (c *ECBlock) GetDatabaseHeight() uint32 {
@@ -72,30 +71,32 @@ func NewECBlock() interfaces.IEntryCreditBlock {
 }
 
 func NextECBlock(prev interfaces.IEntryCreditBlock) (interfaces.IEntryCreditBlock, error) {
-	e := prev.New().(interfaces.IEntryCreditBlock)
-	var err error
-	
+	e := NewECBlock()
+
 	// Handle the really unusual case of the first block.
 	if prev == nil {
 		e.GetHeader().SetPrevHeaderHash(primitives.NewHash(constants.ZERO_HASH))
 		e.GetHeader().SetPrevLedgerKeyMR(primitives.NewHash(constants.ZERO_HASH))
 		e.GetHeader().SetDBHeight(1)
-		return e, nil
-	}
-	
-	v, err := prev.HeaderHash()
-	if err != nil {
-		return nil, err
-	}
-	e.GetHeader().SetPrevHeaderHash(v)
-	
-	v, err = prev.Hash()
-	if err != nil {
-		return nil, err
-	}
-	e.GetHeader().SetPrevLedgerKeyMR(v)
+	} else {
+		v, err := prev.HeaderHash()
+		if err != nil {
+			return nil, err
+		}
+		e.GetHeader().SetPrevHeaderHash(v)
 
-	e.GetHeader().SetDBHeight(prev.GetHeader().GetDBHeight() + 1)
+		v, err = prev.Hash()
+		if err != nil {
+			return nil, err
+		}
+		e.GetHeader().SetPrevLedgerKeyMR(v)
+
+		e.GetHeader().SetDBHeight(prev.GetHeader().GetDBHeight() + 1)
+	}
+	if err := e.(*ECBlock).BuildHeader(); err != nil {
+		return nil, err
+	}
+
 	return e, nil
 }
 
@@ -112,7 +113,11 @@ func (e *ECBlock) Hash() (interfaces.IHash, error) {
 }
 
 func (e *ECBlock) HeaderHash() (interfaces.IHash, error) {
-	p, err := e.marshalHeaderBinary()
+	if err := e.BuildHeader(); err != nil {
+		return nil, err
+	}
+
+	p, err := e.GetHeader().MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
@@ -126,7 +131,7 @@ func (e *ECBlock) MarshalBinary() ([]byte, error) {
 	if err := e.BuildHeader(); err != nil {
 		return buf.Bytes(), err
 	}
-	if p, err := e.marshalHeaderBinary(); err != nil {
+	if p, err := e.GetHeader().MarshalBinary(); err != nil {
 		return buf.Bytes(), err
 	} else {
 		buf.Write(p)
@@ -159,7 +164,7 @@ func (e *ECBlock) BuildHeader() error {
 
 func (e *ECBlock) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	// Unmarshal Header
-	newData, err = e.unmarshalHeaderBinaryData(data)
+	newData, err = e.GetHeader().UnmarshalBinaryData(data)
 	if err != nil {
 		return
 	}
@@ -188,48 +193,6 @@ func (e *ECBlock) marshalBodyBinary() ([]byte, error) {
 		}
 		buf.WriteByte(v.ECID())
 		buf.Write(p)
-	}
-
-	return buf.Bytes(), nil
-}
-
-func (e *ECBlock) marshalHeaderBinary() ([]byte, error) {
-	buf := new(bytes.Buffer)
-
-	// 32 byte ECChainID
-	buf.Write(e.GetHeader().GetECChainID().Bytes())
-
-	// 32 byte BodyHash
-	buf.Write(e.GetHeader().GetBodyHash().Bytes())
-
-	// 32 byte Previous Header Hash
-	buf.Write(e.GetHeader().GetPrevHeaderHash().Bytes())
-
-	// 32 byte Previous Full Hash
-	buf.Write(e.GetHeader().GetPrevLedgerKeyMR().Bytes())
-
-	// 4 byte Directory Block Height
-	if err := binary.Write(buf, binary.BigEndian, e.GetHeader().GetDBHeight()); err != nil {
-		return buf.Bytes(), err
-	}
-
-	// variable Header Expansion Size
-	if err := primitives.EncodeVarInt(buf,
-		uint64(len(e.GetHeader().GetHeaderExpansionArea()))); err != nil {
-		return buf.Bytes(), err
-	}
-
-	// varable byte Header Expansion Area
-	buf.Write(e.Header.GetHeaderExpansionArea())
-
-	// 8 byte Object Count
-	if err := binary.Write(buf, binary.BigEndian, e.Header.GetObjectCount()); err != nil {
-		return buf.Bytes(), err
-	}
-
-	// 8 byte size of the Body
-	if err := binary.Write(buf, binary.BigEndian, e.Header.GetBodySize()); err != nil {
-		return buf.Bytes(), err
 	}
 
 	return buf.Bytes(), nil
@@ -319,66 +282,6 @@ func (b *ECBlock) unmarshalBodyBinary(data []byte) (err error) {
 	return
 }
 
-func (e *ECBlock) unmarshalHeaderBinaryData(data []byte) (newData []byte, err error) {
-	buf := bytes.NewBuffer(data)
-	hash := make([]byte, 32)
-
-	if _, err = buf.Read(hash); err != nil {
-		return
-	} else {
-		e.Header.GetECChainID().SetBytes(hash)
-	}
-
-	if _, err = buf.Read(hash); err != nil {
-		return
-	} else {
-		e.Header.GetBodyHash().SetBytes(hash)
-	}
-
-	if _, err = buf.Read(hash); err != nil {
-		return
-	} else {
-		e.Header.GetPrevHeaderHash().SetBytes(hash)
-	}
-
-	if _, err = buf.Read(hash); err != nil {
-		return
-	} else {
-		e.Header.GetPrevLedgerKeyMR().SetBytes(hash)
-	}
-	
-	h := e.Header.GetDBHeight()
-	if err = binary.Read(buf, binary.BigEndian, &h); err != nil {
-		return
-	}
-
-	// read the Header Expansion Area
-	hesize, tmp := primitives.DecodeVarInt(buf.Bytes())
-	buf = bytes.NewBuffer(tmp)
-	e.Header.SetHeaderExpansionArea(make([]byte, hesize))
-	if _, err = buf.Read(e.Header.GetHeaderExpansionArea()); err != nil {
-		return
-	}
-
-	oc := e.Header.GetObjectCount()
-	if err = binary.Read(buf, binary.BigEndian, &oc); err != nil {
-		return
-	}
-
-	sz := e.Header.GetBodySize()
-	if err = binary.Read(buf, binary.BigEndian, &sz); err != nil {
-		return
-	}
-
-	newData = buf.Bytes()
-	return
-}
-
-func (e *ECBlock) unmarshalHeaderBinary(data []byte) error {
-	_, err := e.unmarshalHeaderBinaryData(data)
-	return err
-}
-
 func (e *ECBlock) JSONByte() ([]byte, error) {
 	return primitives.EncodeJSON(e)
 }
@@ -409,7 +312,7 @@ func NewECBlockBody() interfaces.IECBlockBody {
 	return b
 }
 
-func (e *ECBlockBody) GetEntries() ([]interfaces.IECBlockEntry) {
+func (e *ECBlockBody) GetEntries() []interfaces.IECBlockEntry {
 	return e.Entries
 }
 
@@ -433,6 +336,3 @@ func (e *ECBlockBody) String() string {
 	str, _ := e.JSONString()
 	return str
 }
-
-
-

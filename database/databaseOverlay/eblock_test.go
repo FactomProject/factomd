@@ -47,7 +47,7 @@ func TestSaveLoadEBlockHead(t *testing.T) {
 		t.Error(err)
 	}
 
-	if AreBytesEqual(m1, m2) == false {
+	if primitives.AreBytesEqual(m1, m2) == false {
 		t.Error("Blocks are not equal")
 	}
 
