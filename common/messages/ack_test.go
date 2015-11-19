@@ -47,8 +47,8 @@ func TestSignAndVerifyAck(t *testing.T) {
 	}
 	t.Logf("Marshalled - %x", hex)
 
-	t.Logf("Sig - %x", *ack.Signature.Sig)
-	if len(*ack.Signature.Sig) == 0 {
+	t.Logf("Sig - %x", *ack.Signature.GetSignature())
+	if len(*ack.Signature.GetSignature()) == 0 {
 		t.Error("Signature not present")
 	}
 

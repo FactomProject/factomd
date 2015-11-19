@@ -47,8 +47,8 @@ func TestSignAndVerifyEOM(t *testing.T) {
 	}
 	t.Logf("Marshalled - %x", hex)
 
-	t.Logf("Sig - %x", *eom.Signature.Sig)
-	if len(*eom.Signature.Sig) == 0 {
+	t.Logf("Sig - %x", *eom.Signature.GetSignature())
+	if len(*eom.Signature.GetSignature()) == 0 {
 		t.Error("Signature not present")
 	}
 
@@ -84,6 +84,7 @@ func newEOM() *EOM {
 	eom := new(EOM)
 	eom.Minute = 3
 	eom.DirectoryBlockHeight = 123456
+	eom.Timestamp.SetTime(0xFF22100122FF)
 	hash, _ := primitives.NewShaHashFromStr("cbd3d09db6defdc25dfc7d57f3479b339a077183cd67022e6d1ef6c041522b40")
 	eom.IdentityChainID = hash
 	return eom
