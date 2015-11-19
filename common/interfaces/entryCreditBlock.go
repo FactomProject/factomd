@@ -16,6 +16,8 @@ type IEntryCreditBlock interface {
 }
 
 type IECBlockHeader interface {
+	BinaryMarshallable
+
 	GetBodyHash() IHash
 	SetBodyHash(IHash)
 	GetPrevHeaderHash() IHash
@@ -41,7 +43,7 @@ type IECBlockBody interface {
 type IECBlockEntry interface {
 	Printable
 	ShortInterpretable
-	
+
 	ECID() byte
 	MarshalBinary() ([]byte, error)
 	UnmarshalBinary(data []byte) error

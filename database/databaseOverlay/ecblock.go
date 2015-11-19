@@ -8,7 +8,9 @@ import (
 
 // ProcessECBlockBatche inserts the ECBlock and update all it's cbentries in DB
 func (db *Overlay) ProcessECBlockBatch(block interfaces.DatabaseBatchable) error {
-	return db.ProcessBlockBatch([]byte{byte(ENTRYCREDITBLOCK)}, []byte{byte(ENTRYCREDITBLOCK_NUMBER)}, []byte{byte(ENTRYCREDITBLOCK_KEYMR)}, block)
+	return db.ProcessBlockBatch([]byte{byte(ENTRYCREDITBLOCK)},
+		[]byte{byte(ENTRYCREDITBLOCK_NUMBER)},
+		[]byte{byte(ENTRYCREDITBLOCK_KEYMR)}, block)
 }
 
 // FetchECBlockByHash gets an Entry Credit block by hash from the database.

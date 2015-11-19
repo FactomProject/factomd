@@ -11,7 +11,7 @@ import (
 )
 
 type MapDB struct {
-	cache map[string]map[string][]byte // Our Cache
+	Cache map[string]map[string][]byte // Our Cache
 }
 
 var _ interfaces.IDatabase = (*MapDB)(nil)
@@ -21,19 +21,19 @@ func (MapDB) Close() error {
 }
 
 func (db *MapDB) Init(bucketList [][]byte) {
-	db.cache = map[string]map[string][]byte{}
+	db.Cache = map[string]map[string][]byte{}
 	for _, v := range bucketList {
-		db.cache[string(v)] = map[string][]byte{}
+		db.Cache[string(v)] = map[string][]byte{}
 	}
 }
 
 func (db *MapDB) Put(bucket, key []byte, data interfaces.BinaryMarshallable) error {
-	if db.cache == nil {
-		db.cache = map[string]map[string][]byte{}
+	if db.Cache == nil {
+		db.Cache = map[string]map[string][]byte{}
 	}
-	_, ok := db.cache[string(bucket)]
+	_, ok := db.Cache[string(bucket)]
 	if ok == false {
-		db.cache[string(bucket)] = map[string][]byte{}
+		db.Cache[string(bucket)] = map[string][]byte{}
 	}
 	var hex []byte
 	var err error
@@ -43,7 +43,7 @@ func (db *MapDB) Put(bucket, key []byte, data interfaces.BinaryMarshallable) err
 			return err
 		}
 	}
-	db.cache[string(bucket)][string(key)] = hex
+	db.Cache[string(bucket)][string(key)] = hex
 	return nil
 }
 
@@ -58,14 +58,14 @@ func (db *MapDB) PutInBatch(records []interfaces.Record) error {
 }
 
 func (db *MapDB) Get(bucket, key []byte, destination interfaces.BinaryMarshallable) (interfaces.BinaryMarshallable, error) {
-	if db.cache == nil {
-		db.cache = map[string]map[string][]byte{}
+	if db.Cache == nil {
+		db.Cache = map[string]map[string][]byte{}
 	}
-	_, ok := db.cache[string(bucket)]
+	_, ok := db.Cache[string(bucket)]
 	if ok == false {
-		db.cache[string(bucket)] = map[string][]byte{}
+		db.Cache[string(bucket)] = map[string][]byte{}
 	}
-	v, ok := db.cache[string(bucket)][string(key)]
+	v, ok := db.Cache[string(bucket)][string(key)]
 	if ok == false {
 		return nil, nil
 	}
@@ -77,27 +77,27 @@ func (db *MapDB) Get(bucket, key []byte, destination interfaces.BinaryMarshallab
 }
 
 func (db *MapDB) Delete(bucket, key []byte) error {
-	if db.cache == nil {
-		db.cache = map[string]map[string][]byte{}
+	if db.Cache == nil {
+		db.Cache = map[string]map[string][]byte{}
 	}
-	_, ok := db.cache[string(bucket)]
+	_, ok := db.Cache[string(bucket)]
 	if ok == false {
-		db.cache[string(bucket)] = map[string][]byte{}
+		db.Cache[string(bucket)] = map[string][]byte{}
 	}
-	delete(db.cache[string(bucket)], string(key))
+	delete(db.Cache[string(bucket)], string(key))
 	return nil
 }
 
 func (db *MapDB) ListAllKeys(bucket []byte) ([][]byte, error) {
-	if db.cache == nil {
-		db.cache = map[string]map[string][]byte{}
+	if db.Cache == nil {
+		db.Cache = map[string]map[string][]byte{}
 	}
-	_, ok := db.cache[string(bucket)]
+	_, ok := db.Cache[string(bucket)]
 	if ok == false {
-		db.cache[string(bucket)] = map[string][]byte{}
+		db.Cache[string(bucket)] = map[string][]byte{}
 	}
 	answer := [][]byte{}
-	for k, _ := range db.cache[string(bucket)] {
+	for k, _ := range db.Cache[string(bucket)] {
 		answer = append(answer, []byte(k))
 	}
 
@@ -107,12 +107,12 @@ func (db *MapDB) ListAllKeys(bucket []byte) ([][]byte, error) {
 }
 
 func (db *MapDB) GetAll(bucket []byte, sample interfaces.BinaryMarshallableAndCopyable) ([]interfaces.BinaryMarshallableAndCopyable, error) {
-	if db.cache == nil {
-		db.cache = map[string]map[string][]byte{}
+	if db.Cache == nil {
+		db.Cache = map[string]map[string][]byte{}
 	}
-	_, ok := db.cache[string(bucket)]
+	_, ok := db.Cache[string(bucket)]
 	if ok == false {
-		db.cache[string(bucket)] = map[string][]byte{}
+		db.Cache[string(bucket)] = map[string][]byte{}
 	}
 
 	keys, err := db.ListAllKeys(bucket)
@@ -123,7 +123,7 @@ func (db *MapDB) GetAll(bucket []byte, sample interfaces.BinaryMarshallableAndCo
 	answer := []interfaces.BinaryMarshallableAndCopyable{}
 	for _, k := range keys {
 		tmp := sample.New()
-		v := db.cache[string(bucket)][string(k)]
+		v := db.Cache[string(bucket)][string(k)]
 		err := tmp.UnmarshalBinary(v)
 		if err != nil {
 			return nil, err
@@ -134,9 +134,9 @@ func (db *MapDB) GetAll(bucket []byte, sample interfaces.BinaryMarshallableAndCo
 }
 
 func (db *MapDB) Clear(bucket []byte) error {
-	if db.cache == nil {
-		db.cache = map[string]map[string][]byte{}
+	if db.Cache == nil {
+		db.Cache = map[string]map[string][]byte{}
 	}
-	delete(db.cache, string(bucket))
+	delete(db.Cache, string(bucket))
 	return nil
 }

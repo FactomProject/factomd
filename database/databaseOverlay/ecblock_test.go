@@ -6,6 +6,7 @@ package databaseOverlay_test
 
 import (
 	. "github.com/FactomProject/factomd/common/entryCreditBlock"
+	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	. "github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/database/mapdb"
@@ -40,7 +41,7 @@ func TestSaveLoadECBlockHead(t *testing.T) {
 		t.Error(err)
 	}
 
-	if AreBytesEqual(m1, m2) == false {
+	if primitives.AreBytesEqual(m1, m2) == false {
 		t.Error("Blocks are not equal")
 	}
 
@@ -70,9 +71,9 @@ func TestSaveLoadECBlockHead(t *testing.T) {
 }
 
 func TestSaveLoadECBlockChain(t *testing.T) {
-	blocks := []*ECBlock{}
+	blocks := []interfaces.IEntryCreditBlock{}
 	max := 10
-	var prev *ECBlock = nil
+	var prev interfaces.IEntryCreditBlock = nil
 	dbo := NewOverlay(new(mapdb.MapDB))
 	defer dbo.Close()
 
@@ -92,7 +93,7 @@ func TestSaveLoadECBlockChain(t *testing.T) {
 	zero := primitives.NewZeroHash()
 	fetchedCount := 1
 	for {
-		keyMR := current.(*ECBlock).Header.PrevHeaderHash
+		keyMR := current.GetHeader().GetPrevHeaderHash()
 		if keyMR.IsSameAs(zero) {
 			break
 		}
@@ -112,7 +113,7 @@ func TestSaveLoadECBlockChain(t *testing.T) {
 	}
 }
 
-func createTestEntryCreditBlock(prev *ECBlock) *ECBlock {
+func createTestEntryCreditBlock(prev interfaces.IEntryCreditBlock) interfaces.IEntryCreditBlock {
 	block, err := NextECBlock(prev)
 	if err != nil {
 		panic(err)

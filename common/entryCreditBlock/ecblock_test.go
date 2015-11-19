@@ -14,6 +14,53 @@ import (
 var _ = fmt.Sprint("testing")
 
 func TestECBlockMarshal(t *testing.T) {
+	ecb1 := createECBlock()
+
+	ecb2 := NewECBlock()
+	if p, err := ecb1.MarshalBinary(); err != nil {
+		t.Error(err)
+	} else {
+		if err := ecb2.UnmarshalBinary(p); err != nil {
+			t.Error(err)
+		}
+		t.Log(spew.Sdump(ecb1))
+		t.Log(spew.Sdump(ecb2))
+		if q, err := ecb2.MarshalBinary(); err != nil {
+			t.Error(err)
+		} else if string(p) != string(q) {
+			t.Errorf("ecb1 = %x\n", p)
+			t.Errorf("ecb2 = %x\n", q)
+		}
+	}
+}
+
+func TestECBlockHashingConsistency(t *testing.T) {
+	ecb := createECBlock()
+	h1, err := ecb.Hash()
+	if err != nil {
+		t.Error(err)
+	}
+	k1, err := ecb.HeaderHash()
+	if err != nil {
+		t.Error(err)
+	}
+	h2, err := ecb.Hash()
+	if err != nil {
+		t.Error(err)
+	}
+	k2, err := ecb.HeaderHash()
+	if err != nil {
+		t.Error(err)
+	}
+	if primitives.AreBytesEqual(h1.Bytes(), h2.Bytes()) == false {
+		t.Error("ecb.Hash()es are not equal")
+	}
+	if primitives.AreBytesEqual(k1.Bytes(), k2.Bytes()) == false {
+		t.Error("ecb.HeaderHash()es are not equal")
+	}
+}
+
+func createECBlock() *ECBlock {
 	ecb1 := NewECBlock().(*ECBlock)
 
 	// build a CommitChain for testing
@@ -27,20 +74,20 @@ func TestECBlockMarshal(t *testing.T) {
 
 	// make a key and sign the msg
 	if pub, privkey, err := ed.GenerateKey(rand.Reader); err != nil {
-		t.Error(err)
+		panic(err)
 	} else {
 		cc.ECPubKey = (*primitives.ByteSlice32)(pub)
 		cc.Sig = (*primitives.ByteSlice64)(ed.Sign(privkey, cc.CommitMsg()))
 	}
 
 	// create a ECBlock for testing
-	ecb1.Header.ECChainID.SetBytes(byteof(0x11))
-	ecb1.Header.BodyHash.SetBytes(byteof(0x22))
-	ecb1.Header.PrevHeaderHash.SetBytes(byteof(0x33))
-	ecb1.Header.PrevLedgerKeyMR.SetBytes(byteof(0x44))
-	ecb1.Header.DBHeight = 10
-	ecb1.Header.HeaderExpansionArea = byteof(0x55)
-	ecb1.Header.ObjectCount = 0
+	ecb1.Header.(*ECBlockHeader).ECChainID.SetBytes(byteof(0x11))
+	ecb1.Header.(*ECBlockHeader).BodyHash.SetBytes(byteof(0x22))
+	ecb1.Header.(*ECBlockHeader).PrevHeaderHash.SetBytes(byteof(0x33))
+	ecb1.Header.(*ECBlockHeader).PrevLedgerKeyMR.SetBytes(byteof(0x44))
+	ecb1.Header.(*ECBlockHeader).DBHeight = 10
+	ecb1.Header.(*ECBlockHeader).HeaderExpansionArea = byteof(0x55)
+	ecb1.Header.(*ECBlockHeader).ObjectCount = 0
 
 	// add the CommitChain to the ECBlock
 	ecb1.AddEntry(cc)
@@ -68,22 +115,7 @@ func TestECBlockMarshal(t *testing.T) {
 	m2.Number = 0x02
 	ecb1.AddEntry(m2)
 
-	ecb2 := NewECBlock()
-	if p, err := ecb1.MarshalBinary(); err != nil {
-		t.Error(err)
-	} else {
-		if err := ecb2.UnmarshalBinary(p); err != nil {
-			t.Error(err)
-		}
-		t.Log(spew.Sdump(ecb1))
-		t.Log(spew.Sdump(ecb2))
-		if q, err := ecb2.MarshalBinary(); err != nil {
-			t.Error(err)
-		} else if string(p) != string(q) {
-			t.Errorf("ecb1 = %x\n", p)
-			t.Errorf("ecb2 = %x\n", q)
-		}
-	}
+	return ecb1
 }
 
 func byteof(b byte) []byte {

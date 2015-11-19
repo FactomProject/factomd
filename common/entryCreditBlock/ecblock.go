@@ -77,7 +77,11 @@ func (e *ECBlock) Hash() (interfaces.IHash, error) {
 }
 
 func (e *ECBlock) HeaderHash() (interfaces.IHash, error) {
-	p, err := e.marshalHeaderBinary()
+	if err := e.BuildHeader(); err != nil {
+		return nil, err
+	}
+
+	p, err := e.GetHeader().MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +95,7 @@ func (e *ECBlock) MarshalBinary() ([]byte, error) {
 	if err := e.BuildHeader(); err != nil {
 		return buf.Bytes(), err
 	}
-	if p, err := e.marshalHeaderBinary(); err != nil {
+	if p, err := e.GetHeader().MarshalBinary(); err != nil {
 		return buf.Bytes(), err
 	} else {
 		buf.Write(p)
@@ -124,7 +128,7 @@ func (e *ECBlock) BuildHeader() error {
 
 func (e *ECBlock) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	// Unmarshal Header
-	newData, err = e.unmarshalHeaderBinaryData(data)
+	newData, err = e.GetHeader().UnmarshalBinaryData(data)
 	if err != nil {
 		return
 	}
@@ -361,6 +365,9 @@ func (e *ECBlock) String() string {
 	return str
 }
 
+type ECBlockBody struct {
+	Entries []interfaces.IECBlockEntry
+}
 
 /********************************************************
  * Support Functions
@@ -374,32 +381,33 @@ func NewECBlock() interfaces.IEntryCreditBlock {
 }
 
 func NextECBlock(prev interfaces.IEntryCreditBlock) (interfaces.IEntryCreditBlock, error) {
-	e := prev.New().(interfaces.IEntryCreditBlock)
-	var err error
-	
+	e := NewECBlock()
+
 	// Handle the really unusual case of the first block.
 	if prev == nil {
 		e.GetHeader().SetPrevHeaderHash(primitives.NewHash(constants.ZERO_HASH))
 		e.GetHeader().SetPrevLedgerKeyMR(primitives.NewHash(constants.ZERO_HASH))
 		e.GetHeader().SetDBHeight(1)
-		return e, nil
+	} else {
+		v, err := prev.HeaderHash()
+		if err != nil {
+			return nil, err
+		}
+		e.GetHeader().SetPrevHeaderHash(v)
+
+		v, err = prev.Hash()
+		if err != nil {
+			return nil, err
+		}
+		e.GetHeader().SetPrevLedgerKeyMR(v)
+
+		e.GetHeader().SetDBHeight(prev.GetHeader().GetDBHeight() + 1)
 	}
-	
-	v, err := prev.HeaderHash()
-	if err != nil {
+	if err := e.(*ECBlock).BuildHeader(); err != nil {
 		return nil, err
 	}
-	e.GetHeader().SetPrevHeaderHash(v)
-	
-	v, err = prev.Hash()
-	if err != nil {
-		return nil, err
-	}
-	e.GetHeader().SetPrevLedgerKeyMR(v)
-	
-	e.GetHeader().SetDBHeight(prev.GetHeader().GetDBHeight() + 1)
+
 	return e, nil
 }
-
 
 
