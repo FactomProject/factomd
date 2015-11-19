@@ -11,22 +11,7 @@ import (
 func TestEBlockMarshal(t *testing.T) {
 	t.Logf("\n---\nTestEBlockMarshal\n---\n")
 
-	// build an EBlock for testing
-	eb := NewEBlock()
-	eb.Header.ChainID.SetBytes(byteof(0x11))
-	eb.Header.BodyMR.SetBytes(byteof(0x22))
-	eb.Header.PrevKeyMR.SetBytes(byteof(0x33))
-	eb.Header.PrevLedgerKeyMR.SetBytes(byteof(0x44))
-	eb.Header.EBSequence = 5
-	eb.Header.DBHeight = 6
-	eb.Header.EntryCount = 7
-	ha := primitives.NewZeroHash()
-	ha.SetBytes(byteof(0xaa))
-	hb := primitives.NewZeroHash()
-	hb.SetBytes(byteof(0xbb))
-	eb.Body.EBEntries = append(eb.Body.EBEntries, ha)
-	eb.AddEndOfMinuteMarker(0xcc)
-	eb.Body.EBEntries = append(eb.Body.EBEntries, hb)
+	eb := newTestingEntryBlock()
 
 	t.Log(eb)
 	p, err := eb.MarshalBinary()
@@ -77,6 +62,39 @@ func TestEntryBlockMisc(t *testing.T) {
 	if hash.String() != "a9fc0b656430d8bf71d180760b0b352c08f45a55a8cf157383613484587b4d21" {
 		t.Fail()
 	}
+}
+
+func newTestingEntryBlock() *EBlock {
+	// build an EBlock for testing
+	eb := NewEBlock()
+	hash := primitives.NewZeroHash()
+	hash.SetBytes(byteof(0x11))
+	eb.Header.SetChainID(hash)
+
+	hash = primitives.NewZeroHash()
+	hash.SetBytes(byteof(0x22))
+	eb.Header.SetBodyMR(hash)
+
+	hash = primitives.NewZeroHash()
+	hash.SetBytes(byteof(0x33))
+	eb.Header.SetPrevKeyMR(hash)
+
+	hash = primitives.NewZeroHash()
+	hash.SetBytes(byteof(0x44))
+	eb.Header.SetPrevLedgerKeyMR(hash)
+
+	eb.Header.SetEBSequence(5)
+	eb.Header.SetDBHeight(6)
+	eb.Header.SetEntryCount(7)
+	ha := primitives.NewZeroHash()
+	ha.SetBytes(byteof(0xaa))
+	hb := primitives.NewZeroHash()
+	hb.SetBytes(byteof(0xbb))
+	eb.Body.EBEntries = append(eb.Body.EBEntries, ha)
+	eb.AddEndOfMinuteMarker(0xcc)
+	eb.Body.EBEntries = append(eb.Body.EBEntries, hb)
+
+	return eb
 }
 
 func newEntryBlock() *EBlock {
