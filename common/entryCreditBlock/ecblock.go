@@ -315,7 +315,7 @@ func (e *ECBlock) unmarshalHeaderBinaryData(data []byte) (newData []byte, err er
 	} else {
 		e.Header.GetPrevLedgerKeyMR().SetBytes(hash)
 	}
-	
+
 	h := e.Header.GetDBHeight()
 	if err = binary.Read(buf, binary.BigEndian, &h); err != nil {
 		return
@@ -365,10 +365,6 @@ func (e *ECBlock) String() string {
 	return str
 }
 
-type ECBlockBody struct {
-	Entries []interfaces.IECBlockEntry
-}
-
 /********************************************************
  * Support Functions
  ********************************************************/
@@ -409,5 +405,3 @@ func NextECBlock(prev interfaces.IEntryCreditBlock) (interfaces.IEntryCreditBloc
 
 	return e, nil
 }
-
-

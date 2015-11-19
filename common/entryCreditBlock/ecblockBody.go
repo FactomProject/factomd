@@ -19,7 +19,7 @@ var _ = fmt.Print
 var _ interfaces.Printable = (*ECBlockBody)(nil)
 var _ interfaces.IECBlockBody = (*ECBlockBody)(nil)
 
-func (e *ECBlockBody) GetEntries() ([]interfaces.IECBlockEntry) {
+func (e *ECBlockBody) GetEntries() []interfaces.IECBlockEntry {
 	return e.Entries
 }
 
@@ -53,6 +53,3 @@ func NewECBlockBody() interfaces.IECBlockBody {
 	b.Entries = make([]interfaces.IECBlockEntry, 0)
 	return b
 }
-
-
-
