@@ -27,6 +27,10 @@ func AreBinaryMarshallablesEqual(b1, b2 interfaces.BinaryMarshallable) (bool, er
 		}
 		return false, nil
 	}
+	if b2 == nil {
+		return false, nil
+	}
+
 	bytes1, err := b1.MarshalBinary()
 	if err != nil {
 		return false, err

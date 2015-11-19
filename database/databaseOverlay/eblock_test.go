@@ -109,6 +109,7 @@ func TestSaveLoadEBlockChain(t *testing.T) {
 			break
 		}
 		t.Logf("KeyMR - %v", keyMR.String())
+		hash := current.GetHeader().GetPrevLedgerKeyMR()
 
 		current, err = dbo.FetchEBlockByKeyMR(keyMR)
 		if err != nil {
@@ -118,9 +119,37 @@ func TestSaveLoadEBlockChain(t *testing.T) {
 			t.Fatal("Block not found")
 		}
 		fetchedCount++
+
+		byHash, err := dbo.FetchEBlockByHash(hash)
+
+		same, err := primitives.AreBinaryMarshallablesEqual(current, byHash)
+		if err != nil {
+			t.Error(err)
+		}
+		if same == false {
+			t.Error("Blocks fetched by keyMR and hash are not identical")
+		}
 	}
 	if fetchedCount != max {
-		t.Error("Wrong number of entries fetched - %v vs %v", fetchedCount, max)
+		t.Errorf("Wrong number of entries fetched - %v vs %v", fetchedCount, max)
+	}
+
+	all, err := dbo.FetchAllEBlocksByChain(chain)
+	if err != nil {
+		t.Error(err)
+	}
+	if len(all) != max {
+		t.Errorf("Wrong number of entries fetched - %v vs %v", len(all), max)
+	}
+	for i := range all {
+		same, err := primitives.AreBinaryMarshallablesEqual(blocks[i], all[i])
+		if err != nil {
+			t.Error(err)
+		}
+		if same == false {
+			t.Error("Blocks fetched by all and original blocks are not identical")
+			t.Logf("\n%v\nvs\n%v", blocks[i].String(), all[i].String())
+		}
 	}
 }
 
@@ -143,10 +172,18 @@ func createTestEntryBlock(prev *EBlock) *EBlock {
 		}
 
 		e.Header.SetPrevKeyMR(keyMR)
+		hash, err := prev.Hash()
+		if err != nil {
+			panic(err)
+		}
+		e.Header.SetPrevLedgerKeyMR(hash)
 		e.Header.SetDBHeight(prev.Header.GetDBHeight() + 1)
+
+		e.Header.SetChainID(prev.Header.GetChainID())
 	} else {
 		e.Header.SetPrevKeyMR(primitives.NewZeroHash())
 		e.Header.SetDBHeight(0)
 	}
+
 	return e
 }

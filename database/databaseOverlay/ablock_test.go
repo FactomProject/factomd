@@ -107,9 +107,41 @@ func TestSaveLoadABlockChain(t *testing.T) {
 			t.Fatal("Block not found")
 		}
 		fetchedCount++
+		hash, err := current.PartialHash()
+		if err != nil {
+			t.Error(err)
+		}
+
+		byHash, err := dbo.FetchABlockByHash(hash)
+
+		same, err := primitives.AreBinaryMarshallablesEqual(current, byHash)
+		if err != nil {
+			t.Error(err)
+		}
+		if same == false {
+			t.Error("Blocks fetched by keyMR and hash are not identical")
+		}
 	}
 	if fetchedCount != max {
-		t.Error("Wrong number of entries fetched - %v vs %v", fetchedCount, max)
+		t.Errorf("Wrong number of entries fetched - %v vs %v", fetchedCount, max)
+	}
+
+	all, err := dbo.FetchAllABlocks()
+	if err != nil {
+		t.Error(err)
+	}
+	if len(all) != max {
+		t.Error("Wrong number of entries fetched - %v vs %v", len(all), max)
+	}
+	for i := range all {
+		same, err := primitives.AreBinaryMarshallablesEqual(blocks[i], all[i])
+		if err != nil {
+			t.Error(err)
+		}
+		if same == false {
+			t.Error("Blocks fetched by all and original blocks are not identical")
+			t.Logf("\n%v\nvs\n%v", blocks[i].String(), all[i].String())
+		}
 	}
 }
 

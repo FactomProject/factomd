@@ -121,7 +121,7 @@ func TestSaveLoadECBlockChain(t *testing.T) {
 
 	}
 	if fetchedCount != max {
-		t.Error("Wrong number of entries fetched - %v vs %v", fetchedCount, max)
+		t.Errorf("Wrong number of entries fetched - %v vs %v", fetchedCount, max)
 	}
 
 	all, err := dbo.FetchAllECBlocks()
