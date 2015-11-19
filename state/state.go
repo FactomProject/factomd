@@ -2,11 +2,11 @@ package state
 
 import (
 	"bytes"
-	"fmt"
 	"errors"
+	"fmt"
 	"github.com/FactomProject/factomd/common/adminBlock"
-	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid/block"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -374,9 +374,9 @@ func (s *State) String() string {
 func (s *State) NewAdminBlock() interfaces.IAdminBlock {
 	ab := new(adminBlock.AdminBlock)
 	ab.Header = s.NewAdminBlockHeader()
-	
+
 	s.DB.SaveABlockHead(ab)
-	
+
 	return ab
 }
 
@@ -401,23 +401,25 @@ func (s *State) NewAdminBlockHeader() interfaces.IABlockHeader {
 
 func (s *State) CreateDBlock() (b interfaces.IDirectoryBlock, err error) {
 	prev := s.GetCurrentDirectoryBlock()
-	
+
 	b = new(directoryBlock.DirectoryBlock)
-	
+
 	b.SetHeader(new(directoryBlock.DBlockHeader))
 	b.GetHeader().SetVersion(constants.VERSION_0)
-	
+
 	if prev == nil {
 		b.GetHeader().SetPrevLedgerKeyMR(primitives.NewZeroHash())
 		b.GetHeader().SetPrevKeyMR(primitives.NewZeroHash())
 		b.GetHeader().SetDBHeight(0)
+		eb, _ := entryCreditBlock.NextECBlock(nil)
+		s.EntryCreditBlock = eb
 	} else {
 		bodyMR, err := prev.BuildBodyMR()
 		if err != nil {
 			return nil, err
 		}
 		prev.GetHeader().SetBodyMR(bodyMR)
-		
+
 		prevLedgerKeyMR := prev.GetHash()
 		if prevLedgerKeyMR == nil {
 			return nil, errors.New("prevLedgerKeyMR is nil")
@@ -425,8 +427,10 @@ func (s *State) CreateDBlock() (b interfaces.IDirectoryBlock, err error) {
 		b.GetHeader().SetPrevLedgerKeyMR(prevLedgerKeyMR)
 		b.GetHeader().SetPrevKeyMR(prev.GetKeyMR())
 		b.GetHeader().SetDBHeight(prev.GetHeader().GetDBHeight() + 1)
+		eb, _ := entryCreditBlock.NextECBlock(s.EntryCreditBlock)
+		s.EntryCreditBlock = eb
 	}
-	
+
 	adminblk := s.NewAdminBlock()
 	keymr, err := adminblk.GetKeyMR()
 	if err != nil {
@@ -434,9 +438,13 @@ func (s *State) CreateDBlock() (b interfaces.IDirectoryBlock, err error) {
 	}
 	b.SetDBEntries(make([]interfaces.IDBEntry, 0))
 	b.AddEntry(primitives.NewHash(constants.ADMIN_CHAINID), keymr)
-	b.AddEntry(primitives.NewHash(constants.EC_CHAINID), primitives.NewZeroHash())
+	if hash, err := s.EntryCreditBlock.HeaderHash(); err != nil {
+		return nil, err
+	} else {
+		b.AddEntry(primitives.NewHash(constants.EC_CHAINID), hash)
+	}
 	b.AddEntry(primitives.NewHash(constants.FACTOID_CHAINID), primitives.NewZeroHash())
-	
+
 	return b, err
 }
 

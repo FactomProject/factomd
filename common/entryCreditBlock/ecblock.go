@@ -6,6 +6,7 @@ package entryCreditBlock
 
 import (
 	"bytes"
+	"encoding/binary"
 	"fmt"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -42,7 +43,7 @@ func (c *ECBlock) GetHeader() interfaces.IECBlockHeader {
 }
 
 func (c *ECBlock) New() interfaces.BinaryMarshallableAndCopyable {
-	return NewECBlock()
+	return new(ECBlock)
 }
 
 func (c *ECBlock) GetDatabaseHeight() uint32 {
@@ -61,43 +62,6 @@ func (c *ECBlock) DatabasePrimaryIndex() interfaces.IHash {
 func (c *ECBlock) DatabaseSecondaryIndex() interfaces.IHash {
 	key, _ := c.Hash()
 	return key
-}
-
-func NewECBlock() interfaces.IEntryCreditBlock {
-	e := new(ECBlock)
-	e.Header = NewECBlockHeader()
-	e.Body = NewECBlockBody()
-	return e
-}
-
-func NextECBlock(prev interfaces.IEntryCreditBlock) (interfaces.IEntryCreditBlock, error) {
-	e := NewECBlock()
-
-	// Handle the really unusual case of the first block.
-	if prev == nil {
-		e.GetHeader().SetPrevHeaderHash(primitives.NewHash(constants.ZERO_HASH))
-		e.GetHeader().SetPrevLedgerKeyMR(primitives.NewHash(constants.ZERO_HASH))
-		e.GetHeader().SetDBHeight(1)
-	} else {
-		v, err := prev.HeaderHash()
-		if err != nil {
-			return nil, err
-		}
-		e.GetHeader().SetPrevHeaderHash(v)
-
-		v, err = prev.Hash()
-		if err != nil {
-			return nil, err
-		}
-		e.GetHeader().SetPrevLedgerKeyMR(v)
-
-		e.GetHeader().SetDBHeight(prev.GetHeader().GetDBHeight() + 1)
-	}
-	if err := e.(*ECBlock).BuildHeader(); err != nil {
-		return nil, err
-	}
-
-	return e, nil
 }
 
 func (e *ECBlock) AddEntry(entries ...interfaces.IECBlockEntry) {
@@ -198,6 +162,48 @@ func (e *ECBlock) marshalBodyBinary() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+func (e *ECBlock) marshalHeaderBinary() ([]byte, error) {
+	buf := new(bytes.Buffer)
+
+	// 32 byte ECChainID
+	buf.Write(e.GetHeader().GetECChainID().Bytes())
+
+	// 32 byte BodyHash
+	buf.Write(e.GetHeader().GetBodyHash().Bytes())
+
+	// 32 byte Previous Header Hash
+	buf.Write(e.GetHeader().GetPrevHeaderHash().Bytes())
+
+	// 32 byte Previous Full Hash
+	buf.Write(e.GetHeader().GetPrevLedgerKeyMR().Bytes())
+
+	// 4 byte Directory Block Height
+	if err := binary.Write(buf, binary.BigEndian, e.GetHeader().GetDBHeight()); err != nil {
+		return buf.Bytes(), err
+	}
+
+	// variable Header Expansion Size
+	if err := primitives.EncodeVarInt(buf,
+		uint64(len(e.GetHeader().GetHeaderExpansionArea()))); err != nil {
+		return buf.Bytes(), err
+	}
+
+	// varable byte Header Expansion Area
+	buf.Write(e.Header.GetHeaderExpansionArea())
+
+	// 8 byte Object Count
+	if err := binary.Write(buf, binary.BigEndian, e.Header.GetObjectCount()); err != nil {
+		return buf.Bytes(), err
+	}
+
+	// 8 byte size of the Body
+	if err := binary.Write(buf, binary.BigEndian, e.Header.GetBodySize()); err != nil {
+		return buf.Bytes(), err
+	}
+
+	return buf.Bytes(), nil
+}
+
 func (e *ECBlock) unmarshalBodyBinaryData(data []byte) (newData []byte, err error) {
 	buf := bytes.NewBuffer(data)
 
@@ -282,6 +288,66 @@ func (b *ECBlock) unmarshalBodyBinary(data []byte) (err error) {
 	return
 }
 
+func (e *ECBlock) unmarshalHeaderBinaryData(data []byte) (newData []byte, err error) {
+	buf := bytes.NewBuffer(data)
+	hash := make([]byte, 32)
+
+	if _, err = buf.Read(hash); err != nil {
+		return
+	} else {
+		e.Header.GetECChainID().SetBytes(hash)
+	}
+
+	if _, err = buf.Read(hash); err != nil {
+		return
+	} else {
+		e.Header.GetBodyHash().SetBytes(hash)
+	}
+
+	if _, err = buf.Read(hash); err != nil {
+		return
+	} else {
+		e.Header.GetPrevHeaderHash().SetBytes(hash)
+	}
+
+	if _, err = buf.Read(hash); err != nil {
+		return
+	} else {
+		e.Header.GetPrevLedgerKeyMR().SetBytes(hash)
+	}
+
+	h := e.Header.GetDBHeight()
+	if err = binary.Read(buf, binary.BigEndian, &h); err != nil {
+		return
+	}
+
+	// read the Header Expansion Area
+	hesize, tmp := primitives.DecodeVarInt(buf.Bytes())
+	buf = bytes.NewBuffer(tmp)
+	e.Header.SetHeaderExpansionArea(make([]byte, hesize))
+	if _, err = buf.Read(e.Header.GetHeaderExpansionArea()); err != nil {
+		return
+	}
+
+	oc := e.Header.GetObjectCount()
+	if err = binary.Read(buf, binary.BigEndian, &oc); err != nil {
+		return
+	}
+
+	sz := e.Header.GetBodySize()
+	if err = binary.Read(buf, binary.BigEndian, &sz); err != nil {
+		return
+	}
+
+	newData = buf.Bytes()
+	return
+}
+
+func (e *ECBlock) unmarshalHeaderBinary(data []byte) error {
+	_, err := e.unmarshalHeaderBinaryData(data)
+	return err
+}
+
 func (e *ECBlock) JSONByte() ([]byte, error) {
 	return primitives.EncodeJSON(e)
 }
@@ -299,40 +365,43 @@ func (e *ECBlock) String() string {
 	return str
 }
 
-type ECBlockBody struct {
-	Entries []interfaces.IECBlockEntry
+/********************************************************
+ * Support Functions
+ ********************************************************/
+
+func NewECBlock() interfaces.IEntryCreditBlock {
+	e := new(ECBlock)
+	e.Header = NewECBlockHeader()
+	e.Body = NewECBlockBody()
+	return e
 }
 
-var _ interfaces.Printable = (*ECBlockBody)(nil)
-var _ interfaces.IECBlockBody = (*ECBlockBody)(nil)
+func NextECBlock(prev interfaces.IEntryCreditBlock) (interfaces.IEntryCreditBlock, error) {
+	e := NewECBlock()
 
-func NewECBlockBody() interfaces.IECBlockBody {
-	b := new(ECBlockBody)
-	b.Entries = make([]interfaces.IECBlockEntry, 0)
-	return b
-}
+	// Handle the really unusual case of the first block.
+	if prev == nil {
+		e.GetHeader().SetPrevHeaderHash(primitives.NewHash(constants.ZERO_HASH))
+		e.GetHeader().SetPrevLedgerKeyMR(primitives.NewHash(constants.ZERO_HASH))
+		e.GetHeader().SetDBHeight(1)
+	} else {
+		v, err := prev.HeaderHash()
+		if err != nil {
+			return nil, err
+		}
+		e.GetHeader().SetPrevHeaderHash(v)
 
-func (e *ECBlockBody) GetEntries() []interfaces.IECBlockEntry {
-	return e.Entries
-}
+		v, err = prev.Hash()
+		if err != nil {
+			return nil, err
+		}
+		e.GetHeader().SetPrevLedgerKeyMR(v)
 
-func (e *ECBlockBody) SetEntries(entries []interfaces.IECBlockEntry) {
-	e.Entries = entries
-}
+		e.GetHeader().SetDBHeight(prev.GetHeader().GetDBHeight() + 1)
+	}
+	if err := e.(*ECBlock).BuildHeader(); err != nil {
+		return nil, err
+	}
 
-func (e *ECBlockBody) JSONByte() ([]byte, error) {
-	return primitives.EncodeJSON(e)
-}
-
-func (e *ECBlockBody) JSONString() (string, error) {
-	return primitives.EncodeJSONString(e)
-}
-
-func (e *ECBlockBody) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
-}
-
-func (e *ECBlockBody) String() string {
-	str, _ := e.JSONString()
-	return str
+	return e, nil
 }
