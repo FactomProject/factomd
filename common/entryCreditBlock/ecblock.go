@@ -64,41 +64,6 @@ func (c *ECBlock) DatabaseSecondaryIndex() interfaces.IHash {
 	return key
 }
 
-func NewECBlock() interfaces.IEntryCreditBlock {
-	e := new(ECBlock)
-	e.Header = NewECBlockHeader()
-	e.Body = NewECBlockBody()
-	return e
-}
-
-func NextECBlock(prev interfaces.IEntryCreditBlock) (interfaces.IEntryCreditBlock, error) {
-	e := prev.New().(interfaces.IEntryCreditBlock)
-	var err error
-	
-	// Handle the really unusual case of the first block.
-	if prev == nil {
-		e.GetHeader().SetPrevHeaderHash(primitives.NewHash(constants.ZERO_HASH))
-		e.GetHeader().SetPrevLedgerKeyMR(primitives.NewHash(constants.ZERO_HASH))
-		e.GetHeader().SetDBHeight(1)
-		return e, nil
-	}
-	
-	v, err := prev.HeaderHash()
-	if err != nil {
-		return nil, err
-	}
-	e.GetHeader().SetPrevHeaderHash(v)
-	
-	v, err = prev.Hash()
-	if err != nil {
-		return nil, err
-	}
-	e.GetHeader().SetPrevLedgerKeyMR(v)
-
-	e.GetHeader().SetDBHeight(prev.GetHeader().GetDBHeight() + 1)
-	return e, nil
-}
-
 func (e *ECBlock) AddEntry(entries ...interfaces.IECBlockEntry) {
 	e.GetBody().SetEntries(append(e.GetBody().GetEntries(), entries...))
 }
@@ -396,42 +361,44 @@ func (e *ECBlock) String() string {
 	return str
 }
 
-type ECBlockBody struct {
-	Entries []interfaces.IECBlockEntry
+
+/********************************************************
+ * Support Functions
+ ********************************************************/
+
+func NewECBlock() interfaces.IEntryCreditBlock {
+	e := new(ECBlock)
+	e.Header = NewECBlockHeader()
+	e.Body = NewECBlockBody()
+	return e
 }
 
-var _ interfaces.Printable = (*ECBlockBody)(nil)
-var _ interfaces.IECBlockBody = (*ECBlockBody)(nil)
-
-func NewECBlockBody() interfaces.IECBlockBody {
-	b := new(ECBlockBody)
-	b.Entries = make([]interfaces.IECBlockEntry, 0)
-	return b
-}
-
-func (e *ECBlockBody) GetEntries() ([]interfaces.IECBlockEntry) {
-	return e.Entries
-}
-
-func (e *ECBlockBody) SetEntries(entries []interfaces.IECBlockEntry) {
-	e.Entries = entries
-}
-
-func (e *ECBlockBody) JSONByte() ([]byte, error) {
-	return primitives.EncodeJSON(e)
-}
-
-func (e *ECBlockBody) JSONString() (string, error) {
-	return primitives.EncodeJSONString(e)
-}
-
-func (e *ECBlockBody) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
-}
-
-func (e *ECBlockBody) String() string {
-	str, _ := e.JSONString()
-	return str
+func NextECBlock(prev interfaces.IEntryCreditBlock) (interfaces.IEntryCreditBlock, error) {
+	e := prev.New().(interfaces.IEntryCreditBlock)
+	var err error
+	
+	// Handle the really unusual case of the first block.
+	if prev == nil {
+		e.GetHeader().SetPrevHeaderHash(primitives.NewHash(constants.ZERO_HASH))
+		e.GetHeader().SetPrevLedgerKeyMR(primitives.NewHash(constants.ZERO_HASH))
+		e.GetHeader().SetDBHeight(1)
+		return e, nil
+	}
+	
+	v, err := prev.HeaderHash()
+	if err != nil {
+		return nil, err
+	}
+	e.GetHeader().SetPrevHeaderHash(v)
+	
+	v, err = prev.Hash()
+	if err != nil {
+		return nil, err
+	}
+	e.GetHeader().SetPrevLedgerKeyMR(v)
+	
+	e.GetHeader().SetDBHeight(prev.GetHeader().GetDBHeight() + 1)
+	return e, nil
 }
 
 

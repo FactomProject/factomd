@@ -411,6 +411,8 @@ func (s *State) CreateDBlock() (b interfaces.IDirectoryBlock, err error) {
 		b.GetHeader().SetPrevLedgerKeyMR(primitives.NewZeroHash())
 		b.GetHeader().SetPrevKeyMR(primitives.NewZeroHash())
 		b.GetHeader().SetDBHeight(0)
+		eb, _ := entryCreditBlock.NextECBlock(nil)
+		s.EntryCreditBlock = eb
 	} else {
 		bodyMR, err := prev.BuildBodyMR()
 		if err != nil {
@@ -425,8 +427,10 @@ func (s *State) CreateDBlock() (b interfaces.IDirectoryBlock, err error) {
 		b.GetHeader().SetPrevLedgerKeyMR(prevLedgerKeyMR)
 		b.GetHeader().SetPrevKeyMR(prev.GetKeyMR())
 		b.GetHeader().SetDBHeight(prev.GetHeader().GetDBHeight() + 1)
+		eb,_ := entryCreditBlock.NextECBlock(s.EntryCreditBlock)
+		s.EntryCreditBlock = eb
 	}
-	
+		
 	adminblk := s.NewAdminBlock()
 	keymr, err := adminblk.GetKeyMR()
 	if err != nil {
@@ -434,7 +438,11 @@ func (s *State) CreateDBlock() (b interfaces.IDirectoryBlock, err error) {
 	}
 	b.SetDBEntries(make([]interfaces.IDBEntry, 0))
 	b.AddEntry(primitives.NewHash(constants.ADMIN_CHAINID), keymr)
-	b.AddEntry(primitives.NewHash(constants.EC_CHAINID), primitives.NewZeroHash())
+	if hash, err := s.EntryCreditBlock.HeaderHash(); err != nil {
+		return nil, err
+	}else{
+		b.AddEntry(primitives.NewHash(constants.EC_CHAINID), hash)
+	}
 	b.AddEntry(primitives.NewHash(constants.FACTOID_CHAINID), primitives.NewZeroHash())
 	
 	return b, err
