@@ -154,19 +154,157 @@ func handleGetRaw(ctx *web.Context, hashkey string) {
 	}
 }
 
-func handleDirectoryBlock(ctx *web.Context) {
+func handleDirectoryBlock(ctx *web.Context, hashkey string) {
+	state := ctx.Server.Env["state"].(interfaces.IState)
+	/*
+		type data struct {
+		}
+		d := new(data)
+	*/
+
+	h, err := primitives.HexToHash(hashkey)
+	if err != nil {
+		wsLog.Error(err)
+		ctx.WriteHeader(httpBad)
+		ctx.Write([]byte(err.Error()))
+		return
+	}
+
+	dbase := state.GetDB()
+
+	block, err := dbase.FetchDBlockByKeyMR(h)
+	if err != nil {
+		wsLog.Error(err)
+		ctx.WriteHeader(httpBad)
+		ctx.Write([]byte(err.Error()))
+		return
+	}
+	if block == nil {
+		block, err = dbase.FetchDBlockByHash(h)
+		if err != nil {
+			wsLog.Error(err)
+			ctx.WriteHeader(httpBad)
+			ctx.Write([]byte(err.Error()))
+			return
+		}
+		if block == nil {
+			//TODO: handle block not found
+		}
+	}
+	//TODO: handle block found
+}
+
+func handleEntryBlock(ctx *web.Context, hashkey string) {
+	state := ctx.Server.Env["state"].(interfaces.IState)
+	/*
+		type data struct {
+		}
+		d := new(data)
+	*/
+
+	h, err := primitives.HexToHash(hashkey)
+	if err != nil {
+		wsLog.Error(err)
+		ctx.WriteHeader(httpBad)
+		ctx.Write([]byte(err.Error()))
+		return
+	}
+
+	dbase := state.GetDB()
+
+	block, err := dbase.FetchEBlockByKeyMR(h)
+	if err != nil {
+		wsLog.Error(err)
+		ctx.WriteHeader(httpBad)
+		ctx.Write([]byte(err.Error()))
+		return
+	}
+	if block == nil {
+		block, err = dbase.FetchEBlockByHash(h)
+		if err != nil {
+			wsLog.Error(err)
+			ctx.WriteHeader(httpBad)
+			ctx.Write([]byte(err.Error()))
+			return
+		}
+		if block == nil {
+			//TODO: handle block not found
+		}
+	}
+	//TODO: handle block found
 
 }
 
-func handleEntryBlock(ctx *web.Context) {
+func handleEntry(ctx *web.Context, hashkey string) {
+	state := ctx.Server.Env["state"].(interfaces.IState)
+	/*
+		type data struct {
+		}
+		d := new(data)
+	*/
+
+	h, err := primitives.HexToHash(hashkey)
+	if err != nil {
+		wsLog.Error(err)
+		ctx.WriteHeader(httpBad)
+		ctx.Write([]byte(err.Error()))
+		return
+	}
+
+	dbase := state.GetDB()
+
+	block, err := dbase.FetchEntryByHash(h)
+	if err != nil {
+		wsLog.Error(err)
+		ctx.WriteHeader(httpBad)
+		ctx.Write([]byte(err.Error()))
+		return
+	}
+	if block == nil {
+		//TODO: handle block not found
+	}
+	//TODO: handle block found
 
 }
 
-func handleEntry(ctx *web.Context) {
+func handleChainHead(ctx *web.Context, hashkey string) {
+	state := ctx.Server.Env["state"].(interfaces.IState)
+	/*
+		type data struct {
+		}
+		d := new(data)
+	*/
 
-}
+	h, err := primitives.HexToHash(hashkey)
+	if err != nil {
+		wsLog.Error(err)
+		ctx.WriteHeader(httpBad)
+		ctx.Write([]byte(err.Error()))
+		return
+	}
 
-func handleChainHead(ctx *web.Context) {
+	dbase := state.GetDB()
+
+	block, err := dbase.FetchDBlockByKeyMR(h)
+	if err != nil {
+		wsLog.Error(err)
+		ctx.WriteHeader(httpBad)
+		ctx.Write([]byte(err.Error()))
+		return
+	}
+	if block == nil {
+		block, err = dbase.FetchDBlockByHash(h)
+		if err != nil {
+			wsLog.Error(err)
+			ctx.WriteHeader(httpBad)
+			ctx.Write([]byte(err.Error()))
+			return
+		}
+		if block == nil {
+			//TODO: handle block not found
+		}
+	}
+	//TODO: handle block found
 
 }
 
