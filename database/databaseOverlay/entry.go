@@ -13,3 +13,6 @@ func (db *Overlay) InsertEntry(entry interfaces.DatabaseBatchable) error {
 func (db *Overlay) FetchEntryByHash(hash interfaces.IHash, dst interfaces.DatabaseBatchable) (interfaces.DatabaseBatchable, error) {
 	return db.FetchBlock([]byte{byte(ENTRY)}, hash, dst)
 }
+
+// *************************************************	
+//TODO fix wsapi.go when Entry is updated. line 144

@@ -551,7 +551,7 @@ func handleGetRaw(ctx *web.Context, hashkey string) {
 	//TODO: var block interfaces.BinaryMarshallable
 	d := new(rawData)
 
-	h, err := HexToHash(hashkey)
+	h, err := primitives.HexToHash(hashkey)
 	if err != nil {
 		wsLog.Error(err)
 		ctx.WriteHeader(httpBad)
