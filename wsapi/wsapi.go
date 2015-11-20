@@ -11,10 +11,10 @@ import (
 	"io/ioutil"
 
 	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/log"
 	"github.com/hoisie/web"
 )
@@ -81,19 +81,19 @@ func handleRevealEntry(ctx *web.Context) {
 }
 
 func handleDirectoryBlockHead(ctx *web.Context) {
-	
+
 	state := ctx.Server.Env["state"].(interfaces.IState)
-	
+
 	type dbhead struct {
 		KeyMR string
 	}
-	
+
 	h := new(dbhead)
-	
+
 	h.KeyMR = state.GetPreviousDirectoryBlock().GetKeyMR().String()
-	
+
 	fmt.Println(h.KeyMR)
-	
+
 	if p, err := json.Marshal(h); err != nil {
 		wsLog.Error(err)
 		ctx.WriteHeader(httpBad)
@@ -102,20 +102,19 @@ func handleDirectoryBlockHead(ctx *web.Context) {
 	} else {
 		ctx.Write(p)
 	}
-	
 
 }
 
 func handleGetRaw(ctx *web.Context, hashkey string) {
-	
+
 	state := ctx.Server.Env["state"].(interfaces.IState)
-	
+
 	type rawData struct {
 		Data string
 	}
 	//TODO: var block interfaces.BinaryMarshallable
 	d := new(rawData)
-	
+
 	h, err := primitives.HexToHash(hashkey)
 	if err != nil {
 		wsLog.Error(err)
@@ -123,9 +122,9 @@ func handleGetRaw(ctx *web.Context, hashkey string) {
 		ctx.Write([]byte(err.Error()))
 		return
 	}
-	
+
 	dbase := state.GetDB()
-	
+
 	var b []byte
 	// try to find the block data in db and return the first one found
 	if block, _ := dbase.FetchFBlockByHash(h); block != nil {
@@ -138,13 +137,13 @@ func handleGetRaw(ctx *web.Context, hashkey string) {
 		b, _ = block.MarshalBinary()
 	} else if block, _ := dbase.FetchECBlockByHash(h); block != nil {
 		b, _ = block.MarshalBinary()
-//	} else if block, _ := dbase.FetchEntryByHash(h); block != nil {
-//		b, _ := block.MarshalBinary()
-	  // *************************************************	
-	} //TODO fix wsapi.go when Entry is updated. line 144
+	} else if block, _ := dbase.FetchEntryByHash(h); block != nil {
+		b, _ = block.MarshalBinary()
+	}
+	//TODO: fetch by KeyMR first, then by Hashes
 
 	d.Data = hex.EncodeToString(b)
-	
+
 	if p, err := json.Marshal(d); err != nil {
 		wsLog.Error(err)
 		ctx.WriteHeader(httpBad)
@@ -229,7 +228,7 @@ func handleFactoidSubmit(ctx *web.Context) {
 func handleFactoidBalance(ctx *web.Context, eckey string) {
 
 	fmt.Println("iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii")
-	
+
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
 	type fbal struct {
