@@ -23,13 +23,13 @@ func (db *Overlay) ProcessDBlockBatch(dblock interfaces.DatabaseBatchable) error
 // heights.  Fetch is inclusive of the start height and exclusive of the
 // ending height. To fetch all hashes from the start height until no
 // more are present, use -1 as endHeight.
-func (db *Overlay) FetchHeightRange(startHeight, endHeight int64) ([]interfaces.IHash, error) {
+func (db *Overlay) FetchDBlockHeightRange(startHeight, endHeight int64) ([]interfaces.IHash, error) {
 	return db.FetchBlockIndexesInHeightRange([]byte{byte(DIRECTORYBLOCK_NUMBER)}, startHeight, endHeight)
 }
 
-// FetchBlockHeightBySha returns the block height for the given hash.  This is
+// FetchBlockHeightByKeyMR returns the block height for the given hash.  This is
 // part of the database.Db interface implementation.
-func (db *Overlay) FetchBlockHeightByKeyMR(sha interfaces.IHash) (int64, error) {
+func (db *Overlay) FetchDBlockHeightByKeyMR(sha interfaces.IHash) (int64, error) {
 	dblk, err := db.FetchDBlockByKeyMR(sha)
 	if err != nil {
 		return -1, err

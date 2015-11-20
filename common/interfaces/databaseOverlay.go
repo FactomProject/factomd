@@ -11,26 +11,36 @@ type DBOverlay interface {
 	// We let Database method calls flow through.
 	IDatabase
 
+	//**********************************Entry**********************************//
+
 	// InsertEntry inserts an entry
 	InsertEntry(entry DatabaseBatchable) (err error)
 
 	// FetchEntry gets an entry by hash from the database.
 	FetchEntryByHash(IHash) (IEBEntry, error)
 
+	//**********************************EBlock**********************************//
+
 	// ProcessEBlockBatche inserts the EBlock and update all it's ebentries in DB
 	ProcessEBlockBatch(eblock DatabaseBatchable) error
 
-	// FetchEntryBlock gets an entry by hash from the database.
+	// FetchEBlockByHash gets an entry by hash from the database.
 	FetchEBlockByHash(IHash) (IEntryBlock, error)
+
+	// FetchEBlockByKeyMR gets an entry by hash from the database.
+	FetchEBlockByKeyMR(hash IHash) (IEntryBlock, error)
+
+	// FetchEBKeyMRByHash gets an entry by hash from the database.
+	FetchEBKeyMRByHash(hash IHash) (IHash, error)
 
 	// FetchAllEBlocksByChain gets all of the blocks by chain id
 	FetchAllEBlocksByChain(IHash) ([]IEntryBlock, error)
 
-	// FetchDBlock gets an entry by hash from the database.
-	FetchDBlockByHash(dBlockHash IHash) (dBlock IDirectoryBlock, err error)
+	SaveEBlockHead(block DatabaseBatchable) error
 
-	// FetchDBKeyMRByHash gets a DBlock KeyMR by hash.
-	FetchDBKeyMRByHash(hash IHash) (dBlockHash IHash, err error)
+	FetchEBlockHead(chainID IHash) (IEntryBlock, error)
+
+	//**********************************DBlock**********************************//
 
 	// ProcessDBlockBatche inserts the EBlock and update all it's ebentries in DB
 	ProcessDBlockBatch(block DatabaseBatchable) error
@@ -39,25 +49,53 @@ type DBOverlay interface {
 	// heights.  Fetch is inclusive of the start height and exclusive of the
 	// ending height. To fetch all hashes from the start height until no
 	// more are present, use -1 as endHeight.
-	FetchHeightRange(startHeight, endHeight int64) (rshalist []IHash, err error)
+	FetchDBlockHeightRange(startHeight, endHeight int64) ([]IHash, error)
 
-	// FetchAllECBlocks gets all of the entry credit blocks
-	FetchAllECBlocks() ([]IEntryCreditBlock, error)
+	// FetchBlockHeightByKeyMR returns the block height for the given hash.  This is
+	// part of the database.Db interface implementation.
+	FetchDBlockHeightByKeyMR(IHash) (int64, error)
 
-	// FetchAllFBInfo gets all of the fbInfo
-	FetchAllDBlocks() ([]IDirectoryBlock, error)
-
-	// FetchDBKeyMRByHeight gets a dBlock KeyMR from the database.
-	FetchDBKeyMRByHeight(dBlockHeight uint32) (dBlockKeyMR IHash, err error)
+	// FetchDBlock gets an entry by hash from the database.
+	FetchDBlockByKeyMR(IHash) (IDirectoryBlock, error)
 
 	// FetchDBlockByHeight gets an directory block by height from the database.
 	FetchDBlockByHeight(uint32) (IDirectoryBlock, error)
 
-	// ProcessECBlockBatche inserts the ECBlock and update all it's ecbentries in DB
+	// FetchDBKeyMRByHeight gets a dBlock KeyMR from the database.
+	FetchDBKeyMRByHeight(dBlockHeight uint32) (dBlockKeyMR IHash, err error)
+
+	// FetchDBKeyMRByHash gets a DBlock KeyMR by hash.
+	FetchDBKeyMRByHash(hash IHash) (dBlockHash IHash, err error)
+
+	// FetchDBlock gets an entry by hash from the database.
+	FetchDBlockByHash(dBlockHash IHash) (dBlock IDirectoryBlock, err error)
+
+	// FetchAllFBInfo gets all of the fbInfo
+	FetchAllDBlocks() ([]IDirectoryBlock, error)
+
+	SaveDirectoryBlockHead(DatabaseBatchable) error
+
+	FetchDirectoryBlockHead() (IDirectoryBlock, error)
+
+	//**********************************ECBlock**********************************//
+
+	// ProcessECBlockBatch inserts the ECBlock and update all it's ecbentries in DB
 	ProcessECBlockBatch(block DatabaseBatchable) (err error)
 
 	// FetchECBlockByHash gets an Entry Credit block by hash from the database.
 	FetchECBlockByHash(IHash) (IEntryCreditBlock, error)
+
+	// FetchECBlockByKeyMR gets an Entry Credit block by hash from the database.
+	FetchECBlockByKeyMR(hash IHash) (IEntryCreditBlock, error)
+
+	// FetchAllECBlocks gets all of the entry credit blocks
+	FetchAllECBlocks() ([]IEntryCreditBlock, error)
+
+	SaveECBlockHead(DatabaseBatchable) error
+
+	FetchECBlockHead() (IEntryCreditBlock, error)
+
+	//**********************************ABlock**********************************//
 
 	// ProcessABlockBatch inserts the AdminBlock
 	ProcessABlockBatch(block DatabaseBatchable) error
@@ -71,14 +109,24 @@ type DBOverlay interface {
 	// FetchAllABlocks gets all of the admin blocks
 	FetchAllABlocks() ([]IAdminBlock, error)
 
+	SaveABlockHead(DatabaseBatchable)
+
+	FetchABlockHead() (IAdminBlock, error)
+
+	//**********************************FBlock**********************************//
+
 	// ProcessFBlockBatch inserts the Factoid
 	ProcessFBlockBatch(DatabaseBatchable) error
 
 	// FetchFBlockByHash gets an admin block by hash from the database.
 	FetchFBlockByHash(IHash) (IFBlock, error)
 
+	FetchFBlockByKeyMR(IHash) (IFBlock, error)
+
 	// FetchAllFBlocks gets all of the admin blocks
 	FetchAllFBlocks() ([]IFBlock, error)
 
 	SaveFactoidBlockHead(fblock DatabaseBatchable) error
+
+	FetchFactoidBlockHead() (IFBlock, error)
 }

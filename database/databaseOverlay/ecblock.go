@@ -8,7 +8,7 @@ import (
 	"sort"
 )
 
-// ProcessECBlockBatche inserts the ECBlock and update all it's cbentries in DB
+// ProcessECBlockBatch inserts the ECBlock and update all it's cbentries in DB
 func (db *Overlay) ProcessECBlockBatch(block interfaces.DatabaseBatchable) error {
 	return db.ProcessBlockBatch([]byte{byte(ENTRYCREDITBLOCK)},
 		[]byte{byte(ENTRYCREDITBLOCK_NUMBER)},
@@ -27,7 +27,7 @@ func (db *Overlay) FetchECBlockByHash(hash interfaces.IHash) (interfaces.IEntryC
 	return block.(interfaces.IEntryCreditBlock), nil
 }
 
-// FetchECBlockByHash gets an Entry Credit block by hash from the database.
+// FetchECBlockByKeyMR gets an Entry Credit block by hash from the database.
 func (db *Overlay) FetchECBlockByKeyMR(hash interfaces.IHash) (interfaces.IEntryCreditBlock, error) {
 	block, err := db.FetchBlock([]byte{byte(ENTRYCREDITBLOCK)}, hash, entryCreditBlock.NewECBlock())
 	if err != nil {
