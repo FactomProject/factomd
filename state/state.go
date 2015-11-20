@@ -311,10 +311,20 @@ func (s *State) loadDatabase() {
 		if err != nil {
 			panic(err.Error())
 		}
-		fs := s.GetFactoidState()
-		fs.AddTransactionBlock(fblk)
+		
+		var fblks []interfaces.IFBlock
+		
+		for fblk != nil {
+			fblks = append(fblks, fblk)
+			hash := fblk.GetPrevKeyMR()
+			fblk,_ = s.DB.FetchFBlockByHash(hash)
+		}
+		for i:=len(fblks)-1; i >=0; i-- {
+			s.GetFactoidState().AddTransactionBlock(fblks[i])
+		}
 	}
 	s.SetCurrentDirectoryBlock(dblk)
+	
 }
 
 func (s *State) InitLevelDB() error {
