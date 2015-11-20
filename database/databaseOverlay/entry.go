@@ -1,6 +1,7 @@
 package databaseOverlay
 
 import (
+	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 )
 
@@ -10,6 +11,13 @@ func (db *Overlay) InsertEntry(entry interfaces.DatabaseBatchable) error {
 }
 
 // FetchEntry gets an entry by hash from the database.
-func (db *Overlay) FetchEntryByHash(hash interfaces.IHash, dst interfaces.DatabaseBatchable) (interfaces.DatabaseBatchable, error) {
-	return db.FetchBlock([]byte{byte(ENTRY)}, hash, dst)
+func (db *Overlay) FetchEntryByHash(hash interfaces.IHash) (interfaces.IEBEntry, error) {
+	entry, err := db.FetchBlock([]byte{byte(ENTRY)}, hash, entryBlock.NewEntry())
+	if err != nil {
+		return nil, err
+	}
+	if entry == nil {
+		return nil, nil
+	}
+	return entry.(interfaces.IEBEntry), nil
 }

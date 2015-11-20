@@ -24,6 +24,7 @@ type Entry struct {
 }
 
 var _ interfaces.IEBEntry = (*Entry)(nil)
+var _ interfaces.DatabaseBatchable = (*Entry)(nil)
 
 func NewEntry() *Entry {
 	e := new(Entry)
@@ -31,6 +32,26 @@ func NewEntry() *Entry {
 	e.ExtIDs = make([][]byte, 0)
 	e.Content = make([]byte, 0)
 	return e
+}
+
+func (c *Entry) New() interfaces.BinaryMarshallableAndCopyable {
+	return NewEntry()
+}
+
+func (c *Entry) GetDatabaseHeight() uint32 {
+	return 0
+}
+
+func (c *Entry) GetChainID() []byte {
+	return c.ChainID.Bytes()
+}
+
+func (c *Entry) DatabasePrimaryIndex() interfaces.IHash {
+	return c.GetHash()
+}
+
+func (c *Entry) DatabaseSecondaryIndex() interfaces.IHash {
+	return nil
 }
 
 // NewChainID generates a ChainID from an entry. ChainID = primitives.Sha(Sha(ExtIDs[0]) +
@@ -51,7 +72,7 @@ func (e *Entry) GetContent() []byte {
 	return e.Content
 }
 
-func (e *Entry) GetChainID() interfaces.IHash {
+func (e *Entry) GetChainIDHash() interfaces.IHash {
 	return e.ChainID
 }
 
