@@ -15,7 +15,7 @@ type DBOverlay interface {
 	InsertEntry(entry DatabaseBatchable) (err error)
 
 	// FetchEntry gets an entry by hash from the database.
-	FetchEntryByHash(entrySha IHash, dst DatabaseBatchable) (entry DatabaseBatchable, err error)
+	FetchEntryByHash(IHash) (IEBEntry, error)
 
 	// ProcessEBlockBatche inserts the EBlock and update all it's ebentries in DB
 	ProcessEBlockBatch(eblock DatabaseBatchable) error
