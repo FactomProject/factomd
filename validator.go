@@ -17,7 +17,7 @@ func Validator(state interfaces.IState) {
 
 	for {
 		msg := <-state.InMsgQueue() // Get message from the input queue
-		log.Println("Validator")
+		//log.Println("Validator")
 		switch msg.Validate(state) { // Validate the message.
 		case 1: // Process if valid
 			//			log.Printf("%20s %s\n", "Validator:", msg.String())

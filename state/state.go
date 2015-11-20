@@ -208,7 +208,7 @@ func (s *State) GetLastAck() interfaces.IMsg {
 }
 
 func (s *State) Init(filename string) {
-
+	
 	s.ReadCfg(filename)
 	// Get our factomd configuration information.
 	cfg := s.GetCfg().(*util.FactomdConfig)

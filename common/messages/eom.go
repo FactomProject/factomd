@@ -14,6 +14,8 @@ import (
 	"github.com/FactomProject/factomd/log"
 )
 
+var _ = log.Printf
+
 type EOM struct {
 	Minute byte
 
@@ -161,8 +163,7 @@ func (m *EOM) Leader(state interfaces.IState) bool {
 
 // Execute the leader functions of the given message
 func (m *EOM) LeaderExecute(state interfaces.IState) error {
-	log.Println("Leader")
-
+	
 	DBM := new(DirectoryBlockSignature)
 	DBM.DirectoryBlockKeyMR = state.GetPreviousDirectoryBlock().GetKeyMR()
 	DBM.Sign(state)
@@ -192,7 +193,7 @@ func (m *EOM) FollowerExecute(state interfaces.IState) error {
 		panic(fmt.Sprintf("Not implemented yet: Network Number %d", state.GetNetworkNumber()))
 	}
 
-	fmt.Println(state.GetServerState(), constants.SERVER_MODE)
+	// fmt.Println(state.GetServerState(), constants.SERVER_MODE)
 
 	if m.Minute == 9 {
 		state.ProcessEndOfBlock()

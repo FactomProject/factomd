@@ -106,6 +106,14 @@ func (fs *FactoidState) AddTransaction(index int, trans interfaces.ITransaction)
 	return nil
 }
 
+func (fs *FactoidState) GetBalance(address[32]byte) int64 {
+	if v, ok := fs.Balances[address]; ok {
+		return v
+	}else{
+		return 0
+	}
+}
+
 // Assumes validation has already been done.
 func (fs *FactoidState) UpdateTransaction(trans interfaces.ITransaction) error {
 	if fs.Balances == nil {

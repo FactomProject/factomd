@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/state"
+	"github.com/FactomProject/factomd/wsapi"
 	"os"
 	"runtime"
 	"strings"
@@ -46,6 +47,8 @@ func main() {
 	go Leader(state)
 	go Follower(state)
 
+	go wsapi.Start(state)	
+	
 	for {
 		time.Sleep(time.Duration(5) * time.Second)
 	}
