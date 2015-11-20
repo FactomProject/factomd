@@ -32,7 +32,7 @@ func (c *EBlock) New() interfaces.BinaryMarshallableAndCopyable {
 }
 
 func (c *EBlock) GetDatabaseHeight() uint32 {
-	return c.Header.GetEBSequence()
+	return c.Header.GetDBHeight()
 }
 
 func (c *EBlock) GetChainID() []byte {

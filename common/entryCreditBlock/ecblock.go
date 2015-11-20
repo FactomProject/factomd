@@ -43,7 +43,8 @@ func (c *ECBlock) GetHeader() interfaces.IECBlockHeader {
 }
 
 func (c *ECBlock) New() interfaces.BinaryMarshallableAndCopyable {
-	return new(ECBlock)
+	block, _ := NextECBlock(nil)
+	return block
 }
 
 func (c *ECBlock) GetDatabaseHeight() uint32 {

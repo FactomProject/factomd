@@ -98,6 +98,7 @@ func TestSaveLoadDBlockChain(t *testing.T) {
 			break
 		}
 		t.Logf("KeyMR - %v", keyMR.String())
+		hash := current.GetHeader().GetPrevLedgerKeyMR()
 
 		current, err = dbo.FetchDBlockByKeyMR(keyMR)
 		if err != nil {
@@ -107,9 +108,37 @@ func TestSaveLoadDBlockChain(t *testing.T) {
 			t.Fatal("Block not found")
 		}
 		fetchedCount++
+
+		byHash, err := dbo.FetchDBlockByHash(hash)
+
+		same, err := primitives.AreBinaryMarshallablesEqual(current, byHash)
+		if err != nil {
+			t.Error(err)
+		}
+		if same == false {
+			t.Error("Blocks fetched by keyMR and hash are not identical")
+		}
 	}
 	if fetchedCount != max {
 		t.Error("Wrong number of entries fetched - %v vs %v", fetchedCount, max)
+	}
+
+	all, err := dbo.FetchAllDBlocks()
+	if err != nil {
+		t.Error(err)
+	}
+	if len(all) != max {
+		t.Errorf("Wrong number of entries fetched - %v vs %v", len(all), max)
+	}
+	for i := range all {
+		same, err := primitives.AreBinaryMarshallablesEqual(blocks[i], all[i])
+		if err != nil {
+			t.Error(err)
+		}
+		if same == false {
+			t.Error("Blocks fetched by all and original blocks are not identical")
+			t.Logf("\n%v\nvs\n%v", blocks[i].String(), all[i].String())
+		}
 	}
 }
 
@@ -144,7 +173,7 @@ func createTestDirectoryBlockHeader(prevBlock *DirectoryBlock) *DBlockHeader {
 		header.SetTimestamp(1234)
 	} else {
 		header.SetDBHeight(prevBlock.Header.GetDBHeight() + 1)
-		header.SetPrevLedgerKeyMR(primitives.NewZeroHash())
+		header.SetPrevLedgerKeyMR(prevBlock.GetHash())
 		keyMR, err := prevBlock.BuildKeyMerkleRoot()
 		if err != nil {
 			panic(err)

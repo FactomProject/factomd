@@ -3,13 +3,17 @@ package databaseOverlay
 import (
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
+	//"github.com/FactomProject/factomd/log"
 	//"github.com/FactomProject/factomd/util"
 	//"sort"
 )
 
 // ProcessEBlockBatche inserts the EBlock and update all it's ebentries in DB
 func (db *Overlay) ProcessEBlockBatch(eblock interfaces.DatabaseBatchable) error {
-	return db.ProcessBlockBatch([]byte{byte(ENTRYBLOCK)}, []byte{byte(ENTRYBLOCK_CHAIN_NUMBER)}, []byte{byte(ENTRYBLOCK_KEYMR)}, eblock)
+	//Each chain has its own number bucket, otherwise we would have conflicts
+	numberBucket := append([]byte{byte(ENTRYBLOCK_CHAIN_NUMBER)}, eblock.GetChainID()...)
+	return db.ProcessBlockBatch([]byte{byte(ENTRYBLOCK)}, numberBucket, []byte{byte(ENTRYBLOCK_KEYMR)}, eblock)
 }
 
 // FetchEBlockByMR gets an entry block by merkle root from the database.
@@ -71,20 +75,22 @@ func (db *Overlay) FetchAllChains() (chains []*EChain, err error) {
 // FetchAllEBlocksByChain gets all of the blocks by chain id
 func (db *Overlay) FetchAllEBlocksByChain(chainID interfaces.IHash) ([]interfaces.IEntryBlock, error) {
 	bucket := append([]byte{byte(ENTRYBLOCK_CHAIN_NUMBER)}, chainID.Bytes()...)
-	list, err := db.FetchAllBlocksFromBucket(bucket, entryBlock.NewEBlock())
+	keyList, err := db.FetchAllBlocksFromBucket(bucket, new(primitives.Hash))
 	if err != nil {
 		return nil, err
 	}
-	return toEBlocksList(list), nil
-}
 
-func toEBlocksList(source []interfaces.BinaryMarshallableAndCopyable) []interfaces.IEntryBlock {
-	answer := make([]interfaces.IEntryBlock, len(source))
-	for i, v := range source {
-		answer[i] = v.(interfaces.IEntryBlock)
+	list := make([]interfaces.IEntryBlock, len(keyList))
+
+	for i, v := range keyList {
+		block, err := db.FetchEBlockByKeyMR(v.(interfaces.IHash))
+		if err != nil {
+			return nil, err
+		}
+		list[i] = block
 	}
-	//sort.Sort(util.ByEBlockIDAccending(answer))
-	return answer
+
+	return list, nil
 }
 
 func (db *Overlay) SaveEBlockHead(block interfaces.DatabaseBatchable) error {

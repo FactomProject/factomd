@@ -47,8 +47,8 @@ func TestSignAndVerifyDirectoryBlockSignature(t *testing.T) {
 	}
 	t.Logf("Marshalled - %x", hex)
 
-	t.Logf("Sig - %x", *dbs.Signature.Sig)
-	if len(*dbs.Signature.Sig) == 0 {
+	t.Logf("Sig - %x", *dbs.Signature.GetSignature())
+	if len(*dbs.Signature.GetSignature()) == 0 {
 		t.Error("Signature not present")
 	}
 

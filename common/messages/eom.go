@@ -17,9 +17,8 @@ import (
 var _ = log.Printf
 
 type EOM struct {
-	Minute byte
-
 	Timestamp interfaces.Timestamp
+	Minute    byte
 
 	DirectoryBlockHeight uint32
 	IdentityChainID      interfaces.IHash
@@ -63,10 +62,9 @@ func (m *EOM) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
 	}()
-
 	newData = data[1:]
 
-	newData, err = m.Timestamp.UnmarshalBinaryData(data)
+	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
 	}
