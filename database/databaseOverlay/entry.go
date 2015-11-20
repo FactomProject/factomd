@@ -21,3 +21,6 @@ func (db *Overlay) FetchEntryByHash(hash interfaces.IHash) (interfaces.IEBEntry,
 	}
 	return entry.(interfaces.IEBEntry), nil
 }
+
+// *************************************************	
+//TODO fix wsapi.go when Entry is updated. line 144
