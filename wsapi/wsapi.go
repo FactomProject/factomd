@@ -39,28 +39,24 @@ func Start(state interfaces.IState) {
 		server.Env["state"] = state
 
 		server.Post("/v1/factoid-submit/?", handleFactoidSubmit)
+		server.Post("/v1/commit-chain/?", handleCommitChain)
+		server.Post("/v1/reveal-chain/?", handleRevealChain)
+		server.Post("/v1/commit-entry/?", handleCommitEntry)
+		server.Post("/v1/reveal-entry/?", handleRevealEntry)
+		server.Get("/v1/directory-block-head/?", handleDirectoryBlockHead)
+		server.Get("/v1/get-raw-data/([^/]+)", handleGetRaw)
+		server.Get("/v1/directory-block-by-keymr/([^/]+)", handleDirectoryBlock)
+		server.Get("/v1/entry-block-by-keymr/([^/]+)", handleEntryBlock)
+		server.Get("/v1/entry-by-hash/([^/]+)", handleEntry)
+		server.Get("/v1/chain-head/([^/]+)", handleChainHead)
+		server.Get("/v1/entry-credit-balance/([^/]+)", handleEntryCreditBalance)
 		server.Get("/v1/factoid-balance/([^/]+)", handleFactoidBalance)
+		server.Get("/v1/factoid-get-fee/", handleGetFee)
 
 		log.Print("Starting server")
 		go server.Run(fmt.Sprintf("localhost:%d", state.GetPort()))
 	}
 
-	server.Post("/v1/commit-chain/?", handleCommitChain)
-	server.Post("/v1/reveal-chain/?", handleRevealChain)
-	server.Post("/v1/commit-entry/?", handleCommitEntry)
-	server.Post("/v1/reveal-entry/?", handleRevealEntry)
-	server.Get("/v1/directory-block-head/?", handleDirectoryBlockHead)
-	server.Get("/v1/get-raw-data/([^/]+)", handleGetRaw)
-	server.Get("/v1/directory-block-by-keymr/([^/]+)", handleDirectoryBlock)
-	server.Get("/v1/entry-block-by-keymr/([^/]+)", handleEntryBlock)
-	server.Get("/v1/entry-by-hash/([^/]+)", handleEntry)
-	server.Get("/v1/chain-head/([^/]+)", handleChainHead)
-	server.Get("/v1/entry-credit-balance/([^/]+)", handleEntryCreditBalance)
-	server.Get("/v1/factoid-balance/([^/]+)", handleFactoidBalance)
-	server.Get("/v1/factoid-get-fee/", handleGetFee)
-
-	log.Print("Starting server")
-	go server.Run(fmt.Sprintf("localhost:%d", state.GetPort()))
 }
 
 func Stop(state interfaces.IState) {
