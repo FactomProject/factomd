@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"io/ioutil"
 
+	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/log"
@@ -24,11 +26,24 @@ const (
 var Servers map[int]*web.Server
 
 func Start(state interfaces.IState) {
-	server := web.NewServer()
-	Servers[state.GetPort()] = server
-	server.Env["state"] = state
 
-	server.Post("/v1/factoid-submit/?", handleFactoidSubmit)
+	var server *web.Server
+
+	if Servers == nil {
+		Servers = make(map[int]*web.Server)
+	}
+
+	if Servers[state.GetPort()] == nil {
+		server = web.NewServer()
+		Servers[state.GetPort()] = server
+		server.Env["state"] = state
+
+		server.Post("/v1/factoid-submit/?", handleFactoidSubmit)
+		server.Get("/v1/factoid-balance/([^/]+)", handleFactoidBalance)
+
+		log.Print("Starting server")
+		go server.Run(fmt.Sprintf("localhost:%d", state.GetPort()))
+	}
 
 	server.Post("/v1/commit-chain/?", handleCommitChain)
 	server.Post("/v1/reveal-chain/?", handleRevealChain)
@@ -96,10 +111,6 @@ func handleEntryCreditBalance(ctx *web.Context) {
 
 }
 
-func handleFactoidBalance(ctx *web.Context) {
-
-}
-
 func handleGetFee(ctx *web.Context) {
 
 }
@@ -148,6 +159,36 @@ func handleFactoidSubmit(ctx *web.Context) {
 	state.NetworkInMsgQueue() <- msg
 
 	returnMsg(ctx, "Successfully submitted the transaction", true)
+
+}
+
+func handleFactoidBalance(ctx *web.Context, eckey string) {
+
+	state := ctx.Server.Env["state"].(interfaces.IState)
+
+	type fbal struct {
+		Response string
+		Success  bool
+	}
+	var b fbal
+	adr, err := hex.DecodeString(eckey)
+	if err == nil && len(adr) != constants.HASH_LENGTH {
+		b = fbal{Response: "Invalid Address", Success: false}
+	}
+	if err == nil {
+		v := int64(state.GetFactoidState().GetBalance(factoid.NewAddress(adr).Fixed()))
+		str := fmt.Sprintf("%d", v)
+		b = fbal{Response: str, Success: true}
+	} else {
+		b = fbal{Response: err.Error(), Success: false}
+	}
+
+	if p, err := json.Marshal(b); err != nil {
+		wsLog.Error(err)
+		return
+	} else {
+		ctx.Write(p)
+	}
 
 }
 
