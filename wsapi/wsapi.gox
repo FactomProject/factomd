@@ -25,10 +25,6 @@ import (
 	"github.com/FactomProject/factomd/state"
 )
 
-const (
-	httpOK  = 200
-	httpBad = 400
-)
 
 var (
 	portNumber    = util.ReadConfig().Wsapi.PortNumber
@@ -43,36 +39,6 @@ var (
 	inMessageQ chan wire.FtmInternalMsg
 	dbase      interfaces.DBOverlay
 )
-
-func Start(db interfaces.DBOverlay, inMsgQ chan wire.FtmInternalMsg) {
-	factomapi.SetDB(db)
-	dbase = db
-	factomapi.SetInMsgQueue(inMsgQ)
-	inMessageQ = inMsgQ
-
-	wsLog.Debug("Setting Handlers")
-	server.Post("/v1/commit-chain/?", handleCommitChain)
-	server.Post("/v1/reveal-chain/?", handleRevealChain)
-	server.Post("/v1/commit-entry/?", handleCommitEntry)
-	server.Post("/v1/reveal-entry/?", handleRevealEntry)
-	server.Post("/v1/factoid-submit/?", handleFactoidSubmit)
-	server.Get("/v1/directory-block-head/?", handleDirectoryBlockHead)
-	server.Get("/v1/get-raw-data/([^/]+)", handleGetRaw)
-	server.Get("/v1/directory-block-by-keymr/([^/]+)", handleDirectoryBlock)
-	server.Get("/v1/entry-block-by-keymr/([^/]+)", handleEntryBlock)
-	server.Get("/v1/entry-by-hash/([^/]+)", handleEntry)
-	server.Get("/v1/chain-head/([^/]+)", handleChainHead)
-	server.Get("/v1/entry-credit-balance/([^/]+)", handleEntryCreditBalance)
-	server.Get("/v1/factoid-balance/([^/]+)", handleFactoidBalance)
-	server.Get("/v1/factoid-get-fee/", handleGetFee)
-
-	wsLog.Info("Starting server")
-	go server.Run("localhost:" + strconv.Itoa(portNumber))
-}
-
-func Stop() {
-	server.Close()
-}
 
 func handleCommitChain(ctx *web.Context) {
 	type commitchain struct {
@@ -214,33 +180,6 @@ func handleRevealEntry(ctx *web.Context) {
 	//	ctx.WriteHeader(httpOK)
 }
 
-func handleDirectoryBlockHead(ctx *web.Context) {
-	type dbhead struct {
-		KeyMR string
-	}
-
-	h := new(dbhead)
-	if block, err := factomapi.DBlockHead(); err != nil {
-		wsLog.Error(err)
-		ctx.WriteHeader(httpBad)
-		ctx.Write([]byte(err.Error()))
-		return
-	} else {
-		h.KeyMR = block.KeyMR.String()
-	}
-
-	if p, err := json.Marshal(h); err != nil {
-		wsLog.Error(err)
-		ctx.WriteHeader(httpBad)
-		ctx.Write([]byte(err.Error()))
-		return
-	} else {
-		ctx.Write(p)
-	}
-
-	//	ctx.WriteHeader(httpOK)
-}
-
 type ecbal struct {
 	Balance uint32
 }
@@ -374,56 +313,3 @@ func handleGetFee(ctx *web.Context) {
 	}
 }
 
-func handleGetRaw(ctx *web.Context, hashkey string) {
-	type rawData struct {
-		Data string
-	}
-	//TODO: var block interfaces.BinaryMarshallable
-	d := new(rawData)
-
-	h, err := primitives.HexToHash(hashkey)
-	if err != nil {
-		wsLog.Error(err)
-		ctx.WriteHeader(httpBad)
-		ctx.Write([]byte(err.Error()))
-		return
-	}
-
-	// try to find the block data in db and return the first one found
-	if block, _ := dbase.FetchFBlockByHash(h); block != nil {
-		bytes, _ := block.MarshalBinary()
-		d.Data = hex.EncodeToString(bytes[:])
-	} else if block, _ := dbase.FetchDBlockByHash(h); block != nil {
-		bytes, _ := block.MarshalBinary()
-		d.Data = hex.EncodeToString(bytes[:])
-	} else if block, _ := dbase.FetchABlockByHash(h); block != nil {
-		bytes, _ := block.MarshalBinary()
-		d.Data = hex.EncodeToString(bytes[:])
-	} else if block, _ := dbase.FetchDBlockByMR(h); block != nil {
-		bytes, _ := block.MarshalBinary()
-		d.Data = hex.EncodeToString(bytes[:])
-	} else if block, _ := dbase.FetchEBlockByHash(h); block != nil {
-		bytes, _ := block.MarshalBinary()
-		d.Data = hex.EncodeToString(bytes[:])
-	} else if block, _ := dbase.FetchEBlockByMR(h); block != nil {
-		bytes, _ := block.MarshalBinary()
-		d.Data = hex.EncodeToString(bytes[:])
-	} else if block, _ := dbase.FetchECBlockByHash(h); block != nil {
-		bytes, _ := block.MarshalBinary()
-		d.Data = hex.EncodeToString(bytes[:])
-	} else if block, _ := dbase.FetchEntryByHash(h); block != nil {
-		bytes, _ := block.MarshalBinary()
-		d.Data = hex.EncodeToString(bytes[:])
-	}
-
-	if p, err := json.Marshal(d); err != nil {
-		wsLog.Error(err)
-		ctx.WriteHeader(httpBad)
-		ctx.Write([]byte(err.Error()))
-		return
-	} else {
-		ctx.Write(p)
-	}
-
-	//	ctx.WriteHeader(httpOK)
-}

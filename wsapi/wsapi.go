@@ -280,7 +280,6 @@ func handleEntryBlock(ctx *web.Context, hashkey string) {
 			//TODO: handle block not found
 		}
 	}
-	//TODO: handle block found
 
 	e.Header.BlockSequenceNumber = block.GetHeader().GetEBSequence()
 	e.Header.ChainID = block.GetHeader().GetChainID().String()
