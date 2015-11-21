@@ -127,7 +127,19 @@ func handleGetRaw(ctx *web.Context, hashkey string) {
 
 	var b []byte
 	// try to find the block data in db and return the first one found
-	if block, _ := dbase.FetchFBlockByHash(h); block != nil {
+	if block, _ := dbase.FetchFBlockByKeyMR(h); block != nil {
+		b, _ = block.MarshalBinary()
+	} else if block, _ := dbase.FetchDBlockByKeyMR(h); block != nil {
+		b, _ = block.MarshalBinary()
+	} else if block, _ := dbase.FetchABlockByKeyMR(h); block != nil {
+		b, _ = block.MarshalBinary()
+	} else if block, _ := dbase.FetchEBlockByKeyMR(h); block != nil {
+		b, _ = block.MarshalBinary()
+	} else if block, _ := dbase.FetchECBlockByKeyMR(h); block != nil {
+		b, _ = block.MarshalBinary()
+	} else if block, _ := dbase.FetchEntryByHash(h); block != nil {
+		b, _ = block.MarshalBinary()
+	} else if block, _ := dbase.FetchFBlockByHash(h); block != nil {
 		b, _ = block.MarshalBinary()
 	} else if block, _ := dbase.FetchDBlockByHash(h); block != nil {
 		b, _ = block.MarshalBinary()
@@ -137,10 +149,7 @@ func handleGetRaw(ctx *web.Context, hashkey string) {
 		b, _ = block.MarshalBinary()
 	} else if block, _ := dbase.FetchECBlockByHash(h); block != nil {
 		b, _ = block.MarshalBinary()
-	} else if block, _ := dbase.FetchEntryByHash(h); block != nil {
-		b, _ = block.MarshalBinary()
 	}
-	//TODO: fetch by KeyMR first, then by Hashes
 
 	d.Data = hex.EncodeToString(b)
 
