@@ -10,18 +10,10 @@ import (
 	"testing"
 )
 
+var _ = log.Print
+var _ = util.ReadConfig
+
 func TestInit(t *testing.T) {
 	state := new(State)
-
-	cfg := util.ReadConfig("")
-	cfg.App.DBType = "Map"
-
-	state.Cfg = cfg
-
-	state.Init("")
-
-	if state.Cfg.(*util.FactomdConfig).App.DBType != "Map" {
-		t.Error("CFG has been overwritten")
-	}
-	log.Println(state.String())
+	var _ = state
 }
