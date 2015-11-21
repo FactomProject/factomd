@@ -10,6 +10,8 @@ type IEBEntry interface {
 	BinaryMarshallable
 	GetHash() IHash
 	ExternalIDs() [][]byte
+	GetContent() []byte
+	GetChainIDHash() IHash
 }
 
 type IEntry interface {

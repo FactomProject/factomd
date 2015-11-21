@@ -57,6 +57,10 @@ func (c *EBlock) GetHeader() interfaces.IEntryBlockHeader {
 	return c.Header
 }
 
+func (c *EBlock) GetBody() interfaces.IEBlockBody {
+	return c.Body
+}
+
 // NewEBlock returns a blank initialized Entry Block with all of its fields
 // zeroed.
 func NewEBlock() *EBlock {
@@ -221,6 +225,7 @@ type EBlockBody struct {
 }
 
 var _ interfaces.Printable = (*EBlockBody)(nil)
+var _ interfaces.IEBlockBody = (*EBlockBody)(nil)
 
 // NewEBlockBody initalizes an empty Entry Block Body.
 func NewEBlockBody() *EBlockBody {
@@ -252,4 +257,8 @@ func (e *EBlockBody) JSONBuffer(b *bytes.Buffer) error {
 func (e *EBlockBody) String() string {
 	str, _ := e.JSONString()
 	return str
+}
+
+func (e *EBlockBody) GetEBEntries() []interfaces.IHash {
+	return e.EBEntries[:]
 }

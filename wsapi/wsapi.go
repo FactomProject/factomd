@@ -156,11 +156,21 @@ func handleGetRaw(ctx *web.Context, hashkey string) {
 
 func handleDirectoryBlock(ctx *web.Context, hashkey string) {
 	state := ctx.Server.Env["state"].(interfaces.IState)
-	/*
-		type data struct {
+
+	type eblockaddr struct {
+		ChainID string
+		KeyMR   string
+	}
+
+	type dblock struct {
+		Header struct {
+			PrevBlockKeyMR string
+			SequenceNumber uint32
+			Timestamp      uint32
 		}
-		d := new(data)
-	*/
+		EntryBlockList []eblockaddr
+	}
+	d := new(dblock)
 
 	h, err := primitives.HexToHash(hashkey)
 	if err != nil {
@@ -189,18 +199,48 @@ func handleDirectoryBlock(ctx *web.Context, hashkey string) {
 		}
 		if block == nil {
 			//TODO: handle block not found
+			return
 		}
 	}
-	//TODO: handle block found
+
+	d.Header.PrevBlockKeyMR = block.GetHeader().GetPrevKeyMR().String()
+	d.Header.SequenceNumber = block.GetHeader().GetDBHeight()
+	d.Header.Timestamp = block.GetHeader().GetTimestamp() * 60
+	for _, v := range block.GetDBEntries() {
+		l := new(eblockaddr)
+		l.ChainID = v.GetChainID().String()
+		l.KeyMR = v.GetKeyMR().String()
+		d.EntryBlockList = append(d.EntryBlockList, *l)
+	}
+
+	if p, err := json.Marshal(d); err != nil {
+		wsLog.Error(err)
+		ctx.WriteHeader(httpBad)
+		ctx.Write([]byte(err.Error()))
+		return
+	} else {
+		ctx.Write(p)
+	}
 }
 
 func handleEntryBlock(ctx *web.Context, hashkey string) {
 	state := ctx.Server.Env["state"].(interfaces.IState)
-	/*
-		type data struct {
+
+	type entryaddr struct {
+		EntryHash string
+		Timestamp uint32
+	}
+
+	type eblock struct {
+		Header struct {
+			BlockSequenceNumber uint32
+			ChainID             string
+			PrevKeyMR           string
+			Timestamp           uint32
 		}
-		d := new(data)
-	*/
+		EntryList []entryaddr
+	}
+	e := new(eblock)
 
 	h, err := primitives.HexToHash(hashkey)
 	if err != nil {
@@ -233,15 +273,62 @@ func handleEntryBlock(ctx *web.Context, hashkey string) {
 	}
 	//TODO: handle block found
 
+	e.Header.BlockSequenceNumber = block.GetHeader().GetEBSequence()
+	e.Header.ChainID = block.GetHeader().GetChainID().String()
+	e.Header.PrevKeyMR = block.GetHeader().GetPrevKeyMR().String()
+
+	if dblock, err := dbase.FetchDBlockByHeight(block.GetHeader().GetDBHeight()); err == nil {
+		e.Header.Timestamp = dblock.GetHeader().GetTimestamp() * 60
+	}
+
+	// create a map of possible minute markers that may be found in the
+	// EBlock Body
+	mins := make(map[string]uint8)
+	for i := byte(1); i <= 10; i++ {
+		h := make([]byte, 32)
+		h[len(h)-1] = i
+		mins[hex.EncodeToString(h)] = i
+	}
+
+	estack := make([]entryaddr, 0)
+	for _, v := range block.GetBody().GetEBEntries() {
+		if n, exist := mins[v.String()]; exist {
+			// the entry is a minute marker. add time to all of the
+			// previous entries for the minute
+			t := e.Header.Timestamp + 60*uint32(n)
+			for _, w := range estack {
+				w.Timestamp = t
+				e.EntryList = append(e.EntryList, w)
+			}
+			estack = make([]entryaddr, 0)
+		} else {
+			l := new(entryaddr)
+			l.EntryHash = v.String()
+			estack = append(estack, *l)
+		}
+	}
+
+	if p, err := json.Marshal(e); err != nil {
+		wsLog.Error(err)
+		ctx.WriteHeader(httpBad)
+		ctx.Write([]byte(err.Error()))
+		return
+	} else {
+		ctx.Write(p)
+	}
+
 }
 
 func handleEntry(ctx *web.Context, hashkey string) {
 	state := ctx.Server.Env["state"].(interfaces.IState)
-	/*
-		type data struct {
-		}
-		d := new(data)
-	*/
+
+	type entryStruct struct {
+		ChainID string
+		Content string
+		ExtIDs  []string
+	}
+
+	e := new(entryStruct)
 
 	h, err := primitives.HexToHash(hashkey)
 	if err != nil {
@@ -253,27 +340,42 @@ func handleEntry(ctx *web.Context, hashkey string) {
 
 	dbase := state.GetDB()
 
-	block, err := dbase.FetchEntryByHash(h)
+	entry, err := dbase.FetchEntryByHash(h)
 	if err != nil {
 		wsLog.Error(err)
 		ctx.WriteHeader(httpBad)
 		ctx.Write([]byte(err.Error()))
 		return
 	}
-	if block == nil {
+	if entry == nil {
 		//TODO: handle block not found
 	}
-	//TODO: handle block found
+
+	e.ChainID = entry.GetChainIDHash().String()
+	e.Content = hex.EncodeToString(entry.GetContent())
+	for _, v := range entry.ExternalIDs() {
+		e.ExtIDs = append(e.ExtIDs, hex.EncodeToString(v))
+	}
+
+	if p, err := json.Marshal(e); err != nil {
+		wsLog.Error(err)
+		ctx.WriteHeader(httpBad)
+		ctx.Write([]byte(err.Error()))
+		return
+	} else {
+		ctx.Write(p)
+	}
 
 }
 
 func handleChainHead(ctx *web.Context, hashkey string) {
 	state := ctx.Server.Env["state"].(interfaces.IState)
-	/*
-		type data struct {
-		}
-		d := new(data)
-	*/
+
+	type chead struct {
+		ChainHead string
+	}
+
+	c := new(chead)
 
 	h, err := primitives.HexToHash(hashkey)
 	if err != nil {
@@ -285,26 +387,25 @@ func handleChainHead(ctx *web.Context, hashkey string) {
 
 	dbase := state.GetDB()
 
-	block, err := dbase.FetchDBlockByKeyMR(h)
+	mr, err := dbase.FetchHeadIndexByChainID(h)
 	if err != nil {
 		wsLog.Error(err)
 		ctx.WriteHeader(httpBad)
 		ctx.Write([]byte(err.Error()))
 		return
 	}
-	if block == nil {
-		block, err = dbase.FetchDBlockByHash(h)
-		if err != nil {
-			wsLog.Error(err)
-			ctx.WriteHeader(httpBad)
-			ctx.Write([]byte(err.Error()))
-			return
-		}
-		if block == nil {
-			//TODO: handle block not found
-		}
+	if mr == nil {
+		//TODO: handle block not found
 	}
-	//TODO: handle block found
+	c.ChainHead = mr.String()
+	if p, err := json.Marshal(c); err != nil {
+		wsLog.Error(err)
+		ctx.WriteHeader(httpBad)
+		ctx.Write([]byte(err.Error()))
+		return
+	} else {
+		ctx.Write(p)
+	}
 
 }
 
