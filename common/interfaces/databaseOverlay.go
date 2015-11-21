@@ -11,6 +11,8 @@ type DBOverlay interface {
 	// We let Database method calls flow through.
 	IDatabase
 
+	FetchHeadIndexByChainID(chainID IHash) (IHash, error)
+
 	//**********************************Entry**********************************//
 
 	// InsertEntry inserts an entry

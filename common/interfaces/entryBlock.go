@@ -31,6 +31,8 @@ type IEntryBlock interface {
 	// calculated by the func (e *EBlockBody) MR() which is called by the func
 	// (e *EBlock) BuildHeader().
 	KeyMR() (IHash, error)
+
+	GetBody() IEBlockBody
 }
 
 type IEntryBlockHeader interface {
@@ -51,4 +53,8 @@ type IEntryBlockHeader interface {
 	SetDBHeight(uint32)
 	GetEntryCount() uint32
 	SetEntryCount(uint32)
+}
+
+type IEBlockBody interface {
+	GetEBEntries() []IHash
 }
