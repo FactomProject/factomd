@@ -313,7 +313,22 @@ func handleEntryCreditBalance(ctx *web.Context) {
 }
 
 func handleGetFee(ctx *web.Context) {
-
+	
+	state := ctx.Server.Env["state"].(interfaces.IState)
+	
+	type x struct{ Fee int64 }
+	
+	b := new(x)
+	
+	b.Fee = int64(state.GetFactoidState().GetFactoshisPerEC())
+	
+	if p, err := json.Marshal(b); err != nil {
+		wsLog.Error(err)
+		ctx.WriteHeader(httpBad)
+		return
+	} else {
+		ctx.Write(p)
+	}
 }
 
 func handleFactoidSubmit(ctx *web.Context) {
@@ -343,6 +358,8 @@ func handleFactoidSubmit(ctx *web.Context) {
 		return
 	}
 
+	fmt.Println(t,"\n",p)
+	
 	err = msg.UnmarshalBinary(p)
 
 	if err != nil {
@@ -364,8 +381,6 @@ func handleFactoidSubmit(ctx *web.Context) {
 }
 
 func handleFactoidBalance(ctx *web.Context, eckey string) {
-
-	fmt.Println("iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii")
 
 	state := ctx.Server.Env["state"].(interfaces.IState)
 

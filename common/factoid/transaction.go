@@ -12,7 +12,10 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"time"
+	"runtime/debug"
 )
+
+var _ = debug.PrintStack
 
 type Transaction struct {
 	// version     uint64         Version of transaction. Hardcoded, naturally.
@@ -412,6 +415,8 @@ func (t *Transaction) GetRCD(i int) (interfaces.IRCD, error) {
 // out if there isn't enough data, or the transaction is too large.
 func (t *Transaction) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 
+	debug.PrintStack()
+	
 	// To catch memory errors, I capture the panic and turn it into
 	// a reported error.
 	defer func() {
@@ -420,8 +425,6 @@ func (t *Transaction) UnmarshalBinaryData(data []byte) (newData []byte, err erro
 		}
 	}()
 
-	// To capture the panic, my code needs to be in a function.  So I'm
-	// creating one here, and call it at the end of this function.
 	v, data := primitives.DecodeVarInt(data)
 	if v != t.GetVersion() {
 		return nil, fmt.Errorf("Wrong Transaction Version encountered. Expected %v and found %v", t.GetVersion(), v)
