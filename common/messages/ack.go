@@ -15,8 +15,11 @@ import (
 //General acknowledge message
 type Ack struct {
 	Timestamp    interfaces.Timestamp
-	OriginalHash interfaces.IHash
+	MessageHash  interfaces.IHash
 
+	Height       int
+	SerialHash   interfaces.IHash
+	
 	Signature interfaces.IFullSignature
 
 	//Not marshalled
@@ -25,6 +28,28 @@ type Ack struct {
 
 var _ interfaces.IMsg = (*Ack)(nil)
 var _ Signable = (*Ack)(nil)
+
+func NewAck(state interfaces.IState, msg []byte) (iack interfaces.IMsg, err error) {
+	last := state.GetLastAck().(*Ack)
+	ack := new(Ack)
+	ack.Timestamp    = state.GetTimestamp()
+	ack.MessageHash  = primitives.Sha(msg)
+	if last == nil {
+		ack.Height = 0
+		ack.SerialHash = ack.MessageHash
+	}else{
+		ack.Height = last.Height+1
+		ack.SerialHash,err = primitives.CreateHash(last.MessageHash,ack.MessageHash)
+		if err != nil {
+			return nil, err
+		}
+	}
+	
+// TODO:  Add the signature.
+	
+	return ack, nil
+}
+
 
 func (m *Ack) GetHash() interfaces.IHash {
 	if m.hash == nil {
@@ -46,7 +71,7 @@ func (m *Ack) Int() int {
 }
 
 func (m *Ack) Bytes() []byte {
-	return m.OriginalHash.Bytes()
+	return m.MessageHash.Bytes()
 }
 
 func (m *Ack) GetTimestamp() interfaces.Timestamp {
@@ -64,8 +89,8 @@ func (m *Ack) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	if err != nil {
 		return nil, err
 	}
-	m.OriginalHash = new(primitives.Hash)
-	newData, err = m.OriginalHash.UnmarshalBinaryData(newData)
+	m.MessageHash = new(primitives.Hash)
+	newData, err = m.MessageHash.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
 	}

@@ -84,6 +84,6 @@ func newAck() *Ack {
 	ack := new(Ack)
 	ack.Timestamp.SetTimeNow()
 	hash, _ := primitives.NewShaHashFromStr("cbd3d09db6defdc25dfc7d57f3479b339a077183cd67022e6d1ef6c041522b40")
-	ack.OriginalHash = hash
+	ack.MessageHash = hash
 	return ack
 }

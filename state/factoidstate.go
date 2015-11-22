@@ -165,7 +165,6 @@ func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
 		fs.CurrentBlock.SetPrevLedgerKeyMR(hash2.Bytes())
 	}
 
-	fmt.Println(state.GetCurrentDirectoryBlock())
 }
 
 // Returns an error message about what is wrong with the transaction if it is

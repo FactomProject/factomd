@@ -60,7 +60,7 @@ func UnmarshalMessage(data []byte) (interfaces.IMsg, error) {
 	}
 	
 	// Unmarshal does not include the message type.
-	err := msg.UnmarshalBinary(data[1:])
+	err := msg.UnmarshalBinary(data[:])
 	if err != nil {
 		return nil, err
 	}

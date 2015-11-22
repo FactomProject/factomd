@@ -414,8 +414,6 @@ func (t *Transaction) GetRCD(i int) (interfaces.IRCD, error) {
 // UnmarshalBinary assumes that the Binary is all good.  We do error
 // out if there isn't enough data, or the transaction is too large.
 func (t *Transaction) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-
-	debug.PrintStack()
 	
 	// To catch memory errors, I capture the panic and turn it into
 	// a reported error.

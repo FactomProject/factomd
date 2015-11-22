@@ -58,18 +58,29 @@ func (m *FactoidTransaction) Bytes() []byte {
 	return nil
 }
 
+func (m *FactoidTransaction) UnmarshalTransData(data [] byte) (newData []byte, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("Error unmarshalling: %v", r)
+		}
+	}()
+	
+	m.Transaction = new(factoid.Transaction)
+	newData, err = m.Transaction.UnmarshalBinaryData(data)
+	
+	return newData, err
+}
+
 func (m *FactoidTransaction) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
 	}()
+	
 	newData = data[1:]
-
-	m.Transaction = new(factoid.Transaction)
-	newData, err = m.Transaction.UnmarshalBinaryData(newData)
-
-	return newData, err
+	
+	return m.UnmarshalTransData(newData)
 }
 
 func (m *FactoidTransaction) UnmarshalBinary(data []byte) error {
@@ -94,28 +105,27 @@ func (m *FactoidTransaction) String() string {
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
-func (m *FactoidTransaction) Validate(interfaces.IState) int {
-	return 0
+func (m *FactoidTransaction) Validate(state interfaces.IState) int {
+	err := state.GetFactoidState().Validate(1,m.Transaction)
+	if err !=nil {
+		return 0
+	}
+	return 1
 }
 
 // Returns true if this is a message for this server to execute as
 // a leader.
 func (m *FactoidTransaction) Leader(state interfaces.IState) bool {
-	switch state.GetNetworkNumber() {
-	case 0: // Main Network
-		panic("Not implemented yet")
-	case 1: // Test Network
-		panic("Not implemented yet")
-	case 2: // Local Network
-		panic("Not implemented yet")
-	default:
-		panic("Not implemented yet")
-	}
-
+	return state.LeaderFor(constants.FACTOID_CHAINID)
 }
 
 // Execute the leader functions of the given message
 func (m *FactoidTransaction) LeaderExecute(state interfaces.IState) error {
+	if err := state.GetFactoidState().Validate(1,m.Transaction); err != nil {
+		return err
+	}
+	msg := new(Ack)
+	state.NetworkOutMsgQueue() <- msg
 	return nil
 }
 

@@ -234,7 +234,7 @@ func createTestDirectoryBlockHeader() *DBlockHeader {
 	return header
 }
 
-func TestDBlockMisc(t *testing.T) {
+/* func TestDBlockMisc(t *testing.T) {
 	b, err := CreateDBlock(0, nil, 10)
 	if err != nil {
 		t.Error(err)
@@ -255,3 +255,4 @@ func TestDBlockMisc(t *testing.T) {
 	}
 
 }
+*/

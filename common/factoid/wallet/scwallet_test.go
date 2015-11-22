@@ -171,8 +171,8 @@ func Test_SignTransaction_swcallet(test *testing.T) {
 		test.Fail()
 	}
 
-	txt, err := t.CustomMarshalText()
-	primitives.Prtln(string(txt), "\n ", fee)
+	//txt, err := t.CustomMarshalText()
+	//primitives.Prtln(string(txt), "\n ", fee)
 
 	err = w.ValidateSignatures(t)
 	if err != nil {

@@ -21,16 +21,20 @@ type IState interface {
 
 	// Channels
 	//==========
+	
 	// Network Processor
 	NetworkInMsgQueue() chan IMsg // Not sure that IMsg is the right type... TBD
 	NetworkOutMsgQueue() chan IMsg
 	NetworkInvalidMsgQueue() chan IMsg
 
 	// Consensus
-	InMsgQueue() chan IMsg
-	LeaderInMsgQueue() chan IMsg
-	FollowerInMsgQueue() chan IMsg
+	InMsgQueue() chan IMsg			// Read by Validate
+	LeaderInMsgQueue() chan IMsg	// Processed by the Leader 
+	FollowerInMsgQueue() chan IMsg	// Processed by the Follower
 
+	// Server Configuration
+	// ====================
+	
 	//Network MAIN = 0, TEST = 1, LOCAL = 2, CUSTOM = 3
 	GetNetworkNumber() int  // Encoded into Directory Blocks
 	GetNetworkName() string // Some networks have defined names
@@ -43,10 +47,12 @@ type IState interface {
 	LeaderFor([]byte) bool // Tests if this server is the leader for this key
 
 	// Database
+	// ========
 	GetDB() DBOverlay
 	SetDB(DBOverlay)
 
 	// Directory Block State
+	// =====================
 	GetCurrentAdminBlock() IAdminBlock
 	SetCurrentAdminBlock(IAdminBlock)
 	GetPreviousDirectoryBlock() IDirectoryBlock // The previous directory block
@@ -58,18 +64,23 @@ type IState interface {
 	GetLastAck() IMsg // Return the last Acknowledgement set by this server
 
 	// Server Methods
+	// ==============
 	ProcessEndOfBlock()
 
 	// Web Services
+	// ============
 	SetPort(int)
 	GetPort() int
 
 	// Factoid State
+	// =============
 	GetFactoidState() IFactoidState
 	GetPrevFactoidKeyMR() IHash
 	SetPrevFactoidKeyMR(IHash)
 
+	// MISC
+	// ====
+	GetTimestamp() Timestamp
 	GetNewHash() IHash // Return a new Hash object
-
 	CreateDBlock() (b IDirectoryBlock, err error)
 }

@@ -63,6 +63,11 @@ type State struct {
 
 var _ interfaces.IState = (*State)(nil)
 
+
+func (s *State) GetTimestamp() interfaces.Timestamp {
+	return interfaces.Timestamp(primitives.GetTimeMilli())
+}
+
 func (s *State) Sign([]byte) interfaces.IFullSignature {
 	return new(primitives.Signature)
 }

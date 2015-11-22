@@ -446,7 +446,7 @@ func handleFactoidSubmit(ctx *web.Context) {
 
 	type x struct{ Transaction string }
 	t := new(x)
-
+	
 	var p []byte
 	var err error
 	if p, err = ioutil.ReadAll(ctx.Request.Body); err != nil {
@@ -459,7 +459,7 @@ func handleFactoidSubmit(ctx *web.Context) {
 			return
 		}
 	}
-
+	
 	msg := new(messages.FactoidTransaction)
 
 	if p, err = hex.DecodeString(t.Transaction); err != nil {
@@ -467,10 +467,8 @@ func handleFactoidSubmit(ctx *web.Context) {
 		return
 	}
 
-	fmt.Println(t,"\n",p)
+	_, err = msg.UnmarshalTransData(p)
 	
-	err = msg.UnmarshalBinary(p)
-
 	if err != nil {
 		returnMsg(ctx, err.Error(), false)
 		return
@@ -483,7 +481,7 @@ func handleFactoidSubmit(ctx *web.Context) {
 		return
 	}
 
-	state.NetworkInMsgQueue() <- msg
+	state.InMsgQueue() <- msg
 
 	returnMsg(ctx, "Successfully submitted the transaction", true)
 

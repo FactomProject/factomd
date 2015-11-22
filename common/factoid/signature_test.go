@@ -45,6 +45,7 @@ func Test_Setup_Signature(test *testing.T) {
 	//    Prtln(string(txt2))
 }
 
+/*
 func Test_IsEqual_Signature(test *testing.T) {
 
 	if s1.IsEqual(s2) == nil {
@@ -75,3 +76,4 @@ func Test_Marshal_Signature_(test *testing.T) {
 	s2.SetSignature(sig2[:]) // Reset it back to Sig2
 
 }
+*/

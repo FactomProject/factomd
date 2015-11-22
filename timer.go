@@ -10,6 +10,7 @@ import (
 	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/util"
 	"time"
+	"fmt"
 )
 
 func Timer(state interfaces.IState) {
@@ -28,7 +29,7 @@ func Timer(state interfaces.IState) {
 	log.Printfln("Time: %v", time.Now())
 	log.Printfln("Waiting %d seconds to the top of the period", wait/billion)
 	time.Sleep(time.Duration(wait))
-	log.Printfln("Starting Timer! %v", time.Now())
+	log.Printfln("Starting Timer! %v\n", time.Now())
 	for {
 		for i := 0; i < 10; i++ {
 			// End of the last period, and this is a server, send messages that
@@ -39,6 +40,9 @@ func Timer(state interfaces.IState) {
 				state.NetworkOutMsgQueue() <- eom
 			}
 
+			// ooooooooooooooooooooooooooooooooooooooooooooooooooooo
+			fmt.Print("\r Processing: ", (string)((([]byte)("-\\|/-\\|/-="))[i])," ")
+			
 			now = time.Now().UnixNano()
 			wait := next - now
 			next += tenthPeriod
