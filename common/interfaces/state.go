@@ -32,6 +32,20 @@ type IState interface {
 	LeaderInMsgQueue() chan IMsg	// Processed by the Leader 
 	FollowerInMsgQueue() chan IMsg	// Processed by the Follower
 
+	// Maps
+	// ====
+	GetHolding() map[[32]byte]IMsg		// Hold Messages 
+	GetAcks()    map[[32]byte]IMsg      // Hold Acknowledgemets
+	
+	// Lists
+	// =====
+	GetAuditServers()    []IServer			// List of Audit Servers
+	GetFedServers()      []IServer			// List of Federated Servers
+	GetServerOrder()     [][]IServer			// 10 lists for Server Order for each minute
+	GetProcessList()     [][]IMsg			// List of Processed Messages Per server
+	GetAuditHeartBeats() []IMsg           // The checklist of HeartBeats for this period
+	GetFedServerFaults() [][]IMsg         // Keep a fault list for every server
+	
 	// Server Configuration
 	// ====================
 	
@@ -83,4 +97,5 @@ type IState interface {
 	GetTimestamp() Timestamp
 	GetNewHash() IHash // Return a new Hash object
 	CreateDBlock() (b IDirectoryBlock, err error)
+	
 }

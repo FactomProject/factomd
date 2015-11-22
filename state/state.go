@@ -32,6 +32,20 @@ type State struct {
 	leaderInMsgQueue       chan interfaces.IMsg
 	followerInMsgQueue     chan interfaces.IMsg
 
+	// Maps
+	// ====
+	Holding   map[[32]byte]interfaces.IMsg		// Hold Messages 
+	Acks      map[[32]byte]interfaces.IMsg      // Hold Acknowledgemets
+	
+	// Lists
+	// =====
+	AuditServers    []interfaces.IServer		// List of Audit Servers
+	FedServers      []interfaces.IServer		// List of Federated Servers
+	ServerOrder     [][]interfaces.IServer		// 10 lists for Server Order for each minute
+	ProcessList     [][]interfaces.IMsg			// List of Processed Messages Per server
+	AuditHeartBeats []interfaces.IMsg           // The checklist of HeartBeats for this period
+	FedServerFaults [][]interfaces.IMsg         // Keep a fault list for every server
+	
 	//Network MAIN = 0, TEST = 1, LOCAL = 2, CUSTOM = 3
 	NetworkNumber int // Encoded into Directory Blocks(s.Cfg.(*util.FactomdConfig)).String()
 
@@ -63,6 +77,35 @@ type State struct {
 
 var _ interfaces.IState = (*State)(nil)
 
+// Maps
+// ====
+func (s *State) GetHolding() map[[32]byte]interfaces.IMsg {
+	return s.Holding
+}		
+func (s *State) GetAcks()    map[[32]byte]interfaces.IMsg {
+	return s.Acks
+}     
+
+// Lists
+// =====
+func (s *State) GetAuditServers() []interfaces.IServer{
+	return s.AuditServers
+}
+func (s *State) GetFedServers()   []interfaces.IServer{
+	return s.FedServers
+}
+func (s *State) GetServerOrder()  [][]interfaces.IServer{
+	return s.ServerOrder
+}
+func (s *State) GetProcessList()  [][]interfaces.IMsg{
+	return s.ProcessList
+}
+func (s *State) GetAuditHeartBeats() []interfaces.IMsg{
+	return s.AuditHeartBeats
+}
+func (s *State) GetFedServerFaults() [][]interfaces.IMsg{
+	return s.FedServerFaults
+}
 
 func (s *State) GetTimestamp() interfaces.Timestamp {
 	return interfaces.Timestamp(primitives.GetTimeMilli())
