@@ -139,13 +139,29 @@ func (m *FactoidTransaction) LeaderExecute(state interfaces.IState) error {
 }
 
 // Returns true if this is a message for this server to execute as a follower
-func (m *FactoidTransaction) Follower(interfaces.IState) bool {
+func (m *FactoidTransaction) Follower(state interfaces.IState) bool {
 	return false
 }
 
-func (m *FactoidTransaction) FollowerExecute(interfaces.IState) error {
+func (m *FactoidTransaction) FollowerExecute(state interfaces.IState) error {
 	
+	key 	:= m.GetHash().Fixed()	
+	acks 	:= state.GetAcks()
+	holding := state.GetHolding()
 	
+	ack := acks[key]
+	fmt.Println("ooooooooooooooooooossssssssssssssso")
+	
+	if ack != nil {
+		fmt.Println("oooooooooooooooooooo")
+		// We can only get a Factoid Transaction once.  Add it, and remove it from the lists.
+		state.GetFactoidState().AddTransaction(1,m.Transaction)
+		delete(acks,key)
+		delete(holding,key)
+	}else{
+		holding[key]=m
+	}
+
 	return nil
 }
 

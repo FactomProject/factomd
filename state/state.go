@@ -272,8 +272,16 @@ func (s *State) Init(filename string) {
 	s.leaderInMsgQueue = make(chan interfaces.IMsg, 10000)       //Leader Messages
 	s.followerInMsgQueue = make(chan interfaces.IMsg, 10000)     //Follower Messages
 
-	s.TotalServers = 1
-	s.ServerState = 1
+	s.TotalServers = 0
+	switch cfg.App.NodeMode {
+		case "FULL" :
+			s.ServerState = 0
+		case "SERVER" :
+			s.ServerState = 1
+		default :
+			panic("Bad Node Mode (must be FULL or SERVER)")
+	}
+	
 
 	//Database
 	switch cfg.App.DBType {
@@ -306,7 +314,16 @@ func (s *State) Init(filename string) {
 	default:
 		panic("Bad value for Network in factomd.conf")
 	}
-
+	
+	s.Holding = make(map[[32]byte]interfaces.IMsg)
+	s.Acks    = make(map[[32]byte]interfaces.IMsg)
+	
+	s.AuditServers = make([]interfaces.IServer,0)
+	s.FedServers = make([]interfaces.IServer,0)
+	s.ServerOrder = make([][]interfaces.IServer,0)
+	s.ProcessList = make([][]interfaces.IMsg,1)
+	s.AuditHeartBeats = make([]interfaces.IMsg,0)
+	s.FedServerFaults = make([][]interfaces.IMsg,0)
 	s.loadDatabase()
 
 }

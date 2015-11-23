@@ -178,6 +178,12 @@ func (m *EOM) Follower(interfaces.IState) bool {
 
 func (m *EOM) FollowerExecute(state interfaces.IState) error {
 
+	for _, msg := range state.GetProcessList()[0] {
+		if err := msg.FollowerExecute(state); err != nil {
+			panic("Failed to build state in EOM: "+err.Error())
+		}
+	}
+	
 	state.GetFactoidState().EndOfPeriod(int(m.Minute))
 
 	switch state.GetNetworkNumber() {

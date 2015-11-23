@@ -34,11 +34,15 @@ type IState interface {
 
 	// Maps
 	// ====
+	// The leader CANNOT touch these maps!  Only the Follower Execution
+	// methods can touch them safely.
 	GetHolding() map[[32]byte]IMsg		// Hold Messages 
 	GetAcks()    map[[32]byte]IMsg      // Hold Acknowledgemets
 	
 	// Lists
 	// =====
+	// The leader CANNOT touch these lists!  Only the FollowerExecution
+	// methods can touch them safely.
 	GetAuditServers()    []IServer			// List of Audit Servers
 	GetFedServers()      []IServer			// List of Federated Servers
 	GetServerOrder()     [][]IServer			// 10 lists for Server Order for each minute

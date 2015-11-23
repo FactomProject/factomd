@@ -14,6 +14,7 @@ import (
 
 //General acknowledge message
 type Ack struct {
+	ServerIndex  int 					// Server index (signature could be one of several)
 	Timestamp    interfaces.Timestamp
 	MessageHash  interfaces.IHash
 
@@ -30,7 +31,10 @@ var _ interfaces.IMsg = (*Ack)(nil)
 var _ Signable = (*Ack)(nil)
 
 func NewAck(state interfaces.IState, msg []byte) (iack interfaces.IMsg, err error) {
-	last := state.GetLastAck().(*Ack)
+	var last *Ack
+	if state.GetLastAck() != nil {
+		last = state.GetLastAck().(*Ack)
+	}
 	ack := new(Ack)
 	ack.Timestamp    = state.GetTimestamp()
 	ack.MessageHash  = primitives.Sha(msg)
@@ -44,7 +48,9 @@ func NewAck(state interfaces.IState, msg []byte) (iack interfaces.IMsg, err erro
 			return nil, err
 		}
 	}
-	
+
+	last = ack
+
 // TODO:  Add the signature.
 	
 	return ack, nil
@@ -85,6 +91,8 @@ func (m *Ack) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 		}
 	}()
 	newData = data[1:]
+	m.ServerIndex = (int) (newData[0])
+	newData = newData[1:]
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
@@ -113,6 +121,7 @@ func (m *Ack) UnmarshalBinary(data []byte) error {
 func (m *Ack) MarshalForSignature() (data []byte, err error) {
 	resp := []byte{}
 	resp = append(resp, byte(m.Type()))
+	resp = append(resp, byte(m.ServerIndex))
 	t := m.GetTimestamp()
 	timeByte, err := t.MarshalBinary()
 	if err != nil {
@@ -156,21 +165,12 @@ func (m *Ack) Validate(interfaces.IState) int {
 // Returns true if this is a message for this server to execute as
 // a leader.
 func (m *Ack) Leader(state interfaces.IState) bool {
-	switch state.GetNetworkNumber() {
-	case 0: // Main Network
-		panic("Not implemented yet")
-	case 1: // Test Network
-		panic("Not implemented yet")
-	case 2: // Local Network
-		panic("Not implemented yet")
-	default:
-		panic("Not implemented yet")
-	}
+	return false
 }
 
 // Execute the leader functions of the given message
 func (m *Ack) LeaderExecute(state interfaces.IState) error {
-	return nil
+	return fmt.Errorf("Should never execute an Acknowledgement in the Leader")
 }
 
 // Returns true if this is a message for this server to execute as a follower
@@ -178,7 +178,22 @@ func (m *Ack) Follower(interfaces.IState) bool {
 	return true
 }
 
-func (m *Ack) FollowerExecute(interfaces.IState) error {
+func (m *Ack) FollowerExecute(state interfaces.IState) error {
+	acks := state.GetAcks()
+	holding := state.GetHolding()
+	msg := holding[m.MessageHash.Fixed()]
+	if msg == nil {
+		acks[m.GetHash().Fixed()]=m
+	}else{
+		processlist := state.GetProcessList()[m.ServerIndex]
+		for len(processlist)< m.Height+1 {
+			processlist = append(processlist,nil)
+		}
+		processlist[m.Height]=msg
+		state.GetProcessList()[m.ServerIndex]=processlist
+		delete(acks,m.GetHash().Fixed())
+	}
+	
 	return nil
 }
 
