@@ -16,6 +16,8 @@ import (
 	"github.com/FactomProject/factomd/state"
 )
 
+var BlockCount int = 10
+
 func CreateAndPopulateTestState() *state.State {
 	s := new(state.State)
 	s.DB = CreateAndPopulateTestDatabaseOverlay()
@@ -26,6 +28,19 @@ func CreateAndPopulateTestState() *state.State {
 
 func CreateAndPopulateTestDatabaseOverlay() *databaseOverlay.Overlay {
 	dbo := CreateEmptyTestDatabaseOverlay()
+
+	dBlocks := []*directoryBlock.DirectoryBlock{}
+	var prevDBlock *directoryBlock.DirectoryBlock = nil
+
+	for i := 0; i < BlockCount; i++ {
+		prevDBlock = CreateTestDirectoryBlock(prevDBlock)
+		dBlocks = append(dBlocks)
+
+		err := dbo.SaveDirectoryBlockHead(prevDBlock)
+		if err != nil {
+			panic(err)
+		}
+	}
 
 	return dbo
 }

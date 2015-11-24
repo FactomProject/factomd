@@ -161,7 +161,7 @@ func (m *EOM) Leader(state interfaces.IState) bool {
 
 // Execute the leader functions of the given message
 func (m *EOM) LeaderExecute(state interfaces.IState) error {
-	
+
 	DBM := new(DirectoryBlockSignature)
 	DBM.DirectoryBlockKeyMR = state.GetPreviousDirectoryBlock().GetKeyMR()
 	DBM.Sign(state)
@@ -180,10 +180,10 @@ func (m *EOM) FollowerExecute(state interfaces.IState) error {
 
 	for _, msg := range state.GetProcessList()[0] {
 		if err := msg.FollowerExecute(state); err != nil {
-			panic("Failed to build state in EOM: "+err.Error())
+			panic("Failed to build state in EOM: " + err.Error())
 		}
 	}
-	
+
 	state.GetFactoidState().EndOfPeriod(int(m.Minute))
 
 	switch state.GetNetworkNumber() {

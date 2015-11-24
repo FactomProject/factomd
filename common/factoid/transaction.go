@@ -11,8 +11,8 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-	"time"
 	"runtime/debug"
+	"time"
 )
 
 var _ = debug.PrintStack
@@ -414,7 +414,7 @@ func (t *Transaction) GetRCD(i int) (interfaces.IRCD, error) {
 // UnmarshalBinary assumes that the Binary is all good.  We do error
 // out if there isn't enough data, or the transaction is too large.
 func (t *Transaction) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	
+
 	// To catch memory errors, I capture the panic and turn it into
 	// a reported error.
 	defer func() {

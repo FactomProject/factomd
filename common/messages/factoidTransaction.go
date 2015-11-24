@@ -58,16 +58,16 @@ func (m *FactoidTransaction) Bytes() []byte {
 	return nil
 }
 
-func (m *FactoidTransaction) UnmarshalTransData(data [] byte) (newData []byte, err error) {
+func (m *FactoidTransaction) UnmarshalTransData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
 	}()
-	
+
 	m.Transaction = new(factoid.Transaction)
 	newData, err = m.Transaction.UnmarshalBinaryData(data)
-	
+
 	return newData, err
 }
 
@@ -77,9 +77,9 @@ func (m *FactoidTransaction) UnmarshalBinaryData(data []byte) (newData []byte, e
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
 	}()
-	
+
 	newData = data[1:]
-	
+
 	return m.UnmarshalTransData(newData)
 }
 
@@ -106,8 +106,8 @@ func (m *FactoidTransaction) String() string {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *FactoidTransaction) Validate(state interfaces.IState) int {
-	err := state.GetFactoidState().Validate(1,m.Transaction)
-	if err !=nil {
+	err := state.GetFactoidState().Validate(1, m.Transaction)
+	if err != nil {
 		return 0
 	}
 	return 1
@@ -121,7 +121,7 @@ func (m *FactoidTransaction) Leader(state interfaces.IState) bool {
 
 // Execute the leader functions of the given message
 func (m *FactoidTransaction) LeaderExecute(state interfaces.IState) error {
-	if err := state.GetFactoidState().Validate(1,m.Transaction); err != nil {
+	if err := state.GetFactoidState().Validate(1, m.Transaction); err != nil {
 		return err
 	}
 	b, err := m.Transaction.MarshalBinarySig()
@@ -133,8 +133,8 @@ func (m *FactoidTransaction) LeaderExecute(state interfaces.IState) error {
 		return err
 	}
 	state.NetworkOutMsgQueue() <- msg
-	state.FollowerInMsgQueue() <- m				// Send factoid trans to follower
-	state.FollowerInMsgQueue() <- msg			// Send the Ack to follower
+	state.FollowerInMsgQueue() <- m   // Send factoid trans to follower
+	state.FollowerInMsgQueue() <- msg // Send the Ack to follower
 	return nil
 }
 
@@ -144,22 +144,22 @@ func (m *FactoidTransaction) Follower(state interfaces.IState) bool {
 }
 
 func (m *FactoidTransaction) FollowerExecute(state interfaces.IState) error {
-	
-	key 	:= m.GetHash().Fixed()	
-	acks 	:= state.GetAcks()
+
+	key := m.GetHash().Fixed()
+	acks := state.GetAcks()
 	holding := state.GetHolding()
-	
+
 	ack := acks[key]
 	fmt.Println("ooooooooooooooooooossssssssssssssso")
-	
+
 	if ack != nil {
 		fmt.Println("oooooooooooooooooooo")
 		// We can only get a Factoid Transaction once.  Add it, and remove it from the lists.
-		state.GetFactoidState().AddTransaction(1,m.Transaction)
-		delete(acks,key)
-		delete(holding,key)
-	}else{
-		holding[key]=m
+		state.GetFactoidState().AddTransaction(1, m.Transaction)
+		delete(acks, key)
+		delete(holding, key)
+	} else {
+		holding[key] = m
 	}
 
 	return nil

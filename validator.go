@@ -16,7 +16,7 @@ var _ = log.Printf
 func Validator(state interfaces.IState) {
 
 	for {
-		msg := <-state.InMsgQueue() // Get message from the input queue
+		msg := <-state.InMsgQueue()  // Get message from the input queue
 		switch msg.Validate(state) { // Validate the message.
 		case 1: // Process if valid
 			if msg.Leader(state) {
