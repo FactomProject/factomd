@@ -11,7 +11,7 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	. "github.com/FactomProject/factomd/database/databaseOverlay"
-	"github.com/FactomProject/factomd/database/mapdb"
+	"github.com/FactomProject/factomd/testHelper"
 	"testing"
 )
 
@@ -164,7 +164,7 @@ func TestFetchBy(t *testing.T) {
 }
 
 func createOverlay() *Overlay {
-	return NewOverlay(new(mapdb.MapDB))
+	return testHelper.CreateEmptyTestDatabaseOverlay()
 }
 
 var TestBucket []byte = []byte{0x01}

@@ -27,7 +27,6 @@ const (
 var Servers map[int]*web.Server
 
 func Start(state interfaces.IState) {
-
 	var server *web.Server
 
 	if Servers == nil {
@@ -65,7 +64,6 @@ func Stop(state interfaces.IState) {
 }
 
 func handleCommitChain(ctx *web.Context) {
-
 }
 
 func handleRevealChain(ctx *web.Context) {
@@ -81,7 +79,6 @@ func handleRevealEntry(ctx *web.Context) {
 }
 
 func handleDirectoryBlockHead(ctx *web.Context) {
-
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
 	type dbhead struct {
@@ -422,15 +419,15 @@ func handleEntryCreditBalance(ctx *web.Context) {
 }
 
 func handleGetFee(ctx *web.Context) {
-	
+
 	state := ctx.Server.Env["state"].(interfaces.IState)
-	
+
 	type x struct{ Fee int64 }
-	
+
 	b := new(x)
-	
+
 	b.Fee = int64(state.GetFactoidState().GetFactoshisPerEC())
-	
+
 	if p, err := json.Marshal(b); err != nil {
 		wsLog.Error(err)
 		ctx.WriteHeader(httpBad)
@@ -446,7 +443,7 @@ func handleFactoidSubmit(ctx *web.Context) {
 
 	type x struct{ Transaction string }
 	t := new(x)
-	
+
 	var p []byte
 	var err error
 	if p, err = ioutil.ReadAll(ctx.Request.Body); err != nil {
@@ -459,7 +456,7 @@ func handleFactoidSubmit(ctx *web.Context) {
 			return
 		}
 	}
-	
+
 	msg := new(messages.FactoidTransaction)
 
 	if p, err = hex.DecodeString(t.Transaction); err != nil {
@@ -468,7 +465,7 @@ func handleFactoidSubmit(ctx *web.Context) {
 	}
 
 	_, err = msg.UnmarshalTransData(p)
-	
+
 	if err != nil {
 		returnMsg(ctx, err.Error(), false)
 		return

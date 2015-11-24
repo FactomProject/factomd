@@ -6,15 +6,15 @@ package databaseOverlay_test
 
 import (
 	. "github.com/FactomProject/factomd/common/directoryBlock"
-	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	. "github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/database/mapdb"
+	. "github.com/FactomProject/factomd/testHelper"
 	"testing"
 )
 
 func TestSaveLoadDBlockHead(t *testing.T) {
-	b1 := createTestDirectoryBlock(nil)
+	b1 := CreateTestDirectoryBlock(nil)
 
 	dbo := NewOverlay(new(mapdb.MapDB))
 	defer dbo.Close()
@@ -45,7 +45,7 @@ func TestSaveLoadDBlockHead(t *testing.T) {
 		t.Error("Blocks are not equal")
 	}
 
-	b2 := createTestDirectoryBlock(b1)
+	b2 := CreateTestDirectoryBlock(b1)
 
 	err = dbo.SaveDirectoryBlockHead(b2)
 	if err != nil {
@@ -78,7 +78,7 @@ func TestSaveLoadDBlockChain(t *testing.T) {
 	defer dbo.Close()
 
 	for i := 0; i < max; i++ {
-		prev = createTestDirectoryBlock(prev)
+		prev = CreateTestDirectoryBlock(prev)
 		blocks = append(blocks, prev)
 		err := dbo.SaveDirectoryBlockHead(prev)
 		if err != nil {
@@ -140,49 +140,4 @@ func TestSaveLoadDBlockChain(t *testing.T) {
 			t.Logf("\n%v\nvs\n%v", blocks[i].String(), all[i].String())
 		}
 	}
-}
-
-func createTestDirectoryBlock(prevBlock *DirectoryBlock) *DirectoryBlock {
-	dblock := new(DirectoryBlock)
-
-	dblock.SetHeader(createTestDirectoryBlockHeader(prevBlock))
-
-	dblock.SetDBEntries(make([]interfaces.IDBEntry, 0, 5))
-
-	de := new(DBEntry)
-	de.ChainID = primitives.NewZeroHash()
-	de.KeyMR = primitives.NewZeroHash()
-
-	dblock.SetDBEntries(append(dblock.GetDBEntries(), de))
-	dblock.GetHeader().SetBlockCount(uint32(len(dblock.GetDBEntries())))
-
-	return dblock
-}
-
-func createTestDirectoryBlockHeader(prevBlock *DirectoryBlock) *DBlockHeader {
-	header := new(DBlockHeader)
-
-	header.SetBodyMR(primitives.Sha(primitives.NewZeroHash().Bytes()))
-	header.SetBlockCount(0)
-	header.SetNetworkID(0xffff)
-
-	if prevBlock == nil {
-		header.SetDBHeight(0)
-		header.SetPrevLedgerKeyMR(primitives.NewZeroHash())
-		header.SetPrevKeyMR(primitives.NewZeroHash())
-		header.SetTimestamp(1234)
-	} else {
-		header.SetDBHeight(prevBlock.Header.GetDBHeight() + 1)
-		header.SetPrevLedgerKeyMR(prevBlock.GetHash())
-		keyMR, err := prevBlock.BuildKeyMerkleRoot()
-		if err != nil {
-			panic(err)
-		}
-		header.SetPrevKeyMR(keyMR)
-		header.SetTimestamp(prevBlock.Header.GetTimestamp() + 1)
-	}
-
-	header.SetVersion(1)
-
-	return header
 }

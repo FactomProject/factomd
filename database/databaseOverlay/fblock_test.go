@@ -5,16 +5,16 @@
 package databaseOverlay_test
 
 import (
-	. "github.com/FactomProject/factomd/common/factoid/block"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	. "github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/database/mapdb"
+	. "github.com/FactomProject/factomd/testHelper"
 	"testing"
 )
 
 func TestSaveLoadFBlockHead(t *testing.T) {
-	b1 := createTestFactoidBlock(nil)
+	b1 := CreateTestFactoidBlock(nil)
 
 	dbo := NewOverlay(new(mapdb.MapDB))
 	defer dbo.Close()
@@ -45,7 +45,7 @@ func TestSaveLoadFBlockHead(t *testing.T) {
 		t.Error("Blocks are not equal")
 	}
 
-	b2 := createTestFactoidBlock(b1)
+	b2 := CreateTestFactoidBlock(b1)
 
 	err = dbo.SaveFactoidBlockHead(b2)
 	if err != nil {
@@ -78,7 +78,7 @@ func TestSaveLoadFBlockChain(t *testing.T) {
 	defer dbo.Close()
 
 	for i := 0; i < max; i++ {
-		prev = createTestFactoidBlock(prev)
+		prev = CreateTestFactoidBlock(prev)
 		blocks = append(blocks, prev)
 		err := dbo.SaveFactoidBlockHead(prev)
 		if err != nil {
@@ -142,8 +142,4 @@ func TestSaveLoadFBlockChain(t *testing.T) {
 			t.Logf("\n%v\nvs\n%v", blocks[i].String(), all[i].String())
 		}
 	}
-}
-
-func createTestFactoidBlock(prev interfaces.IFBlock) interfaces.IFBlock {
-	return NewFBlockFromPreviousBlock(1, prev)
 }
