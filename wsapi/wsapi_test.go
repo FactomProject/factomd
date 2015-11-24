@@ -9,6 +9,56 @@ import (
 	"testing"
 )
 
+func TestHandleFactoidSubmit(t *testing.T) {
+	context := createWebContext()
+
+	HandleFactoidSubmit(context)
+
+	if strings.Contains(GetBody(context), "") == false {
+		t.Errorf("%v", GetBody(context))
+	}
+}
+
+func TestHandleCommitChain(t *testing.T) {
+	context := createWebContext()
+
+	HandleCommitChain(context)
+
+	if strings.Contains(GetBody(context), "") == false {
+		t.Errorf("%v", GetBody(context))
+	}
+}
+
+func TestHandleRevealChain(t *testing.T) {
+	context := createWebContext()
+
+	HandleRevealChain(context)
+
+	if strings.Contains(GetBody(context), "") == false {
+		t.Errorf("%v", GetBody(context))
+	}
+}
+
+func TestHandleCommitEntry(t *testing.T) {
+	context := createWebContext()
+
+	HandleCommitEntry(context)
+
+	if strings.Contains(GetBody(context), "") == false {
+		t.Errorf("%v", GetBody(context))
+	}
+}
+
+func TestHandleRevealEntry(t *testing.T) {
+	context := createWebContext()
+
+	HandleRevealEntry(context)
+
+	if strings.Contains(GetBody(context), "") == false {
+		t.Errorf("%v", GetBody(context))
+	}
+}
+
 func TestHandleDirectoryBlockHead(t *testing.T) {
 	context := createWebContext()
 
@@ -16,6 +66,92 @@ func TestHandleDirectoryBlockHead(t *testing.T) {
 
 	if strings.Contains(GetBody(context), "0376c747a7c0cd92fb03acfefee39fc9ba49c33784ef0be39be2ae0a1bea9a52") == false {
 		t.Errorf("Context does not contain proper DBlock Head - %v", GetBody(context))
+	}
+}
+
+func TestHandleGetRaw(t *testing.T) {
+	context := createWebContext()
+	hash := ""
+
+	HandleGetRaw(context, hash)
+
+	if strings.Contains(GetBody(context), "") == false {
+		t.Errorf("%v", GetBody(context))
+	}
+}
+
+func TestHandleDirectoryBlock(t *testing.T) {
+	context := createWebContext()
+	hash := ""
+
+	HandleDirectoryBlock(context, hash)
+
+	if strings.Contains(GetBody(context), "") == false {
+		t.Errorf("%v", GetBody(context))
+	}
+}
+
+func TestHandleEntryBlock(t *testing.T) {
+	context := createWebContext()
+	hash := ""
+
+	HandleEntryBlock(context, hash)
+
+	if strings.Contains(GetBody(context), "") == false {
+		t.Errorf("%v", GetBody(context))
+	}
+}
+
+func TestHandleEntry(t *testing.T) {
+	context := createWebContext()
+	hash := ""
+
+	HandleEntry(context, hash)
+
+	if strings.Contains(GetBody(context), "") == false {
+		t.Errorf("%v", GetBody(context))
+	}
+}
+
+func TestHandleChainHead(t *testing.T) {
+	context := createWebContext()
+	hash := ""
+
+	HandleChainHead(context, hash)
+
+	if strings.Contains(GetBody(context), "") == false {
+		t.Errorf("%v", GetBody(context))
+	}
+}
+
+func TestHandleEntryCreditBalance(t *testing.T) {
+	context := createWebContext()
+
+	HandleEntryCreditBalance(context)
+
+	if strings.Contains(GetBody(context), "") == false {
+		t.Errorf("%v", GetBody(context))
+	}
+}
+
+func TestHandleFactoidBalance(t *testing.T) {
+	context := createWebContext()
+	eckey := ""
+
+	HandleFactoidBalance(context, eckey)
+
+	if strings.Contains(GetBody(context), "") == false {
+		t.Errorf("%v", GetBody(context))
+	}
+}
+
+func TestHandleGetFee(t *testing.T) {
+	context := createWebContext()
+
+	HandleGetFee(context)
+
+	if strings.Contains(GetBody(context), "") == false {
+		t.Errorf("%v", GetBody(context))
 	}
 }
 
