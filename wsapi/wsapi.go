@@ -438,7 +438,6 @@ func HandleGetFee(ctx *web.Context) {
 }
 
 func HandleFactoidSubmit(ctx *web.Context) {
-
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
 	type x struct{ Transaction string }
