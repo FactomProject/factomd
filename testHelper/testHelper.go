@@ -13,6 +13,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/database/mapdb"
+	//"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/state"
 )
 
@@ -50,6 +51,7 @@ func CreateAndPopulateTestDatabaseOverlay() *databaseOverlay.Overlay {
 	var err error
 
 	for i := 0; i < BlockCount; i++ {
+		dbEntries = []interfaces.IDBEntry{}
 		prevABlock = CreateTestAdminBlock(prevABlock)
 		aBlocks = append(aBlocks, prevABlock)
 		err = dbo.SaveABlockHead(prevABlock)
