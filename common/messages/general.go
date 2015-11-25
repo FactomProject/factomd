@@ -58,7 +58,7 @@ func UnmarshalMessage(data []byte) (interfaces.IMsg, error) {
 	default:
 		return nil, fmt.Errorf("Unknown message type")
 	}
-	
+
 	// Unmarshal does not include the message type.
 	err := msg.UnmarshalBinary(data[:])
 	if err != nil {

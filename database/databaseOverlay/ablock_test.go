@@ -6,6 +6,7 @@ package databaseOverlay_test
 
 import (
 	. "github.com/FactomProject/factomd/common/adminBlock"
+	. "github.com/FactomProject/factomd/testHelper"
 	//"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	. "github.com/FactomProject/factomd/database/databaseOverlay"
@@ -14,7 +15,7 @@ import (
 )
 
 func TestSaveLoadABlockHead(t *testing.T) {
-	b1 := createTestAdminBlock(nil)
+	b1 := CreateTestAdminBlock(nil)
 
 	dbo := NewOverlay(new(mapdb.MapDB))
 	defer dbo.Close()
@@ -45,7 +46,7 @@ func TestSaveLoadABlockHead(t *testing.T) {
 		t.Error("Blocks are not equal")
 	}
 
-	b2 := createTestAdminBlock(b1)
+	b2 := CreateTestAdminBlock(b1)
 
 	err = dbo.SaveABlockHead(b2)
 	if err != nil {
@@ -78,7 +79,7 @@ func TestSaveLoadABlockChain(t *testing.T) {
 	defer dbo.Close()
 
 	for i := 0; i < max; i++ {
-		prev = createTestAdminBlock(prev)
+		prev = CreateTestAdminBlock(prev)
 		blocks = append(blocks, prev)
 		err := dbo.SaveABlockHead(prev)
 		if err != nil {
@@ -143,34 +144,4 @@ func TestSaveLoadABlockChain(t *testing.T) {
 			t.Logf("\n%v\nvs\n%v", blocks[i].String(), all[i].String())
 		}
 	}
-}
-
-func createTestAdminBlock(prev *AdminBlock) *AdminBlock {
-	block := new(AdminBlock)
-	block.SetHeader(createTestAdminHeader(prev))
-	block.GetHeader().SetMessageCount(uint32(len(block.GetABEntries())))
-	return block
-}
-
-func createTestAdminHeader(prev *AdminBlock) *ABlockHeader {
-	header := new(ABlockHeader)
-
-	if prev == nil {
-		header.PrevLedgerKeyMR = primitives.NewZeroHash()
-		header.DBHeight = 0
-	} else {
-		keyMR, err := prev.GetKeyMR()
-		if err != nil {
-			panic(err)
-		}
-		header.PrevLedgerKeyMR = keyMR
-		header.DBHeight = prev.Header.GetDBHeight() + 1
-	}
-
-	header.HeaderExpansionSize = 5
-	header.HeaderExpansionArea = []byte{0x00, 0x01, 0x02, 0x03, 0x04}
-	header.MessageCount = 0
-	header.BodySize = 0
-
-	return header
 }

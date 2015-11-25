@@ -52,6 +52,7 @@ func (c *DirectoryBlock) SetHeader(header interfaces.IDirectoryBlockHeader) {
 
 func (c *DirectoryBlock) SetDBEntries(dbEntries []interfaces.IDBEntry) {
 	c.DBEntries = dbEntries
+	c.GetHeader().SetBlockCount(uint32(len(dbEntries)))
 }
 
 func (c *DirectoryBlock) New() interfaces.BinaryMarshallableAndCopyable {

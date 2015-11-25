@@ -18,7 +18,7 @@ type FactoidTransaction struct {
 	Transaction interfaces.ITransaction
 
 	//Not marshalled
-	hash interfaces.IHash
+	hash      interfaces.IHash
 	processed bool
 }
 
@@ -59,16 +59,16 @@ func (m *FactoidTransaction) Bytes() []byte {
 	return nil
 }
 
-func (m *FactoidTransaction) UnmarshalTransData(data [] byte) (newData []byte, err error) {
+func (m *FactoidTransaction) UnmarshalTransData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
 	}()
-	
+
 	m.Transaction = new(factoid.Transaction)
 	newData, err = m.Transaction.UnmarshalBinaryData(data)
-	
+
 	return newData, err
 }
 
@@ -78,9 +78,9 @@ func (m *FactoidTransaction) UnmarshalBinaryData(data []byte) (newData []byte, e
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
 	}()
-	
+
 	newData = data[1:]
-	
+
 	return m.UnmarshalTransData(newData)
 }
 
@@ -99,7 +99,7 @@ func (m *FactoidTransaction) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *FactoidTransaction) String() string {
-	return "Factoid Transaction "+m.Transaction.GetHash().String()
+	return "Factoid Transaction " + m.Transaction.GetHash().String()
 }
 
 // Validate the message, given the state.  Three possible results:
@@ -107,8 +107,8 @@ func (m *FactoidTransaction) String() string {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *FactoidTransaction) Validate(state interfaces.IState) int {
-	err := state.GetFactoidState().Validate(1,m.Transaction)
-	if err !=nil {
+	err := state.GetFactoidState().Validate(1, m.Transaction)
+	if err != nil {
 		fmt.Println(err.Error())
 		return -1
 	}
@@ -123,7 +123,7 @@ func (m *FactoidTransaction) Leader(state interfaces.IState) bool {
 
 // Execute the leader functions of the given message
 func (m *FactoidTransaction) LeaderExecute(state interfaces.IState) error {
-	if err := state.GetFactoidState().Validate(1,m.Transaction); err != nil {
+	if err := state.GetFactoidState().Validate(1, m.Transaction); err != nil {
 		return err
 	}
 	b, err := m.Transaction.MarshalBinarySig()
@@ -135,8 +135,8 @@ func (m *FactoidTransaction) LeaderExecute(state interfaces.IState) error {
 		return err
 	}
 	state.NetworkOutMsgQueue() <- msg
-	state.FollowerInMsgQueue() <- m				// Send factoid trans to follower
-	state.FollowerInMsgQueue() <- msg			// Send the Ack to follower
+	state.FollowerInMsgQueue() <- m   // Send factoid trans to follower
+	state.FollowerInMsgQueue() <- msg // Send the Ack to follower
 	return nil
 }
 
@@ -149,30 +149,30 @@ func (m *FactoidTransaction) FollowerExecute(state interfaces.IState) error {
 	acks := state.GetAcks()
 	ack, ok := acks[m.GetHash().Fixed()].(*Ack)
 	if !ok || ack == nil {
-		state.GetHolding()[m.GetHash().Fixed()]=m
-	}else{
+		state.GetHolding()[m.GetHash().Fixed()] = m
+	} else {
 		processlist := state.GetProcessList()[ack.ServerIndex]
-		for len(processlist)< ack.Height+1 {
-			processlist = append(processlist,nil)
+		for len(processlist) < ack.Height+1 {
+			processlist = append(processlist, nil)
 		}
-		processlist[ack.Height]=m
-		state.GetProcessList()[ack.ServerIndex]=processlist
-		delete(acks,m.GetHash().Fixed())
+		processlist[ack.Height] = m
+		state.GetProcessList()[ack.ServerIndex] = processlist
+		delete(acks, m.GetHash().Fixed())
 	}
-	
+
 	return nil
 }
 
-func (m *FactoidTransaction) Process(state interfaces.IState) { 
-	
+func (m *FactoidTransaction) Process(state interfaces.IState) {
+
 	if m.processed {
 		return
 	}
 	m.processed = true
-	
+
 	// We can only get a Factoid Transaction once.  Add it, and remove it from the lists.
-	state.GetFactoidState().AddTransaction(1,m.Transaction)
-	
+	state.GetFactoidState().AddTransaction(1, m.Transaction)
+
 }
 
 func (e *FactoidTransaction) JSONByte() ([]byte, error) {

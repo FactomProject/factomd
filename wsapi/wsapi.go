@@ -27,7 +27,6 @@ const (
 var Servers map[int]*web.Server
 
 func Start(state interfaces.IState) {
-
 	var server *web.Server
 
 	if Servers == nil {
@@ -39,20 +38,20 @@ func Start(state interfaces.IState) {
 		Servers[state.GetPort()] = server
 		server.Env["state"] = state
 
-		server.Post("/v1/factoid-submit/?", handleFactoidSubmit)
-		server.Post("/v1/commit-chain/?", handleCommitChain)
-		server.Post("/v1/reveal-chain/?", handleRevealChain)
-		server.Post("/v1/commit-entry/?", handleCommitEntry)
-		server.Post("/v1/reveal-entry/?", handleRevealEntry)
-		server.Get("/v1/directory-block-head/?", handleDirectoryBlockHead)
-		server.Get("/v1/get-raw-data/([^/]+)", handleGetRaw)
-		server.Get("/v1/directory-block-by-keymr/([^/]+)", handleDirectoryBlock)
-		server.Get("/v1/entry-block-by-keymr/([^/]+)", handleEntryBlock)
-		server.Get("/v1/entry-by-hash/([^/]+)", handleEntry)
-		server.Get("/v1/chain-head/([^/]+)", handleChainHead)
-		server.Get("/v1/entry-credit-balance/([^/]+)", handleEntryCreditBalance)
-		server.Get("/v1/factoid-balance/([^/]+)", handleFactoidBalance)
-		server.Get("/v1/factoid-get-fee/", handleGetFee)
+		server.Post("/v1/factoid-submit/?", HandleFactoidSubmit)
+		server.Post("/v1/commit-chain/?", HandleCommitChain)
+		server.Post("/v1/reveal-chain/?", HandleRevealChain)
+		server.Post("/v1/commit-entry/?", HandleCommitEntry)
+		server.Post("/v1/reveal-entry/?", HandleRevealEntry)
+		server.Get("/v1/directory-block-head/?", HandleDirectoryBlockHead)
+		server.Get("/v1/get-raw-data/([^/]+)", HandleGetRaw)
+		server.Get("/v1/directory-block-by-keymr/([^/]+)", HandleDirectoryBlock)
+		server.Get("/v1/entry-block-by-keymr/([^/]+)", HandleEntryBlock)
+		server.Get("/v1/entry-by-hash/([^/]+)", HandleEntry)
+		server.Get("/v1/chain-head/([^/]+)", HandleChainHead)
+		server.Get("/v1/entry-credit-balance/([^/]+)", HandleEntryCreditBalance)
+		server.Get("/v1/factoid-balance/([^/]+)", HandleFactoidBalance)
+		server.Get("/v1/factoid-get-fee/", HandleGetFee)
 
 		log.Print("Starting server")
 		go server.Run(fmt.Sprintf("localhost:%d", state.GetPort()))
@@ -64,24 +63,22 @@ func Stop(state interfaces.IState) {
 	Servers[state.GetPort()].Close()
 }
 
-func handleCommitChain(ctx *web.Context) {
+func HandleCommitChain(ctx *web.Context) {
+}
+
+func HandleRevealChain(ctx *web.Context) {
 
 }
 
-func handleRevealChain(ctx *web.Context) {
+func HandleCommitEntry(ctx *web.Context) {
 
 }
 
-func handleCommitEntry(ctx *web.Context) {
+func HandleRevealEntry(ctx *web.Context) {
 
 }
 
-func handleRevealEntry(ctx *web.Context) {
-
-}
-
-func handleDirectoryBlockHead(ctx *web.Context) {
-
+func HandleDirectoryBlockHead(ctx *web.Context) {
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
 	type dbhead struct {
@@ -105,7 +102,7 @@ func handleDirectoryBlockHead(ctx *web.Context) {
 
 }
 
-func handleGetRaw(ctx *web.Context, hashkey string) {
+func HandleGetRaw(ctx *web.Context, hashkey string) {
 
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
@@ -163,7 +160,7 @@ func handleGetRaw(ctx *web.Context, hashkey string) {
 	}
 }
 
-func handleDirectoryBlock(ctx *web.Context, hashkey string) {
+func HandleDirectoryBlock(ctx *web.Context, hashkey string) {
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
 	type eblockaddr struct {
@@ -207,7 +204,7 @@ func handleDirectoryBlock(ctx *web.Context, hashkey string) {
 			return
 		}
 		if block == nil {
-			//TODO: handle block not found
+			//TODO: Handle block not found
 			return
 		}
 	}
@@ -232,7 +229,7 @@ func handleDirectoryBlock(ctx *web.Context, hashkey string) {
 	}
 }
 
-func handleEntryBlock(ctx *web.Context, hashkey string) {
+func HandleEntryBlock(ctx *web.Context, hashkey string) {
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
 	type entryaddr struct {
@@ -277,7 +274,7 @@ func handleEntryBlock(ctx *web.Context, hashkey string) {
 			return
 		}
 		if block == nil {
-			//TODO: handle block not found
+			//TODO: Handle block not found
 		}
 	}
 
@@ -327,7 +324,7 @@ func handleEntryBlock(ctx *web.Context, hashkey string) {
 
 }
 
-func handleEntry(ctx *web.Context, hashkey string) {
+func HandleEntry(ctx *web.Context, hashkey string) {
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
 	type entryStruct struct {
@@ -356,7 +353,7 @@ func handleEntry(ctx *web.Context, hashkey string) {
 		return
 	}
 	if entry == nil {
-		//TODO: handle block not found
+		//TODO: Handle block not found
 	}
 
 	e.ChainID = entry.GetChainIDHash().String()
@@ -376,7 +373,7 @@ func handleEntry(ctx *web.Context, hashkey string) {
 
 }
 
-func handleChainHead(ctx *web.Context, hashkey string) {
+func HandleChainHead(ctx *web.Context, hashkey string) {
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
 	type chead struct {
@@ -403,7 +400,7 @@ func handleChainHead(ctx *web.Context, hashkey string) {
 		return
 	}
 	if mr == nil {
-		//TODO: handle block not found
+		//TODO: Handle block not found
 	}
 	c.ChainHead = mr.String()
 	if p, err := json.Marshal(c); err != nil {
@@ -417,20 +414,20 @@ func handleChainHead(ctx *web.Context, hashkey string) {
 
 }
 
-func handleEntryCreditBalance(ctx *web.Context) {
+func HandleEntryCreditBalance(ctx *web.Context) {
 
 }
 
-func handleGetFee(ctx *web.Context) {
-	
+func HandleGetFee(ctx *web.Context) {
+
 	state := ctx.Server.Env["state"].(interfaces.IState)
-	
+
 	type x struct{ Fee int64 }
-	
+
 	b := new(x)
-	
+
 	b.Fee = int64(state.GetFactoidState().GetFactoshisPerEC())
-	
+
 	if p, err := json.Marshal(b); err != nil {
 		wsLog.Error(err)
 		ctx.WriteHeader(httpBad)
@@ -440,13 +437,12 @@ func handleGetFee(ctx *web.Context) {
 	}
 }
 
-func handleFactoidSubmit(ctx *web.Context) {
-
+func HandleFactoidSubmit(ctx *web.Context) {
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
 	type x struct{ Transaction string }
 	t := new(x)
-	
+
 	var p []byte
 	var err error
 	if p, err = ioutil.ReadAll(ctx.Request.Body); err != nil {
@@ -459,7 +455,7 @@ func handleFactoidSubmit(ctx *web.Context) {
 			return
 		}
 	}
-	
+
 	msg := new(messages.FactoidTransaction)
 
 	if p, err = hex.DecodeString(t.Transaction); err != nil {
@@ -468,7 +464,7 @@ func handleFactoidSubmit(ctx *web.Context) {
 	}
 
 	_, err = msg.UnmarshalTransData(p)
-	
+
 	if err != nil {
 		returnMsg(ctx, err.Error(), false)
 		return
@@ -487,7 +483,7 @@ func handleFactoidSubmit(ctx *web.Context) {
 
 }
 
-func handleFactoidBalance(ctx *web.Context, eckey string) {
+func HandleFactoidBalance(ctx *web.Context, eckey string) {
 
 	state := ctx.Server.Env["state"].(interfaces.IState)
 

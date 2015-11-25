@@ -22,7 +22,7 @@ type PromotionDemotion struct {
 
 var _ interfaces.IMsg = (*PromotionDemotion)(nil)
 
-func (m *PromotionDemotion) Process(interfaces.IState) { }
+func (m *PromotionDemotion) Process(interfaces.IState) {}
 
 func (m *PromotionDemotion) GetHash() interfaces.IHash {
 	if m.hash == nil {

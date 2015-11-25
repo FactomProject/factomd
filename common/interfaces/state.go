@@ -21,38 +21,38 @@ type IState interface {
 
 	// Channels
 	//==========
-	
+
 	// Network Processor
 	NetworkInMsgQueue() chan IMsg // Not sure that IMsg is the right type... TBD
 	NetworkOutMsgQueue() chan IMsg
 	NetworkInvalidMsgQueue() chan IMsg
 
 	// Consensus
-	InMsgQueue() chan IMsg			// Read by Validate
-	LeaderInMsgQueue() chan IMsg	// Processed by the Leader 
-	FollowerInMsgQueue() chan IMsg	// Processed by the Follower
+	InMsgQueue() chan IMsg         // Read by Validate
+	LeaderInMsgQueue() chan IMsg   // Processed by the Leader
+	FollowerInMsgQueue() chan IMsg // Processed by the Follower
 
 	// Maps
 	// ====
 	// The leader CANNOT touch these maps!  Only the Follower Execution
 	// methods can touch them safely.
-	GetHolding() map[[32]byte]IMsg		// Hold Messages 
-	GetAcks()    map[[32]byte]IMsg      // Hold Acknowledgemets
-	
+	GetHolding() map[[32]byte]IMsg // Hold Messages
+	GetAcks() map[[32]byte]IMsg    // Hold Acknowledgemets
+
 	// Lists
 	// =====
 	// The leader CANNOT touch these lists!  Only the FollowerExecution
 	// methods can touch them safely.
-	GetAuditServers()    []IServer			// List of Audit Servers
-	GetFedServers()      []IServer			// List of Federated Servers
-	GetServerOrder()     [][]IServer			// 10 lists for Server Order for each minute
-	GetProcessList()     [][]IMsg			// List of Processed Messages Per server
-	GetAuditHeartBeats() []IMsg           // The checklist of HeartBeats for this period
-	GetFedServerFaults() [][]IMsg         // Keep a fault list for every server
-	
+	GetAuditServers() []IServer   // List of Audit Servers
+	GetFedServers() []IServer     // List of Federated Servers
+	GetServerOrder() [][]IServer  // 10 lists for Server Order for each minute
+	GetProcessList() [][]IMsg     // List of Processed Messages Per server
+	GetAuditHeartBeats() []IMsg   // The checklist of HeartBeats for this period
+	GetFedServerFaults() [][]IMsg // Keep a fault list for every server
+
 	// Server Configuration
 	// ====================
-	
+
 	//Network MAIN = 0, TEST = 1, LOCAL = 2, CUSTOM = 3
 	GetNetworkNumber() int  // Encoded into Directory Blocks
 	GetNetworkName() string // Some networks have defined names
@@ -101,5 +101,5 @@ type IState interface {
 	GetTimestamp() Timestamp
 	GetNewHash() IHash // Return a new Hash object
 	CreateDBlock() (b IDirectoryBlock, err error)
-	IgnoreType(int) bool		// Debugging
+	IgnoreType(int) bool // Debugging
 }

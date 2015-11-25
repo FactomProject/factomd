@@ -34,18 +34,18 @@ type State struct {
 
 	// Maps
 	// ====
-	Holding   map[[32]byte]interfaces.IMsg		// Hold Messages 
-	Acks      map[[32]byte]interfaces.IMsg      // Hold Acknowledgemets
-	
+	Holding map[[32]byte]interfaces.IMsg // Hold Messages
+	Acks    map[[32]byte]interfaces.IMsg // Hold Acknowledgemets
+
 	// Lists
 	// =====
-	AuditServers    []interfaces.IServer		// List of Audit Servers
-	FedServers      []interfaces.IServer		// List of Federated Servers
-	ServerOrder     [][]interfaces.IServer		// 10 lists for Server Order for each minute
-	ProcessList     [][]interfaces.IMsg			// List of Processed Messages Per server
-	AuditHeartBeats []interfaces.IMsg           // The checklist of HeartBeats for this period
-	FedServerFaults [][]interfaces.IMsg         // Keep a fault list for every server
-	
+	AuditServers    []interfaces.IServer   // List of Audit Servers
+	FedServers      []interfaces.IServer   // List of Federated Servers
+	ServerOrder     [][]interfaces.IServer // 10 lists for Server Order for each minute
+	ProcessList     [][]interfaces.IMsg    // List of Processed Messages Per server
+	AuditHeartBeats []interfaces.IMsg      // The checklist of HeartBeats for this period
+	FedServerFaults [][]interfaces.IMsg    // Keep a fault list for every server
+
 	//Network MAIN = 0, TEST = 1, LOCAL = 2, CUSTOM = 3
 	NetworkNumber int // Encoded into Directory Blocks(s.Cfg.(*util.FactomdConfig)).String()
 
@@ -81,29 +81,29 @@ var _ interfaces.IState = (*State)(nil)
 // ====
 func (s *State) GetHolding() map[[32]byte]interfaces.IMsg {
 	return s.Holding
-}		
-func (s *State) GetAcks()    map[[32]byte]interfaces.IMsg {
+}
+func (s *State) GetAcks() map[[32]byte]interfaces.IMsg {
 	return s.Acks
-}     
+}
 
 // Lists
 // =====
-func (s *State) GetAuditServers() []interfaces.IServer{
+func (s *State) GetAuditServers() []interfaces.IServer {
 	return s.AuditServers
 }
-func (s *State) GetFedServers()   []interfaces.IServer{
+func (s *State) GetFedServers() []interfaces.IServer {
 	return s.FedServers
 }
-func (s *State) GetServerOrder()  [][]interfaces.IServer{
+func (s *State) GetServerOrder() [][]interfaces.IServer {
 	return s.ServerOrder
 }
-func (s *State) GetProcessList()  [][]interfaces.IMsg{
+func (s *State) GetProcessList() [][]interfaces.IMsg {
 	return s.ProcessList
 }
-func (s *State) GetAuditHeartBeats() []interfaces.IMsg{
+func (s *State) GetAuditHeartBeats() []interfaces.IMsg {
 	return s.AuditHeartBeats
 }
-func (s *State) GetFedServerFaults() [][]interfaces.IMsg{
+func (s *State) GetFedServerFaults() [][]interfaces.IMsg {
 	return s.FedServerFaults
 }
 
@@ -189,8 +189,8 @@ func (s *State) GetPort() int {
 // ChainIDs
 // ...
 func (s *State) LeaderFor([]byte) bool {
-	if s.TotalServers == 1 && s.ServerState == 1 && 
-	   s.NetworkNumber == constants.NETWORK_LOCAL {
+	if s.TotalServers == 1 && s.ServerState == 1 &&
+		s.NetworkNumber == constants.NETWORK_LOCAL {
 		return true
 	}
 	return false
@@ -257,7 +257,7 @@ func (s *State) GetLastAck() interfaces.IMsg {
 }
 
 func (s *State) Init(filename string) {
-	
+
 	s.ReadCfg(filename)
 	// Get our factomd configuration information.
 	cfg := s.GetCfg().(*util.FactomdConfig)
@@ -274,16 +274,15 @@ func (s *State) Init(filename string) {
 	s.followerInMsgQueue = make(chan interfaces.IMsg, 10000)     //Follower Messages
 
 	s.TotalServers = 1
-	
+
 	switch cfg.App.NodeMode {
-		case "FULL" :
-			s.ServerState = 0
-		case "SERVER" :
-			s.ServerState = 1
-		default :
-			panic("Bad Node Mode (must be FULL or SERVER)")
+	case "FULL":
+		s.ServerState = 0
+	case "SERVER":
+		s.ServerState = 1
+	default:
+		panic("Bad Node Mode (must be FULL or SERVER)")
 	}
-	
 
 	//Database
 	switch cfg.App.DBType {
@@ -316,16 +315,16 @@ func (s *State) Init(filename string) {
 	default:
 		panic("Bad value for Network in factomd.conf")
 	}
-	
+
 	s.Holding = make(map[[32]byte]interfaces.IMsg)
-	s.Acks    = make(map[[32]byte]interfaces.IMsg)
-	
-	s.AuditServers = make([]interfaces.IServer,0)
-	s.FedServers = make([]interfaces.IServer,0)
-	s.ServerOrder = make([][]interfaces.IServer,0)
-	s.ProcessList = make([][]interfaces.IMsg,1)
-	s.AuditHeartBeats = make([]interfaces.IMsg,0)
-	s.FedServerFaults = make([][]interfaces.IMsg,0)
+	s.Acks = make(map[[32]byte]interfaces.IMsg)
+
+	s.AuditServers = make([]interfaces.IServer, 0)
+	s.FedServers = make([]interfaces.IServer, 0)
+	s.ServerOrder = make([][]interfaces.IServer, 0)
+	s.ProcessList = make([][]interfaces.IMsg, 1)
+	s.AuditHeartBeats = make([]interfaces.IMsg, 0)
+	s.FedServerFaults = make([][]interfaces.IMsg, 0)
 	s.loadDatabase()
 
 }
@@ -378,23 +377,27 @@ func (s *State) loadDatabase() {
 		if err != nil {
 			panic(err.Error())
 		}
-		
+
 		var fblks []interfaces.IFBlock
-		
+
 		for fblk != nil {
 			fblks = append(fblks, fblk)
 			hash := fblk.GetPrevKeyMR()
-			fblk,_ = s.DB.FetchFBlockByHash(hash)
+			fblk, _ = s.DB.FetchFBlockByHash(hash)
 		}
-		for i:=len(fblks)-1; i >=0; i-- {
+		for i := len(fblks) - 1; i >= 0; i-- {
 			s.GetFactoidState().AddTransactionBlock(fblks[i])
 		}
 	}
 	s.SetCurrentDirectoryBlock(dblk)
-	
+
 }
 
 func (s *State) InitLevelDB() error {
+	if s.DB != nil {
+		return nil
+	}
+
 	cfg := s.Cfg.(*util.FactomdConfig)
 	path := cfg.App.LdbPath + "/" + cfg.App.Network + "/" + "factoid_level.db"
 
@@ -418,6 +421,10 @@ func (s *State) InitLevelDB() error {
 }
 
 func (s *State) InitBoltDB() error {
+	if s.DB != nil {
+		return nil
+	}
+
 	cfg := s.Cfg.(*util.FactomdConfig)
 	path := cfg.App.BoltDBPath + "/" + cfg.App.Network + "/"
 	os.MkdirAll(path, 0777)
@@ -427,6 +434,10 @@ func (s *State) InitBoltDB() error {
 }
 
 func (s *State) InitMapDB() error {
+	if s.DB != nil {
+		return nil
+	}
+
 	dbase := new(mapdb.MapDB)
 	dbase.Init(nil)
 	s.DB = databaseOverlay.NewOverlay(dbase)
@@ -526,8 +537,8 @@ func (s *State) CreateDBlock() (b interfaces.IDirectoryBlock, err error) {
 }
 
 func (s *State) IgnoreType(msgType int) bool {
-	return 	msgType != constants.EOM_MSG  &&
-			msgType != constants.DIRECTORY_BLOCK_SIGNATURE_MSG
+	return msgType != constants.EOM_MSG &&
+		msgType != constants.DIRECTORY_BLOCK_SIGNATURE_MSG
 }
 
 func (s *State) GetNetworkName() string {

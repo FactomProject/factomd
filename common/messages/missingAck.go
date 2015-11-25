@@ -22,7 +22,7 @@ type MissingAck struct {
 
 var _ interfaces.IMsg = (*MissingAck)(nil)
 
-func (m *MissingAck) Process(interfaces.IState) { }
+func (m *MissingAck) Process(interfaces.IState) {}
 
 func (m *MissingAck) GetHash() interfaces.IHash {
 	if m.hash == nil {

@@ -29,7 +29,7 @@ type DirectoryBlockSignature struct {
 var _ interfaces.IMsg = (*DirectoryBlockSignature)(nil)
 var _ Signable = (*DirectoryBlockSignature)(nil)
 
-func (e *DirectoryBlockSignature) Process(interfaces.IState) { 
+func (e *DirectoryBlockSignature) Process(interfaces.IState) {
 	panic("DirectoryBlockSignature is not implemented.")
 }
 
@@ -142,10 +142,10 @@ func (m *DirectoryBlockSignature) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *DirectoryBlockSignature) String() string {
-	return fmt.Sprintf("DB Sig: %d KeyMR %s ID %s", 
-						m.DirectoryBlockHeight,
-						m.DirectoryBlockKeyMR.String(),
-						m.ServerIdentityChainID.String())
+	return fmt.Sprintf("DB Sig: %d KeyMR %s ID %s",
+		m.DirectoryBlockHeight,
+		m.DirectoryBlockKeyMR.String(),
+		m.ServerIdentityChainID.String())
 }
 
 // Validate the message, given the state.  Three possible results:

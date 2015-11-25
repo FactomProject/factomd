@@ -24,7 +24,7 @@ type CommitEntryMsg struct {
 
 var _ interfaces.IMsg = (*CommitEntryMsg)(nil)
 
-func (e *CommitEntryMsg) Process(interfaces.IState) { 
+func (e *CommitEntryMsg) Process(interfaces.IState) {
 	panic("CommitEntryMsg is not implemented.")
 }
 

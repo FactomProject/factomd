@@ -14,13 +14,13 @@ import (
 
 //General acknowledge message
 type Ack struct {
-	ServerIndex  int 					// Server index (signature could be one of several)
-	Timestamp    interfaces.Timestamp
-	MessageHash  interfaces.IHash
+	ServerIndex int // Server index (signature could be one of several)
+	Timestamp   interfaces.Timestamp
+	MessageHash interfaces.IHash
 
-	Height       int
-	SerialHash   interfaces.IHash
-	
+	Height     int
+	SerialHash interfaces.IHash
+
 	Signature interfaces.IFullSignature
 
 	//Not marshalled
@@ -36,14 +36,14 @@ func NewAck(state interfaces.IState, msg []byte) (iack interfaces.IMsg, err erro
 		last = state.GetLastAck().(*Ack)
 	}
 	ack := new(Ack)
-	ack.Timestamp    = state.GetTimestamp()
-	ack.MessageHash  = primitives.Sha(msg)
+	ack.Timestamp = state.GetTimestamp()
+	ack.MessageHash = primitives.Sha(msg)
 	if last == nil {
 		ack.Height = 0
 		ack.SerialHash = ack.MessageHash
-	}else{
-		ack.Height = last.Height+1
-		ack.SerialHash,err = primitives.CreateHash(last.MessageHash,ack.MessageHash)
+	} else {
+		ack.Height = last.Height + 1
+		ack.SerialHash, err = primitives.CreateHash(last.MessageHash, ack.MessageHash)
 		if err != nil {
 			return nil, err
 		}
@@ -51,11 +51,10 @@ func NewAck(state interfaces.IState, msg []byte) (iack interfaces.IMsg, err erro
 
 	last = ack
 
-// TODO:  Add the signature.
-	
+	// TODO:  Add the signature.
+
 	return ack, nil
 }
-
 
 func (m *Ack) GetHash() interfaces.IHash {
 	if m.hash == nil {
@@ -91,7 +90,7 @@ func (m *Ack) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 		}
 	}()
 	newData = data[1:]
-	m.ServerIndex = (int) (newData[0])
+	m.ServerIndex = (int)(newData[0])
 	newData = newData[1:]
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
@@ -150,7 +149,7 @@ func (m *Ack) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *Ack) String() string {
-	return "Ack: "+m.MessageHash.String()
+	return "Ack: " + m.MessageHash.String()
 }
 
 // Validate the message, given the state.  Three possible results:
@@ -182,18 +181,18 @@ func (m *Ack) FollowerExecute(state interfaces.IState) error {
 	holding := state.GetHolding()
 	msg := holding[m.MessageHash.Fixed()]
 	if msg == nil {
-		acks[m.GetHash().Fixed()]=m
-	}else{
+		acks[m.GetHash().Fixed()] = m
+	} else {
 		processlist := state.GetProcessList()[m.ServerIndex]
-		for len(processlist)< m.Height+1 {
-			processlist = append(processlist,nil)
+		for len(processlist) < m.Height+1 {
+			processlist = append(processlist, nil)
 		}
-		processlist[m.Height]=msg
-		state.GetProcessList()[m.ServerIndex]=processlist
-		delete(acks,m.GetHash().Fixed())
+		processlist[m.Height] = msg
+		state.GetProcessList()[m.ServerIndex] = processlist
+		delete(acks, m.GetHash().Fixed())
 	}
-	
-	for _,plist := range state.GetProcessList() {
+
+	for _, plist := range state.GetProcessList() {
 		for _, p := range plist {
 			if p == nil {
 				break
@@ -201,12 +200,12 @@ func (m *Ack) FollowerExecute(state interfaces.IState) error {
 			p.Process(state)
 		}
 	}
-	
+
 	return nil
 }
 
 // Acknowledgements do not go into the process list.
-func (e *Ack) Process(state interfaces.IState) { 
+func (e *Ack) Process(state interfaces.IState) {
 	panic("Ack object should never have its Process() method called")
 }
 

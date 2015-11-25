@@ -22,8 +22,7 @@ type AuditServerFault struct {
 
 var _ interfaces.IMsg = (*AuditServerFault)(nil)
 
-
-func (e *AuditServerFault) Process(interfaces.IState) { 
+func (e *AuditServerFault) Process(interfaces.IState) {
 	panic("AuditServerFault object should never have its Process() method called")
 }
 

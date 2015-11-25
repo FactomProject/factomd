@@ -47,8 +47,8 @@ func main() {
 	go Leader(state)
 	go Follower(state)
 
-	go wsapi.Start(state)	
-	
+	go wsapi.Start(state)
+
 	for {
 		time.Sleep(time.Duration(5) * time.Second)
 	}

@@ -6,10 +6,7 @@ package interfaces
 
 import ()
 
-
 // This object will hold the public keys for servers that are not
 // us, and maybe other information about servers.
 type IServer interface {
-	
 }
-

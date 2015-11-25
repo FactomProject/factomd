@@ -10,22 +10,22 @@ import (
 
 // Messages
 const (
-	EOM_MSG = iota				// 0
-	ACK_MSG						// 1
-	AUDIT_SERVER_FAULT_MSG		// 2
-	COMMIT_CHAIN_MSG			// 3
-	COMMIT_ENTRY_MSG			// 4
-	DIRECTORY_BLOCK_SIGNATURE_MSG // 5
-	EOM_TIMEOUT_MSG				// 6
-	FACTOID_TRANSACTION_MSG		// 7
-	HEARTBEAT_MSG				// 8
-	INVALID_ACK_MSG				// 9
-	INVALID_DIRECTORY_BLOCK_MSG	// 10
-	MISSING_ACK_MSG				// 11
-	PROMOTION_DEMOTION_MSG		// 12
-	REVEAL_ENTRY_MSG			// 13
-	REQUEST_BLOCK_MSG			// 14
-	SIGNATURE_TIMEOUT_MSG		// 15
+	EOM_MSG                       = iota // 0
+	ACK_MSG                              // 1
+	AUDIT_SERVER_FAULT_MSG               // 2
+	COMMIT_CHAIN_MSG                     // 3
+	COMMIT_ENTRY_MSG                     // 4
+	DIRECTORY_BLOCK_SIGNATURE_MSG        // 5
+	EOM_TIMEOUT_MSG                      // 6
+	FACTOID_TRANSACTION_MSG              // 7
+	HEARTBEAT_MSG                        // 8
+	INVALID_ACK_MSG                      // 9
+	INVALID_DIRECTORY_BLOCK_MSG          // 10
+	MISSING_ACK_MSG                      // 11
+	PROMOTION_DEMOTION_MSG               // 12
+	REVEAL_ENTRY_MSG                     // 13
+	REQUEST_BLOCK_MSG                    // 14
+	SIGNATURE_TIMEOUT_MSG                // 15
 )
 
 const (

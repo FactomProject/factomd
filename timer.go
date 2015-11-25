@@ -5,12 +5,12 @@
 package main
 
 import (
+	"fmt"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/util"
 	"time"
-	"fmt"
 )
 
 func Timer(state interfaces.IState) {
@@ -41,8 +41,8 @@ func Timer(state interfaces.IState) {
 			}
 
 			// ooooooooooooooooooooooooooooooooooooooooooooooooooooo
-			fmt.Print("\r Processing: ", (string)((([]byte)("-\\|/-\\|/-="))[i])," ")
-			
+			fmt.Print("\r Processing: ", (string)((([]byte)("-\\|/-\\|/-="))[i]), " ")
+
 			now = time.Now().UnixNano()
 			wait := next - now
 			next += tenthPeriod
