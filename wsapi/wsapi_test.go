@@ -1,6 +1,9 @@
 package wsapi_test
 
 import (
+	"github.com/FactomProject/factomd/common/directoryBlock"
+	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/testHelper"
 	. "github.com/FactomProject/factomd/wsapi"
 	"github.com/hoisie/web"
@@ -71,13 +74,123 @@ func TestHandleDirectoryBlockHead(t *testing.T) {
 }
 
 func TestHandleGetRaw(t *testing.T) {
-	context := createWebContext()
-	hash := ""
+	type RawData struct {
+		Hash1 string
+		Hash2 string
+		Raw   string
+	}
 
-	HandleGetRaw(context, hash)
+	toTest := []RawData{}
+	var err error
 
-	if strings.Contains(GetBody(context), "") == false {
-		t.Errorf("%v", GetBody(context))
+	dbEntries := []interfaces.IDBEntry{}
+	aBlock := testHelper.CreateTestAdminBlock(nil)
+	de := new(directoryBlock.DBEntry)
+	de.ChainID, err = primitives.NewShaHash(aBlock.GetChainID())
+	if err != nil {
+		panic(err)
+	}
+	de.KeyMR, err = aBlock.GetKeyMR()
+	if err != nil {
+		panic(err)
+	}
+	dbEntries = append(dbEntries, de)
+	raw := RawData{}
+	raw.Hash1 = aBlock.DatabasePrimaryIndex().String()
+	raw.Hash2 = aBlock.DatabasePrimaryIndex().String()
+	hex, err := aBlock.MarshalBinary()
+	if err != nil {
+		panic(err)
+	}
+	raw.Raw = primitives.EncodeBinary(hex)
+	toTest = append(toTest, raw)
+
+	eBlock := testHelper.CreateTestEntryBlock(nil)
+	de = new(directoryBlock.DBEntry)
+	de.ChainID, err = primitives.NewShaHash(eBlock.GetChainID())
+	if err != nil {
+		panic(err)
+	}
+	de.KeyMR, err = eBlock.KeyMR()
+	if err != nil {
+		panic(err)
+	}
+	dbEntries = append(dbEntries, de)
+	raw = RawData{}
+	raw.Hash1 = eBlock.DatabasePrimaryIndex().String()
+	raw.Hash2 = eBlock.DatabasePrimaryIndex().String()
+	hex, err = eBlock.MarshalBinary()
+	if err != nil {
+		panic(err)
+	}
+	raw.Raw = primitives.EncodeBinary(hex)
+	toTest = append(toTest, raw)
+
+	ecBlock := testHelper.CreateTestEntryCreditBlock(nil)
+	de = new(directoryBlock.DBEntry)
+	de.ChainID, err = primitives.NewShaHash(ecBlock.GetChainID())
+	if err != nil {
+		panic(err)
+	}
+	de.KeyMR, err = ecBlock.HeaderHash()
+	if err != nil {
+		panic(err)
+	}
+	dbEntries = append(dbEntries, de)
+	raw = RawData{}
+	raw.Hash1 = ecBlock.(interfaces.DatabaseBatchable).DatabasePrimaryIndex().String()
+	raw.Hash2 = ecBlock.(interfaces.DatabaseBatchable).DatabasePrimaryIndex().String()
+	hex, err = ecBlock.MarshalBinary()
+	if err != nil {
+		panic(err)
+	}
+	raw.Raw = primitives.EncodeBinary(hex)
+	toTest = append(toTest, raw)
+
+	fBlock := testHelper.CreateTestFactoidBlock(nil)
+	de = new(directoryBlock.DBEntry)
+	de.ChainID, err = primitives.NewShaHash(fBlock.GetChainID())
+	if err != nil {
+		panic(err)
+	}
+	de.KeyMR = fBlock.GetKeyMR()
+	dbEntries = append(dbEntries, de)
+	raw = RawData{}
+	raw.Hash1 = fBlock.(interfaces.DatabaseBatchable).DatabasePrimaryIndex().String()
+	raw.Hash2 = fBlock.(interfaces.DatabaseBatchable).DatabasePrimaryIndex().String()
+	hex, err = fBlock.MarshalBinary()
+	if err != nil {
+		panic(err)
+	}
+	raw.Raw = primitives.EncodeBinary(hex)
+	toTest = append(toTest, raw)
+
+	dBlock := testHelper.CreateTestDirectoryBlock(nil)
+	dBlock.SetDBEntries(dbEntries)
+	raw = RawData{}
+	raw.Hash1 = dBlock.DatabasePrimaryIndex().String()
+	raw.Hash2 = dBlock.DatabasePrimaryIndex().String()
+	hex, err = dBlock.MarshalBinary()
+	if err != nil {
+		panic(err)
+	}
+	raw.Raw = primitives.EncodeBinary(hex)
+	toTest = append(toTest, raw)
+
+	for _, v := range toTest {
+		context := createWebContext()
+		HandleGetRaw(context, v.Hash1)
+
+		if strings.Contains(GetBody(context), v.Raw) == false {
+			t.Errorf("GetRaw from Hash1 failed - %v", GetBody(context))
+		}
+
+		context = createWebContext()
+		HandleGetRaw(context, v.Hash2)
+
+		if strings.Contains(GetBody(context), v.Raw) == false {
+			t.Errorf("GetRaw from Hash2 failed - %v", GetBody(context))
+		}
 	}
 }
 
