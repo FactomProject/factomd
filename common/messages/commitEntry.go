@@ -24,6 +24,10 @@ type CommitEntryMsg struct {
 
 var _ interfaces.IMsg = (*CommitEntryMsg)(nil)
 
+func (e *CommitEntryMsg) Process(interfaces.IState) {
+	panic("CommitEntryMsg is not implemented.")
+}
+
 func (m *CommitEntryMsg) GetHash() interfaces.IHash {
 	if m.hash == nil {
 		data, err := m.CommitEntry.MarshalBinary()

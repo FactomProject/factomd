@@ -22,6 +22,8 @@ type InvalidDirectoryBlock struct {
 
 var _ interfaces.IMsg = (*InvalidDirectoryBlock)(nil)
 
+func (m *InvalidDirectoryBlock) Process(interfaces.IState) {}
+
 func (m *InvalidDirectoryBlock) GetHash() interfaces.IHash {
 	if m.hash == nil {
 		data, err := m.MarshalForSignature()

@@ -32,6 +32,10 @@ type EOM struct {
 //var _ interfaces.IConfirmation = (*EOM)(nil)
 var _ Signable = (*EOM)(nil)
 
+func (e *EOM) Process(interfaces.IState) {
+
+}
+
 func (m *EOM) GetHash() interfaces.IHash {
 	if m.hash == nil {
 		data, err := m.MarshalForSignature()

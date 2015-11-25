@@ -149,8 +149,7 @@ func (m *Ack) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *Ack) String() string {
-	str, _ := m.JSONString()
-	return str
+	return "Ack: " + m.MessageHash.String()
 }
 
 // Validate the message, given the state.  Three possible results:
@@ -193,7 +192,21 @@ func (m *Ack) FollowerExecute(state interfaces.IState) error {
 		delete(acks, m.GetHash().Fixed())
 	}
 
+	for _, plist := range state.GetProcessList() {
+		for _, p := range plist {
+			if p == nil {
+				break
+			}
+			p.Process(state)
+		}
+	}
+
 	return nil
+}
+
+// Acknowledgements do not go into the process list.
+func (e *Ack) Process(state interfaces.IState) {
+	panic("Ack object should never have its Process() method called")
 }
 
 func (e *Ack) JSONByte() ([]byte, error) {

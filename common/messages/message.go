@@ -21,6 +21,8 @@ type Message struct {
 
 var _ interfaces.IMsg = (*Message)(nil)
 
+func (m *Message) Process(interfaces.IState) {}
+
 func (m *Message) GetHash() interfaces.IHash {
 	if m.hash == nil {
 		data, err := m.MarshalForSignature()

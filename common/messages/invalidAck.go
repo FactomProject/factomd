@@ -22,6 +22,8 @@ type InvalidAck struct {
 
 var _ interfaces.IMsg = (*InvalidAck)(nil)
 
+func (m *InvalidAck) Process(interfaces.IState) {}
+
 func (m *InvalidAck) GetHash() interfaces.IHash {
 	if m.hash == nil {
 		data, err := m.MarshalForSignature()
