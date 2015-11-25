@@ -27,6 +27,9 @@ type Heartbeat struct {
 var _ interfaces.IMsg = (*Heartbeat)(nil)
 var _ Signable = (*Heartbeat)(nil)
 
+
+func (m *Heartbeat) Process(interfaces.IState) { }
+
 func (m *Heartbeat) GetHash() interfaces.IHash {
 	if m.hash == nil {
 		data, err := m.MarshalForSignature()

@@ -27,7 +27,9 @@ netloop:
 		select {
 		case msg, ok := <-state.NetworkInMsgQueue():
 			if ok {
-				//log.Printf("%20s %s\n", "In Network:", msg.String())
+				if state.IgnoreType(msg.Type()) {
+					log.Printf("%20s %s\n", "NetworkIn:", msg.String())
+				}
 				state.InMsgQueue() <- msg
 				continue netloop
 			}
@@ -38,8 +40,9 @@ netloop:
 		case msg, ok := <-state.NetworkOutMsgQueue():
 			if ok {
 				var _ = msg
-				//log.Printf("%20s %s\n", "Network Broadcast:", msg.String())
-				// Ignore for now
+				if state.IgnoreType(msg.Type()) {
+					log.Printf("%20s %s\n", "NetworkOut:", msg.String())
+				}
 				continue netloop
 			}
 		default:
@@ -49,8 +52,9 @@ netloop:
 		case msg, ok := <-state.NetworkInvalidMsgQueue():
 			if ok {
 				var _ = msg
-				//log.Printf("%20s %s\n", "Network Invalid Msg:", msg.String())
-				// Ignore for now
+				if state.IgnoreType(msg.Type()) {
+					log.Printf("%20s %s\n", "Invalid:", msg.String())
+				}
 				continue netloop
 			}
 		default:

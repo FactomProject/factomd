@@ -24,6 +24,8 @@ type CommitChainMsg struct {
 
 var _ interfaces.IMsg = (*CommitChainMsg)(nil)
 
+func (m *CommitChainMsg) Process(interfaces.IState) { }
+
 func (m *CommitChainMsg) GetHash() interfaces.IHash {
 	if m.hash == nil {
 		data, err := m.CommitChain.MarshalBinary()

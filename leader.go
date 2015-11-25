@@ -15,7 +15,9 @@ func Leader(state interfaces.IState) {
 
 	for {
 		msg := <-state.LeaderInMsgQueue()
-		//log.Printf("%20s %s\n", "Leader:", msg.String())
+		if state.IgnoreType(msg.Type()) {
+			log.Printf("%20s %s\n", "Leader:", msg.String())
+		}
 		msg.LeaderExecute(state)
 	}
 

@@ -19,6 +19,7 @@ type FactoidTransaction struct {
 
 	//Not marshalled
 	hash interfaces.IHash
+	processed bool
 }
 
 var _ interfaces.IMsg = (*FactoidTransaction)(nil)
@@ -98,7 +99,7 @@ func (m *FactoidTransaction) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *FactoidTransaction) String() string {
-	return ""
+	return "Factoid Transaction "+m.Transaction.GetHash().String()
 }
 
 // Validate the message, given the state.  Three possible results:
@@ -108,7 +109,8 @@ func (m *FactoidTransaction) String() string {
 func (m *FactoidTransaction) Validate(state interfaces.IState) int {
 	err := state.GetFactoidState().Validate(1,m.Transaction)
 	if err !=nil {
-		return 0
+		fmt.Println(err.Error())
+		return -1
 	}
 	return 1
 }
@@ -140,29 +142,37 @@ func (m *FactoidTransaction) LeaderExecute(state interfaces.IState) error {
 
 // Returns true if this is a message for this server to execute as a follower
 func (m *FactoidTransaction) Follower(state interfaces.IState) bool {
-	return false
+	return true
 }
 
 func (m *FactoidTransaction) FollowerExecute(state interfaces.IState) error {
-	
-	key 	:= m.GetHash().Fixed()	
-	acks 	:= state.GetAcks()
-	holding := state.GetHolding()
-	
-	ack := acks[key]
-	fmt.Println("ooooooooooooooooooossssssssssssssso")
-	
-	if ack != nil {
-		fmt.Println("oooooooooooooooooooo")
-		// We can only get a Factoid Transaction once.  Add it, and remove it from the lists.
-		state.GetFactoidState().AddTransaction(1,m.Transaction)
-		delete(acks,key)
-		delete(holding,key)
+	acks := state.GetAcks()
+	ack, ok := acks[m.GetHash().Fixed()].(*Ack)
+	if !ok || ack == nil {
+		state.GetHolding()[m.GetHash().Fixed()]=m
 	}else{
-		holding[key]=m
+		processlist := state.GetProcessList()[ack.ServerIndex]
+		for len(processlist)< ack.Height+1 {
+			processlist = append(processlist,nil)
+		}
+		processlist[ack.Height]=m
+		state.GetProcessList()[ack.ServerIndex]=processlist
+		delete(acks,m.GetHash().Fixed())
 	}
-
+	
 	return nil
+}
+
+func (m *FactoidTransaction) Process(state interfaces.IState) { 
+	
+	if m.processed {
+		return
+	}
+	m.processed = true
+	
+	// We can only get a Factoid Transaction once.  Add it, and remove it from the lists.
+	state.GetFactoidState().AddTransaction(1,m.Transaction)
+	
 }
 
 func (e *FactoidTransaction) JSONByte() ([]byte, error) {

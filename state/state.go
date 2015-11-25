@@ -189,7 +189,8 @@ func (s *State) GetPort() int {
 // ChainIDs
 // ...
 func (s *State) LeaderFor([]byte) bool {
-	if s.TotalServers == 1 && s.ServerState == 1 && s.NetworkNumber == 2 {
+	if s.TotalServers == 1 && s.ServerState == 1 && 
+	   s.NetworkNumber == constants.NETWORK_LOCAL {
 		return true
 	}
 	return false
@@ -272,7 +273,8 @@ func (s *State) Init(filename string) {
 	s.leaderInMsgQueue = make(chan interfaces.IMsg, 10000)       //Leader Messages
 	s.followerInMsgQueue = make(chan interfaces.IMsg, 10000)     //Follower Messages
 
-	s.TotalServers = 0
+	s.TotalServers = 1
+	
 	switch cfg.App.NodeMode {
 		case "FULL" :
 			s.ServerState = 0
@@ -521,6 +523,11 @@ func (s *State) CreateDBlock() (b interfaces.IDirectoryBlock, err error) {
 	b.AddEntry(primitives.NewHash(constants.FACTOID_CHAINID), primitives.NewZeroHash())
 
 	return b, err
+}
+
+func (s *State) IgnoreType(msgType int) bool {
+	return 	msgType != constants.EOM_MSG  &&
+			msgType != constants.DIRECTORY_BLOCK_SIGNATURE_MSG
 }
 
 func (s *State) GetNetworkName() string {

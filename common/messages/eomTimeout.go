@@ -19,6 +19,11 @@ type EOMTimeout struct {
 
 var _ interfaces.IMsg = (*EOMTimeout)(nil)
 
+
+func (e *EOMTimeout) Process(interfaces.IState) { 
+	panic("EOMTimeout is not implemented.")
+}
+
 func (m *EOMTimeout) GetHash() interfaces.IHash {
 	return nil
 }

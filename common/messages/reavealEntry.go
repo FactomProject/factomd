@@ -24,6 +24,8 @@ type RevealEntry struct {
 
 var _ interfaces.IMsg = (*RevealEntry)(nil)
 
+func (m *RevealEntry) Process(interfaces.IState) { }
+
 func (m *RevealEntry) GetHash() interfaces.IHash {
 	if m.hash == nil {
 		data, err := m.Entry.MarshalBinary()

@@ -22,6 +22,8 @@ type RequestBlock struct {
 
 var _ interfaces.IMsg = (*RequestBlock)(nil)
 
+func (m *RequestBlock) Process(interfaces.IState) { }
+
 func (m *RequestBlock) GetHash() interfaces.IHash {
 	if m.hash == nil {
 		data, err := m.MarshalForSignature()
