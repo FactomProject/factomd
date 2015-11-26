@@ -177,15 +177,16 @@ func TestHandleGetRaw(t *testing.T) {
 	raw.Raw = primitives.EncodeBinary(hex)
 	toTest = append(toTest, raw)
 
+	context := createWebContext()
 	for _, v := range toTest {
-		context := createWebContext()
+		clearContextResponseWriter(context)
 		HandleGetRaw(context, v.Hash1)
 
 		if strings.Contains(GetBody(context), v.Raw) == false {
 			t.Errorf("GetRaw from Hash1 failed - %v", GetBody(context))
 		}
 
-		context = createWebContext()
+		clearContextResponseWriter(context)
 		HandleGetRaw(context, v.Hash2)
 
 		if strings.Contains(GetBody(context), v.Raw) == false {
@@ -265,36 +266,36 @@ func TestHandleChainHead(t *testing.T) {
 		t.Errorf("Invalid directory block head: %v", GetBody(context))
 	}
 
-	context = createWebContext()
 	hash = "000000000000000000000000000000000000000000000000000000000000000a"
 
+	clearContextResponseWriter(context)
 	HandleChainHead(context, hash)
 
 	if strings.Contains(GetBody(context), "b07a252e7ff13ef3ae6b18356949af34f535eca0383a03f71f5f4c526c58b562") == false {
 		t.Errorf("Invalid admin block head: %v", GetBody(context))
 	}
 
-	context = createWebContext()
 	hash = "4bf71c177e71504032ab84023d8afc16e302de970e6be110dac20adbf9a19746"
 
+	clearContextResponseWriter(context)
 	HandleChainHead(context, hash)
 
 	if strings.Contains(GetBody(context), "f282aa3feb35b5922d60ff2e39139a4b8f5eb4ede0844334f36cda9ebeeeeb76") == false {
 		t.Errorf("Invalid entry block head: %v", GetBody(context))
 	}
 
-	context = createWebContext()
 	hash = "000000000000000000000000000000000000000000000000000000000000000c"
 
+	clearContextResponseWriter(context)
 	HandleChainHead(context, hash)
 
 	if strings.Contains(GetBody(context), "3b3b6ed470aa64173b62f87ffd35cf3b9df180ae569e800bf05acfe0dd961fad") == false {
 		t.Errorf("Invalid entry credit block head: %v", GetBody(context))
 	}
 
-	context = createWebContext()
 	hash = "000000000000000000000000000000000000000000000000000000000000000f"
 
+	clearContextResponseWriter(context)
 	HandleChainHead(context, hash)
 
 	if strings.Contains(GetBody(context), "8a6c19ac1f32c6c36f1134aed634550352485bb140739dda6fe587c6cf91e232") == false {
@@ -331,6 +332,46 @@ func TestHandleGetFee(t *testing.T) {
 	if strings.Contains(GetBody(context), "") == false {
 		t.Errorf("%v", GetBody(context))
 	}
+}
+
+func TestBlockIteration(t *testing.T) {
+	context := createWebContext()
+	hash := "000000000000000000000000000000000000000000000000000000000000000d"
+
+	HandleChainHead(context, hash)
+
+	json := GetBody(context)
+	head := new(CHead)
+	err := primitives.DecodeJSONString(json, head)
+	if err != nil {
+		panic(err)
+	}
+
+	prev := head.ChainHead
+	fetched := 0
+	for {
+		if prev == "0000000000000000000000000000000000000000000000000000000000000000" || prev == "" {
+			break
+		}
+		clearContextResponseWriter(context)
+		HandleDirectoryBlock(context, prev)
+
+		json = GetBody(context)
+		block := new(DBlock)
+		err = primitives.DecodeJSONString(json, block)
+		if err != nil {
+			panic(err)
+		}
+		prev = block.Header.PrevBlockKeyMR
+		fetched++
+	}
+	if fetched != testHelper.BlockCount {
+		t.Errorf("DBlock only found %v blocks, was expecting %v", fetched, testHelper.BlockCount)
+	}
+}
+
+func clearContextResponseWriter(context *web.Context) {
+	context.ResponseWriter = new(TestResponseWriter)
 }
 
 func createWebContext() *web.Context {

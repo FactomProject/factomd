@@ -81,11 +81,7 @@ func HandleRevealEntry(ctx *web.Context) {
 func HandleDirectoryBlockHead(ctx *web.Context) {
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
-	type dbhead struct {
-		KeyMR string
-	}
-
-	h := new(dbhead)
+	h := new(DBHead)
 
 	h.KeyMR = state.GetPreviousDirectoryBlock().GetKeyMR().String()
 
@@ -103,14 +99,10 @@ func HandleDirectoryBlockHead(ctx *web.Context) {
 }
 
 func HandleGetRaw(ctx *web.Context, hashkey string) {
-
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
-	type rawData struct {
-		Data string
-	}
 	//TODO: var block interfaces.BinaryMarshallable
-	d := new(rawData)
+	d := new(RawData)
 
 	h, err := primitives.HexToHash(hashkey)
 	if err != nil {
@@ -163,20 +155,7 @@ func HandleGetRaw(ctx *web.Context, hashkey string) {
 func HandleDirectoryBlock(ctx *web.Context, hashkey string) {
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
-	type eblockaddr struct {
-		ChainID string
-		KeyMR   string
-	}
-
-	type dblock struct {
-		Header struct {
-			PrevBlockKeyMR string
-			SequenceNumber uint32
-			Timestamp      uint32
-		}
-		EntryBlockList []eblockaddr
-	}
-	d := new(dblock)
+	d := new(DBlock)
 
 	h, err := primitives.HexToHash(hashkey)
 	if err != nil {
@@ -213,7 +192,7 @@ func HandleDirectoryBlock(ctx *web.Context, hashkey string) {
 	d.Header.SequenceNumber = block.GetHeader().GetDBHeight()
 	d.Header.Timestamp = block.GetHeader().GetTimestamp() * 60
 	for _, v := range block.GetDBEntries() {
-		l := new(eblockaddr)
+		l := new(EBlockAddr)
 		l.ChainID = v.GetChainID().String()
 		l.KeyMR = v.GetKeyMR().String()
 		d.EntryBlockList = append(d.EntryBlockList, *l)
@@ -232,21 +211,7 @@ func HandleDirectoryBlock(ctx *web.Context, hashkey string) {
 func HandleEntryBlock(ctx *web.Context, hashkey string) {
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
-	type entryaddr struct {
-		EntryHash string
-		Timestamp uint32
-	}
-
-	type eblock struct {
-		Header struct {
-			BlockSequenceNumber uint32
-			ChainID             string
-			PrevKeyMR           string
-			Timestamp           uint32
-		}
-		EntryList []entryaddr
-	}
-	e := new(eblock)
+	e := new(EBlock)
 
 	h, err := primitives.HexToHash(hashkey)
 	if err != nil {
@@ -295,7 +260,7 @@ func HandleEntryBlock(ctx *web.Context, hashkey string) {
 		mins[hex.EncodeToString(h)] = i
 	}
 
-	estack := make([]entryaddr, 0)
+	estack := make([]EntryAddr, 0)
 	for _, v := range block.GetBody().GetEBEntries() {
 		if n, exist := mins[v.String()]; exist {
 			// the entry is a minute marker. add time to all of the
@@ -305,9 +270,9 @@ func HandleEntryBlock(ctx *web.Context, hashkey string) {
 				w.Timestamp = t
 				e.EntryList = append(e.EntryList, w)
 			}
-			estack = make([]entryaddr, 0)
+			estack = make([]EntryAddr, 0)
 		} else {
-			l := new(entryaddr)
+			l := new(EntryAddr)
 			l.EntryHash = v.String()
 			estack = append(estack, *l)
 		}
@@ -327,13 +292,7 @@ func HandleEntryBlock(ctx *web.Context, hashkey string) {
 func HandleEntry(ctx *web.Context, hashkey string) {
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
-	type entryStruct struct {
-		ChainID string
-		Content string
-		ExtIDs  []string
-	}
-
-	e := new(entryStruct)
+	e := new(EntryStruct)
 
 	h, err := primitives.HexToHash(hashkey)
 	if err != nil {
@@ -376,11 +335,7 @@ func HandleEntry(ctx *web.Context, hashkey string) {
 func HandleChainHead(ctx *web.Context, hashkey string) {
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
-	type chead struct {
-		ChainHead string
-	}
-
-	c := new(chead)
+	c := new(CHead)
 
 	h, err := primitives.HexToHash(hashkey)
 	if err != nil {
@@ -419,7 +374,6 @@ func HandleEntryCreditBalance(ctx *web.Context) {
 }
 
 func HandleGetFee(ctx *web.Context) {
-
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
 	type x struct{ Fee int64 }
@@ -484,24 +438,19 @@ func HandleFactoidSubmit(ctx *web.Context) {
 }
 
 func HandleFactoidBalance(ctx *web.Context, eckey string) {
-
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
-	type fbal struct {
-		Response string
-		Success  bool
-	}
-	var b fbal
+	var b FactoidBalance
 	adr, err := hex.DecodeString(eckey)
 	if err == nil && len(adr) != constants.HASH_LENGTH {
-		b = fbal{Response: "Invalid Address", Success: false}
+		b = FactoidBalance{Response: "Invalid Address", Success: false}
 	}
 	if err == nil {
 		v := int64(state.GetFactoidState().GetBalance(factoid.NewAddress(adr).Fixed()))
 		str := fmt.Sprintf("%d", v)
-		b = fbal{Response: str, Success: true}
+		b = FactoidBalance{Response: str, Success: true}
 	} else {
-		b = fbal{Response: err.Error(), Success: false}
+		b = FactoidBalance{Response: err.Error(), Success: false}
 	}
 
 	if p, err := json.Marshal(b); err != nil {
