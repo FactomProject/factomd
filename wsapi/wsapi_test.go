@@ -97,7 +97,7 @@ func TestHandleGetRaw(t *testing.T) {
 	dbEntries = append(dbEntries, de)
 	raw := RawData{}
 	raw.Hash1 = aBlock.DatabasePrimaryIndex().String()
-	raw.Hash2 = aBlock.DatabasePrimaryIndex().String()
+	raw.Hash2 = aBlock.DatabaseSecondaryIndex().String()
 	hex, err := aBlock.MarshalBinary()
 	if err != nil {
 		panic(err)
@@ -118,7 +118,7 @@ func TestHandleGetRaw(t *testing.T) {
 	dbEntries = append(dbEntries, de)
 	raw = RawData{}
 	raw.Hash1 = eBlock.DatabasePrimaryIndex().String()
-	raw.Hash2 = eBlock.DatabasePrimaryIndex().String()
+	raw.Hash2 = eBlock.DatabaseSecondaryIndex().String()
 	hex, err = eBlock.MarshalBinary()
 	if err != nil {
 		panic(err)
@@ -139,7 +139,7 @@ func TestHandleGetRaw(t *testing.T) {
 	dbEntries = append(dbEntries, de)
 	raw = RawData{}
 	raw.Hash1 = ecBlock.(interfaces.DatabaseBatchable).DatabasePrimaryIndex().String()
-	raw.Hash2 = ecBlock.(interfaces.DatabaseBatchable).DatabasePrimaryIndex().String()
+	raw.Hash2 = ecBlock.(interfaces.DatabaseBatchable).DatabaseSecondaryIndex().String()
 	hex, err = ecBlock.MarshalBinary()
 	if err != nil {
 		panic(err)
@@ -157,7 +157,7 @@ func TestHandleGetRaw(t *testing.T) {
 	dbEntries = append(dbEntries, de)
 	raw = RawData{}
 	raw.Hash1 = fBlock.(interfaces.DatabaseBatchable).DatabasePrimaryIndex().String()
-	raw.Hash2 = fBlock.(interfaces.DatabaseBatchable).DatabasePrimaryIndex().String()
+	raw.Hash2 = fBlock.(interfaces.DatabaseBatchable).DatabaseSecondaryIndex().String()
 	hex, err = fBlock.MarshalBinary()
 	if err != nil {
 		panic(err)
@@ -169,7 +169,7 @@ func TestHandleGetRaw(t *testing.T) {
 	dBlock.SetDBEntries(dbEntries)
 	raw = RawData{}
 	raw.Hash1 = dBlock.DatabasePrimaryIndex().String()
-	raw.Hash2 = dBlock.DatabasePrimaryIndex().String()
+	raw.Hash2 = dBlock.DatabaseSecondaryIndex().String()
 	hex, err = dBlock.MarshalBinary()
 	if err != nil {
 		panic(err)
