@@ -102,4 +102,6 @@ type IState interface {
 	GetNewHash() IHash // Return a new Hash object
 	CreateDBlock() (b IDirectoryBlock, err error)
 	IgnoreType(int) bool // Debugging
+
+	RecalculateBalances() error
 }

@@ -1,6 +1,7 @@
 package wsapi_test
 
 import (
+	"fmt"
 	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -68,7 +69,7 @@ func TestHandleDirectoryBlockHead(t *testing.T) {
 
 	HandleDirectoryBlockHead(context)
 
-	if strings.Contains(GetBody(context), "2f0fc42094de8172b9a523ba82cef9e517175cac579a70cd473a64a6e277bd6f") == false {
+	if strings.Contains(GetBody(context), "bcb9d5297486b2609d86204a01b04466e33e4f5ed3c369338a512bafe730d1aa") == false {
 		t.Errorf("Context does not contain proper DBlock Head - %v", GetBody(context))
 	}
 }
@@ -197,7 +198,7 @@ func TestHandleGetRaw(t *testing.T) {
 
 func TestHandleDirectoryBlock(t *testing.T) {
 	context := createWebContext()
-	hash := "c1e0245b28d31cc1163509a0be9e6a5b63e9f8233574b4376c30ca0b9d0cf3e8"
+	hash := "95450198260994f250863dc9b25d570f48a61fd7135476f0d391fe78a29250af"
 
 	HandleDirectoryBlock(context, hash)
 
@@ -229,7 +230,7 @@ func TestHandleDirectoryBlock(t *testing.T) {
 		t.Errorf("%v", GetBody(context))
 	}
 
-	if strings.Contains(GetBody(context), "8a6c19ac1f32c6c36f1134aed634550352485bb140739dda6fe587c6cf91e232") == false {
+	if strings.Contains(GetBody(context), "915f2d39e09ab51994dc5246628d2dd46e796d7ae65159c72631592d8d10220d") == false {
 		t.Errorf("%v", GetBody(context))
 	}
 }
@@ -262,7 +263,7 @@ func TestHandleChainHead(t *testing.T) {
 
 	HandleChainHead(context, hash)
 
-	if strings.Contains(GetBody(context), "c1e0245b28d31cc1163509a0be9e6a5b63e9f8233574b4376c30ca0b9d0cf3e8") == false {
+	if strings.Contains(GetBody(context), "95450198260994f250863dc9b25d570f48a61fd7135476f0d391fe78a29250af") == false {
 		t.Errorf("Invalid directory block head: %v", GetBody(context))
 	}
 
@@ -298,7 +299,7 @@ func TestHandleChainHead(t *testing.T) {
 	clearContextResponseWriter(context)
 	HandleChainHead(context, hash)
 
-	if strings.Contains(GetBody(context), "8a6c19ac1f32c6c36f1134aed634550352485bb140739dda6fe587c6cf91e232") == false {
+	if strings.Contains(GetBody(context), "915f2d39e09ab51994dc5246628d2dd46e796d7ae65159c72631592d8d10220d") == false {
 		t.Errorf("Invalid factoid block head: %v", GetBody(context))
 	}
 }
@@ -315,11 +316,15 @@ func TestHandleEntryCreditBalance(t *testing.T) {
 
 func TestHandleFactoidBalance(t *testing.T) {
 	context := createWebContext()
-	eckey := ""
+	eckey := testHelper.NewFactoidRCDAddressString(0)
+
+	fmt.Printf("%v\n", eckey)
 
 	HandleFactoidBalance(context, eckey)
 
-	if strings.Contains(GetBody(context), "") == false {
+	expectedAmount := fmt.Sprintf("%v", uint64(testHelper.BlockCount)*testHelper.DefaultCoinbaseAmount)
+
+	if strings.Contains(GetBody(context), expectedAmount) == false {
 		t.Errorf("%v", GetBody(context))
 	}
 }

@@ -576,3 +576,23 @@ func (s *State) GetDBHeight() uint32 {
 func (s *State) GetNewHash() interfaces.IHash {
 	return new(primitives.Hash)
 }
+
+func (s *State) RecalculateBalances() error {
+	s.FactoidState.ResetBalances()
+
+	blocks, err := s.DB.FetchAllFBlocks()
+	if err != nil {
+		return err
+	}
+	for _, block := range blocks {
+		txs := block.GetTransactions()
+		for _, tx := range txs {
+			err = s.FactoidState.UpdateTransaction(tx)
+			if err != nil {
+				s.FactoidState.ResetBalances()
+				return err
+			}
+		}
+	}
+	return nil
+}

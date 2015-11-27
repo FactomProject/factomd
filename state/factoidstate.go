@@ -114,6 +114,11 @@ func (fs *FactoidState) GetBalance(address [32]byte) int64 {
 	}
 }
 
+func (fs *FactoidState) ResetBalances() {
+	fs.Balances = map[[32]byte]int64{}
+	fs.NumTransactions = 0
+}
+
 // Assumes validation has already been done.
 func (fs *FactoidState) UpdateTransaction(trans interfaces.ITransaction) error {
 	if fs.Balances == nil {

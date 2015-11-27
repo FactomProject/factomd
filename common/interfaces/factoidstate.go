@@ -51,6 +51,8 @@ type IFactoidState interface {
 	// Set the End of Period.  Currently, each block in Factom is broken
 	// into ten, one minute periods.
 	EndOfPeriod(period int)
+
+	ResetBalances()
 }
 
 /*
