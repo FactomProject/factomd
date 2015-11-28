@@ -3,6 +3,7 @@ package wsapi_test
 import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/directoryBlock"
+	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/testHelper"
@@ -237,12 +238,36 @@ func TestHandleDirectoryBlock(t *testing.T) {
 
 func TestHandleEntryBlock(t *testing.T) {
 	context := createWebContext()
-	hash := ""
+	chain, err := primitives.HexToHash("4bf71c177e71504032ab84023d8afc16e302de970e6be110dac20adbf9a19746")
+	if err != nil {
+		t.Error(err)
+	}
+	blocks, err := context.Server.Env["state"].(interfaces.IState).GetDB().FetchAllEBlocksByChain(chain)
+	if err != nil {
+		t.Error(err)
+	}
+	fetched := 0
+	for _, b := range blocks {
+		hash := b.(*entryBlock.EBlock).DatabasePrimaryIndex().String()
+		hash2 := b.(*entryBlock.EBlock).DatabaseSecondaryIndex().String()
 
-	HandleEntryBlock(context, hash)
+		HandleEntryBlock(context, hash)
 
-	if strings.Contains(GetBody(context), "") == false {
-		t.Errorf("%v", GetBody(context))
+		if strings.Contains(GetBody(context), "4bf71c177e71504032ab84023d8afc16e302de970e6be110dac20adbf9a19746") == false {
+			t.Errorf("%v", GetBody(context))
+		}
+
+		clearContextResponseWriter(context)
+		HandleEntryBlock(context, hash2)
+
+		if strings.Contains(GetBody(context), "4bf71c177e71504032ab84023d8afc16e302de970e6be110dac20adbf9a19746") == false {
+			t.Errorf("%v", GetBody(context))
+		}
+
+		fetched++
+	}
+	if fetched != testHelper.BlockCount {
+		t.Errorf("Fetched %v blocks, expected %v", fetched, testHelper.BlockCount)
 	}
 }
 
