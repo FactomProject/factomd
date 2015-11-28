@@ -369,7 +369,28 @@ func HandleChainHead(ctx *web.Context, hashkey string) {
 
 }
 
-func HandleEntryCreditBalance(ctx *web.Context) {
+func HandleEntryCreditBalance(ctx *web.Context, eckey string) {
+	state := ctx.Server.Env["state"].(interfaces.IState)
+
+	var b FactoidBalance
+	adr, err := primitives.HexToHash(eckey)
+	if err == nil {
+		b = FactoidBalance{Response: "Invalid Address", Success: false}
+	}
+	if err == nil {
+		v := int64(state.GetFactoidState().GetECBalance(adr.Fixed()))
+		str := fmt.Sprintf("%d", v)
+		b = FactoidBalance{Response: str, Success: true}
+	} else {
+		b = FactoidBalance{Response: err.Error(), Success: false}
+	}
+
+	if p, err := json.Marshal(b); err != nil {
+		wsLog.Error(err)
+		return
+	} else {
+		ctx.Write(p)
+	}
 
 }
 
@@ -446,7 +467,7 @@ func HandleFactoidBalance(ctx *web.Context, eckey string) {
 		b = FactoidBalance{Response: "Invalid Address", Success: false}
 	}
 	if err == nil {
-		v := int64(state.GetFactoidState().GetBalance(factoid.NewAddress(adr).Fixed()))
+		v := int64(state.GetFactoidState().GetFactoidBalance(factoid.NewAddress(adr).Fixed()))
 		str := fmt.Sprintf("%d", v)
 		b = FactoidBalance{Response: str, Success: true}
 	} else {
@@ -459,7 +480,6 @@ func HandleFactoidBalance(ctx *web.Context, eckey string) {
 	} else {
 		ctx.Write(p)
 	}
-
 }
 
 /*********************************************************
