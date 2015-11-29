@@ -25,7 +25,8 @@ type FactoidState struct {
 	CurrentBlock    interfaces.IFBlock
 	Wallet          interfaces.ISCWallet
 	NumTransactions int
-	Balances        map[[32]byte]int64
+	FctBalances     map[[32]byte]int64
+	ECBalances      map[[32]byte]int64
 }
 
 var _ interfaces.IFactoidState = (*FactoidState)(nil)
@@ -106,26 +107,33 @@ func (fs *FactoidState) AddTransaction(index int, trans interfaces.ITransaction)
 	return nil
 }
 
-func (fs *FactoidState) GetBalance(address [32]byte) int64 {
-	if v, ok := fs.Balances[address]; ok {
-		return v
-	} else {
-		return 0
-	}
+func (fs *FactoidState) GetFctBalance(address [32]byte) int64 {
+	v := fs.FctBalances[address]
+	return v
+}
+
+func (fs *FactoidState) GetECBalance(address [32]byte) int64 {
+	v := fs.ECBalances[address]
+	return v
 }
 
 // Assumes validation has already been done.
 func (fs *FactoidState) UpdateTransaction(trans interfaces.ITransaction) error {
-	if fs.Balances == nil {
-		fs.Balances = map[[32]byte]int64{}
+	if fs.FctBalances == nil {
+		fs.FctBalances = map[[32]byte]int64{}
+		fs.ECBalances  = map[[32]byte]int64{}
 	}
 	for _, input := range trans.GetInputs() {
-		fs.Balances[input.GetAddress().Fixed()] = fs.Balances[input.GetAddress().Fixed()] - int64(input.GetAmount())
+		fs.FctBalances[input.GetAddress().Fixed()] = fs.FctBalances[input.GetAddress().Fixed()] - int64(input.GetAmount())
 	}
 	for _, output := range trans.GetOutputs() {
-		fs.Balances[output.GetAddress().Fixed()] = fs.Balances[output.GetAddress().Fixed()] + int64(output.GetAmount())
+		fs.FctBalances[output.GetAddress().Fixed()] = fs.FctBalances[output.GetAddress().Fixed()] + int64(output.GetAmount())
 	}
-
+	for _, ecoutput := range trans.GetECOutputs() {
+		ecs := int64(ecoutput.GetAmount())/int64(fs.FactoshisPerEC)
+		fs.ECBalances[ecoutput.GetAddress().Fixed()] = fs.ECBalances[ecoutput.GetAddress().Fixed()] + ecs
+	}
+	
 	fs.NumTransactions++
 
 	return nil
@@ -181,7 +189,7 @@ func (fs *FactoidState) Validate(index int, trans interfaces.ITransaction) error
 		if err != nil {
 			return err
 		}
-		if int64(bal) > fs.Balances[input.GetAddress().Fixed()] {
+		if int64(bal) > fs.FctBalances[input.GetAddress().Fixed()] {
 			return fmt.Errorf("Not enough funds in input addresses for the transaction")
 		}
 		sums[input.GetAddress().Fixed()] = bal

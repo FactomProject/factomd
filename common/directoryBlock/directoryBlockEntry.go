@@ -12,6 +12,8 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
+var _ = fmt.Print
+
 type DBEntry struct {
 	ChainID interfaces.IHash
 	KeyMR   interfaces.IHash // Different MR in EBlockHeader
@@ -60,11 +62,11 @@ func (e *DBEntry) MarshalBinary() (data []byte, err error) {
 }
 
 func (e *DBEntry) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	defer func() {
+	/*defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
-	}()
+	}()*/
 	newData = data
 	e.ChainID = new(primitives.Hash)
 	newData, err = e.ChainID.UnmarshalBinaryData(newData)
@@ -104,6 +106,8 @@ func (e *DBEntry) JSONBuffer(b *bytes.Buffer) error {
 }
 
 func (e *DBEntry) String() string {
-	str, _ := e.JSONString()
-	return str
+	var out bytes.Buffer
+	out.WriteString("ChainID: "+e.GetChainID().String()+"\n")
+	out.WriteString("KeyMR:   "+e.GetKeyMR().String()+"\n")
+	return (string)(out.Bytes())
 }

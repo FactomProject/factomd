@@ -91,11 +91,11 @@ func (h *Hash) MarshalBinary() ([]byte, error) {
 }
 
 func (h *Hash) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
-	defer func() {
+	/*defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
-	}()
+	}()*/
 	copy(h[:], p)
 	newData = p[constants.HASH_LENGTH:]
 	return

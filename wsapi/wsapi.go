@@ -414,8 +414,32 @@ func HandleChainHead(ctx *web.Context, hashkey string) {
 
 }
 
-func HandleEntryCreditBalance(ctx *web.Context) {
-
+func HandleEntryCreditBalance(ctx *web.Context, eckey string) {
+	state := ctx.Server.Env["state"].(interfaces.IState)
+	
+	type fbal struct {
+		Response string
+		Success  bool
+	}
+	var b fbal
+	adr, err := hex.DecodeString(eckey)
+	if err == nil && len(adr) != constants.HASH_LENGTH {
+		b = fbal{Response: "Invalid Address", Success: false}
+	}
+	if err == nil {
+		v := int64(state.GetFactoidState().GetECBalance(factoid.NewAddress(adr).Fixed()))
+		str := fmt.Sprintf("%d", v)
+		b = fbal{Response: str, Success: true}
+	} else {
+		b = fbal{Response: err.Error(), Success: false}
+	}
+	
+	if p, err := json.Marshal(b); err != nil {
+		wsLog.Error(err)
+		return
+	} else {
+		ctx.Write(p)
+	}
 }
 
 func HandleGetFee(ctx *web.Context) {
@@ -497,7 +521,7 @@ func HandleFactoidBalance(ctx *web.Context, eckey string) {
 		b = fbal{Response: "Invalid Address", Success: false}
 	}
 	if err == nil {
-		v := int64(state.GetFactoidState().GetBalance(factoid.NewAddress(adr).Fixed()))
+		v := int64(state.GetFactoidState().GetFctBalance(factoid.NewAddress(adr).Fixed()))
 		str := fmt.Sprintf("%d", v)
 		b = fbal{Response: str, Success: true}
 	} else {

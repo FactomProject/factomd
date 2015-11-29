@@ -13,6 +13,8 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
+var _ = fmt.Print
+
 type DBlockHeader struct {
 	Version   byte
 	NetworkID uint32
@@ -107,8 +109,17 @@ func (e *DBlockHeader) JSONBuffer(b *bytes.Buffer) error {
 }
 
 func (e *DBlockHeader) String() string {
-	str, _ := e.JSONString()
-	return str
+	var out bytes.Buffer
+	out.WriteString(fmt.Sprintf("  Version:         %v\n",e.Version))
+	out.WriteString(fmt.Sprintf("  NetworkID:       %d\n",e.NetworkID))
+	out.WriteString(fmt.Sprintf("  BodyMR:          %s\n",e.BodyMR.String()))
+	out.WriteString(fmt.Sprintf("  PrevKeyMR:       %s\n",e.PrevKeyMR.String()))
+	out.WriteString(fmt.Sprintf("  PrevLedgerKeyMR: %s\n",e.PrevLedgerKeyMR.String()))
+	out.WriteString(fmt.Sprintf("  Timestamp:       %d\n",e.Timestamp))
+	out.WriteString(fmt.Sprintf("  DBHeight:        %d\n",e.DBHeight))
+	out.WriteString(fmt.Sprintf("  BlockCount:      %d\n",e.BlockCount))
+	
+	return (string)(out.Bytes())
 }
 
 func (b *DBlockHeader) MarshalBinary() ([]byte, error) {
@@ -149,11 +160,11 @@ func (b *DBlockHeader) MarshalBinary() ([]byte, error) {
 }
 
 func (b *DBlockHeader) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	defer func() {
+	/*defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
-	}()
+	}()*/
 	newData = data
 	b.Version, newData = newData[0], newData[1:]
 

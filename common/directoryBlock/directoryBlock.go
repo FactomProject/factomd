@@ -6,12 +6,13 @@ package directoryBlock
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 )
+
+var _ = fmt.Print
 
 type DirectoryBlock struct {
 	//Marshalized
@@ -19,7 +20,6 @@ type DirectoryBlock struct {
 	DBEntries []interfaces.IDBEntry
 
 	//Not Marshalized
-	IsSealed bool
 	DBHash   interfaces.IHash
 	KeyMR    interfaces.IHash
 }
@@ -88,8 +88,28 @@ func (e *DirectoryBlock) JSONBuffer(b *bytes.Buffer) error {
 }
 
 func (e *DirectoryBlock) String() string {
-	pretty, _ := json.MarshalIndent(e, "", "  ")
-	return string(pretty)
+	var out bytes.Buffer
+	//Marshalized
+
+	kmr,err := e.BuildKeyMerkleRoot()
+	if err != nil{
+		out.WriteString(fmt.Sprintf("%20s %v\n","KeyMR:",err))
+	}else{
+		out.WriteString(fmt.Sprintf("%20s %v\n","KeyMR:",kmr.String()))
+	}
+	kmr,err = e.BuildBodyMR()
+	if err != nil{
+		out.WriteString(fmt.Sprintf("%20s %v\n","BodyMR:",err))
+	}else{
+		out.WriteString(fmt.Sprintf("%20s %v\n","BodyMR:",kmr.String()))
+	}
+	out.WriteString(e.Header.String())
+	out.WriteString("Entries: \n")
+	for _,entry := range e.DBEntries {
+		out.WriteString(entry.String())
+	}
+		
+	return (string)(out.Bytes())
 }
 
 func (b *DirectoryBlock) MarshalBinary() (data []byte, err error) {
@@ -100,7 +120,7 @@ func (b *DirectoryBlock) MarshalBinary() (data []byte, err error) {
 
 	data, err = b.GetHeader().MarshalBinary()
 	if err != nil {
-		return
+		return 
 	}
 	buf.Write(data)
 
@@ -145,11 +165,11 @@ func (b *DirectoryBlock) BuildKeyMerkleRoot() (keyMR interfaces.IHash, err error
 }
 
 func (b *DirectoryBlock) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	defer func() {
+	/*defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
-	}()
+	}()*/
 
 	newData = data
 

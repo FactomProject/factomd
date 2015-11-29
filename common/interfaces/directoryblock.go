@@ -22,6 +22,7 @@ type IDirectoryBlock interface {
 }
 
 type IDirectoryBlockHeader interface {
+	Printable
 	BinaryMarshallable
 
 	GetVersion() byte
@@ -40,6 +41,7 @@ type IDirectoryBlockHeader interface {
 }
 
 type IDBEntry interface {
+	Printable
 	BinaryMarshallable
 	GetChainID() IHash
 	SetChainID(IHash)
