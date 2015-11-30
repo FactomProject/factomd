@@ -13,7 +13,7 @@ import (
 
 func TestBalances(t *testing.T) {
 	state := new(FactoidState)
-
+	state.SetFactoshisPerEC(1)
 	add1, err := primitives.HexToHash("0000000000000000000000000000000000000000000000000000000000000001")
 	if err != nil {
 		t.Error(err)
@@ -84,7 +84,7 @@ func TestBalances(t *testing.T) {
 
 	tx = new(factoid.Transaction)
 	tx.AddInput(add1, 1000)
-	tx.AddECOutput(add3, 1000)
+	tx.AddECOutput(add3,1000)
 
 	err = state.UpdateTransaction(tx)
 	if err != nil {
