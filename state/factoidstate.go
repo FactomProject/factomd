@@ -20,13 +20,12 @@ import (
 var FACTOID_CHAINID_HASH = primitives.NewHash(constants.FACTOID_CHAINID)
 
 type FactoidState struct {
-	State           interfaces.IState
-	FactoshisPerEC  uint64
-	CurrentBlock    interfaces.IFBlock
-	Wallet          interfaces.ISCWallet
-	NumTransactions int
-	FactoidBalances map[[32]byte]int64
-	ECBalances      map[[32]byte]int64
+	State interfaces.IState
+
+	CurrentBlock interfaces.IFBlock
+	Wallet       interfaces.ISCWallet
+
+	ValidationService chan ValidationMsg
 }
 
 var _ interfaces.IFactoidState = (*FactoidState)(nil)
@@ -108,54 +107,55 @@ func (fs *FactoidState) AddTransaction(index int, trans interfaces.ITransaction)
 }
 
 func (fs *FactoidState) GetFactoidBalance(address [32]byte) int64 {
-	if fs.FactoidBalances == nil {
-		fs.FactoidBalances = map[[32]byte]int64{}
+	if fs.ValidationService == nil {
+		fs.ValidationService = NewValidationService()
 	}
-	if v, ok := fs.FactoidBalances[address]; ok {
-		return v
-	} else {
-		return 0
-	}
+	var vm ValidationMsg
+	vm.MessageType = MessageTypeGetFactoidBalance
+	vm.Address = address
+	c := make(chan ValidationResponseMsg)
+	vm.ReturnChannel = c
+	fs.ValidationService <- vm
+	resp := <-c
+	return resp.Balance
 }
 
 func (fs *FactoidState) GetECBalance(address [32]byte) int64 {
-	if fs.ECBalances == nil {
-		fs.ECBalances = map[[32]byte]int64{}
+	if fs.ValidationService == nil {
+		fs.ValidationService = NewValidationService()
 	}
-	if v, ok := fs.ECBalances[address]; ok {
-		return v
-	} else {
-		return 0
-	}
+	var vm ValidationMsg
+	vm.MessageType = MessageTypeGetECBalance
+	vm.Address = address
+	c := make(chan ValidationResponseMsg)
+	vm.ReturnChannel = c
+	fs.ValidationService <- vm
+	resp := <-c
+	return resp.Balance
 }
 
 func (fs *FactoidState) ResetBalances() {
-	fs.FactoidBalances = map[[32]byte]int64{}
-	fs.ECBalances = map[[32]byte]int64{}
-	fs.NumTransactions = 0
+	if fs.ValidationService == nil {
+		fs.ValidationService = NewValidationService()
+	}
+	var vm ValidationMsg
+	vm.MessageType = MessageTypeResetBalances
+	fs.ValidationService <- vm
 }
 
 // Assumes validation has already been done.
 func (fs *FactoidState) UpdateTransaction(trans interfaces.ITransaction) error {
-	if fs.FactoidBalances == nil {
-		fs.FactoidBalances = map[[32]byte]int64{}
-		fs.ECBalances = map[[32]byte]int64{}
-
+	if fs.ValidationService == nil {
+		fs.ValidationService = NewValidationService()
 	}
-	for _, input := range trans.GetInputs() {
-		fs.FactoidBalances[input.GetAddress().Fixed()] = fs.FactoidBalances[input.GetAddress().Fixed()] - int64(input.GetAmount())
-	}
-	for _, output := range trans.GetOutputs() {
-		fs.FactoidBalances[output.GetAddress().Fixed()] = fs.FactoidBalances[output.GetAddress().Fixed()] + int64(output.GetAmount())
-	}
-	for _, ecOut := range trans.GetECOutputs() {
-		ecbal := int64(ecOut.GetAmount())/int64(fs.FactoshisPerEC)
-		fs.ECBalances[ecOut.GetAddress().Fixed()] = fs.ECBalances[ecOut.GetAddress().Fixed()] + ecbal
-	}
-
-	fs.NumTransactions++
-
-	return nil
+	var vm ValidationMsg
+	vm.MessageType = MessageTypeUpdateTransaction
+	vm.Transaction = trans
+	c := make(chan ValidationResponseMsg)
+	vm.ReturnChannel = c
+	fs.ValidationService <- vm
+	resp := <-c
+	return resp.Error
 }
 
 // End of Block means packing the current block away, and setting
@@ -208,7 +208,7 @@ func (fs *FactoidState) Validate(index int, trans interfaces.ITransaction) error
 		if err != nil {
 			return err
 		}
-		if int64(bal) > fs.FactoidBalances[input.GetAddress().Fixed()] {
+		if int64(bal) > fs.GetFactoidBalance(input.GetAddress().Fixed()) {
 			return fmt.Errorf("Not enough funds in input addresses for the transaction")
 		}
 		sums[input.GetAddress().Fixed()] = bal
@@ -217,9 +217,24 @@ func (fs *FactoidState) Validate(index int, trans interfaces.ITransaction) error
 }
 
 func (fs *FactoidState) GetFactoshisPerEC() uint64 {
-	return fs.FactoshisPerEC
+	if fs.ValidationService == nil {
+		fs.ValidationService = NewValidationService()
+	}
+	var vm ValidationMsg
+	vm.MessageType = MessageTypeGetFactoshisPerEC
+	c := make(chan ValidationResponseMsg)
+	vm.ReturnChannel = c
+	fs.ValidationService <- vm
+	resp := <-c
+	return resp.FactoshisPerEC
 }
 
 func (fs *FactoidState) SetFactoshisPerEC(factoshisPerEC uint64) {
-	fs.FactoshisPerEC = factoshisPerEC
+	if fs.ValidationService == nil {
+		fs.ValidationService = NewValidationService()
+	}
+	var vm ValidationMsg
+	vm.FactoshisPerEC = factoshisPerEC
+	vm.MessageType = MessageTypeSetFactoshisPerEC
+	fs.ValidationService <- vm
 }
