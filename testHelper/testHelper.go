@@ -8,6 +8,7 @@ import (
 	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
+	"github.com/FactomProject/factomd/common/factoid"
 	factoidBlock "github.com/FactomProject/factomd/common/factoid/block"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -18,12 +19,16 @@ import (
 )
 
 var BlockCount int = 10
+var DefaultCoinbaseAmount uint64 = 100000000
 
 func CreateAndPopulateTestState() *state.State {
 	s := new(state.State)
 	s.DB = CreateAndPopulateTestDatabaseOverlay()
 	s.Init("")
-
+	err := s.RecalculateBalances()
+	if err != nil {
+		panic(err)
+	}
 	return s
 }
 
@@ -261,5 +266,16 @@ func CreateTestEntryCreditBlock(prev interfaces.IEntryCreditBlock) interfaces.IE
 }
 
 func CreateTestFactoidBlock(prev interfaces.IFBlock) interfaces.IFBlock {
-	return factoidBlock.NewFBlockFromPreviousBlock(1, prev)
+	return CreateTestFactoidBlockWithCoinbase(prev, NewFactoidAddress(0), DefaultCoinbaseAmount)
+}
+
+func CreateTestFactoidBlockWithCoinbase(prev interfaces.IFBlock, address interfaces.IAddress, amount uint64) interfaces.IFBlock {
+	block := factoidBlock.NewFBlockFromPreviousBlock(1, prev)
+	tx := new(factoid.Transaction)
+	tx.AddOutput(address, amount)
+	err := block.AddCoinbase(tx)
+	if err != nil {
+		panic(err)
+	}
+	return block
 }

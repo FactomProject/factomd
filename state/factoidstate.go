@@ -25,7 +25,7 @@ type FactoidState struct {
 	CurrentBlock    interfaces.IFBlock
 	Wallet          interfaces.ISCWallet
 	NumTransactions int
-	FctBalances     map[[32]byte]int64
+	FactoidBalances map[[32]byte]int64
 	ECBalances      map[[32]byte]int64
 }
 
@@ -107,33 +107,52 @@ func (fs *FactoidState) AddTransaction(index int, trans interfaces.ITransaction)
 	return nil
 }
 
-func (fs *FactoidState) GetFctBalance(address [32]byte) int64 {
-	v := fs.FctBalances[address]
-	return v
+func (fs *FactoidState) GetFactoidBalance(address [32]byte) int64 {
+	if fs.FactoidBalances == nil {
+		fs.FactoidBalances = map[[32]byte]int64{}
+	}
+	if v, ok := fs.FactoidBalances[address]; ok {
+		return v
+	} else {
+		return 0
+	}
 }
 
 func (fs *FactoidState) GetECBalance(address [32]byte) int64 {
-	v := fs.ECBalances[address]
-	return v
+	if fs.ECBalances == nil {
+		fs.ECBalances = map[[32]byte]int64{}
+	}
+	if v, ok := fs.ECBalances[address]; ok {
+		return v
+	} else {
+		return 0
+	}
+}
+
+func (fs *FactoidState) ResetBalances() {
+	fs.FactoidBalances = map[[32]byte]int64{}
+	fs.ECBalances = map[[32]byte]int64{}
+	fs.NumTransactions = 0
 }
 
 // Assumes validation has already been done.
 func (fs *FactoidState) UpdateTransaction(trans interfaces.ITransaction) error {
-	if fs.FctBalances == nil {
-		fs.FctBalances = map[[32]byte]int64{}
-		fs.ECBalances  = map[[32]byte]int64{}
+	if fs.FactoidBalances == nil {
+		fs.FactoidBalances = map[[32]byte]int64{}
+		fs.ECBalances = map[[32]byte]int64{}
+
 	}
 	for _, input := range trans.GetInputs() {
-		fs.FctBalances[input.GetAddress().Fixed()] = fs.FctBalances[input.GetAddress().Fixed()] - int64(input.GetAmount())
+		fs.FactoidBalances[input.GetAddress().Fixed()] = fs.FactoidBalances[input.GetAddress().Fixed()] - int64(input.GetAmount())
 	}
 	for _, output := range trans.GetOutputs() {
-		fs.FctBalances[output.GetAddress().Fixed()] = fs.FctBalances[output.GetAddress().Fixed()] + int64(output.GetAmount())
+		fs.FactoidBalances[output.GetAddress().Fixed()] = fs.FactoidBalances[output.GetAddress().Fixed()] + int64(output.GetAmount())
 	}
-	for _, ecoutput := range trans.GetECOutputs() {
-		ecs := int64(ecoutput.GetAmount())/int64(fs.FactoshisPerEC)
-		fs.ECBalances[ecoutput.GetAddress().Fixed()] = fs.ECBalances[ecoutput.GetAddress().Fixed()] + ecs
+	for _, ecOut := range trans.GetECOutputs() {
+		ecbal := int64(ecOut.GetAmount())/int64(fs.FactoshisPerEC)
+		fs.ECBalances[ecOut.GetAddress().Fixed()] = fs.ECBalances[ecOut.GetAddress().Fixed()] + ecbal
 	}
-	
+
 	fs.NumTransactions++
 
 	return nil
@@ -189,7 +208,7 @@ func (fs *FactoidState) Validate(index int, trans interfaces.ITransaction) error
 		if err != nil {
 			return err
 		}
-		if int64(bal) > fs.FctBalances[input.GetAddress().Fixed()] {
+		if int64(bal) > fs.FactoidBalances[input.GetAddress().Fixed()] {
 			return fmt.Errorf("Not enough funds in input addresses for the transaction")
 		}
 		sums[input.GetAddress().Fixed()] = bal

@@ -63,4 +63,7 @@ type ITransaction interface {
 
 	// Calculate the fee for a transaction, given the specified exchange rate.
 	CalculateFee(factoshisPerEC uint64) (uint64, error)
+	
+	// Wallet Support (Not sure why we need some of these)
+	SetBlockHeight(int)
 }

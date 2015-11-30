@@ -30,10 +30,21 @@ type Transaction struct {
 	SigBlocks []interfaces.ISignatureBlock
 
 	MarshalSig interfaces.IHash // cache to avoid unnecessary marshal/unmarshals
+	
+	// Not marshalled
+	BlockHeight int
 }
 
 var _ interfaces.ITransaction = (*Transaction)(nil)
 var _ interfaces.Printable = (*Transaction)(nil)
+
+func (t *Transaction) SetBlockHeight(height int) {
+	t.BlockHeight = height
+}
+
+func (t *Transaction) GetBlockHeight() (height int) {
+	return t.BlockHeight 
+}
 
 // Clears caches if they are no long valid.
 func (t *Transaction) clearCaches() {

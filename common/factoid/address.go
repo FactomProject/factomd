@@ -28,15 +28,16 @@ type Address struct {
 
 var _ interfaces.IAddress = (*Address)(nil)
 
-func (b Address) String() string {
+/*
+func (b *Address) String() string {
 	txt, err := b.CustomMarshalText()
 	if err != nil {
 		return "<error>"
 	}
 	return string(txt)
-}
+}*/
 
-func (a Address) CustomMarshalText() (text []byte, err error) {
+func (a *Address) CustomMarshalText() (text []byte, err error) {
 	var out bytes.Buffer
 	addr := hex.EncodeToString(a.Bytes())
 	out.WriteString("addr  ")

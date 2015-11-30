@@ -23,9 +23,20 @@ import (
 type TransAddress struct {
 	Amount  uint64
 	Address interfaces.IAddress
+	// Not marshalled
+	UserAddress string
 }
 
 var _ interfaces.ITransAddress = (*TransAddress)(nil)
+
+func (t *TransAddress) SetUserAddress(v string) {
+	t.UserAddress = v
+}
+
+func (t *TransAddress) GetUserAddress() string {
+	return t.UserAddress 
+}
+
 
 // Not useful on TransAddress objects
 func (t *TransAddress) GetHash() interfaces.IHash {

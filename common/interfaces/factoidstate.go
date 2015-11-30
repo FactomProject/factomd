@@ -21,12 +21,10 @@ type IFactoidState interface {
 	// Get the current transaction block
 	GetCurrentBlock() IFBlock
 
-	// Get the current balance for a Factoid Address
-	GetFctBalance(address [32]byte) int64
-
-	// Get the current balance for a Entry Credit Address
+	// Get the current balance for a transaction
+	GetFactoidBalance(address [32]byte) int64
 	GetECBalance(address [32]byte) int64
-	
+
 	// Add a transaction   Useful for catching up with the network.
 	AddTransactionBlock(IFBlock) error
 
@@ -54,6 +52,8 @@ type IFactoidState interface {
 	// Set the End of Period.  Currently, each block in Factom is broken
 	// into ten, one minute periods.
 	EndOfPeriod(period int)
+
+	ResetBalances()
 }
 
 /*

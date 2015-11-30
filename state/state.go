@@ -344,10 +344,6 @@ func (s *State) loadDatabase() {
 		//TODO Also need to set Admin block and EC Credit block
 
 		fblk := block.GetGenesisFBlock()
-		err = s.DB.SaveFactoidBlockHead(fblk)
-		if err != nil {
-			panic("Failed to initialize Factoids: " + err.Error())
-		}
 
 		dblk.GetDBEntries()[2].SetKeyMR(fblk.GetKeyMR())
 
@@ -364,6 +360,9 @@ func (s *State) loadDatabase() {
 		if dblk == nil {
 			panic("dblk should never be nil")
 		}
+		s.ProcessEndOfBlock()
+		dblk = s.GetCurrentDirectoryBlock()
+		
 	} else {
 		dbPrev, err := s.DB.FetchDBlockByKeyMR(dblk.GetHeader().GetPrevKeyMR())
 		if err != nil {
@@ -575,4 +574,24 @@ func (s *State) GetDBHeight() uint32 {
 
 func (s *State) GetNewHash() interfaces.IHash {
 	return new(primitives.Hash)
+}
+
+func (s *State) RecalculateBalances() error {
+	s.FactoidState.ResetBalances()
+
+	blocks, err := s.DB.FetchAllFBlocks()
+	if err != nil {
+		return err
+	}
+	for _, block := range blocks {
+		txs := block.GetTransactions()
+		for _, tx := range txs {
+			err = s.FactoidState.UpdateTransaction(tx)
+			if err != nil {
+				s.FactoidState.ResetBalances()
+				return err
+			}
+		}
+	}
+	return nil
 }
