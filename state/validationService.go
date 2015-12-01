@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 )
 
@@ -18,6 +19,7 @@ const (
 	MessageTypeGetFactoshisPerEC
 	MessageTypeSetFactoshisPerEC
 	MessageTypeResetBalances
+	MessageTypeValidate
 )
 
 type ValidationMsg struct {
@@ -108,6 +110,7 @@ func ValidationServiceLoop(input chan ValidationMsg) {
 				msg.ReturnChannel <- resp
 			}
 			break
+
 		case MessageTypeSetFactoshisPerEC:
 			vs.FactoshisPerEC = msg.FactoshisPerEC
 			if msg.ReturnChannel != nil {
@@ -115,6 +118,32 @@ func ValidationServiceLoop(input chan ValidationMsg) {
 				msg.ReturnChannel <- resp
 			}
 			break
+
+		case MessageTypeValidate:
+			var resp ValidationResponseMsg
+			var sums = make(map[[32]byte]uint64, 10) // Look at the sum of an address's inputs
+			trans := msg.Transaction
+			for _, input := range trans.GetInputs() { //    to a transaction.
+				bal, err := factoid.ValidateAmounts(sums[input.GetAddress().Fixed()], input.GetAmount())
+				if err != nil {
+					if msg.ReturnChannel != nil {
+						resp.Error = err
+						msg.ReturnChannel <- resp
+					}
+					break
+				}
+				if int64(bal) > vs.FactoidBalances[input.GetAddress().Fixed()] {
+					if msg.ReturnChannel != nil {
+						resp.Error = fmt.Errorf("Not enough funds in input addresses for the transaction")
+						msg.ReturnChannel <- resp
+					}
+					break
+				}
+				sums[input.GetAddress().Fixed()] = bal
+			}
+			msg.ReturnChannel <- resp
+			break
+
 		default:
 			if msg.ReturnChannel != nil {
 				var resp ValidationResponseMsg

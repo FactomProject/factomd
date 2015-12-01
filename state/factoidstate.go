@@ -10,7 +10,6 @@ package state
 import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/factoid/block"
 	"github.com/FactomProject/factomd/common/factoid/block/coinbase"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -202,17 +201,20 @@ func (fs *FactoidState) Validate(index int, trans interfaces.ITransaction) error
 		return err
 	}
 
-	var sums = make(map[[32]byte]uint64, 10)  // Look at the sum of an address's inputs
-	for _, input := range trans.GetInputs() { //    to a transaction.
-		bal, err := factoid.ValidateAmounts(sums[input.GetAddress().Fixed()], input.GetAmount())
-		if err != nil {
-			return err
-		}
-		if int64(bal) > fs.GetFactoidBalance(input.GetAddress().Fixed()) {
-			return fmt.Errorf("Not enough funds in input addresses for the transaction")
-		}
-		sums[input.GetAddress().Fixed()] = bal
+	if fs.ValidationService == nil {
+		fs.ValidationService = NewValidationService()
 	}
+	var vm ValidationMsg
+	vm.MessageType = MessageTypeGetFactoshisPerEC
+	vm.Transaction = trans
+	c := make(chan ValidationResponseMsg)
+	vm.ReturnChannel = c
+	fs.ValidationService <- vm
+	resp := <-c
+	if resp.Error != nil {
+		return resp.Error
+	}
+
 	return nil
 }
 
