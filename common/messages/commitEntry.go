@@ -114,27 +114,45 @@ func (m *CommitEntryMsg) Signature() []byte {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *CommitEntryMsg) Validate(interfaces.IState) int {
-	return 0
+	//TODO: implement properly, check EC balance
+	return 1
 }
 
 // Returns true if this is a message for this server to execute as
 // a leader.
 func (m *CommitEntryMsg) Leader(state interfaces.IState) bool {
-	switch state.GetNetworkNumber() {
-	case 0: // Main Network
-		panic("Not implemented yet")
-	case 1: // Test Network
-		panic("Not implemented yet")
-	case 2: // Local Network
-		panic("Not implemented yet")
-	default:
-		panic("Not implemented yet")
-	}
+	//TODO: implement properly
+	return state.LeaderFor(nil)
+	/*
+		switch state.GetNetworkNumber() {
+		case 0: // Main Network
+			panic("Not implemented yet")
+		case 1: // Test Network
+			panic("Not implemented yet")
+		case 2: // Local Network
+			panic("Not implemented yet")
+		default:
+			panic("Not implemented yet")
+		}*/
 
 }
 
 // Execute the leader functions of the given message
 func (m *CommitEntryMsg) LeaderExecute(state interfaces.IState) error {
+	/*if err := state.GetFactoidState().Validate(1, m.Transaction); err != nil {
+		return err
+	}*/
+	b, err := m.CommitEntry.MarshalBinary()
+	if err != nil {
+		return err
+	}
+	msg, err := NewAck(state, b)
+	if err != nil {
+		return err
+	}
+	state.NetworkOutMsgQueue() <- msg
+	state.FollowerInMsgQueue() <- m   // Send factoid trans to follower
+	state.FollowerInMsgQueue() <- msg // Send the Ack to follower
 	return nil
 }
 
@@ -143,7 +161,21 @@ func (m *CommitEntryMsg) Follower(interfaces.IState) bool {
 	return true
 }
 
-func (m *CommitEntryMsg) FollowerExecute(interfaces.IState) error {
+func (m *CommitEntryMsg) FollowerExecute(state interfaces.IState) error {
+	acks := state.GetAcks()
+	ack, ok := acks[m.GetHash().Fixed()].(*Ack)
+	if !ok || ack == nil {
+		state.GetHolding()[m.GetHash().Fixed()] = m
+	} else {
+		processlist := state.GetProcessList()[ack.ServerIndex]
+		for len(processlist) < ack.Height+1 {
+			processlist = append(processlist, nil)
+		}
+		processlist[ack.Height] = m
+		state.GetProcessList()[ack.ServerIndex] = processlist
+		delete(acks, m.GetHash().Fixed())
+	}
+
 	return nil
 }
 
