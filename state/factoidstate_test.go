@@ -5,7 +5,9 @@
 package state_test
 
 import (
+	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid"
+	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	. "github.com/FactomProject/factomd/state"
 	"testing"
@@ -84,7 +86,7 @@ func TestBalances(t *testing.T) {
 
 	tx = new(factoid.Transaction)
 	tx.AddInput(add1, 1000)
-	tx.AddECOutput(add3,1000)
+	tx.AddECOutput(add3, 1000)
 
 	err = state.UpdateTransaction(tx)
 	if err != nil {
@@ -129,6 +131,82 @@ func TestBalances(t *testing.T) {
 	}
 	if state.GetECBalance(add3.Fixed()) != 0 {
 		t.Errorf("Invalid address balance - %v", state.GetECBalance(add3.Fixed()))
+	}
+
+}
+
+func TestUpdateECTransaction(t *testing.T) {
+	state := new(FactoidState)
+	state.SetFactoshisPerEC(1)
+	add1, err := primitives.HexToHash("0000000000000000000000000000000000000000000000000000000000000001")
+	if err != nil {
+		t.Error(err)
+	}
+	add1bs := primitives.StringToByteSlice32("0000000000000000000000000000000000000000000000000000000000000001")
+
+	if state.GetECBalance(add1.Fixed()) != 0 {
+		t.Errorf("Invalid address balance - %v", state.GetECBalance(add1.Fixed()))
+	}
+
+	var tx interfaces.IECBlockEntry
+	tx = new(entryCreditBlock.ServerIndexNumber)
+
+	err = state.UpdateECTransaction(tx)
+	if err != nil {
+		t.Error(err)
+	}
+	if state.GetECBalance(add1.Fixed()) != 0 {
+		t.Errorf("Invalid address balance - %v", state.GetECBalance(add1.Fixed()))
+	}
+
+	tx = new(entryCreditBlock.MinuteNumber)
+
+	err = state.UpdateECTransaction(tx)
+	if err != nil {
+		t.Error(err)
+	}
+	if state.GetECBalance(add1.Fixed()) != 0 {
+		t.Errorf("Invalid address balance - %v", state.GetECBalance(add1.Fixed()))
+	}
+
+	//Proper processing
+	cc := new(entryCreditBlock.CommitChain)
+	cc.ECPubKey = add1bs
+	cc.Credits = 100
+	tx = cc
+
+	err = state.UpdateECTransaction(tx)
+	if err != nil {
+		t.Error(err)
+	}
+	if state.GetECBalance(add1.Fixed()) != -100 {
+		t.Errorf("Invalid address balance - %v", state.GetECBalance(add1.Fixed()))
+	}
+
+	ib := new(entryCreditBlock.IncreaseBalance)
+	ib.ECPubKey = add1bs
+	ib.NumEC = 100
+	tx = ib
+
+	err = state.UpdateECTransaction(tx)
+	if err != nil {
+		t.Error(err)
+	}
+	if state.GetECBalance(add1.Fixed()) != 0 {
+		t.Errorf("Invalid address balance - %v", state.GetECBalance(add1.Fixed()))
+	}
+
+	ce := new(entryCreditBlock.CommitEntry)
+	ce.ECPubKey = add1bs
+	ce.Credits = 100
+	tx = ce
+
+	err = state.UpdateECTransaction(tx)
+	if err != nil {
+		t.Error(err)
+	}
+	if state.GetECBalance(add1.Fixed()) != -100 {
+		t.Errorf("Invalid address balance - %v", state.GetECBalance(add1.Fixed()))
 	}
 
 }

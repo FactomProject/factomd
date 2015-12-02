@@ -10,6 +10,7 @@ package state
 import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid/block"
 	"github.com/FactomProject/factomd/common/factoid/block/coinbase"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -140,6 +141,45 @@ func (fs *FactoidState) ResetBalances() {
 	var vm ValidationMsg
 	vm.MessageType = MessageTypeResetBalances
 	fs.ValidationService <- vm
+}
+
+func (fs *FactoidState) UpdateECTransaction(trans interfaces.IECBlockEntry) error {
+	if fs.ValidationService == nil {
+		fs.ValidationService = NewValidationService()
+	}
+	var vm ValidationMsg
+	vm.MessageType = MessageTypeUpdateTransaction
+	vm.ECTransaction = trans
+	c := make(chan ValidationResponseMsg)
+	vm.ReturnChannel = c
+
+	switch trans.ECID() {
+	case entryCreditBlock.ECIDServerIndexNumber:
+		return nil
+
+	case entryCreditBlock.ECIDMinuteNumber:
+		return nil
+
+	case entryCreditBlock.ECIDChainCommit:
+		fs.ValidationService <- vm
+		resp := <-c
+		return resp.Error
+
+	case entryCreditBlock.ECIDEntryCommit:
+		fs.ValidationService <- vm
+		resp := <-c
+		return resp.Error
+
+	case entryCreditBlock.ECIDBalanceIncrease:
+		fs.ValidationService <- vm
+		resp := <-c
+		return resp.Error
+
+	default:
+		return fmt.Errorf("Unknown EC Transaction")
+	}
+
+	return nil
 }
 
 // Assumes validation has already been done.

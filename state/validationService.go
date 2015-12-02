@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 )
@@ -26,6 +27,7 @@ type ValidationMsg struct {
 	MessageType    int
 	Address        [32]byte
 	Transaction    interfaces.ITransaction
+	ECTransaction  interfaces.IECBlockEntry
 	FactoshisPerEC uint64
 
 	ReturnChannel chan ValidationResponseMsg
@@ -71,8 +73,8 @@ func ValidationServiceLoop(input chan ValidationMsg) {
 			break
 
 		case MessageTypeUpdateTransaction:
-			trans := msg.Transaction
-			if trans == nil {
+
+			if msg.Transaction == nil && msg.ECTransaction == nil {
 				if msg.ReturnChannel != nil {
 					var resp ValidationResponseMsg
 					resp.Error = fmt.Errorf("No transaction provided")
@@ -80,21 +82,72 @@ func ValidationServiceLoop(input chan ValidationMsg) {
 				}
 				break
 			}
-			for _, input := range trans.GetInputs() {
-				vs.FactoidBalances[input.GetAddress().Fixed()] = vs.FactoidBalances[input.GetAddress().Fixed()] - int64(input.GetAmount())
+
+			if msg.Transaction != nil {
+				trans := msg.Transaction
+				for _, input := range trans.GetInputs() {
+					vs.FactoidBalances[input.GetAddress().Fixed()] = vs.FactoidBalances[input.GetAddress().Fixed()] - int64(input.GetAmount())
+				}
+				for _, output := range trans.GetOutputs() {
+					vs.FactoidBalances[output.GetAddress().Fixed()] = vs.FactoidBalances[output.GetAddress().Fixed()] + int64(output.GetAmount())
+				}
+				for _, ecOut := range trans.GetECOutputs() {
+					ecbal := int64(ecOut.GetAmount()) / int64(vs.FactoshisPerEC)
+					vs.ECBalances[ecOut.GetAddress().Fixed()] = vs.ECBalances[ecOut.GetAddress().Fixed()] + ecbal
+				}
+				vs.NumTransactions++
+				if msg.ReturnChannel != nil {
+					var resp ValidationResponseMsg
+					msg.ReturnChannel <- resp
+				}
 			}
-			for _, output := range trans.GetOutputs() {
-				vs.FactoidBalances[output.GetAddress().Fixed()] = vs.FactoidBalances[output.GetAddress().Fixed()] + int64(output.GetAmount())
-			}
-			for _, ecOut := range trans.GetECOutputs() {
-				ecbal := int64(ecOut.GetAmount()) / int64(vs.FactoshisPerEC)
-				vs.ECBalances[ecOut.GetAddress().Fixed()] = vs.ECBalances[ecOut.GetAddress().Fixed()] + ecbal
-			}
-			vs.NumTransactions++
-			if msg.ReturnChannel != nil {
+
+			if msg.ECTransaction != nil {
+				trans := msg.ECTransaction
 				var resp ValidationResponseMsg
-				msg.ReturnChannel <- resp
+
+				switch trans.ECID() {
+				case entryCreditBlock.ECIDServerIndexNumber:
+					resp.Error = fmt.Errorf("Invalid transaction provided")
+					msg.ReturnChannel <- resp
+					break
+
+				case entryCreditBlock.ECIDMinuteNumber:
+					resp.Error = fmt.Errorf("Invalid transaction provided")
+					msg.ReturnChannel <- resp
+					break
+
+				case entryCreditBlock.ECIDChainCommit:
+					t := trans.(*entryCreditBlock.CommitChain)
+					vs.ECBalances[t.ECPubKey.Fixed()] = vs.ECBalances[t.ECPubKey.Fixed()] - int64(t.Credits)
+					vs.NumTransactions++
+
+					msg.ReturnChannel <- resp
+					break
+
+				case entryCreditBlock.ECIDEntryCommit:
+					t := trans.(*entryCreditBlock.CommitEntry)
+					vs.ECBalances[t.ECPubKey.Fixed()] = vs.ECBalances[t.ECPubKey.Fixed()] - int64(t.Credits)
+					vs.NumTransactions++
+
+					msg.ReturnChannel <- resp
+					break
+
+				case entryCreditBlock.ECIDBalanceIncrease:
+					t := trans.(*entryCreditBlock.IncreaseBalance)
+					vs.ECBalances[t.ECPubKey.Fixed()] = vs.ECBalances[t.ECPubKey.Fixed()] + int64(t.NumEC)
+					vs.NumTransactions++
+
+					msg.ReturnChannel <- resp
+					break
+
+				default:
+					resp.Error = fmt.Errorf("Unknown EC transaction provided")
+					msg.ReturnChannel <- resp
+					break
+				}
 			}
+
 			break
 
 		case MessageTypeResetBalances:
@@ -153,3 +206,6 @@ func ValidationServiceLoop(input chan ValidationMsg) {
 		}
 	}
 }
+
+/*
+	}*/

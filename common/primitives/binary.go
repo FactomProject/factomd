@@ -55,12 +55,29 @@ type ByteSlice32 [32]byte
 var _ interfaces.Printable = (*ByteSlice32)(nil)
 var _ interfaces.BinaryMarshallable = (*ByteSlice32)(nil)
 
+func StringToByteSlice32(s string) *ByteSlice32 {
+	bin, err := DecodeBinary(s)
+	if err != nil {
+		return nil
+	}
+	bs := new(ByteSlice32)
+	err = bs.UnmarshalBinary(bin)
+	if err != nil {
+		return nil
+	}
+	return bs
+}
+
 func (bs *ByteSlice32) MarshalBinary() ([]byte, error) {
 	return bs[:], nil
 }
 
 func (bs *ByteSlice32) MarshalledSize() uint64 {
 	return 32
+}
+
+func (bs *ByteSlice32) Fixed() [32]byte {
+	return *bs
 }
 
 func (bs *ByteSlice32) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
