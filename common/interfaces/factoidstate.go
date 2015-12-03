@@ -27,10 +27,12 @@ type IFactoidState interface {
 
 	// Add a transaction   Useful for catching up with the network.
 	AddTransactionBlock(IFBlock) error
+	AddECBlock(IEntryCreditBlock) error
 
 	// Validate transaction
 	// Return zero len string if the balance of an address covers each input
 	Validate(int, ITransaction) error
+	ValidateEC(IECBlockEntry) error
 
 	// Check the transaction timestamp for to ensure it can be included
 	// in the current   Transactions that are too old, or dated to
@@ -40,6 +42,7 @@ type IFactoidState interface {
 	// Update Transaction just updates the balance sheet with the
 	// addition of a transaction.
 	UpdateTransaction(ITransaction) error
+	UpdateECTransaction(IECBlockEntry) error
 
 	// Add a Transaction to the current   The transaction is
 	// validated against the address balances, which must cover The

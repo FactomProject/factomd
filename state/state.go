@@ -362,7 +362,7 @@ func (s *State) loadDatabase() {
 		}
 		s.ProcessEndOfBlock()
 		dblk = s.GetCurrentDirectoryBlock()
-		
+
 	} else {
 		dbPrev, err := s.DB.FetchDBlockByKeyMR(dblk.GetHeader().GetPrevKeyMR())
 		if err != nil {
@@ -372,20 +372,21 @@ func (s *State) loadDatabase() {
 			panic("Did not find the Previous Directory Block in the database")
 		}
 		s.PreviousDirectoryBlock = dbPrev.(interfaces.IDirectoryBlock)
-		fblk, err := s.DB.FetchFactoidBlockHead()
+
+		fBlocks, err := s.DB.FetchAllFBlocks()
 		if err != nil {
 			panic(err.Error())
 		}
-
-		var fblks []interfaces.IFBlock
-
-		for fblk != nil {
-			fblks = append(fblks, fblk)
-			hash := fblk.GetPrevKeyMR()
-			fblk, _ = s.DB.FetchFBlockByHash(hash)
+		for _, block := range fBlocks {
+			s.GetFactoidState().AddTransactionBlock(block)
 		}
-		for i := len(fblks) - 1; i >= 0; i-- {
-			s.GetFactoidState().AddTransactionBlock(fblks[i])
+
+		ecBlocks, err := s.DB.FetchAllECBlocks()
+		if err != nil {
+			panic(err.Error())
+		}
+		for _, block := range ecBlocks {
+			s.GetFactoidState().AddECBlock(block)
 		}
 	}
 	s.SetCurrentDirectoryBlock(dblk)
@@ -587,6 +588,21 @@ func (s *State) RecalculateBalances() error {
 		txs := block.GetTransactions()
 		for _, tx := range txs {
 			err = s.FactoidState.UpdateTransaction(tx)
+			if err != nil {
+				s.FactoidState.ResetBalances()
+				return err
+			}
+		}
+	}
+
+	ecBlocks, err := s.DB.FetchAllECBlocks()
+	if err != nil {
+		return err
+	}
+	for _, block := range ecBlocks {
+		txs := block.GetBody().GetEntries()
+		for _, tx := range txs {
+			err = s.FactoidState.UpdateECTransaction(tx)
 			if err != nil {
 				s.FactoidState.ResetBalances()
 				return err

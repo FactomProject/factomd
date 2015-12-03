@@ -49,7 +49,6 @@ func (fs *FactoidState) GetCurrentBlock() interfaces.IFBlock {
 // When we are playing catchup, adding the transaction block is a pretty
 // useful feature.
 func (fs *FactoidState) AddTransactionBlock(blk interfaces.IFBlock) error {
-
 	if err := blk.Validate(); err != nil {
 		return err
 	}
@@ -63,6 +62,19 @@ func (fs *FactoidState) AddTransactionBlock(blk interfaces.IFBlock) error {
 	}
 	fs.CurrentBlock = blk
 	fs.SetFactoshisPerEC(blk.GetExchRate())
+
+	return nil
+}
+
+func (fs *FactoidState) AddECBlock(blk interfaces.IEntryCreditBlock) error {
+	transactions := blk.GetBody().GetEntries()
+
+	for _, trans := range transactions {
+		err := fs.UpdateECTransaction(trans)
+		if err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
@@ -235,6 +247,26 @@ func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
 
 // Returns an error message about what is wrong with the transaction if it is
 // invalid, otherwise you are good to go.
+func (fs *FactoidState) ValidateEC(trans interfaces.IECBlockEntry) error {
+	if fs.ValidationService == nil {
+		fs.ValidationService = NewValidationService()
+	}
+	var vm ValidationMsg
+	vm.MessageType = MessageTypeValidate
+	vm.ECTransaction = trans
+	c := make(chan ValidationResponseMsg)
+	vm.ReturnChannel = c
+	fs.ValidationService <- vm
+	resp := <-c
+	if resp.Error != nil {
+		return resp.Error
+	}
+
+	return nil
+}
+
+// Returns an error message about what is wrong with the transaction if it is
+// invalid, otherwise you are good to go.
 func (fs *FactoidState) Validate(index int, trans interfaces.ITransaction) error {
 	err := fs.CurrentBlock.ValidateTransaction(index, trans)
 	if err != nil {
@@ -245,7 +277,7 @@ func (fs *FactoidState) Validate(index int, trans interfaces.ITransaction) error
 		fs.ValidationService = NewValidationService()
 	}
 	var vm ValidationMsg
-	vm.MessageType = MessageTypeGetFactoshisPerEC
+	vm.MessageType = MessageTypeValidate
 	vm.Transaction = trans
 	c := make(chan ValidationResponseMsg)
 	vm.ReturnChannel = c
