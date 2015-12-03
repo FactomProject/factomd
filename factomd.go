@@ -41,6 +41,8 @@ func main() {
 	state := new(state.State)
 	state.Init(cfgFilename)
 
+	state.LogInfo("Starting server")
+
 	go NetworkProcessor(state)
 	go Timer(state)
 	go Validator(state)

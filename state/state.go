@@ -15,6 +15,7 @@ import (
 	"github.com/FactomProject/factomd/database/hybridDB"
 	"github.com/FactomProject/factomd/database/mapdb"
 	"github.com/FactomProject/factomd/log"
+	"github.com/FactomProject/factomd/logger"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
 	"os"
@@ -73,6 +74,8 @@ type State struct {
 	CurrentAdminBlock interfaces.IAdminBlock
 
 	EntryCreditBlock interfaces.IEntryCreditBlock
+
+	Logger *logger.FLogger
 }
 
 var _ interfaces.IState = (*State)(nil)
@@ -84,6 +87,10 @@ func (s *State) GetHolding() map[[32]byte]interfaces.IMsg {
 }
 func (s *State) GetAcks() map[[32]byte]interfaces.IMsg {
 	return s.Acks
+}
+
+func (s *State) LogInfo(args ...interface{}) {
+	s.Logger.Info(args...)
 }
 
 // Lists
@@ -263,6 +270,8 @@ func (s *State) Init(filename string) {
 	cfg := s.GetCfg().(*util.FactomdConfig)
 
 	wsapi.InitLogs(cfg.Log.LogPath, cfg.Log.LogLevel)
+
+	s.Logger = logger.NewLogFromConfig(cfg.Log.LogPath, cfg.Log.LogLevel, "State")
 
 	log.SetLevel(cfg.Log.ConsoleLogLevel)
 

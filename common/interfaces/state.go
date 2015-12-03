@@ -104,4 +104,5 @@ type IState interface {
 	IgnoreType(int) bool // Debugging
 
 	RecalculateBalances() error
+	LogInfo(args ...interface{})
 }
