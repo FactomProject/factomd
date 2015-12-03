@@ -48,6 +48,12 @@ func NewMinuteNumber() *MinuteNumber {
 	return new(MinuteNumber)
 }
 
+func NewMinuteNumber2(number uint8) *MinuteNumber {
+	mn := new(MinuteNumber)
+	mn.Number = number
+	return mn
+}
+
 func (m *MinuteNumber) ECID() byte {
 	return ECIDMinuteNumber
 }

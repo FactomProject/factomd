@@ -35,112 +35,127 @@ func CreateAndPopulateTestState() *state.State {
 func CreateAndPopulateTestDatabaseOverlay() *databaseOverlay.Overlay {
 	dbo := CreateEmptyTestDatabaseOverlay()
 
-	aBlocks := []*adminBlock.AdminBlock{}
-	var prevABlock *adminBlock.AdminBlock = nil
-
-	eBlocks := []*entryBlock.EBlock{}
-	var prevEBlock *entryBlock.EBlock = nil
-
-	ecBlocks := []interfaces.IEntryCreditBlock{}
-	var prevECBlock interfaces.IEntryCreditBlock = nil
-
-	fBlocks := []interfaces.IFBlock{}
-	var prevFBlock interfaces.IFBlock = nil
-
-	dBlocks := []*directoryBlock.DirectoryBlock{}
-	var prevDBlock *directoryBlock.DirectoryBlock = nil
-
-	var de *directoryBlock.DBEntry
-	dbEntries := []interfaces.IDBEntry{}
+	prev := new(BlockSet)
 
 	var err error
 
 	for i := 0; i < BlockCount; i++ {
-		dbEntries = []interfaces.IDBEntry{}
-		prevABlock = CreateTestAdminBlock(prevABlock)
-		aBlocks = append(aBlocks, prevABlock)
-		err = dbo.SaveABlockHead(prevABlock)
+		prev = CreateTestBlockSet(prev)
+
+		err = dbo.SaveABlockHead(prev.ABlock)
 		if err != nil {
 			panic(err)
 		}
 
-		de = new(directoryBlock.DBEntry)
-		de.ChainID, err = primitives.NewShaHash(prevABlock.GetChainID())
-		if err != nil {
-			panic(err)
-		}
-		de.KeyMR, err = prevABlock.GetKeyMR()
+		err = dbo.SaveEBlockHead(prev.EBlock)
 		if err != nil {
 			panic(err)
 		}
 
-		dbEntries = append(dbEntries, de)
-
-		prevEBlock = CreateTestEntryBlock(prevEBlock)
-		eBlocks = append(eBlocks, prevEBlock)
-		err = dbo.SaveEBlockHead(prevEBlock)
+		err = dbo.SaveECBlockHead(prev.ECBlock)
 		if err != nil {
 			panic(err)
 		}
 
-		de = new(directoryBlock.DBEntry)
-		de.ChainID, err = primitives.NewShaHash(prevEBlock.GetChainID())
-		if err != nil {
-			panic(err)
-		}
-		de.KeyMR, err = prevEBlock.KeyMR()
+		err = dbo.SaveFactoidBlockHead(prev.FBlock)
 		if err != nil {
 			panic(err)
 		}
 
-		dbEntries = append(dbEntries, de)
-
-		prevECBlock = CreateTestEntryCreditBlock(prevECBlock)
-		ecBlocks = append(ecBlocks, prevECBlock)
-		err = dbo.SaveECBlockHead(prevECBlock)
-		if err != nil {
-			panic(err)
-		}
-
-		de = new(directoryBlock.DBEntry)
-		de.ChainID, err = primitives.NewShaHash(prevECBlock.GetChainID())
-		if err != nil {
-			panic(err)
-		}
-		de.KeyMR, err = prevECBlock.HeaderHash()
-		if err != nil {
-			panic(err)
-		}
-
-		dbEntries = append(dbEntries, de)
-
-		prevFBlock = CreateTestFactoidBlock(prevFBlock)
-		fBlocks = append(fBlocks, prevFBlock)
-		err = dbo.SaveFactoidBlockHead(prevFBlock)
-		if err != nil {
-			panic(err)
-		}
-
-		de = new(directoryBlock.DBEntry)
-		de.ChainID, err = primitives.NewShaHash(prevFBlock.GetChainID())
-		if err != nil {
-			panic(err)
-		}
-		de.KeyMR = prevFBlock.GetKeyMR()
-
-		dbEntries = append(dbEntries, de)
-
-		prevDBlock = CreateTestDirectoryBlock(prevDBlock)
-		prevDBlock.SetDBEntries(dbEntries)
-		dBlocks = append(dBlocks)
-
-		err := dbo.SaveDirectoryBlockHead(prevDBlock)
+		err := dbo.SaveDirectoryBlockHead(prev.DBlock)
 		if err != nil {
 			panic(err)
 		}
 	}
 
 	return dbo
+}
+
+type BlockSet struct {
+	DBlock  *directoryBlock.DirectoryBlock
+	ABlock  *adminBlock.AdminBlock
+	ECBlock interfaces.IEntryCreditBlock
+	FBlock  interfaces.IFBlock
+	EBlock  *entryBlock.EBlock
+}
+
+func CreateTestBlockSet(prev *BlockSet) *BlockSet {
+	var err error
+	if prev == nil {
+		prev = new(BlockSet)
+	}
+	answer := new(BlockSet)
+
+	dbEntries := []interfaces.IDBEntry{}
+	answer.ABlock = CreateTestAdminBlock(prev.ABlock)
+
+	de := new(directoryBlock.DBEntry)
+	de.ChainID, err = primitives.NewShaHash(answer.ABlock.GetChainID())
+	if err != nil {
+		panic(err)
+	}
+	de.KeyMR, err = answer.ABlock.GetKeyMR()
+	if err != nil {
+		panic(err)
+	}
+	dbEntries = append(dbEntries, de)
+
+	answer.EBlock = CreateTestEntryBlock(prev.EBlock)
+
+	de = new(directoryBlock.DBEntry)
+	de.ChainID, err = primitives.NewShaHash(answer.EBlock.GetChainID())
+	if err != nil {
+		panic(err)
+	}
+	de.KeyMR, err = answer.EBlock.KeyMR()
+	if err != nil {
+		panic(err)
+	}
+
+	dbEntries = append(dbEntries, de)
+
+	answer.ECBlock = CreateTestEntryCreditBlock(prev.ECBlock)
+	ecEntries := []interfaces.IECBlockEntry{}
+	ecEntries = append(ecEntries, entryCreditBlock.NewServerIndexNumber2(1))
+	ecEntries = append(ecEntries, entryCreditBlock.NewMinuteNumber2(0))
+	ecEntries = append(ecEntries, entryCreditBlock.NewMinuteNumber2(1))
+	ecEntries = append(ecEntries, entryCreditBlock.NewMinuteNumber2(2))
+	ecEntries = append(ecEntries, entryCreditBlock.NewMinuteNumber2(3))
+	ecEntries = append(ecEntries, entryCreditBlock.NewMinuteNumber2(4))
+	ecEntries = append(ecEntries, entryCreditBlock.NewMinuteNumber2(5))
+	ecEntries = append(ecEntries, entryCreditBlock.NewMinuteNumber2(6))
+	ecEntries = append(ecEntries, entryCreditBlock.NewMinuteNumber2(7))
+	ecEntries = append(ecEntries, entryCreditBlock.NewMinuteNumber2(8))
+	ecEntries = append(ecEntries, entryCreditBlock.NewMinuteNumber2(9))
+	answer.ECBlock.GetBody().SetEntries(ecEntries)
+
+	de = new(directoryBlock.DBEntry)
+	de.ChainID, err = primitives.NewShaHash(answer.ECBlock.GetChainID())
+	if err != nil {
+		panic(err)
+	}
+	de.KeyMR, err = answer.ECBlock.HeaderHash()
+	if err != nil {
+		panic(err)
+	}
+
+	dbEntries = append(dbEntries, de)
+
+	answer.FBlock = CreateTestFactoidBlock(prev.FBlock)
+
+	de = new(directoryBlock.DBEntry)
+	de.ChainID, err = primitives.NewShaHash(answer.FBlock.GetChainID())
+	if err != nil {
+		panic(err)
+	}
+	de.KeyMR = answer.FBlock.GetKeyMR()
+
+	dbEntries = append(dbEntries, de)
+
+	answer.DBlock = CreateTestDirectoryBlock(prev.DBlock)
+	answer.DBlock.SetDBEntries(dbEntries)
+
+	return answer
 }
 
 func CreateEmptyTestDatabaseOverlay() *databaseOverlay.Overlay {

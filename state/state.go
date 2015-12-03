@@ -390,7 +390,6 @@ func (s *State) loadDatabase() {
 		}
 	}
 	s.SetCurrentDirectoryBlock(dblk)
-
 }
 
 func (s *State) InitLevelDB() error {

@@ -48,6 +48,12 @@ func NewServerIndexNumber() *ServerIndexNumber {
 	return new(ServerIndexNumber)
 }
 
+func NewServerIndexNumber2(number uint8) *ServerIndexNumber {
+	sin := new(ServerIndexNumber)
+	sin.Number = number
+	return sin
+}
+
 func (s *ServerIndexNumber) ECID() byte {
 	return ECIDServerIndexNumber
 }
