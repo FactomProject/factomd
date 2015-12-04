@@ -413,11 +413,7 @@ func (s *State) InitLevelDB() error {
 
 	dbase, err := hybridDB.NewLevelMapHybridDB(path, false)
 
-	if err != nil {
-		return err
-	}
-
-	if dbase == nil {
+	if err != nil || dbase == nil {
 		dbase, err = hybridDB.NewLevelMapHybridDB(path, true)
 		if err != nil {
 			return err
