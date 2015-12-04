@@ -13,6 +13,8 @@ import (
 	"os"
 	//	"runtime"
 	"runtime/pprof"
+
+	"github.com/FactomProject/factomd/common/interfaces"
 )
 
 var (
@@ -29,7 +31,8 @@ var winServiceMain func() (bool, error)
 // optional serverChan parameter is mainly used by the service code to be
 // notified with the server once it is setup so it can gracefully stop it when
 // requested from the service control manager.
-func btcdMain(serverChan chan<- *server) error {
+//func btcdMain(serverChan chan<- *server) error {
+func btcdMain(state interfaces.IState) error {
 
 	// Load configuration and parse command line.  This function also
 	// initializes logging and configures it accordingly.
@@ -107,31 +110,31 @@ func btcdMain(serverChan chan<- *server) error {
 	*/
 
 	// Ensure the database is sync'd and closed on Ctrl+C.
-	addInterruptHandler(func() {
+	AddInterruptHandler(func() {
 		btcdLog.Infof("Gracefully shutting down the database...")
 		//			db.RollbackClose()
 	})
 
 	// Create server and start it.
-	server, err := newServer(cfg.Listeners, activeNetParams.Params)
+	server, err := newServer(cfg.Listeners, activeNetParams.Params, state)
 	if err != nil {
 		// TODO(oga) this logging could do with some beautifying.
 		btcdLog.Errorf("Unable to start server on %v: %v",
 			cfg.Listeners, err)
 		return err
 	}
-	addInterruptHandler(func() {
+	AddInterruptHandler(func() {
 		btcdLog.Infof("Gracefully shutting down the server...")
 		server.Stop()
 		server.WaitForShutdown()
 	})
 	server.Start()
-	if serverChan != nil {
-		serverChan <- server
-	}
+	//if serverChan != nil {
+		//serverChan <- server
+	//}
 
 	// Factom Additions BEGIN
-	factomForkInit(server)
+	//factomForkInit(server)
 
 	// Factom Additions END
 

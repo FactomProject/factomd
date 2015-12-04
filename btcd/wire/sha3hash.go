@@ -15,7 +15,7 @@ package wire
 import (
 	"bytes"
 	"encoding/hex"
-	//	"encoding/json"
+	"encoding/json"
 	"fmt"
 
 	//	"github.com/FactomProject/golangcrypto/sha3"
@@ -116,4 +116,17 @@ func NewSha3HashFromStr(hash string) (*Sha3Hash, error) {
 		ret[i], ret[blen-i] = buf[blen-i], b
 	}
 	return &ret, nil
+}
+
+func NewShaHashFromStruct(DataStruct interface{}) (*Sha3Hash, error) {
+
+	jsonbytes, err := json.Marshal(DataStruct)
+	if err != nil {
+		fmt.Printf("NewShaHash Json Marshal Error: %s\n", err)
+		return nil, nil
+	}
+
+	fmt.Println("NewShaHashFromStruct =", jsonbytes)
+
+	return NewSha3Hash(DoubleSha256(jsonbytes))
 }

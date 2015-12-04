@@ -7,16 +7,13 @@
 package btcd
 
 import (
-	"errors"
+	//"errors"
 	"fmt"
 	"os"
 
-	//	"github.com/FactomProject/factomd/btcd/chaincfg"
-	//	"github.com/FactomProject/btcutil"
-
 	"github.com/FactomProject/factomd/btcd/wire"
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/primitives"
+	//"github.com/FactomProject/factomd/common/primitives"
 	cp "github.com/FactomProject/factomd/controlpanel"
 )
 
@@ -32,6 +29,7 @@ var (
 	outCtlMsgQueue chan wire.FtmInternalMsg //outgoing message queue for factom control messages
 )
 
+/*
 // start up Factom queue(s) managers/processors
 // this is to be called within the btcd's main code
 func factomForkInit(s *server) {
@@ -65,11 +63,6 @@ func factomForkInit(s *server) {
 			default:
 				panic(fmt.Sprintf("bad outMsgQueue message received: %v", msg))
 			}
-			/*      peerInfoResults := server.PeerInfo()
-			        for peerInfo := range peerInfoResults{
-			          fmt.Printf("PeerInfo:%+v", peerInfo)
-
-			        }*/
 		}
 	}()
 
@@ -90,13 +83,6 @@ func factomForkInit(s *server) {
 				case wire.END_MINUTE_10:
 					panic(errors.New("unhandled END_MINUTE_10"))
 
-					/*
-						// block building, return the hash of the new one via doneFB (via hook)
-						generateFactoidBlock(msgEom.NextDBlockHeight)
-						fmt.Println("***********************")
-						fmt.Println("***********************")
-					*/
-
 				default:
 					panic(errors.New("unhandled EOM type"))
 				}
@@ -104,33 +90,10 @@ func factomForkInit(s *server) {
 			default:
 				panic(errors.New("unhandled CmdInt_EOM"))
 			}
-
-			/*
-				switch msg.EOM_Type {
-
-				case wire.END_MINUTE_10:
-					//util.Trace("EOM10")
-				default:
-					//util.Trace("default")
-				}
-			*/
-
-			/*
-				switch msg.Command() {
-				case factomwire.CmdTx:
-					InMsgQueue <- msg //    for testing
-					server.blockManager.QueueTx(msg.(*factomwire.MsgTx), nil)
-				case factomwire.CmdConfirmation:
-					server.blockManager.QueueConf(msg.(*factomwire.MsgConfirmation), nil)
-
-				default:
-					inMsgQueue <- msg
-					outMsgQueue <- msg
-				}
-			*/
 		}
 	}()
 }
+*/
 
 func Start_btcd(
 	ldb interfaces.DBOverlay,
@@ -170,29 +133,6 @@ func Start_btcd(
 
 	inCtlMsgQueue = inCtlMsgQ
 	outCtlMsgQueue = outCtlMsgQ
-
-	// Use all processor cores.
-	//runtime.GOMAXPROCS(runtime.NumCPU())
-
-	// Up some limits.
-	//if err := limits.SetLimits(); err != nil {
-	//	os.Exit(1)
-	//}
-
-	// Call serviceMain on Windows to handle running as a service.  When
-	// the return isService flag is true, exit now since we ran as a
-	// service.  Otherwise, just fall through to normal operation.
-	/*if runtime.GOOS == "windows" {
-		isService, err := winServiceMain()
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-		if isService {
-			os.Exit(0)
-		}
-	}
-	*/
 
 	// Work around defer not working after os.Exit()
 	if err := btcdMain(nil); err != nil {
@@ -243,7 +183,7 @@ func (p *peer) handleAcknoledgementMsg(msg *wire.MsgAcknowledgement) {
 
 // returns true if the message should be relayed, false otherwise
 func (p *peer) shallRelay(msg interface{}) bool {
-	hash, _ := NewShaHashFromStruct(msg)
+	hash, _ := wire.NewShaHashFromStruct(msg)
 	iv := wire.NewInvVect(wire.InvTypeFactomRaw, hash)
 
 	if !p.isKnownInventory(iv) {
@@ -267,141 +207,3 @@ func (p *peer) FactomRelay(msg wire.Message) {
 		local_Server.BroadcastMessage(msg)
 	}
 }
-
-/*
-// func (pl *ProcessList) AddFtmTxToProcessList(msg wire.Message, msgHash interfaces.IHash) error {
-func fakehook1(msg wire.Message, msgHash interfaces.IHash) error {
-	return nil
-}
-
-func factom_PL_hook(tx *btcutil.Tx, label string) error {
-	//util.Trace("label= " + label)
-
-	_ = fakehook1(tx.MsgTx(), tx.Sha())
-
-	return nil
-}
-
-// for Jack
-func global_DeleteMemPoolEntry(hash interfaces.IHash) {
-	// TODO: ensure mutex-protection
-}
-
-// check a few btcd-related flags for sanity in our fork
-func (b *blockManager) factomChecks() {
-	//util.Trace()
-
-	if cfg.AddrIndex {
-		panic(errors.New("AddrIndex must be disabled and it is NOT !!!"))
-	}
-
-	// DisableCheckpoints should always be set
-	if !cfg.DisableCheckpoints {
-		panic(errors.New("checkpoints must be disabled and they are NOT !!!"))
-	}
-
-	if cfg.RegressionTest || cfg.SimNet || cfg.Generate {
-		panic(100)
-	}
-
-	if cfg.TestNet3 {
-		panic(errors.New("TestNet mode is NOT SUPPORTED (remove the option from the command line or from the .conf file)!"))
-	}
-
-	//util.Trace()
-}
-
-// feed all incoming Txs to the inner Factom code (for Jack)
-// TODO: do this after proper mempool/orphanpool/validity triangulation & checks
-func factomIngressTx_hook(tx *wire.MsgTx) error {
-	//util.Trace()
-
-	ecmap := make(map[interfaces.IHash]uint64)
-
-	txid, _ := tx.TxSha()
-	hash, _ := wire.Newinterfaces.IHash(wire.Sha256(txid.Bytes()))
-
-	ecmap[*hash] = 1
-
-	// Use wallet's public key to add EC??
-	sig := wallet.SignData(nil)
-	hash2 := new(interfaces.IHash)
-	hash2.SetBytes((*sig.Pub.Key)[:])
-
-	ecmap[*hash2] = 100
-
-	txHash, _ := tx.TxSha()
-	fo := &wire.MsgInt_FactoidObj{tx, &txHash, ecmap}
-
-	fmt.Println("ecmap len =", len(ecmap))
-
-	inMsgQueue <- fo
-
-	return nil
-}
-
-func factomIngressBlock_hook(hash interfaces.IHash) error {
-	//util.Trace(fmt.Sprintf("hash: %s", hash))
-
-	fbo := &wire.MsgInt_FactoidBlock{
-		interfaces.IHash: *hash}
-
-	doneFBlockQueue <- fbo
-
-	return nil
-}
-*/
-
-/*
-func ExtractPkScriptAddrs(pkScript []byte, chainParams *chaincfg.Params) ([]btcutil.Address, int, error) {
-	oldWay := false
-
-	//util.Trace("bytes= " + spew.Sdump(pkScript))
-
-	var addrs []btcutil.Address
-	var requiredSigs int
-
-	if oldWay {
-		// A pay-to-pubkey script is of the form:
-		//  <pubkey> OP_CHECKSIG
-		// Therefore the pubkey is the first item on the stack.
-		// Skip the pubkey if it's invalid for some reason.
-		requiredSigs = 1
-		addr, err := btcutil.NewAddressPubKey(pkScript, chainParams)
-		if err == nil {
-			addrs = append(addrs, addr)
-		}
-
-	} else {
-
-		// A pay-to-pubkey-hash script is of the form:
-		//  OP_DUP OP_HASH160 <hash> OP_EQUALVERIFY OP_CHECKSIG
-		// Therefore the pubkey hash is the 3rd item on the stack.
-		// Skip the pubkey hash if it's invalid for some reason.
-		requiredSigs = 1
-		//	addr, err := btcutil.NewAddressPubKeyHash(pops[2].data,
-		addr, err := btcutil.NewAddressPubKeyHash(pkScript, chainParams)
-		if err == nil {
-			addrs = append(addrs, addr)
-		}
-	}
-
-	//util.Trace("addrs= " + spew.Sdump(addrs))
-
-	return addrs, requiredSigs, nil
-}
-
-// PayToAddrScript creates a new script to pay a transaction output to a the
-// specified address.
-func PayToAddrScript(addr btcutil.Address) ([]byte, error) {
-	scrAddr := addr.ScriptAddress()
-
-	//util.Trace("scrAddr= " + spew.Sdump(scrAddr))
-
-	return scrAddr, nil
-
-	//	panic(errors.New("PayToAddrScript -- NOT IMPLEMENTED !!!"))
-
-	//	return payToPubKeyHashScript(addr.ScriptAddress())
-}
-*/

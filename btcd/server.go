@@ -20,12 +20,9 @@ import (
 
 	"github.com/FactomProject/factomd/btcd/addrmgr"
 	"github.com/FactomProject/factomd/common/interfaces"
-	//"github.com/FactomProject/factomd/btcd/blockchain"
 	"github.com/FactomProject/factomd/btcd/btcjson"
 	"github.com/FactomProject/factomd/btcd/chaincfg"
-	//"github.com/FactomProject/factomd/btcd/database"
 	"github.com/FactomProject/factomd/btcd/wire"
-	//"github.com/FactomProject/btcutil"
 )
 
 const (
@@ -110,6 +107,8 @@ type server struct {
 	nat                  NAT
 	//db                   database.Db
 	//timeSource           blockchain.MedianTimeSource
+
+	State 							interfaces.IState
 }
 
 type peerState struct {
@@ -1248,10 +1247,31 @@ out:
 	s.wg.Done()
 }
 
+// NewServer returns a new btcd server configured to listen on addr for the
+// bitcoin network type specified by chainParams.  Use start to begin accepting
+// connections from peers.
+func NewServer(state interfaces.IState) (*server, error) {
+	// Todo: combine btcd with factomd config & add commandline support
+	// Load configuration and parse command line.  This function also
+	// initializes logging and configures it accordingly.
+	tcfg, _, err := loadConfig()
+	if err != nil {
+		return err
+	}
+	cfg = tcfg
+	defer backendLog.Flush()
+
+	// Show version at startup.
+	btcdLog.Infof("Version %s", version())
+
+	server, err := NewServer(cfg.Listeners, activeNetParams.Params, state)
+	return server, err
+}
+
 // newServer returns a new btcd server configured to listen on addr for the
 // bitcoin network type specified by chainParams.  Use start to begin accepting
 // connections from peers.
-func newServer(listenAddrs []string, chainParams *chaincfg.Params) (*server, error) {
+func newServer(listenAddrs []string, chainParams *chaincfg.Params, state interfaces.IState) (*server, error) {
 	nonce, err := wire.RandomUint64()
 	if err != nil {
 		return nil, err
@@ -1401,6 +1421,7 @@ func newServer(listenAddrs []string, chainParams *chaincfg.Params) (*server, err
 		nat:                  nat,
 		//db:                   db,
 		//timeSource:           blockchain.NewMedianTime(),
+		State:								state,
 	}
 	bm, err := newBlockManager(&s)
 	if err != nil {
