@@ -41,7 +41,7 @@ func Timer(state interfaces.IState) {
 			}
 
 			// ooooooooooooooooooooooooooooooooooooooooooooooooooooo
-			fmt.Print("\r Processing: ", (string)((([]byte)("-\\|/-\\|/-="))[i]), " ")
+			fmt.Printf("\r Processing DBlock %v minute %v: %s%s", state.GetDBHeight(), i, (string)((([]byte)("-\\|/-\\|/-="))[i]), " ")
 
 			now = time.Now().UnixNano()
 			wait := next - now
