@@ -297,10 +297,11 @@ func (p *peer) RelayTxDisabled() bool {
 // current state.
 func (p *peer) pushVersionMsg() error {
 	//_, blockNum, err := p.server.db.NewestSha()
-	_, blockNum, err := db.FetchBlockHeightCache()
-	if err != nil {
-		return err
-	}
+	//_, blockNum, err := db.FetchBlockHeightCache()
+	blockNum := p.server.State.GetDBHeight()
+	//if err != nil {
+		//return err
+	//}
 
 	theirNa := p.na
 

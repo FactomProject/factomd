@@ -7,9 +7,10 @@ package btcd
 import (
 	"github.com/FactomProject/factomd/btcd/blockchain"
 	"github.com/FactomProject/factomd/btcd/wire"
-	"github.com/FactomProject/factomd/common/constants"
+	. "github.com/FactomProject/factomd/common/constants"
+	//"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/primitives"
+	. "github.com/FactomProject/factomd/common/primitives"
 )
 
 // DirBlockLocatorFromHash returns a block locator for the passed block hash.
@@ -43,8 +44,9 @@ func DirBlockLocatorFromHash(hash interfaces.IHash) blockchain.BlockLocator {
 	// final genesis hash.
 
 	dblock, _ := db.FetchDBlockByHash(hash)
+	//dblock := dblock0.(directoryBlock.DirectoryBlock)
 	if dblock != nil {
-		blockHeight = int64(dblock.Header.DBHeight)
+		blockHeight = int64(dblock.GetHeader().GetDBHeight())
 	}
 	increment := int64(1)
 	for len(locator) < wire.MaxBlockLocatorsPerMsg-1 {
@@ -59,13 +61,12 @@ func DirBlockLocatorFromHash(hash interfaces.IHash) blockchain.BlockLocator {
 		}
 
 		blk, _ := db.FetchDBlockByHeight(uint32(blockHeight))
-		if blk == nil {
+		if blk == nil || blk.GetHash() == nil {
+			//blk.DBHash, _ = CreateHash(blk)
 			continue
-		} else if blk.DBHash == nil {
-			blk.DBHash, _ = CreateHash(blk)
 		}
 
-		locator = append(locator, blk.DBHash)
+		locator = append(locator, blk.GetHash())
 	}
 
 	// Append the appropriate genesis block.
@@ -75,11 +76,11 @@ func DirBlockLocatorFromHash(hash interfaces.IHash) blockchain.BlockLocator {
 
 // LatestDirBlockLocator returns a block locator for the latest known tip of the
 // main (best) chain.
-func LatestDirBlockLocator() (blockchain.BlockLocator, error) {
-	latestDirBlockHash, _, _ := db.FetchBlockHeightCache()
+func LatestDirBlockLocator(state interfaces.IState) (blockchain.BlockLocator, error) {
+	latestDirBlockHash := state.GetCurrentDirectoryBlock().GetHash()		//, _, _ := db.FetchBlockHeightCache()
 
 	if latestDirBlockHash == nil {
-		latestDirBlockHash = zeroHash
+		latestDirBlockHash = NewZeroHash()	//zeroHash
 	}
 
 	// The best chain is set, so use its hash.

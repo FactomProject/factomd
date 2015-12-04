@@ -8,7 +8,7 @@ import (
 	"container/list"
 	"fmt"
 	"github.com/FactomProject/factomd/btcd/wire"
-	"github.com/FactomProject/factomd/common/constants"
+	. "github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/directoryBlock"
 	cp "github.com/FactomProject/factomd/controlpanel"
 	"github.com/FactomProject/factomd/util"
@@ -174,11 +174,12 @@ func (b *blockManager) startSyncFactom(peers *list.List) {
 	}
 
 	// Find the height of the current known best block.
-	_, height, err := db.FetchBlockHeightCache()
-	if err != nil {
-		bmgrLog.Errorf("%v", err)
-		return
-	}
+	height := b.server.State.GetDBHeight()
+	//_, height, err := db.FetchBlockHeightCache()
+	//if err != nil {
+		//bmgrLog.Errorf("%v", err)
+		//return
+	//}
 
 	bmgrLog.Infof("Latest DirBlock Height: %d", height)
 
@@ -206,7 +207,7 @@ func (b *blockManager) startSyncFactom(peers *list.List) {
 
 	// Start syncing from the best peer if one was selected.
 	if bestPeer != nil {
-		locator, err := LatestDirBlockLocator()
+		locator, err := LatestDirBlockLocator(b.server.State)
 		if err != nil {
 			bmgrLog.Errorf("Failed to get block locator for the "+
 				"latest block: %v", err)
@@ -237,7 +238,7 @@ func (b *blockManager) startSyncFactom(peers *list.List) {
 // syncing from.
 func (b *blockManager) isSyncCandidateFactom(p *peer) bool {
 	// Typically a peer is not a candidate for sync if it's not a Factom SERVER node,
-	if SERVER_NODE == util.ReadConfig().App.NodeMode {
+	if SERVER_NODE == util.ReadConfig("").App.NodeMode {
 		return true
 	}
 	return true

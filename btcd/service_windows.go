@@ -64,8 +64,9 @@ func (s *btcdService) Execute(args []string, r <-chan svc.ChangeRequest, changes
 	doneChan := make(chan error)
 	serverChan := make(chan *server)
 	go func() {
-		err := btcdMain(serverChan)
-		doneChan <- err
+		//Todo: fix it
+		//err := btcdMain(serverChan)
+		//doneChan <- err
 	}()
 
 	// Service is now started.

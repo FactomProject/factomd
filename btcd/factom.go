@@ -9,12 +9,12 @@ package btcd
 import (
 	//"errors"
 	"fmt"
-	"os"
+	//"os"
 
 	"github.com/FactomProject/factomd/btcd/wire"
 	"github.com/FactomProject/factomd/common/interfaces"
-	//"github.com/FactomProject/factomd/common/primitives"
-	cp "github.com/FactomProject/factomd/controlpanel"
+	. "github.com/FactomProject/factomd/common/primitives"
+	//cp "github.com/FactomProject/factomd/controlpanel"
 )
 
 var _ = fmt.Printf
@@ -93,7 +93,6 @@ func factomForkInit(s *server) {
 		}
 	}()
 }
-*/
 
 func Start_btcd(
 	ldb interfaces.DBOverlay,
@@ -139,6 +138,7 @@ func Start_btcd(
 		os.Exit(1)
 	}
 }
+*/
 
 // Handle factom app imcoming msg
 func (p *peer) handleCommitChainMsg(msg *wire.MsgCommitChain) {
@@ -183,7 +183,7 @@ func (p *peer) handleAcknoledgementMsg(msg *wire.MsgAcknowledgement) {
 
 // returns true if the message should be relayed, false otherwise
 func (p *peer) shallRelay(msg interface{}) bool {
-	hash, _ := wire.NewShaHashFromStruct(msg)
+	hash, _ := NewShaHashFromStruct(msg)
 	iv := wire.NewInvVect(wire.InvTypeFactomRaw, hash)
 
 	if !p.isKnownInventory(iv) {

@@ -1256,7 +1256,7 @@ func NewServer(state interfaces.IState) (*server, error) {
 	// initializes logging and configures it accordingly.
 	tcfg, _, err := loadConfig()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	cfg = tcfg
 	defer backendLog.Flush()
@@ -1264,7 +1264,7 @@ func NewServer(state interfaces.IState) (*server, error) {
 	// Show version at startup.
 	btcdLog.Infof("Version %s", version())
 
-	server, err := NewServer(cfg.Listeners, activeNetParams.Params, state)
+	server, err := newServer(cfg.Listeners, activeNetParams.Params, state)
 	return server, err
 }
 
