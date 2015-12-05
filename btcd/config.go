@@ -433,12 +433,6 @@ func loadConfig() (*config, []string, error) {
 		numNets++
 		activeNetParams = &regressionNetParams
 	}
-	if cfg.SimNet {
-		numNets++
-		// Also disable dns seeding on the simulation test network.
-		activeNetParams = &simNetParams
-		cfg.DisableDNSSeed = true
-	}
 	if numNets > 1 {
 		str := "%s: The testnet, regtest, and simnet params can't be " +
 			"used together -- choose one of the three"
