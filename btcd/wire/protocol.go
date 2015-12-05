@@ -22,25 +22,12 @@ const (
 	// timestamp field (pver >= NetAddressTimeVersion).
 	NetAddressTimeVersion uint32 = 31402
 
-	// BIP0031Version is the protocol version AFTER which a pong message
-	// and nonce field in ping were added (pver > BIP0031Version).
-	BIP0031Version uint32 = 60000
-
-	// BIP0035Version is the protocol version which added the mempool
-	// message (pver >= BIP0035Version).
-	BIP0035Version uint32 = 60002
-
-	// BIP0037Version is the protocol version which added new connection
-	// bloom filtering related messages and extended the version message
-	// with a relay flag (pver >= BIP0037Version).
-	BIP0037Version uint32 = 70001
-
 	// RejectVersion is the protocol version which added a new reject
 	// message.
 	RejectVersion uint32 = 70002
 )
 
-// ServiceFlag identifies services supported by a bitcoin peer.
+// ServiceFlag identifies services supported by a factom peer.
 type ServiceFlag uint64
 
 const (
@@ -78,42 +65,42 @@ func (f ServiceFlag) String() string {
 	return s
 }
 
-// BitcoinNet represents which bitcoin network a message belongs to.
-type BitcoinNet uint32
+// FactomNet represents which factom network a message belongs to.
+type FactomNet uint32
 
-// Constants used to indicate the message bitcoin network.  They can also be
+// Constants used to indicate the message factom network.  They can also be
 // used to seek to the next message when a stream's state is unknown, but
 // this package does not provide that functionality since it's generally a
 // better idea to simply disconnect clients that are misbehaving over TCP.
 const (
 	// MainNet represents the main factom network, AKA the magic number
-	//	MainNet BitcoinNet = 0xd9b4bef9
-	MainNet BitcoinNet = 0xFA92E5A1
+	//	MainNet FactomNet = 0xd9b4bef9
+	MainNet FactomNet = 0xFA92E5A1
 
 	// TestNet represents the regression test network.
-	TestNet BitcoinNet = 0xdab5bffa
+	TestNet FactomNet = 0xdab5bffa
 
 	// TestNet3 represents the test network (version 3).
-	TestNet3 BitcoinNet = 0x0709110b
+	TestNet3 FactomNet = 0x0709110b
 
 	// SimNet represents the simulation test network.
-	SimNet BitcoinNet = 0x12141c16
+	SimNet FactomNet = 0x12141c16
 )
 
-// bnStrings is a map of bitcoin networks back to their constant names for
+// bnStrings is a map of factom networks back to their constant names for
 // pretty printing.
-var bnStrings = map[BitcoinNet]string{
+var bnStrings = map[FactomNet]string{
 	MainNet:  "MainNet",
 	TestNet:  "TestNet",
 	TestNet3: "TestNet3",
 	SimNet:   "SimNet",
 }
 
-// String returns the BitcoinNet in human-readable form.
-func (n BitcoinNet) String() string {
+// String returns the FactomNet in human-readable form.
+func (n FactomNet) String() string {
 	if s, ok := bnStrings[n]; ok {
 		return s
 	}
 
-	return fmt.Sprintf("Unknown BitcoinNet (%d)", uint32(n))
+	return fmt.Sprintf("Unknown FactomNet (%d)", uint32(n))
 }
