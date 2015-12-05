@@ -329,7 +329,7 @@ func messageSummary(msg wire.Message) string {
 	case *wire.MsgAlert:
 		// No summary.
 
-	case *wire.MsgMemPool:
+	//case *wire.MsgMemPool:
 		// No summary.
 	/*
 		case *wire.MsgTx:
