@@ -20,7 +20,6 @@ import (
 
 	"github.com/FactomProject/factomd/btcd/addrmgr"
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/btcd/btcjson"
 	"github.com/FactomProject/factomd/btcd/chaincfg"
 	"github.com/FactomProject/factomd/btcd/wire"
 )
@@ -40,6 +39,29 @@ const (
 	// defaultMaxOutbound is the default number of max outbound peers.
 	defaultMaxOutbound = 8
 )
+
+// GetPeerInfoResult models the data returned from the getpeerinfo command.
+type GetPeerInfoResult struct {
+	ID             int32   `json:"id"`
+	Addr           string  `json:"addr"`
+	AddrLocal      string  `json:"addrlocal,omitempty"`
+	Services       string  `json:"services"`
+	LastSend       int64   `json:"lastsend"`
+	LastRecv       int64   `json:"lastrecv"`
+	BytesSent      uint64  `json:"bytessent"`
+	BytesRecv      uint64  `json:"bytesrecv"`
+	ConnTime       int64   `json:"conntime"`
+	TimeOffset     int64   `json:"timeoffset"`
+	PingTime       float64 `json:"pingtime"`
+	PingWait       float64 `json:"pingwait,omitempty"`
+	Version        uint32  `json:"version"`
+	SubVer         string  `json:"subver"`
+	Inbound        bool    `json:"inbound"`
+	StartingHeight int32   `json:"startingheight"`
+	CurrentHeight  int32   `json:"currentheight,omitempty"`
+	BanScore       int32   `json:"banscore"`
+	SyncNode       bool    `json:"syncnode"`
+}
 
 // broadcastMsg provides the ability to house a bitcoin message to be broadcast
 // to all connected peers except specified excluded peers.
@@ -400,7 +422,7 @@ type getConnCountMsg struct {
 }
 
 type getPeerInfoMsg struct {
-	reply chan []*btcjson.GetPeerInfoResult
+	reply chan []*GetPeerInfoResult
 }
 
 type getAddedNodesMsg struct {
@@ -438,7 +460,7 @@ func (s *server) handleQuery(querymsg interface{}, state *peerState) {
 
 	case getPeerInfoMsg:
 		syncPeer := s.blockManager.SyncPeer()
-		infos := make([]*btcjson.GetPeerInfoResult, 0, len(state.peers))
+		infos := make([]*GetPeerInfoResult, 0, len(state.peers))
 		state.forAllPeers(func(p *peer) {
 			if !p.Connected() {
 				return
@@ -449,7 +471,7 @@ func (s *server) handleQuery(querymsg interface{}, state *peerState) {
 			// and we don't really care if they are raced to get the new
 			// version.
 			p.StatsMtx.Lock()
-			info := &btcjson.GetPeerInfoResult{
+			info := &GetPeerInfoResult{
 				ID:             p.id,
 				Addr:           p.addr,
 				Services:       fmt.Sprintf("%08d", p.services),
@@ -856,8 +878,8 @@ func (s *server) AddedNodeInfo() []*peer {
 
 // PeerInfo returns an array of PeerInfo structures describing all connected
 // peers.
-func (s *server) PeerInfo() []*btcjson.GetPeerInfoResult {
-	replyChan := make(chan []*btcjson.GetPeerInfoResult)
+func (s *server) PeerInfo() []*GetPeerInfoResult {
+	replyChan := make(chan []*GetPeerInfoResult)
 
 	s.query <- getPeerInfoMsg{reply: replyChan}
 
