@@ -63,7 +63,12 @@ type ITransaction interface {
 
 	// Calculate the fee for a transaction, given the specified exchange rate.
 	CalculateFee(factoshisPerEC uint64) (uint64, error)
-	
+
 	// Wallet Support (Not sure why we need some of these)
 	SetBlockHeight(int)
+
+	// Helper Function.  This simply adds an Authorization to a
+	// transaction.  DOES NO VALIDATION.  Not the job of construction.
+	// That's why we have a validation call.
+	AddAuthorization(auth IRCD)
 }

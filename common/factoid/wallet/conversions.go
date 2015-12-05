@@ -177,6 +177,15 @@ func PublicKeyStringToFactoidAddress(public string) (interfaces.IAddress, error)
 	return add, nil
 }
 
+func PublicKeyStringToFactoidRCDAddress(public string) (interfaces.IRCD, error) {
+	pubHex, err := hex.DecodeString(public)
+	if err != nil {
+		return nil, err
+	}
+	rcd := factoid.NewRCD_1(pubHex)
+	return rcd, nil
+}
+
 /******************************************************************************/
 /******************************Combined****************************************/
 /******************************************************************************/

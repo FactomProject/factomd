@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -32,6 +33,10 @@ func (s *FactoidSignature) GetKey() []byte {
 
 func (s *FactoidSignature) GetHash() interfaces.IHash {
 	return nil
+}
+
+func (h *FactoidSignature) MarshalText() ([]byte, error) {
+	return []byte(hex.EncodeToString(h.Signature[:])), nil
 }
 
 func (s *FactoidSignature) JSONByte() ([]byte, error) {
@@ -104,4 +109,14 @@ func (s *FactoidSignature) UnmarshalBinaryData(data []byte) ([]byte, error) {
 func (s *FactoidSignature) UnmarshalBinary(data []byte) error {
 	_, err := s.UnmarshalBinaryData(data)
 	return err
+}
+
+func NewED25519Signature(priv, data []byte) *FactoidSignature {
+	priv2 := [64]byte{}
+	copy(priv2[:], priv[:])
+
+	sig := ed25519.Sign(&priv2, data)
+	fs := new(FactoidSignature)
+	copy(fs.Signature[:], sig[:constants.SIGNATURE_LENGTH])
+	return fs
 }

@@ -22,7 +22,7 @@ import (
  **************************************/
 
 type SignatureBlock struct {
-	signatures []interfaces.ISignature
+	Signatures []interfaces.ISignature
 }
 
 var _ interfaces.ISignatureBlock = (*SignatureBlock)(nil)
@@ -83,26 +83,26 @@ func (s *SignatureBlock) IsEqual(signatureBlock interfaces.IBlock) []interfaces.
 }
 
 func (s *SignatureBlock) AddSignature(sig interfaces.ISignature) {
-	if len(s.signatures) > 0 {
-		s.signatures[0] = sig
+	if len(s.Signatures) > 0 {
+		s.Signatures[0] = sig
 	} else {
-		s.signatures = append(s.signatures, sig)
+		s.Signatures = append(s.Signatures, sig)
 	}
 }
 
 func (s SignatureBlock) GetSignature(index int) interfaces.ISignature {
-	if len(s.signatures) <= index {
+	if len(s.Signatures) <= index {
 		return nil
 	}
-	return s.signatures[index]
+	return s.Signatures[index]
 }
 
 func (s SignatureBlock) GetSignatures() []interfaces.ISignature {
-	if s.signatures == nil {
-		s.signatures = make([]interfaces.ISignature, 1, 1)
-		s.signatures[0] = new(FactoidSignature)
+	if s.Signatures == nil {
+		s.Signatures = make([]interfaces.ISignature, 1, 1)
+		s.Signatures[0] = new(FactoidSignature)
 	}
-	return s.signatures
+	return s.Signatures
 }
 
 func (a SignatureBlock) MarshalBinary() ([]byte, error) {
@@ -124,7 +124,7 @@ func (s SignatureBlock) CustomMarshalText() ([]byte, error) {
 	var out bytes.Buffer
 
 	out.WriteString("Signature Block: \n")
-	for _, sig := range s.signatures {
+	for _, sig := range s.Signatures {
 
 		out.WriteString(" signature: ")
 		txt, err := sig.CustomMarshalText()
@@ -140,14 +140,19 @@ func (s SignatureBlock) CustomMarshalText() ([]byte, error) {
 }
 
 func (s *SignatureBlock) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-
-	s.signatures = make([]interfaces.ISignature, 1)
-	s.signatures[0] = new(FactoidSignature)
-	data, err = s.signatures[0].UnmarshalBinaryData(data)
+	s.Signatures = make([]interfaces.ISignature, 1)
+	s.Signatures[0] = new(FactoidSignature)
+	data, err = s.Signatures[0].UnmarshalBinaryData(data)
 	if err != nil {
 		fmt.Println("error")
 		return nil, fmt.Errorf("Failure to unmarshal Signature")
 	}
 
 	return data, nil
+}
+
+func NewSingleSignatureBlock(priv, data []byte) *SignatureBlock {
+	s := new(SignatureBlock)
+	s.AddSignature(NewED25519Signature(priv, data))
+	return s
 }

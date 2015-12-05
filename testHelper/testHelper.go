@@ -16,6 +16,8 @@ import (
 	"github.com/FactomProject/factomd/database/mapdb"
 	//"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/state"
+
+	"fmt"
 )
 
 var BlockCount int = 10
@@ -77,14 +79,21 @@ type BlockSet struct {
 	ECBlock interfaces.IEntryCreditBlock
 	FBlock  interfaces.IFBlock
 	EBlock  *entryBlock.EBlock
+	Height  int
 }
 
 func CreateTestBlockSet(prev *BlockSet) *BlockSet {
 	var err error
+	height := 0
+	if prev != nil {
+		height = prev.Height + 1
+	}
+
 	if prev == nil {
 		prev = new(BlockSet)
 	}
 	answer := new(BlockSet)
+	answer.Height = height
 
 	dbEntries := []interfaces.IDBEntry{}
 	answer.ABlock = CreateTestAdminBlock(prev.ABlock)
@@ -95,6 +104,33 @@ func CreateTestBlockSet(prev *BlockSet) *BlockSet {
 		panic(err)
 	}
 	de.KeyMR, err = answer.ABlock.GetKeyMR()
+	if err != nil {
+		panic(err)
+	}
+	dbEntries = append(dbEntries, de)
+
+	answer.FBlock = CreateTestFactoidBlock(prev.FBlock)
+
+	de = new(directoryBlock.DBEntry)
+	de.ChainID, err = primitives.NewShaHash(answer.FBlock.GetChainID())
+	if err != nil {
+		panic(err)
+	}
+	de.KeyMR = answer.FBlock.GetKeyMR()
+	dbEntries = append(dbEntries, de)
+
+	answer.ECBlock = CreateTestEntryCreditBlock(prev.ECBlock)
+
+	ecEntries := createECEntriesfromFBlock(answer.FBlock, height)
+
+	answer.ECBlock.GetBody().SetEntries(ecEntries)
+
+	de = new(directoryBlock.DBEntry)
+	de.ChainID, err = primitives.NewShaHash(answer.ECBlock.GetChainID())
+	if err != nil {
+		panic(err)
+	}
+	de.KeyMR, err = answer.ECBlock.HeaderHash()
 	if err != nil {
 		panic(err)
 	}
@@ -111,12 +147,17 @@ func CreateTestBlockSet(prev *BlockSet) *BlockSet {
 	if err != nil {
 		panic(err)
 	}
-
 	dbEntries = append(dbEntries, de)
 
-	answer.ECBlock = CreateTestEntryCreditBlock(prev.ECBlock)
+	answer.DBlock = CreateTestDirectoryBlock(prev.DBlock)
+	answer.DBlock.SetDBEntries(dbEntries)
+
+	return answer
+}
+
+func createECEntriesfromFBlock(fBlock interfaces.IFBlock, height int) []interfaces.IECBlockEntry {
 	ecEntries := []interfaces.IECBlockEntry{}
-	ecEntries = append(ecEntries, entryCreditBlock.NewServerIndexNumber2(1))
+	ecEntries = append(ecEntries, entryCreditBlock.NewServerIndexNumber2(uint8(height%10+1)))
 	ecEntries = append(ecEntries, entryCreditBlock.NewMinuteNumber2(0))
 	ecEntries = append(ecEntries, entryCreditBlock.NewMinuteNumber2(1))
 	ecEntries = append(ecEntries, entryCreditBlock.NewMinuteNumber2(2))
@@ -127,35 +168,21 @@ func CreateTestBlockSet(prev *BlockSet) *BlockSet {
 	ecEntries = append(ecEntries, entryCreditBlock.NewMinuteNumber2(7))
 	ecEntries = append(ecEntries, entryCreditBlock.NewMinuteNumber2(8))
 	ecEntries = append(ecEntries, entryCreditBlock.NewMinuteNumber2(9))
-	answer.ECBlock.GetBody().SetEntries(ecEntries)
 
-	de = new(directoryBlock.DBEntry)
-	de.ChainID, err = primitives.NewShaHash(answer.ECBlock.GetChainID())
-	if err != nil {
-		panic(err)
+	trans := fBlock.GetTransactions()
+	for _, t := range trans {
+		ecOut := t.GetECOutputs()
+		for i, ec := range ecOut {
+			increase := new(entryCreditBlock.IncreaseBalance)
+			increase.ECPubKey = primitives.Byte32ToByteSlice32(ec.GetAddress().Fixed())
+			increase.TXID = ec.GetHash()
+			increase.Index = uint64(i)
+			increase.NumEC = ec.GetAmount() / fBlock.GetExchRate()
+			ecEntries = append(ecEntries, increase)
+		}
 	}
-	de.KeyMR, err = answer.ECBlock.HeaderHash()
-	if err != nil {
-		panic(err)
-	}
 
-	dbEntries = append(dbEntries, de)
-
-	answer.FBlock = CreateTestFactoidBlock(prev.FBlock)
-
-	de = new(directoryBlock.DBEntry)
-	de.ChainID, err = primitives.NewShaHash(answer.FBlock.GetChainID())
-	if err != nil {
-		panic(err)
-	}
-	de.KeyMR = answer.FBlock.GetKeyMR()
-
-	dbEntries = append(dbEntries, de)
-
-	answer.DBlock = CreateTestDirectoryBlock(prev.DBlock)
-	answer.DBlock.SetDBEntries(dbEntries)
-
-	return answer
+	return ecEntries
 }
 
 func CreateEmptyTestDatabaseOverlay() *databaseOverlay.Overlay {
@@ -281,7 +308,46 @@ func CreateTestEntryCreditBlock(prev interfaces.IEntryCreditBlock) interfaces.IE
 }
 
 func CreateTestFactoidBlock(prev interfaces.IFBlock) interfaces.IFBlock {
-	return CreateTestFactoidBlockWithCoinbase(prev, NewFactoidAddress(0), DefaultCoinbaseAmount)
+	fBlock := CreateTestFactoidBlockWithCoinbase(prev, NewFactoidAddress(0), DefaultCoinbaseAmount)
+
+	ecTx := new(factoid.Transaction)
+	ecTx.AddInput(NewFactoidAddress(0), fBlock.GetExchRate()*100)
+	ecTx.AddECOutput(NewECAddress(0), fBlock.GetExchRate()*100)
+
+	SignFactoidTransaction(0, ecTx)
+
+	err := fBlock.AddTransaction(ecTx)
+	if err != nil {
+		panic(err)
+	}
+
+	return fBlock
+}
+
+func SignFactoidTransaction(n uint64, tx interfaces.ITransaction) {
+	tx.AddAuthorization(NewFactoidRCDAddress(n))
+	data, err := tx.MarshalBinarySig()
+	if err != nil {
+		panic(err)
+	}
+
+	sig := factoid.NewSingleSignatureBlock(NewPrivKey(n), data)
+
+	str, err := sig.JSONString()
+
+	fmt.Printf("sig, err - %v, %v\n", str, err)
+
+	tx.SetSignatureBlock(0, sig)
+
+	err = tx.Validate(1)
+	if err != nil {
+		panic(err)
+	}
+
+	err = tx.ValidateSignatures()
+	if err != nil {
+		panic(err)
+	}
 }
 
 func CreateTestFactoidBlockWithCoinbase(prev interfaces.IFBlock, address interfaces.IAddress, amount uint64) interfaces.IFBlock {

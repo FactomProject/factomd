@@ -68,6 +68,15 @@ func StringToByteSlice32(s string) *ByteSlice32 {
 	return bs
 }
 
+func Byte32ToByteSlice32(b [32]byte) *ByteSlice32 {
+	bs := new(ByteSlice32)
+	err := bs.UnmarshalBinary(b[:])
+	if err != nil {
+		return nil
+	}
+	return bs
+}
+
 func (bs *ByteSlice32) MarshalBinary() ([]byte, error) {
 	return bs[:], nil
 }
