@@ -5,13 +5,29 @@
 package btcd
 
 import (
-	"github.com/FactomProject/factomd/btcd/blockchain"
 	"github.com/FactomProject/factomd/btcd/wire"
 	. "github.com/FactomProject/factomd/common/constants"
 	//"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
 )
+
+// BlockLocator is used to help locate a specific block.  The algorithm for
+// building the block locator is to add the hashes in reverse order until
+// the genesis block is reached.  In order to keep the list of locator hashes
+// to a reasonable number of entries, first the most recent previous 10 block
+// hashes are added, then the step is doubled each loop iteration to
+// exponentially decrease the number of hashes as a function of the distance
+// from the block being located.
+//
+// For example, assume you have a block chain with a side chain as depicted
+// below:
+// 	genesis -> 1 -> 2 -> ... -> 15 -> 16  -> 17  -> 18
+// 	                              \-> 16a -> 17a
+//
+// The block locator for block 17a would be the hashes of blocks:
+// [17a 16a 15 14 13 12 11 10 9 8 6 2 genesis]
+type BlockLocator []interfaces.IHash
 
 // DirBlockLocatorFromHash returns a block locator for the passed block hash.
 // See BlockLocator for details on the algotirhm used to create a block locator.
@@ -23,9 +39,9 @@ import (
 //    therefore the block locator will only consist of the genesis hash
 //  - If the passed hash is not currently known, the block locator will only
 //    consist of the passed hash
-func DirBlockLocatorFromHash(hash interfaces.IHash) blockchain.BlockLocator {
+func DirBlockLocatorFromHash(hash interfaces.IHash) BlockLocator {
 	// The locator contains the requested hash at the very least.
-	locator := make(blockchain.BlockLocator, 0, wire.MaxBlockLocatorsPerMsg)
+	locator := make(BlockLocator, 0, wire.MaxBlockLocatorsPerMsg)
 	locator = append(locator, hash)
 
 	genesisHash, _ := HexToHash(GENESIS_DIR_BLOCK_HASH)
@@ -76,7 +92,7 @@ func DirBlockLocatorFromHash(hash interfaces.IHash) blockchain.BlockLocator {
 
 // LatestDirBlockLocator returns a block locator for the latest known tip of the
 // main (best) chain.
-func LatestDirBlockLocator(state interfaces.IState) (blockchain.BlockLocator, error) {
+func LatestDirBlockLocator(state interfaces.IState) (BlockLocator, error) {
 	latestDirBlockHash := state.GetCurrentDirectoryBlock().GetHash()		//, _, _ := db.FetchBlockHeightCache()
 
 	if latestDirBlockHash == nil {

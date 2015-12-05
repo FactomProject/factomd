@@ -49,28 +49,10 @@ type invMsg struct {
 	peer *peer
 }
 
-/*
-// headersMsg packages a bitcoin headers message and the peer it came from
-// together so the block handler has access to that information.
-type headersMsg struct {
-	headers *wire.MsgHeaders
-	peer    *peer
-}
-*/
-
 // donePeerMsg signifies a newly disconnected peer to the block handler.
 type donePeerMsg struct {
 	peer *peer
 }
-
-/*
-// txMsg packages a bitcoin tx message and the peer it came from together
-// so the block handler has access to that information.
-type txMsg struct {
-	tx   *btcutil.Tx
-	peer *peer
-}
-*/
 
 // getSyncPeerMsg is a message type to be sent across the message channel for
 // retrieving the current sync peer.
@@ -681,32 +663,6 @@ func newBlockManager(s *server) (*blockManager, error) {
 		//headerList:      list.New(),
 		quit: make(chan struct{}),
 	}
-	/*
-		bm.progressLogger = newBlockProgressLogger("Processed", bmgrLog)
-		bm.blockChain = blockchain.New(s.db, s.chainParams, bm.handleNotifyMsg)
-		bm.blockChain.DisableCheckpoints(cfg.DisableCheckpoints)
-		if !cfg.DisableCheckpoints {
-			// Initialize the next checkpoint based on the current height.
-			bm.nextCheckpoint = bm.findNextHeaderCheckpoint(height)
-			if bm.nextCheckpoint != nil {
-				bm.resetHeaderState(newestHash, height)
-			}
-		} else {
-			bmgrLog.Info("Checkpoints are disabled")
-		}
-
-		bmgrLog.Infof("Generating initial block node index.  This may " +
-			"take a while...")
-		err = bm.blockChain.GenerateInitialIndex()
-		if err != nil {
-			return nil, err
-		}
-		bmgrLog.Infof("Block index generation complete")
-
-		// Initialize the chain state now that the intial block node index has
-		// been generated.
-		bm.updateChainState(newestHash, height)
-	*/
 
 	return &bm, nil
 }

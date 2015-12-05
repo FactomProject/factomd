@@ -7,7 +7,6 @@ package btcd
 import (
 	"encoding/hex"
 
-	"github.com/FactomProject/factomd/btcd/blockchain"
 	"github.com/FactomProject/factomd/btcd/wire"
 	. "github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/adminBlock"
@@ -490,7 +489,7 @@ func (p *peer) pushDirBlockMsg(sha interfaces.IHash, doneChan, waitChan chan str
 
 // PushGetDirBlocksMsg sends a getdirblocks message for the provided block locator
 // and stop hash.  It will ignore back-to-back duplicate requests.
-func (p *peer) PushGetDirBlocksMsg(locator blockchain.BlockLocator, stopHash interfaces.IHash) error {
+func (p *peer) PushGetDirBlocksMsg(locator BlockLocator, stopHash interfaces.IHash) error {
 
 	// Extract the begin hash from the block locator, if one was specified,
 	// to use for filtering duplicate getblocks requests.
