@@ -5,11 +5,7 @@
 package chaincfg
 
 import (
-	"errors"
-
 	"github.com/FactomProject/factomd/btcd/wire"
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/primitives"
 )
 
 // Params defines a Bitcoin network by its parameters.  These parameters may be

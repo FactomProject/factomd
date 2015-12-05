@@ -708,11 +708,8 @@ func (p *peer) handleAddrMsg(msg *wire.MsgAddr) {
 // message.  For older clients, it does nothing and anything other than failure
 // is considered a successful ping.
 func (p *peer) handlePingMsg(msg *wire.MsgPing) {
-	// Only Reply with pong is message comes from a new enough client.
-	if p.ProtocolVersion() > wire.BIP0031Version {
-		// Include nonce from ping so pong can be identified.
-		p.QueueMessage(wire.NewMsgPong(msg.Nonce), nil)
-	}
+	// Include nonce from ping so pong can be identified.
+	p.QueueMessage(wire.NewMsgPong(msg.Nonce), nil)
 }
 
 // handlePongMsg is invoked when a peer received a pong bitcoin message.
@@ -731,8 +728,7 @@ func (p *peer) handlePongMsg(msg *wire.MsgPong) {
 	// without large usage of the ping rpc call since we ping
 	// infrequently enough that if they overlap we would have timed out
 	// the peer.
-	if p.protocolVersion > wire.BIP0031Version &&
-		p.lastPingNonce != 0 && msg.Nonce == p.lastPingNonce {
+	if p.lastPingNonce != 0 && msg.Nonce == p.lastPingNonce {
 		p.lastPingMicros = time.Now().Sub(p.lastPingTime).Nanoseconds()
 		p.lastPingMicros /= 1000 // convert to usec.
 		p.lastPingNonce = 0
@@ -1275,10 +1271,8 @@ out:
 				// expects pong
 				// Also set up statistics.
 				p.StatsMtx.Lock()
-				if p.protocolVersion > wire.BIP0031Version {
-					p.lastPingNonce = m.Nonce
-					p.lastPingTime = time.Now()
-				}
+				p.lastPingNonce = m.Nonce
+				p.lastPingTime = time.Now()
 				p.StatsMtx.Unlock()
 			//case *wire.MsgMemPool:
 			// Should return an inv.
