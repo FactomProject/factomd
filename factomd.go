@@ -6,7 +6,9 @@ package main
 
 import (
 	"fmt"
+	"github.com/FactomProject/factomd/btcd"
 	"github.com/FactomProject/factomd/log"
+	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/wsapi"
 	"os"
@@ -41,21 +43,42 @@ func main() {
 	state := new(state.State)
 	state.Init(cfgFilename)
 
-	state.LogInfo("Starting server")
+	btcd.AddInterruptHandler(func() {
+		log.Printf("Gracefully shutting down the database...")
+		state.GetDB().(interfaces.IDatabase).Close()		//db.RollbackClose()
+	})
 
+	log.Print("Starting server")
+	server, _ := btcd.NewServer(state)
+
+	btcd.AddInterruptHandler(func() {
+		log.Printf("Gracefully shutting down the server...")
+		server.Stop()
+		server.WaitForShutdown()
+	})
+	server.Start()
+
+	//factomForkInit(server)
 	go NetworkProcessor(state)
 	go Timer(state)
 	go Validator(state)
 	go Leader(state)
 	go Follower(state)
-
 	go wsapi.Start(state)
 
-	for {
-		time.Sleep(time.Duration(5) * time.Second)
-	}
+	shutdownChannel := make(chan struct{})
+	go func() {
+		server.WaitForShutdown()
+		log.Printf("Server shutdown complete")
+		shutdownChannel <- struct{}{}
+	}()
 
+	// Wait for shutdown signal from either a graceful server stop or from
+	// the interrupt handler.
+	<-shutdownChannel
+	log.Printf("Shutdown complete")
 }
+
 
 func isCompilerVersionOK() bool {
 	goodenough := false
