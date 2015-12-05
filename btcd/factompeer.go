@@ -7,11 +7,12 @@ package btcd
 import (
 	"encoding/hex"
 
-	"github.com/FactomProject/factomd/btcd/blockchain"
 	"github.com/FactomProject/factomd/btcd/wire"
-	"github.com/FactomProject/factomd/common/constants"
+	. "github.com/FactomProject/factomd/common/constants"
+	. "github.com/FactomProject/factomd/common/adminBlock"
 	. "github.com/FactomProject/factomd/common/directoryBlock"
 	. "github.com/FactomProject/factomd/common/entryBlock"
+	. "github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/davecgh/go-spew/spew"
@@ -137,7 +138,7 @@ func (p *peer) handleGetEntryDataMsg(msg *wire.MsgGetEntryData) {
 			return
 		}
 
-		for _, ebEntry := range blk.Body.EBEntries {
+		for _, ebEntry := range blk.GetBody().GetEBEntries() {
 
 			//Skip the minute markers
 			if ebEntry.IsMinuteMarker() {
@@ -216,21 +217,21 @@ func (p *peer) handleGetNonDirDataMsg(msg *wire.MsgGetNonDirData) {
 			return
 		}
 
-		for _, dbEntry := range blk.DBEntries {
+		for _, dbEntry := range blk.GetDBEntries() {
 
 			var err error
-			switch dbEntry.ChainID.String() {
-			case hex.EncodeToString(constants.EC_CHAINID[:]):
-				err = p.pushECBlockMsg(dbEntry.KeyMR, c, waitChan)
+			switch dbEntry.GetChainID().String() {
+			case hex.EncodeToString(EC_CHAINID[:]):
+				err = p.pushECBlockMsg(dbEntry.GetKeyMR(), c, waitChan)
 
 			case hex.EncodeToString(ADMIN_CHAINID[:]):
-				err = p.pushABlockMsg(dbEntry.KeyMR, c, waitChan)
+				err = p.pushABlockMsg(dbEntry.GetKeyMR(), c, waitChan)
 
 			case wire.FChainID.String():
-				err = p.pushFBlockMsg(dbEntry.KeyMR, c, waitChan)
+				err = p.pushFBlockMsg(dbEntry.GetKeyMR(), c, waitChan)
 
 			default:
-				err = p.pushEBlockMsg(dbEntry.KeyMR, c, waitChan)
+				err = p.pushEBlockMsg(dbEntry.GetKeyMR(), c, waitChan)
 				//continue
 			}
 			if err != nil {
@@ -344,9 +345,9 @@ func (p *peer) handleGetDirBlocksMsg(msg *wire.MsgGetDirBlocks) {
 	// Attempt to find the ending index of the stop hash if specified.
 
 	//TODO: replace with -1
-	endIdx := database.AllShas //factom db
+	var endIdx int64 = -1		//database.AllShas
 	if !msg.HashStop.IsSameAs(zeroHash) {
-		height, err := db.FetchBlockHeightBySha(msg.HashStop)
+		height, err := db.FetchDBlockHeightByKeyMR(msg.HashStop)	//FetchBlockHeightBySha(msg.HashStop)
 		if err == nil {
 			endIdx = height + 1
 		}
@@ -359,7 +360,7 @@ func (p *peer) handleGetDirBlocksMsg(msg *wire.MsgGetDirBlocks) {
 	// This mirrors the behavior in the reference implementation.
 	startIdx := int64(1)
 	for _, hash := range msg.BlockLocatorHashes {
-		height, err := db.FetchBlockHeightBySha(hash)
+		height, err := db.FetchDBlockHeightByKeyMR(hash)
 		if err == nil {
 			// Start with the next hash since we know this one.
 			startIdx = height + 1
@@ -386,7 +387,7 @@ func (p *peer) handleGetDirBlocksMsg(msg *wire.MsgGetDirBlocks) {
 	invMsg := wire.NewMsgDirInv()
 	for start := startIdx; start < endIdx; {
 		// Fetch the inventory from the block database.
-		hashList, err := db.FetchHeightRange(start, endIdx)
+		hashList, err := db.FetchDBlockHeightRange(start, endIdx)
 		if err != nil {
 			peerLog.Warnf("Dir Block lookup failed: %v", err)
 			return
@@ -452,7 +453,7 @@ func (p *peer) pushDirBlockMsg(sha interfaces.IHash, doneChan, waitChan chan str
 		dc = doneChan
 	}
 	msg := wire.NewMsgDirBlock()
-	msg.DBlk = blk
+	msg.DBlk = blk.(*DirectoryBlock)
 	p.QueueMessage(msg, dc) //blk.MsgBlock(), dc)
 
 	// When the peer requests the final block that was advertised in
@@ -488,7 +489,7 @@ func (p *peer) pushDirBlockMsg(sha interfaces.IHash, doneChan, waitChan chan str
 
 // PushGetDirBlocksMsg sends a getdirblocks message for the provided block locator
 // and stop hash.  It will ignore back-to-back duplicate requests.
-func (p *peer) PushGetDirBlocksMsg(locator blockchain.BlockLocator, stopHash interfaces.IHash) error {
+func (p *peer) PushGetDirBlocksMsg(locator BlockLocator, stopHash interfaces.IHash) error {
 
 	// Extract the begin hash from the block locator, if one was specified,
 	// to use for filtering duplicate getblocks requests.
@@ -602,7 +603,7 @@ func (p *peer) pushABlockMsg(commonhash interfaces.IHash, doneChan, waitChan cha
 	}
 
 	msg := wire.NewMsgABlock()
-	msg.ABlk = blk
+	msg.ABlk = blk.(*AdminBlock)
 	p.QueueMessage(msg, doneChan) //blk.MsgBlock(), dc)
 	return nil
 }
@@ -628,7 +629,7 @@ func (p *peer) pushECBlockMsg(commonhash interfaces.IHash, doneChan, waitChan ch
 	}
 
 	msg := wire.NewMsgECBlock()
-	msg.ECBlock = blk
+	msg.ECBlock = blk.(*ECBlock)
 	p.QueueMessage(msg, doneChan) //blk.MsgBlock(), dc)
 	return nil
 }
@@ -636,7 +637,7 @@ func (p *peer) pushECBlockMsg(commonhash interfaces.IHash, doneChan, waitChan ch
 // pushEBlockMsg sends a entry block message for the provided block hash to the
 // connected peer.  An error is returned if the block hash is not known.
 func (p *peer) pushEBlockMsg(commonhash interfaces.IHash, doneChan, waitChan chan struct{}) error {
-	blk, err := db.FetchEBlockByMR(commonhash)
+	blk, err := db.FetchEBlockByKeyMR(commonhash)
 	if err != nil {
 		if doneChan != nil || blk == nil {
 			peerLog.Tracef("Unable to fetch requested Entry block sha %v: %v",
@@ -652,7 +653,7 @@ func (p *peer) pushEBlockMsg(commonhash interfaces.IHash, doneChan, waitChan cha
 	}
 
 	msg := wire.NewMsgEBlock()
-	msg.EBlk = blk
+	msg.EBlk = blk.(*EBlock)
 	p.QueueMessage(msg, doneChan) //blk.MsgBlock(), dc)
 	return nil
 }
@@ -676,7 +677,7 @@ func (p *peer) pushEntryMsg(commonhash interfaces.IHash, doneChan, waitChan chan
 	}
 
 	msg := wire.NewMsgEntry()
-	msg.Entry = entry
+	msg.Entry = entry.(*Entry)
 	p.QueueMessage(msg, doneChan) //blk.MsgBlock(), dc)
 	return nil
 }

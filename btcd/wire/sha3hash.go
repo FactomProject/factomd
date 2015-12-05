@@ -15,7 +15,7 @@ package wire
 import (
 	"bytes"
 	"encoding/hex"
-	//	"encoding/json"
+	//"encoding/json"
 	"fmt"
 
 	//	"github.com/FactomProject/golangcrypto/sha3"
