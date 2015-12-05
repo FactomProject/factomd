@@ -39,7 +39,7 @@ type BlockLocator []interfaces.IHash
 //    therefore the block locator will only consist of the genesis hash
 //  - If the passed hash is not currently known, the block locator will only
 //    consist of the passed hash
-func DirBlockLocatorFromHash(hash interfaces.IHash) BlockLocator {
+func DirBlockLocatorFromHash(hash interfaces.IHash, state interfaces.IState) BlockLocator {
 	// The locator contains the requested hash at the very least.
 	locator := make(BlockLocator, 0, wire.MaxBlockLocatorsPerMsg)
 	locator = append(locator, hash)
@@ -59,7 +59,7 @@ func DirBlockLocatorFromHash(hash interfaces.IHash) BlockLocator {
 	// in the BlockLocator comment and make sure to leave room for the
 	// final genesis hash.
 
-	dblock, _ := db.FetchDBlockByHash(hash)
+	dblock, _ := state.GetDB().FetchDBlockByHash(hash)
 	//dblock := dblock0.(directoryBlock.DirectoryBlock)
 	if dblock != nil {
 		blockHeight = int64(dblock.GetHeader().GetDBHeight())
@@ -76,7 +76,7 @@ func DirBlockLocatorFromHash(hash interfaces.IHash) BlockLocator {
 			break
 		}
 
-		blk, _ := db.FetchDBlockByHeight(uint32(blockHeight))
+		blk, _ := state.GetDB().FetchDBlockByHeight(uint32(blockHeight))
 		if blk == nil || blk.GetHash() == nil {
 			//blk.DBHash, _ = CreateHash(blk)
 			continue
@@ -100,5 +100,5 @@ func LatestDirBlockLocator(state interfaces.IState) (BlockLocator, error) {
 	}
 
 	// The best chain is set, so use its hash.
-	return DirBlockLocatorFromHash(latestDirBlockHash), nil
+	return DirBlockLocatorFromHash(latestDirBlockHash, state), nil
 }

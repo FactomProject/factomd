@@ -1280,6 +1280,8 @@ func NewServer(state interfaces.IState) (*server, error) {
 		return nil, err
 	}
 	cfg = tcfg
+	// tweak some config options
+	cfg.DisableCheckpoints = true
 	defer backendLog.Flush()
 
 	// Show version at startup.

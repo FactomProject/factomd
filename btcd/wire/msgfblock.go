@@ -12,14 +12,14 @@ import (
 
 // factoid block
 type MsgFBlock struct {
-	SC interfaces.IFBlock
+	FBlck interfaces.IFBlock
 }
 
 // BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
 // This is part of the Message interface implementation.
 func (msg *MsgFBlock) BtcEncode(w io.Writer, pver uint32) error {
 
-	bytes, err := msg.SC.MarshalBinary()
+	bytes, err := msg.FBlck.MarshalBinary()
 	if err != nil {
 		return err
 	}
@@ -41,8 +41,8 @@ func (msg *MsgFBlock) BtcDecode(r io.Reader, pver uint32) error {
 		return err
 	}
 
-	msg.SC = new(block.FBlock)
-	err = msg.SC.UnmarshalBinary(bytes)
+	msg.FBlck = new(block.FBlock)
+	err = msg.FBlck.UnmarshalBinary(bytes)
 	if err != nil {
 		return err
 	}

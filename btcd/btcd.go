@@ -32,6 +32,8 @@ func btcdMain(serverChan chan<- *server, state interfaces.IState) error {
 		return err
 	}
 	cfg = tcfg
+	// tweak some config options
+	cfg.DisableCheckpoints = true
 	defer backendLog.Flush()
 
 	// Show version at startup.
