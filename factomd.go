@@ -7,6 +7,7 @@ package main
 import (
 	"fmt"
 	"github.com/FactomProject/factomd/btcd"
+	"github.com/FactomProject/factomd/btcd/limits"
 	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/state"
@@ -42,6 +43,11 @@ func main() {
 
 	state := new(state.State)
 	state.Init(cfgFilename)
+
+	runtime.GOMAXPROCS(runtime.NumCPU())
+	if err := limits.SetLimits(); err != nil {
+		os.Exit(1)
+	}
 
 	btcd.AddInterruptHandler(func() {
 		log.Printf("Gracefully shutting down the database...")
