@@ -10,8 +10,10 @@ import (
 	"github.com/FactomProject/factomd/btcd/blockchain"
 	"github.com/FactomProject/factomd/btcd/wire"
 	. "github.com/FactomProject/factomd/common/constants"
+	. "github.com/FactomProject/factomd/common/adminBlock"
 	. "github.com/FactomProject/factomd/common/directoryBlock"
 	. "github.com/FactomProject/factomd/common/entryBlock"
+	. "github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/davecgh/go-spew/spew"
@@ -452,7 +454,7 @@ func (p *peer) pushDirBlockMsg(sha interfaces.IHash, doneChan, waitChan chan str
 		dc = doneChan
 	}
 	msg := wire.NewMsgDirBlock()
-	msg.DBlk = DirectoryBlock.(blk)
+	msg.DBlk = blk.(*DirectoryBlock)
 	p.QueueMessage(msg, dc) //blk.MsgBlock(), dc)
 
 	// When the peer requests the final block that was advertised in
@@ -602,7 +604,7 @@ func (p *peer) pushABlockMsg(commonhash interfaces.IHash, doneChan, waitChan cha
 	}
 
 	msg := wire.NewMsgABlock()
-	msg.ABlk = blk
+	msg.ABlk = blk.(*AdminBlock)
 	p.QueueMessage(msg, doneChan) //blk.MsgBlock(), dc)
 	return nil
 }
@@ -628,7 +630,7 @@ func (p *peer) pushECBlockMsg(commonhash interfaces.IHash, doneChan, waitChan ch
 	}
 
 	msg := wire.NewMsgECBlock()
-	msg.ECBlock = blk
+	msg.ECBlock = blk.(*ECBlock)
 	p.QueueMessage(msg, doneChan) //blk.MsgBlock(), dc)
 	return nil
 }
@@ -652,7 +654,7 @@ func (p *peer) pushEBlockMsg(commonhash interfaces.IHash, doneChan, waitChan cha
 	}
 
 	msg := wire.NewMsgEBlock()
-	msg.EBlk = blk
+	msg.EBlk = blk.(*EBlock)
 	p.QueueMessage(msg, doneChan) //blk.MsgBlock(), dc)
 	return nil
 }
@@ -676,7 +678,7 @@ func (p *peer) pushEntryMsg(commonhash interfaces.IHash, doneChan, waitChan chan
 	}
 
 	msg := wire.NewMsgEntry()
-	msg.Entry = entry
+	msg.Entry = entry.(*Entry)
 	p.QueueMessage(msg, doneChan) //blk.MsgBlock(), dc)
 	return nil
 }

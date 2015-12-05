@@ -7,13 +7,13 @@ package wire
 import (
 	"io"
 
-	"github.com/FactomProject/FactomCode/common"
+	. "github.com/FactomProject/factomd/common/entryBlock"
 )
 
 // MsgEntry implements the Message interface and represents a factom
 // Entry message.  It is used by client to reveal the entry.
 type MsgEntry struct {
-	Entry *common.Entry
+	Entry *Entry
 }
 
 // BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
@@ -41,7 +41,7 @@ func (msg *MsgEntry) BtcDecode(r io.Reader, pver uint32) error {
 		return err
 	}
 
-	msg.Entry = new(common.Entry)
+	msg.Entry = new(Entry)
 	err = msg.Entry.UnmarshalBinary(bytes)
 	if err != nil {
 		return err

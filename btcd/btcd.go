@@ -5,15 +5,6 @@
 package btcd
 
 import (
-	//	"errors"
-	//	"fmt"
-	//"net"
-	//"net/http"
-	_ "net/http/pprof"
-	//"os"
-	//	"runtime"
-	//"runtime/pprof"
-
 	"github.com/FactomProject/factomd/common/interfaces"
 )
 
@@ -49,7 +40,7 @@ func btcdMain(serverChan chan<- *server, state interfaces.IState) error {
 	// Ensure the database is sync'd and closed on Ctrl+C.
 	AddInterruptHandler(func() {
 		btcdLog.Infof("Gracefully shutting down the database...")
-		state.GetDB().close()		//db.RollbackClose()
+		state.GetDB().(interfaces.IDatabase).Close()		//db.RollbackClose()
 	})
 
 	// Create server and start it.
