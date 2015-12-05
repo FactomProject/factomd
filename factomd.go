@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/FactomProject/factomd/btcd"
 	"github.com/FactomProject/factomd/log"
+	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/wsapi"
 	"os"
@@ -42,15 +43,15 @@ func main() {
 	state := new(state.State)
 	state.Init(cfgFilename)
 
-	//Todo: gracefully shutting down the database here
-
-	server, err := btcd.NewServer(state)
-	if err != nil {
-		log.Errorf("Unable to start server on %v: %v",	cfg.Listeners, err)
-		return err
-	}
 	btcd.AddInterruptHandler(func() {
-		log.Infof("Gracefully shutting down the server...")
+		log.Printf("Gracefully shutting down the database...")
+		state.GetDB().(interfaces.IDatabase).Close()		//db.RollbackClose()
+	})
+
+	server, _ := btcd.NewServer(state)
+
+	btcd.AddInterruptHandler(func() {
+		log.Printf("Gracefully shutting down the server...")
 		server.Stop()
 		server.WaitForShutdown()
 	})
@@ -64,17 +65,17 @@ func main() {
 	go Follower(state)
 	go wsapi.Start(state)
 
-	shutdownChannel = make(chan struct{})
+	shutdownChannel := make(chan struct{})
 	go func() {
 		server.WaitForShutdown()
-		log.Infof("Server shutdown complete")
+		log.Printf("Server shutdown complete")
 		shutdownChannel <- struct{}{}
 	}()
 
 	// Wait for shutdown signal from either a graceful server stop or from
 	// the interrupt handler.
 	<-shutdownChannel
-	log.Info("Shutdown complete")
+	log.Printf("Shutdown complete")
 }
 
 

@@ -1265,6 +1265,9 @@ func NewServer(state interfaces.IState) (*server, error) {
 	btcdLog.Infof("Version %s", version())
 
 	server, err := newServer(cfg.Listeners, activeNetParams.Params, state)
+	if err != nil {
+		btcdLog.Errorf("Unable to start server on %v: %v",	cfg.Listeners, err)
+	}
 	return server, err
 }
 
