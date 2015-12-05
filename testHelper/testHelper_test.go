@@ -13,6 +13,10 @@ func TestTest(t *testing.T) {
 */
 
 func Test(t *testing.T) {
-	ecBlock := CreateTestEntryCreditBlock(nil)
-	t.Errorf("%v", ecBlock.String())
+	set := CreateTestBlockSet(nil)
+	str, _ := set.ECBlock.JSONString()
+	t.Errorf("set ECBlock - %v", str)
+	str, _ = set.FBlock.JSONString()
+	t.Errorf("set FBlock - %v", str)
+	t.Errorf("set Height - %v", set.Height)
 }
