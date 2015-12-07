@@ -98,7 +98,7 @@ type updatePeerHeightsMsg struct {
 
 // server provides a bitcoin server for handling communications to and from
 // bitcoin peers.
-type server struct {
+type Server struct {
 	nonce         uint64
 	listeners     []net.Listener
 	chainParams   *Params
@@ -161,7 +161,7 @@ func randomUint16Number(max uint16) uint16 {
 
 // AddRebroadcastInventory adds 'iv' to the list of inventories to be
 // rebroadcasted at random intervals until they show up in a block.
-func (s *server) AddRebroadcastInventory(iv *wire.InvVect, data interface{}) {
+func (s *Server) AddRebroadcastInventory(iv *wire.InvVect, data interface{}) {
 	// Ignore if shutting down.
 	if atomic.LoadInt32(&s.shutdown) != 0 {
 		return
@@ -172,7 +172,7 @@ func (s *server) AddRebroadcastInventory(iv *wire.InvVect, data interface{}) {
 
 // RemoveRebroadcastInventory removes 'iv' from the list of items to be
 // rebroadcasted if present.
-func (s *server) RemoveRebroadcastInventory(iv *wire.InvVect) {
+func (s *Server) RemoveRebroadcastInventory(iv *wire.InvVect) {
 	// Ignore if shutting down.
 	if atomic.LoadInt32(&s.shutdown) != 0 {
 		return
@@ -216,7 +216,7 @@ func (p *peerState) forAllPeers(closure func(p *peer)) {
 
 // handleUpdatePeerHeight updates the heights of all peers who were known to
 // announce a block we recently accepted.
-func (s *server) handleUpdatePeerHeights(state *peerState, umsg updatePeerHeightsMsg) {
+func (s *Server) handleUpdatePeerHeights(state *peerState, umsg updatePeerHeightsMsg) {
 	state.forAllPeers(func(p *peer) {
 		// The origin peer should already have the updated height.
 		if p == umsg.originPeer {
@@ -247,7 +247,7 @@ func (s *server) handleUpdatePeerHeights(state *peerState, umsg updatePeerHeight
 
 // handleAddPeerMsg deals with adding new peers.  It is invoked from the
 // peerHandler goroutine.
-func (s *server) handleAddPeerMsg(state *peerState, p *peer) bool {
+func (s *Server) handleAddPeerMsg(state *peerState, p *peer) bool {
 	if p == nil {
 		return false
 	}
@@ -310,7 +310,7 @@ func (s *server) handleAddPeerMsg(state *peerState, p *peer) bool {
 
 // handleDonePeerMsg deals with peers that have signalled they are done.  It is
 // invoked from the peerHandler goroutine.
-func (s *server) handleDonePeerMsg(state *peerState, p *peer) {
+func (s *Server) handleDonePeerMsg(state *peerState, p *peer) {
 	var list map[*peer]struct{}
 	if p.persistent {
 		list = state.persistentPeers
@@ -343,7 +343,7 @@ func (s *server) handleDonePeerMsg(state *peerState, p *peer) {
 
 // handleBanPeerMsg deals with banning peers.  It is invoked from the
 // peerHandler goroutine.
-func (s *server) handleBanPeerMsg(state *peerState, p *peer) {
+func (s *Server) handleBanPeerMsg(state *peerState, p *peer) {
 	host, _, err := net.SplitHostPort(p.addr)
 	if err != nil {
 		srvrLog.Debugf("can't split ban peer %s %v", p.addr, err)
@@ -358,7 +358,7 @@ func (s *server) handleBanPeerMsg(state *peerState, p *peer) {
 
 // handleRelayInvMsg deals with relaying inventory to peers that are not already
 // known to have it.  It is invoked from the peerHandler goroutine.
-func (s *server) handleRelayInvMsg(state *peerState, msg relayMsg) {
+func (s *Server) handleRelayInvMsg(state *peerState, msg relayMsg) {
 	state.forAllPeers(func(p *peer) {
 		if !p.Connected() {
 			return
@@ -398,7 +398,7 @@ func (s *server) handleRelayInvMsg(state *peerState, msg relayMsg) {
 
 // handleBroadcastMsg deals with broadcasting messages to peers.  It is invoked
 // from the peerHandler goroutine.
-func (s *server) handleBroadcastMsg(state *peerState, bmsg *broadcastMsg) {
+func (s *Server) handleBroadcastMsg(state *peerState, bmsg *broadcastMsg) {
 	state.forAllPeers(func(p *peer) {
 		excluded := false
 		for _, ep := range bmsg.excludePeers {
@@ -446,7 +446,7 @@ type removeNodeMsg struct {
 
 // handleQuery is the central handler for all queries and commands from other
 // goroutines related to peer state.
-func (s *server) handleQuery(querymsg interface{}, state *peerState) {
+func (s *Server) handleQuery(querymsg interface{}, state *peerState) {
 	switch msg := querymsg.(type) {
 	case getConnCountMsg:
 		nconnected := int32(0)
@@ -597,7 +597,7 @@ func disconnectPeer(peerList map[*peer]struct{}, compareFunc func(*peer) bool, w
 
 // listenHandler is the main listener which accepts incoming connections for the
 // server.  It must be run as a goroutine.
-func (s *server) listenHandler(listener net.Listener) {
+func (s *Server) listenHandler(listener net.Listener) {
 	srvrLog.Infof("Server listening on %s", listener.Addr())
 	for atomic.LoadInt32(&s.shutdown) == 0 {
 		conn, err := listener.Accept()
@@ -616,7 +616,7 @@ func (s *server) listenHandler(listener net.Listener) {
 }
 
 // seedFromDNS uses DNS seeding to populate the address manager with peers.
-func (s *server) seedFromDNS() {
+func (s *Server) seedFromDNS() {
 	// Nothing to do if DNS seeding is disabled.
 	if cfg.DisableDNSSeed {
 		return
@@ -669,7 +669,7 @@ func (s *server) seedFromDNS() {
 // peerHandler is used to handle peer operations such as adding and removing
 // peers to and from the server, banning peers, and broadcasting messages to
 // peers.  It must be run in a goroutine.
-func (s *server) peerHandler() {
+func (s *Server) peerHandler() {
 	// Start the address manager and block manager, both of which are needed
 	// by peers.  This is done here since their lifecycle is closely tied
 	// to this handler and rather than adding more channels to sychronize
@@ -834,24 +834,24 @@ out:
 }
 
 // AddPeer adds a new peer that has already been connected to the server.
-func (s *server) AddPeer(p *peer) {
+func (s *Server) AddPeer(p *peer) {
 	s.newPeers <- p
 }
 
 // BanPeer bans a peer that has already been connected to the server by ip.
-func (s *server) BanPeer(p *peer) {
+func (s *Server) BanPeer(p *peer) {
 	s.banPeers <- p
 }
 
 // RelayInventory relays the passed inventory to all connected peers that are
 // not already known to have it.
-func (s *server) RelayInventory(invVect *wire.InvVect, data interface{}) {
+func (s *Server) RelayInventory(invVect *wire.InvVect, data interface{}) {
 	s.relayInv <- relayMsg{invVect: invVect, data: data}
 }
 
 // BroadcastMessage sends msg to all peers currently connected to the server
 // except those in the passed peers to exclude.
-func (s *server) BroadcastMessage(msg wire.Message, exclPeers ...*peer) {
+func (s *Server) BroadcastMessage(msg wire.Message, exclPeers ...*peer) {
 	// XXX: Need to determine if this is an alert that has already been
 	// broadcast and refrain from broadcasting again.
 	bmsg := broadcastMsg{message: msg, excludePeers: exclPeers}
@@ -859,7 +859,7 @@ func (s *server) BroadcastMessage(msg wire.Message, exclPeers ...*peer) {
 }
 
 // ConnectedCount returns the number of currently connected peers.
-func (s *server) ConnectedCount() int32 {
+func (s *Server) ConnectedCount() int32 {
 	replyChan := make(chan int32)
 
 	s.query <- getConnCountMsg{reply: replyChan}
@@ -869,7 +869,7 @@ func (s *server) ConnectedCount() int32 {
 
 // AddedNodeInfo returns an array of btcjson.GetAddedNodeInfoResult structures
 // describing the persistent (added) nodes.
-func (s *server) AddedNodeInfo() []*peer {
+func (s *Server) AddedNodeInfo() []*peer {
 	replyChan := make(chan []*peer)
 	s.query <- getAddedNodesMsg{reply: replyChan}
 	return <-replyChan
@@ -877,7 +877,7 @@ func (s *server) AddedNodeInfo() []*peer {
 
 // PeerInfo returns an array of PeerInfo structures describing all connected
 // peers.
-func (s *server) PeerInfo() []*GetPeerInfoResult {
+func (s *Server) PeerInfo() []*GetPeerInfoResult {
 	replyChan := make(chan []*GetPeerInfoResult)
 
 	s.query <- getPeerInfoMsg{reply: replyChan}
@@ -888,7 +888,7 @@ func (s *server) PeerInfo() []*GetPeerInfoResult {
 // DisconnectNodeByAddr disconnects a peer by target address. Both outbound and
 // inbound nodes will be searched for the target node. An error message will
 // be returned if the peer was not found.
-func (s *server) DisconnectNodeByAddr(addr string) error {
+func (s *Server) DisconnectNodeByAddr(addr string) error {
 	replyChan := make(chan error)
 
 	s.query <- disconnectNodeMsg{
@@ -902,7 +902,7 @@ func (s *server) DisconnectNodeByAddr(addr string) error {
 // DisconnectNodeByID disconnects a peer by target node id. Both outbound and
 // inbound nodes will be searched for the target node. An error message will be
 // returned if the peer was not found.
-func (s *server) DisconnectNodeById(id int32) error {
+func (s *Server) DisconnectNodeById(id int32) error {
 	replyChan := make(chan error)
 
 	s.query <- disconnectNodeMsg{
@@ -915,7 +915,7 @@ func (s *server) DisconnectNodeById(id int32) error {
 
 // RemoveNodeByAddr removes a peer from the list of persistent peers if
 // present. An error will be returned if the peer was not found.
-func (s *server) RemoveNodeByAddr(addr string) error {
+func (s *Server) RemoveNodeByAddr(addr string) error {
 	replyChan := make(chan error)
 
 	s.query <- removeNodeMsg{
@@ -928,7 +928,7 @@ func (s *server) RemoveNodeByAddr(addr string) error {
 
 // RemoveNodeById removes a peer by node ID from the list of persistent peers
 // if present. An error will be returned if the peer was not found.
-func (s *server) RemoveNodeById(id int32) error {
+func (s *Server) RemoveNodeById(id int32) error {
 	replyChan := make(chan error)
 
 	s.query <- removeNodeMsg{
@@ -942,7 +942,7 @@ func (s *server) RemoveNodeById(id int32) error {
 // ConnectNode adds `addr' as a new outbound peer. If permanent is true then the
 // peer will be persistent and reconnect if the connection is lost.
 // It is an error to call this with an already existing peer.
-func (s *server) ConnectNode(addr string, permanent bool) error {
+func (s *Server) ConnectNode(addr string, permanent bool) error {
 	replyChan := make(chan error)
 
 	s.query <- connectNodeMsg{addr: addr, permanent: permanent, reply: replyChan}
@@ -952,7 +952,7 @@ func (s *server) ConnectNode(addr string, permanent bool) error {
 
 // AddBytesSent adds the passed number of bytes to the total bytes sent counter
 // for the server.  It is safe for concurrent access.
-func (s *server) AddBytesSent(bytesSent uint64) {
+func (s *Server) AddBytesSent(bytesSent uint64) {
 	s.bytesMutex.Lock()
 	defer s.bytesMutex.Unlock()
 
@@ -961,7 +961,7 @@ func (s *server) AddBytesSent(bytesSent uint64) {
 
 // AddBytesReceived adds the passed number of bytes to the total bytes received
 // counter for the server.  It is safe for concurrent access.
-func (s *server) AddBytesReceived(bytesReceived uint64) {
+func (s *Server) AddBytesReceived(bytesReceived uint64) {
 	s.bytesMutex.Lock()
 	defer s.bytesMutex.Unlock()
 
@@ -970,7 +970,7 @@ func (s *server) AddBytesReceived(bytesReceived uint64) {
 
 // NetTotals returns the sum of all bytes received and sent across the network
 // for all peers.  It is safe for concurrent access.
-func (s *server) NetTotals() (uint64, uint64) {
+func (s *Server) NetTotals() (uint64, uint64) {
 	s.bytesMutex.Lock()
 	defer s.bytesMutex.Unlock()
 
@@ -981,7 +981,7 @@ func (s *server) NetTotals() (uint64, uint64) {
 // the latest connected main chain block, or a recognized orphan. These height
 // updates allow us to dynamically refresh peer heights, ensuring sync peer
 // selection has access to the latest block heights for each peer.
-func (s *server) UpdatePeerHeights(latestBlkSha interfaces.IHash, latestHeight int32, updateSource *peer) {
+func (s *Server) UpdatePeerHeights(latestBlkSha interfaces.IHash, latestHeight int32, updateSource *peer) {
 	s.peerHeightsUpdate <- updatePeerHeightsMsg{
 		newSha:     latestBlkSha,
 		newHeight:  latestHeight,
@@ -992,7 +992,7 @@ func (s *server) UpdatePeerHeights(latestBlkSha interfaces.IHash, latestHeight i
 // rebroadcastHandler keeps track of user submitted inventories that we have
 // sent out but have not yet made it into a block. We periodically rebroadcast
 // them in case our peers restarted or otherwise lost track of them.
-func (s *server) rebroadcastHandler() {
+func (s *Server) rebroadcastHandler() {
 	// Wait 5 min before first tx rebroadcast.
 	timer := time.NewTimer(5 * time.Minute)
 	pendingInvs := make(map[wire.InvVect]interface{})
@@ -1048,7 +1048,7 @@ cleanup:
 }
 
 // Start begins accepting connections from peers.
-func (s *server) Start() {
+func (s *Server) Start() {
 	// Already started?
 	if atomic.AddInt32(&s.started, 1) != 1 {
 		return
@@ -1095,7 +1095,7 @@ func (s *server) Start() {
 
 // Stop gracefully shuts down the server by stopping and disconnecting all
 // peers and the main listener.
-func (s *server) Stop() error {
+func (s *Server) Stop() error {
 	// Make sure this only happens once.
 	if atomic.AddInt32(&s.shutdown, 1) != 1 {
 		srvrLog.Infof("Server is already in the process of shutting down")
@@ -1127,14 +1127,14 @@ func (s *server) Stop() error {
 }
 
 // WaitForShutdown blocks until the main listener and peer handlers are stopped.
-func (s *server) WaitForShutdown() {
+func (s *Server) WaitForShutdown() {
 	s.wg.Wait()
 }
 
 // ScheduleShutdown schedules a server shutdown after the specified duration.
 // It also dynamically adjusts how often to warn the server is going down based
 // on remaining duration.
-func (s *server) ScheduleShutdown(duration time.Duration) {
+func (s *Server) ScheduleShutdown(duration time.Duration) {
 	// Don't schedule shutdown more than once.
 	if atomic.AddInt32(&s.shutdownSched, 1) != 1 {
 		return
@@ -1214,7 +1214,7 @@ func parseListeners(addrs []string) ([]string, []string, bool, error) {
 	return ipv4ListenAddrs, ipv6ListenAddrs, haveWildcard, nil
 }
 
-func (s *server) upnpUpdateThread() {
+func (s *Server) upnpUpdateThread() {
 	// Go off immediately to prevent code duplication, thereafter we renew
 	// lease every 15 minutes.
 	timer := time.NewTimer(0 * time.Second)
@@ -1271,7 +1271,7 @@ out:
 // NewServer returns a new btcd server configured to listen on addr for the
 // bitcoin network type specified by chainParams.  Use start to begin accepting
 // connections from peers.
-func NewServer(state interfaces.IState) (*server, error) {
+func NewServer(state interfaces.IState) (*Server, error) {
 	// Todo: combine btcd with factomd config & add commandline support
 	// Load configuration and parse command line.  This function also
 	// initializes logging and configures it accordingly.
@@ -1297,7 +1297,7 @@ func NewServer(state interfaces.IState) (*server, error) {
 // newServer returns a new btcd server configured to listen on addr for the
 // bitcoin network type specified by chainParams.  Use start to begin accepting
 // connections from peers.
-func newServer(listenAddrs []string, chainParams *Params, state interfaces.IState) (*server, error) {
+func newServer(listenAddrs []string, chainParams *Params, state interfaces.IState) (*Server, error) {
 	nonce, err := wire.RandomUint64()
 	if err != nil {
 		return nil, err
@@ -1429,7 +1429,7 @@ func newServer(listenAddrs []string, chainParams *Params, state interfaces.IStat
 		}
 	}
 
-	s := server{
+	s := Server{
 		nonce:                nonce,
 		listeners:            listeners,
 		chainParams:          chainParams,
@@ -1497,6 +1497,6 @@ func dynamicTickDuration(remaining time.Duration) time.Duration {
 	return time.Hour
 }
 
-func (s *server) SyncPeer() *peer {
+func (s *Server) SyncPeer() *peer {
 	return s.blockManager.syncPeer
 }

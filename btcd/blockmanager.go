@@ -117,7 +117,7 @@ func (c *chainState) Best() (interfaces.IHash, int32) {
 // blockManager provides a concurrency safe block manager for handling all
 // incoming blocks.
 type blockManager struct {
-	server   *server
+	server   *Server
 	started  int32
 	shutdown int32
 	//blockChain        *blockchain.BlockChain
@@ -654,7 +654,7 @@ func (b *blockManager) Pause() chan<- struct{} {
 
 // newBlockManager returns a new bitcoin block manager.
 // Use Start to begin processing asynchronous block and inv updates.
-func newBlockManager(s *server) (*blockManager, error) {
+func newBlockManager(s *Server) (*blockManager, error) {
 	//newestHash, height, err := s.db.NewestSha()
 	//if err != nil {
 	//return nil, err

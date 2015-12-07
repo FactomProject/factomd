@@ -34,7 +34,7 @@ var elog *eventlog.Log
 
 // logServiceStartOfDay logs information about btcd when the main server has
 // been started to the Windows event log.
-func logServiceStartOfDay(srvr *server) {
+func logServiceStartOfDay(srvr *Server) {
 	var message string
 	message += fmt.Sprintf("Version %s\n", version())
 	message += fmt.Sprintf("Configuration directory: %s\n", btcdHomeDir)
@@ -62,7 +62,7 @@ func (s *btcdService) Execute(args []string, r <-chan svc.ChangeRequest, changes
 	// doneChan.  serverChan is notified with the main server instance once
 	// it is started so it can be gracefully stopped.
 	doneChan := make(chan error)
-	serverChan := make(chan *server)
+	serverChan := make(chan *Server)
 	go func() {
 		//Todo: fix it
 		//err := btcdMain(serverChan)
@@ -72,7 +72,7 @@ func (s *btcdService) Execute(args []string, r <-chan svc.ChangeRequest, changes
 	// Service is now started.
 	changes <- svc.Status{State: svc.Running, Accepts: cmdsAccepted}
 
-	var mainServer *server
+	var mainServer *Server
 loop:
 	for {
 		select {

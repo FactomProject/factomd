@@ -19,6 +19,9 @@ type IState interface {
 	String() string
 	Sign([]byte) IFullSignature
 
+	GetServer() IServer
+	SetServer(IServer)
+
 	// Channels
 	//==========
 

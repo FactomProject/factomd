@@ -6,7 +6,10 @@ package main
 
 import (
 	"fmt"
+	"github.com/FactomProject/factomd/btcd"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/btcd/wire"
 	"github.com/FactomProject/factomd/log"
 	"time"
 )
@@ -43,6 +46,11 @@ netloop:
 				if state.IgnoreType(msg.Type()) {
 					log.Printf("%20s %s\n", "NetworkOut:", msg.String())
 				}
+				// for test EOM only
+				msgeom := new(wire.MsgEOM)
+				msgeom.EOM = msg.(*messages.EOM)
+				server := state.GetServer().(*btcd.Server)
+				server.BroadcastMessage(msgeom)
 				continue netloop
 			}
 		default:

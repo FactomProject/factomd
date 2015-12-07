@@ -23,7 +23,7 @@ var winServiceMain func() (bool, error)
 // notified with the server once it is setup so it can gracefully stop it when
 // requested from the service control manager.
 //func btcdMain(serverChan chan<- *server) error {
-func btcdMain(serverChan chan<- *server, state interfaces.IState) error {
+func btcdMain(serverChan chan<- *Server, state interfaces.IState) error {
 
 	// Load configuration and parse command line.  This function also
 	// initializes logging and configures it accordingly.

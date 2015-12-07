@@ -168,7 +168,7 @@ type outMsg struct {
 // peer contains several functions which are of the form pushX, that are used
 // to push messages to the peer.  Internally they use QueueMessage.
 type peer struct {
-	server             *server
+	server             *Server
 	fctnet             wire.FactomNet
 	started            int32
 	connected          int32
@@ -1442,7 +1442,7 @@ func (p *peer) Shutdown() {
 // newPeerBase returns a new base bitcoin peer for the provided server and
 // inbound flag.  This is used by the newInboundPeer and newOutboundPeer
 // functions to perform base setup needed by both types of peers.
-func newPeerBase(s *server, inbound bool) *peer {
+func newPeerBase(s *Server, inbound bool) *peer {
 	p := peer{
 		server:          s,
 		protocolVersion: maxProtocolVersion,
@@ -1467,7 +1467,7 @@ func newPeerBase(s *server, inbound bool) *peer {
 
 // newInboundPeer returns a new inbound bitcoin peer for the provided server and
 // connection.  Use Start to begin processing incoming and outgoing messages.
-func newInboundPeer(s *server, conn net.Conn) *peer {
+func newInboundPeer(s *Server, conn net.Conn) *peer {
 	p := newPeerBase(s, true)
 	p.conn = conn
 	p.addr = conn.RemoteAddr().String()
@@ -1479,7 +1479,7 @@ func newInboundPeer(s *server, conn net.Conn) *peer {
 // newOutbountPeer returns a new outbound bitcoin peer for the provided server and
 // address and connects to it asynchronously. If the connection is successful
 // then the peer will also be started.
-func newOutboundPeer(s *server, addr string, persistent bool, retryCount int64) *peer {
+func newOutboundPeer(s *Server, addr string, persistent bool, retryCount int64) *peer {
 	p := newPeerBase(s, false)
 	p.addr = addr
 	p.persistent = persistent

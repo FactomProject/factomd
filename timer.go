@@ -37,7 +37,7 @@ func Timer(state interfaces.IState) {
 			if state.GetServerState() == 1 {
 				eom := messages.NewEOM(state, i)
 				state.InMsgQueue() <- eom
-				state.NetworkOutMsgQueue() <- eom
+				//state.NetworkOutMsgQueue() <- eom
 			}
 
 			// ooooooooooooooooooooooooooooooooooooooooooooooooooooo

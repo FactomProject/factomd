@@ -63,6 +63,7 @@ func main() {
 		server.WaitForShutdown()
 	})
 	server.Start()
+	state.SetServer(server)
 
 	//factomForkInit(server)
 	go NetworkProcessor(state)

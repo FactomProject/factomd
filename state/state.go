@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	//"github.com/FactomProject/factomd/btcd"
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
@@ -32,6 +33,8 @@ type State struct {
 	inMsgQueue             chan interfaces.IMsg
 	leaderInMsgQueue       chan interfaces.IMsg
 	followerInMsgQueue     chan interfaces.IMsg
+
+	myServer interfaces.IServer	//the server running on this Federated Server
 
 	// Maps
 	// ====
@@ -79,6 +82,14 @@ type State struct {
 }
 
 var _ interfaces.IState = (*State)(nil)
+
+func (s *State) GetServer() interfaces.IServer {
+	return s.myServer
+}
+
+func (s *State) SetServer(server interfaces.IServer) {
+	s.myServer = server
+}
 
 // Maps
 // ====
