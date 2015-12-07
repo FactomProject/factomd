@@ -26,7 +26,7 @@ import (
 	. "github.com/FactomProject/factomd/common/entryBlock"
 	. "github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/messages"
+	//"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/go-socks/socks"
 	"github.com/davecgh/go-spew/spew"
@@ -1015,6 +1015,9 @@ out:
 			// message is handled already in readMessage.
 
 			// Factom additions
+		case *wire.MsgEOM:
+			p.handleEOMMsg(msg)
+
 		case *wire.MsgCommitChain:
 			p.handleCommitChainMsg(msg)
 
@@ -2248,15 +2251,18 @@ func (p *peer) handleFactoidMsg(msg *wire.MsgFactoidTX, buf []byte) {
 }
 
 // Handle factom app imcoming msg
+func (p *peer) handleEOMMsg(msg *wire.MsgEOM) {
+	// Add the msg to inbound msg queue
+	if !ClientOnly {
+		p.server.State.NetworkInMsgQueue() <- msg.EOM
+	}
+}
+
+// Handle factom app imcoming msg
 func (p *peer) handleCommitChainMsg(msg *wire.MsgCommitChain) {
 	// Add the msg to inbound msg queue
 	if !ClientOnly {
-		ccmsg := new(messages.CommitChainMsg)
-		ccmsg.CommitChain = msg.CommitChain
-		ts := new(interfaces.Timestamp)
-		ts.SetTimeNow()
-		ccmsg.Timestamp = *ts
-		p.server.State.NetworkInMsgQueue() <- ccmsg
+		p.server.State.NetworkInMsgQueue() <- msg.CommitChainMsg
 	}
 }
 
@@ -2272,12 +2278,7 @@ func (p *peer) handleRevealChainMsg(msg *wire.MsgRevealChain) {
 func (p *peer) handleCommitEntryMsg(msg *wire.MsgCommitEntry) {
 	// Add the msg to inbound msg queue
 	if !ClientOnly {
-		ccmsg := new(messages.CommitEntryMsg)
-		ccmsg.CommitEntry = msg.CommitEntry
-		ts := new(interfaces.Timestamp)
-		ts.SetTimeNow()
-		ccmsg.Timestamp = *ts
-		p.server.State.NetworkInMsgQueue() <- ccmsg
+		//p.server.State.NetworkInMsgQueue() <- msg
 	}
 }
 

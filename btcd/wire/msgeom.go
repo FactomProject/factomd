@@ -8,29 +8,28 @@ import (
 	"bytes"
 	"io"
 
-	. "github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/interfaces"
 )
 
-// MsgCommitChain implements the Message interface and represents a factom
-// Commit-Chain message.  It is used by client to commit the chain before revealing it.
-type MsgCommitChain struct {
-	CommitChainMsg *messages.CommitChainMsg
+// MsgEOM implements the Message interface and represents a factom
+// End of Minute (EOM) message.
+type MsgEOM struct {
+	EOM *messages.EOM
 }
 
-// NewMsgCommitChain returns a new Commit Chain message that conforms to the
-// Message interface.  See MsgInv for details.
-func NewMsgCommitChain() *MsgCommitChain {
-	m := new(MsgCommitChain)
-	m.CommitChainMsg = new(messages.CommitChainMsg)
+// NewMsgEOM returns a new EOM message that conforms to the
+// Message interface.
+func NewMsgEOM() *MsgEOM {
+	m := new(MsgEOM)
+	m.EOM = new(messages.EOM)
 	return m
 }
 
 // BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
 // This is part of the Message interface implementation.
-func (msg *MsgCommitChain) BtcEncode(w io.Writer, pver uint32) error {
-	bytes, err := msg.CommitChainMsg.MarshalBinary()
+func (msg *MsgEOM) BtcEncode(w io.Writer, pver uint32) error {
+	bytes, err := msg.EOM.MarshalBinary()
 	if err != nil {
 		return err
 	}
@@ -44,15 +43,14 @@ func (msg *MsgCommitChain) BtcEncode(w io.Writer, pver uint32) error {
 
 // BtcDecode decodes r using the bitcoin protocol encoding into the receiver.
 // This is part of the Message interface implementation.
-func (msg *MsgCommitChain) BtcDecode(r io.Reader, pver uint32) error {
-	bytes, err := readVarBytes(r, pver, uint32(CommitChainSize+8),
-		CmdEntry)
+func (msg *MsgEOM) BtcDecode(r io.Reader, pver uint32) error {
+	bytes, err := readVarBytes(r, pver, uint32(8+1+4+32+32+64), CmdEOM)
 	if err != nil {
 		return err
 	}
 
-	msg.CommitChainMsg = new(messages.CommitChainMsg)
-	if err := msg.CommitChainMsg.UnmarshalBinary(bytes); err != nil {
+	msg.EOM = new(messages.EOM)
+	if err := msg.EOM.UnmarshalBinary(bytes); err != nil {
 		return err
 	}
 
@@ -61,25 +59,25 @@ func (msg *MsgCommitChain) BtcDecode(r io.Reader, pver uint32) error {
 
 // Command returns the protocol command string for the message.  This is part
 // of the Message interface implementation.
-func (msg *MsgCommitChain) Command() string {
-	return CmdCommitChain
+func (msg *MsgEOM) Command() string {
+	return CmdEOM
 }
 
 // MaxPayloadLength returns the maximum length the payload can be for the
 // receiver.  This is part of the Message interface implementation.
-func (msg *MsgCommitChain) MaxPayloadLength(pver uint32) uint32 {
+func (msg *MsgEOM) MaxPayloadLength(pver uint32) uint32 {
 	return MaxAppMsgPayload
 }
 
 // Check whether the msg can pass the message level validations
 // such as timestamp, signiture and etc
-func (msg *MsgCommitChain) IsValid() bool {
-	//return msg.CommitChain.IsValid()
+func (msg *MsgEOM) IsValid() bool {
+	//return msg.EOM.IsValid()
 	return true
 }
 
 // Create a sha hash from the message binary (output of BtcEncode)
-func (msg *MsgCommitChain) Sha() (interfaces.IHash, error) {
+func (msg *MsgEOM) Sha() (interfaces.IHash, error) {
 
 	buf := bytes.NewBuffer(nil)
 	msg.BtcEncode(buf, ProtocolVersion)
