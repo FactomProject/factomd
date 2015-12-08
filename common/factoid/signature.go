@@ -113,7 +113,15 @@ func (s *FactoidSignature) UnmarshalBinary(data []byte) error {
 
 func NewED25519Signature(priv, data []byte) *FactoidSignature {
 	priv2 := [64]byte{}
-	copy(priv2[:], priv[:])
+	if len(priv) == 64 {
+		copy(priv2[:], priv[:])
+	} else if len(priv) == 32 {
+		copy(priv2[:], priv[:])
+		pub := ed25519.GetPublicKey(&priv2)
+		copy(priv2[:], append(priv, pub[:]...)[:])
+	} else {
+		return nil
+	}
 
 	sig := ed25519.Sign(&priv2, data)
 	fs := new(FactoidSignature)

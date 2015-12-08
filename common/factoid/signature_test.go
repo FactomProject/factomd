@@ -10,6 +10,7 @@ import (
 	. "github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/testHelper"
 	"math/rand"
 	"testing"
 )
@@ -43,6 +44,33 @@ func Test_Setup_Signature(test *testing.T) {
 	//    txt2,_:=s2.CustomMarshalText()
 	//    Prtln(string(txt1))
 	//    Prtln(string(txt2))
+}
+
+func TestNewED25519Signature(t *testing.T) {
+	testData := primitives.Sha([]byte("sig first half  one")).Bytes()
+	priv := testHelper.NewPrivKey(0)
+
+	sig := NewED25519Signature(priv, testData)
+
+	pub := testHelper.PrivateKeyToEDPub(priv)
+	pub2 := [32]byte{}
+	copy(pub2[:], pub)
+
+	s := sig.Signature
+	valid := ed25519.VerifyCanonical(&pub2, testData, &s)
+	if valid == false {
+		t.Errorf("Signature is invalid - %v", valid)
+	}
+
+	priv2 := [64]byte{}
+	copy(priv2[:], append(priv, pub...)[:])
+
+	sig2 := ed25519.Sign(&priv2, testData)
+
+	valid = ed25519.VerifyCanonical(&pub2, testData, sig2)
+	if valid == false {
+		t.Errorf("Test signature is invalid - %v", valid)
+	}
 }
 
 /*

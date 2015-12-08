@@ -120,9 +120,7 @@ func CreateTestBlockSet(prev *BlockSet) *BlockSet {
 	dbEntries = append(dbEntries, de)
 
 	answer.ECBlock = CreateTestEntryCreditBlock(prev.ECBlock)
-
 	ecEntries := createECEntriesfromFBlock(answer.FBlock, height)
-
 	answer.ECBlock.GetBody().SetEntries(ecEntries)
 
 	de = new(directoryBlock.DBEntry)
@@ -175,7 +173,7 @@ func createECEntriesfromFBlock(fBlock interfaces.IFBlock, height int) []interfac
 		for i, ec := range ecOut {
 			increase := new(entryCreditBlock.IncreaseBalance)
 			increase.ECPubKey = primitives.Byte32ToByteSlice32(ec.GetAddress().Fixed())
-			increase.TXID = ec.GetHash()
+			increase.TXID = t.GetHash()
 			increase.Index = uint64(i)
 			increase.NumEC = ec.GetAmount() / fBlock.GetExchRate()
 			ecEntries = append(ecEntries, increase)
@@ -314,9 +312,19 @@ func CreateTestFactoidBlock(prev interfaces.IFBlock) interfaces.IFBlock {
 	ecTx.AddInput(NewFactoidAddress(0), fBlock.GetExchRate()*100)
 	ecTx.AddECOutput(NewECAddress(0), fBlock.GetExchRate()*100)
 
+	fee, err := ecTx.CalculateFee(1000)
+	if err != nil {
+		panic(err)
+	}
+	in, err := ecTx.GetInput(0)
+	if err != nil {
+		panic(err)
+	}
+	in.SetAmount(in.GetAmount() + fee)
+
 	SignFactoidTransaction(0, ecTx)
 
-	err := fBlock.AddTransaction(ecTx)
+	err = fBlock.AddTransaction(ecTx)
 	if err != nil {
 		panic(err)
 	}
