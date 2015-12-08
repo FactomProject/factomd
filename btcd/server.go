@@ -112,8 +112,6 @@ type Server struct {
 	//rpcServer            *rpcServer
 	blockManager *blockManager
 	//addrIndexer          *addrIndexer
-	//txMemPool            *txMemPool
-	//cpuMiner             *CPUMiner
 	modifyRebroadcastInv chan interface{}
 	newPeers             chan *peer
 	donePeers            chan *peer
@@ -126,8 +124,6 @@ type Server struct {
 	wg                   sync.WaitGroup
 	quit                 chan struct{}
 	nat                  NAT
-	//db                   database.Db
-	//timeSource           blockchain.MedianTimeSource
 
 	State 							interfaces.IState
 }
@@ -370,23 +366,6 @@ func (s *Server) handleRelayInvMsg(state *peerState, msg relayMsg) {
 			if p.RelayTxDisabled() {
 				return
 			}
-
-			/*
-				// Don't relay the transaction if there is a bloom
-				// filter loaded and the transaction doesn't match it.
-				if p.filter.IsLoaded() {
-					tx, ok := msg.data.(*btcutil.Tx)
-					if !ok {
-						peerLog.Warnf("Underlying data for tx" +
-							" inv relay is not a transaction")
-						return
-					}
-
-					if !p.filter.MatchTxAndUpdate(tx) {
-						return
-					}
-				}
-			*/
 		}
 
 		// Queue the inventory to be relayed with the next batch.
@@ -1083,11 +1062,6 @@ func (s *Server) Start() {
 		//s.rpcServer.Start()
 	}
 
-	// Start the CPU miner if generation is enabled.
-	//if cfg.Generate {
-	//s.cpuMiner.Start()
-	//}
-
 	//if cfg.AddrIndex {
 	//s.addrIndexer.Start()
 	//}
@@ -1112,9 +1086,6 @@ func (s *Server) Stop() error {
 			return err
 		}
 	}
-
-	// Stop the CPU miner if needed
-	//s.cpuMiner.Stop()
 
 	// Shutdown the RPC server if it's not disabled.
 	//if !cfg.DisableRPC {
@@ -1445,8 +1416,6 @@ func newServer(listenAddrs []string, chainParams *Params, state interfaces.IStat
 		modifyRebroadcastInv: make(chan interface{}),
 		peerHeightsUpdate:    make(chan updatePeerHeightsMsg),
 		nat:                  nat,
-		//db:                   db,
-		//timeSource:           blockchain.NewMedianTime(),
 		State:								state,
 	}
 	bm, err := newBlockManager(&s)
@@ -1454,24 +1423,6 @@ func newServer(listenAddrs []string, chainParams *Params, state interfaces.IStat
 		return nil, err
 	}
 	s.blockManager = bm
-	//s.txMemPool = newTxMemPool(&s)
-	//s.cpuMiner = newCPUMiner(&s)
-	/*
-		if cfg.AddrIndex {
-			ai, err := newAddrIndexer(&s)
-			if err != nil {
-				return nil, err
-			}
-			s.addrIndexer = ai
-		}
-
-		if !cfg.DisableRPC {
-			s.rpcServer, err = newRPCServer(cfg.RPCListeners, &s)
-			if err != nil {
-				return nil, err
-			}
-		}*/
-
 	return &s, nil
 }
 
