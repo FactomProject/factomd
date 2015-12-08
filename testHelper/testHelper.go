@@ -180,8 +180,42 @@ func createECEntriesfromFBlock(fBlock interfaces.IFBlock, height int) []interfac
 		}
 	}
 
+	if height == 0 {
+
+	} else {
+
+	}
+
 	return ecEntries
 }
+
+/*
+func NewCommitChain() {
+
+	commit := entryCreditBlock.NewCommitChain()
+	if p, err := hex.DecodeString(c.CommitChainMsg); err != nil {
+		wsLog.Error(err)
+		ctx.WriteHeader(httpBad)
+		ctx.Write([]byte(err.Error()))
+		return
+	} else {
+		_, err := commit.UnmarshalBinaryData(p)
+		if err != nil {
+			wsLog.Error(err)
+			ctx.WriteHeader(httpBad)
+			ctx.Write([]byte(err.Error()))
+			return
+		}
+	}
+
+	if err := factomapi.CommitChain(commit); err != nil {
+		wsLog.Error(err)
+		ctx.WriteHeader(httpBad)
+		ctx.Write([]byte(err.Error()))
+		return
+	}
+
+}*/
 
 func CreateEmptyTestDatabaseOverlay() *databaseOverlay.Overlay {
 	return databaseOverlay.NewOverlay(new(mapdb.MapDB))

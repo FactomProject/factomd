@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factomd/common/factoid/wallet"
+	"github.com/FactomProject/factomd/common/primitives"
 	. "github.com/FactomProject/factomd/testHelper"
 	"testing"
 )
@@ -28,7 +29,9 @@ func TestSignature(t *testing.T) {
 
 	ok := ed25519.Verify(pub, testData, sig)
 
-	t.Errorf("ok - %v", ok)
+	if ok == false {
+		t.Error("Signature could not be verified")
+	}
 
 	pub2, err := wallet.PrivateKeyToPublicKey(priv[:])
 	if err != nil {
@@ -38,14 +41,16 @@ func TestSignature(t *testing.T) {
 	t.Logf("pub1 - %x", pub)
 	t.Logf("pub2 - %x", pub2)
 
-	t.Fail()
+	if primitives.AreBytesEqual(pub[:], pub2[:]) == false {
+		t.Error("Public keys are not equal")
+	}
 }
 
 func Test(t *testing.T) {
 	set := CreateTestBlockSet(nil)
 	str, _ := set.ECBlock.JSONString()
-	t.Errorf("set ECBlock - %v", str)
+	t.Logf("set ECBlock - %v", str)
 	str, _ = set.FBlock.JSONString()
-	t.Errorf("set FBlock - %v", str)
-	t.Errorf("set Height - %v", set.Height)
+	t.Logf("set FBlock - %v", str)
+	t.Logf("set Height - %v", set.Height)
 }
