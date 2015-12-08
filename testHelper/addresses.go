@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factomd/common/factoid/wallet"
 	"github.com/FactomProject/factomd/common/interfaces"
 )
@@ -69,4 +70,11 @@ func NewECAddress(n uint64) interfaces.IAddress {
 		panic(err)
 	}
 	return add
+}
+
+func PrivateKeyToEDPub(priv []byte) []byte {
+	priv2 := new([ed25519.PrivateKeySize]byte)
+	copy(priv2[:], priv)
+	pub := ed25519.GetPublicKey(priv2)
+	return pub[:]
 }
