@@ -37,9 +37,9 @@ func main() {
 		os.Exit(1)
 	}
 	cfgFilename := ""
-	if len(os.Args) > 1 {
-		cfgFilename = os.Args[1]
-	}
+	//if len(os.Args) > 1 {
+		//cfgFilename = os.Args[1]
+	//}
 
 	state := new(state.State)
 	state.Init(cfgFilename)

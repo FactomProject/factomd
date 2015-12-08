@@ -11,6 +11,8 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/btcd/wire"
 	"github.com/FactomProject/factomd/log"
+	"github.com/davecgh/go-spew/spew"
+	//"reflect"
 	"time"
 )
 
@@ -30,8 +32,9 @@ netloop:
 		select {
 		case msg, ok := <-state.NetworkInMsgQueue():
 			if ok {
+				log.Printf("NetworkIn: %s\n", spew.Sdump(msg))
 				if state.IgnoreType(msg.Type()) {
-					log.Printf("%20s %s\n", "NetworkIn:", msg.String())
+					log.Printf("Ignored: NetworkIn: %s\n", msg.String())
 				}
 				state.InMsgQueue() <- msg
 				continue netloop
@@ -43,14 +46,20 @@ netloop:
 		case msg, ok := <-state.NetworkOutMsgQueue():
 			if ok {
 				var _ = msg
+				log.Printf("NetworkOut: %s\n", msg.String())	//spew.Sdump(reflect.ValueOf(msg)))
 				if state.IgnoreType(msg.Type()) {
-					log.Printf("%20s %s\n", "NetworkOut:", msg.String())
+					log.Printf("Ignored: NetworkOut: %s\n", msg.String())
 				}
-				// for test EOM only
-				msgeom := new(wire.MsgEOM)
-				msgeom.EOM = msg.(*messages.EOM)
-				server := state.GetServer().(*btcd.Server)
-				server.BroadcastMessage(msgeom)
+				switch msg.(type) {
+				case *messages.EOM:
+					msgeom := new(wire.MsgEOM)
+					msgeom.EOM = msg.(*messages.EOM)
+					server := state.GetServer().(*btcd.Server)
+					server.BroadcastMessage(msgeom)
+
+				default:
+				}
+
 				continue netloop
 			}
 		default:

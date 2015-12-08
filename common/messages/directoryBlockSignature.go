@@ -213,3 +213,10 @@ func (m *DirectoryBlockSignature) GetSignature() interfaces.IFullSignature {
 func (m *DirectoryBlockSignature) VerifySignature() (bool, error) {
 	return VerifyMessage(m)
 }
+
+func NewDirectoryBlockSignature() *DirectoryBlockSignature {
+	dbm := new(DirectoryBlockSignature)
+	dbm.DirectoryBlockKeyMR = new(primitives.Hash)
+	dbm.ServerIdentityChainID = new(primitives.Hash)
+	return dbm
+}

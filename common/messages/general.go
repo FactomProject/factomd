@@ -34,7 +34,7 @@ func UnmarshalMessage(data []byte) (interfaces.IMsg, error) {
 	case constants.COMMIT_ENTRY_MSG:
 		msg = new(CommitEntryMsg)
 	case constants.DIRECTORY_BLOCK_SIGNATURE_MSG:
-		msg = new(DirectoryBlockSignature)
+		msg = NewDirectoryBlockSignature()
 	case constants.EOM_TIMEOUT_MSG:
 		msg = new(EOMTimeout)
 	case constants.FACTOID_TRANSACTION_MSG:
