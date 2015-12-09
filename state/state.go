@@ -34,7 +34,7 @@ type State struct {
 	leaderInMsgQueue       chan interfaces.IMsg
 	followerInMsgQueue     chan interfaces.IMsg
 
-	myServer interfaces.IServer	//the server running on this Federated Server
+	myServer interfaces.IServer //the server running on this Federated Server
 
 	// Maps
 	// ====
@@ -384,14 +384,16 @@ func (s *State) loadDatabase() {
 		dblk = s.GetCurrentDirectoryBlock()
 
 	} else {
-		dbPrev, err := s.DB.FetchDBlockByKeyMR(dblk.GetHeader().GetPrevKeyMR())
-		if err != nil {
-			panic("Failed to load the Previous Directory Block: " + err.Error())
+		if dblk.GetHeader().GetDBHeight() > 0 {
+			dbPrev, err := s.DB.FetchDBlockByKeyMR(dblk.GetHeader().GetPrevKeyMR())
+			if err != nil {
+				panic("Failed to load the Previous Directory Block: " + err.Error())
+			}
+			if dbPrev == nil {
+				panic("Did not find the Previous Directory Block in the database")
+			}
+			s.PreviousDirectoryBlock = dbPrev.(interfaces.IDirectoryBlock)
 		}
-		if dbPrev == nil {
-			panic("Did not find the Previous Directory Block in the database")
-		}
-		s.PreviousDirectoryBlock = dbPrev.(interfaces.IDirectoryBlock)
 
 		fBlocks, err := s.DB.FetchAllFBlocks()
 		if err != nil {
