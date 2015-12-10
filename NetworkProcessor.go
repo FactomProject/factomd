@@ -46,7 +46,8 @@ netloop:
 		case msg, ok := <-state.NetworkOutMsgQueue():
 			if ok {
 				var _ = msg
-				log.Printf("NetworkOut: %s\n", msg.String())	//spew.Sdump(reflect.ValueOf(msg)))
+				log.Printf("NetworkOut: %s\n", msg.String())
+				//fmt.Println(reflect.ValueOf(msg).Interface())
 				if state.IgnoreType(msg.Type()) {
 					log.Printf("Ignored: NetworkOut: %s\n", msg.String())
 				}
@@ -54,6 +55,7 @@ netloop:
 				case *messages.EOM:
 					msgeom := new(wire.MsgEOM)
 					msgeom.EOM = msg.(*messages.EOM)
+					log.Println(spew.Sdump(msgeom.EOM))
 					server := state.GetServer().(*btcd.Server)
 					server.BroadcastMessage(msgeom)
 
