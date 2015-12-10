@@ -29,16 +29,16 @@ func main() {
 	fmt.Println("Usage:")
 	fmt.Println("BlockExtractor level/bolt [ChainID-To-Extract]")
 	fmt.Println("Leave out the last one to export basic chains (A, D, EC, F)")
-	if len(os.Args) < 2 {
+	if len(os.Args) < 1 {
 		fmt.Println("\nNot enough arguments passed")
 		os.Exit(1)
 	}
-	if len(os.Args) > 3 {
+	if len(os.Args) > 2 {
 		fmt.Println("\nToo many arguments passed")
 		os.Exit(1)
 	}
 
-	levelBolt := os.Args[2]
+	levelBolt := os.Args[1]
 
 	if levelBolt != level && levelBolt != bolt {
 		fmt.Println("\nFirst argument should be `level` or `bolt`")
@@ -47,7 +47,7 @@ func main() {
 
 	chainID := ""
 	if len(os.Args) == 3 {
-		chainID = os.Args[3]
+		chainID = os.Args[2]
 	}
 
 	state := new(state.State)
