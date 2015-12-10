@@ -3,6 +3,7 @@ package testHelper
 //A package for functions used multiple times in tests that aren't useful in production code.
 
 import (
+	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -44,32 +45,22 @@ func createECEntriesfromFBlock(fBlock interfaces.IFBlock, height int) []interfac
 	return ecEntries
 }
 
-func NewCommitChain() *entryCreditBlock.CommitChain {
+func NewCommitChain(eBlock *entryBlock.EBlock) *entryCreditBlock.CommitChain {
 	commit := entryCreditBlock.NewCommitChain()
 
+	commit.Version = 1
+	err := commit.MilliTime.UnmarshalBinary([]byte{0, 0, 0, 0, 0, byte(eBlock.GetHeader().GetDBHeight())})
+	if err != nil {
+		panic(err)
+	}
+	commit.ChainIDHash = eBlock.GetHashOfChainIDHash()
+	commit.Weld = eBlock.GetWeldHash()
+	commit.EntryHash = eBlock.Body.EBEntries[0]
 	/*
-		if p, err := hex.DecodeString(c.CommitChainMsg); err != nil {
-			wsLog.Error(err)
-			ctx.WriteHeader(httpBad)
-			ctx.Write([]byte(err.Error()))
-			return
-		} else {
-			_, err := commit.UnmarshalBinaryData(p)
-			if err != nil {
-				wsLog.Error(err)
-				ctx.WriteHeader(httpBad)
-				ctx.Write([]byte(err.Error()))
-				return
-			}
-		}
-
-		if err := factomapi.CommitChain(commit); err != nil {
-			wsLog.Error(err)
-			ctx.WriteHeader(httpBad)
-			ctx.Write([]byte(err.Error()))
-			return
-		}*/
-
+		commit.Credits = 0
+		commit.ECPubKey = nil
+		commit.Sig = nil
+	*/
 	return commit
 }
 

@@ -42,6 +42,16 @@ func (c *Entry) GetDatabaseHeight() uint32 {
 	return 0
 }
 
+func (e *Entry) GetWeld() []byte {
+	return primitives.DoubleSha(append(e.GetHash().Bytes(), e.GetChainID()...))
+}
+
+func (e *Entry) GetWeldHash() interfaces.IHash {
+	hash := primitives.NewZeroHash()
+	hash.SetBytes(e.GetWeld())
+	return hash
+}
+
 func (c *Entry) GetChainID() []byte {
 	return c.ChainID.Bytes()
 }

@@ -73,6 +73,7 @@ type BlockSet struct {
 	ECBlock interfaces.IEntryCreditBlock
 	FBlock  interfaces.IFBlock
 	EBlock  *entryBlock.EBlock
+	Entries []*entryBlock.Entry
 	Height  int
 }
 
@@ -128,7 +129,7 @@ func CreateTestBlockSet(prev *BlockSet) *BlockSet {
 	}
 	dbEntries = append(dbEntries, de)
 
-	answer.EBlock = CreateTestEntryBlock(prev.EBlock)
+	answer.EBlock, answer.Entries = CreateTestEntryBlock(prev.EBlock)
 
 	de = new(directoryBlock.DBEntry)
 	de.ChainID, err = primitives.NewShaHash(answer.EBlock.GetChainID())
