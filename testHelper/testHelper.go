@@ -3,21 +3,15 @@ package testHelper
 //A package for functions used multiple times in tests that aren't useful in production code.
 
 import (
-	"encoding/hex"
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/entryBlock"
-	"github.com/FactomProject/factomd/common/entryCreditBlock"
-	"github.com/FactomProject/factomd/common/factoid"
-	factoidBlock "github.com/FactomProject/factomd/common/factoid/block"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/database/mapdb"
 	//"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/state"
-
-	"fmt"
 )
 
 var BlockCount int = 10
@@ -153,70 +147,6 @@ func CreateTestBlockSet(prev *BlockSet) *BlockSet {
 	return answer
 }
 
-func createECEntriesfromFBlock(fBlock interfaces.IFBlock, height int) []interfaces.IECBlockEntry {
-	ecEntries := []interfaces.IECBlockEntry{}
-	ecEntries = append(ecEntries, entryCreditBlock.NewServerIndexNumber2(uint8(height%10+1)))
-	ecEntries = append(ecEntries, entryCreditBlock.NewMinuteNumber2(0))
-	ecEntries = append(ecEntries, entryCreditBlock.NewMinuteNumber2(1))
-	ecEntries = append(ecEntries, entryCreditBlock.NewMinuteNumber2(2))
-	ecEntries = append(ecEntries, entryCreditBlock.NewMinuteNumber2(3))
-	ecEntries = append(ecEntries, entryCreditBlock.NewMinuteNumber2(4))
-	ecEntries = append(ecEntries, entryCreditBlock.NewMinuteNumber2(5))
-	ecEntries = append(ecEntries, entryCreditBlock.NewMinuteNumber2(6))
-	ecEntries = append(ecEntries, entryCreditBlock.NewMinuteNumber2(7))
-	ecEntries = append(ecEntries, entryCreditBlock.NewMinuteNumber2(8))
-	ecEntries = append(ecEntries, entryCreditBlock.NewMinuteNumber2(9))
-
-	trans := fBlock.GetTransactions()
-	for _, t := range trans {
-		ecOut := t.GetECOutputs()
-		for i, ec := range ecOut {
-			increase := new(entryCreditBlock.IncreaseBalance)
-			increase.ECPubKey = primitives.Byte32ToByteSlice32(ec.GetAddress().Fixed())
-			increase.TXID = t.GetHash()
-			increase.Index = uint64(i)
-			increase.NumEC = ec.GetAmount() / fBlock.GetExchRate()
-			ecEntries = append(ecEntries, increase)
-		}
-	}
-
-	if height == 0 {
-
-	} else {
-
-	}
-
-	return ecEntries
-}
-
-/*
-func NewCommitChain() {
-
-	commit := entryCreditBlock.NewCommitChain()
-	if p, err := hex.DecodeString(c.CommitChainMsg); err != nil {
-		wsLog.Error(err)
-		ctx.WriteHeader(httpBad)
-		ctx.Write([]byte(err.Error()))
-		return
-	} else {
-		_, err := commit.UnmarshalBinaryData(p)
-		if err != nil {
-			wsLog.Error(err)
-			ctx.WriteHeader(httpBad)
-			ctx.Write([]byte(err.Error()))
-			return
-		}
-	}
-
-	if err := factomapi.CommitChain(commit); err != nil {
-		wsLog.Error(err)
-		ctx.WriteHeader(httpBad)
-		ctx.Write([]byte(err.Error()))
-		return
-	}
-
-}*/
-
 func CreateEmptyTestDatabaseOverlay() *databaseOverlay.Overlay {
 	return databaseOverlay.NewOverlay(new(mapdb.MapDB))
 }
@@ -294,111 +224,4 @@ func CreateTestDirectoryBlockHeader(prevBlock *directoryBlock.DirectoryBlock) *d
 	header.SetVersion(1)
 
 	return header
-}
-
-func CreateTestEntryBlock(prev *entryBlock.EBlock) *entryBlock.EBlock {
-	e := entryBlock.NewEBlock()
-	entryStr := "4bf71c177e71504032ab84023d8afc16e302de970e6be110dac20adbf9a1974625f25d9375533b44505964af993212ef7c13314736b2c76a37c73571d89d8b21c6180f7430677d46d93a3e17b68e6a25dc89ecc092cee1459101578859f7f6969d171a092a1d04f067d55628b461c6a106b76b4bc860445f87b0052cdc5f2bfd000002d800001b080000000272d72e71fdee4984ecb30eedcc89cb171d1f5f02bf9a8f10a8b2cfbaf03efe1c0000000000000000000000000000000000000000000000000000000000000001"
-	h, err := hex.DecodeString(entryStr)
-	if err != nil {
-		panic(err)
-	}
-	err = e.UnmarshalBinary(h)
-	if err != nil {
-		panic(err)
-	}
-
-	if prev != nil {
-		keyMR, err := prev.KeyMR()
-		if err != nil {
-			panic(err)
-		}
-
-		e.Header.SetPrevKeyMR(keyMR)
-		hash, err := prev.Hash()
-		if err != nil {
-			panic(err)
-		}
-		e.Header.SetPrevLedgerKeyMR(hash)
-		e.Header.SetDBHeight(prev.Header.GetDBHeight() + 1)
-
-		e.Header.SetChainID(prev.Header.GetChainID())
-	} else {
-		e.Header.SetPrevKeyMR(primitives.NewZeroHash())
-		e.Header.SetDBHeight(0)
-	}
-
-	return e
-}
-
-func CreateTestEntryCreditBlock(prev interfaces.IEntryCreditBlock) interfaces.IEntryCreditBlock {
-	block, err := entryCreditBlock.NextECBlock(prev)
-	if err != nil {
-		panic(err)
-	}
-	return block
-}
-
-func CreateTestFactoidBlock(prev interfaces.IFBlock) interfaces.IFBlock {
-	fBlock := CreateTestFactoidBlockWithCoinbase(prev, NewFactoidAddress(0), DefaultCoinbaseAmount)
-
-	ecTx := new(factoid.Transaction)
-	ecTx.AddInput(NewFactoidAddress(0), fBlock.GetExchRate()*100)
-	ecTx.AddECOutput(NewECAddress(0), fBlock.GetExchRate()*100)
-
-	fee, err := ecTx.CalculateFee(1000)
-	if err != nil {
-		panic(err)
-	}
-	in, err := ecTx.GetInput(0)
-	if err != nil {
-		panic(err)
-	}
-	in.SetAmount(in.GetAmount() + fee)
-
-	SignFactoidTransaction(0, ecTx)
-
-	err = fBlock.AddTransaction(ecTx)
-	if err != nil {
-		panic(err)
-	}
-
-	return fBlock
-}
-
-func SignFactoidTransaction(n uint64, tx interfaces.ITransaction) {
-	tx.AddAuthorization(NewFactoidRCDAddress(n))
-	data, err := tx.MarshalBinarySig()
-	if err != nil {
-		panic(err)
-	}
-
-	sig := factoid.NewSingleSignatureBlock(NewPrivKey(n), data)
-
-	str, err := sig.JSONString()
-
-	fmt.Printf("sig, err - %v, %v\n", str, err)
-
-	tx.SetSignatureBlock(0, sig)
-
-	err = tx.Validate(1)
-	if err != nil {
-		panic(err)
-	}
-
-	err = tx.ValidateSignatures()
-	if err != nil {
-		panic(err)
-	}
-}
-
-func CreateTestFactoidBlockWithCoinbase(prev interfaces.IFBlock, address interfaces.IAddress, amount uint64) interfaces.IFBlock {
-	block := factoidBlock.NewFBlockFromPreviousBlock(1, prev)
-	tx := new(factoid.Transaction)
-	tx.AddOutput(address, amount)
-	err := block.AddCoinbase(tx)
-	if err != nil {
-		panic(err)
-	}
-	return block
 }
