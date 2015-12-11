@@ -8,7 +8,7 @@ import (
 	"crypto/rand"
 	"testing"
 
-	"github.com/FactomProject/factomd/btcd/wire"
+	"github.com/FactomProject/factomd/common/messages"
 )
 
 // BenchmarkMruInventoryList performs basic benchmarks on the most recently
@@ -18,12 +18,12 @@ func BenchmarkMruInventoryList(b *testing.B) {
 	// the mru inventory code.
 	b.StopTimer()
 	numInvVects := 100000
-	invVects := make([]*wire.InvVect, 0, numInvVects)
+	invVects := make([]*messages.InvVect, 0, numInvVects)
 	for i := 0; i < numInvVects; i++ {
-		hashBytes := make([]byte, wire.constants.HASH_LENGTH)
+		hashBytes := make([]byte, messages.constants.HASH_LENGTH)
 		rand.Read(hashBytes)
-		hash, _ := wire.Newinterfaces.IHash(hashBytes)
-		iv := wire.NewInvVect(wire.InvTypeBlock, hash)
+		hash, _ := messages.Newinterfaces.IHash(hashBytes)
+		iv := messages.NewInvVect(messages.InvTypeBlock, hash)
 		invVects = append(invVects, iv)
 	}
 	b.StartTimer()

@@ -8,13 +8,13 @@ import (
 	"container/list"
 	"fmt"
 
-	"github.com/FactomProject/factomd/btcd/wire"
+	"github.com/FactomProject/factomd/common/messages"
 )
 
 // MruInventoryMap provides a map that is limited to a maximum number of items
 // with eviction for the oldest entry when the limit is exceeded.
 type MruInventoryMap struct {
-	invMap  map[wire.InvVect]*list.Element // nearly O(1) lookups
+	invMap  map[messages.InvVect]*list.Element // nearly O(1) lookups
 	invList *list.List                     // O(1) insert, update, delete
 	limit   uint
 }
@@ -25,7 +25,7 @@ func (m MruInventoryMap) String() string {
 }
 
 // Exists returns whether or not the passed inventory item is in the map.
-func (m *MruInventoryMap) Exists(iv *wire.InvVect) bool {
+func (m *MruInventoryMap) Exists(iv *messages.InvVect) bool {
 	if _, exists := m.invMap[*iv]; exists {
 		return true
 	}
@@ -34,7 +34,7 @@ func (m *MruInventoryMap) Exists(iv *wire.InvVect) bool {
 
 // Add adds the passed inventory to the map and handles eviction of the oldest
 // item if adding the new item would exceed the max limit.
-func (m *MruInventoryMap) Add(iv *wire.InvVect) {
+func (m *MruInventoryMap) Add(iv *messages.InvVect) {
 	// When the limit is zero, nothing can be added to the map, so just
 	// return.
 	if m.limit == 0 {
@@ -53,7 +53,7 @@ func (m *MruInventoryMap) Add(iv *wire.InvVect) {
 	// node so a new one doesn't have to be allocated.
 	if uint(len(m.invMap))+1 > m.limit {
 		node := m.invList.Back()
-		lru, ok := node.Value.(*wire.InvVect)
+		lru, ok := node.Value.(*messages.InvVect)
 		if !ok {
 			return
 		}
@@ -76,7 +76,7 @@ func (m *MruInventoryMap) Add(iv *wire.InvVect) {
 }
 
 // Delete deletes the passed inventory item from the map (if it exists).
-func (m *MruInventoryMap) Delete(iv *wire.InvVect) {
+func (m *MruInventoryMap) Delete(iv *messages.InvVect) {
 	if node, exists := m.invMap[*iv]; exists {
 		m.invList.Remove(node)
 		delete(m.invMap, *iv)
@@ -89,7 +89,7 @@ func (m *MruInventoryMap) Delete(iv *wire.InvVect) {
 // new entry.
 func NewMruInventoryMap(limit uint) *MruInventoryMap {
 	m := MruInventoryMap{
-		invMap:  make(map[wire.InvVect]*list.Element),
+		invMap:  make(map[messages.InvVect]*list.Element),
 		invList: list.New(),
 		limit:   limit,
 	}

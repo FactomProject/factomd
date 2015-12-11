@@ -6,10 +6,10 @@ package main
 
 import (
 	"fmt"
+
 	"github.com/FactomProject/factomd/btcd"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
-	"github.com/FactomProject/factomd/btcd/wire"
 	"github.com/FactomProject/factomd/log"
 	"github.com/davecgh/go-spew/spew"
 	//"reflect"
@@ -53,9 +53,10 @@ netloop:
 				}
 				switch msg.(type) {
 				case *messages.EOM:
-					msgeom := new(wire.MsgEOM)
-					msgeom.EOM = msg.(*messages.EOM)
+					//msgeom := new(wire.MsgEOM)
+					//msgeom.EOM = msg.(*messages.EOM)
 					//log.Println(spew.Sdump(msgeom.EOM))
+					msgeom := msg.(*messages.EOM)
 					server := state.GetServer().(*btcd.Server)
 					server.BroadcastMessage(msgeom)
 
