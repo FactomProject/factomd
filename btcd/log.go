@@ -16,7 +16,7 @@ import (
 	//	"github.com/FactomProject/factomd/btcd/blockchain"
 	//	"github.com/FactomProject/factomd/btcd/database"
 	"github.com/FactomProject/btclog"
-	"github.com/FactomProject/factomd/btcd/wire"
+	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/seelog"
 )
 
@@ -230,7 +230,7 @@ func formatLockTime(lockTime int64) string {
 }
 
 // invSummary returns an inventory message as a human-readable string.
-func invSummary(invList []*wire.InvVect) string {
+func invSummary(invList []*messages.InvVect) string {
 	// No inventory.
 	invLen := len(invList)
 	if invLen == 0 {
@@ -241,24 +241,24 @@ func invSummary(invList []*wire.InvVect) string {
 	if invLen == 1 {
 		iv := invList[0]
 		switch iv.Type {
-		case wire.InvTypeError:
+		case messages.InvTypeError:
 			return fmt.Sprintf("error %s", iv.Hash)
-		case wire.InvTypeBlock:
+		case messages.InvTypeBlock:
 			return fmt.Sprintf("block %s", iv.Hash)
-		case wire.InvTypeTx:
+		case messages.InvTypeTx:
 			return fmt.Sprintf("tx %s", iv.Hash)
 
-		case wire.InvTypeFactomFBlock:
+		case messages.InvTypeFactomFBlock:
 			return fmt.Sprintf("factom FBlock %s", iv.Hash)
-		case wire.InvTypeFactomDirBlock:
+		case messages.InvTypeFactomDirBlock:
 			return fmt.Sprintf("factom dirblock %s", iv.Hash)
-		case wire.InvTypeFactomEntryBlock:
+		case messages.InvTypeFactomEntryBlock:
 			return fmt.Sprintf("factom entryblock %s", iv.Hash)
-		case wire.InvTypeFactomEntry:
+		case messages.InvTypeFactomEntry:
 			return fmt.Sprintf("factom entry %s", iv.Hash)
-		case wire.InvTypeFactomControl:
+		case messages.InvTypeFactomControl:
 			return fmt.Sprintf("factom control %s", iv.Hash)
-		case wire.InvTypeFactomRaw:
+		case messages.InvTypeFactomRaw:
 			return fmt.Sprintf("factom raw %s", iv.Hash)
 		}
 
@@ -305,74 +305,74 @@ func sanitizeString(str string, maxLength uint) string {
 
 // messageSummary returns a human-readable string which summarizes a message.
 // Not all messages have or need a summary.  This is used for debug logging.
-func messageSummary(msg wire.Message) string {
+func messageSummary(msg messages.Message) string {
 	switch msg := msg.(type) {
-	case *wire.MsgVersion:
+	case *messages.MsgVersion:
 		return fmt.Sprintf("agent %s, pver %d, block %d",
 			msg.UserAgent, msg.ProtocolVersion, msg.LastBlock)
 
-	case *wire.MsgVerAck:
+	case *messages.MsgVerAck:
 		// No summary.
 
-	case *wire.MsgGetAddr:
+	case *messages.MsgGetAddr:
 		// No summary.
 
-	case *wire.MsgAddr:
+	case *messages.MsgAddr:
 		return fmt.Sprintf("%d addr", len(msg.AddrList))
 
-	case *wire.MsgPing:
+	case *messages.MsgPing:
 		// No summary - perhaps add nonce.
 
-	case *wire.MsgPong:
+	case *messages.MsgPong:
 		// No summary - perhaps add nonce.
 
-	case *wire.MsgAlert:
+	case *messages.MsgAlert:
 		// No summary.
 
-	//case *wire.MsgMemPool:
+	//case *messages.MsgMemPool:
 		// No summary.
 	/*
-		case *wire.MsgTx:
+		case *messages.MsgTx:
 			hash, _ := msg.TxSha()
 			return fmt.Sprintf("hash %s, %d inputs, %d outputs, lock %s",
 				hash, len(msg.TxIn), len(msg.TxOut),
 				formatLockTime(msg.LockTime))
 
-		case *wire.MsgBlock:
+		case *messages.MsgBlock:
 			hash, _ := msg.BlockSha()
 			return fmt.Sprintf("hash %s, %d tx ", hash, len(msg.Transactions))
 	*/
 
-	case *wire.MsgInv:
+	case *messages.MsgInv:
 		return invSummary(msg.InvList)
 
-	case *wire.MsgNotFound:
+	case *messages.MsgNotFound:
 		return invSummary(msg.InvList)
 		/*
-			case *wire.MsgGetData:
+			case *messages.MsgGetData:
 				return invSummary(msg.InvList)
 
-			case *wire.MsgGetBlocks:
+			case *messages.MsgGetBlocks:
 				return locatorSummary(msg.BlockLocatorHashes, &msg.HashStop)
 
-			case *wire.MsgGetHeaders:
+			case *messages.MsgGetHeaders:
 				return locatorSummary(msg.BlockLocatorHashes, &msg.HashStop)
 
 
-					case *wire.MsgHeaders:
+					case *messages.MsgHeaders:
 						return fmt.Sprintf("num %d", len(msg.Headers))
 		*/
 
-	case *wire.MsgReject:
+	case *messages.MsgReject:
 		// Ensure the variable length strings don't contain any
 		// characters which are even remotely dangerous such as HTML
 		// control characters, etc.  Also limit them to sane length for
 		// logging.
-		rejCommand := sanitizeString(msg.Cmd, wire.CommandSize)
+		rejCommand := sanitizeString(msg.Cmd, messages.CommandSize)
 		rejReason := sanitizeString(msg.Reason, maxRejectReasonLen)
 		summary := fmt.Sprintf("cmd %v, code %v, reason %v", rejCommand,
 			msg.Code, rejReason)
-		if rejCommand == wire.CmdBlock || rejCommand == wire.CmdTx {
+		if rejCommand == messages.CmdBlock || rejCommand == messages.CmdTx {
 			summary += fmt.Sprintf(", hash %v", msg.Hash)
 		}
 		return summary

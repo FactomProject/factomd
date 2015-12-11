@@ -19,7 +19,7 @@ import (
 	//	"github.com/FactomProject/factomd/btcd/database"
 	//	_ "github.com/FactomProject/factomd/btcd/database/ldb"
 	//	_ "github.com/FactomProject/factomd/btcd/database/memdb"
-	"github.com/FactomProject/factomd/btcd/wire"
+	"github.com/FactomProject/factomd/common/messages"
 	//"github.com/FactomProject/btcutil"
 	flags "github.com/FactomProject/go-flags"
 	"github.com/FactomProject/go-socks/socks"
@@ -44,7 +44,7 @@ const (
 	defaultBlockMinSize      = 0
 	defaultBlockMaxSize      = 750000
 	blockMaxSizeMin          = 1000
-	blockMaxSizeMax          = wire.MaxBlockPayload - 1000
+	blockMaxSizeMax          = messages.MaxBlockPayload - 1000
 	defaultBlockPrioritySize = 50000
 	defaultGenerate          = false
 	defaultAddrIndex         = false

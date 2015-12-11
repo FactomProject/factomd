@@ -5,7 +5,7 @@
 package btcd
 
 import (
-	"github.com/FactomProject/factomd/btcd/wire"
+	"github.com/FactomProject/factomd/common/messages"
 )
 
 // activeNetParams is a pointer to the parameters specific to the
@@ -17,14 +17,14 @@ var activeNetParams = &mainNetParams
 // and keys for one network from those intended for use on another network.
 type Params struct {
 	Name        string
-	Net         wire.FactomNet
+	Net         messages.FactomNet
 	DefaultPort string
 }
 
 // MainNetParams defines the network parameters for the main Bitcoin network.
 var MainNetParams = Params{
 	Name:        "mainnet",
-	Net:         wire.MainNet,
+	Net:         messages.MainNet,
 	DefaultPort: "12204", //"8108",
 }
 
@@ -33,7 +33,7 @@ var MainNetParams = Params{
 // 3), this network is sometimes simply called "testnet".
 var RegressionNetParams = Params{
 	Name: "devnet",
-	Net:  wire.TestNet,
+	Net:  messages.TestNet,
 	DefaultPort: "12204",		//"18444",
 }
 
@@ -42,7 +42,7 @@ var RegressionNetParams = Params{
 // network is sometimes simply called "testnet".
 var TestNet3Params = Params{
 	Name:        "testnet3",
-	Net:         wire.TestNet3,
+	Net:         messages.TestNet3,
 	DefaultPort: "18108",
 }
 
@@ -55,7 +55,7 @@ type params struct {
 }
 
 // mainNetParams contains parameters specific to the main network
-// (wire.MainNet).  NOTE: The RPC port is intentionally different than the
+// (messages.MainNet).  NOTE: The RPC port is intentionally different than the
 // reference implementation because btcd does not handle wallet requests.  The
 // separate wallet process listens on the well-known port and forwards requests
 // it does not handle on to btcd.  This approach allows the wallet process
@@ -79,7 +79,7 @@ var mainNetParams = params{
 }
 
 // regressionNetParams contains parameters specific to the regression test
-// network (wire.TestNet).  NOTE: The RPC port is intentionally different
+// network (messages.TestNet).  NOTE: The RPC port is intentionally different
 // than the reference implementation - see the mainNetParams comment for
 // details.
 var regressionNetParams = params{
@@ -92,14 +92,14 @@ var regressionNetParams = params{
 // time of writing, btcd currently places blocks for testnet version 3 in the
 // data and log directory "testnet", which does not match the Name field of the
 // chaincfg parameters.  This function can be used to override this directory
-// name as "testnet" when the passed active network matches wire.TestNet3.
+// name as "testnet" when the passed active network matches messages.TestNet3.
 //
 // A proper upgrade to move the data and log directories for this network to
 // "testnet3" is planned for the future, at which point this function can be
 // removed and the network parameter's name used instead.
 func netName(chainParams *params) string {
 	switch chainParams.Net {
-	case wire.TestNet3:
+	case messages.TestNet3:
 		return "testnet"
 	default:
 		return chainParams.Name
