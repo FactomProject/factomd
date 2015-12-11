@@ -252,5 +252,6 @@ func NewEOM(state interfaces.IState, minute int) interfaces.IMsg {
 	// I am ignoring all of that.
 	eom := new(EOM)
 	eom.Minute = byte(minute)
+	eom.IdentityChainID = primitives.NewZeroHash()
 	return eom
 }
