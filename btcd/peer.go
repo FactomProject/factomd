@@ -19,13 +19,13 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/btcd/addrmgr"
-	"github.com/FactomProject/factomd/btcd/wire"
-	. "github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/adminBlock"
+	. "github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/directoryBlock"
 	. "github.com/FactomProject/factomd/common/entryBlock"
 	. "github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages"
 	//"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/go-socks/socks"
@@ -106,12 +106,12 @@ func minUint32(a, b uint32) uint32 {
 // newNetAddress attempts to extract the IP address and port from the passed
 // net.Addr interface and create a bitcoin NetAddress structure using that
 // information.
-func newNetAddress(addr net.Addr, services wire.ServiceFlag) (*wire.NetAddress, error) {
+func newNetAddress(addr net.Addr, services messages.ServiceFlag) (*messages.NetAddress, error) {
 	// addr will be a net.TCPAddr when not using a proxy.
 	if tcpAddr, ok := addr.(*net.TCPAddr); ok {
 		ip := tcpAddr.IP
 		port := uint16(tcpAddr.Port)
-		na := wire.NewNetAddressIPPort(ip, port, services)
+		na := messages.NewNetAddressIPPort(ip, port, services)
 		return na, nil
 	}
 
@@ -122,7 +122,7 @@ func newNetAddress(addr net.Addr, services wire.ServiceFlag) (*wire.NetAddress, 
 			ip = net.ParseIP("0.0.0.0")
 		}
 		port := uint16(proxiedAddr.Port)
-		na := wire.NewNetAddressIPPort(ip, port, services)
+		na := messages.NewNetAddressIPPort(ip, port, services)
 		return na, nil
 	}
 
@@ -138,7 +138,7 @@ func newNetAddress(addr net.Addr, services wire.ServiceFlag) (*wire.NetAddress, 
 	if err != nil {
 		return nil, err
 	}
-	na := wire.NewNetAddressIPPort(ip, uint16(port), services)
+	na := messages.NewNetAddressIPPort(ip, uint16(port), services)
 	return na, nil
 }
 
@@ -146,7 +146,7 @@ func newNetAddress(addr net.Addr, services wire.ServiceFlag) (*wire.NetAddress, 
 // when the message has been sent (or won't be sent due to things such as
 // shutdown)
 type outMsg struct {
-	msg      wire.Message
+	msg      messages.Message
 	doneChan chan struct{}
 }
 
@@ -169,13 +169,13 @@ type outMsg struct {
 // to push messages to the peer.  Internally they use QueueMessage.
 type peer struct {
 	server             *Server
-	fctnet             wire.FactomNet
+	fctnet             messages.FactomNet
 	started            int32
 	connected          int32
 	disconnect         int32 // only to be used atomically
 	conn               net.Conn
 	addr               string
-	na                 *wire.NetAddress
+	na                 *messages.NetAddress
 	id                 int32
 	inbound            bool
 	persistent         bool
@@ -189,7 +189,7 @@ type peer struct {
 	prevGetBlocksStop  interfaces.IHash // owned by blockmanager
 	prevGetHdrsBegin   interfaces.IHash // owned by blockmanager
 	prevGetHdrsStop    interfaces.IHash // owned by blockmanager
-	requestQueue       []*wire.InvVect
+	requestQueue       []*messages.InvVect
 	//filter             *bloom.Filter
 	relayMtx           sync.Mutex
 	disableRelayTx     bool
@@ -198,7 +198,7 @@ type peer struct {
 	sendQueue          chan outMsg
 	sendDoneQueue      chan struct{}
 	queueWg            sync.WaitGroup // TODO(oga) wg -> single use channel?
-	outputInvChan      chan *wire.InvVect
+	outputInvChan      chan *messages.InvVect
 	txProcessed        chan struct{}
 	blockProcessed     chan struct{}
 	quit               chan struct{}
@@ -207,7 +207,7 @@ type peer struct {
 	protocolVersion    uint32
 	versionSent        bool
 	verAckReceived     bool
-	services           wire.ServiceFlag
+	services           messages.ServiceFlag
 	timeOffset         int64
 	timeConnected      time.Time
 	lastSend           time.Time
@@ -231,7 +231,7 @@ func (p *peer) String() string {
 
 // isKnownInventory returns whether or not the peer is known to have the passed
 // inventory.  It is safe for concurrent access.
-func (p *peer) isKnownInventory(invVect *wire.InvVect) bool {
+func (p *peer) isKnownInventory(invVect *messages.InvVect) bool {
 	p.knownInvMutex.Lock()
 	defer p.knownInvMutex.Unlock()
 
@@ -264,7 +264,7 @@ func (p *peer) UpdateLastAnnouncedBlock(blkSha interfaces.IHash) {
 
 // AddKnownInventory adds the passed inventory to the cache of known inventory
 // for the peer.  It is safe for concurrent access.
-func (p *peer) AddKnownInventory(invVect *wire.InvVect) {
+func (p *peer) AddKnownInventory(invVect *messages.InvVect) {
 	p.knownInvMutex.Lock()
 	defer p.knownInvMutex.Unlock()
 
@@ -312,7 +312,7 @@ func (p *peer) pushVersionMsg() error {
 		proxyaddress, _, err := net.SplitHostPort(cfg.Proxy)
 		// invalid proxy means poorly configured, be on the safe side.
 		if err != nil || p.na.IP.String() == proxyaddress {
-			theirNa = &wire.NetAddress{
+			theirNa = &messages.NetAddress{
 				Timestamp: time.Now(),
 				IP:        net.IP([]byte{0, 0, 0, 0}),
 			}
@@ -320,7 +320,7 @@ func (p *peer) pushVersionMsg() error {
 	}
 
 	// Version message.
-	msg := wire.NewMsgVersion(
+	msg := messages.NewMsgVersion(
 		p.server.addrManager.GetBestLocalAddress(p.na), theirNa,
 		p.server.nonce, int32(blockNum))
 	msg.AddUserAgent(userAgentName, userAgentVersion)
@@ -341,10 +341,10 @@ func (p *peer) pushVersionMsg() error {
 	//      actually supports
 	//    - Set the remote netaddress services to the what was advertised by
 	//      by the remote peer in its version message
-	msg.AddrYou.Services = wire.SFNodeNetwork
+	msg.AddrYou.Services = messages.SFNodeNetwork
 
 	// Advertise that we're a full node.
-	msg.Services = wire.SFNodeNetwork
+	msg.Services = messages.SFNodeNetwork
 
 	// Advertise our max supported protocol version.
 	msg.ProtocolVersion = maxProtocolVersion
@@ -357,7 +357,7 @@ func (p *peer) pushVersionMsg() error {
 // requests known addresses from the remote peer depending on whether the peer
 // is an inbound or outbound peer and other factors such as address routability
 // and the negotiated protocol version.
-func (p *peer) updateAddresses(msg *wire.MsgVersion) {
+func (p *peer) updateAddresses(msg *messages.MsgVersion) {
 	// Outbound connections.
 	if !p.inbound {
 		// TODO(davec): Only do this if not doing the initial block
@@ -366,7 +366,7 @@ func (p *peer) updateAddresses(msg *wire.MsgVersion) {
 			// Get address that best matches.
 			lna := p.server.addrManager.GetBestLocalAddress(p.na)
 			if addrmgr.IsRoutable(lna) {
-				addresses := []*wire.NetAddress{lna}
+				addresses := []*messages.NetAddress{lna}
 				p.pushAddrMsg(addresses)
 			}
 		}
@@ -375,9 +375,9 @@ func (p *peer) updateAddresses(msg *wire.MsgVersion) {
 		// more and the peer has a protocol version new enough to
 		// include a timestamp with addresses.
 		hasTimestamp := p.ProtocolVersion() >=
-			wire.NetAddressTimeVersion
+			messages.NetAddressTimeVersion
 		if p.server.addrManager.NeedMoreAddresses() && hasTimestamp {
-			p.QueueMessage(wire.NewMsgGetAddr(), nil)
+			p.QueueMessage(messages.NewMsgGetAddr(), nil)
 		}
 
 		// Mark the address as a known good address.
@@ -397,7 +397,7 @@ func (p *peer) updateAddresses(msg *wire.MsgVersion) {
 // handleVersionMsg is invoked when a peer receives a version bitcoin message
 // and is used to negotiate the protocol version details as well as kick start
 // the communications.
-func (p *peer) handleVersionMsg(msg *wire.MsgVersion) {
+func (p *peer) handleVersionMsg(msg *messages.MsgVersion) {
 	// Detect self connections.
 	if msg.Nonce == p.server.nonce {
 		peerLog.Debugf("Disconnecting peer connected to self %s", p)
@@ -420,13 +420,13 @@ func (p *peer) handleVersionMsg(msg *wire.MsgVersion) {
 
 	// Notify and disconnect clients that have a protocol version that is
 	// too old.
-	if msg.ProtocolVersion < int32(wire.MultipleAddressVersion) {
+	if msg.ProtocolVersion < int32(messages.MultipleAddressVersion) {
 		// Send a reject message indicating the protocol version is
 		// obsolete and wait for the message to be sent before
 		// disconnecting.
 		reason := fmt.Sprintf("protocol version must be %d or greater",
-			wire.MultipleAddressVersion)
-		p.PushRejectMsg(msg.Command(), wire.RejectObsolete, reason,
+			messages.MultipleAddressVersion)
+		p.PushRejectMsg(msg.Command(), messages.RejectObsolete, reason,
 			nil, true)
 		p.Disconnect()
 		return
@@ -444,7 +444,7 @@ func (p *peer) handleVersionMsg(msg *wire.MsgVersion) {
 		// Send an reject message indicating the version message was
 		// incorrectly sent twice and wait for the message to be sent
 		// before disconnecting.
-		p.PushRejectMsg(msg.Command(), wire.RejectDuplicate,
+		p.PushRejectMsg(msg.Command(), messages.RejectDuplicate,
 			"duplicate version message", nil, true)
 
 		p.Disconnect()
@@ -504,7 +504,7 @@ func (p *peer) handleVersionMsg(msg *wire.MsgVersion) {
 	}
 
 	// Send verack.
-	p.QueueMessage(wire.NewMsgVerAck(), nil)
+	p.QueueMessage(messages.NewMsgVerAck(), nil)
 
 	// Update the address manager and request known addresses from the
 	// remote peer for outbound connections.  This is skipped when running
@@ -536,20 +536,19 @@ func (p *peer) handleVersionMsg(msg *wire.MsgVersion) {
 	}
 }
 
-
 // PushRejectMsg sends a reject message for the provided command, reject code,
 // and reject reason, and hash.  The hash will only be used when the command
 // is a tx or block and should be nil in other cases.  The wait parameter will
 // cause the function to block until the reject message has actually been sent.
-func (p *peer) PushRejectMsg(command string, code wire.RejectCode, reason string, hash interfaces.IHash, wait bool) {
+func (p *peer) PushRejectMsg(command string, code messages.RejectCode, reason string, hash interfaces.IHash, wait bool) {
 	// Don't bother sending the reject message if the protocol version
 	// is too low.
-	if p.VersionKnown() && p.ProtocolVersion() < wire.RejectVersion {
+	if p.VersionKnown() && p.ProtocolVersion() < messages.RejectVersion {
 		return
 	}
 
-	msg := wire.NewMsgReject(command, code, reason)
-	if command == wire.CmdTx || command == wire.CmdBlock {
+	msg := messages.NewMsgReject(command, code, reason)
+	if command == messages.CmdTx || command == messages.CmdBlock {
 		if hash == nil {
 			peerLog.Warnf("Sending a reject message for command "+
 				"type %v which should have specified a hash "+
@@ -571,20 +570,18 @@ func (p *peer) PushRejectMsg(command string, code wire.RejectCode, reason string
 	<-doneChan
 }
 
-
 // handleInvMsg is invoked when a peer receives an inv bitcoin message and is
 // used to examine the inventory being advertised by the remote peer and react
 // accordingly.  We pass the message down to blockmanager which will call
 // QueueMessage with any appropriate responses.
-func (p *peer) handleInvMsg(msg *wire.MsgInv) {
+func (p *peer) handleInvMsg(msg *messages.MsgInv) {
 	p.server.blockManager.QueueInv(msg, p)
 }
-
 
 // handleGetAddrMsg is invoked when a peer receives a getaddr bitcoin message
 // and is used to provide the peer with known addresses from the address
 // manager.
-func (p *peer) handleGetAddrMsg(msg *wire.MsgGetAddr) {
+func (p *peer) handleGetAddrMsg(msg *messages.MsgGetAddr) {
 	// Don't return any addresses when running on the simulation test
 	// network.  This helps prevent the network from becoming another
 	// public test network since it will not be able to learn about other
@@ -613,7 +610,7 @@ func (p *peer) handleGetAddrMsg(msg *wire.MsgGetAddr) {
 
 // pushAddrMsg sends one, or more, addr message(s) to the connected peer using
 // the provided addresses.
-func (p *peer) pushAddrMsg(addresses []*wire.NetAddress) error {
+func (p *peer) pushAddrMsg(addresses []*messages.NetAddress) error {
 	// Nothing to send.
 	if len(addresses) == 0 {
 		return nil
@@ -621,7 +618,7 @@ func (p *peer) pushAddrMsg(addresses []*wire.NetAddress) error {
 
 	r := prand.New(prand.NewSource(time.Now().UnixNano()))
 	numAdded := 0
-	msg := wire.NewMsgAddr()
+	msg := messages.NewMsgAddr()
 	for _, na := range addresses {
 		// Filter addresses the peer already knows about.
 		if _, exists := p.knownAddresses[addrmgr.NetAddressKey(na)]; exists {
@@ -630,8 +627,8 @@ func (p *peer) pushAddrMsg(addresses []*wire.NetAddress) error {
 
 		// If the maxAddrs limit has been reached, randomize the list
 		// with the remaining addresses.
-		if numAdded == wire.MaxAddrPerMsg {
-			msg.AddrList[r.Intn(wire.MaxAddrPerMsg)] = na
+		if numAdded == messages.MaxAddrPerMsg {
+			msg.AddrList[r.Intn(messages.MaxAddrPerMsg)] = na
 			continue
 		}
 
@@ -655,7 +652,7 @@ func (p *peer) pushAddrMsg(addresses []*wire.NetAddress) error {
 
 // handleAddrMsg is invoked when a peer receives an addr bitcoin message and
 // is used to notify the server about advertised addresses.
-func (p *peer) handleAddrMsg(msg *wire.MsgAddr) {
+func (p *peer) handleAddrMsg(msg *messages.MsgAddr) {
 	// Ignore addresses when running on the simulation test network.  This
 	// helps prevent the network from becoming another public test network
 	// since it will not be able to learn about other peers that have not
@@ -665,7 +662,7 @@ func (p *peer) handleAddrMsg(msg *wire.MsgAddr) {
 	}
 
 	// Ignore old style addresses which don't include a timestamp.
-	if p.ProtocolVersion() < wire.NetAddressTimeVersion {
+	if p.ProtocolVersion() < messages.NetAddressTimeVersion {
 		return
 	}
 
@@ -707,16 +704,16 @@ func (p *peer) handleAddrMsg(msg *wire.MsgAddr) {
 // recent clients (protocol version > BIP0031Version), it replies with a pong
 // message.  For older clients, it does nothing and anything other than failure
 // is considered a successful ping.
-func (p *peer) handlePingMsg(msg *wire.MsgPing) {
+func (p *peer) handlePingMsg(msg *messages.MsgPing) {
 	// Include nonce from ping so pong can be identified.
-	p.QueueMessage(wire.NewMsgPong(msg.Nonce), nil)
+	p.QueueMessage(messages.NewMsgPong(msg.Nonce), nil)
 }
 
 // handlePongMsg is invoked when a peer received a pong bitcoin message.
 // recent clients (protocol version > BIP0031Version), and if we had send a ping
 // previosuly we update our ping time statistics. If the client is too old or
 // we had not send a ping we ignore it.
-func (p *peer) handlePongMsg(msg *wire.MsgPong) {
+func (p *peer) handlePongMsg(msg *messages.MsgPong) {
 	p.StatsMtx.Lock()
 	defer p.StatsMtx.Unlock()
 
@@ -736,8 +733,8 @@ func (p *peer) handlePongMsg(msg *wire.MsgPong) {
 }
 
 // readMessage reads the next bitcoin message from the peer with logging.
-func (p *peer) readMessage() (wire.Message, []byte, error) {
-	n, msg, buf, err := wire.ReadMessageN(p.conn, p.ProtocolVersion(),
+func (p *peer) readMessage() (messages.Message, []byte, error) {
+	n, msg, buf, err := messages.ReadMessageN(p.conn, p.ProtocolVersion(),
 		p.fctnet)
 	p.StatsMtx.Lock()
 	p.bytesReceived += uint64(n)
@@ -769,16 +766,16 @@ func (p *peer) readMessage() (wire.Message, []byte, error) {
 }
 
 // writeMessage sends a bitcoin Message to the peer with logging.
-func (p *peer) writeMessage(msg wire.Message) {
+func (p *peer) writeMessage(msg messages.Message) {
 	// Don't do anything if we're disconnecting.
 	if atomic.LoadInt32(&p.disconnect) != 0 {
 		return
 	}
 	if !p.VersionKnown() {
 		switch msg.(type) {
-		case *wire.MsgVersion:
+		case *messages.MsgVersion:
 			// This is OK.
-		case *wire.MsgReject:
+		case *messages.MsgReject:
 			// This is OK.
 		default:
 			// Drop all messages other than version and reject if
@@ -803,7 +800,7 @@ func (p *peer) writeMessage(msg wire.Message) {
 	}))
 	peerLog.Tracef("%v", newLogClosure(func() string {
 		var buf bytes.Buffer
-		err := wire.WriteMessage(&buf, msg, p.ProtocolVersion(),
+		err := messages.WriteMessage(&buf, msg, p.ProtocolVersion(),
 			p.fctnet)
 		if err != nil {
 			return err.Error()
@@ -812,7 +809,7 @@ func (p *peer) writeMessage(msg wire.Message) {
 	}))
 
 	// Write the message to the peer.
-	n, err := wire.WriteMessageN(p.conn, msg, p.ProtocolVersion(),
+	n, err := messages.WriteMessageN(p.conn, msg, p.ProtocolVersion(),
 		p.fctnet)
 	p.StatsMtx.Lock()
 	p.bytesSent += uint64(n)
@@ -832,7 +829,7 @@ func (p *peer) writeMessage(msg wire.Message) {
 func (p *peer) isAllowedByRegression(err error) bool {
 	// Don't allow the error if it's not specifically a malformed message
 	// error.
-	if _, ok := err.(*wire.MessageError); !ok {
+	if _, ok := err.(*messages.MessageError); !ok {
 		return false
 	}
 
@@ -903,7 +900,7 @@ out:
 					// wire, so just used malformed for the
 					// command.
 					p.PushRejectMsg("malformed",
-						wire.RejectMalformed, errMsg,
+						messages.RejectMalformed, errMsg,
 						nil, true)
 				}
 
@@ -915,23 +912,23 @@ out:
 		p.StatsMtx.Unlock()
 
 		// Ensure version message comes first.
-		if vmsg, ok := rmsg.(*wire.MsgVersion); !ok && !p.VersionKnown() {
+		if vmsg, ok := rmsg.(*messages.MsgVersion); !ok && !p.VersionKnown() {
 			errStr := "A version message must precede all others"
 			p.logError(errStr)
 
 			// Push a reject message and wait for the message to be
 			// sent before disconnecting.
-			p.PushRejectMsg(vmsg.Command(), wire.RejectMalformed,
+			p.PushRejectMsg(vmsg.Command(), messages.RejectMalformed,
 				errStr, nil, true)
 			break out
 		}
 
 		// Handle each supported message type.
 		switch msg := rmsg.(type) {
-		case *wire.MsgVersion:
+		case *messages.MsgVersion:
 			p.handleVersionMsg(msg)
 
-		case *wire.MsgVerAck:
+		case *messages.MsgVerAck:
 			p.StatsMtx.Lock()
 			versionSent := p.versionSent
 			verAckReceived := p.verAckReceived
@@ -949,19 +946,19 @@ out:
 			}
 			p.verAckReceived = true
 
-		case *wire.MsgGetAddr:
+		case *messages.MsgGetAddr:
 			p.handleGetAddrMsg(msg) //disable for Milestone1 only
 
-		case *wire.MsgAddr:
+		case *messages.MsgAddr:
 			p.handleAddrMsg(msg)
 
-		case *wire.MsgPing:
+		case *messages.MsgPing:
 			p.handlePingMsg(msg)
 
-		case *wire.MsgPong:
+		case *messages.MsgPong:
 			p.handlePongMsg(msg)
 
-		case *wire.MsgAlert:
+		case *messages.MsgAlert:
 			// Intentionally ignore alert messages.
 			//
 			// The reference client currently bans peers that send
@@ -971,107 +968,107 @@ out:
 			// implementions' alert messages, we will not relay
 			// theirs.
 
-		//case *wire.MsgMemPool:
+		//case *messages.MsgMemPool:
 		//p.handleMemPoolMsg(msg)
 
-		//case *wire.MsgTx:
+		//case *messages.MsgTx:
 		//p.handleTxMsg(msg)
 
-		//case *wire.MsgBlock:
+		//case *messages.MsgBlock:
 		//p.handleBlockMsg(msg, buf)
 
-		case *wire.MsgInv:
+		case *messages.MsgInv:
 			p.handleInvMsg(msg)
 
-		//case *wire.MsgHeaders:
+		//case *messages.MsgHeaders:
 		//p.handleHeadersMsg(msg)
 
-		case *wire.MsgNotFound:
+		case *messages.MsgNotFound:
 			// TODO(davec): Ignore this for now, but ultimately
 			// it should probably be used to detect when something
 			// we requested needs to be re-requested from another
 			// peer.
 
-		//case *wire.MsgGetData:
+		//case *messages.MsgGetData:
 		//p.handleGetDataMsg(msg)
 
-		//case *wire.MsgGetBlocks:
+		//case *messages.MsgGetBlocks:
 		//p.handleGetBlocksMsg(msg)
 
-		//case *wire.MsgGetHeaders:
+		//case *messages.MsgGetHeaders:
 		//p.handleGetHeadersMsg(msg)
 
-		//case *wire.MsgFilterAdd:
+		//case *messages.MsgFilterAdd:
 		//p.handleFilterAddMsg(msg)
 
-		//case *wire.MsgFilterClear:
+		//case *messages.MsgFilterClear:
 		//p.handleFilterClearMsg(msg)
 
-		//case *wire.MsgFilterLoad:
+		//case *messages.MsgFilterLoad:
 		//p.handleFilterLoadMsg(msg)
 
-		case *wire.MsgReject:
+		case *messages.MsgReject:
 			// Nothing to do currently.  Logging of the rejected
 			// message is handled already in readMessage.
 
 			// Factom additions
-		case *wire.MsgEOM:
+		case *messages.EOM:
 			p.handleEOMMsg(msg)
 
-		case *wire.MsgCommitChain:
-			p.handleCommitChainMsg(msg)
+		case *messages.MsgCommitChain: //CommitChainMsg
+			//p.handleCommitChainMsg(msg)
 
-		case *wire.MsgRevealChain:
+		case *messages.MsgRevealChain:
 			p.handleRevealChainMsg(msg)
 
-		case *wire.MsgCommitEntry:
-			p.handleCommitEntryMsg(msg)
+		case *messages.MsgCommitEntry: //CommitEntryMsg
+			//p.handleCommitEntryMsg(msg)
 
-		case *wire.MsgRevealEntry:
+		case *messages.MsgRevealEntry:
 			p.handleRevealEntryMsg(msg)
 
-		case *wire.MsgAcknowledgement:
+		case *messages.MsgAcknowledgement:
 			p.handleAcknoledgementMsg(msg)
 
 			// Factom blocks downloading
-		case *wire.MsgGetDirBlocks:
+		case *messages.MsgGetDirBlocks:
 			p.handleGetDirBlocksMsg(msg)
 
-		case *wire.MsgDirInv:
+		case *messages.MsgDirInv:
 			p.handleDirInvMsg(msg)
 			//markConnected = true
 
-		case *wire.MsgGetDirData:
+		case *messages.MsgGetDirData:
 			p.handleGetDirDataMsg(msg)
 			//markConnected = true
 
-		case *wire.MsgDirBlock:
+		case *messages.MsgDirBlock:
 			p.handleDirBlockMsg(msg, buf)
 
-		case *wire.MsgGetNonDirData:
+		case *messages.MsgGetNonDirData:
 			p.handleGetNonDirDataMsg(msg)
 			//markConnected = true
 
-		case *wire.MsgABlock:
+		case *messages.MsgABlock:
 			p.handleABlockMsg(msg, buf)
 
-		case *wire.MsgECBlock:
+		case *messages.MsgECBlock:
 			p.handleECBlockMsg(msg, buf)
 
-		case *wire.MsgEBlock:
+		case *messages.MsgEBlock:
 			p.handleEBlockMsg(msg, buf)
 
-		case *wire.MsgFBlock:
+		case *messages.MsgFBlock:
 			p.handleFBlockMsg(msg, buf)
 
-		case *wire.MsgGetEntryData:
+		case *messages.MsgGetEntryData:
 			p.handleGetEntryDataMsg(msg)
 			//markConnected = true
 
-		case *wire.MsgEntry:
+		case *messages.MsgEntry:
 			p.handleEntryMsg(msg, buf)
 
-		case *wire.MsgFactoidTX:
+		case *messages.MsgFactoidTX:
 			p.handleFactoidMsg(msg, buf)
 
 		default:
@@ -1174,10 +1171,10 @@ out:
 
 			// Create and send as many inv messages as needed to
 			// drain the inventory send queue.
-			//invMsg := wire.NewMsgInvSizeHint(uint(invSendQueue.Len()))
-			invMsg := wire.NewMsgDirInvSizeHint(uint(invSendQueue.Len()))
+			//invMsg := messages.NewMsgInvSizeHint(uint(invSendQueue.Len()))
+			invMsg := messages.NewMsgDirInvSizeHint(uint(invSendQueue.Len()))
 			for e := invSendQueue.Front(); e != nil; e = invSendQueue.Front() {
-				iv := invSendQueue.Remove(e).(*wire.InvVect)
+				iv := invSendQueue.Remove(e).(*messages.InvVect)
 
 				// Don't send inventory that became known after
 				// the initial check.
@@ -1190,8 +1187,8 @@ out:
 					waiting = queuePacket(
 						outMsg{msg: invMsg},
 						pendingMsgs, waiting)
-					//invMsg = wire.NewMsgInvSizeHint(uint(invSendQueue.Len()))
-					invMsg = wire.NewMsgDirInvSizeHint(uint(invSendQueue.Len()))
+					//invMsg = messages.NewMsgInvSizeHint(uint(invSendQueue.Len()))
+					invMsg = messages.NewMsgDirInvSizeHint(uint(invSendQueue.Len()))
 				}
 
 				// Add the inventory that is being relayed to
@@ -1240,13 +1237,13 @@ cleanup:
 // allowing the sender to continue running asynchronously.
 func (p *peer) outHandler() {
 	pingTimer := time.AfterFunc(pingTimeoutMinutes*time.Minute, func() {
-		nonce, err := wire.RandomUint64()
+		nonce, err := messages.RandomUint64()
 		if err != nil {
 			peerLog.Errorf("Not sending ping on timeout to %s: %v",
 				p, err)
 			return
 		}
-		p.QueueMessage(wire.NewMsgPing(nonce), nil)
+		p.QueueMessage(messages.NewMsgPing(nonce), nil)
 	})
 out:
 	for {
@@ -1263,27 +1260,27 @@ out:
 			peerLog.Tracef("%s: received from queuehandler", p)
 			reset := true
 			switch m := msg.msg.(type) {
-			case *wire.MsgVersion:
+			case *messages.MsgVersion:
 				// should get a verack
 				p.StatsMtx.Lock()
 				p.versionSent = true
 				p.StatsMtx.Unlock()
-			case *wire.MsgGetAddr:
+			case *messages.MsgGetAddr:
 				// should get addresses
-			case *wire.MsgPing:
+			case *messages.MsgPing:
 				// expects pong
 				// Also set up statistics.
 				p.StatsMtx.Lock()
 				p.lastPingNonce = m.Nonce
 				p.lastPingTime = time.Now()
 				p.StatsMtx.Unlock()
-			//case *wire.MsgMemPool:
+			//case *messages.MsgMemPool:
 			// Should return an inv.
-			//case *wire.MsgGetData:
+			//case *messages.MsgGetData:
 			// Should get us block, tx, or not found.
-			//case *wire.MsgGetHeaders:
+			//case *messages.MsgGetHeaders:
 			// Should get us headers back.
-			case *wire.MsgGetDirData:
+			case *messages.MsgGetDirData:
 				// Should get us dir block, or not found for factom
 			default:
 				// Not one of the above, no sure reply.
@@ -1336,7 +1333,7 @@ cleanup:
 // QueueMessage adds the passed bitcoin message to the peer send queue.  It
 // uses a buffered channel to communicate with the output handler goroutine so
 // it is automatically rate limited and safe for concurrent access.
-func (p *peer) QueueMessage(msg wire.Message, doneChan chan struct{}) {
+func (p *peer) QueueMessage(msg messages.Message, doneChan chan struct{}) {
 	// Avoid risk of deadlock if goroutine already exited. The goroutine
 	// we will be sending to hangs around until it knows for a fact that
 	// it is marked as disconnected. *then* it drains the channels.
@@ -1356,7 +1353,7 @@ func (p *peer) QueueMessage(msg wire.Message, doneChan chan struct{}) {
 // might not be sent right away, rather it is trickled to the peer in batches.
 // Inventory that the peer is already known to have is ignored.  It is safe for
 // concurrent access.
-func (p *peer) QueueInventory(invVect *wire.InvVect) {
+func (p *peer) QueueInventory(invVect *messages.InvVect) {
 	// Don't add the inventory to the send queue if the peer is
 	// already known to have it.
 	if p.isKnownInventory(invVect) {
@@ -1447,7 +1444,7 @@ func newPeerBase(s *Server, inbound bool) *peer {
 		server:          s,
 		protocolVersion: maxProtocolVersion,
 		fctnet:          s.chainParams.Net,
-		services:        wire.SFNodeNetwork,
+		services:        messages.SFNodeNetwork,
 		inbound:         inbound,
 		knownAddresses:  make(map[string]struct{}),
 		knownInventory:  NewMruInventoryMap(maxKnownInventory),
@@ -1457,7 +1454,7 @@ func newPeerBase(s *Server, inbound bool) *peer {
 		outputQueue:    make(chan outMsg, outputBufferSize),
 		sendQueue:      make(chan outMsg, 1),   // nonblocking sync
 		sendDoneQueue:  make(chan struct{}, 1), // nonblocking sync
-		outputInvChan:  make(chan *wire.InvVect, outputBufferSize),
+		outputInvChan:  make(chan *messages.InvVect, outputBufferSize),
 		txProcessed:    make(chan struct{}, 1),
 		blockProcessed: make(chan struct{}, 1),
 		quit:           make(chan struct{}),
@@ -1571,28 +1568,26 @@ func isVersionMismatch(us, them int32) bool {
 	return false
 }
 
-
 //====================================================================
 
-
 // handleFBlockMsg is invoked when a peer receives a factoid block message.
-func (p *peer) handleFBlockMsg(msg *wire.MsgFBlock, buf []byte) {
+func (p *peer) handleFBlockMsg(msg *messages.MsgFBlock, buf []byte) {
 	binary, _ := msg.FBlck.MarshalBinary()
 	commonHash := primitives.Sha(binary)
 	hash := primitives.NewHash(commonHash.Bytes())
 
-	iv := wire.NewInvVect(wire.InvTypeFactomFBlock, hash)
+	iv := messages.NewInvVect(messages.InvTypeFactomFBlock, hash)
 	p.AddKnownInventory(iv)
 	//p.server.State.NetworkInMsgQueue() <- msg.FBlck
 }
 
 // handleDirBlockMsg is invoked when a peer receives a dir block message.
-func (p *peer) handleDirBlockMsg(msg *wire.MsgDirBlock, buf []byte) {
+func (p *peer) handleDirBlockMsg(msg *messages.MsgDirBlock, buf []byte) {
 	binary, _ := msg.DBlk.MarshalBinary()
 	commonHash := primitives.Sha(binary)
 	hash := primitives.NewHash(commonHash.Bytes())
 
-	iv := wire.NewInvVect(wire.InvTypeFactomDirBlock, hash)
+	iv := messages.NewInvVect(messages.InvTypeFactomDirBlock, hash)
 	p.AddKnownInventory(iv)
 
 	p.pushGetNonDirDataMsg(msg.DBlk)
@@ -1604,37 +1599,37 @@ func (p *peer) handleDirBlockMsg(msg *wire.MsgDirBlock, buf []byte) {
 }
 
 // handleABlockMsg is invoked when a peer receives a entry credit block message.
-func (p *peer) handleABlockMsg(msg *wire.MsgABlock, buf []byte) {
+func (p *peer) handleABlockMsg(msg *messages.MsgABlock, buf []byte) {
 	binary, _ := msg.ABlk.MarshalBinary()
 	commonHash := primitives.Sha(binary)
 	hash := primitives.NewHash(commonHash.Bytes())
 
-	iv := wire.NewInvVect(wire.InvTypeFactomAdminBlock, hash)
+	iv := messages.NewInvVect(messages.InvTypeFactomAdminBlock, hash)
 	p.AddKnownInventory(iv)
 	//p.server.State.NetworkInMsgQueue() <- msg
 }
 
 // handleECBlockMsg is invoked when a peer receives a entry credit block
 // message.
-func (p *peer) handleECBlockMsg(msg *wire.MsgECBlock, buf []byte) {
+func (p *peer) handleECBlockMsg(msg *messages.MsgECBlock, buf []byte) {
 	hash, err := msg.ECBlock.HeaderHash()
 	if err != nil {
 		panic(err)
 	}
 
-	iv := wire.NewInvVect(wire.InvTypeFactomEntryCreditBlock, hash)
+	iv := messages.NewInvVect(messages.InvTypeFactomEntryCreditBlock, hash)
 	p.AddKnownInventory(iv)
 
 	//p.server.State.NetworkInMsgQueue() <- msg
 }
 
 // handleEBlockMsg is invoked when a peer receives an entry block bitcoin message.
-func (p *peer) handleEBlockMsg(msg *wire.MsgEBlock, buf []byte) {
+func (p *peer) handleEBlockMsg(msg *messages.MsgEBlock, buf []byte) {
 	binary, _ := msg.EBlk.MarshalBinary()
 	commonHash := primitives.Sha(binary)
 	hash := primitives.NewHash(commonHash.Bytes())
 
-	iv := wire.NewInvVect(wire.InvTypeFactomEntryBlock, hash)
+	iv := messages.NewInvVect(messages.InvTypeFactomEntryBlock, hash)
 	p.AddKnownInventory(iv)
 
 	p.pushGetEntryDataMsg(msg.EBlk)
@@ -1644,12 +1639,12 @@ func (p *peer) handleEBlockMsg(msg *wire.MsgEBlock, buf []byte) {
 }
 
 // handleEntryMsg is invoked when a peer receives a EBlock Entry message.
-func (p *peer) handleEntryMsg(msg *wire.MsgEntry, buf []byte) {
+func (p *peer) handleEntryMsg(msg *messages.MsgEntry, buf []byte) {
 	binary, _ := msg.Entry.MarshalBinary()
 	commonHash := primitives.Sha(binary)
 	hash := primitives.NewHash(commonHash.Bytes())
 
-	iv := wire.NewInvVect(wire.InvTypeFactomEntry, hash)
+	iv := messages.NewInvVect(messages.InvTypeFactomEntry, hash)
 	p.AddKnownInventory(iv)
 
 	//p.server.State.NetworkInMsgQueue() <- msg
@@ -1657,9 +1652,9 @@ func (p *peer) handleEntryMsg(msg *wire.MsgEntry, buf []byte) {
 
 // handleGetEntryDataMsg is invoked when a peer receives a get entry data message and
 // is used to deliver entry of EBlock information.
-func (p *peer) handleGetEntryDataMsg(msg *wire.MsgGetEntryData) {
+func (p *peer) handleGetEntryDataMsg(msg *messages.MsgGetEntryData) {
 	numAdded := 0
-	notFound := wire.NewMsgNotFound()
+	notFound := messages.NewMsgNotFound()
 
 	// We wait on the this wait channel periodically to prevent queueing
 	// far more data than we can send in a reasonable time, wasting memory.
@@ -1679,7 +1674,7 @@ func (p *peer) handleGetEntryDataMsg(msg *wire.MsgGetEntryData) {
 			c = make(chan struct{}, 1)
 		}
 
-		if iv.Type != wire.InvTypeFactomEntry {
+		if iv.Type != messages.InvTypeFactomEntry {
 			continue
 		}
 
@@ -1735,9 +1730,9 @@ func (p *peer) handleGetEntryDataMsg(msg *wire.MsgGetEntryData) {
 // handleGetNonDirDataMsg is invoked when a peer receives a dir block message.
 // It returns the corresponding data block like Factoid block,
 // EC block, Entry block, and Entry based on directory block's ChainID
-func (p *peer) handleGetNonDirDataMsg(msg *wire.MsgGetNonDirData) {
+func (p *peer) handleGetNonDirDataMsg(msg *messages.MsgGetNonDirData) {
 	numAdded := 0
-	notFound := wire.NewMsgNotFound()
+	notFound := messages.NewMsgNotFound()
 
 	// We wait on the this wait channel periodically to prevent queueing
 	// far more data than we can send in a reasonable time, wasting memory.
@@ -1756,7 +1751,7 @@ func (p *peer) handleGetNonDirDataMsg(msg *wire.MsgGetNonDirData) {
 			c = make(chan struct{}, 1)
 		}
 
-		if iv.Type != wire.InvTypeFactomNonDirBlock {
+		if iv.Type != messages.InvTypeFactomNonDirBlock {
 			continue
 		}
 
@@ -1783,7 +1778,7 @@ func (p *peer) handleGetNonDirDataMsg(msg *wire.MsgGetNonDirData) {
 			case hex.EncodeToString(ADMIN_CHAINID[:]):
 				err = p.pushABlockMsg(dbEntry.GetKeyMR(), c, waitChan)
 
-			case wire.FChainID.String():
+			case messages.FChainID.String():
 				err = p.pushFBlockMsg(dbEntry.GetKeyMR(), c, waitChan)
 
 			default:
@@ -1824,15 +1819,15 @@ func (p *peer) handleGetNonDirDataMsg(msg *wire.MsgGetNonDirData) {
 // used to examine the inventory being advertised by the remote peer and react
 // accordingly.  We pass the message down to blockmanager which will call
 // QueueMessage with any appropriate responses.
-func (p *peer) handleDirInvMsg(msg *wire.MsgDirInv) {
+func (p *peer) handleDirInvMsg(msg *messages.MsgDirInv) {
 	p.server.blockManager.QueueDirInv(msg, p)
 }
 
 // handleGetDirDataMsg is invoked when a peer receives a getdata bitcoin message and
 // is used to deliver block and transaction information.
-func (p *peer) handleGetDirDataMsg(msg *wire.MsgGetDirData) {
+func (p *peer) handleGetDirDataMsg(msg *messages.MsgGetDirData) {
 	numAdded := 0
-	notFound := wire.NewMsgNotFound()
+	notFound := messages.NewMsgNotFound()
 
 	// We wait on the this wait channel periodically to prevent queueing
 	// far more data than we can send in a reasonable time, wasting memory.
@@ -1852,12 +1847,12 @@ func (p *peer) handleGetDirDataMsg(msg *wire.MsgGetDirData) {
 		}
 		var err error
 		switch iv.Type {
-		//case wire.InvTypeTx:
+		//case messages.InvTypeTx:
 		//err = p.pushTxMsg(&iv.Hash, c, waitChan)
-		case wire.InvTypeFactomDirBlock:
+		case messages.InvTypeFactomDirBlock:
 			err = p.pushDirBlockMsg(iv.Hash, c, waitChan)
 			/*
-				case wire.InvTypeFilteredBlock:
+				case messages.InvTypeFilteredBlock:
 					err = p.pushMerkleBlockMsg(&iv.Hash, c, waitChan)
 			*/
 		default:
@@ -1895,15 +1890,15 @@ func (p *peer) handleGetDirDataMsg(msg *wire.MsgGetDirData) {
 }
 
 // handleGetDirBlocksMsg is invoked when a peer receives a getdirblocks factom message.
-func (p *peer) handleGetDirBlocksMsg(msg *wire.MsgGetDirBlocks) {
+func (p *peer) handleGetDirBlocksMsg(msg *messages.MsgGetDirBlocks) {
 	// Return all block hashes to the latest one (up to max per message) if
 	// no stop hash was specified.
 	// Attempt to find the ending index of the stop hash if specified.
 
 	//TODO: replace with -1
-	var endIdx int64 = -1		//database.AllShas
+	var endIdx int64 = -1 //database.AllShas
 	if !msg.HashStop.IsSameAs(zeroHash) {
-		height, err := p.server.State.GetDB().FetchDBlockHeightByKeyMR(msg.HashStop)	//FetchBlockHeightBySha(msg.HashStop)
+		height, err := p.server.State.GetDB().FetchDBlockHeightByKeyMR(msg.HashStop) //FetchBlockHeightBySha(msg.HashStop)
 		if err == nil {
 			endIdx = height + 1
 		}
@@ -1929,8 +1924,8 @@ func (p *peer) handleGetDirBlocksMsg(msg *wire.MsgGetDirBlocks) {
 
 	// Don't attempt to fetch more than we can put into a single message.
 	autoContinue := false
-	if endIdx-startIdx > wire.MaxBlocksPerMsg {
-		endIdx = startIdx + wire.MaxBlocksPerMsg
+	if endIdx-startIdx > messages.MaxBlocksPerMsg {
+		endIdx = startIdx + messages.MaxBlocksPerMsg
 		autoContinue = true
 	}
 
@@ -1940,7 +1935,7 @@ func (p *peer) handleGetDirBlocksMsg(msg *wire.MsgGetDirBlocks) {
 	// per invocation.  Since the maximum number of inventory per message
 	// might be larger, call it multiple times with the appropriate indices
 	// as needed.
-	invMsg := wire.NewMsgDirInv()
+	invMsg := messages.NewMsgDirInv()
 	for start := startIdx; start < endIdx; {
 		// Fetch the inventory from the block database.
 		hashList, err := p.server.State.GetDB().FetchDBlockHeightRange(start, endIdx)
@@ -1958,7 +1953,7 @@ func (p *peer) handleGetDirBlocksMsg(msg *wire.MsgGetDirBlocks) {
 		// Add dir block inventory to the message.
 		for _, hash := range hashList {
 			hashCopy := hash
-			iv := wire.NewInvVect(wire.InvTypeFactomDirBlock, hashCopy)
+			iv := messages.NewInvVect(messages.InvTypeFactomDirBlock, hashCopy)
 			invMsg.AddInvVect(iv)
 		}
 		start += int64(len(hashList))
@@ -1967,7 +1962,7 @@ func (p *peer) handleGetDirBlocksMsg(msg *wire.MsgGetDirBlocks) {
 	// Send the inventory message if there is anything to send.
 	if len(invMsg.InvList) > 0 {
 		invListLen := len(invMsg.InvList)
-		if autoContinue && invListLen == wire.MaxBlocksPerMsg {
+		if autoContinue && invListLen == messages.MaxBlocksPerMsg {
 			// Intentionally use a copy of the final hash so there
 			// is not a reference into the inventory slice which
 			// would prevent the entire slice from being eligible
@@ -2008,7 +2003,7 @@ func (p *peer) pushDirBlockMsg(sha interfaces.IHash, doneChan, waitChan chan str
 	if !sendInv {
 		dc = doneChan
 	}
-	msg := wire.NewMsgDirBlock()
+	msg := messages.NewMsgDirBlock()
 	msg.DBlk = blk.(*DirectoryBlock)
 	p.QueueMessage(msg, dc) //blk.MsgBlock(), dc)
 
@@ -2024,14 +2019,14 @@ func (p *peer) pushDirBlockMsg(sha interfaces.IHash, doneChan, waitChan chan str
 
 		//
 		// Note: Rather than the latest block height, we should pass
-		// the last block height of this batch of wire.MaxBlockLocatorsPerMsg
+		// the last block height of this batch of messages.MaxBlockLocatorsPerMsg
 		// to signal this is the end of the batch and
 		// to trigger a client to send a new GetDirBlocks message
 		//
 		//hash, _, err := db.FetchBlockHeightCache()
 		//if err == nil {
-		invMsg := wire.NewMsgDirInvSizeHint(1)
-		iv := wire.NewInvVect(wire.InvTypeFactomDirBlock, sha) //hash)
+		invMsg := messages.NewMsgDirInvSizeHint(1)
+		iv := messages.NewInvVect(messages.InvTypeFactomDirBlock, sha) //hash)
 		invMsg.AddInvVect(iv)
 		p.QueueMessage(invMsg, doneChan)
 		p.continueHash = nil
@@ -2066,7 +2061,7 @@ func (p *peer) PushGetDirBlocksMsg(locator BlockLocator, stopHash interfaces.IHa
 	}
 
 	// Construct the getblocks request and queue it to be sent.
-	msg := wire.NewMsgGetDirBlocks(stopHash)
+	msg := messages.NewMsgGetDirBlocks(stopHash)
 	for _, hash := range locator {
 		err := msg.AddBlockLocatorHash(hash)
 		if err != nil {
@@ -2090,8 +2085,8 @@ func (p *peer) pushGetNonDirDataMsg(dblock *DirectoryBlock) {
 	commonHash := primitives.Sha(binary)
 	hash := primitives.NewHash(commonHash.Bytes())
 
-	iv := wire.NewInvVect(wire.InvTypeFactomNonDirBlock, hash)
-	gdmsg := wire.NewMsgGetNonDirData()
+	iv := messages.NewInvVect(messages.InvTypeFactomNonDirBlock, hash)
+	gdmsg := messages.NewMsgGetNonDirData()
 	gdmsg.AddInvVect(iv)
 	if len(gdmsg.InvList) > 0 {
 		p.QueueMessage(gdmsg, nil)
@@ -2105,8 +2100,8 @@ func (p *peer) pushGetEntryDataMsg(eblock *EBlock) {
 	commonHash := primitives.Sha(binary)
 	hash := primitives.NewHash(commonHash.Bytes())
 
-	iv := wire.NewInvVect(wire.InvTypeFactomEntry, hash)
-	gdmsg := wire.NewMsgGetEntryData()
+	iv := messages.NewInvVect(messages.InvTypeFactomEntry, hash)
+	gdmsg := messages.NewMsgGetEntryData()
 	gdmsg.AddInvVect(iv)
 	if len(gdmsg.InvList) > 0 {
 		p.QueueMessage(gdmsg, nil)
@@ -2133,7 +2128,7 @@ func (p *peer) pushFBlockMsg(commonhash interfaces.IHash, doneChan, waitChan cha
 		<-waitChan
 	}
 
-	msg := wire.NewMsgFBlock()
+	msg := messages.NewMsgFBlock()
 	msg.FBlck = blk
 	p.QueueMessage(msg, doneChan) //blk.MsgBlock(), dc)
 	return nil
@@ -2158,7 +2153,7 @@ func (p *peer) pushABlockMsg(commonhash interfaces.IHash, doneChan, waitChan cha
 		<-waitChan
 	}
 
-	msg := wire.NewMsgABlock()
+	msg := messages.NewMsgABlock()
 	msg.ABlk = blk.(*AdminBlock)
 	p.QueueMessage(msg, doneChan) //blk.MsgBlock(), dc)
 	return nil
@@ -2184,7 +2179,7 @@ func (p *peer) pushECBlockMsg(commonhash interfaces.IHash, doneChan, waitChan ch
 		<-waitChan
 	}
 
-	msg := wire.NewMsgECBlock()
+	msg := messages.NewMsgECBlock()
 	msg.ECBlock = blk.(*ECBlock)
 	p.QueueMessage(msg, doneChan) //blk.MsgBlock(), dc)
 	return nil
@@ -2208,7 +2203,7 @@ func (p *peer) pushEBlockMsg(commonhash interfaces.IHash, doneChan, waitChan cha
 		<-waitChan
 	}
 
-	msg := wire.NewMsgEBlock()
+	msg := messages.NewMsgEBlock()
 	msg.EBlk = blk.(*EBlock)
 	p.QueueMessage(msg, doneChan) //blk.MsgBlock(), dc)
 	return nil
@@ -2232,50 +2227,42 @@ func (p *peer) pushEntryMsg(commonhash interfaces.IHash, doneChan, waitChan chan
 		<-waitChan
 	}
 
-	msg := wire.NewMsgEntry()
+	msg := messages.NewMsgEntry()
 	msg.Entry = entry.(*Entry)
 	p.QueueMessage(msg, doneChan) //blk.MsgBlock(), dc)
 	return nil
 }
 
 // handleFactoidMsg
-func (p *peer) handleFactoidMsg(msg *wire.MsgFactoidTX, buf []byte) {
+func (p *peer) handleFactoidMsg(msg *messages.MsgFactoidTX, buf []byte) {
 	binary, _ := msg.Transaction.MarshalBinary()
 	commonHash := primitives.Sha(binary)
 	hash := primitives.NewHash(commonHash.Bytes())
 
-	iv := wire.NewInvVect(wire.InvTypeTx, hash)
+	iv := messages.NewInvVect(messages.InvTypeTx, hash)
 	p.AddKnownInventory(iv)
 
 	//p.server.State.NetworkInMsgQueue() <- msg
 }
 
 // Handle factom app imcoming msg
-func (p *peer) handleEOMMsg(msg *wire.MsgEOM) {
+func (p *peer) handleEOMMsg(msg *messages.EOM) {
 	// Add the msg to inbound msg queue
 	if !ClientOnly {
-		p.server.State.NetworkInMsgQueue() <- msg.EOM
+		p.server.State.NetworkInMsgQueue() <- msg
 	}
 }
 
 // Handle factom app imcoming msg
-func (p *peer) handleCommitChainMsg(msg *wire.MsgCommitChain) {
+func (p *peer) handleCommitChainMsg(msg *messages.CommitChainMsg) {
 	// Add the msg to inbound msg queue
 	if !ClientOnly {
-		p.server.State.NetworkInMsgQueue() <- msg.CommitChainMsg
+		//p.server.State.NetworkInMsgQueue() <- msg //msg.CommitChainMsg
 	}
 }
 
 // Handle factom app imcoming msg
-func (p *peer) handleRevealChainMsg(msg *wire.MsgRevealChain) {
-	// Add the msg to inbound msg queue
-	if !ClientOnly {
-		//p.server.State.NetworkInMsgQueue() <- msg
-	}
-}
-
-// Handle factom app imcoming msg
-func (p *peer) handleCommitEntryMsg(msg *wire.MsgCommitEntry) {
+func (p *peer) handleRevealChainMsg(msg *messages.MsgRevealChain) {
 	// Add the msg to inbound msg queue
 	if !ClientOnly {
 		//p.server.State.NetworkInMsgQueue() <- msg
@@ -2283,7 +2270,7 @@ func (p *peer) handleCommitEntryMsg(msg *wire.MsgCommitEntry) {
 }
 
 // Handle factom app imcoming msg
-func (p *peer) handleRevealEntryMsg(msg *wire.MsgRevealEntry) {
+func (p *peer) handleCommitEntryMsg(msg *messages.MsgCommitEntry) {
 	// Add the msg to inbound msg queue
 	if !ClientOnly {
 		//p.server.State.NetworkInMsgQueue() <- msg
@@ -2291,7 +2278,15 @@ func (p *peer) handleRevealEntryMsg(msg *wire.MsgRevealEntry) {
 }
 
 // Handle factom app imcoming msg
-func (p *peer) handleAcknoledgementMsg(msg *wire.MsgAcknowledgement) {
+func (p *peer) handleRevealEntryMsg(msg *messages.MsgRevealEntry) {
+	// Add the msg to inbound msg queue
+	if !ClientOnly {
+		//p.server.State.NetworkInMsgQueue() <- msg
+	}
+}
+
+// Handle factom app imcoming msg
+func (p *peer) handleAcknoledgementMsg(msg *messages.MsgAcknowledgement) {
 	// Add the msg to inbound msg queue
 	if !ClientOnly {
 		//p.server.State.NetworkInMsgQueue() <- msg
@@ -2301,7 +2296,7 @@ func (p *peer) handleAcknoledgementMsg(msg *wire.MsgAcknowledgement) {
 // returns true if the message should be relayed, false otherwise
 func (p *peer) shallRelay(msg interface{}) bool {
 	hash, _ := primitives.NewShaHashFromStruct(msg)
-	iv := wire.NewInvVect(wire.InvTypeFactomRaw, hash)
+	iv := messages.NewInvVect(messages.InvTypeFactomRaw, hash)
 
 	if !p.isKnownInventory(iv) {
 		p.AddKnownInventory(iv)
@@ -2316,7 +2311,7 @@ func (p *peer) shallRelay(msg interface{}) bool {
 
 // Call FactomRelay to relay/broadcast a Factom message (to your peers).
 // The intent is to call this function after certain 'processor' checks been done.
-func (p *peer) FactomRelay(msg wire.Message) {
+func (p *peer) FactomRelay(msg messages.Message) {
 
 	// broadcast/relay only if hadn't been done for this peer
 	if p.shallRelay(msg) {
