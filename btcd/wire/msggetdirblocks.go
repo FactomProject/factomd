@@ -82,7 +82,7 @@ func (msg *MsgGetDirBlocks) BtcDecode(r io.Reader, pver uint32) error {
 		msg.AddBlockLocatorHash(sha)
 	}
 
-	err = readElement(r, &msg.HashStop)
+	err = readElement(r, msg.HashStop)
 	if err != nil {
 		return err
 	}
@@ -118,7 +118,7 @@ func (msg *MsgGetDirBlocks) BtcEncode(w io.Writer, pver uint32) error {
 		}
 	}
 
-	err = writeElement(w, &msg.HashStop)
+	err = writeElement(w, msg.HashStop)
 	if err != nil {
 		return err
 	}
