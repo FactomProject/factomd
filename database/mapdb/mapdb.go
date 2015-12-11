@@ -69,6 +69,9 @@ func (db *MapDB) Get(bucket, key []byte, destination interfaces.BinaryMarshallab
 	if ok == false {
 		return nil, nil
 	}
+	if v == nil {
+		return nil, nil
+	}
 	_, err := destination.UnmarshalBinaryData(v)
 	if err != nil {
 		return nil, err
