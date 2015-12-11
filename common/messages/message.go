@@ -50,12 +50,9 @@ const (
 	CmdFilterClear = "filterclear"
 	CmdFilterLoad  = "filterload"
 	CmdReject      = "reject"
-	// TODO remove CmdTestCred before production
-	CmdTestCredit = "testcredit"
 
 	// Factom additions:
 
-	// Factom downloads: block & entry
 	CmdGetDirBlocks  = "getdirblocks"
 	CmdDirInv        = "dirInv"
 	CmdGetDirData    = "getdirdata"
@@ -113,12 +110,6 @@ func makeEmptyMessage(command string) (Message, error) {
 	case CmdAddr:
 		msg = &MsgAddr{}
 
-	//case CmdGetBlocks:
-	//msg = &MsgGetBlocks{}
-
-	//case CmdBlock:
-	//msg = &MsgBlock{}
-
 	case CmdInv:
 		msg = &MsgInv{}
 
@@ -128,37 +119,14 @@ func makeEmptyMessage(command string) (Message, error) {
 	case CmdNotFound:
 		msg = &MsgNotFound{}
 
-		/*
-			case CmdTx:
-				msg = &MsgTx{}
-		*/
-
 	case CmdPing:
 		msg = &MsgPing{}
 
 	case CmdPong:
 		msg = &MsgPong{}
 
-	//case CmdGetHeaders:
-	//msg = &MsgGetHeaders{}
-
-	//case CmdHeaders:
-	//msg = &MsgHeaders{}
-
 	case CmdAlert:
 		msg = &MsgAlert{}
-
-	//case CmdMemPool:
-	//msg = &MsgMemPool{}
-
-	//case CmdFilterAdd:
-	//msg = &MsgFilterAdd{}
-
-	//case CmdFilterClear:
-	//msg = &MsgFilterClear{}
-
-	//case CmdFilterLoad:
-	//msg = &MsgFilterLoad{}
 
 	case CmdReject:
 		msg = &MsgReject{}
@@ -179,9 +147,9 @@ func makeEmptyMessage(command string) (Message, error) {
 		msg = &MsgAcknowledgement{}
 
 	case CmdGetDirBlocks:
-		msg0 := &MsgGetDirBlocks{}
-		msg0.HashStop = primitives.NewZeroHash()
-		msg = msg0
+		msg = &MsgGetDirBlocks{
+			HashStop:		primitives.NewZeroHash(),
+		}
 
 	case CmdDirInv:
 		msg = &MsgDirInv{}
@@ -213,8 +181,10 @@ func makeEmptyMessage(command string) (Message, error) {
 	case CmdFactoidTX:
 		msg = &MsgFactoidTX{}
 
-	//case CmdEOM:
-	//msg = &MsgEOM{}
+	case CmdEOM:
+		msg = &EOM{
+			IdentityChainID:		primitives.NewZeroHash(),
+		}
 
 	default:
 		return nil, fmt.Errorf("unhandled command [%s]", command)

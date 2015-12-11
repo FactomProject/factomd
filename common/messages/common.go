@@ -132,16 +132,7 @@ func readElement(r io.Reader, element interface{}) error {
 		}
 		*e = FactomNet(binary.BigEndian.Uint32(b))
 		return nil
-/*
-	case *BloomUpdateType:
-		b := scratch[0:1]
-		_, err := io.ReadFull(r, b)
-		if err != nil {
-			return err
-		}
-		*e = BloomUpdateType(b[0])
-		return nil
-*/
+
 	case *RejectCode:
 		b := scratch[0:1]
 		_, err := io.ReadFull(r, b)
@@ -283,16 +274,7 @@ func writeElement(w io.Writer, element interface{}) error {
 			return err
 		}
 		return nil
-/*
-	case BloomUpdateType:
-		b := scratch[0:1]
-		b[0] = uint8(e)
-		_, err := w.Write(b)
-		if err != nil {
-			return err
-		}
-		return nil
-*/
+
 	case RejectCode:
 		b := scratch[0:1]
 		b[0] = uint8(e)
