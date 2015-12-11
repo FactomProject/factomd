@@ -98,7 +98,7 @@ func TestSaveLoadABlockChain(t *testing.T) {
 		if keyMR.IsSameAs(zero) {
 			break
 		}
-		t.Logf("KeyMR - %v", keyMR.String())
+		//t.Logf("KeyMR - %v", keyMR.String())
 
 		current, err = dbo.FetchABlockByKeyMR(keyMR)
 		if err != nil {
