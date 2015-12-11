@@ -37,6 +37,7 @@ var _ interfaces.Printable = (*CommitChain)(nil)
 var _ interfaces.BinaryMarshallable = (*CommitChain)(nil)
 var _ interfaces.ShortInterpretable = (*CommitChain)(nil)
 var _ interfaces.IECBlockEntry = (*CommitChain)(nil)
+var _ interfaces.ISignable = (*CommitChain)(nil)
 
 func (c *CommitChain) MarshalledSize() uint64 {
 	return uint64(CommitChainSize)
@@ -120,7 +121,7 @@ func (c *CommitChain) GetSigHash() interfaces.IHash {
 	return primitives.Sha(data)
 }
 
-func (c *CommitChain) MarshalBinary() ([]byte, error) {
+func (c *CommitChain) MarshalBinarySig() ([]byte, error) {
 	buf := new(bytes.Buffer)
 
 	// 1 byte Version
@@ -144,6 +145,42 @@ func (c *CommitChain) MarshalBinary() ([]byte, error) {
 	if err := binary.Write(buf, binary.BigEndian, c.Credits); err != nil {
 		return buf.Bytes(), err
 	}
+
+	return buf.Bytes(), nil
+}
+
+func (c *CommitChain) Sign(privateKey []byte) error {
+	sig, err := primitives.SignSignable(privateKey, c)
+	if err != nil {
+		return err
+	}
+	if c.Sig == nil {
+		c.Sig = new(primitives.ByteSlice64)
+	}
+	err = c.Sig.UnmarshalBinary(sig)
+	if err != nil {
+		return err
+	}
+	pub := primitives.PrivateKeyToPublicKey(privateKey)
+	if c.ECPubKey == nil {
+		c.ECPubKey = new(primitives.ByteSlice32)
+	}
+	err = c.ECPubKey.UnmarshalBinary(pub)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *CommitChain) MarshalBinary() ([]byte, error) {
+	buf := new(bytes.Buffer)
+
+	b, err := c.MarshalBinarySig()
+	if err != nil {
+		return nil, err
+	}
+
+	buf.Write(b)
 
 	// 32 byte Public Key
 	buf.Write(c.ECPubKey[:])

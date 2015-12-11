@@ -9,6 +9,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/FactomProject/ed25519"
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 )
 
@@ -85,4 +86,39 @@ func (ds *DetachedSignature) String() string {
 // Verify returns true iff sig is a valid signature of msg by PublicKey.
 func (sig *Signature) Verify(msg []byte) bool {
 	return ed25519.VerifyCanonical(sig.Pub.Key, msg, sig.Sig)
+}
+
+func PrivateKeyToPublicKey(privateKey []byte) []byte {
+	if len(privateKey) == 64 {
+		privateKey = privateKey[:32]
+	}
+	if len(privateKey) != 32 {
+		return nil
+	}
+	keypair := new([64]byte)
+	copy(keypair[:32], privateKey[:])
+	return ed25519.GetPublicKey(keypair)[:]
+}
+
+func SignSignable(priv []byte, data interfaces.ISignable) ([]byte, error) {
+	d, err := data.MarshalBinarySig()
+	if err != nil {
+		return nil, err
+	}
+	return Sign(priv, d), nil
+}
+
+func Sign(priv, data []byte) []byte {
+	priv2 := [64]byte{}
+	if len(priv) == 64 {
+		copy(priv2[:], priv[:])
+	} else if len(priv) == 32 {
+		copy(priv2[:], priv[:])
+		pub := ed25519.GetPublicKey(&priv2)
+		copy(priv2[:], append(priv, pub[:]...)[:])
+	} else {
+		return nil
+	}
+
+	return ed25519.Sign(&priv2, data)[:constants.SIGNATURE_LENGTH]
 }

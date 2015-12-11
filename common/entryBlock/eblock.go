@@ -31,14 +31,22 @@ func (c *EBlock) New() interfaces.BinaryMarshallableAndCopyable {
 	return NewEBlock()
 }
 
-func (e *EBlock) GetWeld() []byte {
-	return primitives.DoubleSha(append(e.Body.EBEntries[0].Bytes(), e.GetChainID()...))
+func (e *EBlock) GetWelds() [][]byte {
+	var answer [][]byte
+	for _, entry := range e.Body.EBEntries {
+		answer = append(answer, primitives.DoubleSha(append(entry.Bytes(), e.GetChainID()...)))
+	}
+	return answer
 }
 
-func (e *EBlock) GetWeldHash() interfaces.IHash {
-	hash := primitives.NewZeroHash()
-	hash.SetBytes(e.GetWeld())
-	return hash
+func (e *EBlock) GetWeldHashes() []interfaces.IHash {
+	var answer []interfaces.IHash
+	for _, h := range e.GetWelds() {
+		hash := primitives.NewZeroHash()
+		hash.SetBytes(h)
+		answer = append(answer, hash)
+	}
+	return answer
 }
 
 func (c *EBlock) GetDatabaseHeight() uint32 {
