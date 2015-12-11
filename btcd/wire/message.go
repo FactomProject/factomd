@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"unicode/utf8"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 // MessageHeaderSize is the number of bytes in a bitcoin message header.
@@ -177,7 +178,9 @@ func makeEmptyMessage(command string) (Message, error) {
 		msg = &MsgAcknowledgement{}
 
 	case CmdGetDirBlocks:
-		msg = &MsgGetDirBlocks{}
+		msg0 := &MsgGetDirBlocks{}
+		msg0.HashStop = primitives.NewZeroHash()
+		msg = msg0
 
 	case CmdDirInv:
 		msg = &MsgDirInv{}

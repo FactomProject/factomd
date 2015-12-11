@@ -92,7 +92,7 @@ var (
 )
 
 // zeroHash is the zero value hash (all zeros).  It is defined as a convenience.
-var zeroHash interfaces.IHash
+var zeroHash interfaces.IHash = primitives.NewZeroHash()
 
 // minUint32 is a helper function to return the minimum of two uint32s.
 // This avoids a math import and the need to cast to floats.

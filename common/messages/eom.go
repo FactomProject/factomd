@@ -142,7 +142,7 @@ func (m *EOM) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *EOM) String() string {
-	return fmt.Sprintf("EOM(%d)", m.Minute+1)
+	return fmt.Sprintf("EOM(%d), DirectoryBlockHeight(%d)", m.Minute+1, m.DirectoryBlockHeight)
 }
 
 func (m *EOM) Type() int {
