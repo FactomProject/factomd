@@ -7,14 +7,14 @@ package addrmgr
 import (
 	"time"
 
-	"github.com/FactomProject/factomd/btcd/wire"
+	"github.com/FactomProject/factomd/common/messages"
 )
 
 // KnownAddress tracks information about a known network address that is used
 // to determine how viable an address is.
 type KnownAddress struct {
-	na          *wire.NetAddress
-	srcAddr     *wire.NetAddress
+	na          *messages.NetAddress
+	srcAddr     *messages.NetAddress
 	attempts    int
 	lastattempt time.Time
 	lastsuccess time.Time
@@ -22,9 +22,9 @@ type KnownAddress struct {
 	refs        int // reference count of new buckets
 }
 
-// NetAddress returns the underlying wire.NetAddress associated with the
+// NetAddress returns the underlying messages.NetAddress associated with the
 // known address.
-func (ka *KnownAddress) NetAddress() *wire.NetAddress {
+func (ka *KnownAddress) NetAddress() *messages.NetAddress {
 	return ka.na
 }
 

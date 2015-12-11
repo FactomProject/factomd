@@ -5,7 +5,7 @@
 package btcd
 
 import (
-	"github.com/FactomProject/factomd/btcd/wire"
+	"github.com/FactomProject/factomd/common/messages"
 	. "github.com/FactomProject/factomd/common/constants"
 	//"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -41,7 +41,7 @@ type BlockLocator []interfaces.IHash
 //    consist of the passed hash
 func DirBlockLocatorFromHash(hash interfaces.IHash, state interfaces.IState) BlockLocator {
 	// The locator contains the requested hash at the very least.
-	locator := make(BlockLocator, 0, wire.MaxBlockLocatorsPerMsg)
+	locator := make(BlockLocator, 0, messages.MaxBlockLocatorsPerMsg)
 	locator = append(locator, hash)
 
 	genesisHash, _ := HexToHash(GENESIS_DIR_BLOCK_HASH)
@@ -65,7 +65,7 @@ func DirBlockLocatorFromHash(hash interfaces.IHash, state interfaces.IState) Blo
 		blockHeight = int64(dblock.GetHeader().GetDBHeight())
 	}
 	increment := int64(1)
-	for len(locator) < wire.MaxBlockLocatorsPerMsg-1 {
+	for len(locator) < messages.MaxBlockLocatorsPerMsg-1 {
 		// Once there are 10 locators, exponentially increase the
 		// distance between each block locator.
 		if len(locator) > 10 {

@@ -11,7 +11,7 @@ import (
 	"time"
 	"fmt"
 
-	"github.com/FactomProject/factomd/btcd/wire"
+	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/directoryBlock"
@@ -51,7 +51,7 @@ type blockMsg struct {
 // invMsg packages a bitcoin inv message and the peer it came from together
 // so the block handler has access to that information.
 type invMsg struct {
-	inv  *wire.MsgInv
+	inv  *messages.MsgInv
 	peer *peer
 }
 
@@ -247,15 +247,15 @@ func (b *blockManager) current() bool {
 // inventory can be when it is in different states such as blocks that are part
 // of the main chain, on a side chain, in the orphan pool, and transactions that
 // are in the memory pool (either the main pool or orphan pool).
-func (b *blockManager) haveInventory(invVect *wire.InvVect) (bool, error) {
+func (b *blockManager) haveInventory(invVect *messages.InvVect) (bool, error) {
 	/*
 		switch invVect.Type {
-		case wire.InvTypeBlock:
+		case messages.InvTypeBlock:
 			// Ask chain if the block is known to it in any form (main
 			// chain, side chain, or orphan).
 			return b.blockChain.HaveBlock(&invVect.Hash)
 
-		case wire.InvTypeTx:
+		case messages.InvTypeTx:
 			// Ask the transaction memory pool if the transaction is known
 			// to it in any form (main pool or orphan).
 			if b.server.txMemPool.HaveTransaction(&invVect.Hash) {
@@ -267,7 +267,7 @@ func (b *blockManager) haveInventory(invVect *wire.InvVect) (bool, error) {
 			return b.server.db.ExistsTxSha(&invVect.Hash)
 		}*/
 
-	if invVect.Type == wire.InvTypeFactomDirBlock {
+	if invVect.Type == messages.InvTypeFactomDirBlock {
 		// Ask db if the block is known to it in any form (main
 		// chain, side chain, or orphan).
 		return b.haveBlockInDB(invVect.Hash)
@@ -285,7 +285,7 @@ func (b *blockManager) handleInvMsg(imsg *invMsg) {
 	//lastBlock := -1
 	invVects := imsg.inv.InvList
 	//for i := len(invVects) - 1; i >= 0; i-- {
-	//if invVects[i].Type == wire.InvTypeBlock {
+	//if invVects[i].Type == messages.InvTypeBlock {
 	//lastBlock = i
 	//break
 	//}
@@ -330,8 +330,8 @@ func (b *blockManager) handleInvMsg(imsg *invMsg) {
 	//chain := b.blockChain
 	for _, iv := range invVects {
 		// Ignore unsupported inventory types.
-		//if iv.Type != wire.InvTypeBlock && iv.Type != wire.InvTypeTx {
-		if iv.Type != wire.InvTypeFactomDirBlock {
+		//if iv.Type != messages.InvTypeBlock && iv.Type != messages.InvTypeTx {
+		if iv.Type != messages.InvTypeFactomDirBlock {
 			continue
 		}
 
@@ -359,7 +359,7 @@ func (b *blockManager) handleInvMsg(imsg *invMsg) {
 		}
 
 		/*
-			if iv.Type == wire.InvTypeBlock {
+			if iv.Type == messages.InvTypeBlock {
 				// The block is an orphan block that we already have.
 				// When the existing orphan was processed, it requested
 				// the missing parent blocks.  When this scenario
@@ -404,7 +404,7 @@ func (b *blockManager) handleInvMsg(imsg *invMsg) {
 	// Request as much as possible at once.  Anything that won't fit into
 	// the request will be requested on the next inv message.
 	numRequested := 0
-	gdmsg := wire.NewMsgGetData()
+	gdmsg := messages.NewMsgGetData()
 	requestQueue := imsg.peer.requestQueue
 	for len(requestQueue) != 0 {
 		iv := requestQueue[0]
@@ -412,7 +412,7 @@ func (b *blockManager) handleInvMsg(imsg *invMsg) {
 		requestQueue = requestQueue[1:]
 
 		switch iv.Type {
-		case wire.InvTypeBlock:
+		case messages.InvTypeBlock:
 			// Request the block if there is not already a pending
 			// request.
 			if _, exists := b.requestedBlocks[iv.Hash]; !exists {
@@ -422,7 +422,7 @@ func (b *blockManager) handleInvMsg(imsg *invMsg) {
 				numRequested++
 			}
 
-		case wire.InvTypeTx:
+		case messages.InvTypeTx:
 			// Request the transaction if there is not already a
 			// pending request.
 			if _, exists := b.requestedTxns[iv.Hash]; !exists {
@@ -432,7 +432,7 @@ func (b *blockManager) handleInvMsg(imsg *invMsg) {
 				numRequested++
 			}
 
-		case wire.InvTypeFactomDirBlock:
+		case messages.InvTypeFactomDirBlock:
 			// Request the factom dir block if there is not already a pending
 			// request.
 			if _, exists := b.requestedBlocks[iv.Hash]; !exists {
@@ -443,7 +443,7 @@ func (b *blockManager) handleInvMsg(imsg *invMsg) {
 			}
 		}
 
-		if numRequested >= wire.MaxInvPerMsg {
+		if numRequested >= messages.MaxInvPerMsg {
 			break
 		}
 	}
@@ -578,7 +578,7 @@ func (b *blockManager) NewPeer(p *peer) {
 
 
 // QueueInv adds the passed inv message and peer to the block handling queue.
-func (b *blockManager) QueueInv(inv *wire.MsgInv, p *peer) {
+func (b *blockManager) QueueInv(inv *messages.MsgInv, p *peer) {
 	// No channel handling here because peers do not need to block on inv
 	// messages.
 	if atomic.LoadInt32(&b.shutdown) != 0 {
@@ -703,7 +703,7 @@ type dirBlockMsg struct {
 // dirInvMsg packages a dir block inv message and the peer it came from together
 // so the block handler has access to that information.
 type dirInvMsg struct {
-	inv  *wire.MsgDirInv
+	inv  *messages.MsgDirInv
 	peer *peer
 }
 
@@ -724,7 +724,7 @@ func (b *blockManager) handleDirInvMsg(imsg *dirInvMsg) {
 	invVects := imsg.inv.InvList
 	bmgrLog.Debugf("len(InvVects)=%d", len(invVects))
 	for i := len(invVects) - 1; i >= 0; i-- {
-		if invVects[i].Type == wire.InvTypeFactomDirBlock {
+		if invVects[i].Type == messages.InvTypeFactomDirBlock {
 			lastBlock = i
 			bmgrLog.Debugf("lastBlock=%d", lastBlock)
 			break
@@ -737,7 +737,7 @@ func (b *blockManager) handleDirInvMsg(imsg *dirInvMsg) {
 	// we already have and request more blocks to prevent them.
 	for i, iv := range invVects {
 		// Ignore unsupported inventory types.
-		if iv.Type != wire.InvTypeFactomDirBlock { //} && iv.Type != wire.InvTypeTx {
+		if iv.Type != messages.InvTypeFactomDirBlock { //} && iv.Type != messages.InvTypeTx {
 			continue
 		}
 
@@ -759,7 +759,7 @@ func (b *blockManager) handleDirInvMsg(imsg *dirInvMsg) {
 			continue
 		}
 
-		if iv.Type == wire.InvTypeFactomDirBlock {
+		if iv.Type == messages.InvTypeFactomDirBlock {
 
 			// We already have the final block advertised by this
 			// inventory message, so force a request for more.  This
@@ -779,7 +779,7 @@ func (b *blockManager) handleDirInvMsg(imsg *dirInvMsg) {
 	// Request as much as possible at once.  Anything that won't fit into
 	// the request will be requested on the next inv message.
 	numRequested := 0
-	gdmsg := wire.NewMsgGetDirData()
+	gdmsg := messages.NewMsgGetDirData()
 	requestQueue := imsg.peer.requestQueue
 	for len(requestQueue) != 0 {
 		iv := requestQueue[0]
@@ -787,7 +787,7 @@ func (b *blockManager) handleDirInvMsg(imsg *dirInvMsg) {
 		requestQueue = requestQueue[1:]
 
 		switch iv.Type {
-		case wire.InvTypeFactomDirBlock:
+		case messages.InvTypeFactomDirBlock:
 			// Request the block if there is not already a pending
 			// request.
 			if _, exists := b.requestedBlocks[iv.Hash]; !exists {
@@ -797,7 +797,7 @@ func (b *blockManager) handleDirInvMsg(imsg *dirInvMsg) {
 				numRequested++
 			}
 
-		case wire.InvTypeTx:
+		case messages.InvTypeTx:
 			// Request the transaction if there is not already a
 			// pending request.
 			if _, exists := b.requestedTxns[iv.Hash]; !exists {
@@ -808,7 +808,7 @@ func (b *blockManager) handleDirInvMsg(imsg *dirInvMsg) {
 			}
 		}
 
-		if numRequested >= wire.MaxInvPerMsg {
+		if numRequested >= messages.MaxInvPerMsg {
 			break
 		}
 	}
@@ -819,7 +819,7 @@ func (b *blockManager) handleDirInvMsg(imsg *dirInvMsg) {
 }
 
 // QueueDirBlock adds the passed GetDirBlocks message and peer to the block handling queue.
-func (b *blockManager) QueueDirBlock(msg *wire.MsgDirBlock, p *peer) {
+func (b *blockManager) QueueDirBlock(msg *messages.MsgDirBlock, p *peer) {
 	// Don't accept more blocks if we're shutting down.
 	if atomic.LoadInt32(&b.shutdown) != 0 {
 		p.blockProcessed <- struct{}{}
@@ -830,7 +830,7 @@ func (b *blockManager) QueueDirBlock(msg *wire.MsgDirBlock, p *peer) {
 }
 
 // QueueDirInv adds the passed inv message and peer to the block handling queue.
-func (b *blockManager) QueueDirInv(inv *wire.MsgDirInv, p *peer) {
+func (b *blockManager) QueueDirInv(inv *messages.MsgDirInv, p *peer) {
 	// No channel handling here because peers do not need to block on inv
 	// messages.
 	if atomic.LoadInt32(&b.shutdown) != 0 {

@@ -11,13 +11,13 @@ import (
 	"time"
 	"fmt"
 	"github.com/FactomProject/btcd/addrmgr"
-	"github.com/FactomProject/btcd/wire"
+	"github.com/FactomProject/common/messages"
 )
 
 // naTest is used to describe a test to be perfomed against the NetAddressKey
 // method.
 type naTest struct {
-	in   wire.NetAddress
+	in   messages.NetAddress
 	want string
 }
 
@@ -88,9 +88,9 @@ func addNaTests() {
 
 func addNaTest(ip string, port uint16, want string) {
 	nip := net.ParseIP(ip)
-	na := wire.NetAddress{
+	na := messages.NetAddress{
 		Timestamp: time.Now(),
-		Services:  wire.SFNodeNetwork,
+		Services:  messages.SFNodeNetwork,
 		IP:        nip,
 		Port:      port,
 	}
@@ -105,27 +105,27 @@ func lookupFunc(host string) ([]net.IP, error) {
 func TestAddLocalAddress(t *testing.T) {
     fmt.Println("Here")
 	var tests = []struct {
-		address wire.NetAddress
+		address messages.NetAddress
 		valid   bool
 	}{
 		{
-			wire.NetAddress{IP: net.ParseIP("192.168.0.100")},
+			messages.NetAddress{IP: net.ParseIP("192.168.0.100")},
 			false,
 		},
 		{
-			wire.NetAddress{IP: net.ParseIP("204.124.1.1")},
+			messages.NetAddress{IP: net.ParseIP("204.124.1.1")},
 			true,
 		},
 		{
-			wire.NetAddress{IP: net.ParseIP("::1")},
+			messages.NetAddress{IP: net.ParseIP("::1")},
 			false,
 		},
 		{
-			wire.NetAddress{IP: net.ParseIP("fe80::1")},
+			messages.NetAddress{IP: net.ParseIP("fe80::1")},
 			false,
 		},
 		{
-			wire.NetAddress{IP: net.ParseIP("2620:100::1")},
+			messages.NetAddress{IP: net.ParseIP("2620:100::1")},
 			true,
 		},
 	}
@@ -153,7 +153,7 @@ func TestGetAddress(t *testing.T) {
 }
 
 func TestGetBestLocalAddress(t *testing.T) {
-	localAddrs := []wire.NetAddress{
+	localAddrs := []messages.NetAddress{
 		{IP: net.ParseIP("192.168.0.100")},
 		{IP: net.ParseIP("::1")},
 		{IP: net.ParseIP("fe80::1")},
@@ -161,39 +161,39 @@ func TestGetBestLocalAddress(t *testing.T) {
 	}
 
 	var tests = []struct {
-		remoteAddr wire.NetAddress
-		want1      wire.NetAddress
-		want2      wire.NetAddress
-		want3      wire.NetAddress
+		remoteAddr messages.NetAddress
+		want1      messages.NetAddress
+		want2      messages.NetAddress
+		want3      messages.NetAddress
 	}{
 		{
 			// Remote connection from public IPv4
-			wire.NetAddress{IP: net.ParseIP("204.124.8.1")},
-			wire.NetAddress{IP: net.IPv4zero},
-			wire.NetAddress{IP: net.ParseIP("204.124.8.100")},
-			wire.NetAddress{IP: net.ParseIP("fd87:d87e:eb43:25::1")},
+			messages.NetAddress{IP: net.ParseIP("204.124.8.1")},
+			messages.NetAddress{IP: net.IPv4zero},
+			messages.NetAddress{IP: net.ParseIP("204.124.8.100")},
+			messages.NetAddress{IP: net.ParseIP("fd87:d87e:eb43:25::1")},
 		},
 		{
 			// Remote connection from private IPv4
-			wire.NetAddress{IP: net.ParseIP("172.16.0.254")},
-			wire.NetAddress{IP: net.IPv4zero},
-			wire.NetAddress{IP: net.IPv4zero},
-			wire.NetAddress{IP: net.IPv4zero},
+			messages.NetAddress{IP: net.ParseIP("172.16.0.254")},
+			messages.NetAddress{IP: net.IPv4zero},
+			messages.NetAddress{IP: net.IPv4zero},
+			messages.NetAddress{IP: net.IPv4zero},
 		},
 		{
 			// Remote connection from public IPv6
-			wire.NetAddress{IP: net.ParseIP("2602:100:abcd::102")},
-			wire.NetAddress{IP: net.ParseIP("2001:470::1")},
-			wire.NetAddress{IP: net.ParseIP("2001:470::1")},
-			wire.NetAddress{IP: net.ParseIP("2001:470::1")},
+			messages.NetAddress{IP: net.ParseIP("2602:100:abcd::102")},
+			messages.NetAddress{IP: net.ParseIP("2001:470::1")},
+			messages.NetAddress{IP: net.ParseIP("2001:470::1")},
+			messages.NetAddress{IP: net.ParseIP("2001:470::1")},
 		},
 		/* XXX
 		{
 			// Remote connection from Tor
-			wire.NetAddress{IP: net.ParseIP("fd87:d87e:eb43::100")},
-			wire.NetAddress{IP: net.IPv4zero},
-			wire.NetAddress{IP: net.ParseIP("204.124.8.100")},
-			wire.NetAddress{IP: net.ParseIP("fd87:d87e:eb43:25::1")},
+			messages.NetAddress{IP: net.ParseIP("fd87:d87e:eb43::100")},
+			messages.NetAddress{IP: net.IPv4zero},
+			messages.NetAddress{IP: net.ParseIP("204.124.8.100")},
+			messages.NetAddress{IP: net.ParseIP("fd87:d87e:eb43:25::1")},
 		},
 		*/
 	}
@@ -214,7 +214,7 @@ func TestGetBestLocalAddress(t *testing.T) {
 	}
 
 	// Add a public IP to the list of local addresses.
-	localAddr := wire.NetAddress{IP: net.ParseIP("204.124.8.100")}
+	localAddr := messages.NetAddress{IP: net.ParseIP("204.124.8.100")}
 	amgr.AddLocalAddress(&localAddr, addrmgr.InterfacePrio)
 
 	// Test against want2
@@ -228,7 +228,7 @@ func TestGetBestLocalAddress(t *testing.T) {
 	}
 	/*
 		// Add a tor generated IP address
-		localAddr = wire.NetAddress{IP: net.ParseIP("fd87:d87e:eb43:25::1")}
+		localAddr = messages.NetAddress{IP: net.ParseIP("fd87:d87e:eb43:25::1")}
 		amgr.AddLocalAddress(&localAddr, addrmgr.ManualPrio)
 
 		// Test against want3
