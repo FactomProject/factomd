@@ -16,6 +16,7 @@ import (
 	"time"
 )
 
+var _ = spew.Sdump
 var _ = log.Printf
 var _ = fmt.Print
 
@@ -32,7 +33,7 @@ netloop:
 		select {
 		case msg, ok := <-state.NetworkInMsgQueue():
 			if ok {
-				log.Printf("NetworkIn: %s\n", spew.Sdump(msg))
+				//log.Printf("NetworkIn: %s\n", spew.Sdump(msg))
 				if state.IgnoreType(msg.Type()) {
 					log.Printf("Ignored: NetworkIn: %s\n", msg.String())
 				}
@@ -46,8 +47,7 @@ netloop:
 		case msg, ok := <-state.NetworkOutMsgQueue():
 			if ok {
 				var _ = msg
-				log.Printf("NetworkOut: %s\n", msg.String())
-				//fmt.Println(reflect.ValueOf(msg).Interface())
+				//log.Printf("NetworkOut: %s\n", msg.String())
 				if state.IgnoreType(msg.Type()) {
 					log.Printf("Ignored: NetworkOut: %s\n", msg.String())
 				}
@@ -55,7 +55,7 @@ netloop:
 				case *messages.EOM:
 					msgeom := new(wire.MsgEOM)
 					msgeom.EOM = msg.(*messages.EOM)
-					log.Println(spew.Sdump(msgeom.EOM))
+					//log.Println(spew.Sdump(msgeom.EOM))
 					server := state.GetServer().(*btcd.Server)
 					server.BroadcastMessage(msgeom)
 

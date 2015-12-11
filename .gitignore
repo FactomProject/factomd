@@ -8,6 +8,7 @@
 *~
 *.kate-swp
 *.orig
+BlockExtractor/
 
 # Folders
 _obj
