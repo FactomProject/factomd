@@ -7,6 +7,7 @@ import (
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/util"
 )
 
 func createECEntriesfromFBlock(fBlock interfaces.IFBlock, height int) []interfaces.IECBlockEntry {
@@ -54,13 +55,21 @@ func NewCommitChain(eBlock *entryBlock.EBlock) *entryCreditBlock.CommitChain {
 		panic(err)
 	}
 	commit.ChainIDHash = eBlock.GetHashOfChainIDHash()
-	commit.Weld = eBlock.GetWeldHash()
+	commit.Weld = eBlock.GetWeldHashes()[0]
 	commit.EntryHash = eBlock.Body.EBEntries[0]
-	/*
-		commit.Credits = 0
-		commit.ECPubKey = nil
-		commit.Sig = nil
-	*/
+
+	bin, err := commit.MarshalBinary()
+	if err != nil {
+		panic(err)
+	}
+	cost, err := util.EntryCost(bin)
+	if err != nil {
+		panic(err)
+	}
+	commit.Credits = cost
+
+	SignCommitChain(0, commit)
+
 	return commit
 }
 
@@ -70,4 +79,11 @@ func CreateTestEntryCreditBlock(prev interfaces.IEntryCreditBlock) interfaces.IE
 		panic(err)
 	}
 	return block
+}
+
+func SignCommitChain(n uint64, tx *entryCreditBlock.CommitChain) {
+	err := tx.Sign(NewPrivKey(n))
+	if err != nil {
+		panic(err)
+	}
 }

@@ -45,3 +45,8 @@ type ISignatureBlock interface {
 	AddSignature(sig ISignature)
 	GetSignature(int) ISignature
 }
+
+type ISignable interface {
+	Sign(privateKey []byte) error
+	MarshalBinarySig() ([]byte, error)
+}
