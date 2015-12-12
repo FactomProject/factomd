@@ -384,7 +384,7 @@ func NextECBlock(prev interfaces.IEntryCreditBlock) (interfaces.IEntryCreditBloc
 	if prev == nil {
 		e.GetHeader().SetPrevHeaderHash(primitives.NewHash(constants.ZERO_HASH))
 		e.GetHeader().SetPrevLedgerKeyMR(primitives.NewHash(constants.ZERO_HASH))
-		e.GetHeader().SetDBHeight(1)
+		e.GetHeader().SetDBHeight(0)
 	} else {
 		v, err := prev.HeaderHash()
 		if err != nil {

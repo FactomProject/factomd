@@ -40,7 +40,7 @@ func createECEntriesfromBlocks(fBlock interfaces.IFBlock, eBlock *entryBlock.EBl
 	if height == 0 {
 		ecEntries = append(ecEntries, NewCommitChain(eBlock))
 	} else {
-
+		ecEntries = append(ecEntries, NewCommitEntry(eBlock))
 	}
 
 	return ecEntries
