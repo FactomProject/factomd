@@ -10,7 +10,7 @@ import (
 	"github.com/FactomProject/factomd/util"
 )
 
-func createECEntriesfromFBlock(fBlock interfaces.IFBlock, height int) []interfaces.IECBlockEntry {
+func createECEntriesfromBlocks(fBlock interfaces.IFBlock, eBlock *entryBlock.EBlock, height int) []interfaces.IECBlockEntry {
 	ecEntries := []interfaces.IECBlockEntry{}
 	ecEntries = append(ecEntries, entryCreditBlock.NewServerIndexNumber2(uint8(height%10+1)))
 	ecEntries = append(ecEntries, entryCreditBlock.NewMinuteNumber2(0))
@@ -38,12 +38,37 @@ func createECEntriesfromFBlock(fBlock interfaces.IFBlock, height int) []interfac
 	}
 
 	if height == 0 {
-
+		ecEntries = append(ecEntries, NewCommitChain(eBlock))
 	} else {
 
 	}
 
 	return ecEntries
+}
+
+func NewCommitEntry(eBlock *entryBlock.EBlock) *entryCreditBlock.CommitEntry {
+	commit := entryCreditBlock.NewCommitEntry()
+
+	commit.Version = 1
+	err := commit.MilliTime.UnmarshalBinary([]byte{0, 0, 0, 0, 0, byte(eBlock.GetHeader().GetDBHeight())})
+	if err != nil {
+		panic(err)
+	}
+	commit.EntryHash = eBlock.Body.EBEntries[0]
+
+	bin, err := commit.MarshalBinary()
+	if err != nil {
+		panic(err)
+	}
+	cost, err := util.EntryCost(bin)
+	if err != nil {
+		panic(err)
+	}
+	commit.Credits = cost
+
+	SignCommit(0, commit)
+
+	return commit
 }
 
 func NewCommitChain(eBlock *entryBlock.EBlock) *entryCreditBlock.CommitChain {
@@ -68,7 +93,7 @@ func NewCommitChain(eBlock *entryBlock.EBlock) *entryCreditBlock.CommitChain {
 	}
 	commit.Credits = cost
 
-	SignCommitChain(0, commit)
+	SignCommit(0, commit)
 
 	return commit
 }
@@ -81,7 +106,7 @@ func CreateTestEntryCreditBlock(prev interfaces.IEntryCreditBlock) interfaces.IE
 	return block
 }
 
-func SignCommitChain(n uint64, tx *entryCreditBlock.CommitChain) {
+func SignCommit(n uint64, tx interfaces.ISignable) {
 	err := tx.Sign(NewPrivKey(n))
 	if err != nil {
 		panic(err)

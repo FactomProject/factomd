@@ -114,21 +114,6 @@ func CreateTestBlockSet(prev *BlockSet) *BlockSet {
 	de.KeyMR = answer.FBlock.GetKeyMR()
 	dbEntries = append(dbEntries, de)
 
-	answer.ECBlock = CreateTestEntryCreditBlock(prev.ECBlock)
-	ecEntries := createECEntriesfromFBlock(answer.FBlock, height)
-	answer.ECBlock.GetBody().SetEntries(ecEntries)
-
-	de = new(directoryBlock.DBEntry)
-	de.ChainID, err = primitives.NewShaHash(answer.ECBlock.GetChainID())
-	if err != nil {
-		panic(err)
-	}
-	de.KeyMR, err = answer.ECBlock.HeaderHash()
-	if err != nil {
-		panic(err)
-	}
-	dbEntries = append(dbEntries, de)
-
 	answer.EBlock, answer.Entries = CreateTestEntryBlock(prev.EBlock)
 
 	de = new(directoryBlock.DBEntry)
@@ -137,6 +122,21 @@ func CreateTestBlockSet(prev *BlockSet) *BlockSet {
 		panic(err)
 	}
 	de.KeyMR, err = answer.EBlock.KeyMR()
+	if err != nil {
+		panic(err)
+	}
+	dbEntries = append(dbEntries, de)
+
+	answer.ECBlock = CreateTestEntryCreditBlock(prev.ECBlock)
+	ecEntries := createECEntriesfromBlocks(answer.FBlock, answer.EBlock, height)
+	answer.ECBlock.GetBody().SetEntries(ecEntries)
+
+	de = new(directoryBlock.DBEntry)
+	de.ChainID, err = primitives.NewShaHash(answer.ECBlock.GetChainID())
+	if err != nil {
+		panic(err)
+	}
+	de.KeyMR, err = answer.ECBlock.HeaderHash()
 	if err != nil {
 		panic(err)
 	}

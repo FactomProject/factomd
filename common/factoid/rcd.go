@@ -42,7 +42,7 @@ func NewRCD_1(publicKey []byte) interfaces.IRCD {
 		panic("Bad publickey.  This should not happen")
 	}
 	a := new(RCD_1)
-	copy(a.publicKey[:], publicKey)
+	copy(a.PublicKey[:], publicKey)
 	return a
 }
 
@@ -52,10 +52,10 @@ func NewRCD_2(n int, m int, addresses []interfaces.IAddress) (interfaces.IRCD, e
 	}
 
 	au := new(RCD_2)
-	au.n = n
-	au.m = m
-	au.n_addresses = make([]interfaces.IAddress, len(addresses), len(addresses))
-	copy(au.n_addresses, addresses)
+	au.N = n
+	au.M = m
+	au.N_Addresses = make([]interfaces.IAddress, len(addresses), len(addresses))
+	copy(au.N_Addresses, addresses)
 
 	return au, nil
 }
