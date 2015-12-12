@@ -14,4 +14,6 @@ func TestTest(t *testing.T) {
 	exportECChain(dbo)
 	exportAChain(dbo)
 	exportFctChain(dbo)
+
+	exportEChain(testHelper.GetChainID().String(), dbo)
 }
