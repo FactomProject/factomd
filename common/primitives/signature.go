@@ -122,3 +122,26 @@ func Sign(priv, data []byte) []byte {
 
 	return ed25519.Sign(&priv2, data)[:constants.SIGNATURE_LENGTH]
 }
+
+func VerifySignature(data, publicKey, signature []byte) error {
+	pub := [32]byte{}
+	sig := [64]byte{}
+
+	if len(publicKey) == 32 {
+		copy(pub[:], publicKey[:])
+	} else {
+		return fmt.Errorf("Invalid public key length")
+	}
+
+	if len(signature) == 64 {
+		copy(sig[:], signature[:])
+	} else {
+		return fmt.Errorf("Invalid signature length")
+	}
+
+	valid := ed25519.Verify(&pub, data, &sig)
+	if valid == false {
+		return fmt.Errorf("Invalid signature")
+	}
+	return nil
+}
