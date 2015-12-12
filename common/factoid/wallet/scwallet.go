@@ -12,7 +12,6 @@ package wallet
 import (
 	"crypto/rand"
 	"crypto/sha512"
-	"errors"
 	"fmt"
 	"github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factomd/common/constants"
@@ -324,22 +323,6 @@ func (w *SCWallet) generateKey() (public []byte, private []byte, err error) {
 	keypair := new([64]byte)
 	// the secret part of the keypair is the top 32 bytes of the sha512 hash
 	copy(keypair[:32], w.GetSeed()[:32])
-	// the crypto library puts the pubkey in the lower 32 bytes and returns the same 32 bytes.
-	pub := ed25519.GetPublicKey(keypair)
-
-	return pub[:], keypair[:], err
-}
-
-func GenerateKeyFromPrivateKey(privateKey []byte) (public []byte, private []byte, err error) {
-	if len(privateKey) == 64 {
-		privateKey = privateKey[:32]
-	}
-	if len(privateKey) != 32 {
-		return nil, nil, errors.New("Wrong privateKey size")
-	}
-	keypair := new([64]byte)
-
-	copy(keypair[:32], privateKey[:])
 	// the crypto library puts the pubkey in the lower 32 bytes and returns the same 32 bytes.
 	pub := ed25519.GetPublicKey(keypair)
 

@@ -180,7 +180,10 @@ func (c *CommitChain) Sign(privateKey []byte) error {
 	if err != nil {
 		return err
 	}
-	pub := primitives.PrivateKeyToPublicKey(privateKey)
+	pub, err := primitives.PrivateKeyToPublicKey(privateKey)
+	if err != nil {
+		return err
+	}
 	if c.ECPubKey == nil {
 		c.ECPubKey = new(primitives.ByteSlice32)
 	}

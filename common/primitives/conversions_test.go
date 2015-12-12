@@ -1,8 +1,8 @@
-package wallet_test
+package primitives_test
 
 import (
 	"fmt"
-	. "github.com/FactomProject/factomd/common/factoid/wallet"
+	. "github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/go-bip39"
 	"testing"
 )
@@ -130,31 +130,5 @@ func TestPrivateToPublic(t *testing.T) {
 	}
 	if pub != "8bee2930cbe4772ae5454c4801d4ef366276f6e4cc65bac18be03607c00288c4" {
 		t.Error("Wrong public key returned")
-	}
-}
-
-func TestPublicToAddress(t *testing.T) {
-	add, err := PublicKeyStringToFactoidAddressString("8bee2930cbe4772ae5454c4801d4ef366276f6e4cc65bac18be03607c00288c4")
-	if err != nil {
-		t.Error(err)
-	}
-	if add != "FA3Y1tBWnFpyoZUPr9ZH51R1gSC8r5x5kqvkXL3wy4uRvzFnuWLB" {
-		t.Error("Wrong address returned")
-	}
-}
-
-func TestCombined(t *testing.T) {
-	priv, pub, add, err := HumanReadiblePrivateKeyStringToEverythingString("Fs37iVGnZ7jShPudsXuB98qURxk35eLrmh9cgPuPpTXHAJEBkUTh")
-	if err != nil {
-		t.Error(err)
-	}
-	if priv != "ec9f1cefa00406b80d46135a53504f1f4182d4c0f3fed6cca9281bc020eff973" {
-		t.Error("Wrong private key returned")
-	}
-	if pub != "8bee2930cbe4772ae5454c4801d4ef366276f6e4cc65bac18be03607c00288c4" {
-		t.Error("Wrong public key returned")
-	}
-	if add != "FA3Y1tBWnFpyoZUPr9ZH51R1gSC8r5x5kqvkXL3wy4uRvzFnuWLB" {
-		t.Error("Wrong address returned")
 	}
 }
