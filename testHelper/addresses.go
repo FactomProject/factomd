@@ -6,7 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/FactomProject/ed25519"
-	"github.com/FactomProject/factomd/common/factoid/wallet"
+	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 )
 
@@ -33,7 +33,7 @@ func NewFactoidAddressStrings(n uint64) (string, string, string) {
 	//ec9f1cefa00406b80d46135a53504f1f4182d4c0f3fed6cca9281bc020eff973
 	//000000000000000000000000000000000000000000000000XXXXXXXXXXXXXXXX
 	priv := NewPrivKeyString(n)
-	privKey, pubKey, add, err := wallet.PrivateKeyStringToEverythingString(priv)
+	privKey, pubKey, add, err := factoid.PrivateKeyStringToEverythingString(priv)
 	if err != nil {
 		panic(err)
 	}
@@ -42,7 +42,7 @@ func NewFactoidAddressStrings(n uint64) (string, string, string) {
 
 func NewFactoidAddress(n uint64) interfaces.IAddress {
 	_, pub, _ := NewFactoidAddressStrings(n)
-	add, err := wallet.PublicKeyStringToFactoidAddress(pub)
+	add, err := factoid.PublicKeyStringToFactoidAddress(pub)
 	if err != nil {
 		panic(err)
 	}
@@ -56,7 +56,7 @@ func NewFactoidRCDAddressString(n uint64) string {
 
 func NewFactoidRCDAddress(n uint64) interfaces.IRCD {
 	_, pub, _ := NewFactoidAddressStrings(n)
-	add, err := wallet.PublicKeyStringToFactoidRCDAddress(pub)
+	add, err := factoid.PublicKeyStringToFactoidRCDAddress(pub)
 	if err != nil {
 		panic(err)
 	}
@@ -65,7 +65,7 @@ func NewFactoidRCDAddress(n uint64) interfaces.IRCD {
 
 func NewECAddress(n uint64) interfaces.IAddress {
 	_, pub, _ := NewFactoidAddressStrings(n)
-	add, err := wallet.PublicKeyStringToFactoidAddress(pub)
+	add, err := factoid.PublicKeyStringToFactoidAddress(pub)
 	if err != nil {
 		panic(err)
 	}
