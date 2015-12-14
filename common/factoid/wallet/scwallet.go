@@ -17,6 +17,7 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/bytestore"
 	"github.com/FactomProject/factomd/database/mapdb"
 )
@@ -211,7 +212,7 @@ func (w *SCWallet) GenerateFctAddressFromPrivateKey(name []byte, privateKey []by
 }
 
 func (w *SCWallet) GenerateECAddressFromHumanReadablePrivateKey(name []byte, privateKey string) (interfaces.IAddress, error) {
-	priv, err := HumanReadableECPrivateKeyToPrivateKey(privateKey)
+	priv, err := primitives.HumanReadableECPrivateKeyToPrivateKey(privateKey)
 	if err != nil {
 		return nil, err
 	}
@@ -219,7 +220,7 @@ func (w *SCWallet) GenerateECAddressFromHumanReadablePrivateKey(name []byte, pri
 }
 
 func (w *SCWallet) GenerateFctAddressFromHumanReadablePrivateKey(name []byte, privateKey string, m int, n int) (interfaces.IAddress, error) {
-	priv, err := HumanReadableFactoidPrivateKeyToPrivateKey(privateKey)
+	priv, err := primitives.HumanReadableFactoidPrivateKeyToPrivateKey(privateKey)
 	if err != nil {
 		return nil, err
 	}
@@ -227,7 +228,7 @@ func (w *SCWallet) GenerateFctAddressFromHumanReadablePrivateKey(name []byte, pr
 }
 
 func (w *SCWallet) GenerateFctAddressFromMnemonic(name []byte, mnemonic string, m int, n int) (interfaces.IAddress, error) {
-	priv, err := MnemonicStringToPrivateKey(mnemonic)
+	priv, err := primitives.MnemonicStringToPrivateKey(mnemonic)
 	if err != nil {
 		return nil, err
 	}
@@ -330,7 +331,7 @@ func (w *SCWallet) generateKey() (public []byte, private []byte, err error) {
 }
 
 func (w *SCWallet) generateKeyFromPrivateKey(privateKey []byte) (public []byte, private []byte, err error) {
-	return GenerateKeyFromPrivateKey(privateKey)
+	return primitives.GenerateKeyFromPrivateKey(privateKey)
 }
 
 func (w *SCWallet) CreateTransaction(time uint64) interfaces.ITransaction {
