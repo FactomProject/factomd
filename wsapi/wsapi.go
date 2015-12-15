@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 
 	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
@@ -64,6 +65,40 @@ func Stop(state interfaces.IState) {
 }
 
 func HandleCommitChain(ctx *web.Context) {
+	state := ctx.Server.Env["state"].(interfaces.IState)
+
+	type commitchain struct {
+		CommitChainMsg string
+	}
+
+	c := new(commitchain)
+	if p, err := ioutil.ReadAll(ctx.Request.Body); err != nil {
+		returnMsg(ctx, "Bad commit message", false)
+		return
+	} else {
+		if err := json.Unmarshal(p, c); err != nil {
+			returnMsg(ctx, "Bad commit message", false)
+			return
+		}
+	}
+
+	commit := entryCreditBlock.NewCommitChain()
+	if p, err := hex.DecodeString(c.CommitChainMsg); err != nil {
+		returnMsg(ctx, "Bad commit message", false)
+		return
+	} else {
+		_, err := commit.UnmarshalBinaryData(p)
+		if err != nil {
+			returnMsg(ctx, "Bad commit message", false)
+			return
+		}
+	}
+
+	msg := new(messages.CommitChainMsg)
+	msg.CommitChain = commit
+	msg.Timestamp = state.GetTimestamp()
+	state.InMsgQueue() <- msg
+
 }
 
 func HandleRevealChain(ctx *web.Context) {
@@ -115,7 +150,7 @@ func HandleGetRaw(ctx *web.Context, hashkey string) {
 	dbase := state.GetDB()
 
 	var b []byte
-	
+
 	// try to find the block data in db and return the first one found
 	if block, _ := dbase.FetchFBlockByKeyMR(h); block != nil {
 		b, _ = block.MarshalBinary()

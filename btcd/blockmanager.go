@@ -6,15 +6,15 @@ package btcd //main
 
 import (
 	"container/list"
+	"fmt"
 	"sync"
 	"sync/atomic"
 	"time"
-	"fmt"
 
-	"github.com/FactomProject/factomd/common/messages"
-	"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/directoryBlock"
+	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages"
 	cp "github.com/FactomProject/factomd/controlpanel"
 	"github.com/FactomProject/factomd/util"
 	"github.com/davecgh/go-spew/spew"
@@ -65,7 +65,6 @@ type donePeerMsg struct {
 type getSyncPeerMsg struct {
 	reply chan *peer
 }
-
 
 // isCurrentMsg is a message type to be sent across the message channel for
 // requesting whether or not the block manager believes it is synced with
@@ -139,7 +138,6 @@ type blockManager struct {
 	//startHeader      *list.Element
 	//nextCheckpoint   *chaincfg.Checkpoint
 }
-
 
 // handleNewPeerMsg deals with new peers that have signalled they may
 // be considered as a sync peer (they have already successfully negotiated).  It
@@ -219,7 +217,6 @@ func (b *blockManager) handleDonePeerMsg(peers *list.List, p *peer) {
 	}
 }
 
-
 // current returns true if we believe we are synced with our peers, false if we
 // still have blocks to check
 func (b *blockManager) current() bool {
@@ -240,7 +237,6 @@ func (b *blockManager) current() bool {
 	}
 	return true
 }
-
 
 // haveInventory returns whether or not the inventory represented by the passed
 // inventory vector is known.  This includes checking all of the various places
@@ -565,7 +561,6 @@ out:
 	bmgrLog.Trace("Block handler done")
 }
 
-
 // NewPeer informs the block manager of a newly active peer.
 func (b *blockManager) NewPeer(p *peer) {
 	// Ignore if we are shutting down.
@@ -575,7 +570,6 @@ func (b *blockManager) NewPeer(p *peer) {
 
 	b.msgChan <- &newPeerMsg{peer: p}
 }
-
 
 // QueueInv adds the passed inv message and peer to the block handling queue.
 func (b *blockManager) QueueInv(inv *messages.MsgInv, p *peer) {
@@ -587,7 +581,6 @@ func (b *blockManager) QueueInv(inv *messages.MsgInv, p *peer) {
 
 	b.msgChan <- &invMsg{inv: inv, peer: p}
 }
-
 
 // DonePeer informs the blockmanager that a peer has disconnected.
 func (b *blockManager) DonePeer(p *peer) {
@@ -633,7 +626,6 @@ func (b *blockManager) SyncPeer() *peer {
 	return <-reply
 }
 
-
 // IsCurrent returns whether or not the block manager believes it is synced with
 // the connected peers.
 func (b *blockManager) IsCurrent() bool {
@@ -673,7 +665,6 @@ func newBlockManager(s *Server) (*blockManager, error) {
 	return &bm, nil
 }
 
-
 // haveBlockInDB returns whether or not the chain instance has the block represented
 // by the passed hash.  This includes checking the various places a block can
 // be like part of the main chain, on a side chain, or in the orphan pool.
@@ -688,10 +679,7 @@ func (b *blockManager) haveBlockInDB(hash interfaces.IHash) (bool, error) {
 	return false, nil
 }
 
-
-
 //=====================================
-
 
 // dirBlockMsg packages a directory block message and the peer it came from together
 // so the block handler has access to that information.
@@ -854,8 +842,8 @@ func (b *blockManager) startSyncFactom(peers *list.List) {
 	height := b.server.State.GetDBHeight()
 	//_, height, err := db.FetchBlockHeightCache()
 	//if err != nil {
-		//bmgrLog.Errorf("%v", err)
-		//return
+	//bmgrLog.Errorf("%v", err)
+	//return
 	//}
 
 	bmgrLog.Infof("Latest DirBlock Height: %d", height)

@@ -110,15 +110,15 @@ func (e *DBlockHeader) JSONBuffer(b *bytes.Buffer) error {
 
 func (e *DBlockHeader) String() string {
 	var out bytes.Buffer
-	out.WriteString(fmt.Sprintf("  Version:         %v\n",e.Version))
-	out.WriteString(fmt.Sprintf("  NetworkID:       %d\n",e.NetworkID))
-	out.WriteString(fmt.Sprintf("  BodyMR:          %s\n",e.BodyMR.String()))
-	out.WriteString(fmt.Sprintf("  PrevKeyMR:       %s\n",e.PrevKeyMR.String()))
-	out.WriteString(fmt.Sprintf("  PrevLedgerKeyMR: %s\n",e.PrevLedgerKeyMR.String()))
-	out.WriteString(fmt.Sprintf("  Timestamp:       %d\n",e.Timestamp))
-	out.WriteString(fmt.Sprintf("  DBHeight:        %d\n",e.DBHeight))
-	out.WriteString(fmt.Sprintf("  BlockCount:      %d\n",e.BlockCount))
-	
+	out.WriteString(fmt.Sprintf("  Version:         %v\n", e.Version))
+	out.WriteString(fmt.Sprintf("  NetworkID:       %d\n", e.NetworkID))
+	out.WriteString(fmt.Sprintf("  BodyMR:          %s\n", e.BodyMR.String()))
+	out.WriteString(fmt.Sprintf("  PrevKeyMR:       %s\n", e.PrevKeyMR.String()))
+	out.WriteString(fmt.Sprintf("  PrevLedgerKeyMR: %s\n", e.PrevLedgerKeyMR.String()))
+	out.WriteString(fmt.Sprintf("  Timestamp:       %d\n", e.Timestamp))
+	out.WriteString(fmt.Sprintf("  DBHeight:        %d\n", e.DBHeight))
+	out.WriteString(fmt.Sprintf("  BlockCount:      %d\n", e.BlockCount))
+
 	return (string)(out.Bytes())
 }
 

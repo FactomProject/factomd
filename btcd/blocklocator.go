@@ -5,8 +5,8 @@
 package btcd
 
 import (
-	"github.com/FactomProject/factomd/common/messages"
 	. "github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/messages"
 	//"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
@@ -93,10 +93,10 @@ func DirBlockLocatorFromHash(hash interfaces.IHash, state interfaces.IState) Blo
 // LatestDirBlockLocator returns a block locator for the latest known tip of the
 // main (best) chain.
 func LatestDirBlockLocator(state interfaces.IState) (BlockLocator, error) {
-	latestDirBlockHash := state.GetCurrentDirectoryBlock().GetHash()		//, _, _ := db.FetchBlockHeightCache()
+	latestDirBlockHash := state.GetCurrentDirectoryBlock().GetHash() //, _, _ := db.FetchBlockHeightCache()
 
 	if latestDirBlockHash == nil {
-		latestDirBlockHash = NewZeroHash()	//zeroHash
+		latestDirBlockHash = NewZeroHash() //zeroHash
 	}
 
 	// The best chain is set, so use its hash.

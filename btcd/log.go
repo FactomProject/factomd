@@ -330,7 +330,7 @@ func messageSummary(msg messages.Message) string {
 		// No summary.
 
 	//case *messages.MsgMemPool:
-		// No summary.
+	// No summary.
 	/*
 		case *messages.MsgTx:
 			hash, _ := msg.TxSha()

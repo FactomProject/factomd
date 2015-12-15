@@ -107,7 +107,7 @@ func TestHandleGetRaw(t *testing.T) {
 	raw.Raw = primitives.EncodeBinary(hex)
 	toTest = append(toTest, raw)
 
-	eBlock,_ := testHelper.CreateTestEntryBlock(nil)
+	eBlock, _ := testHelper.CreateTestEntryBlock(nil)
 	de = new(directoryBlock.DBEntry)
 	de.ChainID, err = primitives.NewShaHash(eBlock.GetChainID())
 	if err != nil {

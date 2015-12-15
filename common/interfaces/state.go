@@ -74,10 +74,11 @@ type IState interface {
 
 	// Directory Block State
 	// =====================
-	GetCurrentAdminBlock() IAdminBlock
-	SetCurrentAdminBlock(IAdminBlock)
 	GetPreviousDirectoryBlock() IDirectoryBlock // The previous directory block
 	GetCurrentDirectoryBlock() IDirectoryBlock  // The directory block under construction
+	GetCurrentEntryCreditBlock() IEntryCreditBlock
+	GetCurrentAdminBlock() IAdminBlock
+	SetCurrentAdminBlock(IAdminBlock)
 	SetCurrentDirectoryBlock(IDirectoryBlock)
 	GetDBHeight() uint32 // The index of the directory block under construction.
 

@@ -8,11 +8,9 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"io"
-	"time"
 
 	ed "github.com/FactomProject/ed25519"
 )
@@ -90,21 +88,10 @@ func (c *CommitChain) GetMilliTime() int64 {
 	return milli
 }
 
-// InTime checks the CommitEntry.MilliTime and returns true if the timestamp is
-// whitin +/- 12 hours of the current time.
-// TODO
-func (c *CommitChain) InTime() bool {
-	now := time.Now()
-	sec := c.GetMilliTime() / 1000
-	t := time.Unix(sec, 0)
-
-	return t.After(now.Add(-constants.COMMIT_TIME_WINDOW*time.Hour)) && t.Before(now.Add(constants.COMMIT_TIME_WINDOW*time.Hour))
-}
-
 func (c *CommitChain) IsValid() bool {
 
 	//double check the credits in the commit
-	if c.Credits < 1 || c.Version != 0 {
+	if c.Credits < 10 || c.Version != 0 {
 		return false
 	}
 

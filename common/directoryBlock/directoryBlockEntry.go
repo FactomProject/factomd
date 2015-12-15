@@ -107,7 +107,7 @@ func (e *DBEntry) JSONBuffer(b *bytes.Buffer) error {
 
 func (e *DBEntry) String() string {
 	var out bytes.Buffer
-	out.WriteString("ChainID: "+e.GetChainID().String()+"\n")
-	out.WriteString("KeyMR:   "+e.GetKeyMR().String()+"\n")
+	out.WriteString("ChainID: " + e.GetChainID().String() + "\n")
+	out.WriteString("KeyMR:   " + e.GetKeyMR().String() + "\n")
 	return (string)(out.Bytes())
 }

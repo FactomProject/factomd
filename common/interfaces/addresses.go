@@ -17,7 +17,7 @@ type ITransAddress interface {
 	GetAddress() IAddress
 	SetAddress(IAddress)
 	CustomMarshalText2(string) ([]byte, error)
-	
+
 	GetUserAddress() string
 	SetUserAddress(string)
 }

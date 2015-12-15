@@ -53,6 +53,70 @@ func (m *CommitChainMsg) Bytes() []byte {
 	return nil
 }
 
+// Validate the message, given the state.  Three possible results:
+//  < 0 -- Message is invalid.  Discard
+//  0   -- Cannot tell if message is Valid
+//  1   -- Message is valid
+func (m *CommitChainMsg) Validate(state interfaces.IState) int {
+	if !m.CommitChain.IsValid() {
+		return -1
+	}
+	ebal := state.GetFactoidState().GetECBalance(*m.CommitChain.ECPubKey)
+	if int(m.CommitChain.Credits) < int(ebal) {
+		return 0
+	}
+	return 1
+
+}
+
+// Returns true if this is a message for this server to execute as
+// a leader.
+func (m *CommitChainMsg) Leader(state interfaces.IState) bool {
+	return state.LeaderFor(constants.EC_CHAINID)
+}
+
+// Execute the leader functions of the given message
+func (m *CommitChainMsg) LeaderExecute(state interfaces.IState) error {
+	v := m.Validate(state)
+	if v <= 0 {
+		return fmt.Errorf("Commit Chain no longer valid")
+	}
+	b := m.CommitChain.Hash().Bytes()
+
+	msg, err := NewAck(state, b)
+
+	if err != nil {
+		return err
+	}
+
+	state.NetworkOutMsgQueue() <- msg
+	state.FollowerInMsgQueue() <- m   // Send factoid trans to follower
+	state.FollowerInMsgQueue() <- msg // Send the Ack to follower
+
+	return nil
+}
+
+// Returns true if this is a message for this server to execute as a follower
+func (m *CommitChainMsg) Follower(state interfaces.IState) bool {
+	state.Get
+}
+
+func (m *CommitChainMsg) FollowerExecute(interfaces.IState) error {
+	return nil
+}
+
+func (e *CommitChainMsg) JSONByte() ([]byte, error) {
+	return primitives.EncodeJSON(e)
+}
+
+func (e *CommitChainMsg) JSONString() (string, error) {
+	return primitives.EncodeJSONString(e)
+}
+
+func (e *CommitChainMsg) JSONBuffer(b *bytes.Buffer) error {
+	return primitives.EncodeJSONToBuffer(e, b)
+}
+
 func (m *CommitChainMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -85,54 +149,4 @@ func (m *CommitChainMsg) MarshalBinary() (data []byte, err error) {
 
 func (m *CommitChainMsg) String() string {
 	return ""
-}
-
-// Validate the message, given the state.  Three possible results:
-//  < 0 -- Message is invalid.  Discard
-//  0   -- Cannot tell if message is Valid
-//  1   -- Message is valid
-func (m *CommitChainMsg) Validate(interfaces.IState) int {
-	return 0
-}
-
-// Returns true if this is a message for this server to execute as
-// a leader.
-func (m *CommitChainMsg) Leader(state interfaces.IState) bool {
-	switch state.GetNetworkNumber() {
-	case 0: // Main Network
-		panic("Not implemented yet")
-	case 1: // Test Network
-		panic("Not implemented yet")
-	case 2: // Local Network
-		panic("Not implemented yet")
-	default:
-		panic("Not implemented yet")
-	}
-
-}
-
-// Execute the leader functions of the given message
-func (m *CommitChainMsg) LeaderExecute(state interfaces.IState) error {
-	return nil
-}
-
-// Returns true if this is a message for this server to execute as a follower
-func (m *CommitChainMsg) Follower(interfaces.IState) bool {
-	return true
-}
-
-func (m *CommitChainMsg) FollowerExecute(interfaces.IState) error {
-	return nil
-}
-
-func (e *CommitChainMsg) JSONByte() ([]byte, error) {
-	return primitives.EncodeJSON(e)
-}
-
-func (e *CommitChainMsg) JSONString() (string, error) {
-	return primitives.EncodeJSONString(e)
-}
-
-func (e *CommitChainMsg) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
 }

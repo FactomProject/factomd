@@ -32,9 +32,9 @@ var MainNetParams = Params{
 // Bitcoin network.  Not to be confused with the test Bitcoin network (version
 // 3), this network is sometimes simply called "testnet".
 var RegressionNetParams = Params{
-	Name: "devnet",
-	Net:  messages.TestNet,
-	DefaultPort: "12204",		//"18444",
+	Name:        "devnet",
+	Net:         messages.TestNet,
+	DefaultPort: "12204", //"18444",
 }
 
 // TestNet3Params defines the network parameters for the test Bitcoin network

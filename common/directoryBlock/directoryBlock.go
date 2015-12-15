@@ -20,8 +20,8 @@ type DirectoryBlock struct {
 	DBEntries []interfaces.IDBEntry
 
 	//Not Marshalized
-	DBHash   interfaces.IHash
-	KeyMR    interfaces.IHash
+	DBHash interfaces.IHash
+	KeyMR  interfaces.IHash
 }
 
 var _ interfaces.Printable = (*DirectoryBlock)(nil)
@@ -91,24 +91,24 @@ func (e *DirectoryBlock) String() string {
 	var out bytes.Buffer
 	//Marshalized
 
-	kmr,err := e.BuildKeyMerkleRoot()
-	if err != nil{
-		out.WriteString(fmt.Sprintf("%20s %v\n","KeyMR:",err))
-	}else{
-		out.WriteString(fmt.Sprintf("%20s %v\n","KeyMR:",kmr.String()))
+	kmr, err := e.BuildKeyMerkleRoot()
+	if err != nil {
+		out.WriteString(fmt.Sprintf("%20s %v\n", "KeyMR:", err))
+	} else {
+		out.WriteString(fmt.Sprintf("%20s %v\n", "KeyMR:", kmr.String()))
 	}
-	kmr,err = e.BuildBodyMR()
-	if err != nil{
-		out.WriteString(fmt.Sprintf("%20s %v\n","BodyMR:",err))
-	}else{
-		out.WriteString(fmt.Sprintf("%20s %v\n","BodyMR:",kmr.String()))
+	kmr, err = e.BuildBodyMR()
+	if err != nil {
+		out.WriteString(fmt.Sprintf("%20s %v\n", "BodyMR:", err))
+	} else {
+		out.WriteString(fmt.Sprintf("%20s %v\n", "BodyMR:", kmr.String()))
 	}
 	out.WriteString(e.Header.String())
 	out.WriteString("Entries: \n")
-	for _,entry := range e.DBEntries {
+	for _, entry := range e.DBEntries {
 		out.WriteString(entry.String())
 	}
-		
+
 	return (string)(out.Bytes())
 }
 
@@ -120,7 +120,7 @@ func (b *DirectoryBlock) MarshalBinary() (data []byte, err error) {
 
 	data, err = b.GetHeader().MarshalBinary()
 	if err != nil {
-		return 
+		return
 	}
 	buf.Write(data)
 

@@ -30,7 +30,7 @@ type Transaction struct {
 	SigBlocks []interfaces.ISignatureBlock
 
 	MarshalSig interfaces.IHash // cache to avoid unnecessary marshal/unmarshals
-	
+
 	// Not marshalled
 	BlockHeight int
 }
@@ -43,7 +43,7 @@ func (t *Transaction) SetBlockHeight(height int) {
 }
 
 func (t *Transaction) GetBlockHeight() (height int) {
-	return t.BlockHeight 
+	return t.BlockHeight
 }
 
 // Clears caches if they are no long valid.

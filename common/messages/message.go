@@ -148,7 +148,7 @@ func makeEmptyMessage(command string) (Message, error) {
 
 	case CmdGetDirBlocks:
 		msg = &MsgGetDirBlocks{
-			HashStop:		primitives.NewZeroHash(),
+			HashStop: primitives.NewZeroHash(),
 		}
 
 	case CmdDirInv:
@@ -183,7 +183,7 @@ func makeEmptyMessage(command string) (Message, error) {
 
 	case CmdEOM:
 		msg = &EOM{
-			IdentityChainID:		primitives.NewZeroHash(),
+			IdentityChainID: primitives.NewZeroHash(),
 		}
 
 	default:

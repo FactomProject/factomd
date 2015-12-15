@@ -83,6 +83,10 @@ type State struct {
 
 var _ interfaces.IState = (*State)(nil)
 
+func (s *State) GetCurrentEntryCreditBlock() interfaces.IEntryCreditBlock {
+	return (s.GetCurrentDirectoryBlock().GetDBEntries()[1]).(interfaces.IEntryCreditBlock)
+}
+
 func (s *State) GetServer() interfaces.IServer {
 	return s.myServer
 }

@@ -42,7 +42,7 @@ func btcdMain(serverChan chan<- *Server, state interfaces.IState) error {
 	// Ensure the database is sync'd and closed on Ctrl+C.
 	AddInterruptHandler(func() {
 		btcdLog.Infof("Gracefully shutting down the database...")
-		state.GetDB().(interfaces.IDatabase).Close()		//db.RollbackClose()
+		state.GetDB().(interfaces.IDatabase).Close() //db.RollbackClose()
 	})
 
 	// Create server and start it.

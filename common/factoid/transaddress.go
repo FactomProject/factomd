@@ -34,9 +34,8 @@ func (t *TransAddress) SetUserAddress(v string) {
 }
 
 func (t *TransAddress) GetUserAddress() string {
-	return t.UserAddress 
+	return t.UserAddress
 }
-
 
 // Not useful on TransAddress objects
 func (t *TransAddress) GetHash() interfaces.IHash {

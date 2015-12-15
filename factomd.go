@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"github.com/FactomProject/factomd/btcd"
 	"github.com/FactomProject/factomd/btcd/limits"
-	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/wsapi"
 	"os"
@@ -38,7 +38,7 @@ func main() {
 	}
 	cfgFilename := ""
 	//if len(os.Args) > 1 {
-		//cfgFilename = os.Args[1]
+	//cfgFilename = os.Args[1]
 	//}
 
 	state := new(state.State)
@@ -51,7 +51,7 @@ func main() {
 
 	btcd.AddInterruptHandler(func() {
 		log.Printf("Gracefully shutting down the database...")
-		state.GetDB().(interfaces.IDatabase).Close()		//db.RollbackClose()
+		state.GetDB().(interfaces.IDatabase).Close() //db.RollbackClose()
 	})
 
 	log.Print("Starting server")
@@ -85,7 +85,6 @@ func main() {
 	<-shutdownChannel
 	log.Printf("Shutdown complete")
 }
-
 
 func isCompilerVersionOK() bool {
 	goodenough := false

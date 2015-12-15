@@ -125,7 +125,7 @@ type Server struct {
 	quit                 chan struct{}
 	nat                  NAT
 
-	State 							interfaces.IState
+	State interfaces.IState
 }
 
 type peerState struct {
@@ -1260,7 +1260,7 @@ func NewServer(state interfaces.IState) (*Server, error) {
 
 	server, err := newServer(cfg.Listeners, activeNetParams.Params, state)
 	if err != nil {
-		btcdLog.Errorf("Unable to start server on %v: %v",	cfg.Listeners, err)
+		btcdLog.Errorf("Unable to start server on %v: %v", cfg.Listeners, err)
 	}
 	return server, err
 }
@@ -1416,7 +1416,7 @@ func newServer(listenAddrs []string, chainParams *Params, state interfaces.IStat
 		modifyRebroadcastInv: make(chan interface{}),
 		peerHeightsUpdate:    make(chan updatePeerHeightsMsg),
 		nat:                  nat,
-		State:								state,
+		State:                state,
 	}
 	bm, err := newBlockManager(&s)
 	if err != nil {
