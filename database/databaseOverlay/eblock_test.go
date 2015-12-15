@@ -14,7 +14,7 @@ import (
 )
 
 func TestSaveLoadEBlockHead(t *testing.T) {
-	b1,_ := CreateTestEntryBlock(nil)
+	b1, _ := CreateTestEntryBlock(nil)
 
 	chain, err := primitives.NewShaHash(b1.GetChainID())
 	if err != nil {
@@ -50,7 +50,7 @@ func TestSaveLoadEBlockHead(t *testing.T) {
 		t.Error("Blocks are not equal")
 	}
 
-	b2,_ := CreateTestEntryBlock(b1)
+	b2, _ := CreateTestEntryBlock(b1)
 
 	err = dbo.SaveEBlockHead(b2)
 	if err != nil {
@@ -73,6 +73,9 @@ func TestSaveLoadEBlockHead(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+	if primitives.AreBytesEqual(m1, m2) == false {
+		t.Error("Blocks are not equal")
+	}
 }
 
 func TestSaveLoadEBlockChain(t *testing.T) {
@@ -83,7 +86,7 @@ func TestSaveLoadEBlockChain(t *testing.T) {
 	defer dbo.Close()
 
 	for i := 0; i < max; i++ {
-		prev,_ = CreateTestEntryBlock(prev)
+		prev, _ = CreateTestEntryBlock(prev)
 		blocks = append(blocks, prev)
 		err := dbo.SaveEBlockHead(prev)
 		if err != nil {

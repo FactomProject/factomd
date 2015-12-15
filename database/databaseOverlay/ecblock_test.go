@@ -68,6 +68,9 @@ func TestSaveLoadECBlockHead(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+	if primitives.AreBytesEqual(m1, m2) == false {
+		t.Error("Blocks are not equal")
+	}
 }
 
 func TestSaveLoadECBlockChain(t *testing.T) {

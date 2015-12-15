@@ -66,7 +66,9 @@ func (c *DirBlockInfo) GetDatabaseHeight() uint32 {
 }
 
 func (c *DirBlockInfo) GetChainID() []byte {
-	return []byte("DirBlockInfo")
+	id := make([]byte, 32)
+	copy(id, []byte("DirBlockInfo"))
+	return id
 }
 
 func (c *DirBlockInfo) DatabasePrimaryIndex() interfaces.IHash {

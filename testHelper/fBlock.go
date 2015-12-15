@@ -6,8 +6,6 @@ import (
 	"github.com/FactomProject/factomd/common/factoid"
 	factoidBlock "github.com/FactomProject/factomd/common/factoid/block"
 	"github.com/FactomProject/factomd/common/interfaces"
-
-	"fmt"
 )
 
 func CreateTestFactoidBlock(prev interfaces.IFBlock) interfaces.IFBlock {
@@ -46,9 +44,9 @@ func SignFactoidTransaction(n uint64, tx interfaces.ITransaction) {
 
 	sig := factoid.NewSingleSignatureBlock(NewPrivKey(n), data)
 
-	str, err := sig.JSONString()
+	//str, err := sig.JSONString()
 
-	fmt.Printf("sig, err - %v, %v\n", str, err)
+	//fmt.Printf("sig, err - %v, %v\n", str, err)
 
 	tx.SetSignatureBlock(0, sig)
 
