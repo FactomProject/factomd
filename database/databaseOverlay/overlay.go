@@ -46,6 +46,11 @@ const (
 
 	//Entry
 	ENTRY
+
+	//Directory Block Info
+	DIRBLOCKINFO
+	DIRBLOCKINFO_NUMBER
+	DIRBLOCKINFO_KEYMR
 )
 
 type Overlay struct {

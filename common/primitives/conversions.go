@@ -1,17 +1,15 @@
-package wallet
+package primitives
 
 import (
 	"encoding/hex"
 	"fmt"
 	"strings"
 
+	"github.com/FactomProject/ed25519"
+
 	"github.com/FactomProject/btcutil/base58"
 	"github.com/FactomProject/go-bip32"
 	"github.com/FactomProject/go-bip39"
-
-	"github.com/FactomProject/factomd/common/factoid"
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/primitives"
 )
 
 func MnemonicStringToPrivateKey(mnemonic string) ([]byte, error) {
@@ -138,74 +136,18 @@ func PrivateKeyToPublicKey(private []byte) ([]byte, error) {
 	return pub, nil
 }
 
-/******************************************************************************/
-/****************************To addresses**************************************/
-/******************************************************************************/
+func GenerateKeyFromPrivateKey(privateKey []byte) (public []byte, private []byte, err error) {
+	if len(privateKey) == 64 {
+		privateKey = privateKey[:32]
+	}
+	if len(privateKey) != 32 {
+		return nil, nil, fmt.Errorf("Wrong privateKey size")
+	}
+	keypair := new([64]byte)
 
-func PublicKeyStringToFactoidAddressString(public string) (string, error) {
-	pubHex, err := hex.DecodeString(public)
-	if err != nil {
-		return "", err
-	}
-	add, err := PublicKeyToFactoidAddress(pubHex)
-	if err != nil {
-		return "", err
-	}
+	copy(keypair[:32], privateKey[:])
+	// the crypto library puts the pubkey in the lower 32 bytes and returns the same 32 bytes.
+	pub := ed25519.GetPublicKey(keypair)
 
-	return primitives.ConvertFctAddressToUserStr(add), nil
-}
-
-func PublicKeyToFactoidAddress(public []byte) (interfaces.IAddress, error) {
-	rcd := factoid.NewRCD_1(public)
-	add, err := rcd.GetAddress()
-	if err != nil {
-		return nil, err
-	}
-	return add, nil
-}
-
-func PublicKeyStringToFactoidAddress(public string) (interfaces.IAddress, error) {
-	pubHex, err := hex.DecodeString(public)
-	if err != nil {
-		return nil, err
-	}
-	rcd := factoid.NewRCD_1(pubHex)
-	add, err := rcd.GetAddress()
-	if err != nil {
-		return nil, err
-	}
-	return add, nil
-}
-
-func PublicKeyStringToFactoidRCDAddress(public string) (interfaces.IRCD, error) {
-	pubHex, err := hex.DecodeString(public)
-	if err != nil {
-		return nil, err
-	}
-	rcd := factoid.NewRCD_1(pubHex)
-	return rcd, nil
-}
-
-/******************************************************************************/
-/******************************Combined****************************************/
-/******************************************************************************/
-
-func HumanReadiblePrivateKeyStringToEverythingString(private string) (string, string, string, error) {
-	priv, err := HumanReadableFactoidPrivateKeyToPrivateKeyString(private)
-	if err != nil {
-		return "", "", "", err
-	}
-	return PrivateKeyStringToEverythingString(priv)
-}
-
-func PrivateKeyStringToEverythingString(private string) (string, string, string, error) {
-	pub, err := PrivateKeyStringToPublicKeyString(private)
-	if err != nil {
-		return "", "", "", err
-	}
-	add, err := PublicKeyStringToFactoidAddressString(pub)
-	if err != nil {
-		return "", "", "", err
-	}
-	return private, pub, add, nil
+	return pub[:], keypair[:], err
 }

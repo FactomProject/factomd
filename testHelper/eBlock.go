@@ -34,7 +34,7 @@ func CreateTestEntryBlock(prev *entryBlock.EBlock) (*entryBlock.EBlock, []*entry
 	} else {
 		e.Header.SetPrevKeyMR(primitives.NewZeroHash())
 		e.Header.SetDBHeight(0)
-		e.Header.SetChainID(getChainID())
+		e.Header.SetChainID(GetChainID())
 
 		entry := CreateFirstTestEntry()
 		e.AddEBEntry(entry)
@@ -44,7 +44,7 @@ func CreateTestEntryBlock(prev *entryBlock.EBlock) (*entryBlock.EBlock, []*entry
 	return e, entries
 }
 
-func getChainID() interfaces.IHash {
+func GetChainID() interfaces.IHash {
 	return CreateFirstTestEntry().GetChainIDHash()
 }
 
@@ -62,7 +62,7 @@ func CreateFirstTestEntry() *entryBlock.Entry {
 func CreateTestEnry(n uint32) *entryBlock.Entry {
 	answer := entryBlock.NewEntry()
 
-	answer.ChainID = getChainID()
+	answer.ChainID = GetChainID()
 	answer.Version = 1
 	answer.ExtIDs = [][]byte{[]byte(fmt.Sprintf("ExtID %v", n))}
 	answer.Content = []byte(fmt.Sprintf("Content %v", n))

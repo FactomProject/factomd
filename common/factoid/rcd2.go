@@ -25,9 +25,9 @@ import (
 // multisig.  It just works.
 
 type RCD_2 struct {
-	m           int                   // Number signatures required
-	n           int                   // Total sigatures possible
-	n_addresses []interfaces.IAddress // n addresses
+	M           int                   // Number signatures required
+	N           int                   // Total sigatures possible
+	N_Addresses []interfaces.IAddress // n addresses
 }
 
 var _ interfaces.IRCD = (*RCD_2)(nil)
@@ -83,11 +83,11 @@ func (b RCD_2) String() string {
 
 func (w RCD_2) Clone() interfaces.IRCD {
 	c := new(RCD_2)
-	c.m = w.m
-	c.n = w.n
-	c.n_addresses = make([]interfaces.IAddress, len(w.n_addresses))
-	for i, address := range w.n_addresses {
-		c.n_addresses[i] = CreateAddress(address)
+	c.M = w.M
+	c.N = w.N
+	c.N_Addresses = make([]interfaces.IAddress, len(w.N_Addresses))
+	for i, address := range w.N_Addresses {
+		c.N_Addresses[i] = CreateAddress(address)
 	}
 	return c
 }
@@ -95,15 +95,15 @@ func (w RCD_2) Clone() interfaces.IRCD {
 func (a1 *RCD_2) IsEqual(addr interfaces.IBlock) []interfaces.IBlock {
 	a2, ok := addr.(*RCD_2)
 	if !ok || // Not the right kind of interfaces.IBlock
-		a1.n != a2.n || // Size of sig has to match
-		a1.m != a2.m || // Size of sig has to match
-		len(a1.n_addresses) != len(a2.n_addresses) { // Size of arrays has to match
+		a1.N != a2.N || // Size of sig has to match
+		a1.M != a2.M || // Size of sig has to match
+		len(a1.N_Addresses) != len(a2.N_Addresses) { // Size of arrays has to match
 		r := make([]interfaces.IBlock, 0, 5)
 		return append(r, a1)
 	}
 
-	for i, addr := range a1.n_addresses {
-		r := addr.IsEqual(a2.n_addresses[i])
+	for i, addr := range a1.N_Addresses {
+		r := addr.IsEqual(a2.N_Addresses[i])
 		if r != nil {
 			return append(r, a1)
 		}
@@ -120,14 +120,14 @@ func (t *RCD_2) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 		return nil, fmt.Errorf("Bad data fed to RCD_2 UnmarshalBinaryData()")
 	}
 
-	t.n, data = int(binary.BigEndian.Uint16(data[0:2])), data[2:]
-	t.m, data = int(binary.BigEndian.Uint16(data[0:2])), data[2:]
+	t.N, data = int(binary.BigEndian.Uint16(data[0:2])), data[2:]
+	t.M, data = int(binary.BigEndian.Uint16(data[0:2])), data[2:]
 
-	t.n_addresses = make([]interfaces.IAddress, t.m, t.m)
+	t.N_Addresses = make([]interfaces.IAddress, t.M, t.M)
 
-	for i, _ := range t.n_addresses {
-		t.n_addresses[i] = new(Address)
-		data, err = t.n_addresses[i].UnmarshalBinaryData(data)
+	for i, _ := range t.N_Addresses {
+		t.N_Addresses[i] = new(Address)
+		data, err = t.N_Addresses[i].UnmarshalBinaryData(data)
 		if err != nil {
 			return nil, err
 		}
@@ -140,10 +140,10 @@ func (a RCD_2) MarshalBinary() ([]byte, error) {
 	var out bytes.Buffer
 
 	binary.Write(&out, binary.BigEndian, uint8(2))
-	binary.Write(&out, binary.BigEndian, uint16(a.n))
-	binary.Write(&out, binary.BigEndian, uint16(a.m))
-	for i := 0; i < a.m; i++ {
-		data, err := a.n_addresses[i].MarshalBinary()
+	binary.Write(&out, binary.BigEndian, uint16(a.N))
+	binary.Write(&out, binary.BigEndian, uint16(a.M))
+	for i := 0; i < a.M; i++ {
+		data, err := a.N_Addresses[i].MarshalBinary()
 		if err != nil {
 			return nil, err
 		}
@@ -158,13 +158,13 @@ func (a RCD_2) CustomMarshalText() ([]byte, error) {
 
 	primitives.WriteNumber8(&out, uint8(2)) // Type 2 Authorization
 	out.WriteString("\n n: ")
-	primitives.WriteNumber16(&out, uint16(a.n))
+	primitives.WriteNumber16(&out, uint16(a.N))
 	out.WriteString(" m: ")
-	primitives.WriteNumber16(&out, uint16(a.m))
+	primitives.WriteNumber16(&out, uint16(a.M))
 	out.WriteString("\n")
-	for i := 0; i < a.m; i++ {
+	for i := 0; i < a.M; i++ {
 		out.WriteString("  m: ")
-		out.WriteString(hex.EncodeToString(a.n_addresses[i].Bytes()))
+		out.WriteString(hex.EncodeToString(a.N_Addresses[i].Bytes()))
 		out.WriteString("\n")
 	}
 

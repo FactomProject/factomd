@@ -88,18 +88,6 @@ func (sig *Signature) Verify(msg []byte) bool {
 	return ed25519.VerifyCanonical(sig.Pub.Key, msg, sig.Sig)
 }
 
-func PrivateKeyToPublicKey(privateKey []byte) []byte {
-	if len(privateKey) == 64 {
-		privateKey = privateKey[:32]
-	}
-	if len(privateKey) != 32 {
-		return nil
-	}
-	keypair := new([64]byte)
-	copy(keypair[:32], privateKey[:])
-	return ed25519.GetPublicKey(keypair)[:]
-}
-
 func SignSignable(priv []byte, data interfaces.ISignable) ([]byte, error) {
 	d, err := data.MarshalBinarySig()
 	if err != nil {
@@ -121,4 +109,27 @@ func Sign(priv, data []byte) []byte {
 	}
 
 	return ed25519.Sign(&priv2, data)[:constants.SIGNATURE_LENGTH]
+}
+
+func VerifySignature(data, publicKey, signature []byte) error {
+	pub := [32]byte{}
+	sig := [64]byte{}
+
+	if len(publicKey) == 32 {
+		copy(pub[:], publicKey[:])
+	} else {
+		return fmt.Errorf("Invalid public key length")
+	}
+
+	if len(signature) == 64 {
+		copy(sig[:], signature[:])
+	} else {
+		return fmt.Errorf("Invalid signature length")
+	}
+
+	valid := ed25519.Verify(&pub, data, &sig)
+	if valid == false {
+		return fmt.Errorf("Invalid signature")
+	}
+	return nil
 }

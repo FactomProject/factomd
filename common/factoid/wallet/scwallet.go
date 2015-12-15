@@ -12,12 +12,12 @@ package wallet
 import (
 	"crypto/rand"
 	"crypto/sha512"
-	"errors"
 	"fmt"
 	"github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/bytestore"
 	"github.com/FactomProject/factomd/database/mapdb"
 )
@@ -212,7 +212,7 @@ func (w *SCWallet) GenerateFctAddressFromPrivateKey(name []byte, privateKey []by
 }
 
 func (w *SCWallet) GenerateECAddressFromHumanReadablePrivateKey(name []byte, privateKey string) (interfaces.IAddress, error) {
-	priv, err := HumanReadableECPrivateKeyToPrivateKey(privateKey)
+	priv, err := primitives.HumanReadableECPrivateKeyToPrivateKey(privateKey)
 	if err != nil {
 		return nil, err
 	}
@@ -220,7 +220,7 @@ func (w *SCWallet) GenerateECAddressFromHumanReadablePrivateKey(name []byte, pri
 }
 
 func (w *SCWallet) GenerateFctAddressFromHumanReadablePrivateKey(name []byte, privateKey string, m int, n int) (interfaces.IAddress, error) {
-	priv, err := HumanReadableFactoidPrivateKeyToPrivateKey(privateKey)
+	priv, err := primitives.HumanReadableFactoidPrivateKeyToPrivateKey(privateKey)
 	if err != nil {
 		return nil, err
 	}
@@ -228,7 +228,7 @@ func (w *SCWallet) GenerateFctAddressFromHumanReadablePrivateKey(name []byte, pr
 }
 
 func (w *SCWallet) GenerateFctAddressFromMnemonic(name []byte, mnemonic string, m int, n int) (interfaces.IAddress, error) {
-	priv, err := MnemonicStringToPrivateKey(mnemonic)
+	priv, err := primitives.MnemonicStringToPrivateKey(mnemonic)
 	if err != nil {
 		return nil, err
 	}
@@ -330,24 +330,8 @@ func (w *SCWallet) generateKey() (public []byte, private []byte, err error) {
 	return pub[:], keypair[:], err
 }
 
-func GenerateKeyFromPrivateKey(privateKey []byte) (public []byte, private []byte, err error) {
-	if len(privateKey) == 64 {
-		privateKey = privateKey[:32]
-	}
-	if len(privateKey) != 32 {
-		return nil, nil, errors.New("Wrong privateKey size")
-	}
-	keypair := new([64]byte)
-
-	copy(keypair[:32], privateKey[:])
-	// the crypto library puts the pubkey in the lower 32 bytes and returns the same 32 bytes.
-	pub := ed25519.GetPublicKey(keypair)
-
-	return pub[:], keypair[:], err
-}
-
 func (w *SCWallet) generateKeyFromPrivateKey(privateKey []byte) (public []byte, private []byte, err error) {
-	return GenerateKeyFromPrivateKey(privateKey)
+	return primitives.GenerateKeyFromPrivateKey(privateKey)
 }
 
 func (w *SCWallet) CreateTransaction(time uint64) interfaces.ITransaction {

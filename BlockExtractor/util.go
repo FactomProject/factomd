@@ -5,6 +5,8 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -111,6 +113,10 @@ func SaveJSON(block interfaces.DatabaseBatchable) {
 	if err != nil {
 		panic(err)
 	}
+
+	var out bytes.Buffer
+	json.Indent(&out, data, "", "\t")
+	data = out.Bytes()
 
 	strChainID := fmt.Sprintf("%x", block.GetChainID())
 	if fileNotExists(dataStorePath + strChainID) {

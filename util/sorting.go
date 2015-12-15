@@ -1,6 +1,7 @@
 package util
 
 import (
+	"github.com/FactomProject/factomd/common/directoryBlock/dbInfo"
 	. "github.com/FactomProject/factomd/common/interfaces"
 
 	"bytes"
@@ -87,5 +88,19 @@ func (f ByByteArray) Less(i, j int) bool {
 	return bytes.Compare(f[i], f[j]) < 0
 }
 func (f ByByteArray) Swap(i, j int) {
+	f[i], f[j] = f[j], f[i]
+}
+
+//------------------------------------------------
+// DirBlock Info array sorting implementation - accending
+type ByDirBlockInfoIDAccending []*dbInfo.DirBlockInfo
+
+func (f ByDirBlockInfoIDAccending) Len() int {
+	return len(f)
+}
+func (f ByDirBlockInfoIDAccending) Less(i, j int) bool {
+	return f[i].DBHeight < f[j].DBHeight
+}
+func (f ByDirBlockInfoIDAccending) Swap(i, j int) {
 	f[i], f[j] = f[j], f[i]
 }

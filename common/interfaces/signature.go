@@ -49,4 +49,5 @@ type ISignatureBlock interface {
 type ISignable interface {
 	Sign(privateKey []byte) error
 	MarshalBinarySig() ([]byte, error)
+	ValidateSignatures() error
 }

@@ -136,29 +136,6 @@ func (c *CommitChain) MarshalBinarySig() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func (c *CommitChain) Sign(privateKey []byte) error {
-	sig, err := primitives.SignSignable(privateKey, c)
-	if err != nil {
-		return err
-	}
-	if c.Sig == nil {
-		c.Sig = new(primitives.ByteSlice64)
-	}
-	err = c.Sig.UnmarshalBinary(sig)
-	if err != nil {
-		return err
-	}
-	pub := primitives.PrivateKeyToPublicKey(privateKey)
-	if c.ECPubKey == nil {
-		c.ECPubKey = new(primitives.ByteSlice32)
-	}
-	err = c.ECPubKey.UnmarshalBinary(pub)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 func (c *CommitChain) MarshalBinary() ([]byte, error) {
 	buf := new(bytes.Buffer)
 
@@ -176,6 +153,46 @@ func (c *CommitChain) MarshalBinary() ([]byte, error) {
 	buf.Write(c.Sig[:])
 
 	return buf.Bytes(), nil
+}
+
+func (c *CommitChain) Sign(privateKey []byte) error {
+	sig, err := primitives.SignSignable(privateKey, c)
+	if err != nil {
+		return err
+	}
+	if c.Sig == nil {
+		c.Sig = new(primitives.ByteSlice64)
+	}
+	err = c.Sig.UnmarshalBinary(sig)
+	if err != nil {
+		return err
+	}
+	pub, err := primitives.PrivateKeyToPublicKey(privateKey)
+	if err != nil {
+		return err
+	}
+	if c.ECPubKey == nil {
+		c.ECPubKey = new(primitives.ByteSlice32)
+	}
+	err = c.ECPubKey.UnmarshalBinary(pub)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *CommitChain) ValidateSignatures() error {
+	if c.ECPubKey == nil {
+		return fmt.Errorf("No public key present")
+	}
+	if c.Sig == nil {
+		return fmt.Errorf("No signature present")
+	}
+	data, err := c.MarshalBinarySig()
+	if err != nil {
+		return err
+	}
+	return primitives.VerifySignature(data, c.ECPubKey[:], c.Sig[:])
 }
 
 func (c *CommitChain) ECID() byte {

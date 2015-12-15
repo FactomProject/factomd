@@ -21,7 +21,7 @@ import (
 // In this case, we are simply validating one address to ensure it signed
 // this transaction.
 type RCD_1 struct {
-	publicKey [constants.ADDRESS_LENGTH]byte
+	PublicKey [constants.ADDRESS_LENGTH]byte
 }
 
 var _ interfaces.IRCD = (*RCD_1)(nil)
@@ -63,6 +63,10 @@ func (b RCD_1) String() string {
 	return string(txt)
 }
 
+func (r *RCD_1) MarshalText() ([]byte, error) {
+	return []byte(hex.EncodeToString(r.PublicKey[:])), nil
+}
+
 func (w RCD_1) CheckSig(trans interfaces.ITransaction, sigblk interfaces.ISignatureBlock) bool {
 	if sigblk == nil {
 		return false
@@ -80,23 +84,23 @@ func (w RCD_1) CheckSig(trans interfaces.ITransaction, sigblk interfaces.ISignat
 		return false
 	}
 
-	return ed25519.VerifyCanonical(&w.publicKey, data, cryptosig)
+	return ed25519.VerifyCanonical(&w.PublicKey, data, cryptosig)
 }
 
 func (w RCD_1) Clone() interfaces.IRCD {
 	c := new(RCD_1)
-	copy(c.publicKey[:], w.publicKey[:])
+	copy(c.PublicKey[:], w.PublicKey[:])
 	return c
 }
 
 func (w RCD_1) GetAddress() (interfaces.IAddress, error) {
 	data := []byte{1}
-	data = append(data, w.publicKey[:]...)
+	data = append(data, w.PublicKey[:]...)
 	return CreateAddress(primitives.Shad(data)), nil
 }
 
 func (a RCD_1) GetPublicKey() []byte {
-	return a.publicKey[:]
+	return a.PublicKey[:]
 }
 
 func (w1 RCD_1) NumberOfSignatures() int {
@@ -106,7 +110,7 @@ func (w1 RCD_1) NumberOfSignatures() int {
 func (a1 *RCD_1) IsEqual(addr interfaces.IBlock) []interfaces.IBlock {
 	a2, ok := addr.(*RCD_1)
 
-	if !ok || a1.publicKey != a2.publicKey { // Not the right object or sigature
+	if !ok || a1.PublicKey != a2.PublicKey { // Not the right object or sigature
 		r := make([]interfaces.IBlock, 0, 5)
 		return append(r, a1)
 	}
@@ -127,7 +131,7 @@ func (t *RCD_1) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 		return nil, fmt.Errorf("Data source too short to unmarshal an address: %d", len(data))
 	}
 
-	copy(t.publicKey[:], data[:constants.ADDRESS_LENGTH])
+	copy(t.PublicKey[:], data[:constants.ADDRESS_LENGTH])
 	data = data[constants.ADDRESS_LENGTH:]
 
 	return data, nil
@@ -136,7 +140,7 @@ func (t *RCD_1) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 func (a RCD_1) MarshalBinary() ([]byte, error) {
 	var out bytes.Buffer
 	out.WriteByte(byte(1)) // The First Authorization method
-	out.Write(a.publicKey[:])
+	out.Write(a.PublicKey[:])
 
 	return out.Bytes(), nil
 }
@@ -146,7 +150,7 @@ func (a RCD_1) CustomMarshalText() (text []byte, err error) {
 	out.WriteString("RCD 1: ")
 	primitives.WriteNumber8(&out, uint8(1)) // Type Zero Authorization
 	out.WriteString(" ")
-	out.WriteString(hex.EncodeToString(a.publicKey[:]))
+	out.WriteString(hex.EncodeToString(a.PublicKey[:]))
 	out.WriteString("\n")
 
 	return out.Bytes(), nil
