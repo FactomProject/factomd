@@ -31,7 +31,7 @@ func TestMarshalUnmarshalRevealEntry(t *testing.T) {
 		t.Errorf("Invalid message type unmarshalled - got %v, expected %v", re2.Type(), constants.REVEAL_ENTRY_MSG)
 	}
 
-	hex2, err := re2.(*RevealEntry).MarshalBinary()
+	hex2, err := re2.(*RevealEntryMsg).MarshalBinary()
 	if err != nil {
 		t.Error(err)
 	}
@@ -45,8 +45,8 @@ func TestMarshalUnmarshalRevealEntry(t *testing.T) {
 	}
 }
 
-func newRevealEntry() *RevealEntry {
-	re := new(RevealEntry)
+func newRevealEntry() *RevealEntryMsg {
+	re := new(RevealEntryMsg)
 
 	entry := new(entryBlock.Entry)
 

@@ -14,15 +14,15 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/FactomProject/FactomCode/common"
-	"github.com/FactomProject/FactomCode/util"
-	factomwire "github.com/FactomProject/btcd/wire"
+	"github.com/FactomProject/factomd/common/entryBlock"
+	"github.com/FactomProject/factomd/common/entryCreditBlock"
+	"github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/util"
 )
 
 //Construct the entry and submit it to the server
 func submitEntryToAnchorChain(aRecord *AnchorRecord) error {
-
-	//Marshal aRecord into json
 	jsonARecord, err := json.Marshal(aRecord)
 	//anchorLog.Debug("submitEntryToAnchorChain - jsonARecord: ", string(jsonARecord))
 	if err != nil {
@@ -30,16 +30,15 @@ func submitEntryToAnchorChain(aRecord *AnchorRecord) error {
 	}
 	bufARecord := new(bytes.Buffer)
 	bufARecord.Write(jsonARecord)
-	//Sign the json aRecord with the server key
 	aRecordSig := serverPrivKey.Sign(jsonARecord)
 
 	//Create a new entry
-	entry := common.NewEntry()
+	entry := entryBlock.NewEntry()
 	entry.ChainID = anchorChainID
 	anchorLog.Debug("anchorChainID: ", anchorChainID)
 	// instead of append signature at the end of anchor record
 	// it can be added as the first entry.ExtIDs[0]
-	entry.ExtIDs = append(entry.ExtIDs, []byte(aRecordSig.Sig[:]))
+	entry.ExtIDs = append(entry.ExtIDs, aRecordSig.Bytes())
 	entry.Content = bufARecord.Bytes()
 	//anchorLog.Debug("entry: ", spew.Sdump(entry))
 
@@ -49,7 +48,7 @@ func submitEntryToAnchorChain(aRecord *AnchorRecord) error {
 	// 6 byte milliTimestamp (truncated unix time)
 	buf.Write(milliTime())
 	// 32 byte Entry Hash
-	buf.Write(entry.Hash().Bytes())
+	buf.Write(entry.GetHash().Bytes())
 	// 1 byte number of entry credits to pay
 	binaryEntry, err := entry.MarshalBinary()
 	if err != nil {
@@ -57,33 +56,33 @@ func submitEntryToAnchorChain(aRecord *AnchorRecord) error {
 	}
 
 	anchorLog.Debug("jsonARecord binary entry: ", hex.EncodeToString(binaryEntry))
-	if c, err := util.EntryCost(binaryEntry); err != nil {
-		return err
-	} else {
+	if c, err := util.EntryCost(binaryEntry); err == nil {
 		buf.WriteByte(byte(c))
+	} else {
+		return err
 	}
 
 	tmp := buf.Bytes()
-	sig := serverECKey.Sign(tmp)
+	sig := serverECKey.Sign(tmp).(*primitives.Signature)
 	buf = bytes.NewBuffer(tmp)
 	buf.Write(serverECKey.Pub.Key[:])
 	buf.Write(sig.Sig[:])
 
-	commit := common.NewCommitEntry()
+	commit := entryCreditBlock.NewCommitEntry()
 	err = commit.UnmarshalBinary(buf.Bytes())
 	if err != nil {
 		return err
 	}
 
 	// create a CommitEntry msg and send it to the local inmsgQ
-	cm := factomwire.NewMsgCommitEntry()
+	cm := messages.NewCommitEntryMsg()
 	cm.CommitEntry = commit
-	inMsgQ <- cm
+	state.NetworkInMsgQueue() <- cm
 
 	// create a RevealEntry msg and send it to the local inmsgQ
-	rm := factomwire.NewMsgRevealEntry()
+	rm := messages.NewRevealEntryMsg()
 	rm.Entry = entry
-	inMsgQ <- rm
+	state.NetworkInMsgQueue() <- rm
 
 	return nil
 }

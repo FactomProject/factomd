@@ -59,3 +59,16 @@ func SaveAnchorInfoAsDirBlockInfo(dbo *databaseOverlay.Overlay, ars []*anchor.An
 
 	return nil
 }
+
+// AnchorRecord array sorting implementation - accending
+type ByAnchorDBHeightAccending []*anchor.AnchorRecord
+
+func (f ByAnchorDBHeightAccending) Len() int {
+	return len(f)
+}
+func (f ByAnchorDBHeightAccending) Less(i, j int) bool {
+	return f[i].DBHeight < f[j].DBHeight
+}
+func (f ByAnchorDBHeightAccending) Swap(i, j int) {
+	f[i], f[j] = f[j], f[i]
+}
