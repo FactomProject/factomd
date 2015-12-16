@@ -26,6 +26,10 @@ func (s *FactoidSignature) Verify([]byte) bool {
 	return true
 }
 
+func (sig *FactoidSignature) Bytes() []byte {
+	return sig.Signature[:]
+}
+
 func (s *FactoidSignature) GetKey() []byte {
 	return s.Signature[32:]
 }

@@ -7,7 +7,8 @@ package interfaces
 import ()
 
 type IEBEntry interface {
-	BinaryMarshallable
+	DatabaseBatchable
+
 	GetHash() IHash
 	ExternalIDs() [][]byte
 	GetContent() []byte
@@ -16,6 +17,7 @@ type IEBEntry interface {
 
 type IEntry interface {
 	BinaryMarshallable
+
 	GetChainID() IHash
 	GetKeyMR() (IHash, error)
 }

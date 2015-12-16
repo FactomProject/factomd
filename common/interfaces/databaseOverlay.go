@@ -16,7 +16,7 @@ type DBOverlay interface {
 	//**********************************Entry**********************************//
 
 	// InsertEntry inserts an entry
-	InsertEntry(entry DatabaseBatchable) (err error)
+	InsertEntry(entry IEBEntry) (err error)
 
 	// FetchEntry gets an entry by hash from the database.
 	FetchEntryByHash(IHash) (IEBEntry, error)
