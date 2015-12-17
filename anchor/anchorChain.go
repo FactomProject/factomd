@@ -7,7 +7,6 @@
 
 package anchor
 
-/*
 import (
 	"bytes"
 	"encoding/binary"
@@ -96,4 +95,3 @@ func milliTime() (r []byte) {
 	binary.Write(buf, binary.BigEndian, m)
 	return buf.Bytes()[2:]
 }
-*/

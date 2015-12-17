@@ -4,7 +4,6 @@
 
 package anchor
 
-/*
 import (
 	"os"
 
@@ -23,4 +22,3 @@ var (
 var (
 	anchorLog = logger.New(logfile, logLevel, "ANCH")
 )
-*/

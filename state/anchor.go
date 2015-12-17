@@ -9,7 +9,6 @@ import (
 	"github.com/FactomProject/factomd/anchor"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
-	"github.com/FactomProject/factomd/util"
 	"sort"
 )
 
@@ -46,12 +45,12 @@ func FetchAllAnchorInfo(dbo *databaseOverlay.Overlay) ([]*anchor.AnchorRecord, e
 		}
 		answer = append(answer, ar)
 	}
-	sort.Sort(util.ByAnchorDBHeightAccending(answer))
+	sort.Sort(ByAnchorDBHeightAccending(answer))
 	return answer, nil
 }
 
 func SaveAnchorInfoAsDirBlockInfo(dbo *databaseOverlay.Overlay, ars []*anchor.AnchorRecord) error {
-	sort.Sort(util.ByAnchorDBHeightAccending(ars))
+	sort.Sort(ByAnchorDBHeightAccending(ars))
 
 	for _, v := range ars {
 		fmt.Printf("%v", v)
