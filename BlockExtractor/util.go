@@ -93,16 +93,40 @@ func SaveBinary(block interfaces.DatabaseBatchable) {
 	}
 
 	strChainID := fmt.Sprintf("%x", block.GetChainID())
-	if fileNotExists(dataStorePath + strChainID) {
-		err := os.MkdirAll(dataStorePath+strChainID, 0777)
+	dir := dataStorePath + strChainID
+	if fileNotExists(dir) {
+		err := os.MkdirAll(dir, 0777)
 		if err == nil {
-			fmt.Println("Created directory " + dataStorePath + strChainID)
+			fmt.Println("Created directory " + dir)
 		} else {
 			panic(err)
 		}
 	}
 
-	err = ioutil.WriteFile(fmt.Sprintf(dataStorePath+strChainID+"/store.%09d.block", block.GetDatabaseHeight()), data, 0777)
+	err = ioutil.WriteFile(fmt.Sprintf(dir+"/store.%09d.block", block.GetDatabaseHeight()), data, 0777)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func SaveEntryBinary(entry interfaces.DatabaseBatchable, blockHeight uint32) {
+	data, err := entry.MarshalBinary()
+	if err != nil {
+		panic(err)
+	}
+
+	strChainID := fmt.Sprintf("%x", entry.GetChainID())
+	dir := dataStorePath + strChainID + "/entries"
+	if fileNotExists(dir) {
+		err := os.MkdirAll(dir, 0777)
+		if err == nil {
+			fmt.Println("Created directory " + dir)
+		} else {
+			panic(err)
+		}
+	}
+
+	err = ioutil.WriteFile(fmt.Sprintf(dir+"/store.%09d.%v.entry", blockHeight, entry.DatabasePrimaryIndex().String()), data, 0777)
 	if err != nil {
 		panic(err)
 	}
@@ -119,16 +143,44 @@ func SaveJSON(block interfaces.DatabaseBatchable) {
 	data = out.Bytes()
 
 	strChainID := fmt.Sprintf("%x", block.GetChainID())
-	if fileNotExists(dataStorePath + strChainID) {
-		err := os.MkdirAll(dataStorePath+strChainID, 0777)
+	dir := dataStorePath + strChainID
+	if fileNotExists(dir) {
+		err := os.MkdirAll(dir, 0777)
 		if err == nil {
-			fmt.Println("Created directory " + dataStorePath + strChainID)
+			fmt.Println("Created directory " + dir)
 		} else {
 			panic(err)
 		}
 	}
 
-	err = ioutil.WriteFile(fmt.Sprintf(dataStorePath+strChainID+"/storeJSON.%09d.block", block.GetDatabaseHeight()), data, 0777)
+	err = ioutil.WriteFile(fmt.Sprintf(dir+"/storeJSON.%09d.block", block.GetDatabaseHeight()), data, 0777)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func SaveEntryJSON(entry interfaces.DatabaseBatchable, blockHeight uint32) {
+	data, err := entry.(interfaces.Printable).JSONByte()
+	if err != nil {
+		panic(err)
+	}
+
+	var out bytes.Buffer
+	json.Indent(&out, data, "", "\t")
+	data = out.Bytes()
+
+	strChainID := fmt.Sprintf("%x", entry.GetChainID())
+	dir := dataStorePath + strChainID + "/entries"
+	if fileNotExists(dir) {
+		err := os.MkdirAll(dir, 0777)
+		if err == nil {
+			fmt.Println("Created directory " + dir)
+		} else {
+			panic(err)
+		}
+	}
+
+	err = ioutil.WriteFile(fmt.Sprintf(dir+"/storeJSON.%09d.%v.entry", blockHeight, entry.DatabasePrimaryIndex().String()), data, 0777)
 	if err != nil {
 		panic(err)
 	}
@@ -150,6 +202,16 @@ func exportEChain(chainID string, db interfaces.DBOverlay) {
 	for _, block := range eBlocks {
 		SaveBinary(block.(interfaces.DatabaseBatchable))
 		SaveJSON(block.(interfaces.DatabaseBatchable))
+		height := block.GetDatabaseHeight()
+		entryHashes := block.GetBody().GetEBEntries()
+		for _, hash := range entryHashes {
+			entry, err := db.FetchEntryByHash(hash)
+			if err != nil {
+				panic(err)
+			}
+			SaveEntryBinary(entry, height)
+			SaveEntryJSON(entry, height)
+		}
 	}
 }
 

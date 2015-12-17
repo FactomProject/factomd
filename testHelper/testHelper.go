@@ -63,9 +63,16 @@ func CreateAndPopulateTestDatabaseOverlay() *databaseOverlay.Overlay {
 			panic(err)
 		}
 
-		err := dbo.SaveDirectoryBlockHead(prev.DBlock)
+		err = dbo.SaveDirectoryBlockHead(prev.DBlock)
 		if err != nil {
 			panic(err)
+		}
+
+		for _, entry := range prev.Entries {
+			err = dbo.InsertEntry(entry)
+			if err != nil {
+				panic(err)
+			}
 		}
 	}
 
