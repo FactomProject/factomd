@@ -957,7 +957,7 @@ out:
 		case *messages.MsgPong:
 			p.handlePongMsg(msg)
 
-		case *messages.MsgAlert:
+		//case *messages.MsgAlert:
 			// Intentionally ignore alert messages.
 			//
 			// The reference client currently bans peers that send
@@ -1026,8 +1026,8 @@ out:
 		case *messages.MsgRevealEntry:
 			p.handleRevealEntryMsg(msg)
 
-		case *messages.MsgAcknowledgement:
-			p.handleAcknoledgementMsg(msg)
+		case *messages.MsgAck:
+			p.handleAckMsg(msg)
 
 			// Factom blocks downloading
 		case *messages.MsgGetDirBlocks:
@@ -2285,7 +2285,7 @@ func (p *peer) handleRevealEntryMsg(msg *messages.MsgRevealEntry) {
 }
 
 // Handle factom app imcoming msg
-func (p *peer) handleAcknoledgementMsg(msg *messages.MsgAcknowledgement) {
+func (p *peer) handleAckMsg(msg *messages.MsgAck) {
 	// Add the msg to inbound msg queue
 	if !ClientOnly {
 		//p.server.State.NetworkInMsgQueue() <- msg
