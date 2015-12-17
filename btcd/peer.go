@@ -24,6 +24,7 @@ import (
 	. "github.com/FactomProject/factomd/common/directoryBlock"
 	. "github.com/FactomProject/factomd/common/entryBlock"
 	. "github.com/FactomProject/factomd/common/entryCreditBlock"
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -1777,7 +1778,7 @@ func (p *peer) handleGetNonDirDataMsg(msg *messages.MsgGetNonDirData) {
 			case hex.EncodeToString(ADMIN_CHAINID[:]):
 				err = p.pushABlockMsg(dbEntry.GetKeyMR(), c, waitChan)
 
-			case messages.FChainID.String():
+			case string(constants.FACTOID_CHAINID[:len(constants.FACTOID_CHAINID)]):
 				err = p.pushFBlockMsg(dbEntry.GetKeyMR(), c, waitChan)
 
 			default:
