@@ -24,6 +24,7 @@ import (
 	. "github.com/FactomProject/factomd/common/directoryBlock"
 	. "github.com/FactomProject/factomd/common/entryBlock"
 	. "github.com/FactomProject/factomd/common/entryCreditBlock"
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -957,7 +958,7 @@ out:
 		case *messages.MsgPong:
 			p.handlePongMsg(msg)
 
-		case *messages.MsgAlert:
+		//case *messages.MsgAlert:
 			// Intentionally ignore alert messages.
 			//
 			// The reference client currently bans peers that send
@@ -1026,8 +1027,8 @@ out:
 		case *messages.MsgRevealEntry:
 			p.handleRevealEntryMsg(msg)
 
-		case *messages.MsgAcknowledgement:
-			p.handleAcknoledgementMsg(msg)
+		case *messages.MsgAck:
+			p.handleAckMsg(msg)
 
 			// Factom blocks downloading
 		case *messages.MsgGetDirBlocks:
@@ -1777,7 +1778,7 @@ func (p *peer) handleGetNonDirDataMsg(msg *messages.MsgGetNonDirData) {
 			case hex.EncodeToString(ADMIN_CHAINID[:]):
 				err = p.pushABlockMsg(dbEntry.GetKeyMR(), c, waitChan)
 
-			case messages.FChainID.String():
+			case string(constants.FACTOID_CHAINID[:len(constants.FACTOID_CHAINID)]):
 				err = p.pushFBlockMsg(dbEntry.GetKeyMR(), c, waitChan)
 
 			default:
@@ -2285,7 +2286,7 @@ func (p *peer) handleRevealEntryMsg(msg *messages.MsgRevealEntry) {
 }
 
 // Handle factom app imcoming msg
-func (p *peer) handleAcknoledgementMsg(msg *messages.MsgAcknowledgement) {
+func (p *peer) handleAckMsg(msg *messages.MsgAck) {
 	// Add the msg to inbound msg queue
 	if !ClientOnly {
 		//p.server.State.NetworkInMsgQueue() <- msg

@@ -37,7 +37,7 @@ const (
 	INFO_CURRENT_HEIGHT // info message to the wire-side to indicate the current known block height;
 )
 
-type MsgAcknowledgement struct {
+type MsgAck struct {
 	Height      uint32
 	ChainID     interfaces.IHash
 	Index       uint32
@@ -47,8 +47,8 @@ type MsgAcknowledgement struct {
 	Signature   [64]byte
 }
 
-// Write out the MsgAcknowledgement (excluding Signature) to binary.
-func (msg *MsgAcknowledgement) GetBinaryForSignature() (data []byte, err error) {
+// Write out the MsgAck (excluding Signature) to binary.
+func (msg *MsgAck) GetBinaryForSignature() (data []byte, err error) {
 	var buf bytes.Buffer
 
 	binary.Write(&buf, binary.BigEndian, msg.Height)
@@ -73,16 +73,14 @@ func (msg *MsgAcknowledgement) GetBinaryForSignature() (data []byte, err error) 
 
 // BtcDecode decodes r using the bitcoin protocol encoding into the receiver.
 // This is part of the Message interface implementation.
-func (msg *MsgAcknowledgement) BtcDecode(r io.Reader, pver uint32) error {
-	//err := readElements(r, &msg.Height, msg.ChainID, &msg.Index, &msg.Type, msg.Affirmation, &msg.SerialHash, &msg.Signature)
-
+func (msg *MsgAck) BtcDecode(r io.Reader, pver uint32) error {
 	newData, err := ioutil.ReadAll(r)
 	if err != nil {
-		return fmt.Errorf("MsgAcknowledgement.BtcDecode reader is invalid")
+		return fmt.Errorf("MsgAck.BtcDecode reader is invalid")
 	}
 
 	if len(newData) != 169 {
-		return fmt.Errorf("MsgAcknowledgement.BtcDecode reader does not have right length: ", len(newData))
+		return fmt.Errorf("MsgAck.BtcDecode reader does not have right length: ", len(newData))
 	}
 
 	msg.Height, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
@@ -107,9 +105,7 @@ func (msg *MsgAcknowledgement) BtcDecode(r io.Reader, pver uint32) error {
 
 // BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
 // This is part of the Message interface implementation.
-func (msg *MsgAcknowledgement) BtcEncode(w io.Writer, pver uint32) error {
-	//err := writeElements(w, msg.Height, msg.ChainID, msg.Index, msg.Type, msg.Affirmation, msg.SerialHash, msg.Signature)
-
+func (msg *MsgAck) BtcEncode(w io.Writer, pver uint32) error {
 	var buf bytes.Buffer
 
 	binary.Write(&buf, binary.BigEndian, msg.Height)
@@ -128,26 +124,26 @@ func (msg *MsgAcknowledgement) BtcEncode(w io.Writer, pver uint32) error {
 
 // Command returns the protocol command string for the message.  This is part
 // of the Message interface implementation.
-func (msg *MsgAcknowledgement) Command() string {
-	return CmdAcknowledgement
+func (msg *MsgAck) Command() string {
+	return CmdAck
 }
 
 // MaxPayloadLength returns the maximum length the payload can be for the
 // receiver.  This is part of the Message interface implementation.
-func (msg *MsgAcknowledgement) MaxPayloadLength(pver uint32) uint32 {
+func (msg *MsgAck) MaxPayloadLength(pver uint32) uint32 {
 
 	// 10K is too big of course, TODO: adjust
 	return MaxAppMsgPayload
 }
 
 // NewMsgAcknowledgement returns a new bitcoin ping message that conforms to the Message
-// interface.  See MsgAcknowledgement for details.
-func NewMsgAcknowledgement(height uint32, index uint32, affirm interfaces.IHash, ackType byte) *MsgAcknowledgement {
+// interface.  See MsgAck for details.
+func NewMsgAcknowledgement(height uint32, index uint32, affirm interfaces.IHash, ackType byte) *MsgAck {
 
 	if affirm == nil {
 		affirm = new(primitives.Hash)
 	}
-	return &MsgAcknowledgement{
+	return &MsgAck{
 		Height:      height,
 		ChainID:     new(primitives.Hash), //TODO: get the correct chain id from processor
 		Index:       index,
@@ -157,7 +153,7 @@ func NewMsgAcknowledgement(height uint32, index uint32, affirm interfaces.IHash,
 }
 
 // Create a sha hash from the message binary (output of BtcEncode)
-func (msg *MsgAcknowledgement) Sha() (interfaces.IHash, error) {
+func (msg *MsgAck) Sha() (interfaces.IHash, error) {
 
 	buf := bytes.NewBuffer(nil)
 	msg.BtcEncode(buf, ProtocolVersion)

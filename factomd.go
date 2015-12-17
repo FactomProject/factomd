@@ -37,9 +37,6 @@ func main() {
 		os.Exit(1)
 	}
 	cfgFilename := ""
-	//if len(os.Args) > 1 {
-		//cfgFilename = os.Args[1]
-	//}
 
 	state := new(state.State)
 	state.Init(cfgFilename)
@@ -51,7 +48,7 @@ func main() {
 
 	btcd.AddInterruptHandler(func() {
 		log.Printf("Gracefully shutting down the database...")
-		state.GetDB().(interfaces.IDatabase).Close()		//db.RollbackClose()
+		state.GetDB().(interfaces.IDatabase).Close()		
 	})
 
 	log.Print("Starting server")

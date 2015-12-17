@@ -326,7 +326,7 @@ func messageSummary(msg messages.Message) string {
 	case *messages.MsgPong:
 		// No summary - perhaps add nonce.
 
-	case *messages.MsgAlert:
+	//case *messages.MsgAlert:
 		// No summary.
 
 	//case *messages.MsgMemPool:
