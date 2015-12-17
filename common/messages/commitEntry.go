@@ -190,3 +190,7 @@ func (e *CommitEntryMsg) JSONString() (string, error) {
 func (e *CommitEntryMsg) JSONBuffer(b *bytes.Buffer) error {
 	return primitives.EncodeJSONToBuffer(e, b)
 }
+
+func NewCommitEntryMsg() *CommitEntryMsg {
+	return new(CommitEntryMsg)
+}

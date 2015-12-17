@@ -10,7 +10,6 @@ import (
 	"github.com/FactomProject/factomd/common/directoryBlock/dbInfo"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
-	"github.com/FactomProject/factomd/util"
 	"sort"
 )
 
@@ -47,12 +46,12 @@ func FetchAllAnchorInfo(dbo *databaseOverlay.Overlay) ([]*anchor.AnchorRecord, e
 		}
 		answer = append(answer, ar)
 	}
-	sort.Sort(util.ByAnchorDBHeightAccending(answer))
+	sort.Sort(ByAnchorDBHeightAccending(answer))
 	return answer, nil
 }
 
 func SaveAnchorInfoAsDirBlockInfo(dbo *databaseOverlay.Overlay, ars []*anchor.AnchorRecord) error {
-	sort.Sort(util.ByAnchorDBHeightAccending(ars))
+	sort.Sort(ByAnchorDBHeightAccending(ars))
 
 	for _, v := range ars {
 		dbi, err := AnchorRecordToDirBlockInfo(v, dbo)
@@ -97,4 +96,17 @@ func AnchorRecordToDirBlockInfo(ar *anchor.AnchorRecord, dbo *databaseOverlay.Ov
 	dbi.BTCConfirmed = true
 
 	return dbi, nil
+}
+
+// AnchorRecord array sorting implementation - accending
+type ByAnchorDBHeightAccending []*anchor.AnchorRecord
+
+func (f ByAnchorDBHeightAccending) Len() int {
+	return len(f)
+}
+func (f ByAnchorDBHeightAccending) Less(i, j int) bool {
+	return f[i].DBHeight < f[j].DBHeight
+}
+func (f ByAnchorDBHeightAccending) Swap(i, j int) {
+	f[i], f[j] = f[j], f[i]
 }
