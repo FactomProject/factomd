@@ -5,8 +5,9 @@
 package state
 
 import (
-	"fmt"
+	//"fmt"
 	"github.com/FactomProject/factomd/anchor"
+	"github.com/FactomProject/factomd/common/directoryBlock/dbInfo"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"sort"
@@ -53,10 +54,48 @@ func SaveAnchorInfoAsDirBlockInfo(dbo *databaseOverlay.Overlay, ars []*anchor.An
 	sort.Sort(ByAnchorDBHeightAccending(ars))
 
 	for _, v := range ars {
-		fmt.Printf("%v", v)
+		dbi, err := AnchorRecordToDirBlockInfo(v, dbo)
+		if err != nil {
+			return err
+		}
+		err = dbo.SaveDirBlockInfo(dbi)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
+}
+
+func AnchorRecordToDirBlockInfo(ar *anchor.AnchorRecord, dbo *databaseOverlay.Overlay) (*dbInfo.DirBlockInfo, error) {
+	dbi := new(dbInfo.DirBlockInfo)
+	var err error
+
+	//TODO: fetch proper data
+	//dbi.DBHash =
+	dbi.DBHash, err = primitives.NewShaHashFromStr(ar.KeyMR)
+	if err != nil {
+		return nil, err
+	}
+	dbi.DBHeight = ar.DBHeight
+	//dbi.Timestamp =
+	dbi.BTCTxHash, err = primitives.NewShaHashFromStr(ar.Bitcoin.TXID)
+	if err != nil {
+		return nil, err
+	}
+	dbi.BTCTxOffset = ar.Bitcoin.Offset
+	dbi.BTCBlockHeight = ar.Bitcoin.BlockHeight
+	dbi.BTCBlockHash, err = primitives.NewShaHashFromStr(ar.Bitcoin.BlockHash)
+	if err != nil {
+		return nil, err
+	}
+	dbi.DBMerkleRoot, err = primitives.NewShaHashFromStr(ar.KeyMR)
+	if err != nil {
+		return nil, err
+	}
+	dbi.BTCConfirmed = true
+
+	return dbi, nil
 }
 
 // AnchorRecord array sorting implementation - accending

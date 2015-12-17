@@ -8,6 +8,7 @@ import (
 	"github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 func NewPrivKeyString(n uint64) string {
@@ -20,6 +21,7 @@ func NewPrivKeyString(n uint64) string {
 	return priv
 }
 
+//Create 32 bit private key (without the public key part)
 func NewPrivKey(n uint64) []byte {
 	priv := NewPrivKeyString(n)
 	p, err := hex.DecodeString(priv)
@@ -27,6 +29,17 @@ func NewPrivKey(n uint64) []byte {
 		panic(err)
 	}
 	return p
+}
+
+//Create a full 64 bit key holding both private and public key
+func NewFullPrivKey(n uint64) []byte {
+	priv := NewPrivKey(n)
+	pub := PrivateKeyToEDPub(priv)
+	return append(priv, pub...)
+}
+
+func NewPrimitivesPrivateKey(n uint64) *primitives.PrivateKey {
+	return primitives.NewPrivateKeyFromHexBytes(NewFullPrivKey(n))
 }
 
 func NewFactoidAddressStrings(n uint64) (string, string, string) {

@@ -48,6 +48,11 @@ func CreateAndPopulateTestDatabaseOverlay() *databaseOverlay.Overlay {
 			panic(err)
 		}
 
+		err = dbo.SaveEBlockHead(prev.AnchorEBlock)
+		if err != nil {
+			panic(err)
+		}
+
 		err = dbo.SaveECBlockHead(prev.ECBlock)
 		if err != nil {
 			panic(err)
@@ -68,13 +73,14 @@ func CreateAndPopulateTestDatabaseOverlay() *databaseOverlay.Overlay {
 }
 
 type BlockSet struct {
-	DBlock  *directoryBlock.DirectoryBlock
-	ABlock  *adminBlock.AdminBlock
-	ECBlock interfaces.IEntryCreditBlock
-	FBlock  interfaces.IFBlock
-	EBlock  *entryBlock.EBlock
-	Entries []*entryBlock.Entry
-	Height  int
+	DBlock       *directoryBlock.DirectoryBlock
+	ABlock       *adminBlock.AdminBlock
+	ECBlock      interfaces.IEntryCreditBlock
+	FBlock       interfaces.IFBlock
+	EBlock       *entryBlock.EBlock
+	AnchorEBlock *entryBlock.EBlock
+	Entries      []*entryBlock.Entry
+	Height       int
 }
 
 func CreateTestBlockSet(prev *BlockSet) *BlockSet {
@@ -127,8 +133,23 @@ func CreateTestBlockSet(prev *BlockSet) *BlockSet {
 	}
 	dbEntries = append(dbEntries, de)
 
+	anchor, entries := CreateTestAnchorEntryBlock(prev.AnchorEBlock, prev.DBlock)
+	answer.AnchorEBlock = anchor
+	answer.Entries = append(answer.Entries, entries...)
+
+	de = new(directoryBlock.DBEntry)
+	de.ChainID, err = primitives.NewShaHash(answer.AnchorEBlock.GetChainID())
+	if err != nil {
+		panic(err)
+	}
+	de.KeyMR, err = answer.AnchorEBlock.KeyMR()
+	if err != nil {
+		panic(err)
+	}
+	dbEntries = append(dbEntries, de)
+
 	answer.ECBlock = CreateTestEntryCreditBlock(prev.ECBlock)
-	ecEntries := createECEntriesfromBlocks(answer.FBlock, answer.EBlock, height)
+	ecEntries := createECEntriesfromBlocks(answer.FBlock, []*entryBlock.EBlock{answer.EBlock, answer.AnchorEBlock}, height)
 	answer.ECBlock.GetBody().SetEntries(ecEntries)
 
 	de = new(directoryBlock.DBEntry)
