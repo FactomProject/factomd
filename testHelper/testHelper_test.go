@@ -3,7 +3,7 @@ package testHelper_test
 import (
 	"crypto/rand"
 	"github.com/FactomProject/ed25519"
-	"github.com/FactomProject/factomd/common/factoid/wallet"
+	//"github.com/FactomProject/factomd/common/factoid/wallet"
 	"github.com/FactomProject/factomd/common/primitives"
 	. "github.com/FactomProject/factomd/testHelper"
 	"testing"
@@ -33,7 +33,7 @@ func TestSignature(t *testing.T) {
 		t.Error("Signature could not be verified")
 	}
 
-	pub2, err := wallet.PrivateKeyToPublicKey(priv[:])
+	pub2, err := primitives.PrivateKeyToPublicKey(priv[:])
 	if err != nil {
 		t.Error(err)
 	}
@@ -53,4 +53,9 @@ func Test(t *testing.T) {
 	str, _ = set.FBlock.JSONString()
 	t.Logf("set FBlock - %v", str)
 	t.Logf("set Height - %v", set.Height)
+}
+
+func TestAnchor(t *testing.T) {
+	anchor := CreateFirstAnchorEntry()
+	t.Errorf("%x", anchor.ChainID.Bytes())
 }

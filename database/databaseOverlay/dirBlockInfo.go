@@ -56,7 +56,7 @@ func (db *Overlay) FetchDirBlockInfoByKeyMR(hash interfaces.IHash) (*dbInfo.DirB
 	return block.(*dbInfo.DirBlockInfo), nil
 }
 
-// FetchAllDirBlockInfos gets all of the dirblock info blocks
+// FetchAllConfirmedDirBlockInfos gets all of the confiemed dirblock info blocks
 func (db *Overlay) FetchAllConfirmedDirBlockInfos() ([]*dbInfo.DirBlockInfo, error) {
 	list, err := db.FetchAllBlocksFromBucket([]byte{byte(DIRBLOCKINFO)}, dbInfo.NewDirBlockInfo())
 	if err != nil {
@@ -65,13 +65,28 @@ func (db *Overlay) FetchAllConfirmedDirBlockInfos() ([]*dbInfo.DirBlockInfo, err
 	return toDirBlockInfosList(list), nil
 }
 
-// FetchAllDirBlockInfos gets all of the dirblock info blocks
+// FetchAllUnconfirmedDirBlockInfos gets all of the unconfirmed dirblock info blocks
 func (db *Overlay) FetchAllUnconfirmedDirBlockInfos() ([]*dbInfo.DirBlockInfo, error) {
 	list, err := db.FetchAllBlocksFromBucket([]byte{byte(DIRBLOCKINFO_UNCONFIRMED)}, dbInfo.NewDirBlockInfo())
 	if err != nil {
 		return nil, err
 	}
 	return toDirBlockInfosList(list), nil
+}
+
+// FetchAllDirBlockInfos gets all of the dirblock info blocks
+func (db *Overlay) FetchAllDirBlockInfos() ([]*dbInfo.DirBlockInfo, error) {
+	unconfirmed, err := db.FetchAllUnconfirmedDirBlockInfos()
+	if err != nil {
+		return nil, err
+	}
+	confirmed, err := db.FetchAllConfirmedDirBlockInfos()
+	if err != nil {
+		return nil, err
+	}
+	all := append(unconfirmed, confirmed...)
+	sort.Sort(util.ByDirBlockInfoIDAccending(all))
+	return all, nil
 }
 
 func toDirBlockInfosList(source []interfaces.BinaryMarshallableAndCopyable) []*dbInfo.DirBlockInfo {

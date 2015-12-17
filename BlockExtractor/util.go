@@ -135,6 +135,7 @@ func SaveJSON(block interfaces.DatabaseBatchable) {
 }
 
 func exportEChain(chainID string, db interfaces.DBOverlay) {
+	fmt.Printf("exportEChain %v\n", chainID)
 	id, err := primitives.NewShaHashFromStr(chainID)
 	if err != nil {
 		panic(err)
@@ -143,6 +144,7 @@ func exportEChain(chainID string, db interfaces.DBOverlay) {
 	if err != nil {
 		panic(err)
 	}
+	fmt.Printf("Fetched %v blocks\n", len(eBlocks))
 	sort.Sort(util.ByEBlockIDAccending(eBlocks))
 
 	for _, block := range eBlocks {

@@ -51,6 +51,14 @@ func NewPrivateKeyFromHex(s string) (pk PrivateKey, err error) {
 	return
 }
 
+func NewPrivateKeyFromHexBytes(privKeybytes []byte) *PrivateKey {
+	pk := new(PrivateKey)
+	pk.AllocateNew()
+	copy(pk.Key[:], privKeybytes)
+	copy(pk.Pub.Key[:], privKeybytes[ed25519.PublicKeySize:])
+	return pk
+}
+
 // Sign signs msg with PrivateKey and return Signature
 func (pk *PrivateKey) Sign(msg []byte) (sig interfaces.IFullSignature) {
 	sig = new(Signature)
