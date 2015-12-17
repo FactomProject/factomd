@@ -2,11 +2,12 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-package state
+package state_test
 
 import (
 	"fmt"
 	fct "github.com/FactomProject/factoid"
+	. "github.com/FactomProject/factomd/state"
 	"math/rand"
 	"testing"
 	"time"
