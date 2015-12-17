@@ -7,6 +7,7 @@
 
 package anchor
 
+/*
 import (
 	"bytes"
 	"encoding/binary"
@@ -729,3 +730,4 @@ func checkTxMalleation(transaction *btcutil.Tx, details *btcjson.BlockDetails) {
 		}
 	}
 }
+*/
