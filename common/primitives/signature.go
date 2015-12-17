@@ -30,6 +30,13 @@ func (sig *Signature) CustomMarshalText() ([]byte, error) {
 	return ([]byte)(sig.Pub.String() + hex.EncodeToString(sig.Sig[:])), nil
 }
 
+func (sig *Signature) Bytes() []byte {
+	if sig.Sig == nil {
+		return nil
+	}
+	return sig.Sig[:]
+}
+
 func (sig *Signature) SetPub(publicKey []byte) {
 	sig.Pub.Key = new([ed25519.PublicKeySize]byte)
 	copy(sig.Pub.Key[:], publicKey)

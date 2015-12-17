@@ -2,11 +2,12 @@
 // Use of this source code is governed by the MIT license
 // that can be found in the LICENSE file.
 
-// logger is based on github.com/alexcesaro/log and
+// factomlog is based on github.com/alexcesaro/log and
 // github.com/alexcesaro/log/golog (MIT License)
 
 package anchor
 
+/*
 import (
 	"bytes"
 	"encoding/binary"
@@ -14,10 +15,9 @@ import (
 	"encoding/json"
 	"time"
 
-	factomwire "github.com/FactomProject/factomd/btcd/wire"
-	. "github.com/FactomProject/factomd/common/entryBlock"
-	. "github.com/FactomProject/factomd/common/entryCreditBlock"
-	"github.com/FactomProject/factomd/util"
+	"github.com/FactomProject/FactomCode/common"
+	"github.com/FactomProject/FactomCode/util"
+	factomwire "github.com/FactomProject/btcd/wire"
 )
 
 //Construct the entry and submit it to the server
@@ -25,7 +25,7 @@ func submitEntryToAnchorChain(aRecord *AnchorRecord) error {
 
 	//Marshal aRecord into json
 	jsonARecord, err := json.Marshal(aRecord)
-	anchorLog.Debug("submitEntryToAnchorChain - jsonARecord: ", string(jsonARecord))
+	//anchorLog.Debug("submitEntryToAnchorChain - jsonARecord: ", string(jsonARecord))
 	if err != nil {
 		return err
 	}
@@ -33,14 +33,16 @@ func submitEntryToAnchorChain(aRecord *AnchorRecord) error {
 	bufARecord.Write(jsonARecord)
 	//Sign the json aRecord with the server key
 	aRecordSig := serverPrivKey.Sign(jsonARecord)
-	//Encode sig into Hex string
-	bufARecord.Write([]byte(hex.EncodeToString(aRecordSig.Sig[:])))
 
 	//Create a new entry
-	entry := NewEntry()
+	entry := common.NewEntry()
 	entry.ChainID = anchorChainID
 	anchorLog.Debug("anchorChainID: ", anchorChainID)
+	// instead of append signature at the end of anchor record
+	// it can be added as the first entry.ExtIDs[0]
+	entry.ExtIDs = append(entry.ExtIDs, []byte(aRecordSig.Sig[:]))
 	entry.Content = bufARecord.Bytes()
+	//anchorLog.Debug("entry: ", spew.Sdump(entry))
 
 	buf := new(bytes.Buffer)
 	// 1 byte version
@@ -55,19 +57,20 @@ func submitEntryToAnchorChain(aRecord *AnchorRecord) error {
 		return err
 	}
 
-	anchorLog.Info("jsonARecord binary entry: ", hex.EncodeToString(binaryEntry))
+	anchorLog.Debug("jsonARecord binary entry: ", hex.EncodeToString(binaryEntry))
 	if c, err := util.EntryCost(binaryEntry); err != nil {
 		return err
 	} else {
 		buf.WriteByte(byte(c))
 	}
+
 	tmp := buf.Bytes()
 	sig := serverECKey.Sign(tmp)
 	buf = bytes.NewBuffer(tmp)
 	buf.Write(serverECKey.Pub.Key[:])
 	buf.Write(sig.Sig[:])
 
-	commit := NewCommitEntry()
+	commit := common.NewCommitEntry()
 	err = commit.UnmarshalBinary(buf.Bytes())
 	if err != nil {
 		return err
@@ -94,3 +97,4 @@ func milliTime() (r []byte) {
 	binary.Write(buf, binary.BigEndian, m)
 	return buf.Bytes()[2:]
 }
+*/

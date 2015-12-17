@@ -49,6 +49,7 @@ const (
 
 	//Directory Block Info
 	DIRBLOCKINFO
+	DIRBLOCKINFO_UNCONFIRMED
 	DIRBLOCKINFO_NUMBER
 	DIRBLOCKINFO_KEYMR
 )
@@ -189,6 +190,33 @@ func (db *Overlay) ProcessBlockBatch(blockBucket, numberBucket, secondaryIndexBu
 	}
 
 	batch = append(batch, interfaces.Record{[]byte{CHAIN_HEAD}, block.GetChainID(), block.DatabasePrimaryIndex()})
+
+	err := db.DB.PutInBatch(batch)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (db *Overlay) ProcessBlockBatchWithoutHead(blockBucket, numberBucket, secondaryIndexBucket []byte, block interfaces.DatabaseBatchable) error {
+	if block == nil {
+		return nil
+	}
+
+	batch := []interfaces.Record{}
+
+	batch = append(batch, interfaces.Record{blockBucket, block.DatabasePrimaryIndex().Bytes(), block})
+
+	if numberBucket != nil {
+		bytes := make([]byte, 4)
+		binary.BigEndian.PutUint32(bytes, block.GetDatabaseHeight())
+		batch = append(batch, interfaces.Record{numberBucket, bytes, block.DatabasePrimaryIndex()})
+	}
+
+	if secondaryIndexBucket != nil {
+		batch = append(batch, interfaces.Record{secondaryIndexBucket, block.DatabaseSecondaryIndex().Bytes(), block.DatabasePrimaryIndex()})
+	}
 
 	err := db.DB.PutInBatch(batch)
 	if err != nil {

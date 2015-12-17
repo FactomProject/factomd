@@ -19,6 +19,7 @@ type ISignature interface {
 	SetSignature(sig []byte) error // Set or update the signature
 	GetSignature() *[64]byte
 	CustomMarshalText() ([]byte, error)
+	Bytes() []byte
 }
 
 type IFullSignature interface {

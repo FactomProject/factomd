@@ -1,6 +1,7 @@
 package util
 
 import (
+	"github.com/FactomProject/factomd/anchor"
 	"github.com/FactomProject/factomd/common/directoryBlock/dbInfo"
 	. "github.com/FactomProject/factomd/common/interfaces"
 
@@ -102,5 +103,19 @@ func (f ByDirBlockInfoIDAccending) Less(i, j int) bool {
 	return f[i].DBHeight < f[j].DBHeight
 }
 func (f ByDirBlockInfoIDAccending) Swap(i, j int) {
+	f[i], f[j] = f[j], f[i]
+}
+
+//------------------------------------------------
+// DirBlock Info array sorting implementation - accending
+type ByAnchorDBHeightAccending []*anchor.AnchorRecord
+
+func (f ByAnchorDBHeightAccending) Len() int {
+	return len(f)
+}
+func (f ByAnchorDBHeightAccending) Less(i, j int) bool {
+	return f[i].DBHeight < f[j].DBHeight
+}
+func (f ByAnchorDBHeightAccending) Swap(i, j int) {
 	f[i], f[j] = f[j], f[i]
 }
