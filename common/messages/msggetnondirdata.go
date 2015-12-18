@@ -5,11 +5,15 @@
 package messages
 
 import (
+	"bytes"
 	"fmt"
 	"io"
+
+	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
-// MsgGetNonDirData implements the Message interface and represents a factom
+// MsgGetNonDirData implements the MsgGetNonDirData interface and represents a factom
 // get non dir block data message.  It is used to request data such as blocks and transactions
 // from another peer.  It should be used in response to the inv (MsgDirInv) message
 // to request the actual data referenced by each inventory vector the receiving
@@ -36,7 +40,7 @@ func (msg *MsgGetNonDirData) AddInvVect(iv *InvVect) error {
 }
 
 // BtcDecode decodes r using the bitcoin protocol encoding into the receiver.
-// This is part of the Message interface implementation.
+// This is part of the MsgGetNonDirData interface implementation.
 func (msg *MsgGetNonDirData) BtcDecode(r io.Reader, pver uint32) error {
 	count, err := readVarInt(r, pver)
 	if err != nil {
@@ -63,7 +67,7 @@ func (msg *MsgGetNonDirData) BtcDecode(r io.Reader, pver uint32) error {
 }
 
 // BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
-// This is part of the Message interface implementation.
+// This is part of the MsgGetNonDirData interface implementation.
 func (msg *MsgGetNonDirData) BtcEncode(w io.Writer, pver uint32) error {
 	// Limit to max inventory vectors per message.
 	count := len(msg.InvList)
@@ -88,20 +92,20 @@ func (msg *MsgGetNonDirData) BtcEncode(w io.Writer, pver uint32) error {
 }
 
 // Command returns the protocol command string for the message.  This is part
-// of the Message interface implementation.
+// of the MsgGetNonDirData interface implementation.
 func (msg *MsgGetNonDirData) Command() string {
 	return CmdGetNonDirData
 }
 
 // MaxPayloadLength returns the maximum length the payload can be for the
-// receiver.  This is part of the Message interface implementation.
+// receiver.  This is part of the MsgGetNonDirData interface implementation.
 func (msg *MsgGetNonDirData) MaxPayloadLength(pver uint32) uint32 {
 	// Num inventory vectors (varInt) + max allowed inventory vectors.
 	return uint32(MaxVarIntPayload + (MaxInvPerMsg * maxInvVectPayload))
 }
 
 // NewMsgGetNonDirData returns a new factom get non dir data message that conforms to the
-// Message interface.  See MsgGetNonDirData for details.
+// MsgGetNonDirData interface.  See MsgGetNonDirData for details.
 func NewMsgGetNonDirData() *MsgGetNonDirData {
 	return &MsgGetNonDirData{
 		InvList: make([]*InvVect, 0, defaultInvListAlloc),
@@ -109,7 +113,7 @@ func NewMsgGetNonDirData() *MsgGetNonDirData {
 }
 
 // NewMsgGetNonDirDataSizeHint returns a new bitcoin getdata message that conforms to
-// the Message interface.  See MsgGetNonDirData for details.  This function differs
+// the MsgGetNonDirData interface.  See MsgGetNonDirData for details.  This function differs
 // from NewMsgGetDirData in that it allows a default allocation size for the
 // backing array which houses the inventory vector list.  This allows callers
 // who know in advance how large the inventory list will grow to avoid the
@@ -127,4 +131,99 @@ func NewMsgGetNonDirDataSizeHint(sizeHint uint) *MsgGetNonDirData {
 	return &MsgGetNonDirData{
 		InvList: make([]*InvVect, 0, sizeHint),
 	}
+}
+
+var _ interfaces.IMsg = (*MsgGetNonDirData)(nil)
+
+func (m *MsgGetNonDirData) Process(interfaces.IState) {}
+
+func (m *MsgGetNonDirData) GetHash() interfaces.IHash {
+  return nil
+}
+
+func (m *MsgGetNonDirData) GetTimestamp() interfaces.Timestamp {
+  return 0
+}
+
+func (m *MsgGetNonDirData) Type() int {
+  return -1
+}
+
+func (m *MsgGetNonDirData) Int() int {
+  return -1
+}
+
+func (m *MsgGetNonDirData) Bytes() []byte {
+  return nil
+}
+
+func (m *MsgGetNonDirData) UnmarshalBinaryData(data []byte) (newdata []byte, err error) {
+  return nil, nil
+}
+
+func (m *MsgGetNonDirData) UnmarshalBinary(data []byte) error {
+  _, err := m.UnmarshalBinaryData(data)
+  return err
+}
+
+func (m *MsgGetNonDirData) MarshalBinary() (data []byte, err error) {
+  return nil, nil
+}
+
+func (m *MsgGetNonDirData) MarshalForSignature() (data []byte, err error) {
+  return nil, nil
+}
+
+func (m *MsgGetNonDirData) String() string {
+  return ""
+}
+
+// Validate the message, given the state.  Three possible results:
+//  < 0 -- MsgGetNonDirData is invalid.  Discard
+//  0   -- Cannot tell if message is Valid
+//  1   -- MsgGetNonDirData is valid
+func (m *MsgGetNonDirData) Validate(interfaces.IState) int {
+  return 0
+}
+
+// Returns true if this is a message for this server to execute as
+// a leader.
+func (m *MsgGetNonDirData) Leader(state interfaces.IState) bool {
+switch state.GetNetworkNumber() {
+case 0: // Main Network
+  panic("Not implemented yet")
+case 1: // Test Network
+  panic("Not implemented yet")
+case 2: // Local Network
+  panic("Not implemented yet")
+default:
+  panic("Not implemented yet")
+}
+
+}
+
+// Execute the leader functions of the given message
+func (m *MsgGetNonDirData) LeaderExecute(state interfaces.IState) error {
+  return nil
+}
+
+// Returns true if this is a message for this server to execute as a follower
+func (m *MsgGetNonDirData) Follower(interfaces.IState) bool {
+  return true
+}
+
+func (m *MsgGetNonDirData) FollowerExecute(interfaces.IState) error {
+  return nil
+}
+
+func (e *MsgGetNonDirData) JSONByte() ([]byte, error) {
+  return primitives.EncodeJSON(e)
+}
+
+func (e *MsgGetNonDirData) JSONString() (string, error) {
+  return primitives.EncodeJSONString(e)
+}
+
+func (e *MsgGetNonDirData) JSONBuffer(b *bytes.Buffer) error {
+  return primitives.EncodeJSONToBuffer(e, b)
 }

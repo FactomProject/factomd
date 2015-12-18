@@ -41,7 +41,7 @@ type MsgAck struct {
 	Height      uint32
 	ChainID     interfaces.IHash
 	Index       uint32
-	Type        byte
+	Typ         byte
 	Affirmation interfaces.IHash // affirmation value -- hash of the message/object in question
 	SerialHash  [32]byte
 	Signature   [64]byte
@@ -62,7 +62,7 @@ func (msg *MsgAck) GetBinaryForSignature() (data []byte, err error) {
 
 	binary.Write(&buf, binary.BigEndian, msg.Index)
 
-	buf.Write([]byte{msg.Type})
+	buf.Write([]byte{msg.Typ})
 
 	buf.Write(msg.Affirmation.Bytes())
 
@@ -72,7 +72,7 @@ func (msg *MsgAck) GetBinaryForSignature() (data []byte, err error) {
 }
 
 // BtcDecode decodes r using the bitcoin protocol encoding into the receiver.
-// This is part of the Message interface implementation.
+// This is part of the MsgAck interface implementation.
 func (msg *MsgAck) BtcDecode(r io.Reader, pver uint32) error {
 	newData, err := ioutil.ReadAll(r)
 	if err != nil {
@@ -90,7 +90,7 @@ func (msg *MsgAck) BtcDecode(r io.Reader, pver uint32) error {
 
 	msg.Index, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
-	msg.Type, newData = newData[0], newData[1:]
+	msg.Typ, newData = newData[0], newData[1:]
 
 	msg.Affirmation = primitives.NewHash(newData[0:32])
 	newData = newData[32:]
@@ -104,7 +104,7 @@ func (msg *MsgAck) BtcDecode(r io.Reader, pver uint32) error {
 }
 
 // BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
-// This is part of the Message interface implementation.
+// This is part of the MsgAck interface implementation.
 func (msg *MsgAck) BtcEncode(w io.Writer, pver uint32) error {
 	var buf bytes.Buffer
 
@@ -112,7 +112,7 @@ func (msg *MsgAck) BtcEncode(w io.Writer, pver uint32) error {
 	buf.Write(msg.ChainID.Bytes())
 
 	binary.Write(&buf, binary.BigEndian, msg.Index)
-	buf.Write([]byte{msg.Type})
+	buf.Write([]byte{msg.Typ})
 	buf.Write(msg.Affirmation.Bytes())
 	buf.Write(msg.SerialHash[:])
 	buf.Write(msg.Signature[:])
@@ -123,20 +123,20 @@ func (msg *MsgAck) BtcEncode(w io.Writer, pver uint32) error {
 }
 
 // Command returns the protocol command string for the message.  This is part
-// of the Message interface implementation.
+// of the MsgAck interface implementation.
 func (msg *MsgAck) Command() string {
 	return CmdAck
 }
 
 // MaxPayloadLength returns the maximum length the payload can be for the
-// receiver.  This is part of the Message interface implementation.
+// receiver.  This is part of the MsgAck interface implementation.
 func (msg *MsgAck) MaxPayloadLength(pver uint32) uint32 {
 
 	// 10K is too big of course, TODO: adjust
 	return MaxAppMsgPayload
 }
 
-// NewMsgAcknowledgement returns a new bitcoin ping message that conforms to the Message
+// NewMsgAcknowledgement returns a new bitcoin ping message that conforms to the MsgAck
 // interface.  See MsgAck for details.
 func NewMsgAcknowledgement(height uint32, index uint32, affirm interfaces.IHash, ackType byte) *MsgAck {
 
@@ -148,7 +148,7 @@ func NewMsgAcknowledgement(height uint32, index uint32, affirm interfaces.IHash,
 		ChainID:     new(primitives.Hash), //TODO: get the correct chain id from processor
 		Index:       index,
 		Affirmation: affirm,
-		Type:        ackType,
+		Typ:         ackType,
 	}
 }
 
@@ -161,4 +161,99 @@ func (msg *MsgAck) Sha() (interfaces.IHash, error) {
 	_ = sha.SetBytes(Sha256(buf.Bytes()))
 
 	return sha, nil
+}
+
+var _ interfaces.IMsg = (*MsgAck)(nil)
+
+func (m *MsgAck) Process(interfaces.IState) {}
+
+func (m *MsgAck) GetHash() interfaces.IHash {
+  return nil
+}
+
+func (m *MsgAck) GetTimestamp() interfaces.Timestamp {
+  return 0
+}
+
+func (m *MsgAck) Type() int {
+  return -1
+}
+
+func (m *MsgAck) Int() int {
+  return -1
+}
+
+func (m *MsgAck) Bytes() []byte {
+  return nil
+}
+
+func (m *MsgAck) UnmarshalBinaryData(data []byte) (newdata []byte, err error) {
+  return nil, nil
+}
+
+func (m *MsgAck) UnmarshalBinary(data []byte) error {
+  _, err := m.UnmarshalBinaryData(data)
+  return err
+}
+
+func (m *MsgAck) MarshalBinary() (data []byte, err error) {
+  return nil, nil
+}
+
+func (m *MsgAck) MarshalForSignature() (data []byte, err error) {
+  return nil, nil
+}
+
+func (m *MsgAck) String() string {
+  return ""
+}
+
+// Validate the message, given the state.  Three possible results:
+//  < 0 -- MsgAck is invalid.  Discard
+//  0   -- Cannot tell if message is Valid
+//  1   -- MsgAck is valid
+func (m *MsgAck) Validate(interfaces.IState) int {
+  return 0
+}
+
+// Returns true if this is a message for this server to execute as
+// a leader.
+func (m *MsgAck) Leader(state interfaces.IState) bool {
+switch state.GetNetworkNumber() {
+case 0: // Main Network
+  panic("Not implemented yet")
+case 1: // Test Network
+  panic("Not implemented yet")
+case 2: // Local Network
+  panic("Not implemented yet")
+default:
+  panic("Not implemented yet")
+}
+
+}
+
+// Execute the leader functions of the given message
+func (m *MsgAck) LeaderExecute(state interfaces.IState) error {
+  return nil
+}
+
+// Returns true if this is a message for this server to execute as a follower
+func (m *MsgAck) Follower(interfaces.IState) bool {
+  return true
+}
+
+func (m *MsgAck) FollowerExecute(interfaces.IState) error {
+  return nil
+}
+
+func (e *MsgAck) JSONByte() ([]byte, error) {
+  return primitives.EncodeJSON(e)
+}
+
+func (e *MsgAck) JSONString() (string, error) {
+  return primitives.EncodeJSONString(e)
+}
+
+func (e *MsgAck) JSONBuffer(b *bytes.Buffer) error {
+  return primitives.EncodeJSONToBuffer(e, b)
 }

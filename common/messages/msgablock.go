@@ -5,9 +5,12 @@
 package messages
 
 import (
+	"bytes"
 	"io"
 
 	. "github.com/FactomProject/factomd/common/adminBlock"
+	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 // MsgABlock implements the Message interface and represents a factom
@@ -67,4 +70,119 @@ func (msg *MsgABlock) MaxPayloadLength(pver uint32) uint32 {
 // interface.  See MsgInv for details.
 func NewMsgABlock() *MsgABlock {
 	return &MsgABlock{}
+}
+
+var _ interfaces.IMsg = (*MsgABlock)(nil)
+
+func (m *MsgABlock) Process(interfaces.IState) {}
+
+func (m *MsgABlock) GetHash() interfaces.IHash {
+	return nil
+}
+
+func (m *MsgABlock) GetTimestamp() interfaces.Timestamp {
+	return 0
+}
+
+func (m *MsgABlock) Type() int {
+	return -1
+}
+
+func (m *MsgABlock) Int() int {
+	return -1
+}
+
+func (m *MsgABlock) Bytes() []byte {
+	return nil
+}
+
+func (m *MsgABlock) UnmarshalBinaryData(data []byte) (newdata []byte, err error) {
+	return nil, nil
+}
+
+func (m *MsgABlock) UnmarshalBinary(data []byte) error {
+	_, err := m.UnmarshalBinaryData(data)
+	return err
+}
+
+func (m *MsgABlock) MarshalBinary() (data []byte, err error) {
+	return nil, nil
+}
+
+func (m *MsgABlock) MarshalForSignature() (data []byte, err error) {
+	return nil, nil
+}
+
+func (m *MsgABlock) String() string {
+	return ""
+}
+
+func (m *MsgABlock) DBHeight() int {
+	return 0
+}
+
+func (m *MsgABlock) ChainID() []byte {
+	return nil
+}
+
+func (m *MsgABlock) ListHeight() int {
+	return 0
+}
+
+func (m *MsgABlock) SerialHash() []byte {
+	return nil
+}
+
+func (m *MsgABlock) Signature() []byte {
+	return nil
+}
+
+// Validate the message, given the state.  Three possible results:
+//  < 0 -- Message is invalid.  Discard
+//  0   -- Cannot tell if message is Valid
+//  1   -- Message is valid
+func (m *MsgABlock) Validate(interfaces.IState) int {
+	return 0
+}
+
+// Returns true if this is a message for this server to execute as
+// a leader.
+func (m *MsgABlock) Leader(state interfaces.IState) bool {
+	switch state.GetNetworkNumber() {
+	case 0: // Main Network
+		panic("Not implemented yet")
+	case 1: // Test Network
+		panic("Not implemented yet")
+	case 2: // Local Network
+		panic("Not implemented yet")
+	default:
+		panic("Not implemented yet")
+	}
+
+}
+
+// Execute the leader functions of the given message
+func (m *MsgABlock) LeaderExecute(state interfaces.IState) error {
+	return nil
+}
+
+// Returns true if this is a message for this server to execute as a follower
+func (m *MsgABlock) Follower(interfaces.IState) bool {
+	return true
+}
+
+func (m *MsgABlock) FollowerExecute(interfaces.IState) error {
+	return nil
+}
+
+func (e *MsgABlock) JSONByte() ([]byte, error) {
+	return primitives.EncodeJSON(e)
+}
+
+func (e *MsgABlock) JSONString() (string, error) {
+	return primitives.EncodeJSONString(e)
+}
+
+func (e *MsgABlock) JSONBuffer(b *bytes.Buffer) error {
+	return primitives.EncodeJSONToBuffer(e, b)
 }

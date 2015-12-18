@@ -5,8 +5,12 @@
 package messages
 
 import (
+	"bytes"
 	"fmt"
 	"io"
+
+	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 // defaultInvListAlloc is the default size used for the backing array for an
@@ -18,7 +22,7 @@ import (
 // typical case.
 //const defaultInvListAlloc = 1000
 
-// MsgDirInv implements the Message interface and represents a bitcoin inv message.
+// MsgDirInv implements the MsgDirInv interface and represents a bitcoin inv message.
 // It is used to advertise a peer's known data such as blocks and transactions
 // through inventory vectors.  It may be sent unsolicited to inform other peers
 // of the data or in response to a getDirblocks message (MsgGetDirBlocks).  Each
@@ -44,7 +48,7 @@ func (msg *MsgDirInv) AddInvVect(iv *InvVect) error {
 }
 
 // BtcDecode decodes r using the bitcoin protocol encoding into the receiver.
-// This is part of the Message interface implementation.
+// This is part of the MsgDirInv interface implementation.
 func (msg *MsgDirInv) BtcDecode(r io.Reader, pver uint32) error {
 	count, err := readVarInt(r, pver)
 	if err != nil {
@@ -71,7 +75,7 @@ func (msg *MsgDirInv) BtcDecode(r io.Reader, pver uint32) error {
 }
 
 // BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
-// This is part of the Message interface implementation.
+// This is part of the MsgDirInv interface implementation.
 func (msg *MsgDirInv) BtcEncode(w io.Writer, pver uint32) error {
 	// Limit to max inventory vectors per message.
 	count := len(msg.InvList)
@@ -96,19 +100,19 @@ func (msg *MsgDirInv) BtcEncode(w io.Writer, pver uint32) error {
 }
 
 // Command returns the protocol command string for the message.  This is part
-// of the Message interface implementation.
+// of the MsgDirInv interface implementation.
 func (msg *MsgDirInv) Command() string {
 	return CmdDirInv
 }
 
 // MaxPayloadLength returns the maximum length the payload can be for the
-// receiver.  This is part of the Message interface implementation.
+// receiver.  This is part of the MsgDirInv interface implementation.
 func (msg *MsgDirInv) MaxPayloadLength(pver uint32) uint32 {
 	// Num inventory vectors (varInt) + max allowed inventory vectors.
 	return uint32(MaxVarIntPayload + (MaxInvPerMsg * maxInvVectPayload))
 }
 
-// NewMsgDirInv returns a new bitcoin inv message that conforms to the Message
+// NewMsgDirInv returns a new bitcoin inv message that conforms to the MsgDirInv
 // interface.  See MsgDirInv for details.
 func NewMsgDirInv() *MsgDirInv {
 	return &MsgDirInv{
@@ -117,7 +121,7 @@ func NewMsgDirInv() *MsgDirInv {
 }
 
 // NewMsgDirInvSizeHint returns a new bitcoin inv message that conforms to the
-// Message interface.  See MsgDirInv for details.  This function differs from
+// MsgDirInv interface.  See MsgDirInv for details.  This function differs from
 // NewMsgDirInv in that it allows a default allocation size for the backing array
 // which houses the inventory vector list.  This allows callers who know in
 // advance how large the inventory list will grow to avoid the overhead of
@@ -135,4 +139,99 @@ func NewMsgDirInvSizeHint(sizeHint uint) *MsgDirInv {
 	return &MsgDirInv{
 		InvList: make([]*InvVect, 0, sizeHint),
 	}
+}
+
+var _ interfaces.IMsg = (*MsgDirInv)(nil)
+
+func (m *MsgDirInv) Process(interfaces.IState) {}
+
+func (m *MsgDirInv) GetHash() interfaces.IHash {
+  return nil
+}
+
+func (m *MsgDirInv) GetTimestamp() interfaces.Timestamp {
+  return 0
+}
+
+func (m *MsgDirInv) Type() int {
+  return -1
+}
+
+func (m *MsgDirInv) Int() int {
+  return -1
+}
+
+func (m *MsgDirInv) Bytes() []byte {
+  return nil
+}
+
+func (m *MsgDirInv) UnmarshalBinaryData(data []byte) (newdata []byte, err error) {
+  return nil, nil
+}
+
+func (m *MsgDirInv) UnmarshalBinary(data []byte) error {
+  _, err := m.UnmarshalBinaryData(data)
+  return err
+}
+
+func (m *MsgDirInv) MarshalBinary() (data []byte, err error) {
+  return nil, nil
+}
+
+func (m *MsgDirInv) MarshalForSignature() (data []byte, err error) {
+  return nil, nil
+}
+
+func (m *MsgDirInv) String() string {
+  return ""
+}
+
+// Validate the message, given the state.  Three possible results:
+//  < 0 -- MsgDirInv is invalid.  Discard
+//  0   -- Cannot tell if message is Valid
+//  1   -- MsgDirInv is valid
+func (m *MsgDirInv) Validate(interfaces.IState) int {
+  return 0
+}
+
+// Returns true if this is a message for this server to execute as
+// a leader.
+func (m *MsgDirInv) Leader(state interfaces.IState) bool {
+switch state.GetNetworkNumber() {
+case 0: // Main Network
+  panic("Not implemented yet")
+case 1: // Test Network
+  panic("Not implemented yet")
+case 2: // Local Network
+  panic("Not implemented yet")
+default:
+  panic("Not implemented yet")
+}
+
+}
+
+// Execute the leader functions of the given message
+func (m *MsgDirInv) LeaderExecute(state interfaces.IState) error {
+  return nil
+}
+
+// Returns true if this is a message for this server to execute as a follower
+func (m *MsgDirInv) Follower(interfaces.IState) bool {
+  return true
+}
+
+func (m *MsgDirInv) FollowerExecute(interfaces.IState) error {
+  return nil
+}
+
+func (e *MsgDirInv) JSONByte() ([]byte, error) {
+  return primitives.EncodeJSON(e)
+}
+
+func (e *MsgDirInv) JSONString() (string, error) {
+  return primitives.EncodeJSONString(e)
+}
+
+func (e *MsgDirInv) JSONBuffer(b *bytes.Buffer) error {
+  return primitives.EncodeJSONToBuffer(e, b)
 }

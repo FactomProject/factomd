@@ -5,19 +5,22 @@
 package messages
 
 import (
+	"bytes"
 	"io"
 
 	. "github.com/FactomProject/factomd/common/entryBlock"
+	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
-// MsgEntry implements the Message interface and represents a factom
+// MsgEntry implements the MsgEntry interface and represents a factom
 // Entry message.  It is used by client to reveal the entry.
 type MsgEntry struct {
 	Entry *Entry
 }
 
 // BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
-// This is part of the Message interface implementation.
+// This is part of the MsgEntry interface implementation.
 func (msg *MsgEntry) BtcEncode(w io.Writer, pver uint32) error {
 	bytes, err := msg.Entry.MarshalBinary()
 	if err != nil {
@@ -33,7 +36,7 @@ func (msg *MsgEntry) BtcEncode(w io.Writer, pver uint32) error {
 }
 
 // BtcDecode decodes r using the bitcoin protocol encoding into the receiver.
-// This is part of the Message interface implementation.
+// This is part of the MsgEntry interface implementation.
 func (msg *MsgEntry) BtcDecode(r io.Reader, pver uint32) error {
 	//Entry
 	bytes, err := readVarBytes(r, pver, uint32(MaxAppMsgPayload), CmdEntry)
@@ -51,19 +54,114 @@ func (msg *MsgEntry) BtcDecode(r io.Reader, pver uint32) error {
 }
 
 // Command returns the protocol command string for the message.  This is part
-// of the Message interface implementation.
+// of the MsgEntry interface implementation.
 func (msg *MsgEntry) Command() string {
 	return CmdEntry
 }
 
 // MaxPayloadLength returns the maximum length the payload can be for the
-// receiver.  This is part of the Message interface implementation.
+// receiver.  This is part of the MsgEntry interface implementation.
 func (msg *MsgEntry) MaxPayloadLength(pver uint32) uint32 {
 	return MaxAppMsgPayload
 }
 
-// NewMsgEntry returns a new bitcoin inv message that conforms to the Message
+// NewMsgEntry returns a new bitcoin inv message that conforms to the MsgEntry
 // interface.  See MsgInv for details.
 func NewMsgEntry() *MsgEntry {
 	return &MsgEntry{}
+}
+
+var _ interfaces.IMsg = (*MsgEntry)(nil)
+
+func (m *MsgEntry) Process(interfaces.IState) {}
+
+func (m *MsgEntry) GetHash() interfaces.IHash {
+  return nil
+}
+
+func (m *MsgEntry) GetTimestamp() interfaces.Timestamp {
+  return 0
+}
+
+func (m *MsgEntry) Type() int {
+  return -1
+}
+
+func (m *MsgEntry) Int() int {
+  return -1
+}
+
+func (m *MsgEntry) Bytes() []byte {
+  return nil
+}
+
+func (m *MsgEntry) UnmarshalBinaryData(data []byte) (newdata []byte, err error) {
+  return nil, nil
+}
+
+func (m *MsgEntry) UnmarshalBinary(data []byte) error {
+  _, err := m.UnmarshalBinaryData(data)
+  return err
+}
+
+func (m *MsgEntry) MarshalBinary() (data []byte, err error) {
+  return nil, nil
+}
+
+func (m *MsgEntry) MarshalForSignature() (data []byte, err error) {
+  return nil, nil
+}
+
+func (m *MsgEntry) String() string {
+  return ""
+}
+
+// Validate the message, given the state.  Three possible results:
+//  < 0 -- MsgEntry is invalid.  Discard
+//  0   -- Cannot tell if message is Valid
+//  1   -- MsgEntry is valid
+func (m *MsgEntry) Validate(interfaces.IState) int {
+  return 0
+}
+
+// Returns true if this is a message for this server to execute as
+// a leader.
+func (m *MsgEntry) Leader(state interfaces.IState) bool {
+switch state.GetNetworkNumber() {
+case 0: // Main Network
+  panic("Not implemented yet")
+case 1: // Test Network
+  panic("Not implemented yet")
+case 2: // Local Network
+  panic("Not implemented yet")
+default:
+  panic("Not implemented yet")
+}
+
+}
+
+// Execute the leader functions of the given message
+func (m *MsgEntry) LeaderExecute(state interfaces.IState) error {
+  return nil
+}
+
+// Returns true if this is a message for this server to execute as a follower
+func (m *MsgEntry) Follower(interfaces.IState) bool {
+  return true
+}
+
+func (m *MsgEntry) FollowerExecute(interfaces.IState) error {
+  return nil
+}
+
+func (e *MsgEntry) JSONByte() ([]byte, error) {
+  return primitives.EncodeJSON(e)
+}
+
+func (e *MsgEntry) JSONString() (string, error) {
+  return primitives.EncodeJSONString(e)
+}
+
+func (e *MsgEntry) JSONBuffer(b *bytes.Buffer) error {
+  return primitives.EncodeJSONToBuffer(e, b)
 }
