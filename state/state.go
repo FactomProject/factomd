@@ -104,9 +104,9 @@ func (s *State) GetServerPublicKey() primitives.PublicKey {
 
 func (s *State) initServerKeys() {
 	var err error
-	s.serverPrivKey, err = primitives.NewPrivateKeyFromHex(s.GetCfg().(util.FactomdConfig).App.LocalServerPrivKey)
+	s.serverPrivKey, err = primitives.NewPrivateKeyFromHex(s.GetCfg().(*util.FactomdConfig).App.LocalServerPrivKey)
 	if err != nil {
-		panic("Cannot parse Server Private Key from configuration file: " + err.Error())
+		//panic("Cannot parse Server Private Key from configuration file: " + err.Error())
 	}
 	s.serverPubKey = primitives.PubKeyFromString(constants.SERVER_PUB_KEY)
 }
