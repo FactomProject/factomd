@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/util"
 	"io/ioutil"
@@ -75,6 +76,7 @@ func main() {
 		exportECChain(dbo)
 		exportAChain(dbo)
 		exportFctChain(dbo)
+		exportDirBlockInfo(dbo)
 	}
 }
 
@@ -216,6 +218,7 @@ func exportEChain(chainID string, db interfaces.DBOverlay) {
 }
 
 func exportDChain(db interfaces.DBOverlay) {
+	fmt.Printf("exportDChain\n")
 	// get all ecBlocks from db
 	dBlocks, err := db.FetchAllDBlocks()
 	if err != nil {
@@ -230,6 +233,7 @@ func exportDChain(db interfaces.DBOverlay) {
 }
 
 func exportECChain(db interfaces.DBOverlay) {
+	fmt.Printf("exportECChain\n")
 	// get all ecBlocks from db
 	ecBlocks, err := db.FetchAllECBlocks()
 	if err != nil {
@@ -244,6 +248,7 @@ func exportECChain(db interfaces.DBOverlay) {
 }
 
 func exportAChain(db interfaces.DBOverlay) {
+	fmt.Printf("exportAChain\n")
 	// get all aBlocks from db
 	aBlocks, err := db.FetchAllABlocks()
 	if err != nil {
@@ -258,6 +263,7 @@ func exportAChain(db interfaces.DBOverlay) {
 }
 
 func exportFctChain(db interfaces.DBOverlay) {
+	fmt.Printf("exportFctChain\n")
 	// get all aBlocks from db
 	fBlocks, err := db.FetchAllFBlocks()
 	if err != nil {
@@ -268,6 +274,22 @@ func exportFctChain(db interfaces.DBOverlay) {
 	for _, block := range fBlocks {
 		SaveBinary(block.(interfaces.DatabaseBatchable))
 		SaveJSON(block.(interfaces.DatabaseBatchable))
+	}
+}
+
+func exportDirBlockInfo(db interfaces.DBOverlay) {
+	fmt.Printf("exportDirBlockInfo\n")
+	// get all aBlocks from db
+	dbi, err := db.(*databaseOverlay.Overlay).FetchAllDirBlockInfos()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("Fetched %v blocks\n", len(dbi))
+	sort.Sort(util.ByDirBlockInfoIDAccending(dbi))
+
+	for _, block := range dbi {
+		SaveBinary(block)
+		SaveJSON(block)
 	}
 }
 

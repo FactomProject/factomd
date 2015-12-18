@@ -31,17 +31,23 @@ func RebuildDirBlockInfo(dbo *databaseOverlay.Overlay) error {
 func FetchAllAnchorInfo(dbo *databaseOverlay.Overlay) ([]*anchor.AnchorRecord, error) {
 	chainID, err := primitives.NewShaHashFromStr(AnchorBlockID)
 	if err != nil {
+		panic(err)
 		return nil, err
 	}
 	entries, err := dbo.FetchAllEntriesByChainID(chainID)
 	if err != nil {
+		panic(err)
 		return nil, err
 	}
 	answer := []*anchor.AnchorRecord{}
 	for _, entry := range entries {
+		if entry.DatabasePrimaryIndex().String() == "24674e6bc3094eb773297de955ee095a05830e431da13a37382dcdc89d73c7d7" {
+			continue
+		}
 		content := entry.GetContent()
 		ar, err := anchor.UnmarshalAnchorRecord(content)
 		if err != nil {
+			panic(err)
 			return nil, err
 		}
 		answer = append(answer, ar)

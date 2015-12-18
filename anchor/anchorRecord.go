@@ -53,12 +53,11 @@ func (ar *AnchorRecord) Unmarshal(data []byte) error {
 		return fmt.Errorf("Invalid data passed")
 	}
 	str := string(data)
-	end := strings.LastIndex(str, "}")
+	end := strings.LastIndex(str, "}}")
 	if end < 0 {
-		return fmt.Errorf("Found no closing bracket")
+		return fmt.Errorf("Found no closing bracket in `%v`", str)
 	}
-	str = str[:end+1]
-
+	str = str[:end+2]
 	err := json.Unmarshal([]byte(str), ar)
 	if err != nil {
 		return err
