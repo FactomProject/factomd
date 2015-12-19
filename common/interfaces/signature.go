@@ -14,6 +14,16 @@ import ()
  * Data structure to support signatures, including multisig.
  **************************************/
 
+// Verifier objects can Verify signed messages
+type Verifier interface {
+	Verify(msg []byte, sig *[64]byte) bool
+}
+
+// Signer object can Sign msg
+type Signer interface {
+	Sign(msg []byte) IFullSignature
+}
+
 type ISignature interface {
 	BinaryMarshallable
 	SetSignature(sig []byte) error // Set or update the signature

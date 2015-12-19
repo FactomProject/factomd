@@ -221,7 +221,7 @@ func (e *Ack) JSONBuffer(b *bytes.Buffer) error {
 	return primitives.EncodeJSONToBuffer(e, b)
 }
 
-func (m *Ack) Sign(key primitives.Signer) error {
+func (m *Ack) Sign(key interfaces.Signer) error {
 	signature, err := SignSignable(m, key)
 	if err != nil {
 		return err
