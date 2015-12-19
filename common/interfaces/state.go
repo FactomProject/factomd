@@ -102,10 +102,11 @@ type IState interface {
 
 	// MISC
 	// ====
+	MatchAckFollowerExecute(m IMsg) error
 	GetTimestamp() Timestamp
 	GetNewHash() IHash // Return a new Hash object
 	CreateDBlock() (b IDirectoryBlock, err error)
-	IgnoreType(int) bool // Debugging
+	PrintType(int) bool // Debugging
 
 	RecalculateBalances() error
 	LogInfo(args ...interface{})

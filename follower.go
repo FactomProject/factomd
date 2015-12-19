@@ -15,7 +15,7 @@ func Follower(state interfaces.IState) {
 
 	for {
 		msg := <-state.FollowerInMsgQueue()
-		if state.IgnoreType(msg.Type()) {
+		if state.PrintType(msg.Type()) {
 			log.Printf("%20s %s\n", "Follower:", msg.String())
 		}
 		msg.FollowerExecute(state)

@@ -24,7 +24,12 @@ type CommitChainMsg struct {
 
 var _ interfaces.IMsg = (*CommitChainMsg)(nil)
 
-func (m *CommitChainMsg) Process(interfaces.IState) {}
+func (m *CommitChainMsg) Process(state interfaces.IState) {
+	ecblk := state.GetCurrentEntryCreditBlock()
+	ecbody := ecblk.GetBody()
+	ecbody.AddEntry(m.CommitChain)
+	state.GetFactoidState().UpdateECTransaction(m.CommitChain)
+}
 
 func (m *CommitChainMsg) GetHash() interfaces.IHash {
 	if m.hash == nil {
@@ -98,11 +103,11 @@ func (m *CommitChainMsg) LeaderExecute(state interfaces.IState) error {
 
 // Returns true if this is a message for this server to execute as a follower
 func (m *CommitChainMsg) Follower(state interfaces.IState) bool {
-	state.Get
+	return true
 }
 
-func (m *CommitChainMsg) FollowerExecute(interfaces.IState) error {
-	return nil
+func (m *CommitChainMsg) FollowerExecute(state interfaces.IState) error {
+	return state.MatchAckFollowerExecute(m) 
 }
 
 func (e *CommitChainMsg) JSONByte() ([]byte, error) {

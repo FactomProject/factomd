@@ -38,6 +38,7 @@ type IECBlockHeader interface {
 type IECBlockBody interface {
 	GetEntries() []IECBlockEntry
 	SetEntries([]IECBlockEntry)
+	AddEntry(IECBlockEntry)
 }
 
 type IECBlockEntry interface {

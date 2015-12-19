@@ -34,7 +34,7 @@ netloop:
 		case msg, ok := <-state.NetworkInMsgQueue():
 			if ok {
 				//log.Printf("NetworkIn: %s\n", spew.Sdump(msg))
-				if state.IgnoreType(msg.Type()) {
+				if state.PrintType(msg.Type()) {
 					log.Printf("Ignored: NetworkIn: %s\n", msg.String())
 				}
 				state.InMsgQueue() <- msg
@@ -48,7 +48,7 @@ netloop:
 			if ok {
 				var _ = msg
 				//log.Printf("NetworkOut: %s\n", msg.String())
-				if state.IgnoreType(msg.Type()) {
+				if state.PrintType(msg.Type()) {
 					log.Printf("Ignored: NetworkOut: %s\n", msg.String())
 				}
 				switch msg.(type) {
@@ -72,7 +72,7 @@ netloop:
 		case msg, ok := <-state.NetworkInvalidMsgQueue():
 			if ok {
 				var _ = msg
-				if state.IgnoreType(msg.Type()) {
+				if state.PrintType(msg.Type()) {
 					log.Printf("%20s %s\n", "Invalid:", msg.String())
 				}
 				continue netloop

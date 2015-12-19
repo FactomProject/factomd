@@ -26,14 +26,6 @@ type Entry struct {
 var _ interfaces.IEBEntry = (*Entry)(nil)
 var _ interfaces.DatabaseBatchable = (*Entry)(nil)
 
-func NewEntry() *Entry {
-	e := new(Entry)
-	e.ChainID = primitives.NewZeroHash()
-	e.ExtIDs = make([][]byte, 0)
-	e.Content = make([]byte, 0)
-	return e
-}
-
 func (c *Entry) New() interfaces.BinaryMarshallableAndCopyable {
 	return NewEntry()
 }
@@ -240,4 +232,16 @@ func (e *Entry) JSONBuffer(b *bytes.Buffer) error {
 func (e *Entry) String() string {
 	str, _ := e.JSONString()
 	return str
+}
+
+/***************************************************************
+ * Helper Functions
+ ***************************************************************/
+
+func NewEntry() *Entry {
+	e := new(Entry)
+	e.ChainID = primitives.NewZeroHash()
+	e.ExtIDs = make([][]byte, 0)
+	e.Content = make([]byte, 0)
+	return e
 }

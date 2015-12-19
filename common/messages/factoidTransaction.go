@@ -51,56 +51,7 @@ func (m *FactoidTransaction) Type() int {
 	return constants.FACTOID_TRANSACTION_MSG
 }
 
-func (m *FactoidTransaction) Int() int {
-	return -1
-}
 
-func (m *FactoidTransaction) Bytes() []byte {
-	return nil
-}
-
-func (m *FactoidTransaction) UnmarshalTransData(data []byte) (newData []byte, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
-		}
-	}()
-
-	m.Transaction = new(factoid.Transaction)
-	newData, err = m.Transaction.UnmarshalBinaryData(data)
-
-	return newData, err
-}
-
-func (m *FactoidTransaction) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
-		}
-	}()
-
-	newData = data[1:]
-
-	return m.UnmarshalTransData(newData)
-}
-
-func (m *FactoidTransaction) UnmarshalBinary(data []byte) error {
-	_, err := m.UnmarshalBinaryData(data)
-	return err
-}
-
-func (m *FactoidTransaction) MarshalBinary() (data []byte, err error) {
-	data, err = m.Transaction.MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
-	data = append([]byte{byte(m.Type())}, data...)
-	return data, nil
-}
-
-func (m *FactoidTransaction) String() string {
-	return "Factoid Transaction " + m.Transaction.GetHash().String()
-}
 
 // Validate the message, given the state.  Three possible results:
 //  < 0 -- Message is invalid.  Discard
@@ -146,21 +97,7 @@ func (m *FactoidTransaction) Follower(state interfaces.IState) bool {
 }
 
 func (m *FactoidTransaction) FollowerExecute(state interfaces.IState) error {
-	acks := state.GetAcks()
-	ack, ok := acks[m.GetHash().Fixed()].(*Ack)
-	if !ok || ack == nil {
-		state.GetHolding()[m.GetHash().Fixed()] = m
-	} else {
-		processlist := state.GetProcessList()[ack.ServerIndex]
-		for len(processlist) < ack.Height+1 {
-			processlist = append(processlist, nil)
-		}
-		processlist[ack.Height] = m
-		state.GetProcessList()[ack.ServerIndex] = processlist
-		delete(acks, m.GetHash().Fixed())
-	}
-
-	return nil
+	return state.MatchAckFollowerExecute(m)
 }
 
 func (m *FactoidTransaction) Process(state interfaces.IState) {
@@ -173,6 +110,57 @@ func (m *FactoidTransaction) Process(state interfaces.IState) {
 	// We can only get a Factoid Transaction once.  Add it, and remove it from the lists.
 	state.GetFactoidState().AddTransaction(1, m.Transaction)
 
+}
+
+func (m *FactoidTransaction) Int() int {
+	return -1
+}
+
+func (m *FactoidTransaction) Bytes() []byte {
+	return nil
+}
+
+func (m *FactoidTransaction) UnmarshalTransData(data []byte) (newData []byte, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("Error unmarshalling: %v", r)
+		}
+	}()
+	
+	m.Transaction = new(factoid.Transaction)
+	newData, err = m.Transaction.UnmarshalBinaryData(data)
+	
+	return newData, err
+}
+
+func (m *FactoidTransaction) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("Error unmarshalling: %v", r)
+		}
+	}()
+	
+	newData = data[1:]
+	
+	return m.UnmarshalTransData(newData)
+}
+
+func (m *FactoidTransaction) UnmarshalBinary(data []byte) error {
+	_, err := m.UnmarshalBinaryData(data)
+	return err
+}
+
+func (m *FactoidTransaction) MarshalBinary() (data []byte, err error) {
+	data, err = m.Transaction.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	data = append([]byte{byte(m.Type())}, data...)
+	return data, nil
+}
+
+func (m *FactoidTransaction) String() string {
+	return "Factoid Transaction " + m.Transaction.GetHash().String()
 }
 
 func (e *FactoidTransaction) JSONByte() ([]byte, error) {

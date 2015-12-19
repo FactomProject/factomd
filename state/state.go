@@ -11,6 +11,7 @@ import (
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid/block"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/database/hybridDB"
@@ -82,6 +83,25 @@ type State struct {
 }
 
 var _ interfaces.IState = (*State)(nil)
+
+// Messages that match an acknowledgement, and are added to the process list
+// all do the same thing.  So that logic is here.
+func (s *State) MatchAckFollowerExecute(m interfaces.IMsg) error {
+	acks := s.GetAcks()
+	ack, ok := acks[m.GetHash().Fixed()].(*messages.Ack)
+	if !ok || ack == nil {
+		s.GetHolding()[m.GetHash().Fixed()] = m
+	} else {
+		processlist := s.GetProcessList()[ack.ServerIndex]
+		for len(processlist) < ack.Height+1 {
+			processlist = append(processlist, nil)
+		}
+		processlist[ack.Height] = m
+		s.GetProcessList()[ack.ServerIndex] = processlist
+		delete(acks, m.GetHash().Fixed())
+	}	
+	return nil
+}
 
 func (s *State) GetCurrentEntryCreditBlock() interfaces.IEntryCreditBlock {
 	return (s.GetCurrentDirectoryBlock().GetDBEntries()[1]).(interfaces.IEntryCreditBlock)
@@ -557,7 +577,7 @@ func (s *State) CreateDBlock() (b interfaces.IDirectoryBlock, err error) {
 	return b, err
 }
 
-func (s *State) IgnoreType(msgType int) bool {
+func (s *State) PrintType(msgType int) bool {
 	return msgType != constants.EOM_MSG &&
 		msgType != constants.DIRECTORY_BLOCK_SIGNATURE_MSG
 }

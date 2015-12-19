@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 
 	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -99,10 +100,11 @@ func HandleCommitChain(ctx *web.Context) {
 	msg.Timestamp = state.GetTimestamp()
 	state.InMsgQueue() <- msg
 
+	returnMsg(ctx, "Chain Commit Success", true)
 }
 
 func HandleRevealChain(ctx *web.Context) {
-
+	HandleRevealEntry(ctx)
 }
 
 func HandleCommitEntry(ctx *web.Context) {
@@ -110,7 +112,41 @@ func HandleCommitEntry(ctx *web.Context) {
 }
 
 func HandleRevealEntry(ctx *web.Context) {
+	type revealentry struct {
+		Entry string
+	}
+	
+	e := new(revealentry)
+	if p, err := ioutil.ReadAll(ctx.Request.Body); err != nil {
+		returnMsg(ctx, "Error Reveal Entry: "+err.Error(), false)
+		return
+	} else {
+		if err := json.Unmarshal(p, e); err != nil {
+			returnMsg(ctx, "Error Reveal Entry: "+err.Error(), false)
+			return
+		}
+	}
+	
+	entry := entryBlock.NewEntry()
+	if p, err := hex.DecodeString(e.Entry); err != nil {
+		returnMsg(ctx, "Error Reveal Entry: "+err.Error(), false)
+		return
+	} else {
+		_, err := entry.UnmarshalBinaryData(p)
+		if err != nil {
+			returnMsg(ctx, "Error Reveal Entry: "+err.Error(), false)
+			return
+		}
+	}
+	
+	state := ctx.Server.Env["state"].(interfaces.IState)
+	
+	msg := new(messages.RevealEntry)
+	msg.Entry = entry
+	msg.Timestamp = state.GetTimestamp()
+	state.InMsgQueue() <- msg
 
+	returnMsg(ctx, "Entry Reveal Success", true)
 }
 
 func HandleDirectoryBlockHead(ctx *web.Context) {

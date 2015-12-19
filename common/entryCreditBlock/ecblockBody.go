@@ -23,6 +23,10 @@ func (e *ECBlockBody) GetEntries() []interfaces.IECBlockEntry {
 	return e.Entries
 }
 
+func (e *ECBlockBody) AddEntry(entry interfaces.IECBlockEntry) {
+	e.Entries = append(e.Entries, entry)
+}
+
 func (e *ECBlockBody) SetEntries(entries []interfaces.IECBlockEntry) {
 	e.Entries = entries
 }

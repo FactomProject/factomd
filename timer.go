@@ -40,7 +40,6 @@ func Timer(state interfaces.IState) {
 				//state.NetworkOutMsgQueue() <- eom
 			}
 
-			// ooooooooooooooooooooooooooooooooooooooooooooooooooooo
 			fmt.Printf("\r Processing DBlock %v minute %v: %s%s", state.GetDBHeight(), i, (string)((([]byte)("-\\|/-\\|/-="))[i]), " ")
 
 			now = time.Now().UnixNano()
