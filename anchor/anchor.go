@@ -30,28 +30,27 @@ import (
 	"github.com/FactomProject/factomd/common/directoryBlock/dbInfo"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/util"
 )
 
 var (
-	balances         []balance // unspent balance & address & its WIF
-	cfg              *util.FactomdConfig
-	dclient, wclient *btcrpcclient.Client
-	dirBlockInfoSlice  []*dbInfo.DirBlockInfo
-	db               *databaseOverlay.Overlay
-	walletLocked     = true
-	reAnchorAfter    = 4 // hours. For anchors that do not get bitcoin callback info for over 10 hours, then re-anchor them.
-	tenMinutes       = 10 // 10 minute mark
-	defaultAddress   btcutil.Address
-	minBalance       btcutil.Amount	// 0.01 btc
+	balances            []balance // unspent balance & address & its WIF
+	cfg                 *util.FactomdConfig
+	dclient, wclient    *btcrpcclient.Client
+	dirBlockInfoSlice   []interfaces.IDirBlockInfo
+	db                  interfaces.DBOverlay
+	walletLocked        = true
+	reAnchorAfter       = 4  // hours. For anchors that do not get bitcoin callback info for over 10 hours, then re-anchor them.
+	tenMinutes          = 10 // 10 minute mark
+	defaultAddress      btcutil.Address
+	minBalance          btcutil.Amount // 0.01 btc
 	fee                 btcutil.Amount // tx fee for written into btc
 	confirmationsNeeded int
 
-	serverPrivKey primitives.PrivateKey		//Server Private key for milestone 1
-	serverECKey primitives.PrivateKey		//Server Entry Credit private key
+	serverPrivKey primitives.PrivateKey //Server Private key for milestone 1
+	serverECKey   primitives.PrivateKey //Server Entry Credit private key
 	anchorChainID interfaces.IHash
-	state interfaces.IState
+	state         interfaces.IState
 )
 
 type balance struct {
@@ -97,11 +96,11 @@ func doTransaction(hash interfaces.IHash, blockHeight uint32, dirBlockInfo *dbIn
 
 func sanityCheck(hash interfaces.IHash) (*dbInfo.DirBlockInfo, error) {
 	index := sort.Search(len(dirBlockInfoSlice), func(i int) bool {
-		return dirBlockInfoSlice[i].DBMerkleRoot.IsSameAs(hash)
-		})
+		return dirBlockInfoSlice[i].GetDBMerkleRoot().IsSameAs(hash)
+	})
 	var dirBlockInfo *dbInfo.DirBlockInfo
 	if index < len(dirBlockInfoSlice) {
-		dirBlockInfo = dirBlockInfoSlice[index]
+		dirBlockInfo = dirBlockInfoSlice[index].(*dbInfo.DirBlockInfo)
 	}
 	if dirBlockInfo == nil {
 		s := fmt.Sprintf("Anchor Error: hash %s does not exist in dirBlockInfoSlice.\n", hash.String())
@@ -298,7 +297,7 @@ func createBtcdNotificationHandlers() btcrpcclient.NotificationHandlers {
 func checkMissingDirBlockInfo() {
 	anchorLog.Debug("checkMissingDirBlockInfo for those unsaved DirBlocks in database")
 	dblocks, _ := db.FetchAllDBlocks()
-	dirBlockInfos, _ := db.FetchAllConfirmedDirBlockInfos()		//FetchAllDirBlockInfos()
+	dirBlockInfos, _ := db.FetchAllConfirmedDirBlockInfos() //FetchAllDirBlockInfos()
 	for _, dblock := range dblocks {
 		var found = false
 		for i, dbinfo := range dirBlockInfos {
@@ -326,7 +325,7 @@ func checkMissingDirBlockInfo() {
 func InitAnchor(s interfaces.IState, serverKey primitives.PrivateKey) {
 	anchorLog.Debug("InitAnchor")
 	state = s
-	db = s.GetDB().(*databaseOverlay.Overlay)
+	db = s.GetDB()
 	serverPrivKey = serverKey
 	minBalance, _ = btcutil.NewAmount(0.01)
 
@@ -540,8 +539,8 @@ func saveDirBlockInfo(transaction *btcutil.Tx, details *btcjson.BlockDetails) {
 	anchorLog.Debug("in saveDirBlockInfo")
 	var saved = false
 	for _, dirBlockInfo := range dirBlockInfoSlice {
-		if bytes.Compare(dirBlockInfo.BTCTxHash.Bytes(), transaction.Sha().Bytes()) == 0 {
-			doSaveDirBlockInfo(transaction, details, dirBlockInfo, false)
+		if bytes.Compare(dirBlockInfo.GetBTCTxHash().Bytes(), transaction.Sha().Bytes()) == 0 {
+			doSaveDirBlockInfo(transaction, details, dirBlockInfo.(*dbInfo.DirBlockInfo), false)
 			saved = true
 			break
 		}
@@ -580,11 +579,11 @@ func saveToAnchorChain(dirBlockInfo *dbInfo.DirBlockInfo) {
 	anchorLog.Debug("in saveToAnchorChain")
 	anchorRec := new(AnchorRecord)
 	anchorRec.AnchorRecordVer = 1
-	anchorRec.DBHeight = dirBlockInfo.DBHeight
-	anchorRec.KeyMR = dirBlockInfo.DBMerkleRoot.String()
+	anchorRec.DBHeight = dirBlockInfo.GetDBHeight()
+	anchorRec.KeyMR = dirBlockInfo.GetDBMerkleRoot().String()
 	anchorRec.RecordHeight = uint32(state.GetDBHeight() + 1) // need the next block height
 	anchorRec.Bitcoin.Address = defaultAddress.String()
-	anchorRec.Bitcoin.TXID = dirBlockInfo.BTCTxHash.(*primitives.Hash).BTCString()
+	anchorRec.Bitcoin.TXID = dirBlockInfo.GetBTCTxHash().(*primitives.Hash).BTCString()
 	anchorRec.Bitcoin.BlockHeight = dirBlockInfo.BTCBlockHeight
 	anchorRec.Bitcoin.BlockHash = dirBlockInfo.BTCBlockHash.(*primitives.Hash).BTCString()
 	anchorRec.Bitcoin.Offset = dirBlockInfo.BTCTxOffset
@@ -618,17 +617,17 @@ func checkForAnchor() {
 	timeNow := time.Now().Unix()
 	time0 := 60 * 60 * reAnchorAfter
 	// anchor the latest dir block first
-	sort.Sort(sort.Reverse(ByTimestamp(dirBlockInfoSlice)))
+	sort.Sort(sort.Reverse(util.ByDirBlockInfoTimestamp(dirBlockInfoSlice)))
 	for _, dirBlockInfo := range dirBlockInfoSlice {
-		if bytes.Compare(dirBlockInfo.BTCTxHash.Bytes(), primitives.NewZeroHash().Bytes()) == 0 {
+		if bytes.Compare(dirBlockInfo.GetBTCTxHash().Bytes(), primitives.NewZeroHash().Bytes()) == 0 {
 			anchorLog.Debug("first time anchor: ", spew.Sdump(dirBlockInfo))
-			SendRawTransactionToBTC(dirBlockInfo.DBMerkleRoot, dirBlockInfo.DBHeight)
+			SendRawTransactionToBTC(dirBlockInfo.GetDBMerkleRoot(), dirBlockInfo.GetDBHeight())
 		} else {
 			// This is the re-anchor case for the missed callback of malleated tx
-			lapse := timeNow - dirBlockInfo.Timestamp
+			lapse := timeNow - dirBlockInfo.GetTimestamp()
 			if lapse > int64(time0) {
 				anchorLog.Debugf("re-anchor: time lapse=%d, %s\n", lapse, spew.Sdump(dirBlockInfo))
-				SendRawTransactionToBTC(dirBlockInfo.DBMerkleRoot, dirBlockInfo.DBHeight)
+				SendRawTransactionToBTC(dirBlockInfo.GetDBMerkleRoot(), dirBlockInfo.GetDBHeight())
 			}
 		}
 	}
@@ -637,19 +636,19 @@ func checkForAnchor() {
 func checkTxConfirmations() {
 	timeNow := time.Now().Unix()
 	time1 := 60 * 5 * confirmationsNeeded
-	sort.Sort(ByTimestamp(dirBlockInfoSlice))
+	sort.Sort(util.ByDirBlockInfoTimestamp(dirBlockInfoSlice))
 	for i, dirBlockInfo := range dirBlockInfoSlice {
-		lapse := timeNow - dirBlockInfo.Timestamp
+		lapse := timeNow - dirBlockInfo.GetTimestamp()
 		if lapse > int64(time1) {
 			anchorLog.Debugf("checkTxConfirmations: time lapse=%d", lapse)
-			checkConfirmations(dirBlockInfo, i)
+			checkConfirmations(dirBlockInfo.(*dbInfo.DirBlockInfo), i)
 		}
 	}
 }
 
 func checkConfirmations(dirBlockInfo *dbInfo.DirBlockInfo, index int) error {
-	anchorLog.Debug("check Confirmations for btc tx: ", toShaHash(dirBlockInfo.BTCTxHash).String())
-	txResult, err := wclient.GetTransaction(toShaHash(dirBlockInfo.BTCTxHash))
+	anchorLog.Debug("check Confirmations for btc tx: ", toShaHash(dirBlockInfo.GetBTCTxHash()).String())
+	txResult, err := wclient.GetTransaction(toShaHash(dirBlockInfo.GetBTCTxHash()))
 	if err != nil {
 		anchorLog.Debugf(err.Error())
 		return err
@@ -676,7 +675,7 @@ func checkConfirmations(dirBlockInfo *dbInfo.DirBlockInfo, index int) error {
 		dirBlockInfo.BTCConfirmed = true // needs confirmationsNeeded (20) to be confirmed.
 		dirBlockInfo.Timestamp = time.Now().Unix()
 		db.SaveDirBlockInfo(dirBlockInfo)
-		dirBlockInfoSlice = append(dirBlockInfoSlice[:index], dirBlockInfoSlice[index+1:]...)		//delete it
+		dirBlockInfoSlice = append(dirBlockInfoSlice[:index], dirBlockInfoSlice[index+1:]...) //delete it
 		anchorLog.Debugf("Fully confirmed %d times. txid=%s, dirblockInfo=%s\n", txResult.Confirmations, txResult.TxID, spew.Sdump(dirBlockInfo))
 		if rewrite {
 			anchorLog.Debug("rewrite to anchor chain: ", spew.Sdump(dirBlockInfo))
@@ -686,32 +685,19 @@ func checkConfirmations(dirBlockInfo *dbInfo.DirBlockInfo, index int) error {
 	return nil
 }
 
-// ByTimestamp defines the methods needed to satisify sort.Interface to
-// sort a slice of DirBlockInfo by their Timestamp.
-type ByTimestamp []*dbInfo.DirBlockInfo
-
-func (u ByTimestamp) Len() int { return len(u) }
-func (u ByTimestamp) Less(i, j int) bool {
-	if u[i].Timestamp == u[j].Timestamp {
-		return u[i].DBHeight < u[j].DBHeight
-	}
-	return u[i].Timestamp < u[j].Timestamp
-}
-func (u ByTimestamp) Swap(i, j int) { u[i], u[j] = u[j], u[i] }
-
 func checkTxMalleation(transaction *btcutil.Tx, details *btcjson.BlockDetails) {
 	anchorLog.Debug("in checkTxMalleation")
-	dirBlockInfos := make([]*dbInfo.DirBlockInfo, 0, len(dirBlockInfoSlice))
+	dirBlockInfos := make([]interfaces.IDirBlockInfo, 0, len(dirBlockInfoSlice))
 	for _, v := range dirBlockInfoSlice {
 		// find those already anchored but no call back yet
-		if v.BTCBlockHeight == 0 && bytes.Compare(v.BTCTxHash.Bytes(), primitives.NewZeroHash().Bytes()) != 0 {
+		if v.GetBTCBlockHeight() == 0 && bytes.Compare(v.GetBTCTxHash().Bytes(), primitives.NewZeroHash().Bytes()) != 0 {
 			dirBlockInfos = append(dirBlockInfos, v)
 		}
 	}
-	sort.Sort(ByTimestamp(dirBlockInfos))
+	sort.Sort(util.ByDirBlockInfoTimestamp(dirBlockInfos))
 	anchorLog.Debugf("malleated tx candidate count=%d, dirBlockInfo list=%s\n", len(dirBlockInfos), spew.Sdump(dirBlockInfos))
 	for _, dirBlockInfo := range dirBlockInfos {
-		tx, err := wclient.GetRawTransaction(toShaHash(dirBlockInfo.BTCTxHash))
+		tx, err := wclient.GetRawTransaction(toShaHash(dirBlockInfo.GetBTCTxHash()))
 		if err != nil {
 			anchorLog.Debugf(err.Error())
 			continue
@@ -719,8 +705,8 @@ func checkTxMalleation(transaction *btcutil.Tx, details *btcjson.BlockDetails) {
 		anchorLog.Debugf("GetRawTransaction=%s, dirBlockInfo=%s\n", spew.Sdump(tx), spew.Sdump(dirBlockInfo))
 		// compare OP_RETURN
 		if reflect.DeepEqual(transaction.MsgTx().TxOut[0], tx.MsgTx().TxOut[0]) {
-			anchorLog.Debugf("Tx Malleated: original.txid=%s, malleated.txid=%s\n", dirBlockInfo.BTCTxHash.(*primitives.Hash).BTCString(), transaction.Sha().String())
-			doSaveDirBlockInfo(transaction, details, dirBlockInfo, true)
+			anchorLog.Debugf("Tx Malleated: original.txid=%s, malleated.txid=%s\n", dirBlockInfo.GetBTCTxHash().(*primitives.Hash).BTCString(), transaction.Sha().String())
+			doSaveDirBlockInfo(transaction, details, dirBlockInfo.(*dbInfo.DirBlockInfo), true)
 			break
 		}
 	}

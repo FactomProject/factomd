@@ -227,7 +227,7 @@ func (e *EOM) JSONBuffer(b *bytes.Buffer) error {
 	return primitives.EncodeJSONToBuffer(e, b)
 }
 
-func (m *EOM) Sign(key primitives.Signer) error {
+func (m *EOM) Sign(key interfaces.Signer) error {
 	signature, err := SignSignable(m, key)
 	if err != nil {
 		return err

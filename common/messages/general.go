@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/primitives"
 )
 
 func UnmarshalMessage(data []byte) (interfaces.IMsg, error) {
@@ -69,12 +68,12 @@ func UnmarshalMessage(data []byte) (interfaces.IMsg, error) {
 }
 
 type Signable interface {
-	Sign(primitives.Signer) error
+	Sign(interfaces.Signer) error
 	MarshalForSignature() ([]byte, error)
 	GetSignature() interfaces.IFullSignature
 }
 
-func SignSignable(s Signable, key primitives.Signer) (interfaces.IFullSignature, error) {
+func SignSignable(s Signable, key interfaces.Signer) (interfaces.IFullSignature, error) {
 	toSign, err := s.MarshalForSignature()
 	if err != nil {
 		return nil, err

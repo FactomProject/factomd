@@ -30,6 +30,7 @@ type DirBlockInfo struct {
 var _ interfaces.Printable = (*DirBlockInfo)(nil)
 var _ interfaces.BinaryMarshallableAndCopyable = (*DirBlockInfo)(nil)
 var _ interfaces.DatabaseBatchable = (*DirBlockInfo)(nil)
+var _ interfaces.IDirBlockInfo = (*DirBlockInfo)(nil)
 
 func NewDirBlockInfo() *DirBlockInfo {
 	dbi := new(DirBlockInfo)
@@ -65,6 +66,14 @@ func (c *DirBlockInfo) GetDatabaseHeight() uint32 {
 	return c.DBHeight
 }
 
+func (c *DirBlockInfo) GetDBHeight() uint32 {
+	return c.DBHeight
+}
+
+func (c *DirBlockInfo) GetBTCConfirmed() bool {
+	return c.BTCConfirmed
+}
+
 func (c *DirBlockInfo) GetChainID() []byte {
 	id := make([]byte, 32)
 	copy(id, []byte("DirBlockInfo"))
@@ -77,6 +86,22 @@ func (c *DirBlockInfo) DatabasePrimaryIndex() interfaces.IHash {
 
 func (c *DirBlockInfo) DatabaseSecondaryIndex() interfaces.IHash {
 	return c.DBHash
+}
+
+func (e *DirBlockInfo) GetDBMerkleRoot() interfaces.IHash {
+	return e.DBMerkleRoot
+}
+
+func (e *DirBlockInfo) GetBTCTxHash() interfaces.IHash {
+	return e.BTCTxHash
+}
+
+func (e *DirBlockInfo) GetTimestamp() int64 {
+	return e.Timestamp
+}
+
+func (e *DirBlockInfo) GetBTCBlockHeight() int32 {
+	return e.BTCBlockHeight
 }
 
 func (e *DirBlockInfo) MarshalBinary() ([]byte, error) {
@@ -168,7 +193,7 @@ func NewDirBlockInfoFromDirBlock(dirBlock interfaces.IDirectoryBlock) *DirBlockI
 	dbic.DBHash = dirBlock.GetHash()
 	dbic.DBHeight = dirBlock.GetDatabaseHeight()
 	dbic.DBMerkleRoot = dirBlock.GetKeyMR()
-	dbic.Timestamp = int64(dirBlock.GetHeader().GetTimestamp())		// * 60 ???
+	dbic.Timestamp = int64(dirBlock.GetHeader().GetTimestamp()) // * 60 ???
 	dbic.BTCTxHash = primitives.NewZeroHash()
 	dbic.BTCBlockHash = primitives.NewZeroHash()
 	dbic.BTCConfirmed = false

@@ -8,23 +8,13 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 )
 
-// Verifyer objects can Verify signed messages
-type Verifyer interface {
-	Verify(msg []byte) bool
-}
-
-// Signer object can Sign msg
-type Signer interface {
-	Sign(msg []byte) interfaces.IFullSignature
-}
-
 // PrivateKey contains Public/Private key pair
 type PrivateKey struct {
 	Key *[ed25519.PrivateKeySize]byte
 	Pub PublicKey
 }
 
-var _ Signer = (*PrivateKey)(nil)
+var _ interfaces.Signer = (*PrivateKey)(nil)
 
 func (pk *PrivateKey) CustomMarshalText2(string) ([]byte, error) {
 	return ([]byte)(hex.EncodeToString(pk.Key[:]) + pk.Pub.String()), nil
@@ -42,7 +32,19 @@ func (pk *PrivateKey) AllocateNew() {
 // Create a new private key from a hex string
 func NewPrivateKeyFromHex(s string) (pk PrivateKey, err error) {
 	privKeybytes, err := hex.DecodeString(s)
-	if privKeybytes == nil || len(privKeybytes) != ed25519.PrivateKeySize {
+	if err != nil {
+		return
+	}
+	if privKeybytes == nil {
+		return pk, errors.New("Invalid private key input string!")
+	}
+	if len(privKeybytes) == ed25519.PrivateKeySize-ed25519.PublicKeySize {
+		_, privKeybytes, err = GenerateKeyFromPrivateKey(privKeybytes)
+		if err != nil {
+			return
+		}
+	}
+	if len(privKeybytes) != ed25519.PrivateKeySize {
 		return pk, errors.New("Invalid private key input string!")
 	}
 	pk.AllocateNew()
@@ -86,6 +88,8 @@ func (pk *PrivateKey) GenerateKey() (err error) {
 type PublicKey struct {
 	Key *[ed25519.PublicKeySize]byte
 }
+
+var _ interfaces.Verifier = (*PublicKey)(nil)
 
 func (pk *PublicKey) MarshalText() ([]byte, error) {
 	return []byte(pk.String()), nil

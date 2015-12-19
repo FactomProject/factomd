@@ -1,7 +1,7 @@
 package util
 
 import (
-	"github.com/FactomProject/factomd/common/directoryBlock/dbInfo"
+	//"github.com/FactomProject/factomd/common/directoryBlock/dbInfo"
 	. "github.com/FactomProject/factomd/common/interfaces"
 
 	"bytes"
@@ -93,14 +93,27 @@ func (f ByByteArray) Swap(i, j int) {
 
 //------------------------------------------------
 // DirBlock Info array sorting implementation - accending
-type ByDirBlockInfoIDAccending []*dbInfo.DirBlockInfo
+type ByDirBlockInfoIDAccending []IDirBlockInfo
 
 func (f ByDirBlockInfoIDAccending) Len() int {
 	return len(f)
 }
 func (f ByDirBlockInfoIDAccending) Less(i, j int) bool {
-	return f[i].DBHeight < f[j].DBHeight
+	return f[i].GetDBHeight() < f[j].GetDBHeight()
 }
 func (f ByDirBlockInfoIDAccending) Swap(i, j int) {
 	f[i], f[j] = f[j], f[i]
 }
+
+// ByDirBlockInfoTimestamp defines the methods needed to satisify sort.Interface to
+// sort a slice of DirBlockInfo by their Timestamp.
+type ByDirBlockInfoTimestamp []IDirBlockInfo
+
+func (u ByDirBlockInfoTimestamp) Len() int { return len(u) }
+func (u ByDirBlockInfoTimestamp) Less(i, j int) bool {
+	if u[i].GetTimestamp() == u[j].GetTimestamp() {
+		return u[i].GetDBHeight() < u[j].GetDBHeight()
+	}
+	return u[i].GetTimestamp() < u[j].GetTimestamp()
+}
+func (u ByDirBlockInfoTimestamp) Swap(i, j int) { u[i], u[j] = u[j], u[i] }

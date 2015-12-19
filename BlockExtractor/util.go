@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/util"
 	"io/ioutil"
@@ -280,7 +279,7 @@ func exportFctChain(db interfaces.DBOverlay) {
 func exportDirBlockInfo(db interfaces.DBOverlay) {
 	fmt.Printf("exportDirBlockInfo\n")
 	// get all aBlocks from db
-	dbi, err := db.(*databaseOverlay.Overlay).FetchAllDirBlockInfos()
+	dbi, err := db.FetchAllDirBlockInfos()
 	if err != nil {
 		panic(err)
 	}

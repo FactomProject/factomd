@@ -11,7 +11,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/primitives"
 	"strings"
 )
 
@@ -31,6 +30,8 @@ type AnchorRecord struct {
 	}
 }
 
+var _ interfaces.IAnchorRecord = (*AnchorRecord)(nil)
+
 func (ar *AnchorRecord) Marshal() ([]byte, error) {
 	data, err := json.Marshal(ar)
 	if err != nil {
@@ -39,7 +40,7 @@ func (ar *AnchorRecord) Marshal() ([]byte, error) {
 	return data, nil
 }
 
-func (ar *AnchorRecord) MarshalAndSign(priv *primitives.PrivateKey) ([]byte, error) {
+func (ar *AnchorRecord) MarshalAndSign(priv interfaces.Signer) ([]byte, error) {
 	data, err := ar.Marshal()
 	if err != nil {
 		return nil, err
