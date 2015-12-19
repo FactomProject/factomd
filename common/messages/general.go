@@ -50,7 +50,7 @@ func UnmarshalMessage(data []byte) (interfaces.IMsg, error) {
 	case constants.PROMOTION_DEMOTION_MSG:
 		msg = new(PromotionDemotion)
 	case constants.REVEAL_ENTRY_MSG:
-		msg = new(RevealEntry)
+		msg = new(RevealEntryMsg)
 	case constants.REQUEST_BLOCK_MSG:
 		msg = new(RequestBlock)
 	case constants.SIGNATURE_TIMEOUT_MSG:

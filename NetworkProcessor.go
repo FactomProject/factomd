@@ -53,9 +53,6 @@ netloop:
 				}
 				switch msg.(type) {
 				case *messages.EOM:
-					//msgeom := new(wire.MsgEOM)
-					//msgeom.EOM = msg.(*messages.EOM)
-					//log.Println(spew.Sdump(msgeom.EOM))
 					msgeom := msg.(*messages.EOM)
 					server := state.GetServer().(*btcd.Server)
 					server.BroadcastMessage(msgeom)

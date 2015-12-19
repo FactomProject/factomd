@@ -14,7 +14,7 @@ import (
 )
 
 //A placeholder structure for messages
-type RevealEntry struct {
+type RevealEntryMsg struct {
 	Timestamp interfaces.Timestamp
 	Entry     *entryBlock.Entry
 
@@ -22,11 +22,11 @@ type RevealEntry struct {
 	hash interfaces.IHash
 }
 
-var _ interfaces.IMsg = (*RevealEntry)(nil)
+var _ interfaces.IMsg = (*RevealEntryMsg)(nil)
 
-func (m *RevealEntry) Process(interfaces.IState) {}
+func (m *RevealEntryMsg) Process(interfaces.IState) {}
 
-func (m *RevealEntry) GetHash() interfaces.IHash {
+func (m *RevealEntryMsg) GetHash() interfaces.IHash {
 	if m.hash == nil {
 		data, err := m.Entry.MarshalBinary()
 		if err != nil {
@@ -37,23 +37,23 @@ func (m *RevealEntry) GetHash() interfaces.IHash {
 	return m.hash
 }
 
-func (m *RevealEntry) GetTimestamp() interfaces.Timestamp {
+func (m *RevealEntryMsg) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp
 }
 
-func (m *RevealEntry) Type() int {
+func (m *RevealEntryMsg) Type() int {
 	return constants.REVEAL_ENTRY_MSG
 }
 
-func (m *RevealEntry) Int() int {
+func (m *RevealEntryMsg) Int() int {
 	return -1
 }
 
-func (m *RevealEntry) Bytes() []byte {
+func (m *RevealEntryMsg) Bytes() []byte {
 	return nil
 }
 
-func (m *RevealEntry) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+func (m *RevealEntryMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
@@ -69,12 +69,12 @@ func (m *RevealEntry) UnmarshalBinaryData(data []byte) (newData []byte, err erro
 	return newData, nil
 }
 
-func (m *RevealEntry) UnmarshalBinary(data []byte) error {
+func (m *RevealEntryMsg) UnmarshalBinary(data []byte) error {
 	_, err := m.UnmarshalBinaryData(data)
 	return err
 }
 
-func (m *RevealEntry) MarshalBinary() (data []byte, err error) {
+func (m *RevealEntryMsg) MarshalBinary() (data []byte, err error) {
 	data, err = m.Entry.MarshalBinary()
 	if err != nil {
 		return nil, err
@@ -83,7 +83,7 @@ func (m *RevealEntry) MarshalBinary() (data []byte, err error) {
 	return data, nil
 }
 
-func (m *RevealEntry) String() string {
+func (m *RevealEntryMsg) String() string {
 	return ""
 }
 
@@ -91,13 +91,13 @@ func (m *RevealEntry) String() string {
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
-func (m *RevealEntry) Validate(interfaces.IState) int {
+func (m *RevealEntryMsg) Validate(interfaces.IState) int {
 	return 0
 }
 
 // Returns true if this is a message for this server to execute as
 // a leader.
-func (m *RevealEntry) Leader(state interfaces.IState) bool {
+func (m *RevealEntryMsg) Leader(state interfaces.IState) bool {
 	switch state.GetNetworkNumber() {
 	case 0: // Main Network
 		panic("Not implemented yet")
@@ -112,27 +112,31 @@ func (m *RevealEntry) Leader(state interfaces.IState) bool {
 }
 
 // Execute the leader functions of the given message
-func (m *RevealEntry) LeaderExecute(state interfaces.IState) error {
+func (m *RevealEntryMsg) LeaderExecute(state interfaces.IState) error {
 	return nil
 }
 
 // Returns true if this is a message for this server to execute as a follower
-func (m *RevealEntry) Follower(interfaces.IState) bool {
+func (m *RevealEntryMsg) Follower(interfaces.IState) bool {
 	return true
 }
 
-func (m *RevealEntry) FollowerExecute(interfaces.IState) error {
+func (m *RevealEntryMsg) FollowerExecute(interfaces.IState) error {
 	return nil
 }
 
-func (e *RevealEntry) JSONByte() ([]byte, error) {
+func (e *RevealEntryMsg) JSONByte() ([]byte, error) {
 	return primitives.EncodeJSON(e)
 }
 
-func (e *RevealEntry) JSONString() (string, error) {
+func (e *RevealEntryMsg) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
 }
 
-func (e *RevealEntry) JSONBuffer(b *bytes.Buffer) error {
+func (e *RevealEntryMsg) JSONBuffer(b *bytes.Buffer) error {
 	return primitives.EncodeJSONToBuffer(e, b)
+}
+
+func NewRevealEntryMsg() *RevealEntryMsg {
+	return new(RevealEntryMsg)
 }

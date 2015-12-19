@@ -4,7 +4,8 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	//"github.com/FactomProject/factomd/btcd"
+
+	"github.com/FactomProject/factomd/anchor"
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
@@ -36,6 +37,8 @@ type State struct {
 	followerInMsgQueue     chan interfaces.IMsg
 
 	myServer interfaces.IServer //the server running on this Federated Server
+	serverPrivKey primitives.PrivateKey
+	serverPubKey  primitives.PublicKey
 
 	// Maps
 	// ====
@@ -113,6 +116,23 @@ func (s *State) GetServer() interfaces.IServer {
 
 func (s *State) SetServer(server interfaces.IServer) {
 	s.myServer = server
+}
+
+func (s *State) GetServerPrivateKey() primitives.PrivateKey {
+	return s.serverPrivKey
+}
+
+func (s *State) GetServerPublicKey() primitives.PublicKey {
+	return s.serverPubKey
+}
+
+func (s *State) initServerKeys() {
+	var err error
+	s.serverPrivKey, err = primitives.NewPrivateKeyFromHex(s.GetCfg().(*util.FactomdConfig).App.LocalServerPrivKey)
+	if err != nil {
+		//panic("Cannot parse Server Private Key from configuration file: " + err.Error())
+	}
+	s.serverPubKey = primitives.PubKeyFromString(constants.SERVER_PUB_KEY)
 }
 
 // Maps
@@ -370,7 +390,8 @@ func (s *State) Init(filename string) {
 	s.AuditHeartBeats = make([]interfaces.IMsg, 0)
 	s.FedServerFaults = make([][]interfaces.IMsg, 0)
 	s.loadDatabase()
-
+	s.initServerKeys()
+	anchor.InitAnchor(s)
 }
 
 func (s *State) loadDatabase() {

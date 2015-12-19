@@ -14,6 +14,8 @@ func TestTest(t *testing.T) {
 	exportECChain(dbo)
 	exportAChain(dbo)
 	exportFctChain(dbo)
+	exportDirBlockInfo(dbo)
 
 	exportEChain(testHelper.GetChainID().String(), dbo)
+	exportEChain(testHelper.GetAnchorChainID().String(), dbo)
 }

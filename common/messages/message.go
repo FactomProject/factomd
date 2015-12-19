@@ -69,7 +69,7 @@ const (
 	CmdCommitEntry = "commitentry"
 	CmdRevealEntry = "revealentry"
 
-	CmdAcknowledgement = "confirmation"
+	CmdAck = "confirmation"
 	CmdMHashReveal     = "mhashreveal"
 
 	CmdEOM = "eom" //end of minute
@@ -125,8 +125,8 @@ func makeEmptyMessage(command string) (Message, error) {
 	case CmdPong:
 		msg = &MsgPong{}
 
-	case CmdAlert:
-		msg = &MsgAlert{}
+	//case CmdAlert:
+		//msg = &MsgAlert{}
 
 	case CmdReject:
 		msg = &MsgReject{}
@@ -143,8 +143,8 @@ func makeEmptyMessage(command string) (Message, error) {
 	case CmdCommitChain:
 		msg = &MsgCommitChain{}
 
-	case CmdAcknowledgement:
-		msg = &MsgAcknowledgement{}
+	case CmdAck:
+		msg = &MsgAck{}
 
 	case CmdGetDirBlocks:
 		msg = &MsgGetDirBlocks{

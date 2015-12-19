@@ -10,7 +10,7 @@ import (
 	"github.com/FactomProject/factomd/util"
 )
 
-func createECEntriesfromBlocks(fBlock interfaces.IFBlock, eBlock *entryBlock.EBlock, height int) []interfaces.IECBlockEntry {
+func createECEntriesfromBlocks(fBlock interfaces.IFBlock, eBlocks []*entryBlock.EBlock, height int) []interfaces.IECBlockEntry {
 	ecEntries := []interfaces.IECBlockEntry{}
 	ecEntries = append(ecEntries, entryCreditBlock.NewServerIndexNumber2(uint8(height%10+1)))
 	ecEntries = append(ecEntries, entryCreditBlock.NewMinuteNumber2(0))
@@ -36,11 +36,12 @@ func createECEntriesfromBlocks(fBlock interfaces.IFBlock, eBlock *entryBlock.EBl
 			ecEntries = append(ecEntries, increase)
 		}
 	}
-
-	if height == 0 {
-		ecEntries = append(ecEntries, NewCommitChain(eBlock))
-	} else {
-		ecEntries = append(ecEntries, NewCommitEntry(eBlock))
+	for _, eBlock := range eBlocks {
+		if height == 0 {
+			ecEntries = append(ecEntries, NewCommitChain(eBlock))
+		} else {
+			ecEntries = append(ecEntries, NewCommitEntry(eBlock))
+		}
 	}
 
 	return ecEntries

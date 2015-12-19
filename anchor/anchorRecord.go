@@ -10,6 +10,7 @@ package anchor
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"strings"
 )
@@ -38,7 +39,7 @@ func (ar *AnchorRecord) Marshal() ([]byte, error) {
 	return data, nil
 }
 
-func (ar *AnchorRecord) MarshalAndSign(priv primitives.PrivateKey) ([]byte, error) {
+func (ar *AnchorRecord) MarshalAndSign(priv *primitives.PrivateKey) ([]byte, error) {
 	data, err := ar.Marshal()
 	if err != nil {
 		return nil, err
@@ -52,12 +53,11 @@ func (ar *AnchorRecord) Unmarshal(data []byte) error {
 		return fmt.Errorf("Invalid data passed")
 	}
 	str := string(data)
-	end := strings.LastIndex(str, "}")
+	end := strings.LastIndex(str, "}}")
 	if end < 0 {
-		return fmt.Errorf("Found no closing bracket")
+		return fmt.Errorf("Found no closing bracket in `%v`", str)
 	}
-	str = str[:end+1]
-
+	str = str[:end+2]
 	err := json.Unmarshal([]byte(str), ar)
 	if err != nil {
 		return err
@@ -73,4 +73,13 @@ func UnmarshalAnchorRecord(data []byte) (*AnchorRecord, error) {
 		return nil, err
 	}
 	return ar, nil
+}
+
+func CreateAnchorRecordFromDBlock(dBlock interfaces.IDirectoryBlock) *AnchorRecord {
+	ar := new(AnchorRecord)
+	ar.AnchorRecordVer = 1
+	ar.DBHeight = dBlock.GetHeader().GetDBHeight()
+	ar.KeyMR = fmt.Sprintf("%x", dBlock.GetKeyMR().Bytes())
+	ar.RecordHeight = ar.DBHeight
+	return ar
 }

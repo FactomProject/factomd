@@ -5,20 +5,20 @@
 package messages
 
 import (
+	"bytes"
 	"fmt"
+	"io"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-	"io"
-
-	//"github.com/FactomProject/factomd/util"
 )
 
 // MaxBlockLocatorsPerMsg is the maximum number of Directory block locator hashes allowed
 // per message.
 const MaxBlockLocatorsPerMsg = 500
 
-// MsgGetDirBlocks implements the Message interface and represents a factom
+// MsgGetDirBlocks implements the MsgGetDirBlocks interface and represents a factom
 // getdirblocks message.  It is used to request a list of blocks starting after the
 // last known hash in the slice of block locator hashes.  The list is returned
 // via an inv message (MsgInv) and is limited by a specific hash to stop at or
@@ -53,7 +53,7 @@ func (msg *MsgGetDirBlocks) AddBlockLocatorHash(hash interfaces.IHash) error {
 }
 
 // BtcDecode decodes r using the bitcoin protocol encoding into the receiver.
-// This is part of the Message interface implementation.
+// This is part of the MsgGetDirBlocks interface implementation.
 func (msg *MsgGetDirBlocks) BtcDecode(r io.Reader, pver uint32) error {
 	//util.Trace()
 	err := readElement(r, &msg.ProtocolVersion)
@@ -91,7 +91,7 @@ func (msg *MsgGetDirBlocks) BtcDecode(r io.Reader, pver uint32) error {
 }
 
 // BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
-// This is part of the Message interface implementation.
+// This is part of the MsgGetDirBlocks interface implementation.
 func (msg *MsgGetDirBlocks) BtcEncode(w io.Writer, pver uint32) error {
 	//util.Trace()
 	count := len(msg.BlockLocatorHashes)
@@ -127,14 +127,14 @@ func (msg *MsgGetDirBlocks) BtcEncode(w io.Writer, pver uint32) error {
 }
 
 // Command returns the protocol command string for the message.  This is part
-// of the Message interface implementation.
+// of the MsgGetDirBlocks interface implementation.
 func (msg *MsgGetDirBlocks) Command() string {
 	//util.Trace()
 	return CmdGetDirBlocks
 }
 
 // MaxPayloadLength returns the maximum length the payload can be for the
-// receiver.  This is part of the Message interface implementation.
+// receiver.  This is part of the MsgGetDirBlocks interface implementation.
 func (msg *MsgGetDirBlocks) MaxPayloadLength(pver uint32) uint32 {
 	// Protocol version 4 bytes + num hashes (varInt) + max block locator
 	// hashes + hash stop.
@@ -143,7 +143,7 @@ func (msg *MsgGetDirBlocks) MaxPayloadLength(pver uint32) uint32 {
 }
 
 // NewMsgGetDirBlocks returns a new bitcoin getdirblocks message that conforms to the
-// Message interface using the passed parameters and defaults for the remaining
+// MsgGetDirBlocks interface using the passed parameters and defaults for the remaining
 // fields.
 func NewMsgGetDirBlocks(hashStop interfaces.IHash) *MsgGetDirBlocks {
 	//util.Trace()
@@ -152,4 +152,99 @@ func NewMsgGetDirBlocks(hashStop interfaces.IHash) *MsgGetDirBlocks {
 		BlockLocatorHashes: make([]interfaces.IHash, 0, MaxBlockLocatorsPerMsg),
 		HashStop:           hashStop,
 	}
+}
+
+var _ interfaces.IMsg = (*MsgGetDirBlocks)(nil)
+
+func (m *MsgGetDirBlocks) Process(interfaces.IState) {}
+
+func (m *MsgGetDirBlocks) GetHash() interfaces.IHash {
+  return nil
+}
+
+func (m *MsgGetDirBlocks) GetTimestamp() interfaces.Timestamp {
+  return 0
+}
+
+func (m *MsgGetDirBlocks) Type() int {
+  return -1
+}
+
+func (m *MsgGetDirBlocks) Int() int {
+  return -1
+}
+
+func (m *MsgGetDirBlocks) Bytes() []byte {
+  return nil
+}
+
+func (m *MsgGetDirBlocks) UnmarshalBinaryData(data []byte) (newdata []byte, err error) {
+  return nil, nil
+}
+
+func (m *MsgGetDirBlocks) UnmarshalBinary(data []byte) error {
+  _, err := m.UnmarshalBinaryData(data)
+  return err
+}
+
+func (m *MsgGetDirBlocks) MarshalBinary() (data []byte, err error) {
+  return nil, nil
+}
+
+func (m *MsgGetDirBlocks) MarshalForSignature() (data []byte, err error) {
+  return nil, nil
+}
+
+func (m *MsgGetDirBlocks) String() string {
+  return ""
+}
+
+// Validate the message, given the state.  Three possible results:
+//  < 0 -- MsgGetDirBlocks is invalid.  Discard
+//  0   -- Cannot tell if message is Valid
+//  1   -- MsgGetDirBlocks is valid
+func (m *MsgGetDirBlocks) Validate(interfaces.IState) int {
+  return 0
+}
+
+// Returns true if this is a message for this server to execute as
+// a leader.
+func (m *MsgGetDirBlocks) Leader(state interfaces.IState) bool {
+switch state.GetNetworkNumber() {
+case 0: // Main Network
+  panic("Not implemented yet")
+case 1: // Test Network
+  panic("Not implemented yet")
+case 2: // Local Network
+  panic("Not implemented yet")
+default:
+  panic("Not implemented yet")
+}
+
+}
+
+// Execute the leader functions of the given message
+func (m *MsgGetDirBlocks) LeaderExecute(state interfaces.IState) error {
+  return nil
+}
+
+// Returns true if this is a message for this server to execute as a follower
+func (m *MsgGetDirBlocks) Follower(interfaces.IState) bool {
+  return true
+}
+
+func (m *MsgGetDirBlocks) FollowerExecute(interfaces.IState) error {
+  return nil
+}
+
+func (e *MsgGetDirBlocks) JSONByte() ([]byte, error) {
+  return primitives.EncodeJSON(e)
+}
+
+func (e *MsgGetDirBlocks) JSONString() (string, error) {
+  return primitives.EncodeJSONString(e)
+}
+
+func (e *MsgGetDirBlocks) JSONBuffer(b *bytes.Buffer) error {
+  return primitives.EncodeJSONToBuffer(e, b)
 }

@@ -161,3 +161,16 @@ func (dbic *DirBlockInfo) parseDirBlockInfoCopy(dbi *dirBlockInfoCopy) {
 	dbic.DBMerkleRoot = dbi.DBMerkleRoot
 	dbic.BTCConfirmed = dbi.BTCConfirmed
 }
+
+// NewDirBlockInfoFromDirBlock creates a DirDirBlockInfo from DirectoryBlock
+func NewDirBlockInfoFromDirBlock(dirBlock interfaces.IDirectoryBlock) *DirBlockInfo {
+	dbic := new(DirBlockInfo)
+	dbic.DBHash = dirBlock.GetHash()
+	dbic.DBHeight = dirBlock.GetDatabaseHeight()
+	dbic.DBMerkleRoot = dirBlock.GetKeyMR()
+	dbic.Timestamp = int64(dirBlock.GetHeader().GetTimestamp())		// * 60 ???
+	dbic.BTCTxHash = primitives.NewZeroHash()
+	dbic.BTCBlockHash = primitives.NewZeroHash()
+	dbic.BTCConfirmed = false
+	return dbic
+}

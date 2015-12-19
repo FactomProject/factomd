@@ -5,11 +5,15 @@
 package messages
 
 import (
+	"bytes"
 	"fmt"
 	"io"
+
+	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
-// MsgGetEntryData implements the Message interface and represents a factom
+// MsgGetEntryData implements the MsgGetEntryData interface and represents a factom
 // get entry data message.  It is used to request data such as blocks and transactions
 // from another peer.  It should be used in response to the inv (MsgDirInv) message
 // to request the actual data referenced by each inventory vector the receiving
@@ -36,7 +40,7 @@ func (msg *MsgGetEntryData) AddInvVect(iv *InvVect) error {
 }
 
 // BtcDecode decodes r using the bitcoin protocol encoding into the receiver.
-// This is part of the Message interface implementation.
+// This is part of the MsgGetEntryData interface implementation.
 func (msg *MsgGetEntryData) BtcDecode(r io.Reader, pver uint32) error {
 	count, err := readVarInt(r, pver)
 	if err != nil {
@@ -63,7 +67,7 @@ func (msg *MsgGetEntryData) BtcDecode(r io.Reader, pver uint32) error {
 }
 
 // BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
-// This is part of the Message interface implementation.
+// This is part of the MsgGetEntryData interface implementation.
 func (msg *MsgGetEntryData) BtcEncode(w io.Writer, pver uint32) error {
 	// Limit to max inventory vectors per message.
 	count := len(msg.InvList)
@@ -88,20 +92,20 @@ func (msg *MsgGetEntryData) BtcEncode(w io.Writer, pver uint32) error {
 }
 
 // Command returns the protocol command string for the message.  This is part
-// of the Message interface implementation.
+// of the MsgGetEntryData interface implementation.
 func (msg *MsgGetEntryData) Command() string {
 	return CmdGetEntryData
 }
 
 // MaxPayloadLength returns the maximum length the payload can be for the
-// receiver.  This is part of the Message interface implementation.
+// receiver.  This is part of the MsgGetEntryData interface implementation.
 func (msg *MsgGetEntryData) MaxPayloadLength(pver uint32) uint32 {
 	// Num inventory vectors (varInt) + max allowed inventory vectors.
 	return uint32(MaxVarIntPayload + (MaxInvPerMsg * maxInvVectPayload))
 }
 
 // NewMsgGetEntryData returns a new factom get non dir data message that conforms to the
-// Message interface.  See MsgGetEntryData for details.
+// MsgGetEntryData interface.  See MsgGetEntryData for details.
 func NewMsgGetEntryData() *MsgGetEntryData {
 	return &MsgGetEntryData{
 		InvList: make([]*InvVect, 0, defaultInvListAlloc),
@@ -109,7 +113,7 @@ func NewMsgGetEntryData() *MsgGetEntryData {
 }
 
 // NewMsgGetEntryDataSizeHint returns a new bitcoin getdata message that conforms to
-// the Message interface.  See MsgGetEntryData for details.  This function differs
+// the MsgGetEntryData interface.  See MsgGetEntryData for details.  This function differs
 // from NewMsgGetDirData in that it allows a default allocation size for the
 // backing array which houses the inventory vector list.  This allows callers
 // who know in advance how large the inventory list will grow to avoid the
@@ -127,4 +131,99 @@ func NewMsgGetEntryDataSizeHint(sizeHint uint) *MsgGetEntryData {
 	return &MsgGetEntryData{
 		InvList: make([]*InvVect, 0, sizeHint),
 	}
+}
+
+var _ interfaces.IMsg = (*MsgGetEntryData)(nil)
+
+func (m *MsgGetEntryData) Process(interfaces.IState) {}
+
+func (m *MsgGetEntryData) GetHash() interfaces.IHash {
+  return nil
+}
+
+func (m *MsgGetEntryData) GetTimestamp() interfaces.Timestamp {
+  return 0
+}
+
+func (m *MsgGetEntryData) Type() int {
+  return -1
+}
+
+func (m *MsgGetEntryData) Int() int {
+  return -1
+}
+
+func (m *MsgGetEntryData) Bytes() []byte {
+  return nil
+}
+
+func (m *MsgGetEntryData) UnmarshalBinaryData(data []byte) (newdata []byte, err error) {
+  return nil, nil
+}
+
+func (m *MsgGetEntryData) UnmarshalBinary(data []byte) error {
+  _, err := m.UnmarshalBinaryData(data)
+  return err
+}
+
+func (m *MsgGetEntryData) MarshalBinary() (data []byte, err error) {
+  return nil, nil
+}
+
+func (m *MsgGetEntryData) MarshalForSignature() (data []byte, err error) {
+  return nil, nil
+}
+
+func (m *MsgGetEntryData) String() string {
+  return ""
+}
+
+// Validate the message, given the state.  Three possible results:
+//  < 0 -- MsgGetEntryData is invalid.  Discard
+//  0   -- Cannot tell if message is Valid
+//  1   -- MsgGetEntryData is valid
+func (m *MsgGetEntryData) Validate(interfaces.IState) int {
+  return 0
+}
+
+// Returns true if this is a message for this server to execute as
+// a leader.
+func (m *MsgGetEntryData) Leader(state interfaces.IState) bool {
+switch state.GetNetworkNumber() {
+case 0: // Main Network
+  panic("Not implemented yet")
+case 1: // Test Network
+  panic("Not implemented yet")
+case 2: // Local Network
+  panic("Not implemented yet")
+default:
+  panic("Not implemented yet")
+}
+
+}
+
+// Execute the leader functions of the given message
+func (m *MsgGetEntryData) LeaderExecute(state interfaces.IState) error {
+  return nil
+}
+
+// Returns true if this is a message for this server to execute as a follower
+func (m *MsgGetEntryData) Follower(interfaces.IState) bool {
+  return true
+}
+
+func (m *MsgGetEntryData) FollowerExecute(interfaces.IState) error {
+  return nil
+}
+
+func (e *MsgGetEntryData) JSONByte() ([]byte, error) {
+  return primitives.EncodeJSON(e)
+}
+
+func (e *MsgGetEntryData) JSONString() (string, error) {
+  return primitives.EncodeJSONString(e)
+}
+
+func (e *MsgGetEntryData) JSONBuffer(b *bytes.Buffer) error {
+  return primitives.EncodeJSONToBuffer(e, b)
 }
