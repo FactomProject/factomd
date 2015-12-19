@@ -5,15 +5,19 @@
 package messages
 
 import (
+	"bytes"
 	"fmt"
 	"io"
+
+	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 // MaxAddrPerMsg is the maximum number of addresses that can be in a single
 // bitcoin addr message (MsgAddr).
 const MaxAddrPerMsg = 1000
 
-// MsgAddr implements the Message interface and represents a bitcoin
+// MsgAddr implements the MsgAddr interface and represents a bitcoin
 // addr message.  It is used to provide a list of known active peers on the
 // network.  An active peer is considered one that has transmitted a message
 // within the last 3 hours.  Nodes which have not transmitted in that time
@@ -56,7 +60,7 @@ func (msg *MsgAddr) ClearAddresses() {
 }
 
 // BtcDecode decodes r using the bitcoin protocol encoding into the receiver.
-// This is part of the Message interface implementation.
+// This is part of the MsgAddr interface implementation.
 func (msg *MsgAddr) BtcDecode(r io.Reader, pver uint32) error {
 	count, err := readVarInt(r, pver)
 	if err != nil {
@@ -83,7 +87,7 @@ func (msg *MsgAddr) BtcDecode(r io.Reader, pver uint32) error {
 }
 
 // BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
-// This is part of the Message interface implementation.
+// This is part of the MsgAddr interface implementation.
 func (msg *MsgAddr) BtcEncode(w io.Writer, pver uint32) error {
 	// Protocol versions before MultipleAddressVersion only allowed 1 address
 	// per message.
@@ -116,13 +120,13 @@ func (msg *MsgAddr) BtcEncode(w io.Writer, pver uint32) error {
 }
 
 // Command returns the protocol command string for the message.  This is part
-// of the Message interface implementation.
+// of the MsgAddr interface implementation.
 func (msg *MsgAddr) Command() string {
 	return CmdAddr
 }
 
 // MaxPayloadLength returns the maximum length the payload can be for the
-// receiver.  This is part of the Message interface implementation.
+// receiver.  This is part of the MsgAddr interface implementation.
 func (msg *MsgAddr) MaxPayloadLength(pver uint32) uint32 {
 	if pver < MultipleAddressVersion {
 		// Num addresses (varInt) + a single net addresses.
@@ -134,9 +138,104 @@ func (msg *MsgAddr) MaxPayloadLength(pver uint32) uint32 {
 }
 
 // NewMsgAddr returns a new bitcoin addr message that conforms to the
-// Message interface.  See MsgAddr for details.
+// MsgAddr interface.  See MsgAddr for details.
 func NewMsgAddr() *MsgAddr {
 	return &MsgAddr{
 		AddrList: make([]*NetAddress, 0, MaxAddrPerMsg),
 	}
+}
+
+var _ interfaces.IMsg = (*MsgAddr)(nil)
+
+func (m *MsgAddr) Process(interfaces.IState) {}
+
+func (m *MsgAddr) GetHash() interfaces.IHash {
+  return nil
+}
+
+func (m *MsgAddr) GetTimestamp() interfaces.Timestamp {
+  return 0
+}
+
+func (m *MsgAddr) Type() int {
+  return -1
+}
+
+func (m *MsgAddr) Int() int {
+  return -1
+}
+
+func (m *MsgAddr) Bytes() []byte {
+  return nil
+}
+
+func (m *MsgAddr) UnmarshalBinaryData(data []byte) (newdata []byte, err error) {
+  return nil, nil
+}
+
+func (m *MsgAddr) UnmarshalBinary(data []byte) error {
+  _, err := m.UnmarshalBinaryData(data)
+  return err
+}
+
+func (m *MsgAddr) MarshalBinary() (data []byte, err error) {
+  return nil, nil
+}
+
+func (m *MsgAddr) MarshalForSignature() (data []byte, err error) {
+  return nil, nil
+}
+
+func (m *MsgAddr) String() string {
+  return ""
+}
+
+// Validate the message, given the state.  Three possible results:
+//  < 0 -- MsgAddr is invalid.  Discard
+//  0   -- Cannot tell if message is Valid
+//  1   -- MsgAddr is valid
+func (m *MsgAddr) Validate(interfaces.IState) int {
+  return 0
+}
+
+// Returns true if this is a message for this server to execute as
+// a leader.
+func (m *MsgAddr) Leader(state interfaces.IState) bool {
+switch state.GetNetworkNumber() {
+case 0: // Main Network
+  panic("Not implemented yet")
+case 1: // Test Network
+  panic("Not implemented yet")
+case 2: // Local Network
+  panic("Not implemented yet")
+default:
+  panic("Not implemented yet")
+}
+
+}
+
+// Execute the leader functions of the given message
+func (m *MsgAddr) LeaderExecute(state interfaces.IState) error {
+  return nil
+}
+
+// Returns true if this is a message for this server to execute as a follower
+func (m *MsgAddr) Follower(interfaces.IState) bool {
+  return true
+}
+
+func (m *MsgAddr) FollowerExecute(interfaces.IState) error {
+  return nil
+}
+
+func (e *MsgAddr) JSONByte() ([]byte, error) {
+  return primitives.EncodeJSON(e)
+}
+
+func (e *MsgAddr) JSONString() (string, error) {
+  return primitives.EncodeJSONString(e)
+}
+
+func (e *MsgAddr) JSONBuffer(b *bytes.Buffer) error {
+  return primitives.EncodeJSONToBuffer(e, b)
 }

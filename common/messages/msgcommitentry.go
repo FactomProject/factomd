@@ -10,9 +10,10 @@ import (
 
 	. "github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
-// MsgCommitEntry implements the Message interface and represents a factom
+// MsgCommitEntry implements the MsgCommitEntry interface and represents a factom
 // Commit-Entry message.  It is used by client to commit the entry before
 // revealing it.
 type MsgCommitEntry struct {
@@ -20,7 +21,7 @@ type MsgCommitEntry struct {
 }
 
 // NewMsgCommitEntry returns a new Commit Entry message that conforms to the
-// Message interface.
+// MsgCommitEntry interface.
 func NewMsgCommitEntry() *MsgCommitEntry {
 	m := new(MsgCommitEntry)
 	m.CommitEntry = NewCommitEntry()
@@ -28,7 +29,7 @@ func NewMsgCommitEntry() *MsgCommitEntry {
 }
 
 // BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
-// This is part of the Message interface implementation.
+// This is part of the MsgCommitEntry interface implementation.
 func (msg *MsgCommitEntry) BtcEncode(w io.Writer, pver uint32) error {
 	bytes, err := msg.CommitEntry.MarshalBinary()
 	if err != nil {
@@ -43,7 +44,7 @@ func (msg *MsgCommitEntry) BtcEncode(w io.Writer, pver uint32) error {
 }
 
 // BtcDecode decodes r using the bitcoin protocol encoding into the receiver.
-// This is part of the Message interface implementation.
+// This is part of the MsgCommitEntry interface implementation.
 func (msg *MsgCommitEntry) BtcDecode(r io.Reader, pver uint32) error {
 	bytes, err := readVarBytes(r, pver, uint32(CommitEntrySize),
 		CmdEntry)
@@ -61,13 +62,13 @@ func (msg *MsgCommitEntry) BtcDecode(r io.Reader, pver uint32) error {
 }
 
 // Command returns the protocol command string for the message.  This is part
-// of the Message interface implementation.
+// of the MsgCommitEntry interface implementation.
 func (msg *MsgCommitEntry) Command() string {
 	return CmdCommitEntry
 }
 
 // MaxPayloadLength returns the maximum length the payload can be for the
-// receiver.  This is part of the Message interface implementation.
+// receiver.  This is part of the MsgCommitEntry interface implementation.
 func (msg *MsgCommitEntry) MaxPayloadLength(pver uint32) uint32 {
 	return MaxAppMsgPayload
 }
@@ -87,4 +88,99 @@ func (msg *MsgCommitEntry) Sha() (interfaces.IHash, error) {
 	_ = sha.SetBytes(Sha256(buf.Bytes()))
 
 	return sha, nil
+}
+
+var _ interfaces.IMsg = (*MsgCommitEntry)(nil)
+
+func (m *MsgCommitEntry) Process(interfaces.IState) {}
+
+func (m *MsgCommitEntry) GetHash() interfaces.IHash {
+  return nil
+}
+
+func (m *MsgCommitEntry) GetTimestamp() interfaces.Timestamp {
+  return 0
+}
+
+func (m *MsgCommitEntry) Type() int {
+  return -1
+}
+
+func (m *MsgCommitEntry) Int() int {
+  return -1
+}
+
+func (m *MsgCommitEntry) Bytes() []byte {
+  return nil
+}
+
+func (m *MsgCommitEntry) UnmarshalBinaryData(data []byte) (newdata []byte, err error) {
+  return nil, nil
+}
+
+func (m *MsgCommitEntry) UnmarshalBinary(data []byte) error {
+  _, err := m.UnmarshalBinaryData(data)
+  return err
+}
+
+func (m *MsgCommitEntry) MarshalBinary() (data []byte, err error) {
+  return nil, nil
+}
+
+func (m *MsgCommitEntry) MarshalForSignature() (data []byte, err error) {
+  return nil, nil
+}
+
+func (m *MsgCommitEntry) String() string {
+  return ""
+}
+
+// Validate the message, given the state.  Three possible results:
+//  < 0 -- MsgCommitEntry is invalid.  Discard
+//  0   -- Cannot tell if message is Valid
+//  1   -- MsgCommitEntry is valid
+func (m *MsgCommitEntry) Validate(interfaces.IState) int {
+  return 0
+}
+
+// Returns true if this is a message for this server to execute as
+// a leader.
+func (m *MsgCommitEntry) Leader(state interfaces.IState) bool {
+switch state.GetNetworkNumber() {
+case 0: // Main Network
+  panic("Not implemented yet")
+case 1: // Test Network
+  panic("Not implemented yet")
+case 2: // Local Network
+  panic("Not implemented yet")
+default:
+  panic("Not implemented yet")
+}
+
+}
+
+// Execute the leader functions of the given message
+func (m *MsgCommitEntry) LeaderExecute(state interfaces.IState) error {
+  return nil
+}
+
+// Returns true if this is a message for this server to execute as a follower
+func (m *MsgCommitEntry) Follower(interfaces.IState) bool {
+  return true
+}
+
+func (m *MsgCommitEntry) FollowerExecute(interfaces.IState) error {
+  return nil
+}
+
+func (e *MsgCommitEntry) JSONByte() ([]byte, error) {
+  return primitives.EncodeJSON(e)
+}
+
+func (e *MsgCommitEntry) JSONString() (string, error) {
+  return primitives.EncodeJSONString(e)
+}
+
+func (e *MsgCommitEntry) JSONBuffer(b *bytes.Buffer) error {
+  return primitives.EncodeJSONToBuffer(e, b)
 }

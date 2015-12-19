@@ -297,7 +297,7 @@ func createBtcdNotificationHandlers() btcrpcclient.NotificationHandlers {
 func checkMissingDirBlockInfo() {
 	anchorLog.Debug("checkMissingDirBlockInfo for those unsaved DirBlocks in database")
 	dblocks, _ := db.FetchAllDBlocks()
-	dirBlockInfos, _ := db.FetchAllConfirmedDirBlockInfos() //FetchAllDirBlockInfos()
+	dirBlockInfos, _ := db.FetchAllDirBlockInfos() //FetchAllDirBlockInfos()
 	for _, dblock := range dblocks {
 		var found = false
 		for i, dbinfo := range dirBlockInfos {
@@ -322,11 +322,10 @@ func checkMissingDirBlockInfo() {
 
 // InitAnchor inits rpc clients for factom
 // and load up unconfirmed DirBlockInfo from leveldb
-func InitAnchor(s interfaces.IState, serverKey primitives.PrivateKey) {
+func InitAnchor(s interfaces.IState) {
 	anchorLog.Debug("InitAnchor")
 	state = s
 	db = s.GetDB()
-	serverPrivKey = serverKey
 	minBalance, _ = btcutil.NewAmount(0.01)
 
 	var err error
@@ -376,8 +375,11 @@ func readConfig() {
 	confirmationsNeeded = cfg.Anchor.ConfirmationsNeeded
 	fee, _ = btcutil.NewAmount(cfg.Btc.BtcTransFee)
 
-	//Added anchor parameters
 	var err error
+	serverPrivKey, err = primitives.NewPrivateKeyFromHex(cfg.App.LocalServerPrivKey)
+	if err != nil {
+		panic("Cannot parse Server Private Key from configuration file: " + err.Error())
+	}
 	serverECKey, err = primitives.NewPrivateKeyFromHex(cfg.Anchor.ServerECPrivKey)
 	if err != nil {
 		panic("Cannot parse Server EC Key from configuration file: " + err.Error())

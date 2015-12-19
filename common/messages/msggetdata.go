@@ -5,11 +5,15 @@
 package messages
 
 import (
+	"bytes"
 	"fmt"
 	"io"
+
+	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
-// MsgGetData implements the Message interface and represents a bitcoin
+// MsgGetData implements the MsgGetData interface and represents a bitcoin
 // getdata message.  It is used to request data such as blocks and transactions
 // from another peer.  It should be used in response to the inv (MsgInv) message
 // to request the actual data referenced by each inventory vector the receiving
@@ -36,7 +40,7 @@ func (msg *MsgGetData) AddInvVect(iv *InvVect) error {
 }
 
 // BtcDecode decodes r using the bitcoin protocol encoding into the receiver.
-// This is part of the Message interface implementation.
+// This is part of the MsgGetData interface implementation.
 func (msg *MsgGetData) BtcDecode(r io.Reader, pver uint32) error {
 	count, err := readVarInt(r, pver)
 	if err != nil {
@@ -63,7 +67,7 @@ func (msg *MsgGetData) BtcDecode(r io.Reader, pver uint32) error {
 }
 
 // BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
-// This is part of the Message interface implementation.
+// This is part of the MsgGetData interface implementation.
 func (msg *MsgGetData) BtcEncode(w io.Writer, pver uint32) error {
 	// Limit to max inventory vectors per message.
 	count := len(msg.InvList)
@@ -88,20 +92,20 @@ func (msg *MsgGetData) BtcEncode(w io.Writer, pver uint32) error {
 }
 
 // Command returns the protocol command string for the message.  This is part
-// of the Message interface implementation.
+// of the MsgGetData interface implementation.
 func (msg *MsgGetData) Command() string {
 	return CmdGetData
 }
 
 // MaxPayloadLength returns the maximum length the payload can be for the
-// receiver.  This is part of the Message interface implementation.
+// receiver.  This is part of the MsgGetData interface implementation.
 func (msg *MsgGetData) MaxPayloadLength(pver uint32) uint32 {
 	// Num inventory vectors (varInt) + max allowed inventory vectors.
 	return uint32(MaxVarIntPayload + (MaxInvPerMsg * maxInvVectPayload))
 }
 
 // NewMsgGetData returns a new bitcoin getdata message that conforms to the
-// Message interface.  See MsgGetData for details.
+// MsgGetData interface.  See MsgGetData for details.
 func NewMsgGetData() *MsgGetData {
 	return &MsgGetData{
 		InvList: make([]*InvVect, 0, defaultInvListAlloc),
@@ -109,7 +113,7 @@ func NewMsgGetData() *MsgGetData {
 }
 
 // NewMsgGetDataSizeHint returns a new bitcoin getdata message that conforms to
-// the Message interface.  See MsgGetData for details.  This function differs
+// the MsgGetData interface.  See MsgGetData for details.  This function differs
 // from NewMsgGetData in that it allows a default allocation size for the
 // backing array which houses the inventory vector list.  This allows callers
 // who know in advance how large the inventory list will grow to avoid the
@@ -127,4 +131,99 @@ func NewMsgGetDataSizeHint(sizeHint uint) *MsgGetData {
 	return &MsgGetData{
 		InvList: make([]*InvVect, 0, sizeHint),
 	}
+}
+
+var _ interfaces.IMsg = (*MsgGetData)(nil)
+
+func (m *MsgGetData) Process(interfaces.IState) {}
+
+func (m *MsgGetData) GetHash() interfaces.IHash {
+  return nil
+}
+
+func (m *MsgGetData) GetTimestamp() interfaces.Timestamp {
+  return 0
+}
+
+func (m *MsgGetData) Type() int {
+  return -1
+}
+
+func (m *MsgGetData) Int() int {
+  return -1
+}
+
+func (m *MsgGetData) Bytes() []byte {
+  return nil
+}
+
+func (m *MsgGetData) UnmarshalBinaryData(data []byte) (newdata []byte, err error) {
+  return nil, nil
+}
+
+func (m *MsgGetData) UnmarshalBinary(data []byte) error {
+  _, err := m.UnmarshalBinaryData(data)
+  return err
+}
+
+func (m *MsgGetData) MarshalBinary() (data []byte, err error) {
+  return nil, nil
+}
+
+func (m *MsgGetData) MarshalForSignature() (data []byte, err error) {
+  return nil, nil
+}
+
+func (m *MsgGetData) String() string {
+  return ""
+}
+
+// Validate the message, given the state.  Three possible results:
+//  < 0 -- MsgGetData is invalid.  Discard
+//  0   -- Cannot tell if message is Valid
+//  1   -- MsgGetData is valid
+func (m *MsgGetData) Validate(interfaces.IState) int {
+  return 0
+}
+
+// Returns true if this is a message for this server to execute as
+// a leader.
+func (m *MsgGetData) Leader(state interfaces.IState) bool {
+switch state.GetNetworkNumber() {
+case 0: // Main Network
+  panic("Not implemented yet")
+case 1: // Test Network
+  panic("Not implemented yet")
+case 2: // Local Network
+  panic("Not implemented yet")
+default:
+  panic("Not implemented yet")
+}
+
+}
+
+// Execute the leader functions of the given message
+func (m *MsgGetData) LeaderExecute(state interfaces.IState) error {
+  return nil
+}
+
+// Returns true if this is a message for this server to execute as a follower
+func (m *MsgGetData) Follower(interfaces.IState) bool {
+  return true
+}
+
+func (m *MsgGetData) FollowerExecute(interfaces.IState) error {
+  return nil
+}
+
+func (e *MsgGetData) JSONByte() ([]byte, error) {
+  return primitives.EncodeJSON(e)
+}
+
+func (e *MsgGetData) JSONString() (string, error) {
+  return primitives.EncodeJSONString(e)
+}
+
+func (e *MsgGetData) JSONBuffer(b *bytes.Buffer) error {
+  return primitives.EncodeJSONToBuffer(e, b)
 }
