@@ -58,7 +58,8 @@ func (m *RevealEntryMsg) Bytes() []byte {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *RevealEntryMsg) Validate(interfaces.IState) int {
-	return 0
+	return 1	// We should validate the size of the reveal and so forth.  But it is
+	            // the follower that will choose to relay the reveal to other nodes.
 }
 
 // Returns true if this is a message for this server to execute as

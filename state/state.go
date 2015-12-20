@@ -42,9 +42,10 @@ type State struct {
 
 	// Maps
 	// ====
+	// For Follower
 	Holding map[[32]byte]interfaces.IMsg // Hold Messages
 	Acks    map[[32]byte]interfaces.IMsg // Hold Acknowledgemets
-
+	
 	// Lists
 	// =====
 	AuditServers    []interfaces.IServer   // List of Audit Servers

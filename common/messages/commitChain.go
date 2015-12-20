@@ -66,6 +66,7 @@ func (m *CommitChainMsg) Validate(state interfaces.IState) int {
 	if int(m.CommitChain.Credits) > int(ebal) {
 		return 0
 	}
+		
 	return 1
 
 }
