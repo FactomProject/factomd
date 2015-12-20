@@ -79,8 +79,7 @@ type State struct {
 	FactoidState      interfaces.IFactoidState
 	PrevFactoidKeyMR  interfaces.IHash
 	CurrentAdminBlock interfaces.IAdminBlock
-
-	EntryCreditBlock interfaces.IEntryCreditBlock
+	EntryCreditBlock  interfaces.IEntryCreditBlock
 
 	Logger *logger.FLogger
 }
@@ -107,7 +106,7 @@ func (s *State) MatchAckFollowerExecute(m interfaces.IMsg) error {
 }
 
 func (s *State) GetCurrentEntryCreditBlock() interfaces.IEntryCreditBlock {
-	return (s.GetCurrentDirectoryBlock().GetDBEntries()[1]).(interfaces.IEntryCreditBlock)
+	return s.EntryCreditBlock
 }
 
 func (s *State) GetServer() interfaces.IServer {
@@ -318,6 +317,10 @@ func (s *State) GetLastAck() interfaces.IMsg {
 	return s.LastAck
 }
 
+func (s *State) SetLastAck(ack interfaces.IMsg) {
+	s.LastAck = ack
+}
+
 func (s *State) Init(filename string) {
 
 	s.ReadCfg(filename)
@@ -453,6 +456,7 @@ func (s *State) loadDatabase() {
 			panic(err.Error())
 		}
 		for _, block := range ecBlocks {
+			s.EntryCreditBlock = block
 			s.GetFactoidState().AddECBlock(block)
 		}
 	}

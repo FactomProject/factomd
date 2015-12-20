@@ -141,7 +141,7 @@ func HandleRevealEntry(ctx *web.Context) {
 	
 	state := ctx.Server.Env["state"].(interfaces.IState)
 	
-	msg := new(messages.RevealEntry)
+	msg := new(messages.RevealEntryMsg)
 	msg.Entry = entry
 	msg.Timestamp = state.GetTimestamp()
 	state.InMsgQueue() <- msg
@@ -427,7 +427,11 @@ func HandleChainHead(ctx *web.Context, hashkey string) {
 		return
 	}
 	if mr == nil {
-		//TODO: Handle block not found
+		err := fmt.Errorf("Missing Chain Head")
+		wsLog.Error(err)
+		ctx.WriteHeader(httpBad)
+		ctx.Write([]byte(err.Error()))
+		return
 	}
 	c.ChainHead = mr.String()
 	if p, err := json.Marshal(c); err != nil {

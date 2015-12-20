@@ -15,8 +15,8 @@ import (
 
 //A placeholder structure for messages
 type CommitChainMsg struct {
-	CommitChain *entryCreditBlock.CommitChain
 	Timestamp   interfaces.Timestamp
+	CommitChain *entryCreditBlock.CommitChain
 
 	//Not marshalled
 	hash interfaces.IHash
@@ -33,11 +33,7 @@ func (m *CommitChainMsg) Process(state interfaces.IState) {
 
 func (m *CommitChainMsg) GetHash() interfaces.IHash {
 	if m.hash == nil {
-		data, err := m.CommitChain.MarshalBinary()
-		if err != nil {
-			panic(fmt.Sprintf("Error in CommitChain.GetHash(): %s", err.Error()))
-		}
-		m.hash = primitives.Sha(data)
+		m.hash = m.CommitChain.EntryHash 
 	}
 	return m.hash
 }
@@ -67,7 +63,7 @@ func (m *CommitChainMsg) Validate(state interfaces.IState) int {
 		return -1
 	}
 	ebal := state.GetFactoidState().GetECBalance(*m.CommitChain.ECPubKey)
-	if int(m.CommitChain.Credits) < int(ebal) {
+	if int(m.CommitChain.Credits) > int(ebal) {
 		return 0
 	}
 	return 1
@@ -86,7 +82,7 @@ func (m *CommitChainMsg) LeaderExecute(state interfaces.IState) error {
 	if v <= 0 {
 		return fmt.Errorf("Commit Chain no longer valid")
 	}
-	b := m.CommitChain.Hash().Bytes()
+	b := m.GetHash()
 
 	msg, err := NewAck(state, b)
 
@@ -107,7 +103,11 @@ func (m *CommitChainMsg) Follower(state interfaces.IState) bool {
 }
 
 func (m *CommitChainMsg) FollowerExecute(state interfaces.IState) error {
-	return state.MatchAckFollowerExecute(m) 
+	err := state.MatchAckFollowerExecute(m) 
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (e *CommitChainMsg) JSONByte() ([]byte, error) {
@@ -153,5 +153,5 @@ func (m *CommitChainMsg) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *CommitChainMsg) String() string {
-	return ""
+	return "CommitChainMsg " + m.Timestamp.String()+" "+m.GetHash().String()
 }

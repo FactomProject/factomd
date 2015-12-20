@@ -30,41 +30,9 @@ type Ack struct {
 var _ interfaces.IMsg = (*Ack)(nil)
 var _ Signable = (*Ack)(nil)
 
-func NewAck(state interfaces.IState, msg []byte) (iack interfaces.IMsg, err error) {
-	var last *Ack
-	if state.GetLastAck() != nil {
-		last = state.GetLastAck().(*Ack)
-	}
-	ack := new(Ack)
-	ack.Timestamp = state.GetTimestamp()
-	ack.MessageHash = primitives.Sha(msg)
-	if last == nil {
-		ack.Height = 0
-		ack.SerialHash = ack.MessageHash
-	} else {
-		ack.Height = last.Height + 1
-		ack.SerialHash, err = primitives.CreateHash(last.MessageHash, ack.MessageHash)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	last = ack
-
-	// TODO:  Add the signature.
-
-	return ack, nil
-}
 
 func (m *Ack) GetHash() interfaces.IHash {
-	if m.hash == nil {
-		data, err := m.MarshalForSignature()
-		if err != nil {
-			panic(fmt.Sprintf("Error in Ack.GetHash(): %s", err.Error()))
-		}
-		m.hash = primitives.Sha(data)
-	}
-	return m.hash
+	return m.MessageHash
 }
 
 func (m *Ack) Type() int {
@@ -81,75 +49,6 @@ func (m *Ack) Bytes() []byte {
 
 func (m *Ack) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp
-}
-
-func (m *Ack) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
-		}
-	}()
-	newData = data[1:]
-	m.ServerIndex = (int)(newData[0])
-	newData = newData[1:]
-	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
-	if err != nil {
-		return nil, err
-	}
-	m.MessageHash = new(primitives.Hash)
-	newData, err = m.MessageHash.UnmarshalBinaryData(newData)
-	if err != nil {
-		return nil, err
-	}
-	if len(newData) > 0 {
-		sig := new(primitives.Signature)
-		newData, err = sig.UnmarshalBinaryData(newData)
-		if err != nil {
-			return nil, err
-		}
-		m.Signature = sig
-	}
-	return
-}
-
-func (m *Ack) UnmarshalBinary(data []byte) error {
-	_, err := m.UnmarshalBinaryData(data)
-	return err
-}
-
-func (m *Ack) MarshalForSignature() (data []byte, err error) {
-	resp := []byte{}
-	resp = append(resp, byte(m.Type()))
-	resp = append(resp, byte(m.ServerIndex))
-	t := m.GetTimestamp()
-	timeByte, err := t.MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
-	resp = append(resp, timeByte...)
-	resp = append(resp, m.Bytes()...)
-	return resp, nil
-}
-
-func (m *Ack) MarshalBinary() (data []byte, err error) {
-	resp, err := m.MarshalForSignature()
-	if err != nil {
-		return nil, err
-	}
-	sig := m.GetSignature()
-
-	if sig != nil {
-		sigBytes, err := sig.MarshalBinary()
-		if err != nil {
-			return nil, err
-		}
-		return append(resp, sigBytes...), nil
-	}
-	return resp, nil
-}
-
-func (m *Ack) String() string {
-	return "Ack: " + m.MessageHash.String()
 }
 
 // Validate the message, given the state.  Three possible results:
@@ -236,4 +135,104 @@ func (m *Ack) GetSignature() interfaces.IFullSignature {
 
 func (m *Ack) VerifySignature() (bool, error) {
 	return VerifyMessage(m)
+}
+
+func (m *Ack) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("Error unmarshalling: %v", r)
+		}
+	}()
+	newData = data[1:]
+	m.ServerIndex = (int)(newData[0])
+	newData = newData[1:]
+	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
+	if err != nil {
+		return nil, err
+	}
+	m.MessageHash = new(primitives.Hash)
+	newData, err = m.MessageHash.UnmarshalBinaryData(newData)
+	if err != nil {
+		return nil, err
+	}
+	if len(newData) > 0 {
+		sig := new(primitives.Signature)
+		newData, err = sig.UnmarshalBinaryData(newData)
+		if err != nil {
+			return nil, err
+		}
+		m.Signature = sig
+	}
+	return
+}
+
+func (m *Ack) UnmarshalBinary(data []byte) error {
+	_, err := m.UnmarshalBinaryData(data)
+	return err
+}
+
+func (m *Ack) MarshalForSignature() (data []byte, err error) {
+	resp := []byte{}
+	resp = append(resp, byte(m.Type()))
+	resp = append(resp, byte(m.ServerIndex))
+	t := m.GetTimestamp()
+	timeByte, err := t.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	resp = append(resp, timeByte...)
+	resp = append(resp, m.Bytes()...)
+	return resp, nil
+}
+
+func (m *Ack) MarshalBinary() (data []byte, err error) {
+	resp, err := m.MarshalForSignature()
+	if err != nil {
+		return nil, err
+	}
+	sig := m.GetSignature()
+	
+	if sig != nil {
+		sigBytes, err := sig.MarshalBinary()
+		if err != nil {
+			return nil, err
+		}
+		return append(resp, sigBytes...), nil
+	}
+	return resp, nil
+}
+
+func (m *Ack) String() string {
+	return "Ack " + m.Timestamp.String()+ " "+m.MessageHash.String()
+}
+
+
+/***************************************************************************
+ * Support Functions
+ ***************************************************************************/
+// Create a new Acknowledgement.  This Acknowledgement 
+func NewAck(state interfaces.IState, hash interfaces.IHash) (iack interfaces.IMsg, err error) {
+	var last *Ack
+	if state.GetLastAck() != nil {
+		last = state.GetLastAck().(*Ack)
+	}
+	ack := new(Ack)
+	ack.Timestamp = state.GetTimestamp()
+	ack.MessageHash = hash
+	if last == nil {
+		ack.Height = 0
+		ack.SerialHash = ack.MessageHash
+	} else {
+		ack.Height = last.Height + 1
+		ack.SerialHash, err = primitives.CreateHash(last.MessageHash, ack.MessageHash)
+		if err != nil {
+			return nil, err
+		}
+	}
+	
+	state.SetLastAck(ack)
+	
+	// TODO:  Add the signature.
+	
+	return ack, nil
 }

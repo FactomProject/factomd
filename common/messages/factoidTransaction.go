@@ -81,7 +81,7 @@ func (m *FactoidTransaction) LeaderExecute(state interfaces.IState) error {
 	if err != nil {
 		return err
 	}
-	msg, err := NewAck(state, b)
+	msg, err := NewAck(state, primitives.Sha(b))
 	if err != nil {
 		return err
 	}

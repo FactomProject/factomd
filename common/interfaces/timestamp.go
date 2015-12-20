@@ -50,6 +50,6 @@ func (t *Timestamp) MarshalBinary() ([]byte, error) {
 	return out.Bytes(), nil
 }
 
-func (t *Timestamp) GetTimeString() string {
+func (t *Timestamp) String() string {
 	return t.GetTime().Format("2006-01-02 15:04:05")
 }

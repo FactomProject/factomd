@@ -53,6 +53,66 @@ func (m *RevealEntryMsg) Bytes() []byte {
 	return nil
 }
 
+// Validate the message, given the state.  Three possible results:
+//  < 0 -- Message is invalid.  Discard
+//  0   -- Cannot tell if message is Valid
+//  1   -- Message is valid
+func (m *RevealEntryMsg) Validate(interfaces.IState) int {
+	return 0
+}
+
+// Returns true if this is a message for this server to execute as
+// a leader.
+func (m *RevealEntryMsg) Leader(state interfaces.IState) bool {
+	return state.LeaderFor(m.Entry.GetHash().Bytes())
+}
+
+// Execute the leader functions of the given message
+func (m *RevealEntryMsg) LeaderExecute(state interfaces.IState) error {
+	v := m.Validate(state)
+	if v <= 0 {
+		return fmt.Errorf("Reveal is no longer valid")
+	}
+	b := m.GetHash()
+	
+	msg, err := NewAck(state, b)
+	
+	if err != nil {
+		return err
+	}
+	
+	state.NetworkOutMsgQueue() <- msg
+	state.FollowerInMsgQueue() <- m   // Send factoid trans to follower
+	state.FollowerInMsgQueue() <- msg // Send the Ack to follower
+	
+	return nil
+}
+
+// Returns true if this is a message for this server to execute as a follower
+func (m *RevealEntryMsg) Follower(interfaces.IState) bool {
+	return true
+}
+
+func (m *RevealEntryMsg) FollowerExecute(interfaces.IState) error {
+	return nil
+}
+
+func (e *RevealEntryMsg) JSONByte() ([]byte, error) {
+	return primitives.EncodeJSON(e)
+}
+
+func (e *RevealEntryMsg) JSONString() (string, error) {
+	return primitives.EncodeJSONString(e)
+}
+
+func (e *RevealEntryMsg) JSONBuffer(b *bytes.Buffer) error {
+	return primitives.EncodeJSONToBuffer(e, b)
+}
+
+func NewRevealEntryMsg() *RevealEntryMsg {
+	return new(RevealEntryMsg)
+}
+
 func (m *RevealEntryMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -84,59 +144,5 @@ func (m *RevealEntryMsg) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *RevealEntryMsg) String() string {
-	return ""
-}
-
-// Validate the message, given the state.  Three possible results:
-//  < 0 -- Message is invalid.  Discard
-//  0   -- Cannot tell if message is Valid
-//  1   -- Message is valid
-func (m *RevealEntryMsg) Validate(interfaces.IState) int {
-	return 0
-}
-
-// Returns true if this is a message for this server to execute as
-// a leader.
-func (m *RevealEntryMsg) Leader(state interfaces.IState) bool {
-	switch state.GetNetworkNumber() {
-	case 0: // Main Network
-		panic("Not implemented yet")
-	case 1: // Test Network
-		panic("Not implemented yet")
-	case 2: // Local Network
-		panic("Not implemented yet")
-	default:
-		panic("Not implemented yet")
-	}
-
-}
-
-// Execute the leader functions of the given message
-func (m *RevealEntryMsg) LeaderExecute(state interfaces.IState) error {
-	return nil
-}
-
-// Returns true if this is a message for this server to execute as a follower
-func (m *RevealEntryMsg) Follower(interfaces.IState) bool {
-	return true
-}
-
-func (m *RevealEntryMsg) FollowerExecute(interfaces.IState) error {
-	return nil
-}
-
-func (e *RevealEntryMsg) JSONByte() ([]byte, error) {
-	return primitives.EncodeJSON(e)
-}
-
-func (e *RevealEntryMsg) JSONString() (string, error) {
-	return primitives.EncodeJSONString(e)
-}
-
-func (e *RevealEntryMsg) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
-}
-
-func NewRevealEntryMsg() *RevealEntryMsg {
-	return new(RevealEntryMsg)
+	return "RevealEntryMsg "+m.Timestamp.String()+m.Entry.GetHash().String()
 }
