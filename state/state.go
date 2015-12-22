@@ -5,10 +5,13 @@ import (
 	"errors"
 	"fmt"
 
+	"os"
+
 	"github.com/FactomProject/factomd/anchor"
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
+	"github.com/FactomProject/factomd/common/directoryBlock/dbInfo"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid/block"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -20,7 +23,6 @@ import (
 	"github.com/FactomProject/factomd/logger"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
-	"os"
 )
 
 var _ = fmt.Print
@@ -35,7 +37,7 @@ type State struct {
 	leaderInMsgQueue       chan interfaces.IMsg
 	followerInMsgQueue     chan interfaces.IMsg
 
-	myServer interfaces.IServer //the server running on this Federated Server
+	myServer      interfaces.IServer //the server running on this Federated Server
 	serverPrivKey primitives.PrivateKey
 	serverPubKey  primitives.PublicKey
 
@@ -171,6 +173,7 @@ func (s *State) ProcessEndOfBlock() {
 		if err = s.DB.SaveDirectoryBlockHead(s.PreviousDirectoryBlock); err != nil {
 			panic(err.Error())
 		}
+		anchor.UpdateDirBlockInfoMap(dbInfo.NewDirBlockInfoFromDirBlock(s.PreviousDirectoryBlock))
 	} else {
 		log.Println("No old db")
 	}

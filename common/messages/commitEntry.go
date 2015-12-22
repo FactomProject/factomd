@@ -7,6 +7,7 @@ package messages
 import (
 	"bytes"
 	"fmt"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -25,7 +26,8 @@ type CommitEntryMsg struct {
 var _ interfaces.IMsg = (*CommitEntryMsg)(nil)
 
 func (e *CommitEntryMsg) Process(interfaces.IState) {
-	panic("CommitEntryMsg is not implemented.")
+	// panic prevents factomd from running continuously.
+	fmt.Println("*** CommitEntryMsg is not implemented.")
 }
 
 func (m *CommitEntryMsg) GetHash() interfaces.IHash {
