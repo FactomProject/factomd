@@ -5,12 +5,11 @@
 package databaseOverlay_test
 
 import (
-	. "github.com/FactomProject/factomd/testHelper"
-	//"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/directoryBlock/dbInfo"
 	"github.com/FactomProject/factomd/common/primitives"
 	. "github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/database/mapdb"
+	. "github.com/FactomProject/factomd/testHelper"
 	"testing"
 )
 
