@@ -20,7 +20,7 @@ func CreateTestDirBlockInfo(prev *dbInfo.DirBlockInfo) *dbInfo.DirBlockInfo {
 	dbi.BTCBlockHeight = int32(height)
 	dbi.BTCBlockHash.UnmarshalBinary(intToByteSlice(255 - int(height)))
 	dbi.DBMerkleRoot.UnmarshalBinary(intToByteSlice(255 - int(height)))
-	dbi.BTCConfirmed = height%2 == 0
+	dbi.BTCConfirmed = height%2 == 1
 
 	return dbi
 }
