@@ -21,6 +21,8 @@ type FactomdConfig struct {
 		BoltDBPath              string
 		DataStorePath           string
 		DirectoryBlockInSeconds int
+		ExportData              bool
+		ExportDataSubpath       string
 		Network                 string
 		NodeMode                string
 		LocalServerPrivKey      string
@@ -94,6 +96,8 @@ LdbPath                               = "ldb"
 BoltDBPath                            = "bolt"
 DataStorePath                         = "data/export/"
 DirectoryBlockInSeconds               = 600
+ExportData                            = true
+ExportDataSubpath                     = "export/"
 ; --------------- Network: MAIN | TEST | LOCAL 
 Network                               = LOCAL
 ; --------------- NodeMode: FULL | SERVER | LIGHT ----------------
@@ -157,6 +161,8 @@ func (s *FactomdConfig) String() string {
 	out.WriteString(fmt.Sprintf("\n    BoltDBPath              %v", s.App.BoltDBPath))
 	out.WriteString(fmt.Sprintf("\n    DataStorePath           %v", s.App.DataStorePath))
 	out.WriteString(fmt.Sprintf("\n    DirectoryBlockInSeconds %v", s.App.DirectoryBlockInSeconds))
+	out.WriteString(fmt.Sprintf("\n    ExportData              %v", s.App.ExportData))
+	out.WriteString(fmt.Sprintf("\n    ExportDataSubpath       %v", s.App.ExportDataSubpath))
 	out.WriteString(fmt.Sprintf("\n    Network                 %v", s.App.Network))
 	out.WriteString(fmt.Sprintf("\n    NodeMode                %v", s.App.NodeMode))
 	out.WriteString(fmt.Sprintf("\n    LocalServerPrivKey      %v", s.App.LocalServerPrivKey))
@@ -249,6 +255,7 @@ func ReadConfig(filename string) *FactomdConfig {
 	cfg.App.DataStorePath = cfg.App.HomeDir + cfg.App.DataStorePath
 	cfg.Log.LogPath = cfg.App.HomeDir + cfg.Log.LogPath
 	cfg.Wallet.BoltDBPath = cfg.App.HomeDir + cfg.Wallet.BoltDBPath
+	cfg.App.ExportDataSubpath = cfg.App.HomeDir + cfg.App.ExportDataSubpath
 
 	return cfg
 }

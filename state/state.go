@@ -345,6 +345,10 @@ func (s *State) Init(filename string) {
 		panic("No Database type specified")
 	}
 
+	if cfg.App.ExportData {
+		s.DB.SetExportData(cfg.App.ExportDataSubpath)
+	}
+
 	//Network
 	switch cfg.App.Network {
 	case "MAIN":
@@ -358,7 +362,6 @@ func (s *State) Init(filename string) {
 	default:
 		panic("Bad value for Network in factomd.conf")
 	}
-
 	s.Holding = make(map[[32]byte]interfaces.IMsg)
 	s.Acks = make(map[[32]byte]interfaces.IMsg)
 
