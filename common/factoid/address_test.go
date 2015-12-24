@@ -136,10 +136,7 @@ func TestAddressMisc(t *testing.T) {
 	}
 	add := CreateAddress(h)
 	str := add.String()
-	if strings.Contains(str, "addr") == false {
-		t.Error("String doesn't contain 'addr'")
-	}
 	if strings.Contains(str, "ec9f1cefa00406b80d46135a53504f1f4182d4c0f3fed6cca9281bc020eff973") == false {
-		t.Error("String doesn't contain an expected address")
+		t.Errorf("String doesn't contain an expected address:\n%v", str)
 	}
 }

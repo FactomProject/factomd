@@ -6,7 +6,7 @@ package messages_test
 
 import (
 	"github.com/FactomProject/factomd/common/constants"
-	//. "github.com/FactomProject/factomd/common/messages"
+	. "github.com/FactomProject/factomd/common/messages"
 	"testing"
 
 	"github.com/FactomProject/factomd/common/primitives"

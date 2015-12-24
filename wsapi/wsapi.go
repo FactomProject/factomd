@@ -115,7 +115,7 @@ func HandleGetRaw(ctx *web.Context, hashkey string) {
 	dbase := state.GetDB()
 
 	var b []byte
-	
+
 	// try to find the block data in db and return the first one found
 	if block, _ := dbase.FetchFBlockByKeyMR(h); block != nil {
 		b, _ = block.MarshalBinary()
@@ -241,6 +241,7 @@ func HandleEntryBlock(ctx *web.Context, hashkey string) {
 		}
 		if block == nil {
 			//TODO: Handle block not found
+			return
 		}
 	}
 
@@ -314,6 +315,7 @@ func HandleEntry(ctx *web.Context, hashkey string) {
 	}
 	if entry == nil {
 		//TODO: Handle block not found
+		return
 	}
 
 	e.ChainID = entry.GetChainIDHash().String()
@@ -357,6 +359,7 @@ func HandleChainHead(ctx *web.Context, hashkey string) {
 	}
 	if mr == nil {
 		//TODO: Handle block not found
+		return
 	}
 	c.ChainHead = mr.String()
 	if p, err := json.Marshal(c); err != nil {

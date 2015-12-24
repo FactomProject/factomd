@@ -28,5 +28,7 @@ func TestSignatureBlock(t *testing.T) {
 
 	s := sig.Signatures[0].(*FactoidSignature).Signature
 	valid := ed25519.VerifyCanonical(&pub2, testData, &s)
-	t.Errorf("Valid - %v", valid)
+	if valid == false {
+		t.Error("Invalid signature")
+	}
 }

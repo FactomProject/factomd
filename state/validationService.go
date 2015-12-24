@@ -48,6 +48,7 @@ func ValidationServiceLoop(input chan ValidationMsg) {
 	}
 
 	vs := new(ValidationState)
+	vs.FactoshisPerEC = 1
 	vs.FactoidBalances = map[[32]byte]int64{}
 	vs.ECBalances = map[[32]byte]int64{}
 
