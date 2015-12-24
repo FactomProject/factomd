@@ -136,9 +136,9 @@ func CreateTestAnchorEnry(dBlock *directoryBlock.DirectoryBlock) *entryBlock.Ent
 
 	ar := anchor.CreateAnchorRecordFromDBlock(dBlock)
 	ar.Bitcoin.Address = "1HLoD9E4SDFFPDiYfNYnkBLQ85Y51J3Zb1"
-	ar.Bitcoin.TXID = fmt.Sprintf("%x", intToByteSlice(int(height)))
+	ar.Bitcoin.TXID = fmt.Sprintf("%x", IntToByteSlice(int(height)))
 	ar.Bitcoin.BlockHeight = int32(height)
-	ar.Bitcoin.BlockHash = fmt.Sprintf("%x", intToByteSlice(255-int(height)))
+	ar.Bitcoin.BlockHash = fmt.Sprintf("%x", IntToByteSlice(255-int(height)))
 	ar.Bitcoin.Offset = int32(height % 10)
 
 	hex, err := ar.MarshalAndSign(NewPrimitivesPrivateKey(0))
