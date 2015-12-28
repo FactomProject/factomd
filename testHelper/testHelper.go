@@ -25,6 +25,7 @@ func CreateAndPopulateTestState() *state.State {
 	if err != nil {
 		panic(err)
 	}
+	s.FactoidState.SetFactoshisPerEC(1)
 	return s
 }
 

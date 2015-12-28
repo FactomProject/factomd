@@ -13,19 +13,19 @@ func CreateTestDirBlockInfo(prev *dbInfo.DirBlockInfo) *dbInfo.DirBlockInfo {
 	}
 	height := dbi.DBHeight
 
-	dbi.DBHash.UnmarshalBinary(intToByteSlice(int(height)))
+	dbi.DBHash.UnmarshalBinary(IntToByteSlice(int(height)))
 	dbi.Timestamp = int64(height)
-	dbi.BTCTxHash.UnmarshalBinary(intToByteSlice(int(height)))
+	dbi.BTCTxHash.UnmarshalBinary(IntToByteSlice(int(height)))
 	dbi.BTCTxOffset = int32(int(height))
 	dbi.BTCBlockHeight = int32(height)
-	dbi.BTCBlockHash.UnmarshalBinary(intToByteSlice(255 - int(height)))
-	dbi.DBMerkleRoot.UnmarshalBinary(intToByteSlice(255 - int(height)))
-	dbi.BTCConfirmed = height%2 == 0
+	dbi.BTCBlockHash.UnmarshalBinary(IntToByteSlice(255 - int(height)))
+	dbi.DBMerkleRoot.UnmarshalBinary(IntToByteSlice(255 - int(height)))
+	dbi.BTCConfirmed = height%2 == 1
 
 	return dbi
 }
 
-func intToByteSlice(n int) []byte {
+func IntToByteSlice(n int) []byte {
 	answer := make([]byte, 32)
 	for i := range answer {
 		answer[i] = byte(n)

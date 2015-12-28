@@ -50,7 +50,7 @@ func MnemonicStringToPrivateKeyString(mnemonic string) (string, error) {
 
 func HumanReadableFactoidPrivateKeyToPrivateKey(human string) ([]byte, error) {
 	human = strings.TrimSpace(human)
-	base, v1, v2, err := base58.CheckDecode(human)
+	base, v1, v2, err := base58.CheckDecodeWithTwoVersionBytes(human)
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +72,7 @@ func HumanReadableFactoidPrivateKeyToPrivateKeyString(human string) (string, err
 
 func HumanReadableECPrivateKeyToPrivateKey(human string) ([]byte, error) {
 	human = strings.TrimSpace(human)
-	base, v1, v2, err := base58.CheckDecode(human)
+	base, v1, v2, err := base58.CheckDecodeWithTwoVersionBytes(human)
 	if err != nil {
 		return nil, err
 	}
@@ -108,8 +108,7 @@ func PrivateKeyStringToHumanReadablePrivateKey(priv string, b1, b2 byte) (string
 		return "", err
 	}
 
-	return string(h), fmt.Errorf("Issue with base58")
-	//	return base58.CheckEncodeWithVersionBytes(h, b1, b2), nil
+	return base58.CheckEncodeWithVersionBytes(h, b1, b2), nil
 }
 
 /******************************************************************************/

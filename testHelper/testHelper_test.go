@@ -55,7 +55,8 @@ func Test(t *testing.T) {
 	t.Logf("set Height - %v", set.Height)
 }
 
+/*
 func TestAnchor(t *testing.T) {
 	anchor := CreateFirstAnchorEntry()
 	t.Errorf("%x", anchor.ChainID.Bytes())
-}
+}*/

@@ -145,3 +145,43 @@ func TestSaveLoadECBlockChain(t *testing.T) {
 		}
 	}
 }
+
+func TestLoadUnknownECBlocks(t *testing.T) {
+	dbo := NewOverlay(new(mapdb.MapDB))
+	defer dbo.Close()
+	for i := 0; i < 10; i++ {
+		b := IntToByteSlice(i)
+		hash, err := primitives.NewShaHash(b)
+		if err != nil {
+			t.Error(err)
+		}
+		data, err := dbo.FetchECBlockByHash(hash)
+		if err != nil {
+			t.Error(err)
+		}
+		if data != nil {
+			t.Error("Fetched entry while we expected nil - %v", data)
+		}
+		data, err = dbo.FetchECBlockByKeyMR(hash)
+		if err != nil {
+			t.Error(err)
+		}
+		if data != nil {
+			t.Error("Fetched entry while we expected nil - %v", data)
+		}
+		data, err = dbo.FetchECBlockHead()
+		if err != nil {
+			t.Error(err)
+		}
+		if data != nil {
+			t.Error("Fetched entry while we expected nil - %v", data)
+		}
+		all, err := dbo.FetchAllECBlocks()
+		if err != nil {
+			t.Error(err)
+		}
+		if len(all) != 0 {
+			t.Error("Fetched entries while we expected nil - %v", all)
+		}
+	}
+}

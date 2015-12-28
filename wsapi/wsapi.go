@@ -312,6 +312,7 @@ func HandleEntryBlock(ctx *web.Context, hashkey string) {
 		}
 		if block == nil {
 			//TODO: Handle block not found
+			return
 		}
 	}
 
@@ -385,6 +386,7 @@ func HandleEntry(ctx *web.Context, hashkey string) {
 	}
 	if entry == nil {
 		//TODO: Handle block not found
+		return
 	}
 
 	e.ChainID = entry.GetChainIDHash().String()

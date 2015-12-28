@@ -9,6 +9,7 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/database/blockExtractor"
 )
 
 // the "table" prefix
@@ -56,6 +57,15 @@ const (
 
 type Overlay struct {
 	DB interfaces.IDatabase
+
+	ExportData     bool
+	ExportDataPath string
+}
+
+func (db *Overlay) SetExportData(path string) {
+	db.ExportData = true
+	db.ExportDataPath = path
+	blockExtractor.DataStorePath = path
 }
 
 func (db *Overlay) PutInBatch(records []interfaces.Record) error {
@@ -194,6 +204,13 @@ func (db *Overlay) ProcessBlockBatch(blockBucket, numberBucket, secondaryIndexBu
 	err := db.DB.PutInBatch(batch)
 	if err != nil {
 		return err
+	}
+
+	if db.ExportData {
+		err = blockExtractor.ExportBlock(block)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

@@ -144,3 +144,43 @@ func TestSaveLoadDBlockChain(t *testing.T) {
 		}
 	}
 }
+
+func TestLoadUnknownDBlocks(t *testing.T) {
+	dbo := NewOverlay(new(mapdb.MapDB))
+	defer dbo.Close()
+	for i := 0; i < 10; i++ {
+		b := IntToByteSlice(i)
+		hash, err := primitives.NewShaHash(b)
+		if err != nil {
+			t.Error(err)
+		}
+		data, err := dbo.FetchDBlockByHash(hash)
+		if err != nil {
+			t.Error(err)
+		}
+		if data != nil {
+			t.Error("Fetched entry while we expected nil - %v", data)
+		}
+		data, err = dbo.FetchDBlockByKeyMR(hash)
+		if err != nil {
+			t.Error(err)
+		}
+		if data != nil {
+			t.Error("Fetched entry while we expected nil - %v", data)
+		}
+		data, err = dbo.FetchDirectoryBlockHead()
+		if err != nil {
+			t.Error(err)
+		}
+		if data != nil {
+			t.Error("Fetched entry while we expected nil - %v", data)
+		}
+		all, err := dbo.FetchAllDBlocks()
+		if err != nil {
+			t.Error(err)
+		}
+		if len(all) != 0 {
+			t.Error("Fetched entries while we expected nil - %v", all)
+		}
+	}
+}
