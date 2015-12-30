@@ -100,21 +100,17 @@ compile() {
     return $cerr
 }
 
-checkout FactomCode   $branch $default
+checkout factomd      $branch $default
 checkout btcd         $branch $default
-checkout factoid      $branch $default
 checkout fctwallet    $branch $default
+checkout walletapp    $branch $default
 checkout factom       $branch $default
 checkout factom-cli   $branch $default
 checkout Testing      $branch $default
-checkout btcrpcclient $branch $default
 checkout btcutil      $branch $default 
-checkout btcws        $branch $default
-checkout gobundle     $branch $default
 checkout goleveldb    $branch $default
 checkout FactomDocs   master  master
 checkout gocoding     master  master
-checkout btcjson      $branch $default
 checkout btclog       $branch $default
 checkout dynrsrc      $branch $default
 checkout ed25519      $branch $default
@@ -130,11 +126,11 @@ echo "
 *     Compiling fctwallet, the cli, and factomd
 ******************************************************** 
 "
-compile FactomCode/factomd   || exit 1
+compile factomd              || exit 1
 compile fctwallet            || exit 1
 compile factom-cli           || exit 1
 compile btcd/cmd/fctctl      || exit 1
-compile fctwallet/walletapp  || exit 1
+compile walletapp            || exit 1
 
 echo ""
 echo "
@@ -158,17 +154,10 @@ go test -short ./btcd/...
 
 echo "
 +================+
-|  FactomCode    |
+|  factomd   |
 +================+
 "
 go test -short  ./factomd/...
-
-echo "
-+================+
-|   factoids     |
-+================+
-"
-go test -short  ./factoid/...
 
 echo "
 +================+
@@ -183,6 +172,13 @@ echo "
 +================+
 "
 go test -short  ./fctwallet/...
+
+echo "
++================+
+|  Walletapp     |
++================+
+"
+go test -short  ./walletapp/...
 
 
 cd FactomCode

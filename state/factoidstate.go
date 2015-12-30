@@ -68,8 +68,9 @@ func (fs *FactoidState) AddTransactionBlock(blk interfaces.IFBlock) error {
 
 func (fs *FactoidState) AddECBlock(blk interfaces.IEntryCreditBlock) error {
 	transactions := blk.GetBody().GetEntries()
-
+	
 	for _, trans := range transactions {
+		fmt.Println(trans.String())
 		err := fs.UpdateECTransaction(trans)
 		if err != nil {
 			return err

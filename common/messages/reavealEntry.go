@@ -28,11 +28,7 @@ func (m *RevealEntryMsg) Process(interfaces.IState) {}
 
 func (m *RevealEntryMsg) GetHash() interfaces.IHash {
 	if m.hash == nil {
-		data, err := m.Entry.MarshalBinary()
-		if err != nil {
-			panic(fmt.Sprintf("Error in CommitChain.GetHash(): %s", err.Error()))
-		}
-		m.hash = primitives.Sha(data)
+		m.hash = m.Entry.GetHash()
 	}
 	return m.hash
 }
@@ -145,5 +141,5 @@ func (m *RevealEntryMsg) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *RevealEntryMsg) String() string {
-	return "RevealEntryMsg "+m.Timestamp.String()+m.Entry.GetHash().String()
+	return "RevealEntryMsg "+m.Timestamp.String()+" "+m.Entry.GetHash().String()
 }

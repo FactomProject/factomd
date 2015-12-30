@@ -139,6 +139,8 @@ func HandleRevealEntry(ctx *web.Context) {
 		}
 	}
 	
+	fmt.Println("Entry: ",entry.GetHash())
+	
 	state := ctx.Server.Env["state"].(interfaces.IState)
 	
 	msg := new(messages.RevealEntryMsg)

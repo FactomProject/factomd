@@ -373,9 +373,13 @@ func (s *State) Init(filename string) {
 		panic("No Database type specified")
 	}
 
+	fmt.Println("Add back SetExportData when factomd compiles again!")
+	
 	if cfg.App.ExportData {
-		s.DB.SetExportData(cfg.App.ExportDataSubpath)
+		// oooooooooooooooooooooooooooooooooooooooooooooooooooooooo
+		//		s.DB.SetExportData(cfg.App.ExportDataSubpath)
 	}
+	
 
 	//Network
 	switch cfg.App.Network {
@@ -451,6 +455,9 @@ func (s *State) loadDatabase() {
 		}
 
 		fBlocks, err := s.DB.FetchAllFBlocks()
+
+		fmt.Printf("Processing %d FBlocks\n",len(fBlocks))
+		
 		if err != nil {
 			panic(err.Error())
 		}
@@ -462,6 +469,9 @@ func (s *State) loadDatabase() {
 		if err != nil {
 			panic(err.Error())
 		}
+		
+		fmt.Printf("Processing %d ECBlocks\n",len(ecBlocks))
+		
 		for _, block := range ecBlocks {
 			s.EntryCreditBlock = block
 			s.GetFactoidState().AddECBlock(block)
@@ -592,18 +602,12 @@ func (s *State) CreateDBlock() (b interfaces.IDirectoryBlock, err error) {
 		s.EntryCreditBlock = eb
 	}
 
-	adminblk := s.NewAdminBlock()
-	keymr, err := adminblk.GetKeyMR()
-	if err != nil {
-		panic(err.Error())
-	}
 	b.SetDBEntries(make([]interfaces.IDBEntry, 0))
-	b.AddEntry(primitives.NewHash(constants.ADMIN_CHAINID), keymr)
-	if hash, err := s.EntryCreditBlock.HeaderHash(); err != nil {
-		return nil, err
-	} else {
-		b.AddEntry(primitives.NewHash(constants.EC_CHAINID), hash)
-	}
+	
+	s.CurrentAdminBlock = s.NewAdminBlock()
+	
+	b.AddEntry(primitives.NewHash(constants.ADMIN_CHAINID), primitives.NewZeroHash())
+	b.AddEntry(primitives.NewHash(constants.EC_CHAINID), primitives.NewZeroHash())
 	b.AddEntry(primitives.NewHash(constants.FACTOID_CHAINID), primitives.NewZeroHash())
 
 	return b, err
