@@ -8,8 +8,6 @@
 *~
 *.kate-swp
 *.orig
-BlockExtractor/
-database/blockExtractor/
 debug
 
 # Folders
@@ -32,6 +30,8 @@ _testmain.go
 
 *.exe
 *.test
+*.block
+*.entry
 
 .DS_Store
 
