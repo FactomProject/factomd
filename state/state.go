@@ -194,6 +194,7 @@ func (s *State) ProcessEndOfBlock() {
 	}
 
 	if previousECBlock != nil {
+		s.DB.ProcessECBlockBatch(previousECBlock)
 	}
 	
 	s.SetCurrentDirectoryBlock(db)
