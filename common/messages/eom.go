@@ -62,90 +62,6 @@ func (m *EOM) Bytes() []byte {
 	return append(ret, m.Minute)
 }
 
-func (m *EOM) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
-		}
-	}()
-	newData = data[1:]
-
-	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
-	if err != nil {
-		return nil, err
-	}
-
-	m.Minute, newData = newData[0], newData[1:]
-
-	if m.Minute < 0 || m.Minute >= 10 {
-		return nil, fmt.Errorf("Minute number is out of range")
-	}
-
-	m.DirectoryBlockHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
-
-	hash := new(primitives.Hash)
-	newData, err = hash.UnmarshalBinaryData(newData)
-	if err != nil {
-		return nil, err
-	}
-	m.IdentityChainID = hash
-
-	if len(newData) > 0 {
-		sig := new(primitives.Signature)
-		newData, err = sig.UnmarshalBinaryData(newData)
-		if err != nil {
-			return nil, err
-		}
-		m.Signature = sig
-	}
-
-	return data, nil
-}
-
-func (m *EOM) UnmarshalBinary(data []byte) error {
-	_, err := m.UnmarshalBinaryData(data)
-	return err
-}
-
-func (m *EOM) MarshalForSignature() (data []byte, err error) {
-	var buf bytes.Buffer
-	buf.Write([]byte{byte(m.Type())})
-	if d, err := m.Timestamp.MarshalBinary(); err != nil {
-		return nil, err
-	} else {
-		buf.Write(d)
-	}
-	binary.Write(&buf, binary.BigEndian, m.Minute)
-	binary.Write(&buf, binary.BigEndian, m.DirectoryBlockHeight)
-	hash, err := m.IdentityChainID.MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
-	buf.Write(hash)
-
-	return buf.Bytes(), nil
-}
-
-func (m *EOM) MarshalBinary() (data []byte, err error) {
-	resp, err := m.MarshalForSignature()
-	if err != nil {
-		return nil, err
-	}
-	sig := m.GetSignature()
-
-	if sig != nil {
-		sigBytes, err := sig.MarshalBinary()
-		if err != nil {
-			return nil, err
-		}
-		return append(resp, sigBytes...), nil
-	}
-	return resp, nil
-}
-
-func (m *EOM) String() string {
-	return fmt.Sprintf("EOM(%d), DirectoryBlockHeight(%d)", m.Minute+1, m.DirectoryBlockHeight)
-}
 
 func (m *EOM) Type() int {
 	return constants.EOM_MSG
@@ -244,18 +160,89 @@ func (m *EOM) VerifySignature() (bool, error) {
 	return VerifyMessage(m)
 }
 
-/**********************************************************************
- * Support
- **********************************************************************/
+func (m *EOM) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("Error unmarshalling: %v", r)
+		}
+	}()
+	newData = data[1:]
+	
+	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
+	if err != nil {
+		return nil, err
+	}
+	
+	m.Minute, newData = newData[0], newData[1:]
+	
+	if m.Minute < 0 || m.Minute >= 10 {
+		return nil, fmt.Errorf("Minute number is out of range")
+	}
+	
+	m.DirectoryBlockHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+	
+	hash := new(primitives.Hash)
+	newData, err = hash.UnmarshalBinaryData(newData)
+	if err != nil {
+		return nil, err
+	}
+	m.IdentityChainID = hash
+	
+	if len(newData) > 0 {
+		sig := new(primitives.Signature)
+		newData, err = sig.UnmarshalBinaryData(newData)
+		if err != nil {
+			return nil, err
+		}
+		m.Signature = sig
+	}
+	
+	return data, nil
+}
 
-func NewEOM(state interfaces.IState, minute int) interfaces.IMsg {
-	// The construction of the EOM message needs information from the state of
-	// the server to create the proper serial hashes and such.  Right now
-	// I am ignoring all of that.
-	eom := new(EOM)
-	eom.Minute = byte(minute)
-	eom.IdentityChainID = primitives.NewZeroHash()
-	return eom
+func (m *EOM) UnmarshalBinary(data []byte) error {
+	_, err := m.UnmarshalBinaryData(data)
+	return err
+}
+
+func (m *EOM) MarshalForSignature() (data []byte, err error) {
+	var buf bytes.Buffer
+	buf.Write([]byte{byte(m.Type())})
+	if d, err := m.Timestamp.MarshalBinary(); err != nil {
+		return nil, err
+	} else {
+		buf.Write(d)
+	}
+	binary.Write(&buf, binary.BigEndian, m.Minute)
+	binary.Write(&buf, binary.BigEndian, m.DirectoryBlockHeight)
+	hash, err := m.IdentityChainID.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	buf.Write(hash)
+	
+	return buf.Bytes(), nil
+}
+
+func (m *EOM) MarshalBinary() (data []byte, err error) {
+	resp, err := m.MarshalForSignature()
+	if err != nil {
+		return nil, err
+	}
+	sig := m.GetSignature()
+	
+	if sig != nil {
+		sigBytes, err := sig.MarshalBinary()
+		if err != nil {
+			return nil, err
+		}
+		return append(resp, sigBytes...), nil
+	}
+	return resp, nil
+}
+
+func (m *EOM) String() string {
+	return fmt.Sprintf("EOM(%d), DirectoryBlockHeight(%d)", m.Minute+1, m.DirectoryBlockHeight)
 }
 
 // EOM methods that conform to the Message interface.
@@ -267,11 +254,11 @@ func (msg *EOM) BtcEncode(w io.Writer, pver uint32) error {
 	if err != nil {
 		return err
 	}
-
+	
 	if err := writeVarBytes(w, pver, bytes); err != nil {
 		return err
 	}
-
+	
 	return nil
 }
 
@@ -282,11 +269,11 @@ func (msg *EOM) BtcDecode(r io.Reader, pver uint32) error {
 	if err != nil {
 		return err
 	}
-
+	
 	if err := msg.UnmarshalBinary(bytes); err != nil {
 		return err
 	}
-
+	
 	return nil
 }
 
@@ -311,11 +298,27 @@ func (msg *EOM) IsValid() bool {
 
 // Create a sha hash from the message binary (output of BtcEncode)
 func (msg *EOM) Sha() (interfaces.IHash, error) {
-
+	
 	buf := bytes.NewBuffer(nil)
 	msg.BtcEncode(buf, ProtocolVersion)
 	var sha interfaces.IHash
 	_ = sha.SetBytes(Sha256(buf.Bytes()))
-
+	
 	return sha, nil
 }
+
+
+/**********************************************************************
+ * Support
+ **********************************************************************/
+
+func NewEOM(state interfaces.IState, minute int) interfaces.IMsg {
+	// The construction of the EOM message needs information from the state of
+	// the server to create the proper serial hashes and such.  Right now
+	// I am ignoring all of that.
+	eom := new(EOM)
+	eom.Minute = byte(minute)
+	eom.IdentityChainID = primitives.NewZeroHash()
+	return eom
+}
+

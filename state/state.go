@@ -184,13 +184,18 @@ func (s *State) Sign([]byte) interfaces.IFullSignature {
 // to validate the signatures we will get with the DirectoryBlockSignature messages.
 func (s *State) ProcessEndOfBlock() {
 	s.PreviousDirectoryBlock = s.CurrentDirectoryBlock
+	previousECBlock := s.GetCurrentEntryCreditBlock()
+	
 	s.FactoidState.ProcessEndOfBlock(s) // Clean up Factoids
-
+	
 	db, err := s.CreateDBlock()
 	if err != nil {
 		panic("Failed to create a Directory Block")
 	}
 
+	if previousECBlock != nil {
+	}
+	
 	s.SetCurrentDirectoryBlock(db)
 
 	if s.PreviousDirectoryBlock != nil {
@@ -372,12 +377,9 @@ func (s *State) Init(filename string) {
 	default:
 		panic("No Database type specified")
 	}
-
-	fmt.Println("Add back SetExportData when factomd compiles again!")
 	
 	if cfg.App.ExportData {
-		// oooooooooooooooooooooooooooooooooooooooooooooooooooooooo
-		//		s.DB.SetExportData(cfg.App.ExportDataSubpath)
+		s.DB.SetExportData(cfg.App.ExportDataSubpath)
 	}
 	
 
