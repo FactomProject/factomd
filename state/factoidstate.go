@@ -119,9 +119,6 @@ func (fs *FactoidState) AddTransaction(index int, trans interfaces.ITransaction)
 }
 
 func (fs *FactoidState) GetFactoidBalance(address [32]byte) int64 {
-	if fs.ValidationService == nil {
-		fs.ValidationService = NewValidationService()
-	}
 	var vm ValidationMsg
 	vm.MessageType = MessageTypeGetFactoidBalance
 	vm.Address = address
@@ -133,9 +130,6 @@ func (fs *FactoidState) GetFactoidBalance(address [32]byte) int64 {
 }
 
 func (fs *FactoidState) GetECBalance(address [32]byte) int64 {
-	if fs.ValidationService == nil {
-		fs.ValidationService = NewValidationService()
-	}
 	var vm ValidationMsg
 	vm.MessageType = MessageTypeGetECBalance
 	vm.Address = address
@@ -147,18 +141,12 @@ func (fs *FactoidState) GetECBalance(address [32]byte) int64 {
 }
 
 func (fs *FactoidState) ResetBalances() {
-	if fs.ValidationService == nil {
-		fs.ValidationService = NewValidationService()
-	}
 	var vm ValidationMsg
 	vm.MessageType = MessageTypeResetBalances
 	fs.ValidationService <- vm
 }
 
 func (fs *FactoidState) UpdateECTransaction(trans interfaces.IECBlockEntry) error {
-	if fs.ValidationService == nil {
-		fs.ValidationService = NewValidationService()
-	}
 	var vm ValidationMsg
 	vm.MessageType = MessageTypeUpdateTransaction
 	vm.ECTransaction = trans
@@ -196,9 +184,6 @@ func (fs *FactoidState) UpdateECTransaction(trans interfaces.IECBlockEntry) erro
 
 // Assumes validation has already been done.
 func (fs *FactoidState) UpdateTransaction(trans interfaces.ITransaction) error {
-	if fs.ValidationService == nil {
-		fs.ValidationService = NewValidationService()
-	}
 	var vm ValidationMsg
 	vm.MessageType = MessageTypeUpdateTransaction
 	vm.Transaction = trans
@@ -248,9 +233,7 @@ func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
 // Returns an error message about what is wrong with the transaction if it is
 // invalid, otherwise you are good to go.
 func (fs *FactoidState) ValidateEC(trans interfaces.IECBlockEntry) error {
-	if fs.ValidationService == nil {
-		fs.ValidationService = NewValidationService()
-	}
+	
 	var vm ValidationMsg
 	vm.MessageType = MessageTypeValidate
 	vm.ECTransaction = trans
@@ -273,9 +256,6 @@ func (fs *FactoidState) Validate(index int, trans interfaces.ITransaction) error
 		return err
 	}
 
-	if fs.ValidationService == nil {
-		fs.ValidationService = NewValidationService()
-	}
 	var vm ValidationMsg
 	vm.MessageType = MessageTypeValidate
 	vm.Transaction = trans
@@ -291,9 +271,6 @@ func (fs *FactoidState) Validate(index int, trans interfaces.ITransaction) error
 }
 
 func (fs *FactoidState) GetFactoshisPerEC() uint64 {
-	if fs.ValidationService == nil {
-		fs.ValidationService = NewValidationService()
-	}
 	var vm ValidationMsg
 	vm.MessageType = MessageTypeGetFactoshisPerEC
 	c := make(chan ValidationResponseMsg)
@@ -304,9 +281,6 @@ func (fs *FactoidState) GetFactoshisPerEC() uint64 {
 }
 
 func (fs *FactoidState) SetFactoshisPerEC(factoshisPerEC uint64) {
-	if fs.ValidationService == nil {
-		fs.ValidationService = NewValidationService()
-	}
 	var vm ValidationMsg
 	vm.FactoshisPerEC = factoshisPerEC
 	vm.MessageType = MessageTypeSetFactoshisPerEC

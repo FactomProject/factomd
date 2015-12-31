@@ -234,9 +234,6 @@ func (s *State) SetCurrentAdminBlock(adblock interfaces.IAdminBlock) {
 }
 
 func (s *State) GetFactoidState() interfaces.IFactoidState {
-	if s.FactoidState == nil {
-		s.FactoidState = new(FactoidState)
-	}
 	return s.FactoidState
 }
 
@@ -349,9 +346,14 @@ func (s *State) Init(filename string) {
 	s.inMsgQueue = make(chan interfaces.IMsg, 10000)             //incoming message queue for factom application messages
 	s.leaderInMsgQueue = make(chan interfaces.IMsg, 10000)       //Leader Messages
 	s.followerInMsgQueue = make(chan interfaces.IMsg, 10000)     //Follower Messages
-
+	
 	s.TotalServers = 1
 
+	// Setup the FactoidState and Validation Service that holds factoid and entry credit balances
+	fs := new(FactoidState)
+	fs.ValidationService = NewValidationService()
+	s.FactoidState = fs
+	
 	switch cfg.App.NodeMode {
 	case "FULL":
 		s.ServerState = 0

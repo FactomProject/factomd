@@ -2,10 +2,14 @@ package state
 
 import (
 	"fmt"
+	"runtime/debug"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 )
+
+var _ = fmt.Println
+var _ = debug.PrintStack
 
 func NewValidationService() chan ValidationMsg {
 	c := make(chan ValidationMsg)
@@ -122,7 +126,6 @@ func ValidationServiceLoop(input chan ValidationMsg) {
 					t := trans.(*entryCreditBlock.CommitChain)
 					vs.ECBalances[t.ECPubKey.Fixed()] = vs.ECBalances[t.ECPubKey.Fixed()] - int64(t.Credits)
 					vs.NumTransactions++
-
 					msg.ReturnChannel <- resp
 					break
 
