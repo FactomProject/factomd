@@ -11,6 +11,8 @@ import (
 	"net"
 	"strings"
 	"time"
+	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 // MaxUserAgentLen is the maximum allowed length for the user agent field in a
@@ -287,4 +289,206 @@ func (msg *MsgVersion) AddUserAgent(name string, version string,
 	}
 	msg.UserAgent = newUserAgent
 	return nil
+}
+
+var _ interfaces.IMsg = (*MsgVersion)(nil)
+
+func (m *MsgVersion) Process(interfaces.IState) {}
+
+func (m *MsgVersion) GetHash() interfaces.IHash {
+  return nil
+}
+
+func (m *MsgVersion) GetTimestamp() interfaces.Timestamp {
+  return 0
+}
+
+func (m *MsgVersion) Type() int {
+  return -1
+}
+
+func (m *MsgVersion) Int() int {
+  return -1
+}
+
+func (m *MsgVersion) Bytes() []byte {
+  return nil
+}
+
+func (msg *MsgVersion) UnmarshalBinaryData(data []byte) (newdata []byte, err error) {
+	buf := bytes.NewBuffer(data)
+	var pver uint32
+	var sec int64
+	err = readElements(buf, &msg.ProtocolVersion, &msg.Services, &sec)
+	if err != nil {
+		return
+	}
+	msg.Timestamp = time.Unix(sec, 0)
+
+	err = readNetAddress(buf, pver, &msg.AddrYou, false)
+	if err != nil {
+		return
+	}
+
+	// Protocol versions >= 106 added a from address, nonce, and user agent
+	// field and they are only considered present if there are bytes
+	// remaining in the message.
+	if buf.Len() > 0 {
+		err = readNetAddress(buf, pver, &msg.AddrMe, false)
+		if err != nil {
+			return
+		}
+	}
+	if buf.Len() > 0 {
+		err = readElement(buf, &msg.Nonce)
+		if err != nil {
+			return
+		}
+	}
+	if buf.Len() > 0 {
+		var userAgent string
+		userAgent, err = readVarString(buf, pver)
+		if err != nil {
+			return
+		}
+		err = validateUserAgent(userAgent)
+		if err != nil {
+			return
+		}
+		msg.UserAgent = userAgent
+	}
+
+	// Protocol versions >= 209 added a last known block field.  It is only
+	// considered present if there are bytes remaining in the message.
+	if buf.Len() > 0 {
+		err = readElement(buf, &msg.LastBlock)
+		if err != nil {
+			return
+		}
+	}
+
+	// There was no relay transactions field before BIP0037Version, but
+	// the default behavior prior to the addition of the field was to always
+	// relay transactions.
+	if buf.Len() > 0 {
+		// It's safe to ignore the error here since the buffer has at
+		// least one byte and that byte will result in a boolean value
+		// regardless of its value.  Also, the wire encoding for the
+		// field is true when transactions should be relayed, so reverse
+		// it for the DisableRelayTx field.
+		var relayTx bool
+		readElement(buf, &relayTx)
+		msg.DisableRelayTx = !relayTx
+	}
+
+  return nil, nil
+}
+
+func (m *MsgVersion) UnmarshalBinary(data []byte) error {
+  _, err := m.UnmarshalBinaryData(data)
+  return err
+}
+
+func (msg *MsgVersion) MarshalBinary() (data []byte, err error) {
+	err = validateUserAgent(msg.UserAgent)
+	if err != nil {
+		return
+	}
+
+	var pver uint32
+	buf := bytes.NewBuffer(make([]byte, 0, msg.MaxPayloadLength(pver)))
+	err = writeElements(buf, msg.ProtocolVersion, msg.Services,
+		msg.Timestamp.Unix())
+	if err != nil {
+		return
+	}
+
+	err = writeNetAddress(buf, pver, &msg.AddrYou, false)
+	if err != nil {
+		return
+	}
+
+	err = writeNetAddress(buf, pver, &msg.AddrMe, false)
+	if err != nil {
+		return
+	}
+
+	err = writeElement(buf, msg.Nonce)
+	if err != nil {
+		return
+	}
+
+	err = writeVarString(buf, pver, msg.UserAgent)
+	if err != nil {
+		return
+	}
+
+	err = writeElement(buf, msg.LastBlock)
+	if err != nil {
+		return
+	}
+
+	err = writeElement(buf, !msg.DisableRelayTx)
+	if err != nil {
+		return
+	}
+	return buf.Bytes(), nil
+}
+
+func (m *MsgVersion) MarshalForSignature() (data []byte, err error) {
+  return nil, nil
+}
+
+func (m *MsgVersion) String() string {
+  return ""
+}
+
+// Validate the message, given the state.  Three possible results:
+//  < 0 -- MsgVersion is invalid.  Discard
+//  0   -- Cannot tell if message is Valid
+//  1   -- MsgVersion is valid
+func (m *MsgVersion) Validate(interfaces.IState) int {
+  return 0
+}
+
+// Returns true if this is a message for this server to execute as
+// a leader.
+func (m *MsgVersion) Leader(state interfaces.IState) bool {
+switch state.GetNetworkNumber() {
+case 0: // Main Network
+  panic("Not implemented yet")
+case 1: // Test Network
+  panic("Not implemented yet")
+case 2: // Local Network
+  panic("Not implemented yet")
+default:
+  panic("Not implemented yet")
+}
+
+}
+
+// Execute the leader functions of the given message
+func (m *MsgVersion) LeaderExecute(state interfaces.IState) error {
+  return nil
+}
+
+// Returns true if this is a message for this server to execute as a follower
+func (m *MsgVersion) Follower(interfaces.IState) bool {
+  return true
+}
+
+func (m *MsgVersion) FollowerExecute(interfaces.IState) error {
+  return nil
+}
+
+func (e *MsgVersion) JSONByte() ([]byte, error) {
+  return primitives.EncodeJSON(e)
+}
+
+func (e *MsgVersion) JSONString() (string, error) {
+  return primitives.EncodeJSONString(e)
+}
+
+func (e *MsgVersion) JSONBuffer(b *bytes.Buffer) error {
+  return primitives.EncodeJSONToBuffer(e, b)
 }
