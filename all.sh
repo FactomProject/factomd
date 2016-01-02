@@ -101,7 +101,6 @@ compile() {
 }
 
 checkout factomd      $branch $default
-checkout btcd         $branch $default
 checkout fctwallet    $branch $default
 checkout walletapp    $branch $default
 checkout factom       $branch $default
@@ -145,13 +144,6 @@ echo "
 *
 *******************************************************
 "
-echo "
-+================+
-|     btcd       |
-+================+
-"
-go test -short ./btcd/...
-
 echo "
 +================+
 |  factomd   |
