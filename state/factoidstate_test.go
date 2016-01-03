@@ -13,8 +13,12 @@ import (
 	"testing"
 )
 
+var state interfaces.IFactoidState
+
 func TestBalances(t *testing.T) {
-	state := new(FactoidState)
+	s := new(State)
+	s.Init("")
+	state = s.GetFactoidState()
 	state.SetFactoshisPerEC(1)
 	add1, err := primitives.HexToHash("0000000000000000000000000000000000000000000000000000000000000001")
 	if err != nil {
@@ -136,16 +140,17 @@ func TestBalances(t *testing.T) {
 }
 
 func TestUpdateECTransaction(t *testing.T) {
-	state := new(FactoidState)
 	state.SetFactoshisPerEC(1)
 	add1, err := primitives.HexToHash("0000000000000000000000000000000000000000000000000000000000000001")
 	if err != nil {
 		t.Error(err)
+		return
 	}
 	add1bs := primitives.StringToByteSlice32("0000000000000000000000000000000000000000000000000000000000000001")
 
 	if state.GetECBalance(add1.Fixed()) != 0 {
 		t.Errorf("Invalid address balance - %v", state.GetECBalance(add1.Fixed()))
+		return
 	}
 
 	var tx interfaces.IECBlockEntry
@@ -154,6 +159,7 @@ func TestUpdateECTransaction(t *testing.T) {
 	err = state.UpdateECTransaction(tx)
 	if err != nil {
 		t.Error(err)
+		return
 	}
 	if state.GetECBalance(add1.Fixed()) != 0 {
 		t.Errorf("Invalid address balance - %v", state.GetECBalance(add1.Fixed()))
@@ -164,9 +170,11 @@ func TestUpdateECTransaction(t *testing.T) {
 	err = state.UpdateECTransaction(tx)
 	if err != nil {
 		t.Error(err)
+		return
 	}
 	if state.GetECBalance(add1.Fixed()) != 0 {
 		t.Errorf("Invalid address balance - %v", state.GetECBalance(add1.Fixed()))
+		return
 	}
 
 	//Proper processing
@@ -178,9 +186,11 @@ func TestUpdateECTransaction(t *testing.T) {
 	err = state.UpdateECTransaction(tx)
 	if err != nil {
 		t.Error(err)
+		return
 	}
 	if state.GetECBalance(add1.Fixed()) != -100 {
 		t.Errorf("Invalid address balance - %v", state.GetECBalance(add1.Fixed()))
+		return
 	}
 
 	ib := new(entryCreditBlock.IncreaseBalance)
@@ -191,9 +201,11 @@ func TestUpdateECTransaction(t *testing.T) {
 	err = state.UpdateECTransaction(tx)
 	if err != nil {
 		t.Error(err)
+		return
 	}
 	if state.GetECBalance(add1.Fixed()) != 0 {
 		t.Errorf("Invalid address balance - %v", state.GetECBalance(add1.Fixed()))
+		return
 	}
 
 	ce := new(entryCreditBlock.CommitEntry)
@@ -204,9 +216,11 @@ func TestUpdateECTransaction(t *testing.T) {
 	err = state.UpdateECTransaction(tx)
 	if err != nil {
 		t.Error(err)
+		return
 	}
 	if state.GetECBalance(add1.Fixed()) != -100 {
 		t.Errorf("Invalid address balance - %v", state.GetECBalance(add1.Fixed()))
+		return
 	}
 
 }
