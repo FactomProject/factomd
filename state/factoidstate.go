@@ -8,6 +8,7 @@
 package state
 
 import (
+	"runtime/debug"
 	"fmt"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
@@ -148,6 +149,10 @@ func (fs *FactoidState) ResetBalances() {
 
 func (fs *FactoidState) UpdateECTransaction(trans interfaces.IECBlockEntry) error {
 	var vm ValidationMsg
+	
+	fmt.Println("Here000000000000000000000000000000000000")
+	debug.PrintStack()
+	
 	vm.MessageType = MessageTypeUpdateTransaction
 	vm.ECTransaction = trans
 	c := make(chan ValidationResponseMsg)

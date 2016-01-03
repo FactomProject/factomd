@@ -54,6 +54,7 @@ type State struct {
 	FedServers      []interfaces.IServer   // List of Federated Servers
 	ServerOrder     [][]interfaces.IServer // 10 lists for Server Order for each minute
 	ProcessList     [][]interfaces.IMsg    // List of Processed Messages Per server
+	PLHeight        []int                  // Process List Height (for processing lists)
 	AuditHeartBeats []interfaces.IMsg      // The checklist of HeartBeats for this period
 	FedServerFaults [][]interfaces.IMsg    // Keep a fault list for every server
 
@@ -107,6 +108,27 @@ func (s *State) MatchAckFollowerExecute(m interfaces.IMsg) error {
 	}	
 	return nil
 }
+
+// Run through the process lists, and update the state as required by
+// any new entries.  In the near future, we will want to have this in a 
+// "temp" state, that we push to the regular state at the end of 10 minutes.
+// But for now, we will just update.
+//
+// This routine can only be called by the Follower goroutine.
+func (s *State) UpdateProcessLists() {
+	for i := 0; i < len(s.GetProcessList());i++ {
+		plist := s.GetProcessList()[i]
+		for j := s.PLHeight[i]; j < len(plist);j++ {
+			fmt.Println("UpdatePL: ",j)
+			if plist[j] == nil {
+				break
+			}
+			plist[j].Process(s)			// Process this entry
+			s.PLHeight[i]=j+1			//   and don't process it again.
+		}
+	}
+}
+
 
 func (s *State) GetCurrentEntryCreditBlock() interfaces.IEntryCreditBlock {
 	return s.EntryCreditBlock
@@ -207,6 +229,9 @@ func (s *State) ProcessEndOfBlock() {
 	} else {
 		log.Println("No old db")
 	}
+	
+	s.ProcessList = make([][]interfaces.IMsg, 1)
+	
 }
 
 func (s *State) GetEntryCreditBlock() interfaces.IEntryCreditBlock {
@@ -405,11 +430,16 @@ func (s *State) Init(filename string) {
 	s.AuditServers = make([]interfaces.IServer, 0)
 	s.FedServers = make([]interfaces.IServer, 0)
 	s.ServerOrder = make([][]interfaces.IServer, 0)
+	
 	s.ProcessList = make([][]interfaces.IMsg, 1)
+	s.PLHeight = make([]int,1)
+	
 	s.AuditHeartBeats = make([]interfaces.IMsg, 0)
 	s.FedServerFaults = make([][]interfaces.IMsg, 0)
+	
 	s.loadDatabase()
 	s.initServerKeys()
+	
 	anchor.InitAnchor(s)
 }
 
