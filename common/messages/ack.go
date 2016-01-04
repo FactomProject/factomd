@@ -91,15 +91,8 @@ func (m *Ack) FollowerExecute(state interfaces.IState) error {
 		delete(acks, m.GetHash().Fixed())
 	}
 
-	for _, plist := range state.GetProcessList() {
-		for _, p := range plist {
-			if p == nil {
-				break
-			}
-			p.Process(state)
-		}
-	}
-
+	state.UpdateProcessLists()
+	
 	return nil
 }
 
