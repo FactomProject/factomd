@@ -18,6 +18,8 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
+var _ = debug.PrintStack
+
 var FACTOID_CHAINID_HASH = primitives.NewHash(constants.FACTOID_CHAINID)
 
 type FactoidState struct {
@@ -149,10 +151,7 @@ func (fs *FactoidState) ResetBalances() {
 
 func (fs *FactoidState) UpdateECTransaction(trans interfaces.IECBlockEntry) error {
 	var vm ValidationMsg
-	
-	fmt.Println("Here000000000000000000000000000000000000")
-	debug.PrintStack()
-	
+		
 	vm.MessageType = MessageTypeUpdateTransaction
 	vm.ECTransaction = trans
 	c := make(chan ValidationResponseMsg)

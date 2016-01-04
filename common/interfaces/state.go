@@ -88,6 +88,7 @@ type IState interface {
 	
 	// Server Methods
 	// ==============
+	UpdateProcessLists()
 	ProcessEndOfBlock()
 
 	// Web Services

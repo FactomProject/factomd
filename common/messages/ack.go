@@ -88,7 +88,7 @@ func (m *Ack) FollowerExecute(state interfaces.IState) error {
 		}
 		processlist[m.Height] = msg
 		state.GetProcessList()[m.ServerIndex] = processlist
-		delete(acks, m.GetHash().Fixed())
+		delete(holding, m.MessageHash.Fixed())
 	}
 
 	state.UpdateProcessLists()
