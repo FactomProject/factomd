@@ -463,7 +463,11 @@ func (s *State) loadDatabase() {
 
 		s.SetCurrentDirectoryBlock(dblk)
 
-		s.FactoidState = new(FactoidState)
+		if s.FactoidState == nil {
+			fs := new(FactoidState)
+			fs.ValidationService = NewValidationService()
+			s.FactoidState = fs
+		}
 		if err := s.FactoidState.AddTransactionBlock(fblk); err != nil {
 			panic("Failed to initialize Factoids: " + err.Error())
 		}

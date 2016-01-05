@@ -136,7 +136,6 @@ func TestBalances(t *testing.T) {
 	if state.GetECBalance(add3.Fixed()) != 0 {
 		t.Errorf("Invalid address balance - %v", state.GetECBalance(add3.Fixed()))
 	}
-
 }
 
 func TestUpdateECTransaction(t *testing.T) {

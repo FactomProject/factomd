@@ -30,6 +30,8 @@ func Test_Replay(test *testing.T) {
 
 	h := make([]*mh, XTrans)
 
+	start:=now
+
 	for i := 0; i < XTrans; i++ {
 
 		// We are going to remember some large set of transactions.
@@ -67,6 +69,6 @@ func Test_Replay(test *testing.T) {
 		}
 	}
 
-	fmt.Println("Simulation ran from", time.Now(), "to", time.Unix(now, 0))
+	fmt.Println("Simulation ran from", time.Unix(start, 0), "to", time.Unix(now, 0))
 
 }
