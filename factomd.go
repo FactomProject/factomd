@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"github.com/FactomProject/factomd/btcd"
 	"github.com/FactomProject/factomd/btcd/limits"
-	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/wsapi"
 	"os"
@@ -25,7 +25,7 @@ import (
 // Build sets the factomd build id using git's SHA
 // by compiling factomd with: -ldflags "-X main.Build=<build sha1>"
 // e.g. get  the short version of the sha1 of your latest commit by running
-// $ git rev-parse --short HEAD 
+// $ git rev-parse --short HEAD
 // $ go install -ldflags "-X main.Build=6c10244"
 var Build string
 
@@ -90,7 +90,6 @@ func main() {
 	<-shutdownChannel
 	log.Printf("Shutdown complete")
 }
-
 
 func isCompilerVersionOK() bool {
 	goodenough := false

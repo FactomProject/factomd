@@ -138,44 +138,44 @@ var _ interfaces.IMsg = (*MsgGetDirData)(nil)
 func (m *MsgGetDirData) Process(interfaces.IState) {}
 
 func (m *MsgGetDirData) GetHash() interfaces.IHash {
-  return nil
+	return nil
 }
 
 func (m *MsgGetDirData) GetTimestamp() interfaces.Timestamp {
-  return 0
+	return 0
 }
 
 func (m *MsgGetDirData) Type() int {
-  return -1
+	return -1
 }
 
 func (m *MsgGetDirData) Int() int {
-  return -1
+	return -1
 }
 
 func (m *MsgGetDirData) Bytes() []byte {
-  return nil
+	return nil
 }
 
 func (m *MsgGetDirData) UnmarshalBinaryData(data []byte) (newdata []byte, err error) {
-  return nil, nil
+	return nil, nil
 }
 
 func (m *MsgGetDirData) UnmarshalBinary(data []byte) error {
-  _, err := m.UnmarshalBinaryData(data)
-  return err
+	_, err := m.UnmarshalBinaryData(data)
+	return err
 }
 
 func (m *MsgGetDirData) MarshalBinary() (data []byte, err error) {
-  return nil, nil
+	return nil, nil
 }
 
 func (m *MsgGetDirData) MarshalForSignature() (data []byte, err error) {
-  return nil, nil
+	return nil, nil
 }
 
 func (m *MsgGetDirData) String() string {
-  return ""
+	return ""
 }
 
 // Validate the message, given the state.  Three possible results:
@@ -183,47 +183,47 @@ func (m *MsgGetDirData) String() string {
 //  0   -- Cannot tell if message is Valid
 //  1   -- MsgGetDirData is valid
 func (m *MsgGetDirData) Validate(interfaces.IState) int {
-  return 0
+	return 0
 }
 
 // Returns true if this is a message for this server to execute as
 // a leader.
 func (m *MsgGetDirData) Leader(state interfaces.IState) bool {
-switch state.GetNetworkNumber() {
-case 0: // Main Network
-  panic("Not implemented yet")
-case 1: // Test Network
-  panic("Not implemented yet")
-case 2: // Local Network
-  panic("Not implemented yet")
-default:
-  panic("Not implemented yet")
-}
+	switch state.GetNetworkNumber() {
+	case 0: // Main Network
+		panic("Not implemented yet")
+	case 1: // Test Network
+		panic("Not implemented yet")
+	case 2: // Local Network
+		panic("Not implemented yet")
+	default:
+		panic("Not implemented yet")
+	}
 
 }
 
 // Execute the leader functions of the given message
 func (m *MsgGetDirData) LeaderExecute(state interfaces.IState) error {
-  return nil
+	return nil
 }
 
 // Returns true if this is a message for this server to execute as a follower
 func (m *MsgGetDirData) Follower(interfaces.IState) bool {
-  return true
+	return true
 }
 
 func (m *MsgGetDirData) FollowerExecute(interfaces.IState) error {
-  return nil
+	return nil
 }
 
 func (e *MsgGetDirData) JSONByte() ([]byte, error) {
-  return primitives.EncodeJSON(e)
+	return primitives.EncodeJSON(e)
 }
 
 func (e *MsgGetDirData) JSONString() (string, error) {
-  return primitives.EncodeJSONString(e)
+	return primitives.EncodeJSONString(e)
 }
 
 func (e *MsgGetDirData) JSONBuffer(b *bytes.Buffer) error {
-  return primitives.EncodeJSONToBuffer(e, b)
+	return primitives.EncodeJSONToBuffer(e, b)
 }

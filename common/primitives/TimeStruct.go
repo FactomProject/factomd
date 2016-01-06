@@ -4,13 +4,12 @@
 
 package primitives
 
-// This structure watches the time, and tosses stuff that hasn't settled within the 
-// time limits (with some room for error).  Also 
+// This structure watches the time, and tosses stuff that hasn't settled within the
+// time limits (with some room for error).  Also
 
-import (
-	
-)
-// We only allow timestamps that are +/- 12 hours.  But followers need to keep 
+import ()
+
+// We only allow timestamps that are +/- 12 hours.  But followers need to keep
 // structures anyway.  So we are conservative, and allow +/- 13 hours
 const (
 	period = 13
@@ -19,12 +18,12 @@ const (
 type hash2obj map[[32]byte]interface{}
 
 type TimeStruct struct {
-	values [period*2]*hash2obj
+	values [period * 2]*hash2obj
 	time   int64
 }
 
 func (ts *TimeStruct) Init(time int64) {
-	for i:=0; i<period*2; i++ {
+	for i := 0; i < period*2; i++ {
 		ts.values[i] = new(hash2obj)
 	}
 }

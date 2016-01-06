@@ -138,44 +138,44 @@ var _ interfaces.IMsg = (*MsgGetEntryData)(nil)
 func (m *MsgGetEntryData) Process(interfaces.IState) {}
 
 func (m *MsgGetEntryData) GetHash() interfaces.IHash {
-  return nil
+	return nil
 }
 
 func (m *MsgGetEntryData) GetTimestamp() interfaces.Timestamp {
-  return 0
+	return 0
 }
 
 func (m *MsgGetEntryData) Type() int {
-  return -1
+	return -1
 }
 
 func (m *MsgGetEntryData) Int() int {
-  return -1
+	return -1
 }
 
 func (m *MsgGetEntryData) Bytes() []byte {
-  return nil
+	return nil
 }
 
 func (m *MsgGetEntryData) UnmarshalBinaryData(data []byte) (newdata []byte, err error) {
-  return nil, nil
+	return nil, nil
 }
 
 func (m *MsgGetEntryData) UnmarshalBinary(data []byte) error {
-  _, err := m.UnmarshalBinaryData(data)
-  return err
+	_, err := m.UnmarshalBinaryData(data)
+	return err
 }
 
 func (m *MsgGetEntryData) MarshalBinary() (data []byte, err error) {
-  return nil, nil
+	return nil, nil
 }
 
 func (m *MsgGetEntryData) MarshalForSignature() (data []byte, err error) {
-  return nil, nil
+	return nil, nil
 }
 
 func (m *MsgGetEntryData) String() string {
-  return ""
+	return ""
 }
 
 // Validate the message, given the state.  Three possible results:
@@ -183,47 +183,47 @@ func (m *MsgGetEntryData) String() string {
 //  0   -- Cannot tell if message is Valid
 //  1   -- MsgGetEntryData is valid
 func (m *MsgGetEntryData) Validate(interfaces.IState) int {
-  return 0
+	return 0
 }
 
 // Returns true if this is a message for this server to execute as
 // a leader.
 func (m *MsgGetEntryData) Leader(state interfaces.IState) bool {
-switch state.GetNetworkNumber() {
-case 0: // Main Network
-  panic("Not implemented yet")
-case 1: // Test Network
-  panic("Not implemented yet")
-case 2: // Local Network
-  panic("Not implemented yet")
-default:
-  panic("Not implemented yet")
-}
+	switch state.GetNetworkNumber() {
+	case 0: // Main Network
+		panic("Not implemented yet")
+	case 1: // Test Network
+		panic("Not implemented yet")
+	case 2: // Local Network
+		panic("Not implemented yet")
+	default:
+		panic("Not implemented yet")
+	}
 
 }
 
 // Execute the leader functions of the given message
 func (m *MsgGetEntryData) LeaderExecute(state interfaces.IState) error {
-  return nil
+	return nil
 }
 
 // Returns true if this is a message for this server to execute as a follower
 func (m *MsgGetEntryData) Follower(interfaces.IState) bool {
-  return true
+	return true
 }
 
 func (m *MsgGetEntryData) FollowerExecute(interfaces.IState) error {
-  return nil
+	return nil
 }
 
 func (e *MsgGetEntryData) JSONByte() ([]byte, error) {
-  return primitives.EncodeJSON(e)
+	return primitives.EncodeJSON(e)
 }
 
 func (e *MsgGetEntryData) JSONString() (string, error) {
-  return primitives.EncodeJSONString(e)
+	return primitives.EncodeJSONString(e)
 }
 
 func (e *MsgGetEntryData) JSONBuffer(b *bytes.Buffer) error {
-  return primitives.EncodeJSONToBuffer(e, b)
+	return primitives.EncodeJSONToBuffer(e, b)
 }

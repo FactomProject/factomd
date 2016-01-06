@@ -1,4 +1,4 @@
-//  Goxed because it goes away too long... Maybe this should have a 
+//  Goxed because it goes away too long... Maybe this should have a
 //  short test and skip.
 
 package anchor
@@ -20,10 +20,9 @@ import (
 	//"github.com/davecgh/go-spew/spew"
 )
 
-
 func TestInitRPCClient(t *testing.T) {
 	fmt.Println("see details in ~/.factom/logs/factom-d.log")
-	a:=NewAnchor()
+	a := NewAnchor()
 	err := a.InitRPCClient()
 	if err == nil {
 		fmt.Println("successfully created rpc client for both btcd and btcwallet.")
@@ -255,4 +254,3 @@ func initDB() database.Db {
 	return db
 }
 */
-

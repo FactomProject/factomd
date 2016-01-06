@@ -6,9 +6,9 @@ package messages
 
 import (
 	"bytes"
-	"io"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"io"
 )
 
 // MsgVerAck defines a bitcoin verack message which is used for a peer to
@@ -53,44 +53,44 @@ var _ interfaces.IMsg = (*MsgVerAck)(nil)
 func (m *MsgVerAck) Process(interfaces.IState) {}
 
 func (m *MsgVerAck) GetHash() interfaces.IHash {
-  return nil
+	return nil
 }
 
 func (m *MsgVerAck) GetTimestamp() interfaces.Timestamp {
-  return 0
+	return 0
 }
 
 func (m *MsgVerAck) Type() int {
-  return -1
+	return -1
 }
 
 func (m *MsgVerAck) Int() int {
-  return -1
+	return -1
 }
 
 func (m *MsgVerAck) Bytes() []byte {
-  return nil
+	return nil
 }
 
 func (m *MsgVerAck) UnmarshalBinaryData(data []byte) (newdata []byte, err error) {
-  return nil, nil
+	return nil, nil
 }
 
 func (m *MsgVerAck) UnmarshalBinary(data []byte) error {
-  _, err := m.UnmarshalBinaryData(data)
-  return err
+	_, err := m.UnmarshalBinaryData(data)
+	return err
 }
 
 func (m *MsgVerAck) MarshalBinary() (data []byte, err error) {
-  return nil, nil
+	return nil, nil
 }
 
 func (m *MsgVerAck) MarshalForSignature() (data []byte, err error) {
-  return nil, nil
+	return nil, nil
 }
 
 func (m *MsgVerAck) String() string {
-  return ""
+	return ""
 }
 
 // Validate the message, given the state.  Three possible results:
@@ -98,47 +98,47 @@ func (m *MsgVerAck) String() string {
 //  0   -- Cannot tell if message is Valid
 //  1   -- MsgVerAck is valid
 func (m *MsgVerAck) Validate(interfaces.IState) int {
-  return 0
+	return 0
 }
 
 // Returns true if this is a message for this server to execute as
 // a leader.
 func (m *MsgVerAck) Leader(state interfaces.IState) bool {
-switch state.GetNetworkNumber() {
-case 0: // Main Network
-  panic("Not implemented yet")
-case 1: // Test Network
-  panic("Not implemented yet")
-case 2: // Local Network
-  panic("Not implemented yet")
-default:
-  panic("Not implemented yet")
-}
+	switch state.GetNetworkNumber() {
+	case 0: // Main Network
+		panic("Not implemented yet")
+	case 1: // Test Network
+		panic("Not implemented yet")
+	case 2: // Local Network
+		panic("Not implemented yet")
+	default:
+		panic("Not implemented yet")
+	}
 
 }
 
 // Execute the leader functions of the given message
 func (m *MsgVerAck) LeaderExecute(state interfaces.IState) error {
-  return nil
+	return nil
 }
 
 // Returns true if this is a message for this server to execute as a follower
 func (m *MsgVerAck) Follower(interfaces.IState) bool {
-  return true
+	return true
 }
 
 func (m *MsgVerAck) FollowerExecute(interfaces.IState) error {
-  return nil
+	return nil
 }
 
 func (e *MsgVerAck) JSONByte() ([]byte, error) {
-  return primitives.EncodeJSON(e)
+	return primitives.EncodeJSON(e)
 }
 
 func (e *MsgVerAck) JSONString() (string, error) {
-  return primitives.EncodeJSONString(e)
+	return primitives.EncodeJSONString(e)
 }
 
 func (e *MsgVerAck) JSONBuffer(b *bytes.Buffer) error {
-  return primitives.EncodeJSONToBuffer(e, b)
+	return primitives.EncodeJSONToBuffer(e, b)
 }

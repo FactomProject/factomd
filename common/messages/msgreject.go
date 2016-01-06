@@ -5,8 +5,8 @@
 package messages
 
 import (
-	"fmt"
 	"bytes"
+	"fmt"
 	//"encoding/binary"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -192,23 +192,23 @@ var _ interfaces.IMsg = (*MsgReject)(nil)
 func (m *MsgReject) Process(interfaces.IState) {}
 
 func (m *MsgReject) GetHash() interfaces.IHash {
-  return nil
+	return nil
 }
 
 func (m *MsgReject) GetTimestamp() interfaces.Timestamp {
-  return 0
+	return 0
 }
 
 func (m *MsgReject) Type() int {
-  return -1
+	return -1
 }
 
 func (m *MsgReject) Int() int {
-  return -1
+	return -1
 }
 
 func (m *MsgReject) Bytes() []byte {
-  return nil
+	return nil
 }
 
 func (m *MsgReject) UnmarshalBinaryData(data []byte) (newdata []byte, err error) {
@@ -234,12 +234,12 @@ func (m *MsgReject) UnmarshalBinaryData(data []byte) (newdata []byte, err error)
 		return
 	}
 
-  return nil, nil
+	return nil, nil
 }
 
 func (m *MsgReject) UnmarshalBinary(data []byte) error {
-  _, err := m.UnmarshalBinaryData(data)
-  return err
+	_, err := m.UnmarshalBinaryData(data)
+	return err
 }
 
 func (m *MsgReject) MarshalBinary() (data []byte, err error) {
@@ -266,7 +266,7 @@ func (m *MsgReject) MarshalBinary() (data []byte, err error) {
 
 	//h, err := m.Hash.MarshalBinary()
 	//if err != nil {
-		//return nil, err
+	//return nil, err
 	//}
 	//buf.Write(h)
 
@@ -275,11 +275,11 @@ func (m *MsgReject) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *MsgReject) MarshalForSignature() (data []byte, err error) {
-  return nil, nil
+	return nil, nil
 }
 
 func (m *MsgReject) String() string {
-  return ""
+	return ""
 }
 
 // Validate the message, given the state.  Three possible results:
@@ -287,7 +287,7 @@ func (m *MsgReject) String() string {
 //  0   -- Cannot tell if message is Valid
 //  1   -- MsgReject is valid
 func (m *MsgReject) Validate(interfaces.IState) int {
-  return 0
+	return 0
 }
 
 // Returns true if this is a message for this server to execute as
@@ -295,38 +295,38 @@ func (m *MsgReject) Validate(interfaces.IState) int {
 func (m *MsgReject) Leader(state interfaces.IState) bool {
 	switch state.GetNetworkNumber() {
 	case 0: // Main Network
-	  panic("Not implemented yet")
+		panic("Not implemented yet")
 	case 1: // Test Network
-	  panic("Not implemented yet")
+		panic("Not implemented yet")
 	case 2: // Local Network
-	  panic("Not implemented yet")
+		panic("Not implemented yet")
 	default:
-	  panic("Not implemented yet")
+		panic("Not implemented yet")
 	}
 }
 
 // Execute the leader functions of the given message
 func (m *MsgReject) LeaderExecute(state interfaces.IState) error {
-  return nil
+	return nil
 }
 
 // Returns true if this is a message for this server to execute as a follower
 func (m *MsgReject) Follower(interfaces.IState) bool {
-  return true
+	return true
 }
 
 func (m *MsgReject) FollowerExecute(interfaces.IState) error {
-  return nil
+	return nil
 }
 
 func (e *MsgReject) JSONByte() ([]byte, error) {
-  return primitives.EncodeJSON(e)
+	return primitives.EncodeJSON(e)
 }
 
 func (e *MsgReject) JSONString() (string, error) {
-  return primitives.EncodeJSONString(e)
+	return primitives.EncodeJSONString(e)
 }
 
 func (e *MsgReject) JSONBuffer(b *bytes.Buffer) error {
-  return primitives.EncodeJSONToBuffer(e, b)
+	return primitives.EncodeJSONToBuffer(e, b)
 }

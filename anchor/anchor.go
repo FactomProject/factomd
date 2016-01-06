@@ -40,7 +40,7 @@ type Anchor struct {
 	dirBlockInfoSlice   []interfaces.IDirBlockInfo
 	db                  interfaces.DBOverlay
 	walletLocked        bool
-	reAnchorAfter       int  // hours. For anchors that do not get bitcoin callback info for over 10 hours, then re-anchor them.
+	reAnchorAfter       int // hours. For anchors that do not get bitcoin callback info for over 10 hours, then re-anchor them.
 	tenMinutes          int // 10 minute mark
 	defaultAddress      btcutil.Address
 	minBalance          btcutil.Amount // 0.01 btc
@@ -56,10 +56,10 @@ type Anchor struct {
 var _ interfaces.IAnchor = (*Anchor)(nil)
 
 func NewAnchor() *Anchor {
-	a:=new(Anchor)
+	a := new(Anchor)
 	a.walletLocked = true
-	a.reAnchorAfter = 4  // hours. For anchors that do not get bitcoin callback info for over 10 hours, then re-anchor them.
-	a.tenMinutes = 10 // 10 minute mark
+	a.reAnchorAfter = 4 // hours. For anchors that do not get bitcoin callback info for over 10 hours, then re-anchor them.
+	a.tenMinutes = 10   // 10 minute mark
 	return a
 }
 
@@ -336,7 +336,7 @@ func (a *Anchor) checkMissingDirBlockInfo() {
 // and load up unconfirmed DirBlockInfo from leveldb
 func InitAnchor(s interfaces.IState) (*Anchor, error) {
 	anchorLog.Debug("InitAnchor")
-	a:=NewAnchor()
+	a := NewAnchor()
 	a.state = s
 	a.db = s.GetDB()
 	a.minBalance, _ = btcutil.NewAmount(0.01)

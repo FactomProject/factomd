@@ -54,8 +54,8 @@ func (m *RevealEntryMsg) Bytes() []byte {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *RevealEntryMsg) Validate(interfaces.IState) int {
-	return 1	// We should validate the size of the reveal and so forth.  But it is
-	            // the follower that will choose to relay the reveal to other nodes.
+	return 1 // We should validate the size of the reveal and so forth.  But it is
+	// the follower that will choose to relay the reveal to other nodes.
 }
 
 // Returns true if this is a message for this server to execute as
@@ -71,17 +71,17 @@ func (m *RevealEntryMsg) LeaderExecute(state interfaces.IState) error {
 		return fmt.Errorf("Reveal is no longer valid")
 	}
 	b := m.GetHash()
-	
+
 	msg, err := NewAck(state, b)
-	
+
 	if err != nil {
 		return err
 	}
-	
+
 	state.NetworkOutMsgQueue() <- msg
 	state.FollowerInMsgQueue() <- m   // Send factoid trans to follower
 	state.FollowerInMsgQueue() <- msg // Send the Ack to follower
-	
+
 	return nil
 }
 
@@ -141,5 +141,5 @@ func (m *RevealEntryMsg) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *RevealEntryMsg) String() string {
-	return "RevealEntryMsg "+m.Timestamp.String()+" "+m.Entry.GetHash().String()
+	return "RevealEntryMsg " + m.Timestamp.String() + " " + m.Entry.GetHash().String()
 }

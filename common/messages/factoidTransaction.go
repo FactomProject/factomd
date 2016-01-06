@@ -51,8 +51,6 @@ func (m *FactoidTransaction) Type() int {
 	return constants.FACTOID_TRANSACTION_MSG
 }
 
-
-
 // Validate the message, given the state.  Three possible results:
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
@@ -126,10 +124,10 @@ func (m *FactoidTransaction) UnmarshalTransData(data []byte) (newData []byte, er
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
 	}()
-	
+
 	m.Transaction = new(factoid.Transaction)
 	newData, err = m.Transaction.UnmarshalBinaryData(data)
-	
+
 	return newData, err
 }
 
@@ -139,9 +137,9 @@ func (m *FactoidTransaction) UnmarshalBinaryData(data []byte) (newData []byte, e
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
 	}()
-	
+
 	newData = data[1:]
-	
+
 	return m.UnmarshalTransData(newData)
 }
 

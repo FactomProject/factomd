@@ -69,8 +69,8 @@ const (
 	CmdCommitEntry = "commitentry"
 	CmdRevealEntry = "revealentry"
 
-	CmdAck = "confirmation"
-	CmdMHashReveal     = "mhashreveal"
+	CmdAck         = "confirmation"
+	CmdMHashReveal = "mhashreveal"
 
 	CmdEOM = "eom" //end of minute
 )
@@ -126,7 +126,7 @@ func makeEmptyMessage(command string) (Message, error) {
 		msg = &MsgPong{}
 
 	//case CmdAlert:
-		//msg = &MsgAlert{}
+	//msg = &MsgAlert{}
 
 	case CmdReject:
 		msg = &MsgReject{}

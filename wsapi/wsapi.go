@@ -115,7 +115,7 @@ func HandleRevealEntry(ctx *web.Context) {
 	type revealentry struct {
 		Entry string
 	}
-	
+
 	e := new(revealentry)
 	if p, err := ioutil.ReadAll(ctx.Request.Body); err != nil {
 		returnMsg(ctx, "Error Reveal Entry: "+err.Error(), false)
@@ -126,7 +126,7 @@ func HandleRevealEntry(ctx *web.Context) {
 			return
 		}
 	}
-	
+
 	entry := entryBlock.NewEntry()
 	if p, err := hex.DecodeString(e.Entry); err != nil {
 		returnMsg(ctx, "Error Reveal Entry: "+err.Error(), false)
@@ -138,9 +138,9 @@ func HandleRevealEntry(ctx *web.Context) {
 			return
 		}
 	}
-	
+
 	state := ctx.Server.Env["state"].(interfaces.IState)
-	
+
 	msg := new(messages.RevealEntryMsg)
 	msg.Entry = entry
 	msg.Timestamp = state.GetTimestamp()
