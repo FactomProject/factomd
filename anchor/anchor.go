@@ -53,6 +53,8 @@ type Anchor struct {
 	state         interfaces.IState
 }
 
+var _ interfaces.IAnchor = (*Anchor)(nil)
+
 func NewAnchor() *Anchor {
 	a:=new(Anchor)
 	a.walletLocked = true
@@ -624,9 +626,9 @@ func toShaHash(hash interfaces.IHash) *wire.ShaHash {
 
 // UpdateDirBlockInfoMap allows factom processor to update DirBlockInfo
 // when a new Directory Block is saved to db
-func (a *Anchor) UpdateDirBlockInfoMap(dirBlockInfo *dbInfo.DirBlockInfo) {
+func (a *Anchor) UpdateDirBlockInfoMap(dirBlockInfo interfaces.IDirBlockInfo) {
 	anchorLog.Debug("UpdateDirBlockInfoMap: ", spew.Sdump(dirBlockInfo))
-	a.dirBlockInfoSlice = append(a.dirBlockInfoSlice, dirBlockInfo)
+	a.dirBlockInfoSlice = append(a.dirBlockInfoSlice, dirBlockInfo.(*dbInfo.DirBlockInfo))
 }
 
 func (a *Anchor) checkForAnchor() {

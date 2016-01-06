@@ -87,7 +87,7 @@ type State struct {
 
 	Logger *logger.FLogger
 
-	Anchor *anchor.Anchor
+	Anchor interfaces.IAnchor
 }
 
 var _ interfaces.IState = (*State)(nil)
