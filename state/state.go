@@ -86,6 +86,8 @@ type State struct {
 	EntryCreditBlock  interfaces.IEntryCreditBlock
 
 	Logger *logger.FLogger
+
+	Anchor *anchor.Anchor
 }
 
 var _ interfaces.IState = (*State)(nil)
@@ -225,7 +227,7 @@ func (s *State) ProcessEndOfBlock() {
 		if err = s.DB.SaveDirectoryBlockHead(s.PreviousDirectoryBlock); err != nil {
 			panic(err.Error())
 		}
-		anchor.UpdateDirBlockInfoMap(dbInfo.NewDirBlockInfoFromDirBlock(s.PreviousDirectoryBlock))
+		s.Anchor.UpdateDirBlockInfoMap(dbInfo.NewDirBlockInfoFromDirBlock(s.PreviousDirectoryBlock))
 	} else {
 		log.Println("No old db")
 	}
@@ -440,7 +442,8 @@ func (s *State) Init(filename string) {
 	s.loadDatabase()
 	s.initServerKeys()
 	
-	anchor.InitAnchor(s)
+	a, _:=anchor.InitAnchor(s)
+	s.Anchor = a
 }
 
 func (s *State) loadDatabase() {
