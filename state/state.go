@@ -439,11 +439,11 @@ func (s *State) Init(filename string) {
 	s.AuditHeartBeats = make([]interfaces.IMsg, 0)
 	s.FedServerFaults = make([][]interfaces.IMsg, 0)
 	
-	s.loadDatabase()
-	s.initServerKeys()
-	
 	a, _:=anchor.InitAnchor(s)
 	s.Anchor = a
+	
+	s.loadDatabase()
+	s.initServerKeys()
 }
 
 func (s *State) loadDatabase() {

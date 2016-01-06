@@ -23,7 +23,8 @@ import (
 
 func TestInitRPCClient(t *testing.T) {
 	fmt.Println("see details in ~/.factom/logs/factom-d.log")
-	err := InitRPCClient()
+	a:=NewAnchor()
+	err := a.InitRPCClient()
 	if err == nil {
 		fmt.Println("successfully created rpc client for both btcd and btcwallet.")
 	} else {
