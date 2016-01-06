@@ -101,10 +101,10 @@ compile() {
 }
 
 checkout factomd      $branch $default
-checkout fctwallet    $branch $default
-checkout walletapp    $branch $default
+checkout fctwallet2   $branch $default
+checkout walletapp2   $branch $default
 checkout factom       $branch $default
-checkout factom-cli   $branch $default
+checkout factom-cli2  $branch $default
 checkout Testing      $branch $default
 checkout btcutil      $branch $default 
 checkout goleveldb    $branch $default
