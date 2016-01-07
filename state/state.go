@@ -47,7 +47,7 @@ type State struct {
 	// For Follower
 	Holding map[[32]byte]interfaces.IMsg // Hold Messages
 	Acks    map[[32]byte]interfaces.IMsg // Hold Acknowledgemets
-
+	
 	// Lists
 	// =====
 	AuditServers    []interfaces.IServer   // List of Audit Servers
@@ -118,15 +118,15 @@ func (s *State) MatchAckFollowerExecute(m interfaces.IMsg) error {
 //
 // This routine can only be called by the Follower goroutine.
 func (s *State) UpdateProcessLists() {
-	for i := 0; i < len(s.GetProcessList());i++ {
+	for i := 0; i < len(s.GetProcessList()); i++ {
 		plist := s.GetProcessList()[i]
-		for j := s.PLHeight[i]; j < len(plist);j++ {
-			fmt.Println("UpdatePL: ",j)
+		for j := s.PLHeight[i]; j < len(plist); j++ {
+			fmt.Println("UpdatePL: ", j)
 			if plist[j] == nil {
 				break
 			}
-			plist[j].Process(s)			// Process this entry
-			s.PLHeight[i]=j+1			//   and don't process it again.
+			plist[j].Process(s)   // Process this entry
+			s.PLHeight[i] = j + 1 //   and don't process it again.
 		}
 	}
 }
