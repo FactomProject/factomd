@@ -221,8 +221,8 @@ func (d *DBTestObject) DatabaseSecondaryIndex() interfaces.IHash {
 	return d.SecondaryIndex
 }
 
-func (d *DBTestObject) GetChainID() []byte {
-	return d.ChainID.Bytes()
+func (d *DBTestObject) GetChainID() interfaces.IHash {
+	return d.ChainID
 }
 
 func (d *DBTestObject) New() interfaces.BinaryMarshallableAndCopyable {

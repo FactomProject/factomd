@@ -113,7 +113,7 @@ func CreateTestBlockSet(prev *BlockSet) *BlockSet {
 	answer.ABlock = CreateTestAdminBlock(prev.ABlock)
 
 	de := new(directoryBlock.DBEntry)
-	de.ChainID, err = primitives.NewShaHash(answer.ABlock.GetChainID())
+	de.ChainID, err = primitives.NewShaHash(answer.ABlock.GetChainID().Bytes())
 	if err != nil {
 		panic(err)
 	}
@@ -126,7 +126,7 @@ func CreateTestBlockSet(prev *BlockSet) *BlockSet {
 	answer.FBlock = CreateTestFactoidBlock(prev.FBlock)
 
 	de = new(directoryBlock.DBEntry)
-	de.ChainID, err = primitives.NewShaHash(answer.FBlock.GetChainID())
+	de.ChainID, err = primitives.NewShaHash(answer.FBlock.GetChainID().Bytes())
 	if err != nil {
 		panic(err)
 	}
@@ -136,7 +136,7 @@ func CreateTestBlockSet(prev *BlockSet) *BlockSet {
 	answer.EBlock, answer.Entries = CreateTestEntryBlock(prev.EBlock)
 
 	de = new(directoryBlock.DBEntry)
-	de.ChainID, err = primitives.NewShaHash(answer.EBlock.GetChainID())
+	de.ChainID, err = primitives.NewShaHash(answer.EBlock.GetChainID().Bytes())
 	if err != nil {
 		panic(err)
 	}
@@ -151,7 +151,7 @@ func CreateTestBlockSet(prev *BlockSet) *BlockSet {
 	answer.Entries = append(answer.Entries, entries...)
 
 	de = new(directoryBlock.DBEntry)
-	de.ChainID, err = primitives.NewShaHash(answer.AnchorEBlock.GetChainID())
+	de.ChainID, err = primitives.NewShaHash(answer.AnchorEBlock.GetChainID().Bytes())
 	if err != nil {
 		panic(err)
 	}
@@ -166,7 +166,7 @@ func CreateTestBlockSet(prev *BlockSet) *BlockSet {
 	answer.ECBlock.GetBody().SetEntries(ecEntries)
 
 	de = new(directoryBlock.DBEntry)
-	de.ChainID, err = primitives.NewShaHash(answer.ECBlock.GetChainID())
+	de.ChainID, err = primitives.NewShaHash(answer.ECBlock.GetChainID().Bytes())
 	if err != nil {
 		panic(err)
 	}

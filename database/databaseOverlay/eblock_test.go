@@ -16,7 +16,7 @@ import (
 func TestSaveLoadEBlockHead(t *testing.T) {
 	b1, _ := CreateTestEntryBlock(nil)
 
-	chain, err := primitives.NewShaHash(b1.GetChainID())
+	chain, err := primitives.NewShaHash(b1.GetChainID().Bytes())
 	if err != nil {
 		t.Error(err)
 	}
@@ -94,7 +94,7 @@ func TestSaveLoadEBlockChain(t *testing.T) {
 		}
 	}
 
-	chain, err := primitives.NewShaHash(prev.GetChainID())
+	chain, err := primitives.NewShaHash(prev.GetChainID().Bytes())
 	if err != nil {
 		t.Error(err)
 	}
