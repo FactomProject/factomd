@@ -45,9 +45,10 @@ type State struct {
 	// Maps
 	// ====
 	// For Follower
-	Holding map[[32]byte]interfaces.IMsg // Hold Messages
-	Acks    map[[32]byte]interfaces.IMsg // Hold Acknowledgemets
-	
+	Holding  map[[32]byte]interfaces.IMsg        // Hold Messages
+	Acks     map[[32]byte]interfaces.IMsg        // Hold Acknowledgemets
+	NewEBlks map[[32]byte]interfaces.IEntryBlock // Entry Blocks added within 10 minutes
+
 	// Lists
 	// =====
 	AuditServers    []interfaces.IServer   // List of Audit Servers
@@ -131,7 +132,6 @@ func (s *State) UpdateProcessLists() {
 	}
 }
 
-
 func (s *State) GetCurrentEntryCreditBlock() interfaces.IEntryCreditBlock {
 	return s.EntryCreditBlock
 }
@@ -209,9 +209,9 @@ func (s *State) Sign([]byte) interfaces.IFullSignature {
 func (s *State) ProcessEndOfBlock() {
 	s.PreviousDirectoryBlock = s.CurrentDirectoryBlock
 	previousECBlock := s.GetCurrentEntryCreditBlock()
-	
+
 	s.FactoidState.ProcessEndOfBlock(s) // Clean up Factoids
-	
+
 	db, err := s.CreateDBlock()
 	if err != nil {
 		panic("Failed to create a Directory Block")
@@ -220,18 +220,18 @@ func (s *State) ProcessEndOfBlock() {
 	if previousECBlock != nil {
 		s.DB.ProcessECBlockBatch(previousECBlock)
 	}
-	
+
 	s.SetCurrentDirectoryBlock(db)
 
 	if s.PreviousDirectoryBlock != nil {
 		if err = s.DB.SaveDirectoryBlockHead(s.PreviousDirectoryBlock); err != nil {
 			panic(err.Error())
 		}
-		anchor.UpdateDirBlockInfoMap(dbInfo.NewDirBlockInfoFromDirBlock(s.PreviousDirectoryBlock))
+		s.Anchor.UpdateDirBlockInfoMap(dbInfo.NewDirBlockInfoFromDirBlock(s.PreviousDirectoryBlock))
 	} else {
 		log.Println("No old db")
 	}
-	
+
 	s.ProcessList = make([][]interfaces.IMsg, 1)
 	s.NewEBlks = make(map[[32]byte]interfaces.IEntryBlock)
 }
@@ -373,14 +373,14 @@ func (s *State) Init(filename string) {
 	s.inMsgQueue = make(chan interfaces.IMsg, 10000)             //incoming message queue for factom application messages
 	s.leaderInMsgQueue = make(chan interfaces.IMsg, 10000)       //Leader Messages
 	s.followerInMsgQueue = make(chan interfaces.IMsg, 10000)     //Follower Messages
-	
+
 	s.TotalServers = 1
 
 	// Setup the FactoidState and Validation Service that holds factoid and entry credit balances
 	fs := new(FactoidState)
 	fs.ValidationService = NewValidationService()
 	s.FactoidState = fs
-	
+
 	switch cfg.App.NodeMode {
 	case "FULL":
 		s.ServerState = 0
@@ -407,11 +407,10 @@ func (s *State) Init(filename string) {
 	default:
 		panic("No Database type specified")
 	}
-	
+
 	if cfg.App.ExportData {
 		s.DB.SetExportData(cfg.App.ExportDataSubpath)
 	}
-	
 
 	//Network
 	switch cfg.App.Network {
@@ -429,14 +428,14 @@ func (s *State) Init(filename string) {
 	s.Holding = make(map[[32]byte]interfaces.IMsg)
 	s.Acks = make(map[[32]byte]interfaces.IMsg)
 	s.NewEBlks = make(map[[32]byte]interfaces.IEntryBlock)
-	
+
 	s.AuditServers = make([]interfaces.IServer, 0)
 	s.FedServers = make([]interfaces.IServer, 0)
 	s.ServerOrder = make([][]interfaces.IServer, 0)
-	
+
 	s.ProcessList = make([][]interfaces.IMsg, 1)
-	s.PLHeight = make([]int,1)
-	
+	s.PLHeight = make([]int, 1)
+
 	s.AuditHeartBeats = make([]interfaces.IMsg, 0)
 	s.FedServerFaults = make([][]interfaces.IMsg, 0)
 
@@ -499,8 +498,8 @@ func (s *State) loadDatabase() {
 
 		fBlocks, err := s.DB.FetchAllFBlocks()
 
-		fmt.Printf("Processing %d FBlocks\n",len(fBlocks))
-		
+		fmt.Printf("Processing %d FBlocks\n", len(fBlocks))
+
 		if err != nil {
 			panic(err.Error())
 		}
@@ -512,9 +511,9 @@ func (s *State) loadDatabase() {
 		if err != nil {
 			panic(err.Error())
 		}
-		
-		fmt.Printf("Processing %d ECBlocks\n",len(ecBlocks))
-		
+
+		fmt.Printf("Processing %d ECBlocks\n", len(ecBlocks))
+
 		for _, block := range ecBlocks {
 			s.EntryCreditBlock = block
 			s.GetFactoidState().AddECBlock(block)
@@ -646,9 +645,9 @@ func (s *State) CreateDBlock() (b interfaces.IDirectoryBlock, err error) {
 	}
 
 	b.SetDBEntries(make([]interfaces.IDBEntry, 0))
-	
+
 	s.CurrentAdminBlock = s.NewAdminBlock()
-	
+
 	b.AddEntry(primitives.NewHash(constants.ADMIN_CHAINID), primitives.NewZeroHash())
 	b.AddEntry(primitives.NewHash(constants.EC_CHAINID), primitives.NewZeroHash())
 	b.AddEntry(primitives.NewHash(constants.FACTOID_CHAINID), primitives.NewZeroHash())

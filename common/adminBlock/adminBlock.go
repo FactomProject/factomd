@@ -67,8 +67,8 @@ func (c *AdminBlock) GetDatabaseHeight() uint32 {
 	return c.Header.GetDBHeight()
 }
 
-func (c *AdminBlock) GetChainID() []byte {
-	return c.Header.GetAdminChainID().Bytes()
+func (c *AdminBlock) GetChainID() interfaces.IHash {
+	return c.Header.GetAdminChainID()
 }
 
 func (c *AdminBlock) DatabasePrimaryIndex() interfaces.IHash {

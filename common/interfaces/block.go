@@ -33,7 +33,7 @@ type IFBlock interface {
 	New() BinaryMarshallableAndCopyable
 
 	// Get the ChainID. This is a constant for all Factoids.
-	GetChainID() []byte
+	GetChainID() IHash
 	// Validation functions
 	Validate() error
 	ValidateTransaction(int, ITransaction) error

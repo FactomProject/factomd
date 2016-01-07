@@ -35,7 +35,7 @@ func (c *Entry) GetDatabaseHeight() uint32 {
 }
 
 func (e *Entry) GetWeld() []byte {
-	return primitives.DoubleSha(append(e.GetHash().Bytes(), e.GetChainID()...))
+	return primitives.DoubleSha(append(e.GetHash().Bytes(), e.GetChainID().Bytes()...))
 }
 
 func (e *Entry) GetWeldHash() interfaces.IHash {
@@ -44,8 +44,8 @@ func (e *Entry) GetWeldHash() interfaces.IHash {
 	return hash
 }
 
-func (c *Entry) GetChainID() []byte {
-	return c.ChainID.Bytes()
+func (c *Entry) GetChainID() interfaces.IHash {
+	return c.ChainID
 }
 
 func (c *Entry) DatabasePrimaryIndex() interfaces.IHash {

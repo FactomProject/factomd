@@ -63,7 +63,7 @@ func (db *Overlay) SaveECBlockHead(block interfaces.DatabaseBatchable) error {
 
 func (db *Overlay) FetchECBlockHead() (interfaces.IEntryCreditBlock, error) {
 	blk := entryCreditBlock.NewECBlock()
-	block, err := db.FetchChainHeadByChainID([]byte{byte(ENTRYCREDITBLOCK)}, primitives.NewHash(blk.GetChainID()), blk)
+	block, err := db.FetchChainHeadByChainID([]byte{byte(ENTRYCREDITBLOCK)}, primitives.NewHash(blk.GetChainID().Bytes()), blk)
 	if err != nil {
 		return nil, err
 	}

@@ -17,8 +17,8 @@ import (
 type RevealEntryMsg struct {
 	Timestamp interfaces.Timestamp
 	Entry     interfaces.IEntry
-	NewChain  bool							// True if first entry in a chain.
-	
+	NewChain  bool // True if first entry in a chain.
+
 	//Not marshalled
 	hash interfaces.IHash
 }
@@ -55,12 +55,12 @@ func (m *RevealEntryMsg) Bytes() []byte {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
-	hash = m.GetHash()
-	eblk := s.NewEBlks[hash.Fixed()]	// Look see if in construction.
+	/*hash := m.GetHash()
+	eblk := state.NewEBlks[hash.Fixed()]	// Look see if in construction.
 	if eblk == nil {					// No?  Then look see if it exists in DB
 		eblk, _ := state.GetDB().FetchEBlockHead(m.Entry.GetChainID())
 	}
-	
+
 	if m.NewChain {			// Creating a new chain can't be done if it exists
 		if eblk != nil {
 			return -1
@@ -69,14 +69,14 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 		if eblk == nil {
 			return -1
 		}
-	}
+	}*/
 	return 1
 }
 
 // Returns true if this is a message for this server to execute as
 // a leader.
 func (m *RevealEntryMsg) Leader(state interfaces.IState) bool {
-	return state.LeaderFor(m.Entry.GetHash().Bytes())
+	return state.LeaderFor(m.GetHash().Bytes())
 }
 
 // Execute the leader functions of the given message
@@ -86,17 +86,17 @@ func (m *RevealEntryMsg) LeaderExecute(state interfaces.IState) error {
 		return fmt.Errorf("Reveal is no longer valid")
 	}
 	b := m.GetHash()
-	
+
 	msg, err := NewAck(state, b)
-	
+
 	if err != nil {
 		return err
 	}
-	
+
 	state.NetworkOutMsgQueue() <- msg
 	state.FollowerInMsgQueue() <- m   // Send factoid trans to follower
 	state.FollowerInMsgQueue() <- msg // Send the Ack to follower
-	
+
 	return nil
 }
 
@@ -105,12 +105,12 @@ func (m *RevealEntryMsg) Follower(interfaces.IState) bool {
 	return true
 }
 
-func (m *RevealEntryMsg) FollowerExecute(interfaces.IState) error {
-	eblk, err := state.GetDB().FetchEBlockHead(m.Entry.GetChainID())
+func (m *RevealEntryMsg) FollowerExecute(state interfaces.IState) error {
+	eblk, _ := state.GetDB().FetchEBlockHead(m.Entry.GetChainID())
 	if eblk == nil {
-		
-	}else{
-		
+
+	} else {
+
 	}
 	return nil
 }

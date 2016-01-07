@@ -51,8 +51,8 @@ func (c *ECBlock) GetDatabaseHeight() uint32 {
 	return c.Header.GetDBHeight()
 }
 
-func (c *ECBlock) GetChainID() []byte {
-	return c.Header.GetECChainID().Bytes()
+func (c *ECBlock) GetChainID() interfaces.IHash {
+	return c.Header.GetECChainID()
 }
 
 func (c *ECBlock) DatabasePrimaryIndex() interfaces.IHash {
