@@ -95,44 +95,44 @@ var _ interfaces.IMsg = (*MsgRevealEntry)(nil)
 func (m *MsgRevealEntry) Process(interfaces.IState) {}
 
 func (m *MsgRevealEntry) GetHash() interfaces.IHash {
-  return nil
+	return nil
 }
 
 func (m *MsgRevealEntry) GetTimestamp() interfaces.Timestamp {
-  return 0
+	return 0
 }
 
 func (m *MsgRevealEntry) Type() int {
-  return -1
+	return -1
 }
 
 func (m *MsgRevealEntry) Int() int {
-  return -1
+	return -1
 }
 
 func (m *MsgRevealEntry) Bytes() []byte {
-  return nil
+	return nil
 }
 
 func (m *MsgRevealEntry) UnmarshalBinaryData(data []byte) (newdata []byte, err error) {
-  return nil, nil
+	return nil, nil
 }
 
 func (m *MsgRevealEntry) UnmarshalBinary(data []byte) error {
-  _, err := m.UnmarshalBinaryData(data)
-  return err
+	_, err := m.UnmarshalBinaryData(data)
+	return err
 }
 
 func (m *MsgRevealEntry) MarshalBinary() (data []byte, err error) {
-  return nil, nil
+	return nil, nil
 }
 
 func (m *MsgRevealEntry) MarshalForSignature() (data []byte, err error) {
-  return nil, nil
+	return nil, nil
 }
 
 func (m *MsgRevealEntry) String() string {
-  return ""
+	return ""
 }
 
 // Validate the message, given the state.  Three possible results:
@@ -140,47 +140,47 @@ func (m *MsgRevealEntry) String() string {
 //  0   -- Cannot tell if message is Valid
 //  1   -- MsgRevealEntry is valid
 func (m *MsgRevealEntry) Validate(interfaces.IState) int {
-  return 0
+	return 0
 }
 
 // Returns true if this is a message for this server to execute as
 // a leader.
 func (m *MsgRevealEntry) Leader(state interfaces.IState) bool {
-switch state.GetNetworkNumber() {
-case 0: // Main Network
-  panic("Not implemented yet")
-case 1: // Test Network
-  panic("Not implemented yet")
-case 2: // Local Network
-  panic("Not implemented yet")
-default:
-  panic("Not implemented yet")
-}
+	switch state.GetNetworkNumber() {
+	case 0: // Main Network
+		panic("Not implemented yet")
+	case 1: // Test Network
+		panic("Not implemented yet")
+	case 2: // Local Network
+		panic("Not implemented yet")
+	default:
+		panic("Not implemented yet")
+	}
 
 }
 
 // Execute the leader functions of the given message
 func (m *MsgRevealEntry) LeaderExecute(state interfaces.IState) error {
-  return nil
+	return nil
 }
 
 // Returns true if this is a message for this server to execute as a follower
 func (m *MsgRevealEntry) Follower(interfaces.IState) bool {
-  return true
+	return true
 }
 
 func (m *MsgRevealEntry) FollowerExecute(interfaces.IState) error {
-  return nil
+	return nil
 }
 
 func (e *MsgRevealEntry) JSONByte() ([]byte, error) {
-  return primitives.EncodeJSON(e)
+	return primitives.EncodeJSON(e)
 }
 
 func (e *MsgRevealEntry) JSONString() (string, error) {
-  return primitives.EncodeJSONString(e)
+	return primitives.EncodeJSONString(e)
 }
 
 func (e *MsgRevealEntry) JSONBuffer(b *bytes.Buffer) error {
-  return primitives.EncodeJSONToBuffer(e, b)
+	return primitives.EncodeJSONToBuffer(e, b)
 }

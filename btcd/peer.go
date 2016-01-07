@@ -20,11 +20,11 @@ import (
 
 	"github.com/FactomProject/factomd/btcd/addrmgr"
 	. "github.com/FactomProject/factomd/common/adminBlock"
+	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/directoryBlock"
 	. "github.com/FactomProject/factomd/common/entryBlock"
 	. "github.com/FactomProject/factomd/common/entryCreditBlock"
-	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -959,14 +959,14 @@ out:
 			p.handlePongMsg(msg)
 
 		//case *messages.MsgAlert:
-			// Intentionally ignore alert messages.
-			//
-			// The reference client currently bans peers that send
-			// alerts not signed with its key.  We could verify
-			// against their key, but since the reference client
-			// is currently unwilling to support other
-			// implementions' alert messages, we will not relay
-			// theirs.
+		// Intentionally ignore alert messages.
+		//
+		// The reference client currently bans peers that send
+		// alerts not signed with its key.  We could verify
+		// against their key, but since the reference client
+		// is currently unwilling to support other
+		// implementions' alert messages, we will not relay
+		// theirs.
 
 		//case *messages.MsgMemPool:
 		//p.handleMemPoolMsg(msg)

@@ -7,12 +7,12 @@ package messages
 import (
 	"bytes"
 	"fmt"
+	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 	"io"
 	"net"
 	"strings"
 	"time"
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/primitives"
 )
 
 // MaxUserAgentLen is the maximum allowed length for the user agent field in a
@@ -296,23 +296,23 @@ var _ interfaces.IMsg = (*MsgVersion)(nil)
 func (m *MsgVersion) Process(interfaces.IState) {}
 
 func (m *MsgVersion) GetHash() interfaces.IHash {
-  return nil
+	return nil
 }
 
 func (m *MsgVersion) GetTimestamp() interfaces.Timestamp {
-  return 0
+	return 0
 }
 
 func (m *MsgVersion) Type() int {
-  return -1
+	return -1
 }
 
 func (m *MsgVersion) Int() int {
-  return -1
+	return -1
 }
 
 func (m *MsgVersion) Bytes() []byte {
-  return nil
+	return nil
 }
 
 func (msg *MsgVersion) UnmarshalBinaryData(data []byte) (newdata []byte, err error) {
@@ -381,12 +381,12 @@ func (msg *MsgVersion) UnmarshalBinaryData(data []byte) (newdata []byte, err err
 		msg.DisableRelayTx = !relayTx
 	}
 
-  return nil, nil
+	return nil, nil
 }
 
 func (m *MsgVersion) UnmarshalBinary(data []byte) error {
-  _, err := m.UnmarshalBinaryData(data)
-  return err
+	_, err := m.UnmarshalBinaryData(data)
+	return err
 }
 
 func (msg *MsgVersion) MarshalBinary() (data []byte, err error) {
@@ -436,11 +436,11 @@ func (msg *MsgVersion) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *MsgVersion) MarshalForSignature() (data []byte, err error) {
-  return nil, nil
+	return nil, nil
 }
 
 func (m *MsgVersion) String() string {
-  return ""
+	return ""
 }
 
 // Validate the message, given the state.  Three possible results:
@@ -448,47 +448,47 @@ func (m *MsgVersion) String() string {
 //  0   -- Cannot tell if message is Valid
 //  1   -- MsgVersion is valid
 func (m *MsgVersion) Validate(interfaces.IState) int {
-  return 0
+	return 0
 }
 
 // Returns true if this is a message for this server to execute as
 // a leader.
 func (m *MsgVersion) Leader(state interfaces.IState) bool {
-switch state.GetNetworkNumber() {
-case 0: // Main Network
-  panic("Not implemented yet")
-case 1: // Test Network
-  panic("Not implemented yet")
-case 2: // Local Network
-  panic("Not implemented yet")
-default:
-  panic("Not implemented yet")
-}
+	switch state.GetNetworkNumber() {
+	case 0: // Main Network
+		panic("Not implemented yet")
+	case 1: // Test Network
+		panic("Not implemented yet")
+	case 2: // Local Network
+		panic("Not implemented yet")
+	default:
+		panic("Not implemented yet")
+	}
 
 }
 
 // Execute the leader functions of the given message
 func (m *MsgVersion) LeaderExecute(state interfaces.IState) error {
-  return nil
+	return nil
 }
 
 // Returns true if this is a message for this server to execute as a follower
 func (m *MsgVersion) Follower(interfaces.IState) bool {
-  return true
+	return true
 }
 
 func (m *MsgVersion) FollowerExecute(interfaces.IState) error {
-  return nil
+	return nil
 }
 
 func (e *MsgVersion) JSONByte() ([]byte, error) {
-  return primitives.EncodeJSON(e)
+	return primitives.EncodeJSON(e)
 }
 
 func (e *MsgVersion) JSONString() (string, error) {
-  return primitives.EncodeJSONString(e)
+	return primitives.EncodeJSONString(e)
 }
 
 func (e *MsgVersion) JSONBuffer(b *bytes.Buffer) error {
-  return primitives.EncodeJSONToBuffer(e, b)
+	return primitives.EncodeJSONToBuffer(e, b)
 }

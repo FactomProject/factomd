@@ -33,7 +33,7 @@ func (m *CommitChainMsg) Process(state interfaces.IState) {
 
 func (m *CommitChainMsg) GetHash() interfaces.IHash {
 	if m.hash == nil {
-		m.hash = m.CommitChain.EntryHash 
+		m.hash = m.CommitChain.EntryHash
 	}
 	return m.hash
 }
@@ -66,7 +66,7 @@ func (m *CommitChainMsg) Validate(state interfaces.IState) int {
 	if int(m.CommitChain.Credits) > int(ebal) {
 		return 0
 	}
-		
+
 	return 1
 
 }
@@ -104,7 +104,7 @@ func (m *CommitChainMsg) Follower(state interfaces.IState) bool {
 }
 
 func (m *CommitChainMsg) FollowerExecute(state interfaces.IState) error {
-	err := state.MatchAckFollowerExecute(m) 
+	err := state.MatchAckFollowerExecute(m)
 	if err != nil {
 		return err
 	}
@@ -154,5 +154,5 @@ func (m *CommitChainMsg) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *CommitChainMsg) String() string {
-	return "CommitChainMsg " + m.Timestamp.String()+" "+m.GetHash().String()
+	return "CommitChainMsg " + m.Timestamp.String() + " " + m.GetHash().String()
 }

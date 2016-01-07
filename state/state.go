@@ -45,10 +45,9 @@ type State struct {
 	// Maps
 	// ====
 	// For Follower
-	Holding  map[[32]byte]interfaces.IMsg // Hold Messages
-	Acks     map[[32]byte]interfaces.IMsg // Hold Acknowledgemets
-	NewEBlks map[[32]byte]interfaces.IEntryBlock	// Hold Entry Blocks under construction
-	
+	Holding map[[32]byte]interfaces.IMsg // Hold Messages
+	Acks    map[[32]byte]interfaces.IMsg // Hold Acknowledgemets
+
 	// Lists
 	// =====
 	AuditServers    []interfaces.IServer   // List of Audit Servers
@@ -87,6 +86,8 @@ type State struct {
 	EntryCreditBlock  interfaces.IEntryCreditBlock
 
 	Logger *logger.FLogger
+
+	Anchor interfaces.IAnchor
 }
 
 var _ interfaces.IState = (*State)(nil)
@@ -106,12 +107,12 @@ func (s *State) MatchAckFollowerExecute(m interfaces.IMsg) error {
 		processlist[ack.Height] = m
 		s.GetProcessList()[ack.ServerIndex] = processlist
 		delete(acks, m.GetHash().Fixed())
-	}	
+	}
 	return nil
 }
 
 // Run through the process lists, and update the state as required by
-// any new entries.  In the near future, we will want to have this in a 
+// any new entries.  In the near future, we will want to have this in a
 // "temp" state, that we push to the regular state at the end of 10 minutes.
 // But for now, we will just update.
 //
@@ -438,11 +439,12 @@ func (s *State) Init(filename string) {
 	
 	s.AuditHeartBeats = make([]interfaces.IMsg, 0)
 	s.FedServerFaults = make([][]interfaces.IMsg, 0)
-	
+
+	a, _ := anchor.InitAnchor(s)
+	s.Anchor = a
+
 	s.loadDatabase()
 	s.initServerKeys()
-	
-	anchor.InitAnchor(s)
 }
 
 func (s *State) loadDatabase() {

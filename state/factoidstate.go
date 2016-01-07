@@ -8,7 +8,6 @@
 package state
 
 import (
-	"runtime/debug"
 	"fmt"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
@@ -16,6 +15,7 @@ import (
 	"github.com/FactomProject/factomd/common/factoid/block/coinbase"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"runtime/debug"
 )
 
 var _ = debug.PrintStack
@@ -71,7 +71,7 @@ func (fs *FactoidState) AddTransactionBlock(blk interfaces.IFBlock) error {
 
 func (fs *FactoidState) AddECBlock(blk interfaces.IEntryCreditBlock) error {
 	transactions := blk.GetBody().GetEntries()
-	
+
 	for _, trans := range transactions {
 		err := fs.UpdateECTransaction(trans)
 		if err != nil {
@@ -151,7 +151,7 @@ func (fs *FactoidState) ResetBalances() {
 
 func (fs *FactoidState) UpdateECTransaction(trans interfaces.IECBlockEntry) error {
 	var vm ValidationMsg
-		
+
 	vm.MessageType = MessageTypeUpdateTransaction
 	vm.ECTransaction = trans
 	c := make(chan ValidationResponseMsg)
@@ -237,7 +237,7 @@ func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
 // Returns an error message about what is wrong with the transaction if it is
 // invalid, otherwise you are good to go.
 func (fs *FactoidState) ValidateEC(trans interfaces.IECBlockEntry) error {
-	
+
 	var vm ValidationMsg
 	vm.MessageType = MessageTypeValidate
 	vm.ECTransaction = trans

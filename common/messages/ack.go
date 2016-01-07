@@ -30,7 +30,6 @@ type Ack struct {
 var _ interfaces.IMsg = (*Ack)(nil)
 var _ Signable = (*Ack)(nil)
 
-
 func (m *Ack) GetHash() interfaces.IHash {
 	return m.MessageHash
 }
@@ -92,7 +91,7 @@ func (m *Ack) FollowerExecute(state interfaces.IState) error {
 	}
 
 	state.UpdateProcessLists()
-	
+
 	return nil
 }
 
@@ -184,7 +183,7 @@ func (m *Ack) MarshalBinary() (data []byte, err error) {
 		return nil, err
 	}
 	sig := m.GetSignature()
-	
+
 	if sig != nil {
 		sigBytes, err := sig.MarshalBinary()
 		if err != nil {
@@ -196,14 +195,13 @@ func (m *Ack) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *Ack) String() string {
-	return "Ack " + m.Timestamp.String()+ " "+m.MessageHash.String()
+	return "Ack " + m.Timestamp.String() + " " + m.MessageHash.String()
 }
-
 
 /***************************************************************************
  * Support Functions
  ***************************************************************************/
-// Create a new Acknowledgement.  This Acknowledgement 
+// Create a new Acknowledgement.  This Acknowledgement
 func NewAck(state interfaces.IState, hash interfaces.IHash) (iack interfaces.IMsg, err error) {
 	var last *Ack
 	if state.GetLastAck() != nil {
@@ -222,10 +220,10 @@ func NewAck(state interfaces.IState, hash interfaces.IHash) (iack interfaces.IMs
 			return nil, err
 		}
 	}
-	
+
 	state.SetLastAck(ack)
-	
+
 	// TODO:  Add the signature.
-	
+
 	return ack, nil
 }

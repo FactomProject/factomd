@@ -22,7 +22,7 @@ import (
 )
 
 //Construct the entry and submit it to the server
-func submitEntryToAnchorChain(aRecord *AnchorRecord) error {
+func (a *Anchor) submitEntryToAnchorChain(aRecord *AnchorRecord) error {
 	jsonARecord, err := json.Marshal(aRecord)
 	//anchorLog.Debug("submitEntryToAnchorChain - jsonARecord: ", string(jsonARecord))
 	if err != nil {
@@ -30,12 +30,12 @@ func submitEntryToAnchorChain(aRecord *AnchorRecord) error {
 	}
 	bufARecord := new(bytes.Buffer)
 	bufARecord.Write(jsonARecord)
-	aRecordSig := serverPrivKey.Sign(jsonARecord)
+	aRecordSig := a.serverPrivKey.Sign(jsonARecord)
 
 	//Create a new entry
 	entry := entryBlock.NewEntry()
-	entry.ChainID = anchorChainID
-	anchorLog.Debug("anchorChainID: ", anchorChainID)
+	entry.ChainID = a.anchorChainID
+	anchorLog.Debug("anchorChainID: ", a.anchorChainID)
 	// instead of append signature at the end of anchor record
 	// it can be added as the first entry.ExtIDs[0]
 	entry.ExtIDs = append(entry.ExtIDs, aRecordSig.Bytes())
@@ -63,9 +63,9 @@ func submitEntryToAnchorChain(aRecord *AnchorRecord) error {
 	}
 
 	tmp := buf.Bytes()
-	sig := serverECKey.Sign(tmp).(*primitives.Signature)
+	sig := a.serverECKey.Sign(tmp).(*primitives.Signature)
 	buf = bytes.NewBuffer(tmp)
-	buf.Write(serverECKey.Pub.Key[:])
+	buf.Write(a.serverECKey.Pub.Key[:])
 	buf.Write(sig.Sig[:])
 
 	commit := entryCreditBlock.NewCommitEntry()
@@ -77,12 +77,12 @@ func submitEntryToAnchorChain(aRecord *AnchorRecord) error {
 	// create a CommitEntry msg and send it to the local inmsgQ
 	cm := messages.NewCommitEntryMsg()
 	cm.CommitEntry = commit
-	state.NetworkInMsgQueue() <- cm
+	a.state.NetworkInMsgQueue() <- cm
 
 	// create a RevealEntry msg and send it to the local inmsgQ
 	rm := messages.NewRevealEntryMsg()
 	rm.Entry = entry
-	state.NetworkInMsgQueue() <- rm
+	a.state.NetworkInMsgQueue() <- rm
 
 	return nil
 }

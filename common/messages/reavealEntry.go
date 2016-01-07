@@ -25,16 +25,7 @@ type RevealEntryMsg struct {
 
 var _ interfaces.IMsg = (*RevealEntryMsg)(nil)
 
-func (m *RevealEntryMsg) Process(state interfaces.IState) {
-	hash := m.GetHash()
-	
-	
-	state.GetCurrentDirectoryBlock.AddEntry(m.Entry GetChainID(),hash)
-}
-	
-	
-	
-}
+func (m *RevealEntryMsg) Process(interfaces.IState) {}
 
 func (m *RevealEntryMsg) GetHash() interfaces.IHash {
 	if m.hash == nil {
@@ -171,5 +162,5 @@ func (m *RevealEntryMsg) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *RevealEntryMsg) String() string {
-	return "RevealEntryMsg "+m.Timestamp.String()+" "+m.Entry.GetHash().String()
+	return "RevealEntryMsg " + m.Timestamp.String() + " " + m.Entry.GetHash().String()
 }

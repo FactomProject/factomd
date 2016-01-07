@@ -7,9 +7,9 @@ package messages
 import (
 	"bytes"
 	"encoding/binary"
-	"io"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"io"
 )
 
 // MsgPong implements the Message interface and represents a bitcoin pong
@@ -69,37 +69,37 @@ var _ interfaces.IMsg = (*MsgPong)(nil)
 func (m *MsgPong) Process(interfaces.IState) {}
 
 func (m *MsgPong) GetHash() interfaces.IHash {
-  return nil
+	return nil
 }
 
 func (m *MsgPong) GetTimestamp() interfaces.Timestamp {
-  return 0
+	return 0
 }
 
 func (m *MsgPong) Type() int {
-  return -1
+	return -1
 }
 
 func (m *MsgPong) Int() int {
-  return -1
+	return -1
 }
 
 func (m *MsgPong) Bytes() []byte {
-  return nil
+	return nil
 }
 
 func (m *MsgPong) UnmarshalBinaryData(data []byte) (newdata []byte, err error) {
 	m.Nonce, newdata = binary.BigEndian.Uint64(data[0:8]), data[8:]
-  return newdata, nil
+	return newdata, nil
 }
 
 func (m *MsgPong) UnmarshalBinary(data []byte) error {
-  _, err := m.UnmarshalBinaryData(data)
-  return err
+	_, err := m.UnmarshalBinaryData(data)
+	return err
 }
 
 func (m *MsgPong) MarshalBinary() (data []byte, err error) {
-  return nil, nil
+	return nil, nil
 }
 
 func (m *MsgPong) MarshalForSignature() (data []byte, err error) {
@@ -109,7 +109,7 @@ func (m *MsgPong) MarshalForSignature() (data []byte, err error) {
 }
 
 func (m *MsgPong) String() string {
-  return ""
+	return ""
 }
 
 // Validate the message, given the state.  Three possible results:
@@ -117,7 +117,7 @@ func (m *MsgPong) String() string {
 //  0   -- Cannot tell if message is Valid
 //  1   -- MsgPong is valid
 func (m *MsgPong) Validate(interfaces.IState) int {
-  return 0
+	return 0
 }
 
 // Returns true if this is a message for this server to execute as
@@ -125,38 +125,38 @@ func (m *MsgPong) Validate(interfaces.IState) int {
 func (m *MsgPong) Leader(state interfaces.IState) bool {
 	switch state.GetNetworkNumber() {
 	case 0: // Main Network
-	  panic("Not implemented yet")
+		panic("Not implemented yet")
 	case 1: // Test Network
-	  panic("Not implemented yet")
+		panic("Not implemented yet")
 	case 2: // Local Network
-	  panic("Not implemented yet")
+		panic("Not implemented yet")
 	default:
-	  panic("Not implemented yet")
+		panic("Not implemented yet")
 	}
 }
 
 // Execute the leader functions of the given message
 func (m *MsgPong) LeaderExecute(state interfaces.IState) error {
-  return nil
+	return nil
 }
 
 // Returns true if this is a message for this server to execute as a follower
 func (m *MsgPong) Follower(interfaces.IState) bool {
-  return true
+	return true
 }
 
 func (m *MsgPong) FollowerExecute(interfaces.IState) error {
-  return nil
+	return nil
 }
 
 func (e *MsgPong) JSONByte() ([]byte, error) {
-  return primitives.EncodeJSON(e)
+	return primitives.EncodeJSON(e)
 }
 
 func (e *MsgPong) JSONString() (string, error) {
-  return primitives.EncodeJSONString(e)
+	return primitives.EncodeJSONString(e)
 }
 
 func (e *MsgPong) JSONBuffer(b *bytes.Buffer) error {
-  return primitives.EncodeJSONToBuffer(e, b)
+	return primitives.EncodeJSONToBuffer(e, b)
 }

@@ -2,10 +2,10 @@ package state
 
 import (
 	"fmt"
-	"runtime/debug"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"runtime/debug"
 )
 
 var _ = fmt.Println

@@ -121,23 +121,23 @@ func (m *DirectoryBlockSignature) UnmarshalBinaryData(data []byte) (newData []by
 		}
 	}()
 	newData = data[1:]
-	
+
 	m.DirectoryBlockHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
-	
+
 	hash := new(primitives.Hash)
 	newData, err = hash.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
 	}
 	m.DirectoryBlockKeyMR = hash
-	
+
 	hash = new(primitives.Hash)
 	newData, err = hash.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
 	}
 	m.ServerIdentityChainID = hash
-	
+
 	if len(newData) > 0 {
 		sig := new(primitives.Signature)
 		newData, err = sig.UnmarshalBinaryData(newData)
@@ -146,7 +146,7 @@ func (m *DirectoryBlockSignature) UnmarshalBinaryData(data []byte) (newData []by
 		}
 		m.Signature = sig
 	}
-	
+
 	return nil, nil
 }
 
@@ -159,10 +159,10 @@ func (m *DirectoryBlockSignature) MarshalForSignature() ([]byte, error) {
 	if m.DirectoryBlockKeyMR == nil || m.ServerIdentityChainID == nil {
 		return nil, fmt.Errorf("Message is incomplete")
 	}
-	
+
 	var buf bytes.Buffer
 	buf.Write([]byte{byte(m.Type())})
-	
+
 	binary.Write(&buf, binary.BigEndian, m.DirectoryBlockHeight)
 	hash, err := m.DirectoryBlockKeyMR.MarshalBinary()
 	if err != nil {
@@ -174,7 +174,7 @@ func (m *DirectoryBlockSignature) MarshalForSignature() ([]byte, error) {
 		return nil, err
 	}
 	buf.Write(hash)
-	
+
 	return buf.Bytes(), nil
 }
 
@@ -184,7 +184,7 @@ func (m *DirectoryBlockSignature) MarshalBinary() (data []byte, err error) {
 		return nil, err
 	}
 	sig := m.GetSignature()
-	
+
 	if sig != nil {
 		sigBytes, err := sig.MarshalBinary()
 		if err != nil {
@@ -197,11 +197,10 @@ func (m *DirectoryBlockSignature) MarshalBinary() (data []byte, err error) {
 
 func (m *DirectoryBlockSignature) String() string {
 	return fmt.Sprintf("DB Sig: %d KeyMR %s ID %s",
-					m.DirectoryBlockHeight,
-					m.DirectoryBlockKeyMR.String(),
-					m.ServerIdentityChainID.String())
+		m.DirectoryBlockHeight,
+		m.DirectoryBlockKeyMR.String(),
+		m.ServerIdentityChainID.String())
 }
-
 
 func (e *DirectoryBlockSignature) JSONByte() ([]byte, error) {
 	return primitives.EncodeJSON(e)
@@ -216,7 +215,7 @@ func (e *DirectoryBlockSignature) JSONBuffer(b *bytes.Buffer) error {
 }
 
 /*******************************************************************
- * Support 
+ * Support
  *******************************************************************/
 
 func NewDirectoryBlockSignature() *DirectoryBlockSignature {
@@ -225,4 +224,3 @@ func NewDirectoryBlockSignature() *DirectoryBlockSignature {
 	dbm.ServerIdentityChainID = new(primitives.Hash)
 	return dbm
 }
-

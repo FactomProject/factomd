@@ -30,7 +30,7 @@ func Test_Replay(test *testing.T) {
 
 	h := make([]*mh, XTrans)
 
-	start:=now
+	start := now
 
 	for i := 0; i < XTrans; i++ {
 

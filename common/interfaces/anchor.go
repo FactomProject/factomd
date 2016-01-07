@@ -6,6 +6,11 @@ package interfaces
 
 import ()
 
+type IAnchor interface {
+	InitRPCClient() error
+	UpdateDirBlockInfoMap(dirBlockInfo IDirBlockInfo)
+}
+
 type IAnchorRecord interface {
 	Marshal() ([]byte, error)
 	MarshalAndSign(priv Signer) ([]byte, error)

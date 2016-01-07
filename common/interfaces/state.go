@@ -85,7 +85,7 @@ type IState interface {
 	// Message State
 	GetLastAck() IMsg // Return the last Acknowledgement set by this server
 	SetLastAck(IMsg)
-	
+
 	// Server Methods
 	// ==============
 	UpdateProcessLists()
