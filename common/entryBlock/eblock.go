@@ -39,7 +39,7 @@ func (c *EBlock) New() interfaces.BinaryMarshallableAndCopyable {
 func (e *EBlock) GetWelds() [][]byte {
 	var answer [][]byte
 	for _, entry := range e.Body.EBEntries {
-		answer = append(answer, primitives.DoubleSha(append(entry.Bytes(), e.GetChainID()...)))
+		answer = append(answer, primitives.DoubleSha(append(entry.Bytes(), e.GetChainID().Bytes()...)))
 	}
 	return answer
 }
@@ -58,12 +58,12 @@ func (c *EBlock) GetDatabaseHeight() uint32 {
 	return c.Header.GetDBHeight()
 }
 
-func (c *EBlock) GetChainID() []byte {
-	return c.Header.GetChainID().Bytes()
+func (c *EBlock) GetChainID() interfaces.IHash {
+	return c.Header.GetChainID()
 }
 
 func (c *EBlock) GetHashOfChainID() []byte {
-	return primitives.DoubleSha(c.GetChainID())
+	return primitives.DoubleSha(c.GetChainID().Bytes())
 }
 
 func (c *EBlock) GetHashOfChainIDHash() interfaces.IHash {

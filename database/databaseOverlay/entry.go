@@ -16,7 +16,7 @@ func (db *Overlay) InsertEntry(entry interfaces.IEBEntry) error {
 	//So they can be loaded in two load operations without needing to know their chainID
 
 	batch := []interfaces.Record{}
-	batch = append(batch, interfaces.Record{entry.GetChainID(), entry.DatabasePrimaryIndex().Bytes(), entry})
+	batch = append(batch, interfaces.Record{entry.GetChainID().Bytes(), entry.DatabasePrimaryIndex().Bytes(), entry})
 	batch = append(batch, interfaces.Record{[]byte{byte(ENTRY)}, entry.DatabasePrimaryIndex().Bytes(), entry.GetChainIDHash()})
 
 	return db.PutInBatch(batch)

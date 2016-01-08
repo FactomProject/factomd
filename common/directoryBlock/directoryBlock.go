@@ -73,8 +73,8 @@ func (c *DirectoryBlock) GetDatabaseHeight() uint32 {
 	return c.GetHeader().GetDBHeight()
 }
 
-func (c *DirectoryBlock) GetChainID() []byte {
-	return constants.D_CHAINID
+func (c *DirectoryBlock) GetChainID() interfaces.IHash {
+	return primitives.NewHash(constants.D_CHAINID)
 }
 
 func (c *DirectoryBlock) DatabasePrimaryIndex() interfaces.IHash {

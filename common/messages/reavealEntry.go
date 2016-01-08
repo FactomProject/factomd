@@ -16,7 +16,8 @@ import (
 //A placeholder structure for messages
 type RevealEntryMsg struct {
 	Timestamp interfaces.Timestamp
-	Entry     *entryBlock.Entry
+	Entry     interfaces.IEntry
+	NewChain  bool // True if first entry in a chain.
 
 	//Not marshalled
 	hash interfaces.IHash
@@ -53,15 +54,29 @@ func (m *RevealEntryMsg) Bytes() []byte {
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
-func (m *RevealEntryMsg) Validate(interfaces.IState) int {
-	return 1 // We should validate the size of the reveal and so forth.  But it is
-	// the follower that will choose to relay the reveal to other nodes.
+func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
+	/*hash := m.GetHash()
+	eblk := state.NewEBlks[hash.Fixed()]	// Look see if in construction.
+	if eblk == nil {					// No?  Then look see if it exists in DB
+		eblk, _ := state.GetDB().FetchEBlockHead(m.Entry.GetChainID())
+	}
+
+	if m.NewChain {			// Creating a new chain can't be done if it exists
+		if eblk != nil {
+			return -1
+		}
+	}else{					// Adding to a chain cannot be done if it does not exist
+		if eblk == nil {
+			return -1
+		}
+	}*/
+	return 1
 }
 
 // Returns true if this is a message for this server to execute as
 // a leader.
 func (m *RevealEntryMsg) Leader(state interfaces.IState) bool {
-	return state.LeaderFor(m.Entry.GetHash().Bytes())
+	return state.LeaderFor(m.GetHash().Bytes())
 }
 
 // Execute the leader functions of the given message
@@ -90,7 +105,13 @@ func (m *RevealEntryMsg) Follower(interfaces.IState) bool {
 	return true
 }
 
-func (m *RevealEntryMsg) FollowerExecute(interfaces.IState) error {
+func (m *RevealEntryMsg) FollowerExecute(state interfaces.IState) error {
+	eblk, _ := state.GetDB().FetchEBlockHead(m.Entry.GetChainID())
+	if eblk == nil {
+
+	} else {
+
+	}
 	return nil
 }
 

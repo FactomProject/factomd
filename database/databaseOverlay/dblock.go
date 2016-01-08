@@ -117,7 +117,7 @@ func (db *Overlay) SaveDirectoryBlockHead(dblock interfaces.DatabaseBlockWithEnt
 
 func (db *Overlay) FetchDirectoryBlockHead() (interfaces.IDirectoryBlock, error) {
 	blk := new(directoryBlock.DirectoryBlock)
-	block, err := db.FetchChainHeadByChainID([]byte{byte(DIRECTORYBLOCK)}, primitives.NewHash(blk.GetChainID()), blk)
+	block, err := db.FetchChainHeadByChainID([]byte{byte(DIRECTORYBLOCK)}, primitives.NewHash(blk.GetChainID().Bytes()), blk)
 	if err != nil {
 		return nil, err
 	}

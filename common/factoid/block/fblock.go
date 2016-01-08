@@ -325,8 +325,8 @@ func (b1 *FBlock) IsEqual(block interfaces.IBlock) []interfaces.IBlock {
 	return nil
 }
 
-func (b *FBlock) GetChainID() []byte {
-	return constants.FACTOID_CHAINID
+func (b *FBlock) GetChainID() interfaces.IHash {
+	return primitives.NewHash(constants.FACTOID_CHAINID)
 }
 
 // Calculates the Key Merkle Root for this block and returns it.

@@ -202,7 +202,7 @@ func (db *Overlay) ProcessBlockBatch(blockBucket, numberBucket, secondaryIndexBu
 		batch = append(batch, interfaces.Record{secondaryIndexBucket, block.DatabaseSecondaryIndex().Bytes(), block.DatabasePrimaryIndex()})
 	}
 
-	batch = append(batch, interfaces.Record{[]byte{CHAIN_HEAD}, block.GetChainID(), block.DatabasePrimaryIndex()})
+	batch = append(batch, interfaces.Record{[]byte{CHAIN_HEAD}, block.GetChainID().Bytes(), block.DatabasePrimaryIndex()})
 
 	err := db.DB.PutInBatch(batch)
 	if err != nil {

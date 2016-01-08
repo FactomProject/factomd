@@ -74,10 +74,10 @@ func (c *DirBlockInfo) GetBTCConfirmed() bool {
 	return c.BTCConfirmed
 }
 
-func (c *DirBlockInfo) GetChainID() []byte {
+func (c *DirBlockInfo) GetChainID() interfaces.IHash {
 	id := make([]byte, 32)
 	copy(id, []byte("DirBlockInfo"))
-	return id
+	return primitives.NewHash(id)
 }
 
 func (c *DirBlockInfo) DatabasePrimaryIndex() interfaces.IHash {

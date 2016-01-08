@@ -61,7 +61,7 @@ func (db *Overlay) SaveFactoidBlockHead(fblock interfaces.DatabaseBlockWithEntri
 
 func (db *Overlay) FetchFactoidBlockHead() (interfaces.IFBlock, error) {
 	blk := new(block.FBlock)
-	block, err := db.FetchChainHeadByChainID([]byte{byte(FACTOIDBLOCK)}, primitives.NewHash(blk.GetChainID()), blk)
+	block, err := db.FetchChainHeadByChainID([]byte{byte(FACTOIDBLOCK)}, primitives.NewHash(blk.GetChainID().Bytes()), blk)
 	if err != nil {
 		return nil, err
 	}

@@ -30,7 +30,7 @@ type DatabaseBatchable interface {
 	DatabasePrimaryIndex() IHash   //block.KeyMR()
 	DatabaseSecondaryIndex() IHash //block.GetHash()
 
-	GetChainID() []byte
+	GetChainID() IHash
 }
 
 type DatabaseBlockWithEntries interface {

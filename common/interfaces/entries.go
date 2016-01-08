@@ -19,5 +19,5 @@ type IEntry interface {
 	BinaryMarshallable
 
 	GetChainID() IHash
-	GetKeyMR() (IHash, error)
+	GetHash() IHash
 }

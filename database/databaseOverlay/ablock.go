@@ -61,7 +61,7 @@ func (db *Overlay) SaveABlockHead(block interfaces.DatabaseBatchable) error {
 
 func (db *Overlay) FetchABlockHead() (interfaces.IAdminBlock, error) {
 	blk := adminBlock.NewAdminBlock()
-	block, err := db.FetchChainHeadByChainID([]byte{byte(ADMINBLOCK)}, primitives.NewHash(blk.GetChainID()), blk)
+	block, err := db.FetchChainHeadByChainID([]byte{byte(ADMINBLOCK)}, primitives.NewHash(blk.GetChainID().Bytes()), blk)
 	if err != nil {
 		return nil, err
 	}

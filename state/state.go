@@ -45,8 +45,9 @@ type State struct {
 	// Maps
 	// ====
 	// For Follower
-	Holding map[[32]byte]interfaces.IMsg // Hold Messages
-	Acks    map[[32]byte]interfaces.IMsg // Hold Acknowledgemets
+	Holding  map[[32]byte]interfaces.IMsg        // Hold Messages
+	Acks     map[[32]byte]interfaces.IMsg        // Hold Acknowledgemets
+	NewEBlks map[[32]byte]interfaces.IEntryBlock // Entry Blocks added within 10 minutes
 
 	// Lists
 	// =====
@@ -232,7 +233,7 @@ func (s *State) ProcessEndOfBlock() {
 	}
 
 	s.ProcessList = make([][]interfaces.IMsg, 1)
-
+	s.NewEBlks = make(map[[32]byte]interfaces.IEntryBlock)
 }
 
 func (s *State) GetEntryCreditBlock() interfaces.IEntryCreditBlock {
@@ -426,6 +427,7 @@ func (s *State) Init(filename string) {
 	}
 	s.Holding = make(map[[32]byte]interfaces.IMsg)
 	s.Acks = make(map[[32]byte]interfaces.IMsg)
+	s.NewEBlks = make(map[[32]byte]interfaces.IEntryBlock)
 
 	s.AuditServers = make([]interfaces.IServer, 0)
 	s.FedServers = make([]interfaces.IServer, 0)

@@ -12,7 +12,7 @@ import (
 // ProcessEBlockBatche inserts the EBlock and update all it's ebentries in DB
 func (db *Overlay) ProcessEBlockBatch(eblock interfaces.DatabaseBlockWithEntries) error {
 	//Each chain has its own number bucket, otherwise we would have conflicts
-	numberBucket := append([]byte{byte(ENTRYBLOCK_CHAIN_NUMBER)}, eblock.GetChainID()...)
+	numberBucket := append([]byte{byte(ENTRYBLOCK_CHAIN_NUMBER)}, eblock.GetChainID().Bytes()...)
 	err := db.ProcessBlockBatch([]byte{byte(ENTRYBLOCK)}, numberBucket, []byte{byte(ENTRYBLOCK_KEYMR)}, eblock)
 	if err != nil {
 		return err

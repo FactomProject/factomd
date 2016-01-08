@@ -34,7 +34,7 @@ type IFBlock interface {
 	GetEntryHashes() []IHash
 
 	// Get the ChainID. This is a constant for all Factoids.
-	GetChainID() []byte
+	GetChainID() IHash
 	// Validation functions
 	Validate() error
 	ValidateTransaction(int, ITransaction) error
