@@ -35,13 +35,6 @@ type IState interface {
 	LeaderInMsgQueue() chan IMsg   // Processed by the Leader
 	FollowerInMsgQueue() chan IMsg // Processed by the Follower
 
-	// Maps
-	// ====
-	// The leader CANNOT touch these maps!  Only the Follower Execution
-	// methods can touch them safely.
-	GetHolding() map[[32]byte]IMsg // Hold Messages
-	GetAcks() map[[32]byte]IMsg    // Hold Acknowledgemets
-
 	// Lists
 	// =====
 	// The leader CANNOT touch these lists!  Only the FollowerExecution
@@ -105,6 +98,7 @@ type IState interface {
 	// MISC
 	// ====
 	MatchAckFollowerExecute(m IMsg) error
+	FollowerExecuteAck(m IMsg) error
 	GetTimestamp() Timestamp
 	GetNewHash() IHash // Return a new Hash object
 	CreateDBlock() (b IDirectoryBlock, err error)

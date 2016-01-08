@@ -75,24 +75,7 @@ func (m *Ack) Follower(interfaces.IState) bool {
 }
 
 func (m *Ack) FollowerExecute(state interfaces.IState) error {
-	acks := state.GetAcks()
-	holding := state.GetHolding()
-	msg := holding[m.MessageHash.Fixed()]
-	if msg == nil {
-		acks[m.GetHash().Fixed()] = m
-	} else {
-		processlist := state.GetProcessList()[m.ServerIndex]
-		for len(processlist) < m.Height+1 {
-			processlist = append(processlist, nil)
-		}
-		processlist[m.Height] = msg
-		state.GetProcessList()[m.ServerIndex] = processlist
-		delete(holding, m.MessageHash.Fixed())
-	}
-
-	state.UpdateProcessLists()
-
-	return nil
+	return state.FollowerExecuteAck(m)
 }
 
 // Acknowledgements do not go into the process list.

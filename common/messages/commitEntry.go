@@ -164,21 +164,7 @@ func (m *CommitEntryMsg) Follower(interfaces.IState) bool {
 }
 
 func (m *CommitEntryMsg) FollowerExecute(state interfaces.IState) error {
-	acks := state.GetAcks()
-	ack, ok := acks[m.GetHash().Fixed()].(*Ack)
-	if !ok || ack == nil {
-		state.GetHolding()[m.GetHash().Fixed()] = m
-	} else {
-		processlist := state.GetProcessList()[ack.ServerIndex]
-		for len(processlist) < ack.Height+1 {
-			processlist = append(processlist, nil)
-		}
-		processlist[ack.Height] = m
-		state.GetProcessList()[ack.ServerIndex] = processlist
-		delete(acks, m.GetHash().Fixed())
-	}
-
-	return nil
+	return state.MatchAckFollowerExecute(m)
 }
 
 func (e *CommitEntryMsg) JSONByte() ([]byte, error) {

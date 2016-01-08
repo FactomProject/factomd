@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"sync"
 
 	"os"
 
@@ -47,8 +48,13 @@ type State struct {
 	// For Follower
 	Holding  map[[32]byte]interfaces.IMsg        // Hold Messages
 	Acks     map[[32]byte]interfaces.IMsg        // Hold Acknowledgemets
-	NewEBlks map[[32]byte]interfaces.IEntryBlock // Entry Blocks added within 10 minutes
 
+	NewEBlksSem sync.Mutex
+	NewEBlks map[[32]byte]interfaces.IEntryBlock // Entry Blocks added within 10 minutes (follower and leader)
+	
+	CommitsSem sync.Mutex
+	Commits  map[[32]byte]interfaces.IMsg        // Used by the leader, validate
+	
 	// Lists
 	// =====
 	AuditServers    []interfaces.IServer   // List of Audit Servers
@@ -96,10 +102,10 @@ var _ interfaces.IState = (*State)(nil)
 // Messages that match an acknowledgement, and are added to the process list
 // all do the same thing.  So that logic is here.
 func (s *State) MatchAckFollowerExecute(m interfaces.IMsg) error {
-	acks := s.GetAcks()
+	acks := s.Acks
 	ack, ok := acks[m.GetHash().Fixed()].(*messages.Ack)
 	if !ok || ack == nil {
-		s.GetHolding()[m.GetHash().Fixed()] = m
+		s.Holding[m.GetHash().Fixed()] = m
 	} else {
 		processlist := s.GetProcessList()[ack.ServerIndex]
 		for len(processlist) < ack.Height+1 {
@@ -109,6 +115,28 @@ func (s *State) MatchAckFollowerExecute(m interfaces.IMsg) error {
 		s.GetProcessList()[ack.ServerIndex] = processlist
 		delete(acks, m.GetHash().Fixed())
 	}
+	return nil
+}
+
+func (s *State) FollowerExecuteAck(msg interfaces.IMsg) error {
+	ack := msg.(*messages.Ack)
+	acks := s.Acks
+	holding := s.Holding
+	match := holding[ack.GetHash().Fixed()]
+	if match == nil {
+		acks[match.GetHash().Fixed()] = ack
+	} else {
+		processlist := s.GetProcessList()[ack.ServerIndex]
+		for len(processlist) < ack.Height+1 {
+			processlist = append(processlist, nil)
+		}
+		processlist[ack.Height] = match
+		s.GetProcessList()[ack.ServerIndex] = processlist
+		delete(holding, ack.MessageHash.Fixed())
+	}
+
+	s.UpdateProcessLists()
+
 	return nil
 }
 
@@ -159,15 +187,6 @@ func (s *State) initServerKeys() {
 		//panic("Cannot parse Server Private Key from configuration file: " + err.Error())
 	}
 	s.serverPubKey = primitives.PubKeyFromString(constants.SERVER_PUB_KEY)
-}
-
-// Maps
-// ====
-func (s *State) GetHolding() map[[32]byte]interfaces.IMsg {
-	return s.Holding
-}
-func (s *State) GetAcks() map[[32]byte]interfaces.IMsg {
-	return s.Acks
 }
 
 func (s *State) LogInfo(args ...interface{}) {
