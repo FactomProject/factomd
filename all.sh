@@ -101,10 +101,10 @@ compile() {
 }
 
 checkout factomd      $branch $default
-checkout fctwallet    $branch $default
-checkout walletapp    $branch $default
+checkout fctwallet2   $branch $default
+checkout walletapp2   $branch $default
 checkout factom       $branch $default
-checkout factom-cli   $branch $default
+checkout factom-cli2  $branch $default
 checkout Testing      $branch $default
 checkout btcutil      $branch $default 
 checkout goleveldb    $branch $default
@@ -126,10 +126,9 @@ echo "
 ******************************************************** 
 "
 compile factomd              || exit 1
-compile fctwallet            || exit 1
-compile factom-cli           || exit 1
-compile btcd/cmd/fctctl      || exit 1
-compile walletapp            || exit 1
+compile fctwallet2           || exit 1
+compile factom-cli2          || exit 1
+compile walletapp2           || exit 1
 
 echo ""
 echo "
