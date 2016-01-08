@@ -32,3 +32,9 @@ type DatabaseBatchable interface {
 
 	GetChainID() []byte
 }
+
+type DatabaseBlockWithEntries interface {
+	DatabaseBatchable
+
+	GetEntryHashes() []IHash
+}

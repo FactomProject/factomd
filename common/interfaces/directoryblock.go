@@ -8,7 +8,7 @@ import ()
 
 type IDirectoryBlock interface {
 	Printable
-	DatabaseBatchable
+	DatabaseBlockWithEntries
 
 	GetHeader() IDirectoryBlockHeader
 	SetHeader(IDirectoryBlockHeader)

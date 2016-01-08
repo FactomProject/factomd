@@ -13,10 +13,14 @@ import (
 )
 
 // ProcessDBlockBatche inserts the DBlock and update all it's dbentries in DB
-func (db *Overlay) ProcessDBlockBatch(dblock interfaces.DatabaseBatchable) error {
-	return db.ProcessBlockBatch([]byte{byte(DIRECTORYBLOCK)},
+func (db *Overlay) ProcessDBlockBatch(dblock interfaces.DatabaseBlockWithEntries) error {
+	err := db.ProcessBlockBatch([]byte{byte(DIRECTORYBLOCK)},
 		[]byte{byte(DIRECTORYBLOCK_NUMBER)},
 		[]byte{byte(DIRECTORYBLOCK_KEYMR)}, dblock)
+	if err != nil {
+		return err
+	}
+	return db.SaveIncludedInMultiFromBlock(dblock)
 }
 
 // FetchHeightRange looks up a range of blocks by the start and ending
@@ -107,7 +111,7 @@ func toDBlocksList(source []interfaces.BinaryMarshallableAndCopyable) []interfac
 	return answer
 }
 
-func (db *Overlay) SaveDirectoryBlockHead(dblock interfaces.DatabaseBatchable) error {
+func (db *Overlay) SaveDirectoryBlockHead(dblock interfaces.DatabaseBlockWithEntries) error {
 	return db.ProcessDBlockBatch(dblock)
 }
 

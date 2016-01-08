@@ -24,7 +24,7 @@ type DBOverlay interface {
 	//**********************************EBlock**********************************//
 
 	// ProcessEBlockBatche inserts the EBlock and update all it's ebentries in DB
-	ProcessEBlockBatch(eblock DatabaseBatchable) error
+	ProcessEBlockBatch(eblock DatabaseBlockWithEntries) error
 
 	// FetchEBlockByHash gets an entry by hash from the database.
 	FetchEBlockByHash(IHash) (IEntryBlock, error)
@@ -38,14 +38,14 @@ type DBOverlay interface {
 	// FetchAllEBlocksByChain gets all of the blocks by chain id
 	FetchAllEBlocksByChain(IHash) ([]IEntryBlock, error)
 
-	SaveEBlockHead(block DatabaseBatchable) error
+	SaveEBlockHead(block DatabaseBlockWithEntries) error
 
 	FetchEBlockHead(chainID IHash) (IEntryBlock, error)
 
 	//**********************************DBlock**********************************//
 
 	// ProcessDBlockBatche inserts the EBlock and update all it's ebentries in DB
-	ProcessDBlockBatch(block DatabaseBatchable) error
+	ProcessDBlockBatch(block DatabaseBlockWithEntries) error
 
 	// FetchHeightRange looks up a range of blocks by the start and ending
 	// heights.  Fetch is inclusive of the start height and exclusive of the
@@ -75,7 +75,7 @@ type DBOverlay interface {
 	// FetchAllFBInfo gets all of the fbInfo
 	FetchAllDBlocks() ([]IDirectoryBlock, error)
 
-	SaveDirectoryBlockHead(DatabaseBatchable) error
+	SaveDirectoryBlockHead(DatabaseBlockWithEntries) error
 
 	FetchDirectoryBlockHead() (IDirectoryBlock, error)
 
@@ -118,7 +118,7 @@ type DBOverlay interface {
 	//**********************************FBlock**********************************//
 
 	// ProcessFBlockBatch inserts the Factoid
-	ProcessFBlockBatch(DatabaseBatchable) error
+	ProcessFBlockBatch(DatabaseBlockWithEntries) error
 
 	// FetchFBlockByHash gets an admin block by hash from the database.
 	FetchFBlockByHash(IHash) (IFBlock, error)
@@ -128,7 +128,7 @@ type DBOverlay interface {
 	// FetchAllFBlocks gets all of the admin blocks
 	FetchAllFBlocks() ([]IFBlock, error)
 
-	SaveFactoidBlockHead(fblock DatabaseBatchable) error
+	SaveFactoidBlockHead(fblock DatabaseBlockWithEntries) error
 
 	FetchFactoidBlockHead() (IFBlock, error)
 
@@ -153,4 +153,11 @@ type DBOverlay interface {
 	FetchAllDirBlockInfos() ([]IDirBlockInfo, error)
 
 	SaveDirBlockInfo(block IDirBlockInfo) error
+
+	//******************************IncludedIn**********************************//
+
+	SaveIncludedIn(entry, block IHash) error
+	SaveIncludedInMultiFromBlock(block DatabaseBlockWithEntries) error
+	SaveIncludedInMulti(entries []IHash, block IHash) error
+	LoadIncludedIn(hash IHash) (IHash, error)
 }

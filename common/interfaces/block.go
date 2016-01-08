@@ -26,11 +26,12 @@ type IBlock interface {
 type IFBlock interface {
 	IBlock
 
-	//DatabaseBatchable
+	//DatabaseBlockWithEntries
 	GetDatabaseHeight() uint32
 	DatabasePrimaryIndex() IHash   //block.KeyMR()
 	DatabaseSecondaryIndex() IHash //block.GetHash()
 	New() BinaryMarshallableAndCopyable
+	GetEntryHashes() []IHash
 
 	// Get the ChainID. This is a constant for all Factoids.
 	GetChainID() []byte

@@ -8,8 +8,12 @@ import (
 	"sort"
 )
 
-func (db *Overlay) ProcessFBlockBatch(block interfaces.DatabaseBatchable) error {
-	return db.ProcessBlockBatch([]byte{byte(FACTOIDBLOCK)}, []byte{byte(FACTOIDBLOCK_NUMBER)}, []byte{byte(FACTOIDBLOCK_KEYMR)}, block)
+func (db *Overlay) ProcessFBlockBatch(block interfaces.DatabaseBlockWithEntries) error {
+	err := db.ProcessBlockBatch([]byte{byte(FACTOIDBLOCK)}, []byte{byte(FACTOIDBLOCK_NUMBER)}, []byte{byte(FACTOIDBLOCK_KEYMR)}, block)
+	if err != nil {
+		return err
+	}
+	return db.SaveIncludedInMultiFromBlock(block)
 }
 
 func (db *Overlay) FetchFBlockByHash(hash interfaces.IHash) (interfaces.IFBlock, error) {
@@ -51,7 +55,7 @@ func toFactoidList(source []interfaces.BinaryMarshallableAndCopyable) []interfac
 	return answer
 }
 
-func (db *Overlay) SaveFactoidBlockHead(fblock interfaces.DatabaseBatchable) error {
+func (db *Overlay) SaveFactoidBlockHead(fblock interfaces.DatabaseBlockWithEntries) error {
 	return db.ProcessFBlockBatch(fblock)
 }
 

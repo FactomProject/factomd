@@ -28,6 +28,16 @@ var _ interfaces.Printable = (*DirectoryBlock)(nil)
 var _ interfaces.BinaryMarshallableAndCopyable = (*DirectoryBlock)(nil)
 var _ interfaces.IDirectoryBlock = (*DirectoryBlock)(nil)
 var _ interfaces.DatabaseBatchable = (*DirectoryBlock)(nil)
+var _ interfaces.DatabaseBlockWithEntries = (*DirectoryBlock)(nil)
+
+func (c *DirectoryBlock) GetEntryHashes() []interfaces.IHash {
+	entries := c.DBEntries[:]
+	answer := make([]interfaces.IHash, len(entries))
+	for i, entry := range entries {
+		answer[i] = entry.GetKeyMR()
+	}
+	return answer
+}
 
 func (c *DirectoryBlock) GetDBEntries() []interfaces.IDBEntry {
 	return c.DBEntries

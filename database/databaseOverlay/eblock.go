@@ -10,10 +10,14 @@ import (
 )
 
 // ProcessEBlockBatche inserts the EBlock and update all it's ebentries in DB
-func (db *Overlay) ProcessEBlockBatch(eblock interfaces.DatabaseBatchable) error {
+func (db *Overlay) ProcessEBlockBatch(eblock interfaces.DatabaseBlockWithEntries) error {
 	//Each chain has its own number bucket, otherwise we would have conflicts
 	numberBucket := append([]byte{byte(ENTRYBLOCK_CHAIN_NUMBER)}, eblock.GetChainID()...)
-	return db.ProcessBlockBatch([]byte{byte(ENTRYBLOCK)}, numberBucket, []byte{byte(ENTRYBLOCK_KEYMR)}, eblock)
+	err := db.ProcessBlockBatch([]byte{byte(ENTRYBLOCK)}, numberBucket, []byte{byte(ENTRYBLOCK_KEYMR)}, eblock)
+	if err != nil {
+		return err
+	}
+	return db.SaveIncludedInMultiFromBlock(eblock)
 }
 
 // FetchEBlockByHash gets an entry block by merkle root from the database.
@@ -93,7 +97,7 @@ func (db *Overlay) FetchAllEBlocksByChain(chainID interfaces.IHash) ([]interface
 	return list, nil
 }
 
-func (db *Overlay) SaveEBlockHead(block interfaces.DatabaseBatchable) error {
+func (db *Overlay) SaveEBlockHead(block interfaces.DatabaseBlockWithEntries) error {
 	return db.ProcessEBlockBatch(block)
 }
 

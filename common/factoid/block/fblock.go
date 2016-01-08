@@ -42,6 +42,16 @@ type FBlock struct {
 var _ interfaces.IFBlock = (*FBlock)(nil)
 var _ interfaces.Printable = (*FBlock)(nil)
 var _ interfaces.BinaryMarshallableAndCopyable = (*FBlock)(nil)
+var _ interfaces.DatabaseBlockWithEntries = (*FBlock)(nil)
+
+func (c *FBlock) GetEntryHashes() []interfaces.IHash {
+	entries := c.Transactions[:]
+	answer := make([]interfaces.IHash, len(entries))
+	for i, entry := range entries {
+		answer[i] = entry.GetHash()
+	}
+	return answer
+}
 
 func (c *FBlock) New() interfaces.BinaryMarshallableAndCopyable {
 	return new(FBlock)

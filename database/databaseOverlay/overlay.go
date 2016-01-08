@@ -53,6 +53,9 @@ const (
 	DIRBLOCKINFO_UNCONFIRMED
 	DIRBLOCKINFO_NUMBER
 	DIRBLOCKINFO_KEYMR
+
+	//IncludedIn
+	INCLUDED_IN
 )
 
 type Overlay struct {

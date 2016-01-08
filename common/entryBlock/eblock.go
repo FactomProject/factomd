@@ -26,6 +26,11 @@ var _ interfaces.Printable = (*EBlock)(nil)
 var _ interfaces.BinaryMarshallableAndCopyable = (*EBlock)(nil)
 var _ interfaces.DatabaseBatchable = (*EBlock)(nil)
 var _ interfaces.IEntryBlock = (*EBlock)(nil)
+var _ interfaces.DatabaseBlockWithEntries = (*EBlock)(nil)
+
+func (c *EBlock) GetEntryHashes() []interfaces.IHash {
+	return c.Body.EBEntries[:]
+}
 
 func (c *EBlock) New() interfaces.BinaryMarshallableAndCopyable {
 	return NewEBlock()
