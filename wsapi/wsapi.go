@@ -19,6 +19,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/log"
 	"github.com/hoisie/web"
+	"github.com/FactomProject/factomd/receipts"
 )
 
 const (
@@ -47,6 +48,7 @@ func Start(state interfaces.IState) {
 		server.Post("/v1/reveal-entry/?", HandleRevealEntry)
 		server.Get("/v1/directory-block-head/?", HandleDirectoryBlockHead)
 		server.Get("/v1/get-raw-data/([^/]+)", HandleGetRaw)
+		server.Get("/v1/get-receipt/([^/]+)", HandleGetReceipt)
 		server.Get("/v1/directory-block-by-keymr/([^/]+)", HandleDirectoryBlock)
 		server.Get("/v1/entry-block-by-keymr/([^/]+)", HandleEntryBlock)
 		server.Get("/v1/entry-by-hash/([^/]+)", HandleEntry)
@@ -221,6 +223,31 @@ func HandleGetRaw(ctx *web.Context, hashkey string) {
 		return
 	} else {
 		ctx.Write(p)
+	}
+}
+
+func HandleGetReceipt(ctx *web.Context, hashkey string) {
+	state := ctx.Server.Env["state"].(interfaces.IState)
+
+	h, err := primitives.HexToHash(hashkey)
+	if err != nil {
+		wsLog.Error(err)
+		ctx.WriteHeader(httpBad)
+		ctx.Write([]byte(err.Error()))
+		return
+	}
+
+	dbase := state.GetDB()
+
+	rec, err:=receipts.CreateFullReceipt(dbase, h)
+
+	if err != nil {
+		wsLog.Error(err)
+		ctx.WriteHeader(httpBad)
+		ctx.Write([]byte(err.Error()))
+		return
+	} else {
+		ctx.Write([]byte(rec.String()))
 	}
 }
 
