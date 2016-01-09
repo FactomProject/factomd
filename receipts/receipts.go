@@ -10,7 +10,6 @@ import (
 	"github.com/FactomProject/factomd/common/directoryBlock/dbInfo"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"encoding/json"
 	"strings"
 )
@@ -146,7 +145,7 @@ func (e *JSON) IsSameAs(r *JSON) bool {
 	return true
 }
 
-func CreateFullReceipt(dbo *databaseOverlay.Overlay, entryID interfaces.IHash) (*Receipt, error) {
+func CreateFullReceipt(dbo interfaces.DBOverlay, entryID interfaces.IHash) (*Receipt, error) {
 	receipt := new(Receipt)
 	receipt.Entry = new(JSON)
 	receipt.Entry.Key = entryID.String()
@@ -225,7 +224,7 @@ func CreateFullReceipt(dbo *databaseOverlay.Overlay, entryID interfaces.IHash) (
 	return receipt, nil
 }
 
-func CreateMinimalReceipt(dbo *databaseOverlay.Overlay, entryID interfaces.IHash) (*Receipt, error) {
+func CreateMinimalReceipt(dbo interfaces.DBOverlay, entryID interfaces.IHash) (*Receipt, error) {
 	receipt, err := CreateFullReceipt(dbo, entryID)
 	if err != nil {
 		return nil, err
@@ -248,7 +247,7 @@ func CreateMinimalReceipt(dbo *databaseOverlay.Overlay, entryID interfaces.IHash
 	return receipt, nil
 }
 
-func VerifyFullReceipt(dbo *databaseOverlay.Overlay, receiptStr string) error {
+func VerifyFullReceipt(dbo interfaces.DBOverlay, receiptStr string) error {
 	receipt, err := DecodeReceiptString(receiptStr)
 	if err != nil {
 		return err
@@ -311,6 +310,6 @@ func VerifyFullReceipt(dbo *databaseOverlay.Overlay, receiptStr string) error {
 	return nil
 }
 
-func VerifyMinimalReceipt(dbo *databaseOverlay.Overlay, receiptStr string) error {
+func VerifyMinimalReceipt(dbo interfaces.DBOverlay, receiptStr string) error {
 	return nil
 }

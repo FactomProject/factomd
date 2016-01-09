@@ -32,7 +32,7 @@ func SaveBinary(block interfaces.DatabaseBatchable) error {
 		return err
 	}
 
-	strChainID := fmt.Sprintf("%x", block.GetChainID())
+	strChainID := fmt.Sprintf("%x", block.GetChainID().Bytes())
 	dir := DataStorePath + strChainID
 	if FileNotExists(dir) {
 		err := os.MkdirAll(dir, 0777)
@@ -56,7 +56,7 @@ func SaveEntryBinary(entry interfaces.DatabaseBatchable, blockHeight uint32) err
 		return err
 	}
 
-	strChainID := fmt.Sprintf("%x", entry.GetChainID())
+	strChainID := fmt.Sprintf("%x", entry.GetChainID().Bytes())
 	dir := DataStorePath + strChainID + "/entries"
 	if FileNotExists(dir) {
 		err := os.MkdirAll(dir, 0777)
@@ -84,7 +84,7 @@ func SaveJSON(block interfaces.DatabaseBatchable) error {
 	json.Indent(&out, data, "", "\t")
 	data = out.Bytes()
 
-	strChainID := fmt.Sprintf("%x", block.GetChainID())
+	strChainID := fmt.Sprintf("%x", block.GetChainID().Bytes())
 	dir := DataStorePath + strChainID
 	if FileNotExists(dir) {
 		err := os.MkdirAll(dir, 0777)
@@ -112,7 +112,7 @@ func SaveEntryJSON(entry interfaces.DatabaseBatchable, blockHeight uint32) error
 	json.Indent(&out, data, "", "\t")
 	data = out.Bytes()
 
-	strChainID := fmt.Sprintf("%x", entry.GetChainID())
+	strChainID := fmt.Sprintf("%x", entry.GetChainID().Bytes())
 	dir := DataStorePath + strChainID + "/entries"
 	if FileNotExists(dir) {
 		err := os.MkdirAll(dir, 0777)
@@ -172,6 +172,9 @@ func ExportDChain(db interfaces.DBOverlay) error {
 	sort.Sort(util.ByDBlockIDAccending(dBlocks))
 
 	for _, block := range dBlocks {
+		//Making sure Hash and KeyMR are set for the JSON export
+		block.GetHash()
+		block.GetKeyMR()
 		err = ExportBlock(block.(interfaces.DatabaseBatchable))
 		if err != nil {
 			return err
