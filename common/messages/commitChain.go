@@ -67,6 +67,12 @@ func (m *CommitChainMsg) Validate(state interfaces.IState) int {
 		return 0
 	}
 
+	// If there is a commit against the same hash, then we can't process
+	// this one right now.  Must wait for the previous to clear.
+	if state.GetCommits(m.GetHash()) != nil {
+		return 0
+	}
+	
 	return 1
 
 }
@@ -86,7 +92,7 @@ func (m *CommitChainMsg) LeaderExecute(state interfaces.IState) error {
 	b := m.GetHash()
 
 	msg, err := NewAck(state, b)
-
+	state.PutCommits(m.GetHash(),m)
 	if err != nil {
 		return err
 	}
@@ -104,9 +110,12 @@ func (m *CommitChainMsg) Follower(state interfaces.IState) bool {
 }
 
 func (m *CommitChainMsg) FollowerExecute(state interfaces.IState) error {
-	err := state.MatchAckFollowerExecute(m)
+	matched, err := state.MatchAckFollowerExecute(m)
 	if err != nil {
 		return err
+	}
+	if matched {		// We matched, we must be remembered!
+		state.PutCommits(m.GetHash(),m)
 	}
 	return nil
 }

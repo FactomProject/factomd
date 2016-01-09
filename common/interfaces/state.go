@@ -35,7 +35,7 @@ type IState interface {
 	LeaderInMsgQueue() chan IMsg   // Processed by the Leader
 	FollowerInMsgQueue() chan IMsg // Processed by the Follower
 
-	// Lists
+	// Lists and Maps
 	// =====
 	// The leader CANNOT touch these lists!  Only the FollowerExecution
 	// methods can touch them safely.
@@ -45,7 +45,10 @@ type IState interface {
 	GetProcessList() [][]IMsg     // List of Processed Messages Per server
 	GetAuditHeartBeats() []IMsg   // The checklist of HeartBeats for this period
 	GetFedServerFaults() [][]IMsg // Keep a fault list for every server
-
+	GetNewEBlks([32]byte) IEntryBlock 
+	PutNewEBlks([32]byte, IEntryBlock) 	
+	GetCommits(IHash) IMsg 
+	PutCommits(IHash, IMsg)
 	// Server Configuration
 	// ====================
 
@@ -97,7 +100,9 @@ type IState interface {
 
 	// MISC
 	// ====
-	MatchAckFollowerExecute(m IMsg) error
+	
+	// Returns true if it found a match
+	MatchAckFollowerExecute(m IMsg) (bool,error)
 	FollowerExecuteAck(m IMsg) error
 	GetTimestamp() Timestamp
 	GetNewHash() IHash // Return a new Hash object

@@ -95,7 +95,8 @@ func (m *FactoidTransaction) Follower(state interfaces.IState) bool {
 }
 
 func (m *FactoidTransaction) FollowerExecute(state interfaces.IState) error {
-	return state.MatchAckFollowerExecute(m)
+	_, err := state.MatchAckFollowerExecute(m)
+	return err
 }
 
 func (m *FactoidTransaction) Process(state interfaces.IState) {

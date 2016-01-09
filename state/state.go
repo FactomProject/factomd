@@ -49,10 +49,10 @@ type State struct {
 	Holding  map[[32]byte]interfaces.IMsg        // Hold Messages
 	Acks     map[[32]byte]interfaces.IMsg        // Hold Acknowledgemets
 
-	NewEBlksSem sync.Mutex
+	NewEBlksSem *sync.Mutex
 	NewEBlks map[[32]byte]interfaces.IEntryBlock // Entry Blocks added within 10 minutes (follower and leader)
 	
-	CommitsSem sync.Mutex
+	CommitsSem *sync.Mutex
 	Commits  map[[32]byte]interfaces.IMsg        // Used by the leader, validate
 	
 	// Lists
@@ -99,13 +99,44 @@ type State struct {
 
 var _ interfaces.IState = (*State)(nil)
 
+func (s *State) GetNewEBlks(key [32]byte) interfaces.IEntryBlock {
+	s.NewEBlksSem.Lock()
+	value := s.NewEBlks[key]
+	s.NewEBlksSem.Unlock()
+	return value
+}
+
+func (s *State) PutNewEBlks(key [32]byte, value interfaces.IEntryBlock) {
+	s.NewEBlksSem.Lock()
+	s.NewEBlks[key] = value
+	s.NewEBlksSem.Unlock()
+}
+
+func (s *State) GetCommits(key interfaces.IHash) interfaces.IMsg {
+	s.CommitsSem.Lock()
+	value := s.Commits[key.Fixed()]
+	s.CommitsSem.Unlock()
+	return value
+}
+
+func (s *State) PutCommits(key interfaces.IHash, value interfaces.IMsg) {
+	s.CommitsSem.Lock()
+	s.Commits[key.Fixed()] = value
+	s.CommitsSem.Unlock()
+}
+
+
+
 // Messages that match an acknowledgement, and are added to the process list
 // all do the same thing.  So that logic is here.
-func (s *State) MatchAckFollowerExecute(m interfaces.IMsg) error {
+//
+// Returns true if it finds a match
+func (s *State) MatchAckFollowerExecute(m interfaces.IMsg) (bool, error) {
 	acks := s.Acks
 	ack, ok := acks[m.GetHash().Fixed()].(*messages.Ack)
 	if !ok || ack == nil {
 		s.Holding[m.GetHash().Fixed()] = m
+		return false, nil
 	} else {
 		processlist := s.GetProcessList()[ack.ServerIndex]
 		for len(processlist) < ack.Height+1 {
@@ -114,28 +145,20 @@ func (s *State) MatchAckFollowerExecute(m interfaces.IMsg) error {
 		processlist[ack.Height] = m
 		s.GetProcessList()[ack.ServerIndex] = processlist
 		delete(acks, m.GetHash().Fixed())
+		return true, nil
 	}
-	return nil
 }
 
+// Match an acknowledgement to a message
 func (s *State) FollowerExecuteAck(msg interfaces.IMsg) error {
 	ack := msg.(*messages.Ack)
 	acks := s.Acks
 	holding := s.Holding
 	match := holding[ack.GetHash().Fixed()]
-	if match == nil {
-		acks[match.GetHash().Fixed()] = ack
-	} else {
-		processlist := s.GetProcessList()[ack.ServerIndex]
-		for len(processlist) < ack.Height+1 {
-			processlist = append(processlist, nil)
-		}
-		processlist[ack.Height] = match
-		s.GetProcessList()[ack.ServerIndex] = processlist
-		delete(holding, ack.MessageHash.Fixed())
-	}
-
-	s.UpdateProcessLists()
+	acks[match.GetHash().Fixed()] = ack
+	if match != nil {
+		match.LeaderExecute(s)
+	} 
 
 	return nil
 }
@@ -446,8 +469,13 @@ func (s *State) Init(filename string) {
 	}
 	s.Holding = make(map[[32]byte]interfaces.IMsg)
 	s.Acks = make(map[[32]byte]interfaces.IMsg)
+	
+	s.NewEBlksSem = new(sync.Mutex)
 	s.NewEBlks = make(map[[32]byte]interfaces.IEntryBlock)
 
+	s.CommitsSem = new(sync.Mutex)
+	s.Commits = make(map[[32]byte]interfaces.IMsg)
+	
 	s.AuditServers = make([]interfaces.IServer, 0)
 	s.FedServers = make([]interfaces.IServer, 0)
 	s.ServerOrder = make([][]interfaces.IServer, 0)
