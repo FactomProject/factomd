@@ -18,5 +18,11 @@ func TestReceipts(t *testing.T) {
 		t.Error(err)
 	}
 	t.Logf("%v", receipt.String())
-	t.Fail()
+
+	err = VerifyFullReceipt(dbo, receipt.String())
+	if err != nil {
+		t.Error(err)
+	}
+
+	//t.Fail()
 }
