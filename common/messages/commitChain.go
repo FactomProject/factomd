@@ -72,7 +72,7 @@ func (m *CommitChainMsg) Validate(state interfaces.IState) int {
 	if state.GetCommits(m.GetHash()) != nil {
 		return 0
 	}
-	
+
 	return 1
 
 }
@@ -92,7 +92,7 @@ func (m *CommitChainMsg) LeaderExecute(state interfaces.IState) error {
 	b := m.GetHash()
 
 	msg, err := NewAck(state, b)
-	state.PutCommits(m.GetHash(),m)
+	state.PutCommits(m.GetHash(), m)
 	if err != nil {
 		return err
 	}
@@ -114,8 +114,8 @@ func (m *CommitChainMsg) FollowerExecute(state interfaces.IState) error {
 	if err != nil {
 		return err
 	}
-	if matched {		// We matched, we must be remembered!
-		state.PutCommits(m.GetHash(),m)
+	if matched { // We matched, we must be remembered!
+		state.PutCommits(m.GetHash(), m)
 	}
 	return nil
 }

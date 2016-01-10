@@ -6,11 +6,11 @@ package receipts
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"github.com/FactomProject/factomd/common/directoryBlock/dbInfo"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-	"encoding/json"
 	"strings"
 )
 

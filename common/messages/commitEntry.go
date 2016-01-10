@@ -164,7 +164,7 @@ func (m *CommitEntryMsg) Follower(interfaces.IState) bool {
 }
 
 func (m *CommitEntryMsg) FollowerExecute(state interfaces.IState) error {
-	_,err := state.MatchAckFollowerExecute(m)
+	_, err := state.MatchAckFollowerExecute(m)
 	return err
 }
 

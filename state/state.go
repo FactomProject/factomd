@@ -46,15 +46,15 @@ type State struct {
 	// Maps
 	// ====
 	// For Follower
-	Holding  map[[32]byte]interfaces.IMsg        // Hold Messages
-	Acks     map[[32]byte]interfaces.IMsg        // Hold Acknowledgemets
+	Holding map[[32]byte]interfaces.IMsg // Hold Messages
+	Acks    map[[32]byte]interfaces.IMsg // Hold Acknowledgemets
 
 	NewEBlksSem *sync.Mutex
-	NewEBlks map[[32]byte]interfaces.IEntryBlock // Entry Blocks added within 10 minutes (follower and leader)
-	
+	NewEBlks    map[[32]byte]interfaces.IEntryBlock // Entry Blocks added within 10 minutes (follower and leader)
+
 	CommitsSem *sync.Mutex
-	Commits  map[[32]byte]interfaces.IMsg        // Used by the leader, validate
-	
+	Commits    map[[32]byte]interfaces.IMsg // Used by the leader, validate
+
 	// Lists
 	// =====
 	AuditServers    []interfaces.IServer   // List of Audit Servers
@@ -125,8 +125,6 @@ func (s *State) PutCommits(key interfaces.IHash, value interfaces.IMsg) {
 	s.CommitsSem.Unlock()
 }
 
-
-
 // Messages that match an acknowledgement, and are added to the process list
 // all do the same thing.  So that logic is here.
 //
@@ -142,7 +140,7 @@ func (s *State) MatchAckFollowerExecute(m interfaces.IMsg) (bool, error) {
 		for len(processlist) <= ack.Height {
 			processlist = append(processlist, nil)
 		}
-		fmt.Println("Add message at height",ack.Height)
+		fmt.Println("Add message at height", ack.Height)
 		processlist[ack.Height] = m
 		s.GetProcessList()[ack.ServerIndex] = processlist
 		// remove the message from the holding/ack maps.
@@ -162,7 +160,7 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) error {
 		// If we have a match, the ack is in the Acks, so we
 		// can match the message to the ack.  One set of code.
 		match.FollowerExecute(s)
-	} 
+	}
 
 	return nil
 }
@@ -179,7 +177,7 @@ func (s *State) UpdateProcessLists() {
 		for j := s.PLHeight[i]; j < len(plist); j++ {
 			fmt.Println("UpdatePL: ", j)
 			if plist[j] == nil {
-				fmt.Println("Nil at",j)
+				fmt.Println("Nil at", j)
 				break
 			}
 			plist[j].Process(s)   // Process this entry
@@ -254,15 +252,15 @@ func (s *State) Sign([]byte) interfaces.IFullSignature {
 // It is called by the follower code.  It is requried to build the Directory Block
 // to validate the signatures we will get with the DirectoryBlockSignature messages.
 func (s *State) ProcessEndOfBlock() {
-	
+
 	//Must have all the complete process lists at this point!
-	
-	s.UpdateProcessLists()	// Do any remaining processing
-	
-	for i:= 0; i<len(s.ProcessList) ;i++ {	// Reset heights to zero for all lists
-		s.PLHeight[i]=0
+
+	s.UpdateProcessLists() // Do any remaining processing
+
+	for i := 0; i < len(s.ProcessList); i++ { // Reset heights to zero for all lists
+		s.PLHeight[i] = 0
 	}
-	
+
 	s.PreviousDirectoryBlock = s.CurrentDirectoryBlock
 	previousECBlock := s.GetCurrentEntryCreditBlock()
 
@@ -484,13 +482,13 @@ func (s *State) Init(filename string) {
 	}
 	s.Holding = make(map[[32]byte]interfaces.IMsg)
 	s.Acks = make(map[[32]byte]interfaces.IMsg)
-	
+
 	s.NewEBlksSem = new(sync.Mutex)
 	s.NewEBlks = make(map[[32]byte]interfaces.IEntryBlock)
 
 	s.CommitsSem = new(sync.Mutex)
 	s.Commits = make(map[[32]byte]interfaces.IMsg)
-	
+
 	s.AuditServers = make([]interfaces.IServer, 0)
 	s.FedServers = make([]interfaces.IServer, 0)
 	s.ServerOrder = make([][]interfaces.IServer, 0)
