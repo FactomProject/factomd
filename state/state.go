@@ -139,12 +139,16 @@ func (s *State) MatchAckFollowerExecute(m interfaces.IMsg) (bool, error) {
 		return false, nil
 	} else {
 		processlist := s.GetProcessList()[ack.ServerIndex]
-		for len(processlist) < ack.Height+1 {
+		for len(processlist) <= ack.Height {
 			processlist = append(processlist, nil)
 		}
+		fmt.Println("Add message at height",ack.Height)
 		processlist[ack.Height] = m
 		s.GetProcessList()[ack.ServerIndex] = processlist
+		// remove the message from the holding/ack maps.
 		delete(acks, m.GetHash().Fixed())
+		delete(s.Holding, m.GetHash().Fixed())
+		s.UpdateProcessLists()
 		return true, nil
 	}
 }
@@ -152,12 +156,12 @@ func (s *State) MatchAckFollowerExecute(m interfaces.IMsg) (bool, error) {
 // Match an acknowledgement to a message
 func (s *State) FollowerExecuteAck(msg interfaces.IMsg) error {
 	ack := msg.(*messages.Ack)
-	acks := s.Acks
-	holding := s.Holding
-	match := holding[ack.GetHash().Fixed()]
-	acks[match.GetHash().Fixed()] = ack
+	s.Acks[ack.GetHash().Fixed()] = ack
+	match := s.Holding[ack.GetHash().Fixed()]
 	if match != nil {
-		match.LeaderExecute(s)
+		// If we have a match, the ack is in the Acks, so we
+		// can match the message to the ack.  One set of code.
+		match.FollowerExecute(s)
 	} 
 
 	return nil
@@ -170,11 +174,12 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) error {
 //
 // This routine can only be called by the Follower goroutine.
 func (s *State) UpdateProcessLists() {
-	for i := 0; i < len(s.GetProcessList()); i++ {
+	for i := 0; i < len(s.ProcessList); i++ {
 		plist := s.GetProcessList()[i]
 		for j := s.PLHeight[i]; j < len(plist); j++ {
 			fmt.Println("UpdatePL: ", j)
 			if plist[j] == nil {
+				fmt.Println("Nil at",j)
 				break
 			}
 			plist[j].Process(s)   // Process this entry
@@ -249,6 +254,15 @@ func (s *State) Sign([]byte) interfaces.IFullSignature {
 // It is called by the follower code.  It is requried to build the Directory Block
 // to validate the signatures we will get with the DirectoryBlockSignature messages.
 func (s *State) ProcessEndOfBlock() {
+	
+	//Must have all the complete process lists at this point!
+	
+	s.UpdateProcessLists()	// Do any remaining processing
+	
+	for i:= 0; i<len(s.ProcessList) ;i++ {	// Reset heights to zero for all lists
+		s.PLHeight[i]=0
+	}
+	
 	s.PreviousDirectoryBlock = s.CurrentDirectoryBlock
 	previousECBlock := s.GetCurrentEntryCreditBlock()
 
@@ -275,6 +289,7 @@ func (s *State) ProcessEndOfBlock() {
 	}
 
 	s.ProcessList = make([][]interfaces.IMsg, 1)
+	s.LastAck = nil
 	s.NewEBlks = make(map[[32]byte]interfaces.IEntryBlock)
 }
 

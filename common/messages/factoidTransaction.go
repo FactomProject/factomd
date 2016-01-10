@@ -75,17 +75,13 @@ func (m *FactoidTransaction) LeaderExecute(state interfaces.IState) error {
 	if err := state.GetFactoidState().Validate(1, m.Transaction); err != nil {
 		return err
 	}
-	b, err := m.Transaction.MarshalBinarySig()
+	msg, err := NewAck(state, m.GetHash())
 	if err != nil {
 		return err
 	}
-	msg, err := NewAck(state, primitives.Sha(b))
-	if err != nil {
-		return err
-	}
-	state.NetworkOutMsgQueue() <- msg
-	state.FollowerInMsgQueue() <- m   // Send factoid trans to follower
+	state.NetworkOutMsgQueue() <- msg // Send the Ack to the network
 	state.FollowerInMsgQueue() <- msg // Send the Ack to follower
+	state.FollowerInMsgQueue() <- m   // Send factoid trans to follower
 	return nil
 }
 
@@ -95,6 +91,7 @@ func (m *FactoidTransaction) Follower(state interfaces.IState) bool {
 }
 
 func (m *FactoidTransaction) FollowerExecute(state interfaces.IState) error {
+	
 	_, err := state.MatchAckFollowerExecute(m)
 	return err
 }
@@ -105,7 +102,7 @@ func (m *FactoidTransaction) Process(state interfaces.IState) {
 		return
 	}
 	m.processed = true
-
+	fmt.Println("Process Factoid")
 	// We can only get a Factoid Transaction once.  Add it, and remove it from the lists.
 	state.GetFactoidState().AddTransaction(1, m.Transaction)
 
@@ -159,7 +156,7 @@ func (m *FactoidTransaction) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *FactoidTransaction) String() string {
-	return "Factoid Transaction " + m.Transaction.GetHash().String()
+	return "Factoid Transaction " + m.GetHash().String()
 }
 
 func (e *FactoidTransaction) JSONByte() ([]byte, error) {

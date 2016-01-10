@@ -45,8 +45,10 @@ type IState interface {
 	GetProcessList() [][]IMsg     // List of Processed Messages Per server
 	GetAuditHeartBeats() []IMsg   // The checklist of HeartBeats for this period
 	GetFedServerFaults() [][]IMsg // Keep a fault list for every server
+
 	GetNewEBlks([32]byte) IEntryBlock 
 	PutNewEBlks([32]byte, IEntryBlock) 	
+
 	GetCommits(IHash) IMsg 
 	PutCommits(IHash, IMsg)
 	// Server Configuration
