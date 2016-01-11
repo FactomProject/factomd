@@ -26,6 +26,17 @@ type Entry struct {
 var _ interfaces.IEBEntry = (*Entry)(nil)
 var _ interfaces.DatabaseBatchable = (*Entry)(nil)
 
+// Returns the size of the entry subject to payment in K.  So anything up
+// to 1K returns 1, everything up to and including 2K returns 2, etc.
+// An error returns 100 (an invalid size)
+func (c *Entry) KSize() int {
+	data,err := c.MarshalBinary()
+	if err != nil {
+		return 100
+	}
+	return (len(data)-33+1023)/1024
+}
+
 func (c *Entry) New() interfaces.BinaryMarshallableAndCopyable {
 	return NewEntry()
 }
