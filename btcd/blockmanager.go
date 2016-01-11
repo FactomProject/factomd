@@ -11,8 +11,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	. "github.com/FactomProject/factomd/common/constants"
-	. "github.com/FactomProject/factomd/common/directoryBlock"
+	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	cp "github.com/FactomProject/factomd/controlpanel"
@@ -674,7 +674,7 @@ func (b *blockManager) haveBlockInDB(hash interfaces.IHash) (bool, error) {
 // dirBlockMsg packages a directory block message and the peer it came from together
 // so the block handler has access to that information.
 type dirBlockMsg struct {
-	block *DirectoryBlock
+	block *directoryBlock.DirectoryBlock
 	peer  *peer
 }
 
@@ -884,6 +884,7 @@ func (b *blockManager) startSyncFactom(peers *list.List) {
 
 		bestPeer.PushGetDirBlocksMsg(locator, zeroHash)
 		b.syncPeer = bestPeer
+		go b.validateAndStoreBlocks()
 	} else {
 		bmgrLog.Warnf("No sync peer candidates available")
 	}
@@ -893,7 +894,7 @@ func (b *blockManager) startSyncFactom(peers *list.List) {
 // syncing from.
 func (b *blockManager) isSyncCandidateFactom(p *peer) bool {
 	// Typically a peer is not a candidate for sync if it's not a Factom SERVER node,
-	if SERVER_NODE == util.ReadConfig("").App.NodeMode {
+	if constants.SERVER_NODE == util.ReadConfig("").App.NodeMode {
 		return true
 	}
 	return true

@@ -9,7 +9,7 @@ import (
 	"encoding/hex"
 	//"errors"
 	cp "github.com/FactomProject/factomd/controlpanel"
-	//"github.com/davecgh/go-spew/spew"
+	"github.com/davecgh/go-spew/spew"
 	"strconv"
 	"time"
 
@@ -17,7 +17,7 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
 	//"github.com/FactomProject/factomd/common/entryBlock"
-	"github.com/FactomProject/factomd/common/interfaces"
+	//"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	//"github.com/FactomProject/factomd/common/primitives"
 )
@@ -108,30 +108,37 @@ func (b *blockManager) processEntry(msg *messages.MsgEntry) error {
 }
 
 // Validate the new blocks in mem pool and store them in db
-func (b *blockManager) validateAndStoreBlocks(fMemPool *ftmMemPool, db interfaces.DBOverlay) {
+func (b *blockManager) validateAndStoreBlocks() {
 	var myDBHeight uint32
-	var sleeptime int
+	var sleeptime = 1
 	var dblk *directoryBlock.DirectoryBlock
 
 	for true {
 		dblk = nil
 		myDBHeight = b.server.State.GetDBHeight()
-		dblk = b.fMemPool.getBlockMsg(string(myDBHeight+1)).(*messages.MsgDirBlock).DBlk
-		if dblk != nil {
-			if b.validateBlocksFromMemPool(dblk) {
-				err := b.storeBlocksFromMemPool(dblk)
-				if err == nil {
-					b.deleteBlocksFromMemPool(dblk)
+		msg := b.fMemPool.getBlockMsg(string(myDBHeight+1))
+		if msg != nil {
+			switch msg.(type) {
+			case  *messages.MsgDirBlock:
+				dblk = msg.(*messages.MsgDirBlock).DBlk
+				bmgrLog.Debug("SyncUp: validate height=%d, dirblock=%s\n ", myDBHeight+1, spew.Sdump(dblk))
+				if dblk != nil {
+					if b.validateBlocksFromMemPool(dblk) {
+						err := b.storeBlocksFromMemPool(dblk)
+						if err == nil {
+							b.deleteBlocksFromMemPool(dblk)
+						} else {
+							panic("error in deleteBlocksFromMemPool.")
+						}
+					} else {
+						time.Sleep(time.Duration(sleeptime * 1000000)) // Nanoseconds for duration
+					}
 				} else {
-					panic("error in deleteBlocksFromMemPool.")
+					//TODO: send an internal msg to sync up with peers
 				}
-			} else {
-				time.Sleep(time.Duration(sleeptime * 1000000)) // Nanoseconds for duration
 			}
 		} else {
 			time.Sleep(time.Duration(sleeptime * 1000000)) // Nanoseconds for duration
-
-			//TODO: send an internal msg to sync up with peers
 		}
 	}
 }
@@ -152,21 +159,21 @@ func (b *blockManager) validateBlocksFromMemPool(dblk *directoryBlock.DirectoryB
 
 	for _, dbEntry := range dblk.GetDBEntries() {
 		switch dbEntry.GetChainID().String() {
-		case string(constants.EC_CHAINID[:]):
+		case hex.EncodeToString(constants.EC_CHAINID[:]):
 			if _, ok := b.fMemPool.blockpool[dbEntry.GetKeyMR().String()]; !ok {
 				return false
 			}
-		case string(constants.ADMIN_CHAINID[:]):
+		case hex.EncodeToString(constants.ADMIN_CHAINID[:]):
 			if _, ok := b.fMemPool.blockpool[dbEntry.GetKeyMR().String()]; !ok {
 				return false
-			} else {
+			//} else {
 				// validate signature of the previous dir block
 				//aBlkMsg, _ := msg.(*messages.MsgABlock)
 				//if !b.validateDBSignature(aBlkMsg.ABlk) {
 					//return false
 				//}
 			}
-		case string(constants.FACTOID_CHAINID[:]):
+		case hex.EncodeToString(constants.FACTOID_CHAINID[:]):
 			if _, ok := b.fMemPool.blockpool[dbEntry.GetKeyMR().String()]; !ok {
 				return false
 			}
@@ -199,20 +206,22 @@ func (b *blockManager) storeBlocksFromMemPool(dblk *directoryBlock.DirectoryBloc
 
 	for _, dbEntry := range dblk.DBEntries {
 		switch dbEntry.GetChainID().String() {
-		case string(constants.EC_CHAINID[:]):
+		case hex.EncodeToString(constants.EC_CHAINID[:]):
 			ecBlkMsg := b.fMemPool.blockpool[dbEntry.GetKeyMR().String()].(*messages.MsgECBlock)
 			err := b.server.State.GetDB().ProcessECBlockBatch(ecBlkMsg.ECBlock)
 			if err != nil {
 				return err
 			}
+			b.server.State.SetCurrentEntryCreditBlock(ecBlkMsg.ECBlock)
 			//initializeECreditMap(ecBlkMsg.ECBlock)
-		case string(constants.ADMIN_CHAINID[:]):
+		case hex.EncodeToString(constants.ADMIN_CHAINID[:]):
 			aBlkMsg := b.fMemPool.blockpool[dbEntry.GetKeyMR().String()].(*messages.MsgABlock)
 			err := b.server.State.GetDB().ProcessABlockBatch(aBlkMsg.ABlk)
 			if err != nil {
 				return err
 			}
-		case string(constants.FACTOID_CHAINID[:]):
+			b.server.State.SetCurrentAdminBlock(aBlkMsg.ABlk)
+		case hex.EncodeToString(constants.FACTOID_CHAINID[:]):
 			fBlkMsg := b.fMemPool.blockpool[dbEntry.GetKeyMR().String()].(*messages.MsgFBlock)
 			err := b.server.State.GetDB().ProcessFBlockBatch(fBlkMsg.FBlck)
 			if err != nil {
@@ -224,6 +233,7 @@ func (b *blockManager) storeBlocksFromMemPool(dblk *directoryBlock.DirectoryBloc
 			if err != nil {
 				return err
 			}
+			b.server.State.SetPrevFactoidKeyMR(fBlkMsg.FBlck.GetKeyMR()) 	// ???
 		default:
 			// handle Entry Block
 			eBlkMsg, _ := b.fMemPool.blockpool[dbEntry.GetKeyMR().String()].(*messages.MsgEBlock)
@@ -265,8 +275,8 @@ func (b *blockManager) storeBlocksFromMemPool(dblk *directoryBlock.DirectoryBloc
 		return err
 	}
 
-	// Update State and factoid state with block height & current blocks
-
+	// Update State with block height & current/previous blocks
+	b.server.State.SetCurrentDirectoryBlock(dblk)
 	return nil
 }
 
@@ -275,11 +285,11 @@ func (b *blockManager) deleteBlocksFromMemPool(dblk *directoryBlock.DirectoryBlo
 
 	for _, dbEntry := range dblk.GetDBEntries() {
 		switch dbEntry.GetChainID().String() {
-		case string(constants.EC_CHAINID[:]):
+		case hex.EncodeToString(constants.EC_CHAINID[:]):
 			b.fMemPool.deleteBlockMsg(dbEntry.GetKeyMR().String())
-		case string(constants.ADMIN_CHAINID[:]):
+		case hex.EncodeToString(constants.ADMIN_CHAINID[:]):
 			b.fMemPool.deleteBlockMsg(dbEntry.GetKeyMR().String())
-		case string(constants.FACTOID_CHAINID[:]):
+		case hex.EncodeToString(constants.FACTOID_CHAINID[:]):
 			b.fMemPool.deleteBlockMsg(dbEntry.GetKeyMR().String())
 		default:
 			eBlkMsg, _ := b.fMemPool.blockpool[dbEntry.GetKeyMR().String()].(*messages.MsgEBlock)

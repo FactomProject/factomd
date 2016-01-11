@@ -76,16 +76,20 @@ type IState interface {
 	// =====================
 	GetPreviousDirectoryBlock() IDirectoryBlock // The previous directory block
 	GetCurrentDirectoryBlock() IDirectoryBlock  // The directory block under construction
+	SetCurrentDirectoryBlock(IDirectoryBlock)
+
 	GetCurrentEntryCreditBlock() IEntryCreditBlock
+	SetCurrentEntryCreditBlock(IEntryCreditBlock)
+
 	GetCurrentAdminBlock() IAdminBlock
 	SetCurrentAdminBlock(IAdminBlock)
-	SetCurrentDirectoryBlock(IDirectoryBlock)
+
 	GetDBHeight() uint32 // The index of the directory block under construction.
 
 	// Message State
 	GetLastAck() IMsg // Return the last Acknowledgement set by this server
 	SetLastAck(IMsg)
-	
+
 	// Server Methods
 	// ==============
 	UpdateProcessLists()
