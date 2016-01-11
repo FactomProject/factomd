@@ -131,12 +131,7 @@ type blockManager struct {
 	chainState        chainState
 	wg                sync.WaitGroup
 	quit              chan struct{}
-
-	// The following fields are used for headers-first mode.
-	//headersFirstMode bool
-	//headerList       *list.List
-	//startHeader      *list.Element
-	//nextCheckpoint   *chaincfg.Checkpoint
+	fMemPool 					*ftmMemPool
 }
 
 // handleNewPeerMsg deals with new peers that have signalled they may
@@ -647,21 +642,16 @@ func (b *blockManager) Pause() chan<- struct{} {
 // newBlockManager returns a new bitcoin block manager.
 // Use Start to begin processing asynchronous block and inv updates.
 func newBlockManager(s *Server) (*blockManager, error) {
-	//newestHash, height, err := s.db.NewestSha()
-	//if err != nil {
-	//return nil, err
-	//}
-
 	bm := blockManager{
 		server:          s,
 		requestedTxns:   make(map[interfaces.IHash]struct{}),
 		requestedBlocks: make(map[interfaces.IHash]struct{}),
-		//progressLogger:  newBlockProgressLogger("Processed", bmgrLog),
 		msgChan: make(chan interface{}, cfg.MaxPeers*3),
-		//headerList:      list.New(),
 		quit: make(chan struct{}),
 	}
 
+	bm.fMemPool = new(ftmMemPool)
+	bm.fMemPool.initFtmMemPool()
 	return &bm, nil
 }
 

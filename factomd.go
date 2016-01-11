@@ -25,7 +25,7 @@ import (
 // Build sets the factomd build id using git's SHA
 // by compiling factomd with: -ldflags "-X main.Build=<build sha1>"
 // e.g. get  the short version of the sha1 of your latest commit by running
-// $ git rev-parse --short HEAD 
+// $ git rev-parse --short HEAD
 // $ go install -ldflags "-X main.Build=6c10244"
 var Build string
 
@@ -70,7 +70,6 @@ func main() {
 	server.Start()
 	state.SetServer(server)
 
-	//factomForkInit(server)
 	go NetworkProcessor(state)
 	go Timer(state)
 	go Validator(state)

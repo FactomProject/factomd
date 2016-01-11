@@ -2,13 +2,13 @@
 // Use of this source code is governed by the MIT license
 // that can be found in the LICENSE file.
 
-package process
+package btcd
 
 import (
 	"errors"
-	"github.com/FactomProject/factomd/btcd/wire"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages"
 	"sync"
 	"time"
 )
@@ -17,26 +17,26 @@ import (
 // (CommitChain, RevealChain, CommitEntry, RevealEntry)
 type ftmMemPool struct {
 	sync.RWMutex
-	pool        map[interfaces.IHash]wire.Message
-	orphans     map[interfaces.IHash]wire.Message
-	blockpool   map[string]wire.Message // to hold the blocks or entries downloaded from peers
+	pool        map[interfaces.IHash]messages.Message
+	orphans     map[interfaces.IHash]messages.Message
+	blockpool   map[string]messages.Message // to hold the blocks or entries downloaded from peers
 	lastUpdated time.Time               // last time pool was updated
 }
 
 // Add a factom message to the orphan pool
-func (mp *ftmMemPool) init_ftmMemPool() error {
+func (mp *ftmMemPool) initFtmMemPool() error {
 
-	mp.pool = make(map[interfaces.IHash]wire.Message)
-	mp.orphans = make(map[interfaces.IHash]wire.Message)
-	mp.blockpool = make(map[string]wire.Message)
+	mp.pool = make(map[interfaces.IHash]messages.Message)
+	mp.orphans = make(map[interfaces.IHash]messages.Message)
+	mp.blockpool = make(map[string]messages.Message)
 
 	return nil
 }
 
 // Add a factom message to the  Mem pool
-func (mp *ftmMemPool) addMsg(msg wire.Message, hash interfaces.IHash) error {
+func (mp *ftmMemPool) addMsg(msg messages.Message, hash interfaces.IHash) error {
 
-	if len(mp.pool) > MAX_TX_POOL_SIZE {
+	if len(mp.pool) > constants.MAX_TX_POOL_SIZE {
 		return errors.New("Transaction mem pool exceeds the limit.")
 	}
 
@@ -46,9 +46,9 @@ func (mp *ftmMemPool) addMsg(msg wire.Message, hash interfaces.IHash) error {
 }
 
 // Add a factom message to the orphan pool
-func (mp *ftmMemPool) addOrphanMsg(msg wire.Message, hash interfaces.IHash) error {
+func (mp *ftmMemPool) addOrphanMsg(msg messages.Message, hash interfaces.IHash) error {
 
-	if len(mp.orphans) > MAX_ORPHAN_SIZE {
+	if len(mp.orphans) > constants.MAX_ORPHAN_SIZE {
 		errors.New("Ophan mem pool exceeds the limit.")
 	}
 
@@ -58,9 +58,9 @@ func (mp *ftmMemPool) addOrphanMsg(msg wire.Message, hash interfaces.IHash) erro
 }
 
 // Add a factom block message to the  Mem pool
-func (mp *ftmMemPool) addBlockMsg(msg wire.Message, hash string) error {
+func (mp *ftmMemPool) addBlockMsg(msg messages.Message, hash string) error {
 
-	if len(mp.blockpool) > MAX_BLK_POOL_SIZE {
+	if len(mp.blockpool) > constants.MAX_BLK_POOL_SIZE {
 		errors.New("Block mem pool exceeds the limit. Please restart.")
 	}
 	mp.Lock()
@@ -70,12 +70,17 @@ func (mp *ftmMemPool) addBlockMsg(msg wire.Message, hash string) error {
 	return nil
 }
 
+// Add a factom block message to the  Mem pool
+func (mp *ftmMemPool) getBlockMsg(hash string) messages.Message {
+	return mp.blockpool[hash]
+}
+
 // Delete a factom block message from the  Mem pool
 func (mp *ftmMemPool) deleteBlockMsg(hash string) error {
 
 	if mp.blockpool[hash] != nil {
 		mp.Lock()
-		delete(fMemPool.blockpool, hash)
+		delete(mp.blockpool, hash)
 		mp.Unlock()
 	}
 
