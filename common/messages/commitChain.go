@@ -33,7 +33,7 @@ func (m *CommitChainMsg) Process(state interfaces.IState) {
 
 func (m *CommitChainMsg) GetHash() interfaces.IHash {
 	if m.hash == nil {
-		m.hash = m.CommitChain.EntryHash
+		m.hash = m.CommitChain.ChainIDHash
 	}
 	return m.hash
 }
@@ -68,7 +68,8 @@ func (m *CommitChainMsg) Validate(state interfaces.IState) int {
 	}
 
 	// If there is a commit against the same hash, then we can't process
-	// this one right now.  Must wait for the previous to clear.
+	// this one right now.  Must wait for the previous to clear. Needs to 
+	// look at  a list of chain commits.
 	if state.GetCommits(m.GetHash()) != nil {
 		return 0
 	}
@@ -98,8 +99,8 @@ func (m *CommitChainMsg) LeaderExecute(state interfaces.IState) error {
 	}
 
 	state.NetworkOutMsgQueue() <- msg
-	state.FollowerInMsgQueue() <- m   // Send factoid trans to follower
 	state.FollowerInMsgQueue() <- msg // Send the Ack to follower
+	state.FollowerInMsgQueue() <- m   // Send factoid trans to follower
 
 	return nil
 }
