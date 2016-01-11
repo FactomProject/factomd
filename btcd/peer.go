@@ -21,7 +21,6 @@ import (
 	"github.com/FactomProject/factomd/btcd/addrmgr"
 	. "github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
-	. "github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/directoryBlock"
 	. "github.com/FactomProject/factomd/common/entryBlock"
 	. "github.com/FactomProject/factomd/common/entryCreditBlock"
@@ -1593,6 +1592,7 @@ func (p *peer) handleDirBlockMsg(msg *messages.MsgDirBlock, buf []byte) {
 	p.pushGetNonDirDataMsg(msg.DBlk)
 
 	//p.server.State.NetworkInMsgQueue() <- msg
+	p.server.blockManager.processDirBlock(msg)
 
 	delete(p.requestedBlocks, hash)
 	delete(p.server.blockManager.requestedBlocks, hash)
@@ -1607,6 +1607,7 @@ func (p *peer) handleABlockMsg(msg *messages.MsgABlock, buf []byte) {
 	iv := messages.NewInvVect(messages.InvTypeFactomAdminBlock, hash)
 	p.AddKnownInventory(iv)
 	//p.server.State.NetworkInMsgQueue() <- msg
+	p.server.blockManager.processABlock(msg)
 }
 
 // handleECBlockMsg is invoked when a peer receives a entry credit block
@@ -1619,8 +1620,8 @@ func (p *peer) handleECBlockMsg(msg *messages.MsgECBlock, buf []byte) {
 
 	iv := messages.NewInvVect(messages.InvTypeFactomEntryCreditBlock, hash)
 	p.AddKnownInventory(iv)
-
 	//p.server.State.NetworkInMsgQueue() <- msg
+	p.server.blockManager.processECBlock(msg)
 }
 
 // handleEBlockMsg is invoked when a peer receives an entry block bitcoin message.
@@ -1633,9 +1634,8 @@ func (p *peer) handleEBlockMsg(msg *messages.MsgEBlock, buf []byte) {
 	p.AddKnownInventory(iv)
 
 	p.pushGetEntryDataMsg(msg.EBlk)
-
 	//p.server.State.NetworkInMsgQueue() <- msg
-
+	p.server.blockManager.processEBlock(msg)
 }
 
 // handleEntryMsg is invoked when a peer receives a EBlock Entry message.
@@ -1648,6 +1648,7 @@ func (p *peer) handleEntryMsg(msg *messages.MsgEntry, buf []byte) {
 	p.AddKnownInventory(iv)
 
 	//p.server.State.NetworkInMsgQueue() <- msg
+	p.server.blockManager.processEntry(msg)
 }
 
 // handleGetEntryDataMsg is invoked when a peer receives a get entry data message and
@@ -1772,13 +1773,13 @@ func (p *peer) handleGetNonDirDataMsg(msg *messages.MsgGetNonDirData) {
 
 			var err error
 			switch dbEntry.GetChainID().String() {
-			case hex.EncodeToString(EC_CHAINID[:]):
+			case hex.EncodeToString(constants.EC_CHAINID[:]):
 				err = p.pushECBlockMsg(dbEntry.GetKeyMR(), c, waitChan)
 
-			case hex.EncodeToString(ADMIN_CHAINID[:]):
+			case hex.EncodeToString(constants.ADMIN_CHAINID[:]):
 				err = p.pushABlockMsg(dbEntry.GetKeyMR(), c, waitChan)
 
-			case string(constants.FACTOID_CHAINID[:len(constants.FACTOID_CHAINID)]):
+			case hex.EncodeToString(constants.FACTOID_CHAINID[:]):
 				err = p.pushFBlockMsg(dbEntry.GetKeyMR(), c, waitChan)
 
 			default:

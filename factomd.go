@@ -70,7 +70,6 @@ func main() {
 	server.Start()
 	state.SetServer(server)
 
-	//factomForkInit(server)
 	go NetworkProcessor(state)
 	go Timer(state)
 	go Validator(state)

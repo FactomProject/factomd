@@ -190,6 +190,10 @@ func (s *State) GetCurrentEntryCreditBlock() interfaces.IEntryCreditBlock {
 	return s.EntryCreditBlock
 }
 
+func (s *State) SetCurrentEntryCreditBlock(ecblk interfaces.IEntryCreditBlock) {
+	s.EntryCreditBlock = ecblk
+}
+
 func (s *State) GetServer() interfaces.IServer {
 	return s.myServer
 }
@@ -289,14 +293,6 @@ func (s *State) ProcessEndOfBlock() {
 	s.ProcessList = make([][]interfaces.IMsg, 1)
 	s.LastAck = nil
 	s.NewEBlks = make(map[[32]byte]interfaces.IEntryBlock)
-}
-
-func (s *State) GetEntryCreditBlock() interfaces.IEntryCreditBlock {
-	return s.EntryCreditBlock
-}
-
-func (s *State) SetEntryCreditBlock(ecblk interfaces.IEntryCreditBlock) {
-	s.EntryCreditBlock = ecblk
 }
 
 func (s *State) GetPrevFactoidKeyMR() interfaces.IHash {
@@ -558,7 +554,7 @@ func (s *State) loadDatabase() {
 
 		fBlocks, err := s.DB.FetchAllFBlocks()
 
-		fmt.Printf("Processing %d FBlocks\n", len(fBlocks))
+		fmt.Printf("Processing %d FBlocks\n",len(fBlocks))
 
 		if err != nil {
 			panic(err.Error())
@@ -571,8 +567,8 @@ func (s *State) loadDatabase() {
 		if err != nil {
 			panic(err.Error())
 		}
-
-		fmt.Printf("Processing %d ECBlocks\n", len(ecBlocks))
+		
+		fmt.Printf("Processing %d ECBlocks\n",len(ecBlocks))
 
 		for _, block := range ecBlocks {
 			s.EntryCreditBlock = block
@@ -734,6 +730,7 @@ func (s *State) GetCurrentDirectoryBlock() interfaces.IDirectoryBlock {
 }
 
 func (s *State) SetCurrentDirectoryBlock(dirblk interfaces.IDirectoryBlock) {
+	s.PreviousDirectoryBlock = s.CurrentDirectoryBlock
 	s.CurrentDirectoryBlock = dirblk
 }
 
