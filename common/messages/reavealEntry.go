@@ -28,7 +28,9 @@ type RevealEntryMsg struct {
 
 var _ interfaces.IMsg = (*RevealEntryMsg)(nil)
 
-func (m *RevealEntryMsg) Process(interfaces.IState) {}
+func (m *RevealEntryMsg) Process(interfaces.IState) {
+	fmt.Println("PROCESS!")
+}
 
 func (m *RevealEntryMsg) GetHash() interfaces.IHash {
 	if m.hash == nil {
@@ -68,33 +70,31 @@ func (m *RevealEntryMsg) Bytes() []byte {
 func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 	commit := state.GetCommits(m.GetHash())
 	ECs := 0
-	m.isEntry = true
+	
 	if commit == nil {
-		commit := state.GetCommits(m.GetChainIDHash())
-		if commit == nil {
-			return 0
-		}
-		m.isEntry = false
+		fmt.Println("Not in GetCommits")
+		return 0
 	}
 	
 	var okChain, okEntry bool
 	m.commitChain,okChain = commit.(*CommitChainMsg)
 	m.commitEntry,okEntry = commit.(*CommitEntryMsg)
-	if m.isEntry && !okEntry  {
-		return -1
-	}
-	if !m.isEntry && !okChain {
+	if !okChain && !okEntry  {
 		return -1
 	}
 	
-	if m.isEntry {
+	if okEntry {
+		m.isEntry = true
 		ECs = int(m.commitEntry.CommitEntry.Credits)
 		if(m.Entry.KSize()<ECs) {
+			fmt.Println("KSize",m.Entry.KSize(),ECs)
 			return -1
 		}
 	}else{
+		m.isEntry = false
 		ECs = int(m.commitChain.CommitChain.Credits)
 		if(m.Entry.KSize()+10<ECs) {
+			fmt.Println("KSize",m.Entry.KSize(),ECs)
 			return -1
 		}
 	}
@@ -106,6 +106,7 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 		if eblk == nil {					// No?  Then look see if it exists in DB
 			eblk, _ := state.GetDB().FetchEBlockHead(chainID)
 			if eblk == nil {
+				fmt.Println("KSize",m.Entry.KSize(),ECs)
 				return -1
 			}
 		}
@@ -204,5 +205,5 @@ func (m *RevealEntryMsg) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *RevealEntryMsg) String() string {
-	return "RevealEntryMsg " + m.Timestamp.String() + " " + m.Entry.GetHash().String()
+	return "RevealEntryMsg " + m.Timestamp.String() + " " + m.GetHash().String()
 }

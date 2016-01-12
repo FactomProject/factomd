@@ -74,7 +74,7 @@ func main() {
 	go Timer(state)
 	go Validator(state)
 	go Leader(state)
-	go Follower(state)
+
 	go wsapi.Start(state)
 
 	shutdownChannel := make(chan struct{})

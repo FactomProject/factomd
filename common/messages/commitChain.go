@@ -17,9 +17,6 @@ import (
 type CommitChainMsg struct {
 	Timestamp   interfaces.Timestamp
 	CommitChain *entryCreditBlock.CommitChain
-
-	//Not marshalled
-	hash interfaces.IHash
 }
 
 var _ interfaces.IMsg = (*CommitChainMsg)(nil)
@@ -32,10 +29,7 @@ func (m *CommitChainMsg) Process(state interfaces.IState) {
 }
 
 func (m *CommitChainMsg) GetHash() interfaces.IHash {
-	if m.hash == nil {
-		m.hash = m.CommitChain.ChainIDHash
-	}
-	return m.hash
+	return m.CommitChain.EntryHash
 }
 
 func (m *CommitChainMsg) GetTimestamp() interfaces.Timestamp {

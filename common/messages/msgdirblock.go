@@ -80,7 +80,9 @@ func NewMsgDirBlock() *MsgDirBlock {
 
 var _ interfaces.IMsg = (*MsgDirBlock)(nil)
 
-func (m *MsgDirBlock) Process(interfaces.IState) {}
+func (m *MsgDirBlock) Process(state interfaces.IState) {
+//	Code to process this block
+}
 
 func (m *MsgDirBlock) GetHash() interfaces.IHash {
 	return nil
@@ -157,7 +159,7 @@ func (m *MsgDirBlock) Follower(interfaces.IState) bool {
 	return true
 }
 
-func (m *MsgDirBlock) FollowerExecute(interfaces.IState) error {
+func (m *MsgDirBlock) FollowerExecute(state interfaces.IState) error {
 	return nil
 }
 
