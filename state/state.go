@@ -46,15 +46,15 @@ type State struct {
 	// Maps
 	// ====
 	// For Follower
-	Holding  map[[32]byte]interfaces.IMsg        // Hold Messages
-	Acks     map[[32]byte]interfaces.IMsg        // Hold Acknowledgemets
+	Holding map[[32]byte]interfaces.IMsg // Hold Messages
+	Acks    map[[32]byte]interfaces.IMsg // Hold Acknowledgemets
 
 	NewEBlksSem sync.Mutex
-	NewEBlks map[[32]byte]interfaces.IEntryBlock // Entry Blocks added within 10 minutes (follower and leader)
-	
+	NewEBlks    map[[32]byte]interfaces.IEntryBlock // Entry Blocks added within 10 minutes (follower and leader)
+
 	CommitsSem sync.Mutex
-	Commits  map[[32]byte]interfaces.IMsg        // Used by the leader, validate
-	
+	Commits    map[[32]byte]interfaces.IMsg // Used by the leader, validate
+
 	// Lists
 	// =====
 	AuditServers    []interfaces.IServer   // List of Audit Servers

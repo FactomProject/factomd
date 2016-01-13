@@ -18,8 +18,8 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/log"
-	"github.com/hoisie/web"
 	"github.com/FactomProject/factomd/receipts"
+	"github.com/hoisie/web"
 )
 
 const (
@@ -239,7 +239,7 @@ func HandleGetReceipt(ctx *web.Context, hashkey string) {
 
 	dbase := state.GetDB()
 
-	rec, err:=receipts.CreateFullReceipt(dbase, h)
+	rec, err := receipts.CreateFullReceipt(dbase, h)
 
 	if err != nil {
 		wsLog.Error(err)

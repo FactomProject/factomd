@@ -160,12 +160,27 @@ func (b *DirectoryBlock) BuildBodyMR() (mr interfaces.IHash, err error) {
 	return merkle[len(merkle)-1], nil
 }
 
+func (b *DirectoryBlock) HeaderHash() (interfaces.IHash, error) {
+	binaryEBHeader, err := b.GetHeader().MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	return primitives.Sha(binaryEBHeader), nil
+}
+
+func (b *DirectoryBlock) BodyKeyMR() interfaces.IHash {
+	return b.GetHeader().GetBodyMR()
+}
+
 func (b *DirectoryBlock) BuildKeyMerkleRoot() (keyMR interfaces.IHash, err error) {
 	// Create the Entry Block Key Merkle Root from the hash of Header and the Body Merkle Root
 	hashes := make([]interfaces.IHash, 0, 2)
-	binaryEBHeader, _ := b.GetHeader().MarshalBinary()
-	hashes = append(hashes, primitives.Sha(binaryEBHeader))
-	hashes = append(hashes, b.GetHeader().GetBodyMR())
+	headerHash, err := b.HeaderHash()
+	if err != nil {
+		return nil, err
+	}
+	hashes = append(hashes, headerHash)
+	hashes = append(hashes, b.BodyKeyMR())
 	merkle := primitives.BuildMerkleTreeStore(hashes)
 	keyMR = merkle[len(merkle)-1] // MerkleRoot is not marshalized in Dir Block
 

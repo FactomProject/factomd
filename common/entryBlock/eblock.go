@@ -140,18 +140,31 @@ func (e *EBlock) Hash() (interfaces.IHash, error) {
 	return primitives.Sha(p), nil
 }
 
-// KeyMR returns the hash of the hash of the Entry Block Header concatinated
-// with the Merkle Root of the Entry Block Body. The Body Merkle Root is
-// calculated by the func (e *EBlockBody) MR() which is called by the func
-// (e *EBlock) BuildHeader().
-func (e *EBlock) KeyMR() (interfaces.IHash, error) {
-	// Sha(Sha(header) + BodyMR)
+func (e *EBlock) HeaderHash() (interfaces.IHash, error) {
 	e.BuildHeader()
 	header, err := e.Header.MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
 	h := primitives.Sha(header)
+	return h, nil
+}
+
+func (e *EBlock) BodyKeyMR() interfaces.IHash {
+	e.BuildHeader()
+	return e.Header.GetBodyMR()
+}
+
+// KeyMR returns the hash of the hash of the Entry Block Header concatinated
+// with the Merkle Root of the Entry Block Body. The Body Merkle Root is
+// calculated by the func (e *EBlockBody) MR() which is called by the func
+// (e *EBlock) BuildHeader().
+func (e *EBlock) KeyMR() (interfaces.IHash, error) {
+	// Sha(Sha(header) + BodyMR)
+	h, err := e.HeaderHash()
+	if err != nil {
+		return nil, err
+	}
 	return primitives.Sha(append(h.Bytes(), e.Header.GetBodyMR().Bytes()...)), nil
 }
 

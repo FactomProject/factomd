@@ -24,5 +24,5 @@ func TestReceipts(t *testing.T) {
 		t.Error(err)
 	}
 
-	//t.Fail()
+	t.Fail()
 }

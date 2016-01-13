@@ -33,6 +33,10 @@ type IEntryBlock interface {
 	KeyMR() (IHash, error)
 
 	GetBody() IEBlockBody
+
+	GetEntryHashes() []IHash
+	HeaderHash() (IHash, error)
+	BodyKeyMR() IHash
 }
 
 type IEntryBlockHeader interface {

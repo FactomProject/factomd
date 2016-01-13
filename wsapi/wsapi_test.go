@@ -6,9 +6,9 @@ import (
 	//"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/receipts"
 	"github.com/FactomProject/factomd/testHelper"
 	. "github.com/FactomProject/factomd/wsapi"
-	"github.com/FactomProject/factomd/receipts"
 	"github.com/hoisie/web"
 	"net/http"
 	"strings"
@@ -80,6 +80,7 @@ func TestHandleDirectoryBlockHead(t *testing.T) {
 		t.Errorf("Context does not contain proper DBlock Head - %v", GetBody(context))
 	}
 }
+
 /*
 func TestHandleGetRaw(t *testing.T) {
 	type RawData struct {
@@ -287,6 +288,7 @@ func TestHandleEntry(t *testing.T) {
 		t.Errorf("%v", GetBody(context))
 	}
 }
+
 /*
 func TestHandleChainHead(t *testing.T) {
 	context := createWebContext()
@@ -415,10 +417,10 @@ func TestHandleGetReceipt(t *testing.T) {
 	json := GetBody(context)
 	t.Logf("Receipt - %v", json)
 
-	dbo:=context.Server.Env["state"].(interfaces.IState).GetDB()
+	dbo := context.Server.Env["state"].(interfaces.IState).GetDB()
 
-	err:=receipts.VerifyFullReceipt(dbo, json)
-	if err!=nil {
+	err := receipts.VerifyFullReceipt(dbo, json)
+	if err != nil {
 		t.Error(err)
 	}
 }
