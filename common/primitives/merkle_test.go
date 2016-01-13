@@ -64,10 +64,7 @@ func TestHashMerkleBranches(t *testing.T) {
 
 func TestBuildMerkleTreeStore(t *testing.T) {
 	max := 9
-	list := make([]interfaces.IHash, max)
-	for i := 0; i < max; i++ {
-		list[i] = generateHash(i)
-	}
+	list := buildMerkleLeafs(max)
 	merkles := BuildMerkleTreeStore(list)
 	expected := buildExpectedMerkleTree(list)
 	t.Logf("merkles - %v", merkles)
@@ -88,6 +85,65 @@ func TestBuildMerkleTreeStore(t *testing.T) {
 	}
 }
 
+func TestBuildMerkleBranch(t *testing.T) {
+	max := 9
+	list := buildMerkleLeafs(max)
+	tree := buildExpectedMerkleTree(list)
+	branch := BuildMerkleBranch(list, max-1, true)
+
+	leftIndexes := []int{8, 13, 16, 17}
+	rightIndexes := []int{8, 13, 16, 18}
+	topIndexes := []int{13, 16, 18, 19}
+
+	for i := 0; i < 4; i++ {
+		if branch[i].Left.IsSameAs(tree[leftIndexes[i]]) == false {
+			t.Errorf("Left node is wrong on index %v", i)
+		}
+		if branch[i].Right.IsSameAs(tree[rightIndexes[i]]) == false {
+			t.Errorf("Right node is wrong on index %v", i)
+		}
+		if branch[i].Top.IsSameAs(tree[topIndexes[i]]) == false {
+			t.Errorf("Top node is wrong on index %v", i)
+		}
+	}
+
+	branch = BuildMerkleBranch(list, 0, true)
+
+	leftIndexes = []int{0, 9, 14, 17}
+	rightIndexes = []int{1, 10, 15, 18}
+	topIndexes = []int{9, 14, 17, 19}
+
+	for i := 0; i < 4; i++ {
+		if branch[i].Left.IsSameAs(tree[leftIndexes[i]]) == false {
+			t.Errorf("Left node is wrong on index %v", i)
+		}
+		if branch[i].Right.IsSameAs(tree[rightIndexes[i]]) == false {
+			t.Errorf("Right node is wrong on index %v", i)
+		}
+		if branch[i].Top.IsSameAs(tree[topIndexes[i]]) == false {
+			t.Errorf("Top node is wrong on index %v", i)
+		}
+	}
+
+	branch = BuildMerkleBranch(list, 6, true)
+
+	leftIndexes = []int{6, 11, 14, 17}
+	rightIndexes = []int{7, 12, 15, 18}
+	topIndexes = []int{12, 15, 17, 19}
+
+	for i := 0; i < 4; i++ {
+		if branch[i].Left.IsSameAs(tree[leftIndexes[i]]) == false {
+			t.Errorf("Left node is wrong on index %v", i)
+		}
+		if branch[i].Right.IsSameAs(tree[rightIndexes[i]]) == false {
+			t.Errorf("Right node is wrong on index %v", i)
+		}
+		if branch[i].Top.IsSameAs(tree[topIndexes[i]]) == false {
+			t.Errorf("Top node is wrong on index %v", i)
+		}
+	}
+}
+
 func generateHash(n int) interfaces.IHash {
 	answer := ""
 	for i := 0; i < 64; i++ {
@@ -98,6 +154,14 @@ func generateHash(n int) interfaces.IHash {
 		panic(err)
 	}
 	return hash
+}
+
+func buildMerkleLeafs(n int) []interfaces.IHash {
+	list := make([]interfaces.IHash, n)
+	for i := 0; i < n; i++ {
+		list[i] = generateHash(i)
+	}
+	return list
 }
 
 func buildExpectedMerkleTree(hashes []interfaces.IHash) []interfaces.IHash {

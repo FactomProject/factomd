@@ -88,7 +88,7 @@ func BuildMerkleBranch(hashes []interfaces.IHash, entryIndex int, fullDetail boo
 		return nil
 	}
 	merkleTree := BuildMerkleTreeStore(hashes)
-	fmt.Printf("Merkle tree - %v\n", merkleTree)
+	//fmt.Printf("Merkle tree - %v\n", merkleTree)
 	levelWidth := len(hashes)
 	complimentIndex := 0
 	topIndex := 0
@@ -96,7 +96,9 @@ func BuildMerkleBranch(hashes []interfaces.IHash, entryIndex int, fullDetail boo
 	answer := []*MerkleNode{}
 	offset := 0
 	for {
-		fmt.Printf("Index %v out of %v\n", offset+index, len(merkleTree))
+		/*fmt.Printf("Index %v out of %v\n", offset+index, len(merkleTree))
+		fmt.Printf("levelWidth - %v\n", levelWidth)
+		fmt.Printf("offset - %v\n", offset)*/
 		if levelWidth == 1 {
 			break
 		}
@@ -123,6 +125,7 @@ func BuildMerkleBranch(hashes []interfaces.IHash, entryIndex int, fullDetail boo
 		}
 		answer = append(answer, mn)
 		offset += levelWidth
+		index = topIndex - levelWidth
 		levelWidth = (levelWidth + 1) / 2
 	}
 	return answer
