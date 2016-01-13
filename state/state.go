@@ -157,10 +157,12 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) error {
 	s.Acks[ack.GetHash().Fixed()] = ack
 	match := s.Holding[ack.GetHash().Fixed()]
 	if match != nil {
+		fmt.Println("Match for Ack")
 		// If we have a match, the ack is in the Acks, so we
 		// can match the message to the ack.  One set of code.
 		match.FollowerExecute(s)
 	}
+	fmt.Println("No Match for Ack")
 
 	return nil
 }
@@ -256,7 +258,7 @@ func (s *State) Sign([]byte) interfaces.IFullSignature {
 // It is called by the follower code.  It is requried to build the Directory Block
 // to validate the signatures we will get with the DirectoryBlockSignature messages.
 func (s *State) ProcessEndOfBlock() {
-
+	fmt.Println("ProcessEndOfBlock()")
 	//Must have all the complete process lists at this point!
 
 	s.UpdateProcessLists() // Do any remaining processing
@@ -264,6 +266,7 @@ func (s *State) ProcessEndOfBlock() {
 	for i := 0; i < len(s.ProcessList); i++ { // Reset heights to zero for all lists
 		s.PLHeight[i] = 0
 	}
+	s.LastAck = nil
 
 	s.PreviousDirectoryBlock = s.CurrentDirectoryBlock
 	previousECBlock := s.GetCurrentEntryCreditBlock()

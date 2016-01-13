@@ -130,16 +130,16 @@ func (m *RevealEntryMsg) LeaderExecute(state interfaces.IState) error {
 	
 	b := m.GetHash()
 
-	msg, err := NewAck(state, b)
+	ack, err := NewAck(state, b)
 
 	if err != nil {
 		return err
 	}
 
-	state.NetworkOutMsgQueue() <- msg
+	state.NetworkOutMsgQueue() <- ack
+	state.FollowerInMsgQueue() <- ack // Send the Ack to follower
 	state.FollowerInMsgQueue() <- m   // Send factoid trans to follower
-	state.FollowerInMsgQueue() <- msg // Send the Ack to follower
-
+	
 	return nil
 }
 
@@ -149,11 +149,15 @@ func (m *RevealEntryMsg) Follower(interfaces.IState) bool {
 }
 
 func (m *RevealEntryMsg) FollowerExecute(state interfaces.IState) error {
-	eblk, _ := state.GetDB().FetchEBlockHead(m.Entry.GetChainID())
-	if eblk == nil {
-
-	} else {
-
+	matched, err := state.MatchAckFollowerExecute(m)
+	if err != nil {
+		return err
+	}
+	if matched { // We matched, we must be remembered!
+		fmt.Println("Matched!")
+		state.PutCommits(m.GetHash(), m)
+	}else{
+		fmt.Println("Not Matched!")
 	}
 	return nil
 }
