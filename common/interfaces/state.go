@@ -35,7 +35,7 @@ type IState interface {
 	LeaderInMsgQueue() chan IMsg   // Processed by the Leader
 	FollowerInMsgQueue() chan IMsg // Processed by the Follower
 
-	// Lists
+	// Lists and Maps
 	// =====
 	// The leader CANNOT touch these lists!  Only the FollowerExecution
 	// methods can touch them safely.
@@ -46,6 +46,11 @@ type IState interface {
 	GetAuditHeartBeats() []IMsg   // The checklist of HeartBeats for this period
 	GetFedServerFaults() [][]IMsg // Keep a fault list for every server
 
+	GetNewEBlks([32]byte) IEntryBlock
+	PutNewEBlks([32]byte, IEntryBlock)
+
+	GetCommits(IHash) IMsg
+	PutCommits(IHash, IMsg)
 	// Server Configuration
 	// ====================
 
@@ -69,10 +74,14 @@ type IState interface {
 	// =====================
 	GetPreviousDirectoryBlock() IDirectoryBlock // The previous directory block
 	GetCurrentDirectoryBlock() IDirectoryBlock  // The directory block under construction
+	SetCurrentDirectoryBlock(IDirectoryBlock)
+
 	GetCurrentEntryCreditBlock() IEntryCreditBlock
+	SetCurrentEntryCreditBlock(IEntryCreditBlock)
+
 	GetCurrentAdminBlock() IAdminBlock
 	SetCurrentAdminBlock(IAdminBlock)
-	SetCurrentDirectoryBlock(IDirectoryBlock)
+
 	GetDBHeight() uint32 // The index of the directory block under construction.
 
 	// Message State
@@ -97,7 +106,9 @@ type IState interface {
 
 	// MISC
 	// ====
-	MatchAckFollowerExecute(m IMsg) error
+
+	// Returns true if it found a match
+	MatchAckFollowerExecute(m IMsg) (bool, error)
 	FollowerExecuteAck(m IMsg) error
 	GetTimestamp() Timestamp
 	GetNewHash() IHash // Return a new Hash object

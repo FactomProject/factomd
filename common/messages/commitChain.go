@@ -17,9 +17,6 @@ import (
 type CommitChainMsg struct {
 	Timestamp   interfaces.Timestamp
 	CommitChain *entryCreditBlock.CommitChain
-
-	//Not marshalled
-	hash interfaces.IHash
 }
 
 var _ interfaces.IMsg = (*CommitChainMsg)(nil)
@@ -32,10 +29,7 @@ func (m *CommitChainMsg) Process(state interfaces.IState) {
 }
 
 func (m *CommitChainMsg) GetHash() interfaces.IHash {
-	if m.hash == nil {
-		m.hash = m.CommitChain.EntryHash
-	}
-	return m.hash
+	return m.CommitChain.EntryHash
 }
 
 func (m *CommitChainMsg) GetTimestamp() interfaces.Timestamp {
@@ -67,6 +61,13 @@ func (m *CommitChainMsg) Validate(state interfaces.IState) int {
 		return 0
 	}
 
+	// If there is a commit against the same hash, then we can't process
+	// this one right now.  Must wait for the previous to clear. Needs to
+	// look at  a list of chain commits.
+	if state.GetCommits(m.GetHash()) != nil {
+		return 0
+	}
+
 	return 1
 
 }
@@ -86,14 +87,14 @@ func (m *CommitChainMsg) LeaderExecute(state interfaces.IState) error {
 	b := m.GetHash()
 
 	msg, err := NewAck(state, b)
-
+	state.PutCommits(m.GetHash(), m)
 	if err != nil {
 		return err
 	}
 
 	state.NetworkOutMsgQueue() <- msg
-	state.FollowerInMsgQueue() <- m   // Send factoid trans to follower
 	state.FollowerInMsgQueue() <- msg // Send the Ack to follower
+	state.FollowerInMsgQueue() <- m   // Send factoid trans to follower
 
 	return nil
 }
@@ -104,9 +105,12 @@ func (m *CommitChainMsg) Follower(state interfaces.IState) bool {
 }
 
 func (m *CommitChainMsg) FollowerExecute(state interfaces.IState) error {
-	err := state.MatchAckFollowerExecute(m)
+	matched, err := state.MatchAckFollowerExecute(m)
 	if err != nil {
 		return err
+	}
+	if matched { // We matched, we must be remembered!
+		state.PutCommits(m.GetHash(), m)
 	}
 	return nil
 }

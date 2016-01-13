@@ -203,7 +203,7 @@ func NewAck(state interfaces.IState, hash interfaces.IHash) (iack interfaces.IMs
 			return nil, err
 		}
 	}
-
+	fmt.Println("Ack Height", ack.Height)
 	state.SetLastAck(ack)
 
 	// TODO:  Add the signature.

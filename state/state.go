@@ -99,43 +99,68 @@ type State struct {
 
 var _ interfaces.IState = (*State)(nil)
 
+func (s *State) GetNewEBlks(key [32]byte) interfaces.IEntryBlock {
+	s.NewEBlksSem.Lock()
+	value := s.NewEBlks[key]
+	s.NewEBlksSem.Unlock()
+	return value
+}
+
+func (s *State) PutNewEBlks(key [32]byte, value interfaces.IEntryBlock) {
+	s.NewEBlksSem.Lock()
+	s.NewEBlks[key] = value
+	s.NewEBlksSem.Unlock()
+}
+
+func (s *State) GetCommits(key interfaces.IHash) interfaces.IMsg {
+	s.CommitsSem.Lock()
+	value := s.Commits[key.Fixed()]
+	s.CommitsSem.Unlock()
+	return value
+}
+
+func (s *State) PutCommits(key interfaces.IHash, value interfaces.IMsg) {
+	s.CommitsSem.Lock()
+	s.Commits[key.Fixed()] = value
+	s.CommitsSem.Unlock()
+}
+
 // Messages that match an acknowledgement, and are added to the process list
 // all do the same thing.  So that logic is here.
-func (s *State) MatchAckFollowerExecute(m interfaces.IMsg) error {
+//
+// Returns true if it finds a match
+func (s *State) MatchAckFollowerExecute(m interfaces.IMsg) (bool, error) {
 	acks := s.Acks
 	ack, ok := acks[m.GetHash().Fixed()].(*messages.Ack)
 	if !ok || ack == nil {
 		s.Holding[m.GetHash().Fixed()] = m
+		return false, nil
 	} else {
 		processlist := s.GetProcessList()[ack.ServerIndex]
-		for len(processlist) < ack.Height+1 {
+		for len(processlist) <= ack.Height {
 			processlist = append(processlist, nil)
 		}
+		fmt.Println("Add message at height", ack.Height)
 		processlist[ack.Height] = m
 		s.GetProcessList()[ack.ServerIndex] = processlist
+		// remove the message from the holding/ack maps.
 		delete(acks, m.GetHash().Fixed())
+		delete(s.Holding, m.GetHash().Fixed())
+		s.UpdateProcessLists()
+		return true, nil
 	}
-	return nil
 }
 
+// Match an acknowledgement to a message
 func (s *State) FollowerExecuteAck(msg interfaces.IMsg) error {
 	ack := msg.(*messages.Ack)
-	acks := s.Acks
-	holding := s.Holding
-	match := holding[ack.GetHash().Fixed()]
-	if match == nil {
-		acks[match.GetHash().Fixed()] = ack
-	} else {
-		processlist := s.GetProcessList()[ack.ServerIndex]
-		for len(processlist) < ack.Height+1 {
-			processlist = append(processlist, nil)
-		}
-		processlist[ack.Height] = match
-		s.GetProcessList()[ack.ServerIndex] = processlist
-		delete(holding, ack.MessageHash.Fixed())
+	s.Acks[ack.GetHash().Fixed()] = ack
+	match := s.Holding[ack.GetHash().Fixed()]
+	if match != nil {
+		// If we have a match, the ack is in the Acks, so we
+		// can match the message to the ack.  One set of code.
+		match.FollowerExecute(s)
 	}
-
-	s.UpdateProcessLists()
 
 	return nil
 }
@@ -147,11 +172,12 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) error {
 //
 // This routine can only be called by the Follower goroutine.
 func (s *State) UpdateProcessLists() {
-	for i := 0; i < len(s.GetProcessList()); i++ {
+	for i := 0; i < len(s.ProcessList); i++ {
 		plist := s.GetProcessList()[i]
 		for j := s.PLHeight[i]; j < len(plist); j++ {
 			fmt.Println("UpdatePL: ", j)
 			if plist[j] == nil {
+				fmt.Println("Nil at", j)
 				break
 			}
 			plist[j].Process(s)   // Process this entry
@@ -162,6 +188,10 @@ func (s *State) UpdateProcessLists() {
 
 func (s *State) GetCurrentEntryCreditBlock() interfaces.IEntryCreditBlock {
 	return s.EntryCreditBlock
+}
+
+func (s *State) SetCurrentEntryCreditBlock(ecblk interfaces.IEntryCreditBlock) {
+	s.EntryCreditBlock = ecblk
 }
 
 func (s *State) GetServer() interfaces.IServer {
@@ -226,6 +256,15 @@ func (s *State) Sign([]byte) interfaces.IFullSignature {
 // It is called by the follower code.  It is requried to build the Directory Block
 // to validate the signatures we will get with the DirectoryBlockSignature messages.
 func (s *State) ProcessEndOfBlock() {
+
+	//Must have all the complete process lists at this point!
+
+	s.UpdateProcessLists() // Do any remaining processing
+
+	for i := 0; i < len(s.ProcessList); i++ { // Reset heights to zero for all lists
+		s.PLHeight[i] = 0
+	}
+
 	s.PreviousDirectoryBlock = s.CurrentDirectoryBlock
 	previousECBlock := s.GetCurrentEntryCreditBlock()
 
@@ -252,15 +291,8 @@ func (s *State) ProcessEndOfBlock() {
 	}
 
 	s.ProcessList = make([][]interfaces.IMsg, 1)
+	s.LastAck = nil
 	s.NewEBlks = make(map[[32]byte]interfaces.IEntryBlock)
-}
-
-func (s *State) GetEntryCreditBlock() interfaces.IEntryCreditBlock {
-	return s.EntryCreditBlock
-}
-
-func (s *State) SetEntryCreditBlock(ecblk interfaces.IEntryCreditBlock) {
-	s.EntryCreditBlock = ecblk
 }
 
 func (s *State) GetPrevFactoidKeyMR() interfaces.IHash {
@@ -446,7 +478,12 @@ func (s *State) Init(filename string) {
 	}
 	s.Holding = make(map[[32]byte]interfaces.IMsg)
 	s.Acks = make(map[[32]byte]interfaces.IMsg)
+
+	s.NewEBlksSem = new(sync.Mutex)
 	s.NewEBlks = make(map[[32]byte]interfaces.IEntryBlock)
+
+	s.CommitsSem = new(sync.Mutex)
+	s.Commits = make(map[[32]byte]interfaces.IMsg)
 
 	s.AuditServers = make([]interfaces.IServer, 0)
 	s.FedServers = make([]interfaces.IServer, 0)
@@ -693,6 +730,7 @@ func (s *State) GetCurrentDirectoryBlock() interfaces.IDirectoryBlock {
 }
 
 func (s *State) SetCurrentDirectoryBlock(dirblk interfaces.IDirectoryBlock) {
+	s.PreviousDirectoryBlock = s.CurrentDirectoryBlock
 	s.CurrentDirectoryBlock = dirblk
 }
 

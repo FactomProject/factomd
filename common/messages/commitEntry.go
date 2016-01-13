@@ -164,7 +164,8 @@ func (m *CommitEntryMsg) Follower(interfaces.IState) bool {
 }
 
 func (m *CommitEntryMsg) FollowerExecute(state interfaces.IState) error {
-	return state.MatchAckFollowerExecute(m)
+	_, err := state.MatchAckFollowerExecute(m)
+	return err
 }
 
 func (e *CommitEntryMsg) JSONByte() ([]byte, error) {

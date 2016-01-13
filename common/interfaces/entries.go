@@ -17,7 +17,7 @@ type IEBEntry interface {
 
 type IEntry interface {
 	BinaryMarshallable
-
+	KSize() int
 	GetChainID() IHash
 	GetHash() IHash
 }
