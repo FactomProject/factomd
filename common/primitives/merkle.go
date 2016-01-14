@@ -69,9 +69,9 @@ func BuildMerkleTreeStore(hashes []interfaces.IHash) (merkles []interfaces.IHash
 }
 
 type MerkleNode struct {
-	Left  interfaces.IHash // `json:",omitempty"`
-	Right interfaces.IHash // `json:",omitempty"`
-	Top   interfaces.IHash //`json:",omitempty"`
+	Left  *Hash // `json:",omitempty"`
+	Right *Hash // `json:",omitempty"`
+	Top   *Hash //`json:",omitempty"`
 }
 
 func BuildMerkleBranchForEntryHash(hashes []interfaces.IHash, entryHash interfaces.IHash, fullDetail bool) []*MerkleNode {
@@ -109,18 +109,18 @@ func BuildMerkleBranch(hashes []interfaces.IHash, entryIndex int, fullDetail boo
 				complimentIndex = index
 			}
 			topIndex = index/2 + levelWidth
-			mn.Right = merkleTree[offset+complimentIndex]
+			mn.Right = merkleTree[offset+complimentIndex].(*Hash)
 			if fullDetail == true {
-				mn.Left = merkleTree[offset+index]
-				mn.Top = merkleTree[offset+topIndex]
+				mn.Left = merkleTree[offset+index].(*Hash)
+				mn.Top = merkleTree[offset+topIndex].(*Hash)
 			}
 		} else {
 			complimentIndex = index - 1
 			topIndex = complimentIndex/2 + levelWidth
-			mn.Left = merkleTree[offset+complimentIndex]
+			mn.Left = merkleTree[offset+complimentIndex].(*Hash)
 			if fullDetail == true {
-				mn.Right = merkleTree[offset+index]
-				mn.Top = merkleTree[offset+topIndex]
+				mn.Right = merkleTree[offset+index].(*Hash)
+				mn.Top = merkleTree[offset+topIndex].(*Hash)
 			}
 		}
 		answer = append(answer, mn)

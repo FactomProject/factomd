@@ -7,6 +7,7 @@ package primitives_test
 import (
 	"bytes"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factomd/common/constants"
@@ -209,5 +210,32 @@ func TestHashMisc(t *testing.T) {
 	hash = NewZeroHash()
 	if hash.String() != "0000000000000000000000000000000000000000000000000000000000000000" {
 		t.Error("Error in NewZeroHash")
+	}
+}
+
+func TestStringUnmarshaller(t *testing.T) {
+	base := "ddaf35a193617abacc417349ae20413112e6fa4e89a97ea20a9eeee64b55d39a"
+	hash, err := HexToHash(base)
+	if err != nil {
+		t.Error(err)
+	}
+
+	h2:=new(Hash)
+	err = h2.UnmarshalText([]byte(base))
+	if err != nil {
+		t.Error(err)
+	}
+	if hash.IsSameAs(h2)==false {
+		t.Errorf("Hash from UnmarshalText is incorrect - %v vs %v", hash, h2)
+	}
+
+
+	h3:=new(Hash)
+	err = json.Unmarshal([]byte("\""+base+"\""), h3)
+	if err != nil {
+		t.Error(err)
+	}
+	if hash.IsSameAs(h3)==false {
+		t.Errorf("Hash from json.Unmarshal is incorrect - %v vs %v", hash, h3)
 	}
 }
