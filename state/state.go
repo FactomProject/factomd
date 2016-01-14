@@ -700,7 +700,10 @@ func (s *State) CreateDBlock() (b interfaces.IDirectoryBlock, err error) {
 		s.EntryCreditBlock = eb
 	}
 
-	b.SetDBEntries(make([]interfaces.IDBEntry, 0))
+	err = b.SetDBEntries(make([]interfaces.IDBEntry, 0))
+	if err!=nil {
+		return nil, err
+	}
 
 	s.CurrentAdminBlock = s.NewAdminBlock()
 

@@ -175,7 +175,10 @@ func TestHandleGetRaw(t *testing.T) {
 	toTest = append(toTest, raw)
 
 	dBlock := testHelper.CreateTestDirectoryBlock(nil)
-	dBlock.SetDBEntries(dbEntries)
+	err = dBlock.SetDBEntries(dbEntries)
+	if err != nil {
+		panic(err)
+	}
 	raw = RawData{}
 	raw.Hash1 = dBlock.DatabasePrimaryIndex().String()
 	raw.Hash2 = dBlock.DatabaseSecondaryIndex().String()

@@ -13,8 +13,8 @@ type IDirectoryBlock interface {
 	GetHeader() IDirectoryBlockHeader
 	SetHeader(IDirectoryBlockHeader)
 	GetDBEntries() []IDBEntry
-	SetDBEntries([]IDBEntry)
-	AddEntry(chainID IHash, keyMR IHash)
+	SetDBEntries([]IDBEntry) error
+	AddEntry(chainID IHash, keyMR IHash) error
 	BuildKeyMerkleRoot() (IHash, error)
 	BuildBodyMR() (IHash, error)
 	GetKeyMR() IHash
@@ -22,6 +22,7 @@ type IDirectoryBlock interface {
 
 	HeaderHash() (IHash, error)
 	BodyKeyMR() IHash
+	GetEntryHashesForBranch() []IHash
 }
 
 type IDirectoryBlockHeader interface {

@@ -21,6 +21,42 @@ type Receipt struct {
 	BitcoinTransactionHash interfaces.IHash
 	BitcoinBlockHash       interfaces.IHash
 }
+/*
+func (e *Receipt) Validate() error {
+	if e.Entry == nil {
+		return fmt.Errorf("Receipt has no entry")
+	}
+	if e.MerkleBranch == nil {
+
+	}
+	entryHash, err:=primitives.NewShaHashFromStr(e.Key)
+	//TODO: validate entry hashes into EntryHash
+
+	if err!=nil {
+		return err
+	}
+	var left interfaces.IHash
+	var right interfaces.IHash
+	currentEntry:=entryHash
+	for i, node:=range(e.MerkleBranch) {
+		if node.Left == nil {
+			left = currentEntry
+		} else {
+			left = node.Left
+			if node.Right == nil {
+				right = currentEntry
+			} else {
+				right = node.Right
+			}
+		}
+		if node.Right == nil {
+			return fmt.Errorf("Node %v/%v has two nil sides", i, len(e.MerkleBranch))
+		}
+
+	}
+
+	return nil
+}*/
 
 func (e *Receipt) IsSameAs(r *Receipt) bool {
 	if e.Entry == nil {
@@ -140,7 +176,7 @@ func CreateFullReceipt(dbo interfaces.DBOverlay, entryID interfaces.IHash) (*Rec
 	receipt.EntryBlockKeyMR = hash
 
 	entries := eBlock.GetEntryHashes()
-	fmt.Printf("eBlock entries - %v\n", entries)
+	fmt.Printf("eBlock entries - %v\n\n", entries)
 	branch := primitives.BuildMerkleBranchForEntryHash(entries, entryID, true)
 	blockNode := new(primitives.MerkleNode)
 	blockNode.Left, err = eBlock.HeaderHash()
@@ -149,13 +185,13 @@ func CreateFullReceipt(dbo interfaces.DBOverlay, entryID interfaces.IHash) (*Rec
 	}
 	blockNode.Right = eBlock.BodyKeyMR()
 	blockNode.Top = hash
-	fmt.Printf("blockNode - %v\n", blockNode)
+	fmt.Printf("eBlock blockNode - %v\n\n", blockNode)
 	branch = append(branch, blockNode)
 	receipt.MerkleBranch = append(receipt.MerkleBranch, branch...)
 
 	str, _ := eBlock.JSONString()
 
-	fmt.Printf("eBlock - %v\n", str)
+	fmt.Printf("eBlock - %v\n\n", str)
 
 	//DBlock
 
@@ -179,10 +215,14 @@ func CreateFullReceipt(dbo interfaces.DBOverlay, entryID interfaces.IHash) (*Rec
 
 	str, _ = dBlock.JSONString()
 
-	fmt.Printf("dBlock - %v\n", str)
+	fmt.Printf("dBlock - %v\n\n", str)
 
-	entries = dBlock.GetEntryHashes()
-	fmt.Printf("dBlock entries - %v\n", entries)
+	entries = dBlock.GetEntryHashesForBranch()
+	fmt.Printf("dBlock entries - %v\n\n", entries)
+
+	merkleTree:=primitives.BuildMerkleTreeStore(entries)
+	fmt.Printf("dBlock merkleTree - %v\n\n", merkleTree)
+
 	branch = primitives.BuildMerkleBranchForEntryHash(entries, receipt.EntryBlockKeyMR, true)
 	blockNode = new(primitives.MerkleNode)
 	blockNode.Left, err = dBlock.HeaderHash()
@@ -191,7 +231,7 @@ func CreateFullReceipt(dbo interfaces.DBOverlay, entryID interfaces.IHash) (*Rec
 	}
 	blockNode.Right = dBlock.BodyKeyMR()
 	blockNode.Top = hash
-	fmt.Printf("blockNode - %v\n", blockNode)
+	fmt.Printf("dBlock blockNode - %v\n\n", blockNode)
 	branch = append(branch, blockNode)
 	receipt.MerkleBranch = append(receipt.MerkleBranch, branch...)
 
