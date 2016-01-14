@@ -22,12 +22,27 @@ type Receipt struct {
 	BitcoinBlockHash       *primitives.Hash
 }
 
+func (e *Receipt) TrimReceipt() {
+	entry, _ := primitives.NewShaHashFromStr(e.Entry.Key)
+	for i:=range(e.MerkleBranch) {
+		if entry.IsSameAs(e.MerkleBranch[i].Left) {
+			e.MerkleBranch[i].Left = nil
+		} else {
+			if entry.IsSameAs(e.MerkleBranch[i].Right) {
+				e.MerkleBranch[i].Right = nil
+			}
+		}
+		entry = e.MerkleBranch[i].Top
+		e.MerkleBranch[i].Top = nil
+	}
+}
+
 func (e *Receipt) Validate() error {
 	if e.Entry == nil {
 		return fmt.Errorf("Receipt has no entry")
 	}
 	if e.MerkleBranch == nil {
-
+		return fmt.Errorf("Receipt has no MerkleBranch")
 	}
 	entryHash, err := primitives.NewShaHashFromStr(e.Entry.Key)
 	//TODO: validate entry hashes into EntryHash
@@ -175,6 +190,21 @@ func (e *JSON) IsSameAs(r *JSON) bool {
 }
 
 func CreateFullReceipt(dbo interfaces.DBOverlay, entryID interfaces.IHash) (*Receipt, error) {
+	return CreateReceipt(dbo, entryID)
+}
+
+func CreateMinimalReceipt(dbo interfaces.DBOverlay, entryID interfaces.IHash) (*Receipt, error) {
+	receipt, err:=CreateReceipt(dbo, entryID)
+	if err!=nil {
+		return nil, err
+	}
+
+	receipt.TrimReceipt()
+
+	return receipt, nil
+}
+
+func CreateReceipt(dbo interfaces.DBOverlay, entryID interfaces.IHash) (*Receipt, error) {
 	receipt := new(Receipt)
 	receipt.Entry = new(JSON)
 	receipt.Entry.Key = entryID.String()
@@ -285,10 +315,6 @@ func CreateFullReceipt(dbo interfaces.DBOverlay, entryID interfaces.IHash) (*Rec
 	return receipt, nil
 }
 
-func CreateMinimalReceipt(dbo interfaces.DBOverlay, entryID interfaces.IHash) (*Receipt, error) {
-	return nil, nil
-}
-
 func VerifyFullReceipt(dbo interfaces.DBOverlay, receiptStr string) error {
 	receipt, err := DecodeReceiptString(receiptStr)
 	if err != nil {
@@ -300,9 +326,18 @@ func VerifyFullReceipt(dbo interfaces.DBOverlay, receiptStr string) error {
 		return err
 	}
 
+	//...
+
 	return nil
 }
 
 func VerifyMinimalReceipt(dbo interfaces.DBOverlay, receiptStr string) error {
+	err := receipt.Validate()
+	if err != nil {
+		return err
+	}
+
+	//...
+
 	return nil
 }
