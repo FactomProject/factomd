@@ -73,8 +73,8 @@ func (c *DirectoryBlock) SetHeader(header interfaces.IDirectoryBlockHeader) {
 func (c *DirectoryBlock) SetDBEntries(dbEntries []interfaces.IDBEntry) error {
 	c.DBEntries = dbEntries
 	c.GetHeader().SetBlockCount(uint32(len(dbEntries)))
-	_, err:= c.BuildBodyMR()
-	if err!=nil {
+	_, err := c.BuildBodyMR()
+	if err != nil {
 		return err
 	}
 	return nil
@@ -172,7 +172,7 @@ func (b *DirectoryBlock) BuildBodyMR() (mr interfaces.IHash, err error) {
 	}
 
 	merkleTree := primitives.BuildMerkleTreeStore(hashes)
-	merkleRoot:=merkleTree[len(merkleTree)-1]
+	merkleRoot := merkleTree[len(merkleTree)-1]
 
 	b.GetHeader().SetBodyMR(merkleRoot)
 
@@ -226,7 +226,7 @@ func (b *DirectoryBlock) UnmarshalBinaryData(data []byte) (newData []byte, err e
 	b.SetHeader(fbh)
 
 	count := b.GetHeader().GetBlockCount()
-	entries:=make([]interfaces.IDBEntry, count)
+	entries := make([]interfaces.IDBEntry, count)
 	for i := uint32(0); i < count; i++ {
 		entries[i] = new(DBEntry)
 		newData, err = entries[i].UnmarshalBinaryData(newData)
@@ -236,7 +236,7 @@ func (b *DirectoryBlock) UnmarshalBinaryData(data []byte) (newData []byte, err e
 	}
 
 	err = b.SetDBEntries(entries)
-	if err!=nil {
+	if err != nil {
 		return
 	}
 

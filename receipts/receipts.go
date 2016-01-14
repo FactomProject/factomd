@@ -24,7 +24,7 @@ type Receipt struct {
 
 func (e *Receipt) TrimReceipt() {
 	entry, _ := primitives.NewShaHashFromStr(e.Entry.Key)
-	for i:=range(e.MerkleBranch) {
+	for i := range e.MerkleBranch {
 		if entry.IsSameAs(e.MerkleBranch[i].Left) {
 			e.MerkleBranch[i].Left = nil
 		} else {
@@ -194,8 +194,8 @@ func CreateFullReceipt(dbo interfaces.DBOverlay, entryID interfaces.IHash) (*Rec
 }
 
 func CreateMinimalReceipt(dbo interfaces.DBOverlay, entryID interfaces.IHash) (*Receipt, error) {
-	receipt, err:=CreateReceipt(dbo, entryID)
-	if err!=nil {
+	receipt, err := CreateReceipt(dbo, entryID)
+	if err != nil {
 		return nil, err
 	}
 
@@ -332,7 +332,12 @@ func VerifyFullReceipt(dbo interfaces.DBOverlay, receiptStr string) error {
 }
 
 func VerifyMinimalReceipt(dbo interfaces.DBOverlay, receiptStr string) error {
-	err := receipt.Validate()
+	receipt, err := DecodeReceiptString(receiptStr)
+	if err != nil {
+		return err
+	}
+
+	err = receipt.Validate()
 	if err != nil {
 		return err
 	}

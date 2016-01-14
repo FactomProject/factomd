@@ -701,7 +701,7 @@ func (s *State) CreateDBlock() (b interfaces.IDirectoryBlock, err error) {
 	}
 
 	err = b.SetDBEntries(make([]interfaces.IDBEntry, 0))
-	if err!=nil {
+	if err != nil {
 		return nil, err
 	}
 

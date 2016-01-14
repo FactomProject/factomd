@@ -220,22 +220,21 @@ func TestStringUnmarshaller(t *testing.T) {
 		t.Error(err)
 	}
 
-	h2:=new(Hash)
+	h2 := new(Hash)
 	err = h2.UnmarshalText([]byte(base))
 	if err != nil {
 		t.Error(err)
 	}
-	if hash.IsSameAs(h2)==false {
+	if hash.IsSameAs(h2) == false {
 		t.Errorf("Hash from UnmarshalText is incorrect - %v vs %v", hash, h2)
 	}
 
-
-	h3:=new(Hash)
+	h3 := new(Hash)
 	err = json.Unmarshal([]byte("\""+base+"\""), h3)
 	if err != nil {
 		t.Error(err)
 	}
-	if hash.IsSameAs(h3)==false {
+	if hash.IsSameAs(h3) == false {
 		t.Errorf("Hash from json.Unmarshal is incorrect - %v vs %v", hash, h3)
 	}
 }

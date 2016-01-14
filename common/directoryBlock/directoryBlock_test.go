@@ -164,7 +164,7 @@ func TestInvalidUnmarshalDirectoryBlock(t *testing.T) {
 func TestMakeSureBlockCountIsNotDuplicates(t *testing.T) {
 	fmt.Println("\n---\nTestMakeSureBlockCountIsNotDuplicates\n---\n")
 	block := createTestDirectoryBlock()
-	err:=block.SetDBEntries([]interfaces.IDBEntry{})
+	err := block.SetDBEntries([]interfaces.IDBEntry{})
 	if err != nil {
 		t.Errorf("Error: %v", err)
 	}
@@ -217,7 +217,7 @@ func createTestDirectoryBlock() *DirectoryBlock {
 	de.ChainID = primitives.NewZeroHash()
 	de.KeyMR = primitives.NewZeroHash()
 
-	err:=dblock.SetDBEntries(append(make([]interfaces.IDBEntry, 0, 5), de))
+	err := dblock.SetDBEntries(append(make([]interfaces.IDBEntry, 0, 5), de))
 	if err != nil {
 		panic(err)
 	}
@@ -242,15 +242,15 @@ func createTestDirectoryBlockHeader() *DBlockHeader {
 }
 
 func TestKeyMRs(t *testing.T) {
-	entries:=[]string{"44c9f3a6d6f6b2ab5efb29e7d6159c4e3fca13fc5dd03b94ae3dea8bf30173cb",
+	entries := []string{"44c9f3a6d6f6b2ab5efb29e7d6159c4e3fca13fc5dd03b94ae3dea8bf30173cb",
 		"41a36ab01a9b8e8d78d6b43b8e7e6671916a93b43b8fec48a627d0cb51f012f1",
 		"905740850540f1d17fcb1fc7fd0c61a33150b2cdc0f88334f6a891ec34bd1cfc",
 		"9c9610e09673c9136508112fe447c8b9c1e042a95bd140ec161ade4995cd0f73",
 		"fbc3a4b40464049c999e99feff2bf36996f27869b045a0374bc47b7c2cda9e7c"}
-	dbEntries:=[]interfaces.IDBEntry{}
-	for _, e:=range(entries) {
-		h, err:=NewShaHashFromStr(e)
-		if err!=nil {
+	dbEntries := []interfaces.IDBEntry{}
+	for _, e := range entries {
+		h, err := NewShaHashFromStr(e)
+		if err != nil {
 			t.Error(err)
 		}
 		dbEntries = append(dbEntries, h)

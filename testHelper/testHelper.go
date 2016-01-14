@@ -228,8 +228,8 @@ func CreateTestDirectoryBlock(prevBlock *directoryBlock.DirectoryBlock) *directo
 	de.ChainID = primitives.NewZeroHash()
 	de.KeyMR = primitives.NewZeroHash()
 
-	err:=dblock.SetDBEntries(append(make([]interfaces.IDBEntry, 0, 5), de))
-	if err!=nil {
+	err := dblock.SetDBEntries(append(make([]interfaces.IDBEntry, 0, 5), de))
+	if err != nil {
 		panic(err)
 	}
 	//dblock.GetHeader().SetBlockCount(uint32(len(dblock.GetDBEntries())))
