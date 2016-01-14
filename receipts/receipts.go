@@ -44,6 +44,12 @@ func (e *Receipt) Validate() error {
 	if e.MerkleBranch == nil {
 		return fmt.Errorf("Receipt has no MerkleBranch")
 	}
+	if e.EntryBlockKeyMR == nil {
+		return fmt.Errorf("Receipt has no MerkleBranch")
+	}
+	if e.DirectoryBlockKeyMR == nil {
+		return fmt.Errorf("Receipt has no MerkleBranch")
+	}
 	entryHash, err := primitives.NewShaHashFromStr(e.Entry.Key)
 	//TODO: validate entry hashes into EntryHash
 
@@ -58,6 +64,9 @@ func (e *Receipt) Validate() error {
 	dBlockFound := false
 	for i, node := range e.MerkleBranch {
 		if node.Left == nil {
+			if node.Right == nil {
+				return fmt.Errorf("Node %v/%v has two nil sides", i, len(e.MerkleBranch))
+			}
 			left = currentEntry
 			right = node.Right
 		} else {
@@ -67,9 +76,6 @@ func (e *Receipt) Validate() error {
 			} else {
 				right = node.Right
 			}
-		}
-		if node.Right == nil {
-			return fmt.Errorf("Node %v/%v has two nil sides", i, len(e.MerkleBranch))
 		}
 		if left.IsSameAs(currentEntry) == false && left.IsSameAs(currentEntry) {
 			return fmt.Errorf("Entry %v not found in node %v/%v", currentEntry, i, len(e.MerkleBranch))
@@ -233,7 +239,7 @@ func CreateReceipt(dbo interfaces.DBOverlay, entryID interfaces.IHash) (*Receipt
 	receipt.EntryBlockKeyMR = hash.(*primitives.Hash)
 
 	entries := eBlock.GetEntryHashes()
-	fmt.Printf("eBlock entries - %v\n\n", entries)
+	//fmt.Printf("eBlock entries - %v\n\n", entries)
 	branch := primitives.BuildMerkleBranchForEntryHash(entries, entryID, true)
 	blockNode := new(primitives.MerkleNode)
 	left, err := eBlock.HeaderHash()
@@ -243,13 +249,12 @@ func CreateReceipt(dbo interfaces.DBOverlay, entryID interfaces.IHash) (*Receipt
 	blockNode.Left = left.(*primitives.Hash)
 	blockNode.Right = eBlock.BodyKeyMR().(*primitives.Hash)
 	blockNode.Top = hash.(*primitives.Hash)
-	fmt.Printf("eBlock blockNode - %v\n\n", blockNode)
+	//fmt.Printf("eBlock blockNode - %v\n\n", blockNode)
 	branch = append(branch, blockNode)
 	receipt.MerkleBranch = append(receipt.MerkleBranch, branch...)
 
-	str, _ := eBlock.JSONString()
-
-	fmt.Printf("eBlock - %v\n\n", str)
+	//str, _ := eBlock.JSONString()
+	//fmt.Printf("eBlock - %v\n\n", str)
 
 	//DBlock
 
@@ -271,15 +276,14 @@ func CreateReceipt(dbo interfaces.DBOverlay, entryID interfaces.IHash) (*Receipt
 		return nil, fmt.Errorf("DBlock not found")
 	}
 
-	str, _ = dBlock.JSONString()
-
-	fmt.Printf("dBlock - %v\n\n", str)
+	//str, _ = dBlock.JSONString()
+	//fmt.Printf("dBlock - %v\n\n", str)
 
 	entries = dBlock.GetEntryHashesForBranch()
-	fmt.Printf("dBlock entries - %v\n\n", entries)
+	//fmt.Printf("dBlock entries - %v\n\n", entries)
 
-	merkleTree := primitives.BuildMerkleTreeStore(entries)
-	fmt.Printf("dBlock merkleTree - %v\n\n", merkleTree)
+	//merkleTree := primitives.BuildMerkleTreeStore(entries)
+	//fmt.Printf("dBlock merkleTree - %v\n\n", merkleTree)
 
 	branch = primitives.BuildMerkleBranchForEntryHash(entries, receipt.EntryBlockKeyMR, true)
 	blockNode = new(primitives.MerkleNode)
@@ -290,7 +294,7 @@ func CreateReceipt(dbo interfaces.DBOverlay, entryID interfaces.IHash) (*Receipt
 	blockNode.Left = left.(*primitives.Hash)
 	blockNode.Right = dBlock.BodyKeyMR().(*primitives.Hash)
 	blockNode.Top = hash.(*primitives.Hash)
-	fmt.Printf("dBlock blockNode - %v\n\n", blockNode)
+	//fmt.Printf("dBlock blockNode - %v\n\n", blockNode)
 	branch = append(branch, blockNode)
 	receipt.MerkleBranch = append(receipt.MerkleBranch, branch...)
 
@@ -326,7 +330,14 @@ func VerifyFullReceipt(dbo interfaces.DBOverlay, receiptStr string) error {
 		return err
 	}
 
-	//...
+	for i, node:=range(receipt.MerkleBranch) {
+		if node.Left == nil || node.Right ==nil {
+			return fmt.Errorf("Node %v/%v has a nil side", i, len(receipt.MerkleBranch))
+		}
+		if node.Top == nil {
+			return fmt.Errorf("Node %v/%v has no top", i, len(receipt.MerkleBranch))
+		}
+	}
 
 	return nil
 }
@@ -340,6 +351,18 @@ func VerifyMinimalReceipt(dbo interfaces.DBOverlay, receiptStr string) error {
 	err = receipt.Validate()
 	if err != nil {
 		return err
+	}
+
+	for i, node:=range(receipt.MerkleBranch) {
+		if node.Left == nil && node.Right ==nil {
+			return fmt.Errorf("Node %v/%v has two nil sides", i, len(receipt.MerkleBranch))
+		}
+		if node.Left != nil && node.Right !=nil {
+			return fmt.Errorf("Node %v/%v has two non-nil sides", i, len(receipt.MerkleBranch))
+		}
+		if node.Top != nil {
+			return fmt.Errorf("Node %v/%v has unnecesary top", i, len(receipt.MerkleBranch))
+		}
 	}
 
 	//...
