@@ -111,12 +111,90 @@ func (e *Receipt) IsSameAs(r *Receipt) bool {
 		if r.Entry != nil {
 			return false
 		}
-	}
-	if e.Entry.IsSameAs(r.Entry) == false {
-		return false
+	} else {
+		if e.Entry.IsSameAs(r.Entry) == false {
+			return false
+		}
 	}
 
-	//...
+	if e.MerkleBranch == nil {
+		if r.MerkleBranch != nil {
+			return false
+		}
+	} else {
+		if len(e.MerkleBranch) != len(r.MerkleBranch) {
+			return false
+		}
+		for i:=range(e.MerkleBranch) {
+			if e.MerkleBranch[i].Left == nil {
+				if r.MerkleBranch[i].Left != nil {
+					return false
+				}
+			} else {
+				if e.MerkleBranch[i].Left.IsSameAs(r.MerkleBranch[i].Left) == false {
+					return false
+				}
+			}
+			if e.MerkleBranch[i].Right == nil {
+				if r.MerkleBranch[i].Right != nil {
+					return false
+				}
+			} else {
+				if e.MerkleBranch[i].Right.IsSameAs(r.MerkleBranch[i].Right) == false {
+					return false
+				}
+			}
+			if e.MerkleBranch[i].Top == nil {
+				if r.MerkleBranch[i].Top != nil {
+					return false
+				}
+			} else {
+				if e.MerkleBranch[i].Top.IsSameAs(r.MerkleBranch[i].Top) == false {
+					return false
+				}
+			}
+		}
+	}
+
+	if e.EntryBlockKeyMR == nil {
+		if r.EntryBlockKeyMR != nil {
+			return false
+		}
+	} else {
+		if e.EntryBlockKeyMR.IsSameAs(r.EntryBlockKeyMR) == false {
+			return false
+		}
+	}
+
+	if e.DirectoryBlockKeyMR == nil {
+		if r.DirectoryBlockKeyMR != nil {
+			return false
+		}
+	} else {
+		if e.DirectoryBlockKeyMR.IsSameAs(r.DirectoryBlockKeyMR) == false {
+			return false
+		}
+	}
+
+	if e.BitcoinTransactionHash == nil {
+		if r.BitcoinTransactionHash != nil {
+			return false
+		}
+	} else {
+		if e.BitcoinTransactionHash.IsSameAs(r.BitcoinTransactionHash) == false {
+			return false
+		}
+	}
+
+	if e.BitcoinBlockHash == nil {
+		if r.BitcoinBlockHash != nil {
+			return false
+		}
+	} else {
+		if e.BitcoinBlockHash.IsSameAs(r.BitcoinBlockHash) == false {
+			return false
+		}
+	}
 
 	return true
 }
