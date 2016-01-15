@@ -330,8 +330,8 @@ func VerifyFullReceipt(dbo interfaces.DBOverlay, receiptStr string) error {
 		return err
 	}
 
-	for i, node:=range(receipt.MerkleBranch) {
-		if node.Left == nil || node.Right ==nil {
+	for i, node := range receipt.MerkleBranch {
+		if node.Left == nil || node.Right == nil {
 			return fmt.Errorf("Node %v/%v has a nil side", i, len(receipt.MerkleBranch))
 		}
 		if node.Top == nil {
@@ -353,11 +353,11 @@ func VerifyMinimalReceipt(dbo interfaces.DBOverlay, receiptStr string) error {
 		return err
 	}
 
-	for i, node:=range(receipt.MerkleBranch) {
-		if node.Left == nil && node.Right ==nil {
+	for i, node := range receipt.MerkleBranch {
+		if node.Left == nil && node.Right == nil {
 			return fmt.Errorf("Node %v/%v has two nil sides", i, len(receipt.MerkleBranch))
 		}
-		if node.Left != nil && node.Right !=nil {
+		if node.Left != nil && node.Right != nil {
 			return fmt.Errorf("Node %v/%v has two non-nil sides", i, len(receipt.MerkleBranch))
 		}
 		if node.Top != nil {

@@ -7,6 +7,7 @@ import (
 	//"github.com/FactomProject/factomd/log"
 	//"github.com/FactomProject/factomd/util"
 	//"sort"
+	"strings"
 )
 
 // ProcessEBlockBatche inserts the EBlock and update all it's ebentries in DB
@@ -110,4 +111,25 @@ func (db *Overlay) FetchEBlockHead(chainID interfaces.IHash) (interfaces.IEntryB
 		return nil, nil
 	}
 	return block.(*entryBlock.EBlock), nil
+}
+
+func (db *Overlay) FetchAllEBlockChainIDs() ([]interfaces.IHash, error) {
+	ids, err := db.ListAllKeys([]byte{byte(ENTRYBLOCK)})
+	if err != nil {
+		return nil, err
+	}
+	entries := []interfaces.IHash{}
+	for _, id := range ids {
+		h, err := primitives.NewShaHash(id)
+		if err != nil {
+			return nil, err
+		}
+		str := h.String()
+		if strings.Contains(str, "000000000000000000000000000000000000000000000000000000000000000") {
+			//skipping basic blocks
+			continue
+		}
+		entries = append(entries, h)
+	}
+	return entries, nil
 }
