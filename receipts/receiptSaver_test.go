@@ -17,5 +17,5 @@ func TestReceiptSaver(t *testing.T) {
 		t.Error(err)
 	}
 
-	t.Fail()
+	//t.Fail()
 }
