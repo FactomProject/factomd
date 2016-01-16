@@ -1,9 +1,8 @@
 package wsapi_test
 
 import (
-	//"fmt"
-	//"github.com/FactomProject/factomd/common/directoryBlock"
-	//"github.com/FactomProject/factomd/common/entryBlock"
+	"fmt"
+	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/receipts"
@@ -48,7 +47,7 @@ func TestHandleRevealChain(t *testing.T) {
 	}
 }
 */
-
+/*
 func TestHandleCommitEntry(t *testing.T) {
 	context := createWebContext()
 
@@ -58,7 +57,7 @@ func TestHandleCommitEntry(t *testing.T) {
 		t.Errorf("%v", GetBody(context))
 	}
 }
-
+*/
 /*
 func TestHandleRevealEntry(t *testing.T) {
 	context := createWebContext()
@@ -76,12 +75,11 @@ func TestHandleDirectoryBlockHead(t *testing.T) {
 
 	HandleDirectoryBlockHead(context)
 
-	if strings.Contains(GetBody(context), "fcda1ac2044f0c12598727de3a4e47fe024fcee7999b09923c1ad75d9a8b3b94") == false {
+	if strings.Contains(GetBody(context), "2e7b6ef91954a7112f4c089cde9b6b7febe89c74dbca867b967954881ebb0e16") == false {
 		t.Errorf("Context does not contain proper DBlock Head - %v", GetBody(context))
 	}
 }
 
-/*
 func TestHandleGetRaw(t *testing.T) {
 	type RawData struct {
 		Hash1 string
@@ -92,18 +90,9 @@ func TestHandleGetRaw(t *testing.T) {
 	toTest := []RawData{}
 	var err error
 
-	dbEntries := []interfaces.IDBEntry{}
-	aBlock := testHelper.CreateTestAdminBlock(nil)
-	de := new(directoryBlock.DBEntry)
-	de.ChainID = aBlock.GetChainID()
-	if err != nil {
-		panic(err)
-	}
-	de.KeyMR, err = aBlock.GetKeyMR()
-	if err != nil {
-		panic(err)
-	}
-	dbEntries = append(dbEntries, de)
+	blockSet := testHelper.CreateTestBlockSet(nil)
+
+	aBlock := blockSet.ABlock
 	raw := RawData{}
 	raw.Hash1 = aBlock.DatabasePrimaryIndex().String()
 	raw.Hash2 = aBlock.DatabaseSecondaryIndex().String()
@@ -112,19 +101,9 @@ func TestHandleGetRaw(t *testing.T) {
 		panic(err)
 	}
 	raw.Raw = primitives.EncodeBinary(hex)
-	toTest = append(toTest, raw)
+	toTest = append(toTest, raw) //1
 
-	eBlock, _ := testHelper.CreateTestEntryBlock(nil)
-	de = new(directoryBlock.DBEntry)
-	de.ChainID = eBlock.GetChainID()
-	if err != nil {
-		panic(err)
-	}
-	de.KeyMR, err = eBlock.KeyMR()
-	if err != nil {
-		panic(err)
-	}
-	dbEntries = append(dbEntries, de)
+	eBlock := blockSet.EBlock
 	raw = RawData{}
 	raw.Hash1 = eBlock.DatabasePrimaryIndex().String()
 	raw.Hash2 = eBlock.DatabaseSecondaryIndex().String()
@@ -133,19 +112,9 @@ func TestHandleGetRaw(t *testing.T) {
 		panic(err)
 	}
 	raw.Raw = primitives.EncodeBinary(hex)
-	toTest = append(toTest, raw)
+	toTest = append(toTest, raw) //2
 
-	ecBlock := testHelper.CreateTestEntryCreditBlock(nil)
-	de = new(directoryBlock.DBEntry)
-	de.ChainID = ecBlock.GetChainID()
-	if err != nil {
-		panic(err)
-	}
-	de.KeyMR, err = ecBlock.HeaderHash()
-	if err != nil {
-		panic(err)
-	}
-	dbEntries = append(dbEntries, de)
+	ecBlock := blockSet.ECBlock
 	raw = RawData{}
 	raw.Hash1 = ecBlock.(interfaces.DatabaseBatchable).DatabasePrimaryIndex().String()
 	raw.Hash2 = ecBlock.(interfaces.DatabaseBatchable).DatabaseSecondaryIndex().String()
@@ -154,16 +123,9 @@ func TestHandleGetRaw(t *testing.T) {
 		panic(err)
 	}
 	raw.Raw = primitives.EncodeBinary(hex)
-	toTest = append(toTest, raw)
+	toTest = append(toTest, raw) //3
 
-	fBlock := testHelper.CreateTestFactoidBlock(nil)
-	de = new(directoryBlock.DBEntry)
-	de.ChainID = fBlock.GetChainID()
-	if err != nil {
-		panic(err)
-	}
-	de.KeyMR = fBlock.GetKeyMR()
-	dbEntries = append(dbEntries, de)
+	fBlock := blockSet.FBlock
 	raw = RawData{}
 	raw.Hash1 = fBlock.(interfaces.DatabaseBatchable).DatabasePrimaryIndex().String()
 	raw.Hash2 = fBlock.(interfaces.DatabaseBatchable).DatabaseSecondaryIndex().String()
@@ -172,13 +134,9 @@ func TestHandleGetRaw(t *testing.T) {
 		panic(err)
 	}
 	raw.Raw = primitives.EncodeBinary(hex)
-	toTest = append(toTest, raw)
+	toTest = append(toTest, raw) //4
 
-	dBlock := testHelper.CreateTestDirectoryBlock(nil)
-	err = dBlock.SetDBEntries(dbEntries)
-	if err != nil {
-		panic(err)
-	}
+	dBlock := blockSet.DBlock
 	raw = RawData{}
 	raw.Hash1 = dBlock.DatabasePrimaryIndex().String()
 	raw.Hash2 = dBlock.DatabaseSecondaryIndex().String()
@@ -187,26 +145,26 @@ func TestHandleGetRaw(t *testing.T) {
 		panic(err)
 	}
 	raw.Raw = primitives.EncodeBinary(hex)
-	toTest = append(toTest, raw)
+	toTest = append(toTest, raw) //5
 
 	context := createWebContext()
-	for _, v := range toTest {
+	for i, v := range toTest {
 		clearContextResponseWriter(context)
 		HandleGetRaw(context, v.Hash1)
 
 		if strings.Contains(GetBody(context), v.Raw) == false {
-			t.Errorf("GetRaw from Hash1 failed - %v", GetBody(context))
+			t.Errorf("GetRaw %v/%v from Hash1 failed - %v", i, len(toTest), GetBody(context))
 		}
 
 		clearContextResponseWriter(context)
 		HandleGetRaw(context, v.Hash2)
 
 		if strings.Contains(GetBody(context), v.Raw) == false {
-			t.Errorf("GetRaw from Hash2 failed - %v", GetBody(context))
+			t.Errorf("GetRaw %v/%v from Hash2 failed - %v", i, len(toTest), GetBody(context))
 		}
 	}
-}*/
-/*
+}
+
 func TestHandleDirectoryBlock(t *testing.T) {
 	context := createWebContext()
 	hash := "95450198260994f250863dc9b25d570f48a61fd7135476f0d391fe78a29250af"
@@ -244,8 +202,8 @@ func TestHandleDirectoryBlock(t *testing.T) {
 	if strings.Contains(GetBody(context), "915f2d39e09ab51994dc5246628d2dd46e796d7ae65159c72631592d8d10220d") == false {
 		t.Errorf("%v", GetBody(context))
 	}
-}*/
-/*
+}
+
 func TestHandleEntryBlock(t *testing.T) {
 	context := createWebContext()
 	chain, err := primitives.HexToHash("4bf71c177e71504032ab84023d8afc16e302de970e6be110dac20adbf9a19746")
@@ -279,7 +237,7 @@ func TestHandleEntryBlock(t *testing.T) {
 	if fetched != testHelper.BlockCount {
 		t.Errorf("Fetched %v blocks, expected %v", fetched, testHelper.BlockCount)
 	}
-}*/
+}
 
 func TestHandleEntry(t *testing.T) {
 	context := createWebContext()
@@ -292,7 +250,6 @@ func TestHandleEntry(t *testing.T) {
 	}
 }
 
-/*
 func TestHandleChainHead(t *testing.T) {
 	context := createWebContext()
 	hash := "000000000000000000000000000000000000000000000000000000000000000d"
@@ -338,7 +295,7 @@ func TestHandleChainHead(t *testing.T) {
 	if strings.Contains(GetBody(context), "915f2d39e09ab51994dc5246628d2dd46e796d7ae65159c72631592d8d10220d") == false {
 		t.Errorf("Invalid factoid block head: %v", GetBody(context))
 	}
-}*/
+}
 
 //func TestHandleEntryCreditBalance(t *testing.T) {
 //	context := createWebContext()
@@ -349,7 +306,7 @@ func TestHandleChainHead(t *testing.T) {
 //		t.Errorf("%v", GetBody(context))
 //	}
 //}
-/*
+
 func TestHandleFactoidBalance(t *testing.T) {
 	context := createWebContext()
 	eckey := testHelper.NewFactoidRCDAddressString(0)
@@ -363,7 +320,7 @@ func TestHandleFactoidBalance(t *testing.T) {
 	if strings.Contains(GetBody(context), expectedAmount) == false {
 		t.Errorf("%v", GetBody(context))
 	}
-}*/
+}
 
 func TestHandleGetFee(t *testing.T) {
 	context := createWebContext()

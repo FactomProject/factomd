@@ -125,7 +125,7 @@ func (e *Receipt) IsSameAs(r *Receipt) bool {
 		if len(e.MerkleBranch) != len(r.MerkleBranch) {
 			return false
 		}
-		for i:=range(e.MerkleBranch) {
+		for i := range e.MerkleBranch {
 			if e.MerkleBranch[i].Left == nil {
 				if r.MerkleBranch[i].Left != nil {
 					return false

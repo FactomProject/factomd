@@ -733,7 +733,9 @@ func (s *State) GetCurrentDirectoryBlock() interfaces.IDirectoryBlock {
 }
 
 func (s *State) SetCurrentDirectoryBlock(dirblk interfaces.IDirectoryBlock) {
-	s.PreviousDirectoryBlock = s.CurrentDirectoryBlock
+	if s.CurrentDirectoryBlock != nil {
+		s.PreviousDirectoryBlock = s.CurrentDirectoryBlock
+	}
 	s.CurrentDirectoryBlock = dirblk
 }
 
