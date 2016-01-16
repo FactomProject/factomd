@@ -32,7 +32,7 @@ func CreateAndPopulateTestState() *state.State {
 func CreateAndPopulateTestDatabaseOverlay() *databaseOverlay.Overlay {
 	dbo := CreateEmptyTestDatabaseOverlay()
 
-	prev := new(BlockSet)
+	var prev *BlockSet = nil
 
 	var err error
 
