@@ -175,6 +175,21 @@ func (db *Overlay) FetchAllBlocksFromBucket(bucket []byte, sample interfaces.Bin
 	return answer, nil
 }
 
+func (db *Overlay) FetchAllBlockKeysFromBucket(bucket []byte) ([]interfaces.IHash, error) {
+	entries, err := db.ListAllKeys(bucket)
+	if err != nil {
+		return nil, err
+	}
+	answer := make([]interfaces.IHash, len(entries))
+	for i := range entries {
+		answer[i], err = primitives.NewShaHash(entries[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return answer, nil
+}
+
 func (db *Overlay) Insert(bucket []byte, entry interfaces.DatabaseBatchable) error {
 	err := db.DB.Put(bucket, entry.DatabasePrimaryIndex().Bytes(), entry)
 	if err != nil {

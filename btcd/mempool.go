@@ -20,7 +20,7 @@ type ftmMemPool struct {
 	pool        map[interfaces.IHash]messages.Message
 	orphans     map[interfaces.IHash]messages.Message
 	blockpool   map[string]messages.Message // to hold the blocks or entries downloaded from peers
-	lastUpdated time.Time               // last time pool was updated
+	lastUpdated time.Time                   // last time pool was updated
 }
 
 // Add a factom message to the orphan pool

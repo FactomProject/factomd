@@ -131,7 +131,7 @@ type blockManager struct {
 	chainState        chainState
 	wg                sync.WaitGroup
 	quit              chan struct{}
-	fMemPool 					*ftmMemPool
+	fMemPool          *ftmMemPool
 }
 
 // handleNewPeerMsg deals with new peers that have signalled they may
@@ -646,8 +646,8 @@ func newBlockManager(s *Server) (*blockManager, error) {
 		server:          s,
 		requestedTxns:   make(map[interfaces.IHash]struct{}),
 		requestedBlocks: make(map[interfaces.IHash]struct{}),
-		msgChan: make(chan interface{}, cfg.MaxPeers*3),
-		quit: make(chan struct{}),
+		msgChan:         make(chan interface{}, cfg.MaxPeers*3),
+		quit:            make(chan struct{}),
 	}
 
 	bm.fMemPool = new(ftmMemPool)

@@ -62,7 +62,7 @@ func (m *CommitChainMsg) Validate(state interfaces.IState) int {
 	}
 
 	// If there is a commit against the same hash, then we can't process
-	// this one right now.  Must wait for the previous to clear. Needs to 
+	// this one right now.  Must wait for the previous to clear. Needs to
 	// look at  a list of chain commits.
 	if state.GetCommits(m.GetHash()) != nil {
 		return 0

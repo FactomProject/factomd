@@ -200,8 +200,10 @@ func HandleGetRaw(ctx *web.Context, hashkey string) {
 		b, _ = block.MarshalBinary()
 	} else if block, _ := dbase.FetchECBlockByKeyMR(h); block != nil {
 		b, _ = block.MarshalBinary()
+
 	} else if block, _ := dbase.FetchEntryByHash(h); block != nil {
 		b, _ = block.MarshalBinary()
+
 	} else if block, _ := dbase.FetchFBlockByHash(h); block != nil {
 		b, _ = block.MarshalBinary()
 	} else if block, _ := dbase.FetchDBlockByHash(h); block != nil {

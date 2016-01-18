@@ -21,6 +21,12 @@ type DBOverlay interface {
 	// FetchEntry gets an entry by hash from the database.
 	FetchEntryByHash(IHash) (IEBEntry, error)
 
+	FetchAllEntriesByChainID(chainID IHash) ([]IEBEntry, error)
+
+	FetchAllEntryIDsByChainID(chainID IHash) ([]IHash, error)
+
+	FetchAllEntryIDs() ([]IHash, error)
+
 	//**********************************EBlock**********************************//
 
 	// ProcessEBlockBatche inserts the EBlock and update all it's ebentries in DB
@@ -41,6 +47,8 @@ type DBOverlay interface {
 	SaveEBlockHead(block DatabaseBlockWithEntries) error
 
 	FetchEBlockHead(chainID IHash) (IEntryBlock, error)
+
+	FetchAllEBlockChainIDs() ([]IHash, error)
 
 	//**********************************DBlock**********************************//
 

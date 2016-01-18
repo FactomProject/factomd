@@ -17,9 +17,22 @@ func TestReceipts(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	t.Logf("%v", receipt.String())
+	t.Logf("\n\n%v\n", receipt.String())
 
 	err = VerifyFullReceipt(dbo, receipt.String())
+	if err != nil {
+		t.Error(err)
+	}
+
+	receipt.TrimReceipt()
+	t.Logf("\n\n%v\n", receipt.String())
+
+	err = VerifyFullReceipt(dbo, receipt.String())
+	if err == nil {
+		t.Errorf("\n\nError is nil when it shouldn't be for receipt\n\n%v\n\n", receipt)
+	}
+
+	err = VerifyMinimalReceipt(dbo, receipt.String())
 	if err != nil {
 		t.Error(err)
 	}

@@ -554,7 +554,7 @@ func (s *State) loadDatabase() {
 
 		fBlocks, err := s.DB.FetchAllFBlocks()
 
-		fmt.Printf("Processing %d FBlocks\n",len(fBlocks))
+		fmt.Printf("Processing %d FBlocks\n", len(fBlocks))
 
 		if err != nil {
 			panic(err.Error())
@@ -567,8 +567,8 @@ func (s *State) loadDatabase() {
 		if err != nil {
 			panic(err.Error())
 		}
-		
-		fmt.Printf("Processing %d ECBlocks\n",len(ecBlocks))
+
+		fmt.Printf("Processing %d ECBlocks\n", len(ecBlocks))
 
 		for _, block := range ecBlocks {
 			s.EntryCreditBlock = block
@@ -700,7 +700,10 @@ func (s *State) CreateDBlock() (b interfaces.IDirectoryBlock, err error) {
 		s.EntryCreditBlock = eb
 	}
 
-	b.SetDBEntries(make([]interfaces.IDBEntry, 0))
+	err = b.SetDBEntries(make([]interfaces.IDBEntry, 0))
+	if err != nil {
+		return nil, err
+	}
 
 	s.CurrentAdminBlock = s.NewAdminBlock()
 
@@ -732,7 +735,9 @@ func (s *State) GetCurrentDirectoryBlock() interfaces.IDirectoryBlock {
 }
 
 func (s *State) SetCurrentDirectoryBlock(dirblk interfaces.IDirectoryBlock) {
-	s.PreviousDirectoryBlock = s.CurrentDirectoryBlock
+	if s.CurrentDirectoryBlock != nil {
+		s.PreviousDirectoryBlock = s.CurrentDirectoryBlock
+	}
 	s.CurrentDirectoryBlock = dirblk
 }
 

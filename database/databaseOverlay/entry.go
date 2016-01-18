@@ -3,6 +3,7 @@ package databaseOverlay
 import (
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 // InsertEntry inserts an entry
@@ -49,6 +50,26 @@ func (db *Overlay) FetchAllEntriesByChainID(chainID interfaces.IHash) ([]interfa
 		return nil, err
 	}
 	return toEntryList(list), nil
+}
+
+func (db *Overlay) FetchAllEntryIDsByChainID(chainID interfaces.IHash) ([]interfaces.IHash, error) {
+	return db.FetchAllBlockKeysFromBucket(chainID.Bytes())
+}
+
+func (db *Overlay) FetchAllEntryIDs() ([]interfaces.IHash, error) {
+	ids, err := db.ListAllKeys([]byte{byte(ENTRY)})
+	if err != nil {
+		return nil, err
+	}
+	entries := []interfaces.IHash{}
+	for _, id := range ids {
+		h, err := primitives.NewShaHash(id)
+		if err != nil {
+			return nil, err
+		}
+		entries = append(entries, h)
+	}
+	return entries, nil
 }
 
 func toEntryList(source []interfaces.BinaryMarshallableAndCopyable) []interfaces.IEBEntry {

@@ -81,7 +81,7 @@ func NewMsgDirBlock() *MsgDirBlock {
 var _ interfaces.IMsg = (*MsgDirBlock)(nil)
 
 func (m *MsgDirBlock) Process(state interfaces.IState) {
-//	Code to process this block
+	//	Code to process this block
 }
 
 func (m *MsgDirBlock) GetHash() interfaces.IHash {

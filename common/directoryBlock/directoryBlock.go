@@ -39,6 +39,16 @@ func (c *DirectoryBlock) GetEntryHashes() []interfaces.IHash {
 	return answer
 }
 
+func (c *DirectoryBlock) GetEntryHashesForBranch() []interfaces.IHash {
+	entries := c.DBEntries[:]
+	answer := make([]interfaces.IHash, 2*len(entries))
+	for i, entry := range entries {
+		answer[2*i] = entry.GetChainID()
+		answer[2*i+1] = entry.GetKeyMR()
+	}
+	return answer
+}
+
 func (c *DirectoryBlock) GetDBEntries() []interfaces.IDBEntry {
 	return c.DBEntries
 }
@@ -60,9 +70,14 @@ func (c *DirectoryBlock) SetHeader(header interfaces.IDirectoryBlockHeader) {
 	c.Header = header
 }
 
-func (c *DirectoryBlock) SetDBEntries(dbEntries []interfaces.IDBEntry) {
+func (c *DirectoryBlock) SetDBEntries(dbEntries []interfaces.IDBEntry) error {
 	c.DBEntries = dbEntries
 	c.GetHeader().SetBlockCount(uint32(len(dbEntries)))
+	_, err := c.BuildBodyMR()
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (c *DirectoryBlock) New() interfaces.BinaryMarshallableAndCopyable {
@@ -156,16 +171,35 @@ func (b *DirectoryBlock) BuildBodyMR() (mr interfaces.IHash, err error) {
 		hashes = append(hashes, primitives.Sha(nil))
 	}
 
-	merkle := primitives.BuildMerkleTreeStore(hashes)
-	return merkle[len(merkle)-1], nil
+	merkleTree := primitives.BuildMerkleTreeStore(hashes)
+	merkleRoot := merkleTree[len(merkleTree)-1]
+
+	b.GetHeader().SetBodyMR(merkleRoot)
+
+	return merkleRoot, nil
+}
+
+func (b *DirectoryBlock) HeaderHash() (interfaces.IHash, error) {
+	binaryEBHeader, err := b.GetHeader().MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	return primitives.Sha(binaryEBHeader), nil
+}
+
+func (b *DirectoryBlock) BodyKeyMR() interfaces.IHash {
+	return b.GetHeader().GetBodyMR()
 }
 
 func (b *DirectoryBlock) BuildKeyMerkleRoot() (keyMR interfaces.IHash, err error) {
 	// Create the Entry Block Key Merkle Root from the hash of Header and the Body Merkle Root
 	hashes := make([]interfaces.IHash, 0, 2)
-	binaryEBHeader, _ := b.GetHeader().MarshalBinary()
-	hashes = append(hashes, primitives.Sha(binaryEBHeader))
-	hashes = append(hashes, b.GetHeader().GetBodyMR())
+	headerHash, err := b.HeaderHash()
+	if err != nil {
+		return nil, err
+	}
+	hashes = append(hashes, headerHash)
+	hashes = append(hashes, b.BodyKeyMR())
 	merkle := primitives.BuildMerkleTreeStore(hashes)
 	keyMR = merkle[len(merkle)-1] // MerkleRoot is not marshalized in Dir Block
 
@@ -192,13 +226,18 @@ func (b *DirectoryBlock) UnmarshalBinaryData(data []byte) (newData []byte, err e
 	b.SetHeader(fbh)
 
 	count := b.GetHeader().GetBlockCount()
-	b.SetDBEntries(make([]interfaces.IDBEntry, count))
+	entries := make([]interfaces.IDBEntry, count)
 	for i := uint32(0); i < count; i++ {
-		b.GetDBEntries()[i] = new(DBEntry)
-		newData, err = b.GetDBEntries()[i].UnmarshalBinaryData(newData)
+		entries[i] = new(DBEntry)
+		newData, err = entries[i].UnmarshalBinaryData(newData)
 		if err != nil {
 			return
 		}
+	}
+
+	err = b.SetDBEntries(entries)
+	if err != nil {
+		return
 	}
 
 	return
@@ -220,10 +259,15 @@ func (b *DirectoryBlock) GetHash() interfaces.IHash {
 	return b.DBHash
 }
 
-func (b *DirectoryBlock) AddEntry(chainID interfaces.IHash, keyMR interfaces.IHash) {
+func (b *DirectoryBlock) AddEntry(chainID interfaces.IHash, keyMR interfaces.IHash) error {
 	var dbentry interfaces.IDBEntry
 	dbentry = new(DBEntry)
 	dbentry.SetChainID(chainID)
 	dbentry.SetKeyMR(keyMR)
-	b.SetDBEntries(append(b.DBEntries, dbentry))
+
+	if b.DBEntries == nil {
+		b.DBEntries = []interfaces.IDBEntry{}
+	}
+
+	return b.SetDBEntries(append(b.DBEntries, dbentry))
 }

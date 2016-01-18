@@ -19,9 +19,9 @@ type RevealEntryMsg struct {
 	Entry     interfaces.IEntry
 
 	//Not marshalled
-	hash interfaces.IHash
+	hash        interfaces.IHash
 	chainIDHash interfaces.IHash
-	isEntry bool
+	isEntry     bool
 	commitChain *CommitChainMsg
 	commitEntry *CommitEntryMsg
 }
@@ -46,7 +46,6 @@ func (m *RevealEntryMsg) GetChainIDHash() interfaces.IHash {
 	return m.chainIDHash
 }
 
-
 func (m *RevealEntryMsg) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp
 }
@@ -70,31 +69,31 @@ func (m *RevealEntryMsg) Bytes() []byte {
 func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 	commit := state.GetCommits(m.GetHash())
 	ECs := 0
-	
+
 	if commit == nil {
 		fmt.Println("Not in GetCommits")
 		return 0
 	}
-	
+
 	var okChain, okEntry bool
-	m.commitChain,okChain = commit.(*CommitChainMsg)
-	m.commitEntry,okEntry = commit.(*CommitEntryMsg)
-	if !okChain && !okEntry  {
+	m.commitChain, okChain = commit.(*CommitChainMsg)
+	m.commitEntry, okEntry = commit.(*CommitEntryMsg)
+	if !okChain && !okEntry {
 		return -1
 	}
-	
+
 	if okEntry {
 		m.isEntry = true
 		ECs = int(m.commitEntry.CommitEntry.Credits)
-		if(m.Entry.KSize()<ECs) {
-			fmt.Println("KSize",m.Entry.KSize(),ECs)
+		if m.Entry.KSize() < ECs {
+			fmt.Println("KSize", m.Entry.KSize(), ECs)
 			return -1
 		}
-	}else{
+	} else {
 		m.isEntry = false
 		ECs = int(m.commitChain.CommitChain.Credits)
-		if(m.Entry.KSize()+10<ECs) {
-			fmt.Println("KSize",m.Entry.KSize(),ECs)
+		if m.Entry.KSize()+10 < ECs {
+			fmt.Println("KSize", m.Entry.KSize(), ECs)
 			return -1
 		}
 	}
@@ -102,16 +101,16 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 	// Reveal Entry calls must have an existing chain.
 	if m.isEntry {
 		chainID := m.Entry.GetChainID()
-		eblk := state.GetNewEBlks(chainID.Fixed())	// Look see if already in the new block.
-		if eblk == nil {					// No?  Then look see if it exists in DB
+		eblk := state.GetNewEBlks(chainID.Fixed()) // Look see if already in the new block.
+		if eblk == nil {                           // No?  Then look see if it exists in DB
 			eblk, _ := state.GetDB().FetchEBlockHead(chainID)
 			if eblk == nil {
-				fmt.Println("KSize",m.Entry.KSize(),ECs)
+				fmt.Println("KSize", m.Entry.KSize(), ECs)
 				return -1
 			}
 		}
 	}
-	
+
 	return 1
 }
 
@@ -127,7 +126,7 @@ func (m *RevealEntryMsg) LeaderExecute(state interfaces.IState) error {
 	if v <= 0 {
 		return fmt.Errorf("Reveal is not valid")
 	}
-	
+
 	b := m.GetHash()
 
 	ack, err := NewAck(state, b)

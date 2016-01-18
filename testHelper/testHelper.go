@@ -32,7 +32,7 @@ func CreateAndPopulateTestState() *state.State {
 func CreateAndPopulateTestDatabaseOverlay() *databaseOverlay.Overlay {
 	dbo := CreateEmptyTestDatabaseOverlay()
 
-	prev := new(BlockSet)
+	var prev *BlockSet = nil
 
 	var err error
 
@@ -177,7 +177,10 @@ func CreateTestBlockSet(prev *BlockSet) *BlockSet {
 	dbEntries = append(dbEntries, de)
 
 	answer.DBlock = CreateTestDirectoryBlock(prev.DBlock)
-	answer.DBlock.SetDBEntries(dbEntries)
+	err = answer.DBlock.SetDBEntries(dbEntries)
+	if err != nil {
+		panic(err)
+	}
 
 	return answer
 }
@@ -221,13 +224,14 @@ func CreateTestDirectoryBlock(prevBlock *directoryBlock.DirectoryBlock) *directo
 
 	dblock.SetHeader(CreateTestDirectoryBlockHeader(prevBlock))
 
-	dblock.SetDBEntries(make([]interfaces.IDBEntry, 0, 5))
-
 	de := new(directoryBlock.DBEntry)
 	de.ChainID = primitives.NewZeroHash()
 	de.KeyMR = primitives.NewZeroHash()
 
-	dblock.SetDBEntries(append(dblock.GetDBEntries(), de))
+	err := dblock.SetDBEntries(append(make([]interfaces.IDBEntry, 0, 5), de))
+	if err != nil {
+		panic(err)
+	}
 	//dblock.GetHeader().SetBlockCount(uint32(len(dblock.GetDBEntries())))
 
 	return dblock

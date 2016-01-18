@@ -22,7 +22,6 @@ import (
 	//"github.com/FactomProject/factomd/common/primitives"
 )
 
-
 // processDirBlock validates dir block and save it to factom b.server.State.GetDB().
 // similar to blockChain.BC_ProcessBlock
 func (b *blockManager) processDirBlock(msg *messages.MsgDirBlock) error {
@@ -30,9 +29,9 @@ func (b *blockManager) processDirBlock(msg *messages.MsgDirBlock) error {
 	if blk != nil {
 		bmgrLog.Info("DBlock already exists for height:" + string(msg.DBlk.GetHeader().GetDBHeight()))
 		cp.CP.AddUpdate(
-			"DBOverlap",                                                          // tag
-			"warning",                                                            // Category
-			"Directory Block Overlap",                                            // Title
+			"DBOverlap",                                                                    // tag
+			"warning",                                                                      // Category
+			"Directory Block Overlap",                                                      // Title
 			"DBlock already exists for height:"+string(msg.DBlk.GetHeader().GetDBHeight()), // Message
 			0) // Expire
 		return nil
@@ -116,10 +115,10 @@ func (b *blockManager) validateAndStoreBlocks() {
 	for true {
 		dblk = nil
 		myDBHeight = b.server.State.GetDBHeight()
-		msg := b.fMemPool.getBlockMsg(string(myDBHeight+1))
+		msg := b.fMemPool.getBlockMsg(string(myDBHeight + 1))
 		if msg != nil {
 			switch msg.(type) {
-			case  *messages.MsgDirBlock:
+			case *messages.MsgDirBlock:
 				dblk = msg.(*messages.MsgDirBlock).DBlk
 				bmgrLog.Debug("SyncUp: validate height=%d, dirblock=%s\n ", myDBHeight+1, spew.Sdump(dblk))
 				if dblk != nil {
@@ -148,7 +147,7 @@ func (b *blockManager) validateBlocksFromMemPool(dblk *directoryBlock.DirectoryB
 
 	// Validate the genesis block
 	if dblk.GetHeader().GetDBHeight() == 0 {
-		h := dblk.GetHash()		//CreateHash(b)
+		h := dblk.GetHash() //CreateHash(b)
 		if h.String() != constants.GENESIS_DIR_BLOCK_HASH {
 			// panic for milestone 1
 			panic("\nGenesis block hash expected: " + constants.GENESIS_DIR_BLOCK_HASH +
@@ -166,11 +165,11 @@ func (b *blockManager) validateBlocksFromMemPool(dblk *directoryBlock.DirectoryB
 		case hex.EncodeToString(constants.ADMIN_CHAINID[:]):
 			if _, ok := b.fMemPool.blockpool[dbEntry.GetKeyMR().String()]; !ok {
 				return false
-			//} else {
+				//} else {
 				// validate signature of the previous dir block
 				//aBlkMsg, _ := msg.(*messages.MsgABlock)
 				//if !b.validateDBSignature(aBlkMsg.ABlk) {
-					//return false
+				//return false
 				//}
 			}
 		case hex.EncodeToString(constants.FACTOID_CHAINID[:]):
@@ -233,7 +232,7 @@ func (b *blockManager) storeBlocksFromMemPool(dblk *directoryBlock.DirectoryBloc
 			if err != nil {
 				return err
 			}
-			b.server.State.SetPrevFactoidKeyMR(fBlkMsg.FBlck.GetKeyMR()) 	// ???
+			b.server.State.SetPrevFactoidKeyMR(fBlkMsg.FBlck.GetKeyMR()) // ???
 		default:
 			// handle Entry Block
 			eBlkMsg, _ := b.fMemPool.blockpool[dbEntry.GetKeyMR().String()].(*messages.MsgEBlock)
@@ -252,20 +251,20 @@ func (b *blockManager) storeBlocksFromMemPool(dblk *directoryBlock.DirectoryBloc
 				return err
 			}
 			/*
-			// create a chain in db if it's not existing
-			chain := chainIDMap[eBlkMsg.EBlk.Header.ChainID.String()]
-			if chain == nil {
-				chain = new(EChain)
-				chain.ChainID = eBlkMsg.EBlk.Header.ChainID
-				if eBlkMsg.EBlk.Header.EBSequence == 0 {
+				// create a chain in db if it's not existing
+				chain := chainIDMap[eBlkMsg.EBlk.Header.ChainID.String()]
+				if chain == nil {
+					chain = new(EChain)
+					chain.ChainID = eBlkMsg.EBlk.Header.ChainID
+					if eBlkMsg.EBlk.Header.EBSequence == 0 {
+						chain.FirstEntry, _ = b.server.State.GetDB().FetchEntryByHash(eBlkMsg.EBlk.Body.EBEntries[0])
+					}
+					b.server.State.GetDB().InsertChain(chain)
+					chainIDMap[chain.ChainID.String()] = chain
+				} else if chain.FirstEntry == nil && eBlkMsg.EBlk.Header.EBSequence == 0 {
 					chain.FirstEntry, _ = b.server.State.GetDB().FetchEntryByHash(eBlkMsg.EBlk.Body.EBEntries[0])
-				}
-				b.server.State.GetDB().InsertChain(chain)
-				chainIDMap[chain.ChainID.String()] = chain
-			} else if chain.FirstEntry == nil && eBlkMsg.EBlk.Header.EBSequence == 0 {
-				chain.FirstEntry, _ = b.server.State.GetDB().FetchEntryByHash(eBlkMsg.EBlk.Body.EBEntries[0])
-				b.server.State.GetDB().InsertChain(chain)
-			}*/
+					b.server.State.GetDB().InsertChain(chain)
+				}*/
 		}
 	}
 
