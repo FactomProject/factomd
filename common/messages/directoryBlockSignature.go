@@ -29,8 +29,8 @@ type DirectoryBlockSignature struct {
 var _ interfaces.IMsg = (*DirectoryBlockSignature)(nil)
 var _ Signable = (*DirectoryBlockSignature)(nil)
 
-func (e *DirectoryBlockSignature) Process(interfaces.IState) {
-	panic("DirectoryBlockSignature is not implemented.")
+func (e *DirectoryBlockSignature) Process(state interfaces.IState) {
+	state.ProcessEndOfBlock()
 }
 
 func (m *DirectoryBlockSignature) GetHash() interfaces.IHash {
@@ -71,16 +71,7 @@ func (m *DirectoryBlockSignature) Validate(interfaces.IState) int {
 // Returns true if this is a message for this server to execute as
 // a leader.
 func (m *DirectoryBlockSignature) Leader(state interfaces.IState) bool {
-	switch state.GetNetworkNumber() {
-	case 0: // Main Network
-		panic("Not implemented yet")
-	case 1: // Test Network
-		panic("Not implemented yet")
-	case 2: // Local Network
-		panic("Not implemented yet")
-	default:
-		panic("Not implemented yet")
-	}
+	return false
 }
 
 // Execute the leader functions of the given message
@@ -196,10 +187,7 @@ func (m *DirectoryBlockSignature) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *DirectoryBlockSignature) String() string {
-	return fmt.Sprintf("DB Sig: %d KeyMR %s ID %s",
-		m.DirectoryBlockHeight,
-		m.DirectoryBlockKeyMR.String(),
-		m.ServerIdentityChainID.String())
+	return fmt.Sprintf("DB Sig %s",m.GetHash().String())
 }
 
 func (e *DirectoryBlockSignature) JSONByte() ([]byte, error) {

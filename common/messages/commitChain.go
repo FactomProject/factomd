@@ -86,14 +86,14 @@ func (m *CommitChainMsg) LeaderExecute(state interfaces.IState) error {
 	}
 	b := m.GetHash()
 
-	msg, err := NewAck(state, b)
+	ack, err := NewAck(state, b)
 	state.PutCommits(m.GetHash(), m)
 	if err != nil {
 		return err
 	}
 
-	state.NetworkOutMsgQueue() <- msg
-	state.FollowerInMsgQueue() <- msg // Send the Ack to follower
+	state.NetworkOutMsgQueue() <- ack
+	state.FollowerInMsgQueue() <- ack // Send the Ack to follower
 	state.FollowerInMsgQueue() <- m   // Send factoid trans to follower
 
 	return nil

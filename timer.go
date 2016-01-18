@@ -32,20 +32,25 @@ func Timer(state interfaces.IState) {
 	log.Printfln("Starting Timer! %v\n", time.Now())
 	for {
 		for i := 0; i < 10; i++ {
-			// End of the last period, and this is a server, send messages that
-			// close off the minute.
-			if state.GetServerState() == 1 {
-				eom := messages.NewEOM(state, i)
-				state.InMsgQueue() <- eom
-				//state.NetworkOutMsgQueue() <- eom
-			}
-
-			fmt.Printf("\r Processing DBlock %v minute %v: %s%s", state.GetDBHeight(), i, (string)((([]byte)("-\\|/-\\|/-="))[i]), " ")
-
 			now = time.Now().UnixNano()
 			wait := next - now
 			next += tenthPeriod
 			time.Sleep(time.Duration(wait))
+
+			// End of the last period, and this is a server, send messages that
+			// close off the minute.
+			if state.GetServerState() == 1 {
+				eom := messages.NewEOM(state, i)
+				state.LeaderInMsgQueue() <- eom
+				//state.NetworkOutMsgQueue() <- eom
+			}
+
+			fmt.Printf("%19s: DBlock %v minute %v", 
+					   "Timer", 
+						state.GetDBHeight(), 
+					   i)
+						//(string)((([]byte)("-\\|/-\\|/-="))[i]), " ")
+			fmt.Println()
 		}
 	}
 

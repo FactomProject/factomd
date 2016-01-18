@@ -12,11 +12,14 @@ import (
 	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/wsapi"
+	"github.com/FactomProject/factomd/util"
 	"os"
 	"runtime"
 	"strings"
 	"time"
 )
+
+var _ = fmt.Print
 
 // winServiceMain is only invoked on Windows.  It detects when btcd is running
 // as a service and reacts accordingly.
@@ -30,37 +33,61 @@ import (
 var Build string
 
 func main() {
+
+	var sim bool
+	args := os.Args[1:]
+	if len(args)>0 && args[0]=="sim" {
+		sim = true
+	}
 	log.Print("//////////////////////// Copyright 2015 Factom Foundation")
 	log.Print("//////////////////////// Use of this source code is governed by the MIT")
 	log.Print("//////////////////////// license that can be found in the LICENSE file.")
-
 	log.Printf("Go compiler version: %s\n", runtime.Version())
 	log.Printf("Using build: %s\n", Build)
-
+	if sim {
+		log.Print(" ==========> Simulation Network <===========")
+	}
 	if !isCompilerVersionOK() {
 		for i := 0; i < 30; i++ {
-			fmt.Println("!!! !!! !!! ERROR: unsupported compiler version !!! !!! !!!")
+			log.Println("!!! !!! !!! ERROR: unsupported compiler version !!! !!! !!!")
 		}
 		time.Sleep(3 * time.Second)
 		os.Exit(1)
 	}
-	cfgFilename := ""
-
-	state := new(state.State)
-	state.Init(cfgFilename)
-
+	
+	var state0, state1, state2, state3, state4 *state.State
+	state0 = new(state.State)
+	state0.Init(util.GetConfigFilename("m2"))
+	if sim {
+		state1 := new(state.State)
+		state1.Init(util.GetConfigFilename("m2-1"))
+		state2 := new(state.State)
+		state2.Init(util.GetConfigFilename("m2-2"))
+		state3 := new(state.State)
+		state3.Init(util.GetConfigFilename("m2-3"))
+		state4 := new(state.State)
+		state4.Init(util.GetConfigFilename("m2-4"))
+	}
+	
+	btcd.AddInterruptHandler(func() {
+		log.Printf("Gracefully shutting down the database...")
+		state0.GetDB().(interfaces.IDatabase).Close()
+		if sim {
+			state1.GetDB().(interfaces.IDatabase).Close()
+			state2.GetDB().(interfaces.IDatabase).Close()
+			state3.GetDB().(interfaces.IDatabase).Close()
+			state4.GetDB().(interfaces.IDatabase).Close()
+		}
+	})
+	
+	// Go Optimizations...
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	if err := limits.SetLimits(); err != nil {
 		os.Exit(1)
 	}
 
-	btcd.AddInterruptHandler(func() {
-		log.Printf("Gracefully shutting down the database...")
-		state.GetDB().(interfaces.IDatabase).Close()
-	})
-
 	log.Print("Starting server")
-	server, _ := btcd.NewServer(state)
+	server, _ := btcd.NewServer(state0)
 
 	btcd.AddInterruptHandler(func() {
 		log.Printf("Gracefully shutting down the server...")
@@ -68,14 +95,20 @@ func main() {
 		server.WaitForShutdown()
 	})
 	server.Start()
-	state.SetServer(server)
+	state0.SetServer(server)
 
-	go NetworkProcessor(state)
-	go Timer(state)
-	go Validator(state)
-	go Leader(state)
-
-	go wsapi.Start(state)
+	if sim {
+		go SimNetwork(state0, state1, state2, state3, state4)
+	}else{
+		go NetworkProcessor(state0)
+	}
+	
+	go Timer(state0)
+	go Validator(state0)
+	go Leader(state0)
+	go Follower(state0)
+	
+	go wsapi.Start(state0)
 
 	shutdownChannel := make(chan struct{})
 	go func() {

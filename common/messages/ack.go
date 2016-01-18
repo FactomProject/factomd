@@ -75,7 +75,6 @@ func (m *Ack) Follower(interfaces.IState) bool {
 }
 
 func (m *Ack) FollowerExecute(state interfaces.IState) error {
-	fmt.Print("Awk Execute")
 	return state.FollowerExecuteAck(m)
 }
 
