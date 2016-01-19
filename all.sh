@@ -105,6 +105,8 @@ checkout fctwallet2   $branch $default
 checkout walletapp2   $branch $default
 checkout factom       $branch $default
 checkout factom-cli2  $branch $default
+checkout factoid      master
+checkout FactomCode   master
 checkout Testing      $branch $default
 checkout btcutil      $branch $default 
 checkout goleveldb    $branch $default

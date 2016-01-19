@@ -14,6 +14,8 @@ import ()
 type IState interface {
 
 	// Server
+	
+	GetServerIndex() int			// Returns this server's index, if a federated server
 	GetCfg() IFactomConfig
 	Init(string)
 	String() string
@@ -42,7 +44,6 @@ type IState interface {
 	GetAuditServers() []IServer   // List of Audit Servers
 	GetFedServers() []IServer     // List of Federated Servers
 	GetServerOrder() [][]IServer  // 10 lists for Server Order for each minute
-	GetProcessList() [][]IMsg     // List of Processed Messages Per server
 	GetAuditHeartBeats() []IMsg   // The checklist of HeartBeats for this period
 	GetFedServerFaults() [][]IMsg // Keep a fault list for every server
 

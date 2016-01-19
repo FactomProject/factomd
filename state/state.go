@@ -31,7 +31,10 @@ var _ = fmt.Print
 
 type State struct {
 	Cfg interfaces.IFactomConfig
-
+	
+	IdentityChainID        interfaces.IHash		// If this node has an identity, this is it
+	ServerIndex            int					// If a federated server, this is the server index
+	
 	networkInMsgQueue      chan interfaces.IMsg
 	networkOutMsgQueue     chan interfaces.IMsg
 	networkInvalidMsgQueue chan interfaces.IMsg
@@ -60,8 +63,10 @@ type State struct {
 	AuditServers    []interfaces.IServer   // List of Audit Servers
 	FedServers      []interfaces.IServer   // List of Federated Servers
 	ServerOrder     [][]interfaces.IServer // 10 lists for Server Order for each minute
-	ProcessList     [][]interfaces.IMsg    // List of Processed Messages Per server
-	PLHeight        []int                  // Process List Height (for processing lists)
+	
+	PLPrevious   	*ProcessList // Previous Process Lists.  Sometimes you have to wait to process
+	PLCurrent    	*ProcessList // Current Process Lists.  What we are building now.
+	
 	AuditHeartBeats []interfaces.IMsg      // The checklist of HeartBeats for this period
 	FedServerFaults [][]interfaces.IMsg    // Keep a fault list for every server
 
@@ -99,6 +104,10 @@ type State struct {
 
 var _ interfaces.IState = (*State)(nil)
 
+func (s *State) GetServerIndex() int {
+	return s.ServerIndex
+}
+	
 func (s *State) GetNewEBlks(key [32]byte) interfaces.IEntryBlock {
 	s.NewEBlksSem.Lock()
 	value := s.NewEBlks[key]
@@ -136,16 +145,10 @@ func (s *State) MatchAckFollowerExecute(m interfaces.IMsg) (bool, error) {
 		s.Holding[m.GetHash().Fixed()] = m
 		return false, nil
 	} else {
-		processlist := s.GetProcessList()[ack.ServerIndex]
-		for len(processlist) <= ack.Height {
-			processlist = append(processlist, nil)
-		}
-		fmt.Println("Add message at height", ack.Height)
-		processlist[ack.Height] = m
-		s.GetProcessList()[ack.ServerIndex] = processlist
-		// remove the message from the holding/ack maps.
+		s.PLCurrent.AddToProcessList(ack,m)
 		delete(acks, m.GetHash().Fixed())
 		delete(s.Holding, m.GetHash().Fixed())
+
 		s.UpdateProcessLists()
 		return true, nil
 	}
@@ -157,13 +160,12 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) error {
 	s.Acks[ack.GetHash().Fixed()] = ack
 	match := s.Holding[ack.GetHash().Fixed()]
 	if match != nil {
-		// If we have a match, the ack is in the Acks, so we
-		// can match the message to the ack.  One set of code.
 		match.FollowerExecute(s)
 	}
 
 	return nil
 }
+	
 
 // Run through the process lists, and update the state as required by
 // any new entries.  In the near future, we will want to have this in a
@@ -172,17 +174,13 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) error {
 //
 // This routine can only be called by the Follower goroutine.
 func (s *State) UpdateProcessLists() {
-	for i := 0; i < len(s.ProcessList); i++ {
-		plist := s.GetProcessList()[i]
-		for j := s.PLHeight[i]; j < len(plist); j++ {
-			fmt.Println("UpdatePL: ", j)
-			if plist[j] == nil {
-				fmt.Println("Nil at", j)
-				break
-			}
-			plist[j].Process(s)   // Process this entry
-			s.PLHeight[i] = j + 1 //   and don't process it again.
+	if !s.PLPrevious.Complete() {
+		s.PLPrevious.Process(s)
+		if s.PLPrevious.Complete() {
+			s.PLCurrent.Process(s)
 		}
+	}else{
+		s.PLCurrent.Process(s)
 	}
 }
 
@@ -234,9 +232,6 @@ func (s *State) GetFedServers() []interfaces.IServer {
 func (s *State) GetServerOrder() [][]interfaces.IServer {
 	return s.ServerOrder
 }
-func (s *State) GetProcessList() [][]interfaces.IMsg {
-	return s.ProcessList
-}
 func (s *State) GetAuditHeartBeats() []interfaces.IMsg {
 	return s.AuditHeartBeats
 }
@@ -256,14 +251,17 @@ func (s *State) Sign([]byte) interfaces.IFullSignature {
 // It is called by the follower code.  It is requried to build the Directory Block
 // to validate the signatures we will get with the DirectoryBlockSignature messages.
 func (s *State) ProcessEndOfBlock() {
-
+	fmt.Println("ProcessEndOfBlock()")
 	//Must have all the complete process lists at this point!
 
 	s.UpdateProcessLists() // Do any remaining processing
 
-	for i := 0; i < len(s.ProcessList); i++ { // Reset heights to zero for all lists
-		s.PLHeight[i] = 0
+	if !s.PLPrevious.Complete() {
+		panic("Failed to process the previous block")
 	}
+	s.PLPrevious = s.PLCurrent
+	s.PLCurrent = NewProcessList(s)
+	s.LastAck = nil
 
 	s.PreviousDirectoryBlock = s.CurrentDirectoryBlock
 	previousECBlock := s.GetCurrentEntryCreditBlock()
@@ -290,7 +288,6 @@ func (s *State) ProcessEndOfBlock() {
 		log.Println("No old db")
 	}
 
-	s.ProcessList = make([][]interfaces.IMsg, 1)
 	s.LastAck = nil
 	s.NewEBlks = make(map[[32]byte]interfaces.IEntryBlock)
 }
@@ -440,6 +437,10 @@ func (s *State) Init(filename string) {
 	default:
 		panic("Bad Node Mode (must be FULL or SERVER)")
 	}
+	
+	if s.ServerState == 1 {
+		s.ServerIndex = 0
+	}
 
 	//Database
 	switch cfg.App.DBType {
@@ -489,8 +490,7 @@ func (s *State) Init(filename string) {
 	s.FedServers = make([]interfaces.IServer, 0)
 	s.ServerOrder = make([][]interfaces.IServer, 0)
 
-	s.ProcessList = make([][]interfaces.IMsg, 1)
-	s.PLHeight = make([]int, 1)
+	s.PLCurrent = NewProcessList(s)
 
 	s.AuditHeartBeats = make([]interfaces.IMsg, 0)
 	s.FedServerFaults = make([][]interfaces.IMsg, 0)
@@ -715,8 +715,10 @@ func (s *State) CreateDBlock() (b interfaces.IDirectoryBlock, err error) {
 }
 
 func (s *State) PrintType(msgType int) bool {
-	return msgType != constants.EOM_MSG &&
-		msgType != constants.DIRECTORY_BLOCK_SIGNATURE_MSG
+	r := true
+	// r = r && msgType != constants.EOM_MSG 
+	// r = r && msgType != constants.DIRECTORY_BLOCK_SIGNATURE_MSG
+	return r
 }
 
 func (s *State) GetNetworkName() string {

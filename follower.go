@@ -5,10 +5,12 @@
 package main
 
 import (
+	"fmt"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/log"
 )
 
+var _ = fmt.Print
 var _ = log.Printf
 
 func Follower(state interfaces.IState) {

@@ -20,8 +20,10 @@ var _ = spew.Sdump
 var _ = log.Printf
 var _ = fmt.Print
 
-func NetworkProcessor(state interfaces.IState) {
+func SimNetwork(states ...interfaces.IState) {
 
+	state := states[0]
+	
 netloop:
 	for {
 

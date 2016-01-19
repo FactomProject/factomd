@@ -182,10 +182,8 @@ func makeEmptyMessage(command string) (Message, error) {
 		msg = &MsgFactoidTX{}
 
 	case CmdEOM:
-		msg = &EOM{
-			IdentityChainID: primitives.NewZeroHash(),
-		}
-
+		msg = &EOM{}
+	
 	default:
 		return nil, fmt.Errorf("unhandled command [%s]", command)
 	}
