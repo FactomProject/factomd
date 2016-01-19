@@ -4,6 +4,8 @@
 
 package wsapi
 
+/*
+
 import (
 	"encoding/hex"
 	"encoding/json"
@@ -22,56 +24,92 @@ import (
 	"github.com/hoisie/web"
 )
 
-const (
-	httpOK  = 200
-	httpBad = 400
-)
-
-var Servers map[int]*web.Server
-
-func Start(state interfaces.IState) {
-	var server *web.Server
-
-	if Servers == nil {
-		Servers = make(map[int]*web.Server)
+func HandleV2(ctx *web.Context) {
+	j, err := ParseJSON2Request("")
+	if err != nil {
+		HandleV2Error(ctx, j, err)
+		return
 	}
 
-	if Servers[state.GetPort()] == nil {
-		server = web.NewServer()
-		Servers[state.GetPort()] = server
-		server.Env["state"] = state
-
-		server.Post("/v1/factoid-submit/?", HandleFactoidSubmit)
-		server.Post("/v1/commit-chain/?", HandleCommitChain)
-		server.Post("/v1/reveal-chain/?", HandleRevealChain)
-		server.Post("/v1/commit-entry/?", HandleCommitEntry)
-		server.Post("/v1/reveal-entry/?", HandleRevealEntry)
-		server.Get("/v1/directory-block-head/?", HandleDirectoryBlockHead)
-		server.Get("/v1/get-raw-data/([^/]+)", HandleGetRaw)
-		server.Get("/v1/get-receipt/([^/]+)", HandleGetReceipt)
-		server.Get("/v1/directory-block-by-keymr/([^/]+)", HandleDirectoryBlock)
-		server.Get("/v1/entry-block-by-keymr/([^/]+)", HandleEntryBlock)
-		server.Get("/v1/entry-by-hash/([^/]+)", HandleEntry)
-		server.Get("/v1/chain-head/([^/]+)", HandleChainHead)
-		server.Get("/v1/entry-credit-balance/([^/]+)", HandleEntryCreditBalance)
-		server.Get("/v1/factoid-balance/([^/]+)", HandleFactoidBalance)
-		server.Get("/v1/factoid-get-fee/", HandleGetFee)
-
-		//server.Get("/v2", HandleV2)
-
-		log.Print("Starting server")
-		go server.Run(fmt.Sprintf("localhost:%d", state.GetPort()))
-	}
-
-}
-
-func Stop(state interfaces.IState) {
-	Servers[state.GetPort()].Close()
-}
-
-func HandleCommitChain(ctx *web.Context) {
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
+	var resp interface{}
+	switch j.Method {
+	case "factoid-submit":
+		resp, err = HandleV2FactoidSubmit(state, params)
+		break
+	case "commit-chain":
+		resp, err = HandleV2CommitChain(state, params)
+		break
+	case "reveal-chain":
+		resp, err = HandleV2RevealChain(state, params)
+		break
+	case "commit-entry":
+		resp, err = HandleV2CommitEntry(state, params)
+		break
+	case "reveal-entry":
+		resp, err = HandleV2RevealEntry(state, params)
+		break
+	case "directory-block-head":
+		resp, err = HandleV2DirectoryBlockHead(state, params)
+		break
+	case "get-raw-data":
+		resp, err = HandleV2GetRaw(state, params)
+		break
+	case "get-receipt":
+		resp, err = HandleV2GetReceipt(state, params)
+		break
+	case "directory-block-by-keymr":
+		resp, err = HandleV2DirectoryBlock(state, params)
+		break
+	case "entry-block-by-keymr":
+		resp, err = HandleV2EntryBlock(state, params)
+		break
+	case "entry-by-hash":
+		resp, err = HandleV2Entry(state, params)
+		break
+	case "chain-head":
+		resp, err = HandleV2ChainHead(state, params)
+		break
+	case "entry-credit-balance":
+		resp, err = HandleV2EntryCreditBalance(state, params)
+		break
+	case "factoid-balance":
+		resp, err = HandleV2FactoidBalance(state, params)
+		break
+	case "factoid-get-fee":
+		resp, err = HandleV2GetFee(state, params)
+		break
+	default:
+		//TODO: do
+		break
+	}
+	if err != nil {
+		HandleV2Error(ctx, j, err)
+		return
+	}
+
+	resp := NewJSON2Response()
+	resp.ID = j.ID
+	j.Result = resp
+
+	ctx.Write([]byte(j.String()))
+}
+
+func HandleV2Error(ctx *web.Context, j *JSON2Request, err error) {
+	resp := NewJSON2Response()
+	if j != nil {
+		resp.ID = j.ID
+	} else {
+		resp.ID = ""
+	}
+	j.AddError(-1, err.Error())
+
+	ctx.WriteHeader(httpBad)
+	ctx.Write([]byte(j.String()))
+}
+
+func HandleV2CommitChain(state interfaces.IState, params interface{}) (interface{}, error) {
 	type commitchain struct {
 		CommitChainMsg string
 	}
@@ -107,15 +145,15 @@ func HandleCommitChain(ctx *web.Context) {
 	returnMsg(ctx, "Chain Commit Success", true)
 }
 
-func HandleRevealChain(ctx *web.Context) {
-	HandleRevealEntry(ctx)
+func HandleV2RevealChain(state interfaces.IState, params interface{}) (interface{}, error) {
+	return HandleV2RevealEntry(state, params)
 }
 
-func HandleCommitEntry(ctx *web.Context) {
-
+func HandleV2CommitEntry(state interfaces.IState, params interface{}) (interface{}, error) {
+	return nil, nil
 }
 
-func HandleRevealEntry(ctx *web.Context) {
+func HandleV2RevealEntry(state interfaces.IState, params interface{}) (interface{}, error) {
 	type revealentry struct {
 		Entry string
 	}
@@ -153,30 +191,13 @@ func HandleRevealEntry(ctx *web.Context) {
 	returnMsg(ctx, "Entry Reveal Success", true)
 }
 
-func HandleDirectoryBlockHead(ctx *web.Context) {
-	state := ctx.Server.Env["state"].(interfaces.IState)
-
-	h := new(DBHead)
-
-	h.KeyMR = state.GetPreviousDirectoryBlock().GetKeyMR().String()
-
-	fmt.Println(h.KeyMR)
-
-	if p, err := json.Marshal(h); err != nil {
-		wsLog.Error(err)
-		ctx.WriteHeader(httpBad)
-		ctx.Write([]byte(err.Error()))
-		return
-	} else {
-		ctx.Write(p)
-	}
-
+func HandleV2DirectoryBlockHead(state interfaces.IState, params interface{}) (interface{}, error) {
+	return state.GetPreviousDirectoryBlock().GetKeyMR().String(), nil
 }
 
-func HandleGetRaw(ctx *web.Context, hashkey string) {
-	state := ctx.Server.Env["state"].(interfaces.IState)
-
+func HandleV2GetRaw(state interfaces.IState, params interface{}) (interface{}, error) {
 	//TODO: var block interfaces.BinaryMarshallable
+	hashkey := params.(string)
 	d := new(RawData)
 
 	h, err := primitives.HexToHash(hashkey)
@@ -216,56 +237,33 @@ func HandleGetRaw(ctx *web.Context, hashkey string) {
 		b, _ = block.MarshalBinary()
 	} else if block, _ := dbase.FetchECBlockByHash(h); block != nil {
 		b, _ = block.MarshalBinary()
-	}
-
-	d.Data = hex.EncodeToString(b)
-
-	if p, err := json.Marshal(d); err != nil {
-		wsLog.Error(err)
-		ctx.WriteHeader(httpBad)
-		ctx.Write([]byte(err.Error()))
-		return
 	} else {
-		ctx.Write(p)
+		return nil, fmt.Errorf("Entry not found")
 	}
+
+	return hex.EncodeToString(b), nil
 }
 
-func HandleGetReceipt(ctx *web.Context, hashkey string) {
-	state := ctx.Server.Env["state"].(interfaces.IState)
+func HandleV2GetReceipt(state interfaces.IState, params interface{}) (interface{}, error) {
+	hashkey := params.(string)
 
 	h, err := primitives.HexToHash(hashkey)
 	if err != nil {
-		wsLog.Error(err)
-		ctx.WriteHeader(httpBad)
-		ctx.Write([]byte(err.Error()))
-		return
+		return nil, err
 	}
 
 	dbase := state.GetDB()
 
-	rec, err := receipts.CreateFullReceipt(dbase, h)
-
-	if err != nil {
-		wsLog.Error(err)
-		ctx.WriteHeader(httpBad)
-		ctx.Write([]byte(err.Error()))
-		return
-	} else {
-		ctx.Write([]byte(rec.String()))
-	}
+	return receipts.CreateFullReceipt(dbase, h)
 }
 
-func HandleDirectoryBlock(ctx *web.Context, hashkey string) {
-	state := ctx.Server.Env["state"].(interfaces.IState)
-
+func HandleV2DirectoryBlock(state interfaces.IState, params interface{}) (interface{}, error) {
+	hashkey := params.(string)
 	d := new(DBlock)
 
 	h, err := primitives.HexToHash(hashkey)
 	if err != nil {
-		wsLog.Error(err)
-		ctx.WriteHeader(httpBad)
-		ctx.Write([]byte(err.Error()))
-		return
+		return nil, err
 	}
 
 	dbase := state.GetDB()
@@ -280,10 +278,7 @@ func HandleDirectoryBlock(ctx *web.Context, hashkey string) {
 	if block == nil {
 		block, err = dbase.FetchDBlockByHash(h)
 		if err != nil {
-			wsLog.Error(err)
-			ctx.WriteHeader(httpBad)
-			ctx.Write([]byte(err.Error()))
-			return
+			return nil, err
 		}
 		if block == nil {
 			//TODO: Handle block not found
@@ -302,44 +297,31 @@ func HandleDirectoryBlock(ctx *web.Context, hashkey string) {
 	}
 
 	if p, err := json.Marshal(d); err != nil {
-		wsLog.Error(err)
-		ctx.WriteHeader(httpBad)
-		ctx.Write([]byte(err.Error()))
-		return
+		return nil, err
 	} else {
 		ctx.Write(p)
 	}
 }
 
-func HandleEntryBlock(ctx *web.Context, hashkey string) {
-	state := ctx.Server.Env["state"].(interfaces.IState)
-
+func HandleV2EntryBlock(state interfaces.IState, params interface{}) (interface{}, error) {
+	hashkey := params.(string)
 	e := new(EBlock)
 
 	h, err := primitives.HexToHash(hashkey)
 	if err != nil {
-		wsLog.Error(err)
-		ctx.WriteHeader(httpBad)
-		ctx.Write([]byte(err.Error()))
-		return
+		return nil, err
 	}
 
 	dbase := state.GetDB()
 
 	block, err := dbase.FetchEBlockByKeyMR(h)
 	if err != nil {
-		wsLog.Error(err)
-		ctx.WriteHeader(httpBad)
-		ctx.Write([]byte(err.Error()))
-		return
+		return nil, err
 	}
 	if block == nil {
 		block, err = dbase.FetchEBlockByHash(h)
 		if err != nil {
-			wsLog.Error(err)
-			ctx.WriteHeader(httpBad)
-			ctx.Write([]byte(err.Error()))
-			return
+			return nil, err
 		}
 		if block == nil {
 			//TODO: Handle block not found
@@ -393,27 +375,20 @@ func HandleEntryBlock(ctx *web.Context, hashkey string) {
 
 }
 
-func HandleEntry(ctx *web.Context, hashkey string) {
-	state := ctx.Server.Env["state"].(interfaces.IState)
-
+func HandleV2Entry(state interfaces.IState, params interface{}) (interface{}, error) {
+	hashkey := params.(string)
 	e := new(EntryStruct)
 
 	h, err := primitives.HexToHash(hashkey)
 	if err != nil {
-		wsLog.Error(err)
-		ctx.WriteHeader(httpBad)
-		ctx.Write([]byte(err.Error()))
-		return
+		return nil, err
 	}
 
 	dbase := state.GetDB()
 
 	entry, err := dbase.FetchEntryByHash(h)
 	if err != nil {
-		wsLog.Error(err)
-		ctx.WriteHeader(httpBad)
-		ctx.Write([]byte(err.Error()))
-		return
+		return nil, err
 	}
 	if entry == nil {
 		//TODO: Handle block not found
@@ -437,34 +412,24 @@ func HandleEntry(ctx *web.Context, hashkey string) {
 
 }
 
-func HandleChainHead(ctx *web.Context, hashkey string) {
-	state := ctx.Server.Env["state"].(interfaces.IState)
-
+func HandleV2ChainHead(state interfaces.IState, params interface{}) (interface{}, error) {
+	hashkey := params.(string)
 	c := new(CHead)
 
 	h, err := primitives.HexToHash(hashkey)
 	if err != nil {
-		wsLog.Error(err)
-		ctx.WriteHeader(httpBad)
-		ctx.Write([]byte(err.Error()))
-		return
+		return nil, err
 	}
 
 	dbase := state.GetDB()
 
 	mr, err := dbase.FetchHeadIndexByChainID(h)
 	if err != nil {
-		wsLog.Error(err)
-		ctx.WriteHeader(httpBad)
-		ctx.Write([]byte(err.Error()))
-		return
+		return nil, err
 	}
 	if mr == nil {
-		err := fmt.Errorf("Missing Chain Head")
-		wsLog.Error(err)
-		ctx.WriteHeader(httpBad)
-		ctx.Write([]byte(err.Error()))
-		return
+		err = fmt.Errorf("Missing Chain Head")
+		return nil, err
 	}
 	c.ChainHead = mr.String()
 	if p, err := json.Marshal(c); err != nil {
@@ -478,9 +443,8 @@ func HandleChainHead(ctx *web.Context, hashkey string) {
 
 }
 
-func HandleEntryCreditBalance(ctx *web.Context, eckey string) {
-	state := ctx.Server.Env["state"].(interfaces.IState)
-
+func HandleV2EntryCreditBalance(state interfaces.IState, params interface{}) (interface{}, error) {
+	eckey := params.(string)
 	var b FactoidBalance
 	adr, err := primitives.HexToHash(eckey)
 	if err == nil {
@@ -503,27 +467,13 @@ func HandleEntryCreditBalance(ctx *web.Context, eckey string) {
 
 }
 
-func HandleGetFee(ctx *web.Context) {
-	state := ctx.Server.Env["state"].(interfaces.IState)
-
+func HandleV2GetFee(state interfaces.IState, params interface{}) (interface{}, error) {
 	type x struct{ Fee int64 }
-
 	b := new(x)
-
-	b.Fee = int64(state.GetFactoidState().GetFactoshisPerEC())
-
-	if p, err := json.Marshal(b); err != nil {
-		wsLog.Error(err)
-		ctx.WriteHeader(httpBad)
-		return
-	} else {
-		ctx.Write(p)
-	}
+	return int64(state.GetFactoidState().GetFactoshisPerEC()), nil
 }
 
-func HandleFactoidSubmit(ctx *web.Context) {
-	state := ctx.Server.Env["state"].(interfaces.IState)
-
+func HandleV2FactoidSubmit(state interfaces.IState, params interface{}) (interface{}, error) {
 	type x struct{ Transaction string }
 	t := new(x)
 
@@ -557,8 +507,7 @@ func HandleFactoidSubmit(ctx *web.Context) {
 	err = state.GetFactoidState().Validate(1, msg.Transaction)
 
 	if err != nil {
-		returnMsg(ctx, err.Error(), false)
-		return
+		return nil, err
 	}
 
 	state.InMsgQueue() <- msg
@@ -567,9 +516,8 @@ func HandleFactoidSubmit(ctx *web.Context) {
 
 }
 
-func HandleFactoidBalance(ctx *web.Context, eckey string) {
-	state := ctx.Server.Env["state"].(interfaces.IState)
-
+func HandleV2FactoidBalance(state interfaces.IState, params interface{}) (interface{}, error) {
+	eckey := params.(string)
 	var b FactoidBalance
 	adr, err := hex.DecodeString(eckey)
 	if err == nil && len(adr) != constants.HASH_LENGTH {
@@ -590,22 +538,4 @@ func HandleFactoidBalance(ctx *web.Context, eckey string) {
 		ctx.Write(p)
 	}
 }
-
-/*********************************************************
- * Support Functions
- *********************************************************/
-
-func returnMsg(ctx *web.Context, msg string, success bool) {
-	type rtn struct {
-		Response string
-		Success  bool
-	}
-	r := rtn{Response: msg, Success: success}
-
-	if p, err := json.Marshal(r); err != nil {
-		wsLog.Error(err)
-		return
-	} else {
-		ctx.Write(p)
-	}
-}
+*/
