@@ -1,11 +1,9 @@
-// Copyright 2015 Factom Foundation
+// Copyright 2016 Factom Foundation
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
 package wsapi
-
 /*
-
 import (
 	"encoding/hex"
 	"encoding/json"
@@ -116,24 +114,20 @@ func HandleV2CommitChain(state interfaces.IState, params interface{}) (interface
 
 	c := new(commitchain)
 	if p, err := ioutil.ReadAll(ctx.Request.Body); err != nil {
-		returnMsg(ctx, "Bad commit message", false)
-		return
+		return nil, fmt.Errorf("Bad commit message")
 	} else {
 		if err := json.Unmarshal(p, c); err != nil {
-			returnMsg(ctx, "Bad commit message", false)
-			return
+			return nil, fmt.Errorf("Bad commit message")
 		}
 	}
 
 	commit := entryCreditBlock.NewCommitChain()
 	if p, err := hex.DecodeString(c.CommitChainMsg); err != nil {
-		returnMsg(ctx, "Bad commit message", false)
-		return
+			return nil, fmt.Errorf("Bad commit message")
 	} else {
 		_, err := commit.UnmarshalBinaryData(p)
 		if err != nil {
-			returnMsg(ctx, "Bad commit message", false)
-			return
+			return nil, fmt.Errorf("Bad commit message")
 		}
 	}
 
@@ -142,7 +136,7 @@ func HandleV2CommitChain(state interfaces.IState, params interface{}) (interface
 	msg.Timestamp = state.GetTimestamp()
 	state.InMsgQueue() <- msg
 
-	returnMsg(ctx, "Chain Commit Success", true)
+	return "Chain Commit Success", nil
 }
 
 func HandleV2RevealChain(state interfaces.IState, params interface{}) (interface{}, error) {
@@ -154,30 +148,15 @@ func HandleV2CommitEntry(state interfaces.IState, params interface{}) (interface
 }
 
 func HandleV2RevealEntry(state interfaces.IState, params interface{}) (interface{}, error) {
-	type revealentry struct {
-		Entry string
-	}
-
-	e := new(revealentry)
-	if p, err := ioutil.ReadAll(ctx.Request.Body); err != nil {
-		returnMsg(ctx, "Error Reveal Entry: "+err.Error(), false)
-		return
-	} else {
-		if err := json.Unmarshal(p, e); err != nil {
-			returnMsg(ctx, "Error Reveal Entry: "+err.Error(), false)
-			return
-		}
-	}
+	e := params.(string)
 
 	entry := entryBlock.NewEntry()
-	if p, err := hex.DecodeString(e.Entry); err != nil {
-		returnMsg(ctx, "Error Reveal Entry: "+err.Error(), false)
-		return
+	if p, err := hex.DecodeString(e); err != nil {
+		return nil, fmt.Errorf("Error Reveal Entry: %v", err.Error())
 	} else {
 		_, err := entry.UnmarshalBinaryData(p)
 		if err != nil {
-			returnMsg(ctx, "Error Reveal Entry: "+err.Error(), false)
-			return
+			return nil, fmt.Errorf("Error Reveal Entry: %v", err.Error())
 		}
 	}
 
@@ -188,7 +167,7 @@ func HandleV2RevealEntry(state interfaces.IState, params interface{}) (interface
 	msg.Timestamp = state.GetTimestamp()
 	state.InMsgQueue() <- msg
 
-	returnMsg(ctx, "Entry Reveal Success", true)
+	return "Entry Reveal Success", nil
 }
 
 func HandleV2DirectoryBlockHead(state interfaces.IState, params interface{}) (interface{}, error) {
@@ -202,10 +181,7 @@ func HandleV2GetRaw(state interfaces.IState, params interface{}) (interface{}, e
 
 	h, err := primitives.HexToHash(hashkey)
 	if err != nil {
-		wsLog.Error(err)
-		ctx.WriteHeader(httpBad)
-		ctx.Write([]byte(err.Error()))
-		return
+		return nil, err
 	}
 
 	dbase := state.GetDB()
@@ -270,10 +246,7 @@ func HandleV2DirectoryBlock(state interfaces.IState, params interface{}) (interf
 
 	block, err := dbase.FetchDBlockByKeyMR(h)
 	if err != nil {
-		wsLog.Error(err)
-		ctx.WriteHeader(httpBad)
-		ctx.Write([]byte(err.Error()))
-		return
+		return nil, err
 	}
 	if block == nil {
 		block, err = dbase.FetchDBlockByHash(h)
@@ -296,11 +269,7 @@ func HandleV2DirectoryBlock(state interfaces.IState, params interface{}) (interf
 		d.EntryBlockList = append(d.EntryBlockList, *l)
 	}
 
-	if p, err := json.Marshal(d); err != nil {
-		return nil, err
-	} else {
-		ctx.Write(p)
-	}
+	return d
 }
 
 func HandleV2EntryBlock(state interfaces.IState, params interface{}) (interface{}, error) {
@@ -364,15 +333,7 @@ func HandleV2EntryBlock(state interfaces.IState, params interface{}) (interface{
 		}
 	}
 
-	if p, err := json.Marshal(e); err != nil {
-		wsLog.Error(err)
-		ctx.WriteHeader(httpBad)
-		ctx.Write([]byte(err.Error()))
-		return
-	} else {
-		ctx.Write(p)
-	}
-
+	return e, nil
 }
 
 func HandleV2Entry(state interfaces.IState, params interface{}) (interface{}, error) {
@@ -391,8 +352,7 @@ func HandleV2Entry(state interfaces.IState, params interface{}) (interface{}, er
 		return nil, err
 	}
 	if entry == nil {
-		//TODO: Handle block not found
-		return
+		return nil, fmt.Errorf("Entry not found")
 	}
 
 	e.ChainID = entry.GetChainIDHash().String()
@@ -401,15 +361,7 @@ func HandleV2Entry(state interfaces.IState, params interface{}) (interface{}, er
 		e.ExtIDs = append(e.ExtIDs, hex.EncodeToString(v))
 	}
 
-	if p, err := json.Marshal(e); err != nil {
-		wsLog.Error(err)
-		ctx.WriteHeader(httpBad)
-		ctx.Write([]byte(err.Error()))
-		return
-	} else {
-		ctx.Write(p)
-	}
-
+	return e, nil
 }
 
 func HandleV2ChainHead(state interfaces.IState, params interface{}) (interface{}, error) {
@@ -428,42 +380,25 @@ func HandleV2ChainHead(state interfaces.IState, params interface{}) (interface{}
 		return nil, err
 	}
 	if mr == nil {
-		err = fmt.Errorf("Missing Chain Head")
-		return nil, err
+		return nil, fmt.Errorf("Missing Chain Head")
 	}
-	c.ChainHead = mr.String()
-	if p, err := json.Marshal(c); err != nil {
-		wsLog.Error(err)
-		ctx.WriteHeader(httpBad)
-		ctx.Write([]byte(err.Error()))
-		return
-	} else {
-		ctx.Write(p)
-	}
-
+	return mr.String(), nil
 }
 
 func HandleV2EntryCreditBalance(state interfaces.IState, params interface{}) (interface{}, error) {
 	eckey := params.(string)
 	var b FactoidBalance
 	adr, err := primitives.HexToHash(eckey)
-	if err == nil {
-		b = FactoidBalance{Response: "Invalid Address", Success: false}
+	if err != nil {
+		return nil, err
 	}
-	if err == nil {
-		v := int64(state.GetFactoidState().GetECBalance(adr.Fixed()))
-		str := fmt.Sprintf("%d", v)
-		b = FactoidBalance{Response: str, Success: true}
-	} else {
-		b = FactoidBalance{Response: err.Error(), Success: false}
+	if adr == nil {
+		return nil, fmt.Errorf("Invalid Address")
 	}
-
-	if p, err := json.Marshal(b); err != nil {
-		wsLog.Error(err)
-		return
-	} else {
-		ctx.Write(p)
+	if err != nil {
+		return nil, err
 	}
+	return state.GetFactoidState().GetECBalance(adr.Fixed()), nil
 
 }
 
@@ -474,68 +409,43 @@ func HandleV2GetFee(state interfaces.IState, params interface{}) (interface{}, e
 }
 
 func HandleV2FactoidSubmit(state interfaces.IState, params interface{}) (interface{}, error) {
-	type x struct{ Transaction string }
-	t := new(x)
-
-	var p []byte
-	var err error
-	if p, err = ioutil.ReadAll(ctx.Request.Body); err != nil {
-		wsLog.Error(err)
-		returnMsg(ctx, "Unable to read the request", false)
-		return
-	} else {
-		if err := json.Unmarshal(p, t); err != nil {
-			returnMsg(ctx, "Unable to Unmarshal the request", false)
-			return
-		}
-	}
+	t := params.(string)
 
 	msg := new(messages.FactoidTransaction)
 
-	if p, err = hex.DecodeString(t.Transaction); err != nil {
-		returnMsg(ctx, "Unable to decode the transaction", false)
-		return
+	if p, err = hex.DecodeString(t); err != nil {
+		return nil, fmt.Errorf("Unable to decode the transaction")
 	}
 
 	_, err = msg.UnmarshalTransData(p)
-
 	if err != nil {
-		returnMsg(ctx, err.Error(), false)
-		return
+		return nil, err
 	}
 
 	err = state.GetFactoidState().Validate(1, msg.Transaction)
-
 	if err != nil {
 		return nil, err
 	}
 
 	state.InMsgQueue() <- msg
 
-	returnMsg(ctx, "Successfully submitted the transaction", true)
+	return "Successfully submitted the transaction", nil
 
 }
 
 func HandleV2FactoidBalance(state interfaces.IState, params interface{}) (interface{}, error) {
 	eckey := params.(string)
-	var b FactoidBalance
+
 	adr, err := hex.DecodeString(eckey)
 	if err == nil && len(adr) != constants.HASH_LENGTH {
-		b = FactoidBalance{Response: "Invalid Address", Success: false}
+		return nil, fmt.Errorf("Invalid Address")
 	}
 	if err == nil {
 		v := int64(state.GetFactoidState().GetFactoidBalance(factoid.NewAddress(adr).Fixed()))
-		str := fmt.Sprintf("%d", v)
-		b = FactoidBalance{Response: str, Success: true}
+		return v, nil
 	} else {
-		b = FactoidBalance{Response: err.Error(), Success: false}
+		return nil, err
 	}
-
-	if p, err := json.Marshal(b); err != nil {
-		wsLog.Error(err)
-		return
-	} else {
-		ctx.Write(p)
-	}
+	return nil, nil
 }
 */
