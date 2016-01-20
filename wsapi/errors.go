@@ -30,12 +30,12 @@ func NewParseError() *primitives.JSONError {
 func NewInvalidRequestError() *primitives.JSONError {
 	return primitives.NewJSONError(-32600, "Invalid Request")
 }
-func NewInvalidRequestError() *primitives.JSONError {
+func NewMethodNotFoundError() *primitives.JSONError {
 	return primitives.NewJSONError(-32601, "Method not found")
 }
-func NewInvalidRequestError() *primitives.JSONError {
+func NewInvalidParamsError() *primitives.JSONError {
 	return primitives.NewJSONError(-32602, "Invalid params")
 }
-func NewInvalidRequestError() *primitives.JSONError {
+func NewInternalError() *primitives.JSONError {
 	return primitives.NewJSONError(-32603, "Internal error")
 }
