@@ -39,3 +39,44 @@ func NewInvalidParamsError() *primitives.JSONError {
 func NewInternalError() *primitives.JSONError {
 	return primitives.NewJSONError(-32603, "Internal error")
 }
+
+/*******************************************************************/
+
+func NewInvalidAddressError() *primitives.JSONError {
+	return primitives.NewJSONError(-32602, "Invalid params: Invalid Address")
+}
+func NewUnableToDecodeTransactionError() *primitives.JSONError {
+	return primitives.NewJSONError(-32602, "Invalid params: Unable to decode the transaction")
+}
+func NewInvalidTransactionError() *primitives.JSONError {
+	return primitives.NewJSONError(-32602, "Invalid params: Invalid Transaction")
+}
+func NewInvalidHashError() *primitives.JSONError {
+	return primitives.NewJSONError(-32602, "Invalid params: Invalid Hash")
+}
+func NewInvalidEntryError() *primitives.JSONError {
+	return primitives.NewJSONError(-32602, "Invalid params: Invalid Entry")
+}
+func NewInvalidCommitChainError() *primitives.JSONError {
+	return primitives.NewJSONError(-32602, "Invalid params: Invalid Commit Chain")
+}
+func NewInternalDatabaseError() *primitives.JSONError {
+	return primitives.NewJSONError(-32603, "Internal error: database error")
+}
+
+//TODO: number better
+func NewEntryNotFoundError() *primitives.JSONError {
+	return primitives.NewJSONError(-1, "Entry not found")
+}
+func NewBlockNotFoundError() *primitives.JSONError {
+	return primitives.NewJSONError(-2, "Block not found")
+}
+func NewMissingChainHeadError() *primitives.JSONError {
+	return primitives.NewJSONError(-3, "Missing Chain Head")
+}
+
+//TODO: deprecate
+
+func NewMiscError() *primitives.JSONError {
+	return primitives.NewJSONError(-999, "Misc Error")
+}
