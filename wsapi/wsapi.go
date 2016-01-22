@@ -57,7 +57,7 @@ func Start(state interfaces.IState) {
 		server.Get("/v1/factoid-balance/([^/]+)", HandleFactoidBalance)
 		server.Get("/v1/factoid-get-fee/", HandleGetFee)
 
-		//server.Get("/v2", HandleV2)
+		server.Post("/v2", HandleV2)
 
 		log.Print("Starting server")
 		go server.Run(fmt.Sprintf("localhost:%d", state.GetPort()))
