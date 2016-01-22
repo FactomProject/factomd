@@ -4,6 +4,10 @@
 
 package wsapi
 
+import (
+	"github.com/FactomProject/factomd/common/primitives"
+)
+
 type DBHead struct {
 	KeyMR string
 }
@@ -26,6 +30,10 @@ type DBlock struct {
 	EntryBlockList []EBlockAddr
 }
 
+func (e *DBlock) JSONString() (string, error) {
+	return primitives.EncodeJSONString(e)
+}
+
 type EntryAddr struct {
 	EntryHash string
 	Timestamp uint32
@@ -41,14 +49,26 @@ type EBlock struct {
 	EntryList []EntryAddr
 }
 
+func (e *EBlock) JSONString() (string, error) {
+	return primitives.EncodeJSONString(e)
+}
+
 type EntryStruct struct {
 	ChainID string
 	Content string
 	ExtIDs  []string
 }
 
+func (e *EntryStruct) JSONString() (string, error) {
+	return primitives.EncodeJSONString(e)
+}
+
 type CHead struct {
 	ChainHead string
+}
+
+func (e *CHead) JSONString() (string, error) {
+	return primitives.EncodeJSONString(e)
 }
 
 type FactoidBalance struct {

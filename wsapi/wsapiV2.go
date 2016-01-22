@@ -39,6 +39,17 @@ func HandleV2(ctx *web.Context) {
 
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
+	jsonResp, jsonError := HandleV2Request(state, j)
+
+	if jsonError != nil {
+		HandleV2Error(ctx, j, jsonError)
+		return
+	}
+
+	ctx.Write([]byte(jsonResp.String()))
+}
+
+func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*primitives.JSON2Response, *primitives.JSONError) {
 	var resp interface{}
 	var jsonError *primitives.JSONError
 	params:=j.Params
@@ -93,15 +104,14 @@ func HandleV2(ctx *web.Context) {
 		break
 	}
 	if jsonError != nil {
-		HandleV2Error(ctx, j, jsonError)
-		return
+		return nil, jsonError
 	}
 
 	jsonResp := primitives.NewJSON2Response()
 	jsonResp.ID = j.ID
 	jsonResp.Result = resp
 
-	ctx.Write([]byte(jsonResp.String()))
+	return jsonResp, nil
 }
 
 func HandleV2Error(ctx *web.Context, j *primitives.JSON2Request, err *primitives.JSONError) {
