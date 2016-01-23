@@ -5,13 +5,10 @@
 package wsapi
 
 import (
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 
-	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/log"
@@ -70,6 +67,14 @@ func handleV1Error(ctx *web.Context, err *primitives.JSONError) {
 	return
 }
 
+func returnV1(ctx *web.Context, jsonResp *primitives.JSON2Response, jsonError *primitives.JSONError) {
+	if jsonError != nil {
+		handleV1Error(ctx, jsonError)
+		return
+	}
+	returnMsg(ctx, jsonResp.Result, true)
+}
+
 func HandleCommitChain(ctx *web.Context) {
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
@@ -90,12 +95,8 @@ func HandleCommitChain(ctx *web.Context) {
 
 	req:=primitives.NewJSON2Request(1, c.CommitChainMsg, "commit-chain")
 
-	jsonResp, jsonError := HandleV2Request(state, req)
-	if jsonError != nil {
-		handleV1Error(ctx, jsonError)
-		return
-	}
-	returnMsg(ctx, jsonResp.Result, true)
+	jsonResp, jsonError:=HandleV2Request(state, req)
+	returnV1(ctx, jsonResp, jsonError)
 }
 
 func HandleRevealChain(ctx *web.Context) {
@@ -107,12 +108,8 @@ func HandleCommitEntry(ctx *web.Context) {
 
 	req:=primitives.NewJSON2Request(1, nil, "commit-entry")
 
-	jsonResp, jsonError := HandleV2Request(state, req)
-	if jsonError != nil {
-		handleV1Error(ctx, jsonError)
-		return
-	}
-	returnMsg(ctx, jsonResp.Result, true)
+	jsonResp, jsonError:=HandleV2Request(state, req)
+	returnV1(ctx, jsonResp, jsonError)
 }
 
 func HandleRevealEntry(ctx *web.Context) {
@@ -134,12 +131,8 @@ func HandleRevealEntry(ctx *web.Context) {
 
 	req:=primitives.NewJSON2Request(1, e.Entry, "reveal-entry")
 
-	jsonResp, jsonError := HandleV2Request(state, req)
-	if jsonError != nil {
-		handleV1Error(ctx, jsonError)
-		return
-	}
-	returnMsg(ctx, jsonResp.Result, true)
+	jsonResp, jsonError:=HandleV2Request(state, req)
+	returnV1(ctx, jsonResp, jsonError)
 }
 
 func HandleDirectoryBlockHead(ctx *web.Context) {
@@ -147,172 +140,81 @@ func HandleDirectoryBlockHead(ctx *web.Context) {
 
 	req:=primitives.NewJSON2Request(1, nil, "directory-block-head")
 
-	jsonResp, jsonError := HandleV2Request(state, req)
-	if jsonError != nil {
-		handleV1Error(ctx, jsonError)
-		return
-	}
-	returnMsg(ctx, jsonResp.Result, true)
+	jsonResp, jsonError:=HandleV2Request(state, req)
+	returnV1(ctx, jsonResp, jsonError)
 }
 
 func HandleGetRaw(ctx *web.Context, hashkey string) {
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
-	h, err := primitives.HexToHash(hashkey)
-	if err != nil {
-		handleV1Error(ctx, NewInvalidParamsError())
-		return
-	}
+	req:=primitives.NewJSON2Request(1, hashkey, "get-raw-data")
 
-	req:=primitives.NewJSON2Request(1, h, "get-raw-data")
-
-	jsonResp, jsonError := HandleV2Request(state, req)
-	if jsonError != nil {
-		handleV1Error(ctx, jsonError)
-		return
-	}
-	returnMsg(ctx, jsonResp.Result, true)
+	jsonResp, jsonError:=HandleV2Request(state, req)
+	returnV1(ctx, jsonResp, jsonError)
 }
 
 func HandleGetReceipt(ctx *web.Context, hashkey string) {
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
-	h, err := primitives.HexToHash(hashkey)
-	if err != nil {
-		handleV1Error(ctx, NewInvalidParamsError())
-		return
-	}
+	req:=primitives.NewJSON2Request(1, hashkey, "get-receipt")
 
-	req:=primitives.NewJSON2Request(1, h, "get-receipt")
-
-	jsonResp, jsonError := HandleV2Request(state, req)
-	if jsonError != nil {
-		handleV1Error(ctx, jsonError)
-		return
-	}
-	returnMsg(ctx, jsonResp.Result, true)
+	jsonResp, jsonError:=HandleV2Request(state, req)
+	returnV1(ctx, jsonResp, jsonError)
 }
 
 func HandleDirectoryBlock(ctx *web.Context, hashkey string) {
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
-	h, err := primitives.HexToHash(hashkey)
-	if err != nil {
-		handleV1Error(ctx, NewInvalidParamsError())
-		return
-	}
+	req:=primitives.NewJSON2Request(1, hashkey, "directory-block-by-keymr")
 
-	req:=primitives.NewJSON2Request(1, h, "directory-block-by-keymr")
-
-	jsonResp, jsonError := HandleV2Request(state, req)
-	if jsonError != nil {
-		handleV1Error(ctx, jsonError)
-		return
-	}
-
-	returnMsg(ctx, jsonResp.Result, true)
+	jsonResp, jsonError:=HandleV2Request(state, req)
+	returnV1(ctx, jsonResp, jsonError)
 }
 
 func HandleEntryBlock(ctx *web.Context, hashkey string) {
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
-	h, err := primitives.HexToHash(hashkey)
-	if err != nil {
-		handleV1Error(ctx, NewInvalidParamsError())
-		return
-	}
 
-	req:=primitives.NewJSON2Request(1, h, "entry-block-by-keymr")
+	req:=primitives.NewJSON2Request(1, hashkey, "entry-block-by-keymr")
 
-	jsonResp, jsonError := HandleV2Request(state, req)
-	if jsonError != nil {
-		handleV1Error(ctx, jsonError)
-		return
-	}
-
-	returnMsg(ctx, jsonResp.Result, true)
+	jsonResp, jsonError:=HandleV2Request(state, req)
+	returnV1(ctx, jsonResp, jsonError)
 }
 
 func HandleEntry(ctx *web.Context, hashkey string) {
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
-	h, err := primitives.HexToHash(hashkey)
-	if err != nil {
-		handleV1Error(ctx, NewInvalidParamsError())
-		return
-	}
+	req:=primitives.NewJSON2Request(1, hashkey, "entry-by-hash")
 
-	req:=primitives.NewJSON2Request(1, h, "entry-by-hash")
-
-	jsonResp, jsonError := HandleV2Request(state, req)
-	if jsonError != nil {
-		handleV1Error(ctx, jsonError)
-		return
-	}
-
-	returnMsg(ctx, jsonResp.Result, true)
+	jsonResp, jsonError:=HandleV2Request(state, req)
+	returnV1(ctx, jsonResp, jsonError)
 }
 
 func HandleChainHead(ctx *web.Context, hashkey string) {
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
-	c := new(CHead)
+	req:=primitives.NewJSON2Request(1, hashkey, "chain-head")
 
-	h, err := primitives.HexToHash(hashkey)
-	if err != nil {
-		handleV1Error(ctx, NewInvalidParamsError())
-		return
-	}
-
-	req:=primitives.NewJSON2Request(1, h, "chain-head")
-
-	jsonResp, jsonError := HandleV2Request(state, req)
-	if jsonError != nil {
-		handleV1Error(ctx, jsonError)
-		return
-	}
-
-	c.ChainHead = jsonResp.Result.(string)
-
-	returnMsg(ctx, c, true)
+	jsonResp, jsonError:=HandleV2Request(state, req)
+	returnV1(ctx, jsonResp, jsonError)
 }
 
 func HandleEntryCreditBalance(ctx *web.Context, eckey string) {
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
-	adr, err := primitives.HexToHash(eckey)
-	if err != nil {
-		handleV1Error(ctx, NewInvalidParamsError())
-		return
-	}
+	req:=primitives.NewJSON2Request(1, eckey, "entry-credit-balance")
 
-	req:=primitives.NewJSON2Request(1, adr, "entry-credit-balance")
-
-	jsonResp, jsonError := HandleV2Request(state, req)
-	if jsonError != nil {
-		handleV1Error(ctx, jsonError)
-		return
-	}
-
-	returnMsg(ctx, jsonResp.Result, true)
+	jsonResp, jsonError:=HandleV2Request(state, req)
+	returnV1(ctx, jsonResp, jsonError)
 }
 
 func HandleGetFee(ctx *web.Context) {
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
-	type x struct{ Fee int64 }
+	req:=primitives.NewJSON2Request(1, nil, "factoid-get-fee")
 
-	b := new(x)
-
-	b.Fee = int64(state.GetFactoidState().GetFactoshisPerEC())
-
-	if p, err := json.Marshal(b); err != nil {
-		wsLog.Error(err)
-		ctx.WriteHeader(httpBad)
-		return
-	} else {
-		ctx.Write(p)
-	}
+	jsonResp, jsonError:=HandleV2Request(state, req)
+	returnV1(ctx, jsonResp, jsonError)
 }
 
 func HandleFactoidSubmit(ctx *web.Context) {
@@ -335,38 +237,17 @@ func HandleFactoidSubmit(ctx *web.Context) {
 
 	req:=primitives.NewJSON2Request(1, t.Transaction, "factoid-submit")
 
-	jsonResp, jsonError := HandleV2Request(state, req)
-	if jsonError != nil {
-		handleV1Error(ctx, jsonError)
-		return
-	}
-	returnMsg(ctx, jsonResp.Result, true)
+	jsonResp, jsonError:=HandleV2Request(state, req)
+	returnV1(ctx, jsonResp, jsonError)
 }
 
 func HandleFactoidBalance(ctx *web.Context, eckey string) {
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
-	var b FactoidBalance
-	adr, err := hex.DecodeString(eckey)
-	if err == nil && len(adr) != constants.HASH_LENGTH {
-		handleV1Error(ctx, NewInvalidParamsError())
-		return
-	}
-	if err == nil {
-		v := int64(state.GetFactoidState().GetFactoidBalance(factoid.NewAddress(adr).Fixed()))
-		str := fmt.Sprintf("%d", v)
-		b = FactoidBalance{Response: str, Success: true}
-	} else {
-		handleV1Error(ctx, NewInvalidParamsError())
-		return
-	}
+	req:=primitives.NewJSON2Request(1, eckey, "factoid-balance")
 
-	if p, err := json.Marshal(b); err != nil {
-		wsLog.Error(err)
-		return
-	} else {
-		ctx.Write(p)
-	}
+	jsonResp, jsonError:=HandleV2Request(state, req)
+	returnV1(ctx, jsonResp, jsonError)
 }
 
 /*********************************************************

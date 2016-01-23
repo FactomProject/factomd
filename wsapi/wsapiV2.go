@@ -184,7 +184,9 @@ func HandleV2RevealEntry(state interfaces.IState, params interface{}) (interface
 }
 
 func HandleV2DirectoryBlockHead(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
-	return state.GetPreviousDirectoryBlock().GetKeyMR().String(), nil
+	h := new(DBHead)
+	h.KeyMR = state.GetPreviousDirectoryBlock().GetKeyMR().String()
+	return h, nil
 }
 
 func HandleV2GetRaw(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
@@ -232,7 +234,9 @@ func HandleV2GetRaw(state interfaces.IState, params interface{}) (interface{}, *
 		return nil, NewEntryNotFoundError()
 	}
 
-	return hex.EncodeToString(b), nil
+	d := new(RawData)
+	d.Data = hex.EncodeToString(b)
+	return d, nil
 }
 
 func HandleV2GetReceipt(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
@@ -413,7 +417,9 @@ func HandleV2ChainHead(state interfaces.IState, params interface{}) (interface{}
 	if mr == nil {
 		return nil, NewMissingChainHeadError()
 	}
-	return mr.String(), nil
+	c := new(CHead)
+	c.ChainHead = mr.String()
+	return c, nil
 }
 
 func HandleV2EntryCreditBalance(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
@@ -429,7 +435,6 @@ func HandleV2EntryCreditBalance(state interfaces.IState, params interface{}) (in
 		return nil, NewInvalidAddressError()
 	}
 	return state.GetFactoidState().GetECBalance(adr.Fixed()), nil
-
 }
 
 func HandleV2GetFee(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
