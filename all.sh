@@ -157,21 +157,21 @@ echo "
 |  Factom-cli   |
 +================+
 "
-go test -short  ./factom-cli/...
+go test -short  ./factom-cli2/...
 
 echo "
 +================+
 |  fctWallet     |
 +================+
 "
-go test -short  ./fctwallet/...
+go test -short  ./fctwallet2/...
 
 echo "
 +================+
 |  Walletapp     |
 +================+
 "
-go test -short  ./walletapp/...
+go test -short  ./walletapp2/...
 
 
 cd FactomCode
