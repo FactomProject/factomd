@@ -38,7 +38,6 @@ func (p *ProcessList) Process(state interfaces.IState) {
 	for i := 0; i < len(p.lists); i++ {
 		plist := p.lists[i]
 		for j := p.heights[i]; j < len(plist); j++ {
-			fmt.Println("List ",i,"UpdatePL: ", j)
 			if plist[j] == nil {
 				break
 			}
@@ -64,7 +63,6 @@ func (p *ProcessList) AddToProcessList( ack *messages.Ack, m interfaces.IMsg) {
 	for len(processlist) <= ack.Height {
 		processlist = append(processlist, nil)
 	}
-	fmt.Println("Add message at height", ack.Height)
 	processlist[ack.Height] = m
 	p.lists[ack.ServerIndex] = processlist
 }
