@@ -256,10 +256,10 @@ func HandleFactoidBalance(ctx *web.Context, eckey string) {
 
 func returnMsg(ctx *web.Context, msg interface{}, success bool) {
 	type rtn struct {
-		Response string
+		Response interface{}
 		Success  bool
 	}
-	str, ok:=msg.(string)
+	/*str, ok:=msg.(string)
 	if ok == false {
 		var err error
 		str, err = primitives.EncodeJSONString(msg)
@@ -267,8 +267,8 @@ func returnMsg(ctx *web.Context, msg interface{}, success bool) {
 			wsLog.Error(err)
 			return
 		}
-	}
-	r := rtn{Response: str, Success: success}
+	}*/
+	r := rtn{Response: msg, Success: success}
 
 	if p, err := json.Marshal(r); err != nil {
 		wsLog.Error(err)

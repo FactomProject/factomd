@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"encoding/json"
 )
 
 /*
@@ -348,9 +349,9 @@ func TestBlockIteration(t *testing.T) {
 
 	HandleChainHead(context, hash)
 
-	json := GetBody(context)
+	j := GetRespText(context)
 	head := new(CHead)
-	err := primitives.DecodeJSONString(json, head)
+	err := primitives.DecodeJSONString(j, head)
 	if err != nil {
 		panic(err)
 	}
@@ -364,9 +365,9 @@ func TestBlockIteration(t *testing.T) {
 		clearContextResponseWriter(context)
 		HandleDirectoryBlock(context, prev)
 
-		json = GetBody(context)
+		j = GetRespText(context)
 		block := new(DBlock)
-		err = primitives.DecodeJSONString(json, block)
+		err = primitives.DecodeJSONString(j, block)
 		if err != nil {
 			panic(err)
 		}
@@ -384,18 +385,32 @@ func TestHandleGetReceipt(t *testing.T) {
 
 	HandleGetReceipt(context, hash)
 
-	json := GetBody(context)
-	t.Logf("Receipt - %v", json)
+	j := GetRespText(context)
 
 	dbo := context.Server.Env["state"].(interfaces.IState).GetDB()
 
-	err := receipts.VerifyFullReceipt(dbo, json)
+	err := receipts.VerifyFullReceipt(dbo, j)
 	if err != nil {
 		t.Error(err)
 	}
 }
 
 //****************************************************************
+
+func GetRespText(context *web.Context) string {
+	j := GetBody(context)
+
+	unmarshalled:=map[string]interface{}{}
+	err:=json.Unmarshal([]byte(j), &unmarshalled)
+	if err != nil {
+		panic(err)
+	}
+	marshalled, err:=json.Marshal(unmarshalled["Response"])
+	if err != nil {
+		panic(err)
+	}
+	return string(marshalled)
+}
 
 func clearContextResponseWriter(context *web.Context) {
 	context.ResponseWriter = new(TestResponseWriter)

@@ -211,7 +211,7 @@ func (e *Receipt) JSONBuffer(b *bytes.Buffer) error {
 	return primitives.EncodeJSONToBuffer(e, b)
 }
 
-func (e *Receipt) String() string {
+func (e *Receipt) CustomMarshalString() string {
 	str, _ := e.JSONString()
 	return str
 }
