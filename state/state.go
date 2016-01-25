@@ -31,10 +31,10 @@ var _ = fmt.Print
 
 type State struct {
 	Cfg interfaces.IFactomConfig
-	
+
 	IdentityChainID        interfaces.IHash		// If this node has an identity, this is it
 	ServerIndex            int					// If a federated server, this is the server index
-	
+
 	networkInMsgQueue      chan interfaces.IMsg
 	networkOutMsgQueue     chan interfaces.IMsg
 	networkInvalidMsgQueue chan interfaces.IMsg
@@ -63,10 +63,10 @@ type State struct {
 	AuditServers    []interfaces.IServer   // List of Audit Servers
 	FedServers      []interfaces.IServer   // List of Federated Servers
 	ServerOrder     [][]interfaces.IServer // 10 lists for Server Order for each minute
-	
+
 	PLPrevious   	*ProcessList // Previous Process Lists.  Sometimes you have to wait to process
 	PLCurrent    	*ProcessList // Current Process Lists.  What we are building now.
-	
+
 	AuditHeartBeats []interfaces.IMsg      // The checklist of HeartBeats for this period
 	FedServerFaults [][]interfaces.IMsg    // Keep a fault list for every server
 
@@ -107,7 +107,7 @@ var _ interfaces.IState = (*State)(nil)
 func (s *State) GetServerIndex() int {
 	return s.ServerIndex
 }
-	
+
 func (s *State) GetNewEBlks(key [32]byte) interfaces.IEntryBlock {
 	s.NewEBlksSem.Lock()
 	value := s.NewEBlks[key]
@@ -165,7 +165,7 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) error {
 
 	return nil
 }
-	
+
 
 // Run through the process lists, and update the state as required by
 // any new entries.  In the near future, we will want to have this in a
@@ -251,7 +251,6 @@ func (s *State) Sign([]byte) interfaces.IFullSignature {
 // It is called by the follower code.  It is requried to build the Directory Block
 // to validate the signatures we will get with the DirectoryBlockSignature messages.
 func (s *State) ProcessEndOfBlock() {
-	fmt.Println("ProcessEndOfBlock()")
 	//Must have all the complete process lists at this point!
 
 	s.UpdateProcessLists() // Do any remaining processing
@@ -404,7 +403,6 @@ func (s *State) SetLastAck(ack interfaces.IMsg) {
 }
 
 func (s *State) Init(filename string) {
-
 	s.ReadCfg(filename)
 	// Get our factomd configuration information.
 	cfg := s.GetCfg().(*util.FactomdConfig)
@@ -437,7 +435,7 @@ func (s *State) Init(filename string) {
 	default:
 		panic("Bad Node Mode (must be FULL or SERVER)")
 	}
-	
+
 	if s.ServerState == 1 {
 		s.ServerIndex = 0
 	}
@@ -554,7 +552,7 @@ func (s *State) loadDatabase() {
 
 		fBlocks, err := s.DB.FetchAllFBlocks()
 
-		fmt.Printf("Processing %d FBlocks\n", len(fBlocks))
+		log.Printf("Processing %d FBlocks\n", len(fBlocks))
 
 		if err != nil {
 			panic(err.Error())
@@ -568,7 +566,7 @@ func (s *State) loadDatabase() {
 			panic(err.Error())
 		}
 
-		fmt.Printf("Processing %d ECBlocks\n", len(ecBlocks))
+		log.Printf("Processing %d ECBlocks\n", len(ecBlocks))
 
 		for _, block := range ecBlocks {
 			s.EntryCreditBlock = block
@@ -585,6 +583,7 @@ func (s *State) InitLevelDB() error {
 
 	cfg := s.Cfg.(*util.FactomdConfig)
 	path := cfg.App.LdbPath + "/" + cfg.App.Network + "/" + "factoid_level.db"
+	fmt.Println("cfg.App.LdbPath=", cfg.App.LdbPath)
 
 	log.Printfln("Creating Database at %v", path)
 
@@ -716,8 +715,11 @@ func (s *State) CreateDBlock() (b interfaces.IDirectoryBlock, err error) {
 
 func (s *State) PrintType(msgType int) bool {
 	r := true
-	// r = r && msgType != constants.EOM_MSG 
+	// r = r && msgType != constants.EOM_MSG
 	// r = r && msgType != constants.DIRECTORY_BLOCK_SIGNATURE_MSG
+	r = r && msgType != constants.EOM_MSG
+	r = r && msgType != constants.ACK_MSG
+	r = r && msgType != constants.DIRECTORY_BLOCK_SIGNATURE_MSG
 	return r
 }
 

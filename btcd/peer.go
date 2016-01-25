@@ -307,8 +307,8 @@ func (p *peer) pushVersionMsg() error {
 	// If we are behind a proxy and the connection comes from the proxy then
 	// we return an unroutable address as their address. This is to prevent
 	// leaking the tor proxy address.
-	if cfg.Proxy != "" {
-		proxyaddress, _, err := net.SplitHostPort(cfg.Proxy)
+	if Pcfg.Proxy != "" {
+		proxyaddress, _, err := net.SplitHostPort(Pcfg.Proxy)
 		// invalid proxy means poorly configured, be on the safe side.
 		if err != nil || p.na.IP.String() == proxyaddress {
 			theirNa = &messages.NetAddress{
@@ -361,7 +361,7 @@ func (p *peer) updateAddresses(msg *messages.MsgVersion) {
 	if !p.inbound {
 		// TODO(davec): Only do this if not doing the initial block
 		// download and the local address is routable.
-		if !cfg.DisableListen /* && isCurrent? */ {
+		if !Pcfg.DisableListen /* && isCurrent? */ {
 			// Get address that best matches.
 			lna := p.server.addrManager.GetBestLocalAddress(p.na)
 			if addrmgr.IsRoutable(lna) {
@@ -510,7 +510,7 @@ func (p *peer) handleVersionMsg(msg *messages.MsgVersion) {
 	// on the simulation test network since it is only intended to connect
 	// to specified peers and actively avoids advertising and connecting to
 	// discovered peers.
-	if !cfg.SimNet {
+	if !Pcfg.SimNet {
 		p.updateAddresses(msg)
 	}
 
@@ -585,7 +585,7 @@ func (p *peer) handleGetAddrMsg(msg *messages.MsgGetAddr) {
 	// network.  This helps prevent the network from becoming another
 	// public test network since it will not be able to learn about other
 	// peers that have not specifically been provided.
-	if cfg.SimNet {
+	if Pcfg.SimNet {
 		return
 	}
 
@@ -656,7 +656,7 @@ func (p *peer) handleAddrMsg(msg *messages.MsgAddr) {
 	// helps prevent the network from becoming another public test network
 	// since it will not be able to learn about other peers that have not
 	// specifically been provided.
-	if cfg.SimNet {
+	if Pcfg.SimNet {
 		return
 	}
 
@@ -870,7 +870,7 @@ out:
 			// messages, don't disconnect the peer when we're in
 			// regression test mode and the error is one of the
 			// allowed errors.
-			if cfg.RegressionTest && p.isAllowedByRegression(err) {
+			if Pcfg.RegressionTest && p.isAllowedByRegression(err) {
 				peerLog.Errorf("Allowed regression test "+
 					"error from %s: %v", p, err)
 				idleTimer.Reset(idleTimeoutMinutes * time.Minute)

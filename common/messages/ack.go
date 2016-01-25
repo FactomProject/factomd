@@ -55,7 +55,7 @@ func (m *Ack) GetTimestamp() interfaces.Timestamp {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *Ack) Validate(interfaces.IState) int {
-	return 0
+	return 1
 }
 
 // Returns true if this is a message for this server to execute as
@@ -203,7 +203,6 @@ func NewAck(state interfaces.IState, hash interfaces.IHash) (iack interfaces.IMs
 			return nil, err
 		}
 	}
-	fmt.Println("Ack Height", ack.Height)
 	state.SetLastAck(ack)
 
 	// TODO:  Add the signature.

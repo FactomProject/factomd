@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	cfg             *config
+	Pcfg             *config
 	shutdownChannel = make(chan struct{})
 )
 
@@ -27,13 +27,13 @@ func btcdMain(serverChan chan<- *Server, state interfaces.IState) error {
 
 	// Load configuration and parse command line.  This function also
 	// initializes logging and configures it accordingly.
-	tcfg, _, err := loadConfig()
+	tcfg, _, err := LoadConfig()
 	if err != nil {
 		return err
 	}
-	cfg = tcfg
+	Pcfg = tcfg
 	// tweak some config options
-	cfg.DisableCheckpoints = true
+	//Pcfg.DisableCheckpoints = true
 	defer backendLog.Flush()
 
 	// Show version at startup.
@@ -46,11 +46,11 @@ func btcdMain(serverChan chan<- *Server, state interfaces.IState) error {
 	})
 
 	// Create server and start it.
-	server, err := newServer(cfg.Listeners, activeNetParams.Params, state)
+	server, err := newServer(Pcfg.Listeners, activeNetParams.Params, state)
 	if err != nil {
 		// TODO(oga) this logging could do with some beautifying.
 		btcdLog.Errorf("Unable to start server on %v: %v",
-			cfg.Listeners, err)
+			Pcfg.Listeners, err)
 		return err
 	}
 	AddInterruptHandler(func() {
