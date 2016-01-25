@@ -251,7 +251,6 @@ func (s *State) Sign([]byte) interfaces.IFullSignature {
 // It is called by the follower code.  It is requried to build the Directory Block
 // to validate the signatures we will get with the DirectoryBlockSignature messages.
 func (s *State) ProcessEndOfBlock() {
-	fmt.Println("ProcessEndOfBlock()")
 	//Must have all the complete process lists at this point!
 
 	s.UpdateProcessLists() // Do any remaining processing
@@ -553,7 +552,7 @@ func (s *State) loadDatabase() {
 
 		fBlocks, err := s.DB.FetchAllFBlocks()
 
-		fmt.Printf("Processing %d FBlocks\n", len(fBlocks))
+		log.Printf("Processing %d FBlocks\n", len(fBlocks))
 
 		if err != nil {
 			panic(err.Error())
@@ -567,7 +566,7 @@ func (s *State) loadDatabase() {
 			panic(err.Error())
 		}
 
-		fmt.Printf("Processing %d ECBlocks\n", len(ecBlocks))
+		log.Printf("Processing %d ECBlocks\n", len(ecBlocks))
 
 		for _, block := range ecBlocks {
 			s.EntryCreditBlock = block
@@ -718,6 +717,9 @@ func (s *State) PrintType(msgType int) bool {
 	r := true
 	// r = r && msgType != constants.EOM_MSG
 	// r = r && msgType != constants.DIRECTORY_BLOCK_SIGNATURE_MSG
+	r = r && msgType != constants.EOM_MSG
+	r = r && msgType != constants.ACK_MSG
+	r = r && msgType != constants.DIRECTORY_BLOCK_SIGNATURE_MSG
 	return r
 }
 
