@@ -35,7 +35,7 @@ type EOM struct {
 var _ Signable = (*EOM)(nil)
 
 func (e *EOM) Process(state interfaces.IState) {
-		
+			
 	state.GetFactoidState().EndOfPeriod(int(e.Minute))
 
 	ecblk := state.GetCurrentEntryCreditBlock()
@@ -45,7 +45,7 @@ func (e *EOM) Process(state interfaces.IState) {
 	ecbody.AddEntry(mn)
 	
 	if e.Minute == 9 {
-	
+			
 		if state.LeaderFor(e.Bytes()) {
 			// What really needs to happen is that we look to make sure all
 			// EOM messages have been recieved.  If this is the LAST message,

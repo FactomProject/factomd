@@ -646,7 +646,7 @@ func newBlockManager(s *Server) (*blockManager, error) {
 		server:          s,
 		requestedTxns:   make(map[interfaces.IHash]struct{}),
 		requestedBlocks: make(map[interfaces.IHash]struct{}),
-		msgChan:         make(chan interface{}, cfg.MaxPeers*3),
+		msgChan:         make(chan interface{}, Pcfg.MaxPeers*3),
 		quit:            make(chan struct{}),
 	}
 
@@ -894,8 +894,8 @@ func (b *blockManager) startSyncFactom(peers *list.List) {
 // syncing from.
 func (b *blockManager) isSyncCandidateFactom(p *peer) bool {
 	// Typically a peer is not a candidate for sync if it's not a Factom SERVER node,
-	if constants.SERVER_NODE == util.ReadConfig("").App.NodeMode {
+	if constants.SERVER_NODE == b.server.State.GetCfg().(*util.FactomdConfig).App.NodeMode {
 		return true
 	}
-	return true
+	return false
 }

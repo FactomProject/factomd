@@ -65,7 +65,7 @@ func (m *DirectoryBlockSignature) Bytes() []byte {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *DirectoryBlockSignature) Validate(interfaces.IState) int {
-	return 0
+	return 1
 }
 
 // Returns true if this is a message for this server to execute as
@@ -84,8 +84,9 @@ func (m *DirectoryBlockSignature) Follower(interfaces.IState) bool {
 	return true
 }
 
-func (m *DirectoryBlockSignature) FollowerExecute(interfaces.IState) error {
-	return nil
+func (m *DirectoryBlockSignature) FollowerExecute(state interfaces.IState) error {
+	_, err := state.MatchAckFollowerExecute(m)
+	return err
 }
 
 func (m *DirectoryBlockSignature) Sign(key interfaces.Signer) error {

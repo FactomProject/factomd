@@ -187,7 +187,7 @@ func (p *peerState) OutboundCount() int {
 
 func (p *peerState) NeedMoreOutbound() bool {
 	return p.OutboundCount() < p.maxOutboundPeers &&
-		p.Count() < cfg.MaxPeers
+		p.Count() < Pcfg.MaxPeers
 }
 
 // forAllOutboundPeers is a helper function that runs closure on all outbound
@@ -278,9 +278,9 @@ func (s *Server) handleAddPeerMsg(state *peerState, p *peer) bool {
 	// TODO: Check for max peers from a single IP.
 
 	// Limit max number of total peers.
-	if state.Count() >= cfg.MaxPeers {
+	if state.Count() >= Pcfg.MaxPeers {
 		srvrLog.Infof("Max peers reached [%d] - disconnecting "+
-			"peer %s", cfg.MaxPeers, p)
+			"peer %s", Pcfg.MaxPeers, p)
 		p.Shutdown()
 		// TODO(oga) how to handle permanent peers here?
 		// they should be rescheduled.
@@ -347,8 +347,8 @@ func (s *Server) handleBanPeerMsg(state *peerState, p *peer) {
 	}
 	direction := directionString(p.inbound)
 	srvrLog.Infof("Banned peer %s (%s) for %v", host, direction,
-		cfg.BanDuration)
-	state.banned[host] = time.Now().Add(cfg.BanDuration)
+		Pcfg.BanDuration)
+	state.banned[host] = time.Now().Add(Pcfg.BanDuration)
 
 }
 
@@ -597,7 +597,7 @@ func (s *Server) listenHandler(listener net.Listener) {
 // seedFromDNS uses DNS seeding to populate the address manager with peers.
 func (s *Server) seedFromDNS() {
 	// Nothing to do if DNS seeding is disabled.
-	if cfg.DisableDNSSeed {
+	if Pcfg.DisableDNSSeed {
 		return
 	}
 
@@ -666,17 +666,17 @@ func (s *Server) peerHandler() {
 		maxOutboundPeers: defaultMaxOutbound,
 		outboundGroups:   make(map[string]int),
 	}
-	if cfg.MaxPeers < state.maxOutboundPeers {
-		state.maxOutboundPeers = cfg.MaxPeers
+	if Pcfg.MaxPeers < state.maxOutboundPeers {
+		state.maxOutboundPeers = Pcfg.MaxPeers
 	}
 
 	// Add peers discovered through DNS to the address manager.
 	s.seedFromDNS()
 
 	// Start up persistent peers.
-	permanentPeers := cfg.ConnectPeers
+	permanentPeers := Pcfg.ConnectPeers
 	if len(permanentPeers) == 0 {
-		permanentPeers = cfg.AddPeers
+		permanentPeers = Pcfg.AddPeers
 	}
 	for _, addr := range permanentPeers {
 		s.handleAddPeerMsg(state, newOutboundPeer(s, addr, true, 0))
@@ -733,12 +733,12 @@ out:
 		// simulation test network.  The simulation network is only
 		// intended to connect to specified peers and actively avoid
 		// advertising and connecting to discovered peers.
-		if cfg.SimNet {
+		if Pcfg.SimNet {
 			continue
 		}
 
 		// Only try connect to more peers if we actually need more.
-		if !state.NeedMoreOutbound() || len(cfg.ConnectPeers) > 0 ||
+		if !state.NeedMoreOutbound() || len(Pcfg.ConnectPeers) > 0 ||
 			atomic.LoadInt32(&s.shutdown) != 0 {
 			continue
 		}
@@ -803,7 +803,7 @@ out:
 		}
 	}
 
-	//if cfg.AddrIndex {
+	//if Pcfg.AddrIndex {
 	//s.addrIndexer.Stop()
 	//}
 	s.blockManager.Stop()
@@ -1052,17 +1052,17 @@ func (s *Server) Start() {
 		go s.upnpUpdateThread()
 	}
 
-	if !cfg.DisableRPC {
-		s.wg.Add(1)
+	//if !Pcfg.DisableRPC {
+		//s.wg.Add(1)
 
 		// Start the rebroadcastHandler, which ensures user tx received by
 		// the RPC server are rebroadcast until being included in a block.
-		go s.rebroadcastHandler()
+		//go s.rebroadcastHandler()
 
 		//s.rpcServer.Start()
-	}
+	//}
 
-	//if cfg.AddrIndex {
+	//if Pcfg.AddrIndex {
 	//s.addrIndexer.Start()
 	//}
 }
@@ -1088,7 +1088,7 @@ func (s *Server) Stop() error {
 	}
 
 	// Shutdown the RPC server if it's not disabled.
-	//if !cfg.DisableRPC {
+	//if !Pcfg.DisableRPC {
 	//s.rpcServer.Stop()
 	//}
 
@@ -1246,21 +1246,22 @@ func NewServer(state interfaces.IState) (*Server, error) {
 	// Todo: combine btcd with factomd config & add commandline support
 	// Load configuration and parse command line.  This function also
 	// initializes logging and configures it accordingly.
+	/*
 	tcfg, _, err := loadConfig()
 	if err != nil {
 		return nil, err
 	}
-	cfg = tcfg
+	Pcfg = tcfg
 	// tweak some config options
-	cfg.DisableCheckpoints = true
+	Pcfg.DisableCheckpoints = true */
 	defer backendLog.Flush()
 
 	// Show version at startup.
 	btcdLog.Infof("Version %s", version())
 
-	server, err := newServer(cfg.Listeners, activeNetParams.Params, state)
+	server, err := newServer(Pcfg.Listeners, activeNetParams.Params, state)
 	if err != nil {
-		btcdLog.Errorf("Unable to start server on %v: %v", cfg.Listeners, err)
+		btcdLog.Errorf("Unable to start server on %v: %v", Pcfg.Listeners, err)
 	}
 	return server, err
 }
@@ -1274,11 +1275,11 @@ func newServer(listenAddrs []string, chainParams *Params, state interfaces.IStat
 		return nil, err
 	}
 
-	amgr := addrmgr.New(cfg.DataDir, btcdLookup)
+	amgr := addrmgr.New(Pcfg.DataDir, btcdLookup)
 
 	var listeners []net.Listener
 	var nat NAT
-	if !cfg.DisableListen {
+	if !Pcfg.DisableListen {
 		ipv4Addrs, ipv6Addrs, wildcard, err :=
 			parseListeners(listenAddrs)
 		if err != nil {
@@ -1286,13 +1287,13 @@ func newServer(listenAddrs []string, chainParams *Params, state interfaces.IStat
 		}
 		listeners = make([]net.Listener, 0, len(ipv4Addrs)+len(ipv6Addrs))
 		discover := true
-		if len(cfg.ExternalIPs) != 0 {
+		if len(Pcfg.ExternalIPs) != 0 {
 			discover = false
 			// if this fails we have real issues.
 			port, _ := strconv.ParseUint(
 				activeNetParams.DefaultPort, 10, 16)
 
-			for _, sip := range cfg.ExternalIPs {
+			for _, sip := range Pcfg.ExternalIPs {
 				eport := uint16(port)
 				host, portstr, err := net.SplitHostPort(sip)
 				if err != nil {
@@ -1323,7 +1324,7 @@ func newServer(listenAddrs []string, chainParams *Params, state interfaces.IStat
 					amgrLog.Warnf("Skipping specified external IP: %v", err)
 				}
 			}
-		} else if discover && cfg.Upnp {
+		} else if discover && Pcfg.Upnp {
 			nat, err = Discover()
 			if err != nil {
 				srvrLog.Warnf("Can't discover upnp: %v", err)
@@ -1405,13 +1406,13 @@ func newServer(listenAddrs []string, chainParams *Params, state interfaces.IStat
 		listeners:            listeners,
 		chainParams:          chainParams,
 		addrManager:          amgr,
-		newPeers:             make(chan *peer, cfg.MaxPeers),
-		donePeers:            make(chan *peer, cfg.MaxPeers),
-		banPeers:             make(chan *peer, cfg.MaxPeers),
+		newPeers:             make(chan *peer, Pcfg.MaxPeers),
+		donePeers:            make(chan *peer, Pcfg.MaxPeers),
+		banPeers:             make(chan *peer, Pcfg.MaxPeers),
 		wakeup:               make(chan struct{}),
 		query:                make(chan interface{}),
-		relayInv:             make(chan relayMsg, cfg.MaxPeers),
-		broadcast:            make(chan broadcastMsg, cfg.MaxPeers),
+		relayInv:             make(chan relayMsg, Pcfg.MaxPeers),
+		broadcast:            make(chan broadcastMsg, Pcfg.MaxPeers),
 		quit:                 make(chan struct{}),
 		modifyRebroadcastInv: make(chan interface{}),
 		peerHeightsUpdate:    make(chan updatePeerHeightsMsg),

@@ -45,12 +45,11 @@ func Timer(state interfaces.IState) {
 				//state.NetworkOutMsgQueue() <- eom
 			}
 
-			fmt.Printf("%19s: DBlock %v minute %v", 
+			fmt.Printf("\r%19s: DBlock %v minute %v %s", 
 					   "Timer", 
 						state.GetDBHeight(), 
-					   i)
-						//(string)((([]byte)("-\\|/-\\|/-="))[i]), " ")
-			fmt.Println()
+						i,
+						(string)((([]byte)("-\\|/-\\|/-="))[i]))
 		}
 	}
 
