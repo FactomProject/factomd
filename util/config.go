@@ -57,8 +57,6 @@ type FactomdConfig struct {
 		BtcTransFee        float64
 		CertHomePathBtcd   string
 		RpcBtcdHost        string
-		//RpcUser            string
-		//RpcPass            string
 	}
 	Rpc struct {
 		PortNumber       int
@@ -92,30 +90,26 @@ const defaultConfig = `
 PortNumber                            = 8088
 HomeDir                               = ""
 ; --------------- DBType: LDB | Bolt | Map
-DBType                                = "Bolt"
+DBType                                = "Map"
 LdbPath                               = "ldb"
-BoltDBPath                            = "bolt"
+BoltDBPath                            = ""
 DataStorePath                         = "data/export/"
-DirectoryBlockInSeconds               = 600
+DirectoryBlockInSeconds               = 6
 ExportData                            = true
 ExportDataSubpath                     = "export/"
 ; --------------- Network: MAIN | TEST | LOCAL
 Network                               = LOCAL
 ; --------------- NodeMode: FULL | SERVER | LIGHT ----------------
 NodeMode                              = FULL
-LocalServerPrivKey                    = 07c0d52cb74f4ca3106d80c4a70488426886bccc6ebc10c6bafb37bf8a65f4c38cee85c62a9e48039d4ac294da97943c2001be1539809ea5f54721f0c5477a0a
+LocalServerPrivKey                    = 4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c9b08946553448d26d
 LocalServerPublicKey                  = cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a
 ExchangeRate                          = 00100000
 
 [anchor]
-ServerECPrivKey                       = 397c49e182caa97737c6b394591c614156fbe7998d7bf5d76273961e9fa1edd406ed9e69bfdf85db8aa69820f348d096985bc0b11cc9fc9dcee3b8c68b41dfd5
+ServerECPrivKey                       = 397c49e182caa97737c6b394591c614156fbe7998d7bf5d76273961e9fa1edd4
 ServerECPublicKey                     = 06ed9e69bfdf85db8aa69820f348d096985bc0b11cc9fc9dcee3b8c68b41dfd5
 AnchorChainID                         = df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604
 ConfirmationsNeeded                   = 20
-
-[peer]
-MaxPeers      												= 125
-BanDuration   												= 24h
 
 [btc]
 WalletPassphrase                      = "lindasilva"
@@ -190,8 +184,6 @@ func (s *FactomdConfig) String() string {
 	out.WriteString(fmt.Sprintf("\n    BtcTransFee             %v", s.Btc.BtcTransFee))
 	out.WriteString(fmt.Sprintf("\n    CertHomePathBtcd        %v", s.Btc.CertHomePathBtcd))
 	out.WriteString(fmt.Sprintf("\n    RpcBtcdHost             %v", s.Btc.RpcBtcdHost))
-	//out.WriteString(fmt.Sprintf("\n    RpcUser                 %v", s.Btc.RpcUser))
-	//out.WriteString(fmt.Sprintf("\n    RpcPass                 %v", s.Btc.RpcPass))
 
 	out.WriteString(fmt.Sprintf("\n  Rpc"))
 	out.WriteString(fmt.Sprintf("\n    PortNumber              %v", s.Rpc.PortNumber))
