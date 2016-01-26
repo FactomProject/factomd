@@ -466,7 +466,6 @@ func HandleV2FactoidSubmit(state interfaces.IState, params interface{}) (interfa
 	state.InMsgQueue() <- msg
 
 	return "Successfully submitted the transaction", nil
-
 }
 
 func HandleV2FactoidBalance(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {

@@ -8,6 +8,66 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
+type FactoidSubmitResponse {
+
+}
+
+type CommitChainResponse {
+
+}
+
+type RevealChainResponse {
+
+}
+
+type CommitEntryResponse {
+
+}
+
+type RevealEntryResponse {
+
+}
+
+type DirectoryBlockHeadResponse {
+
+}
+
+type GetRawDataResponse {
+
+}
+
+type GetReceiptResponse {
+
+}
+
+type DirectoryBlockResponse {
+
+}
+
+type EntryBlockResponse {
+
+}
+
+type EntryResponse {
+
+}
+
+type ChainHeadResponse {
+
+}
+
+type EntryCreditBalanceResponse {
+
+}
+
+type FactoidBalanceResponse {
+
+}
+
+type FactoidGetFeeResponse {
+
+}
+
 type DBHead struct {
 	KeyMR string
 }
