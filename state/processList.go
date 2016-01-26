@@ -19,6 +19,13 @@ type ProcessList struct {
 	msgs        *map[[32]byte] interfaces.IMsg	// messages by hash
 }
 
+func (p *ProcessList) GetLen(list int) int {
+	if list >= len(p.lists) {
+		return -1
+	}
+	l := len(p.lists[list])
+	return l
+}
 
 // Test if the process list is complete.  Return true if all messages
 // have been recieved, and we have all the signaures for the directory blocks.

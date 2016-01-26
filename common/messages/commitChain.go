@@ -17,15 +17,33 @@ import (
 type CommitChainMsg struct {
 	Timestamp   interfaces.Timestamp
 	CommitChain *entryCreditBlock.CommitChain
+
+	// Not marshaled... Just used by the leader
+	count int
 }
 
 var _ interfaces.IMsg = (*CommitChainMsg)(nil)
+var _ interfaces.ICounted = (*CommitChainMsg)(nil)
+
+func (m *CommitChainMsg) GetCount() int {
+	return m.count
+}
+
+func (m *CommitChainMsg) IncCount() {
+	m.count += 1
+}
+
+func (m *CommitChainMsg) SetCount(cnt int) {
+	m.count = cnt
+}
+
 
 func (m *CommitChainMsg) Process(state interfaces.IState) {
 	ecblk := state.GetCurrentEntryCreditBlock()
 	ecbody := ecblk.GetBody()
 	ecbody.AddEntry(m.CommitChain)
 	state.GetFactoidState().UpdateECTransaction(m.CommitChain)
+	state.PutCommits(m.GetHash(),m)
 }
 
 func (m *CommitChainMsg) GetHash() interfaces.IHash {
@@ -58,18 +76,11 @@ func (m *CommitChainMsg) Validate(state interfaces.IState) int {
 	}
 	ebal := state.GetFactoidState().GetECBalance(*m.CommitChain.ECPubKey)
 	if int(m.CommitChain.Credits) > int(ebal) {
-		return 0
-	}
-
-	// If there is a commit against the same hash, then we can't process
-	// this one right now.  Must wait for the previous to clear. Needs to
-	// look at  a list of chain commits.
-	if state.GetCommits(m.GetHash()) != nil {
+		fmt.Println("Not enough Credits")
 		return 0
 	}
 
 	return 1
-
 }
 
 // Returns true if this is a message for this server to execute as

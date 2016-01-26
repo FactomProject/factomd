@@ -29,7 +29,7 @@ type RevealEntryMsg struct {
 var _ interfaces.IMsg = (*RevealEntryMsg)(nil)
 
 func (m *RevealEntryMsg) Process(interfaces.IState) {
-	fmt.Println("PROCESS!")
+	
 }
 
 func (m *RevealEntryMsg) GetHash() interfaces.IHash {

@@ -129,8 +129,25 @@ func (s *State) GetCommits(key interfaces.IHash) interfaces.IMsg {
 }
 
 func (s *State) PutCommits(key interfaces.IHash, value interfaces.IMsg) {
-	s.CommitsSem.Lock()
-	s.Commits[key.Fixed()] = value
+	s.CommitsSem.Lock() 
+	{
+		fmt.Println("putCommits:",value)
+		cmsg,ok := value.(interfaces.ICounted)
+		if ok {
+			v := s.Commits[key.Fixed()]
+			if v != nil {
+				_, ok := v.(interfaces.ICounted)
+				if ok {
+					cmsg.SetCount(v.(interfaces.ICounted).GetCount()+1)
+				}else{
+					fmt.Println(v)
+					panic("Should never happen")
+				}
+			}
+		}
+		
+		s.Commits[key.Fixed()] = value
+	}
 	s.CommitsSem.Unlock()
 }
 
@@ -316,7 +333,7 @@ func (s *State) SetPort(port int) {
 	// Get our factomd configuration information.
 	cfg := s.GetCfg().(*util.FactomdConfig)
 	cfg.Wsapi.PortNumber = port
-}
+} 
 
 func (s *State) GetPort() int {
 	cfg := s.GetCfg().(*util.FactomdConfig)
@@ -380,6 +397,13 @@ func (s *State) ReadCfg(filename string) interfaces.IFactomConfig {
 
 func (s *State) GetTotalServers() int {
 	return s.TotalServers
+}
+
+func (s *State) GetProcessListLen(list int) int {
+	if list >= s.TotalServers {
+		return -1
+	}
+	return s.PLCurrent.GetLen(list)
 }
 
 func (s *State) GetServerState() int {
@@ -715,8 +739,8 @@ func (s *State) CreateDBlock() (b interfaces.IDirectoryBlock, err error) {
 
 func (s *State) PrintType(msgType int) bool {
 	r := true
+	//r = r && msgType != constants.ACK_MSG 
 	r = r && msgType != constants.EOM_MSG 
-	r = r && msgType != constants.ACK_MSG 
 	r = r && msgType != constants.DIRECTORY_BLOCK_SIGNATURE_MSG
 	return r
 }

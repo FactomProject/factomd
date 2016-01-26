@@ -20,6 +20,7 @@ type IState interface {
 	Init(string)
 	String() string
 	Sign([]byte) IFullSignature
+	GetProcessListLen(list int) int
 
 	GetServer() IServer
 	SetServer(IServer)
