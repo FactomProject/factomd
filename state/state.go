@@ -739,7 +739,7 @@ func (s *State) CreateDBlock() (b interfaces.IDirectoryBlock, err error) {
 
 func (s *State) PrintType(msgType int) bool {
 	r := true
-	//r = r && msgType != constants.ACK_MSG 
+	r = r && msgType != constants.ACK_MSG 
 	r = r && msgType != constants.EOM_MSG 
 	r = r && msgType != constants.DIRECTORY_BLOCK_SIGNATURE_MSG
 	return r
