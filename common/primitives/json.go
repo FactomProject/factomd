@@ -5,9 +5,9 @@
 package primitives
 
 import (
-	"fmt"
-	"encoding/json"
 	"bytes"
+	"encoding/json"
+	"fmt"
 )
 
 type JSON2Request struct {
@@ -97,8 +97,9 @@ func (j *JSON2Response) AddError(code int, message string) {
 }
 
 type JSONError struct {
-	Code    int    `json:"code"`
-	Message string `json:"message"`
+	Code    int         `json:"code"`
+	Message string      `json:"message"`
+	Data    interface{} `json:"data,omitempty"`
 }
 
 func NewJSONError(code int, message string) *JSONError {

@@ -32,8 +32,8 @@ var _ = fmt.Print
 type State struct {
 	Cfg interfaces.IFactomConfig
 
-	IdentityChainID        interfaces.IHash		// If this node has an identity, this is it
-	ServerIndex            int					// If a federated server, this is the server index
+	IdentityChainID interfaces.IHash // If this node has an identity, this is it
+	ServerIndex     int              // If a federated server, this is the server index
 
 	networkInMsgQueue      chan interfaces.IMsg
 	networkOutMsgQueue     chan interfaces.IMsg
@@ -60,15 +60,15 @@ type State struct {
 
 	// Lists
 	// =====
-	AuditServers    []interfaces.IServer   // List of Audit Servers
-	FedServers      []interfaces.IServer   // List of Federated Servers
-	ServerOrder     [][]interfaces.IServer // 10 lists for Server Order for each minute
+	AuditServers []interfaces.IServer   // List of Audit Servers
+	FedServers   []interfaces.IServer   // List of Federated Servers
+	ServerOrder  [][]interfaces.IServer // 10 lists for Server Order for each minute
 
-	PLPrevious   	*ProcessList // Previous Process Lists.  Sometimes you have to wait to process
-	PLCurrent    	*ProcessList // Current Process Lists.  What we are building now.
+	PLPrevious *ProcessList // Previous Process Lists.  Sometimes you have to wait to process
+	PLCurrent  *ProcessList // Current Process Lists.  What we are building now.
 
-	AuditHeartBeats []interfaces.IMsg      // The checklist of HeartBeats for this period
-	FedServerFaults [][]interfaces.IMsg    // Keep a fault list for every server
+	AuditHeartBeats []interfaces.IMsg   // The checklist of HeartBeats for this period
+	FedServerFaults [][]interfaces.IMsg // Keep a fault list for every server
 
 	//Network MAIN = 0, TEST = 1, LOCAL = 2, CUSTOM = 3
 	NetworkNumber int // Encoded into Directory Blocks(s.Cfg.(*util.FactomdConfig)).String()
@@ -145,7 +145,7 @@ func (s *State) MatchAckFollowerExecute(m interfaces.IMsg) (bool, error) {
 		s.Holding[m.GetHash().Fixed()] = m
 		return false, nil
 	} else {
-		s.PLCurrent.AddToProcessList(ack,m)
+		s.PLCurrent.AddToProcessList(ack, m)
 		delete(acks, m.GetHash().Fixed())
 		delete(s.Holding, m.GetHash().Fixed())
 
@@ -166,7 +166,6 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) error {
 	return nil
 }
 
-
 // Run through the process lists, and update the state as required by
 // any new entries.  In the near future, we will want to have this in a
 // "temp" state, that we push to the regular state at the end of 10 minutes.
@@ -179,7 +178,7 @@ func (s *State) UpdateProcessLists() {
 		if s.PLPrevious.Complete() {
 			s.PLCurrent.Process(s)
 		}
-	}else{
+	} else {
 		s.PLCurrent.Process(s)
 	}
 }

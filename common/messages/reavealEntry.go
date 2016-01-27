@@ -138,7 +138,7 @@ func (m *RevealEntryMsg) LeaderExecute(state interfaces.IState) error {
 	state.NetworkOutMsgQueue() <- ack
 	state.FollowerInMsgQueue() <- ack // Send the Ack to follower
 	state.FollowerInMsgQueue() <- m   // Send factoid trans to follower
-	
+
 	return nil
 }
 
@@ -155,7 +155,7 @@ func (m *RevealEntryMsg) FollowerExecute(state interfaces.IState) error {
 	if matched { // We matched, we must be remembered!
 		fmt.Println("Matched!")
 		state.PutCommits(m.GetHash(), m)
-	}else{
+	} else {
 		fmt.Println("Not Matched!")
 	}
 	return nil

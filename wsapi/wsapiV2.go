@@ -19,20 +19,20 @@ import (
 )
 
 func HandleV2(ctx *web.Context) {
-	p:=ctx.Params
+	p := ctx.Params
 	if len(p) < 1 {
 		HandleV2Error(ctx, nil, NewInvalidRequestError())
 		return
 	}
 	var j *primitives.JSON2Request
 	var err error
-	for k, _:=range(p) {
+	for k, _ := range p {
 		j, err = primitives.ParseJSON2Request(k)
 		if err == nil {
 			break
 		}
 	}
-	if err!=nil {
+	if err != nil {
 		HandleV2Error(ctx, nil, NewInvalidRequestError())
 		return
 	}
@@ -52,7 +52,7 @@ func HandleV2(ctx *web.Context) {
 func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*primitives.JSON2Response, *primitives.JSONError) {
 	var resp interface{}
 	var jsonError *primitives.JSONError
-	params:=j.Params
+	params := j.Params
 	switch j.Method {
 	case "factoid-submit":
 		resp, jsonError = HandleV2FactoidSubmit(state, params)
@@ -115,7 +115,7 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 }
 
 func HandleV2Error(ctx *web.Context, j *primitives.JSON2Request, err *primitives.JSONError) {
-	resp := primitives.NewJSON2Response() 
+	resp := primitives.NewJSON2Response()
 	if j != nil {
 		resp.ID = j.ID
 	} else {
@@ -135,7 +135,7 @@ func HandleV2CommitChain(state interfaces.IState, params interface{}) (interface
 
 	commit := entryCreditBlock.NewCommitChain()
 	if p, err := hex.DecodeString(commitChainMsg); err != nil {
-			return nil, NewInvalidCommitChainError()
+		return nil, NewInvalidCommitChainError()
 	} else {
 		_, err := commit.UnmarshalBinaryData(p)
 		if err != nil {
@@ -148,7 +148,10 @@ func HandleV2CommitChain(state interfaces.IState, params interface{}) (interface
 	msg.Timestamp = state.GetTimestamp()
 	state.InMsgQueue() <- msg
 
-	return "Chain Commit Success", nil
+	resp := new(CommitChainResponse)
+	resp.Message = "Chain Commit Success"
+
+	return resp, nil
 }
 
 func HandleV2RevealChain(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
@@ -180,11 +183,14 @@ func HandleV2RevealEntry(state interfaces.IState, params interface{}) (interface
 	msg.Timestamp = state.GetTimestamp()
 	state.InMsgQueue() <- msg
 
-	return "Entry Reveal Success", nil
+	resp := new(RevealEntryResponse)
+	resp.Message = "Entry Reveal Success"
+
+	return resp, nil
 }
 
 func HandleV2DirectoryBlockHead(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
-	h := new(DBHead)
+	h := new(DirectoryBlockHeadResponse)
 	h.KeyMR = state.GetPreviousDirectoryBlock().GetKeyMR().String()
 	return h, nil
 }
@@ -234,7 +240,7 @@ func HandleV2GetRaw(state interfaces.IState, params interface{}) (interface{}, *
 		return nil, NewEntryNotFoundError()
 	}
 
-	d := new(RawData)
+	d := new(GetRawDataResponse)
 	d.Data = hex.EncodeToString(b)
 	return d, nil
 }
@@ -252,11 +258,13 @@ func HandleV2GetReceipt(state interfaces.IState, params interface{}) (interface{
 
 	dbase := state.GetDB()
 
-	receipt, err:= receipts.CreateFullReceipt(dbase, h)
-	if err!=nil {
+	receipt, err := receipts.CreateFullReceipt(dbase, h)
+	if err != nil {
 		return nil, NewMiscError()
 	}
-	return receipt, nil
+	resp := new(GetReceiptResponse)
+	resp.Receipt = receipt
+	return resp, nil
 }
 
 func HandleV2DirectoryBlock(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
@@ -264,7 +272,7 @@ func HandleV2DirectoryBlock(state interfaces.IState, params interface{}) (interf
 	if ok == false {
 		return nil, NewInvalidParamsError()
 	}
-	d := new(DBlock)
+	d := new(DirectoryBlockResponse)
 
 	h, err := primitives.HexToHash(hashkey)
 	if err != nil {
@@ -305,7 +313,7 @@ func HandleV2EntryBlock(state interfaces.IState, params interface{}) (interface{
 	if ok == false {
 		return nil, NewInvalidParamsError()
 	}
-	e := new(EBlock)
+	e := new(EntryBlockResponse)
 
 	h, err := primitives.HexToHash(hashkey)
 	if err != nil {
@@ -321,7 +329,7 @@ func HandleV2EntryBlock(state interfaces.IState, params interface{}) (interface{
 	if block == nil {
 		block, err = dbase.FetchEBlockByHash(h)
 		if err != nil {
-		return nil, NewInvalidHashError()
+			return nil, NewInvalidHashError()
 		}
 		if block == nil {
 			return nil, NewBlockNotFoundError()
@@ -371,7 +379,7 @@ func HandleV2Entry(state interfaces.IState, params interface{}) (interface{}, *p
 	if ok == false {
 		return nil, NewInvalidParamsError()
 	}
-	e := new(EntryStruct)
+	e := new(EntryResponse)
 
 	h, err := primitives.HexToHash(hashkey)
 	if err != nil {
@@ -417,7 +425,7 @@ func HandleV2ChainHead(state interfaces.IState, params interface{}) (interface{}
 	if mr == nil {
 		return nil, NewMissingChainHeadError()
 	}
-	c := new(CHead)
+	c := new(ChainHeadResponse)
 	c.ChainHead = mr.String()
 	return c, nil
 }
@@ -434,11 +442,15 @@ func HandleV2EntryCreditBalance(state interfaces.IState, params interface{}) (in
 	if adr == nil {
 		return nil, NewInvalidAddressError()
 	}
-	return state.GetFactoidState().GetECBalance(adr.Fixed()), nil
+	resp := new(EntryCreditBalanceResponse)
+	resp.Balance = state.GetFactoidState().GetECBalance(adr.Fixed())
+	return resp, nil
 }
 
 func HandleV2GetFee(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
-	return state.GetFactoidState().GetFactoshisPerEC(), nil
+	resp := new(FactoidGetFeeResponse)
+	resp.Fee = state.GetFactoidState().GetFactoshisPerEC()
+	return resp, nil
 }
 
 func HandleV2FactoidSubmit(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
@@ -465,7 +477,10 @@ func HandleV2FactoidSubmit(state interfaces.IState, params interface{}) (interfa
 
 	state.InMsgQueue() <- msg
 
-	return "Successfully submitted the transaction", nil
+	resp := new(FactoidSubmitResponse)
+	resp.Message = "Successfully submitted the transaction"
+
+	return resp, nil
 }
 
 func HandleV2FactoidBalance(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
@@ -475,11 +490,13 @@ func HandleV2FactoidBalance(state interfaces.IState, params interface{}) (interf
 	}
 
 	adr, err := hex.DecodeString(eckey)
-	if err!=nil {
+	if err != nil {
 		return nil, NewInvalidAddressError()
 	}
 	if err == nil && len(adr) != constants.HASH_LENGTH {
 		return nil, NewInvalidAddressError()
 	}
-	return state.GetFactoidState().GetFactoidBalance(factoid.NewAddress(adr).Fixed()), nil
+	resp := new(FactoidBalanceResponse)
+	resp.Balance = state.GetFactoidState().GetFactoidBalance(factoid.NewAddress(adr).Fixed())
+	return resp, nil
 }

@@ -1,6 +1,7 @@
 package wsapi_test
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -12,7 +13,6 @@ import (
 	"net/http"
 	"strings"
 	"testing"
-	"encoding/json"
 )
 
 /*
@@ -400,12 +400,12 @@ func TestHandleGetReceipt(t *testing.T) {
 func GetRespText(context *web.Context) string {
 	j := GetBody(context)
 
-	unmarshalled:=map[string]interface{}{}
-	err:=json.Unmarshal([]byte(j), &unmarshalled)
+	unmarshalled := map[string]interface{}{}
+	err := json.Unmarshal([]byte(j), &unmarshalled)
 	if err != nil {
 		panic(err)
 	}
-	marshalled, err:=json.Marshal(unmarshalled["Response"])
+	marshalled, err := json.Marshal(unmarshalled["Response"])
 	if err != nil {
 		panic(err)
 	}

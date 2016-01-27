@@ -24,14 +24,14 @@ const (
 	defaultLogLevel    = "info"
 	defaultLogDirname  = "logs"
 	defaultLogFilename = "pfactom.log"
-	defaultMaxPeers = 125
+	defaultMaxPeers    = 125
 	//	defaultBanDuration       = time.Hour * 24
-	defaultBanDuration       = time.Minute // used in Factom to ban old clients, for a minute...
+	defaultBanDuration = time.Minute // used in Factom to ban old clients, for a minute...
 )
 
 var (
 	defaultDataDir = filepath.Join(GetHomeDir(), "m2")
-	defaultLogDir = filepath.Join(defaultDataDir, defaultLogDirname)
+	defaultLogDir  = filepath.Join(defaultDataDir, defaultLogDirname)
 
 	ClientOnly bool
 )
@@ -44,36 +44,36 @@ var runServiceCommand func(string) error
 //
 // See loadConfig for details on the configuration load process.
 type config struct {
-	ShowVersion   bool          `short:"V" long:"version" description:"Display version information and exit"`
+	ShowVersion bool `short:"V" long:"version" description:"Display version information and exit"`
 	//ConfigFile    string        `short:"C" long:"configfile" description:"Path to configuration file"`
-	DataDir       string        `short:"b" long:"datadir" description:"Directory to store data"`
-	LogDir        string        `long:"logdir" description:"Directory to log output."`
-	AddPeers      []string      `short:"a" long:"addpeer" description:"Add a peer to connect with at startup"`
-	ConnectPeers  []string      `long:"connect" description:"Connect only to the specified peers at startup"`
-	DisableListen bool          `long:"nolisten" description:"Disable listening for incoming connections -- NOTE: Listening is automatically disabled if the --connect or --proxy options are used without also specifying listen interfaces via --listen"`
-	Listeners     []string      `long:"listen" description:"Add an interface/port to listen for connections (default all interfaces port: 8108, testnet: 18108)"`
-	MaxPeers      int           `long:"maxpeers" description:"Max number of inbound and outbound peers"`
-	BanDuration   time.Duration `long:"banduration" description:"How long to ban misbehaving peers.  Valid time units are {s, m, h}.  Minimum 1 second"`
-	DisableDNSSeed     bool     `long:"nodnsseed" description:"Disable DNS seeding for peers"`
-	ExternalIPs        []string `long:"externalip" description:"Add an ip to the list of local addresses we claim to listen on to peers"`
-	Proxy              string   `long:"proxy" description:"Connect via SOCKS5 proxy (eg. 127.0.0.1:9050)"`
-	ProxyUser          string   `long:"proxyuser" description:"Username for proxy server"`
-	ProxyPass          string   `long:"proxypass" default-mask:"-" description:"Password for proxy server"`
-	OnionProxy         string   `long:"onion" description:"Connect to tor hidden services via SOCKS5 proxy (eg. 127.0.0.1:9050)"`
-	OnionProxyUser     string   `long:"onionuser" description:"Username for onion proxy server"`
-	OnionProxyPass     string   `long:"onionpass" default-mask:"-" description:"Password for onion proxy server"`
-	NoOnion            bool     `long:"noonion" description:"Disable connecting to tor hidden services"`
-	TestNet3           bool     `long:"testnet" description:"Use the test network"`
-	RegressionTest     bool     `long:"devnet" description:"Use the devnet test network"`
-	SimNet             bool     `long:"simnet" description:"Use the simulation test network"`
-	DebugLevel         string   `short:"d" long:"debuglevel" description:"Logging level for all subsystems {trace, debug, info, warn, error, critical} -- You may also specify <subsystem>=<level>,<subsystem2>=<level>,... to set the log level for individual subsystems -- Use show to list available subsystems"`
-	Upnp               bool     `long:"upnp" description:"Use UPnP to map our listening port outside of NAT"`
-	onionlookup        func(string) ([]net.IP, error)
-	lookup             func(string) ([]net.IP, error)
-	oniondial          func(string, string) (net.Conn, error)
-	dial               func(string, string) (net.Conn, error)
+	DataDir        string        `short:"b" long:"datadir" description:"Directory to store data"`
+	LogDir         string        `long:"logdir" description:"Directory to log output."`
+	AddPeers       []string      `short:"a" long:"addpeer" description:"Add a peer to connect with at startup"`
+	ConnectPeers   []string      `long:"connect" description:"Connect only to the specified peers at startup"`
+	DisableListen  bool          `long:"nolisten" description:"Disable listening for incoming connections -- NOTE: Listening is automatically disabled if the --connect or --proxy options are used without also specifying listen interfaces via --listen"`
+	Listeners      []string      `long:"listen" description:"Add an interface/port to listen for connections (default all interfaces port: 8108, testnet: 18108)"`
+	MaxPeers       int           `long:"maxpeers" description:"Max number of inbound and outbound peers"`
+	BanDuration    time.Duration `long:"banduration" description:"How long to ban misbehaving peers.  Valid time units are {s, m, h}.  Minimum 1 second"`
+	DisableDNSSeed bool          `long:"nodnsseed" description:"Disable DNS seeding for peers"`
+	ExternalIPs    []string      `long:"externalip" description:"Add an ip to the list of local addresses we claim to listen on to peers"`
+	Proxy          string        `long:"proxy" description:"Connect via SOCKS5 proxy (eg. 127.0.0.1:9050)"`
+	ProxyUser      string        `long:"proxyuser" description:"Username for proxy server"`
+	ProxyPass      string        `long:"proxypass" default-mask:"-" description:"Password for proxy server"`
+	OnionProxy     string        `long:"onion" description:"Connect to tor hidden services via SOCKS5 proxy (eg. 127.0.0.1:9050)"`
+	OnionProxyUser string        `long:"onionuser" description:"Username for onion proxy server"`
+	OnionProxyPass string        `long:"onionpass" default-mask:"-" description:"Password for onion proxy server"`
+	NoOnion        bool          `long:"noonion" description:"Disable connecting to tor hidden services"`
+	TestNet3       bool          `long:"testnet" description:"Use the test network"`
+	RegressionTest bool          `long:"devnet" description:"Use the devnet test network"`
+	SimNet         bool          `long:"simnet" description:"Use the simulation test network"`
+	DebugLevel     string        `short:"d" long:"debuglevel" description:"Logging level for all subsystems {trace, debug, info, warn, error, critical} -- You may also specify <subsystem>=<level>,<subsystem2>=<level>,... to set the log level for individual subsystems -- Use show to list available subsystems"`
+	Upnp           bool          `long:"upnp" description:"Use UPnP to map our listening port outside of NAT"`
+	onionlookup    func(string) ([]net.IP, error)
+	lookup         func(string) ([]net.IP, error)
+	oniondial      func(string, string) (net.Conn, error)
+	dial           func(string, string) (net.Conn, error)
 
-	FactomConfigFile   string        `short:"f" long:"factomconfigfile" description:"Path to Factom configuration file"`
+	FactomConfigFile string `short:"f" long:"factomconfigfile" description:"Path to Factom configuration file"`
 }
 
 // serviceOptions defines the configuration options for btcd as a service on
@@ -87,7 +87,7 @@ type serviceOptions struct {
 func cleanAndExpandPath(path string) string {
 	// Expand initial ~ to OS specific home directory.
 	if strings.HasPrefix(path, "~") {
-		homeDir := GetHomeDir()		//filepath.Dir(btcdHomeDir)
+		homeDir := GetHomeDir() //filepath.Dir(btcdHomeDir)
 		path = strings.Replace(path, "~", homeDir, 1)
 	}
 
@@ -250,11 +250,11 @@ func LoadConfig() (*config, []string, error) {
 	cfg := config{
 		//ConfigFile:        defaultConfigFile,
 		//FactomConfigFile:  defaultFactomConfigFile,
-		DebugLevel:        defaultLogLevel,
-		MaxPeers:          defaultMaxPeers,
-		BanDuration:       defaultBanDuration,
-		DataDir:           defaultDataDir,
-		LogDir:            defaultLogDir,
+		DebugLevel:  defaultLogLevel,
+		MaxPeers:    defaultMaxPeers,
+		BanDuration: defaultBanDuration,
+		DataDir:     defaultDataDir,
+		LogDir:      defaultLogDir,
 	}
 
 	// Service options which are only added on Windows.
@@ -477,7 +477,7 @@ func LoadConfig() (*config, []string, error) {
 	// done.  This prevents the warning on help messages and invalid
 	// options.  Note this should go directly before the return.
 	//if configFileError != nil {
-		//btcdLog.Warnf("%v", configFileError)
+	//btcdLog.Warnf("%v", configFileError)
 	//}
 
 	Pcfg = &cfg

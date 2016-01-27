@@ -183,7 +183,7 @@ func makeEmptyMessage(command string) (Message, error) {
 
 	case CmdEOM:
 		msg = &EOM{}
-	
+
 	default:
 		return nil, fmt.Errorf("unhandled command [%s]", command)
 	}

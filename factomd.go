@@ -11,8 +11,8 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/state"
-	"github.com/FactomProject/factomd/wsapi"
 	"github.com/FactomProject/factomd/util"
+	"github.com/FactomProject/factomd/wsapi"
 	"os"
 	"runtime"
 	"strings"
@@ -61,21 +61,21 @@ func main() {
 	//var state0, state1, state2, state3, state4 *state.State
 	state0 := new(state.State)
 	if len(fcfg) > 0 {
-		log. Printfln("factom config: %s", fcfg)
+		log.Printfln("factom config: %s", fcfg)
 		state0.Init(fcfg)
 	} else {
 		state0.Init(util.GetConfigFilename("m2"))
-	}/*
-	if sim {
-		state1 := new(state.State)
-		state1.Init(util.GetConfigFilename("m2-1"))
-		state2 := new(state.State)
-		state2.Init(util.GetConfigFilename("m2-2"))
-		state3 := new(state.State)
-		state3.Init(util.GetConfigFilename("m2-3"))
-		state4 := new(state.State)
-		state4.Init(util.GetConfigFilename("m2-4"))
-	}*/
+	} /*
+		if sim {
+			state1 := new(state.State)
+			state1.Init(util.GetConfigFilename("m2-1"))
+			state2 := new(state.State)
+			state2.Init(util.GetConfigFilename("m2-2"))
+			state3 := new(state.State)
+			state3.Init(util.GetConfigFilename("m2-3"))
+			state4 := new(state.State)
+			state4.Init(util.GetConfigFilename("m2-4"))
+		}*/
 
 	btcd.AddInterruptHandler(func() {
 		log.Printf("Gracefully shutting down the database...")
@@ -106,9 +106,9 @@ func main() {
 	state0.SetServer(server)
 
 	//if sim {
-		//go SimNetwork(state0, state1, state2, state3, state4)
+	//go SimNetwork(state0, state1, state2, state3, state4)
 	//}else{
-		go NetworkProcessor(state0)
+	go NetworkProcessor(state0)
 	//}
 
 	go Timer(state0)

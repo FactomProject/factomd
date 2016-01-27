@@ -6,67 +6,86 @@ package wsapi
 
 import (
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/receipts"
 )
 
-type FactoidSubmitResponse {
-
+type FactoidSubmitResponse struct {
+	Message string
+	TxID    string
 }
 
-type CommitChainResponse {
-
+type CommitChainResponse struct {
+	Message string
+	TxID    string
 }
 
-type RevealChainResponse {
-
+type RevealChainResponse struct {
 }
 
-type CommitEntryResponse {
-
+type CommitEntryResponse struct {
 }
 
-type RevealEntryResponse {
-
+type RevealEntryResponse struct {
+	Message string
+	TxID    string
 }
 
-type DirectoryBlockHeadResponse {
-
+type DirectoryBlockHeadResponse struct {
+	KeyMR string
+	//Add height, etc?
 }
 
-type GetRawDataResponse {
-
+type GetRawDataResponse struct {
+	Data string
+	//TODO: add
 }
 
-type GetReceiptResponse {
-
+type GetReceiptResponse struct {
+	Receipt *receipts.Receipt
 }
 
-type DirectoryBlockResponse {
-
+type DirectoryBlockResponse struct {
+	Header struct {
+		PrevBlockKeyMR string
+		SequenceNumber uint32
+		Timestamp      uint32
+	}
+	EntryBlockList []EBlockAddr
 }
 
-type EntryBlockResponse {
-
+type EntryBlockResponse struct {
+	Header struct {
+		BlockSequenceNumber uint32
+		ChainID             string
+		PrevKeyMR           string
+		Timestamp           uint32
+	}
+	EntryList []EntryAddr
 }
 
-type EntryResponse {
-
+type EntryResponse struct {
+	ChainID string
+	Content string
+	ExtIDs  []string
 }
 
-type ChainHeadResponse {
-
+type ChainHeadResponse struct {
+	ChainHead string
 }
 
-type EntryCreditBalanceResponse {
-
+type EntryCreditBalanceResponse struct {
+	Balance int64
 }
 
-type FactoidBalanceResponse {
-
+type FactoidBalanceResponse struct {
+	Balance int64
 }
 
-type FactoidGetFeeResponse {
-
+type FactoidGetFeeResponse struct {
+	Fee uint64
 }
+
+/*********************************************************************/
 
 type DBHead struct {
 	KeyMR string
