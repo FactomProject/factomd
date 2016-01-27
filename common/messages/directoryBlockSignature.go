@@ -188,7 +188,7 @@ func (m *DirectoryBlockSignature) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *DirectoryBlockSignature) String() string {
-	return fmt.Sprintf("DB Sig %s",m.GetHash().String())
+	return fmt.Sprintf("DB Sig %s", m.GetHash().String())
 }
 
 func (e *DirectoryBlockSignature) JSONByte() ([]byte, error) {

@@ -219,7 +219,7 @@ func ConfigFilename() string {
 }
 
 func GetConfigFilename(dir string) string {
-	return GetHomeDir()+"/.factom/"+dir+"/factomd.conf"
+	return GetHomeDir() + "/.factom/" + dir + "/factomd.conf"
 }
 
 func ReadConfig(filename string) *FactomdConfig {
@@ -251,8 +251,8 @@ func ReadConfig(filename string) *FactomdConfig {
 	// Default to home directory if not set
 	if len(cfg.App.HomeDir) < 1 {
 		cfg.App.HomeDir = GetHomeDir() + "/.factom/m2/"
-	}else{
-		cfg.App.HomeDir = GetHomeDir() + "/.factom/"+cfg.App.HomeDir+"/"
+	} else {
+		cfg.App.HomeDir = GetHomeDir() + "/.factom/" + cfg.App.HomeDir + "/"
 	}
 
 	// TODO: improve the paths after milestone 1

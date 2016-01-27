@@ -264,5 +264,3 @@ func (e *EBlock) String() string {
 	str, _ := e.JSONString()
 	return str
 }
-
-

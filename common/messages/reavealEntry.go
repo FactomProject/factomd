@@ -31,25 +31,25 @@ var _ interfaces.IMsg = (*RevealEntryMsg)(nil)
 
 func (m *RevealEntryMsg) Process(state interfaces.IState) {
 	c := state.GetCommits(m.GetHash())
-	_,isNewChain := c.(*CommitChainMsg)
+	_, isNewChain := c.(*CommitChainMsg)
 	if isNewChain {
 		fmt.Println("New Chain")
 		//eb := entryBlock.NewEBlock()
 		chainID := m.Entry.GetChainID()
-		ebh,err := state.GetDB().FetchEBlockHead(chainID)
+		ebh, err := state.GetDB().FetchEBlockHead(chainID)
 		if err != nil || ebh != nil {
 			panic("This is wrong:  Chain already exists")
 		}
-	}else{
-		
+	} else {
+
 		fmt.Println("New Entry")
-		
-		_,isNewEntry := c.(*CommitEntryMsg)
-		
+
+		_, isNewEntry := c.(*CommitEntryMsg)
+
 		if !isNewEntry {
-			log.Printf("Bad commit detected %s",c.String())
+			log.Printf("Bad commit detected %s", c.String())
 		}
-		
+
 	}
 }
 
@@ -129,16 +129,16 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 				return -1
 			}
 		}
-	}else{
+	} else {
 		chainID := m.Entry.GetChainID()
-		eb,err := state.GetDB().FetchEBlockHead(chainID)
+		eb, err := state.GetDB().FetchEBlockHead(chainID)
 		if err != nil || eb != nil {
 			return -1
 		}
 	}
-	
+
 	return 1
-	
+
 }
 
 // Returns true if this is a message for this server to execute as
@@ -165,7 +165,7 @@ func (m *RevealEntryMsg) LeaderExecute(state interfaces.IState) error {
 	state.NetworkOutMsgQueue() <- ack
 	state.FollowerInMsgQueue() <- ack // Send the Ack to follower
 	state.FollowerInMsgQueue() <- m   // Send factoid trans to follower
-	
+
 	return nil
 }
 
@@ -181,7 +181,7 @@ func (m *RevealEntryMsg) FollowerExecute(state interfaces.IState) error {
 	}
 	if matched { // We matched, we must be remembered!
 		fmt.Println("Matched!")
-	}else{
+	} else {
 		fmt.Println("Not Matched!")
 	}
 	return nil

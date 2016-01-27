@@ -31,10 +31,10 @@ var _ = fmt.Print
 
 type State struct {
 	Cfg interfaces.IFactomConfig
-	
-	IdentityChainID        interfaces.IHash		// If this node has an identity, this is it
-	ServerIndex            int					// If a federated server, this is the server index
-	
+
+	IdentityChainID interfaces.IHash // If this node has an identity, this is it
+	ServerIndex     int              // If a federated server, this is the server index
+
 	networkInMsgQueue      chan interfaces.IMsg
 	networkOutMsgQueue     chan interfaces.IMsg
 	networkInvalidMsgQueue chan interfaces.IMsg
@@ -60,15 +60,15 @@ type State struct {
 
 	// Lists
 	// =====
-	AuditServers    []interfaces.IServer   // List of Audit Servers
-	FedServers      []interfaces.IServer   // List of Federated Servers
-	ServerOrder     [][]interfaces.IServer // 10 lists for Server Order for each minute
-	
-	PLPrevious   	*ProcessList // Previous Process Lists.  Sometimes you have to wait to process
-	PLCurrent    	*ProcessList // Current Process Lists.  What we are building now.
-	
-	AuditHeartBeats []interfaces.IMsg      // The checklist of HeartBeats for this period
-	FedServerFaults [][]interfaces.IMsg    // Keep a fault list for every server
+	AuditServers []interfaces.IServer   // List of Audit Servers
+	FedServers   []interfaces.IServer   // List of Federated Servers
+	ServerOrder  [][]interfaces.IServer // 10 lists for Server Order for each minute
+
+	PLPrevious *ProcessList // Previous Process Lists.  Sometimes you have to wait to process
+	PLCurrent  *ProcessList // Current Process Lists.  What we are building now.
+
+	AuditHeartBeats []interfaces.IMsg   // The checklist of HeartBeats for this period
+	FedServerFaults [][]interfaces.IMsg // Keep a fault list for every server
 
 	//Network MAIN = 0, TEST = 1, LOCAL = 2, CUSTOM = 3
 	NetworkNumber int // Encoded into Directory Blocks(s.Cfg.(*util.FactomdConfig)).String()
@@ -107,7 +107,7 @@ var _ interfaces.IState = (*State)(nil)
 func (s *State) GetServerIndex() int {
 	return s.ServerIndex
 }
-	
+
 func (s *State) GetNewEBlks(key [32]byte) interfaces.IEntryBlock {
 	s.NewEBlksSem.Lock()
 	value := s.NewEBlks[key]
@@ -129,23 +129,23 @@ func (s *State) GetCommits(key interfaces.IHash) interfaces.IMsg {
 }
 
 func (s *State) PutCommits(key interfaces.IHash, value interfaces.IMsg) {
-	s.CommitsSem.Lock() 
+	s.CommitsSem.Lock()
 	{
-		fmt.Println("putCommits:",value)
-		cmsg,ok := value.(interfaces.ICounted)
+		fmt.Println("putCommits:", value)
+		cmsg, ok := value.(interfaces.ICounted)
 		if ok {
 			v := s.Commits[key.Fixed()]
 			if v != nil {
 				_, ok := v.(interfaces.ICounted)
 				if ok {
-					cmsg.SetCount(v.(interfaces.ICounted).GetCount()+1)
-				}else{
+					cmsg.SetCount(v.(interfaces.ICounted).GetCount() + 1)
+				} else {
 					fmt.Println(v)
 					panic("Should never happen")
 				}
 			}
 		}
-		
+
 		s.Commits[key.Fixed()] = value
 	}
 	s.CommitsSem.Unlock()
@@ -162,7 +162,7 @@ func (s *State) MatchAckFollowerExecute(m interfaces.IMsg) (bool, error) {
 		s.Holding[m.GetHash().Fixed()] = m
 		return false, nil
 	} else {
-		s.PLCurrent.AddToProcessList(ack,m)
+		s.PLCurrent.AddToProcessList(ack, m)
 		delete(acks, m.GetHash().Fixed())
 		delete(s.Holding, m.GetHash().Fixed())
 
@@ -182,7 +182,6 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) error {
 
 	return nil
 }
-	
 
 // Run through the process lists, and update the state as required by
 // any new entries.  In the near future, we will want to have this in a
@@ -196,7 +195,7 @@ func (s *State) UpdateProcessLists() {
 		if s.PLPrevious.Complete() {
 			s.PLCurrent.Process(s)
 		}
-	}else{
+	} else {
 		s.PLCurrent.Process(s)
 	}
 }
@@ -333,7 +332,7 @@ func (s *State) SetPort(port int) {
 	// Get our factomd configuration information.
 	cfg := s.GetCfg().(*util.FactomdConfig)
 	cfg.Wsapi.PortNumber = port
-} 
+}
 
 func (s *State) GetPort() int {
 	cfg := s.GetCfg().(*util.FactomdConfig)
@@ -460,7 +459,7 @@ func (s *State) Init(filename string) {
 	default:
 		panic("Bad Node Mode (must be FULL or SERVER)")
 	}
-	
+
 	if s.ServerState == 1 {
 		s.ServerIndex = 0
 	}
@@ -739,8 +738,8 @@ func (s *State) CreateDBlock() (b interfaces.IDirectoryBlock, err error) {
 
 func (s *State) PrintType(msgType int) bool {
 	r := true
-	r = r && msgType != constants.ACK_MSG 
-	r = r && msgType != constants.EOM_MSG 
+	r = r && msgType != constants.ACK_MSG
+	r = r && msgType != constants.EOM_MSG
 	r = r && msgType != constants.DIRECTORY_BLOCK_SIGNATURE_MSG
 	return r
 }

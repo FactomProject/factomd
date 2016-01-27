@@ -21,7 +21,7 @@ type CommitEntryMsg struct {
 
 	//Not marshalled
 	hash interfaces.IHash
-	
+
 	// Not marshaled... Just used by the leader
 	count int
 }
@@ -40,7 +40,6 @@ func (m *CommitEntryMsg) IncCount() {
 func (m *CommitEntryMsg) SetCount(cnt int) {
 	m.count = cnt
 }
-
 
 func (e *CommitEntryMsg) Process(interfaces.IState) {
 	// panic prevents factomd from running continuously.

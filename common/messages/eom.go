@@ -20,12 +20,12 @@ import (
 var _ = log.Printf
 
 type EOM struct {
-	Timestamp 				interfaces.Timestamp
-	Minute   				byte
+	Timestamp interfaces.Timestamp
+	Minute    byte
 
-	DirectoryBlockHeight	uint32
-	ServerIndex				int
-	Signature				interfaces.IFullSignature
+	DirectoryBlockHeight uint32
+	ServerIndex          int
+	Signature            interfaces.IFullSignature
 
 	//Not marshalled
 	hash interfaces.IHash
@@ -35,37 +35,37 @@ type EOM struct {
 var _ Signable = (*EOM)(nil)
 
 func (e *EOM) Process(state interfaces.IState) {
-			
+
 	state.GetFactoidState().EndOfPeriod(int(e.Minute))
 
 	ecblk := state.GetCurrentEntryCreditBlock()
 	ecbody := ecblk.GetBody()
 	mn := entryCreditBlock.NewMinuteNumber2(e.Minute)
-	
+
 	ecbody.AddEntry(mn)
-	
+
 	if e.Minute == 9 {
-			
+
 		if state.LeaderFor(e.Bytes()) {
 			// What really needs to happen is that we look to make sure all
 			// EOM messages have been recieved.  If this is the LAST message,
-			// and we have ALL EOM messages from all servers, then we 
+			// and we have ALL EOM messages from all servers, then we
 			// create a DirectoryBlockSignature (if we are the leader) and
 			// send it out to the network.
 			DBM := NewDirectoryBlockSignature()
 			if state.GetPreviousDirectoryBlock() == nil {
 				DBM.DirectoryBlockKeyMR = primitives.NewHash(constants.ZERO_HASH)
-			}else{
+			} else {
 				DBM.DirectoryBlockKeyMR = state.GetPreviousDirectoryBlock().GetKeyMR()
 			}
 			DBM.Sign(state)
-			
+
 			ack, err := NewAck(state, DBM.GetHash())
 			if err != nil {
 				fmt.Println("Ack Error")
-				return 
+				return
 			}
-			
+
 			state.NetworkOutMsgQueue() <- ack
 			state.NetworkOutMsgQueue() <- DBM
 			state.InMsgQueue() <- ack
@@ -113,23 +113,23 @@ func (m *EOM) Validate(interfaces.IState) int {
 // Returns true if this is a message for this server to execute as
 // a leader.
 func (m *EOM) Leader(state interfaces.IState) bool {
-	return state.LeaderFor(m.Bytes())			// TODO: This has to be fixed!
+	return state.LeaderFor(m.Bytes()) // TODO: This has to be fixed!
 }
 
 // Execute the leader functions of the given message
 func (m *EOM) LeaderExecute(state interfaces.IState) error {
 	b := m.GetHash()
-	
+
 	ack, err := NewAck(state, b)
 	if err != nil {
 		fmt.Println("Ack Error")
 		return err
 	}
-	
+
 	// Leader Execute creates an acknowledgement and the EOM
 	state.NetworkOutMsgQueue() <- ack
 	state.FollowerInMsgQueue() <- ack // Send the Ack to follower
-	
+
 	state.NetworkOutMsgQueue() <- m // Send the Message;  It works better if
 	state.FollowerInMsgQueue() <- m // the msg follows the Ack
 	return nil
@@ -142,8 +142,8 @@ func (m *EOM) Follower(interfaces.IState) bool {
 
 func (m *EOM) FollowerExecute(state interfaces.IState) error {
 	_, err := state.MatchAckFollowerExecute(m)
-	
-	return err	
+
+	return err
 }
 
 func (e *EOM) JSONByte() ([]byte, error) {
@@ -198,7 +198,7 @@ func (m *EOM) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 
 	m.ServerIndex = int(newData[0])
 	newData = newData[1:]
-	
+
 	if len(newData) > 0 {
 		sig := new(primitives.Signature)
 		newData, err = sig.UnmarshalBinaryData(newData)
@@ -324,6 +324,6 @@ func NewEOM(state interfaces.IState, minute int) interfaces.IMsg {
 	eom := new(EOM)
 	eom.Minute = byte(minute)
 	eom.ServerIndex = state.GetServerIndex()
-	
+
 	return eom
 }

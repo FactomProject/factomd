@@ -46,16 +46,16 @@ func Timer(state interfaces.IState) {
 			}
 
 			pls := ""
-			for i:=0; i< state.GetTotalServers(); i++ {
-				pls = fmt.Sprintf("%s Server %d--%d",pls,i,state.GetProcessListLen(i))
+			for i := 0; i < state.GetTotalServers(); i++ {
+				pls = fmt.Sprintf("%s Server %d--%d", pls, i, state.GetProcessListLen(i))
 			}
 
-			fmt.Printf("\r%19s: DBlock %v minute %v %s %s", 
-					   "Timer", 
-						state.GetDBHeight(), 
-						i,
-						pls,
-						(string)((([]byte)("-\\|/-\\|/-="))[i]))
+			fmt.Printf("\r%19s: DBlock %v minute %v %s %s",
+				"Timer",
+				state.GetDBHeight(),
+				i,
+				pls,
+				(string)((([]byte)("-\\|/-\\|/-="))[i]))
 		}
 	}
 

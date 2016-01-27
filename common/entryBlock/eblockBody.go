@@ -53,5 +53,3 @@ func (e *EBlockBody) String() string {
 func (e *EBlockBody) GetEBEntries() []interfaces.IHash {
 	return e.EBEntries[:]
 }
-
-

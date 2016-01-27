@@ -37,13 +37,12 @@ func (m *CommitChainMsg) SetCount(cnt int) {
 	m.count = cnt
 }
 
-
 func (m *CommitChainMsg) Process(state interfaces.IState) {
 	ecblk := state.GetCurrentEntryCreditBlock()
 	ecbody := ecblk.GetBody()
 	ecbody.AddEntry(m.CommitChain)
 	state.GetFactoidState().UpdateECTransaction(m.CommitChain)
-	state.PutCommits(m.GetHash(),m)
+	state.PutCommits(m.GetHash(), m)
 }
 
 func (m *CommitChainMsg) GetHash() interfaces.IHash {

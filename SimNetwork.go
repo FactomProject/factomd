@@ -23,7 +23,7 @@ var _ = fmt.Print
 func SimNetwork(states ...interfaces.IState) {
 
 	state := states[0]
-	
+
 netloop:
 	for {
 

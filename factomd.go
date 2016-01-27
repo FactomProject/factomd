@@ -11,8 +11,8 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/state"
-	"github.com/FactomProject/factomd/wsapi"
 	"github.com/FactomProject/factomd/util"
+	"github.com/FactomProject/factomd/wsapi"
 	"os"
 	"runtime"
 	"strings"
@@ -36,7 +36,7 @@ func main() {
 
 	var sim bool
 	args := os.Args[1:]
-	if len(args)>0 && args[0]=="sim" {
+	if len(args) > 0 && args[0] == "sim" {
 		sim = true
 	}
 	log.Print("//////////////////////// Copyright 2015 Factom Foundation")
@@ -54,7 +54,7 @@ func main() {
 		time.Sleep(3 * time.Second)
 		os.Exit(1)
 	}
-	
+
 	var state0, state1, state2, state3, state4 *state.State
 	state0 = new(state.State)
 	state0.Init(util.GetConfigFilename("m2"))
@@ -68,7 +68,7 @@ func main() {
 		state4 := new(state.State)
 		state4.Init(util.GetConfigFilename("m2-4"))
 	}
-	
+
 	btcd.AddInterruptHandler(func() {
 		log.Printf("Gracefully shutting down the database...")
 		state0.GetDB().(interfaces.IDatabase).Close()
@@ -79,7 +79,7 @@ func main() {
 			state4.GetDB().(interfaces.IDatabase).Close()
 		}
 	})
-	
+
 	// Go Optimizations...
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	if err := limits.SetLimits(); err != nil {
@@ -99,15 +99,15 @@ func main() {
 
 	if sim {
 		go SimNetwork(state0, state1, state2, state3, state4)
-	}else{
+	} else {
 		go NetworkProcessor(state0)
 	}
-	
+
 	go Timer(state0)
 	go Validator(state0)
 	go Leader(state0)
 	go Follower(state0)
-	
+
 	go wsapi.Start(state0)
 
 	shutdownChannel := make(chan struct{})
