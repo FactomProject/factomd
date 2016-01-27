@@ -11,8 +11,8 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/state"
-	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
+	"github.com/FactomProject/factomd/util"
 	"os"
 	"runtime"
 	"strings"
@@ -34,19 +34,12 @@ var Build string
 
 func main() {
 
-	var sim bool
-	args := os.Args[1:]
-	if len(args) > 0 && args[0] == "sim" {
-		sim = true
-	}
 	log.Print("//////////////////////// Copyright 2015 Factom Foundation")
 	log.Print("//////////////////////// Use of this source code is governed by the MIT")
 	log.Print("//////////////////////// license that can be found in the LICENSE file.")
 	log.Printf("Go compiler version: %s\n", runtime.Version())
 	log.Printf("Using build: %s\n", Build)
-	if sim {
-		log.Print(" ==========> Simulation Network <===========")
-	}
+
 	if !isCompilerVersionOK() {
 		for i := 0; i < 30; i++ {
 			log.Println("!!! !!! !!! ERROR: unsupported compiler version !!! !!! !!!")
@@ -55,9 +48,24 @@ func main() {
 		os.Exit(1)
 	}
 
-	var state0, state1, state2, state3, state4 *state.State
-	state0 = new(state.State)
-	state0.Init(util.GetConfigFilename("m2"))
+	pcfg, _, err := btcd.LoadConfig()
+	if err != nil {
+		log.Println(err.Error())
+	}
+	sim := pcfg.SimNet
+	fcfg := pcfg.FactomConfigFile
+	if sim {
+		log.Println(" ==========> Simulation Network <===========")
+	}
+
+	//var state0, state1, state2, state3, state4 *state.State
+	state0 := new(state.State)
+	if len(fcfg) > 0 {
+		log. Printfln("factom config: %s", fcfg)
+		state0.Init(fcfg)
+	} else {
+		state0.Init(util.GetConfigFilename("m2"))
+	}/*
 	if sim {
 		state1 := new(state.State)
 		state1.Init(util.GetConfigFilename("m2-1"))
@@ -67,16 +75,16 @@ func main() {
 		state3.Init(util.GetConfigFilename("m2-3"))
 		state4 := new(state.State)
 		state4.Init(util.GetConfigFilename("m2-4"))
-	}
+	}*/
 
 	btcd.AddInterruptHandler(func() {
 		log.Printf("Gracefully shutting down the database...")
 		state0.GetDB().(interfaces.IDatabase).Close()
 		if sim {
-			state1.GetDB().(interfaces.IDatabase).Close()
-			state2.GetDB().(interfaces.IDatabase).Close()
-			state3.GetDB().(interfaces.IDatabase).Close()
-			state4.GetDB().(interfaces.IDatabase).Close()
+			//state1.GetDB().(interfaces.IDatabase).Close()
+			//state2.GetDB().(interfaces.IDatabase).Close()
+			//state3.GetDB().(interfaces.IDatabase).Close()
+			//state4.GetDB().(interfaces.IDatabase).Close()
 		}
 	})
 
@@ -97,11 +105,11 @@ func main() {
 	server.Start()
 	state0.SetServer(server)
 
-	if sim {
-		go SimNetwork(state0, state1, state2, state3, state4)
-	} else {
+	//if sim {
+		//go SimNetwork(state0, state1, state2, state3, state4)
+	//}else{
 		go NetworkProcessor(state0)
-	}
+	//}
 
 	go Timer(state0)
 	go Validator(state0)

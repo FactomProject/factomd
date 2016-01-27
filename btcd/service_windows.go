@@ -37,9 +37,9 @@ var elog *eventlog.Log
 func logServiceStartOfDay(srvr *Server) {
 	var message string
 	message += fmt.Sprintf("Version %s\n", version())
-	message += fmt.Sprintf("Configuration directory: %s\n", btcdHomeDir)
-	message += fmt.Sprintf("Configuration file: %s\n", cfg.ConfigFile)
-	message += fmt.Sprintf("Data directory: %s\n", cfg.DataDir)
+	//message += fmt.Sprintf("Configuration directory: %s\n", btcdHomeDir)
+	//message += fmt.Sprintf("Configuration file: %s\n", Pcfg.ConfigFile)
+	//message += fmt.Sprintf("Data directory: %s\n", Pcfg.DataDir)
 
 	elog.Info(1, message)
 }

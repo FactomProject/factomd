@@ -195,7 +195,7 @@ func (s *State) UpdateProcessLists() {
 		if s.PLPrevious.Complete() {
 			s.PLCurrent.Process(s)
 		}
-	} else {
+	}else{
 		s.PLCurrent.Process(s)
 	}
 }
@@ -459,7 +459,7 @@ func (s *State) Init(filename string) {
 	default:
 		panic("Bad Node Mode (must be FULL or SERVER)")
 	}
-
+	
 	if s.ServerState == 1 {
 		s.ServerIndex = 0
 	}

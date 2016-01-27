@@ -46,6 +46,19 @@ var TestNet3Params = Params{
 	DefaultPort: "18108",
 }
 
+// SimNetParams defines the network parameters for the simulation test Bitcoin
+// network.  This network is similar to the normal test network except it is
+// intended for private use within a group of individuals doing simulation
+// testing.  The functionality is intended to differ in that the only nodes
+// which are specifically specified are used to create the network rather than
+// following normal discovery rules.  This is important as otherwise it would
+// just turn into another public testnet.
+var SimNetParams = Params{
+	Name:        "simnet",
+	Net:         messages.SimNet,
+	DefaultPort: "18555",
+}
+
 // params is used to group parameters for various networks such as the main
 // network and test networks.
 type params struct {
@@ -64,16 +77,6 @@ var mainNetParams = params{
 	Params:  &MainNetParams,
 	rpcPort: "8384",
 	dnsSeeds: []string{
-		//		"factom.network",
-		/*
-			"seed.bitcoin.sipa.be",
-			"dnsseed.bluematt.me",
-			"dnsseed.bitcoin.dashjr.org",
-			"seed.bitcoinstats.com",
-			"seed.bitnodes.io",
-			"bitseed.xf2.org",
-			"seeds.bitcoin.open-nodes.org",
-		*/
 		"52.27.143.38",
 	},
 }
@@ -86,6 +89,21 @@ var regressionNetParams = params{
 	Params:   &RegressionNetParams,
 	rpcPort:  "18334",
 	dnsSeeds: []string{},
+}
+
+// testNet3Params contains parameters specific to the test network (version 3)
+// (wire.TestNet3).  NOTE: The RPC port is intentionally different than the
+// reference implementation - see the mainNetParams comment for details.
+var testNet3Params = params{
+	Params:  &TestNet3Params,
+	rpcPort: "18334",
+}
+
+// simNetParams contains parameters specific to the simulation test network
+// (wire.SimNet).
+var simNetParams = params{
+	Params:  &SimNetParams,
+	rpcPort: "18556",
 }
 
 // netName returns the name used when referring to a bitcoin network.  At the
