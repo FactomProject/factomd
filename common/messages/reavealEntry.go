@@ -34,11 +34,11 @@ func (m *RevealEntryMsg) Process(state interfaces.IState) {
 	_,isNewChain := c.(*CommitChainMsg)
 	if isNewChain {
 		fmt.Println("New Chain")
-		eb := common.entryBlock.NewEBlock()
+		//eb := entryBlock.NewEBlock()
 		chainID := m.Entry.GetChainID()
-		eb,err := state.GetDB().FetchEBlockHead(chainID)
-		if err != nil || eb != nil {
-			return -1
+		ebh,err := state.GetDB().FetchEBlockHead(chainID)
+		if err != nil || ebh != nil {
+			panic("This is wrong:  Chain already exists")
 		}
 	}else{
 		
