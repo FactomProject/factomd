@@ -159,6 +159,51 @@ func HandleV2RevealChain(state interfaces.IState, params interface{}) (interface
 }
 
 func HandleV2CommitEntry(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+/*
+func handleCommitEntry(ctx *web.Context) {
+	type commitentry struct {
+		CommitEntryMsg string
+	}
+
+	c := new(commitentry)
+	if p, err := ioutil.ReadAll(ctx.Request.Body); err != nil {
+		wsLog.Error(err)
+		ctx.WriteHeader(httpBad)
+		ctx.Write([]byte(err.Error()))
+		return
+	} else {
+		if err := json.Unmarshal(p, c); err != nil {
+			wsLog.Error(err)
+			ctx.WriteHeader(httpBad)
+			ctx.Write([]byte(err.Error()))
+			return
+		}
+	}
+
+	commit := NewCommitEntry()
+	if p, err := hex.DecodeString(c.CommitEntryMsg); err != nil {
+		wsLog.Error(err)
+		ctx.WriteHeader(httpBad)
+		ctx.Write([]byte(err.Error()))
+		return
+	} else {
+		_, err := commit.UnmarshalBinaryData(p)
+		if err != nil {
+			wsLog.Error(err)
+			ctx.WriteHeader(httpBad)
+			ctx.Write([]byte(err.Error()))
+			return
+		}
+	}
+	if err := factomapi.CommitEntry(commit); err != nil {
+		wsLog.Error(err)
+		ctx.WriteHeader(httpBad)
+		ctx.Write([]byte(err.Error()))
+		return
+	}
+
+}
+*/
 	return nil, nil
 }
 
