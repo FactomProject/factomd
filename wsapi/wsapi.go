@@ -96,7 +96,10 @@ func HandleCommitChain(ctx *web.Context) {
 	req := primitives.NewJSON2Request(1, c.CommitChainMsg, "commit-chain")
 
 	jsonResp, jsonError := HandleV2Request(state, req)
-	returnV1(ctx, jsonResp, jsonError)
+	if jsonError!=nil {
+		returnV1(ctx, nil, jsonError)
+	}
+	returnV1(ctx, jsonResp.(*CommitChainResponse).Message, nil)
 }
 
 func HandleRevealChain(ctx *web.Context) {
@@ -132,7 +135,10 @@ func HandleRevealEntry(ctx *web.Context) {
 	req := primitives.NewJSON2Request(1, e.Entry, "reveal-entry")
 
 	jsonResp, jsonError := HandleV2Request(state, req)
-	returnV1(ctx, jsonResp, jsonError)
+	if jsonError!=nil {
+		returnV1(ctx, nil, jsonError)
+	}
+	returnV1(ctx, jsonResp.(*RevealEntryResponse).Message, nil)
 }
 
 func HandleDirectoryBlockHead(ctx *web.Context) {
@@ -141,7 +147,12 @@ func HandleDirectoryBlockHead(ctx *web.Context) {
 	req := primitives.NewJSON2Request(1, nil, "directory-block-head")
 
 	jsonResp, jsonError := HandleV2Request(state, req)
-	returnV1(ctx, jsonResp, jsonError)
+	if jsonError!=nil {
+		returnV1(ctx, nil, jsonError)
+	}
+	dhead:=new(DBHead)
+	dhead.KeyMR = jsonResp.(*DirectoryBlockHeadResponse).KeyMR
+	returnV1(ctx, dhead, nil)
 }
 
 func HandleGetRaw(ctx *web.Context, hashkey string) {
@@ -159,7 +170,12 @@ func HandleGetReceipt(ctx *web.Context, hashkey string) {
 	req := primitives.NewJSON2Request(1, hashkey, "get-receipt")
 
 	jsonResp, jsonError := HandleV2Request(state, req)
-	returnV1(ctx, jsonResp, jsonError)
+	if jsonError!=nil {
+		returnV1(ctx, nil, jsonError)
+	}
+	raw:=new(RawData)
+	raw.Data = jsonResp.(*GetRawDataResponse).Data
+	returnV1(ctx, raw, nil)
 }
 
 func HandleDirectoryBlock(ctx *web.Context, hashkey string) {
@@ -168,7 +184,17 @@ func HandleDirectoryBlock(ctx *web.Context, hashkey string) {
 	req := primitives.NewJSON2Request(1, hashkey, "directory-block-by-keymr")
 
 	jsonResp, jsonError := HandleV2Request(state, req)
-	returnV1(ctx, jsonResp, jsonError)
+	if jsonError!=nil {
+		returnV1(ctx, nil, jsonError)
+	}
+	d:=new(DBlock)
+
+	d.Header.PrevBlockKeyMR = jsonResp.(*RevealEntryResponse).Header.PrevBlockKeyMR
+	d.Header.SequenceNumber = jsonResp.(*RevealEntryResponse).Header.SequenceNumber
+	d.Header.Timestamp = jsonResp.(*RevealEntryResponse).Header.Timestamp
+	d.EntryBlockList = jsonResp.(*RevealEntryResponse).EntryBlockList
+
+	returnV1(ctx, d, nil)
 }
 
 func HandleEntryBlock(ctx *web.Context, hashkey string) {
@@ -177,7 +203,18 @@ func HandleEntryBlock(ctx *web.Context, hashkey string) {
 	req := primitives.NewJSON2Request(1, hashkey, "entry-block-by-keymr")
 
 	jsonResp, jsonError := HandleV2Request(state, req)
-	returnV1(ctx, jsonResp, jsonError)
+	if jsonError!=nil {
+		returnV1(ctx, nil, jsonError)
+	}
+	d:=new(EBlock)
+
+	d.Header.BlockSequenceNumber = jsonResp.(*EntryBlockResponse).Header.BlockSequenceNumber
+	d.Header.ChainID = jsonResp.(*EntryBlockResponse).Header.ChainID
+	d.Header.PrevKeyMR = jsonResp.(*EntryBlockResponse).Header.PrevKeyMR
+	d.Header.Timestamp = jsonResp.(*EntryBlockResponse).Header.Timestamp
+	d.EntryList = jsonResp.(*EntryBlockResponse).EntryList
+
+	returnV1(ctx, d, nil)
 }
 
 func HandleEntry(ctx *web.Context, hashkey string) {
@@ -186,7 +223,16 @@ func HandleEntry(ctx *web.Context, hashkey string) {
 	req := primitives.NewJSON2Request(1, hashkey, "entry-by-hash")
 
 	jsonResp, jsonError := HandleV2Request(state, req)
-	returnV1(ctx, jsonResp, jsonError)
+	if jsonError!=nil {
+		returnV1(ctx, nil, jsonError)
+	}
+	d:=new(EntryStruct)
+
+	d.ChainID = jsonResp.(*RevealEntryResponse).ChainID
+	d.Content = jsonResp.(*RevealEntryResponse).Content
+	d.ExtIDs = jsonResp.(*RevealEntryResponse).ExtIDs
+
+	returnV1(ctx, d, nil)
 }
 
 func HandleChainHead(ctx *web.Context, hashkey string) {
@@ -195,7 +241,14 @@ func HandleChainHead(ctx *web.Context, hashkey string) {
 	req := primitives.NewJSON2Request(1, hashkey, "chain-head")
 
 	jsonResp, jsonError := HandleV2Request(state, req)
-	returnV1(ctx, jsonResp, jsonError)
+	if jsonError!=nil {
+		returnV1(ctx, nil, jsonError)
+	}
+	d:=new(CHead)
+
+	d.ChainHead  = jsonResp.(*ChainHeadResponse).ChainHead
+
+	returnV1(ctx, d, nil)
 }
 
 func HandleEntryCreditBalance(ctx *web.Context, eckey string) {
@@ -204,7 +257,10 @@ func HandleEntryCreditBalance(ctx *web.Context, eckey string) {
 	req := primitives.NewJSON2Request(1, eckey, "entry-credit-balance")
 
 	jsonResp, jsonError := HandleV2Request(state, req)
-	returnV1(ctx, jsonResp, jsonError)
+	if jsonError!=nil {
+		returnV1(ctx, nil, jsonError)
+	}
+	returnV1(ctx, fmt.Sprintf("%v", jsonResp.(*EntryCreditBalanceResponse).Balance), nil)
 }
 
 func HandleGetFee(ctx *web.Context) {
@@ -213,7 +269,15 @@ func HandleGetFee(ctx *web.Context) {
 	req := primitives.NewJSON2Request(1, nil, "factoid-get-fee")
 
 	jsonResp, jsonError := HandleV2Request(state, req)
-	returnV1(ctx, jsonResp, jsonError)
+	if jsonError!=nil {
+		returnV1(ctx, nil, jsonError)
+	}
+	type x struct{ Fee int64 }
+	d:=new(x)
+
+	d.Fee  = jsonResp.(*FactoidGetFeeResponse).Fee
+
+	returnV1(ctx, d, nil)
 }
 
 func HandleFactoidSubmit(ctx *web.Context) {
@@ -237,7 +301,10 @@ func HandleFactoidSubmit(ctx *web.Context) {
 	req := primitives.NewJSON2Request(1, t.Transaction, "factoid-submit")
 
 	jsonResp, jsonError := HandleV2Request(state, req)
-	returnV1(ctx, jsonResp, jsonError)
+	if jsonError!=nil {
+		returnV1(ctx, nil, jsonError)
+	}
+	returnV1(ctx, jsonResp.(*FactoidSubmitResponse).Message, nil)
 }
 
 func HandleFactoidBalance(ctx *web.Context, eckey string) {
@@ -246,7 +313,10 @@ func HandleFactoidBalance(ctx *web.Context, eckey string) {
 	req := primitives.NewJSON2Request(1, eckey, "factoid-balance")
 
 	jsonResp, jsonError := HandleV2Request(state, req)
-	returnV1(ctx, jsonResp, jsonError)
+	if jsonError!=nil {
+		returnV1(ctx, nil, jsonError)
+	}
+	returnV1(ctx, fmt.Sprintf("%v", jsonResp.(*FactoidBalanceResponse).Balance), nil)
 }
 
 /*********************************************************
