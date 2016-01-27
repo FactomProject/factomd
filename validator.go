@@ -19,29 +19,29 @@ func Validator(state interfaces.IState) {
 		msg := <-state.InMsgQueue() // Get message from the input queue
 
 		if state.PrintType(msg.Type()) {
-			log.Printf("%20s %s", "Validator:", msg.String())
+			fmt.Printf("%20s %s", "Validator:", msg.String())
 		}
 
 		switch msg.Validate(state) { // Validate the message.
 		case 1: // Process if valid
 			state.NetworkOutMsgQueue() <- msg
 			if state.PrintType(msg.Type()) {
-				log.Printf(" Valid\n")
+				fmt.Printf(" Valid\n")
 			}
 			if msg.Leader(state) {
 				state.LeaderInMsgQueue() <- msg
 			} else if msg.Follower(state) {
 				state.FollowerInMsgQueue() <- msg
 			} else {
-				log.Printf(" Message ignored\n")
+				fmt.Printf(" Message ignored\n")
 			}
 		case 0: // Hold for later if unknown.
 			if state.PrintType(msg.Type()) {
-				log.Printf(" Hold\n")
+				fmt.Printf(" Hold\n")
 			}
 		default:
 			if state.PrintType(msg.Type()) {
-				log.Printf(" Invalid\n")
+				fmt.Printf(" Invalid\n")
 			}
 			state.NetworkInvalidMsgQueue() <- msg
 		}
