@@ -99,7 +99,7 @@ func HandleCommitChain(ctx *web.Context) {
 	if jsonError!=nil {
 		returnV1(ctx, nil, jsonError)
 	}
-	returnV1(ctx, jsonResp.(*CommitChainResponse).Message, nil)
+	returnMsg(ctx, jsonResp.Result.(*CommitChainResponse).Message, true)
 }
 
 func HandleRevealChain(ctx *web.Context) {
@@ -138,7 +138,7 @@ func HandleRevealEntry(ctx *web.Context) {
 	if jsonError!=nil {
 		returnV1(ctx, nil, jsonError)
 	}
-	returnV1(ctx, jsonResp.(*RevealEntryResponse).Message, nil)
+	returnMsg(ctx, jsonResp.Result.(*RevealEntryResponse).Message, true)
 }
 
 func HandleDirectoryBlockHead(ctx *web.Context) {
@@ -151,8 +151,8 @@ func HandleDirectoryBlockHead(ctx *web.Context) {
 		returnV1(ctx, nil, jsonError)
 	}
 	dhead:=new(DBHead)
-	dhead.KeyMR = jsonResp.(*DirectoryBlockHeadResponse).KeyMR
-	returnV1(ctx, dhead, nil)
+	dhead.KeyMR = jsonResp.Result.(*DirectoryBlockHeadResponse).KeyMR
+	returnMsg(ctx, dhead, true)
 }
 
 func HandleGetRaw(ctx *web.Context, hashkey string) {
@@ -174,8 +174,8 @@ func HandleGetReceipt(ctx *web.Context, hashkey string) {
 		returnV1(ctx, nil, jsonError)
 	}
 	raw:=new(RawData)
-	raw.Data = jsonResp.(*GetRawDataResponse).Data
-	returnV1(ctx, raw, nil)
+	raw.Data = jsonResp.Result.(*GetRawDataResponse).Data
+	returnMsg(ctx, raw, true)
 }
 
 func HandleDirectoryBlock(ctx *web.Context, hashkey string) {
@@ -189,12 +189,12 @@ func HandleDirectoryBlock(ctx *web.Context, hashkey string) {
 	}
 	d:=new(DBlock)
 
-	d.Header.PrevBlockKeyMR = jsonResp.(*RevealEntryResponse).Header.PrevBlockKeyMR
-	d.Header.SequenceNumber = jsonResp.(*RevealEntryResponse).Header.SequenceNumber
-	d.Header.Timestamp = jsonResp.(*RevealEntryResponse).Header.Timestamp
-	d.EntryBlockList = jsonResp.(*RevealEntryResponse).EntryBlockList
+	d.Header.PrevBlockKeyMR = jsonResp.Result.(*DirectoryBlockResponse).Header.PrevBlockKeyMR
+	d.Header.SequenceNumber = jsonResp.Result.(*DirectoryBlockResponse).Header.SequenceNumber
+	d.Header.Timestamp = jsonResp.Result.(*DirectoryBlockResponse).Header.Timestamp
+	d.EntryBlockList = jsonResp.Result.(*DirectoryBlockResponse).EntryBlockList
 
-	returnV1(ctx, d, nil)
+	returnMsg(ctx, d, true)
 }
 
 func HandleEntryBlock(ctx *web.Context, hashkey string) {
@@ -208,13 +208,13 @@ func HandleEntryBlock(ctx *web.Context, hashkey string) {
 	}
 	d:=new(EBlock)
 
-	d.Header.BlockSequenceNumber = jsonResp.(*EntryBlockResponse).Header.BlockSequenceNumber
-	d.Header.ChainID = jsonResp.(*EntryBlockResponse).Header.ChainID
-	d.Header.PrevKeyMR = jsonResp.(*EntryBlockResponse).Header.PrevKeyMR
-	d.Header.Timestamp = jsonResp.(*EntryBlockResponse).Header.Timestamp
-	d.EntryList = jsonResp.(*EntryBlockResponse).EntryList
+	d.Header.BlockSequenceNumber = jsonResp.Result.(*EntryBlockResponse).Header.BlockSequenceNumber
+	d.Header.ChainID = jsonResp.Result.(*EntryBlockResponse).Header.ChainID
+	d.Header.PrevKeyMR = jsonResp.Result.(*EntryBlockResponse).Header.PrevKeyMR
+	d.Header.Timestamp = jsonResp.Result.(*EntryBlockResponse).Header.Timestamp
+	d.EntryList = jsonResp.Result.(*EntryBlockResponse).EntryList
 
-	returnV1(ctx, d, nil)
+	returnMsg(ctx, d, true)
 }
 
 func HandleEntry(ctx *web.Context, hashkey string) {
@@ -228,11 +228,11 @@ func HandleEntry(ctx *web.Context, hashkey string) {
 	}
 	d:=new(EntryStruct)
 
-	d.ChainID = jsonResp.(*RevealEntryResponse).ChainID
-	d.Content = jsonResp.(*RevealEntryResponse).Content
-	d.ExtIDs = jsonResp.(*RevealEntryResponse).ExtIDs
+	d.ChainID = jsonResp.Result.(*EntryResponse).ChainID
+	d.Content = jsonResp.Result.(*EntryResponse).Content
+	d.ExtIDs = jsonResp.Result.(*EntryResponse).ExtIDs
 
-	returnV1(ctx, d, nil)
+	returnMsg(ctx, d, true)
 }
 
 func HandleChainHead(ctx *web.Context, hashkey string) {
@@ -246,9 +246,9 @@ func HandleChainHead(ctx *web.Context, hashkey string) {
 	}
 	d:=new(CHead)
 
-	d.ChainHead  = jsonResp.(*ChainHeadResponse).ChainHead
+	d.ChainHead  = jsonResp.Result.(*ChainHeadResponse).ChainHead
 
-	returnV1(ctx, d, nil)
+	returnMsg(ctx, d, true)
 }
 
 func HandleEntryCreditBalance(ctx *web.Context, eckey string) {
@@ -260,7 +260,7 @@ func HandleEntryCreditBalance(ctx *web.Context, eckey string) {
 	if jsonError!=nil {
 		returnV1(ctx, nil, jsonError)
 	}
-	returnV1(ctx, fmt.Sprintf("%v", jsonResp.(*EntryCreditBalanceResponse).Balance), nil)
+	returnMsg(ctx, fmt.Sprintf("%v", jsonResp.Result.(*EntryCreditBalanceResponse).Balance), true)
 }
 
 func HandleGetFee(ctx *web.Context) {
@@ -275,9 +275,9 @@ func HandleGetFee(ctx *web.Context) {
 	type x struct{ Fee int64 }
 	d:=new(x)
 
-	d.Fee  = jsonResp.(*FactoidGetFeeResponse).Fee
+	d.Fee  = int64(jsonResp.Result.(*FactoidGetFeeResponse).Fee)
 
-	returnV1(ctx, d, nil)
+	returnMsg(ctx, d, true)
 }
 
 func HandleFactoidSubmit(ctx *web.Context) {
@@ -304,7 +304,7 @@ func HandleFactoidSubmit(ctx *web.Context) {
 	if jsonError!=nil {
 		returnV1(ctx, nil, jsonError)
 	}
-	returnV1(ctx, jsonResp.(*FactoidSubmitResponse).Message, nil)
+	returnMsg(ctx, jsonResp.Result.(*FactoidSubmitResponse).Message, true)
 }
 
 func HandleFactoidBalance(ctx *web.Context, eckey string) {
@@ -316,7 +316,7 @@ func HandleFactoidBalance(ctx *web.Context, eckey string) {
 	if jsonError!=nil {
 		returnV1(ctx, nil, jsonError)
 	}
-	returnV1(ctx, fmt.Sprintf("%v", jsonResp.(*FactoidBalanceResponse).Balance), nil)
+	returnMsg(ctx, fmt.Sprintf("%v", jsonResp.Result.(*FactoidBalanceResponse).Balance), true)
 }
 
 /*********************************************************
