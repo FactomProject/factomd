@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	Pcfg             *config
+	Pcfg            *config
 	shutdownChannel = make(chan struct{})
 )
 

@@ -5,9 +5,9 @@
 package main
 
 import (
+	"fmt"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/log"
-	"fmt"
 )
 
 var _ = log.Print

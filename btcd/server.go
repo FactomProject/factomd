@@ -1053,13 +1053,13 @@ func (s *Server) Start() {
 	}
 
 	//if !Pcfg.DisableRPC {
-		//s.wg.Add(1)
+	//s.wg.Add(1)
 
-		// Start the rebroadcastHandler, which ensures user tx received by
-		// the RPC server are rebroadcast until being included in a block.
-		//go s.rebroadcastHandler()
+	// Start the rebroadcastHandler, which ensures user tx received by
+	// the RPC server are rebroadcast until being included in a block.
+	//go s.rebroadcastHandler()
 
-		//s.rpcServer.Start()
+	//s.rpcServer.Start()
 	//}
 
 	//if Pcfg.AddrIndex {
@@ -1247,13 +1247,13 @@ func NewServer(state interfaces.IState) (*Server, error) {
 	// Load configuration and parse command line.  This function also
 	// initializes logging and configures it accordingly.
 	/*
-	tcfg, _, err := loadConfig()
-	if err != nil {
-		return nil, err
-	}
-	Pcfg = tcfg
-	// tweak some config options
-	Pcfg.DisableCheckpoints = true */
+		tcfg, _, err := loadConfig()
+		if err != nil {
+			return nil, err
+		}
+		Pcfg = tcfg
+		// tweak some config options
+		Pcfg.DisableCheckpoints = true */
 	defer backendLog.Flush()
 
 	// Show version at startup.

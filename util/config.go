@@ -31,13 +31,13 @@ type FactomdConfig struct {
 		ExchangeRate            uint64
 	}
 	Peer struct {
-		AddPeers      []string      `short:"a" long:"addpeer" description:"Add a peer to connect with at startup"`
-		ConnectPeers  []string      `long:"connect" description:"Connect only to the specified peers at startup"`
-		Listeners     []string      `long:"listen" description:"Add an interface/port to listen for connections (default all interfaces port: 8108, testnet: 18108)"`
-		MaxPeers      int           `long:"maxpeers" description:"Max number of inbound and outbound peers"`
-		BanDuration   time.Duration `long:"banduration" description:"How long to ban misbehaving peers.  Valid time units are {s, m, h}.  Minimum 1 second"`
-		TestNet            bool     `long:"testnet" description:"Use the test network"`
-		SimNet             bool     `long:"simnet" description:"Use the simulation test network"`
+		AddPeers     []string      `short:"a" long:"addpeer" description:"Add a peer to connect with at startup"`
+		ConnectPeers []string      `long:"connect" description:"Connect only to the specified peers at startup"`
+		Listeners    []string      `long:"listen" description:"Add an interface/port to listen for connections (default all interfaces port: 8108, testnet: 18108)"`
+		MaxPeers     int           `long:"maxpeers" description:"Max number of inbound and outbound peers"`
+		BanDuration  time.Duration `long:"banduration" description:"How long to ban misbehaving peers.  Valid time units are {s, m, h}.  Minimum 1 second"`
+		TestNet      bool          `long:"testnet" description:"Use the test network"`
+		SimNet       bool          `long:"simnet" description:"Use the simulation test network"`
 	}
 	Anchor struct {
 		ServerECPrivKey     string
@@ -214,7 +214,7 @@ func ConfigFilename() string {
 }
 
 func GetConfigFilename(dir string) string {
-	return GetHomeDir()+"/.factom/"+dir+"/factomd.conf"
+	return GetHomeDir() + "/.factom/" + dir + "/factomd.conf"
 }
 
 func ReadConfig(filename string) *FactomdConfig {
@@ -233,7 +233,7 @@ func ReadConfig(filename string) *FactomdConfig {
 	// Default to home directory if not set
 	if len(cfg.App.HomeDir) < 1 {
 		cfg.App.HomeDir = GetHomeDir() + "/.factom/m2/"
-	}else{
+	} else {
 		cfg.App.HomeDir = cfg.App.HomeDir + "/.factom/m2/"
 	}
 
