@@ -5,20 +5,13 @@
 package wsapi
 
 import (
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 
-	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/common/entryBlock"
-	"github.com/FactomProject/factomd/common/entryCreditBlock"
-	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/log"
-	"github.com/FactomProject/factomd/receipts"
 	"github.com/hoisie/web"
 )
 
@@ -69,6 +62,19 @@ func Stop(state interfaces.IState) {
 	Servers[state.GetPort()].Close()
 }
 
+func handleV1Error(ctx *web.Context, err *primitives.JSONError) {
+	returnMsg(ctx, err.Message, false)
+	return
+}
+
+func returnV1(ctx *web.Context, jsonResp *primitives.JSON2Response, jsonError *primitives.JSONError) {
+	if jsonError != nil {
+		handleV1Error(ctx, jsonError)
+		return
+	}
+	returnMsg(ctx, jsonResp.Result, true)
+}
+
 func HandleCommitChain(ctx *web.Context) {
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
@@ -78,33 +84,22 @@ func HandleCommitChain(ctx *web.Context) {
 
 	c := new(commitchain)
 	if p, err := ioutil.ReadAll(ctx.Request.Body); err != nil {
-		returnMsg(ctx, "Bad commit message", false)
+		handleV1Error(ctx, NewInvalidParamsError())
 		return
 	} else {
 		if err := json.Unmarshal(p, c); err != nil {
-			returnMsg(ctx, "Bad commit message", false)
+			handleV1Error(ctx, NewInvalidParamsError())
 			return
 		}
 	}
 
-	commit := entryCreditBlock.NewCommitChain()
-	if p, err := hex.DecodeString(c.CommitChainMsg); err != nil {
-		returnMsg(ctx, "Bad commit message", false)
-		return
-	} else {
-		_, err := commit.UnmarshalBinaryData(p)
-		if err != nil {
-			returnMsg(ctx, "Bad commit message", false)
-			return
-		}
+	req := primitives.NewJSON2Request(1, c.CommitChainMsg, "commit-chain")
+
+	jsonResp, jsonError := HandleV2Request(state, req)
+	if jsonError!=nil {
+		returnV1(ctx, nil, jsonError)
 	}
-
-	msg := new(messages.CommitChainMsg)
-	msg.CommitChain = commit
-	msg.Timestamp = state.GetTimestamp()
-	state.InMsgQueue() <- msg
-
-	returnMsg(ctx, "Chain Commit Success", true)
+	returnMsg(ctx, jsonResp.Result.(*CommitChainResponse).Message, true)
 }
 
 func HandleRevealChain(ctx *web.Context) {
@@ -112,413 +107,177 @@ func HandleRevealChain(ctx *web.Context) {
 }
 
 func HandleCommitEntry(ctx *web.Context) {
+	state := ctx.Server.Env["state"].(interfaces.IState)
 
+	req := primitives.NewJSON2Request(1, nil, "commit-entry")
+
+	jsonResp, jsonError := HandleV2Request(state, req)
+	returnV1(ctx, jsonResp, jsonError)
 }
 
 func HandleRevealEntry(ctx *web.Context) {
+	state := ctx.Server.Env["state"].(interfaces.IState)
 	type revealentry struct {
 		Entry string
 	}
 
 	e := new(revealentry)
 	if p, err := ioutil.ReadAll(ctx.Request.Body); err != nil {
-		returnMsg(ctx, "Error Reveal Entry: "+err.Error(), false)
+		handleV1Error(ctx, NewInvalidParamsError())
 		return
 	} else {
 		if err := json.Unmarshal(p, e); err != nil {
-			returnMsg(ctx, "Error Reveal Entry: "+err.Error(), false)
+			handleV1Error(ctx, NewInvalidParamsError())
 			return
 		}
 	}
 
-	entry := entryBlock.NewEntry()
-	if p, err := hex.DecodeString(e.Entry); err != nil {
-		returnMsg(ctx, "Error Reveal Entry: "+err.Error(), false)
-		return
-	} else {
-		_, err := entry.UnmarshalBinaryData(p)
-		if err != nil {
-			returnMsg(ctx, "Error Reveal Entry: "+err.Error(), false)
-			return
-		}
+	req := primitives.NewJSON2Request(1, e.Entry, "reveal-entry")
+
+	jsonResp, jsonError := HandleV2Request(state, req)
+	if jsonError!=nil {
+		returnV1(ctx, nil, jsonError)
 	}
-
-	state := ctx.Server.Env["state"].(interfaces.IState)
-
-	msg := new(messages.RevealEntryMsg)
-	msg.Entry = entry
-	msg.Timestamp = state.GetTimestamp()
-	state.InMsgQueue() <- msg
-
-	returnMsg(ctx, "Entry Reveal Success", true)
+	returnMsg(ctx, jsonResp.Result.(*RevealEntryResponse).Message, true)
 }
 
 func HandleDirectoryBlockHead(ctx *web.Context) {
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
-	h := new(DBHead)
+	req := primitives.NewJSON2Request(1, nil, "directory-block-head")
 
-	h.KeyMR = state.GetPreviousDirectoryBlock().GetKeyMR().String()
-
-	fmt.Println(h.KeyMR)
-
-	if p, err := json.Marshal(h); err != nil {
-		wsLog.Error(err)
-		ctx.WriteHeader(httpBad)
-		ctx.Write([]byte(err.Error()))
-		return
-	} else {
-		ctx.Write(p)
+	jsonResp, jsonError := HandleV2Request(state, req)
+	if jsonError!=nil {
+		returnV1(ctx, nil, jsonError)
 	}
-
+	dhead:=new(DBHead)
+	dhead.KeyMR = jsonResp.Result.(*DirectoryBlockHeadResponse).KeyMR
+	returnMsg(ctx, dhead, true)
 }
 
 func HandleGetRaw(ctx *web.Context, hashkey string) {
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
-	//TODO: var block interfaces.BinaryMarshallable
-	d := new(RawData)
+	req := primitives.NewJSON2Request(1, hashkey, "get-raw-data")
 
-	h, err := primitives.HexToHash(hashkey)
-	if err != nil {
-		wsLog.Error(err)
-		ctx.WriteHeader(httpBad)
-		ctx.Write([]byte(err.Error()))
-		return
-	}
-
-	dbase := state.GetDB()
-
-	var b []byte
-
-	// try to find the block data in db and return the first one found
-	if block, _ := dbase.FetchFBlockByKeyMR(h); block != nil {
-		b, _ = block.MarshalBinary()
-	} else if block, _ := dbase.FetchDBlockByKeyMR(h); block != nil {
-		b, _ = block.MarshalBinary()
-	} else if block, _ := dbase.FetchABlockByKeyMR(h); block != nil {
-		b, _ = block.MarshalBinary()
-	} else if block, _ := dbase.FetchEBlockByKeyMR(h); block != nil {
-		b, _ = block.MarshalBinary()
-	} else if block, _ := dbase.FetchECBlockByKeyMR(h); block != nil {
-		b, _ = block.MarshalBinary()
-
-	} else if block, _ := dbase.FetchEntryByHash(h); block != nil {
-		b, _ = block.MarshalBinary()
-
-	} else if block, _ := dbase.FetchFBlockByHash(h); block != nil {
-		b, _ = block.MarshalBinary()
-	} else if block, _ := dbase.FetchDBlockByHash(h); block != nil {
-		b, _ = block.MarshalBinary()
-	} else if block, _ := dbase.FetchABlockByHash(h); block != nil {
-		b, _ = block.MarshalBinary()
-	} else if block, _ := dbase.FetchEBlockByHash(h); block != nil {
-		b, _ = block.MarshalBinary()
-	} else if block, _ := dbase.FetchECBlockByHash(h); block != nil {
-		b, _ = block.MarshalBinary()
-	}
-
-	d.Data = hex.EncodeToString(b)
-
-	if p, err := json.Marshal(d); err != nil {
-		wsLog.Error(err)
-		ctx.WriteHeader(httpBad)
-		ctx.Write([]byte(err.Error()))
-		return
-	} else {
-		ctx.Write(p)
-	}
+	jsonResp, jsonError := HandleV2Request(state, req)
+	returnV1(ctx, jsonResp, jsonError)
 }
 
 func HandleGetReceipt(ctx *web.Context, hashkey string) {
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
-	h, err := primitives.HexToHash(hashkey)
-	if err != nil {
-		wsLog.Error(err)
-		ctx.WriteHeader(httpBad)
-		ctx.Write([]byte(err.Error()))
-		return
+	req := primitives.NewJSON2Request(1, hashkey, "get-receipt")
+
+	jsonResp, jsonError := HandleV2Request(state, req)
+	if jsonError!=nil {
+		returnV1(ctx, nil, jsonError)
 	}
-
-	dbase := state.GetDB()
-
-	rec, err := receipts.CreateFullReceipt(dbase, h)
-
-	if err != nil {
-		wsLog.Error(err)
-		ctx.WriteHeader(httpBad)
-		ctx.Write([]byte(err.Error()))
-		return
-	} else {
-		ctx.Write([]byte(rec.String()))
-	}
+	raw:=new(RawData)
+	raw.Data = jsonResp.Result.(*GetRawDataResponse).Data
+	returnMsg(ctx, raw, true)
 }
 
 func HandleDirectoryBlock(ctx *web.Context, hashkey string) {
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
-	d := new(DBlock)
+	req := primitives.NewJSON2Request(1, hashkey, "directory-block-by-keymr")
 
-	h, err := primitives.HexToHash(hashkey)
-	if err != nil {
-		wsLog.Error(err)
-		ctx.WriteHeader(httpBad)
-		ctx.Write([]byte(err.Error()))
-		return
+	jsonResp, jsonError := HandleV2Request(state, req)
+	if jsonError!=nil {
+		returnV1(ctx, nil, jsonError)
 	}
+	d:=new(DBlock)
 
-	dbase := state.GetDB()
+	d.Header.PrevBlockKeyMR = jsonResp.Result.(*DirectoryBlockResponse).Header.PrevBlockKeyMR
+	d.Header.SequenceNumber = jsonResp.Result.(*DirectoryBlockResponse).Header.SequenceNumber
+	d.Header.Timestamp = jsonResp.Result.(*DirectoryBlockResponse).Header.Timestamp
+	d.EntryBlockList = jsonResp.Result.(*DirectoryBlockResponse).EntryBlockList
 
-	block, err := dbase.FetchDBlockByKeyMR(h)
-	if err != nil {
-		wsLog.Error(err)
-		ctx.WriteHeader(httpBad)
-		ctx.Write([]byte(err.Error()))
-		return
-	}
-	if block == nil {
-		block, err = dbase.FetchDBlockByHash(h)
-		if err != nil {
-			wsLog.Error(err)
-			ctx.WriteHeader(httpBad)
-			ctx.Write([]byte(err.Error()))
-			return
-		}
-		if block == nil {
-			//TODO: Handle block not found
-			return
-		}
-	}
-
-	d.Header.PrevBlockKeyMR = block.GetHeader().GetPrevKeyMR().String()
-	d.Header.SequenceNumber = block.GetHeader().GetDBHeight()
-	d.Header.Timestamp = block.GetHeader().GetTimestamp() * 60
-	for _, v := range block.GetDBEntries() {
-		l := new(EBlockAddr)
-		l.ChainID = v.GetChainID().String()
-		l.KeyMR = v.GetKeyMR().String()
-		d.EntryBlockList = append(d.EntryBlockList, *l)
-	}
-
-	if p, err := json.Marshal(d); err != nil {
-		wsLog.Error(err)
-		ctx.WriteHeader(httpBad)
-		ctx.Write([]byte(err.Error()))
-		return
-	} else {
-		ctx.Write(p)
-	}
+	returnMsg(ctx, d, true)
 }
 
 func HandleEntryBlock(ctx *web.Context, hashkey string) {
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
-	e := new(EBlock)
+	req := primitives.NewJSON2Request(1, hashkey, "entry-block-by-keymr")
 
-	h, err := primitives.HexToHash(hashkey)
-	if err != nil {
-		wsLog.Error(err)
-		ctx.WriteHeader(httpBad)
-		ctx.Write([]byte(err.Error()))
-		return
+	jsonResp, jsonError := HandleV2Request(state, req)
+	if jsonError!=nil {
+		returnV1(ctx, nil, jsonError)
 	}
+	d:=new(EBlock)
 
-	dbase := state.GetDB()
+	d.Header.BlockSequenceNumber = jsonResp.Result.(*EntryBlockResponse).Header.BlockSequenceNumber
+	d.Header.ChainID = jsonResp.Result.(*EntryBlockResponse).Header.ChainID
+	d.Header.PrevKeyMR = jsonResp.Result.(*EntryBlockResponse).Header.PrevKeyMR
+	d.Header.Timestamp = jsonResp.Result.(*EntryBlockResponse).Header.Timestamp
+	d.EntryList = jsonResp.Result.(*EntryBlockResponse).EntryList
 
-	block, err := dbase.FetchEBlockByKeyMR(h)
-	if err != nil {
-		wsLog.Error(err)
-		ctx.WriteHeader(httpBad)
-		ctx.Write([]byte(err.Error()))
-		return
-	}
-	if block == nil {
-		block, err = dbase.FetchEBlockByHash(h)
-		if err != nil {
-			wsLog.Error(err)
-			ctx.WriteHeader(httpBad)
-			ctx.Write([]byte(err.Error()))
-			return
-		}
-		if block == nil {
-			//TODO: Handle block not found
-			return
-		}
-	}
-
-	e.Header.BlockSequenceNumber = block.GetHeader().GetEBSequence()
-	e.Header.ChainID = block.GetHeader().GetChainID().String()
-	e.Header.PrevKeyMR = block.GetHeader().GetPrevKeyMR().String()
-
-	if dblock, err := dbase.FetchDBlockByHeight(block.GetHeader().GetDBHeight()); err == nil {
-		e.Header.Timestamp = dblock.GetHeader().GetTimestamp() * 60
-	}
-
-	// create a map of possible minute markers that may be found in the
-	// EBlock Body
-	mins := make(map[string]uint8)
-	for i := byte(1); i <= 10; i++ {
-		h := make([]byte, 32)
-		h[len(h)-1] = i
-		mins[hex.EncodeToString(h)] = i
-	}
-
-	estack := make([]EntryAddr, 0)
-	for _, v := range block.GetBody().GetEBEntries() {
-		if n, exist := mins[v.String()]; exist {
-			// the entry is a minute marker. add time to all of the
-			// previous entries for the minute
-			t := e.Header.Timestamp + 60*uint32(n)
-			for _, w := range estack {
-				w.Timestamp = t
-				e.EntryList = append(e.EntryList, w)
-			}
-			estack = make([]EntryAddr, 0)
-		} else {
-			l := new(EntryAddr)
-			l.EntryHash = v.String()
-			estack = append(estack, *l)
-		}
-	}
-
-	if p, err := json.Marshal(e); err != nil {
-		wsLog.Error(err)
-		ctx.WriteHeader(httpBad)
-		ctx.Write([]byte(err.Error()))
-		return
-	} else {
-		ctx.Write(p)
-	}
-
+	returnMsg(ctx, d, true)
 }
 
 func HandleEntry(ctx *web.Context, hashkey string) {
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
-	e := new(EntryStruct)
+	req := primitives.NewJSON2Request(1, hashkey, "entry-by-hash")
 
-	h, err := primitives.HexToHash(hashkey)
-	if err != nil {
-		wsLog.Error(err)
-		ctx.WriteHeader(httpBad)
-		ctx.Write([]byte(err.Error()))
-		return
+	jsonResp, jsonError := HandleV2Request(state, req)
+	if jsonError!=nil {
+		returnV1(ctx, nil, jsonError)
 	}
+	d:=new(EntryStruct)
 
-	dbase := state.GetDB()
+	d.ChainID = jsonResp.Result.(*EntryResponse).ChainID
+	d.Content = jsonResp.Result.(*EntryResponse).Content
+	d.ExtIDs = jsonResp.Result.(*EntryResponse).ExtIDs
 
-	entry, err := dbase.FetchEntryByHash(h)
-	if err != nil {
-		wsLog.Error(err)
-		ctx.WriteHeader(httpBad)
-		ctx.Write([]byte(err.Error()))
-		return
-	}
-	if entry == nil {
-		//TODO: Handle block not found
-		return
-	}
-
-	e.ChainID = entry.GetChainIDHash().String()
-	e.Content = hex.EncodeToString(entry.GetContent())
-	for _, v := range entry.ExternalIDs() {
-		e.ExtIDs = append(e.ExtIDs, hex.EncodeToString(v))
-	}
-
-	if p, err := json.Marshal(e); err != nil {
-		wsLog.Error(err)
-		ctx.WriteHeader(httpBad)
-		ctx.Write([]byte(err.Error()))
-		return
-	} else {
-		ctx.Write(p)
-	}
-
+	returnMsg(ctx, d, true)
 }
 
 func HandleChainHead(ctx *web.Context, hashkey string) {
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
-	c := new(CHead)
+	req := primitives.NewJSON2Request(1, hashkey, "chain-head")
 
-	h, err := primitives.HexToHash(hashkey)
-	if err != nil {
-		wsLog.Error(err)
-		ctx.WriteHeader(httpBad)
-		ctx.Write([]byte(err.Error()))
-		return
+	jsonResp, jsonError := HandleV2Request(state, req)
+	if jsonError!=nil {
+		returnV1(ctx, nil, jsonError)
 	}
+	d:=new(CHead)
 
-	dbase := state.GetDB()
+	d.ChainHead  = jsonResp.Result.(*ChainHeadResponse).ChainHead
 
-	mr, err := dbase.FetchHeadIndexByChainID(h)
-	if err != nil {
-		wsLog.Error(err)
-		ctx.WriteHeader(httpBad)
-		ctx.Write([]byte(err.Error()))
-		return
-	}
-	if mr == nil {
-		err := fmt.Errorf("Missing Chain Head")
-		wsLog.Error(err)
-		ctx.WriteHeader(httpBad)
-		ctx.Write([]byte(err.Error()))
-		return
-	}
-	c.ChainHead = mr.String()
-	if p, err := json.Marshal(c); err != nil {
-		wsLog.Error(err)
-		ctx.WriteHeader(httpBad)
-		ctx.Write([]byte(err.Error()))
-		return
-	} else {
-		ctx.Write(p)
-	}
-
+	returnMsg(ctx, d, true)
 }
 
 func HandleEntryCreditBalance(ctx *web.Context, eckey string) {
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
-	var b FactoidBalance
-	adr, err := primitives.HexToHash(eckey)
-	if err == nil {
-		b = FactoidBalance{Response: "Invalid Address", Success: false}
-	}
-	if err == nil {
-		v := int64(state.GetFactoidState().GetECBalance(adr.Fixed()))
-		str := fmt.Sprintf("%d", v)
-		b = FactoidBalance{Response: str, Success: true}
-	} else {
-		b = FactoidBalance{Response: err.Error(), Success: false}
-	}
+	req := primitives.NewJSON2Request(1, eckey, "entry-credit-balance")
 
-	if p, err := json.Marshal(b); err != nil {
-		wsLog.Error(err)
-		return
-	} else {
-		ctx.Write(p)
+	jsonResp, jsonError := HandleV2Request(state, req)
+	if jsonError!=nil {
+		returnV1(ctx, nil, jsonError)
 	}
-
+	returnMsg(ctx, fmt.Sprintf("%v", jsonResp.Result.(*EntryCreditBalanceResponse).Balance), true)
 }
 
 func HandleGetFee(ctx *web.Context) {
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
-	type x struct{ Fee int64 }
+	req := primitives.NewJSON2Request(1, nil, "factoid-get-fee")
 
-	b := new(x)
-
-	b.Fee = int64(state.GetFactoidState().GetFactoshisPerEC())
-
-	if p, err := json.Marshal(b); err != nil {
-		wsLog.Error(err)
-		ctx.WriteHeader(httpBad)
-		return
-	} else {
-		ctx.Write(p)
+	jsonResp, jsonError := HandleV2Request(state, req)
+	if jsonError!=nil {
+		returnV1(ctx, nil, jsonError)
 	}
+	type x struct{ Fee int64 }
+	d:=new(x)
+
+	d.Fee  = int64(jsonResp.Result.(*FactoidGetFeeResponse).Fee)
+
+	returnMsg(ctx, d, true)
 }
 
 func HandleFactoidSubmit(ctx *web.Context) {
@@ -530,76 +289,54 @@ func HandleFactoidSubmit(ctx *web.Context) {
 	var p []byte
 	var err error
 	if p, err = ioutil.ReadAll(ctx.Request.Body); err != nil {
-		wsLog.Error(err)
-		returnMsg(ctx, "Unable to read the request", false)
+		handleV1Error(ctx, NewInvalidParamsError())
 		return
 	} else {
 		if err := json.Unmarshal(p, t); err != nil {
-			returnMsg(ctx, "Unable to Unmarshal the request", false)
+			handleV1Error(ctx, NewInvalidParamsError())
 			return
 		}
 	}
 
-	msg := new(messages.FactoidTransaction)
+	req := primitives.NewJSON2Request(1, t.Transaction, "factoid-submit")
 
-	if p, err = hex.DecodeString(t.Transaction); err != nil {
-		returnMsg(ctx, "Unable to decode the transaction", false)
-		return
+	jsonResp, jsonError := HandleV2Request(state, req)
+	if jsonError!=nil {
+		returnV1(ctx, nil, jsonError)
 	}
-
-	_, err = msg.UnmarshalTransData(p)
-
-	if err != nil {
-		returnMsg(ctx, err.Error(), false)
-		return
-	}
-
-	err = state.GetFactoidState().Validate(1, msg.Transaction)
-
-	if err != nil {
-		returnMsg(ctx, err.Error(), false)
-		return
-	}
-
-	state.InMsgQueue() <- msg
-
-	returnMsg(ctx, "Successfully submitted the transaction", true)
-
+	returnMsg(ctx, jsonResp.Result.(*FactoidSubmitResponse).Message, true)
 }
 
 func HandleFactoidBalance(ctx *web.Context, eckey string) {
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
-	var b FactoidBalance
-	adr, err := hex.DecodeString(eckey)
-	if err == nil && len(adr) != constants.HASH_LENGTH {
-		b = FactoidBalance{Response: "Invalid Address", Success: false}
-	}
-	if err == nil {
-		v := int64(state.GetFactoidState().GetFactoidBalance(factoid.NewAddress(adr).Fixed()))
-		str := fmt.Sprintf("%d", v)
-		b = FactoidBalance{Response: str, Success: true}
-	} else {
-		b = FactoidBalance{Response: err.Error(), Success: false}
-	}
+	req := primitives.NewJSON2Request(1, eckey, "factoid-balance")
 
-	if p, err := json.Marshal(b); err != nil {
-		wsLog.Error(err)
-		return
-	} else {
-		ctx.Write(p)
+	jsonResp, jsonError := HandleV2Request(state, req)
+	if jsonError!=nil {
+		returnV1(ctx, nil, jsonError)
 	}
+	returnMsg(ctx, fmt.Sprintf("%v", jsonResp.Result.(*FactoidBalanceResponse).Balance), true)
 }
 
 /*********************************************************
  * Support Functions
  *********************************************************/
 
-func returnMsg(ctx *web.Context, msg string, success bool) {
+func returnMsg(ctx *web.Context, msg interface{}, success bool) {
 	type rtn struct {
-		Response string
+		Response interface{}
 		Success  bool
 	}
+	/*str, ok:=msg.(string)
+	if ok == false {
+		var err error
+		str, err = primitives.EncodeJSONString(msg)
+		if err != nil {
+			wsLog.Error(err)
+			return
+		}
+	}*/
 	r := rtn{Response: msg, Success: success}
 
 	if p, err := json.Marshal(r); err != nil {

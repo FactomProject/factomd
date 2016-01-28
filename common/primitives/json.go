@@ -34,6 +34,21 @@ func (e *JSON2Request) String() string {
 	return str
 }
 
+func NewJSON2RequestBlank() *JSON2Request {
+	j := new(JSON2Request)
+	j.JSONRPC = "2.0"
+	return j
+}
+
+func NewJSON2Request(id, params interface{}, method string) *JSON2Request {
+	j := new(JSON2Request)
+	j.JSONRPC = "2.0"
+	j.ID = id
+	j.Params = params
+	j.Method = method
+	return j
+}
+
 func ParseJSON2Request(request string) (*JSON2Request, error) {
 	j := new(JSON2Request)
 	err := json.Unmarshal([]byte(request), j)
@@ -82,8 +97,9 @@ func (j *JSON2Response) AddError(code int, message string) {
 }
 
 type JSONError struct {
-	Code    int    `json:"code"`
-	Message string `json:"message"`
+	Code    int         `json:"code"`
+	Message string      `json:"message"`
+	Data    interface{} `json:"data,omitempty"`
 }
 
 func NewJSONError(code int, message string) *JSONError {
