@@ -7,16 +7,18 @@ package main
 import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/log"
+	"fmt"
 )
 
 var _ = log.Print
+var _ = fmt.Print
 
 func Leader(state interfaces.IState) {
 
 	for {
 		msg := <-state.LeaderInMsgQueue()
 		if state.PrintType(msg.Type()) {
-			log.Printf("%20s %s\n", "Leader:", msg.String())
+			fmt.Printf("%20s %s\n", "Leader:", msg.String())
 		}
 		msg.LeaderExecute(state)
 	}

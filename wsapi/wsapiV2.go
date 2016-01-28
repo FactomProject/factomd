@@ -19,20 +19,20 @@ import (
 )
 
 func HandleV2(ctx *web.Context) {
-	p:=ctx.Params
+	p := ctx.Params
 	if len(p) < 1 {
 		HandleV2Error(ctx, nil, NewInvalidRequestError())
 		return
 	}
 	var j *primitives.JSON2Request
 	var err error
-	for k, _:=range(p) {
+	for k, _ := range p {
 		j, err = primitives.ParseJSON2Request(k)
 		if err == nil {
 			break
 		}
 	}
-	if err!=nil {
+	if err != nil {
 		HandleV2Error(ctx, nil, NewInvalidRequestError())
 		return
 	}
@@ -41,7 +41,7 @@ func HandleV2(ctx *web.Context) {
 
 	var resp interface{}
 	var jsonError *primitives.JSONError
-	params:=j.Params
+	params := j.Params
 	switch j.Method {
 	case "factoid-submit":
 		resp, jsonError = HandleV2FactoidSubmit(state, params)
@@ -105,7 +105,7 @@ func HandleV2(ctx *web.Context) {
 }
 
 func HandleV2Error(ctx *web.Context, j *primitives.JSON2Request, err *primitives.JSONError) {
-	resp := primitives.NewJSON2Response() 
+	resp := primitives.NewJSON2Response()
 	if j != nil {
 		resp.ID = j.ID
 	} else {
@@ -125,7 +125,7 @@ func HandleV2CommitChain(state interfaces.IState, params interface{}) (interface
 
 	commit := entryCreditBlock.NewCommitChain()
 	if p, err := hex.DecodeString(commitChainMsg); err != nil {
-			return nil, NewInvalidCommitChainError()
+		return nil, NewInvalidCommitChainError()
 	} else {
 		_, err := commit.UnmarshalBinaryData(p)
 		if err != nil {
@@ -238,8 +238,8 @@ func HandleV2GetReceipt(state interfaces.IState, params interface{}) (interface{
 
 	dbase := state.GetDB()
 
-	receipt, err:= receipts.CreateFullReceipt(dbase, h)
-	if err!=nil {
+	receipt, err := receipts.CreateFullReceipt(dbase, h)
+	if err != nil {
 		return nil, NewMiscError()
 	}
 	return receipt, nil
@@ -307,7 +307,7 @@ func HandleV2EntryBlock(state interfaces.IState, params interface{}) (interface{
 	if block == nil {
 		block, err = dbase.FetchEBlockByHash(h)
 		if err != nil {
-		return nil, NewInvalidHashError()
+			return nil, NewInvalidHashError()
 		}
 		if block == nil {
 			return nil, NewBlockNotFoundError()
@@ -461,7 +461,7 @@ func HandleV2FactoidBalance(state interfaces.IState, params interface{}) (interf
 	}
 
 	adr, err := hex.DecodeString(eckey)
-	if err!=nil {
+	if err != nil {
 		return nil, NewInvalidAddressError()
 	}
 	if err == nil && len(adr) != constants.HASH_LENGTH {

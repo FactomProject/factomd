@@ -5,9 +5,9 @@
 package primitives
 
 import (
-	"fmt"
-	"encoding/json"
 	"bytes"
+	"encoding/json"
+	"fmt"
 )
 
 type JSON2Request struct {

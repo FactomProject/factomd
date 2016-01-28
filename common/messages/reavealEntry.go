@@ -11,6 +11,7 @@ import (
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/log"
 )
 
 //A placeholder structure for messages
@@ -28,8 +29,28 @@ type RevealEntryMsg struct {
 
 var _ interfaces.IMsg = (*RevealEntryMsg)(nil)
 
-func (m *RevealEntryMsg) Process(interfaces.IState) {
-	fmt.Println("PROCESS!")
+func (m *RevealEntryMsg) Process(state interfaces.IState) {
+	c := state.GetCommits(m.GetHash())
+	_, isNewChain := c.(*CommitChainMsg)
+	if isNewChain {
+		fmt.Println("New Chain")
+		//eb := entryBlock.NewEBlock()
+		chainID := m.Entry.GetChainID()
+		ebh, err := state.GetDB().FetchEBlockHead(chainID)
+		if err != nil || ebh != nil {
+			panic("This is wrong:  Chain already exists")
+		}
+	} else {
+
+		fmt.Println("New Entry")
+
+		_, isNewEntry := c.(*CommitEntryMsg)
+
+		if !isNewEntry {
+			log.Printf("Bad commit detected %s", c.String())
+		}
+
+	}
 }
 
 func (m *RevealEntryMsg) GetHash() interfaces.IHash {
@@ -71,7 +92,6 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 	ECs := 0
 
 	if commit == nil {
-		fmt.Println("Not in GetCommits")
 		return 0
 	}
 
@@ -109,9 +129,16 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 				return -1
 			}
 		}
+	} else {
+		chainID := m.Entry.GetChainID()
+		eb, err := state.GetDB().FetchEBlockHead(chainID)
+		if err != nil || eb != nil {
+			return -1
+		}
 	}
 
 	return 1
+
 }
 
 // Returns true if this is a message for this server to execute as
@@ -138,7 +165,7 @@ func (m *RevealEntryMsg) LeaderExecute(state interfaces.IState) error {
 	state.NetworkOutMsgQueue() <- ack
 	state.FollowerInMsgQueue() <- ack // Send the Ack to follower
 	state.FollowerInMsgQueue() <- m   // Send factoid trans to follower
-	
+
 	return nil
 }
 
@@ -154,8 +181,7 @@ func (m *RevealEntryMsg) FollowerExecute(state interfaces.IState) error {
 	}
 	if matched { // We matched, we must be remembered!
 		fmt.Println("Matched!")
-		state.PutCommits(m.GetHash(), m)
-	}else{
+	} else {
 		fmt.Println("Not Matched!")
 	}
 	return nil

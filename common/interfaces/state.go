@@ -14,12 +14,13 @@ import ()
 type IState interface {
 
 	// Server
-	
-	GetServerIndex() int			// Returns this server's index, if a federated server
+
+	GetServerIndex() int // Returns this server's index, if a federated server
 	GetCfg() IFactomConfig
 	Init(string)
 	String() string
 	Sign([]byte) IFullSignature
+	GetProcessListLen(list int) int
 
 	GetServer() IServer
 	SetServer(IServer)
