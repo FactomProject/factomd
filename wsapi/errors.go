@@ -60,6 +60,9 @@ func NewInvalidEntryError() *primitives.JSONError {
 func NewInvalidCommitChainError() *primitives.JSONError {
 	return primitives.NewJSONError(-32602, "Invalid params: Invalid Commit Chain")
 }
+func NewInvalidCommitEntryError() *primitives.JSONError {
+	return primitives.NewJSONError(-32602, "Invalid params: Invalid Commit Entry")
+}
 func NewInternalDatabaseError() *primitives.JSONError {
 	return primitives.NewJSONError(-32603, "Internal error: database error")
 }

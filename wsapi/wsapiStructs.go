@@ -23,6 +23,8 @@ type RevealChainResponse struct {
 }
 
 type CommitEntryResponse struct {
+	Message string
+	TxID    string
 }
 
 type RevealEntryResponse struct {

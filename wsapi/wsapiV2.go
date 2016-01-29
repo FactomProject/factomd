@@ -18,7 +18,15 @@ import (
 	"github.com/hoisie/web"
 )
 
-func HandleV2(ctx *web.Context) {
+func HandleV2Get(ctx *web.Context) {
+	HandleV2(ctx, false)
+}
+
+func HandleV2Post(ctx *web.Context) {
+	HandleV2(ctx, true)
+}
+
+func HandleV2(ctx *web.Context, post bool) {
 	p := ctx.Params
 	if len(p) < 1 {
 		HandleV2Error(ctx, nil, NewInvalidRequestError())
@@ -39,7 +47,13 @@ func HandleV2(ctx *web.Context) {
 
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
-	jsonResp, jsonError := HandleV2Request(state, j)
+	var jsonResp *primitives.JSON2Response
+	var jsonError *primitives.JSONError
+	if post == true {
+		jsonResp, jsonError = HandleV2PostRequest(state, j)
+	} else {
+		jsonResp, jsonError = HandleV2GetRequest(state, j)
+	}
 
 	if jsonError != nil {
 		HandleV2Error(ctx, j, jsonError)
@@ -47,9 +61,10 @@ func HandleV2(ctx *web.Context) {
 	}
 
 	ctx.Write([]byte(jsonResp.String()))
+
 }
 
-func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*primitives.JSON2Response, *primitives.JSONError) {
+func HandleV2PostRequest(state interfaces.IState, j *primitives.JSON2Request) (*primitives.JSON2Response, *primitives.JSONError) {
 	var resp interface{}
 	var jsonError *primitives.JSONError
 	params := j.Params
@@ -69,6 +84,26 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 	case "reveal-entry":
 		resp, jsonError = HandleV2RevealEntry(state, params)
 		break
+	default:
+		jsonError = NewMethodNotFoundError()
+		break
+	}
+	if jsonError != nil {
+		return nil, jsonError
+	}
+
+	jsonResp := primitives.NewJSON2Response()
+	jsonResp.ID = j.ID
+	jsonResp.Result = resp
+
+	return jsonResp, nil
+}
+
+func HandleV2GetRequest(state interfaces.IState, j *primitives.JSON2Request) (*primitives.JSON2Response, *primitives.JSONError) {
+	var resp interface{}
+	var jsonError *primitives.JSONError
+	params := j.Params
+	switch j.Method {
 	case "directory-block-head":
 		resp, jsonError = HandleV2DirectoryBlockHead(state, params)
 		break
@@ -159,52 +194,30 @@ func HandleV2RevealChain(state interfaces.IState, params interface{}) (interface
 }
 
 func HandleV2CommitEntry(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
-/*
-func handleCommitEntry(ctx *web.Context) {
-	type commitentry struct {
-		CommitEntryMsg string
+	commitEntryMsg, ok := params.(string)
+	if ok == false {
+		return nil, NewInvalidParamsError()
 	}
 
-	c := new(commitentry)
-	if p, err := ioutil.ReadAll(ctx.Request.Body); err != nil {
-		wsLog.Error(err)
-		ctx.WriteHeader(httpBad)
-		ctx.Write([]byte(err.Error()))
-		return
-	} else {
-		if err := json.Unmarshal(p, c); err != nil {
-			wsLog.Error(err)
-			ctx.WriteHeader(httpBad)
-			ctx.Write([]byte(err.Error()))
-			return
-		}
-	}
-
-	commit := NewCommitEntry()
-	if p, err := hex.DecodeString(c.CommitEntryMsg); err != nil {
-		wsLog.Error(err)
-		ctx.WriteHeader(httpBad)
-		ctx.Write([]byte(err.Error()))
-		return
+	commit := entryCreditBlock.NewCommitEntry()
+	if p, err := hex.DecodeString(commitEntryMsg); err != nil {
+		return nil, NewInvalidCommitEntryError()
 	} else {
 		_, err := commit.UnmarshalBinaryData(p)
 		if err != nil {
-			wsLog.Error(err)
-			ctx.WriteHeader(httpBad)
-			ctx.Write([]byte(err.Error()))
-			return
+			return nil, NewInvalidCommitEntryError()
 		}
 	}
-	if err := factomapi.CommitEntry(commit); err != nil {
-		wsLog.Error(err)
-		ctx.WriteHeader(httpBad)
-		ctx.Write([]byte(err.Error()))
-		return
-	}
 
-}
-*/
-	return nil, nil
+	msg := new(messages.CommitEntryMsg)
+	msg.CommitEntry = commit
+	msg.Timestamp = state.GetTimestamp()
+	state.InMsgQueue() <- msg
+
+	resp := new(CommitEntryResponse)
+	resp.Message = "Entry Commit Success"
+
+	return resp, nil
 }
 
 func HandleV2RevealEntry(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
