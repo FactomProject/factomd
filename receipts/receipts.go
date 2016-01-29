@@ -45,10 +45,10 @@ func (e *Receipt) Validate() error {
 		return fmt.Errorf("Receipt has no MerkleBranch")
 	}
 	if e.EntryBlockKeyMR == nil {
-		return fmt.Errorf("Receipt has no MerkleBranch")
+		return fmt.Errorf("Receipt has no EntryBlockKeyMR")
 	}
 	if e.DirectoryBlockKeyMR == nil {
-		return fmt.Errorf("Receipt has no MerkleBranch")
+		return fmt.Errorf("Receipt has no DirectoryBlockKeyMR")
 	}
 	entryHash, err := primitives.NewShaHashFromStr(e.Entry.Key)
 	//TODO: validate entry hashes into EntryHash
@@ -227,11 +227,11 @@ func (e *Receipt) DecodeString(str string) error {
 
 func DecodeReceiptString(str string) (*Receipt, error) {
 	receipt := new(Receipt)
-	err := receipt.DecodeString(str)
+	err := json.Unmarshal([]byte(str), &receipt)
 	if err != nil {
 		return nil, err
 	}
-	return receipt, err
+	return receipt, nil
 }
 
 type JSON struct {
@@ -402,6 +402,8 @@ func VerifyFullReceipt(dbo interfaces.DBOverlay, receiptStr string) error {
 	if err != nil {
 		return err
 	}
+
+	//fmt.Printf("receipt - %v\n", receipt.CustomMarshalString())
 
 	err = receipt.Validate()
 	if err != nil {

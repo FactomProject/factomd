@@ -249,6 +249,7 @@ func TestHandleEntryBlock(t *testing.T) {
 		t.Errorf("Fetched %v blocks, expected %v", fetched, testHelper.BlockCount)
 	}
 }
+
 /*
 func TestHandleEntry(t *testing.T) {
 	context := createWebContext()
@@ -385,19 +386,27 @@ func TestHandleGetReceipt(t *testing.T) {
 
 	HandleGetReceipt(context, hash)
 
-	j := GetRespText(context)
+	j := GetRespMap(context)
 
 	dbo := context.Server.Env["state"].(interfaces.IState).GetDB()
 
-	err := receipts.VerifyFullReceipt(dbo, j)
+	resp := j["Response"].(map[string]interface{})
+	receipt := resp["Receipt"].(map[string]interface{})
+	marshalled, err := json.Marshal(receipt)
 	if err != nil {
+		t.Error(err)
+	}
+
+	err = receipts.VerifyFullReceipt(dbo, string(marshalled))
+	if err != nil {
+		t.Logf("receipt - %v", j)
 		t.Error(err)
 	}
 }
 
 //****************************************************************
 
-func GetRespText(context *web.Context) string {
+func GetRespMap(context *web.Context) map[string]interface{} {
 	j := GetBody(context)
 
 	unmarshalled := map[string]interface{}{}
@@ -405,6 +414,11 @@ func GetRespText(context *web.Context) string {
 	if err != nil {
 		panic(err)
 	}
+	return unmarshalled
+}
+
+func GetRespText(context *web.Context) string {
+	unmarshalled := GetRespMap(context)
 	marshalled, err := json.Marshal(unmarshalled["Response"])
 	if err != nil {
 		panic(err)
