@@ -29,17 +29,26 @@ type RevealEntryMsg struct {
 
 var _ interfaces.IMsg = (*RevealEntryMsg)(nil)
 
-func (m *RevealEntryMsg) Process(state interfaces.IState) {
-	c := state.GetCommits(m.GetHash())
+func (m *RevealEntryMsg) Process(dbheight uint32, state interfaces.IState) {
+	c := state.GetCommits(dbheight, m.GetHash())
 	_, isNewChain := c.(*CommitChainMsg)
 	if isNewChain {
 		fmt.Println("New Chain")
-		//eb := entryBlock.NewEBlock()
 		chainID := m.Entry.GetChainID()
-		ebh, err := state.GetDB().FetchEBlockHead(chainID)
-		if err != nil || ebh != nil {
+		eb, err := state.GetDB().FetchEBlockHead(chainID)
+		if err != nil || eb != nil {
 			panic("This is wrong:  Chain already exists")
 		}
+		
+		// Create a new Entry Block for a new Entry Block Chain
+		eb = entryBlock.NewEBlock()
+		// Set the Chain ID
+		eb.GetHeader().SetChainID(m.Entry.GetChainID())
+		// Set the Directory Block Height for this Entry Block
+		eb.GetHeader().SetDBHeight(state.GetDBHeight())
+		// Put it in our list of new Entry Blocks for this Directory Block
+		state.PutNewEBlks(dbheight, m.Entry.GetChainID().Fixed(),eb)
+		
 	} else {
 
 		fmt.Println("New Entry")
@@ -87,14 +96,16 @@ func (m *RevealEntryMsg) Bytes() []byte {
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
-func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
-	commit := state.GetCommits(m.GetHash())
+func (m *RevealEntryMsg) Validate(dbheight uint32, state interfaces.IState) int {
+	commit := state.GetCommits(dbheight, m.GetHash())
 	ECs := 0
 
 	if commit == nil {
 		return 0
 	}
 
+	//
+	// Make sure one of the two proper commits got us here.
 	var okChain, okEntry bool
 	m.commitChain, okChain = commit.(*CommitChainMsg)
 	m.commitEntry, okEntry = commit.(*CommitEntryMsg)
@@ -102,6 +113,7 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 		return -1
 	}
 
+	// Now make sure the proper amount of credits were paid to record the entry.
 	if okEntry {
 		m.isEntry = true
 		ECs = int(m.commitEntry.CommitEntry.Credits)
@@ -121,7 +133,7 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 	// Reveal Entry calls must have an existing chain.
 	if m.isEntry {
 		chainID := m.Entry.GetChainID()
-		eblk := state.GetNewEBlks(chainID.Fixed()) // Look see if already in the new block.
+		eblk := state.GetNewEBlks(dbheight, chainID.Fixed()) // Look see if already in the new block.
 		if eblk == nil {                           // No?  Then look see if it exists in DB
 			eblk, _ := state.GetDB().FetchEBlockHead(chainID)
 			if eblk == nil {
@@ -131,6 +143,10 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 		}
 	} else {
 		chainID := m.Entry.GetChainID()
+		eblk := state.GetNewEBlks(dbheight, chainID.Fixed()) // Look see if already in the new block.
+		if eblk != nil {
+			return -1
+		}
 		eb, err := state.GetDB().FetchEBlockHead(chainID)
 		if err != nil || eb != nil {
 			return -1
@@ -149,7 +165,7 @@ func (m *RevealEntryMsg) Leader(state interfaces.IState) bool {
 
 // Execute the leader functions of the given message
 func (m *RevealEntryMsg) LeaderExecute(state interfaces.IState) error {
-	v := m.Validate(state)
+	v := m.Validate(state.GetDBHeight(), state)
 	if v <= 0 {
 		return fmt.Errorf("Reveal is not valid")
 	}

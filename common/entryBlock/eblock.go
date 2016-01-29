@@ -94,14 +94,6 @@ func (c *EBlock) GetBody() interfaces.IEBlockBody {
 	return c.Body
 }
 
-// NewEBlock returns a blank initialized Entry Block with all of its fields
-// zeroed.
-func NewEBlock() *EBlock {
-	e := new(EBlock)
-	e.Header = NewEBlockHeader()
-	e.Body = NewEBlockBody()
-	return e
-}
 
 // AddEBEntry creates a new Entry Block Entry from the provided Factom Entry
 // and adds it to the Entry Block Body.
@@ -263,4 +255,17 @@ func (e *EBlock) JSONBuffer(b *bytes.Buffer) error {
 func (e *EBlock) String() string {
 	str, _ := e.JSONString()
 	return str
+}
+
+/*****************************************************
+ * Support Routines
+ *****************************************************/
+
+// NewEBlock returns a blank initialized Entry Block with all of its fields
+// zeroed.
+func NewEBlock() *EBlock {
+	e := new(EBlock)
+	e.Header = NewEBlockHeader()
+	e.Body = NewEBlockBody()
+	return e
 }

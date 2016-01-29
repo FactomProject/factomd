@@ -156,7 +156,7 @@ func NewMsgGetDirBlocks(hashStop interfaces.IHash) *MsgGetDirBlocks {
 
 var _ interfaces.IMsg = (*MsgGetDirBlocks)(nil)
 
-func (m *MsgGetDirBlocks) Process(interfaces.IState) {}
+func (m *MsgGetDirBlocks) Process(uint32, interfaces.IState) {}
 
 func (m *MsgGetDirBlocks) GetHash() interfaces.IHash {
 	return nil
@@ -203,7 +203,7 @@ func (m *MsgGetDirBlocks) String() string {
 //  < 0 -- MsgGetDirBlocks is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- MsgGetDirBlocks is valid
-func (m *MsgGetDirBlocks) Validate(interfaces.IState) int {
+func (m *MsgGetDirBlocks) Validate(dbheight uint32, state interfaces.IState) int {
 	return 0
 }
 

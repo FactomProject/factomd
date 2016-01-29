@@ -22,7 +22,7 @@ type PromotionDemotion struct {
 
 var _ interfaces.IMsg = (*PromotionDemotion)(nil)
 
-func (m *PromotionDemotion) Process(interfaces.IState) {}
+func (m *PromotionDemotion) Process(uint32, interfaces.IState) {}
 
 func (m *PromotionDemotion) GetHash() interfaces.IHash {
 	if m.hash == nil {
@@ -102,7 +102,7 @@ func (m *PromotionDemotion) Signature() []byte {
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
-func (m *PromotionDemotion) Validate(interfaces.IState) int {
+func (m *PromotionDemotion) Validate(dbheight uint32, state interfaces.IState) int {
 	return 0
 }
 

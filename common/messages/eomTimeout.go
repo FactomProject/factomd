@@ -19,7 +19,7 @@ type EOMTimeout struct {
 
 var _ interfaces.IMsg = (*EOMTimeout)(nil)
 
-func (e *EOMTimeout) Process(interfaces.IState) {
+func (e *EOMTimeout) Process(uint32, interfaces.IState) {
 	panic("EOMTimeout is not implemented.")
 }
 
@@ -90,7 +90,7 @@ func (m *EOMTimeout) Signature() []byte {
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
-func (m *EOMTimeout) Validate(interfaces.IState) int {
+func (m *EOMTimeout) Validate(dbheight uint32, state interfaces.IState) int {
 	return 0
 }
 

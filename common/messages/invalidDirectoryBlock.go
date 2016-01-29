@@ -22,7 +22,7 @@ type InvalidDirectoryBlock struct {
 
 var _ interfaces.IMsg = (*InvalidDirectoryBlock)(nil)
 
-func (m *InvalidDirectoryBlock) Process(interfaces.IState) {}
+func (m *InvalidDirectoryBlock) Process(uint32, interfaces.IState) {}
 
 func (m *InvalidDirectoryBlock) GetHash() interfaces.IHash {
 	if m.hash == nil {
@@ -102,7 +102,7 @@ func (m *InvalidDirectoryBlock) Signature() []byte {
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
-func (m *InvalidDirectoryBlock) Validate(interfaces.IState) int {
+func (m *InvalidDirectoryBlock) Validate(dbheight uint32, state interfaces.IState) int {
 	return 0
 }
 

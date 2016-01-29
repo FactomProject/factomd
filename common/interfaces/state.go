@@ -15,7 +15,7 @@ type IState interface {
 
 	// Server
 
-	GetServerIndex() int // Returns this server's index, if a federated server
+	GetServerIndex(dbheight uint32) int // Returns this server's index, if a federated server
 	GetCfg() IFactomConfig
 	Init(string)
 	String() string
@@ -42,17 +42,17 @@ type IState interface {
 	// =====
 	// The leader CANNOT touch these lists!  Only the FollowerExecution
 	// methods can touch them safely.
-	GetAuditServers() []IServer   // List of Audit Servers
-	GetFedServers() []IServer     // List of Federated Servers
-	GetServerOrder() [][]IServer  // 10 lists for Server Order for each minute
+	GetAuditServers(dbheight uint32) []IServer   // List of Audit Servers
+	GetFedServers(dbheight uint32) []IServer     // List of Federated Servers
+	GetServerOrder(dbheight uint32) [][]IServer  // 10 lists for Server Order for each minute
 	GetAuditHeartBeats() []IMsg   // The checklist of HeartBeats for this period
 	GetFedServerFaults() [][]IMsg // Keep a fault list for every server
 
-	GetNewEBlks([32]byte) IEntryBlock
-	PutNewEBlks([32]byte, IEntryBlock)
+	GetNewEBlks(dbheight uint32, hash [32]byte) IEntryBlock
+	PutNewEBlks(dbheight uint32, hash [32]byte, eb IEntryBlock)
 
-	GetCommits(IHash) IMsg
-	PutCommits(IHash, IMsg)
+	GetCommits(dbheight uint32, hash IHash) IMsg
+	PutCommits(dbheight uint32, hash IHash, msg IMsg)
 	// Server Configuration
 	// ====================
 
@@ -61,11 +61,11 @@ type IState interface {
 	GetNetworkName() string // Some networks have defined names
 
 	// Number of Servers acknowledged by Factom
-	GetTotalServers() int
-	GetServerState() int    // (0 if client, 1 if server, 2 if audit server
-	GetMatryoshka() []IHash // Reverse Hash
-
-	LeaderFor([]byte) bool // Tests if this server is the leader for this key
+	GetTotalServers(dbheight uint32) int
+	GetServerState(dbheight uint32) int      	// (0 if client, 1 if server, 2 if audit server
+	GetMatryoshka(dbheight uint32) IHash        // Reverse Hash
+	
+	LeaderFor(hash []byte) bool  // Tests if this server is the leader for this key
 
 	// Database
 	// ========
@@ -74,16 +74,14 @@ type IState interface {
 
 	// Directory Block State
 	// =====================
-	GetPreviousDirectoryBlock() IDirectoryBlock // The previous directory block
-	GetCurrentDirectoryBlock() IDirectoryBlock  // The directory block under construction
-	SetCurrentDirectoryBlock(IDirectoryBlock)
-
-	GetCurrentEntryCreditBlock() IEntryCreditBlock
-	SetCurrentEntryCreditBlock(IEntryCreditBlock)
-
-	GetCurrentAdminBlock() IAdminBlock
-	SetCurrentAdminBlock(IAdminBlock)
-
+	GetDirectoryBlock(dbheight uint32) IDirectoryBlock  // The directory block under construction
+	GetEntryCreditBlock(dbheight uint32) IEntryCreditBlock
+	GetAdminBlock(dbheight uint32) IAdminBlock
+	
+	SetDirectoryBlock(dbheight uint32, db IDirectoryBlock)  // The directory block under construction
+	SetEntryCreditBlock(dbheight uint32, ecb IEntryCreditBlock)
+	SetAdminBlock(dbheight uint32, ab IAdminBlock)
+	
 	GetDBHeight() uint32 // The index of the directory block under construction.
 
 	// Message State
@@ -93,7 +91,7 @@ type IState interface {
 	// Server Methods
 	// ==============
 	UpdateProcessLists()
-	ProcessEndOfBlock()
+	ProcessEndOfBlock(dbheight uint32)
 
 	// Web Services
 	// ============
@@ -102,10 +100,12 @@ type IState interface {
 
 	// Factoid State
 	// =============
-	GetFactoidState() IFactoidState
-	GetPrevFactoidKeyMR() IHash
-	SetPrevFactoidKeyMR(IHash)
-
+	GetFactoidState(dbheight uint32) IFactoidState
+	GetFactoidKeyMR(dbheight uint32) IHash
+	
+	SetFactoidState(dbheight uint32, fs IFactoidState)
+	SetFactoidKeyMR(dbheight uint32, kmr IHash)
+	
 	// MISC
 	// ====
 
@@ -113,10 +113,7 @@ type IState interface {
 	MatchAckFollowerExecute(m IMsg) (bool, error)
 	FollowerExecuteAck(m IMsg) error
 	GetTimestamp() Timestamp
-	GetNewHash() IHash // Return a new Hash object
-	CreateDBlock() (b IDirectoryBlock, err error)
 	PrintType(int) bool // Debugging
 
 	RecalculateBalances() error
-	LogInfo(args ...interface{})
 }

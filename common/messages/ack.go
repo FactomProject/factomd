@@ -18,7 +18,9 @@ type Ack struct {
 	Timestamp   interfaces.Timestamp
 	MessageHash interfaces.IHash
 
-	Height     int
+	DBHeight     int		// Directory Block Height that owns this ack 
+	Height       int		// Height of this ack in this process list
+	
 	SerialHash interfaces.IHash
 
 	Signature interfaces.IFullSignature
@@ -54,7 +56,7 @@ func (m *Ack) GetTimestamp() interfaces.Timestamp {
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
-func (m *Ack) Validate(interfaces.IState) int {
+func (m *Ack) Validate(dbheight uint32, state interfaces.IState) int {
 	return 1
 }
 
@@ -79,7 +81,7 @@ func (m *Ack) FollowerExecute(state interfaces.IState) error {
 }
 
 // Acknowledgements do not go into the process list.
-func (e *Ack) Process(state interfaces.IState) {
+func (e *Ack) Process(dbheight uint32, state interfaces.IState) {
 	panic("Ack object should never have its Process() method called")
 }
 
@@ -194,10 +196,10 @@ func NewAck(state interfaces.IState, hash interfaces.IHash) (iack interfaces.IMs
 	ack.Timestamp = state.GetTimestamp()
 	ack.MessageHash = hash
 	if last == nil {
-		ack.Height = 0
+		ack.DBHeight = 0
 		ack.SerialHash = ack.MessageHash
 	} else {
-		ack.Height = last.Height + 1
+		ack.DBHeight = last.DBHeight + 1
 		ack.SerialHash, err = primitives.CreateHash(last.MessageHash, ack.MessageHash)
 		if err != nil {
 			return nil, err

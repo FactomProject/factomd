@@ -34,11 +34,11 @@ type EOM struct {
 //var _ interfaces.IConfirmation = (*EOM)(nil)
 var _ Signable = (*EOM)(nil)
 
-func (e *EOM) Process(state interfaces.IState) {
+func (e *EOM) Process(dbheight uint32, state interfaces.IState) {
 
-	state.GetFactoidState().EndOfPeriod(int(e.Minute))
+	state.GetFactoidState(dbheight).EndOfPeriod(int(e.Minute))
 
-	ecblk := state.GetCurrentEntryCreditBlock()
+	ecblk := state.GetEntryCreditBlock(dbheight)
 	ecbody := ecblk.GetBody()
 	mn := entryCreditBlock.NewMinuteNumber2(e.Minute)
 
@@ -46,6 +46,10 @@ func (e *EOM) Process(state interfaces.IState) {
 
 	if e.Minute == 9 {
 
+		
+		// TODO: This code needs to be reviewed... It works here, but we are effectively
+		// executing "leader" code in the compainion "follower" goroutine... 
+		// Maybe that's okay?
 		if state.LeaderFor(e.Bytes()) {
 			// What really needs to happen is that we look to make sure all
 			// EOM messages have been recieved.  If this is the LAST message,
@@ -53,10 +57,10 @@ func (e *EOM) Process(state interfaces.IState) {
 			// create a DirectoryBlockSignature (if we are the leader) and
 			// send it out to the network.
 			DBM := NewDirectoryBlockSignature()
-			if state.GetPreviousDirectoryBlock() == nil {
+			if state.GetDirectoryBlock(dbheight-1) == nil {
 				DBM.DirectoryBlockKeyMR = primitives.NewHash(constants.ZERO_HASH)
 			} else {
-				DBM.DirectoryBlockKeyMR = state.GetPreviousDirectoryBlock().GetKeyMR()
+				DBM.DirectoryBlockKeyMR = state.GetDirectoryBlock(dbheight-1).GetKeyMR()
 			}
 			DBM.Sign(state)
 
@@ -106,7 +110,7 @@ func (m *EOM) Type() int {
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
-func (m *EOM) Validate(interfaces.IState) int {
+func (m *EOM) Validate(dbheight uint32, state interfaces.IState) int {
 	return 1
 }
 
@@ -323,7 +327,7 @@ func NewEOM(state interfaces.IState, minute int) interfaces.IMsg {
 	// I am ignoring all of that.
 	eom := new(EOM)
 	eom.Minute = byte(minute)
-	eom.ServerIndex = state.GetServerIndex()
+	eom.ServerIndex = state.GetServerIndex(state.GetDBHeight())
 
 	return eom
 }

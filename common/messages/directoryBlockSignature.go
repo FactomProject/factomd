@@ -29,8 +29,8 @@ type DirectoryBlockSignature struct {
 var _ interfaces.IMsg = (*DirectoryBlockSignature)(nil)
 var _ Signable = (*DirectoryBlockSignature)(nil)
 
-func (e *DirectoryBlockSignature) Process(state interfaces.IState) {
-	state.ProcessEndOfBlock()
+func (e *DirectoryBlockSignature) Process(dbheight uint32, state interfaces.IState) {
+	state.ProcessEndOfBlock(dbheight)
 }
 
 func (m *DirectoryBlockSignature) GetHash() interfaces.IHash {
@@ -64,7 +64,7 @@ func (m *DirectoryBlockSignature) Bytes() []byte {
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
-func (m *DirectoryBlockSignature) Validate(interfaces.IState) int {
+func (m *DirectoryBlockSignature) Validate(dbheight uint32, state interfaces.IState) int {
 	return 1
 }
 

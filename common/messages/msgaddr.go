@@ -147,7 +147,7 @@ func NewMsgAddr() *MsgAddr {
 
 var _ interfaces.IMsg = (*MsgAddr)(nil)
 
-func (m *MsgAddr) Process(interfaces.IState) {}
+func (m *MsgAddr) Process(uint32, interfaces.IState) {}
 
 func (m *MsgAddr) GetHash() interfaces.IHash {
 	return nil
@@ -194,7 +194,7 @@ func (m *MsgAddr) String() string {
 //  < 0 -- MsgAddr is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- MsgAddr is valid
-func (m *MsgAddr) Validate(interfaces.IState) int {
+func (m *MsgAddr) Validate(dbheight uint32, state interfaces.IState) int {
 	return 0
 }
 

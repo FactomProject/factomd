@@ -143,7 +143,7 @@ func NewMsgInvSizeHint(sizeHint uint) *MsgInv {
 
 var _ interfaces.IMsg = (*MsgInv)(nil)
 
-func (m *MsgInv) Process(interfaces.IState) {}
+func (m *MsgInv) Process(uint32, interfaces.IState) {}
 
 func (m *MsgInv) GetHash() interfaces.IHash {
 	return nil
@@ -190,7 +190,7 @@ func (m *MsgInv) String() string {
 //  < 0 -- MsgInv is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- MsgInv is valid
-func (m *MsgInv) Validate(interfaces.IState) int {
+func (m *MsgInv) Validate(dbheight uint32, state interfaces.IState) int {
 	return 0
 }
 

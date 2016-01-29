@@ -37,12 +37,12 @@ func (m *CommitChainMsg) SetCount(cnt int) {
 	m.count = cnt
 }
 
-func (m *CommitChainMsg) Process(state interfaces.IState) {
-	ecblk := state.GetCurrentEntryCreditBlock()
+func (m *CommitChainMsg) Process(dbheight uint32, state interfaces.IState) {
+	ecblk := state.GetEntryCreditBlock(dbheight)
 	ecbody := ecblk.GetBody()
 	ecbody.AddEntry(m.CommitChain)
-	state.GetFactoidState().UpdateECTransaction(m.CommitChain)
-	state.PutCommits(m.GetHash(), m)
+	state.GetFactoidState(dbheight).UpdateECTransaction(m.CommitChain)
+	state.PutCommits(dbheight, m.GetHash(), m)
 }
 
 func (m *CommitChainMsg) GetHash() interfaces.IHash {
@@ -69,11 +69,11 @@ func (m *CommitChainMsg) Bytes() []byte {
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
-func (m *CommitChainMsg) Validate(state interfaces.IState) int {
+func (m *CommitChainMsg) Validate(dbheight uint32, state interfaces.IState) int {
 	if !m.CommitChain.IsValid() {
 		return -1
 	}
-	ebal := state.GetFactoidState().GetECBalance(*m.CommitChain.ECPubKey)
+	ebal := state.GetFactoidState(dbheight).GetECBalance(*m.CommitChain.ECPubKey)
 	if int(m.CommitChain.Credits) > int(ebal) {
 		fmt.Println("Not enough Credits")
 		return 0
@@ -90,14 +90,14 @@ func (m *CommitChainMsg) Leader(state interfaces.IState) bool {
 
 // Execute the leader functions of the given message
 func (m *CommitChainMsg) LeaderExecute(state interfaces.IState) error {
-	v := m.Validate(state)
+	v := m.Validate(state.GetDBHeight(), state)
 	if v <= 0 {
 		return fmt.Errorf("Commit Chain no longer valid")
 	}
 	b := m.GetHash()
 
 	ack, err := NewAck(state, b)
-	state.PutCommits(m.GetHash(), m)
+	state.PutCommits(state.GetDBHeight(), m.GetHash(), m)
 	if err != nil {
 		return err
 	}
@@ -120,7 +120,7 @@ func (m *CommitChainMsg) FollowerExecute(state interfaces.IState) error {
 		return err
 	}
 	if matched { // We matched, we must be remembered!
-		state.PutCommits(m.GetHash(), m)
+		state.PutCommits(state.GetDBHeight(), m.GetHash(), m)
 	}
 	return nil
 }

@@ -134,7 +134,7 @@ func (msg *MsgFactoidTX) Sha() (interfaces.IHash, error) {
 
 var _ interfaces.IMsg = (*MsgFactoidTX)(nil)
 
-func (m *MsgFactoidTX) Process(interfaces.IState) {}
+func (m *MsgFactoidTX) Process(uint32, interfaces.IState) {}
 
 func (m *MsgFactoidTX) GetHash() interfaces.IHash {
 	return nil
@@ -181,7 +181,7 @@ func (m *MsgFactoidTX) String() string {
 //  < 0 -- MsgFactoidTX is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- MsgFactoidTX is valid
-func (m *MsgFactoidTX) Validate(interfaces.IState) int {
+func (m *MsgFactoidTX) Validate(dbheight uint32, state interfaces.IState) int {
 	return 0
 }
 
