@@ -189,12 +189,7 @@ func HandleGetReceipt(ctx *web.Context, hashkey string) {
 	req := primitives.NewJSON2Request(1, hashkey, "get-receipt")
 
 	jsonResp, jsonError := HandleV2GetRequest(state, req)
-	if jsonError!=nil {
-		returnV1(ctx, nil, jsonError)
-	}
-	raw:=new(RawData)
-	raw.Data = jsonResp.Result.(*GetRawDataResponse).Data
-	returnMsg(ctx, raw, true)
+	returnV1(ctx, jsonResp, jsonError)
 }
 
 func HandleDirectoryBlock(ctx *web.Context, hashkey string) {

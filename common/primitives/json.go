@@ -91,8 +91,8 @@ func NewJSON2Response() *JSON2Response {
 	return j
 }
 
-func (j *JSON2Response) AddError(code int, message string) {
-	e := NewJSONError(code, message)
+func (j *JSON2Response) AddError(code int, message string, data interface{}) {
+	e := NewJSONError(code, message, data)
 	j.Error = e
 }
 
@@ -102,9 +102,10 @@ type JSONError struct {
 	Data    interface{} `json:"data,omitempty"`
 }
 
-func NewJSONError(code int, message string) *JSONError {
+func NewJSONError(code int, message string, data interface{}) *JSONError {
 	j := new(JSONError)
 	j.Code = code
 	j.Message = message
+	j.Data = data
 	return j
 }

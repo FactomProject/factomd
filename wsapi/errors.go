@@ -25,61 +25,61 @@ code				message						meaning
 */
 
 func NewParseError() *primitives.JSONError {
-	return primitives.NewJSONError(-32700, "Parse error")
+	return primitives.NewJSONError(-32700, "Parse error", nil)
 }
 func NewInvalidRequestError() *primitives.JSONError {
-	return primitives.NewJSONError(-32600, "Invalid Request")
+	return primitives.NewJSONError(-32600, "Invalid Request", nil)
 }
 func NewMethodNotFoundError() *primitives.JSONError {
-	return primitives.NewJSONError(-32601, "Method not found")
+	return primitives.NewJSONError(-32601, "Method not found", nil)
 }
 func NewInvalidParamsError() *primitives.JSONError {
-	return primitives.NewJSONError(-32602, "Invalid params")
+	return primitives.NewJSONError(-32602, "Invalid params", nil)
 }
 func NewInternalError() *primitives.JSONError {
-	return primitives.NewJSONError(-32603, "Internal error")
+	return primitives.NewJSONError(-32603, "Internal error", nil)
 }
 
 /*******************************************************************/
 
 func NewInvalidAddressError() *primitives.JSONError {
-	return primitives.NewJSONError(-32602, "Invalid params: Invalid Address")
+	return primitives.NewJSONError(-32602, "Invalid params", "Invalid Address")
 }
 func NewUnableToDecodeTransactionError() *primitives.JSONError {
-	return primitives.NewJSONError(-32602, "Invalid params: Unable to decode the transaction")
+	return primitives.NewJSONError(-32602, "Invalid params", "Unable to decode the transaction")
 }
 func NewInvalidTransactionError() *primitives.JSONError {
-	return primitives.NewJSONError(-32602, "Invalid params: Invalid Transaction")
+	return primitives.NewJSONError(-32602, "Invalid params", "Invalid Transaction")
 }
 func NewInvalidHashError() *primitives.JSONError {
-	return primitives.NewJSONError(-32602, "Invalid params: Invalid Hash")
+	return primitives.NewJSONError(-32602, "Invalid params", "Invalid Hash")
 }
 func NewInvalidEntryError() *primitives.JSONError {
-	return primitives.NewJSONError(-32602, "Invalid params: Invalid Entry")
+	return primitives.NewJSONError(-32602, "Invalid params", "Invalid Entry")
 }
 func NewInvalidCommitChainError() *primitives.JSONError {
-	return primitives.NewJSONError(-32602, "Invalid params: Invalid Commit Chain")
+	return primitives.NewJSONError(-32602, "Invalid params", "Invalid Commit Chain")
 }
 func NewInvalidCommitEntryError() *primitives.JSONError {
-	return primitives.NewJSONError(-32602, "Invalid params: Invalid Commit Entry")
+	return primitives.NewJSONError(-32602, "Invalid params", "Invalid Commit Entry")
 }
 func NewInternalDatabaseError() *primitives.JSONError {
-	return primitives.NewJSONError(-32603, "Internal error: database error")
+	return primitives.NewJSONError(-32603, "Internal error", "database error")
 }
 
 //TODO: number better
 func NewEntryNotFoundError() *primitives.JSONError {
-	return primitives.NewJSONError(-1, "Entry not found")
+	return primitives.NewJSONError(-1, "Entry not found", nil)
 }
 func NewBlockNotFoundError() *primitives.JSONError {
-	return primitives.NewJSONError(-2, "Block not found")
+	return primitives.NewJSONError(-2, "Block not found", nil)
 }
 func NewMissingChainHeadError() *primitives.JSONError {
-	return primitives.NewJSONError(-3, "Missing Chain Head")
+	return primitives.NewJSONError(-3, "Missing Chain Head", nil)
 }
 
 //TODO: deprecate
 
 func NewMiscError() *primitives.JSONError {
-	return primitives.NewJSONError(-999, "Misc Error")
+	return primitives.NewJSONError(-999, "Misc Error", nil)
 }
