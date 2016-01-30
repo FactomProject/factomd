@@ -49,6 +49,7 @@ type ProcessList struct {
 	// State information about the directory block while it is under construction.  We may
 	// have to start building the next block while still building the previous block.
 	FactoidState      interfaces.IFactoidState
+	FactoidKeyMR      interfaces.IHash
 	AdminBlock        interfaces.IAdminBlock
 	EntryCreditBlock  interfaces.IEntryCreditBlock
 	DirectoryBlock    interfaces.IDirectoryBlock
