@@ -159,14 +159,15 @@ func (p *ProcessList) PutCommits(key interfaces.IHash, value interfaces.IMsg) {
  * Support
  ************************************************/
 
-func NewProcessList(state interfaces.IState) *ProcessList {
-	numberServers := state.GetTotalServers(state.GetDBHeight())
-
+func NewProcessList(TotalServers int, state interfaces.IState) *ProcessList {
+	// We default to the number of Servers previous.   That's because we always
+	// allocate the FUTURE directoryblock, not the current or previous...
+	
 	pl := new(ProcessList)
-	pl.lists = make([][]interfaces.IMsg, numberServers)
-	pl.heights = make([]int, numberServers)
-	pl.EomComplete = make([]bool, numberServers)
-	pl.SigComplete = make([]bool, numberServers)
+	pl.lists = make([][]interfaces.IMsg, TotalServers)
+	pl.heights = make([]int, TotalServers)
+	pl.EomComplete = make([]bool, TotalServers)
+	pl.SigComplete = make([]bool, TotalServers)
 	pl.dBHeight = state.GetDBHeight()
 	pl.acks = new(map[[32]byte]interfaces.IMsg)
 	pl.msgs = new(map[[32]byte]interfaces.IMsg)

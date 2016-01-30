@@ -311,7 +311,7 @@ func (s *State) ProcessEndOfBlock(dbheight uint32) {
 
 	s.ProcessLists[0] = s.ProcessLists[1]
 	s.ProcessLists[1] = s.ProcessLists[2]
-	s.ProcessLists[2] = NewProcessList(s)
+	s.ProcessLists[2] = NewProcessList(s.ProcessLists[1].TotalServers, s)
 	s.ProcessLists[2].dBHeight = s.DBHeight+1
 	s.ProcessLists[2].FactoidState = s.ProcessLists[1].FactoidState
 	
@@ -506,9 +506,11 @@ func (s *State) Init(filename string) {
 	
 	// Allocate the origninal set of Process Lists
 	for i:=0; i<len(s.ProcessLists); i++ {
-		s.ProcessLists[i] = NewProcessList(s)
+		
+		s.ProcessLists[i] = NewProcessList(1,s)
 		s.ProcessLists[i].FactoidState = fs
-		s.ProcessLists[i].FactoidState = fs
+		s.ProcessLists[i].ServerIndex = 0
+		
 		switch cfg.App.NodeMode {
 			case "FULL":
 				s.ProcessLists[i].ServerState = 0
@@ -519,7 +521,6 @@ func (s *State) Init(filename string) {
 		}
 		// TODO: Right now we just have one server;  Needs to be fixed!
 		// 
-		s.ProcessLists[i].ServerIndex = 0
 	}
 	
 
@@ -742,7 +743,7 @@ func (s *State) CreateDBlock() ( interfaces.IDirectoryBlock,  error) {
 	s.DBHeight++
 	s.ProcessLists[0] = s.ProcessLists[1]
 	s.ProcessLists[1] = s.ProcessLists[2]
-	s.ProcessLists[2] = NewProcessList(s)
+	s.ProcessLists[2] = NewProcessList(s.ProcessLists[1].TotalServers, s)
 	s.ProcessLists[2].DirectoryBlock = directoryBlock.NewDirectoryBlock(s.DBHeight+1)
 
 	prevPL := s.ProcessLists[0]
