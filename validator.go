@@ -22,7 +22,7 @@ func Validator(state interfaces.IState) {
 			fmt.Printf("%20s %s", "Validator:", msg.String())
 		}
 
-		switch msg.Validate(state) { // Validate the message.
+		switch msg.Validate(state.GetDBHeight(), state) { // Validate the message.
 		case 1: // Process if valid
 			state.NetworkOutMsgQueue() <- msg
 			if state.PrintType(msg.Type()) {

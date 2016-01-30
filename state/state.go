@@ -736,22 +736,22 @@ func (s *State) NewAdminBlockHeader() interfaces.IABlockHeader {
 	return header
 }
 
-func (s *State) CreateDBlock() (newdb interfaces.IDirectoryBlock, err error) {
-	prev := s.GetDirectoryBlock(s.DBHeight)
+// Move the future Directory Block to the current, the current to the previous.
+// Return the new Current Directory Block
+func (s *State) CreateDBlock() ( interfaces.IDirectoryBlock,  error) {
+	s.DBHeight++
+	s.ProcessLists[0] = s.ProcessLists[1]
+	s.ProcessLists[1] = s.ProcessLists[2]
+	s.ProcessLists[2] = NewProcessList(s)
+	s.ProcessLists[2].DirectoryBlock = directoryBlock.NewDirectoryBlock(s.DBHeight+1)
 
-	newdb = new(directoryBlock.DirectoryBlock)
-	var ecb interfaces.IEntryCreditBlock
-	newdb.SetHeader(new(directoryBlock.DBlockHeader))
-	newdb.GetHeader().SetVersion(constants.VERSION_0)
-
-	if prev == nil {
-		newdb.GetHeader().SetPrevLedgerKeyMR(primitives.NewZeroHash())
-		newdb.GetHeader().SetPrevKeyMR(primitives.NewZeroHash())
-		newdb.GetHeader().SetDBHeight(0)
-		eb, _ := entryCreditBlock.NextECBlock(nil)
-		
-		ecb = eb
-	} else {
+	prevPL := s.ProcessLists[0]
+	currPL := s.ProcessLists[1]
+	
+	prev  := prevPL.DirectoryBlock
+	newdb := currPL.DirectoryBlock
+	
+	if prev != nil {
 		bodyMR, err := prev.BuildBodyMR()
 		if err != nil {
 			return nil, err
@@ -764,23 +764,13 @@ func (s *State) CreateDBlock() (newdb interfaces.IDirectoryBlock, err error) {
 		}
 		newdb.GetHeader().SetPrevLedgerKeyMR(prevLedgerKeyMR)
 		newdb.GetHeader().SetPrevKeyMR(prev.GetKeyMR())
-		newdb.GetHeader().SetDBHeight(prev.GetHeader().GetDBHeight() + 1)
-		eb, _ := entryCreditBlock.NextECBlock(s.EntryCreditBlock)
-		s.EntryCreditBlock = eb
 	}
+	eb, _ := entryCreditBlock.NextECBlock(nil)
 
-	err = newdb.SetDBEntries(make([]interfaces.IDBEntry, 0))
-	if err != nil {
-		return nil, err
-	}
+	currPL.EntryCreditBlock = eb		
+	currPL.AdminBlock       = s.NewAdminBlock()
 
-	s.CurrentAdminBlock = s.NewAdminBlock()
-
-	newdb.AddEntry(primitives.NewHash(constants.ADMIN_CHAINID), primitives.NewZeroHash())
-	newdb.AddEntry(primitives.NewHash(constants.EC_CHAINID), primitives.NewZeroHash())
-	newdb.AddEntry(primitives.NewHash(constants.FACTOID_CHAINID), primitives.NewZeroHash())
-
-	return b, err
+	return newdb, nil
 }
 
 func (s *State) PrintType(msgType int) bool {
@@ -798,7 +788,7 @@ func (s *State) GetNetworkName() string {
 
 
 func (s *State) GetDirectoryBlock(dbheight uint32) interfaces.IDirectoryBlock {
-	pl := pli(dbheight)
+	pl := s.pli(dbheight)
 	if pl != nil {
 		return pl.DirectoryBlock
 	}
@@ -806,10 +796,8 @@ func (s *State) GetDirectoryBlock(dbheight uint32) interfaces.IDirectoryBlock {
 }
 
 func (s *State) SetDirectoryBlock(dbheight uint32, dirblk interfaces.IDirectoryBlock) {
-	if s.CurrentDirectoryBlock != nil {
-		s.PreviousDirectoryBlock = s.CurrentDirectoryBlock
-	}
-	s.CurrentDirectoryBlock = dirblk
+	pl := s.pli(dbheight)
+	pl.DirectoryBlock = dirblk
 }
 
 func (s *State) GetDB() interfaces.DBOverlay {
@@ -821,10 +809,7 @@ func (s *State) SetDB(dbase interfaces.DBOverlay) {
 }
 
 func (s *State) GetDBHeight() uint32 {
-	if s.CurrentDirectoryBlock == nil {
-		return 0
-	}
-	return s.CurrentDirectoryBlock.GetHeader().GetDBHeight()
+	return s.DBHeight
 }
 
 func (s *State) GetNewHash() interfaces.IHash {
@@ -832,7 +817,8 @@ func (s *State) GetNewHash() interfaces.IHash {
 }
 
 func (s *State) RecalculateBalances() error {
-	s.FactoidState.ResetBalances()
+	fs := s.pli(s.DBHeight).FactoidState
+	fs.ResetBalances()
 
 	blocks, err := s.DB.FetchAllFBlocks()
 	if err != nil {
@@ -841,9 +827,9 @@ func (s *State) RecalculateBalances() error {
 	for _, block := range blocks {
 		txs := block.GetTransactions()
 		for _, tx := range txs {
-			err = s.FactoidState.UpdateTransaction(tx)
+			err = fs.UpdateTransaction(tx)
 			if err != nil {
-				s.FactoidState.ResetBalances()
+				fs.ResetBalances()
 				return err
 			}
 		}
@@ -856,9 +842,9 @@ func (s *State) RecalculateBalances() error {
 	for _, block := range ecBlocks {
 		txs := block.GetBody().GetEntries()
 		for _, tx := range txs {
-			err = s.FactoidState.UpdateECTransaction(tx)
+			err = fs.UpdateECTransaction(tx)
 			if err != nil {
-				s.FactoidState.ResetBalances()
+				fs.ResetBalances()
 				return err
 			}
 		}
