@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"sync"
 
 	"os"
 
@@ -33,7 +32,6 @@ type State struct {
 	Cfg interfaces.IFactomConfig
 
 	IdentityChainID interfaces.IHash // If this node has an identity, this is it
-	ServerIndex     int              // If a federated server, this is the server index
 
 	networkInMsgQueue      chan interfaces.IMsg
 	networkOutMsgQueue     chan interfaces.IMsg
@@ -52,20 +50,16 @@ type State struct {
 	Holding map[[32]byte]interfaces.IMsg // Hold Messages
 	Acks    map[[32]byte]interfaces.IMsg // Hold Acknowledgemets
 
-	NewEBlksSem *sync.Mutex
-	NewEBlks    map[[32]byte]interfaces.IEntryBlock // Entry Blocks added within 10 minutes (follower and leader)
-
-	CommitsSem *sync.Mutex
-	Commits    map[[32]byte]interfaces.IMsg // Used by the leader, validate
-
-	// Lists
-	// =====
-	AuditServers []interfaces.IServer   // List of Audit Servers
-	FedServers   []interfaces.IServer   // List of Federated Servers
-	ServerOrder  [][]interfaces.IServer // 10 lists for Server Order for each minute
-
-	PLPrevious *ProcessList // Previous Process Lists.  Sometimes you have to wait to process
-	PLCurrent  *ProcessList // Current Process Lists.  What we are building now.
+	// Having all the state for a particular directory block stored in one structure
+	// makes creating the next state, updating the various states, and setting up the next
+	// state much more simple.
+	//
+	// Functions that provide state information take a dbheight param.  I use the current
+	// DBHeight to ensure that I return the proper information for the right directory block
+	// height, even if it changed out from under the calling code.
+	//
+	// Process list past [0], present [1], and future[2]
+	ProcessLists [3]*ProcessList
 
 	AuditHeartBeats []interfaces.IMsg   // The checklist of HeartBeats for this period
 	FedServerFaults [][]interfaces.IMsg // Keep a fault list for every server
@@ -74,81 +68,74 @@ type State struct {
 	NetworkNumber int // Encoded into Directory Blocks(s.Cfg.(*util.FactomdConfig)).String()
 
 	// Number of Servers acknowledged by Factom
-	TotalServers int
-	ServerState  int                // (0 if client, 1 if server, 2 if audit server
-	Matryoshka   []interfaces.IHash // Reverse Hash
+	Matryoshka []interfaces.IHash // Reverse Hash
 
 	// Database
-	DB *databaseOverlay.Overlay
+	DB     *databaseOverlay.Overlay
+	Logger *logger.FLogger
+	Anchor interfaces.IAnchor
 
 	// Directory Block State
-	PreviousDirectoryBlock interfaces.IDirectoryBlock
-	CurrentDirectoryBlock  interfaces.IDirectoryBlock
-	DBHeight               uint32
+	DBHeight uint32
 
 	// Web Services
 	Port int
 
 	// Message State
-	LastAck interfaces.IMsg // Return the last Acknowledgement set by this server
+	LastAck interfaces.IMsg // The last Acknowledgement set by this server
 
-	FactoidState      interfaces.IFactoidState
-	PrevFactoidKeyMR  interfaces.IHash
-	CurrentAdminBlock interfaces.IAdminBlock
-	EntryCreditBlock  interfaces.IEntryCreditBlock
-
-	Logger *logger.FLogger
-
-	Anchor interfaces.IAnchor
 }
 
 var _ interfaces.IState = (*State)(nil)
 
-func (s *State) GetServerIndex() int {
-	return s.ServerIndex
-}
-
-func (s *State) GetNewEBlks(key [32]byte) interfaces.IEntryBlock {
-	s.NewEBlksSem.Lock()
-	value := s.NewEBlks[key]
-	s.NewEBlksSem.Unlock()
-	return value
-}
-
-func (s *State) PutNewEBlks(key [32]byte, value interfaces.IEntryBlock) {
-	s.NewEBlksSem.Lock()
-	s.NewEBlks[key] = value
-	s.NewEBlksSem.Unlock()
-}
-
-func (s *State) GetCommits(key interfaces.IHash) interfaces.IMsg {
-	s.CommitsSem.Lock()
-	value := s.Commits[key.Fixed()]
-	s.CommitsSem.Unlock()
-	return value
-}
-
-func (s *State) PutCommits(key interfaces.IHash, value interfaces.IMsg) {
-	s.CommitsSem.Lock()
-	{
-		fmt.Println("putCommits:", value)
-		cmsg, ok := value.(interfaces.ICounted)
-		if ok {
-			v := s.Commits[key.Fixed()]
-			if v != nil {
-				_, ok := v.(interfaces.ICounted)
-				if ok {
-					cmsg.SetCount(v.(interfaces.ICounted).GetCount() + 1)
-				} else {
-					fmt.Println(v)
-					panic("Should never happen")
-				}
-			}
-		}
-
-		s.Commits[key.Fixed()] = value
+// Returns the Process List block for the given height.  Returns nil if the Process list
+// block specified doesn't exist or is out of range.
+func (s *State) pli(height uint32) *ProcessList {
+	i := height - s.DBHeight + 1
+	if i < 0 || i > 2 {
+		return nil
 	}
-	s.CommitsSem.Unlock()
+	return s.ProcessLists[i]
+}
+
+func (s *State) GetServerIndex(dbheight uint32) int {
+	pl := s.pli(dbheight)
+	if pl == nil {
+		return -1
+	}
+	return pl.ServerIndex
+}
+
+func (s *State) GetNewEBlks(dbheight uint32, key [32]byte) interfaces.IEntryBlock {
+	pl := s.pli(dbheight)
+	var value interfaces.IEntryBlock
+	if pl != nil {
+		value = pl.GetNewEBlks(key)
+	}
+	return value
+}
+
+func (s *State) PutNewEBlks(dbheight uint32, key [32]byte, value interfaces.IEntryBlock) {
+	pl := s.pli(dbheight)
+	if pl != nil {
+		pl.PutNewEBlks(key, value)
+	}
+}
+
+func (s *State) GetCommits(dbheight uint32, key interfaces.IHash) interfaces.IMsg {
+	pl := s.pli(dbheight)
+	var value interfaces.IMsg
+	if pl != nil {
+		value = pl.GetCommits(key)
+	}
+	return value
+}
+
+func (s *State) PutCommits(dbheight uint32, key interfaces.IHash, value interfaces.IMsg) {
+	pl := s.pli(dbheight)
+	if pl != nil {
+		pl.PutCommits(key, value)
+	}
 }
 
 // Messages that match an acknowledgement, and are added to the process list
@@ -162,7 +149,7 @@ func (s *State) MatchAckFollowerExecute(m interfaces.IMsg) (bool, error) {
 		s.Holding[m.GetHash().Fixed()] = m
 		return false, nil
 	} else {
-		s.PLCurrent.AddToProcessList(ack, m)
+		s.pli(s.DBHeight).AddToProcessList(ack, m)
 		delete(acks, m.GetHash().Fixed())
 		delete(s.Holding, m.GetHash().Fixed())
 
@@ -190,22 +177,28 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) error {
 //
 // This routine can only be called by the Follower goroutine.
 func (s *State) UpdateProcessLists() {
-	if !s.PLPrevious.Complete() {
-		s.PLPrevious.Process(s)
-		if s.PLPrevious.Complete() {
-			s.PLCurrent.Process(s)
+	prev := s.pli(s.DBHeight - 1)
+	if !prev.Complete() {
+		prev.Process(s)
+		if prev.Complete() {
+			s.pli(s.DBHeight).Process(s)
 		}
 	} else {
-		s.PLCurrent.Process(s)
+		s.pli(s.DBHeight).Process(s)
 	}
 }
 
-func (s *State) GetCurrentEntryCreditBlock() interfaces.IEntryCreditBlock {
-	return s.EntryCreditBlock
+func (s *State) GetEntryCreditBlock(dbheight uint32) interfaces.IEntryCreditBlock {
+	pl := s.pli(dbheight)
+	if pl == nil {
+		return nil
+	}
+	return pl.EntryCreditBlock
 }
 
-func (s *State) SetCurrentEntryCreditBlock(ecblk interfaces.IEntryCreditBlock) {
-	s.EntryCreditBlock = ecblk
+func (s *State) SetEntryCreditBlock(dbheight uint32, ecblk interfaces.IEntryCreditBlock) {
+	pl := s.pli(dbheight)
+	pl.EntryCreditBlock = ecblk
 }
 
 func (s *State) GetServer() interfaces.IServer {
@@ -239,14 +232,26 @@ func (s *State) LogInfo(args ...interface{}) {
 
 // Lists
 // =====
-func (s *State) GetAuditServers() []interfaces.IServer {
-	return s.AuditServers
+func (s *State) GetAuditServers(dbheight uint32) []interfaces.IServer {
+	pl := s.pli(dbheight)
+	if pl == nil {
+		return nil
+	}
+	return pl.AuditServers
 }
-func (s *State) GetFedServers() []interfaces.IServer {
-	return s.FedServers
+func (s *State) GetFedServers(dbheight uint32) []interfaces.IServer {
+	pl := s.pli(dbheight)
+	if pl == nil {
+		return nil
+	}
+	return pl.FedServers
 }
-func (s *State) GetServerOrder() [][]interfaces.IServer {
-	return s.ServerOrder
+func (s *State) GetServerOrder(dbheight uint32) [][]interfaces.IServer {
+	pl := s.pli(dbheight)
+	if pl == nil {
+		return nil
+	}
+	return pl.ServerOrder
 }
 func (s *State) GetAuditHeartBeats() []interfaces.IMsg {
 	return s.AuditHeartBeats
@@ -266,65 +271,98 @@ func (s *State) Sign([]byte) interfaces.IFullSignature {
 // This routine is called once we have everything to create a Directory Block.
 // It is called by the follower code.  It is requried to build the Directory Block
 // to validate the signatures we will get with the DirectoryBlockSignature messages.
-func (s *State) ProcessEndOfBlock() {
+func (s *State) ProcessEndOfBlock(dbheight uint32) {
 	//Must have all the complete process lists at this point!
 
 	s.UpdateProcessLists() // Do any remaining processing
 
-	if !s.PLPrevious.Complete() {
+	prevPL := s.pli(s.DBHeight - 1)
+	curPL := s.pli(s.DBHeight)
+	nextPL := s.pli(s.DBHeight + 1)
+	if prevPL != nil && !prevPL.Complete() {
 		panic("Failed to process the previous block")
 	}
-	s.PLPrevious = s.PLCurrent
-	s.PLCurrent = NewProcessList(s)
+
 	s.LastAck = nil
 
-	s.PreviousDirectoryBlock = s.CurrentDirectoryBlock
-	previousECBlock := s.GetCurrentEntryCreditBlock()
-
-	s.FactoidState.ProcessEndOfBlock(s) // Clean up Factoids
+	curPL.FactoidState.ProcessEndOfBlock(s) // Clean up Factoids
 
 	db, err := s.CreateDBlock()
 	if err != nil {
 		panic("Failed to create a Directory Block")
 	}
 
+	previousECBlock := prevPL.EntryCreditBlock
 	if previousECBlock != nil {
 		s.DB.ProcessECBlockBatch(previousECBlock)
 	}
 
-	s.SetCurrentDirectoryBlock(db)
+	nextPL.DirectoryBlock = db
 
-	if s.PreviousDirectoryBlock != nil {
-		if err = s.DB.SaveDirectoryBlockHead(s.PreviousDirectoryBlock); err != nil {
+	if prevPL.DirectoryBlock != nil {
+		if err = s.DB.SaveDirectoryBlockHead(prevPL.DirectoryBlock); err != nil {
 			panic(err.Error())
 		}
-		s.Anchor.UpdateDirBlockInfoMap(dbInfo.NewDirBlockInfoFromDirBlock(s.PreviousDirectoryBlock))
+		s.Anchor.UpdateDirBlockInfoMap(dbInfo.NewDirBlockInfoFromDirBlock(prevPL.DirectoryBlock))
 	} else {
 		log.Println("No old db")
 	}
 
+	s.ProcessLists[0] = s.ProcessLists[1]
+	s.ProcessLists[1] = s.ProcessLists[2]
+	s.ProcessLists[2] = NewProcessList(s.ProcessLists[1].TotalServers, s)
+	s.ProcessLists[2].dBHeight = s.DBHeight + 1
+	s.ProcessLists[2].FactoidState = s.ProcessLists[1].FactoidState
+
 	s.LastAck = nil
-	s.NewEBlks = make(map[[32]byte]interfaces.IEntryBlock)
 }
 
-func (s *State) GetPrevFactoidKeyMR() interfaces.IHash {
-	return s.PrevFactoidKeyMR
+func (s *State) GetFactoidKeyMR(dbheight uint32) interfaces.IHash {
+	pl := s.pli(dbheight)
+	if pl == nil {
+		return nil
+	}
+	return pl.FactoidKeyMR
 }
 
-func (s *State) SetPrevFactoidKeyMR(hash interfaces.IHash) {
-	s.PrevFactoidKeyMR = hash
+func (s *State) SetFactoidKeyMR(dbheight uint32, hash interfaces.IHash) {
+	pl := s.pli(dbheight)
+	if pl == nil {
+		return
+	}
+	pl.FactoidKeyMR = hash
 }
 
-func (s *State) GetCurrentAdminBlock() interfaces.IAdminBlock {
-	return s.CurrentAdminBlock
+func (s *State) GetAdminBlock(dbheight uint32) interfaces.IAdminBlock {
+	pl := s.pli(dbheight)
+	if pl == nil {
+		return nil
+	}
+	return pl.AdminBlock
 }
 
-func (s *State) SetCurrentAdminBlock(adblock interfaces.IAdminBlock) {
-	s.CurrentAdminBlock = adblock
+func (s *State) SetAdminBlock(dbheight uint32, adblock interfaces.IAdminBlock) {
+	pl := s.pli(dbheight)
+	if pl == nil {
+		return
+	}
+	pl.AdminBlock = adblock
 }
 
-func (s *State) GetFactoidState() interfaces.IFactoidState {
-	return s.FactoidState
+func (s *State) GetFactoidState(dbheight uint32) interfaces.IFactoidState {
+	pl := s.pli(dbheight)
+	if pl == nil {
+		return nil
+	}
+	return pl.FactoidState
+}
+
+func (s *State) SetFactoidState(dbheight uint32, fs interfaces.IFactoidState) {
+	pl := s.pli(dbheight)
+	if pl == nil {
+		return
+	}
+	pl.FactoidState = fs
 }
 
 // Allow us the ability to update the port number at run time....
@@ -347,7 +385,8 @@ func (s *State) GetPort() int {
 // ChainIDs
 // ...
 func (s *State) LeaderFor([]byte) bool {
-	if s.TotalServers == 1 && s.ServerState == 1 &&
+	pl := s.pli(s.DBHeight)
+	if pl.TotalServers == 1 && pl.ServerState == 1 &&
 		s.NetworkNumber == constants.NETWORK_LOCAL {
 		return true
 	}
@@ -394,27 +433,39 @@ func (s *State) ReadCfg(filename string) interfaces.IFactomConfig {
 	return s.Cfg
 }
 
-func (s *State) GetTotalServers() int {
-	return s.TotalServers
+func (s *State) GetTotalServers(dbheight uint32) int {
+	pl := s.pli(dbheight)
+	if pl == nil {
+		return 0
+	}
+	return pl.TotalServers
 }
 
-func (s *State) GetProcessListLen(list int) int {
-	if list >= s.TotalServers {
+func (s *State) GetProcessListLen(dbheight uint32, list int) int {
+	pl := s.pli(dbheight)
+	if pl == nil {
+		return 0
+	}
+	if list >= pl.TotalServers {
 		return -1
 	}
-	return s.PLCurrent.GetLen(list)
+	return pl.GetLen(list)
 }
 
-func (s *State) GetServerState() int {
-	return s.ServerState
+func (s *State) GetServerState(dbheight uint32) int {
+	pl := s.pli(dbheight)
+	if pl == nil {
+		return 0
+	}
+	return pl.ServerState
 }
 
 func (s *State) GetNetworkNumber() int {
 	return s.NetworkNumber
 }
 
-func (s *State) GetMatryoshka() []interfaces.IHash {
-	return s.Matryoshka
+func (s *State) GetMatryoshka(dbheight uint32) interfaces.IHash {
+	return nil
 }
 
 func (s *State) GetLastAck() interfaces.IMsg {
@@ -444,24 +495,31 @@ func (s *State) Init(filename string) {
 	s.leaderInMsgQueue = make(chan interfaces.IMsg, 10000)       //Leader Messages
 	s.followerInMsgQueue = make(chan interfaces.IMsg, 10000)     //Follower Messages
 
-	s.TotalServers = 1
+	// Set up maps for the followers
+	s.Holding = make(map[[32]byte]interfaces.IMsg)
+	s.Acks = make(map[[32]byte]interfaces.IMsg)
 
 	// Setup the FactoidState and Validation Service that holds factoid and entry credit balances
 	fs := new(FactoidState)
 	fs.ValidationService = NewValidationService()
-	s.FactoidState = fs
 
-	switch cfg.App.NodeMode {
-	case "FULL":
-		s.ServerState = 0
-	case "SERVER":
-		s.ServerState = 1
-	default:
-		panic("Bad Node Mode (must be FULL or SERVER)")
-	}
+	// Allocate the origninal set of Process Lists
+	for i := 0; i < len(s.ProcessLists); i++ {
 
-	if s.ServerState == 1 {
-		s.ServerIndex = 0
+		s.ProcessLists[i] = NewProcessList(1, s)
+		s.ProcessLists[i].FactoidState = fs
+		s.ProcessLists[i].ServerIndex = 0
+
+		switch cfg.App.NodeMode {
+		case "FULL":
+			s.ProcessLists[i].ServerState = 0
+		case "SERVER":
+			s.ProcessLists[i].ServerState = 1
+		default:
+			panic("Bad Node Mode (must be FULL or SERVER)")
+		}
+		// TODO: Right now we just have one server;  Needs to be fixed!
+		//
 	}
 
 	//Database
@@ -499,20 +557,6 @@ func (s *State) Init(filename string) {
 	default:
 		panic("Bad value for Network in factomd.conf")
 	}
-	s.Holding = make(map[[32]byte]interfaces.IMsg)
-	s.Acks = make(map[[32]byte]interfaces.IMsg)
-
-	s.NewEBlksSem = new(sync.Mutex)
-	s.NewEBlks = make(map[[32]byte]interfaces.IEntryBlock)
-
-	s.CommitsSem = new(sync.Mutex)
-	s.Commits = make(map[[32]byte]interfaces.IMsg)
-
-	s.AuditServers = make([]interfaces.IServer, 0)
-	s.FedServers = make([]interfaces.IServer, 0)
-	s.ServerOrder = make([][]interfaces.IServer, 0)
-
-	s.PLCurrent = NewProcessList(s)
 
 	s.AuditHeartBeats = make([]interfaces.IMsg, 0)
 	s.FedServerFaults = make([][]interfaces.IMsg, 0)
@@ -542,25 +586,20 @@ func (s *State) loadDatabase() {
 
 		dblk.GetDBEntries()[2].SetKeyMR(fblk.GetKeyMR())
 
-		s.SetCurrentDirectoryBlock(dblk)
+		cdb := s.pli(1)
+		cdb.DirectoryBlock = dblk
 
-		if s.FactoidState == nil {
-			fs := new(FactoidState)
-			fs.ValidationService = NewValidationService()
-			s.FactoidState = fs
-		}
-		if err := s.FactoidState.AddTransactionBlock(fblk); err != nil {
+		if err := cdb.FactoidState.AddTransactionBlock(fblk); err != nil {
 			panic("Failed to initialize Factoids: " + err.Error())
 		}
 
-		s.EntryCreditBlock = entryCreditBlock.NewECBlock()
+		cdb.EntryCreditBlock = entryCreditBlock.NewECBlock()
 
 		dblk, err = s.CreateDBlock()
 		if dblk == nil {
 			panic("dblk should never be nil")
 		}
-		s.ProcessEndOfBlock()
-		dblk = s.GetCurrentDirectoryBlock()
+		s.ProcessEndOfBlock(1)
 
 	} else {
 		if dblk.GetHeader().GetDBHeight() > 0 {
@@ -571,8 +610,10 @@ func (s *State) loadDatabase() {
 			if dbPrev == nil {
 				panic("Did not find the Previous Directory Block in the database")
 			}
-			s.PreviousDirectoryBlock = dbPrev.(interfaces.IDirectoryBlock)
+			s.pli(0).DirectoryBlock = dbPrev.(interfaces.IDirectoryBlock)
 		}
+
+		s.DBHeight = dblk.GetHeader().GetDBHeight()
 
 		fBlocks, err := s.DB.FetchAllFBlocks()
 
@@ -582,7 +623,7 @@ func (s *State) loadDatabase() {
 			panic(err.Error())
 		}
 		for _, block := range fBlocks {
-			s.GetFactoidState().AddTransactionBlock(block)
+			s.GetFactoidState(s.DBHeight).AddTransactionBlock(block)
 		}
 
 		ecBlocks, err := s.DB.FetchAllECBlocks()
@@ -592,12 +633,14 @@ func (s *State) loadDatabase() {
 
 		log.Printf("Processing %d ECBlocks\n", len(ecBlocks))
 
+		cpl := s.pli(s.DBHeight)
+		fs := cpl.FactoidState
 		for _, block := range ecBlocks {
-			s.EntryCreditBlock = block
-			s.GetFactoidState().AddECBlock(block)
+			cpl.EntryCreditBlock = block
+			fs.AddECBlock(block)
 		}
 	}
-	s.SetCurrentDirectoryBlock(dblk)
+	s.pli(s.DBHeight).DirectoryBlock = dblk
 }
 
 func (s *State) InitLevelDB() error {
@@ -674,10 +717,10 @@ func (s *State) NewAdminBlock() interfaces.IAdminBlock {
 func (s *State) NewAdminBlockHeader() interfaces.IABlockHeader {
 	header := new(adminBlock.ABlockHeader)
 	header.DBHeight = s.GetDBHeight()
-	if s.GetCurrentAdminBlock() == nil {
+	if s.pli(s.DBHeight).AdminBlock == nil {
 		header.PrevLedgerKeyMR = primitives.NewHash(constants.ZERO_HASH)
 	} else {
-		keymr, err := s.GetCurrentAdminBlock().LedgerKeyMR()
+		keymr, err := s.pli(s.DBHeight).AdminBlock.LedgerKeyMR()
 		if err != nil {
 			panic(err.Error())
 		}
@@ -690,21 +733,22 @@ func (s *State) NewAdminBlockHeader() interfaces.IABlockHeader {
 	return header
 }
 
-func (s *State) CreateDBlock() (b interfaces.IDirectoryBlock, err error) {
-	prev := s.GetCurrentDirectoryBlock()
+// Move the future Directory Block to the current, the current to the previous.
+// Return the new Current Directory Block
+func (s *State) CreateDBlock() (interfaces.IDirectoryBlock, error) {
+	s.DBHeight++
+	s.ProcessLists[0] = s.ProcessLists[1]
+	s.ProcessLists[1] = s.ProcessLists[2]
+	s.ProcessLists[2] = NewProcessList(s.ProcessLists[1].TotalServers, s)
+	s.ProcessLists[2].DirectoryBlock = directoryBlock.NewDirectoryBlock(s.DBHeight + 1)
 
-	b = new(directoryBlock.DirectoryBlock)
+	prevPL := s.ProcessLists[0]
+	currPL := s.ProcessLists[1]
 
-	b.SetHeader(new(directoryBlock.DBlockHeader))
-	b.GetHeader().SetVersion(constants.VERSION_0)
+	prev := prevPL.DirectoryBlock
+	newdb := currPL.DirectoryBlock
 
-	if prev == nil {
-		b.GetHeader().SetPrevLedgerKeyMR(primitives.NewZeroHash())
-		b.GetHeader().SetPrevKeyMR(primitives.NewZeroHash())
-		b.GetHeader().SetDBHeight(0)
-		eb, _ := entryCreditBlock.NextECBlock(nil)
-		s.EntryCreditBlock = eb
-	} else {
+	if prev != nil {
 		bodyMR, err := prev.BuildBodyMR()
 		if err != nil {
 			return nil, err
@@ -715,25 +759,15 @@ func (s *State) CreateDBlock() (b interfaces.IDirectoryBlock, err error) {
 		if prevLedgerKeyMR == nil {
 			return nil, errors.New("prevLedgerKeyMR is nil")
 		}
-		b.GetHeader().SetPrevLedgerKeyMR(prevLedgerKeyMR)
-		b.GetHeader().SetPrevKeyMR(prev.GetKeyMR())
-		b.GetHeader().SetDBHeight(prev.GetHeader().GetDBHeight() + 1)
-		eb, _ := entryCreditBlock.NextECBlock(s.EntryCreditBlock)
-		s.EntryCreditBlock = eb
+		newdb.GetHeader().SetPrevLedgerKeyMR(prevLedgerKeyMR)
+		newdb.GetHeader().SetPrevKeyMR(prev.GetKeyMR())
 	}
+	eb, _ := entryCreditBlock.NextECBlock(nil)
 
-	err = b.SetDBEntries(make([]interfaces.IDBEntry, 0))
-	if err != nil {
-		return nil, err
-	}
+	currPL.EntryCreditBlock = eb
+	currPL.AdminBlock = s.NewAdminBlock()
 
-	s.CurrentAdminBlock = s.NewAdminBlock()
-
-	b.AddEntry(primitives.NewHash(constants.ADMIN_CHAINID), primitives.NewZeroHash())
-	b.AddEntry(primitives.NewHash(constants.EC_CHAINID), primitives.NewZeroHash())
-	b.AddEntry(primitives.NewHash(constants.FACTOID_CHAINID), primitives.NewZeroHash())
-
-	return b, err
+	return newdb, nil
 }
 
 func (s *State) PrintType(msgType int) bool {
@@ -749,19 +783,17 @@ func (s *State) GetNetworkName() string {
 
 }
 
-func (s *State) GetPreviousDirectoryBlock() interfaces.IDirectoryBlock {
-	return s.PreviousDirectoryBlock
-}
-
-func (s *State) GetCurrentDirectoryBlock() interfaces.IDirectoryBlock {
-	return s.CurrentDirectoryBlock
-}
-
-func (s *State) SetCurrentDirectoryBlock(dirblk interfaces.IDirectoryBlock) {
-	if s.CurrentDirectoryBlock != nil {
-		s.PreviousDirectoryBlock = s.CurrentDirectoryBlock
+func (s *State) GetDirectoryBlock(dbheight uint32) interfaces.IDirectoryBlock {
+	pl := s.pli(dbheight)
+	if pl != nil {
+		return pl.DirectoryBlock
 	}
-	s.CurrentDirectoryBlock = dirblk
+	return nil
+}
+
+func (s *State) SetDirectoryBlock(dbheight uint32, dirblk interfaces.IDirectoryBlock) {
+	pl := s.pli(dbheight)
+	pl.DirectoryBlock = dirblk
 }
 
 func (s *State) GetDB() interfaces.DBOverlay {
@@ -773,10 +805,7 @@ func (s *State) SetDB(dbase interfaces.DBOverlay) {
 }
 
 func (s *State) GetDBHeight() uint32 {
-	if s.CurrentDirectoryBlock == nil {
-		return 0
-	}
-	return s.CurrentDirectoryBlock.GetHeader().GetDBHeight()
+	return s.DBHeight
 }
 
 func (s *State) GetNewHash() interfaces.IHash {
@@ -784,7 +813,8 @@ func (s *State) GetNewHash() interfaces.IHash {
 }
 
 func (s *State) RecalculateBalances() error {
-	s.FactoidState.ResetBalances()
+	fs := s.pli(s.DBHeight).FactoidState
+	fs.ResetBalances()
 
 	blocks, err := s.DB.FetchAllFBlocks()
 	if err != nil {
@@ -793,9 +823,9 @@ func (s *State) RecalculateBalances() error {
 	for _, block := range blocks {
 		txs := block.GetTransactions()
 		for _, tx := range txs {
-			err = s.FactoidState.UpdateTransaction(tx)
+			err = fs.UpdateTransaction(tx)
 			if err != nil {
-				s.FactoidState.ResetBalances()
+				fs.ResetBalances()
 				return err
 			}
 		}
@@ -808,9 +838,9 @@ func (s *State) RecalculateBalances() error {
 	for _, block := range ecBlocks {
 		txs := block.GetBody().GetEntries()
 		for _, tx := range txs {
-			err = s.FactoidState.UpdateECTransaction(tx)
+			err = fs.UpdateECTransaction(tx)
 			if err != nil {
-				s.FactoidState.ResetBalances()
+				fs.ResetBalances()
 				return err
 			}
 		}

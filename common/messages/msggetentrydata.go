@@ -135,7 +135,7 @@ func NewMsgGetEntryDataSizeHint(sizeHint uint) *MsgGetEntryData {
 
 var _ interfaces.IMsg = (*MsgGetEntryData)(nil)
 
-func (m *MsgGetEntryData) Process(interfaces.IState) {}
+func (m *MsgGetEntryData) Process(uint32, interfaces.IState) {}
 
 func (m *MsgGetEntryData) GetHash() interfaces.IHash {
 	return nil
@@ -182,7 +182,7 @@ func (m *MsgGetEntryData) String() string {
 //  < 0 -- MsgGetEntryData is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- MsgGetEntryData is valid
-func (m *MsgGetEntryData) Validate(interfaces.IState) int {
+func (m *MsgGetEntryData) Validate(dbheight uint32, state interfaces.IState) int {
 	return 0
 }
 

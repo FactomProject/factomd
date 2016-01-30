@@ -211,7 +211,7 @@ func (b *blockManager) storeBlocksFromMemPool(dblk *directoryBlock.DirectoryBloc
 			if err != nil {
 				return err
 			}
-			b.server.State.SetCurrentEntryCreditBlock(ecBlkMsg.ECBlock)
+			b.server.State.SetEntryCreditBlock(b.server.State.GetDBHeight(), ecBlkMsg.ECBlock)
 			//initializeECreditMap(ecBlkMsg.ECBlock)
 		case hex.EncodeToString(constants.ADMIN_CHAINID[:]):
 			aBlkMsg := b.fMemPool.blockpool[dbEntry.GetKeyMR().String()].(*messages.MsgABlock)
@@ -219,7 +219,7 @@ func (b *blockManager) storeBlocksFromMemPool(dblk *directoryBlock.DirectoryBloc
 			if err != nil {
 				return err
 			}
-			b.server.State.SetCurrentAdminBlock(aBlkMsg.ABlk)
+			b.server.State.SetAdminBlock(b.server.State.GetDBHeight(), aBlkMsg.ABlk)
 		case hex.EncodeToString(constants.FACTOID_CHAINID[:]):
 			fBlkMsg := b.fMemPool.blockpool[dbEntry.GetKeyMR().String()].(*messages.MsgFBlock)
 			err := b.server.State.GetDB().ProcessFBlockBatch(fBlkMsg.FBlck)
@@ -227,12 +227,12 @@ func (b *blockManager) storeBlocksFromMemPool(dblk *directoryBlock.DirectoryBloc
 				return err
 			}
 			// Initialize the Factoid State
-			err = b.server.State.GetFactoidState().AddTransactionBlock(fBlkMsg.FBlck)
+			err = b.server.State.GetFactoidState(b.server.State.GetDBHeight()).AddTransactionBlock(fBlkMsg.FBlck)
 			//FactoshisPerCredit = fBlkMsg.FBlck.GetExchRate()
 			if err != nil {
 				return err
 			}
-			b.server.State.SetPrevFactoidKeyMR(fBlkMsg.FBlck.GetKeyMR()) // ???
+			b.server.State.SetFactoidKeyMR(b.server.State.GetDBHeight(), fBlkMsg.FBlck.GetKeyMR()) // ???
 		default:
 			// handle Entry Block
 			eBlkMsg, _ := b.fMemPool.blockpool[dbEntry.GetKeyMR().String()].(*messages.MsgEBlock)
@@ -275,7 +275,7 @@ func (b *blockManager) storeBlocksFromMemPool(dblk *directoryBlock.DirectoryBloc
 	}
 
 	// Update State with block height & current/previous blocks
-	b.server.State.SetCurrentDirectoryBlock(dblk)
+	b.server.State.SetDirectoryBlock(b.server.State.GetDBHeight(), dblk)
 	return nil
 }
 

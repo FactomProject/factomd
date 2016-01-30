@@ -73,7 +73,7 @@ func NewMsgECBlock() *MsgECBlock {
 
 var _ interfaces.IMsg = (*MsgECBlock)(nil)
 
-func (m *MsgECBlock) Process(interfaces.IState) {}
+func (m *MsgECBlock) Process(uint32, interfaces.IState) {}
 
 func (m *MsgECBlock) GetHash() interfaces.IHash {
 	return nil
@@ -120,7 +120,7 @@ func (m *MsgECBlock) String() string {
 //  < 0 -- MsgECBlock is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- MsgECBlock is valid
-func (m *MsgECBlock) Validate(interfaces.IState) int {
+func (m *MsgECBlock) Validate(dbheight uint32, state interfaces.IState) int {
 	return 0
 }
 

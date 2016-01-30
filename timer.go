@@ -39,15 +39,15 @@ func Timer(state interfaces.IState) {
 
 			// End of the last period, and this is a server, send messages that
 			// close off the minute.
-			if state.GetServerState() == 1 {
+			if state.GetServerState(state.GetDBHeight()) == 1 {
 				eom := messages.NewEOM(state, i)
 				state.LeaderInMsgQueue() <- eom
 				//state.NetworkOutMsgQueue() <- eom
 			}
 
 			pls := ""
-			for i := 0; i < state.GetTotalServers(); i++ {
-				pls = fmt.Sprintf("%s Server %d--%d", pls, i, state.GetProcessListLen(i))
+			for i := 0; i < state.GetTotalServers(state.GetDBHeight()); i++ {
+				pls = fmt.Sprintf("%s Server %d--%d", pls, i, state.GetProcessListLen(state.GetDBHeight(), i))
 			}
 
 			fmt.Printf("\r%19s: DBlock %v minute %v %s %s",

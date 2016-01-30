@@ -165,7 +165,7 @@ func (msg *MsgAck) Sha() (interfaces.IHash, error) {
 
 var _ interfaces.IMsg = (*MsgAck)(nil)
 
-func (m *MsgAck) Process(interfaces.IState) {}
+func (m *MsgAck) Process(uint32, interfaces.IState) {}
 
 func (m *MsgAck) GetHash() interfaces.IHash {
 	return nil
@@ -212,7 +212,7 @@ func (m *MsgAck) String() string {
 //  < 0 -- MsgAck is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- MsgAck is valid
-func (m *MsgAck) Validate(interfaces.IState) int {
+func (m *MsgAck) Validate(dbheight uint32, state interfaces.IState) int {
 	return 0
 }
 

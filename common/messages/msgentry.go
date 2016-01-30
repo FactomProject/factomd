@@ -73,7 +73,7 @@ func NewMsgEntry() *MsgEntry {
 
 var _ interfaces.IMsg = (*MsgEntry)(nil)
 
-func (m *MsgEntry) Process(interfaces.IState) {}
+func (m *MsgEntry) Process(uint32, interfaces.IState) {}
 
 func (m *MsgEntry) GetHash() interfaces.IHash {
 	return nil
@@ -120,7 +120,7 @@ func (m *MsgEntry) String() string {
 //  < 0 -- MsgEntry is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- MsgEntry is valid
-func (m *MsgEntry) Validate(interfaces.IState) int {
+func (m *MsgEntry) Validate(dbheight uint32, state interfaces.IState) int {
 	return 0
 }
 

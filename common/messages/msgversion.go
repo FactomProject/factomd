@@ -293,7 +293,7 @@ func (msg *MsgVersion) AddUserAgent(name string, version string,
 
 var _ interfaces.IMsg = (*MsgVersion)(nil)
 
-func (m *MsgVersion) Process(interfaces.IState) {}
+func (m *MsgVersion) Process(uint32, interfaces.IState) {}
 
 func (m *MsgVersion) GetHash() interfaces.IHash {
 	return nil
@@ -447,7 +447,7 @@ func (m *MsgVersion) String() string {
 //  < 0 -- MsgVersion is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- MsgVersion is valid
-func (m *MsgVersion) Validate(interfaces.IState) int {
+func (m *MsgVersion) Validate(dbheight uint32, state interfaces.IState) int {
 	return 0
 }
 

@@ -22,7 +22,7 @@ type AuditServerFault struct {
 
 var _ interfaces.IMsg = (*AuditServerFault)(nil)
 
-func (e *AuditServerFault) Process(interfaces.IState) {
+func (e *AuditServerFault) Process(uint32, interfaces.IState) {
 	panic("AuditServerFault object should never have its Process() method called")
 }
 
@@ -94,7 +94,7 @@ func (m *AuditServerFault) Signature() []byte {
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
-func (m *AuditServerFault) Validate(interfaces.IState) int {
+func (m *AuditServerFault) Validate(dbheight uint32, state interfaces.IState) int {
 	return 0
 }
 

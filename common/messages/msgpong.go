@@ -66,7 +66,7 @@ func NewMsgPong(nonce uint64) *MsgPong {
 
 var _ interfaces.IMsg = (*MsgPong)(nil)
 
-func (m *MsgPong) Process(interfaces.IState) {}
+func (m *MsgPong) Process(uint32, interfaces.IState) {}
 
 func (m *MsgPong) GetHash() interfaces.IHash {
 	return nil
@@ -116,7 +116,7 @@ func (m *MsgPong) String() string {
 //  < 0 -- MsgPong is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- MsgPong is valid
-func (m *MsgPong) Validate(interfaces.IState) int {
+func (m *MsgPong) Validate(dbheight uint32, state interfaces.IState) int {
 	return 0
 }
 

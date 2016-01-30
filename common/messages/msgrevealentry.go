@@ -92,7 +92,7 @@ func (msg *MsgRevealEntry) IsValid() bool {
 
 var _ interfaces.IMsg = (*MsgRevealEntry)(nil)
 
-func (m *MsgRevealEntry) Process(interfaces.IState) {}
+func (m *MsgRevealEntry) Process(uint32, interfaces.IState) {}
 
 func (m *MsgRevealEntry) GetHash() interfaces.IHash {
 	return nil
@@ -139,7 +139,7 @@ func (m *MsgRevealEntry) String() string {
 //  < 0 -- MsgRevealEntry is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- MsgRevealEntry is valid
-func (m *MsgRevealEntry) Validate(interfaces.IState) int {
+func (m *MsgRevealEntry) Validate(dbheight uint32, state interfaces.IState) int {
 	return 0
 }
 

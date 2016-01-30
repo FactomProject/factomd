@@ -22,7 +22,7 @@ type RequestBlock struct {
 
 var _ interfaces.IMsg = (*RequestBlock)(nil)
 
-func (m *RequestBlock) Process(interfaces.IState) {}
+func (m *RequestBlock) Process(uint32, interfaces.IState) {}
 
 func (m *RequestBlock) GetHash() interfaces.IHash {
 	if m.hash == nil {
@@ -102,7 +102,7 @@ func (m *RequestBlock) Signature() []byte {
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
-func (m *RequestBlock) Validate(interfaces.IState) int {
+func (m *RequestBlock) Validate(dbheight uint32, state interfaces.IState) int {
 	return 0
 }
 

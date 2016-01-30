@@ -27,7 +27,7 @@ type Heartbeat struct {
 var _ interfaces.IMsg = (*Heartbeat)(nil)
 var _ Signable = (*Heartbeat)(nil)
 
-func (m *Heartbeat) Process(interfaces.IState) {}
+func (m *Heartbeat) Process(uint32, interfaces.IState) {}
 
 func (m *Heartbeat) GetHash() interfaces.IHash {
 	if m.hash == nil {
@@ -172,7 +172,7 @@ func (m *Heartbeat) SerialHash() []byte {
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
-func (m *Heartbeat) Validate(interfaces.IState) int {
+func (m *Heartbeat) Validate(dbheight uint32, state interfaces.IState) int {
 	return 0
 }
 
