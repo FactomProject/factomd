@@ -278,13 +278,13 @@ func (b *DirectoryBlock) AddEntry(chainID interfaces.IHash, keyMR interfaces.IHa
 
 func NewDirectoryBlock(dbheight uint32) interfaces.IDirectoryBlock {
 	newdb := new(DirectoryBlock)
-	
+
 	newdb.SetHeader(new(DBlockHeader))
 	newdb.GetHeader().SetVersion(constants.VERSION_0)
 	newdb.GetHeader().SetDBHeight(dbheight)
 	newdb.GetHeader().SetPrevLedgerKeyMR(primitives.NewZeroHash())
 	newdb.GetHeader().SetPrevKeyMR(primitives.NewZeroHash())
-	
+
 	newdb.SetDBEntries(make([]interfaces.IDBEntry, 0))
 	newdb.AddEntry(primitives.NewHash(constants.ADMIN_CHAINID), primitives.NewZeroHash())
 	newdb.AddEntry(primitives.NewHash(constants.EC_CHAINID), primitives.NewZeroHash())

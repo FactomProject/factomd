@@ -18,9 +18,9 @@ type Ack struct {
 	Timestamp   interfaces.Timestamp
 	MessageHash interfaces.IHash
 
-	DBHeight     int		// Directory Block Height that owns this ack 
-	Height       int		// Height of this ack in this process list
-	
+	DBHeight int // Directory Block Height that owns this ack
+	Height   int // Height of this ack in this process list
+
 	SerialHash interfaces.IHash
 
 	Signature interfaces.IFullSignature

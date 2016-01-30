@@ -46,9 +46,8 @@ func (e *EOM) Process(dbheight uint32, state interfaces.IState) {
 
 	if e.Minute == 9 {
 
-		
 		// TODO: This code needs to be reviewed... It works here, but we are effectively
-		// executing "leader" code in the compainion "follower" goroutine... 
+		// executing "leader" code in the compainion "follower" goroutine...
 		// Maybe that's okay?
 		if state.LeaderFor(e.Bytes()) {
 			// What really needs to happen is that we look to make sure all
@@ -60,7 +59,7 @@ func (e *EOM) Process(dbheight uint32, state interfaces.IState) {
 			if state.GetDirectoryBlock(dbheight-1) == nil {
 				DBM.DirectoryBlockKeyMR = primitives.NewHash(constants.ZERO_HASH)
 			} else {
-				DBM.DirectoryBlockKeyMR = state.GetDirectoryBlock(dbheight-1).GetKeyMR()
+				DBM.DirectoryBlockKeyMR = state.GetDirectoryBlock(dbheight - 1).GetKeyMR()
 			}
 			DBM.Sign(state)
 

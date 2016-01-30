@@ -211,7 +211,7 @@ func (b *blockManager) storeBlocksFromMemPool(dblk *directoryBlock.DirectoryBloc
 			if err != nil {
 				return err
 			}
-			b.server.State.SetEntryCreditBlock(b.server.State.GetDBHeight(),ecBlkMsg.ECBlock)
+			b.server.State.SetEntryCreditBlock(b.server.State.GetDBHeight(), ecBlkMsg.ECBlock)
 			//initializeECreditMap(ecBlkMsg.ECBlock)
 		case hex.EncodeToString(constants.ADMIN_CHAINID[:]):
 			aBlkMsg := b.fMemPool.blockpool[dbEntry.GetKeyMR().String()].(*messages.MsgABlock)

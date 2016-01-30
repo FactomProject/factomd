@@ -249,6 +249,7 @@ func TestHandleEntryBlock(t *testing.T) {
 		t.Errorf("Fetched %v blocks, expected %v", fetched, testHelper.BlockCount)
 	}
 }
+
 /*
 func TestHandleEntry(t *testing.T) {
 	context := createWebContext()
@@ -378,6 +379,7 @@ func TestBlockIteration(t *testing.T) {
 		t.Errorf("DBlock only found %v blocks, was expecting %v", fetched, testHelper.BlockCount)
 	}
 }
+
 /*
 func TestHandleGetReceipt(t *testing.T) {
 	context := createWebContext()

@@ -94,7 +94,6 @@ func (c *EBlock) GetBody() interfaces.IEBlockBody {
 	return c.Body
 }
 
-
 // AddEBEntry creates a new Entry Block Entry from the provided Factom Entry
 // and adds it to the Entry Block Body.
 func (e *EBlock) AddEBEntry(entry interfaces.IEBEntry) error {

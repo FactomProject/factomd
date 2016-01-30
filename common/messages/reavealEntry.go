@@ -39,7 +39,7 @@ func (m *RevealEntryMsg) Process(dbheight uint32, state interfaces.IState) {
 		if err != nil || eb != nil {
 			panic("This is wrong:  Chain already exists")
 		}
-		
+
 		// Create a new Entry Block for a new Entry Block Chain
 		eb = entryBlock.NewEBlock()
 		// Set the Chain ID
@@ -47,8 +47,8 @@ func (m *RevealEntryMsg) Process(dbheight uint32, state interfaces.IState) {
 		// Set the Directory Block Height for this Entry Block
 		eb.GetHeader().SetDBHeight(state.GetDBHeight())
 		// Put it in our list of new Entry Blocks for this Directory Block
-		state.PutNewEBlks(dbheight, m.Entry.GetChainID().Fixed(),eb)
-		
+		state.PutNewEBlks(dbheight, m.Entry.GetChainID().Fixed(), eb)
+
 	} else {
 
 		fmt.Println("New Entry")
@@ -134,7 +134,7 @@ func (m *RevealEntryMsg) Validate(dbheight uint32, state interfaces.IState) int 
 	if m.isEntry {
 		chainID := m.Entry.GetChainID()
 		eblk := state.GetNewEBlks(dbheight, chainID.Fixed()) // Look see if already in the new block.
-		if eblk == nil {                           // No?  Then look see if it exists in DB
+		if eblk == nil {                                     // No?  Then look see if it exists in DB
 			eblk, _ := state.GetDB().FetchEBlockHead(chainID)
 			if eblk == nil {
 				fmt.Println("KSize", m.Entry.KSize(), ECs)

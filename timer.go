@@ -47,7 +47,7 @@ func Timer(state interfaces.IState) {
 
 			pls := ""
 			for i := 0; i < state.GetTotalServers(state.GetDBHeight()); i++ {
-				pls = fmt.Sprintf("%s Server %d--%d", pls, i, state.GetProcessListLen(state.GetDBHeight(),i))
+				pls = fmt.Sprintf("%s Server %d--%d", pls, i, state.GetProcessListLen(state.GetDBHeight(), i))
 			}
 
 			fmt.Printf("\r%19s: DBlock %v minute %v %s %s",
