@@ -80,7 +80,7 @@ func (p *ProcessList) Complete() bool {
 // as needing to be complete.  When we get all the messages we need, then Complete() will
 // return true, because each process list will be signed off.
 func (p *ProcessList) SetComplete(v bool) {
-	for i,_ := range p.SigComplete {
+	for i, _ := range p.SigComplete {
 		p.SigComplete[i] = v
 	}
 }
@@ -170,14 +170,14 @@ func NewProcessList(totalServers int, state interfaces.IState) *ProcessList {
 	// allocate the FUTURE directoryblock, not the current or previous...
 
 	pl := new(ProcessList)
-	
+
 	pl.TotalServers = totalServers
 	pl.lists = make([][]interfaces.IMsg, totalServers)
 	pl.heights = make([]int, totalServers)
 	pl.EomComplete = make([]bool, totalServers)
 	pl.SigComplete = make([]bool, totalServers)
 
-	for i,_ := range pl.SigComplete {			// Default everything to complete...
+	for i, _ := range pl.SigComplete { // Default everything to complete...
 		pl.SigComplete[i] = true
 	}
 	pl.dBHeight = state.GetDBHeight()

@@ -166,7 +166,7 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) error {
 	if match != nil {
 		match.FollowerExecute(s)
 	}
-	
+
 	return nil
 }
 
@@ -354,7 +354,7 @@ func (s *State) SetAdminBlock(dbheight uint32, adblock interfaces.IAdminBlock) {
 
 func (s *State) GetFactoidState(dbheight uint32) interfaces.IFactoidState {
 	pl := s.pli(dbheight)
-	fmt.Println("DBHeight",dbheight)
+	fmt.Println("DBHeight", dbheight)
 	if pl == nil {
 		return nil
 	}
@@ -508,17 +508,17 @@ func (s *State) Init(filename string) {
 	fs.ValidationService = NewValidationService()
 
 	// Allocate the original set of Process Lists
-	
+
 	ServerState := 0
 	switch cfg.App.NodeMode {
-		case "FULL":
-			ServerState = 0
-		case "SERVER":
-			ServerState = 1
-		default:
-			panic("Bad Node Mode (must be FULL or SERVER)")
+	case "FULL":
+		ServerState = 0
+	case "SERVER":
+		ServerState = 1
+	default:
+		panic("Bad Node Mode (must be FULL or SERVER)")
 	}
-	
+
 	// TODO: Right now we just have one server;  Needs to be fixed!
 	//
 	s.ProcessLists[0] = NewProcessList(1, s)
@@ -526,23 +526,23 @@ func (s *State) Init(filename string) {
 	s.ProcessLists[0].ServerIndex = 0
 	s.ProcessLists[0].DirectoryBlock = directoryBlock.NewDirectoryBlock(0)
 	s.ProcessLists[0].ServerState = ServerState
-	
+
 	s.ProcessLists[1] = NewProcessList(1, s)
 	s.ProcessLists[1].FactoidState = fs
 	s.ProcessLists[1].ServerIndex = 0
 	s.ProcessLists[1].DirectoryBlock = directoryBlock.NewDirectoryBlock(0)
 	s.ProcessLists[1].ServerState = ServerState
-	
+
 	s.ProcessLists[2] = NewProcessList(1, s)
 	s.ProcessLists[2].FactoidState = fs
 	s.ProcessLists[2].ServerIndex = 0
 	s.ProcessLists[2].DirectoryBlock = directoryBlock.NewDirectoryBlock(1)
 	s.ProcessLists[2].ServerState = ServerState
-	
+
 	s.ProcessLists[0].SetComplete(true)
 	s.ProcessLists[1].SetComplete(false)
 	s.ProcessLists[2].SetComplete(false)
-	
+
 	//Database
 	switch cfg.App.DBType {
 	case "LDB":
@@ -621,8 +621,8 @@ func (s *State) loadDatabase() {
 		if dblk == nil {
 			panic("dblk should never be nil")
 		}
-		s.ProcessLists[0].SetComplete(true)	
-		s.ProcessLists[1].SetComplete(true)	
+		s.ProcessLists[0].SetComplete(true)
+		s.ProcessLists[1].SetComplete(true)
 		s.ProcessEndOfBlock(1)
 
 	} else {
@@ -766,12 +766,12 @@ func (s *State) CreateDBlock() (interfaces.IDirectoryBlock, error) {
 	s.ProcessLists[2] = NewProcessList(s.ProcessLists[1].TotalServers, s)
 	s.ProcessLists[2].DirectoryBlock = directoryBlock.NewDirectoryBlock(s.DBHeight + 1)
 	s.ProcessLists[2].FactoidState = s.ProcessLists[1].FactoidState
-	
+
 	prevPL := s.ProcessLists[0]
 	currPL := s.ProcessLists[1]
 
 	currPL.SetComplete(false)
-	
+
 	prev := prevPL.DirectoryBlock
 	newdb := currPL.DirectoryBlock
 

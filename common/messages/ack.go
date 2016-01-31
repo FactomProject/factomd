@@ -19,7 +19,7 @@ type Ack struct {
 	MessageHash interfaces.IHash
 
 	DBHeight uint32 // Directory Block Height that owns this ack
-	Height   int 	// Height of this ack in this process list
+	Height   int    // Height of this ack in this process list
 
 	SerialHash interfaces.IHash
 

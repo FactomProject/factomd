@@ -37,7 +37,7 @@ var _ Signable = (*EOM)(nil)
 func (e *EOM) Process(dbheight uint32, state interfaces.IState) {
 
 	fmt.Println("Process!!!!!!")
-	
+
 	fs := state.GetFactoidState(dbheight)
 	fs.EndOfPeriod(int(e.Minute))
 
