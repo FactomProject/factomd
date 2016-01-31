@@ -80,6 +80,9 @@ func (p *ProcessList) Complete() bool {
 // as needing to be complete.  When we get all the messages we need, then Complete() will
 // return true, because each process list will be signed off.
 func (p *ProcessList) SetComplete(v bool) {
+	if p == nil {
+		return
+	}
 	for i, _ := range p.SigComplete {
 		p.SigComplete[i] = v
 	}

@@ -521,11 +521,6 @@ func (s *State) Init(filename string) {
 
 	// TODO: Right now we just have one server;  Needs to be fixed!
 	//
-	s.ProcessLists[0] = NewProcessList(1, s)
-	s.ProcessLists[0].FactoidState = fs
-	s.ProcessLists[0].ServerIndex = 0
-	s.ProcessLists[0].DirectoryBlock = directoryBlock.NewDirectoryBlock(0)
-	s.ProcessLists[0].ServerState = ServerState
 
 	s.ProcessLists[1] = NewProcessList(1, s)
 	s.ProcessLists[1].FactoidState = fs
@@ -617,15 +612,11 @@ func (s *State) loadDatabase() {
 
 		cdb.EntryCreditBlock = entryCreditBlock.NewECBlock()
 
-		dblk, err = s.CreateDBlock()
-		if dblk == nil {
-			panic("dblk should never be nil")
-		}
 		s.ProcessLists[0].SetComplete(true)
-		s.ProcessLists[1].SetComplete(true)
-		s.ProcessEndOfBlock(1)
+		s.ProcessEndOfBlock(0)
 
 	} else {
+		fmt.Println("DBHeight: ",dblk.GetHeader().GetDBHeight())
 		if dblk.GetHeader().GetDBHeight() > 0 {
 			dbPrev, err := s.DB.FetchDBlockByKeyMR(dblk.GetHeader().GetPrevKeyMR())
 			if err != nil {
