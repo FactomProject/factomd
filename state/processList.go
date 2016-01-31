@@ -76,6 +76,15 @@ func (p *ProcessList) Complete() bool {
 	return true
 }
 
+// When we begin building on a Process List, we start it.  That marks everything
+// as needing to be complete.  When we get all the messages we need, then Complete() will
+// return true, because each process list will be signed off.
+func (p *ProcessList) SetComplete(v bool) {
+	for i,_ := range p.SigComplete {
+		p.SigComplete[i] = v
+	}
+}
+
 func (p *ProcessList) Process(state interfaces.IState) {
 	for i := 0; i < len(p.lists); i++ {
 		plist := p.lists[i]
@@ -156,15 +165,21 @@ func (p *ProcessList) PutCommits(key interfaces.IHash, value interfaces.IMsg) {
  * Support
  ************************************************/
 
-func NewProcessList(TotalServers int, state interfaces.IState) *ProcessList {
+func NewProcessList(totalServers int, state interfaces.IState) *ProcessList {
 	// We default to the number of Servers previous.   That's because we always
 	// allocate the FUTURE directoryblock, not the current or previous...
 
 	pl := new(ProcessList)
-	pl.lists = make([][]interfaces.IMsg, TotalServers)
-	pl.heights = make([]int, TotalServers)
-	pl.EomComplete = make([]bool, TotalServers)
-	pl.SigComplete = make([]bool, TotalServers)
+	
+	pl.TotalServers = totalServers
+	pl.lists = make([][]interfaces.IMsg, totalServers)
+	pl.heights = make([]int, totalServers)
+	pl.EomComplete = make([]bool, totalServers)
+	pl.SigComplete = make([]bool, totalServers)
+
+	for i,_ := range pl.SigComplete {			// Default everything to complete...
+		pl.SigComplete[i] = true
+	}
 	pl.dBHeight = state.GetDBHeight()
 	pl.acks = new(map[[32]byte]interfaces.IMsg)
 	pl.msgs = new(map[[32]byte]interfaces.IMsg)

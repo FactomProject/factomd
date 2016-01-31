@@ -18,8 +18,8 @@ type Ack struct {
 	Timestamp   interfaces.Timestamp
 	MessageHash interfaces.IHash
 
-	DBHeight int // Directory Block Height that owns this ack
-	Height   int // Height of this ack in this process list
+	DBHeight uint32 // Directory Block Height that owns this ack
+	Height   int 	// Height of this ack in this process list
 
 	SerialHash interfaces.IHash
 
@@ -193,13 +193,14 @@ func NewAck(state interfaces.IState, hash interfaces.IHash) (iack interfaces.IMs
 		last = state.GetLastAck().(*Ack)
 	}
 	ack := new(Ack)
+	ack.DBHeight = state.GetDBHeight()
 	ack.Timestamp = state.GetTimestamp()
 	ack.MessageHash = hash
 	if last == nil {
-		ack.DBHeight = 0
+		ack.Height = 0
 		ack.SerialHash = ack.MessageHash
 	} else {
-		ack.DBHeight = last.DBHeight + 1
+		ack.Height = last.Height + 1
 		ack.SerialHash, err = primitives.CreateHash(last.MessageHash, ack.MessageHash)
 		if err != nil {
 			return nil, err

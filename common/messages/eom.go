@@ -36,7 +36,10 @@ var _ Signable = (*EOM)(nil)
 
 func (e *EOM) Process(dbheight uint32, state interfaces.IState) {
 
-	state.GetFactoidState(dbheight).EndOfPeriod(int(e.Minute))
+	fmt.Println("Process!!!!!!")
+	
+	fs := state.GetFactoidState(dbheight)
+	fs.EndOfPeriod(int(e.Minute))
 
 	ecblk := state.GetEntryCreditBlock(dbheight)
 	ecbody := ecblk.GetBody()
@@ -145,7 +148,6 @@ func (m *EOM) Follower(interfaces.IState) bool {
 
 func (m *EOM) FollowerExecute(state interfaces.IState) error {
 	_, err := state.MatchAckFollowerExecute(m)
-
 	return err
 }
 
