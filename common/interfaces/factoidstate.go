@@ -58,4 +58,3 @@ type IFactoidState interface {
 
 	ResetBalances()
 }
-

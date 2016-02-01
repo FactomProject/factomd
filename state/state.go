@@ -76,14 +76,14 @@ type State struct {
 	Anchor interfaces.IAnchor
 
 	// Directory Block State
-	DBHeightComplete uint32	// Holds the DBHeight of the last DirectoryBlock processed
-	DBHeight uint32			// Holds the index of the DirectoryBlock under construction.
-	DBStates []*DBState		// Holds all DBStates not yet processed. 
-							//   Is indexed by DBHeight - DBHeightComplete - 1
-							
+	DBHeightComplete uint32     // Holds the DBHeight of the last DirectoryBlock processed
+	DBHeight         uint32     // Holds the index of the DirectoryBlock under construction.
+	DBStates         []*DBState // Holds all DBStates not yet processed.
+	//   Is indexed by DBHeight - DBHeightComplete - 1
+
 	// Factom State
-	FactoidState     interfaces.IFactoidState
-							
+	FactoidState interfaces.IFactoidState
+
 	// Web Services
 	Port int
 
@@ -95,153 +95,150 @@ type State struct {
 var _ interfaces.IState = (*State)(nil)
 
 func (s *State) Init(filename string) {
-	
+
 	s.ReadCfg(filename)
 	// Get our factomd configuration information.
 	cfg := s.GetCfg().(*util.FactomdConfig)
-	
+
 	wsapi.InitLogs(cfg.Log.LogPath, cfg.Log.LogLevel)
-	
+
 	s.Logger = logger.NewLogFromConfig(cfg.Log.LogPath, cfg.Log.LogLevel, "State")
-	
+
 	log.SetLevel(cfg.Log.ConsoleLogLevel)
-	
+
 	s.networkInMsgQueue = make(chan interfaces.IMsg, 10000)      //incoming message queue from the network messages
 	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 10000) //incoming message queue from the network messages
 	s.networkOutMsgQueue = make(chan interfaces.IMsg, 10000)     //Messages to be broadcast to the network
 	s.inMsgQueue = make(chan interfaces.IMsg, 10000)             //incoming message queue for factom application messages
 	s.leaderInMsgQueue = make(chan interfaces.IMsg, 10000)       //Leader Messages
 	s.followerInMsgQueue = make(chan interfaces.IMsg, 10000)     //Follower Messages
-	
+
 	// Set up maps for the followers
 	s.Holding = make(map[[32]byte]interfaces.IMsg)
 	s.Acks = make(map[[32]byte]interfaces.IMsg)
-	
+
 	// Setup the FactoidState and Validation Service that holds factoid and entry credit balances
 	fs := new(FactoidState)
 	fs.State = s
 	fs.ValidationService = NewValidationService()
 	s.FactoidState = fs
-	
+
 	// Allocate the original set of Process Lists
-	s.ProcessLists = make([]*ProcessList,3)
-	
+	s.ProcessLists = make([]*ProcessList, 3)
+
 	serverState := 0
 	switch cfg.App.NodeMode {
-		case "FULL":
-			serverState = 0
-		case "SERVER":
-			serverState = 1
-		default:
-			panic("Bad Node Mode (must be FULL or SERVER)")
+	case "FULL":
+		serverState = 0
+	case "SERVER":
+		serverState = 1
+	default:
+		panic("Bad Node Mode (must be FULL or SERVER)")
 	}
-	
+
 	s.pli(0).ServerState = serverState
-	
+
 	//Database
 	switch cfg.App.DBType {
-		case "LDB":
-			if err := s.InitLevelDB(); err != nil {
-				log.Printfln("Error initializing the database: %v", err)
-			}
-		case "Bolt":
-			if err := s.InitBoltDB(); err != nil {
-				log.Printfln("Error initializing the database: %v", err)
-			}
-		case "Map":
-			if err := s.InitMapDB(); err != nil {
-				log.Printfln("Error initializing the database: %v", err)
-			}
-		default:
-			panic("No Database type specified")
+	case "LDB":
+		if err := s.InitLevelDB(); err != nil {
+			log.Printfln("Error initializing the database: %v", err)
+		}
+	case "Bolt":
+		if err := s.InitBoltDB(); err != nil {
+			log.Printfln("Error initializing the database: %v", err)
+		}
+	case "Map":
+		if err := s.InitMapDB(); err != nil {
+			log.Printfln("Error initializing the database: %v", err)
+		}
+	default:
+		panic("No Database type specified")
 	}
-	
+
 	if cfg.App.ExportData {
 		s.DB.SetExportData(cfg.App.ExportDataSubpath)
 	}
-	
+
 	//Network
 	switch cfg.App.Network {
-		case "MAIN":
-			s.NetworkNumber = constants.NETWORK_MAIN
-		case "TEST":
-			s.NetworkNumber = constants.NETWORK_TEST
-		case "LOCAL":
-			s.NetworkNumber = constants.NETWORK_LOCAL
-		case "CUSTOM":
-			s.NetworkNumber = constants.NETWORK_CUSTOM
-		default:
-			panic("Bad value for Network in factomd.conf")
+	case "MAIN":
+		s.NetworkNumber = constants.NETWORK_MAIN
+	case "TEST":
+		s.NetworkNumber = constants.NETWORK_TEST
+	case "LOCAL":
+		s.NetworkNumber = constants.NETWORK_LOCAL
+	case "CUSTOM":
+		s.NetworkNumber = constants.NETWORK_CUSTOM
+	default:
+		panic("Bad value for Network in factomd.conf")
 	}
-	
+
 	s.AuditHeartBeats = make([]interfaces.IMsg, 0)
 	s.FedServerFaults = make([][]interfaces.IMsg, 0)
-	
+
 	a, _ := anchor.InitAnchor(s)
 	s.Anchor = a
-	
+
 	s.loadDatabase()
 	s.initServerKeys()
 }
 
 // Adds blocks that are either pulled locally from a database, or acquired from peers.
-func (s *State) AddDBState (isNew				bool,
-							directoryBlock		interfaces.IDirectoryBlock, 
-							adminBlock			interfaces.IAdminBlock,
-							factoidBlock		interfaces.IFBlock, 
-							entryCreditBlock	interfaces.IEntryCreditBlock) {
+func (s *State) AddDBState(isNew bool,
+	directoryBlock interfaces.IDirectoryBlock,
+	adminBlock interfaces.IAdminBlock,
+	factoidBlock interfaces.IFBlock,
+	entryCreditBlock interfaces.IEntryCreditBlock) {
 
 	dbheight := directoryBlock.GetHeader().GetDBHeight()
 	if dbheight >= s.DBHeight {
-		s.DBHeight = dbheight+1
+		s.DBHeight = dbheight + 1
 	}
 	// Compute the index of this state in our DBStates array;  we don't keep block info
 	// around that we have already processed.  But we do have to keep this info around
 	// if we are missing some previous block info.
 	index := int(dbheight) - int(s.DBHeightComplete) - 1
-	
+
 	// If the index is less than zero, it is a repeat of a processed state; ignore
 	if index < 0 {
-		return  // We have already processed this.
+		return // We have already processed this.
 	}
-	
+
 	// Create a new DBState
 	dbState := new(DBState)
-	dbState.DirectoryBlock =	directoryBlock
-	dbState.AdminBlock =		adminBlock
-	dbState.FactoidBlock = 		factoidBlock
-	dbState.EntryCreditBlock = 	entryCreditBlock
-	dbState.isNew =				isNew
-	
-	
+	dbState.DirectoryBlock = directoryBlock
+	dbState.AdminBlock = adminBlock
+	dbState.FactoidBlock = factoidBlock
+	dbState.EntryCreditBlock = entryCreditBlock
+	dbState.isNew = isNew
+
 	// Add this new DBState into the right place in our list of DBStates
 	for len(s.DBStates) < index+1 {
 		s.DBStates = append(s.DBStates, nil)
 	}
-	s.DBStates[index]=dbState
-	
+	s.DBStates[index] = dbState
+
 	// Process all contiguous dbStates from the beginning.  Break once we hit a
 	// nil or run out of states to process.
-	for len(s.DBStates)>0 && s.DBStates[0] != nil {
+	for len(s.DBStates) > 0 && s.DBStates[0] != nil {
 		s.DBStates[0].Process(s)
 		s.DBHeightComplete++
 		s.DBStates = s.DBStates[1:]
 	}
-	
-	
-	
+
 	if s.DBHeightComplete+1 == s.DBHeight {
 		s.pli(s.DBHeightComplete).SetComplete(true)
 	}
 }
 
 func (s *State) loadDatabase() {
-	
+
 	dblk, err := s.DB.FetchDirectoryBlockHead()
 	if err != nil {
 		panic(err.Error())
 	}
-	
+
 	if dblk == nil && s.NetworkNumber == constants.NETWORK_LOCAL {
 		dblk, err = s.CreateDBlock()
 		if err != nil {
@@ -249,49 +246,49 @@ func (s *State) loadDatabase() {
 		}
 		ablk := s.NewAdminBlock()
 		fblk := block.GetGenesisFBlock()
-		ecb  := entryCreditBlock.NewECBlock()
+		ecb := entryCreditBlock.NewECBlock()
 		pl := NewProcessList(1, 0)
-		s.ProcessLists[0]=pl
+		s.ProcessLists[0] = pl
 		pl.dBHeight = 0
 		pl.FactoidKeyMR = fblk.GetKeyMR()
 		pl.AdminBlock = ablk
 		pl.EntryCreditBlock = ecb
 		pl.DirectoryBlock = dblk
 		s.ProcessEndOfBlock(0)
-		
+
 	} else {
-		
-		fmt.Println("DBHeight: ",dblk.GetHeader().GetDBHeight())
+
+		fmt.Println("DBHeight: ", dblk.GetHeader().GetDBHeight())
 		s.DBHeight = dblk.GetHeader().GetDBHeight()
-		
+
 		dBlocks, err := s.DB.FetchAllDBlocks()
 		if err != nil {
 			panic(err.Error())
 		}
-		
+
 		aBlocks, err := s.DB.FetchAllABlocks()
 		if err != nil {
 			panic(err.Error())
 		}
-		
+
 		fBlocks, err := s.DB.FetchAllFBlocks()
 		if err != nil {
 			panic(err.Error())
 		}
-		
+
 		ecBlocks, err := s.DB.FetchAllECBlocks()
 		if err != nil {
 			panic(err.Error())
 		}
-		
-		if len(dBlocks) != len(aBlocks) || 
-		   len(dBlocks) != len(fBlocks) ||
-		   len(dBlocks) != len(ecBlocks) {
-			   panic(fmt.Sprintf("Failure to load all blocks on Init. D%d A%d F%d Ec%d",len(dBlocks),len(aBlocks),len(fBlocks),len(ecBlocks)))
+
+		if len(dBlocks) != len(aBlocks) ||
+			len(dBlocks) != len(fBlocks) ||
+			len(dBlocks) != len(ecBlocks) {
+			panic(fmt.Sprintf("Failure to load all blocks on Init. D%d A%d F%d Ec%d", len(dBlocks), len(aBlocks), len(fBlocks), len(ecBlocks)))
 		}
-			
-		for i:=0; i<len(dBlocks); i++ {
-			s.AddDBState(false, dBlocks[i],aBlocks[i],fBlocks[i],ecBlocks[i])
+
+		for i := 0; i < len(dBlocks); i++ {
+			s.AddDBState(false, dBlocks[i], aBlocks[i], fBlocks[i], ecBlocks[i])
 		}
 	}
 }
@@ -301,23 +298,23 @@ func (s *State) loadDatabase() {
 // to validate the signatures we will get with the DirectoryBlockSignature messages.
 func (s *State) ProcessEndOfBlock(dbheight uint32) {
 	//Must have all the complete process lists at this point!
-	
+
 	s.UpdateProcessLists() // Do any remaining processing
-	
-	curPL  := s.pli(s.DBHeight)
+
+	curPL := s.pli(s.DBHeight)
 	nextPL := s.pli(s.DBHeight + 1)
-	
+
 	factoidBlock := s.FactoidState.GetCurrentBlock()
-	
+
 	s.FactoidState.ProcessEndOfBlock(s) // Clean up Factoids
-	
+
 	db, err := s.CreateDBlock()
 	if err != nil {
 		panic("Failed to create a Directory Block")
 	}
-	
+
 	nextPL.DirectoryBlock = db
-	
+
 	if curPL.DirectoryBlock != nil {
 		if err = s.DB.SaveDirectoryBlockHead(curPL.DirectoryBlock); err != nil {
 			panic(err.Error())
@@ -326,11 +323,11 @@ func (s *State) ProcessEndOfBlock(dbheight uint32) {
 	} else {
 		log.Println("No old db")
 	}
-	
+
 	s.AddDBState(true, curPL.DirectoryBlock, curPL.AdminBlock, factoidBlock, curPL.EntryCreditBlock)
-	
-	s.ProcessLists = append(s.ProcessLists[1:],nil)
-	
+
+	s.ProcessLists = append(s.ProcessLists[1:], nil)
+
 	s.LastAck = nil
 }
 
@@ -353,15 +350,13 @@ func (s *State) UpdateProcessLists() {
 	}
 }
 
-
 // Here we need to validate the signatures of the previous block.  We also need to update
 // stuff like a change to the exchange rate for Entry Credits, the number of Federated Servers (until
 // such time we reach the 32 server target), the Federated Server profiles (Factom IDs, Bitcoin
 // addresses, other chain addresses (like Ethereum, etc.) and more).
 func (s *State) AddAdminBlock(interfaces.IAdminBlock) {
-	
-}
 
+}
 
 // Returns the Process List block for the given height.  Returns nil if the Process list
 // block specified doesn't exist or is out of range.
@@ -370,25 +365,25 @@ func (s *State) pli(height uint32) *ProcessList {
 	if i < 0 || i > 2 {
 		return nil
 	}
-	
+
 	r := s.ProcessLists[i]
-	
-	// We assume ProcessLists are requested for in order.  
+
+	// We assume ProcessLists are requested for in order.
 	if r == nil && i > 0 {
 		p := s.ProcessLists[i-1]
-		totalServers := 1	// defaults if not specified anywhere else
-		serverIndex  := 0
+		totalServers := 1 // defaults if not specified anywhere else
+		serverIndex := 0
 		if p != nil {
-			totalServers = p.TotalServers	// Use previous values if they exist
-			serverIndex  = p.ServerIndex
+			totalServers = p.TotalServers // Use previous values if they exist
+			serverIndex = p.ServerIndex
 		}
 		r = NewProcessList(totalServers, height)
-		r.DirectoryBlock	= directoryBlock.NewDirectoryBlock(height)
-		r.ServerIndex 		= serverIndex
-		
-		s.ProcessLists[i] 	= r
+		r.DirectoryBlock = directoryBlock.NewDirectoryBlock(height)
+		r.ServerIndex = serverIndex
+
+		s.ProcessLists[i] = r
 	}
-	
+
 	return s.ProcessLists[i]
 }
 
@@ -396,14 +391,14 @@ func (s *State) pli(height uint32) *ProcessList {
 // Return the new Current Directory Block
 func (s *State) CreateDBlock() (interfaces.IDirectoryBlock, error) {
 	s.DBHeight++
-	
-	prevPL := s.pli(s.DBHeight-1)
+
+	prevPL := s.pli(s.DBHeight - 1)
 	currPL := s.pli(s.DBHeight)
-	_       = s.pli(s.DBHeight+1)
+	_ = s.pli(s.DBHeight + 1)
 	currPL.SetComplete(false)
-	
+
 	newdb := currPL.DirectoryBlock
-	
+
 	if prevPL != nil {
 		prev := prevPL.DirectoryBlock
 		bodyMR, err := prev.BuildBodyMR()
@@ -411,7 +406,7 @@ func (s *State) CreateDBlock() (interfaces.IDirectoryBlock, error) {
 			return nil, err
 		}
 		prev.GetHeader().SetBodyMR(bodyMR)
-		
+
 		prevLedgerKeyMR := prev.GetHash()
 		if prevLedgerKeyMR == nil {
 			return nil, errors.New("prevLedgerKeyMR is nil")
@@ -420,13 +415,12 @@ func (s *State) CreateDBlock() (interfaces.IDirectoryBlock, error) {
 		newdb.GetHeader().SetPrevKeyMR(prev.GetKeyMR())
 	}
 	eb, _ := entryCreditBlock.NextECBlock(nil)
-	
+
 	currPL.EntryCreditBlock = eb
 	currPL.AdminBlock = s.NewAdminBlock()
-	
+
 	return newdb, nil
 }
-
 
 func (s *State) GetServerIndex(dbheight uint32) int {
 	pl := s.pli(dbheight)
@@ -499,7 +493,6 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) error {
 
 	return nil
 }
-
 
 func (s *State) GetEntryCreditBlock(dbheight uint32) interfaces.IEntryCreditBlock {
 	pl := s.pli(dbheight)
@@ -580,7 +573,6 @@ func (s *State) GetTimestamp() interfaces.Timestamp {
 func (s *State) Sign([]byte) interfaces.IFullSignature {
 	return new(primitives.Signature)
 }
-
 
 func (s *State) GetFactoidKeyMR(dbheight uint32) interfaces.IHash {
 	pl := s.pli(dbheight)
@@ -733,7 +725,6 @@ func (s *State) SetLastAck(ack interfaces.IMsg) {
 	s.LastAck = ack
 }
 
-
 func (s *State) InitLevelDB() error {
 	if s.DB != nil {
 		return nil
@@ -824,7 +815,6 @@ func (s *State) NewAdminBlockHeader() interfaces.IABlockHeader {
 	header.BodySize = 0
 	return header
 }
-
 
 func (s *State) PrintType(msgType int) bool {
 	r := true

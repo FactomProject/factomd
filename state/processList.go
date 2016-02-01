@@ -174,26 +174,26 @@ func NewProcessList(totalServers int, dbheight uint32) *ProcessList {
 	pl := new(ProcessList)
 
 	pl.TotalServers = totalServers
-	pl.lists 		= make([][]interfaces.IMsg, totalServers)
-	pl.heights 		= make([]int, totalServers)
-	pl.EomComplete	= make([]bool, totalServers)
-	pl.SigComplete 	= make([]bool, totalServers)
+	pl.lists = make([][]interfaces.IMsg, totalServers)
+	pl.heights = make([]int, totalServers)
+	pl.EomComplete = make([]bool, totalServers)
+	pl.SigComplete = make([]bool, totalServers)
 
-	pl.dBHeight 	= dbheight
-	pl.acks 		= new(map[[32]byte]interfaces.IMsg)
-	pl.msgs 		= new(map[[32]byte]interfaces.IMsg)
+	pl.dBHeight = dbheight
+	pl.acks = new(map[[32]byte]interfaces.IMsg)
+	pl.msgs = new(map[[32]byte]interfaces.IMsg)
 
-	pl.NewEBlksSem 	= new(sync.Mutex)
-	pl.NewEBlks 	= make(map[[32]byte]interfaces.IEntryBlock)
+	pl.NewEBlksSem = new(sync.Mutex)
+	pl.NewEBlks = make(map[[32]byte]interfaces.IEntryBlock)
 
-	pl.CommitsSem 	= new(sync.Mutex)
-	pl.Commits 		= make(map[[32]byte]interfaces.IMsg)
+	pl.CommitsSem = new(sync.Mutex)
+	pl.Commits = make(map[[32]byte]interfaces.IMsg)
 
 	// If a federated server, this is the server index, which is our index in the FedServers list
 
 	pl.AuditServers = make([]interfaces.IServer, 0)
-	pl.FedServers 	= make([]interfaces.IServer, 0)
-	pl.ServerOrder 	= make([][]interfaces.IServer, 0)
-	
+	pl.FedServers = make([]interfaces.IServer, 0)
+	pl.ServerOrder = make([][]interfaces.IServer, 0)
+
 	return pl
 }
