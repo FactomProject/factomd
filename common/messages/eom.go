@@ -41,6 +41,7 @@ func (e *EOM) Process(dbheight uint32, state interfaces.IState) {
 	fs := state.GetFactoidState(dbheight)
 	fs.EndOfPeriod(int(e.Minute))
 
+	fmt.Println("EOM Height ",dbheight)
 	ecblk := state.GetEntryCreditBlock(dbheight)
 	ecbody := ecblk.GetBody()
 	mn := entryCreditBlock.NewMinuteNumber2(e.Minute)
@@ -136,7 +137,7 @@ func (m *EOM) LeaderExecute(state interfaces.IState) error {
 	if m.Minute == 9 {
 		state.SetLastAck(nil)
 	}
-
+	
 	// Leader Execute creates an acknowledgement and the EOM
 	state.NetworkOutMsgQueue() <- ack
 	state.FollowerInMsgQueue() <- ack // Send the Ack to follower

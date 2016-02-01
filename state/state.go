@@ -49,23 +49,12 @@ type State struct {
 	Holding map[[32]byte]interfaces.IMsg // Hold Messages
 	Acks    map[[32]byte]interfaces.IMsg // Hold Acknowledgemets
 
-	// Having all the state for a particular directory block stored in one structure
-	// makes creating the next state, updating the various states, and setting up the next
-	// state much more simple.
-	//
-	// Functions that provide state information take a dbheight param.  I use the current
-	// DBHeight to ensure that I return the proper information for the right directory block
-	// height, even if it changed out from under the calling code.
-	//
-	// Process list past [0], present [1], and future[2]
-	ProcessLists []*ProcessList
-
 	AuditHeartBeats []interfaces.IMsg   // The checklist of HeartBeats for this period
 	FedServerFaults [][]interfaces.IMsg // Keep a fault list for every server
 
 	//Network MAIN = 0, TEST = 1, LOCAL = 2, CUSTOM = 3
-	NetworkNumber int // Encoded into Directory Blocks(s.Cfg.(*util.FactomdConfig)).String()
-
+	NetworkNumber      int 	// Encoded into Directory Blocks(s.Cfg.(*util.FactomdConfig)).String()
+	
 	// Number of Servers acknowledged by Factom
 	Matryoshka []interfaces.IHash // Reverse Hash
 
@@ -78,7 +67,16 @@ type State struct {
 	DBHeightComplete uint32     // Holds the DBHeight of the last DirectoryBlock processed
 	DBHeight         uint32     // Holds the index of the DirectoryBlock under construction.
 	DBStates         []*DBState // Holds all DBStates not yet processed.
-	//   Is indexed by DBHeight - DBHeightComplete - 1
+	// Having all the state for a particular directory block stored in one structure
+	// makes creating the next state, updating the various states, and setting up the next
+	// state much more simple.
+	//
+	// Functions that provide state information take a dbheight param.  I use the current
+	// DBHeight to ensure that I return the proper information for the right directory block
+	// height, even if it changed out from under the calling code.
+	//
+	// Process list previous [0], present(@DBHeight) [1], and future (@DBHeight+1) [2]
+	ProcessLists []*ProcessList
 
 	// Factom State
 	FactoidState interfaces.IFactoidState
@@ -129,13 +127,17 @@ func (s *State) Init(filename string) {
 	switch cfg.App.NodeMode {
 	case "FULL":
 		serverState = 0
+		fmt.Println("\n   +---------------------------+")
+		fmt.Println("   +------ Follower Only ------+")
+		fmt.Println("   +---------------------------+\n")
 	case "SERVER":
 		serverState = 1
+		fmt.Println("\n   +-------------------------+")
+		fmt.Println("   |       Leader Node       |")
+		fmt.Println("   +-------------------------+\n")
 	default:
 		panic("Bad Node Mode (must be FULL or SERVER)")
 	}
-
-	s.pli(0).ServerState = serverState
 
 	//Database
 	switch cfg.App.DBType {
@@ -155,6 +157,9 @@ func (s *State) Init(filename string) {
 		panic("No Database type specified")
 	}
 
+	s.NewPli(0)
+	s.pli(0).ServerState = serverState
+	
 	if cfg.App.ExportData {
 		s.DB.SetExportData(cfg.App.ExportDataSubpath)
 	}
@@ -180,6 +185,7 @@ func (s *State) Init(filename string) {
 	s.Anchor = a
 
 	s.loadDatabase()
+	
 	s.initServerKeys()
 }
 
@@ -227,8 +233,14 @@ func (s *State) AddDBState(isNew bool,
 	}
 
 	if s.DBHeightComplete+1 == s.DBHeight {
-		s.pli(s.DBHeightComplete).SetComplete(true)
+		p := s.pli(s.DBHeightComplete)				// Update prev PL
+		p.DirectoryBlock = directoryBlock
+		p.AdminBlock = adminBlock
+		p.FactoidKeyMR = factoidBlock.GetKeyMR()
+		p.EntryCreditBlock = entryCreditBlock
+		p.SetComplete(true)
 	}
+	
 }
 
 func (s *State) loadDatabase() {
@@ -239,7 +251,7 @@ func (s *State) loadDatabase() {
 	}
 
 	if dblk == nil && s.NetworkNumber == constants.NETWORK_LOCAL {
-		dblk, err = s.CreateDBlock()
+		dblk, err = s.CreateDBlock(0)
 		if err != nil {
 			panic("Failed to initialize Factoids: " + err.Error())
 		}
@@ -301,22 +313,21 @@ func (s *State) ProcessEndOfBlock(dbheight uint32) {
 	s.UpdateProcessLists() // Do any remaining processing
 
 	curPL := s.pli(s.DBHeight)
-	nextPL := s.pli(s.DBHeight + 1)
 
 	factoidBlock := s.FactoidState.GetCurrentBlock()
 
 	s.FactoidState.ProcessEndOfBlock(s) // Clean up Factoids
-
-	db, err := s.CreateDBlock()
+	
+	s.NewPli(s.DBHeight+1)
+	_, err := s.CreateDBlock(s.DBHeight+1)
 	if err != nil {
 		panic("Failed to create a Directory Block")
 	}
 
-	nextPL.DirectoryBlock = db
-
 	s.AddDBState(true, curPL.DirectoryBlock, curPL.AdminBlock, factoidBlock, curPL.EntryCreditBlock)
 
 	curPL.SetComplete(true)
+	s.DBHeight++
 	s.ProcessLists = append(s.ProcessLists[1:], nil) // Current Process List becomes the previous process list
 
 	s.LastAck = nil
@@ -353,43 +364,49 @@ func (s *State) AddAdminBlock(interfaces.IAdminBlock) {
 // block specified doesn't exist or is out of range.
 func (s *State) pli(height uint32) *ProcessList {
 	i := height - s.DBHeight + 1
-	if i < 0 || i > 2 {
+	if i > 2 {			// Can't be zero, unsigned. One test tests both
 		return nil
 	}
 
 	r := s.ProcessLists[i]
 
-	// We assume ProcessLists are requested for in order.
-	if r == nil && i > 0 {
-		p := s.ProcessLists[i-1]
-		totalServers := 1 // defaults if not specified anywhere else
-		serverIndex := 0
-		if p != nil {
-			totalServers = p.TotalServers // Use previous values if they exist
-			serverIndex = p.ServerIndex
-		}
-		r = NewProcessList(totalServers, height)
-		r.DirectoryBlock = directoryBlock.NewDirectoryBlock(height)
-		r.ServerIndex = serverIndex
-
-		s.ProcessLists[i] = r
-	}
-
-	return s.ProcessLists[i]
+	return r
 }
 
-// Move the future Directory Block to the current, the current to the previous.
-// Return the new Current Directory Block
-func (s *State) CreateDBlock() (interfaces.IDirectoryBlock, error) {
-	s.DBHeight++
+func (s *State) NewPli(height uint32) *ProcessList {
+	i := height - s.DBHeight + 1
+	p := s.pli(height-1)
+	totalServers := 1 // defaults if not specified anywhere else
+	serverIndex := 0
+	serverState := 0
+	if p != nil {
+		serverState = p.ServerState
+		totalServers = p.TotalServers // Use previous values if they exist
+		serverIndex = p.ServerIndex
+	}
+	r := NewProcessList(totalServers, height)
+	s.ProcessLists[i] = r
+	r.TotalServers = totalServers
+	r.ServerIndex = serverIndex
+	r.ServerState = serverState
+	s.CreateDBlock(height)
+	
+	return r
+}
+	
 
-	prevPL := s.pli(s.DBHeight - 1)
-	currPL := s.pli(s.DBHeight)
-	_ = s.pli(s.DBHeight + 1)
+// Create a new Directory Block at the given height.	
+// Return the new Current Directory Block
+func (s *State) CreateDBlock(height uint32) (interfaces.IDirectoryBlock, error) {
+	
+	prevPL := s.pli(height - 1)
+	currPL := s.pli(height)
 	currPL.SetComplete(false)
 
-	newdb := currPL.DirectoryBlock
-
+	newdb := directoryBlock.NewDirectoryBlock(height)
+	currPL.DirectoryBlock = newdb
+	var peb interfaces.IEntryCreditBlock
+	
 	if prevPL != nil {
 		prev := prevPL.DirectoryBlock
 		bodyMR, err := prev.BuildBodyMR()
@@ -404,9 +421,10 @@ func (s *State) CreateDBlock() (interfaces.IDirectoryBlock, error) {
 		}
 		newdb.GetHeader().SetPrevLedgerKeyMR(prevLedgerKeyMR)
 		newdb.GetHeader().SetPrevKeyMR(prev.GetKeyMR())
+		peb = prevPL.EntryCreditBlock
 	}
-	eb, _ := entryCreditBlock.NextECBlock(nil)
-
+	
+	eb, _ := entryCreditBlock.NextECBlock(peb)
 	currPL.EntryCreditBlock = eb
 	currPL.AdminBlock = s.NewAdminBlock()
 
