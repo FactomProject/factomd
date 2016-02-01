@@ -7,6 +7,7 @@ package state
 import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/directoryBlock/dbInfo"
 	"time"
 )
 
@@ -29,9 +30,11 @@ func (d *DBState) Process(state interfaces.IState) {
 	state.AddAdminBlock(d.AdminBlock)
 
 	if d.isNew {
+		state.GetDB().SaveDirectoryBlockHead(d.DirectoryBlock)
 		state.GetDB().ProcessDBlockBatch(d.DirectoryBlock)
 		state.GetDB().ProcessABlockBatch(d.AdminBlock)
 		state.GetDB().ProcessFBlockBatch(d.FactoidBlock)
 		state.GetDB().ProcessECBlockBatch(d.EntryCreditBlock)
+		state.GetAnchor().UpdateDirBlockInfoMap(dbInfo.NewDirBlockInfoFromDirBlock(d.DirectoryBlock))
 	}
 }

@@ -11,7 +11,6 @@ import (
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
-	"github.com/FactomProject/factomd/common/directoryBlock/dbInfo"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid/block"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -315,18 +314,10 @@ func (s *State) ProcessEndOfBlock(dbheight uint32) {
 
 	nextPL.DirectoryBlock = db
 
-	if curPL.DirectoryBlock != nil {
-		if err = s.DB.SaveDirectoryBlockHead(curPL.DirectoryBlock); err != nil {
-			panic(err.Error())
-		}
-		s.Anchor.UpdateDirBlockInfoMap(dbInfo.NewDirBlockInfoFromDirBlock(curPL.DirectoryBlock))
-	} else {
-		log.Println("No old db")
-	}
-
 	s.AddDBState(true, curPL.DirectoryBlock, curPL.AdminBlock, factoidBlock, curPL.EntryCreditBlock)
 
-	s.ProcessLists = append(s.ProcessLists[1:], nil)
+	curPL.SetComplete(true)
+	s.ProcessLists = append(s.ProcessLists[1:], nil) // Current Process List becomes the previous process list
 
 	s.LastAck = nil
 }
@@ -521,6 +512,10 @@ func (s *State) GetServerPrivateKey() primitives.PrivateKey {
 
 func (s *State) GetServerPublicKey() primitives.PublicKey {
 	return s.serverPubKey
+}
+
+func (s *State) GetAnchor() interfaces.IAnchor {
+	return s.Anchor
 }
 
 func (s *State) initServerKeys() {

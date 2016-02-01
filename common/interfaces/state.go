@@ -84,6 +84,8 @@ type IState interface {
 	SetEntryCreditBlock(dbheight uint32, ecb IEntryCreditBlock)
 	SetAdminBlock(dbheight uint32, ab IAdminBlock)
 
+	GetAnchor() IAnchor
+	
 	GetDBHeight() uint32 // The index of the directory block under construction.
 
 	// Message State
