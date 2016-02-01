@@ -74,6 +74,8 @@ type IState interface {
 
 	// Directory Block State
 	// =====================
+	AddDBState (bool, IDirectoryBlock, IAdminBlock, IFBlock, IEntryCreditBlock)
+	AddAdminBlock(IAdminBlock) 
 	GetDirectoryBlock(dbheight uint32) IDirectoryBlock // The directory block under construction
 	GetEntryCreditBlock(dbheight uint32) IEntryCreditBlock
 	GetAdminBlock(dbheight uint32) IAdminBlock

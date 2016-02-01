@@ -132,6 +132,11 @@ func (m *EOM) LeaderExecute(state interfaces.IState) error {
 		return err
 	}
 
+	// Reset the LastAck if we reach the last minute.
+	if m.Minute == 9 {
+		state.SetLastAck(nil)
+	}
+	
 	// Leader Execute creates an acknowledgement and the EOM
 	state.NetworkOutMsgQueue() <- ack
 	state.FollowerInMsgQueue() <- ack // Send the Ack to follower

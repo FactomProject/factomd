@@ -46,6 +46,10 @@ func (fs *FactoidState) SetWallet(w interfaces.ISCWallet) {
 }
 
 func (fs *FactoidState) GetCurrentBlock() interfaces.IFBlock {
+	if fs.CurrentBlock == nil {
+		dbheight := fs.State.GetDBHeight()
+		fs.CurrentBlock = block.NewFBlock(fs.GetFactoshisPerEC(), dbheight)
+	}
 	return fs.CurrentBlock
 }
 

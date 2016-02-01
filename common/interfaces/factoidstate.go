@@ -59,10 +59,3 @@ type IFactoidState interface {
 	ResetBalances()
 }
 
-/*
-type IFSbalance interface {
-	IBlock
-	getNumber() uint64
-	setNumber(uint64)
-}
-*/
