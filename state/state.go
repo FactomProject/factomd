@@ -197,17 +197,15 @@ func (s *State) AddDBState(isNew bool,
 	entryCreditBlock interfaces.IEntryCreditBlock) {
 
 	dbheight := directoryBlock.GetHeader().GetDBHeight()
-	if dbheight >= s.DBHeight {
-		s.DBHeight = dbheight + 1
-	}
+
 	// Compute the index of this state in our DBStates array;  we don't keep block info
 	// around that we have already processed.  But we do have to keep this info around
 	// if we are missing some previous block info.
 	index := int(dbheight) - int(s.DBHeightComplete) - 1
 
-	// If the index is less than zero, it is a repeat of a processed state; ignore
-	if index < 0 {
-		return // We have already processed this.
+	// If the index is out of range, then ignore.
+	if index > 2 || index < 0{
+		return
 	}
 
 	// Create a new DBState
@@ -219,7 +217,7 @@ func (s *State) AddDBState(isNew bool,
 	dbState.isNew = isNew
 
 	// Add this new DBState into the right place in our list of DBStates
-	for len(s.DBStates) < index+1 {
+	for len(s.DBStates) <= index {
 		s.DBStates = append(s.DBStates, nil)
 	}
 	s.DBStates[index] = dbState
@@ -232,7 +230,8 @@ func (s *State) AddDBState(isNew bool,
 		s.DBStates = s.DBStates[1:]
 	}
 
-	if s.DBHeightComplete+1 == s.DBHeight {
+	if s.DBHeightComplete >= s.DBHeight {
+		s.DBHeight = s.DBHeightComplete+1
 		p := s.pli(s.DBHeightComplete)				// Update prev PL
 		p.DirectoryBlock = directoryBlock
 		p.AdminBlock = adminBlock
@@ -309,33 +308,27 @@ func (s *State) loadDatabase() {
 // to validate the signatures we will get with the DirectoryBlockSignature messages.
 func (s *State) ProcessEndOfBlock(dbheight uint32) {
 	//Must have all the complete process lists at this point!
-fmt.Println("mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm ProcessEndOfBlock",s.DBHeight)
-fmt.Println("1111111111111111111111 New block height: ",s.DBHeight, " Complete: ",s.DBHeightComplete)
-s.UpdateProcessLists() // Do any remaining processing
+
+	s.UpdateProcessLists() // Do any remaining processing
 
 	curPL := s.pli(s.DBHeight)
 
 	factoidBlock := s.FactoidState.GetCurrentBlock()
 
-	fmt.Println("222222222222222222 New block height: ",s.DBHeight, " Complete: ",s.DBHeightComplete)
 	s.FactoidState.ProcessEndOfBlock(s) // Clean up Factoids
 	
 	s.NewPli(s.DBHeight+1)
 	_, err := s.CreateDBlock(s.DBHeight+1)
-	fmt.Println("33333333333333333333 New block height: ",s.DBHeight, " Complete: ",s.DBHeightComplete)
 	if err != nil {
 		panic("Failed to create a Directory Block")
 	}
-	fmt.Println("4444444444444444444444 New block height: ",s.DBHeight, " Complete: ",s.DBHeightComplete)
 	
 	s.AddDBState(true, curPL.DirectoryBlock, curPL.AdminBlock, factoidBlock, curPL.EntryCreditBlock)
-	fmt.Println("5555555555555555555555 New block height: ",s.DBHeight, " Complete: ",s.DBHeightComplete)
 	
 	curPL.SetComplete(true)
 	s.ProcessLists = append(s.ProcessLists[1:], s.NewPli(s.DBHeight)) // Current Process List becomes the previous process list
 
 	s.LastAck = nil
-	fmt.Println("666666666666666 New block height: ",s.DBHeight, " Complete: ",s.DBHeightComplete)
 }
 
 // Run through the process lists, and update the state as required by

@@ -180,7 +180,7 @@ func (m *Ack) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *Ack) String() string {
-	return "Ack " + m.Timestamp.String() + " " + m.MessageHash.String()
+	return fmt.Sprintf("Ack(%d/%d): %s %s ",m.DBHeight, m.Height, m.Timestamp.String(), m.MessageHash.String())
 }
 
 /***************************************************************************
