@@ -294,7 +294,7 @@ func (s *State) loadDatabase() {
 		if len(dBlocks) != len(aBlocks) ||
 			len(dBlocks) != len(fBlocks) ||
 			len(dBlocks) != len(ecBlocks) {
-			panic(fmt.Sprintf("Failure to load all blocks on Init. D%d A%d F%d Ec%d", len(dBlocks), len(aBlocks), len(fBlocks), len(ecBlocks)))
+			fmt.Printf("\nFailure to load all blocks on Init. D%d A%d F%d Ec%d\n", len(dBlocks), len(aBlocks), len(fBlocks), len(ecBlocks))
 		}
 
 		for i := 0; i < len(dBlocks); i++ {
