@@ -21,7 +21,7 @@ type DirectoryBlockSignature struct {
 	ServerIdentityChainID interfaces.IHash
 
 	Signature interfaces.IFullSignature
-
+	
 	//Not marshalled
 	hash interfaces.IHash
 }
@@ -30,7 +30,11 @@ var _ interfaces.IMsg = (*DirectoryBlockSignature)(nil)
 var _ Signable = (*DirectoryBlockSignature)(nil)
 
 func (e *DirectoryBlockSignature) Process(dbheight uint32, state interfaces.IState) {
-	state.ProcessEndOfBlock(dbheight)
+	fmt.Println(">>>>>>>>>>>>>>>>>>>>>>>>>> Complete Process")
+	state.SetListComplete()
+	if state.ListComplete() {
+		state.ProcessEndOfBlock(state.GetDBHeight())
+	}
 }
 
 func (m *DirectoryBlockSignature) GetHash() interfaces.IHash {

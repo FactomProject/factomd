@@ -36,12 +36,10 @@ var _ Signable = (*EOM)(nil)
 
 func (e *EOM) Process(dbheight uint32, state interfaces.IState) {
 
-	fmt.Println("Process!!!!!!")
-
 	fs := state.GetFactoidState(dbheight)
 	fs.EndOfPeriod(int(e.Minute))
 
-	fmt.Println("EOM Height ",dbheight)
+	fmt.Println("EOM Height ",dbheight, state.GetDBHeight(), state.GetDBHeightComplete())
 	ecblk := state.GetEntryCreditBlock(dbheight)
 	ecbody := ecblk.GetBody()
 	mn := entryCreditBlock.NewMinuteNumber2(e.Minute)

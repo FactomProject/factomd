@@ -309,28 +309,33 @@ func (s *State) loadDatabase() {
 // to validate the signatures we will get with the DirectoryBlockSignature messages.
 func (s *State) ProcessEndOfBlock(dbheight uint32) {
 	//Must have all the complete process lists at this point!
-
-	s.UpdateProcessLists() // Do any remaining processing
+fmt.Println("mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm ProcessEndOfBlock",s.DBHeight)
+fmt.Println("1111111111111111111111 New block height: ",s.DBHeight, " Complete: ",s.DBHeightComplete)
+s.UpdateProcessLists() // Do any remaining processing
 
 	curPL := s.pli(s.DBHeight)
 
 	factoidBlock := s.FactoidState.GetCurrentBlock()
 
+	fmt.Println("222222222222222222 New block height: ",s.DBHeight, " Complete: ",s.DBHeightComplete)
 	s.FactoidState.ProcessEndOfBlock(s) // Clean up Factoids
 	
 	s.NewPli(s.DBHeight+1)
 	_, err := s.CreateDBlock(s.DBHeight+1)
+	fmt.Println("33333333333333333333 New block height: ",s.DBHeight, " Complete: ",s.DBHeightComplete)
 	if err != nil {
 		panic("Failed to create a Directory Block")
 	}
-
+	fmt.Println("4444444444444444444444 New block height: ",s.DBHeight, " Complete: ",s.DBHeightComplete)
+	
 	s.AddDBState(true, curPL.DirectoryBlock, curPL.AdminBlock, factoidBlock, curPL.EntryCreditBlock)
-
+	fmt.Println("5555555555555555555555 New block height: ",s.DBHeight, " Complete: ",s.DBHeightComplete)
+	
 	curPL.SetComplete(true)
-	s.DBHeight++
-	s.ProcessLists = append(s.ProcessLists[1:], nil) // Current Process List becomes the previous process list
+	s.ProcessLists = append(s.ProcessLists[1:], s.NewPli(s.DBHeight)) // Current Process List becomes the previous process list
 
 	s.LastAck = nil
+	fmt.Println("666666666666666 New block height: ",s.DBHeight, " Complete: ",s.DBHeightComplete)
 }
 
 // Run through the process lists, and update the state as required by
@@ -340,17 +345,36 @@ func (s *State) ProcessEndOfBlock(dbheight uint32) {
 //
 // This routine can only be called by the Follower goroutine.
 func (s *State) UpdateProcessLists() {
-
+	
+fmt.Println("UpdateProcessLists()")
+	
 	prev := s.pli(s.DBHeight - 1)
-	if !prev.Complete() {
+	if s.DBHeight -1 <= 2 && !prev.Complete() {
+		fmt.Println("Previous not complete",s.DBHeight-1)
 		prev.Process(s)
 		if prev.Complete() {
+			fmt.Println("Process ",s.DBHeight)
 			s.pli(s.DBHeight).Process(s)
 		}
 	} else {
+		fmt.Println("Process ",s.DBHeight)
 		s.pli(s.DBHeight).Process(s)
 	}
 }
+
+func (s *State) SetListComplete() {
+	pl := s.pli(s.DBHeight)
+	pl.SigComplete[pl.ServerIndex] = true
+	if pl.Complete() {
+		s.UpdateProcessLists()
+	}
+}
+
+func (s *State) ListComplete() bool {
+	pl := s.pli(s.DBHeight)
+	return pl.Complete() 
+}
+		
 
 // Here we need to validate the signatures of the previous block.  We also need to update
 // stuff like a change to the exchange rate for Entry Credits, the number of Federated Servers (until
@@ -375,6 +399,13 @@ func (s *State) pli(height uint32) *ProcessList {
 
 func (s *State) NewPli(height uint32) *ProcessList {
 	i := height - s.DBHeight + 1
+	if i > 2 {
+		panic("Should not create a Process List out of bounds")
+	}
+	if s.pli(height) != nil {	// Do nothing if the process list already exists.
+		return s.pli(height)
+	}
+	fmt.Println("Building ", height)
 	p := s.pli(height-1)
 	totalServers := 1 // defaults if not specified anywhere else
 	serverIndex := 0
@@ -866,6 +897,10 @@ func (s *State) SetDB(dbase interfaces.DBOverlay) {
 
 func (s *State) GetDBHeight() uint32 {
 	return s.DBHeight
+}
+
+func (s *State) GetDBHeightComplete() uint32 {
+	return s.DBHeightComplete
 }
 
 func (s *State) GetNewHash() interfaces.IHash {
