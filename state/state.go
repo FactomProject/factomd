@@ -393,18 +393,21 @@ func (s *State) NewPli(height uint32) *ProcessList {
 	defer s._ProcessListsMultex.Unlock()
 	
 	
-	i := height - s._ProcessListBase
-	if i >= uint32(len(s._ProcessLists)) {		// No process list or out of bounds? 
-		return nil								// Return nil
+	i := int(height) - int(s._ProcessListBase)
+	if i < 0 {
+		return nil		// No blocks before the genesis block
+	}
+		
+	for i >= len(s._ProcessLists) {
+		s._ProcessLists = append(s._ProcessLists,nil)
 	}
 	
-	if s.pli(height) != nil {	// Do nothing if the process list already exists.
-		return s.pli(height)
+	if s._ProcessLists[i] != nil {	// Do nothing if the process list already exists.
+		return s._ProcessLists[i]
 	}
 
 	r := NewProcessList(s.totalServers, height)
 	s._ProcessLists[i] = r
-	s.CreateDBlock(height)
 	
 	return r
 }
