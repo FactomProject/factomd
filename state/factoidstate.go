@@ -220,8 +220,6 @@ func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
 		panic(err)
 	}
 
-	state.SetFactoidKeyMR(state.GetDBHeight()-1, hash)
-
 	fs.CurrentBlock = block.NewFBlock(fs.GetFactoshisPerEC(), state.GetDBHeight()+1)
 
 	t := coinbase.GetCoinbase(primitives.GetTimeMilli())

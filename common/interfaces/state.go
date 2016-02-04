@@ -97,7 +97,6 @@ type IState interface {
 
 	// Server Methods
 	// ==============
-	UpdateProcessLists()
 	ProcessEndOfBlock(dbheight uint32)
 
 	// Web Services
@@ -111,8 +110,6 @@ type IState interface {
 	GetFactoidKeyMR(dbheight uint32) IHash
 
 	SetFactoidState(dbheight uint32, fs IFactoidState)
-	SetFactoidKeyMR(dbheight uint32, kmr IHash)
-
 	// MISC
 	// ====
 
