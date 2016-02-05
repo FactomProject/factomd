@@ -48,8 +48,8 @@ type IState interface {
 	GetAuditHeartBeats() []IMsg                 // The checklist of HeartBeats for this period
 	GetFedServerFaults() [][]IMsg               // Keep a fault list for every server
 
-	GetNewEBlks(dbheight uint32, hash [32]byte) IEntryBlock
-	PutNewEBlks(dbheight uint32, hash [32]byte, eb IEntryBlock)
+	GetNewEBlocks(dbheight uint32, hash [32]byte) IEntryBlock
+	PutNewEBlocks(dbheight uint32, hash [32]byte, eb IEntryBlock)
 
 	GetCommits(dbheight uint32, hash IHash) IMsg
 	PutCommits(dbheight uint32, hash IHash, msg IMsg)
@@ -115,8 +115,8 @@ type IState interface {
 	// ====
 
 	// Returns true if it found a match
-	FollowerExecuteMsg(m IMsg) (bool, error) // Messages that go into the process list 
-	FollowerExecuteAck(m IMsg) (bool, error) // Ack Msg calls this function.	
+	FollowerExecuteMsg(m IMsg) (bool, error) // Messages that go into the process list
+	FollowerExecuteAck(m IMsg) (bool, error) // Ack Msg calls this function.
 	GetTimestamp() Timestamp
 	PrintType(int) bool // Debugging
 

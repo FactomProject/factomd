@@ -213,7 +213,7 @@ func (s *State) UpdateState() {
 	s._ProcessListsMultex.Lock()
 	// Create DState blocks for all completed Process Lists
 	for len(s._ProcessLists) > 0 && s._ProcessLists[0].Complete() {
-		fmt.Println("Process List len",len(s._ProcessLists))
+		fmt.Println("Process List len", len(s._ProcessLists))
 		pl := s._ProcessLists[0]
 		pl.Process(s)
 		s.AddDBState(true, pl.DirectoryBlock, pl.AdminBlock, pl.FactoidBlock, pl.EntryCreditBlock)
@@ -222,8 +222,8 @@ func (s *State) UpdateState() {
 	}
 	s._ProcessListsMultex.Unlock()
 
-	fmt.Println("hhhhhhhh1hhhhhhhhhhhhhhhhhhhhhhhhhhhhang")
-	
+	log.Debug("hhhhhhhh1hhhhhhhhhhhhhhhhhhhhhhhhhhhhang")
+
 	s._DBStatesMultex.Lock()
 	defer s._DBStatesMultex.Unlock()
 
@@ -232,37 +232,36 @@ func (s *State) UpdateState() {
 	update := false
 	for len(s._DBStates) > 0 && s._DBStates[0] != nil {
 		s._LastDBState = s._DBStates[0]
-		fmt.Println("hhhhhhhhxxxxx1hhhhhhhhhhhhhhhhhhhhhhhhhhhhang")
+		log.Debug("hhhhhhhhxxxxx1hhhhhhhhhhhhhhhhhhhhhhhhhhhhang")
 		s.ProcessEndOfBlock(s._DBHeightComplete)
 		//
 		// Need to consider how to deal with the Factoid state
 		//
 		fmt.Println("Process DState", s._DBHeightComplete)
-		fmt.Println("hhhhhhhhaaaaaaaaaaaa2222hhhhhhhhhhhhhhhhhhhhhhhhhhhhang")
+		log.Debug("hhhhhhhhaaaaaaaaaaaa2222hhhhhhhhhhhhhhhhhhhhhhhhhhhhang")
 		s.FactoidState.ProcessEndOfBlock(s)
-		fmt.Println("hhhhhhhhbbbbbbbbbbbbbbbbb2222hhhhhhhhhhhhhhhhhhhhhhhhhhhhang")
+		log.Debug("hhhhhhhhbbbbbbbbbbbbbbbbb2222hhhhhhhhhhhhhhhhhhhhhhhhhhhhang")
 		s._LastDBState.Process(s)
-		fmt.Println("hhhhhhhhcccccccccccccccccc2222hhhhhhhhhhhhhhhhhhhhhhhhhhhhang")
-		
+		log.Debug("hhhhhhhhcccccccccccccccccc2222hhhhhhhhhhhhhhhhhhhhhhhhhhhhang")
+
 		s._DBHeightComplete = s._LastDBState.DirectoryBlock.GetHeader().GetDBHeight()
 		s._DBStates = s._DBStates[1:]
 		update = true
 	}
-	fmt.Println("hhhhhhhh2222hhhhhhhhhhhhhhhhhhhhhhhhhhhhang")
-	
+	log.Debug("hhhhhhhh2222hhhhhhhhhhhhhhhhhhhhhhhhhhhhang")
+
 	for s._ProcessListBase <= s._DBHeightComplete {
 		if len(s._ProcessLists) > 0 {
 			s._ProcessLists = s._ProcessLists[1:]
 		}
 	}
 
-	fmt.Println("hhhhhhhh3333333333hhhhhhhhhhhhhhhhhhhhhhhhhhhhang")
+	log.Debug("hhhhhhhh3333333333hhhhhhhhhhhhhhhhhhhhhhhhhhhhang")
 	if update {
 		s._DBHeightComplete = s._DBHeightComplete + 1
 		s._DBHeight = s._DBHeightComplete + 1
 	}
 
-	
 }
 
 // Adds blocks that are either pulled locally from a database, or acquired from peers.
@@ -410,7 +409,7 @@ func (s *State) NewPli(height uint32) *ProcessList {
 	defer s._ProcessListsMultex.Unlock()
 	fmt.Print("Enter NewPli")
 	defer fmt.Println("Leaving NewPli")
-	
+
 	i := int(height) - int(s._ProcessListBase)
 	if i < 0 {
 		return nil // No blocks before the genesis block
@@ -448,26 +447,26 @@ func (s *State) CreateDBlock(height uint32) (interfaces.IDirectoryBlock, error) 
 		if err != nil {
 			return nil, err
 		}
-		fmt.Println("ooooooooooooooooooooo55555555555oooooooooooo")
+		log.Debug("ooooooooooooooooooooo55555555555oooooooooooo")
 		newdb.GetHeader().SetBodyMR(bodyMR)
 
 		prevLedgerKeyMR := prev.GetHash()
 		if prevLedgerKeyMR == nil {
 			return nil, errors.New("prevLedgerKeyMR is nil")
 		}
-		fmt.Println("ooooooooooooooooo6666666666oooooooooooooooo")
+		log.Debug("ooooooooooooooooo6666666666oooooooooooooooo")
 		newdb.GetHeader().SetPrevLedgerKeyMR(prevLedgerKeyMR)
 		newdb.GetHeader().SetPrevKeyMR(prev.GetKeyMR())
 		peb = dstate.EntryCreditBlock
-		fmt.Println("oooooooooooooo7777ooooooooooooooooooo")
+		log.Debug("oooooooooooooo7777ooooooooooooooooooo")
 	}
-	fmt.Println("oooooooooooooooooooooo8888ooooooooooo")
-	
+	log.Debug("oooooooooooooooooooooo8888ooooooooooo")
+
 	eb, _ := entryCreditBlock.NextECBlock(peb)
 	currPL.EntryCreditBlock = eb
 	currPL.AdminBlock = s.NewAdminBlock(height)
-	fmt.Println("oooooooooooooooooooooooooo9999ooooooo")
-	
+	log.Debug("oooooooooooooooooooooooooo9999ooooooo")
+
 	return newdb, nil
 }
 
@@ -479,19 +478,19 @@ func (s *State) GetServerIndex(dbheight uint32) int {
 	return pl.ServerIndex
 }
 
-func (s *State) GetNewEBlks(dbheight uint32, key [32]byte) interfaces.IEntryBlock {
+func (s *State) GetNewEBlocks(dbheight uint32, key [32]byte) interfaces.IEntryBlock {
 	pl := s.pli(dbheight)
 	var value interfaces.IEntryBlock
 	if pl != nil {
-		value = pl.GetNewEBlks(key)
+		value = pl.GetNewEBlocks(key)
 	}
 	return value
 }
 
-func (s *State) PutNewEBlks(dbheight uint32, key [32]byte, value interfaces.IEntryBlock) {
+func (s *State) PutNewEBlocks(dbheight uint32, key [32]byte, value interfaces.IEntryBlock) {
 	pl := s.pli(dbheight)
 	if pl != nil {
-		pl.PutNewEBlks(key, value)
+		pl.PutNewEBlocks(key, value)
 	}
 }
 
@@ -534,7 +533,7 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) (bool, error) {
 }
 
 // Ack messages always match some message in the Process List.   That is
-// done here, though the only msg that should call this routine is the Ack 
+// done here, though the only msg that should call this routine is the Ack
 // message.
 func (s *State) FollowerExecuteAck(msg interfaces.IMsg) (bool, error) {
 	ack := msg.(*messages.Ack)
@@ -546,7 +545,7 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) (bool, error) {
 		return true, nil
 	}
 	fmt.Println("Ack No Match!")
-	
+
 	return false, nil
 }
 

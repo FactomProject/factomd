@@ -250,11 +250,11 @@ func HandleV2RevealEntry(state interfaces.IState, params interface{}) (interface
 
 func HandleV2DirectoryBlockHead(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	h := new(DirectoryBlockHeadResponse)
-	dbHeight:=state.GetDBHeight()
+	dbHeight := state.GetDBHeight()
 	fmt.Printf("dbHeight - %v\n", dbHeight)
-	dBlock:= state.GetDirectoryBlock(dbHeight)
+	dBlock := state.GetDirectoryBlock(dbHeight)
 	fmt.Printf("dBlock - %v\n", dBlock)
-	keyMR:=dBlock.GetKeyMR()
+	keyMR := dBlock.GetKeyMR()
 	h.KeyMR = keyMR.String()
 	return h, nil
 }

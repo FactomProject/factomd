@@ -23,8 +23,8 @@ type ProcessList struct {
 	// ====
 	// For Follower
 
-	NewEBlksSem *sync.Mutex
-	NewEBlks    map[[32]byte]interfaces.IEntryBlock // Entry Blocks added within 10 minutes (follower and leader)
+	NewEBlocksSem *sync.Mutex
+	NewEBlocks    map[[32]byte]interfaces.IEntryBlock // Entry Blocks added within 10 minutes (follower and leader)
 
 	CommitsSem *sync.Mutex
 	Commits    map[[32]byte]interfaces.IMsg // Used by the leader, validate
@@ -115,17 +115,17 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	p.lists[ack.ServerIndex] = processlist
 }
 
-func (p *ProcessList) GetNewEBlks(key [32]byte) interfaces.IEntryBlock {
-	p.NewEBlksSem.Lock()
-	value := p.NewEBlks[key]
-	p.NewEBlksSem.Unlock()
+func (p *ProcessList) GetNewEBlocks(key [32]byte) interfaces.IEntryBlock {
+	p.NewEBlocksSem.Lock()
+	value := p.NewEBlocks[key]
+	p.NewEBlocksSem.Unlock()
 	return value
 }
 
-func (p *ProcessList) PutNewEBlks(key [32]byte, value interfaces.IEntryBlock) {
-	p.NewEBlksSem.Lock()
-	p.NewEBlks[key] = value
-	p.NewEBlksSem.Unlock()
+func (p *ProcessList) PutNewEBlocks(key [32]byte, value interfaces.IEntryBlock) {
+	p.NewEBlocksSem.Lock()
+	p.NewEBlocks[key] = value
+	p.NewEBlocksSem.Unlock()
 }
 
 func (p *ProcessList) GetCommits(key interfaces.IHash) interfaces.IMsg {
@@ -179,8 +179,8 @@ func NewProcessList(totalServers int, dbheight uint32) *ProcessList {
 	pl.acks = new(map[[32]byte]interfaces.IMsg)
 	pl.msgs = new(map[[32]byte]interfaces.IMsg)
 
-	pl.NewEBlksSem = new(sync.Mutex)
-	pl.NewEBlks = make(map[[32]byte]interfaces.IEntryBlock)
+	pl.NewEBlocksSem = new(sync.Mutex)
+	pl.NewEBlocks = make(map[[32]byte]interfaces.IEntryBlock)
 
 	pl.CommitsSem = new(sync.Mutex)
 	pl.Commits = make(map[[32]byte]interfaces.IMsg)
