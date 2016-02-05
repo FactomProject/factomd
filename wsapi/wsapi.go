@@ -226,6 +226,7 @@ func HandleEntryBlock(ctx *web.Context, hashkey string) {
 	d.Header.ChainID = jsonResp.Result.(*EntryBlockResponse).Header.ChainID
 	d.Header.PrevKeyMR = jsonResp.Result.(*EntryBlockResponse).Header.PrevKeyMR
 	d.Header.Timestamp = jsonResp.Result.(*EntryBlockResponse).Header.Timestamp
+	d.Header.DBHeight = jsonResp.Result.(*EntryBlockResponse).Header.DBHeight
 	d.EntryList = jsonResp.Result.(*EntryBlockResponse).EntryList
 
 	returnMsg(ctx, d, true)

@@ -6,6 +6,7 @@ package wsapi
 
 import (
 	"encoding/hex"
+	"fmt"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryBlock"
@@ -249,7 +250,12 @@ func HandleV2RevealEntry(state interfaces.IState, params interface{}) (interface
 
 func HandleV2DirectoryBlockHead(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	h := new(DirectoryBlockHeadResponse)
-	h.KeyMR = state.GetDirectoryBlock(state.GetDBHeight()).GetKeyMR().String()
+	dbHeight:=state.GetDBHeight()
+	fmt.Printf("dbHeight - %v\n", dbHeight)
+	dBlock:= state.GetDirectoryBlock(dbHeight)
+	fmt.Printf("dBlock - %v\n", dBlock)
+	keyMR:=dBlock.GetKeyMR()
+	h.KeyMR = keyMR.String()
 	return h, nil
 }
 
@@ -397,6 +403,7 @@ func HandleV2EntryBlock(state interfaces.IState, params interface{}) (interface{
 	e.Header.BlockSequenceNumber = block.GetHeader().GetEBSequence()
 	e.Header.ChainID = block.GetHeader().GetChainID().String()
 	e.Header.PrevKeyMR = block.GetHeader().GetPrevKeyMR().String()
+	e.Header.DBHeight = block.GetHeader().GetDBHeight()
 
 	if dblock, err := dbase.FetchDBlockByHeight(block.GetHeader().GetDBHeight()); err == nil {
 		e.Header.Timestamp = dblock.GetHeader().GetTimestamp() * 60

@@ -61,6 +61,7 @@ type EntryBlockResponse struct {
 		ChainID             string
 		PrevKeyMR           string
 		Timestamp           uint32
+		DBHeight            uint32
 	}
 	EntryList []EntryAddr
 }
@@ -126,6 +127,7 @@ type EBlock struct {
 		ChainID             string
 		PrevKeyMR           string
 		Timestamp           uint32
+		DBHeight            uint32
 	}
 	EntryList []EntryAddr
 }
