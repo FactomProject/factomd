@@ -143,7 +143,7 @@ func (bdb *BoltDB) ListAllKeys(bucket []byte) (keys [][]byte, err error) {
 	bdb.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(bucket))
 		if b == nil {
-			fmt.Println("bucket 0x" + hex.EncodeToString(bucket) + " not found")
+			//fmt.Println("bucket 0x" + hex.EncodeToString(bucket) + " not found")
 		} else {
 			b.ForEach(func(k, v []byte) error {
 				keys = append(keys, k)
@@ -160,7 +160,7 @@ func (db *BoltDB) GetAll(bucket []byte, sample interfaces.BinaryMarshallableAndC
 	err := db.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(bucket))
 		if b == nil {
-			fmt.Println("bucket 0x" + hex.EncodeToString(bucket) + " not found")
+			//fmt.Println("bucket 0x" + hex.EncodeToString(bucket) + " not found")
 		} else {
 			b.ForEach(func(k, v []byte) error {
 				tmp := sample.New()
