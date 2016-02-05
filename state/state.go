@@ -122,7 +122,6 @@ func (s *State) Init(filename string) {
 
 	// Setup the FactoidState and Validation Service that holds factoid and entry credit balances
 	fs := new(FactoidState)
-	fs.State = s
 	fs.ValidationService = NewValidationService()
 	s.FactoidState = fs
 
@@ -208,6 +207,7 @@ func (s *State) GetDBState(height uint32) *DBState {
 
 func (s *State) UpdateState() {
 
+	fmt.Println("kkkkkkkkkkkkkkkkkkkkkkkkkk")
 	
 	s._ProcessListsMultex.Lock()
 	// Create DState blocks for all completed Process Lists
@@ -229,10 +229,11 @@ func (s *State) UpdateState() {
 	update := false
 	for len(s._DBStates) > 0 && s._DBStates[0] != nil {
 		s._LastDBState = s._DBStates[0]
-
+		s.ProcessEndOfBlock(s._DBHeightComplete)
 //
 // Need to consider how to deal with the Factoid state
 //
+		fmt.Println("Process DState",s._DBHeightComplete)
 		s.FactoidState.ProcessEndOfBlock(s)
 		s._LastDBState.Process(s)
 		
@@ -247,6 +248,7 @@ func (s *State) UpdateState() {
 		
 	if update {
 		s._DBHeightComplete = s._DBHeightComplete+1
+		s._DBHeight = s._DBHeightComplete+1
 	}
 	
 }
@@ -266,7 +268,7 @@ func (s *State) AddDBState(	isNew bool,
 	// Compute the index of this state in our DBStates array;  we don't keep block info
 	// around that we have already processed.  But we do have to keep this info around
 	// if we are missing some previous block info.
-	index := int(dbheight) - int(s._DBHeightComplete) - 1
+	index := int(dbheight) - int(s._DBHeightComplete) 
 
 	// Ignore repeats
 	if index < 0 {
@@ -277,7 +279,7 @@ func (s *State) AddDBState(	isNew bool,
 	for len(s._DBStates) <= index {
 		s._DBStates = append(s._DBStates, nil)
 	}
-
+	
 	// Create a new DBState
 	dbState := new(DBState)
 	dbState.DirectoryBlock = directoryBlock
@@ -307,6 +309,7 @@ func (s *State) loadDatabase() {
 		ecb := entryCreditBlock.NewECBlock()
 	
 		s.AddDBState(true,dblk, ablk, fblk, ecb)
+		s._DBHeight++
 
 	} else {
 
@@ -346,6 +349,7 @@ func (s *State) loadDatabase() {
 // It is called by the follower code.  It is requried to build the Directory Block
 // to validate the signatures we will get with the DirectoryBlockSignature messages.
 func (s *State) ProcessEndOfBlock(dbheight uint32) {
+	s.CreateDBlock(dbheight)
 	s.LastAck = nil
 }
 
@@ -703,12 +707,8 @@ func (s *State) ReadCfg(filename string) interfaces.IFactomConfig {
 	return s.Cfg
 }
 
-func (s *State) GetTotalServers(dbheight uint32) int {
-	pl := s.pli(dbheight)
-	if pl == nil {
-		return 0
-	}
-	return pl.TotalServers
+func (s *State) GetTotalServers() int {
+	return s.totalServers
 }
 
 func (s *State) GetProcessListLen(dbheight uint32, list int) int {
@@ -716,18 +716,14 @@ func (s *State) GetProcessListLen(dbheight uint32, list int) int {
 	if pl == nil {
 		return 0
 	}
-	if list >= pl.TotalServers {
+	if list >= s.totalServers {
 		return -1
 	}
 	return pl.GetLen(list)
 }
 
-func (s *State) GetServerState(dbheight uint32) int {
-	pl := s.pli(dbheight)
-	if pl == nil {
-		return 0
-	}
-	return pl.ServerState
+func (s *State) GetServerState() int {
+	return s.serverState
 }
 
 func (s *State) GetNetworkNumber() int {

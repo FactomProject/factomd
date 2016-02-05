@@ -61,8 +61,8 @@ type IState interface {
 	GetNetworkName() string // Some networks have defined names
 
 	// Number of Servers acknowledged by Factom
-	GetTotalServers(dbheight uint32) int
-	GetServerState(dbheight uint32) int  // (0 if client, 1 if server, 2 if audit server
+	GetTotalServers() int
+	GetServerState() int  // (0 if client, 1 if server, 2 if audit server
 	GetMatryoshka(dbheight uint32) IHash // Reverse Hash
 
 	LeaderFor(hash []byte) bool // Tests if this server is the leader for this key
@@ -106,6 +106,7 @@ type IState interface {
 
 	// Factoid State
 	// =============
+	UpdateState() 
 	GetFactoidState(dbheight uint32) IFactoidState
 	GetFactoidKeyMR(dbheight uint32) IHash
 
