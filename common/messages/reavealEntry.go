@@ -191,7 +191,7 @@ func (m *RevealEntryMsg) Follower(interfaces.IState) bool {
 }
 
 func (m *RevealEntryMsg) FollowerExecute(state interfaces.IState) error {
-	matched, err := state.MatchAckFollowerExecute(m)
+	matched, err := state.FollowerExecuteMsg(m)
 	if err != nil {
 		return err
 	}

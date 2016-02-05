@@ -120,7 +120,8 @@ func (m *Ack) Follower(interfaces.IState) bool {
 }
 
 func (m *Ack) FollowerExecute(state interfaces.IState) error {
-	return state.FollowerExecuteAck(m)
+	_,err := state.FollowerExecuteAck(m)
+	return err
 }
 
 // Acknowledgements do not go into the process list.
