@@ -13,7 +13,12 @@ import (
 )
 
 func TestMarshalUnmarshalAck(t *testing.T) {
-	ack := newAck()
+	ack := newSignedAck()
+	str, err := ack.JSONString()
+	if err != nil {
+		t.Error(err)
+	}
+	t.Logf("str1 - %v", str)
 	hex, err := ack.MarshalBinary()
 	if err != nil {
 		t.Error(err)
@@ -24,24 +29,24 @@ func TestMarshalUnmarshalAck(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	str := ack2.String()
-	t.Logf("str - %v", str)
+	str, err = ack2.JSONString()
+	if err != nil {
+		t.Error(err)
+	}
+	t.Logf("str2 - %v", str)
 
 	if ack2.Type() != constants.ACK_MSG {
 		t.Error("Invalid message type unmarshalled")
 	}
+
+	if ack.IsSameAs(ack2.(*Ack)) == false {
+		t.Error("Acks are not the same")
+	}
 }
 
 func TestSignAndVerifyAck(t *testing.T) {
-	ack := newAck()
-	key, err := primitives.NewPrivateKeyFromHex("07c0d52cb74f4ca3106d80c4a70488426886bccc6ebc10c6bafb37bf8a65f4c38cee85c62a9e48039d4ac294da97943c2001be1539809ea5f54721f0c5477a0a")
-	if err != nil {
-		t.Error(err)
-	}
-	err = ack.Sign(&key)
-	if err != nil {
-		t.Error(err)
-	}
+	ack := newSignedAck()
+
 	hex, err := ack.MarshalBinary()
 	if err != nil {
 		t.Error(err)
@@ -84,7 +89,35 @@ func TestSignAndVerifyAck(t *testing.T) {
 func newAck() *Ack {
 	ack := new(Ack)
 	ack.Timestamp.SetTimeNow()
-	hash, _ := primitives.NewShaHashFromStr("cbd3d09db6defdc25dfc7d57f3479b339a077183cd67022e6d1ef6c041522b40")
+	hash, err := primitives.NewShaHashFromStr("cbd3d09db6defdc25dfc7d57f3479b339a077183cd67022e6d1ef6c041522b40")
+	if err != nil {
+		panic(err)
+	}
 	ack.MessageHash = hash
+	ack.DBHeight = 123
+	ack.Height = 456
+	ack.ServerIndex = 125
+
+	hash, err = primitives.NewShaHashFromStr("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+	if err != nil {
+		panic(err)
+	}
+	ack.SerialHash = hash
+
+	return ack
+}
+
+func newSignedAck() *Ack {
+	ack := newAck()
+
+	key, err := primitives.NewPrivateKeyFromHex("07c0d52cb74f4ca3106d80c4a70488426886bccc6ebc10c6bafb37bf8a65f4c38cee85c62a9e48039d4ac294da97943c2001be1539809ea5f54721f0c5477a0a")
+	if err != nil {
+		panic(err)
+	}
+	err = ack.Sign(&key)
+	if err != nil {
+		panic(err)
+	}
+
 	return ack
 }

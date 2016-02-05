@@ -39,6 +39,7 @@ type IFullSignature interface {
 	GetKey() []byte
 	// Validate data against this signature
 	Verify(data []byte) bool
+	IsSameAs(IFullSignature) bool
 }
 
 /**************************************

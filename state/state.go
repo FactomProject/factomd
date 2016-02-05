@@ -53,8 +53,8 @@ type State struct {
 	FedServerFaults [][]interfaces.IMsg // Keep a fault list for every server
 
 	//Network MAIN = 0, TEST = 1, LOCAL = 2, CUSTOM = 3
-	NetworkNumber      int 	// Encoded into Directory Blocks(s.Cfg.(*util.FactomdConfig)).String()
-	
+	NetworkNumber int // Encoded into Directory Blocks(s.Cfg.(*util.FactomdConfig)).String()
+
 	// Number of Servers acknowledged by Factom
 	Matryoshka []interfaces.IHash // Reverse Hash
 
@@ -159,7 +159,7 @@ func (s *State) Init(filename string) {
 
 	s.NewPli(0)
 	s.pli(0).ServerState = serverState
-	
+
 	if cfg.App.ExportData {
 		s.DB.SetExportData(cfg.App.ExportDataSubpath)
 	}
@@ -185,7 +185,7 @@ func (s *State) Init(filename string) {
 	s.Anchor = a
 
 	s.loadDatabase()
-	
+
 	s.initServerKeys()
 }
 
@@ -204,7 +204,7 @@ func (s *State) AddDBState(isNew bool,
 	index := int(dbheight) - int(s.DBHeightComplete) - 1
 
 	// If the index is out of range, then ignore.
-	if index > 2 || index < 0{
+	if index > 2 || index < 0 {
 		return
 	}
 
@@ -231,15 +231,15 @@ func (s *State) AddDBState(isNew bool,
 	}
 
 	if s.DBHeightComplete >= s.DBHeight {
-		s.DBHeight = s.DBHeightComplete+1
-		p := s.pli(s.DBHeightComplete)				// Update prev PL
+		s.DBHeight = s.DBHeightComplete + 1
+		p := s.pli(s.DBHeightComplete) // Update prev PL
 		p.DirectoryBlock = directoryBlock
 		p.AdminBlock = adminBlock
 		p.FactoidKeyMR = factoidBlock.GetKeyMR()
 		p.EntryCreditBlock = entryCreditBlock
 		p.SetComplete(true)
 	}
-	
+
 }
 
 func (s *State) loadDatabase() {
@@ -316,15 +316,15 @@ func (s *State) ProcessEndOfBlock(dbheight uint32) {
 	factoidBlock := s.FactoidState.GetCurrentBlock()
 
 	s.FactoidState.ProcessEndOfBlock(s) // Clean up Factoids
-	
-	s.NewPli(s.DBHeight+1)
-	_, err := s.CreateDBlock(s.DBHeight+1)
+
+	s.NewPli(s.DBHeight + 1)
+	_, err := s.CreateDBlock(s.DBHeight + 1)
 	if err != nil {
 		panic("Failed to create a Directory Block")
 	}
-	
+
 	s.AddDBState(true, curPL.DirectoryBlock, curPL.AdminBlock, factoidBlock, curPL.EntryCreditBlock)
-	
+
 	curPL.SetComplete(true)
 	s.ProcessLists = append(s.ProcessLists[1:], s.NewPli(s.DBHeight)) // Current Process List becomes the previous process list
 
@@ -338,19 +338,19 @@ func (s *State) ProcessEndOfBlock(dbheight uint32) {
 //
 // This routine can only be called by the Follower goroutine.
 func (s *State) UpdateProcessLists() {
-	
-fmt.Println("UpdateProcessLists()")
-	
+
+	fmt.Println("UpdateProcessLists()")
+
 	prev := s.pli(s.DBHeight - 1)
-	if s.DBHeight -1 <= 2 && !prev.Complete() {
-		fmt.Println("Previous not complete",s.DBHeight-1)
+	if s.DBHeight-1 <= 2 && !prev.Complete() {
+		fmt.Println("Previous not complete", s.DBHeight-1)
 		prev.Process(s)
 		if prev.Complete() {
-			fmt.Println("Process ",s.DBHeight)
+			fmt.Println("Process ", s.DBHeight)
 			s.pli(s.DBHeight).Process(s)
 		}
 	} else {
-		fmt.Println("Process ",s.DBHeight)
+		fmt.Println("Process ", s.DBHeight)
 		s.pli(s.DBHeight).Process(s)
 	}
 }
@@ -365,9 +365,8 @@ func (s *State) SetListComplete() {
 
 func (s *State) ListComplete() bool {
 	pl := s.pli(s.DBHeight)
-	return pl.Complete() 
+	return pl.Complete()
 }
-		
 
 // Here we need to validate the signatures of the previous block.  We also need to update
 // stuff like a change to the exchange rate for Entry Credits, the number of Federated Servers (until
@@ -381,7 +380,7 @@ func (s *State) AddAdminBlock(interfaces.IAdminBlock) {
 // block specified doesn't exist or is out of range.
 func (s *State) pli(height uint32) *ProcessList {
 	i := height - s.DBHeight + 1
-	if i > 2 {			// Can't be zero, unsigned. One test tests both
+	if i > 2 { // Can't be zero, unsigned. One test tests both
 		return nil
 	}
 
@@ -395,11 +394,11 @@ func (s *State) NewPli(height uint32) *ProcessList {
 	if i > 2 {
 		panic("Should not create a Process List out of bounds")
 	}
-	if s.pli(height) != nil {	// Do nothing if the process list already exists.
+	if s.pli(height) != nil { // Do nothing if the process list already exists.
 		return s.pli(height)
 	}
 	fmt.Println("Building ", height)
-	p := s.pli(height-1)
+	p := s.pli(height - 1)
 	totalServers := 1 // defaults if not specified anywhere else
 	serverIndex := 0
 	serverState := 0
@@ -414,15 +413,14 @@ func (s *State) NewPli(height uint32) *ProcessList {
 	r.ServerIndex = serverIndex
 	r.ServerState = serverState
 	s.CreateDBlock(height)
-	
+
 	return r
 }
-	
 
-// Create a new Directory Block at the given height.	
+// Create a new Directory Block at the given height.
 // Return the new Current Directory Block
 func (s *State) CreateDBlock(height uint32) (interfaces.IDirectoryBlock, error) {
-	
+
 	prevPL := s.pli(height - 1)
 	currPL := s.pli(height)
 	currPL.SetComplete(false)
@@ -430,7 +428,7 @@ func (s *State) CreateDBlock(height uint32) (interfaces.IDirectoryBlock, error) 
 	newdb := directoryBlock.NewDirectoryBlock(height)
 	currPL.DirectoryBlock = newdb
 	var peb interfaces.IEntryCreditBlock
-	
+
 	if prevPL != nil {
 		prev := prevPL.DirectoryBlock
 		bodyMR, err := prev.BuildBodyMR()
@@ -447,7 +445,7 @@ func (s *State) CreateDBlock(height uint32) (interfaces.IDirectoryBlock, error) 
 		newdb.GetHeader().SetPrevKeyMR(prev.GetKeyMR())
 		peb = prevPL.EntryCreditBlock
 	}
-	
+
 	eb, _ := entryCreditBlock.NextECBlock(peb)
 	currPL.EntryCreditBlock = eb
 	currPL.AdminBlock = s.NewAdminBlock()

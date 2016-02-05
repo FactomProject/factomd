@@ -6,8 +6,8 @@ package state
 
 import (
 	"fmt"
-	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/directoryBlock/dbInfo"
+	"github.com/FactomProject/factomd/common/interfaces"
 	"time"
 )
 

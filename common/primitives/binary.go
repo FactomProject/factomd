@@ -9,6 +9,7 @@ import (
 	"encoding/hex"
 	"fmt"
 
+	"github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factomd/common/interfaces"
 )
 
@@ -224,5 +225,61 @@ func (bs *ByteSlice6) String() string {
 }
 
 func (bs *ByteSlice6) MarshalText() ([]byte, error) {
+	return []byte(bs.String()), nil
+}
+
+type ByteSliceSig [ed25519.SignatureSize]byte
+
+var _ interfaces.Printable = (*ByteSliceSig)(nil)
+var _ interfaces.BinaryMarshallable = (*ByteSliceSig)(nil)
+
+func (bs *ByteSliceSig) MarshalBinary() ([]byte, error) {
+	return bs[:], nil
+}
+
+func (bs *ByteSliceSig) MarshalledSize() uint64 {
+	return ed25519.SignatureSize
+}
+
+func (bs *ByteSliceSig) GetFixed() ([ed25519.SignatureSize]byte, error) {
+	answer := [ed25519.SignatureSize]byte{}
+	copy(answer[:], bs[:])
+
+	return answer, nil
+}
+
+func (bs *ByteSliceSig) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("Error unmarshalling: %v", r)
+		}
+	}()
+	copy(bs[:], data[:ed25519.SignatureSize])
+	newData = data[ed25519.SignatureSize:]
+	return
+}
+
+func (bs *ByteSliceSig) UnmarshalBinary(data []byte) (err error) {
+	copy(bs[:], data[:ed25519.SignatureSize])
+	return
+}
+
+func (e *ByteSliceSig) JSONByte() ([]byte, error) {
+	return EncodeJSON(e)
+}
+
+func (e *ByteSliceSig) JSONString() (string, error) {
+	return EncodeJSONString(e)
+}
+
+func (e *ByteSliceSig) JSONBuffer(b *bytes.Buffer) error {
+	return EncodeJSONToBuffer(e, b)
+}
+
+func (bs *ByteSliceSig) String() string {
+	return fmt.Sprintf("%x", bs[:])
+}
+
+func (bs *ByteSliceSig) MarshalText() ([]byte, error) {
 	return []byte(bs.String()), nil
 }

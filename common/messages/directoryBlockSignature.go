@@ -21,7 +21,7 @@ type DirectoryBlockSignature struct {
 	ServerIdentityChainID interfaces.IHash
 
 	Signature interfaces.IFullSignature
-	
+
 	//Not marshalled
 	hash interfaces.IHash
 }

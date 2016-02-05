@@ -6,7 +6,9 @@ package messages
 
 import (
 	"bytes"
+	"encoding/binary"
 	"fmt"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -14,12 +16,12 @@ import (
 
 //General acknowledge message
 type Ack struct {
-	ServerIndex int // Server index (signature could be one of several)
+	ServerIndex byte // Server index (signature could be one of several)
 	Timestamp   interfaces.Timestamp
 	MessageHash interfaces.IHash
 
 	DBHeight uint32 // Directory Block Height that owns this ack
-	Height   int    // Height of this ack in this process list
+	Height   uint32 // Height of this ack in this process list
 
 	SerialHash interfaces.IHash
 
@@ -31,6 +33,47 @@ type Ack struct {
 
 var _ interfaces.IMsg = (*Ack)(nil)
 var _ Signable = (*Ack)(nil)
+
+func (a *Ack) IsSameAs(b *Ack) bool {
+	if b == nil {
+		return false
+	}
+	if a.ServerIndex != b.ServerIndex {
+		return false
+	}
+	if a.DBHeight != b.DBHeight {
+		return false
+	}
+	if a.Height != b.Height {
+		return false
+	}
+	if a.Timestamp != b.Timestamp {
+		return false
+	}
+
+	if a.MessageHash == nil && b.MessageHash != nil {
+		return false
+	}
+	if a.MessageHash.IsSameAs(b.MessageHash) == false {
+		return false
+	}
+
+	if a.SerialHash == nil && b.SerialHash != nil {
+		return false
+	}
+	if a.SerialHash.IsSameAs(b.SerialHash) == false {
+		return false
+	}
+
+	if a.Signature == nil && b.Signature != nil {
+		return false
+	}
+	if a.Signature.IsSameAs(b.Signature) == false {
+		return false
+	}
+
+	return true
+}
 
 func (m *Ack) GetHash() interfaces.IHash {
 	return m.MessageHash
@@ -121,17 +164,28 @@ func (m *Ack) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 		}
 	}()
 	newData = data[1:]
-	m.ServerIndex = (int)(newData[0])
-	newData = newData[1:]
+	m.ServerIndex, newData = newData[0], newData[1:]
+
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
 	}
+
 	m.MessageHash = new(primitives.Hash)
 	newData, err = m.MessageHash.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
 	}
+
+	m.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+	m.Height, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+
+	m.SerialHash = new(primitives.Hash)
+	newData, err = m.SerialHash.UnmarshalBinaryData(newData)
+	if err != nil {
+		return nil, err
+	}
+
 	if len(newData) > 0 {
 		sig := new(primitives.Signature)
 		newData, err = sig.UnmarshalBinaryData(newData)
@@ -148,18 +202,35 @@ func (m *Ack) UnmarshalBinary(data []byte) error {
 	return err
 }
 
-func (m *Ack) MarshalForSignature() (data []byte, err error) {
-	resp := []byte{}
-	resp = append(resp, byte(m.Type()))
-	resp = append(resp, byte(m.ServerIndex))
+func (m *Ack) MarshalForSignature() ([]byte, error) {
+	var buf bytes.Buffer
+
+	binary.Write(&buf, binary.BigEndian, byte(m.Type()))
+	binary.Write(&buf, binary.BigEndian, m.ServerIndex)
+
 	t := m.GetTimestamp()
-	timeByte, err := t.MarshalBinary()
+	data, err := t.MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
-	resp = append(resp, timeByte...)
-	resp = append(resp, m.Bytes()...)
-	return resp, nil
+	buf.Write(data)
+
+	data, err = m.MessageHash.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	buf.Write(data)
+
+	binary.Write(&buf, binary.BigEndian, m.DBHeight)
+	binary.Write(&buf, binary.BigEndian, m.Height)
+
+	data, err = m.SerialHash.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	buf.Write(data)
+
+	return buf.Bytes(), nil
 }
 
 func (m *Ack) MarshalBinary() (data []byte, err error) {
@@ -180,7 +251,7 @@ func (m *Ack) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *Ack) String() string {
-	return fmt.Sprintf("Ack(%d/%d): %s %s ",m.DBHeight, m.Height, m.Timestamp.String(), m.MessageHash.String())
+	return fmt.Sprintf("Ack(%d/%d): %s %s ", m.DBHeight, m.Height, m.Timestamp.String(), m.MessageHash.String())
 }
 
 /***************************************************************************

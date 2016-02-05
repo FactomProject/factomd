@@ -20,11 +20,36 @@ type DetachedPublicKey [ed25519.PublicKeySize]byte
 //Signature has signed data and its corresponsing PublicKey
 type Signature struct {
 	Pub PublicKey
-	Sig *[ed25519.SignatureSize]byte
+	Sig *ByteSliceSig
 }
 
 var _ interfaces.BinaryMarshallable = (*Signature)(nil)
 var _ interfaces.IFullSignature = (*Signature)(nil)
+
+func (a *Signature) IsSameAs(b interfaces.IFullSignature) bool {
+	if b == nil {
+		return false
+	}
+	s := b.(*Signature)
+
+	if a.Sig == nil && s.Sig != nil {
+		return false
+	}
+	if s.Sig == nil && a.Sig != nil {
+		return false
+	}
+	for i := range a.Sig {
+		if a.Sig[i] != s.Sig[i] {
+			return false
+		}
+	}
+
+	if a.Pub.IsSameAs(&s.Pub) == false {
+		return false
+	}
+
+	return true
+}
 
 func (sig *Signature) CustomMarshalText() ([]byte, error) {
 	return ([]byte)(sig.Pub.String() + hex.EncodeToString(sig.Sig[:])), nil
@@ -50,13 +75,13 @@ func (sig *Signature) SetSignature(signature []byte) error {
 	if len(signature) != ed25519.SignatureSize {
 		return fmt.Errorf("Signature wrong size")
 	}
-	sig.Sig = new([ed25519.SignatureSize]byte)
+	sig.Sig = new(ByteSliceSig)
 	copy(sig.Sig[:], signature)
 	return nil
 }
 
 func (sig *Signature) GetSignature() *[ed25519.SignatureSize]byte {
-	return sig.Sig
+	return (*[ed25519.SignatureSize]byte)(sig.Sig)
 }
 
 func (s *Signature) MarshalBinary() ([]byte, error) {
@@ -68,7 +93,7 @@ func (s *Signature) MarshalBinary() ([]byte, error) {
 
 func (sig *Signature) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	sig.Pub.Key = new([ed25519.PublicKeySize]byte)
-	sig.Sig = new([ed25519.SignatureSize]byte)
+	sig.Sig = new(ByteSliceSig)
 	copy(sig.Pub.Key[:], data[:ed25519.PublicKeySize])
 	data = data[ed25519.PublicKeySize:]
 	copy(sig.Sig[:], data[:ed25519.SignatureSize])
@@ -92,7 +117,7 @@ func (ds *DetachedSignature) String() string {
 
 // Verify returns true iff sig is a valid signature of msg by PublicKey.
 func (sig *Signature) Verify(msg []byte) bool {
-	return ed25519.VerifyCanonical(sig.Pub.Key, msg, sig.Sig)
+	return ed25519.VerifyCanonical(sig.Pub.Key, msg, (*[ed25519.SignatureSize]byte)(sig.Sig))
 }
 
 func SignSignable(priv []byte, data interfaces.ISignable) ([]byte, error) {

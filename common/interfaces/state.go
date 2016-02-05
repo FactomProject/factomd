@@ -87,10 +87,10 @@ type IState interface {
 	SetAdminBlock(dbheight uint32, ab IAdminBlock)
 
 	GetAnchor() IAnchor
-	
+
 	GetDBHeight() uint32 // The index of the directory block under construction.
 	GetDBHeightComplete() uint32
-	
+
 	// Message State
 	GetLastAck() IMsg // Return the last Acknowledgement set by this server
 	SetLastAck(IMsg)

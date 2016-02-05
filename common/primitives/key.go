@@ -95,6 +95,24 @@ type PublicKey struct {
 
 var _ interfaces.Verifier = (*PublicKey)(nil)
 
+func (a *PublicKey) IsSameAs(b *PublicKey) bool {
+	if b == nil {
+		return false
+	}
+	if a.Key == nil && b.Key != nil {
+		return false
+	}
+	if b.Key == nil && a.Key != nil {
+		return false
+	}
+	for i := range a.Key {
+		if a.Key[i] != b.Key[i] {
+			return false
+		}
+	}
+	return true
+}
+
 func (pk *PublicKey) MarshalText() ([]byte, error) {
 	return []byte(pk.String()), nil
 }
