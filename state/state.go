@@ -195,23 +195,25 @@ func (s *State) Init(filename string) {
 	s.initServerKeys()
 }
 
-func (s *State) GetDBState(height uint32) *DBState {
-	s._DBStatesMultex.Lock()
-	defer s._DBStatesMultex.Unlock()
+func (s *State) __getDBState(height uint32) *DBState {
 	index := height - s._DBHeightComplete
 	if index > uint32(len(s._DBStates)) {
 		return nil
 	}
 	return s._DBStates[index]
 }
+func (s *State) GetDBState(height uint32) *DBState {
+	s._DBStatesMultex.Lock()
+	defer s._DBStatesMultex.Unlock()
+	return s.__getDBState(height)
+}
 
 func (s *State) UpdateState() {
-
-	fmt.Println("kkkkkkkkkkkkkkkkkkkkkkkkkk")
 
 	s._ProcessListsMultex.Lock()
 	// Create DState blocks for all completed Process Lists
 	for len(s._ProcessLists) > 0 && s._ProcessLists[0].Complete() {
+		fmt.Println("Process List len",len(s._ProcessLists))
 		pl := s._ProcessLists[0]
 		pl.Process(s)
 		s.AddDBState(true, pl.DirectoryBlock, pl.AdminBlock, pl.FactoidBlock, pl.EntryCreditBlock)
@@ -220,6 +222,8 @@ func (s *State) UpdateState() {
 	}
 	s._ProcessListsMultex.Unlock()
 
+	fmt.Println("hhhhhhhh1hhhhhhhhhhhhhhhhhhhhhhhhhhhhang")
+	
 	s._DBStatesMultex.Lock()
 	defer s._DBStatesMultex.Unlock()
 
@@ -228,28 +232,37 @@ func (s *State) UpdateState() {
 	update := false
 	for len(s._DBStates) > 0 && s._DBStates[0] != nil {
 		s._LastDBState = s._DBStates[0]
+		fmt.Println("hhhhhhhhxxxxx1hhhhhhhhhhhhhhhhhhhhhhhhhhhhang")
 		s.ProcessEndOfBlock(s._DBHeightComplete)
 		//
 		// Need to consider how to deal with the Factoid state
 		//
 		fmt.Println("Process DState", s._DBHeightComplete)
+		fmt.Println("hhhhhhhhaaaaaaaaaaaa2222hhhhhhhhhhhhhhhhhhhhhhhhhhhhang")
 		s.FactoidState.ProcessEndOfBlock(s)
+		fmt.Println("hhhhhhhhbbbbbbbbbbbbbbbbb2222hhhhhhhhhhhhhhhhhhhhhhhhhhhhang")
 		s._LastDBState.Process(s)
-
+		fmt.Println("hhhhhhhhcccccccccccccccccc2222hhhhhhhhhhhhhhhhhhhhhhhhhhhhang")
+		
 		s._DBHeightComplete = s._LastDBState.DirectoryBlock.GetHeader().GetDBHeight()
 		s._DBStates = s._DBStates[1:]
 		update = true
 	}
-
-	for len(s._ProcessLists) > 0 && s._ProcessLists[0].DirectoryBlock.GetHeader().GetDBHeight() <= s._DBHeightComplete {
-		s._ProcessLists = s._ProcessLists[1:]
+	fmt.Println("hhhhhhhh2222hhhhhhhhhhhhhhhhhhhhhhhhhhhhang")
+	
+	for s._ProcessListBase <= s._DBHeightComplete {
+		if len(s._ProcessLists) > 0 {
+			s._ProcessLists = s._ProcessLists[1:]
+		}
 	}
 
+	fmt.Println("hhhhhhhh3333333333hhhhhhhhhhhhhhhhhhhhhhhhhhhhang")
 	if update {
 		s._DBHeightComplete = s._DBHeightComplete + 1
 		s._DBHeight = s._DBHeightComplete + 1
 	}
 
+	
 }
 
 // Adds blocks that are either pulled locally from a database, or acquired from peers.
@@ -380,6 +393,8 @@ func (s *State) AddAdminBlock(interfaces.IAdminBlock) {
 func (s *State) pli(height uint32) *ProcessList {
 	s._ProcessListsMultex.Lock()
 	defer s._ProcessListsMultex.Unlock()
+	fmt.Print("Enter Pli")
+	defer fmt.Println("Leaving pli")
 
 	i := height - s._ProcessListBase
 	if i >= uint32(len(s._ProcessLists)) { // Can't be zero, unsigned. One test tests both
@@ -393,7 +408,9 @@ func (s *State) pli(height uint32) *ProcessList {
 func (s *State) NewPli(height uint32) *ProcessList {
 	s._ProcessListsMultex.Lock()
 	defer s._ProcessListsMultex.Unlock()
-
+	fmt.Print("Enter NewPli")
+	defer fmt.Println("Leaving NewPli")
+	
 	i := int(height) - int(s._ProcessListBase)
 	if i < 0 {
 		return nil // No blocks before the genesis block
@@ -424,28 +441,33 @@ func (s *State) CreateDBlock(height uint32) (interfaces.IDirectoryBlock, error) 
 	currPL.DirectoryBlock = newdb
 	var peb interfaces.IEntryCreditBlock
 
-	dstate := s.GetDBState(height - 1)
+	dstate := s.__getDBState(height - 1)
 	if dstate != nil {
 		prev := dstate.DirectoryBlock
 		bodyMR, err := prev.BuildBodyMR()
 		if err != nil {
 			return nil, err
 		}
+		fmt.Println("ooooooooooooooooooooo55555555555oooooooooooo")
 		newdb.GetHeader().SetBodyMR(bodyMR)
 
 		prevLedgerKeyMR := prev.GetHash()
 		if prevLedgerKeyMR == nil {
 			return nil, errors.New("prevLedgerKeyMR is nil")
 		}
+		fmt.Println("ooooooooooooooooo6666666666oooooooooooooooo")
 		newdb.GetHeader().SetPrevLedgerKeyMR(prevLedgerKeyMR)
 		newdb.GetHeader().SetPrevKeyMR(prev.GetKeyMR())
 		peb = dstate.EntryCreditBlock
+		fmt.Println("oooooooooooooo7777ooooooooooooooooooo")
 	}
-
+	fmt.Println("oooooooooooooooooooooo8888ooooooooooo")
+	
 	eb, _ := entryCreditBlock.NextECBlock(peb)
 	currPL.EntryCreditBlock = eb
 	currPL.AdminBlock = s.NewAdminBlock(height)
-
+	fmt.Println("oooooooooooooooooooooooooo9999ooooooo")
+	
 	return newdb, nil
 }
 
@@ -489,18 +511,21 @@ func (s *State) PutCommits(dbheight uint32, key interfaces.IHash, value interfac
 	}
 }
 
-// Messages that match an acknowledgement, and are added to the process list
-// all do the same thing.  So that logic is here.
+// Messages that will go into the Process List must match an Acknowledgement.
+// The code for this is the same for all such messages, so we put it here.
 //
 // Returns true if it finds a match
-func (s *State) MatchAckFollowerExecute(m interfaces.IMsg) (bool, error) {
+func (s *State) FollowerExecuteMsg(m interfaces.IMsg) (bool, error) {
 	acks := s.Acks
 	ack, ok := acks[m.GetHash().Fixed()].(*messages.Ack)
 	if !ok || ack == nil {
+		fmt.Println("Msg No Match!")
 		s.Holding[m.GetHash().Fixed()] = m
 		return false, nil
 	} else {
-		s.pli(ack.DBHeight).AddToProcessList(ack, m)
+		fmt.Println("Msg Match!")
+		pl := s.NewPli(ack.DBHeight)
+		pl.AddToProcessList(ack, m)
 		delete(acks, m.GetHash().Fixed())
 		delete(s.Holding, m.GetHash().Fixed())
 
@@ -508,16 +533,21 @@ func (s *State) MatchAckFollowerExecute(m interfaces.IMsg) (bool, error) {
 	}
 }
 
-// Match an acknowledgement to a message
-func (s *State) FollowerExecuteAck(msg interfaces.IMsg) error {
+// Ack messages always match some message in the Process List.   That is
+// done here, though the only msg that should call this routine is the Ack 
+// message.
+func (s *State) FollowerExecuteAck(msg interfaces.IMsg) (bool, error) {
 	ack := msg.(*messages.Ack)
 	s.Acks[ack.GetHash().Fixed()] = ack
 	match := s.Holding[ack.GetHash().Fixed()]
 	if match != nil {
+		fmt.Println("Ack Match!")
 		match.FollowerExecute(s)
+		return true, nil
 	}
-
-	return nil
+	fmt.Println("Ack No Match!")
+	
+	return false, nil
 }
 
 func (s *State) GetEntryCreditBlock(dbheight uint32) interfaces.IEntryCreditBlock {

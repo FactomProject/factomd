@@ -21,7 +21,9 @@ func Follower(state interfaces.IState) {
 			fmt.Printf("%20s %s\n", "Follower:", msg.String())
 		}
 		msg.FollowerExecute(state)
+		fmt.Println("Back!")
 		state.UpdateState()
+		fmt.Println("Updated!")
 	}
 
 }

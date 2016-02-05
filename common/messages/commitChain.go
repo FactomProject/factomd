@@ -115,7 +115,7 @@ func (m *CommitChainMsg) Follower(state interfaces.IState) bool {
 }
 
 func (m *CommitChainMsg) FollowerExecute(state interfaces.IState) error {
-	matched, err := state.MatchAckFollowerExecute(m)
+	matched, err := state.FollowerExecuteMsg(m)
 	if err != nil {
 		return err
 	}

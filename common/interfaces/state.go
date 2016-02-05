@@ -115,8 +115,8 @@ type IState interface {
 	// ====
 
 	// Returns true if it found a match
-	MatchAckFollowerExecute(m IMsg) (bool, error)
-	FollowerExecuteAck(m IMsg) error
+	FollowerExecuteMsg(m IMsg) (bool, error) // Messages that go into the process list 
+	FollowerExecuteAck(m IMsg) (bool, error) // Ack Msg calls this function.	
 	GetTimestamp() Timestamp
 	PrintType(int) bool // Debugging
 

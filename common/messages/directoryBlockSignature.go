@@ -89,7 +89,7 @@ func (m *DirectoryBlockSignature) Follower(interfaces.IState) bool {
 }
 
 func (m *DirectoryBlockSignature) FollowerExecute(state interfaces.IState) error {
-	_, err := state.MatchAckFollowerExecute(m)
+	_, err := state.FollowerExecuteMsg(m)
 	return err
 }
 

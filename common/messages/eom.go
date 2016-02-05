@@ -136,7 +136,7 @@ func (m *EOM) LeaderExecute(state interfaces.IState) error {
 	state.FollowerInMsgQueue() <- ack // Send the Ack to follower
 
 	state.NetworkOutMsgQueue() <- m // Send the Message;  It works better if
-	state.FollowerInMsgQueue() <- m // the msg follows the Ack
+	state.FollowerInMsgQueue() <- m // the msg follows the Ack, but it doesn't matter much.
 	return nil
 }
 
@@ -146,7 +146,7 @@ func (m *EOM) Follower(interfaces.IState) bool {
 }
 
 func (m *EOM) FollowerExecute(state interfaces.IState) error {
-	_, err := state.MatchAckFollowerExecute(m)
+	_, err := state.FollowerExecuteMsg(m)
 	return err
 }
 
@@ -252,7 +252,7 @@ func (m *EOM) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *EOM) String() string {
-	return fmt.Sprintf("%s: %d, DBHeight %d: %s", "EOM", m.Minute+1, m.DirectoryBlockHeight, m.GetHash().String())
+	return fmt.Sprintf("%s: %2d, DBHeight %d: %s", "EOM", m.Minute+1, m.DirectoryBlockHeight, m.GetHash().String())
 }
 
 // EOM methods that conform to the Message interface.
