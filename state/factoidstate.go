@@ -23,7 +23,7 @@ var _ = debug.PrintStack
 var FACTOID_CHAINID_HASH = primitives.NewHash(constants.FACTOID_CHAINID)
 
 type FactoidState struct {
-	State interfaces.IState
+	DBHeight uint32
 
 	CurrentBlock interfaces.IFBlock
 	Wallet       interfaces.ISCWallet
@@ -47,8 +47,7 @@ func (fs *FactoidState) SetWallet(w interfaces.ISCWallet) {
 
 func (fs *FactoidState) GetCurrentBlock() interfaces.IFBlock {
 	if fs.CurrentBlock == nil {
-		dbheight := fs.State.GetDBHeight()
-		fs.CurrentBlock = block.NewFBlock(fs.GetFactoshisPerEC(), dbheight)
+		fs.CurrentBlock = block.NewFBlock(fs.GetFactoshisPerEC(), fs.DBHeight)
 	}
 	return fs.CurrentBlock
 }
@@ -214,15 +213,14 @@ func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
 	hash = fs.CurrentBlock.GetHash()
 	hash2 = fs.CurrentBlock.GetLedgerKeyMR()
 
-	state.GetDirectoryBlock(state.GetDBHeight()).GetDBEntries()[2].SetKeyMR(hash)
+	db := state.GetDirectoryBlock(fs.DBHeight)
+	db.GetDBEntries()[2].SetKeyMR(hash)
 
 	if err := state.GetDB().SaveFactoidBlockHead(fs.CurrentBlock); err != nil {
 		panic(err)
 	}
 
-	state.SetFactoidKeyMR(state.GetDBHeight()-1, hash)
-
-	fs.CurrentBlock = block.NewFBlock(fs.GetFactoshisPerEC(), state.GetDBHeight()+1)
+	fs.CurrentBlock = block.NewFBlock(fs.GetFactoshisPerEC(), fs.DBHeight+1)
 
 	t := coinbase.GetCoinbase(primitives.GetTimeMilli())
 	err := fs.CurrentBlock.AddCoinbase(t)
@@ -236,6 +234,7 @@ func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
 		fs.CurrentBlock.SetPrevLedgerKeyMR(hash2.Bytes())
 	}
 
+	fs.DBHeight++
 }
 
 // Returns an error message about what is wrong with the transaction if it is

@@ -29,14 +29,9 @@ type ProcessList struct {
 	CommitsSem *sync.Mutex
 	Commits    map[[32]byte]interfaces.IMsg // Used by the leader, validate
 
-	// The state CAN change, from client to audit server, to server, and back down again to client
-	ServerState int // (0 if client, 1 if server, 2 if audit server
-
 	// Lists
 	// =====
 	//
-	// Number of servers in the Federated Server Pool
-	TotalServers int
 	// The index into the Matryoshka Index handed off to the network by this server.
 	MatryoshkaIndex int
 	AuditServers    []interfaces.IServer   // List of Audit Servers
@@ -47,7 +42,7 @@ type ProcessList struct {
 
 	// State information about the directory block while it is under construction.  We may
 	// have to start building the next block while still building the previous block.
-	FactoidKeyMR     interfaces.IHash
+	FactoidBlock     interfaces.IFBlock
 	AdminBlock       interfaces.IAdminBlock
 	EntryCreditBlock interfaces.IEntryCreditBlock
 	DirectoryBlock   interfaces.IDirectoryBlock
@@ -171,9 +166,10 @@ func NewProcessList(totalServers int, dbheight uint32) *ProcessList {
 	// We default to the number of Servers previous.   That's because we always
 	// allocate the FUTURE directoryblock, not the current or previous...
 
+	fmt.Println("total servers ", totalServers)
+
 	pl := new(ProcessList)
 
-	pl.TotalServers = totalServers
 	pl.lists = make([][]interfaces.IMsg, totalServers)
 	pl.heights = make([]int, totalServers)
 	pl.EomComplete = make([]bool, totalServers)

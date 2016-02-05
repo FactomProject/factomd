@@ -8,13 +8,11 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/FactomProject/factomd/common/interfaces"
-	"runtime/debug"
 
 	"github.com/boltdb/bolt"
 )
 
 var _ = hex.EncodeToString
-var _ = debug.PrintStack
 
 // This database stores and retrieves interfaces.IBlock instances.  To do that, it
 // needs a list of buckets that the using function wants, so it can make sure
@@ -145,7 +143,6 @@ func (bdb *BoltDB) ListAllKeys(bucket []byte) (keys [][]byte, err error) {
 	bdb.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(bucket))
 		if b == nil {
-			debug.PrintStack()
 			fmt.Println("bucket 0x" + hex.EncodeToString(bucket) + " not found")
 		} else {
 			b.ForEach(func(k, v []byte) error {
@@ -163,7 +160,6 @@ func (db *BoltDB) GetAll(bucket []byte, sample interfaces.BinaryMarshallableAndC
 	err := db.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(bucket))
 		if b == nil {
-			debug.PrintStack()
 			fmt.Println("bucket 0x" + hex.EncodeToString(bucket) + " not found")
 		} else {
 			b.ForEach(func(k, v []byte) error {

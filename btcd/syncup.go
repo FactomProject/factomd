@@ -232,7 +232,7 @@ func (b *blockManager) storeBlocksFromMemPool(dblk *directoryBlock.DirectoryBloc
 			if err != nil {
 				return err
 			}
-			b.server.State.SetFactoidKeyMR(b.server.State.GetDBHeight(), fBlkMsg.FBlck.GetKeyMR()) // ???
+			//			b.server.State.SetFactoidKeyMR(b.server.State.GetDBHeight(), fBlkMsg.FBlck.GetKeyMR()) // ???
 		default:
 			// handle Entry Block
 			eBlkMsg, _ := b.fMemPool.blockpool[dbEntry.GetKeyMR().String()].(*messages.MsgEBlock)

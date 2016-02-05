@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-
 	"os"
+	"sync"
 
 	"github.com/FactomProject/factomd/anchor"
 	"github.com/FactomProject/factomd/common/adminBlock"
@@ -42,7 +42,8 @@ type State struct {
 	myServer      interfaces.IServer //the server running on this Federated Server
 	serverPrivKey primitives.PrivateKey
 	serverPubKey  primitives.PublicKey
-
+	totalServers  int
+	serverState   int
 	// Maps
 	// ====
 	// For Follower
@@ -64,9 +65,12 @@ type State struct {
 	Anchor interfaces.IAnchor
 
 	// Directory Block State
-	DBHeightComplete uint32     // Holds the DBHeight of the last DirectoryBlock processed
-	DBHeight         uint32     // Holds the index of the DirectoryBlock under construction.
-	DBStates         []*DBState // Holds all DBStates not yet processed.
+	_DBStatesMultex   *sync.Mutex
+	_DBHeightComplete uint32     // Holds the DBHeight of the last DirectoryBlock processed
+	_DBHeight         uint32     // Holds the index of the DirectoryBlock under construction.
+	_DBStates         []*DBState // Holds all DBStates not yet processed.
+	_LastDBState      *DBState
+
 	// Having all the state for a particular directory block stored in one structure
 	// makes creating the next state, updating the various states, and setting up the next
 	// state much more simple.
@@ -76,7 +80,9 @@ type State struct {
 	// height, even if it changed out from under the calling code.
 	//
 	// Process list previous [0], present(@DBHeight) [1], and future (@DBHeight+1) [2]
-	ProcessLists []*ProcessList
+	_ProcessListsMultex *sync.Mutex
+	_ProcessLists       []*ProcessList
+	_ProcessListBase    uint32
 
 	// Factom State
 	FactoidState interfaces.IFactoidState
@@ -116,22 +122,25 @@ func (s *State) Init(filename string) {
 
 	// Setup the FactoidState and Validation Service that holds factoid and entry credit balances
 	fs := new(FactoidState)
-	fs.State = s
 	fs.ValidationService = NewValidationService()
 	s.FactoidState = fs
 
 	// Allocate the original set of Process Lists
-	s.ProcessLists = make([]*ProcessList, 3)
+	s._ProcessListsMultex = new(sync.Mutex)
+	s._ProcessLists = make([]*ProcessList, 0)
 
-	serverState := 0
+	s._DBStatesMultex = new(sync.Mutex)
+	s._DBStates = make([]*DBState, 0)
+
+	s.totalServers = 1
 	switch cfg.App.NodeMode {
 	case "FULL":
-		serverState = 0
+		s.serverState = 0
 		fmt.Println("\n   +---------------------------+")
 		fmt.Println("   +------ Follower Only ------+")
 		fmt.Println("   +---------------------------+\n")
 	case "SERVER":
-		serverState = 1
+		s.serverState = 1
 		fmt.Println("\n   +-------------------------+")
 		fmt.Println("   |       Leader Node       |")
 		fmt.Println("   +-------------------------+\n")
@@ -156,9 +165,6 @@ func (s *State) Init(filename string) {
 	default:
 		panic("No Database type specified")
 	}
-
-	s.NewPli(0)
-	s.pli(0).ServerState = serverState
 
 	if cfg.App.ExportData {
 		s.DB.SetExportData(cfg.App.ExportDataSubpath)
@@ -189,6 +195,63 @@ func (s *State) Init(filename string) {
 	s.initServerKeys()
 }
 
+func (s *State) GetDBState(height uint32) *DBState {
+	s._DBStatesMultex.Lock()
+	defer s._DBStatesMultex.Unlock()
+	index := height - s._DBHeightComplete
+	if index > uint32(len(s._DBStates)) {
+		return nil
+	}
+	return s._DBStates[index]
+}
+
+func (s *State) UpdateState() {
+
+	fmt.Println("kkkkkkkkkkkkkkkkkkkkkkkkkk")
+
+	s._ProcessListsMultex.Lock()
+	// Create DState blocks for all completed Process Lists
+	for len(s._ProcessLists) > 0 && s._ProcessLists[0].Complete() {
+		pl := s._ProcessLists[0]
+		pl.Process(s)
+		s.AddDBState(true, pl.DirectoryBlock, pl.AdminBlock, pl.FactoidBlock, pl.EntryCreditBlock)
+		s._ProcessLists = s._ProcessLists[1:]
+		s._ProcessListBase = pl.DirectoryBlock.GetHeader().GetDBHeight() + 1
+	}
+	s._ProcessListsMultex.Unlock()
+
+	s._DBStatesMultex.Lock()
+	defer s._DBStatesMultex.Unlock()
+
+	// Process all contiguous dbStates from the beginning.  Break once we hit a
+	// nil or run out of states to process.
+	update := false
+	for len(s._DBStates) > 0 && s._DBStates[0] != nil {
+		s._LastDBState = s._DBStates[0]
+		s.ProcessEndOfBlock(s._DBHeightComplete)
+		//
+		// Need to consider how to deal with the Factoid state
+		//
+		fmt.Println("Process DState", s._DBHeightComplete)
+		s.FactoidState.ProcessEndOfBlock(s)
+		s._LastDBState.Process(s)
+
+		s._DBHeightComplete = s._LastDBState.DirectoryBlock.GetHeader().GetDBHeight()
+		s._DBStates = s._DBStates[1:]
+		update = true
+	}
+
+	for len(s._ProcessLists) > 0 && s._ProcessLists[0].DirectoryBlock.GetHeader().GetDBHeight() <= s._DBHeightComplete {
+		s._ProcessLists = s._ProcessLists[1:]
+	}
+
+	if update {
+		s._DBHeightComplete = s._DBHeightComplete + 1
+		s._DBHeight = s._DBHeightComplete + 1
+	}
+
+}
+
 // Adds blocks that are either pulled locally from a database, or acquired from peers.
 func (s *State) AddDBState(isNew bool,
 	directoryBlock interfaces.IDirectoryBlock,
@@ -196,16 +259,24 @@ func (s *State) AddDBState(isNew bool,
 	factoidBlock interfaces.IFBlock,
 	entryCreditBlock interfaces.IEntryCreditBlock) {
 
+	s._DBStatesMultex.Lock()
+	defer s._DBStatesMultex.Unlock()
+
 	dbheight := directoryBlock.GetHeader().GetDBHeight()
 
 	// Compute the index of this state in our DBStates array;  we don't keep block info
 	// around that we have already processed.  But we do have to keep this info around
 	// if we are missing some previous block info.
-	index := int(dbheight) - int(s.DBHeightComplete) - 1
+	index := int(dbheight) - int(s._DBHeightComplete)
 
-	// If the index is out of range, then ignore.
-	if index > 2 || index < 0 {
+	// Ignore repeats
+	if index < 0 {
 		return
+	}
+
+	// Grow the list to include this index
+	for len(s._DBStates) <= index {
+		s._DBStates = append(s._DBStates, nil)
 	}
 
 	// Create a new DBState
@@ -216,29 +287,7 @@ func (s *State) AddDBState(isNew bool,
 	dbState.EntryCreditBlock = entryCreditBlock
 	dbState.isNew = isNew
 
-	// Add this new DBState into the right place in our list of DBStates
-	for len(s.DBStates) <= index {
-		s.DBStates = append(s.DBStates, nil)
-	}
-	s.DBStates[index] = dbState
-
-	// Process all contiguous dbStates from the beginning.  Break once we hit a
-	// nil or run out of states to process.
-	for len(s.DBStates) > 0 && s.DBStates[0] != nil {
-		s.DBStates[0].Process(s)
-		s.DBHeightComplete++
-		s.DBStates = s.DBStates[1:]
-	}
-
-	if s.DBHeightComplete >= s.DBHeight {
-		s.DBHeight = s.DBHeightComplete + 1
-		p := s.pli(s.DBHeightComplete) // Update prev PL
-		p.DirectoryBlock = directoryBlock
-		p.AdminBlock = adminBlock
-		p.FactoidKeyMR = factoidBlock.GetKeyMR()
-		p.EntryCreditBlock = entryCreditBlock
-		p.SetComplete(true)
-	}
+	s._DBStates[index] = dbState
 
 }
 
@@ -254,22 +303,14 @@ func (s *State) loadDatabase() {
 		if err != nil {
 			panic("Failed to initialize Factoids: " + err.Error())
 		}
-		ablk := s.NewAdminBlock()
+		ablk := s.NewAdminBlock(0)
 		fblk := block.GetGenesisFBlock()
 		ecb := entryCreditBlock.NewECBlock()
-		pl := NewProcessList(1, 0)
-		s.ProcessLists[0] = pl
-		pl.dBHeight = 0
-		pl.FactoidKeyMR = fblk.GetKeyMR()
-		pl.AdminBlock = ablk
-		pl.EntryCreditBlock = ecb
-		pl.DirectoryBlock = dblk
-		s.ProcessEndOfBlock(0)
+
+		s.AddDBState(true, dblk, ablk, fblk, ecb)
+		s._DBHeight++
 
 	} else {
-
-		fmt.Println("DBHeight: ", dblk.GetHeader().GetDBHeight())
-		s.DBHeight = dblk.GetHeader().GetDBHeight()
 
 		dBlocks, err := s.DB.FetchAllDBlocks()
 		if err != nil {
@@ -307,64 +348,22 @@ func (s *State) loadDatabase() {
 // It is called by the follower code.  It is requried to build the Directory Block
 // to validate the signatures we will get with the DirectoryBlockSignature messages.
 func (s *State) ProcessEndOfBlock(dbheight uint32) {
-	//Must have all the complete process lists at this point!
-
-	s.UpdateProcessLists() // Do any remaining processing
-
-	curPL := s.pli(s.DBHeight)
-
-	factoidBlock := s.FactoidState.GetCurrentBlock()
-
-	s.FactoidState.ProcessEndOfBlock(s) // Clean up Factoids
-
-	s.NewPli(s.DBHeight + 1)
-	_, err := s.CreateDBlock(s.DBHeight + 1)
-	if err != nil {
-		panic("Failed to create a Directory Block")
-	}
-
-	s.AddDBState(true, curPL.DirectoryBlock, curPL.AdminBlock, factoidBlock, curPL.EntryCreditBlock)
-
-	curPL.SetComplete(true)
-	s.ProcessLists = append(s.ProcessLists[1:], s.NewPli(s.DBHeight)) // Current Process List becomes the previous process list
-
+	s.CreateDBlock(dbheight)
 	s.LastAck = nil
 }
 
-// Run through the process lists, and update the state as required by
-// any new entries.  In the near future, we will want to have this in a
-// "temp" state, that we push to the regular state at the end of 10 minutes.
-// But for now, we will just update.
-//
-// This routine can only be called by the Follower goroutine.
-func (s *State) UpdateProcessLists() {
-
-	fmt.Println("UpdateProcessLists()")
-
-	prev := s.pli(s.DBHeight - 1)
-	if s.DBHeight-1 <= 2 && !prev.Complete() {
-		fmt.Println("Previous not complete", s.DBHeight-1)
-		prev.Process(s)
-		if prev.Complete() {
-			fmt.Println("Process ", s.DBHeight)
-			s.pli(s.DBHeight).Process(s)
-		}
-	} else {
-		fmt.Println("Process ", s.DBHeight)
-		s.pli(s.DBHeight).Process(s)
-	}
-}
-
 func (s *State) SetListComplete() {
-	pl := s.pli(s.DBHeight)
+	s._DBStatesMultex.Lock()
+	pl := s.pli(s._DBHeight)
 	pl.SigComplete[pl.ServerIndex] = true
-	if pl.Complete() {
-		s.UpdateProcessLists()
-	}
+	s._DBStatesMultex.Unlock()
 }
 
 func (s *State) ListComplete() bool {
-	pl := s.pli(s.DBHeight)
+	s._ProcessListsMultex.Lock()
+	defer s._ProcessListsMultex.Unlock()
+
+	pl := s.pli(s._DBHeight)
 	return pl.Complete()
 }
 
@@ -379,40 +378,37 @@ func (s *State) AddAdminBlock(interfaces.IAdminBlock) {
 // Returns the Process List block for the given height.  Returns nil if the Process list
 // block specified doesn't exist or is out of range.
 func (s *State) pli(height uint32) *ProcessList {
-	i := height - s.DBHeight + 1
-	if i > 2 { // Can't be zero, unsigned. One test tests both
+	s._ProcessListsMultex.Lock()
+	defer s._ProcessListsMultex.Unlock()
+
+	i := height - s._ProcessListBase
+	if i >= uint32(len(s._ProcessLists)) { // Can't be zero, unsigned. One test tests both
 		return nil
 	}
 
-	r := s.ProcessLists[i]
-
+	r := s._ProcessLists[i]
 	return r
 }
 
 func (s *State) NewPli(height uint32) *ProcessList {
-	i := height - s.DBHeight + 1
-	if i > 2 {
-		panic("Should not create a Process List out of bounds")
+	s._ProcessListsMultex.Lock()
+	defer s._ProcessListsMultex.Unlock()
+
+	i := int(height) - int(s._ProcessListBase)
+	if i < 0 {
+		return nil // No blocks before the genesis block
 	}
-	if s.pli(height) != nil { // Do nothing if the process list already exists.
-		return s.pli(height)
+
+	for i >= len(s._ProcessLists) {
+		s._ProcessLists = append(s._ProcessLists, nil)
 	}
-	fmt.Println("Building ", height)
-	p := s.pli(height - 1)
-	totalServers := 1 // defaults if not specified anywhere else
-	serverIndex := 0
-	serverState := 0
-	if p != nil {
-		serverState = p.ServerState
-		totalServers = p.TotalServers // Use previous values if they exist
-		serverIndex = p.ServerIndex
+
+	if s._ProcessLists[i] != nil { // Do nothing if the process list already exists.
+		return s._ProcessLists[i]
 	}
-	r := NewProcessList(totalServers, height)
-	s.ProcessLists[i] = r
-	r.TotalServers = totalServers
-	r.ServerIndex = serverIndex
-	r.ServerState = serverState
-	s.CreateDBlock(height)
+
+	r := NewProcessList(s.totalServers, height)
+	s._ProcessLists[i] = r
 
 	return r
 }
@@ -421,21 +417,21 @@ func (s *State) NewPli(height uint32) *ProcessList {
 // Return the new Current Directory Block
 func (s *State) CreateDBlock(height uint32) (interfaces.IDirectoryBlock, error) {
 
-	prevPL := s.pli(height - 1)
-	currPL := s.pli(height)
+	currPL := s.NewPli(height)
 	currPL.SetComplete(false)
 
 	newdb := directoryBlock.NewDirectoryBlock(height)
 	currPL.DirectoryBlock = newdb
 	var peb interfaces.IEntryCreditBlock
 
-	if prevPL != nil {
-		prev := prevPL.DirectoryBlock
+	dstate := s.GetDBState(height - 1)
+	if dstate != nil {
+		prev := dstate.DirectoryBlock
 		bodyMR, err := prev.BuildBodyMR()
 		if err != nil {
 			return nil, err
 		}
-		prev.GetHeader().SetBodyMR(bodyMR)
+		newdb.GetHeader().SetBodyMR(bodyMR)
 
 		prevLedgerKeyMR := prev.GetHash()
 		if prevLedgerKeyMR == nil {
@@ -443,12 +439,12 @@ func (s *State) CreateDBlock(height uint32) (interfaces.IDirectoryBlock, error) 
 		}
 		newdb.GetHeader().SetPrevLedgerKeyMR(prevLedgerKeyMR)
 		newdb.GetHeader().SetPrevKeyMR(prev.GetKeyMR())
-		peb = prevPL.EntryCreditBlock
+		peb = dstate.EntryCreditBlock
 	}
 
 	eb, _ := entryCreditBlock.NextECBlock(peb)
 	currPL.EntryCreditBlock = eb
-	currPL.AdminBlock = s.NewAdminBlock()
+	currPL.AdminBlock = s.NewAdminBlock(height)
 
 	return newdb, nil
 }
@@ -504,11 +500,10 @@ func (s *State) MatchAckFollowerExecute(m interfaces.IMsg) (bool, error) {
 		s.Holding[m.GetHash().Fixed()] = m
 		return false, nil
 	} else {
-		s.pli(s.DBHeight).AddToProcessList(ack, m)
+		s.pli(ack.DBHeight).AddToProcessList(ack, m)
 		delete(acks, m.GetHash().Fixed())
 		delete(s.Holding, m.GetHash().Fixed())
 
-		s.UpdateProcessLists()
 		return true, nil
 	}
 }
@@ -614,15 +609,7 @@ func (s *State) GetFactoidKeyMR(dbheight uint32) interfaces.IHash {
 	if pl == nil {
 		return nil
 	}
-	return pl.FactoidKeyMR
-}
-
-func (s *State) SetFactoidKeyMR(dbheight uint32, hash interfaces.IHash) {
-	pl := s.pli(dbheight)
-	if pl == nil {
-		return
-	}
-	pl.FactoidKeyMR = hash
+	return pl.FactoidBlock.GetKeyMR()
 }
 
 func (s *State) GetAdminBlock(dbheight uint32) interfaces.IAdminBlock {
@@ -669,8 +656,7 @@ func (s *State) GetPort() int {
 // ChainIDs
 // ...
 func (s *State) LeaderFor([]byte) bool {
-	pl := s.pli(s.DBHeight)
-	if pl.TotalServers == 1 && pl.ServerState == 1 &&
+	if s.totalServers == 1 && s.serverState == 1 &&
 		s.NetworkNumber == constants.NETWORK_LOCAL {
 		return true
 	}
@@ -717,12 +703,8 @@ func (s *State) ReadCfg(filename string) interfaces.IFactomConfig {
 	return s.Cfg
 }
 
-func (s *State) GetTotalServers(dbheight uint32) int {
-	pl := s.pli(dbheight)
-	if pl == nil {
-		return 0
-	}
-	return pl.TotalServers
+func (s *State) GetTotalServers() int {
+	return s.totalServers
 }
 
 func (s *State) GetProcessListLen(dbheight uint32, list int) int {
@@ -730,18 +712,14 @@ func (s *State) GetProcessListLen(dbheight uint32, list int) int {
 	if pl == nil {
 		return 0
 	}
-	if list >= pl.TotalServers {
+	if list >= s.totalServers {
 		return -1
 	}
 	return pl.GetLen(list)
 }
 
-func (s *State) GetServerState(dbheight uint32) int {
-	pl := s.pli(dbheight)
-	if pl == nil {
-		return 0
-	}
-	return pl.ServerState
+func (s *State) GetServerState() int {
+	return s.serverState
 }
 
 func (s *State) GetNetworkNumber() int {
@@ -822,23 +800,23 @@ func (s *State) String() string {
 
 }
 
-func (s *State) NewAdminBlock() interfaces.IAdminBlock {
+func (s *State) NewAdminBlock(dbheight uint32) interfaces.IAdminBlock {
 	ab := new(adminBlock.AdminBlock)
-	ab.Header = s.NewAdminBlockHeader()
+	ab.Header = s.NewAdminBlockHeader(dbheight)
 
 	s.DB.SaveABlockHead(ab)
 
 	return ab
 }
 
-func (s *State) NewAdminBlockHeader() interfaces.IABlockHeader {
+func (s *State) NewAdminBlockHeader(dbheight uint32) interfaces.IABlockHeader {
 	header := new(adminBlock.ABlockHeader)
-	header.DBHeight = s.GetDBHeight()
-	pl := s.pli(s.DBHeight)
+	header.DBHeight = dbheight
+	pl := s.pli(dbheight)
 	if pl == nil || pl.AdminBlock == nil {
 		header.PrevLedgerKeyMR = primitives.NewHash(constants.ZERO_HASH)
 	} else {
-		keymr, err := s.pli(s.DBHeight).AdminBlock.LedgerKeyMR()
+		keymr, err := s.pli(dbheight).AdminBlock.LedgerKeyMR()
 		if err != nil {
 			panic(err.Error())
 		}
@@ -887,11 +865,15 @@ func (s *State) SetDB(dbase interfaces.DBOverlay) {
 }
 
 func (s *State) GetDBHeight() uint32 {
-	return s.DBHeight
+	return s._DBHeight
 }
 
 func (s *State) GetDBHeightComplete() uint32 {
-	return s.DBHeightComplete
+	return s._DBHeightComplete
+}
+
+func (s *State) GetProcessListBase() uint32 {
+	return s._ProcessListBase
 }
 
 func (s *State) GetNewHash() interfaces.IHash {
