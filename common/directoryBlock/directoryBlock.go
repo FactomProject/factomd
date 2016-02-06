@@ -30,7 +30,6 @@ var _ interfaces.IDirectoryBlock = (*DirectoryBlock)(nil)
 var _ interfaces.DatabaseBatchable = (*DirectoryBlock)(nil)
 var _ interfaces.DatabaseBlockWithEntries = (*DirectoryBlock)(nil)
 
-
 func (c *DirectoryBlock) GetEntryHashes() []interfaces.IHash {
 	entries := c.DBEntries[:]
 	answer := make([]interfaces.IHash, len(entries))
@@ -82,7 +81,7 @@ func (c *DirectoryBlock) SetDBEntries(dbEntries []interfaces.IDBEntry) error {
 }
 
 func (c *DirectoryBlock) New() interfaces.BinaryMarshallableAndCopyable {
-	dBlock:=new(DirectoryBlock)
+	dBlock := new(DirectoryBlock)
 	dBlock.Header = NewDBlockHeader()
 	dBlock.DBHash = primitives.NewZeroHash()
 	dBlock.KeyMR = primitives.NewZeroHash()

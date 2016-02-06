@@ -259,13 +259,13 @@ func TestKeyMRs(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		entry:=new(DBEntry)
+		entry := new(DBEntry)
 		entry.ChainID = chainID
 		entry.KeyMR = h
 		dbEntries = append(dbEntries, entry)
 	}
 
-	dBlock:=NewDirectoryBlock(0)
+	dBlock := NewDirectoryBlock(0)
 	err = dBlock.SetDBEntries(dbEntries)
 	if err != nil {
 		t.Error(err)

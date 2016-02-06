@@ -8,8 +8,8 @@ import (
 	"encoding/hex"
 	"testing"
 
-	. "github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/ed25519"
+	. "github.com/FactomProject/factomd/common/primitives"
 )
 
 func TestGenerateKey(t *testing.T) {

@@ -24,7 +24,7 @@ type EOM struct {
 	Minute    byte
 
 	DirectoryBlockHeight uint32
-	ServerIndex          int
+	ServerIndex          byte
 	Signature            interfaces.IFullSignature
 
 	//Not marshalled
@@ -200,8 +200,7 @@ func (m *EOM) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 
 	m.DirectoryBlockHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
-	m.ServerIndex = int(newData[0])
-	newData = newData[1:]
+	m.ServerIndex, newData = newData[0], newData[1:]
 
 	if len(newData) > 0 {
 		sig := new(primitives.Signature)
@@ -230,7 +229,7 @@ func (m *EOM) MarshalForSignature() (data []byte, err error) {
 	}
 	binary.Write(&buf, binary.BigEndian, m.Minute)
 	binary.Write(&buf, binary.BigEndian, m.DirectoryBlockHeight)
-	binary.Write(&buf, binary.BigEndian, uint8(m.ServerIndex))
+	binary.Write(&buf, binary.BigEndian, m.ServerIndex)
 	return buf.Bytes(), nil
 }
 
@@ -327,7 +326,7 @@ func NewEOM(state interfaces.IState, minute int) interfaces.IMsg {
 	// I am ignoring all of that.
 	eom := new(EOM)
 	eom.Minute = byte(minute)
-	eom.ServerIndex = state.GetServerIndex(state.GetDBHeight())
+	eom.ServerIndex = byte(state.GetServerIndex(state.GetDBHeight()))
 
 	return eom
 }
