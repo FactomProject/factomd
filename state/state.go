@@ -392,7 +392,7 @@ func (s *State) AddAdminBlock(interfaces.IAdminBlock) {
 func (s *State) pli(height uint32) *ProcessList {
 	s._ProcessListsMultex.Lock()
 	defer s._ProcessListsMultex.Unlock()
-	fmt.Print("Enter Pli")
+	fmt.Println("Enter Pli")
 	defer fmt.Println("Leaving pli")
 
 	i := height - s._ProcessListBase
