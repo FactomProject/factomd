@@ -367,7 +367,7 @@ func (s *State) ProcessEndOfBlock(dbheight uint32) {
 func (s *State) SetListComplete() {
 	s._DBStatesMultex.Lock()
 	pl := s.pli(s._DBHeight)
-	pl.SigComplete[pl.ServerIndex] = true
+	pl.servers[pl.ServerIndex].SigComplete = true
 	s._DBStatesMultex.Unlock()
 }
 
