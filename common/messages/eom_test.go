@@ -83,10 +83,9 @@ func TestSignAndVerifyEOM(t *testing.T) {
 
 func newEOM() *EOM {
 	eom := new(EOM)
+	eom.Timestamp.SetTime(0xFF22100122FF)
 	eom.Minute = 3
 	eom.DirectoryBlockHeight = 123456
-	eom.Timestamp.SetTime(0xFF22100122FF)
-	hash, _ := primitives.NewShaHashFromStr("cbd3d09db6defdc25dfc7d57f3479b339a077183cd67022e6d1ef6c041522b40")
-	eom.IdentityChainID = hash
+	eom.ServerIndex = 5
 	return eom
 }
