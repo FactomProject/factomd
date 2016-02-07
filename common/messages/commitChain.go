@@ -38,11 +38,7 @@ func (m *CommitChainMsg) SetCount(cnt int) {
 }
 
 func (m *CommitChainMsg) Process(dbheight uint32, state interfaces.IState) {
-	ecblk := state.GetEntryCreditBlock(dbheight)
-	ecbody := ecblk.GetBody()
-	ecbody.AddEntry(m.CommitChain)
-	state.GetFactoidState(dbheight).UpdateECTransaction(m.CommitChain)
-	state.PutCommits(dbheight, m.GetHash(), m)
+	state.ProcessCommitChain(dbheight, m)
 }
 
 func (m *CommitChainMsg) GetHash() interfaces.IHash {
@@ -73,7 +69,7 @@ func (m *CommitChainMsg) Validate(dbheight uint32, state interfaces.IState) int 
 	if !m.CommitChain.IsValid() {
 		return -1
 	}
-	ebal := state.GetFactoidState(dbheight).GetECBalance(*m.CommitChain.ECPubKey)
+	ebal := state.GetFactoidState().GetECBalance(*m.CommitChain.ECPubKey)
 	if int(m.CommitChain.Credits) > int(ebal) {
 		fmt.Println("Not enough Credits")
 		return 0
@@ -90,23 +86,7 @@ func (m *CommitChainMsg) Leader(state interfaces.IState) bool {
 
 // Execute the leader functions of the given message
 func (m *CommitChainMsg) LeaderExecute(state interfaces.IState) error {
-	v := m.Validate(state.GetDBHeight(), state)
-	if v <= 0 {
-		return fmt.Errorf("Commit Chain no longer valid")
-	}
-	b := m.GetHash()
-
-	ack, err := NewAck(state, b)
-	state.PutCommits(state.GetDBHeight(), m.GetHash(), m)
-	if err != nil {
-		return err
-	}
-
-	state.NetworkOutMsgQueue() <- ack
-	state.FollowerInMsgQueue() <- ack // Send the Ack to follower
-	state.FollowerInMsgQueue() <- m   // Send factoid trans to follower
-
-	return nil
+	return state.LeaderExecute(m)
 }
 
 // Returns true if this is a message for this server to execute as a follower

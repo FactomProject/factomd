@@ -213,7 +213,7 @@ func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
 	hash = fs.CurrentBlock.GetHash()
 	hash2 = fs.CurrentBlock.GetLedgerKeyMR()
 
-	db := state.GetDirectoryBlock(fs.DBHeight)
+	db := state.GetDirectoryBlockPL()
 	db.GetDBEntries()[2].SetKeyMR(hash)
 
 	if err := state.GetDB().SaveFactoidBlockHead(fs.CurrentBlock); err != nil {

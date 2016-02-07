@@ -56,7 +56,7 @@ func (m *FactoidTransaction) Type() int {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *FactoidTransaction) Validate(dbheight uint32, state interfaces.IState) int {
-	err := state.GetFactoidState(dbheight).Validate(1, m.Transaction)
+	err := state.GetFactoidState().Validate(1, m.Transaction)
 	if err != nil {
 		fmt.Println(err.Error())
 		return -1
@@ -72,17 +72,7 @@ func (m *FactoidTransaction) Leader(state interfaces.IState) bool {
 
 // Execute the leader functions of the given message
 func (m *FactoidTransaction) LeaderExecute(state interfaces.IState) error {
-	if err := state.GetFactoidState(state.GetDBHeight()).Validate(1, m.Transaction); err != nil {
-		return err
-	}
-	msg, err := NewAck(state, m.GetHash())
-	if err != nil {
-		return err
-	}
-	state.NetworkOutMsgQueue() <- msg // Send the Ack to the network
-	state.FollowerInMsgQueue() <- msg // Send the Ack to follower
-	state.FollowerInMsgQueue() <- m   // Send factoid trans to follower
-	return nil
+	return state.LeaderExecute(m)
 }
 
 // Returns true if this is a message for this server to execute as a follower
@@ -103,7 +93,7 @@ func (m *FactoidTransaction) Process(dbheight uint32, state interfaces.IState) {
 	m.processed = true
 	fmt.Println("Process Factoid")
 	// We can only get a Factoid Transaction once.  Add it, and remove it from the lists.
-	state.GetFactoidState(dbheight).AddTransaction(1, m.Transaction)
+	state.GetFactoidState().AddTransaction(1, m.Transaction)
 
 }
 

@@ -255,32 +255,4 @@ func (m *Ack) String() string {
 	return fmt.Sprintf("Ack(%d/%d): %s %s ", m.DBHeight, m.Height, m.Timestamp.String(), m.MessageHash.String())
 }
 
-/***************************************************************************
- * Support Functions
- ***************************************************************************/
-// Create a new Acknowledgement.  This Acknowledgement
-func NewAck(state interfaces.IState, hash interfaces.IHash) (iack interfaces.IMsg, err error) {
-	var last *Ack
-	if state.GetLastAck() != nil {
-		last = state.GetLastAck().(*Ack)
-	}
-	ack := new(Ack)
-	ack.DBHeight = state.GetDBHeight()
-	ack.Timestamp = state.GetTimestamp()
-	ack.MessageHash = hash
-	if last == nil {
-		ack.Height = 0
-		ack.SerialHash = ack.MessageHash
-	} else {
-		ack.Height = last.Height + 1
-		ack.SerialHash, err = primitives.CreateHash(last.MessageHash, ack.MessageHash)
-		if err != nil {
-			return nil, err
-		}
-	}
-	state.SetLastAck(ack)
 
-	// TODO:  Add the signature.
-
-	return ack, nil
-}

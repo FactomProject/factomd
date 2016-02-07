@@ -30,11 +30,7 @@ var _ interfaces.IMsg = (*DirectoryBlockSignature)(nil)
 var _ Signable = (*DirectoryBlockSignature)(nil)
 
 func (e *DirectoryBlockSignature) Process(dbheight uint32, state interfaces.IState) {
-	fmt.Println(">>>>>>>>>>>>>>>>>>>>>>>>>> Complete Process")
-	state.SetListComplete()
-	if state.ListComplete() {
-		state.ProcessEndOfBlock(state.GetDBHeight())
-	}
+	state.ProcessSignPL(dbheight, e)
 }
 
 func (m *DirectoryBlockSignature) GetHash() interfaces.IHash {

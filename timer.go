@@ -48,7 +48,7 @@ func Timer(state interfaces.IState) {
 				"Timer",
 				lenFollower,
 				state.GetDBHeight(),
-				state.GetDBHeightComplete(),
+				state.GetDirectoryBlock().GetHeader().GetDBHeight(),
 				pls,
 				(string)((([]byte)("-\\|/-\\|/-="))[i]))
 			fmt.Println()

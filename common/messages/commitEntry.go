@@ -156,22 +156,8 @@ func (m *CommitEntryMsg) Leader(state interfaces.IState) bool {
 }
 
 // Execute the leader functions of the given message
-func (m *CommitEntryMsg) LeaderExecute(state interfaces.IState) error {
-	/*if err := state.GetFactoidState().Validate(1, m.Transaction); err != nil {
-		return err
-	}*/
-	b, err := m.CommitEntry.MarshalBinary()
-	if err != nil {
-		return err
-	}
-	msg, err := NewAck(state, primitives.Sha(b))
-	if err != nil {
-		return err
-	}
-	state.NetworkOutMsgQueue() <- msg
-	state.FollowerInMsgQueue() <- m   // Send factoid trans to follower
-	state.FollowerInMsgQueue() <- msg // Send the Ack to follower
-	return nil
+func (m *CommitEntryMsg) LeaderExecute(state interfaces.IState) error {	
+	return state.LeaderExecute(m)
 }
 
 // Returns true if this is a message for this server to execute as a follower

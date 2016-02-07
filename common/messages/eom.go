@@ -11,7 +11,6 @@ import (
 	"io"
 
 	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/log"
@@ -20,12 +19,12 @@ import (
 var _ = log.Printf
 
 type EOM struct {
-	Timestamp interfaces.Timestamp
-	Minute    byte
+	Timestamp 		interfaces.Timestamp
+	Minute    		byte
 
-	DirectoryBlockHeight uint32
-	ServerIndex          int
-	Signature            interfaces.IFullSignature
+	DBHeight   		uint32
+	ServerIndex		int
+	Signature		interfaces.IFullSignature
 
 	//Not marshalled
 	hash interfaces.IHash
@@ -35,48 +34,7 @@ type EOM struct {
 var _ Signable = (*EOM)(nil)
 
 func (e *EOM) Process(dbheight uint32, state interfaces.IState) {
-
-	fs := state.GetFactoidState(dbheight)
-	fs.EndOfPeriod(int(e.Minute))
-
-	fmt.Println("EOM Height ", dbheight, state.GetDBHeight(), state.GetDBHeightComplete())
-	ecblk := state.GetEntryCreditBlock(dbheight)
-	ecbody := ecblk.GetBody()
-	mn := entryCreditBlock.NewMinuteNumber2(e.Minute)
-
-	ecbody.AddEntry(mn)
-
-	if e.Minute == 9 {
-
-		// TODO: This code needs to be reviewed... It works here, but we are effectively
-		// executing "leader" code in the compainion "follower" goroutine...
-		// Maybe that's okay?
-		if state.LeaderFor(e.Bytes()) {
-			// What really needs to happen is that we look to make sure all
-			// EOM messages have been recieved.  If this is the LAST message,
-			// and we have ALL EOM messages from all servers, then we
-			// create a DirectoryBlockSignature (if we are the leader) and
-			// send it out to the network.
-			DBM := NewDirectoryBlockSignature()
-			if state.GetDirectoryBlock(dbheight-1) == nil {
-				DBM.DirectoryBlockKeyMR = primitives.NewHash(constants.ZERO_HASH)
-			} else {
-				DBM.DirectoryBlockKeyMR = state.GetDirectoryBlock(dbheight - 1).GetKeyMR()
-			}
-			DBM.Sign(state)
-
-			ack, err := NewAck(state, DBM.GetHash())
-			if err != nil {
-				fmt.Println("Ack Error")
-				return
-			}
-
-			state.NetworkOutMsgQueue() <- ack
-			state.NetworkOutMsgQueue() <- DBM
-			state.InMsgQueue() <- ack
-			state.InMsgQueue() <- DBM
-		}
-	}
+	state.ProcessEOM(dbheight, e)
 }
 
 func (m *EOM) GetHash() interfaces.IHash {
@@ -123,21 +81,7 @@ func (m *EOM) Leader(state interfaces.IState) bool {
 
 // Execute the leader functions of the given message
 func (m *EOM) LeaderExecute(state interfaces.IState) error {
-	b := m.GetHash()
-
-	ack, err := NewAck(state, b)
-	if err != nil {
-		fmt.Println("Ack Error")
-		return err
-	}
-
-	// Leader Execute creates an acknowledgement and the EOM
-	state.NetworkOutMsgQueue() <- ack
-	state.FollowerInMsgQueue() <- ack // Send the Ack to follower
-
-	state.NetworkOutMsgQueue() <- m // Send the Message;  It works better if
-	state.FollowerInMsgQueue() <- m // the msg follows the Ack, but it doesn't matter much.
-	return nil
+	return state.LeaderExecute(m)
 }
 
 // Returns true if this is a message for this server to execute as a follower
@@ -198,7 +142,7 @@ func (m *EOM) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 		return nil, fmt.Errorf("Minute number is out of range")
 	}
 
-	m.DirectoryBlockHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+	m.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
 	m.ServerIndex = int(newData[0])
 	newData = newData[1:]
@@ -229,7 +173,7 @@ func (m *EOM) MarshalForSignature() (data []byte, err error) {
 		buf.Write(d)
 	}
 	binary.Write(&buf, binary.BigEndian, m.Minute)
-	binary.Write(&buf, binary.BigEndian, m.DirectoryBlockHeight)
+	binary.Write(&buf, binary.BigEndian, m.DBHeight)
 	binary.Write(&buf, binary.BigEndian, uint8(m.ServerIndex))
 	return buf.Bytes(), nil
 }
@@ -252,7 +196,7 @@ func (m *EOM) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *EOM) String() string {
-	return fmt.Sprintf("%s: %2d, DBHeight %d: %s", "EOM", m.Minute+1, m.DirectoryBlockHeight, m.GetHash().String())
+	return fmt.Sprintf("%s: %2d, DBHeight %d: %s", "EOM", m.Minute+1, m.DBHeight, m.GetHash().String())
 }
 
 // EOM methods that conform to the Message interface.
@@ -328,6 +272,7 @@ func NewEOM(state interfaces.IState, minute int) interfaces.IMsg {
 	eom := new(EOM)
 	eom.Minute = byte(minute)
 	eom.ServerIndex = state.GetServerIndex(state.GetDBHeight())
-
+	eom.DBHeight = state.GetDBHeight()
+	
 	return eom
 }

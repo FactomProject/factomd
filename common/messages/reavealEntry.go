@@ -165,24 +165,7 @@ func (m *RevealEntryMsg) Leader(state interfaces.IState) bool {
 
 // Execute the leader functions of the given message
 func (m *RevealEntryMsg) LeaderExecute(state interfaces.IState) error {
-	v := m.Validate(state.GetDBHeight(), state)
-	if v <= 0 {
-		return fmt.Errorf("Reveal is not valid")
-	}
-
-	b := m.GetHash()
-
-	ack, err := NewAck(state, b)
-
-	if err != nil {
-		return err
-	}
-
-	state.NetworkOutMsgQueue() <- ack
-	state.FollowerInMsgQueue() <- ack // Send the Ack to follower
-	state.FollowerInMsgQueue() <- m   // Send factoid trans to follower
-
-	return nil
+	return state.LeaderExecute(m)
 }
 
 // Returns true if this is a message for this server to execute as a follower

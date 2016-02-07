@@ -65,11 +65,8 @@ type State struct {
 	Anchor interfaces.IAnchor
 
 	// Directory Block State
-	_DBStatesMultex   *sync.Mutex
-	_DBHeightComplete uint32     // Holds the DBHeight of the last DirectoryBlock processed
-	_DBHeight         uint32     // Holds the index of the DirectoryBlock under construction.
-	_DBStates         []*DBState // Holds all DBStates not yet processed.
-	_LastDBState      *DBState
+	DBHeight          uint32	   // Height as understood by the leader
+	DBStates          *DBStateList // Holds all DBStates not yet processed.
 
 	// Having all the state for a particular directory block stored in one structure
 	// makes creating the next state, updating the various states, and setting up the next
@@ -129,8 +126,9 @@ func (s *State) Init(filename string) {
 	s._ProcessListsMultex = new(sync.Mutex)
 	s._ProcessLists = make([]*ProcessList, 0)
 
-	s._DBStatesMultex = new(sync.Mutex)
-	s._DBStates = make([]*DBState, 0)
+	s.DBStates 			= new(DBStateList)
+	s.DBStates.multex   = new(sync.Mutex)
+	s.DBStates.DBStates	=	make([]*DBState, 0)
 
 	s.totalServers = 1
 	switch cfg.App.NodeMode {
@@ -195,17 +193,8 @@ func (s *State) Init(filename string) {
 	s.initServerKeys()
 }
 
-func (s *State) __getDBState(height uint32) *DBState {
-	index := height - s._DBHeightComplete
-	if index > uint32(len(s._DBStates)) {
-		return nil
-	}
-	return s._DBStates[index]
-}
 func (s *State) GetDBState(height uint32) *DBState {
-	s._DBStatesMultex.Lock()
-	defer s._DBStatesMultex.Unlock()
-	return s.__getDBState(height)
+	return s.DBStates.Get(height)
 }
 
 func (s *State) UpdateState() {
@@ -213,55 +202,19 @@ func (s *State) UpdateState() {
 	s._ProcessListsMultex.Lock()
 	// Create DState blocks for all completed Process Lists
 	for len(s._ProcessLists) > 0 && s._ProcessLists[0].Complete() {
-		fmt.Println("Process List len",len(s._ProcessLists))
+		fmt.Println("ooooooooooooooooooooooo Process List Complete!!!!!!!!!!!!!!!!!!!!!!")
+		dbheight := s._ProcessLists[0].DirectoryBlock.GetHeader().GetDBHeight()
+		s.ProcessEndOfBlock(dbheight)
+		s.FactoidState.ProcessEndOfBlock(s)
 		pl := s._ProcessLists[0]
 		pl.Process(s)
 		s.AddDBState(true, pl.DirectoryBlock, pl.AdminBlock, pl.FactoidBlock, pl.EntryCreditBlock)
 		s._ProcessLists = s._ProcessLists[1:]
-		s._ProcessListBase = pl.DirectoryBlock.GetHeader().GetDBHeight() + 1
+		s._ProcessListBase = dbheight
 	}
 	s._ProcessListsMultex.Unlock()
 
-	fmt.Println("hhhhhhhh1hhhhhhhhhhhhhhhhhhhhhhhhhhhhang")
-	
-	s._DBStatesMultex.Lock()
-	defer s._DBStatesMultex.Unlock()
-
-	// Process all contiguous dbStates from the beginning.  Break once we hit a
-	// nil or run out of states to process.
-	update := false
-	for len(s._DBStates) > 0 && s._DBStates[0] != nil {
-		s._LastDBState = s._DBStates[0]
-		fmt.Println("hhhhhhhhxxxxx1hhhhhhhhhhhhhhhhhhhhhhhhhhhhang")
-		s.ProcessEndOfBlock(s._DBHeightComplete)
-		//
-		// Need to consider how to deal with the Factoid state
-		//
-		fmt.Println("Process DState", s._DBHeightComplete)
-		fmt.Println("hhhhhhhhaaaaaaaaaaaa2222hhhhhhhhhhhhhhhhhhhhhhhhhhhhang")
-		s.FactoidState.ProcessEndOfBlock(s)
-		fmt.Println("hhhhhhhhbbbbbbbbbbbbbbbbb2222hhhhhhhhhhhhhhhhhhhhhhhhhhhhang")
-		s._LastDBState.Process(s)
-		fmt.Println("hhhhhhhhcccccccccccccccccc2222hhhhhhhhhhhhhhhhhhhhhhhhhhhhang")
-		
-		s._DBHeightComplete = s._LastDBState.DirectoryBlock.GetHeader().GetDBHeight()
-		s._DBStates = s._DBStates[1:]
-		update = true
-	}
-	fmt.Println("hhhhhhhh2222hhhhhhhhhhhhhhhhhhhhhhhhhhhhang")
-	
-	for s._ProcessListBase <= s._DBHeightComplete {
-		if len(s._ProcessLists) > 0 {
-			s._ProcessLists = s._ProcessLists[1:]
-		}
-	}
-
-	fmt.Println("hhhhhhhh3333333333hhhhhhhhhhhhhhhhhhhhhhhhhhhhang")
-	if update {
-		s._DBHeightComplete = s._DBHeightComplete + 1
-		s._DBHeight = s._DBHeightComplete + 1
-	}
-
+	s.DBStates.Process(s)
 	
 }
 
@@ -272,36 +225,8 @@ func (s *State) AddDBState(isNew bool,
 	factoidBlock interfaces.IFBlock,
 	entryCreditBlock interfaces.IEntryCreditBlock) {
 
-	s._DBStatesMultex.Lock()
-	defer s._DBStatesMultex.Unlock()
-
-	dbheight := directoryBlock.GetHeader().GetDBHeight()
-
-	// Compute the index of this state in our DBStates array;  we don't keep block info
-	// around that we have already processed.  But we do have to keep this info around
-	// if we are missing some previous block info.
-	index := int(dbheight) - int(s._DBHeightComplete)
-
-	// Ignore repeats
-	if index < 0 {
-		return
-	}
-
-	// Grow the list to include this index
-	for len(s._DBStates) <= index {
-		s._DBStates = append(s._DBStates, nil)
-	}
-
-	// Create a new DBState
-	dbState := new(DBState)
-	dbState.DirectoryBlock = directoryBlock
-	dbState.AdminBlock = adminBlock
-	dbState.FactoidBlock = factoidBlock
-	dbState.EntryCreditBlock = entryCreditBlock
-	dbState.isNew = isNew
-
-	s._DBStates[index] = dbState
-
+	dbState := NewDBState(isNew, directoryBlock, adminBlock, factoidBlock, entryCreditBlock)
+	s.DBStates.Put(dbState)
 }
 
 func (s *State) loadDatabase() {
@@ -321,8 +246,7 @@ func (s *State) loadDatabase() {
 		ecb := entryCreditBlock.NewECBlock()
 
 		s.AddDBState(true, dblk, ablk, fblk, ecb)
-		s._DBHeight++
-
+		
 	} else {
 
 		dBlocks, err := s.DB.FetchAllDBlocks()
@@ -354,6 +278,7 @@ func (s *State) loadDatabase() {
 		for i := 0; i < len(dBlocks); i++ {
 			s.AddDBState(false, dBlocks[i], aBlocks[i], fBlocks[i], ecBlocks[i])
 		}
+		s.UpdateState()
 	}
 }
 
@@ -365,19 +290,23 @@ func (s *State) ProcessEndOfBlock(dbheight uint32) {
 	s.LastAck = nil
 }
 
-func (s *State) SetListComplete() {
-	s._DBStatesMultex.Lock()
-	pl := s.pli(s._DBHeight)
-	pl.SigComplete[pl.ServerIndex] = true
-	s._DBStatesMultex.Unlock()
+func (s *State) SetListComplete(dbheight uint32, value bool) {
+	pl := s.pli(dbheight)
+	pl.SigComplete[pl.ServerIndex] = value
 }
 
-func (s *State) ListComplete() bool {
+func (s *State) ListComplete(dbheight uint32) bool {
 	s._ProcessListsMultex.Lock()
 	defer s._ProcessListsMultex.Unlock()
 
-	pl := s.pli(s._DBHeight)
+	pl := s.pli(dbheight)
 	return pl.Complete()
+}
+
+// This returns the DBHeight as defined by the leader, not the follower.
+// This value shouldn't be used by follower code.
+func (s *State) GetDBHeight() uint32 {
+	return s.DBHeight
 }
 
 // Here we need to validate the signatures of the previous block.  We also need to update
@@ -393,9 +322,7 @@ func (s *State) AddAdminBlock(interfaces.IAdminBlock) {
 func (s *State) pli(height uint32) *ProcessList {
 	s._ProcessListsMultex.Lock()
 	defer s._ProcessListsMultex.Unlock()
-	fmt.Print("Enter Pli")
-	defer fmt.Println("Leaving pli")
-
+	
 	i := height - s._ProcessListBase
 	if i >= uint32(len(s._ProcessLists)) { // Can't be zero, unsigned. One test tests both
 		return nil
@@ -408,8 +335,6 @@ func (s *State) pli(height uint32) *ProcessList {
 func (s *State) NewPli(height uint32) *ProcessList {
 	s._ProcessListsMultex.Lock()
 	defer s._ProcessListsMultex.Unlock()
-	fmt.Print("Enter NewPli")
-	defer fmt.Println("Leaving NewPli")
 	
 	i := int(height) - int(s._ProcessListBase)
 	if i < 0 {
@@ -441,32 +366,27 @@ func (s *State) CreateDBlock(height uint32) (interfaces.IDirectoryBlock, error) 
 	currPL.DirectoryBlock = newdb
 	var peb interfaces.IEntryCreditBlock
 
-	dstate := s.__getDBState(height - 1)
+	dstate := s.DBStates.Get(height - 1)
 	if dstate != nil {
 		prev := dstate.DirectoryBlock
 		bodyMR, err := prev.BuildBodyMR()
 		if err != nil {
 			return nil, err
 		}
-		fmt.Println("ooooooooooooooooooooo55555555555oooooooooooo")
 		newdb.GetHeader().SetBodyMR(bodyMR)
 
 		prevLedgerKeyMR := prev.GetHash()
 		if prevLedgerKeyMR == nil {
 			return nil, errors.New("prevLedgerKeyMR is nil")
 		}
-		fmt.Println("ooooooooooooooooo6666666666oooooooooooooooo")
 		newdb.GetHeader().SetPrevLedgerKeyMR(prevLedgerKeyMR)
 		newdb.GetHeader().SetPrevKeyMR(prev.GetKeyMR())
 		peb = dstate.EntryCreditBlock
-		fmt.Println("oooooooooooooo7777ooooooooooooooooooo")
 	}
-	fmt.Println("oooooooooooooooooooooo8888ooooooooooo")
 	
 	eb, _ := entryCreditBlock.NextECBlock(peb)
 	currPL.EntryCreditBlock = eb
 	currPL.AdminBlock = s.NewAdminBlock(height)
-	fmt.Println("oooooooooooooooooooooooooo9999ooooooo")
 	
 	return newdb, nil
 }
@@ -519,11 +439,9 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) (bool, error) {
 	acks := s.Acks
 	ack, ok := acks[m.GetHash().Fixed()].(*messages.Ack)
 	if !ok || ack == nil {
-		fmt.Println("Msg No Match!")
 		s.Holding[m.GetHash().Fixed()] = m
 		return false, nil
 	} else {
-		fmt.Println("Msg Match!")
 		pl := s.NewPli(ack.DBHeight)
 		pl.AddToProcessList(ack, m)
 		delete(acks, m.GetHash().Fixed())
@@ -541,13 +459,35 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) (bool, error) {
 	s.Acks[ack.GetHash().Fixed()] = ack
 	match := s.Holding[ack.GetHash().Fixed()]
 	if match != nil {
-		fmt.Println("Ack Match!")
 		match.FollowerExecute(s)
 		return true, nil
 	}
-	fmt.Println("Ack No Match!")
 	
 	return false, nil
+}
+
+
+func (s *State) LeaderExecute(m interfaces.IMsg) error {
+	v := m.Validate(s.GetDBHeight(), s)
+	if v <= 0 {
+		return fmt.Errorf("Msg not valid: "+m.String())
+	}
+	
+	hash := m.GetHash()
+	
+	ack, err := s.NewAck(hash)
+	if err != nil {
+		fmt.Println("Ack Error")
+		return err
+	}
+	
+	// Leader Execute creates an acknowledgement and the EOM
+	s.NetworkOutMsgQueue() <- ack
+	s.FollowerInMsgQueue() <- ack // Send the Ack to follower
+	
+	s.NetworkOutMsgQueue() <- m // Send the Message;  It works better if
+	s.FollowerInMsgQueue() <- m // the msg follows the Ack, but it doesn't matter much.
+	return nil
 }
 
 func (s *State) GetEntryCreditBlock(dbheight uint32) interfaces.IEntryCreditBlock {
@@ -658,7 +598,7 @@ func (s *State) SetAdminBlock(dbheight uint32, adblock interfaces.IAdminBlock) {
 	pl.AdminBlock = adblock
 }
 
-func (s *State) GetFactoidState(dbheight uint32) interfaces.IFactoidState {
+func (s *State) GetFactoidState() interfaces.IFactoidState {
 	return s.FactoidState
 }
 
@@ -873,14 +813,6 @@ func (s *State) GetNetworkName() string {
 
 }
 
-func (s *State) GetDirectoryBlock(dbheight uint32) interfaces.IDirectoryBlock {
-	pl := s.pli(dbheight)
-	if pl != nil {
-		return pl.DirectoryBlock
-	}
-	return nil
-}
-
 func (s *State) SetDirectoryBlock(dbheight uint32, dirblk interfaces.IDirectoryBlock) {
 	pl := s.pli(dbheight)
 	pl.DirectoryBlock = dirblk
@@ -894,12 +826,26 @@ func (s *State) SetDB(dbase interfaces.DBOverlay) {
 	s.DB = databaseOverlay.NewOverlay(dbase)
 }
 
-func (s *State) GetDBHeight() uint32 {
-	return s._DBHeight
+func (s *State) GetDBHeightComplete() uint32 {
+	db := s.GetDirectoryBlock()
+	if db == nil {
+		return 0
+	}
+	return db.GetHeader().GetDBHeight()
 }
 
-func (s *State) GetDBHeightComplete() uint32 {
-	return s._DBHeightComplete
+func (s *State) GetDirectoryBlock() interfaces.IDirectoryBlock {
+	return s.DBStates.Last().DirectoryBlock
+}
+
+func (s *State) GetDirectoryBlockPL() interfaces.IDirectoryBlock {
+	db := s.GetDirectoryBlock()
+	dbheight := db.GetHeader().GetDBHeight() +1
+	pl := s.pli(dbheight)
+	if pl != nil {
+		return pl.DirectoryBlock
+	}
+	return nil
 }
 
 func (s *State) GetProcessListBase() uint32 {
@@ -944,4 +890,101 @@ func (s *State) RecalculateBalances() error {
 		}
 	}
 	return nil
+}
+
+func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)  {
+	c, ok := commitChain.(*messages.CommitChainMsg)
+	if ok {
+		pl := s.pli(dbheight)
+		ecblk := pl.EntryCreditBlock
+		ecbody := ecblk.GetBody()
+		ecbody.AddEntry(c.CommitChain)
+		s.GetFactoidState().UpdateECTransaction(c.CommitChain)
+		s.PutCommits(dbheight, c.GetHash(), c)
+	}
+}
+
+func (s *State) ProcessSignPL(dbheight uint32, commitChain interfaces.IMsg)  {
+	s.SetListComplete(dbheight, true)
+	if s.ListComplete(dbheight) {
+		s.ProcessEndOfBlock(dbheight)
+	}
+}
+
+func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) {
+	e, ok := msg.(*messages.EOM)
+	if !ok {
+		panic("Must pass an EOM message to ProcessEOM)")
+	}
+	s.ProcessEOM(dbheight, e)
+	
+	fs := s.FactoidState
+	fs.EndOfPeriod(int(e.Minute))
+	
+	fmt.Println("EOM Height ", dbheight, s.GetDBHeight(), s.GetDBHeightComplete())
+	ecblk := s.GetEntryCreditBlock(dbheight)
+	ecbody := ecblk.GetBody()
+	mn := entryCreditBlock.NewMinuteNumber2(e.Minute)
+	
+	ecbody.AddEntry(mn)
+	
+	if e.Minute == 9 {
+		
+		// TODO: This code needs to be reviewed... It works here, but we are effectively
+		// executing "leader" code in the compainion "follower" goroutine...
+		// Maybe that's okay?
+		if s.LeaderFor(e.Bytes()) {
+			// What really needs to happen is that we look to make sure all
+			// EOM messages have been recieved.  If this is the LAST message,
+			// and we have ALL EOM messages from all servers, then we
+			// create a DirectoryBlockSignature (if we are the leader) and
+			// send it out to the network.
+			DBM := messages.NewDirectoryBlockSignature()
+			prevDB := s.DBStates.Get(s.GetDirectoryBlock().GetHeader().GetDBHeight()-1).DirectoryBlock
+			if prevDB == nil {
+				DBM.DirectoryBlockKeyMR = primitives.NewHash(constants.ZERO_HASH)
+			} else {
+				DBM.DirectoryBlockKeyMR = prevDB.GetKeyMR()
+			}
+			DBM.Sign(s)
+			
+			ack, err := s.NewAck(DBM.GetHash())
+			if err != nil {
+				fmt.Println("Ack Error")
+				return
+			}
+			
+			s.NetworkOutMsgQueue() <- ack
+			s.NetworkOutMsgQueue() <- DBM
+			s.InMsgQueue() <- ack
+			s.InMsgQueue() <- DBM
+		}
+	}
+}
+	
+// Create a new Acknowledgement.  This Acknowledgement
+func (s *State) NewAck(hash interfaces.IHash) (iack interfaces.IMsg, err error) {
+	var last *messages.Ack
+	if s.LastAck != nil {
+		last = s.LastAck.(*messages.Ack)
+	}
+	ack := new(messages.Ack)
+	ack.DBHeight = s.DBHeight
+	ack.Timestamp = s.GetTimestamp()
+	ack.MessageHash = hash
+	if last == nil {
+		ack.Height = 0
+		ack.SerialHash = ack.MessageHash
+	} else {
+		ack.Height = last.Height + 1
+		ack.SerialHash, err = primitives.CreateHash(last.MessageHash, ack.MessageHash)
+		if err != nil {
+			return nil, err
+		}
+	}
+	s.SetLastAck(ack)
+	
+	// TODO:  Add the signature.
+	
+	return ack, nil
 }

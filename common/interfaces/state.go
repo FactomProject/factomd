@@ -74,30 +74,13 @@ type IState interface {
 
 	// Directory Block State
 	// =====================
-	ListComplete() bool
-	SetListComplete()
-	AddDBState(bool, IDirectoryBlock, IAdminBlock, IFBlock, IEntryCreditBlock)
-	AddAdminBlock(IAdminBlock)
-	GetDirectoryBlock(dbheight uint32) IDirectoryBlock // The directory block under construction
-	GetEntryCreditBlock(dbheight uint32) IEntryCreditBlock
-	GetAdminBlock(dbheight uint32) IAdminBlock
-
-	SetDirectoryBlock(dbheight uint32, db IDirectoryBlock) // The directory block under construction
-	SetEntryCreditBlock(dbheight uint32, ecb IEntryCreditBlock)
-	SetAdminBlock(dbheight uint32, ab IAdminBlock)
-
+	GetDBHeight() uint32
+	// Get the last finished directory block
+	GetDirectoryBlock() IDirectoryBlock
+	// Get the next Directory Block, currently under construction
+	GetDirectoryBlockPL() IDirectoryBlock
+	
 	GetAnchor() IAnchor
-
-	GetDBHeight() uint32 // The index of the directory block under construction.
-	GetDBHeightComplete() uint32
-
-	// Message State
-	GetLastAck() IMsg // Return the last Acknowledgement set by this server
-	SetLastAck(IMsg)
-
-	// Server Methods
-	// ==============
-	ProcessEndOfBlock(dbheight uint32)
 
 	// Web Services
 	// ============
@@ -107,16 +90,22 @@ type IState interface {
 	// Factoid State
 	// =============
 	UpdateState()
-	GetFactoidState(dbheight uint32) IFactoidState
-	GetFactoidKeyMR(dbheight uint32) IHash
+	GetFactoidState() IFactoidState
 
 	SetFactoidState(dbheight uint32, fs IFactoidState)
 	// MISC
 	// ====
 
-	// Returns true if it found a match
 	FollowerExecuteMsg(m IMsg) (bool, error) // Messages that go into the process list 
 	FollowerExecuteAck(m IMsg) (bool, error) // Ack Msg calls this function.	
+
+	ProcessCommitChain(dbheight uint32, commitChain IMsg) 
+	ProcessSignPL(dbheight uint32, commitChain IMsg) 
+	ProcessEOM(dbheight uint32, eom IMsg)
+
+	// For messages that go into the Process List
+	LeaderExecute(m IMsg) error
+	
 	GetTimestamp() Timestamp
 	PrintType(int) bool // Debugging
 
