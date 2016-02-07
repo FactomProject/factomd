@@ -292,7 +292,7 @@ func (s *State) ProcessEndOfBlock(dbheight uint32) {
 
 func (s *State) SetListComplete(dbheight uint32, value bool) {
 	pl := s.pli(dbheight)
-	pl.SigComplete[pl.ServerIndex] = value
+	pl.servers[pl.ServerIndex].SigComplete = value
 }
 
 func (s *State) ListComplete(dbheight uint32) bool {
@@ -403,7 +403,7 @@ func (s *State) GetNewEBlocks(dbheight uint32, key [32]byte) interfaces.IEntryBl
 	pl := s.pli(dbheight)
 	var value interfaces.IEntryBlock
 	if pl != nil {
-		value = pl.GetNewEBlks(key)
+		value = pl.GetNewEBlocks(key)
 	}
 	return value
 }
@@ -411,7 +411,7 @@ func (s *State) GetNewEBlocks(dbheight uint32, key [32]byte) interfaces.IEntryBl
 func (s *State) PutNewEBlocks(dbheight uint32, key [32]byte, value interfaces.IEntryBlock) {
 	pl := s.pli(dbheight)
 	if pl != nil {
-		pl.PutNewEBlks(key, value)
+		pl.PutNewEBlocks(key, value)
 	}
 }
 
@@ -489,6 +489,77 @@ func (s *State) LeaderExecute(m interfaces.IMsg) error {
 	s.FollowerInMsgQueue() <- m // the msg follows the Ack, but it doesn't matter much.
 	return nil
 }
+
+func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)  {
+	c, ok := commitChain.(*messages.CommitChainMsg)
+	if ok {
+		pl := s.pli(dbheight)
+		ecblk := pl.EntryCreditBlock
+		ecbody := ecblk.GetBody()
+		ecbody.AddEntry(c.CommitChain)
+		s.GetFactoidState().UpdateECTransaction(c.CommitChain)
+		s.PutCommits(dbheight, c.GetHash(), c)
+	}
+}
+
+func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) {
+	e, ok := msg.(*messages.EOM)
+	if !ok {
+		panic("Must pass an EOM message to ProcessEOM)")
+	}
+	s.ProcessEOM(dbheight, e)
+	
+	fs := s.FactoidState
+	fs.EndOfPeriod(int(e.Minute))
+	
+	fmt.Println("EOM Height ", dbheight, s.GetDBHeight(), s.GetDBHeightComplete())
+	ecblk := s.GetEntryCreditBlock(dbheight)
+	ecbody := ecblk.GetBody()
+	mn := entryCreditBlock.NewMinuteNumber2(e.Minute)
+	
+	ecbody.AddEntry(mn)
+	
+	if e.Minute == 9 {
+		
+		// TODO: This code needs to be reviewed... It works here, but we are effectively
+		// executing "leader" code in the compainion "follower" goroutine...
+		// Maybe that's okay?
+		if s.LeaderFor(e.Bytes()) {
+			// What really needs to happen is that we look to make sure all
+			// EOM messages have been recieved.  If this is the LAST message,
+			// and we have ALL EOM messages from all servers, then we
+			// create a DirectoryBlockSignature (if we are the leader) and
+			// send it out to the network.
+			DBM := messages.NewDirectoryBlockSignature()
+			prevDB := s.DBStates.Get(s.GetDirectoryBlock().GetHeader().GetDBHeight()-1).DirectoryBlock
+			if prevDB == nil {
+				DBM.DirectoryBlockKeyMR = primitives.NewHash(constants.ZERO_HASH)
+			} else {
+				DBM.DirectoryBlockKeyMR = prevDB.GetKeyMR()
+			}
+			DBM.Sign(s)
+			
+			ack, err := s.NewAck(DBM.GetHash())
+			if err != nil {
+				fmt.Println("Ack Error")
+				return
+			}
+			
+			s.NetworkOutMsgQueue() <- ack
+			s.NetworkOutMsgQueue() <- DBM
+			s.InMsgQueue() <- ack
+			s.InMsgQueue() <- DBM
+		}
+	}
+}
+
+func (s *State) ProcessSignPL(dbheight uint32, commitChain interfaces.IMsg)  {
+	s.SetListComplete(dbheight, true)
+	if s.ListComplete(dbheight) {
+		s.ProcessEndOfBlock(dbheight)
+	}
+}
+
 
 func (s *State) GetEntryCreditBlock(dbheight uint32) interfaces.IEntryCreditBlock {
 	pl := s.pli(dbheight)
@@ -890,4 +961,31 @@ func (s *State) RecalculateBalances() error {
 		}
 	}
 	return nil
+}
+
+// Create a new Acknowledgement.  This Acknowledgement
+func (s *State) NewAck(hash interfaces.IHash) (iack interfaces.IMsg, err error) {
+	var last *messages.Ack
+	if s.LastAck != nil {
+		last = s.LastAck.(*messages.Ack)
+	}
+	ack := new(messages.Ack)
+	ack.DBHeight = s.DBHeight
+	ack.Timestamp = s.GetTimestamp()
+	ack.MessageHash = hash
+	if last == nil {
+		ack.Height = 0
+		ack.SerialHash = ack.MessageHash
+	} else {
+		ack.Height = last.Height + 1
+		ack.SerialHash, err = primitives.CreateHash(last.MessageHash, ack.MessageHash)
+		if err != nil {
+			return nil, err
+		}
+	}
+	s.SetLastAck(ack)
+	
+	// TODO:  Add the signature.
+	
+	return ack, nil
 }
