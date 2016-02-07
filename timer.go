@@ -41,7 +41,7 @@ func Timer(state interfaces.IState) {
 			for i := 0; i < state.GetTotalServers(); i++ {
 				pls = fmt.Sprintf("%s #%d:%d;", pls, i+1, state.GetProcessListLen(state.GetDBHeight(), i))
 			}
-			
+
 			lenFollower := len(state.FollowerInMsgQueue())
 
 			fmt.Printf("\r%19s: FollowQ: %d db ht: %v db complete: %v %s %s",

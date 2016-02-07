@@ -18,7 +18,7 @@ var state interfaces.IFactoidState
 func TestBalances(t *testing.T) {
 	s := new(State)
 	s.Init("")
-	state = s.GetFactoidState()
+	state = s.GetFactoidState(0)
 	state.SetFactoshisPerEC(1)
 	add1, err := primitives.HexToHash("0000000000000000000000000000000000000000000000000000000000000001")
 	if err != nil {

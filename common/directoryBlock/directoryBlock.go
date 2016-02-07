@@ -81,7 +81,11 @@ func (c *DirectoryBlock) SetDBEntries(dbEntries []interfaces.IDBEntry) error {
 }
 
 func (c *DirectoryBlock) New() interfaces.BinaryMarshallableAndCopyable {
-	return new(DirectoryBlock)
+	dBlock := new(DirectoryBlock)
+	dBlock.Header = NewDBlockHeader()
+	dBlock.DBHash = primitives.NewZeroHash()
+	dBlock.KeyMR = primitives.NewZeroHash()
+	return dBlock
 }
 
 func (c *DirectoryBlock) GetDatabaseHeight() uint32 {

@@ -397,6 +397,7 @@ func HandleV2EntryBlock(state interfaces.IState, params interface{}) (interface{
 	e.Header.BlockSequenceNumber = block.GetHeader().GetEBSequence()
 	e.Header.ChainID = block.GetHeader().GetChainID().String()
 	e.Header.PrevKeyMR = block.GetHeader().GetPrevKeyMR().String()
+	e.Header.DBHeight = block.GetHeader().GetDBHeight()
 
 	if dblock, err := dbase.FetchDBlockByHeight(block.GetHeader().GetDBHeight()); err == nil {
 		e.Header.Timestamp = dblock.GetHeader().GetTimestamp() * 60

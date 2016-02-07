@@ -232,15 +232,31 @@ func TestHandleEntryBlock(t *testing.T) {
 
 		HandleEntryBlock(context, hash)
 
-		if strings.Contains(GetBody(context), "df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604") == false {
+		eBlock := new(EBlock)
+
+		UnmarshalResp(context, eBlock)
+
+		if eBlock.Header.ChainID != "df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604" {
 			t.Errorf("%v", GetBody(context))
+		}
+
+		if eBlock.Header.DBHeight != b.(*entryBlock.EBlock).GetHeader().GetDBHeight() {
+			t.Errorf("DBHeight is wrong")
 		}
 
 		clearContextResponseWriter(context)
 		HandleEntryBlock(context, hash2)
 
-		if strings.Contains(GetBody(context), "df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604") == false {
+		eBlock = new(EBlock)
+
+		UnmarshalResp(context, eBlock)
+
+		if eBlock.Header.ChainID != "df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604" {
 			t.Errorf("%v", GetBody(context))
+		}
+
+		if eBlock.Header.DBHeight != b.(*entryBlock.EBlock).GetHeader().GetDBHeight() {
+			t.Errorf("DBHeight is wrong")
 		}
 
 		fetched++
@@ -415,6 +431,15 @@ func GetRespMap(context *web.Context) map[string]interface{} {
 		panic(err)
 	}
 	return unmarshalled
+}
+
+func UnmarshalResp(context *web.Context, dst interface{}) {
+	j := GetBody(context)
+
+	err := json.Unmarshal([]byte(j), dst)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func GetRespText(context *web.Context) string {

@@ -247,13 +247,32 @@ func TestKeyMRs(t *testing.T) {
 		"905740850540f1d17fcb1fc7fd0c61a33150b2cdc0f88334f6a891ec34bd1cfc",
 		"9c9610e09673c9136508112fe447c8b9c1e042a95bd140ec161ade4995cd0f73",
 		"fbc3a4b40464049c999e99feff2bf36996f27869b045a0374bc47b7c2cda9e7c"}
+
+	chainID, err := primitives.NewShaHashFromStr("0000000000000000000000000000000000000000000000000000000000000001")
+	if err != nil {
+		t.Error(err)
+	}
+
 	dbEntries := []interfaces.IDBEntry{}
 	for _, e := range entries {
-		h, err := NewShaHashFromStr(e)
+		h, err := primitives.NewShaHashFromStr(e)
 		if err != nil {
 			t.Error(err)
 		}
-		dbEntries = append(dbEntries, h)
+		entry := new(DBEntry)
+		entry.ChainID = chainID
+		entry.KeyMR = h
+		dbEntries = append(dbEntries, entry)
+	}
+
+	dBlock := NewDirectoryBlock(0)
+	err = dBlock.SetDBEntries(dbEntries)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if dBlock.GetKeyMR().String() != "1710a017d0aaa29e03cdce767f2442a8519a512769777eb5c93d0167ad788104" {
+		t.Error("Wrong DBlock KeyMR")
 	}
 }
 

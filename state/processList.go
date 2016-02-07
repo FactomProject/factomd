@@ -11,20 +11,19 @@ import (
 var _ = fmt.Print
 
 type ProcessList struct {
-	dBHeight    uint32                        // The directory block height for these lists
-	lists       [][]interfaces.IMsg           // Lists of acknowledged messages
-	heights     []int                         // Height of messages that have been processed
-	EomComplete []bool                        // Lists that are end of minute complete
-	SigComplete []bool                        // Lists that are signature complete
-	acks        *map[[32]byte]interfaces.IMsg // acknowlegments by hash
-	msgs        *map[[32]byte]interfaces.IMsg // messages by hash
+	dBHeight uint32 // The directory block height for these lists
+
+	servers []ListServer
+
+	acks *map[[32]byte]interfaces.IMsg // acknowlegments by hash
+	msgs *map[[32]byte]interfaces.IMsg // messages by hash
 
 	// Maps
 	// ====
 	// For Follower
 
-	NewEBlksSem *sync.Mutex
-	NewEBlks    map[[32]byte]interfaces.IEntryBlock // Entry Blocks added within 10 minutes (follower and leader)
+	NewEBlocksSem *sync.Mutex
+	NewEBlocks    map[[32]byte]interfaces.IEntryBlock // Entry Blocks added within 10 minutes (follower and leader)
 
 	CommitsSem *sync.Mutex
 	Commits    map[[32]byte]interfaces.IMsg // Used by the leader, validate
@@ -48,11 +47,18 @@ type ProcessList struct {
 	DirectoryBlock   interfaces.IDirectoryBlock
 }
 
+type ListServer struct {
+	list        []interfaces.IMsg // Lists of acknowledged messages
+	height      int               // Height of messages that have been processed
+	EomComplete bool              // Lists that are end of minute complete
+	SigComplete bool              // Lists that are signature complete
+}
+
 func (p *ProcessList) GetLen(list int) int {
-	if list >= len(p.lists) {
+	if list >= len(p.servers) {
 		return -1
 	}
-	l := len(p.lists[list])
+	l := len(p.servers[list].list)
 	return l
 }
 
@@ -62,8 +68,8 @@ func (p *ProcessList) Complete() bool {
 	if p == nil {
 		return true
 	}
-	for _, c := range p.SigComplete {
-		if !c {
+	for _, c := range p.servers {
+		if !c.SigComplete {
 			return false
 		}
 	}
@@ -77,29 +83,29 @@ func (p *ProcessList) SetComplete(v bool) {
 	if p == nil {
 		return
 	}
-	for i, _ := range p.SigComplete {
-		p.SigComplete[i] = v
+	for i, _ := range p.servers {
+		p.servers[i].SigComplete = v
 	}
 }
 
 func (p *ProcessList) Process(state interfaces.IState) {
-	for i := 0; i < len(p.lists); i++ {
-		plist := p.lists[i]
-		for j := p.heights[i]; j < len(plist); j++ {
+	for i := 0; i < len(p.servers); i++ {
+		plist := p.servers[i].list
+		for j := p.servers[i].height; j < len(plist); j++ {
 			if plist[j] == nil {
 				break
 			}
-			p.heights[i] = j + 1                // Don't process it again.
+			p.servers[i].height = j + 1         // Don't process it again.
 			plist[j].Process(p.dBHeight, state) // Process this entry
 
 			eom, ok := plist[j].(*messages.EOM)
 			if ok && eom.Minute == 9 {
-				p.EomComplete[i] = true
+				p.servers[i].EomComplete = true
 			}
 
 			_, ok = plist[j].(*messages.DirectoryBlockSignature)
 			if ok {
-				p.SigComplete[i] = true
+				p.servers[i].SigComplete = true
 			}
 
 		}
@@ -107,26 +113,25 @@ func (p *ProcessList) Process(state interfaces.IState) {
 }
 
 func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
-		
-	processlist := p.lists[ack.ServerIndex]
+	processlist := p.servers[ack.ServerIndex].list
 	for len(processlist) <= int(ack.Height) {
 		processlist = append(processlist, nil)
 	}
 	processlist[ack.Height] = m
-	p.lists[ack.ServerIndex] = processlist
+	p.servers[ack.ServerIndex].list = processlist
 }
 
-func (p *ProcessList) GetNewEBlks(key [32]byte) interfaces.IEntryBlock {
-	p.NewEBlksSem.Lock()
-	value := p.NewEBlks[key]
-	p.NewEBlksSem.Unlock()
+func (p *ProcessList) GetNewEBlocks(key [32]byte) interfaces.IEntryBlock {
+	p.NewEBlocksSem.Lock()
+	value := p.NewEBlocks[key]
+	p.NewEBlocksSem.Unlock()
 	return value
 }
 
-func (p *ProcessList) PutNewEBlks(key [32]byte, value interfaces.IEntryBlock) {
-	p.NewEBlksSem.Lock()
-	p.NewEBlks[key] = value
-	p.NewEBlksSem.Unlock()
+func (p *ProcessList) PutNewEBlocks(key [32]byte, value interfaces.IEntryBlock) {
+	p.NewEBlocksSem.Lock()
+	p.NewEBlocks[key] = value
+	p.NewEBlocksSem.Unlock()
 }
 
 func (p *ProcessList) GetCommits(key interfaces.IHash) interfaces.IMsg {
@@ -171,17 +176,14 @@ func NewProcessList(totalServers int, dbheight uint32) *ProcessList {
 
 	pl := new(ProcessList)
 
-	pl.lists = make([][]interfaces.IMsg, totalServers)
-	pl.heights = make([]int, totalServers)
-	pl.EomComplete = make([]bool, totalServers)
-	pl.SigComplete = make([]bool, totalServers)
+	pl.servers = make([]ListServer, totalServers)
 
 	pl.dBHeight = dbheight
 	pl.acks = new(map[[32]byte]interfaces.IMsg)
 	pl.msgs = new(map[[32]byte]interfaces.IMsg)
 
-	pl.NewEBlksSem = new(sync.Mutex)
-	pl.NewEBlks = make(map[[32]byte]interfaces.IEntryBlock)
+	pl.NewEBlocksSem = new(sync.Mutex)
+	pl.NewEBlocks = make(map[[32]byte]interfaces.IEntryBlock)
 
 	pl.CommitsSem = new(sync.Mutex)
 	pl.Commits = make(map[[32]byte]interfaces.IMsg)

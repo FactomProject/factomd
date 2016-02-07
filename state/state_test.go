@@ -7,7 +7,7 @@ package state_test
 import (
 	"github.com/FactomProject/factomd/log"
 	. "github.com/FactomProject/factomd/state"
-	"github.com/FactomProject/factomd/testHelper"
+	//"github.com/FactomProject/factomd/testHelper"
 	"github.com/FactomProject/factomd/util"
 	"testing"
 )
@@ -18,12 +18,4 @@ var _ = util.ReadConfig
 func TestInit(t *testing.T) {
 	state := new(State)
 	var _ = state
-}
-
-func TestGetPreviousDirectoryBlock(t *testing.T) {
-	state := testHelper.CreateAndPopulateTestState()
-	prevDirBlock := state.GetPreviousDirectoryBlock()
-	if prevDirBlock == nil {
-		t.Error("prevDirBlock is nil")
-	}
 }

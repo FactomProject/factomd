@@ -48,8 +48,8 @@ type IState interface {
 	GetAuditHeartBeats() []IMsg                 // The checklist of HeartBeats for this period
 	GetFedServerFaults() [][]IMsg               // Keep a fault list for every server
 
-	GetNewEBlks(dbheight uint32, hash [32]byte) IEntryBlock
-	PutNewEBlks(dbheight uint32, hash [32]byte, eb IEntryBlock)
+	GetNewEBlocks(dbheight uint32, hash [32]byte) IEntryBlock
+	PutNewEBlocks(dbheight uint32, hash [32]byte, eb IEntryBlock)
 
 	GetCommits(dbheight uint32, hash IHash) IMsg
 	PutCommits(dbheight uint32, hash IHash, msg IMsg)

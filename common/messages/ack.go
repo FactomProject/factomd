@@ -120,7 +120,7 @@ func (m *Ack) Follower(interfaces.IState) bool {
 }
 
 func (m *Ack) FollowerExecute(state interfaces.IState) error {
-	_,err := state.FollowerExecuteAck(m)
+	_, err := state.FollowerExecuteAck(m)
 	return err
 }
 

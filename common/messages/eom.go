@@ -22,9 +22,9 @@ type EOM struct {
 	Timestamp 		interfaces.Timestamp
 	Minute    		byte
 
-	DBHeight   		uint32
-	ServerIndex		int
-	Signature		interfaces.IFullSignature
+	DirectoryBlockHeight uint32
+	ServerIndex          int
+	Signature            interfaces.IFullSignature
 
 	//Not marshalled
 	hash interfaces.IHash
@@ -142,7 +142,7 @@ func (m *EOM) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 		return nil, fmt.Errorf("Minute number is out of range")
 	}
 
-	m.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+	m.DirectoryBlockHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
 	m.ServerIndex = int(newData[0])
 	newData = newData[1:]
@@ -173,7 +173,7 @@ func (m *EOM) MarshalForSignature() (data []byte, err error) {
 		buf.Write(d)
 	}
 	binary.Write(&buf, binary.BigEndian, m.Minute)
-	binary.Write(&buf, binary.BigEndian, m.DBHeight)
+	binary.Write(&buf, binary.BigEndian, m.DirectoryBlockHeight)
 	binary.Write(&buf, binary.BigEndian, uint8(m.ServerIndex))
 	return buf.Bytes(), nil
 }
@@ -196,7 +196,7 @@ func (m *EOM) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *EOM) String() string {
-	return fmt.Sprintf("%s: %2d, DBHeight %d: %s", "EOM", m.Minute+1, m.DBHeight, m.GetHash().String())
+	return fmt.Sprintf("%s: %2d, DBHeight %d: %s", "EOM", m.Minute+1, m.DirectoryBlockHeight, m.GetHash().String())
 }
 
 // EOM methods that conform to the Message interface.
@@ -272,7 +272,7 @@ func NewEOM(state interfaces.IState, minute int) interfaces.IMsg {
 	eom := new(EOM)
 	eom.Minute = byte(minute)
 	eom.ServerIndex = state.GetServerIndex(state.GetDBHeight())
-	eom.DBHeight = state.GetDBHeight()
+	eom.DirectoryBlockHeight = state.GetDBHeight()
 	
 	return eom
 }

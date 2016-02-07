@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"testing"
 
+	"github.com/FactomProject/ed25519"
 	. "github.com/FactomProject/factomd/common/primitives"
 )
 
@@ -123,11 +124,11 @@ func TestVerify(t *testing.T) {
 		t.Fatalf("sig22.Verify retuned true")
 	}
 
-	if !priv1.Pub.Verify([]byte(msg1), sig11.Sig) {
+	if !priv1.Pub.Verify([]byte(msg1), (*[ed25519.SignatureSize]byte)(sig11.Sig)) {
 		t.Fatalf("Pub.Verify retuned false")
 	}
 
-	if !Verify(priv1.Pub.Key, []byte(msg1), sig11.Sig) {
+	if !Verify(priv1.Pub.Key, []byte(msg1), (*[ed25519.SignatureSize]byte)(sig11.Sig)) {
 		t.Fatalf("Verify retuned false")
 	}
 
