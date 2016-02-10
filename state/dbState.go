@@ -56,7 +56,8 @@ func (list *DBStateList) Put (dbstate *DBState) {
 	list.multex.Lock()	
 	defer list.multex.Unlock()
 	
-	dbheight := dbstate.DirectoryBlock.GetHeader().GetDBHeight()
+	dblk := dbstate.DirectoryBlock
+	dbheight := dblk.GetHeader().GetDBHeight()
 		
 	index := int(dbheight)-int(list.base) 
 	for len(list.DBStates) <= index {

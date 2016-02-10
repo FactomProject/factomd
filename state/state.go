@@ -232,7 +232,7 @@ func (s *State) loadDatabase() {
 	} 
 	
 	if i==0 && s.NetworkNumber == constants.NETWORK_LOCAL {
-		dblk := new(directoryBlock.DirectoryBlock)
+		dblk := directoryBlock.NewDirectoryBlock(0)
 		ablk := s.NewAdminBlock(0)
 		fblk := block.GetGenesisFBlock()
 		ecb := entryCreditBlock.NewECBlock()
