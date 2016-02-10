@@ -7,7 +7,6 @@ package main
 import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/util"
 	"time"
@@ -39,7 +38,7 @@ func Timer(state interfaces.IState) {
 
 			pls := fmt.Sprintf(" #%d servers: ", state.GetTotalServers())
 			for i := 0; i < state.GetTotalServers(); i++ {
-				pls = fmt.Sprintf("%s #%d:%d;", pls, i+1, state.GetProcessListLen(state.GetDBHeight(), i))
+				pls = fmt.Sprintf("%s #%d:%d;", pls, i+1, 0, i)
 			}
 
 			lenFollower := len(state.FollowerInMsgQueue())
@@ -55,7 +54,7 @@ func Timer(state interfaces.IState) {
 			// End of the last period, and this is a server, send messages that
 			// close off the minute.
 			if state.GetServerState() == 1 {
-				eom := messages.NewEOM(state, i)
+				eom := state.NewEOM(i)
 				state.LeaderInMsgQueue() <- eom
 				state.NetworkOutMsgQueue() <- eom
 			}

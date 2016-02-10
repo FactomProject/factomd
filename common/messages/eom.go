@@ -261,18 +261,4 @@ func (msg *EOM) Sha() (interfaces.IHash, error) {
 	return sha, nil
 }
 
-/**********************************************************************
- * Support
- **********************************************************************/
 
-func NewEOM(state interfaces.IState, minute int) interfaces.IMsg {
-	// The construction of the EOM message needs information from the state of
-	// the server to create the proper serial hashes and such.  Right now
-	// I am ignoring all of that.
-	eom := new(EOM)
-	eom.Minute = byte(minute)
-	eom.ServerIndex = state.GetServerIndex(state.GetDBHeight())
-	eom.DirectoryBlockHeight = state.GetDBHeight()
-	
-	return eom
-}

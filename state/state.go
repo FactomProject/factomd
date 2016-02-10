@@ -2,16 +2,15 @@ package state
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"os"
 	"sync"
 
 	"github.com/FactomProject/factomd/anchor"
-	"github.com/FactomProject/factomd/common/adminBlock"
-	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
+	"github.com/FactomProject/factomd/common/adminBlock"
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/factoid/block"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
@@ -77,9 +76,8 @@ type State struct {
 	// height, even if it changed out from under the calling code.
 	//
 	// Process list previous [0], present(@DBHeight) [1], and future (@DBHeight+1) [2]
-	_ProcessListsMultex *sync.Mutex
-	_ProcessLists       []*ProcessList
-	_ProcessListBase    uint32
+	
+	ProcessLists		*ProcessLists
 
 	// Factom State
 	FactoidState interfaces.IFactoidState
@@ -123,8 +121,7 @@ func (s *State) Init(filename string) {
 	s.FactoidState = fs
 
 	// Allocate the original set of Process Lists
-	s._ProcessListsMultex = new(sync.Mutex)
-	s._ProcessLists = make([]*ProcessList, 0)
+	s.ProcessLists = NewProcessLists(s)
 
 	s.DBStates 			= new(DBStateList)
 	s.DBStates.multex   = new(sync.Mutex)
@@ -187,7 +184,7 @@ func (s *State) Init(filename string) {
 
 	a, _ := anchor.InitAnchor(s)
 	s.Anchor = a
-
+log.Println("Loading Database")
 	s.loadDatabase()
 
 	s.initServerKeys()
@@ -197,25 +194,10 @@ func (s *State) GetDBState(height uint32) *DBState {
 	return s.DBStates.Get(height)
 }
 
+
 func (s *State) UpdateState() {
-
-	s._ProcessListsMultex.Lock()
-	// Create DState blocks for all completed Process Lists
-	for len(s._ProcessLists) > 0 && s._ProcessLists[0].Complete() {
-		fmt.Println("ooooooooooooooooooooooo Process List Complete!!!!!!!!!!!!!!!!!!!!!!")
-		dbheight := s._ProcessLists[0].DirectoryBlock.GetHeader().GetDBHeight()
-		s.ProcessEndOfBlock(dbheight)
-		s.FactoidState.ProcessEndOfBlock(s)
-		pl := s._ProcessLists[0]
-		pl.Process(s)
-		s.AddDBState(true, pl.DirectoryBlock, pl.AdminBlock, pl.FactoidBlock, pl.EntryCreditBlock)
-		s._ProcessLists = s._ProcessLists[1:]
-		s._ProcessListBase = dbheight
-	}
-	s._ProcessListsMultex.Unlock()
-
+	s.ProcessLists.UpdateState()
 	s.DBStates.Process(s)
-	
 }
 
 // Adds blocks that are either pulled locally from a database, or acquired from peers.
@@ -231,77 +213,42 @@ func (s *State) AddDBState(isNew bool,
 
 func (s *State) loadDatabase() {
 
-	dblk, err := s.DB.FetchDirectoryBlockHead()
-	if err != nil {
-		panic(err.Error())
-	}
-
-	if dblk == nil && s.NetworkNumber == constants.NETWORK_LOCAL {
-		dblk, err = s.CreateDBlock(0)
+	var i uint32
+	for i = 0; true ; i++ {
+		dhash, err := s.DB.FetchDBKeyMRByHeight(i)
 		if err != nil {
-			panic("Failed to initialize Factoids: " + err.Error())
+			panic(err.Error())
 		}
+		if dhash == nil {
+			break
+		}
+		dblk, err := s.DB.FetchDBlockByHash(dhash)
+		ablk,_ := s.DB.FetchABlockByHash(dblk.GetDBEntries()[0].GetKeyMR())
+		eblk,_ := s.DB.FetchECBlockByHash(dblk.GetDBEntries()[1].GetKeyMR())
+		fblk,_ := s.DB.FetchFBlockByHash(dblk.GetDBEntries()[2].GetKeyMR())
+		
+		s.AddDBState(true,dblk,ablk,fblk,eblk)
+		s.DBStates.Process(s)
+	} 
+	
+	if i==0 && s.NetworkNumber == constants.NETWORK_LOCAL {
+		dblk := new(directoryBlock.DirectoryBlock)
 		ablk := s.NewAdminBlock(0)
 		fblk := block.GetGenesisFBlock()
 		ecb := entryCreditBlock.NewECBlock()
 
-		s.AddDBState(true, dblk, ablk, fblk, ecb)
-		
-	} else {
-
-		dBlocks, err := s.DB.FetchAllDBlocks()
-		if err != nil {
-			panic(err.Error())
-		}
-
-		aBlocks, err := s.DB.FetchAllABlocks()
-		if err != nil {
-			panic(err.Error())
-		}
-
-		fBlocks, err := s.DB.FetchAllFBlocks()
-		if err != nil {
-			panic(err.Error())
-		}
-
-		ecBlocks, err := s.DB.FetchAllECBlocks()
-		if err != nil {
-			panic(err.Error())
-		}
-
-		if len(dBlocks) != len(aBlocks) ||
-			len(dBlocks) != len(fBlocks) ||
-			len(dBlocks) != len(ecBlocks) {
-			fmt.Printf("\nFailure to load all blocks on Init. D%d A%d F%d Ec%d\n", len(dBlocks), len(aBlocks), len(fBlocks), len(ecBlocks))
-		}
-
-		for i := 0; i < len(dBlocks); i++ {
-			s.AddDBState(false, dBlocks[i], aBlocks[i], fBlocks[i], ecBlocks[i])
-		}
-		s.UpdateState()
-	}
+		s.AddDBState(true, dblk, ablk, fblk, ecb)		
+		s.DBStates.Process(s)
+	} 
 }
 
 // This routine is called once we have everything to create a Directory Block.
 // It is called by the follower code.  It is requried to build the Directory Block
 // to validate the signatures we will get with the DirectoryBlockSignature messages.
 func (s *State) ProcessEndOfBlock(dbheight uint32) {
-	s.CreateDBlock(dbheight)
 	s.LastAck = nil
 }
 
-func (s *State) SetListComplete(dbheight uint32, value bool) {
-	pl := s.pli(dbheight)
-	pl.servers[pl.ServerIndex].SigComplete = value
-}
-
-func (s *State) ListComplete(dbheight uint32) bool {
-	s._ProcessListsMultex.Lock()
-	defer s._ProcessListsMultex.Unlock()
-
-	pl := s.pli(dbheight)
-	return pl.Complete()
-}
 
 // This returns the DBHeight as defined by the leader, not the follower.
 // This value shouldn't be used by follower code.
@@ -317,119 +264,6 @@ func (s *State) AddAdminBlock(interfaces.IAdminBlock) {
 
 }
 
-// Returns the Process List block for the given height.  Returns nil if the Process list
-// block specified doesn't exist or is out of range.
-func (s *State) pli(height uint32) *ProcessList {
-	s._ProcessListsMultex.Lock()
-	defer s._ProcessListsMultex.Unlock()
-	
-	i := height - s._ProcessListBase
-	if i >= uint32(len(s._ProcessLists)) { // Can't be zero, unsigned. One test tests both
-		return nil
-	}
-
-	r := s._ProcessLists[i]
-	return r
-}
-
-func (s *State) NewPli(height uint32) *ProcessList {
-	s._ProcessListsMultex.Lock()
-	defer s._ProcessListsMultex.Unlock()
-	
-	i := int(height) - int(s._ProcessListBase)
-	if i < 0 {
-		return nil // No blocks before the genesis block
-	}
-
-	for i >= len(s._ProcessLists) {
-		s._ProcessLists = append(s._ProcessLists, nil)
-	}
-
-	if s._ProcessLists[i] != nil { // Do nothing if the process list already exists.
-		return s._ProcessLists[i]
-	}
-
-	r := NewProcessList(s.totalServers, height)
-	s._ProcessLists[i] = r
-
-	return r
-}
-
-// Create a new Directory Block at the given height.
-// Return the new Current Directory Block
-func (s *State) CreateDBlock(height uint32) (interfaces.IDirectoryBlock, error) {
-
-	currPL := s.NewPli(height)
-	currPL.SetComplete(false)
-
-	newdb := directoryBlock.NewDirectoryBlock(height)
-	currPL.DirectoryBlock = newdb
-	var peb interfaces.IEntryCreditBlock
-
-	dstate := s.DBStates.Get(height - 1)
-	if dstate != nil {
-		prev := dstate.DirectoryBlock
-		bodyMR, err := prev.BuildBodyMR()
-		if err != nil {
-			return nil, err
-		}
-		newdb.GetHeader().SetBodyMR(bodyMR)
-
-		prevLedgerKeyMR := prev.GetHash()
-		if prevLedgerKeyMR == nil {
-			return nil, errors.New("prevLedgerKeyMR is nil")
-		}
-		newdb.GetHeader().SetPrevLedgerKeyMR(prevLedgerKeyMR)
-		newdb.GetHeader().SetPrevKeyMR(prev.GetKeyMR())
-		peb = dstate.EntryCreditBlock
-	}
-	
-	eb, _ := entryCreditBlock.NextECBlock(peb)
-	currPL.EntryCreditBlock = eb
-	currPL.AdminBlock = s.NewAdminBlock(height)
-	
-	return newdb, nil
-}
-
-func (s *State) GetServerIndex(dbheight uint32) int {
-	pl := s.pli(dbheight)
-	if pl == nil {
-		return -1
-	}
-	return pl.ServerIndex
-}
-
-func (s *State) GetNewEBlocks(dbheight uint32, key [32]byte) interfaces.IEntryBlock {
-	pl := s.pli(dbheight)
-	var value interfaces.IEntryBlock
-	if pl != nil {
-		value = pl.GetNewEBlocks(key)
-	}
-	return value
-}
-
-func (s *State) PutNewEBlocks(dbheight uint32, key [32]byte, value interfaces.IEntryBlock) {
-	pl := s.pli(dbheight)
-	if pl != nil {
-		pl.PutNewEBlocks(key, value)
-	}
-}
-
-func (s *State) GetCommits(dbheight uint32, key interfaces.IHash) interfaces.IMsg {
-	pl := s.pli(dbheight)
-	var value interfaces.IMsg
-	if pl != nil {
-		value = pl.GetCommits(key)
-	}
-	return value
-}
-
-func (s *State) PutCommits(dbheight uint32, key interfaces.IHash, value interfaces.IMsg) {
-	pl := s.pli(dbheight)
-	if pl != nil {
-		pl.PutCommits(key, value)
-	}
-}
 
 // Messages that will go into the Process List must match an Acknowledgement.
 // The code for this is the same for all such messages, so we put it here.
@@ -442,7 +276,7 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) (bool, error) {
 		s.Holding[m.GetHash().Fixed()] = m
 		return false, nil
 	} else {
-		pl := s.NewPli(ack.DBHeight)
+		pl := s.ProcessLists.Get(ack.DBHeight)
 		pl.AddToProcessList(ack, m)
 		delete(acks, m.GetHash().Fixed())
 		delete(s.Holding, m.GetHash().Fixed())
@@ -490,10 +324,24 @@ func (s *State) LeaderExecute(m interfaces.IMsg) error {
 	return nil
 }
 
+func (s *State) GetNewEBlocks(dbheight uint32, hash interfaces.IHash) interfaces.IEntryBlock{
+	return nil
+}
+func (s *State) PutNewEBlocks(dbheight uint32, hash interfaces.IHash, eb interfaces.IEntryBlock) {
+}
+
+func (s *State) GetCommits(dbheight uint32, hash interfaces.IHash) interfaces.IMsg {
+	return nil
+}
+func (s *State) PutCommits(dbheight uint32, hash interfaces.IHash, msg interfaces.IMsg) {
+	s.ProcessLists.Get(dbheight).PutCommits(hash,msg)
+}
+
+
 func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)  {
 	c, ok := commitChain.(*messages.CommitChainMsg)
 	if ok {
-		pl := s.pli(dbheight)
+		pl := s.ProcessLists.Get(dbheight)
 		ecblk := pl.EntryCreditBlock
 		ecbody := ecblk.GetBody()
 		ecbody.AddEntry(c.CommitChain)
@@ -507,13 +355,11 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) {
 	if !ok {
 		panic("Must pass an EOM message to ProcessEOM)")
 	}
-	s.ProcessEOM(dbheight, e)
-	
+
 	fs := s.FactoidState
 	fs.EndOfPeriod(int(e.Minute))
 	
-	fmt.Println("EOM Height ", dbheight, s.GetDBHeight(), s.GetDBHeightComplete())
-	ecblk := s.GetEntryCreditBlock(dbheight)
+	ecblk := s.ProcessLists.Get(dbheight).EntryCreditBlock
 	ecbody := ecblk.GetBody()
 	mn := entryCreditBlock.NewMinuteNumber2(e.Minute)
 	
@@ -554,24 +400,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) {
 }
 
 func (s *State) ProcessSignPL(dbheight uint32, commitChain interfaces.IMsg)  {
-	s.SetListComplete(dbheight, true)
-	if s.ListComplete(dbheight) {
-		s.ProcessEndOfBlock(dbheight)
-	}
-}
-
-
-func (s *State) GetEntryCreditBlock(dbheight uint32) interfaces.IEntryCreditBlock {
-	pl := s.pli(dbheight)
-	if pl == nil {
-		return nil
-	}
-	return pl.EntryCreditBlock
-}
-
-func (s *State) SetEntryCreditBlock(dbheight uint32, ecblk interfaces.IEntryCreditBlock) {
-	pl := s.pli(dbheight)
-	pl.EntryCreditBlock = ecblk
+	s.ProcessLists.Get(dbheight).SetSigComplete(true)
 }
 
 func (s *State) GetServer() interfaces.IServer {
@@ -607,29 +436,6 @@ func (s *State) LogInfo(args ...interface{}) {
 	s.Logger.Info(args...)
 }
 
-// Lists
-// =====
-func (s *State) GetAuditServers(dbheight uint32) []interfaces.IServer {
-	pl := s.pli(dbheight)
-	if pl == nil {
-		return nil
-	}
-	return pl.AuditServers
-}
-func (s *State) GetFedServers(dbheight uint32) []interfaces.IServer {
-	pl := s.pli(dbheight)
-	if pl == nil {
-		return nil
-	}
-	return pl.FedServers
-}
-func (s *State) GetServerOrder(dbheight uint32) [][]interfaces.IServer {
-	pl := s.pli(dbheight)
-	if pl == nil {
-		return nil
-	}
-	return pl.ServerOrder
-}
 func (s *State) GetAuditHeartBeats() []interfaces.IMsg {
 	return s.AuditHeartBeats
 }
@@ -643,30 +449,6 @@ func (s *State) GetTimestamp() interfaces.Timestamp {
 
 func (s *State) Sign([]byte) interfaces.IFullSignature {
 	return new(primitives.Signature)
-}
-
-func (s *State) GetFactoidKeyMR(dbheight uint32) interfaces.IHash {
-	pl := s.pli(dbheight)
-	if pl == nil {
-		return nil
-	}
-	return pl.FactoidBlock.GetKeyMR()
-}
-
-func (s *State) GetAdminBlock(dbheight uint32) interfaces.IAdminBlock {
-	pl := s.pli(dbheight)
-	if pl == nil {
-		return nil
-	}
-	return pl.AdminBlock
-}
-
-func (s *State) SetAdminBlock(dbheight uint32, adblock interfaces.IAdminBlock) {
-	pl := s.pli(dbheight)
-	if pl == nil {
-		return
-	}
-	pl.AdminBlock = adblock
 }
 
 func (s *State) GetFactoidState() interfaces.IFactoidState {
@@ -746,17 +528,6 @@ func (s *State) ReadCfg(filename string) interfaces.IFactomConfig {
 
 func (s *State) GetTotalServers() int {
 	return s.totalServers
-}
-
-func (s *State) GetProcessListLen(dbheight uint32, list int) int {
-	pl := s.pli(dbheight)
-	if pl == nil {
-		return 0
-	}
-	if list >= s.totalServers {
-		return -1
-	}
-	return pl.GetLen(list)
 }
 
 func (s *State) GetServerState() int {
@@ -853,11 +624,11 @@ func (s *State) NewAdminBlock(dbheight uint32) interfaces.IAdminBlock {
 func (s *State) NewAdminBlockHeader(dbheight uint32) interfaces.IABlockHeader {
 	header := new(adminBlock.ABlockHeader)
 	header.DBHeight = dbheight
-	pl := s.pli(dbheight)
-	if pl == nil || pl.AdminBlock == nil {
+	dbstate := s.DBStates.Last()
+	if dbstate == nil {
 		header.PrevLedgerKeyMR = primitives.NewHash(constants.ZERO_HASH)
 	} else {
-		keymr, err := s.pli(dbheight).AdminBlock.LedgerKeyMR()
+		keymr, err := dbstate.AdminBlock.LedgerKeyMR()
 		if err != nil {
 			panic(err.Error())
 		}
@@ -884,11 +655,6 @@ func (s *State) GetNetworkName() string {
 
 }
 
-func (s *State) SetDirectoryBlock(dbheight uint32, dirblk interfaces.IDirectoryBlock) {
-	pl := s.pli(dbheight)
-	pl.DirectoryBlock = dirblk
-}
-
 func (s *State) GetDB() interfaces.DBOverlay {
 	return s.DB
 }
@@ -909,19 +675,6 @@ func (s *State) GetDirectoryBlock() interfaces.IDirectoryBlock {
 	return s.DBStates.Last().DirectoryBlock
 }
 
-func (s *State) GetDirectoryBlockPL() interfaces.IDirectoryBlock {
-	db := s.GetDirectoryBlock()
-	dbheight := db.GetHeader().GetDBHeight() +1
-	pl := s.pli(dbheight)
-	if pl != nil {
-		return pl.DirectoryBlock
-	}
-	return nil
-}
-
-func (s *State) GetProcessListBase() uint32 {
-	return s._ProcessListBase
-}
 
 func (s *State) GetNewHash() interfaces.IHash {
 	return new(primitives.Hash)
@@ -988,4 +741,21 @@ func (s *State) NewAck(hash interfaces.IHash) (iack interfaces.IMsg, err error) 
 	// TODO:  Add the signature.
 	
 	return ack, nil
+}
+
+/**********************************************************************
+ * Support
+ **********************************************************************/
+
+func (s *State) NewEOM(minute int) interfaces.IMsg {
+	// The construction of the EOM message needs information from the state of
+	// the server to create the proper serial hashes and such.  Right now
+	// I am ignoring all of that.
+	eom := new(messages.EOM)
+	eom.Minute = byte(minute)
+	dbheight := s.DBStates.Last().DirectoryBlock.GetHeader().GetDBHeight()
+	eom.ServerIndex = s.ProcessLists.Get(dbheight).ServerIndex
+	eom.DirectoryBlockHeight = s.GetDBHeight()
+	
+	return eom
 }

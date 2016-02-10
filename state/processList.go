@@ -10,10 +10,56 @@ import (
 
 var _ = fmt.Print
 
-type ProcessList struct {
-	dBHeight uint32 // The directory block height for these lists
+type ProcessLists struct {
+	state				*State				// Pointer to the state object
+	dBHeightBase        uint32          	// Height of the first Process List in this structure.
+	listsMutex			*sync.Mutex
+	lists        		[]*ProcessList		// Pointer to the ProcessList structure for each DBHeight under construction
+}
 
-	servers []ListServer
+func (lists *ProcessLists) UpdateState() {
+	lists.listsMutex.Lock()
+	defer lists.listsMutex.Unlock()
+	
+	// First let's start at the lowest Process List not yet complete.
+	dbstate := lists.state.DBStates.Last()
+	if dbstate == nil {
+		return
+	}
+	heightBuilding := dbstate.DirectoryBlock.GetHeader().GetDBHeight()+1
+	for {
+		pl := lists.Get(heightBuilding)
+		// Create DState blocks for all completed Process Lists
+		pl.Process(lists.state)
+		if pl.Complete() {
+			lists.state.AddDBState(true, pl.DirectoryBlock, pl.AdminBlock, pl.FactoidBlock, pl.EntryCreditBlock)
+		}
+	}		
+}
+
+
+func (lists *ProcessLists) Get (dbheight uint32) *ProcessList {
+	lists.listsMutex.Lock()
+	defer lists.listsMutex.Unlock()
+	
+	i := int(dbheight) - int(lists.dBHeightBase)
+	if i < 0 {
+		return nil
+	}
+	for len(lists.lists)<= i {
+		lists.lists = append(lists.lists, nil)
+	}
+	pl := lists.lists[i]
+	if pl == nil {
+		pl = NewProcessList(lists.state.GetTotalServers(),dbheight)
+		lists.lists[i]=pl
+	}
+	return pl
+}
+
+type ProcessList struct {
+	dBHeight 			uint32 			// The directory block height for these lists
+	servers 			[]ListServer
 
 	acks *map[[32]byte]interfaces.IMsg // acknowlegments by hash
 	msgs *map[[32]byte]interfaces.IMsg // messages by hash
@@ -62,6 +108,41 @@ func (p *ProcessList) GetLen(list int) int {
 	return l
 }
 
+func (p *ProcessList) SetSigComplete(value bool) {
+	p.servers[p.ServerIndex].SigComplete = value
+}
+
+func (p *ProcessList) SetEomComplete(value bool) {
+	p.servers[p.ServerIndex].EomComplete = value
+}
+
+func (p *ProcessList) GetNewEBlocks(key[32]byte) interfaces.IEntryBlock {
+	p.NewEBlocksSem.Lock()
+	defer p.NewEBlocksSem.Unlock()
+	
+	eb := p.NewEBlocks[key]
+	return eb
+}
+
+func (p *ProcessList) GetCommits(key[32]byte) interfaces.IMsg {
+	p.CommitsSem.Lock()
+	defer p.CommitsSem.Unlock()
+	
+	c := p.Commits[key]
+	return c
+}
+
+
+func (p *ProcessList) PutNewEBlocks(dbheight uint32, key interfaces.IHash, value interfaces.IEntryBlock) {
+	p.NewEBlocksSem.Lock()
+	defer p.NewEBlocksSem.Unlock()
+		
+	p.NewEBlocks[key.Fixed()]=value
+
+}
+
+
+
 // Test if the process list is complete.  Return true if all messages
 // have been recieved, and we have all the signaures for the directory blocks.
 func (p *ProcessList) Complete() bool {
@@ -88,6 +169,7 @@ func (p *ProcessList) SetComplete(v bool) {
 	}
 }
 
+// Return true if the process list is complete 
 func (p *ProcessList) Process(state interfaces.IState) {
 	for i := 0; i < len(p.servers); i++ {
 		plist := p.servers[i].list
@@ -102,7 +184,6 @@ func (p *ProcessList) Process(state interfaces.IState) {
 			if ok && eom.Minute == 9 {
 				p.servers[i].EomComplete = true
 			}
-
 			_, ok = plist[j].(*messages.DirectoryBlockSignature)
 			if ok {
 				p.servers[i].SigComplete = true
@@ -121,30 +202,10 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	p.servers[ack.ServerIndex].list = processlist
 }
 
-func (p *ProcessList) GetNewEBlocks(key [32]byte) interfaces.IEntryBlock {
-	p.NewEBlocksSem.Lock()
-	value := p.NewEBlocks[key]
-	p.NewEBlocksSem.Unlock()
-	return value
-}
-
-func (p *ProcessList) PutNewEBlocks(key [32]byte, value interfaces.IEntryBlock) {
-	p.NewEBlocksSem.Lock()
-	p.NewEBlocks[key] = value
-	p.NewEBlocksSem.Unlock()
-}
-
-func (p *ProcessList) GetCommits(key interfaces.IHash) interfaces.IMsg {
-	p.CommitsSem.Lock()
-	value := p.Commits[key.Fixed()]
-	p.CommitsSem.Unlock()
-	return value
-}
 
 func (p *ProcessList) PutCommits(key interfaces.IHash, value interfaces.IMsg) {
 	p.CommitsSem.Lock()
 	{
-		fmt.Println("putCommits:", value)
 		cmsg, ok := value.(interfaces.ICounted)
 		if ok {
 			v := p.Commits[key.Fixed()]
@@ -167,6 +228,22 @@ func (p *ProcessList) PutCommits(key interfaces.IHash, value interfaces.IMsg) {
 /************************************************
  * Support
  ************************************************/
+
+func NewProcessLists(state interfaces.IState) *ProcessLists {
+
+	pls := new(ProcessLists)
+	
+	s,ok := state.(*State)
+	if !ok {
+		panic("Failed to initalize Process Lists because the wrong state object was used")
+	}
+	pls.state = s
+	pls.dBHeightBase = 0
+	pls.listsMutex = new(sync.Mutex)
+	pls.lists = make([]*ProcessList,0)
+	
+	return pls
+}	
 
 func NewProcessList(totalServers int, dbheight uint32) *ProcessList {
 	// We default to the number of Servers previous.   That's because we always

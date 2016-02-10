@@ -15,13 +15,11 @@ type IState interface {
 
 	// Server
 
-	GetServerIndex(dbheight uint32) int // Returns this server's index, if a federated server
 	GetCfg() IFactomConfig
 	Init(string)
 	String() string
 	Sign([]byte) IFullSignature
-	GetProcessListLen(dbheight uint32, list int) int
-
+	
 	GetServer() IServer
 	SetServer(IServer)
 
@@ -40,16 +38,11 @@ type IState interface {
 
 	// Lists and Maps
 	// =====
-	// The leader CANNOT touch these lists!  Only the FollowerExecution
-	// methods can touch them safely.
-	GetAuditServers(dbheight uint32) []IServer  // List of Audit Servers
-	GetFedServers(dbheight uint32) []IServer    // List of Federated Servers
-	GetServerOrder(dbheight uint32) [][]IServer // 10 lists for Server Order for each minute
 	GetAuditHeartBeats() []IMsg                 // The checklist of HeartBeats for this period
 	GetFedServerFaults() [][]IMsg               // Keep a fault list for every server
 
-	GetNewEBlocks(dbheight uint32, hash [32]byte) IEntryBlock
-	PutNewEBlocks(dbheight uint32, hash [32]byte, eb IEntryBlock)
+	GetNewEBlocks(dbheight uint32, hash IHash) IEntryBlock
+	PutNewEBlocks(dbheight uint32, hash IHash, eb IEntryBlock)
 
 	GetCommits(dbheight uint32, hash IHash) IMsg
 	PutCommits(dbheight uint32, hash IHash, msg IMsg)
@@ -77,8 +70,6 @@ type IState interface {
 	GetDBHeight() uint32
 	// Get the last finished directory block
 	GetDirectoryBlock() IDirectoryBlock
-	// Get the next Directory Block, currently under construction
-	GetDirectoryBlockPL() IDirectoryBlock
 	
 	GetAnchor() IAnchor
 
@@ -105,6 +96,7 @@ type IState interface {
 
 	// For messages that go into the Process List
 	LeaderExecute(m IMsg) error
+	NewEOM(int) IMsg
 	
 	GetTimestamp() Timestamp
 	PrintType(int) bool // Debugging

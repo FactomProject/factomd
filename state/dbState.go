@@ -6,12 +6,14 @@ package state
 
 import (
 	"log"
+	"fmt"
 	"sync"
 	"github.com/FactomProject/factomd/common/directoryBlock/dbInfo"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"time"
 )
 
+var _ = fmt.Print
 var _ = time.Now()
 var _ = log.Print
 
@@ -53,7 +55,7 @@ func (list *DBStateList) Last() *DBState {
 func (list *DBStateList) Put (dbstate *DBState) {
 	list.multex.Lock()	
 	defer list.multex.Unlock()
-
+	
 	dbheight := dbstate.DirectoryBlock.GetHeader().GetDBHeight()
 		
 	index := int(dbheight)-int(list.base) 
@@ -112,12 +114,12 @@ func NewDBState(isNew            bool,
 				FactoidBlock     interfaces.IFBlock,
 				EntryCreditBlock interfaces.IEntryCreditBlock) *DBState {
 	dbstate := new(DBState)
-	
+
 	dbstate.isNew	 		 = isNew
 	dbstate.DirectoryBlock	 = DirectoryBlock
 	dbstate.AdminBlock       = AdminBlock
 	dbstate.FactoidBlock     = FactoidBlock
 	dbstate.EntryCreditBlock = EntryCreditBlock
-	
+	fmt.Println(DirectoryBlock)
 	return dbstate
 }
