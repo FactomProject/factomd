@@ -214,7 +214,7 @@ func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
 	hash2 = fs.CurrentBlock.GetLedgerKeyMR()
 
 	s := state.(*State)
-	dbheight := s.DBStates.Last().DirectoryBlock.GetHeader().GetDBHeight()+1
+	dbheight := s.DBStates.Last().DirectoryBlock.GetHeader().GetDBHeight() + 1
 	db := s.ProcessLists.Get(dbheight).DirectoryBlock
 	db.GetDBEntries()[2].SetKeyMR(hash)
 

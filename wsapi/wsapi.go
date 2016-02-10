@@ -43,6 +43,7 @@ func Start(state interfaces.IState) {
 		server.Get("/v1/get-raw-data/([^/]+)", HandleGetRaw)
 		server.Get("/v1/get-receipt/([^/]+)", HandleGetReceipt)
 		server.Get("/v1/directory-block-by-keymr/([^/]+)", HandleDirectoryBlock)
+		server.Get("/v1/directory-block-height/?", HandleDirectoryBlockHeight)
 		server.Get("/v1/entry-block-by-keymr/([^/]+)", HandleEntryBlock)
 		server.Get("/v1/entry-by-hash/([^/]+)", HandleEntry)
 		server.Get("/v1/chain-head/([^/]+)", HandleChainHead)
@@ -209,6 +210,31 @@ func HandleDirectoryBlock(ctx *web.Context, hashkey string) {
 	d.EntryBlockList = jsonResp.Result.(*DirectoryBlockResponse).EntryBlockList
 
 	returnMsg(ctx, d, true)
+}
+
+func HandleDirectoryBlockHeight(ctx *web.Context) {
+	/*type dbheight struct {
+		Height int
+	}
+
+	h := new(dbheight)
+	if block, err := factomapi.DBlockHead(); err != nil {
+		wsLog.Error(err)
+		ctx.WriteHeader(httpBad)
+		ctx.Write([]byte(err.Error()))
+		return
+	} else {
+		h.Height = int(block.Header.DBHeight)
+	}
+
+	if p, err := json.Marshal(h); err != nil {
+		wsLog.Error(err)
+		ctx.WriteHeader(httpBad)
+		ctx.Write([]byte(err.Error()))
+		return
+	} else {
+		ctx.Write(p)
+	}*/
 }
 
 func HandleEntryBlock(ctx *web.Context, hashkey string) {

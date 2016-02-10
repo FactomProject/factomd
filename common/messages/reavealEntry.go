@@ -134,7 +134,7 @@ func (m *RevealEntryMsg) Validate(dbheight uint32, state interfaces.IState) int 
 	if m.isEntry {
 		chainID := m.Entry.GetChainID()
 		eblk := state.GetNewEBlocks(dbheight, chainID) // Look see if already in the new block.
-		if eblk == nil {                                       // No?  Then look see if it exists in DB
+		if eblk == nil {                               // No?  Then look see if it exists in DB
 			eblk, _ := state.GetDB().FetchEBlockHead(chainID)
 			if eblk == nil {
 				fmt.Println("KSize", m.Entry.KSize(), ECs)

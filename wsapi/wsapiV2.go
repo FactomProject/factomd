@@ -494,15 +494,32 @@ func HandleV2EntryCreditBalance(state interfaces.IState, params interface{}) (in
 	if ok == false {
 		return nil, NewInvalidParamsError()
 	}
-	adr, err := primitives.HexToHash(eckey)
+
+	var adr []byte
+	var err error
+
+	if primitives.ValidateECUserStr(eckey) {
+		adr = primitives.ConvertUserStrToAddress(eckey)
+	} else {
+		adr, err = hex.DecodeString(eckey)
+		if err == nil && len(adr) != constants.HASH_LENGTH {
+			return nil, NewInvalidAddressError()
+		}
+		if err != nil {
+			return nil, NewInvalidAddressError()
+		}
+	}
+
+	if len(adr) != constants.HASH_LENGTH {
+		return nil, NewInvalidAddressError()
+	}
+
+	address, err := primitives.NewShaHash(adr)
 	if err != nil {
 		return nil, NewInvalidAddressError()
 	}
-	if adr == nil {
-		return nil, NewInvalidAddressError()
-	}
 	resp := new(EntryCreditBalanceResponse)
-	resp.Balance = state.GetFactoidState().GetECBalance(adr.Fixed())
+	resp.Balance = state.GetFactoidState().GetECBalance(address.Fixed())
 	return resp, nil
 }
 
@@ -543,19 +560,79 @@ func HandleV2FactoidSubmit(state interfaces.IState, params interface{}) (interfa
 }
 
 func HandleV2FactoidBalance(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
-	eckey, ok := params.(string)
+	fkey, ok := params.(string)
 	if ok == false {
 		return nil, NewInvalidParamsError()
 	}
 
-	adr, err := hex.DecodeString(eckey)
-	if err != nil {
+	var adr []byte
+	var err error
+
+	if primitives.ValidateFUserStr(fkey) {
+		adr = primitives.ConvertUserStrToAddress(fkey)
+	} else {
+		adr, err = hex.DecodeString(fkey)
+		if err == nil && len(adr) != constants.HASH_LENGTH {
+			return nil, NewInvalidAddressError()
+		}
+		if err != nil {
+			return nil, NewInvalidAddressError()
+		}
+	}
+
+	if len(adr) != constants.HASH_LENGTH {
 		return nil, NewInvalidAddressError()
 	}
-	if err == nil && len(adr) != constants.HASH_LENGTH {
-		return nil, NewInvalidAddressError()
-	}
+
 	resp := new(FactoidBalanceResponse)
 	resp.Balance = state.GetFactoidState().GetFactoidBalance(factoid.NewAddress(adr).Fixed())
 	return resp, nil
 }
+
+/*
+
+func handleEntryCreditBalance(ctx *web.Context, eckey string) {
+	type ecbal struct {
+		Response string
+		Success  bool
+	}
+	var b ecbal
+	var adr []byte
+	var err error
+
+	if fct.ValidateECUserStr(eckey) {
+		adr = fct.ConvertUserStrToAddress(eckey)
+	} else {
+		adr, err = hex.DecodeString(eckey)
+		if err == nil && len(adr) != constants.HASH_LENGTH {
+			b = ecbal{Response: "Invalid Address", Success: false}
+		}
+		if err != nil {
+			b = ecbal{Response: err.Error(), Success: false}
+		}
+	}
+
+	if len(adr) != constants.HASH_LENGTH {
+		b = ecbal{Response: "Invalid Address", Success: false}
+	} else {
+		address := hex.EncodeToString(adr)
+		if bal, err := factomapi.ECBalance(address); err != nil {
+			b = ecbal{Response: err.Error(), Success: false}
+		} else {
+			str := fmt.Sprintf("%d", bal)
+			b = ecbal{Response: str, Success: true}
+		}
+	}
+
+	if p, err := json.Marshal(b); err != nil {
+		wsLog.Error(err)
+		return
+	} else {
+		ctx.Write(p)
+	}
+}
+
+func handleFactoidBalance(ctx *web.Context, fkey string) {
+
+}
+*/
