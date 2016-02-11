@@ -134,6 +134,9 @@ func HandleV2GetRequest(state interfaces.IState, j *primitives.JSON2Request) (*p
 	case "factoid-get-fee":
 		resp, jsonError = HandleV2GetFee(state, params)
 		break
+	case "directory-block-height":
+		resp, jsonError = HandleV2DirectoryBlockHeight(state, params)
+		break
 	default:
 		jsonError = NewMethodNotFoundError()
 		break
@@ -589,50 +592,8 @@ func HandleV2FactoidBalance(state interfaces.IState, params interface{}) (interf
 	return resp, nil
 }
 
-/*
-
-func handleEntryCreditBalance(ctx *web.Context, eckey string) {
-	type ecbal struct {
-		Response string
-		Success  bool
-	}
-	var b ecbal
-	var adr []byte
-	var err error
-
-	if fct.ValidateECUserStr(eckey) {
-		adr = fct.ConvertUserStrToAddress(eckey)
-	} else {
-		adr, err = hex.DecodeString(eckey)
-		if err == nil && len(adr) != constants.HASH_LENGTH {
-			b = ecbal{Response: "Invalid Address", Success: false}
-		}
-		if err != nil {
-			b = ecbal{Response: err.Error(), Success: false}
-		}
-	}
-
-	if len(adr) != constants.HASH_LENGTH {
-		b = ecbal{Response: "Invalid Address", Success: false}
-	} else {
-		address := hex.EncodeToString(adr)
-		if bal, err := factomapi.ECBalance(address); err != nil {
-			b = ecbal{Response: err.Error(), Success: false}
-		} else {
-			str := fmt.Sprintf("%d", bal)
-			b = ecbal{Response: str, Success: true}
-		}
-	}
-
-	if p, err := json.Marshal(b); err != nil {
-		wsLog.Error(err)
-		return
-	} else {
-		ctx.Write(p)
-	}
+func HandleV2DirectoryBlockHeight(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	h := new(DirectoryBlockHeightResponse)
+	h.Height = int64(state.GetDirectoryBlock().GetHeader().GetDBHeight())
+	return h, nil
 }
-
-func handleFactoidBalance(ctx *web.Context, fkey string) {
-
-}
-*/

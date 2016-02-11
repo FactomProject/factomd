@@ -213,28 +213,16 @@ func HandleDirectoryBlock(ctx *web.Context, hashkey string) {
 }
 
 func HandleDirectoryBlockHeight(ctx *web.Context) {
-	/*type dbheight struct {
-		Height int
+	state := ctx.Server.Env["state"].(interfaces.IState)
+
+	req := primitives.NewJSON2Request(1, nil, "directory-block-height")
+
+	jsonResp, jsonError := HandleV2GetRequest(state, req)
+	if jsonError != nil {
+		returnV1(ctx, nil, jsonError)
 	}
 
-	h := new(dbheight)
-	if block, err := factomapi.DBlockHead(); err != nil {
-		wsLog.Error(err)
-		ctx.WriteHeader(httpBad)
-		ctx.Write([]byte(err.Error()))
-		return
-	} else {
-		h.Height = int(block.Header.DBHeight)
-	}
-
-	if p, err := json.Marshal(h); err != nil {
-		wsLog.Error(err)
-		ctx.WriteHeader(httpBad)
-		ctx.Write([]byte(err.Error()))
-		return
-	} else {
-		ctx.Write(p)
-	}*/
+	returnMsg(ctx, jsonResp.Result.(*DirectoryBlockHeightResponse), true)
 }
 
 func HandleEntryBlock(ctx *web.Context, hashkey string) {

@@ -88,6 +88,10 @@ type FactoidGetFeeResponse struct {
 	Fee uint64
 }
 
+type DirectoryBlockHeightResponse struct {
+	Height int64
+}
+
 /*********************************************************************/
 
 type DBHead struct {
