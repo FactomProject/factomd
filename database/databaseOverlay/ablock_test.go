@@ -98,7 +98,7 @@ func TestSaveLoadABlockChain(t *testing.T) {
 	zero := primitives.NewZeroHash()
 	fetchedCount := 1
 	for {
-		keyMR := current.GetHeader().GetPrevLedgerKeyMR()
+		keyMR := current.GetHeader().GetPrevFullHash()
 		if keyMR.IsSameAs(zero) {
 			break
 		}

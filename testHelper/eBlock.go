@@ -26,7 +26,7 @@ func CreateTestEntryBlock(prev *entryBlock.EBlock) (*entryBlock.EBlock, []*entry
 		if err != nil {
 			panic(err)
 		}
-		e.Header.SetPrevLedgerKeyMR(hash)
+		e.Header.SetPrevFullHash(hash)
 		e.Header.SetDBHeight(prev.Header.GetDBHeight() + 1)
 
 		e.Header.SetChainID(prev.Header.GetChainID())
@@ -64,7 +64,7 @@ func CreateTestAnchorEntryBlock(prev *entryBlock.EBlock, prevDBlock *directoryBl
 		if err != nil {
 			panic(err)
 		}
-		e.Header.SetPrevLedgerKeyMR(hash)
+		e.Header.SetPrevFullHash(hash)
 		e.Header.SetDBHeight(prev.Header.GetDBHeight() + 1)
 
 		e.Header.SetChainID(prev.Header.GetChainID())

@@ -19,7 +19,7 @@ type IState interface {
 	Init(string)
 	String() string
 	Sign([]byte) IFullSignature
-	
+
 	GetServer() IServer
 	SetServer(IServer)
 
@@ -38,8 +38,8 @@ type IState interface {
 
 	// Lists and Maps
 	// =====
-	GetAuditHeartBeats() []IMsg                 // The checklist of HeartBeats for this period
-	GetFedServerFaults() [][]IMsg               // Keep a fault list for every server
+	GetAuditHeartBeats() []IMsg   // The checklist of HeartBeats for this period
+	GetFedServerFaults() [][]IMsg // Keep a fault list for every server
 
 	GetNewEBlocks(dbheight uint32, hash IHash) IEntryBlock
 	PutNewEBlocks(dbheight uint32, hash IHash, eb IEntryBlock)
@@ -70,7 +70,7 @@ type IState interface {
 	GetDBHeight() uint32
 	// Get the last finished directory block
 	GetDirectoryBlock() IDirectoryBlock
-	
+
 	GetAnchor() IAnchor
 
 	// Web Services
@@ -87,17 +87,18 @@ type IState interface {
 	// MISC
 	// ====
 
-	FollowerExecuteMsg(m IMsg) (bool, error) // Messages that go into the process list 
-	FollowerExecuteAck(m IMsg) (bool, error) // Ack Msg calls this function.	
+	FollowerExecuteMsg(m IMsg) (bool, error) // Messages that go into the process list
+	FollowerExecuteAck(m IMsg) (bool, error) // Ack Msg calls this function.
 
-	ProcessCommitChain(dbheight uint32, commitChain IMsg) 
-	ProcessSignPL(dbheight uint32, commitChain IMsg) 
+	ProcessCommitChain(dbheight uint32, commitChain IMsg)
+	ProcessSignPL(dbheight uint32, commitChain IMsg)
 	ProcessEOM(dbheight uint32, eom IMsg)
 
 	// For messages that go into the Process List
 	LeaderExecute(m IMsg) error
+	LeaderExecuteEOM(m IMsg) error
 	NewEOM(int) IMsg
-	
+
 	GetTimestamp() Timestamp
 	PrintType(int) bool // Debugging
 

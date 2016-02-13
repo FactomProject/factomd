@@ -65,6 +65,7 @@ type State struct {
 
 	// Directory Block State
 	DBHeight          uint32	   // Height as understood by the leader
+	ServerIndex       int          // Index of the server, as understood by the leader
 	DBStates          *DBStateList // Holds all DBStates not yet processed.
 
 	// Having all the state for a particular directory block stored in one structure
@@ -124,6 +125,7 @@ func (s *State) Init(filename string) {
 	s.ProcessLists = NewProcessLists(s)
 
 	s.DBStates 			= new(DBStateList)
+	s.DBStates.state    = s
 	s.DBStates.multex   = new(sync.Mutex)
 	s.DBStates.DBStates	=	make([]*DBState, 0)
 
@@ -184,9 +186,8 @@ func (s *State) Init(filename string) {
 
 	a, _ := anchor.InitAnchor(s)
 	s.Anchor = a
-log.Println("Loading Database")
+	
 	s.loadDatabase()
-
 	s.initServerKeys()
 }
 
@@ -196,48 +197,45 @@ func (s *State) GetDBState(height uint32) *DBState {
 
 
 func (s *State) UpdateState() {
+	fmt.Println("Update PL")
 	s.ProcessLists.UpdateState()
+	fmt.Println("Update DBStates")
 	s.DBStates.Process(s)
 }
 
-// Adds blocks that are either pulled locally from a database, or acquired from peers.
-func (s *State) AddDBState(isNew bool,
-	directoryBlock interfaces.IDirectoryBlock,
-	adminBlock interfaces.IAdminBlock,
-	factoidBlock interfaces.IFBlock,
-	entryCreditBlock interfaces.IEntryCreditBlock) {
-
-	dbState := NewDBState(isNew, directoryBlock, adminBlock, factoidBlock, entryCreditBlock)
-	s.DBStates.Put(dbState)
-}
 
 func (s *State) loadDatabase() {
 
 	var i uint32
 	for i = 0; true ; i++ {
-		dhash, err := s.DB.FetchDBKeyMRByHeight(i)
-		if err != nil {
-			panic(err.Error())
+		var dhash interfaces.IHash
+		var err   error
+		if dhash, err = s.DB.FetchDBKeyMRByHeight(i); err != nil {
+			panic(err)
 		}
-		if dhash == nil {
+		d, err := s.DB.FetchDBlockByHash(dhash)
+		if err != nil {
+			panic(err)
+		}
+		if d == nil {
 			break
 		}
-		dblk, err := s.DB.FetchDBlockByHash(dhash)
+		dblk := d
 		ablk,_ := s.DB.FetchABlockByHash(dblk.GetDBEntries()[0].GetKeyMR())
 		eblk,_ := s.DB.FetchECBlockByHash(dblk.GetDBEntries()[1].GetKeyMR())
 		fblk,_ := s.DB.FetchFBlockByHash(dblk.GetDBEntries()[2].GetKeyMR())
 		
-		s.AddDBState(true,dblk,ablk,fblk,eblk)
+		s.DBStates.NewDBState(true,dblk,ablk,fblk,eblk)
 		s.DBStates.Process(s)
 	} 
 	
 	if i==0 && s.NetworkNumber == constants.NETWORK_LOCAL {
-		dblk := directoryBlock.NewDirectoryBlock(0)
+		dblk := directoryBlock.NewDirectoryBlock(0,nil)
 		ablk := s.NewAdminBlock(0)
 		fblk := block.GetGenesisFBlock()
-		ecb := entryCreditBlock.NewECBlock()
+		eblk := entryCreditBlock.NewECBlock()
 
-		s.AddDBState(true, dblk, ablk, fblk, ecb)		
+		s.DBStates.NewDBState(true,dblk,ablk,fblk,eblk)
 		s.DBStates.Process(s)
 	} 
 }
@@ -323,6 +321,14 @@ func (s *State) LeaderExecute(m interfaces.IMsg) error {
 	s.FollowerInMsgQueue() <- m // the msg follows the Ack, but it doesn't matter much.
 	return nil
 }
+
+func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
+	eom,_ := m.(*messages.EOM)
+	eom.DirectoryBlockHeight = s.DBHeight
+	fmt.Println ("EOM",s.DBHeight)
+	return s.LeaderExecute(eom)
+}
+
 
 func (s *State) GetNewEBlocks(dbheight uint32, hash interfaces.IHash) interfaces.IEntryBlock{
 	return nil
@@ -626,13 +632,13 @@ func (s *State) NewAdminBlockHeader(dbheight uint32) interfaces.IABlockHeader {
 	header.DBHeight = dbheight
 	dbstate := s.DBStates.Last()
 	if dbstate == nil {
-		header.PrevLedgerKeyMR = primitives.NewHash(constants.ZERO_HASH)
+		header.PrevFullHash = primitives.NewHash(constants.ZERO_HASH)
 	} else {
-		keymr, err := dbstate.AdminBlock.LedgerKeyMR()
+		keymr, err := dbstate.AdminBlock.FullHash()
 		if err != nil {
 			panic(err.Error())
 		}
-		header.PrevLedgerKeyMR = keymr
+		header.PrevFullHash = keymr
 	}
 	header.HeaderExpansionSize = 0
 	header.HeaderExpansionArea = make([]byte, 0)
@@ -753,8 +759,7 @@ func (s *State) NewEOM(minute int) interfaces.IMsg {
 	// I am ignoring all of that.
 	eom := new(messages.EOM)
 	eom.Minute = byte(minute)
-	dbheight := s.DBStates.Last().DirectoryBlock.GetHeader().GetDBHeight()
-	eom.ServerIndex = s.ProcessLists.Get(dbheight).ServerIndex
+	eom.ServerIndex = s.ServerIndex
 	eom.DirectoryBlockHeight = s.GetDBHeight()
 	
 	return eom

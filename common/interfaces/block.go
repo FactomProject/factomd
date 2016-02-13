@@ -39,7 +39,7 @@ type IFBlock interface {
 	Validate() error
 	ValidateTransaction(int, ITransaction) error
 	// Marshal just the header for the block. This is to include the header
-	// in the LedgerKeyMR
+	// in the FullHash
 	MarshalHeader() ([]byte, error)
 	// Marshal just the transactions.  This is because we need the length
 	MarshalTrans() ([]byte, error)
@@ -60,9 +60,9 @@ type IFBlock interface {
 	GetPrevKeyMR() IHash
 	SetPrevKeyMR([]byte)
 	GetLedgerMR() IHash
-	GetLedgerKeyMR() IHash
-	GetPrevLedgerKeyMR() IHash
-	SetPrevLedgerKeyMR([]byte)
+	GetFullHash() IHash
+	GetPrevFullHash() IHash
+	SetPrevFullHash([]byte)
 	// Accessors for the Directory Block Height
 	SetDBHeight(uint32)
 	GetDBHeight() uint32

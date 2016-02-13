@@ -72,7 +72,7 @@ func (c *AdminBlock) GetChainID() interfaces.IHash {
 }
 
 func (c *AdminBlock) DatabasePrimaryIndex() interfaces.IHash {
-	key, _ := c.LedgerKeyMR()
+	key, _ := c.FullHash()
 	return key
 }
 
@@ -82,10 +82,10 @@ func (c *AdminBlock) DatabaseSecondaryIndex() interfaces.IHash {
 }
 
 func (c *AdminBlock) GetKeyMR() (interfaces.IHash, error) {
-	return c.LedgerKeyMR()
+	return c.FullHash()
 }
 
-func (ab *AdminBlock) LedgerKeyMR() (interfaces.IHash, error) {
+func (ab *AdminBlock) FullHash() (interfaces.IHash, error) {
 	if ab.fullHash == nil {
 		err := ab.BuildFullBHash()
 		if err != nil {

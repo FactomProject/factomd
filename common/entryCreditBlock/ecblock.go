@@ -176,7 +176,7 @@ func (e *ECBlock) marshalHeaderBinary() ([]byte, error) {
 	buf.Write(e.GetHeader().GetPrevHeaderHash().Bytes())
 
 	// 32 byte Previous Full Hash
-	buf.Write(e.GetHeader().GetPrevLedgerKeyMR().Bytes())
+	buf.Write(e.GetHeader().GetPrevFullHash().Bytes())
 
 	// 4 byte Directory Block Height
 	if err := binary.Write(buf, binary.BigEndian, e.GetHeader().GetDBHeight()); err != nil {
@@ -314,7 +314,7 @@ func (e *ECBlock) unmarshalHeaderBinaryData(data []byte) (newData []byte, err er
 	if _, err = buf.Read(hash); err != nil {
 		return
 	} else {
-		e.Header.GetPrevLedgerKeyMR().SetBytes(hash)
+		e.Header.GetPrevFullHash().SetBytes(hash)
 	}
 
 	h := e.Header.GetDBHeight()
@@ -383,7 +383,7 @@ func NextECBlock(prev interfaces.IEntryCreditBlock) (interfaces.IEntryCreditBloc
 	// Handle the really unusual case of the first block.
 	if prev == nil {
 		e.GetHeader().SetPrevHeaderHash(primitives.NewHash(constants.ZERO_HASH))
-		e.GetHeader().SetPrevLedgerKeyMR(primitives.NewHash(constants.ZERO_HASH))
+		e.GetHeader().SetPrevFullHash(primitives.NewHash(constants.ZERO_HASH))
 		e.GetHeader().SetDBHeight(0)
 	} else {
 		v, err := prev.HeaderHash()
@@ -396,7 +396,7 @@ func NextECBlock(prev interfaces.IEntryCreditBlock) (interfaces.IEntryCreditBloc
 		if err != nil {
 			return nil, err
 		}
-		e.GetHeader().SetPrevLedgerKeyMR(v)
+		e.GetHeader().SetPrevFullHash(v)
 
 		e.GetHeader().SetDBHeight(prev.GetHeader().GetDBHeight() + 1)
 	}

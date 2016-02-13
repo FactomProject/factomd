@@ -15,7 +15,7 @@ import (
 
 // Admin Block Header
 type ABlockHeader struct {
-	PrevLedgerKeyMR interfaces.IHash
+	PrevFullHash interfaces.IHash
 	DBHeight        uint32
 
 	HeaderExpansionSize uint64
@@ -59,8 +59,8 @@ func (b *ABlockHeader) GetHeaderExpansionSize() uint64 {
 	return b.HeaderExpansionSize
 }
 
-func (b *ABlockHeader) GetPrevLedgerKeyMR() interfaces.IHash {
-	return b.PrevLedgerKeyMR
+func (b *ABlockHeader) GetPrevFullHash() interfaces.IHash {
+	return b.PrevFullHash
 }
 
 func (b *ABlockHeader) SetDBHeight(dbheight uint32) {
@@ -71,8 +71,8 @@ func (b *ABlockHeader) SetHeaderExpansionArea(area []byte) {
 	b.HeaderExpansionArea = area
 }
 
-func (b *ABlockHeader) SetPrevLedgerKeyMR(keyMR interfaces.IHash) {
-	b.PrevLedgerKeyMR = keyMR
+func (b *ABlockHeader) SetPrevFullHash(keyMR interfaces.IHash) {
+	b.PrevFullHash = keyMR
 }
 
 // Write out the ABlockHeader to binary.
@@ -85,7 +85,7 @@ func (b *ABlockHeader) MarshalBinary() (data []byte, err error) {
 	}
 	buf.Write(data)
 
-	data, err = b.PrevLedgerKeyMR.MarshalBinary()
+	data, err = b.PrevFullHash.MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
@@ -114,8 +114,8 @@ func (b *ABlockHeader) UnmarshalBinaryData(data []byte) (newData []byte, err err
 		return
 	}
 
-	b.PrevLedgerKeyMR = new(primitives.Hash)
-	newData, err = b.PrevLedgerKeyMR.UnmarshalBinaryData(newData)
+	b.PrevFullHash = new(primitives.Hash)
+	newData, err = b.PrevFullHash.UnmarshalBinaryData(newData)
 	if err != nil {
 		return
 	}

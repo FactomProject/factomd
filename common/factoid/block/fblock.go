@@ -25,7 +25,7 @@ type FBlock struct {
 	//  ChainID         interfaces.IHash     // ChainID.  But since this is a constant, we need not actually use space to store it.
 	BodyMR          interfaces.IHash // Merkle root of the Factoid transactions which accompany this block.
 	PrevKeyMR       interfaces.IHash // Key Merkle root of previous block.
-	PrevLedgerKeyMR interfaces.IHash // Sha3 of the previous Factoid Block
+	PrevFullHash interfaces.IHash // Sha3 of the previous Factoid Block
 	ExchRate        uint64           // Factoshis per Entry Credit
 	DBHeight        uint32           // Directory Block height
 	// Header Expansion Size  varint
@@ -159,10 +159,10 @@ func (b *FBlock) MarshalHeader() ([]byte, error) {
 	}
 	out.Write(data)
 
-	if b.PrevLedgerKeyMR == nil {
-		b.PrevLedgerKeyMR = new(primitives.Hash)
+	if b.PrevFullHash == nil {
+		b.PrevFullHash = new(primitives.Hash)
 	}
-	data, err = b.PrevLedgerKeyMR.MarshalBinary()
+	data, err = b.PrevFullHash.MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
@@ -236,8 +236,8 @@ func (b *FBlock) UnmarshalBinaryData(data []byte) (newdata []byte, err error) {
 		return nil, err
 	}
 
-	b.PrevLedgerKeyMR = new(primitives.Hash)
-	data, err = b.PrevLedgerKeyMR.UnmarshalBinaryData(data)
+	b.PrevFullHash = new(primitives.Hash)
+	data, err = b.PrevFullHash.UnmarshalBinaryData(data)
 	if err != nil {
 		return nil, err
 	}
@@ -306,7 +306,7 @@ func (b1 *FBlock) IsEqual(block interfaces.IBlock) []interfaces.IBlock {
 	if r != nil {
 		return append(r, b1)
 	}
-	r = b1.PrevLedgerKeyMR.IsEqual(b2.PrevLedgerKeyMR)
+	r = b1.PrevFullHash.IsEqual(b2.PrevFullHash)
 	if r != nil {
 		return append(r, b1)
 	}
@@ -345,13 +345,13 @@ func (b *FBlock) GetKeyMR() interfaces.IHash {
 }
 
 // Calculates the Key Merkle Root for this block and returns it.
-func (b *FBlock) GetLedgerKeyMR() interfaces.IHash {
+func (b *FBlock) GetFullHash() interfaces.IHash {
 
 	ledgerMR := b.GetLedgerMR()
 
 	data, err := b.MarshalHeader()
 	if err != nil {
-		panic("Failed to create LedgerKeyMR: " + err.Error())
+		panic("Failed to create FullHash: " + err.Error())
 	}
 	headerHash := primitives.Sha(data)
 	cat := append(ledgerMR.Bytes(), headerHash.Bytes()...)
@@ -422,12 +422,12 @@ func (b *FBlock) SetPrevKeyMR(hash []byte) {
 	b.PrevKeyMR = h
 }
 
-func (b *FBlock) GetPrevLedgerKeyMR() interfaces.IHash {
-	return b.PrevLedgerKeyMR
+func (b *FBlock) GetPrevFullHash() interfaces.IHash {
+	return b.PrevFullHash
 }
 
-func (b *FBlock) SetPrevLedgerKeyMR(hash []byte) {
-	b.PrevLedgerKeyMR.SetBytes(hash)
+func (b *FBlock) SetPrevFullHash(hash []byte) {
+	b.PrevFullHash.SetBytes(hash)
 }
 
 func (b *FBlock) CalculateHashes() {
@@ -603,11 +603,11 @@ func (b FBlock) CustomMarshalText() (text []byte, err error) {
 	}
 	out.WriteString("\n  PrevKeyMR:     ")
 	out.WriteString(b.PrevKeyMR.String())
-	if b.PrevLedgerKeyMR == nil {
-		b.PrevLedgerKeyMR = new(primitives.Hash)
+	if b.PrevFullHash == nil {
+		b.PrevFullHash = new(primitives.Hash)
 	}
-	out.WriteString("\n  PrevLedgerKeyMR:  ")
-	out.WriteString(b.PrevLedgerKeyMR.String())
+	out.WriteString("\n  PrevFullHash:  ")
+	out.WriteString(b.PrevFullHash.String())
 	out.WriteString("\n  ExchRate:      ")
 	primitives.WriteNumber64(&out, b.ExchRate)
 	out.WriteString("\n  DBHeight:      ")
@@ -663,7 +663,7 @@ func NewFBlock(exchRate uint64, dbHeight uint32) interfaces.IFBlock {
 	scb := new(FBlock)
 	scb.BodyMR = new(primitives.Hash)
 	scb.PrevKeyMR = new(primitives.Hash)
-	scb.PrevLedgerKeyMR = new(primitives.Hash)
+	scb.PrevFullHash = new(primitives.Hash)
 	scb.ExchRate = exchRate
 	scb.DBHeight = dbHeight
 	return scb
@@ -673,7 +673,7 @@ func NewFBlockFromPreviousBlock(exchangeRate uint64, prev interfaces.IFBlock) in
 	if prev != nil {
 		newBlock := NewFBlock(exchangeRate, prev.GetDBHeight()+1)
 		newBlock.SetPrevKeyMR(prev.GetKeyMR().Bytes())
-		newBlock.SetPrevLedgerKeyMR(prev.GetLedgerKeyMR().Bytes())
+		newBlock.SetPrevFullHash(prev.GetFullHash().Bytes())
 		return newBlock
 	}
 	return NewFBlock(exchangeRate, 0)

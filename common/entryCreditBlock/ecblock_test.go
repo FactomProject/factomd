@@ -84,7 +84,7 @@ func createECBlock() *ECBlock {
 	ecb1.Header.(*ECBlockHeader).ECChainID.SetBytes(byteof(0x11))
 	ecb1.Header.(*ECBlockHeader).BodyHash.SetBytes(byteof(0x22))
 	ecb1.Header.(*ECBlockHeader).PrevHeaderHash.SetBytes(byteof(0x33))
-	ecb1.Header.(*ECBlockHeader).PrevLedgerKeyMR.SetBytes(byteof(0x44))
+	ecb1.Header.(*ECBlockHeader).PrevFullHash.SetBytes(byteof(0x44))
 	ecb1.Header.(*ECBlockHeader).DBHeight = 10
 	ecb1.Header.(*ECBlockHeader).HeaderExpansionArea = byteof(0x55)
 	ecb1.Header.(*ECBlockHeader).ObjectCount = 0

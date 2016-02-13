@@ -41,16 +41,10 @@ func Timer(state interfaces.IState) {
 				pls = fmt.Sprintf("%s #%d:%d;", pls, i+1, 0, i)
 			}
 
-			lenFollower := len(state.FollowerInMsgQueue())
-
-			fmt.Printf("\r%19s: FollowQ: %d db ht: %v db complete: %v %s %s",
+			fmt.Printf("\r%19s: %s %s\n",
 				"Timer",
-				lenFollower,
-				state.GetDBHeight(),
-				state.GetDirectoryBlock().GetHeader().GetDBHeight(),
-				pls,
+				state.String(),
 				(string)((([]byte)("-\\|/-\\|/-="))[i]))
-			fmt.Println()
 			// End of the last period, and this is a server, send messages that
 			// close off the minute.
 			if state.GetServerState() == 1 {
@@ -58,7 +52,6 @@ func Timer(state interfaces.IState) {
 				state.LeaderInMsgQueue() <- eom
 				state.NetworkOutMsgQueue() <- eom
 			}
-
 		}
 	}
 

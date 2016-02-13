@@ -22,8 +22,8 @@ type IECBlockHeader interface {
 	SetBodyHash(IHash)
 	GetPrevHeaderHash() IHash
 	SetPrevHeaderHash(IHash)
-	GetPrevLedgerKeyMR() IHash
-	SetPrevLedgerKeyMR(IHash)
+	GetPrevFullHash() IHash
+	SetPrevFullHash(IHash)
 	GetDBHeight() uint32
 	SetDBHeight(uint32)
 	GetECChainID() IHash

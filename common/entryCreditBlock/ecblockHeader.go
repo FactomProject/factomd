@@ -17,7 +17,7 @@ type ECBlockHeader struct {
 	ECChainID           interfaces.IHash
 	BodyHash            interfaces.IHash
 	PrevHeaderHash      interfaces.IHash
-	PrevLedgerKeyMR     interfaces.IHash
+	PrevFullHash     interfaces.IHash
 	DBHeight            uint32
 	HeaderExpansionArea []byte
 	ObjectCount         uint64
@@ -75,12 +75,12 @@ func (e *ECBlockHeader) GetPrevHeaderHash() (prev interfaces.IHash) {
 	return e.PrevHeaderHash
 }
 
-func (e *ECBlockHeader) SetPrevLedgerKeyMR(prev interfaces.IHash) {
-	e.PrevLedgerKeyMR = prev
+func (e *ECBlockHeader) SetPrevFullHash(prev interfaces.IHash) {
+	e.PrevFullHash = prev
 }
 
-func (e *ECBlockHeader) GetPrevLedgerKeyMR() (prev interfaces.IHash) {
-	return e.PrevLedgerKeyMR
+func (e *ECBlockHeader) GetPrevFullHash() (prev interfaces.IHash) {
+	return e.PrevFullHash
 }
 
 func (e *ECBlockHeader) SetDBHeight(height uint32) {
@@ -97,7 +97,7 @@ func NewECBlockHeader() *ECBlockHeader {
 	h.ECChainID.SetBytes(constants.EC_CHAINID)
 	h.BodyHash = primitives.NewZeroHash()
 	h.PrevHeaderHash = primitives.NewZeroHash()
-	h.PrevLedgerKeyMR = primitives.NewZeroHash()
+	h.PrevFullHash = primitives.NewZeroHash()
 	h.HeaderExpansionArea = make([]byte, 0)
 	return h
 }
@@ -132,7 +132,7 @@ func (e *ECBlockHeader) MarshalBinary() ([]byte, error) {
 	buf.Write(e.GetPrevHeaderHash().Bytes())
 
 	// 32 byte Previous Full Hash
-	buf.Write(e.GetPrevLedgerKeyMR().Bytes())
+	buf.Write(e.GetPrevFullHash().Bytes())
 
 	// 4 byte Directory Block Height
 	if err := binary.Write(buf, binary.BigEndian, e.GetDBHeight()); err != nil {
@@ -186,7 +186,7 @@ func (e *ECBlockHeader) UnmarshalBinaryData(data []byte) (newData []byte, err er
 	if _, err = buf.Read(hash); err != nil {
 		return
 	} else {
-		e.PrevLedgerKeyMR.SetBytes(hash)
+		e.PrevFullHash.SetBytes(hash)
 	}
 
 	if err = binary.Read(buf, binary.BigEndian, &e.DBHeight); err != nil {

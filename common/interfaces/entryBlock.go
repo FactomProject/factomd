@@ -24,7 +24,7 @@ type IEntryBlock interface {
 	// included all of its EntryEntries.
 	BuildHeader() error
 	// Hash returns the simple Sha256 hash of the serialized Entry Block. Hash is
-	// used to provide the PrevLedgerKeyMR to the next Entry Block in a Chain.
+	// used to provide the PrevFullHash to the next Entry Block in a Chain.
 	Hash() (IHash, error)
 	// KeyMR returns the hash of the hash of the Entry Block Header concatinated
 	// with the Merkle Root of the Entry Block Body. The Body Merkle Root is
@@ -46,8 +46,8 @@ type IEntryBlockHeader interface {
 	SetChainID(IHash)
 	GetPrevKeyMR() IHash
 	SetPrevKeyMR(IHash)
-	GetPrevLedgerKeyMR() IHash
-	SetPrevLedgerKeyMR(IHash)
+	GetPrevFullHash() IHash
+	SetPrevFullHash(IHash)
 	GetBodyMR() IHash
 	SetBodyMR(bodyMR IHash)
 

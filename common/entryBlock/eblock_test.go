@@ -81,7 +81,7 @@ func newTestingEntryBlock() *EBlock {
 
 	hash = primitives.NewZeroHash()
 	hash.SetBytes(byteof(0x44))
-	eb.Header.SetPrevLedgerKeyMR(hash)
+	eb.Header.SetPrevFullHash(hash)
 
 	eb.Header.SetEBSequence(5)
 	eb.Header.SetDBHeight(6)

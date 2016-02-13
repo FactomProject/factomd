@@ -13,7 +13,7 @@ type EBlockHeader struct {
 	ChainID         interfaces.IHash
 	BodyMR          interfaces.IHash
 	PrevKeyMR       interfaces.IHash
-	PrevLedgerKeyMR interfaces.IHash
+	PrevFullHash interfaces.IHash
 	EBSequence      uint32
 	DBHeight        uint32
 	EntryCount      uint32
@@ -28,7 +28,7 @@ func NewEBlockHeader() *EBlockHeader {
 	e.ChainID = primitives.NewZeroHash()
 	e.BodyMR = primitives.NewZeroHash()
 	e.PrevKeyMR = primitives.NewZeroHash()
-	e.PrevLedgerKeyMR = primitives.NewZeroHash()
+	e.PrevFullHash = primitives.NewZeroHash()
 	return e
 }
 
@@ -73,12 +73,12 @@ func (c *EBlockHeader) SetPrevKeyMR(prevKeyMR interfaces.IHash) {
 	c.PrevKeyMR = prevKeyMR
 }
 
-func (c *EBlockHeader) GetPrevLedgerKeyMR() interfaces.IHash {
-	return c.PrevLedgerKeyMR
+func (c *EBlockHeader) GetPrevFullHash() interfaces.IHash {
+	return c.PrevFullHash
 }
 
-func (c *EBlockHeader) SetPrevLedgerKeyMR(prevLedgerKeyMR interfaces.IHash) {
-	c.PrevLedgerKeyMR = prevLedgerKeyMR
+func (c *EBlockHeader) SetPrevFullHash(prevFullHash interfaces.IHash) {
+	c.PrevFullHash = prevFullHash
 }
 
 func (c *EBlockHeader) GetEBSequence() uint32 {
@@ -119,7 +119,7 @@ func (e *EBlockHeader) MarshalBinary() ([]byte, error) {
 	buf.Write(e.PrevKeyMR.Bytes())
 
 	// 32 byte Previous Full Hash
-	buf.Write(e.PrevLedgerKeyMR.Bytes())
+	buf.Write(e.PrevFullHash.Bytes())
 
 	if err := binary.Write(buf, binary.BigEndian, e.EBSequence); err != nil {
 		return buf.Bytes(), err
@@ -163,7 +163,7 @@ func (e *EBlockHeader) UnmarshalBinaryData(data []byte) (newData []byte, err err
 	if _, err = buf.Read(hash); err != nil {
 		return
 	} else {
-		e.PrevLedgerKeyMR.SetBytes(hash)
+		e.PrevFullHash.SetBytes(hash)
 	}
 
 	if err = binary.Read(buf, binary.BigEndian, &e.EBSequence); err != nil {

@@ -31,8 +31,8 @@ type IDirectoryBlockHeader interface {
 
 	GetVersion() byte
 	SetVersion(byte)
-	GetPrevLedgerKeyMR() IHash
-	SetPrevLedgerKeyMR(IHash)
+	GetPrevFullHash() IHash
+	SetPrevFullHash(IHash)
 	GetBodyMR() IHash
 	SetBodyMR(IHash)
 	GetPrevKeyMR() IHash

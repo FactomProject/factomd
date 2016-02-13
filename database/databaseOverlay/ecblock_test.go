@@ -101,7 +101,7 @@ func TestSaveLoadECBlockChain(t *testing.T) {
 			break
 		}
 		//t.Logf("KeyMR - %v", keyMR.String())
-		hash := current.GetHeader().GetPrevLedgerKeyMR()
+		hash := current.GetHeader().GetPrevFullHash()
 
 		current, err = dbo.FetchECBlockByKeyMR(keyMR)
 		if err != nil {

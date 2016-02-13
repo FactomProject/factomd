@@ -21,7 +21,7 @@ type DBlockHeader struct {
 
 	BodyMR          interfaces.IHash
 	PrevKeyMR       interfaces.IHash
-	PrevLedgerKeyMR interfaces.IHash
+	PrevFullHash interfaces.IHash
 
 	Timestamp  uint32
 	DBHeight   uint32
@@ -64,12 +64,12 @@ func (h *DBlockHeader) SetPrevKeyMR(prevKeyMR interfaces.IHash) {
 	h.PrevKeyMR = prevKeyMR
 }
 
-func (h *DBlockHeader) GetPrevLedgerKeyMR() interfaces.IHash {
-	return h.PrevLedgerKeyMR
+func (h *DBlockHeader) GetPrevFullHash() interfaces.IHash {
+	return h.PrevFullHash
 }
 
-func (h *DBlockHeader) SetPrevLedgerKeyMR(PrevLedgerKeyMR interfaces.IHash) {
-	h.PrevLedgerKeyMR = PrevLedgerKeyMR
+func (h *DBlockHeader) SetPrevFullHash(PrevFullHash interfaces.IHash) {
+	h.PrevFullHash = PrevFullHash
 }
 
 func (h *DBlockHeader) GetTimestamp() uint32 {
@@ -114,7 +114,7 @@ func (e *DBlockHeader) String() string {
 	out.WriteString(fmt.Sprintf("  NetworkID:       %d\n", e.NetworkID))
 	out.WriteString(fmt.Sprintf("  BodyMR:          %s\n", e.BodyMR.String()))
 	out.WriteString(fmt.Sprintf("  PrevKeyMR:       %s\n", e.PrevKeyMR.String()))
-	out.WriteString(fmt.Sprintf("  PrevLedgerKeyMR: %s\n", e.PrevLedgerKeyMR.String()))
+	out.WriteString(fmt.Sprintf("  PrevFullHash: %s\n", e.PrevFullHash.String()))
 	out.WriteString(fmt.Sprintf("  Timestamp:       %d\n", e.Timestamp))
 	out.WriteString(fmt.Sprintf("  DBHeight:        %d\n", e.DBHeight))
 	out.WriteString(fmt.Sprintf("  BlockCount:      %d\n", e.BlockCount))
@@ -144,7 +144,7 @@ func (b *DBlockHeader) MarshalBinary() ([]byte, error) {
 	}
 	buf.Write(data)
 
-	data, err = b.PrevLedgerKeyMR.MarshalBinary()
+	data, err = b.PrevFullHash.MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
@@ -182,8 +182,8 @@ func (b *DBlockHeader) UnmarshalBinaryData(data []byte) (newData []byte, err err
 		return
 	}
 
-	b.PrevLedgerKeyMR = new(primitives.Hash)
-	newData, err = b.PrevLedgerKeyMR.UnmarshalBinaryData(newData)
+	b.PrevFullHash = new(primitives.Hash)
+	newData, err = b.PrevFullHash.UnmarshalBinaryData(newData)
 	if err != nil {
 		return
 	}
@@ -208,7 +208,7 @@ func NewDBlockHeader() *DBlockHeader {
 	d := new(DBlockHeader)
 	d.BodyMR = primitives.NewZeroHash()
 	d.PrevKeyMR = primitives.NewZeroHash()
-	d.PrevLedgerKeyMR = primitives.NewZeroHash()
+	d.PrevFullHash = primitives.NewZeroHash()
 
 	return d
 }

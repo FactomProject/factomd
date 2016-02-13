@@ -278,11 +278,11 @@ func Test_create_genesis_FactoidState(test *testing.T) {
 			return
 		}
 
-		lkmr0 := blk.GetLedgerKeyMR()
-		lkmr1 := fs.GetCurrentBlock().GetPrevLedgerKeyMR()
+		lkmr0 := blk.GetFullHash()
+		lkmr1 := fs.GetCurrentBlock().GetPrevFullHash()
 
 		if !bytes.Equal(lkmr0.Bytes(), lkmr1.Bytes()) {
-			fmt.Println("The PrevLedgerKeyMR isn't properly Set")
+			fmt.Println("The PrevFullHash isn't properly Set")
 			test.Fail()
 			return
 		}

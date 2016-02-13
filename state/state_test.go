@@ -2,12 +2,10 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-package state_test
+package state
 
 import (
 	"github.com/FactomProject/factomd/log"
-	. "github.com/FactomProject/factomd/state"
-	//"github.com/FactomProject/factomd/testHelper"
 	"github.com/FactomProject/factomd/util"
 	"testing"
 )
@@ -15,7 +13,16 @@ import (
 var _ = log.Print
 var _ = util.ReadConfig
 
+var state *State
+
+func GetState() *State {
+	if state == nil {
+		state = new(State)
+		state.Init("")
+	}
+	return state
+}
+
 func TestInit(t *testing.T) {
-	state := new(State)
-	var _ = state
+	GetState()
 }

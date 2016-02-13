@@ -27,6 +27,7 @@ type DBState struct {
 
 type DBStateList struct {
 	multex		*sync.Mutex
+	state		*State
 	base 		uint32
 	complete    uint32
 	DBStates 	[] *DBState
@@ -55,10 +56,13 @@ func (list *DBStateList) Last() *DBState {
 func (list *DBStateList) Put (dbstate *DBState) {
 	list.multex.Lock()	
 	defer list.multex.Unlock()
+
+	fmt.Println("DBState.Put()")
+	defer fmt.Println("Leaving DBState.Put()")
 	
 	dblk := dbstate.DirectoryBlock
 	dbheight := dblk.GetHeader().GetDBHeight()
-		
+	
 	index := int(dbheight)-int(list.base) 
 	for len(list.DBStates) <= index {
 		list.DBStates = append(list.DBStates,nil)
@@ -66,13 +70,48 @@ func (list *DBStateList) Put (dbstate *DBState) {
 	if index >= 0 {
 		list.DBStates[index]=dbstate
 	}
+	
+	if dbheight > list.state.DBHeight {
+		list.state.DBHeight = dbheight
+	}
+	
+	hash,_:=dbstate.AdminBlock.GetKeyMR()
+	dbstate.DirectoryBlock.GetDBEntries()[0].SetKeyMR(hash)
+	hash,_ =dbstate.EntryCreditBlock.Hash()
+	dbstate.DirectoryBlock.GetDBEntries()[1].SetKeyMR(hash)
+	hash = dbstate.FactoidBlock.GetHash()
+	dbstate.DirectoryBlock.GetDBEntries()[2].SetKeyMR(hash)
+
+	if dbheight > 0 {
+		prev := list.Getul(dbheight-1)
+		fmt.Println("PREVIOUS",prev.DirectoryBlock.String())
+		dbstate.DirectoryBlock.GetHeader().SetPrevKeyMR(prev.DirectoryBlock.GetKeyMR())
+		dbstate.DirectoryBlock.GetHeader().SetPrevFullHash(prev.DirectoryBlock.GetHash())
+		fmt.Println("NEXT",dbstate.DirectoryBlock.String())
+	}
+	if dbstate.isNew {
+		fmt.Println("Writing...")
+		dbstate.DirectoryBlock.BuildBodyMR()
+		list.state.DB.ProcessDBlockBatch(dbstate.DirectoryBlock)
+		list.state.DB.ProcessABlockBatch(dbstate.AdminBlock)
+		list.state.DB.ProcessECBlockBatch(dbstate.EntryCreditBlock)
+		list.state.DB.ProcessFBlockBatch(dbstate.FactoidBlock)
+		
+		dbstate.isNew = false
+	}
+	
+	
 }
 							  
 		
 func (list *DBStateList) Get(height uint32) *DBState {
 	list.multex.Lock()	
 	defer list.multex.Unlock()
-	
+
+	return list.Getul(height)
+}
+
+func (list *DBStateList) Getul(height uint32) *DBState {	
 	i := int(height)-int(list.base)
 	if i < 0 || i >= len(list.DBStates) {
 		return nil
@@ -105,15 +144,12 @@ func (list *DBStateList) Process(state interfaces.IState) {
 	}
 }
 
-/****************************************
- * Support
- ****************************************/
+func (list *DBStateList) NewDBState(isNew            bool,
+									DirectoryBlock   interfaces.IDirectoryBlock,
+									AdminBlock       interfaces.IAdminBlock,
+									FactoidBlock     interfaces.IFBlock,
+									EntryCreditBlock interfaces.IEntryCreditBlock) *DBState {
 
-func NewDBState(isNew            bool,
-				DirectoryBlock   interfaces.IDirectoryBlock,
-				AdminBlock       interfaces.IAdminBlock,
-				FactoidBlock     interfaces.IFBlock,
-				EntryCreditBlock interfaces.IEntryCreditBlock) *DBState {
 	dbstate := new(DBState)
 
 	dbstate.isNew	 		 = isNew
@@ -121,6 +157,8 @@ func NewDBState(isNew            bool,
 	dbstate.AdminBlock       = AdminBlock
 	dbstate.FactoidBlock     = FactoidBlock
 	dbstate.EntryCreditBlock = EntryCreditBlock
-	fmt.Println(DirectoryBlock)
+	
+	
+	list.Put(dbstate)
 	return dbstate
 }

@@ -2,24 +2,22 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-package state_test
+package state
 
 import (
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-	. "github.com/FactomProject/factomd/state"
 	"testing"
 )
 
-var state interfaces.IFactoidState
+var fs interfaces.IFactoidState
 
 func TestBalances(t *testing.T) {
-	s := new(State)
-	s.Init("")
-	state = s.GetFactoidState(0)
-	state.SetFactoshisPerEC(1)
+	s := GetState()
+	fs = s.GetFactoidState()
+	fs.SetFactoshisPerEC(1)
 	add1, err := primitives.HexToHash("0000000000000000000000000000000000000000000000000000000000000001")
 	if err != nil {
 		t.Error(err)
@@ -36,110 +34,110 @@ func TestBalances(t *testing.T) {
 	tx := new(factoid.Transaction)
 	tx.AddOutput(add1, 1000000)
 
-	err = state.UpdateTransaction(tx)
+	err = fs.UpdateTransaction(tx)
 	if err != nil {
 		t.Error(err)
 	}
 
-	if state.GetFactoidBalance(add1.Fixed()) != 1000000 {
-		t.Errorf("Invalid address balance - %v", state.GetFactoidBalance(add1.Fixed()))
+	if fs.GetFactoidBalance(add1.Fixed()) != 1000000 {
+		t.Errorf("Invalid address balance - %v", fs.GetFactoidBalance(add1.Fixed()))
 	}
-	if state.GetECBalance(add1.Fixed()) != 0 {
-		t.Errorf("Invalid address balance - %v", state.GetECBalance(add1.Fixed()))
+	if fs.GetECBalance(add1.Fixed()) != 0 {
+		t.Errorf("Invalid address balance - %v", fs.GetECBalance(add1.Fixed()))
 	}
-	if state.GetFactoidBalance(add2.Fixed()) != 0 {
-		t.Errorf("Invalid address balance - %v", state.GetFactoidBalance(add2.Fixed()))
+	if fs.GetFactoidBalance(add2.Fixed()) != 0 {
+		t.Errorf("Invalid address balance - %v", fs.GetFactoidBalance(add2.Fixed()))
 	}
-	if state.GetECBalance(add2.Fixed()) != 0 {
-		t.Errorf("Invalid address balance - %v", state.GetECBalance(add2.Fixed()))
+	if fs.GetECBalance(add2.Fixed()) != 0 {
+		t.Errorf("Invalid address balance - %v", fs.GetECBalance(add2.Fixed()))
 	}
-	if state.GetFactoidBalance(add3.Fixed()) != 0 {
-		t.Errorf("Invalid address balance - %v", state.GetFactoidBalance(add3.Fixed()))
+	if fs.GetFactoidBalance(add3.Fixed()) != 0 {
+		t.Errorf("Invalid address balance - %v", fs.GetFactoidBalance(add3.Fixed()))
 	}
-	if state.GetECBalance(add3.Fixed()) != 0 {
-		t.Errorf("Invalid address balance - %v", state.GetECBalance(add3.Fixed()))
+	if fs.GetECBalance(add3.Fixed()) != 0 {
+		t.Errorf("Invalid address balance - %v", fs.GetECBalance(add3.Fixed()))
 	}
 
 	tx = new(factoid.Transaction)
 	tx.AddInput(add1, 1000)
 	tx.AddOutput(add2, 1000)
 
-	err = state.UpdateTransaction(tx)
+	err = fs.UpdateTransaction(tx)
 	if err != nil {
 		t.Error(err)
 	}
 
-	if state.GetFactoidBalance(add1.Fixed()) != 999000 {
-		t.Errorf("Invalid address balance - %v", state.GetFactoidBalance(add1.Fixed()))
+	if fs.GetFactoidBalance(add1.Fixed()) != 999000 {
+		t.Errorf("Invalid address balance - %v", fs.GetFactoidBalance(add1.Fixed()))
 	}
-	if state.GetECBalance(add1.Fixed()) != 0 {
-		t.Errorf("Invalid address balance - %v", state.GetECBalance(add1.Fixed()))
+	if fs.GetECBalance(add1.Fixed()) != 0 {
+		t.Errorf("Invalid address balance - %v", fs.GetECBalance(add1.Fixed()))
 	}
-	if state.GetFactoidBalance(add2.Fixed()) != 1000 {
-		t.Errorf("Invalid address balance - %v", state.GetFactoidBalance(add2.Fixed()))
+	if fs.GetFactoidBalance(add2.Fixed()) != 1000 {
+		t.Errorf("Invalid address balance - %v", fs.GetFactoidBalance(add2.Fixed()))
 	}
-	if state.GetECBalance(add2.Fixed()) != 0 {
-		t.Errorf("Invalid address balance - %v", state.GetECBalance(add2.Fixed()))
+	if fs.GetECBalance(add2.Fixed()) != 0 {
+		t.Errorf("Invalid address balance - %v", fs.GetECBalance(add2.Fixed()))
 	}
-	if state.GetFactoidBalance(add3.Fixed()) != 0 {
-		t.Errorf("Invalid address balance - %v", state.GetFactoidBalance(add3.Fixed()))
+	if fs.GetFactoidBalance(add3.Fixed()) != 0 {
+		t.Errorf("Invalid address balance - %v", fs.GetFactoidBalance(add3.Fixed()))
 	}
-	if state.GetECBalance(add3.Fixed()) != 0 {
-		t.Errorf("Invalid address balance - %v", state.GetECBalance(add3.Fixed()))
+	if fs.GetECBalance(add3.Fixed()) != 0 {
+		t.Errorf("Invalid address balance - %v", fs.GetECBalance(add3.Fixed()))
 	}
 
 	tx = new(factoid.Transaction)
 	tx.AddInput(add1, 1000)
 	tx.AddECOutput(add3, 1000)
 
-	err = state.UpdateTransaction(tx)
+	err = fs.UpdateTransaction(tx)
 	if err != nil {
 		t.Error(err)
 	}
 
-	if state.GetFactoidBalance(add1.Fixed()) != 998000 {
-		t.Errorf("Invalid address balance - %v", state.GetFactoidBalance(add1.Fixed()))
+	if fs.GetFactoidBalance(add1.Fixed()) != 998000 {
+		t.Errorf("Invalid address balance - %v", fs.GetFactoidBalance(add1.Fixed()))
 	}
-	if state.GetECBalance(add1.Fixed()) != 0 {
-		t.Errorf("Invalid address balance - %v", state.GetECBalance(add1.Fixed()))
+	if fs.GetECBalance(add1.Fixed()) != 0 {
+		t.Errorf("Invalid address balance - %v", fs.GetECBalance(add1.Fixed()))
 	}
-	if state.GetFactoidBalance(add2.Fixed()) != 1000 {
-		t.Errorf("Invalid address balance - %v", state.GetFactoidBalance(add2.Fixed()))
+	if fs.GetFactoidBalance(add2.Fixed()) != 1000 {
+		t.Errorf("Invalid address balance - %v", fs.GetFactoidBalance(add2.Fixed()))
 	}
-	if state.GetECBalance(add2.Fixed()) != 0 {
-		t.Errorf("Invalid address balance - %v", state.GetECBalance(add2.Fixed()))
+	if fs.GetECBalance(add2.Fixed()) != 0 {
+		t.Errorf("Invalid address balance - %v", fs.GetECBalance(add2.Fixed()))
 	}
-	if state.GetFactoidBalance(add3.Fixed()) != 0 {
-		t.Errorf("Invalid address balance - %v", state.GetFactoidBalance(add3.Fixed()))
+	if fs.GetFactoidBalance(add3.Fixed()) != 0 {
+		t.Errorf("Invalid address balance - %v", fs.GetFactoidBalance(add3.Fixed()))
 	}
-	if state.GetECBalance(add3.Fixed()) != 1000 {
-		t.Errorf("Invalid address balance - %v", state.GetECBalance(add3.Fixed()))
+	if fs.GetECBalance(add3.Fixed()) != 1000 {
+		t.Errorf("Invalid address balance - %v", fs.GetECBalance(add3.Fixed()))
 	}
 
-	state.ResetBalances()
+	fs.ResetBalances()
 
-	if state.GetFactoidBalance(add1.Fixed()) != 0 {
-		t.Errorf("Invalid address balance - %v", state.GetFactoidBalance(add1.Fixed()))
+	if fs.GetFactoidBalance(add1.Fixed()) != 0 {
+		t.Errorf("Invalid address balance - %v", fs.GetFactoidBalance(add1.Fixed()))
 	}
-	if state.GetECBalance(add1.Fixed()) != 0 {
-		t.Errorf("Invalid address balance - %v", state.GetECBalance(add1.Fixed()))
+	if fs.GetECBalance(add1.Fixed()) != 0 {
+		t.Errorf("Invalid address balance - %v", fs.GetECBalance(add1.Fixed()))
 	}
-	if state.GetFactoidBalance(add2.Fixed()) != 0 {
-		t.Errorf("Invalid address balance - %v", state.GetFactoidBalance(add2.Fixed()))
+	if fs.GetFactoidBalance(add2.Fixed()) != 0 {
+		t.Errorf("Invalid address balance - %v", fs.GetFactoidBalance(add2.Fixed()))
 	}
-	if state.GetECBalance(add2.Fixed()) != 0 {
-		t.Errorf("Invalid address balance - %v", state.GetECBalance(add2.Fixed()))
+	if fs.GetECBalance(add2.Fixed()) != 0 {
+		t.Errorf("Invalid address balance - %v", fs.GetECBalance(add2.Fixed()))
 	}
-	if state.GetFactoidBalance(add3.Fixed()) != 0 {
-		t.Errorf("Invalid address balance - %v", state.GetFactoidBalance(add3.Fixed()))
+	if fs.GetFactoidBalance(add3.Fixed()) != 0 {
+		t.Errorf("Invalid address balance - %v", fs.GetFactoidBalance(add3.Fixed()))
 	}
-	if state.GetECBalance(add3.Fixed()) != 0 {
-		t.Errorf("Invalid address balance - %v", state.GetECBalance(add3.Fixed()))
+	if fs.GetECBalance(add3.Fixed()) != 0 {
+		t.Errorf("Invalid address balance - %v", fs.GetECBalance(add3.Fixed()))
 	}
 }
 
 func TestUpdateECTransaction(t *testing.T) {
-	state.SetFactoshisPerEC(1)
+	fs.SetFactoshisPerEC(1)
 	add1, err := primitives.HexToHash("0000000000000000000000000000000000000000000000000000000000000001")
 	if err != nil {
 		t.Error(err)
@@ -147,32 +145,32 @@ func TestUpdateECTransaction(t *testing.T) {
 	}
 	add1bs := primitives.StringToByteSlice32("0000000000000000000000000000000000000000000000000000000000000001")
 
-	if state.GetECBalance(add1.Fixed()) != 0 {
-		t.Errorf("Invalid address balance - %v", state.GetECBalance(add1.Fixed()))
+	if fs.GetECBalance(add1.Fixed()) != 0 {
+		t.Errorf("Invalid address balance - %v", fs.GetECBalance(add1.Fixed()))
 		return
 	}
 
 	var tx interfaces.IECBlockEntry
 	tx = new(entryCreditBlock.ServerIndexNumber)
 
-	err = state.UpdateECTransaction(tx)
+	err = fs.UpdateECTransaction(tx)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	if state.GetECBalance(add1.Fixed()) != 0 {
-		t.Errorf("Invalid address balance - %v", state.GetECBalance(add1.Fixed()))
+	if fs.GetECBalance(add1.Fixed()) != 0 {
+		t.Errorf("Invalid address balance - %v", fs.GetECBalance(add1.Fixed()))
 	}
 
 	tx = new(entryCreditBlock.MinuteNumber)
 
-	err = state.UpdateECTransaction(tx)
+	err = fs.UpdateECTransaction(tx)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	if state.GetECBalance(add1.Fixed()) != 0 {
-		t.Errorf("Invalid address balance - %v", state.GetECBalance(add1.Fixed()))
+	if fs.GetECBalance(add1.Fixed()) != 0 {
+		t.Errorf("Invalid address balance - %v", fs.GetECBalance(add1.Fixed()))
 		return
 	}
 
@@ -182,13 +180,13 @@ func TestUpdateECTransaction(t *testing.T) {
 	cc.Credits = 100
 	tx = cc
 
-	err = state.UpdateECTransaction(tx)
+	err = fs.UpdateECTransaction(tx)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	if state.GetECBalance(add1.Fixed()) != -100 {
-		t.Errorf("Invalid address balance - %v", state.GetECBalance(add1.Fixed()))
+	if fs.GetECBalance(add1.Fixed()) != -100 {
+		t.Errorf("Invalid address balance - %v", fs.GetECBalance(add1.Fixed()))
 		return
 	}
 
@@ -197,13 +195,13 @@ func TestUpdateECTransaction(t *testing.T) {
 	ib.NumEC = 100
 	tx = ib
 
-	err = state.UpdateECTransaction(tx)
+	err = fs.UpdateECTransaction(tx)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	if state.GetECBalance(add1.Fixed()) != 0 {
-		t.Errorf("Invalid address balance - %v", state.GetECBalance(add1.Fixed()))
+	if fs.GetECBalance(add1.Fixed()) != 0 {
+		t.Errorf("Invalid address balance - %v", fs.GetECBalance(add1.Fixed()))
 		return
 	}
 
@@ -212,13 +210,13 @@ func TestUpdateECTransaction(t *testing.T) {
 	ce.Credits = 100
 	tx = ce
 
-	err = state.UpdateECTransaction(tx)
+	err = fs.UpdateECTransaction(tx)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	if state.GetECBalance(add1.Fixed()) != -100 {
-		t.Errorf("Invalid address balance - %v", state.GetECBalance(add1.Fixed()))
+	if fs.GetECBalance(add1.Fixed()) != -100 {
+		t.Errorf("Invalid address balance - %v", fs.GetECBalance(add1.Fixed()))
 		return
 	}
 

@@ -156,7 +156,7 @@ func (m *CommitEntryMsg) Leader(state interfaces.IState) bool {
 }
 
 // Execute the leader functions of the given message
-func (m *CommitEntryMsg) LeaderExecute(state interfaces.IState) error {	
+func (m *CommitEntryMsg) LeaderExecute(state interfaces.IState) error {
 	return state.LeaderExecute(m)
 }
 

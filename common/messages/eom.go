@@ -19,8 +19,8 @@ import (
 var _ = log.Printf
 
 type EOM struct {
-	Timestamp 		interfaces.Timestamp
-	Minute    		byte
+	Timestamp interfaces.Timestamp
+	Minute    byte
 
 	DirectoryBlockHeight uint32
 	ServerIndex          int
@@ -81,7 +81,7 @@ func (m *EOM) Leader(state interfaces.IState) bool {
 
 // Execute the leader functions of the given message
 func (m *EOM) LeaderExecute(state interfaces.IState) error {
-	return state.LeaderExecute(m)
+	return state.LeaderExecuteEOM(m)
 }
 
 // Returns true if this is a message for this server to execute as a follower
@@ -260,5 +260,3 @@ func (msg *EOM) Sha() (interfaces.IHash, error) {
 
 	return sha, nil
 }
-
-

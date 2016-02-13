@@ -19,7 +19,7 @@ type IAdminBlock interface {
 	SetABEntries([]IABEntry)
 	GetDBHeight() uint32
 	GetKeyMR() (IHash, error)
-	LedgerKeyMR() (IHash, error)
+	FullHash() (IHash, error)
 	PartialHash() (IHash, error)
 	BuildFullBHash() (err error)
 	BuildPartialHash() (err error)
@@ -34,8 +34,8 @@ type IABlockHeader interface {
 	BinaryMarshallable
 
 	GetAdminChainID() IHash
-	GetPrevLedgerKeyMR() IHash
-	SetPrevLedgerKeyMR(IHash)
+	GetPrevFullHash() IHash
+	SetPrevFullHash(IHash)
 	GetDBHeight() uint32
 	SetDBHeight(uint32)
 

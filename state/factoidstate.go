@@ -211,10 +211,10 @@ func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
 	}
 
 	hash = fs.CurrentBlock.GetHash()
-	hash2 = fs.CurrentBlock.GetLedgerKeyMR()
+	hash2 = fs.CurrentBlock.GetFullHash()
 
 	s := state.(*State)
-	dbheight := s.DBStates.Last().DirectoryBlock.GetHeader().GetDBHeight()+1
+	dbheight := s.DBStates.Last().DirectoryBlock.GetHeader().GetDBHeight() + 1
 	db := s.ProcessLists.Get(dbheight).DirectoryBlock
 	db.GetDBEntries()[2].SetKeyMR(hash)
 
@@ -233,7 +233,7 @@ func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
 
 	if hash != nil {
 		fs.CurrentBlock.SetPrevKeyMR(hash.Bytes())
-		fs.CurrentBlock.SetPrevLedgerKeyMR(hash2.Bytes())
+		fs.CurrentBlock.SetPrevFullHash(hash2.Bytes())
 	}
 
 	fs.DBHeight++

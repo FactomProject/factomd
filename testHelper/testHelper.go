@@ -200,14 +200,14 @@ func CreateTestAdminHeader(prev *adminBlock.AdminBlock) *adminBlock.ABlockHeader
 	header := new(adminBlock.ABlockHeader)
 
 	if prev == nil {
-		header.PrevLedgerKeyMR = primitives.NewZeroHash()
+		header.PrevFullHash = primitives.NewZeroHash()
 		header.DBHeight = 0
 	} else {
 		keyMR, err := prev.GetKeyMR()
 		if err != nil {
 			panic(err)
 		}
-		header.PrevLedgerKeyMR = keyMR
+		header.PrevFullHash = keyMR
 		header.DBHeight = prev.Header.GetDBHeight() + 1
 	}
 
@@ -246,12 +246,12 @@ func CreateTestDirectoryBlockHeader(prevBlock *directoryBlock.DirectoryBlock) *d
 
 	if prevBlock == nil {
 		header.SetDBHeight(0)
-		header.SetPrevLedgerKeyMR(primitives.NewZeroHash())
+		header.SetPrevFullHash(primitives.NewZeroHash())
 		header.SetPrevKeyMR(primitives.NewZeroHash())
 		header.SetTimestamp(1234)
 	} else {
 		header.SetDBHeight(prevBlock.Header.GetDBHeight() + 1)
-		header.SetPrevLedgerKeyMR(prevBlock.GetHash())
+		header.SetPrevFullHash(prevBlock.GetHash())
 		keyMR, err := prevBlock.BuildKeyMerkleRoot()
 		if err != nil {
 			panic(err)
