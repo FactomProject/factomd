@@ -16,7 +16,7 @@ import (
 // Admin Block Header
 type ABlockHeader struct {
 	PrevFullHash interfaces.IHash
-	DBHeight        uint32
+	DBHeight     uint32
 
 	HeaderExpansionSize uint64
 	HeaderExpansionArea []byte

@@ -7,9 +7,9 @@ package state
 import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/directoryBlock"
-	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid/block"
+	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/util"
 	"testing"
@@ -43,35 +43,35 @@ func Test_DBState1(t *testing.T) {
 			t.Errorf("DBHeight error.  Expecting %d and got %d", i, state.DBHeight)
 		}
 	}
-	
+
 	fmt.Println("Testing all blocks")
-	
-	dblks := make([] interfaces.IDirectoryBlock,0)
-		
-	for j:= uint32(0); j<i ; j++ {
-		fmt.Print("\r At Block: ",j)
+
+	dblks := make([]interfaces.IDirectoryBlock, 0)
+
+	for j := uint32(0); j < i; j++ {
+		fmt.Print("\r At Block: ", j)
 		dblk, _ := state.DB.FetchDBlockByHeight(j)
 		fmt.Println(dblk.String())
 		if dblk == nil {
-			fmt.Println("last dblk found:",j)
+			fmt.Println("last dblk found:", j)
 			break
 		}
-		dblks = append(dblks,dblk)
+		dblks = append(dblks, dblk)
 	}
-		
+
 	/*
-	 * ecblkHash := dblks[len(dblks)-1].DBEntries[1].KeyMR
-		
-		i := 0
-		for i = 0; ecblkHash != nil; i++ {
-			fmt.Printf(" %x\n",ecblkHash.Bytes())
-			ecblk, _ := db.FetchECBlockByHash(ecblkHash)
-			if ecblk == nil {
-				break
+		 * ecblkHash := dblks[len(dblks)-1].DBEntries[1].KeyMR
+
+			i := 0
+			for i = 0; ecblkHash != nil; i++ {
+				fmt.Printf(" %x\n",ecblkHash.Bytes())
+				ecblk, _ := db.FetchECBlockByHash(ecblkHash)
+				if ecblk == nil {
+					break
+				}
+				ecblkHash = ecblk.Header.PrevHeaderHash
 			}
-			ecblkHash = ecblk.Header.PrevHeaderHash
+			fmt.Println ("End found after",i,"ec blocks")
 		}
-		fmt.Println ("End found after",i,"ec blocks")
-	}		
 	*/
 }

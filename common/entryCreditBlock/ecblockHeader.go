@@ -17,7 +17,7 @@ type ECBlockHeader struct {
 	ECChainID           interfaces.IHash
 	BodyHash            interfaces.IHash
 	PrevHeaderHash      interfaces.IHash
-	PrevFullHash     interfaces.IHash
+	PrevFullHash        interfaces.IHash
 	DBHeight            uint32
 	HeaderExpansionArea []byte
 	ObjectCount         uint64

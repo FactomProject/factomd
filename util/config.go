@@ -8,7 +8,7 @@ import (
 	"os/user"
 	"time"
 
-	"code.google.com/p/gcfg"
+	"gopkg.in/gcfg.v1"
 )
 
 var _ = fmt.Print
@@ -124,16 +124,16 @@ RpcBtcdHost                           = "localhost:18334"
 
 [wsapi]
 ApplicationName                       = "Factom/wsapi"
-PortNumber                            =8088
+PortNumber                            = 8088
 
 ; ------------------------------------------------------------------------------
 ; logLevel - allowed values are: debug, info, notice, warning, error, critical, alert, emergency and none
 ; ConsoleLogLevel - allowed values are: debug, standard
 ; ------------------------------------------------------------------------------
 [log]
-logLevel                              =debug
+logLevel                              = debug
 LogPath                               = "m2factom-d.log"
-ConsoleLogLevel                       =debug
+ConsoleLogLevel                       = debug
 
 ; ------------------------------------------------------------------------------
 ; Configurations for fctwallet
@@ -223,11 +223,19 @@ func ReadConfig(filename string) *FactomdConfig {
 	}
 	cfg := new(FactomdConfig)
 
-	err := gcfg.ReadFileInto(cfg, filename)
+	err := gcfg.ReadStringInto(cfg, defaultConfig)
+	if err != nil {
+		panic(err)
+	}
+
+	err = gcfg.ReadFileInto(cfg, filename)
 	if err != nil {
 		log.Printfln("Reading from '%s'", filename)
 		log.Printfln("ERROR Reading config file!\nServer starting with default settings...\n%v\n", err)
-		gcfg.ReadStringInto(cfg, defaultConfig)
+		err = gcfg.ReadStringInto(cfg, defaultConfig)
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	// Default to home directory if not set

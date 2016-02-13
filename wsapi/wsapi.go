@@ -43,6 +43,7 @@ func Start(state interfaces.IState) {
 		server.Get("/v1/get-raw-data/([^/]+)", HandleGetRaw)
 		server.Get("/v1/get-receipt/([^/]+)", HandleGetReceipt)
 		server.Get("/v1/directory-block-by-keymr/([^/]+)", HandleDirectoryBlock)
+		server.Get("/v1/directory-block-height/?", HandleDirectoryBlockHeight)
 		server.Get("/v1/entry-block-by-keymr/([^/]+)", HandleEntryBlock)
 		server.Get("/v1/entry-by-hash/([^/]+)", HandleEntry)
 		server.Get("/v1/chain-head/([^/]+)", HandleChainHead)
@@ -209,6 +210,19 @@ func HandleDirectoryBlock(ctx *web.Context, hashkey string) {
 	d.EntryBlockList = jsonResp.Result.(*DirectoryBlockResponse).EntryBlockList
 
 	returnMsg(ctx, d, true)
+}
+
+func HandleDirectoryBlockHeight(ctx *web.Context) {
+	state := ctx.Server.Env["state"].(interfaces.IState)
+
+	req := primitives.NewJSON2Request(1, nil, "directory-block-height")
+
+	jsonResp, jsonError := HandleV2GetRequest(state, req)
+	if jsonError != nil {
+		returnV1(ctx, nil, jsonError)
+	}
+
+	returnMsg(ctx, jsonResp.Result.(*DirectoryBlockHeightResponse), true)
 }
 
 func HandleEntryBlock(ctx *web.Context, hashkey string) {

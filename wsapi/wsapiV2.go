@@ -134,6 +134,9 @@ func HandleV2GetRequest(state interfaces.IState, j *primitives.JSON2Request) (*p
 	case "factoid-get-fee":
 		resp, jsonError = HandleV2GetFee(state, params)
 		break
+	case "directory-block-height":
+		resp, jsonError = HandleV2DirectoryBlockHeight(state, params)
+		break
 	default:
 		jsonError = NewMethodNotFoundError()
 		break
@@ -494,15 +497,32 @@ func HandleV2EntryCreditBalance(state interfaces.IState, params interface{}) (in
 	if ok == false {
 		return nil, NewInvalidParamsError()
 	}
-	adr, err := primitives.HexToHash(eckey)
+
+	var adr []byte
+	var err error
+
+	if primitives.ValidateECUserStr(eckey) {
+		adr = primitives.ConvertUserStrToAddress(eckey)
+	} else {
+		adr, err = hex.DecodeString(eckey)
+		if err == nil && len(adr) != constants.HASH_LENGTH {
+			return nil, NewInvalidAddressError()
+		}
+		if err != nil {
+			return nil, NewInvalidAddressError()
+		}
+	}
+
+	if len(adr) != constants.HASH_LENGTH {
+		return nil, NewInvalidAddressError()
+	}
+
+	address, err := primitives.NewShaHash(adr)
 	if err != nil {
 		return nil, NewInvalidAddressError()
 	}
-	if adr == nil {
-		return nil, NewInvalidAddressError()
-	}
 	resp := new(EntryCreditBalanceResponse)
-	resp.Balance = state.GetFactoidState().GetECBalance(adr.Fixed())
+	resp.Balance = state.GetFactoidState().GetECBalance(address.Fixed())
 	return resp, nil
 }
 
@@ -543,19 +563,37 @@ func HandleV2FactoidSubmit(state interfaces.IState, params interface{}) (interfa
 }
 
 func HandleV2FactoidBalance(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
-	eckey, ok := params.(string)
+	fkey, ok := params.(string)
 	if ok == false {
 		return nil, NewInvalidParamsError()
 	}
 
-	adr, err := hex.DecodeString(eckey)
-	if err != nil {
+	var adr []byte
+	var err error
+
+	if primitives.ValidateFUserStr(fkey) {
+		adr = primitives.ConvertUserStrToAddress(fkey)
+	} else {
+		adr, err = hex.DecodeString(fkey)
+		if err == nil && len(adr) != constants.HASH_LENGTH {
+			return nil, NewInvalidAddressError()
+		}
+		if err != nil {
+			return nil, NewInvalidAddressError()
+		}
+	}
+
+	if len(adr) != constants.HASH_LENGTH {
 		return nil, NewInvalidAddressError()
 	}
-	if err == nil && len(adr) != constants.HASH_LENGTH {
-		return nil, NewInvalidAddressError()
-	}
+
 	resp := new(FactoidBalanceResponse)
 	resp.Balance = state.GetFactoidState().GetFactoidBalance(factoid.NewAddress(adr).Fixed())
 	return resp, nil
+}
+
+func HandleV2DirectoryBlockHeight(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	h := new(DirectoryBlockHeightResponse)
+	h.Height = int64(state.GetDirectoryBlock().GetHeader().GetDBHeight())
+	return h, nil
 }

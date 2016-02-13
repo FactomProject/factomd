@@ -7,10 +7,10 @@ import (
 	"sync"
 
 	"github.com/FactomProject/factomd/anchor"
-	"github.com/FactomProject/factomd/common/directoryBlock"
-	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/directoryBlock"
+	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid/block"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
@@ -64,9 +64,9 @@ type State struct {
 	Anchor interfaces.IAnchor
 
 	// Directory Block State
-	DBHeight          uint32	   // Height as understood by the leader
-	ServerIndex       int          // Index of the server, as understood by the leader
-	DBStates          *DBStateList // Holds all DBStates not yet processed.
+	DBHeight    uint32       // Height as understood by the leader
+	ServerIndex int          // Index of the server, as understood by the leader
+	DBStates    *DBStateList // Holds all DBStates not yet processed.
 
 	// Having all the state for a particular directory block stored in one structure
 	// makes creating the next state, updating the various states, and setting up the next
@@ -77,8 +77,8 @@ type State struct {
 	// height, even if it changed out from under the calling code.
 	//
 	// Process list previous [0], present(@DBHeight) [1], and future (@DBHeight+1) [2]
-	
-	ProcessLists		*ProcessLists
+
+	ProcessLists *ProcessLists
 
 	// Factom State
 	FactoidState interfaces.IFactoidState
@@ -124,10 +124,10 @@ func (s *State) Init(filename string) {
 	// Allocate the original set of Process Lists
 	s.ProcessLists = NewProcessLists(s)
 
-	s.DBStates 			= new(DBStateList)
-	s.DBStates.state    = s
-	s.DBStates.multex   = new(sync.Mutex)
-	s.DBStates.DBStates	=	make([]*DBState, 0)
+	s.DBStates = new(DBStateList)
+	s.DBStates.state = s
+	s.DBStates.multex = new(sync.Mutex)
+	s.DBStates.DBStates = make([]*DBState, 0)
 
 	s.totalServers = 1
 	switch cfg.App.NodeMode {
@@ -186,15 +186,15 @@ func (s *State) Init(filename string) {
 
 	a, _ := anchor.InitAnchor(s)
 	s.Anchor = a
-	
+	log.Println("Loading Database")
 	s.loadDatabase()
+
 	s.initServerKeys()
 }
 
 func (s *State) GetDBState(height uint32) *DBState {
 	return s.DBStates.Get(height)
 }
-
 
 func (s *State) UpdateState() {
 	fmt.Println("Update PL")
@@ -203,13 +203,23 @@ func (s *State) UpdateState() {
 	s.DBStates.Process(s)
 }
 
+// Adds blocks that are either pulled locally from a database, or acquired from peers.
+func (s *State) AddDBState(isNew bool,
+	directoryBlock interfaces.IDirectoryBlock,
+	adminBlock interfaces.IAdminBlock,
+	factoidBlock interfaces.IFBlock,
+	entryCreditBlock interfaces.IEntryCreditBlock) {
+
+	dbState := s.DBStates.NewDBState(isNew, directoryBlock, adminBlock, factoidBlock, entryCreditBlock)
+	s.DBStates.Put(dbState)
+}
 
 func (s *State) loadDatabase() {
 
 	var i uint32
-	for i = 0; true ; i++ {
+	for i = 0; true; i++ {
 		var dhash interfaces.IHash
-		var err   error
+		var err error
 		if dhash, err = s.DB.FetchDBKeyMRByHeight(i); err != nil {
 			panic(err)
 		}
@@ -221,23 +231,23 @@ func (s *State) loadDatabase() {
 			break
 		}
 		dblk := d
-		ablk,_ := s.DB.FetchABlockByHash(dblk.GetDBEntries()[0].GetKeyMR())
-		eblk,_ := s.DB.FetchECBlockByHash(dblk.GetDBEntries()[1].GetKeyMR())
-		fblk,_ := s.DB.FetchFBlockByHash(dblk.GetDBEntries()[2].GetKeyMR())
-		
-		s.DBStates.NewDBState(true,dblk,ablk,fblk,eblk)
+		ablk, _ := s.DB.FetchABlockByHash(dblk.GetDBEntries()[0].GetKeyMR())
+		eblk, _ := s.DB.FetchECBlockByHash(dblk.GetDBEntries()[1].GetKeyMR())
+		fblk, _ := s.DB.FetchFBlockByHash(dblk.GetDBEntries()[2].GetKeyMR())
+
+		s.DBStates.NewDBState(true, dblk, ablk, fblk, eblk)
 		s.DBStates.Process(s)
-	} 
-	
-	if i==0 && s.NetworkNumber == constants.NETWORK_LOCAL {
-		dblk := directoryBlock.NewDirectoryBlock(0,nil)
+	}
+
+	if i == 0 && s.NetworkNumber == constants.NETWORK_LOCAL {
+		dblk := directoryBlock.NewDirectoryBlock(0, nil)
 		ablk := s.NewAdminBlock(0)
 		fblk := block.GetGenesisFBlock()
 		eblk := entryCreditBlock.NewECBlock()
 
-		s.DBStates.NewDBState(true,dblk,ablk,fblk,eblk)
+		s.DBStates.NewDBState(true, dblk, ablk, fblk, eblk)
 		s.DBStates.Process(s)
-	} 
+	}
 }
 
 // This routine is called once we have everything to create a Directory Block.
@@ -246,7 +256,6 @@ func (s *State) loadDatabase() {
 func (s *State) ProcessEndOfBlock(dbheight uint32) {
 	s.LastAck = nil
 }
-
 
 // This returns the DBHeight as defined by the leader, not the follower.
 // This value shouldn't be used by follower code.
@@ -261,7 +270,6 @@ func (s *State) GetDBHeight() uint32 {
 func (s *State) AddAdminBlock(interfaces.IAdminBlock) {
 
 }
-
 
 // Messages that will go into the Process List must match an Acknowledgement.
 // The code for this is the same for all such messages, so we put it here.
@@ -284,7 +292,7 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) (bool, error) {
 }
 
 // Ack messages always match some message in the Process List.   That is
-// done here, though the only msg that should call this routine is the Ack 
+// done here, though the only msg that should call this routine is the Ack
 // message.
 func (s *State) FollowerExecuteAck(msg interfaces.IMsg) (bool, error) {
 	ack := msg.(*messages.Ack)
@@ -294,43 +302,41 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) (bool, error) {
 		match.FollowerExecute(s)
 		return true, nil
 	}
-	
+
 	return false, nil
 }
-
 
 func (s *State) LeaderExecute(m interfaces.IMsg) error {
 	v := m.Validate(s.GetDBHeight(), s)
 	if v <= 0 {
-		return fmt.Errorf("Msg not valid: "+m.String())
+		return fmt.Errorf("Msg not valid: " + m.String())
 	}
-	
+
 	hash := m.GetHash()
-	
+
 	ack, err := s.NewAck(hash)
 	if err != nil {
 		fmt.Println("Ack Error")
 		return err
 	}
-	
+
 	// Leader Execute creates an acknowledgement and the EOM
 	s.NetworkOutMsgQueue() <- ack
 	s.FollowerInMsgQueue() <- ack // Send the Ack to follower
-	
+
 	s.NetworkOutMsgQueue() <- m // Send the Message;  It works better if
 	s.FollowerInMsgQueue() <- m // the msg follows the Ack, but it doesn't matter much.
 	return nil
 }
 
 func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
-	eom,_ := m.(*messages.EOM)
+	eom, _ := m.(*messages.EOM)
 	eom.DirectoryBlockHeight = s.DBHeight
-	fmt.Println ("EOM",s.DBHeight)
+	fmt.Println("EOM", s.DBHeight)
 	return s.LeaderExecute(eom)
 }
 
-
-func (s *State) GetNewEBlocks(dbheight uint32, hash interfaces.IHash) interfaces.IEntryBlock{
+func (s *State) GetNewEBlocks(dbheight uint32, hash interfaces.IHash) interfaces.IEntryBlock {
 	return nil
 }
 func (s *State) PutNewEBlocks(dbheight uint32, hash interfaces.IHash, eb interfaces.IEntryBlock) {
@@ -340,11 +346,10 @@ func (s *State) GetCommits(dbheight uint32, hash interfaces.IHash) interfaces.IM
 	return nil
 }
 func (s *State) PutCommits(dbheight uint32, hash interfaces.IHash, msg interfaces.IMsg) {
-	s.ProcessLists.Get(dbheight).PutCommits(hash,msg)
+	s.ProcessLists.Get(dbheight).PutCommits(hash, msg)
 }
 
-
-func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)  {
+func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg) {
 	c, ok := commitChain.(*messages.CommitChainMsg)
 	if ok {
 		pl := s.ProcessLists.Get(dbheight)
@@ -364,15 +369,15 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) {
 
 	fs := s.FactoidState
 	fs.EndOfPeriod(int(e.Minute))
-	
+
 	ecblk := s.ProcessLists.Get(dbheight).EntryCreditBlock
 	ecbody := ecblk.GetBody()
 	mn := entryCreditBlock.NewMinuteNumber2(e.Minute)
-	
+
 	ecbody.AddEntry(mn)
-	
+
 	if e.Minute == 9 {
-		
+
 		// TODO: This code needs to be reviewed... It works here, but we are effectively
 		// executing "leader" code in the compainion "follower" goroutine...
 		// Maybe that's okay?
@@ -383,20 +388,20 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) {
 			// create a DirectoryBlockSignature (if we are the leader) and
 			// send it out to the network.
 			DBM := messages.NewDirectoryBlockSignature()
-			prevDB := s.DBStates.Get(s.GetDirectoryBlock().GetHeader().GetDBHeight()-1).DirectoryBlock
+			prevDB := s.DBStates.Get(s.GetDirectoryBlock().GetHeader().GetDBHeight() - 1).DirectoryBlock
 			if prevDB == nil {
 				DBM.DirectoryBlockKeyMR = primitives.NewHash(constants.ZERO_HASH)
 			} else {
 				DBM.DirectoryBlockKeyMR = prevDB.GetKeyMR()
 			}
 			DBM.Sign(s)
-			
+
 			ack, err := s.NewAck(DBM.GetHash())
 			if err != nil {
 				fmt.Println("Ack Error")
 				return
 			}
-			
+
 			s.NetworkOutMsgQueue() <- ack
 			s.NetworkOutMsgQueue() <- DBM
 			s.InMsgQueue() <- ack
@@ -405,7 +410,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) {
 	}
 }
 
-func (s *State) ProcessSignPL(dbheight uint32, commitChain interfaces.IMsg)  {
+func (s *State) ProcessSignPL(dbheight uint32, commitChain interfaces.IMsg) {
 	s.ProcessLists.Get(dbheight).SetSigComplete(true)
 }
 
@@ -681,7 +686,6 @@ func (s *State) GetDirectoryBlock() interfaces.IDirectoryBlock {
 	return s.DBStates.Last().DirectoryBlock
 }
 
-
 func (s *State) GetNewHash() interfaces.IHash {
 	return new(primitives.Hash)
 }
@@ -743,9 +747,9 @@ func (s *State) NewAck(hash interfaces.IHash) (iack interfaces.IMsg, err error) 
 		}
 	}
 	s.SetLastAck(ack)
-	
+
 	// TODO:  Add the signature.
-	
+
 	return ack, nil
 }
 
@@ -761,6 +765,6 @@ func (s *State) NewEOM(minute int) interfaces.IMsg {
 	eom.Minute = byte(minute)
 	eom.ServerIndex = s.ServerIndex
 	eom.DirectoryBlockHeight = s.GetDBHeight()
-	
+
 	return eom
 }

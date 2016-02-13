@@ -23,11 +23,11 @@ import (
 //
 type FBlock struct {
 	//  ChainID         interfaces.IHash     // ChainID.  But since this is a constant, we need not actually use space to store it.
-	BodyMR          interfaces.IHash // Merkle root of the Factoid transactions which accompany this block.
-	PrevKeyMR       interfaces.IHash // Key Merkle root of previous block.
+	BodyMR       interfaces.IHash // Merkle root of the Factoid transactions which accompany this block.
+	PrevKeyMR    interfaces.IHash // Key Merkle root of previous block.
 	PrevFullHash interfaces.IHash // Sha3 of the previous Factoid Block
-	ExchRate        uint64           // Factoshis per Entry Credit
-	DBHeight        uint32           // Directory Block height
+	ExchRate     uint64           // Factoshis per Entry Credit
+	DBHeight     uint32           // Directory Block height
 	// Header Expansion Size  varint
 	// Transaction count
 	// body size

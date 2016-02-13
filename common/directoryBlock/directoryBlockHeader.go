@@ -19,8 +19,8 @@ type DBlockHeader struct {
 	Version   byte
 	NetworkID uint32
 
-	BodyMR          interfaces.IHash
-	PrevKeyMR       interfaces.IHash
+	BodyMR       interfaces.IHash
+	PrevKeyMR    interfaces.IHash
 	PrevFullHash interfaces.IHash
 
 	Timestamp  uint32

@@ -280,22 +280,21 @@ func (b *DirectoryBlock) AddEntry(chainID interfaces.IHash, keyMR interfaces.IHa
  * Support
  *********************************************************************/
 
+func NewDirectoryBlock(dbheight uint32, prev *DirectoryBlock) interfaces.IDirectoryBlock {
 
-func NewDirectoryBlock(dbheight uint32,  prev *DirectoryBlock) interfaces.IDirectoryBlock {
-	
 	if prev == nil && dbheight != 0 {
 		return nil
 	} else if prev != nil && dbheight == 0 {
 		return nil
 	}
-	
+
 	newdb := new(DirectoryBlock)
-	
+
 	newdb.Header = new(DBlockHeader)
 	newdb.Header.SetVersion(constants.VERSION_0)
 	newdb.Header.SetPrevFullHash(primitives.NewZeroHash())
 	newdb.Header.SetPrevKeyMR(primitives.NewZeroHash())
-	
+
 	if prev != nil {
 		if prev.KeyMR == nil {
 			prev.BuildKeyMerkleRoot()
@@ -304,10 +303,10 @@ func NewDirectoryBlock(dbheight uint32,  prev *DirectoryBlock) interfaces.IDirec
 		newdb.GetHeader().SetPrevFullHash(hash)
 		newdb.GetHeader().SetPrevKeyMR(prev.KeyMR)
 	}
-	
+
 	newdb.GetHeader().SetDBHeight(dbheight)
 	newdb.SetDBEntries(make([]interfaces.IDBEntry, 0))
-	
+
 	newdb.AddEntry(primitives.NewHash(constants.ADMIN_CHAINID), primitives.NewZeroHash())
 	newdb.AddEntry(primitives.NewHash(constants.EC_CHAINID), primitives.NewZeroHash())
 	newdb.AddEntry(primitives.NewHash(constants.FACTOID_CHAINID), primitives.NewZeroHash())
