@@ -23,12 +23,21 @@ func Test_DBState1(t *testing.T) {
 	fmt.Println("DBState Test")
 	defer fmt.Println("DBState Test Done")
 
+	off := true			// We need to create states with a testing database!
+	if off {
+		return
+	}
+	
+	
 	state := GetState()
 
+	var prev interfaces.IDirectoryBlock	// First call gets a nil, rest the previous DirectoryBlock
+	
 	var i uint32
 	for i = 0; i < 2; i++ {
 
-		dblk := directoryBlock.NewDirectoryBlock(i)
+		dblk := directoryBlock.NewDirectoryBlock(i,prev.(*directoryBlock.DirectoryBlock))
+		prev = dblk
 		ablk := state.NewAdminBlock(i)
 		eblk := entryCreditBlock.NewECBlock()
 		fblk := block.GetGenesisFBlock()
