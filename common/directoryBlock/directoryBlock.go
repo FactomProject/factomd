@@ -209,6 +209,8 @@ func (b *DirectoryBlock) BuildKeyMerkleRoot() (keyMR interfaces.IHash, err error
 
 	b.KeyMR = keyMR
 
+	b.GetFullHash()	// Create the Full Hash when we create the keyMR
+	
 	return keyMR, nil
 }
 
@@ -263,6 +265,16 @@ func (b *DirectoryBlock) GetHash() interfaces.IHash {
 	return b.DBHash
 }
 
+func (b *DirectoryBlock) GetFullHash() interfaces.IHash {
+	if b.GetHeader().GetFullHash() == nil {
+		if hash, err := primitives.CreateHash(b); err == nil {
+			b.GetHeader().SetFullHash(hash)
+		}
+	}
+	return b.GetHeader().GetFullHash()
+}
+
+
 func (b *DirectoryBlock) AddEntry(chainID interfaces.IHash, keyMR interfaces.IHash) error {
 	var dbentry interfaces.IDBEntry
 	dbentry = new(DBEntry)
@@ -299,8 +311,7 @@ func NewDirectoryBlock(dbheight uint32, prev *DirectoryBlock) interfaces.IDirect
 		if prev.KeyMR == nil {
 			prev.BuildKeyMerkleRoot()
 		}
-		hash, _ := primitives.CreateHash(prev)
-		newdb.GetHeader().SetPrevFullHash(hash)
+		newdb.GetHeader().SetPrevFullHash(prev.GetHeader().GetFullHash())
 		newdb.GetHeader().SetPrevKeyMR(prev.KeyMR)
 	}
 

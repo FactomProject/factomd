@@ -223,6 +223,9 @@ func (s *State) loadDatabase() {
 		if dhash, err = s.DB.FetchDBKeyMRByHeight(i); err != nil {
 			panic(err)
 		}
+		if dhash == nil {
+			break
+		}
 		d, err := s.DB.FetchDBlockByHash(dhash)
 		if err != nil {
 			panic(err)

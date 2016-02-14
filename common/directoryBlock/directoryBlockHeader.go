@@ -20,6 +20,7 @@ type DBlockHeader struct {
 	NetworkID uint32
 
 	BodyMR       interfaces.IHash
+	FullHash     interfaces.IHash
 	PrevKeyMR    interfaces.IHash
 	PrevFullHash interfaces.IHash
 
@@ -62,6 +63,14 @@ func (h *DBlockHeader) GetPrevKeyMR() interfaces.IHash {
 
 func (h *DBlockHeader) SetPrevKeyMR(prevKeyMR interfaces.IHash) {
 	h.PrevKeyMR = prevKeyMR
+}
+
+func (h *DBlockHeader) GetFullHash() interfaces.IHash {
+	return h.FullHash
+}
+
+func (h *DBlockHeader) SetFullHash(FullHash interfaces.IHash) {
+	h.FullHash = FullHash
 }
 
 func (h *DBlockHeader) GetPrevFullHash() interfaces.IHash {
@@ -113,8 +122,9 @@ func (e *DBlockHeader) String() string {
 	out.WriteString(fmt.Sprintf("  Version:         %v\n", e.Version))
 	out.WriteString(fmt.Sprintf("  NetworkID:       %d\n", e.NetworkID))
 	out.WriteString(fmt.Sprintf("  BodyMR:          %s\n", e.BodyMR.String()))
+	out.WriteString(fmt.Sprintf("  FullHash:        %s\n", e.FullHash))
 	out.WriteString(fmt.Sprintf("  PrevKeyMR:       %s\n", e.PrevKeyMR.String()))
-	out.WriteString(fmt.Sprintf("  PrevFullHash: %s\n", e.PrevFullHash.String()))
+	out.WriteString(fmt.Sprintf("  PrevFullHash:    %s\n", e.PrevFullHash.String()))
 	out.WriteString(fmt.Sprintf("  Timestamp:       %d\n", e.Timestamp))
 	out.WriteString(fmt.Sprintf("  DBHeight:        %d\n", e.DBHeight))
 	out.WriteString(fmt.Sprintf("  BlockCount:      %d\n", e.BlockCount))

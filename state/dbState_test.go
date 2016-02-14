@@ -11,6 +11,7 @@ import (
 	"github.com/FactomProject/factomd/common/factoid/block"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/log"
+	
 	"github.com/FactomProject/factomd/util"
 	"testing"
 )
@@ -19,12 +20,18 @@ var _ = fmt.Print
 var _ = log.Print
 var _ = util.ReadConfig
 
+// We need to create states with a testing database!  Need to add
+// back the mapping database for testing!  Until then, don't run
+// tests by default that require us to delete or manipulate the 
+// database and rebuild Factom's past.
+var runDBTests = true
+
+
 func Test_DBState1(t *testing.T) {
 	fmt.Println("DBState Test")
 	defer fmt.Println("DBState Test Done")
 
-	off := true			// We need to create states with a testing database!
-	if off {
+	if !runDBTests {
 		return
 	}
 	
@@ -36,7 +43,12 @@ func Test_DBState1(t *testing.T) {
 	var i uint32
 	for i = 0; i < 2; i++ {
 
-		dblk := directoryBlock.NewDirectoryBlock(i,prev.(*directoryBlock.DirectoryBlock))
+		// p ends up with the DirectoryBlock or nil.  All's good.
+		p, _ := prev.(*directoryBlock.DirectoryBlock)
+		if i > 0 && p == nil {
+			t.Error("Should not fail to have a previous lbock")
+		}
+		dblk := directoryBlock.NewDirectoryBlock(i,p)
 		prev = dblk
 		ablk := state.NewAdminBlock(i)
 		eblk := entryCreditBlock.NewECBlock()
