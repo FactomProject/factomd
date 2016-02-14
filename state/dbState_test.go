@@ -28,20 +28,16 @@ var runDBTests = true
 
 
 func Test_DBState1(t *testing.T) {
-	fmt.Println("DBState Test")
-	defer fmt.Println("DBState Test Done")
-
 	if !runDBTests {
 		return
 	}
-	
 	
 	state := GetState()
 
 	var prev interfaces.IDirectoryBlock	// First call gets a nil, rest the previous DirectoryBlock
 	
 	var i uint32
-	for i = 0; i < 2; i++ {
+	for i = 0; i < 10; i++ {
 
 		// p ends up with the DirectoryBlock or nil.  All's good.
 		p, _ := prev.(*directoryBlock.DirectoryBlock)
@@ -65,14 +61,10 @@ func Test_DBState1(t *testing.T) {
 		}
 	}
 
-	fmt.Println("Testing all blocks")
-
 	dblks := make([]interfaces.IDirectoryBlock, 0)
 
 	for j := uint32(0); j < i; j++ {
-		fmt.Print("\r At Block: ", j)
 		dblk, _ := state.DB.FetchDBlockByHeight(j)
-		fmt.Println(dblk.String())
 		if dblk == nil {
 			fmt.Println("last dblk found:", j)
 			break

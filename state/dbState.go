@@ -57,9 +57,6 @@ func (list *DBStateList) Put(dbstate *DBState) {
 	list.multex.Lock()
 	defer list.multex.Unlock()
 
-	fmt.Println("DBState.Put()")
-	defer fmt.Println("Leaving DBState.Put()")
-
 	dblk := dbstate.DirectoryBlock
 	dbheight := dblk.GetHeader().GetDBHeight()
 
@@ -84,13 +81,10 @@ func (list *DBStateList) Put(dbstate *DBState) {
 
 	if dbheight > 0 {
 		prev := list.Getul(dbheight - 1)
-		fmt.Println("PREVIOUS", prev.DirectoryBlock.String())
 		dbstate.DirectoryBlock.GetHeader().SetPrevKeyMR(prev.DirectoryBlock.GetKeyMR())
 		dbstate.DirectoryBlock.GetHeader().SetPrevFullHash(prev.DirectoryBlock.GetHash())
-		fmt.Println("NEXT", dbstate.DirectoryBlock.String())
 	}
 	if dbstate.isNew {
-		fmt.Println("Writing...")
 		dbstate.DirectoryBlock.BuildBodyMR()
 		list.state.DB.ProcessDBlockBatch(dbstate.DirectoryBlock)
 		list.state.DB.ProcessABlockBatch(dbstate.AdminBlock)
