@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
-	"github.com/FactomProject/factomd/common/factoid/block"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/log"
 	
@@ -48,10 +47,12 @@ func Test_DBState1(t *testing.T) {
 		prev = dblk
 		ablk := state.NewAdminBlock(i)
 		eblk := entryCreditBlock.NewECBlock()
-		fblk := block.GetGenesisFBlock()
-
+		fblk := state.GetFactoidState().GetCurrentBlock()
+		state.GetFactoidState().ProcessEndOfBlock(state)
+		
 		state.DBStates.NewDBState(true, dblk, ablk, fblk, eblk)
-
+		state.DBStates.Process()
+		
 		h := dblk.GetHeader().GetDBHeight()
 		if i != h {
 			t.Errorf("Height error.  Expecting %d and got %d", i, h)

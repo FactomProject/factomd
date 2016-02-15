@@ -61,15 +61,12 @@ func (list *DBStateList) Put(dbstate *DBState) {
 	dbheight := dblk.GetHeader().GetDBHeight()
 
 	index := int(dbheight) - int(list.base)
+	fmt.Println("iiiiiiiiiiiiiiii index",index,int(dbheight), int(list.base), len(list.DBStates))
 	for len(list.DBStates) <= index {
 		list.DBStates = append(list.DBStates, nil)
 	}
 	if index >= 0 {
 		list.DBStates[index] = dbstate
-	}
-
-	if dbheight > list.state.DBHeight {
-		list.state.DBHeight = dbheight
 	}
 
 	hash, _ := dbstate.AdminBlock.GetKeyMR()
@@ -84,16 +81,7 @@ func (list *DBStateList) Put(dbstate *DBState) {
 		dbstate.DirectoryBlock.GetHeader().SetPrevKeyMR(prev.DirectoryBlock.GetKeyMR())
 		dbstate.DirectoryBlock.GetHeader().SetPrevFullHash(prev.DirectoryBlock.GetHash())
 	}
-	if dbstate.isNew {
-		dbstate.DirectoryBlock.BuildBodyMR()
-		list.state.DB.ProcessDBlockBatch(dbstate.DirectoryBlock)
-		list.state.DB.ProcessABlockBatch(dbstate.AdminBlock)
-		list.state.DB.ProcessECBlockBatch(dbstate.EntryCreditBlock)
-		list.state.DB.ProcessFBlockBatch(dbstate.FactoidBlock)
-
-		dbstate.isNew = false
-	}
-
+	fmt.Println("iiiiiiiiiiiiiiii index",index,int(dbheight), int(list.base), len(list.DBStates))
 }
 
 func (list *DBStateList) Get(height uint32) *DBState {
@@ -111,28 +99,42 @@ func (list *DBStateList) Getul(height uint32) *DBState {
 	return list.DBStates[i]
 }
 
-func (list *DBStateList) Process(state interfaces.IState) {
-
-	for int(list.complete+1) < len(list.DBStates) {
-		d := list.DBStates[list.complete+1]
-
-		s := state.(*State)
-		s.AddAdminBlock(d.AdminBlock)
-
+func (list *DBStateList) Process() {
+	
+	for int(list.complete) < len(list.DBStates) {
+		d := list.DBStates[list.complete]
+		
+		fmt.Println("uuuuuuuuuuuuuuuuuuuu process. complete",list.complete," len(DBStates)",len(list.DBStates),d.isNew)
+		
 		if d.isNew {
-			state.GetDB().SaveDirectoryBlockHead(d.DirectoryBlock)
-			state.GetDB().ProcessDBlockBatch(d.DirectoryBlock)
-			state.GetDB().ProcessABlockBatch(d.AdminBlock)
-			state.GetDB().ProcessFBlockBatch(d.FactoidBlock)
-			state.GetDB().ProcessECBlockBatch(d.EntryCreditBlock)
-			state.GetAnchor().UpdateDirBlockInfoMap(dbInfo.NewDirBlockInfoFromDirBlock(d.DirectoryBlock))
+			fmt.Println("Saving at level",d.DirectoryBlock.GetHeader().GetDBHeight())
+			
+			d.DirectoryBlock.MarshalBinary()
+			fmt.Println("DB KeyMR",d.DirectoryBlock.GetKeyMR())
+			err := list.state.GetDB().ProcessDBlockBatch(d.DirectoryBlock)
+			head,err := list.state.GetDB().FetchDBlockByKeyMR(d.DirectoryBlock.GetKeyMR())
+			if err != nil {
+				panic(err.Error())
+			}
+			fmt.Println("Head:", head.GetKeyMR(), "\nHead2:", d.DirectoryBlock.GetKeyMR())
+			list.state.GetDB().ProcessABlockBatch(d.AdminBlock)
+			keyMR, _ := d.AdminBlock.GetKeyMR()
+			fmt.Println("AB KeyMR",keyMR)
+			list.state.GetDB().ProcessFBlockBatch(d.FactoidBlock)
+			fmt.Println("FB KeyMR",d.FactoidBlock.GetKeyMR())
+			list.state.GetDB().ProcessECBlockBatch(d.EntryCreditBlock)
+			keyMR, _ = d.EntryCreditBlock.Hash()
+			fmt.Println("EB KeyMR",keyMR)
+			list.state.GetDB().SaveDirectoryBlockHead(d.DirectoryBlock)
+			list.state.GetAnchor().UpdateDirBlockInfoMap(dbInfo.NewDirBlockInfoFromDirBlock(d.DirectoryBlock))
 		} else {
-			fs := state.GetFactoidState()
+			fmt.Println("loading into Factom, no save")
+			fs := list.state.GetFactoidState()
 			fs.AddTransactionBlock(d.FactoidBlock)
 			fs.AddECBlock(d.EntryCreditBlock)
 		}
-
 		list.complete++
+		list.state.DBHeight = list.complete+1
 	}
 }
 
@@ -142,6 +144,8 @@ func (list *DBStateList) NewDBState(isNew bool,
 	FactoidBlock interfaces.IFBlock,
 	EntryCreditBlock interfaces.IEntryCreditBlock) *DBState {
 
+	fmt.Println("Added new state at height", DirectoryBlock.GetHeader().GetDBHeight())	
+		
 	dbstate := new(DBState)
 
 	dbstate.isNew = isNew
@@ -149,7 +153,7 @@ func (list *DBStateList) NewDBState(isNew bool,
 	dbstate.AdminBlock = AdminBlock
 	dbstate.FactoidBlock = FactoidBlock
 	dbstate.EntryCreditBlock = EntryCreditBlock
-
+	
 	list.Put(dbstate)
 	return dbstate
 }

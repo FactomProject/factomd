@@ -181,6 +181,8 @@ func (s *State) Init(filename string) {
 		panic("Bad value for Network in factomd.conf")
 	}
 
+	fmt.Println("\nRunning on the ",cfg.App.Network,"Network")
+	
 	s.AuditHeartBeats = make([]interfaces.IMsg, 0)
 	s.FedServerFaults = make([][]interfaces.IMsg, 0)
 
@@ -200,7 +202,7 @@ func (s *State) UpdateState() {
 	fmt.Println("Update PL")
 	s.ProcessLists.UpdateState()
 	fmt.Println("Update DBStates")
-	s.DBStates.Process(s)
+	s.DBStates.Process()
 }
 
 // Adds blocks that are either pulled locally from a database, or acquired from peers.
@@ -224,6 +226,7 @@ func (s *State) loadDatabase() {
 			panic(err)
 		}
 		if dhash == nil {
+			fmt.Println("No Key at height",i)
 			break
 		}
 		d, err := s.DB.FetchDBlockByHash(dhash)
@@ -231,26 +234,29 @@ func (s *State) loadDatabase() {
 			panic(err)
 		}
 		if d == nil {
-			break
+			panic("No DirectoryBlock for "+dhash.String())
 		}
 		dblk := d
 		ablk, _ := s.DB.FetchABlockByHash(dblk.GetDBEntries()[0].GetKeyMR())
 		eblk, _ := s.DB.FetchECBlockByHash(dblk.GetDBEntries()[1].GetKeyMR())
 		fblk, _ := s.DB.FetchFBlockByHash(dblk.GetDBEntries()[2].GetKeyMR())
 
-		s.DBStates.NewDBState(true, dblk, ablk, fblk, eblk)
-		s.DBStates.Process(s)
+		s.DBStates.NewDBState(false, dblk, ablk, fblk, eblk)
 	}
 
 	if i == 0 && s.NetworkNumber == constants.NETWORK_LOCAL {
+		fmt.Println("\n***********************************")
+		fmt.Println("******* New Database **************")
+		fmt.Println("***********************************\n")
+		
 		dblk := directoryBlock.NewDirectoryBlock(0, nil)
 		ablk := s.NewAdminBlock(0)
 		fblk := block.GetGenesisFBlock()
 		eblk := entryCreditBlock.NewECBlock()
 
 		s.DBStates.NewDBState(true, dblk, ablk, fblk, eblk)
-		s.DBStates.Process(s)
 	}
+	s.DBStates.Process()
 }
 
 // This routine is called once we have everything to create a Directory Block.
@@ -264,14 +270,6 @@ func (s *State) ProcessEndOfBlock(dbheight uint32) {
 // This value shouldn't be used by follower code.
 func (s *State) GetDBHeight() uint32 {
 	return s.DBHeight
-}
-
-// Here we need to validate the signatures of the previous block.  We also need to update
-// stuff like a change to the exchange rate for Entry Credits, the number of Federated Servers (until
-// such time we reach the 32 server target), the Federated Server profiles (Factom IDs, Bitcoin
-// addresses, other chain addresses (like Ethereum, etc.) and more).
-func (s *State) AddAdminBlock(interfaces.IAdminBlock) {
-
 }
 
 // Messages that will go into the Process List must match an Acknowledgement.

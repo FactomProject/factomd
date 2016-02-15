@@ -86,6 +86,7 @@ func (d *BoltDB) Get(bucket []byte, key []byte, destination interfaces.BinaryMar
 }
 
 func (d *BoltDB) Put(bucket []byte, key []byte, data interfaces.BinaryMarshallable) error {
+	fmt.Println("Bolt: Put",hex.EncodeToString(key))
 	hex, err := data.MarshalBinary()
 	if err != nil {
 		return err

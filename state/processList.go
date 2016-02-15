@@ -46,10 +46,8 @@ func (lists *ProcessLists) Get(dbheight uint32) *ProcessList {
 	}
 	pl := lists.lists[i]
 	if pl == nil {
-		fmt.Println("rrrrrrrrrrrrrrrrrrrrrr", len(lists.lists), i)
 		pl = NewProcessList(lists.state.GetTotalServers(), dbheight)
 		lists.lists[i] = pl
-		fmt.Println("rrrbbbbbbbbbbbbbbbbbbbrrrrrrr", len(lists.lists), i)
 	}
 	return pl
 }
