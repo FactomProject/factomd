@@ -2,8 +2,8 @@ package state
 
 import (
 	"fmt"
-	"sync"
 	"log"
+	"sync"
 
 	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
@@ -32,7 +32,7 @@ func (lists *ProcessLists) UpdateState() {
 	}
 	heightBuilding := dbstate.DirectoryBlock.GetHeader().GetDBHeight() + 1
 	pl := lists.Get(heightBuilding)
-	
+
 	//*******************************************************************//
 	// Do initialization of blocks for the next Process List level here
 	//*******************************************************************
@@ -45,7 +45,7 @@ func (lists *ProcessLists) UpdateState() {
 		if err != nil {
 			panic(err.Error())
 		}
-		
+
 	}
 	// Create DState blocks for all completed Process Lists
 	pl.Process(lists.State)
@@ -54,7 +54,7 @@ func (lists *ProcessLists) UpdateState() {
 	if pl.Complete() {
 		fmt.Println("Finished List")
 		lists.State.DBStates.NewDBState(true, pl.DirectoryBlock, pl.AdminBlock, pl.FactoidBlock, pl.EntryCreditBlock)
-	}else{
+	} else {
 		fmt.Println("Staying on List")
 	}
 }
@@ -191,7 +191,7 @@ func (p *ProcessList) Process(state interfaces.IState) {
 		plist := p.Servers[i].List
 		for j := p.Servers[i].Height; j < len(plist); j++ {
 			if plist[j] == nil {
-				fmt.Println("!!!!!!! Missing entry in process list at",j)
+				fmt.Println("!!!!!!! Missing entry in process list at", j)
 				return
 			}
 			p.Servers[i].Height = j + 1         // Don't process it again.
@@ -199,12 +199,12 @@ func (p *ProcessList) Process(state interfaces.IState) {
 
 			eom, ok := plist[j].(*messages.EOM)
 			if ok && eom.Minute == 9 {
-				fmt.Println("End of Minute at",j)
+				fmt.Println("End of Minute at", j)
 				p.Servers[i].EomComplete = true
 			}
 			_, ok = plist[j].(*messages.DirectoryBlockSignature)
 			if ok {
-				fmt.Println("Signed Directory Block at",j)
+				fmt.Println("Signed Directory Block at", j)
 				p.Servers[i].SigComplete = true
 			}
 		}
@@ -223,7 +223,7 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 func (p *ProcessList) PutCommits(key interfaces.IHash, value interfaces.IMsg) {
 	p.CommitsSem.Lock()
 	defer p.CommitsSem.Unlock()
-	
+
 	{
 		cmsg, ok := value.(interfaces.ICounted)
 		if ok {

@@ -110,6 +110,7 @@ func CreateTestBlockSet(prev *BlockSet) *BlockSet {
 	answer.Height = height
 
 	dbEntries := []interfaces.IDBEntry{}
+	//ABlock
 	answer.ABlock = CreateTestAdminBlock(prev.ABlock)
 
 	de := new(directoryBlock.DBEntry)
@@ -123,6 +124,7 @@ func CreateTestBlockSet(prev *BlockSet) *BlockSet {
 	}
 	dbEntries = append(dbEntries, de)
 
+	//FBlock
 	answer.FBlock = CreateTestFactoidBlock(prev.FBlock)
 
 	de = new(directoryBlock.DBEntry)
@@ -133,6 +135,7 @@ func CreateTestBlockSet(prev *BlockSet) *BlockSet {
 	de.KeyMR = answer.FBlock.GetKeyMR()
 	dbEntries = append(dbEntries, de)
 
+	//EBlock
 	answer.EBlock, answer.Entries = CreateTestEntryBlock(prev.EBlock)
 
 	de = new(directoryBlock.DBEntry)
@@ -146,6 +149,7 @@ func CreateTestBlockSet(prev *BlockSet) *BlockSet {
 	}
 	dbEntries = append(dbEntries, de)
 
+	//Anchor EBlock
 	anchor, entries := CreateTestAnchorEntryBlock(prev.AnchorEBlock, prev.DBlock)
 	answer.AnchorEBlock = anchor
 	answer.Entries = append(answer.Entries, entries...)
@@ -161,6 +165,7 @@ func CreateTestBlockSet(prev *BlockSet) *BlockSet {
 	}
 	dbEntries = append(dbEntries, de)
 
+	//ECBlock
 	answer.ECBlock = CreateTestEntryCreditBlock(prev.ECBlock)
 	ecEntries := createECEntriesfromBlocks(answer.FBlock, []*entryBlock.EBlock{answer.EBlock, answer.AnchorEBlock}, height)
 	answer.ECBlock.GetBody().SetEntries(ecEntries)
@@ -174,7 +179,7 @@ func CreateTestBlockSet(prev *BlockSet) *BlockSet {
 	if err != nil {
 		panic(err)
 	}
-	dbEntries = append(dbEntries, de)
+	dbEntries = append(dbEntries[:1], append([]interfaces.IDBEntry{de}, dbEntries[1:]...)...)
 
 	answer.DBlock = CreateTestDirectoryBlock(prev.DBlock)
 	err = answer.DBlock.SetDBEntries(dbEntries)

@@ -239,24 +239,24 @@ func (s *State) loadDatabase() {
 			panic(err)
 		}
 		if ablk == nil {
-			panic("ablk is nil")
+			panic("ablk is nil" + dblk.GetDBEntries()[0].GetKeyMR().String())
 		}
-		eblk, err := s.DB.FetchECBlockByHash(dblk.GetDBEntries()[1].GetKeyMR())
+		ecblk, err := s.DB.FetchECBlockByHash(dblk.GetDBEntries()[1].GetKeyMR())
 		if err != nil {
 			panic(err)
 		}
-		if eblk == nil {
-			panic("eblk is nil")
+		if ecblk == nil {
+			panic("ecblk is nil - " + dblk.GetDBEntries()[1].GetKeyMR().String())
 		}
 		fblk, err := s.DB.FetchFBlockByKeyMR(dblk.GetDBEntries()[2].GetKeyMR())
 		if err != nil {
 			panic(err)
 		}
 		if fblk == nil {
-			panic("fblk is nil")
+			panic("fblk is nil" + dblk.GetDBEntries()[2].GetKeyMR().String())
 		}
 
-		s.DBStates.NewDBState(false, dblk, ablk, fblk, eblk)
+		s.DBStates.NewDBState(false, dblk, ablk, fblk, ecblk)
 		s.DBStates.Process()
 	}
 
@@ -268,12 +268,12 @@ func (s *State) loadDatabase() {
 		dblk := directoryBlock.NewDirectoryBlock(0, nil)
 		ablk := s.NewAdminBlock(0)
 		fblk := block.GetGenesisFBlock()
-		eblk := entryCreditBlock.NewECBlock()
+		ecblk := entryCreditBlock.NewECBlock()
 
-		s.DBStates.NewDBState(true, dblk, ablk, fblk, eblk)
+		s.DBStates.NewDBState(true, dblk, ablk, fblk, ecblk)
 		s.DBStates.Process()
 	}
-	log.Println(fmt.Sprintf("Loaded %d directory blocks",i))
+	log.Println(fmt.Sprintf("Loaded %d directory blocks", i))
 	s.DBStates.Process()
 }
 
@@ -356,11 +356,10 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
 }
 
 func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) error {
-	s.LastAck = nil						// Clear Ack list
-	s.FollowerInMsgQueue() <- m			// Send on to the follower.
+	s.LastAck = nil             // Clear Ack list
+	s.FollowerInMsgQueue() <- m // Send on to the follower.
 	return nil
 }
-
 
 func (s *State) GetNewEBlocks(dbheight uint32, hash interfaces.IHash) interfaces.IEntryBlock {
 	return nil
@@ -397,9 +396,8 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) {
 
 	s.FactoidState.EndOfPeriod(int(e.Minute))
 
-
 	ecblk := pl.EntryCreditBlock
-	
+
 	ecbody := ecblk.GetBody()
 	mn := entryCreditBlock.NewMinuteNumber2(e.Minute)
 
