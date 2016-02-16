@@ -12,59 +12,53 @@ import (
 var _ = fmt.Print
 
 type ProcessLists struct {
-	state        *State // Pointer to the state object
-	dBHeightBase uint32 // Height of the first Process List in this structure.
-	listsMutex   *sync.Mutex
-	lists        []*ProcessList // Pointer to the ProcessList structure for each DBHeight under construction
+	State        *State // Pointer to the state object
+	DBHeightBase uint32 // Height of the first Process List in this structure.
+	ListsMutex   *sync.Mutex
+	Lists        []*ProcessList // Pointer to the ProcessList structure for each DBHeight under construction
 }
 
 func (lists *ProcessLists) UpdateState() {
-	lists.listsMutex.Lock()
-	defer lists.listsMutex.Unlock()
+	lists.ListsMutex.Lock()
+	defer lists.ListsMutex.Unlock()
 
 	// First let's start at the lowest Process List not yet complete.
-	dbstate := lists.state.DBStates.Last()
+	dbstate := lists.State.DBStates.Last()
 	if dbstate == nil {
 		return
 	}
 	heightBuilding := dbstate.DirectoryBlock.GetHeader().GetDBHeight() + 1
 	pl := lists.Get(heightBuilding)
 	// Create DState blocks for all completed Process Lists
-	pl.Process(lists.state)
-	
-	fmt.Println("Directory Block", pl.DirectoryBlock)
-	
+	pl.Process(lists.State)
 	if pl.Complete() {
-		lists.state.DBStates.NewDBState(true, pl.DirectoryBlock, pl.AdminBlock, pl.FactoidBlock, pl.EntryCreditBlock)
+		lists.State.DBStates.NewDBState(true, pl.DirectoryBlock, pl.AdminBlock, pl.FactoidBlock, pl.EntryCreditBlock)
 	}
 }
 
 func (lists *ProcessLists) Get(dbheight uint32) *ProcessList {
 
-	fmt.Println("PL.Get()",dbheight)
-	
-	i := int(dbheight) - int(lists.dBHeightBase)
+	i := int(dbheight) - int(lists.DBHeightBase)
 	if i < 0 {
 		return nil
 	}
-	for len(lists.lists) <= i {
-		lists.lists = append(lists.lists, nil)
+	for len(lists.Lists) <= i {
+		lists.Lists = append(lists.Lists, nil)
 	}
-	pl := lists.lists[i]
+	pl := lists.Lists[i]
 	if pl == nil {
-		fmt.Println("NewPL",dbheight)
-		pl = NewProcessList(lists.state.GetTotalServers(), dbheight)
-		lists.lists[i] = pl
+		pl = NewProcessList(lists.State.GetTotalServers(), dbheight)
+		lists.Lists[i] = pl
 	}
 	return pl
 }
 
 type ProcessList struct {
-	dBHeight uint32 // The directory block height for these lists
-	servers  []ListServer
+	DBHeight uint32 // The directory block height for these lists
+	Servers  []ListServer
 
-	acks *map[[32]byte]interfaces.IMsg // acknowlegments by hash
-	msgs *map[[32]byte]interfaces.IMsg // messages by hash
+	Acks *map[[32]byte]interfaces.IMsg // acknowlegments by hash
+	Msgs *map[[32]byte]interfaces.IMsg // messages by hash
 
 	// Maps
 	// ====
@@ -96,26 +90,26 @@ type ProcessList struct {
 }
 
 type ListServer struct {
-	list        []interfaces.IMsg // Lists of acknowledged messages
-	height      int               // Height of messages that have been processed
+	List        []interfaces.IMsg // Lists of acknowledged messages
+	Height      int               // Height of messages that have been processed
 	EomComplete bool              // Lists that are end of minute complete
 	SigComplete bool              // Lists that are signature complete
 }
 
 func (p *ProcessList) GetLen(list int) int {
-	if list >= len(p.servers) {
+	if list >= len(p.Servers) {
 		return -1
 	}
-	l := len(p.servers[list].list)
+	l := len(p.Servers[list].List)
 	return l
 }
 
 func (p *ProcessList) SetSigComplete(value bool) {
-	p.servers[p.ServerIndex].SigComplete = value
+	p.Servers[p.ServerIndex].SigComplete = value
 }
 
 func (p *ProcessList) SetEomComplete(value bool) {
-	p.servers[p.ServerIndex].EomComplete = value
+	p.Servers[p.ServerIndex].EomComplete = value
 }
 
 func (p *ProcessList) GetNewEBlocks(key [32]byte) interfaces.IEntryBlock {
@@ -148,7 +142,7 @@ func (p *ProcessList) Complete() bool {
 	if p == nil {
 		return true
 	}
-	for _, c := range p.servers {
+	for _, c := range p.Servers {
 		if !c.SigComplete {
 			return false
 		}
@@ -163,29 +157,29 @@ func (p *ProcessList) SetComplete(v bool) {
 	if p == nil {
 		return
 	}
-	for i, _ := range p.servers {
-		p.servers[i].SigComplete = v
+	for i, _ := range p.Servers {
+		p.Servers[i].SigComplete = v
 	}
 }
 
 // Return true if the process list is complete
 func (p *ProcessList) Process(state interfaces.IState) {
-	for i := 0; i < len(p.servers); i++ {
-		plist := p.servers[i].list
-		for j := p.servers[i].height; j < len(plist); j++ {
+	for i := 0; i < len(p.Servers); i++ {
+		plist := p.Servers[i].List
+		for j := p.Servers[i].Height; j < len(plist); j++ {
 			if plist[j] == nil {
 				break
 			}
-			p.servers[i].height = j + 1         // Don't process it again.
-			plist[j].Process(p.dBHeight, state) // Process this entry
+			p.Servers[i].Height = j + 1         // Don't process it again.
+			plist[j].Process(p.DBHeight, state) // Process this entry
 
 			eom, ok := plist[j].(*messages.EOM)
 			if ok && eom.Minute == 9 {
-				p.servers[i].EomComplete = true
+				p.Servers[i].EomComplete = true
 			}
 			_, ok = plist[j].(*messages.DirectoryBlockSignature)
 			if ok {
-				p.servers[i].SigComplete = true
+				p.Servers[i].SigComplete = true
 			}
 
 		}
@@ -193,12 +187,12 @@ func (p *ProcessList) Process(state interfaces.IState) {
 }
 
 func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
-	processlist := p.servers[ack.ServerIndex].list
+	processlist := p.Servers[ack.ServerIndex].List
 	for len(processlist) <= int(ack.Height) {
 		processlist = append(processlist, nil)
 	}
 	processlist[ack.Height] = m
-	p.servers[ack.ServerIndex].list = processlist
+	p.Servers[ack.ServerIndex].List = processlist
 }
 
 func (p *ProcessList) PutCommits(key interfaces.IHash, value interfaces.IMsg) {
@@ -235,10 +229,10 @@ func NewProcessLists(state interfaces.IState) *ProcessLists {
 	if !ok {
 		panic("Failed to initalize Process Lists because the wrong state object was used")
 	}
-	pls.state = s
-	pls.dBHeightBase = 0
-	pls.listsMutex = new(sync.Mutex)
-	pls.lists = make([]*ProcessList, 0)
+	pls.State = s
+	pls.DBHeightBase = 0
+	pls.ListsMutex = new(sync.Mutex)
+	pls.Lists = make([]*ProcessList, 0)
 
 	return pls
 }
@@ -247,19 +241,17 @@ func NewProcessList(totalServers int, dbheight uint32) *ProcessList {
 	// We default to the number of Servers previous.   That's because we always
 	// allocate the FUTURE directoryblock, not the current or previous...
 
-	fmt.Println("total servers ", totalServers)
+	fmt.Println("total Servers ", totalServers)
 
 	pl := new(ProcessList)
 
 	pl.DirectoryBlock = directoryBlock.NewDirectoryBlock(dbheight,nil)
-
-fmt.Println(pl.DirectoryBlock)
 	
 	pl.servers = make([]ListServer, totalServers)
 
-	pl.dBHeight = dbheight
-	pl.acks = new(map[[32]byte]interfaces.IMsg)
-	pl.msgs = new(map[[32]byte]interfaces.IMsg)
+	pl.DBHeight = dbheight
+	pl.Acks = new(map[[32]byte]interfaces.IMsg)
+	pl.Msgs = new(map[[32]byte]interfaces.IMsg)
 
 	pl.NewEBlocksSem = new(sync.Mutex)
 	pl.NewEBlocks = make(map[[32]byte]interfaces.IEntryBlock)
