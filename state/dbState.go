@@ -135,9 +135,11 @@ func (list *DBStateList) Process() {
 			fs.AddTransactionBlock(d.FactoidBlock)
 			fs.AddECBlock(d.EntryCreditBlock)
 		}
+		list.state.LastAck = nil
 		list.complete++
 		list.state.DBHeight = list.complete
 	}
+	fmt.Println("List Complete",list.complete)
 }
 
 func (list *DBStateList) NewDBState(isNew bool,

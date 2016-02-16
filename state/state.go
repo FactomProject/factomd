@@ -308,7 +308,7 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) (bool, error) {
 }
 
 func (s *State) LeaderExecute(m interfaces.IMsg) error {
-	v := m.Validate(s.GetDBHeight(), s)
+	v := m.Validate(s.DBHeight, s)
 	if v <= 0 {
 		return fmt.Errorf("Msg not valid: " + m.String())
 	}

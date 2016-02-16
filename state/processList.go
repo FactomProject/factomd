@@ -3,6 +3,7 @@ package state
 import (
 	"fmt"
 	"sync"
+	"log"
 
 	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -10,6 +11,7 @@ import (
 )
 
 var _ = fmt.Print
+var _ = log.Print
 
 type ProcessLists struct {
 	State        *State // Pointer to the state object
@@ -32,8 +34,12 @@ func (lists *ProcessLists) UpdateState() {
 	// Create DState blocks for all completed Process Lists
 	pl.Process(lists.State)
 
+	// Only when we are sig complete that we can move on.
 	if pl.Complete() {
+		fmt.Println("Finished List")
 		lists.State.DBStates.NewDBState(true, pl.DirectoryBlock, pl.AdminBlock, pl.FactoidBlock, pl.EntryCreditBlock)
+	}else{
+		fmt.Println("Staying on List")
 	}
 }
 
@@ -169,20 +175,22 @@ func (p *ProcessList) Process(state interfaces.IState) {
 		plist := p.Servers[i].List
 		for j := p.Servers[i].Height; j < len(plist); j++ {
 			if plist[j] == nil {
-				break
+				fmt.Println("!!!!!!! Missing entry in process list at",j)
+				return
 			}
 			p.Servers[i].Height = j + 1         // Don't process it again.
 			plist[j].Process(p.DBHeight, state) // Process this entry
 
 			eom, ok := plist[j].(*messages.EOM)
 			if ok && eom.Minute == 9 {
+				fmt.Println("End of Minute at",j)
 				p.Servers[i].EomComplete = true
 			}
 			_, ok = plist[j].(*messages.DirectoryBlockSignature)
 			if ok {
+				fmt.Println("Signed Directory Block at",j)
 				p.Servers[i].SigComplete = true
 			}
-
 		}
 	}
 }
@@ -198,6 +206,8 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 
 func (p *ProcessList) PutCommits(key interfaces.IHash, value interfaces.IMsg) {
 	p.CommitsSem.Lock()
+	defer p.CommitsSem.Unlock()
+	
 	{
 		cmsg, ok := value.(interfaces.ICounted)
 		if ok {
@@ -215,7 +225,6 @@ func (p *ProcessList) PutCommits(key interfaces.IHash, value interfaces.IMsg) {
 
 		p.Commits[key.Fixed()] = value
 	}
-	p.CommitsSem.Unlock()
 }
 
 /************************************************
