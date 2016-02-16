@@ -27,17 +27,17 @@ func TestGet(t *testing.T) {
 		t.Errorf("Wrong Get")
 	}
 
-	if len(p.Lists) != index {
-		t.Errorf("Wrong len of Lists")
+	if len(p.Lists) != index+1 {
+		t.Errorf("Wrong len of Lists - %v vs %v", len(p.Lists), index+1)
 	}
 
-	for i := 0; i < index-1; i++ {
+	for i := 0; i < index; i++ {
 		if p.Lists[i] != nil {
 			t.Errorf("List isn't nil when it should be")
 		}
 	}
 
-	if p.Lists[index-1] == nil {
+	if p.Lists[index] == nil {
 		t.Errorf("List is nil when it shouldn't be")
 	}
 
@@ -48,8 +48,8 @@ func TestGet(t *testing.T) {
 	if list.DBHeight != uint32(index*2) {
 		t.Errorf("Wrong Get")
 	}
-	if len(p.Lists) != index*2 {
-		t.Errorf("Wrong len of Lists")
+	if len(p.Lists) != index*2+1 {
+		t.Errorf("Wrong len of Lists - %v vs %v", len(p.Lists), index*2+1)
 	}
 
 	//Get(dbheight uint32) *ProcessList
@@ -59,8 +59,8 @@ func TestGetLen(t *testing.T) {
 	p := createProcessList()
 
 	for i := range p.Servers {
-		if p.GetLen(i) != len(p.Servers[i].List)-i {
-			t.Errorf("Wrong GetLen")
+		if p.GetLen(i) != len(p.Servers)-i {
+			t.Errorf("Wrong GetLen - %v vs %v", p.GetLen(i), len(p.Servers)-i)
 		}
 	}
 }

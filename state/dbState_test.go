@@ -2,7 +2,7 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-package state
+package state_test
 
 import (
 	"fmt"
@@ -10,6 +10,7 @@ import (
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/log"
+	"github.com/FactomProject/factomd/testHelper"
 
 	"github.com/FactomProject/factomd/util"
 	"testing"
@@ -30,7 +31,7 @@ func Test_DBState1(t *testing.T) {
 		return
 	}
 
-	state := GetState()
+	state := testHelper.CreateEmptyTestState()
 
 	var prev interfaces.IDirectoryBlock // First call gets a nil, rest the previous DirectoryBlock
 

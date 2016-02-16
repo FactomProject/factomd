@@ -2,20 +2,23 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-package state
+package state_test
 
 import (
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	//. "github.com/FactomProject/factomd/state"
+	"github.com/FactomProject/factomd/testHelper"
+
 	"testing"
 )
 
 var fs interfaces.IFactoidState
 
 func TestBalances(t *testing.T) {
-	s := GetState()
+	s := testHelper.CreateEmptyTestState()
 	fs = s.GetFactoidState()
 	fs.SetFactoshisPerEC(1)
 	add1, err := primitives.HexToHash("0000000000000000000000000000000000000000000000000000000000000001")
