@@ -147,7 +147,7 @@ func TestPutAndGetNewEBlocks(t *testing.T) {
 		if err != nil {
 			t.Errorf("v", err)
 		}
-		block := p.GetNewEBlocks(h.Fixed())
+		block := p.GetNewEBlocks(h)
 		h1, err := block.Hash()
 		if err != nil {
 			t.Errorf("v", err)
@@ -174,7 +174,11 @@ func TestPutAndGetNewEBlocks(t *testing.T) {
 }
 
 func TestGetCommits(t *testing.T) {
-	//GetCommits(key [32]byte) interfaces.IMsg
+	//GetCommits(key interface.IHash) interfaces.IMsg
+}
+
+func TestPutCommits(t *testing.T) {
+	//(p *ProcessList) PutCommits(key interfaces.IHash, value interfaces.IMsg)
 }
 
 func TestComplete(t *testing.T) {
@@ -230,10 +234,6 @@ func TestProcess(t *testing.T) {
 
 func TestAddToProcessList(t *testing.T) {
 	//(p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg)
-}
-
-func TestPutCommits(t *testing.T) {
-	//(p *ProcessList) PutCommits(key interfaces.IHash, value interfaces.IMsg)
 }
 
 func TestNewProcessLists(t *testing.T) {

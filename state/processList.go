@@ -135,20 +135,43 @@ func (p *ProcessList) SetEomComplete(value bool) {
 	p.Servers[p.ServerIndex].EomComplete = value
 }
 
-func (p *ProcessList) GetNewEBlocks(key [32]byte) interfaces.IEntryBlock {
-	p.NewEBlocksSem.Lock()
-	defer p.NewEBlocksSem.Unlock()
-
-	eb := p.NewEBlocks[key]
-	return eb
-}
-
-func (p *ProcessList) GetCommits(key [32]byte) interfaces.IMsg {
+func (p *ProcessList) GetCommits(key interfaces.IHash) interfaces.IMsg {
 	p.CommitsSem.Lock()
 	defer p.CommitsSem.Unlock()
 
-	c := p.Commits[key]
+	c := p.Commits[key.Fixed()]
 	return c
+}
+
+func (p *ProcessList) PutCommits(key interfaces.IHash, value interfaces.IMsg) {
+	p.CommitsSem.Lock()
+	defer p.CommitsSem.Unlock()
+
+	{
+		cmsg, ok := value.(interfaces.ICounted)
+		if ok {
+			v := p.Commits[key.Fixed()]
+			if v != nil {
+				_, ok := v.(interfaces.ICounted)
+				if ok {
+					cmsg.SetCount(v.(interfaces.ICounted).GetCount() + 1)
+				} else {
+					fmt.Println(v)
+					panic("Should never happen")
+				}
+			}
+		}
+
+		p.Commits[key.Fixed()] = value
+	}
+}
+
+func (p *ProcessList) GetNewEBlocks(key interfaces.IHash) interfaces.IEntryBlock {
+	p.NewEBlocksSem.Lock()
+	defer p.NewEBlocksSem.Unlock()
+
+	eb := p.NewEBlocks[key.Fixed()]
+	return eb
 }
 
 func (p *ProcessList) PutNewEBlocks(dbheight uint32, key interfaces.IHash, value interfaces.IEntryBlock) {
@@ -218,29 +241,6 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	}
 	processlist[ack.Height] = m
 	p.Servers[ack.ServerIndex].List = processlist
-}
-
-func (p *ProcessList) PutCommits(key interfaces.IHash, value interfaces.IMsg) {
-	p.CommitsSem.Lock()
-	defer p.CommitsSem.Unlock()
-
-	{
-		cmsg, ok := value.(interfaces.ICounted)
-		if ok {
-			v := p.Commits[key.Fixed()]
-			if v != nil {
-				_, ok := v.(interfaces.ICounted)
-				if ok {
-					cmsg.SetCount(v.(interfaces.ICounted).GetCount() + 1)
-				} else {
-					fmt.Println(v)
-					panic("Should never happen")
-				}
-			}
-		}
-
-		p.Commits[key.Fixed()] = value
-	}
 }
 
 /************************************************
