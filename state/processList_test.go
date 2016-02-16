@@ -6,6 +6,8 @@ package state_test
 
 import (
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/common/primitives"
 	. "github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/testHelper"
 	"testing"
@@ -173,12 +175,52 @@ func TestPutAndGetNewEBlocks(t *testing.T) {
 	}
 }
 
-func TestGetCommits(t *testing.T) {
-	//GetCommits(key interface.IHash) interfaces.IMsg
-}
+func TestPutAndGetCommits(t *testing.T) {
+	p := createProcessList()
+	m1 := new(messages.Ack)
+	k1, err := primitives.NewShaHashFromStr("0000000000000000000000000000000000000000000000000000000000000001")
+	if err != nil {
+		t.Errorf("v", err)
+	}
+	p.PutCommits(k1, m1)
 
-func TestPutCommits(t *testing.T) {
+	m2 := new(messages.CommitChainMsg)
+	k2, err := primitives.NewShaHashFromStr("0000000000000000000000000000000000000000000000000000000000000002")
+	if err != nil {
+		t.Errorf("v", err)
+	}
+	p.PutCommits(k2, m2)
+
+	m3 := new(messages.CommitEntryMsg)
+	k3, err := primitives.NewShaHashFromStr("0000000000000000000000000000000000000000000000000000000000000003")
+	if err != nil {
+		t.Errorf("v", err)
+	}
+	p.PutCommits(k3, m3)
+	p.PutCommits(k3, m3)
+	p.PutCommits(k3, m3)
+
+	_, ok := p.GetCommits(k1).(*messages.Ack)
+	if ok == false {
+		t.Errorf("Wrong message type")
+	}
+	mm2, ok := p.GetCommits(k2).(*messages.CommitChainMsg)
+	if ok == false {
+		t.Errorf("Wrong message type")
+	}
+	if mm2.GetCount() != 0 {
+		t.Errorf("mm2.GetCount()!=0 - %v", mm2.GetCount())
+	}
+	mm3, ok := p.GetCommits(k3).(*messages.CommitEntryMsg)
+	if ok == false {
+		t.Errorf("Wrong message type")
+	}
+	if mm3.GetCount() != 2 {
+		t.Errorf("mm3.GetCount()!=2 - %v", mm3.GetCount())
+	}
+
 	//(p *ProcessList) PutCommits(key interfaces.IHash, value interfaces.IMsg)
+	//GetCommits(key interface.IHash) interfaces.IMsg
 }
 
 func TestComplete(t *testing.T) {

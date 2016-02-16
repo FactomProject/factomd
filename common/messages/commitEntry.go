@@ -27,7 +27,7 @@ type CommitEntryMsg struct {
 }
 
 var _ interfaces.IMsg = (*CommitEntryMsg)(nil)
-var _ interfaces.ICounted = (*CommitChainMsg)(nil)
+var _ interfaces.ICounted = (*CommitEntryMsg)(nil)
 
 func (m *CommitEntryMsg) GetCount() int {
 	return m.count
