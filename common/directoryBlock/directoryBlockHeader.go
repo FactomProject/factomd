@@ -20,13 +20,15 @@ type DBlockHeader struct {
 	NetworkID uint32
 
 	BodyMR       interfaces.IHash
-	FullHash     interfaces.IHash
 	PrevKeyMR    interfaces.IHash
 	PrevFullHash interfaces.IHash
 
 	Timestamp  uint32
 	DBHeight   uint32
 	BlockCount uint32
+	
+	// Not marshaled
+	FullHash     interfaces.IHash
 }
 
 var _ interfaces.Printable = (*DBlockHeader)(nil)
@@ -122,13 +124,13 @@ func (e *DBlockHeader) String() string {
 	out.WriteString(fmt.Sprintf("  Version:         %v\n", e.Version))
 	out.WriteString(fmt.Sprintf("  NetworkID:       %d\n", e.NetworkID))
 	out.WriteString(fmt.Sprintf("  BodyMR:          %s\n", e.BodyMR.String()))
-	out.WriteString(fmt.Sprintf("  FullHash:        %s\n", e.FullHash))
 	out.WriteString(fmt.Sprintf("  PrevKeyMR:       %s\n", e.PrevKeyMR.String()))
 	out.WriteString(fmt.Sprintf("  PrevFullHash:    %s\n", e.PrevFullHash.String()))
 	out.WriteString(fmt.Sprintf("  Timestamp:       %d\n", e.Timestamp))
 	out.WriteString(fmt.Sprintf("  DBHeight:        %d\n", e.DBHeight))
 	out.WriteString(fmt.Sprintf("  BlockCount:      %d\n", e.BlockCount))
-
+	out.WriteString(fmt.Sprintf(" *FullHash:        %s\n", e.FullHash))
+	
 	return (string)(out.Bytes())
 }
 
@@ -139,6 +141,7 @@ func (b *DBlockHeader) MarshalBinary() ([]byte, error) {
 	binary.Write(&buf, binary.BigEndian, b.NetworkID)
 
 	if b.BodyMR == nil {
+		panic("BodyMR missing")
 		b.SetBodyMR(new(primitives.Hash))
 		b.BodyMR.SetBytes(new([32]byte)[:])
 	}
@@ -170,11 +173,11 @@ func (b *DBlockHeader) MarshalBinary() ([]byte, error) {
 }
 
 func (b *DBlockHeader) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	/*defer func() {
+	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
-	}()*/
+	}()
 	newData = data
 	b.Version, newData = newData[0], newData[1:]
 

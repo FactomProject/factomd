@@ -118,20 +118,21 @@ func (e *DirectoryBlock) JSONBuffer(b *bytes.Buffer) error {
 
 func (e *DirectoryBlock) String() string {
 	var out bytes.Buffer
-	//Marshalized
-
 	kmr, err := e.BuildKeyMerkleRoot()
+
 	if err != nil {
 		out.WriteString(fmt.Sprintf("%20s %v\n", "KeyMR:", err))
 	} else {
 		out.WriteString(fmt.Sprintf("%20s %v\n", "KeyMR:", kmr.String()))
 	}
+
 	kmr, err = e.BuildBodyMR()
 	if err != nil {
 		out.WriteString(fmt.Sprintf("%20s %v\n", "BodyMR:", err))
 	} else {
 		out.WriteString(fmt.Sprintf("%20s %v\n", "BodyMR:", kmr.String()))
 	}
+	
 	out.WriteString(e.Header.String())
 	out.WriteString("Entries: \n")
 	for _, entry := range e.DBEntries {
@@ -139,11 +140,14 @@ func (e *DirectoryBlock) String() string {
 	}
 
 	return (string)(out.Bytes())
+		
 }
 
 func (b *DirectoryBlock) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
 
+	b.BuildBodyMR()
+	
 	count := uint32(len(b.GetDBEntries()))
 	b.GetHeader().SetBlockCount(count)
 
@@ -197,6 +201,7 @@ func (b *DirectoryBlock) BodyKeyMR() interfaces.IHash {
 
 func (b *DirectoryBlock) BuildKeyMerkleRoot() (keyMR interfaces.IHash, err error) {
 	// Create the Entry Block Key Merkle Root from the hash of Header and the Body Merkle Root
+	
 	hashes := make([]interfaces.IHash, 0, 2)
 	headerHash, err := b.HeaderHash()
 	if err != nil {
@@ -266,12 +271,8 @@ func (b *DirectoryBlock) GetHash() interfaces.IHash {
 }
 
 func (b *DirectoryBlock) GetFullHash() interfaces.IHash {
-	if b.GetHeader().GetFullHash() == nil {
-		if hash, err := primitives.CreateHash(b); err == nil {
-			b.GetHeader().SetFullHash(hash)
-		}
-	}
-	return b.GetHeader().GetFullHash()
+	b.Header.SetFullHash(b.GetHash())
+	return b.Header.GetFullHash()
 }
 
 
@@ -293,12 +294,6 @@ func (b *DirectoryBlock) AddEntry(chainID interfaces.IHash, keyMR interfaces.IHa
  *********************************************************************/
 
 func NewDirectoryBlock(dbheight uint32, prev *DirectoryBlock) interfaces.IDirectoryBlock {
-
-	if prev == nil && dbheight != 0 {
-		return nil
-	} else if prev != nil && dbheight == 0 {
-		return nil
-	}
 
 	newdb := new(DirectoryBlock)
 

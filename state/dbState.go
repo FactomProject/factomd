@@ -8,11 +8,13 @@ import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/directoryBlock/dbInfo"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"encoding/hex"
 	"log"
 	"sync"
 	"time"
 )
 
+var _ = hex.EncodeToString
 var _ = fmt.Print
 var _ = time.Now()
 var _ = log.Print
@@ -104,29 +106,31 @@ func (list *DBStateList) Process() {
 	for int(list.complete) < len(list.DBStates) {
 		d := list.DBStates[list.complete]
 		
-		fmt.Println("uuuuuuuuuuuuuuuuuuuu process. complete",list.complete," len(DBStates)",len(list.DBStates),d.isNew)
+		// Make sure the directory block is properly synced up with the prior block, if there
+		// is one.
+		if list.complete > 0 {
+			p := list.DBStates[list.complete-1]
+			d.DirectoryBlock.GetHeader().SetPrevFullHash(p.DirectoryBlock.GetHeader().GetFullHash())
+			d.DirectoryBlock.GetHeader().SetPrevKeyMR(p.DirectoryBlock.GetKeyMR())
+		}
 		
 		if d.isNew {
-			fmt.Println("Saving at level",d.DirectoryBlock.GetHeader().GetDBHeight())
-			
-			d.DirectoryBlock.MarshalBinary()
-			fmt.Println("DB KeyMR",d.DirectoryBlock.GetKeyMR())
+			fmt.Println("Save new blocks")
 			err := list.state.GetDB().ProcessDBlockBatch(d.DirectoryBlock)
-			head,err := list.state.GetDB().FetchDBlockByKeyMR(d.DirectoryBlock.GetKeyMR())
 			if err != nil {
 				panic(err.Error())
 			}
-			fmt.Println("Head:", head.GetKeyMR(), "\nHead2:", d.DirectoryBlock.GetKeyMR())
+			
 			list.state.GetDB().ProcessABlockBatch(d.AdminBlock)
-			keyMR, _ := d.AdminBlock.GetKeyMR()
-			fmt.Println("AB KeyMR",keyMR)
+			
 			list.state.GetDB().ProcessFBlockBatch(d.FactoidBlock)
-			fmt.Println("FB KeyMR",d.FactoidBlock.GetKeyMR())
+
 			list.state.GetDB().ProcessECBlockBatch(d.EntryCreditBlock)
-			keyMR, _ = d.EntryCreditBlock.Hash()
-			fmt.Println("EB KeyMR",keyMR)
+			
 			list.state.GetDB().SaveDirectoryBlockHead(d.DirectoryBlock)
+			
 			list.state.GetAnchor().UpdateDirBlockInfoMap(dbInfo.NewDirBlockInfoFromDirBlock(d.DirectoryBlock))
+		
 		} else {
 			fmt.Println("loading into Factom, no save")
 			fs := list.state.GetFactoidState()
@@ -134,7 +138,7 @@ func (list *DBStateList) Process() {
 			fs.AddECBlock(d.EntryCreditBlock)
 		}
 		list.complete++
-		list.state.DBHeight = list.complete+1
+		list.state.DBHeight = list.complete
 	}
 }
 
@@ -145,7 +149,7 @@ func (list *DBStateList) NewDBState(isNew bool,
 	EntryCreditBlock interfaces.IEntryCreditBlock) *DBState {
 
 	fmt.Println("Added new state at height", DirectoryBlock.GetHeader().GetDBHeight())	
-		
+	
 	dbstate := new(DBState)
 
 	dbstate.isNew = isNew

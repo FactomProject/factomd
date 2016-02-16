@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/messages"
 )
 
@@ -30,6 +31,9 @@ func (lists *ProcessLists) UpdateState() {
 	pl := lists.Get(heightBuilding)
 	// Create DState blocks for all completed Process Lists
 	pl.Process(lists.state)
+	
+	fmt.Println("Directory Block", pl.DirectoryBlock)
+	
 	if pl.Complete() {
 		lists.state.DBStates.NewDBState(true, pl.DirectoryBlock, pl.AdminBlock, pl.FactoidBlock, pl.EntryCreditBlock)
 	}
@@ -37,6 +41,8 @@ func (lists *ProcessLists) UpdateState() {
 
 func (lists *ProcessLists) Get(dbheight uint32) *ProcessList {
 
+	fmt.Println("PL.Get()",dbheight)
+	
 	i := int(dbheight) - int(lists.dBHeightBase)
 	if i < 0 {
 		return nil
@@ -46,6 +52,7 @@ func (lists *ProcessLists) Get(dbheight uint32) *ProcessList {
 	}
 	pl := lists.lists[i]
 	if pl == nil {
+		fmt.Println("NewPL",dbheight)
 		pl = NewProcessList(lists.state.GetTotalServers(), dbheight)
 		lists.lists[i] = pl
 	}
@@ -244,6 +251,10 @@ func NewProcessList(totalServers int, dbheight uint32) *ProcessList {
 
 	pl := new(ProcessList)
 
+	pl.DirectoryBlock = directoryBlock.NewDirectoryBlock(dbheight,nil)
+
+fmt.Println(pl.DirectoryBlock)
+	
 	pl.servers = make([]ListServer, totalServers)
 
 	pl.dBHeight = dbheight

@@ -241,7 +241,8 @@ func (s *State) loadDatabase() {
 		eblk, _ := s.DB.FetchECBlockByHash(dblk.GetDBEntries()[1].GetKeyMR())
 		fblk, _ := s.DB.FetchFBlockByHash(dblk.GetDBEntries()[2].GetKeyMR())
 
-		s.DBStates.NewDBState(false, dblk, ablk, fblk, eblk)
+		s.DBStates.NewDBState(true, dblk, ablk, fblk, eblk)
+		s.DBStates.Process()
 	}
 
 	if i == 0 && s.NetworkNumber == constants.NETWORK_LOCAL {
@@ -255,6 +256,7 @@ func (s *State) loadDatabase() {
 		eblk := entryCreditBlock.NewECBlock()
 
 		s.DBStates.NewDBState(true, dblk, ablk, fblk, eblk)
+		s.DBStates.Process()
 	}
 	s.DBStates.Process()
 }
@@ -368,10 +370,24 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) {
 		panic("Must pass an EOM message to ProcessEOM)")
 	}
 
+	pl := s.ProcessLists.Get(dbheight)
+	
 	fs := s.FactoidState
+	pl.FactoidBlock = fs.GetCurrentBlock()
 	fs.EndOfPeriod(int(e.Minute))
 
-	ecblk := s.ProcessLists.Get(dbheight).EntryCreditBlock
+	pl.AdminBlock = s.NewAdminBlock(dbheight)
+	
+	ecblk := pl.EntryCreditBlock
+	if ecblk == nil {
+		var err error
+		dbstate := s.DBStates.Last()
+		ecblk, err = entryCreditBlock.NextECBlock(dbstate.EntryCreditBlock)
+		if err !=nil {
+			panic(err.Error())
+		}
+		pl.EntryCreditBlock = ecblk
+	}
 	ecbody := ecblk.GetBody()
 	mn := entryCreditBlock.NewMinuteNumber2(e.Minute)
 
@@ -389,7 +405,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) {
 			// create a DirectoryBlockSignature (if we are the leader) and
 			// send it out to the network.
 			DBM := messages.NewDirectoryBlockSignature()
-			prevDB := s.DBStates.Get(s.GetDirectoryBlock().GetHeader().GetDBHeight() - 1).DirectoryBlock
+			prevDB := s.GetDirectoryBlock()
 			if prevDB == nil {
 				DBM.DirectoryBlockKeyMR = primitives.NewHash(constants.ZERO_HASH)
 			} else {
@@ -627,9 +643,6 @@ func (s *State) String() string {
 func (s *State) NewAdminBlock(dbheight uint32) interfaces.IAdminBlock {
 	ab := new(adminBlock.AdminBlock)
 	ab.Header = s.NewAdminBlockHeader(dbheight)
-
-	s.DB.SaveABlockHead(ab)
-
 	return ab
 }
 
