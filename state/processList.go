@@ -31,9 +31,9 @@ func (lists *ProcessLists) UpdateState() {
 	pl := lists.Get(heightBuilding)
 	// Create DState blocks for all completed Process Lists
 	pl.Process(lists.State)
-	
-	fmt.Println("Block Height",pl.DirectoryBlock.GetHeader().GetDBHeight())
-	
+
+	fmt.Println("Block Height", pl.DirectoryBlock.GetHeader().GetDBHeight())
+
 	if pl.Complete() {
 		lists.State.DBStates.NewDBState(true, pl.DirectoryBlock, pl.AdminBlock, pl.FactoidBlock, pl.EntryCreditBlock)
 	}
