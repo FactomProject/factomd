@@ -7,9 +7,13 @@ import (
 	"runtime/debug"
 	"strconv"
 	"strings"
+
+	"testing"
 )
 
 var LogLevel int
+
+var TestLogger testing.TB
 
 const (
 	StandardLog = 0
@@ -18,6 +22,14 @@ const (
 
 func init() {
 	LogLevel = StandardLog
+}
+
+func SetTestLogger(tb testing.TB) {
+	TestLogger = tb
+}
+
+func UnsetTestLogger() {
+	TestLogger = nil
 }
 
 func SetLevel(level string) {
@@ -71,8 +83,16 @@ func printf(debug bool, format string, args ...interface{}) {
 		format = debugPrefix() + format
 	}
 	if len(args) > 0 {
-		fmt.Printf(format, args...)
+		if TestLogger != nil {
+			TestLogger.Logf(format, args...)
+		} else {
+			fmt.Printf(format, args...)
+		}
 	} else {
-		fmt.Print(format)
+		if TestLogger != nil {
+			TestLogger.Log(format)
+		} else {
+			fmt.Print(format)
+		}
 	}
 }

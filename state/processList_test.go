@@ -129,16 +129,52 @@ func TestSetEomComplete(t *testing.T) {
 	}
 }
 
-func TestGetNewEBlocks(t *testing.T) {
-	//GetNewEBlocks(key [32]byte) interfaces.IEntryBlock
+func TestPutAndGetNewEBlocks(t *testing.T) {
+	p := createProcessList()
+	var prev interfaces.IEntryBlock = nil
+	for i := 0; i < 10; i++ {
+		prev, _ = testHelper.CreateTestEntryBlock(prev)
+		h, err := prev.Hash()
+		if err != nil {
+			t.Errorf("v", err)
+		}
+		p.PutNewEBlocks(100, h, prev)
+	}
+	prev = nil
+	for i := 0; i < 10; i++ {
+		prev, _ = testHelper.CreateTestEntryBlock(prev)
+		h, err := prev.Hash()
+		if err != nil {
+			t.Errorf("v", err)
+		}
+		block := p.GetNewEBlocks(h.Fixed())
+		h1, err := block.Hash()
+		if err != nil {
+			t.Errorf("v", err)
+		}
+		h2, err := prev.Hash()
+		if err != nil {
+			t.Errorf("v", err)
+		}
+		if h1.IsSameAs(h2) == false {
+			t.Errorf("Blocks are not equal")
+		}
+		h1, err = block.HeaderHash()
+		if err != nil {
+			t.Errorf("v", err)
+		}
+		h2, err = prev.HeaderHash()
+		if err != nil {
+			t.Errorf("v", err)
+		}
+		if h1.IsSameAs(h2) == false {
+			t.Errorf("Blocks are not equal")
+		}
+	}
 }
 
 func TestGetCommits(t *testing.T) {
 	//GetCommits(key [32]byte) interfaces.IMsg
-}
-
-func TestPutNewEBlocks(t *testing.T) {
-	//PutNewEBlocks(dbheight uint32, key interfaces.IHash, value interfaces.IEntryBlock)
 }
 
 func TestComplete(t *testing.T) {

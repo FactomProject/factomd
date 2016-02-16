@@ -9,13 +9,18 @@ import (
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/log"
 )
 
-func CreateTestEntryBlock(prev *entryBlock.EBlock) (*entryBlock.EBlock, []*entryBlock.Entry) {
+func CreateTestEntryBlock(prev interfaces.IEntryBlock) (*entryBlock.EBlock, []*entryBlock.Entry) {
 	e := entryBlock.NewEBlock()
 	entries := []*entryBlock.Entry{}
 
+	log.Debug("prev - %v\n", prev)
+
+	//if prev.(*entryBlock.EBlock) != nil {
 	if prev != nil {
+		log.Debug("Prev is not nil - %v\n", prev)
 		keyMR, err := prev.KeyMR()
 		if err != nil {
 			panic(err)
@@ -27,9 +32,9 @@ func CreateTestEntryBlock(prev *entryBlock.EBlock) (*entryBlock.EBlock, []*entry
 			panic(err)
 		}
 		e.Header.SetPrevFullHash(hash)
-		e.Header.SetDBHeight(prev.Header.GetDBHeight() + 1)
+		e.Header.SetDBHeight(prev.GetHeader().GetDBHeight() + 1)
 
-		e.Header.SetChainID(prev.Header.GetChainID())
+		e.Header.SetChainID(prev.GetHeader().GetChainID())
 		entry := CreateTestEnry(e.Header.GetDBHeight())
 		e.AddEBEntry(entry)
 		entries = append(entries, entry)
@@ -46,14 +51,16 @@ func CreateTestEntryBlock(prev *entryBlock.EBlock) (*entryBlock.EBlock, []*entry
 	return e, entries
 }
 
-func CreateTestAnchorEntryBlock(prev *entryBlock.EBlock, prevDBlock *directoryBlock.DirectoryBlock) (*entryBlock.EBlock, []*entryBlock.Entry) {
+func CreateTestAnchorEntryBlock(prev interfaces.IEntryBlock, prevDBlock *directoryBlock.DirectoryBlock) (*entryBlock.EBlock, []*entryBlock.Entry) {
 	if prevDBlock == nil && prev != nil {
 		return nil, nil
 	}
 	e := entryBlock.NewEBlock()
 	entries := []*entryBlock.Entry{}
 
+	log.Debug("prev - %v\n", prev)
 	if prev != nil {
+		log.Debug("Prev is not nil - %v\n", prev)
 		keyMR, err := prev.KeyMR()
 		if err != nil {
 			panic(err)
@@ -65,9 +72,9 @@ func CreateTestAnchorEntryBlock(prev *entryBlock.EBlock, prevDBlock *directoryBl
 			panic(err)
 		}
 		e.Header.SetPrevFullHash(hash)
-		e.Header.SetDBHeight(prev.Header.GetDBHeight() + 1)
+		e.Header.SetDBHeight(prev.GetHeader().GetDBHeight() + 1)
 
-		e.Header.SetChainID(prev.Header.GetChainID())
+		e.Header.SetChainID(prev.GetHeader().GetChainID())
 		entry := CreateTestAnchorEnry(prevDBlock)
 		e.AddEBEntry(entry)
 		entries = append(entries, entry)

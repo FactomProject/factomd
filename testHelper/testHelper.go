@@ -12,6 +12,8 @@ import (
 	"github.com/FactomProject/factomd/database/mapdb"
 	//"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/state"
+
+	"fmt"
 )
 
 var BlockCount int = 10
@@ -43,6 +45,7 @@ func CreateAndPopulateTestDatabaseOverlay() *databaseOverlay.Overlay {
 	var err error
 
 	for i := 0; i < BlockCount; i++ {
+		fmt.Printf("i=%v\nPrev - %v\n", i, prev)
 		prev = CreateTestBlockSet(prev)
 
 		err = dbo.SaveABlockHead(prev.ABlock)
@@ -102,6 +105,18 @@ type BlockSet struct {
 	Height       int
 }
 
+func newBlockSet() *BlockSet {
+	bs := new(BlockSet)
+	bs.DBlock = nil
+	bs.ABlock = nil
+	bs.ECBlock = nil
+	bs.FBlock = nil
+	bs.EBlock = nil
+	bs.AnchorEBlock = nil
+	bs.Entries = nil
+	return bs
+}
+
 func CreateTestBlockSet(prev *BlockSet) *BlockSet {
 	var err error
 	height := 0
@@ -110,7 +125,8 @@ func CreateTestBlockSet(prev *BlockSet) *BlockSet {
 	}
 
 	if prev == nil {
-		prev = new(BlockSet)
+		fmt.Printf("newBlockSet\n")
+		prev = newBlockSet()
 	}
 	answer := new(BlockSet)
 	answer.Height = height
@@ -142,6 +158,7 @@ func CreateTestBlockSet(prev *BlockSet) *BlockSet {
 	dbEntries = append(dbEntries, de)
 
 	//EBlock
+	fmt.Printf("prev.EBlock - %v\n", prev.EBlock)
 	answer.EBlock, answer.Entries = CreateTestEntryBlock(prev.EBlock)
 
 	de = new(directoryBlock.DBEntry)

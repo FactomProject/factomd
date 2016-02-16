@@ -31,7 +31,11 @@ func Test_DBState1(t *testing.T) {
 		return
 	}
 
+	log.SetTestLogger(t)
+	defer log.UnsetTestLogger()
+
 	state := testHelper.CreateEmptyTestState()
+	log.SetLevel("standard")
 
 	var prev interfaces.IDirectoryBlock // First call gets a nil, rest the previous DirectoryBlock
 

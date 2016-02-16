@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/directoryBlock/dbInfo"
 	"github.com/FactomProject/factomd/common/interfaces"
-	"log"
+	"github.com/FactomProject/factomd/log"
 	"sync"
 	"time"
 )
@@ -120,7 +120,7 @@ func (list *DBStateList) Process() {
 		}
 
 		if d.isNew {
-			fmt.Println("Save new blocks")
+			log.Println("Save new blocks")
 			err := list.state.GetDB().ProcessDBlockBatch(d.DirectoryBlock)
 			if err != nil {
 				panic(err.Error())
@@ -143,12 +143,12 @@ func (list *DBStateList) Process() {
 		fs.AddECBlock(d.EntryCreditBlock)
 		fs.ProcessEndOfBlock(list.state)
 
-		fmt.Println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>Updating Transactions at", list.complete, d.FactoidBlock.GetHash().String())
+		log.Printfln(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>Updating Transactions at %v %v", list.complete, d.FactoidBlock.GetHash().String())
 
 		list.complete++
 		list.state.DBHeight = list.complete
 	}
-	fmt.Println("List Complete", list.complete)
+	log.Printfln("List Complete %v", list.complete)
 }
 
 func (list *DBStateList) NewDBState(isNew bool,
