@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/messages"
 )
 
@@ -244,7 +245,9 @@ func NewProcessList(totalServers int, dbheight uint32) *ProcessList {
 
 	pl := new(ProcessList)
 
-	pl.Servers = make([]ListServer, totalServers)
+	pl.DirectoryBlock = directoryBlock.NewDirectoryBlock(dbheight,nil)
+	
+	pl.servers = make([]ListServer, totalServers)
 
 	pl.DBHeight = dbheight
 	pl.Acks = new(map[[32]byte]interfaces.IMsg)
