@@ -234,9 +234,27 @@ func (s *State) loadDatabase() {
 			panic("No DirectoryBlock for " + dhash.String())
 		}
 		dblk := d
-		ablk, _ := s.DB.FetchABlockByKeyMR(dblk.GetDBEntries()[0].GetKeyMR())
-		eblk, _ := s.DB.FetchECBlockByHash(dblk.GetDBEntries()[1].GetKeyMR())
-		fblk, _ := s.DB.FetchFBlockByKeyMR(dblk.GetDBEntries()[2].GetKeyMR())
+		ablk, err := s.DB.FetchABlockByKeyMR(dblk.GetDBEntries()[0].GetKeyMR())
+		if err != nil {
+			panic(err)
+		}
+		if ablk == nil {
+			panic("ablk is nil")
+		}
+		eblk, err := s.DB.FetchECBlockByHash(dblk.GetDBEntries()[1].GetKeyMR())
+		if err != nil {
+			panic(err)
+		}
+		if eblk == nil {
+			panic("eblk is nil")
+		}
+		fblk, err := s.DB.FetchFBlockByKeyMR(dblk.GetDBEntries()[2].GetKeyMR())
+		if err != nil {
+			panic(err)
+		}
+		if fblk == nil {
+			panic("fblk is nil")
+		}
 
 		s.DBStates.NewDBState(false, dblk, ablk, fblk, eblk)
 		s.DBStates.Process()
