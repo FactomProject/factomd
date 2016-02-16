@@ -229,7 +229,7 @@ func (s *State) loadDatabase() {
 			fmt.Println("No Key at height", i)
 			break
 		}
-		d, err := s.DB.FetchDBlockByHash(dhash)
+		d, err := s.DB.FetchDBlockByKeyMR(dhash)
 		if err != nil {
 			panic(err)
 		}
@@ -237,11 +237,11 @@ func (s *State) loadDatabase() {
 			panic("No DirectoryBlock for " + dhash.String())
 		}
 		dblk := d
-		ablk, _ := s.DB.FetchABlockByHash(dblk.GetDBEntries()[0].GetKeyMR())
+		ablk, _ := s.DB.FetchABlockByKeyMR(dblk.GetDBEntries()[0].GetKeyMR())
 		eblk, _ := s.DB.FetchECBlockByHash(dblk.GetDBEntries()[1].GetKeyMR())
-		fblk, _ := s.DB.FetchFBlockByHash(dblk.GetDBEntries()[2].GetKeyMR())
+		fblk, _ := s.DB.FetchFBlockByKeyMR(dblk.GetDBEntries()[2].GetKeyMR())
 
-		s.DBStates.NewDBState(true, dblk, ablk, fblk, eblk)
+		s.DBStates.NewDBState(false, dblk, ablk, fblk, eblk)
 		s.DBStates.Process()
 	}
 
