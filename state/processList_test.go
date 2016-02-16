@@ -5,7 +5,9 @@
 package state_test
 
 import (
+	"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/state"
+	"github.com/FactomProject/factomd/testHelper"
 	"testing"
 )
 
@@ -14,11 +16,53 @@ func TestUpdateState(t *testing.T) {
 }
 
 func TestGet(t *testing.T) {
+	p := createProcessLists()
+	index := 5
+	list := p.Get(uint32(index))
+
+	if list == nil {
+		t.Errorf("Wrong Get")
+	}
+	if list.DBHeight != uint32(index) {
+		t.Errorf("Wrong Get")
+	}
+
+	if len(p.Lists) != index {
+		t.Errorf("Wrong len of Lists")
+	}
+
+	for i := 0; i < index-1; i++ {
+		if p.Lists[i] != nil {
+			t.Errorf("List isn't nil when it should be")
+		}
+	}
+
+	if p.Lists[index-1] == nil {
+		t.Errorf("List is nil when it shouldn't be")
+	}
+
+	list = p.Get(uint32(index * 2))
+	if list == nil {
+		t.Errorf("Wrong Get")
+	}
+	if list.DBHeight != uint32(index*2) {
+		t.Errorf("Wrong Get")
+	}
+	if len(p.Lists) != index*2 {
+		t.Errorf("Wrong len of Lists")
+	}
+
 	//Get(dbheight uint32) *ProcessList
 }
 
 func TestGetLen(t *testing.T) {
-	//GetLen(list int) int
+	p := createProcessList()
+
+	for i := range p.Servers {
+		if p.GetLen(i) != len(p.Servers[i].List)-i {
+			t.Errorf("Wrong GetLen")
+		}
+	}
 }
 
 func TestSetSigComplete(t *testing.T) {
@@ -164,8 +208,20 @@ func TestNewProcessList(t *testing.T) {
 	//NewProcessList(totalServers int, dbheight uint32) *ProcessList
 }
 
+func createProcessLists() *ProcessLists {
+	state := testHelper.CreateAndPopulateTestState()
+	p := NewProcessLists(state)
+	return p
+}
+
 func createProcessList() *ProcessList {
-	p := NewProcessList(5, 10)
+	serverCount := 5
+	p := NewProcessList(serverCount, 10)
 	p.ServerIndex = 1
+
+	for i := range p.Servers {
+		p.Servers[i].List = make([]interfaces.IMsg, serverCount-i)
+	}
+
 	return p
 }
