@@ -51,12 +51,38 @@ func TestSetSigComplete(t *testing.T) {
 	if p.Servers[p.ServerIndex].SigComplete != false {
 		t.Errorf("Wrong server.SigComplete")
 	}
-
-	//SetSigComplete(value bool)
 }
 
 func TestSetEomComplete(t *testing.T) {
-	//SetEomComplete(value bool)
+	p := createProcessList()
+
+	p.ServerIndex = 1
+
+	p.SetEomComplete(true)
+
+	if p.Servers[p.ServerIndex].EomComplete != true {
+		t.Errorf("Wrong server.EomComplete")
+	}
+
+	p.SetEomComplete(false)
+
+	if p.Servers[p.ServerIndex].EomComplete != false {
+		t.Errorf("Wrong server.EomComplete")
+	}
+
+	p.ServerIndex = 3
+
+	p.SetEomComplete(true)
+
+	if p.Servers[p.ServerIndex].EomComplete != true {
+		t.Errorf("Wrong server.EomComplete")
+	}
+
+	p.SetEomComplete(false)
+
+	if p.Servers[p.ServerIndex].EomComplete != false {
+		t.Errorf("Wrong server.EomComplete")
+	}
 }
 
 func TestGetNewEBlocks(t *testing.T) {
@@ -72,11 +98,50 @@ func TestPutNewEBlocks(t *testing.T) {
 }
 
 func TestComplete(t *testing.T) {
-	//Complete() bool
+	p := createProcessList()
+
+	if p.Complete() != false {
+		t.Errorf("Wrong Complete")
+	}
+
+	for i := 1; i < len(p.Servers); i++ {
+		p.Servers[i].SigComplete = true
+		if p.Complete() != false {
+			t.Errorf("Wrong Complete")
+		}
+	}
+	p.Servers[0].SigComplete = true
+	if p.Complete() != true {
+		t.Errorf("Wrong Complete")
+	}
+	p.SetComplete(false)
+	if p.Complete() != false {
+		t.Errorf("Wrong Complete")
+	}
+	p.SetComplete(true)
+	if p.Complete() != true {
+		t.Errorf("Wrong Complete")
+	}
 }
 
 func TestSetComplete(t *testing.T) {
-	//SetComplete(v bool)
+	p := createProcessList()
+
+	p.SetComplete(true)
+
+	for i := range p.Servers {
+		if p.Servers[i].SigComplete != true {
+			t.Errorf("Wrong server.SigComplete")
+		}
+	}
+
+	p.SetComplete(false)
+
+	for i := range p.Servers {
+		if p.Servers[i].SigComplete != false {
+			t.Errorf("Wrong server.SigComplete")
+		}
+	}
 }
 
 func TestProcess(t *testing.T) {
