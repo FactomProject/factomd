@@ -5,10 +5,10 @@
 package state
 
 import (
+	"encoding/hex"
 	"fmt"
 	"github.com/FactomProject/factomd/common/directoryBlock/dbInfo"
 	"github.com/FactomProject/factomd/common/interfaces"
-	"encoding/hex"
 	"log"
 	"sync"
 	"time"
@@ -63,7 +63,7 @@ func (list *DBStateList) Put(dbstate *DBState) {
 	dbheight := dblk.GetHeader().GetDBHeight()
 
 	index := int(dbheight) - int(list.base)
-	fmt.Println("iiiiiiiiiiiiiiii index",index,int(dbheight), int(list.base), len(list.DBStates))
+	fmt.Println("iiiiiiiiiiiiiiii index", index, int(dbheight), int(list.base), len(list.DBStates))
 	for len(list.DBStates) <= index {
 		list.DBStates = append(list.DBStates, nil)
 	}
@@ -83,7 +83,7 @@ func (list *DBStateList) Put(dbstate *DBState) {
 		dbstate.DirectoryBlock.GetHeader().SetPrevKeyMR(prev.DirectoryBlock.GetKeyMR())
 		dbstate.DirectoryBlock.GetHeader().SetPrevFullHash(prev.DirectoryBlock.GetHash())
 	}
-	fmt.Println("iiiiiiiiiiiiiiii index",index,int(dbheight), int(list.base), len(list.DBStates))
+	fmt.Println("iiiiiiiiiiiiiiii index", index, int(dbheight), int(list.base), len(list.DBStates))
 }
 
 func (list *DBStateList) Get(height uint32) *DBState {
@@ -102,10 +102,10 @@ func (list *DBStateList) Getul(height uint32) *DBState {
 }
 
 func (list *DBStateList) Process() {
-	
+
 	for int(list.complete) < len(list.DBStates) {
 		d := list.DBStates[list.complete]
-		
+
 		// Make sure the directory block is properly synced up with the prior block, if there
 		// is one.
 		if list.complete > 0 {
@@ -113,24 +113,24 @@ func (list *DBStateList) Process() {
 			d.DirectoryBlock.GetHeader().SetPrevFullHash(p.DirectoryBlock.GetHeader().GetFullHash())
 			d.DirectoryBlock.GetHeader().SetPrevKeyMR(p.DirectoryBlock.GetKeyMR())
 		}
-		
+
 		if d.isNew {
 			fmt.Println("Save new blocks")
 			err := list.state.GetDB().ProcessDBlockBatch(d.DirectoryBlock)
 			if err != nil {
 				panic(err.Error())
 			}
-			
+
 			list.state.GetDB().ProcessABlockBatch(d.AdminBlock)
-			
+
 			list.state.GetDB().ProcessFBlockBatch(d.FactoidBlock)
 
 			list.state.GetDB().ProcessECBlockBatch(d.EntryCreditBlock)
-			
+
 			list.state.GetDB().SaveDirectoryBlockHead(d.DirectoryBlock)
-			
+
 			list.state.GetAnchor().UpdateDirBlockInfoMap(dbInfo.NewDirBlockInfoFromDirBlock(d.DirectoryBlock))
-		
+
 		} else {
 			fmt.Println("loading into Factom, no save")
 			fs := list.state.GetFactoidState()
@@ -148,8 +148,8 @@ func (list *DBStateList) NewDBState(isNew bool,
 	FactoidBlock interfaces.IFBlock,
 	EntryCreditBlock interfaces.IEntryCreditBlock) *DBState {
 
-	fmt.Println("Added new state at height", DirectoryBlock.GetHeader().GetDBHeight())	
-	
+	fmt.Println("Added new state at height", DirectoryBlock.GetHeader().GetDBHeight())
+
 	dbstate := new(DBState)
 
 	dbstate.isNew = isNew
@@ -157,7 +157,7 @@ func (list *DBStateList) NewDBState(isNew bool,
 	dbstate.AdminBlock = AdminBlock
 	dbstate.FactoidBlock = FactoidBlock
 	dbstate.EntryCreditBlock = EntryCreditBlock
-	
+
 	list.Put(dbstate)
 	return dbstate
 }

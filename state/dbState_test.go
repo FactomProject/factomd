@@ -10,7 +10,7 @@ import (
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/log"
-	
+
 	"github.com/FactomProject/factomd/util"
 	"testing"
 )
@@ -21,20 +21,19 @@ var _ = util.ReadConfig
 
 // We need to create states with a testing database!  Need to add
 // back the mapping database for testing!  Until then, don't run
-// tests by default that require us to delete or manipulate the 
+// tests by default that require us to delete or manipulate the
 // database and rebuild Factom's past.
 var runDBTests = true
-
 
 func Test_DBState1(t *testing.T) {
 	if !runDBTests {
 		return
 	}
-	
+
 	state := GetState()
 
-	var prev interfaces.IDirectoryBlock	// First call gets a nil, rest the previous DirectoryBlock
-	
+	var prev interfaces.IDirectoryBlock // First call gets a nil, rest the previous DirectoryBlock
+
 	var i uint32
 	for i = 0; i < 10; i++ {
 
@@ -43,16 +42,16 @@ func Test_DBState1(t *testing.T) {
 		if i > 0 && p == nil {
 			t.Error("Should not fail to have a previous lbock")
 		}
-		dblk := directoryBlock.NewDirectoryBlock(i,p)
+		dblk := directoryBlock.NewDirectoryBlock(i, p)
 		prev = dblk
 		ablk := state.NewAdminBlock(i)
 		eblk := entryCreditBlock.NewECBlock()
 		fblk := state.GetFactoidState().GetCurrentBlock()
 		state.GetFactoidState().ProcessEndOfBlock(state)
-		
+
 		state.DBStates.NewDBState(true, dblk, ablk, fblk, eblk)
 		state.DBStates.Process()
-		
+
 		h := dblk.GetHeader().GetDBHeight()
 		if i != h {
 			t.Errorf("Height error.  Expecting %d and got %d", i, h)

@@ -181,8 +181,8 @@ func (s *State) Init(filename string) {
 		panic("Bad value for Network in factomd.conf")
 	}
 
-	fmt.Println("\nRunning on the ",cfg.App.Network,"Network")
-	
+	fmt.Println("\nRunning on the ", cfg.App.Network, "Network")
+
 	s.AuditHeartBeats = make([]interfaces.IMsg, 0)
 	s.FedServerFaults = make([][]interfaces.IMsg, 0)
 
@@ -226,7 +226,7 @@ func (s *State) loadDatabase() {
 			panic(err)
 		}
 		if dhash == nil {
-			fmt.Println("No Key at height",i)
+			fmt.Println("No Key at height", i)
 			break
 		}
 		d, err := s.DB.FetchDBlockByHash(dhash)
@@ -234,7 +234,7 @@ func (s *State) loadDatabase() {
 			panic(err)
 		}
 		if d == nil {
-			panic("No DirectoryBlock for "+dhash.String())
+			panic("No DirectoryBlock for " + dhash.String())
 		}
 		dblk := d
 		ablk, _ := s.DB.FetchABlockByHash(dblk.GetDBEntries()[0].GetKeyMR())
@@ -249,7 +249,7 @@ func (s *State) loadDatabase() {
 		fmt.Println("\n***********************************")
 		fmt.Println("******* New Database **************")
 		fmt.Println("***********************************\n")
-		
+
 		dblk := directoryBlock.NewDirectoryBlock(0, nil)
 		ablk := s.NewAdminBlock(0)
 		fblk := block.GetGenesisFBlock()
@@ -371,19 +371,19 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) {
 	}
 
 	pl := s.ProcessLists.Get(dbheight)
-	
+
 	fs := s.FactoidState
 	pl.FactoidBlock = fs.GetCurrentBlock()
 	fs.EndOfPeriod(int(e.Minute))
 
 	pl.AdminBlock = s.NewAdminBlock(dbheight)
-	
+
 	ecblk := pl.EntryCreditBlock
 	if ecblk == nil {
 		var err error
 		dbstate := s.DBStates.Last()
 		ecblk, err = entryCreditBlock.NextECBlock(dbstate.EntryCreditBlock)
-		if err !=nil {
+		if err != nil {
 			panic(err.Error())
 		}
 		pl.EntryCreditBlock = ecblk

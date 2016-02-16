@@ -132,7 +132,7 @@ func (e *DirectoryBlock) String() string {
 	} else {
 		out.WriteString(fmt.Sprintf("%20s %v\n", "BodyMR:", kmr.String()))
 	}
-	
+
 	out.WriteString(e.Header.String())
 	out.WriteString("Entries: \n")
 	for _, entry := range e.DBEntries {
@@ -140,14 +140,14 @@ func (e *DirectoryBlock) String() string {
 	}
 
 	return (string)(out.Bytes())
-		
+
 }
 
 func (b *DirectoryBlock) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
 
 	b.BuildBodyMR()
-	
+
 	count := uint32(len(b.GetDBEntries()))
 	b.GetHeader().SetBlockCount(count)
 
@@ -201,7 +201,7 @@ func (b *DirectoryBlock) BodyKeyMR() interfaces.IHash {
 
 func (b *DirectoryBlock) BuildKeyMerkleRoot() (keyMR interfaces.IHash, err error) {
 	// Create the Entry Block Key Merkle Root from the hash of Header and the Body Merkle Root
-	
+
 	hashes := make([]interfaces.IHash, 0, 2)
 	headerHash, err := b.HeaderHash()
 	if err != nil {
@@ -214,8 +214,8 @@ func (b *DirectoryBlock) BuildKeyMerkleRoot() (keyMR interfaces.IHash, err error
 
 	b.KeyMR = keyMR
 
-	b.GetFullHash()	// Create the Full Hash when we create the keyMR
-	
+	b.GetFullHash() // Create the Full Hash when we create the keyMR
+
 	return keyMR, nil
 }
 
@@ -274,7 +274,6 @@ func (b *DirectoryBlock) GetFullHash() interfaces.IHash {
 	b.Header.SetFullHash(b.GetHash())
 	return b.Header.GetFullHash()
 }
-
 
 func (b *DirectoryBlock) AddEntry(chainID interfaces.IHash, keyMR interfaces.IHash) error {
 	var dbentry interfaces.IDBEntry

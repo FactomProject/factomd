@@ -26,9 +26,9 @@ type DBlockHeader struct {
 	Timestamp  uint32
 	DBHeight   uint32
 	BlockCount uint32
-	
+
 	// Not marshaled
-	FullHash     interfaces.IHash
+	FullHash interfaces.IHash
 }
 
 var _ interfaces.Printable = (*DBlockHeader)(nil)
@@ -130,7 +130,7 @@ func (e *DBlockHeader) String() string {
 	out.WriteString(fmt.Sprintf("  DBHeight:        %d\n", e.DBHeight))
 	out.WriteString(fmt.Sprintf("  BlockCount:      %d\n", e.BlockCount))
 	out.WriteString(fmt.Sprintf(" *FullHash:        %s\n", e.FullHash))
-	
+
 	return (string)(out.Bytes())
 }
 
