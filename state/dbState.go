@@ -83,6 +83,9 @@ func (list *DBStateList) Put(dbstate *DBState) {
 		dbstate.DirectoryBlock.GetHeader().SetPrevKeyMR(prev.DirectoryBlock.GetKeyMR())
 		dbstate.DirectoryBlock.GetHeader().SetPrevFullHash(prev.DirectoryBlock.GetHash())
 	}
+	
+	
+	
 	fmt.Println("iiiiiiiiiiiiiiii index", index, int(dbheight), int(list.base), len(list.DBStates))
 }
 

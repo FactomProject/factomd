@@ -31,6 +31,9 @@ func (lists *ProcessLists) UpdateState() {
 	pl := lists.Get(heightBuilding)
 	// Create DState blocks for all completed Process Lists
 	pl.Process(lists.State)
+	
+	fmt.Println("Block Height",pl.DirectoryBlock.GetHeader().GetDBHeight())
+	
 	if pl.Complete() {
 		lists.State.DBStates.NewDBState(true, pl.DirectoryBlock, pl.AdminBlock, pl.FactoidBlock, pl.EntryCreditBlock)
 	}
@@ -162,7 +165,7 @@ func (p *ProcessList) SetComplete(v bool) {
 	}
 }
 
-// Return true if the process list is complete
+// Process messages and update our state.
 func (p *ProcessList) Process(state interfaces.IState) {
 	for i := 0; i < len(p.Servers); i++ {
 		plist := p.Servers[i].List
