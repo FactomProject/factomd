@@ -63,7 +63,6 @@ func (list *DBStateList) Put(dbstate *DBState) {
 	dbheight := dblk.GetHeader().GetDBHeight()
 
 	index := int(dbheight) - int(list.base)
-	fmt.Println("iiiiiiiiiiiiiiii index", index, int(dbheight), int(list.base), len(list.DBStates))
 	for len(list.DBStates) <= index {
 		list.DBStates = append(list.DBStates, nil)
 	}
@@ -90,7 +89,6 @@ func (list *DBStateList) Put(dbstate *DBState) {
 		dbstate.DirectoryBlock.GetHeader().SetPrevFullHash(prev.DirectoryBlock.GetHash())
 	}
 
-	fmt.Println("iiiiiiiiiiiiiiii index", index, int(dbheight), int(list.base), len(list.DBStates))
 }
 
 func (list *DBStateList) Get(height uint32) *DBState {
@@ -139,7 +137,6 @@ func (list *DBStateList) Process() {
 			list.state.GetAnchor().UpdateDirBlockInfoMap(dbInfo.NewDirBlockInfoFromDirBlock(d.DirectoryBlock))
 
 		} else {
-			fmt.Println("loading into Factom, no save")
 			fs := list.state.GetFactoidState()
 			fs.AddTransactionBlock(d.FactoidBlock)
 			fs.AddECBlock(d.EntryCreditBlock)
@@ -154,8 +151,6 @@ func (list *DBStateList) NewDBState(isNew bool,
 	AdminBlock interfaces.IAdminBlock,
 	FactoidBlock interfaces.IFBlock,
 	EntryCreditBlock interfaces.IEntryCreditBlock) *DBState {
-
-	fmt.Println("Added new state at height", DirectoryBlock.GetHeader().GetDBHeight())
 
 	dbstate := new(DBState)
 

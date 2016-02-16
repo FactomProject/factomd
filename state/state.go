@@ -199,9 +199,7 @@ func (s *State) GetDBState(height uint32) *DBState {
 }
 
 func (s *State) UpdateState() {
-	fmt.Println("Update PL")
 	s.ProcessLists.UpdateState()
-	fmt.Println("Update DBStates")
 	s.DBStates.Process()
 }
 
@@ -226,7 +224,6 @@ func (s *State) loadDatabase() {
 			panic(err)
 		}
 		if dhash == nil {
-			fmt.Println("No Key at height", i)
 			break
 		}
 		d, err := s.DB.FetchDBlockByKeyMR(dhash)
@@ -276,6 +273,7 @@ func (s *State) loadDatabase() {
 		s.DBStates.NewDBState(true, dblk, ablk, fblk, eblk)
 		s.DBStates.Process()
 	}
+	log.Println(fmt.Sprintf("Loaded %d directory blocks",i))
 	s.DBStates.Process()
 }
 
