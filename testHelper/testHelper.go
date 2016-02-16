@@ -13,7 +13,7 @@ import (
 	//"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/state"
 
-	"fmt"
+	//"fmt"
 )
 
 var BlockCount int = 10
@@ -45,7 +45,6 @@ func CreateAndPopulateTestDatabaseOverlay() *databaseOverlay.Overlay {
 	var err error
 
 	for i := 0; i < BlockCount; i++ {
-		fmt.Printf("i=%v\nPrev - %v\n", i, prev)
 		prev = CreateTestBlockSet(prev)
 
 		err = dbo.SaveABlockHead(prev.ABlock)
@@ -125,7 +124,6 @@ func CreateTestBlockSet(prev *BlockSet) *BlockSet {
 	}
 
 	if prev == nil {
-		fmt.Printf("newBlockSet\n")
 		prev = newBlockSet()
 	}
 	answer := new(BlockSet)
@@ -158,7 +156,6 @@ func CreateTestBlockSet(prev *BlockSet) *BlockSet {
 	dbEntries = append(dbEntries, de)
 
 	//EBlock
-	fmt.Printf("prev.EBlock - %v\n", prev.EBlock)
 	answer.EBlock, answer.Entries = CreateTestEntryBlock(prev.EBlock)
 
 	de = new(directoryBlock.DBEntry)

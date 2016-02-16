@@ -9,18 +9,18 @@ import (
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/log"
 )
 
-func CreateTestEntryBlock(prev interfaces.IEntryBlock) (*entryBlock.EBlock, []*entryBlock.Entry) {
+func CreateTestEntryBlock(p interfaces.IEntryBlock) (*entryBlock.EBlock, []*entryBlock.Entry) {
+	prev, ok := p.(*entryBlock.EBlock)
+	if ok == false {
+		prev = nil
+	}
+
 	e := entryBlock.NewEBlock()
 	entries := []*entryBlock.Entry{}
 
-	log.Debug("prev - %v\n", prev)
-
-	//if prev.(*entryBlock.EBlock) != nil {
 	if prev != nil {
-		log.Debug("Prev is not nil - %v\n", prev)
 		keyMR, err := prev.KeyMR()
 		if err != nil {
 			panic(err)
@@ -51,16 +51,19 @@ func CreateTestEntryBlock(prev interfaces.IEntryBlock) (*entryBlock.EBlock, []*e
 	return e, entries
 }
 
-func CreateTestAnchorEntryBlock(prev interfaces.IEntryBlock, prevDBlock *directoryBlock.DirectoryBlock) (*entryBlock.EBlock, []*entryBlock.Entry) {
+func CreateTestAnchorEntryBlock(p interfaces.IEntryBlock, prevDBlock *directoryBlock.DirectoryBlock) (*entryBlock.EBlock, []*entryBlock.Entry) {
+	prev, ok := p.(*entryBlock.EBlock)
+	if ok == false {
+		prev = nil
+	}
+
 	if prevDBlock == nil && prev != nil {
 		return nil, nil
 	}
 	e := entryBlock.NewEBlock()
 	entries := []*entryBlock.Entry{}
 
-	log.Debug("prev - %v\n", prev)
 	if prev != nil {
-		log.Debug("Prev is not nil - %v\n", prev)
 		keyMR, err := prev.KeyMR()
 		if err != nil {
 			panic(err)
