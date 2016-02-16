@@ -6,6 +6,7 @@ import (
 	"log"
 
 	"github.com/FactomProject/factomd/common/directoryBlock"
+	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 )
@@ -31,6 +32,21 @@ func (lists *ProcessLists) UpdateState() {
 	}
 	heightBuilding := dbstate.DirectoryBlock.GetHeader().GetDBHeight() + 1
 	pl := lists.Get(heightBuilding)
+	
+	//*******************************************************************//
+	// Do initialization of blocks for the next Process List level here
+	//*******************************************************************
+	if pl.DirectoryBlock == nil {
+		pl.DirectoryBlock = directoryBlock.NewDirectoryBlock(heightBuilding, nil)
+		pl.FactoidBlock = lists.State.GetFactoidState().GetCurrentBlock()
+		pl.AdminBlock = lists.State.NewAdminBlock(heightBuilding)
+		var err error
+		pl.EntryCreditBlock, err = entryCreditBlock.NextECBlock(dbstate.EntryCreditBlock)
+		if err != nil {
+			panic(err.Error())
+		}
+		
+	}
 	// Create DState blocks for all completed Process Lists
 	pl.Process(lists.State)
 
@@ -252,8 +268,6 @@ func NewProcessList(totalServers int, dbheight uint32) *ProcessList {
 	// allocate the FUTURE directoryblock, not the current or previous...
 
 	pl := new(ProcessList)
-
-	pl.DirectoryBlock = directoryBlock.NewDirectoryBlock(dbheight, nil)
 
 	pl.Servers = make([]ListServer, totalServers)
 

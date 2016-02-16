@@ -71,12 +71,12 @@ func (m *DirectoryBlockSignature) Validate(dbheight uint32, state interfaces.ISt
 // Returns true if this is a message for this server to execute as
 // a leader.
 func (m *DirectoryBlockSignature) Leader(state interfaces.IState) bool {
-	return false
+	return true
 }
 
 // Execute the leader functions of the given message
 func (m *DirectoryBlockSignature) LeaderExecute(state interfaces.IState) error {
-	return nil
+	return state.LeaderExecuteDBSig(m)
 }
 
 // Returns true if this is a message for this server to execute as a follower

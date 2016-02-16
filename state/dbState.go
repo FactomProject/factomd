@@ -136,12 +136,15 @@ func (list *DBStateList) Process() {
 
 			list.state.GetAnchor().UpdateDirBlockInfoMap(dbInfo.NewDirBlockInfoFromDirBlock(d.DirectoryBlock))
 
-		} else {
-			fs := list.state.GetFactoidState()
-			fs.AddTransactionBlock(d.FactoidBlock)
-			fs.AddECBlock(d.EntryCreditBlock)
-		}
-		list.state.LastAck = nil
+		} 
+		
+		fs := list.state.GetFactoidState()
+		fs.AddTransactionBlock(d.FactoidBlock)
+		fs.AddECBlock(d.EntryCreditBlock)
+		fs.ProcessEndOfBlock(list.state)
+		
+		fmt.Println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>Updating Transactions at",list.complete, d.FactoidBlock.GetHash().String())
+		
 		list.complete++
 		list.state.DBHeight = list.complete
 	}

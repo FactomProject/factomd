@@ -355,6 +355,13 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
 	return s.LeaderExecute(eom)
 }
 
+func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) error {
+	s.LastAck = nil						// Clear Ack list
+	s.FollowerInMsgQueue() <- m			// Send on to the follower.
+	return nil
+}
+
+
 func (s *State) GetNewEBlocks(dbheight uint32, hash interfaces.IHash) interfaces.IEntryBlock {
 	return nil
 }
@@ -388,22 +395,11 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) {
 
 	pl := s.ProcessLists.Get(dbheight)
 
-	fs := s.FactoidState
-	pl.FactoidBlock = fs.GetCurrentBlock()
-	fs.EndOfPeriod(int(e.Minute))
+	s.FactoidState.EndOfPeriod(int(e.Minute))
 
-	pl.AdminBlock = s.NewAdminBlock(dbheight)
 
 	ecblk := pl.EntryCreditBlock
-	if ecblk == nil {
-		var err error
-		dbstate := s.DBStates.Last()
-		ecblk, err = entryCreditBlock.NextECBlock(dbstate.EntryCreditBlock)
-		if err != nil {
-			panic(err.Error())
-		}
-		pl.EntryCreditBlock = ecblk
-	}
+	
 	ecbody := ecblk.GetBody()
 	mn := entryCreditBlock.NewMinuteNumber2(e.Minute)
 
