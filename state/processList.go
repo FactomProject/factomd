@@ -32,8 +32,6 @@ func (lists *ProcessLists) UpdateState() {
 	// Create DState blocks for all completed Process Lists
 	pl.Process(lists.State)
 
-	fmt.Println("Block Height", pl.DirectoryBlock.GetHeader().GetDBHeight())
-
 	if pl.Complete() {
 		lists.State.DBStates.NewDBState(true, pl.DirectoryBlock, pl.AdminBlock, pl.FactoidBlock, pl.EntryCreditBlock)
 	}
@@ -243,8 +241,6 @@ func NewProcessLists(state interfaces.IState) *ProcessLists {
 func NewProcessList(totalServers int, dbheight uint32) *ProcessList {
 	// We default to the number of Servers previous.   That's because we always
 	// allocate the FUTURE directoryblock, not the current or previous...
-
-	fmt.Println("total Servers ", totalServers)
 
 	pl := new(ProcessList)
 
