@@ -170,7 +170,7 @@ func CreateTestBlockSet(prev *BlockSet) *BlockSet {
 	if err != nil {
 		panic(err)
 	}
-	de.KeyMR, err = answer.ECBlock.HeaderHash()
+	de.KeyMR, err = answer.ECBlock.Hash()
 	if err != nil {
 		panic(err)
 	}

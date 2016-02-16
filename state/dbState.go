@@ -71,9 +71,15 @@ func (list *DBStateList) Put(dbstate *DBState) {
 		list.DBStates[index] = dbstate
 	}
 
-	hash, _ := dbstate.AdminBlock.GetKeyMR()
+	hash, err := dbstate.AdminBlock.GetKeyMR()
+	if err != nil {
+		panic(err)
+	}
 	dbstate.DirectoryBlock.GetDBEntries()[0].SetKeyMR(hash)
-	hash, _ = dbstate.EntryCreditBlock.Hash()
+	hash, err = dbstate.EntryCreditBlock.Hash()
+	if err != nil {
+		panic(err)
+	}
 	dbstate.DirectoryBlock.GetDBEntries()[1].SetKeyMR(hash)
 	hash = dbstate.FactoidBlock.GetHash()
 	dbstate.DirectoryBlock.GetDBEntries()[2].SetKeyMR(hash)
