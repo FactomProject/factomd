@@ -281,7 +281,7 @@ func HandleV2GetRaw(state interfaces.IState, params interface{}) (interface{}, *
 		b, _ = block.MarshalBinary()
 	} else if block, _ := dbase.FetchEBlockByKeyMR(h); block != nil {
 		b, _ = block.MarshalBinary()
-	} else if block, _ := dbase.FetchECBlockByKeyMR(h); block != nil {
+	} else if block, _ := dbase.FetchECBlockByHeaderHash(h); block != nil {
 		b, _ = block.MarshalBinary()
 
 	} else if block, _ := dbase.FetchEntryByHash(h); block != nil {
