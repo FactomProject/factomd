@@ -76,7 +76,7 @@ func TestHandleDirectoryBlockHead(t *testing.T) {
 
 	HandleDirectoryBlockHead(context)
 
-	if strings.Contains(GetBody(context), "043652d5269764b6b82339aa232bf332790ce54a8c574cfc1a8e6ce86dbe1cdf") == false {
+	if strings.Contains(GetBody(context), "93b9d8bc11869819aed5e11ff15c865435a58d7b57c9f27fe4638dfc23f13b34") == false {
 		t.Errorf("Context does not contain proper DBlock Head - %v", GetBody(context))
 	}
 }
@@ -170,7 +170,7 @@ func TestHandleGetRaw(t *testing.T) {
 
 func TestHandleDirectoryBlock(t *testing.T) {
 	context := createWebContext()
-	hash := "043652d5269764b6b82339aa232bf332790ce54a8c574cfc1a8e6ce86dbe1cdf"
+	hash := "93b9d8bc11869819aed5e11ff15c865435a58d7b57c9f27fe4638dfc23f13b34"
 
 	HandleDirectoryBlock(context, hash)
 
@@ -178,23 +178,7 @@ func TestHandleDirectoryBlock(t *testing.T) {
 		t.Errorf("%v", GetBody(context))
 	}
 
-	if strings.Contains(GetBody(context), "8010d839cd71aa3eb6f4bd9fd474d50fd63853e4aad428b869142410b30c2737") == false {
-		t.Errorf("%v", GetBody(context))
-	}
-
-	if strings.Contains(GetBody(context), "6e7e64ac45ff57edbf8537a0c99fba2e9ee351ef3d3f4abd93af9f01107e592c") == false {
-		t.Errorf("%v", GetBody(context))
-	}
-
-	if strings.Contains(GetBody(context), "25c9e5963917c97ed988c571e703104b34d11f2f6241c0c69d9cfd6ad94491db") == false {
-		t.Errorf("%v", GetBody(context))
-	}
-
-	if strings.Contains(GetBody(context), "df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604") == false {
-		t.Errorf("%v", GetBody(context))
-	}
-
-	if strings.Contains(GetBody(context), "cc6eda99d3bb94f29539b4567f8577974782328a227c470a301a436fd35522c6") == false {
+	if strings.Contains(GetBody(context), "b07a252e7ff13ef3ae6b18356949af34f535eca0383a03f71f5f4c526c58b562") == false {
 		t.Errorf("%v", GetBody(context))
 	}
 
@@ -202,7 +186,7 @@ func TestHandleDirectoryBlock(t *testing.T) {
 		t.Errorf("%v", GetBody(context))
 	}
 
-	if strings.Contains(GetBody(context), "a6de386509259b4e143fba5b094ec0dd5e71dbe64f4e6976e785e815e8e5a3b3") == false {
+	if strings.Contains(GetBody(context), "4878cdd3e80af547c59ea8bcb17471d676a0fdb1bcc01ab17a438cb5fb9ad4da") == false {
 		t.Errorf("%v", GetBody(context))
 	}
 
@@ -210,7 +194,23 @@ func TestHandleDirectoryBlock(t *testing.T) {
 		t.Errorf("%v", GetBody(context))
 	}
 
-	if strings.Contains(GetBody(context), "484f328de0a33a2451323cd9963ad4cbb93a51357f7b8ad84d92b79efe86d94a") == false {
+	if strings.Contains(GetBody(context), "067f353dda05ac27261d4b35a09f211f7a4b0182dff0b6098a16ae8659eb7f5f") == false {
+		t.Errorf("%v", GetBody(context))
+	}
+
+	if strings.Contains(GetBody(context), "6e7e64ac45ff57edbf8537a0c99fba2e9ee351ef3d3f4abd93af9f01107e592c") == false {
+		t.Errorf("%v", GetBody(context))
+	}
+
+	if strings.Contains(GetBody(context), "1127ed78303976572f25dfba2a058e475234c079ea0d0f645280d03caff08347") == false {
+		t.Errorf("%v", GetBody(context))
+	}
+
+	if strings.Contains(GetBody(context), "df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604") == false {
+		t.Errorf("%v", GetBody(context))
+	}
+
+	if strings.Contains(GetBody(context), "5b60c30aa371c6551ae6644c06c30339fa5296b32082a1779ac40880986434b6") == false {
 		t.Errorf("%v", GetBody(context))
 	}
 }
@@ -230,6 +230,7 @@ func TestHandleEntryBlock(t *testing.T) {
 		hash := b.(*entryBlock.EBlock).DatabasePrimaryIndex().String()
 		hash2 := b.(*entryBlock.EBlock).DatabaseSecondaryIndex().String()
 
+		clearContextResponseWriter(context)
 		HandleEntryBlock(context, hash)
 
 		eBlock := new(EBlock)
@@ -237,11 +238,12 @@ func TestHandleEntryBlock(t *testing.T) {
 		UnmarshalResp(context, eBlock)
 
 		if eBlock.Header.ChainID != "df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604" {
+			t.Errorf("Wrong ChainID - %v", eBlock.Header.ChainID)
 			t.Errorf("%v", GetBody(context))
 		}
 
 		if eBlock.Header.DBHeight != b.(*entryBlock.EBlock).GetHeader().GetDBHeight() {
-			t.Errorf("DBHeight is wrong")
+			t.Errorf("DBHeight is wrong - %v vs %v", eBlock.Header.DBHeight, b.(*entryBlock.EBlock).GetHeader().GetDBHeight())
 		}
 
 		clearContextResponseWriter(context)
@@ -252,11 +254,12 @@ func TestHandleEntryBlock(t *testing.T) {
 		UnmarshalResp(context, eBlock)
 
 		if eBlock.Header.ChainID != "df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604" {
+			t.Errorf("Wrong ChainID - %v", eBlock.Header.ChainID)
 			t.Errorf("%v", GetBody(context))
 		}
 
 		if eBlock.Header.DBHeight != b.(*entryBlock.EBlock).GetHeader().GetDBHeight() {
-			t.Errorf("DBHeight is wrong")
+			t.Errorf("DBHeight is wrong - %v vs %v", eBlock.Header.DBHeight, b.(*entryBlock.EBlock).GetHeader().GetDBHeight())
 		}
 
 		fetched++
@@ -284,7 +287,7 @@ func TestHandleChainHead(t *testing.T) {
 
 	HandleChainHead(context, hash)
 
-	if strings.Contains(GetBody(context), "78a3fecb55cdb684d1034d9ff27061a57699ab30f6f5a5a7e2b24465c85ad33f") == false {
+	if strings.Contains(GetBody(context), "93b9d8bc11869819aed5e11ff15c865435a58d7b57c9f27fe4638dfc23f13b34") == false {
 		t.Errorf("Invalid directory block head: %v", GetBody(context))
 	}
 
@@ -311,7 +314,7 @@ func TestHandleChainHead(t *testing.T) {
 	clearContextResponseWriter(context)
 	HandleChainHead(context, hash)
 
-	if strings.Contains(GetBody(context), "c5bac69db89fb4eb28aa99a655f1de561442ee461cfa9c2cd9e1321f181ea305") == false {
+	if strings.Contains(GetBody(context), "4878cdd3e80af547c59ea8bcb17471d676a0fdb1bcc01ab17a438cb5fb9ad4da") == false {
 		t.Errorf("Invalid entry credit block head: %v", GetBody(context))
 	}
 
@@ -436,8 +439,16 @@ func GetRespMap(context *web.Context) map[string]interface{} {
 func UnmarshalResp(context *web.Context, dst interface{}) {
 	j := GetBody(context)
 
-	err := json.Unmarshal([]byte(j), dst)
+	type rtn struct {
+		Response interface{}
+		Success  bool
+	}
+	r := new(rtn)
+	r.Response = dst
+
+	err := json.Unmarshal([]byte(j), r)
 	if err != nil {
+		fmt.Printf("body - %v\n", j)
 		panic(err)
 	}
 }

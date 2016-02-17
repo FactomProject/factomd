@@ -96,7 +96,7 @@ type DBOverlay interface {
 	FetchECBlockByHash(IHash) (IEntryCreditBlock, error)
 
 	// FetchECBlockByKeyMR gets an Entry Credit block by hash from the database.
-	FetchECBlockByKeyMR(hash IHash) (IEntryCreditBlock, error)
+	FetchECBlockByHeaderHash(hash IHash) (IEntryCreditBlock, error)
 
 	// FetchAllECBlocks gets all of the entry credit blocks
 	FetchAllECBlocks() ([]IEntryCreditBlock, error)
