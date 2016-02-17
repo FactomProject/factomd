@@ -235,12 +235,10 @@ func (p *ProcessList) Process(state interfaces.IState) {
 }
 
 func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
-	processlist := p.Servers[ack.ServerIndex].List
-	for len(processlist) <= int(ack.Height) {
-		processlist = append(processlist, nil)
+	for len(p.Servers[ack.ServerIndex].List) <= int(ack.Height) {
+		p.Servers[ack.ServerIndex].List = append(p.Servers[ack.ServerIndex].List, nil)
 	}
-	processlist[ack.Height] = m
-	p.Servers[ack.ServerIndex].List = processlist
+	p.Servers[ack.ServerIndex].List[ack.Height] = m
 }
 
 /************************************************

@@ -275,7 +275,31 @@ func TestProcess(t *testing.T) {
 }
 
 func TestAddToProcessList(t *testing.T) {
-	//(p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg)
+	p := createProcessList()
+	max := len(p.Servers)
+	max2 := 10
+	for i := 0; i < max; i++ {
+		for j := 0; j < max2; j++ {
+			ack := new(messages.Ack)
+			ack.ServerIndex = byte(i)
+			ack.Height = uint32(j)
+			p.AddToProcessList(ack, ack)
+		}
+	}
+	for i := range p.Servers {
+		if len(p.Servers[i].List) != max2 {
+			t.Errorf("Wrong len of server List")
+		}
+		for j, msg := range p.Servers[i].List {
+			m, ok := msg.(*messages.Ack)
+			if ok == false {
+				t.Errorf("Wrong message type")
+			}
+			if m.ServerIndex != byte(i) || m.Height != uint32(j) {
+				t.Errorf("Wrong data loaded from message")
+			}
+		}
+	}
 }
 
 func TestNewProcessLists(t *testing.T) {
