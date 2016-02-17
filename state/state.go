@@ -121,7 +121,8 @@ func (s *State) Init(filename string) {
 	fs := new(FactoidState)
 	fs.ValidationService = NewValidationService()
 	s.FactoidState = fs
-
+	
+	fs.SetFactoshisPerEC(cfg.App.ExchangeRate)
 	// Allocate the original set of Process Lists
 	s.ProcessLists = NewProcessLists(s)
 
