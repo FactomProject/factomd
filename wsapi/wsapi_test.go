@@ -230,6 +230,7 @@ func TestHandleEntryBlock(t *testing.T) {
 		hash := b.(*entryBlock.EBlock).DatabasePrimaryIndex().String()
 		hash2 := b.(*entryBlock.EBlock).DatabaseSecondaryIndex().String()
 
+		clearContextResponseWriter(context)
 		HandleEntryBlock(context, hash)
 
 		eBlock := new(EBlock)
@@ -438,6 +439,7 @@ func UnmarshalResp(context *web.Context, dst interface{}) {
 
 	err := json.Unmarshal([]byte(j), dst)
 	if err != nil {
+		fmt.Printf("body - %v\n", j)
 		panic(err)
 	}
 }

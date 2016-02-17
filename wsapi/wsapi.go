@@ -100,6 +100,7 @@ func HandleCommitChain(ctx *web.Context) {
 	jsonResp, jsonError := HandleV2PostRequest(state, req)
 	if jsonError != nil {
 		returnV1(ctx, nil, jsonError)
+		return
 	}
 	returnMsg(ctx, jsonResp.Result.(*CommitChainResponse).Message, true)
 }
@@ -131,6 +132,7 @@ func HandleCommitEntry(ctx *web.Context) {
 	jsonResp, jsonError := HandleV2PostRequest(state, req)
 	if jsonError != nil {
 		returnV1(ctx, nil, jsonError)
+		return
 	}
 	returnMsg(ctx, jsonResp.Result.(*CommitChainResponse).Message, true)
 }
@@ -157,6 +159,7 @@ func HandleRevealEntry(ctx *web.Context) {
 	jsonResp, jsonError := HandleV2PostRequest(state, req)
 	if jsonError != nil {
 		returnV1(ctx, nil, jsonError)
+		return
 	}
 	returnMsg(ctx, jsonResp.Result.(*RevealEntryResponse).Message, true)
 }
@@ -169,6 +172,7 @@ func HandleDirectoryBlockHead(ctx *web.Context) {
 	jsonResp, jsonError := HandleV2GetRequest(state, req)
 	if jsonError != nil {
 		returnV1(ctx, nil, jsonError)
+		return
 	}
 	dhead := new(DBHead)
 	dhead.KeyMR = jsonResp.Result.(*DirectoryBlockHeadResponse).KeyMR
@@ -201,6 +205,7 @@ func HandleDirectoryBlock(ctx *web.Context, hashkey string) {
 	jsonResp, jsonError := HandleV2GetRequest(state, req)
 	if jsonError != nil {
 		returnV1(ctx, nil, jsonError)
+		return
 	}
 	d := new(DBlock)
 
@@ -220,6 +225,7 @@ func HandleDirectoryBlockHeight(ctx *web.Context) {
 	jsonResp, jsonError := HandleV2GetRequest(state, req)
 	if jsonError != nil {
 		returnV1(ctx, nil, jsonError)
+		return
 	}
 
 	returnMsg(ctx, jsonResp.Result.(*DirectoryBlockHeightResponse), true)
@@ -233,6 +239,7 @@ func HandleEntryBlock(ctx *web.Context, hashkey string) {
 	jsonResp, jsonError := HandleV2GetRequest(state, req)
 	if jsonError != nil {
 		returnV1(ctx, nil, jsonError)
+		return
 	}
 	d := new(EBlock)
 
@@ -254,6 +261,7 @@ func HandleEntry(ctx *web.Context, hashkey string) {
 	jsonResp, jsonError := HandleV2GetRequest(state, req)
 	if jsonError != nil {
 		returnV1(ctx, nil, jsonError)
+		return
 	}
 	d := new(EntryStruct)
 
@@ -272,6 +280,7 @@ func HandleChainHead(ctx *web.Context, hashkey string) {
 	jsonResp, jsonError := HandleV2GetRequest(state, req)
 	if jsonError != nil {
 		returnV1(ctx, nil, jsonError)
+		return
 	}
 	d := new(CHead)
 
@@ -288,6 +297,7 @@ func HandleEntryCreditBalance(ctx *web.Context, eckey string) {
 	jsonResp, jsonError := HandleV2GetRequest(state, req)
 	if jsonError != nil {
 		returnV1(ctx, nil, jsonError)
+		return
 	}
 	returnMsg(ctx, fmt.Sprintf("%v", jsonResp.Result.(*EntryCreditBalanceResponse).Balance), true)
 }
@@ -300,6 +310,7 @@ func HandleGetFee(ctx *web.Context) {
 	jsonResp, jsonError := HandleV2GetRequest(state, req)
 	if jsonError != nil {
 		returnV1(ctx, nil, jsonError)
+		return
 	}
 	type x struct{ Fee int64 }
 	d := new(x)
@@ -332,6 +343,7 @@ func HandleFactoidSubmit(ctx *web.Context) {
 	jsonResp, jsonError := HandleV2PostRequest(state, req)
 	if jsonError != nil {
 		returnV1(ctx, nil, jsonError)
+		return
 	}
 	returnMsg(ctx, jsonResp.Result.(*FactoidSubmitResponse).Message, true)
 }
@@ -344,6 +356,7 @@ func HandleFactoidBalance(ctx *web.Context, eckey string) {
 	jsonResp, jsonError := HandleV2GetRequest(state, req)
 	if jsonError != nil {
 		returnV1(ctx, nil, jsonError)
+		return
 	}
 	returnMsg(ctx, fmt.Sprintf("%v", jsonResp.Result.(*FactoidBalanceResponse).Balance), true)
 }
