@@ -6,7 +6,7 @@ package wsapi
 
 import (
 	"encoding/hex"
-
+	"fmt"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
@@ -17,6 +17,9 @@ import (
 	"github.com/FactomProject/factomd/receipts"
 	"github.com/hoisie/web"
 )
+
+
+var _ = fmt.Print
 
 func HandleV2Get(ctx *web.Context) {
 	HandleV2(ctx, false)
@@ -529,6 +532,10 @@ func HandleV2EntryCreditBalance(state interfaces.IState, params interface{}) (in
 func HandleV2GetFee(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	resp := new(FactoidGetFeeResponse)
 	resp.Fee = state.GetFactoidState().GetFactoshisPerEC()
+	
+	
+	fmt.Println(";;;;;;;;;;;;;;;;;;;;;;;;;;;;;; ",resp.Fee)
+	
 	return resp, nil
 }
 

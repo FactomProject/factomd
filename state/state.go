@@ -27,7 +27,8 @@ import (
 var _ = fmt.Print
 
 type State struct {
-	Cfg interfaces.IFactomConfig
+	filename 	string
+	Cfg			interfaces.IFactomConfig
 
 	IdentityChainID interfaces.IHash // If this node has an identity, this is it
 
@@ -64,7 +65,7 @@ type State struct {
 	Anchor interfaces.IAnchor
 
 	// Directory Block State
-	DBHeight    uint32       // Height as understood by the leader
+	LDBHeight   uint32		 // Leader's DBHeight; Nobody else can touch!
 	ServerIndex int          // Index of the server, as understood by the leader
 	DBStates    *DBStateList // Holds all DBStates not yet processed.
 
@@ -94,7 +95,7 @@ type State struct {
 var _ interfaces.IState = (*State)(nil)
 
 func (s *State) Init(filename string) {
-
+	s.filename = filename
 	s.ReadCfg(filename)
 	// Get our factomd configuration information.
 	cfg := s.GetCfg().(*util.FactomdConfig)
@@ -287,7 +288,7 @@ func (s *State) ProcessEndOfBlock(dbheight uint32) {
 // This returns the DBHeight as defined by the leader, not the follower.
 // This value shouldn't be used by follower code.
 func (s *State) GetDBHeight() uint32 {
-	return s.DBHeight
+	return s.DBStates.Last().DirectoryBlock.GetHeader().GetDBHeight()
 }
 
 // Messages that will go into the Process List must match an Acknowledgement.
@@ -326,7 +327,7 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) (bool, error) {
 }
 
 func (s *State) LeaderExecute(m interfaces.IMsg) error {
-	v := m.Validate(s.DBHeight, s)
+	v := m.Validate(s.LDBHeight, s)
 	if v <= 0 {
 		return fmt.Errorf("Msg not valid: " + m.String())
 	}
@@ -350,12 +351,13 @@ func (s *State) LeaderExecute(m interfaces.IMsg) error {
 
 func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
 	eom, _ := m.(*messages.EOM)
-	eom.DirectoryBlockHeight = s.DBHeight
-	fmt.Println("EOM", s.DBHeight)
+	eom.DirectoryBlockHeight = s.LDBHeight
+	fmt.Println("EOM", s.LDBHeight)
 	return s.LeaderExecute(eom)
 }
 
 func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) error {
+	s.LDBHeight++				// Increase our height
 	s.LastAck = nil             // Clear Ack list
 	s.FollowerInMsgQueue() <- m // Send on to the follower.
 	return nil
@@ -757,7 +759,7 @@ func (s *State) NewAck(hash interfaces.IHash) (iack interfaces.IMsg, err error) 
 		last = s.LastAck.(*messages.Ack)
 	}
 	ack := new(messages.Ack)
-	ack.DBHeight = s.DBHeight
+	ack.DBHeight = s.LDBHeight
 	ack.Timestamp = s.GetTimestamp()
 	ack.MessageHash = hash
 	if last == nil {
@@ -777,9 +779,6 @@ func (s *State) NewAck(hash interfaces.IHash) (iack interfaces.IMsg, err error) 
 	return ack, nil
 }
 
-/**********************************************************************
- * Support
- **********************************************************************/
 
 func (s *State) NewEOM(minute int) interfaces.IMsg {
 	// The construction of the EOM message needs information from the state of
@@ -788,7 +787,7 @@ func (s *State) NewEOM(minute int) interfaces.IMsg {
 	eom := new(messages.EOM)
 	eom.Minute = byte(minute)
 	eom.ServerIndex = s.ServerIndex
-	eom.DirectoryBlockHeight = s.GetDBHeight()
+	eom.DirectoryBlockHeight = s.LDBHeight
 
 	return eom
 }

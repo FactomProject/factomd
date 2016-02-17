@@ -62,6 +62,14 @@ func (list *DBStateList) Put(dbstate *DBState) {
 	dblk := dbstate.DirectoryBlock
 	dbheight := dblk.GetHeader().GetDBHeight()
 
+	cnt := len(list.DBStates) 
+	fmt.Println("base",list.base,"complete",list.complete,"height",dbheight,"len of DBStates",len(list.DBStates))
+	if cnt > 2  {
+		list.DBStates = list.DBStates[cnt-2:]
+		list.base = list.base + uint32(cnt) -2
+		list.complete = list.complete-uint32(cnt)+2
+		fmt.Println("AAAAAAAAAAAAAAAAAAAAAAAAAA  Adjust: ",list.base,"cnt",cnt,len(list.DBStates))
+	}
 	index := int(dbheight) - int(list.base)
 	for len(list.DBStates) <= index {
 		list.DBStates = append(list.DBStates, nil)
@@ -69,7 +77,8 @@ func (list *DBStateList) Put(dbstate *DBState) {
 	if index >= 0 {
 		list.DBStates[index] = dbstate
 	}
-
+	fmt.Println("base",list.base,"complete",list.complete,"height",dbheight,"len of DBStates",len(list.DBStates))
+	
 	hash, err := dbstate.AdminBlock.GetKeyMR()
 	if err != nil {
 		panic(err)
@@ -100,6 +109,7 @@ func (list *DBStateList) Get(height uint32) *DBState {
 
 func (list *DBStateList) Getul(height uint32) *DBState {
 	i := int(height) - int(list.base)
+	fmt.Println("Get ", height, " with base ", list.base, "index", i, "Len of states",len(list.DBStates))
 	if i < 0 || i >= len(list.DBStates) {
 		return nil
 	}
@@ -108,6 +118,8 @@ func (list *DBStateList) Getul(height uint32) *DBState {
 
 func (list *DBStateList) Process() {
 
+	
+	
 	for int(list.complete) < len(list.DBStates) {
 		d := list.DBStates[list.complete]
 
@@ -144,9 +156,12 @@ func (list *DBStateList) Process() {
 		fs.ProcessEndOfBlock(list.state)
 
 		log.Printfln(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>Updating Transactions at %v %v", list.complete, d.FactoidBlock.GetHash().String())
-
+		
 		list.complete++
-		list.state.DBHeight = list.complete
+		
+		if list.state.LDBHeight < list.complete+list.base {
+			list.state.LDBHeight = list.complete+list.base
+		}
 	}
 	log.Printfln("List Complete %v", list.complete)
 }

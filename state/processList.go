@@ -31,7 +31,14 @@ func (lists *ProcessLists) UpdateState() {
 		return
 	}
 	heightBuilding := dbstate.DirectoryBlock.GetHeader().GetDBHeight() + 1
+	
 	pl := lists.Get(heightBuilding)
+	
+	diff := heightBuilding - lists.DBHeightBase
+	if diff > 0 {
+		lists.DBHeightBase += diff
+		lists.Lists = lists.Lists[diff:]
+	}
 
 	//*******************************************************************//
 	// Do initialization of blocks for the next Process List level here
@@ -62,6 +69,7 @@ func (lists *ProcessLists) UpdateState() {
 func (lists *ProcessLists) Get(dbheight uint32) *ProcessList {
 
 	i := int(dbheight) - int(lists.DBHeightBase)
+	
 	if i < 0 {
 		return nil
 	}
