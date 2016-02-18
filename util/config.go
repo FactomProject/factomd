@@ -78,6 +78,8 @@ type FactomdConfig struct {
 		DataFile         string
 		RefreshInSeconds string
 		BoltDBPath       string
+		FactomdAddress   string
+		FactomdPort      int
 	}
 }
 
@@ -144,6 +146,8 @@ Port                                  = 8089
 DataFile                              = fctwallet.dat
 RefreshInSeconds                      = 60
 BoltDBPath                            = ""
+FactomdAddress                        = localhost
+FactomdPort                           = 8088
 `
 
 func (s *FactomdConfig) String() string {
