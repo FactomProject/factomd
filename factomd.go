@@ -34,6 +34,8 @@ var Build string
 
 func main() {
 
+//	go StartProfiler()
+
 	log.Print("//////////////////////// Copyright 2015 Factom Foundation")
 	log.Print("//////////////////////// Use of this source code is governed by the MIT")
 	log.Print("//////////////////////// license that can be found in the LICENSE file.")
