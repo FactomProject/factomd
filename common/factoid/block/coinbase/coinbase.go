@@ -6,9 +6,8 @@ package coinbase
 
 import (
 	"fmt"
-	. "github.com/FactomProject/factomd/common/factoid"
-	"github.com/FactomProject/factomd/common/factoid/wallet"
 
+	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 )
 
@@ -30,20 +29,7 @@ func UpdateAmount(amt uint64) {
 // Currently we are paying just a few fixed addresses.
 //
 func GetCoinbase(ftime uint64) interfaces.ITransaction {
-
-	if false && adrs == nil {
-		var w interfaces.ISCWallet
-		w = new(wallet.SCWallet)
-		w.Init()
-
-		adrs = make([]interfaces.IAddress, addressCnt)
-		for i := 0; i < addressCnt; i++ {
-			adr, _ := w.GenerateFctAddress([]byte("adr"+string(i)), 1, 1)
-			adrs[i] = adr
-		}
-	}
-
-	coinbase := new(Transaction)
+	coinbase := new(factoid.Transaction)
 	coinbase.SetMilliTimestamp(ftime)
 
 	for _, adr := range adrs {
