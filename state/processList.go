@@ -59,11 +59,8 @@ func (lists *ProcessLists) UpdateState() {
 
 	// Only when we are sig complete that we can move on.
 	if pl.Complete() {
-		fmt.Println("Finished List")
 		lists.State.DBStates.NewDBState(true, pl.DirectoryBlock, pl.AdminBlock, pl.FactoidBlock, pl.EntryCreditBlock)
-	} else {
-		fmt.Println("Staying on List")
-	}
+	} 
 }
 
 func (lists *ProcessLists) Get(dbheight uint32) *ProcessList {
@@ -230,12 +227,10 @@ func (p *ProcessList) Process(state interfaces.IState) {
 
 			eom, ok := plist[j].(*messages.EOM)
 			if ok && eom.Minute == 9 {
-				fmt.Println("End of Minute at", j)
 				p.Servers[i].EomComplete = true
 			}
 			_, ok = plist[j].(*messages.DirectoryBlockSignature)
 			if ok {
-				fmt.Println("Signed Directory Block at", j)
 				p.Servers[i].SigComplete = true
 			}
 		}

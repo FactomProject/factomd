@@ -24,10 +24,15 @@ const (
 	MessageTypeGetFactoshisPerEC
 	MessageTypeSetFactoshisPerEC
 	MessageTypeResetBalances
+	MessageTypeClearRealTime
 	MessageTypeValidate
 )
 
 type ValidationMsg struct {
+	// If realtime, the updated balance is updated in the Temp space.
+	// If not realtime (i.e. processing a block), balance is updated in the 
+	// permanent space.
+	Realtime	   bool     
 	MessageType    int
 	Address        [32]byte
 	Transaction    interfaces.ITransaction
@@ -43,39 +48,88 @@ type ValidationResponseMsg struct {
 	FactoshisPerEC uint64
 }
 
-func ValidationServiceLoop(input chan ValidationMsg) {
-	type ValidationState struct {
-		NumTransactions int
-		FactoidBalances map[[32]byte]int64
-		ECBalances      map[[32]byte]int64
-		FactoshisPerEC  uint64
+type ValidationState struct {
+	NumTransactions int
+	
+	// Permanent balances from processing blocks. 
+	FactoidBalancesP map[[32]byte]int64
+	ECBalancesP      map[[32]byte]int64
+	
+	// Temporary balances from updating transactions in real time.
+	FactoidBalancesT map[[32]byte]int64
+	ECBalancesT      map[[32]byte]int64
+	
+	FactoshisPerEC  uint64
+}
+
+func (vs *ValidationState) GetF(adr [32]byte) int64 {
+	if v,ok := vs.FactoidBalancesT[adr]; !ok {
+		v = vs.FactoidBalancesP[adr]
+		return v
+	}else{
+		return v
 	}
+}
+
+func (vs *ValidationState) PutF(rt bool, adr [32]byte, v int64) {
+	if rt {
+		vs.FactoidBalancesT[adr] = v
+	}else{
+		vs.FactoidBalancesP[adr] = v
+	}
+}
+
+func (vs *ValidationState) GetE(adr [32]byte) int64 {
+	if v,ok := vs.ECBalancesT[adr]; !ok {
+		v = vs.ECBalancesP[adr]
+		return v
+	}else{
+		return v
+	}
+}
+
+func (vs *ValidationState) PutE(rt bool, adr [32]byte, v int64) {
+	if rt {
+		vs.ECBalancesT[adr] = v
+	}else{
+		vs.ECBalancesP[adr] = v
+	}
+}
+
+
+func ValidationServiceLoop(input chan ValidationMsg) {
+
 
 	vs := new(ValidationState)
 	vs.FactoshisPerEC = 1
-	vs.FactoidBalances = map[[32]byte]int64{}
-	vs.ECBalances = map[[32]byte]int64{}
-
+	vs.FactoidBalancesP = map[[32]byte]int64{}
+	vs.ECBalancesP = map[[32]byte]int64{}
+	vs.FactoidBalancesT = map[[32]byte]int64{}
+	vs.ECBalancesT = map[[32]byte]int64{}
+	
 	for {
 		msg := <-input
 		switch msg.MessageType {
+			
+		case MessageTypeClearRealTime:
+			vs.FactoidBalancesT = map[[32]byte]int64{}
+			vs.ECBalancesT = map[[32]byte]int64{}
+			
 		case MessageTypeGetFactoidBalance:
-			v := vs.FactoidBalances[msg.Address]
+			v := vs.GetF(msg.Address)
 			if msg.ReturnChannel != nil {
 				var resp ValidationResponseMsg
 				resp.Balance = v
 				msg.ReturnChannel <- resp
 			}
-			break
-
+		
 		case MessageTypeGetECBalance:
-			v := vs.ECBalances[msg.Address]
+			v := vs.GetE(msg.Address)
 			if msg.ReturnChannel != nil {
 				var resp ValidationResponseMsg
 				resp.Balance = v
 				msg.ReturnChannel <- resp
 			}
-			break
 
 		case MessageTypeUpdateTransaction:
 
@@ -90,15 +144,16 @@ func ValidationServiceLoop(input chan ValidationMsg) {
 
 			if msg.Transaction != nil {
 				trans := msg.Transaction
+				rt := msg.Realtime
 				for _, input := range trans.GetInputs() {
-					vs.FactoidBalances[input.GetAddress().Fixed()] = vs.FactoidBalances[input.GetAddress().Fixed()] - int64(input.GetAmount())
+					vs.PutF(rt,input.GetAddress().Fixed(), vs.GetF(input.GetAddress().Fixed()) - int64(input.GetAmount()))
 				}
 				for _, output := range trans.GetOutputs() {
-					vs.FactoidBalances[output.GetAddress().Fixed()] = vs.FactoidBalances[output.GetAddress().Fixed()] + int64(output.GetAmount())
+					vs.PutF(rt,output.GetAddress().Fixed(), vs.GetF(output.GetAddress().Fixed()) + int64(output.GetAmount()))
 				}
 				for _, ecOut := range trans.GetECOutputs() {
 					ecbal := int64(ecOut.GetAmount()) / int64(vs.FactoshisPerEC)
-					vs.ECBalances[ecOut.GetAddress().Fixed()] = vs.ECBalances[ecOut.GetAddress().Fixed()] + ecbal
+					vs.PutE(rt,ecOut.GetAddress().Fixed(), vs.GetE(ecOut.GetAddress().Fixed()) + ecbal)
 				}
 				vs.NumTransactions++
 				if msg.ReturnChannel != nil {
@@ -108,6 +163,7 @@ func ValidationServiceLoop(input chan ValidationMsg) {
 			}
 
 			if msg.ECTransaction != nil {
+				rt := msg.Realtime
 				trans := msg.ECTransaction
 				var resp ValidationResponseMsg
 
@@ -115,50 +171,43 @@ func ValidationServiceLoop(input chan ValidationMsg) {
 				case entryCreditBlock.ECIDServerIndexNumber:
 					resp.Error = fmt.Errorf("Invalid transaction provided")
 					msg.ReturnChannel <- resp
-					break
 
 				case entryCreditBlock.ECIDMinuteNumber:
 					resp.Error = fmt.Errorf("Invalid transaction provided")
 					msg.ReturnChannel <- resp
-					break
 
 				case entryCreditBlock.ECIDChainCommit:
 					t := trans.(*entryCreditBlock.CommitChain)
-					vs.ECBalances[t.ECPubKey.Fixed()] = vs.ECBalances[t.ECPubKey.Fixed()] - int64(t.Credits)
+					vs.PutE(rt,t.ECPubKey.Fixed(), vs.GetE(t.ECPubKey.Fixed()) - int64(t.Credits))
 					vs.NumTransactions++
 					msg.ReturnChannel <- resp
-					break
 
 				case entryCreditBlock.ECIDEntryCommit:
 					t := trans.(*entryCreditBlock.CommitEntry)
-					vs.ECBalances[t.ECPubKey.Fixed()] = vs.ECBalances[t.ECPubKey.Fixed()] - int64(t.Credits)
+					vs.PutE(rt,t.ECPubKey.Fixed(), vs.GetE(t.ECPubKey.Fixed()) - int64(t.Credits))
 					vs.NumTransactions++
 
 					msg.ReturnChannel <- resp
-					break
 
 				case entryCreditBlock.ECIDBalanceIncrease:
 					t := trans.(*entryCreditBlock.IncreaseBalance)
-					vs.ECBalances[t.ECPubKey.Fixed()] = vs.ECBalances[t.ECPubKey.Fixed()] + int64(t.NumEC)
+					vs.PutE(rt,t.ECPubKey.Fixed(), vs.GetE(t.ECPubKey.Fixed()) + int64(t.NumEC))
 					vs.NumTransactions++
 
 					msg.ReturnChannel <- resp
-					break
 
 				default:
 					resp.Error = fmt.Errorf("Unknown EC transaction provided")
 					msg.ReturnChannel <- resp
-					break
 				}
 			}
 
-			break
-
 		case MessageTypeResetBalances:
-			vs.FactoidBalances = map[[32]byte]int64{}
-			vs.ECBalances = map[[32]byte]int64{}
+			vs.FactoidBalancesP = map[[32]byte]int64{}
+			vs.ECBalancesP = map[[32]byte]int64{}
+			vs.FactoidBalancesT = map[[32]byte]int64{}
+			vs.ECBalancesT = map[[32]byte]int64{}
 			vs.NumTransactions = 0
-			break
 
 		case MessageTypeGetFactoshisPerEC:
 			if msg.ReturnChannel != nil {
@@ -166,7 +215,6 @@ func ValidationServiceLoop(input chan ValidationMsg) {
 				resp.FactoshisPerEC = vs.FactoshisPerEC
 				msg.ReturnChannel <- resp
 			}
-			break
 
 		case MessageTypeSetFactoshisPerEC:
 			vs.FactoshisPerEC = msg.FactoshisPerEC
@@ -174,7 +222,6 @@ func ValidationServiceLoop(input chan ValidationMsg) {
 				var resp ValidationResponseMsg
 				msg.ReturnChannel <- resp
 			}
-			break
 
 		case MessageTypeValidate:
 			var resp ValidationResponseMsg
@@ -189,7 +236,7 @@ func ValidationServiceLoop(input chan ValidationMsg) {
 					}
 					break
 				}
-				if int64(bal) > vs.FactoidBalances[input.GetAddress().Fixed()] {
+				if int64(bal) > vs.GetF(input.GetAddress().Fixed()) {
 					if msg.ReturnChannel != nil {
 						resp.Error = fmt.Errorf("Not enough funds in input addresses for the transaction")
 						msg.ReturnChannel <- resp
@@ -199,7 +246,6 @@ func ValidationServiceLoop(input chan ValidationMsg) {
 				sums[input.GetAddress().Fixed()] = bal
 			}
 			msg.ReturnChannel <- resp
-			break
 
 		default:
 			if msg.ReturnChannel != nil {

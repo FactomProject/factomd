@@ -104,5 +104,4 @@ type IState interface {
 	GetTimestamp() Timestamp
 	PrintType(int) bool // Debugging
 
-	RecalculateBalances() error
 }

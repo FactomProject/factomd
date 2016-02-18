@@ -61,7 +61,7 @@ func (fs *FactoidState) AddTransactionBlock(blk interfaces.IFBlock) error {
 
 	transactions := blk.GetTransactions()
 	for _, trans := range transactions {
-		err := fs.UpdateTransaction(trans)
+		err := fs.UpdateTransaction(false, trans)
 		if err != nil {
 			return err
 		}
@@ -76,7 +76,7 @@ func (fs *FactoidState) AddECBlock(blk interfaces.IEntryCreditBlock) error {
 	transactions := blk.GetBody().GetEntries()
 
 	for _, trans := range transactions {
-		err := fs.UpdateECTransaction(trans)
+		err := fs.UpdateECTransaction(false, trans)
 		if err != nil {
 			return err
 		}
@@ -114,7 +114,7 @@ func (fs *FactoidState) AddTransaction(index int, trans interfaces.ITransaction)
 	if err := fs.ValidateTransactionAge(trans); err != nil {
 		return err
 	}
-	if err := fs.UpdateTransaction(trans); err != nil {
+	if err := fs.UpdateTransaction(true, trans); err != nil {
 		return err
 	}
 	if err := fs.CurrentBlock.AddTransaction(trans); err != nil {
@@ -152,10 +152,11 @@ func (fs *FactoidState) ResetBalances() {
 	fs.ValidationService <- vm
 }
 
-func (fs *FactoidState) UpdateECTransaction(trans interfaces.IECBlockEntry) error {
+func (fs *FactoidState) UpdateECTransaction(realtime bool, trans interfaces.IECBlockEntry) error {
 	var vm ValidationMsg
 
 	vm.MessageType = MessageTypeUpdateTransaction
+	vm.Realtime = realtime
 	vm.ECTransaction = trans
 	c := make(chan ValidationResponseMsg)
 	vm.ReturnChannel = c
@@ -190,9 +191,10 @@ func (fs *FactoidState) UpdateECTransaction(trans interfaces.IECBlockEntry) erro
 }
 
 // Assumes validation has already been done.
-func (fs *FactoidState) UpdateTransaction(trans interfaces.ITransaction) error {
+func (fs *FactoidState) UpdateTransaction(realtime bool, trans interfaces.ITransaction) error {
 	var vm ValidationMsg
 	vm.MessageType = MessageTypeUpdateTransaction
+	vm.Realtime = realtime
 	vm.Transaction = trans
 	c := make(chan ValidationResponseMsg)
 	vm.ReturnChannel = c
@@ -200,6 +202,18 @@ func (fs *FactoidState) UpdateTransaction(trans interfaces.ITransaction) error {
 	resp := <-c
 	return resp.Error
 }
+
+// Assumes validation has already been done.
+func (fs *FactoidState) ClearRealTime() error {
+	var vm ValidationMsg
+	vm.MessageType = MessageTypeClearRealTime
+	c := make(chan ValidationResponseMsg)
+	vm.ReturnChannel = c
+	fs.ValidationService <- vm
+	resp := <-c
+	return resp.Error
+}
+
 
 // End of Block means packing the current block away, and setting
 // up the next
@@ -224,7 +238,7 @@ func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
 	if err != nil {
 		panic(err.Error())
 	}
-	fs.UpdateTransaction(t)
+	fs.UpdateTransaction(true, t)
 
 	if hash != nil {
 		fs.CurrentBlock.SetPrevKeyMR(hash.Bytes())

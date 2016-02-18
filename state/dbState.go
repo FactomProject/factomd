@@ -63,12 +63,10 @@ func (list *DBStateList) Put(dbstate *DBState) {
 	dbheight := dblk.GetHeader().GetDBHeight()
 
 	cnt := len(list.DBStates) 
-	fmt.Println("base",list.base,"complete",list.complete,"height",dbheight,"len of DBStates",len(list.DBStates))
-	if cnt > 2  {
+	if cnt > 2  && int(list.complete) == len(list.DBStates) {
 		list.DBStates = list.DBStates[cnt-2:]
 		list.base = list.base + uint32(cnt) -2
 		list.complete = list.complete-uint32(cnt)+2
-		fmt.Println("AAAAAAAAAAAAAAAAAAAAAAAAAA  Adjust: ",list.base,"cnt",cnt,len(list.DBStates))
 	}
 	index := int(dbheight) - int(list.base)
 	for len(list.DBStates) <= index {
@@ -77,7 +75,6 @@ func (list *DBStateList) Put(dbstate *DBState) {
 	if index >= 0 {
 		list.DBStates[index] = dbstate
 	}
-	fmt.Println("base",list.base,"complete",list.complete,"height",dbheight,"len of DBStates",len(list.DBStates))
 	
 	hash, err := dbstate.AdminBlock.GetKeyMR()
 	if err != nil {
@@ -109,7 +106,6 @@ func (list *DBStateList) Get(height uint32) *DBState {
 
 func (list *DBStateList) Getul(height uint32) *DBState {
 	i := int(height) - int(list.base)
-	fmt.Println("Get ", height, " with base ", list.base, "index", i, "Len of states",len(list.DBStates))
 	if i < 0 || i >= len(list.DBStates) {
 		return nil
 	}
@@ -117,8 +113,6 @@ func (list *DBStateList) Getul(height uint32) *DBState {
 }
 
 func (list *DBStateList) Process() {
-
-	
 	
 	for int(list.complete) < len(list.DBStates) {
 		d := list.DBStates[list.complete]
@@ -132,20 +126,22 @@ func (list *DBStateList) Process() {
 		}
 
 		if d.isNew {
-			log.Println("Save new blocks")
-			err := list.state.GetDB().ProcessDBlockBatch(d.DirectoryBlock)
-			if err != nil {
+			if err := list.state.GetDB().ProcessDBlockBatch(d.DirectoryBlock) ; err != nil {
 				panic(err.Error())
 			}
-
-			list.state.GetDB().ProcessABlockBatch(d.AdminBlock)
-
-			list.state.GetDB().ProcessFBlockBatch(d.FactoidBlock)
-
-			list.state.GetDB().ProcessECBlockBatch(d.EntryCreditBlock)
-
-			list.state.GetDB().SaveDirectoryBlockHead(d.DirectoryBlock)
-
+			if err := list.state.GetDB().ProcessABlockBatch(d.AdminBlock) ; err != nil {
+				panic(err.Error())
+			}
+			if err := list.state.GetDB().ProcessFBlockBatch(d.FactoidBlock) ; err != nil {
+				panic(err.Error())
+			}
+			if err := list.state.GetDB().ProcessECBlockBatch(d.EntryCreditBlock) ; err != nil {
+				panic(err.Error())
+			}
+			if err := list.state.GetDB().SaveDirectoryBlockHead(d.DirectoryBlock) ; err != nil {
+				panic(err.Error())
+			}
+				
 			list.state.GetAnchor().UpdateDirBlockInfoMap(dbInfo.NewDirBlockInfoFromDirBlock(d.DirectoryBlock))
 
 		}
@@ -155,15 +151,12 @@ func (list *DBStateList) Process() {
 		fs.AddECBlock(d.EntryCreditBlock)
 		fs.ProcessEndOfBlock(list.state)
 
-		log.Printfln(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>Updating Transactions at %v %v", list.complete, d.FactoidBlock.GetHash().String())
-		
 		list.complete++
 		
 		if list.state.LDBHeight < list.complete+list.base {
 			list.state.LDBHeight = list.complete+list.base
 		}
 	}
-	log.Printfln("List Complete %v", list.complete)
 }
 
 func (list *DBStateList) NewDBState(isNew bool,

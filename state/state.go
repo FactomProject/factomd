@@ -123,6 +123,7 @@ func (s *State) Init(filename string) {
 	s.FactoidState = fs
 	
 	fs.SetFactoshisPerEC(cfg.App.ExchangeRate)
+	fmt.Println("Setting the Fee to",cfg.App.ExchangeRate)
 	// Allocate the original set of Process Lists
 	s.ProcessLists = NewProcessLists(s)
 
@@ -190,7 +191,6 @@ func (s *State) Init(filename string) {
 
 	a, _ := anchor.InitAnchor(s)
 	s.Anchor = a
-	log.Println("Loading Database")
 	s.loadDatabase()
 
 	s.initServerKeys()
@@ -219,9 +219,18 @@ func (s *State) AddDBState(isNew bool,
 func (s *State) loadDatabase() {
 
 	var i uint32
-	for i = 0; true; i++ {
+	
+	dblks,err := s.DB.FetchAllDBlocks()
+	if err != nil {
+		panic(err)
+	}
+	
+	for i,dblk := range dblks {
+		
+		/*
 		var dhash interfaces.IHash
 		var err error
+		
 		if dhash, err = s.DB.FetchDBKeyMRByHeight(i); err != nil {
 			panic(err)
 		}
@@ -235,7 +244,8 @@ func (s *State) loadDatabase() {
 		if d == nil {
 			panic("No DirectoryBlock for " + dhash.String())
 		}
-		dblk := d
+		*/
+		
 		ablk, err := s.DB.FetchABlockByKeyMR(dblk.GetDBEntries()[0].GetKeyMR())
 		if err != nil {
 			panic(err)
@@ -257,11 +267,13 @@ func (s *State) loadDatabase() {
 		if fblk == nil {
 			panic("fblk is nil" + dblk.GetDBEntries()[2].GetKeyMR().String())
 		}
-
+		
+		fmt.Print("\rLoading block: ",i)
+		
 		s.DBStates.NewDBState(false, dblk, ablk, fblk, ecblk)
 		s.DBStates.Process()
 	}
-
+	
 	if i == 0 && s.NetworkNumber == constants.NETWORK_LOCAL {
 		fmt.Println("\n***********************************")
 		fmt.Println("******* New Database **************")
@@ -353,7 +365,6 @@ func (s *State) LeaderExecute(m interfaces.IMsg) error {
 func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
 	eom, _ := m.(*messages.EOM)
 	eom.DirectoryBlockHeight = s.LDBHeight
-	fmt.Println("EOM", s.LDBHeight)
 	return s.LeaderExecute(eom)
 }
 
@@ -384,7 +395,7 @@ func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)
 		ecblk := pl.EntryCreditBlock
 		ecbody := ecblk.GetBody()
 		ecbody.AddEntry(c.CommitChain)
-		s.GetFactoidState().UpdateECTransaction(c.CommitChain)
+		s.GetFactoidState().UpdateECTransaction(true, c.CommitChain)
 		s.PutCommits(dbheight, c.GetHash(), c)
 	}
 }
@@ -715,42 +726,6 @@ func (s *State) GetDirectoryBlock() interfaces.IDirectoryBlock {
 
 func (s *State) GetNewHash() interfaces.IHash {
 	return new(primitives.Hash)
-}
-
-func (s *State) RecalculateBalances() error {
-	fs := s.FactoidState
-	fs.ResetBalances()
-
-	blocks, err := s.DB.FetchAllFBlocks()
-	if err != nil {
-		return err
-	}
-	for _, block := range blocks {
-		txs := block.GetTransactions()
-		for _, tx := range txs {
-			err = fs.UpdateTransaction(tx)
-			if err != nil {
-				fs.ResetBalances()
-				return err
-			}
-		}
-	}
-
-	ecBlocks, err := s.DB.FetchAllECBlocks()
-	if err != nil {
-		return err
-	}
-	for _, block := range ecBlocks {
-		txs := block.GetBody().GetEntries()
-		for _, tx := range txs {
-			err = fs.UpdateECTransaction(tx)
-			if err != nil {
-				fs.ResetBalances()
-				return err
-			}
-		}
-	}
-	return nil
 }
 
 // Create a new Acknowledgement.  This Acknowledgement

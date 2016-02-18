@@ -40,9 +40,11 @@ type IFactoidState interface {
 	ValidateTransactionAge(trans ITransaction) error
 
 	// Update Transaction just updates the balance sheet with the
-	// addition of a transaction.
-	UpdateTransaction(ITransaction) error
-	UpdateECTransaction(IECBlockEntry) error
+	// addition of a transaction.  bool must be true if this is a realtime update,
+	// and false if processing a block.  This provides real time balances, without
+	// double counting transactions when we process blocks.
+	UpdateTransaction(bool, ITransaction) error
+	UpdateECTransaction(bool, IECBlockEntry) error
 
 	// Add a Transaction to the current   The transaction is
 	// validated against the address balances, which must cover The
