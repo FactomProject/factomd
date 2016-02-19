@@ -27,8 +27,8 @@ import (
 var _ = fmt.Print
 
 type State struct {
-	filename 	string
-	Cfg			interfaces.IFactomConfig
+	filename string
+	Cfg      interfaces.IFactomConfig
 
 	IdentityChainID interfaces.IHash // If this node has an identity, this is it
 
@@ -65,7 +65,7 @@ type State struct {
 	Anchor interfaces.IAnchor
 
 	// Directory Block State
-	LDBHeight   uint32		 // Leader's DBHeight; Nobody else can touch!
+	LDBHeight   uint32       // Leader's DBHeight; Nobody else can touch!
 	ServerIndex int          // Index of the server, as understood by the leader
 	DBStates    *DBStateList // Holds all DBStates not yet processed.
 
@@ -121,9 +121,9 @@ func (s *State) Init(filename string) {
 	fs := new(FactoidState)
 	fs.ValidationService = NewValidationService()
 	s.FactoidState = fs
-	
+
 	fs.SetFactoshisPerEC(cfg.App.ExchangeRate)
-	fmt.Println("Setting the Fee to",cfg.App.ExchangeRate)
+	fmt.Println("Setting the Fee to", cfg.App.ExchangeRate)
 	// Allocate the original set of Process Lists
 	s.ProcessLists = NewProcessLists(s)
 
@@ -219,33 +219,33 @@ func (s *State) AddDBState(isNew bool,
 func (s *State) loadDatabase() {
 
 	var i uint32
-	
-	dblks,err := s.DB.FetchAllDBlocks()
+
+	dblks, err := s.DB.FetchAllDBlocks()
 	if err != nil {
 		panic(err)
 	}
-	
-	for i,dblk := range dblks {
-		
+
+	for i, dblk := range dblks {
+
 		/*
-		var dhash interfaces.IHash
-		var err error
-		
-		if dhash, err = s.DB.FetchDBKeyMRByHeight(i); err != nil {
-			panic(err)
-		}
-		if dhash == nil {
-			break
-		}
-		d, err := s.DB.FetchDBlockByKeyMR(dhash)
-		if err != nil {
-			panic(err)
-		}
-		if d == nil {
-			panic("No DirectoryBlock for " + dhash.String())
-		}
+			var dhash interfaces.IHash
+			var err error
+
+			if dhash, err = s.DB.FetchDBKeyMRByHeight(i); err != nil {
+				panic(err)
+			}
+			if dhash == nil {
+				break
+			}
+			d, err := s.DB.FetchDBlockByKeyMR(dhash)
+			if err != nil {
+				panic(err)
+			}
+			if d == nil {
+				panic("No DirectoryBlock for " + dhash.String())
+			}
 		*/
-		
+
 		ablk, err := s.DB.FetchABlockByKeyMR(dblk.GetDBEntries()[0].GetKeyMR())
 		if err != nil {
 			panic(err)
@@ -267,13 +267,13 @@ func (s *State) loadDatabase() {
 		if fblk == nil {
 			panic("fblk is nil" + dblk.GetDBEntries()[2].GetKeyMR().String())
 		}
-		
-		fmt.Print("\rLoading block: ",i)
-		
+
+		fmt.Print("\rLoading block: ", i)
+
 		s.DBStates.NewDBState(false, dblk, ablk, fblk, ecblk)
 		s.DBStates.Process()
 	}
-	
+
 	if i == 0 && s.NetworkNumber == constants.NETWORK_LOCAL {
 		fmt.Println("\n***********************************")
 		fmt.Println("******* New Database **************")
@@ -369,7 +369,7 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
 }
 
 func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) error {
-	s.LDBHeight++				// Increase our height
+	s.LDBHeight++               // Increase our height
 	s.LastAck = nil             // Clear Ack list
 	s.FollowerInMsgQueue() <- m // Send on to the follower.
 	return nil
@@ -496,7 +496,7 @@ func (s *State) GetFedServerFaults() [][]interfaces.IMsg {
 }
 
 func (s *State) GetTimestamp() interfaces.Timestamp {
-	return interfaces.Timestamp(primitives.GetTimeMilli())
+	return *interfaces.NewTimeStampNow()
 }
 
 func (s *State) Sign([]byte) interfaces.IFullSignature {
@@ -754,7 +754,6 @@ func (s *State) NewAck(hash interfaces.IHash) (iack interfaces.IMsg, err error) 
 
 	return ack, nil
 }
-
 
 func (s *State) NewEOM(minute int) interfaces.IMsg {
 	// The construction of the EOM message needs information from the state of

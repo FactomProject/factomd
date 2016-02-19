@@ -214,7 +214,6 @@ func (fs *FactoidState) ClearRealTime() error {
 	return resp.Error
 }
 
-
 // End of Block means packing the current block away, and setting
 // up the next
 func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
@@ -233,7 +232,7 @@ func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
 
 	fs.CurrentBlock = block.NewFBlock(fs.GetFactoshisPerEC(), fs.DBHeight+1)
 
-	t := coinbase.GetCoinbase(primitives.GetTimeMilli())
+	t := coinbase.GetCoinbase(interfaces.GetTimeMilli())
 	err := fs.CurrentBlock.AddCoinbase(t)
 	if err != nil {
 		panic(err.Error())

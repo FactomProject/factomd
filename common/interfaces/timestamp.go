@@ -10,11 +10,25 @@ import (
 	"time"
 )
 
+func GetTimeMilli() uint64 {
+	return uint64(time.Now().UnixNano()) / 1000000 // 10^-9 >> 10^-3
+}
+
+func GetTime() uint64 {
+	return uint64(time.Now().Unix())
+}
+
 //A structure for handling timestamps for messages
 type Timestamp uint64 //in miliseconds
 
+func NewTimeStampNow() *Timestamp {
+	t := new(Timestamp)
+	t.SetTimeNow()
+	return t
+}
+
 func (t *Timestamp) SetTimeNow() {
-	*t = Timestamp(time.Now().UnixNano() / 1000000)
+	*t = Timestamp(GetTimeMilli())
 }
 
 func (t *Timestamp) SetTime(miliseconds uint64) {
