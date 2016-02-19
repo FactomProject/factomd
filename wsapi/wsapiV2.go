@@ -14,10 +14,10 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/receipts"
 	"github.com/hoisie/web"
 )
-
 
 var _ = fmt.Print
 
@@ -31,7 +31,9 @@ func HandleV2Post(ctx *web.Context) {
 
 func HandleV2(ctx *web.Context, post bool) {
 	p := ctx.Params
+	fmt.Printf("HandleV2 - %v\n", p)
 	if len(p) < 1 {
+		log.Printf("Err")
 		HandleV2Error(ctx, nil, NewInvalidRequestError())
 		return
 	}
@@ -40,10 +42,12 @@ func HandleV2(ctx *web.Context, post bool) {
 	for k, _ := range p {
 		j, err = primitives.ParseJSON2Request(k)
 		if err == nil {
+			log.Printf("Err")
 			break
 		}
 	}
 	if err != nil {
+		log.Printf("Err")
 		HandleV2Error(ctx, nil, NewInvalidRequestError())
 		return
 	}
@@ -59,6 +63,7 @@ func HandleV2(ctx *web.Context, post bool) {
 	}
 
 	if jsonError != nil {
+		log.Printf("Err")
 		HandleV2Error(ctx, j, jsonError)
 		return
 	}
@@ -68,6 +73,7 @@ func HandleV2(ctx *web.Context, post bool) {
 }
 
 func HandleV2PostRequest(state interfaces.IState, j *primitives.JSON2Request) (*primitives.JSON2Response, *primitives.JSONError) {
+	fmt.Printf("HandleV2PostRequest - %v\n", j)
 	var resp interface{}
 	var jsonError *primitives.JSONError
 	params := j.Params
@@ -103,6 +109,7 @@ func HandleV2PostRequest(state interfaces.IState, j *primitives.JSON2Request) (*
 }
 
 func HandleV2GetRequest(state interfaces.IState, j *primitives.JSON2Request) (*primitives.JSON2Response, *primitives.JSONError) {
+	fmt.Printf("HandleV2GetRequest - %v\n", j)
 	var resp interface{}
 	var jsonError *primitives.JSONError
 	params := j.Params
@@ -165,7 +172,7 @@ func HandleV2Error(ctx *web.Context, j *primitives.JSON2Request, err *primitives
 	resp.Error = err
 
 	ctx.WriteHeader(httpBad)
-	ctx.Write([]byte(j.String()))
+	ctx.Write([]byte(resp.String()))
 }
 
 func HandleV2CommitChain(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
@@ -496,6 +503,7 @@ func HandleV2ChainHead(state interfaces.IState, params interface{}) (interface{}
 }
 
 func HandleV2EntryCreditBalance(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	fmt.Printf("HandleV2EntryCreditBalance - %v\n", params)
 	eckey, ok := params.(string)
 	if ok == false {
 		return nil, NewInvalidParamsError()
@@ -532,10 +540,9 @@ func HandleV2EntryCreditBalance(state interfaces.IState, params interface{}) (in
 func HandleV2GetFee(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	resp := new(FactoidGetFeeResponse)
 	resp.Fee = state.GetFactoidState().GetFactoshisPerEC()
-	
-	
-	fmt.Println(";;;;;;;;;;;;;;;;;;;;;;;;;;;;;; ",resp.Fee)
-	
+
+	fmt.Println(";;;;;;;;;;;;;;;;;;;;;;;;;;;;;; ", resp.Fee)
+
 	return resp, nil
 }
 
@@ -570,6 +577,7 @@ func HandleV2FactoidSubmit(state interfaces.IState, params interface{}) (interfa
 }
 
 func HandleV2FactoidBalance(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	fmt.Printf("HandleV2FactoidBalance - %v\n", params)
 	fkey, ok := params.(string)
 	if ok == false {
 		return nil, NewInvalidParamsError()
