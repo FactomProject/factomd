@@ -37,6 +37,11 @@ type Transaction struct {
 
 var _ interfaces.ITransaction = (*Transaction)(nil)
 var _ interfaces.Printable = (*Transaction)(nil)
+var _ interfaces.BinaryMarshallableAndCopyable = (*Transaction)(nil)
+
+func (w *Transaction) New() interfaces.BinaryMarshallableAndCopyable {
+	return new(Transaction)
+}
 
 func (t *Transaction) SetBlockHeight(height int) {
 	t.BlockHeight = height

@@ -14,7 +14,7 @@ import ()
 type ISCWallet interface {
 
 	//initialize the object.  call before using other functions
-	Init(a ...interface{})
+	Init(string, string)
 	// A New Seed is generated for the wallet.
 	NewSeed(data []byte)
 	// Set the seed for a wallet
