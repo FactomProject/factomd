@@ -54,10 +54,17 @@ func OneStart(state *state.State) {
 	}
 	log.Printfln("factom config: %s", FactomConfigFilename)
 	
-	FactomServerStart(FactomConfigFilename,state)
+	//
+	// Start Up Factom here!  
+	//    Start Factom
+	//    Add the API (don't have to)
+	//    Add the network.  
+	state.LoadConfig(FactomConfigFilename)
+	FactomServerStart(state)
+	go wsapi.Start(state)
+	go NetworkProcessor(state)
 	
 	// Web API runs independent of Factom Servers
-	go wsapi.Start(state)
 
 	shutdownChannel := make(chan struct{})
 	go func() {

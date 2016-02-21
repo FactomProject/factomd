@@ -24,8 +24,19 @@ var _ = fmt.Print
 
 type State struct {
 	filename string
+
 	Cfg      interfaces.IFactomConfig
 
+	LogPath           string
+	LogLevel          string
+	ConsoleLogLevel   string 
+	NodeMode          string
+	DBType            string
+	ExportData        bool
+	ExportDataSubpath string
+	Network           string
+		
+	
 	IdentityChainID interfaces.IHash // If this node has an identity, this is it
 
 	networkInMsgQueue      chan interfaces.IMsg
@@ -98,17 +109,31 @@ type State struct {
 
 var _ interfaces.IState = (*State)(nil)
 
-func (s *State) Init(filename string) {
+func (s *State) LoadConfig(filename string) {
 	s.filename = filename
 	s.ReadCfg(filename)
 	// Get our factomd configuration information.
 	cfg := s.GetCfg().(*util.FactomdConfig)
+	
+	s.LogPath = cfg.Log.LogPath
+	s.LogLevel = cfg.Log.LogLevel
+	s.ConsoleLogLevel = cfg.Log.ConsoleLogLevel
+	s.NodeMode = cfg.App.NodeMode
+	s.DBType = cfg.App.DBType
+	s.ExportData = cfg.App.ExportData		// bool
+	s.ExportDataSubpath = cfg.App.ExportDataSubpath
+	s.Network = cfg.App.Network 
+				
+	s.FactoshisPerEC = cfg.App.ExchangeRate
+}
 
-	wsapi.InitLogs(cfg.Log.LogPath, cfg.Log.LogLevel)
+func (s *State) Init() {
+		
+	wsapi.InitLogs(s.LogPath, s.LogLevel)
+	
+	s.Logger = logger.NewLogFromConfig(s.LogPath, s.LogLevel, "State")
 
-	s.Logger = logger.NewLogFromConfig(cfg.Log.LogPath, cfg.Log.LogLevel, "State")
-
-	log.SetLevel(cfg.Log.ConsoleLogLevel)
+	log.SetLevel(s.ConsoleLogLevel)
 
 	s.networkInMsgQueue = make(chan interfaces.IMsg, 10000)      //incoming message queue from the network messages
 	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 10000) //incoming message queue from the network messages
@@ -128,8 +153,6 @@ func (s *State) Init(filename string) {
 	fs.State = s
 	s.FactoidState = fs
 
-	s.FactoshisPerEC = cfg.App.ExchangeRate
-	fmt.Println("Setting the Fee to", cfg.App.ExchangeRate)
 	// Allocate the original set of Process Lists
 	s.ProcessLists = NewProcessLists(s)
 
@@ -138,7 +161,7 @@ func (s *State) Init(filename string) {
 	s.DBStates.DBStates = make([]*DBState, 0)
 
 	s.totalServers = 1
-	switch cfg.App.NodeMode {
+	switch s.NodeMode {
 	case "FULL":
 		s.serverState = 0
 		fmt.Println("\n   +---------------------------+")
@@ -154,7 +177,7 @@ func (s *State) Init(filename string) {
 	}
 
 	//Database
-	switch cfg.App.DBType {
+	switch s.DBType {
 	case "LDB":
 		if err := s.InitLevelDB(); err != nil {
 			log.Printfln("Error initializing the database: %v", err)
@@ -171,12 +194,12 @@ func (s *State) Init(filename string) {
 		panic("No Database type specified")
 	}
 
-	if cfg.App.ExportData {
-		s.DB.SetExportData(cfg.App.ExportDataSubpath)
+	if s.ExportData {
+		s.DB.SetExportData(s.ExportDataSubpath)
 	}
 
 	//Network
-	switch cfg.App.Network {
+	switch s.Network {
 	case "MAIN":
 		s.NetworkNumber = constants.NETWORK_MAIN
 	case "TEST":
@@ -189,7 +212,7 @@ func (s *State) Init(filename string) {
 		panic("Bad value for Network in factomd.conf")
 	}
 
-	fmt.Println("\nRunning on the ", cfg.App.Network, "Network")
+	fmt.Println("\nRunning on the ", s.Network, "Network")
 
 	s.AuditHeartBeats = make([]interfaces.IMsg, 0)
 	s.FedServerFaults = make([][]interfaces.IMsg, 0)
@@ -231,7 +254,11 @@ func (s *State) ProcessEndOfBlock(dbheight uint32) {
 // This returns the DBHeight as defined by the leader, not the follower.
 // This value shouldn't be used by follower code.
 func (s *State) GetDBHeight() uint32 {
-	return s.DBStates.Last().DirectoryBlock.GetHeader().GetDBHeight()
+	last := s.DBStates.Last()
+	if last == nil {
+		return 0
+	}
+	return last.DirectoryBlock.GetHeader().GetDBHeight()
 }
 
 // Messages that will go into the Process List must match an Acknowledgement.
@@ -268,6 +295,22 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) (bool, error) {
 
 	return false, nil
 }
+
+func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) error {
+	dbstatemsg, ok := msg.(*messages.DBStateMsg)
+	if !ok {
+		return fmt.Errorf("Cannot execute the given DBStateMsg")
+	}
+	
+	s.AddDBState(true,
+				 dbstatemsg.DirectoryBlock,
+				 dbstatemsg.AdminBlock,
+				 dbstatemsg.FactoidBlock,
+				 dbstatemsg.EntryCreditBlock)
+				 
+	return nil
+}
+
 
 func (s *State) LeaderExecute(m interfaces.IMsg) error {
 	v := m.Validate(s.LDBHeight, s)
@@ -652,6 +695,7 @@ func (s *State) NewAdminBlockHeader(dbheight uint32) interfaces.IABlockHeader {
 
 func (s *State) PrintType(msgType int) bool {
 	r := true
+	r = r && msgType != constants.DBSTATE_MSG
 	r = r && msgType != constants.ACK_MSG
 	r = r && msgType != constants.EOM_MSG
 	r = r && msgType != constants.DIRECTORY_BLOCK_SIGNATURE_MSG

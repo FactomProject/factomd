@@ -57,7 +57,7 @@ func (list *DBStateList) Put(dbstate *DBState) {
 
 	dblk := dbstate.DirectoryBlock
 	dbheight := dblk.GetHeader().GetDBHeight()
-
+	
 	cnt := len(list.DBStates)
 	if cnt > 2 && int(list.complete) == len(list.DBStates) {
 		list.DBStates = list.DBStates[cnt-2:]
@@ -65,12 +65,18 @@ func (list *DBStateList) Put(dbstate *DBState) {
 		list.complete = list.complete - uint32(cnt) + 2
 	}
 	index := int(dbheight) - int(list.base)
+	
+	// If we have already processed this state, ignore it.
+	if index < int(list.complete) {
+		return
+	}
+	
+	// make room for this entry.
 	for len(list.DBStates) <= index {
 		list.DBStates = append(list.DBStates, nil)
 	}
-	if index >= 0 {
-		list.DBStates[index] = dbstate
-	}
+	
+	list.DBStates[index] = dbstate
 
 	hash, err := dbstate.AdminBlock.GetKeyMR()
 	if err != nil {
@@ -84,12 +90,6 @@ func (list *DBStateList) Put(dbstate *DBState) {
 	dbstate.DirectoryBlock.GetDBEntries()[1].SetKeyMR(hash)
 	hash = dbstate.FactoidBlock.GetHash()
 	dbstate.DirectoryBlock.GetDBEntries()[2].SetKeyMR(hash)
-
-	if dbheight > 0 {
-		prev := list.Getul(dbheight - 1)
-		dbstate.DirectoryBlock.GetHeader().SetPrevKeyMR(prev.DirectoryBlock.GetKeyMR())
-		dbstate.DirectoryBlock.GetHeader().SetPrevFullHash(prev.DirectoryBlock.GetHash())
-	}
 
 }
 
@@ -111,6 +111,10 @@ func (list *DBStateList) Process() {
 	for int(list.complete) < len(list.DBStates) {
 		d := list.DBStates[list.complete]
 
+		if d == nil {
+			return
+		}
+		
 		// Make sure the directory block is properly synced up with the prior block, if there
 		// is one.
 		if list.complete > 0 {

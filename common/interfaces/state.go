@@ -16,7 +16,8 @@ type IState interface {
 	// Server
 
 	GetCfg() IFactomConfig
-	Init(string)
+	LoadConfig(filename string)
+	Init()
 	String() string
 	Sign([]byte) IFullSignature
 
@@ -89,7 +90,7 @@ type IState interface {
 
 	FollowerExecuteMsg(m IMsg) (bool, error) // Messages that go into the process list
 	FollowerExecuteAck(m IMsg) (bool, error) // Ack Msg calls this function.
-
+	FollowerExecuteDBState(IMsg) error       // Add the given DBState to this server
 	ProcessCommitChain(dbheight uint32, commitChain IMsg)
 	ProcessSignPL(dbheight uint32, commitChain IMsg)
 	ProcessEOM(dbheight uint32, eom IMsg)
