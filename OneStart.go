@@ -19,21 +19,14 @@ import (
 var _ = fmt.Print
 
 func OneStart(state *state.State) {
-
+	
 	pcfg, _, err := btcd.LoadConfig()
 	if err != nil {
 		log.Println(err.Error())
 	}
-	fcfg := pcfg.FactomConfigFile
-
-	if len(fcfg) > 0 {
-		log.Printfln("factom config: %s", fcfg)
-		state.Init(fcfg)
-	} else {
-		state.Init(util.GetConfigFilename("m2"))
-	}
-
+	
 	btcd.AddInterruptHandler(func() {
+		log.Printf("<Break>\n")
 		log.Printf("Gracefully shutting down the database...\n")
 		state.GetDB().(interfaces.IDatabase).Close()
 	})
@@ -46,20 +39,24 @@ func OneStart(state *state.State) {
 	server, _ := btcd.NewServer(state)
 
 	btcd.AddInterruptHandler(func() {
+		log.Printf("<Break>\n")
 		log.Printf("Gracefully shutting down the server...\n")
 		server.Stop()
 		server.WaitForShutdown()
 	})
 	server.Start()
 	state.SetServer(server)
-
-	// Network runs independent of Factom
-	go NetworkProcessor(state)
-	// Timer runs periodically, and inserts eom messages into the stream
-	go Timer(state)
-	// Validator is the gateway.
-	go Validator(state)
-	// Web API runs independent of Factom
+	
+	FactomConfigFilename := pcfg.FactomConfigFile
+	
+	if len(FactomConfigFilename) == 0 {
+		FactomConfigFilename = util.GetConfigFilename("m2")
+	}
+	log.Printfln("factom config: %s", FactomConfigFilename)
+	
+	FactomServerStart(FactomConfigFilename,state)
+	
+	// Web API runs independent of Factom Servers
 	go wsapi.Start(state)
 
 	shutdownChannel := make(chan struct{})

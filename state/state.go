@@ -7,9 +7,7 @@ import (
 	"github.com/FactomProject/factomd/anchor"
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
-	"github.com/FactomProject/factomd/common/factoid/block"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -198,7 +196,6 @@ func (s *State) Init(filename string) {
 
 	a, _ := anchor.InitAnchor(s)
 	s.Anchor = a
-	s.loadDatabase()
 
 	s.initServerKeys()
 }
@@ -223,80 +220,6 @@ func (s *State) AddDBState(isNew bool,
 	s.DBStates.Put(dbState)
 }
 
-func (s *State) loadDatabase() {
-
-	var blkCnt uint32
-
-	dblks, err := s.DB.FetchAllDBlocks()
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Println("Directory Blocks Found:", len(dblks))
-
-	for i, dblk := range dblks {
-		blkCnt = uint32(i)
-		/*
-			var dhash interfaces.IHash
-			var err error
-
-			if dhash, err = s.DB.FetchDBKeyMRByHeight(i); err != nil {
-				panic(err)
-			}
-			if dhash == nil {
-				break
-			}
-			d, err := s.DB.FetchDBlockByKeyMR(dhash)
-			if err != nil {
-				panic(err)
-			}
-			if d == nil {
-				panic("No DirectoryBlock for " + dhash.String())
-			}
-		*/
-
-		ablk, err := s.DB.FetchABlockByKeyMR(dblk.GetDBEntries()[0].GetKeyMR())
-		if err != nil {
-			panic(err)
-		}
-		if ablk == nil {
-			panic("ablk is nil" + dblk.GetDBEntries()[0].GetKeyMR().String())
-		}
-		ecblk, err := s.DB.FetchECBlockByHash(dblk.GetDBEntries()[1].GetKeyMR())
-		if err != nil {
-			panic(err)
-		}
-		if ecblk == nil {
-			panic("ecblk is nil - " + dblk.GetDBEntries()[1].GetKeyMR().String())
-		}
-		fblk, err := s.DB.FetchFBlockByKeyMR(dblk.GetDBEntries()[2].GetKeyMR())
-		if err != nil {
-			panic(err)
-		}
-		if fblk == nil {
-			panic("fblk is nil" + dblk.GetDBEntries()[2].GetKeyMR().String())
-		}
-
-		s.DBStates.NewDBState(false, dblk, ablk, fblk, ecblk)
-		s.DBStates.Process()
-	}
-
-	if blkCnt == 0 && s.NetworkNumber == constants.NETWORK_LOCAL {
-		fmt.Println("\n***********************************")
-		fmt.Println("******* New Database **************")
-		fmt.Println("***********************************\n")
-
-		dblk := directoryBlock.NewDirectoryBlock(0, nil)
-		ablk := s.NewAdminBlock(0)
-		fblk := block.GetGenesisFBlock()
-		ecblk := entryCreditBlock.NewECBlock()
-
-		s.DBStates.NewDBState(true, dblk, ablk, fblk, ecblk)
-		s.DBStates.Process()
-	}
-	log.Println(fmt.Sprintf("Loaded %d directory blocks", blkCnt))
-	s.DBStates.Process()
-}
 
 // This routine is called once we have everything to create a Directory Block.
 // It is called by the follower code.  It is requried to build the Directory Block
