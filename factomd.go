@@ -54,11 +54,7 @@ func main() {
 	if err != nil {
 		log.Println(err.Error())
 	}
-	sim := pcfg.SimNet
 	fcfg := pcfg.FactomConfigFile
-	if sim {
-		log.Println(" ==========> Simulation Network <===========")
-	}
 
 	//var state0, state1, state2, state3, state4 *state.State
 	state0 := new(state.State)
@@ -74,9 +70,8 @@ func main() {
 		state0.GetDB().(interfaces.IDatabase).Close()
 	})
 
-	// Go Optimizations...
-//	runtime.GOMAXPROCS(runtime.NumCPU())
-	runtime.GOMAXPROCS(10)
+//  Go Optimizations...
+	runtime.GOMAXPROCS(runtime.NumCPU())
 	if err := limits.SetLimits(); err != nil {
 		os.Exit(1)
 	}

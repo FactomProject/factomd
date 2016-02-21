@@ -225,7 +225,7 @@ func (s *State) AddDBState(isNew bool,
 
 func (s *State) loadDatabase() {
 
-	var i uint32
+	var blkCnt uint32
 
 	dblks, err := s.DB.FetchAllDBlocks()
 	if err != nil {
@@ -235,7 +235,7 @@ func (s *State) loadDatabase() {
 	fmt.Println("Directory Blocks Found:",len(dblks))
 
 	for i, dblk := range dblks {
-
+		blkCnt = uint32(i)
 		/*
 			var dhash interfaces.IHash
 			var err error
@@ -277,13 +277,11 @@ func (s *State) loadDatabase() {
 			panic("fblk is nil" + dblk.GetDBEntries()[2].GetKeyMR().String())
 		}
 
-		fmt.Println("Loading block: ", i, dblk.GetHeader().GetDBHeight())
-
 		s.DBStates.NewDBState(false, dblk, ablk, fblk, ecblk)
 		s.DBStates.Process()
 	}
 	
-	if i == 0 && s.NetworkNumber == constants.NETWORK_LOCAL {
+	if blkCnt == 0 && s.NetworkNumber == constants.NETWORK_LOCAL {
 		fmt.Println("\n***********************************")
 		fmt.Println("******* New Database **************")
 		fmt.Println("***********************************\n")
@@ -296,7 +294,7 @@ func (s *State) loadDatabase() {
 		s.DBStates.NewDBState(true, dblk, ablk, fblk, ecblk)
 		s.DBStates.Process()
 	}
-	log.Println(fmt.Sprintf("Loaded %d directory blocks", i))
+	log.Println(fmt.Sprintf("Loaded %d directory blocks", blkCnt))
 	s.DBStates.Process()
 }
 
