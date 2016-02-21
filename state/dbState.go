@@ -54,15 +54,15 @@ func (list *DBStateList) Last() *DBState {
 }
 
 func (list *DBStateList) Put(dbstate *DBState) {
-	
+
 	dblk := dbstate.DirectoryBlock
 	dbheight := dblk.GetHeader().GetDBHeight()
 
-	cnt := len(list.DBStates) 
-	if cnt > 2  && int(list.complete) == len(list.DBStates) {
+	cnt := len(list.DBStates)
+	if cnt > 2 && int(list.complete) == len(list.DBStates) {
 		list.DBStates = list.DBStates[cnt-2:]
-		list.base = list.base + uint32(cnt) -2
-		list.complete = list.complete-uint32(cnt)+2
+		list.base = list.base + uint32(cnt) - 2
+		list.complete = list.complete - uint32(cnt) + 2
 	}
 	index := int(dbheight) - int(list.base)
 	for len(list.DBStates) <= index {
@@ -71,7 +71,7 @@ func (list *DBStateList) Put(dbstate *DBState) {
 	if index >= 0 {
 		list.DBStates[index] = dbstate
 	}
-	
+
 	hash, err := dbstate.AdminBlock.GetKeyMR()
 	if err != nil {
 		panic(err)
@@ -118,21 +118,21 @@ func (list *DBStateList) Process() {
 			d.DirectoryBlock.GetHeader().SetPrevFullHash(p.DirectoryBlock.GetHeader().GetFullHash())
 			d.DirectoryBlock.GetHeader().SetPrevKeyMR(p.DirectoryBlock.GetKeyMR())
 		}
-		
+
 		if d.isNew {
-			if err := list.state.GetDB().SaveDirectoryBlockHead(d.DirectoryBlock) ; err != nil {
+			if err := list.state.GetDB().SaveDirectoryBlockHead(d.DirectoryBlock); err != nil {
 				panic(err.Error())
 			}
-			if err := list.state.GetDB().ProcessABlockBatch(d.AdminBlock) ; err != nil {
+			if err := list.state.GetDB().ProcessABlockBatch(d.AdminBlock); err != nil {
 				panic(err.Error())
 			}
-			if err := list.state.GetDB().ProcessFBlockBatch(d.FactoidBlock) ; err != nil {
+			if err := list.state.GetDB().ProcessFBlockBatch(d.FactoidBlock); err != nil {
 				panic(err.Error())
 			}
-			if err := list.state.GetDB().ProcessECBlockBatch(d.EntryCreditBlock) ; err != nil {
+			if err := list.state.GetDB().ProcessECBlockBatch(d.EntryCreditBlock); err != nil {
 				panic(err.Error())
 			}
-				
+
 			list.state.GetAnchor().UpdateDirBlockInfoMap(dbInfo.NewDirBlockInfoFromDirBlock(d.DirectoryBlock))
 
 		}
@@ -141,13 +141,13 @@ func (list *DBStateList) Process() {
 		fs.AddTransactionBlock(d.FactoidBlock)
 		fs.AddECBlock(d.EntryCreditBlock)
 		fs.ProcessEndOfBlock(list.state)
-		
+
 		list.complete++
-		
+
 		if list.state.LDBHeight < list.complete+list.base {
-			list.state.LDBHeight = list.complete+list.base
+			list.state.LDBHeight = list.complete + list.base
 		}
-		
+
 	}
 }
 

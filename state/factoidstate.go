@@ -10,8 +10,8 @@ package state
 import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
+	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/factoid/block"
 	"github.com/FactomProject/factomd/common/factoid/block/coinbase"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -24,11 +24,10 @@ var _ = debug.PrintStack
 var FACTOID_CHAINID_HASH = primitives.NewHash(constants.FACTOID_CHAINID)
 
 type FactoidState struct {
-	DBHeight uint32
-	State		 *State
+	DBHeight     uint32
+	State        *State
 	CurrentBlock interfaces.IFBlock
 	Wallet       interfaces.ISCWallet
-
 }
 
 var _ interfaces.IFactoidState = (*FactoidState)(nil)
@@ -151,17 +150,17 @@ func (fs *FactoidState) UpdateECTransaction(rt bool, trans interfaces.IECBlockEn
 
 	case entryCreditBlock.ECIDChainCommit:
 		t := trans.(*entryCreditBlock.CommitChain)
-		fs.State.PutE(rt,t.ECPubKey.Fixed(), fs.State.GetE(t.ECPubKey.Fixed()) - int64(t.Credits))
+		fs.State.PutE(rt, t.ECPubKey.Fixed(), fs.State.GetE(t.ECPubKey.Fixed())-int64(t.Credits))
 		fs.State.NumTransactions++
 
 	case entryCreditBlock.ECIDEntryCommit:
 		t := trans.(*entryCreditBlock.CommitEntry)
-		fs.State.PutE(rt,t.ECPubKey.Fixed(), fs.State.GetE(t.ECPubKey.Fixed()) - int64(t.Credits))
+		fs.State.PutE(rt, t.ECPubKey.Fixed(), fs.State.GetE(t.ECPubKey.Fixed())-int64(t.Credits))
 		fs.State.NumTransactions++
 
 	case entryCreditBlock.ECIDBalanceIncrease:
 		t := trans.(*entryCreditBlock.IncreaseBalance)
-		fs.State.PutE(rt,t.ECPubKey.Fixed(), fs.State.GetE(t.ECPubKey.Fixed()) + int64(t.NumEC))
+		fs.State.PutE(rt, t.ECPubKey.Fixed(), fs.State.GetE(t.ECPubKey.Fixed())+int64(t.NumEC))
 		fs.State.NumTransactions++
 
 	default:
@@ -176,16 +175,16 @@ func (fs *FactoidState) UpdateTransaction(rt bool, trans interfaces.ITransaction
 	for _, input := range trans.GetInputs() {
 		adr := input.GetAddress().Fixed()
 		oldv := fs.State.GetF(adr)
-		fs.State.PutF(rt,adr, oldv - int64(input.GetAmount()) )
+		fs.State.PutF(rt, adr, oldv-int64(input.GetAmount()))
 	}
 	for _, output := range trans.GetOutputs() {
 		adr := output.GetAddress().Fixed()
 		oldv := fs.State.GetF(adr)
-		fs.State.PutF(rt, adr, oldv + int64(output.GetAmount()) )
+		fs.State.PutF(rt, adr, oldv+int64(output.GetAmount()))
 	}
 	for _, ecOut := range trans.GetECOutputs() {
 		ecbal := int64(ecOut.GetAmount()) / int64(fs.State.FactoshisPerEC)
-		fs.State.PutE(rt,ecOut.GetAddress().Fixed(), fs.State.GetE(ecOut.GetAddress().Fixed()) + ecbal)
+		fs.State.PutE(rt, ecOut.GetAddress().Fixed(), fs.State.GetE(ecOut.GetAddress().Fixed())+ecbal)
 	}
 	fs.State.NumTransactions++
 	return nil
@@ -231,7 +230,7 @@ func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
 // invalid, otherwise you are good to go.
 func (fs *FactoidState) Validate(index int, trans interfaces.ITransaction) error {
 
-	var sums = make(map[[32]byte]uint64, 10) // Look at the sum of an address's inputs
+	var sums = make(map[[32]byte]uint64, 10)  // Look at the sum of an address's inputs
 	for _, input := range trans.GetInputs() { //    to a transaction.
 		bal, err := factoid.ValidateAmounts(sums[input.GetAddress().Fixed()], input.GetAmount())
 		if err != nil {
@@ -242,8 +241,6 @@ func (fs *FactoidState) Validate(index int, trans interfaces.ITransaction) error
 		}
 		sums[input.GetAddress().Fixed()] = bal
 	}
-	
+
 	return nil
 }
-
-

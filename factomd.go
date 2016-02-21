@@ -6,13 +6,8 @@ package main
 
 import (
 	"fmt"
-	"github.com/FactomProject/factomd/btcd"
-	"github.com/FactomProject/factomd/btcd/limits"
-	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/state"
-	"github.com/FactomProject/factomd/util"
-	"github.com/FactomProject/factomd/wsapi"
 	"os"
 	"runtime"
 	"strings"
@@ -34,7 +29,7 @@ var Build string
 
 func main() {
 
-//	go StartProfiler()
+	//	go StartProfiler()
 
 	log.Print("//////////////////////// Copyright 2015 Factom Foundation")
 	log.Print("//////////////////////// Use of this source code is governed by the MIT")
@@ -50,63 +45,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	pcfg, _, err := btcd.LoadConfig()
-	if err != nil {
-		log.Println(err.Error())
-	}
-	fcfg := pcfg.FactomConfigFile
-
-	//var state0, state1, state2, state3, state4 *state.State
-	state0 := new(state.State)
-	if len(fcfg) > 0 {
-		log.Printfln("factom config: %s", fcfg)
-		state0.Init(fcfg)
-	} else {
-		state0.Init(util.GetConfigFilename("m2"))
-	} 
-
-	btcd.AddInterruptHandler(func() {
-		log.Printf("Gracefully shutting down the database...")
-		state0.GetDB().(interfaces.IDatabase).Close()
-	})
-
-//  Go Optimizations...
+	//  Go Optimizations...
 	runtime.GOMAXPROCS(runtime.NumCPU())
-	if err := limits.SetLimits(); err != nil {
-		os.Exit(1)
-	}
 
-	log.Print("Starting server")
-	server, _ := btcd.NewServer(state0)
+	state0 := new(state.State)
+	OneStart(state0)
 
-	btcd.AddInterruptHandler(func() {
-		log.Printf("Gracefully shutting down the server...")
-		server.Stop()
-		server.WaitForShutdown()
-	})
-	server.Start()
-	state0.SetServer(server)
-
-	// Network runs independent of Factom
-	go NetworkProcessor(state0)  
-	// Timer runs periodically, and inserts eom messages into the stream
-	go Timer(state0)
-	// Validator is the gateway.
-	go Validator(state0)
-	// Web API runs independent of Factom
-	go wsapi.Start(state0)
-
-	shutdownChannel := make(chan struct{})
-	go func() {
-		server.WaitForShutdown()
-		log.Printf("Server shutdown complete")
-		shutdownChannel <- struct{}{}
-	}()
-
-	// Wait for shutdown signal from either a graceful server stop or from
-	// the interrupt handler.
-	<-shutdownChannel
-	log.Printf("Shutdown complete")
 }
 
 func isCompilerVersionOK() bool {

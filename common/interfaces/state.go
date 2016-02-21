@@ -32,7 +32,7 @@ type IState interface {
 	NetworkInvalidMsgQueue() chan IMsg
 
 	// Consensus
-	InMsgQueue() chan IMsg         // Read by Validate
+	InMsgQueue() chan IMsg // Read by Validate
 
 	// Lists and Maps
 	// =====
@@ -82,7 +82,7 @@ type IState interface {
 	GetFactoidState() IFactoidState
 
 	SetFactoidState(dbheight uint32, fs IFactoidState)
-	GetFactoshisPerEC() uint64 
+	GetFactoshisPerEC() uint64
 	SetFactoshisPerEC(factoshisPerEC uint64)
 	// MISC
 	// ====

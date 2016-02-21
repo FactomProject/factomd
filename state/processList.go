@@ -14,8 +14,8 @@ var _ = fmt.Print
 var _ = log.Print
 
 type ProcessLists struct {
-	State        *State // Pointer to the state object
-	DBHeightBase uint32 // Height of the first Process List in this structure.
+	State        *State         // Pointer to the state object
+	DBHeightBase uint32         // Height of the first Process List in this structure.
 	Lists        []*ProcessList // Pointer to the ProcessList structure for each DBHeight under construction
 }
 
@@ -27,9 +27,9 @@ func (lists *ProcessLists) UpdateState() {
 		return
 	}
 	heightBuilding := dbstate.DirectoryBlock.GetHeader().GetDBHeight() + 1
-	
+
 	pl := lists.Get(heightBuilding)
-	
+
 	diff := heightBuilding - lists.DBHeightBase
 	if diff > 0 {
 		lists.DBHeightBase += diff
@@ -55,14 +55,14 @@ func (lists *ProcessLists) UpdateState() {
 
 	// Only when we are sig complete that we can move on.
 	if pl.Complete() {
-		lists.State.DBStates.NewDBState(true, pl.DirectoryBlock, pl.AdminBlock, pl.FactoidBlock, pl.EntryCreditBlock)		
-	} 
+		lists.State.DBStates.NewDBState(true, pl.DirectoryBlock, pl.AdminBlock, pl.FactoidBlock, pl.EntryCreditBlock)
+	}
 }
 
 func (lists *ProcessLists) Get(dbheight uint32) *ProcessList {
 
 	i := int(dbheight) - int(lists.DBHeightBase)
-	
+
 	if i < 0 {
 		return nil
 	}
@@ -88,8 +88,8 @@ type ProcessList struct {
 	// ====
 	// For Follower
 
-	NewEBlocks    map[[32]byte]interfaces.IEntryBlock // Entry Blocks added within 10 minutes (follower and leader)
-	Commits    map[[32]byte]interfaces.IMsg // Used by the leader, validate
+	NewEBlocks map[[32]byte]interfaces.IEntryBlock // Entry Blocks added within 10 minutes (follower and leader)
+	Commits    map[[32]byte]interfaces.IMsg        // Used by the leader, validate
 
 	// Lists
 	// =====

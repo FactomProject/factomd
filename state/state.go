@@ -34,7 +34,7 @@ type State struct {
 	networkOutMsgQueue     chan interfaces.IMsg
 	networkInvalidMsgQueue chan interfaces.IMsg
 	inMsgQueue             chan interfaces.IMsg
-	
+
 	myServer      interfaces.IServer //the server running on this Federated Server
 	serverPrivKey primitives.PrivateKey
 	serverPubKey  primitives.PublicKey
@@ -78,18 +78,18 @@ type State struct {
 	ProcessLists *ProcessLists
 
 	// Factom State
-	FactoidState interfaces.IFactoidState
+	FactoidState    interfaces.IFactoidState
 	NumTransactions int
-	
-	// Permanent balances from processing blocks. 
+
+	// Permanent balances from processing blocks.
 	FactoidBalancesP map[[32]byte]int64
 	ECBalancesP      map[[32]byte]int64
-	
+
 	// Temporary balances from updating transactions in real time.
 	FactoidBalancesT map[[32]byte]int64
 	ECBalancesT      map[[32]byte]int64
-	
-	FactoshisPerEC  uint64
+
+	FactoshisPerEC uint64
 	// Web Services
 	Port int
 
@@ -231,8 +231,8 @@ func (s *State) loadDatabase() {
 	if err != nil {
 		panic(err)
 	}
-	
-	fmt.Println("Directory Blocks Found:",len(dblks))
+
+	fmt.Println("Directory Blocks Found:", len(dblks))
 
 	for i, dblk := range dblks {
 		blkCnt = uint32(i)
@@ -280,7 +280,7 @@ func (s *State) loadDatabase() {
 		s.DBStates.NewDBState(false, dblk, ablk, fblk, ecblk)
 		s.DBStates.Process()
 	}
-	
+
 	if blkCnt == 0 && s.NetworkNumber == constants.NETWORK_LOCAL {
 		fmt.Println("\n***********************************")
 		fmt.Println("******* New Database **************")
@@ -377,8 +377,8 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
 func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) error {
 	s.LeaderExecute(m)
 	s.ProcessLists.Get(s.LDBHeight).SetComplete(true)
-	s.LDBHeight++               // Increase our height
-	s.LastAck = nil             // Clear Ack list
+	s.LDBHeight++   // Increase our height
+	s.LastAck = nil // Clear Ack list
 	return nil
 }
 
@@ -470,10 +470,10 @@ func (s *State) SetFactoshisPerEC(factoshisPerEC uint64) {
 }
 
 func (s *State) GetF(adr [32]byte) int64 {
-	if v,ok := s.FactoidBalancesT[adr]; !ok {
+	if v, ok := s.FactoidBalancesT[adr]; !ok {
 		v = s.FactoidBalancesP[adr]
 		return v
-	}else{
+	} else {
 		return v
 	}
 }
@@ -481,16 +481,16 @@ func (s *State) GetF(adr [32]byte) int64 {
 func (s *State) PutF(rt bool, adr [32]byte, v int64) {
 	if rt {
 		s.FactoidBalancesT[adr] = v
-	}else{
+	} else {
 		s.FactoidBalancesP[adr] = v
 	}
 }
 
 func (s *State) GetE(adr [32]byte) int64 {
-	if v,ok := s.ECBalancesT[adr]; !ok {
+	if v, ok := s.ECBalancesT[adr]; !ok {
 		v = s.ECBalancesP[adr]
 		return v
-	}else{
+	} else {
 		return v
 	}
 }
@@ -498,11 +498,10 @@ func (s *State) GetE(adr [32]byte) int64 {
 func (s *State) PutE(rt bool, adr [32]byte, v int64) {
 	if rt {
 		s.ECBalancesT[adr] = v
-	}else{
+	} else {
 		s.ECBalancesP[adr] = v
 	}
 }
-
 
 func (s *State) GetServer() interfaces.IServer {
 	return s.myServer
@@ -603,7 +602,6 @@ func (s *State) InMsgQueue() chan interfaces.IMsg {
 	return s.inMsgQueue
 }
 
-
 //var _ IState = (*State)(nil)
 
 // Getting the cfg state for Factom doesn't force a read of the config file unless
@@ -695,12 +693,11 @@ func (s *State) String() string {
 
 	dstateHeight := s.DBStates.Last().DirectoryBlock.GetHeader().GetDBHeight()
 	plheight := int(dstateHeight) + len(s.ProcessLists.Lists)
-	
 
 	return fmt.Sprintf("State: DSState Height: %d PL Height: %d Leader Height %d",
-					dstateHeight,
-					plheight,
-					s.LDBHeight)
+		dstateHeight,
+		plheight,
+		s.LDBHeight)
 
 }
 
@@ -775,7 +772,7 @@ func (s *State) NewAck(hash interfaces.IHash) (iack interfaces.IMsg, err error) 
 	}
 	ack := new(messages.Ack)
 	ack.DBHeight = s.LDBHeight
-		
+
 	ack.Timestamp = s.GetTimestamp()
 	ack.MessageHash = hash
 	if last == nil {
