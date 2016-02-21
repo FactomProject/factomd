@@ -10,6 +10,7 @@ package state
 import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid/block"
 	"github.com/FactomProject/factomd/common/factoid/block/coinbase"
@@ -24,11 +25,10 @@ var FACTOID_CHAINID_HASH = primitives.NewHash(constants.FACTOID_CHAINID)
 
 type FactoidState struct {
 	DBHeight uint32
-
+	State		 *State
 	CurrentBlock interfaces.IFBlock
 	Wallet       interfaces.ISCWallet
 
-	ValidationService chan ValidationMsg
 }
 
 var _ interfaces.IFactoidState = (*FactoidState)(nil)
@@ -47,7 +47,7 @@ func (fs *FactoidState) SetWallet(w interfaces.ISCWallet) {
 
 func (fs *FactoidState) GetCurrentBlock() interfaces.IFBlock {
 	if fs.CurrentBlock == nil {
-		fs.CurrentBlock = block.NewFBlock(fs.GetFactoshisPerEC(), fs.DBHeight)
+		fs.CurrentBlock = block.NewFBlock(fs.State.GetFactoshisPerEC(), fs.DBHeight)
 	}
 	return fs.CurrentBlock
 }
@@ -67,7 +67,7 @@ func (fs *FactoidState) AddTransactionBlock(blk interfaces.IFBlock) error {
 		}
 	}
 	fs.CurrentBlock = blk
-	fs.SetFactoshisPerEC(blk.GetExchRate())
+	fs.State.SetFactoshisPerEC(blk.GetExchRate())
 
 	return nil
 }
@@ -125,41 +125,22 @@ func (fs *FactoidState) AddTransaction(index int, trans interfaces.ITransaction)
 }
 
 func (fs *FactoidState) GetFactoidBalance(address [32]byte) int64 {
-	var vm ValidationMsg
-	vm.MessageType = MessageTypeGetFactoidBalance
-	vm.Address = address
-	c := make(chan ValidationResponseMsg)
-	vm.ReturnChannel = c
-	fs.ValidationService <- vm
-	resp := <-c
-	return resp.Balance
+	return fs.State.GetF(address)
 }
 
 func (fs *FactoidState) GetECBalance(address [32]byte) int64 {
-	var vm ValidationMsg
-	vm.MessageType = MessageTypeGetECBalance
-	vm.Address = address
-	c := make(chan ValidationResponseMsg)
-	vm.ReturnChannel = c
-	fs.ValidationService <- vm
-	resp := <-c
-	return resp.Balance
+	return fs.State.GetE(address)
 }
 
 func (fs *FactoidState) ResetBalances() {
-	var vm ValidationMsg
-	vm.MessageType = MessageTypeResetBalances
-	fs.ValidationService <- vm
+	fs.State.FactoidBalancesP = map[[32]byte]int64{}
+	fs.State.ECBalancesP = map[[32]byte]int64{}
+	fs.State.FactoidBalancesT = map[[32]byte]int64{}
+	fs.State.ECBalancesT = map[[32]byte]int64{}
+	fs.State.NumTransactions = 0
 }
 
-func (fs *FactoidState) UpdateECTransaction(realtime bool, trans interfaces.IECBlockEntry) error {
-	var vm ValidationMsg
-
-	vm.MessageType = MessageTypeUpdateTransaction
-	vm.Realtime = realtime
-	vm.ECTransaction = trans
-	c := make(chan ValidationResponseMsg)
-	vm.ReturnChannel = c
+func (fs *FactoidState) UpdateECTransaction(rt bool, trans interfaces.IECBlockEntry) error {
 
 	switch trans.ECID() {
 	case entryCreditBlock.ECIDServerIndexNumber:
@@ -169,19 +150,19 @@ func (fs *FactoidState) UpdateECTransaction(realtime bool, trans interfaces.IECB
 		return nil
 
 	case entryCreditBlock.ECIDChainCommit:
-		fs.ValidationService <- vm
-		resp := <-c
-		return resp.Error
+		t := trans.(*entryCreditBlock.CommitChain)
+		fs.State.PutE(rt,t.ECPubKey.Fixed(), fs.State.GetE(t.ECPubKey.Fixed()) - int64(t.Credits))
+		fs.State.NumTransactions++
 
 	case entryCreditBlock.ECIDEntryCommit:
-		fs.ValidationService <- vm
-		resp := <-c
-		return resp.Error
+		t := trans.(*entryCreditBlock.CommitEntry)
+		fs.State.PutE(rt,t.ECPubKey.Fixed(), fs.State.GetE(t.ECPubKey.Fixed()) - int64(t.Credits))
+		fs.State.NumTransactions++
 
 	case entryCreditBlock.ECIDBalanceIncrease:
-		fs.ValidationService <- vm
-		resp := <-c
-		return resp.Error
+		t := trans.(*entryCreditBlock.IncreaseBalance)
+		fs.State.PutE(rt,t.ECPubKey.Fixed(), fs.State.GetE(t.ECPubKey.Fixed()) + int64(t.NumEC))
+		fs.State.NumTransactions++
 
 	default:
 		return fmt.Errorf("Unknown EC Transaction")
@@ -191,27 +172,30 @@ func (fs *FactoidState) UpdateECTransaction(realtime bool, trans interfaces.IECB
 }
 
 // Assumes validation has already been done.
-func (fs *FactoidState) UpdateTransaction(realtime bool, trans interfaces.ITransaction) error {
-	var vm ValidationMsg
-	vm.MessageType = MessageTypeUpdateTransaction
-	vm.Realtime = realtime
-	vm.Transaction = trans
-	c := make(chan ValidationResponseMsg)
-	vm.ReturnChannel = c
-	fs.ValidationService <- vm
-	resp := <-c
-	return resp.Error
+func (fs *FactoidState) UpdateTransaction(rt bool, trans interfaces.ITransaction) error {
+	for _, input := range trans.GetInputs() {
+		adr := input.GetAddress().Fixed()
+		oldv := fs.State.GetF(adr)
+		fs.State.PutF(rt,adr, oldv - int64(input.GetAmount()) )
+	}
+	for _, output := range trans.GetOutputs() {
+		adr := output.GetAddress().Fixed()
+		oldv := fs.State.GetF(adr)
+		fs.State.PutF(rt, adr, oldv + int64(output.GetAmount()) )
+	}
+	for _, ecOut := range trans.GetECOutputs() {
+		ecbal := int64(ecOut.GetAmount()) / int64(fs.State.FactoshisPerEC)
+		fs.State.PutE(rt,ecOut.GetAddress().Fixed(), fs.State.GetE(ecOut.GetAddress().Fixed()) + ecbal)
+	}
+	fs.State.NumTransactions++
+	return nil
 }
 
 // Assumes validation has already been done.
 func (fs *FactoidState) ClearRealTime() error {
-	var vm ValidationMsg
-	vm.MessageType = MessageTypeClearRealTime
-	c := make(chan ValidationResponseMsg)
-	vm.ReturnChannel = c
-	fs.ValidationService <- vm
-	resp := <-c
-	return resp.Error
+	fs.State.FactoidBalancesT = map[[32]byte]int64{}
+	fs.State.ECBalancesT = map[[32]byte]int64{}
+	return nil
 }
 
 // End of Block means packing the current block away, and setting
@@ -226,11 +210,7 @@ func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
 	hash = fs.CurrentBlock.GetHash()
 	hash2 = fs.CurrentBlock.GetFullHash()
 
-	if err := state.GetDB().SaveFactoidBlockHead(fs.CurrentBlock); err != nil {
-		panic(err)
-	}
-
-	fs.CurrentBlock = block.NewFBlock(fs.GetFactoshisPerEC(), fs.DBHeight+1)
+	fs.CurrentBlock = block.NewFBlock(fs.State.GetFactoshisPerEC(), fs.DBHeight+1)
 
 	t := coinbase.GetCoinbase(interfaces.GetTimeMilli())
 	err := fs.CurrentBlock.AddCoinbase(t)
@@ -249,57 +229,21 @@ func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
 
 // Returns an error message about what is wrong with the transaction if it is
 // invalid, otherwise you are good to go.
-func (fs *FactoidState) ValidateEC(trans interfaces.IECBlockEntry) error {
-
-	var vm ValidationMsg
-	vm.MessageType = MessageTypeValidate
-	vm.ECTransaction = trans
-	c := make(chan ValidationResponseMsg)
-	vm.ReturnChannel = c
-	fs.ValidationService <- vm
-	resp := <-c
-	if resp.Error != nil {
-		return resp.Error
-	}
-
-	return nil
-}
-
-// Returns an error message about what is wrong with the transaction if it is
-// invalid, otherwise you are good to go.
 func (fs *FactoidState) Validate(index int, trans interfaces.ITransaction) error {
-	err := fs.CurrentBlock.ValidateTransaction(index, trans)
-	if err != nil {
-		return err
-	}
 
-	var vm ValidationMsg
-	vm.MessageType = MessageTypeValidate
-	vm.Transaction = trans
-	c := make(chan ValidationResponseMsg)
-	vm.ReturnChannel = c
-	fs.ValidationService <- vm
-	resp := <-c
-	if resp.Error != nil {
-		return resp.Error
+	var sums = make(map[[32]byte]uint64, 10) // Look at the sum of an address's inputs
+	for _, input := range trans.GetInputs() { //    to a transaction.
+		bal, err := factoid.ValidateAmounts(sums[input.GetAddress().Fixed()], input.GetAmount())
+		if err != nil {
+			return err
+		}
+		if int64(bal) > fs.State.GetF(input.GetAddress().Fixed()) {
+			return fmt.Errorf("Not enough funds in input addresses for the transaction")
+		}
+		sums[input.GetAddress().Fixed()] = bal
 	}
-
+	
 	return nil
 }
 
-func (fs *FactoidState) GetFactoshisPerEC() uint64 {
-	var vm ValidationMsg
-	vm.MessageType = MessageTypeGetFactoshisPerEC
-	c := make(chan ValidationResponseMsg)
-	vm.ReturnChannel = c
-	fs.ValidationService <- vm
-	resp := <-c
-	return resp.FactoshisPerEC
-}
 
-func (fs *FactoidState) SetFactoshisPerEC(factoshisPerEC uint64) {
-	var vm ValidationMsg
-	vm.FactoshisPerEC = factoshisPerEC
-	vm.MessageType = MessageTypeSetFactoshisPerEC
-	fs.ValidationService <- vm
-}

@@ -12,7 +12,7 @@ func GetGenesisFBlock() interfaces.IFBlock {
 		panic(err)
 	}
 	err = block.UnmarshalBinary(data)
-	block.SetExchRate(666600)
+	block.SetExchRate(10000)
 	block.GetBodyMR()
 	if err != nil {
 		panic(err)

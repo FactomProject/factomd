@@ -1,10 +1,8 @@
 package state
 
 import (
-	"bytes"
 	"fmt"
 	"os"
-	"sync"
 
 	"github.com/FactomProject/factomd/anchor"
 	"github.com/FactomProject/factomd/common/adminBlock"
@@ -36,9 +34,7 @@ type State struct {
 	networkOutMsgQueue     chan interfaces.IMsg
 	networkInvalidMsgQueue chan interfaces.IMsg
 	inMsgQueue             chan interfaces.IMsg
-	leaderInMsgQueue       chan interfaces.IMsg
-	followerInMsgQueue     chan interfaces.IMsg
-
+	
 	myServer      interfaces.IServer //the server running on this Federated Server
 	serverPrivKey primitives.PrivateKey
 	serverPubKey  primitives.PublicKey
@@ -83,7 +79,17 @@ type State struct {
 
 	// Factom State
 	FactoidState interfaces.IFactoidState
-
+	NumTransactions int
+	
+	// Permanent balances from processing blocks. 
+	FactoidBalancesP map[[32]byte]int64
+	ECBalancesP      map[[32]byte]int64
+	
+	// Temporary balances from updating transactions in real time.
+	FactoidBalancesT map[[32]byte]int64
+	ECBalancesT      map[[32]byte]int64
+	
+	FactoshisPerEC  uint64
 	// Web Services
 	Port int
 
@@ -110,26 +116,27 @@ func (s *State) Init(filename string) {
 	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 10000) //incoming message queue from the network messages
 	s.networkOutMsgQueue = make(chan interfaces.IMsg, 10000)     //Messages to be broadcast to the network
 	s.inMsgQueue = make(chan interfaces.IMsg, 10000)             //incoming message queue for factom application messages
-	s.leaderInMsgQueue = make(chan interfaces.IMsg, 10000)       //Leader Messages
-	s.followerInMsgQueue = make(chan interfaces.IMsg, 10000)     //Follower Messages
 
 	// Set up maps for the followers
 	s.Holding = make(map[[32]byte]interfaces.IMsg)
 	s.Acks = make(map[[32]byte]interfaces.IMsg)
 
 	// Setup the FactoidState and Validation Service that holds factoid and entry credit balances
+	s.FactoidBalancesP = map[[32]byte]int64{}
+	s.ECBalancesP = map[[32]byte]int64{}
+	s.FactoidBalancesT = map[[32]byte]int64{}
+	s.ECBalancesT = map[[32]byte]int64{}
 	fs := new(FactoidState)
-	fs.ValidationService = NewValidationService()
+	fs.State = s
 	s.FactoidState = fs
 
-	fs.SetFactoshisPerEC(cfg.App.ExchangeRate)
+	s.FactoshisPerEC = cfg.App.ExchangeRate
 	fmt.Println("Setting the Fee to", cfg.App.ExchangeRate)
 	// Allocate the original set of Process Lists
 	s.ProcessLists = NewProcessLists(s)
 
 	s.DBStates = new(DBStateList)
 	s.DBStates.state = s
-	s.DBStates.multex = new(sync.Mutex)
 	s.DBStates.DBStates = make([]*DBState, 0)
 
 	s.totalServers = 1
@@ -224,6 +231,8 @@ func (s *State) loadDatabase() {
 	if err != nil {
 		panic(err)
 	}
+	
+	fmt.Println("Directory Blocks Found:",len(dblks))
 
 	for i, dblk := range dblks {
 
@@ -268,12 +277,12 @@ func (s *State) loadDatabase() {
 			panic("fblk is nil" + dblk.GetDBEntries()[2].GetKeyMR().String())
 		}
 
-		fmt.Print("\rLoading block: ", i)
+		fmt.Println("Loading block: ", i, dblk.GetHeader().GetDBHeight())
 
 		s.DBStates.NewDBState(false, dblk, ablk, fblk, ecblk)
 		s.DBStates.Process()
 	}
-
+	
 	if i == 0 && s.NetworkNumber == constants.NETWORK_LOCAL {
 		fmt.Println("\n***********************************")
 		fmt.Println("******* New Database **************")
@@ -349,16 +358,15 @@ func (s *State) LeaderExecute(m interfaces.IMsg) error {
 
 	ack, err := s.NewAck(hash)
 	if err != nil {
-		fmt.Println("Ack Error")
 		return err
 	}
 
 	// Leader Execute creates an acknowledgement and the EOM
 	s.NetworkOutMsgQueue() <- ack
-	s.FollowerInMsgQueue() <- ack // Send the Ack to follower
+	ack.FollowerExecute(s)
 
 	s.NetworkOutMsgQueue() <- m // Send the Message;  It works better if
-	s.FollowerInMsgQueue() <- m // the msg follows the Ack, but it doesn't matter much.
+	m.FollowerExecute(s)
 	return nil
 }
 
@@ -369,9 +377,10 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
 }
 
 func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) error {
+	s.LeaderExecute(m)
+	s.ProcessLists.Get(s.LDBHeight).SetComplete(true)
 	s.LDBHeight++               // Increase our height
 	s.LastAck = nil             // Clear Ack list
-	s.FollowerInMsgQueue() <- m // Send on to the follower.
 	return nil
 }
 
@@ -439,7 +448,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) {
 
 			ack, err := s.NewAck(DBM.GetHash())
 			if err != nil {
-				fmt.Println("Ack Error")
 				return
 			}
 
@@ -454,6 +462,49 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) {
 func (s *State) ProcessSignPL(dbheight uint32, commitChain interfaces.IMsg) {
 	s.ProcessLists.Get(dbheight).SetSigComplete(true)
 }
+
+func (s *State) GetFactoshisPerEC() uint64 {
+	return s.FactoshisPerEC
+}
+
+func (s *State) SetFactoshisPerEC(factoshisPerEC uint64) {
+	s.FactoshisPerEC = factoshisPerEC
+}
+
+func (s *State) GetF(adr [32]byte) int64 {
+	if v,ok := s.FactoidBalancesT[adr]; !ok {
+		v = s.FactoidBalancesP[adr]
+		return v
+	}else{
+		return v
+	}
+}
+
+func (s *State) PutF(rt bool, adr [32]byte, v int64) {
+	if rt {
+		s.FactoidBalancesT[adr] = v
+	}else{
+		s.FactoidBalancesP[adr] = v
+	}
+}
+
+func (s *State) GetE(adr [32]byte) int64 {
+	if v,ok := s.ECBalancesT[adr]; !ok {
+		v = s.ECBalancesP[adr]
+		return v
+	}else{
+		return v
+	}
+}
+
+func (s *State) PutE(rt bool, adr [32]byte, v int64) {
+	if rt {
+		s.ECBalancesT[adr] = v
+	}else{
+		s.ECBalancesP[adr] = v
+	}
+}
+
 
 func (s *State) GetServer() interfaces.IServer {
 	return s.myServer
@@ -554,13 +605,6 @@ func (s *State) InMsgQueue() chan interfaces.IMsg {
 	return s.inMsgQueue
 }
 
-func (s *State) LeaderInMsgQueue() chan interfaces.IMsg {
-	return s.leaderInMsgQueue
-}
-
-func (s *State) FollowerInMsgQueue() chan interfaces.IMsg {
-	return s.followerInMsgQueue
-}
 
 //var _ IState = (*State)(nil)
 
@@ -650,17 +694,15 @@ func (s *State) InitMapDB() error {
 }
 
 func (s *State) String() string {
-	var out bytes.Buffer
 
-	out.WriteString(fmt.Sprintf("Queues: NetIn %d NetOut %d NetInvalid %d InMsg %d Leader %d Follower %d",
-		len(s.NetworkInMsgQueue()),
-		len(s.NetworkOutMsgQueue()),
-		len(s.NetworkInvalidMsgQueue()),
-		len(s.InMsgQueue()),
-		len(s.LeaderInMsgQueue()),
-		len(s.FollowerInMsgQueue())))
+	dstateHeight := s.DBStates.Last().DirectoryBlock.GetHeader().GetDBHeight()
+	plheight := int(dstateHeight) + len(s.ProcessLists.Lists)
+	
 
-	return out.String()
+	return fmt.Sprintf("State: DSState Height: %d PL Height: %d Leader Height %d",
+					dstateHeight,
+					plheight,
+					s.LDBHeight)
 
 }
 
@@ -692,7 +734,6 @@ func (s *State) NewAdminBlockHeader(dbheight uint32) interfaces.IABlockHeader {
 
 func (s *State) PrintType(msgType int) bool {
 	r := true
-	return r
 	r = r && msgType != constants.ACK_MSG
 	r = r && msgType != constants.EOM_MSG
 	r = r && msgType != constants.DIRECTORY_BLOCK_SIGNATURE_MSG
@@ -736,6 +777,7 @@ func (s *State) NewAck(hash interfaces.IHash) (iack interfaces.IMsg, err error) 
 	}
 	ack := new(messages.Ack)
 	ack.DBHeight = s.LDBHeight
+		
 	ack.Timestamp = s.GetTimestamp()
 	ack.MessageHash = hash
 	if last == nil {

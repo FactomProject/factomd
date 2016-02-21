@@ -13,11 +13,6 @@ type IFactoidState interface {
 	GetWallet() ISCWallet
 	SetWallet(ISCWallet)
 
-	// The Exchange Rate for Entry Credits in Factoshis per
-	// Entry Credits
-	GetFactoshisPerEC() uint64
-	SetFactoshisPerEC(uint64)
-
 	// Get the current transaction block
 	GetCurrentBlock() IFBlock
 
@@ -32,7 +27,6 @@ type IFactoidState interface {
 	// Validate transaction
 	// Return zero len string if the balance of an address covers each input
 	Validate(int, ITransaction) error
-	ValidateEC(IECBlockEntry) error
 
 	// Check the transaction timestamp for to ensure it can be included
 	// in the current   Transactions that are too old, or dated to

@@ -3,7 +3,6 @@ package state
 import (
 	"fmt"
 	"log"
-	"sync"
 
 	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
@@ -17,13 +16,10 @@ var _ = log.Print
 type ProcessLists struct {
 	State        *State // Pointer to the state object
 	DBHeightBase uint32 // Height of the first Process List in this structure.
-	ListsMutex   *sync.Mutex
 	Lists        []*ProcessList // Pointer to the ProcessList structure for each DBHeight under construction
 }
 
 func (lists *ProcessLists) UpdateState() {
-	lists.ListsMutex.Lock()
-	defer lists.ListsMutex.Unlock()
 
 	// First let's start at the lowest Process List not yet complete.
 	dbstate := lists.State.DBStates.Last()
@@ -59,7 +55,7 @@ func (lists *ProcessLists) UpdateState() {
 
 	// Only when we are sig complete that we can move on.
 	if pl.Complete() {
-		lists.State.DBStates.NewDBState(true, pl.DirectoryBlock, pl.AdminBlock, pl.FactoidBlock, pl.EntryCreditBlock)
+		lists.State.DBStates.NewDBState(true, pl.DirectoryBlock, pl.AdminBlock, pl.FactoidBlock, pl.EntryCreditBlock)		
 	} 
 }
 
@@ -92,10 +88,7 @@ type ProcessList struct {
 	// ====
 	// For Follower
 
-	NewEBlocksSem *sync.Mutex
 	NewEBlocks    map[[32]byte]interfaces.IEntryBlock // Entry Blocks added within 10 minutes (follower and leader)
-
-	CommitsSem *sync.Mutex
 	Commits    map[[32]byte]interfaces.IMsg // Used by the leader, validate
 
 	// Lists
@@ -141,16 +134,11 @@ func (p *ProcessList) SetEomComplete(value bool) {
 }
 
 func (p *ProcessList) GetCommits(key interfaces.IHash) interfaces.IMsg {
-	p.CommitsSem.Lock()
-	defer p.CommitsSem.Unlock()
-
 	c := p.Commits[key.Fixed()]
 	return c
 }
 
 func (p *ProcessList) PutCommits(key interfaces.IHash, value interfaces.IMsg) {
-	p.CommitsSem.Lock()
-	defer p.CommitsSem.Unlock()
 
 	{
 		cmsg, ok := value.(interfaces.ICounted)
@@ -172,16 +160,12 @@ func (p *ProcessList) PutCommits(key interfaces.IHash, value interfaces.IMsg) {
 }
 
 func (p *ProcessList) GetNewEBlocks(key interfaces.IHash) interfaces.IEntryBlock {
-	p.NewEBlocksSem.Lock()
-	defer p.NewEBlocksSem.Unlock()
 
 	eb := p.NewEBlocks[key.Fixed()]
 	return eb
 }
 
 func (p *ProcessList) PutNewEBlocks(dbheight uint32, key interfaces.IHash, value interfaces.IEntryBlock) {
-	p.NewEBlocksSem.Lock()
-	defer p.NewEBlocksSem.Unlock()
 
 	p.NewEBlocks[key.Fixed()] = value
 
@@ -217,7 +201,8 @@ func (p *ProcessList) SetComplete(v bool) {
 func (p *ProcessList) Process(state interfaces.IState) {
 	for i := 0; i < len(p.Servers); i++ {
 		plist := p.Servers[i].List
-		for j := p.Servers[i].Height; j < len(plist); j++ {
+		//fmt.Println("Process List: DBHEight, height in list, len(plist)", p.DBHeight, p.Servers[i].Height, len(plist))
+		for j := p.Servers[i].Height; !p.Servers[i].SigComplete && j < len(plist); j++ {
 			if plist[j] == nil {
 				fmt.Println("!!!!!!! Missing entry in process list at", j)
 				return
@@ -258,7 +243,6 @@ func NewProcessLists(state interfaces.IState) *ProcessLists {
 	}
 	pls.State = s
 	pls.DBHeightBase = 0
-	pls.ListsMutex = new(sync.Mutex)
 	pls.Lists = make([]*ProcessList, 0)
 
 	return pls
@@ -276,10 +260,7 @@ func NewProcessList(totalServers int, dbheight uint32) *ProcessList {
 	pl.Acks = new(map[[32]byte]interfaces.IMsg)
 	pl.Msgs = new(map[[32]byte]interfaces.IMsg)
 
-	pl.NewEBlocksSem = new(sync.Mutex)
 	pl.NewEBlocks = make(map[[32]byte]interfaces.IEntryBlock)
-
-	pl.CommitsSem = new(sync.Mutex)
 	pl.Commits = make(map[[32]byte]interfaces.IMsg)
 
 	// If a federated server, this is the server index, which is our index in the FedServers list

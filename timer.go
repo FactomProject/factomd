@@ -41,7 +41,7 @@ func Timer(state interfaces.IState) {
 				pls = fmt.Sprintf("%s #%d:%d;", pls, i+1, 0, i)
 			}
 
-			fmt.Printf("\r%19s: %s %s\n",
+			fmt.Printf("\r%19s: %s %s",
 				"Timer",
 				state.String(),
 				(string)((([]byte)("-\\|/-\\|/-="))[i]))
@@ -49,8 +49,7 @@ func Timer(state interfaces.IState) {
 			// close off the minute.
 			if state.GetServerState() == 1 {
 				eom := state.NewEOM(i)
-				state.LeaderInMsgQueue() <- eom
-				state.NetworkOutMsgQueue() <- eom
+				state.InMsgQueue() <- eom
 			}
 		}
 	}

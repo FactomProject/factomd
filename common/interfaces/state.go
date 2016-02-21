@@ -33,8 +33,6 @@ type IState interface {
 
 	// Consensus
 	InMsgQueue() chan IMsg         // Read by Validate
-	LeaderInMsgQueue() chan IMsg   // Processed by the Leader
-	FollowerInMsgQueue() chan IMsg // Processed by the Follower
 
 	// Lists and Maps
 	// =====
@@ -84,6 +82,8 @@ type IState interface {
 	GetFactoidState() IFactoidState
 
 	SetFactoidState(dbheight uint32, fs IFactoidState)
+	GetFactoshisPerEC() uint64 
+	SetFactoshisPerEC(factoshisPerEC uint64)
 	// MISC
 	// ====
 

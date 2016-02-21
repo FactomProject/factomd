@@ -10,7 +10,6 @@ import (
 	"github.com/FactomProject/factomd/common/directoryBlock/dbInfo"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/log"
-	"sync"
 	"time"
 )
 
@@ -28,7 +27,6 @@ type DBState struct {
 }
 
 type DBStateList struct {
-	multex   *sync.Mutex
 	state    *State
 	base     uint32
 	complete uint32
@@ -56,9 +54,7 @@ func (list *DBStateList) Last() *DBState {
 }
 
 func (list *DBStateList) Put(dbstate *DBState) {
-	list.multex.Lock()
-	defer list.multex.Unlock()
-
+	
 	dblk := dbstate.DirectoryBlock
 	dbheight := dblk.GetHeader().GetDBHeight()
 
@@ -98,9 +94,6 @@ func (list *DBStateList) Put(dbstate *DBState) {
 }
 
 func (list *DBStateList) Get(height uint32) *DBState {
-	list.multex.Lock()
-	defer list.multex.Unlock()
-
 	return list.Getul(height)
 }
 
@@ -113,7 +106,8 @@ func (list *DBStateList) Getul(height uint32) *DBState {
 }
 
 func (list *DBStateList) Process() {
-	
+
+	//fmt.Println("\nProcess", list.complete, len(list.DBStates))
 	for int(list.complete) < len(list.DBStates) {
 		d := list.DBStates[list.complete]
 
@@ -124,9 +118,9 @@ func (list *DBStateList) Process() {
 			d.DirectoryBlock.GetHeader().SetPrevFullHash(p.DirectoryBlock.GetHeader().GetFullHash())
 			d.DirectoryBlock.GetHeader().SetPrevKeyMR(p.DirectoryBlock.GetKeyMR())
 		}
-
+		
 		if d.isNew {
-			if err := list.state.GetDB().ProcessDBlockBatch(d.DirectoryBlock) ; err != nil {
+			if err := list.state.GetDB().SaveDirectoryBlockHead(d.DirectoryBlock) ; err != nil {
 				panic(err.Error())
 			}
 			if err := list.state.GetDB().ProcessABlockBatch(d.AdminBlock) ; err != nil {
@@ -138,9 +132,6 @@ func (list *DBStateList) Process() {
 			if err := list.state.GetDB().ProcessECBlockBatch(d.EntryCreditBlock) ; err != nil {
 				panic(err.Error())
 			}
-			if err := list.state.GetDB().SaveDirectoryBlockHead(d.DirectoryBlock) ; err != nil {
-				panic(err.Error())
-			}
 				
 			list.state.GetAnchor().UpdateDirBlockInfoMap(dbInfo.NewDirBlockInfoFromDirBlock(d.DirectoryBlock))
 
@@ -150,12 +141,13 @@ func (list *DBStateList) Process() {
 		fs.AddTransactionBlock(d.FactoidBlock)
 		fs.AddECBlock(d.EntryCreditBlock)
 		fs.ProcessEndOfBlock(list.state)
-
+		
 		list.complete++
 		
 		if list.state.LDBHeight < list.complete+list.base {
 			list.state.LDBHeight = list.complete+list.base
 		}
+		
 	}
 }
 

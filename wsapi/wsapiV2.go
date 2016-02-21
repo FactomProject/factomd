@@ -525,7 +525,7 @@ func HandleV2EntryCreditBalance(state interfaces.IState, params interface{}) (in
 
 func HandleV2GetFee(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	resp := new(FactoidGetFeeResponse)
-	resp.Fee = state.GetFactoidState().GetFactoshisPerEC()
+	resp.Fee = state.GetFactoshisPerEC()
 
 	fmt.Println(";;;;;;;;;;;;;;;;;;;;;;;;;;;;;; ", resp.Fee)
 

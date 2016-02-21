@@ -29,9 +29,17 @@ func Validator(state interfaces.IState) {
 				fmt.Printf(" Valid\n")
 			}
 			if msg.Leader(state) {
-				state.LeaderInMsgQueue() <- msg
+				if state.PrintType(msg.Type()) {
+					fmt.Printf("%20s %s\n", "Leader:", msg.String())
+				}
+				msg.LeaderExecute(state)
+				state.UpdateState()
 			} else if msg.Follower(state) {
-				state.FollowerInMsgQueue() <- msg
+				if state.PrintType(msg.Type()) {
+					fmt.Printf("%20s %s\n", "Follower:", msg.String())
+				}
+				msg.FollowerExecute(state)
+				state.UpdateState()
 			} else {
 				fmt.Printf(" Message ignored\n")
 			}

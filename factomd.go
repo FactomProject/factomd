@@ -67,31 +67,16 @@ func main() {
 		state0.Init(fcfg)
 	} else {
 		state0.Init(util.GetConfigFilename("m2"))
-	} /*
-		if sim {
-			state1 := new(state.State)
-			state1.Init(util.GetConfigFilename("m2-1"))
-			state2 := new(state.State)
-			state2.Init(util.GetConfigFilename("m2-2"))
-			state3 := new(state.State)
-			state3.Init(util.GetConfigFilename("m2-3"))
-			state4 := new(state.State)
-			state4.Init(util.GetConfigFilename("m2-4"))
-		}*/
+	} 
 
 	btcd.AddInterruptHandler(func() {
 		log.Printf("Gracefully shutting down the database...")
 		state0.GetDB().(interfaces.IDatabase).Close()
-		if sim {
-			//state1.GetDB().(interfaces.IDatabase).Close()
-			//state2.GetDB().(interfaces.IDatabase).Close()
-			//state3.GetDB().(interfaces.IDatabase).Close()
-			//state4.GetDB().(interfaces.IDatabase).Close()
-		}
 	})
 
 	// Go Optimizations...
-	runtime.GOMAXPROCS(runtime.NumCPU())
+//	runtime.GOMAXPROCS(runtime.NumCPU())
+	runtime.GOMAXPROCS(10)
 	if err := limits.SetLimits(); err != nil {
 		os.Exit(1)
 	}
@@ -107,17 +92,13 @@ func main() {
 	server.Start()
 	state0.SetServer(server)
 
-	//if sim {
-	//go SimNetwork(state0, state1, state2, state3, state4)
-	//}else{
-	go NetworkProcessor(state0)
-	//}
-
+	// Network runs independent of Factom
+	go NetworkProcessor(state0)  
+	// Timer runs periodically, and inserts eom messages into the stream
 	go Timer(state0)
+	// Validator is the gateway.
 	go Validator(state0)
-	go Leader(state0)
-	go Follower(state0)
-
+	// Web API runs independent of Factom
 	go wsapi.Start(state0)
 
 	shutdownChannel := make(chan struct{})

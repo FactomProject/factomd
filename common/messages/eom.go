@@ -21,7 +21,7 @@ var _ = log.Printf
 type EOM struct {
 	Timestamp interfaces.Timestamp
 	Minute    byte
-
+	
 	DirectoryBlockHeight uint32
 	ServerIndex          int
 	Signature            interfaces.IFullSignature
