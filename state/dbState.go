@@ -109,7 +109,6 @@ func (list *DBStateList) Getul(height uint32) *DBState {
 }
 
 func (list *DBStateList) Process() {
-	//fmt.Println("\nProcess", list.complete, len(list.DBStates))
 	for int(list.complete) < len(list.DBStates) {
 		d := list.DBStates[list.complete]
 
@@ -117,17 +116,20 @@ func (list *DBStateList) Process() {
 			return
 		}
 		
-		// Make sure the directory block is properly synced up with the prior block, if there
-		// is one.
-		if list.complete > 0 {
-			p := list.DBStates[list.complete-1]
-			d.DirectoryBlock.GetHeader().SetPrevFullHash(p.DirectoryBlock.GetHeader().GetFullHash())
-			d.DirectoryBlock.GetHeader().SetPrevKeyMR(p.DirectoryBlock.GetKeyMR())
-		}
-		
-		if d.isNew {
+	
+		if d.isNew  {
+			// Make sure the directory block is properly synced up with the prior block, if there
+			// is one.
+			
 			dblk,_ := list.state.GetDB().FetchDBlockByHeight(d.DirectoryBlock.GetHeader().GetDBHeight())
 			if dblk == nil {
+				
+				if list.complete > 0 {
+					p := list.DBStates[list.complete-1]
+					d.DirectoryBlock.GetHeader().SetPrevFullHash(p.DirectoryBlock.GetHeader().GetFullHash())
+					d.DirectoryBlock.GetHeader().SetPrevKeyMR(p.DirectoryBlock.GetKeyMR())
+				}
+				
 				if err := list.state.GetDB().SaveDirectoryBlockHead(d.DirectoryBlock); err != nil {
 					panic(err.Error())
 				}
@@ -153,7 +155,7 @@ func (list *DBStateList) Process() {
 		if list.state.LDBHeight < list.complete+list.base {
 			list.state.LDBHeight = list.complete + list.base
 		}
-
+		fmt.Print("\rDBState ", list.complete)
 	}
 }
 

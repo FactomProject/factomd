@@ -79,7 +79,7 @@ netloop:
 				break loop4
 			}
 		}
-		time.Sleep(time.Duration(500) * time.Millisecond)
+		time.Sleep(time.Duration(5) * time.Millisecond)
 	}
 
 }
