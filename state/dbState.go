@@ -109,7 +109,6 @@ func (list *DBStateList) Getul(height uint32) *DBState {
 }
 
 func (list *DBStateList) Process() {
-
 	//fmt.Println("\nProcess", list.complete, len(list.DBStates))
 	for int(list.complete) < len(list.DBStates) {
 		d := list.DBStates[list.complete]
@@ -125,32 +124,32 @@ func (list *DBStateList) Process() {
 			d.DirectoryBlock.GetHeader().SetPrevFullHash(p.DirectoryBlock.GetHeader().GetFullHash())
 			d.DirectoryBlock.GetHeader().SetPrevKeyMR(p.DirectoryBlock.GetKeyMR())
 		}
-
+		
 		if d.isNew {
-			if err := list.state.GetDB().SaveDirectoryBlockHead(d.DirectoryBlock); err != nil {
-				panic(err.Error())
+			dblk,_ := list.state.GetDB().FetchDBlockByHeight(d.DirectoryBlock.GetHeader().GetDBHeight())
+			if dblk == nil {
+				if err := list.state.GetDB().SaveDirectoryBlockHead(d.DirectoryBlock); err != nil {
+					panic(err.Error())
+				}
+				if err := list.state.GetDB().ProcessABlockBatch(d.AdminBlock); err != nil {
+					panic(err.Error())
+				}
+				if err := list.state.GetDB().ProcessFBlockBatch(d.FactoidBlock); err != nil {
+					panic(err.Error())
+				}
+				if err := list.state.GetDB().ProcessECBlockBatch(d.EntryCreditBlock); err != nil {
+					panic(err.Error())
+				}
 			}
-			if err := list.state.GetDB().ProcessABlockBatch(d.AdminBlock); err != nil {
-				panic(err.Error())
-			}
-			if err := list.state.GetDB().ProcessFBlockBatch(d.FactoidBlock); err != nil {
-				panic(err.Error())
-			}
-			if err := list.state.GetDB().ProcessECBlockBatch(d.EntryCreditBlock); err != nil {
-				panic(err.Error())
-			}
-
 			list.state.GetAnchor().UpdateDirBlockInfoMap(dbInfo.NewDirBlockInfoFromDirBlock(d.DirectoryBlock))
-
+			
 		}
-
 		fs := list.state.GetFactoidState()
 		fs.AddTransactionBlock(d.FactoidBlock)
 		fs.AddECBlock(d.EntryCreditBlock)
 		fs.ProcessEndOfBlock(list.state)
-
+		
 		list.complete++
-
 		if list.state.LDBHeight < list.complete+list.base {
 			list.state.LDBHeight = list.complete + list.base
 		}
