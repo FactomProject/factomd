@@ -14,6 +14,7 @@ import (
 
 //A placeholder structure for messages
 type InvalidAck struct {
+	MessageBase
 	Timestamp interfaces.Timestamp
 
 	//Not marshalled

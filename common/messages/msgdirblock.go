@@ -22,6 +22,7 @@ const MaxBlockPayload = 1000000 // Not actually 1MB which would be 1024 * 1024
 // MsgDirBlock implements the MsgDirBlock interface and represents a factom
 // DBlock message.  It is used by client to reveal the entry.
 type MsgDirBlock struct {
+	MessageBase
 	DBlk *DirectoryBlock
 }
 

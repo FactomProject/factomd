@@ -18,8 +18,9 @@ import (
 var _ = fmt.Print
 
 type FactomNode struct {
-	State	*ss.State
-	Peers	[]*FactomPeer
+	State		*ss.State
+	Peers		[]*FactomPeer
+	
 }
 
 type FactomPeer struct {	
@@ -30,14 +31,14 @@ type FactomPeer struct {
 }
 
 func (f *FactomPeer) init() *FactomPeer {
-	f.BroadcastOut = make(chan interfaces.IMsg,10)
-	f.BroadcastIn  = make(chan interfaces.IMsg,10)
-	f.PrivateOut = make(chan interfaces.IMsg,10)
-	f.PrivateIn  = make(chan interfaces.IMsg,10)
+	f.BroadcastOut = make(chan interfaces.IMsg,10000)
+	f.BroadcastIn  = make(chan interfaces.IMsg,10000)
+	f.PrivateOut = make(chan interfaces.IMsg,10000)
+	f.PrivateIn  = make(chan interfaces.IMsg,10000)
 	return f
 }
 
-func AddPeer(f1, f2 FactomNode) {
+func AddPeer(f1, f2 *FactomNode) {
 	peer12 := new(FactomPeer).init()
 	peer21 := new(FactomPeer).init()
 	peer12.BroadcastOut = peer21.BroadcastIn
@@ -54,6 +55,9 @@ func AddPeer(f1, f2 FactomNode) {
 }
 
 func NetStart(state *ss.State) {
+	fmt.Println(">>>>>>>>>>>>>>>>")
+	fmt.Println(">>>>>>>>>>>>>>>> Net Sim Start!!!!!")
+	fmt.Println(">>>>>>>>>>>>>>>>")
 	
 	btcd.AddInterruptHandler(func() {
 		log.Printf("<Break>\n")
@@ -79,13 +83,30 @@ func NetStart(state *ss.State) {
 	//    Add the network.  
 	state.LoadConfig(FactomConfigFilename)
 
-	FactomServerStart(state)
+	state.Init()
 	
-	state1 := state.Clone("1").(*ss.State)
-	FactomServerStart(state1)
+	state2 := state.Clone("1").(*ss.State)
+	state2.Init()
+
+	fnode1 := new(FactomNode)
+	fnode1.State = state
+	fnode2 := new(FactomNode)
+	fnode2.State = state2
+	
+	go NetworkProcessorNet(fnode2)
+	go loadDatabase(state2)
+	go Timer(state2)
+	go Validator(state2)
+	
+	AddPeer(fnode1, fnode2)
+	
+	go NetworkProcessorNet(fnode1)
+	go loadDatabase(state)
+	go Timer(state)
+	go Validator(state)
+	
 	
 	go wsapi.Start(state)
-	go NetworkProcessorNet(state)
 	
 	// Web API runs independent of Factom Servers
 

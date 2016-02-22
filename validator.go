@@ -28,7 +28,8 @@ func Validator(state interfaces.IState) {
 		}
 		
 		msg := <-state.InMsgQueue() // Get message from the input queue
-
+		state.UpdateState()
+		
 		if state.PrintType(msg.Type()) {
 			fmt.Printf("%20s %s", "Validator:", msg.String())
 		}

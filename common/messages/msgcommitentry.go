@@ -17,6 +17,7 @@ import (
 // Commit-Entry message.  It is used by client to commit the entry before
 // revealing it.
 type MsgCommitEntry struct {
+	MessageBase
 	CommitEntry *CommitEntry
 }
 

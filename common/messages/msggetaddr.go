@@ -18,7 +18,9 @@ import (
 // via one or more addr messages (MsgAddr).
 //
 // This message has no payload.
-type MsgGetAddr struct{}
+type MsgGetAddr struct{
+	MessageBase
+}
 
 // BtcDecode decodes r using the bitcoin protocol encoding into the receiver.
 // This is part of the MsgGetAddr interface implementation.

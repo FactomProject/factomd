@@ -15,6 +15,7 @@ import (
 
 // factoid block
 type MsgFBlock struct {
+	MessageBase
 	FBlck interfaces.IFBlock
 }
 

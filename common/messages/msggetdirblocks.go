@@ -34,6 +34,7 @@ const MaxBlockLocatorsPerMsg = 500
 // exponentially decrease the number of hashes the further away from head and
 // closer to the genesis block you get.
 type MsgGetDirBlocks struct {
+	MessageBase
 	ProtocolVersion    uint32
 	BlockLocatorHashes []interfaces.IHash
 	HashStop           interfaces.IHash

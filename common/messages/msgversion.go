@@ -30,6 +30,7 @@ const DefaultUserAgent = "/btcwire:0.2.0/"
 // message (MsgVerAck).  This exchange must take place before any further
 // communication is allowed to proceed.
 type MsgVersion struct {
+	MessageBase
 	// Version of the protocol the node is using.
 	ProtocolVersion int32
 

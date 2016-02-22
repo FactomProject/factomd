@@ -55,6 +55,7 @@ func (code RejectCode) String() string {
 //
 // This message was not added until protocol version RejectVersion.
 type MsgReject struct {
+	MessageBase
 	// Cmd is the command for the message which was rejected such as
 	// as CmdBlock or CmdTx.  This can be obtained from the Command function
 	// of a Message.

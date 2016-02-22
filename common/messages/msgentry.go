@@ -16,6 +16,7 @@ import (
 // MsgEntry implements the MsgEntry interface and represents a factom
 // Entry message.  It is used by client to reveal the entry.
 type MsgEntry struct {
+	MessageBase
 	Entry *Entry
 }
 

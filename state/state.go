@@ -31,15 +31,19 @@ type State struct {
 
 	Cfg      interfaces.IFactomConfig
 
-	LogPath           string
-	LogLevel          string
-	ConsoleLogLevel   string 
-	NodeMode          string
-	DBType            string
-	ExportData        bool
-	ExportDataSubpath string
-	Network           string
-		
+	FactomNodeName     string
+	LogPath            string
+	LdbPath 		   string
+	BoltDBPath         string
+	LogLevel           string
+	ConsoleLogLevel    string 
+	NodeMode           string
+	DBType             string
+	ExportData         bool
+	ExportDataSubpath  string
+	Network            string
+	LocalServerPrivKey string
+	DirectoryBlockInSeconds int
 	
 	IdentityChainID interfaces.IHash // If this node has an identity, this is it
 
@@ -115,26 +119,34 @@ type State struct {
 var _ interfaces.IState = (*State)(nil)
 
 func (s *State) Clone(number string) interfaces.IState {
+	
 	clone := new(State)
 	
-	clone.LogPath =           number+"-"+s.LogPath
-	clone.LogLevel =          s.LogLevel
-	clone.ConsoleLogLevel =   s.ConsoleLogLevel
-	clone.NodeMode =          "FULL"
-	clone.DBType =            s.DBType
-	clone.ExportData =        true
-	clone.ExportDataSubpath = number+"-"+s.ExportDataSubpath
-	clone.Network =           s.Network
-		
+	clone.FactomNodeName =	   "FNode"+number	
+	clone.LogPath =            s.LogPath+"Sim"+number
+	clone.LdbPath =            s.LdbPath+"Sim"+number
+	clone.BoltDBPath =         s.BoltDBPath+"Sim"+number
+	clone.LogLevel =           s.LogLevel
+	clone.ConsoleLogLevel =    s.ConsoleLogLevel
+	clone.NodeMode =           "FULL"
+	clone.DBType =             s.DBType
+	clone.ExportData =         true
+	clone.ExportDataSubpath =  number+"-"+s.ExportDataSubpath
+	clone.Network =            s.Network
+	clone.DirectoryBlockInSeconds = s.DirectoryBlockInSeconds
+	
+	// Need to have a Server Priv Key TODO:
+	clone.LocalServerPrivKey = s.LocalServerPrivKey
+	
 	//IdentityChainID interfaces.IHash 
 	
 	//serverPrivKey primitives.PrivateKey
 	//serverPubKey  primitives.PublicKey
-	clone.totalServers =	  s.totalServers
+	clone.totalServers =	   s.totalServers
 		
-	clone.FactoshisPerEC =    s.FactoshisPerEC
+	clone.FactoshisPerEC =     s.FactoshisPerEC
 
-	clone.Port =              s.Port
+	clone.Port =               s.Port
 	
 	return clone
 }
@@ -145,7 +157,11 @@ func (s *State) LoadConfig(filename string, ) {
 	// Get our factomd configuration information.
 	cfg := s.GetCfg().(*util.FactomdConfig)
 	
+	
+	s.FactomNodeName = "FNode0"  		// Default Factom Node Name for Simulation
 	s.LogPath = cfg.Log.LogPath
+    s.LdbPath = cfg.App.LdbPath
+    s.BoltDBPath = cfg.App.BoltDBPath
 	s.LogLevel = cfg.Log.LogLevel
 	s.ConsoleLogLevel = cfg.Log.ConsoleLogLevel
 	s.NodeMode = cfg.App.NodeMode
@@ -153,8 +169,9 @@ func (s *State) LoadConfig(filename string, ) {
 	s.ExportData = cfg.App.ExportData		// bool
 	s.ExportDataSubpath = cfg.App.ExportDataSubpath
 	s.Network = cfg.App.Network 
-				
+	s.LocalServerPrivKey = cfg.App.LocalServerPrivKey
 	s.FactoshisPerEC = cfg.App.ExchangeRate
+	s.DirectoryBlockInSeconds = cfg.App.DirectoryBlockInSeconds
 }
 
 func (s *State) Init() {
@@ -466,6 +483,10 @@ func (s *State) SetFactoshisPerEC(factoshisPerEC uint64) {
 	s.FactoshisPerEC = factoshisPerEC
 }
 
+func (s *State) GetDirectoryBlockInSeconds() int {
+	return s.DirectoryBlockInSeconds
+}
+
 func (s *State) GetF(adr [32]byte) int64 {
 	if v, ok := s.FactoidBalancesT[adr]; !ok {
 		v = s.FactoidBalancesP[adr]
@@ -522,7 +543,7 @@ func (s *State) GetAnchor() interfaces.IAnchor {
 
 func (s *State) initServerKeys() {
 	var err error
-	s.serverPrivKey, err = primitives.NewPrivateKeyFromHex(s.GetCfg().(*util.FactomdConfig).App.LocalServerPrivKey)
+	s.serverPrivKey, err = primitives.NewPrivateKeyFromHex(s.LocalServerPrivKey)		
 	if err != nil {
 		//panic("Cannot parse Server Private Key from configuration file: " + err.Error())
 	}
@@ -644,8 +665,7 @@ func (s *State) InitLevelDB() error {
 		return nil
 	}
 
-	cfg := s.Cfg.(*util.FactomdConfig)
-	path := cfg.App.LdbPath + "/" + cfg.App.Network + "/" + "factoid_level.db"
+	path := s.LdbPath + "/" + s.Network + "/" + "factoid_level.db"
 
 	log.Printfln("Creating Database at %v", path)
 
@@ -667,8 +687,9 @@ func (s *State) InitBoltDB() error {
 		return nil
 	}
 
-	cfg := s.Cfg.(*util.FactomdConfig)
-	path := cfg.App.BoltDBPath + "/" + cfg.App.Network + "/"
+	path := s.BoltDBPath + "/" + s.Network + "/"
+
+    fmt.Println("Database Path for",s.FactomNodeName,"is",path)
 	os.MkdirAll(path, 0777)
 	dbase := hybridDB.NewBoltMapHybridDB(nil, path+"FactomBolt.db")
 	s.DB = databaseOverlay.NewOverlay(dbase)
@@ -694,10 +715,10 @@ func (s *State) String() string {
 	dstateHeight := last.DirectoryBlock.GetHeader().GetDBHeight()
 	plheight := int(dstateHeight) + len(s.ProcessLists.Lists)
 
-	return fmt.Sprintf("State: DSState Height: %d PL Height: %d Leader Height %d",
+	return fmt.Sprintf("%7s DBS: %d PL: %d",
+		s.FactomNodeName,
 		dstateHeight,
-		plheight,
-		s.LDBHeight)
+		plheight)
 
 }
 

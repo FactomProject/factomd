@@ -6,9 +6,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/FactomProject/factomd/btcd"
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/log"
 	"time"
 )
@@ -16,62 +13,71 @@ import (
 var _ = log.Printf
 var _ = fmt.Print
 
-func NetworkProcessorNet(state interfaces.IState) {
+func NetworkProcessorNet(fnode *FactomNode) {
 
 netloop:
 	for {
-
-		// This loop looks at the input queues and the invalid queues and
-		// Handles messages as they come in.   If nothing is read, it sleeps
-		// for 500 milliseconds.  Note you only sleep if both queues test
-		// to be empty.
-
-		select {
-		case msg, ok := <-state.NetworkInMsgQueue():
-			if ok {
-				//log.Printf("NetworkIn: %s\n", spew.Sdump(msg))
-				if state.PrintType(msg.Type()) {
-					//log.Printf("Ignored: NetworkIn: %s\n", msg.String())
-				}
-				state.InMsgQueue() <- msg
-				continue netloop
-			}
-		default:
-		}
-
-		select {
-		case msg, ok := <-state.NetworkOutMsgQueue():
-			if ok {
-				var _ = msg
-				//log.Printf("NetworkOut: %s\n", msg.String())
-				if state.PrintType(msg.Type()) {
-					//log.Printf("Ignored: NetworkOut: %s\n", msg.String())
-				}
-				switch msg.(type) {
-				case *messages.EOM:
-					msgeom := msg.(*messages.EOM)
-					server,ok := state.GetServer().(*btcd.Server)
+		
+		// Put any broadcasts from our peers into our BroadcastIn queue
+		for i,peer := range fnode.Peers {
+			loop: for {
+				select {
+				case msg, ok := <- peer.BroadcastIn:
 					if ok {
-						server.BroadcastMessage(msgeom)
+						msg.SetOrigin(i+1)		// Remember this came from outside!
+						fnode.State.NetworkInMsgQueue() <- msg 
 					}
 				default:
+					break loop
 				}
-
-				continue netloop
 			}
-		default:
 		}
 
-		select {
-		case msg, ok := <-state.NetworkInvalidMsgQueue():
-			if ok {
-				var _ = msg
-				if state.PrintType(msg.Type()) {
-					//log.Printf("%20s %s\n", "Invalid:", msg.String())
+		loop2: for {
+			select {
+			case msg, ok := <-fnode.State.NetworkInMsgQueue():
+				if ok {
+					//log.Printf("NetworkIn: %s\n", spew.Sdump(msg))
+					if fnode.State.PrintType(msg.Type()) {
+						//log.Printf("Ignored: NetworkIn: %s\n", msg.String())
+					}
+					fnode.State.InMsgQueue() <- msg
+					continue netloop
 				}
-				continue netloop
+			default:
+				break loop2
 			}
-		default:
+		}
+		
+		loop3: for {
+			select {
+			case msg, ok := <-fnode.State.NetworkOutMsgQueue():
+				if ok {
+					for i, peer := range fnode.Peers {
+						if msg.GetOrigin() != i+1 {
+							peer.BroadcastOut <- msg
+							fmt.Println(msg.String())
+						}
+					}
+				}
+			default:
+				break loop3
+			}
+		}
+		
+		loop4: for {
+			select {
+			case msg, ok := <-fnode.State.NetworkInvalidMsgQueue():
+				if ok {
+					var _ = msg
+					if fnode.State.PrintType(msg.Type()) {
+						
+					}
+					continue netloop
+				}
+			default:
+				break loop4
+			}
 		}
 		time.Sleep(time.Duration(500) * time.Millisecond)
 	}

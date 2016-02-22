@@ -16,6 +16,7 @@ import (
 // MsgEBlock implements the MsgEBlock interface and represents a factom
 // EBlock message.  It is used by client to download the EBlock.
 type MsgEBlock struct {
+	MessageBase
 	EBlk *EBlock
 }
 

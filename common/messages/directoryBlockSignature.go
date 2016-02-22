@@ -15,6 +15,7 @@ import (
 
 //A placeholder structure for messages
 type DirectoryBlockSignature struct {
+	MessageBase
 	Timestamp             interfaces.Timestamp
 	DirectoryBlockHeight  uint32
 	DirectoryBlockKeyMR   interfaces.IHash

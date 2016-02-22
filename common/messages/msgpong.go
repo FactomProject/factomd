@@ -16,6 +16,7 @@ import (
 // message which is used primarily to confirm that a connection is still valid
 // in response to a bitcoin ping message (MsgPong).
 type MsgPong struct {
+	MessageBase
 	// Unique value associated with message that is used to identify
 	// specific ping message.
 	Nonce uint64

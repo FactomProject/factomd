@@ -15,6 +15,7 @@ import (
 
 //A placeholder structure for messages
 type FactoidTransaction struct {
+	MessageBase
 	Transaction interfaces.ITransaction
 
 	//Not marshalled

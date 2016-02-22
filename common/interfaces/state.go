@@ -20,7 +20,7 @@ type IState interface {
 	Init()
 	String() string
 	Sign([]byte) IFullSignature
-
+	GetDirectoryBlockInSeconds() int
 	GetServer() IServer
 	SetServer(IServer)
 

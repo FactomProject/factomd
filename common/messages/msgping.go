@@ -18,6 +18,7 @@ import (
 // The payload for this message just consists of a nonce used for identifying
 // it later.
 type MsgPing struct {
+	MessageBase
 	// Unique value associated with message that is used to identify
 	// specific ping message.
 	Nonce uint64

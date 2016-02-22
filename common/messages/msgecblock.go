@@ -16,6 +16,7 @@ import (
 // MsgECBlock implements the MsgECBlock interface and represents a factom ECBlock
 // message.  It is used by client to download ECBlock.
 type MsgECBlock struct {
+	MessageBase
 	ECBlock *ECBlock
 }
 

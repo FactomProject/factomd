@@ -17,6 +17,7 @@ import (
 // Communicate a Directory Block State
 
 type DBStateMsg struct {
+	MessageBase
 	Timestamp   interfaces.Timestamp
 	
 	DirectoryBlock   interfaces.IDirectoryBlock

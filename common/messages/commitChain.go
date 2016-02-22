@@ -15,6 +15,7 @@ import (
 
 //A placeholder structure for messages
 type CommitChainMsg struct {
+	MessageBase
 	Timestamp   interfaces.Timestamp
 	CommitChain *entryCreditBlock.CommitChain
 

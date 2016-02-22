@@ -16,6 +16,7 @@ import (
 // MsgRevealChain implements the MsgRevealChain interface and represents a factom
 // Reveal-Chain message.  It is used by client to reveal the chain.
 type MsgRevealChain struct {
+	MessageBase
 	FirstEntry interfaces.IEBEntry
 }
 

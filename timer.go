@@ -8,15 +8,13 @@ import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/log"
-	"github.com/FactomProject/factomd/util"
 	"time"
 )
 
 func Timer(state interfaces.IState) {
-	cfg := state.GetCfg().(*util.FactomdConfig)
 
 	billion := int64(1000000000)
-	period := int64(cfg.App.DirectoryBlockInSeconds) * billion
+	period := int64(state.GetDirectoryBlockInSeconds()) * billion
 	tenthPeriod := period / 10
 
 	now := time.Now().UnixNano() // Time in billionths of a second

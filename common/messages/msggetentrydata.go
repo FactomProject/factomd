@@ -24,6 +24,7 @@ import (
 // Use the AddInvVect function to build up the list of inventory vectors when
 // sending a getdata message to another peer.
 type MsgGetEntryData struct {
+	MessageBase
 	InvList []*InvVect
 }
 

@@ -16,7 +16,9 @@ import (
 // to negotiate parameters.  It implements the Message interface.
 //
 // This message has no payload.
-type MsgVerAck struct{}
+type MsgVerAck struct{
+	MessageBase
+}
 
 // BtcDecode decodes r using the bitcoin protocol encoding into the receiver.
 // This is part of the Message interface implementation.

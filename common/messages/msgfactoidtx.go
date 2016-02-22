@@ -46,6 +46,7 @@ type IMsgFactoidTX interface {
 // revealing it.
 type MsgFactoidTX struct {
 	IMsgFactoidTX
+	MessageBase
 	Transaction interfaces.ITransaction
 }
 

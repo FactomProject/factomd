@@ -16,6 +16,7 @@ import (
 
 //A placeholder structure for messages
 type CommitEntryMsg struct {
+	MessageBase
 	Timestamp   interfaces.Timestamp
 	CommitEntry *entryCreditBlock.CommitEntry
 

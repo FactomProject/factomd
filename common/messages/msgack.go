@@ -38,6 +38,7 @@ const (
 )
 
 type MsgAck struct {
+	MessageBase
 	Height      uint32
 	ChainID     interfaces.IHash
 	Index       uint32

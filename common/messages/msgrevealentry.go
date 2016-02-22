@@ -16,6 +16,7 @@ import (
 // MsgRevealEntry implements the MsgRevealEntry interface and represents a factom
 // Reveal-Entry message.  It is used by client to reveal the entry.
 type MsgRevealEntry struct {
+	MessageBase
 	Entry interfaces.IEBEntry
 }
 

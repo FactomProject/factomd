@@ -32,6 +32,7 @@ const defaultInvListAlloc = 1000
 // Use the AddInvVect function to build up the list of inventory vectors when
 // sending an inv message to another peer.
 type MsgInv struct {
+	MessageBase
 	InvList []*InvVect
 }
 

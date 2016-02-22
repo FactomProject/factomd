@@ -16,6 +16,7 @@ import (
 // MsgCommitChain implements the MsgCommitChain interface and represents a factom
 // Commit-Chain message.  It is used by client to commit the chain before revealing it.
 type MsgCommitChain struct {
+	MessageBase
 	CommitChain *CommitChain
 }
 

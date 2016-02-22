@@ -17,6 +17,7 @@ import (
 // Use the AddInvVect function to build up the list of inventory vectors when
 // sending a notfound message to another peer.
 type MsgNotFound struct {
+	MessageBase
 	InvList []*InvVect
 }
 

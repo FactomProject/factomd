@@ -19,6 +19,12 @@ type IMsg interface {
 	// Returns a byte indicating the type of message.
 	Type() int
 
+	// Returns the origin of this message; used to track 
+	// where a message came from. If int == -1, then this
+	// FactomNode generated the message.
+	GetOrigin() int
+	SetOrigin(int)
+	
 	// Returns the timestamp for a message
 	GetTimestamp() Timestamp
 

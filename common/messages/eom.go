@@ -19,6 +19,7 @@ import (
 var _ = log.Printf
 
 type EOM struct {
+	MessageBase
 	Timestamp interfaces.Timestamp
 	Minute    byte
 

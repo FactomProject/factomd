@@ -28,6 +28,7 @@ const MaxAddrPerMsg = 1000
 // Use the AddAddress function to build up the list of known addresses when
 // sending an addr message to another peer.
 type MsgAddr struct {
+	MessageBase
 	AddrList []*NetAddress
 }
 

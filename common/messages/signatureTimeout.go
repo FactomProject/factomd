@@ -14,6 +14,7 @@ import (
 
 //A placeholder structure for messages
 type SignatureTimeout struct {
+	MessageBase
 	Timestamp interfaces.Timestamp
 
 	//Not marshalled

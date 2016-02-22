@@ -16,6 +16,7 @@ import (
 
 //General acknowledge message
 type Ack struct {
+	MessageBase
 	ServerIndex byte // Server index (signature could be one of several)
 	Timestamp   interfaces.Timestamp
 	MessageHash interfaces.IHash

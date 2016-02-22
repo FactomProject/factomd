@@ -16,6 +16,7 @@ import (
 
 //A placeholder structure for messages
 type RevealEntryMsg struct {
+	MessageBase
 	Timestamp interfaces.Timestamp
 	Entry     interfaces.IEntry
 
