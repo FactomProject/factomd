@@ -14,7 +14,7 @@ import ()
 type IState interface {
 
 	// Server
-
+	Clone(number string) IState
 	GetCfg() IFactomConfig
 	LoadConfig(filename string)
 	Init()

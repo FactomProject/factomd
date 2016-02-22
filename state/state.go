@@ -1,3 +1,7 @@
+// Copyright 2015 Factom Foundation
+// Use of this source code is governed by the MIT
+// license that can be found in the LICENSE file.
+
 package state
 
 import (
@@ -43,7 +47,8 @@ type State struct {
 	networkOutMsgQueue     chan interfaces.IMsg
 	networkInvalidMsgQueue chan interfaces.IMsg
 	inMsgQueue             chan interfaces.IMsg
-
+	ShutdownChan           chan int					// For gracefully halting Factom
+	
 	myServer      interfaces.IServer //the server running on this Federated Server
 	serverPrivKey primitives.PrivateKey
 	serverPubKey  primitives.PublicKey
@@ -109,7 +114,32 @@ type State struct {
 
 var _ interfaces.IState = (*State)(nil)
 
-func (s *State) LoadConfig(filename string) {
+func (s *State) Clone(number string) interfaces.IState {
+	clone := new(State)
+	
+	clone.LogPath =           number+"-"+s.LogPath
+	clone.LogLevel =          s.LogLevel
+	clone.ConsoleLogLevel =   s.ConsoleLogLevel
+	clone.NodeMode =          "FULL"
+	clone.DBType =            s.DBType
+	clone.ExportData =        true
+	clone.ExportDataSubpath = number+"-"+s.ExportDataSubpath
+	clone.Network =           s.Network
+		
+	//IdentityChainID interfaces.IHash 
+	
+	//serverPrivKey primitives.PrivateKey
+	//serverPubKey  primitives.PublicKey
+	clone.totalServers =	  s.totalServers
+		
+	clone.FactoshisPerEC =    s.FactoshisPerEC
+
+	clone.Port =              s.Port
+	
+	return clone
+}
+
+func (s *State) LoadConfig(filename string, ) {
 	s.filename = filename
 	s.ReadCfg(filename)
 	// Get our factomd configuration information.
@@ -139,7 +169,8 @@ func (s *State) Init() {
 	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 10000) //incoming message queue from the network messages
 	s.networkOutMsgQueue = make(chan interfaces.IMsg, 10000)     //Messages to be broadcast to the network
 	s.inMsgQueue = make(chan interfaces.IMsg, 10000)             //incoming message queue for factom application messages
-
+	s.ShutdownChan = make(chan int)								 //Channel to gracefully shut down.
+	
 	// Set up maps for the followers
 	s.Holding = make(map[[32]byte]interfaces.IMsg)
 	s.Acks = make(map[[32]byte]interfaces.IMsg)
@@ -656,8 +687,11 @@ func (s *State) InitMapDB() error {
 }
 
 func (s *State) String() string {
-
-	dstateHeight := s.DBStates.Last().DirectoryBlock.GetHeader().GetDBHeight()
+	last := s.DBStates.Last()
+	if last == nil {
+		return "<none>"
+	}
+	dstateHeight := last.DirectoryBlock.GetHeader().GetDBHeight()
 	plheight := int(dstateHeight) + len(s.ProcessLists.Lists)
 
 	return fmt.Sprintf("State: DSState Height: %d PL Height: %d Leader Height %d",

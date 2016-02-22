@@ -47,7 +47,7 @@ func (list *DBStateList) Length() int {
 
 func (list *DBStateList) Last() *DBState {
 	last := len(list.DBStates)
-	if last == 0 {
+	if last == 0 || last < int(list.complete) {
 		return nil
 	}
 	return list.DBStates[last-1]
@@ -90,7 +90,10 @@ func (list *DBStateList) Put(dbstate *DBState) {
 	dbstate.DirectoryBlock.GetDBEntries()[1].SetKeyMR(hash)
 	hash = dbstate.FactoidBlock.GetHash()
 	dbstate.DirectoryBlock.GetDBEntries()[2].SetKeyMR(hash)
-
+	
+	if dbheight >= list.state.LDBHeight {
+		list.state.LDBHeight = dbheight+1
+	}
 }
 
 func (list *DBStateList) Get(height uint32) *DBState {

@@ -6,16 +6,27 @@ package main
 
 import (
 	"fmt"
+	"os"
+	ss "github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/log"
 )
 
 var _ = fmt.Print
 var _ = log.Printf
-
+var _ = os.Exit
 func Validator(state interfaces.IState) {
-
+	s := state.(*ss.State)
+	var _ = s
 	for {
+		
+		select {
+			case i := <- s.ShutdownChan:
+				state.GetDB().(interfaces.IDatabase).Close()
+				os.Exit(i)
+			default :
+		}
+		
 		msg := <-state.InMsgQueue() // Get message from the input queue
 
 		if state.PrintType(msg.Type()) {

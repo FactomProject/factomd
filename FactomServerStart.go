@@ -20,8 +20,7 @@ var _ = fmt.Print
 func FactomServerStart(state *state.State) {
 
 	state.Init()
-	loadDatabase(state)
-	
+	go loadDatabase(state)
 	// Timer runs periodically, and inserts eom messages into the stream
 	go Timer(state)
 	// Validator is the gateway.

@@ -6,21 +6,17 @@ package main
 
 import (
 	"fmt"
-
 	"github.com/FactomProject/factomd/btcd"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/log"
-	"github.com/davecgh/go-spew/spew"
-	//"reflect"
 	"time"
 )
 
-var _ = spew.Sdump
 var _ = log.Printf
 var _ = fmt.Print
 
-func NetworkProcessor(state interfaces.IState) {
+func NetworkProcessorNet(state interfaces.IState) {
 
 netloop:
 	for {
@@ -54,9 +50,10 @@ netloop:
 				switch msg.(type) {
 				case *messages.EOM:
 					msgeom := msg.(*messages.EOM)
-					server := state.GetServer().(*btcd.Server)
-					server.BroadcastMessage(msgeom)
-
+					server,ok := state.GetServer().(*btcd.Server)
+					if ok {
+						server.BroadcastMessage(msgeom)
+					}
 				default:
 				}
 

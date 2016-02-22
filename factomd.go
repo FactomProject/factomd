@@ -28,7 +28,7 @@ var _ = fmt.Print
 var Build string
 
 func main() {
-
+	
 	//	go StartProfiler()
 
 	log.Print("//////////////////////// Copyright 2015 Factom Foundation")
@@ -49,8 +49,12 @@ func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	state0 := new(state.State)
-	OneStart(state0)
-
+	
+	if len(os.Args) == 1 {
+		OneStart(state0)
+	} else {
+		NetStart(state0)
+	}
 }
 
 func isCompilerVersionOK() bool {
