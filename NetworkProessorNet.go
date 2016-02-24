@@ -15,7 +15,6 @@ var _ = fmt.Print
 
 func NetworkProcessorNet(fnode *FactomNode) {
 
-netloop:
 	for {
 		
 		// Put any broadcasts from our peers into our BroadcastIn queue
@@ -23,6 +22,7 @@ netloop:
 			loop: for {
 				select {
 				case msg, ok := <- peer.BroadcastIn:
+					fnode.State.Println("In Comming!! ",msg)
 					if ok {
 						msg.SetOrigin(i+1)		// Remember this came from outside!
 						fnode.State.NetworkInMsgQueue() <- msg 
@@ -33,53 +33,34 @@ netloop:
 			}
 		}
 
-		loop2: for {
-			select {
-			case msg, ok := <-fnode.State.NetworkInMsgQueue():
-				if ok {
-					//log.Printf("NetworkIn: %s\n", spew.Sdump(msg))
-					if fnode.State.PrintType(msg.Type()) {
-						//log.Printf("Ignored: NetworkIn: %s\n", msg.String())
-					}
-					fnode.State.InMsgQueue() <- msg
-					continue netloop
+		select {
+		case msg, ok := <-fnode.State.NetworkInMsgQueue():
+			if ok {
+				if fnode.State.PrintType(msg.Type()) {
+					
 				}
-			default:
-				break loop2
+				fnode.State.Println("Msg Origin: ",msg.GetOrigin()," ",msg)
+				fnode.State.InMsgQueue() <- msg
 			}
-		}
-		
-		loop3: for {
-			select {
-			case msg, ok := <-fnode.State.NetworkOutMsgQueue():
-				if ok {
-					for i, peer := range fnode.Peers {
-						if msg.GetOrigin() != i+1 {
-							peer.BroadcastOut <- msg
-							fmt.Println(msg.String())
-						}
+		case msg, ok := <-fnode.State.NetworkOutMsgQueue():
+			if ok {
+				for i, peer := range fnode.Peers {
+					if msg.GetOrigin() != i+1 {
+						peer.BroadcastOut <- msg
+						fnode.State.Println("Replying Back:",msg.GetOrigin()," ", i+1, " ", msg.String())
 					}
 				}
-			default:
-				break loop3
 			}
-		}
-		
-		loop4: for {
-			select {
-			case msg, ok := <-fnode.State.NetworkInvalidMsgQueue():
-				if ok {
-					var _ = msg
-					if fnode.State.PrintType(msg.Type()) {
-						
-					}
-					continue netloop
+		case msg, ok := <-fnode.State.NetworkInvalidMsgQueue():
+			if ok {
+				var _ = msg
+				if fnode.State.PrintType(msg.Type()) {
+					
 				}
-			default:
-				break loop4
 			}
+		default:
+			time.Sleep(time.Duration(5) * time.Millisecond)
 		}
-		time.Sleep(time.Duration(5) * time.Millisecond)
 	}
 
 }

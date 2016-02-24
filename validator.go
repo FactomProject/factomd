@@ -18,7 +18,9 @@ var _ = os.Exit
 func Validator(state interfaces.IState) {
 	s := state.(*ss.State)
 	var _ = s
+	
 	for {
+		fmt.Println(".")
 		
 		select {
 			case i := <- s.ShutdownChan:
@@ -31,37 +33,37 @@ func Validator(state interfaces.IState) {
 		state.UpdateState()
 		
 		if state.PrintType(msg.Type()) {
-			fmt.Printf("%20s %s", "Validator:", msg.String())
+			state.Print(fmt.Sprintf("%20s %s", "Validator:", msg.String()))
 		}
 
 		switch msg.Validate(state.GetDBHeight(), state) { // Validate the message.
 		case 1: // Process if valid
 			state.NetworkOutMsgQueue() <- msg
 			if state.PrintType(msg.Type()) {
-				fmt.Printf(" Valid\n")
+				state.Print(" Valid\n")
 			}
 			if msg.Leader(state) {
 				if state.PrintType(msg.Type()) {
-					fmt.Printf("%20s %s\n", "Leader:", msg.String())
+					state.Print(fmt.Sprintf("%20s %s\n", "Leader:", msg.String()))
 				}
 				msg.LeaderExecute(state)
 				state.UpdateState()
 			} else if msg.Follower(state) {
 				if state.PrintType(msg.Type()) {
-					fmt.Printf("%20s %s\n", "Follower:", msg.String())
+					state.Print(fmt.Sprintf("%20s %s\n", "Follower:", msg.String()))
 				}
 				msg.FollowerExecute(state)
 				state.UpdateState()
 			} else {
-				fmt.Printf(" Message ignored\n")
+				state.Print(" Message ignored\n")
 			}
 		case 0: // Hold for later if unknown.
 			if state.PrintType(msg.Type()) {
-				fmt.Printf(" Hold\n")
+				state.Print(" Hold\n")
 			}
 		default:
 			if state.PrintType(msg.Type()) {
-				fmt.Printf(" Invalid\n")
+				state.Print(" Invalid\n")
 			}
 			state.NetworkInvalidMsgQueue() <- msg
 		}

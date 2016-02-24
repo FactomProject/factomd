@@ -44,6 +44,7 @@ type State struct {
 	Network            string
 	LocalServerPrivKey string
 	DirectoryBlockInSeconds int
+	PortNumber		   int 
 	
 	IdentityChainID interfaces.IHash // If this node has an identity, this is it
 
@@ -58,6 +59,8 @@ type State struct {
 	serverPubKey  primitives.PublicKey
 	totalServers  int
 	serverState   int
+	OutputAllowed bool
+	
 	// Maps
 	// ====
 	// For Follower
@@ -134,7 +137,7 @@ func (s *State) Clone(number string) interfaces.IState {
 	clone.ExportDataSubpath =  number+"-"+s.ExportDataSubpath
 	clone.Network =            s.Network
 	clone.DirectoryBlockInSeconds = s.DirectoryBlockInSeconds
-	
+	clone.PortNumber =         s.PortNumber
 	// Need to have a Server Priv Key TODO:
 	clone.LocalServerPrivKey = s.LocalServerPrivKey
 	
@@ -172,6 +175,7 @@ func (s *State) LoadConfig(filename string, ) {
 	s.LocalServerPrivKey = cfg.App.LocalServerPrivKey
 	s.FactoshisPerEC = cfg.App.ExchangeRate
 	s.DirectoryBlockInSeconds = cfg.App.DirectoryBlockInSeconds
+	s.PortNumber = cfg.Wsapi.PortNumber
 }
 
 func (s *State) Init() {
@@ -182,10 +186,10 @@ func (s *State) Init() {
 
 	log.SetLevel(s.ConsoleLogLevel)
 
-	s.networkInMsgQueue = make(chan interfaces.IMsg, 10000)      //incoming message queue from the network messages
-	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 10000) //incoming message queue from the network messages
-	s.networkOutMsgQueue = make(chan interfaces.IMsg, 10000)     //Messages to be broadcast to the network
-	s.inMsgQueue = make(chan interfaces.IMsg, 10000)             //incoming message queue for factom application messages
+	s.networkInMsgQueue = make(chan interfaces.IMsg, 1000)      //incoming message queue from the network messages
+	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 1000) //incoming message queue from the network messages
+	s.networkOutMsgQueue = make(chan interfaces.IMsg, 1000)     //Messages to be broadcast to the network
+	s.inMsgQueue = make(chan interfaces.IMsg, 1000)             //incoming message queue for factom application messages
 	s.ShutdownChan = make(chan int)								 //Channel to gracefully shut down.
 	
 	// Set up maps for the followers
@@ -212,14 +216,14 @@ func (s *State) Init() {
 	switch s.NodeMode {
 	case "FULL":
 		s.serverState = 0
-		fmt.Println("\n   +---------------------------+")
-		fmt.Println("   +------ Follower Only ------+")
-		fmt.Println("   +---------------------------+\n")
+		s.Println("\n   +---------------------------+")
+		s.Println("   +------ Follower Only ------+")
+		s.Println("   +---------------------------+\n")
 	case "SERVER":
 		s.serverState = 1
-		fmt.Println("\n   +-------------------------+")
-		fmt.Println("   |       Leader Node       |")
-		fmt.Println("   +-------------------------+\n")
+		s.Println("\n   +-------------------------+")
+		s.Println("   |       Leader Node       |")
+		s.Println("   +-------------------------+\n")
 	default:
 		panic("Bad Node Mode (must be FULL or SERVER)")
 	}
@@ -260,7 +264,7 @@ func (s *State) Init() {
 		panic("Bad value for Network in factomd.conf")
 	}
 
-	fmt.Println("\nRunning on the ", s.Network, "Network")
+	s.Println("\nRunning on the ", s.Network, "Network")
 
 	s.AuditHeartBeats = make([]interfaces.IMsg, 0)
 	s.FedServerFaults = make([][]interfaces.IMsg, 0)
@@ -321,7 +325,9 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) (bool, error) {
 		return false, nil
 	} else {
 		pl := s.ProcessLists.Get(ack.DBHeight)
-		pl.AddToProcessList(ack, m)
+		if pl != nil {
+			pl.AddToProcessList(ack, m)
+		}
 		delete(acks, m.GetHash().Fixed())
 		delete(s.Holding, m.GetHash().Fixed())
 
@@ -361,15 +367,12 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) error {
 
 
 func (s *State) LeaderExecute(m interfaces.IMsg) error {
-	v := m.Validate(s.LDBHeight, s)
-	if v <= 0 {
-		return fmt.Errorf("Msg not valid: " + m.String())
-	}
 
 	hash := m.GetHash()
 
 	ack, err := s.NewAck(hash)
 	if err != nil {
+		s.Println("Error!")
 		return err
 	}
 
@@ -579,14 +582,11 @@ func (s *State) SetFactoidState(dbheight uint32, fs interfaces.IFactoidState) {
 
 // Allow us the ability to update the port number at run time....
 func (s *State) SetPort(port int) {
-	// Get our factomd configuration information.
-	cfg := s.GetCfg().(*util.FactomdConfig)
-	cfg.Wsapi.PortNumber = port
+	s.PortNumber = port
 }
 
 func (s *State) GetPort() int {
-	cfg := s.GetCfg().(*util.FactomdConfig)
-	return cfg.Wsapi.PortNumber
+	return s.PortNumber
 }
 
 // Tests the given hash, and returns true if this server is the leader for this key.
@@ -689,7 +689,7 @@ func (s *State) InitBoltDB() error {
 
 	path := s.BoltDBPath + "/" + s.Network + "/"
 
-    fmt.Println("Database Path for",s.FactomNodeName,"is",path)
+    s.Println("Database Path for",s.FactomNodeName,"is",path)
 	os.MkdirAll(path, 0777)
 	dbase := hybridDB.NewBoltMapHybridDB(nil, path+"FactomBolt.db")
 	s.DB = databaseOverlay.NewOverlay(dbase)
@@ -750,6 +750,7 @@ func (s *State) NewAdminBlockHeader(dbheight uint32) interfaces.IABlockHeader {
 
 func (s *State) PrintType(msgType int) bool {
 	r := true
+	return r
 	r = r && msgType != constants.DBSTATE_MSG
 	r = r && msgType != constants.ACK_MSG
 	r = r && msgType != constants.EOM_MSG
@@ -779,6 +780,9 @@ func (s *State) GetDBHeightComplete() uint32 {
 }
 
 func (s *State) GetDirectoryBlock() interfaces.IDirectoryBlock {
+	if s.DBStates.Last() == nil {
+		return nil
+	}
 	return s.DBStates.Last().DirectoryBlock
 }
 
@@ -814,6 +818,14 @@ func (s *State) NewAck(hash interfaces.IHash) (iack interfaces.IMsg, err error) 
 	return ack, nil
 }
 
+func (s *State) GetOut() bool {
+	return s.OutputAllowed
+}
+
+func (s *State) SetOut(o bool) {
+	s.OutputAllowed = o
+}
+
 func (s *State) NewEOM(minute int) interfaces.IMsg {
 	// The construction of the EOM message needs information from the state of
 	// the server to create the proper serial hashes and such.  Right now
@@ -825,3 +837,28 @@ func (s *State) NewEOM(minute int) interfaces.IMsg {
 
 	return eom
 }
+
+func (s *State) Print(a ...interface{}) (n int, err error) {	
+	str := ""
+	for _,v := range a {
+		str = str+fmt.Sprintf("%v",v)
+	}
+	
+	if s.OutputAllowed { return fmt.Print(str) }
+	
+	return 0, nil
+}
+
+func (s *State) Println(a ...interface{}) (n int, err error) {	
+	str := ""
+	for _,v := range a {
+		str = str+fmt.Sprintf("%v",v)
+	}
+	str = str+"\n"
+	
+	if s.OutputAllowed { return fmt.Print(str) }
+	
+	return 0, nil
+}
+
+

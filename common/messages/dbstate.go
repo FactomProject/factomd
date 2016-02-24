@@ -200,7 +200,7 @@ func (m *DBStateMsg) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *DBStateMsg) String() string {
-	return fmt.Sprintf("DBState")
+	return fmt.Sprintf("DBState: %d",m.DirectoryBlock.GetHeader().GetDBHeight() )
 }
 
 func NewDBStateMsg( state  interfaces.IState,

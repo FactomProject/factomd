@@ -13,6 +13,8 @@ import (
 
 func Timer(state interfaces.IState) {
 
+	time.Sleep(1 * time.Second)
+	
 	billion := int64(1000000000)
 	period := int64(state.GetDirectoryBlockInSeconds()) * billion
 	tenthPeriod := period / 10
@@ -39,10 +41,10 @@ func Timer(state interfaces.IState) {
 				pls = fmt.Sprintf("%s #%d:%d;", pls, i+1, 0, i)
 			}
 
-			fmt.Printf("\r%19s: %s %s",
+			state.Print(fmt.Sprintf("\r%19s: %s %s",
 				"Timer",
 				state.String(),
-				(string)((([]byte)("-\\|/-\\|/-="))[i]))
+				(string)((([]byte)("-\\|/-\\|/-="))[i])))
 			// End of the last period, and this is a server, send messages that
 			// close off the minute.
 			if state.GetServerState() == 1 {

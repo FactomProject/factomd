@@ -34,11 +34,12 @@ type DBStateList struct {
 }
 
 func (list *DBStateList) GetDBHeight() uint32 {
-	db := list.Last()
-	if db == nil {
+	if list == nil { return 0 }
+	if db := list.Last(); db == nil {
 		return 0
+	}else{
+		return db.DirectoryBlock.GetHeader().GetDBHeight()
 	}
-	return db.DirectoryBlock.GetHeader().GetDBHeight()
 }
 
 func (list *DBStateList) Length() int {
@@ -65,6 +66,8 @@ func (list *DBStateList) Put(dbstate *DBState) {
 		list.complete = list.complete - uint32(cnt) + 2
 	}
 	index := int(dbheight) - int(list.base)
+	
+	if cnt > 100 { panic("Should not happen") }
 	
 	// If we have already processed this state, ignore it.
 	if index < int(list.complete) {
@@ -93,6 +96,7 @@ func (list *DBStateList) Put(dbstate *DBState) {
 	
 	if dbheight >= list.state.LDBHeight {
 		list.state.LDBHeight = dbheight+1
+		list.state.LastAck = nil
 	}
 }
 
@@ -155,7 +159,7 @@ func (list *DBStateList) Process() {
 		if list.state.LDBHeight < list.complete+list.base {
 			list.state.LDBHeight = list.complete + list.base
 		}
-		fmt.Print("\rDBState ", list.complete)
+
 	}
 }
 
@@ -164,7 +168,7 @@ func (list *DBStateList) NewDBState(isNew bool,
 	AdminBlock interfaces.IAdminBlock,
 	FactoidBlock interfaces.IFBlock,
 	EntryCreditBlock interfaces.IEntryCreditBlock) *DBState {
-
+		
 	dbstate := new(DBState)
 
 	dbstate.isNew = isNew

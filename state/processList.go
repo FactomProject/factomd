@@ -19,15 +19,28 @@ type ProcessLists struct {
 	Lists        []*ProcessList // Pointer to the ProcessList structure for each DBHeight under construction
 }
 
-func (lists *ProcessLists) UpdateState() {
-
+// Returns the height of the Process List under construction.  There
+// can be another list under construction (because of missing messages.
+func (lists *ProcessLists) DBHeight() uint32 {
 	// First let's start at the lowest Process List not yet complete.
 	dbstate := lists.State.DBStates.Last()
 	if dbstate == nil {
+		return 0
+	}
+	return dbstate.DirectoryBlock.GetHeader().GetDBHeight() + 1
+}
+
+
+func (lists *ProcessLists) UpdateState() {
+	
+	heightBuilding := lists.DBHeight()
+
+	if heightBuilding == 0 { 
 		return
 	}
-	heightBuilding := dbstate.DirectoryBlock.GetHeader().GetDBHeight() + 1
 
+	dbstate := lists.State.DBStates.Last()
+	
 	pl := lists.Get(heightBuilding)
 
 	diff := heightBuilding - lists.DBHeightBase
@@ -62,7 +75,9 @@ func (lists *ProcessLists) UpdateState() {
 func (lists *ProcessLists) Get(dbheight uint32) *ProcessList {
 
 	i := int(dbheight) - int(lists.DBHeightBase)
-
+	
+	if i > 200 { panic("Should not happen") }
+	
 	if i < 0 {
 		return nil
 	}
@@ -71,7 +86,7 @@ func (lists *ProcessLists) Get(dbheight uint32) *ProcessList {
 	}
 	pl := lists.Lists[i]
 	if pl == nil {
-		pl = NewProcessList(lists.State.GetTotalServers(), dbheight)
+		pl = NewProcessList(lists.State, lists.State.GetTotalServers(), dbheight)
 		lists.Lists[i] = pl
 	}
 	return pl
@@ -79,7 +94,8 @@ func (lists *ProcessLists) Get(dbheight uint32) *ProcessList {
 
 type ProcessList struct {
 	DBHeight uint32 // The directory block height for these lists
-	Servers  []ListServer
+	State    interfaces.IState
+	Servers  []*ListServer
 
 	Acks *map[[32]byte]interfaces.IMsg // acknowlegments by hash
 	Msgs *map[[32]byte]interfaces.IMsg // messages by hash
@@ -149,7 +165,7 @@ func (p *ProcessList) PutCommits(key interfaces.IHash, value interfaces.IMsg) {
 				if ok {
 					cmsg.SetCount(v.(interfaces.ICounted).GetCount() + 1)
 				} else {
-					fmt.Println(v)
+					p.State.Println(v)
 					panic("Should never happen")
 				}
 			}
@@ -204,7 +220,7 @@ func (p *ProcessList) Process(state interfaces.IState) {
 		//fmt.Println("Process List: DBHEight, height in list, len(plist)", p.DBHeight, p.Servers[i].Height, len(plist))
 		for j := p.Servers[i].Height; !p.Servers[i].SigComplete && j < len(plist); j++ {
 			if plist[j] == nil {
-				fmt.Println("!!!!!!! Missing entry in process list at", j)
+				p.State.Println("!!!!!!! Missing entry in process list at", j)
 				return
 			}
 			p.Servers[i].Height = j + 1         // Don't process it again.
@@ -223,6 +239,8 @@ func (p *ProcessList) Process(state interfaces.IState) {
 }
 
 func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
+	if p == nil || p.Servers[ack.ServerIndex].List == nil { panic("This should not happen")}
+	
 	for len(p.Servers[ack.ServerIndex].List) <= int(ack.Height) {
 		p.Servers[ack.ServerIndex].List = append(p.Servers[ack.ServerIndex].List, nil)
 	}
@@ -248,14 +266,18 @@ func NewProcessLists(state interfaces.IState) *ProcessLists {
 	return pls
 }
 
-func NewProcessList(totalServers int, dbheight uint32) *ProcessList {
+func NewProcessList(state interfaces.IState, totalServers int, dbheight uint32) *ProcessList {
 	// We default to the number of Servers previous.   That's because we always
 	// allocate the FUTURE directoryblock, not the current or previous...
 
 	pl := new(ProcessList)
 
-	pl.Servers = make([]ListServer, totalServers)
-
+	pl.State   = state
+	pl.Servers = make([]*ListServer, totalServers)
+	for i:=0; i< totalServers; i++ {
+		pl.Servers[i]=new(ListServer)
+		pl.Servers[i].List = make([]interfaces.IMsg,0)
+	}
 	pl.DBHeight = dbheight
 	pl.Acks = new(map[[32]byte]interfaces.IMsg)
 	pl.Msgs = new(map[[32]byte]interfaces.IMsg)

@@ -6,7 +6,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/factoid/block"
@@ -37,7 +36,7 @@ func loadDatabase(s *state.State) {
 		panic(err)
 	}
 	
-	fmt.Println("Directory Blocks Found:", len(dblks))
+	s.Println("Directory Blocks Found:", len(dblks))
 	
 	blkCnt = uint32(len(dblks))
 	for i := int(blkCnt)-1; i >=0; i-- {
@@ -72,9 +71,9 @@ func loadDatabase(s *state.State) {
 	}
 	
 	if blkCnt == 0 && s.NetworkNumber == constants.NETWORK_LOCAL {
-		fmt.Println("\n***********************************")
-		fmt.Println("******* New Database **************")
-		fmt.Println("***********************************\n")
+		s.Println("\n***********************************")
+		s.Println("******* New Database **************")
+		s.Println("***********************************\n")
 		
 		dblk := directoryBlock.NewDirectoryBlock(0, nil)
 		ablk := s.NewAdminBlock(0)
@@ -85,6 +84,6 @@ func loadDatabase(s *state.State) {
 		
 		s.InMsgQueue() <- msg
 	}
-	log.Println(fmt.Sprintf("Loaded %d directory blocks", blkCnt))
+	s.Println(fmt.Sprintf("Loaded %d directory blocks", blkCnt))
 
 }

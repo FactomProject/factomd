@@ -26,46 +26,41 @@ type FactomNode struct {
 type FactomPeer struct {	
 	BroadcastOut      chan interfaces.IMsg
 	BroadcastIn       chan interfaces.IMsg
-	PrivateOut        chan interfaces.IMsg
-	PrivateIn         chan interfaces.IMsg	
 }
 
 func (f *FactomPeer) init() *FactomPeer {
 	f.BroadcastOut = make(chan interfaces.IMsg,10000)
-	f.BroadcastIn  = make(chan interfaces.IMsg,10000)
-	f.PrivateOut = make(chan interfaces.IMsg,10000)
-	f.PrivateIn  = make(chan interfaces.IMsg,10000)
 	return f
 }
 
 func AddPeer(f1, f2 *FactomNode) {
 	peer12 := new(FactomPeer).init()
 	peer21 := new(FactomPeer).init()
-	peer12.BroadcastOut = peer21.BroadcastIn
 	peer12.BroadcastIn = peer21.BroadcastOut
-	peer12.PrivateOut = peer21.PrivateIn
-	peer12.PrivateIn = peer21.PrivateOut
-	peer21.BroadcastOut = peer12.BroadcastIn
 	peer21.BroadcastIn = peer12.BroadcastOut
-	peer21.PrivateOut = peer12.PrivateIn
-	peer21.PrivateIn = peer12.PrivateOut
 	
 	f1.Peers = append(f1.Peers,peer12)
 	f2.Peers = append(f2.Peers,peer21)
 }
 
 func NetStart(state *ss.State) {
+	
+	var states []*ss.State
+	
+	state.SetOut(false)
+	
 	fmt.Println(">>>>>>>>>>>>>>>>")
 	fmt.Println(">>>>>>>>>>>>>>>> Net Sim Start!!!!!")
 	fmt.Println(">>>>>>>>>>>>>>>>")
 	
 	btcd.AddInterruptHandler(func() {
-		log.Printf("<Break>\n")
-		log.Printf("Gracefully shutting down the server...\n")
-		state.ShutdownChan <- 0
+		fmt.Print("<Break>\n")
+		fmt.Print("Gracefully shutting down the server...\n")
+		for _,one_state := range states {
+			one_state.ShutdownChan <- 0
+		}
 	})
 		
-	
 	pcfg, _, err := btcd.LoadConfig()
 	if err != nil {
 		log.Println(err.Error())
@@ -75,38 +70,34 @@ func NetStart(state *ss.State) {
 	if len(FactomConfigFilename) == 0 {
 		FactomConfigFilename = util.GetConfigFilename("m2")
 	}
-	log.Printfln("factom config: %s", FactomConfigFilename)
-	//
-	// Start Up Factom here!  
-	//    Start Factom
-	//    Add the API (don't have to)
-	//    Add the network.  
+	fmt.Println(fmt.Sprintf("factom config: %s", FactomConfigFilename))
+	
+	startServer := func(clone bool, number string) *FactomNode{
+		newState := state
+		if clone {
+			newState = state.Clone(number).(*ss.State)
+			newState.Init()
+		} 
+		
+		states = append(states,newState)
+		
+		fnode := new(FactomNode)
+		fnode.State = newState
+		go NetworkProcessorNet(fnode)
+		go loadDatabase(newState)
+		go Timer(newState)
+		go Validator(newState)
+		return fnode
+	}
+
 	state.LoadConfig(FactomConfigFilename)
-
 	state.Init()
-	
-	state2 := state.Clone("1").(*ss.State)
-	state2.Init()
-
-	fnode1 := new(FactomNode)
-	fnode1.State = state
-	fnode2 := new(FactomNode)
-	fnode2.State = state2
-	
-	go NetworkProcessorNet(fnode2)
-	go loadDatabase(state2)
-	go Timer(state2)
-	go Validator(state2)
-	
-	AddPeer(fnode1, fnode2)
-	
-	go NetworkProcessorNet(fnode1)
-	go loadDatabase(state)
-	go Timer(state)
-	go Validator(state)
-	
-	
-	go wsapi.Start(state)
+	fnode1 := startServer(true,"1")
+	fnode1.State.SetOut(true)
+	fnode0 := startServer(false,"0")
+	AddPeer(fnode0, fnode1)
+		
+	go wsapi.Start(fnode1.State)
 	
 	// Web API runs independent of Factom Servers
 

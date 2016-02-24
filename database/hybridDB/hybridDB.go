@@ -15,6 +15,13 @@ type HybridDB struct {
 
 var _ interfaces.IDatabase = (*HybridDB)(nil)
 
+func (db *HybridDB) Trim() {
+	m := new(mapdb.MapDB)
+	m.Init(nil)
+	db.temporaryStorage = m
+}
+
+
 func (db *HybridDB) Close() error {
 	err := db.temporaryStorage.Close()
 	if err != nil {
