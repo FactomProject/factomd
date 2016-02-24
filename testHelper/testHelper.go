@@ -18,7 +18,7 @@ import (
 
 var BlockCount int = 10
 var DefaultCoinbaseAmount uint64 = 100000000
-
+/*
 func CreateEmptyTestState() *state.State {
 	s := new(state.State)
 	s.Init("")
@@ -36,7 +36,7 @@ func CreateAndPopulateTestState() *state.State {
 	s.FactoidState.SetFactoshisPerEC(1)
 	return s
 }
-
+*/
 func CreateAndPopulateTestDatabaseOverlay() *databaseOverlay.Overlay {
 	dbo := CreateEmptyTestDatabaseOverlay()
 

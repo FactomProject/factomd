@@ -65,6 +65,13 @@ func Stop(state interfaces.IState) {
 }
 
 func handleV1Error(ctx *web.Context, err *primitives.JSONError) {
+	if err.Data!=nil {
+		data, ok:=err.Data.(string)
+		if ok == true {
+			returnMsg(ctx, err.Message + ": "+data, false)
+			return
+		}
+	}
 	returnMsg(ctx, err.Message, false)
 	return
 }
