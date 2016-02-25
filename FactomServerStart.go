@@ -31,43 +31,21 @@ func loadDatabase(s *state.State) {
 	
 	var blkCnt uint32
 	
-	dblks, err := s.DB.FetchAllDBlocks()
-	if err != nil {
-		panic(err)
+	dhead, _ := s.GetDB().FetchDirectoryBlockHead()
+	if dhead == nil {
+		blkCnt = 0
+	}else{
+		blkCnt = dhead.GetHeader().GetDBHeight()
 	}
 	
-	s.Println("Directory Blocks Found:", len(dblks))
+	s.Println("Directory Blocks Found:", blkCnt )
 	
-	blkCnt = uint32(len(dblks))
 	for i := int(blkCnt)-1; i >=0; i-- {
-				
-		dblk := dblks[i]
-	
-		ablk, err := s.DB.FetchABlockByKeyMR(dblk.GetDBEntries()[0].GetKeyMR())
-		if err != nil {
-			panic(err)
+					
+		msg, _ := s.LoadDBState(uint32(i))
+		if msg != nil {
+			s.InMsgQueue() <- msg
 		}
-		if ablk == nil {
-			panic("ablk is nil" + dblk.GetDBEntries()[0].GetKeyMR().String())
-		}
-		ecblk, err := s.DB.FetchECBlockByHash(dblk.GetDBEntries()[1].GetKeyMR())
-		if err != nil {
-			panic(err)
-		}
-		if ecblk == nil {
-			panic("ecblk is nil - " + dblk.GetDBEntries()[1].GetKeyMR().String())
-		}
-		fblk, err := s.DB.FetchFBlockByKeyMR(dblk.GetDBEntries()[2].GetKeyMR())
-		if err != nil {
-			panic(err)
-		}
-		if fblk == nil {
-			panic("fblk is nil" + dblk.GetDBEntries()[2].GetKeyMR().String())
-		}
-		
-		msg := messages.NewDBStateMsg(s,dblk,ablk,fblk, ecblk)
-		
-		s.InMsgQueue() <- msg
 	}
 	
 	if blkCnt == 0 && s.NetworkNumber == constants.NETWORK_LOCAL {

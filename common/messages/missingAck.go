@@ -36,6 +36,17 @@ func (m *MissingAck) GetHash() interfaces.IHash {
 	return m.hash
 }
 
+func (m *MissingAck) GetMsgHash() interfaces.IHash {
+	if m.MsgHash == nil {
+		data, err := m.MarshalBinary()
+		if err != nil {
+			return nil
+		}
+		m.MsgHash = primitives.Sha(data)
+	}
+	return m.MsgHash
+}
+
 func (m *MissingAck) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp
 }

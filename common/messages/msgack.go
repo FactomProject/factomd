@@ -172,6 +172,17 @@ func (m *MsgAck) GetHash() interfaces.IHash {
 	return nil
 }
 
+func (m *MsgAck) GetMsgHash() interfaces.IHash {
+	if m.MsgHash == nil {
+		data, err := m.MarshalBinary()
+		if err != nil {
+			return nil
+		}
+		m.MsgHash = primitives.Sha(data)
+	}
+	return m.MsgHash
+}
+
 func (m *MsgAck) GetTimestamp() interfaces.Timestamp {
 	return 0
 }

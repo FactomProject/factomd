@@ -18,13 +18,12 @@ func NetworkProcessorNet(fnode *FactomNode) {
 	for {
 		
 		// Put any broadcasts from our peers into our BroadcastIn queue
-		for i,peer := range fnode.Peers {
+		for _,peer := range fnode.Peers {
 			loop: for {
 				select {
 				case msg, ok := <- peer.BroadcastIn:
-					fnode.State.Println("In Comming!! ",msg)
 					if ok {
-						msg.SetOrigin(i+1)		// Remember this came from outside!
+						//fnode.State.Println("In Comming!! ",msg)
 						fnode.State.NetworkInMsgQueue() <- msg 
 					}
 				default:
@@ -39,16 +38,20 @@ func NetworkProcessorNet(fnode *FactomNode) {
 				if fnode.State.PrintType(msg.Type()) {
 					
 				}
-				fnode.State.Println("Msg Origin: ",msg.GetOrigin()," ",msg)
+				//fnode.State.Println("Msg Origin: ",msg.GetOrigin()," ",msg)
 				fnode.State.InMsgQueue() <- msg
 			}
 		case msg, ok := <-fnode.State.NetworkOutMsgQueue():
 			if ok {
-				for i, peer := range fnode.Peers {
-					if msg.GetOrigin() != i+1 {
-						peer.BroadcastOut <- msg
-						fnode.State.Println("Replying Back:",msg.GetOrigin()," ", i+1, " ", msg.String())
-					}
+				// We don't care about the result, but we do want to log that we have
+				// seen this message before, because we might have generated the message
+				// ourselves.
+				IsTSValid_(msg.GetMsgHash().Fixed(),
+						   int64(msg.GetTimestamp())/1000,
+						   int64(fnode.State.GetTimestamp())/1000)
+				
+				for _, peer := range fnode.Peers {
+					peer.BroadcastOut <- msg
 				}
 			}
 		case msg, ok := <-fnode.State.NetworkInvalidMsgQueue():

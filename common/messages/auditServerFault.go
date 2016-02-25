@@ -36,6 +36,17 @@ func (m *AuditServerFault) GetHash() interfaces.IHash {
 	return nil
 }
 
+func (m *AuditServerFault) GetMsgHash() interfaces.IHash {
+	if m.MsgHash == nil {
+		data, err := m.MarshalBinary()
+		if err != nil {
+			return nil
+		}
+		m.MsgHash = primitives.Sha(data)
+	}
+	return m.MsgHash
+}
+
 func (m *AuditServerFault) Type() int {
 	return constants.AUDIT_SERVER_FAULT_MSG
 }

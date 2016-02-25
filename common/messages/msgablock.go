@@ -81,6 +81,17 @@ func (m *MsgABlock) GetHash() interfaces.IHash {
 	return nil
 }
 
+func (m *MsgABlock) GetMsgHash() interfaces.IHash {
+	if m.MsgHash == nil {
+		data, err := m.MarshalBinary()
+		if err != nil {
+			return nil
+		}
+		m.MsgHash = primitives.Sha(data)
+	}
+	return m.MsgHash
+}
+
 func (m *MsgABlock) GetTimestamp() interfaces.Timestamp {
 	return 0
 }

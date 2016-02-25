@@ -150,6 +150,17 @@ func (m *MsgDirInv) GetHash() interfaces.IHash {
 	return nil
 }
 
+func (m *MsgDirInv) GetMsgHash() interfaces.IHash {
+	if m.MsgHash == nil {
+		data, err := m.MarshalBinary()
+		if err != nil {
+			return nil
+		}
+		m.MsgHash = primitives.Sha(data)
+	}
+	return m.MsgHash
+}
+
 func (m *MsgDirInv) GetTimestamp() interfaces.Timestamp {
 	return 0
 }

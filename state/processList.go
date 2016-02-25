@@ -76,8 +76,6 @@ func (lists *ProcessLists) Get(dbheight uint32) *ProcessList {
 
 	i := int(dbheight) - int(lists.DBHeightBase)
 	
-	if i > 200 { panic("Should not happen") }
-	
 	if i < 0 {
 		return nil
 	}

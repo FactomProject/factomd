@@ -46,6 +46,17 @@ func (m *CommitChainMsg) GetHash() interfaces.IHash {
 	return m.CommitChain.EntryHash
 }
 
+func (m *CommitChainMsg) GetMsgHash() interfaces.IHash {
+	if m.MsgHash == nil {
+		data, err := m.MarshalBinary()
+		if err != nil {
+			return nil
+		}
+		m.MsgHash = primitives.Sha(data)
+	}
+	return m.MsgHash
+}
+
 func (m *CommitChainMsg) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp
 }

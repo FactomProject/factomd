@@ -20,7 +20,6 @@ func Validator(state interfaces.IState) {
 	var _ = s
 	
 	for {
-		fmt.Println(".")
 		
 		select {
 			case i := <- s.ShutdownChan:
@@ -30,7 +29,14 @@ func Validator(state interfaces.IState) {
 		}
 		
 		msg := <-state.InMsgQueue() // Get message from the input queue
-		state.UpdateState()
+
+		if !IsTSValid_(msg.GetMsgHash().Fixed(),
+			int64(msg.GetTimestamp())/1000,
+			int64(state.GetTimestamp())/1000) {
+			state.Println("\nMsg Not Valid: ",msg)
+			// If we have seen this message before, ignore it.
+			continue
+		}
 		
 		if state.PrintType(msg.Type()) {
 			state.Print(fmt.Sprintf("%20s %s", "Validator:", msg.String()))
@@ -38,7 +44,10 @@ func Validator(state interfaces.IState) {
 
 		switch msg.Validate(state.GetDBHeight(), state) { // Validate the message.
 		case 1: // Process if valid
-			state.NetworkOutMsgQueue() <- msg
+			
+			if !msg.IsPeer2peer() {					// Do not relay P2P messages
+				state.NetworkOutMsgQueue() <- msg
+			}
 			if state.PrintType(msg.Type()) {
 				state.Print(" Valid\n")
 			}

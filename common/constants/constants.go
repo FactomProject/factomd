@@ -28,7 +28,7 @@ const (
 	SIGNATURE_TIMEOUT_MSG                // 15
 	
 	DBSTATE_MSG                          // 16
-	
+	DBSTATE_MISSING_MSG                  // 17
 )
 
 const (

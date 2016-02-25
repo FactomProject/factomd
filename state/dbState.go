@@ -67,8 +67,6 @@ func (list *DBStateList) Put(dbstate *DBState) {
 	}
 	index := int(dbheight) - int(list.base)
 	
-	if cnt > 100 { panic("Should not happen") }
-	
 	// If we have already processed this state, ignore it.
 	if index < int(list.complete) {
 		return

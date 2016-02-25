@@ -19,6 +19,7 @@ type IState interface {
 	LoadConfig(filename string)
 	Init()
 	String() string
+	GetServerIdentityChainID() IHash
 	Sign([]byte) IFullSignature
 	GetDirectoryBlockInSeconds() int
 	GetServer() IServer
@@ -28,7 +29,7 @@ type IState interface {
 	Println(a ...interface{}) (n int, err error)
 	SetOut(bool)		// Output is turned on if set to true
 	GetOut() bool		// Return true if Print or Println write output
-	
+	LoadDBState(dbheight uint32) (IMsg,error)
 	// Channels
 	//==========
 

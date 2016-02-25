@@ -99,6 +99,17 @@ func (m *MsgRevealEntry) GetHash() interfaces.IHash {
 	return nil
 }
 
+func (m *MsgRevealEntry) GetMsgHash() interfaces.IHash {
+	if m.MsgHash == nil {
+		data, err := m.MarshalBinary()
+		if err != nil {
+			return nil
+		}
+		m.MsgHash = primitives.Sha(data)
+	}
+	return m.MsgHash
+}
+
 func (m *MsgRevealEntry) GetTimestamp() interfaces.Timestamp {
 	return 0
 }

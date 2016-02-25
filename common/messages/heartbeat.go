@@ -41,6 +41,17 @@ func (m *Heartbeat) GetHash() interfaces.IHash {
 	return m.hash
 }
 
+func (m *Heartbeat) GetMsgHash() interfaces.IHash {
+	if m.MsgHash == nil {
+		data, err := m.MarshalBinary()
+		if err != nil {
+			return nil
+		}
+		m.MsgHash = primitives.Sha(data)
+	}
+	return m.MsgHash
+}
+
 func (m *Heartbeat) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp
 }

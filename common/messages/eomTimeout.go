@@ -28,6 +28,19 @@ func (m *EOMTimeout) GetHash() interfaces.IHash {
 	return nil
 }
 
+
+func (m *EOMTimeout) GetMsgHash() interfaces.IHash {
+	if m.MsgHash == nil {
+		data, err := m.MarshalBinary()
+		if err != nil {
+			return nil
+		}
+		m.MsgHash = primitives.Sha(data)
+	}
+	return m.MsgHash
+}
+
+
 func (m *EOMTimeout) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp
 }

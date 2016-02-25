@@ -92,12 +92,19 @@ func NetStart(state *ss.State) {
 
 	state.LoadConfig(FactomConfigFilename)
 	state.Init()
+	fnode4 := startServer(true,"4")
+	fnode3 := startServer(true,"3")
+	fnode2 := startServer(true,"2")
 	fnode1 := startServer(true,"1")
-	fnode1.State.SetOut(true)
+	AddPeer(fnode2, fnode3)
+	AddPeer(fnode1, fnode2)
+	AddPeer(fnode2, fnode4)
 	fnode0 := startServer(false,"0")
+	AddPeer(fnode0, fnode3)
 	AddPeer(fnode0, fnode1)
-		
 	go wsapi.Start(fnode1.State)
+
+	fnode4.State.SetOut(true)
 	
 	// Web API runs independent of Factom Servers
 

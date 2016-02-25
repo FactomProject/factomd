@@ -45,6 +45,17 @@ func (m *DirectoryBlockSignature) GetHash() interfaces.IHash {
 	return m.hash
 }
 
+func (m *DirectoryBlockSignature) GetMsgHash() interfaces.IHash {
+	if m.MsgHash == nil {
+		data, _ := m.MarshalForSignature()
+		if data == nil {
+			return nil
+		}
+		m.MsgHash = primitives.Sha(data)
+	}
+	return m.MsgHash
+}
+
 func (m *DirectoryBlockSignature) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp
 }
@@ -113,8 +124,16 @@ func (m *DirectoryBlockSignature) UnmarshalBinaryData(data []byte) (newData []by
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
 	}()
+	
+	// Type byte:  Someone else's problem.
 	newData = data[1:]
 
+	// TimeStamp
+	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
+	if err != nil {
+		return nil, err
+	}
+	
 	m.DirectoryBlockHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
 	hash := new(primitives.Hash)
@@ -149,6 +168,7 @@ func (m *DirectoryBlockSignature) UnmarshalBinary(data []byte) error {
 }
 
 func (m *DirectoryBlockSignature) MarshalForSignature() ([]byte, error) {
+
 	if m.DirectoryBlockKeyMR == nil || m.ServerIdentityChainID == nil {
 		return nil, fmt.Errorf("Message is incomplete")
 	}
@@ -156,12 +176,21 @@ func (m *DirectoryBlockSignature) MarshalForSignature() ([]byte, error) {
 	var buf bytes.Buffer
 	buf.Write([]byte{byte(m.Type())})
 
+	t := m.GetTimestamp()
+	data, err := t.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	buf.Write(data)
+	
 	binary.Write(&buf, binary.BigEndian, m.DirectoryBlockHeight)
+	
 	hash, err := m.DirectoryBlockKeyMR.MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
 	buf.Write(hash)
+	
 	hash, err = m.ServerIdentityChainID.MarshalBinary()
 	if err != nil {
 		return nil, err
@@ -181,7 +210,7 @@ func (m *DirectoryBlockSignature) MarshalBinary() (data []byte, err error) {
 	if sig != nil {
 		sigBytes, err := sig.MarshalBinary()
 		if err != nil {
-			return nil, err
+			return resp, err
 		}
 		return append(resp, sigBytes...), nil
 	}
@@ -210,7 +239,7 @@ func (e *DirectoryBlockSignature) JSONBuffer(b *bytes.Buffer) error {
 
 func NewDirectoryBlockSignature() *DirectoryBlockSignature {
 	dbm := new(DirectoryBlockSignature)
-	dbm.DirectoryBlockKeyMR = new(primitives.Hash)
-	dbm.ServerIdentityChainID = new(primitives.Hash)
+	dbm.DirectoryBlockKeyMR = primitives.NewHash(constants.ZERO_HASH)
+	dbm.ServerIdentityChainID = primitives.NewHash(constants.ZERO_HASH)
 	return dbm
 }

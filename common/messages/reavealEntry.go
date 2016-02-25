@@ -70,6 +70,17 @@ func (m *RevealEntryMsg) GetHash() interfaces.IHash {
 	return m.hash
 }
 
+func (m *RevealEntryMsg) GetMsgHash() interfaces.IHash {
+	if m.MsgHash == nil {
+		data, err := m.MarshalBinary()
+		if err != nil {
+			return nil
+		}
+		m.MsgHash = primitives.Sha(data)
+	}
+	return m.MsgHash
+}
+
 func (m *RevealEntryMsg) GetChainIDHash() interfaces.IHash {
 	if m.chainIDHash == nil {
 		m.chainIDHash = primitives.Sha(m.Entry.GetChainID().Bytes())

@@ -36,6 +36,17 @@ func (m *FactoidTransaction) GetHash() interfaces.IHash {
 	return m.hash
 }
 
+func (m *FactoidTransaction) GetMsgHash() interfaces.IHash {
+	if m.MsgHash == nil {
+		data, err := m.MarshalBinary()
+		if err != nil {
+			return nil
+		}
+		m.MsgHash = primitives.Sha(data)
+	}
+	return m.MsgHash
+}
+
 func (m *FactoidTransaction) GetTimestamp() interfaces.Timestamp {
 	return interfaces.Timestamp(m.Transaction.GetMilliTimestamp())
 }

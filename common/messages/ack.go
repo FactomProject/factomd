@@ -80,6 +80,17 @@ func (m *Ack) GetHash() interfaces.IHash {
 	return m.MessageHash
 }
 
+func (m *Ack) GetMsgHash() interfaces.IHash {
+	if m.MsgHash == nil {
+		data, err := m.MarshalBinary()
+		if err != nil {
+			return nil
+		}
+		m.MsgHash = primitives.Sha(data)
+	}
+	return m.MsgHash
+}
+
 func (m *Ack) Type() int {
 	return constants.ACK_MSG
 }

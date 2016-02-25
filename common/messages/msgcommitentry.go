@@ -99,6 +99,17 @@ func (m *MsgCommitEntry) GetHash() interfaces.IHash {
 	return nil
 }
 
+func (m *MsgCommitEntry) GetMsgHash() interfaces.IHash {
+	if m.MsgHash == nil {
+		data, err := m.MarshalBinary()
+		if err != nil {
+			return nil
+		}
+		m.MsgHash = primitives.Sha(data)
+	}
+	return m.MsgHash
+}
+
 func (m *MsgCommitEntry) GetTimestamp() interfaces.Timestamp {
 	return 0
 }

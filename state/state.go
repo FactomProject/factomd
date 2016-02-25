@@ -54,12 +54,13 @@ type State struct {
 	inMsgQueue             chan interfaces.IMsg
 	ShutdownChan           chan int					// For gracefully halting Factom
 	
-	myServer      interfaces.IServer //the server running on this Federated Server
-	serverPrivKey primitives.PrivateKey
-	serverPubKey  primitives.PublicKey
-	totalServers  int
-	serverState   int
-	OutputAllowed bool
+	myServer      			interfaces.IServer //the server running on this Federated Server
+	ServerIdentityChainID 	interfaces.IHash
+	serverPrivKey 			primitives.PrivateKey
+	serverPubKey  			primitives.PublicKey
+	totalServers  			int
+	serverState   			int
+	OutputAllowed 			bool
 	
 	// Maps
 	// ====
@@ -176,6 +177,8 @@ func (s *State) LoadConfig(filename string, ) {
 	s.FactoshisPerEC = cfg.App.ExchangeRate
 	s.DirectoryBlockInSeconds = cfg.App.DirectoryBlockInSeconds
 	s.PortNumber = cfg.Wsapi.PortNumber
+	
+	s.ServerIdentityChainID = primitives.NewHash(constants.ZERO_HASH)
 }
 
 func (s *State) Init() {
@@ -186,10 +189,10 @@ func (s *State) Init() {
 
 	log.SetLevel(s.ConsoleLogLevel)
 
-	s.networkInMsgQueue = make(chan interfaces.IMsg, 1000)      //incoming message queue from the network messages
-	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 1000) //incoming message queue from the network messages
-	s.networkOutMsgQueue = make(chan interfaces.IMsg, 1000)     //Messages to be broadcast to the network
-	s.inMsgQueue = make(chan interfaces.IMsg, 1000)             //incoming message queue for factom application messages
+	s.networkInMsgQueue = make(chan interfaces.IMsg, 10000)      //incoming message queue from the network messages
+	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 10000) //incoming message queue from the network messages
+	s.networkOutMsgQueue = make(chan interfaces.IMsg, 10000)     //Messages to be broadcast to the network
+	s.inMsgQueue = make(chan interfaces.IMsg, 10000)             //incoming message queue for factom application messages
 	s.ShutdownChan = make(chan int)								 //Channel to gracefully shut down.
 	
 	// Set up maps for the followers
@@ -372,14 +375,12 @@ func (s *State) LeaderExecute(m interfaces.IMsg) error {
 
 	ack, err := s.NewAck(hash)
 	if err != nil {
-		s.Println("Error!")
 		return err
 	}
 
 	// Leader Execute creates an acknowledgement and the EOM
 	s.NetworkOutMsgQueue() <- ack
 	ack.FollowerExecute(s)
-
 	s.NetworkOutMsgQueue() <- m // Send the Message;  It works better if
 	m.FollowerExecute(s)
 	return nil
@@ -394,7 +395,6 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
 func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) error {
 	s.LeaderExecute(m)
 	s.ProcessLists.Get(s.LDBHeight).SetComplete(true)
-	s.LDBHeight++   // Increase our height
 	s.LastAck = nil // Clear Ack list
 	return nil
 }
@@ -453,6 +453,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) {
 			// create a DirectoryBlockSignature (if we are the leader) and
 			// send it out to the network.
 			DBM := messages.NewDirectoryBlockSignature()
+			DBM.Timestamp = s.GetTimestamp()
 			prevDB := s.GetDirectoryBlock()
 			if prevDB == nil {
 				DBM.DirectoryBlockKeyMR = primitives.NewHash(constants.ZERO_HASH)
@@ -485,6 +486,11 @@ func (s *State) GetFactoshisPerEC() uint64 {
 func (s *State) SetFactoshisPerEC(factoshisPerEC uint64) {
 	s.FactoshisPerEC = factoshisPerEC
 }
+
+func (s *State) GetServerIdentityChainID() interfaces.IHash {
+	return s.ServerIdentityChainID
+}
+
 
 func (s *State) GetDirectoryBlockInSeconds() int {
 	return s.DirectoryBlockInSeconds
@@ -818,6 +824,43 @@ func (s *State) NewAck(hash interfaces.IHash) (iack interfaces.IMsg, err error) 
 	return ack, nil
 }
 
+func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg,error) {
+
+	dblk, err := s.DB.FetchDBlockByHeight(dbheight)
+	if err != nil {
+		return nil, err
+	}
+	
+	ablk, err := s.DB.FetchABlockByKeyMR(dblk.GetDBEntries()[0].GetKeyMR())
+	if err != nil {
+		return nil, err
+	}
+	if ablk == nil {
+		panic("ablk is nil" + dblk.GetDBEntries()[0].GetKeyMR().String())
+	}
+	ecblk, err := s.DB.FetchECBlockByHash(dblk.GetDBEntries()[1].GetKeyMR())
+	if err != nil {
+		return nil, err
+	}
+	if ecblk == nil {
+		return nil, err
+	}
+	fblk, err := s.DB.FetchFBlockByKeyMR(dblk.GetDBEntries()[2].GetKeyMR())
+	if err != nil {
+		return nil, err
+	}
+	if fblk == nil {
+		return nil, err
+	}
+	
+	msg := messages.NewDBStateMsg(s,dblk,ablk,fblk, ecblk)
+	
+	return msg, nil
+	
+}
+
+
+
 func (s *State) GetOut() bool {
 	return s.OutputAllowed
 }
@@ -831,6 +874,7 @@ func (s *State) NewEOM(minute int) interfaces.IMsg {
 	// the server to create the proper serial hashes and such.  Right now
 	// I am ignoring all of that.
 	eom := new(messages.EOM)
+	eom.Timestamp = s.GetTimestamp() 
 	eom.Minute = byte(minute)
 	eom.ServerIndex = s.ServerIndex
 	eom.DirectoryBlockHeight = s.LDBHeight

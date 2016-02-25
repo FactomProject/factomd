@@ -73,6 +73,17 @@ func (m *MsgPong) GetHash() interfaces.IHash {
 	return nil
 }
 
+func (m *MsgPong) GetMsgHash() interfaces.IHash {
+	if m.MsgHash == nil {
+		data, err := m.MarshalBinary()
+		if err != nil {
+			return nil
+		}
+		m.MsgHash = primitives.Sha(data)
+	}
+	return m.MsgHash
+}
+
 func (m *MsgPong) GetTimestamp() interfaces.Timestamp {
 	return 0
 }

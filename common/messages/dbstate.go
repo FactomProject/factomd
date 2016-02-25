@@ -8,10 +8,15 @@ import (
 	"bytes"
 //	"encoding/binary"
 	"fmt"
-
+	"encoding/binary"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/directoryBlock"
+	"github.com/FactomProject/factomd/common/adminBlock"
+	"github.com/FactomProject/factomd/common/factoid/block"
+	"github.com/FactomProject/factomd/common/entryCreditBlock"
+	
 )
 
 // Communicate a Directory Block State
@@ -24,6 +29,7 @@ type DBStateMsg struct {
 	AdminBlock       interfaces.IAdminBlock
 	FactoidBlock     interfaces.IFBlock
 	EntryCreditBlock interfaces.IEntryCreditBlock
+	
 }
 
 var _ interfaces.IMsg = (*DBStateMsg)(nil)
@@ -34,6 +40,17 @@ func (m *DBStateMsg) IsSameAs(b *DBStateMsg) bool {
 
 func (m *DBStateMsg) GetHash() interfaces.IHash {
 	return nil
+}
+
+func (m *DBStateMsg) GetMsgHash() interfaces.IHash {
+	if m.MsgHash == nil {
+		data, err := m.MarshalBinary()
+		if err != nil {
+			return nil
+		}
+		m.MsgHash = primitives.Sha(data)
+	}
+	return m.MsgHash
 }
 
 func (m *DBStateMsg) Type() int {
@@ -103,41 +120,41 @@ func (m *DBStateMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
 	}()
-	return nil, nil
-/*	
-	newData = data[1:]
-	m.ServerIndex, newData = newData[0], newData[1:]
-
+	
+	m.Peer2peer = true
+	
+	newData = data[1:]			// Skip our type;  Someone else's problem.
+	
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
 	}
-
-	m.MessageHash = new(primitives.Hash)
-	newData, err = m.MessageHash.UnmarshalBinaryData(newData)
+	
+	m.DirectoryBlock = new(directoryBlock.DirectoryBlock)
+	newData, err = m.DirectoryBlock.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
 	}
 
-	m.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
-	m.Height, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
-
-	m.SerialHash = new(primitives.Hash)
-	newData, err = m.SerialHash.UnmarshalBinaryData(newData)
+	m.AdminBlock = new(adminBlock.AdminBlock)
+	newData, err = m.DirectoryBlock.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
 	}
-
-	if len(newData) > 0 {
-		sig := new(primitives.Signature)
-		newData, err = sig.UnmarshalBinaryData(newData)
-		if err != nil {
-			return nil, err
-		}
-		m.Signature = sig
+	
+	m.FactoidBlock = new(block.FBlock)
+	newData, err = m.DirectoryBlock.UnmarshalBinaryData(newData)
+	if err != nil {
+		return nil, err
 	}
+	
+	m.EntryCreditBlock = new(entryCreditBlock.ECBlock)
+	newData, err = m.DirectoryBlock.UnmarshalBinaryData(newData)
+	if err != nil {
+		return nil, err
+	}
+	
 	return
-	*/
 }
 
 func (m *DBStateMsg) UnmarshalBinary(data []byte) error {
@@ -146,13 +163,11 @@ func (m *DBStateMsg) UnmarshalBinary(data []byte) error {
 }
 
 func (m *DBStateMsg) MarshalForSignature() ([]byte, error) {
-	return nil,nil
-	/*
+
 	var buf bytes.Buffer
-
+	
 	binary.Write(&buf, binary.BigEndian, byte(m.Type()))
-	binary.Write(&buf, binary.BigEndian, m.ServerIndex)
-
+	
 	t := m.GetTimestamp()
 	data, err := t.MarshalBinary()
 	if err != nil {
@@ -160,43 +175,35 @@ func (m *DBStateMsg) MarshalForSignature() ([]byte, error) {
 	}
 	buf.Write(data)
 
-	data, err = m.MessageHash.MarshalBinary()
+	data, err = m.DirectoryBlock.MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
 	buf.Write(data)
 
-	binary.Write(&buf, binary.BigEndian, m.DBHeight)
-	binary.Write(&buf, binary.BigEndian, m.Height)
-
-	data, err = m.SerialHash.MarshalBinary()
+	data, err = m.AdminBlock.MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
 	buf.Write(data)
-
+	
+	data, err = m.FactoidBlock.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	buf.Write(data)
+	
+	data, err = m.EntryCreditBlock.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	buf.Write(data)
+	
 	return buf.Bytes(), nil
-	*/
 }
 
-func (m *DBStateMsg) MarshalBinary() (data []byte, err error) {
-	return nil,nil
-	/*
-	resp, err := m.MarshalForSignature()
-	if err != nil {
-		return nil, err
-	}
-	sig := m.GetSignature()
-
-	if sig != nil {
-		sigBytes, err := sig.MarshalBinary()
-		if err != nil {
-			return nil, err
-		}
-		return append(resp, sigBytes...), nil
-	}
-	return resp, nil
-	*/
+func (m *DBStateMsg) MarshalBinary() ([]byte, error) {
+	return m.MarshalForSignature()
 }
 
 func (m *DBStateMsg) String() string {
