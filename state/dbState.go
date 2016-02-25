@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/directoryBlock/dbInfo"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/log"
 	"time"
 )
@@ -99,10 +100,6 @@ func (list *DBStateList) Put(dbstate *DBState) {
 }
 
 func (list *DBStateList) Get(height uint32) *DBState {
-	return list.Getul(height)
-}
-
-func (list *DBStateList) Getul(height uint32) *DBState {
 	i := int(height) - int(list.base)
 	if i < 0 || i >= len(list.DBStates) {
 		return nil
@@ -111,6 +108,24 @@ func (list *DBStateList) Getul(height uint32) *DBState {
 }
 
 func (list *DBStateList) Process() {
+		
+	limit := int(list.state.ProcessLists.GetDBHeight())-1
+	start := list.complete+list.base+1
+	
+	for i := int(start); i <= limit; i++ {
+		if int(i)-int(list.base) < len(list.DBStates) {
+			if list.DBStates[uint32(i)] == nil {
+				list.state.Print("FOUND MISSING BLOCK ",i,"-",limit)
+				msg := messages.NewDBStateMissing(list.state,uint32(i),uint32(i))
+				if msg != nil { list.state.NetworkOutMsgQueue() <- msg }
+			}
+		}else{
+			list.state.Print("FOUND MISSING BLOCK ",i,"-",limit)
+			msg := messages.NewDBStateMissing(list.state,uint32(i),uint32(i))
+			if msg != nil { list.state.NetworkOutMsgQueue() <- msg }
+		}
+	}
+	
 	for int(list.complete) < len(list.DBStates) {
 		d := list.DBStates[list.complete]
 

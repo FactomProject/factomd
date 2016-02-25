@@ -6,6 +6,7 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 	"github.com/FactomProject/factomd/log"
 	"time"
 )
@@ -49,9 +50,21 @@ func NetworkProcessorNet(fnode *FactomNode) {
 				IsTSValid_(msg.GetMsgHash().Fixed(),
 						   int64(msg.GetTimestamp())/1000,
 						   int64(fnode.State.GetTimestamp())/1000)
-				
-				for _, peer := range fnode.Peers {
-					peer.BroadcastOut <- msg
+				if msg.IsPeer2peer() {
+					
+					fnode.State.Print("P2P Msg", msg)
+					
+					p := msg.GetOrigin()-1
+					if p < 0 {
+						p = rand.Int()%len(fnode.Peers)
+					}
+						
+					fnode.Peers[p].BroadcastOut <- msg
+					
+				}else{
+					for _, peer := range fnode.Peers {
+						peer.BroadcastOut <- msg
+					}
 				}
 			}
 		case msg, ok := <-fnode.State.NetworkInvalidMsgQueue():

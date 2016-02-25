@@ -33,9 +33,11 @@ func Validator(state interfaces.IState) {
 		if !IsTSValid_(msg.GetMsgHash().Fixed(),
 			int64(msg.GetTimestamp())/1000,
 			int64(state.GetTimestamp())/1000) {
-			state.Println("\nMsg Not Valid: ",msg)
-			// If we have seen this message before, ignore it.
-			continue
+			     state.Println("\nMsg Not Valid: ",msg, msg.GetTimestamp()/1000, "/", state.GetTimestamp()/1000)
+		       	 // If we have seen this message before, ignore it.
+			     continue
+		}else{
+			state.Println("\nMsg Valid: ",msg)
 		}
 		
 		if state.PrintType(msg.Type()) {

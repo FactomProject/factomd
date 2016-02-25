@@ -830,7 +830,7 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg,error) {
 	if err != nil {
 		return nil, err
 	}
-	
+	fmt.Println("DIRBLK", dblk)
 	ablk, err := s.DB.FetchABlockByKeyMR(dblk.GetDBEntries()[0].GetKeyMR())
 	if err != nil {
 		return nil, err

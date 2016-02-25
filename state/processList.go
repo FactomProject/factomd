@@ -21,7 +21,7 @@ type ProcessLists struct {
 
 // Returns the height of the Process List under construction.  There
 // can be another list under construction (because of missing messages.
-func (lists *ProcessLists) DBHeight() uint32 {
+func (lists *ProcessLists) GetDBHeight() uint32 {
 	// First let's start at the lowest Process List not yet complete.
 	dbstate := lists.State.DBStates.Last()
 	if dbstate == nil {
@@ -33,7 +33,7 @@ func (lists *ProcessLists) DBHeight() uint32 {
 
 func (lists *ProcessLists) UpdateState() {
 	
-	heightBuilding := lists.DBHeight()
+	heightBuilding := lists.GetDBHeight()
 
 	if heightBuilding == 0 { 
 		return
@@ -267,7 +267,7 @@ func NewProcessLists(state interfaces.IState) *ProcessLists {
 func NewProcessList(state interfaces.IState, totalServers int, dbheight uint32) *ProcessList {
 	// We default to the number of Servers previous.   That's because we always
 	// allocate the FUTURE directoryblock, not the current or previous...
-
+	
 	pl := new(ProcessList)
 
 	pl.State   = state
