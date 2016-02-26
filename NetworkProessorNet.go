@@ -44,11 +44,14 @@ func add2(name string, dest string, t string, valid bool, msg interfaces.IMsg){
 
 func prt(state interfaces.IState) {
 	sem.Lock()
-	state.Println("**********************************************************")
-	state.Println("State: ",state.String())
+	state.Println("\n***************************************************")
+	state.Println(fmt.Sprintf("*** State: %35s ****",state.String()))
 	for _,m := range MsgList {
-		state.Print(fmt.Sprintf("%8s -> %8s %10s %5v %s\n",m.name,m.dest, m.t,m.valid,m.msg.String()))
+		if m.valid {
+			state.Print(fmt.Sprintf("*** %8s -> %8s %10s %5v      **** %s\n",m.name,m.dest, m.t,m.valid,m.msg.String()))
+		}
 	}
+	state.Println("***************************************************\n")
 	MsgList = MsgList [0:0]
 	sem.Unlock()
 }

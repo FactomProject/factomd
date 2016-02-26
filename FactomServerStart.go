@@ -30,21 +30,20 @@ func FactomServerStart(state *state.State) {
 func loadDatabase(s *state.State) {
 	
 	var blkCnt uint32
-	
-	dhead, _ := s.GetDB().FetchDirectoryBlockHead()
-	if dhead == nil {
-		blkCnt = 0
-	}else{
-		blkCnt = dhead.GetHeader().GetDBHeight()
-	}
-	
-	s.Println("Directory Blocks Found:", blkCnt )
-	
-	for i := int(blkCnt)-1; i >=0; i-- {
+		
+	for i := 0; true; i++ {
 					
-		msg, _ := s.LoadDBState(uint32(i))
-		if msg != nil {
-			s.InMsgQueue() <- msg
+		msg, err := s.LoadDBState(uint32(i))
+		if err != nil {
+			s.Println(err.Error())
+			break
+		}else{
+			fmt.Println("Loading block",i)
+			if msg != nil {
+				s.NetworkInMsgQueue() <- msg
+			}else{
+				break
+			}
 		}
 	}
 	
