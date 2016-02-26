@@ -5,6 +5,7 @@
 package main
 
 import (
+	"os"
 	"fmt"
 	"github.com/FactomProject/factomd/btcd"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -24,18 +25,22 @@ type FactomNode struct {
 }
 
 type FactomPeer struct {	
+	// A connection to this node:
+	name 			  string 
+	// Channels that define the connection:
 	BroadcastOut      chan interfaces.IMsg
 	BroadcastIn       chan interfaces.IMsg
 }
 
-func (f *FactomPeer) init() *FactomPeer {
+func (f *FactomPeer) init(name string) *FactomPeer {
+	f.name = name
 	f.BroadcastOut = make(chan interfaces.IMsg,10000)
 	return f
 }
 
 func AddPeer(f1, f2 *FactomNode) {
-	peer12 := new(FactomPeer).init()
-	peer21 := new(FactomPeer).init()
+	peer12 := new(FactomPeer).init(f2.State.FactomNodeName)
+	peer21 := new(FactomPeer).init(f1.State.FactomNodeName)
 	peer12.BroadcastIn = peer21.BroadcastOut
 	peer21.BroadcastIn = peer12.BroadcastOut
 	
@@ -53,12 +58,14 @@ func NetStart(state *ss.State) {
 	fmt.Println(">>>>>>>>>>>>>>>> Net Sim Start!!!!!")
 	fmt.Println(">>>>>>>>>>>>>>>>")
 	
-	btcd.AddInterruptHandler(func() {
+	AddInterruptHandler(func() {
 		fmt.Print("<Break>\n")
 		fmt.Print("Gracefully shutting down the server...\n")
-		for _,one_state := range states {
+		for i,one_state := range states {
+			fmt.Println("Shutting Down: ",i, one_state.FactomNodeName)
 			one_state.ShutdownChan <- 0
 		}
+		os.Exit(0)
 	})
 		
 	pcfg, _, err := btcd.LoadConfig()

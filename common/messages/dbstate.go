@@ -217,7 +217,9 @@ func NewDBStateMsg( state  interfaces.IState,
 					e interfaces.IEntryCreditBlock) interfaces.IMsg {
 
 	msg := new(DBStateMsg)
-						
+
+	msg.Peer2peer = true
+	
 	msg.Timestamp = state.GetTimestamp()
 	msg.DirectoryBlock = d
 	msg.AdminBlock = a

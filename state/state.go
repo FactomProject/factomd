@@ -45,6 +45,7 @@ type State struct {
 	LocalServerPrivKey string
 	DirectoryBlockInSeconds int
 	PortNumber		   int 
+	Replay			   *Replay
 	
 	IdentityChainID interfaces.IHash // If this node has an identity, this is it
 
@@ -193,7 +194,10 @@ func (s *State) Init() {
 	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 10000) //incoming message queue from the network messages
 	s.networkOutMsgQueue = make(chan interfaces.IMsg, 10000)     //Messages to be broadcast to the network
 	s.inMsgQueue = make(chan interfaces.IMsg, 10000)             //incoming message queue for factom application messages
-	s.ShutdownChan = make(chan int)								 //Channel to gracefully shut down.
+	s.ShutdownChan = make(chan int) 							 //Channel to gracefully shut down.
+	
+	// Set up struct to stop replay attacks
+	s.Replay = new(Replay)
 	
 	// Set up maps for the followers
 	s.Holding = make(map[[32]byte]interfaces.IMsg)

@@ -28,11 +28,52 @@ type DBState struct {
 }
 
 type DBStateList struct {
+	last     interfaces.Timestamp
 	state    *State
 	base     uint32
 	complete uint32
 	DBStates []*DBState
 }
+
+const secondsBetweenTests = 2
+
+// Once a second at most, we check to see if we need to pull down some blocks to catch up.
+func (list *DBStateList) Catchup() {
+	
+	// We only check if we need updates once every so often.
+	now := list.state.GetTimestamp()
+	if(now/1000 - list.last/1000 < secondsBetweenTests) {
+		return
+	}
+	list.last = now
+fmt.Println("Check")	
+	begin := -1 
+	end := -1
+	
+	for i,v := range list.DBStates {
+		if v == nil && begin < 0 {
+			begin = i
+		}
+		if v == nil {
+			end = i
+		}
+	}
+	
+	plHeight := list.state.ProcessLists.GetDBHeight()
+	dbsHeight := list.base + uint32(len(list.DBStates))
+	if plHeight - dbsHeight > 2 {
+		msg := messages.NewDBStateMissing(list.state,uint32(plHeight-1),uint32(plHeight-1))
+		if msg != nil { list.state.NetworkOutMsgQueue() <- msg }
+	}
+		
+	if begin >= 0 {
+		begin += int(list.base)
+		end += int(list.base)
+		msg := messages.NewDBStateMissing(list.state,uint32(begin),uint32(end))
+		if msg != nil { list.state.NetworkOutMsgQueue() <- msg }
+	}
+}
+
 
 func (list *DBStateList) GetDBHeight() uint32 {
 	if list == nil { return 0 }
@@ -109,22 +150,7 @@ func (list *DBStateList) Get(height uint32) *DBState {
 
 func (list *DBStateList) Process() {
 		
-	limit := int(list.state.ProcessLists.GetDBHeight())-1
-	start := list.complete+list.base+1
-	
-	for i := int(start); i <= limit; i++ {
-		if int(i)-int(list.base) < len(list.DBStates) {
-			if list.DBStates[uint32(i)] == nil {
-				list.state.Print("FOUND MISSING BLOCK ",i,"-",limit)
-				msg := messages.NewDBStateMissing(list.state,uint32(i),uint32(i))
-				if msg != nil { list.state.NetworkOutMsgQueue() <- msg }
-			}
-		}else{
-			list.state.Print("FOUND MISSING BLOCK ",i,"-",limit)
-			msg := messages.NewDBStateMissing(list.state,uint32(i),uint32(i))
-			if msg != nil { list.state.NetworkOutMsgQueue() <- msg }
-		}
-	}
+	list.Catchup()
 	
 	for int(list.complete) < len(list.DBStates) {
 		d := list.DBStates[list.complete]

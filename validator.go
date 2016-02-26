@@ -23,22 +23,15 @@ func Validator(state interfaces.IState) {
 		
 		select {
 			case i := <- s.ShutdownChan:
+				fmt.Println(i,"Closing the Database")
 				state.GetDB().(interfaces.IDatabase).Close()
-				os.Exit(i)
+				return
 			default :
 		}
 		
 		msg := <-state.InMsgQueue() // Get message from the input queue
 
-		if !IsTSValid_(msg.GetMsgHash().Fixed(),
-			int64(msg.GetTimestamp())/1000,
-			int64(state.GetTimestamp())/1000) {
-			     state.Println("\nMsg Not Valid: ",msg, msg.GetTimestamp()/1000, "/", state.GetTimestamp()/1000)
-		       	 // If we have seen this message before, ignore it.
-			     continue
-		}else{
-			state.Println("\nMsg Valid: ",msg)
-		}
+		state.Println("\nMsg Valid: ",msg)
 		
 		if state.PrintType(msg.Type()) {
 			state.Print(fmt.Sprintf("%20s %s", "Validator:", msg.String()))
