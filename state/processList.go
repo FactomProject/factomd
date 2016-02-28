@@ -69,7 +69,6 @@ func (lists *ProcessLists) UpdateState() {
 	pl.Process(lists.State)
 
 	lastHeight := dbstate.DirectoryBlock.GetHeader().GetDBHeight()
-	lists.State.Print("aaaaaaaaaaaaaaaaaaa LastHeight",lastHeight,"pl height",heightBuilding)
 	// Only when we are sig complete that we can move on.
 	if pl.Complete() &&  lastHeight+1 == heightBuilding {
 		lists.State.DBStates.NewDBState(true, pl.DirectoryBlock, pl.AdminBlock, pl.FactoidBlock, pl.EntryCreditBlock)

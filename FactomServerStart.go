@@ -38,7 +38,6 @@ func loadDatabase(s *state.State) {
 			s.Println(err.Error())
 			break
 		}else{
-			fmt.Println("Loading block",i)
 			if msg != nil {
 				s.NetworkInMsgQueue() <- msg
 			}else{
@@ -61,6 +60,6 @@ func loadDatabase(s *state.State) {
 		
 		s.InMsgQueue() <- msg
 	}
-	s.Println(fmt.Sprintf("Loaded %d directory blocks", blkCnt))
+	s.Println(fmt.Sprintf("Loaded %d directory blocks on %s", blkCnt),s.FactomNodeName)
 
 }

@@ -28,23 +28,32 @@ type DBState struct {
 }
 
 type DBStateList struct {
-	last     interfaces.Timestamp
-	state    *State
-	base     uint32
-	complete uint32
-	DBStates []*DBState
+	last     			interfaces.Timestamp
+	secondsBetweenTests int
+	state    			*State
+	base     			uint32
+	complete 			uint32
+	DBStates 			[]*DBState
 }
 
-const secondsBetweenTests = 2
+const secondsBetweenTests = 1 // Default
 
 // Once a second at most, we check to see if we need to pull down some blocks to catch up.
 func (list *DBStateList) Catchup() {
 	
-	// We only check if we need updates once every so often.
 	now := list.state.GetTimestamp()
-	if(now/1000 - list.last/1000 < secondsBetweenTests) {
+	
+	if list.secondsBetweenTests == 0 {
+		list.secondsBetweenTests = 1
+		list.last = now
 		return
 	}
+	
+	// We only check if we need updates once every so often.
+	if(int(now)/1000 - int(list.last)/1000 < list.secondsBetweenTests) {
+		// return
+	}
+	
 	list.last = now
 	begin := -1 
 	end := -1
@@ -60,16 +69,24 @@ func (list *DBStateList) Catchup() {
 	
 	plHeight := list.state.ProcessLists.GetDBHeight()
 	dbsHeight := list.base + uint32(len(list.DBStates))
-	if plHeight - dbsHeight > 2 {
+
+	list.secondsBetweenTests = 2
+	
+	if plHeight > 2 && plHeight - dbsHeight > 2 {
 		msg := messages.NewDBStateMissing(list.state,uint32(plHeight-1),uint32(plHeight-1))
 		if msg != nil { list.state.NetworkOutMsgQueue() <- msg }
+		list.secondsBetweenTests = 5
 	}
 		
 	if begin >= 0 {
 		begin += int(list.base)
 		end += int(list.base)
-		msg := messages.NewDBStateMissing(list.state,uint32(begin),uint32(end))
+		last := begin + 10
+		if end < last { last = end }
+		
+		msg := messages.NewDBStateMissing(list.state,uint32(begin),uint32(last))
 		if msg != nil { list.state.NetworkOutMsgQueue() <- msg }
+		list.secondsBetweenTests = 5
 	}
 }
 

@@ -82,7 +82,6 @@ func NetworkProcessorNet(fnode *FactomNode) {
 									int64(fnode.State.GetTimestamp())/1000){
 							//fnode.State.Println("In Comming!! ",msg)
 							add2(fnode.State.FactomNodeName, peer.name, "PeerIn",true,msg)
-							prt(fnode.State)
 							fnode.State.NetworkInMsgQueue() <- msg 
 					    }else{
 							add2(fnode.State.FactomNodeName, peer.name, "PeerIn",false,msg)
