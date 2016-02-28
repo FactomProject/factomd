@@ -30,6 +30,7 @@ type DBState struct {
 type DBStateList struct {
 	last     			interfaces.Timestamp
 	secondsBetweenTests int
+	lastreq				int
 	state    			*State
 	base     			uint32
 	complete 			uint32
@@ -48,13 +49,7 @@ func (list *DBStateList) Catchup() {
 		list.last = now
 		return
 	}
-	
-	// We only check if we need updates once every so often.
-	if(int(now)/1000 - int(list.last)/1000 < list.secondsBetweenTests) {
-		// return
-	}
-	
-	list.last = now
+		
 	begin := -1 
 	end := -1
 	
@@ -73,15 +68,22 @@ func (list *DBStateList) Catchup() {
 	list.secondsBetweenTests = 2
 	
 	if plHeight > 2 && plHeight - dbsHeight > 2 {
-		msg := messages.NewDBStateMissing(list.state,uint32(plHeight-1),uint32(plHeight-1))
-		if msg != nil { list.state.NetworkOutMsgQueue() <- msg }
-		list.secondsBetweenTests = 5
+		begin = int(plHeight-1)
+		end = int(plHeight-1)
 	}
 		
 	if begin >= 0 {
 		begin += int(list.base)
 		end += int(list.base)
 		last := begin + 10
+
+		// We only check if we need updates once every so often.
+		if( list.lastreq == begin && int(now)/1000 - int(list.last)/1000 < list.secondsBetweenTests) {
+			return
+		}
+		list.last = now
+		list.lastreq = begin
+		
 		if end < last { last = end }
 		
 		msg := messages.NewDBStateMissing(list.state,uint32(begin),uint32(last))
