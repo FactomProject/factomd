@@ -46,7 +46,6 @@ func (list *DBStateList) Catchup() {
 		return
 	}
 	list.last = now
-fmt.Println("Check")	
 	begin := -1 
 	end := -1
 	
@@ -102,7 +101,7 @@ func (list *DBStateList) Put(dbstate *DBState) {
 	dbheight := dblk.GetHeader().GetDBHeight()
 	
 	cnt := len(list.DBStates)
-	if cnt > 2 && int(list.complete) == len(list.DBStates) {
+	if cnt > 2 && list.complete == uint32(cnt) {
 		list.DBStates = list.DBStates[cnt-2:]
 		list.base = list.base + uint32(cnt) - 2
 		list.complete = list.complete - uint32(cnt) + 2
@@ -166,13 +165,15 @@ func (list *DBStateList) Process() {
 			
 			dblk,_ := list.state.GetDB().FetchDBlockByHeight(d.DirectoryBlock.GetHeader().GetDBHeight())
 			if dblk == nil {
-				
+fmt.Println("Writing",d.DirectoryBlock.GetHeader().GetDBHeight())				
 				if list.complete > 0 {
 					p := list.DBStates[list.complete-1]
 					d.DirectoryBlock.GetHeader().SetPrevFullHash(p.DirectoryBlock.GetHeader().GetFullHash())
 					d.DirectoryBlock.GetHeader().SetPrevKeyMR(p.DirectoryBlock.GetKeyMR())
 				}
-				
+				if err := list.state.GetDB().ProcessDBlockBatch(d.DirectoryBlock); err != nil {
+					panic(err.Error())
+				}
 				if err := list.state.GetDB().SaveDirectoryBlockHead(d.DirectoryBlock); err != nil {
 					panic(err.Error())
 				}

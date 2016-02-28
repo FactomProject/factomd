@@ -50,7 +50,6 @@ func AddPeer(f1, f2 *FactomNode) {
 
 func NetStart(state *ss.State) {
 	
-	var states []*ss.State
 	
 	state.SetOut(false)
 	
@@ -58,6 +57,7 @@ func NetStart(state *ss.State) {
 	fmt.Println(">>>>>>>>>>>>>>>> Net Sim Start!!!!!")
 	fmt.Println(">>>>>>>>>>>>>>>>")
 	
+	var states []*ss.State
 	AddInterruptHandler(func() {
 		fmt.Print("<Break>\n")
 		fmt.Print("Gracefully shutting down the server...\n")

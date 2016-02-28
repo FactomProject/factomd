@@ -725,10 +725,12 @@ func (s *State) String() string {
 	dstateHeight := last.DirectoryBlock.GetHeader().GetDBHeight()
 	plheight := int(dstateHeight) + len(s.ProcessLists.Lists)
 
-	return fmt.Sprintf("%7s DBS: %d PL: %d",
+	return fmt.Sprintf("%7s DBS: %d PL: %d C: %d",
 		s.FactomNodeName,
 		dstateHeight,
-		plheight)
+		plheight,
+		s.ProcessLists.GetDBHeight())
+	
 
 }
 
@@ -865,6 +867,9 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg,error) {
 	
 }
 
+func (s *State) LastCompleteDBHeight() uint32 {
+	return s.DBStates.base+s.DBStates.complete
+}
 
 
 func (s *State) GetOut() bool {

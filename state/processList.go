@@ -23,11 +23,13 @@ type ProcessLists struct {
 // can be another list under construction (because of missing messages.
 func (lists *ProcessLists) GetDBHeight() uint32 {
 	// First let's start at the lowest Process List not yet complete.
-	dbstate := lists.State.DBStates.Last()
-	if dbstate == nil {
+	length := len(lists.Lists)
+	if length == 0 { return 0 }
+	last := lists.Lists[length-1]
+	if last == nil {
 		return 0
 	}
-	return dbstate.DirectoryBlock.GetHeader().GetDBHeight() + 1
+	return last.DBHeight
 }
 
 
@@ -66,8 +68,10 @@ func (lists *ProcessLists) UpdateState() {
 	// Create DState blocks for all completed Process Lists
 	pl.Process(lists.State)
 
+	lastHeight := dbstate.DirectoryBlock.GetHeader().GetDBHeight()
+	lists.State.Print("aaaaaaaaaaaaaaaaaaa LastHeight",lastHeight,"pl height",heightBuilding)
 	// Only when we are sig complete that we can move on.
-	if pl.Complete() {
+	if pl.Complete() &&  lastHeight+1 == heightBuilding {
 		lists.State.DBStates.NewDBState(true, pl.DirectoryBlock, pl.AdminBlock, pl.FactoidBlock, pl.EntryCreditBlock)
 	}
 }
@@ -212,7 +216,8 @@ func (p *ProcessList) SetComplete(v bool) {
 }
 
 // Process messages and update our state.
-func (p *ProcessList) Process(state interfaces.IState) {
+func (p *ProcessList) Process(state *State) {
+	
 	for i := 0; i < len(p.Servers); i++ {
 		plist := p.Servers[i].List
 		//fmt.Println("Process List: DBHEight, height in list, len(plist)", p.DBHeight, p.Servers[i].Height, len(plist))
