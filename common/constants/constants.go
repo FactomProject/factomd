@@ -1,3 +1,4 @@
+
 // Copyright 2015 Factom Foundation
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
@@ -29,6 +30,7 @@ const (
 	
 	DBSTATE_MSG                          // 16
 	DBSTATE_MISSING_MSG                  // 17
+	ADDSERVER_MSG                        // 18
 )
 
 const (

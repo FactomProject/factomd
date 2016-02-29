@@ -47,12 +47,12 @@ func (list *DBStateList) Catchup() {
 	if list.secondsBetweenTests == 0 {
 		list.secondsBetweenTests = 1
 		list.last = now
-		return
 	}
 		
 	begin := -1 
 	end := -1
 	
+	// Find the first range of blocks that we don't have.
 	for i,v := range list.DBStates {
 		if v == nil && begin < 0 {
 			begin = i
@@ -62,34 +62,36 @@ func (list *DBStateList) Catchup() {
 		}
 	}
 	
-	plHeight := list.state.ProcessLists.GetDBHeight()
-	dbsHeight := list.base + uint32(len(list.DBStates))
-
-	list.secondsBetweenTests = 2
-	
-	if plHeight > 2 && plHeight - dbsHeight > 2 {
-		begin = int(plHeight-1)
-		end = int(plHeight-1)
-	}
-		
-	if begin >= 0 {
+	if begin > 0 {
 		begin += int(list.base)
 		end += int(list.base)
-		last := begin + 10
-
-		// We only check if we need updates once every so often.
-		if( list.lastreq == begin && int(now)/1000 - int(list.last)/1000 < list.secondsBetweenTests) {
-			return
+	}else {
+		plHeight := list.state.ProcessLists.GetDBHeight()
+		dbsHeight := list.GetDBHeight()
+		// Don't worry about the block initialization case.
+		if plHeight < 1 { return }
+		
+		if plHeight > dbsHeight && plHeight-dbsHeight > 1 {
+			begin = int(dbsHeight + 1)
+			end = int(plHeight-1)
 		}
-		list.last = now
-		list.lastreq = begin
-		
-		if end < last { last = end }
-		
-		msg := messages.NewDBStateMissing(list.state,uint32(begin),uint32(last))
-		if msg != nil { list.state.NetworkOutMsgQueue() <- msg }
-		list.secondsBetweenTests = 5
 	}
+	
+	// We only check if we need updates once every so often.
+	if( list.lastreq == begin && 
+		int(now)/1000 - int(list.last)/1000 < list.secondsBetweenTests) {
+		return
+	}
+	
+	list.last = now
+	list.lastreq = begin
+		
+	end2 := begin + 100
+	if end < end2 { end2 = end }
+		
+	msg := messages.NewDBStateMissing(list.state,uint32(begin),uint32(end2))
+	if msg != nil { list.state.NetworkOutMsgQueue() <- msg }
+	
 }
 
 
@@ -184,7 +186,6 @@ func (list *DBStateList) Process() {
 			
 			dblk,_ := list.state.GetDB().FetchDBlockByHeight(d.DirectoryBlock.GetHeader().GetDBHeight())
 			if dblk == nil {
-fmt.Println("Writing",d.DirectoryBlock.GetHeader().GetDBHeight())				
 				if list.complete > 0 {
 					p := list.DBStates[list.complete-1]
 					d.DirectoryBlock.GetHeader().SetPrevFullHash(p.DirectoryBlock.GetHeader().GetFullHash())

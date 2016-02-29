@@ -844,7 +844,7 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg,error) {
 		return nil, err
 	}
 	if ablk == nil {
-		panic("ablk is nil" + dblk.GetDBEntries()[0].GetKeyMR().String())
+		return nil, err
 	}
 	ecblk, err := s.DB.FetchECBlockByHash(dblk.GetDBEntries()[1].GetKeyMR())
 	if err != nil {
