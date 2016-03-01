@@ -12,7 +12,6 @@ import (
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
-	"github.com/nsf/termbox-go"
 	"os"
 	"time"
 )
@@ -20,8 +19,9 @@ import (
 var _ = fmt.Print
 
 type FactomNode struct {
-	State *state.State
-	Peers []*FactomPeer
+	State 	*state.State
+	Peers 	[]*FactomPeer
+	MLog	*MsgLog
 }
 
 type FactomPeer struct {
@@ -69,6 +69,9 @@ func NetStart(s *state.State) {
 	}
 	fmt.Println(fmt.Sprintf("factom config: %s", FactomConfigFilename))
 
+	mLog := new(MsgLog)
+	mLog.init()
+	
 	makeServer := func() *FactomNode {
 		// All other states are clones of the first state.  Which this routine
 		// gets passed to it.
@@ -83,7 +86,8 @@ func NetStart(s *state.State) {
 		fnode := new(FactomNode)
 		fnode.State = newState
 		fnodes = append(fnodes, fnode)
-
+		fnode.MLog = mLog
+		
 		return fnode
 	}
 
@@ -125,18 +129,22 @@ func NetStart(s *state.State) {
 
 	// Web API runs independent of Factom Servers
 
-	err = termbox.Init()
-	if err != nil {
-		panic(err)
-	}
-	defer termbox.Close()
 
+	var _ = time.Sleep
 	p := 0
+	var _ = p
 	for {
-		switch ev := termbox.PollEvent(); ev.Type {
-		case termbox.EventKey:
-			switch ev.Key {
-			case termbox.KeyEsc:
+		fmt.Sprintf(">>>>>>>>>>>>>>")
+		
+		b := make([]byte, 1)
+		if _, err := os.Stdin.Read(b); err != nil {
+			log.Fatal(err.Error())
+		}
+		
+		fmt.Printf("Got: %X\n",b)
+		
+		switch b[0] {
+			case 27:
 				fmt.Print("Gracefully shutting down the server...\r\n")
 				for _, fnode := range fnodes {
 					fmt.Print("Shutting Down: ", fnode.State.FactomNodeName, "\r\n")
@@ -145,7 +153,7 @@ func NetStart(s *state.State) {
 				fmt.Print("Waiting...\r\n")
 				time.Sleep(10 * time.Second)
 				os.Exit(0)
-			case termbox.KeySpace:
+			case 32:
 				fnodes[p].State.SetOut(false)
 				p++
 				if p >= len(fnodes) {
@@ -154,8 +162,6 @@ func NetStart(s *state.State) {
 				fnodes[p].State.SetOut(true)
 				fmt.Print("\r\nSwitching to Node ", p,"\r\n")
 			default:
-			}
-		default:
 		}
 	}
 

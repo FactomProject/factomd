@@ -156,6 +156,10 @@ func (s *State) Clone(number string) interfaces.IState {
 	return clone
 }
 
+func (s *State) GetFactomNodeName() string {
+	return s.FactomNodeName
+}
+
 func (s *State) LoadConfig(filename string) {
 	s.filename = filename
 	s.ReadCfg(filename)
