@@ -121,39 +121,39 @@ func TestVariable_Integers(test *testing.T) {
 }
 
 func TestValidateUserStr(t *testing.T) {
-	fctAdd:="FA2jK2HcLnRdS94dEcU27rF3meoJfpUcZPSinpb7AwQvPRY6RL1Q"
-	fctAddSecret:="Fs3E9gV6DXsYzf7Fqx1fVBQPQXV695eP3k5XbmHEZVRLkMdD9qCK"
-	ecAdd:="EC2DKSYyRcNWf7RS963VFYgMExoHRYLHVeCfQ9PGPmNzwrcmgm2r"
+	fctAdd := "FA2jK2HcLnRdS94dEcU27rF3meoJfpUcZPSinpb7AwQvPRY6RL1Q"
+	fctAddSecret := "Fs3E9gV6DXsYzf7Fqx1fVBQPQXV695eP3k5XbmHEZVRLkMdD9qCK"
+	ecAdd := "EC2DKSYyRcNWf7RS963VFYgMExoHRYLHVeCfQ9PGPmNzwrcmgm2r"
 
-	ok:=ValidateFUserStr(fctAdd) 
+	ok := ValidateFUserStr(fctAdd)
 	if ok == false {
 		t.Errorf("Valid address not validating - %v", fctAdd)
 	}
 
-	ok=ValidateECUserStr(ecAdd) 
+	ok = ValidateECUserStr(ecAdd)
 	if ok == false {
 		t.Errorf("Valid address not validating - %v", fctAdd)
 	}
 
-	ok=ValidateFPrivateUserStr(fctAddSecret) 
+	ok = ValidateFPrivateUserStr(fctAddSecret)
 	if ok == false {
 		t.Errorf("Valid address not validating - %v", fctAdd)
 	}
 
-	factoidAddresses:=[]string{}
+	factoidAddresses := []string{}
 	//ecAddresses:=[]string{}
 
-	max:=1000
+	max := 1000
 
-	for i:=0;i<max;i++ {
-		_, _, add:=testHelper.NewFactoidAddressStrings(uint64(i))
+	for i := 0; i < max; i++ {
+		_, _, add := testHelper.NewFactoidAddressStrings(uint64(i))
 		factoidAddresses = append(factoidAddresses, add)
 
 		//ecAddresses = append(ecAddresses, add)
 	}
 
-	for _, v:=range(factoidAddresses) {
-		ok:=ValidateFUserStr(v) 
+	for _, v := range factoidAddresses {
+		ok := ValidateFUserStr(v)
 		if ok == false {
 			t.Errorf("Valid address not validating - %v", v)
 		}

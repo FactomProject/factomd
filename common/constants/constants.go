@@ -1,4 +1,3 @@
-
 // Copyright 2015 Factom Foundation
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
@@ -27,10 +26,10 @@ const (
 	REVEAL_ENTRY_MSG                     // 13
 	REQUEST_BLOCK_MSG                    // 14
 	SIGNATURE_TIMEOUT_MSG                // 15
-	
-	DBSTATE_MSG                          // 16
-	DBSTATE_MISSING_MSG                  // 17
-	ADDSERVER_MSG                        // 18
+
+	DBSTATE_MSG         // 16
+	DBSTATE_MISSING_MSG // 17
+	ADDSERVER_MSG       // 18
 )
 
 const (

@@ -14,7 +14,7 @@ import (
 func Timer(state interfaces.IState) {
 
 	time.Sleep(3 * time.Second)
-	
+
 	billion := int64(1000000000)
 	period := int64(state.GetDirectoryBlockInSeconds()) * billion
 	tenthPeriod := period / 10

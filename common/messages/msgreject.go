@@ -207,7 +207,6 @@ func (m *MsgReject) GetMsgHash() interfaces.IHash {
 	return m.MsgHash
 }
 
-
 func (m *MsgReject) GetTimestamp() interfaces.Timestamp {
 	return 0
 }

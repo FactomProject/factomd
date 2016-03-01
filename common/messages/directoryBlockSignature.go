@@ -124,7 +124,7 @@ func (m *DirectoryBlockSignature) UnmarshalBinaryData(data []byte) (newData []by
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
 	}()
-	
+
 	// Type byte:  Someone else's problem.
 	newData = data[1:]
 
@@ -133,7 +133,7 @@ func (m *DirectoryBlockSignature) UnmarshalBinaryData(data []byte) (newData []by
 	if err != nil {
 		return nil, err
 	}
-	
+
 	m.DirectoryBlockHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
 	hash := new(primitives.Hash)
@@ -182,15 +182,15 @@ func (m *DirectoryBlockSignature) MarshalForSignature() ([]byte, error) {
 		return nil, err
 	}
 	buf.Write(data)
-	
+
 	binary.Write(&buf, binary.BigEndian, m.DirectoryBlockHeight)
-	
+
 	hash, err := m.DirectoryBlockKeyMR.MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
 	buf.Write(hash)
-	
+
 	hash, err = m.ServerIdentityChainID.MarshalBinary()
 	if err != nil {
 		return nil, err

@@ -24,7 +24,9 @@ type ProcessLists struct {
 func (lists *ProcessLists) GetDBHeight() uint32 {
 	// First let's start at the lowest Process List not yet complete.
 	length := len(lists.Lists)
-	if length == 0 { return 0 }
+	if length == 0 {
+		return 0
+	}
 	last := lists.Lists[length-1]
 	if last == nil {
 		return 0
@@ -32,17 +34,16 @@ func (lists *ProcessLists) GetDBHeight() uint32 {
 	return last.DBHeight
 }
 
-
 func (lists *ProcessLists) UpdateState() {
-	
+
 	heightBuilding := lists.GetDBHeight()
 
-	if heightBuilding == 0 { 
+	if heightBuilding == 0 {
 		return
 	}
 
 	dbstate := lists.State.DBStates.Last()
-	
+
 	pl := lists.Get(heightBuilding)
 
 	diff := heightBuilding - lists.DBHeightBase
@@ -70,7 +71,7 @@ func (lists *ProcessLists) UpdateState() {
 
 	lastHeight := dbstate.DirectoryBlock.GetHeader().GetDBHeight()
 	// Only when we are sig complete that we can move on.
-	if pl.Complete() &&  lastHeight+1 == heightBuilding {
+	if pl.Complete() && lastHeight+1 == heightBuilding {
 		lists.State.DBStates.NewDBState(true, pl.DirectoryBlock, pl.AdminBlock, pl.FactoidBlock, pl.EntryCreditBlock)
 	}
 }
@@ -78,7 +79,7 @@ func (lists *ProcessLists) UpdateState() {
 func (lists *ProcessLists) Get(dbheight uint32) *ProcessList {
 
 	i := int(dbheight) - int(lists.DBHeightBase)
-	
+
 	if i < 0 {
 		return nil
 	}
@@ -216,7 +217,7 @@ func (p *ProcessList) SetComplete(v bool) {
 
 // Process messages and update our state.
 func (p *ProcessList) Process(state *State) {
-	
+
 	for i := 0; i < len(p.Servers); i++ {
 		plist := p.Servers[i].List
 		//fmt.Println("Process List: DBHEight, height in list, len(plist)", p.DBHeight, p.Servers[i].Height, len(plist))
@@ -241,8 +242,10 @@ func (p *ProcessList) Process(state *State) {
 }
 
 func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
-	if p == nil || p.Servers[ack.ServerIndex].List == nil { panic("This should not happen")}
-	
+	if p == nil || p.Servers[ack.ServerIndex].List == nil {
+		panic("This should not happen")
+	}
+
 	for len(p.Servers[ack.ServerIndex].List) <= int(ack.Height) {
 		p.Servers[ack.ServerIndex].List = append(p.Servers[ack.ServerIndex].List, nil)
 	}
@@ -271,14 +274,14 @@ func NewProcessLists(state interfaces.IState) *ProcessLists {
 func NewProcessList(state interfaces.IState, totalServers int, dbheight uint32) *ProcessList {
 	// We default to the number of Servers previous.   That's because we always
 	// allocate the FUTURE directoryblock, not the current or previous...
-	
+
 	pl := new(ProcessList)
 
-	pl.State   = state
+	pl.State = state
 	pl.Servers = make([]*ListServer, totalServers)
-	for i:=0; i< totalServers; i++ {
-		pl.Servers[i]=new(ListServer)
-		pl.Servers[i].List = make([]interfaces.IMsg,0)
+	for i := 0; i < totalServers; i++ {
+		pl.Servers[i] = new(ListServer)
+		pl.Servers[i].List = make([]interfaces.IMsg, 0)
 	}
 	pl.DBHeight = dbheight
 	pl.Acks = new(map[[32]byte]interfaces.IMsg)

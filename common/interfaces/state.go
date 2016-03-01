@@ -27,9 +27,9 @@ type IState interface {
 	GetDBHeightComplete() uint32
 	Print(a ...interface{}) (n int, err error)
 	Println(a ...interface{}) (n int, err error)
-	SetOut(bool)		// Output is turned on if set to true
-	GetOut() bool		// Return true if Print or Println write output
-	LoadDBState(dbheight uint32) (IMsg,error)
+	SetOut(bool)  // Output is turned on if set to true
+	GetOut() bool // Return true if Print or Println write output
+	LoadDBState(dbheight uint32) (IMsg, error)
 	LastCompleteDBHeight() uint32
 	// Channels
 	//==========

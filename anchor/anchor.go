@@ -19,13 +19,13 @@ import (
 	"sort"
 	"time"
 
+	"github.com/FactomProject/go-spew/spew"
 	"github.com/btcsuitereleases/btcd/btcjson"
 	"github.com/btcsuitereleases/btcd/chaincfg"
 	"github.com/btcsuitereleases/btcd/txscript"
 	"github.com/btcsuitereleases/btcd/wire"
 	"github.com/btcsuitereleases/btcrpcclient"
 	"github.com/btcsuitereleases/btcutil"
-	"github.com/FactomProject/go-spew/spew"
 
 	"github.com/FactomProject/factomd/common/directoryBlock/dbInfo"
 	"github.com/FactomProject/factomd/common/interfaces"

@@ -153,7 +153,6 @@ func (m *MsgGetDirData) GetMsgHash() interfaces.IHash {
 	return m.MsgHash
 }
 
-
 func (m *MsgGetDirData) GetTimestamp() interfaces.Timestamp {
 	return 0
 }

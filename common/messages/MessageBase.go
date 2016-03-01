@@ -9,11 +9,11 @@ import (
 )
 
 type MessageBase struct {
-	Origin		int
-	Peer2peer 	bool
-	
+	Origin    int
+	Peer2peer bool
+
 	// Cash of the hash of a message
-	MsgHash 	interfaces.IHash
+	MsgHash interfaces.IHash
 }
 
 func (m *MessageBase) GetOrigin() int {

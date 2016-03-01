@@ -21,7 +21,6 @@ func (db *HybridDB) Trim() {
 	db.temporaryStorage = m
 }
 
-
 func (db *HybridDB) Close() error {
 	err := db.temporaryStorage.Close()
 	if err != nil {

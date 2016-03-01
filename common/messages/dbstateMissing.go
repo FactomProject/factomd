@@ -6,24 +6,23 @@ package messages
 
 import (
 	"bytes"
-//	"encoding/binary"
-	"fmt"
+	//	"encoding/binary"
 	"encoding/binary"
+	"fmt"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-	
 )
 
 // Communicate a Directory Block State
 
 type DBStateMissing struct {
 	MessageBase
-	Timestamp   		interfaces.Timestamp
-		
-	DBHeightStart		uint32	// First block missing
-	DBHeightEnd			uint32	// Last block missing.
-	
+	Timestamp interfaces.Timestamp
+
+	DBHeightStart uint32 // First block missing
+	DBHeightEnd   uint32 // Last block missing.
+
 }
 
 var _ interfaces.IMsg = (*DBStateMissing)(nil)
@@ -88,20 +87,20 @@ func (m *DBStateMissing) Follower(interfaces.IState) bool {
 }
 
 func (m *DBStateMissing) FollowerExecute(state interfaces.IState) error {
-	
-	end := m.DBHeightStart+100		// Process 100 at a time.
+
+	end := m.DBHeightStart + 100 // Process 100 at a time.
 	if end > m.DBHeightEnd {
 		end = m.DBHeightEnd
 	}
-	
+
 	for dbs := m.DBHeightStart; dbs <= end; dbs++ {
-		msg,_ := state.LoadDBState(dbs)
-		if msg != nil {						// If I don't have this block, ignore.
+		msg, _ := state.LoadDBState(dbs)
+		if msg != nil { // If I don't have this block, ignore.
 			msg.SetOrigin(m.GetOrigin())
 			state.NetworkOutMsgQueue() <- msg
 		}
 	}
-	
+
 	return nil
 }
 
@@ -128,19 +127,19 @@ func (m *DBStateMissing) UnmarshalBinaryData(data []byte) (newData []byte, err e
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
 	}()
-	
-	m.Peer2peer = true			// This is always a Peer2peer message
-	
-	newData = data[1:]			// Skip our type;  Someone else's problem.
-	
+
+	m.Peer2peer = true // This is always a Peer2peer message
+
+	newData = data[1:] // Skip our type;  Someone else's problem.
+
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
 	}
 
 	m.DBHeightStart, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
-	m.DBHeightEnd,   newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
-	
+	m.DBHeightEnd, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+
 	return
 }
 
@@ -152,9 +151,9 @@ func (m *DBStateMissing) UnmarshalBinary(data []byte) error {
 func (m *DBStateMissing) MarshalForSignature() ([]byte, error) {
 
 	var buf bytes.Buffer
-	
+
 	binary.Write(&buf, binary.BigEndian, byte(m.Type()))
-	
+
 	t := m.GetTimestamp()
 	data, err := t.MarshalBinary()
 	if err != nil {
@@ -164,7 +163,7 @@ func (m *DBStateMissing) MarshalForSignature() ([]byte, error) {
 
 	binary.Write(&buf, binary.BigEndian, m.DBHeightStart)
 	binary.Write(&buf, binary.BigEndian, m.DBHeightEnd)
-		
+
 	return buf.Bytes(), nil
 }
 
@@ -173,17 +172,17 @@ func (m *DBStateMissing) MarshalBinary() ([]byte, error) {
 }
 
 func (m *DBStateMissing) String() string {
-	return fmt.Sprintf("DBStateMissing: %d-%d",m.DBHeightStart,m.DBHeightEnd)
+	return fmt.Sprintf("DBStateMissing: %d-%d", m.DBHeightStart, m.DBHeightEnd)
 }
 
-func NewDBStateMissing(state interfaces.IState, dbheightStart uint32, dbheightEnd uint32 ) interfaces.IMsg {
+func NewDBStateMissing(state interfaces.IState, dbheightStart uint32, dbheightEnd uint32) interfaces.IMsg {
 
 	msg := new(DBStateMissing)
-	
-	msg.Peer2peer = true					// Always a peer2peer request.
+
+	msg.Peer2peer = true // Always a peer2peer request.
 	msg.Timestamp = state.GetTimestamp()
 	msg.DBHeightStart = dbheightStart
 	msg.DBHeightEnd = dbheightEnd
-	
+
 	return msg
 }

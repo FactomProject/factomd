@@ -6,30 +6,28 @@ package messages
 
 import (
 	"bytes"
-//	"encoding/binary"
-	"fmt"
+	//	"encoding/binary"
 	"encoding/binary"
+	"fmt"
+	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/directoryBlock"
+	"github.com/FactomProject/factomd/common/entryCreditBlock"
+	"github.com/FactomProject/factomd/common/factoid/block"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/common/directoryBlock"
-	"github.com/FactomProject/factomd/common/adminBlock"
-	"github.com/FactomProject/factomd/common/factoid/block"
-	"github.com/FactomProject/factomd/common/entryCreditBlock"
-	
 )
 
 // Communicate a Directory Block State
 
 type DBStateMsg struct {
 	MessageBase
-	Timestamp   interfaces.Timestamp
-	
+	Timestamp interfaces.Timestamp
+
 	DirectoryBlock   interfaces.IDirectoryBlock
 	AdminBlock       interfaces.IAdminBlock
 	FactoidBlock     interfaces.IFBlock
 	EntryCreditBlock interfaces.IEntryCreditBlock
-	
 }
 
 var _ interfaces.IMsg = (*DBStateMsg)(nil)
@@ -120,16 +118,16 @@ func (m *DBStateMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
 	}()
-	
+
 	m.Peer2peer = true
-	
-	newData = data[1:]			// Skip our type;  Someone else's problem.
-	
+
+	newData = data[1:] // Skip our type;  Someone else's problem.
+
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	m.DirectoryBlock = new(directoryBlock.DirectoryBlock)
 	newData, err = m.DirectoryBlock.UnmarshalBinaryData(newData)
 	if err != nil {
@@ -141,19 +139,19 @@ func (m *DBStateMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error
 	if err != nil {
 		return nil, err
 	}
-	
+
 	m.FactoidBlock = new(block.FBlock)
 	newData, err = m.DirectoryBlock.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	m.EntryCreditBlock = new(entryCreditBlock.ECBlock)
 	newData, err = m.DirectoryBlock.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return
 }
 
@@ -165,9 +163,9 @@ func (m *DBStateMsg) UnmarshalBinary(data []byte) error {
 func (m *DBStateMsg) MarshalForSignature() ([]byte, error) {
 
 	var buf bytes.Buffer
-	
+
 	binary.Write(&buf, binary.BigEndian, byte(m.Type()))
-	
+
 	t := m.GetTimestamp()
 	data, err := t.MarshalBinary()
 	if err != nil {
@@ -186,19 +184,19 @@ func (m *DBStateMsg) MarshalForSignature() ([]byte, error) {
 		return nil, err
 	}
 	buf.Write(data)
-	
+
 	data, err = m.FactoidBlock.MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
 	buf.Write(data)
-	
+
 	data, err = m.EntryCreditBlock.MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
 	buf.Write(data)
-	
+
 	return buf.Bytes(), nil
 }
 
@@ -207,19 +205,19 @@ func (m *DBStateMsg) MarshalBinary() ([]byte, error) {
 }
 
 func (m *DBStateMsg) String() string {
-	return fmt.Sprintf("DBState: %d",m.DirectoryBlock.GetHeader().GetDBHeight() )
+	return fmt.Sprintf("DBState: %d", m.DirectoryBlock.GetHeader().GetDBHeight())
 }
 
-func NewDBStateMsg( state  interfaces.IState,
-					d interfaces.IDirectoryBlock,
-					a interfaces.IAdminBlock,
-					f interfaces.IFBlock,
-					e interfaces.IEntryCreditBlock) interfaces.IMsg {
+func NewDBStateMsg(state interfaces.IState,
+	d interfaces.IDirectoryBlock,
+	a interfaces.IAdminBlock,
+	f interfaces.IFBlock,
+	e interfaces.IEntryCreditBlock) interfaces.IMsg {
 
 	msg := new(DBStateMsg)
 
 	msg.Peer2peer = true
-	
+
 	msg.Timestamp = state.GetTimestamp()
 	msg.DirectoryBlock = d
 	msg.AdminBlock = a

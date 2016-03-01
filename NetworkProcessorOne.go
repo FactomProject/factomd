@@ -54,7 +54,7 @@ netloop:
 				switch msg.(type) {
 				case *messages.EOM:
 					msgeom := msg.(*messages.EOM)
-					server,ok := state.GetServer().(*btcd.Server)
+					server, ok := state.GetServer().(*btcd.Server)
 					if ok {
 						server.BroadcastMessage(msgeom)
 					}
