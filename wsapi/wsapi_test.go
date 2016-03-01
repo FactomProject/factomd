@@ -9,7 +9,7 @@ import (
 	"github.com/FactomProject/factomd/receipts"
 	"github.com/FactomProject/factomd/testHelper"
 	. "github.com/FactomProject/factomd/wsapi"
-	"github.com/hoisie/web"
+	"github.com/FactomProject/web"
 	"net/http"
 	"strings"
 	"testing"

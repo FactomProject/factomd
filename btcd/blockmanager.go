@@ -17,7 +17,7 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 	cp "github.com/FactomProject/factomd/controlpanel"
 	"github.com/FactomProject/factomd/util"
-	"github.com/davecgh/go-spew/spew"
+	"github.com/FactomProject/go-spew/spew"
 )
 
 const (

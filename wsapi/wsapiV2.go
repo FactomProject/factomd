@@ -15,7 +15,7 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/receipts"
-	"github.com/hoisie/web"
+	"github.com/FactomProject/web"
 	"io/ioutil"
 )
 
