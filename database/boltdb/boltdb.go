@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/interfaces"
 
-	"github.com/boltdb/bolt"
+	"github.com/FactomProject/bolt"
 )
 
 var _ = hex.EncodeToString
