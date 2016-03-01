@@ -60,6 +60,6 @@ func loadDatabase(s *state.State) {
 		
 		s.InMsgQueue() <- msg
 	}
-	s.Println(fmt.Sprintf("Loaded %d directory blocks on %s", blkCnt),s.FactomNodeName)
+	s.Println(fmt.Sprintf("Loaded %d directory blocks on %s", blkCnt,s.FactomNodeName))
 
 }

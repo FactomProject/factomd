@@ -7,19 +7,20 @@ package main
 import (
 	"os"
 	"fmt"
+	"time"
+	"github.com/nsf/termbox-go"
 	"github.com/FactomProject/factomd/btcd"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/log"
-	ss "github.com/FactomProject/factomd/state"
+	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
-	"time"
 )
 
 var _ = fmt.Print
 
 type FactomNode struct {
-	State		*ss.State
+	State		*state.State
 	Peers		[]*FactomPeer
 	
 }
@@ -48,25 +49,15 @@ func AddPeer(f1, f2 *FactomNode) {
 	f2.Peers = append(f2.Peers,peer21)
 }
 
-func NetStart(state *ss.State) {
+func NetStart(s *state.State) {
+
+	var fnodes []*FactomNode
 	
-	
-	state.SetOut(false)
+	s.SetOut(false)
 	
 	fmt.Println(">>>>>>>>>>>>>>>>")
 	fmt.Println(">>>>>>>>>>>>>>>> Net Sim Start!!!!!")
 	fmt.Println(">>>>>>>>>>>>>>>>")
-	
-	var states []*ss.State
-	AddInterruptHandler(func() {
-		fmt.Print("<Break>\n")
-		fmt.Print("Gracefully shutting down the server...\n")
-		for i,one_state := range states {
-			fmt.Println("Shutting Down: ",i, one_state.FactomNodeName)
-			one_state.ShutdownChan <- 0
-		}
-		os.Exit(0)
-	})
 		
 	pcfg, _, err := btcd.LoadConfig()
 	if err != nil {
@@ -79,55 +70,94 @@ func NetStart(state *ss.State) {
 	}
 	fmt.Println(fmt.Sprintf("factom config: %s", FactomConfigFilename))
 	
-	startServer := func(clone bool, number string) *FactomNode{
-		newState := state
-		if clone {
-			newState = state.Clone(number).(*ss.State)
+	makeServer := func() *FactomNode{
+		// All other states are clones of the first state.  Which this routine
+		// gets passed to it.
+		newState := s
+		
+		if len(fnodes)>0 {
+			number := fmt.Sprintf("%d",len(fnodes))
+			newState = s.Clone(number).(*state.State)
 			newState.Init()
 		} 
-		
-		states = append(states,newState)
-		
+			
 		fnode := new(FactomNode)
 		fnode.State = newState
-		go NetworkProcessorNet(fnode)
-		go loadDatabase(newState)
-		go Timer(newState)
-		go Validator(newState)
+		fnodes = append(fnodes,fnode)
+		
 		return fnode
 	}
 
-	state.LoadConfig(FactomConfigFilename)
-	state.Init()
-	fnode9 := startServer(true,"9")
-	fnode8 := startServer(true,"8")
-	fnode7 := startServer(true,"7")
-	fnode6 := startServer(true,"6")
-	fnode5 := startServer(true,"5")
-	fnode4 := startServer(true,"4")
-	fnode3 := startServer(true,"3")
-	fnode2 := startServer(true,"2")
-	fnode1 := startServer(true,"1")
-	AddPeer(fnode2, fnode3)
-	AddPeer(fnode1, fnode2)
-	AddPeer(fnode2, fnode4)
-	AddPeer(fnode4, fnode5)
-	AddPeer(fnode4, fnode6)
-	AddPeer(fnode5, fnode7)
-	AddPeer(fnode6, fnode7)
-	AddPeer(fnode7, fnode8)
-	AddPeer(fnode8, fnode9)
-	fnode0 := startServer(false,"0")
-	AddPeer(fnode0, fnode3)
-	AddPeer(fnode0, fnode1)
-	go wsapi.Start(fnode1.State)
-
-	fnode9.State.SetOut(true)
+	startServers := func() {		
+		for _,fnode := range fnodes {
+			go NetworkProcessorNet(fnode)
+			go loadDatabase(fnode.State)
+			go Timer(fnode.State)
+			go Validator(fnode.State)
+		}
+	}
 	
+	//************************************************
+	// Actually setup the Network
+	//************************************************
+	
+	s.LoadConfig(FactomConfigFilename)
+	s.Init()
+
+	for i := 0; i < 10; i++ {	// Make 10 nodes
+		makeServer()
+	}
+
+	AddPeer(fnodes[2], fnodes[3])
+	AddPeer(fnodes[1], fnodes[2])
+	AddPeer(fnodes[2], fnodes[4])
+	AddPeer(fnodes[4], fnodes[5])
+	AddPeer(fnodes[4], fnodes[6])
+	AddPeer(fnodes[5], fnodes[7])
+	AddPeer(fnodes[6], fnodes[7])
+	AddPeer(fnodes[7], fnodes[8])
+	AddPeer(fnodes[8], fnodes[9])
+	AddPeer(fnodes[0], fnodes[3])
+	AddPeer(fnodes[0], fnodes[1])
+	
+	startServers()
+	
+	go wsapi.Start(fnodes[0].State)
+
 	// Web API runs independent of Factom Servers
 
+	err = termbox.Init()
+	if err != nil {
+		panic(err)
+	}
+	defer termbox.Close()
+	
+	p := 0
 	for {
-		time.Sleep(100000000)
+		switch ev := termbox.PollEvent(); ev.Type {
+			case termbox.EventKey:
+				switch ev.Key {
+					case termbox.KeyEsc:
+						fmt.Print("Gracefully shutting down the server...\n")
+						for i,fnode := range fnodes {
+							fmt.Println("Shutting Down: ",i, fnode.State.FactomNodeName)
+							fnode.State.ShutdownChan <- 0
+						}
+						fmt.Println("Waiting...")
+						time.Sleep(10*time.Second)
+						os.Exit(0)
+					case termbox.KeySpace:
+						fnodes[p].State.SetOut(false)
+						p++
+						if p >= len(fnodes) { p = 0 }
+						fnodes[p].State.SetOut(true)
+						fmt.Println("Switching to",p)
+					default:
+				}
+			default:
+		}
 	}
 	
 }
+
+

@@ -7,7 +7,7 @@ package state
 import (
 	"fmt"
 	"os"
-
+	"strings"
 	"github.com/FactomProject/factomd/anchor"
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
@@ -62,6 +62,7 @@ type State struct {
 	totalServers  			int
 	serverState   			int
 	OutputAllowed 			bool
+	ServerIndex 			int                // Index of the server, as understood by the leader
 	
 	// Maps
 	// ====
@@ -85,7 +86,6 @@ type State struct {
 
 	// Directory Block State
 	LDBHeight   uint32       // Leader's DBHeight; Nobody else can touch!
-	ServerIndex int          // Index of the server, as understood by the leader
 	DBStates    *DBStateList // Holds all DBStates not yet processed.
 
 	// Having all the state for a particular directory block stored in one structure
@@ -194,7 +194,7 @@ func (s *State) Init() {
 	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 10000) //incoming message queue from the network messages
 	s.networkOutMsgQueue = make(chan interfaces.IMsg, 10000)     //Messages to be broadcast to the network
 	s.inMsgQueue = make(chan interfaces.IMsg, 10000)             //incoming message queue for factom application messages
-	s.ShutdownChan = make(chan int) 							 //Channel to gracefully shut down.
+	s.ShutdownChan = make(chan int,1) 							 //Channel to gracefully shut down.
 	
 	// Set up struct to stop replay attacks
 	s.Replay = new(Replay)
@@ -390,6 +390,11 @@ func (s *State) LeaderExecute(m interfaces.IMsg) error {
 	return nil
 }
 
+func (s *State) LeaderExecuteAddServer(server interfaces.IMsg) error {
+	return s.LeaderExecute(server)
+}
+
+
 func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
 	eom, _ := m.(*messages.EOM)
 	eom.DirectoryBlockHeight = s.LDBHeight
@@ -414,6 +419,9 @@ func (s *State) GetCommits(dbheight uint32, hash interfaces.IHash) interfaces.IM
 }
 func (s *State) PutCommits(dbheight uint32, hash interfaces.IHash, msg interfaces.IMsg) {
 	s.ProcessLists.Get(dbheight).PutCommits(hash, msg)
+}
+
+func (s *State) ProcessAddServer(dbheight uint32, commitChain interfaces.IMsg) {
 }
 
 func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg) {
@@ -762,7 +770,7 @@ func (s *State) NewAdminBlockHeader(dbheight uint32) interfaces.IABlockHeader {
 
 func (s *State) PrintType(msgType int) bool {
 	r := true
-	return r
+	r = r && msgType != constants.DBSTATE_MISSING_MSG
 	r = r && msgType != constants.DBSTATE_MSG
 	r = r && msgType != constants.ACK_MSG
 	r = r && msgType != constants.EOM_MSG
@@ -894,24 +902,31 @@ func (s *State) NewEOM(minute int) interfaces.IMsg {
 }
 
 func (s *State) Print(a ...interface{}) (n int, err error) {	
-	str := ""
-	for _,v := range a {
-		str = str+fmt.Sprintf("%v",v)
+	if s.OutputAllowed { 
+		str := ""
+		for _,v := range a {
+			str = str+fmt.Sprintf("%v",v)
+		}
+		
+		str = strings.Replace(str,"\n","\r\n",-1)
+		return fmt.Print(str) 
 	}
-	
-	if s.OutputAllowed { return fmt.Print(str) }
 	
 	return 0, nil
 }
 
 func (s *State) Println(a ...interface{}) (n int, err error) {	
-	str := ""
-	for _,v := range a {
-		str = str+fmt.Sprintf("%v",v)
-	}
-	str = str+"\n"
+	if s.OutputAllowed { 
+		str := ""
+		for _,v := range a {
+			str = str+fmt.Sprintf("%v",v)
+		}
+		str = str+"\n"
 	
-	if s.OutputAllowed { return fmt.Print(str) }
+		str = strings.Replace(str,"\n","\r\n",-1)
+		
+		return fmt.Print(str) 
+	}
 	
 	return 0, nil
 }
