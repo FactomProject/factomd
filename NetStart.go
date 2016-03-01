@@ -137,12 +137,12 @@ func NetStart(s *state.State) {
 		case termbox.EventKey:
 			switch ev.Key {
 			case termbox.KeyEsc:
-				fmt.Print("Gracefully shutting down the server...\n")
-				for i, fnode := range fnodes {
-					fmt.Println("Shutting Down: ", i, fnode.State.FactomNodeName)
+				fmt.Print("Gracefully shutting down the server...\r\n")
+				for _, fnode := range fnodes {
+					fmt.Print("Shutting Down: ", fnode.State.FactomNodeName, "\r\n")
 					fnode.State.ShutdownChan <- 0
 				}
-				fmt.Println("Waiting...")
+				fmt.Print("Waiting...\r\n")
 				time.Sleep(10 * time.Second)
 				os.Exit(0)
 			case termbox.KeySpace:
@@ -152,7 +152,7 @@ func NetStart(s *state.State) {
 					p = 0
 				}
 				fnodes[p].State.SetOut(true)
-				fmt.Println("Switching to", p)
+				fmt.Print("\r\nSwitching to Node ", p,"\r\n")
 			default:
 			}
 		default:

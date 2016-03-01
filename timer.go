@@ -25,10 +25,10 @@ func Timer(state interfaces.IState) {
 
 	next := now + wait + tenthPeriod
 
-	log.Printfln("Time: %v", time.Now())
-	log.Printfln("Waiting %d seconds to the top of the period", wait/billion)
+	log.Printf("Time: %v\r\n", time.Now())
+	log.Printf("Waiting %d seconds to the top of the period\r\n", wait/billion)
 	time.Sleep(time.Duration(wait))
-	log.Printfln("Starting Timer! %v\n", time.Now())
+	log.Printf("Starting Timer! %v\r\n\n", time.Now())
 	for {
 		for i := 0; i < 10; i++ {
 			now = time.Now().UnixNano()
