@@ -193,7 +193,9 @@ func (m *Ack) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	m.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 	m.Height, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
-	m.SerialHash = new(primitives.Hash)
+	if m.SerialHash == nil {
+		m.SerialHash = primitives.NewHash(constants.ZERO_HASH)
+	}
 	newData, err = m.SerialHash.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err

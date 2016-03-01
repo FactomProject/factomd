@@ -122,7 +122,8 @@ func NetStart(s *state.State) {
 	AddPeer(fnodes[8], fnodes[9])
 	AddPeer(fnodes[0], fnodes[3])
 	AddPeer(fnodes[0], fnodes[1])
-
+	AddPeer(fnodes[0], fnodes[4])
+	
 	startServers()
 
 	go wsapi.Start(fnodes[0].State)

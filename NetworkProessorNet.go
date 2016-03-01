@@ -88,6 +88,7 @@ func NetworkProcessorNet(fnode *FactomNode) {
 						if fnode.State.Replay.IsTSValid_(msg.GetMsgHash().Fixed(),
 							int64(msg.GetTimestamp())/1000,
 							int64(fnode.State.GetTimestamp())/1000) {
+							fnode.State.Print(fmt.Sprintf("OKAY: %s %x %d %d\n",msg.String(),msg.GetMsgHash().Bytes(),msg.GetTimestamp()/1000,fnode.State.GetTimestamp()/1000))
 							//fnode.State.Println("In Comming!! ",msg)
 							fnode.MLog.add2(fnode, peer.name, "PeerIn", true, msg)
 							fnode.State.NetworkInMsgQueue() <- msg
