@@ -402,7 +402,6 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
 }
 
 func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) error {
-	s.LeaderExecute(m)
 	s.ProcessLists.Get(s.LDBHeight).SetComplete(true)
 	s.LastAck = nil // Clear Ack list
 	return nil
@@ -464,25 +463,25 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) {
 			// and we have ALL EOM messages from all servers, then we
 			// create a DirectoryBlockSignature (if we are the leader) and
 			// send it out to the network.
-			DBM := messages.NewDirectoryBlockSignature()
-			DBM.Timestamp = s.GetTimestamp()
+			DBS := messages.NewDirectoryBlockSignature(dbheight)
+			DBS.Timestamp = s.GetTimestamp()
 			prevDB := s.GetDirectoryBlock()
 			if prevDB == nil {
-				DBM.DirectoryBlockKeyMR = primitives.NewHash(constants.ZERO_HASH)
+				DBS.DirectoryBlockKeyMR = primitives.NewHash(constants.ZERO_HASH)
 			} else {
-				DBM.DirectoryBlockKeyMR = prevDB.GetKeyMR()
+				DBS.DirectoryBlockKeyMR = prevDB.GetKeyMR()
 			}
-			DBM.Sign(s)
+			DBS.Sign(s)
 
-			ack, err := s.NewAck(DBM.GetHash())
+			ack, err := s.NewAck(DBS.GetHash())
 			if err != nil {
 				return
 			}
 
 			s.NetworkOutMsgQueue() <- ack
-			s.NetworkOutMsgQueue() <- DBM
+			s.NetworkOutMsgQueue() <- DBS
 			s.InMsgQueue() <- ack
-			s.InMsgQueue() <- DBM
+			s.InMsgQueue() <- DBS
 		}
 	}
 }

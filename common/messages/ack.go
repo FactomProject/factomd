@@ -82,7 +82,7 @@ func (m *Ack) GetHash() interfaces.IHash {
 
 func (m *Ack) GetMsgHash() interfaces.IHash {
 	if m.MsgHash == nil {
-		data, err := m.MarshalBinary()
+		data, err := m.MarshalForSignature()
 		if err != nil {
 			return nil
 		}
@@ -193,13 +193,13 @@ func (m *Ack) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	m.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 	m.Height, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
-	if m.SerialHash == nil {
-		m.SerialHash = primitives.NewHash(constants.ZERO_HASH)
-	}
-	newData, err = m.SerialHash.UnmarshalBinaryData(newData)
-	if err != nil {
-		return nil, err
-	}
+//	if m.SerialHash == nil {
+//		m.SerialHash = primitives.NewHash(constants.ZERO_HASH)
+//	}
+//	newData, err = m.SerialHash.UnmarshalBinaryData(newData)
+//	if err != nil {
+//		return nil, err
+//	}
 
 	if len(newData) > 0 {
 		sig := new(primitives.Signature)
@@ -239,11 +239,11 @@ func (m *Ack) MarshalForSignature() ([]byte, error) {
 	binary.Write(&buf, binary.BigEndian, m.DBHeight)
 	binary.Write(&buf, binary.BigEndian, m.Height)
 
-	data, err = m.SerialHash.MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
-	buf.Write(data)
+//	data, err = m.SerialHash.MarshalBinary()
+//	if err != nil {
+//		return nil, err
+//	}
+//	buf.Write(data)
 
 	return buf.Bytes(), nil
 }
@@ -261,6 +261,8 @@ func (m *Ack) MarshalBinary() (data []byte, err error) {
 			return nil, err
 		}
 		return append(resp, sigBytes...), nil
+	}else{
+		return append(resp, constants.ZERO_HASH...), nil
 	}
 	return resp, nil
 }

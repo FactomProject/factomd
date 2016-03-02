@@ -162,6 +162,7 @@ func NetStart(s *state.State) {
 				}
 				fnodes[p].State.SetOut(true)
 				fmt.Print("\r\nSwitching to Node ", p,"\r\n")
+				wsapi.SetState(fnodes[p].State)
 			default:
 		}
 	}

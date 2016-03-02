@@ -17,7 +17,7 @@ import (
 type DirectoryBlockSignature struct {
 	MessageBase
 	Timestamp             interfaces.Timestamp
-	DirectoryBlockHeight  uint32
+	DBHeight  			  uint32
 	DirectoryBlockKeyMR   interfaces.IHash
 	ServerIdentityChainID interfaces.IHash
 
@@ -134,7 +134,7 @@ func (m *DirectoryBlockSignature) UnmarshalBinaryData(data []byte) (newData []by
 		return nil, err
 	}
 
-	m.DirectoryBlockHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+	m.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
 	hash := new(primitives.Hash)
 	newData, err = hash.UnmarshalBinaryData(newData)
@@ -183,7 +183,7 @@ func (m *DirectoryBlockSignature) MarshalForSignature() ([]byte, error) {
 	}
 	buf.Write(data)
 
-	binary.Write(&buf, binary.BigEndian, m.DirectoryBlockHeight)
+	binary.Write(&buf, binary.BigEndian, m.DBHeight)
 
 	hash, err := m.DirectoryBlockKeyMR.MarshalBinary()
 	if err != nil {
@@ -237,8 +237,9 @@ func (e *DirectoryBlockSignature) JSONBuffer(b *bytes.Buffer) error {
  * Support
  *******************************************************************/
 
-func NewDirectoryBlockSignature() *DirectoryBlockSignature {
+func NewDirectoryBlockSignature(dbHeight uint32) *DirectoryBlockSignature {
 	dbm := new(DirectoryBlockSignature)
+	dbm.DBHeight = dbHeight
 	dbm.DirectoryBlockKeyMR = primitives.NewHash(constants.ZERO_HASH)
 	dbm.ServerIdentityChainID = primitives.NewHash(constants.ZERO_HASH)
 	return dbm
