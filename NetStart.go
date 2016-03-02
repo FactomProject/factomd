@@ -152,7 +152,7 @@ func NetStart(s *state.State) {
 					fnode.State.ShutdownChan <- 0
 				}
 				fmt.Print("Waiting...\r\n")
-				time.Sleep(10 * time.Second)
+				time.Sleep(3 * time.Second)
 				os.Exit(0)
 			case 32:
 				fnodes[p].State.SetOut(false)

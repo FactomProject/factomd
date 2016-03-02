@@ -140,10 +140,10 @@ func (s *State) Clone(number string) interfaces.IState {
 	clone.Network = s.Network
 	clone.DirectoryBlockInSeconds = s.DirectoryBlockInSeconds
 	clone.PortNumber = s.PortNumber
+	clone.ServerIdentityChainID = primitives.Sha([]byte(number))
 	// Need to have a Server Priv Key TODO:
 	clone.LocalServerPrivKey = s.LocalServerPrivKey
 
-	//IdentityChainID interfaces.IHash
 
 	//serverPrivKey primitives.PrivateKey
 	//serverPubKey  primitives.PublicKey
