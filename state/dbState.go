@@ -126,6 +126,10 @@ func (list *DBStateList) Last() *DBState {
 
 func (list *DBStateList) Put(dbstate *DBState) {
 
+	// Hold off on any requests if I'm actually processing...
+	list.last = list.state.GetTimestamp()
+	
+	
 	dblk := dbstate.DirectoryBlock
 	dbheight := dblk.GetHeader().GetDBHeight()
 
