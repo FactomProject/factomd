@@ -38,7 +38,14 @@ func (f *FactomPeer) init(name string) *FactomPeer {
 	return f
 }
 
-func AddPeer(f1, f2 *FactomNode) {
+func AddPeer(fnodes []*FactomNode, i1 int , i2 int) {
+	if i1 >= len(fnodes) || i2 >= len(fnodes) {
+		return
+	}
+	
+	f1 := fnodes[i1]
+	f2 := fnodes[i2]
+	
 	peer12 := new(FactomPeer).init(f2.State.FactomNodeName)
 	peer21 := new(FactomPeer).init(f1.State.FactomNodeName)
 	peer12.BroadcastIn = peer21.BroadcastOut
@@ -107,26 +114,76 @@ func NetStart(s *state.State) {
 	s.LoadConfig(FactomConfigFilename)
 	s.Init()
 
-	for i := 0; i < 10; i++ { // Make 10 nodes
+	for i := 0; i < 40; i++ { // Make 10 nodes
 		makeServer()
 	}
 
-	AddPeer(fnodes[2], fnodes[3])
-	AddPeer(fnodes[1], fnodes[2])
-	AddPeer(fnodes[2], fnodes[4])
-	AddPeer(fnodes[4], fnodes[5])
-	AddPeer(fnodes[4], fnodes[6])
-	AddPeer(fnodes[5], fnodes[7])
-	AddPeer(fnodes[6], fnodes[7])
-	AddPeer(fnodes[7], fnodes[8])
-	AddPeer(fnodes[8], fnodes[9])
-	AddPeer(fnodes[0], fnodes[3])
-	AddPeer(fnodes[0], fnodes[1])
-	AddPeer(fnodes[0], fnodes[4])
+	AddPeer(fnodes, 0,1)
+	AddPeer(fnodes, 0,2)
+	AddPeer(fnodes, 0,3)
+	AddPeer(fnodes, 0,4)
+	AddPeer(fnodes, 0,5)
+	AddPeer(fnodes, 1,6)
+	AddPeer(fnodes, 1,7)
+	AddPeer(fnodes, 1,8)
+		AddPeer(fnodes, 0,12)
+	AddPeer(fnodes, 2,3)
+	AddPeer(fnodes, 3,8)
+	AddPeer(fnodes, 4,6)
+	AddPeer(fnodes, 5,1)
+	AddPeer(fnodes, 6,7)
+	AddPeer(fnodes, 7,9)
+	AddPeer(fnodes, 7,10)
+	AddPeer(fnodes, 7,11)
+	AddPeer(fnodes, 7,12)
+	AddPeer(fnodes, 7,13)		
+		AddPeer(fnodes, 6,21)	
+	AddPeer(fnodes, 7,14)
+	AddPeer(fnodes, 7,15)
+	AddPeer(fnodes, 12,16)
+	AddPeer(fnodes, 12,17)
+	AddPeer(fnodes, 12,18)
+	AddPeer(fnodes, 12,19)
+	AddPeer(fnodes, 12,20)
+	AddPeer(fnodes, 18,21)
+	AddPeer(fnodes, 18,22)
+	AddPeer(fnodes, 18,23)		
+		AddPeer(fnodes, 16,29)
+	AddPeer(fnodes, 18,24)
+	AddPeer(fnodes, 18,25)
+	AddPeer(fnodes, 22,26)
+	AddPeer(fnodes, 22,27)
+	AddPeer(fnodes, 22,28)
+	AddPeer(fnodes, 22,29)
+	AddPeer(fnodes, 28,30)
+	AddPeer(fnodes, 28,31)
+		AddPeer(fnodes, 27,35)
+	AddPeer(fnodes, 28,32)
+	AddPeer(fnodes, 28,33)
+	AddPeer(fnodes, 28,34)
+	AddPeer(fnodes, 28,35)
+	AddPeer(fnodes, 28,36)
+	AddPeer(fnodes, 34,37)
+	AddPeer(fnodes, 34,38)
+	AddPeer(fnodes, 34,39)
+		AddPeer(fnodes, 5,33)
+	
 	
 	startServers()
 
 	go wsapi.Start(fnodes[0].State)
+
+	AddInterruptHandler(func() {
+		fmt.Print("<Break>\n")
+		fmt.Print("Gracefully shutting down the server...\n")
+		for _, fnode := range fnodes {
+			fmt.Print("Shutting Down: ", fnode.State.FactomNodeName, "\r\n")
+			fnode.State.ShutdownChan <- 0
+		}
+		fmt.Print("Waiting...\r\n")
+		time.Sleep(3 * time.Second)
+		os.Exit(0)
+	})
 
 	// Web API runs independent of Factom Servers
 
@@ -145,14 +202,19 @@ func NetStart(s *state.State) {
 		fmt.Printf("Got: %X\n",b)
 		
 		switch b[0] {
+			case 'a', 'A' :
+				for _,f := range fnodes {
+					fmt.Printf("%8s %s\n",f.State.FactomNodeName, f.State.String())
+				}
 			case 27:
-				fmt.Print("Gracefully shutting down the server...\r\n")
+				fmt.Print("Gracefully shutting down the servers...\r\n")
 				for _, fnode := range fnodes {
 					fmt.Print("Shutting Down: ", fnode.State.FactomNodeName, "\r\n")
 					fnode.State.ShutdownChan <- 0
 				}
 				fmt.Print("Waiting...\r\n")
-				time.Sleep(3 * time.Second)
+				time.Sleep(time.Duration(len(fnodes)/8+1) * time.Second)
+				fmt.Println()
 				os.Exit(0)
 			case 32:
 				fnodes[p].State.SetOut(false)

@@ -49,9 +49,15 @@ func (m *MsgLog) add2(fnode *FactomNode, dest string , where string, valid bool,
 	
 	now := fnode.State.GetTimestamp() / 1000
 	
-	if now-m.last > 6 && fnode.State.GetOut() {
+	if now-m.last > 2 && fnode.State.GetOut() {
 		m.prtMsgs(fnode.State)
 		m.last = now
+	}
+	
+	// Haven't had any output in 8 seconds? Toss the history;  it can just
+	// become too much.
+	if now-m.last > 3 {
+		m.MsgList = m.MsgList[0:0]
 	}
 	
 }

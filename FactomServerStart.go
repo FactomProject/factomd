@@ -31,9 +31,14 @@ func loadDatabase(s *state.State) {
 
 	var blkCnt uint32
 
+	head, err := s.GetDB().FetchDirectoryBlockHead()
+	
+	if err != nil && head != nil {
+		blkCnt = head.GetHeader().GetDBHeight()
+	}
+	msg, err := s.LoadDBState(blkCnt)
+	
 	for i := 0; true; i++ {
-
-		msg, err := s.LoadDBState(uint32(i))
 		if err != nil {
 			s.Println(err.Error())
 			break
@@ -44,6 +49,7 @@ func loadDatabase(s *state.State) {
 				break
 			}
 		}
+		msg, err = s.LoadDBState(uint32(i))
 	}
 
 	if blkCnt == 0 && s.NetworkNumber == constants.NETWORK_LOCAL {

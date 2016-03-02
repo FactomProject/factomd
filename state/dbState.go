@@ -48,7 +48,13 @@ func (list *DBStateList) Catchup() {
 		list.secondsBetweenTests = 1
 		list.last = now
 	}
-
+		
+	// We only check if we need updates once every so often.
+	if int(now)/1000-int(list.last)/1000 < list.secondsBetweenTests {
+		return
+	}
+	list.last = now
+	
 	begin := -1
 	end := -1
 
@@ -80,17 +86,10 @@ func (list *DBStateList) Catchup() {
 			return
 		}
 	}
-
-	// We only check if we need updates once every so often.
-	if list.lastreq == begin &&
-		int(now)/1000-int(list.last)/1000 < list.secondsBetweenTests {
-		return
-	}
-
-	list.last = now
+	
 	list.lastreq = begin
-
-	end2 := begin + 100
+	
+	end2 := begin + 200
 	if end < end2 {
 		end2 = end
 	}
@@ -188,10 +187,15 @@ func (list *DBStateList) Process() {
 			return
 		}
 
+		if d.DirectoryBlock != nil && d.DirectoryBlock.GetHeader().GetDBHeight() != list.complete + list.base {
+			panic("Should not happen")
+		}
+		
 		if d.isNew {
 			// Make sure the directory block is properly synced up with the prior block, if there
 			// is one.
 
+			head, _ := list.state.GetDB().FetchDirectoryBlockHead()
 			dblk, _ := list.state.GetDB().FetchDBlockByHeight(d.DirectoryBlock.GetHeader().GetDBHeight())
 			if dblk == nil {
 				if list.complete > 0 {
@@ -202,8 +206,10 @@ func (list *DBStateList) Process() {
 				if err := list.state.GetDB().ProcessDBlockBatch(d.DirectoryBlock); err != nil {
 					panic(err.Error())
 				}
-				if err := list.state.GetDB().SaveDirectoryBlockHead(d.DirectoryBlock); err != nil {
-					panic(err.Error())
+				if head == nil || head.GetHeader().GetDBHeight() < d.DirectoryBlock.GetHeader().GetDBHeight() {
+					if err := list.state.GetDB().SaveDirectoryBlockHead(d.DirectoryBlock); err != nil {
+						panic(err.Error())
+					}
 				}
 				if err := list.state.GetDB().ProcessABlockBatch(d.AdminBlock); err != nil {
 					panic(err.Error())

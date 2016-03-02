@@ -365,6 +365,8 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) error {
 		return fmt.Errorf("Cannot execute the given DBStateMsg")
 	}
 
+	s.DBStates.last = s.GetTimestamp()
+	
 	s.AddDBState(true,
 		dbstatemsg.DirectoryBlock,
 		dbstatemsg.AdminBlock,
@@ -729,7 +731,7 @@ func (s *State) String() string {
 		return "<none>"
 	}
 	dstateHeight := last.DirectoryBlock.GetHeader().GetDBHeight()
-	plheight := int(dstateHeight) + len(s.ProcessLists.Lists)
+	plheight := int(s.ProcessLists.DBHeightBase) + len(s.ProcessLists.Lists)
 
 	return fmt.Sprintf("%7s DBS: %d PL: %d C: %d",
 		s.FactomNodeName,
