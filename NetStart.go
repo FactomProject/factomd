@@ -44,6 +44,8 @@ func AddPeer(fnodes []*FactomNode, i1 int , i2 int) {
 		return
 	}
 	
+	fmt.Println("AddPeer(fnodes,",i1,i2,")")
+	
 	f1 := fnodes[i1]
 	f2 := fnodes[i2]
 	
@@ -78,11 +80,13 @@ func NetStart(s *state.State) {
 	fmt.Println(fmt.Sprintf("factom config: %s", FactomConfigFilename))
 
 	// Figure out how many nodes I am going to generate.  Default 10
-	cnt, err := strconv.Atoi(os.Args[1])
-	if err != nil || cnt == 0 {
-		cnt = 10
+	cnt := 10
+	if len(os.Args) > 2 {
+		cnt1, err := strconv.Atoi(os.Args[1])
+		if err == nil && cnt1 != 0 {
+			cnt = cnt1
+		}
 	}
-	
 	
 	mLog := new(MsgLog)
 	mLog.init(cnt)
@@ -122,12 +126,15 @@ func NetStart(s *state.State) {
 	s.LoadConfig(FactomConfigFilename)
 	s.Init()
 	
-	var p1 []int
 	
-	primes := []int { 7, 13, 17, 23,  37,  43, 47, 53, 67, 73, 83, 97, 103 }	
-	for i := 0; i < cnt; i++ { // Make 10 nodes
+	// Make cnt Factom nodes
+	for i := 0; i < cnt; i++ { 
 		makeServer()
 	}
+
+	primes := []int { 7, 13, 17, 23,  37,  43, 47, 53, 67, 73, 83, 97, 103 }	
+	
+	var p1 []int
 	// Pick 3 primes
 	for _,p := range primes {
 		a := cnt
@@ -144,14 +151,35 @@ func NetStart(s *state.State) {
 		}
 	}
 	
-	h:=0
-	for index, p := range p1 {
-		fmt.Println()
-		for i:= 0; i < cnt/(index+1); i++ {
-			h2 := (h+p)%cnt
-			AddPeer(fnodes, h,h2)
-			fmt.Println("AddPeer(fnodes,",h,h2,")")
-			h = h2
+	fmt.Println("factomd <node count> <network config: mesh/long/loops>")
+	
+	if len (os.Args) > 2 {
+		switch os.Args[2] {
+			case "mesh" :
+				
+				h:=0
+				for index, p := range p1 {
+					fmt.Println()
+					for i:= 0; i < cnt/(index+1); i++ {
+						h2 := (h+p)%cnt
+						AddPeer(fnodes, h,h2)
+						h = h2
+					}
+				}
+			case "long" :
+				for i := 1; i < cnt; i++ {
+					AddPeer(fnodes,i-1,i)
+				}
+			case "loops" :
+				for i := 1; i < cnt; i++ {
+					AddPeer(fnodes,i-1,i)
+				}
+				for i := 0; i+5 < cnt; i+=6 {
+					AddPeer(fnodes,i,i+5)
+				}
+				for i := 0; i+7 < cnt; i+=3 {
+					AddPeer(fnodes,i,i+7)
+				}
 		}
 	}
 	
