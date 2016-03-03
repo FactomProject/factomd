@@ -282,6 +282,7 @@ func NewProcessList(state interfaces.IState, totalServers int, dbheight uint32) 
 	for i := 0; i < totalServers; i++ {
 		pl.Servers[i] = new(ListServer)
 		pl.Servers[i].List = make([]interfaces.IMsg, 0)
+		
 	}
 	pl.DBHeight = dbheight
 	pl.Acks = new(map[[32]byte]interfaces.IMsg)

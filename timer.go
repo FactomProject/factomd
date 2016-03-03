@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/interfaces"
 	s "github.com/FactomProject/factomd/state"
-	"github.com/FactomProject/factomd/log"
 	"time"
 )
 
@@ -28,10 +27,8 @@ func Timer(state interfaces.IState) {
 
 	next := now + wait + tenthPeriod
 
-	log.Printf("Time: %v\r\n", time.Now())
-	log.Printf("Waiting %d seconds to the top of the period\r\n", wait/billion)
+	state.Print(fmt.Sprintf("Time: %v\r\n", time.Now()))
 	time.Sleep(time.Duration(wait))
-	log.Printf("Starting Timer! %v\r\n\n", time.Now())
 	for {
 		for i := 0; i < 10; i++ {
 			now = time.Now().UnixNano()

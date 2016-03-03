@@ -685,7 +685,7 @@ func (s *State) InitLevelDB() error {
 
 	path := s.LdbPath + "/" + s.Network + "/" + "factoid_level.db"
 
-	log.Printfln("Creating Database at %v", path)
+	fmt.Println("Database:", path)
 
 	dbase, err := hybridDB.NewLevelMapHybridDB(path, false)
 

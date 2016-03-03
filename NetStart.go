@@ -14,6 +14,7 @@ import (
 	"github.com/FactomProject/factomd/wsapi"
 	"os"
 	"time"
+	"strconv"
 )
 
 var _ = fmt.Print
@@ -76,8 +77,15 @@ func NetStart(s *state.State) {
 	}
 	fmt.Println(fmt.Sprintf("factom config: %s", FactomConfigFilename))
 
+	// Figure out how many nodes I am going to generate.  Default 10
+	cnt, err := strconv.Atoi(os.Args[1])
+	if err != nil || cnt == 0 {
+		cnt = 10
+	}
+	
+	
 	mLog := new(MsgLog)
-	mLog.init()
+	mLog.init(cnt)
 	
 	makeServer := func() *FactomNode {
 		// All other states are clones of the first state.  Which this routine
@@ -113,61 +121,39 @@ func NetStart(s *state.State) {
 
 	s.LoadConfig(FactomConfigFilename)
 	s.Init()
-
-	for i := 0; i < 40; i++ { // Make 10 nodes
+	
+	var p1 []int
+	
+	primes := []int { 7, 13, 17, 23,  37,  43, 47, 53, 67, 73, 83, 97, 103 }	
+	for i := 0; i < cnt; i++ { // Make 10 nodes
 		makeServer()
 	}
-
-	AddPeer(fnodes, 0,1)
-	AddPeer(fnodes, 0,2)
-	AddPeer(fnodes, 0,3)
-	AddPeer(fnodes, 0,4)
-	AddPeer(fnodes, 0,5)
-	AddPeer(fnodes, 1,6)
-	AddPeer(fnodes, 1,7)
-	AddPeer(fnodes, 1,8)
-		AddPeer(fnodes, 0,12)
-	AddPeer(fnodes, 2,3)
-	AddPeer(fnodes, 3,8)
-	AddPeer(fnodes, 4,6)
-	AddPeer(fnodes, 5,1)
-	AddPeer(fnodes, 6,7)
-	AddPeer(fnodes, 7,9)
-	AddPeer(fnodes, 7,10)
-	AddPeer(fnodes, 7,11)
-	AddPeer(fnodes, 7,12)
-	AddPeer(fnodes, 7,13)		
-		AddPeer(fnodes, 6,21)	
-	AddPeer(fnodes, 7,14)
-	AddPeer(fnodes, 7,15)
-	AddPeer(fnodes, 12,16)
-	AddPeer(fnodes, 12,17)
-	AddPeer(fnodes, 12,18)
-	AddPeer(fnodes, 12,19)
-	AddPeer(fnodes, 12,20)
-	AddPeer(fnodes, 18,21)
-	AddPeer(fnodes, 18,22)
-	AddPeer(fnodes, 18,23)		
-		AddPeer(fnodes, 16,29)
-	AddPeer(fnodes, 18,24)
-	AddPeer(fnodes, 18,25)
-	AddPeer(fnodes, 22,26)
-	AddPeer(fnodes, 22,27)
-	AddPeer(fnodes, 22,28)
-	AddPeer(fnodes, 22,29)
-	AddPeer(fnodes, 28,30)
-	AddPeer(fnodes, 28,31)
-		AddPeer(fnodes, 27,35)
-	AddPeer(fnodes, 28,32)
-	AddPeer(fnodes, 28,33)
-	AddPeer(fnodes, 28,34)
-	AddPeer(fnodes, 28,35)
-	AddPeer(fnodes, 28,36)
-	AddPeer(fnodes, 34,37)
-	AddPeer(fnodes, 34,38)
-	AddPeer(fnodes, 34,39)
-		AddPeer(fnodes, 5,33)
+	// Pick 3 primes
+	for _,p := range primes {
+		a := cnt
+		b := p
+		if a < b { 
+			a = p
+			b = cnt
+		}
+		if a%b != 0 {
+			p1 = append(p1,p)
+			if len(p1) > 3 {
+				break
+			}
+		}
+	}
 	
+	h:=0
+	for index, p := range p1 {
+		fmt.Println()
+		for i:= 0; i < cnt/(index+1); i++ {
+			h2 := (h+p)%cnt
+			AddPeer(fnodes, h,h2)
+			fmt.Println("AddPeer(fnodes,",h,h2,")")
+			h = h2
+		}
+	}
 	
 	startServers()
 
@@ -198,9 +184,7 @@ func NetStart(s *state.State) {
 		if _, err := os.Stdin.Read(b); err != nil {
 			log.Fatal(err.Error())
 		}
-		
-		fmt.Printf("Got: %X\n",b)
-		
+				
 		switch b[0] {
 			case 'a', 'A' :
 				for _,f := range fnodes {
