@@ -109,3 +109,11 @@ func NewJSONError(code int, message string, data interface{}) *JSONError {
 	j.Data = data
 	return j
 }
+
+func (j *JSONError) Error() string {
+	str, ok:=j.Data.(string)
+	if ok == false {
+		return j.Message
+	}
+	return j.Message+": "+str
+}
