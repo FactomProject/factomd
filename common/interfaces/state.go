@@ -20,7 +20,7 @@ type IState interface {
 	LoadConfig(filename string)
 	Init()
 	String() string
-	GetServerIdentityChainID() IHash
+	GetIdentityChainID() IHash
 	Sign([]byte) IFullSignature
 	GetDirectoryBlockInSeconds() int
 	GetServer() IServer
@@ -32,6 +32,7 @@ type IState interface {
 	GetOut() bool // Return true if Print or Println write output
 	LoadDBState(dbheight uint32) (IMsg, error)
 	LastCompleteDBHeight() uint32
+	GetFedServerIndex() (bool, int)
 	// Channels
 	//==========
 
@@ -60,9 +61,6 @@ type IState interface {
 	GetNetworkNumber() int  // Encoded into Directory Blocks
 	GetNetworkName() string // Some networks have defined names
 
-	// Number of Servers acknowledged by Factom
-	GetTotalServers() int
-	GetServerState() int                 // (0 if client, 1 if server, 2 if audit server
 	GetMatryoshka(dbheight uint32) IHash // Reverse Hash
 
 	LeaderFor(hash []byte) bool // Tests if this server is the leader for this key

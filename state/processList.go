@@ -3,96 +3,13 @@ package state
 import (
 	"fmt"
 	"log"
-
-	"github.com/FactomProject/factomd/common/directoryBlock"
-	"github.com/FactomProject/factomd/common/entryCreditBlock"
+	"bytes"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 )
 
 var _ = fmt.Print
 var _ = log.Print
-
-type ProcessLists struct {
-	State        *State         // Pointer to the state object
-	DBHeightBase uint32         // Height of the first Process List in this structure.
-	Lists        []*ProcessList // Pointer to the ProcessList structure for each DBHeight under construction
-}
-
-// Returns the height of the Process List under construction.  There
-// can be another list under construction (because of missing messages.
-func (lists *ProcessLists) GetDBHeight() uint32 {
-	// First let's start at the lowest Process List not yet complete.
-	length := len(lists.Lists)
-	if length == 0 {
-		return 0
-	}
-	last := lists.Lists[length-1]
-	if last == nil {
-		return 0
-	}
-	return last.DBHeight
-}
-
-func (lists *ProcessLists) UpdateState() {
-
-	heightBuilding := lists.GetDBHeight()
-
-	if heightBuilding == 0 {
-		return
-	}
-
-	dbstate := lists.State.DBStates.Last()
-
-	pl := lists.Get(heightBuilding)
-
-	diff := heightBuilding - lists.DBHeightBase
-	if diff > 0 {
-		lists.DBHeightBase += diff
-		lists.Lists = lists.Lists[diff:]
-	}
-
-	//*******************************************************************//
-	// Do initialization of blocks for the next Process List level here
-	//*******************************************************************
-	if pl.DirectoryBlock == nil {
-		pl.DirectoryBlock = directoryBlock.NewDirectoryBlock(heightBuilding, nil)
-		pl.FactoidBlock = lists.State.GetFactoidState().GetCurrentBlock()
-		pl.AdminBlock = lists.State.NewAdminBlock(heightBuilding)
-		var err error
-		pl.EntryCreditBlock, err = entryCreditBlock.NextECBlock(dbstate.EntryCreditBlock)
-		if err != nil {
-			panic(err.Error())
-		}
-
-	}
-	// Create DState blocks for all completed Process Lists
-	pl.Process(lists.State)
-
-	lastHeight := dbstate.DirectoryBlock.GetHeader().GetDBHeight()
-	// Only when we are sig complete that we can move on.
-	if pl.Complete() && lastHeight+1 == heightBuilding {
-		lists.State.DBStates.NewDBState(true, pl.DirectoryBlock, pl.AdminBlock, pl.FactoidBlock, pl.EntryCreditBlock)
-	}
-}
-
-func (lists *ProcessLists) Get(dbheight uint32) *ProcessList {
-
-	i := int(dbheight) - int(lists.DBHeightBase)
-
-	if i < 0 {
-		return nil
-	}
-	for len(lists.Lists) <= i {
-		lists.Lists = append(lists.Lists, nil)
-	}
-	pl := lists.Lists[i]
-	if pl == nil {
-		pl = NewProcessList(lists.State, lists.State.GetTotalServers(), dbheight)
-		lists.Lists[i] = pl
-	}
-	return pl
-}
 
 type ProcessList struct {
 	DBHeight uint32 // The directory block height for these lists
@@ -134,6 +51,46 @@ type ListServer struct {
 	EomComplete bool              // Lists that are end of minute complete
 	SigComplete bool              // Lists that are signature complete
 }
+
+// Add the given serverChain to this processlist, and return the server index number of the 
+// added server
+func (p *ProcessList) AddFedServer (server *interfaces.Server) int {	
+	found, i := p.GetFedServerIndex(server.ChainID)
+	if server.ChainID.Bytes()[0]== 0 && server.ChainID.Bytes()[1]== 0 {
+		panic("Grrr")
+	}
+ 	if found { return i }
+	p.FedServers = append(p.FedServers, nil)
+	copy(p.FedServers[i+1:], p.FedServers[i:])
+	p.FedServers[i] = server
+	return i
+}
+
+// Add the given serverChain to this processlist, and return the server index number of the 
+// added server
+func (p *ProcessList) RemoveFedServer (server *interfaces.Server) {	
+	found, i := p.GetFedServerIndex(server.ChainID)
+	if !found { return }
+	p.FedServers = append(p.FedServers[:i],p.FedServers[i+1:]...)
+}
+
+// Returns true and the index of this server, or false and the insertion point for this server
+func (p *ProcessList) GetFedServerIndex(serverChainID interfaces.IHash) (bool, int) {	
+	scid := serverChainID.Bytes()
+	if p == nil || p.FedServers == nil { return false, 0 }
+	for i, ifs := range p.FedServers {
+		fs := ifs.(*interfaces.Server)
+		// Find and remove
+		switch bytes.Compare(scid, fs.ChainID.Bytes()) {
+			case 0 : 			// Found the ID!
+				return true, i
+			case -1 :			// Past the ID, can't be in list
+				return false, i
+		}
+	}
+	return false, len(p.FedServers)
+}
+
 
 func (p *ProcessList) GetLen(list int) int {
 	if list >= len(p.Servers) {
@@ -223,7 +180,7 @@ func (p *ProcessList) Process(state *State) {
 		//fmt.Println("Process List: DBHEight, height in list, len(plist)", p.DBHeight, p.Servers[i].Height, len(plist))
 		for j := p.Servers[i].Height; !p.Servers[i].SigComplete && j < len(plist); j++ {
 			if plist[j] == nil {
-				p.State.Println("!!!!!!! Missing entry in process list at", j)
+				//p.State.Println("!!!!!!! Missing entry in process list at", j)
 				return
 			}
 			p.Servers[i].Height = j + 1         // Don't process it again.
@@ -255,21 +212,6 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 /************************************************
  * Support
  ************************************************/
-
-func NewProcessLists(state interfaces.IState) *ProcessLists {
-
-	pls := new(ProcessLists)
-
-	s, ok := state.(*State)
-	if !ok {
-		panic("Failed to initalize Process Lists because the wrong state object was used")
-	}
-	pls.State = s
-	pls.DBHeightBase = 0
-	pls.Lists = make([]*ProcessList, 0)
-
-	return pls
-}
 
 func NewProcessList(state interfaces.IState, totalServers int, dbheight uint32) *ProcessList {
 	// We default to the number of Servers previous.   That's because we always
