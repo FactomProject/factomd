@@ -11,7 +11,7 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/log"
-	"github.com/davecgh/go-spew/spew"
+	"github.com/FactomProject/go-spew/spew"
 	//"reflect"
 	"time"
 )
@@ -54,7 +54,7 @@ netloop:
 				switch msg.(type) {
 				case *messages.EOM:
 					msgeom := msg.(*messages.EOM)
-					server,ok := state.GetServer().(*btcd.Server)
+					server, ok := state.GetServer().(*btcd.Server)
 					if ok {
 						server.BroadcastMessage(msgeom)
 					}

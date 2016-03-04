@@ -28,7 +28,6 @@ func (m *EOMTimeout) GetHash() interfaces.IHash {
 	return nil
 }
 
-
 func (m *EOMTimeout) GetMsgHash() interfaces.IHash {
 	if m.MsgHash == nil {
 		data, err := m.MarshalBinary()
@@ -39,7 +38,6 @@ func (m *EOMTimeout) GetMsgHash() interfaces.IHash {
 	}
 	return m.MsgHash
 }
-
 
 func (m *EOMTimeout) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp

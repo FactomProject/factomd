@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/FactomProject/common/messages"
-	"github.com/davecgh/go-spew/spew"
+	"github.com/FactomProject/go-spew/spew"
 )
 
 // TestGetAddr tests the MsgGetAddr API.

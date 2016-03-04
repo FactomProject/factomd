@@ -14,6 +14,7 @@ import ()
 type IState interface {
 
 	// Server
+	GetFactomNodeName() string
 	Clone(number string) IState
 	GetCfg() IFactomConfig
 	LoadConfig(filename string)
@@ -27,9 +28,10 @@ type IState interface {
 	GetDBHeightComplete() uint32
 	Print(a ...interface{}) (n int, err error)
 	Println(a ...interface{}) (n int, err error)
-	SetOut(bool)		// Output is turned on if set to true
-	GetOut() bool		// Return true if Print or Println write output
-	LoadDBState(dbheight uint32) (IMsg,error)
+	SetOut(bool)  // Output is turned on if set to true
+	GetOut() bool // Return true if Print or Println write output
+	LoadDBState(dbheight uint32) (IMsg, error)
+	LastCompleteDBHeight() uint32
 	// Channels
 	//==========
 
@@ -97,12 +99,14 @@ type IState interface {
 	FollowerExecuteMsg(m IMsg) (bool, error) // Messages that go into the process list
 	FollowerExecuteAck(m IMsg) (bool, error) // Ack Msg calls this function.
 	FollowerExecuteDBState(IMsg) error       // Add the given DBState to this server
+	ProcessAddServer(dbheight uint32, addServerMsg IMsg)
 	ProcessCommitChain(dbheight uint32, commitChain IMsg)
 	ProcessSignPL(dbheight uint32, commitChain IMsg)
 	ProcessEOM(dbheight uint32, eom IMsg)
 
 	// For messages that go into the Process List
 	LeaderExecute(m IMsg) error
+	LeaderExecuteAddServer(m IMsg) error
 	LeaderExecuteEOM(m IMsg) error
 	LeaderExecuteDBSig(m IMsg) error
 

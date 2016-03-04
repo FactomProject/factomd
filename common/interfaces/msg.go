@@ -19,27 +19,27 @@ type IMsg interface {
 	// Returns a byte indicating the type of message.
 	Type() int
 
-	// Returns the origin of this message; used to track 
+	// Returns the origin of this message; used to track
 	// where a message came from. If int == -1, then this
 	// FactomNode generated the message.
 	GetOrigin() int
 	SetOrigin(int)
-	
+
 	// Returns the timestamp for a message
 	GetTimestamp() Timestamp
 
 	// Hash for this message as used by Consensus (i.e. what we match)
 	GetHash() IHash
-	
+
 	// Hash of this message.  Each message must be unique
 	GetMsgHash() IHash
 
 	// If this message should only reply to a peer, this is true.  If to
-	// be broadcast, this should be false.  If the Origin is 0, then the 
+	// be broadcast, this should be false.  If the Origin is 0, then the
 	// network can pick a peer to try.  If Origin is > 0, then the message
 	// must go back to that peer (this message is a reply).
-	IsPeer2peer() bool 
-	
+	IsPeer2peer() bool
+
 	// Return the []byte value of the message, if defined
 	Bytes() []byte
 

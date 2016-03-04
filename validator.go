@@ -6,41 +6,41 @@ package main
 
 import (
 	"fmt"
-	"os"
-	ss "github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/log"
+	ss "github.com/FactomProject/factomd/state"
+	"os"
 )
 
 var _ = fmt.Print
 var _ = log.Printf
 var _ = os.Exit
+
 func Validator(state interfaces.IState) {
 	s := state.(*ss.State)
 	var _ = s
-	
+
 	for {
-		
+
 		select {
-			case i := <- s.ShutdownChan:
-				fmt.Println(i,"Closing the Database")
-				state.GetDB().(interfaces.IDatabase).Close()
-				return
-			default :
+		case _ = <-s.ShutdownChan:
+			fmt.Println("Closing the Database on",state.GetFactomNodeName())
+			state.GetDB().(interfaces.IDatabase).Close()
+			fmt.Println(state.GetFactomNodeName(),"closed")
+			return
+		default:
 		}
-		
+
 		msg := <-state.InMsgQueue() // Get message from the input queue
 
-		state.Println("\nMsg Valid: ",msg)
-		
 		if state.PrintType(msg.Type()) {
 			state.Print(fmt.Sprintf("%20s %s", "Validator:", msg.String()))
 		}
 
 		switch msg.Validate(state.GetDBHeight(), state) { // Validate the message.
 		case 1: // Process if valid
-			
-			if !msg.IsPeer2peer() {					// Do not relay P2P messages
+
+			if !msg.IsPeer2peer() { // Do not relay P2P messages
 				state.NetworkOutMsgQueue() <- msg
 			}
 			if state.PrintType(msg.Type()) {

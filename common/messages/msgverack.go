@@ -16,7 +16,7 @@ import (
 // to negotiate parameters.  It implements the Message interface.
 //
 // This message has no payload.
-type MsgVerAck struct{
+type MsgVerAck struct {
 	MessageBase
 }
 

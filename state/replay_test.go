@@ -6,7 +6,8 @@ package state_test
 
 import (
 	"fmt"
-	fct "github.com/FactomProject/factoid"
+	. "github.com/FactomProject/factomd/state"
+	"github.com/FactomProject/factomd/common/primitives"
 	"math/rand"
 	"testing"
 	"time"
@@ -18,10 +19,12 @@ var _ = rand.New
 var now = time.Now().Unix()
 var hour = int64(60 * 60)
 
+var r = Replay{}
+
 func Test_Replay(test *testing.T) {
 
 	type mh struct {
-		hash []byte
+		hash [32]byte
 		time int64
 	}
 
@@ -35,20 +38,20 @@ func Test_Replay(test *testing.T) {
 
 		// We are going to remember some large set of transactions.
 		h[i] = new(mh)
-		h[i].hash = fct.Sha([]byte(fmt.Sprintf("h%d", i))).Bytes()
+		h[i].hash = primitives.Sha([]byte(fmt.Sprintf("h%d", i))).Fixed()
 
 		// Build a valid transaction somewhere +/- 12 hours of now
 		h[i].time = now + (rand.Int63() % 24 * hour) - 12*hour
 
 		// The first time we test, it should be valid.
-		if !IsTSValid_(h[i].hash, h[i].time, now) {
+		if !r.IsTSValid_(h[i].hash, h[i].time, now) {
 			fmt.Println("Failed Test ", i, "first")
 			test.Fail()
 			return
 		}
 
 		// An immediate replay!  Should fail!
-		if IsTSValid_(h[i].hash, h[i].time, now) {
+		if r.IsTSValid_(h[i].hash, h[i].time, now) {
 			fmt.Println("Failed Test ", i, "second")
 			test.Fail()
 			return
@@ -60,7 +63,7 @@ func Test_Replay(test *testing.T) {
 		// Now replay all the transactions we have collected.  NONE of them
 		// should work.
 		for j := 0; j < i; j++ {
-			if IsTSValid_(h[i].hash, h[i].time, hour) {
+			if r.IsTSValid_(h[i].hash, h[i].time, hour) {
 				fmt.Println("Failed Test ", i, j, "repeat")
 				test.Fail()
 				return

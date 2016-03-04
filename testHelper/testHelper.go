@@ -18,6 +18,7 @@ import (
 
 var BlockCount int = 10
 var DefaultCoinbaseAmount uint64 = 100000000
+
 /*
 func CreateEmptyTestState() *state.State {
 	s := new(state.State)

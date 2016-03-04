@@ -42,9 +42,9 @@ func mainInterruptHandler() {
 			}
 
 			isShutdown = true
-	
+
 			// Run handlers in LIFO order.
-	
+
 		case handler := <-addHandlerChannel:
 			// The shutdown signal has already been received, so
 			// just invoke and new handlers immediately.

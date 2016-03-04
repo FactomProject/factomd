@@ -6,8 +6,6 @@ package state
 
 import (
 	"fmt"
-	"os"
-
 	"github.com/FactomProject/factomd/anchor"
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
@@ -22,6 +20,8 @@ import (
 	"github.com/FactomProject/factomd/logger"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
+	"os"
+	"strings"
 )
 
 var _ = fmt.Print
@@ -29,40 +29,41 @@ var _ = fmt.Print
 type State struct {
 	filename string
 
-	Cfg      interfaces.IFactomConfig
+	Cfg interfaces.IFactomConfig
 
-	FactomNodeName     string
-	LogPath            string
-	LdbPath 		   string
-	BoltDBPath         string
-	LogLevel           string
-	ConsoleLogLevel    string 
-	NodeMode           string
-	DBType             string
-	ExportData         bool
-	ExportDataSubpath  string
-	Network            string
-	LocalServerPrivKey string
+	FactomNodeName          string
+	LogPath                 string
+	LdbPath                 string
+	BoltDBPath              string
+	LogLevel                string
+	ConsoleLogLevel         string
+	NodeMode                string
+	DBType                  string
+	ExportData              bool
+	ExportDataSubpath       string
+	Network                 string
+	LocalServerPrivKey      string
 	DirectoryBlockInSeconds int
-	PortNumber		   int 
-	Replay			   *Replay
-	
+	PortNumber              int
+	Replay                  *Replay
+
 	IdentityChainID interfaces.IHash // If this node has an identity, this is it
 
 	networkInMsgQueue      chan interfaces.IMsg
 	networkOutMsgQueue     chan interfaces.IMsg
 	networkInvalidMsgQueue chan interfaces.IMsg
 	inMsgQueue             chan interfaces.IMsg
-	ShutdownChan           chan int					// For gracefully halting Factom
-	
-	myServer      			interfaces.IServer //the server running on this Federated Server
-	ServerIdentityChainID 	interfaces.IHash
-	serverPrivKey 			primitives.PrivateKey
-	serverPubKey  			primitives.PublicKey
-	totalServers  			int
-	serverState   			int
-	OutputAllowed 			bool
-	
+	ShutdownChan           chan int // For gracefully halting Factom
+
+	myServer              interfaces.IServer //the server running on this Federated Server
+	ServerIdentityChainID interfaces.IHash
+	serverPrivKey         primitives.PrivateKey
+	serverPubKey          primitives.PublicKey
+	totalServers          int
+	serverState           int
+	OutputAllowed         bool
+	ServerIndex           int // Index of the server, as understood by the leader
+
 	// Maps
 	// ====
 	// For Follower
@@ -84,9 +85,8 @@ type State struct {
 	Anchor interfaces.IAnchor
 
 	// Directory Block State
-	LDBHeight   uint32       // Leader's DBHeight; Nobody else can touch!
-	ServerIndex int          // Index of the server, as understood by the leader
-	DBStates    *DBStateList // Holds all DBStates not yet processed.
+	LDBHeight uint32       // Leader's DBHeight; Nobody else can touch!
+	DBStates  *DBStateList // Holds all DBStates not yet processed.
 
 	// Having all the state for a particular directory block stored in one structure
 	// makes creating the next state, updating the various states, and setting up the next
@@ -124,68 +124,71 @@ type State struct {
 var _ interfaces.IState = (*State)(nil)
 
 func (s *State) Clone(number string) interfaces.IState {
-	
+
 	clone := new(State)
-	
-	clone.FactomNodeName =	   "FNode"+number	
-	clone.LogPath =            s.LogPath+"Sim"+number
-	clone.LdbPath =            s.LdbPath+"Sim"+number
-	clone.BoltDBPath =         s.BoltDBPath+"Sim"+number
-	clone.LogLevel =           s.LogLevel
-	clone.ConsoleLogLevel =    s.ConsoleLogLevel
-	clone.NodeMode =           "FULL"
-	clone.DBType =             s.DBType
-	clone.ExportData =         true
-	clone.ExportDataSubpath =  number+"-"+s.ExportDataSubpath
-	clone.Network =            s.Network
+
+	clone.FactomNodeName = "FNode" + number
+	clone.LogPath = s.LogPath + "Sim" + number
+	clone.LdbPath = s.LdbPath + "Sim" + number
+	clone.BoltDBPath = s.BoltDBPath + "Sim" + number
+	clone.LogLevel = s.LogLevel
+	clone.ConsoleLogLevel = s.ConsoleLogLevel
+	clone.NodeMode = "FULL"
+	clone.DBType = s.DBType
+	clone.ExportData = true
+	clone.ExportDataSubpath = number + "-" + s.ExportDataSubpath
+	clone.Network = s.Network
 	clone.DirectoryBlockInSeconds = s.DirectoryBlockInSeconds
-	clone.PortNumber =         s.PortNumber
+	clone.PortNumber = s.PortNumber
+	clone.ServerIdentityChainID = primitives.Sha([]byte(number))
 	// Need to have a Server Priv Key TODO:
 	clone.LocalServerPrivKey = s.LocalServerPrivKey
-	
-	//IdentityChainID interfaces.IHash 
-	
+
+
 	//serverPrivKey primitives.PrivateKey
 	//serverPubKey  primitives.PublicKey
-	clone.totalServers =	   s.totalServers
-		
-	clone.FactoshisPerEC =     s.FactoshisPerEC
+	clone.totalServers = s.totalServers
 
-	clone.Port =               s.Port
-	
+	clone.FactoshisPerEC = s.FactoshisPerEC
+
+	clone.Port = s.Port
+
 	return clone
 }
 
-func (s *State) LoadConfig(filename string, ) {
+func (s *State) GetFactomNodeName() string {
+	return s.FactomNodeName
+}
+
+func (s *State) LoadConfig(filename string) {
 	s.filename = filename
 	s.ReadCfg(filename)
 	// Get our factomd configuration information.
 	cfg := s.GetCfg().(*util.FactomdConfig)
-	
-	
-	s.FactomNodeName = "FNode0"  		// Default Factom Node Name for Simulation
+
+	s.FactomNodeName = "FNode0" // Default Factom Node Name for Simulation
 	s.LogPath = cfg.Log.LogPath
-    s.LdbPath = cfg.App.LdbPath
-    s.BoltDBPath = cfg.App.BoltDBPath
+	s.LdbPath = cfg.App.LdbPath
+	s.BoltDBPath = cfg.App.BoltDBPath
 	s.LogLevel = cfg.Log.LogLevel
 	s.ConsoleLogLevel = cfg.Log.ConsoleLogLevel
 	s.NodeMode = cfg.App.NodeMode
 	s.DBType = cfg.App.DBType
-	s.ExportData = cfg.App.ExportData		// bool
+	s.ExportData = cfg.App.ExportData // bool
 	s.ExportDataSubpath = cfg.App.ExportDataSubpath
-	s.Network = cfg.App.Network 
+	s.Network = cfg.App.Network
 	s.LocalServerPrivKey = cfg.App.LocalServerPrivKey
 	s.FactoshisPerEC = cfg.App.ExchangeRate
 	s.DirectoryBlockInSeconds = cfg.App.DirectoryBlockInSeconds
 	s.PortNumber = cfg.Wsapi.PortNumber
-	
+
 	s.ServerIdentityChainID = primitives.NewHash(constants.ZERO_HASH)
 }
 
 func (s *State) Init() {
-		
+
 	wsapi.InitLogs(s.LogPath, s.LogLevel)
-	
+
 	s.Logger = logger.NewLogFromConfig(s.LogPath, s.LogLevel, "State")
 
 	log.SetLevel(s.ConsoleLogLevel)
@@ -194,11 +197,11 @@ func (s *State) Init() {
 	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 10000) //incoming message queue from the network messages
 	s.networkOutMsgQueue = make(chan interfaces.IMsg, 10000)     //Messages to be broadcast to the network
 	s.inMsgQueue = make(chan interfaces.IMsg, 10000)             //incoming message queue for factom application messages
-	s.ShutdownChan = make(chan int) 							 //Channel to gracefully shut down.
-	
+	s.ShutdownChan = make(chan int, 1)                           //Channel to gracefully shut down.
+
 	// Set up struct to stop replay attacks
 	s.Replay = new(Replay)
-	
+
 	// Set up maps for the followers
 	s.Holding = make(map[[32]byte]interfaces.IMsg)
 	s.Acks = make(map[[32]byte]interfaces.IMsg)
@@ -302,7 +305,6 @@ func (s *State) AddDBState(isNew bool,
 	s.DBStates.Put(dbState)
 }
 
-
 // This routine is called once we have everything to create a Directory Block.
 // It is called by the follower code.  It is requried to build the Directory Block
 // to validate the signatures we will get with the DirectoryBlockSignature messages.
@@ -362,16 +364,17 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) error {
 	if !ok {
 		return fmt.Errorf("Cannot execute the given DBStateMsg")
 	}
+
+	s.DBStates.last = s.GetTimestamp()
 	
 	s.AddDBState(true,
-				 dbstatemsg.DirectoryBlock,
-				 dbstatemsg.AdminBlock,
-				 dbstatemsg.FactoidBlock,
-				 dbstatemsg.EntryCreditBlock)
-				 
+		dbstatemsg.DirectoryBlock,
+		dbstatemsg.AdminBlock,
+		dbstatemsg.FactoidBlock,
+		dbstatemsg.EntryCreditBlock)
+
 	return nil
 }
-
 
 func (s *State) LeaderExecute(m interfaces.IMsg) error {
 
@@ -390,6 +393,10 @@ func (s *State) LeaderExecute(m interfaces.IMsg) error {
 	return nil
 }
 
+func (s *State) LeaderExecuteAddServer(server interfaces.IMsg) error {
+	return s.LeaderExecute(server)
+}
+
 func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
 	eom, _ := m.(*messages.EOM)
 	eom.DirectoryBlockHeight = s.LDBHeight
@@ -397,7 +404,6 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
 }
 
 func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) error {
-	s.LeaderExecute(m)
 	s.ProcessLists.Get(s.LDBHeight).SetComplete(true)
 	s.LastAck = nil // Clear Ack list
 	return nil
@@ -414,6 +420,9 @@ func (s *State) GetCommits(dbheight uint32, hash interfaces.IHash) interfaces.IM
 }
 func (s *State) PutCommits(dbheight uint32, hash interfaces.IHash, msg interfaces.IMsg) {
 	s.ProcessLists.Get(dbheight).PutCommits(hash, msg)
+}
+
+func (s *State) ProcessAddServer(dbheight uint32, commitChain interfaces.IMsg) {
 }
 
 func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg) {
@@ -456,25 +465,25 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) {
 			// and we have ALL EOM messages from all servers, then we
 			// create a DirectoryBlockSignature (if we are the leader) and
 			// send it out to the network.
-			DBM := messages.NewDirectoryBlockSignature()
-			DBM.Timestamp = s.GetTimestamp()
+			DBS := messages.NewDirectoryBlockSignature(dbheight)
+			DBS.Timestamp = s.GetTimestamp()
 			prevDB := s.GetDirectoryBlock()
 			if prevDB == nil {
-				DBM.DirectoryBlockKeyMR = primitives.NewHash(constants.ZERO_HASH)
+				DBS.DirectoryBlockKeyMR = primitives.NewHash(constants.ZERO_HASH)
 			} else {
-				DBM.DirectoryBlockKeyMR = prevDB.GetKeyMR()
+				DBS.DirectoryBlockKeyMR = prevDB.GetKeyMR()
 			}
-			DBM.Sign(s)
+			DBS.Sign(s)
 
-			ack, err := s.NewAck(DBM.GetHash())
+			ack, err := s.NewAck(DBS.GetHash())
 			if err != nil {
 				return
 			}
 
 			s.NetworkOutMsgQueue() <- ack
-			s.NetworkOutMsgQueue() <- DBM
+			s.NetworkOutMsgQueue() <- DBS
 			s.InMsgQueue() <- ack
-			s.InMsgQueue() <- DBM
+			s.InMsgQueue() <- DBS
 		}
 	}
 }
@@ -494,7 +503,6 @@ func (s *State) SetFactoshisPerEC(factoshisPerEC uint64) {
 func (s *State) GetServerIdentityChainID() interfaces.IHash {
 	return s.ServerIdentityChainID
 }
-
 
 func (s *State) GetDirectoryBlockInSeconds() int {
 	return s.DirectoryBlockInSeconds
@@ -556,7 +564,7 @@ func (s *State) GetAnchor() interfaces.IAnchor {
 
 func (s *State) initServerKeys() {
 	var err error
-	s.serverPrivKey, err = primitives.NewPrivateKeyFromHex(s.LocalServerPrivKey)		
+	s.serverPrivKey, err = primitives.NewPrivateKeyFromHex(s.LocalServerPrivKey)
 	if err != nil {
 		//panic("Cannot parse Server Private Key from configuration file: " + err.Error())
 	}
@@ -677,7 +685,7 @@ func (s *State) InitLevelDB() error {
 
 	path := s.LdbPath + "/" + s.Network + "/" + "factoid_level.db"
 
-	log.Printfln("Creating Database at %v", path)
+	fmt.Println("Database:", path)
 
 	dbase, err := hybridDB.NewLevelMapHybridDB(path, false)
 
@@ -699,7 +707,7 @@ func (s *State) InitBoltDB() error {
 
 	path := s.BoltDBPath + "/" + s.Network + "/"
 
-    s.Println("Database Path for",s.FactomNodeName,"is",path)
+	s.Println("Database Path for", s.FactomNodeName, "is", path)
 	os.MkdirAll(path, 0777)
 	dbase := hybridDB.NewBoltMapHybridDB(nil, path+"FactomBolt.db")
 	s.DB = databaseOverlay.NewOverlay(dbase)
@@ -723,12 +731,13 @@ func (s *State) String() string {
 		return "<none>"
 	}
 	dstateHeight := last.DirectoryBlock.GetHeader().GetDBHeight()
-	plheight := int(dstateHeight) + len(s.ProcessLists.Lists)
+	plheight := int(s.ProcessLists.DBHeightBase) + len(s.ProcessLists.Lists)
 
-	return fmt.Sprintf("%7s DBS: %d PL: %d",
+	return fmt.Sprintf("%7s DBS: %d PL: %d C: %d",
 		s.FactomNodeName,
 		dstateHeight,
-		plheight)
+		plheight,
+		s.ProcessLists.GetDBHeight())
 
 }
 
@@ -760,7 +769,7 @@ func (s *State) NewAdminBlockHeader(dbheight uint32) interfaces.IABlockHeader {
 
 func (s *State) PrintType(msgType int) bool {
 	r := true
-	return r
+	r = r && msgType != constants.DBSTATE_MISSING_MSG
 	r = r && msgType != constants.DBSTATE_MSG
 	r = r && msgType != constants.ACK_MSG
 	r = r && msgType != constants.EOM_MSG
@@ -828,7 +837,7 @@ func (s *State) NewAck(hash interfaces.IHash) (iack interfaces.IMsg, err error) 
 	return ack, nil
 }
 
-func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg,error) {
+func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 
 	dblk, err := s.DB.FetchDBlockByHeight(dbheight)
 	if err != nil {
@@ -842,7 +851,7 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg,error) {
 		return nil, err
 	}
 	if ablk == nil {
-		panic("ablk is nil" + dblk.GetDBEntries()[0].GetKeyMR().String())
+		return nil, err
 	}
 	ecblk, err := s.DB.FetchECBlockByHash(dblk.GetDBEntries()[1].GetKeyMR())
 	if err != nil {
@@ -858,14 +867,16 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg,error) {
 	if fblk == nil {
 		return nil, err
 	}
-	
-	msg := messages.NewDBStateMsg(s,dblk,ablk,fblk, ecblk)
-	
+
+	msg := messages.NewDBStateMsg(s, dblk, ablk, fblk, ecblk)
+
 	return msg, nil
-	
+
 }
 
-
+func (s *State) LastCompleteDBHeight() uint32 {
+	return s.DBStates.base + s.DBStates.complete
+}
 
 func (s *State) GetOut() bool {
 	return s.OutputAllowed
@@ -880,7 +891,7 @@ func (s *State) NewEOM(minute int) interfaces.IMsg {
 	// the server to create the proper serial hashes and such.  Right now
 	// I am ignoring all of that.
 	eom := new(messages.EOM)
-	eom.Timestamp = s.GetTimestamp() 
+	eom.Timestamp = s.GetTimestamp()
 	eom.Minute = byte(minute)
 	eom.ServerIndex = s.ServerIndex
 	eom.DirectoryBlockHeight = s.LDBHeight
@@ -888,27 +899,32 @@ func (s *State) NewEOM(minute int) interfaces.IMsg {
 	return eom
 }
 
-func (s *State) Print(a ...interface{}) (n int, err error) {	
-	str := ""
-	for _,v := range a {
-		str = str+fmt.Sprintf("%v",v)
+func (s *State) Print(a ...interface{}) (n int, err error) {
+	if s.OutputAllowed {
+		str := ""
+		for _, v := range a {
+			str = str + fmt.Sprintf("%v", v)
+		}
+
+		str = strings.Replace(str, "\n", "\r\n", -1)
+		return fmt.Print(str)
 	}
-	
-	if s.OutputAllowed { return fmt.Print(str) }
-	
+
 	return 0, nil
 }
 
-func (s *State) Println(a ...interface{}) (n int, err error) {	
-	str := ""
-	for _,v := range a {
-		str = str+fmt.Sprintf("%v",v)
+func (s *State) Println(a ...interface{}) (n int, err error) {
+	if s.OutputAllowed {
+		str := ""
+		for _, v := range a {
+			str = str + fmt.Sprintf("%v", v)
+		}
+		str = str + "\n"
+
+		str = strings.Replace(str, "\n", "\r\n", -1)
+
+		return fmt.Print(str)
 	}
-	str = str+"\n"
-	
-	if s.OutputAllowed { return fmt.Print(str) }
-	
+
 	return 0, nil
 }
-
-

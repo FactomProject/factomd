@@ -6,8 +6,8 @@ package state
 
 import (
 	"fmt"
-	"time"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"time"
 )
 
 const numBuckets = 24
@@ -16,7 +16,7 @@ var _ = time.Now()
 var _ = fmt.Print
 
 type Replay struct {
-	buckets []map[[32]byte]int64
+	buckets  []map[[32]byte]int64
 	lasttime int64 // hours since 1970
 }
 
@@ -39,7 +39,7 @@ func (r *Replay) IsTSValid(hash interfaces.IHash, timestamp int64) bool {
 // To make the function testable, the logic accepts the current time
 // as a parameter.  This way, the test code can manipulate the clock
 // at will.
-func  (r *Replay) IsTSValid_(hash [32]byte, timestamp int64, now int64) bool {
+func (r *Replay) IsTSValid_(hash [32]byte, timestamp int64, now int64) bool {
 
 	if len(r.buckets) < numBuckets {
 		r.buckets = make([]map[[32]byte]int64, numBuckets, numBuckets)

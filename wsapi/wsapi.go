@@ -12,7 +12,7 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/log"
-	"github.com/hoisie/web"
+	"github.com/FactomProject/web"
 )
 
 const (
@@ -60,15 +60,20 @@ func Start(state interfaces.IState) {
 
 }
 
+func SetState(state interfaces.IState) {
+	Servers[state.GetPort()].Env["state"] = state
+	fmt.Println("API now directed to",state.GetFactomNodeName())
+}
+
 func Stop(state interfaces.IState) {
 	Servers[state.GetPort()].Close()
 }
 
 func handleV1Error(ctx *web.Context, err *primitives.JSONError) {
-	if err.Data!=nil {
-		data, ok:=err.Data.(string)
+	if err.Data != nil {
+		data, ok := err.Data.(string)
 		if ok == true {
-			returnMsg(ctx, err.Message + ": "+data, false)
+			returnMsg(ctx, err.Message+": "+data, false)
 			return
 		}
 	}

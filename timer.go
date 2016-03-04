@@ -7,14 +7,16 @@ package main
 import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/log"
+	s "github.com/FactomProject/factomd/state"
 	"time"
 )
 
 func Timer(state interfaces.IState) {
 
-	time.Sleep(3 * time.Second)
+	s := state.(*s.State)
 	
+	time.Sleep(3 * time.Second)
+
 	billion := int64(1000000000)
 	period := int64(state.GetDirectoryBlockInSeconds()) * billion
 	tenthPeriod := period / 10
@@ -25,10 +27,8 @@ func Timer(state interfaces.IState) {
 
 	next := now + wait + tenthPeriod
 
-	log.Printfln("Time: %v", time.Now())
-	log.Printfln("Waiting %d seconds to the top of the period", wait/billion)
+	state.Print(fmt.Sprintf("Time: %v\r\n", time.Now()))
 	time.Sleep(time.Duration(wait))
-	log.Printfln("Starting Timer! %v\n", time.Now())
 	for {
 		for i := 0; i < 10; i++ {
 			now = time.Now().UnixNano()
@@ -41,12 +41,15 @@ func Timer(state interfaces.IState) {
 				pls = fmt.Sprintf("%s #%d:%d;", pls, i+1, 0, i)
 			}
 
-			state.Print(fmt.Sprintf("\r%19s: %s %s",
-				"Timer",
-				state.String(),
-				(string)((([]byte)("-\\|/-\\|/-="))[i])))
+			if len(s.ShutdownChan) == 0 {
+				state.Print(fmt.Sprintf("\r%19s: %s %s",
+					"Timer",
+					state.String(),
+					(string)((([]byte)("-\\|/-\\|/-="))[i])))
+			}
 			// End of the last period, and this is a server, send messages that
 			// close off the minute.
+			
 			if state.GetServerState() == 1 {
 				eom := state.NewEOM(i)
 				state.InMsgQueue() <- eom
