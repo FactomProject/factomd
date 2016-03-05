@@ -155,6 +155,13 @@ func randomUint16Number(max uint16) uint16 {
 	}
 }
 
+func (s *Server) GetChainID() interfaces.IHash {
+	return nil
+}
+func (s *Server) String() string {
+	return "btcd server"
+}
+
 // AddRebroadcastInventory adds 'iv' to the list of inventories to be
 // rebroadcasted at random intervals until they show up in a block.
 func (s *Server) AddRebroadcastInventory(iv *messages.InvVect, data interface{}) {

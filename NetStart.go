@@ -22,41 +22,8 @@ var _ = fmt.Print
 
 type FactomNode struct {
 	State 	*state.State
-	Peers 	[]*FactomPeer
+	Peers 	[]interfaces.IPeer
 	MLog	*MsgLog
-}
-
-type FactomPeer struct {
-	// A connection to this node:
-	name string
-	// Channels that define the connection:
-	BroadcastOut chan interfaces.IMsg
-	BroadcastIn  chan interfaces.IMsg
-}
-
-func (f *FactomPeer) init(name string) *FactomPeer {
-	f.name = name
-	f.BroadcastOut = make(chan interfaces.IMsg, 10000)
-	return f
-}
-
-func AddPeer(fnodes []*FactomNode, i1 int , i2 int) {
-	if i1 >= len(fnodes) || i2 >= len(fnodes) {
-		return
-	}
-	
-	fmt.Println("AddPeer(fnodes,",i1,i2,")")
-	
-	f1 := fnodes[i1]
-	f2 := fnodes[i2]
-	
-	peer12 := new(FactomPeer).init(f2.State.FactomNodeName)
-	peer21 := new(FactomPeer).init(f1.State.FactomNodeName)
-	peer12.BroadcastIn = peer21.BroadcastOut
-	peer21.BroadcastIn = peer12.BroadcastOut
-
-	f1.Peers = append(f1.Peers, peer12)
-	f2.Peers = append(f2.Peers, peer21)
 }
 
 func NetStart(s *state.State) {
@@ -164,29 +131,25 @@ func NetStart(s *state.State) {
 					fmt.Println()
 					for i:= 0; i < cnt/(index+1); i++ {
 						h2 := (h+p)%cnt
-						AddPeer(fnodes, h,h2)
+						AddSimPeer(fnodes, h,h2)
 						h = h2
 					}
 				}
 			case "long" :
 				for i := 1; i < cnt; i++ {
-					AddPeer(fnodes,i-1,i)
+					AddSimPeer(fnodes,i-1,i)
 				}
 			case "loops" :
 				for i := 1; i < cnt; i++ {
-					AddPeer(fnodes,i-1,i)
+					AddSimPeer(fnodes,i-1,i)
 				}
 				for i := 0; i+5 < cnt; i+=6 {
-					AddPeer(fnodes,i,i+5)
+					AddSimPeer(fnodes,i,i+5)
 				}
 				for i := 0; i+7 < cnt; i+=3 {
-					AddPeer(fnodes,i,i+7)
+					AddSimPeer(fnodes,i,i+7)
 				}
 		}
-	}
-	
-	for i,fn := range fnodes {
-		fmt.Println("NODES: ",i,fn.State.GetFactomNodeName())// ,fn.State.GetIdentityChainID().String())
 	}
 	
 	startServers()

@@ -15,7 +15,7 @@ func Timer(state interfaces.IState) {
 
 	s := state.(*s.State)
 	
-	time.Sleep(3 * time.Second)
+	time.Sleep(2 * time.Second)
 
 	billion := int64(1000000000)
 	period := int64(state.GetDirectoryBlockInSeconds()) * billion
@@ -36,11 +36,6 @@ func Timer(state interfaces.IState) {
 			next += tenthPeriod
 			time.Sleep(time.Duration(wait))
 
-			pls := fmt.Sprintf(" #%d servers: ", state.GetTotalServers())
-			for i := 0; i < state.GetTotalServers(); i++ {
-				pls = fmt.Sprintf("%s #%d:%d;", pls, i+1, 0, i)
-			}
-
 			if len(s.ShutdownChan) == 0 {
 				state.Print(fmt.Sprintf("\r%19s: %s %s",
 					"Timer",
@@ -50,10 +45,8 @@ func Timer(state interfaces.IState) {
 			// End of the last period, and this is a server, send messages that
 			// close off the minute.
 			
-			if state.GetServerState() == 1 {
-				eom := state.NewEOM(i)
-				state.InMsgQueue() <- eom
-			}
+			eom := state.NewEOM(i)
+			state.InMsgQueue() <- eom
 		}
 	}
 

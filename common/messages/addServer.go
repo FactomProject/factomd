@@ -18,7 +18,6 @@ import (
 type AddServerMsg struct {
 	MessageBase
 	Timestamp     interfaces.Timestamp // Message Timestamp
-	DBHeight      uint32               // Activation of the Server
 	ServerChainID interfaces.IHash     // ChainID of new server
 }
 
@@ -116,8 +115,6 @@ func (m *AddServerMsg) UnmarshalBinaryData(data []byte) (newData []byte, err err
 		return nil, err
 	}
 
-	m.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
-
 	newData, err = m.ServerChainID.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
@@ -144,8 +141,6 @@ func (m *AddServerMsg) MarshalForSignature() ([]byte, error) {
 	}
 	buf.Write(data)
 
-	binary.Write(&buf, binary.BigEndian, m.DBHeight)
-
 	data, err = m.ServerChainID.MarshalBinary()
 	if err != nil {
 		return nil, err
@@ -160,13 +155,13 @@ func (m *AddServerMsg) MarshalBinary() ([]byte, error) {
 }
 
 func (m *AddServerMsg) String() string {
-	return fmt.Sprintf("AddServer: %d ChainID: %d", m.DBHeight, m.ServerChainID.String())
+	return fmt.Sprintf("AddServer: ChainID: %s", m.ServerChainID.String())
 }
 
 func NewAddServerMsg(state interfaces.IState) interfaces.IMsg {
 
 	msg := new(AddServerMsg)
-
+	msg.ServerChainID = state.GetIdentityChainID()
 	msg.Timestamp = state.GetTimestamp()
 
 	return msg
