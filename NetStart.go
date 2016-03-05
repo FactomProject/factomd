@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/FactomProject/factomd/btcd"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/util"
@@ -111,7 +112,8 @@ func NetStart(s *state.State) {
 	}
 
 	startServers := func() {
-		for _, fnode := range fnodes {
+		for i, fnode := range fnodes {
+			if i > 0 { fnode.State.Init() }
 			go NetworkProcessorNet(fnode)
 			go loadDatabase(fnode.State)
 			go Timer(fnode.State)
@@ -183,6 +185,10 @@ func NetStart(s *state.State) {
 		}
 	}
 	
+	for i,fn := range fnodes {
+		fmt.Println("NODES: ",i,fn.State.GetFactomNodeName())// ,fn.State.GetIdentityChainID().String())
+	}
+	
 	startServers()
 
 	go wsapi.Start(fnodes[0].State)
@@ -208,36 +214,58 @@ func NetStart(s *state.State) {
 	for {
 		fmt.Sprintf(">>>>>>>>>>>>>>")
 		
-		b := make([]byte, 1)
-		if _, err := os.Stdin.Read(b); err != nil {
+		b := make([]byte, 10)
+		var err error
+		if _, err = os.Stdin.Read(b); err != nil {
 			log.Fatal(err.Error())
 		}
-				
-		switch b[0] {
-			case 'a', 'A' :
-				for _,f := range fnodes {
-					fmt.Printf("%8s %s\n",f.State.FactomNodeName, f.State.String())
-				}
-			case 27:
-				fmt.Print("Gracefully shutting down the servers...\r\n")
-				for _, fnode := range fnodes {
-					fmt.Print("Shutting Down: ", fnode.State.FactomNodeName, "\r\n")
-					fnode.State.ShutdownChan <- 0
-				}
-				fmt.Print("Waiting...\r\n")
-				time.Sleep(time.Duration(len(fnodes)/8+1) * time.Second)
-				fmt.Println()
-				os.Exit(0)
-			case 32:
-				fnodes[p].State.SetOut(false)
-				p++
-				if p >= len(fnodes) {
-					p = 0
-				}
-				fnodes[p].State.SetOut(true)
-				fmt.Print("\r\nSwitching to Node ", p,"\r\n")
-				wsapi.SetState(fnodes[p].State)
-			default:
+		for i, c := range b {
+			if c <= 32 {
+				b = b[:i]
+				break
+			}
+		}
+		v, err := strconv.Atoi(string(b))
+		if err == nil && v >= 0 && v < len(fnodes) {
+			fnodes[p].State.SetOut(false)
+			p = v
+			fnodes[p].State.SetOut(true)
+			fmt.Print("\r\nSwitching to Node ", p,"\r\n")
+			wsapi.SetState(fnodes[p].State)
+		}else{
+			if len(b) == 0 { b = append(b,'a') }
+			switch b[0] {
+				case 'a', 'A':
+					fnodes[p].State.SetOut(false)
+					for _,f := range fnodes {
+						fmt.Printf("%8s %s\n",f.State.FactomNodeName, f.State.String())
+					}
+				case 27:
+					fmt.Print("Gracefully shutting down the servers...\r\n")
+					for _, fnode := range fnodes {
+						fmt.Print("Shutting Down: ", fnode.State.FactomNodeName, "\r\n")
+						fnode.State.ShutdownChan <- 0
+					}
+					fmt.Print("Waiting...\r\n")
+					time.Sleep(time.Duration(len(fnodes)/8+1) * time.Second)
+					fmt.Println()
+					os.Exit(0)
+				case 32:
+					fnodes[p].State.SetOut(false)
+					p++
+					if p >= len(fnodes) {
+						p = 0
+					}
+					fnodes[p].State.SetOut(true)
+					fmt.Print("\r\nSwitching to Node ", p,"\r\n")
+					wsapi.SetState(fnodes[p].State)
+				case 's','S' :
+					msg := messages.NewAddServerMsg(fnodes[p].State)
+					fnodes[p].State.NetworkInMsgQueue() <- msg
+					fnodes[p].State.SetOut(true)
+					fmt.Println("Attempting to make",fnodes[p].State.GetFactomNodeName(),"a Leader")
+				default:
+			}
 		}
 	}
 

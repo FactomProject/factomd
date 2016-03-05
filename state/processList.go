@@ -44,6 +44,10 @@ func (lists *ProcessLists) UpdateState() {
 
 	dbstate := lists.State.DBStates.Last()
 
+	if dbstate == nil {
+		return
+	}
+	
 	pl := lists.Get(heightBuilding)
 
 	diff := heightBuilding - lists.DBHeightBase

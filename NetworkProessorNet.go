@@ -161,6 +161,7 @@ func NetworkProcessorNet(fnode *FactomNode) {
 					p := msg.GetOrigin() - 1
 					if len(fnode.Peers) == 0 {
 						// No peers yet, put back in queue
+						fmt.Println("Waiting for the Network")
 						time.Sleep(1 * time.Second)
 						fnode.State.NetworkOutMsgQueue() <- msg
 						break
@@ -173,9 +174,14 @@ func NetworkProcessorNet(fnode *FactomNode) {
 					fnode.Peers[p].BroadcastOut <- msg
 
 				} else {
-					for _, peer := range fnode.Peers {
-						fnode.MLog.add2(fnode, peer.name, "BCast out", true, msg)
-						peer.BroadcastOut <- msg
+					p := msg.GetOrigin() - 1
+					for i, peer := range fnode.Peers {
+						// Don't resend to the node that sent it to you.
+						if i != p {
+							bco := fmt.Sprintf("%s/%d/%d","BCast",p,i)
+							fnode.MLog.add2(fnode, peer.name, bco, true, msg)
+							peer.BroadcastOut <- msg
+						}
 					}
 				}
 			}
