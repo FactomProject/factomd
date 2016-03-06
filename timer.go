@@ -14,7 +14,7 @@ import (
 func Timer(state interfaces.IState) {
 
 	s := state.(*s.State)
-	
+
 	time.Sleep(2 * time.Second)
 
 	billion := int64(1000000000)

@@ -56,11 +56,12 @@ func UnmarshalMessage(data []byte) (interfaces.IMsg, error) {
 		msg = new(SignatureTimeout)
 	case constants.DBSTATE_MISSING_MSG:
 		msg = new(DBStateMissing)
+	case constants.DBSTATE_MSG:
+		msg = new(DBStateMsg)
 	default:
-		return nil, fmt.Errorf("Unknown message type %x %v",messageType,string(data[0]))
+		return nil, fmt.Errorf("Unknown message type %d %x", messageType, data[0])
 	}
 
-	// Unmarshal does not include the message type.
 	err := msg.UnmarshalBinary(data[:])
 	if err != nil {
 		return nil, err

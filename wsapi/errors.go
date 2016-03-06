@@ -45,7 +45,6 @@ func NewCustomInternalError(data interface{}) *primitives.JSONError {
 	return primitives.NewJSONError(-32603, "Internal error", data)
 }
 
-
 /*******************************************************************/
 
 func NewInvalidAddressError() *primitives.JSONError {

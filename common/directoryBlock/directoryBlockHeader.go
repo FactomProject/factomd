@@ -140,11 +140,6 @@ func (b *DBlockHeader) MarshalBinary() ([]byte, error) {
 	buf.WriteByte(b.Version)
 	binary.Write(&buf, binary.BigEndian, b.NetworkID)
 
-	if b.BodyMR == nil {
-		panic("BodyMR missing")
-		b.SetBodyMR(new(primitives.Hash))
-		b.BodyMR.SetBytes(new([32]byte)[:])
-	}
 	data, err := b.BodyMR.MarshalBinary()
 	if err != nil {
 		return nil, err
@@ -169,15 +164,22 @@ func (b *DBlockHeader) MarshalBinary() ([]byte, error) {
 
 	binary.Write(&buf, binary.BigEndian, b.BlockCount)
 
+	if b.BlockCount > 100000 {
+		panic("Send: Blockcount too great in directory block")
+	}
+
 	return buf.Bytes(), err
 }
 
 func (b *DBlockHeader) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	defer func() {
+	/* defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
-	}()
+	}() */
+
+	//	fmt.Printf("Unmarshal %x\n",data[:113])
+
 	newData = data
 	b.Version, newData = newData[0], newData[1:]
 
@@ -205,6 +207,9 @@ func (b *DBlockHeader) UnmarshalBinaryData(data []byte) (newData []byte, err err
 	b.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 	b.BlockCount, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
+	if b.BlockCount > 100000 {
+		panic("Receive: Blockcount too great in directory block" + fmt.Sprintf(":::: %d", b.BlockCount))
+	}
 	return
 }
 

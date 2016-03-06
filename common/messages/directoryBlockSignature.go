@@ -17,7 +17,7 @@ import (
 type DirectoryBlockSignature struct {
 	MessageBase
 	Timestamp             interfaces.Timestamp
-	DBHeight  			  uint32
+	DBHeight              uint32
 	DirectoryBlockKeyMR   interfaces.IHash
 	ServerIdentityChainID interfaces.IHash
 
@@ -201,13 +201,13 @@ func (m *DirectoryBlockSignature) MarshalForSignature() ([]byte, error) {
 }
 
 func (m *DirectoryBlockSignature) MarshalBinary() (data []byte, err error) {
-	
+
 	var sig interfaces.IFullSignature
 	resp, err := m.MarshalForSignature()
 	if err == nil {
 		sig = m.GetSignature()
 	}
-	
+
 	if sig != nil {
 		sigBytes, err := sig.MarshalBinary()
 		if err != nil {

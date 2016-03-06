@@ -171,12 +171,12 @@ func (m *Ack) VerifySignature() (bool, error) {
 }
 
 func (m *Ack) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	/*defer func() {
+	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
-	}() */
-	
+	}()
+
 	newData = data[1:]
 	m.ServerIndex, newData = newData[0], newData[1:]
 
@@ -184,7 +184,7 @@ func (m *Ack) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	m.MessageHash = new(primitives.Hash)
 	newData, err = m.MessageHash.UnmarshalBinaryData(newData)
 	if err != nil {
@@ -203,7 +203,6 @@ func (m *Ack) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	}
 
 	if len(newData) > 0 {
-		fmt.Println("\nzzzzzzzzzzzzzzzzzzzzz ACK: %x\n",newData)
 		sig := new(primitives.Signature)
 		newData, err = sig.UnmarshalBinaryData(newData)
 		if err != nil {
@@ -268,10 +267,10 @@ func (m *Ack) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *Ack) String() string {
-	return fmt.Sprintf("%6s-%3d: db/pl ht: %2d/%2d,-- hash[:10]%x", 
-					"ACK",
-					m.ServerIndex, 
-					m.DBHeight,
-					m.Height,
-					m.MessageHash.Bytes()[:10])
-}	
+	return fmt.Sprintf("%6s-%3d: db/pl ht: %2d/%2d,-- hash[:10]%x",
+		"ACK",
+		m.ServerIndex,
+		m.DBHeight,
+		m.Height,
+		m.MessageHash.Bytes()[:10])
+}

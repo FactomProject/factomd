@@ -1,11 +1,11 @@
 package state
 
 import (
-	"fmt"
-	"log"
 	"bytes"
+	"fmt"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
+	"log"
 )
 
 var _ = fmt.Print
@@ -52,45 +52,50 @@ type ListServer struct {
 	SigComplete bool              // Lists that are signature complete
 }
 
-// Add the given serverChain to this processlist, and return the server index number of the 
+// Add the given serverChain to this processlist, and return the server index number of the
 // added server
-func (p *ProcessList) AddFedServer (server *interfaces.Server) int {	
+func (p *ProcessList) AddFedServer(server *interfaces.Server) int {
 	found, i := p.GetFedServerIndex(server.ChainID)
-	if server.ChainID.Bytes()[0]== 0 && server.ChainID.Bytes()[1]== 0 {
+	if server.ChainID.Bytes()[0] == 0 && server.ChainID.Bytes()[1] == 0 {
 		panic("Grrr")
 	}
- 	if found { return i }
+	if found {
+		return i
+	}
 	p.FedServers = append(p.FedServers, nil)
 	copy(p.FedServers[i+1:], p.FedServers[i:])
 	p.FedServers[i] = server
 	return i
 }
 
-// Add the given serverChain to this processlist, and return the server index number of the 
+// Add the given serverChain to this processlist, and return the server index number of the
 // added server
-func (p *ProcessList) RemoveFedServer (server *interfaces.Server) {	
+func (p *ProcessList) RemoveFedServer(server *interfaces.Server) {
 	found, i := p.GetFedServerIndex(server.ChainID)
-	if !found { return }
-	p.FedServers = append(p.FedServers[:i],p.FedServers[i+1:]...)
+	if !found {
+		return
+	}
+	p.FedServers = append(p.FedServers[:i], p.FedServers[i+1:]...)
 }
 
 // Returns true and the index of this server, or false and the insertion point for this server
-func (p *ProcessList) GetFedServerIndex(serverChainID interfaces.IHash) (bool, int) {	
+func (p *ProcessList) GetFedServerIndex(serverChainID interfaces.IHash) (bool, int) {
 	scid := serverChainID.Bytes()
-	if p == nil || p.FedServers == nil { return false, 0 }
+	if p == nil || p.FedServers == nil {
+		return false, 0
+	}
 	for i, ifs := range p.FedServers {
 		fs := ifs.(*interfaces.Server)
 		// Find and remove
 		switch bytes.Compare(scid, fs.ChainID.Bytes()) {
-			case 0 : 			// Found the ID!
-				return true, i
-			case -1 :			// Past the ID, can't be in list
-				return false, i
+		case 0: // Found the ID!
+			return true, i
+		case -1: // Past the ID, can't be in list
+			return false, i
 		}
 	}
 	return false, len(p.FedServers)
 }
-
 
 func (p *ProcessList) GetLen(list int) int {
 	if list >= len(p.Servers) {
@@ -224,7 +229,7 @@ func NewProcessList(state interfaces.IState, totalServers int, dbheight uint32) 
 	for i := 0; i < totalServers; i++ {
 		pl.Servers[i] = new(ListServer)
 		pl.Servers[i].List = make([]interfaces.IMsg, 0)
-		
+
 	}
 	pl.DBHeight = dbheight
 	pl.Acks = new(map[[32]byte]interfaces.IMsg)

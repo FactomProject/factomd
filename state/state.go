@@ -50,21 +50,21 @@ type State struct {
 	IdentityChainID interfaces.IHash // If this node has an identity, this is it
 
 	// Just to print (so debugging doesn't drive functionaility)
-	serverPrt			   string
-	
+	serverPrt string
+
 	networkInMsgQueue      chan interfaces.IMsg
 	networkOutMsgQueue     chan interfaces.IMsg
 	networkInvalidMsgQueue chan interfaces.IMsg
 	inMsgQueue             chan interfaces.IMsg
 	ShutdownChan           chan int // For gracefully halting Factom
 
-	myServer              interfaces.IServer //the server running on this Federated Server
-	serverPrivKey         primitives.PrivateKey
-	serverPubKey          primitives.PublicKey
-	serverState           int
-	OutputAllowed         bool
-	ServerIndex           int // Index of the server, as understood by the leader
-	
+	myServer      interfaces.IServer //the server running on this Federated Server
+	serverPrivKey primitives.PrivateKey
+	serverPubKey  primitives.PublicKey
+	serverState   int
+	OutputAllowed bool
+	ServerIndex   int // Index of the server, as understood by the leader
+
 	// Maps
 	// ====
 	// For Follower
@@ -137,7 +137,7 @@ func (s *State) Clone(number string) interfaces.IState {
 	clone.NodeMode = "FULL"
 	clone.DBType = s.DBType
 	clone.ExportData = true
-	clone.ExportDataSubpath = s.ExportDataSubpath +"/sim-"+number
+	clone.ExportDataSubpath = s.ExportDataSubpath + "/sim-" + number
 	clone.Network = s.Network
 	clone.DirectoryBlockInSeconds = s.DirectoryBlockInSeconds
 	clone.PortNumber = s.PortNumber
@@ -145,10 +145,9 @@ func (s *State) Clone(number string) interfaces.IState {
 	// Need to have a Server Priv Key TODO:
 	clone.LocalServerPrivKey = s.LocalServerPrivKey
 
-
 	//serverPrivKey primitives.PrivateKey
 	//serverPubKey  primitives.PublicKey
-	
+
 	clone.FactoshisPerEC = s.FactoshisPerEC
 
 	clone.Port = s.Port
@@ -365,7 +364,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) error {
 	}
 
 	s.DBStates.last = s.GetTimestamp()
-	
+
 	s.AddDBState(true,
 		dbstatemsg.DirectoryBlock,
 		dbstatemsg.AdminBlock,
@@ -422,20 +421,22 @@ func (s *State) PutCommits(dbheight uint32, hash interfaces.IHash, msg interface
 
 func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) {
 	as, ok := addServerMsg.(*messages.AddServerMsg)
-	if !ok { return }
+	if !ok {
+		return
+	}
 	server := new(interfaces.Server)
 	server.ChainID = as.ServerChainID
 	plc := s.ProcessLists.Get(dbheight)
-	pl := s.ProcessLists.Get(dbheight+1)
+	pl := s.ProcessLists.Get(dbheight + 1)
 	fmt.Println("Current Server List:")
 	for _, fed := range plc.FedServers {
 		pl.AddFedServer(fed.(*interfaces.Server))
-		fmt.Println("  ",fed.GetChainID().String())
+		fmt.Println("  ", fed.GetChainID().String())
 	}
 	pl.AddFedServer(server)
 	fmt.Println("New Server List:")
 	for _, fed := range pl.FedServers {
-		fmt.Println("  ",fed.GetChainID().String())
+		fmt.Println("  ", fed.GetChainID().String())
 	}
 }
 
@@ -456,7 +457,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) {
 	if !ok {
 		panic("Must pass an EOM message to ProcessEOM)")
 	}
-	
+
 	pl := s.ProcessLists.Get(dbheight)
 
 	s.FactoidState.EndOfPeriod(int(e.Minute))
@@ -631,30 +632,34 @@ func (s *State) GetPort() int {
 func (s *State) LeaderFor([]byte) bool {
 	s.SetString()
 	found, index := s.GetFedServerIndex()
-	
-	if !found { return false }
-	if index == 0 { return true }
+
+	if !found {
+		return false
+	}
+	if index == 0 {
+		return true
+	}
 	return false
 }
 
 func (s *State) GetFedServerIndex() (bool, int) {
 	pl := s.ProcessLists.Get(s.LDBHeight)
-	
+
 	if pl == nil {
-		fmt.Println("No Process List",s.LDBHeight)
+		fmt.Println("No Process List", s.LDBHeight)
 		return false, 0
 	}
 
 	if s.serverState == 1 && len(pl.FedServers) == 0 {
-		pl.AddFedServer( &interfaces.Server { ChainID: s.IdentityChainID} )
+		pl.AddFedServer(&interfaces.Server{ChainID: s.IdentityChainID})
 		fmt.Println("Current Servers (Adding):")
-		for _,fed := range pl.FedServers {
+		for _, fed := range pl.FedServers {
 			fmt.Println("   ", fed.GetChainID().String())
 		}
 	}
-	
+
 	found, index := pl.GetFedServerIndex(s.IdentityChainID)
-	
+
 	return found, index
 }
 
@@ -689,7 +694,6 @@ func (s *State) ReadCfg(filename string) interfaces.IFactomConfig {
 	s.Cfg = util.ReadConfig(filename)
 	return s.Cfg
 }
-
 
 func (s *State) GetNetworkNumber() int {
 	return s.NetworkNumber
@@ -765,12 +769,12 @@ func (s *State) SetString() {
 		return
 	}
 	dstateHeight := last.DirectoryBlock.GetHeader().GetDBHeight()
-	plheight := int(s.ProcessLists.DBHeightBase) + len(s.ProcessLists.Lists)-1
+	plheight := int(s.ProcessLists.DBHeightBase) + len(s.ProcessLists.Lists) - 1
 
-	found, index := s.ProcessLists.Get(dstateHeight+1).GetFedServerIndex(s.IdentityChainID)
+	found, index := s.ProcessLists.Get(dstateHeight + 1).GetFedServerIndex(s.IdentityChainID)
 	stype := ""
 	if found {
-		stype = fmt.Sprintf("L %3d",index)
+		stype = fmt.Sprintf("L %3d", index)
 	}
 	s.serverPrt = fmt.Sprintf("%5s %7s DBS: %d PL: %d C: %d hash[:10]=%x",
 		stype,

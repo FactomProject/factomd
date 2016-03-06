@@ -6,8 +6,8 @@ package state_test
 
 import (
 	"fmt"
-	. "github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/common/primitives"
+	. "github.com/FactomProject/factomd/state"
 	"math/rand"
 	"testing"
 	"time"

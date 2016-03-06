@@ -32,12 +32,12 @@ func loadDatabase(s *state.State) {
 	var blkCnt uint32
 
 	head, err := s.GetDB().FetchDirectoryBlockHead()
-	
+
 	if err != nil && head != nil {
 		blkCnt = head.GetHeader().GetDBHeight()
 	}
 	msg, err := s.LoadDBState(blkCnt)
-	
+
 	for i := 0; true; i++ {
 		if err != nil {
 			s.Println(err.Error())

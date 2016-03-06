@@ -25,21 +25,21 @@ type msglist struct {
 	msg   interfaces.IMsg
 }
 
-type MsgLog struct {	
-	sem 		sync.Mutex
-	MsgList 	[]*msglist
-	last 		interfaces.Timestamp
-	nodeCnt     int
-	
-	start		interfaces.Timestamp
-	msgCnt		int
-	msgPerSec   int
-	
+type MsgLog struct {
+	sem     sync.Mutex
+	MsgList []*msglist
+	last    interfaces.Timestamp
+	nodeCnt int
+
+	start     interfaces.Timestamp
+	msgCnt    int
+	msgPerSec int
+
 	// The last period (msg rate over the last period, so msg changes can be seen)
-	period		int
-	startp		interfaces.Timestamp
-	msgCntp		int
-	msgPerSecp	int
+	period     int
+	startp     interfaces.Timestamp
+	msgCntp    int
+	msgPerSecp int
 }
 
 func (m *MsgLog) init(nodecnt int) {
@@ -49,17 +49,17 @@ func (m *MsgLog) init(nodecnt int) {
 	}
 }
 
-func (m *MsgLog) add2(fnode *FactomNode, dest string , where string, valid bool, msg interfaces.IMsg) {
+func (m *MsgLog) add2(fnode *FactomNode, dest string, where string, valid bool, msg interfaces.IMsg) {
 	m.sem.Lock()
 	defer m.sem.Unlock()
 	now := fnode.State.GetTimestamp() / 1000
 	if m.start == 0 {
 		m.start = fnode.State.GetTimestamp() / 1000
-		m.last = m.start		// last is start
+		m.last = m.start // last is start
 		m.period = 2
 		m.startp = m.start
 	}
-		
+
 	nm := new(msglist)
 	nm.fnode = fnode
 	nm.name = fnode.State.FactomNodeName
@@ -68,29 +68,29 @@ func (m *MsgLog) add2(fnode *FactomNode, dest string , where string, valid bool,
 	nm.where = where
 	nm.msg = msg
 	m.MsgList = append(m.MsgList, nm)
-	
-	if now-m.start > 1  {
-		m.msgPerSec = (m.msgCnt+len(m.MsgList)) / int(now-m.start) / m.nodeCnt
+
+	if now-m.start > 1 {
+		m.msgPerSec = (m.msgCnt + len(m.MsgList)) / int(now-m.start) / m.nodeCnt
 	}
 	if int(now-m.startp) >= m.period {
-		m.msgPerSecp = (m.msgCntp+len(m.MsgList)) / int(now-m.startp) / m.nodeCnt
+		m.msgPerSecp = (m.msgCntp + len(m.MsgList)) / int(now-m.startp) / m.nodeCnt
 		m.msgCntp = 0
-		m.startp = now	// Reset timer
+		m.startp = now // Reset timer
 	}
-	
+
 	// If it has been 2 seconds, and we are printing, then print
 	if now-m.last > 2 && fnode.State.GetOut() {
 		m.prtMsgs(fnode.State)
 		m.last = now
-		m.msgCnt += len(m.MsgList)	// Keep my counts
+		m.msgCnt += len(m.MsgList) // Keep my counts
 		m.msgCntp += len(m.MsgList)
-		m.MsgList = m.MsgList[0:0]  // Once printed, clear the list
+		m.MsgList = m.MsgList[0:0] // Once printed, clear the list
 		// If it has been 4 seconds and we are NOT printing, then toss.
 		// This gives us a second to get to print.
-	}else if now-m.last > 4 {
-		m.msgCnt += len(m.MsgList)	// Keep my counts
+	} else if now-m.last > 4 {
+		m.msgCnt += len(m.MsgList) // Keep my counts
 		m.msgCntp += len(m.MsgList)
-		m.MsgList = m.MsgList[0:0]	// Clear the record.
+		m.MsgList = m.MsgList[0:0] // Clear the record.
 	}
 }
 
@@ -98,27 +98,27 @@ func (m *MsgLog) prtMsgs(state interfaces.IState) {
 
 	state.Println("\n***************************************************")
 	state.Println(fmt.Sprintf("*** %42s ****", "State: "+state.String()))
-	
+
 	for _, e := range m.MsgList {
 		if e.valid {
-			if e.fnode.State.GetOut() { 
+			if e.fnode.State.GetOut() {
 				state.Print(fmt.Sprintf("**** %8s -> %8s %10s %5v     **** %s\n", e.name, e.dest, e.where, e.valid, e.msg.String()))
 			}
 		}
 	}
-	state.Println(fmt.Sprintf("*** %42s **** ",fmt.Sprintf("Length: %d    Msgs/sec: T %d P %d",len(m.MsgList),m.msgPerSec,m.msgPerSecp)))
+	state.Println(fmt.Sprintf("*** %42s **** ", fmt.Sprintf("Length: %d    Msgs/sec: T %d P %d", len(m.MsgList), m.msgPerSec, m.msgPerSecp)))
 	state.Println("***************************************************\n")
 }
 
 func NetworkProcessorNet(fnode *FactomNode) {
-	
+
 	for {
 		// Put any broadcasts from our peers into our BroadcastIn queue
 		for i, peer := range fnode.Peers {
 			for {
 				msg, err := peer.Recieve()
 				if err == nil && msg != nil {
-					msg.SetOrigin(i+1)
+					msg.SetOrigin(i + 1)
 					if fnode.State.Replay.IsTSValid_(msg.GetMsgHash().Fixed(),
 						int64(msg.GetTimestamp())/1000,
 						int64(fnode.State.GetTimestamp())/1000) {
@@ -130,7 +130,7 @@ func NetworkProcessorNet(fnode *FactomNode) {
 					}
 				} else {
 					if err != nil {
-						fmt.Println(fnode.State.GetFactomNodeName(),err)
+						fmt.Println(fnode.State.GetFactomNodeName(), err)
 					}
 					break
 				}
@@ -154,7 +154,7 @@ func NetworkProcessorNet(fnode *FactomNode) {
 				fnode.State.Replay.IsTSValid_(msg.GetMsgHash().Fixed(),
 					int64(msg.GetTimestamp())/1000,
 					int64(fnode.State.GetTimestamp())/1000)
-				
+
 				if msg.IsPeer2peer() {
 					p := msg.GetOrigin() - 1
 					if len(fnode.Peers) == 0 {
@@ -176,7 +176,7 @@ func NetworkProcessorNet(fnode *FactomNode) {
 					for i, peer := range fnode.Peers {
 						// Don't resend to the node that sent it to you.
 						if i != p {
-							bco := fmt.Sprintf("%s/%d/%d","BCast",p,i)
+							bco := fmt.Sprintf("%s/%d/%d", "BCast", p, i)
 							fnode.MLog.add2(fnode, peer.GetNameTo(), bco, true, msg)
 							peer.Send(msg)
 						}
@@ -191,7 +191,7 @@ func NetworkProcessorNet(fnode *FactomNode) {
 				}
 			}
 		default:
-			time.Sleep(time.Duration(5) * time.Millisecond)
+			time.Sleep(time.Duration(10) * time.Millisecond)
 		}
 	}
 

@@ -62,7 +62,7 @@ func Start(state interfaces.IState) {
 
 func SetState(state interfaces.IState) {
 	Servers[state.GetPort()].Env["state"] = state
-	fmt.Println("API now directed to",state.GetFactomNodeName())
+	fmt.Println("API now directed to", state.GetFactomNodeName())
 }
 
 func Stop(state interfaces.IState) {

@@ -129,6 +129,9 @@ func (e *ECBlock) BuildHeader() error {
 
 func (e *ECBlock) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	// Unmarshal Header
+	if e.GetHeader() == nil {
+		e.Header = NewECBlockHeader()
+	}
 	newData, err = e.GetHeader().UnmarshalBinaryData(data)
 	if err != nil {
 		return

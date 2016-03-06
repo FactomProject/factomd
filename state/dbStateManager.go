@@ -48,13 +48,13 @@ func (list *DBStateList) Catchup() {
 		list.secondsBetweenTests = 1
 		list.last = now
 	}
-		
+
 	// We only check if we need updates once every so often.
 	if int(now)/1000-int(list.last)/1000 < list.secondsBetweenTests {
 		return
 	}
 	list.last = now
-	
+
 	begin := -1
 	end := -1
 
@@ -79,16 +79,16 @@ func (list *DBStateList) Catchup() {
 			return
 		}
 
-		if plHeight > dbsHeight && plHeight-dbsHeight > 1 {
+		if plHeight > dbsHeight && plHeight-dbsHeight > 2 {
 			begin = int(dbsHeight + 1)
 			end = int(plHeight - 1)
-		}else{
+		} else {
 			return
 		}
 	}
-	
+
 	list.lastreq = begin
-	
+
 	end2 := begin + 200
 	if end < end2 {
 		end2 = end
@@ -128,8 +128,7 @@ func (list *DBStateList) Put(dbstate *DBState) {
 
 	// Hold off on any requests if I'm actually processing...
 	list.last = list.state.GetTimestamp()
-	
-	
+
 	dblk := dbstate.DirectoryBlock
 	dbheight := dblk.GetHeader().GetDBHeight()
 
@@ -191,10 +190,10 @@ func (list *DBStateList) Process() {
 			return
 		}
 
-		if d.DirectoryBlock != nil && d.DirectoryBlock.GetHeader().GetDBHeight() != list.complete + list.base {
+		if d.DirectoryBlock != nil && d.DirectoryBlock.GetHeader().GetDBHeight() != list.complete+list.base {
 			panic("Should not happen")
 		}
-		
+
 		if d.isNew {
 			// Make sure the directory block is properly synced up with the prior block, if there
 			// is one.

@@ -265,7 +265,7 @@ func TestKeyMRs(t *testing.T) {
 		dbEntries = append(dbEntries, entry)
 	}
 
-	dBlock := NewDirectoryBlock(0)
+	dBlock := NewDirectoryBlock(0, nil)
 	err = dBlock.SetDBEntries(dbEntries)
 	if err != nil {
 		t.Error(err)

@@ -135,19 +135,19 @@ func (m *DBStateMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error
 	}
 
 	m.AdminBlock = new(adminBlock.AdminBlock)
-	newData, err = m.DirectoryBlock.UnmarshalBinaryData(newData)
+	newData, err = m.AdminBlock.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
 	}
 
 	m.FactoidBlock = new(block.FBlock)
-	newData, err = m.DirectoryBlock.UnmarshalBinaryData(newData)
+	newData, err = m.FactoidBlock.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
 	}
 
-	m.EntryCreditBlock = new(entryCreditBlock.ECBlock)
-	newData, err = m.DirectoryBlock.UnmarshalBinaryData(newData)
+	m.EntryCreditBlock = entryCreditBlock.NewECBlock()
+	newData, err = m.EntryCreditBlock.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
 	}

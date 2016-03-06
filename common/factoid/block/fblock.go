@@ -272,6 +272,10 @@ func (b *FBlock) UnmarshalBinaryData(data []byte) (newdata []byte, err error) {
 		}
 		b.Transactions[i] = trans
 	}
+	for periodMark < len(b.endOfPeriod) {
+		data = data[1:]
+		periodMark++
+	}
 
 	return data, nil
 

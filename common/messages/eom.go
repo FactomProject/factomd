@@ -208,12 +208,12 @@ func (m *EOM) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *EOM) String() string {
-	return fmt.Sprintf("%6s-%3d: Min: %2d, Ht: %d -- hash[:10]=%x", 
-					"EOM",
-					m.ServerIndex, 
-					m.Minute+1, 
-					m.DirectoryBlockHeight, 
-					m.GetHash().Bytes()[:10])
+	return fmt.Sprintf("%6s-%3d: Min: %2d, Ht: %d -- hash[:10]=%x",
+		"EOM",
+		m.ServerIndex,
+		m.Minute+1,
+		m.DirectoryBlockHeight,
+		m.GetHash().Bytes()[:10])
 }
 
 // EOM methods that conform to the Message interface.

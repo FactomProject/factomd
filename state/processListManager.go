@@ -2,10 +2,10 @@ package state
 
 import (
 	"fmt"
-	"log"
 	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"log"
 )
 
 var _ = fmt.Print
@@ -21,17 +21,19 @@ type ProcessLists struct {
 // can be another list under construction (because of missing messages.
 func (lists *ProcessLists) GetDBHeight() uint32 {
 	// First let's start at the lowest Process List not yet complete.
-	return uint32(len(lists.Lists))+lists.DBHeightBase
+	return uint32(len(lists.Lists)) + lists.DBHeightBase
 }
 
 func (lists *ProcessLists) UpdateState() {
-	
 
 	dbstate := lists.State.DBStates.Last()
 
-	if dbstate.DirectoryBlock == nil { return }
-	heightBuilding := dbstate.DirectoryBlock.GetHeader().GetDBHeight()+1
-	
+	var heightBuilding uint32
+	if dbstate.DirectoryBlock == nil {
+		heightBuilding = lists.State.DBStates.base + uint32(len(lists.State.DBStates.DBStates))
+	} else {
+		heightBuilding = dbstate.DirectoryBlock.GetHeader().GetDBHeight() + 1
+	}
 	pl := lists.Get(heightBuilding)
 
 	diff := heightBuilding - lists.DBHeightBase
@@ -60,8 +62,8 @@ func (lists *ProcessLists) UpdateState() {
 	// Only when we are sig complete that we can move on.
 	if pl.Complete() {
 		lists.State.DBStates.NewDBState(true, pl.DirectoryBlock, pl.AdminBlock, pl.FactoidBlock, pl.EntryCreditBlock)
-		pln := lists.Get(heightBuilding+1)
-		for _,srv := range pl.FedServers {				// Bring forward the current Federated Servers
+		pln := lists.Get(heightBuilding + 1)
+		for _, srv := range pl.FedServers { // Bring forward the current Federated Servers
 			pln.AddFedServer(srv.(*interfaces.Server))
 		}
 	}
@@ -85,8 +87,6 @@ func (lists *ProcessLists) Get(dbheight uint32) *ProcessList {
 	return pl
 }
 
-
-
 /************************************************
  * Support
  ************************************************/
@@ -105,4 +105,3 @@ func NewProcessLists(state interfaces.IState) *ProcessLists {
 
 	return pls
 }
-

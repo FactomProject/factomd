@@ -111,9 +111,9 @@ func NewJSONError(code int, message string, data interface{}) *JSONError {
 }
 
 func (j *JSONError) Error() string {
-	str, ok:=j.Data.(string)
+	str, ok := j.Data.(string)
 	if ok == false {
 		return j.Message
 	}
-	return j.Message+": "+str
+	return j.Message + ": " + str
 }
