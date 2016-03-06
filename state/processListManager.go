@@ -28,6 +28,9 @@ func (lists *ProcessLists) UpdateState() {
 
 	dbstate := lists.State.DBStates.Last()
 
+	if dbstate == nil {
+		return
+	}
 	var heightBuilding uint32
 	if dbstate.DirectoryBlock == nil {
 		heightBuilding = lists.State.DBStates.base + uint32(len(lists.State.DBStates.DBStates))

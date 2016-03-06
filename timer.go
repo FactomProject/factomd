@@ -45,7 +45,7 @@ func Timer(state interfaces.IState) {
 			// End of the last period, and this is a server, send messages that
 			// close off the minute.
 			found, _ := state.GetFedServerIndex()
-			if found || true {
+			if found {
 				eom := state.NewEOM(i)
 				state.InMsgQueue() <- eom
 			}

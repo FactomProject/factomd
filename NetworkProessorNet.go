@@ -123,7 +123,8 @@ func NetworkProcessorNet(fnode *FactomNode) {
 						int64(msg.GetTimestamp())/1000,
 						int64(fnode.State.GetTimestamp())/1000) {
 						//fnode.State.Println("In Comming!! ",msg)
-						fnode.MLog.add2(fnode, peer.GetNameTo(), "PeerIn", true, msg)
+						nme := fmt.Sprintf("%s %d","PeerIn",i+1)
+						fnode.MLog.add2(fnode, peer.GetNameTo(), nme, true, msg)
 						fnode.State.NetworkInMsgQueue() <- msg
 					} else {
 						fnode.MLog.add2(fnode, peer.GetNameTo(), "PeerIn", false, msg)
