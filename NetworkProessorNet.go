@@ -52,7 +52,6 @@ func (m *MsgLog) init(nodecnt int) {
 func (m *MsgLog) add2(fnode *FactomNode, dest string , where string, valid bool, msg interfaces.IMsg) {
 	m.sem.Lock()
 	defer m.sem.Unlock()
-	
 	now := fnode.State.GetTimestamp() / 1000
 	if m.start == 0 {
 		m.start = fnode.State.GetTimestamp() / 1000
@@ -114,23 +113,25 @@ func (m *MsgLog) prtMsgs(state interfaces.IState) {
 func NetworkProcessorNet(fnode *FactomNode) {
 	
 	for {
-
 		// Put any broadcasts from our peers into our BroadcastIn queue
 		for i, peer := range fnode.Peers {
 			for {
 				msg, err := peer.Recieve()
-				if err != nil && msg != nil {
+				if err == nil && msg != nil {
 					msg.SetOrigin(i+1)
 					if fnode.State.Replay.IsTSValid_(msg.GetMsgHash().Fixed(),
 						int64(msg.GetTimestamp())/1000,
 						int64(fnode.State.GetTimestamp())/1000) {
 						//fnode.State.Println("In Comming!! ",msg)
-						fnode.MLog.add2(fnode, peer.GetName(), "PeerIn", true, msg)
+						fnode.MLog.add2(fnode, peer.GetNameTo(), "PeerIn", true, msg)
 						fnode.State.NetworkInMsgQueue() <- msg
 					} else {
-						//fnode.MLog.add2(fnode, peer.name, "PeerIn", false, msg)
+						fnode.MLog.add2(fnode, peer.GetNameTo(), "PeerIn", false, msg)
 					}
 				} else {
+					if err != nil {
+						fmt.Println(fnode.State.GetFactomNodeName(),err)
+					}
 					break
 				}
 			}
@@ -167,7 +168,7 @@ func NetworkProcessorNet(fnode *FactomNode) {
 						p = rand.Int() % len(fnode.Peers)
 					}
 
-					fnode.MLog.add2(fnode, fnode.Peers[p].GetName(), "P2P out", true, msg)
+					fnode.MLog.add2(fnode, fnode.Peers[p].GetNameTo(), "P2P out", true, msg)
 					fnode.Peers[p].Send(msg)
 
 				} else {
@@ -176,7 +177,7 @@ func NetworkProcessorNet(fnode *FactomNode) {
 						// Don't resend to the node that sent it to you.
 						if i != p {
 							bco := fmt.Sprintf("%s/%d/%d","BCast",p,i)
-							fnode.MLog.add2(fnode, peer.GetName(), bco, true, msg)
+							fnode.MLog.add2(fnode, peer.GetNameTo(), bco, true, msg)
 							peer.Send(msg)
 						}
 					}

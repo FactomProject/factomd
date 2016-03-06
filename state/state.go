@@ -137,7 +137,7 @@ func (s *State) Clone(number string) interfaces.IState {
 	clone.NodeMode = "FULL"
 	clone.DBType = s.DBType
 	clone.ExportData = true
-	clone.ExportDataSubpath = number + "-" + s.ExportDataSubpath
+	clone.ExportDataSubpath = s.ExportDataSubpath +"/sim-"+number
 	clone.Network = s.Network
 	clone.DirectoryBlockInSeconds = s.DirectoryBlockInSeconds
 	clone.PortNumber = s.PortNumber
@@ -387,7 +387,6 @@ func (s *State) LeaderExecute(m interfaces.IMsg) error {
 	// Leader Execute creates an acknowledgement and the EOM
 	s.NetworkOutMsgQueue() <- ack
 	ack.FollowerExecute(s)
-	s.NetworkOutMsgQueue() <- m // Send the Message;  It works better if
 	m.FollowerExecute(s)
 	return nil
 }
@@ -453,7 +452,6 @@ func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)
 }
 
 func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) {
-	s.Println("EOM:",msg)
 	e, ok := msg.(*messages.EOM)
 	if !ok {
 		panic("Must pass an EOM message to ProcessEOM)")
@@ -656,6 +654,7 @@ func (s *State) GetFedServerIndex() (bool, int) {
 	}
 	
 	found, index := pl.GetFedServerIndex(s.IdentityChainID)
+	
 	return found, index
 }
 
@@ -773,13 +772,13 @@ func (s *State) SetString() {
 	if found {
 		stype = fmt.Sprintf("L %3d",index)
 	}
-	s.serverPrt = fmt.Sprintf("%5s %7s DBS: %d PL: %d C: %d %s",
+	s.serverPrt = fmt.Sprintf("%5s %7s DBS: %d PL: %d C: %d hash[:10]=%x",
 		stype,
 		s.FactomNodeName,
 		dstateHeight,
 		plheight,
 		s.ProcessLists.GetDBHeight(),
-		s.IdentityChainID.String())
+		s.IdentityChainID.Bytes()[:10])
 }
 
 func (s *State) NewAdminBlock(dbheight uint32) interfaces.IAdminBlock {

@@ -201,16 +201,17 @@ func (m *DirectoryBlockSignature) MarshalForSignature() ([]byte, error) {
 }
 
 func (m *DirectoryBlockSignature) MarshalBinary() (data []byte, err error) {
+	
+	var sig interfaces.IFullSignature
 	resp, err := m.MarshalForSignature()
-	if err != nil {
-		return nil, err
+	if err == nil {
+		sig = m.GetSignature()
 	}
-	sig := m.GetSignature()
-
+	
 	if sig != nil {
 		sigBytes, err := sig.MarshalBinary()
 		if err != nil {
-			return resp, err
+			return resp, nil
 		}
 		return append(resp, sigBytes...), nil
 	}

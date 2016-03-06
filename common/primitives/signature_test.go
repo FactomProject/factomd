@@ -31,9 +31,10 @@ func TestSignatureMisc(t *testing.T) {
 		t.Fatalf("sig1.Verify retuned true")
 	}
 
-	sigBytes := append(sig1.Pub.Key[:], sig1.Sig[:]...)
+	sigBytes := append(sig1.GetKey(), (*sig1.GetSignature())[:]...)
 
-	sig2 := UnmarshalBinarySignature(sigBytes)
+	sig2 := priv1.Sign([]byte(msg2))
+	sig2.UnmarshalBinary(sigBytes)
 
 	if !sig2.Verify([]byte(msg1)) {
 		t.Fatalf("sig2.Verify retuned false")
@@ -43,8 +44,8 @@ func TestSignatureMisc(t *testing.T) {
 		t.Fatalf("sig2.Verify retuned true")
 	}
 
-	pub := sig2.Pub.Key[:]
-	pub2 := sig2.Key()
+	pub := sig2.GetKey()
+	pub2 := sig2.GetKey()
 
 	if len(pub) != len(pub2) {
 		t.Error("Public key length mismatch")

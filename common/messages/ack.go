@@ -171,11 +171,12 @@ func (m *Ack) VerifySignature() (bool, error) {
 }
 
 func (m *Ack) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	defer func() {
+	/*defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
-	}()
+	}() */
+	
 	newData = data[1:]
 	m.ServerIndex, newData = newData[0], newData[1:]
 
@@ -183,7 +184,7 @@ func (m *Ack) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	if err != nil {
 		return nil, err
 	}
-
+	
 	m.MessageHash = new(primitives.Hash)
 	newData, err = m.MessageHash.UnmarshalBinaryData(newData)
 	if err != nil {
@@ -193,15 +194,16 @@ func (m *Ack) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	m.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 	m.Height, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
-//	if m.SerialHash == nil {
-//		m.SerialHash = primitives.NewHash(constants.ZERO_HASH)
-//	}
-//	newData, err = m.SerialHash.UnmarshalBinaryData(newData)
-//	if err != nil {
-//		return nil, err
-//	}
+	if m.SerialHash == nil {
+		m.SerialHash = primitives.NewHash(constants.ZERO_HASH)
+	}
+	newData, err = m.SerialHash.UnmarshalBinaryData(newData)
+	if err != nil {
+		return nil, err
+	}
 
 	if len(newData) > 0 {
+		fmt.Println("\nzzzzzzzzzzzzzzzzzzzzz ACK: %x\n",newData)
 		sig := new(primitives.Signature)
 		newData, err = sig.UnmarshalBinaryData(newData)
 		if err != nil {
@@ -239,11 +241,11 @@ func (m *Ack) MarshalForSignature() ([]byte, error) {
 	binary.Write(&buf, binary.BigEndian, m.DBHeight)
 	binary.Write(&buf, binary.BigEndian, m.Height)
 
-//	data, err = m.SerialHash.MarshalBinary()
-//	if err != nil {
-//		return nil, err
-//	}
-//	buf.Write(data)
+	data, err = m.SerialHash.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	buf.Write(data)
 
 	return buf.Bytes(), nil
 }
@@ -261,17 +263,15 @@ func (m *Ack) MarshalBinary() (data []byte, err error) {
 			return nil, err
 		}
 		return append(resp, sigBytes...), nil
-	}else{
-		return append(resp, constants.ZERO_HASH...), nil
 	}
 	return resp, nil
 }
 
 func (m *Ack) String() string {
-	return fmt.Sprintf("%6s-%3d: db/pl ht: %2d/%2d,-- %s", 
+	return fmt.Sprintf("%6s-%3d: db/pl ht: %2d/%2d,-- hash[:10]%x", 
 					"ACK",
 					m.ServerIndex, 
 					m.DBHeight,
 					m.Height,
-					m.MessageHash.String())
+					m.MessageHash.Bytes()[:10])
 }	

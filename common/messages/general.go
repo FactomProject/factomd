@@ -54,8 +54,10 @@ func UnmarshalMessage(data []byte) (interfaces.IMsg, error) {
 		msg = new(RequestBlock)
 	case constants.SIGNATURE_TIMEOUT_MSG:
 		msg = new(SignatureTimeout)
+	case constants.DBSTATE_MISSING_MSG:
+		msg = new(DBStateMissing)
 	default:
-		return nil, fmt.Errorf("Unknown message type")
+		return nil, fmt.Errorf("Unknown message type %x %v",messageType,string(data[0]))
 	}
 
 	// Unmarshal does not include the message type.

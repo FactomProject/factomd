@@ -82,7 +82,7 @@ func TestSignAndVerifyDirectoryBlockSignature(t *testing.T) {
 
 func newDirectoryBlockSignature() *DirectoryBlockSignature {
 	dbs := new(DirectoryBlockSignature)
-	dbs.DirectoryBlockHeight = 123456
+	dbs.DBHeight = 123456
 	hash, _ := primitives.NewShaHashFromStr("cbd3d09db6defdc25dfc7d57f3479b339a077183cd67022e6d1ef6c041522b40")
 	dbs.DirectoryBlockKeyMR = hash
 	hash, _ = primitives.NewShaHashFromStr("a077183cd67022e6d1ef6c041522b40cbd3d09db6defdc25dfc7d57f3479b339")

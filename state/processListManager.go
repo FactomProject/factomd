@@ -29,6 +29,7 @@ func (lists *ProcessLists) UpdateState() {
 
 	dbstate := lists.State.DBStates.Last()
 
+	if dbstate.DirectoryBlock == nil { return }
 	heightBuilding := dbstate.DirectoryBlock.GetHeader().GetDBHeight()+1
 	
 	pl := lists.Get(heightBuilding)
@@ -62,7 +63,6 @@ func (lists *ProcessLists) UpdateState() {
 		pln := lists.Get(heightBuilding+1)
 		for _,srv := range pl.FedServers {				// Bring forward the current Federated Servers
 			pln.AddFedServer(srv.(*interfaces.Server))
-			fmt.Println(">>>",srv.String())
 		}
 	}
 }
