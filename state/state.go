@@ -65,6 +65,12 @@ type State struct {
 	OutputAllowed bool
 	ServerIndex   int // Index of the server, as understood by the leader
 
+	
+	HighestRecordedBlock	uint32
+	BuildingBlock			uint32
+	HighestKnownBlock		uint32
+	
+	
 	// Maps
 	// ====
 	// For Follower
@@ -503,6 +509,25 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) {
 	}
 }
 
+// This is the highest block signed off and recorded in the Database.
+func (s *State) GetHighestRecordedBlock()	uint32 {
+	return s.DBStates.GetHighestRecordedBlock()
+}
+
+// This is lowest block currently under construction.
+func (s *State) GetBuildingBlock() 			uint32 {
+	return s.BuildingBlock
+}
+// The highest block for which we have received a message.  Sometimes the same as
+// BuildingBlock(), but can be different depending or the order messages are recieved.
+func (s *State) GetHighestKnownBlock() 		uint32 {
+	if s.ProcessLists == nil {
+		return 0
+	}
+	return s.ProcessLists.GetHighestKnownBlock()
+}
+
+
 func (s *State) ProcessSignPL(dbheight uint32, commitChain interfaces.IMsg) {
 	s.ProcessLists.Get(dbheight).SetSigComplete(true)
 }
@@ -643,13 +668,17 @@ func (s *State) LeaderFor([]byte) bool {
 }
 
 func (s *State) GetFedServerIndex() (bool, int) {
-	pl := s.ProcessLists.Get(s.LDBHeight)
+	return s.GetFedServerIndexFor(s.IdentityChainID)
+}
 
+func (s *State) GetFedServerIndexFor(chainID interfaces.IHash) (bool, int) {
+	pl := s.ProcessLists.Get(s.LDBHeight)
+	
 	if pl == nil {
 		fmt.Println("No Process List", s.LDBHeight)
 		return false, 0
 	}
-
+	
 	if s.serverState == 1 && len(pl.FedServers) == 0 {
 		pl.AddFedServer(&interfaces.Server{ChainID: s.IdentityChainID})
 		fmt.Println("Current Servers (Adding):")
@@ -657,11 +686,12 @@ func (s *State) GetFedServerIndex() (bool, int) {
 			fmt.Println("   ", fed.GetChainID().String())
 		}
 	}
-
-	found, index := pl.GetFedServerIndex(s.IdentityChainID)
-
+	
+	found, index := pl.GetFedServerIndex(chainID)
+	
 	return found, index
 }
+
 
 func (s *State) NetworkInMsgQueue() chan interfaces.IMsg {
 	return s.networkInMsgQueue
@@ -768,21 +798,29 @@ func (s *State) SetString() {
 		s.serverPrt = "<none>"
 		return
 	}
-	dstateHeight := last.DirectoryBlock.GetHeader().GetDBHeight()
-	plheight := int(s.ProcessLists.DBHeightBase) + len(s.ProcessLists.Lists) - 1
-
-	found, index := s.ProcessLists.Get(dstateHeight + 1).GetFedServerIndex(s.IdentityChainID)
-	stype := ""
-	if found {
-		stype = fmt.Sprintf("L %3d", index)
+	buildingBlock := s.GetBuildingBlock()
+	if buildingBlock == 0 {
+		s.serverPrt = fmt.Sprintf("%5s %7s Recorded: %d Building: %d Highest: %d  IDChainID[:10]=%x",
+			"",
+			s.FactomNodeName,
+			s.GetHighestRecordedBlock(),
+			s.GetBuildingBlock(),
+			s.GetHighestKnownBlock(),
+			s.IdentityChainID.Bytes()[:10])
+	}else{
+		found, index := s.ProcessLists.Get(buildingBlock).GetFedServerIndex(s.IdentityChainID)
+		stype := ""
+		if found {
+			stype = fmt.Sprintf("L %3d", index)
+		}
+		s.serverPrt = fmt.Sprintf("%5s %7s Recorded: %d Building: %d Highest: %d  IDChainID[:10]=%x",
+			stype,
+			s.FactomNodeName,
+			s.GetHighestRecordedBlock(),
+			s.GetBuildingBlock(),
+			s.GetHighestKnownBlock(),
+			s.IdentityChainID.Bytes()[:10])
 	}
-	s.serverPrt = fmt.Sprintf("%5s %7s DBS: %d PL: %d C: %d hash[:10]=%x",
-		stype,
-		s.FactomNodeName,
-		dstateHeight,
-		plheight,
-		s.ProcessLists.GetDBHeight(),
-		s.IdentityChainID.Bytes()[:10])
 }
 
 func (s *State) NewAdminBlock(dbheight uint32) interfaces.IAdminBlock {
@@ -936,6 +974,7 @@ func (s *State) NewEOM(minute int) interfaces.IMsg {
 	// I am ignoring all of that.
 	eom := new(messages.EOM)
 	eom.Timestamp = s.GetTimestamp()
+	eom.ChainID = s.IdentityChainID
 	eom.Minute = byte(minute)
 	eom.ServerIndex = s.ServerIndex
 	eom.DirectoryBlockHeight = s.LDBHeight

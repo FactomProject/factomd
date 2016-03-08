@@ -18,28 +18,53 @@ type ProcessLists struct {
 }
 
 // Returns the height of the Process List under construction.  There
-// can be another list under construction (because of missing messages.
-func (lists *ProcessLists) GetDBHeight() uint32 {
-	// First let's start at the lowest Process List not yet complete.
-	return uint32(len(lists.Lists)) + lists.DBHeightBase
+// can be another list under construction (because of missing messages.), but
+// this is the one just above the DBStates list.
+//
+// Note if we are waiting on DBStates, this routine returns zero
+func (lists *ProcessLists) GetBuildingBlock() uint32 {
+	
+	highestRecordedBlock := lists.State.GetHighestRecordedBlock()
+	if lists.DBHeightBase != highestRecordedBlock-1 { 
+		return 0
+	}
+	
+	last := lists.DBHeightBase
+	for _,list := range lists.Lists {
+		if list.Complete() {
+			last++
+		}
+	}
+	return last
+}
+
+// The highest block for which we have received a message.  Sometimes the same as
+// BuildingBlock(), but can be different depending or the order messages are recieved.
+func (lists *ProcessLists) GetHighestKnownBlock() 		uint32 {
+	last := lists.DBHeightBase
+	if last == 0 { 
+		return 0
+	}
+	last -= 1
+	for _,list := range lists.Lists {
+		if list.HasMessage() {
+			last++
+		}
+	}
+	return last
 }
 
 func (lists *ProcessLists) UpdateState() {
 
-	dbstate := lists.State.DBStates.Last()
-
-	if dbstate == nil {
+	buildingBlock := lists.GetBuildingBlock()
+	
+	if buildingBlock == 0 {
 		return
 	}
-	var heightBuilding uint32
-	if dbstate.DirectoryBlock == nil {
-		heightBuilding = lists.State.DBStates.base + uint32(len(lists.State.DBStates.DBStates))
-	} else {
-		heightBuilding = dbstate.DirectoryBlock.GetHeader().GetDBHeight() + 1
-	}
-	pl := lists.Get(heightBuilding)
+	
+	pl := lists.Get(buildingBlock)
 
-	diff := heightBuilding - lists.DBHeightBase
+	diff := buildingBlock - lists.DBHeightBase
 	if diff > 0 {
 		lists.DBHeightBase += diff
 		lists.Lists = lists.Lists[diff:]
@@ -49,9 +74,10 @@ func (lists *ProcessLists) UpdateState() {
 	// Do initialization of blocks for the next Process List level here
 	//*******************************************************************
 	if pl.DirectoryBlock == nil {
-		pl.DirectoryBlock = directoryBlock.NewDirectoryBlock(heightBuilding, nil)
+		dbstate := lists.State.DBStates.Last()
+		pl.DirectoryBlock = directoryBlock.NewDirectoryBlock(buildingBlock, nil)
 		pl.FactoidBlock = lists.State.GetFactoidState().GetCurrentBlock()
-		pl.AdminBlock = lists.State.NewAdminBlock(heightBuilding)
+		pl.AdminBlock = lists.State.NewAdminBlock(buildingBlock)
 		var err error
 		pl.EntryCreditBlock, err = entryCreditBlock.NextECBlock(dbstate.EntryCreditBlock)
 		if err != nil {
@@ -65,7 +91,7 @@ func (lists *ProcessLists) UpdateState() {
 	// Only when we are sig complete that we can move on.
 	if pl.Complete() {
 		lists.State.DBStates.NewDBState(true, pl.DirectoryBlock, pl.AdminBlock, pl.FactoidBlock, pl.EntryCreditBlock)
-		pln := lists.Get(heightBuilding + 1)
+		pln := lists.Get(buildingBlock + 1)
 		for _, srv := range pl.FedServers { // Bring forward the current Federated Servers
 			pln.AddFedServer(srv.(*interfaces.Server))
 		}

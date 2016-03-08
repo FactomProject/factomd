@@ -39,18 +39,25 @@ type DBStateList struct {
 
 const secondsBetweenTests = 1 // Default
 
-// Once a second at most, we check to see if we need to pull down some blocks to catch up.
-func (list *DBStateList) Catchup() {
-
-	now := list.state.GetTimestamp()
-
-	if list.secondsBetweenTests == 0 {
-		list.secondsBetweenTests = 1
-		list.last = now
+func (list *DBStateList) GetHighestRecordedBlock() uint32 {
+	last := list.base
+	for _, v := range list.DBStates {
+		if v == nil {
+			return last
+		}
+		last++
 	}
 
+	return last
+}
+
+// Once a second at most, we check to see if we need to pull down some blocks to catch up.
+func (list *DBStateList) Catchup() {
+	
+	now := list.state.GetTimestamp()
+
 	// We only check if we need updates once every so often.
-	if int(now)/1000-int(list.last)/1000 < list.secondsBetweenTests {
+	if int(now)/1000-int(list.last)/1000 < secondsBetweenTests {
 		return
 	}
 	list.last = now
@@ -72,8 +79,8 @@ func (list *DBStateList) Catchup() {
 		begin += int(list.base)
 		end += int(list.base)
 	} else {
-		plHeight := list.state.ProcessLists.GetDBHeight()
-		dbsHeight := list.GetDBHeight()
+		plHeight := list.state.GetBuildingBlock()
+		dbsHeight := list.GetHighestRecordedBlock()
 		// Don't worry about the block initialization case.
 		if plHeight < 1 {
 			return
@@ -99,21 +106,6 @@ func (list *DBStateList) Catchup() {
 		list.state.NetworkOutMsgQueue() <- msg
 	}
 
-}
-
-func (list *DBStateList) GetDBHeight() uint32 {
-	if list == nil {
-		return 0
-	}
-	if db := list.Last(); db == nil {
-		return 0
-	} else {
-		return db.DirectoryBlock.GetHeader().GetDBHeight()
-	}
-}
-
-func (list *DBStateList) Length() int {
-	return len(list.DBStates)
 }
 
 func (list *DBStateList) Last() *DBState {

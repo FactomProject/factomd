@@ -21,7 +21,7 @@ func Validator(state interfaces.IState) {
 	var _ = s
 
 	for {
-
+		state.SetString()
 		select {
 		case _ = <-s.ShutdownChan:
 			fmt.Println("Closing the Database on", state.GetFactomNodeName())
