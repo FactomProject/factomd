@@ -84,7 +84,7 @@ func NetworkProcessorNet(fnode *FactomNode) {
 			}
 		case msg, ok := <-fnode.State.NetworkInvalidMsgQueue():
 			if ok {
-				fmt.Println("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& Bad Message %%%%%%%%%%%%%%%%%%%%%%%%")
+				//				fnode.State.Println("\n&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& Bad Message %%%%%%%%%%%%%%%%%%%%%%%%")
 				var _ = msg
 				if fnode.State.PrintType(msg.Type()) {
 

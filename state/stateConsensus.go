@@ -116,6 +116,7 @@ func (s *State) LeaderExecute(m interfaces.IMsg) error {
 
 	// Leader Execute creates an acknowledgement and the EOM
 	s.NetworkOutMsgQueue() <- ack
+	s.NetworkOutMsgQueue() <- m
 	ack.FollowerExecute(s)
 	m.FollowerExecute(s)
 	return nil
