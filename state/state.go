@@ -52,7 +52,6 @@ type State struct {
 	// Just to print (so debugging doesn't drive functionaility)
 	serverPrt string
 
-	networkInMsgQueue      chan interfaces.IMsg
 	networkOutMsgQueue     chan interfaces.IMsg
 	networkInvalidMsgQueue chan interfaces.IMsg
 	inMsgQueue             chan interfaces.IMsg
@@ -197,7 +196,6 @@ func (s *State) Init() {
 
 	log.SetLevel(s.ConsoleLogLevel)
 
-	s.networkInMsgQueue = make(chan interfaces.IMsg, 10000)      //incoming message queue from the network messages
 	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 10000) //incoming message queue from the network messages
 	s.networkOutMsgQueue = make(chan interfaces.IMsg, 10000)     //Messages to be broadcast to the network
 	s.inMsgQueue = make(chan interfaces.IMsg, 10000)             //incoming message queue for factom application messages
@@ -393,7 +391,7 @@ func (s *State) LeaderExecute(m interfaces.IMsg) error {
 	// Leader Execute creates an acknowledgement and the EOM
 	s.NetworkOutMsgQueue() <- ack
 	ack.FollowerExecute(s)
-	s.NetworkInMsgQueue() <- m
+	m.FollowerExecute(s)
 	return nil
 }
 
@@ -403,7 +401,7 @@ func (s *State) LeaderExecuteAddServer(server interfaces.IMsg) error {
 
 func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
 	eom, _ := m.(*messages.EOM)
-	eom.DirectoryBlockHeight = s.GetBuildingBlock()
+	eom.DirectoryBlockHeight = s.GetHighestKnownBlock()
 	return s.LeaderExecute(eom)
 }
 
@@ -411,6 +409,7 @@ func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) error {
 	bblock := s.GetBuildingBlock()
 	s.ProcessLists.Get(bblock).SetComplete(true)
 	s.LeaderHeight = bblock+1
+	s.LastAck = nil
 	return nil
 }
 
@@ -529,8 +528,7 @@ func (s *State) GetHighestKnownBlock() 		uint32 {
 	return s.ProcessLists.GetHighestKnownBlock()
 }
 
-
-func (s *State) ProcessSignPL(dbheight uint32, commitChain interfaces.IMsg) {
+func (s *State) ProcessDBS(dbheight uint32, commitChain interfaces.IMsg) {
 	s.ProcessLists.Get(dbheight).SetSigComplete(true)
 }
 
@@ -695,9 +693,6 @@ func (s *State) GetFedServerIndexFor(chainID interfaces.IHash) (bool, int) {
 }
 
 
-func (s *State) NetworkInMsgQueue() chan interfaces.IMsg {
-	return s.networkInMsgQueue
-}
 
 func (s *State) NetworkInvalidMsgQueue() chan interfaces.IMsg {
 	return s.networkInvalidMsgQueue

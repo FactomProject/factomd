@@ -48,7 +48,6 @@ type IState interface {
 	//==========
 
 	// Network Processor
-	NetworkInMsgQueue() chan IMsg // Not sure that IMsg is the right type... TBD
 	NetworkOutMsgQueue() chan IMsg
 	NetworkInvalidMsgQueue() chan IMsg
 
@@ -110,7 +109,7 @@ type IState interface {
 	FollowerExecuteDBState(IMsg) error       // Add the given DBState to this server
 	ProcessAddServer(dbheight uint32, addServerMsg IMsg)
 	ProcessCommitChain(dbheight uint32, commitChain IMsg)
-	ProcessSignPL(dbheight uint32, commitChain IMsg)
+	ProcessDBS(dbheight uint32, commitChain IMsg)
 	ProcessEOM(dbheight uint32, eom IMsg)
 
 	// For messages that go into the Process List

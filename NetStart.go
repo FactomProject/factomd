@@ -227,7 +227,7 @@ func NetStart(s *state.State) {
 				wsapi.SetState(fnodes[p].State)
 			case 's', 'S':
 				msg := messages.NewAddServerMsg(fnodes[p].State)
-				fnodes[p].State.NetworkInMsgQueue() <- msg
+				fnodes[p].State.InMsgQueue() <- msg
 				fnodes[p].State.SetOut(true)
 				fmt.Println("Attempting to make", fnodes[p].State.GetFactomNodeName(), "a Leader")
 			default:

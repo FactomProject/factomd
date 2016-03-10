@@ -77,12 +77,12 @@ func (a *Anchor) submitEntryToAnchorChain(aRecord *AnchorRecord) error {
 	// create a CommitEntry msg and send it to the local inmsgQ
 	cm := messages.NewCommitEntryMsg()
 	cm.CommitEntry = commit
-	a.state.NetworkInMsgQueue() <- cm
+	a.state.InMsgQueue() <- cm
 
 	// create a RevealEntry msg and send it to the local inmsgQ
 	rm := messages.NewRevealEntryMsg()
 	rm.Entry = entry
-	a.state.NetworkInMsgQueue() <- rm
+	a.state.InMsgQueue() <- rm
 
 	return nil
 }
