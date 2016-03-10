@@ -31,13 +31,22 @@ type IState interface {
 	SetOut(bool)  // Output is turned on if set to true
 	GetOut() bool // Return true if Print or Println write output
 	LoadDBState(dbheight uint32) (IMsg, error)
-	LastCompleteDBHeight() uint32
+	GetFedServerIndexFor(IHash) (bool, int)
 	GetFedServerIndex() (bool, int)
+	SetString()
+
+	// This is the highest block signed off and recorded in the Database.
+	GetHighestRecordedBlock() uint32
+	// This is lowest block currently under construction.
+	GetBuildingBlock() uint32
+	// The highest block for which we have received a message.  Sometimes the same as
+	// BuildingBlock(), but can be different depending or the order messages are recieved.
+	GetHighestKnownBlock() uint32
+
 	// Channels
 	//==========
 
 	// Network Processor
-	NetworkInMsgQueue() chan IMsg // Not sure that IMsg is the right type... TBD
 	NetworkOutMsgQueue() chan IMsg
 	NetworkInvalidMsgQueue() chan IMsg
 
@@ -99,7 +108,7 @@ type IState interface {
 	FollowerExecuteDBState(IMsg) error       // Add the given DBState to this server
 	ProcessAddServer(dbheight uint32, addServerMsg IMsg)
 	ProcessCommitChain(dbheight uint32, commitChain IMsg)
-	ProcessSignPL(dbheight uint32, commitChain IMsg)
+	ProcessDBS(dbheight uint32, commitChain IMsg)
 	ProcessEOM(dbheight uint32, eom IMsg)
 
 	// For messages that go into the Process List

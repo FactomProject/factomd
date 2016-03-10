@@ -2250,7 +2250,7 @@ func (p *peer) handleFactoidMsg(msg *messages.MsgFactoidTX, buf []byte) {
 func (p *peer) handleEOMMsg(msg *messages.EOM) {
 	// Add the msg to inbound msg queue
 	if !ClientOnly {
-		p.server.State.NetworkInMsgQueue() <- msg
+		p.server.State.InMsgQueue() <- msg
 	}
 }
 

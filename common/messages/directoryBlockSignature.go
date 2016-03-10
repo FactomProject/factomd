@@ -18,6 +18,7 @@ type DirectoryBlockSignature struct {
 	MessageBase
 	Timestamp             interfaces.Timestamp
 	DBHeight              uint32
+	ServerIndex           uint32
 	DirectoryBlockKeyMR   interfaces.IHash
 	ServerIdentityChainID interfaces.IHash
 
@@ -31,7 +32,7 @@ var _ interfaces.IMsg = (*DirectoryBlockSignature)(nil)
 var _ Signable = (*DirectoryBlockSignature)(nil)
 
 func (e *DirectoryBlockSignature) Process(dbheight uint32, state interfaces.IState) {
-	state.ProcessSignPL(dbheight, e)
+	state.ProcessDBS(dbheight, e)
 }
 
 func (m *DirectoryBlockSignature) GetHash() interfaces.IHash {
@@ -135,6 +136,7 @@ func (m *DirectoryBlockSignature) UnmarshalBinaryData(data []byte) (newData []by
 	}
 
 	m.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+	m.ServerIndex, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
 	hash := new(primitives.Hash)
 	newData, err = hash.UnmarshalBinaryData(newData)
@@ -184,6 +186,7 @@ func (m *DirectoryBlockSignature) MarshalForSignature() ([]byte, error) {
 	buf.Write(data)
 
 	binary.Write(&buf, binary.BigEndian, m.DBHeight)
+	binary.Write(&buf, binary.BigEndian, m.ServerIndex)
 
 	hash, err := m.DirectoryBlockKeyMR.MarshalBinary()
 	if err != nil {
@@ -219,7 +222,11 @@ func (m *DirectoryBlockSignature) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *DirectoryBlockSignature) String() string {
-	return fmt.Sprintf("DB Sig %s", m.GetHash().String())
+	return fmt.Sprintf("%6s-%3d: db %2d ----------- hash[:10]=%x",
+		"DBSig",
+		m.ServerIndex,
+		m.DBHeight,
+		m.GetHash().Bytes()[:10])
 }
 
 func (e *DirectoryBlockSignature) JSONByte() ([]byte, error) {

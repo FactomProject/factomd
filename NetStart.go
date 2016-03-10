@@ -153,10 +153,6 @@ func NetStart(s *state.State) {
 		}
 	}
 
-	startServers()
-
-	go wsapi.Start(fnodes[0].State)
-
 	AddInterruptHandler(func() {
 		fmt.Print("<Break>\n")
 		fmt.Print("Gracefully shutting down the server...\n")
@@ -170,6 +166,9 @@ func NetStart(s *state.State) {
 	})
 
 	// Web API runs independent of Factom Servers
+	startServers()
+
+	go wsapi.Start(fnodes[0].State)
 
 	var _ = time.Sleep
 	p := 0
@@ -226,7 +225,7 @@ func NetStart(s *state.State) {
 				wsapi.SetState(fnodes[p].State)
 			case 's', 'S':
 				msg := messages.NewAddServerMsg(fnodes[p].State)
-				fnodes[p].State.NetworkInMsgQueue() <- msg
+				fnodes[p].State.InMsgQueue() <- msg
 				fnodes[p].State.SetOut(true)
 				fmt.Println("Attempting to make", fnodes[p].State.GetFactomNodeName(), "a Leader")
 			default:

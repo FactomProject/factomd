@@ -23,6 +23,8 @@ type SimPeer struct {
 	BroadcastIn  chan []byte
 }
 
+var _ interfaces.IPeer = (*SimPeer)(nil)
+
 func (f *SimPeer) Len() int {
 	return len(f.BroadcastIn)
 }

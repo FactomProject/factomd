@@ -21,7 +21,7 @@ func Validator(state interfaces.IState) {
 	var _ = s
 
 	for {
-
+		state.SetString()
 		select {
 		case _ = <-s.ShutdownChan:
 			fmt.Println("Closing the Database on", state.GetFactomNodeName())
@@ -40,9 +40,6 @@ func Validator(state interfaces.IState) {
 		switch msg.Validate(state.GetDBHeight(), state) { // Validate the message.
 		case 1: // Process if valid
 
-			if !msg.IsPeer2peer() { // Do not relay P2P messages
-				state.NetworkOutMsgQueue() <- msg
-			}
 			if state.PrintType(msg.Type()) {
 				state.Print(" Valid\n")
 			}

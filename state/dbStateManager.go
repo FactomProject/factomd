@@ -39,18 +39,25 @@ type DBStateList struct {
 
 const secondsBetweenTests = 1 // Default
 
+func (list *DBStateList) GetHighestRecordedBlock() uint32 {
+	last := list.base
+	for _, v := range list.DBStates {
+		if v == nil {
+			return last
+		}
+		last++
+	}
+
+	return last
+}
+
 // Once a second at most, we check to see if we need to pull down some blocks to catch up.
 func (list *DBStateList) Catchup() {
 
 	now := list.state.GetTimestamp()
 
-	if list.secondsBetweenTests == 0 {
-		list.secondsBetweenTests = 1
-		list.last = now
-	}
-
 	// We only check if we need updates once every so often.
-	if int(now)/1000-int(list.last)/1000 < list.secondsBetweenTests {
+	if int(now)/1000-int(list.last)/1000 < secondsBetweenTests {
 		return
 	}
 	list.last = now
@@ -72,8 +79,8 @@ func (list *DBStateList) Catchup() {
 		begin += int(list.base)
 		end += int(list.base)
 	} else {
-		plHeight := list.state.ProcessLists.GetDBHeight()
-		dbsHeight := list.GetDBHeight()
+		plHeight := list.state.GetBuildingBlock()
+		dbsHeight := list.GetHighestRecordedBlock()
 		// Don't worry about the block initialization case.
 		if plHeight < 1 {
 			return
@@ -95,25 +102,13 @@ func (list *DBStateList) Catchup() {
 	}
 
 	msg := messages.NewDBStateMissing(list.state, uint32(begin), uint32(end2))
+
+	fmt.Println(msg.String())
+
 	if msg != nil {
 		list.state.NetworkOutMsgQueue() <- msg
 	}
 
-}
-
-func (list *DBStateList) GetDBHeight() uint32 {
-	if list == nil {
-		return 0
-	}
-	if db := list.Last(); db == nil {
-		return 0
-	} else {
-		return db.DirectoryBlock.GetHeader().GetDBHeight()
-	}
-}
-
-func (list *DBStateList) Length() int {
-	return len(list.DBStates)
 }
 
 func (list *DBStateList) Last() *DBState {
@@ -165,10 +160,6 @@ func (list *DBStateList) Put(dbstate *DBState) {
 	hash = dbstate.FactoidBlock.GetHash()
 	dbstate.DirectoryBlock.GetDBEntries()[2].SetKeyMR(hash)
 
-	if dbheight >= list.state.LDBHeight {
-		list.state.LDBHeight = dbheight + 1
-		list.state.LastAck = nil
-	}
 }
 
 func (list *DBStateList) Get(height uint32) *DBState {
@@ -184,6 +175,7 @@ func (list *DBStateList) Process() {
 	list.Catchup()
 
 	for int(list.complete) < len(list.DBStates) {
+		fmt.Println("Complete!", list.complete+1)
 		d := list.DBStates[list.complete]
 
 		if d == nil {
@@ -227,17 +219,21 @@ func (list *DBStateList) Process() {
 			list.state.GetAnchor().UpdateDirBlockInfoMap(dbInfo.NewDirBlockInfoFromDirBlock(d.DirectoryBlock))
 
 		}
+
+		// Process the Factoid End of Block
 		fs := list.state.GetFactoidState()
 		fs.AddTransactionBlock(d.FactoidBlock)
 		fs.AddECBlock(d.EntryCreditBlock)
 		fs.ProcessEndOfBlock(list.state)
-
+		// Step my counter of complete blocks
 		list.complete++
-		if list.state.LDBHeight < list.complete+list.base {
-			list.state.LDBHeight = list.complete + list.base
-		}
-
+		// Clear the leader's last Ack to start a new process list.
+		list.state.LastAck = nil
 	}
+}
+
+func (list *DBStateList) String() string {
+	return ""
 }
 
 func (list *DBStateList) NewDBState(isNew bool,

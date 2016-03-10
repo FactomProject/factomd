@@ -13,8 +13,14 @@ var _ = log.Print
 
 type ProcessList struct {
 	DBHeight uint32 // The directory block height for these lists
-	State    interfaces.IState
-	Servers  []*ListServer
+
+	// List of messsages that came in before the previous block was built
+	// We can not completely validate these messages until the previous block
+	// is built.
+	MsgsQueue []interfaces.IMsg
+
+	State   interfaces.IState
+	Servers []*ListServer
 
 	Acks *map[[32]byte]interfaces.IMsg // acknowlegments by hash
 	Msgs *map[[32]byte]interfaces.IMsg // messages by hash
@@ -103,6 +109,23 @@ func (p *ProcessList) GetLen(list int) int {
 	}
 	l := len(p.Servers[list].List)
 	return l
+}
+
+func (p ProcessList) HasMessage() bool {
+	if len(*p.Acks) > 0 {
+		return true
+	}
+	if len(*p.Msgs) > 0 {
+		return true
+	}
+
+	for _, ls := range p.Servers {
+		if len(ls.List) > 0 {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (p *ProcessList) SetSigComplete(value bool) {

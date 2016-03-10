@@ -44,7 +44,7 @@ func loadDatabase(s *state.State) {
 			break
 		} else {
 			if msg != nil {
-				s.NetworkInMsgQueue() <- msg
+				s.InMsgQueue() <- msg
 			} else {
 				break
 			}
