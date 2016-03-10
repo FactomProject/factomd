@@ -165,13 +165,11 @@ func NetStart(s *state.State) {
 		os.Exit(0)
 	})
 
-	
 	// Web API runs independent of Factom Servers
 	startServers()
-	
+
 	go wsapi.Start(fnodes[0].State)
-	
-	
+
 	var _ = time.Sleep
 	p := 0
 	var _ = p

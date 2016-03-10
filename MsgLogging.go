@@ -107,4 +107,3 @@ func (m *MsgLog) prtMsgs(state interfaces.IState) {
 	state.Println(fmt.Sprintf("*** %42s **** ", fmt.Sprintf("Length: %d    Msgs/sec: T %d P %d", len(m.MsgList), m.msgPerSec, m.msgPerSecp)))
 	state.Println("***************************************************\n")
 }
-

@@ -53,7 +53,7 @@ func (list *DBStateList) GetHighestRecordedBlock() uint32 {
 
 // Once a second at most, we check to see if we need to pull down some blocks to catch up.
 func (list *DBStateList) Catchup() {
-	
+
 	now := list.state.GetTimestamp()
 
 	// We only check if we need updates once every so often.
@@ -102,9 +102,9 @@ func (list *DBStateList) Catchup() {
 	}
 
 	msg := messages.NewDBStateMissing(list.state, uint32(begin), uint32(end2))
-	
+
 	fmt.Println(msg.String())
-	
+
 	if msg != nil {
 		list.state.NetworkOutMsgQueue() <- msg
 	}
@@ -219,7 +219,7 @@ func (list *DBStateList) Process() {
 			list.state.GetAnchor().UpdateDirBlockInfoMap(dbInfo.NewDirBlockInfoFromDirBlock(d.DirectoryBlock))
 
 		}
-		
+
 		// Process the Factoid End of Block
 		fs := list.state.GetFactoidState()
 		fs.AddTransactionBlock(d.FactoidBlock)
@@ -232,8 +232,8 @@ func (list *DBStateList) Process() {
 	}
 }
 
-func (list *DBStateList) String() string {	
-		return ""
+func (list *DBStateList) String() string {
+	return ""
 }
 
 func (list *DBStateList) NewDBState(isNew bool,

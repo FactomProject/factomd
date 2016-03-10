@@ -13,14 +13,14 @@ var _ = log.Print
 
 type ProcessList struct {
 	DBHeight uint32 // The directory block height for these lists
-	
+
 	// List of messsages that came in before the previous block was built
 	// We can not completely validate these messages until the previous block
 	// is built.
-	MsgsQueue	[] interfaces.IMsg			
-	
-	State    interfaces.IState
-	Servers  []*ListServer
+	MsgsQueue []interfaces.IMsg
+
+	State   interfaces.IState
+	Servers []*ListServer
 
 	Acks *map[[32]byte]interfaces.IMsg // acknowlegments by hash
 	Msgs *map[[32]byte]interfaces.IMsg // messages by hash
@@ -50,7 +50,6 @@ type ProcessList struct {
 	EntryCreditBlock interfaces.IEntryCreditBlock
 	DirectoryBlock   interfaces.IDirectoryBlock
 }
-
 
 type ListServer struct {
 	List        []interfaces.IMsg // Lists of acknowledged messages
@@ -113,15 +112,19 @@ func (p *ProcessList) GetLen(list int) int {
 }
 
 func (p ProcessList) HasMessage() bool {
-	if len(*p.Acks) > 0 { return true }
-	if len(*p.Msgs) > 0 { return true }
-	
-	for _,ls := range p.Servers {
+	if len(*p.Acks) > 0 {
+		return true
+	}
+	if len(*p.Msgs) > 0 {
+		return true
+	}
+
+	for _, ls := range p.Servers {
 		if len(ls.List) > 0 {
 			return true
 		}
 	}
-	
+
 	return false
 }
 

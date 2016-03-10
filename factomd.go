@@ -51,7 +51,7 @@ func main() {
 	state0 := new(state.State)
 
 	fmt.Println("len(Args)", len(os.Args))
-	
+
 	NetStart(state0)
 }
 

@@ -25,7 +25,7 @@ type EOM struct {
 
 	DirectoryBlockHeight uint32
 	ServerIndex          int
-	ChainID				 interfaces.IHash
+	ChainID              interfaces.IHash
 	Signature            interfaces.IFullSignature
 
 	//Not marshalled
@@ -84,9 +84,9 @@ func (m *EOM) Type() int {
 //  1   -- Message is valid
 func (m *EOM) Validate(dbheight uint32, state interfaces.IState) int {
 	found, _ := state.GetFedServerIndexFor(m.ChainID)
-	if found {		// Only EOM from federated servers are valid.
+	if found { // Only EOM from federated servers are valid.
 		return 1
-	}else{
+	} else {
 		return -1
 	}
 	//TODO: Check signatures here.
@@ -154,13 +154,13 @@ func (m *EOM) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	m.ChainID = primitives.NewHash(constants.ZERO_HASH)
 	newData, err = m.ChainID.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	m.Minute, newData = newData[0], newData[1:]
 
 	if m.Minute < 0 || m.Minute >= 10 {
@@ -197,14 +197,13 @@ func (m *EOM) MarshalForSignature() (data []byte, err error) {
 	} else {
 		buf.Write(d)
 	}
-	
+
 	if d, err := m.ChainID.MarshalBinary(); err != nil {
 		return nil, err
 	} else {
 		buf.Write(d)
 	}
-	
-	
+
 	binary.Write(&buf, binary.BigEndian, m.Minute)
 	binary.Write(&buf, binary.BigEndian, m.DirectoryBlockHeight)
 	binary.Write(&buf, binary.BigEndian, uint8(m.ServerIndex))

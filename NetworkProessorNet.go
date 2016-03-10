@@ -27,11 +27,11 @@ func NetworkProcessorNet(fnode *FactomNode) {
 						int64(msg.GetTimestamp())/1000,
 						int64(fnode.State.GetTimestamp())/1000) {
 						//fnode.State.Println("In Comming!! ",msg)
-						nme := fmt.Sprintf("%s %d","PeerIn",i+1)
+						nme := fmt.Sprintf("%s %d", "PeerIn", i+1)
 						fnode.MLog.add2(fnode, peer.GetNameTo(), nme, true, msg)
 
 						fnode.State.InMsgQueue() <- msg
-							
+
 					} else {
 						fnode.MLog.add2(fnode, peer.GetNameTo(), "PeerIn", false, msg)
 					}
@@ -84,7 +84,7 @@ func NetworkProcessorNet(fnode *FactomNode) {
 			}
 		case msg, ok := <-fnode.State.NetworkInvalidMsgQueue():
 			if ok {
-	fmt.Println("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& Bad Message %%%%%%%%%%%%%%%%%%%%%%%%")
+				fmt.Println("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& Bad Message %%%%%%%%%%%%%%%%%%%%%%%%")
 				var _ = msg
 				if fnode.State.PrintType(msg.Type()) {
 
