@@ -169,3 +169,19 @@ type DBOverlay interface {
 	SaveIncludedInMulti(entries []IHash, block IHash) error
 	LoadIncludedIn(hash IHash) (IHash, error)
 }
+
+type ISCDatabaseOverlay interface {
+	DBOverlay
+
+	FetchWalletEntryByName(addr []byte) (IWalletEntry, error)
+	FetchWalletEntryByPublicKey(addr []byte) (IWalletEntry, error)
+	FetchAllWalletEntriesByName() ([]IWalletEntry, error)
+	FetchAllWalletEntriesByPublicKey() ([]IWalletEntry, error)
+	FetchAllAddressNameKeys() ([][]byte, error)
+	FetchAllAddressPublicKeys() ([][]byte, error)
+	FetchTransaction(key []byte) (ITransaction, error)
+	SaveTransaction(key []byte, tx ITransaction) (error)
+	DeleteTransaction(key []byte) (error)
+	FetchAllTransactionKeys() ([][]byte, error)
+	FetchAllTransactions() ([]ITransaction, error)
+}

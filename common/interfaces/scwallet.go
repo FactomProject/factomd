@@ -12,7 +12,6 @@ import ()
 // and that complicates the implementation without really making
 // the interface more usable by developers.
 type ISCWallet interface {
-
 	//initialize the object.  call before using other functions
 	Init(string, string)
 	// A New Seed is generated for the wallet.
@@ -24,7 +23,7 @@ type ISCWallet interface {
 	// Set the current deterministic root (Initialization function)
 	SetRoot([]byte)
 	// Returns the backing database for the wallet
-	GetDB() IDatabase
+	GetDB() ISCDatabaseOverlay
 	// Import a key pair.  If the private key is null, this is treated as an
 	// external address, useful only as a destination
 	AddKeyPair(addrtype string, name []byte, public []byte, private []byte, generateRandomIfAddressPresent bool) (IAddress, error)
