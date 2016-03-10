@@ -40,9 +40,6 @@ func Validator(state interfaces.IState) {
 		switch msg.Validate(state.GetDBHeight(), state) { // Validate the message.
 		case 1: // Process if valid
 
-			if !msg.IsPeer2peer() { // Do not relay P2P messages
-				state.NetworkOutMsgQueue() <- msg
-			}
 			if state.PrintType(msg.Type()) {
 				state.Print(" Valid\n")
 			}

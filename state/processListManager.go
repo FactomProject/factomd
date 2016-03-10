@@ -23,18 +23,21 @@ type ProcessLists struct {
 //
 // Note if we are waiting on DBStates, this routine returns zero
 func (lists *ProcessLists) GetBuildingBlock() uint32 {
-	
-	highestRecordedBlock := lists.State.GetHighestRecordedBlock()
-	if lists.DBHeightBase != highestRecordedBlock-1 { 
-		return 0
-	}
-	
+		
 	last := lists.DBHeightBase
 	for _,list := range lists.Lists {
 		if list.Complete() {
 			last++
 		}
 	}
+	hrb := lists.State.GetHighestRecordedBlock()
+	if last <= hrb {
+		last = hrb+1
+	}
+	if last < lists.State.LeaderHeight {
+		last = lists.State.LeaderHeight
+	}
+	
 	return last
 }
 
@@ -42,13 +45,9 @@ func (lists *ProcessLists) GetBuildingBlock() uint32 {
 // BuildingBlock(), but can be different depending or the order messages are recieved.
 func (lists *ProcessLists) GetHighestKnownBlock() 		uint32 {
 	last := lists.DBHeightBase
-	if last == 0 { 
-		return 0
-	}
-	last -= 1
-	for _,list := range lists.Lists {
-		if list.HasMessage() {
-			last++
+	for _,list := range lists.Lists {			// Need to consider the leader transition.
+		if list != nil && list.HasMessage() {
+			last = list.DBHeight
 		}
 	}
 	return last
@@ -59,8 +58,15 @@ func (lists *ProcessLists) UpdateState() {
 	buildingBlock := lists.GetBuildingBlock()
 	
 	if buildingBlock == 0 {
-		return
+		fmt.Println("Not Building anything")
+		return 
 	}
+	
+	lastRecorded := lists.State.GetHighestRecordedBlock() 
+	if buildingBlock-1 > lastRecorded {
+		return 
+	}
+	
 	
 	pl := lists.Get(buildingBlock)
 
@@ -95,6 +101,8 @@ func (lists *ProcessLists) UpdateState() {
 		for _, srv := range pl.FedServers { // Bring forward the current Federated Servers
 			pln.AddFedServer(srv.(*interfaces.Server))
 		}
+	}else{
+
 	}
 }
 

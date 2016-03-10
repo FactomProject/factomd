@@ -65,7 +65,7 @@ type State struct {
 	OutputAllowed bool
 	ServerIndex   int // Index of the server, as understood by the leader
 
-	
+	LeaderHeight			uint32
 	HighestRecordedBlock	uint32
 	BuildingBlock			uint32
 	HighestKnownBlock		uint32
@@ -92,7 +92,6 @@ type State struct {
 	Anchor interfaces.IAnchor
 
 	// Directory Block State
-	LDBHeight uint32       // Leader's DBHeight; Nobody else can touch!
 	DBStates  *DBStateList // Holds all DBStates not yet processed.
 
 	// Having all the state for a particular directory block stored in one structure
@@ -216,6 +215,7 @@ func (s *State) Init() {
 	s.ECBalancesP = map[[32]byte]int64{}
 	s.FactoidBalancesT = map[[32]byte]int64{}
 	s.ECBalancesT = map[[32]byte]int64{}
+	
 	fs := new(FactoidState)
 	fs.State = s
 	s.FactoidState = fs
@@ -364,6 +364,7 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) (bool, error) {
 }
 
 func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) error {
+	fmt.Println("DBS Addstate")
 	dbstatemsg, ok := msg.(*messages.DBStateMsg)
 	if !ok {
 		return fmt.Errorf("Cannot execute the given DBStateMsg")
@@ -392,7 +393,7 @@ func (s *State) LeaderExecute(m interfaces.IMsg) error {
 	// Leader Execute creates an acknowledgement and the EOM
 	s.NetworkOutMsgQueue() <- ack
 	ack.FollowerExecute(s)
-	m.FollowerExecute(s)
+	s.NetworkInMsgQueue() <- m
 	return nil
 }
 
@@ -402,13 +403,14 @@ func (s *State) LeaderExecuteAddServer(server interfaces.IMsg) error {
 
 func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
 	eom, _ := m.(*messages.EOM)
-	eom.DirectoryBlockHeight = s.LDBHeight
+	eom.DirectoryBlockHeight = s.GetBuildingBlock()
 	return s.LeaderExecute(eom)
 }
 
 func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) error {
-	s.ProcessLists.Get(s.LDBHeight).SetComplete(true)
-	s.LastAck = nil // Clear Ack list
+	bblock := s.GetBuildingBlock()
+	s.ProcessLists.Get(bblock).SetComplete(true)
+	s.LeaderHeight = bblock+1
 	return nil
 }
 
@@ -516,7 +518,7 @@ func (s *State) GetHighestRecordedBlock()	uint32 {
 
 // This is lowest block currently under construction.
 func (s *State) GetBuildingBlock() 			uint32 {
-	return s.BuildingBlock
+	return s.ProcessLists.GetBuildingBlock()
 }
 // The highest block for which we have received a message.  Sometimes the same as
 // BuildingBlock(), but can be different depending or the order messages are recieved.
@@ -672,10 +674,10 @@ func (s *State) GetFedServerIndex() (bool, int) {
 }
 
 func (s *State) GetFedServerIndexFor(chainID interfaces.IHash) (bool, int) {
-	pl := s.ProcessLists.Get(s.LDBHeight)
+	pl := s.ProcessLists.Get(s.GetBuildingBlock())
 	
 	if pl == nil {
-		fmt.Println("No Process List", s.LDBHeight)
+		fmt.Println("No Process List", s.GetBuildingBlock())
 		return false, 0
 	}
 	
@@ -733,13 +735,6 @@ func (s *State) GetMatryoshka(dbheight uint32) interfaces.IHash {
 	return nil
 }
 
-func (s *State) GetLastAck() interfaces.IMsg {
-	return s.LastAck
-}
-
-func (s *State) SetLastAck(ack interfaces.IMsg) {
-	s.LastAck = ack
-}
 
 func (s *State) InitLevelDB() error {
 	if s.DB != nil {
@@ -893,16 +888,15 @@ func (s *State) GetNewHash() interfaces.IHash {
 
 // Create a new Acknowledgement.  This Acknowledgement
 func (s *State) NewAck(hash interfaces.IHash) (iack interfaces.IMsg, err error) {
-	var last *messages.Ack
-	if s.LastAck != nil {
-		last = s.LastAck.(*messages.Ack)
-	}
+	
+	last,ok := s.LastAck.(*messages.Ack)
+	
 	ack := new(messages.Ack)
-	ack.DBHeight = s.LDBHeight
+	ack.DBHeight = s.GetBuildingBlock()
 
 	ack.Timestamp = s.GetTimestamp()
 	ack.MessageHash = hash
-	if last == nil {
+	if !ok {
 		ack.Height = 0
 		ack.SerialHash = ack.MessageHash
 	} else {
@@ -912,7 +906,7 @@ func (s *State) NewAck(hash interfaces.IHash) (iack interfaces.IMsg, err error) 
 			return nil, err
 		}
 	}
-	s.SetLastAck(ack)
+	s.LastAck = ack
 
 	// TODO:  Add the signature.
 
@@ -977,7 +971,7 @@ func (s *State) NewEOM(minute int) interfaces.IMsg {
 	eom.ChainID = s.IdentityChainID
 	eom.Minute = byte(minute)
 	eom.ServerIndex = s.ServerIndex
-	eom.DirectoryBlockHeight = s.LDBHeight
+	eom.DirectoryBlockHeight = s.GetBuildingBlock()
 
 	return eom
 }

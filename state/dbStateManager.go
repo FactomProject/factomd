@@ -102,6 +102,9 @@ func (list *DBStateList) Catchup() {
 	}
 
 	msg := messages.NewDBStateMissing(list.state, uint32(begin), uint32(end2))
+	
+	fmt.Println(msg.String())
+	
 	if msg != nil {
 		list.state.NetworkOutMsgQueue() <- msg
 	}
@@ -157,10 +160,6 @@ func (list *DBStateList) Put(dbstate *DBState) {
 	hash = dbstate.FactoidBlock.GetHash()
 	dbstate.DirectoryBlock.GetDBEntries()[2].SetKeyMR(hash)
 
-	if dbheight >= list.state.LDBHeight {
-		list.state.LDBHeight = dbheight + 1
-		list.state.LastAck = nil
-	}
 }
 
 func (list *DBStateList) Get(height uint32) *DBState {
@@ -176,6 +175,7 @@ func (list *DBStateList) Process() {
 	list.Catchup()
 
 	for int(list.complete) < len(list.DBStates) {
+		fmt.Println("Complete!", list.complete+1)
 		d := list.DBStates[list.complete]
 
 		if d == nil {
@@ -219,17 +219,21 @@ func (list *DBStateList) Process() {
 			list.state.GetAnchor().UpdateDirBlockInfoMap(dbInfo.NewDirBlockInfoFromDirBlock(d.DirectoryBlock))
 
 		}
+		
+		// Process the Factoid End of Block
 		fs := list.state.GetFactoidState()
 		fs.AddTransactionBlock(d.FactoidBlock)
 		fs.AddECBlock(d.EntryCreditBlock)
 		fs.ProcessEndOfBlock(list.state)
-
+		// Step my counter of complete blocks
 		list.complete++
-		if list.state.LDBHeight < list.complete+list.base {
-			list.state.LDBHeight = list.complete + list.base
-		}
-
+		// Clear the leader's last Ack to start a new process list.
+		list.state.LastAck = nil
 	}
+}
+
+func (list *DBStateList) String() string {	
+		return ""
 }
 
 func (list *DBStateList) NewDBState(isNew bool,

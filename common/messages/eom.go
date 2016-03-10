@@ -52,7 +52,7 @@ func (m *EOM) GetHash() interfaces.IHash {
 
 func (m *EOM) GetMsgHash() interfaces.IHash {
 	if m.MsgHash == nil {
-		data, err := m.MarshalBinary()
+		data, err := m.MarshalForSignature()
 		if err != nil {
 			return nil
 		}
@@ -234,7 +234,7 @@ func (m *EOM) String() string {
 		m.ServerIndex,
 		m.Minute+1,
 		m.DirectoryBlockHeight,
-		m.GetHash().Bytes()[:10])
+		m.GetMsgHash().Bytes()[:10])
 }
 
 // EOM methods that conform to the Message interface.

@@ -51,11 +51,8 @@ func main() {
 	state0 := new(state.State)
 
 	fmt.Println("len(Args)", len(os.Args))
-	if len(os.Args) == 1 {
-		OneStart(state0)
-	} else {
-		NetStart(state0)
-	}
+	
+	NetStart(state0)
 }
 
 func isCompilerVersionOK() bool {

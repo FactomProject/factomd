@@ -153,10 +153,6 @@ func NetStart(s *state.State) {
 		}
 	}
 
-	startServers()
-
-	go wsapi.Start(fnodes[0].State)
-
 	AddInterruptHandler(func() {
 		fmt.Print("<Break>\n")
 		fmt.Print("Gracefully shutting down the server...\n")
@@ -169,8 +165,13 @@ func NetStart(s *state.State) {
 		os.Exit(0)
 	})
 
+	
 	// Web API runs independent of Factom Servers
-
+	startServers()
+	
+	go wsapi.Start(fnodes[0].State)
+	
+	
 	var _ = time.Sleep
 	p := 0
 	var _ = p
