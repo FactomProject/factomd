@@ -93,7 +93,7 @@ func DirBlockLocatorFromHash(hash interfaces.IHash, state interfaces.IState) Blo
 // LatestDirBlockLocator returns a block locator for the latest known tip of the
 // main (best) chain.
 func LatestDirBlockLocator(state interfaces.IState) (BlockLocator, error) {
-	latestDirBlockHash := state.GetDirectoryBlock().GetHash() //, _, _ := db.FetchBlockHeightCache()
+	latestDirBlockHash := state.GetDirectoryBlockByHeight(state.GetHighestRecordedBlock()).GetHash() //, _, _ := db.FetchBlockHeightCache()
 
 	if latestDirBlockHash == nil {
 		latestDirBlockHash = NewZeroHash() //zeroHash

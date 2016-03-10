@@ -46,7 +46,7 @@ func (m *RevealEntryMsg) Process(dbheight uint32, state interfaces.IState) {
 		// Set the Chain ID
 		eb.GetHeader().SetChainID(m.Entry.GetChainID())
 		// Set the Directory Block Height for this Entry Block
-		eb.GetHeader().SetDBHeight(state.GetDBHeight())
+		eb.GetHeader().SetDBHeight(dbheight)
 		// Put it in our list of new Entry Blocks for this Directory Block
 		state.PutNewEBlocks(dbheight, m.Entry.GetChainID(), eb)
 

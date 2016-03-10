@@ -227,7 +227,7 @@ func (b *blockManager) current() bool {
 
 	//_, height, err := db.FetchBlockHeightCache() //b.server.db.NewestSha()
 	//if err != nil || height < int64(b.syncPeer.lastBlock) {
-	if b.server.State.GetDBHeight() < uint32(b.syncPeer.lastBlock) {
+	if b.server.State.GetHighestRecordedBlock() < uint32(b.syncPeer.lastBlock) {
 		return false
 	}
 	return true
@@ -829,7 +829,7 @@ func (b *blockManager) startSyncFactom(peers *list.List) {
 	}
 
 	// Find the height of the current known best block.
-	height := b.server.State.GetDBHeight()
+	height := b.server.State.GetHighestRecordedBlock()
 	//_, height, err := db.FetchBlockHeightCache()
 	//if err != nil {
 	//bmgrLog.Errorf("%v", err)

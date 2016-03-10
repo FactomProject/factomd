@@ -22,12 +22,10 @@ type ProcessList struct {
 	State   interfaces.IState
 	Servers []*ListServer
 
-	Acks *map[[32]byte]interfaces.IMsg // acknowlegments by hash
-	Msgs *map[[32]byte]interfaces.IMsg // messages by hash
-
 	// Maps
 	// ====
-	// For Follower
+	OldMsgs *map[[32]byte]interfaces.IMsg // messages processed in this list
+	OldAcks *map[[32]byte]interfaces.IMsg // messages processed in this list
 
 	NewEBlocks map[[32]byte]interfaces.IEntryBlock // Entry Blocks added within 10 minutes (follower and leader)
 	Commits    map[[32]byte]interfaces.IMsg        // Used by the leader, validate
@@ -112,12 +110,6 @@ func (p *ProcessList) GetLen(list int) int {
 }
 
 func (p ProcessList) HasMessage() bool {
-	if len(*p.Acks) > 0 {
-		return true
-	}
-	if len(*p.Msgs) > 0 {
-		return true
-	}
 
 	for _, ls := range p.Servers {
 		if len(ls.List) > 0 {
@@ -134,32 +126,6 @@ func (p *ProcessList) SetSigComplete(value bool) {
 
 func (p *ProcessList) SetEomComplete(value bool) {
 	p.Servers[p.ServerIndex].EomComplete = value
-}
-
-func (p *ProcessList) GetCommits(key interfaces.IHash) interfaces.IMsg {
-	c := p.Commits[key.Fixed()]
-	return c
-}
-
-func (p *ProcessList) PutCommits(key interfaces.IHash, value interfaces.IMsg) {
-
-	{
-		cmsg, ok := value.(interfaces.ICounted)
-		if ok {
-			v := p.Commits[key.Fixed()]
-			if v != nil {
-				_, ok := v.(interfaces.ICounted)
-				if ok {
-					cmsg.SetCount(v.(interfaces.ICounted).GetCount() + 1)
-				} else {
-					p.State.Println(v)
-					panic("Should never happen")
-				}
-			}
-		}
-
-		p.Commits[key.Fixed()] = value
-	}
 }
 
 func (p *ProcessList) GetNewEBlocks(key interfaces.IHash) interfaces.IEntryBlock {
@@ -237,6 +203,32 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	p.Servers[ack.ServerIndex].List[ack.Height] = m
 }
 
+func (p *ProcessList) GetCommits(key interfaces.IHash) interfaces.IMsg {
+	c := p.Commits[key.Fixed()]
+	return c
+}
+
+func (p *ProcessList) PutCommits(key interfaces.IHash, value interfaces.IMsg) {
+
+	{
+		cmsg, ok := value.(interfaces.ICounted)
+		if ok {
+			v := p.Commits[key.Fixed()]
+			if v != nil {
+				_, ok := v.(interfaces.ICounted)
+				if ok {
+					cmsg.SetCount(v.(interfaces.ICounted).GetCount() + 1)
+				} else {
+					p.State.Println(v)
+					panic("Should never happen")
+				}
+			}
+		}
+
+		p.Commits[key.Fixed()] = value
+	}
+}
+
 /************************************************
  * Support
  ************************************************/
@@ -255,8 +247,8 @@ func NewProcessList(state interfaces.IState, totalServers int, dbheight uint32) 
 
 	}
 	pl.DBHeight = dbheight
-	pl.Acks = new(map[[32]byte]interfaces.IMsg)
-	pl.Msgs = new(map[[32]byte]interfaces.IMsg)
+	pl.OldAcks = new(map[[32]byte]interfaces.IMsg)
+	pl.OldMsgs = new(map[[32]byte]interfaces.IMsg)
 
 	pl.NewEBlocks = make(map[[32]byte]interfaces.IEntryBlock)
 	pl.Commits = make(map[[32]byte]interfaces.IMsg)

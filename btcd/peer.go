@@ -301,7 +301,7 @@ func (p *peer) RelayTxDisabled() bool {
 // current state.
 func (p *peer) pushVersionMsg() error {
 	//_, blockNum, err := p.server.db.NewestSha()
-	blockNum := p.server.State.GetDBHeight()
+	blockNum := p.server.State.GetHighestRecordedBlock()
 	theirNa := p.na
 
 	// If we are behind a proxy and the connection comes from the proxy then

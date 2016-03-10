@@ -9,6 +9,7 @@ import (
 	"github.com/FactomProject/factomd/anchor"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/database/hybridDB"
@@ -283,8 +284,59 @@ func (s *State) Init() {
 	s.initServerKeys()
 }
 
+func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
+
+	dblk, err := s.DB.FetchDBlockByHeight(dbheight)
+	if err != nil {
+		return nil, err
+	}
+	if dblk == nil {
+		return nil, nil
+	}
+	ablk, err := s.DB.FetchABlockByKeyMR(dblk.GetDBEntries()[0].GetKeyMR())
+	if err != nil {
+		return nil, err
+	}
+	if ablk == nil {
+		return nil, err
+	}
+	ecblk, err := s.DB.FetchECBlockByHash(dblk.GetDBEntries()[1].GetKeyMR())
+	if err != nil {
+		return nil, err
+	}
+	if ecblk == nil {
+		return nil, err
+	}
+	fblk, err := s.DB.FetchFBlockByKeyMR(dblk.GetDBEntries()[2].GetKeyMR())
+	if err != nil {
+		return nil, err
+	}
+	if fblk == nil {
+		return nil, err
+	}
+
+	msg := messages.NewDBStateMsg(s, dblk, ablk, fblk, ecblk)
+
+	return msg, nil
+
+}
+
 func (s *State) GetDBState(height uint32) *DBState {
 	return s.DBStates.Get(height)
+}
+
+// Return the Directory block if it is in memory, or hit the database if it must
+// be loaded.
+func (s *State) GetDirectoryBlockByHeight(height uint32) interfaces.IDirectoryBlock {
+	dbstate := s.DBStates.Get(height)
+	if dbstate != nil {
+		return dbstate.DirectoryBlock
+	}
+	dblk, err := s.DB.FetchDBlockByHeight(height)
+	if err != nil {
+		return nil
+	}
+	return dblk
 }
 
 func (s *State) UpdateState() {

@@ -15,6 +15,10 @@ type ProcessLists struct {
 	State        *State         // Pointer to the state object
 	DBHeightBase uint32         // Height of the first Process List in this structure.
 	Lists        []*ProcessList // Pointer to the ProcessList structure for each DBHeight under construction
+
+	Acks *map[[32]byte]interfaces.IMsg // acknowlegments by hash
+	Msgs *map[[32]byte]interfaces.IMsg // messages by hash
+
 }
 
 // Returns the height of the Process List under construction.  There
@@ -138,6 +142,9 @@ func NewProcessLists(state interfaces.IState) *ProcessLists {
 	pls.State = s
 	pls.DBHeightBase = 0
 	pls.Lists = make([]*ProcessList, 0)
+
+	pls.Acks = new(map[[32]byte]interfaces.IMsg)
+	pls.Msgs = new(map[[32]byte]interfaces.IMsg)
 
 	return pls
 }

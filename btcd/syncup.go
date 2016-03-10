@@ -114,7 +114,7 @@ func (b *blockManager) validateAndStoreBlocks() {
 
 	for true {
 		dblk = nil
-		myDBHeight = b.server.State.GetDBHeight()
+		myDBHeight = b.server.State.GetHighestRecordedBlock()
 		msg := b.fMemPool.getBlockMsg(string(myDBHeight + 1))
 		if msg != nil {
 			switch msg.(type) {

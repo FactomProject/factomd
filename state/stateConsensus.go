@@ -33,23 +33,6 @@ func (s *State) AddDBState(isNew bool,
 	s.DBStates.Put(dbState)
 }
 
-// This routine is called once we have everything to create a Directory Block.
-// It is called by the follower code.  It is requried to build the Directory Block
-// to validate the signatures we will get with the DirectoryBlockSignature messages.
-func (s *State) ProcessEndOfBlock(dbheight uint32) {
-	s.LastAck = nil
-}
-
-// This returns the DBHeight as defined by the leader, not the follower.
-// This value shouldn't be used by follower code.
-func (s *State) GetDBHeight() uint32 {
-	last := s.DBStates.Last()
-	if last == nil {
-		return 0
-	}
-	return last.DirectoryBlock.GetHeader().GetDBHeight()
-}
-
 // Messages that will go into the Process List must match an Acknowledgement.
 // The code for this is the same for all such messages, so we put it here.
 //
@@ -432,43 +415,6 @@ func (s *State) NewAck(hash interfaces.IHash) (iack interfaces.IMsg, err error) 
 	// TODO:  Add the signature.
 
 	return ack, nil
-}
-
-func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
-
-	dblk, err := s.DB.FetchDBlockByHeight(dbheight)
-	if err != nil {
-		return nil, err
-	}
-	if dblk == nil {
-		return nil, nil
-	}
-	ablk, err := s.DB.FetchABlockByKeyMR(dblk.GetDBEntries()[0].GetKeyMR())
-	if err != nil {
-		return nil, err
-	}
-	if ablk == nil {
-		return nil, err
-	}
-	ecblk, err := s.DB.FetchECBlockByHash(dblk.GetDBEntries()[1].GetKeyMR())
-	if err != nil {
-		return nil, err
-	}
-	if ecblk == nil {
-		return nil, err
-	}
-	fblk, err := s.DB.FetchFBlockByKeyMR(dblk.GetDBEntries()[2].GetKeyMR())
-	if err != nil {
-		return nil, err
-	}
-	if fblk == nil {
-		return nil, err
-	}
-
-	msg := messages.NewDBStateMsg(s, dblk, ablk, fblk, ecblk)
-
-	return msg, nil
-
 }
 
 func (s *State) NewEOM(minute int) interfaces.IMsg {
