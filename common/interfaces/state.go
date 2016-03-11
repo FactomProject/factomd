@@ -26,8 +26,6 @@ type IState interface {
 	GetServer() IServer
 	SetServer(IServer)
 	GetDBHeightComplete() uint32
-	Print(a ...interface{}) (n int, err error)
-	Println(a ...interface{}) (n int, err error)
 	SetOut(bool)  // Output is turned on if set to true
 	GetOut() bool // Return true if Print or Println write output
 	LoadDBState(dbheight uint32) (IMsg, error)
@@ -37,8 +35,8 @@ type IState interface {
 
 	// This is the highest block signed off and recorded in the Database.
 	GetHighestRecordedBlock() uint32
-	// This is lowest block currently under construction.
-	GetBuildingBlock() uint32
+	// This is the block the leader is building
+	GetLeaderHeight() uint32
 	// The highest block for which we have received a message.  Sometimes the same as
 	// BuildingBlock(), but can be different depending or the order messages are recieved.
 	GetHighestKnownBlock() uint32
@@ -117,5 +115,6 @@ type IState interface {
 
 	GetTimestamp() Timestamp
 	PrintType(int) bool // Debugging
-
+	Print(a ...interface{}) (n int, err error) 
+	Println(a ...interface{}) (n int, err error) 
 }

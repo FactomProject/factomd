@@ -24,8 +24,8 @@ type ProcessList struct {
 
 	// Maps
 	// ====
-	OldMsgs *map[[32]byte]interfaces.IMsg // messages processed in this list
-	OldAcks *map[[32]byte]interfaces.IMsg // messages processed in this list
+	OldMsgs map[[32]byte]interfaces.IMsg // messages processed in this list
+	OldAcks map[[32]byte]interfaces.IMsg // messages processed in this list
 
 	NewEBlocks map[[32]byte]interfaces.IEntryBlock // Entry Blocks added within 10 minutes (follower and leader)
 	Commits    map[[32]byte]interfaces.IMsg        // Used by the leader, validate
@@ -229,6 +229,24 @@ func (p *ProcessList) PutCommits(key interfaces.IHash, value interfaces.IMsg) {
 	}
 }
 
+func (p *ProcessList) String() string {
+	prt := ""
+	if p == nil {
+		prt = "-- <nil>\n"
+	}else{
+		prt = p.State.GetFactomNodeName() +"\n"
+		for i, server := range p.Servers {
+			prt = prt + fmt.Sprintf("  Server %d \n",i)
+			for _, msg := range server.List {
+				prt = prt + "   " + msg.String() + "\n"
+			}
+			prt = prt + "\n"
+		}
+	}
+	return prt
+}
+	
+
 /************************************************
  * Support
  ************************************************/
@@ -247,9 +265,10 @@ func NewProcessList(state interfaces.IState, totalServers int, dbheight uint32) 
 
 	}
 	pl.DBHeight = dbheight
-	pl.OldAcks = new(map[[32]byte]interfaces.IMsg)
-	pl.OldMsgs = new(map[[32]byte]interfaces.IMsg)
-
+	
+	pl.OldMsgs = make(map[[32]byte]interfaces.IMsg)
+	pl.OldAcks = make(map[[32]byte]interfaces.IMsg)
+	
 	pl.NewEBlocks = make(map[[32]byte]interfaces.IEntryBlock)
 	pl.Commits = make(map[[32]byte]interfaces.IMsg)
 

@@ -69,6 +69,11 @@ func (e *ECBlock) AddEntry(entries ...interfaces.IECBlockEntry) {
 	e.GetBody().SetEntries(append(e.GetBody().GetEntries(), entries...))
 }
 
+func (e *ECBlock) GetHash() interfaces.IHash {
+	h,_ := e.Hash()
+	return h
+}
+
 func (e *ECBlock) Hash() (interfaces.IHash, error) {
 	p, err := e.MarshalBinary()
 	if err != nil {

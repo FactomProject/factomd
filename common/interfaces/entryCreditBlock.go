@@ -11,6 +11,7 @@ type IEntryCreditBlock interface {
 	DatabaseBatchable
 	GetHeader() IECBlockHeader
 	GetBody() IECBlockBody
+	GetHash() IHash
 	HeaderHash() (IHash, error)
 	Hash() (IHash, error)
 }

@@ -36,6 +36,7 @@ func loadDatabase(s *state.State) {
 	if err != nil && head != nil {
 		blkCnt = head.GetHeader().GetDBHeight()
 	}
+	
 	msg, err := s.LoadDBState(blkCnt)
 
 	for i := 0; true; i++ {
@@ -63,7 +64,6 @@ func loadDatabase(s *state.State) {
 		ecblk := entryCreditBlock.NewECBlock()
 
 		msg := messages.NewDBStateMsg(s, dblk, ablk, fblk, ecblk)
-
 		s.InMsgQueue() <- msg
 	}
 	s.Println(fmt.Sprintf("Loaded %d directory blocks on %s", blkCnt, s.FactomNodeName))

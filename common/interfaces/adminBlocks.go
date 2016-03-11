@@ -19,6 +19,7 @@ type IAdminBlock interface {
 	SetABEntries([]IABEntry)
 	GetDBHeight() uint32
 	GetKeyMR() (IHash, error)
+	GetHash() IHash
 	FullHash() (IHash, error)
 	PartialHash() (IHash, error)
 	BuildFullBHash() (err error)

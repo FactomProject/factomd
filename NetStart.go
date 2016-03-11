@@ -48,12 +48,14 @@ func NetStart(s *state.State) {
 	fmt.Println(fmt.Sprintf("factom config: %s", FactomConfigFilename))
 
 	// Figure out how many nodes I am going to generate.  Default 10
-	cnt := 10
+	cnt := 3
+	net := "long"
 	if len(os.Args) > 2 {
 		cnt1, err := strconv.Atoi(os.Args[1])
 		if err == nil && cnt1 != 0 {
 			cnt = cnt1
 		}
+		net = os.Args[2]
 	}
 
 	mLog := new(MsgLog)
@@ -123,35 +125,34 @@ func NetStart(s *state.State) {
 
 	fmt.Println("factomd <node count> <network config: mesh/long/loops>")
 
-	if len(os.Args) > 2 {
-		switch os.Args[2] {
-		case "mesh":
+	switch net {
+	case "mesh":
 
-			h := 0
-			for index, p := range p1 {
-				fmt.Println()
-				for i := 0; i < cnt/(index+1); i++ {
-					h2 := (h + p) % cnt
-					AddSimPeer(fnodes, h, h2)
-					h = h2
-				}
-			}
-		case "long":
-			for i := 1; i < cnt; i++ {
-				AddSimPeer(fnodes, i-1, i)
-			}
-		case "loops":
-			for i := 1; i < cnt; i++ {
-				AddSimPeer(fnodes, i-1, i)
-			}
-			for i := 0; i+5 < cnt; i += 6 {
-				AddSimPeer(fnodes, i, i+5)
-			}
-			for i := 0; i+7 < cnt; i += 3 {
-				AddSimPeer(fnodes, i, i+7)
+		h := 0
+		for index, p := range p1 {
+			fmt.Println()
+			for i := 0; i < cnt/(index+1); i++ {
+				h2 := (h + p) % cnt
+				AddSimPeer(fnodes, h, h2)
+				h = h2
 			}
 		}
+	case "long":
+		for i := 1; i < cnt; i++ {
+			AddSimPeer(fnodes, i-1, i)
+		}
+	case "loops":
+		for i := 1; i < cnt; i++ {
+			AddSimPeer(fnodes, i-1, i)
+		}
+		for i := 0; i+5 < cnt; i += 6 {
+			AddSimPeer(fnodes, i, i+5)
+		}
+		for i := 0; i+7 < cnt; i += 3 {
+			AddSimPeer(fnodes, i, i+7)
+		}
 	}
+	
 
 	AddInterruptHandler(func() {
 		fmt.Print("<Break>\n")

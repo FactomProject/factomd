@@ -33,13 +33,17 @@ func Validator(state interfaces.IState) {
 
 		msg := <-state.InMsgQueue() // Get message from the input queue
 
-		if state.PrintType(msg.Type()) {
+		if state.PrintType(msg.Type()) || true {
 			state.Print(fmt.Sprintf("%20s %s", "Validator:", msg.String()))
 		}
 
-		switch msg.Validate(state.GetBuildingBlock(), state) { // Validate the message.
+		// TODO:  Height here is problematic.  We ensure that the leader doesn't step
+		// past the follower...
+		switch msg.Validate(state.GetLeaderHeight(), state) { // Validate the message.
 		case 1: // Process if valid
-
+			
+			state.NetworkOutMsgQueue() <- msg
+			
 			if state.PrintType(msg.Type()) {
 				state.Print(" Valid\n")
 			}

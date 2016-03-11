@@ -107,14 +107,8 @@ func (m *CommitChainMsg) Follower(state interfaces.IState) bool {
 }
 
 func (m *CommitChainMsg) FollowerExecute(state interfaces.IState) error {
-	matched, err := state.FollowerExecuteMsg(m)
-	if err != nil {
-		return err
-	}
-	if matched { // We matched, we must be remembered!
-		state.PutCommits(state.GetBuildingBlock(), m.GetHash(), m)
-	}
-	return nil
+	_, err := state.FollowerExecuteMsg(m)
+	return err
 }
 
 func (e *CommitChainMsg) JSONByte() ([]byte, error) {

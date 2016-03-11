@@ -39,16 +39,45 @@ type DBStateList struct {
 
 const secondsBetweenTests = 1 // Default
 
-func (list *DBStateList) GetHighestRecordedBlock() uint32 {
-	last := list.base
-	for _, v := range list.DBStates {
-		if v == nil {
-			return last
-		}
-		last++
-	}
 
-	return last
+
+func (list *DBStateList) String() string {
+	str := "\nDBStates\n"
+	str = fmt.Sprintf("%s  base      = %d\n",str,list.base)
+	str = fmt.Sprintf("%s  timestamp = %s\n",str,list.last.String())
+	str = fmt.Sprintf("%s  complete  = %d\n",str,list.complete)
+	for i,ds := range list.DBStates {
+		rec := "M"
+		if ds != nil && ds.DirectoryBlock != nil {
+			dblk,_ := list.state.GetDB().FetchDBlockByHash(ds.DirectoryBlock.GetKeyMR())
+			if dblk != nil {
+				rec = "R"
+			}
+		}
+		str = fmt.Sprintf("%s  %1s-DState\n   DState Height: %d\n%s",str,rec,list.base+uint32(i), ds.String())
+	}
+	return str
+}
+
+func (ds *DBState) String() string {
+	str := ""
+	if ds == nil {
+		str = "  DBState = <nil>\n"
+	}else if ds.DirectoryBlock == nil {
+		str = "  Directory Block = <nil>\n"
+	}else{
+		
+		str = fmt.Sprintf("%s      DBlk Height   = %v\n",str, ds.DirectoryBlock.GetHeader().GetDBHeight())
+		str = fmt.Sprintf("%s      DBlock        = %x\n",str, ds.DirectoryBlock.GetHash().Bytes()[:10])
+		str = fmt.Sprintf("%s      ABlock        = %x\n",str, ds.AdminBlock.GetHash().Bytes()[:10])
+		str = fmt.Sprintf("%s      FBlock        = %x\n",str, ds.FactoidBlock.GetHash().Bytes()[:10])
+		str = fmt.Sprintf("%s      ECBlock       = %x\n",str, ds.EntryCreditBlock.GetHash().Bytes()[:10])
+	}
+	return str
+}
+
+func (list *DBStateList) GetHighestRecordedBlock() uint32 {
+	return list.base+uint32(len(list.DBStates))
 }
 
 // Once a second at most, we check to see if we need to pull down some blocks to catch up.
@@ -79,7 +108,7 @@ func (list *DBStateList) Catchup() {
 		begin += int(list.base)
 		end += int(list.base)
 	} else {
-		plHeight := list.state.GetBuildingBlock()
+		plHeight := list.state.GetLeaderHeight()
 		dbsHeight := list.GetHighestRecordedBlock()
 		// Don't worry about the block initialization case.
 		if plHeight < 1 {
@@ -175,7 +204,6 @@ func (list *DBStateList) Process() {
 	list.Catchup()
 
 	for int(list.complete) < len(list.DBStates) {
-		fmt.Println("Complete!", list.complete+1)
 		d := list.DBStates[list.complete]
 
 		if d == nil {
@@ -186,7 +214,8 @@ func (list *DBStateList) Process() {
 			panic("Should not happen")
 		}
 
-		if d.isNew {
+			
+			list.state.Println("WRITING ", list.complete+list.base)
 			// Make sure the directory block is properly synced up with the prior block, if there
 			// is one.
 
@@ -218,7 +247,6 @@ func (list *DBStateList) Process() {
 			}
 			list.state.GetAnchor().UpdateDirBlockInfoMap(dbInfo.NewDirBlockInfoFromDirBlock(d.DirectoryBlock))
 
-		}
 
 		// Process the Factoid End of Block
 		fs := list.state.GetFactoidState()
@@ -230,10 +258,6 @@ func (list *DBStateList) Process() {
 		// Clear the leader's last Ack to start a new process list.
 		list.state.LastAck = nil
 	}
-}
-
-func (list *DBStateList) String() string {
-	return ""
 }
 
 func (list *DBStateList) NewDBState(isNew bool,

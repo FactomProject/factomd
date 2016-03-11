@@ -31,6 +31,10 @@ func (s *State) AddDBState(isNew bool,
 
 	dbState := s.DBStates.NewDBState(isNew, directoryBlock, adminBlock, factoidBlock, entryCreditBlock)
 	s.DBStates.Put(dbState)
+	ht := directoryBlock.GetHeader().GetDBHeight()
+	if ht >= s.LeaderHeight {
+		s.LeaderHeight = ht+1
+	}
 }
 
 // Messages that will go into the Process List must match an Acknowledgement.
@@ -45,9 +49,16 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) (bool, error) {
 		return false, nil
 	} else {
 		pl := s.ProcessLists.Get(ack.DBHeight)
+		
+		if m.Type() == constants.COMMIT_CHAIN_MSG || m.Type() == constants.COMMIT_ENTRY_MSG { 
+			s.PutCommits(ack.DBHeight, m.GetHash(), m)
+		}
+		
 		if pl != nil {
 			pl.AddToProcessList(ack, m)
 		}
+		pl.OldAcks[ack.GetHash().Fixed()] = ack 
+		pl.OldMsgs[m.GetHash().Fixed()] = m
 		delete(acks, m.GetHash().Fixed())
 		delete(s.Holding, m.GetHash().Fixed())
 
@@ -71,7 +82,7 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) (bool, error) {
 }
 
 func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) error {
-	fmt.Println("DBS Addstate")
+	
 	dbstatemsg, ok := msg.(*messages.DBStateMsg)
 	if !ok {
 		return fmt.Errorf("Cannot execute the given DBStateMsg")
@@ -116,11 +127,15 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
 }
 
 func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) error {
-	bblock := s.GetBuildingBlock()
+	if err := s.LeaderExecute(m); err != nil {
+		s.Println("Error with Signing Directory Blocks")
+		return err
+	}
+	bblock := s.LeaderHeight
 	s.ProcessLists.Get(bblock).SetComplete(true)
 	s.LeaderHeight = bblock + 1
 	s.LastAck = nil
-	return nil
+	return nil 
 }
 
 func (s *State) GetNewEBlocks(dbheight uint32, hash interfaces.IHash) interfaces.IEntryBlock {
@@ -145,12 +160,15 @@ func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) 
 	server.ChainID = as.ServerChainID
 	plc := s.ProcessLists.Get(dbheight)
 	pl := s.ProcessLists.Get(dbheight + 1)
+
 	fmt.Println("Current Server List:")
 	for _, fed := range plc.FedServers {
 		pl.AddFedServer(fed.(*interfaces.Server))
 		fmt.Println("  ", fed.GetChainID().String())
 	}
+
 	pl.AddFedServer(server)
+	
 	fmt.Println("New Server List:")
 	for _, fed := range pl.FedServers {
 		fmt.Println("  ", fed.GetChainID().String())
@@ -225,9 +243,9 @@ func (s *State) GetHighestRecordedBlock() uint32 {
 	return s.DBStates.GetHighestRecordedBlock()
 }
 
-// This is lowest block currently under construction.
-func (s *State) GetBuildingBlock() uint32 {
-	return s.ProcessLists.GetBuildingBlock()
+// This is lowest block currently under construction under the leader.
+func (s *State) GetLeaderHeight() uint32 {
+	return s.LeaderHeight
 }
 
 // The highest block for which we have received a message.  Sometimes the same as
@@ -301,20 +319,22 @@ func (s *State) GetFedServerIndex() (bool, int) {
 	return s.GetFedServerIndexFor(s.IdentityChainID)
 }
 
+// Gets the Server Index for an identity chain given the current leader height.
+// The follower could be behind this level.
 func (s *State) GetFedServerIndexFor(chainID interfaces.IHash) (bool, int) {
-	pl := s.ProcessLists.Get(s.GetBuildingBlock())
+	pl := s.ProcessLists.Get(s.LeaderHeight)
 
 	if pl == nil {
-		fmt.Println("No Process List", s.GetBuildingBlock())
+		fmt.Println("No Process List", s.GetLeaderHeight())
 		return false, 0
 	}
 
 	if s.serverState == 1 && len(pl.FedServers) == 0 {
 		pl.AddFedServer(&interfaces.Server{ChainID: s.IdentityChainID})
-		fmt.Println("Current Servers (Adding):")
-		for _, fed := range pl.FedServers {
-			fmt.Println("   ", fed.GetChainID().String())
-		}
+		//fmt.Println("Current Servers (Adding):")
+		//for _, fed := range pl.FedServers {
+		//	fmt.Println("   ", fed.GetChainID().String())
+		//}
 	}
 
 	found, index := pl.GetFedServerIndex(chainID)
@@ -396,7 +416,7 @@ func (s *State) NewAck(hash interfaces.IHash) (iack interfaces.IMsg, err error) 
 	last, ok := s.LastAck.(*messages.Ack)
 
 	ack := new(messages.Ack)
-	ack.DBHeight = s.GetBuildingBlock()
+	ack.DBHeight = s.GetLeaderHeight()
 
 	ack.Timestamp = s.GetTimestamp()
 	ack.MessageHash = hash
@@ -426,7 +446,7 @@ func (s *State) NewEOM(minute int) interfaces.IMsg {
 	eom.ChainID = s.IdentityChainID
 	eom.Minute = byte(minute)
 	eom.ServerIndex = s.ServerIndex
-	eom.DirectoryBlockHeight = s.GetBuildingBlock()
+	eom.DirectoryBlockHeight = s.GetLeaderHeight()
 
 	return eom
 }

@@ -50,34 +50,35 @@ func NetworkProcessorNet(fnode *FactomNode) {
 				// We don't care about the result, but we do want to log that we have
 				// seen this message before, because we might have generated the message
 				// ourselves.
-				fnode.State.Replay.IsTSValid_(msg.GetMsgHash().Fixed(),
+				if fnode.State.Replay.IsTSValid_(msg.GetMsgHash().Fixed(),
 					int64(msg.GetTimestamp())/1000,
-					int64(fnode.State.GetTimestamp())/1000)
+					int64(fnode.State.GetTimestamp())/1000){
 
-				if msg.IsPeer2peer() {
-					p := msg.GetOrigin() - 1
-					if len(fnode.Peers) == 0 {
-						// No peers yet, put back in queue
-						fmt.Println("Waiting for the Network")
-						time.Sleep(1 * time.Second)
-						fnode.State.NetworkOutMsgQueue() <- msg
-						break
-					}
-					if p < 0 {
-						p = rand.Int() % len(fnode.Peers)
-					}
+					if msg.IsPeer2peer() {
+						p := msg.GetOrigin() - 1
+						if len(fnode.Peers) == 0 {
+							// No peers yet, put back in queue
+							fmt.Print(" Waiting ")
+							time.Sleep(1 * time.Second)
+							fnode.State.NetworkOutMsgQueue() <- msg
+							break
+						}
+						if p < 0 {
+							p = rand.Int() % len(fnode.Peers)
+						}
 
-					fnode.MLog.add2(fnode, fnode.Peers[p].GetNameTo(), "P2P out", true, msg)
-					fnode.Peers[p].Send(msg)
+						fnode.MLog.add2(fnode, fnode.Peers[p].GetNameTo(), "P2P out", true, msg)
+						fnode.Peers[p].Send(msg)
 
-				} else {
-					p := msg.GetOrigin() - 1
-					for i, peer := range fnode.Peers {
-						// Don't resend to the node that sent it to you.
-						if i != p {
-							bco := fmt.Sprintf("%s/%d/%d", "BCast", p, i)
-							fnode.MLog.add2(fnode, peer.GetNameTo(), bco, true, msg)
-							peer.Send(msg)
+					} else {
+						p := msg.GetOrigin() - 1
+						for i, peer := range fnode.Peers {
+							// Don't resend to the node that sent it to you.
+							if i != p || true {
+								bco := fmt.Sprintf("%s/%d/%d", "BCast", p, i)
+								fnode.MLog.add2(fnode, peer.GetNameTo(), bco, true, msg)
+								peer.Send(msg)
+							}
 						}
 					}
 				}

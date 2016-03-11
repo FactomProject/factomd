@@ -21,6 +21,16 @@ type ProcessLists struct {
 
 }
 
+func (lists *ProcessLists) String() string {
+	str := "Process Lists"
+	str = fmt.Sprintf("%s  DBBase: %d\n",str,lists.DBHeightBase)
+	for i,pl := range lists.Lists {
+		str = fmt.Sprintf("%s %d %s\n",str, uint32(i)+lists.DBHeightBase,pl.String())
+	}
+	return str
+}
+	
+
 // Returns the height of the Process List under construction.  There
 // can be another list under construction (because of missing messages.), but
 // this is the one just above the DBStates list.
@@ -68,15 +78,17 @@ func (lists *ProcessLists) UpdateState() {
 
 	lastRecorded := lists.State.GetHighestRecordedBlock()
 	if buildingBlock-1 > lastRecorded {
-		return
+		//return
 	}
 
 	pl := lists.Get(buildingBlock)
+	
+	lists.State.Print(pl.String())
 
 	diff := buildingBlock - lists.DBHeightBase
-	if diff > 0 {
-		lists.DBHeightBase += diff
-		lists.Lists = lists.Lists[diff:]
+	if diff >= 1 {
+		lists.DBHeightBase += (diff-1)
+		lists.Lists = lists.Lists[(diff-1):]
 	}
 
 	//*******************************************************************//
@@ -97,15 +109,15 @@ func (lists *ProcessLists) UpdateState() {
 	// Create DState blocks for all completed Process Lists
 	pl.Process(lists.State)
 
-	// Only when we are sig complete that we can move on.
-	if pl.Complete() {
-		lists.State.DBStates.NewDBState(true, pl.DirectoryBlock, pl.AdminBlock, pl.FactoidBlock, pl.EntryCreditBlock)
-		pln := lists.Get(buildingBlock + 1)
-		for _, srv := range pl.FedServers { // Bring forward the current Federated Servers
-			pln.AddFedServer(srv.(*interfaces.Server))
-		}
-	} else {
-
+	for i,p := range lists.Lists {
+		// Only when we are sig complete that we can move on.
+		if p != nil && p.Complete() {
+			lists.State.DBStates.NewDBState(true, p.DirectoryBlock, p.AdminBlock, p.FactoidBlock, p.EntryCreditBlock)
+			for _, srv := range p.FedServers { // Bring forward the current Federated Servers
+				pln := lists.Get(lists.DBHeightBase+uint32(i)+1)
+				pln.AddFedServer(srv.(*interfaces.Server))
+			}
+		} 
 	}
 }
 

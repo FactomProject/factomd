@@ -63,10 +63,7 @@ type State struct {
 	ServerIndex   int // Index of the server, as understood by the leader
 
 	LeaderHeight         uint32
-	HighestRecordedBlock uint32
-	BuildingBlock        uint32
-	HighestKnownBlock    uint32
-
+	
 	// Maps
 	// ====
 	// For Follower
@@ -286,6 +283,8 @@ func (s *State) Init() {
 
 func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 
+	fmt.Println(s.FactomNodeName, " >>>>>>>>>>>>>>>>>> Reading Block",dbheight)
+	
 	dblk, err := s.DB.FetchDBlockByHeight(dbheight)
 	if err != nil {
 		return nil, err
@@ -509,7 +508,12 @@ func (s *State) InitMapDB() error {
 }
 
 func (s *State) String() string {
-	return s.serverPrt
+	str := "\n===============================================================\n"+ s.serverPrt
+	str = fmt.Sprintf("\n%s\n  Leader Height: %d",str,s.LeaderHeight)
+	str = fmt.Sprintf("\n%s%s",str,s.DBStates.String())
+	str = fmt.Sprintf("%s%s",str,s.ProcessLists.String())
+	str = str+"===============================================================\n"
+	return str
 }
 
 func (s *State) SetString() {
@@ -518,13 +522,13 @@ func (s *State) SetString() {
 		s.serverPrt = "<none>"
 		return
 	}
-	buildingBlock := s.GetBuildingBlock()
+	buildingBlock := s.GetLeaderHeight()
 	if buildingBlock == 0 {
 		s.serverPrt = fmt.Sprintf("%5s %7s Recorded: %d Building: %d Highest: %d  IDChainID[:10]=%x",
 			"",
 			s.FactomNodeName,
 			s.GetHighestRecordedBlock(),
-			s.GetBuildingBlock(),
+			0,
 			s.GetHighestKnownBlock(),
 			s.IdentityChainID.Bytes()[:10])
 	} else {
@@ -537,7 +541,7 @@ func (s *State) SetString() {
 			stype,
 			s.FactomNodeName,
 			s.GetHighestRecordedBlock(),
-			s.GetBuildingBlock(),
+			buildingBlock,
 			s.GetHighestKnownBlock(),
 			s.IdentityChainID.Bytes()[:10])
 	}
