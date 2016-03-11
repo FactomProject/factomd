@@ -112,7 +112,7 @@ func (m *CommitChainMsg) FollowerExecute(state interfaces.IState) error {
 		return err
 	}
 	if matched { // We matched, we must be remembered!
-		state.PutCommits(state.GetDBHeight(), m.GetHash(), m)
+		state.PutCommits(state.GetBuildingBlock(), m.GetHash(), m)
 	}
 	return nil
 }

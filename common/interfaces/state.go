@@ -43,6 +43,8 @@ type IState interface {
 	// BuildingBlock(), but can be different depending or the order messages are recieved.
 	GetHighestKnownBlock() uint32
 
+	// Find a Directory Block by height
+	GetDirectoryBlockByHeight(dbheight uint32) IDirectoryBlock
 	// Channels
 	//==========
 
@@ -78,12 +80,6 @@ type IState interface {
 	// ========
 	GetDB() DBOverlay
 	SetDB(DBOverlay)
-
-	// Directory Block State
-	// =====================
-	GetDBHeight() uint32
-	// Get the last finished directory block
-	GetDirectoryBlock() IDirectoryBlock
 
 	GetAnchor() IAnchor
 

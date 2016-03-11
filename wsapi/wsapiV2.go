@@ -249,7 +249,8 @@ func HandleV2RevealEntry(state interfaces.IState, params interface{}) (interface
 
 func HandleV2DirectoryBlockHead(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	h := new(DirectoryBlockHeadResponse)
-	h.KeyMR = state.GetDirectoryBlock().GetKeyMR().String()
+	d := state.GetDirectoryBlockByHeight(state.GetHighestRecordedBlock())
+	h.KeyMR = d.GetKeyMR().String()
 	return h, nil
 }
 
@@ -594,6 +595,6 @@ func HandleV2FactoidBalance(state interfaces.IState, params interface{}) (interf
 
 func HandleV2DirectoryBlockHeight(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	h := new(DirectoryBlockHeightResponse)
-	h.Height = int64(state.GetDirectoryBlock().GetHeader().GetDBHeight())
+	h.Height = int64(state.GetHighestRecordedBlock())
 	return h, nil
 }

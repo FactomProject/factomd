@@ -37,7 +37,7 @@ func Validator(state interfaces.IState) {
 			state.Print(fmt.Sprintf("%20s %s", "Validator:", msg.String()))
 		}
 
-		switch msg.Validate(state.GetDBHeight(), state) { // Validate the message.
+		switch msg.Validate(state.GetBuildingBlock(), state) { // Validate the message.
 		case 1: // Process if valid
 
 			if state.PrintType(msg.Type()) {
