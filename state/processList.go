@@ -233,10 +233,10 @@ func (p *ProcessList) String() string {
 	prt := ""
 	if p == nil {
 		prt = "-- <nil>\n"
-	}else{
-		prt = p.State.GetFactomNodeName() +"\n"
+	} else {
+		prt = p.State.GetFactomNodeName() + "\n"
 		for i, server := range p.Servers {
-			prt = prt + fmt.Sprintf("  Server %d \n",i)
+			prt = prt + fmt.Sprintf("  Server %d \n", i)
 			for _, msg := range server.List {
 				prt = prt + "   " + msg.String() + "\n"
 			}
@@ -245,7 +245,6 @@ func (p *ProcessList) String() string {
 	}
 	return prt
 }
-	
 
 /************************************************
  * Support
@@ -265,10 +264,10 @@ func NewProcessList(state interfaces.IState, totalServers int, dbheight uint32) 
 
 	}
 	pl.DBHeight = dbheight
-	
+
 	pl.OldMsgs = make(map[[32]byte]interfaces.IMsg)
 	pl.OldAcks = make(map[[32]byte]interfaces.IMsg)
-	
+
 	pl.NewEBlocks = make(map[[32]byte]interfaces.IEntryBlock)
 	pl.Commits = make(map[[32]byte]interfaces.IMsg)
 

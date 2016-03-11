@@ -62,8 +62,8 @@ type State struct {
 	OutputAllowed bool
 	ServerIndex   int // Index of the server, as understood by the leader
 
-	LeaderHeight         uint32
-	
+	LeaderHeight uint32
+
 	// Maps
 	// ====
 	// For Follower
@@ -283,8 +283,8 @@ func (s *State) Init() {
 
 func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 
-	fmt.Println(s.FactomNodeName, " >>>>>>>>>>>>>>>>>> Reading Block",dbheight)
-	
+	fmt.Println(s.FactomNodeName, " >>>>>>>>>>>>>>>>>> Reading Block", dbheight)
+
 	dblk, err := s.DB.FetchDBlockByHeight(dbheight)
 	if err != nil {
 		return nil, err
@@ -508,11 +508,11 @@ func (s *State) InitMapDB() error {
 }
 
 func (s *State) String() string {
-	str := "\n===============================================================\n"+ s.serverPrt
-	str = fmt.Sprintf("\n%s\n  Leader Height: %d",str,s.LeaderHeight)
-	str = fmt.Sprintf("\n%s%s",str,s.DBStates.String())
-	str = fmt.Sprintf("%s%s",str,s.ProcessLists.String())
-	str = str+"===============================================================\n"
+	str := "\n===============================================================\n" + s.serverPrt
+	str = fmt.Sprintf("\n%s\n  Leader Height: %d", str, s.LeaderHeight)
+	str = fmt.Sprintf("\n%s%s", str, s.DBStates.String())
+	str = fmt.Sprintf("%s%s", str, s.ProcessLists.String())
+	str = str + "===============================================================\n"
 	return str
 }
 

@@ -39,22 +39,20 @@ type DBStateList struct {
 
 const secondsBetweenTests = 1 // Default
 
-
-
 func (list *DBStateList) String() string {
 	str := "\nDBStates\n"
-	str = fmt.Sprintf("%s  base      = %d\n",str,list.base)
-	str = fmt.Sprintf("%s  timestamp = %s\n",str,list.last.String())
-	str = fmt.Sprintf("%s  complete  = %d\n",str,list.complete)
-	for i,ds := range list.DBStates {
+	str = fmt.Sprintf("%s  base      = %d\n", str, list.base)
+	str = fmt.Sprintf("%s  timestamp = %s\n", str, list.last.String())
+	str = fmt.Sprintf("%s  complete  = %d\n", str, list.complete)
+	for i, ds := range list.DBStates {
 		rec := "M"
 		if ds != nil && ds.DirectoryBlock != nil {
-			dblk,_ := list.state.GetDB().FetchDBlockByHash(ds.DirectoryBlock.GetKeyMR())
+			dblk, _ := list.state.GetDB().FetchDBlockByHash(ds.DirectoryBlock.GetKeyMR())
 			if dblk != nil {
 				rec = "R"
 			}
 		}
-		str = fmt.Sprintf("%s  %1s-DState\n   DState Height: %d\n%s",str,rec,list.base+uint32(i), ds.String())
+		str = fmt.Sprintf("%s  %1s-DState\n   DState Height: %d\n%s", str, rec, list.base+uint32(i), ds.String())
 	}
 	return str
 }
@@ -63,21 +61,21 @@ func (ds *DBState) String() string {
 	str := ""
 	if ds == nil {
 		str = "  DBState = <nil>\n"
-	}else if ds.DirectoryBlock == nil {
+	} else if ds.DirectoryBlock == nil {
 		str = "  Directory Block = <nil>\n"
-	}else{
-		
-		str = fmt.Sprintf("%s      DBlk Height   = %v\n",str, ds.DirectoryBlock.GetHeader().GetDBHeight())
-		str = fmt.Sprintf("%s      DBlock        = %x\n",str, ds.DirectoryBlock.GetHash().Bytes()[:10])
-		str = fmt.Sprintf("%s      ABlock        = %x\n",str, ds.AdminBlock.GetHash().Bytes()[:10])
-		str = fmt.Sprintf("%s      FBlock        = %x\n",str, ds.FactoidBlock.GetHash().Bytes()[:10])
-		str = fmt.Sprintf("%s      ECBlock       = %x\n",str, ds.EntryCreditBlock.GetHash().Bytes()[:10])
+	} else {
+
+		str = fmt.Sprintf("%s      DBlk Height   = %v\n", str, ds.DirectoryBlock.GetHeader().GetDBHeight())
+		str = fmt.Sprintf("%s      DBlock        = %x\n", str, ds.DirectoryBlock.GetHash().Bytes()[:10])
+		str = fmt.Sprintf("%s      ABlock        = %x\n", str, ds.AdminBlock.GetHash().Bytes()[:10])
+		str = fmt.Sprintf("%s      FBlock        = %x\n", str, ds.FactoidBlock.GetHash().Bytes()[:10])
+		str = fmt.Sprintf("%s      ECBlock       = %x\n", str, ds.EntryCreditBlock.GetHash().Bytes()[:10])
 	}
 	return str
 }
 
 func (list *DBStateList) GetHighestRecordedBlock() uint32 {
-	return list.base+uint32(len(list.DBStates))
+	return list.base + uint32(len(list.DBStates))
 }
 
 // Once a second at most, we check to see if we need to pull down some blocks to catch up.
@@ -214,39 +212,37 @@ func (list *DBStateList) Process() {
 			panic("Should not happen")
 		}
 
-			
-			list.state.Println("WRITING ", list.complete+list.base)
-			// Make sure the directory block is properly synced up with the prior block, if there
-			// is one.
+		list.state.Println("WRITING ", list.complete+list.base)
+		// Make sure the directory block is properly synced up with the prior block, if there
+		// is one.
 
-			head, _ := list.state.GetDB().FetchDirectoryBlockHead()
-			dblk, _ := list.state.GetDB().FetchDBlockByHeight(d.DirectoryBlock.GetHeader().GetDBHeight())
-			if dblk == nil {
-				if list.complete > 0 {
-					p := list.DBStates[list.complete-1]
-					d.DirectoryBlock.GetHeader().SetPrevFullHash(p.DirectoryBlock.GetHeader().GetFullHash())
-					d.DirectoryBlock.GetHeader().SetPrevKeyMR(p.DirectoryBlock.GetKeyMR())
-				}
-				if err := list.state.GetDB().ProcessDBlockBatch(d.DirectoryBlock); err != nil {
-					panic(err.Error())
-				}
-				if head == nil || head.GetHeader().GetDBHeight() < d.DirectoryBlock.GetHeader().GetDBHeight() {
-					if err := list.state.GetDB().SaveDirectoryBlockHead(d.DirectoryBlock); err != nil {
-						panic(err.Error())
-					}
-				}
-				if err := list.state.GetDB().ProcessABlockBatch(d.AdminBlock); err != nil {
-					panic(err.Error())
-				}
-				if err := list.state.GetDB().ProcessFBlockBatch(d.FactoidBlock); err != nil {
-					panic(err.Error())
-				}
-				if err := list.state.GetDB().ProcessECBlockBatch(d.EntryCreditBlock); err != nil {
+		head, _ := list.state.GetDB().FetchDirectoryBlockHead()
+		dblk, _ := list.state.GetDB().FetchDBlockByHeight(d.DirectoryBlock.GetHeader().GetDBHeight())
+		if dblk == nil {
+			if list.complete > 0 {
+				p := list.DBStates[list.complete-1]
+				d.DirectoryBlock.GetHeader().SetPrevFullHash(p.DirectoryBlock.GetHeader().GetFullHash())
+				d.DirectoryBlock.GetHeader().SetPrevKeyMR(p.DirectoryBlock.GetKeyMR())
+			}
+			if err := list.state.GetDB().ProcessDBlockBatch(d.DirectoryBlock); err != nil {
+				panic(err.Error())
+			}
+			if head == nil || head.GetHeader().GetDBHeight() < d.DirectoryBlock.GetHeader().GetDBHeight() {
+				if err := list.state.GetDB().SaveDirectoryBlockHead(d.DirectoryBlock); err != nil {
 					panic(err.Error())
 				}
 			}
-			list.state.GetAnchor().UpdateDirBlockInfoMap(dbInfo.NewDirBlockInfoFromDirBlock(d.DirectoryBlock))
-
+			if err := list.state.GetDB().ProcessABlockBatch(d.AdminBlock); err != nil {
+				panic(err.Error())
+			}
+			if err := list.state.GetDB().ProcessFBlockBatch(d.FactoidBlock); err != nil {
+				panic(err.Error())
+			}
+			if err := list.state.GetDB().ProcessECBlockBatch(d.EntryCreditBlock); err != nil {
+				panic(err.Error())
+			}
+		}
+		list.state.GetAnchor().UpdateDirBlockInfoMap(dbInfo.NewDirBlockInfoFromDirBlock(d.DirectoryBlock))
 
 		// Process the Factoid End of Block
 		fs := list.state.GetFactoidState()

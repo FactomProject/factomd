@@ -33,7 +33,7 @@ func (s *State) AddDBState(isNew bool,
 	s.DBStates.Put(dbState)
 	ht := directoryBlock.GetHeader().GetDBHeight()
 	if ht >= s.LeaderHeight {
-		s.LeaderHeight = ht+1
+		s.LeaderHeight = ht + 1
 	}
 }
 
@@ -49,15 +49,15 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) (bool, error) {
 		return false, nil
 	} else {
 		pl := s.ProcessLists.Get(ack.DBHeight)
-		
-		if m.Type() == constants.COMMIT_CHAIN_MSG || m.Type() == constants.COMMIT_ENTRY_MSG { 
+
+		if m.Type() == constants.COMMIT_CHAIN_MSG || m.Type() == constants.COMMIT_ENTRY_MSG {
 			s.PutCommits(ack.DBHeight, m.GetHash(), m)
 		}
-		
+
 		if pl != nil {
 			pl.AddToProcessList(ack, m)
 		}
-		pl.OldAcks[ack.GetHash().Fixed()] = ack 
+		pl.OldAcks[ack.GetHash().Fixed()] = ack
 		pl.OldMsgs[m.GetHash().Fixed()] = m
 		delete(acks, m.GetHash().Fixed())
 		delete(s.Holding, m.GetHash().Fixed())
@@ -82,7 +82,7 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) (bool, error) {
 }
 
 func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) error {
-	
+
 	dbstatemsg, ok := msg.(*messages.DBStateMsg)
 	if !ok {
 		return fmt.Errorf("Cannot execute the given DBStateMsg")
@@ -135,7 +135,7 @@ func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) error {
 	s.ProcessLists.Get(bblock).SetComplete(true)
 	s.LeaderHeight = bblock + 1
 	s.LastAck = nil
-	return nil 
+	return nil
 }
 
 func (s *State) GetNewEBlocks(dbheight uint32, hash interfaces.IHash) interfaces.IEntryBlock {
@@ -168,7 +168,7 @@ func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) 
 	}
 
 	pl.AddFedServer(server)
-	
+
 	fmt.Println("New Server List:")
 	for _, fed := range pl.FedServers {
 		fmt.Println("  ", fed.GetChainID().String())
