@@ -47,6 +47,7 @@ type ProcessList struct {
 	AdminBlock       interfaces.IAdminBlock
 	EntryCreditBlock interfaces.IEntryCreditBlock
 	DirectoryBlock   interfaces.IDirectoryBlock
+	
 }
 
 type ListServer struct {
@@ -54,6 +55,8 @@ type ListServer struct {
 	Height      int               // Height of messages that have been processed
 	EomComplete bool              // Lists that are end of minute complete
 	SigComplete bool              // Lists that are signature complete
+	LastAck 	interfaces.IMsg   // The last Acknowledgement set by this server
+	
 }
 
 // Add the given serverChain to this processlist, and return the server index number of the
@@ -157,29 +160,34 @@ func (p *ProcessList) Complete() bool {
 // When we begin building on a Process List, we start it.  That marks everything
 // as needing to be complete.  When we get all the messages we need, then Complete() will
 // return true, because each process list will be signed off.
-func (p *ProcessList) SetComplete(v bool) {
+func (p *ProcessList) SetComplete(index int, v bool) {
 	if p == nil {
 		return
 	}
-	for i, _ := range p.Servers {
-		p.Servers[i].SigComplete = v
-	}
+	p.Servers[index].SigComplete = v
 }
 
 // Process messages and update our state.
 func (p *ProcessList) Process(state *State) {
-
+	state.Println("Process List iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii", p.DBHeight)
 	for i := 0; i < len(p.Servers); i++ {
+		state.Println("i: ",i)
 		plist := p.Servers[i].List
-		//fmt.Println("Process List: DBHEight, height in list, len(plist)", p.DBHeight, p.Servers[i].Height, len(plist))
-		for j := p.Servers[i].Height; !p.Servers[i].SigComplete && j < len(plist); j++ {
+		
+		
+		state.Println("Process List: DBHeight, height in list, len(plist)", p.DBHeight, "/", p.Servers[i].Height, "/", len(plist))
+		
+		for j := p.Servers[i].Height; j < len(plist); j++ {
+			state.Println("j: ",j)
 			if plist[j] == nil {
-				//p.State.Println("!!!!!!! Missing entry in process list at", j)
+				p.State.Println("!!!!!!! Missing entry in process list at", j)
 				return
 			}
 			p.Servers[i].Height = j + 1         // Don't process it again.
 			plist[j].Process(p.DBHeight, state) // Process this entry
-
+			
+			state.Println(plist[j])
+			
 			eom, ok := plist[j].(*messages.EOM)
 			if ok && eom.Minute == 9 {
 				p.Servers[i].EomComplete = true
@@ -193,6 +201,10 @@ func (p *ProcessList) Process(state *State) {
 }
 
 func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
+	p.State.Println("AddToProcessList +++++++++++++++++++++++++++++++++++++++++++++++",
+					m.String(),
+					" ",
+				 len(p.Servers[ack.ServerIndex].List))
 	if p == nil || p.Servers[ack.ServerIndex].List == nil {
 		panic("This should not happen")
 	}
@@ -238,7 +250,11 @@ func (p *ProcessList) String() string {
 		for i, server := range p.Servers {
 			prt = prt + fmt.Sprintf("  Server %d \n", i)
 			for _, msg := range server.List {
-				prt = prt + "   " + msg.String() + "\n"
+				if msg != nil {
+					prt = prt + "   " + msg.String() + "\n"
+				}else{
+					prt = prt + "   <nil>\n"
+				}
 			}
 			prt = prt + "\n"
 		}

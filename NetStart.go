@@ -30,7 +30,7 @@ func NetStart(s *state.State) {
 
 	var fnodes []*FactomNode
 
-	s.SetOut(false)
+	s.SetOut(true)
 
 	fmt.Println(">>>>>>>>>>>>>>>>")
 	fmt.Println(">>>>>>>>>>>>>>>> Net Sim Start!!!!!")

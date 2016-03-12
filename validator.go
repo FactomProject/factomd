@@ -34,7 +34,7 @@ func Validator(state interfaces.IState) {
 		msg := <-state.InMsgQueue() // Get message from the input queue
 
 		if state.PrintType(msg.Type()) || true {
-			state.Print(fmt.Sprintf("%20s %s", "Validator:", msg.String()))
+			state.Println(fmt.Sprintf("%20s %s", "Validator:", msg.String()))
 		}
 
 		// TODO:  Height here is problematic.  We ensure that the leader doesn't step
@@ -49,13 +49,13 @@ func Validator(state interfaces.IState) {
 			}
 			if msg.Leader(state) {
 				if state.PrintType(msg.Type()) {
-					state.Print(fmt.Sprintf("%20s %s\n", "Leader:", msg.String()))
+					state.Println(fmt.Sprintf("%20s %s\n", "Leader:", msg.String()))
 				}
 				msg.LeaderExecute(state)
 				state.UpdateState()
 			} else if msg.Follower(state) {
 				if state.PrintType(msg.Type()) {
-					state.Print(fmt.Sprintf("%20s %s\n", "Follower:", msg.String()))
+					state.Println(fmt.Sprintf("%20s %s\n", "Follower:", msg.String()))
 				}
 				msg.FollowerExecute(state)
 				state.UpdateState()

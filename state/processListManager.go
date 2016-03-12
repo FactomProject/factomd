@@ -43,10 +43,7 @@ func (lists *ProcessLists) GetBuildingBlock() uint32 {
 			last++
 		}
 	}
-	hrb := lists.State.GetHighestRecordedBlock()
-	if last <= hrb {
-		last = hrb + 1
-	}
+
 	if last < lists.State.LeaderHeight {
 		last = lists.State.LeaderHeight
 	}

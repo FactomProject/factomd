@@ -131,10 +131,14 @@ func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) error {
 		s.Println("Error with Signing Directory Blocks")
 		return err
 	}
-	bblock := s.LeaderHeight
-	s.ProcessLists.Get(bblock).SetComplete(true)
-	s.LeaderHeight = bblock + 1
-	s.LastAck = nil
+	bblock := s.LeaderHeight							// Get the block the leader is building
+	if found, index := s.GetFedServerIndex(); !found {
+		s.Println("Executing Leader code but not leader")
+		return fmt.Errorf("Executing Leader code but not a leader")
+	}else{
+		s.ProcessLists.Get(bblock).SetComplete(index,true)	// Set it to be "Signature Complete"
+	}
+	s.LeaderHeight = bblock + 1							// Move to the next block
 	return nil
 }
 
@@ -205,7 +209,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) {
 	ecbody.AddEntry(mn)
 
 	if e.Minute == 9 {
-
 		// TODO: This code needs to be reviewed... It works here, but we are effectively
 		// executing "leader" code in the compainion "follower" goroutine...
 		// Maybe that's okay?
@@ -325,7 +328,7 @@ func (s *State) GetFedServerIndexFor(chainID interfaces.IHash) (bool, int) {
 	pl := s.ProcessLists.Get(s.LeaderHeight)
 
 	if pl == nil {
-		fmt.Println("No Process List", s.GetLeaderHeight())
+		fmt.Println("nnnnnnnnnnnnnnnnnnnnnn No Process List", s.GetLeaderHeight())
 		return false, 0
 	}
 

@@ -130,8 +130,6 @@ func (list *DBStateList) Catchup() {
 
 	msg := messages.NewDBStateMissing(list.state, uint32(begin), uint32(end2))
 
-	fmt.Println(msg.String())
-
 	if msg != nil {
 		list.state.NetworkOutMsgQueue() <- msg
 	}
@@ -160,6 +158,8 @@ func (list *DBStateList) Put(dbstate *DBState) {
 		list.base = list.base + uint32(cnt) - 2
 		list.complete = list.complete - uint32(cnt) + 2
 	}
+	
+	
 	index := int(dbheight) - int(list.base)
 
 	// If we have already processed this state, ignore it.
@@ -198,39 +198,32 @@ func (list *DBStateList) Get(height uint32) *DBState {
 }
 
 func (list *DBStateList) Process() {
-
+	
 	list.Catchup()
 
-	for int(list.complete) < len(list.DBStates) {
-		d := list.DBStates[list.complete]
-
+	for i,d := range list.DBStates {
+		
 		if d == nil {
 			return
-		}
-
-		if d.DirectoryBlock != nil && d.DirectoryBlock.GetHeader().GetDBHeight() != list.complete+list.base {
-			panic("Should not happen")
 		}
 
 		list.state.Println("WRITING ", list.complete+list.base)
 		// Make sure the directory block is properly synced up with the prior block, if there
 		// is one.
 
-		head, _ := list.state.GetDB().FetchDirectoryBlockHead()
-		dblk, _ := list.state.GetDB().FetchDBlockByHeight(d.DirectoryBlock.GetHeader().GetDBHeight())
+		dblk, _ := list.state.GetDB().FetchDBlockByHash(d.DirectoryBlock.GetKeyMR())
 		if dblk == nil {
-			if list.complete > 0 {
-				p := list.DBStates[list.complete-1]
+			list.state.Println("gggggggggggggggggg   Write ggggggggggggggggggggggg")
+			if i > 0 {
+				p := list.DBStates[i-1]
 				d.DirectoryBlock.GetHeader().SetPrevFullHash(p.DirectoryBlock.GetHeader().GetFullHash())
 				d.DirectoryBlock.GetHeader().SetPrevKeyMR(p.DirectoryBlock.GetKeyMR())
 			}
 			if err := list.state.GetDB().ProcessDBlockBatch(d.DirectoryBlock); err != nil {
 				panic(err.Error())
 			}
-			if head == nil || head.GetHeader().GetDBHeight() < d.DirectoryBlock.GetHeader().GetDBHeight() {
-				if err := list.state.GetDB().SaveDirectoryBlockHead(d.DirectoryBlock); err != nil {
-					panic(err.Error())
-				}
+			if err := list.state.GetDB().SaveDirectoryBlockHead(d.DirectoryBlock); err != nil {
+				panic(err.Error())
 			}
 			if err := list.state.GetDB().ProcessABlockBatch(d.AdminBlock); err != nil {
 				panic(err.Error())
@@ -250,9 +243,9 @@ func (list *DBStateList) Process() {
 		fs.AddECBlock(d.EntryCreditBlock)
 		fs.ProcessEndOfBlock(list.state)
 		// Step my counter of complete blocks
-		list.complete++
-		// Clear the leader's last Ack to start a new process list.
-		list.state.LastAck = nil
+		if uint32(i) > list.complete {
+			list.complete = uint32(i)
+		}
 	}
 }
 

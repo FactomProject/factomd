@@ -115,9 +115,6 @@ type State struct {
 	// Web Services
 	Port int
 
-	// Message State
-	LastAck interfaces.IMsg // The last Acknowledgement set by this server
-
 }
 
 var _ interfaces.IState = (*State)(nil)

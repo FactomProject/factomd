@@ -81,6 +81,8 @@ func NetworkProcessorNet(fnode *FactomNode) {
 							}
 						}
 					}
+				}else{
+					fnode.MLog.add2(fnode, "--", "Replay", false, msg)
 				}
 			}
 		case msg, ok := <-fnode.State.NetworkInvalidMsgQueue():
