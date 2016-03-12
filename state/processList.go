@@ -59,6 +59,18 @@ type ListServer struct {
 	
 }
 
+// Given a server index, return the last Ack
+func (p *ProcessList) GetLastAck(index int) interfaces.IMsg {
+	return p.Servers[index].LastAck
+}
+
+// Given a server index, return the last Ack
+func (p *ProcessList) SetLastAck(index int, msg interfaces.IMsg) error {
+	// Check the hash of the previous msg before we over write
+	p.Servers[index].LastAck = msg
+	return nil
+}
+
 // Add the given serverChain to this processlist, and return the server index number of the
 // added server
 func (p *ProcessList) AddFedServer(server *interfaces.Server) int {

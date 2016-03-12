@@ -416,7 +416,13 @@ func (s *State) GetNewHash() interfaces.IHash {
 // Create a new Acknowledgement.  This Acknowledgement
 func (s *State) NewAck(hash interfaces.IHash) (iack interfaces.IMsg, err error) {
 
-	last, ok := s.LastAck.(*messages.Ack)
+	found,index := s.GetFedServerIndex()
+	if !found {
+		return nil, fmt.Errorf("Creation of an Ack attempted by non-server")
+	}
+	pl := s.ProcessLists.Get(s.LeaderHeight)
+
+	last, ok := pl.GetLastAck(index).(*messages.Ack)
 
 	ack := new(messages.Ack)
 	ack.DBHeight = s.GetLeaderHeight()
@@ -433,7 +439,7 @@ func (s *State) NewAck(hash interfaces.IHash) (iack interfaces.IMsg, err error) 
 			return nil, err
 		}
 	}
-	s.LastAck = ack
+	pl.SetLastAck(index, ack)
 
 	// TODO:  Add the signature.
 
