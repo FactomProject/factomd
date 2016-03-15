@@ -26,16 +26,31 @@ type FactomNode struct {
 	MLog  *MsgLog
 }
 
+var fnodes []*FactomNode
+var mLog = new(MsgLog)
+
 func NetStart(s *state.State) {
 
-	var fnodes []*FactomNode
-
-	s.SetOut(true)
-
+	listenTo := 1
+	
 	fmt.Println(">>>>>>>>>>>>>>>>")
 	fmt.Println(">>>>>>>>>>>>>>>> Net Sim Start!!!!!")
 	fmt.Println(">>>>>>>>>>>>>>>>")
-
+	fmt.Println(">>>>>>>>>>>>>>>> Listening to Node",listenTo)
+	fmt.Println(">>>>>>>>>>>>>>>>")
+	
+	AddInterruptHandler(func() {
+		fmt.Print("<Break>\n")
+		fmt.Print("Gracefully shutting down the server...\n")
+		for _, fnode := range fnodes {
+			fmt.Print("Shutting Down: ", fnode.State.FactomNodeName, "\r\n")
+			fnode.State.ShutdownChan <- 0
+		}
+		fmt.Print("Waiting...\r\n")
+		time.Sleep(3 * time.Second)
+		os.Exit(0)
+	})
+	
 	pcfg, _, err := btcd.LoadConfig()
 	if err != nil {
 		log.Println(err.Error())
@@ -45,6 +60,7 @@ func NetStart(s *state.State) {
 	if len(FactomConfigFilename) == 0 {
 		FactomConfigFilename = util.GetConfigFilename("m2")
 	}
+	
 	fmt.Println(fmt.Sprintf("factom config: %s", FactomConfigFilename))
 
 	// Figure out how many nodes I am going to generate.  Default 10
@@ -58,50 +74,19 @@ func NetStart(s *state.State) {
 		net = os.Args[2]
 	}
 
-	mLog := new(MsgLog)
 	mLog.init(cnt)
-
-	makeServer := func() *FactomNode {
-		// All other states are clones of the first state.  Which this routine
-		// gets passed to it.
-		newState := s
-
-		if len(fnodes) > 0 {
-			number := fmt.Sprintf("%d", len(fnodes))
-			newState = s.Clone(number).(*state.State)
-			newState.Init()
-		}
-
-		fnode := new(FactomNode)
-		fnode.State = newState
-		fnodes = append(fnodes, fnode)
-		fnode.MLog = mLog
-
-		return fnode
-	}
-
-	startServers := func() {
-		for i, fnode := range fnodes {
-			if i > 0 {
-				fnode.State.Init()
-			}
-			go NetworkProcessorNet(fnode)
-			go loadDatabase(fnode.State)
-			go Timer(fnode.State)
-			go Validator(fnode.State)
-		}
-	}
 
 	//************************************************
 	// Actually setup the Network
 	//************************************************
 
 	s.LoadConfig(FactomConfigFilename)
+	s.SetOut(false)
 	s.Init()
 
 	// Make cnt Factom nodes
 	for i := 0; i < cnt; i++ {
-		makeServer()
+		makeServer(s)	// We clone s to make all of our servers
 	}
 
 	primes := []int{7, 13, 17, 23, 37, 43, 47, 53, 67, 73, 83, 97, 103}
@@ -152,28 +137,18 @@ func NetStart(s *state.State) {
 			AddSimPeer(fnodes, i, i+7)
 		}
 	}
+
+	if len(fnodes) > listenTo {
+		fnodes[listenTo].State.SetOut(true)
+	}
 	
-
-	AddInterruptHandler(func() {
-		fmt.Print("<Break>\n")
-		fmt.Print("Gracefully shutting down the server...\n")
-		for _, fnode := range fnodes {
-			fmt.Print("Shutting Down: ", fnode.State.FactomNodeName, "\r\n")
-			fnode.State.ShutdownChan <- 0
-		}
-		fmt.Print("Waiting...\r\n")
-		time.Sleep(3 * time.Second)
-		os.Exit(0)
-	})
-
 	// Web API runs independent of Factom Servers
 	startServers()
 
 	go wsapi.Start(fnodes[0].State)
 
 	var _ = time.Sleep
-	p := 0
-	var _ = p
+	
 	for {
 		fmt.Sprintf(">>>>>>>>>>>>>>")
 
@@ -190,20 +165,20 @@ func NetStart(s *state.State) {
 		}
 		v, err := strconv.Atoi(string(b))
 		if err == nil && v >= 0 && v < len(fnodes) {
-			fnodes[p].State.SetOut(false)
-			p = v
-			fnodes[p].State.SetOut(true)
-			fmt.Print("\r\nSwitching to Node ", p, "\r\n")
-			wsapi.SetState(fnodes[p].State)
+			fnodes[listenTo].State.SetOut(false)
+			listenTo = v
+			fnodes[listenTo].State.SetOut(true)
+			fmt.Print("\r\nSwitching to Node ", listenTo, "\r\n")
+			wsapi.SetState(fnodes[listenTo].State)
 		} else {
 			if len(b) == 0 {
 				b = append(b, 'a')
 			}
 			switch b[0] {
 			case 'a', 'A':
-				fnodes[p].State.SetOut(false)
+				fnodes[listenTo].State.SetOut(false)
 				for _, f := range fnodes {
-					fmt.Printf("%8s %s\n", f.State.FactomNodeName, f.State.String())
+					fmt.Printf("%8s %s\n", f.State.FactomNodeName, f.State.ShortString())
 				}
 			case 27:
 				fmt.Print("Gracefully shutting down the servers...\r\n")
@@ -216,22 +191,58 @@ func NetStart(s *state.State) {
 				fmt.Println()
 				os.Exit(0)
 			case 32:
-				fnodes[p].State.SetOut(false)
-				p++
-				if p >= len(fnodes) {
-					p = 0
+				fnodes[listenTo].State.SetOut(false)
+				listenTo++
+				if listenTo >= len(fnodes) {
+					listenTo = 0
 				}
-				fnodes[p].State.SetOut(true)
-				fmt.Print("\r\nSwitching to Node ", p, "\r\n")
-				wsapi.SetState(fnodes[p].State)
+				fnodes[listenTo].State.SetOut(true)
+				fmt.Print("\r\nSwitching to Node ", listenTo, "\r\n")
+				wsapi.SetState(fnodes[listenTo].State)
 			case 's', 'S':
-				msg := messages.NewAddServerMsg(fnodes[p].State)
-				fnodes[p].State.InMsgQueue() <- msg
-				fnodes[p].State.SetOut(true)
-				fmt.Println("Attempting to make", fnodes[p].State.GetFactomNodeName(), "a Leader")
+				msg := messages.NewAddServerMsg(fnodes[listenTo].State)
+				fnodes[listenTo].State.InMsgQueue() <- msg
+				fnodes[listenTo].State.SetOut(true)
+				fmt.Println("Attempting to make", fnodes[listenTo].State.GetFactomNodeName(), "a Leader")
 			default:
 			}
 		}
 	}
 
+}
+
+
+//**********************************************************************
+// Functions that access variables in this method to set up Factom Nodes
+// and start the servers.
+//**********************************************************************
+func makeServer(s *state.State) *FactomNode {
+	// All other states are clones of the first state.  Which this routine
+	// gets passed to it.
+	newState := s
+	
+	if len(fnodes) > 0 {
+		number := fmt.Sprintf("%d", len(fnodes))
+		newState = s.Clone(number).(*state.State)
+		newState.Init()
+	}
+	
+	fnode := new(FactomNode)
+	fnode.State = newState
+	fnodes = append(fnodes, fnode)
+	fnode.MLog = mLog
+	
+	return fnode
+}
+
+func startServers() {
+	for i, fnode := range fnodes {
+		if i > 0 {
+			fnode.State.Init()
+		}
+		go NetworkProcessorNet(fnode)
+		go loadDatabase(fnode.State)
+		go Timer(fnode.State)
+		go Validator(fnode.State)
+	}
 }

@@ -29,7 +29,8 @@ type EOM struct {
 	Signature            interfaces.IFullSignature
 
 	//Not marshalled
-	hash interfaces.IHash
+	hash 				interfaces.IHash
+	ackHeight			int
 }
 
 //var _ interfaces.IConfirmation = (*EOM)(nil)
@@ -40,7 +41,7 @@ func (e *EOM) Process(dbheight uint32, state interfaces.IState) {
 }
 
 func (m *EOM) GetHash() interfaces.IHash {
-	if m.hash == nil {
+	if m.hash == nil  {
 		data, err := m.MarshalForSignature()
 		if err != nil {
 			panic(fmt.Sprintf("Error in EOM.GetHash(): %s", err.Error()))
@@ -83,7 +84,11 @@ func (m *EOM) Type() int {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *EOM) Validate(dbheight uint32, state interfaces.IState) int {
-	found, _ := state.GetFedServerIndexFor(m.ChainID)
+	
+	return 1
+	
+	// TODO:  Need to check that the EOM came from a server
+	found, _ := state.GetFedServerIndexFor(m.DirectoryBlockHeight, m.ChainID)
 	if found { // Only EOM from federated servers are valid.
 		return 1
 	} else {
@@ -95,7 +100,7 @@ func (m *EOM) Validate(dbheight uint32, state interfaces.IState) int {
 // Returns true if this is a message for this server to execute as
 // a leader.
 func (m *EOM) Leader(state interfaces.IState) bool {
-	return state.LeaderFor(m.Bytes()) // TODO: This has to be fixed!
+	return state.LeaderFor(m.GetHash().Bytes()) // TODO: This has to be fixed!
 }
 
 // Execute the leader functions of the given message
@@ -191,7 +196,9 @@ func (m *EOM) UnmarshalBinary(data []byte) error {
 
 func (m *EOM) MarshalForSignature() (data []byte, err error) {
 	var buf bytes.Buffer
+	
 	buf.Write([]byte{byte(m.Type())})
+	
 	if d, err := m.Timestamp.MarshalBinary(); err != nil {
 		return nil, err
 	} else {
@@ -205,8 +212,11 @@ func (m *EOM) MarshalForSignature() (data []byte, err error) {
 	}
 
 	binary.Write(&buf, binary.BigEndian, m.Minute)
+	
 	binary.Write(&buf, binary.BigEndian, m.DirectoryBlockHeight)
+	
 	binary.Write(&buf, binary.BigEndian, uint8(m.ServerIndex))
+	
 	return buf.Bytes(), nil
 }
 

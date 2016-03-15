@@ -96,7 +96,11 @@ func (lists *ProcessLists) UpdateState() {
 		pl.FactoidBlock = lists.State.GetFactoidState().GetCurrentBlock()
 		pl.AdminBlock = lists.State.NewAdminBlock(buildingBlock)
 		var err error
-		pl.EntryCreditBlock, err = entryCreditBlock.NextECBlock(dbstate.EntryCreditBlock)
+		if dbstate != nil {
+			pl.EntryCreditBlock, err = entryCreditBlock.NextECBlock(dbstate.EntryCreditBlock)
+		}else{
+			pl.EntryCreditBlock, err = entryCreditBlock.NextECBlock(nil)
+		}
 		if err != nil {
 			panic(err.Error())
 		}
@@ -109,9 +113,10 @@ func (lists *ProcessLists) UpdateState() {
 		// Only when we are sig complete that we can move on.
 		if p != nil && p.Complete() {
 			lists.State.DBStates.NewDBState(true, p.DirectoryBlock, p.AdminBlock, p.FactoidBlock, p.EntryCreditBlock)
+			lists.State.LeaderHeight = lists.DBHeightBase + uint32(i)+1
 			for _, srv := range p.FedServers { // Bring forward the current Federated Servers
-				pln := lists.Get(lists.DBHeightBase + uint32(i) + 1)
-				pln.AddFedServer(srv.(*interfaces.Server))
+				pln := lists.Get(lists.State.LeaderHeight)
+				pln.AddFedServer(srv)
 			}
 		}
 	}

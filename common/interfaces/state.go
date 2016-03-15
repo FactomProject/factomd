@@ -29,10 +29,11 @@ type IState interface {
 	SetOut(bool)  // Output is turned on if set to true
 	GetOut() bool // Return true if Print or Println write output
 	LoadDBState(dbheight uint32) (IMsg, error)
-	GetFedServerIndexFor(IHash) (bool, int)
-	GetFedServerIndex() (bool, int)
+	GetFedServerIndexFor(uint32, IHash) (bool, int)
+	GetFedServerIndex(uint32) (bool, int)
 	SetString()
-
+	ShortString() string
+	
 	// This is the highest block signed off and recorded in the Database.
 	GetHighestRecordedBlock() uint32
 	// This is the block the leader is building
@@ -114,6 +115,7 @@ type IState interface {
 	NewEOM(int) IMsg
 
 	GetTimestamp() Timestamp
+
 	PrintType(int) bool // Debugging
 	Print(a ...interface{}) (n int, err error) 
 	Println(a ...interface{}) (n int, err error) 

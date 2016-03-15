@@ -181,8 +181,9 @@ func (s *State) LoadConfig(filename string) {
 
 func (s *State) Init() {
 
-	wsapi.InitLogs(s.LogPath, s.LogLevel)
+	wsapi.InitLogs(s.LogPath+s.FactomNodeName+".log", s.LogLevel)
 
+	fmt.Println("Logger: ",s.LogPath, s.LogLevel)
 	s.Logger = logger.NewLogFromConfig(s.LogPath, s.LogLevel, "State")
 
 	log.SetLevel(s.ConsoleLogLevel)
@@ -279,8 +280,6 @@ func (s *State) Init() {
 }
 
 func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
-
-	fmt.Println(s.FactomNodeName, " >>>>>>>>>>>>>>>>>> Reading Block", dbheight)
 
 	dblk, err := s.DB.FetchDBlockByHeight(dbheight)
 	if err != nil {
@@ -508,17 +507,16 @@ func (s *State) String() string {
 	str := "\n===============================================================\n" + s.serverPrt
 	str = fmt.Sprintf("\n%s\n  Leader Height: %d", str, s.LeaderHeight)
 	str = fmt.Sprintf("\n%s%s", str, s.DBStates.String())
-	str = fmt.Sprintf("%s%s", str, s.ProcessLists.String())
+	//str = fmt.Sprintf("%s%s", str, s.ProcessLists.String())
 	str = str + "===============================================================\n"
 	return str
 }
 
+func (s *State) ShortString() string {
+	return s.serverPrt
+}
+
 func (s *State) SetString() {
-	last := s.DBStates.Last()
-	if last == nil {
-		s.serverPrt = "<none>"
-		return
-	}
 	buildingBlock := s.GetLeaderHeight()
 	if buildingBlock == 0 {
 		s.serverPrt = fmt.Sprintf("%5s %7s Recorded: %d Building: %d Highest: %d  IDChainID[:10]=%x",

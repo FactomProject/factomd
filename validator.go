@@ -42,7 +42,9 @@ func Validator(state interfaces.IState) {
 		switch msg.Validate(state.GetLeaderHeight(), state) { // Validate the message.
 		case 1: // Process if valid
 			
-			state.NetworkOutMsgQueue() <- msg
+			if !msg.IsPeer2peer() {
+				state.NetworkOutMsgQueue() <- msg
+			}
 			
 			if state.PrintType(msg.Type()) {
 				state.Print(" Valid\n")

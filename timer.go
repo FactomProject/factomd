@@ -11,9 +11,11 @@ import (
 	"time"
 )
 
+var _ = (*s.State)(nil)
+
 func Timer(state interfaces.IState) {
 
-	s := state.(*s.State)
+	//s := state.(*s.State)
 
 	time.Sleep(2 * time.Second)
 
@@ -36,15 +38,17 @@ func Timer(state interfaces.IState) {
 			next += tenthPeriod
 			time.Sleep(time.Duration(wait))
 
+			/**
 			if len(s.ShutdownChan) == 0 {
 				state.Print(fmt.Sprintf("\r%19s: %s %s",
 					"Timer",
 					state.String(),
 					(string)((([]byte)("-\\|/-\\|/-="))[i])))
 			}
+			**/
 			// End of the last period, and this is a server, send messages that
 			// close off the minute.
-			found, _ := state.GetFedServerIndex()
+			found, _ := state.GetFedServerIndex(state.GetLeaderHeight())
 			if found {
 				eom := state.NewEOM(i)
 				state.InMsgQueue() <- eom

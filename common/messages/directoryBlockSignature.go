@@ -84,7 +84,7 @@ func (m *DirectoryBlockSignature) Validate(dbheight uint32, state interfaces.ISt
 // Returns true if this is a message for this server to execute as
 // a leader.
 func (m *DirectoryBlockSignature) Leader(state interfaces.IState) bool {
-	return true
+	return state.LeaderFor(m.GetHash().Bytes())
 }
 
 // Execute the leader functions of the given message

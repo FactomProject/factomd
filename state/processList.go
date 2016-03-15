@@ -35,11 +35,9 @@ type ProcessList struct {
 	//
 	// The index into the Matryoshka Index handed off to the network by this server.
 	MatryoshkaIndex int
-	AuditServers    []interfaces.IServer   // List of Audit Servers
-	ServerOrder     [][]interfaces.IServer // 10 lists for Server Order for each minute
-	FedServers      []interfaces.IServer   // List of Federated Servers
-	// Index of this server in the FedServers list, if this is a Federated Server
-	ServerIndex int
+	AuditServers    []interfaces.IFctServer   // List of Audit Servers
+	ServerOrder     [][]interfaces.IFctServer // 10 lists for Server Order for each minute
+	FedServers      []interfaces.IFctServer   // List of Federated Servers
 
 	// State information about the directory block while it is under construction.  We may
 	// have to start building the next block while still building the previous block.
@@ -73,9 +71,9 @@ func (p *ProcessList) SetLastAck(index int, msg interfaces.IMsg) error {
 
 // Add the given serverChain to this processlist, and return the server index number of the
 // added server
-func (p *ProcessList) AddFedServer(server *interfaces.Server) int {
-	found, i := p.GetFedServerIndex(server.ChainID)
-	if server.ChainID.Bytes()[0] == 0 && server.ChainID.Bytes()[1] == 0 {
+func (p *ProcessList) AddFedServer(server interfaces.IFctServer) int {
+	found, i := p.GetFedServerIndex(server.GetChainID())
+	if server.GetChainID().Bytes()[0] == 0 && server.GetChainID().Bytes()[1] == 0 {
 		panic("Grrr")
 	}
 	if found {
@@ -89,8 +87,8 @@ func (p *ProcessList) AddFedServer(server *interfaces.Server) int {
 
 // Add the given serverChain to this processlist, and return the server index number of the
 // added server
-func (p *ProcessList) RemoveFedServer(server *interfaces.Server) {
-	found, i := p.GetFedServerIndex(server.ChainID)
+func (p *ProcessList) RemoveFedServer(server interfaces.IFctServer) {
+	found, i := p.GetFedServerIndex(server.GetChainID())
 	if !found {
 		return
 	}
@@ -103,10 +101,9 @@ func (p *ProcessList) GetFedServerIndex(serverChainID interfaces.IHash) (bool, i
 	if p == nil || p.FedServers == nil {
 		return false, 0
 	}
-	for i, ifs := range p.FedServers {
-		fs := ifs.(*interfaces.Server)
+	for i, fs := range p.FedServers {
 		// Find and remove
-		switch bytes.Compare(scid, fs.ChainID.Bytes()) {
+		switch bytes.Compare(scid, fs.GetChainID().Bytes()) {
 		case 0: // Found the ID!
 			return true, i
 		case -1: // Past the ID, can't be in list
@@ -135,12 +132,19 @@ func (p ProcessList) HasMessage() bool {
 	return false
 }
 
+
+// TODO:  Need to map the server identity to the process list for which it 
+// is responsible.  Right now, works with only one server!
 func (p *ProcessList) SetSigComplete(value bool) {
-	p.Servers[p.ServerIndex].SigComplete = value
+	found, i := p.GetFedServerIndex(p.State.GetIdentityChainID())
+	if !found { return }
+	p.Servers[i].SigComplete = value
 }
 
 func (p *ProcessList) SetEomComplete(value bool) {
-	p.Servers[p.ServerIndex].EomComplete = value
+	found, i := p.GetFedServerIndex(p.State.GetIdentityChainID())
+	if !found { return }
+	p.Servers[i].EomComplete = value
 }
 
 func (p *ProcessList) GetNewEBlocks(key interfaces.IHash) interfaces.IEntryBlock {
@@ -181,16 +185,12 @@ func (p *ProcessList) SetComplete(index int, v bool) {
 
 // Process messages and update our state.
 func (p *ProcessList) Process(state *State) {
-	state.Println("Process List iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii", p.DBHeight)
 	for i := 0; i < len(p.Servers); i++ {
-		state.Println("i: ",i)
 		plist := p.Servers[i].List
 		
-		
-		state.Println("Process List: DBHeight, height in list, len(plist)", p.DBHeight, "/", p.Servers[i].Height, "/", len(plist))
+		// state.Println("Process List: DBHeight, height in list, len(plist)", p.DBHeight, "/", p.Servers[i].Height, "/", len(plist))
 		
 		for j := p.Servers[i].Height; j < len(plist); j++ {
-			state.Println("j: ",j)
 			if plist[j] == nil {
 				p.State.Println("!!!!!!! Missing entry in process list at", j)
 				return
@@ -213,10 +213,10 @@ func (p *ProcessList) Process(state *State) {
 }
 
 func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
-	p.State.Println("AddToProcessList +++++++++++++++++++++++++++++++++++++++++++++++",
-					m.String(),
-					" ",
-				 len(p.Servers[ack.ServerIndex].List))
+	//p.State.Println("AddToProcessList +++++++++++++++++++++++++++++++++++++++++++++++",
+	//				m.String(),
+	//				" ",
+	//			 len(p.Servers[ack.ServerIndex].List))
 	if p == nil || p.Servers[ack.ServerIndex].List == nil {
 		panic("This should not happen")
 	}
@@ -259,6 +259,9 @@ func (p *ProcessList) String() string {
 		prt = "-- <nil>\n"
 	} else {
 		prt = p.State.GetFactomNodeName() + "\n"
+		for _,id := range p.FedServers {
+			prt = fmt.Sprintf("%s   %x\n",prt, id.GetChainID().Bytes())
+		}
 		for i, server := range p.Servers {
 			prt = prt + fmt.Sprintf("  Server %d \n", i)
 			for _, msg := range server.List {
@@ -301,9 +304,9 @@ func NewProcessList(state interfaces.IState, totalServers int, dbheight uint32) 
 
 	// If a federated server, this is the server index, which is our index in the FedServers list
 
-	pl.AuditServers = make([]interfaces.IServer, 0)
-	pl.FedServers = make([]interfaces.IServer, 0)
-	pl.ServerOrder = make([][]interfaces.IServer, 0)
+	pl.AuditServers = make([]interfaces.IFctServer, 0)
+	pl.FedServers = make([]interfaces.IFctServer, 0)
+	pl.ServerOrder = make([][]interfaces.IFctServer, 0)
 
 	return pl
 }

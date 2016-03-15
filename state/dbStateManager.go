@@ -106,7 +106,7 @@ func (list *DBStateList) Catchup() {
 		begin += int(list.base)
 		end += int(list.base)
 	} else {
-		plHeight := list.state.GetLeaderHeight()
+		plHeight := list.state.GetHighestKnownBlock()
 		dbsHeight := list.GetHighestRecordedBlock()
 		// Don't worry about the block initialization case.
 		if plHeight < 1 {
@@ -153,7 +153,7 @@ func (list *DBStateList) Put(dbstate *DBState) {
 	dbheight := dblk.GetHeader().GetDBHeight()
 
 	cnt := len(list.DBStates)
-	if cnt > 2 && list.complete == uint32(cnt) {
+	if cnt > 2 && false {
 		list.DBStates = list.DBStates[cnt-2:]
 		list.base = list.base + uint32(cnt) - 2
 		list.complete = list.complete - uint32(cnt) + 2
@@ -164,6 +164,7 @@ func (list *DBStateList) Put(dbstate *DBState) {
 
 	// If we have already processed this state, ignore it.
 	if index < int(list.complete) {
+		list.state.Println("Ignoring!  Index vs Complete: ", index, "/",list.complete)
 		return
 	}
 
@@ -207,13 +208,11 @@ func (list *DBStateList) Process() {
 			return
 		}
 
-		list.state.Println("WRITING ", list.complete+list.base)
 		// Make sure the directory block is properly synced up with the prior block, if there
 		// is one.
 
 		dblk, _ := list.state.GetDB().FetchDBlockByHash(d.DirectoryBlock.GetKeyMR())
 		if dblk == nil {
-			list.state.Println("gggggggggggggggggg   Write ggggggggggggggggggggggg")
 			if i > 0 {
 				p := list.DBStates[i-1]
 				d.DirectoryBlock.GetHeader().SetPrevFullHash(p.DirectoryBlock.GetHeader().GetFullHash())

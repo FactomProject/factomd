@@ -272,5 +272,5 @@ func (m *Ack) String() string {
 		m.ServerIndex,
 		m.DBHeight,
 		m.Height,
-		m.MessageHash.Bytes()[:10])
+		m.GetHash().Bytes()[:10])
 }

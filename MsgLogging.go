@@ -67,11 +67,14 @@ func (m *MsgLog) add2(fnode *FactomNode, dest string, where string, valid bool, 
 	nm.msg = msg
 	m.MsgList = append(m.MsgList, nm)
 
+	interval := int(now-m.start)
+	if interval == 0 || m.nodeCnt == 0 { return }
+	
 	if now-m.start > 1 {
-		m.msgPerSec = (m.msgCnt + len(m.MsgList)) / int(now-m.start) / m.nodeCnt
+		m.msgPerSec = (m.msgCnt + len(m.MsgList)) / interval / m.nodeCnt
 	}
 	if int(now-m.startp) >= m.period {
-		m.msgPerSecp = (m.msgCntp + len(m.MsgList)) / int(now-m.startp) / m.nodeCnt
+		m.msgPerSecp = (m.msgCntp + len(m.MsgList)) / interval / m.nodeCnt
 		m.msgCntp = 0
 		m.startp = now // Reset timer
 	}
