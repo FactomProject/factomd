@@ -45,6 +45,7 @@ type State struct {
 	PortNumber              int
 	Replay                  *Replay
 
+	CoreChainID     interfaces.IHash // The ChainID of the first server when we boot a network.
 	IdentityChainID interfaces.IHash // If this node has an identity, this is it
 
 	// Just to print (so debugging doesn't drive functionaility)
@@ -136,6 +137,8 @@ func (s *State) Clone(number string) interfaces.IState {
 	clone.Network = s.Network
 	clone.DirectoryBlockInSeconds = s.DirectoryBlockInSeconds
 	clone.PortNumber = s.PortNumber
+	
+	clone.CoreChainID     = s.CoreChainID
 	clone.IdentityChainID = primitives.Sha([]byte(number))
 	// Need to have a Server Priv Key TODO:
 	clone.LocalServerPrivKey = s.LocalServerPrivKey
@@ -177,6 +180,7 @@ func (s *State) LoadConfig(filename string) {
 	s.PortNumber = cfg.Wsapi.PortNumber
 
 	s.IdentityChainID = primitives.Sha([]byte("0"))
+	s.CoreChainID     = primitives.Sha([]byte("0"))
 }
 
 func (s *State) Init() {
@@ -349,6 +353,10 @@ func (s *State) SetFactoshisPerEC(factoshisPerEC uint64) {
 
 func (s *State) GetIdentityChainID() interfaces.IHash {
 	return s.IdentityChainID
+}
+
+func (s *State) GetCoreChainID() interfaces.IHash {
+	return s.CoreChainID
 }
 
 func (s *State) GetDirectoryBlockInSeconds() int {

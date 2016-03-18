@@ -20,6 +20,7 @@ type IState interface {
 	LoadConfig(filename string)
 	Init()
 	String() string
+	GetCoreChainID() IHash
 	GetIdentityChainID() IHash
 	Sign([]byte) IFullSignature
 	GetDirectoryBlockInSeconds() int

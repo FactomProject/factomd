@@ -31,7 +31,7 @@ var mLog = new(MsgLog)
 
 func NetStart(s *state.State) {
 
-	listenTo := 1
+	listenTo := 0
 	
 	fmt.Println(">>>>>>>>>>>>>>>>")
 	fmt.Println(">>>>>>>>>>>>>>>> Net Sim Start!!!!!")

@@ -105,7 +105,7 @@ func (s *State) LeaderExecute(m interfaces.IMsg) error {
 
 	hash := m.GetHash()
 
-	ack, err := s.NewAck(hash)
+	ack, err := s.NewAck(m, hash)
 	if err != nil {
 		return err
 	}
@@ -412,7 +412,7 @@ func (s *State) GetNewHash() interfaces.IHash {
 }
 
 // Create a new Acknowledgement.  This Acknowledgement
-func (s *State) NewAck(hash interfaces.IHash) (iack interfaces.IMsg, err error) {
+func (s *State) NewAck(msg interfaces.IMsg, hash interfaces.IHash) (iack interfaces.IMsg, err error) {
 
 	found,index := s.GetFedServerIndex(s.LeaderHeight)
 	if !found {
@@ -438,7 +438,8 @@ func (s *State) NewAck(hash interfaces.IHash) (iack interfaces.IMsg, err error) 
 		}
 	}
 	pl.SetLastAck(index, ack)
-
+	s.Println("Last Ack ", ack.String(),"->",msg.String())
+	
 	// TODO:  Add the signature.
 
 	return ack, nil
