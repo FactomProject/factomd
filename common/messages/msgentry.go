@@ -132,7 +132,7 @@ func (m *MsgEntry) String() string {
 //  < 0 -- MsgEntry is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- MsgEntry is valid
-func (m *MsgEntry) Validate(dbheight uint32, state interfaces.IState) int {
+func (m *MsgEntry) Validate( state interfaces.IState) int {
 	return 0
 }
 

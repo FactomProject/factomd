@@ -59,7 +59,7 @@ func (m *AddServerMsg) GetTimestamp() interfaces.Timestamp {
 }
 
 // Validate the message, TBD
-func (m *AddServerMsg) Validate(dbheight uint32, state interfaces.IState) int {
+func (m *AddServerMsg) Validate(state interfaces.IState) int {
 	return 1
 }
 

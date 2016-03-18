@@ -31,7 +31,7 @@ type RevealEntryMsg struct {
 var _ interfaces.IMsg = (*RevealEntryMsg)(nil)
 
 func (m *RevealEntryMsg) Process(dbheight uint32, state interfaces.IState) {
-	c := state.GetCommits(dbheight, m.GetHash())
+	c := state.GetCommits(m.GetHash())
 	_, isNewChain := c.(*CommitChainMsg)
 	if isNewChain {
 		fmt.Println("New Chain")
@@ -108,8 +108,8 @@ func (m *RevealEntryMsg) Bytes() []byte {
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
-func (m *RevealEntryMsg) Validate(dbheight uint32, state interfaces.IState) int {
-	commit := state.GetCommits(dbheight, m.GetHash())
+func (m *RevealEntryMsg) Validate( state interfaces.IState) int {
+	commit := state.GetCommits(m.GetHash())
 	ECs := 0
 
 	if commit == nil {
@@ -145,7 +145,7 @@ func (m *RevealEntryMsg) Validate(dbheight uint32, state interfaces.IState) int 
 	// Reveal Entry calls must have an existing chain.
 	if m.isEntry {
 		chainID := m.Entry.GetChainID()
-		eblk := state.GetNewEBlocks(dbheight, chainID) // Look see if already in the new block.
+		eblk := state.GetNewEBlocks(0, chainID) // Look see if already in the new block.
 		if eblk == nil {                               // No?  Then look see if it exists in DB
 			eblk, _ := state.GetDB().FetchEBlockHead(chainID)
 			if eblk == nil {
@@ -155,7 +155,7 @@ func (m *RevealEntryMsg) Validate(dbheight uint32, state interfaces.IState) int 
 		}
 	} else {
 		chainID := m.Entry.GetChainID()
-		eblk := state.GetNewEBlocks(dbheight, chainID) // Look see if already in the new block.
+		eblk := state.GetNewEBlocks(0, chainID) // Look see if already in the new block.
 		if eblk != nil {
 			return -1
 		}

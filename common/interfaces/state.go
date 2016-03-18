@@ -20,6 +20,7 @@ type IState interface {
 	LoadConfig(filename string)
 	Init()
 	String() string
+	GetCoreChainID() IHash
 	GetIdentityChainID() IHash
 	Sign([]byte) IFullSignature
 	GetDirectoryBlockInSeconds() int
@@ -62,8 +63,8 @@ type IState interface {
 	GetNewEBlocks(dbheight uint32, hash IHash) IEntryBlock
 	PutNewEBlocks(dbheight uint32, hash IHash, eb IEntryBlock)
 
-	GetCommits(dbheight uint32, hash IHash) IMsg
-	PutCommits(dbheight uint32, hash IHash, msg IMsg)
+	GetCommits(hash IHash) IMsg
+	PutCommits(hash IHash, msg IMsg)
 	// Server Configuration
 	// ====================
 

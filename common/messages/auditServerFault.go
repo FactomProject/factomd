@@ -106,7 +106,7 @@ func (m *AuditServerFault) Signature() []byte {
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
-func (m *AuditServerFault) Validate(dbheight uint32, state interfaces.IState) int {
+func (m *AuditServerFault) Validate(state interfaces.IState) int {
 	return 0
 }
 

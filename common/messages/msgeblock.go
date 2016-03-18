@@ -133,7 +133,7 @@ func (m *MsgEBlock) String() string {
 //  < 0 -- MsgEBlock is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- MsgEBlock is valid
-func (m *MsgEBlock) Validate(dbheight uint32, state interfaces.IState) int {
+func (m *MsgEBlock) Validate( state interfaces.IState) int {
 	return 0
 }
 

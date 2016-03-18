@@ -39,7 +39,7 @@ func Validator(state interfaces.IState) {
 
 		// TODO:  Height here is problematic.  We ensure that the leader doesn't step
 		// past the follower...
-		switch msg.Validate(state.GetLeaderHeight(), state) { // Validate the message.
+		switch msg.Validate(state) { // Validate the message.
 		case 1: // Process if valid
 			
 			if !msg.IsPeer2peer() {

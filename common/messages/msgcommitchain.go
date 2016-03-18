@@ -150,7 +150,7 @@ func (m *MsgCommitChain) String() string {
 //  < 0 -- MsgCommitChain is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- MsgCommitChain is valid
-func (m *MsgCommitChain) Validate(dbheight uint32, state interfaces.IState) int {
+func (m *MsgCommitChain) Validate( state interfaces.IState) int {
 	return 0
 }
 

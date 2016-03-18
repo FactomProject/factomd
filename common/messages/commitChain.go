@@ -77,7 +77,7 @@ func (m *CommitChainMsg) Bytes() []byte {
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
-func (m *CommitChainMsg) Validate(dbheight uint32, state interfaces.IState) int {
+func (m *CommitChainMsg) Validate(state interfaces.IState) int {
 	if !m.CommitChain.IsValid() {
 		return -1
 	}

@@ -202,7 +202,7 @@ func (m *MsgDirInv) String() string {
 //  < 0 -- MsgDirInv is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- MsgDirInv is valid
-func (m *MsgDirInv) Validate(dbheight uint32, state interfaces.IState) int {
+func (m *MsgDirInv) Validate( state interfaces.IState) int {
 	return 0
 }
 

@@ -194,7 +194,7 @@ func (m *MsgGetNonDirData) String() string {
 //  < 0 -- MsgGetNonDirData is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- MsgGetNonDirData is valid
-func (m *MsgGetNonDirData) Validate(dbheight uint32, state interfaces.IState) int {
+func (m *MsgGetNonDirData) Validate( state interfaces.IState) int {
 	return 0
 }
 

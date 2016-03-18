@@ -14,9 +14,7 @@ import (
 var _ = (*s.State)(nil)
 
 func Timer(state interfaces.IState) {
-
-	//s := state.(*s.State)
-
+	
 	time.Sleep(2 * time.Second)
 
 	billion := int64(1000000000)
@@ -38,14 +36,8 @@ func Timer(state interfaces.IState) {
 			next += tenthPeriod
 			time.Sleep(time.Duration(wait))
 
-			/**
-			if len(s.ShutdownChan) == 0 {
-				state.Print(fmt.Sprintf("\r%19s: %s %s",
-					"Timer",
-					state.String(),
-					(string)((([]byte)("-\\|/-\\|/-="))[i])))
-			}
-			**/
+			// PrintBush(state,i)
+			
 			// End of the last period, and this is a server, send messages that
 			// close off the minute.
 			found, _ := state.GetFedServerIndex(state.GetLeaderHeight())
@@ -56,4 +48,17 @@ func Timer(state interfaces.IState) {
 		}
 	}
 
+}
+
+func PrintBusy(state interfaces.IState, i int) {
+	
+	s := state.(*s.State)
+	
+	if len(s.ShutdownChan) == 0 {
+		state.Print(fmt.Sprintf("\r%19s: %s %s",
+								"Timer",
+						  state.String(),
+								(string)((([]byte)("-\\|/-\\|/-="))[i])))
+	}
+	
 }

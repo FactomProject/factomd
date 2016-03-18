@@ -459,7 +459,7 @@ func (m *MsgVersion) String() string {
 //  < 0 -- MsgVersion is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- MsgVersion is valid
-func (m *MsgVersion) Validate(dbheight uint32, state interfaces.IState) int {
+func (m *MsgVersion) Validate( state interfaces.IState) int {
 	return 0
 }
 

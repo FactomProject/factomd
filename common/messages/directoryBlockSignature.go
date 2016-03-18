@@ -77,7 +77,7 @@ func (m *DirectoryBlockSignature) Bytes() []byte {
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
-func (m *DirectoryBlockSignature) Validate(dbheight uint32, state interfaces.IState) int {
+func (m *DirectoryBlockSignature) Validate( state interfaces.IState) int {
 	return 1
 }
 

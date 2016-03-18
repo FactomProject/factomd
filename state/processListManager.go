@@ -114,10 +114,6 @@ func (lists *ProcessLists) UpdateState() {
 		if p != nil && p.Complete() {
 			lists.State.DBStates.NewDBState(true, p.DirectoryBlock, p.AdminBlock, p.FactoidBlock, p.EntryCreditBlock)
 			lists.State.LeaderHeight = lists.DBHeightBase + uint32(i)+1
-			for _, srv := range p.FedServers { // Bring forward the current Federated Servers
-				pln := lists.Get(lists.State.LeaderHeight)
-				pln.AddFedServer(srv)
-			}
 		}
 	}
 }
@@ -133,6 +129,7 @@ func (lists *ProcessLists) Get(dbheight uint32) *ProcessList {
 		lists.Lists = append(lists.Lists, nil)
 	}
 	pl := lists.Lists[i]
+
 	if pl == nil {
 		pl = NewProcessList(lists.State, 1, dbheight)
 		lists.Lists[i] = pl

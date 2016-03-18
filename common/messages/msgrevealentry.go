@@ -151,7 +151,7 @@ func (m *MsgRevealEntry) String() string {
 //  < 0 -- MsgRevealEntry is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- MsgRevealEntry is valid
-func (m *MsgRevealEntry) Validate(dbheight uint32, state interfaces.IState) int {
+func (m *MsgRevealEntry) Validate( state interfaces.IState) int {
 	return 0
 }
 

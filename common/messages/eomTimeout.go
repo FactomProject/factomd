@@ -102,7 +102,7 @@ func (m *EOMTimeout) Signature() []byte {
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
-func (m *EOMTimeout) Validate(dbheight uint32, state interfaces.IState) int {
+func (m *EOMTimeout) Validate( state interfaces.IState) int {
 	return 0
 }
 

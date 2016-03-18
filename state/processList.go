@@ -17,7 +17,7 @@ type ProcessList struct {
 	// List of messsages that came in before the previous block was built
 	// We can not completely validate these messages until the previous block
 	// is built.
-	MsgsQueue []interfaces.IMsg
+	MsgQueue []interfaces.IMsg
 
 	State   interfaces.IState
 	Servers []*ListServer
@@ -99,7 +99,19 @@ func (p *ProcessList) RemoveFedServer(server interfaces.IFctServer) {
 func (p *ProcessList) GetFedServerIndex(serverChainID interfaces.IHash) (bool, int) {
 	scid := serverChainID.Bytes()
 	if p == nil || p.FedServers == nil {
-		return false, 0
+		if p == nil {
+			return false, 0
+		}
+		if bytes.Compare(scid,p.State.GetCoreChainID().Bytes()) == 0 {
+			return true, 0
+		}else{
+			return false, 0
+		}
+	}
+	if len(p.FedServers) == 0 {
+		server := new(interfaces.Server)
+		server.ChainID = p.State.GetCoreChainID()
+		p.FedServers = append(p.FedServers, server)
 	}
 	for i, fs := range p.FedServers {
 		// Find and remove
@@ -157,6 +169,16 @@ func (p *ProcessList) PutNewEBlocks(dbheight uint32, key interfaces.IHash, value
 
 	p.NewEBlocks[key.Fixed()] = value
 
+}
+
+// Test if a process list for a server is EOM complete.  Return true if all messages
+// have been recieved, and we just need the signaure.  If we need EOM messages, or we 
+// have all EOM messages and we have the Signature, then we return false.
+func (p *ProcessList) SigServerComplete(serverIndex int) bool {
+	if p == nil {
+		return false
+	}
+	return p.Servers[serverIndex].EomComplete && !p.Servers[serverIndex].SigComplete
 }
 
 // Test if the process list is complete.  Return true if all messages

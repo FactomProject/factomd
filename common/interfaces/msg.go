@@ -47,7 +47,7 @@ type IMsg interface {
 	//  < 0 -- Message is invalid.  Discard
 	//  0   -- Cannot tell if message is Valid
 	//  1   -- Message is valid
-	Validate(dbheight uint32, state IState) int
+	Validate(IState) int
 
 	// Returns true if this is a message for this server to execute as
 	// a leader.

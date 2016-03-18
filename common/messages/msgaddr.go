@@ -206,7 +206,7 @@ func (m *MsgAddr) String() string {
 //  < 0 -- MsgAddr is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- MsgAddr is valid
-func (m *MsgAddr) Validate(dbheight uint32, state interfaces.IState) int {
+func (m *MsgAddr) Validate( state interfaces.IState) int {
 	return 0
 }
 
