@@ -215,7 +215,7 @@ func (m *MsgGetDirBlocks) String() string {
 //  < 0 -- MsgGetDirBlocks is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- MsgGetDirBlocks is valid
-func (m *MsgGetDirBlocks) Validate(dbheight uint32, state interfaces.IState) int {
+func (m *MsgGetDirBlocks) Validate( state interfaces.IState) int {
 	return 0
 }
 

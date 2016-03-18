@@ -29,8 +29,7 @@ type EOM struct {
 	Signature            interfaces.IFullSignature
 
 	//Not marshalled
-	hash 				interfaces.IHash
-	ackHeight			int
+	hash interfaces.IHash
 }
 
 //var _ interfaces.IConfirmation = (*EOM)(nil)
@@ -41,7 +40,7 @@ func (e *EOM) Process(dbheight uint32, state interfaces.IState) {
 }
 
 func (m *EOM) GetHash() interfaces.IHash {
-	if m.hash == nil  {
+	if m.hash == nil {
 		data, err := m.MarshalForSignature()
 		if err != nil {
 			panic(fmt.Sprintf("Error in EOM.GetHash(): %s", err.Error()))
@@ -83,7 +82,7 @@ func (m *EOM) Type() int {
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
-func (m *EOM) Validate(dbheight uint32, state interfaces.IState) int {
+func (m *EOM) Validate(state interfaces.IState) int {
 	
 	return 1
 	
@@ -196,9 +195,7 @@ func (m *EOM) UnmarshalBinary(data []byte) error {
 
 func (m *EOM) MarshalForSignature() (data []byte, err error) {
 	var buf bytes.Buffer
-	
 	buf.Write([]byte{byte(m.Type())})
-	
 	if d, err := m.Timestamp.MarshalBinary(); err != nil {
 		return nil, err
 	} else {
@@ -212,11 +209,8 @@ func (m *EOM) MarshalForSignature() (data []byte, err error) {
 	}
 
 	binary.Write(&buf, binary.BigEndian, m.Minute)
-	
 	binary.Write(&buf, binary.BigEndian, m.DirectoryBlockHeight)
-	
 	binary.Write(&buf, binary.BigEndian, uint8(m.ServerIndex))
-	
 	return buf.Bytes(), nil
 }
 

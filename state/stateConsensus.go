@@ -53,7 +53,7 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) (bool, error) {
 		pl := s.ProcessLists.Get(ack.DBHeight)
 
 		if m.Type() == constants.COMMIT_CHAIN_MSG || m.Type() == constants.COMMIT_ENTRY_MSG {
-			s.PutCommits(ack.DBHeight, m.GetHash(), m)
+			s.PutCommits( m.GetHash(), m)
 		}
 
 		if pl != nil {
@@ -152,11 +152,11 @@ func (s *State) GetNewEBlocks(dbheight uint32, hash interfaces.IHash) interfaces
 func (s *State) PutNewEBlocks(dbheight uint32, hash interfaces.IHash, eb interfaces.IEntryBlock) {
 }
 
-func (s *State) GetCommits(dbheight uint32, hash interfaces.IHash) interfaces.IMsg {
+func (s *State) GetCommits(hash interfaces.IHash) interfaces.IMsg {
 	return nil
 }
-func (s *State) PutCommits(dbheight uint32, hash interfaces.IHash, msg interfaces.IMsg) {
-	s.ProcessLists.Get(dbheight).PutCommits(hash, msg)
+func (s *State) PutCommits(hash interfaces.IHash, msg interfaces.IMsg) {
+	
 }
 
 func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) {
@@ -191,7 +191,7 @@ func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)
 		ecbody := ecblk.GetBody()
 		ecbody.AddEntry(c.CommitChain)
 		s.GetFactoidState().UpdateECTransaction(true, c.CommitChain)
-		s.PutCommits(dbheight, c.GetHash(), c)
+		s.PutCommits(c.GetHash(), c)
 	}
 }
 

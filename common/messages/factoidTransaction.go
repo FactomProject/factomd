@@ -67,7 +67,7 @@ func (m *FactoidTransaction) Type() int {
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
-func (m *FactoidTransaction) Validate(dbheight uint32, state interfaces.IState) int {
+func (m *FactoidTransaction) Validate( state interfaces.IState) int {
 	err := state.GetFactoidState().Validate(1, m.Transaction)
 	if err != nil {
 		fmt.Println(err.Error())

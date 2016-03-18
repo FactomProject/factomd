@@ -194,7 +194,7 @@ func (m *MsgGetData) String() string {
 //  < 0 -- MsgGetData is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- MsgGetData is valid
-func (m *MsgGetData) Validate(dbheight uint32, state interfaces.IState) int {
+func (m *MsgGetData) Validate( state interfaces.IState) int {
 	return 0
 }
 

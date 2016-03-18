@@ -298,7 +298,7 @@ func (m *MsgReject) String() string {
 //  < 0 -- MsgReject is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- MsgReject is valid
-func (m *MsgReject) Validate(dbheight uint32, state interfaces.IState) int {
+func (m *MsgReject) Validate( state interfaces.IState) int {
 	return 0
 }
 

@@ -112,7 +112,7 @@ func (m *MsgGetAddr) String() string {
 //  < 0 -- MsgGetAddr is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- MsgGetAddr is valid
-func (m *MsgGetAddr) Validate(dbheight uint32, state interfaces.IState) int {
+func (m *MsgGetAddr) Validate( state interfaces.IState) int {
 	return 0
 }
 
