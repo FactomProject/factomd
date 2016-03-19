@@ -84,7 +84,11 @@ func (m *DirectoryBlockSignature) Validate( state interfaces.IState) int {
 // Returns true if this is a message for this server to execute as
 // a leader.
 func (m *DirectoryBlockSignature) Leader(state interfaces.IState) bool {
-	return false
+	found, index := state.GetFedServerIndex(m.DBHeight)
+	if found && uint32(index) == m.ServerIndex {
+		return true
+	}
+	return false 
 }
 
 // Execute the leader functions of the given message

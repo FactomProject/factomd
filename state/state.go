@@ -51,6 +51,7 @@ type State struct {
 	// Just to print (so debugging doesn't drive functionaility)
 	serverPrt string
 
+	timerMsgQueue		   chan interfaces.IMsg
 	networkOutMsgQueue     chan interfaces.IMsg
 	networkInvalidMsgQueue chan interfaces.IMsg
 	inMsgQueue             chan interfaces.IMsg
@@ -192,6 +193,7 @@ func (s *State) Init() {
 
 	log.SetLevel(s.ConsoleLogLevel)
 
+	s.timerMsgQueue = make(chan interfaces.IMsg, 10000) 		 //incoming eom notifications, used by leaders
 	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 10000) //incoming message queue from the network messages
 	s.networkOutMsgQueue = make(chan interfaces.IMsg, 10000)     //Messages to be broadcast to the network
 	s.inMsgQueue = make(chan interfaces.IMsg, 10000)             //incoming message queue for factom application messages
@@ -218,7 +220,7 @@ func (s *State) Init() {
 	s.ProcessLists = NewProcessLists(s)
 
 	s.DBStates = new(DBStateList)
-	s.DBStates.state = s
+	s.DBStates.State = s
 	s.DBStates.DBStates = make([]*DBState, 0)
 
 	switch s.NodeMode {
@@ -340,7 +342,7 @@ func (s *State) GetDirectoryBlockByHeight(height uint32) interfaces.IDirectoryBl
 
 func (s *State) UpdateState() {
 	s.ProcessLists.UpdateState()
-	s.DBStates.Process()
+	s.DBStates.UpdateState()
 }
 
 func (s *State) GetFactoshisPerEC() uint64 {
@@ -426,6 +428,10 @@ func (s *State) SetPort(port int) {
 
 func (s *State) GetPort() int {
 	return s.PortNumber
+}
+
+func (s *State) TimerMsgQueue() chan interfaces.IMsg {
+	return s.timerMsgQueue
 }
 
 func (s *State) NetworkInvalidMsgQueue() chan interfaces.IMsg {
@@ -515,7 +521,7 @@ func (s *State) String() string {
 	str := "\n===============================================================\n" + s.serverPrt
 	str = fmt.Sprintf("\n%s\n  Leader Height: %d", str, s.LLeaderHeight)
 	str = fmt.Sprintf("\n%s%s", str, s.DBStates.String())
-	//str = fmt.Sprintf("%s%s", str, s.ProcessLists.String())
+	str = fmt.Sprintf("%s%s", str, s.ProcessLists.String())
 	str = str + "===============================================================\n"
 	return str
 }

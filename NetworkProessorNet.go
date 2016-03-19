@@ -45,6 +45,11 @@ func NetworkProcessorNet(fnode *FactomNode) {
 		}
 
 		select {
+		case msg, ok := <-fnode.State.TimerMsgQueue():
+			if ok {
+				fnode.MLog.add2(fnode, "--", "Timer", true, msg)
+				fnode.State.InMsgQueue() <- msg
+			}
 		case msg, ok := <-fnode.State.NetworkOutMsgQueue():
 			if ok {
 				// We don't care about the result, but we do want to log that we have

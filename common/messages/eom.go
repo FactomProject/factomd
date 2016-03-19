@@ -36,6 +36,7 @@ type EOM struct {
 var _ Signable = (*EOM)(nil)
 
 func (e *EOM) Process(dbheight uint32, state interfaces.IState) bool {
+	state.Println("**************************** EOM")
 	return state.ProcessEOM(dbheight, e)
 }
 
@@ -209,35 +210,40 @@ func (m *EOM) MarshalForSignature() (data []byte, err error) {
 	}
 
 	binary.Write(&buf, binary.BigEndian, m.Minute)
-	binary.Write(&buf, binary.BigEndian, m.DirectoryBlockHeight)
 	binary.Write(&buf, binary.BigEndian, uint8(m.ServerIndex))
 	return buf.Bytes(), nil
 }
 
 func (m *EOM) MarshalBinary() (data []byte, err error) {
+	var buf bytes.Buffer
 	resp, err := m.MarshalForSignature()
 	if err != nil {
 		return nil, err
 	}
+	buf.Write(resp)
+	
+	binary.Write(&buf, binary.BigEndian, m.DirectoryBlockHeight)
+	
 	sig := m.GetSignature()
-
 	if sig != nil {
 		sigBytes, err := sig.MarshalBinary()
 		if err != nil {
 			return nil, err
 		}
-		return append(resp, sigBytes...), nil
+		buf.Write(sigBytes)
 	}
-	return resp, nil
+	return buf.Bytes(), nil
 }
 
 func (m *EOM) String() string {
-	return fmt.Sprintf("%6s-%3d: Min: %2d, Ht: %d -- hash[:10]=%x",
+	return fmt.Sprintf("%6s-%3d: Min: %2d, Ht: %d -- chainID[:5]=%x hash[:5]=%x",
 		"EOM",
 		m.ServerIndex,
-		m.Minute+1,
+		m.Minute,
 		m.DirectoryBlockHeight,
-		m.GetMsgHash().Bytes()[:10])
+		m.ChainID.Bytes()[:5],
+		m.GetMsgHash().Bytes()[:5])
+	
 }
 
 // EOM methods that conform to the Message interface.

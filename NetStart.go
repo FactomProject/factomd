@@ -177,6 +177,7 @@ func NetStart(s *state.State) {
 			switch b[0] {
 			case 'a', 'A':
 				fnodes[listenTo].State.SetOut(false)
+				fmt.Println("a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a ")
 				for _, f := range fnodes {
 					fmt.Printf("%8s %s\n", f.State.FactomNodeName, f.State.ShortString())
 				}

@@ -33,7 +33,7 @@ func Validator(state interfaces.IState) {
 
 		msg := <-state.InMsgQueue() // Get message from the input queue
 
-		if state.PrintType(msg.Type()) || true {
+		if state.PrintType(msg.Type())  {
 			state.Println(fmt.Sprintf("%20s %s", "Validator:", msg.String()))
 		}
 

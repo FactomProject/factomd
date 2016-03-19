@@ -55,12 +55,17 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) (bool, error) {
 
 		if pl != nil {
 			pl.AddToProcessList(ack, m)
+		
+			pl.OldAcks[ack.GetHash().Fixed()] = ack
+			pl.OldMsgs[m.GetHash().Fixed()] = m
+			delete(acks, m.GetHash().Fixed())
+			delete(s.Holding, m.GetHash().Fixed())
+		}else{
+			s.Println(">>>>>>>>>>>>>>>>>> Nil Process List at: ",ack.DBHeight)
+			s.Println(">>>>>>>>>>>>>>>>>> Ack:                 ",ack.String())
+			s.Println(">>>>>>>>>>>>>>>>>> DBStates:\n",s.DBStates.String())
+			s.Println("\n\n>>>>>>>>>>>>>>>>>> ProcessLists:\n",s.ProcessLists.String())
 		}
-		pl.OldAcks[ack.GetHash().Fixed()] = ack
-		pl.OldMsgs[m.GetHash().Fixed()] = m
-		delete(acks, m.GetHash().Fixed())
-		delete(s.Holding, m.GetHash().Fixed())
-
 		return true, nil
 	}
 }
@@ -87,7 +92,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) error {
 		return fmt.Errorf("Cannot execute the given DBStateMsg")
 	}
 
-	s.DBStates.last = s.GetTimestamp()
+	s.DBStates.LastTime = s.GetTimestamp()
 
 	s.AddDBState(true,
 		dbstatemsg.DirectoryBlock,
@@ -152,7 +157,6 @@ func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) error {
 	ack.FollowerExecute(s)
 	m.FollowerExecute(s)
 	
-	s.LLeaderHeight += 1										// Move to the next block
 	return nil
 }
 
@@ -214,10 +218,13 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 	ecbody.AddEntry(mn)
 	
-	if e.Minute == 9 && s.LeaderFor(msg.GetHash().Bytes()) {
-		DBS := messages.NewDirectoryBlockSignature(dbheight)
-		DBS.Timestamp = s.GetTimestamp()
-		DBS.LeaderExecute(s)
+	if e.Minute == 9  {
+		found, index := s.GetFedServerIndex(s.LLeaderHeight)
+		if found && e.ServerIndex == index {
+			DBS := messages.NewDirectoryBlockSignature(dbheight)
+			DBS.Timestamp = s.GetTimestamp()
+			DBS.LeaderExecute(s)
+		}
 	}
 	
 	return true
@@ -228,7 +235,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 // When we process the directory Signature, and we are the leader for said signature, it
 // is then that we push it out to the rest of the network.  Otherwise, if we are not the
 // leader for the signature, it marks the sig complete for that list
-func (s *State) ProcessDirectoryBlockSignature(dbheight uint32, msg interfaces.IMsg) bool {
+func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 	
 	dbs := msg.(*messages.DirectoryBlockSignature)
 	_, index := s.GetFedServerIndexFor(dbheight,dbs.ServerIdentityChainID)
@@ -237,23 +244,20 @@ func (s *State) ProcessDirectoryBlockSignature(dbheight uint32, msg interfaces.I
 	pl.SetEomComplete(index,true)
 
 	if msg.Leader(s) {
+		
 		if pl.EomComplete() {
 			dbstate := s.DBStates.Last()
 			DBS := messages.NewDirectoryBlockSignature(dbheight)
 			DBS.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
 			DBS.Sign(s)
 			s.NetworkOutMsgQueue() <- DBS
+			s.AddDBState(true,pl.DirectoryBlock,pl.AdminBlock,pl.FactoidBlock,pl.EntryCreditBlock)
 			return true
 		}else{
 			return false
 		}
 	}
 	
-	return true
-}
-
-func (s *State) ProcessDBSig(dbheight uint32, commitChain interfaces.IMsg) bool {
-	s.ProcessLists.Get(dbheight).SetSigComplete(true)
 	return true
 }
 
@@ -387,10 +391,10 @@ func (s *State) NewAdminBlock(dbheight uint32) interfaces.IAdminBlock {
 func (s *State) NewAdminBlockHeader(dbheight uint32) interfaces.IABlockHeader {
 	header := new(adminBlock.ABlockHeader)
 	header.DBHeight = dbheight
-	dbstate := s.DBStates.Last()
-	if dbstate == nil {
+	if dbheight == 0 {
 		header.PrevFullHash = primitives.NewHash(constants.ZERO_HASH)
 	} else {
+		dbstate := s.DBStates.Last()
 		keymr, err := dbstate.AdminBlock.FullHash()
 		if err != nil {
 			panic(err.Error())
@@ -409,7 +413,6 @@ func (s *State) PrintType(msgType int) bool {
 	r = r && msgType != constants.ACK_MSG
 	r = r && msgType != constants.EOM_MSG
 	r = r && msgType != constants.DIRECTORY_BLOCK_SIGNATURE_MSG
-	return r
 	r = r && msgType != constants.DBSTATE_MISSING_MSG
 	r = r && msgType != constants.DBSTATE_MSG
 	return r
@@ -474,23 +477,10 @@ func (s *State) NewAck(dbheight uint32, msg interfaces.IMsg, hash interfaces.IHa
 		}
 	}
 	pl.SetLastAck(index, ack)
-	s.Println("Last Ack ", ack.String(),"->",msg.String())
 	
 	// TODO:  Add the signature.
 
 	return ack, nil
 }
 
-func (s *State) NewEOM(minute int) interfaces.IMsg {
-	// The construction of the EOM message needs information from the state of
-	// the server to create the proper serial hashes and such.  Right now
-	// I am ignoring all of that.
-	eom := new(messages.EOM)
-	eom.Timestamp = s.GetTimestamp()
-	eom.ChainID = s.IdentityChainID
-	eom.Minute = byte(minute)
-	eom.ServerIndex = s.ServerIndex
-	eom.DirectoryBlockHeight = s.LLeaderHeight
 
-	return eom
-}

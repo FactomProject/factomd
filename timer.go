@@ -6,6 +6,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/interfaces"
 	s "github.com/FactomProject/factomd/state"
 	"time"
@@ -30,6 +31,7 @@ func Timer(state interfaces.IState) {
 	state.Print(fmt.Sprintf("Time: %v\r\n", time.Now()))
 	time.Sleep(time.Duration(wait))
 	for {
+		found, index := state.GetFedServerIndex(state.GetLeaderHeight())
 		for i := 0; i < 10; i++ {
 			now = time.Now().UnixNano()
 			wait := next - now
@@ -40,10 +42,13 @@ func Timer(state interfaces.IState) {
 			
 			// End of the last period, and this is a server, send messages that
 			// close off the minute.
-			found, _ := state.GetFedServerIndex(state.GetLeaderHeight())
 			if found {
-				eom := state.NewEOM(i)
-				state.InMsgQueue() <- eom
+				eom := new(messages.EOM)
+				eom.Minute = byte(i)
+				eom.Timestamp = state.GetTimestamp()
+				eom.ChainID = state.GetIdentityChainID()
+				eom.ServerIndex = index
+				state.TimerMsgQueue() <- eom
 			}
 		}
 	}

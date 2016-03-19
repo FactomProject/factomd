@@ -55,6 +55,7 @@ type IState interface {
 	//==========
 
 	// Network Processor
+	TimerMsgQueue() chan IMsg
 	NetworkOutMsgQueue() chan IMsg
 	NetworkInvalidMsgQueue() chan IMsg
 
@@ -112,15 +113,12 @@ type IState interface {
 	ProcessCommitChain(dbheight uint32, commitChain IMsg) bool
 	ProcessDBSig(dbheight uint32, commitChain IMsg) bool
 	ProcessEOM(dbheight uint32, eom IMsg) bool
-	ProcessDirectoryBlockSignature(dbheight uint32, msg IMsg) bool
 	
 	// For messages that go into the Process List
 	LeaderExecute(m IMsg) error
 	LeaderExecuteAddServer(m IMsg) error
 	LeaderExecuteEOM(m IMsg) error
 	LeaderExecuteDBSig(m IMsg) error
-
-	NewEOM(int) IMsg
 
 	GetTimestamp() Timestamp
 

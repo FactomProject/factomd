@@ -24,29 +24,18 @@ type ProcessLists struct {
 // is always the block above the HighestRecordedBlock.  
 func (lists *ProcessLists) UpdateState() {
 
-	lastRecorded := lists.State.GetHighestRecordedBlock()
-	buildingBlock := lastRecorded+1
-
+	buildingBlock := lists.State.GetHighestRecordedBlock()+1
 	pl := lists.Get(buildingBlock)
-
-	lists.State.Println(lists.String())
 	
 	// Look and see if we need to toss some previous blocks under construction.
 	diff := buildingBlock - lists.DBHeightBase
-	if diff >= 1 {
-		lists.DBHeightBase += (diff - 1)
-		lists.Lists = lists.Lists[(diff - 1):]
+	if diff >= 1 && len(lists.Lists)>=2{
+		lists.DBHeightBase += (diff)
+		lists.Lists = lists.Lists[(diff):]
 	}
-
+	lists.State.Println("=================================Process State DBHeight: ",buildingBlock, " base: ", lists.DBHeightBase)
 	// Create DState blocks for all completed Process Lists
 	pl.Process(lists.State)
-
-	for _, p := range lists.Lists {
-		// Only when we are sig complete that we can move on.
-		if p != nil && p.Complete() {
-			lists.State.DBStates.NewDBState(true, p.DirectoryBlock, p.AdminBlock, p.FactoidBlock, p.EntryCreditBlock)
-		}
-	}
 }
 
 func (lists *ProcessLists) Get(dbheight uint32) *ProcessList {
