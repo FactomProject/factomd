@@ -29,11 +29,10 @@ func (lists *ProcessLists) UpdateState() {
 	
 	// Look and see if we need to toss some previous blocks under construction.
 	diff := buildingBlock - lists.DBHeightBase
-	if diff >= 1 && len(lists.Lists)>=2{
-		lists.DBHeightBase += (diff)
-		lists.Lists = lists.Lists[(diff):]
+	if diff > 1 && len(lists.Lists)>1{
+		lists.DBHeightBase += (diff-1)
+		lists.Lists = lists.Lists[(diff-1):]
 	}
-	lists.State.Println("=================================Process State DBHeight: ",buildingBlock, " base: ", lists.DBHeightBase)
 	// Create DState blocks for all completed Process Lists
 	pl.Process(lists.State)
 }

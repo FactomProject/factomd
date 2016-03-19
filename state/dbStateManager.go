@@ -125,7 +125,7 @@ func (list *DBStateList) Catchup() {
 
 	list.Lastreq = begin
 
-	end2 := begin + 200
+	end2 := begin + 10
 	if end < end2 {
 		end2 = end
 	}
@@ -224,7 +224,7 @@ func (list *DBStateList) Put(dbState *DBState) {
 
 	// If we have already processed this State, ignore it.
 	if index < int(list.Complete) {
-		list.State.Println("Ignoring!  Index vs Complete: ", index, "/",list.Complete)
+		list.State.Println("Ignoring!  Block vs Base: ", dbheight, "/",list.Base)
 		return
 	}
 

@@ -36,7 +36,6 @@ type EOM struct {
 var _ Signable = (*EOM)(nil)
 
 func (e *EOM) Process(dbheight uint32, state interfaces.IState) bool {
-	state.Println("**************************** EOM")
 	return state.ProcessEOM(dbheight, e)
 }
 
@@ -172,11 +171,11 @@ func (m *EOM) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 		return nil, fmt.Errorf("Minute number is out of range")
 	}
 
-	m.DirectoryBlockHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
-
 	m.ServerIndex = int(newData[0])
 	newData = newData[1:]
 
+	m.DirectoryBlockHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+	
 	if len(newData) > 0 {
 		sig := new(primitives.Signature)
 		newData, err = sig.UnmarshalBinaryData(newData)

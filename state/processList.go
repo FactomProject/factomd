@@ -231,16 +231,14 @@ func (p *ProcessList) Process(state *State) {
 				p.Servers[i].Height = j + 1    		    // Don't process it again if the process worked.
 			}
 			
-			state.Println(plist[j])
-			
-			eom, ok := plist[j].(*messages.EOM)
-			if ok && eom.Minute == 9 {
-				p.Servers[i].EomComplete = true
-			}
-			_, ok = plist[j].(*messages.DirectoryBlockSignature)
-			if ok {
-				p.Servers[i].SigComplete = true
-			}
+			//eom, ok := plist[j].(*messages.EOM)
+			//if ok && eom.Minute == 9 {
+			//	p.Servers[i].EomComplete = true
+			//}
+			//_, ok = plist[j].(*messages.DirectoryBlockSignature)
+			//if ok {
+			//	p.Servers[i].SigComplete = true
+			//}
 		}
 	}
 }

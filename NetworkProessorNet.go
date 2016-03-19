@@ -7,7 +7,7 @@ package main
 import (
 	"fmt"
 	"github.com/FactomProject/factomd/log"
-	"math/rand"
+	"github.com/FactomProject/factomd/common/interfaces"
 	"time"
 )
 
@@ -18,10 +18,17 @@ func NetworkProcessorNet(fnode *FactomNode) {
 
 	for {
 		// Put any broadcasts from our peers into our BroadcastIn queue
-		for i, peer := range fnode.Peers {
+		peerLoop: for i, peer := range fnode.Peers {
 			for {
 				msg, err := peer.Recieve()
 				if err == nil && msg != nil {
+					if msg.IsPeer2peer() && i == 0 {
+						peers := []interfaces.IPeer {}
+						peers = append(peers, peer)
+						peers = append(peers, fnode.Peers[:i]...)
+						peers = append(peers, fnode.Peers[i+1:]...)
+						fnode.Peers = peers
+					}
 					msg.SetOrigin(i + 1)
 					if fnode.State.Replay.IsTSValid_(msg.GetMsgHash().Fixed(),
 						int64(msg.GetTimestamp())/1000,
@@ -35,11 +42,12 @@ func NetworkProcessorNet(fnode *FactomNode) {
 					} else {
 						fnode.MLog.add2(fnode, peer.GetNameTo(), "PeerIn", false, msg)
 					}
+					break peerLoop
 				} else {
 					if err != nil {
 						fmt.Println(fnode.State.GetFactomNodeName(), err)
 					}
-					break
+					break peerLoop
 				}
 			}
 		}
@@ -69,7 +77,8 @@ func NetworkProcessorNet(fnode *FactomNode) {
 						break
 					}
 					if p < 0 {
-						p = rand.Int() % len(fnode.Peers)
+						p = 0
+						fnode.Peers = append(fnode.Peers[1:],fnode.Peers[0])	// Put this peer last
 					}
 					
 					fnode.MLog.add2(fnode, fnode.Peers[p].GetNameTo(), "P2P out", true, msg)

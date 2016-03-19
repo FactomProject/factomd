@@ -98,8 +98,8 @@ func (m *MsgLog) add2(fnode *FactomNode, dest string, where string, valid bool, 
 func (m *MsgLog) prtMsgs(state interfaces.IState) {
 
 	state.Println(state.String())
-	state.Println("\n***************************************************")
-
+	state.Println("\n-----------------------------------------------------")
+	
 	for _, e := range m.MsgList {
 		if e.valid {
 			if e.fnode.State.GetOut() {
@@ -108,6 +108,6 @@ func (m *MsgLog) prtMsgs(state interfaces.IState) {
 		}
 	}
 	state.Println(fmt.Sprintf("*** %42s **** ", fmt.Sprintf("Length: %d    Msgs/sec: T %d P %d", len(m.MsgList), m.msgPerSec, m.msgPerSecp)))
-	state.Println("***************************************************\n")
+	state.Println("\n-----------------------------------------------------")
 	
 }

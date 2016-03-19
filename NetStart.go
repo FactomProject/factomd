@@ -165,7 +165,9 @@ func NetStart(s *state.State) {
 		}
 		v, err := strconv.Atoi(string(b))
 		if err == nil && v >= 0 && v < len(fnodes) {
-			fnodes[listenTo].State.SetOut(false)
+			for _,fnode := range fnodes {
+				fnode.State.SetOut(false)
+			}
 			listenTo = v
 			fnodes[listenTo].State.SetOut(true)
 			fmt.Print("\r\nSwitching to Node ", listenTo, "\r\n")
@@ -176,10 +178,14 @@ func NetStart(s *state.State) {
 			}
 			switch b[0] {
 			case 'a', 'A':
-				fnodes[listenTo].State.SetOut(false)
 				fmt.Println("a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a ")
 				for _, f := range fnodes {
+					f.State.SetOut(false)
 					fmt.Printf("%8s %s\n", f.State.FactomNodeName, f.State.ShortString())
+				}
+			case 'd','D':
+				for _,fnode := range fnodes {
+					fnode.State.SetOut(true)
 				}
 			case 27:
 				fmt.Print("Gracefully shutting down the servers...\r\n")
