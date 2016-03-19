@@ -166,7 +166,7 @@ func (msg *MsgAck) Sha() (interfaces.IHash, error) {
 
 var _ interfaces.IMsg = (*MsgAck)(nil)
 
-func (m *MsgAck) Process(uint32, interfaces.IState) {}
+func (m *MsgAck) Process(uint32, interfaces.IState) bool { return true }
 
 func (m *MsgAck) GetHash() interfaces.IHash {
 	return nil

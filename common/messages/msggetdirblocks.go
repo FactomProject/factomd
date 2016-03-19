@@ -157,7 +157,7 @@ func NewMsgGetDirBlocks(hashStop interfaces.IHash) *MsgGetDirBlocks {
 
 var _ interfaces.IMsg = (*MsgGetDirBlocks)(nil)
 
-func (m *MsgGetDirBlocks) Process(uint32, interfaces.IState) {}
+func (m *MsgGetDirBlocks) Process(uint32, interfaces.IState) bool { return true }
 
 func (m *MsgGetDirBlocks) GetHash() interfaces.IHash {
 	return nil

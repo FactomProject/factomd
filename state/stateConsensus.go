@@ -6,6 +6,7 @@ package state
 
 import (
 	"fmt"
+	"bytes"
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
@@ -33,10 +34,6 @@ func (s *State) AddDBState(isNew bool,
 	
 	dbState := s.DBStates.NewDBState(isNew, directoryBlock, adminBlock, factoidBlock, entryCreditBlock)
 	s.DBStates.Put(dbState)
-	ht := directoryBlock.GetHeader().GetDBHeight()
-	if ht >= s.LeaderHeight {
-		s.LeaderHeight = ht + 1
-	}
 }
 
 // Messages that will go into the Process List must match an Acknowledgement.
@@ -98,14 +95,19 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) error {
 		dbstatemsg.FactoidBlock,
 		dbstatemsg.EntryCreditBlock)
 
+	ht := dbstatemsg.DirectoryBlock.GetHeader().GetDBHeight() 
+	if ht >= s.LLeaderHeight {
+		s.LLeaderHeight = ht+1
+	}
 	return nil
 }
+
 
 func (s *State) LeaderExecute(m interfaces.IMsg) error {
 
 	hash := m.GetHash()
 
-	ack, err := s.NewAck(m, hash)
+	ack, err := s.NewAck(s.LLeaderHeight, m, hash)
 	if err != nil {
 		return err
 	}
@@ -124,45 +126,42 @@ func (s *State) LeaderExecuteAddServer(server interfaces.IMsg) error {
 
 func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
 	eom, _ := m.(*messages.EOM)
-	eom.DirectoryBlockHeight = s.LeaderHeight
+	eom.DirectoryBlockHeight = s.LLeaderHeight
 	if err := s.LeaderExecute(m); err != nil {
 		return err
+	}
+	if eom.Minute == 9 {
+		s.LLeaderHeight++
 	}
 	return nil
 }
 
 func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) error {
-	if err := s.LeaderExecute(m); err != nil {
+	
+	dbs := m.(*messages.DirectoryBlockSignature)
+	hash := dbs.GetHash()
+	
+	ack, err := s.NewAck(dbs.DBHeight, m, hash)
+	if err != nil {
 		return err
 	}
-	bblock := s.LeaderHeight							// Get the block the leader is building
-	if found, index := s.GetFedServerIndex(bblock); !found {
-		s.Println("Executing Leader code but not leader")
-		return fmt.Errorf("Executing Leader code but not a leader")
-	}else{
-		s.ProcessLists.Get(bblock).SetComplete(index,true)	// Set it to be "Signature Complete"
-	}
-	s.LeaderHeight = bblock + 1							// Move to the next block
-	return nil
-}
-
-func (s *State) GetNewEBlocks(dbheight uint32, hash interfaces.IHash) interfaces.IEntryBlock {
-	return nil
-}
-func (s *State) PutNewEBlocks(dbheight uint32, hash interfaces.IHash, eb interfaces.IEntryBlock) {
-}
-
-func (s *State) GetCommits(hash interfaces.IHash) interfaces.IMsg {
-	return nil
-}
-func (s *State) PutCommits(hash interfaces.IHash, msg interfaces.IMsg) {
 	
+	// Leader Execute creates an acknowledgement and the EOM
+	s.NetworkOutMsgQueue() <- ack
+	s.NetworkOutMsgQueue() <- m
+	ack.FollowerExecute(s)
+	m.FollowerExecute(s)
+	
+	s.LLeaderHeight += 1										// Move to the next block
+	return nil
 }
 
-func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) {
+
+
+func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) bool {
 	as, ok := addServerMsg.(*messages.AddServerMsg)
 	if !ok {
-		return
+		return true
 	}
 	server := new(interfaces.Server)
 	server.ChainID = as.ServerChainID
@@ -181,9 +180,11 @@ func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) 
 	for _, fed := range pl.FedServers {
 		fmt.Println("  ", fed.GetChainID().String())
 	}
+	
+	return true
 }
 
-func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg) {
+func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg) bool {
 	c, ok := commitChain.(*messages.CommitChainMsg)
 	if ok {
 		pl := s.ProcessLists.Get(dbheight)
@@ -193,9 +194,10 @@ func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)
 		s.GetFactoidState().UpdateECTransaction(true, c.CommitChain)
 		s.PutCommits(c.GetHash(), c)
 	}
+	return true
 }
 
-func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) {
+func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	e, ok := msg.(*messages.EOM)
 	if !ok {
 		panic("Must pass an EOM message to ProcessEOM)")
@@ -211,32 +213,64 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) {
 	mn := entryCreditBlock.NewMinuteNumber2(e.Minute)
 
 	ecbody.AddEntry(mn)
+	
+	if e.Minute == 9 && s.LeaderFor(msg.GetHash().Bytes()) {
+		DBS := messages.NewDirectoryBlockSignature(dbheight)
+		DBS.Timestamp = s.GetTimestamp()
+		DBS.LeaderExecute(s)
+	}
+	
+	return true
 
-	if e.Minute == 9 {
-		// TODO: This code needs to be reviewed... It works here, but we are effectively
-		// executing "leader" code in the compainion "follower" goroutine...
-		// Maybe that's okay?
-		if e.Leader(s) {
-			// What really needs to happen is that we look to make sure all
-			// EOM messages have been recieved.  If this is the LAST message,
-			// and we have ALL EOM messages from all servers, then we
-			// create a DirectoryBlockSignature (if we are the leader) and
-			// send it out to the network.
+}
+
+
+// When we process the directory Signature, and we are the leader for said signature, it
+// is then that we push it out to the rest of the network.  Otherwise, if we are not the
+// leader for the signature, it marks the sig complete for that list
+func (s *State) ProcessDirectoryBlockSignature(dbheight uint32, msg interfaces.IMsg) bool {
+	
+	dbs := msg.(*messages.DirectoryBlockSignature)
+	_, index := s.GetFedServerIndexFor(dbheight,dbs.ServerIdentityChainID)
+	
+	pl := s.ProcessLists.Get(dbheight)
+	pl.SetEomComplete(index,true)
+
+	if msg.Leader(s) {
+		if pl.EomComplete() {
+			dbstate := s.DBStates.Last()
 			DBS := messages.NewDirectoryBlockSignature(dbheight)
-			DBS.Timestamp = s.GetTimestamp()
-			prevDB := s.GetDirectoryBlock()
-			if prevDB == nil {
-				DBS.DirectoryBlockKeyMR = primitives.NewHash(constants.ZERO_HASH)
-			} else {
-				DBS.DirectoryBlockKeyMR = prevDB.GetKeyMR()
-			}
+			DBS.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
 			DBS.Sign(s)
-
 			s.NetworkOutMsgQueue() <- DBS
-			s.InMsgQueue() <- DBS
+			return true
+		}else{
+			return false
 		}
 	}
+	
+	return true
 }
+
+func (s *State) ProcessDBSig(dbheight uint32, commitChain interfaces.IMsg) bool {
+	s.ProcessLists.Get(dbheight).SetSigComplete(true)
+	return true
+}
+
+
+func (s *State) GetNewEBlocks(dbheight uint32, hash interfaces.IHash) interfaces.IEntryBlock {
+	return nil
+}
+func (s *State) PutNewEBlocks(dbheight uint32, hash interfaces.IHash, eb interfaces.IEntryBlock) {
+}
+
+func (s *State) GetCommits(hash interfaces.IHash) interfaces.IMsg {
+	return nil
+}
+func (s *State) PutCommits(hash interfaces.IHash, msg interfaces.IMsg) {
+	
+}
+
 
 // This is the highest block signed off and recorded in the Database.
 func (s *State) GetHighestRecordedBlock() uint32 {
@@ -245,7 +279,7 @@ func (s *State) GetHighestRecordedBlock() uint32 {
 
 // This is lowest block currently under construction under the "leader".
 func (s *State) GetLeaderHeight() uint32 {
-	return s.LeaderHeight
+	return s.LLeaderHeight
 }
 
 // The highest block for which we have received a message.  Sometimes the same as
@@ -254,12 +288,10 @@ func (s *State) GetHighestKnownBlock() uint32 {
 	if s.ProcessLists == nil {
 		return 0
 	}
-	return s.ProcessLists.GetHighestKnownBlock()
+	return s.ProcessLists.DBHeightBase+uint32(len(s.ProcessLists.Lists)-1)
 }
 
-func (s *State) ProcessDBS(dbheight uint32, commitChain interfaces.IMsg) {
-	s.ProcessLists.Get(dbheight).SetSigComplete(true)
-}
+
 
 func (s *State) GetF(adr [32]byte) int64 {
 	if v, ok := s.FactoidBalancesT[adr]; !ok {
@@ -325,8 +357,12 @@ func (s *State) GetFedServerIndexFor(dbheight uint32, chainID interfaces.IHash) 
 	pl := s.ProcessLists.Get(dbheight)
 
 	if pl == nil {
-		s.Println(" No Process List for: ", dbheight)
-		return false, 0
+		if bytes.Compare(chainID.Bytes(),s.CoreChainID.Bytes())==0 {
+			return true, 0
+		}else{
+			s.Println(" No Process List for: ", dbheight)
+			return false, 0
+		}
 	}
 
 	if s.serverState == 1 && len(pl.FedServers) == 0 {
@@ -412,18 +448,18 @@ func (s *State) GetNewHash() interfaces.IHash {
 }
 
 // Create a new Acknowledgement.  This Acknowledgement
-func (s *State) NewAck(msg interfaces.IMsg, hash interfaces.IHash) (iack interfaces.IMsg, err error) {
+func (s *State) NewAck(dbheight uint32, msg interfaces.IMsg, hash interfaces.IHash) (iack interfaces.IMsg, err error) {
 
-	found,index := s.GetFedServerIndex(s.LeaderHeight)
+	found,index := s.GetFedServerIndex(dbheight)
 	if !found {
 		return nil, fmt.Errorf(s.FactomNodeName+": Creation of an Ack attempted by non-server")
 	}
-	pl := s.ProcessLists.Get(s.LeaderHeight)
+	pl := s.ProcessLists.Get(dbheight)
 
 	last, ok := pl.GetLastAck(index).(*messages.Ack)
 
 	ack := new(messages.Ack)
-	ack.DBHeight = s.LeaderHeight
+	ack.DBHeight = dbheight
 
 	ack.Timestamp = s.GetTimestamp()
 	ack.MessageHash = hash
@@ -454,7 +490,7 @@ func (s *State) NewEOM(minute int) interfaces.IMsg {
 	eom.ChainID = s.IdentityChainID
 	eom.Minute = byte(minute)
 	eom.ServerIndex = s.ServerIndex
-	eom.DirectoryBlockHeight = s.LeaderHeight
+	eom.DirectoryBlockHeight = s.LLeaderHeight
 
 	return eom
 }

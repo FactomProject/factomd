@@ -23,7 +23,7 @@ type InvalidDirectoryBlock struct {
 
 var _ interfaces.IMsg = (*InvalidDirectoryBlock)(nil)
 
-func (m *InvalidDirectoryBlock) Process(uint32, interfaces.IState) {}
+func (m *InvalidDirectoryBlock) Process(uint32, interfaces.IState) bool { return true }
 
 func (m *InvalidDirectoryBlock) GetHash() interfaces.IHash {
 	if m.hash == nil {

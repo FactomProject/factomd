@@ -54,7 +54,7 @@ func NewMsgGetAddr() *MsgGetAddr {
 
 var _ interfaces.IMsg = (*MsgGetAddr)(nil)
 
-func (m *MsgGetAddr) Process(uint32, interfaces.IState) {}
+func (m *MsgGetAddr) Process(uint32, interfaces.IState) bool { return true }
 
 func (m *MsgGetAddr) GetHash() interfaces.IHash {
 	return nil

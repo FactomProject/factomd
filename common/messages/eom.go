@@ -35,8 +35,8 @@ type EOM struct {
 //var _ interfaces.IConfirmation = (*EOM)(nil)
 var _ Signable = (*EOM)(nil)
 
-func (e *EOM) Process(dbheight uint32, state interfaces.IState) {
-	state.ProcessEOM(dbheight, e)
+func (e *EOM) Process(dbheight uint32, state interfaces.IState) bool {
+	return state.ProcessEOM(dbheight, e)
 }
 
 func (m *EOM) GetHash() interfaces.IHash {

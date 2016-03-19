@@ -20,7 +20,7 @@ type EOMTimeout struct {
 
 var _ interfaces.IMsg = (*EOMTimeout)(nil)
 
-func (e *EOMTimeout) Process(uint32, interfaces.IState) {
+func (e *EOMTimeout) Process(uint32, interfaces.IState) bool {
 	panic("EOMTimeout is not implemented.")
 }
 

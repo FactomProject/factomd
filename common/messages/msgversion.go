@@ -294,7 +294,7 @@ func (msg *MsgVersion) AddUserAgent(name string, version string,
 
 var _ interfaces.IMsg = (*MsgVersion)(nil)
 
-func (m *MsgVersion) Process(uint32, interfaces.IState) {}
+func (m *MsgVersion) Process(uint32, interfaces.IState) bool { return true }
 
 func (m *MsgVersion) GetHash() interfaces.IHash {
 	return nil

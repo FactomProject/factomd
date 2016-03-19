@@ -97,15 +97,16 @@ func (m *FactoidTransaction) FollowerExecute(state interfaces.IState) error {
 	return err
 }
 
-func (m *FactoidTransaction) Process(dbheight uint32, state interfaces.IState) {
+func (m *FactoidTransaction) Process(dbheight uint32, state interfaces.IState) bool {
 
 	if m.processed {
-		return
+		return true
 	}
 	m.processed = true
 	fmt.Println("Process Factoid")
 	// We can only get a Factoid Transaction once.  Add it, and remove it from the lists.
 	state.GetFactoidState().AddTransaction(1, m.Transaction)
+	return true
 
 }
 

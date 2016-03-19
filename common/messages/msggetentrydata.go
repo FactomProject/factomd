@@ -136,7 +136,7 @@ func NewMsgGetEntryDataSizeHint(sizeHint uint) *MsgGetEntryData {
 
 var _ interfaces.IMsg = (*MsgGetEntryData)(nil)
 
-func (m *MsgGetEntryData) Process(uint32, interfaces.IState) {}
+func (m *MsgGetEntryData) Process(uint32, interfaces.IState) bool { return true }
 
 func (m *MsgGetEntryData) GetHash() interfaces.IHash {
 	return nil

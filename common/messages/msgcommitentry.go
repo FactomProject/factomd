@@ -93,7 +93,7 @@ func (msg *MsgCommitEntry) Sha() (interfaces.IHash, error) {
 
 var _ interfaces.IMsg = (*MsgCommitEntry)(nil)
 
-func (m *MsgCommitEntry) Process(uint32, interfaces.IState) {}
+func (m *MsgCommitEntry) Process(uint32, interfaces.IState) bool { return true }
 
 func (m *MsgCommitEntry) GetHash() interfaces.IHash {
 	return nil

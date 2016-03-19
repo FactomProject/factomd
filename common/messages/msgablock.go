@@ -75,7 +75,7 @@ func NewMsgABlock() *MsgABlock {
 
 var _ interfaces.IMsg = (*MsgABlock)(nil)
 
-func (m *MsgABlock) Process(uint32, interfaces.IState) {}
+func (m *MsgABlock) Process(uint32, interfaces.IState) bool { return true }
 
 func (m *MsgABlock) GetHash() interfaces.IHash {
 	return nil

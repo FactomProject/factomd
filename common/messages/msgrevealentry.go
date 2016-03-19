@@ -93,7 +93,7 @@ func (msg *MsgRevealEntry) IsValid() bool {
 
 var _ interfaces.IMsg = (*MsgRevealEntry)(nil)
 
-func (m *MsgRevealEntry) Process(uint32, interfaces.IState) {}
+func (m *MsgRevealEntry) Process(uint32, interfaces.IState) bool { return true }
 
 func (m *MsgRevealEntry) GetHash() interfaces.IHash {
 	return nil

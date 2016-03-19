@@ -63,7 +63,7 @@ type State struct {
 	OutputAllowed bool
 	ServerIndex   int // Index of the server, as understood by the leader
 
-	LeaderHeight uint32
+	LLeaderHeight uint32
 
 	// Maps
 	// ====
@@ -513,7 +513,7 @@ func (s *State) InitMapDB() error {
 
 func (s *State) String() string {
 	str := "\n===============================================================\n" + s.serverPrt
-	str = fmt.Sprintf("\n%s\n  Leader Height: %d", str, s.LeaderHeight)
+	str = fmt.Sprintf("\n%s\n  Leader Height: %d", str, s.LLeaderHeight)
 	str = fmt.Sprintf("\n%s%s", str, s.DBStates.String())
 	//str = fmt.Sprintf("%s%s", str, s.ProcessLists.String())
 	str = str + "===============================================================\n"

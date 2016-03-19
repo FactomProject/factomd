@@ -105,7 +105,7 @@ func (m *DBStateMissing) FollowerExecute(state interfaces.IState) error {
 }
 
 // Acknowledgements do not go into the process list.
-func (e *DBStateMissing) Process(dbheight uint32, state interfaces.IState) {
+func (e *DBStateMissing) Process(dbheight uint32, state interfaces.IState) bool {
 	panic("Ack object should never have its Process() method called")
 }
 

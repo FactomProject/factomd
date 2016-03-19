@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/common/directoryBlock"
+	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"log"
 )
 
@@ -54,7 +56,6 @@ type ListServer struct {
 	EomComplete bool              // Lists that are end of minute complete
 	SigComplete bool              // Lists that are signature complete
 	LastAck 	interfaces.IMsg   // The last Acknowledgement set by this server
-	
 }
 
 // Given a server index, return the last Ack
@@ -145,19 +146,6 @@ func (p ProcessList) HasMessage() bool {
 }
 
 
-// TODO:  Need to map the server identity to the process list for which it 
-// is responsible.  Right now, works with only one server!
-func (p *ProcessList) SetSigComplete(value bool) {
-	found, i := p.GetFedServerIndex(p.State.GetIdentityChainID())
-	if !found { return }
-	p.Servers[i].SigComplete = value
-}
-
-func (p *ProcessList) SetEomComplete(value bool) {
-	found, i := p.GetFedServerIndex(p.State.GetIdentityChainID())
-	if !found { return }
-	p.Servers[i].EomComplete = value
-}
 
 func (p *ProcessList) GetNewEBlocks(key interfaces.IHash) interfaces.IEntryBlock {
 
@@ -171,14 +159,35 @@ func (p *ProcessList) PutNewEBlocks(dbheight uint32, key interfaces.IHash, value
 
 }
 
+
+// TODO:  Need to map the server identity to the process list for which it 
+// is responsible.  Right now, works with only one server!
+func (p *ProcessList) SetSigComplete(value bool) {
+	found, i := p.GetFedServerIndex(p.State.GetIdentityChainID())
+	if !found { return }
+	p.Servers[i].SigComplete = value
+}
+
+// Set the EomComplete for the ith list
+func (p *ProcessList) SetEomComplete(i int, value bool) {
+	found, i := p.GetFedServerIndex(p.State.GetIdentityChainID())
+	if !found { return }
+	p.Servers[i].EomComplete = value
+}
+
 // Test if a process list for a server is EOM complete.  Return true if all messages
 // have been recieved, and we just need the signaure.  If we need EOM messages, or we 
 // have all EOM messages and we have the Signature, then we return false.
-func (p *ProcessList) SigServerComplete(serverIndex int) bool {
+func (p *ProcessList) EomComplete() bool {
 	if p == nil {
-		return false
+		return true
 	}
-	return p.Servers[serverIndex].EomComplete && !p.Servers[serverIndex].SigComplete
+	for _, c := range p.Servers {
+		if !c.EomComplete {
+			return false
+		}
+	}
+	return true
 }
 
 // Test if the process list is complete.  Return true if all messages
@@ -217,8 +226,10 @@ func (p *ProcessList) Process(state *State) {
 				p.State.Println("!!!!!!! Missing entry in process list at", j)
 				return
 			}
-			p.Servers[i].Height = j + 1         // Don't process it again.
-			plist[j].Process(p.DBHeight, state) // Process this entry
+			
+			if plist[j].Process(p.DBHeight, state) {	// Try and Process this entry
+				p.Servers[i].Height = j + 1    		    // Don't process it again if the process worked.
+			}
 			
 			state.Println(plist[j])
 			
@@ -330,5 +341,23 @@ func NewProcessList(state interfaces.IState, totalServers int, dbheight uint32) 
 	pl.FedServers = make([]interfaces.IFctServer, 0)
 	pl.ServerOrder = make([][]interfaces.IFctServer, 0)
 
+	s := state.(*State)
+	dbstate := s.DBStates.Last()
+	var err error
+	if dbstate != nil {
+		pl.DirectoryBlock = directoryBlock.NewDirectoryBlock(dbheight, dbstate.DirectoryBlock.(*directoryBlock.DirectoryBlock))
+		pl.FactoidBlock = state.GetFactoidState().GetCurrentBlock()
+		pl.AdminBlock = s.NewAdminBlock(dbheight)
+		pl.EntryCreditBlock, err = entryCreditBlock.NextECBlock(dbstate.EntryCreditBlock)
+	}else{
+		pl.DirectoryBlock = directoryBlock.NewDirectoryBlock(dbheight, nil)
+		pl.FactoidBlock = state.GetFactoidState().GetCurrentBlock()
+		pl.AdminBlock = s.NewAdminBlock(dbheight)
+		pl.EntryCreditBlock, err = entryCreditBlock.NextECBlock(nil)
+	}
+	if err != nil {
+		panic(err.Error())
+	}
+	
 	return pl
 }

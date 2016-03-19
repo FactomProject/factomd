@@ -42,9 +42,10 @@ func (m *CommitEntryMsg) SetCount(cnt int) {
 	m.count = cnt
 }
 
-func (e *CommitEntryMsg) Process(dbheight uint32, state interfaces.IState) {
+func (e *CommitEntryMsg) Process(dbheight uint32, state interfaces.IState) bool {
 	// panic prevents factomd from running continuously.
-	fmt.Println("*** CommitEntryMsg is not implemented.")
+	state.Println("*** CommitEntryMsg is not implemented.")
+	return true
 }
 
 func (m *CommitEntryMsg) GetHash() interfaces.IHash {

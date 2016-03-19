@@ -148,7 +148,7 @@ func NewMsgAddr() *MsgAddr {
 
 var _ interfaces.IMsg = (*MsgAddr)(nil)
 
-func (m *MsgAddr) Process(uint32, interfaces.IState) {}
+func (m *MsgAddr) Process(uint32, interfaces.IState) bool { return true }
 
 func (m *MsgAddr) GetHash() interfaces.IHash {
 	return nil

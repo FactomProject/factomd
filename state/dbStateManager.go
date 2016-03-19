@@ -75,7 +75,9 @@ func (ds *DBState) String() string {
 }
 
 func (list *DBStateList) GetHighestRecordedBlock() uint32 {
-	return list.base + uint32(len(list.DBStates))
+	ht := list.base + uint32(len(list.DBStates))
+	list.state.Println("oooooooooooooooooooooooooooooo Highest ",ht)
+	return ht
 }
 
 // Once a second at most, we check to see if we need to pull down some blocks to catch up.

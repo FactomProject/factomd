@@ -85,8 +85,8 @@ func (m *AddServerMsg) FollowerExecute(state interfaces.IState) error {
 }
 
 // Acknowledgements do not go into the process list.
-func (e *AddServerMsg) Process(dbheight uint32, state interfaces.IState) {
-	state.ProcessAddServer(dbheight, e)
+func (e *AddServerMsg) Process(dbheight uint32, state interfaces.IState) bool {
+	return state.ProcessAddServer(dbheight, e)
 }
 
 func (e *AddServerMsg) JSONByte() ([]byte, error) {

@@ -23,7 +23,7 @@ type RequestBlock struct {
 
 var _ interfaces.IMsg = (*RequestBlock)(nil)
 
-func (m *RequestBlock) Process(uint32, interfaces.IState) {}
+func (m *RequestBlock) Process(uint32, interfaces.IState) bool { return true }
 
 func (m *RequestBlock) GetHash() interfaces.IHash {
 	if m.hash == nil {

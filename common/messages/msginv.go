@@ -144,7 +144,7 @@ func NewMsgInvSizeHint(sizeHint uint) *MsgInv {
 
 var _ interfaces.IMsg = (*MsgInv)(nil)
 
-func (m *MsgInv) Process(uint32, interfaces.IState) {}
+func (m *MsgInv) Process(uint32, interfaces.IState) bool { return true }
 
 func (m *MsgInv) GetHash() interfaces.IHash {
 	return nil

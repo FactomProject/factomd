@@ -190,7 +190,7 @@ func NewMsgReject(command string, code RejectCode, reason string) *MsgReject {
 
 var _ interfaces.IMsg = (*MsgReject)(nil)
 
-func (m *MsgReject) Process(uint32, interfaces.IState) {}
+func (m *MsgReject) Process(uint32, interfaces.IState) bool { return true }
 
 func (m *MsgReject) GetHash() interfaces.IHash {
 	return nil

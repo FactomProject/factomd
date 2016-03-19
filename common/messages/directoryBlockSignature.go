@@ -31,8 +31,8 @@ type DirectoryBlockSignature struct {
 var _ interfaces.IMsg = (*DirectoryBlockSignature)(nil)
 var _ Signable = (*DirectoryBlockSignature)(nil)
 
-func (e *DirectoryBlockSignature) Process(dbheight uint32, state interfaces.IState) {
-	state.ProcessDBS(dbheight, e)
+func (e *DirectoryBlockSignature) Process(dbheight uint32, state interfaces.IState) bool {
+	return state.ProcessDBSig(dbheight, e)
 }
 
 func (m *DirectoryBlockSignature) GetHash() interfaces.IHash {
@@ -84,7 +84,7 @@ func (m *DirectoryBlockSignature) Validate( state interfaces.IState) int {
 // Returns true if this is a message for this server to execute as
 // a leader.
 func (m *DirectoryBlockSignature) Leader(state interfaces.IState) bool {
-	return state.LeaderFor(m.GetHash().Bytes())
+	return false
 }
 
 // Execute the leader functions of the given message

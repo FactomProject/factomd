@@ -135,7 +135,7 @@ func (msg *MsgFactoidTX) Sha() (interfaces.IHash, error) {
 
 var _ interfaces.IMsg = (*MsgFactoidTX)(nil)
 
-func (m *MsgFactoidTX) Process(uint32, interfaces.IState) {}
+func (m *MsgFactoidTX) Process(uint32, interfaces.IState) bool { return true }
 
 func (m *MsgFactoidTX) GetHash() interfaces.IHash {
 	return nil

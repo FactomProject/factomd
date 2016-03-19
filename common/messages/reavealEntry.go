@@ -30,7 +30,7 @@ type RevealEntryMsg struct {
 
 var _ interfaces.IMsg = (*RevealEntryMsg)(nil)
 
-func (m *RevealEntryMsg) Process(dbheight uint32, state interfaces.IState) {
+func (m *RevealEntryMsg) Process(dbheight uint32, state interfaces.IState) bool {
 	c := state.GetCommits(m.GetHash())
 	_, isNewChain := c.(*CommitChainMsg)
 	if isNewChain {
@@ -61,6 +61,8 @@ func (m *RevealEntryMsg) Process(dbheight uint32, state interfaces.IState) {
 		}
 
 	}
+	
+	return true
 }
 
 func (m *RevealEntryMsg) GetHash() interfaces.IHash {

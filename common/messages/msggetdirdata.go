@@ -136,7 +136,7 @@ func NewMsgGetDirDataSizeHint(sizeHint uint) *MsgGetDirData {
 
 var _ interfaces.IMsg = (*MsgGetDirData)(nil)
 
-func (m *MsgGetDirData) Process(uint32, interfaces.IState) {}
+func (m *MsgGetDirData) Process(uint32, interfaces.IState) bool { return true }
 
 func (m *MsgGetDirData) GetHash() interfaces.IHash {
 	return nil

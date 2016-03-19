@@ -87,7 +87,7 @@ func (msg *MsgRevealChain) Sha() (interfaces.IHash, error) {
 
 var _ interfaces.IMsg = (*MsgRevealChain)(nil)
 
-func (m *MsgRevealChain) Process(uint32, interfaces.IState) {}
+func (m *MsgRevealChain) Process(uint32, interfaces.IState) bool { return true }
 
 func (m *MsgRevealChain) GetHash() interfaces.IHash {
 	return nil

@@ -74,7 +74,7 @@ func NewMsgEntry() *MsgEntry {
 
 var _ interfaces.IMsg = (*MsgEntry)(nil)
 
-func (m *MsgEntry) Process(uint32, interfaces.IState) {}
+func (m *MsgEntry) Process(uint32, interfaces.IState) bool { return true }
 
 func (m *MsgEntry) GetHash() interfaces.IHash {
 	return nil

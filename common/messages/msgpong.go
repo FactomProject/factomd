@@ -67,7 +67,7 @@ func NewMsgPong(nonce uint64) *MsgPong {
 
 var _ interfaces.IMsg = (*MsgPong)(nil)
 
-func (m *MsgPong) Process(uint32, interfaces.IState) {}
+func (m *MsgPong) Process(uint32, interfaces.IState) bool { return true }
 
 func (m *MsgPong) GetHash() interfaces.IHash {
 	return nil

@@ -64,5 +64,6 @@ type IMsg interface {
 
 	// Process.  When we get a sequence of acknowledgements that we trust, we process.
 	// A message will only be processed once, and in order, guaranteed.
-	Process(dbheight uint32, state IState)
+	// Returns true if able to process, false if process is waiting on something.
+	Process(dbheight uint32, state IState) bool
 }

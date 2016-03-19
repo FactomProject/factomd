@@ -23,7 +23,7 @@ type SignatureTimeout struct {
 
 var _ interfaces.IMsg = (*SignatureTimeout)(nil)
 
-func (m *SignatureTimeout) Process(uint32, interfaces.IState) {}
+func (m *SignatureTimeout) Process(uint32, interfaces.IState) bool { return true }
 
 func (m *SignatureTimeout) GetHash() interfaces.IHash {
 	if m.hash == nil {

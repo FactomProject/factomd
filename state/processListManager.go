@@ -2,8 +2,6 @@ package state
 
 import (
 	"fmt"
-	"github.com/FactomProject/factomd/common/directoryBlock"
-	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"log"
 )
@@ -21,99 +19,32 @@ type ProcessLists struct {
 
 }
 
-func (lists *ProcessLists) String() string {
-	str := "Process Lists"
-	str = fmt.Sprintf("%s  DBBase: %d\n", str, lists.DBHeightBase)
-	for i, pl := range lists.Lists {
-		str = fmt.Sprintf("%s %d %s\n", str, uint32(i)+lists.DBHeightBase, pl.String())
-	}
-	return str
-}
 
-// Returns the height of the Process List under construction.  There
-// can be another list under construction (because of missing messages.), but
-// this is the one just above the DBStates list.
-//
-// Note if we are waiting on DBStates, this routine returns zero
-func (lists *ProcessLists) GetBuildingBlock() uint32 {
-
-	last := lists.DBHeightBase
-	for _, list := range lists.Lists {
-		if list.Complete() {
-			last++
-		}
-	}
-
-	if last < lists.State.LeaderHeight {
-		last = lists.State.LeaderHeight
-	}
-
-	return last
-}
-
-// The highest block for which we have received a message.  Sometimes the same as
-// BuildingBlock(), but can be different depending or the order messages are recieved.
-func (lists *ProcessLists) GetHighestKnownBlock() uint32 {
-	last := lists.DBHeightBase
-	for _, list := range lists.Lists { // Need to consider the leader transition.
-		if list != nil && list.HasMessage() {
-			last = list.DBHeight
-		}
-	}
-	return last
-}
-
+// UpdateState is executed from a Follower's perspective.  So the block we are building
+// is always the block above the HighestRecordedBlock.  
 func (lists *ProcessLists) UpdateState() {
 
-	buildingBlock := lists.GetBuildingBlock()
-
-	if buildingBlock == 0 {
-		fmt.Println("Not Building anything")
-		return
-	}
-
 	lastRecorded := lists.State.GetHighestRecordedBlock()
-	if buildingBlock-1 > lastRecorded {
-		//return
-	}
+	buildingBlock := lastRecorded+1
 
 	pl := lists.Get(buildingBlock)
 
-	lists.State.Print(pl.String())
-
+	lists.State.Println(lists.String())
+	
+	// Look and see if we need to toss some previous blocks under construction.
 	diff := buildingBlock - lists.DBHeightBase
 	if diff >= 1 {
 		lists.DBHeightBase += (diff - 1)
 		lists.Lists = lists.Lists[(diff - 1):]
 	}
 
-	//*******************************************************************//
-	// Do initialization of blocks for the next Process List level here
-	//*******************************************************************
-	if pl.DirectoryBlock == nil {
-		dbstate := lists.State.DBStates.Last()
-		pl.DirectoryBlock = directoryBlock.NewDirectoryBlock(buildingBlock, nil)
-		pl.FactoidBlock = lists.State.GetFactoidState().GetCurrentBlock()
-		pl.AdminBlock = lists.State.NewAdminBlock(buildingBlock)
-		var err error
-		if dbstate != nil {
-			pl.EntryCreditBlock, err = entryCreditBlock.NextECBlock(dbstate.EntryCreditBlock)
-		}else{
-			pl.EntryCreditBlock, err = entryCreditBlock.NextECBlock(nil)
-		}
-		if err != nil {
-			panic(err.Error())
-		}
-
-	}
 	// Create DState blocks for all completed Process Lists
 	pl.Process(lists.State)
 
-	for i, p := range lists.Lists {
+	for _, p := range lists.Lists {
 		// Only when we are sig complete that we can move on.
 		if p != nil && p.Complete() {
 			lists.State.DBStates.NewDBState(true, p.DirectoryBlock, p.AdminBlock, p.FactoidBlock, p.EntryCreditBlock)
-			lists.State.LeaderHeight = lists.DBHeightBase + uint32(i)+1
 		}
 	}
 }
@@ -135,6 +66,15 @@ func (lists *ProcessLists) Get(dbheight uint32) *ProcessList {
 		lists.Lists[i] = pl
 	}
 	return pl
+}
+
+func (lists *ProcessLists) String() string {
+	str := "Process Lists"
+	str = fmt.Sprintf("%s  DBBase: %d\n", str, lists.DBHeightBase)
+	for i, pl := range lists.Lists {
+		str = fmt.Sprintf("%s ht: %d pl: %s\n", str, uint32(i)+lists.DBHeightBase, pl.String())
+	}
+	return str
 }
 
 /************************************************

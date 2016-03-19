@@ -52,7 +52,7 @@ func NewMsgVerAck() *MsgVerAck {
 
 var _ interfaces.IMsg = (*MsgVerAck)(nil)
 
-func (m *MsgVerAck) Process(uint32, interfaces.IState) {}
+func (m *MsgVerAck) Process(uint32, interfaces.IState) bool { return true }
 
 func (m *MsgVerAck) GetHash() interfaces.IHash {
 	return nil

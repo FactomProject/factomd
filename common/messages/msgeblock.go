@@ -75,7 +75,7 @@ func NewMsgEBlock() *MsgEBlock {
 
 var _ interfaces.IMsg = (*MsgEBlock)(nil)
 
-func (m *MsgEBlock) Process(uint32, interfaces.IState) {}
+func (m *MsgEBlock) Process(uint32, interfaces.IState) bool { return true }
 
 func (m *MsgEBlock) GetHash() interfaces.IHash {
 	return nil
