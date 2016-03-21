@@ -211,7 +211,9 @@ func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
 
 	fs.CurrentBlock = block.NewFBlock(fs.State.GetFactoshisPerEC(), fs.DBHeight+1)
 
-	t := coinbase.GetCoinbase(interfaces.GetTimeMilli())
+	// TODO:  Need to get the leader time to put in the Coinbase ... Can't compute
+	// this on the fly and expect everyone to come up with the same timestamp.
+	t := coinbase.GetCoinbase(0)
 	err := fs.CurrentBlock.AddCoinbase(t)
 	if err != nil {
 		panic(err.Error())
