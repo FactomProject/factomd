@@ -6,8 +6,8 @@ package main
 
 import (
 	"fmt"
-	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages"
 	s "github.com/FactomProject/factomd/state"
 	"time"
 )
@@ -15,7 +15,7 @@ import (
 var _ = (*s.State)(nil)
 
 func Timer(state interfaces.IState) {
-	
+
 	time.Sleep(2 * time.Second)
 
 	billion := int64(1000000000)
@@ -39,7 +39,7 @@ func Timer(state interfaces.IState) {
 			time.Sleep(time.Duration(wait))
 
 			// PrintBush(state,i)
-			
+
 			// End of the last period, and this is a server, send messages that
 			// close off the minute.
 			if found {
@@ -56,14 +56,14 @@ func Timer(state interfaces.IState) {
 }
 
 func PrintBusy(state interfaces.IState, i int) {
-	
+
 	s := state.(*s.State)
-	
+
 	if len(s.ShutdownChan) == 0 {
 		state.Print(fmt.Sprintf("\r%19s: %s %s",
-								"Timer",
-						  state.String(),
-								(string)((([]byte)("-\\|/-\\|/-="))[i])))
+			"Timer",
+			state.String(),
+			(string)((([]byte)("-\\|/-\\|/-="))[i])))
 	}
-	
+
 }

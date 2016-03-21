@@ -75,8 +75,10 @@ func (ds *DBState) String() string {
 }
 
 func (list *DBStateList) GetHighestRecordedBlock() uint32 {
-	if len(list.DBStates) ==  0 {return 0}
-	ht := list.Base + uint32(len(list.DBStates))-1
+	if len(list.DBStates) == 0 {
+		return 0
+	}
+	ht := list.Base + uint32(len(list.DBStates)) - 1
 	return ht
 }
 
@@ -139,19 +141,19 @@ func (list *DBStateList) Catchup() {
 }
 
 func (list *DBStateList) UpdateState() {
-	
+
 	list.Catchup()
-	
-	for i,d := range list.DBStates {
-		
+
+	for i, d := range list.DBStates {
+
 		if d == nil {
-			list.State.Println("Null at ",i," in DBStates")
+			list.State.Println("Null at ", i, " in DBStates")
 			return
 		}
-		
+
 		// Make sure the directory block is properly synced up with the prior block, if there
 		// is one.
-		
+
 		dblk, _ := list.State.GetDB().FetchDBlockByHash(d.DirectoryBlock.GetKeyMR())
 		if dblk == nil {
 			if i > 0 {
@@ -176,7 +178,7 @@ func (list *DBStateList) UpdateState() {
 			}
 		}
 		list.State.GetAnchor().UpdateDirBlockInfoMap(dbInfo.NewDirBlockInfoFromDirBlock(d.DirectoryBlock))
-		
+
 		// Process the Factoid End of Block
 		fs := list.State.GetFactoidState()
 		fs.AddTransactionBlock(d.FactoidBlock)
@@ -188,9 +190,6 @@ func (list *DBStateList) UpdateState() {
 		}
 	}
 }
-
-
-
 
 func (list *DBStateList) Last() *DBState {
 	Last := len(list.DBStates)
@@ -210,22 +209,23 @@ func (list *DBStateList) Put(dbState *DBState) {
 	dbheight := dblk.GetHeader().GetDBHeight()
 
 	cnt := 0
-	for _,v := range list.DBStates{
-		if v== nil { break }
+	for _, v := range list.DBStates {
+		if v == nil {
+			break
+		}
 		cnt++
 	}
-	if cnt > 2  {
+	if cnt > 2 {
 		list.DBStates = list.DBStates[cnt-2:]
 		list.Base = list.Base + uint32(cnt) - 2
 		list.Complete = list.Complete - uint32(cnt) + 2
 	}
-	
-	
+
 	index := int(dbheight) - int(list.Base)
 
 	// If we have already processed this State, ignore it.
 	if index < int(list.Complete) {
-		list.State.Println("Ignoring!  Block vs Base: ", dbheight, "/",list.Base)
+		list.State.Println("Ignoring!  Block vs Base: ", dbheight, "/", list.Base)
 		return
 	}
 
@@ -258,7 +258,6 @@ func (list *DBStateList) Get(height uint32) *DBState {
 	}
 	return list.DBStates[i]
 }
-
 
 func (list *DBStateList) NewDBState(isNew bool,
 	DirectoryBlock interfaces.IDirectoryBlock,

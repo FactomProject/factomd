@@ -70,7 +70,7 @@ func (e *ECBlock) AddEntry(entries ...interfaces.IECBlockEntry) {
 }
 
 func (e *ECBlock) GetHash() interfaces.IHash {
-	h,_ := e.Hash()
+	h, _ := e.Hash()
 	return h
 }
 

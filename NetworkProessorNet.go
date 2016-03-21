@@ -6,8 +6,8 @@ package main
 
 import (
 	"fmt"
-	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/log"
 	"math/rand"
 	"time"
 )
@@ -18,21 +18,21 @@ var _ = fmt.Print
 func NetworkProcessorNet(fnode *FactomNode) {
 
 	like := 0
-	
+
 	for {
 		// Put any broadcasts from our peers into our BroadcastIn queue
 		for i, peer := range fnode.Peers {
 			for {
 				msg, err := peer.Recieve()
-				
+
 				if err == nil && msg != nil {
-				
+
 					if msg.IsPeer2peer() {
 						if msg.Type() == constants.DBSTATE_MSG {
 							like = i
 						}
 					}
-					
+
 					msg.SetOrigin(i + 1)
 					if fnode.State.Replay.IsTSValid_(msg.GetMsgHash().Fixed(),
 						int64(msg.GetTimestamp())/1000,
@@ -83,7 +83,7 @@ func NetworkProcessorNet(fnode *FactomNode) {
 						p = like
 						like = rand.Int() % len(fnode.Peers)
 					}
-					
+
 					fnode.MLog.add2(fnode, true, fnode.Peers[p].GetNameTo(), "P2P out", true, msg)
 					fnode.Peers[p].Send(msg)
 

@@ -142,7 +142,7 @@ func (m *MsgDirBlock) String() string {
 //  < 0 -- MsgDirBlock is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- MsgDirBlock is valid
-func (m *MsgDirBlock) Validate( state interfaces.IState) int {
+func (m *MsgDirBlock) Validate(state interfaces.IState) int {
 	return 0
 }
 

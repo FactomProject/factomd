@@ -132,7 +132,7 @@ func (m *MsgFBlock) String() string {
 //  < 0 -- MsgFBlock is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- MsgFBlock is valid
-func (m *MsgFBlock) Validate( state interfaces.IState) int {
+func (m *MsgFBlock) Validate(state interfaces.IState) int {
 	return 0
 }
 

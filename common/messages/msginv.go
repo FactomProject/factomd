@@ -202,7 +202,7 @@ func (m *MsgInv) String() string {
 //  < 0 -- MsgInv is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- MsgInv is valid
-func (m *MsgInv) Validate( state interfaces.IState) int {
+func (m *MsgInv) Validate(state interfaces.IState) int {
 	return 0
 }
 

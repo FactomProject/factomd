@@ -29,8 +29,8 @@ type EOM struct {
 	Signature            interfaces.IFullSignature
 
 	//Not marshalled
-	hash interfaces.IHash
-	MarkerSet			bool		// Set if we have Processed EOM markers, so we don't repeat.
+	hash      interfaces.IHash
+	MarkerSet bool // Set if we have Processed EOM markers, so we don't repeat.
 }
 
 //var _ interfaces.IConfirmation = (*EOM)(nil)
@@ -84,9 +84,9 @@ func (m *EOM) Type() int {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *EOM) Validate(state interfaces.IState) int {
-	
+
 	return 1
-	
+
 	// TODO:  Need to check that the EOM came from a server
 	found, _ := state.GetFedServerIndexFor(m.DirectoryBlockHeight, m.ChainID)
 	if found { // Only EOM from federated servers are valid.
@@ -176,7 +176,7 @@ func (m *EOM) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	newData = newData[1:]
 
 	m.DirectoryBlockHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
-	
+
 	if len(newData) > 0 {
 		sig := new(primitives.Signature)
 		newData, err = sig.UnmarshalBinaryData(newData)
@@ -221,9 +221,9 @@ func (m *EOM) MarshalBinary() (data []byte, err error) {
 		return nil, err
 	}
 	buf.Write(resp)
-	
+
 	binary.Write(&buf, binary.BigEndian, m.DirectoryBlockHeight)
-	
+
 	sig := m.GetSignature()
 	if sig != nil {
 		sigBytes, err := sig.MarshalBinary()
@@ -243,7 +243,7 @@ func (m *EOM) String() string {
 		m.DirectoryBlockHeight,
 		m.ChainID.Bytes()[:5],
 		m.GetMsgHash().Bytes()[:5])
-	
+
 }
 
 // EOM methods that conform to the Message interface.

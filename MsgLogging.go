@@ -16,7 +16,7 @@ var _ = fmt.Print
 
 type msglist struct {
 	fnode *FactomNode
-	out   bool   // True if this is an output.
+	out   bool // True if this is an output.
 	name  string
 	peer  string
 	where string // NetIn, In, Netout
@@ -69,9 +69,11 @@ func (m *MsgLog) add2(fnode *FactomNode, out bool, peer string, where string, va
 	nm.msg = msg
 	m.MsgList = append(m.MsgList, nm)
 
-	interval := int(now-m.start)
-	if interval == 0 || m.nodeCnt == 0 { return }
-	
+	interval := int(now - m.start)
+	if interval == 0 || m.nodeCnt == 0 {
+		return
+	}
+
 	if now-m.start > 1 {
 		m.msgPerSec = (m.msgCnt + len(m.MsgList)) / interval / m.nodeCnt
 	}
@@ -101,17 +103,19 @@ func (m *MsgLog) prtMsgs(state interfaces.IState) {
 
 	state.Println(state.String())
 	state.Println("\n-----------------------------------------------------")
-	
+
 	for _, e := range m.MsgList {
 		if e.valid {
 			if e.fnode.State.GetOut() {
 				dirstr := "->"
-				if !e.out { dirstr = "<-" }
+				if !e.out {
+					dirstr = "<-"
+				}
 				state.Print(fmt.Sprintf("**** %8s %2s %8s %10s %5v     **** %s\n", e.name, dirstr, e.peer, e.where, e.valid, e.msg.String()))
 			}
 		}
 	}
 	state.Println(fmt.Sprintf("*** %42s **** ", fmt.Sprintf("Length: %d    Msgs/sec: T %d P %d", len(m.MsgList), m.msgPerSec, m.msgPerSecp)))
 	state.Println("\n-----------------------------------------------------")
-	
+
 }

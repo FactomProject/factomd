@@ -70,7 +70,7 @@ func (m *DirectoryBlockSignature) Bytes() []byte {
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
-func (m *DirectoryBlockSignature) Validate( state interfaces.IState) int {
+func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 	return 1
 }
 
@@ -81,7 +81,7 @@ func (m *DirectoryBlockSignature) Leader(state interfaces.IState) bool {
 	if found && uint32(index) == m.ServerIndex {
 		return true
 	}
-	return false 
+	return false
 }
 
 // Execute the leader functions of the given message
@@ -233,7 +233,7 @@ func (m *DirectoryBlockSignature) String() string {
 		m.DBHeight,
 		m.ServerIdentityChainID.Bytes()[:5],
 		m.GetHash().Bytes()[:5])
-	
+
 }
 
 func (e *DirectoryBlockSignature) JSONByte() ([]byte, error) {
@@ -252,7 +252,6 @@ func (e *DirectoryBlockSignature) JSONBuffer(b *bytes.Buffer) error {
  * Support
  *******************************************************************/
 
-
 func NewDirectoryBlockSignature(dbHeight uint32) *DirectoryBlockSignature {
 	dbm := new(DirectoryBlockSignature)
 	dbm.DBHeight = dbHeight
@@ -260,5 +259,3 @@ func NewDirectoryBlockSignature(dbHeight uint32) *DirectoryBlockSignature {
 	dbm.ServerIdentityChainID = primitives.NewHash(constants.ZERO_HASH)
 	return dbm
 }
-	
-

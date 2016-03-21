@@ -132,7 +132,7 @@ func (m *MsgECBlock) String() string {
 //  < 0 -- MsgECBlock is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- MsgECBlock is valid
-func (m *MsgECBlock) Validate( state interfaces.IState) int {
+func (m *MsgECBlock) Validate(state interfaces.IState) int {
 	return 0
 }
 

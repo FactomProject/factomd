@@ -114,7 +114,7 @@ func (m *RequestBlock) Signature() []byte {
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
-func (m *RequestBlock) Validate( state interfaces.IState) int {
+func (m *RequestBlock) Validate(state interfaces.IState) int {
 	return 0
 }
 

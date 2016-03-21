@@ -32,13 +32,13 @@ var mLog = new(MsgLog)
 func NetStart(s *state.State) {
 
 	listenTo := 0
-	
+
 	fmt.Println(">>>>>>>>>>>>>>>>")
 	fmt.Println(">>>>>>>>>>>>>>>> Net Sim Start!!!!!")
 	fmt.Println(">>>>>>>>>>>>>>>>")
-	fmt.Println(">>>>>>>>>>>>>>>> Listening to Node",listenTo)
+	fmt.Println(">>>>>>>>>>>>>>>> Listening to Node", listenTo)
 	fmt.Println(">>>>>>>>>>>>>>>>")
-	
+
 	AddInterruptHandler(func() {
 		fmt.Print("<Break>\n")
 		fmt.Print("Gracefully shutting down the server...\n")
@@ -50,7 +50,7 @@ func NetStart(s *state.State) {
 		time.Sleep(3 * time.Second)
 		os.Exit(0)
 	})
-	
+
 	pcfg, _, err := btcd.LoadConfig()
 	if err != nil {
 		log.Println(err.Error())
@@ -60,7 +60,7 @@ func NetStart(s *state.State) {
 	if len(FactomConfigFilename) == 0 {
 		FactomConfigFilename = util.GetConfigFilename("m2")
 	}
-	
+
 	fmt.Println(fmt.Sprintf("factom config: %s", FactomConfigFilename))
 
 	// Figure out how many nodes I am going to generate.  Default 10
@@ -86,7 +86,7 @@ func NetStart(s *state.State) {
 
 	// Make cnt Factom nodes
 	for i := 0; i < cnt; i++ {
-		makeServer(s)	// We clone s to make all of our servers
+		makeServer(s) // We clone s to make all of our servers
 	}
 
 	primes := []int{7, 13, 17, 23, 37, 43, 47, 53, 67, 73, 83, 97, 103}
@@ -141,14 +141,14 @@ func NetStart(s *state.State) {
 	if len(fnodes) > listenTo {
 		fnodes[listenTo].State.SetOut(true)
 	}
-	
+
 	// Web API runs independent of Factom Servers
 	startServers()
 
 	go wsapi.Start(fnodes[0].State)
 
 	var _ = time.Sleep
-	
+
 	for {
 		fmt.Sprintf(">>>>>>>>>>>>>>")
 
@@ -165,7 +165,7 @@ func NetStart(s *state.State) {
 		}
 		v, err := strconv.Atoi(string(b))
 		if err == nil && v >= 0 && v < len(fnodes) {
-			for _,fnode := range fnodes {
+			for _, fnode := range fnodes {
 				fnode.State.SetOut(false)
 			}
 			listenTo = v
@@ -183,9 +183,9 @@ func NetStart(s *state.State) {
 					f.State.SetOut(false)
 					fmt.Printf("%8s %s\n", f.State.FactomNodeName, f.State.ShortString())
 				}
-			case 'd','D':
+			case 'd', 'D':
 				os.Stderr.WriteString("Dump all messages\n")
-				for _,fnode := range fnodes {
+				for _, fnode := range fnodes {
 					fnode.State.SetOut(true)
 				}
 			case 27:
@@ -219,7 +219,6 @@ func NetStart(s *state.State) {
 
 }
 
-
 //**********************************************************************
 // Functions that access variables in this method to set up Factom Nodes
 // and start the servers.
@@ -228,18 +227,18 @@ func makeServer(s *state.State) *FactomNode {
 	// All other states are clones of the first state.  Which this routine
 	// gets passed to it.
 	newState := s
-	
+
 	if len(fnodes) > 0 {
 		number := fmt.Sprintf("%d", len(fnodes))
 		newState = s.Clone(number).(*state.State)
 		newState.Init()
 	}
-	
+
 	fnode := new(FactomNode)
 	fnode.State = newState
 	fnodes = append(fnodes, fnode)
 	fnode.MLog = mLog
-	
+
 	return fnode
 }
 

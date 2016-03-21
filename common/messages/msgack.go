@@ -224,7 +224,7 @@ func (m *MsgAck) String() string {
 //  < 0 -- MsgAck is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- MsgAck is valid
-func (m *MsgAck) Validate( state interfaces.IState) int {
+func (m *MsgAck) Validate(state interfaces.IState) int {
 	return 0
 }
 

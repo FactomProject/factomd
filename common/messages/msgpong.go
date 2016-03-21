@@ -128,7 +128,7 @@ func (m *MsgPong) String() string {
 //  < 0 -- MsgPong is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- MsgPong is valid
-func (m *MsgPong) Validate( state interfaces.IState) int {
+func (m *MsgPong) Validate(state interfaces.IState) int {
 	return 0
 }
 

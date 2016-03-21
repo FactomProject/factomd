@@ -180,11 +180,11 @@ type ISCDatabaseOverlay interface {
 	FetchAllAddressNameKeys() ([][]byte, error)
 	FetchAllAddressPublicKeys() ([][]byte, error)
 	FetchTransaction(key []byte) (ITransaction, error)
-	SaveTransaction(key []byte, tx ITransaction) (error)
-	DeleteTransaction(key []byte) (error)
+	SaveTransaction(key []byte, tx ITransaction) error
+	DeleteTransaction(key []byte) error
 	FetchAllTransactionKeys() ([][]byte, error)
 	FetchAllTransactions() ([]ITransaction, error)
 	SaveRCDAddress(key []byte, we IWalletEntry) error
-	SaveAddressByPublicKey(key []byte, we IWalletEntry) error 
+	SaveAddressByPublicKey(key []byte, we IWalletEntry) error
 	SaveAddressByName(key []byte, we IWalletEntry) error
 }

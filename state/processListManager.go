@@ -19,19 +19,18 @@ type ProcessLists struct {
 
 }
 
-
 // UpdateState is executed from a Follower's perspective.  So the block we are building
-// is always the block above the HighestRecordedBlock.  
+// is always the block above the HighestRecordedBlock.
 func (lists *ProcessLists) UpdateState() {
 
-	buildingBlock := lists.State.GetHighestRecordedBlock()+1
+	buildingBlock := lists.State.GetHighestRecordedBlock() + 1
 	pl := lists.Get(buildingBlock)
-	
+
 	// Look and see if we need to toss some previous blocks under construction.
 	diff := buildingBlock - lists.DBHeightBase
-	if diff > 1 && len(lists.Lists)>1{
-		lists.DBHeightBase += (diff-1)
-		lists.Lists = lists.Lists[(diff-1):]
+	if diff > 1 && len(lists.Lists) > 1 {
+		lists.DBHeightBase += (diff - 1)
+		lists.Lists = lists.Lists[(diff - 1):]
 	}
 	// Create DState blocks for all completed Process Lists
 	pl.Process(lists.State)

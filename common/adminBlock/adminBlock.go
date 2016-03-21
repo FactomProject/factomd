@@ -82,10 +82,9 @@ func (c *AdminBlock) DatabaseSecondaryIndex() interfaces.IHash {
 }
 
 func (c *AdminBlock) GetHash() interfaces.IHash {
-	h,_ := c.GetKeyMR()
+	h, _ := c.GetKeyMR()
 	return h
 }
-
 
 func (c *AdminBlock) GetKeyMR() (interfaces.IHash, error) {
 	return c.FullHash()

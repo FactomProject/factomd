@@ -5,10 +5,10 @@
 package mapdb
 
 import (
-	"sync"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/util"
 	"sort"
+	"sync"
 )
 
 type MapDB struct {
@@ -34,7 +34,7 @@ func (db *MapDB) Init(bucketList [][]byte) {
 func (db *MapDB) Put(bucket, key []byte, data interfaces.BinaryMarshallable) error {
 	db.Sem.Lock()
 	defer db.Sem.Unlock()
-	return db.RawPut(bucket,key,data)
+	return db.RawPut(bucket, key, data)
 }
 
 func (db *MapDB) RawPut(bucket, key []byte, data interfaces.BinaryMarshallable) error {

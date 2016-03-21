@@ -194,7 +194,7 @@ func (m *MsgGetDirData) String() string {
 //  < 0 -- MsgGetDirData is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- MsgGetDirData is valid
-func (m *MsgGetDirData) Validate( state interfaces.IState) int {
+func (m *MsgGetDirData) Validate(state interfaces.IState) int {
 	return 0
 }
 

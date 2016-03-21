@@ -193,7 +193,7 @@ func (m *MsgFactoidTX) String() string {
 //  < 0 -- MsgFactoidTX is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- MsgFactoidTX is valid
-func (m *MsgFactoidTX) Validate( state interfaces.IState) int {
+func (m *MsgFactoidTX) Validate(state interfaces.IState) int {
 	return 0
 }
 

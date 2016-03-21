@@ -110,7 +110,7 @@ func (m *MsgVerAck) String() string {
 //  < 0 -- MsgVerAck is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- MsgVerAck is valid
-func (m *MsgVerAck) Validate( state interfaces.IState) int {
+func (m *MsgVerAck) Validate(state interfaces.IState) int {
 	return 0
 }
 
