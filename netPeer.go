@@ -15,20 +15,20 @@ import (
 var _ = fmt.Print
 
 type NetPeer struct {
-	Conn net.Conn
-	ToName string
+	Conn     net.Conn
+	ToName   string
 	FromName string
 }
 
-var _ interfaces.IPeer = (*NetPeer)(nil)
+//var _ interfaces.IPeer = (*NetPeer)(nil)
 
 func (f *NetPeer) AddExistingConnection(conn net.Conn) {
 	f.Conn = conn
 }
 
 func (f *NetPeer) Connect(network, address string) error {
-	c, err:=net.Dial(network, address)
-	if err!=nil {
+	c, err := net.Dial(network, address)
+	if err != nil {
 		return err
 	}
 	f.Conn = c
@@ -43,7 +43,7 @@ func (f *NetPeer) ConnectUDP(address string) error {
 	return f.Connect("udp", address)
 }
 
-func (f *NetPeer) Init(fromName, toName string) interfaces.IPeer {
+func (f *NetPeer) Init(fromName, toName string) *NetPeer { // interfaces.IPeer {
 	f.ToName = toName
 	f.FromName = fromName
 	return f
@@ -62,7 +62,7 @@ func (f *NetPeer) Send(msg interfaces.IMsg) error {
 		return err
 	}
 
-	err = Conn.Write(data)
+	_, err = f.Conn.Write(data)
 	return err
 }
 
@@ -70,11 +70,11 @@ func (f *NetPeer) Send(msg interfaces.IMsg) error {
 func (f *NetPeer) Recieve() (interfaces.IMsg, error) {
 	data := make([]byte, 5000)
 
-	n, err = Conn.Read(data)
+	n, err := f.Conn.Read(data)
 	if err != nil {
 		return nil, err
 	}
-	if n>0 {
+	if n > 0 {
 		msg, err := messages.UnmarshalMessage(data)
 		return msg, err
 	}
