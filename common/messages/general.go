@@ -46,8 +46,6 @@ func UnmarshalMessage(data []byte) (interfaces.IMsg, error) {
 		msg = new(InvalidDirectoryBlock)
 	case constants.MISSING_ACK_MSG:
 		msg = new(MissingAck)
-	case constants.PROMOTION_DEMOTION_MSG:
-		msg = new(PromotionDemotion)
 	case constants.REVEAL_ENTRY_MSG:
 		msg = new(RevealEntryMsg)
 	case constants.REQUEST_BLOCK_MSG:

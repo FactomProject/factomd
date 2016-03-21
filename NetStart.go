@@ -6,7 +6,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/FactomProject/factomd/btcd"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/log"
@@ -51,16 +50,9 @@ func NetStart(s *state.State) {
 		os.Exit(0)
 	})
 
-	pcfg, _, err := btcd.LoadConfig()
-	if err != nil {
-		log.Println(err.Error())
-	}
-	FactomConfigFilename := pcfg.FactomConfigFile
-
-	if len(FactomConfigFilename) == 0 {
-		FactomConfigFilename = util.GetConfigFilename("m2")
-	}
-
+	
+	FactomConfigFilename := util.GetConfigFilename("m2")
+	
 	fmt.Println(fmt.Sprintf("factom config: %s", FactomConfigFilename))
 
 	// Figure out how many nodes I am going to generate.  Default 10

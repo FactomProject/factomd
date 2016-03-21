@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"io"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -246,64 +245,5 @@ func (m *EOM) String() string {
 
 }
 
-// EOM methods that conform to the Message interface.
 
-// BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
-// This is part of the Message interface implementation.
-func (msg *EOM) BtcEncode(w io.Writer, pver uint32) error {
-	bytes, err := msg.MarshalBinary()
-	if err != nil {
-		return err
-	}
 
-	if err := writeVarBytes(w, pver, bytes); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// BtcDecode decodes r using the bitcoin protocol encoding into the receiver.
-// This is part of the Message interface implementation.
-func (msg *EOM) BtcDecode(r io.Reader, pver uint32) error {
-	bytes, err := readVarBytes(r, pver, uint32(8+1+4+32+32+64), CmdEOM)
-	if err != nil {
-		return err
-	}
-
-	if err := msg.UnmarshalBinary(bytes); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// Command returns the protocol command string for the message.  This is part
-// of the Message interface implementation.
-func (msg *EOM) Command() string {
-	return CmdEOM
-}
-
-// MaxPayloadLength returns the maximum length the payload can be for the
-// receiver.  This is part of the Message interface implementation.
-func (msg *EOM) MaxPayloadLength(pver uint32) uint32 {
-	return MaxAppMsgPayload
-}
-
-// Check whether the msg can pass the message level validations
-// such as timestamp, signiture and etc
-func (msg *EOM) IsValid() bool {
-	//return msg.EOM.IsValid()
-	return true
-}
-
-// Create a sha hash from the message binary (output of BtcEncode)
-func (msg *EOM) Sha() (interfaces.IHash, error) {
-
-	buf := bytes.NewBuffer(nil)
-	msg.BtcEncode(buf, ProtocolVersion)
-	var sha interfaces.IHash
-	_ = sha.SetBytes(Sha256(buf.Bytes()))
-
-	return sha, nil
-}
