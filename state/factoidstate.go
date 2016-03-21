@@ -209,6 +209,12 @@ func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
 	hash = fs.CurrentBlock.GetHash()
 	hash2 = fs.CurrentBlock.GetFullHash()
 
+// 	outstr := fs.CurrentBlock.String()
+// 	if len(outstr) < 10000 {
+// 		fs.State.Println("888888888888888888  ",fs.State.GetFactomNodeName()," 8888888888888888888")
+// 		fs.State.Println(outstr)
+// 	}
+	
 	fs.CurrentBlock = block.NewFBlock(fs.State.GetFactoshisPerEC(), fs.DBHeight+1)
 
 	// TODO:  Need to get the leader time to put in the Coinbase ... Can't compute

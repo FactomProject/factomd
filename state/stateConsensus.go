@@ -188,11 +188,11 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	}
 
 	pl := s.ProcessLists.Get(dbheight)
-
+	
+	s.FactoidState.EndOfPeriod(int(e.Minute))
+	
 	if e.Minute == 9 {
 		pl.SetEomComplete(e.ServerIndex, true)
-
-		s.FactoidState.EndOfPeriod(int(e.Minute))
 
 		ecblk := pl.EntryCreditBlock
 		ecbody := ecblk.GetBody()
@@ -377,11 +377,14 @@ func (s *State) NewAdminBlockHeader(dbheight uint32) interfaces.IABlockHeader {
 		header.PrevFullHash = primitives.NewHash(constants.ZERO_HASH)
 	} else {
 		dbstate := s.DBStates.Last()
-		keymr, err := dbstate.AdminBlock.FullHash()
-		if err != nil {
-			panic(err.Error())
+		if dbstate != nil {
+			keymr, err := dbstate.AdminBlock.FullHash()
+			
+			if err != nil {
+				panic(err.Error())
+			}
+			header.PrevFullHash = keymr
 		}
-		header.PrevFullHash = keymr
 	}
 	header.HeaderExpansionSize = 0
 	header.HeaderExpansionArea = make([]byte, 0)

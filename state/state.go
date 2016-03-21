@@ -342,9 +342,14 @@ func (s *State) GetDirectoryBlockByHeight(height uint32) interfaces.IDirectoryBl
 func (s *State) UpdateState() {
 
 	s.ProcessLists.UpdateState()
-
 	s.DBStates.UpdateState()
-
+	
+	s.ProcessLists.UpdateState()
+	s.DBStates.UpdateState()
+	
+	s.ProcessLists.UpdateState()
+	s.DBStates.UpdateState()
+	
 	str := fmt.Sprintf("%25s   %10s   %25s", "sssssssssssssssssssssssss", s.GetFactomNodeName(), "sssssssssssssssssssssssss\n")
 	str = str + s.ProcessLists.String()
 	str = str + s.DBStates.String()

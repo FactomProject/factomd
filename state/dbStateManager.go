@@ -25,6 +25,7 @@ type DBState struct {
 	AdminBlock       interfaces.IAdminBlock
 	FactoidBlock     interfaces.IFBlock
 	EntryCreditBlock interfaces.IEntryCreditBlock
+	Saved		     bool
 }
 
 type DBStateList struct {
@@ -146,6 +147,11 @@ func (list *DBStateList) UpdateState() {
 
 	for i, d := range list.DBStates {
 
+		if d.Saved { 
+			continue 
+		}
+		d.Saved = true
+		
 		if d == nil {
 			list.State.Println("Null at ", i, " in DBStates")
 			return
@@ -194,7 +200,6 @@ func (list *DBStateList) UpdateState() {
 func (list *DBStateList) Last() *DBState {
 	Last := len(list.DBStates)
 	if Last == 0 || Last < int(list.Complete) {
-		panic("No Last!")
 		return nil
 	}
 	return list.DBStates[Last-1]
