@@ -137,7 +137,7 @@ func (m *Ack) FollowerExecute(state interfaces.IState) error {
 }
 
 // Acknowledgements do not go into the process list.
-func (e *Ack) Process(dbheight uint32, state interfaces.IState) {
+func (e *Ack) Process(dbheight uint32, state interfaces.IState) bool {
 	panic("Ack object should never have its Process() method called")
 }
 
@@ -267,10 +267,12 @@ func (m *Ack) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *Ack) String() string {
-	return fmt.Sprintf("%6s-%3d: db/pl %2d/%2d,   -- hash[:10]=%x",
+	return fmt.Sprintf("%6s-%3d: PL:%5d Ht:%5d -- chainID[:5]=__________ hash[:5]=%x",
 		"ACK",
 		m.ServerIndex,
-		m.DBHeight,
 		m.Height,
-		m.GetHash().Bytes()[:10])
+		m.DBHeight,
+		//m.ChainID.Bytes()[:5],
+		m.GetHash().Bytes()[:5])
+
 }

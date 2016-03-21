@@ -23,7 +23,7 @@ type InvalidAck struct {
 
 var _ interfaces.IMsg = (*InvalidAck)(nil)
 
-func (m *InvalidAck) Process(uint32, interfaces.IState) {}
+func (m *InvalidAck) Process(uint32, interfaces.IState) bool { return true }
 
 func (m *InvalidAck) GetHash() interfaces.IHash {
 	if m.hash == nil {
@@ -120,7 +120,7 @@ func (m *InvalidAck) Signature() []byte {
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
-func (m *InvalidAck) Validate( state interfaces.IState) int {
+func (m *InvalidAck) Validate(state interfaces.IState) int {
 	return 0
 }
 

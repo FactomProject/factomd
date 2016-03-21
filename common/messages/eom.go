@@ -29,14 +29,15 @@ type EOM struct {
 	Signature            interfaces.IFullSignature
 
 	//Not marshalled
-	hash interfaces.IHash
+	hash      interfaces.IHash
+	MarkerSet bool // Set if we have Processed EOM markers, so we don't repeat.
 }
 
 //var _ interfaces.IConfirmation = (*EOM)(nil)
 var _ Signable = (*EOM)(nil)
 
-func (e *EOM) Process(dbheight uint32, state interfaces.IState) {
-	state.ProcessEOM(dbheight, e)
+func (e *EOM) Process(dbheight uint32, state interfaces.IState) bool {
+	return state.ProcessEOM(dbheight, e)
 }
 
 func (m *EOM) GetHash() interfaces.IHash {
@@ -83,9 +84,9 @@ func (m *EOM) Type() int {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *EOM) Validate(state interfaces.IState) int {
-	
+
 	return 1
-	
+
 	// TODO:  Need to check that the EOM came from a server
 	found, _ := state.GetFedServerIndexFor(m.DirectoryBlockHeight, m.ChainID)
 	if found { // Only EOM from federated servers are valid.
@@ -171,10 +172,10 @@ func (m *EOM) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 		return nil, fmt.Errorf("Minute number is out of range")
 	}
 
-	m.DirectoryBlockHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
-
 	m.ServerIndex = int(newData[0])
 	newData = newData[1:]
+
+	m.DirectoryBlockHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
 	if len(newData) > 0 {
 		sig := new(primitives.Signature)
@@ -209,35 +210,40 @@ func (m *EOM) MarshalForSignature() (data []byte, err error) {
 	}
 
 	binary.Write(&buf, binary.BigEndian, m.Minute)
-	binary.Write(&buf, binary.BigEndian, m.DirectoryBlockHeight)
 	binary.Write(&buf, binary.BigEndian, uint8(m.ServerIndex))
 	return buf.Bytes(), nil
 }
 
 func (m *EOM) MarshalBinary() (data []byte, err error) {
+	var buf bytes.Buffer
 	resp, err := m.MarshalForSignature()
 	if err != nil {
 		return nil, err
 	}
-	sig := m.GetSignature()
+	buf.Write(resp)
 
+	binary.Write(&buf, binary.BigEndian, m.DirectoryBlockHeight)
+
+	sig := m.GetSignature()
 	if sig != nil {
 		sigBytes, err := sig.MarshalBinary()
 		if err != nil {
 			return nil, err
 		}
-		return append(resp, sigBytes...), nil
+		buf.Write(sigBytes)
 	}
-	return resp, nil
+	return buf.Bytes(), nil
 }
 
 func (m *EOM) String() string {
-	return fmt.Sprintf("%6s-%3d: Min: %2d, Ht: %d -- hash[:10]=%x",
+	return fmt.Sprintf("%6s-%3d: Min:%4d Ht:%5d -- chainID[:5]=%x hash[:5]=%x",
 		"EOM",
 		m.ServerIndex,
-		m.Minute+1,
+		m.Minute,
 		m.DirectoryBlockHeight,
-		m.GetMsgHash().Bytes()[:10])
+		m.ChainID.Bytes()[:5],
+		m.GetMsgHash().Bytes()[:5])
+
 }
 
 // EOM methods that conform to the Message interface.

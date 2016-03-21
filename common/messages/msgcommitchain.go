@@ -92,7 +92,7 @@ func (msg *MsgCommitChain) Sha() (interfaces.IHash, error) {
 
 var _ interfaces.IMsg = (*MsgCommitChain)(nil)
 
-func (m *MsgCommitChain) Process(uint32, interfaces.IState) {}
+func (m *MsgCommitChain) Process(uint32, interfaces.IState) bool { return true }
 
 func (m *MsgCommitChain) GetHash() interfaces.IHash {
 	return nil
@@ -150,7 +150,7 @@ func (m *MsgCommitChain) String() string {
 //  < 0 -- MsgCommitChain is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- MsgCommitChain is valid
-func (m *MsgCommitChain) Validate( state interfaces.IState) int {
+func (m *MsgCommitChain) Validate(state interfaces.IState) int {
 	return 0
 }
 

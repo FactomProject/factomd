@@ -38,8 +38,8 @@ func (m *CommitChainMsg) SetCount(cnt int) {
 	m.count = cnt
 }
 
-func (m *CommitChainMsg) Process(dbheight uint32, state interfaces.IState) {
-	state.ProcessCommitChain(dbheight, m)
+func (m *CommitChainMsg) Process(dbheight uint32, state interfaces.IState) bool {
+	return state.ProcessCommitChain(dbheight, m)
 }
 
 func (m *CommitChainMsg) GetHash() interfaces.IHash {

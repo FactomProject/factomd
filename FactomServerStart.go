@@ -36,7 +36,7 @@ func loadDatabase(s *state.State) {
 	if err != nil && head != nil {
 		blkCnt = head.GetHeader().GetDBHeight()
 	}
-	
+
 	msg, err := s.LoadDBState(blkCnt)
 
 	for i := 0; true; i++ {

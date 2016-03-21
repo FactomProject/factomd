@@ -42,9 +42,10 @@ func (m *CommitEntryMsg) SetCount(cnt int) {
 	m.count = cnt
 }
 
-func (e *CommitEntryMsg) Process(dbheight uint32, state interfaces.IState) {
+func (e *CommitEntryMsg) Process(dbheight uint32, state interfaces.IState) bool {
 	// panic prevents factomd from running continuously.
-	fmt.Println("*** CommitEntryMsg is not implemented.")
+	state.Println("*** CommitEntryMsg is not implemented.")
+	return true
 }
 
 func (m *CommitEntryMsg) GetHash() interfaces.IHash {
@@ -143,7 +144,7 @@ func (m *CommitEntryMsg) Signature() []byte {
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
-func (m *CommitEntryMsg) Validate( state interfaces.IState) int {
+func (m *CommitEntryMsg) Validate(state interfaces.IState) int {
 	//TODO: implement properly, check EC balance
 	return 1
 }

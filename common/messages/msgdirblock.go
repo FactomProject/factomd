@@ -81,8 +81,9 @@ func NewMsgDirBlock() *MsgDirBlock {
 
 var _ interfaces.IMsg = (*MsgDirBlock)(nil)
 
-func (m *MsgDirBlock) Process(dbheight uint32, state interfaces.IState) {
+func (m *MsgDirBlock) Process(dbheight uint32, state interfaces.IState) bool {
 	//	Code to process this block
+	return true
 }
 
 func (m *MsgDirBlock) GetHash() interfaces.IHash {
@@ -141,7 +142,7 @@ func (m *MsgDirBlock) String() string {
 //  < 0 -- MsgDirBlock is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- MsgDirBlock is valid
-func (m *MsgDirBlock) Validate( state interfaces.IState) int {
+func (m *MsgDirBlock) Validate(state interfaces.IState) int {
 	return 0
 }
 

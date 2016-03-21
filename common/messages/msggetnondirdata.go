@@ -136,7 +136,7 @@ func NewMsgGetNonDirDataSizeHint(sizeHint uint) *MsgGetNonDirData {
 
 var _ interfaces.IMsg = (*MsgGetNonDirData)(nil)
 
-func (m *MsgGetNonDirData) Process(uint32, interfaces.IState) {}
+func (m *MsgGetNonDirData) Process(uint32, interfaces.IState) bool { return true }
 
 func (m *MsgGetNonDirData) GetHash() interfaces.IHash {
 	return nil
@@ -194,7 +194,7 @@ func (m *MsgGetNonDirData) String() string {
 //  < 0 -- MsgGetNonDirData is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- MsgGetNonDirData is valid
-func (m *MsgGetNonDirData) Validate( state interfaces.IState) int {
+func (m *MsgGetNonDirData) Validate(state interfaces.IState) int {
 	return 0
 }
 

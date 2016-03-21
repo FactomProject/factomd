@@ -8,9 +8,11 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/util"
 	"sort"
+	"sync"
 )
 
 type MapDB struct {
+	Sem   sync.Mutex
 	Cache map[string]map[string][]byte // Our Cache
 }
 
@@ -21,6 +23,8 @@ func (MapDB) Close() error {
 }
 
 func (db *MapDB) Init(bucketList [][]byte) {
+	db.Sem.Lock()
+	defer db.Sem.Unlock()
 	db.Cache = map[string]map[string][]byte{}
 	for _, v := range bucketList {
 		db.Cache[string(v)] = map[string][]byte{}
@@ -28,6 +32,12 @@ func (db *MapDB) Init(bucketList [][]byte) {
 }
 
 func (db *MapDB) Put(bucket, key []byte, data interfaces.BinaryMarshallable) error {
+	db.Sem.Lock()
+	defer db.Sem.Unlock()
+	return db.RawPut(bucket, key, data)
+}
+
+func (db *MapDB) RawPut(bucket, key []byte, data interfaces.BinaryMarshallable) error {
 	if db.Cache == nil {
 		db.Cache = map[string]map[string][]byte{}
 	}
@@ -48,8 +58,10 @@ func (db *MapDB) Put(bucket, key []byte, data interfaces.BinaryMarshallable) err
 }
 
 func (db *MapDB) PutInBatch(records []interfaces.Record) error {
+	db.Sem.Lock()
+	defer db.Sem.Unlock()
 	for _, v := range records {
-		err := db.Put(v.Bucket, v.Key, v.Data)
+		err := db.RawPut(v.Bucket, v.Key, v.Data)
 		if err != nil {
 			return err
 		}
@@ -58,6 +70,8 @@ func (db *MapDB) PutInBatch(records []interfaces.Record) error {
 }
 
 func (db *MapDB) Get(bucket, key []byte, destination interfaces.BinaryMarshallable) (interfaces.BinaryMarshallable, error) {
+	db.Sem.Lock()
+	defer db.Sem.Unlock()
 	if db.Cache == nil {
 		db.Cache = map[string]map[string][]byte{}
 	}
@@ -80,6 +94,8 @@ func (db *MapDB) Get(bucket, key []byte, destination interfaces.BinaryMarshallab
 }
 
 func (db *MapDB) Delete(bucket, key []byte) error {
+	db.Sem.Lock()
+	defer db.Sem.Unlock()
 	if db.Cache == nil {
 		db.Cache = map[string]map[string][]byte{}
 	}
@@ -92,6 +108,8 @@ func (db *MapDB) Delete(bucket, key []byte) error {
 }
 
 func (db *MapDB) ListAllKeys(bucket []byte) ([][]byte, error) {
+	db.Sem.Lock()
+	defer db.Sem.Unlock()
 	if db.Cache == nil {
 		db.Cache = map[string]map[string][]byte{}
 	}
@@ -110,6 +128,8 @@ func (db *MapDB) ListAllKeys(bucket []byte) ([][]byte, error) {
 }
 
 func (db *MapDB) GetAll(bucket []byte, sample interfaces.BinaryMarshallableAndCopyable) ([]interfaces.BinaryMarshallableAndCopyable, error) {
+	db.Sem.Lock()
+	defer db.Sem.Unlock()
 	if db.Cache == nil {
 		db.Cache = map[string]map[string][]byte{}
 	}
@@ -137,6 +157,8 @@ func (db *MapDB) GetAll(bucket []byte, sample interfaces.BinaryMarshallableAndCo
 }
 
 func (db *MapDB) Clear(bucket []byte) error {
+	db.Sem.Lock()
+	defer db.Sem.Unlock()
 	if db.Cache == nil {
 		db.Cache = map[string]map[string][]byte{}
 	}

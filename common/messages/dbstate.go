@@ -71,7 +71,7 @@ func (m *DBStateMsg) GetTimestamp() interfaces.Timestamp {
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
-func (m *DBStateMsg) Validate( state interfaces.IState) int {
+func (m *DBStateMsg) Validate(state interfaces.IState) int {
 	return 1
 }
 
@@ -96,7 +96,7 @@ func (m *DBStateMsg) FollowerExecute(state interfaces.IState) error {
 }
 
 // Acknowledgements do not go into the process list.
-func (e *DBStateMsg) Process(dbheight uint32, state interfaces.IState) {
+func (e *DBStateMsg) Process(dbheight uint32, state interfaces.IState) bool {
 	panic("Ack object should never have its Process() method called")
 }
 

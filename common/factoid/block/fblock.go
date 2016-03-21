@@ -137,8 +137,6 @@ func (b *FBlock) MarshalTrans() ([]byte, error) {
 func (b *FBlock) MarshalHeader() ([]byte, error) {
 	var out bytes.Buffer
 
-	b.EndOfPeriod(0) // Clean up end of minute markers, if needed.
-
 	out.Write(constants.FACTOID_CHAINID)
 
 	if b.BodyMR == nil {
@@ -291,8 +289,6 @@ func (b *FBlock) UnmarshalBinary(data []byte) (err error) {
 // generally useful.
 func (b1 *FBlock) IsEqual(block interfaces.IBlock) []interfaces.IBlock {
 
-	b1.EndOfPeriod(0) // Clean up end of minute markers, if needed.
-
 	b2, ok := block.(*FBlock)
 
 	if !ok || // Not the right kind of interfaces.IBlock
@@ -367,8 +363,6 @@ func (b *FBlock) GetFullHash() interfaces.IHash {
 // Returns the LedgerMR for this block.
 func (b *FBlock) GetLedgerMR() interfaces.IHash {
 
-	b.EndOfPeriod(0) // Clean up end of minute markers, if needed.
-
 	hashes := make([]interfaces.IHash, 0, len(b.Transactions))
 	marker := 0
 	for i, trans := range b.Transactions {
@@ -394,8 +388,6 @@ func (b *FBlock) GetLedgerMR() interfaces.IHash {
 }
 
 func (b *FBlock) GetBodyMR() interfaces.IHash {
-
-	b.EndOfPeriod(0) // Clean up end of minute markers, if needed.
 
 	hashes := make([]interfaces.IHash, 0, len(b.Transactions))
 	marker := 0
@@ -591,8 +583,6 @@ func (b FBlock) String() string {
 // Marshal to text.  Largely a debugging thing.
 func (b FBlock) CustomMarshalText() (text []byte, err error) {
 	var out bytes.Buffer
-
-	b.EndOfPeriod(0) // Clean up end of minute markers, if needed.
 
 	out.WriteString("Transaction Block\n")
 	out.WriteString("  ChainID:       ")

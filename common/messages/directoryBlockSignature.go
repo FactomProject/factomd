@@ -31,23 +31,16 @@ type DirectoryBlockSignature struct {
 var _ interfaces.IMsg = (*DirectoryBlockSignature)(nil)
 var _ Signable = (*DirectoryBlockSignature)(nil)
 
-func (e *DirectoryBlockSignature) Process(dbheight uint32, state interfaces.IState) {
-	state.ProcessDBS(dbheight, e)
+func (e *DirectoryBlockSignature) Process(dbheight uint32, state interfaces.IState) bool {
+	return state.ProcessDBSig(dbheight, e)
 }
 
 func (m *DirectoryBlockSignature) GetHash() interfaces.IHash {
-	if m.hash == nil {
-		data, err := m.MarshalForSignature()
-		if err != nil {
-			panic(fmt.Sprintf("Error in CommitChain.GetHash(): %s", err.Error()))
-		}
-		m.hash = primitives.Sha(data)
-	}
-	return m.hash
+	return m.GetMsgHash()
 }
 
 func (m *DirectoryBlockSignature) GetMsgHash() interfaces.IHash {
-	if m.MsgHash == nil {
+	if m.MsgHash == nil || true {
 		data, _ := m.MarshalForSignature()
 		if data == nil {
 			return nil
@@ -77,19 +70,23 @@ func (m *DirectoryBlockSignature) Bytes() []byte {
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
-func (m *DirectoryBlockSignature) Validate( state interfaces.IState) int {
+func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 	return 1
 }
 
 // Returns true if this is a message for this server to execute as
 // a leader.
 func (m *DirectoryBlockSignature) Leader(state interfaces.IState) bool {
-	return state.LeaderFor(m.GetHash().Bytes())
+	found, index := state.GetFedServerIndex(m.DBHeight)
+	if found && uint32(index) == m.ServerIndex {
+		return true
+	}
+	return false
 }
 
 // Execute the leader functions of the given message
 func (m *DirectoryBlockSignature) LeaderExecute(state interfaces.IState) error {
-	return state.LeaderExecuteDBSig(m)
+	return state.LeaderExecute(m)
 }
 
 // Returns true if this is a message for this server to execute as a follower
@@ -221,12 +218,22 @@ func (m *DirectoryBlockSignature) MarshalBinary() (data []byte, err error) {
 	return resp, nil
 }
 
+// func (m *DirectoryBlockSignature) String() string {
+// 	return fmt.Sprintf("%6s-%3d: db %2d ----------- hash[:10]=%x",
+// 		"DBSig",
+// 		m.ServerIndex,
+// 		m.DBHeight,
+// 		m.GetHash().Bytes()[:10])
+// }
+
 func (m *DirectoryBlockSignature) String() string {
-	return fmt.Sprintf("%6s-%3d: db %2d ----------- hash[:10]=%x",
+	return fmt.Sprintf("%6s-%3d:          Ht:%5d -- chainID[:5]=%x hash[:5]=%x",
 		"DBSig",
 		m.ServerIndex,
 		m.DBHeight,
-		m.GetHash().Bytes()[:10])
+		m.ServerIdentityChainID.Bytes()[:5],
+		m.GetHash().Bytes()[:5])
+
 }
 
 func (e *DirectoryBlockSignature) JSONByte() ([]byte, error) {

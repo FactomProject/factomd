@@ -6,6 +6,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/log"
 	"math/rand"
 	"time"
@@ -16,24 +17,34 @@ var _ = fmt.Print
 
 func NetworkProcessorNet(fnode *FactomNode) {
 
+	like := 0
+
 	for {
 		// Put any broadcasts from our peers into our BroadcastIn queue
 		for i, peer := range fnode.Peers {
 			for {
 				msg, err := peer.Recieve()
+
 				if err == nil && msg != nil {
+
+					if msg.IsPeer2peer() {
+						if msg.Type() == constants.DBSTATE_MSG {
+							like = i
+						}
+					}
+
 					msg.SetOrigin(i + 1)
 					if fnode.State.Replay.IsTSValid_(msg.GetMsgHash().Fixed(),
 						int64(msg.GetTimestamp())/1000,
 						int64(fnode.State.GetTimestamp())/1000) {
 						//fnode.State.Println("In Comming!! ",msg)
 						nme := fmt.Sprintf("%s %d", "PeerIn", i+1)
-						fnode.MLog.add2(fnode, peer.GetNameTo(), nme, true, msg)
+						fnode.MLog.add2(fnode, false, peer.GetNameTo(), nme, true, msg)
 
 						fnode.State.InMsgQueue() <- msg
 
 					} else {
-						fnode.MLog.add2(fnode, peer.GetNameTo(), "PeerIn", false, msg)
+						fnode.MLog.add2(fnode, false, peer.GetNameTo(), "PeerIn", false, msg)
 					}
 				} else {
 					if err != nil {
@@ -45,6 +56,11 @@ func NetworkProcessorNet(fnode *FactomNode) {
 		}
 
 		select {
+		case msg, ok := <-fnode.State.TimerMsgQueue():
+			if ok {
+				fnode.MLog.add2(fnode, false, "Time", "Timer", true, msg)
+				fnode.State.InMsgQueue() <- msg
+			}
 		case msg, ok := <-fnode.State.NetworkOutMsgQueue():
 			if ok {
 				// We don't care about the result, but we do want to log that we have
@@ -64,10 +80,11 @@ func NetworkProcessorNet(fnode *FactomNode) {
 						break
 					}
 					if p < 0 {
-						p = rand.Int() % len(fnode.Peers)
+						p = like
+						like = rand.Int() % len(fnode.Peers)
 					}
-					
-					fnode.MLog.add2(fnode, fnode.Peers[p].GetNameTo(), "P2P out", true, msg)
+
+					fnode.MLog.add2(fnode, true, fnode.Peers[p].GetNameTo(), "P2P out", true, msg)
 					fnode.Peers[p].Send(msg)
 
 				} else {
@@ -76,7 +93,7 @@ func NetworkProcessorNet(fnode *FactomNode) {
 						// Don't resend to the node that sent it to you.
 						if i != p || true {
 							bco := fmt.Sprintf("%s/%d/%d", "BCast", p, i)
-							fnode.MLog.add2(fnode, peer.GetNameTo(), bco, true, msg)
+							fnode.MLog.add2(fnode, true, peer.GetNameTo(), bco, true, msg)
 							peer.Send(msg)
 						}
 					}
@@ -91,7 +108,7 @@ func NetworkProcessorNet(fnode *FactomNode) {
 				}
 			}
 		default:
-			time.Sleep(time.Duration(10) * time.Millisecond)
+			time.Sleep(time.Duration(1) * time.Millisecond)
 		}
 	}
 

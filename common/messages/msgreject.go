@@ -190,7 +190,7 @@ func NewMsgReject(command string, code RejectCode, reason string) *MsgReject {
 
 var _ interfaces.IMsg = (*MsgReject)(nil)
 
-func (m *MsgReject) Process(uint32, interfaces.IState) {}
+func (m *MsgReject) Process(uint32, interfaces.IState) bool { return true }
 
 func (m *MsgReject) GetHash() interfaces.IHash {
 	return nil
@@ -298,7 +298,7 @@ func (m *MsgReject) String() string {
 //  < 0 -- MsgReject is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- MsgReject is valid
-func (m *MsgReject) Validate( state interfaces.IState) int {
+func (m *MsgReject) Validate(state interfaces.IState) int {
 	return 0
 }
 

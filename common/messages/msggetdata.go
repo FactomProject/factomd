@@ -136,7 +136,7 @@ func NewMsgGetDataSizeHint(sizeHint uint) *MsgGetData {
 
 var _ interfaces.IMsg = (*MsgGetData)(nil)
 
-func (m *MsgGetData) Process(uint32, interfaces.IState) {}
+func (m *MsgGetData) Process(uint32, interfaces.IState) bool { return true }
 
 func (m *MsgGetData) GetHash() interfaces.IHash {
 	return nil
@@ -194,7 +194,7 @@ func (m *MsgGetData) String() string {
 //  < 0 -- MsgGetData is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- MsgGetData is valid
-func (m *MsgGetData) Validate( state interfaces.IState) int {
+func (m *MsgGetData) Validate(state interfaces.IState) int {
 	return 0
 }
 

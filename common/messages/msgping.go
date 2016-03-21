@@ -69,7 +69,7 @@ func NewMsgPing(nonce uint64) *MsgPing {
 
 var _ interfaces.IMsg = (*MsgPing)(nil)
 
-func (m *MsgPing) Process(uint32, interfaces.IState) {}
+func (m *MsgPing) Process(uint32, interfaces.IState) bool { return true }
 
 func (m *MsgPing) GetHash() interfaces.IHash {
 	return nil
@@ -131,7 +131,7 @@ func (m *MsgPing) String() string {
 //  < 0 -- MsgPing is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- MsgPing is valid
-func (m *MsgPing) Validate( state interfaces.IState) int {
+func (m *MsgPing) Validate(state interfaces.IState) int {
 	return 0
 }
 

@@ -33,7 +33,7 @@ func Validator(state interfaces.IState) {
 
 		msg := <-state.InMsgQueue() // Get message from the input queue
 
-		if state.PrintType(msg.Type()) || true {
+		if state.PrintType(msg.Type()) {
 			state.Println(fmt.Sprintf("%20s %s", "Validator:", msg.String()))
 		}
 
@@ -41,11 +41,11 @@ func Validator(state interfaces.IState) {
 		// past the follower...
 		switch msg.Validate(state) { // Validate the message.
 		case 1: // Process if valid
-			
+
 			if !msg.IsPeer2peer() {
 				state.NetworkOutMsgQueue() <- msg
 			}
-			
+
 			if state.PrintType(msg.Type()) {
 				state.Print(" Valid\n")
 			}

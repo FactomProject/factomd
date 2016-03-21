@@ -3,6 +3,8 @@ package state
 import (
 	"bytes"
 	"fmt"
+	"github.com/FactomProject/factomd/common/directoryBlock"
+	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"log"
@@ -45,7 +47,6 @@ type ProcessList struct {
 	AdminBlock       interfaces.IAdminBlock
 	EntryCreditBlock interfaces.IEntryCreditBlock
 	DirectoryBlock   interfaces.IDirectoryBlock
-	
 }
 
 type ListServer struct {
@@ -53,8 +54,7 @@ type ListServer struct {
 	Height      int               // Height of messages that have been processed
 	EomComplete bool              // Lists that are end of minute complete
 	SigComplete bool              // Lists that are signature complete
-	LastAck 	interfaces.IMsg   // The last Acknowledgement set by this server
-	
+	LastAck     interfaces.IMsg   // The last Acknowledgement set by this server
 }
 
 // Given a server index, return the last Ack
@@ -102,9 +102,9 @@ func (p *ProcessList) GetFedServerIndex(serverChainID interfaces.IHash) (bool, i
 		if p == nil {
 			return false, 0
 		}
-		if bytes.Compare(scid,p.State.GetCoreChainID().Bytes()) == 0 {
+		if bytes.Compare(scid, p.State.GetCoreChainID().Bytes()) == 0 {
 			return true, 0
-		}else{
+		} else {
 			return false, 0
 		}
 	}
@@ -144,21 +144,6 @@ func (p ProcessList) HasMessage() bool {
 	return false
 }
 
-
-// TODO:  Need to map the server identity to the process list for which it 
-// is responsible.  Right now, works with only one server!
-func (p *ProcessList) SetSigComplete(value bool) {
-	found, i := p.GetFedServerIndex(p.State.GetIdentityChainID())
-	if !found { return }
-	p.Servers[i].SigComplete = value
-}
-
-func (p *ProcessList) SetEomComplete(value bool) {
-	found, i := p.GetFedServerIndex(p.State.GetIdentityChainID())
-	if !found { return }
-	p.Servers[i].EomComplete = value
-}
-
 func (p *ProcessList) GetNewEBlocks(key interfaces.IHash) interfaces.IEntryBlock {
 
 	eb := p.NewEBlocks[key.Fixed()]
@@ -171,14 +156,38 @@ func (p *ProcessList) PutNewEBlocks(dbheight uint32, key interfaces.IHash, value
 
 }
 
-// Test if a process list for a server is EOM complete.  Return true if all messages
-// have been recieved, and we just need the signaure.  If we need EOM messages, or we 
-// have all EOM messages and we have the Signature, then we return false.
-func (p *ProcessList) SigServerComplete(serverIndex int) bool {
-	if p == nil {
-		return false
+// TODO:  Need to map the server identity to the process list for which it
+// is responsible.  Right now, works with only one server!
+func (p *ProcessList) SetSigComplete(value bool) {
+	found, i := p.GetFedServerIndex(p.State.GetIdentityChainID())
+	if !found {
+		return
 	}
-	return p.Servers[serverIndex].EomComplete && !p.Servers[serverIndex].SigComplete
+	p.Servers[i].SigComplete = value
+}
+
+// Set the EomComplete for the ith list
+func (p *ProcessList) SetEomComplete(i int, value bool) {
+	found, i := p.GetFedServerIndex(p.State.GetIdentityChainID())
+	if !found {
+		return
+	}
+	p.Servers[i].EomComplete = value
+}
+
+// Test if a process list for a server is EOM complete.  Return true if all messages
+// have been recieved, and we just need the signaure.  If we need EOM messages, or we
+// have all EOM messages and we have the Signature, then we return false.
+func (p *ProcessList) EomComplete() bool {
+	if p == nil {
+		return true
+	}
+	for _, c := range p.Servers {
+		if !c.EomComplete {
+			return false
+		}
+	}
+	return true
 }
 
 // Test if the process list is complete.  Return true if all messages
@@ -209,19 +218,22 @@ func (p *ProcessList) SetComplete(index int, v bool) {
 func (p *ProcessList) Process(state *State) {
 	for i := 0; i < len(p.Servers); i++ {
 		plist := p.Servers[i].List
-		
+
 		// state.Println("Process List: DBHeight, height in list, len(plist)", p.DBHeight, "/", p.Servers[i].Height, "/", len(plist))
-		
+
 		for j := p.Servers[i].Height; j < len(plist); j++ {
 			if plist[j] == nil {
 				p.State.Println("!!!!!!! Missing entry in process list at", j)
 				return
 			}
-			p.Servers[i].Height = j + 1         // Don't process it again.
-			plist[j].Process(p.DBHeight, state) // Process this entry
-			
-			state.Println(plist[j])
-			
+
+			if plist[j].Process(p.DBHeight, state) { // Try and Process this entry
+				p.Servers[i].Height = j + 1 // Don't process it again if the process worked.
+			}
+
+			// TODO:  If we carefully manage our state as we process messages, we
+			// would not need to check the messages here!  Checking for EOM and DBS
+			// as follows is a bit of a kludge.
 			eom, ok := plist[j].(*messages.EOM)
 			if ok && eom.Minute == 9 {
 				p.Servers[i].EomComplete = true
@@ -281,15 +293,15 @@ func (p *ProcessList) String() string {
 		prt = "-- <nil>\n"
 	} else {
 		prt = p.State.GetFactomNodeName() + "\n"
-		for _,id := range p.FedServers {
-			prt = fmt.Sprintf("%s   %x\n",prt, id.GetChainID().Bytes())
+		for _, id := range p.FedServers {
+			prt = fmt.Sprintf("%s   %x\n", prt, id.GetChainID().Bytes())
 		}
 		for i, server := range p.Servers {
 			prt = prt + fmt.Sprintf("  Server %d \n", i)
 			for _, msg := range server.List {
 				if msg != nil {
 					prt = prt + "   " + msg.String() + "\n"
-				}else{
+				} else {
 					prt = prt + "   <nil>\n"
 				}
 			}
@@ -329,6 +341,24 @@ func NewProcessList(state interfaces.IState, totalServers int, dbheight uint32) 
 	pl.AuditServers = make([]interfaces.IFctServer, 0)
 	pl.FedServers = make([]interfaces.IFctServer, 0)
 	pl.ServerOrder = make([][]interfaces.IFctServer, 0)
+
+	s := state.(*State)
+	dbstate := s.DBStates.Last()
+	var err error
+	if dbstate != nil {
+		pl.DirectoryBlock = directoryBlock.NewDirectoryBlock(dbheight, dbstate.DirectoryBlock.(*directoryBlock.DirectoryBlock))
+		pl.FactoidBlock = state.GetFactoidState().GetCurrentBlock()
+		pl.AdminBlock = s.NewAdminBlock(dbheight)
+		pl.EntryCreditBlock, err = entryCreditBlock.NextECBlock(dbstate.EntryCreditBlock)
+	} else {
+		pl.DirectoryBlock = directoryBlock.NewDirectoryBlock(dbheight, nil)
+		pl.FactoidBlock = state.GetFactoidState().GetCurrentBlock()
+		pl.AdminBlock = s.NewAdminBlock(dbheight)
+		pl.EntryCreditBlock, err = entryCreditBlock.NextECBlock(nil)
+	}
+	if err != nil {
+		panic(err.Error())
+	}
 
 	return pl
 }

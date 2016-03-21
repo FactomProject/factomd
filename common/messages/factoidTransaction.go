@@ -67,7 +67,7 @@ func (m *FactoidTransaction) Type() int {
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
-func (m *FactoidTransaction) Validate( state interfaces.IState) int {
+func (m *FactoidTransaction) Validate(state interfaces.IState) int {
 	err := state.GetFactoidState().Validate(1, m.Transaction)
 	if err != nil {
 		fmt.Println(err.Error())
@@ -97,15 +97,16 @@ func (m *FactoidTransaction) FollowerExecute(state interfaces.IState) error {
 	return err
 }
 
-func (m *FactoidTransaction) Process(dbheight uint32, state interfaces.IState) {
+func (m *FactoidTransaction) Process(dbheight uint32, state interfaces.IState) bool {
 
 	if m.processed {
-		return
+		return true
 	}
 	m.processed = true
 	fmt.Println("Process Factoid")
 	// We can only get a Factoid Transaction once.  Add it, and remove it from the lists.
 	state.GetFactoidState().AddTransaction(1, m.Transaction)
+	return true
 
 }
 

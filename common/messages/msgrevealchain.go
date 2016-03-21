@@ -87,7 +87,7 @@ func (msg *MsgRevealChain) Sha() (interfaces.IHash, error) {
 
 var _ interfaces.IMsg = (*MsgRevealChain)(nil)
 
-func (m *MsgRevealChain) Process(uint32, interfaces.IState) {}
+func (m *MsgRevealChain) Process(uint32, interfaces.IState) bool { return true }
 
 func (m *MsgRevealChain) GetHash() interfaces.IHash {
 	return nil
@@ -145,7 +145,7 @@ func (m *MsgRevealChain) String() string {
 //  < 0 -- MsgRevealChain is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- MsgRevealChain is valid
-func (m *MsgRevealChain) Validate( state interfaces.IState) int {
+func (m *MsgRevealChain) Validate(state interfaces.IState) int {
 	return 0
 }
 

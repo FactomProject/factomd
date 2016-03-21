@@ -51,6 +51,7 @@ type State struct {
 	// Just to print (so debugging doesn't drive functionaility)
 	serverPrt string
 
+	timerMsgQueue          chan interfaces.IMsg
 	networkOutMsgQueue     chan interfaces.IMsg
 	networkInvalidMsgQueue chan interfaces.IMsg
 	inMsgQueue             chan interfaces.IMsg
@@ -63,7 +64,7 @@ type State struct {
 	OutputAllowed bool
 	ServerIndex   int // Index of the server, as understood by the leader
 
-	LeaderHeight uint32
+	LLeaderHeight uint32
 
 	// Maps
 	// ====
@@ -115,7 +116,6 @@ type State struct {
 	FactoshisPerEC uint64
 	// Web Services
 	Port int
-
 }
 
 var _ interfaces.IState = (*State)(nil)
@@ -137,8 +137,8 @@ func (s *State) Clone(number string) interfaces.IState {
 	clone.Network = s.Network
 	clone.DirectoryBlockInSeconds = s.DirectoryBlockInSeconds
 	clone.PortNumber = s.PortNumber
-	
-	clone.CoreChainID     = s.CoreChainID
+
+	clone.CoreChainID = s.CoreChainID
 	clone.IdentityChainID = primitives.Sha([]byte(number))
 	// Need to have a Server Priv Key TODO:
 	clone.LocalServerPrivKey = s.LocalServerPrivKey
@@ -180,18 +180,19 @@ func (s *State) LoadConfig(filename string) {
 	s.PortNumber = cfg.Wsapi.PortNumber
 
 	s.IdentityChainID = primitives.Sha([]byte("0"))
-	s.CoreChainID     = primitives.Sha([]byte("0"))
+	s.CoreChainID = primitives.Sha([]byte("0"))
 }
 
 func (s *State) Init() {
 
 	wsapi.InitLogs(s.LogPath+s.FactomNodeName+".log", s.LogLevel)
 
-	fmt.Println("Logger: ",s.LogPath, s.LogLevel)
+	s.Println("Logger: ", s.LogPath, s.LogLevel)
 	s.Logger = logger.NewLogFromConfig(s.LogPath, s.LogLevel, "State")
 
 	log.SetLevel(s.ConsoleLogLevel)
 
+	s.timerMsgQueue = make(chan interfaces.IMsg, 10000)          //incoming eom notifications, used by leaders
 	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 10000) //incoming message queue from the network messages
 	s.networkOutMsgQueue = make(chan interfaces.IMsg, 10000)     //Messages to be broadcast to the network
 	s.inMsgQueue = make(chan interfaces.IMsg, 10000)             //incoming message queue for factom application messages
@@ -218,7 +219,7 @@ func (s *State) Init() {
 	s.ProcessLists = NewProcessLists(s)
 
 	s.DBStates = new(DBStateList)
-	s.DBStates.state = s
+	s.DBStates.State = s
 	s.DBStates.DBStates = make([]*DBState, 0)
 
 	switch s.NodeMode {
@@ -339,8 +340,18 @@ func (s *State) GetDirectoryBlockByHeight(height uint32) interfaces.IDirectoryBl
 }
 
 func (s *State) UpdateState() {
+
 	s.ProcessLists.UpdateState()
-	s.DBStates.Process()
+
+	s.DBStates.UpdateState()
+
+	str := fmt.Sprintf("%25s   %10s   %25s", "sssssssssssssssssssssssss", s.GetFactomNodeName(), "sssssssssssssssssssssssss\n")
+	str = str + s.ProcessLists.String()
+	str = str + s.DBStates.String()
+	str = str + fmt.Sprintf("%25s   %10s   %25s", "eeeeeeeeeeeeeeeeeeeeeeeee", s.GetFactomNodeName(), "eeeeeeeeeeeeeeeeeeeeeeeee\n")
+	str = str + "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+
+	s.Println(str)
 }
 
 func (s *State) GetFactoshisPerEC() uint64 {
@@ -428,6 +439,10 @@ func (s *State) GetPort() int {
 	return s.PortNumber
 }
 
+func (s *State) TimerMsgQueue() chan interfaces.IMsg {
+	return s.timerMsgQueue
+}
+
 func (s *State) NetworkInvalidMsgQueue() chan interfaces.IMsg {
 	return s.networkInvalidMsgQueue
 }
@@ -471,7 +486,7 @@ func (s *State) InitLevelDB() error {
 
 	path := s.LdbPath + "/" + s.Network + "/" + "factoid_level.db"
 
-	fmt.Println("Database:", path)
+	s.Println("Database:", path)
 
 	dbase, err := hybridDB.NewLevelMapHybridDB(path, false)
 
@@ -513,9 +528,7 @@ func (s *State) InitMapDB() error {
 
 func (s *State) String() string {
 	str := "\n===============================================================\n" + s.serverPrt
-	str = fmt.Sprintf("\n%s\n  Leader Height: %d", str, s.LeaderHeight)
-	str = fmt.Sprintf("\n%s%s", str, s.DBStates.String())
-	//str = fmt.Sprintf("%s%s", str, s.ProcessLists.String())
+	str = fmt.Sprintf("\n%s\n  Leader Height: %d\n", str, s.LLeaderHeight)
 	str = str + "===============================================================\n"
 	return str
 }

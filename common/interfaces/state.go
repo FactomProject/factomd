@@ -34,13 +34,19 @@ type IState interface {
 	GetFedServerIndex(uint32) (bool, int)
 	SetString()
 	ShortString() string
-	
-	// This is the highest block signed off and recorded in the Database.
+
+	// This is the highest block signed off and recorded in the Database.  This
+	// is a follower's state, but it is also critical to validation; we cannot
+	// validate transactions where the HighestRecordedBlock+1 != block holding said
+	// transaction.
 	GetHighestRecordedBlock() uint32
-	// This is the block the leader is building
+	// This is the Leader's view of the Height. It must be == HighestRecordedBlock+1.  Since
+	// Recording a block can take time, messages must be queued until the previous block is
+	// recorded (either by processing messages, or timing out and Leaders signing off the block)
 	GetLeaderHeight() uint32
-	// The highest block for which we have received a message.  Sometimes the same as
-	// BuildingBlock(), but can be different depending or the order messages are recieved.
+	// The highest block for which we have received a message. This is a
+	// Follower's understanding of the Height, and reflects what block
+	// is receiving messages.
 	GetHighestKnownBlock() uint32
 
 	// Find a Directory Block by height
@@ -49,6 +55,7 @@ type IState interface {
 	//==========
 
 	// Network Processor
+	TimerMsgQueue() chan IMsg
 	NetworkOutMsgQueue() chan IMsg
 	NetworkInvalidMsgQueue() chan IMsg
 
@@ -102,22 +109,19 @@ type IState interface {
 	FollowerExecuteMsg(m IMsg) (bool, error) // Messages that go into the process list
 	FollowerExecuteAck(m IMsg) (bool, error) // Ack Msg calls this function.
 	FollowerExecuteDBState(IMsg) error       // Add the given DBState to this server
-	ProcessAddServer(dbheight uint32, addServerMsg IMsg)
-	ProcessCommitChain(dbheight uint32, commitChain IMsg)
-	ProcessDBS(dbheight uint32, commitChain IMsg)
-	ProcessEOM(dbheight uint32, eom IMsg)
+	ProcessAddServer(dbheight uint32, addServerMsg IMsg) bool
+	ProcessCommitChain(dbheight uint32, commitChain IMsg) bool
+	ProcessDBSig(dbheight uint32, commitChain IMsg) bool
+	ProcessEOM(dbheight uint32, eom IMsg) bool
 
 	// For messages that go into the Process List
 	LeaderExecute(m IMsg) error
 	LeaderExecuteAddServer(m IMsg) error
 	LeaderExecuteEOM(m IMsg) error
-	LeaderExecuteDBSig(m IMsg) error
-
-	NewEOM(int) IMsg
 
 	GetTimestamp() Timestamp
 
 	PrintType(int) bool // Debugging
-	Print(a ...interface{}) (n int, err error) 
-	Println(a ...interface{}) (n int, err error) 
+	Print(a ...interface{}) (n int, err error)
+	Println(a ...interface{}) (n int, err error)
 }

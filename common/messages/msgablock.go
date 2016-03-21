@@ -75,7 +75,7 @@ func NewMsgABlock() *MsgABlock {
 
 var _ interfaces.IMsg = (*MsgABlock)(nil)
 
-func (m *MsgABlock) Process(uint32, interfaces.IState) {}
+func (m *MsgABlock) Process(uint32, interfaces.IState) bool { return true }
 
 func (m *MsgABlock) GetHash() interfaces.IHash {
 	return nil
@@ -153,7 +153,7 @@ func (m *MsgABlock) Signature() []byte {
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
-func (m *MsgABlock) Validate( state interfaces.IState) int {
+func (m *MsgABlock) Validate(state interfaces.IState) int {
 	return 0
 }
 

@@ -52,7 +52,7 @@ func NewMsgVerAck() *MsgVerAck {
 
 var _ interfaces.IMsg = (*MsgVerAck)(nil)
 
-func (m *MsgVerAck) Process(uint32, interfaces.IState) {}
+func (m *MsgVerAck) Process(uint32, interfaces.IState) bool { return true }
 
 func (m *MsgVerAck) GetHash() interfaces.IHash {
 	return nil
@@ -110,7 +110,7 @@ func (m *MsgVerAck) String() string {
 //  < 0 -- MsgVerAck is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- MsgVerAck is valid
-func (m *MsgVerAck) Validate( state interfaces.IState) int {
+func (m *MsgVerAck) Validate(state interfaces.IState) int {
 	return 0
 }
 
