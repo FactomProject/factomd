@@ -529,7 +529,7 @@ func (s *State) InitMapDB() error {
 
 func (s *State) String() string {
 	str := "\n===============================================================\n" + s.serverPrt
-	str = fmt.Sprintf("\n%s\n  Leader Height: %d", str, s.LLeaderHeight)
+	str = fmt.Sprintf("\n%s\n  Leader Height: %d\n", str, s.LLeaderHeight)
 	str = str + "===============================================================\n"
 	return str
 }

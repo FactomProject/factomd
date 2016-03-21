@@ -16,8 +16,9 @@ var _ = fmt.Print
 
 type msglist struct {
 	fnode *FactomNode
+	out   bool   // True if this is an output.
 	name  string
-	dest  string
+	peer  string
 	where string // NetIn, In, Netout
 	valid bool   // Valid or not
 	msg   interfaces.IMsg
@@ -47,7 +48,7 @@ func (m *MsgLog) init(nodecnt int) {
 	}
 }
 
-func (m *MsgLog) add2(fnode *FactomNode, dest string, where string, valid bool, msg interfaces.IMsg) {
+func (m *MsgLog) add2(fnode *FactomNode, out bool, peer string, where string, valid bool, msg interfaces.IMsg) {
 	m.sem.Lock()
 	defer m.sem.Unlock()
 	now := fnode.State.GetTimestamp() / 1000
@@ -60,8 +61,9 @@ func (m *MsgLog) add2(fnode *FactomNode, dest string, where string, valid bool, 
 
 	nm := new(msglist)
 	nm.fnode = fnode
+	nm.out = out
 	nm.name = fnode.State.FactomNodeName
-	nm.dest = dest
+	nm.peer = peer
 	nm.valid = valid
 	nm.where = where
 	nm.msg = msg
@@ -103,7 +105,9 @@ func (m *MsgLog) prtMsgs(state interfaces.IState) {
 	for _, e := range m.MsgList {
 		if e.valid {
 			if e.fnode.State.GetOut() {
-				state.Print(fmt.Sprintf("**** %8s -> %8s %10s %5v     **** %s\n", e.name, e.dest, e.where, e.valid, e.msg.String()))
+				dirstr := "->"
+				if !e.out { dirstr = "<-" }
+				state.Print(fmt.Sprintf("**** %8s %2s %8s %10s %5v     **** %s\n", e.name, dirstr, e.peer, e.where, e.valid, e.msg.String()))
 			}
 		}
 	}
