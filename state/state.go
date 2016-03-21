@@ -541,26 +541,28 @@ func (s *State) ShortString() string {
 func (s *State) SetString() {
 	buildingBlock := s.GetLeaderHeight()
 	if buildingBlock == 0 {
-		s.serverPrt = fmt.Sprintf("%5s %7s Recorded: %d Building: %d Highest: %d  IDChainID[:10]=%x",
+		s.serverPrt = fmt.Sprintf("%5s %7s Recorded: %d Building: %d Highest: %d  IDChainID[:5]=%x",
 			"",
 			s.FactomNodeName,
 			s.GetHighestRecordedBlock(),
 			0,
 			s.GetHighestKnownBlock(),
-			s.IdentityChainID.Bytes()[:10])
+			s.IdentityChainID.Bytes()[:5])
 	} else {
 		found, index := s.ProcessLists.Get(buildingBlock).GetFedServerIndex(s.IdentityChainID)
 		stype := ""
 		if found {
 			stype = fmt.Sprintf("L %3d", index)
 		}
-		s.serverPrt = fmt.Sprintf("%5s %7s Recorded: %d Building: %d Highest: %d  IDChainID[:10]=%x",
+		dblk := s.DBStates.Last().DirectoryBlock
+		s.serverPrt = fmt.Sprintf("%5s %7s Recorded: %d Building: %d Highest: %d DirBlk[:5]=%x IDChainID[:5]=%x",
 			stype,
 			s.FactomNodeName,
 			s.GetHighestRecordedBlock(),
 			buildingBlock,
 			s.GetHighestKnownBlock(),
-			s.IdentityChainID.Bytes()[:10])
+			dblk.GetKeyMR().Bytes()[:5],
+			s.IdentityChainID.Bytes()[:5])
 	}
 }
 
