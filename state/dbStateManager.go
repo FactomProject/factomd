@@ -145,6 +145,7 @@ func (list *DBStateList) UpdateState() {
 	for i,d := range list.DBStates {
 		
 		if d == nil {
+			list.State.Println("Null at ",i," in DBStates")
 			return
 		}
 		

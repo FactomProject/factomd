@@ -118,8 +118,7 @@ type IState interface {
 	LeaderExecute(m IMsg) error
 	LeaderExecuteAddServer(m IMsg) error
 	LeaderExecuteEOM(m IMsg) error
-	LeaderExecuteDBSig(m IMsg) error
-
+	
 	GetTimestamp() Timestamp
 
 	PrintType(int) bool // Debugging

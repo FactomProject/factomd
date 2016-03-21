@@ -188,7 +188,7 @@ func (s *State) Init() {
 
 	wsapi.InitLogs(s.LogPath+s.FactomNodeName+".log", s.LogLevel)
 
-	fmt.Println("Logger: ",s.LogPath, s.LogLevel)
+	s.Println("Logger: ",s.LogPath, s.LogLevel)
 	s.Logger = logger.NewLogFromConfig(s.LogPath, s.LogLevel, "State")
 
 	log.SetLevel(s.ConsoleLogLevel)
@@ -341,8 +341,18 @@ func (s *State) GetDirectoryBlockByHeight(height uint32) interfaces.IDirectoryBl
 }
 
 func (s *State) UpdateState() {
+	
 	s.ProcessLists.UpdateState()
+
 	s.DBStates.UpdateState()
+	
+	str := fmt.Sprintf("%25s   %10s   %25s","sssssssssssssssssssssssss",s.GetFactomNodeName(),"sssssssssssssssssssssssss\n")
+	str = str+   s.ProcessLists.String()
+	str = str+   s.DBStates.String()
+	str = str+   fmt.Sprintf("%25s   %10s   %25s","eeeeeeeeeeeeeeeeeeeeeeeee",s.GetFactomNodeName(),"eeeeeeeeeeeeeeeeeeeeeeeee\n")
+	str = str+   "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+
+	s.Println(str)
 }
 
 func (s *State) GetFactoshisPerEC() uint64 {
@@ -477,7 +487,7 @@ func (s *State) InitLevelDB() error {
 
 	path := s.LdbPath + "/" + s.Network + "/" + "factoid_level.db"
 
-	fmt.Println("Database:", path)
+	s.Println("Database:", path)
 
 	dbase, err := hybridDB.NewLevelMapHybridDB(path, false)
 
@@ -520,8 +530,6 @@ func (s *State) InitMapDB() error {
 func (s *State) String() string {
 	str := "\n===============================================================\n" + s.serverPrt
 	str = fmt.Sprintf("\n%s\n  Leader Height: %d", str, s.LLeaderHeight)
-	str = fmt.Sprintf("\n%s%s", str, s.DBStates.String())
-	str = fmt.Sprintf("%s%s", str, s.ProcessLists.String())
 	str = str + "===============================================================\n"
 	return str
 }

@@ -36,18 +36,11 @@ func (e *DirectoryBlockSignature) Process(dbheight uint32, state interfaces.ISta
 }
 
 func (m *DirectoryBlockSignature) GetHash() interfaces.IHash {
-	if m.hash == nil {
-		data, err := m.MarshalForSignature()
-		if err != nil {
-			panic(fmt.Sprintf("Error in CommitChain.GetHash(): %s", err.Error()))
-		}
-		m.hash = primitives.Sha(data)
-	}
-	return m.hash
+	return m.GetMsgHash()
 }
 
 func (m *DirectoryBlockSignature) GetMsgHash() interfaces.IHash {
-	if m.MsgHash == nil {
+	if m.MsgHash == nil || true {
 		data, _ := m.MarshalForSignature()
 		if data == nil {
 			return nil
@@ -93,7 +86,7 @@ func (m *DirectoryBlockSignature) Leader(state interfaces.IState) bool {
 
 // Execute the leader functions of the given message
 func (m *DirectoryBlockSignature) LeaderExecute(state interfaces.IState) error {
-	return state.LeaderExecuteDBSig(m)
+	return state.LeaderExecute(m)
 }
 
 // Returns true if this is a message for this server to execute as a follower
@@ -225,12 +218,22 @@ func (m *DirectoryBlockSignature) MarshalBinary() (data []byte, err error) {
 	return resp, nil
 }
 
+// func (m *DirectoryBlockSignature) String() string {
+// 	return fmt.Sprintf("%6s-%3d: db %2d ----------- hash[:10]=%x",
+// 		"DBSig",
+// 		m.ServerIndex,
+// 		m.DBHeight,
+// 		m.GetHash().Bytes()[:10])
+// }
+
 func (m *DirectoryBlockSignature) String() string {
-	return fmt.Sprintf("%6s-%3d: db %2d ----------- hash[:10]=%x",
+	return fmt.Sprintf("%6s-%3d:          Ht:%5d -- chainID[:5]=%x hash[:5]=%x",
 		"DBSig",
 		m.ServerIndex,
 		m.DBHeight,
-		m.GetHash().Bytes()[:10])
+		m.ServerIdentityChainID.Bytes()[:5],
+		m.GetHash().Bytes()[:5])
+	
 }
 
 func (e *DirectoryBlockSignature) JSONByte() ([]byte, error) {
@@ -249,6 +252,7 @@ func (e *DirectoryBlockSignature) JSONBuffer(b *bytes.Buffer) error {
  * Support
  *******************************************************************/
 
+
 func NewDirectoryBlockSignature(dbHeight uint32) *DirectoryBlockSignature {
 	dbm := new(DirectoryBlockSignature)
 	dbm.DBHeight = dbHeight
@@ -256,3 +260,5 @@ func NewDirectoryBlockSignature(dbHeight uint32) *DirectoryBlockSignature {
 	dbm.ServerIdentityChainID = primitives.NewHash(constants.ZERO_HASH)
 	return dbm
 }
+	
+

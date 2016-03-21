@@ -231,14 +231,17 @@ func (p *ProcessList) Process(state *State) {
 				p.Servers[i].Height = j + 1    		    // Don't process it again if the process worked.
 			}
 			
-			//eom, ok := plist[j].(*messages.EOM)
-			//if ok && eom.Minute == 9 {
-			//	p.Servers[i].EomComplete = true
-			//}
-			//_, ok = plist[j].(*messages.DirectoryBlockSignature)
-			//if ok {
-			//	p.Servers[i].SigComplete = true
-			//}
+			// TODO:  If we carefully manage our state as we process messages, we 
+			// would not need to check the messages here!  Checking for EOM and DBS 
+			// as follows is a bit of a kludge.
+			eom, ok := plist[j].(*messages.EOM)
+			if ok && eom.Minute == 9 {
+				p.Servers[i].EomComplete = true
+			}
+			_, ok = plist[j].(*messages.DirectoryBlockSignature)
+			if ok {
+				p.Servers[i].SigComplete = true
+			}
 		}
 	}
 }

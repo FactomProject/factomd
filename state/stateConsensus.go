@@ -34,6 +34,7 @@ func (s *State) AddDBState(isNew bool,
 	
 	dbState := s.DBStates.NewDBState(isNew, directoryBlock, adminBlock, factoidBlock, entryCreditBlock)
 	s.DBStates.Put(dbState)
+	
 }
 
 // Messages that will go into the Process List must match an Acknowledgement.
@@ -141,26 +142,6 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
 	return nil
 }
 
-func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) error {
-	
-	dbs := m.(*messages.DirectoryBlockSignature)
-	hash := dbs.GetHash()
-	
-	ack, err := s.NewAck(dbs.DBHeight, m, hash)
-	if err != nil {
-		return err
-	}
-	
-	// Leader Execute creates an acknowledgement and the EOM
-	s.NetworkOutMsgQueue() <- ack
-	s.NetworkOutMsgQueue() <- m
-	ack.FollowerExecute(s)
-	m.FollowerExecute(s)
-	
-	return nil
-}
-
-
 
 func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) bool {
 	as, ok := addServerMsg.(*messages.AddServerMsg)
@@ -172,17 +153,17 @@ func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) 
 	plc := s.ProcessLists.Get(dbheight)
 	pl := s.ProcessLists.Get(dbheight + 1)
 
-	fmt.Println("Current Server List:")
+	s.Println("Current Server List:")
 	for _, fed := range plc.FedServers {
 		pl.AddFedServer(fed.(*interfaces.Server))
-		fmt.Println("  ", fed.GetChainID().String())
+		s.Println("  ", fed.GetChainID().String())
 	}
 
 	pl.AddFedServer(server)
 
-	fmt.Println("New Server List:")
+	s.Println("New Server List:")
 	for _, fed := range pl.FedServers {
-		fmt.Println("  ", fed.GetChainID().String())
+		s.Println("  ", fed.GetChainID().String())
 	}
 	
 	return true
@@ -201,34 +182,54 @@ func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)
 	return true
 }
 
+// TODO: Should fault the server if we don't have the proper sequence of EOM messages.
 func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	e, ok := msg.(*messages.EOM)
 	if !ok {
 		panic("Must pass an EOM message to ProcessEOM)")
 	}
-
-	pl := s.ProcessLists.Get(dbheight)
-
-	s.FactoidState.EndOfPeriod(int(e.Minute))
-
-	ecblk := pl.EntryCreditBlock
-
-	ecbody := ecblk.GetBody()
-	mn := entryCreditBlock.NewMinuteNumber2(e.Minute)
-
-	ecbody.AddEntry(mn)
 	
-	if e.Minute == 9  {
+	pl := s.ProcessLists.Get(dbheight)
+	
+	if e.Minute == 9 {
+		pl.SetEomComplete(e.ServerIndex,true)
+	
+		s.FactoidState.EndOfPeriod(int(e.Minute))
+		
+		ecblk := pl.EntryCreditBlock
+		ecbody := ecblk.GetBody()
+		mn := entryCreditBlock.NewMinuteNumber2(e.Minute)
+		ecbody.AddEntry(mn)
+		
+		// Should ensure we don't register the directory block multiple times.
+		s.AddDBState(true,pl.DirectoryBlock,pl.AdminBlock,pl.FactoidBlock,pl.EntryCreditBlock)
+		
+		if s.LLeaderHeight <= dbheight {
+			s.LLeaderHeight = dbheight+1
+		}
+		
 		found, index := s.GetFedServerIndex(s.LLeaderHeight)
 		if found && e.ServerIndex == index {
+			dbstate := s.DBStates.Get(dbheight)
 			DBS := messages.NewDirectoryBlockSignature(dbheight)
+			DBS.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
 			DBS.Timestamp = s.GetTimestamp()
-			DBS.LeaderExecute(s)
-		}
+			DBS.ServerIdentityChainID = s.IdentityChainID
+			DBS.Sign(s)
+			
+			hash := DBS.GetHash()
+			
+			ack, _ := s.NewAck(dbheight, DBS, hash)
+			
+			// Leader Execute creates an acknowledgement and the EOM
+			s.NetworkOutMsgQueue() <- ack
+			s.NetworkOutMsgQueue() <- DBS
+			ack.FollowerExecute(s)
+			DBS.FollowerExecute(s)
+		}	
 	}
 	
 	return true
-
 }
 
 
@@ -238,24 +239,12 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 	
 	dbs := msg.(*messages.DirectoryBlockSignature)
-	_, index := s.GetFedServerIndexFor(dbheight,dbs.ServerIdentityChainID)
 	
-	pl := s.ProcessLists.Get(dbheight)
-	pl.SetEomComplete(index,true)
-
-	if msg.Leader(s) {
-		
-		if pl.EomComplete() {
-			dbstate := s.DBStates.Last()
-			DBS := messages.NewDirectoryBlockSignature(dbheight)
-			DBS.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
-			DBS.Sign(s)
-			s.NetworkOutMsgQueue() <- DBS
-			s.AddDBState(true,pl.DirectoryBlock,pl.AdminBlock,pl.FactoidBlock,pl.EntryCreditBlock)
-			return true
-		}else{
-			return false
-		}
+	if msg.Leader(s) {		
+		hash := dbs.GetHash()
+		ack, _ := s.NewAck(dbs.DBHeight, msg, hash)
+		s.NetworkOutMsgQueue() <- dbs
+		s.NetworkOutMsgQueue() <- ack
 	}
 	
 	return true

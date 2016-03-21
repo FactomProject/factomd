@@ -30,6 +30,7 @@ type EOM struct {
 
 	//Not marshalled
 	hash interfaces.IHash
+	MarkerSet			bool		// Set if we have Processed EOM markers, so we don't repeat.
 }
 
 //var _ interfaces.IConfirmation = (*EOM)(nil)
@@ -235,7 +236,7 @@ func (m *EOM) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *EOM) String() string {
-	return fmt.Sprintf("%6s-%3d: Min: %2d, Ht: %d -- chainID[:5]=%x hash[:5]=%x",
+	return fmt.Sprintf("%6s-%3d: Min:%4d Ht:%5d -- chainID[:5]=%x hash[:5]=%x",
 		"EOM",
 		m.ServerIndex,
 		m.Minute,

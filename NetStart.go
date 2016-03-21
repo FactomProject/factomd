@@ -152,7 +152,7 @@ func NetStart(s *state.State) {
 	for {
 		fmt.Sprintf(">>>>>>>>>>>>>>")
 
-		b := make([]byte, 10)
+		b := make([]byte, 100)
 		var err error
 		if _, err = os.Stdin.Read(b); err != nil {
 			log.Fatal(err.Error())
@@ -178,12 +178,13 @@ func NetStart(s *state.State) {
 			}
 			switch b[0] {
 			case 'a', 'A':
-				fmt.Println("a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a ")
+				fmt.Println("-------------------------------------------------------------------------------")
 				for _, f := range fnodes {
 					f.State.SetOut(false)
 					fmt.Printf("%8s %s\n", f.State.FactomNodeName, f.State.ShortString())
 				}
 			case 'd','D':
+				os.Stderr.WriteString("Dump all messages\n")
 				for _,fnode := range fnodes {
 					fnode.State.SetOut(true)
 				}
