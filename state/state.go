@@ -570,14 +570,24 @@ func (s *State) SetString() {
 		if found {
 			stype = fmt.Sprintf("L %3d", index)
 		}
-		dblk := s.DBStates.Last().DirectoryBlock
+		keyMR := []byte("aaaaa")
+		switch {
+			case s.DBStates == nil :
+				keyMR = []byte("aaaaa")
+			case s.DBStates.Last() == nil :
+				keyMR = []byte("bbbbb")
+			case s.DBStates.Last().DirectoryBlock == nil :
+				keyMR = []byte("ccccc")
+			default:
+				keyMR = s.DBStates.Last().DirectoryBlock.GetKeyMR().Bytes()
+		}
 		s.serverPrt = fmt.Sprintf("%5s %7s Recorded: %d Building: %d Highest: %d DirBlk[:5]=%x IDChainID[:5]=%x",
 			stype,
 			s.FactomNodeName,
 			s.GetHighestRecordedBlock(),
 			buildingBlock,
 			s.GetHighestKnownBlock(),
-			dblk.GetKeyMR().Bytes()[:5],
+			keyMR[:5],
 			s.IdentityChainID.Bytes()[:5])
 	}
 }
