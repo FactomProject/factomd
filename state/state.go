@@ -30,6 +30,8 @@ type State struct {
 	Cfg interfaces.IFactomConfig
 
 	FactomNodeName          string
+	FactomdVersion			int
+	ProtocolVersion			int
 	LogPath                 string
 	LdbPath                 string
 	BoltDBPath              string
@@ -125,6 +127,8 @@ func (s *State) Clone(number string) interfaces.IState {
 	clone := new(State)
 
 	clone.FactomNodeName = "FNode" + number
+	clone.FactomdVersion = s.FactomdVersion
+	clone.ProtocolVersion = s.ProtocolVersion
 	clone.LogPath = s.LogPath + "Sim" + number
 	clone.LdbPath = s.LdbPath + "Sim" + number
 	clone.BoltDBPath = s.BoltDBPath + "Sim" + number
@@ -217,6 +221,9 @@ func (s *State) Init() {
 
 	// Allocate the original set of Process Lists
 	s.ProcessLists = NewProcessLists(s)
+	
+	s.FactomdVersion = constants.FACTOMD_VERSION
+	s.ProtocolVersion = constants.PROTOCOL_VERSION
 
 	s.DBStates = new(DBStateList)
 	s.DBStates.State = s
@@ -394,6 +401,15 @@ func (s *State) GetServerPublicKey() primitives.PublicKey {
 func (s *State) GetAnchor() interfaces.IAnchor {
 	return s.Anchor
 }
+
+func (s *State) GetFactomdVersion() int {
+	return s.FactomdVersion
+}
+
+func (s *State) GetProtocolVersion() int {
+	return s.ProtocolVersion
+}
+ 
 
 func (s *State) initServerKeys() {
 	var err error

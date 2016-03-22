@@ -134,6 +134,9 @@ func HandleV2GetRequest(state interfaces.IState, j *primitives.JSON2Request) (*p
 	case "directory-block-height":
 		resp, jsonError = HandleV2DirectoryBlockHeight(state, params)
 		break
+	case "properties":
+		resp, jsonError = HandleV2Properties(state, params)
+		break
 	default:
 		jsonError = NewMethodNotFoundError()
 		break
@@ -597,4 +600,20 @@ func HandleV2DirectoryBlockHeight(state interfaces.IState, params interface{}) (
 	h := new(DirectoryBlockHeightResponse)
 	h.Height = int64(state.GetHighestRecordedBlock())
 	return h, nil
+}
+
+func HandleV2Properties(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	vtos := func(f int) string {	
+		v0 := f / 1000000000
+		v1 := (f % 1000000000) / 1000000
+		v2 := (f % 1000000) / 1000
+		v3 := f % 1000
+	
+		return fmt.Sprintf("%d.%d.%d.%d", v0, v1, v2, v3)
+	}
+	
+	p := new(PropertiesResponse)
+	p.Factomd_Version = vtos(state.GetFactomdVersion())
+	p.Protocol_Version = vtos(state.GetProtocolVersion())
+	return p, nil
 }

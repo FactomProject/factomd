@@ -25,6 +25,8 @@ type IState interface {
 	Sign([]byte) IFullSignature
 	GetDirectoryBlockInSeconds() int
 	GetServer() IServer
+	GetFactomdVersion() int
+	GetProtocolVersion() int
 	SetServer(IServer)
 	GetDBHeightComplete() uint32
 	SetOut(bool)  // Output is turned on if set to true

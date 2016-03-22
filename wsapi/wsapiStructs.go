@@ -92,6 +92,11 @@ type DirectoryBlockHeightResponse struct {
 	Height int64
 }
 
+type PropertiesResponse struct {
+	Factomd_Version string
+	Protocol_Version string
+}
+
 /*********************************************************************/
 
 type DBHead struct {

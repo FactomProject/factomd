@@ -50,6 +50,7 @@ func Start(state interfaces.IState) {
 		server.Get("/v1/entry-credit-balance/([^/]+)", HandleEntryCreditBalance)
 		server.Get("/v1/factoid-balance/([^/]+)", HandleFactoidBalance)
 		server.Get("/v1/factoid-get-fee/", HandleGetFee)
+		server.Get("/v1/properties/", HandleProperties)
 
 		server.Post("/v2", HandleV2Post)
 		server.Get("/v2", HandleV2Get)
@@ -57,7 +58,6 @@ func Start(state interfaces.IState) {
 		log.Print("Starting server")
 		go server.Run(fmt.Sprintf("localhost:%d", state.GetPort()))
 	}
-
 }
 
 func SetState(state interfaces.IState) {
@@ -371,6 +371,27 @@ func HandleFactoidBalance(ctx *web.Context, eckey string) {
 		return
 	}
 	returnMsg(ctx, fmt.Sprintf("%v", jsonResp.Result.(*FactoidBalanceResponse).Balance), true)
+}
+
+func HandleProperties(ctx *web.Context) {
+	state := ctx.Server.Env["state"].(interfaces.IState)
+
+	req := primitives.NewJSON2Request(1, nil, "properties")
+
+	jsonResp, jsonError := HandleV2GetRequest(state, req)
+	if jsonError != nil {
+		returnV1(ctx, nil, jsonError)
+		return
+	}
+	type x struct{
+		Protocol_Version string
+		Factomd_Version string
+	}
+	d := new(x)
+	d.Factomd_Version = jsonResp.Result.(*PropertiesResponse).Factomd_Version
+	d.Protocol_Version = jsonResp.Result.(*PropertiesResponse).Protocol_Version
+
+	returnMsg(ctx, d, true)
 }
 
 /*********************************************************
