@@ -101,6 +101,7 @@ compile() {
 }
 
 checkout factomd      $branch $default
+checkout fctwallet    $branch $default
 checkout fctwallet2   $branch $default
 checkout walletapp2   $branch $default
 checkout factom       $branch $default
