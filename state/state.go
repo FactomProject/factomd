@@ -584,11 +584,11 @@ func (s *State) SetString() {
 		keyMR, abHash, fbHash, ecHash := []byte("aaaaa"), []byte("aaaaa"), []byte("aaaaa"), []byte("aaaaa")
 		switch {
 		case s.DBStates == nil:
-			keyMR = []byte("aaaaa")
+			keyMR = []byte("aaaaa") //6161616161
 		case s.DBStates.Last() == nil:
-			keyMR = []byte("bbbbb")
+			keyMR = []byte("bbbbb") //6262626262
 		case s.DBStates.Last().DirectoryBlock == nil:
-			keyMR = []byte("ccccc")
+			keyMR = []byte("ccccc") //6363636363
 		default:
 			keyMR = s.DBStates.Last().DirectoryBlock.GetKeyMR().Bytes()
 			abHash = s.DBStates.Last().AdminBlock.GetHash().Bytes()
