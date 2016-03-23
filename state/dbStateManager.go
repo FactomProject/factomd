@@ -281,23 +281,23 @@ func (list *DBStateList) Get(height uint32) *DBState {
 }
 
 func (list *DBStateList) NewDBState(isNew bool,
-	DirectoryBlock interfaces.IDirectoryBlock,
-	AdminBlock interfaces.IAdminBlock,
-	FactoidBlock interfaces.IFBlock,
-	EntryCreditBlock interfaces.IEntryCreditBlock) *DBState {
+	directoryBlock interfaces.IDirectoryBlock,
+	adminBlock interfaces.IAdminBlock,
+	factoidBlock interfaces.IFBlock,
+	entryCreditBlock interfaces.IEntryCreditBlock) *DBState {
 
 	dbState := new(DBState)
 
-	dbState.DBHash = DirectoryBlock.GetHash()
-	dbState.ABHash = AdminBlock.GetHash()
-	dbState.FBHash = FactoidBlock.GetHash()
-	dbState.ECHash = EntryCreditBlock.GetHash()
+	dbState.DBHash = directoryBlock.GetHash()
+	dbState.ABHash = adminBlock.GetHash()
+	dbState.FBHash = factoidBlock.GetHash()
+	dbState.ECHash = entryCreditBlock.GetHash()
 
 	dbState.isNew = isNew
-	dbState.DirectoryBlock = DirectoryBlock
-	dbState.AdminBlock = AdminBlock
-	dbState.FactoidBlock = FactoidBlock
-	dbState.EntryCreditBlock = EntryCreditBlock
+	dbState.DirectoryBlock = directoryBlock
+	dbState.AdminBlock = adminBlock
+	dbState.FactoidBlock = factoidBlock
+	dbState.EntryCreditBlock = entryCreditBlock
 
 	list.Put(dbState)
 	return dbState
