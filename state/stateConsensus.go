@@ -32,6 +32,14 @@ func (s *State) AddDBState(isNew bool,
 
 	// TODO:  Need to validate before we add, or at least validate once we have a contiguous set of blocks.
 
+	// 	fmt.Printf("AddDBState %s: DirectoryBlock %d %x %x %x %x\n",
+	// 			   s.FactomNodeName,
+	// 			   directoryBlock.GetHeader().GetDBHeight(),
+	// 			   directoryBlock.GetKeyMR().Bytes()[:5],
+	// 			   adminBlock.GetHash().Bytes()[:5],
+	// 			   factoidBlock.GetHash().Bytes()[:5],
+	// 			   entryCreditBlock.GetHash().Bytes()[:5])
+
 	dbState := s.DBStates.NewDBState(isNew, directoryBlock, adminBlock, factoidBlock, entryCreditBlock)
 	s.DBStates.Put(dbState)
 
@@ -95,6 +103,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) error {
 
 	s.DBStates.LastTime = s.GetTimestamp()
 
+	//	fmt.Println("DBState Message  ")
 	s.AddDBState(true,
 		dbstatemsg.DirectoryBlock,
 		dbstatemsg.AdminBlock,
@@ -199,6 +208,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		mn := entryCreditBlock.NewMinuteNumber2(e.Minute)
 		ecbody.AddEntry(mn)
 
+		//		fmt.Println("Process List ")
 		// Should ensure we don't register the directory block multiple times.
 		s.AddDBState(true, pl.DirectoryBlock, pl.AdminBlock, pl.FactoidBlock, pl.EntryCreditBlock)
 

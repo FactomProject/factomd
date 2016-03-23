@@ -322,6 +322,18 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 		return nil, err
 	}
 
+	// 	fmt.Printf("LoadDBState %s: %d %d dblk: %x ablk: %x/%x ecblk:%x/%x fblk:%x/%x\n",
+	// 			   s.FactomNodeName,
+	// 			   dblk.GetHeader().GetDBHeight(),
+	// 			   dbheight,
+	// 			   dblk.GetKeyMR().Bytes()[:5],
+	// 			   dblk.GetDBEntries()[0].GetKeyMR().Bytes()[:5],
+	// 			   ablk.GetHash().Bytes()[:5],
+	// 			   dblk.GetDBEntries()[1].GetKeyMR().Bytes()[:5],
+	// 			   ecblk.GetHash().Bytes()[:5],
+	// 			   dblk.GetDBEntries()[2].GetKeyMR().Bytes()[:5],
+	// 			   fblk.GetHash().Bytes()[:5])
+
 	msg := messages.NewDBStateMsg(s, dblk, ablk, fblk, ecblk)
 
 	return msg, nil
@@ -569,7 +581,7 @@ func (s *State) SetString() {
 		if found {
 			stype = fmt.Sprintf("L %3d", index)
 		}
-		keyMR := []byte("aaaaa")
+		keyMR, abHash, fbHash, ecHash := []byte("aaaaa"), []byte("aaaaa"), []byte("aaaaa"), []byte("aaaaa")
 		switch {
 		case s.DBStates == nil:
 			keyMR = []byte("aaaaa")
@@ -579,14 +591,20 @@ func (s *State) SetString() {
 			keyMR = []byte("ccccc")
 		default:
 			keyMR = s.DBStates.Last().DirectoryBlock.GetKeyMR().Bytes()
+			abHash = s.DBStates.Last().AdminBlock.GetHash().Bytes()
+			fbHash = s.DBStates.Last().FactoidBlock.GetHash().Bytes()
+			ecHash = s.DBStates.Last().EntryCreditBlock.GetHash().Bytes()
 		}
-		s.serverPrt = fmt.Sprintf("%5s %7s Recorded: %d Building: %d Highest: %d DirBlk[:5]=%x IDChainID[:5]=%x",
+		s.serverPrt = fmt.Sprintf("%5s %7s Recorded: %d Building: %d Highest: %d DirBlk[:5]=%x ABHash[:5]=%x FBHash[:5]=%x ECHash[:5]=%x IDChainID[:5]=%x",
 			stype,
 			s.FactomNodeName,
 			s.GetHighestRecordedBlock(),
 			buildingBlock,
 			s.GetHighestKnownBlock(),
 			keyMR[:5],
+			abHash[:5],
+			fbHash[:5],
+			ecHash[:5],
 			s.IdentityChainID.Bytes()[:5])
 	}
 }

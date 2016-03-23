@@ -169,40 +169,55 @@ func NetStart(s *state.State) {
 			}
 			switch b[0] {
 			case 'a', 'A':
+				mLog.all = false
 				fmt.Println("-------------------------------------------------------------------------------")
 				for _, f := range fnodes {
 					f.State.SetOut(false)
 					fmt.Printf("%8s %s\n", f.State.FactomNodeName, f.State.ShortString())
 				}
 			case 'd', 'D':
+				mLog.all = false
 				os.Stderr.WriteString("Dump all messages\n")
 				for _, fnode := range fnodes {
 					fnode.State.SetOut(true)
 				}
-			case 27:
-				fmt.Print("Gracefully shutting down the servers...\r\n")
+			case 'm':
+				os.Stderr.WriteString("Print all messages\n")
 				for _, fnode := range fnodes {
-					fmt.Print("Shutting Down: ", fnode.State.FactomNodeName, "\r\n")
+					fnode.State.SetOut(false)
+				}
+				mLog.all = true
+			case 27:
+				mLog.all = false
+				os.Stderr.WriteString((fmt.Sprint("Gracefully shutting down the servers...\r\n")))
+				for _, fnode := range fnodes {
+					os.Stderr.WriteString(fmt.Sprint("Shutting Down: ", fnode.State.FactomNodeName, "\r\n"))
 					fnode.State.ShutdownChan <- 0
 				}
-				fmt.Print("Waiting...\r\n")
+				os.Stderr.WriteString("Waiting...\r\n")
 				time.Sleep(time.Duration(len(fnodes)/8+1) * time.Second)
 				fmt.Println()
 				os.Exit(0)
 			case 32:
+				mLog.all = false
 				fnodes[listenTo].State.SetOut(false)
 				listenTo++
 				if listenTo >= len(fnodes) {
 					listenTo = 0
 				}
 				fnodes[listenTo].State.SetOut(true)
-				fmt.Print("\r\nSwitching to Node ", listenTo, "\r\n")
+				os.Stderr.WriteString("Print all messages\n")
+				os.Stderr.WriteString(fmt.Sprint("\r\nSwitching to Node ", listenTo, "\r\n"))
 				wsapi.SetState(fnodes[listenTo].State)
 			case 's', 'S':
+				for _, fnode := range fnodes {
+					fnode.State.SetOut(false)
+				}
+				mLog.all = false
 				msg := messages.NewAddServerMsg(fnodes[listenTo].State)
 				fnodes[listenTo].State.InMsgQueue() <- msg
 				fnodes[listenTo].State.SetOut(true)
-				fmt.Println("Attempting to make", fnodes[listenTo].State.GetFactomNodeName(), "a Leader")
+				os.Stderr.WriteString(fmt.Sprintln("Attempting to make", fnodes[listenTo].State.GetFactomNodeName(), "a Leader"))
 			default:
 			}
 		}

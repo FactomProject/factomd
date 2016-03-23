@@ -98,6 +98,7 @@ func (m *DBStateMissing) FollowerExecute(state interfaces.IState) error {
 		if msg != nil { // If I don't have this block, ignore.
 			msg.SetOrigin(m.GetOrigin())
 			state.NetworkOutMsgQueue() <- msg
+			fmt.Println(msg.String())
 		}
 	}
 
