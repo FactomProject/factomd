@@ -37,7 +37,7 @@ func (db *MapDB) Put(bucket, key []byte, data interfaces.BinaryMarshallable) err
 	db.Sem.Lock()
 	defer db.Sem.Unlock()
 
-	return db.RawPut(bucket, key, data)
+	return db.rawPut(bucket, key, data)
 }
 
 func (db *MapDB) RawPut(bucket, key []byte, data interfaces.BinaryMarshallable) error {

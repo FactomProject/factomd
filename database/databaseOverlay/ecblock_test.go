@@ -103,7 +103,7 @@ func TestSaveLoadECBlockChain(t *testing.T) {
 		//t.Logf("KeyMR - %v", keyMR.String())
 		hash := current.GetHeader().GetPrevFullHash()
 
-		current, err = dbo.FetchECBlockByKeyMR(keyMR)
+		current, err = dbo.FetchECBlockByHeaderHash(keyMR)
 		if err != nil {
 			t.Error(err)
 		}
@@ -162,7 +162,7 @@ func TestLoadUnknownECBlocks(t *testing.T) {
 		if data != nil {
 			t.Error("Fetched entry while we expected nil - %v", data)
 		}
-		data, err = dbo.FetchECBlockByKeyMR(hash)
+		data, err = dbo.FetchECBlockByHeaderHash(hash)
 		if err != nil {
 			t.Error(err)
 		}
