@@ -30,8 +30,8 @@ type State struct {
 	Cfg interfaces.IFactomConfig
 
 	FactomNodeName          string
-	FactomdVersion			int
-	ProtocolVersion			int
+	FactomdVersion          int
+	ProtocolVersion         int
 	LogPath                 string
 	LdbPath                 string
 	BoltDBPath              string
@@ -221,7 +221,7 @@ func (s *State) Init() {
 
 	// Allocate the original set of Process Lists
 	s.ProcessLists = NewProcessLists(s)
-	
+
 	s.FactomdVersion = constants.FACTOMD_VERSION
 	s.ProtocolVersion = constants.PROTOCOL_VERSION
 
@@ -350,7 +350,7 @@ func (s *State) UpdateState() {
 
 	s.ProcessLists.UpdateState()
 	s.DBStates.UpdateState()
-	
+
 	if s.GetOut() {
 		str := fmt.Sprintf("%25s   %10s   %25s", "sssssssssssssssssssssssss", s.GetFactomNodeName(), "sssssssssssssssssssssssss\n")
 		str = str + s.ProcessLists.String()
@@ -409,7 +409,6 @@ func (s *State) GetFactomdVersion() int {
 func (s *State) GetProtocolVersion() int {
 	return s.ProtocolVersion
 }
- 
 
 func (s *State) initServerKeys() {
 	var err error
@@ -572,14 +571,14 @@ func (s *State) SetString() {
 		}
 		keyMR := []byte("aaaaa")
 		switch {
-			case s.DBStates == nil :
-				keyMR = []byte("aaaaa")
-			case s.DBStates.Last() == nil :
-				keyMR = []byte("bbbbb")
-			case s.DBStates.Last().DirectoryBlock == nil :
-				keyMR = []byte("ccccc")
-			default:
-				keyMR = s.DBStates.Last().DirectoryBlock.GetKeyMR().Bytes()
+		case s.DBStates == nil:
+			keyMR = []byte("aaaaa")
+		case s.DBStates.Last() == nil:
+			keyMR = []byte("bbbbb")
+		case s.DBStates.Last().DirectoryBlock == nil:
+			keyMR = []byte("ccccc")
+		default:
+			keyMR = s.DBStates.Last().DirectoryBlock.GetKeyMR().Bytes()
 		}
 		s.serverPrt = fmt.Sprintf("%5s %7s Recorded: %d Building: %d Highest: %d DirBlk[:5]=%x IDChainID[:5]=%x",
 			stype,

@@ -50,9 +50,8 @@ func NetStart(s *state.State) {
 		os.Exit(0)
 	})
 
-	
 	FactomConfigFilename := util.GetConfigFilename("m2")
-	
+
 	fmt.Println(fmt.Sprintf("factom config: %s", FactomConfigFilename))
 
 	// Figure out how many nodes I am going to generate.  Default 10

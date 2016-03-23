@@ -188,9 +188,9 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	}
 
 	pl := s.ProcessLists.Get(dbheight)
-	
+
 	s.FactoidState.EndOfPeriod(int(e.Minute))
-	
+
 	if e.Minute == 9 {
 		pl.SetEomComplete(e.ServerIndex, true)
 
@@ -379,7 +379,7 @@ func (s *State) NewAdminBlockHeader(dbheight uint32) interfaces.IABlockHeader {
 		dbstate := s.DBStates.Last()
 		if dbstate != nil {
 			keymr, err := dbstate.AdminBlock.FullHash()
-			
+
 			if err != nil {
 				panic(err.Error())
 			}
