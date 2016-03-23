@@ -19,9 +19,9 @@ import (
 var BlockCount int = 10
 var DefaultCoinbaseAmount uint64 = 100000000
 
-
 func CreateEmptyTestState() *state.State {
 	s := new(state.State)
+	s.LoadConfig("")
 	s.Init()
 	return s
 }
@@ -29,12 +29,14 @@ func CreateEmptyTestState() *state.State {
 func CreateAndPopulateTestState() *state.State {
 	s := new(state.State)
 	s.DB = CreateAndPopulateTestDatabaseOverlay()
+	s.LoadConfig("")
 	s.Init()
 	/*err := s.RecalculateBalances()
 	if err != nil {
 		panic(err)
 	}*/
 	s.SetFactoshisPerEC(1)
+
 	return s
 }
 
