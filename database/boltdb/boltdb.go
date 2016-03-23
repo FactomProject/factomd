@@ -5,14 +5,12 @@
 package boltdb
 
 import (
-	"encoding/hex"
 	"fmt"
-	"github.com/FactomProject/factomd/common/interfaces"
+	"sync"
 
 	"github.com/FactomProject/bolt"
+	"github.com/FactomProject/factomd/common/interfaces"
 )
-
-var _ = hex.EncodeToString
 
 // This database stores and retrieves interfaces.IBlock instances.  To do that, it
 // needs a list of buckets that the using function wants, so it can make sure
@@ -31,7 +29,8 @@ var _ = hex.EncodeToString
 // use "/tmp/bolt_my.db".  Not the best idea to let this code default.
 //
 type BoltDB struct {
-	db *bolt.DB // Pointer to the bolt db
+	Sem sync.RWMutex
+	db  *bolt.DB // Pointer to the bolt db
 }
 
 var _ interfaces.IDatabase = (*BoltDB)(nil)
@@ -47,8 +46,11 @@ func NewBoltDB(bucketList [][]byte, filename string) *BoltDB {
  ***************************************/
 
 // We don't care if delete works or not.  If the key isn't there, that's ok
-func (d *BoltDB) Delete(bucket []byte, key []byte) error {
-	d.db.Update(func(tx *bolt.Tx) error {
+func (db *BoltDB) Delete(bucket []byte, key []byte) error {
+	db.Sem.Lock()
+	defer db.Sem.Unlock()
+
+	db.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(bucket)
 		b.Delete(key)
 		return nil
@@ -56,14 +58,20 @@ func (d *BoltDB) Delete(bucket []byte, key []byte) error {
 	return nil
 }
 
-func (d *BoltDB) Close() error {
-	d.db.Close()
+func (db *BoltDB) Close() error {
+	db.Sem.Lock()
+	defer db.Sem.Unlock()
+
+	db.db.Close()
 	return nil
 }
 
-func (d *BoltDB) Get(bucket []byte, key []byte, destination interfaces.BinaryMarshallable) (interfaces.BinaryMarshallable, error) {
+func (db *BoltDB) Get(bucket []byte, key []byte, destination interfaces.BinaryMarshallable) (interfaces.BinaryMarshallable, error) {
+	db.Sem.RLock()
+	defer db.Sem.RUnlock()
+
 	var v []byte
-	d.db.View(func(tx *bolt.Tx) error {
+	db.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(bucket)
 		if b == nil {
 			return nil
@@ -85,13 +93,15 @@ func (d *BoltDB) Get(bucket []byte, key []byte, destination interfaces.BinaryMar
 	return destination, nil
 }
 
-func (d *BoltDB) Put(bucket []byte, key []byte, data interfaces.BinaryMarshallable) error {
-	fmt.Println("Bolt: Put", hex.EncodeToString(key))
+func (db *BoltDB) Put(bucket []byte, key []byte, data interfaces.BinaryMarshallable) error {
+	db.Sem.Lock()
+	defer db.Sem.Unlock()
+
 	hex, err := data.MarshalBinary()
 	if err != nil {
 		return err
 	}
-	err = d.db.Update(func(tx *bolt.Tx) error {
+	err = db.db.Update(func(tx *bolt.Tx) error {
 		_, err := tx.CreateBucketIfNotExists(bucket)
 		if err != nil {
 			return err
@@ -104,6 +114,9 @@ func (d *BoltDB) Put(bucket []byte, key []byte, data interfaces.BinaryMarshallab
 }
 
 func (db *BoltDB) PutInBatch(records []interfaces.Record) error {
+	db.Sem.Lock()
+	defer db.Sem.Unlock()
+
 	err := db.db.Batch(func(tx *bolt.Tx) error {
 		for _, v := range records {
 			_, err := tx.CreateBucketIfNotExists(v.Bucket)
@@ -128,8 +141,11 @@ func (db *BoltDB) PutInBatch(records []interfaces.Record) error {
 	return nil
 }
 
-func (d *BoltDB) Clear(bucket []byte) error {
-	err := d.db.Update(func(tx *bolt.Tx) error {
+func (db *BoltDB) Clear(bucket []byte) error {
+	db.Sem.Lock()
+	defer db.Sem.Unlock()
+
+	err := db.db.Update(func(tx *bolt.Tx) error {
 		err := tx.DeleteBucket(bucket)
 		if err != nil {
 			return fmt.Errorf("No bucket: %s", err)
@@ -139,9 +155,12 @@ func (d *BoltDB) Clear(bucket []byte) error {
 	return err
 }
 
-func (bdb *BoltDB) ListAllKeys(bucket []byte) (keys [][]byte, err error) {
+func (db *BoltDB) ListAllKeys(bucket []byte) (keys [][]byte, err error) {
+	db.Sem.RLock()
+	defer db.Sem.RUnlock()
+
 	keys = make([][]byte, 0, 32)
-	bdb.db.View(func(tx *bolt.Tx) error {
+	db.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(bucket))
 		if b == nil {
 			//fmt.Println("bucket 0x" + hex.EncodeToString(bucket) + " not found")
@@ -157,6 +176,9 @@ func (bdb *BoltDB) ListAllKeys(bucket []byte) (keys [][]byte, err error) {
 }
 
 func (db *BoltDB) GetAll(bucket []byte, sample interfaces.BinaryMarshallableAndCopyable) ([]interfaces.BinaryMarshallableAndCopyable, error) {
+	db.Sem.Lock()
+	defer db.Sem.Unlock()
+
 	answer := []interfaces.BinaryMarshallableAndCopyable{}
 	err := db.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(bucket))
@@ -187,23 +209,25 @@ func (db *BoltDB) GetAll(bucket []byte, sample interfaces.BinaryMarshallableAndC
 //
 //      Init(bucketList [][]byte, filename string)
 //
-func (d *BoltDB) Init(bucketList [][]byte, filename string) {
+func (db *BoltDB) Init(bucketList [][]byte, filename string) {
+	db.Sem.Lock()
+	defer db.Sem.Unlock()
 
-	if d.db == nil {
+	if db.db == nil {
 		if filename == "" {
 			filename = "/tmp/bolt_my.db"
 		}
 
 		tdb, err := bolt.Open(filename, 0600, nil)
 		if err != nil {
-			panic("Database was not found, and could not be created.")
+			panic("Database was not found, and could not be createdb.")
 		}
 
-		d.db = tdb
+		db.db = tdb
 	}
 
 	for _, bucket := range bucketList {
-		d.db.Update(func(tx *bolt.Tx) error {
+		db.db.Update(func(tx *bolt.Tx) error {
 			_, err := tx.CreateBucketIfNotExists(bucket)
 			if err != nil {
 				return fmt.Errorf("create bucket: %s", err)

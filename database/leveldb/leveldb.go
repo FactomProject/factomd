@@ -5,19 +5,19 @@
 package leveldb
 
 import (
+	"os"
+	"strings"
+	"sync"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/goleveldb/leveldb"
 	"github.com/FactomProject/goleveldb/leveldb/opt"
 	"github.com/FactomProject/goleveldb/leveldb/util"
-	"os"
-	"sync"
-
-	"strings"
 )
 
 type LevelDB struct {
 	// lock preventing multiple entry
-	dbLock sync.Mutex
+	dbLock sync.RWMutex
 	lDB    *leveldb.DB
 	lbatch *leveldb.Batch
 	ro     *opt.ReadOptions
@@ -43,8 +43,8 @@ func (db *LevelDB) Close() error {
 }
 
 func (db *LevelDB) Get(bucket []byte, key []byte, destination interfaces.BinaryMarshallable) (interfaces.BinaryMarshallable, error) {
-	db.dbLock.Lock()
-	defer db.dbLock.Unlock()
+	db.dbLock.RLock()
+	defer db.dbLock.RUnlock()
 
 	ldbKey := append(bucket, key...)
 	data, err := db.lDB.Get(ldbKey, db.ro)
@@ -135,8 +135,8 @@ func (db *LevelDB) Clear(bucket []byte) error {
 }
 
 func (db *LevelDB) ListAllKeys(bucket []byte) (keys [][]byte, err error) {
-	db.dbLock.Lock()
-	defer db.dbLock.Unlock()
+	db.dbLock.RLock()
+	defer db.dbLock.RUnlock()
 
 	var fromKey []byte = bucket[:]
 	var toKey []byte = bucket[:]
@@ -162,8 +162,8 @@ func (db *LevelDB) ListAllKeys(bucket []byte) (keys [][]byte, err error) {
 }
 
 func (db *LevelDB) GetAll(bucket []byte, sample interfaces.BinaryMarshallableAndCopyable) ([]interfaces.BinaryMarshallableAndCopyable, error) {
-	db.dbLock.Lock()
-	defer db.dbLock.Unlock()
+	db.dbLock.RLock()
+	defer db.dbLock.RUnlock()
 
 	var fromKey []byte = bucket[:]
 	var toKey []byte = bucket[:]

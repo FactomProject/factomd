@@ -1,6 +1,8 @@
 package hybridDB
 
 import (
+	"sync"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 
 	"github.com/FactomProject/factomd/database/boltdb"
@@ -9,6 +11,7 @@ import (
 )
 
 type HybridDB struct {
+	Sem               sync.RWMutex
 	temporaryStorage  interfaces.IDatabase
 	persistentStorage interfaces.IDatabase
 }
@@ -16,12 +19,18 @@ type HybridDB struct {
 var _ interfaces.IDatabase = (*HybridDB)(nil)
 
 func (db *HybridDB) Trim() {
+	db.Sem.Lock()
+	defer db.Sem.Unlock()
+
 	m := new(mapdb.MapDB)
 	m.Init(nil)
 	db.temporaryStorage = m
 }
 
 func (db *HybridDB) Close() error {
+	db.Sem.Lock()
+	defer db.Sem.Unlock()
+
 	err := db.temporaryStorage.Close()
 	if err != nil {
 		return err
@@ -61,6 +70,9 @@ func NewBoltMapHybridDB(bucketList [][]byte, filename string) *HybridDB {
 }
 
 func (db *HybridDB) Put(bucket, key []byte, data interfaces.BinaryMarshallable) error {
+	db.Sem.Lock()
+	defer db.Sem.Unlock()
+
 	err := db.persistentStorage.Put(bucket, key, data)
 	if err != nil {
 		return err
@@ -75,6 +87,9 @@ func (db *HybridDB) Put(bucket, key []byte, data interfaces.BinaryMarshallable) 
 }
 
 func (db *HybridDB) PutInBatch(records []interfaces.Record) error {
+	db.Sem.Lock()
+	defer db.Sem.Unlock()
+
 	err := db.persistentStorage.PutInBatch(records)
 	if err != nil {
 		return err
@@ -87,6 +102,9 @@ func (db *HybridDB) PutInBatch(records []interfaces.Record) error {
 }
 
 func (db *HybridDB) Get(bucket, key []byte, destination interfaces.BinaryMarshallable) (interfaces.BinaryMarshallable, error) {
+	db.Sem.RLock()
+	defer db.Sem.RUnlock()
+
 	answer, err := db.temporaryStorage.Get(bucket, key, destination)
 	if err != nil {
 		return nil, err
@@ -105,6 +123,9 @@ func (db *HybridDB) Get(bucket, key []byte, destination interfaces.BinaryMarshal
 }
 
 func (db *HybridDB) Delete(bucket, key []byte) error {
+	db.Sem.Lock()
+	defer db.Sem.Unlock()
+
 	err := db.persistentStorage.Delete(bucket, key)
 	if err != nil {
 		return err
@@ -118,14 +139,23 @@ func (db *HybridDB) Delete(bucket, key []byte) error {
 }
 
 func (db *HybridDB) ListAllKeys(bucket []byte) ([][]byte, error) {
+	db.Sem.RLock()
+	defer db.Sem.RUnlock()
+
 	return db.persistentStorage.ListAllKeys(bucket)
 }
 
 func (db *HybridDB) GetAll(bucket []byte, sample interfaces.BinaryMarshallableAndCopyable) ([]interfaces.BinaryMarshallableAndCopyable, error) {
+	db.Sem.RLock()
+	defer db.Sem.RUnlock()
+
 	return db.persistentStorage.GetAll(bucket, sample)
 }
 
 func (db *HybridDB) Clear(bucket []byte) error {
+	db.Sem.Lock()
+	defer db.Sem.Unlock()
+
 	err := db.persistentStorage.Clear(bucket)
 	if err != nil {
 		return err
