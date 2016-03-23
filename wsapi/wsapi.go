@@ -384,12 +384,12 @@ func HandleProperties(ctx *web.Context) {
 		return
 	}
 	type x struct {
-		ProtocolVersion string
-		FactomdVersion  string
+		Protocol_Version string
+		Factomd_Version  string
 	}
 	d := new(x)
-	d.FactomdVersion = jsonResp.Result.(*PropertiesResponse).FactomdVersion
-	d.ProtocolVersion = jsonResp.Result.(*PropertiesResponse).ProtocolVersion
+	d.Factomd_Version = jsonResp.Result.(*PropertiesResponse).FactomdVersion
+	d.Protocol_Version = jsonResp.Result.(*PropertiesResponse).ProtocolVersion
 
 	returnMsg(ctx, d, true)
 }
