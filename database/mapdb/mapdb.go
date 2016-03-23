@@ -44,6 +44,10 @@ func (db *MapDB) RawPut(bucket, key []byte, data interfaces.BinaryMarshallable) 
 	db.Sem.Lock()
 	defer db.Sem.Unlock()
 
+	return db.rawPut(bucket, key, data)
+}
+
+func (db *MapDB) rawPut(bucket, key []byte, data interfaces.BinaryMarshallable) error {
 	if db.Cache == nil {
 		db.Cache = map[string]map[string][]byte{}
 	}
@@ -68,7 +72,7 @@ func (db *MapDB) PutInBatch(records []interfaces.Record) error {
 	defer db.Sem.Unlock()
 
 	for _, v := range records {
-		err := db.RawPut(v.Bucket, v.Key, v.Data)
+		err := db.rawPut(v.Bucket, v.Key, v.Data)
 		if err != nil {
 			return err
 		}
