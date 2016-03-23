@@ -93,8 +93,8 @@ type DirectoryBlockHeightResponse struct {
 }
 
 type PropertiesResponse struct {
-	Factomd_Version string
-	Protocol_Version string
+	FactomdVersion string
+	ProtocolVersion string
 }
 
 /*********************************************************************/
