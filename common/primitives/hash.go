@@ -34,6 +34,10 @@ func (h *Hash) MarshalText() ([]byte, error) {
 	return []byte(hex.EncodeToString(h[:])), nil
 }
 
+func (h *Hash) IsZero() bool {
+	return h.String() == "0000000000000000000000000000000000000000000000000000000000000000"
+}
+
 // NewShaHashFromStr creates a ShaHash from a hash string.  The string should be
 // the hexadecimal string of a byte-reversed hash, but any missing characters
 // result in zero padding at the end of the ShaHash.

@@ -19,6 +19,7 @@ type IDirectoryBlock interface {
 	BuildBodyMR() (IHash, error)
 	GetKeyMR() IHash
 	GetHash() IHash
+	GetFullHash() IHash
 
 	HeaderHash() (IHash, error)
 	BodyKeyMR() IHash

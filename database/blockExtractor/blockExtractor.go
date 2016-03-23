@@ -173,7 +173,7 @@ func ExportDChain(db interfaces.DBOverlay) error {
 
 	for _, block := range dBlocks {
 		//Making sure Hash and KeyMR are set for the JSON export
-		block.GetHash()
+		block.GetFullHash()
 		block.GetKeyMR()
 		err = ExportBlock(block.(interfaces.DatabaseBatchable))
 		if err != nil {

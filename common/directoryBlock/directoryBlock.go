@@ -260,7 +260,15 @@ func (b *DirectoryBlock) UnmarshalBinary(data []byte) (err error) {
 }
 
 func (b *DirectoryBlock) GetHash() interfaces.IHash {
+	recreate := false
 	if b.DBHash == nil {
+		recreate = true
+	} else {
+		if b.DBHash.IsZero() == true {
+			recreate = true
+		}
+	}
+	if recreate == true {
 		binaryDblock, err := b.MarshalBinary()
 		if err != nil {
 			return nil

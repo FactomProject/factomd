@@ -17,4 +17,5 @@ type IHash interface {
 	HexToHash(hexStr string) (IHash, error)            // Convert a Hex string to a Hash
 	IsMinuteMarker() bool
 	UnmarshalText(b []byte) error
+	IsZero() bool
 }
