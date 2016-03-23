@@ -30,7 +30,7 @@ var mLog = new(MsgLog)
 
 func NetStart(s *state.State) {
 
-	listenTo := 0
+	listenTo := -1
 
 	fmt.Println(">>>>>>>>>>>>>>>>")
 	fmt.Println(">>>>>>>>>>>>>>>> Net Sim Start!!!!!")
@@ -129,7 +129,7 @@ func NetStart(s *state.State) {
 		}
 	}
 
-	if len(fnodes) > listenTo {
+	if len(fnodes) > listenTo && listenTo >= 0 {
 		fnodes[listenTo].State.SetOut(true)
 	}
 

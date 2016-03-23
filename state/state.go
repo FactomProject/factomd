@@ -136,7 +136,7 @@ func (s *State) Clone(number string) interfaces.IState {
 	clone.ConsoleLogLevel = s.ConsoleLogLevel
 	clone.NodeMode = "FULL"
 	clone.DBType = s.DBType
-	clone.ExportData = true
+	clone.ExportData = s.ExportData
 	clone.ExportDataSubpath = s.ExportDataSubpath + "/sim-" + number
 	clone.Network = s.Network
 	clone.DirectoryBlockInSeconds = s.DirectoryBlockInSeconds
