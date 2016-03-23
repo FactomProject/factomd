@@ -315,6 +315,10 @@ func NewDirectoryBlock(dbheight uint32, prev *DirectoryBlock) interfaces.IDirect
 	if prev != nil {
 		if prev.KeyMR == nil {
 			prev.BuildKeyMerkleRoot()
+		} else {
+			if prev.KeyMR.IsZero() {
+				prev.BuildKeyMerkleRoot()
+			}
 		}
 		newdb.GetHeader().SetPrevFullHash(prev.GetHeader().GetFullHash())
 		newdb.GetHeader().SetPrevKeyMR(prev.KeyMR)
