@@ -21,6 +21,12 @@ var _ = log.Print
 
 type DBState struct {
 	isNew            bool
+	
+	DBHash			 interfaces.IHash
+	ABHash			 interfaces.IHash
+	FBHash			 interfaces.IHash
+	ECHash			 interfaces.IHash
+	
 	DirectoryBlock   interfaces.IDirectoryBlock
 	AdminBlock       interfaces.IAdminBlock
 	FactoidBlock     interfaces.IFBlock
@@ -67,10 +73,10 @@ func (ds *DBState) String() string {
 	} else {
 
 		str = fmt.Sprintf("%s      DBlk Height   = %v\n", str, ds.DirectoryBlock.GetHeader().GetDBHeight())
-		str = fmt.Sprintf("%s      DBlock        = %x\n", str, ds.DirectoryBlock.GetHash().Bytes()[:10])
-		str = fmt.Sprintf("%s      ABlock        = %x\n", str, ds.AdminBlock.GetHash().Bytes()[:10])
-		str = fmt.Sprintf("%s      FBlock        = %x\n", str, ds.FactoidBlock.GetHash().Bytes()[:10])
-		str = fmt.Sprintf("%s      ECBlock       = %x\n", str, ds.EntryCreditBlock.GetHash().Bytes()[:10])
+		str = fmt.Sprintf("%s      DBlock        = %x %x\n", str, ds.DirectoryBlock.GetHash().Bytes()[:5], ds.DBHash.Bytes()[:5])
+		str = fmt.Sprintf("%s      ABlock        = %x %x\n", str, ds.AdminBlock.GetHash().Bytes()[:5], ds.ABHash.Bytes()[:5])
+		str = fmt.Sprintf("%s      FBlock        = %x %x\n", str, ds.FactoidBlock.GetHash().Bytes()[:5], ds.FBHash.Bytes()[:5])
+		str = fmt.Sprintf("%s      ECBlock       = %x %x\n", str, ds.EntryCreditBlock.GetHash().Bytes()[:5], ds.ECHash.Bytes()[:5])
 	}
 	return str
 }
@@ -160,8 +166,11 @@ func (list *DBStateList) UpdateState() {
 		// Make sure the directory block is properly synced up with the prior block, if there
 		// is one.
 
-		dblk, _ := list.State.GetDB().FetchDBlockByHash(d.DirectoryBlock.GetKeyMR())
+		dblk, _ := list.State.GetDB().FetchDBlockByKeyMR(d.DirectoryBlock.GetKeyMR())
 		if dblk == nil {
+			
+			fmt.Println("Saving DBHeight ",d.DirectoryBlock.GetHeader().GetDBHeight()," on ",list.State.GetFactomNodeName())
+			
 			if i > 0 {
 				p := list.DBStates[i-1]
 				d.DirectoryBlock.GetHeader().SetPrevFullHash(p.DirectoryBlock.GetHeader().GetFullHash())
@@ -198,11 +207,14 @@ func (list *DBStateList) UpdateState() {
 }
 
 func (list *DBStateList) Last() *DBState {
-	Last := len(list.DBStates)
-	if Last == 0 || Last < int(list.Complete) {
-		return nil
+	last := (*DBState)(nil)
+	for _,ds := range list.DBStates {
+		if ds == nil {
+			return last
+		}
+		last = ds
 	}
-	return list.DBStates[Last-1]
+	return last
 }
 
 func (list *DBStateList) Put(dbState *DBState) {
@@ -220,10 +232,12 @@ func (list *DBStateList) Put(dbState *DBState) {
 		}
 		cnt++
 	}
-	if cnt > 2 {
-		list.DBStates = list.DBStates[cnt-2:]
-		list.Base = list.Base + uint32(cnt) - 2
-		list.Complete = list.Complete - uint32(cnt) + 2
+	
+	keep := uint32(5) // How many states to keep around; debugging helps with more.
+	if uint32(cnt) > keep {
+		list.DBStates = list.DBStates[cnt-int(keep):]
+		list.Base = list.Base + uint32(cnt) - keep
+		list.Complete = list.Complete - uint32(cnt) + keep
 	}
 
 	index := int(dbheight) - int(list.Base)
@@ -272,6 +286,12 @@ func (list *DBStateList) NewDBState(isNew bool,
 
 	dbState := new(DBState)
 
+	dbState.DBHash =DirectoryBlock.GetHash()
+	dbState.ABHash =AdminBlock.GetHash()
+	dbState.FBHash =FactoidBlock.GetHash()
+	dbState.ECHash =EntryCreditBlock.GetHash()
+	
+	
 	dbState.isNew = isNew
 	dbState.DirectoryBlock = DirectoryBlock
 	dbState.AdminBlock = AdminBlock

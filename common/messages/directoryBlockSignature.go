@@ -227,12 +227,14 @@ func (m *DirectoryBlockSignature) MarshalBinary() (data []byte, err error) {
 // }
 
 func (m *DirectoryBlockSignature) String() string {
-	return fmt.Sprintf("%6s-%3d:          Ht:%5d -- chainID[:5]=%x hash[:5]=%x",
+	return fmt.Sprintf("%6s-%3d:          Ht:%5d -- chainID[:5]=%x hash[:5]=%x dbhash[:5]=%x",
 		"DBSig",
 		m.ServerIndex,
 		m.DBHeight,
 		m.ServerIdentityChainID.Bytes()[:5],
-		m.GetHash().Bytes()[:5])
+		m.GetHash().Bytes()[:5],
+		m.DirectoryBlockKeyMR.Bytes()[:5])
+	
 
 }
 
