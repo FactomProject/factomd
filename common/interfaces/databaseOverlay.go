@@ -13,6 +13,10 @@ type DBOverlay interface {
 
 	FetchHeadIndexByChainID(chainID IHash) (IHash, error)
 
+	StartMultiBatch()
+	PutInMultiBatch(records []Record)
+	ExecuteMultiBatch() error
+
 	//**********************************Entry**********************************//
 
 	// InsertEntry inserts an entry
@@ -31,6 +35,7 @@ type DBOverlay interface {
 
 	// ProcessEBlockBatche inserts the EBlock and update all it's ebentries in DB
 	ProcessEBlockBatch(eblock DatabaseBlockWithEntries) error
+	ProcessEBlockMultiBatch(eblock DatabaseBlockWithEntries) error
 
 	// FetchEBlockByHash gets an entry by hash from the database.
 	FetchEBlockByHash(IHash) (IEntryBlock, error)
@@ -54,6 +59,7 @@ type DBOverlay interface {
 
 	// ProcessDBlockBatche inserts the EBlock and update all it's ebentries in DB
 	ProcessDBlockBatch(block DatabaseBlockWithEntries) error
+	ProcessDBlockMultiBatch(block DatabaseBlockWithEntries) error
 
 	// FetchHeightRange looks up a range of blocks by the start and ending
 	// heights.  Fetch is inclusive of the start height and exclusive of the
@@ -91,6 +97,7 @@ type DBOverlay interface {
 
 	// ProcessECBlockBatch inserts the ECBlock and update all it's ecbentries in DB
 	ProcessECBlockBatch(block DatabaseBatchable) (err error)
+	ProcessECBlockMultiBatch(block DatabaseBatchable) (err error)
 
 	// FetchECBlockByHash gets an Entry Credit block by hash from the database.
 	FetchECBlockByHash(IHash) (IEntryCreditBlock, error)
@@ -109,6 +116,7 @@ type DBOverlay interface {
 
 	// ProcessABlockBatch inserts the AdminBlock
 	ProcessABlockBatch(block DatabaseBatchable) error
+	ProcessABlockMultiBatch(block DatabaseBatchable) error
 
 	// FetchABlockByHash gets an admin block by hash from the database.
 	FetchABlockByHash(hash IHash) (IAdminBlock, error)
@@ -127,6 +135,7 @@ type DBOverlay interface {
 
 	// ProcessFBlockBatch inserts the Factoid
 	ProcessFBlockBatch(DatabaseBlockWithEntries) error
+	ProcessFBlockMultiBatch(DatabaseBlockWithEntries) error
 
 	// FetchFBlockByHash gets an admin block by hash from the database.
 	FetchFBlockByHash(IHash) (IFBlock, error)

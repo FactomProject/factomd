@@ -16,6 +16,14 @@ func (db *Overlay) ProcessFBlockBatch(block interfaces.DatabaseBlockWithEntries)
 	return db.SaveIncludedInMultiFromBlock(block)
 }
 
+func (db *Overlay) ProcessFBlockMultiBatch(block interfaces.DatabaseBlockWithEntries) error {
+	err := db.ProcessBlockMultiBatch([]byte{byte(FACTOIDBLOCK)}, []byte{byte(FACTOIDBLOCK_NUMBER)}, []byte{byte(FACTOIDBLOCK_KEYMR)}, block)
+	if err != nil {
+		return err
+	}
+	return db.SaveIncludedInMultiFromBlockMultiBatch(block)
+}
+
 func (db *Overlay) FetchFBlockByHash(hash interfaces.IHash) (interfaces.IFBlock, error) {
 	block, err := db.FetchBlockBySecondaryIndex([]byte{byte(FACTOIDBLOCK_KEYMR)}, []byte{byte(FACTOIDBLOCK)}, hash, new(block.FBlock))
 	if err != nil {

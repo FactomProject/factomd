@@ -15,6 +15,12 @@ func (db *Overlay) ProcessECBlockBatch(block interfaces.DatabaseBatchable) error
 		[]byte{byte(ENTRYCREDITBLOCK_KEYMR)}, block)
 }
 
+func (db *Overlay) ProcessECBlockMultiBatch(block interfaces.DatabaseBatchable) error {
+	return db.ProcessBlockMultiBatch([]byte{byte(ENTRYCREDITBLOCK)},
+		[]byte{byte(ENTRYCREDITBLOCK_NUMBER)},
+		[]byte{byte(ENTRYCREDITBLOCK_KEYMR)}, block)
+}
+
 // FetchECBlockByHeaderHash gets an Entry Credit block by hash from the database.
 func (db *Overlay) FetchECBlockByHeaderHash(hash interfaces.IHash) (interfaces.IEntryCreditBlock, error) {
 	block, err := db.FetchBlockBySecondaryIndex([]byte{byte(ENTRYCREDITBLOCK_KEYMR)}, []byte{byte(ENTRYCREDITBLOCK)}, hash, entryCreditBlock.NewECBlock())

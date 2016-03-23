@@ -6,6 +6,7 @@ package databaseOverlay
 
 import (
 	"encoding/binary"
+	"sync"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -64,12 +65,32 @@ type Overlay struct {
 
 	ExportData     bool
 	ExportDataPath string
+
+	BatchSemaphore sync.Mutex
+	MultiBatch     []interfaces.Record
 }
 
 func (db *Overlay) SetExportData(path string) {
 	db.ExportData = true
 	db.ExportDataPath = path
 	blockExtractor.DataStorePath = path
+}
+
+func (db *Overlay) StartMultiBatch() {
+	db.BatchSemaphore.Lock()
+	db.MultiBatch = make([]interfaces.Record, 0, 128)
+}
+
+func (db *Overlay) PutInMultiBatch(records []interfaces.Record) {
+	db.MultiBatch = append(db.MultiBatch, records...)
+}
+
+func (db *Overlay) ExecuteMultiBatch() error {
+	defer func() {
+		db.MultiBatch = nil
+		db.BatchSemaphore.Unlock()
+	}()
+	return db.PutInBatch(db.MultiBatch)
 }
 
 func (db *Overlay) PutInBatch(records []interfaces.Record) error {
@@ -196,6 +217,39 @@ func (db *Overlay) Insert(bucket []byte, entry interfaces.DatabaseBatchable) err
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+func (db *Overlay) ProcessBlockMultiBatch(blockBucket, numberBucket, secondaryIndexBucket []byte, block interfaces.DatabaseBatchable) error {
+	if block == nil {
+		return nil
+	}
+
+	batch := []interfaces.Record{}
+
+	batch = append(batch, interfaces.Record{blockBucket, block.DatabasePrimaryIndex().Bytes(), block})
+
+	if numberBucket != nil {
+		bytes := make([]byte, 4)
+		binary.BigEndian.PutUint32(bytes, block.GetDatabaseHeight())
+		batch = append(batch, interfaces.Record{numberBucket, bytes, block.DatabasePrimaryIndex()})
+	}
+
+	if secondaryIndexBucket != nil {
+		batch = append(batch, interfaces.Record{secondaryIndexBucket, block.DatabaseSecondaryIndex().Bytes(), block.DatabasePrimaryIndex()})
+	}
+
+	batch = append(batch, interfaces.Record{[]byte{CHAIN_HEAD}, block.GetChainID().Bytes(), block.DatabasePrimaryIndex()})
+
+	db.PutInMultiBatch(batch)
+
+	if db.ExportData {
+		err := blockExtractor.ExportBlock(block)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 

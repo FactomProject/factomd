@@ -162,26 +162,28 @@ func (list *DBStateList) UpdateState() {
 
 		dblk, _ := list.State.GetDB().FetchDBlockByHash(d.DirectoryBlock.GetKeyMR())
 		if dblk == nil {
+			list.State.GetDB().StartMultiBatch()
 			if i > 0 {
 				p := list.DBStates[i-1]
 				d.DirectoryBlock.GetHeader().SetPrevFullHash(p.DirectoryBlock.GetHeader().GetFullHash())
 				d.DirectoryBlock.GetHeader().SetPrevKeyMR(p.DirectoryBlock.GetKeyMR())
 			}
-			if err := list.State.GetDB().ProcessDBlockBatch(d.DirectoryBlock); err != nil {
+			if err := list.State.GetDB().ProcessDBlockMultiBatch(d.DirectoryBlock); err != nil {
 				panic(err.Error())
 			}
-			if err := list.State.GetDB().SaveDirectoryBlockHead(d.DirectoryBlock); err != nil {
+			if err := list.State.GetDB().ProcessABlockMultiBatch(d.AdminBlock); err != nil {
 				panic(err.Error())
 			}
-			if err := list.State.GetDB().ProcessABlockBatch(d.AdminBlock); err != nil {
+			if err := list.State.GetDB().ProcessFBlockMultiBatch(d.FactoidBlock); err != nil {
 				panic(err.Error())
 			}
-			if err := list.State.GetDB().ProcessFBlockBatch(d.FactoidBlock); err != nil {
+			if err := list.State.GetDB().ProcessECBlockMultiBatch(d.EntryCreditBlock); err != nil {
 				panic(err.Error())
 			}
-			if err := list.State.GetDB().ProcessECBlockBatch(d.EntryCreditBlock); err != nil {
+			if err := list.State.GetDB().ExecuteMultiBatch(); err != nil {
 				panic(err.Error())
 			}
+
 		}
 		list.State.GetAnchor().UpdateDirBlockInfoMap(dbInfo.NewDirBlockInfoFromDirBlock(d.DirectoryBlock))
 

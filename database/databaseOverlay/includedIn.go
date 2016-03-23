@@ -21,11 +21,33 @@ func (db *Overlay) SaveIncludedIn(entry, block interfaces.IHash) error {
 	return nil
 }
 
+func (db *Overlay) SaveIncludedInMultiFromBlockMultiBatch(block interfaces.DatabaseBlockWithEntries) error {
+	entries := block.GetEntryHashes()
+	hash := block.DatabasePrimaryIndex()
+
+	return db.SaveIncludedInMultiMultiBatch(entries, hash)
+}
+
 func (db *Overlay) SaveIncludedInMultiFromBlock(block interfaces.DatabaseBlockWithEntries) error {
 	entries := block.GetEntryHashes()
 	hash := block.DatabasePrimaryIndex()
 
 	return db.SaveIncludedInMulti(entries, hash)
+}
+
+func (db *Overlay) SaveIncludedInMultiMultiBatch(entries []interfaces.IHash, block interfaces.IHash) error {
+	if entries == nil || block == nil {
+		return nil
+	}
+	batch := []interfaces.Record{}
+
+	for _, entry := range entries {
+		batch = append(batch, interfaces.Record{[]byte{INCLUDED_IN}, entry.Bytes(), block})
+	}
+
+	db.PutInMultiBatch(batch)
+
+	return nil
 }
 
 func (db *Overlay) SaveIncludedInMulti(entries []interfaces.IHash, block interfaces.IHash) error {

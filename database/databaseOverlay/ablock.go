@@ -13,6 +13,10 @@ func (db *Overlay) ProcessABlockBatch(block interfaces.DatabaseBatchable) error 
 	return db.ProcessBlockBatch([]byte{byte(ADMINBLOCK)}, []byte{byte(ADMINBLOCK_NUMBER)}, []byte{byte(ADMINBLOCK_KEYMR)}, block)
 }
 
+func (db *Overlay) ProcessABlockMultiBatch(block interfaces.DatabaseBatchable) error {
+	return db.ProcessBlockMultiBatch([]byte{byte(ADMINBLOCK)}, []byte{byte(ADMINBLOCK_NUMBER)}, []byte{byte(ADMINBLOCK_KEYMR)}, block)
+}
+
 // FetchABlockByHash gets an admin block by hash from the database.
 func (db *Overlay) FetchABlockByHash(hash interfaces.IHash) (interfaces.IAdminBlock, error) {
 	block, err := db.FetchBlockBySecondaryIndex([]byte{byte(ADMINBLOCK_KEYMR)}, []byte{byte(ADMINBLOCK)}, hash, new(adminBlock.AdminBlock))

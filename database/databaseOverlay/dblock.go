@@ -23,6 +23,16 @@ func (db *Overlay) ProcessDBlockBatch(dblock interfaces.DatabaseBlockWithEntries
 	return db.SaveIncludedInMultiFromBlock(dblock)
 }
 
+func (db *Overlay) ProcessDBlockMultiBatch(dblock interfaces.DatabaseBlockWithEntries) error {
+	err := db.ProcessBlockMultiBatch([]byte{byte(DIRECTORYBLOCK)},
+		[]byte{byte(DIRECTORYBLOCK_NUMBER)},
+		[]byte{byte(DIRECTORYBLOCK_KEYMR)}, dblock)
+	if err != nil {
+		return err
+	}
+	return db.SaveIncludedInMultiFromBlockMultiBatch(dblock)
+}
+
 // FetchHeightRange looks up a range of blocks by the start and ending
 // heights.  Fetch is inclusive of the start height and exclusive of the
 // ending height. To fetch all hashes from the start height until no

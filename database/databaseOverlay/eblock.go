@@ -21,6 +21,16 @@ func (db *Overlay) ProcessEBlockBatch(eblock interfaces.DatabaseBlockWithEntries
 	return db.SaveIncludedInMultiFromBlock(eblock)
 }
 
+func (db *Overlay) ProcessEBlockMultiBatch(eblock interfaces.DatabaseBlockWithEntries) error {
+	//Each chain has its own number bucket, otherwise we would have conflicts
+	numberBucket := append([]byte{byte(ENTRYBLOCK_CHAIN_NUMBER)}, eblock.GetChainID().Bytes()...)
+	err := db.ProcessBlockMultiBatch([]byte{byte(ENTRYBLOCK)}, numberBucket, []byte{byte(ENTRYBLOCK_KEYMR)}, eblock)
+	if err != nil {
+		return err
+	}
+	return db.SaveIncludedInMultiFromBlockMultiBatch(eblock)
+}
+
 // FetchEBlockByHash gets an entry block by merkle root from the database.
 func (db *Overlay) FetchEBlockByHash(hash interfaces.IHash) (interfaces.IEntryBlock, error) {
 	block, err := db.FetchBlockBySecondaryIndex([]byte{byte(ENTRYBLOCK_KEYMR)}, []byte{byte(ENTRYBLOCK)}, hash, entryBlock.NewEBlock())
