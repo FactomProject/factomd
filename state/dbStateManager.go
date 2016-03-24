@@ -172,9 +172,12 @@ func (list *DBStateList) UpdateState() {
 
 			//fmt.Println("Saving DBHeight ", d.DirectoryBlock.GetHeader().GetDBHeight(), " on ", list.State.GetFactomNodeName())
 
+			// If we have previous blocks, update blocks that this follower potentially constructed.  We can optimize and skip
+			// this step if we got the block from a peer.  TODO we must however check the sigantures on the
+			// block before we write it to disk.
 			if i > 0 {
 				p := list.DBStates[i-1]
-				
+									
 				hash,err := p.AdminBlock.FullHash()
 				if err != nil {
 					d.Saved = false
@@ -207,6 +210,7 @@ func (list *DBStateList) UpdateState() {
 				d.DirectoryBlock.GetDBEntries()[1].SetKeyMR(d.EntryCreditBlock.GetHash())
 				d.DirectoryBlock.GetDBEntries()[2].SetKeyMR(d.FactoidBlock.GetHash())
 			}
+			
 			if err := list.State.GetDB().ProcessDBlockMultiBatch(d.DirectoryBlock); err != nil {
 				panic(err.Error())
 			}
