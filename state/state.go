@@ -137,7 +137,7 @@ func (s *State) Clone(number string) interfaces.IState {
 	clone.NodeMode = "FULL"
 	clone.DBType = s.DBType
 	clone.ExportData = s.ExportData
-	clone.ExportDataSubpath = s.ExportDataSubpath + "/sim-" + number
+	clone.ExportDataSubpath = s.ExportDataSubpath + "sim-" + number
 	clone.Network = s.Network
 	clone.DirectoryBlockInSeconds = s.DirectoryBlockInSeconds
 	clone.PortNumber = s.PortNumber
@@ -339,21 +339,21 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 		return nil, err
 	}
 	if ablk == nil {
-		return nil, err
+		return nil, fmt.Errorf("ABlock not found")
 	}
 	ecblk, err := s.DB.FetchECBlockByHash(dblk.GetDBEntries()[1].GetKeyMR())
 	if err != nil {
 		return nil, err
 	}
 	if ecblk == nil {
-		return nil, err
+		return nil, fmt.Errorf("ECBlock not found")
 	}
 	fblk, err := s.DB.FetchFBlockByKeyMR(dblk.GetDBEntries()[2].GetKeyMR())
 	if err != nil {
 		return nil, err
 	}
 	if fblk == nil {
-		return nil, err
+		return nil, fmt.Errorf("FBlock not found")
 	}
 
 	// 	fmt.Printf("LoadDBState %s: %d %d dblk: %x ablk: %x/%x ecblk:%x/%x fblk:%x/%x\n",

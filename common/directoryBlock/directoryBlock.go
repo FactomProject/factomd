@@ -263,21 +263,11 @@ func (b *DirectoryBlock) UnmarshalBinary(data []byte) (err error) {
 }
 
 func (b *DirectoryBlock) GetHash() interfaces.IHash {
-	recreate := false
-	if b.DBHash == nil {
-		recreate = true
-	} else {
-		if b.DBHash.IsZero() == true {
-			recreate = true
-		}
+	binaryDblock, err := b.MarshalBinary()
+	if err != nil {
+		return nil
 	}
-	if recreate == true {
-		binaryDblock, err := b.MarshalBinary()
-		if err != nil {
-			return nil
-		}
-		b.DBHash = primitives.Sha(binaryDblock)
-	}
+	b.DBHash = primitives.Sha(binaryDblock)
 	return b.DBHash
 }
 
@@ -304,7 +294,6 @@ func (b *DirectoryBlock) AddEntry(chainID interfaces.IHash, keyMR interfaces.IHa
  *********************************************************************/
 
 func NewDirectoryBlock(dbheight uint32, prev *DirectoryBlock) interfaces.IDirectoryBlock {
-
 	newdb := new(DirectoryBlock)
 
 	newdb.Header = new(DBlockHeader)
@@ -313,15 +302,8 @@ func NewDirectoryBlock(dbheight uint32, prev *DirectoryBlock) interfaces.IDirect
 	newdb.Header.SetPrevKeyMR(primitives.NewZeroHash())
 
 	if prev != nil {
-		if prev.KeyMR == nil {
-			prev.BuildKeyMerkleRoot()
-		} else {
-			if prev.KeyMR.IsZero() {
-				prev.BuildKeyMerkleRoot()
-			}
-		}
-		newdb.GetHeader().SetPrevFullHash(prev.GetHeader().GetFullHash())
-		newdb.GetHeader().SetPrevKeyMR(prev.KeyMR)
+		newdb.GetHeader().SetPrevFullHash(prev.GetFullHash())
+		newdb.GetHeader().SetPrevKeyMR(prev.GetKeyMR())
 	}
 
 	newdb.GetHeader().SetDBHeight(dbheight)
