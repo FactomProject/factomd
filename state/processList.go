@@ -343,23 +343,13 @@ func NewProcessList(state interfaces.IState, totalServers int, dbheight uint32) 
 	pl.ServerOrder = make([][]interfaces.IFctServer, 0)
 
 	s := state.(*State)
-	dbstate := s.DBStates.Last()
 	var err error
-	if dbstate != nil {
-		if dbstate.DirectoryBlock.GetDatabaseHeight() !=dbheight-1 {
-			fmt.Printf("dbheight - %v vs %v\n", dbstate.DirectoryBlock.GetDatabaseHeight(), dbheight-1)
-			panic("dbheight mismatch")
-		}
-		pl.DirectoryBlock = directoryBlock.NewDirectoryBlock(dbheight, dbstate.DirectoryBlock.(*directoryBlock.DirectoryBlock))
-		pl.FactoidBlock = state.GetFactoidState().GetCurrentBlock()
-		pl.AdminBlock = s.NewAdminBlock(dbheight)
-		pl.EntryCreditBlock, err = entryCreditBlock.NextECBlock(dbstate.EntryCreditBlock)
-	} else {
-		pl.DirectoryBlock = directoryBlock.NewDirectoryBlock(dbheight, nil)
-		pl.FactoidBlock = state.GetFactoidState().GetCurrentBlock()
-		pl.AdminBlock = s.NewAdminBlock(dbheight)
-		pl.EntryCreditBlock, err = entryCreditBlock.NextECBlock(nil)
-	}
+	
+	pl.DirectoryBlock = directoryBlock.NewDirectoryBlock(dbheight, nil)
+	pl.FactoidBlock = state.GetFactoidState().GetCurrentBlock()
+	pl.AdminBlock = s.NewAdminBlock(dbheight)
+	pl.EntryCreditBlock, err = entryCreditBlock.NextECBlock(nil)
+
 	if err != nil {
 		panic(err.Error())
 	}

@@ -74,6 +74,7 @@ func (e *ECBlock) GetHash() interfaces.IHash {
 	return h
 }
 
+// This is the FullHash.  TODO: rename to GetFullHash()
 func (e *ECBlock) Hash() (interfaces.IHash, error) {
 	p, err := e.MarshalBinary()
 	if err != nil {

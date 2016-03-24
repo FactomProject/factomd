@@ -158,8 +158,8 @@ func (list *DBStateList) UpdateState() {
 		}
 		d.Saved = true
 
+		// Must process blocks in sequence.  Missing a block says we must stop.
 		if d == nil {
-			list.State.Println("Null at ", i, " in DBStates")
 			return
 		}
 
@@ -172,11 +172,35 @@ func (list *DBStateList) UpdateState() {
 
 			//fmt.Println("Saving DBHeight ", d.DirectoryBlock.GetHeader().GetDBHeight(), " on ", list.State.GetFactomNodeName())
 
-			// 			if i > 0 {
-			// 				p := list.DBStates[i-1]
-			// 				d.DirectoryBlock.GetHeader().SetPrevFullHash(p.DirectoryBlock.GetHeader().GetFullHash())
-			// 				d.DirectoryBlock.GetHeader().SetPrevKeyMR(p.DirectoryBlock.GetKeyMR())
-			// 			}
+			if i > 0 {
+				p := list.DBStates[i-1]
+				d.DirectoryBlock.GetHeader().SetPrevFullHash(p.DirectoryBlock.GetHeader().GetFullHash())
+				d.DirectoryBlock.GetHeader().SetPrevKeyMR(p.DirectoryBlock.GetKeyMR())
+				
+				hash,err := p.AdminBlock.FullHash()
+				if err != nil {
+					d.Saved = false
+					return
+				}
+				d.AdminBlock.GetHeader().SetPrevFullHash(hash)
+				
+				d.FactoidBlock.SetPrevKeyMR(p.FactoidBlock.GetKeyMR().Bytes())
+				d.FactoidBlock.SetPrevFullHash(p.FactoidBlock.GetPrevFullHash().Bytes())
+				
+				hash,err = p.EntryCreditBlock.HeaderHash()
+				if err != nil {
+					d.Saved = false
+					return
+				}
+				d.EntryCreditBlock.GetHeader().SetPrevHeaderHash(hash)
+				
+				hash,err = p.EntryCreditBlock.Hash()
+				if err != nil {
+					d.Saved = false
+					return
+				}
+				d.EntryCreditBlock.GetHeader().SetPrevFullHash(hash)
+			}
 			if err := list.State.GetDB().ProcessDBlockMultiBatch(d.DirectoryBlock); err != nil {
 				panic(err.Error())
 			}

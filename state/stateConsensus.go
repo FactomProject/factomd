@@ -383,19 +383,7 @@ func (s *State) NewAdminBlock(dbheight uint32) interfaces.IAdminBlock {
 func (s *State) NewAdminBlockHeader(dbheight uint32) interfaces.IABlockHeader {
 	header := new(adminBlock.ABlockHeader)
 	header.DBHeight = dbheight
-	if dbheight == 0 {
-		header.PrevFullHash = primitives.NewHash(constants.ZERO_HASH)
-	} else {
-		dbstate := s.DBStates.Last()
-		if dbstate != nil {
-			keymr, err := dbstate.AdminBlock.FullHash()
-
-			if err != nil {
-				panic(err.Error())
-			}
-			header.PrevFullHash = keymr
-		}
-	}
+	header.PrevFullHash = primitives.NewHash(constants.ZERO_HASH)
 	header.HeaderExpansionSize = 0
 	header.HeaderExpansionArea = make([]byte, 0)
 	header.MessageCount = 0
