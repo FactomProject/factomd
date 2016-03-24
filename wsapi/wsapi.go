@@ -412,7 +412,7 @@ func returnMsg(ctx *web.Context, msg interface{}, success bool) {
 			return
 		}
 	}*/
-	r := rtn{Response: msg, Success: success}
+	r := msg
 
 	if p, err := json.Marshal(r); err != nil {
 		wsLog.Error(err)
