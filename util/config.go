@@ -93,12 +93,12 @@ PortNumber                            = 8088
 HomeDir                               = ""
 ; --------------- DBType: LDB | Bolt | Map
 DBType                                = "Map"
-LdbPath                               = "ldb"
-BoltDBPath                            = ""
-DataStorePath                         = "data/export/"
+LdbPath                               = "database/ldb"
+BoltDBPath                            = "database/bolt"
+DataStorePath                         = "data/export"
 DirectoryBlockInSeconds               = 6
 ExportData                            = true
-ExportDataSubpath                     = "export/"
+ExportDataSubpath                     = "database/export"
 ; --------------- Network: MAIN | TEST | LOCAL
 Network                               = LOCAL
 ; --------------- NodeMode: FULL | SERVER | LIGHT ----------------
@@ -120,7 +120,7 @@ RpcClientHost                         = "localhost:18332"
 RpcClientEndpoint                     = "ws"
 RpcClientUser                         = "testuser"
 RpcClientPass                         = "notarychain"
-BtcTransFee                           = 0.0001
+BtcTransFee                           = 0.000001
 CertHomePathBtcd                      = "btcd"
 RpcBtcdHost                           = "localhost:18334"
 
@@ -133,9 +133,9 @@ PortNumber                            = 8088
 ; ConsoleLogLevel - allowed values are: debug, standard
 ; ------------------------------------------------------------------------------
 [log]
-logLevel                              = debug
-LogPath                               = "m2factom-d.log"
-ConsoleLogLevel                       = debug
+logLevel                              = error
+LogPath                               = "database/"
+ConsoleLogLevel                       = standard
 
 ; ------------------------------------------------------------------------------
 ; Configurations for fctwallet
@@ -144,10 +144,8 @@ ConsoleLogLevel                       = debug
 Address                               = localhost
 Port                                  = 8089
 DataFile                              = fctwallet.dat
-RefreshInSeconds                      = 60
+RefreshInSeconds                      = 6
 BoltDBPath                            = ""
-FactomdAddress                        = localhost
-FactomdPort                           = 8088
 `
 
 func (s *FactomdConfig) String() string {
