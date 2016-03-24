@@ -184,6 +184,7 @@ func (list *DBStateList) UpdateState() {
 				}
 				d.AdminBlock.GetHeader().SetPrevFullHash(hash)
 				
+				d.FactoidBlock.SetDBHeight(d.DirectoryBlock.GetHeader().GetDBHeight())
 				d.FactoidBlock.SetPrevKeyMR(p.FactoidBlock.GetKeyMR().Bytes())
 				d.FactoidBlock.SetPrevFullHash(p.FactoidBlock.GetPrevFullHash().Bytes())
 				

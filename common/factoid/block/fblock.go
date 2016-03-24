@@ -430,7 +430,8 @@ func (b *FBlock) GetPrevFullHash() interfaces.IHash {
 }
 
 func (b *FBlock) SetPrevFullHash(hash []byte) {
-	b.PrevFullHash.SetBytes(hash)
+	h := primitives.NewHash(hash)
+	b.PrevFullHash = h
 }
 
 func (b *FBlock) CalculateHashes() {
