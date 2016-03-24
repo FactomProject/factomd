@@ -215,8 +215,21 @@ func (list *DBStateList) UpdateState() {
 			if err := list.State.GetDB().ProcessDBlockMultiBatch(d.DirectoryBlock); err != nil {
 				panic(err.Error())
 			}
-			if err := list.State.GetDB().SaveDirectoryBlockHead(d.DirectoryBlock); err != nil {
-				panic(err.Error())
+			
+			head, err := list.State.GetDB().FetchDirectoryBlockHead()
+			i := 0
+			for i=0 ; i <10 && ( 
+				head == nil || 
+				err != nil  || 
+				head.GetHeader().GetDBHeight() != d.DirectoryBlock.GetHeader().GetDBHeight());i++ {
+					if err := list.State.GetDB().SaveDirectoryBlockHead(d.DirectoryBlock); err != nil {
+						panic(err.Error())
+					}
+					head,err = list.State.GetDB().FetchDirectoryBlockHead()
+					fmt.Println("Failed to write new Directory Block Head")
+			}
+			if i == 10 {
+				panic("Can't write the head")
 			}
 			if err := list.State.GetDB().ProcessABlockMultiBatch(d.AdminBlock); err != nil {
 				panic(err.Error())
