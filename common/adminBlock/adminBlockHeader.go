@@ -71,8 +71,8 @@ func (b *ABlockHeader) SetHeaderExpansionArea(area []byte) {
 	b.HeaderExpansionArea = area
 }
 
-func (b *ABlockHeader) SetPrevFullHash(keyMR interfaces.IHash) {
-	b.PrevFullHash = keyMR
+func (b *ABlockHeader) SetPrevFullHash(FullHash interfaces.IHash) {
+	b.PrevFullHash = FullHash
 }
 
 // Write out the ABlockHeader to binary.

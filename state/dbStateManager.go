@@ -153,16 +153,17 @@ func (list *DBStateList) UpdateState() {
 
 	for i, d := range list.DBStates {
 
+		// Must process blocks in sequence.  Missing a block says we must stop.
+		if d == nil {
+			return
+		}
+		
 		if d.Saved {
 			continue
 		}
 		d.Saved = true
 
-		// Must process blocks in sequence.  Missing a block says we must stop.
-		if d == nil {
-			return
-		}
-
+	
 		// Make sure the directory block is properly synced up with the prior block, if there
 		// is one.
 
@@ -212,6 +213,9 @@ func (list *DBStateList) UpdateState() {
 			}
 			
 			if err := list.State.GetDB().ProcessDBlockMultiBatch(d.DirectoryBlock); err != nil {
+				panic(err.Error())
+			}
+			if err := list.State.GetDB().SaveDirectoryBlockHead(d.DirectoryBlock); err != nil {
 				panic(err.Error())
 			}
 			if err := list.State.GetDB().ProcessABlockMultiBatch(d.AdminBlock); err != nil {

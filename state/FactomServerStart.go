@@ -27,7 +27,7 @@ func LoadDatabase(s *State) {
 
 	fmt.Println("Loading ",blkCnt," Directory Blocks") 
 	
-	msg, err := s.LoadDBState(blkCnt)
+	xmsg, err := s.LoadDBState(blkCnt)
 
 	for i := 0; true; i++ {
 		if err != nil {

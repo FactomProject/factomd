@@ -630,7 +630,7 @@ func (s *State) SetString() {
 			ecHash = s.DBStates.Last().EntryCreditBlock.GetHash().Bytes()
 		}
 		
-		s.serverPrt = fmt.Sprintf("%5s %7s Recorded: %d Building: %d Highest: %d DirBlk[:5]=%x ABHash[:5]=%x FBHash[:5]=%x %d ECHash[:5]=%x IDChainID[:5]=%x",
+		s.serverPrt = fmt.Sprintf("%5s %7s Recorded: %d Building: %d Highest: %d DirBlk[:5]=%x ABHash[:5]=%x FBHash[:5]=%x ECHash[:5]=%x IDChainID[:5]=%x",
 			stype,
 			s.FactomNodeName,
 			s.GetHighestRecordedBlock(),
@@ -639,7 +639,6 @@ func (s *State) SetString() {
 			keyMR[:5],
 			abHash[:5],
 			fbHash[:5],
-			s.DBStates.Last().FactoidBlock.GetDBHeight(),
 			ecHash[:5],
 			s.IdentityChainID.Bytes()[:5])
 	}
