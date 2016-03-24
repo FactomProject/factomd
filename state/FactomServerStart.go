@@ -23,9 +23,10 @@ func LoadDatabase(s *State) {
 
 	if err == nil && head != nil {
 		blkCnt = head.GetHeader().GetDBHeight()
-		s.Println("Loading ",blkCnt," Directory Blocks") 
 	}
 
+	fmt.Println("Loading ",blkCnt," Directory Blocks") 
+	
 	msg, err := s.LoadDBState(blkCnt)
 
 	for i := 0; true; i++ {
