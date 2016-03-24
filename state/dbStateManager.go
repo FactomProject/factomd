@@ -226,7 +226,7 @@ func (list *DBStateList) UpdateState() {
 						panic(err.Error())
 					}
 					head,err = list.State.GetDB().FetchDirectoryBlockHead()
-					fmt.Println("Failed to write new Directory Block Head")
+		//			fmt.Println("Failed to write new Directory Block Head")
 			}
 			if i == 10 {
 				panic("Can't write the head")

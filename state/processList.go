@@ -15,7 +15,8 @@ var _ = log.Print
 
 type ProcessList struct {
 	DBHeight uint32 // The directory block height for these lists
-
+	good 	 bool   // Means we have the previous blocks, so we can process!
+	
 	// List of messsages that came in before the previous block was built
 	// We can not completely validate these messages until the previous block
 	// is built.
@@ -216,6 +217,23 @@ func (p *ProcessList) SetComplete(index int, v bool) {
 
 // Process messages and update our state.
 func (p *ProcessList) Process(state *State) {
+	
+	if !p.good {							// If we don't know this process list is good...
+		last := state.DBStates.Last()		// Get our last state.
+		if last == nil {
+			fmt.Println("Last == 0")
+			return
+		}
+		lht := last.DirectoryBlock.GetHeader().GetDBHeight()
+		if last.Saved &&  lht == p.DBHeight-1  {
+			p.good = true
+		}else{
+			//fmt.Println("ht/lht: ", p.DBHeight, " ", lht, " ", last.Saved)
+			return
+		}
+	}
+	
+	
 	for i := 0; i < len(p.Servers); i++ {
 		plist := p.Servers[i].List
 
