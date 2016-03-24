@@ -9,32 +9,33 @@ import (
 func TestTest(t *testing.T) {
 	dbo := testHelper.CreateAndPopulateTestDatabaseOverlay()
 
-	err := ExportDChain(dbo)
-	if err != nil {
-		t.Error(err)
-	}
-	err = ExportECChain(dbo)
-	if err != nil {
-		t.Error(err)
-	}
-	err = ExportAChain(dbo)
-	if err != nil {
-		t.Error(err)
-	}
-	err = ExportFctChain(dbo)
-	if err != nil {
-		t.Error(err)
-	}
-	err = ExportDirBlockInfo(dbo)
+	be := new(BlockExtractor)
 
+	err := be.ExportDChain(dbo)
 	if err != nil {
 		t.Error(err)
 	}
-	err = ExportEChain(testHelper.GetChainID().String(), dbo)
+	err = be.ExportECChain(dbo)
 	if err != nil {
 		t.Error(err)
 	}
-	err = ExportEChain(testHelper.GetAnchorChainID().String(), dbo)
+	err = be.ExportAChain(dbo)
+	if err != nil {
+		t.Error(err)
+	}
+	err = be.ExportFctChain(dbo)
+	if err != nil {
+		t.Error(err)
+	}
+	err = be.ExportDirBlockInfo(dbo)
+	if err != nil {
+		t.Error(err)
+	}
+	err = be.ExportEChain(testHelper.GetChainID().String(), dbo)
+	if err != nil {
+		t.Error(err)
+	}
+	err = be.ExportEChain(testHelper.GetAnchorChainID().String(), dbo)
 	if err != nil {
 		t.Error(err)
 	}

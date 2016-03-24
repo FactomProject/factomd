@@ -68,12 +68,13 @@ type Overlay struct {
 
 	BatchSemaphore sync.Mutex
 	MultiBatch     []interfaces.Record
+	BlockExtractor blockExtractor.BlockExtractor
 }
 
 func (db *Overlay) SetExportData(path string) {
 	db.ExportData = true
 	db.ExportDataPath = path
-	blockExtractor.DataStorePath = path
+	db.BlockExtractor.DataStorePath = path
 }
 
 func (db *Overlay) StartMultiBatch() {
@@ -244,7 +245,7 @@ func (db *Overlay) ProcessBlockMultiBatch(blockBucket, numberBucket, secondaryIn
 	db.PutInMultiBatch(batch)
 
 	if db.ExportData {
-		err := blockExtractor.ExportBlock(block)
+		err := db.BlockExtractor.ExportBlock(block)
 		if err != nil {
 			return err
 		}
@@ -280,7 +281,7 @@ func (db *Overlay) ProcessBlockBatch(blockBucket, numberBucket, secondaryIndexBu
 	}
 
 	if db.ExportData {
-		err = blockExtractor.ExportBlock(block)
+		err = db.BlockExtractor.ExportBlock(block)
 		if err != nil {
 			return err
 		}
