@@ -263,17 +263,17 @@ func (b *DirectoryBlock) UnmarshalBinary(data []byte) (err error) {
 }
 
 func (b *DirectoryBlock) GetHash() interfaces.IHash {
+	return b.GetFullHash()
+}
+
+func (b *DirectoryBlock) GetFullHash() interfaces.IHash {
 	binaryDblock, err := b.MarshalBinary()
 	if err != nil {
 		return nil
 	}
 	b.DBHash = primitives.Sha(binaryDblock)
+	b.Header.SetFullHash(b.DBHash)
 	return b.DBHash
-}
-
-func (b *DirectoryBlock) GetFullHash() interfaces.IHash {
-	b.Header.SetFullHash(b.GetHash())
-	return b.Header.GetFullHash()
 }
 
 func (b *DirectoryBlock) AddEntry(chainID interfaces.IHash, keyMR interfaces.IHash) error {

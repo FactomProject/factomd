@@ -629,6 +629,7 @@ func (s *State) SetString() {
 			fbHash = s.DBStates.Last().FactoidBlock.GetHash().Bytes()
 			ecHash = s.DBStates.Last().EntryCreditBlock.GetHash().Bytes()
 		}
+		
 		s.serverPrt = fmt.Sprintf("%5s %7s Recorded: %d Building: %d Highest: %d DirBlk[:5]=%x ABHash[:5]=%x FBHash[:5]=%x %d ECHash[:5]=%x IDChainID[:5]=%x",
 			stype,
 			s.FactomNodeName,

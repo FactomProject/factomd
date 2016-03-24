@@ -174,8 +174,6 @@ func (list *DBStateList) UpdateState() {
 
 			if i > 0 {
 				p := list.DBStates[i-1]
-				d.DirectoryBlock.GetHeader().SetPrevFullHash(p.DirectoryBlock.GetHeader().GetFullHash())
-				d.DirectoryBlock.GetHeader().SetPrevKeyMR(p.DirectoryBlock.GetKeyMR())
 				
 				hash,err := p.AdminBlock.FullHash()
 				if err != nil {
@@ -201,6 +199,13 @@ func (list *DBStateList) UpdateState() {
 					return
 				}
 				d.EntryCreditBlock.GetHeader().SetPrevFullHash(hash)
+				
+				d.DirectoryBlock.GetHeader().SetPrevFullHash(p.DirectoryBlock.GetHeader().GetFullHash())
+				d.DirectoryBlock.GetHeader().SetPrevKeyMR(p.DirectoryBlock.GetKeyMR())
+				d.DirectoryBlock.GetHeader().SetTimestamp(0)
+				d.DirectoryBlock.GetDBEntries()[0].SetKeyMR(d.AdminBlock.GetHash())
+				d.DirectoryBlock.GetDBEntries()[1].SetKeyMR(d.EntryCreditBlock.GetHash())
+				d.DirectoryBlock.GetDBEntries()[2].SetKeyMR(d.FactoidBlock.GetHash())
 			}
 			if err := list.State.GetDB().ProcessDBlockMultiBatch(d.DirectoryBlock); err != nil {
 				panic(err.Error())
