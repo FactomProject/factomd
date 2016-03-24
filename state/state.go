@@ -137,7 +137,7 @@ func (s *State) Clone(number string) interfaces.IState {
 	clone.NodeMode = "FULL"
 	clone.DBType = s.DBType
 	clone.ExportData = s.ExportData
-	clone.ExportDataSubpath = s.ExportDataSubpath + "/sim-" + number
+	clone.ExportDataSubpath = s.ExportDataSubpath + "sim-" + number
 	clone.Network = s.Network
 	clone.DirectoryBlockInSeconds = s.DirectoryBlockInSeconds
 	clone.PortNumber = s.PortNumber

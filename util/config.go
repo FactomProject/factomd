@@ -98,7 +98,7 @@ BoltDBPath                            = "database/bolt"
 DataStorePath                         = "data/export"
 DirectoryBlockInSeconds               = 6
 ExportData                            = true
-ExportDataSubpath                     = "database/export"
+ExportDataSubpath                     = "database/export/"
 ; --------------- Network: MAIN | TEST | LOCAL
 Network                               = LOCAL
 ; --------------- NodeMode: FULL | SERVER | LIGHT ----------------
