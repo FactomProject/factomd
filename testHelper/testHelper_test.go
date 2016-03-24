@@ -55,6 +55,11 @@ func Test(t *testing.T) {
 	t.Logf("set Height - %v", set.Height)
 }
 
+func Test_DB_With_Ten_Blks(t *testing.T) {
+	state := CreateAndPopulateTestState()
+	t.Log("Highest Recorded Block: ", state.GetHighestRecordedBlock())
+}
+
 /*
 func TestAnchor(t *testing.T) {
 	anchor := CreateFirstAnchorEntry()

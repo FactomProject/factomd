@@ -10,6 +10,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/database/mapdb"
+	"github.com/FactomProject/factomd/engine"
 	//"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/state"
 
@@ -23,6 +24,7 @@ func CreateEmptyTestState() *state.State {
 	s := new(state.State)
 	s.LoadConfig("")
 	s.Init()
+	engine.LoadDatabase(s)
 	return s
 }
 

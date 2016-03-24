@@ -2,7 +2,7 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-package main
+package engine
 
 import (
 	"fmt"
@@ -254,7 +254,7 @@ func startServers() {
 			fnode.State.Init()
 		}
 		go NetworkProcessorNet(fnode)
-		go loadDatabase(fnode.State)
+		go state.LoadDatabase(fnode.State)
 		go Timer(fnode.State)
 		go Validator(fnode.State)
 	}

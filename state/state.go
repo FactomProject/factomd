@@ -162,29 +162,63 @@ func (s *State) GetFactomNodeName() string {
 }
 
 func (s *State) LoadConfig(filename string) {
-	s.filename = filename
-	s.ReadCfg(filename)
-	// Get our factomd configuration information.
-	cfg := s.GetCfg().(*util.FactomdConfig)
 
 	s.FactomNodeName = "FNode0" // Default Factom Node Name for Simulation
-	s.LogPath = cfg.Log.LogPath
-	s.LdbPath = cfg.App.LdbPath
-	s.BoltDBPath = cfg.App.BoltDBPath
-	s.LogLevel = cfg.Log.LogLevel
-	s.ConsoleLogLevel = cfg.Log.ConsoleLogLevel
-	s.NodeMode = cfg.App.NodeMode
-	s.DBType = cfg.App.DBType
-	s.ExportData = cfg.App.ExportData // bool
-	s.ExportDataSubpath = cfg.App.ExportDataSubpath
-	s.Network = cfg.App.Network
-	s.LocalServerPrivKey = cfg.App.LocalServerPrivKey
-	s.FactoshisPerEC = cfg.App.ExchangeRate
-	s.DirectoryBlockInSeconds = cfg.App.DirectoryBlockInSeconds
-	s.PortNumber = cfg.Wsapi.PortNumber
 
-	s.IdentityChainID = primitives.Sha([]byte("0"))
-	s.CoreChainID = primitives.Sha([]byte("0"))
+	if len(filename) > 0 {
+		s.filename = filename
+		s.ReadCfg(filename)
+
+		// Get our factomd configuration information.
+		cfg := s.GetCfg().(*util.FactomdConfig)
+
+		s.LogPath = cfg.Log.LogPath
+		s.LdbPath = cfg.App.LdbPath
+		s.BoltDBPath = cfg.App.BoltDBPath
+		s.LogLevel = cfg.Log.LogLevel
+		s.ConsoleLogLevel = cfg.Log.ConsoleLogLevel
+		s.NodeMode = cfg.App.NodeMode
+		s.DBType = cfg.App.DBType
+		s.ExportData = cfg.App.ExportData // bool
+		s.ExportDataSubpath = cfg.App.ExportDataSubpath
+		s.Network = cfg.App.Network
+		s.LocalServerPrivKey = cfg.App.LocalServerPrivKey
+		s.FactoshisPerEC = cfg.App.ExchangeRate
+		s.DirectoryBlockInSeconds = cfg.App.DirectoryBlockInSeconds
+		s.PortNumber = cfg.Wsapi.PortNumber
+
+		// TODO:  Actually load the IdentityChainID from the config file
+		s.IdentityChainID = primitives.Sha([]byte("0"))
+
+		// TODO:  CoreChainID is our 'authority chain' that will be used to manage Factom
+		// until the network is real, and to serve as the authority to reboot the network
+		// should consensus or software or networks fail in some unpredicted way.
+		s.CoreChainID = primitives.Sha([]byte("0"))
+
+	} else {
+		s.LogPath = "database/"
+		s.LdbPath = "database/ldb"
+		s.BoltDBPath = "database/bolt"
+		s.LogLevel = "none"
+		s.ConsoleLogLevel = "standard"
+		s.NodeMode = "SERVER"
+		s.DBType = "Map"
+		s.ExportData = false
+		s.ExportDataSubpath = "data/export"
+		s.Network = "LOCAL"
+		s.LocalServerPrivKey = "4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c9b08946553448d26d"
+		s.FactoshisPerEC = 00100000
+		s.DirectoryBlockInSeconds = 6
+		s.PortNumber = 8088
+
+		// TODO:  Actually load the IdentityChainID from the config file
+		s.IdentityChainID = primitives.Sha([]byte("0"))
+
+		// TODO:  CoreChainID is our 'authority chain' that will be used to manage Factom
+		// until the network is real, and to serve as the authority to reboot the network
+		// should consensus or software or networks fail in some unpredicted way.
+		s.CoreChainID = primitives.Sha([]byte("0"))
+	}
 }
 
 func (s *State) Init() {

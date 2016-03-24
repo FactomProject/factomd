@@ -2,7 +2,7 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-package main
+package state
 
 import (
 	"fmt"
@@ -11,23 +11,11 @@ import (
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid/block"
 	"github.com/FactomProject/factomd/common/messages"
-	"github.com/FactomProject/factomd/state"
 )
 
 var _ = fmt.Print
 
-func FactomServerStart(state *state.State) {
-
-	state.Init()
-	go loadDatabase(state)
-	// Timer runs periodically, and inserts eom messages into the stream
-	go Timer(state)
-	// Validator is the gateway.
-	go Validator(state)
-
-}
-
-func loadDatabase(s *state.State) {
+func LoadDatabase(s *State) {
 
 	var blkCnt uint32
 
