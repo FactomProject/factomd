@@ -322,7 +322,7 @@ func HandleV2GetReceipt(state interfaces.IState, params interface{}) (interface{
 
 	receipt, err := receipts.CreateFullReceipt(dbase, h)
 	if err != nil {
-		return nil, NewMiscError()
+		return nil, NewReceiptError()
 	}
 	resp := new(GetReceiptResponse)
 	resp.Receipt = receipt
