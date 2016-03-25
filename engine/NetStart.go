@@ -196,7 +196,7 @@ func NetStart(s *state.State) {
 					if err == nil && msg != nil {
 						dsmsg := msg.(*messages.DBStateMsg)
 						ABlock := dsmsg.AdminBlock
-						fmt.Printf(ABlock.String())
+						fmt.Println(ABlock.String())
 					} else {
 						fmt.Println("Error: ", err, msg)
 					}

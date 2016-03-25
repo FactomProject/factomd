@@ -24,7 +24,7 @@ type AdminBlock struct {
 	ABEntries []interfaces.IABEntry //Interface
 
 	//Not Marshalized
-	fullHash    interfaces.IHash //SHA512Half
+	Full_Hash    interfaces.IHash //SHA512Half
 	partialHash interfaces.IHash //SHA256
 }
 
@@ -91,13 +91,11 @@ func (c *AdminBlock) GetKeyMR() (interfaces.IHash, error) {
 }
 
 func (ab *AdminBlock) FullHash() (interfaces.IHash, error) {
-	if ab.fullHash == nil {
-		err := ab.BuildFullBHash()
-		if err != nil {
-			return nil, err
-		}
+	err := ab.BuildFullBHash()
+	if err != nil {
+		return nil, err
 	}
-	return ab.fullHash, nil
+	return ab.Full_Hash, nil
 }
 
 func (ab *AdminBlock) PartialHash() (interfaces.IHash, error) {
@@ -117,7 +115,7 @@ func (b *AdminBlock) BuildFullBHash() (err error) {
 	if err != nil {
 		return
 	}
-	b.fullHash = primitives.Sha512Half(binaryAB)
+	b.Full_Hash = primitives.Sha512Half(binaryAB)
 	return
 }
 
@@ -223,6 +221,7 @@ func (e *AdminBlock) JSONBuffer(b *bytes.Buffer) error {
 }
 
 func (e *AdminBlock) String() string {
+	e.FullHash()
 	str, _ := e.JSONString()
 	return str
 }

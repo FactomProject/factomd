@@ -47,6 +47,12 @@ func (fs *FactoidState) SetWallet(w interfaces.ISCWallet) {
 func (fs *FactoidState) GetCurrentBlock() interfaces.IFBlock {
 	if fs.CurrentBlock == nil {
 		fs.CurrentBlock = block.NewFBlock(fs.State.GetFactoshisPerEC(), fs.DBHeight)
+		t := coinbase.GetCoinbase(0)
+		err := fs.CurrentBlock.AddCoinbase(t)
+		if err != nil {
+			panic(err.Error())
+		}
+		fs.UpdateTransaction(true, t)
 	}
 	return fs.CurrentBlock
 }
@@ -66,7 +72,7 @@ func (fs *FactoidState) AddTransactionBlock(blk interfaces.IFBlock) error {
 		}
 	}
 	fs.CurrentBlock = blk
-	fs.State.SetFactoshisPerEC(blk.GetExchRate())
+//	fs.State.SetFactoshisPerEC(blk.GetExchRate())
 
 	return nil
 }

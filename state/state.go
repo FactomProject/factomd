@@ -618,28 +618,19 @@ func (s *State) SetString() {
 		keyMR, abHash, fbHash, ecHash := []byte("aaaaa"), []byte("aaaaa"), []byte("aaaaa"), []byte("aaaaa")
 		switch {
 		case s.DBStates == nil:
-			s.serverPrt = ""
-			return
+			
 		case s.DBStates.Last() == nil:
-			s.serverPrt = ""
-			return
+			
 		case s.DBStates.Last().DirectoryBlock == nil:
-			s.serverPrt = ""
-			return
+			
 		default:
 			keyMR = s.DBStates.Last().DirectoryBlock.GetKeyMR().Bytes()
 			abHash = s.DBStates.Last().AdminBlock.GetHash().Bytes()
 			fbHash = s.DBStates.Last().FactoidBlock.GetHash().Bytes()
 			ecHash = s.DBStates.Last().EntryCreditBlock.GetHash().Bytes()
 		}
-		if s.DBStates.Last().Saved == false {
-			return
-		}
-		ht := uint32(0)
-		if s.DBStates.Last() != nil {
-			ht = s.DBStates.Last().FactoidBlock.GetDBHeight()
-		}
-		s.serverPrt = fmt.Sprintf("%5s %7s Recorded: %d Building: %d Highest: %d DirBlk[:5]=%x ABHash[:5]=%x FBHash[:5]=%x %d ECHash[:5]=%x IDChainID[:5]=%x",
+		
+		s.serverPrt = fmt.Sprintf("%5s %7s Recorded: %d Building: %d Highest: %d DirBlk[:5]=%x ABHash[:5]=%x FBHash[:5]=%x ECHash[:5]=%x IDChainID[:5]=%x",
 			stype,
 			s.FactomNodeName,
 			s.GetHighestRecordedBlock(),
@@ -648,7 +639,6 @@ func (s *State) SetString() {
 			keyMR[:5],
 			abHash[:5],
 			fbHash[:5],
-			ht,
 			ecHash[:5],
 			s.IdentityChainID.Bytes()[:5])
 	}

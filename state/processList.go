@@ -221,7 +221,6 @@ func (p *ProcessList) Process(state *State) {
 	if !p.good { // If we don't know this process list is good...
 		last := state.DBStates.Last() // Get our last state.
 		if last == nil {
-			fmt.Println("Last == 0")
 			return
 		}
 		lht := last.DirectoryBlock.GetHeader().GetDBHeight()
