@@ -602,6 +602,10 @@ func (b FBlock) CustomMarshalText() (text []byte, err error) {
 	out.WriteString("Transaction Block\n")
 	out.WriteString("  ChainID:       ")
 	out.WriteString(hex.EncodeToString(constants.FACTOID_CHAINID))
+	keyMR := b.GetKeyMR()
+	out.WriteString("\n  KeyMR (NM):    ")
+	out.WriteString(keyMR.String())
+	
 	if b.BodyMR == nil {
 		b.BodyMR = new(primitives.Hash)
 	}

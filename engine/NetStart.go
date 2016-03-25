@@ -160,7 +160,6 @@ func NetStart(s *state.State) {
 				fnode.State.SetOut(false)
 			}
 			listenTo = v
-			fnodes[listenTo].State.SetOut(true)
 			fmt.Print("\r\nSwitching to Node ", listenTo, "\r\n")
 			wsapi.SetState(fnodes[listenTo].State)
 		} else {
@@ -168,24 +167,75 @@ func NetStart(s *state.State) {
 				b = append(b, 'a')
 			}
 			switch b[0] {
-			case 'a', 'A':
+			case 'a':
 				mLog.all = false
 				fmt.Println("-------------------------------------------------------------------------------")
 				for _, f := range fnodes {
 					f.State.SetOut(false)
 					fmt.Printf("%8s %s\n", f.State.FactomNodeName, f.State.ShortString())
 				}
-			case 'd', 'D':
+			case 'f':
+				mLog.all = false
+				for _, fnode := range fnodes {
+					fnode.State.SetOut(false)
+				}
+				if listenTo < 0 || listenTo > len(fnodes) {
+					fmt.Println("Select a node first")
+					break
+				}
+				f := fnodes[listenTo]
+				fmt.Println("-----------------------------", f.State.FactomNodeName, "--------------------------------------",string(b[:len(b)]))
+				if len(b)<2 { break }
+				ht,err := strconv.Atoi(string(b[1:]))
+				if err != nil {
+					fmt.Println(err,"Dump Factoid block with Fn  where n = blockheight, i.e. 'F10'")
+				}else{
+					msg,err := f.State.LoadDBState(uint32(ht))
+					if err == nil && msg != nil{
+						dsmsg := msg.(*messages.DBStateMsg)
+						FBlock := dsmsg.FactoidBlock
+						fmt.Printf(FBlock.String())
+					}else{
+						fmt.Println("Error: ",err,msg)
+					}
+				}
+			case 'd':
+				mLog.all = false
+				for _, fnode := range fnodes {
+					fnode.State.SetOut(false)
+				}
+				if listenTo < 0 || listenTo > len(fnodes) {
+					fmt.Println("Select a node first")
+					break
+				}
+				f := fnodes[listenTo]
+				fmt.Println("-----------------------------", f.State.FactomNodeName, "--------------------------------------",string(b[:len(b)]))
+				if len(b)<2 { break }
+				ht,err := strconv.Atoi(string(b[1:]))
+				if err != nil {
+					fmt.Println(err,"Dump Directory block with Dn  where n = blockheight, i.e. 'D10'")
+				}else{
+					msg,err := f.State.LoadDBState(uint32(ht))
+					if err == nil && msg != nil{
+						dsmsg := msg.(*messages.DBStateMsg)
+						DBlock := dsmsg.DirectoryBlock
+						fmt.Printf(DBlock.String())
+					}else{
+						fmt.Println("Error: ",err,msg)
+					}
+				}
+			case 'D':
 				mLog.all = false
 				os.Stderr.WriteString("Dump all messages\n")
 				for _, fnode := range fnodes {
 					fnode.State.SetOut(true)
 				}
 			case 'm':
-				os.Stderr.WriteString("Print all messages\n")
+				os.Stderr.WriteString(fmt.Sprintf("Print all messages for node: %d\n",listenTo))
 				for _, fnode := range fnodes {
 					fnode.State.SetOut(false)
 				}
+				fnodes[listenTo].State.SetOut(true)
 				mLog.all = true
 			case 27:
 				mLog.all = false

@@ -161,7 +161,6 @@ func (list *DBStateList) UpdateState() {
 		if d.Saved {
 			continue
 		}
-		d.Saved = true
 
 	
 		// Make sure the directory block is properly synced up with the prior block, if there
@@ -181,7 +180,6 @@ func (list *DBStateList) UpdateState() {
 									
 				hash,err := p.AdminBlock.FullHash()
 				if err != nil {
-					d.Saved = false
 					return
 				}
 				d.AdminBlock.GetHeader().SetPrevFullHash(hash)
@@ -192,14 +190,12 @@ func (list *DBStateList) UpdateState() {
 				
 				hash,err = p.EntryCreditBlock.HeaderHash()
 				if err != nil {
-					d.Saved = false
 					return
 				}
 				d.EntryCreditBlock.GetHeader().SetPrevHeaderHash(hash)
 				
 				hash,err = p.EntryCreditBlock.Hash()
 				if err != nil {
-					d.Saved = false
 					return
 				}
 				d.EntryCreditBlock.GetHeader().SetPrevFullHash(hash)
@@ -243,7 +239,8 @@ func (list *DBStateList) UpdateState() {
 			if err := list.State.GetDB().ExecuteMultiBatch(); err != nil {
 				panic(err.Error())
 			}
-
+			
+			d.Saved = true // Only after all is done will I admit this state has been saved.
 		}
 		list.State.GetAnchor().UpdateDirBlockInfoMap(dbInfo.NewDirBlockInfoFromDirBlock(d.DirectoryBlock))
 
