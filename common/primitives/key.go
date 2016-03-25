@@ -86,6 +86,11 @@ func (pk *PrivateKey) GenerateKey() (err error) {
 	return err
 }
 
+// Returns hex-encoded string of first 32 bytes of key (private key portion)
+func (pk *PrivateKey) PrivateKeyString() string {
+    return hex.EncodeToString(pk.Key[:32])
+}
+
 /******************PublicKey*******************************/
 
 // PublicKey contains only Public part of Public/Private key pair
