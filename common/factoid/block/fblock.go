@@ -108,13 +108,13 @@ func (b *FBlock) MarshalTrans() ([]byte, error) {
 	var periodMark = 0
 	var i int
 	var trans interfaces.ITransaction
-	
-// 	for _, v := range b.GetEndOfPeriod() {
-// 		if v == 0 {
-// 			return nil, fmt.Errorf("Factoid Block is incomplete.  Missing EOM markers detected: %v",b.endOfPeriod)
-// 		}
-// 	}
-	
+
+	// 	for _, v := range b.GetEndOfPeriod() {
+	// 		if v == 0 {
+	// 			return nil, fmt.Errorf("Factoid Block is incomplete.  Missing EOM markers detected: %v",b.endOfPeriod)
+	// 		}
+	// 	}
+
 	for i, trans = range b.Transactions {
 
 		for periodMark < len(b.endOfPeriod) &&
@@ -605,7 +605,7 @@ func (b FBlock) CustomMarshalText() (text []byte, err error) {
 	keyMR := b.GetKeyMR()
 	out.WriteString("\n  KeyMR (NM):    ")
 	out.WriteString(keyMR.String())
-	
+
 	if b.BodyMR == nil {
 		b.BodyMR = new(primitives.Hash)
 	}

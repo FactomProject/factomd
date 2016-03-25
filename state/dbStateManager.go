@@ -157,12 +157,11 @@ func (list *DBStateList) UpdateState() {
 		if d == nil {
 			return
 		}
-		
+
 		if d.Saved {
 			continue
 		}
 
-	
 		// Make sure the directory block is properly synced up with the prior block, if there
 		// is one.
 
@@ -177,29 +176,29 @@ func (list *DBStateList) UpdateState() {
 			// block before we write it to disk.
 			if i > 0 {
 				p := list.DBStates[i-1]
-									
-				hash,err := p.AdminBlock.FullHash()
+
+				hash, err := p.AdminBlock.FullHash()
 				if err != nil {
 					return
 				}
 				d.AdminBlock.GetHeader().SetPrevFullHash(hash)
-				
+
 				d.FactoidBlock.SetDBHeight(d.DirectoryBlock.GetHeader().GetDBHeight())
 				d.FactoidBlock.SetPrevKeyMR(p.FactoidBlock.GetKeyMR().Bytes())
 				d.FactoidBlock.SetPrevFullHash(p.FactoidBlock.GetPrevFullHash().Bytes())
-				
-				hash,err = p.EntryCreditBlock.HeaderHash()
+
+				hash, err = p.EntryCreditBlock.HeaderHash()
 				if err != nil {
 					return
 				}
 				d.EntryCreditBlock.GetHeader().SetPrevHeaderHash(hash)
-				
-				hash,err = p.EntryCreditBlock.Hash()
+
+				hash, err = p.EntryCreditBlock.Hash()
 				if err != nil {
 					return
 				}
 				d.EntryCreditBlock.GetHeader().SetPrevFullHash(hash)
-				
+
 				d.DirectoryBlock.GetHeader().SetPrevFullHash(p.DirectoryBlock.GetHeader().GetFullHash())
 				d.DirectoryBlock.GetHeader().SetPrevKeyMR(p.DirectoryBlock.GetKeyMR())
 				d.DirectoryBlock.GetHeader().SetTimestamp(0)
@@ -207,22 +206,21 @@ func (list *DBStateList) UpdateState() {
 				d.DirectoryBlock.GetDBEntries()[1].SetKeyMR(d.EntryCreditBlock.GetHash())
 				d.DirectoryBlock.GetDBEntries()[2].SetKeyMR(d.FactoidBlock.GetHash())
 			}
-			
+
 			if err := list.State.GetDB().ProcessDBlockMultiBatch(d.DirectoryBlock); err != nil {
 				panic(err.Error())
 			}
-			
+
 			head, err := list.State.GetDB().FetchDirectoryBlockHead()
 			i := 0
-			for i=0 ; i <10 && ( 
-				head == nil || 
-				err != nil  || 
-				head.GetHeader().GetDBHeight() != d.DirectoryBlock.GetHeader().GetDBHeight());i++ {
-					if err := list.State.GetDB().SaveDirectoryBlockHead(d.DirectoryBlock); err != nil {
-						panic(err.Error())
-					}
-					head,err = list.State.GetDB().FetchDirectoryBlockHead()
-		//			fmt.Println("Failed to write new Directory Block Head")
+			for i = 0; i < 10 && (head == nil ||
+				err != nil ||
+				head.GetHeader().GetDBHeight() != d.DirectoryBlock.GetHeader().GetDBHeight()); i++ {
+				if err := list.State.GetDB().SaveDirectoryBlockHead(d.DirectoryBlock); err != nil {
+					panic(err.Error())
+				}
+				head, err = list.State.GetDB().FetchDirectoryBlockHead()
+				//			fmt.Println("Failed to write new Directory Block Head")
 			}
 			if i == 10 {
 				panic("Can't write the head")
@@ -239,7 +237,7 @@ func (list *DBStateList) UpdateState() {
 			if err := list.State.GetDB().ExecuteMultiBatch(); err != nil {
 				panic(err.Error())
 			}
-			
+
 			d.Saved = true // Only after all is done will I admit this state has been saved.
 		}
 		list.State.GetAnchor().UpdateDirBlockInfoMap(dbInfo.NewDirBlockInfoFromDirBlock(d.DirectoryBlock))
