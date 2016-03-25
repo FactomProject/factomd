@@ -441,7 +441,9 @@ func (s *State) NewAck(dbheight uint32, msg interfaces.IMsg, hash interfaces.IHa
 		return nil, fmt.Errorf(s.FactomNodeName + ": Creation of an Ack attempted by non-server")
 	}
 	pl := s.ProcessLists.Get(dbheight)
-
+	if pl == nil {
+		return nil, fmt.Errorf(s.FactomNodeName + ": No process list at this time")
+	}
 	last, ok := pl.GetLastAck(index).(*messages.Ack)
 
 	ack := new(messages.Ack)

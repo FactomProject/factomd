@@ -44,7 +44,7 @@ type DBStateList struct {
 	DBStates            []*DBState
 }
 
-const SecondsBetweenTests = 1 // Default
+const SecondsBetweenTests = 3 // Default
 
 func (list *DBStateList) String() string {
 	str := "\nDBStates\n"
@@ -134,7 +134,7 @@ func (list *DBStateList) Catchup() {
 
 	list.Lastreq = begin
 
-	end2 := begin + 10
+	end2 := begin + 200
 	if end < end2 {
 		end2 = end
 	}
@@ -238,8 +238,13 @@ func (list *DBStateList) UpdateState() {
 				panic(err.Error())
 			}
 
+			list.LastTime = list.State.GetTimestamp() // If I am saving stuff, I'm good for a while.
 			d.Saved = true // Only after all is done will I admit this state has been saved.
+		}else{
+			list.LastTime = list.State.GetTimestamp() //  If I am saving stuff, I'm good for a while
+			d.Saved = true
 		}
+		
 		list.State.GetAnchor().UpdateDirBlockInfoMap(dbInfo.NewDirBlockInfoFromDirBlock(d.DirectoryBlock))
 
 		// Process the Factoid End of Block
