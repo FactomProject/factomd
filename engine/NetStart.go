@@ -30,7 +30,7 @@ var mLog = new(MsgLog)
 
 func NetStart(s *state.State) {
 
-	listenTo := -1
+	listenTo := 0
 
 	fmt.Println(">>>>>>>>>>>>>>>>")
 	fmt.Println(">>>>>>>>>>>>>>>> Net Sim Start!!!!!")
@@ -116,7 +116,9 @@ func NetStart(s *state.State) {
 		}
 	case "long":
 		fmt.Println("Using long Network")
-		
+		for i := 1; i < cnt; i++ {
+			AddSimPeer(fnodes, i-1, i)
+		}
 	case "loops":
 		fmt.Println("Using loops Network")
 		for i := 1; i < cnt; i++ {
@@ -161,15 +163,11 @@ func NetStart(s *state.State) {
 			}
 		}
 	default :
-		fmt.Println("Didn't understand network type. Known types: mesh, long, loops.  Using a Long Network")
+		fmt.Println("Didn't understand network type. Known types: mesh, long, circles, tree, loops.  Using a Long Network")
 		for i := 1; i < cnt; i++ {
 			AddSimPeer(fnodes, i-1, i)
 		}
 		
-	}
-
-	if len(fnodes) > listenTo && listenTo >= 0 {
-		fnodes[listenTo].State.SetOut(true)
 	}
 
 	// Web API runs independent of Factom Servers
