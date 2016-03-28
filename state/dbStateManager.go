@@ -205,26 +205,15 @@ func (list *DBStateList) UpdateState() {
 				d.DirectoryBlock.GetDBEntries()[0].SetKeyMR(d.AdminBlock.GetHash())
 				d.DirectoryBlock.GetDBEntries()[1].SetKeyMR(d.EntryCreditBlock.GetHash())
 				d.DirectoryBlock.GetDBEntries()[2].SetKeyMR(d.FactoidBlock.GetHash())
+				_, err = d.DirectoryBlock.BuildBodyMR()
+				if err != nil {
+					panic(err.Error())
+				}
 			}
-
 			if err := list.State.GetDB().ProcessDBlockMultiBatch(d.DirectoryBlock); err != nil {
 				panic(err.Error())
 			}
 
-			head, err := list.State.GetDB().FetchDirectoryBlockHead()
-			i := 0
-			for i = 0; i < 10 && (head == nil ||
-				err != nil ||
-				head.GetHeader().GetDBHeight() != d.DirectoryBlock.GetHeader().GetDBHeight()); i++ {
-				if err := list.State.GetDB().SaveDirectoryBlockHead(d.DirectoryBlock); err != nil {
-					panic(err.Error())
-				}
-				head, err = list.State.GetDB().FetchDirectoryBlockHead()
-				//			fmt.Println("Failed to write new Directory Block Head")
-			}
-			if i == 10 {
-				panic("Can't write the head")
-			}
 			if err := list.State.GetDB().ProcessABlockMultiBatch(d.AdminBlock); err != nil {
 				panic(err.Error())
 			}
@@ -240,6 +229,7 @@ func (list *DBStateList) UpdateState() {
 
 			list.LastTime = list.State.GetTimestamp() // If I am saving stuff, I'm good for a while.
 			d.Saved = true                            // Only after all is done will I admit this state has been saved.
+			//fmt.Println("Saved!")
 		} else {
 			list.LastTime = list.State.GetTimestamp() //  If I am saving stuff, I'm good for a while
 			d.Saved = true
