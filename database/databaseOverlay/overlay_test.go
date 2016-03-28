@@ -11,9 +11,148 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	. "github.com/FactomProject/factomd/database/databaseOverlay"
+	"github.com/FactomProject/factomd/database/mapdb"
 	"github.com/FactomProject/factomd/testHelper"
 	"testing"
 )
+
+func TestMultiBatch(t *testing.T) {
+	dbo := NewOverlay(new(mapdb.MapDB))
+
+	var prev *testHelper.BlockSet = nil
+
+	var err error
+
+	for i := 0; i < 10; i++ {
+		dbo.StartMultiBatch()
+		prev = testHelper.CreateTestBlockSet(prev)
+
+		err = dbo.ProcessABlockMultiBatch(prev.ABlock)
+		if err != nil {
+			t.Error(err)
+		}
+
+		err = dbo.ProcessEBlockMultiBatch(prev.EBlock)
+		if err != nil {
+			t.Error(err)
+		}
+
+		err = dbo.ProcessEBlockMultiBatch(prev.AnchorEBlock)
+		if err != nil {
+			t.Error(err)
+		}
+
+		err = dbo.ProcessECBlockMultiBatch(prev.ECBlock)
+		if err != nil {
+			t.Error(err)
+		}
+
+		err = dbo.ProcessFBlockMultiBatch(prev.FBlock)
+		if err != nil {
+			t.Error(err)
+		}
+
+		err = dbo.ProcessDBlockMultiBatch(prev.DBlock)
+		if err != nil {
+			t.Error(err)
+		}
+
+		for _, entry := range prev.Entries {
+			err = dbo.InsertEntryMultiBatch(entry)
+			if err != nil {
+				t.Error(err)
+			}
+		}
+
+		if err := dbo.ExecuteMultiBatch(); err != nil {
+			t.Error(err)
+		}
+	}
+
+	ahead, err := dbo.FetchABlockHead()
+	if err != nil {
+		t.Error(err)
+	}
+	if ahead == nil {
+		t.Error("DBlock head is nil")
+	}
+
+	m1, err := prev.ABlock.MarshalBinary()
+	if err != nil {
+		t.Error(err)
+	}
+	m2, err := ahead.MarshalBinary()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if primitives.AreBytesEqual(m1, m2) == false {
+		t.Error("ABlocks are not equal")
+	}
+
+	fhead, err := dbo.FetchFBlockHead()
+	if err != nil {
+		t.Error(err)
+	}
+	if fhead == nil {
+		t.Error("DBlock head is nil")
+	}
+
+	m1, err = prev.FBlock.MarshalBinary()
+	if err != nil {
+		t.Error(err)
+	}
+	m2, err = fhead.MarshalBinary()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if primitives.AreBytesEqual(m1, m2) == false {
+		t.Error("FBlocks are not equal")
+	}
+
+	echead, err := dbo.FetchECBlockHead()
+	if err != nil {
+		t.Error(err)
+	}
+	if echead == nil {
+		t.Error("DBlock head is nil")
+	}
+
+	m1, err = prev.ECBlock.MarshalBinary()
+	if err != nil {
+		t.Error(err)
+	}
+	m2, err = echead.MarshalBinary()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if primitives.AreBytesEqual(m1, m2) == false {
+		t.Error("ECBlocks are not equal")
+	}
+
+	dhead, err := dbo.FetchDBlockHead()
+	if err != nil {
+		t.Error(err)
+	}
+	if dhead == nil {
+		t.Error("DBlock head is nil")
+	}
+
+	m1, err = prev.DBlock.MarshalBinary()
+	if err != nil {
+		t.Error(err)
+	}
+	m2, err = dhead.MarshalBinary()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if primitives.AreBytesEqual(m1, m2) == false {
+		t.Error("DBlocks are not equal")
+	}
+}
 
 func TestInsertFetch(t *testing.T) {
 	dbo := createOverlay()

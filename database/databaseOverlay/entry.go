@@ -23,6 +23,24 @@ func (db *Overlay) InsertEntry(entry interfaces.IEBEntry) error {
 	return db.PutInBatch(batch)
 }
 
+func (db *Overlay) InsertEntryMultiBatch(entry interfaces.IEBEntry) error {
+	if entry == nil {
+		return nil
+	}
+
+	//Entries are saved in buckets represented by their chainID for easy batch loading
+	//They are also indexed in ENTRY bucket by their hash that points to their chainID
+	//So they can be loaded in two load operations without needing to know their chainID
+
+	batch := []interfaces.Record{}
+	batch = append(batch, interfaces.Record{entry.GetChainID().Bytes(), entry.DatabasePrimaryIndex().Bytes(), entry})
+	batch = append(batch, interfaces.Record{[]byte{byte(ENTRY)}, entry.DatabasePrimaryIndex().Bytes(), entry.GetChainIDHash()})
+
+	db.PutInMultiBatch(batch)
+
+	return nil
+}
+
 // FetchEntry gets an entry by hash from the database.
 func (db *Overlay) FetchEntryByHash(hash interfaces.IHash) (interfaces.IEBEntry, error) {
 	chainID, err := db.FetchPrimaryIndexBySecondaryIndex([]byte{byte(ENTRY)}, hash)
