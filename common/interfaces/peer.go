@@ -15,4 +15,5 @@ type IPeer interface {
 	Send(IMsg) error                    // Send a message to this peer
 	Recieve() (IMsg, error)             // Recieve a message from this peer; nil if no message is ready.
 	Len() int                           // Returns the number of messages waiting to be read
+	Equals(IPeer) bool					// Is this connection equal to parm connection
 }

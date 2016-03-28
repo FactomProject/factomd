@@ -25,6 +25,22 @@ type SimPeer struct {
 
 var _ interfaces.IPeer = (*SimPeer)(nil)
 
+func (f *SimPeer) Equals(ff interfaces.IPeer) bool {
+	f2, ok := ff.(*SimPeer)
+	if !ok {return false}		// Different peer type can't be equal
+	
+	// Check If this is another connection from here to there
+	if f.FromName == f2.FromName && f.ToName == f2.FromName {
+		return true
+	}
+	
+	// Check if this is a connection from there to here
+	if f.FromName == f2.ToName && f.ToName == f2.FromName {
+		return true
+	}
+	return false
+}
+
 func (f *SimPeer) Len() int {
 	return len(f.BroadcastIn)
 }
@@ -67,14 +83,32 @@ func (f *SimPeer) Recieve() (interfaces.IMsg, error) {
 }
 
 func AddSimPeer(fnodes []*FactomNode, i1 int, i2 int) {
+	// Ignore out of range, and connections to self.
+	if  i1 < 0 ||
+		i2 < 0 ||
+		i1 >= len(fnodes) ||
+		i2 >= len(fnodes) ||
+		i1 == i2 {
+			return 
+		}
+	
+	// If the connection already exists, ignore
+	for _,p1 := range fnodes[i1].Peers {
+		for _,p2 := range fnodes[i2].Peers {
+			if p1.Equals(p2) {
+				return
+			}
+		}
+	}
+	
 	if i1 >= len(fnodes) || i2 >= len(fnodes) {
 		return
 	}
 
-	fmt.Println("AddPeer(fnodes,", i1, i2, ")")
-
 	f1 := fnodes[i1]
 	f2 := fnodes[i2]
+	
+	fmt.Println("Connecting",f1.State.FactomNodeName, f2.State.FactomNodeName)
 
 	peer12 := new(SimPeer).Init(f1.State.FactomNodeName, f2.State.FactomNodeName).(*SimPeer)
 	peer21 := new(SimPeer).Init(f2.State.FactomNodeName, f1.State.FactomNodeName).(*SimPeer)
@@ -84,11 +118,8 @@ func AddSimPeer(fnodes []*FactomNode, i1 int, i2 int) {
 	f1.Peers = append(f1.Peers, peer12)
 	f2.Peers = append(f2.Peers, peer21)
 
-	for _, p := range f1.Peers {
-		fmt.Printf("Peer f1 from %s to %s\n", p.GetNameTo(), p.GetNameFrom())
-	}
-	for _, p := range f2.Peers {
-		fmt.Printf("Peer f2 from %s to %s\n", p.GetNameTo(), p.GetNameFrom())
-	}
+// 	for _, p := range f1.Peers {
+// 		fmt.Printf("%s's peer: %s\n", p.GetNameFrom(), p.GetNameTo())
+// 	}
 
 }

@@ -62,7 +62,7 @@ func NetworkProcessorNet(fnode *FactomNode) {
 				fnode.State.InMsgQueue() <- msg
 			}
 		case msg, ok := <-fnode.State.NetworkOutMsgQueue():
-			if ok {
+			if ok && msg != nil && msg.GetMsgHash() != nil {
 				// We don't care about the result, but we do want to log that we have
 				// seen this message before, because we might have generated the message
 				// ourselves.
