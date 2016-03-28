@@ -618,18 +618,18 @@ func (s *State) SetString() {
 		keyMR, abHash, fbHash, ecHash := []byte("aaaaa"), []byte("aaaaa"), []byte("aaaaa"), []byte("aaaaa")
 		switch {
 		case s.DBStates == nil:
-			
+
 		case s.DBStates.Last() == nil:
-			
+
 		case s.DBStates.Last().DirectoryBlock == nil:
-			
+
 		default:
 			keyMR = s.DBStates.Last().DirectoryBlock.GetKeyMR().Bytes()
 			abHash = s.DBStates.Last().AdminBlock.GetHash().Bytes()
 			fbHash = s.DBStates.Last().FactoidBlock.GetHash().Bytes()
 			ecHash = s.DBStates.Last().EntryCreditBlock.GetHash().Bytes()
 		}
-		
+
 		s.serverPrt = fmt.Sprintf("%5s %7s Recorded: %d Building: %d Highest: %d DirBlk[:5]=%x ABHash[:5]=%x FBHash[:5]=%x ECHash[:5]=%x IDChainID[:5]=%x",
 			stype,
 			s.FactomNodeName,

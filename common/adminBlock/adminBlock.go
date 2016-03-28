@@ -24,7 +24,7 @@ type AdminBlock struct {
 	ABEntries []interfaces.IABEntry //Interface
 
 	//Not Marshalized
-	Full_Hash    interfaces.IHash //SHA512Half
+	Full_Hash   interfaces.IHash //SHA512Half
 	partialHash interfaces.IHash //SHA256
 }
 

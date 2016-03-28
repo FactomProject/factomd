@@ -72,7 +72,7 @@ func (fs *FactoidState) AddTransactionBlock(blk interfaces.IFBlock) error {
 		}
 	}
 	fs.CurrentBlock = blk
-//	fs.State.SetFactoshisPerEC(blk.GetExchRate())
+	//	fs.State.SetFactoshisPerEC(blk.GetExchRate())
 
 	return nil
 }

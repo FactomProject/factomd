@@ -239,12 +239,12 @@ func (list *DBStateList) UpdateState() {
 			}
 
 			list.LastTime = list.State.GetTimestamp() // If I am saving stuff, I'm good for a while.
-			d.Saved = true // Only after all is done will I admit this state has been saved.
-		}else{
+			d.Saved = true                            // Only after all is done will I admit this state has been saved.
+		} else {
 			list.LastTime = list.State.GetTimestamp() //  If I am saving stuff, I'm good for a while
 			d.Saved = true
 		}
-		
+
 		list.State.GetAnchor().UpdateDirBlockInfoMap(dbInfo.NewDirBlockInfoFromDirBlock(d.DirectoryBlock))
 
 		// Process the Factoid End of Block
