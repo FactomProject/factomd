@@ -75,19 +75,16 @@ func NewInternalDatabaseError() *primitives.JSONError {
 	return primitives.NewJSONError(-32603, "Internal error", "database error")
 }
 
-//TODO: number better
-func NewEntryNotFoundError() *primitives.JSONError {
-	return primitives.NewJSONError(-1, "Entry not found", nil)
-}
+//http://www.jsonrpc.org/specification : -32000 to -32099 error codes are reserved for implementation-defined server-errors.
 func NewBlockNotFoundError() *primitives.JSONError {
-	return primitives.NewJSONError(-2, "Block not found", nil)
+	return primitives.NewJSONError(-32008, "Block not found", nil)
+}
+func NewEntryNotFoundError() *primitives.JSONError {
+	return primitives.NewJSONError(-32009, "Entry not found", nil)
 }
 func NewMissingChainHeadError() *primitives.JSONError {
-	return primitives.NewJSONError(-3, "Missing Chain Head", nil)
+	return primitives.NewJSONError(-32009, "Missing Chain Head", nil)
 }
-
-//TODO: deprecate
-
-func NewMiscError() *primitives.JSONError {
-	return primitives.NewJSONError(-999, "Misc Error", nil)
+func NewReceiptError() *primitives.JSONError {
+	return primitives.NewJSONError(-32010, "Receipt creation error", nil)
 }
