@@ -49,34 +49,35 @@ func CreateAndPopulateTestDatabaseOverlay() *databaseOverlay.Overlay {
 	var err error
 
 	for i := 0; i < BlockCount; i++ {
+		dbo.StartMultiBatch()
 		prev = CreateTestBlockSet(prev)
 
-		err = dbo.SaveABlockHead(prev.ABlock)
+		err = dbo.ProcessABlockMultiBatch(prev.ABlock)
 		if err != nil {
 			panic(err)
 		}
 
-		err = dbo.SaveEBlockHead(prev.EBlock)
+		err = dbo.ProcessEBlockMultiBatch(prev.EBlock)
 		if err != nil {
 			panic(err)
 		}
 
-		err = dbo.SaveEBlockHead(prev.AnchorEBlock)
+		err = dbo.ProcessEBlockMultiBatch(prev.AnchorEBlock)
 		if err != nil {
 			panic(err)
 		}
 
-		err = dbo.SaveECBlockHead(prev.ECBlock)
+		err = dbo.ProcessECBlockMultiBatch(prev.ECBlock)
 		if err != nil {
 			panic(err)
 		}
 
-		err = dbo.SaveFactoidBlockHead(prev.FBlock)
+		err = dbo.ProcessFBlockMultiBatch(prev.FBlock)
 		if err != nil {
 			panic(err)
 		}
 
-		err = dbo.SaveDirectoryBlockHead(prev.DBlock)
+		err = dbo.ProcessDBlockMultiBatch(prev.DBlock)
 		if err != nil {
 			panic(err)
 		}
@@ -86,6 +87,10 @@ func CreateAndPopulateTestDatabaseOverlay() *databaseOverlay.Overlay {
 			if err != nil {
 				panic(err)
 			}
+		}
+
+		if err := dbo.ExecuteMultiBatch(); err != nil {
+			panic(err)
 		}
 	}
 
