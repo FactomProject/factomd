@@ -51,16 +51,28 @@ func (list *DBStateList) String() string {
 	str = fmt.Sprintf("%s  Base      = %d\n", str, list.Base)
 	str = fmt.Sprintf("%s  timestamp = %s\n", str, list.LastTime.String())
 	str = fmt.Sprintf("%s  Complete  = %d\n", str, list.Complete)
+	rec := "M"
+	last := ""
 	for i, ds := range list.DBStates {
-		rec := "M"
+		rec = "M"
 		if ds != nil && ds.DirectoryBlock != nil {
 			dblk, _ := list.State.GetDB().FetchDBlockByHash(ds.DirectoryBlock.GetKeyMR())
 			if dblk != nil {
 				rec = "R"
 			}
+			if ds.Saved {
+				rec = "S"
+			}
+		}
+		if last != "" {
+			str = last
 		}
 		str = fmt.Sprintf("%s  %1s-DState\n   DState Height: %d\n%s", str, rec, list.Base+uint32(i), ds.String())
+		if rec == "M" && last == ""{  
+			last = str
+		}
 	}
+		
 	return str
 }
 
