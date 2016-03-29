@@ -115,9 +115,12 @@ func main() {
 				}
 				entries := eblock.GetEntryHashes()
 				for _, eHash := range entries {
+					if eHash.IsMinuteMarker() == true {
+						continue
+					}
 					entry, err := GetEntry(eHash.String())
 					if err != nil {
-						fmt.Printf("Problem getting entry %v\n", eHash.String())
+						fmt.Printf("Problem getting entry %v from block %v\n", eHash.String(), e.GetKeyMR().String())
 						panic(err)
 					}
 					err = dbo.InsertEntry(entry)
