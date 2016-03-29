@@ -62,4 +62,21 @@ func main() {
 		fmt.Printf("Fetched dblock %v\n", dBlock.GetDatabaseHeight())
 	}
 
+	for _, v := range dBlockList {
+		entries := v.GetDBEntries()
+		for _, e := range entries {
+			switch e.GetChainID().String() {
+			case "000000000000000000000000000000000000000000000000000000000000000a":
+				break
+			case "000000000000000000000000000000000000000000000000000000000000000f":
+				break
+			case "000000000000000000000000000000000000000000000000000000000000000c":
+				break
+				//handle anchor block separately?
+			default:
+				break
+			}
+		}
+		fmt.Printf("Saved block height %v", dBlock.GetDatabaseHeight())
+	}
 }

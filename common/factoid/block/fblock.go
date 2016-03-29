@@ -210,6 +210,17 @@ func (b *FBlock) MarshalBinary() ([]byte, error) {
 	return out.Bytes(), nil
 }
 
+func UnmarshalFBlock(data []byte) (interfaces.IFBlock, error) {
+	block := new(FBlock)
+
+	err := block.UnmarshalBinary(data)
+	if err != nil {
+		return nil, err
+	}
+
+	return block, nil
+}
+
 // UnmarshalBinary assumes that the Binary is all good.  We do error
 // out if there isn't enough data, or the transaction is too large.
 func (b *FBlock) UnmarshalBinaryData(data []byte) (newdata []byte, err error) {

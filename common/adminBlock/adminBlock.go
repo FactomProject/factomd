@@ -161,6 +161,18 @@ func (b *AdminBlock) MarshalBinary() (data []byte, err error) {
 	return buf.Bytes(), err
 }
 
+func UnmarshalABlock(data []byte) (interfaces.IAdminBlock, error) {
+	block := new(AdminBlock)
+	block.Header = new(ABlockHeader)
+
+	err := block.UnmarshalBinary(data)
+	if err != nil {
+		return nil, err
+	}
+
+	return block, nil
+}
+
 func (b *AdminBlock) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {

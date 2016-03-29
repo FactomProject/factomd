@@ -133,6 +133,17 @@ func (e *ECBlock) BuildHeader() error {
 	return nil
 }
 
+func UnmarshalECBlock(data []byte) (interfaces.IEntryCreditBlock, error) {
+	block, _ := NextECBlock(nil)
+
+	err := block.UnmarshalBinary(data)
+	if err != nil {
+		return nil, err
+	}
+
+	return block, nil
+}
+
 func (e *ECBlock) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	// Unmarshal Header
 	if e.GetHeader() == nil {

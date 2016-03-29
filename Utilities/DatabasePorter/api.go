@@ -7,7 +7,11 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/directoryBlock"
+	"github.com/FactomProject/factomd/common/entryBlock"
+	"github.com/FactomProject/factomd/common/entryCreditBlock"
+	"github.com/FactomProject/factomd/common/factoid/block"
 	"github.com/FactomProject/factomd/common/interfaces"
 )
 
@@ -29,6 +33,54 @@ func GetDBlock(keymr string) (interfaces.IDirectoryBlock, error) {
 		return nil, err
 	}
 	return dblock, nil
+}
+
+func GetABlock(keymr string) (interfaces.IAdminBlock, error) {
+	raw, err := GetRaw(keymr)
+	if err != nil {
+		return nil, err
+	}
+	block, err := adminBlock.UnmarshalABlock(raw)
+	if err != nil {
+		return nil, err
+	}
+	return block, nil
+}
+
+func GetECBlock(keymr string) (interfaces.IEntryCreditBlock, error) {
+	raw, err := GetRaw(keymr)
+	if err != nil {
+		return nil, err
+	}
+	block, err := entryCreditBlock.UnmarshalECBlock(raw)
+	if err != nil {
+		return nil, err
+	}
+	return block, nil
+}
+
+func GetFBlock(keymr string) (interfaces.IFBlock, error) {
+	raw, err := GetRaw(keymr)
+	if err != nil {
+		return nil, err
+	}
+	block, err := block.UnmarshalFBlock(raw)
+	if err != nil {
+		return nil, err
+	}
+	return block, nil
+}
+
+func GetEBlock(keymr string) (interfaces.IEntryBlock, error) {
+	raw, err := GetRaw(keymr)
+	if err != nil {
+		return nil, err
+	}
+	block, err := entryBlock.UnmarshalEBlock(raw)
+	if err != nil {
+		return nil, err
+	}
+	return block, nil
 }
 
 func GetDBlockHead() (string, error) {

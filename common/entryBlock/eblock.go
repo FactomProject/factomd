@@ -181,6 +181,17 @@ func (e *EBlock) MarshalBinary() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+func UnmarshalEBlock(data []byte) (interfaces.IEntryBlock, error) {
+	block := NewEBlock()
+
+	err := block.UnmarshalBinary(data)
+	if err != nil {
+		return nil, err
+	}
+
+	return block, nil
+}
+
 // UnmarshalBinary populates the Entry Block object from the serialized binary
 // data.
 func (e *EBlock) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
