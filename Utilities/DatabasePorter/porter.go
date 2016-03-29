@@ -63,20 +63,75 @@ func main() {
 	}
 
 	for _, v := range dBlockList {
+		dbo.StartMultiBatch()
+
+		err = dbo.ProcessDBlockMultiBatch(v)
+		if err != nil {
+			panic(err)
+		}
+
 		entries := v.GetDBEntries()
 		for _, e := range entries {
 			switch e.GetChainID().String() {
 			case "000000000000000000000000000000000000000000000000000000000000000a":
+				ablock, err := GetABlock(e.GetKeyMR().String())
+				if err != nil {
+					panic(err)
+				}
+				err = dbo.ProcessABlockMultiBatch(ablock)
+				if err != nil {
+					panic(err)
+				}
 				break
 			case "000000000000000000000000000000000000000000000000000000000000000f":
+				fblock, err := GetFBlock(e.GetKeyMR().String())
+				if err != nil {
+					panic(err)
+				}
+				err = dbo.ProcessFBlockMultiBatch(fblock)
+				if err != nil {
+					panic(err)
+				}
 				break
 			case "000000000000000000000000000000000000000000000000000000000000000c":
+				ecblock, err := GetECBlock(e.GetKeyMR().String())
+				if err != nil {
+					panic(err)
+				}
+				err = dbo.ProcessECBlockMultiBatch(ecblock)
+				if err != nil {
+					panic(err)
+				}
 				break
 				//handle anchor block separately?
 			default:
+				eblock, err := GetEBlock(e.GetKeyMR().String())
+				if err != nil {
+					panic(err)
+				}
+				err = dbo.ProcessEBlockMultiBatch(eblock)
+				if err != nil {
+					panic(err)
+				}
+				entries := eblock.GetEntryHashes()
+				for _, eHash := range entries {
+					entry, err := GetEntry(eHash.String())
+					if err != nil {
+						fmt.Printf("Problem getting entry %v\n", eHash.String())
+						panic(err)
+					}
+					err = dbo.InsertEntry(entry)
+					if err != nil {
+						panic(err)
+					}
+				}
 				break
 			}
 		}
-		fmt.Printf("Saved block height %v", dBlock.GetDatabaseHeight())
+
+		if err := dbo.ExecuteMultiBatch(); err != nil {
+			panic(err)
+		}
+		fmt.Printf("Saved block height %v\n", v.GetDatabaseHeight())
 	}
 }

@@ -7,6 +7,7 @@ package adminBlock
 import (
 	"bytes"
 	"fmt"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -162,9 +163,7 @@ func (b *AdminBlock) MarshalBinary() (data []byte, err error) {
 }
 
 func UnmarshalABlock(data []byte) (interfaces.IAdminBlock, error) {
-	block := new(AdminBlock)
-	block.Header = new(ABlockHeader)
-
+	block := NewAdminBlock()
 	err := block.UnmarshalBinary(data)
 	if err != nil {
 		return nil, err
@@ -187,7 +186,7 @@ func (b *AdminBlock) UnmarshalBinaryData(data []byte) (newData []byte, err error
 	}
 	b.Header = h
 
-	b.ABEntries = make([]interfaces.IABEntry, 0)
+	b.ABEntries = make([]interfaces.IABEntry, int(b.Header.GetMessageCount()))
 	for i := uint32(0); i < b.Header.GetMessageCount(); i++ {
 		if newData[0] == constants.TYPE_DB_SIGNATURE {
 			b.ABEntries[i] = new(DBSignatureEntry)

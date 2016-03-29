@@ -83,8 +83,20 @@ func GetEBlock(keymr string) (interfaces.IEntryBlock, error) {
 	return block, nil
 }
 
+func GetEntry(hash string) (interfaces.IEBEntry, error) {
+	raw, err := GetRaw(hash)
+	if err != nil {
+		return nil, err
+	}
+	entry, err := entryBlock.UnmarshalEntry(raw)
+	if err != nil {
+		return nil, err
+	}
+	return entry, nil
+}
+
 func GetDBlockHead() (string, error) {
-	return "47ecd1198c7888e2b6236dbbec6a90d36f5ff23c69d46d1369b2d11ef8c74d38", nil
+	return "3a5ec711a1dc1c6e463b0c0344560f830eb0b56e42def141cb423b0d8487a1dc", nil
 
 	resp, err := http.Get(
 		fmt.Sprintf("http://%s/v1/directory-block-head/", server))

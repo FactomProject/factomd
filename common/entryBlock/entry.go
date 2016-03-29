@@ -164,6 +164,15 @@ func (e *Entry) MarshalExtIDsBinary() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+func UnmarshalEntry(data []byte) (interfaces.IEBEntry, error) {
+	entry := NewEntry()
+	err := entry.UnmarshalBinary(data)
+	if err != nil {
+		return nil, err
+	}
+	return entry, nil
+}
+
 func (e *Entry) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	buf := bytes.NewBuffer(data)
 	hash := make([]byte, 32)

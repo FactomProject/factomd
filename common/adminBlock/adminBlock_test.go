@@ -164,6 +164,32 @@ func TestABlockHeaderMarshalUnmarshal(t *testing.T) {
 
 }
 
+func TestUnmarshalABlock(t *testing.T) {
+	raw := "000000000000000000000000000000000000000000000000000000000000000a0a9aa1efbe7d0e8d9c1d460d1c78e3e7b50f984e65a3f3ee7b73100a94189dbf000000010000000002000000830100000000000000000000000000000000000000000000000000000000000000000426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a83efbcbed19b5842e5aa06e66c41d8b61826d95d50c1cbc8bd5373f986c370547133462a9ffa0dcff025a6ad26747c95f1bdd88e2596fc8c6eaa8a2993c72c050002"
+	b, err := hex.DecodeString(raw)
+	if err != nil {
+		t.Error(err)
+	}
+	a, err := UnmarshalABlock(b)
+	if err != nil {
+		t.Error(err)
+	}
+	h, err := a.PartialHash()
+	if err != nil {
+		t.Error(err)
+	}
+	if h.String() != "b30ab81a8afdbe0be1627ef151bf7e263ce3d39d60b61464d81daa8320c28a4f" {
+		t.Error("Invalid Hash")
+	}
+	h, err = a.FullHash()
+	if err != nil {
+		t.Error(err)
+	}
+	if h.String() != "b2405450392038716e9b24804345f9ac0736792dba436c024268ed8100683894" {
+		t.Error("Invalid KeyMR")
+	}
+}
+
 var WeDidPanic bool
 
 func CatchPanic() {
