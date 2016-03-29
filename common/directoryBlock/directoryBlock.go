@@ -222,6 +222,18 @@ func (b *DirectoryBlock) BuildKeyMerkleRoot() (keyMR interfaces.IHash, err error
 	return keyMR, nil
 }
 
+func UnmarshalDBlock(data []byte) (interfaces.IDirectoryBlock, error) {
+	dBlock := new(DirectoryBlock)
+	dBlock.Header = NewDBlockHeader()
+	dBlock.DBHash = primitives.NewZeroHash()
+	dBlock.KeyMR = primitives.NewZeroHash()
+	err := dBlock.UnmarshalBinary(data)
+	if err != nil {
+		return nil, err
+	}
+	return dBlock, nil
+}
+
 func (b *DirectoryBlock) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	/*defer func() {
 		if r := recover(); r != nil {

@@ -6,12 +6,8 @@ package main
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/database/databaseOverlay"
-	"github.com/FactomProject/factomd/database/hybridDB"
-	"github.com/FactomProject/factomd/database/mapdb"
 	"github.com/FactomProject/factomd/util"
 )
 
@@ -34,37 +30,36 @@ func main() {
 		break
 	}
 
-	fmt.Printf("dbo - %v", dbo)
-}
+	fmt.Printf("dbo - %v\n", dbo)
 
-func InitBolt(cfg *util.FactomdConfig) interfaces.DBOverlay {
-	fmt.Println("InitBolt")
-	path := cfg.App.BoltDBPath + "/"
+	keymr, err := GetDBlockHead()
+	if err != nil {
+		panic(err)
+	}
+	dBlock, err := GetDBlock(keymr)
+	if err != nil {
+		panic(err)
+	}
+	if dBlock == nil {
+		panic("dblock head not found")
+	}
+	dBlockList := make([]interfaces.IDirectoryBlock, int(dBlock.GetDatabaseHeight())+1)
+	dBlockList[int(dBlock.GetDatabaseHeight())] = dBlock
 
-	os.MkdirAll(path, 0777)
-	dbase := hybridDB.NewBoltMapHybridDB(nil, path+"FactomBolt-Import.db")
-	return databaseOverlay.NewOverlay(dbase)
-}
-
-func InitLevelDB(cfg *util.FactomdConfig) interfaces.DBOverlay {
-	fmt.Println("InitLevelDB")
-	path := cfg.App.LdbPath + "/" + "FactoidLevel-Import.db"
-
-	dbase, err := hybridDB.NewLevelMapHybridDB(path, false)
-
-	if err != nil || dbase == nil {
-		dbase, err = hybridDB.NewLevelMapHybridDB(path, true)
+	for {
+		keymr = dBlock.GetHeader().GetPrevKeyMR().String()
+		if keymr == "0000000000000000000000000000000000000000000000000000000000000000" {
+			break
+		}
+		dBlock, err = GetDBlock(keymr)
 		if err != nil {
 			panic(err)
 		}
+		if dBlock == nil {
+			panic("dblock " + keymr + " not found")
+		}
+		dBlockList[int(dBlock.GetDatabaseHeight())] = dBlock
+		fmt.Printf("Fetched dblock %v\n", dBlock.GetDatabaseHeight())
 	}
 
-	return databaseOverlay.NewOverlay(dbase)
-}
-
-func InitMapDB(cfg *util.FactomdConfig) interfaces.DBOverlay {
-	fmt.Println("InitMapDB")
-	dbase := new(mapdb.MapDB)
-	dbase.Init(nil)
-	return databaseOverlay.NewOverlay(dbase)
 }
