@@ -463,7 +463,7 @@ func (s *State) NewAck(dbheight uint32, msg interfaces.IMsg, hash interfaces.IHa
 	}
 	pl.SetLastAck(index, ack)
 
-    ack.Sign(s)
+	ack.Sign(s)
 
 	return ack, nil
 }

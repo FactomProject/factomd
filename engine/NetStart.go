@@ -104,7 +104,7 @@ func NetStart(s *state.State) {
 	switch net {
 	case "mesh":
 		fmt.Println("Using mesh Network")
-		
+
 		h := 0
 		for index, p := range p1 {
 			fmt.Println()
@@ -130,12 +130,13 @@ func NetStart(s *state.State) {
 		for i := 0; i+7 < cnt; i += 3 {
 			AddSimPeer(fnodes, i, i+7)
 		}
-	case "tree" :
+	case "tree":
 		index := 0
 		row := 1
-		treeloop: for i := 0; true; i++ {
-			for j:= 0; j <= i; j++ {
-				AddSimPeer(fnodes, index, row) 
+	treeloop:
+		for i := 0; true; i++ {
+			for j := 0; j <= i; j++ {
+				AddSimPeer(fnodes, index, row)
 				AddSimPeer(fnodes, index, row+1)
 				row++
 				index++
@@ -143,31 +144,31 @@ func NetStart(s *state.State) {
 					break treeloop
 				}
 			}
-			row+=1
+			row += 1
 		}
-	case "circles" :
+	case "circles":
 		circleSize := 7
 		index := 0
 		for {
-			AddSimPeer(fnodes,index,index+circleSize-1)
-			for i:= index; i < index+circleSize-1; i++ {
-				AddSimPeer(fnodes,i,i+1)
+			AddSimPeer(fnodes, index, index+circleSize-1)
+			for i := index; i < index+circleSize-1; i++ {
+				AddSimPeer(fnodes, i, i+1)
 			}
 			index += circleSize
-			
-			AddSimPeer(fnodes,index,index-circleSize/3)
-			AddSimPeer(fnodes,index,index-circleSize-circleSize*2/3)
+
+			AddSimPeer(fnodes, index, index-circleSize/3)
+			AddSimPeer(fnodes, index, index-circleSize-circleSize*2/3)
 
 			if index >= len(fnodes) {
 				break
 			}
 		}
-	default :
+	default:
 		fmt.Println("Didn't understand network type. Known types: mesh, long, circles, tree, loops.  Using a Long Network")
 		for i := 1; i < cnt; i++ {
 			AddSimPeer(fnodes, i-1, i)
 		}
-		
+
 	}
 
 	// Web API runs independent of Factom Servers

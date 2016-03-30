@@ -145,12 +145,12 @@ func (s *State) Clone(number string) interfaces.IState {
 	clone.CoreChainID = s.CoreChainID
 	clone.IdentityChainID = primitives.Sha([]byte(number))
 
-    //generate and use a new PrivateKey for this clone
-    clonePrivateKey := new(primitives.PrivateKey)
-    err := clonePrivateKey.GenerateKey()
-    if err != nil {
+	//generate and use a new PrivateKey for this clone
+	clonePrivateKey := new(primitives.PrivateKey)
+	err := clonePrivateKey.GenerateKey()
+	if err != nil {
 		log.Printfln("Error generating clone private key: %v", err)
-    }
+	}
 	clone.LocalServerPrivKey = clonePrivateKey.PrivateKeyString()
 
 	//serverPrivKey primitives.PrivateKey

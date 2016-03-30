@@ -88,7 +88,7 @@ func (pk *PrivateKey) GenerateKey() (err error) {
 
 // Returns hex-encoded string of first 32 bytes of key (private key portion)
 func (pk *PrivateKey) PrivateKeyString() string {
-    return hex.EncodeToString(pk.Key[:32])
+	return hex.EncodeToString(pk.Key[:32])
 }
 
 /******************PublicKey*******************************/
