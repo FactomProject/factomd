@@ -103,7 +103,6 @@ func main() {
 					panic(err)
 				}
 				break
-				//handle anchor block separately?
 			default:
 				eblock, err := GetEBlock(e.GetKeyMR().String())
 				if err != nil {
@@ -136,5 +135,9 @@ func main() {
 			panic(err)
 		}
 		fmt.Printf("Saved block height %v\n", v.GetDatabaseHeight())
+	}
+	err = dbo.RebuildDirBlockInfo()
+	if err != nil {
+		panic(err)
 	}
 }

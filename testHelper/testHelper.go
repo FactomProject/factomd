@@ -94,7 +94,7 @@ func CreateAndPopulateTestDatabaseOverlay() *databaseOverlay.Overlay {
 		}
 	}
 
-	err = state.RebuildDirBlockInfo(dbo)
+	err = dbo.RebuildDirBlockInfo()
 	if err != nil {
 		panic(err)
 	}

@@ -2,11 +2,11 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-package state_test
+package databaseOverlay_test
 
 import (
 	"github.com/FactomProject/factomd/anchor"
-	. "github.com/FactomProject/factomd/state"
+	. "github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/testHelper"
 	"testing"
 )
@@ -14,7 +14,7 @@ import (
 func TestRebuildDirBlockInfo(t *testing.T) {
 	dbo := testHelper.CreateEmptyTestDatabaseOverlay()
 	anchors := CreateAnchors()
-	err := SaveAnchorInfoAsDirBlockInfo(dbo, anchors)
+	err := dbo.SaveAnchorInfoAsDirBlockInfo(anchors)
 	if err != nil {
 		t.Error(err)
 	}

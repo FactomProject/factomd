@@ -68,11 +68,11 @@ func (list *DBStateList) String() string {
 			str = last
 		}
 		str = fmt.Sprintf("%s  %1s-DState\n   DState Height: %d\n%s", str, rec, list.Base+uint32(i), ds.String())
-		if rec == "M" && last == ""{  
+		if rec == "M" && last == "" {
 			last = str
 		}
 	}
-		
+
 	return str
 }
 

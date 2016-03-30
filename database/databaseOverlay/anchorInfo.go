@@ -2,25 +2,24 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-package state
+package databaseOverlay
 
 import (
 	//"fmt"
 	"github.com/FactomProject/factomd/anchor"
 	"github.com/FactomProject/factomd/common/directoryBlock/dbInfo"
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"sort"
 )
 
 var AnchorBlockID string = "df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604"
 
-func RebuildDirBlockInfo(dbo *databaseOverlay.Overlay) error {
-	ars, err := FetchAllAnchorInfo(dbo)
+func (dbo *Overlay) RebuildDirBlockInfo() error {
+	ars, err := dbo.FetchAllAnchorInfo()
 	if err != nil {
 		return err
 	}
-	err = SaveAnchorInfoAsDirBlockInfo(dbo, ars)
+	err = dbo.SaveAnchorInfoAsDirBlockInfo(ars)
 	if err != nil {
 		return err
 	}
@@ -28,7 +27,7 @@ func RebuildDirBlockInfo(dbo *databaseOverlay.Overlay) error {
 	return nil
 }
 
-func FetchAllAnchorInfo(dbo *databaseOverlay.Overlay) ([]*anchor.AnchorRecord, error) {
+func (dbo *Overlay) FetchAllAnchorInfo() ([]*anchor.AnchorRecord, error) {
 	chainID, err := primitives.NewShaHashFromStr(AnchorBlockID)
 	if err != nil {
 		panic(err)
@@ -56,11 +55,11 @@ func FetchAllAnchorInfo(dbo *databaseOverlay.Overlay) ([]*anchor.AnchorRecord, e
 	return answer, nil
 }
 
-func SaveAnchorInfoAsDirBlockInfo(dbo *databaseOverlay.Overlay, ars []*anchor.AnchorRecord) error {
+func (dbo *Overlay) SaveAnchorInfoAsDirBlockInfo(ars []*anchor.AnchorRecord) error {
 	sort.Sort(ByAnchorDBHeightAccending(ars))
 
 	for _, v := range ars {
-		dbi, err := AnchorRecordToDirBlockInfo(v, dbo)
+		dbi, err := AnchorRecordToDirBlockInfo(v)
 		if err != nil {
 			return err
 		}
@@ -73,7 +72,7 @@ func SaveAnchorInfoAsDirBlockInfo(dbo *databaseOverlay.Overlay, ars []*anchor.An
 	return nil
 }
 
-func AnchorRecordToDirBlockInfo(ar *anchor.AnchorRecord, dbo *databaseOverlay.Overlay) (*dbInfo.DirBlockInfo, error) {
+func AnchorRecordToDirBlockInfo(ar *anchor.AnchorRecord) (*dbInfo.DirBlockInfo, error) {
 	dbi := new(dbInfo.DirBlockInfo)
 	var err error
 
