@@ -4,7 +4,6 @@ package testHelper
 
 import (
 	"github.com/FactomProject/factomd/common/factoid"
-	factoidBlock "github.com/FactomProject/factomd/common/factoid/block"
 	"github.com/FactomProject/factomd/common/interfaces"
 )
 
@@ -62,7 +61,7 @@ func SignFactoidTransaction(n uint64, tx interfaces.ITransaction) {
 }
 
 func CreateTestFactoidBlockWithCoinbase(prev interfaces.IFBlock, address interfaces.IAddress, amount uint64) interfaces.IFBlock {
-	block := factoidBlock.NewFBlockFromPreviousBlock(1, prev)
+	block := factoid.NewFBlockFromPreviousBlock(1, prev)
 	tx := new(factoid.Transaction)
 	tx.AddOutput(address, amount)
 	err := block.AddCoinbase(tx)

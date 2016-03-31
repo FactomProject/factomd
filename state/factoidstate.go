@@ -12,8 +12,6 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid"
-	"github.com/FactomProject/factomd/common/factoid/block"
-	"github.com/FactomProject/factomd/common/factoid/block/coinbase"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"runtime/debug"
@@ -46,8 +44,8 @@ func (fs *FactoidState) SetWallet(w interfaces.ISCWallet) {
 
 func (fs *FactoidState) GetCurrentBlock() interfaces.IFBlock {
 	if fs.CurrentBlock == nil {
-		fs.CurrentBlock = block.NewFBlock(fs.State.GetFactoshisPerEC(), fs.DBHeight)
-		t := coinbase.GetCoinbase(0)
+		fs.CurrentBlock = factoid.NewFBlock(fs.State.GetFactoshisPerEC(), fs.DBHeight)
+		t := factoid.GetCoinbase(0)
 		err := fs.CurrentBlock.AddCoinbase(t)
 		if err != nil {
 			panic(err.Error())
@@ -221,11 +219,11 @@ func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
 	// 		fs.State.Println(outstr)
 	// 	}
 
-	fs.CurrentBlock = block.NewFBlock(fs.State.GetFactoshisPerEC(), fs.DBHeight+1)
+	fs.CurrentBlock = factoid.NewFBlock(fs.State.GetFactoshisPerEC(), fs.DBHeight+1)
 
 	// TODO:  Need to get the leader time to put in the Coinbase ... Can't compute
 	// this on the fly and expect everyone to come up with the same timestamp.
-	t := coinbase.GetCoinbase(0)
+	t := factoid.GetCoinbase(0)
 	err := fs.CurrentBlock.AddCoinbase(t)
 	if err != nil {
 		panic(err.Error())

@@ -11,7 +11,7 @@ import (
 	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
-	"github.com/FactomProject/factomd/common/factoid/block"
+	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 )
 
@@ -64,7 +64,7 @@ func GetFBlock(keymr string) (interfaces.IFBlock, error) {
 	if err != nil {
 		return nil, err
 	}
-	block, err := block.UnmarshalFBlock(raw)
+	block, err := factoid.UnmarshalFBlock(raw)
 	if err != nil {
 		return nil, err
 	}

@@ -2,12 +2,11 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-package coinbase
+package factoid
 
 import (
 	"fmt"
 
-	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 )
 
@@ -29,7 +28,7 @@ func UpdateAmount(amt uint64) {
 // Currently we are paying just a few fixed addresses.
 //
 func GetCoinbase(ftime uint64) interfaces.ITransaction {
-	coinbase := new(factoid.Transaction)
+	coinbase := new(Transaction)
 	coinbase.SetMilliTimestamp(ftime)
 
 	for _, adr := range adrs {

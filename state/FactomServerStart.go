@@ -9,7 +9,7 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
-	"github.com/FactomProject/factomd/common/factoid/block"
+	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/messages"
 )
 
@@ -50,7 +50,7 @@ func LoadDatabase(s *State) {
 
 		dblk := directoryBlock.NewDirectoryBlock(0, nil)
 		ablk := s.NewAdminBlock(0)
-		fblk := block.GetGenesisFBlock()
+		fblk := factoid.GetGenesisFBlock()
 		ecblk := entryCreditBlock.NewECBlock()
 
 		msg := messages.NewDBStateMsg(s, dblk, ablk, fblk, ecblk)
