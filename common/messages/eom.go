@@ -83,17 +83,21 @@ func (m *EOM) Type() int {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *EOM) Validate(state interfaces.IState) int {
-
-	return 1
-
 	// TODO:  Need to check that the EOM came from a server
 	found, _ := state.GetFedServerIndexFor(m.DirectoryBlockHeight, m.ChainID)
-	if found { // Only EOM from federated servers are valid.
-		return 1
-	} else {
+	if !found { // Only EOM from federated servers are valid.
 		return -1
 	}
 	//TODO: Check signatures here.
+	eomSigned, err := m.VerifySignature()
+	if err != nil {
+		fmt.Println("Err is not nil on EOM sig check: ", err)
+		return -1
+	}
+	if !eomSigned {
+		return -1
+	}
+	return 1
 }
 
 // Returns true if this is a message for this server to execute as

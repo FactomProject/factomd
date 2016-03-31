@@ -89,5 +89,8 @@ func VerifyMessage(s Signable) (bool, error) {
 		return false, err
 	}
 	sig := s.GetSignature()
+	if sig == nil {
+		return false, fmt.Errorf("Message signature is nil")
+	}
 	return sig.Verify(toSign), nil
 }

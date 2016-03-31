@@ -48,6 +48,7 @@ func Timer(state interfaces.IState) {
 				eom.Timestamp = state.GetTimestamp()
 				eom.ChainID = state.GetIdentityChainID()
 				eom.ServerIndex = index
+				eom.Sign(state)
 				state.TimerMsgQueue() <- eom
 			}
 		}

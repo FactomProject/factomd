@@ -486,8 +486,8 @@ func (s *State) GetTimestamp() interfaces.Timestamp {
 	return *interfaces.NewTimeStampNow()
 }
 
-func (s *State) Sign([]byte) interfaces.IFullSignature {
-	return new(primitives.Signature)
+func (s *State) Sign(b []byte) interfaces.IFullSignature {
+	return s.serverPrivKey.Sign(b)
 }
 
 func (s *State) GetFactoidState() interfaces.IFactoidState {
