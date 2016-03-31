@@ -112,6 +112,15 @@ func (m *Ack) GetTimestamp() interfaces.Timestamp {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *Ack) Validate(state interfaces.IState) int {
+	// Check signature
+	ackSigned, err := m.VerifySignature()
+	if err != nil {
+		fmt.Println("Err is not nil on Ack sig check: ", err)
+		return -1
+	}
+	if !ackSigned {
+		return -1
+	}
 	return 1
 }
 
