@@ -103,8 +103,7 @@ func (m *FactoidTransaction) Process(dbheight uint32, state interfaces.IState) b
 		return true
 	}
 	m.processed = true
-	fmt.Println("Process Factoid")
-	// We can only get a Factoid Transaction once.  Add it, and remove it from the lists.
+	state.Println("Process Factoid: ",state.GetFactomNodeName())
 	state.GetFactoidState().AddTransaction(1, m.Transaction)
 	return true
 

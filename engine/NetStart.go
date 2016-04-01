@@ -15,6 +15,10 @@ import (
 	"os"
 	"strconv"
 	"time"
+	"flag"
+	"bufio"
+	"io"
+	"encoding/hex"
 )
 
 var _ = fmt.Print
@@ -30,14 +34,37 @@ var mLog = new(MsgLog)
 
 func NetStart(s *state.State) {
 
-	listenTo := 0
-
+	listenToPtr := flag.Int("node", 0, "Node Number the simulator will set as the focus")
+	cntPtr      := flag.Int("count", 1, "The number of nodes to generate")
+	netPtr      := flag.String("net", "tree", "The default algorithm to build the network connections")
+	journalPtr  := flag.String("journal","", "Rerun a Journal of messages")
+	followerPtr := flag.Bool("follower",false,"If true, force node to be a follower.  Only used when replaying a journal.")
+	
+	flag.Parse()
+	
+	listenTo := *listenToPtr
+	cnt      := *cntPtr
+	net      := *netPtr
+	journal  := *journalPtr
+	follower := *followerPtr
+	
+	os.Stderr.WriteString(fmt.Sprintf("node     %d\n",listenTo))
+	os.Stderr.WriteString(fmt.Sprintf("count    %d\n",cnt))
+	os.Stderr.WriteString(fmt.Sprintf("net      %s\n",net))
+	os.Stderr.WriteString(fmt.Sprintf("journal  \"%s\"\n",journal))
+	os.Stderr.WriteString(fmt.Sprintf("follower \"%v\"\n",follower))
+	
+	
+	if journal != "" {
+		cnt = 1
+	}
+	
 	fmt.Println(">>>>>>>>>>>>>>>>")
 	fmt.Println(">>>>>>>>>>>>>>>> Net Sim Start!!!!!")
 	fmt.Println(">>>>>>>>>>>>>>>>")
 	fmt.Println(">>>>>>>>>>>>>>>> Listening to Node", listenTo)
 	fmt.Println(">>>>>>>>>>>>>>>>")
-
+	
 	AddInterruptHandler(func() {
 		fmt.Print("<Break>\n")
 		fmt.Print("Gracefully shutting down the server...\n")
@@ -54,66 +81,30 @@ func NetStart(s *state.State) {
 
 	fmt.Println(fmt.Sprintf("factom config: %s", FactomConfigFilename))
 
-	// Figure out how many nodes I am going to generate.  Default 10
-	cnt := 3
-	net := "long"
-	if len(os.Args) > 2 {
-		cnt1, err := strconv.Atoi(os.Args[1])
-		if err == nil && cnt1 != 0 {
-			cnt = cnt1
+	s.LoadConfig(FactomConfigFilename)
+	if journal != "" {
+		if follower {
+			s.NodeMode = "FULL"
+		}else{
+			s.NodeMode = "SERVER"
 		}
-		net = os.Args[2]
 	}
-
+	s.SetOut(false)
+	s.Init()
+	
 	mLog.init(cnt)
 
 	//************************************************
 	// Actually setup the Network
 	//************************************************
 
-	s.LoadConfig(FactomConfigFilename)
-	s.SetOut(false)
-	s.Init()
-
+	
 	// Make cnt Factom nodes
 	for i := 0; i < cnt; i++ {
 		makeServer(s) // We clone s to make all of our servers
 	}
-
-	primes := []int{7, 13, 17, 23, 37, 43, 47, 53, 67, 73, 83, 97, 103}
-
-	var p1 []int
-	// Pick 3 primes
-	for _, p := range primes {
-		a := cnt
-		b := p
-		if a < b {
-			a = p
-			b = cnt
-		}
-		if a%b != 0 {
-			p1 = append(p1, p)
-			if len(p1) > 3 {
-				break
-			}
-		}
-	}
-
-	fmt.Println("factomd <node count> <network config: mesh/long/loops>")
-
+	
 	switch net {
-	case "mesh":
-		fmt.Println("Using mesh Network")
-
-		h := 0
-		for index, p := range p1 {
-			fmt.Println()
-			for i := 0; i < cnt/(index+1); i++ {
-				h2 := (h + p) % cnt
-				AddSimPeer(fnodes, h, h2)
-				h = h2
-			}
-		}
 	case "long":
 		fmt.Println("Using long Network")
 		for i := 1; i < cnt; i++ {
@@ -124,11 +115,11 @@ func NetStart(s *state.State) {
 		for i := 1; i < cnt; i++ {
 			AddSimPeer(fnodes, i-1, i)
 		}
-		for i := 0; i+5 < cnt; i += 6 {
-			AddSimPeer(fnodes, i, i+5)
+		for i := 0; (i+17)*2 < cnt; i += 17 {
+			AddSimPeer(fnodes, i%cnt, (i+5)%cnt)
 		}
-		for i := 0; i+7 < cnt; i += 3 {
-			AddSimPeer(fnodes, i, i+7)
+		for i := 0; (i+13)*2 < cnt; i += 13 {
+			AddSimPeer(fnodes, i%cnt, (i+7)%cnt)
 		}
 	case "tree":
 		index := 0
@@ -170,16 +161,63 @@ func NetStart(s *state.State) {
 		}
 
 	}
-
-	// Web API runs independent of Factom Servers
-	startServers()
-
+	if journal != "" {
+		f, err := os.Open(journal)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		defer f.Close()
+		r := bufio.NewReaderSize(f, 4*1024)
+		for {
+			str := ""
+			line, isPrefix, err := r.ReadLine()
+			for err == nil && isPrefix {
+				str = str+string(line)
+				line, isPrefix, err = r.ReadLine()
+			}
+			if err == io.EOF {
+				break
+			}
+			str = str+string(line)
+			
+			os.Stderr.WriteString("Message: "+str+" ")
+			
+			str = ""
+			line, isPrefix, err = r.ReadLine()
+			for err == nil && isPrefix {
+				str = str+string(line)
+				line, isPrefix, err = r.ReadLine()
+			}
+			if err == io.EOF {
+				break
+			}
+			str = str+string(line)
+			
+			binary,err := hex.DecodeString(str)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+			
+			msg,err := messages.UnmarshalMessage(binary)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+			
+			s.InMsgQueue() <- msg
+		}
+		startServers(false)
+	}else{
+		startServers(true)
+	}
+	
 	go wsapi.Start(fnodes[0].State)
 
 	var _ = time.Sleep
 
 	for {
-		fmt.Sprintf(">>>>>>>>>>>>>>")
 
 		b := make([]byte, 100)
 		var err error
@@ -367,13 +405,15 @@ func makeServer(s *state.State) *FactomNode {
 	return fnode
 }
 
-func startServers() {
+func startServers(load bool) {
 	for i, fnode := range fnodes {
 		if i > 0 {
 			fnode.State.Init()
 		}
 		go NetworkProcessorNet(fnode)
-		go state.LoadDatabase(fnode.State)
+		if load {
+			go state.LoadDatabase(fnode.State)
+		}
 		go Timer(fnode.State)
 		go Validator(fnode.State)
 	}
