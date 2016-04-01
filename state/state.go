@@ -381,7 +381,7 @@ func (s *State) JournalMessage(msg interfaces.IMsg) {
 	if err != nil {
 		panic("Failed MarshalBinary: "+err.Error())
 	}
-	msgName := messages.MessageName(msg.Type())
+	msgName := messages.MessageName(msg.Type()) + "--" + s.ShortString()
 	msgStr := hex.EncodeToString(bytes)
 	
 	f, err := os.OpenFile(s.JournalFile,os.O_APPEND+os.O_WRONLY,0666)
@@ -635,7 +635,10 @@ func (s *State) SetString() {
 		if found {
 			stype = fmt.Sprintf("L %4d", index)
 		}
-		keyMR, abHash, fbHash, ecHash := []byte("aaaaa"), []byte("aaaaa"), []byte("aaaaa"), []byte("aaaaa")
+		keyMR  := []byte("aaaaa")
+		abHash := []byte("aaaaa")
+		fbHash := []byte("aaaaa") 
+		ecHash := []byte("aaaaa")
 		switch {
 		case s.DBStates == nil:
 

@@ -38,8 +38,6 @@ func Validator(state interfaces.IState) {
 			state.Println(fmt.Sprintf("%20s %s", "Validator:", msg.String()))
 		}
 
-		// TODO:  Height here is problematic.  We ensure that the leader doesn't step
-		// past the follower...
 		switch msg.Validate(state) { // Validate the message.
 		case 1: // Process if valid
 
