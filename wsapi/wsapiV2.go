@@ -258,7 +258,7 @@ func HandleV2DirectoryBlockHead(state interfaces.IState, params interface{}) (in
 }
 
 func HandleV2GetRaw(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
-	//TODO: var block interfaces.BinaryMarshallable
+	var block interfaces.BinaryMarshallable
 	hashkey, ok := params.(string)
 	if ok == false {
 		return nil, NewInvalidParamsError()
@@ -274,29 +274,29 @@ func HandleV2GetRaw(state interfaces.IState, params interface{}) (interface{}, *
 	var b []byte
 
 	// try to find the block data in db and return the first one found
-	if block, _ := dbase.FetchFBlockByKeyMR(h); block != nil {
+	if block, _ = dbase.FetchFBlockByKeyMR(h); block != nil {
 		b, _ = block.MarshalBinary()
-	} else if block, _ := dbase.FetchDBlockByKeyMR(h); block != nil {
+	} else if block, _ = dbase.FetchDBlockByKeyMR(h); block != nil {
 		b, _ = block.MarshalBinary()
-	} else if block, _ := dbase.FetchABlockByKeyMR(h); block != nil {
+	} else if block, _ = dbase.FetchABlockByKeyMR(h); block != nil {
 		b, _ = block.MarshalBinary()
-	} else if block, _ := dbase.FetchEBlockByKeyMR(h); block != nil {
+	} else if block, _ = dbase.FetchEBlockByKeyMR(h); block != nil {
 		b, _ = block.MarshalBinary()
-	} else if block, _ := dbase.FetchECBlockByHeaderHash(h); block != nil {
-		b, _ = block.MarshalBinary()
-
-	} else if block, _ := dbase.FetchEntryByHash(h); block != nil {
+	} else if block, _ = dbase.FetchECBlockByHeaderHash(h); block != nil {
 		b, _ = block.MarshalBinary()
 
-	} else if block, _ := dbase.FetchFBlockByHash(h); block != nil {
+	} else if block, _ = dbase.FetchEntryByHash(h); block != nil {
 		b, _ = block.MarshalBinary()
-	} else if block, _ := dbase.FetchDBlockByHash(h); block != nil {
+
+	} else if block, _ = dbase.FetchFBlockByHash(h); block != nil {
 		b, _ = block.MarshalBinary()
-	} else if block, _ := dbase.FetchABlockByHash(h); block != nil {
+	} else if block, _ = dbase.FetchDBlockByHash(h); block != nil {
 		b, _ = block.MarshalBinary()
-	} else if block, _ := dbase.FetchEBlockByHash(h); block != nil {
+	} else if block, _ = dbase.FetchABlockByHash(h); block != nil {
 		b, _ = block.MarshalBinary()
-	} else if block, _ := dbase.FetchECBlockByHash(h); block != nil {
+	} else if block, _ = dbase.FetchEBlockByHash(h); block != nil {
+		b, _ = block.MarshalBinary()
+	} else if block, _ = dbase.FetchECBlockByHash(h); block != nil {
 		b, _ = block.MarshalBinary()
 	} else {
 		return nil, NewEntryNotFoundError()

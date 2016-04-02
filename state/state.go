@@ -134,7 +134,7 @@ func (s *State) Clone(number string) interfaces.IState {
 	clone.ProtocolVersion = s.ProtocolVersion
 	clone.LogPath = s.LogPath + "Sim" + number
 	clone.LdbPath = s.LdbPath + "Sim" + number
-	clone.JournalFile = s.LogPath+"journal"+number+".log"
+	clone.JournalFile = s.LogPath + "journal" + number + ".log"
 	clone.BoltDBPath = s.BoltDBPath + "Sim" + number
 	clone.LogLevel = s.LogLevel
 	clone.ConsoleLogLevel = s.ConsoleLogLevel
@@ -149,12 +149,9 @@ func (s *State) Clone(number string) interfaces.IState {
 	clone.CoreChainID = s.CoreChainID
 	clone.IdentityChainID = primitives.Sha([]byte(number))
 
-	//generate and use a new PrivateKey for this clone
-	clonePrivateKey := new(primitives.PrivateKey)
-	err := clonePrivateKey.GenerateKey()
-	if err != nil {
-		log.Printfln("Error generating clone private key: %v", err)
-	}
+	//generate and use a new deterministic PrivateKey for this clone
+	shaHashOfNodeName := primitives.Sha([]byte(clone.FactomNodeName)) //seed the private key with node name
+	clonePrivateKey := primitives.NewPrivateKeyFromHexBytes(shaHashOfNodeName.Bytes())
 	clone.LocalServerPrivKey = clonePrivateKey.PrivateKeyString()
 
 	//serverPrivKey primitives.PrivateKey
@@ -228,7 +225,7 @@ func (s *State) LoadConfig(filename string) {
 		// should consensus or software or networks fail in some unpredicted way.
 		s.CoreChainID = primitives.Sha([]byte("0"))
 	}
-	s.JournalFile = s.LogPath+"journal0"+".log"
+	s.JournalFile = s.LogPath + "journal0" + ".log"
 }
 
 func (s *State) Init() {
@@ -247,9 +244,9 @@ func (s *State) Init() {
 	s.ShutdownChan = make(chan int, 1)                           //Channel to gracefully shut down.
 
 	os.Mkdir(s.LogPath, 0777)
-	_,err := os.Create(s.JournalFile)									 //Create the Journal File
+	_, err := os.Create(s.JournalFile) //Create the Journal File
 	if err != nil {
-		panic("Could not create the file: "+s.JournalFile)
+		panic("Could not create the file: " + s.JournalFile)
 	}
 	// Set up struct to stop replay attacks
 	s.Replay = new(Replay)
@@ -384,7 +381,7 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 func (s *State) JournalMessage(msg interfaces.IMsg) {
 	bytes, err := msg.MarshalBinary()
 	if err != nil {
-		panic("Failed MarshalBinary: "+err.Error())
+		panic("Failed MarshalBinary: " + err.Error())
 	}
 	msgName := messages.MessageName(msg.Type()) + "--" + s.ShortString()
 	msgStr := hex.EncodeToString(bytes)
