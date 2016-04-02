@@ -299,8 +299,10 @@ func (list *DBStateList) Put(dbState *DBState) {
 	// zero.
 	cnt := 0											
 	for i, v := range list.DBStates {
-		if v == nil || v.DirectoryBlock == nil {		// If partial, remove.
-		    list.DBStates[i] = nil	
+		if v == nil || v.DirectoryBlock == nil || !v.Saved {		
+		    if v != nil && v.DirectoryBlock == nil {
+				list.DBStates[i] = nil
+			}
 			break
 		}
 		cnt++
