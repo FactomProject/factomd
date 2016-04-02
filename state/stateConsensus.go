@@ -196,12 +196,11 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	if !ok {
 		panic("Must pass an EOM message to ProcessEOM)")
 	}
-	
+
 	last := s.DBStates.Last()
 	if e.Minute == 0 && (last == nil || !last.Saved) {
 		return false
 	}
-	
 
 	pl := s.ProcessLists.Get(dbheight)
 

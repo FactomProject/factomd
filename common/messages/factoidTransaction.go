@@ -103,7 +103,7 @@ func (m *FactoidTransaction) Process(dbheight uint32, state interfaces.IState) b
 		return true
 	}
 	m.processed = true
-	state.Println("Process Factoid: ",state.GetFactomNodeName())
+	state.Println("Process Factoid: ", state.GetFactomNodeName())
 	state.GetFactoidState().AddTransaction(1, m.Transaction)
 	return true
 

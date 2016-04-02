@@ -63,7 +63,7 @@ type IState interface {
 
 	// Journalling
 	JournalMessage(IMsg)
-	
+
 	// Consensus
 	InMsgQueue() chan IMsg // Read by Validate
 

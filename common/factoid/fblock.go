@@ -102,7 +102,7 @@ func (b *FBlock) GetHash() interfaces.IHash {
 	return kmr
 }
 
-func(b *FBlock) GetEndOfPeriod() [10]int {
+func (b *FBlock) GetEndOfPeriod() [10]int {
 	return b.endOfPeriod
 }
 

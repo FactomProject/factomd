@@ -77,7 +77,7 @@ func (m *DBStateMsg) GetTimestamp() interfaces.Timestamp {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *DBStateMsg) Validate(state interfaces.IState) int {
-	
+
 	if !m.DBHash.IsSameAs(m.DirectoryBlock.GetHash()) {
 		return -1
 	}

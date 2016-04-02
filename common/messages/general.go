@@ -70,42 +70,42 @@ func UnmarshalMessage(data []byte) (interfaces.IMsg, error) {
 
 func MessageName(Type int) string {
 	switch Type {
-		case constants.EOM_MSG:
-			return "EOM"
-		case constants.ACK_MSG:
-			return "Ack"
-		case constants.AUDIT_SERVER_FAULT_MSG:
-			return "Audit Server Fault"
-		case constants.COMMIT_CHAIN_MSG:
-			return "Commit Chain"
-		case constants.COMMIT_ENTRY_MSG:
-			return "Commit Entry"
-		case constants.DIRECTORY_BLOCK_SIGNATURE_MSG:
-			return "Directory Block Signature"
-		case constants.EOM_TIMEOUT_MSG:
-			return "EOM Timeout"
-		case constants.FACTOID_TRANSACTION_MSG:
-			return "Factoid Transaction"
-		case constants.HEARTBEAT_MSG:
-			return "HeartBeat"
-		case constants.INVALID_ACK_MSG:
-			return "Invalid Ack"
-		case constants.INVALID_DIRECTORY_BLOCK_MSG:
-			return "Invalid Directory Block"
-		case constants.MISSING_ACK_MSG:
-			return "Missing Ack"
-		case constants.REVEAL_ENTRY_MSG:
-			return "Reveal Entry"
-		case constants.REQUEST_BLOCK_MSG:
-			return "Request Block"
-		case constants.SIGNATURE_TIMEOUT_MSG:
-			return "Signature Timeout"
-		case constants.DBSTATE_MISSING_MSG:
-			return "DBState Mising"
-		case constants.DBSTATE_MSG:
-			return "DBState"
-		default:
-			return "Unknown:"+fmt.Sprintf(" %d",Type)
+	case constants.EOM_MSG:
+		return "EOM"
+	case constants.ACK_MSG:
+		return "Ack"
+	case constants.AUDIT_SERVER_FAULT_MSG:
+		return "Audit Server Fault"
+	case constants.COMMIT_CHAIN_MSG:
+		return "Commit Chain"
+	case constants.COMMIT_ENTRY_MSG:
+		return "Commit Entry"
+	case constants.DIRECTORY_BLOCK_SIGNATURE_MSG:
+		return "Directory Block Signature"
+	case constants.EOM_TIMEOUT_MSG:
+		return "EOM Timeout"
+	case constants.FACTOID_TRANSACTION_MSG:
+		return "Factoid Transaction"
+	case constants.HEARTBEAT_MSG:
+		return "HeartBeat"
+	case constants.INVALID_ACK_MSG:
+		return "Invalid Ack"
+	case constants.INVALID_DIRECTORY_BLOCK_MSG:
+		return "Invalid Directory Block"
+	case constants.MISSING_ACK_MSG:
+		return "Missing Ack"
+	case constants.REVEAL_ENTRY_MSG:
+		return "Reveal Entry"
+	case constants.REQUEST_BLOCK_MSG:
+		return "Request Block"
+	case constants.SIGNATURE_TIMEOUT_MSG:
+		return "Signature Timeout"
+	case constants.DBSTATE_MISSING_MSG:
+		return "DBState Mising"
+	case constants.DBSTATE_MSG:
+		return "DBState"
+	default:
+		return "Unknown:" + fmt.Sprintf(" %d", Type)
 	}
 }
 

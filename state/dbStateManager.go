@@ -100,7 +100,7 @@ func (list *DBStateList) GetHighestRecordedBlock() uint32 {
 			ht = list.Base + uint32(i)
 		}
 	}
-	
+
 	return ht
 }
 
@@ -183,7 +183,7 @@ func (list *DBStateList) UpdateState() {
 		dblk, _ := list.State.GetDB().FetchDBlockByKeyMR(d.DirectoryBlock.GetKeyMR())
 		if dblk == nil {
 			if i > 0 {
-			p := list.DBStates[i-1]
+				p := list.DBStates[i-1]
 				if !p.Saved {
 					continue
 				}
@@ -197,7 +197,7 @@ func (list *DBStateList) UpdateState() {
 			// block before we write it to disk.
 			if i > 0 {
 				p := list.DBStates[i-1]
-				
+
 				hash, err := p.AdminBlock.FullHash()
 				if err != nil {
 					return
@@ -282,10 +282,9 @@ func (list *DBStateList) Last() *DBState {
 }
 
 func (list *DBStateList) Highest() uint32 {
-	high := list.Base + uint32(len(list.DBStates))-1
+	high := list.Base + uint32(len(list.DBStates)) - 1
 	return high
 }
-
 
 func (list *DBStateList) Put(dbState *DBState) {
 
@@ -297,10 +296,10 @@ func (list *DBStateList) Put(dbState *DBState) {
 
 	// Count completed states, starting from the beginning (since base starts at
 	// zero.
-	cnt := 0											
+	cnt := 0
 	for i, v := range list.DBStates {
-		if v == nil || v.DirectoryBlock == nil || !v.Saved {		
-		    if v != nil && v.DirectoryBlock == nil {
+		if v == nil || v.DirectoryBlock == nil || !v.Saved {
+			if v != nil && v.DirectoryBlock == nil {
 				list.DBStates[i] = nil
 			}
 			break

@@ -363,10 +363,10 @@ func HandleFactoidSubmit(ctx *web.Context) {
 func HandleFactoidBalance(ctx *web.Context, eckey string) {
 	type x struct {
 		Response string
-		Success bool
+		Success  bool
 	}
 	t := new(x)
-	
+
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
 	req := primitives.NewJSON2Request(1, eckey, "factoid-balance")
@@ -376,7 +376,7 @@ func HandleFactoidBalance(ctx *web.Context, eckey string) {
 		returnV1(ctx, nil, jsonError)
 		return
 	}
-	
+
 	t.Response = fmt.Sprint(jsonResp.Result.(*FactoidBalanceResponse).Balance)
 	t.Success = true
 	returnMsg(ctx, t, true)

@@ -5,6 +5,8 @@
 package state
 
 import (
+	"bytes"
+	"encoding/hex"
 	"fmt"
 	"github.com/FactomProject/factomd/anchor"
 	"github.com/FactomProject/factomd/common/constants"
@@ -19,9 +21,7 @@ import (
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
 	"os"
-	"bytes"
 	"strings"
-	"encoding/hex"
 )
 
 var _ = fmt.Print
@@ -60,7 +60,7 @@ type State struct {
 	networkInvalidMsgQueue chan interfaces.IMsg
 	inMsgQueue             chan interfaces.IMsg
 	ShutdownChan           chan int // For gracefully halting Factom
-	JournalFile			   string
+	JournalFile            string
 
 	myServer      interfaces.IServer //the server running on this Federated Server
 	serverPrivKey primitives.PrivateKey
@@ -367,11 +367,10 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 	if fblk == nil {
 		return nil, fmt.Errorf("FBlock not found")
 	}
-	if bytes.Compare(fblk.GetKeyMR().Bytes(),dblk.GetDBEntries()[2].GetKeyMR().Bytes()) != 0 {
+	if bytes.Compare(fblk.GetKeyMR().Bytes(), dblk.GetDBEntries()[2].GetKeyMR().Bytes()) != 0 {
 		panic("Should not happen")
 	}
-	
-	
+
 	msg := messages.NewDBStateMsg(s, dblk, ablk, fblk, ecblk)
 
 	return msg, nil
@@ -385,17 +384,16 @@ func (s *State) JournalMessage(msg interfaces.IMsg) {
 	}
 	msgName := messages.MessageName(msg.Type()) + "--" + s.ShortString()
 	msgStr := hex.EncodeToString(bytes)
-	
-	f, err := os.OpenFile(s.JournalFile,os.O_APPEND+os.O_WRONLY,0666)
+
+	f, err := os.OpenFile(s.JournalFile, os.O_APPEND+os.O_WRONLY, 0666)
 	if err != nil {
-		panic("Failed to open Journal File: "+s.JournalFile)
+		panic("Failed to open Journal File: " + s.JournalFile)
 	}
-	f.WriteString(msgName+"\n")
-	f.WriteString(msg.String()+"\n")
-	f.WriteString("MsgHex: "+msgStr+"\n")
+	f.WriteString(msgName + "\n")
+	f.WriteString(msg.String() + "\n")
+	f.WriteString("MsgHex: " + msgStr + "\n")
 	f.Close()
 }
-
 
 func (s *State) GetDBState(height uint32) *DBState {
 	return s.DBStates.Get(height)
@@ -641,9 +639,9 @@ func (s *State) SetString() {
 		if found {
 			stype = fmt.Sprintf("L %4d", index)
 		}
-		keyMR  := []byte("aaaaa")
+		keyMR := []byte("aaaaa")
 		abHash := []byte("aaaaa")
-		fbHash := []byte("aaaaa") 
+		fbHash := []byte("aaaaa")
 		ecHash := []byte("aaaaa")
 		switch {
 		case s.DBStates == nil:

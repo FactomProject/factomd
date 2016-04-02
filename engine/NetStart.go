@@ -142,7 +142,7 @@ func NetStart(s *state.State) {
 			AddSimPeer(fnodes, index+2, index-circleSize-circleSize*2/3-1)
 			AddSimPeer(fnodes, index+3, index-(2*circleSize)-circleSize*2/3)
 			AddSimPeer(fnodes, index+5, index-(3*circleSize)-circleSize*2/3+1)
-			
+
 			if index >= len(fnodes) {
 				break
 			}
@@ -155,12 +155,12 @@ func NetStart(s *state.State) {
 
 	}
 	if journal != "" {
-		go LoadJournal(s,journal)
+		go LoadJournal(s, journal)
 		startServers(false)
-	}else{
+	} else {
 		startServers(true)
 	}
-	
+
 	SimControl(listenTo)
 
 }
