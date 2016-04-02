@@ -141,16 +141,13 @@ func (s *State) Clone(number string) interfaces.IState {
 	clone.Network = s.Network
 	clone.DirectoryBlockInSeconds = s.DirectoryBlockInSeconds
 	clone.PortNumber = s.PortNumber
-
+    
 	clone.CoreChainID = s.CoreChainID
 	clone.IdentityChainID = primitives.Sha([]byte(number))
 
-	//generate and use a new PrivateKey for this clone
-	clonePrivateKey := new(primitives.PrivateKey)
-	err := clonePrivateKey.GenerateKey()
-	if err != nil {
-		log.Printfln("Error generating clone private key: %v", err)
-	}
+	//generate and use a new deterministic PrivateKey for this clone
+    shaHashOfNodeName := primitives.Sha([]byte(clone.FactomNodeName)) //seed the private key with node name
+    clonePrivateKey := primitives.NewPrivateKeyFromHexBytes(shaHashOfNodeName.Bytes())
 	clone.LocalServerPrivKey = clonePrivateKey.PrivateKeyString()
 
 	//serverPrivKey primitives.PrivateKey
@@ -162,6 +159,7 @@ func (s *State) Clone(number string) interfaces.IState {
 
 	return clone
 }
+
 
 func (s *State) GetFactomNodeName() string {
 	return s.FactomNodeName
