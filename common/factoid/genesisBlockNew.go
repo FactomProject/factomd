@@ -1,4 +1,4 @@
-package block
+package factoid
 
 import (
 	"encoding/hex"

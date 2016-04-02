@@ -1,7 +1,7 @@
 package databaseOverlay
 
 import (
-	"github.com/FactomProject/factomd/common/factoid/block"
+	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/util"
@@ -25,7 +25,7 @@ func (db *Overlay) ProcessFBlockMultiBatch(block interfaces.DatabaseBlockWithEnt
 }
 
 func (db *Overlay) FetchFBlockByHash(hash interfaces.IHash) (interfaces.IFBlock, error) {
-	block, err := db.FetchBlockBySecondaryIndex([]byte{byte(FACTOIDBLOCK_KEYMR)}, []byte{byte(FACTOIDBLOCK)}, hash, new(block.FBlock))
+	block, err := db.FetchBlockBySecondaryIndex([]byte{byte(FACTOIDBLOCK_KEYMR)}, []byte{byte(FACTOIDBLOCK)}, hash, new(factoid.FBlock))
 	if err != nil {
 		return nil, err
 	}
@@ -36,7 +36,7 @@ func (db *Overlay) FetchFBlockByHash(hash interfaces.IHash) (interfaces.IFBlock,
 }
 
 func (db *Overlay) FetchFBlockByKeyMR(keyMR interfaces.IHash) (interfaces.IFBlock, error) {
-	block, err := db.FetchBlock([]byte{byte(FACTOIDBLOCK)}, keyMR, new(block.FBlock))
+	block, err := db.FetchBlock([]byte{byte(FACTOIDBLOCK)}, keyMR, new(factoid.FBlock))
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +47,7 @@ func (db *Overlay) FetchFBlockByKeyMR(keyMR interfaces.IHash) (interfaces.IFBloc
 }
 
 func (db *Overlay) FetchAllFBlocks() ([]interfaces.IFBlock, error) {
-	list, err := db.FetchAllBlocksFromBucket([]byte{byte(FACTOIDBLOCK)}, new(block.FBlock))
+	list, err := db.FetchAllBlocksFromBucket([]byte{byte(FACTOIDBLOCK)}, new(factoid.FBlock))
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +72,7 @@ func (db *Overlay) FetchFBlockHead() (interfaces.IFBlock, error) {
 }
 
 func (db *Overlay) FetchFactoidBlockHead() (interfaces.IFBlock, error) {
-	blk := new(block.FBlock)
+	blk := new(factoid.FBlock)
 	block, err := db.FetchChainHeadByChainID([]byte{byte(FACTOIDBLOCK)}, primitives.NewHash(blk.GetChainID().Bytes()), blk)
 	if err != nil {
 		return nil, err

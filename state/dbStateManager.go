@@ -117,7 +117,7 @@ func (list *DBStateList) Catchup() {
 
 	// Find the first range of blocks that we don't have.
 	for i, v := range list.DBStates {
-		if v == nil && begin < 0 {
+		if (v == nil || v.DirectoryBlock == nil) && begin < 0 {
 			begin = i
 		}
 		if v == nil {
@@ -264,7 +264,7 @@ func (list *DBStateList) UpdateState() {
 func (list *DBStateList) Last() *DBState {
 	last := (*DBState)(nil)
 	for _, ds := range list.DBStates {
-		if ds == nil {
+		if ds == nil || ds.DirectoryBlock == nil {
 			return last
 		}
 		last = ds
@@ -281,8 +281,9 @@ func (list *DBStateList) Put(dbState *DBState) {
 	dbheight := dblk.GetHeader().GetDBHeight()
 
 	cnt := 0
-	for _, v := range list.DBStates {
-		if v == nil {
+	for i, v := range list.DBStates {
+		if v == nil || v.DirectoryBlock == nil {		// If partial, remove.
+		    list.DBStates[i] = nil	
 			break
 		}
 		cnt++

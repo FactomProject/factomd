@@ -20,6 +20,7 @@ import (
 	"github.com/FactomProject/factomd/wsapi"
 	"os"
 	"strings"
+	"encoding/hex"
 )
 
 var _ = fmt.Print
@@ -58,6 +59,7 @@ type State struct {
 	networkInvalidMsgQueue chan interfaces.IMsg
 	inMsgQueue             chan interfaces.IMsg
 	ShutdownChan           chan int // For gracefully halting Factom
+	JournalFile			   string
 
 	myServer      interfaces.IServer //the server running on this Federated Server
 	serverPrivKey primitives.PrivateKey
@@ -131,6 +133,7 @@ func (s *State) Clone(number string) interfaces.IState {
 	clone.ProtocolVersion = s.ProtocolVersion
 	clone.LogPath = s.LogPath + "Sim" + number
 	clone.LdbPath = s.LdbPath + "Sim" + number
+	clone.JournalFile = s.LogPath+"journal"+number+".log"
 	clone.BoltDBPath = s.BoltDBPath + "Sim" + number
 	clone.LogLevel = s.LogLevel
 	clone.ConsoleLogLevel = s.ConsoleLogLevel
@@ -168,7 +171,6 @@ func (s *State) GetFactomNodeName() string {
 func (s *State) LoadConfig(filename string) {
 
 	s.FactomNodeName = "FNode0" // Default Factom Node Name for Simulation
-
 	if len(filename) > 0 {
 		s.filename = filename
 		s.ReadCfg(filename)
@@ -223,6 +225,7 @@ func (s *State) LoadConfig(filename string) {
 		// should consensus or software or networks fail in some unpredicted way.
 		s.CoreChainID = primitives.Sha([]byte("0"))
 	}
+	s.JournalFile = s.LogPath+"journal0"+".log"
 }
 
 func (s *State) Init() {
@@ -240,6 +243,11 @@ func (s *State) Init() {
 	s.inMsgQueue = make(chan interfaces.IMsg, 10000)             //incoming message queue for factom application messages
 	s.ShutdownChan = make(chan int, 1)                           //Channel to gracefully shut down.
 
+	os.Mkdir(s.LogPath, 0777)
+	_,err := os.Create(s.JournalFile)									 //Create the Journal File
+	if err != nil {
+		panic("Could not create the file: "+s.JournalFile)
+	}
 	// Set up struct to stop replay attacks
 	s.Replay = new(Replay)
 
@@ -360,23 +368,29 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 		return nil, fmt.Errorf("FBlock not found")
 	}
 
-	// 	fmt.Printf("LoadDBState %s: %d %d dblk: %x ablk: %x/%x ecblk:%x/%x fblk:%x/%x\n",
-	// 			   s.FactomNodeName,
-	// 			   dblk.GetHeader().GetDBHeight(),
-	// 			   dbheight,
-	// 			   dblk.GetKeyMR().Bytes()[:5],
-	// 			   dblk.GetDBEntries()[0].GetKeyMR().Bytes()[:5],
-	// 			   ablk.GetHash().Bytes()[:5],
-	// 			   dblk.GetDBEntries()[1].GetKeyMR().Bytes()[:5],
-	// 			   ecblk.GetHash().Bytes()[:5],
-	// 			   dblk.GetDBEntries()[2].GetKeyMR().Bytes()[:5],
-	// 			   fblk.GetHash().Bytes()[:5])
-
 	msg := messages.NewDBStateMsg(s, dblk, ablk, fblk, ecblk)
 
 	return msg, nil
 
 }
+
+func (s *State) JournalMessage(msg interfaces.IMsg) {
+	bytes, err := msg.MarshalBinary()
+	if err != nil {
+		panic("Failed MarshalBinary: "+err.Error())
+	}
+	msgName := messages.MessageName(msg.Type()) + "--" + s.ShortString()
+	msgStr := hex.EncodeToString(bytes)
+	
+	f, err := os.OpenFile(s.JournalFile,os.O_APPEND+os.O_WRONLY,0666)
+	if err != nil {
+		panic("Failed to open Journal File: "+s.JournalFile)
+	}
+	f.WriteString(msgName+"\n")
+	f.WriteString(msgStr+"\n")
+	f.Close()
+}
+
 
 func (s *State) GetDBState(height uint32) *DBState {
 	return s.DBStates.Get(height)
@@ -606,7 +620,7 @@ func (s *State) ShortString() string {
 func (s *State) SetString() {
 	buildingBlock := s.GetLeaderHeight()
 	if buildingBlock == 0 {
-		s.serverPrt = fmt.Sprintf("%5s %7s Recorded: %d Building: %d Highest: %d  IDChainID[:5]=%x",
+		s.serverPrt = fmt.Sprintf("%9s%9s Recorded: %d Building: %d Highest: %d  IDChainID[:5]=%x",
 			"",
 			s.FactomNodeName,
 			s.GetHighestRecordedBlock(),
@@ -617,9 +631,12 @@ func (s *State) SetString() {
 		found, index := s.ProcessLists.Get(buildingBlock).GetFedServerIndex(s.IdentityChainID)
 		stype := ""
 		if found {
-			stype = fmt.Sprintf("L %3d", index)
+			stype = fmt.Sprintf("L %4d", index)
 		}
-		keyMR, abHash, fbHash, ecHash := []byte("aaaaa"), []byte("aaaaa"), []byte("aaaaa"), []byte("aaaaa")
+		keyMR  := []byte("aaaaa")
+		abHash := []byte("aaaaa")
+		fbHash := []byte("aaaaa") 
+		ecHash := []byte("aaaaa")
 		switch {
 		case s.DBStates == nil:
 
@@ -634,7 +651,7 @@ func (s *State) SetString() {
 			ecHash = s.DBStates.Last().EntryCreditBlock.GetHash().Bytes()
 		}
 
-		s.serverPrt = fmt.Sprintf("%5s %7s Recorded: %d Building: %d Highest: %d DirBlk[:5]=%x ABHash[:5]=%x FBHash[:5]=%x ECHash[:5]=%x IDChainID[:5]=%x",
+		s.serverPrt = fmt.Sprintf("%9s%9s Recorded: %d Building: %d Highest: %d DirBlk[:5]=%x ABHash[:5]=%x FBHash[:5]=%x ECHash[:5]=%x IDChainID[:5]=%x",
 			stype,
 			s.FactomNodeName,
 			s.GetHighestRecordedBlock(),

@@ -13,7 +13,7 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
-	"github.com/FactomProject/factomd/common/factoid/block"
+	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 )
@@ -181,7 +181,7 @@ func (m *DBStateMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error
 		return nil, err
 	}
 
-	m.FactoidBlock = new(block.FBlock)
+	m.FactoidBlock = new(factoid.FBlock)
 	newData, err = m.FactoidBlock.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err

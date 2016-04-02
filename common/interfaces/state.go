@@ -61,6 +61,9 @@ type IState interface {
 	NetworkOutMsgQueue() chan IMsg
 	NetworkInvalidMsgQueue() chan IMsg
 
+	// Journalling
+	JournalMessage(IMsg)
+	
 	// Consensus
 	InMsgQueue() chan IMsg // Read by Validate
 
