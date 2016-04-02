@@ -197,17 +197,13 @@ func (list *DBStateList) UpdateState() {
 			// block before we write it to disk.
 			if i > 0 {
 				p := list.DBStates[i-1]
-
+				
+				
 				hash, err := p.AdminBlock.FullHash()
 				if err != nil {
 					return
 				}
-				d.AdminBlock.GetHeader().SetPrevFullHash(hash)
-
-				d.FactoidBlock.SetDBHeight(d.DirectoryBlock.GetHeader().GetDBHeight())
-				d.FactoidBlock.SetPrevKeyMR(p.FactoidBlock.GetKeyMR().Bytes())
-				d.FactoidBlock.SetPrevFullHash(p.FactoidBlock.GetPrevFullHash().Bytes())
-
+				
 				hash, err = p.EntryCreditBlock.HeaderHash()
 				if err != nil {
 					return
@@ -220,6 +216,14 @@ func (list *DBStateList) UpdateState() {
 				}
 				d.EntryCreditBlock.GetHeader().SetPrevFullHash(hash)
 
+				d.AdminBlock.GetHeader().SetPrevFullHash(hash)
+				
+				p.FactoidBlock.SetDBHeight(p.DirectoryBlock.GetHeader().GetDBHeight())
+				d.FactoidBlock.SetDBHeight(d.DirectoryBlock.GetHeader().GetDBHeight())
+				d.FactoidBlock.SetPrevKeyMR(p.FactoidBlock.GetKeyMR().Bytes())
+				d.FactoidBlock.SetPrevFullHash(p.FactoidBlock.GetPrevFullHash().Bytes())
+				
+				
 				d.DirectoryBlock.GetHeader().SetPrevFullHash(p.DirectoryBlock.GetHeader().GetFullHash())
 				d.DirectoryBlock.GetHeader().SetPrevKeyMR(p.DirectoryBlock.GetKeyMR())
 				d.DirectoryBlock.GetHeader().SetTimestamp(0)
@@ -230,6 +234,7 @@ func (list *DBStateList) UpdateState() {
 				if err != nil {
 					panic(err.Error())
 				}
+				
 			}
 			if err := list.State.GetDB().ProcessDBlockMultiBatch(d.DirectoryBlock); err != nil {
 				panic(err.Error())
@@ -238,12 +243,15 @@ func (list *DBStateList) UpdateState() {
 			if err := list.State.GetDB().ProcessABlockMultiBatch(d.AdminBlock); err != nil {
 				panic(err.Error())
 			}
+
 			if err := list.State.GetDB().ProcessFBlockMultiBatch(d.FactoidBlock); err != nil {
 				panic(err.Error())
 			}
+			
 			if err := list.State.GetDB().ProcessECBlockMultiBatch(d.EntryCreditBlock); err != nil {
 				panic(err.Error())
 			}
+			
 			if err := list.State.GetDB().ExecuteMultiBatch(); err != nil {
 				panic(err.Error())
 			}
@@ -357,7 +365,7 @@ func (list *DBStateList) NewDBState(isNew bool,
 	adminBlock interfaces.IAdminBlock,
 	factoidBlock interfaces.IFBlock,
 	entryCreditBlock interfaces.IEntryCreditBlock) *DBState {
-
+		
 	dbState := new(DBState)
 
 	dbState.DBHash = directoryBlock.GetHash()

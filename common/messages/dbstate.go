@@ -277,7 +277,7 @@ func (m *DBStateMsg) MarshalBinary() ([]byte, error) {
 func (m *DBStateMsg) String() string {
 	return fmt.Sprintf("DBState: %d dblock %x admin %x fb %x ec %x",
 		m.DirectoryBlock.GetHeader().GetDBHeight(),
-		m.DirectoryBlock.GetHash().Bytes()[:5],
+		m.DirectoryBlock.GetKeyMR().Bytes()[:5],
 		m.AdminBlock.GetHash().Bytes()[:5],
 		m.FactoidBlock.GetHash().Bytes()[:5],
 		m.EntryCreditBlock.GetHash().Bytes()[:5])

@@ -276,7 +276,7 @@ func (m *Ack) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *Ack) String() string {
-	return fmt.Sprintf("%6s-%3d: PL:%5d Ht:%5d -- chainID[:5]=__________ hash[:5]=%x",
+	return fmt.Sprintf("%6s-%3d: PL:%5d Ht:%5d -- MessageHash[:5]=__________ hash[:5]=%x",
 		"ACK",
 		m.ServerIndex,
 		m.Height,

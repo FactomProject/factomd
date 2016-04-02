@@ -382,16 +382,15 @@ func (s *State) JournalMessage(msg interfaces.IMsg) {
 	if err != nil {
 		panic("Failed MarshalBinary: " + err.Error())
 	}
-	msgName := messages.MessageName(msg.Type()) + "--" + s.ShortString()
 	msgStr := hex.EncodeToString(bytes)
 
 	f, err := os.OpenFile(s.JournalFile, os.O_APPEND+os.O_WRONLY, 0666)
 	if err != nil {
 		panic("Failed to open Journal File: " + s.JournalFile)
 	}
-	f.WriteString(msgName + "\n")
-	f.WriteString(msg.String() + "\n")
-	f.WriteString("MsgHex: " + msgStr + "\n")
+	f.WriteString("\n"+msg.String())
+	f.WriteString("\n  "+s.ShortString()+"\n")
+	f.WriteString("\t\t\tMsgHex: " + msgStr + "\n")
 	f.Close()
 }
 
@@ -626,13 +625,12 @@ func (s *State) SetString() {
 	lastheight := uint32(0)
 
 	if buildingBlock == 0 {
-		s.serverPrt = fmt.Sprintf("%9s%9s Recorded: %d Building: %d Highest: %d  IDChainID[:5]=%x",
+		s.serverPrt = fmt.Sprintf("%9s%9s Recorded: %d Building: %d Highest: %d ",
 			"",
 			s.FactomNodeName,
 			s.GetHighestRecordedBlock(),
 			0,
-			s.GetHighestKnownBlock(),
-			s.IdentityChainID.Bytes()[:5])
+			s.GetHighestKnownBlock())
 	} else {
 		found, index := s.ProcessLists.Get(buildingBlock).GetFedServerIndex(s.IdentityChainID)
 		stype := ""
@@ -658,7 +656,7 @@ func (s *State) SetString() {
 			lastheight = s.DBStates.Last().DirectoryBlock.GetHeader().GetDBHeight()
 		}
 
-		s.serverPrt = fmt.Sprintf("%9s%9s Recorded: %d Building: %d Highest: %d DirBlk[:5]=%x ABHash[:5]=%x FBHash[:5]=%x ECHash[:5]=%x IDChainID[:5]=%x",
+		s.serverPrt = fmt.Sprintf("%9s%9s Recorded: %d Building: %d Highest: %d DirBlk[:5]=%x ABHash[:5]=%x FBHash[:5]=%x ECHash[:5]=%x ",
 			stype,
 			s.FactomNodeName,
 			s.GetHighestRecordedBlock(),
@@ -667,8 +665,7 @@ func (s *State) SetString() {
 			keyMR[:5],
 			abHash[:5],
 			fbHash[:5],
-			ecHash[:5],
-			s.IdentityChainID.Bytes()[:5])
+			ecHash[:5])
 	}
 }
 

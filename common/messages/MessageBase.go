@@ -9,8 +9,8 @@ import (
 )
 
 type MessageBase struct {
-	Origin    int
-	Peer2peer bool
+	Origin    int	// Set and examined on a server, not marshaled with the message
+	Peer2peer bool	// The nature of this message type, not marshaled with the message
 
 	// Cash of the hash of a message
 	MsgHash interfaces.IHash

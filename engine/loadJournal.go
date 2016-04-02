@@ -14,7 +14,7 @@ import (
 )
 
 func LoadJournal(s interfaces.IState, journal string) {
-
+	
 	f, err := os.Open(journal)
 	if err != nil {
 		fmt.Println(err)

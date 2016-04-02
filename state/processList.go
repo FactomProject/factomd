@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/FactomProject/factomd/common/directoryBlock"
+	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
@@ -362,7 +363,7 @@ func NewProcessList(state interfaces.IState, totalServers int, dbheight uint32) 
 	var err error
 
 	pl.DirectoryBlock = directoryBlock.NewDirectoryBlock(dbheight, nil)
-	pl.FactoidBlock = state.GetFactoidState().GetCurrentBlock()
+	pl.FactoidBlock = factoid.NewFBlock(state.GetFactoshisPerEC(),dbheight)
 	pl.AdminBlock = s.NewAdminBlock(dbheight)
 	pl.EntryCreditBlock, err = entryCreditBlock.NextECBlock(nil)
 
