@@ -20,10 +20,12 @@ type ProcessLists struct {
 }
 
 // UpdateState is executed from a Follower's perspective.  So the block we are building
-// is always the block above the HighestRecordedBlock.
+// is always the block above the HighestRecordedBlock, but we only care about messages that
+// are at the highest known block, as long as that is above the highest recorded block.
 func (lists *ProcessLists) UpdateState() {
 
-	buildingBlock := lists.State.GetHighestRecordedBlock() + 1
+	buildingBlock := lists.State.DBStates.Highest()+1
+	
 	pl := lists.Get(buildingBlock)
 
 	// Look and see if we need to toss some previous blocks under construction.

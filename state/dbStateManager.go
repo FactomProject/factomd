@@ -94,10 +94,13 @@ func (ds *DBState) String() string {
 }
 
 func (list *DBStateList) GetHighestRecordedBlock() uint32 {
-	if len(list.DBStates) == 0 {
-		return 0
+	ht := uint32(0)
+	for i, dbstate := range list.DBStates {
+		if dbstate != nil && dbstate.Saved {
+			ht = list.Base + uint32(i)
+		}
 	}
-	ht := list.Base + uint32(len(list.DBStates)) - 1
+	
 	return ht
 }
 
@@ -278,6 +281,12 @@ func (list *DBStateList) Last() *DBState {
 	return last
 }
 
+func (list *DBStateList) Highest() uint32 {
+	high := list.Base + uint32(len(list.DBStates))-1
+	return high
+}
+
+
 func (list *DBStateList) Put(dbState *DBState) {
 
 	// Hold off on any requests if I'm actually processing...
@@ -286,7 +295,9 @@ func (list *DBStateList) Put(dbState *DBState) {
 	dblk := dbState.DirectoryBlock
 	dbheight := dblk.GetHeader().GetDBHeight()
 
-	cnt := 0
+	// Count completed states, starting from the beginning (since base starts at
+	// zero.
+	cnt := 0											
 	for i, v := range list.DBStates {
 		if v == nil || v.DirectoryBlock == nil {		// If partial, remove.
 		    list.DBStates[i] = nil	
