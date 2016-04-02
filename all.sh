@@ -101,12 +101,7 @@ compile() {
 }
 
 checkout factomd      $branch $default
-checkout fctwallet    $branch $default
-checkout fctwallet2   $branch $default
-checkout walletapp2   $branch $default
 checkout factom       $branch $default
-checkout factom-cli   $branch $default
-checkout factom-cli2  $branch $default
 checkout web          $branch $default
 checkout go-spew      $branch $default
 checkout bolt         $branch $default
@@ -133,9 +128,6 @@ echo "
 ********************************************************
 "
 compile factomd              || exit 1
-compile fctwallet2           || exit 1
-compile factom-cli2          || exit 1
-compile walletapp2           || exit 1
 
 echo ""
 echo "
@@ -156,27 +148,3 @@ echo "
 +================+
 "
 go test -short  ./factomd/...
-
-echo "
-+================+
-|  Factom-cli   |
-+================+
-"
-go test -short  ./factom-cli2/...
-
-echo "
-+================+
-|  fctWallet     |
-+================+
-"
-go test -short  ./fctwallet2/...
-
-echo "
-+================+
-|  Walletapp     |
-+================+
-"
-go test -short  ./walletapp2/...
-
-
-cd FactomCode
