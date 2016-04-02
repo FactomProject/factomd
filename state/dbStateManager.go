@@ -179,6 +179,12 @@ func (list *DBStateList) UpdateState() {
 
 		dblk, _ := list.State.GetDB().FetchDBlockByKeyMR(d.DirectoryBlock.GetKeyMR())
 		if dblk == nil {
+			if i > 0 {
+			p := list.DBStates[i-1]
+				if !p.Saved {
+					continue
+				}
+			}
 			list.State.GetDB().StartMultiBatch()
 
 			//fmt.Println("Saving DBHeight ", d.DirectoryBlock.GetHeader().GetDBHeight(), " on ", list.State.GetFactomNodeName())
@@ -188,7 +194,7 @@ func (list *DBStateList) UpdateState() {
 			// block before we write it to disk.
 			if i > 0 {
 				p := list.DBStates[i-1]
-
+				
 				hash, err := p.AdminBlock.FullHash()
 				if err != nil {
 					return

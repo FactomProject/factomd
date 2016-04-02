@@ -94,8 +94,8 @@ func (m *DBStateMissing) FollowerExecute(state interfaces.IState) error {
 	}
 
 	for dbs := m.DBHeightStart; dbs <= end; dbs++ {
-		msg, _ := state.LoadDBState(dbs)
-		if msg != nil { // If I don't have this block, ignore.
+		msg, err := state.LoadDBState(dbs)
+		if msg != nil && err == nil { // If I don't have this block, ignore.
 			msg.SetOrigin(m.GetOrigin())
 			state.NetworkOutMsgQueue() <- msg
 		}

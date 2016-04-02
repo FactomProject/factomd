@@ -191,10 +191,17 @@ func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)
 
 // TODO: Should fault the server if we don't have the proper sequence of EOM messages.
 func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
+
 	e, ok := msg.(*messages.EOM)
 	if !ok {
 		panic("Must pass an EOM message to ProcessEOM)")
 	}
+	
+	last := s.DBStates.Last()
+	if e.Minute == 0 && (last == nil || !last.Saved) {
+		return false
+	}
+	
 
 	pl := s.ProcessLists.Get(dbheight)
 

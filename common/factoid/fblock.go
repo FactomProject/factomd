@@ -102,6 +102,10 @@ func (b *FBlock) GetHash() interfaces.IHash {
 	return kmr
 }
 
+func(b *FBlock) GetEndOfPeriod() [10]int {
+	return b.endOfPeriod
+}
+
 func (b *FBlock) MarshalTrans() ([]byte, error) {
 	var out bytes.Buffer
 	var periodMark = 0

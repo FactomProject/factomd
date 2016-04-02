@@ -77,7 +77,7 @@ type IFBlock interface {
 	// data point, we do not enforce much, other than order (the end of period one can't
 	// come before period 2.  We just adjust the periods accordingly.
 	EndOfPeriod(min int)
-
+	GetEndOfPeriod() [10]int
 	// Returns the milliTimestamp of the coinbase transaction.  This is used to validate
 	// the timestamps of transactions included in the block. Transactions prior to the
 	// TRANSACTION_PRIOR_LIMIT or after the TRANSACTION_POST_LIMIT are considered invalid

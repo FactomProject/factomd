@@ -19,6 +19,7 @@ import (
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
 	"os"
+	"bytes"
 	"strings"
 	"encoding/hex"
 )
@@ -369,7 +370,11 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 	if fblk == nil {
 		return nil, fmt.Errorf("FBlock not found")
 	}
-
+	if bytes.Compare(fblk.GetKeyMR().Bytes(),dblk.GetDBEntries()[2].GetKeyMR().Bytes()) != 0 {
+		panic("Should not happen")
+	}
+	
+	
 	msg := messages.NewDBStateMsg(s, dblk, ablk, fblk, ecblk)
 
 	return msg, nil
@@ -389,7 +394,8 @@ func (s *State) JournalMessage(msg interfaces.IMsg) {
 		panic("Failed to open Journal File: "+s.JournalFile)
 	}
 	f.WriteString(msgName+"\n")
-	f.WriteString(msgStr+"\n")
+	f.WriteString(msg.String()+"\n")
+	f.WriteString("MsgHex: "+msgStr+"\n")
 	f.Close()
 }
 
@@ -621,6 +627,9 @@ func (s *State) ShortString() string {
 
 func (s *State) SetString() {
 	buildingBlock := s.GetLeaderHeight()
+
+	lastheight := uint32(0)
+
 	if buildingBlock == 0 {
 		s.serverPrt = fmt.Sprintf("%9s%9s Recorded: %d Building: %d Highest: %d  IDChainID[:5]=%x",
 			"",
@@ -651,13 +660,14 @@ func (s *State) SetString() {
 			abHash = s.DBStates.Last().AdminBlock.GetHash().Bytes()
 			fbHash = s.DBStates.Last().FactoidBlock.GetHash().Bytes()
 			ecHash = s.DBStates.Last().EntryCreditBlock.GetHash().Bytes()
+			lastheight = s.DBStates.Last().DirectoryBlock.GetHeader().GetDBHeight()
 		}
 
 		s.serverPrt = fmt.Sprintf("%9s%9s Recorded: %d Building: %d Highest: %d DirBlk[:5]=%x ABHash[:5]=%x FBHash[:5]=%x ECHash[:5]=%x IDChainID[:5]=%x",
 			stype,
 			s.FactomNodeName,
 			s.GetHighestRecordedBlock(),
-			buildingBlock,
+			lastheight,
 			s.GetHighestKnownBlock(),
 			keyMR[:5],
 			abHash[:5],

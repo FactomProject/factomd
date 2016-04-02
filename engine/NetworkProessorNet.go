@@ -74,7 +74,6 @@ func NetworkProcessorNet(fnode *FactomNode) {
 					p := msg.GetOrigin() - 1
 					if len(fnode.Peers) == 0 {
 						// No peers yet, put back in queue
-						fmt.Print(" Waiting ")
 						time.Sleep(1 * time.Second)
 						fnode.State.NetworkOutMsgQueue() <- msg
 						break
