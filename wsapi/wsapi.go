@@ -333,11 +333,16 @@ func HandleGetFee(ctx *web.Context) {
 }
 
 func HandleFactoidSubmit(ctx *web.Context) {
+	type x struct {
+		Response string
+		Success  bool
+	}
+
+	type transaction struct{ Transaction string }
+	t := new(transaction)
+
 	state := ctx.Server.Env["state"].(interfaces.IState)
-
-	type x struct{ Transaction string }
-	t := new(x)
-
+	
 	var p []byte
 	var err error
 	if p, err = ioutil.ReadAll(ctx.Request.Body); err != nil {
@@ -357,7 +362,10 @@ func HandleFactoidSubmit(ctx *web.Context) {
 		returnV1(ctx, nil, jsonError)
 		return
 	}
-	returnMsg(ctx, jsonResp.Result.(*FactoidSubmitResponse).Message, true)
+	r := new(x)
+	r.Response = jsonResp.Result.(*FactoidSubmitResponse).Message
+	r.Success = true
+	returnMsg(ctx, r, true)
 }
 
 func HandleFactoidBalance(ctx *web.Context, eckey string) {
