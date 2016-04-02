@@ -105,6 +105,7 @@ checkout fctwallet    $branch $default
 checkout fctwallet2   $branch $default
 checkout walletapp2   $branch $default
 checkout factom       $branch $default
+checkout factom-cli   $branch $default
 checkout factom-cli2  $branch $default
 checkout web          $branch $default
 checkout go-spew      $branch $default
