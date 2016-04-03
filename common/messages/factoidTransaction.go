@@ -111,7 +111,6 @@ func (m *FactoidTransaction) Process(dbheight uint32, state interfaces.IState) b
 		fmt.Println("Good!")
 	}
 			
-	state.GetFactoidState().AddTransaction(1, m.Transaction)
 	return true
 
 }

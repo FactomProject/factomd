@@ -311,7 +311,9 @@ func HandleEntryCreditBalance(ctx *web.Context, eckey string) {
 		returnV1(ctx, nil, jsonError)
 		return
 	}
-	returnMsg(ctx, fmt.Sprintf("%v", jsonResp.Result.(*EntryCreditBalanceResponse).Balance), true)
+	bal := fmt.Sprintf("%v", jsonResp.Result.(*EntryCreditBalanceResponse).Balance)
+	fmt.Println(bal)
+	returnMsg(ctx, bal, true)
 }
 
 func HandleGetFee(ctx *web.Context) {

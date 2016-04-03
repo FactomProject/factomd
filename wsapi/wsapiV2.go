@@ -524,6 +524,7 @@ func HandleV2EntryCreditBalance(state interfaces.IState, params interface{}) (in
 	}
 	resp := new(EntryCreditBalanceResponse)
 	resp.Balance = state.GetFactoidState().GetECBalance(address.Fixed())
+	fmt.Println(resp.Balance)
 	return resp, nil
 }
 

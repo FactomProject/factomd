@@ -216,7 +216,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 		//		fmt.Println("Process List ")
 		// Should ensure we don't register the directory block multiple times.
-		s.AddDBState(true, pl.DirectoryBlock, pl.AdminBlock, pl.FactoidBlock, pl.EntryCreditBlock)
+		s.AddDBState(true, pl.DirectoryBlock, pl.AdminBlock, s.GetFactoidState().GetCurrentBlock(), pl.EntryCreditBlock)
 
 		if s.LLeaderHeight <= dbheight {
 			s.LLeaderHeight = dbheight + 1
