@@ -281,6 +281,20 @@ func (s *State) GetHighestRecordedBlock() uint32 {
 	return s.DBStates.GetHighestRecordedBlock()
 }
 
+// If Green, this server is, to the best of its knowledge, caught up with the 
+// network.  TODO there should be a timeout that requires seeing a message within
+// some period of time, but not there yet.
+//
+// We hare caught up with the network IF:
+// The highest recorded block is equal to or just below the highest known block
+func (s *State) Green() bool {
+	       rec := s.DBStates.GetHighestRecordedBlock()
+	       high := s.GetHighestKnownBlock()
+	       return rec >= high-1            
+}
+	
+	
+
 // This is lowest block currently under construction under the "leader".
 func (s *State) GetLeaderHeight() uint32 {
 	return s.LLeaderHeight

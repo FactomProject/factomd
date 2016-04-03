@@ -42,7 +42,7 @@ func Timer(state interfaces.IState) {
 
 			// End of the last period, and this is a server, send messages that
 			// close off the minute.
-			if found {
+			if found && state.Green() {
 				eom := new(messages.EOM)
 				eom.Minute = byte(i)
 				eom.Timestamp = state.GetTimestamp()
