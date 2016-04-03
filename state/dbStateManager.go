@@ -44,7 +44,7 @@ type DBStateList struct {
 	DBStates            []*DBState
 }
 
-const SecondsBetweenTests = 3 // Default
+const SecondsBetweenTests = 30 // Default
 
 func (list *DBStateList) String() string {
 	str := "\nDBStates\n"
@@ -149,7 +149,7 @@ func (list *DBStateList) Catchup() {
 
 	list.Lastreq = begin
 
-	end2 := begin + 200
+	end2 := begin + 400
 	if end < end2 {
 		end2 = end
 	}

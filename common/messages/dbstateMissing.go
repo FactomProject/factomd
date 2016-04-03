@@ -88,6 +88,10 @@ func (m *DBStateMissing) Follower(interfaces.IState) bool {
 
 func (m *DBStateMissing) FollowerExecute(state interfaces.IState) error {
 
+	if !state.Green() {	// Ignore everyone else until I am fully on board.
+		return nil
+	}
+	
 	// TODO: Likely need to consider a limit on how many blocks we reply with.  For now, 
 	// just give them what they ask for.
 	start := m.DBHeightStart
@@ -176,7 +180,7 @@ func (m *DBStateMissing) String() string {
 }
 
 func NewDBStateMissing(state interfaces.IState, dbheightStart uint32, dbheightEnd uint32) interfaces.IMsg {
-
+	
 	msg := new(DBStateMissing)
 
 	msg.Peer2peer = true // Always a peer2peer request.
