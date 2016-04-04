@@ -302,6 +302,11 @@ func HandleChainHead(ctx *web.Context, hashkey string) {
 }
 
 func HandleEntryCreditBalance(ctx *web.Context, eckey string) {
+	type x struct {
+		Response string
+		Success  bool
+	}
+
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
 	req := primitives.NewJSON2Request(1, eckey, "entry-credit-balance")
@@ -311,9 +316,11 @@ func HandleEntryCreditBalance(ctx *web.Context, eckey string) {
 		returnV1(ctx, nil, jsonError)
 		return
 	}
-	bal := fmt.Sprintf("%v", jsonResp.Result.(*EntryCreditBalanceResponse).Balance)
-	fmt.Println(bal)
-	returnMsg(ctx, bal, true)
+
+	t := new(x)
+	t.Response = fmt.Sprint(jsonResp.Result.(*EntryCreditBalanceResponse).Balance)
+	t.Success = true
+	returnMsg(ctx, t, true)
 }
 
 func HandleGetFee(ctx *web.Context) {
