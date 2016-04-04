@@ -48,7 +48,8 @@ type State struct {
 	DirectoryBlockInSeconds int
 	PortNumber              int
 	Replay                  *Replay
-
+	GreenFlg				bool
+	
 	CoreChainID     interfaces.IHash // The ChainID of the first server when we boot a network.
 	IdentityChainID interfaces.IHash // If this node has an identity, this is it
 

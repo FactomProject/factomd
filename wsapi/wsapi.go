@@ -401,7 +401,7 @@ func HandleFactoidBalance(ctx *web.Context, eckey string) {
 
 func HandleProperties(ctx *web.Context) {
 	state := ctx.Server.Env["state"].(interfaces.IState)
-
+	fmt.Println("Connected to:",state.GetFactomNodeName())
 	req := primitives.NewJSON2Request(1, nil, "properties")
 
 	jsonResp, jsonError := HandleV2GetRequest(state, req)
@@ -414,7 +414,7 @@ func HandleProperties(ctx *web.Context) {
 		Factomd_Version  string
 	}
 	d := new(x)
-	d.Factomd_Version = jsonResp.Result.(*PropertiesResponse).FactomdVersion
+	d.Factomd_Version = jsonResp.Result.(*PropertiesResponse).FactomdVersion+" "+state.GetFactomNodeName()
 	d.Protocol_Version = jsonResp.Result.(*PropertiesResponse).ProtocolVersion
 
 	returnMsg(ctx, d, true)
