@@ -107,10 +107,10 @@ func (m *FactoidTransaction) Process(dbheight uint32, state interfaces.IState) b
 	err := state.GetFactoidState().AddTransaction(1, m.Transaction)
 	if err != nil {
 		fmt.Println(err)
-	}else{
+	} else {
 		fmt.Println("Good!")
 	}
-			
+
 	return true
 
 }

@@ -104,7 +104,7 @@ func (fs *FactoidState) ValidateTransactionAge(trans interfaces.ITransaction) er
 	}
 
 	if tstrans-tsblk > constants.TRANSACTION_POST_LIMIT {
-	//	return fmt.Errorf("Transaction is dated too far in the future to be included in the current block")
+		//	return fmt.Errorf("Transaction is dated too far in the future to be included in the current block")
 	}
 	return nil
 }

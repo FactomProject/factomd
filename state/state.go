@@ -48,8 +48,8 @@ type State struct {
 	DirectoryBlockInSeconds int
 	PortNumber              int
 	Replay                  *Replay
-	GreenFlg				bool
-	
+	GreenFlg                bool
+
 	CoreChainID     interfaces.IHash // The ChainID of the first server when we boot a network.
 	IdentityChainID interfaces.IHash // If this node has an identity, this is it
 
@@ -389,8 +389,8 @@ func (s *State) JournalMessage(msg interfaces.IMsg) {
 	if err != nil {
 		panic("Failed to open Journal File: " + s.JournalFile)
 	}
-	f.WriteString("\n"+msg.String())
-	f.WriteString("\n  "+s.ShortString()+"\n")
+	f.WriteString("\n" + msg.String())
+	f.WriteString("\n  " + s.ShortString() + "\n")
 	f.WriteString("\t\t\tMsgHex: " + msgStr + "\n")
 	f.Close()
 }
