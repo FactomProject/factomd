@@ -288,9 +288,12 @@ func (s *State) GetHighestRecordedBlock() uint32 {
 // We hare caught up with the network IF:
 // The highest recorded block is equal to or just below the highest known block
 func (s *State) Green() bool {
+	if s.GreenFlg { return true }
+	
 	       rec := s.DBStates.GetHighestRecordedBlock()
 	       high := s.GetHighestKnownBlock()
-	       return rec >= high-1            
+	s.GreenFlg = rec >= high-1
+	return s.GreenFlg
 }
 	
 	
