@@ -18,9 +18,7 @@ You need to set up Go environment with golang 1.5 or 1.6. You also need to insta
 
 Get the M2 database, with the following command
 
-	```
 	go get github.com/FactomProject/factomd
-	```
 
 You should now be ready to execute factomd
 
@@ -32,17 +30,13 @@ cd to the factomd directory created with the go get.
 
 execute:
 
-	```
 	cp factomd.conf ~/.factom/m2/
-	```
-	
+
 Now you are ready to execute factomd.
 
-	```
 	go install
 	factomd
-	```
-	
+
 This is the simplist way to execute factomd with the defaults.  You can hit "enter" to get the status of the factom nodes running in the simulatory.
 
 ## M2 Simulator 
@@ -61,13 +55,10 @@ Below is a discription of how to run journal files.
 
 To get the current list of flags, type the command:
 
-	```
 	factomd -h
-	```
-	
+
 Which will get you something like:
 	
-	```
 	//////////////////////// Copyright 2015 Factom Foundation
 	//////////////////////// Use of this source code is governed by the MIT
 	//////////////////////// license that can be found in the LICENSE file.
@@ -123,17 +114,14 @@ Which will get you something like:
 			write an execution trace to the named file after execution
 	-test.v
 			verbose: print additional output
-	```
-	
+\
 The flags that begin with "test." are supplied by the profiling package installed.  The flags that relate to running factomd and the simulator are the following, with a little more explaination:
 
 ### -count
 
 The command:
 	
-	```
 	factomd -count=10
-	```
 
 Will run the simulator with the configuration found in ~/.factom/m2/factom.conf with 10 nodes, named fnode0 to fnode9.  fnode0 will be the leader.  When you hit enter to get the status, you will see an "L" next to leader nodes.
 
