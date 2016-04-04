@@ -40,6 +40,8 @@ func main() {
 		chainID = os.Args[2]
 	}
 
+	be := new(BlockExtractor)
+
 	state := new(state.State)
 	state.Cfg = util.ReadConfig("")
 	if levelBolt == level {
@@ -57,28 +59,28 @@ func main() {
 	dbo := state.GetDB()
 
 	if chainID != "" {
-		err := ExportEChain(chainID, dbo)
+		err := be.ExportEChain(chainID, dbo)
 		if err != nil {
 			panic(err)
 		}
 	} else {
-		err := ExportDChain(dbo)
+		err := be.ExportDChain(dbo)
 		if err != nil {
 			panic(err)
 		}
-		err = ExportECChain(dbo)
+		err = be.ExportECChain(dbo)
 		if err != nil {
 			panic(err)
 		}
-		err = ExportAChain(dbo)
+		err = be.ExportAChain(dbo)
 		if err != nil {
 			panic(err)
 		}
-		err = ExportFctChain(dbo)
+		err = be.ExportFctChain(dbo)
 		if err != nil {
 			panic(err)
 		}
-		err = ExportDirBlockInfo(dbo)
+		err = be.ExportDirBlockInfo(dbo)
 		if err != nil {
 			panic(err)
 		}
