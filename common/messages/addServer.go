@@ -19,6 +19,8 @@ type AddServerMsg struct {
 	MessageBase
 	Timestamp     interfaces.Timestamp // Message Timestamp
 	ServerChainID interfaces.IHash     // ChainID of new server
+
+	Signature interfaces.IFullSignature
 }
 
 var _ interfaces.IMsg = (*AddServerMsg)(nil)
@@ -58,8 +60,23 @@ func (m *AddServerMsg) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp
 }
 
-// Validate the message, TBD
 func (m *AddServerMsg) Validate(state interfaces.IState) int {
+	found, serverIndex := state.GetFedServerIndexFor(uint32(m.MessageBase.Origin), m.ServerChainID)
+	if !found || serverIndex != 0 {
+		// if the AddServerMsg did not originate from a Federated server
+		// or if it originated from a server with index > 0
+		// the message is considered invalid
+		return -1
+	}
+
+	isVer, err := m.VerifySignature()
+	if err != nil || !isVer {
+		// if there is an error during signature verification
+		// or if the signature is invalid
+		// the message is considered invalid
+		return -1
+	}
+
 	return 1
 }
 
@@ -99,6 +116,23 @@ func (e *AddServerMsg) JSONString() (string, error) {
 
 func (e *AddServerMsg) JSONBuffer(b *bytes.Buffer) error {
 	return primitives.EncodeJSONToBuffer(e, b)
+}
+
+func (m *AddServerMsg) Sign(key interfaces.Signer) error {
+	signature, err := SignSignable(m, key)
+	if err != nil {
+		return err
+	}
+	m.Signature = signature
+	return nil
+}
+
+func (m *AddServerMsg) GetSignature() interfaces.IFullSignature {
+	return m.Signature
+}
+
+func (m *AddServerMsg) VerifySignature() (bool, error) {
+	return VerifyMessage(m)
 }
 
 func (m *AddServerMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
