@@ -7,6 +7,7 @@ package messages
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -61,11 +62,10 @@ func (m *AddServerMsg) GetTimestamp() interfaces.Timestamp {
 }
 
 func (m *AddServerMsg) Validate(state interfaces.IState) int {
-	found, serverIndex := state.GetFedServerIndexFor(uint32(m.MessageBase.Origin), m.ServerChainID)
-	if !found || serverIndex != 0 {
-		// if the AddServerMsg did not originate from a Federated server
-		// or if it originated from a server with index > 0
-		// the message is considered invalid
+	authoritativeKey, _ := hex.DecodeString("cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a")
+	if bytes.Compare(m.GetSignature().GetKey(), authoritativeKey) != 0 {
+		// the message was not signed with the proper authoritative signing key (from conf file)
+		// it is therefore considered invalid
 		return -1
 	}
 
