@@ -39,10 +39,18 @@ func Timer(state interfaces.IState) {
 			time.Sleep(time.Duration(wait))
 
 			// PrintBush(state,i)
-
+			if found && !state.Green() {
+				time.Sleep(time.Duration(tenthPeriod/2))
+			}
+			for !state.Green() {
+				now = time.Now().UnixNano()
+				wait := next - now
+				next += tenthPeriod
+				time.Sleep(time.Duration(wait))
+			}
 			// End of the last period, and this is a server, send messages that
 			// close off the minute.
-			if found && state.Green() {
+			if found {
 				eom := new(messages.EOM)
 				eom.Minute = byte(i)
 				eom.Timestamp = state.GetTimestamp()
