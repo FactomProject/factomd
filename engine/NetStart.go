@@ -43,8 +43,8 @@ func NetStart(s *state.State) {
 	journal := *journalPtr
 	follower := *followerPtr
 	db := *dbPtr
-    tcp:= *tcpPtr
-	
+	tcp := *tcpPtr
+
 	os.Stderr.WriteString(fmt.Sprintf("node     %d\n", listenTo))
 	os.Stderr.WriteString(fmt.Sprintf("count    %d\n", cnt))
 	os.Stderr.WriteString(fmt.Sprintf("net      \"%s\"\n", net))
@@ -175,19 +175,19 @@ func NetStart(s *state.State) {
 
 }
 
-
-// AddPeer adds a peer of the indicated type. There's probably a better 
+// AddPeer adds a peer of the indicated type. There's probably a better
 // way to do  this using a closure or maybe a superclass function (but go isn't
 // "OO" so this isn't obvious to me.  This hack works for now.)
-func AddPeer(tcp bool, fnodes []*FactomNode, i1 int, i2 int)  {
-    // tcp contains the command line flag indicating if this is a netPeer (vs SimPeer)
-    if tcp {
-       AddNetPeer(fnodes, i1, i2) 
-    } else {
-        AddSimPeer(fnodes, i1, i2)
-    }
+func AddPeer(tcp bool, fnodes []*FactomNode, i1 int, i2 int) {
+	// tcp contains the command line flag indicating if this is a netPeer (vs SimPeer)
+	if tcp {
+		AddNetPeer(fnodes, i1, i2)
+	} else {
+		AddSimPeer(fnodes, i1, i2)
+	}
 
 }
+
 //**********************************************************************
 // Functions that access variables in this method to set up Factom Nodes
 // and start the servers.

@@ -20,19 +20,18 @@ import (
 var _ = fmt.Print
 
 var (
-    basePort = 9000
+	basePort = 9000
 )
 
-
 type NetPeer struct {
-    Socket   mangos.Socket
+	Socket   mangos.Socket
 	ToName   string
 	FromName string
 }
 
-const (  // iota is reset to 0
-        server = iota  // c0 == 0
-        client = iota  // c1 == 1
+const ( // iota is reset to 0
+	server = iota // c0 == 0
+	client = iota // c1 == 1
 )
 
 var _ interfaces.IPeer = (*NetPeer)(nil)
@@ -44,27 +43,27 @@ var _ interfaces.IPeer = (*NetPeer)(nil)
 
 // Connect sets us up with a scoket connection, type indicates whether we dial in (as client) or listen (as server). address is the URL.
 func (f *NetPeer) Connect(connectionType int, address string) error {
-    var err error
-    err=nil
-    
-    if f.Socket, err = pair.NewSocket(); err != nil {
-        fmt.Printf("netPeer.Connect error from pair.NewSocket() for %s :\n %+v\n\n", address, err)
-	}
-	f.Socket.AddTransport(ipc.NewTransport())  // ipc works on a single machine we want to at least simulate a full network connection.
-	f.Socket.AddTransport(tcp.NewTransport())
-   
-    switch connectionType {
-    case server:
-        if err = f.Socket.Listen(address); err != nil {
-            fmt.Printf("netPeer.Connect error from pair.Listen() for %s :\n %+v\n\n", address, err)
-        }
+	var err error
+	err = nil
 
-    case client:
-        if err = f.Socket.Dial(address); err != nil {
-            fmt.Printf("netPeer.Connect error from pair.Dial() for %s :\n %+v\n\n", address, err)
-        }
-    }
-    f.Socket.SetOption(mangos.OptionRecvDeadline, 100*time.Millisecond)
+	if f.Socket, err = pair.NewSocket(); err != nil {
+		fmt.Printf("netPeer.Connect error from pair.NewSocket() for %s :\n %+v\n\n", address, err)
+	}
+	f.Socket.AddTransport(ipc.NewTransport()) // ipc works on a single machine we want to at least simulate a full network connection.
+	f.Socket.AddTransport(tcp.NewTransport())
+
+	switch connectionType {
+	case server:
+		if err = f.Socket.Listen(address); err != nil {
+			fmt.Printf("netPeer.Connect error from pair.Listen() for %s :\n %+v\n\n", address, err)
+		}
+
+	case client:
+		if err = f.Socket.Dial(address); err != nil {
+			fmt.Printf("netPeer.Connect error from pair.Dial() for %s :\n %+v\n\n", address, err)
+		}
+	}
+	f.Socket.SetOption(mangos.OptionRecvDeadline, 100*time.Millisecond)
 	return err
 }
 
@@ -98,7 +97,6 @@ func (f *NetPeer) Init(fromName, toName string) interfaces.IPeer {
 //     f.Conn = conn
 // }
 
-
 func AddNetPeer(fnodes []*FactomNode, i1 int, i2 int) {
 	// Ignore out of range, and connections to self.
 	if i1 < 0 ||
@@ -125,38 +123,37 @@ func AddNetPeer(fnodes []*FactomNode, i1 int, i2 int) {
 	f1 := fnodes[i1]
 	f2 := fnodes[i2]
 
+	// Increment the port so every connection is on a differnet port
+	basePort += 1
 
-    // Increment the port so every connection is on a differnet port
-    basePort += 1
-    
 	fmt.Println("netPeer.AddNetPeer Connecting", f1.State.FactomNodeName, f2.State.FactomNodeName)
 
 	peer12 := new(NetPeer).Init(f1.State.FactomNodeName, f2.State.FactomNodeName).(*NetPeer)
 	peer21 := new(NetPeer).Init(f2.State.FactomNodeName, f1.State.FactomNodeName).(*NetPeer)
 
-    // Mangos implementation:
-    address := fmt.Sprintf("%s:%d", "tcp://127.0.0.1", basePort)
-    fmt.Println("netPeer.AddNetPeer Connecting to address: ", address)
+	// Mangos implementation:
+	address := fmt.Sprintf("%s:%d", "tcp://127.0.0.1", basePort)
+	fmt.Println("netPeer.AddNetPeer Connecting to address: ", address)
 
-    peer12.Connect(server, address)
-    peer21.Connect(client, address)
-    
-    // // 1->2
-    // // peer 2 needs to set up listener:
-    // go peer21.Listen("tcp", port2)
-    // // peer 1 dials into peer 2:
-    // address := fmt.Sprintf("%s:%s", host, port2)
-    // err = peer12.ConnectTCP(address)
+	peer12.Connect(server, address)
+	peer21.Connect(client, address)
+
+	// // 1->2
+	// // peer 2 needs to set up listener:
+	// go peer21.Listen("tcp", port2)
+	// // peer 1 dials into peer 2:
+	// address := fmt.Sprintf("%s:%s", host, port2)
+	// err = peer12.ConnectTCP(address)
 	// if err != nil {
-    //     fmt.Fprintf("netPeer.AddNetPeer ################## Error connecting to: %+v", address)
+	//     fmt.Fprintf("netPeer.AddNetPeer ################## Error connecting to: %+v", address)
 	// }
 
 	f1.Peers = append(f1.Peers, peer12)
 	f2.Peers = append(f2.Peers, peer21)
 
-    for _, p := range f1.Peers {
-        fmt.Printf("%s's peer: %s\n", p.GetNameFrom(), p.GetNameTo())
-    }
+	for _, p := range f1.Peers {
+		fmt.Printf("%s's peer: %s\n", p.GetNameFrom(), p.GetNameTo())
+	}
 
 }
 
@@ -168,23 +165,25 @@ func (f *NetPeer) GetNameTo() string {
 }
 
 func (f *NetPeer) Send(msg interfaces.IMsg) error {
+	fmt.Printf("netPeer.Send for:\n %+v\n\n", msg)
+
 	data, err := msg.MarshalBinary()
 	if err != nil {
 		return err
 	}
 
-    if err = f.Socket.Send(data); err != nil {
-        fmt.Printf("netPeer.Send error from f.Socket.Send(data) for:\n %+v\n\n", msg)
-    }
+	if err = f.Socket.Send(data); err != nil {
+		fmt.Printf("netPeer.Send error from f.Socket.Send(data) for:\n %+v\n\n", msg)
+	}
 	return err
 }
 
 // Non-blocking return value from channel.
 func (f *NetPeer) Recieve() (interfaces.IMsg, error) {
-    var data []byte
-    var err error
-    if data, err = f.Socket.Recv(); err != nil {
-        fmt.Printf("netPeer.Recieve error from f.Socket.Send(data) for:\n %+v\n\n", string(data))
+	var data []byte
+	var err error
+	if data, err = f.Socket.Recv(); err != nil {
+		fmt.Printf("netPeer.Recieve error from f.Socket.Recv(data) for:\n %+v\n\n", string(data))
 	}
 
 	if len(data) > 0 {
@@ -196,7 +195,7 @@ func (f *NetPeer) Recieve() (interfaces.IMsg, error) {
 
 // Is this connection equal to parm connection
 func (f *NetPeer) Equals(ff interfaces.IPeer) bool {
- 	f2, ok := ff.(*NetPeer)
+	f2, ok := ff.(*NetPeer)
 	if !ok {
 		return false
 	} // Different peer type can't be equal
@@ -215,10 +214,10 @@ func (f *NetPeer) Equals(ff interfaces.IPeer) bool {
 
 // Returns the number of messages waiting to be read
 func (f *NetPeer) Len() int {
-    //TODO IMPLEMENT JAYJAY
-    fmt.Printf("NetPeer.Len Not implemented.")
-    // Sim Peer: 
-    //	return len(f.BroadcastIn)
-    // Broadcase in is the Sim Peer channel.  We have a way to see how many TCP MEssages?
-    return 1
+	//TODO IMPLEMENT JAYJAY
+	fmt.Printf("NetPeer.Len Not implemented.")
+	// Sim Peer:
+	//	return len(f.BroadcastIn)
+	// Broadcase in is the Sim Peer channel.  We have a way to see how many TCP MEssages?
+	return 1
 }

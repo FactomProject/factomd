@@ -40,7 +40,7 @@ func Timer(state interfaces.IState) {
 
 			// PrintBush(state,i)
 			if found && !state.Green() {
-				time.Sleep(time.Duration(tenthPeriod/2))
+				time.Sleep(time.Duration(tenthPeriod / 2))
 			}
 			for !state.Green() {
 				now = time.Now().UnixNano()
