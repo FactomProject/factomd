@@ -216,7 +216,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 		//		fmt.Println("Process List ")
 		// Should ensure we don't register the directory block multiple times.
-		s.AddDBState(true, pl.DirectoryBlock, pl.AdminBlock, pl.FactoidBlock, pl.EntryCreditBlock)
+		s.AddDBState(true, pl.DirectoryBlock, pl.AdminBlock, s.GetFactoidState().GetCurrentBlock(), pl.EntryCreditBlock)
 
 		if s.LLeaderHeight <= dbheight {
 			s.LLeaderHeight = dbheight + 1
@@ -238,8 +238,8 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			// Leader Execute creates an acknowledgement and the EOM
 			s.NetworkOutMsgQueue() <- ack
 			s.NetworkOutMsgQueue() <- DBS
-			ack.FollowerExecute(s)
-			DBS.FollowerExecute(s)
+			s.InMsgQueue() <- ack 
+			s.InMsgQueue() <- DBS 
 		}
 	}
 
@@ -279,6 +279,23 @@ func (s *State) PutCommits(hash interfaces.IHash, msg interfaces.IMsg) {
 // This is the highest block signed off and recorded in the Database.
 func (s *State) GetHighestRecordedBlock() uint32 {
 	return s.DBStates.GetHighestRecordedBlock()
+}
+
+// If Green, this server is, to the best of its knowledge, caught up with the
+// network.  TODO there should be a timeout that requires seeing a message within
+// some period of time, but not there yet.
+//
+// We hare caught up with the network IF:
+// The highest recorded block is equal to or just below the highest known block
+func (s *State) Green() bool {
+	if s.GreenFlg {
+		return true
+	}
+
+	rec := s.DBStates.GetHighestRecordedBlock()
+	high := s.GetHighestKnownBlock()
+	s.GreenFlg = rec >= high-1
+	return s.GreenFlg
 }
 
 // This is lowest block currently under construction under the "leader".

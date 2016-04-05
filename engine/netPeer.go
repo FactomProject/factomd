@@ -6,8 +6,6 @@ package engine
 
 import (
 	"fmt"
-	"net"
-	"os"
 	"time"
 
 	"github.com/go-mangos/mangos"
@@ -27,7 +25,7 @@ var (
 
 
 type NetPeer struct {
-    f.Socketet   mangos.f.Socketet
+    Socket   mangos.Socket
 	ToName   string
 	FromName string
 }
@@ -49,21 +47,21 @@ func (f *NetPeer) Connect(connectionType int, address string) error {
     var err error
     err=nil
     
-    if f.Socket, err = pair.Newf.Socketet(); err != nil {
-        fmt.Fprintf("netPeer.Connect error from pair.Newf.Socketet() for %s :\n %+v", address, err)
+    if f.Socket, err = pair.NewSocket(); err != nil {
+        fmt.Printf("netPeer.Connect error from pair.NewSocket() for %s :\n %+v\n\n", address, err)
 	}
 	f.Socket.AddTransport(ipc.NewTransport())  // ipc works on a single machine we want to at least simulate a full network connection.
 	f.Socket.AddTransport(tcp.NewTransport())
-    
+   
     switch connectionType {
     case server:
-        if err = f.Socket.Listen(url); err != nil {
-            fmt.Fprintf("netPeer.Connect error from pair.Listen() for %s :\n %+v", address, err)
+        if err = f.Socket.Listen(address); err != nil {
+            fmt.Printf("netPeer.Connect error from pair.Listen() for %s :\n %+v\n\n", address, err)
         }
 
-    case cleint:
-        if err = f.Socket.Dial(url); err != nil {
-            fmt.Fprintf("netPeer.Connect error from pair.Dial() for %s :\n %+v", address, err)
+    case client:
+        if err = f.Socket.Dial(address); err != nil {
+            fmt.Printf("netPeer.Connect error from pair.Dial() for %s :\n %+v\n\n", address, err)
         }
     }
     f.Socket.SetOption(mangos.OptionRecvDeadline, 100*time.Millisecond)
@@ -78,7 +76,7 @@ func (f *NetPeer) Connect(connectionType int, address string) error {
 // 	return f.Connect("udp", address)
 // }
 
-func (f *NetPeer) Init(fromName, toName string) *NetPeer { // interfaces.IPeer {
+func (f *NetPeer) Init(fromName, toName string) interfaces.IPeer {
 	f.ToName = toName
 	f.FromName = fromName
 	return f
@@ -127,9 +125,9 @@ func AddNetPeer(fnodes []*FactomNode, i1 int, i2 int) {
 	f1 := fnodes[i1]
 	f2 := fnodes[i2]
 
-// mangoes listen on same port?
-    port1 := basePort + i1
-    // port2 := basePort + i2
+
+    // Increment the port so every connection is on a differnet port
+    basePort += 1
     
 	fmt.Println("netPeer.AddNetPeer Connecting", f1.State.FactomNodeName, f2.State.FactomNodeName)
 
@@ -137,7 +135,9 @@ func AddNetPeer(fnodes []*FactomNode, i1 int, i2 int) {
 	peer21 := new(NetPeer).Init(f2.State.FactomNodeName, f1.State.FactomNodeName).(*NetPeer)
 
     // Mangos implementation:
-    address := fmt.Sprintf("%s:%s", host, port2)
+    address := fmt.Sprintf("%s:%d", "tcp://127.0.0.1", port1)
+    fmt.Println("netPeer.AddNetPeer Connecting to address: ", address)
+
     peer12.Connect(server, address)
     peer21.Connect(client, address)
     
@@ -174,16 +174,17 @@ func (f *NetPeer) Send(msg interfaces.IMsg) error {
 	}
 
     if err = f.Socket.Send(data); err != nil {
-        fmt.Fprintf("netPeer.Send error from f.Socket.Send(data): %s :\nfor:\n %+v", address, msg)
+        fmt.Printf("netPeer.Send error from f.Socket.Send(data) for:\n %+v\n\n", msg)
     }
 	return err
 }
 
 // Non-blocking return value from channel.
 func (f *NetPeer) Recieve() (interfaces.IMsg, error) {
-
+    var data []byte
+    var err error
     if data, err = f.Socket.Recv(); err != nil {
-        fmt.Fprintf("netPeer.Recieve error from f.Socket.Send(data): %s :\nfor:\n %+v", address, msg)
+        fmt.Printf("netPeer.Recieve error from f.Socket.Send(data) for:\n %+v\n\n", string(data))
 	}
 
 	if len(data) > 0 {
@@ -194,7 +195,7 @@ func (f *NetPeer) Recieve() (interfaces.IMsg, error) {
 }
 
 // Is this connection equal to parm connection
-func (f *NetPeer) Equals(IPeer peer) bool {
+func (f *NetPeer) Equals(ff interfaces.IPeer) bool {
  	f2, ok := ff.(*NetPeer)
 	if !ok {
 		return false
@@ -219,4 +220,5 @@ func (f *NetPeer) Len() int {
     // Sim Peer: 
     //	return len(f.BroadcastIn)
     // Broadcase in is the Sim Peer channel.  We have a way to see how many TCP MEssages?
+    return 1
 }

@@ -88,11 +88,15 @@ func (m *DBStateMissing) Follower(interfaces.IState) bool {
 
 func (m *DBStateMissing) FollowerExecute(state interfaces.IState) error {
 
-	// TODO: Likely need to consider a limit on how many blocks we reply with.  For now, 
+	if !state.Green() { // Ignore everyone else until I am fully on board.
+		return nil
+	}
+
+	// TODO: Likely need to consider a limit on how many blocks we reply with.  For now,
 	// just give them what they ask for.
 	start := m.DBHeightStart
-	end   := m.DBHeightEnd 
-	
+	end := m.DBHeightEnd
+
 	for dbs := start; dbs <= end; dbs++ {
 		msg, err := state.LoadDBState(dbs)
 		if msg != nil && err == nil { // If I don't have this block, ignore.

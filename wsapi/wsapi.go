@@ -302,6 +302,11 @@ func HandleChainHead(ctx *web.Context, hashkey string) {
 }
 
 func HandleEntryCreditBalance(ctx *web.Context, eckey string) {
+	type x struct {
+		Response string
+		Success  bool
+	}
+
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
 	req := primitives.NewJSON2Request(1, eckey, "entry-credit-balance")
@@ -311,7 +316,11 @@ func HandleEntryCreditBalance(ctx *web.Context, eckey string) {
 		returnV1(ctx, nil, jsonError)
 		return
 	}
-	returnMsg(ctx, fmt.Sprintf("%v", jsonResp.Result.(*EntryCreditBalanceResponse).Balance), true)
+
+	t := new(x)
+	t.Response = fmt.Sprint(jsonResp.Result.(*EntryCreditBalanceResponse).Balance)
+	t.Success = true
+	returnMsg(ctx, t, true)
 }
 
 func HandleGetFee(ctx *web.Context) {
@@ -342,7 +351,7 @@ func HandleFactoidSubmit(ctx *web.Context) {
 	t := new(transaction)
 
 	state := ctx.Server.Env["state"].(interfaces.IState)
-	
+
 	var p []byte
 	var err error
 	if p, err = ioutil.ReadAll(ctx.Request.Body); err != nil {
@@ -392,7 +401,7 @@ func HandleFactoidBalance(ctx *web.Context, eckey string) {
 
 func HandleProperties(ctx *web.Context) {
 	state := ctx.Server.Env["state"].(interfaces.IState)
-
+	fmt.Println("Connected to:", state.GetFactomNodeName())
 	req := primitives.NewJSON2Request(1, nil, "properties")
 
 	jsonResp, jsonError := HandleV2GetRequest(state, req)
@@ -405,7 +414,7 @@ func HandleProperties(ctx *web.Context) {
 		Factomd_Version  string
 	}
 	d := new(x)
-	d.Factomd_Version = jsonResp.Result.(*PropertiesResponse).FactomdVersion
+	d.Factomd_Version = jsonResp.Result.(*PropertiesResponse).FactomdVersion + " " + state.GetFactomNodeName()
 	d.Protocol_Version = jsonResp.Result.(*PropertiesResponse).ProtocolVersion
 
 	returnMsg(ctx, d, true)

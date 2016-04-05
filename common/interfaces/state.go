@@ -37,6 +37,8 @@ type IState interface {
 	SetString()
 	ShortString() string
 
+	Green() bool
+
 	// This is the highest block signed off and recorded in the Database.  This
 	// is a follower's state, but it is also critical to validation; we cannot
 	// validate transactions where the HighestRecordedBlock+1 != block holding said

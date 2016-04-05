@@ -32,9 +32,9 @@ func NetStart(s *state.State) {
 	netPtr := flag.String("net", "tree", "The default algorithm to build the network connections")
 	journalPtr := flag.String("journal", "", "Rerun a Journal of messages")
 	followerPtr := flag.Bool("follower", false, "If true, force node to be a follower.  Only used when replaying a journal.")
-	dbPtr := flag.String("db","","Override the Database in the Config file and use this Database implementation")
 	tcpPtr := flag.Bool("tcp", false, "If true, use TCP connections (eg: netPeer vs SimPeer).  Defaults to SimPeer.")
-	
+	dbPtr := flag.String("db", "", "Override the Database in the Config file and use this Database implementation")
+
 	flag.Parse()
 
 	listenTo := *listenToPtr
@@ -51,8 +51,8 @@ func NetStart(s *state.State) {
 	os.Stderr.WriteString(fmt.Sprintf("journal  \"%s\"\n", journal))
 	os.Stderr.WriteString(fmt.Sprintf("follower \"%v\"\n", follower))
 	os.Stderr.WriteString(fmt.Sprintf("db       \"%s\"\n", db))
-	os.Stderr.WriteString(fmt.Sprintf("TCP \"%v\"\n", tcp))
-	
+	os.Stderr.WriteString(fmt.Sprintf("tcp \"%v\"\n", tcp))
+
 	if journal != "" {
 		cnt = 1
 	}

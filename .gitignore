@@ -9,7 +9,8 @@
 *.kate-swp
 *.orig
 debug
-out.txt
+*.txt
+*.log
 
 # Folders
 _obj

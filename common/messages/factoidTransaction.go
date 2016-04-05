@@ -103,8 +103,14 @@ func (m *FactoidTransaction) Process(dbheight uint32, state interfaces.IState) b
 		return true
 	}
 	m.processed = true
-	state.Println("Process Factoid: ", state.GetFactomNodeName())
-	state.GetFactoidState().AddTransaction(1, m.Transaction)
+	fmt.Println("Process Factoid: ", state.GetFactomNodeName())
+	err := state.GetFactoidState().AddTransaction(1, m.Transaction)
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Println("Good!")
+	}
+
 	return true
 
 }
