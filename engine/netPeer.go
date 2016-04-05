@@ -135,7 +135,7 @@ func AddNetPeer(fnodes []*FactomNode, i1 int, i2 int) {
 	peer21 := new(NetPeer).Init(f2.State.FactomNodeName, f1.State.FactomNodeName).(*NetPeer)
 
     // Mangos implementation:
-    address := fmt.Sprintf("%s:%d", "tcp://127.0.0.1", port1)
+    address := fmt.Sprintf("%s:%d", "tcp://127.0.0.1", basePort)
     fmt.Println("netPeer.AddNetPeer Connecting to address: ", address)
 
     peer12.Connect(server, address)
