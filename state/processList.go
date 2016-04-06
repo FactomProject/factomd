@@ -8,6 +8,7 @@ import (
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/common/primitives"
 	"log"
 )
 
@@ -240,6 +241,46 @@ func (p *ProcessList) Process(state *State) {
 		for j := p.Servers[i].Height; j < len(plist); j++ {
 			if plist[j] == nil {
 				p.State.Println("!!!!!!! Missing entry in process list at", j)
+				return
+			}
+
+			if oldAck, ok := p.OldAcks[plist[j].GetHash().Fixed()]; ok {
+				if thisAck, ok := oldAck.(*messages.Ack); ok {
+					var expectedSerialHash interfaces.IHash
+					var err error
+					last, ok := p.GetLastAck(i).(*messages.Ack)
+					if !ok {
+						expectedSerialHash = thisAck.MessageHash
+					} else {
+						expectedSerialHash, err = primitives.CreateHash(last.MessageHash, thisAck.MessageHash)
+						if err != nil {
+							// cannot create a expectedSerialHash to compare to
+							plist[j] = nil
+							return
+						}
+					}
+					// compare the SerialHash of this acknowledgement with the
+					// expected serialHash (generated above)
+					if !expectedSerialHash.IsSameAs(thisAck.SerialHash) {
+						// the SerialHash of this acknowledgment is incorrect
+						// according to this node's processList
+						if thisAck.GetOrigin() != i {
+							// if the acknowledgement didn't originate on this server
+							// it must be invalid
+							plist[j] = nil
+							return
+						}
+					}
+					p.SetLastAck(i, thisAck)
+				} else {
+					// the message from OldAcks is not actually of type Ack
+					plist[j] = nil
+					return
+				}
+			} else {
+				// corresponding acknowledgement not found
+				p.State.Println("!!!!!!! Missing acknowledgement in process list for", j)
+				plist[j] = nil
 				return
 			}
 
