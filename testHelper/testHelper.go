@@ -37,6 +37,8 @@ func CreateAndPopulateTestState() *state.State {
 		panic(err)
 	}*/
 	s.SetFactoshisPerEC(1)
+	state.LoadDatabase(s)
+	s.UpdateState()
 
 	return s
 }

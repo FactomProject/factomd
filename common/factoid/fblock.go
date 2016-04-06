@@ -637,8 +637,7 @@ func (b FBlock) CustomMarshalText() (text []byte, err error) {
 	out.WriteString(b.PrevFullHash.String())
 	out.WriteString("\n  ExchRate:      ")
 	primitives.WriteNumber64(&out, b.ExchRate)
-	out.WriteString("\n  DBHeight:      ")
-	primitives.WriteNumber32(&out, b.DBHeight)
+	out.WriteString(fmt.Sprintf("\n  DBHeight:      %v", b.DBHeight))
 	out.WriteString("\n  Period Marks:  ")
 	for _, mark := range b.endOfPeriod {
 		out.WriteString(fmt.Sprintf("%d ", mark))
