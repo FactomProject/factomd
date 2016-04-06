@@ -246,27 +246,27 @@ func (p *ProcessList) Process(state *State) {
 
 			if oldAck, ok := p.OldAcks[plist[j].GetHash().Fixed()]; ok {
 				if thisAck, ok := oldAck.(*messages.Ack); ok {
-					var expectedSerialHash interfaces.IHash
-					var err error
-					last, ok := p.GetLastAck(i).(*messages.Ack)
-					if !ok {
-						expectedSerialHash = thisAck.MessageHash
-					} else {
-						expectedSerialHash, err = primitives.CreateHash(last.MessageHash, thisAck.MessageHash)
-						if err != nil {
-							// cannot create a expectedSerialHash to compare to
-							plist[j] = nil
-							return
+					if thisAck.GetOrigin() != i {
+						// if the acknowledgement didn't originate on this server
+						// it may be invalid
+						var expectedSerialHash interfaces.IHash
+						var err error
+						last, ok := p.GetLastAck(i).(*messages.Ack)
+						if !ok {
+							expectedSerialHash = thisAck.MessageHash
+						} else {
+							expectedSerialHash, err = primitives.CreateHash(last.MessageHash, thisAck.MessageHash)
+							if err != nil {
+								// cannot create a expectedSerialHash to compare to
+								plist[j] = nil
+								return
+							}
 						}
-					}
-					// compare the SerialHash of this acknowledgement with the
-					// expected serialHash (generated above)
-					if !expectedSerialHash.IsSameAs(thisAck.SerialHash) {
-						// the SerialHash of this acknowledgment is incorrect
-						// according to this node's processList
-						if thisAck.GetOrigin() != i {
-							// if the acknowledgement didn't originate on this server
-							// it must be invalid
+						// compare the SerialHash of this acknowledgement with the
+						// expected serialHash (generated above)
+						if !expectedSerialHash.IsSameAs(thisAck.SerialHash) {
+							// the SerialHash of this acknowledgment is incorrect
+							// according to this node's processList
 							plist[j] = nil
 							return
 						}
