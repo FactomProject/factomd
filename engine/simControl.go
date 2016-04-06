@@ -28,6 +28,8 @@ func SimControl(listenTo int) {
 		if _, err = os.Stdin.Read(b); err != nil {
 			log.Fatal(err.Error())
 		}
+        
+        // JAYJAY probably should get rid of this and do a readline plus tokenize the line for more complext commands.
 		for i, c := range b {
 			if c <= 32 {
 				b = b[:i]
@@ -179,6 +181,12 @@ func SimControl(listenTo int) {
 				fnodes[listenTo].State.InMsgQueue() <- msg
 				fnodes[listenTo].State.SetOut(true)
 				os.Stderr.WriteString(fmt.Sprintln("Attempting to make", fnodes[listenTo].State.GetFactomNodeName(), "a Leader"))
+// -- add node (and give its connections or topology)
+			case '?', 'H', 'h':
+                fmt.Println("-------------------------------------------------------------------------------")
+                fmt.Println("+ / ENTER      Silence")
+                fmt.Println("s              Make focused node Leader")
+
 			default:
 			}
 		}

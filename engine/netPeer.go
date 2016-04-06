@@ -183,11 +183,13 @@ func (f *NetPeer) Recieve() (interfaces.IMsg, error) {
 	var data []byte
 	var err error
 	if data, err = f.Socket.Recv(); err != nil {
-		fmt.Printf("netPeer.Recieve error from f.Socket.Recv(data) for:\n %+v\n\n", string(data))
+		fmt.Printf("netPeer.Recieve error from f.Socket.Recv(data) for:\n %+v\n\n", err)
 	}
 
 	if len(data) > 0 {
 		msg, err := messages.UnmarshalMessage(data)
+        fmt.Printf("netPeer.Recieve $$$$$$$$$$$$ GOT MESSAGE:\n %+v\n\n", msg)
+
 		return msg, err
 	}
 	return nil, nil
