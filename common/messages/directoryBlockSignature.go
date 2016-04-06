@@ -71,6 +71,21 @@ func (m *DirectoryBlockSignature) Bytes() []byte {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
+	found, serverIndex := state.GetFedServerIndexFor(m.DBHeight, m.ServerIdentityChainID)
+	if !found || serverIndex != int(m.ServerIndex) {
+		// if the DBS message did not originate from a Federated server
+		// or if it originated from the wrong server
+		// the message is considered invalid
+		return -1
+	}
+	isVer, err := m.VerifySignature()
+	if err != nil || !isVer {
+		// if there is an error during signature verification
+		// or if the signature is invalid
+		// the message is considered invalid
+		return -1
+	}
+
 	return 1
 }
 
