@@ -465,11 +465,19 @@ func UnmarshalRespDirectly(context *web.Context, dst interface{}) {
 
 func GetRespText(context *web.Context) string {
 	unmarshalled := GetRespMap(context)
-	marshalled, err := json.Marshal(unmarshalled["Response"])
-	if err != nil {
-		panic(err)
+	if unmarshalled["Response"] != nil {
+		marshalled, err := json.Marshal(unmarshalled["Response"])
+		if err != nil {
+			panic(err)
+		}
+		return string(marshalled)
+	} else {
+		marshalled, err := json.Marshal(unmarshalled)
+		if err != nil {
+			panic(err)
+		}
+		return string(marshalled)
 	}
-	return string(marshalled)
 }
 
 func clearContextResponseWriter(context *web.Context) {
