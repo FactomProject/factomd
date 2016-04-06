@@ -223,7 +223,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		}
 
 		found, index := s.GetFedServerIndex(s.LLeaderHeight)
-		if found && e.ServerIndex == index {
+		if found && e.ServerIndex == index  && !pl.Complete(){
 			dbstate := s.DBStates.Get(dbheight)
 			DBS := messages.NewDirectoryBlockSignature(dbheight)
 			DBS.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()

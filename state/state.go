@@ -441,6 +441,10 @@ func (s *State) GetIdentityChainID() interfaces.IHash {
 	return s.IdentityChainID
 }
 
+func (s *State) SetIdentityChainID(chainID interfaces.IHash) {
+	s.IdentityChainID = chainID
+}
+
 func (s *State) GetCoreChainID() interfaces.IHash {
 	return s.CoreChainID
 }

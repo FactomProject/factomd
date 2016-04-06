@@ -136,7 +136,7 @@ func SimControl(listenTo int) {
 					}
 				}
 			case 'D':
-				mLog.all = false
+				mLog.all = true
 				os.Stderr.WriteString("Dump all messages\n")
 				for _, fnode := range fnodes {
 					fnode.State.SetOut(true)
@@ -147,29 +147,7 @@ func SimControl(listenTo int) {
 					fnode.State.SetOut(false)
 				}
 				fnodes[listenTo].State.SetOut(true)
-				mLog.all = true
-			case 27:
 				mLog.all = false
-				os.Stderr.WriteString((fmt.Sprint("Gracefully shutting down the servers...\r\n")))
-				for _, fnode := range fnodes {
-					os.Stderr.WriteString(fmt.Sprint("Shutting Down: ", fnode.State.FactomNodeName, "\r\n"))
-					fnode.State.ShutdownChan <- 0
-				}
-				os.Stderr.WriteString("Waiting...\r\n")
-				time.Sleep(time.Duration(len(fnodes)/8+1) * time.Second)
-				fmt.Println()
-				os.Exit(0)
-			case 32:
-				mLog.all = false
-				fnodes[listenTo].State.SetOut(false)
-				listenTo++
-				if listenTo >= len(fnodes) {
-					listenTo = 0
-				}
-				fnodes[listenTo].State.SetOut(true)
-				os.Stderr.WriteString("Print all messages\n")
-				os.Stderr.WriteString(fmt.Sprint("\r\nSwitching to Node ", listenTo, "\r\n"))
-				wsapi.SetState(fnodes[listenTo].State)
 			case 's', 'S':
 				for _, fnode := range fnodes {
 					fnode.State.SetOut(false)

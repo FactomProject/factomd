@@ -22,6 +22,7 @@ type IState interface {
 	String() string
 	GetCoreChainID() IHash
 	GetIdentityChainID() IHash
+	SetIdentityChainID(IHash)
 	Sign([]byte) IFullSignature
 	GetDirectoryBlockInSeconds() int
 	GetServer() IServer
