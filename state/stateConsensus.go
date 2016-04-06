@@ -238,8 +238,8 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			// Leader Execute creates an acknowledgement and the EOM
 			s.NetworkOutMsgQueue() <- ack
 			s.NetworkOutMsgQueue() <- DBS
-			s.InMsgQueue() <- ack
-			s.InMsgQueue() <- DBS
+			ack.FollowerExecute(s)
+			DBS.FollowerExecute(s)
 		}
 	}
 

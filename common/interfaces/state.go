@@ -132,4 +132,6 @@ type IState interface {
 	PrintType(int) bool // Debugging
 	Print(a ...interface{}) (n int, err error)
 	Println(a ...interface{}) (n int, err error)
+
+	ValidatorLoop()
 }

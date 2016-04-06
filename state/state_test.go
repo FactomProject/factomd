@@ -21,7 +21,7 @@ func TestInit(t *testing.T) {
 func TestDirBlockHead(t *testing.T) {
 	state := testHelper.CreateAndPopulateTestState()
 	height := state.GetHighestRecordedBlock()
-	if height != 10 {
+	if height != 9 {
 		t.Errorf("Invalid DBLock Height - got %v, expected 10", height)
 	}
 	d := state.GetDirectoryBlockByHeight(height)
