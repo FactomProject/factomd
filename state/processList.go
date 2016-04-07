@@ -225,7 +225,7 @@ func (p *ProcessList) Process(state *State) {
 			return
 		}
 		lht := last.DirectoryBlock.GetHeader().GetDBHeight()
-		if last.Saved && lht == p.DBHeight-1 {
+		if last.Saved && lht >= p.DBHeight-1 {
 			p.good = true
 		} else {
 			//fmt.Println("ht/lht: ", p.DBHeight, " ", lht, " ", last.Saved)

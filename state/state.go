@@ -414,8 +414,7 @@ func (s *State) GetDirectoryBlockByHeight(height uint32) interfaces.IDirectoryBl
 }
 
 func (s *State) UpdateState() {
-
-	s.ProcessLists.UpdateState()
+    s.ProcessLists.UpdateState()
 	s.DBStates.UpdateState()
 
 	if s.GetOut() {
