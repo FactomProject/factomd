@@ -246,30 +246,30 @@ func (p *ProcessList) Process(state *State) {
 
 			if oldAck, ok := p.OldAcks[plist[j].GetHash().Fixed()]; ok {
 				if thisAck, ok := oldAck.(*messages.Ack); ok {
-					if thisAck.GetOrigin() != i {
-						// if the acknowledgement didn't originate on this server
-						// it may be invalid
-						var expectedSerialHash interfaces.IHash
-						var err error
-						last, ok := p.GetLastAck(i).(*messages.Ack)
-						if !ok {
-							expectedSerialHash = thisAck.MessageHash
-						} else {
-							expectedSerialHash, err = primitives.CreateHash(last.MessageHash, thisAck.MessageHash)
-							if err != nil {
-								// cannot create a expectedSerialHash to compare to
-								plist[j] = nil
-								return
-							}
-						}
-						// compare the SerialHash of this acknowledgement with the
-						// expected serialHash (generated above)
-						if !expectedSerialHash.IsSameAs(thisAck.SerialHash) {
-							// the SerialHash of this acknowledgment is incorrect
-							// according to this node's processList
+					var expectedSerialHash interfaces.IHash
+					var err error
+					last, ok := p.GetLastAck(i).(*messages.Ack)
+					if !ok || last.IsSameAs(thisAck) {
+						expectedSerialHash = thisAck.SerialHash
+					} else {
+						expectedSerialHash, err = primitives.CreateHash(last.MessageHash, thisAck.MessageHash)
+						if err != nil {
+							// cannot create a expectedSerialHash to compare to
 							plist[j] = nil
 							return
 						}
+					}
+					// compare the SerialHash of this acknowledgement with the
+					// expected serialHash (generated above)
+					if !expectedSerialHash.IsSameAs(thisAck.SerialHash) {
+						fmt.Println("DISCREPANCY: ", i, j)
+						fmt.Printf("LAST MESS: %+v ::: LAST SERIAL: %+v\n", last.MessageHash, last.SerialHash)
+						fmt.Printf("THIS MESS: %+v ::: THIS SERIAL: %+v\n", thisAck.MessageHash, thisAck.SerialHash)
+						fmt.Println("EXPECT: ", expectedSerialHash)
+						// the SerialHash of this acknowledgment is incorrect
+						// according to this node's processList
+						plist[j] = nil
+						return
 					}
 					p.SetLastAck(i, thisAck)
 				} else {
