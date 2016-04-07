@@ -25,6 +25,9 @@ func (state *State) ValidatorLoop() {
         var msg interfaces.IMsg
         loop: for {
             state.UpdateState()
+            state.UpdateState()
+            state.UpdateState()
+            state.UpdateState()
             select {
                 case msg = <-state.InMsgQueue(): // Get message from the input queue
                     state.JournalMessage(msg)

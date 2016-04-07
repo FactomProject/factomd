@@ -58,12 +58,13 @@ func LoadJournal(s interfaces.IState, journal string) {
 
 		s.InMsgQueue() <- msg
         i++
-        if len(s.InMsgQueue())>20 {
-            for len(s.InMsgQueue())>10 {
+        if len(s.InMsgQueue())>200 {
+            for len(s.InMsgQueue())>50 {
                 time.Sleep(time.Millisecond*10)
             }       
             time.Sleep(time.Millisecond*100)
         }
+        time.Sleep(time.Millisecond*50)
 	}
 
 }
