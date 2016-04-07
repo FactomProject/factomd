@@ -7,11 +7,12 @@ package engine
 import (
 	"flag"
 	"fmt"
+	"os"
+	"time"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/util"
-	"os"
-	"time"
 )
 
 var _ = fmt.Print
@@ -25,6 +26,15 @@ type FactomNode struct {
 var fnodes []*FactomNode
 var mLog = new(MsgLog)
 
+// Enum for node types
+const ( // iota is reset to 0
+	cSimStyle      = iota
+	cTCPStyle      = iota
+	cEthereumStyle = iota
+)
+
+var nodeStyle = cSimStyle
+
 func NetStart(s *state.State) {
 
 	listenToPtr := flag.Int("node", 0, "Node Number the simulator will set as the focus")
@@ -32,7 +42,7 @@ func NetStart(s *state.State) {
 	netPtr := flag.String("net", "tree", "The default algorithm to build the network connections")
 	journalPtr := flag.String("journal", "", "Rerun a Journal of messages")
 	followerPtr := flag.Bool("follower", false, "If true, force node to be a follower.  Only used when replaying a journal.")
-	tcpPtr := flag.Bool("tcp", false, "If true, use TCP connections (eg: netPeer vs SimPeer).  Defaults to SimPeer.")
+	stylePtr := flag.String("style", "sim", "sim, tcp, ether - chooses the node/network style.")
 	dbPtr := flag.String("db", "", "Override the Database in the Config file and use this Database implementation")
 
 	flag.Parse()
@@ -43,7 +53,7 @@ func NetStart(s *state.State) {
 	journal := *journalPtr
 	follower := *followerPtr
 	db := *dbPtr
-	tcp := *tcpPtr
+	style := *stylePtr
 
 	os.Stderr.WriteString(fmt.Sprintf("node     %d\n", listenTo))
 	os.Stderr.WriteString(fmt.Sprintf("count    %d\n", cnt))
@@ -51,7 +61,23 @@ func NetStart(s *state.State) {
 	os.Stderr.WriteString(fmt.Sprintf("journal  \"%s\"\n", journal))
 	os.Stderr.WriteString(fmt.Sprintf("follower \"%v\"\n", follower))
 	os.Stderr.WriteString(fmt.Sprintf("db       \"%s\"\n", db))
-	os.Stderr.WriteString(fmt.Sprintf("tcp \"%v\"\n", tcp))
+	os.Stderr.WriteString(fmt.Sprintf("style \"%v\"\n", style))
+
+	switch style {
+	case "sim":
+		nodeStyle = cSimStyle
+		os.Stderr.WriteString(fmt.Sprintf("style \"Sim Style\"\n"))
+
+	case "tcp":
+		nodeStyle = cTCPStyle
+		os.Stderr.WriteString(fmt.Sprintf("style \"TCP Style\"\n"))
+	case "ether":
+		nodeStyle = cEthereumStyle
+		os.Stderr.WriteString(fmt.Sprintf("style \"Ether Style\"\n"))
+	default:
+		nodeStyle = cSimStyle
+		os.Stderr.WriteString(fmt.Sprintf("style \"Sim Style\"\n"))
+	}
 
 	if journal != "" {
 		cnt = 1
@@ -179,13 +205,16 @@ func NetStart(s *state.State) {
 // way to do  this using a closure or maybe a superclass function (but go isn't
 // "OO" so this isn't obvious to me.  This hack works for now.)
 func AddPeer(tcp bool, fnodes []*FactomNode, i1 int, i2 int) {
-	// tcp contains the command line flag indicating if this is a netPeer (vs SimPeer)
-	if tcp {
+	switch nodeStyle {
+	case cSimStyle:
+		AddSimPeer(fnodes, i1, i2)
+	case cTCPStyle:
 		AddNetPeer(fnodes, i1, i2)
-	} else {
+	case cEthereumStyle:
+		AddNetPeer(fnodes, i1, i2)
+	default:
 		AddSimPeer(fnodes, i1, i2)
 	}
-
 }
 
 //**********************************************************************
