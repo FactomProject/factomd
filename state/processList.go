@@ -8,6 +8,7 @@ import (
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/common/primitives"
 	"log"
 )
 
@@ -224,7 +225,7 @@ func (p *ProcessList) Process(state *State) {
 			return
 		}
 		lht := last.DirectoryBlock.GetHeader().GetDBHeight()
-		if last.Saved && lht == p.DBHeight-1 {
+		if last.Saved && lht >= p.DBHeight-1 {
 			p.good = true
 		} else {
 			//fmt.Println("ht/lht: ", p.DBHeight, " ", lht, " ", last.Saved)
@@ -240,6 +241,46 @@ func (p *ProcessList) Process(state *State) {
 		for j := p.Servers[i].Height; j < len(plist); j++ {
 			if plist[j] == nil {
 				p.State.Println("!!!!!!! Missing entry in process list at", j)
+				return
+			}
+
+			if oldAck, ok := p.OldAcks[plist[j].GetHash().Fixed()]; ok {
+				if thisAck, ok := oldAck.(*messages.Ack); ok {
+					var expectedSerialHash interfaces.IHash
+					var err error
+					last, ok := p.GetLastAck(i).(*messages.Ack)
+					if !ok || last.IsSameAs(thisAck) {
+						expectedSerialHash = thisAck.SerialHash
+					} else {
+						expectedSerialHash, err = primitives.CreateHash(last.MessageHash, thisAck.MessageHash)
+						if err != nil {
+							// cannot create a expectedSerialHash to compare to
+							plist[j] = nil
+							return
+						}
+					}
+					// compare the SerialHash of this acknowledgement with the
+					// expected serialHash (generated above)
+					if !expectedSerialHash.IsSameAs(thisAck.SerialHash) {
+						fmt.Println("DISCREPANCY: ", i, j)
+						fmt.Printf("LAST MESS: %+v ::: LAST SERIAL: %+v\n", last.MessageHash, last.SerialHash)
+						fmt.Printf("THIS MESS: %+v ::: THIS SERIAL: %+v\n", thisAck.MessageHash, thisAck.SerialHash)
+						fmt.Println("EXPECT: ", expectedSerialHash)
+						// the SerialHash of this acknowledgment is incorrect
+						// according to this node's processList
+						plist[j] = nil
+						return
+					}
+					p.SetLastAck(i, thisAck)
+				} else {
+					// the message from OldAcks is not actually of type Ack
+					plist[j] = nil
+					return
+				}
+			} else {
+				// corresponding acknowledgement not found
+				p.State.Println("!!!!!!! Missing acknowledgement in process list for", j)
+				plist[j] = nil
 				return
 			}
 

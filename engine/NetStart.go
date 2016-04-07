@@ -8,6 +8,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/util"
 	"os"
@@ -32,6 +33,8 @@ func NetStart(s *state.State) {
 	netPtr := flag.String("net", "tree", "The default algorithm to build the network connections")
 	journalPtr := flag.String("journal", "", "Rerun a Journal of messages")
 	followerPtr := flag.Bool("follower", false, "If true, force node to be a follower.  Only used when replaying a journal.")
+	leaderPtr := flag.Bool("leader", true, "If true, force node to be a leader.  Only used when replaying a journal.")
+    tcpPtr := flag.Bool("tcp", false, "If true, use TCP connections (eg: netPeer vs SimPeer).  Defaults to SimPeer.")
 	dbPtr := flag.String("db", "", "Override the Database in the Config file and use this Database implementation")
 
 	flag.Parse()
@@ -41,14 +44,25 @@ func NetStart(s *state.State) {
 	net := *netPtr
 	journal := *journalPtr
 	follower := *followerPtr
+	leader := *leaderPtr
 	db := *dbPtr
+	tcp := *tcpPtr
 
 	os.Stderr.WriteString(fmt.Sprintf("node     %d\n", listenTo))
 	os.Stderr.WriteString(fmt.Sprintf("count    %d\n", cnt))
 	os.Stderr.WriteString(fmt.Sprintf("net      \"%s\"\n", net))
 	os.Stderr.WriteString(fmt.Sprintf("journal  \"%s\"\n", journal))
-	os.Stderr.WriteString(fmt.Sprintf("follower \"%v\"\n", follower))
+    if follower { 
+        os.Stderr.WriteString(fmt.Sprintf("follower \"%v\"\n", follower)) 
+        leader = false
+    }
+	if leader { 
+        os.Stderr.WriteString(fmt.Sprintf("leader \"%v\"\n", leader)) 
+        follower = false
+    }
+    if !follower && !leader { panic("Not a leader or a follower")}
 	os.Stderr.WriteString(fmt.Sprintf("db       \"%s\"\n", db))
+	os.Stderr.WriteString(fmt.Sprintf("tcp \"%v\"\n", tcp))
 
 	if journal != "" {
 		cnt = 1
@@ -81,7 +95,9 @@ func NetStart(s *state.State) {
 		s.DBType = "Map"
 		if follower {
 			s.NodeMode = "FULL"
-		} else {
+            s.SetIdentityChainID(primitives.Sha([]byte("follower")))  // Make sure this node is NOT a leader
+		}
+        if leader {
 			s.NodeMode = "SERVER"
 		}
 	}
@@ -106,18 +122,18 @@ func NetStart(s *state.State) {
 	case "long":
 		fmt.Println("Using long Network")
 		for i := 1; i < cnt; i++ {
-			AddSimPeer(fnodes, i-1, i)
+			AddPeer(tcp, fnodes, i-1, i)
 		}
 	case "loops":
 		fmt.Println("Using loops Network")
 		for i := 1; i < cnt; i++ {
-			AddSimPeer(fnodes, i-1, i)
+			AddPeer(tcp, fnodes, i-1, i)
 		}
 		for i := 0; (i+17)*2 < cnt; i += 17 {
-			AddSimPeer(fnodes, i%cnt, (i+5)%cnt)
+			AddPeer(tcp, fnodes, i%cnt, (i+5)%cnt)
 		}
 		for i := 0; (i+13)*2 < cnt; i += 13 {
-			AddSimPeer(fnodes, i%cnt, (i+7)%cnt)
+			AddPeer(tcp, fnodes, i%cnt, (i+7)%cnt)
 		}
 	case "tree":
 		index := 0
@@ -125,8 +141,8 @@ func NetStart(s *state.State) {
 	treeloop:
 		for i := 0; true; i++ {
 			for j := 0; j <= i; j++ {
-				AddSimPeer(fnodes, index, row)
-				AddSimPeer(fnodes, index, row+1)
+				AddPeer(tcp, fnodes, index, row)
+				AddPeer(tcp, fnodes, index, row+1)
 				row++
 				index++
 				if index >= len(fnodes) {
@@ -139,16 +155,16 @@ func NetStart(s *state.State) {
 		circleSize := 7
 		index := 0
 		for {
-			AddSimPeer(fnodes, index, index+circleSize-1)
+			AddPeer(tcp, fnodes, index, index+circleSize-1)
 			for i := index; i < index+circleSize-1; i++ {
-				AddSimPeer(fnodes, i, i+1)
+				AddPeer(tcp, fnodes, i, i+1)
 			}
 			index += circleSize
 
-			AddSimPeer(fnodes, index, index-circleSize/3)
-			AddSimPeer(fnodes, index+2, index-circleSize-circleSize*2/3-1)
-			AddSimPeer(fnodes, index+3, index-(2*circleSize)-circleSize*2/3)
-			AddSimPeer(fnodes, index+5, index-(3*circleSize)-circleSize*2/3+1)
+			AddPeer(tcp, fnodes, index, index-circleSize/3)
+			AddPeer(tcp, fnodes, index+2, index-circleSize-circleSize*2/3-1)
+			AddPeer(tcp, fnodes, index+3, index-(2*circleSize)-circleSize*2/3)
+			AddPeer(tcp, fnodes, index+5, index-(3*circleSize)-circleSize*2/3+1)
 
 			if index >= len(fnodes) {
 				break
@@ -157,7 +173,7 @@ func NetStart(s *state.State) {
 	default:
 		fmt.Println("Didn't understand network type. Known types: mesh, long, circles, tree, loops.  Using a Long Network")
 		for i := 1; i < cnt; i++ {
-			AddSimPeer(fnodes, i-1, i)
+			AddPeer(tcp, fnodes, i-1, i)
 		}
 
 	}
@@ -169,6 +185,19 @@ func NetStart(s *state.State) {
 	}
 
 	SimControl(listenTo)
+
+}
+
+// AddPeer adds a peer of the indicated type. There's probably a better
+// way to do  this using a closure or maybe a superclass function (but go isn't
+// "OO" so this isn't obvious to me.  This hack works for now.)
+func AddPeer(tcp bool, fnodes []*FactomNode, i1 int, i2 int) {
+	// tcp contains the command line flag indicating if this is a netPeer (vs SimPeer)
+	if tcp {
+		AddNetPeer(fnodes, i1, i2)
+	} else {
+		AddSimPeer(fnodes, i1, i2)
+	}
 
 }
 
@@ -205,6 +234,6 @@ func startServers(load bool) {
 			go state.LoadDatabase(fnode.State)
 		}
 		go Timer(fnode.State)
-		go Validator(fnode.State)
+		go fnode.State.ValidatorLoop()
 	}
 }

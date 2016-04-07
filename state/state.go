@@ -414,8 +414,7 @@ func (s *State) GetDirectoryBlockByHeight(height uint32) interfaces.IDirectoryBl
 }
 
 func (s *State) UpdateState() {
-
-	s.ProcessLists.UpdateState()
+    s.ProcessLists.UpdateState()
 	s.DBStates.UpdateState()
 
 	if s.GetOut() {
@@ -439,6 +438,10 @@ func (s *State) SetFactoshisPerEC(factoshisPerEC uint64) {
 
 func (s *State) GetIdentityChainID() interfaces.IHash {
 	return s.IdentityChainID
+}
+
+func (s *State) SetIdentityChainID(chainID interfaces.IHash) {
+	s.IdentityChainID = chainID
 }
 
 func (s *State) GetCoreChainID() interfaces.IHash {

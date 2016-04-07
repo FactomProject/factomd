@@ -235,10 +235,11 @@ func TestHandleEntryBlock(t *testing.T) {
 
 		eBlock := new(EBlock)
 
-		UnmarshalResp(context, eBlock)
+		UnmarshalRespDirectly(context, eBlock)
 
 		if eBlock.Header.ChainID != "df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604" {
 			t.Errorf("Wrong ChainID - %v", eBlock.Header.ChainID)
+			t.Errorf("eBlock - %v", eBlock)
 			t.Errorf("%v", GetBody(context))
 		}
 
@@ -251,7 +252,7 @@ func TestHandleEntryBlock(t *testing.T) {
 
 		eBlock = new(EBlock)
 
-		UnmarshalResp(context, eBlock)
+		UnmarshalRespDirectly(context, eBlock)
 
 		if eBlock.Header.ChainID != "df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604" {
 			t.Errorf("Wrong ChainID - %v", eBlock.Header.ChainID)
@@ -347,7 +348,7 @@ func TestHandleFactoidBalance(t *testing.T) {
 	HandleFactoidBalance(context, eckey)
 
 	//expectedAmount := fmt.Sprintf("%v", uint64(testHelper.BlockCount)*testHelper.DefaultCoinbaseAmount)
-	expectedAmount := "999889000"
+	expectedAmount := "1099877900"
 	if strings.Contains(GetBody(context), expectedAmount) == false {
 		t.Errorf("%v", GetBody(context))
 	}
@@ -409,8 +410,7 @@ func TestHandleGetReceipt(t *testing.T) {
 
 	dbo := context.Server.Env["state"].(interfaces.IState).GetDB()
 
-	resp := j["Response"].(map[string]interface{})
-	receipt := resp["Receipt"].(map[string]interface{})
+	receipt := j["Receipt"].(map[string]interface{})
 	marshalled, err := json.Marshal(receipt)
 	if err != nil {
 		t.Error(err)
@@ -453,13 +453,31 @@ func UnmarshalResp(context *web.Context, dst interface{}) {
 	}
 }
 
-func GetRespText(context *web.Context) string {
-	unmarshalled := GetRespMap(context)
-	marshalled, err := json.Marshal(unmarshalled["Response"])
+func UnmarshalRespDirectly(context *web.Context, dst interface{}) {
+	j := GetBody(context)
+
+	err := json.Unmarshal([]byte(j), dst)
 	if err != nil {
+		fmt.Printf("body - %v\n", j)
 		panic(err)
 	}
-	return string(marshalled)
+}
+
+func GetRespText(context *web.Context) string {
+	unmarshalled := GetRespMap(context)
+	if unmarshalled["Response"] != nil {
+		marshalled, err := json.Marshal(unmarshalled["Response"])
+		if err != nil {
+			panic(err)
+		}
+		return string(marshalled)
+	} else {
+		marshalled, err := json.Marshal(unmarshalled)
+		if err != nil {
+			panic(err)
+		}
+		return string(marshalled)
+	}
 }
 
 func clearContextResponseWriter(context *web.Context) {
