@@ -6,6 +6,7 @@ package state
 
 import (
 	"fmt"
+    "time"
 	"github.com/FactomProject/factomd/common/interfaces"
 )
 
@@ -20,15 +21,24 @@ func (state *State) ValidatorLoop() {
 			return
 		default:
 		}
+        
+        var msg interfaces.IMsg
+        loop: for {
+            state.UpdateState()
+            select {
+                case msg = <-state.InMsgQueue(): // Get message from the input queue
+                    state.JournalMessage(msg)
 
-		msg := <-state.InMsgQueue() // Get message from the input queue
-		state.JournalMessage(msg)
-
-		if state.PrintType(msg.Type()) {
-			state.Println(fmt.Sprintf("%20s %s", "Validator:", msg.String()))
-		}
-
-		switch msg.Validate(state) { // Validate the message.
+                    if state.PrintType(msg.Type()) {
+                        state.Println(fmt.Sprintf("%20s %s", "Validator:", msg.String()))
+                    }
+                    break loop
+                default:
+                    time.Sleep(time.Millisecond*100)
+            }
+        }
+		
+        switch msg.Validate(state) { // Validate the message.
 		case 1: // Process if valid
 
 			if !msg.IsPeer2peer() {
@@ -43,13 +53,11 @@ func (state *State) ValidatorLoop() {
 					state.Println(fmt.Sprintf("%20s %s\n", "Leader:", msg.String()))
 				}
 				msg.LeaderExecute(state)
-				state.UpdateState()
 			} else if msg.Follower(state) {
 				if state.PrintType(msg.Type()) {
 					state.Println(fmt.Sprintf("%20s %s\n", "Follower:", msg.String()))
 				}
 				msg.FollowerExecute(state)
-				state.UpdateState()
 			} else {
 				state.Print(" Message ignored\n")
 			}
