@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/log"
@@ -38,7 +39,11 @@ func SimControl(listenTo int) {
 		// 		break
 		// 	}
 		// }
-		cmd := strings.Split(string(l), " ")
+		parseFunc := func(c rune) bool {
+			return !unicode.IsLetter(c) && !unicode.IsNumber(c) && !unicode.IsPunct(c)
+		}
+
+		cmd := strings.FieldsFunc(string(l), parseFunc)
 		if 0 == len(cmd) {
 			cmd = []string{"+"}
 		}
@@ -52,7 +57,7 @@ func SimControl(listenTo int) {
 			fmt.Print("\r\nSwitching to Node ", listenTo, "\r\n")
 			wsapi.SetState(fnodes[listenTo].State)
 		} else {
-			fmt.Printf("Parsing command, first element is: %+v / %s \n Full command: %+v", b[0], string(b), cmd)
+			fmt.Printf("Parsing command, found %d elements.  The first element is: %+v / %s \n Full command: %+v\n", len(cmd), b[0], string(b), cmd)
 			switch {
 			case '+' == b[0]:
 				mLog.all = false
@@ -61,7 +66,7 @@ func SimControl(listenTo int) {
 					f.State.SetOut(false)
 					fmt.Printf("%8s %s\n", f.State.FactomNodeName, f.State.ShortString())
 				}
-			case 'a' == b[0], 'A' == b[0]:
+			case 0 == strings.Compare(strings.ToLower(string(b)), "a"):
 				mLog.all = false
 				for _, fnode := range fnodes {
 					fnode.State.SetOut(false)
@@ -88,7 +93,7 @@ func SimControl(listenTo int) {
 						fmt.Println("Error: ", err, msg)
 					}
 				}
-			case 'f' == b[0], 'F' == b[0]:
+			case 0 == strings.Compare(strings.ToLower(string(b)), "f"):
 				mLog.all = false
 				for _, fnode := range fnodes {
 					fnode.State.SetOut(false)
@@ -148,7 +153,7 @@ func SimControl(listenTo int) {
 				for _, fnode := range fnodes {
 					fnode.State.SetOut(true)
 				}
-			case 'm' == b[0], 'M' == b[0]:
+			case 0 == strings.Compare(strings.ToLower(string(b)), "m"):
 				os.Stderr.WriteString(fmt.Sprintf("Print all messages for node: %d\n", listenTo))
 				for _, fnode := range fnodes {
 					fnode.State.SetOut(false)
@@ -166,7 +171,7 @@ func SimControl(listenTo int) {
 				os.Stderr.WriteString("Print all messages\n")
 				os.Stderr.WriteString(fmt.Sprint("\r\nSwitching to Node ", listenTo, "\r\n"))
 				wsapi.SetState(fnodes[listenTo].State)
-			case 's' == b[0], 'S' == b[0]:
+			case 0 == strings.Compare(strings.ToLower(string(b)), "s"):
 				for _, fnode := range fnodes {
 					fnode.State.SetOut(false)
 				}
@@ -179,14 +184,17 @@ func SimControl(listenTo int) {
 				i1, err1 := strconv.Atoi(string(cmd[1]))
 				i2, err2 := strconv.Atoi(string(cmd[2]))
 				if 0 > i1 || 0 > i2 || len(fnodes) < i1 || len(fnodes) < i2 || nil != err1 || nil != err2 {
-					os.Stderr.WriteString(fmt.Sprintf("Error creating net peer.  either i1: %d or i2: %d is out of range: 0 - %d or it was due to error1:\n %+v \n or error 2:\n %+v\n", i1, i2, len(fnodes), err1, err2))
+					os.Stderr.WriteString(fmt.Sprintf("Error creating net peer.  either i1: %d or i2: %d is out of range: 0 - %d or it was \ndue to error1:\n %+v \n or error 2:\n %+v\n", i1, i2, len(fnodes), err1, err2))
 					continue
 				}
 				fmt.Printf("Adding netpeer between: %d, and %d", i1, i2)
 				AddPeer(nodeStyle, fnodes, i1, i2)
 			case 0 == strings.Compare(strings.ToLower(string(b)), "serve"):
+				fmt.Println("--------------RemoteServe")
+
 				RemoteServe(fnodes)
 			case 0 == strings.Compare(strings.ToLower(string(b)), "connect"):
+				fmt.Println("--------------RemoteConnect")
 				RemoteConnect(fnodes, cmd[1])
 			case '?' == b[0], 'H' == b[0], 'h' == b[0]:
 				fmt.Println("-------------------------------------------------------------------------------")

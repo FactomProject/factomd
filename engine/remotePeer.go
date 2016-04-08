@@ -57,14 +57,22 @@ func (f *RemotePeer) Connect(connectionType int, address string) error {
 	case server:
 		if err = f.Socket.Listen(address); err != nil {
 			fmt.Printf("netPeer.Connect error from pair.Listen() for %s :\n %+v\n\n", address, err)
+		} else {
+			fmt.Printf("netPeer.Connect LISTENING ON for %s :\n", address)
 		}
 
 	case client:
 		if err = f.Socket.Dial(address); err != nil {
 			fmt.Printf("netPeer.Connect error from pair.Dial() for %s :\n %+v\n\n", address, err)
+		} else {
+			fmt.Printf("netPeer.Connect DIALED IN for %s :\n", address)
 		}
 	}
-	f.Socket.SetOption(mangos.OptionRecvDeadline, 100*time.Millisecond)
+	// 100ms Timeout
+	// f.Socket.SetOption(mangos.OptionRecvDeadline, 100*time.Millisecond)
+	// Minimal blocking
+	f.Socket.SetOption(mangos.OptionRecvDeadline, 1*time.Millisecond)
+
 	return err
 }
 
@@ -94,8 +102,9 @@ func RemoteServe(fnodes []*FactomNode) {
 	ServePort += 1
 
 	peer := new(RemotePeer).Init(f1.State.FactomNodeName, address).(*RemotePeer)
-	peer.Connect(server, address)
-	f1.Peers = append(f1.Peers, peer)
+	if err := peer.Connect(server, address); nil == err {
+		f1.Peers = append(f1.Peers, peer)
+	}
 	for _, p := range f1.Peers {
 		fmt.Printf("%s's peer: %s\n", p.GetNameFrom(), p.GetNameTo())
 	}
@@ -109,8 +118,9 @@ func RemoteConnect(fnodes []*FactomNode, address string) {
 	fmt.Printf("RemotePeer.RemoteConnect connecting to address: %s\n(should be in form of http://127.0.0.1:1234)\n", address)
 
 	peer := new(RemotePeer).Init(f1.State.FactomNodeName, address).(*RemotePeer)
-	peer.Connect(client, address)
-	f1.Peers = append(f1.Peers, peer)
+	if err := peer.Connect(client, address); nil == err {
+		f1.Peers = append(f1.Peers, peer)
+	}
 	for _, p := range f1.Peers {
 		fmt.Printf("%s's peer: %s\n", p.GetNameFrom(), p.GetNameTo())
 	}
@@ -124,7 +134,7 @@ func (f *RemotePeer) GetNameTo() string {
 }
 
 func (f *RemotePeer) Send(msg interfaces.IMsg) error {
-	fmt.Printf("RemotePeer.Send for:\n %+v\n\n", msg)
+	// fmt.Printf("RemotePeer.Send for:\n %+v\n\n", msg)
 
 	data, err := msg.MarshalBinary()
 	if err != nil {
@@ -141,16 +151,15 @@ func (f *RemotePeer) Send(msg interfaces.IMsg) error {
 func (f *RemotePeer) Recieve() (interfaces.IMsg, error) {
 	var data []byte
 	var err error
-	if data, err = f.Socket.Recv(); err != nil {
-		fmt.Printf("RemotePeer.Recieve error from f.Socket.Recv(data) for:\n %+v\n\n", err)
+	if data, err = f.Socket.Recv(); err == nil {
+		if len(data) > 0 {
+			msg, err := messages.UnmarshalMessage(data)
+			// fmt.Printf("RemotePeer.Recieve $$$$$$$$$$$$ GOT MESSAGE:\n %+v\n\n", msg)
+
+			return msg, err
+		}
 	}
 
-	if len(data) > 0 {
-		msg, err := messages.UnmarshalMessage(data)
-		fmt.Printf("RemotePeer.Recieve $$$$$$$$$$$$ GOT MESSAGE:\n %+v\n\n", msg)
-
-		return msg, err
-	}
 	return nil, nil
 }
 

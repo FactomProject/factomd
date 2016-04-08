@@ -56,14 +56,22 @@ func (f *NetPeer) Connect(connectionType int, address string) error {
 	case server:
 		if err = f.Socket.Listen(address); err != nil {
 			fmt.Printf("netPeer.Connect error from pair.Listen() for %s :\n %+v\n\n", address, err)
+		} else {
+			fmt.Printf("netPeer.Connect LISTENING ON for %s :\n", address)
 		}
 
 	case client:
 		if err = f.Socket.Dial(address); err != nil {
 			fmt.Printf("netPeer.Connect error from pair.Dial() for %s :\n %+v\n\n", address, err)
+		} else {
+			fmt.Printf("netPeer.Connect DIALED IN for %s :\n", address)
 		}
 	}
-	f.Socket.SetOption(mangos.OptionRecvDeadline, 100*time.Millisecond)
+	// 100ms Timeout
+	// f.Socket.SetOption(mangos.OptionRecvDeadline, 100*time.Millisecond)
+	// Minimal blocking
+	f.Socket.SetOption(mangos.OptionRecvDeadline, 1*time.Millisecond)
+
 	return err
 }
 
@@ -165,7 +173,7 @@ func (f *NetPeer) GetNameTo() string {
 }
 
 func (f *NetPeer) Send(msg interfaces.IMsg) error {
-	fmt.Printf("netPeer.Send for:\n %+v\n\n", msg)
+	// fmt.Printf("netPeer.Send: %+v\n", msg)
 
 	data, err := msg.MarshalBinary()
 	if err != nil {
@@ -182,16 +190,15 @@ func (f *NetPeer) Send(msg interfaces.IMsg) error {
 func (f *NetPeer) Recieve() (interfaces.IMsg, error) {
 	var data []byte
 	var err error
-	if data, err = f.Socket.Recv(); err != nil {
-		fmt.Printf("netPeer.Recieve error from f.Socket.Recv(data) for:\n %+v\n\n", err)
+	if data, err = f.Socket.Recv(); err == nil {
+		if len(data) > 0 {
+			msg, err := messages.UnmarshalMessage(data)
+			// fmt.Printf("netPeer.Recieve $$$$$$$$$$$$ GOT MESSAGE:\n %+v\n\n", msg)
+
+			return msg, err
+		}
 	}
 
-	if len(data) > 0 {
-		msg, err := messages.UnmarshalMessage(data)
-        fmt.Printf("netPeer.Recieve $$$$$$$$$$$$ GOT MESSAGE:\n %+v\n\n", msg)
-
-		return msg, err
-	}
 	return nil, nil
 }
 

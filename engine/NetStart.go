@@ -61,7 +61,6 @@ func NetStart(s *state.State) {
 	os.Stderr.WriteString(fmt.Sprintf("journal  \"%s\"\n", journal))
 	os.Stderr.WriteString(fmt.Sprintf("follower \"%v\"\n", follower))
 	os.Stderr.WriteString(fmt.Sprintf("db       \"%s\"\n", db))
-	os.Stderr.WriteString(fmt.Sprintf("style \"%v\"\n", style))
 
 	switch style {
 	case "sim":
