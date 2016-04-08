@@ -33,6 +33,7 @@ type IState interface {
 	SetOut(bool)  // Output is turned on if set to true
 	GetOut() bool // Return true if Print or Println write output
 	LoadDBState(dbheight uint32) (IMsg, error)
+	LoadSpecificMsg(dbheight uint32, plistheight uint32) (IMsg, error)
 	GetFedServerIndexFor(uint32, IHash) (bool, int)
 	GetFedServerIndex(uint32) (bool, int)
 	SetString()

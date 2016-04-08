@@ -240,6 +240,11 @@ func (p *ProcessList) Process(state *State) {
 
 		for j := p.Servers[i].Height; j < len(plist); j++ {
 			if plist[j] == nil {
+				//TODO: issue missingMsg request
+				/*missingMsgRequest := messages.NewMissingMsg(list.State, p.DBHeight, uint32(j))
+				  if missingMsgRequest != nil {
+				      list.State.NetworkOutMsgQueue() <- missingMsgRequest
+				  }*/
 				p.State.Println("!!!!!!! Missing entry in process list at", j)
 				return
 			}
