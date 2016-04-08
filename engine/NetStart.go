@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/util"
 )
@@ -107,12 +108,15 @@ func NetStart(s *state.State) {
 	s.LoadConfig(FactomConfigFilename)
 	if journal != "" {
 		s.DBType = "Map"
-		if follower {
-			s.NodeMode = "FULL"
-		} else {
-			s.NodeMode = "SERVER"
-		}
-	}
+    }
+    
+    if follower {
+        s.NodeMode = "FULL"
+        s.IdentityChainID = primitives.Sha([]byte(time.Now().String()))  
+    } else {
+        s.NodeMode = "SERVER"
+    }
+	
 	if len(db) > 0 {
 		s.DBType = db
 	}
