@@ -122,6 +122,10 @@ type State struct {
 	FactoshisPerEC uint64
 	// Web Services
 	Port int
+
+	//For Replay / journal
+	IsReplaying     bool
+	ReplayTimestamp interfaces.Timestamp
 }
 
 var _ interfaces.IState = (*State)(nil)
@@ -414,7 +418,7 @@ func (s *State) GetDirectoryBlockByHeight(height uint32) interfaces.IDirectoryBl
 }
 
 func (s *State) UpdateState() {
-    s.ProcessLists.UpdateState()
+	s.ProcessLists.UpdateState()
 	s.DBStates.UpdateState()
 
 	if s.GetOut() {
@@ -500,7 +504,19 @@ func (s *State) GetFedServerFaults() [][]interfaces.IMsg {
 	return s.FedServerFaults
 }
 
+func (s *State) SetIsReplaying() {
+	s.IsReplaying = true
+}
+
+func (s *State) SetIsDoneReplaying() {
+	s.IsReplaying = false
+	s.ReplayTimestamp = 0
+}
+
 func (s *State) GetTimestamp() interfaces.Timestamp {
+	if s.IsReplaying == true {
+		return s.ReplayTimestamp
+	}
 	return *interfaces.NewTimeStampNow()
 }
 

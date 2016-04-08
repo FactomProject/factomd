@@ -102,7 +102,6 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) error {
 	}
 
 	s.DBStates.LastTime = s.GetTimestamp()
-
 	//	fmt.Println("DBState Message  ")
 	s.AddDBState(true,
 		dbstatemsg.DirectoryBlock,
@@ -223,7 +222,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		}
 
 		found, index := s.GetFedServerIndex(s.LLeaderHeight)
-		if found && e.ServerIndex == index  && !pl.Complete(){
+		if found && e.ServerIndex == index && !pl.Complete() {
 			dbstate := s.DBStates.Get(dbheight)
 			DBS := messages.NewDirectoryBlockSignature(dbheight)
 			DBS.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
