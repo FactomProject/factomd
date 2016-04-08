@@ -28,13 +28,19 @@ func (state *State) ValidatorLoop() {
             state.UpdateState()
             state.UpdateState()
             state.UpdateState()
-            select {
-                case msg = <-state.InMsgQueue(): // Get message from the input queue
-                    state.JournalMessage(msg)
+            msgProcess := func() {
+                state.JournalMessage(msg)
 
-                    if state.PrintType(msg.Type()) {
-                        state.Println(fmt.Sprintf("%20s %s", "Validator:", msg.String()))
-                    }
+                if state.PrintType(msg.Type()) {
+                    state.Println(fmt.Sprintf("%20s %s", "Validator:", msg.String()))
+                }
+            }
+            select {
+                case msg = <- state.TimerMsgQueue():
+                    msgProcess()
+                    break loop
+                case msg = <-state.InMsgQueue(): // Get message from the timer or input queue
+                    msgProcess()
                     break loop
                 default:
                     time.Sleep(time.Millisecond*100)
@@ -42,6 +48,7 @@ func (state *State) ValidatorLoop() {
         }
 		
         switch msg.Validate(state) { // Validate the message.
+
 		case 1: // Process if valid
 
 			if !msg.IsPeer2peer() {
