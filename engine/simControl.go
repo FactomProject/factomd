@@ -155,7 +155,7 @@ func SimControl(listenTo int) {
 				}
 				fnodes[listenTo].State.SetOut(true)
 				mLog.all = false
-			case 32:
+			case 32 == b[0]:
 				mLog.all = false
 				fnodes[listenTo].State.SetOut(false)
 				listenTo++
@@ -175,7 +175,7 @@ func SimControl(listenTo int) {
 				fnodes[listenTo].State.InMsgQueue() <- msg
 				fnodes[listenTo].State.SetOut(true)
 				os.Stderr.WriteString(fmt.Sprintln("Attempting to make", fnodes[listenTo].State.GetFactomNodeName(), "a Leader"))
-			case 0 == strings.Compare(strings.ToLower(string(b), "netpeer")):
+			case 0 == strings.Compare(strings.ToLower(string(b)), "netpeer"):
 				i1, err1 := strconv.Atoi(string(cmd[1]))
 				i2, err2 := strconv.Atoi(string(cmd[2]))
 				if 0 > i1 || 0 > i2 || len(fnodes) < i1 || len(fnodes) < i2 || nil != err1 || nil != err2 {
@@ -183,9 +183,11 @@ func SimControl(listenTo int) {
 					continue
 				}
 				fmt.Printf("Adding netpeer between: %d, and %d", i1, i2)
-				AddPeer(i1, i2)
-			case 0 == strings.Compare(strings.ToLower(string(b), "serve")):
-			case 0 == strings.Compare(strings.ToLower(string(b), "connect")):
+				AddPeer(nodeStyle, fnodes, i1, i2)
+			case 0 == strings.Compare(strings.ToLower(string(b)), "serve"):
+				RemoteServe(fnodes)
+			case 0 == strings.Compare(strings.ToLower(string(b)), "connect"):
+				RemoteConnect(fnodes, cmd[1])
 			case '?' == b[0], 'H' == b[0], 'h' == b[0]:
 				fmt.Println("-------------------------------------------------------------------------------")
 				fmt.Println("+ or ENTER    Silence")

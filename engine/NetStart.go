@@ -135,18 +135,18 @@ func NetStart(s *state.State) {
 	case "long":
 		fmt.Println("Using long Network")
 		for i := 1; i < cnt; i++ {
-			AddPeer(tcp, fnodes, i-1, i)
+			AddPeer(nodeStyle, fnodes, i-1, i)
 		}
 	case "loops":
 		fmt.Println("Using loops Network")
 		for i := 1; i < cnt; i++ {
-			AddPeer(tcp, fnodes, i-1, i)
+			AddPeer(nodeStyle, fnodes, i-1, i)
 		}
 		for i := 0; (i+17)*2 < cnt; i += 17 {
-			AddPeer(tcp, fnodes, i%cnt, (i+5)%cnt)
+			AddPeer(nodeStyle, fnodes, i%cnt, (i+5)%cnt)
 		}
 		for i := 0; (i+13)*2 < cnt; i += 13 {
-			AddPeer(tcp, fnodes, i%cnt, (i+7)%cnt)
+			AddPeer(nodeStyle, fnodes, i%cnt, (i+7)%cnt)
 		}
 	case "tree":
 		index := 0
@@ -154,8 +154,8 @@ func NetStart(s *state.State) {
 	treeloop:
 		for i := 0; true; i++ {
 			for j := 0; j <= i; j++ {
-				AddPeer(tcp, fnodes, index, row)
-				AddPeer(tcp, fnodes, index, row+1)
+				AddPeer(nodeStyle, fnodes, index, row)
+				AddPeer(nodeStyle, fnodes, index, row+1)
 				row++
 				index++
 				if index >= len(fnodes) {
@@ -168,16 +168,16 @@ func NetStart(s *state.State) {
 		circleSize := 7
 		index := 0
 		for {
-			AddPeer(tcp, fnodes, index, index+circleSize-1)
+			AddPeer(nodeStyle, fnodes, index, index+circleSize-1)
 			for i := index; i < index+circleSize-1; i++ {
-				AddPeer(tcp, fnodes, i, i+1)
+				AddPeer(nodeStyle, fnodes, i, i+1)
 			}
 			index += circleSize
 
-			AddPeer(tcp, fnodes, index, index-circleSize/3)
-			AddPeer(tcp, fnodes, index+2, index-circleSize-circleSize*2/3-1)
-			AddPeer(tcp, fnodes, index+3, index-(2*circleSize)-circleSize*2/3)
-			AddPeer(tcp, fnodes, index+5, index-(3*circleSize)-circleSize*2/3+1)
+			AddPeer(nodeStyle, fnodes, index, index-circleSize/3)
+			AddPeer(nodeStyle, fnodes, index+2, index-circleSize-circleSize*2/3-1)
+			AddPeer(nodeStyle, fnodes, index+3, index-(2*circleSize)-circleSize*2/3)
+			AddPeer(nodeStyle, fnodes, index+5, index-(3*circleSize)-circleSize*2/3+1)
 
 			if index >= len(fnodes) {
 				break
@@ -186,7 +186,7 @@ func NetStart(s *state.State) {
 	default:
 		fmt.Println("Didn't understand network type. Known types: mesh, long, circles, tree, loops.  Using a Long Network")
 		for i := 1; i < cnt; i++ {
-			AddPeer(tcp, fnodes, i-1, i)
+			AddPeer(nodeStyle, fnodes, i-1, i)
 		}
 
 	}
@@ -204,7 +204,7 @@ func NetStart(s *state.State) {
 // AddPeer adds a peer of the indicated type. There's probably a better
 // way to do  this using a closure or maybe a superclass function (but go isn't
 // "OO" so this isn't obvious to me.  This hack works for now.)
-func AddPeer(tcp bool, fnodes []*FactomNode, i1 int, i2 int) {
+func AddPeer(nodeStyle int, fnodes []*FactomNode, i1 int, i2 int) {
 	switch nodeStyle {
 	case cSimStyle:
 		AddSimPeer(fnodes, i1, i2)

@@ -7,6 +7,7 @@ package engine
 import (
 	"bytes"
 	"fmt"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 )
@@ -43,9 +44,10 @@ func (f *SimPeer) Equals(ff interfaces.IPeer) bool {
 	return false
 }
 
-func (f *SimPeer) Len() int {
-	return len(f.BroadcastIn)
-}
+// This is unused!
+// func (f *SimPeer) Len() int {
+// 	return len(f.BroadcastIn)
+// }
 
 func (f *SimPeer) Init(fromName, toName string) interfaces.IPeer {
 	f.ToName = toName

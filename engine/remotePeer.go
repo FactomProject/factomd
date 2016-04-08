@@ -20,21 +20,22 @@ import (
 var _ = fmt.Print
 
 var (
-	basePort = 9000
+	ServePort = 9000
 )
 
-type NetPeer struct {
+type RemotePeer struct {
 	Socket   mangos.Socket
 	ToName   string
 	FromName string
 }
 
-const ( // iota is reset to 0
-	server = iota // c0 == 0
-	client = iota // c1 == 1
-)
+// These are defined in netPeer:
+// const ( // iota is reset to 0
+// 	server = iota // c0 == 0
+// 	client = iota // c1 == 1
+// )
 
-var _ interfaces.IPeer = (*NetPeer)(nil)
+var _ interfaces.IPeer = (*RemotePeer)(nil)
 
 // I hope this isn't needed.
 // func (f *NetPeer) AddExistingConnection(conn mangos.f.Socketet) {
@@ -42,7 +43,7 @@ var _ interfaces.IPeer = (*NetPeer)(nil)
 // }
 
 // Connect sets us up with a scoket connection, type indicates whether we dial in (as client) or listen (as server). address is the URL.
-func (f *NetPeer) Connect(connectionType int, address string) error {
+func (f *RemotePeer) Connect(connectionType int, address string) error {
 	var err error
 	err = nil
 
@@ -75,97 +76,55 @@ func (f *NetPeer) Connect(connectionType int, address string) error {
 // 	return f.Connect("udp", address)
 // }
 
-func (f *NetPeer) Init(fromName, toName string) interfaces.IPeer {
+func (f *RemotePeer) Init(fromName, toName string) interfaces.IPeer {
 	f.ToName = toName
 	f.FromName = fromName
 	return f
 }
 
-// Setup f.Socketet acceptor on port
-// func Listen(service, port int)  {
-//     f.amServer = true
-//     portStr := fmt.sprintf(":%d", port)
-//     f.Listen, err := net.Listen(service, portStr)
-//     if err != nil {
-//         fmt.Fprintf("netPeer.Listen error setting up listener on %s service for port %s:\n %+v", service, portStr, err)
-//     }
-//     // This version assumes only one connection, so we take the first one we get.
-//     conn, err := f.Listen.Accept()
-//     if err != nil {
-//         fmt.Fprintf("netPeer.Listen error in Listener.Accept() call on %s service for port %s:\n %+v", service, portStr, err)
-//     }
-//     f.Conn = conn
-// }
-
-func AddNetPeer(fnodes []*FactomNode, i1 int, i2 int) {
-	// Ignore out of range, and connections to self.
-	if i1 < 0 ||
-		i2 < 0 ||
-		i1 >= len(fnodes) ||
-		i2 >= len(fnodes) ||
-		i1 == i2 {
-		return
-	}
-
-	// If the connection already exists, ignore
-	for _, p1 := range fnodes[i1].Peers {
-		for _, p2 := range fnodes[i2].Peers {
-			if p1.Equals(p2) {
-				return
-			}
-		}
-	}
-
-	if i1 >= len(fnodes) || i2 >= len(fnodes) {
-		return
-	}
-
-	f1 := fnodes[i1]
-	f2 := fnodes[i2]
-
-	// Increment the port so every connection is on a differnet port
-	basePort += 1
-
-	fmt.Println("netPeer.AddNetPeer Connecting", f1.State.FactomNodeName, f2.State.FactomNodeName)
-
-	peer12 := new(NetPeer).Init(f1.State.FactomNodeName, f2.State.FactomNodeName).(*NetPeer)
-	peer21 := new(NetPeer).Init(f2.State.FactomNodeName, f1.State.FactomNodeName).(*NetPeer)
+// Serve:  Connects us to fnode 0 and starts listening on ServePort (which is incremented for each server started)
+// Returns: Address on which we are serving.
+func RemoteServe(fnodes []*FactomNode) {
+	f1 := fnodes[0]
 
 	// Mangos implementation:
-	address := fmt.Sprintf("%s:%d", "tcp://127.0.0.1", basePort)
-	fmt.Println("netPeer.AddNetPeer Connecting to address: ", address)
+	address := fmt.Sprintf("%s:%d", "tcp://127.0.0.1", ServePort)
+	fmt.Println("RemotePeer.RemoteServe listening on address: ", address)
+	// Increment the port so every connection is on a differnet port
+	ServePort += 1
 
-	peer12.Connect(server, address)
-	peer21.Connect(client, address)
-
-	// // 1->2
-	// // peer 2 needs to set up listener:
-	// go peer21.Listen("tcp", port2)
-	// // peer 1 dials into peer 2:
-	// address := fmt.Sprintf("%s:%s", host, port2)
-	// err = peer12.ConnectTCP(address)
-	// if err != nil {
-	//     fmt.Fprintf("netPeer.AddNetPeer ################## Error connecting to: %+v", address)
-	// }
-
-	f1.Peers = append(f1.Peers, peer12)
-	f2.Peers = append(f2.Peers, peer21)
-
+	peer := new(RemotePeer).Init(f1.State.FactomNodeName, address).(*RemotePeer)
+	peer.Connect(server, address)
+	f1.Peers = append(f1.Peers, peer)
 	for _, p := range f1.Peers {
 		fmt.Printf("%s's peer: %s\n", p.GetNameFrom(), p.GetNameTo())
 	}
-
 }
 
-func (f *NetPeer) GetNameFrom() string {
+// Connects:  Connects us to fnode 0 and dials out to address, creating a TCP connection
+func RemoteConnect(fnodes []*FactomNode, address string) {
+	f1 := fnodes[0]
+
+	// Mangos implementation:
+	fmt.Printf("RemotePeer.RemoteConnect connecting to address: %s\n(should be in form of http://127.0.0.1:1234)\n", address)
+
+	peer := new(RemotePeer).Init(f1.State.FactomNodeName, address).(*RemotePeer)
+	peer.Connect(client, address)
+	f1.Peers = append(f1.Peers, peer)
+	for _, p := range f1.Peers {
+		fmt.Printf("%s's peer: %s\n", p.GetNameFrom(), p.GetNameTo())
+	}
+}
+
+func (f *RemotePeer) GetNameFrom() string {
 	return f.FromName
 }
-func (f *NetPeer) GetNameTo() string {
+func (f *RemotePeer) GetNameTo() string {
 	return f.ToName
 }
 
-func (f *NetPeer) Send(msg interfaces.IMsg) error {
-	fmt.Printf("netPeer.Send for:\n %+v\n\n", msg)
+func (f *RemotePeer) Send(msg interfaces.IMsg) error {
+	fmt.Printf("RemotePeer.Send for:\n %+v\n\n", msg)
 
 	data, err := msg.MarshalBinary()
 	if err != nil {
@@ -173,22 +132,22 @@ func (f *NetPeer) Send(msg interfaces.IMsg) error {
 	}
 
 	if err = f.Socket.Send(data); err != nil {
-		fmt.Printf("netPeer.Send error from f.Socket.Send(data) for:\n %+v\n\n", msg)
+		fmt.Printf("RemotePeer.Send error from f.Socket.Send(data) for:\n %+v\n\n", msg)
 	}
 	return err
 }
 
 // Non-blocking return value from channel.
-func (f *NetPeer) Recieve() (interfaces.IMsg, error) {
+func (f *RemotePeer) Recieve() (interfaces.IMsg, error) {
 	var data []byte
 	var err error
 	if data, err = f.Socket.Recv(); err != nil {
-		fmt.Printf("netPeer.Recieve error from f.Socket.Recv(data) for:\n %+v\n\n", err)
+		fmt.Printf("RemotePeer.Recieve error from f.Socket.Recv(data) for:\n %+v\n\n", err)
 	}
 
 	if len(data) > 0 {
 		msg, err := messages.UnmarshalMessage(data)
-        fmt.Printf("netPeer.Recieve $$$$$$$$$$$$ GOT MESSAGE:\n %+v\n\n", msg)
+		fmt.Printf("RemotePeer.Recieve $$$$$$$$$$$$ GOT MESSAGE:\n %+v\n\n", msg)
 
 		return msg, err
 	}
@@ -196,7 +155,7 @@ func (f *NetPeer) Recieve() (interfaces.IMsg, error) {
 }
 
 // Is this connection equal to parm connection
-func (f *NetPeer) Equals(ff interfaces.IPeer) bool {
+func (f *RemotePeer) Equals(ff interfaces.IPeer) bool {
 	f2, ok := ff.(*NetPeer)
 	if !ok {
 		return false
@@ -214,12 +173,13 @@ func (f *NetPeer) Equals(ff interfaces.IPeer) bool {
 	return false
 }
 
-// Returns the number of messages waiting to be read
-func (f *NetPeer) Len() int {
-	//TODO IMPLEMENT JAYJAY
-	fmt.Printf("NetPeer.Len Not implemented.")
-	// Sim Peer:
-	//	return len(f.BroadcastIn)
-	// Broadcase in is the Sim Peer channel.  We have a way to see how many TCP MEssages?
-	return 1
-}
+// Unused!
+// // Returns the number of messages waiting to be read
+// func (f *RemotePeer) Len() int {
+// 	//TODO IMPLEMENT JAYJAY
+// 	fmt.Printf("RemotePeer.Len Not implemented.")
+// 	// Sim Peer:
+// 	//	return len(f.BroadcastIn)
+// 	// Broadcase in is the Sim Peer channel.  We have a way to see how many TCP MEssages?
+// 	return 1
+// }
