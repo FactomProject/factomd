@@ -378,6 +378,16 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 
 }
 
+func (s *State) LoadSpecificMsg(dbheight uint32, plistheight uint32) (interfaces.IMsg, error) {
+	msg := s.ProcessLists.Get(dbheight).MsgQueue[plistheight]
+
+	if msg == nil {
+		return nil, fmt.Errorf("State process list does not include requested message")
+	}
+
+	return msg, nil
+}
+
 func (s *State) JournalMessage(msg interfaces.IMsg) {
 	bytes, err := msg.MarshalBinary()
 	if err != nil {
@@ -414,7 +424,7 @@ func (s *State) GetDirectoryBlockByHeight(height uint32) interfaces.IDirectoryBl
 }
 
 func (s *State) UpdateState() {
-    s.ProcessLists.UpdateState()
+	s.ProcessLists.UpdateState()
 	s.DBStates.UpdateState()
 
 	if s.GetOut() {

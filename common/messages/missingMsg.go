@@ -128,7 +128,16 @@ func (m *MissingMsg) Follower(interfaces.IState) bool {
 	return true
 }
 
-func (m *MissingMsg) FollowerExecute(interfaces.IState) error {
+func (m *MissingMsg) FollowerExecute(state interfaces.IState) error {
+	msg, err := state.LoadSpecificMsg(m.DBHeight, m.ProcessListHeight)
+
+	if msg != nil && err == nil { // If I don't have this message, ignore.
+		msg.SetOrigin(m.GetOrigin())
+		state.NetworkOutMsgQueue() <- msg
+	} else {
+		return err
+	}
+
 	return nil
 }
 
