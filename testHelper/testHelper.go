@@ -13,6 +13,7 @@ import (
 	//"github.com/FactomProject/factomd/engine"
 	//"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/state"
+	"time"
 	//"fmt"
 )
 
@@ -37,6 +38,10 @@ func CreateAndPopulateTestState() *state.State {
 		panic(err)
 	}*/
 	s.SetFactoshisPerEC(1)
+	state.LoadDatabase(s)
+	s.UpdateState()
+	go s.ValidatorLoop()
+	time.Sleep(20 * time.Millisecond)
 
 	return s
 }

@@ -44,7 +44,7 @@ type DBStateList struct {
 	DBStates            []*DBState
 }
 
-const SecondsBetweenTests = 30 // Default
+const SecondsBetweenTests = 3 // Default
 
 func (list *DBStateList) String() string {
 	str := "\nDBStates\n"

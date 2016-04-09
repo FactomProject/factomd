@@ -7,6 +7,7 @@ package messages
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -19,6 +20,8 @@ type AddServerMsg struct {
 	MessageBase
 	Timestamp     interfaces.Timestamp // Message Timestamp
 	ServerChainID interfaces.IHash     // ChainID of new server
+
+	Signature interfaces.IFullSignature
 }
 
 var _ interfaces.IMsg = (*AddServerMsg)(nil)
@@ -58,8 +61,22 @@ func (m *AddServerMsg) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp
 }
 
-// Validate the message, TBD
 func (m *AddServerMsg) Validate(state interfaces.IState) int {
+	authoritativeKey, _ := hex.DecodeString("cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a")
+	if bytes.Compare(m.GetSignature().GetKey(), authoritativeKey) != 0 {
+		// the message was not signed with the proper authoritative signing key (from conf file)
+		// it is therefore considered invalid
+		return -1
+	}
+
+	isVer, err := m.VerifySignature()
+	if err != nil || !isVer {
+		// if there is an error during signature verification
+		// or if the signature is invalid
+		// the message is considered invalid
+		return -1
+	}
+
 	return 1
 }
 
@@ -99,6 +116,23 @@ func (e *AddServerMsg) JSONString() (string, error) {
 
 func (e *AddServerMsg) JSONBuffer(b *bytes.Buffer) error {
 	return primitives.EncodeJSONToBuffer(e, b)
+}
+
+func (m *AddServerMsg) Sign(key interfaces.Signer) error {
+	signature, err := SignSignable(m, key)
+	if err != nil {
+		return err
+	}
+	m.Signature = signature
+	return nil
+}
+
+func (m *AddServerMsg) GetSignature() interfaces.IFullSignature {
+	return m.Signature
+}
+
+func (m *AddServerMsg) VerifySignature() (bool, error) {
+	return VerifyMessage(m)
 }
 
 func (m *AddServerMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error) {

@@ -22,6 +22,7 @@ type IState interface {
 	String() string
 	GetCoreChainID() IHash
 	GetIdentityChainID() IHash
+	SetIdentityChainID(IHash)
 	Sign([]byte) IFullSignature
 	GetDirectoryBlockInSeconds() int
 	GetServer() IServer
@@ -134,4 +135,6 @@ type IState interface {
 	PrintType(int) bool // Debugging
 	Print(a ...interface{}) (n int, err error)
 	Println(a ...interface{}) (n int, err error)
+
+	ValidatorLoop()
 }

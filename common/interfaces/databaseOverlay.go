@@ -177,6 +177,7 @@ type DBOverlay interface {
 	SaveIncludedInMultiFromBlock(block DatabaseBlockWithEntries) error
 	SaveIncludedInMulti(entries []IHash, block IHash) error
 	LoadIncludedIn(hash IHash) (IHash, error)
+	RebuildDirBlockInfo() error
 }
 
 type ISCDatabaseOverlay interface {

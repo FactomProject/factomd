@@ -6,7 +6,6 @@ package databaseOverlay_test
 
 import (
 	"github.com/FactomProject/factomd/anchor"
-	. "github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/testHelper"
 	"testing"
 )

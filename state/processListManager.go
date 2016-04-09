@@ -24,7 +24,7 @@ type ProcessLists struct {
 // are at the highest known block, as long as that is above the highest recorded block.
 func (lists *ProcessLists) UpdateState() {
 
-	buildingBlock := lists.State.DBStates.Highest() + 1
+	buildingBlock := lists.State.GetHighestRecordedBlock() + 1
 
 	pl := lists.Get(buildingBlock)
 

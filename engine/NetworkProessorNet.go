@@ -20,6 +20,8 @@ func NetworkProcessorNet(fnode *FactomNode) {
 	like := 0
 
 	for {
+        time.Sleep(time.Millisecond*10)
+
 		// Put any broadcasts from our peers into our BroadcastIn queue
 		for i, peer := range fnode.Peers {
 			for {
@@ -54,61 +56,76 @@ func NetworkProcessorNet(fnode *FactomNode) {
 				}
 			}
 		}
+        loop: for {
+            select {
+                case msg, ok := <-fnode.State.TimerMsgQueue():
+                    if ok {
+                        fnode.MLog.add2(fnode, false, "Time", "Timer", true, msg)
+                        fnode.State.InMsgQueue() <- msg
+                    }
+                default:
+                    break loop
+            }
+        }
+        loop2: for {
+            select {
+                
+                case msg, ok := <-fnode.State.NetworkOutMsgQueue():
+                    if ok && msg != nil && msg.GetMsgHash() != nil {
+                        // We don't care about the result, but we do want to log that we have
+                        // seen this message before, because we might have generated the message
+                        // ourselves.
+                        fnode.State.Replay.IsTSValid_(msg.GetMsgHash().Fixed(),
+                            int64(msg.GetTimestamp())/1000,
+                            int64(fnode.State.GetTimestamp())/1000)
 
-		select {
-		case msg, ok := <-fnode.State.TimerMsgQueue():
-			if ok {
-				fnode.MLog.add2(fnode, false, "Time", "Timer", true, msg)
-				fnode.State.InMsgQueue() <- msg
-			}
-		case msg, ok := <-fnode.State.NetworkOutMsgQueue():
-			if ok && msg != nil && msg.GetMsgHash() != nil {
-				// We don't care about the result, but we do want to log that we have
-				// seen this message before, because we might have generated the message
-				// ourselves.
-				fnode.State.Replay.IsTSValid_(msg.GetMsgHash().Fixed(),
-					int64(msg.GetTimestamp())/1000,
-					int64(fnode.State.GetTimestamp())/1000)
+                        if msg.IsPeer2peer() {
+                            p := msg.GetOrigin() - 1
+                            if len(fnode.Peers) == 0 {
+                                // No peers yet, put back in queue
+                                time.Sleep(1 * time.Second)
+                                fnode.State.NetworkOutMsgQueue() <- msg
+                                break
+                            }
+                            if p < 0 {
+                                p = like
+                                like = rand.Int() % len(fnode.Peers)
+                            }
 
-				if msg.IsPeer2peer() {
-					p := msg.GetOrigin() - 1
-					if len(fnode.Peers) == 0 {
-						// No peers yet, put back in queue
-						time.Sleep(1 * time.Second)
-						fnode.State.NetworkOutMsgQueue() <- msg
-						break
-					}
-					if p < 0 {
-						p = like
-						like = rand.Int() % len(fnode.Peers)
-					}
+                            fnode.MLog.add2(fnode, true, fnode.Peers[p].GetNameTo(), "P2P out", true, msg)
+                            fnode.Peers[p].Send(msg)
 
-					fnode.MLog.add2(fnode, true, fnode.Peers[p].GetNameTo(), "P2P out", true, msg)
-					fnode.Peers[p].Send(msg)
+                        } else {
+                            p := msg.GetOrigin() - 1
+                            for i, peer := range fnode.Peers {
+                                // Don't resend to the node that sent it to you.
+                                if i != p || true {
+                                    bco := fmt.Sprintf("%s/%d/%d", "BCast", p, i)
+                                    fnode.MLog.add2(fnode, true, peer.GetNameTo(), bco, true, msg)
+                                    peer.Send(msg)
+                                }
+                            }
+                        }
+                    }
+                default:
+                    break loop2
+            }
+        }
+        
+        loop3: for {
+            select {
+                case msg, ok := <-fnode.State.NetworkInvalidMsgQueue():
+                    if ok {
+                        //				fnode.State.Println("\n&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& Bad Message %%%%%%%%%%%%%%%%%%%%%%%%")
+                        var _ = msg
+                        if fnode.State.PrintType(msg.Type()) {
 
-				} else {
-					p := msg.GetOrigin() - 1
-					for i, peer := range fnode.Peers {
-						// Don't resend to the node that sent it to you.
-						if i != p || true {
-							bco := fmt.Sprintf("%s/%d/%d", "BCast", p, i)
-							fnode.MLog.add2(fnode, true, peer.GetNameTo(), bco, true, msg)
-							peer.Send(msg)
-						}
-					}
-				}
-			}
-		case msg, ok := <-fnode.State.NetworkInvalidMsgQueue():
-			if ok {
-				//				fnode.State.Println("\n&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& Bad Message %%%%%%%%%%%%%%%%%%%%%%%%")
-				var _ = msg
-				if fnode.State.PrintType(msg.Type()) {
-
-				}
-			}
-		default:
-			time.Sleep(time.Duration(1) * time.Millisecond)
-		}
+                        }
+                    }
+                default:
+                    break loop3
+                }
+        }
 	}
 
 }
