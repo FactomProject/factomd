@@ -177,15 +177,25 @@ func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) 
 }
 
 func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg) bool {
+	fmt.Println("DEBUG: ProcessCommitChain")
 	c, ok := commitChain.(*messages.CommitChainMsg)
-	if ok {
-		pl := s.ProcessLists.Get(dbheight)
-		ecblk := pl.EntryCreditBlock
-		ecbody := ecblk.GetBody()
-		ecbody.AddEntry(c.CommitChain)
-		s.GetFactoidState().UpdateECTransaction(true, c.CommitChain)
-		s.PutCommits(c.GetHash(), c)
+	if !ok {
+		return false
 	}
+	
+	pl := s.ProcessLists.Get(dbheight)
+	ecblk := pl.EntryCreditBlock
+	ecbody := ecblk.GetBody()
+	ecbody.AddEntry(c.CommitChain)
+	s.GetFactoidState().UpdateECTransaction(true, c.CommitChain)
+	
+	// save the Commit to match agains the Reveal later
+	s.PutCommits(c.GetHash(), c)
+	// check for a matching Reveal and, if found, execute it
+	if r := s.GetReveals(c.GetHash()); r != nil {
+		s.LeaderExecute(r)
+	}
+	
 	return true
 }
 
@@ -267,13 +277,58 @@ func (s *State) GetNewEBlocks(dbheight uint32, hash interfaces.IHash) interfaces
 	return nil
 }
 func (s *State) PutNewEBlocks(dbheight uint32, hash interfaces.IHash, eb interfaces.IEntryBlock) {
+	fmt.Println("DEBUG: state.PutNewEBlocks")
+//	dblock := s.GetDirectoryBlockByHeight(dbheight)
+//	key, err := eb.KeyMR()
+//	if err != nil {
+//		fmt.Println("DEBUG: eb.KeyMR", err, key)
+//	}
+//	if err := dblock.AddEntry(hash, key); err != nil {
+//		fmt.Println("DEBUG: AddEntry", err)
+//	}
+//	// Database stuff?
 }
 
 func (s *State) GetCommits(hash interfaces.IHash) interfaces.IMsg {
-	return nil
+	fmt.Println("DEBUG: searching for commit", hash)
+	return s.Commits[hash.Fixed()]
 }
-func (s *State) PutCommits(hash interfaces.IHash, msg interfaces.IMsg) {
 
+func (s *State) GetReveals(hash interfaces.IHash) interfaces.IMsg {
+	fmt.Println("DEBUG: searching for Reveal", hash)
+	return s.Reveals[hash.Fixed()]
+}
+
+func (s *State) PutCommits(hash interfaces.IHash, msg interfaces.IMsg) {
+	cmsg, ok := msg.(interfaces.ICounted)
+	if ok {
+		v := s.Commits[hash.Fixed()]
+		if v != nil {
+			_, ok := v.(interfaces.ICounted)
+			if ok {
+				cmsg.SetCount(v.(interfaces.ICounted).GetCount() + 1)
+			} else {
+				panic("Should never happen")
+			}
+		}
+	}
+	s.Commits[hash.Fixed()] = msg
+}
+
+func (s *State) PutReveals(hash interfaces.IHash, msg interfaces.IMsg) {
+	cmsg, ok := msg.(interfaces.ICounted)
+	if ok {
+		v := s.Reveals[hash.Fixed()]
+		if v != nil {
+			_, ok := v.(interfaces.ICounted)
+			if ok {
+				cmsg.SetCount(v.(interfaces.ICounted).GetCount() + 1)
+			} else {
+				panic("Should never happen")
+			}
+		}
+	}
+	s.Reveals[hash.Fixed()] = msg
 }
 
 // This is the highest block signed off and recorded in the Database.

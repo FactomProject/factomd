@@ -77,6 +77,8 @@ type State struct {
 	// For Follower
 	Holding map[[32]byte]interfaces.IMsg // Hold Messages
 	Acks    map[[32]byte]interfaces.IMsg // Hold Acknowledgemets
+	Commits map[[32]byte]interfaces.IMsg // Commit Messages
+	Reveals map[[32]byte]interfaces.IMsg // Reveal Messages
 
 	AuditHeartBeats []interfaces.IMsg   // The checklist of HeartBeats for this period
 	FedServerFaults [][]interfaces.IMsg // Keep a fault list for every server
@@ -255,6 +257,8 @@ func (s *State) Init() {
 	// Set up maps for the followers
 	s.Holding = make(map[[32]byte]interfaces.IMsg)
 	s.Acks = make(map[[32]byte]interfaces.IMsg)
+	s.Commits = make(map[[32]byte]interfaces.IMsg)
+	s.Reveals = make(map[[32]byte]interfaces.IMsg)
 
 	// Setup the FactoidState and Validation Service that holds factoid and entry credit balances
 	s.FactoidBalancesP = map[[32]byte]int64{}

@@ -78,7 +78,9 @@ type IState interface {
 	PutNewEBlocks(dbheight uint32, hash IHash, eb IEntryBlock)
 
 	GetCommits(hash IHash) IMsg
+	GetReveals(hash IHash) IMsg
 	PutCommits(hash IHash, msg IMsg)
+	PutReveals(hash IHash, msg IMsg)
 	// Server Configuration
 	// ====================
 
