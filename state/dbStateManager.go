@@ -262,6 +262,8 @@ func (list *DBStateList) UpdateState() {
 			d.Saved = true
 		}
 
+        d.AdminBlock.UpdateState(list.State)
+
 		list.State.GetAnchor().UpdateDirBlockInfoMap(dbInfo.NewDirBlockInfoFromDirBlock(d.DirectoryBlock))
 
 		// Process the Factoid End of Block
