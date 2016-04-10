@@ -147,15 +147,12 @@ func (p ProcessList) HasMessage() bool {
 }
 
 func (p *ProcessList) GetNewEBlocks(key interfaces.IHash) interfaces.IEntryBlock {
-
 	eb := p.NewEBlocks[key.Fixed()]
 	return eb
 }
 
 func (p *ProcessList) PutNewEBlocks(dbheight uint32, key interfaces.IHash, value interfaces.IEntryBlock) {
-
 	p.NewEBlocks[key.Fixed()] = value
-
 }
 
 // TODO:  Need to map the server identity to the process list for which it

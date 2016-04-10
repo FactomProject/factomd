@@ -278,15 +278,15 @@ func (s *State) GetNewEBlocks(dbheight uint32, hash interfaces.IHash) interfaces
 }
 func (s *State) PutNewEBlocks(dbheight uint32, hash interfaces.IHash, eb interfaces.IEntryBlock) {
 	fmt.Println("DEBUG: state.PutNewEBlocks")
-//	dblock := s.GetDirectoryBlockByHeight(dbheight)
-//	key, err := eb.KeyMR()
-//	if err != nil {
-//		fmt.Println("DEBUG: eb.KeyMR", err, key)
-//	}
-//	if err := dblock.AddEntry(hash, key); err != nil {
-//		fmt.Println("DEBUG: AddEntry", err)
-//	}
-//	// Database stuff?
+//	dbstate := s.GetDBState(dbheight)
+	dblock := s.GetDirectoryBlockByHeight(dbheight)
+	key, err := eb.KeyMR()
+	if err != nil {
+		fmt.Println("DEBUG: eb.KeyMR", err, key)
+	}
+	if err := dblock.AddEntry(hash, key); err != nil {
+		fmt.Println("DEBUG: AddEntry", err)
+	}
 }
 
 func (s *State) GetCommits(hash interfaces.IHash) interfaces.IMsg {

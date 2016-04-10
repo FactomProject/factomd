@@ -41,7 +41,7 @@ func (m *RevealEntryMsg) Process(dbheight uint32, state interfaces.IState) bool 
 		chainID := m.Entry.GetChainID()
 		eb, err := state.GetDB().FetchEBlockHead(chainID)
 		if err != nil || eb != nil {
-			fmt.Println("This is wrong:  Chain already exists", chainID, err)
+			panic("Chain already exists")
 		}
 
 		// Create a new Entry Block for a new Entry Block Chain
@@ -50,11 +50,34 @@ func (m *RevealEntryMsg) Process(dbheight uint32, state interfaces.IState) bool 
 		eb.GetHeader().SetChainID(m.Entry.GetChainID())
 		// Set the Directory Block Height for this Entry Block
 		eb.GetHeader().SetDBHeight(dbheight)
+		// Add our new entry
+		eb.AddEBEntry(m.Entry)
 		// Put it in our list of new Entry Blocks for this Directory Block
 		state.PutNewEBlocks(dbheight, m.Entry.GetChainID(), eb)
 		
 		return true
 	} else if _, isNewEntry := commit.(*CommitEntryMsg); isNewEntry {
+		chainID := m.Entry.GetChainID()
+		eb := state.GetNewEBlocks(0, chainID)
+		if eb == nil {
+			prev, err := state.GetDB().FetchEBlockHead(chainID)
+			if prev == nil || err != nil {
+				fmt.Println("DEBUG:", prev, err)
+				return false
+			}
+			eb = entryBlock.NewEBlock()
+			// Set the Chain ID
+			eb.GetHeader().SetChainID(m.Entry.GetChainID())
+			// Set the Directory Block Height for this Entry Block
+			eb.GetHeader().SetDBHeight(dbheight)
+			// Set the PrevKeyMR
+			eb.GetHeader().SetPrevKeyMR(prev.GetHeader().GetPrevKeyMR())
+		}
+		// Add our new entry
+		eb.AddEBEntry(m.Entry)
+		// Put it in our list of new Entry Blocks for this Directory Block
+		state.PutNewEBlocks(dbheight, m.Entry.GetChainID(), eb)
+
 		return true
 	}
 	log.Println("Found Bad Commit")
