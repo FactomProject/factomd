@@ -234,7 +234,7 @@ func (list *DBStateList) UpdateState() {
 				}
 
 			}
-			if err := list.State.GetDB().ProcessDBlockMultiBatch(d.DirectoryBlock); err != nil {
+        	if err := list.State.GetDB().ProcessDBlockMultiBatch(d.DirectoryBlock); err != nil {
 				panic(err.Error())
 			}
 
@@ -289,6 +289,9 @@ func (list *DBStateList) Last() *DBState {
 
 func (list *DBStateList) Highest() uint32 {
 	high := list.Base + uint32(len(list.DBStates)) - 1
+    if high == 0 && len(list.DBStates)== 1 {
+        return 1
+    }
 	return high
 }
 

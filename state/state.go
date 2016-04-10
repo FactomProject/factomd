@@ -86,6 +86,9 @@ type State struct {
 
 	// Number of Servers acknowledged by Factom
 	Matryoshka []interfaces.IHash // Reverse Hash
+	AuditServers    []interfaces.IFctServer   // List of Audit Servers
+	ServerOrder     [][]interfaces.IFctServer // 10 lists for Server Order for each minute
+	FedServers      []interfaces.IFctServer   // List of Federated Servers
 
 	// Database
 	DB     *databaseOverlay.Overlay
@@ -152,7 +155,7 @@ func (s *State) Clone(number string) interfaces.IState {
 	clone.PortNumber = s.PortNumber
 
 	clone.CoreChainID = s.CoreChainID
-	clone.IdentityChainID = primitives.Sha([]byte(number))
+    clone.IdentityChainID = primitives.Sha([]byte(clone.FactomNodeName))
 
 	//generate and use a new deterministic PrivateKey for this clone
 	shaHashOfNodeName := primitives.Sha([]byte(clone.FactomNodeName)) //seed the private key with node name
@@ -199,12 +202,12 @@ func (s *State) LoadConfig(filename string) {
 		s.PortNumber = cfg.Wsapi.PortNumber
 
 		// TODO:  Actually load the IdentityChainID from the config file
-		s.IdentityChainID = primitives.Sha([]byte("0"))
+		s.IdentityChainID = primitives.Sha([]byte(s.FactomNodeName))
 
 		// TODO:  CoreChainID is our 'authority chain' that will be used to manage Factom
 		// until the network is real, and to serve as the authority to reboot the network
 		// should consensus or software or networks fail in some unpredicted way.
-		s.CoreChainID = primitives.Sha([]byte("0"))
+		s.CoreChainID = s.IdentityChainID
 
 	} else {
 		s.LogPath = "database/"
@@ -223,12 +226,12 @@ func (s *State) LoadConfig(filename string) {
 		s.PortNumber = 8088
 
 		// TODO:  Actually load the IdentityChainID from the config file
-		s.IdentityChainID = primitives.Sha([]byte("0"))
+		s.IdentityChainID = primitives.Sha([]byte(s.FactomNodeName))
 
 		// TODO:  CoreChainID is our 'authority chain' that will be used to manage Factom
 		// until the network is real, and to serve as the authority to reboot the network
 		// should consensus or software or networks fail in some unpredicted way.
-		s.CoreChainID = primitives.Sha([]byte("0"))
+		s.CoreChainID = s.IdentityChainID
 	}
 	s.JournalFile = s.LogPath + "journal0" + ".log"
 }
@@ -265,6 +268,11 @@ func (s *State) Init() {
 	s.ECBalancesP = map[[32]byte]int64{}
 	s.FactoidBalancesT = map[[32]byte]int64{}
 	s.ECBalancesT = map[[32]byte]int64{}
+
+    s.AuditServers = make([]interfaces.IFctServer, 0)
+	s.FedServers = make([]interfaces.IFctServer, 0)
+	s.ServerOrder = make([][]interfaces.IFctServer, 0)
+
 
 	fs := new(FactoidState)
 	fs.State = s
@@ -441,6 +449,51 @@ func (s *State) UpdateState() {
 		s.Println(str)
 	}
 }
+
+// Add the given serverChain to this processlist, and return the server index number of the
+// added server
+func (s *State) AddFedServer(identityChainID interfaces.IHash) int {
+    fmt.Println("AAAAAAAAAAAAAAAAAAAAAAaaaaAdd Server: ",identityChainID.String(), len(s.FedServers))
+	found, i := s.GetFedServerIndexHash(identityChainID)
+	if found {
+		return i
+	}
+	s.FedServers = append(s.FedServers, nil)
+	copy(s.FedServers[i+1:], s.FedServers[i:])
+	s.FedServers[i] = &interfaces.Server{ChainID: identityChainID}
+	return i
+}
+
+// Add the given serverChain to this processlist, and return the server index number of the
+// added server
+func (p *State) RemoveFedServerHash(identityChainID interfaces.IHash) {
+	found, i := p.GetFedServerIndexHash(identityChainID)
+	if !found {
+		return
+	}
+	p.FedServers = append(p.FedServers[:i], p.FedServers[i+1:]...)
+}
+
+// Returns true and the index of this server, or false and the insertion point for this server
+func (s *State) GetFedServerIndexHash(identityChainID interfaces.IHash) (bool, int) {
+	scid := identityChainID.Bytes()
+	if len(s.FedServers) == 0 {
+		server := new(interfaces.Server)
+		server.ChainID = s.GetCoreChainID()
+		s.FedServers = append(s.FedServers, server)
+	}
+	for i, fs := range s.FedServers {
+		// Find and remove
+		switch bytes.Compare(scid, fs.GetChainID().Bytes()) {
+		case 0: // Found the ID!
+    		return true, i
+		case -1: // Past the ID, can't be in list
+			return false, i
+		}
+	}
+	return false, len(s.FedServers)
+}
+
 
 func (s *State) GetFactoshisPerEC() uint64 {
 	return s.FactoshisPerEC
@@ -662,7 +715,7 @@ func (s *State) SetString() {
 			0,
 			s.GetHighestKnownBlock())
 	} else {
-		found, index := s.ProcessLists.Get(buildingBlock).GetFedServerIndex(s.IdentityChainID)
+		found, index := s.GetFedServerIndexHash(s.IdentityChainID)
 		stype := ""
 		if found {
 			stype = fmt.Sprintf("L %4d", index)

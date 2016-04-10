@@ -39,6 +39,8 @@ type IState interface {
 	SetString()
 	ShortString() string
 
+    AddFedServer(IHash) int
+
 	Green() bool
 
 	// This is the highest block signed off and recorded in the Database.  This

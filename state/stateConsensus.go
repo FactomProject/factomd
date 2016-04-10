@@ -5,7 +5,6 @@
 package state
 
 import (
-	"bytes"
 	"fmt"
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
@@ -154,21 +153,18 @@ func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) 
 	if !ok {
 		return true
 	}
-	server := new(interfaces.Server)
-	server.ChainID = as.ServerChainID
-	plc := s.ProcessLists.Get(dbheight)
+	
 	pl := s.ProcessLists.Get(dbheight + 1)
 
 	s.Println("Current Server List:")
-	for _, fed := range plc.FedServers {
-		pl.AddFedServer(fed.(*interfaces.Server))
+	for _, fed := range s.FedServers {
 		s.Println("  ", fed.GetChainID().String())
 	}
 
-	pl.AddFedServer(server)
+	pl.AdminBlock.AddFedServer(as.ServerChainID)
 
 	s.Println("New Server List:")
-	for _, fed := range pl.FedServers {
+	for _, fed := range s.FedServers {
 		s.Println("  ", fed.GetChainID().String())
 	}
 
@@ -372,26 +368,8 @@ func (s *State) GetFedServerIndex(dbheight uint32) (bool, int) {
 // Gets the Server Index for an identity chain given the current leader height.
 // The follower could be behind this level.
 func (s *State) GetFedServerIndexFor(dbheight uint32, chainID interfaces.IHash) (bool, int) {
-	pl := s.ProcessLists.Get(dbheight)
 
-	if pl == nil {
-		if bytes.Compare(chainID.Bytes(), s.CoreChainID.Bytes()) == 0 {
-			return true, 0
-		} else {
-			s.Println(" No Process List for: ", dbheight)
-			return false, 0
-		}
-	}
-
-	if s.serverState == 1 && len(pl.FedServers) == 0 {
-		pl.AddFedServer(&interfaces.Server{ChainID: s.IdentityChainID})
-		//fmt.Println("Current Servers (Adding):")
-		//for _, fed := range pl.FedServers {
-		//	fmt.Println("   ", fed.GetChainID().String())
-		//}
-	}
-
-	found, index := pl.GetFedServerIndex(chainID)
+	found, index := s.GetFedServerIndexHash(chainID)
 
 	return found, index
 }
