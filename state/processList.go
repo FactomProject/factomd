@@ -101,7 +101,7 @@ func (p *ProcessList) SetSigComplete(i int, value bool) {
 
 // Set the EomComplete for the ith list
 func (p *ProcessList) SetEomComplete(i int, value bool) {
-	p.Servers[i].EomComplete = value
+ 	p.Servers[i].EomComplete = value
 }
 
 // Test if a process list for a server is EOM complete.  Return true if all messages
@@ -111,7 +111,9 @@ func (p *ProcessList) EomComplete() bool {
 	if p == nil {
 		return true
 	}
-	for _, c := range p.Servers {
+    n := len(p.State.GetFedServers())
+	for i:=0; i<n ; i++ {
+        c:= p.Servers[i]
 		if !c.EomComplete {
 			return false
 		}
@@ -121,11 +123,13 @@ func (p *ProcessList) EomComplete() bool {
 
 // Test if the process list is complete.  Return true if all messages
 // have been recieved, and we have all the signaures for the directory blocks.
-func (p *ProcessList) Complete() bool {
+func (p *ProcessList) SigComplete() bool {
 	if p == nil {
 		return true
 	}
-	for _, c := range p.Servers {
+    n := len(p.State.GetFedServers())
+	for i:=0; i<n ; i++ {
+        c:= p.Servers[i]
 		if !c.SigComplete {
 			return false
 		}
@@ -285,6 +289,9 @@ func (p *ProcessList) String() string {
 		prt = p.State.GetFactomNodeName() + "\n"
 		
 		for i, server := range p.Servers {
+            if i >= p.NumberServers {
+                break
+            }
 			prt = prt + fmt.Sprintf("  Server %d \n", i)
 			for _, msg := range server.List {
 				if msg != nil {

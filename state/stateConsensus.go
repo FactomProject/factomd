@@ -49,12 +49,7 @@ func (s *State) AddDBState(isNew bool,
 //
 // Returns true if it finds a match
 func (s *State) FollowerExecuteMsg(m interfaces.IMsg) (bool, error) {
-	
-     _,ok := m.(*messages.AddServerMsg)
-    if ok {
-        fmt.Println("Follower AddServer: ",m.String())
-    }
-    
+	    
     acks := s.Acks
 	ack, ok := acks[m.GetHash().Fixed()].(*messages.Ack)
 	if !ok || ack == nil {
@@ -129,20 +124,13 @@ func (s *State) LeaderExecute(m interfaces.IMsg) error {
 	if err != nil {
 		return err
 	}
-    
-    _,ok := m.(*messages.AddServerMsg)
-    if ok {
-        fmt.Println("Ack AddServer: ",ack.String())
-    }
+
 	// Leader Execute creates an acknowledgement and the EOM
 	s.NetworkOutMsgQueue() <- ack
 	s.NetworkOutMsgQueue() <- m
 	s.InMsgQueue() <- ack
 	m.FollowerExecute(s)
-    if ok {
-        fmt.Println("ddddddddddddddddddddddddddddddddddddddddddddddd")
-    }
-	return nil
+    return nil
 }
 
 func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
@@ -158,27 +146,14 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
 }
 
 func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) bool {
-    fmt.Print(" sssssssssssssssssssssss ",s.FactomNodeName," ")
     as, ok := addServerMsg.(*messages.AddServerMsg)
 	if !ok {
         fmt.Println("Bad Msg: ",addServerMsg.String())
 		return true
 	}
 	
-	pl := s.ProcessLists.Get(dbheight + 1)
-
-	s.Println("Current Server List:")
-	for _, fed := range s.FedServers {
-		s.Println("  ", fed.GetChainID().String())
-	}
-    fmt.Println("Now we have ", len(s.FedServers), " servers")
-   
+	pl := s.ProcessLists.Get(dbheight + 1)   
 	pl.AdminBlock.AddFedServer(as.ServerChainID)
-
-	s.Println("New Server List:")
-	for _, fed := range s.FedServers {
-		s.Println("  ", fed.GetChainID().String())
-	}
 
 	return true
 }
@@ -204,33 +179,49 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		panic("Must pass an EOM message to ProcessEOM)")
 	}
 
+    // We need to save away the previous state before we begin to process the next height
 	last := s.DBStates.Last()
 	if e.Minute == 0 && (last == nil || !last.Saved) {
 		return false
 	}
 
 	pl := s.ProcessLists.Get(dbheight)
+    
+    if !e.MarkerSent {
+        if s.ServerIndexFor(constants.FACTOID_CHAINID)==e.ServerIndex {
+    	    s.FactoidState.EndOfPeriod(int(e.Minute))
+        }
+        if s.ServerIndexFor(constants.ADMIN_CHAINID)==e.ServerIndex {
+            pl.AdminBlock.AddEndOfMinuteMarker(e.Minute)
+        }
+        pl.SetEomComplete(e.ServerIndex, true)  
+        e.MarkerSent = true
+    }
+    
+    // We need to have all EOM markers before we start to clean up this height.
+    if e.Minute == 9 {
+        
+        if !pl.EomComplete() {
+            return false
+        }
 
-	s.FactoidState.EndOfPeriod(int(e.Minute))
-
-	if e.Minute == 9 {
-		pl.SetEomComplete(e.ServerIndex, true)
-
-		ecblk := pl.EntryCreditBlock
-		ecbody := ecblk.GetBody()
-		mn := entryCreditBlock.NewMinuteNumber2(e.Minute)
-		ecbody.AddEntry(mn)
-
-		//		fmt.Println("Process List ")
-		// Should ensure we don't register the directory block multiple times.
-		s.AddDBState(true, pl.DirectoryBlock, pl.AdminBlock, s.GetFactoidState().GetCurrentBlock(), pl.EntryCreditBlock)
-
+        if s.ServerIndexFor(constants.EC_CHAINID)==e.ServerIndex {
+            ecblk := pl.EntryCreditBlock
+		    ecbody := ecblk.GetBody()
+		    mn := entryCreditBlock.NewMinuteNumber2(e.Minute)
+		    ecbody.AddEntry(mn)
+        }
+        
+        if s.ServerIndexFor(constants.D_CHAINID)==e.ServerIndex {         
+    		s.AddDBState(true, pl.DirectoryBlock, pl.AdminBlock, s.GetFactoidState().GetCurrentBlock(), pl.EntryCreditBlock)
+        }
+        
 		if s.LLeaderHeight <= dbheight {
 			s.LLeaderHeight = dbheight + 1
 		}
 
-		found, index := s.GetFedServerIndex(s.LLeaderHeight)
-		if found && e.ServerIndex == index && !pl.Complete() {
+		found, index := s.GetFedServerIndexHash(s.IdentityChainID)
+		if found && e.ServerIndex == index  {
 			dbstate := s.DBStates.Get(dbheight)
 			DBS := messages.NewDirectoryBlockSignature(dbheight)
 			DBS.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
@@ -360,31 +351,23 @@ func (s *State) PutE(rt bool, adr [32]byte, v int64) {
 // Entry Credit Addresses
 // ChainIDs
 // ...
-func (s *State) LeaderFor(hash []byte) bool {
-	found, index := s.GetFedServerIndex(s.GetLeaderHeight())
-
-	if !found {
-		return false
-	}
+func (s *State) ServerIndexFor(hash []byte) int {
 	n := len(s.FedServers)
     v := 0
     if len(hash)>0 {
         v = int(hash[0])%n
     }
-    return v==index
+    return v
 }
 
-func (s *State) GetFedServerIndex(dbheight uint32) (bool, int) {
-	return s.GetFedServerIndexFor(dbheight, s.IdentityChainID)
-}
 
-// Gets the Server Index for an identity chain given the current leader height.
-// The follower could be behind this level.
-func (s *State) GetFedServerIndexFor(dbheight uint32, chainID interfaces.IHash) (bool, int) {
+func (s *State) LeaderFor(hash []byte) bool {
+	found, index := s.GetFedServerIndexHash(s.IdentityChainID)
 
-	found, index := s.GetFedServerIndexHash(chainID)
-
-	return found, index
+	if !found {
+		return false
+	}
+    return index == s.ServerIndexFor(hash)
 }
 
 func (s *State) NewAdminBlock(dbheight uint32) interfaces.IAdminBlock {
@@ -448,9 +431,9 @@ func (s *State) GetNewHash() interfaces.IHash {
 
 // Create a new Acknowledgement.  This Acknowledgement
 func (s *State) NewAck(dbheight uint32, msg interfaces.IMsg, hash interfaces.IHash) (iack interfaces.IMsg, err error) {
-
-	found, index := s.GetFedServerIndex(dbheight)
-	if !found {
+	
+    found, index := s.GetFedServerIndexHash(s.IdentityChainID)
+    if !found {
 		return nil, fmt.Errorf(s.FactomNodeName + ": Creation of an Ack attempted by non-server")
 	}
 	pl := s.ProcessLists.Get(dbheight)

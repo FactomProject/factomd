@@ -319,7 +319,7 @@ func (list *DBStateList) Put(dbState *DBState) {
 		cnt++
 	}
 
-	keep := uint32(5) // How many states to keep around; debugging helps with more.
+	keep := uint32(2) // How many states to keep around; debugging helps with more.
 	if uint32(cnt) > keep {
 		list.DBStates = list.DBStates[cnt-int(keep):]
 		list.Base = list.Base + uint32(cnt) - keep

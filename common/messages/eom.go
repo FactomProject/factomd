@@ -29,7 +29,7 @@ type EOM struct {
 
 	//Not marshalled
 	hash      interfaces.IHash
-	MarkerSet bool // Set if we have Processed EOM markers, so we don't repeat.
+    MarkerSent bool     // If we have set EOM markers on blocks like Factoid blocks and such.
 }
 
 //var _ interfaces.IConfirmation = (*EOM)(nil)
@@ -102,7 +102,11 @@ func (m *EOM) Validate(state interfaces.IState) int {
 // Returns true if this is a message for this server to execute as
 // a leader.
 func (m *EOM) Leader(state interfaces.IState) bool {
-	return state.LeaderFor(m.GetHash().Bytes()) // TODO: This has to be fixed!
+	found, index := state.GetFedServerIndexHash(state.GetIdentityChainID())
+    if found && index == m.ServerIndex {
+        return true
+    }    
+    return false 
 }
 
 // Execute the leader functions of the given message

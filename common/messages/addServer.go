@@ -102,8 +102,7 @@ func (m *AddServerMsg) Follower(interfaces.IState) bool {
 }
 
 func (m *AddServerMsg) FollowerExecute(state interfaces.IState) error {
-    fmt.Println("Follower Executing on ", state.GetFactomNodeName())
-	_, err := state.FollowerExecuteMsg(m)
+ 	_, err := state.FollowerExecuteMsg(m)
 	return err
 }
 
@@ -168,7 +167,6 @@ func (m *AddServerMsg) UnmarshalBinaryData(data []byte) (newData []byte, err err
             return nil,err
         }
     }
-    fmt.Println("Unmarshal addServer ",m.String())
 	return
 }
 
@@ -228,9 +226,7 @@ func NewAddServerMsg(state interfaces.IState) interfaces.IMsg {
 	msg := new(AddServerMsg)
 	msg.ServerChainID = state.GetIdentityChainID()
 	msg.Timestamp = state.GetTimestamp()
-
-    fmt.Println("Create Msg: ",msg.String())
-
+    
 	return msg
     
 }
