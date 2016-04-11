@@ -408,6 +408,7 @@ func (s *State) GetDBState(height uint32) *DBState {
 func (s *State) GetDirectoryBlockByHeight(height uint32) interfaces.IDirectoryBlock {
 	dbstate := s.DBStates.Get(height)
 	if dbstate != nil {
+		fmt.Println("DEBUG: found dblock in current state")
 		return dbstate.DirectoryBlock
 	}
 	dblk, err := s.DB.FetchDBlockByHeight(height)
