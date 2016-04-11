@@ -20,7 +20,6 @@ import (
 var _ = fmt.Print
 
 func SimControl(listenTo int) {
-	go wsapi.Start(fnodes[0].State)
 
 	var _ = time.Sleep
 
@@ -191,7 +190,6 @@ func SimControl(listenTo int) {
 				AddPeer(nodeStyle, fnodes, i1, i2)
 			case 0 == strings.Compare(strings.ToLower(string(b)), "serve"):
 				fmt.Println("--------------RemoteServe")
-
 				RemoteServe(fnodes)
 			case 0 == strings.Compare(strings.ToLower(string(b)), "connect"):
 				fmt.Println("--------------RemoteConnect")

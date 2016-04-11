@@ -90,16 +90,22 @@ func (f *RemotePeer) Init(fromName, toName string) interfaces.IPeer {
 	return f
 }
 
+// Serves on a default poort, incremented each time its called.
+func RemoteServe(fnodes []*FactomNode) {
+	// Increment the port so every connection is on a differnet port
+	ServePort += 1
+
+	RemoteServeOnPort(fnodes, ServePort)
+}
+
 // Serve:  Connects us to fnode 0 and starts listening on ServePort (which is incremented for each server started)
 // Returns: Address on which we are serving.
-func RemoteServe(fnodes []*FactomNode) {
+func RemoteServeOnPort(fnodes []*FactomNode, port int) {
 	f1 := fnodes[0]
 
 	// Mangos implementation:
-	address := fmt.Sprintf("%s:%d", "tcp://127.0.0.1", ServePort)
+	address := fmt.Sprintf("%s:%d", "tcp://127.0.0.1", port)
 	fmt.Println("RemotePeer.RemoteServe listening on address: ", address)
-	// Increment the port so every connection is on a differnet port
-	ServePort += 1
 
 	peer := new(RemotePeer).Init(f1.State.FactomNodeName, address).(*RemotePeer)
 	if err := peer.Connect(server, address); nil == err {
@@ -111,19 +117,23 @@ func RemoteServe(fnodes []*FactomNode) {
 }
 
 // Connects:  Connects us to fnode 0 and dials out to address, creating a TCP connection
-func RemoteConnect(fnodes []*FactomNode, address string) {
+func RemoteConnect(fnodes []*FactomNode, address string) error {
 	f1 := fnodes[0]
 
 	// Mangos implementation:
-	fmt.Printf("RemotePeer.RemoteConnect connecting to address: %s\n(should be in form of http://127.0.0.1:1234)\n", address)
+	fmt.Printf("RemotePeer.RemoteConnect connecting to address: %s\n(should be in form of tcp://127.0.0.1:1234)\n", address)
 
 	peer := new(RemotePeer).Init(f1.State.FactomNodeName, address).(*RemotePeer)
 	if err := peer.Connect(client, address); nil == err {
 		f1.Peers = append(f1.Peers, peer)
+	} else {
+		fmt.Printf("remotePeer.RemoteConnect: Failed to connect to remote peer at address: %s", address)
+		return err
 	}
 	for _, p := range f1.Peers {
 		fmt.Printf("%s's peer: %s\n", p.GetNameFrom(), p.GetNameTo())
 	}
+    return nil
 }
 
 func (f *RemotePeer) GetNameFrom() string {

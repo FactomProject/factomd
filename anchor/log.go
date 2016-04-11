@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	logcfg     = util.ReadConfig("").Log
+	logcfg     = util.ReadConfig("", "").Log
 	logPath    = logcfg.LogPath
 	logLevel   = logcfg.LogLevel
 	logfile, _ = os.OpenFile(logPath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0660)

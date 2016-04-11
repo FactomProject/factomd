@@ -4,8 +4,6 @@
 
 package interfaces
 
-import ()
-
 // Holds the state information for factomd.  This does imply that we will be
 // using accessors to access state information in the consensus algorithm.
 // This is a bit tedious, but does provide single choke points where information
@@ -17,7 +15,7 @@ type IState interface {
 	GetFactomNodeName() string
 	Clone(number string) IState
 	GetCfg() IFactomConfig
-	LoadConfig(filename string)
+	LoadConfig(filename string, folder string) // JAYJAY BUGBUG TODO - passing in folder to run multiple factomds on one .factom
 	Init()
 	String() string
 	GetCoreChainID() IHash

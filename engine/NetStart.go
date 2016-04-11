@@ -8,12 +8,14 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/util"
+	"github.com/FactomProject/factomd/wsapi"
 )
 
 var _ = fmt.Print
@@ -36,6 +38,11 @@ const ( // iota is reset to 0
 
 var nodeStyle = cSimStyle
 
+//
+// Multi-node test, example parameters:
+// factomd -count=5 -net=tree -folder=testdir1 -serve=9000 -connect="tcp://217.0.0.1:9500"
+//
+
 func NetStart(s *state.State) {
 
 	listenToPtr := flag.Int("node", 0, "Node Number the simulator will set as the focus")
@@ -45,6 +52,10 @@ func NetStart(s *state.State) {
 	followerPtr := flag.Bool("follower", false, "If true, force node to be a follower.  Only used when replaying a journal.")
 	stylePtr := flag.String("style", "sim", "sim, tcp, ether - chooses the node/network style.")
 	dbPtr := flag.String("db", "", "Override the Database in the Config file and use this Database implementation")
+	folderPtr := flag.String("folder", "m2", "Directory in .factom to store nodes. (eg: multiple nodes on one filesystem support)")
+	servePtr := flag.String("serve", "", "Port to start a TCP server on.")
+	connectPtr := flag.String("connect", "", "Address to connect into over TCP (eg: another factomd node)")
+	portPtr := flag.Int("port", 8088, "Address to serve WSAPI on")
 
 	flag.Parse()
 
@@ -55,13 +66,20 @@ func NetStart(s *state.State) {
 	follower := *followerPtr
 	db := *dbPtr
 	style := *stylePtr
+	folder := *folderPtr
+	serve := *servePtr
+	connect := *connectPtr
+	port := *portPtr
 
 	os.Stderr.WriteString(fmt.Sprintf("node     %d\n", listenTo))
 	os.Stderr.WriteString(fmt.Sprintf("count    %d\n", cnt))
 	os.Stderr.WriteString(fmt.Sprintf("net      \"%s\"\n", net))
 	os.Stderr.WriteString(fmt.Sprintf("journal  \"%s\"\n", journal))
 	os.Stderr.WriteString(fmt.Sprintf("follower \"%v\"\n", follower))
-	os.Stderr.WriteString(fmt.Sprintf("db       \"%s\"\n", db))
+	os.Stderr.WriteString(fmt.Sprintf("folder   \"%s\"\n", folder))
+	os.Stderr.WriteString(fmt.Sprintf("serve    \"%s\"\n", serve))
+	os.Stderr.WriteString(fmt.Sprintf("connect  \"%s\"\n", connect))
+	os.Stderr.WriteString(fmt.Sprintf("port     \"%s\"\n", port))
 
 	switch style {
 	case "sim":
@@ -105,22 +123,23 @@ func NetStart(s *state.State) {
 
 	fmt.Println(fmt.Sprintf("factom config: %s", FactomConfigFilename))
 
-	s.LoadConfig(FactomConfigFilename)
+	s.LoadConfig(FactomConfigFilename, folder)
 	if journal != "" {
 		s.DBType = "Map"
-    }
-    
-    if follower {
-        s.NodeMode = "FULL"
-        s.IdentityChainID = primitives.Sha([]byte(time.Now().String()))  
-    } else {
-        s.NodeMode = "SERVER"
-    }
-	
+	}
+
+	if follower {
+		s.NodeMode = "FULL"
+		s.IdentityChainID = primitives.Sha([]byte(time.Now().String()))
+	} else {
+		s.NodeMode = "SERVER"
+	}
+
 	if len(db) > 0 {
 		s.DBType = db
 	}
 	s.SetOut(false)
+	s.PortNumber = port
 	s.Init()
 
 	mLog.init(cnt)
@@ -199,6 +218,29 @@ func NetStart(s *state.State) {
 	} else {
 		startServers(true)
 	}
+
+	// Right before we hand off to sim control, lets set up our network connections to other nodes
+	// for the test point-to-point network.
+	if 0 != len(serve) { // Start serving on the given port.
+		port, _ := strconv.Atoi(serve)
+		RemoteServeOnPort(fnodes, port)
+	}
+
+	if 0 != len(connect) { // Connect to the remote server.
+		success := false
+		for attempts := 0; attempts < 5 && !success; attempts++ {
+			err := RemoteConnect(fnodes, connect)
+			if nil == err {
+				success = true
+			} else {
+				fmt.Println("Failed to connect, sleeping for 10 seconds and trying again.")
+				time.Sleep(10 * time.Second)
+			}
+		}
+		fmt.Println("Unable to connect to remote peer after 5 attempts!")
+
+	}
+	go wsapi.Start(fnodes[0].State)
 
 	SimControl(listenTo)
 
