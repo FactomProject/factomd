@@ -50,7 +50,6 @@ type State struct {
 	Replay                  *Replay
 	GreenFlg                bool
 
-	CoreChainID     interfaces.IHash // The ChainID of the first server when we boot a network.
 	IdentityChainID interfaces.IHash // If this node has an identity, this is it
 
 	// Just to print (so debugging doesn't drive functionaility)
@@ -154,7 +153,6 @@ func (s *State) Clone(number string) interfaces.IState {
 	clone.DirectoryBlockInSeconds = s.DirectoryBlockInSeconds
 	clone.PortNumber = s.PortNumber
 
-	clone.CoreChainID = s.CoreChainID
     clone.IdentityChainID = primitives.Sha([]byte(clone.FactomNodeName))
 
 	//generate and use a new deterministic PrivateKey for this clone
@@ -204,10 +202,6 @@ func (s *State) LoadConfig(filename string) {
 		// TODO:  Actually load the IdentityChainID from the config file
 		s.IdentityChainID = primitives.Sha([]byte(s.FactomNodeName))
 
-		// TODO:  CoreChainID is our 'authority chain' that will be used to manage Factom
-		// until the network is real, and to serve as the authority to reboot the network
-		// should consensus or software or networks fail in some unpredicted way.
-		s.CoreChainID = s.IdentityChainID
 
 	} else {
 		s.LogPath = "database/"
@@ -228,10 +222,6 @@ func (s *State) LoadConfig(filename string) {
 		// TODO:  Actually load the IdentityChainID from the config file
 		s.IdentityChainID = primitives.Sha([]byte(s.FactomNodeName))
 
-		// TODO:  CoreChainID is our 'authority chain' that will be used to manage Factom
-		// until the network is real, and to serve as the authority to reboot the network
-		// should consensus or software or networks fail in some unpredicted way.
-		s.CoreChainID = s.IdentityChainID
 	}
 	s.JournalFile = s.LogPath + "journal0" + ".log"
 }
@@ -436,9 +426,10 @@ func (s *State) GetDirectoryBlockByHeight(height uint32) interfaces.IDirectoryBl
 }
 
 func (s *State) UpdateState() {
-	s.ProcessLists.UpdateState()
+	s.SetString()
+    s.ProcessLists.UpdateState()
 	s.DBStates.UpdateState()
-
+    
 	if s.GetOut() {
 		str := fmt.Sprintf("%25s   %10s   %25s", "sssssssssssssssssssssssss", s.GetFactomNodeName(), "sssssssssssssssssssssssss\n")
 		str = str + s.ProcessLists.String()
@@ -453,7 +444,6 @@ func (s *State) UpdateState() {
 // Add the given serverChain to this processlist, and return the server index number of the
 // added server
 func (s *State) AddFedServer(identityChainID interfaces.IHash) int {
-    fmt.Println("AAAAAAAAAAAAAAAAAAAAAAaaaaAdd Server: ",identityChainID.String(), len(s.FedServers))
 	found, i := s.GetFedServerIndexHash(identityChainID)
 	if found {
 		return i
@@ -477,19 +467,12 @@ func (p *State) RemoveFedServerHash(identityChainID interfaces.IHash) {
 // Returns true and the index of this server, or false and the insertion point for this server
 func (s *State) GetFedServerIndexHash(identityChainID interfaces.IHash) (bool, int) {
 	scid := identityChainID.Bytes()
-	if len(s.FedServers) == 0 {
-		server := new(interfaces.Server)
-		server.ChainID = s.GetCoreChainID()
-		s.FedServers = append(s.FedServers, server)
-	}
+	
 	for i, fs := range s.FedServers {
-		// Find and remove
-		switch bytes.Compare(scid, fs.GetChainID().Bytes()) {
-		case 0: // Found the ID!
-    		return true, i
-		case -1: // Past the ID, can't be in list
-			return false, i
-		}
+		// Find and remove        
+		if bytes.Compare(scid, fs.GetChainID().Bytes())==0 {
+			return true, i
+        }
 	}
 	return false, len(s.FedServers)
 }
@@ -509,10 +492,6 @@ func (s *State) GetIdentityChainID() interfaces.IHash {
 
 func (s *State) SetIdentityChainID(chainID interfaces.IHash) {
 	s.IdentityChainID = chainID
-}
-
-func (s *State) GetCoreChainID() interfaces.IHash {
-	return s.CoreChainID
 }
 
 func (s *State) GetDirectoryBlockInSeconds() int {
@@ -563,6 +542,11 @@ func (s *State) LogInfo(args ...interface{}) {
 func (s *State) GetAuditHeartBeats() []interfaces.IMsg {
 	return s.AuditHeartBeats
 }
+
+func (s *State) GetFedServers() ([]interfaces.IFctServer) {
+    return s.FedServers
+}
+
 func (s *State) GetFedServerFaults() [][]interfaces.IMsg {
 	return s.FedServerFaults
 }
@@ -739,16 +723,17 @@ func (s *State) SetString() {
 			lastheight = s.DBStates.Last().DirectoryBlock.GetHeader().GetDBHeight()
 		}
 
-		s.serverPrt = fmt.Sprintf("%9s%9s Recorded: %d Building: %d Highest: %d DirBlk[:5]=%x ABHash[:5]=%x FBHash[:5]=%x ECHash[:5]=%x ",
+		s.serverPrt = fmt.Sprintf("%9s%9s %x Recorded: %d Building: %d Last: %d DirBlk[:5]=%x ABHash[:5]=%x FBHash[:5]=%x ECHash[:5]=%x ",
 			stype,
 			s.FactomNodeName,
+            s.IdentityChainID.Bytes()[:3],
 			s.GetHighestRecordedBlock(),
 			lastheight,
 			s.GetHighestKnownBlock(),
-			keyMR[:5],
-			abHash[:5],
-			fbHash[:5],
-			ecHash[:5])
+			keyMR[:3],
+			abHash[:3],
+			fbHash[:3],
+			ecHash[:3])
 	}
 }
 

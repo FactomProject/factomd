@@ -31,7 +31,7 @@ func Timer(state interfaces.IState) {
 	state.Print(fmt.Sprintf("Time: %v\r\n", time.Now()))
 	time.Sleep(time.Duration(wait))
 	for {
-		found, index := state.GetFedServerIndex(state.GetLeaderHeight())
+		found, index := state.GetFedServerIndexHash(state.GetIdentityChainID())
 		for i := 0; i < 10; i++ {
 			now = time.Now().UnixNano()
 			wait := next - now

@@ -23,8 +23,9 @@ type ProcessList struct {
 	// is built.
 	MsgQueue []interfaces.IMsg
 
-	State   interfaces.IState
-	Servers []*ListServer
+	State           interfaces.IState
+	NumberServers   int                 // How many servers we are tracking
+    Servers         []*ListServer       // Process list for each server (up to 32)
 
 	// Maps
 	// ====
@@ -62,7 +63,7 @@ func (p *ProcessList) SetLastAck(index int, msg interfaces.IMsg) error {
 }
 
 func (p *ProcessList) GetLen(list int) int {
-	if list >= len(p.Servers) {
+	if list >= p.NumberServers {
 		return -1
 	}
 	l := len(p.Servers[list].List)
@@ -71,8 +72,8 @@ func (p *ProcessList) GetLen(list int) int {
 
 func (p ProcessList) HasMessage() bool {
 
-	for _, ls := range p.Servers {
-		if len(ls.List) > 0 {
+	for i:=0 ; i<p.NumberServers; i++ {
+		if len(p.Servers[i].List) > 0 {
 			return true
 		}
 	}
@@ -153,13 +154,14 @@ func (p *ProcessList) Process(state *State) {
 		lht := last.DirectoryBlock.GetHeader().GetDBHeight()
 		if last.Saved && lht >= p.DBHeight-1 {
 			p.good = true
+            p.NumberServers = len(state.FedServers)
 		} else {
 			//fmt.Println("ht/lht: ", p.DBHeight, " ", lht, " ", last.Saved)
 			return
 		}
 	}
 
-	for i := 0; i < len(p.Servers); i++ {
+	for i := 0; i < p.NumberServers; i++ {
 		plist := p.Servers[i].List
 
 		// state.Println("Process List: DBHeight, height in list, len(plist)", p.DBHeight, "/", p.Servers[i].Height, "/", len(plist))
@@ -301,15 +303,15 @@ func (p *ProcessList) String() string {
  * Support
  ************************************************/
 
-func NewProcessList(state interfaces.IState, totalServers int, dbheight uint32) *ProcessList {
+func NewProcessList(state interfaces.IState, dbheight uint32) *ProcessList {
 	// We default to the number of Servers previous.   That's because we always
 	// allocate the FUTURE directoryblock, not the current or previous...
 
 	pl := new(ProcessList)
 
 	pl.State = state
-	pl.Servers = make([]*ListServer, totalServers)
-	for i := 0; i < totalServers; i++ {
+	pl.Servers = make([]*ListServer, 32)
+	for i := 0; i < 32; i++ {
 		pl.Servers[i] = new(ListServer)
 		pl.Servers[i].List = make([]interfaces.IMsg, 0)
 

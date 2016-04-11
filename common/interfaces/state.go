@@ -20,7 +20,6 @@ type IState interface {
 	LoadConfig(filename string)
 	Init()
 	String() string
-	GetCoreChainID() IHash
 	GetIdentityChainID() IHash
 	SetIdentityChainID(IHash)
 	Sign([]byte) IFullSignature
@@ -34,14 +33,14 @@ type IState interface {
 	GetOut() bool // Return true if Print or Println write output
 	LoadDBState(dbheight uint32) (IMsg, error)
 	LoadSpecificMsg(dbheight uint32, plistheight uint32) (IMsg, error)
-	GetFedServerIndexFor(uint32, IHash) (bool, int)
-	GetFedServerIndex(uint32) (bool, int)
+	GetFedServerIndexHash(IHash) (bool, int)
 	SetString()
 	ShortString() string
 
     AddFedServer(IHash) int
-
-	Green() bool
+    GetFedServers() []IFctServer
+	
+    Green() bool
 
 	// This is the highest block signed off and recorded in the Database.  This
 	// is a follower's state, but it is also critical to validation; we cannot
@@ -128,7 +127,6 @@ type IState interface {
 
 	// For messages that go into the Process List
 	LeaderExecute(m IMsg) error
-	LeaderExecuteAddServer(m IMsg) error
 	LeaderExecuteEOM(m IMsg) error
 
 	GetTimestamp() Timestamp

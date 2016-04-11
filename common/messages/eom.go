@@ -83,7 +83,7 @@ func (m *EOM) Type() int {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *EOM) Validate(state interfaces.IState) int {
-	found, _ := state.GetFedServerIndexFor(m.DirectoryBlockHeight, m.ChainID)
+    found, _ := state.GetFedServerIndexHash(m.ChainID)
 	if !found { // Only EOM from federated servers are valid.
 		return -1
 	}

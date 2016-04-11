@@ -49,7 +49,13 @@ func (s *State) AddDBState(isNew bool,
 //
 // Returns true if it finds a match
 func (s *State) FollowerExecuteMsg(m interfaces.IMsg) (bool, error) {
-	acks := s.Acks
+	
+     _,ok := m.(*messages.AddServerMsg)
+    if ok {
+        fmt.Println("Follower AddServer: ",m.String())
+    }
+    
+    acks := s.Acks
 	ack, ok := acks[m.GetHash().Fixed()].(*messages.Ack)
 	if !ok || ack == nil {
 		s.Holding[m.GetHash().Fixed()] = m
@@ -123,17 +129,20 @@ func (s *State) LeaderExecute(m interfaces.IMsg) error {
 	if err != nil {
 		return err
 	}
-
+    
+    _,ok := m.(*messages.AddServerMsg)
+    if ok {
+        fmt.Println("Ack AddServer: ",ack.String())
+    }
 	// Leader Execute creates an acknowledgement and the EOM
 	s.NetworkOutMsgQueue() <- ack
 	s.NetworkOutMsgQueue() <- m
 	s.InMsgQueue() <- ack
 	m.FollowerExecute(s)
+    if ok {
+        fmt.Println("ddddddddddddddddddddddddddddddddddddddddddddddd")
+    }
 	return nil
-}
-
-func (s *State) LeaderExecuteAddServer(server interfaces.IMsg) error {
-	return s.LeaderExecute(server)
 }
 
 func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
@@ -149,8 +158,10 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
 }
 
 func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) bool {
-	as, ok := addServerMsg.(*messages.AddServerMsg)
+    fmt.Print(" sssssssssssssssssssssss ",s.FactomNodeName," ")
+    as, ok := addServerMsg.(*messages.AddServerMsg)
 	if !ok {
+        fmt.Println("Bad Msg: ",addServerMsg.String())
 		return true
 	}
 	
@@ -160,7 +171,8 @@ func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) 
 	for _, fed := range s.FedServers {
 		s.Println("  ", fed.GetChainID().String())
 	}
-
+    fmt.Println("Now we have ", len(s.FedServers), " servers")
+   
 	pl.AdminBlock.AddFedServer(as.ServerChainID)
 
 	s.Println("New Server List:")
@@ -348,17 +360,18 @@ func (s *State) PutE(rt bool, adr [32]byte, v int64) {
 // Entry Credit Addresses
 // ChainIDs
 // ...
-func (s *State) LeaderFor([]byte) bool {
-	s.SetString()
+func (s *State) LeaderFor(hash []byte) bool {
 	found, index := s.GetFedServerIndex(s.GetLeaderHeight())
 
 	if !found {
 		return false
 	}
-	if index == 0 {
-		return true
-	}
-	return false
+	n := len(s.FedServers)
+    v := 0
+    if len(hash)>0 {
+        v = int(hash[0])%n
+    }
+    return v==index
 }
 
 func (s *State) GetFedServerIndex(dbheight uint32) (bool, int) {

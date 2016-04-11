@@ -262,6 +262,7 @@ func (list *DBStateList) UpdateState() {
 			d.Saved = true
 		}
 
+        // Any updates required to the state as established by the AdminBlock are applied here.
         d.AdminBlock.UpdateState(list.State)
 
 		list.State.GetAnchor().UpdateDirBlockInfoMap(dbInfo.NewDirBlockInfoFromDirBlock(d.DirectoryBlock))

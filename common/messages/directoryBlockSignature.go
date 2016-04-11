@@ -71,7 +71,7 @@ func (m *DirectoryBlockSignature) Bytes() []byte {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
-	found, serverIndex := state.GetFedServerIndexFor(m.DBHeight, m.ServerIdentityChainID)
+	found, serverIndex := state.GetFedServerIndexHash(m.ServerIdentityChainID)
 	if !found || serverIndex != int(m.ServerIndex) {
 		// if the DBS message did not originate from a Federated server
 		// or if it originated from the wrong server
@@ -92,16 +92,12 @@ func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 // Returns true if this is a message for this server to execute as
 // a leader.
 func (m *DirectoryBlockSignature) Leader(state interfaces.IState) bool {
-	found, index := state.GetFedServerIndex(m.DBHeight)
-	if found && uint32(index) == m.ServerIndex {
-		return true
-	}
 	return false
 }
 
 // Execute the leader functions of the given message
 func (m *DirectoryBlockSignature) LeaderExecute(state interfaces.IState) error {
-	return state.LeaderExecute(m)
+	return fmt.Errorf("Leader execute of DirectoryBlockSignature message should not happen")
 }
 
 // Returns true if this is a message for this server to execute as a follower
