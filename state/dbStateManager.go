@@ -264,7 +264,7 @@ func (list *DBStateList) UpdateState() {
 
         // Any updates required to the state as established by the AdminBlock are applied here.
         d.AdminBlock.UpdateState(list.State)
-
+list.State.Println("updateupdateupdateupdateupdateupdateupdate AdminBlock ",d.DirectoryBlock.GetHeader().GetDBHeight())
 		list.State.GetAnchor().UpdateDirBlockInfoMap(dbInfo.NewDirBlockInfoFromDirBlock(d.DirectoryBlock))
 
 		// Process the Factoid End of Block
@@ -321,7 +321,9 @@ func (list *DBStateList) Put(dbState *DBState) {
 
 	keep := uint32(2) // How many states to keep around; debugging helps with more.
 	if uint32(cnt) > keep {
-		list.DBStates = list.DBStates[cnt-int(keep):]
+        var dbstates []*DBState
+		dbstates = append(dbstates, list.DBStates[cnt-int(keep):]...)
+        list.DBStates = dbstates
 		list.Base = list.Base + uint32(cnt) - keep
 		list.Complete = list.Complete - uint32(cnt) + keep
 	}

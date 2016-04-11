@@ -7,6 +7,7 @@ package state
 import (
 	"bytes"
 	"encoding/hex"
+    "sync"
 	"fmt"
 	"github.com/FactomProject/factomd/anchor"
 	"github.com/FactomProject/factomd/common/constants"
@@ -107,8 +108,9 @@ type State struct {
 	//
 	// Process list previous [0], present(@DBHeight) [1], and future (@DBHeight+1) [2]
 
+    AckLock      sync.Mutex
 	ProcessLists *ProcessLists
-
+    
 	// Factom State
 	FactoidState    interfaces.IFactoidState
 	NumTransactions int

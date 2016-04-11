@@ -152,7 +152,7 @@ func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) 
 		return true
 	}
 	
-	pl := s.ProcessLists.Get(dbheight + 1)   
+	pl := s.ProcessLists.Get(dbheight)   
 	pl.AdminBlock.AddFedServer(as.ServerChainID)
 
 	return true
@@ -223,8 +223,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		found, index := s.GetFedServerIndexHash(s.IdentityChainID)
 		if found && e.ServerIndex == index  {
 			dbstate := s.DBStates.Get(dbheight)
-            fmt.Println("ccccccccccccccccccccccccccccc",dbheight, index)
-			DBS := messages.NewDirectoryBlockSignature(dbheight)
+          	DBS := messages.NewDirectoryBlockSignature(dbheight)
 			DBS.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
 			DBS.Timestamp = s.GetTimestamp()
 			DBS.ServerIdentityChainID = s.IdentityChainID
@@ -435,6 +434,9 @@ func (s *State) GetNewHash() interfaces.IHash {
 // Create a new Acknowledgement.  This Acknowledgement
 func (s *State) NewAck(dbheight uint32, msg interfaces.IMsg, hash interfaces.IHash) (iack interfaces.IMsg, err error) {
 	
+    s.AckLock.Lock()
+    defer s.AckLock.Unlock()
+    
     found, index := s.GetFedServerIndexHash(s.IdentityChainID)
     if !found {
 		return nil, fmt.Errorf(s.FactomNodeName + ": Creation of an Ack attempted by non-server")

@@ -108,6 +108,7 @@ func (m *AddServerMsg) FollowerExecute(state interfaces.IState) error {
 
 // Acknowledgements do not go into the process list.
 func (e *AddServerMsg) Process(dbheight uint32, state interfaces.IState) bool {
+    state.Println("Processing to add a Server: ", dbheight)
 	return state.ProcessAddServer(dbheight, e)
 }
 
