@@ -20,6 +20,10 @@ func (m *EndOfMinuteEntry) Type() byte {
 	return m.EntryType
 }
 
+func (c *EndOfMinuteEntry) UpdateState(state interfaces.IState) {
+
+}
+
 func (e *EndOfMinuteEntry) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
 

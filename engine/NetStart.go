@@ -50,9 +50,10 @@ func NetStart(s *state.State) {
 	netPtr := flag.String("net", "tree", "The default algorithm to build the network connections")
 	journalPtr := flag.String("journal", "", "Rerun a Journal of messages")
 	followerPtr := flag.Bool("follower", false, "If true, force node to be a follower.  Only used when replaying a journal.")
-	stylePtr := flag.String("style", "sim", "sim, tcp, ether - chooses the node/network style.")
+	leaderPtr := flag.Bool("leader", true, "If true, force node to be a leader.  Only used when replaying a journal.")
 	dbPtr := flag.String("db", "", "Override the Database in the Config file and use this Database implementation")
 	folderPtr := flag.String("folder", "m2", "Directory in .factom to store nodes. (eg: multiple nodes on one filesystem support)")
+	stylePtr := flag.String("style", "sim", "sim, tcp, ether - chooses the node/network style.")
 	servePtr := flag.String("serve", "", "Port to start a TCP server on.")
 	connectPtr := flag.String("connect", "", "Address to connect into over TCP (eg: another factomd node)")
 	portPtr := flag.Int("port", 8088, "Address to serve WSAPI on")
@@ -64,6 +65,7 @@ func NetStart(s *state.State) {
 	net := *netPtr
 	journal := *journalPtr
 	follower := *followerPtr
+	leader := *leaderPtr
 	db := *dbPtr
 	style := *stylePtr
 	folder := *folderPtr
@@ -80,6 +82,8 @@ func NetStart(s *state.State) {
 	os.Stderr.WriteString(fmt.Sprintf("serve    \"%s\"\n", serve))
 	os.Stderr.WriteString(fmt.Sprintf("connect  \"%s\"\n", connect))
 	os.Stderr.WriteString(fmt.Sprintf("port     \"%s\"\n", port))
+	os.Stderr.WriteString(fmt.Sprintf("db       \"%s\"\n", db))
+	os.Stderr.WriteString(fmt.Sprintf("tcp \"%v\"\n", tcp))
 
 	switch style {
 	case "sim":
@@ -95,6 +99,17 @@ func NetStart(s *state.State) {
 	default:
 		nodeStyle = cSimStyle
 		os.Stderr.WriteString(fmt.Sprintf("style \"Sim Style\"\n"))
+	}
+	if follower {
+		os.Stderr.WriteString(fmt.Sprintf("follower \"%v\"\n", follower))
+		leader = false
+	}
+	if leader {
+		os.Stderr.WriteString(fmt.Sprintf("leader \"%v\"\n", leader))
+		follower = false
+	}
+	if !follower && !leader {
+		panic("Not a leader or a follower")
 	}
 
 	if journal != "" {
@@ -126,6 +141,13 @@ func NetStart(s *state.State) {
 	s.LoadConfig(FactomConfigFilename, folder)
 	if journal != "" {
 		s.DBType = "Map"
+		if follower {
+			s.NodeMode = "FULL"
+			s.SetIdentityChainID(primitives.Sha([]byte("follower"))) // Make sure this node is NOT a leader
+		}
+		if leader {
+			s.NodeMode = "SERVER"
+		}
 	}
 
 	if follower {

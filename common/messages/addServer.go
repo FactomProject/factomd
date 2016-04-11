@@ -27,7 +27,10 @@ type AddServerMsg struct {
 var _ interfaces.IMsg = (*AddServerMsg)(nil)
 
 func (m *AddServerMsg) IsSameAs(b *AddServerMsg) bool {
-	return true
+	if uint64(m.Timestamp) == uint64(b.Timestamp) && m.ServerChainID.IsSameAs(b.ServerChainID) {
+        return true
+    }
+    return false
 }
 
 func (m *AddServerMsg) GetHash() interfaces.IHash {
@@ -36,7 +39,7 @@ func (m *AddServerMsg) GetHash() interfaces.IHash {
 
 func (m *AddServerMsg) GetMsgHash() interfaces.IHash {
 	if m.MsgHash == nil {
-		data, err := m.MarshalBinary()
+		data, err := m.MarshalForSignature()
 		if err != nil {
 			return nil
 		}
@@ -62,8 +65,10 @@ func (m *AddServerMsg) GetTimestamp() interfaces.Timestamp {
 }
 
 func (m *AddServerMsg) Validate(state interfaces.IState) int {
-	authoritativeKey, _ := hex.DecodeString("cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a")
-	if bytes.Compare(m.GetSignature().GetKey(), authoritativeKey) != 0 {
+	return 1    // Not going to check right now.
+    authoritativeKey, _ := hex.DecodeString("cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a")
+    
+    if m.GetSignature() == nil || bytes.Compare(m.GetSignature().GetKey(), authoritativeKey) != 0 {
 		// the message was not signed with the proper authoritative signing key (from conf file)
 		// it is therefore considered invalid
 		return -1
@@ -83,12 +88,12 @@ func (m *AddServerMsg) Validate(state interfaces.IState) int {
 // Returns true if this is a message for this server to execute as
 // a leader.
 func (m *AddServerMsg) Leader(state interfaces.IState) bool {
-	return true
+	return state.LeaderFor(constants.ADMIN_CHAINID)
 }
 
 // Execute the leader functions of the given message
 func (m *AddServerMsg) LeaderExecute(state interfaces.IState) error {
-	return state.LeaderExecuteAddServer(m)
+	return state.LeaderExecute(m)
 }
 
 // Returns true if this is a message for this server to execute as a follower
@@ -97,7 +102,7 @@ func (m *AddServerMsg) Follower(interfaces.IState) bool {
 }
 
 func (m *AddServerMsg) FollowerExecute(state interfaces.IState) error {
-	_, err := state.FollowerExecuteMsg(m)
+ 	_, err := state.FollowerExecuteMsg(m)
 	return err
 }
 
@@ -137,6 +142,7 @@ func (m *AddServerMsg) VerifySignature() (bool, error) {
 
 func (m *AddServerMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
+        return
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
@@ -148,12 +154,19 @@ func (m *AddServerMsg) UnmarshalBinaryData(data []byte) (newData []byte, err err
 	if err != nil {
 		return nil, err
 	}
-
-	newData, err = m.ServerChainID.UnmarshalBinaryData(newData)
-	if err != nil {
-		return nil, err
-	}
-
+   
+    m.ServerChainID = new(primitives.Hash)
+    newData, err = m.ServerChainID.UnmarshalBinaryData(newData)
+    if err != nil {
+        return nil, err
+    }
+    
+    if len(newData) > 32 {
+        newData, err = m.Signature.UnmarshalBinaryData(newData)
+        if err != nil {
+            return nil,err
+        }
+    }
 	return
 }
 
@@ -166,7 +179,7 @@ func (m *AddServerMsg) MarshalForSignature() ([]byte, error) {
 
 	var buf bytes.Buffer
 
-	binary.Write(&buf, binary.BigEndian, byte(m.Type()))
+    binary.Write(&buf, binary.BigEndian, byte(m.Type()))
 
 	t := m.GetTimestamp()
 	data, err := t.MarshalBinary()
@@ -185,11 +198,27 @@ func (m *AddServerMsg) MarshalForSignature() ([]byte, error) {
 }
 
 func (m *AddServerMsg) MarshalBinary() ([]byte, error) {
-	return m.MarshalForSignature()
+	var buf bytes.Buffer
+    
+    data, err := m.MarshalForSignature()
+    if err != nil {
+        return nil, err
+    }
+    buf.Write(data)
+    
+    if m.Signature != nil {
+        data, err = m.ServerChainID.MarshalBinary()
+        if err != nil {
+            return nil, err
+        }
+        buf.Write(data)        
+    }
+    
+    return buf.Bytes(), nil
 }
 
 func (m *AddServerMsg) String() string {
-	return fmt.Sprintf("AddServer: ChainID: %s", m.ServerChainID.String())
+	return fmt.Sprintf("AddServer: ChainID: %s Time: %v", m.ServerChainID.String(),m.Timestamp)
 }
 
 func NewAddServerMsg(state interfaces.IState) interfaces.IMsg {
@@ -197,6 +226,7 @@ func NewAddServerMsg(state interfaces.IState) interfaces.IMsg {
 	msg := new(AddServerMsg)
 	msg.ServerChainID = state.GetIdentityChainID()
 	msg.Timestamp = state.GetTimestamp()
-
+    
 	return msg
+    
 }

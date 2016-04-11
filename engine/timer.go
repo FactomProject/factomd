@@ -31,26 +31,28 @@ func Timer(state interfaces.IState) {
 	state.Print(fmt.Sprintf("Time: %v\r\n", time.Now()))
 	time.Sleep(time.Duration(wait))
 	for {
-		found, index := state.GetFedServerIndex(state.GetLeaderHeight())
+		found, index := state.GetFedServerIndexHash(state.GetIdentityChainID())
 		for i := 0; i < 10; i++ {
 			now = time.Now().UnixNano()
 			wait := next - now
-			next += tenthPeriod
-			time.Sleep(time.Duration(wait))
+			if now > next {
+                wait = 1
+                for next < now {
+                    next += tenthPeriod
+                }
+            }else{
+                wait = next - now
+    			next += tenthPeriod
+            }
+            time.Sleep(time.Duration(wait))
+            for found && len(state.InMsgQueue())>5000 {
+                fmt.Println("Skip Period")
+                time.Sleep(time.Duration(tenthPeriod))
+            }
 
-			// PrintBush(state,i)
-			if found && !state.Green() {
-				time.Sleep(time.Duration(tenthPeriod / 2))
-			}
-			for !state.Green() {
-				now = time.Now().UnixNano()
-				wait := next - now
-				next += tenthPeriod
-				time.Sleep(time.Duration(wait))
-			}
 			// End of the last period, and this is a server, send messages that
 			// close off the minute.
-			if found {
+			if found && state.Green(){
 				eom := new(messages.EOM)
 				eom.Minute = byte(i)
 				eom.Timestamp = state.GetTimestamp()

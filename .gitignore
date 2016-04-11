@@ -11,6 +11,7 @@
 debug
 *.txt
 *.log
+.vscode/
 
 # Folders
 _obj
