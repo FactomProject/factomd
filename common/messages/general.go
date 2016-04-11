@@ -46,6 +46,8 @@ func UnmarshalMessage(data []byte) (interfaces.IMsg, error) {
 		msg = new(InvalidDirectoryBlock)
 	case constants.MISSING_ACK_MSG:
 		msg = new(MissingAck)
+	case constants.MISSING_MSG:
+		msg = new(MissingMsg)
 	case constants.REVEAL_ENTRY_MSG:
 		msg = new(RevealEntryMsg)
 	case constants.REQUEST_BLOCK_MSG:
@@ -56,6 +58,8 @@ func UnmarshalMessage(data []byte) (interfaces.IMsg, error) {
 		msg = new(DBStateMissing)
 	case constants.DBSTATE_MSG:
 		msg = new(DBStateMsg)
+    case constants.ADDSERVER_MSG:
+        msg = new(AddServerMsg)
 	default:
 		return nil, fmt.Errorf("Unknown message type %d %x", messageType, data[0])
 	}
@@ -94,6 +98,8 @@ func MessageName(Type int) string {
 		return "Invalid Directory Block"
 	case constants.MISSING_ACK_MSG:
 		return "Missing Ack"
+	case constants.MISSING_MSG:
+		return "Missing Msg"
 	case constants.REVEAL_ENTRY_MSG:
 		return "Reveal Entry"
 	case constants.REQUEST_BLOCK_MSG:
@@ -101,7 +107,7 @@ func MessageName(Type int) string {
 	case constants.SIGNATURE_TIMEOUT_MSG:
 		return "Signature Timeout"
 	case constants.DBSTATE_MISSING_MSG:
-		return "DBState Mising"
+		return "DBState Missing"
 	case constants.DBSTATE_MSG:
 		return "DBState"
 	default:

@@ -163,7 +163,6 @@ func (list *DBStateList) Catchup() {
 }
 
 func (list *DBStateList) UpdateState() {
-
 	list.Catchup()
 
 	for i, d := range list.DBStates {
@@ -234,7 +233,7 @@ func (list *DBStateList) UpdateState() {
 				}
 
 			}
-			if err := list.State.GetDB().ProcessDBlockMultiBatch(d.DirectoryBlock); err != nil {
+        	if err := list.State.GetDB().ProcessDBlockMultiBatch(d.DirectoryBlock); err != nil {
 				panic(err.Error())
 			}
 
@@ -261,6 +260,9 @@ func (list *DBStateList) UpdateState() {
 			list.LastTime = list.State.GetTimestamp() //  If I am saving stuff, I'm good for a while
 			d.Saved = true
 		}
+
+        // Any updates required to the state as established by the AdminBlock are applied here.
+        d.AdminBlock.UpdateState(list.State)
 
 		list.State.GetAnchor().UpdateDirBlockInfoMap(dbInfo.NewDirBlockInfoFromDirBlock(d.DirectoryBlock))
 
@@ -289,6 +291,9 @@ func (list *DBStateList) Last() *DBState {
 
 func (list *DBStateList) Highest() uint32 {
 	high := list.Base + uint32(len(list.DBStates)) - 1
+    if high == 0 && len(list.DBStates)== 1 {
+        return 1
+    }
 	return high
 }
 
@@ -313,7 +318,7 @@ func (list *DBStateList) Put(dbState *DBState) {
 		cnt++
 	}
 
-	keep := uint32(5) // How many states to keep around; debugging helps with more.
+	keep := uint32(2) // How many states to keep around; debugging helps with more.
 	if uint32(cnt) > keep {
 		list.DBStates = list.DBStates[cnt-int(keep):]
 		list.Base = list.Base + uint32(cnt) - keep
@@ -364,6 +369,8 @@ func (list *DBStateList) NewDBState(isNew bool,
 	factoidBlock interfaces.IFBlock,
 	entryCreditBlock interfaces.IEntryCreditBlock) *DBState {
 
+	fmt.Println("DEBUG: dbstate.NewDBState")
+
 	dbState := new(DBState)
 
 	dbState.DBHash = directoryBlock.GetHash()
@@ -378,5 +385,6 @@ func (list *DBStateList) NewDBState(isNew bool,
 	dbState.EntryCreditBlock = entryCreditBlock
 
 	list.Put(dbState)
+	fmt.Println("DEBUG: height", dbState.DirectoryBlock.GetHeader().GetDBHeight())
 	return dbState
 }

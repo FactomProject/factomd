@@ -34,7 +34,7 @@ func NetStart(s *state.State) {
 	journalPtr := flag.String("journal", "", "Rerun a Journal of messages")
 	followerPtr := flag.Bool("follower", false, "If true, force node to be a follower.  Only used when replaying a journal.")
 	leaderPtr := flag.Bool("leader", true, "If true, force node to be a leader.  Only used when replaying a journal.")
-    tcpPtr := flag.Bool("tcp", false, "If true, use TCP connections (eg: netPeer vs SimPeer).  Defaults to SimPeer.")
+	tcpPtr := flag.Bool("tcp", false, "If true, use TCP connections (eg: netPeer vs SimPeer).  Defaults to SimPeer.")
 	dbPtr := flag.String("db", "", "Override the Database in the Config file and use this Database implementation")
 
 	flag.Parse()
@@ -52,15 +52,17 @@ func NetStart(s *state.State) {
 	os.Stderr.WriteString(fmt.Sprintf("count    %d\n", cnt))
 	os.Stderr.WriteString(fmt.Sprintf("net      \"%s\"\n", net))
 	os.Stderr.WriteString(fmt.Sprintf("journal  \"%s\"\n", journal))
-    if follower { 
-        os.Stderr.WriteString(fmt.Sprintf("follower \"%v\"\n", follower)) 
-        leader = false
-    }
-	if leader { 
-        os.Stderr.WriteString(fmt.Sprintf("leader \"%v\"\n", leader)) 
-        follower = false
-    }
-    if !follower && !leader { panic("Not a leader or a follower")}
+	if follower {
+		os.Stderr.WriteString(fmt.Sprintf("follower \"%v\"\n", follower))
+		leader = false
+	}
+	if leader {
+		os.Stderr.WriteString(fmt.Sprintf("leader \"%v\"\n", leader))
+		follower = false
+	}
+	if !follower && !leader {
+		panic("Not a leader or a follower")
+	}
 	os.Stderr.WriteString(fmt.Sprintf("db       \"%s\"\n", db))
 	os.Stderr.WriteString(fmt.Sprintf("tcp \"%v\"\n", tcp))
 
@@ -95,9 +97,9 @@ func NetStart(s *state.State) {
 		s.DBType = "Map"
 		if follower {
 			s.NodeMode = "FULL"
-            s.SetIdentityChainID(primitives.Sha([]byte("follower")))  // Make sure this node is NOT a leader
+			s.SetIdentityChainID(primitives.Sha([]byte("follower"))) // Make sure this node is NOT a leader
 		}
-        if leader {
+		if leader {
 			s.NodeMode = "SERVER"
 		}
 	}

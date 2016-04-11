@@ -6,8 +6,8 @@ package state
 
 import (
 	"fmt"
-    "time"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"time"
 )
 
 func (state *State) ValidatorLoop() {
@@ -21,27 +21,39 @@ func (state *State) ValidatorLoop() {
 			return
 		default:
 		}
-        
-        var msg interfaces.IMsg
-        loop: for {
-            state.UpdateState()
-            state.UpdateState()
-            state.UpdateState()
-            state.UpdateState()
-            select {
-                case msg = <-state.InMsgQueue(): // Get message from the input queue
-                    state.JournalMessage(msg)
 
-                    if state.PrintType(msg.Type()) {
-                        state.Println(fmt.Sprintf("%20s %s", "Validator:", msg.String()))
-                    }
-                    break loop
-                default:
-                    time.Sleep(time.Millisecond*100)
-            }
-        }
-		
-        switch msg.Validate(state) { // Validate the message.
+		var msg interfaces.IMsg
+	loop:
+		for {
+			state.UpdateState()
+			state.UpdateState()
+			state.UpdateState()
+			state.UpdateState()
+			msgProcess := func() {
+				state.JournalMessage(msg)
+
+				if state.PrintType(msg.Type()) {
+					state.Println(fmt.Sprintf("%20s %s", "Validator:", msg.String()))
+				}
+			}
+			select {
+			case msg = <-state.TimerMsgQueue():
+				msgProcess()
+				break loop
+			case msg = <-state.InMsgQueue(): // Get message from the timer or input queue
+				msgProcess()
+				break loop
+			default:
+				time.Sleep(time.Millisecond * 100)
+			}
+		}
+
+		if state.IsReplaying == true {
+			state.ReplayTimestamp = msg.GetTimestamp()
+		}
+
+		switch msg.Validate(state) { // Validate the message.
+
 		case 1: // Process if valid
 
 			if !msg.IsPeer2peer() {

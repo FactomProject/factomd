@@ -10,7 +10,6 @@ import (
 
 // DB Signature Entry -------------------------
 type DBSignatureEntry struct {
-	entryType            byte
 	IdentityAdminChainID interfaces.IHash
 	PrevDBSig            primitives.Signature
 }
@@ -18,10 +17,13 @@ type DBSignatureEntry struct {
 var _ interfaces.IABEntry = (*DBSignatureEntry)(nil)
 var _ interfaces.BinaryMarshallable = (*DBSignatureEntry)(nil)
 
+func (c *DBSignatureEntry) UpdateState(state interfaces.IState) {
+
+}
+
 // Create a new DB Signature Entry
 func NewDBSignatureEntry(identityAdminChainID interfaces.IHash, sig primitives.Signature) (e *DBSignatureEntry) {
 	e = new(DBSignatureEntry)
-	e.entryType = constants.TYPE_DB_SIGNATURE
 	e.IdentityAdminChainID = identityAdminChainID
 	copy(e.PrevDBSig.Pub.Key[:], sig.Pub.Key[:])
 	copy(e.PrevDBSig.Sig[:], sig.Sig[:])
@@ -29,13 +31,13 @@ func NewDBSignatureEntry(identityAdminChainID interfaces.IHash, sig primitives.S
 }
 
 func (e *DBSignatureEntry) Type() byte {
-	return e.entryType
+	return constants.TYPE_DB_SIGNATURE
 }
 
 func (e *DBSignatureEntry) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
 
-	buf.Write([]byte{e.entryType})
+	buf.Write([]byte{constants.TYPE_DB_SIGNATURE})
 
 	data, err = e.IdentityAdminChainID.MarshalBinary()
 	if err != nil {
@@ -56,16 +58,6 @@ func (e *DBSignatureEntry) MarshalBinary() (data []byte, err error) {
 	return buf.Bytes(), nil
 }
 
-func (e *DBSignatureEntry) MarshalledSize() uint64 {
-	var size uint64 = 0
-	size += 1 // Type (byte)
-	size += uint64(constants.HASH_LENGTH)
-	size += uint64(constants.HASH_LENGTH)
-	size += uint64(constants.SIG_LENGTH)
-
-	return size
-}
-
 func (e *DBSignatureEntry) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -73,7 +65,7 @@ func (e *DBSignatureEntry) UnmarshalBinaryData(data []byte) (newData []byte, err
 		}
 	}()
 	newData = data
-	e.entryType, newData = newData[0], newData[1:]
+	newData = newData[1:]
 
 	e.IdentityAdminChainID = new(primitives.Hash)
 	newData, err = e.IdentityAdminChainID.UnmarshalBinaryData(newData)

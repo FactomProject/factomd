@@ -5,13 +5,13 @@
 package engine
 
 import (
-    "time"
 	"bufio"
 	"encoding/hex"
 	"fmt"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"os"
+	"time"
 )
 
 func LoadJournal(s interfaces.IState, journal string) {
@@ -23,11 +23,15 @@ func LoadJournal(s interfaces.IState, journal string) {
 	}
 	defer f.Close()
 	r := bufio.NewReaderSize(f, 4*1024)
-    i := 0
+	i := 0
+
+	s.SetIsReplaying()
+	defer s.SetIsDoneReplaying()
+
 	for {
-        fmt.Print(i,"            \r")
-		
-        line, err := r.ReadBytes('\n')
+		fmt.Print(i, "            \r")
+
+		line, err := r.ReadBytes('\n')
 		if len(line) == 0 {
 			break
 		}
@@ -57,13 +61,13 @@ func LoadJournal(s interfaces.IState, journal string) {
 		}
 
 		s.InMsgQueue() <- msg
-        i++
-        if len(s.InMsgQueue())>200 {
-            for len(s.InMsgQueue())>50 {
-                time.Sleep(time.Millisecond*10)
-            }       
-            time.Sleep(time.Millisecond*100)
-        }
+		i++
+		if len(s.InMsgQueue()) > 200 {
+			for len(s.InMsgQueue()) > 50 {
+				time.Sleep(time.Millisecond * 10)
+			}
+			time.Sleep(time.Millisecond * 100)
+		}
 	}
 
 }

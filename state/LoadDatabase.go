@@ -6,6 +6,7 @@ package state
 
 import (
 	"fmt"
+	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
@@ -52,7 +53,9 @@ func LoadDatabase(s *State) {
 		ablk := s.NewAdminBlock(0)
 		fblk := factoid.GetGenesisFBlock()
 		ecblk := entryCreditBlock.NewECBlock()
-
+        
+        ablk.AddFedServer(primitives.Sha([]byte("FNode0")))
+        
 		msg := messages.NewDBStateMsg(s, dblk, ablk, fblk, ecblk)
 		s.InMsgQueue() <- msg
 	}

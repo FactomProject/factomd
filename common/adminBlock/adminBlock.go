@@ -34,6 +34,17 @@ var _ interfaces.Printable = (*AdminBlock)(nil)
 var _ interfaces.BinaryMarshallableAndCopyable = (*AdminBlock)(nil)
 var _ interfaces.DatabaseBatchable = (*AdminBlock)(nil)
 
+func (c *AdminBlock) UpdateState(state interfaces.IState) {
+    for _,entry := range c.ABEntries {
+        entry.UpdateState(state)
+    }
+}
+
+func (c *AdminBlock) AddFedServer(identityChainID interfaces.IHash){
+    entry := NewAddFederatedServer(identityChainID)
+    c.ABEntries = append(c.ABEntries, entry)
+}
+
 func (c *AdminBlock) GetHeader() interfaces.IABlockHeader {
 	return c.Header
 }
