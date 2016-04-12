@@ -60,6 +60,7 @@ func Timer(state interfaces.IState) {
 				eom.ServerIndex = index
 				eom.Sign(state)
 				state.TimerMsgQueue() <- eom
+                if index == 1 {fmt.Println("Sending",eom.String())}
 			}
 		}
 	}

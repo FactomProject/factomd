@@ -17,7 +17,10 @@ var _ interfaces.IABEntry = (*AddFederatedServer)(nil)
 var _ interfaces.BinaryMarshallable = (*AddFederatedServer)(nil)
 
 func (c *AddFederatedServer) UpdateState(state interfaces.IState) {
-    state.AddFedServer(c.IdentityChainID)
+    if len(state.GetFedServers())==0 {
+        state.AddFedServer(c.IdentityChainID)
+    }
+    state.Println(fmt.Sprintf("Adding Federaed Server: %x",c.IdentityChainID.Bytes()[:3]))
 }
 
 // Create a new DB Signature Entry

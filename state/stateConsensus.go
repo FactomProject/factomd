@@ -152,7 +152,7 @@ func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) 
 		return true
 	}
 	
-	pl := s.ProcessLists.Get(dbheight + 1)   
+	pl := s.ProcessLists.Get(dbheight)   
 	pl.AdminBlock.AddFedServer(as.ServerChainID)
 
 	return true
@@ -233,7 +233,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		found, index := s.GetFedServerIndexHash(s.IdentityChainID)
 		if found && e.ServerIndex == index  {
 			dbstate := s.DBStates.Get(dbheight)
-			DBS := messages.NewDirectoryBlockSignature(dbheight)
+          	DBS := messages.NewDirectoryBlockSignature(dbheight)
 			DBS.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
 			DBS.Timestamp = s.GetTimestamp()
 			DBS.ServerIdentityChainID = s.IdentityChainID
@@ -258,10 +258,12 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 // is then that we push it out to the rest of the network.  Otherwise, if we are not the
 // leader for the signature, it marks the sig complete for that list
 func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
-
+    
+    found, index := s.GetFedServerIndexHash(s.IdentityChainID)
+		
 	dbs := msg.(*messages.DirectoryBlockSignature)
 
-	if msg.Leader(s) {
+    if found && uint32(index) == dbs.ServerIndex {
 		hash := dbs.GetHash()
 		ack, _ := s.NewAck(dbs.DBHeight, msg, hash)
 		s.NetworkOutMsgQueue() <- dbs
@@ -492,6 +494,9 @@ func (s *State) GetNewHash() interfaces.IHash {
 // Create a new Acknowledgement.  This Acknowledgement
 func (s *State) NewAck(dbheight uint32, msg interfaces.IMsg, hash interfaces.IHash) (iack interfaces.IMsg, err error) {
 	
+    s.AckLock.Lock()
+    defer s.AckLock.Unlock()
+    
     found, index := s.GetFedServerIndexHash(s.IdentityChainID)
     if !found {
 		return nil, fmt.Errorf(s.FactomNodeName + ": Creation of an Ack attempted by non-server")
@@ -504,7 +509,7 @@ func (s *State) NewAck(dbheight uint32, msg interfaces.IMsg, hash interfaces.IHa
 
 	ack := new(messages.Ack)
 	ack.DBHeight = dbheight
-
+    ack.ServerIndex= byte(index)
 	ack.Timestamp = s.GetTimestamp()
 	ack.MessageHash = hash
 	if !ok {

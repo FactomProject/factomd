@@ -283,7 +283,7 @@ func (m *DBStateMsg) String() string {
 		m.EntryCreditBlock.GetHash().Bytes()[:5])
 }
 
-func NewDBStateMsg(state interfaces.IState,
+func NewDBStateMsg(timestamp interfaces.Timestamp,
 	d interfaces.IDirectoryBlock,
 	a interfaces.IAdminBlock,
 	f interfaces.IFBlock,
@@ -293,7 +293,7 @@ func NewDBStateMsg(state interfaces.IState,
 
 	msg.Peer2peer = true
 
-	msg.Timestamp = state.GetTimestamp()
+	msg.Timestamp = timestamp
 
 	msg.DBHash = d.GetHash()
 	msg.ABHash = a.GetHash()

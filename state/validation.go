@@ -48,6 +48,8 @@ func (state *State) ValidatorLoop() {
 			}
 		}
 
+        time.Sleep(time.Millisecond*100)
+        
 		if state.IsReplaying == true {
 			state.ReplayTimestamp = msg.GetTimestamp()
 		}
