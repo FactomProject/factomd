@@ -9,8 +9,6 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/log"
 	"math/rand"
-	"regexp"
-	"strconv"
 	"time"
 )
 
@@ -20,9 +18,10 @@ var _ = fmt.Print
 func NetworkProcessorNet(fnode *FactomNode) {
 
 	like := 0
-	re := regexp.MustCompile("[^0-9]")
+	
 	dropMessageCounter := 0
-
+    totalcnt := 0
+    
 	for {
 		time.Sleep(time.Millisecond * 10)
 
@@ -66,15 +65,10 @@ func NetworkProcessorNet(fnode *FactomNode) {
 			select {
 			case msg, ok := <-fnode.State.NetworkOutMsgQueue():
 				if ok && msg != nil && msg.GetMsgHash() != nil {
-					//DROP
-					dropMessageCounter++
-					servString := re.ReplaceAllString(fnode.State.FactomNodeName, "")
-					rawNum, _ := strconv.ParseInt(servString, 10, 32)
-					servNum := int(rawNum)
-					moduloNum := servNum + (rand.Int() % 400) + 1
-					if servNum > 0 && dropMessageCounter%moduloNum == 0 {
+			        totalcnt++
+					if rand.Int()%1000 < 50 {
 						dropMessageCounter++
-						fmt.Println(fnode.State.FactomNodeName, "DROPPING MESSAGE", msg.GetHash(), "(", msg.Type(), ")")
+						fmt.Println(fnode.State.FactomNodeName, "DROPPING MESSAGE", msg.GetHash(), "(", msg.Type(), ")", dropMessageCounter, "of", totalcnt)
 					} else {
 
 						// We don't care about the result, but we do want to log that we have
