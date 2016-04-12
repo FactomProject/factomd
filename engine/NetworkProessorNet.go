@@ -9,6 +9,8 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/log"
 	"math/rand"
+	"regexp"
+	"strconv"
 	"time"
 )
 
@@ -18,6 +20,8 @@ var _ = fmt.Print
 func NetworkProcessorNet(fnode *FactomNode) {
 
 	like := 0
+	re := regexp.MustCompile("[^0-9]")
+	dropMessageCounter := 0
 
 	for {
 		time.Sleep(time.Millisecond * 10)
@@ -62,37 +66,49 @@ func NetworkProcessorNet(fnode *FactomNode) {
 			select {
 			case msg, ok := <-fnode.State.NetworkOutMsgQueue():
 				if ok && msg != nil && msg.GetMsgHash() != nil {
-					// We don't care about the result, but we do want to log that we have
-					// seen this message before, because we might have generated the message
-					// ourselves.
-					fnode.State.Replay.IsTSValid_(msg.GetMsgHash().Fixed(),
-						int64(msg.GetTimestamp())/1000,
-						int64(fnode.State.GetTimestamp())/1000)
-
-					if msg.IsPeer2peer() {
-						p := msg.GetOrigin() - 1
-						if len(fnode.Peers) == 0 {
-							// No peers yet, put back in queue
-							time.Sleep(1 * time.Second)
-							fnode.State.NetworkOutMsgQueue() <- msg
-							break
-						}
-						if p < 0 {
-							p = like
-							like = rand.Int() % len(fnode.Peers)
-						}
-
-						fnode.MLog.add2(fnode, true, fnode.Peers[p].GetNameTo(), "P2P out", true, msg)
-						fnode.Peers[p].Send(msg)
-
+					//DROP
+					dropMessageCounter++
+					servString := re.ReplaceAllString(fnode.State.FactomNodeName, "")
+					rawNum, _ := strconv.ParseInt(servString, 10, 32)
+					servNum := int(rawNum)
+					moduloNum := servNum + (rand.Int() % 400) + 1
+					if servNum > 0 && dropMessageCounter%moduloNum == 0 {
+						dropMessageCounter++
+						fmt.Println(fnode.State.FactomNodeName, "DROPPING MESSAGE", msg.GetHash(), "(", msg.Type(), ")")
 					} else {
-						p := msg.GetOrigin() - 1
-						for i, peer := range fnode.Peers {
-							// Don't resend to the node that sent it to you.
-							if i != p || true {
-								bco := fmt.Sprintf("%s/%d/%d", "BCast", p, i)
-								fnode.MLog.add2(fnode, true, peer.GetNameTo(), bco, true, msg)
-								peer.Send(msg)
+
+						// We don't care about the result, but we do want to log that we have
+						// seen this message before, because we might have generated the message
+						// ourselves.
+						fnode.State.Replay.IsTSValid_(msg.GetMsgHash().Fixed(),
+							int64(msg.GetTimestamp())/1000,
+							int64(fnode.State.GetTimestamp())/1000)
+
+						if msg.IsPeer2peer() {
+							p := msg.GetOrigin() - 1
+							if len(fnode.Peers) == 0 {
+								// No peers yet, put back in queue
+								time.Sleep(1 * time.Second)
+								fnode.State.NetworkOutMsgQueue() <- msg
+								break
+							}
+							if p < 0 {
+								p = like
+								like = rand.Int() % len(fnode.Peers)
+							}
+
+							fnode.MLog.add2(fnode, true, fnode.Peers[p].GetNameTo(), "P2P out", true, msg)
+							fnode.Peers[p].Send(msg)
+
+						} else {
+							p := msg.GetOrigin() - 1
+							for i, peer := range fnode.Peers {
+								// Don't resend to the node that sent it to you.
+								if i != p || true {
+									bco := fmt.Sprintf("%s/%d/%d", "BCast", p, i)
+									fnode.MLog.add2(fnode, true, peer.GetNameTo(), bco, true, msg)
+									peer.Send(msg)
+								}
 							}
 						}
 					}

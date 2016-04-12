@@ -23,9 +23,9 @@ type ProcessList struct {
 	// is built.
 	MsgQueue []interfaces.IMsg
 
-	State           interfaces.IState
-	NumberServers   int                 // How many servers we are tracking
-    Servers         []*ListServer       // Process list for each server (up to 32)
+	State         interfaces.IState
+	NumberServers int           // How many servers we are tracking
+	Servers       []*ListServer // Process list for each server (up to 32)
 
 	// Maps
 	// ====
@@ -72,7 +72,7 @@ func (p *ProcessList) GetLen(list int) int {
 
 func (p ProcessList) HasMessage() bool {
 
-	for i:=0 ; i<p.NumberServers; i++ {
+	for i := 0; i < p.NumberServers; i++ {
 		if len(p.Servers[i].List) > 0 {
 			return true
 		}
@@ -101,7 +101,7 @@ func (p *ProcessList) SetSigComplete(i int, value bool) {
 
 // Set the EomComplete for the ith list
 func (p *ProcessList) SetEomComplete(i int, value bool) {
- 	p.Servers[i].EomComplete = value
+	p.Servers[i].EomComplete = value
 }
 
 // Test if a process list for a server is EOM complete.  Return true if all messages
@@ -111,9 +111,9 @@ func (p *ProcessList) EomComplete() bool {
 	if p == nil {
 		return true
 	}
-    n := len(p.State.GetFedServers())
-	for i:=0; i<n ; i++ {
-        c:= p.Servers[i]
+	n := len(p.State.GetFedServers())
+	for i := 0; i < n; i++ {
+		c := p.Servers[i]
 		if !c.EomComplete {
 			return false
 		}
@@ -127,9 +127,9 @@ func (p *ProcessList) SigComplete() bool {
 	if p == nil {
 		return true
 	}
-    n := len(p.State.GetFedServers())
-	for i:=0; i<n ; i++ {
-        c:= p.Servers[i]
+	n := len(p.State.GetFedServers())
+	for i := 0; i < n; i++ {
+		c := p.Servers[i]
 		if !c.SigComplete {
 			return false
 		}
@@ -158,7 +158,7 @@ func (p *ProcessList) Process(state *State) {
 		lht := last.DirectoryBlock.GetHeader().GetDBHeight()
 		if last.Saved && lht >= p.DBHeight-1 {
 			p.good = true
-            p.NumberServers = len(state.FedServers)
+			p.NumberServers = len(state.FedServers)
 		} else {
 			//fmt.Println("ht/lht: ", p.DBHeight, " ", lht, " ", last.Saved)
 			return
@@ -172,11 +172,11 @@ func (p *ProcessList) Process(state *State) {
 
 		for j := p.Servers[i].Height; j < len(plist); j++ {
 			if plist[j] == nil {
-				//TODO: issue missingMsg request
-				/*missingMsgRequest := messages.NewMissingMsg(list.State, p.DBHeight, uint32(j))
-				  if missingMsgRequest != nil {
-				      list.State.NetworkOutMsgQueue() <- missingMsgRequest
-				  }*/
+				fmt.Println(state.FactomNodeName, "REQUESTING MISSING MESSAGE at DBHeight:", p.DBHeight, "ProcList Height:", j)
+				missingMsgRequest := messages.NewMissingMsg(state, p.DBHeight, uint32(j))
+				if missingMsgRequest != nil {
+					state.NetworkOutMsgQueue() <- missingMsgRequest
+				}
 				p.State.Println("!!!!!!! Missing entry in process list at", j)
 				return
 			}
@@ -287,11 +287,11 @@ func (p *ProcessList) String() string {
 		prt = "-- <nil>\n"
 	} else {
 		prt = p.State.GetFactomNodeName() + "\n"
-		
+
 		for i, server := range p.Servers {
-            if i >= p.NumberServers {
-                break
-            }
+			if i >= p.NumberServers {
+				break
+			}
 			prt = prt + fmt.Sprintf("  Server %d \n", i)
 			for _, msg := range server.List {
 				if msg != nil {

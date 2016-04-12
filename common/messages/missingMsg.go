@@ -6,6 +6,7 @@ package messages
 
 import (
 	"bytes"
+	"encoding/binary"
 	"fmt"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -25,7 +26,9 @@ type MissingMsg struct {
 
 var _ interfaces.IMsg = (*MissingMsg)(nil)
 
-func (m *MissingMsg) Process(uint32, interfaces.IState) bool { return true }
+func (m *MissingMsg) Process(uint32, interfaces.IState) bool {
+	return true
+}
 
 func (m *MissingMsg) GetHash() interfaces.IHash {
 	if m.hash == nil {
@@ -80,16 +83,31 @@ func (m *MissingMsg) UnmarshalBinary(data []byte) error {
 	return err
 }
 
-func (m *MissingMsg) MarshalBinary() (data []byte, err error) {
-	return nil, nil
+func (m *MissingMsg) MarshalForSignature() ([]byte, error) {
+
+	var buf bytes.Buffer
+
+	binary.Write(&buf, binary.BigEndian, byte(m.Type()))
+
+	t := m.GetTimestamp()
+	data, err := t.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	buf.Write(data)
+
+	binary.Write(&buf, binary.BigEndian, m.DBHeight)
+	binary.Write(&buf, binary.BigEndian, m.ProcessListHeight)
+
+	return buf.Bytes(), nil
 }
 
-func (m *MissingMsg) MarshalForSignature() (data []byte, err error) {
-	return nil, nil
+func (m *MissingMsg) MarshalBinary() ([]byte, error) {
+	return m.MarshalForSignature()
 }
 
 func (m *MissingMsg) String() string {
-	return ""
+	return fmt.Sprintf("MissingMsg: %d-%d", m.DBHeight, m.ProcessListHeight)
 }
 
 func (m *MissingMsg) ChainID() []byte {
@@ -129,6 +147,7 @@ func (m *MissingMsg) Follower(interfaces.IState) bool {
 }
 
 func (m *MissingMsg) FollowerExecute(state interfaces.IState) error {
+	fmt.Println("MISSING MESSAGE EXECUTE FIRED")
 	msg, err := state.LoadSpecificMsg(m.DBHeight, m.ProcessListHeight)
 
 	if msg != nil && err == nil { // If I don't have this message, ignore.
