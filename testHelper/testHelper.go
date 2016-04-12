@@ -7,6 +7,7 @@ import (
 	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/database/mapdb"
@@ -44,6 +45,32 @@ func CreateAndPopulateTestState() *state.State {
 	time.Sleep(20 * time.Millisecond)
 
 	return s
+}
+
+func CreateTestDBStateList() []interfaces.IMsg {
+	answer := make([]interfaces.IMsg, BlockCount)
+	var prev *BlockSet = nil
+
+	for i := 0; i < BlockCount; i++ {
+		prev = CreateTestBlockSet(prev)
+
+		timestamp := interfaces.NewTimeStampNow()
+		timestamp.SetTime(uint64(i * 1000 * 60 * 60 * 6)) //6 hours of difference between messages
+
+		answer[i] = messages.NewDBStateMsg(*timestamp, prev.DBlock, prev.ABlock, prev.FBlock, prev.ECBlock)
+	}
+	return answer
+}
+
+func CreateTestLogFileString() string {
+	messages := CreateTestDBStateList()
+	answer := ""
+	st := CreateEmptyTestState()
+	for _, v := range messages {
+		s := st.MessageToLogString(v)
+		answer = answer + s
+	}
+	return answer
 }
 
 func CreateAndPopulateTestDatabaseOverlay() *databaseOverlay.Overlay {

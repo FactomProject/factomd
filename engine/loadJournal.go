@@ -8,14 +8,15 @@ import (
 	"bufio"
 	"encoding/hex"
 	"fmt"
+	"os"
+	"strings"
+	"time"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
-	"os"
-	"time"
 )
 
 func LoadJournal(s interfaces.IState, journal string) {
-
 	f, err := os.Open(journal)
 	if err != nil {
 		fmt.Println(err)
@@ -23,10 +24,21 @@ func LoadJournal(s interfaces.IState, journal string) {
 	}
 	defer f.Close()
 	r := bufio.NewReaderSize(f, 4*1024)
-	i := 0
 
+	LoadJournalFromReader(s, r)
+}
+
+func LoadJournalFromString(s interfaces.IState, journalStr string) {
+	f := strings.NewReader(journalStr)
+	r := bufio.NewReaderSize(f, 4*1024)
+	LoadJournalFromReader(s, r)
+}
+
+func LoadJournalFromReader(s interfaces.IState, r *bufio.Reader) {
 	s.SetIsReplaying()
 	defer s.SetIsDoneReplaying()
+
+	i := 0
 
 	for {
 		fmt.Print(i, "            \r")
@@ -70,4 +82,9 @@ func LoadJournal(s interfaces.IState, journal string) {
 		}
 	}
 
+	//Waiting for state to process the message queue
+	//before we disable "IsDoneReplaying"
+	for len(s.InMsgQueue()) > 0 {
+		time.Sleep(time.Millisecond * 100)
+	}
 }
