@@ -6,11 +6,12 @@ package engine
 
 import (
 	"fmt"
+	"math/rand"
 	"time"
 
 	"github.com/go-mangos/mangos"
 	"github.com/go-mangos/mangos/protocol/pair"
-	"github.com/go-mangos/mangos/transport/ipc"
+	// "github.com/go-mangos/mangos/transport/ipc"
 	"github.com/go-mangos/mangos/transport/tcp"
 
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -49,7 +50,7 @@ func (f *NetPeer) Connect(connectionType int, address string) error {
 	if f.Socket, err = pair.NewSocket(); err != nil {
 		fmt.Printf("netPeer.Connect error from pair.NewSocket() for %s :\n %+v\n\n", address, err)
 	}
-	f.Socket.AddTransport(ipc.NewTransport()) // ipc works on a single machine we want to at least simulate a full network connection.
+	// f.Socket.AddTransport(ipc.NewTransport()) // ipc works on a single machine we want to at least simulate a full network connection.
 	f.Socket.AddTransport(tcp.NewTransport())
 
 	switch connectionType {
@@ -173,6 +174,9 @@ func (f *NetPeer) GetNameTo() string {
 }
 
 func (f *NetPeer) Send(msg interfaces.IMsg) error {
+	if 1 == rand.Intn(send_freq) {
+		fmt.Printf("NetPeer.SEND %s -> %s\n", f.FromName, f.ToName)
+	}
 	// fmt.Printf("netPeer.Send: %+v\n", msg)
 
 	data, err := msg.MarshalBinary()
@@ -188,6 +192,9 @@ func (f *NetPeer) Send(msg interfaces.IMsg) error {
 
 // Non-blocking return value from channel.
 func (f *NetPeer) Recieve() (interfaces.IMsg, error) {
+	if 1 == rand.Intn(recieve_freq) {
+		fmt.Printf("NetPeer.RECIEVE %s -> %s\n", f.FromName, f.ToName)
+	}
 	var data []byte
 	var err error
 	if data, err = f.Socket.Recv(); err == nil {

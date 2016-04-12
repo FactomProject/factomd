@@ -13,7 +13,6 @@ import (
 	"unicode"
 
 	"github.com/FactomProject/factomd/common/messages"
-	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/wsapi"
 )
 
@@ -22,14 +21,21 @@ var _ = fmt.Print
 func SimControl(listenTo int) {
 
 	var _ = time.Sleep
+	// fmt.Printf("%d -- SimControl.SimControl CHECKPOINT 20\n", os.Getpid())
 
 	for {
+		// fmt.Printf("%d -- SimControl.SimControl CHECKPOINT 21\n", os.Getpid())
 
 		l := make([]byte, 100)
 		var err error
 		if _, err = os.Stdin.Read(l); err != nil {
-			log.Fatal(err.Error())
+			// fmt.Printf("%d -- SimControl.SimControl CHECKPOINT 22\n Error is: %+v\n", os.Getpid(), err)
+			l = []byte("no command")
+			time.Sleep(10 * time.Second)
+
+			// fmt.Printf("%d -- SimControl.SimControl CHECKPOINT 23\n", os.Getpid())
 		}
+		// fmt.Printf("%d -- SimControl.SimControl CHECKPOINT 24\n", os.Getpid())
 
 		// JAYJAY probably should get rid of this and do a readline plus tokenize the line for more complext commands.
 		// for i, c := range b {
@@ -56,7 +62,7 @@ func SimControl(listenTo int) {
 			fmt.Print("\r\nSwitching to Node ", listenTo, "\r\n")
 			wsapi.SetState(fnodes[listenTo].State)
 		} else {
-			fmt.Printf("Parsing command, found %d elements.  The first element is: %+v / %s \n Full command: %+v\n", len(cmd), b[0], string(b), cmd)
+			// fmt.Printf("Parsing command, found %d elements.  The first element is: %+v / %s \n Full command: %+v\n", len(cmd), b[0], string(b), cmd)
 			switch {
 			case '+' == b[0]:
 				mLog.all = false

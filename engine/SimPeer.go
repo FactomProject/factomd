@@ -64,6 +64,9 @@ func (f *SimPeer) GetNameTo() string {
 }
 
 func (f *SimPeer) Send(msg interfaces.IMsg) error {
+	// if 1 == rand.Intn(send_freq) {
+	// 	fmt.Printf("SimPeer.SEND %s -> %s\tmsg: %s\n", f.FromName, f.ToName, msg)
+	// }
 	data, err := msg.MarshalBinary()
 	if err != nil {
 		return err
@@ -75,10 +78,14 @@ func (f *SimPeer) Send(msg interfaces.IMsg) error {
 
 // Non-blocking return value from channel.
 func (f *SimPeer) Recieve() (interfaces.IMsg, error) {
+	// if 1 == rand.Intn(recieve_freq) {
+	// 	fmt.Printf("SimPeer.RECIEVE %s -> %s\n", f.FromName, f.ToName)
+	// }
 	select {
 	case data, ok := <-f.BroadcastIn:
 		if ok {
 			msg, err := messages.UnmarshalMessage(data)
+			// fmt.Printf("SimPeer.Recieve  GOT MESSAGE:\t %+v\n", msg)
 			return msg, err
 		}
 	default:

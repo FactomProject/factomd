@@ -20,6 +20,10 @@ import (
 
 var _ = fmt.Print
 
+// Frequency of issuing debug print statements in netowkr code-- 2 = %100, 100 = %1 of the time.
+var send_freq = 2
+var recieve_freq = 2
+
 type FactomNode struct {
 	State *state.State
 	Peers []interfaces.IPeer
@@ -52,11 +56,11 @@ func NetStart(s *state.State) {
 	followerPtr := flag.Bool("follower", false, "If true, force node to be a follower.  Only used when replaying a journal.")
 	leaderPtr := flag.Bool("leader", true, "If true, force node to be a leader.  Only used when replaying a journal.")
 	dbPtr := flag.String("db", "", "Override the Database in the Config file and use this Database implementation")
-	folderPtr := flag.String("folder", "m2", "Directory in .factom to store nodes. (eg: multiple nodes on one filesystem support)")
+	folderPtr := flag.String("folder", "test-", "Directory in .factom to store nodes. (eg: multiple nodes on one filesystem support)")
 	stylePtr := flag.String("style", "sim", "sim, tcp, ether - chooses the node/network style.")
 	servePtr := flag.String("serve", "", "Port to start a TCP server on.")
 	connectPtr := flag.String("connect", "", "Address to connect into over TCP (eg: another factomd node)")
-	portPtr := flag.Int("port", 8088, "Address to serve WSAPI on")
+	portPtr := flag.Int("port", 8089, "Address to serve WSAPI on")
 
 	flag.Parse()
 
@@ -81,9 +85,9 @@ func NetStart(s *state.State) {
 	os.Stderr.WriteString(fmt.Sprintf("folder   \"%s\"\n", folder))
 	os.Stderr.WriteString(fmt.Sprintf("serve    \"%s\"\n", serve))
 	os.Stderr.WriteString(fmt.Sprintf("connect  \"%s\"\n", connect))
-	os.Stderr.WriteString(fmt.Sprintf("port     \"%s\"\n", port))
+	os.Stderr.WriteString(fmt.Sprintf("port     \"%d\"\n", port))
 	os.Stderr.WriteString(fmt.Sprintf("db       \"%s\"\n", db))
-	os.Stderr.WriteString(fmt.Sprintf("tcp \"%v\"\n", tcp))
+	os.Stderr.WriteString(fmt.Sprintf("style    \"%v\"\n", style))
 
 	switch style {
 	case "sim":
@@ -243,26 +247,38 @@ func NetStart(s *state.State) {
 
 	// Right before we hand off to sim control, lets set up our network connections to other nodes
 	// for the test point-to-point network.
+	fmt.Printf("%d -- NetStart. CHECKPOINT 44\n", os.Getpid())
 	if 0 != len(serve) { // Start serving on the given port.
 		port, _ := strconv.Atoi(serve)
 		RemoteServeOnPort(fnodes, port)
+		fmt.Printf("%d -- NetStart. CHECKPOINT 45\n", os.Getpid())
 	}
+	fmt.Printf("%d -- NetStart. CHECKPOINT 46\n", os.Getpid())
 
 	if 0 != len(connect) { // Connect to the remote server.
+		fmt.Printf("%d -- NetStart. CHECKPOINT 47\n", os.Getpid())
 		success := false
 		for attempts := 0; attempts < 5 && !success; attempts++ {
+			fmt.Printf("%d -- NetStart. CHECKPOINT 48\n", os.Getpid())
 			err := RemoteConnect(fnodes, connect)
+			fmt.Printf("%d -- NetStart. CHECKPOINT 49\n", os.Getpid())
 			if nil == err {
 				success = true
 			} else {
 				fmt.Println("Failed to connect, sleeping for 10 seconds and trying again.")
 				time.Sleep(10 * time.Second)
 			}
+			fmt.Printf("%d -- NetStart. CHECKPOINT 50\n", os.Getpid())
 		}
-		fmt.Println("Unable to connect to remote peer after 5 attempts!")
+		if !success {
+			fmt.Println("Unable to connect to remote peer after 5 attempts!")
+		}
+		fmt.Printf("%d -- NetStart. CHECKPOINT 51\n", os.Getpid())
 
 	}
+	fmt.Printf("%d -- NetStart. CHECKPOINT 52\n", os.Getpid())
 	go wsapi.Start(fnodes[0].State)
+	fmt.Printf("%d -- NetStart. CHECKPOINT 53\n", os.Getpid())
 
 	SimControl(listenTo)
 

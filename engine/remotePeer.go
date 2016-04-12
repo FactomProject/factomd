@@ -6,15 +6,15 @@ package engine
 
 import (
 	"fmt"
+	"math/rand"
+	"os"
 	"time"
-
-	"github.com/go-mangos/mangos"
-	"github.com/go-mangos/mangos/protocol/pair"
-	"github.com/go-mangos/mangos/transport/ipc"
-	"github.com/go-mangos/mangos/transport/tcp"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
+	"github.com/go-mangos/mangos"
+	"github.com/go-mangos/mangos/protocol/pair"
+	"github.com/go-mangos/mangos/transport/tcp"
 )
 
 var _ = fmt.Print
@@ -29,60 +29,7 @@ type RemotePeer struct {
 	FromName string
 }
 
-// These are defined in netPeer:
-// const ( // iota is reset to 0
-// 	server = iota // c0 == 0
-// 	client = iota // c1 == 1
-// )
-
 var _ interfaces.IPeer = (*RemotePeer)(nil)
-
-// I hope this isn't needed.
-// func (f *NetPeer) AddExistingConnection(conn mangos.f.Socketet) {
-// 	f.f.Socketet = conn
-// }
-
-// Connect sets us up with a scoket connection, type indicates whether we dial in (as client) or listen (as server). address is the URL.
-func (f *RemotePeer) Connect(connectionType int, address string) error {
-	var err error
-	err = nil
-
-	if f.Socket, err = pair.NewSocket(); err != nil {
-		fmt.Printf("netPeer.Connect error from pair.NewSocket() for %s :\n %+v\n\n", address, err)
-	}
-	f.Socket.AddTransport(ipc.NewTransport()) // ipc works on a single machine we want to at least simulate a full network connection.
-	f.Socket.AddTransport(tcp.NewTransport())
-
-	switch connectionType {
-	case server:
-		if err = f.Socket.Listen(address); err != nil {
-			fmt.Printf("netPeer.Connect error from pair.Listen() for %s :\n %+v\n\n", address, err)
-		} else {
-			fmt.Printf("netPeer.Connect LISTENING ON for %s :\n", address)
-		}
-
-	case client:
-		if err = f.Socket.Dial(address); err != nil {
-			fmt.Printf("netPeer.Connect error from pair.Dial() for %s :\n %+v\n\n", address, err)
-		} else {
-			fmt.Printf("netPeer.Connect DIALED IN for %s :\n", address)
-		}
-	}
-	// 100ms Timeout
-	// f.Socket.SetOption(mangos.OptionRecvDeadline, 100*time.Millisecond)
-	// Minimal blocking
-	f.Socket.SetOption(mangos.OptionRecvDeadline, 1*time.Millisecond)
-
-	return err
-}
-
-// func (f *NetPeer) ConnectTCP(address string) error {
-// 	return f.Connect("tcp", address)
-// }
-
-// func (f *NetPeer) ConnectUDP(address string) error {
-// 	return f.Connect("udp", address)
-// }
 
 func (f *RemotePeer) Init(fromName, toName string) interfaces.IPeer {
 	f.ToName = toName
@@ -90,11 +37,16 @@ func (f *RemotePeer) Init(fromName, toName string) interfaces.IPeer {
 	return f
 }
 
+// I hope this isn't needed.
+// func (f *NetPeer) AddExistingConnection(conn mangos.f.Socketet) {
+// 	f.f.Socketet = conn
+// }
+
 // Serves on a default poort, incremented each time its called.
 func RemoteServe(fnodes []*FactomNode) {
 	// Increment the port so every connection is on a differnet port
 	ServePort += 1
-
+	fmt.Printf("%d -- $$$$$$$$$$$$$$$$$$$$$$$$$$ RemotePeer.RemoteServe port: %d \n", os.Getpid(), ServePort)
 	RemoteServeOnPort(fnodes, ServePort)
 }
 
@@ -102,18 +54,19 @@ func RemoteServe(fnodes []*FactomNode) {
 // Returns: Address on which we are serving.
 func RemoteServeOnPort(fnodes []*FactomNode, port int) {
 	f1 := fnodes[0]
-
+	fmt.Printf("%d -- RemotePeer.RemoteServeOnPort CHECKPOINT ENTRY\n", os.Getpid())
 	// Mangos implementation:
 	address := fmt.Sprintf("%s:%d", "tcp://127.0.0.1", port)
-	fmt.Println("RemotePeer.RemoteServe listening on address: ", address)
+	fmt.Printf("%d -- RemotePeer.RemoteServeOnPort listening on address: %s \n", os.Getpid(), address)
 
 	peer := new(RemotePeer).Init(f1.State.FactomNodeName, address).(*RemotePeer)
+	fmt.Printf("%d -- RemotePeer.RemoteServeOnPort CHECKPOINT ALPO\n", os.Getpid())
 	if err := peer.Connect(server, address); nil == err {
+		fmt.Printf("%d -- RemotePeer.RemoteServeOnPort CHECKPOINT CHEX\n", os.Getpid())
 		f1.Peers = append(f1.Peers, peer)
+		fmt.Printf("%d -- RemotePeer.RemoteServeOnPort CHECKPOINT LIFE\n", os.Getpid())
 	}
-	for _, p := range f1.Peers {
-		fmt.Printf("%s's peer: %s\n", p.GetNameFrom(), p.GetNameTo())
-	}
+	// fmt.Printf("%d -- peers: %+v\n", os.Getpid(), f1.Peers)
 }
 
 // Connects:  Connects us to fnode 0 and dials out to address, creating a TCP connection
@@ -121,19 +74,59 @@ func RemoteConnect(fnodes []*FactomNode, address string) error {
 	f1 := fnodes[0]
 
 	// Mangos implementation:
-	fmt.Printf("RemotePeer.RemoteConnect connecting to address: %s\n(should be in form of tcp://127.0.0.1:1234)\n", address)
+	fmt.Printf("%d -- RemotePeer.RemoteConnect connecting to address: %s\n(should be in form of tcp://127.0.0.1:1234)\n", os.Getpid(), address)
 
 	peer := new(RemotePeer).Init(f1.State.FactomNodeName, address).(*RemotePeer)
+	fmt.Printf("%d -- RemotePeer.RemoteConnect CHECKPOINT BETA\n", os.Getpid())
+
 	if err := peer.Connect(client, address); nil == err {
+		fmt.Printf("%d -- RemotePeer.RemoteConnect CHECKPOINT KAPPA\n", os.Getpid())
+
 		f1.Peers = append(f1.Peers, peer)
+		fmt.Printf("%d -- RemotePeer.RemoteConnect CHECKPOINT GAMMA\n", os.Getpid())
+
 	} else {
-		fmt.Printf("remotePeer.RemoteConnect: Failed to connect to remote peer at address: %s", address)
+		fmt.Printf("%d -- remotePeer.RemoteConnect: Failed to connect to remote peer at address: %s\n", os.Getpid(), address)
 		return err
 	}
-	for _, p := range f1.Peers {
-		fmt.Printf("%s's peer: %s\n", p.GetNameFrom(), p.GetNameTo())
+	fmt.Printf("%d -- RemotePeer.RemoteConnect CHECKPOINT LEAVING\n", os.Getpid())
+
+	// fmt.Printf("%d -- peers: %+v\n", os.Getpid(), f1.Peers)
+	return nil
+}
+
+// Connect sets us up with a scoket connection, type indicates whether we dial in (as client) or listen (as server). address is the URL.
+func (f *RemotePeer) Connect(connectionType int, address string) error {
+	var err error
+	err = nil
+
+	if f.Socket, err = pair.NewSocket(); err != nil {
+		fmt.Printf("%d -- RemotePeer.Connect error from pair.NewSocket() for %s :\n %+v\n\n", os.Getpid(), address, err)
 	}
-    return nil
+	// f.Socket.AddTransport(ipc.NewTransport()) // ipc works on a single machine we want to at least simulate a full network connection.
+	f.Socket.AddTransport(tcp.NewTransport())
+
+	switch connectionType {
+	case server:
+		if err = f.Socket.Listen(address); err != nil {
+			fmt.Printf("%d -- RemotePeer.Connect error from pair.Listen() for %s :\n %+v\n\n", os.Getpid(), address, err)
+		} else {
+			fmt.Printf("%d -- RemotePeer.Connect LISTENING ON for %s :\n", os.Getpid(), address)
+		}
+
+	case client:
+		if err = f.Socket.Dial(address); err != nil {
+			fmt.Printf("%d -- RemotePeer.Connect error from pair.Dial() for %s :\n %+v\n\n", os.Getpid(), address, err)
+		} else {
+			fmt.Printf("%d -- RemotePeer.Connect DIALED IN for %s :\n", os.Getpid(), address)
+			msg := "HEARTBEAT"
+			if err = f.Socket.Send([]byte(msg)); err != nil {
+				fmt.Printf("%d -- RemotePeer.Connect ###### error from f.Socket.Send(data) for:\n %+v\n\n", os.Getpid(), msg)
+			}
+		}
+	}
+	fmt.Printf("%d -- RemotePeer.Connect CHECKPOINT ZETA\n", os.Getpid())
+	return err
 }
 
 func (f *RemotePeer) GetNameFrom() string {
@@ -144,30 +137,52 @@ func (f *RemotePeer) GetNameTo() string {
 }
 
 func (f *RemotePeer) Send(msg interfaces.IMsg) error {
+	if 1 == rand.Intn(send_freq) {
+		fmt.Printf("%d -- RemotePeer.SEND %s -> %s\t %s \n", os.Getpid(), f.FromName, f.ToName, msg)
+	}
 	// fmt.Printf("RemotePeer.Send for:\n %+v\n\n", msg)
 
 	data, err := msg.MarshalBinary()
 	if err != nil {
+		fmt.Printf("%d -- RemotePeer.Send !!!!!!!!!!!! FAILED TO MARSHALL BINARY for:\n %+v\n\n", os.Getpid(), msg)
+
 		return err
 	}
 
 	if err = f.Socket.Send(data); err != nil {
-		fmt.Printf("RemotePeer.Send error from f.Socket.Send(data) for:\n %+v\n\n", msg)
+		fmt.Printf("%d -- RemotePeer.Send error from f.Socket.Send(data) for:\n %+v\n\n", os.Getpid(), msg)
 	}
 	return err
 }
 
 // Non-blocking return value from channel.
 func (f *RemotePeer) Recieve() (interfaces.IMsg, error) {
+	// if 1 == rand.Intn(recieve_freq) {
+	// 	fmt.Printf("%d -- RemotePeer.RECIEVE %s -> %s\n", os.Getpid(), f.FromName, f.ToName)
+	// }
+	// 100ms Timeout
+	f.Socket.SetOption(mangos.OptionRecvDeadline, 100*time.Millisecond)
+	// Minimal blocking
+	// f.Socket.SetOption(mangos.OptionRecvDeadline, 1*time.Millisecond)
 	var data []byte
 	var err error
 	if data, err = f.Socket.Recv(); err == nil {
-		if len(data) > 0 {
-			msg, err := messages.UnmarshalMessage(data)
-			// fmt.Printf("RemotePeer.Recieve $$$$$$$$$$$$ GOT MESSAGE:\n %+v\n\n", msg)
-
+		// if len(data) > 0 {
+		msg, err := messages.UnmarshalMessage(data)
+		if nil == err {
+			fmt.Printf("%d -- RemotePeer.Recieve $$$$$$$$$$$$ GOT VALID MESSAGE:\t %+v\n", os.Getpid(), msg)
+		} else {
+			fmt.Printf("%d -- RemotePeer.Recieve Got invalid MESSAGE:\t %+v\n", os.Getpid(), string(data))
+			// }
 			return msg, err
 		}
+	} else {
+		fmt.Printf("%d -- RemotePeer.Recieve error:\t %+v\n", os.Getpid(), err)
+
+	}
+	beat := "HEARTBEAT"
+	if err = f.Socket.Send([]byte(beat)); err != nil {
+		fmt.Printf("%d -- RemotePeer.Connect ###### error from f.Socket.Send(data) for:\n %+v\n\n", os.Getpid(), beat)
 	}
 
 	return nil, nil

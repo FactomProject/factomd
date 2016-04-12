@@ -6,10 +6,11 @@ package engine
 
 import (
 	"fmt"
-	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/log"
 	"math/rand"
 	"time"
+
+	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/log"
 )
 
 var _ = log.Printf
@@ -61,6 +62,9 @@ func NetworkProcessorNet(fnode *FactomNode) {
 		for {
 			select {
 			case msg, ok := <-fnode.State.NetworkOutMsgQueue():
+				// if 1 == rand.Intn(send_freq) {
+				// 	fmt.Printf("NetworkProcessorNet.NetworkOutMsgQueue has message: %+v\n", msg)
+				// }
 				if ok && msg != nil && msg.GetMsgHash() != nil {
 					// We don't care about the result, but we do want to log that we have
 					// seen this message before, because we might have generated the message
@@ -83,6 +87,10 @@ func NetworkProcessorNet(fnode *FactomNode) {
 						}
 
 						fnode.MLog.add2(fnode, true, fnode.Peers[p].GetNameTo(), "P2P out", true, msg)
+						// if 1 == rand.Intn(send_freq) {
+						// 	fmt.Printf("NetworkProcessorNet.SEND %s -> %s\n", fnode.Peers[p].GetNameFrom, fnode.Peers[p].GetNameTo)
+						// }
+
 						fnode.Peers[p].Send(msg)
 
 					} else {
