@@ -163,13 +163,22 @@ func (b *AdminBlock) AddEndOfMinuteMarker(eomType byte) (err error) {
 func (b *AdminBlock) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
 
-	data, _ = b.Header.MarshalBinary()
-	buf.Write(data)
-
+    // Marshal all the entries into their own thing (need the size)
+    var buf2 bytes.Buffer
 	for _, v := range b.ABEntries {
 		data, _ := v.MarshalBinary()
-		buf.Write(data)
+		buf2.Write(data)
 	}
+
+    b.Header.SetMessageCount(uint32(len(b.ABEntries)))
+    b.Header.SetBodySize(uint32(len(buf2.Bytes())))
+
+	data, _ = b.Header.MarshalBinary()
+	buf.Write(data)
+    
+    // Write the Body out
+    buf.Write(buf2.Bytes()) 
+       
 	return buf.Bytes(), err
 }
 
@@ -199,11 +208,17 @@ func (b *AdminBlock) UnmarshalBinaryData(data []byte) (newData []byte, err error
 
 	b.ABEntries = make([]interfaces.IABEntry, int(b.Header.GetMessageCount()))
 	for i := uint32(0); i < b.Header.GetMessageCount(); i++ {
-		if newData[0] == constants.TYPE_DB_SIGNATURE {
+        switch newData[0] {
+        case constants.TYPE_DB_SIGNATURE:
 			b.ABEntries[i] = new(DBSignatureEntry)
-		} else if newData[0] == constants.TYPE_MINUTE_NUM {
+        case constants.TYPE_MINUTE_NUM:
 			b.ABEntries[i] = new(EndOfMinuteEntry)
-		}
+		case constants.TYPE_ADD_FED_SERVER:
+		    b.ABEntries[i] = new(AddFederatedServer)
+        default :
+           fmt.Println("AB UNDEFINED ENTRY")		
+            panic("Undefined Admin Block Entry Type")
+    }
 		newData, err = b.ABEntries[i].UnmarshalBinaryData(newData)
 		if err != nil {
 			return

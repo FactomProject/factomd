@@ -199,7 +199,7 @@ func (p *ProcessList) Process(state *State) {
 					// compare the SerialHash of this acknowledgement with the
 					// expected serialHash (generated above)
 					if !expectedSerialHash.IsSameAs(thisAck.SerialHash) {
-						fmt.Println("DISCREPANCY: ", i, j)
+						fmt.Println("DISCREPANCY: ", i, j, "on", state.GetFactomNodeName())
 						fmt.Printf("LAST MESS: %+v ::: LAST SERIAL: %+v\n", last.MessageHash, last.SerialHash)
 						fmt.Printf("THIS MESS: %+v ::: THIS SERIAL: %+v\n", thisAck.MessageHash, thisAck.SerialHash)
 						fmt.Println("EXPECT: ", expectedSerialHash)
