@@ -43,11 +43,12 @@ type ProcessList struct {
 }
 
 type ListServer struct {
-	List        []interfaces.IMsg // Lists of acknowledged messages
-	Height      int               // Height of messages that have been processed
-	EomComplete bool              // Lists that are end of minute complete
-	SigComplete bool              // Lists that are signature complete
-	LastAck     interfaces.IMsg   // The last Acknowledgement set by this server
+	List            []interfaces.IMsg // Lists of acknowledged messages
+	Height          int               // Height of messages that have been processed
+	EomComplete     bool              // Lists that are end of minute complete
+	SigComplete     bool              // Lists that are signature complete
+	LastLeaderAck   interfaces.IMsg  // The last Acknowledgement set by this leader
+	LastAck         interfaces.IMsg   // The last Acknowledgement set by this follower
 }
 
 // Given a server index, return the last Ack
@@ -59,6 +60,18 @@ func (p *ProcessList) GetLastAck(index int) interfaces.IMsg {
 func (p *ProcessList) SetLastAck(index int, msg interfaces.IMsg) error {
 	// Check the hash of the previous msg before we over write
 	p.Servers[index].LastAck = msg
+	return nil
+}
+
+// Given a server index, return the last Ack
+func (p *ProcessList) GetLastLeaderAck(index int) interfaces.IMsg {
+	return p.Servers[index].LastLeaderAck
+}
+
+// Given a server index, return the last Ack
+func (p *ProcessList) SetLastLeaderAck(index int, msg interfaces.IMsg) error {
+	// Check the hash of the previous msg before we over write
+	p.Servers[index].LastLeaderAck = msg
 	return nil
 }
 
