@@ -226,40 +226,31 @@ func (f *RemotePeer) Equals(ff interfaces.IPeer) bool {
 
 // Mangos example code below:
 func die(format string, v ...interface{}) {
-	fmt.Fprintln(os.Stderr, fmt.Sprintf(format, v...))
+	fmt.Fprintln(os.Stderr, fmt.Sprintf("%d -- ", os.Getpid()), fmt.Sprintf(format, v...))
 	os.Exit(1)
 }
 
-func sendName(sock mangos.Socket, name string) {
-	fmt.Printf("%s: SENDING \"%s\"\n", name, name)
-	if err := sock.Send([]byte(name)); err != nil {
-		die("failed sending: %s", err)
-	}
-	if err := sock.Send([]byte("HEARTBEAT - 1")); err != nil {
-		die("failed sending: %s", err)
-	}
-	if err := sock.Send([]byte("HEARTBEAT - 2")); err != nil {
-		die("failed sending: %s", err)
-	}
-	if err := sock.Send([]byte("HEARTBEAT - 3")); err != nil {
+func sendMessage(sock mangos.Socket, payload []byte) {
+	fmt.Printf("%s: SENDING \"%s\"\n", os.Getpid(), string(payload))
+	if err := sock.Send(payload); err != nil {
 		die("failed sending: %s", err)
 	}
 }
 
-func recvName(sock mangos.Socket, name string) {
+func recvMessage(sock mangos.Socket) {
 	var msg []byte
 	var err error
 	if msg, err = sock.Recv(); err == nil {
-		fmt.Printf("%s: RECEIVED: \"%s\"\n", name, string(msg))
+		fmt.Printf("%d -- RECEIVED: \"%s\"\n", os.Getpid(), string(msg))
 	}
 }
 
 func sendRecv(sock mangos.Socket, name string) {
 	for {
 		sock.SetOption(mangos.OptionRecvDeadline, 100*time.Millisecond)
-		recvName(sock, name)
+		recvMessage(sock)
 		time.Sleep(time.Second)
-		sendName(sock, name)
+		sendMessage(sock, []byte(name))
 	}
 }
 
@@ -269,7 +260,7 @@ func listen(url string) {
 	if sock, err = pair.NewSocket(); err != nil {
 		die("can't get new pair socket: %s", err)
 	}
-	// sock.AddTransport(ipc.NewTransport())
+
 	sock.AddTransport(tcp.NewTransport())
 	if err = sock.Listen(url); err != nil {
 		die("can't listen on pair socket: %s", err.Error())
@@ -300,13 +291,13 @@ func NetMain(leader bool) {
 		dial(address)
 	}
 
-	fmt.Fprintf(os.Stderr, "Usage: pair node0|node1 <URL>\n")
+	fmt.Fprintf(os.Stderr, "%d -- Usage: pair node0|node1 <URL>\n", os.Getpid())
 	os.Exit(1)
 }
 
 // Thought process:
-// - leader listens, follower connects.
-// - Change message format to binary
+// X leader listens, follower connects.
+// X Change message format to binary
 // - Think about how to refactor this to be really peer connections.
 // - Next step-- we listen always (And we dial out to the peers we know about) (this requires we be probably in VMs)
 // -
