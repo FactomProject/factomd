@@ -14,7 +14,6 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/go-mangos/mangos"
 	"github.com/go-mangos/mangos/protocol/pair"
-	"github.com/go-mangos/mangos/transport/ipc"
 	"github.com/go-mangos/mangos/transport/tcp"
 )
 
@@ -104,7 +103,7 @@ func (f *RemotePeer) Connect(connectionType int, address string) error {
 	if f.Socket, err = pair.NewSocket(); err != nil {
 		fmt.Printf("%d -- RemotePeer.Connect error from pair.NewSocket() for %s :\n %+v\n\n", os.Getpid(), address, err)
 	}
-	f.Socket.AddTransport(ipc.NewTransport()) // ipc works on a single machine we want to at least simulate a full network connection.
+	// f.Socket.AddTransport(ipc.NewTransport()) // ipc works on a single machine we want to at least simulate a full network connection.
 	f.Socket.AddTransport(tcp.NewTransport())
 
 	switch connectionType {
@@ -218,3 +217,84 @@ func (f *RemotePeer) Equals(ff interfaces.IPeer) bool {
 // 	// Broadcase in is the Sim Peer channel.  We have a way to see how many TCP MEssages?
 // 	return 1
 // }
+
+// Mangos example code below:
+func die(format string, v ...interface{}) {
+	fmt.Fprintln(os.Stderr, fmt.Sprintf(format, v...))
+	os.Exit(1)
+}
+
+func sendName(sock mangos.Socket, name string) {
+	fmt.Printf("%s: SENDING \"%s\"\n", name, name)
+	if err := sock.Send([]byte(name)); err != nil {
+		die("failed sending: %s", err)
+	}
+	if err := sock.Send([]byte("HEARTBEAT - 1")); err != nil {
+		die("failed sending: %s", err)
+	}
+	if err := sock.Send([]byte("HEARTBEAT - 2")); err != nil {
+		die("failed sending: %s", err)
+	}
+	if err := sock.Send([]byte("HEARTBEAT - 3")); err != nil {
+		die("failed sending: %s", err)
+	}
+}
+
+func recvName(sock mangos.Socket, name string) {
+	var msg []byte
+	var err error
+	if msg, err = sock.Recv(); err == nil {
+		fmt.Printf("%s: RECEIVED: \"%s\"\n", name, string(msg))
+	}
+}
+
+func sendRecv(sock mangos.Socket, name string) {
+	for {
+		sock.SetOption(mangos.OptionRecvDeadline, 100*time.Millisecond)
+		recvName(sock, name)
+		time.Sleep(time.Second)
+		sendName(sock, name)
+	}
+}
+
+func node0(url string) {
+	var sock mangos.Socket
+	var err error
+	if sock, err = pair.NewSocket(); err != nil {
+		die("can't get new pair socket: %s", err)
+	}
+	// sock.AddTransport(ipc.NewTransport())
+	sock.AddTransport(tcp.NewTransport())
+	if err = sock.Listen(url); err != nil {
+		die("can't listen on pair socket: %s", err.Error())
+	}
+	sendRecv(sock, "node0")
+}
+
+func node1(url string) {
+	var sock mangos.Socket
+	var err error
+
+	if sock, err = pair.NewSocket(); err != nil {
+		die("can't get new pair socket: %s", err.Error())
+	}
+	// sock.AddTransport(ipc.NewTransport())
+	sock.AddTransport(tcp.NewTransport())
+	if err = sock.Dial(url); err != nil {
+		die("can't dial on pair socket: %s", err.Error())
+	}
+	sendRecv(sock, "node1")
+}
+
+func NetMain(leader bool) {
+	if len(os.Args) > 2 && os.Args[1] == "node0" {
+		node0(os.Args[2])
+		os.Exit(0)
+	}
+	if len(os.Args) > 2 && os.Args[1] == "node1" {
+		node1(os.Args[2])
+		os.Exit(0)
+	}
+	fmt.Fprintf(os.Stderr, "Usage: pair node0|node1 <URL>\n")
+	os.Exit(1)
+}
