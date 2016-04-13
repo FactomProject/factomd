@@ -31,6 +31,7 @@ type DBState struct {
 	AdminBlock       interfaces.IAdminBlock
 	FactoidBlock     interfaces.IFBlock
 	EntryCreditBlock interfaces.IEntryCreditBlock
+	EntryBlocks      map[[32]byte]interfaces.IEntryBlock
 	Saved            bool
 }
 
@@ -249,6 +250,12 @@ func (list *DBStateList) UpdateState() {
 				panic(err.Error())
 			}
 
+			for _, v := range d.EntryBlocks {
+				if err := list.State.GetDB().ProcessEBlockMultiBatch(v); err != nil {
+					panic(err.Error())
+				}
+			}
+
 			if err := list.State.GetDB().ExecuteMultiBatch(); err != nil {
 				panic(err.Error())
 			}
@@ -369,9 +376,8 @@ func (list *DBStateList) NewDBState(isNew bool,
 	directoryBlock interfaces.IDirectoryBlock,
 	adminBlock interfaces.IAdminBlock,
 	factoidBlock interfaces.IFBlock,
-	entryCreditBlock interfaces.IEntryCreditBlock) *DBState {
-
-	fmt.Println("DEBUG: dbstate.NewDBState")
+	entryCreditBlock interfaces.IEntryCreditBlock,
+	entryBlocks map[[32]byte]interfaces.IEntryBlock) *DBState {
 
 	dbState := new(DBState)
 
@@ -385,8 +391,8 @@ func (list *DBStateList) NewDBState(isNew bool,
 	dbState.AdminBlock = adminBlock
 	dbState.FactoidBlock = factoidBlock
 	dbState.EntryCreditBlock = entryCreditBlock
+	dbState.EntryBlocks = entryBlocks
 
 	list.Put(dbState)
-	fmt.Println("DEBUG: height", dbState.DirectoryBlock.GetHeader().GetDBHeight())
 	return dbState
 }

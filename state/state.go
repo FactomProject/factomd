@@ -377,8 +377,17 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 	if bytes.Compare(fblk.GetKeyMR().Bytes(), dblk.GetDBEntries()[2].GetKeyMR().Bytes()) != 0 {
 		panic("Should not happen")
 	}
+	eblks := make(map[[32]byte]interfaces.IEntryBlock)
+	if len(dblk.GetDBEntries()) > 3 {
+		for _, v := range dblk.GetDBEntries()[3:] {
+			eblks[v.GetKeyMR().Fixed()], err = s.DB.FetchEBlockByKeyMR(v.GetKeyMR())
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
 
-	msg := messages.NewDBStateMsg(s.GetTimestamp(), dblk, ablk, fblk, ecblk)
+	msg := messages.NewDBStateMsg(s.GetTimestamp(), dblk, ablk, fblk, ecblk, eblks)
 
 	return msg, nil
 

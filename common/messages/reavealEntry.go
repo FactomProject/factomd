@@ -174,20 +174,9 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 				return -1
 			}
 		}
-	} else {
-		chainID := m.Entry.GetChainID()
-		eblk := state.GetNewEBlocks(0, chainID) // Look see if already in the new block.
-		if eblk != nil {
-			return -1
-		}
-		eb, err := state.GetDB().FetchEBlockHead(chainID)
-		if err != nil || eb != nil {
-			return -1
-		}
 	}
 
 	return 1
-
 }
 
 // Returns true if this is a message for this server to execute as

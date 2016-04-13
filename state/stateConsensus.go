@@ -27,7 +27,8 @@ func (s *State) AddDBState(isNew bool,
 	directoryBlock interfaces.IDirectoryBlock,
 	adminBlock interfaces.IAdminBlock,
 	factoidBlock interfaces.IFBlock,
-	entryCreditBlock interfaces.IEntryCreditBlock) {
+	entryCreditBlock interfaces.IEntryCreditBlock,
+	entryBlocks map[[32]byte]interfaces.IEntryBlock) {
 
 	// TODO:  Need to validate before we add, or at least validate once we have a contiguous set of blocks.
 
@@ -39,7 +40,7 @@ func (s *State) AddDBState(isNew bool,
 	// 			   factoidBlock.GetHash().Bytes()[:5],
 	// 			   entryCreditBlock.GetHash().Bytes()[:5])
 
-	dbState := s.DBStates.NewDBState(isNew, directoryBlock, adminBlock, factoidBlock, entryCreditBlock)
+	dbState := s.DBStates.NewDBState(isNew, directoryBlock, adminBlock, factoidBlock, entryCreditBlock, entryBlocks)
 	s.DBStates.Put(dbState)
 
 }
@@ -107,7 +108,8 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) error {
 		dbstatemsg.DirectoryBlock,
 		dbstatemsg.AdminBlock,
 		dbstatemsg.FactoidBlock,
-		dbstatemsg.EntryCreditBlock)
+		dbstatemsg.EntryCreditBlock,
+		dbstatemsg.EntryBlocks)
 
 	ht := dbstatemsg.DirectoryBlock.GetHeader().GetDBHeight()
 	if ht >= s.LLeaderHeight {
@@ -166,9 +168,7 @@ func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)
 	}
 	
 	pl := s.ProcessLists.Get(dbheight)
-	ecblk := pl.EntryCreditBlock
-	ecbody := ecblk.GetBody()
-	ecbody.AddEntry(c.CommitChain)
+	pl.EntryCreditBlock.GetBody().AddEntry(c.CommitChain)
 	s.GetFactoidState().UpdateECTransaction(true, c.CommitChain)
 	
 	// save the Commit to match agains the Reveal later
@@ -223,7 +223,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
         }
         
         if s.ServerIndexFor(constants.D_CHAINID)==e.ServerIndex {         
-    		s.AddDBState(true, pl.DirectoryBlock, pl.AdminBlock, s.GetFactoidState().GetCurrentBlock(), pl.EntryCreditBlock)
+    		s.AddDBState(true, pl.DirectoryBlock, pl.AdminBlock, s.GetFactoidState().GetCurrentBlock(), pl.EntryCreditBlock, pl.NewEBlocks)
         }
         
 		if s.LLeaderHeight <= dbheight {
@@ -274,24 +274,12 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 }
 
 func (s *State) GetNewEBlocks(dbheight uint32, hash interfaces.IHash) interfaces.IEntryBlock {
-	return nil
+	pl := s.ProcessLists.Get(dbheight)
+	return pl.GetNewEBlocks(hash)
 }
 func (s *State) PutNewEBlocks(dbheight uint32, hash interfaces.IHash, eb interfaces.IEntryBlock) {
-	dbheight -= 1
-	fmt.Println("DEBUG: state.PutNewEBlocks")
-	fmt.Println("DEBUG: getting height", dbheight)
-	dbstate := s.GetDBState(dbheight)
-	fmt.Println("DEBUG:", dbstate)
-	dblock := s.GetDirectoryBlockByHeight(dbheight)
-	fmt.Println("DEBUG: dblock", dblock)
-	key, err := eb.KeyMR()
-	if err != nil {
-		fmt.Println("DEBUG: eb.KeyMR", err, key)
-	}
-	if err := dblock.AddEntry(hash, key); err != nil {
-		fmt.Println("DEBUG: AddEntry", err)
-	}
-	fmt.Println("DEBUG:", dblock)
+	pl := s.ProcessLists.Get(dbheight)
+	pl.PutNewEBlocks(dbheight, hash, eb)
 }
 
 func (s *State) GetCommits(hash interfaces.IHash) interfaces.IMsg {

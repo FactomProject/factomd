@@ -82,8 +82,7 @@ func (p ProcessList) HasMessage() bool {
 }
 
 func (p *ProcessList) GetNewEBlocks(key interfaces.IHash) interfaces.IEntryBlock {
-	eb := p.NewEBlocks[key.Fixed()]
-	return eb
+	return p.NewEBlocks[key.Fixed()]
 }
 
 func (p *ProcessList) PutNewEBlocks(dbheight uint32, key interfaces.IHash, value interfaces.IEntryBlock) {
