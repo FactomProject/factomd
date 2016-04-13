@@ -7,9 +7,11 @@ package engine
 import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/common/messages"
 	s "github.com/FactomProject/factomd/state"
 	"time"
+    "os"
 )
 
 var _ = (*s.State)(nil)
@@ -50,9 +52,13 @@ func Timer(state interfaces.IState) {
                 time.Sleep(time.Duration(tenthPeriod))
             }
 
+if len(state.GetFedServers())== 0 {
+    state.AddFedServer(primitives.Sha([]byte("FNode0"))) // Make sure this node is NOT a leader
+}
+
 			// End of the last period, and this is a server, send messages that
 			// close off the minute.
-			if found && state.Green(){
+			if found && state.Green() {
 				eom := new(messages.EOM)
 				eom.Minute = byte(i)
 				eom.Timestamp = state.GetTimestamp()
@@ -60,7 +66,9 @@ func Timer(state interfaces.IState) {
 				eom.ServerIndex = index
 				eom.Sign(state)
 				state.TimerMsgQueue() <- eom
-			}
+			} else {
+                fmt.Printf("%d-%d ", os.Getpid(), len(state.GetFedServers()))
+            }
 		}
 	}
 

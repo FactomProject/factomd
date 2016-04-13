@@ -110,7 +110,6 @@ func NetStart(s *state.State) {
 	}
 	if leader {
 		os.Stderr.WriteString(fmt.Sprintf("leader \"%v\"\n", leader))
-		follower = false
 	}
 	if !follower && !leader {
 		panic("Not a leader or a follower")
@@ -144,20 +143,17 @@ func NetStart(s *state.State) {
 
 	s.LoadConfig(FactomConfigFilename, folder)
 	if journal != "" {
-		s.DBType = "Map"
-		if follower {
-			s.NodeMode = "FULL"
-			s.SetIdentityChainID(primitives.Sha([]byte("follower"))) // Make sure this node is NOT a leader
-		}
-		if leader {
-			s.NodeMode = "SERVER"
-		}
+        if s.DBType != "Map" {
+            fmt.Println("Journal is ALWAYS a Map database")
+    		s.DBType = "Map"   
+        }
 	}
 
 	if follower {
 		s.NodeMode = "FULL"
 		s.IdentityChainID = primitives.Sha([]byte(time.Now().String()))
 	} else {
+		s.SetIdentityChainID(primitives.Sha([]byte("FNode0"))) // Make sure this node is NOT a leader
 		s.NodeMode = "SERVER"
 	}
 
@@ -278,7 +274,6 @@ func NetStart(s *state.State) {
 	}
 	fmt.Printf("%d -- NetStart. CHECKPOINT 52\n", os.Getpid())
 	go wsapi.Start(fnodes[0].State)
-	fmt.Printf("%d -- NetStart. CHECKPOINT 53\n", os.Getpid())
 
 	SimControl(listenTo)
 

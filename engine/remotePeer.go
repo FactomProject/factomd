@@ -176,9 +176,6 @@ func (f *RemotePeer) Recieve() (interfaces.IMsg, error) {
 			// }
 			return msg, err
 		}
-	} else {
-		fmt.Printf("%d -- RemotePeer.Recieve error:\t %+v\n", os.Getpid(), err)
-
 	}
 	beat := "HEARTBEAT"
 	if err = f.Socket.Send([]byte(beat)); err != nil {
