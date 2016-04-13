@@ -284,14 +284,13 @@ func node1(url string) {
 }
 
 func NetMain(leader bool) {
-	if len(os.Args) > 2 && os.Args[1] == "node0" {
-		node0(os.Args[2])
-		os.Exit(0)
+	address := "tcp://127.0.0.1:40891"
+	if leader {
+		node0(address)
+	} else {
+		node1(address)
 	}
-	if len(os.Args) > 2 && os.Args[1] == "node1" {
-		node1(os.Args[2])
-		os.Exit(0)
-	}
+
 	fmt.Fprintf(os.Stderr, "Usage: pair node0|node1 <URL>\n")
 	os.Exit(1)
 }

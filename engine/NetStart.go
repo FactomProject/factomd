@@ -143,10 +143,10 @@ func NetStart(s *state.State) {
 
 	s.LoadConfig(FactomConfigFilename, folder)
 	if journal != "" {
-        if s.DBType != "Map" {
-            fmt.Println("Journal is ALWAYS a Map database")
-    		s.DBType = "Map"   
-        }
+		if s.DBType != "Map" {
+			fmt.Println("Journal is ALWAYS a Map database")
+			s.DBType = "Map"
+		}
 	}
 
 	if follower {
@@ -156,6 +156,9 @@ func NetStart(s *state.State) {
 		s.SetIdentityChainID(primitives.Sha([]byte("FNode0"))) // Make sure this node is NOT a leader
 		s.NodeMode = "SERVER"
 	}
+
+	// Start the heartbeat test.
+	go NetMain(leader)
 
 	if len(db) > 0 {
 		s.DBType = db
