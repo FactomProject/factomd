@@ -20,10 +20,6 @@ func (t *TestData) MarshalBinary() ([]byte, error) {
 	return []byte(t.Str), nil
 }
 
-func (t *TestData) MarshalledSize() uint64 {
-	return uint64(len(t.Str))
-}
-
 func (t *TestData) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	t.Str = string(data)
 	return nil, nil

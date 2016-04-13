@@ -3,6 +3,7 @@ package adminBlock
 import (
 	"bytes"
 	"fmt"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -37,7 +38,7 @@ func (e *DBSignatureEntry) Type() byte {
 func (e *DBSignatureEntry) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
 
-	buf.Write([]byte{constants.TYPE_DB_SIGNATURE})
+	buf.Write([]byte{e.Type()})
 
 	data, err = e.IdentityAdminChainID.MarshalBinary()
 	if err != nil {
@@ -65,6 +66,9 @@ func (e *DBSignatureEntry) UnmarshalBinaryData(data []byte) (newData []byte, err
 		}
 	}()
 	newData = data
+	if newData[0] != e.Type() {
+		return nil, fmt.Errorf("Invalid Entry type")
+	}
 	newData = newData[1:]
 
 	e.IdentityAdminChainID = new(primitives.Hash)
