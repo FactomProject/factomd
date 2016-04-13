@@ -58,8 +58,8 @@ func UnmarshalMessage(data []byte) (interfaces.IMsg, error) {
 		msg = new(DBStateMissing)
 	case constants.DBSTATE_MSG:
 		msg = new(DBStateMsg)
-    case constants.ADDSERVER_MSG:
-        msg = new(AddServerMsg)
+	case constants.ADDSERVER_MSG:
+		msg = new(AddServerMsg)
 	default:
 		return nil, fmt.Errorf("Unknown message type %d %x", messageType, data[0])
 	}

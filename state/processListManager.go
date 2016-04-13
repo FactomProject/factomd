@@ -32,9 +32,9 @@ func (lists *ProcessLists) UpdateState() {
 	diff := buildingBlock - lists.DBHeightBase
 	if diff > 1 && len(lists.Lists) > 1 {
 		lists.DBHeightBase += (diff - 1)
-        var newlist []*ProcessList
+		var newlist []*ProcessList
 		newlist = append(newlist, lists.Lists[(diff-1):]...)
-        lists.Lists = newlist
+		lists.Lists = newlist
 	}
 	// Create DState blocks for all completed Process Lists
 	pl.Process(lists.State)
