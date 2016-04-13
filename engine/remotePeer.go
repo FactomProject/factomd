@@ -14,6 +14,7 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/go-mangos/mangos"
 	"github.com/go-mangos/mangos/protocol/pair"
+	"github.com/go-mangos/mangos/transport/ipc"
 	"github.com/go-mangos/mangos/transport/tcp"
 )
 
@@ -103,7 +104,7 @@ func (f *RemotePeer) Connect(connectionType int, address string) error {
 	if f.Socket, err = pair.NewSocket(); err != nil {
 		fmt.Printf("%d -- RemotePeer.Connect error from pair.NewSocket() for %s :\n %+v\n\n", os.Getpid(), address, err)
 	}
-	// f.Socket.AddTransport(ipc.NewTransport()) // ipc works on a single machine we want to at least simulate a full network connection.
+	f.Socket.AddTransport(ipc.NewTransport()) // ipc works on a single machine we want to at least simulate a full network connection.
 	f.Socket.AddTransport(tcp.NewTransport())
 
 	switch connectionType {
