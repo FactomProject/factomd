@@ -215,6 +215,15 @@ func (f *RemotePeer) Equals(ff interfaces.IPeer) bool {
 // 	return 1
 // }
 
+//////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////
+
 // Mangos example code below:
 func die(format string, v ...interface{}) {
 	fmt.Fprintln(os.Stderr, fmt.Sprintf(format, v...))
@@ -254,7 +263,7 @@ func sendRecv(sock mangos.Socket, name string) {
 	}
 }
 
-func node0(url string) {
+func listen(url string) {
 	var sock mangos.Socket
 	var err error
 	if sock, err = pair.NewSocket(); err != nil {
@@ -265,10 +274,10 @@ func node0(url string) {
 	if err = sock.Listen(url); err != nil {
 		die("can't listen on pair socket: %s", err.Error())
 	}
-	sendRecv(sock, "node0")
+	sendRecv(sock, "Listener Says Hello")
 }
 
-func node1(url string) {
+func dial(url string) {
 	var sock mangos.Socket
 	var err error
 
@@ -280,17 +289,24 @@ func node1(url string) {
 	if err = sock.Dial(url); err != nil {
 		die("can't dial on pair socket: %s", err.Error())
 	}
-	sendRecv(sock, "node1")
+	sendRecv(sock, "Caller says hello")
 }
 
 func NetMain(leader bool) {
 	address := "tcp://127.0.0.1:40891"
 	if leader {
-		node0(address)
+		listen(address)
 	} else {
-		node1(address)
+		dial(address)
 	}
 
 	fmt.Fprintf(os.Stderr, "Usage: pair node0|node1 <URL>\n")
 	os.Exit(1)
 }
+
+// Thought process:
+// - leader listens, follower connects.
+// - Change message format to binary
+// - Think about how to refactor this to be really peer connections.
+// - Next step-- we listen always (And we dial out to the peers we know about) (this requires we be probably in VMs)
+// -
