@@ -9,24 +9,24 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
-type RevealMatryoshkaHash struct {
+type AddReplaceMatryoshkaHash struct {
 	IdentityChainID interfaces.IHash
 	MHash           interfaces.IHash
 }
 
-var _ interfaces.Printable = (*RevealMatryoshkaHash)(nil)
-var _ interfaces.BinaryMarshallable = (*RevealMatryoshkaHash)(nil)
-var _ interfaces.IABEntry = (*RevealMatryoshkaHash)(nil)
+var _ interfaces.Printable = (*AddReplaceMatryoshkaHash)(nil)
+var _ interfaces.BinaryMarshallable = (*AddReplaceMatryoshkaHash)(nil)
+var _ interfaces.IABEntry = (*AddReplaceMatryoshkaHash)(nil)
 
-func (m *RevealMatryoshkaHash) Type() byte {
-	return constants.TYPE_REVEAL_MATRYOSHKA
+func (m *AddReplaceMatryoshkaHash) Type() byte {
+	return constants.TYPE_ADD_MATRYOSHKA
 }
 
-func (c *RevealMatryoshkaHash) UpdateState(state interfaces.IState) {
+func (c *AddReplaceMatryoshkaHash) UpdateState(state interfaces.IState) {
 
 }
 
-func (e *RevealMatryoshkaHash) MarshalBinary() (data []byte, err error) {
+func (e *AddReplaceMatryoshkaHash) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
 
 	buf.Write([]byte{e.Type()})
@@ -36,7 +36,7 @@ func (e *RevealMatryoshkaHash) MarshalBinary() (data []byte, err error) {
 	return buf.Bytes(), nil
 }
 
-func (e *RevealMatryoshkaHash) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+func (e *AddReplaceMatryoshkaHash) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
@@ -62,37 +62,37 @@ func (e *RevealMatryoshkaHash) UnmarshalBinaryData(data []byte) (newData []byte,
 	return
 }
 
-func (e *RevealMatryoshkaHash) UnmarshalBinary(data []byte) (err error) {
+func (e *AddReplaceMatryoshkaHash) UnmarshalBinary(data []byte) (err error) {
 	_, err = e.UnmarshalBinaryData(data)
 	return
 }
 
-func (e *RevealMatryoshkaHash) JSONByte() ([]byte, error) {
+func (e *AddReplaceMatryoshkaHash) JSONByte() ([]byte, error) {
 	return primitives.EncodeJSON(e)
 }
 
-func (e *RevealMatryoshkaHash) JSONString() (string, error) {
+func (e *AddReplaceMatryoshkaHash) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
 }
 
-func (e *RevealMatryoshkaHash) JSONBuffer(b *bytes.Buffer) error {
+func (e *AddReplaceMatryoshkaHash) JSONBuffer(b *bytes.Buffer) error {
 	return primitives.EncodeJSONToBuffer(e, b)
 }
 
-func (e *RevealMatryoshkaHash) String() string {
+func (e *AddReplaceMatryoshkaHash) String() string {
 	str, _ := e.JSONString()
 	return str
 }
 
-func (e *RevealMatryoshkaHash) IsInterpretable() bool {
+func (e *AddReplaceMatryoshkaHash) IsInterpretable() bool {
 	return false
 }
 
-func (e *RevealMatryoshkaHash) Interpret() string {
+func (e *AddReplaceMatryoshkaHash) Interpret() string {
 	return ""
 }
 
-func (e *RevealMatryoshkaHash) Hash() interfaces.IHash {
+func (e *AddReplaceMatryoshkaHash) Hash() interfaces.IHash {
 	bin, err := e.MarshalBinary()
 	if err != nil {
 		panic(err)

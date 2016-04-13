@@ -10,7 +10,7 @@ import (
 
 // DB Signature Entry -------------------------
 type IncreaseServerCount struct {
-	count byte
+	Amount byte
 }
 
 var _ interfaces.IABEntry = (*IncreaseServerCount)(nil)
@@ -19,7 +19,7 @@ var _ interfaces.BinaryMarshallable = (*IncreaseServerCount)(nil)
 // Create a new DB Signature Entry
 func NewIncreaseSererCount(num byte) (e *IncreaseServerCount) {
 	e = new(IncreaseServerCount)
-	e.count = num
+	e.Amount = num
 	return
 }
 
@@ -34,7 +34,7 @@ func (e *IncreaseServerCount) Type() byte {
 func (e *IncreaseServerCount) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
 
-	buf.Write([]byte{e.count})
+	buf.Write([]byte{e.Amount})
 
 	return buf.Bytes(), nil
 }
@@ -48,7 +48,7 @@ func (e *IncreaseServerCount) UnmarshalBinaryData(data []byte) (newData []byte, 
 
 	newData = data
 	newData = newData[1:]
-	e.count, newData = newData[0], newData[1:]
+	e.Amount, newData = newData[0], newData[1:]
 
 	return
 }
@@ -71,7 +71,7 @@ func (e *IncreaseServerCount) JSONBuffer(b *bytes.Buffer) error {
 }
 
 func (e *IncreaseServerCount) String() string {
-	str := fmt.Sprintf("Increase Server Count by %v", e.count)
+	str := fmt.Sprintf("Increase Server Count by %v", e.Amount)
 	return str
 }
 
