@@ -35,14 +35,14 @@ var _ interfaces.BinaryMarshallableAndCopyable = (*AdminBlock)(nil)
 var _ interfaces.DatabaseBatchable = (*AdminBlock)(nil)
 
 func (c *AdminBlock) UpdateState(state interfaces.IState) {
-    for _,entry := range c.ABEntries {
-        entry.UpdateState(state)
-    }
+	for _, entry := range c.ABEntries {
+		entry.UpdateState(state)
+	}
 }
 
-func (c *AdminBlock) AddFedServer(identityChainID interfaces.IHash){
-    entry := NewAddFederatedServer(identityChainID)
-    c.ABEntries = append(c.ABEntries, entry)
+func (c *AdminBlock) AddFedServer(identityChainID interfaces.IHash) {
+	entry := NewAddFederatedServer(identityChainID)
+	c.ABEntries = append(c.ABEntries, entry)
 }
 
 func (c *AdminBlock) GetHeader() interfaces.IABlockHeader {
@@ -149,10 +149,9 @@ func (b *AdminBlock) AddABEntry(e interfaces.IABEntry) (err error) {
 }
 
 // Add the end-of-minute marker into the admin block
-func (b *AdminBlock) AddEndOfMinuteMarker(eomType byte) (err error) {
+func (b *AdminBlock) AddEndOfMinuteMarker(minuteNumber byte) (err error) {
 	eOMEntry := &EndOfMinuteEntry{
-		EntryType: constants.TYPE_MINUTE_NUM,
-		EOM_Type:  eomType}
+		MinuteNumber: minuteNumber}
 
 	b.AddABEntry(eOMEntry)
 

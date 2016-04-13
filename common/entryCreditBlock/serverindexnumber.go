@@ -40,10 +40,6 @@ func (b *ServerIndexNumber) Interpret() string {
 	return fmt.Sprintf("ServerIndexNumber %v", b.Number)
 }
 
-func (c *ServerIndexNumber) MarshalledSize() uint64 {
-	return uint64(ServerIndexNumberSize)
-}
-
 func NewServerIndexNumber() *ServerIndexNumber {
 	return new(ServerIndexNumber)
 }

@@ -3,13 +3,14 @@ package adminBlock
 import (
 	"bytes"
 	"fmt"
+
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
 type EndOfMinuteEntry struct {
-	EntryType byte
-	EOM_Type  byte
+	MinuteNumber byte
 }
 
 var _ interfaces.Printable = (*EndOfMinuteEntry)(nil)
@@ -17,7 +18,7 @@ var _ interfaces.BinaryMarshallable = (*EndOfMinuteEntry)(nil)
 var _ interfaces.IABEntry = (*EndOfMinuteEntry)(nil)
 
 func (m *EndOfMinuteEntry) Type() byte {
-	return m.EntryType
+	return constants.TYPE_MINUTE_NUM
 }
 
 func (c *EndOfMinuteEntry) UpdateState(state interfaces.IState) {
@@ -27,19 +28,10 @@ func (c *EndOfMinuteEntry) UpdateState(state interfaces.IState) {
 func (e *EndOfMinuteEntry) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
 
-	buf.Write([]byte{e.EntryType})
-
-	buf.Write([]byte{e.EOM_Type})
+	buf.Write([]byte{e.Type()})
+	buf.Write([]byte{e.MinuteNumber})
 
 	return buf.Bytes(), nil
-}
-
-func (e *EndOfMinuteEntry) MarshalledSize() uint64 {
-	var size uint64 = 0
-	size += 1 // Type (byte)
-	size += 1 // EOM_Type (byte)
-
-	return size
 }
 
 func (e *EndOfMinuteEntry) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
@@ -49,9 +41,12 @@ func (e *EndOfMinuteEntry) UnmarshalBinaryData(data []byte) (newData []byte, err
 		}
 	}()
 	newData = data
+	if newData[0] != e.Type() {
+		return nil, fmt.Errorf("Invalid Entry type")
+	}
 
-	e.EntryType, newData = newData[0], newData[1:]
-	e.EOM_Type, newData = newData[0], newData[1:]
+	newData = newData[1:]
+	e.MinuteNumber, newData = newData[0], newData[1:]
 
 	return
 }
@@ -83,7 +78,7 @@ func (e *EndOfMinuteEntry) IsInterpretable() bool {
 }
 
 func (e *EndOfMinuteEntry) Interpret() string {
-	return fmt.Sprintf("End of Minute %v", e.EOM_Type)
+	return fmt.Sprintf("End of Minute %v", e.MinuteNumber)
 }
 
 func (e *EndOfMinuteEntry) Hash() interfaces.IHash {

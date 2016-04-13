@@ -44,7 +44,8 @@ func (e *AddFederatedServer) MarshalBinary() (data []byte, err error) {
 		return nil, err
 	}
 	buf.Write(data)
-    return buf.Bytes(), nil
+    
+	return buf.Bytes(), nil
 }
 
 func (e *AddFederatedServer) UnmarshalBinaryData(data []byte) (newData []byte, err error) {

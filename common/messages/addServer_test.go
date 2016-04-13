@@ -14,12 +14,12 @@ import (
 )
 
 func TestMarshalUnmarshalAddServer(t *testing.T) {
-    
+
 	addserv := new(AddServerMsg)
-    ts := new(interfaces.Timestamp)
+	ts := new(interfaces.Timestamp)
 	ts.SetTimeNow()
-    addserv.Timestamp = *ts
-    addserv.ServerChainID = primitives.Sha([]byte("FNode0"))
+	addserv.Timestamp = *ts
+	addserv.ServerChainID = primitives.Sha([]byte("FNode0"))
 
 	str, err := addserv.JSONString()
 	if err != nil {

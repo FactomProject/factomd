@@ -28,8 +28,8 @@ type EOM struct {
 	Signature            interfaces.IFullSignature
 
 	//Not marshalled
-	hash      interfaces.IHash
-    MarkerSent bool     // If we have set EOM markers on blocks like Factoid blocks and such.
+	hash       interfaces.IHash
+	MarkerSent bool // If we have set EOM markers on blocks like Factoid blocks and such.
 }
 
 //var _ interfaces.IConfirmation = (*EOM)(nil)
@@ -83,7 +83,7 @@ func (m *EOM) Type() int {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *EOM) Validate(state interfaces.IState) int {
-    found, _ := state.GetFedServerIndexHash(m.ChainID)
+	found, _ := state.GetFedServerIndexHash(m.ChainID)
 	if !found { // Only EOM from federated servers are valid.
 		return -1
 	}
@@ -103,10 +103,10 @@ func (m *EOM) Validate(state interfaces.IState) int {
 // a leader.
 func (m *EOM) Leader(state interfaces.IState) bool {
 	found, index := state.GetFedServerIndexHash(state.GetIdentityChainID())
-    if found && index == m.ServerIndex {
-        return true
-    }    
-    return false 
+	if found && index == m.ServerIndex {
+		return true
+	}
+	return false
 }
 
 // Execute the leader functions of the given message

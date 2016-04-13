@@ -36,23 +36,23 @@ func Timer(state interfaces.IState) {
 			now = time.Now().UnixNano()
 			wait := next - now
 			if now > next {
-                wait = 1
-                for next < now {
-                    next += tenthPeriod
-                }
-            }else{
-                wait = next - now
-    			next += tenthPeriod
-            }
-            time.Sleep(time.Duration(wait))
-            for found && len(state.InMsgQueue())>5000 {
-                fmt.Println("Skip Period")
-                time.Sleep(time.Duration(tenthPeriod))
-            }
+				wait = 1
+				for next < now {
+					next += tenthPeriod
+				}
+			} else {
+				wait = next - now
+				next += tenthPeriod
+			}
+			time.Sleep(time.Duration(wait))
+			for found && len(state.InMsgQueue()) > 5000 {
+				fmt.Println("Skip Period")
+				time.Sleep(time.Duration(tenthPeriod))
+			}
 
 			// End of the last period, and this is a server, send messages that
 			// close off the minute.
-			if found && state.Green(){
+			if found && state.Green() {
 				eom := new(messages.EOM)
 				eom.Minute = byte(i)
 				eom.Timestamp = state.GetTimestamp()
@@ -60,7 +60,9 @@ func Timer(state interfaces.IState) {
 				eom.ServerIndex = index
 				eom.Sign(state)
 				state.TimerMsgQueue() <- eom
-                if index == 1 {fmt.Println("Sending",eom.String())}
+				if index == 1 {
+					fmt.Println("Sending", eom.String())
+				}
 			}
 		}
 	}

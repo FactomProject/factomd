@@ -26,10 +26,6 @@ func (c *Hash) New() interfaces.BinaryMarshallableAndCopyable {
 	return new(Hash)
 }
 
-func (c *Hash) MarshalledSize() uint64 {
-	return uint64(constants.HASH_LENGTH)
-}
-
 func (h *Hash) MarshalText() ([]byte, error) {
 	return []byte(hex.EncodeToString(h[:])), nil
 }

@@ -37,10 +37,6 @@ var _ interfaces.ShortInterpretable = (*CommitChain)(nil)
 var _ interfaces.IECBlockEntry = (*CommitChain)(nil)
 var _ interfaces.ISignable = (*CommitChain)(nil)
 
-func (c *CommitChain) MarshalledSize() uint64 {
-	return uint64(CommitChainSize)
-}
-
 func NewCommitChain() *CommitChain {
 	c := new(CommitChain)
 	c.Version = 0

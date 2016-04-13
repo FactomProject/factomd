@@ -38,10 +38,6 @@ func TestBA64Misc(t *testing.T) {
 		t.Errorf("Failed MarshalBinary. Expected %x, got %x", testBytes, h)
 	}
 
-	if ba.MarshalledSize() != 64 {
-		t.Error("Failed MarshalledSize")
-	}
-
 	if ba.String() != testStr {
 		t.Error("Failed String")
 	}
@@ -81,10 +77,6 @@ func TestBA32Misc(t *testing.T) {
 		t.Errorf("Failed MarshalBinary. Expected %x, got %x", testBytes32, h)
 	}
 
-	if ba.MarshalledSize() != 32 {
-		t.Error("Failed MarshalledSize")
-	}
-
 	if ba.String() != testStr32 {
 		t.Error("Failed String")
 	}
@@ -122,10 +114,6 @@ func TestBA6Misc(t *testing.T) {
 	}
 	if areBytesIdentical(h, testBytes6) == false {
 		t.Errorf("Failed MarshalBinary. Expected %x, got %x", testBytes6, h)
-	}
-
-	if ba.MarshalledSize() != 6 {
-		t.Error("Failed MarshalledSize")
 	}
 
 	if ba.String() != testStr6 {
