@@ -288,8 +288,7 @@ func NewDBStateMsg(timestamp interfaces.Timestamp,
 	d interfaces.IDirectoryBlock,
 	a interfaces.IAdminBlock,
 	f interfaces.IFBlock,
-	e interfaces.IEntryCreditBlock,
-	es map[[32]byte]interfaces.IEntryBlock) interfaces.IMsg {
+	e interfaces.IEntryCreditBlock) interfaces.IMsg {
 
 	msg := new(DBStateMsg)
 
@@ -306,7 +305,6 @@ func NewDBStateMsg(timestamp interfaces.Timestamp,
 	msg.AdminBlock = a
 	msg.FactoidBlock = f
 	msg.EntryCreditBlock = e
-	msg.EntryBlocks = es
 
 	return msg
 }

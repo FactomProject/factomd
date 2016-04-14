@@ -27,8 +27,7 @@ func (s *State) AddDBState(isNew bool,
 	directoryBlock interfaces.IDirectoryBlock,
 	adminBlock interfaces.IAdminBlock,
 	factoidBlock interfaces.IFBlock,
-	entryCreditBlock interfaces.IEntryCreditBlock,
-	entryBlocks map[[32]byte]interfaces.IEntryBlock) {
+	entryCreditBlock interfaces.IEntryCreditBlock) {
 
 	// TODO:  Need to validate before we add, or at least validate once we have a contiguous set of blocks.
 
@@ -40,7 +39,7 @@ func (s *State) AddDBState(isNew bool,
 	// 			   factoidBlock.GetHash().Bytes()[:5],
 	// 			   entryCreditBlock.GetHash().Bytes()[:5])
 
-	dbState := s.DBStates.NewDBState(isNew, directoryBlock, adminBlock, factoidBlock, entryCreditBlock, entryBlocks)
+	dbState := s.DBStates.NewDBState(isNew, directoryBlock, adminBlock, factoidBlock, entryCreditBlock)
 	s.DBStates.Put(dbState)
 
 }
@@ -108,8 +107,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) error {
 		dbstatemsg.DirectoryBlock,
 		dbstatemsg.AdminBlock,
 		dbstatemsg.FactoidBlock,
-		dbstatemsg.EntryCreditBlock,
-		dbstatemsg.EntryBlocks)
+		dbstatemsg.EntryCreditBlock)
 
 	ht := dbstatemsg.DirectoryBlock.GetHeader().GetDBHeight()
 	if ht >= s.LLeaderHeight {
@@ -223,7 +221,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
         }
         
         if s.ServerIndexFor(constants.D_CHAINID)==e.ServerIndex {         
-    		s.AddDBState(true, pl.DirectoryBlock, pl.AdminBlock, s.GetFactoidState().GetCurrentBlock(), pl.EntryCreditBlock, pl.NewEBlocks)
+    		s.AddDBState(true, pl.DirectoryBlock, pl.AdminBlock, s.GetFactoidState().GetCurrentBlock(), pl.EntryCreditBlock)
         }
         
 		if s.LLeaderHeight <= dbheight {

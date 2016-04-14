@@ -387,7 +387,7 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 		}
 	}
 
-	msg := messages.NewDBStateMsg(s.GetTimestamp(), dblk, ablk, fblk, ecblk, eblks)
+	msg := messages.NewDBStateMsg(s.GetTimestamp(), dblk, ablk, fblk, ecblk)
 
 	return msg, nil
 

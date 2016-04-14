@@ -31,7 +31,6 @@ type DBState struct {
 	AdminBlock       interfaces.IAdminBlock
 	FactoidBlock     interfaces.IFBlock
 	EntryCreditBlock interfaces.IEntryCreditBlock
-	EntryBlocks      map[[32]byte]interfaces.IEntryBlock
 	Saved            bool
 }
 
@@ -250,7 +249,8 @@ func (list *DBStateList) UpdateState() {
 				panic(err.Error())
 			}
 
-			for _, v := range d.EntryBlocks {
+			pl := list.State.ProcessLists.Get(d.DirectoryBlock.GetHeader().GetDBHeight())
+			for _, v := range pl.NewEBlocks {
 				if err := list.State.GetDB().ProcessEBlockMultiBatch(v); err != nil {
 					panic(err.Error())
 				}
@@ -376,8 +376,7 @@ func (list *DBStateList) NewDBState(isNew bool,
 	directoryBlock interfaces.IDirectoryBlock,
 	adminBlock interfaces.IAdminBlock,
 	factoidBlock interfaces.IFBlock,
-	entryCreditBlock interfaces.IEntryCreditBlock,
-	entryBlocks map[[32]byte]interfaces.IEntryBlock) *DBState {
+	entryCreditBlock interfaces.IEntryCreditBlock) *DBState {
 
 	dbState := new(DBState)
 
@@ -391,7 +390,6 @@ func (list *DBStateList) NewDBState(isNew bool,
 	dbState.AdminBlock = adminBlock
 	dbState.FactoidBlock = factoidBlock
 	dbState.EntryCreditBlock = entryCreditBlock
-	dbState.EntryBlocks = entryBlocks
 
 	list.Put(dbState)
 	return dbState
