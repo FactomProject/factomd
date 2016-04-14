@@ -6,10 +6,11 @@ package engine
 
 import (
 	"fmt"
-	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/log"
 	"math/rand"
 	"time"
+
+	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/log"
 )
 
 var _ = log.Printf
@@ -18,10 +19,10 @@ var _ = fmt.Print
 func NetworkProcessorNet(fnode *FactomNode) {
 
 	like := 0
-	
+
 	dropMessageCounter := 0
-    totalcnt := 0
-    
+	totalcnt := 0
+
 	for {
 		time.Sleep(time.Millisecond * 10)
 
@@ -65,12 +66,11 @@ func NetworkProcessorNet(fnode *FactomNode) {
 			select {
 			case msg, ok := <-fnode.State.NetworkOutMsgQueue():
 				if ok && msg != nil && msg.GetMsgHash() != nil {
-			        totalcnt++
-					if rand.Int()%1000 < 50 {
+					totalcnt++
+					if rand.Int()%1000 < 100 && fnode.State.FactomNodeName == "FNode8" {
 						dropMessageCounter++
 						fmt.Println(fnode.State.FactomNodeName, "DROPPING MESSAGE", msg.GetHash(), "(", msg.Type(), ")", dropMessageCounter, "of", totalcnt)
 					} else {
-
 						// We don't care about the result, but we do want to log that we have
 						// seen this message before, because we might have generated the message
 						// ourselves.
@@ -82,6 +82,7 @@ func NetworkProcessorNet(fnode *FactomNode) {
 							p := msg.GetOrigin() - 1
 							if len(fnode.Peers) == 0 {
 								// No peers yet, put back in queue
+								fmt.Println("NO PEERS")
 								time.Sleep(1 * time.Second)
 								fnode.State.NetworkOutMsgQueue() <- msg
 								break
@@ -90,6 +91,8 @@ func NetworkProcessorNet(fnode *FactomNode) {
 								p = like
 								like = rand.Int() % len(fnode.Peers)
 							}
+
+							//fmt.Println("P2P sending ", p, msg.Type(), fnode.Peers[p].GetNameFrom(), fnode.Peers[p].GetNameTo())
 
 							fnode.MLog.add2(fnode, true, fnode.Peers[p].GetNameTo(), "P2P out", true, msg)
 							fnode.Peers[p].Send(msg)

@@ -7,8 +7,11 @@ package state
 import (
 	"bytes"
 	"encoding/hex"
-    "sync"
 	"fmt"
+	"os"
+	"strings"
+	"sync"
+
 	"github.com/FactomProject/factomd/anchor"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -21,8 +24,6 @@ import (
 	"github.com/FactomProject/factomd/logger"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
-	"os"
-	"strings"
 )
 
 var _ = fmt.Print
@@ -85,10 +86,10 @@ type State struct {
 	NetworkNumber int // Encoded into Directory Blocks(s.Cfg.(*util.FactomdConfig)).String()
 
 	// Number of Servers acknowledged by Factom
-	Matryoshka []interfaces.IHash // Reverse Hash
-	AuditServers    []interfaces.IFctServer   // List of Audit Servers
-	ServerOrder     [][]interfaces.IFctServer // 10 lists for Server Order for each minute
-	FedServers      []interfaces.IFctServer   // List of Federated Servers
+	Matryoshka   []interfaces.IHash        // Reverse Hash
+	AuditServers []interfaces.IFctServer   // List of Audit Servers
+	ServerOrder  [][]interfaces.IFctServer // 10 lists for Server Order for each minute
+	FedServers   []interfaces.IFctServer   // List of Federated Servers
 
 	// Database
 	DB     *databaseOverlay.Overlay
@@ -108,9 +109,9 @@ type State struct {
 	//
 	// Process list previous [0], present(@DBHeight) [1], and future (@DBHeight+1) [2]
 
-    AckLock      sync.Mutex
+	AckLock      sync.Mutex
 	ProcessLists *ProcessLists
-    
+
 	// Factom State
 	FactoidState    interfaces.IFactoidState
 	NumTransactions int
@@ -155,7 +156,7 @@ func (s *State) Clone(number string) interfaces.IState {
 	clone.DirectoryBlockInSeconds = s.DirectoryBlockInSeconds
 	clone.PortNumber = s.PortNumber
 
-    clone.IdentityChainID = primitives.Sha([]byte(clone.FactomNodeName))
+	clone.IdentityChainID = primitives.Sha([]byte(clone.FactomNodeName))
 
 	//generate and use a new deterministic PrivateKey for this clone
 	shaHashOfNodeName := primitives.Sha([]byte(clone.FactomNodeName)) //seed the private key with node name
@@ -203,7 +204,6 @@ func (s *State) LoadConfig(filename string) {
 
 		// TODO:  Actually load the IdentityChainID from the config file
 		s.IdentityChainID = primitives.Sha([]byte(s.FactomNodeName))
-
 
 	} else {
 		s.LogPath = "database/"
@@ -261,10 +261,9 @@ func (s *State) Init() {
 	s.FactoidBalancesT = map[[32]byte]int64{}
 	s.ECBalancesT = map[[32]byte]int64{}
 
-    s.AuditServers = make([]interfaces.IFctServer, 0)
+	s.AuditServers = make([]interfaces.IFctServer, 0)
 	s.FedServers = make([]interfaces.IFctServer, 0)
 	s.ServerOrder = make([][]interfaces.IFctServer, 0)
-
 
 	fs := new(FactoidState)
 	fs.State = s
@@ -383,13 +382,61 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 }
 
 func (s *State) LoadSpecificMsg(dbheight uint32, plistheight uint32) (interfaces.IMsg, error) {
-	msg := s.ProcessLists.Get(dbheight).MsgQueue[plistheight]
+	if dbheight < s.ProcessLists.DBHeightBase {
+		return nil, fmt.Errorf("Missing message is too deeply buried in blocks")
+	} else if dbheight > (s.ProcessLists.DBHeightBase + uint32(len(s.ProcessLists.Lists))) {
+		return nil, fmt.Errorf("Answering node has not reached DBHeight of missing message")
+	}
+
+	procList := s.ProcessLists.Get(dbheight)
+	if procList == nil {
+		return nil, fmt.Errorf("Nil Process List")
+	} else if len(procList.Servers) == 0 {
+		return nil, fmt.Errorf("No servers in process list")
+	}
+	if len(procList.Servers[0].List) < int(plistheight)+1 {
+		return nil, fmt.Errorf("Process List too small (lacks requested msg)")
+	}
+
+	msg := procList.Servers[0].List[plistheight]
 
 	if msg == nil {
 		return nil, fmt.Errorf("State process list does not include requested message")
 	}
 
 	return msg, nil
+}
+
+func (s *State) LoadSpecificMsgAndAck(dbheight uint32, plistheight uint32) (interfaces.IMsg, interfaces.IMsg, error) {
+	if dbheight < s.ProcessLists.DBHeightBase {
+		return nil, nil, fmt.Errorf("Missing message is too deeply buried in blocks")
+	} else if dbheight > (s.ProcessLists.DBHeightBase + uint32(len(s.ProcessLists.Lists))) {
+		return nil, nil, fmt.Errorf("Answering node has not reached DBHeight of missing message")
+	}
+
+	procList := s.ProcessLists.Get(dbheight)
+	if procList == nil {
+		return nil, nil, fmt.Errorf("Nil Process List")
+	} else if len(procList.Servers) < 1 {
+		return nil, nil, fmt.Errorf("No servers?")
+	}
+	if len(procList.Servers[0].List) < int(plistheight)+1 {
+		return nil, nil, fmt.Errorf("Process List too small (lacks requested msg)")
+	}
+
+	msg := procList.Servers[0].List[plistheight]
+
+	if msg == nil {
+		return nil, nil, fmt.Errorf("State process list does not include requested message")
+	}
+
+	ackMsg, ok := s.ProcessLists.Get(dbheight).OldAcks[msg.GetHash().Fixed()]
+
+	if !ok || ackMsg == nil {
+		return nil, nil, fmt.Errorf("State process list does not include ack for message")
+	}
+
+	return msg, ackMsg, nil
 }
 
 func (s *State) JournalMessage(msg interfaces.IMsg) {
@@ -429,9 +476,9 @@ func (s *State) GetDirectoryBlockByHeight(height uint32) interfaces.IDirectoryBl
 
 func (s *State) UpdateState() {
 	s.SetString()
-    s.ProcessLists.UpdateState()
+	s.ProcessLists.UpdateState()
 	s.DBStates.UpdateState()
-    
+
 	if s.GetOut() {
 		str := fmt.Sprintf("%25s   %10s   %25s", "sssssssssssssssssssssssss", s.GetFactomNodeName(), "sssssssssssssssssssssssss\n")
 		str = str + s.ProcessLists.String()
@@ -469,16 +516,15 @@ func (p *State) RemoveFedServerHash(identityChainID interfaces.IHash) {
 // Returns true and the index of this server, or false and the insertion point for this server
 func (s *State) GetFedServerIndexHash(identityChainID interfaces.IHash) (bool, int) {
 	scid := identityChainID.Bytes()
-	
+
 	for i, fs := range s.FedServers {
-		// Find and remove        
-		if bytes.Compare(scid, fs.GetChainID().Bytes())==0 {
+		// Find and remove
+		if bytes.Compare(scid, fs.GetChainID().Bytes()) == 0 {
 			return true, i
-        }
+		}
 	}
 	return false, len(s.FedServers)
 }
-
 
 func (s *State) GetFactoshisPerEC() uint64 {
 	return s.FactoshisPerEC
@@ -545,8 +591,8 @@ func (s *State) GetAuditHeartBeats() []interfaces.IMsg {
 	return s.AuditHeartBeats
 }
 
-func (s *State) GetFedServers() ([]interfaces.IFctServer) {
-    return s.FedServers
+func (s *State) GetFedServers() []interfaces.IFctServer {
+	return s.FedServers
 }
 
 func (s *State) GetFedServerFaults() [][]interfaces.IMsg {
@@ -728,7 +774,7 @@ func (s *State) SetString() {
 		s.serverPrt = fmt.Sprintf("%9s%9s %x Recorded: %d Building: %d Last: %d DirBlk[:5]=%x ABHash[:5]=%x FBHash[:5]=%x ECHash[:5]=%x ",
 			stype,
 			s.FactomNodeName,
-            s.IdentityChainID.Bytes()[:3],
+			s.IdentityChainID.Bytes()[:3],
 			s.GetHighestRecordedBlock(),
 			lastheight,
 			s.GetHighestKnownBlock(),

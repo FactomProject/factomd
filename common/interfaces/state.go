@@ -4,8 +4,6 @@
 
 package interfaces
 
-import ()
-
 // Holds the state information for factomd.  This does imply that we will be
 // using accessors to access state information in the consensus algorithm.
 // This is a bit tedious, but does provide single choke points where information
@@ -33,14 +31,15 @@ type IState interface {
 	GetOut() bool // Return true if Print or Println write output
 	LoadDBState(dbheight uint32) (IMsg, error)
 	LoadSpecificMsg(dbheight uint32, plistheight uint32) (IMsg, error)
+	LoadSpecificMsgAndAck(dbheight uint32, plistheight uint32) (IMsg, IMsg, error)
 	GetFedServerIndexHash(IHash) (bool, int)
 	SetString()
 	ShortString() string
 
-    AddFedServer(IHash) int
-    GetFedServers() []IFctServer
-	
-    Green() bool
+	AddFedServer(IHash) int
+	GetFedServers() []IFctServer
+
+	Green() bool
 
 	// This is the highest block signed off and recorded in the Database.  This
 	// is a follower's state, but it is also critical to validation; we cannot
@@ -91,10 +90,10 @@ type IState interface {
 
 	GetMatryoshka(dbheight uint32) IHash // Reverse Hash
 
-    // These are methods run by the consensus algorithm to track what servers are the leaders
-    // and what lists they are responsible for.
-    ServerIndexFor(hash []byte) int         // Returns the serverindex responsible for this hash
-	LeaderFor(hash []byte) bool             // Tests if this server is the leader for this key
+	// These are methods run by the consensus algorithm to track what servers are the leaders
+	// and what lists they are responsible for.
+	ServerIndexFor(hash []byte) int // Returns the serverindex responsible for this hash
+	LeaderFor(hash []byte) bool     // Tests if this server is the leader for this key
 
 	// Database
 	// ========

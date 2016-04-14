@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -32,7 +33,7 @@ func (m *MissingMsg) Process(uint32, interfaces.IState) bool {
 
 func (m *MissingMsg) GetHash() interfaces.IHash {
 	if m.hash == nil {
-		data, err := m.MarshalForSignature()
+		data, err := m.MarshalBinary()
 		if err != nil {
 			panic(fmt.Sprintf("Error in MissingMsg.GetHash(): %s", err.Error()))
 		}
@@ -68,14 +69,29 @@ func (m *MissingMsg) Bytes() []byte {
 	return nil
 }
 
-func (m *MissingMsg) UnmarshalBinaryData(data []byte) (newdata []byte, err error) {
+func (m *MissingMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
 	}()
+	newData = data[1:]
 
-	return nil, nil
+	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
+	if err != nil {
+		return nil, err
+	}
+
+	m.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+	m.ProcessListHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+
+	if m.DBHeight < 0 || m.ProcessListHeight < 0 {
+		return nil, fmt.Errorf("DBHeight or ProcListHeight is negative")
+	}
+
+	m.Peer2peer = true // Always a peer2peer request.
+
+	return data, nil
 }
 
 func (m *MissingMsg) UnmarshalBinary(data []byte) error {
@@ -83,8 +99,7 @@ func (m *MissingMsg) UnmarshalBinary(data []byte) error {
 	return err
 }
 
-func (m *MissingMsg) MarshalForSignature() ([]byte, error) {
-
+func (m *MissingMsg) MarshalBinary() ([]byte, error) {
 	var buf bytes.Buffer
 
 	binary.Write(&buf, binary.BigEndian, byte(m.Type()))
@@ -99,11 +114,15 @@ func (m *MissingMsg) MarshalForSignature() ([]byte, error) {
 	binary.Write(&buf, binary.BigEndian, m.DBHeight)
 	binary.Write(&buf, binary.BigEndian, m.ProcessListHeight)
 
-	return buf.Bytes(), nil
-}
+	var mmm MissingMsg
 
-func (m *MissingMsg) MarshalBinary() ([]byte, error) {
-	return m.MarshalForSignature()
+	bb := buf.Bytes()
+
+	if unmarshalErr := mmm.UnmarshalBinary(bb); unmarshalErr != nil {
+		return nil, unmarshalErr
+	}
+
+	return bb, nil
 }
 
 func (m *MissingMsg) String() string {
@@ -116,10 +135,6 @@ func (m *MissingMsg) ChainID() []byte {
 
 func (m *MissingMsg) ListHeight() int {
 	return 0
-}
-
-func (m *MissingMsg) Signature() []byte {
-	return nil
 }
 
 // Validate the message, given the state.  Three possible results:
@@ -147,13 +162,16 @@ func (m *MissingMsg) Follower(interfaces.IState) bool {
 }
 
 func (m *MissingMsg) FollowerExecute(state interfaces.IState) error {
-	fmt.Println("MISSING MESSAGE EXECUTE FIRED")
-	msg, err := state.LoadSpecificMsg(m.DBHeight, m.ProcessListHeight)
+	msg, ackMsg, err := state.LoadSpecificMsgAndAck(m.DBHeight, m.ProcessListHeight)
 
-	if msg != nil && err == nil { // If I don't have this message, ignore.
+	if msg != nil && ackMsg != nil && err == nil { // If I don't have this message, ignore.
+		fmt.Println(state.GetFactomNodeName(), "MSG FOUND: ", msg.GetHash(), " -- ", msg.Type(), m.GetOrigin())
 		msg.SetOrigin(m.GetOrigin())
+		ackMsg.SetOrigin(m.GetOrigin())
 		state.NetworkOutMsgQueue() <- msg
+		state.NetworkOutMsgQueue() <- ackMsg
 	} else {
+		fmt.Println("ERROR ON FOLLEX: ", err)
 		return err
 	}
 

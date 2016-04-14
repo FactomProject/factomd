@@ -2,13 +2,15 @@ package state
 
 import (
 	"fmt"
+
 	"github.com/FactomProject/factomd/common/directoryBlock"
 	//"github.com/FactomProject/factomd/common/factoid"
+	"log"
+
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
-	"log"
 )
 
 var _ = fmt.Print
@@ -168,11 +170,9 @@ func (p *ProcessList) Process(state *State) {
 	for i := 0; i < p.NumberServers; i++ {
 		plist := p.Servers[i].List
 
-		// state.Println("Process List: DBHeight, height in list, len(plist)", p.DBHeight, "/", p.Servers[i].Height, "/", len(plist))
-
 		for j := p.Servers[i].Height; j < len(plist); j++ {
 			if plist[j] == nil {
-				//fmt.Println(state.FactomNodeName, "REQUESTING MISSING MESSAGE at DBHeight:", p.DBHeight, "ProcList Height:", j)
+				fmt.Println(state.FactomNodeName, "REQUESTING MISSING MESSAGE at DBHeight:", p.DBHeight, "ProcList Height:", j)
 				missingMsgRequest := messages.NewMissingMsg(state, p.DBHeight, uint32(j))
 				if missingMsgRequest != nil {
 					state.NetworkOutMsgQueue() <- missingMsgRequest
