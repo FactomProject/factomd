@@ -43,11 +43,12 @@ type ProcessList struct {
 }
 
 type ListServer struct {
-	List        []interfaces.IMsg // Lists of acknowledged messages
-	Height      int               // Height of messages that have been processed
-	EomComplete bool              // Lists that are end of minute complete
-	SigComplete bool              // Lists that are signature complete
-	LastAck     interfaces.IMsg   // The last Acknowledgement set by this server
+	List            []interfaces.IMsg // Lists of acknowledged messages
+	Height          int               // Height of messages that have been processed
+	EomComplete     bool              // Lists that are end of minute complete
+	SigComplete     bool              // Lists that are signature complete
+	LastLeaderAck   interfaces.IMsg  // The last Acknowledgement set by this leader
+	LastAck         interfaces.IMsg   // The last Acknowledgement set by this follower
 }
 
 // Given a server index, return the last Ack
@@ -59,6 +60,18 @@ func (p *ProcessList) GetLastAck(index int) interfaces.IMsg {
 func (p *ProcessList) SetLastAck(index int, msg interfaces.IMsg) error {
 	// Check the hash of the previous msg before we over write
 	p.Servers[index].LastAck = msg
+	return nil
+}
+
+// Given a server index, return the last Ack
+func (p *ProcessList) GetLastLeaderAck(index int) interfaces.IMsg {
+	return p.Servers[index].LastLeaderAck
+}
+
+// Given a server index, return the last Ack
+func (p *ProcessList) SetLastLeaderAck(index int, msg interfaces.IMsg) error {
+	// Check the hash of the previous msg before we over write
+	p.Servers[index].LastLeaderAck = msg
 	return nil
 }
 
@@ -199,7 +212,7 @@ func (p *ProcessList) Process(state *State) {
 					// compare the SerialHash of this acknowledgement with the
 					// expected serialHash (generated above)
 					if !expectedSerialHash.IsSameAs(thisAck.SerialHash) {
-						fmt.Println("DISCREPANCY: ", i, j)
+						fmt.Println("DISCREPANCY: ", i, j, "on", state.GetFactomNodeName())
 						fmt.Printf("LAST MESS: %+v ::: LAST SERIAL: %+v\n", last.MessageHash, last.SerialHash)
 						fmt.Printf("THIS MESS: %+v ::: THIS SERIAL: %+v\n", thisAck.MessageHash, thisAck.SerialHash)
 						fmt.Println("EXPECT: ", expectedSerialHash)

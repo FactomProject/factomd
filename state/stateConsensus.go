@@ -444,7 +444,7 @@ func (s *State) NewAck(dbheight uint32, msg interfaces.IMsg, hash interfaces.IHa
 	if pl == nil {
 		return nil, fmt.Errorf(s.FactomNodeName + ": No process list at this time")
 	}
-	last, ok := pl.GetLastAck(index).(*messages.Ack)
+	last, ok := pl.GetLastLeaderAck(index).(*messages.Ack)
 
 	ack := new(messages.Ack)
 	ack.DBHeight = dbheight
@@ -461,7 +461,7 @@ func (s *State) NewAck(dbheight uint32, msg interfaces.IMsg, hash interfaces.IHa
 			return nil, err
 		}
 	}
-	pl.SetLastAck(index, ack)
+	pl.SetLastLeaderAck(index, ack)
 
 	ack.Sign(s)
 

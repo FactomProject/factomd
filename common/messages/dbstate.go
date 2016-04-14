@@ -132,6 +132,7 @@ func (e *DBStateMsg) JSONBuffer(b *bytes.Buffer) error {
 
 func (m *DBStateMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
+        return
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
