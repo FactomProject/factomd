@@ -67,9 +67,9 @@ func NetworkProcessorNet(fnode *FactomNode) {
 			case msg, ok := <-fnode.State.NetworkOutMsgQueue():
 				if ok && msg != nil && msg.GetMsgHash() != nil {
 					totalcnt++
-					if rand.Int()%100 < 3 {
+					if rand.Int()%100 < 4 {
 						dropMessageCounter++
-						fmt.Println(fnode.State.FactomNodeName, "DROPPING MESSAGE", msg.GetHash(), "(", msg.Type(), ")", dropMessageCounter, "of", totalcnt)
+						//fmt.Println(fnode.State.FactomNodeName, "DROPPING MESSAGE", msg.GetHash(), "(", msg.Type(), ")", dropMessageCounter, "of", totalcnt)
 					} else {
 						// We don't care about the result, but we do want to log that we have
 						// seen this message before, because we might have generated the message

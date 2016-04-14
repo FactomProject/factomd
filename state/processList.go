@@ -173,7 +173,9 @@ func (p *ProcessList) Process(state *State) {
 		for j := p.Servers[i].Height; j < len(plist); j++ {
 			if plist[j] == nil {
 				if !state.IsThrottled {
-					fmt.Println(state.FactomNodeName, "REQUESTING MISSING MESSAGE at DBHeight:", p.DBHeight, "ProcList Height:", j)
+					//fmt.Println(state.FactomNodeName, "REQUESTING MISSING MESSAGE at DBHeight:", p.DBHeight, "ProcList Height:", j)
+					fmt.Println("ASK ", p.DBHeight, j, "(", state.FactomNodeName, ")")
+
 					missingMsgRequest := messages.NewMissingMsg(state, p.DBHeight, uint32(j))
 					if missingMsgRequest != nil {
 						state.NetworkOutMsgQueue() <- missingMsgRequest
