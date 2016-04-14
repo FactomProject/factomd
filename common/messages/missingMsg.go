@@ -172,6 +172,7 @@ func (m *MissingMsg) FollowerExecute(state interfaces.IState) error {
 		state.NetworkOutMsgQueue() <- ackMsg
 	} else {
 		fmt.Println("ERROR ON FOLLEX: ", err)
+		state.Dethrottle()
 		return err
 	}
 

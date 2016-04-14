@@ -67,7 +67,7 @@ func NetworkProcessorNet(fnode *FactomNode) {
 			case msg, ok := <-fnode.State.NetworkOutMsgQueue():
 				if ok && msg != nil && msg.GetMsgHash() != nil {
 					totalcnt++
-					if rand.Int()%100 < 5 && fnode.State.FactomNodeName == "FNode8" {
+					if rand.Int()%100 < 3 {
 						dropMessageCounter++
 						fmt.Println(fnode.State.FactomNodeName, "DROPPING MESSAGE", msg.GetHash(), "(", msg.Type(), ")", dropMessageCounter, "of", totalcnt)
 					} else {
