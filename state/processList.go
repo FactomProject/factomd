@@ -43,12 +43,12 @@ type ProcessList struct {
 }
 
 type ListServer struct {
-	List            []interfaces.IMsg // Lists of acknowledged messages
-	Height          int               // Height of messages that have been processed
-	EomComplete     bool              // Lists that are end of minute complete
-	SigComplete     bool              // Lists that are signature complete
-	LastLeaderAck   interfaces.IMsg  // The last Acknowledgement set by this leader
-	LastAck         interfaces.IMsg   // The last Acknowledgement set by this follower
+	List          []interfaces.IMsg // Lists of acknowledged messages
+	Height        int               // Height of messages that have been processed
+	EomComplete   bool              // Lists that are end of minute complete
+	SigComplete   bool              // Lists that are signature complete
+	LastLeaderAck interfaces.IMsg   // The last Acknowledgement set by this leader
+	LastAck       interfaces.IMsg   // The last Acknowledgement set by this follower
 }
 
 // Given a server index, return the last Ack
@@ -148,16 +148,6 @@ func (p *ProcessList) SigComplete() bool {
 		}
 	}
 	return true
-}
-
-// When we begin building on a Process List, we start it.  That marks everything
-// as needing to be complete.  When we get all the messages we need, then Complete() will
-// return true, because each process list will be signed off.
-func (p *ProcessList) SetComplete(index int, v bool) {
-	if p == nil {
-		return
-	}
-	p.Servers[index].SigComplete = v
 }
 
 // Process messages and update our state.
@@ -305,8 +295,24 @@ func (p *ProcessList) String() string {
 			if i >= p.NumberServers {
 				break
 			}
-			prt = prt + fmt.Sprintf("  Server %d \n", i)
-			for _, msg := range server.List {
+            eom := ""
+            sig := ""
+            if server.EomComplete {
+                eom = "EOM Complete"
+            }
+            if server.SigComplete {
+                sig = "Sig Complete"
+            } 
+           
+			prt = prt + fmt.Sprintf("  Server %d %s %s\n", i,eom,sig)
+			for j, msg := range server.List {
+                
+                if j < server.Height {
+                    prt = prt + "  p"
+                }else{
+                    prt = prt + "   "
+                }
+            
 				if msg != nil {
 					prt = prt + "   " + msg.String() + "\n"
 				} else {

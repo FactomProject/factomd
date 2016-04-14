@@ -194,13 +194,16 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		if s.ServerIndexFor(constants.ADMIN_CHAINID) == e.ServerIndex {
 			pl.AdminBlock.AddEndOfMinuteMarker(e.Minute)
 		}
-		pl.SetEomComplete(e.ServerIndex, true)
 		e.MarkerSent = true
 	}
 
 	// We need to have all EOM markers before we start to clean up this height.
 	if e.Minute == 9 {
 
+        // Set this list complete
+		pl.SetEomComplete(e.ServerIndex, true)
+
+        // Check if all are complete
 		if !pl.EomComplete() {
 			return false
 		}
@@ -212,14 +215,10 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			ecbody.AddEntry(mn)
 		}
 
-		if s.ServerIndexFor(constants.D_CHAINID) == e.ServerIndex {
-			s.AddDBState(true, pl.DirectoryBlock, pl.AdminBlock, s.GetFactoidState().GetCurrentBlock(), pl.EntryCreditBlock)
-		}
-
-		if s.LLeaderHeight <= dbheight {
-			s.LLeaderHeight = dbheight + 1
-		}
-
+        if pl.EomComplete() {
+		    s.AddDBState(true, pl.DirectoryBlock, pl.AdminBlock, s.GetFactoidState().GetCurrentBlock(), pl.EntryCreditBlock)
+        }
+        
 		found, index := s.GetFedServerIndexHash(s.IdentityChainID)
 		if found && e.ServerIndex == index {
 			dbstate := s.DBStates.Get(dbheight)
@@ -253,12 +252,23 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 
 	dbs := msg.(*messages.DirectoryBlockSignature)
 
+	pl := s.ProcessLists.Get(dbheight)
+	pl.SetSigComplete(int(dbs.ServerIndex), true)
+
+fmt.Println("Sig Complete: ",dbs.ServerIndex)
+
 	if found && uint32(index) == dbs.ServerIndex {
 		hash := dbs.GetHash()
 		ack, _ := s.NewAck(dbs.DBHeight, msg, hash)
 		s.NetworkOutMsgQueue() <- dbs
 		s.NetworkOutMsgQueue() <- ack
 	}
+
+    if pl.SigComplete() {
+        if s.LLeaderHeight <= dbheight {
+			s.LLeaderHeight = dbheight + 1
+		}
+    }
 
 	return true
 }
