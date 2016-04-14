@@ -6,34 +6,40 @@ package engine
 
 import (
 	"fmt"
-	"github.com/FactomProject/factomd/common/messages"
-	"github.com/FactomProject/factomd/log"
-	"github.com/FactomProject/factomd/wsapi"
 	"os"
 	"strconv"
+	"strings"
 	"time"
+	"unicode"
+
+	"github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/wsapi"
 )
 
 var _ = fmt.Print
 
 func SimControl(listenTo int) {
-	go wsapi.Start(fnodes[0].State)
 
 	var _ = time.Sleep
 
 	for {
 
-		b := make([]byte, 100)
+		l := make([]byte, 100)
 		var err error
-		if _, err = os.Stdin.Read(b); err != nil {
-			log.Fatal(err.Error())
+		if _, err = os.Stdin.Read(l); err != nil {
+			l = []byte("no command")
+			time.Sleep(10 * time.Second)
 		}
-		for i, c := range b {
-			if c <= 32 {
-				b = b[:i]
-				break
-			}
+
+		parseFunc := func(c rune) bool {
+			return !unicode.IsLetter(c) && !unicode.IsNumber(c) && !unicode.IsPunct(c)
 		}
+
+		cmd := strings.FieldsFunc(string(l), parseFunc)
+		if 0 == len(cmd) {
+			cmd = []string{"+"}
+		}
+		b := string(cmd[0])
 		v, err := strconv.Atoi(string(b))
 		if err == nil && v >= 0 && v < len(fnodes) {
 			for _, fnode := range fnodes {
@@ -43,11 +49,9 @@ func SimControl(listenTo int) {
 			fmt.Print("\r\nSwitching to Node ", listenTo, "\r\n")
 			wsapi.SetState(fnodes[listenTo].State)
 		} else {
-			if len(b) == 0 {
-				b = append(b, '+')
-			}
-			switch b[0] {
-			case '+':
+			// fmt.Printf("Parsing command, found %d elements.  The first element is: %+v / %s \n Full command: %+v\n", len(cmd), b[0], string(b), cmd)
+			switch {
+			case '+' == b[0]:
 				mLog.all = false
 				fmt.Println("-------------------------------------------------------------------------------")
 				for _, f := range fnodes {
@@ -60,7 +64,7 @@ func SimControl(listenTo int) {
 						fmt.Printf("   %10s %x %x\n", fnode.State.FactomNodeName, fnode.State.GetIdentityChainID().Bytes()[:5], fed.GetChainID().Bytes()[:5])
 					}
 				}
-			case 'a':
+			case 0 == strings.Compare(strings.ToLower(string(b)), "a"):
 				mLog.all = false
 				for _, fnode := range fnodes {
 					fnode.State.SetOut(false)
@@ -87,7 +91,7 @@ func SimControl(listenTo int) {
 						fmt.Println("Error: ", err, msg)
 					}
 				}
-			case 'f':
+			case 0 == strings.Compare(strings.ToLower(string(b)), "f"):
 				mLog.all = false
 				for _, fnode := range fnodes {
 					fnode.State.SetOut(false)
@@ -114,7 +118,7 @@ func SimControl(listenTo int) {
 						fmt.Println("Error: ", err, msg)
 					}
 				}
-			case 'd':
+			case 'd' == b[0]:
 				mLog.all = false
 				for _, fnode := range fnodes {
 					fnode.State.SetOut(false)
@@ -141,20 +145,32 @@ func SimControl(listenTo int) {
 						fmt.Println("Error: ", err, msg)
 					}
 				}
-			case 'D':
+			case 'D' == b[0]:
 				mLog.all = true
 				os.Stderr.WriteString("Dump all messages\n")
 				for _, fnode := range fnodes {
 					fnode.State.SetOut(true)
 				}
-			case 'm':
+			case 0 == strings.Compare(strings.ToLower(string(b)), "m"):
 				os.Stderr.WriteString(fmt.Sprintf("Print all messages for node: %d\n", listenTo))
 				for _, fnode := range fnodes {
 					fnode.State.SetOut(false)
 				}
 				fnodes[listenTo].State.SetOut(true)
 				mLog.all = false
-			case 's', 'S':
+			case 32 == b[0]:
+				mLog.all = false
+				fnodes[listenTo].State.SetOut(false)
+				listenTo++
+				if listenTo >= len(fnodes) {
+					listenTo = 0
+				}
+				fnodes[listenTo].State.SetOut(true)
+				os.Stderr.WriteString("Print all messages\n")
+				os.Stderr.WriteString(fmt.Sprint("\r\nSwitching to Node ", listenTo, "\r\n"))
+				wsapi.SetState(fnodes[listenTo].State)
+				mLog.all = false
+			case 0 == strings.Compare(strings.ToLower(string(b)), "s"):
 				for _, fnode := range fnodes {
 					fnode.State.SetOut(false)
 				}
@@ -162,6 +178,20 @@ func SimControl(listenTo int) {
 				msg := messages.NewAddServerMsg(fnodes[listenTo].State)
 				fnodes[listenTo].State.InMsgQueue() <- msg
 				os.Stderr.WriteString(fmt.Sprintln("Attempting to make", fnodes[listenTo].State.GetFactomNodeName(), "a Leader"))
+			case '?' == b[0], 'H' == b[0], 'h' == b[0]:
+				fmt.Println("-------------------------------------------------------------------------------")
+				fmt.Println("+ or ENTER    Silence")
+				fmt.Println("a             Show Admin blocks.")
+				fmt.Println("f             Show Factoid blocks.")
+				fmt.Println("d             Show Directory blocks.")
+				fmt.Println("D             Dump all messages.")
+				fmt.Println("m             Show all messages for the focused node.")
+				fmt.Println("\" \" [space] Follow next node, print all messages from it.")
+				fmt.Println("s             Make focused node the Leader.")
+				fmt.Println("? or h        Show help")
+				fmt.Println("-------------------------------------------------------------------------------")
+			// -- add node (and give its connections or topology)
+
 			default:
 			}
 		}
