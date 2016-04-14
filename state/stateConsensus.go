@@ -179,6 +179,27 @@ func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)
 	return true
 }
 
+func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg) bool {
+	fmt.Println("DEBUG: ProcessCommitEntry")
+	c, ok := commitEntry.(*messages.CommitEntryMsg)
+	if !ok {
+		return false
+	}
+	
+	pl := s.ProcessLists.Get(dbheight)
+	pl.EntryCreditBlock.GetBody().AddEntry(c.CommitEntry)
+	s.GetFactoidState().UpdateECTransaction(true, c.CommitEntry)
+	
+	// save the Commit to match agains the Reveal later
+	s.PutCommits(c.GetHash(), c)
+	// check for a matching Reveal and, if found, execute it
+	if r := s.GetReveals(c.GetHash()); r != nil {
+		s.LeaderExecute(r)
+	}
+	
+	return true
+}
+
 // TODO: Should fault the server if we don't have the proper sequence of EOM messages.
 func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
@@ -275,10 +296,17 @@ func (s *State) GetNewEBlocks(dbheight uint32, hash interfaces.IHash) interfaces
 	pl := s.ProcessLists.Get(dbheight)
 	return pl.GetNewEBlocks(hash)
 }
+
 func (s *State) PutNewEBlocks(dbheight uint32, hash interfaces.IHash, eb interfaces.IEntryBlock) {
 	pl := s.ProcessLists.Get(dbheight)
 	pl.PutNewEBlocks(dbheight, hash, eb)
 }
+
+func (s *State) PutNewEntries(dbheight uint32, hash interfaces.IHash, e interfaces.IEntry) {
+	pl := s.ProcessLists.Get(dbheight)
+	pl.PutNewEntries(dbheight, hash, e)
+}
+
 
 func (s *State) GetCommits(hash interfaces.IHash) interfaces.IMsg {
 	fmt.Println("DEBUG: searching for commit", hash)

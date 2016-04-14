@@ -55,12 +55,13 @@ func (m *RevealEntryMsg) Process(dbheight uint32, state interfaces.IState) bool 
 		eb.AddEBEntry(m.Entry)
 		// Put it in our list of new Entry Blocks for this Directory Block
 		state.PutNewEBlocks(dbheight, m.Entry.GetChainID(), eb)
+		state.PutNewEntries(dbheight, m.Entry.GetHash(), m.Entry)
 		fmt.Println("DEBUG: Adding NewEBlock", eb)
 		
 		return true
 	} else if _, isNewEntry := commit.(*CommitEntryMsg); isNewEntry {
 		chainID := m.Entry.GetChainID()
-		eb := state.GetNewEBlocks(0, chainID)
+		eb := state.GetNewEBlocks(dbheight, chainID)
 		if eb == nil {
 			prev, err := state.GetDB().FetchEBlockHead(chainID)
 			if prev == nil || err != nil {
@@ -79,6 +80,7 @@ func (m *RevealEntryMsg) Process(dbheight uint32, state interfaces.IState) bool 
 		eb.AddEBEntry(m.Entry)
 		// Put it in our list of new Entry Blocks for this Directory Block
 		state.PutNewEBlocks(dbheight, m.Entry.GetChainID(), eb)
+		state.PutNewEntries(dbheight, m.Entry.GetHash(), m.Entry)
 
 		return true
 	}
@@ -162,19 +164,6 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 		if m.Entry.KSize()+10 < ECs {
 			fmt.Println("KSize", m.Entry.KSize(), ECs)
 			return -1
-		}
-	}
-
-	// Reveal Entry calls must have an existing chain.
-	if m.isEntry {
-		chainID := m.Entry.GetChainID()
-		eblk := state.GetNewEBlocks(0, chainID) // Look see if already in the new block.
-		if eblk == nil {                        // No?  Then look see if it exists in DB
-			eblk, _ := state.GetDB().FetchEBlockHead(chainID)
-			if eblk == nil {
-				fmt.Println("KSize", m.Entry.KSize(), ECs)
-				return -1
-			}
 		}
 	}
 

@@ -33,6 +33,7 @@ type ProcessList struct {
 	OldAcks map[[32]byte]interfaces.IMsg // messages processed in this list
 
 	NewEBlocks map[[32]byte]interfaces.IEntryBlock // Entry Blocks added within 10 minutes (follower and leader)
+	NewEntries map[[32]byte]interfaces.IEntry      // Entries added within 10 minutes (follower and leader)
 	Commits    map[[32]byte]interfaces.IMsg        // Used by the leader, validate
 
 	// State information about the directory block while it is under construction.  We may
@@ -100,6 +101,10 @@ func (p *ProcessList) GetNewEBlocks(key interfaces.IHash) interfaces.IEntryBlock
 
 func (p *ProcessList) PutNewEBlocks(dbheight uint32, key interfaces.IHash, value interfaces.IEntryBlock) {
 	p.NewEBlocks[key.Fixed()] = value
+}
+
+func (p *ProcessList) PutNewEntries(dbheight uint32, key interfaces.IHash, value interfaces.IEntry) {
+	p.NewEntries[key.Fixed()] = value
 }
 
 // TODO:  Need to map the server identity to the process list for which it
@@ -340,6 +345,7 @@ func NewProcessList(state interfaces.IState, dbheight uint32) *ProcessList {
 	pl.OldAcks = make(map[[32]byte]interfaces.IMsg)
 
 	pl.NewEBlocks = make(map[[32]byte]interfaces.IEntryBlock)
+	pl.NewEntries = make(map[[32]byte]interfaces.IEntry)
 	pl.Commits = make(map[[32]byte]interfaces.IMsg)
 
 	// If a federated server, this is the server index, which is our index in the FedServers list

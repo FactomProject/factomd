@@ -227,6 +227,15 @@ func (list *DBStateList) UpdateState() {
 				d.DirectoryBlock.GetDBEntries()[0].SetKeyMR(d.AdminBlock.GetHash())
 				d.DirectoryBlock.GetDBEntries()[1].SetKeyMR(d.EntryCreditBlock.GetHash())
 				d.DirectoryBlock.GetDBEntries()[2].SetKeyMR(d.FactoidBlock.GetHash())
+				pl := list.State.ProcessLists.Get(d.DirectoryBlock.GetHeader().GetDBHeight())
+				for _, eb := range pl.NewEBlocks {
+					key, err := eb.KeyMR()
+					if err != nil {
+						panic(err.Error())
+					}
+					d.DirectoryBlock.AddEntry(eb.GetChainID(), key)
+				}
+				
 				_, err = d.DirectoryBlock.BuildBodyMR()
 				if err != nil {
 					panic(err.Error())
@@ -250,9 +259,14 @@ func (list *DBStateList) UpdateState() {
 			}
 
 			pl := list.State.ProcessLists.Get(d.DirectoryBlock.GetHeader().GetDBHeight())
-			for _, v := range pl.NewEBlocks {
-				if err := list.State.GetDB().ProcessEBlockMultiBatch(v); err != nil {
+			for _, eb := range pl.NewEBlocks {
+				if err := list.State.GetDB().ProcessEBlockMultiBatch(eb); err != nil {
 					panic(err.Error())
+				}
+				for _, e := range eb.GetBody().GetEBEntries() {
+					if err := list.State.GetDB().InsertEntry(pl.NewEntries[e.Fixed()]); err != nil {
+						panic(err.Error())
+					}
 				}
 			}
 
