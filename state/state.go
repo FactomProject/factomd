@@ -378,7 +378,7 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 		panic("Should not happen")
 	}
 
-	msg := messages.NewDBStateMsg(s, dblk, ablk, fblk, ecblk)
+	msg := messages.NewDBStateMsg(s.GetTimestamp(), dblk, ablk, fblk, ecblk)
 
 	return msg, nil
 
@@ -442,20 +442,24 @@ func (s *State) LoadSpecificMsgAndAck(dbheight uint32, plistheight uint32) (inte
 	return msg, ackMsg, nil
 }
 
-func (s *State) JournalMessage(msg interfaces.IMsg) {
+func (s *State) MessageToLogString(msg interfaces.IMsg) string {
 	bytes, err := msg.MarshalBinary()
 	if err != nil {
 		panic("Failed MarshalBinary: " + err.Error())
 	}
 	msgStr := hex.EncodeToString(bytes)
 
+	answer := "\n" + msg.String() + "\n  " + s.ShortString() + "\n" + "\t\t\tMsgHex: " + msgStr + "\n"
+	return answer
+}
+
+func (s *State) JournalMessage(msg interfaces.IMsg) {
 	f, err := os.OpenFile(s.JournalFile, os.O_APPEND+os.O_WRONLY, 0666)
 	if err != nil {
 		panic("Failed to open Journal File: " + s.JournalFile)
 	}
-	f.WriteString("\n" + msg.String())
-	f.WriteString("\n  " + s.ShortString() + "\n")
-	f.WriteString("\t\t\tMsgHex: " + msgStr + "\n")
+	str := s.MessageToLogString(msg)
+	f.WriteString(str)
 	f.Close()
 }
 

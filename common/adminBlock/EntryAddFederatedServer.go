@@ -37,6 +37,8 @@ func (e *AddFederatedServer) Type() byte {
 func (e *AddFederatedServer) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
 
+    buf.Write([]byte{e.Type()})
+
 	data, err = e.IdentityChainID.MarshalBinary()
 	if err != nil {
 		return nil, err

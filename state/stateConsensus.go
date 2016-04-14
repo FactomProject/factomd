@@ -49,8 +49,8 @@ func (s *State) AddDBState(isNew bool,
 //
 // Returns true if it finds a match
 func (s *State) FollowerExecuteMsg(m interfaces.IMsg) (bool, error) {
-	    
-    acks := s.Acks
+
+	acks := s.Acks
 	ack, ok := acks[m.GetHash().Fixed()].(*messages.Ack)
 	if !ok || ack == nil {
 		s.Holding[m.GetHash().Fixed()] = m
@@ -130,7 +130,7 @@ func (s *State) LeaderExecute(m interfaces.IMsg) error {
 	s.NetworkOutMsgQueue() <- m
 	s.InMsgQueue() <- ack
 	m.FollowerExecute(s)
-    return nil
+	return nil
 }
 
 func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
@@ -146,13 +146,13 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
 }
 
 func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) bool {
-    as, ok := addServerMsg.(*messages.AddServerMsg)
+	as, ok := addServerMsg.(*messages.AddServerMsg)
 	if !ok {
-        fmt.Println("Bad Msg: ",addServerMsg.String())
+		fmt.Println("Bad Msg: ", addServerMsg.String())
 		return true
 	}
-	
-	pl := s.ProcessLists.Get(dbheight)   
+
+	pl := s.ProcessLists.Get(dbheight)
 	pl.AdminBlock.AddFedServer(as.ServerChainID)
 
 	return true
@@ -179,51 +179,51 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		panic("Must pass an EOM message to ProcessEOM)")
 	}
 
-    // We need to save away the previous state before we begin to process the next height
+	// We need to save away the previous state before we begin to process the next height
 	last := s.DBStates.Last()
 	if e.Minute == 0 && (last == nil || !last.Saved) {
 		return false
 	}
 
 	pl := s.ProcessLists.Get(dbheight)
-    
-    if !e.MarkerSent {
-        if s.ServerIndexFor(constants.FACTOID_CHAINID)==e.ServerIndex {
-    	    s.FactoidState.EndOfPeriod(int(e.Minute))
-        }
-        if s.ServerIndexFor(constants.ADMIN_CHAINID)==e.ServerIndex {
-            pl.AdminBlock.AddEndOfMinuteMarker(e.Minute)
-        }
-        pl.SetEomComplete(e.ServerIndex, true)  
-        e.MarkerSent = true
-    }
-    
-    // We need to have all EOM markers before we start to clean up this height.
-    if e.Minute == 9 {
-        
-        if !pl.EomComplete() {
-            return false
-        }
 
-        if s.ServerIndexFor(constants.EC_CHAINID)==e.ServerIndex {
-            ecblk := pl.EntryCreditBlock
-		    ecbody := ecblk.GetBody()
-		    mn := entryCreditBlock.NewMinuteNumber2(e.Minute)
-		    ecbody.AddEntry(mn)
-        }
-        
-        if s.ServerIndexFor(constants.D_CHAINID)==e.ServerIndex {         
-    		s.AddDBState(true, pl.DirectoryBlock, pl.AdminBlock, s.GetFactoidState().GetCurrentBlock(), pl.EntryCreditBlock)
-        }
-        
+	if !e.MarkerSent {
+		if s.ServerIndexFor(constants.FACTOID_CHAINID) == e.ServerIndex {
+			s.FactoidState.EndOfPeriod(int(e.Minute))
+		}
+		if s.ServerIndexFor(constants.ADMIN_CHAINID) == e.ServerIndex {
+			pl.AdminBlock.AddEndOfMinuteMarker(e.Minute)
+		}
+		pl.SetEomComplete(e.ServerIndex, true)
+		e.MarkerSent = true
+	}
+
+	// We need to have all EOM markers before we start to clean up this height.
+	if e.Minute == 9 {
+
+		if !pl.EomComplete() {
+			return false
+		}
+
+		if s.ServerIndexFor(constants.EC_CHAINID) == e.ServerIndex {
+			ecblk := pl.EntryCreditBlock
+			ecbody := ecblk.GetBody()
+			mn := entryCreditBlock.NewMinuteNumber2(e.Minute)
+			ecbody.AddEntry(mn)
+		}
+
+		if s.ServerIndexFor(constants.D_CHAINID) == e.ServerIndex {
+			s.AddDBState(true, pl.DirectoryBlock, pl.AdminBlock, s.GetFactoidState().GetCurrentBlock(), pl.EntryCreditBlock)
+		}
+
 		if s.LLeaderHeight <= dbheight {
 			s.LLeaderHeight = dbheight + 1
 		}
 
 		found, index := s.GetFedServerIndexHash(s.IdentityChainID)
-		if found && e.ServerIndex == index  {
+		if found && e.ServerIndex == index {
 			dbstate := s.DBStates.Get(dbheight)
-          	DBS := messages.NewDirectoryBlockSignature(dbheight)
+			DBS := messages.NewDirectoryBlockSignature(dbheight)
 			DBS.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
 			DBS.Timestamp = s.GetTimestamp()
 			DBS.ServerIdentityChainID = s.IdentityChainID
@@ -248,12 +248,12 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 // is then that we push it out to the rest of the network.  Otherwise, if we are not the
 // leader for the signature, it marks the sig complete for that list
 func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
-    
-    found, index := s.GetFedServerIndexHash(s.IdentityChainID)
-		
+
+	found, index := s.GetFedServerIndexHash(s.IdentityChainID)
+
 	dbs := msg.(*messages.DirectoryBlockSignature)
 
-    if found && uint32(index) == dbs.ServerIndex {
+	if found && uint32(index) == dbs.ServerIndex {
 		hash := dbs.GetHash()
 		ack, _ := s.NewAck(dbs.DBHeight, msg, hash)
 		s.NetworkOutMsgQueue() <- dbs
@@ -355,13 +355,12 @@ func (s *State) PutE(rt bool, adr [32]byte, v int64) {
 // ...
 func (s *State) ServerIndexFor(hash []byte) int {
 	n := len(s.FedServers)
-    v := 0
-    if len(hash)>0 {
-        v = int(hash[0])%n
-    }
-    return v
+	v := 0
+	if len(hash) > 0 {
+		v = int(hash[0]) % n
+	}
+	return v
 }
-
 
 func (s *State) LeaderFor(hash []byte) bool {
 	found, index := s.GetFedServerIndexHash(s.IdentityChainID)
@@ -369,7 +368,7 @@ func (s *State) LeaderFor(hash []byte) bool {
 	if !found {
 		return false
 	}
-    return index == s.ServerIndexFor(hash)
+	return index == s.ServerIndexFor(hash)
 }
 
 func (s *State) NewAdminBlock(dbheight uint32) interfaces.IAdminBlock {
@@ -433,23 +432,23 @@ func (s *State) GetNewHash() interfaces.IHash {
 
 // Create a new Acknowledgement.  This Acknowledgement
 func (s *State) NewAck(dbheight uint32, msg interfaces.IMsg, hash interfaces.IHash) (iack interfaces.IMsg, err error) {
-	
-    s.AckLock.Lock()
-    defer s.AckLock.Unlock()
-    
-    found, index := s.GetFedServerIndexHash(s.IdentityChainID)
-    if !found {
+
+	s.AckLock.Lock()
+	defer s.AckLock.Unlock()
+
+	found, index := s.GetFedServerIndexHash(s.IdentityChainID)
+	if !found {
 		return nil, fmt.Errorf(s.FactomNodeName + ": Creation of an Ack attempted by non-server")
 	}
 	pl := s.ProcessLists.Get(dbheight)
 	if pl == nil {
 		return nil, fmt.Errorf(s.FactomNodeName + ": No process list at this time")
 	}
-	last, ok := pl.GetLastAck(index).(*messages.Ack)
+	last, ok := pl.GetLastLeaderAck(index).(*messages.Ack)
 
 	ack := new(messages.Ack)
 	ack.DBHeight = dbheight
-    ack.ServerIndex= byte(index)
+	ack.ServerIndex = byte(index)
 	ack.Timestamp = s.GetTimestamp()
 	ack.MessageHash = hash
 	if !ok {
@@ -462,7 +461,7 @@ func (s *State) NewAck(dbheight uint32, msg interfaces.IMsg, hash interfaces.IHa
 			return nil, err
 		}
 	}
-	pl.SetLastAck(index, ack)
+	pl.SetLastLeaderAck(index, ack)
 
 	ack.Sign(s)
 

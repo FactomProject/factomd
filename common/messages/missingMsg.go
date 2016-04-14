@@ -165,14 +165,13 @@ func (m *MissingMsg) FollowerExecute(state interfaces.IState) error {
 	msg, ackMsg, err := state.LoadSpecificMsgAndAck(m.DBHeight, m.ProcessListHeight)
 
 	if msg != nil && ackMsg != nil && err == nil { // If I don't have this message, ignore.
-		//fmt.Println(state.GetFactomNodeName(), "MSG FOUND: ", msg.GetHash(), " -- ", msg.Type(), m.GetOrigin())
-		fmt.Println("GIVE ", m.DBHeight, m.ProcessListHeight, msg.GetHash())
 		msg.SetOrigin(m.GetOrigin())
 		ackMsg.SetOrigin(m.GetOrigin())
 		state.NetworkOutMsgQueue() <- msg
 		state.NetworkOutMsgQueue() <- ackMsg
 	} else {
-		//fmt.Println("ERROR ON FOLLEX: ", err)
+		// LoadSpecificMsgAndAck failed, so dethrottle the fnode state
+		// (so it can ask again if it needs to)
 		state.Dethrottle()
 		return err
 	}

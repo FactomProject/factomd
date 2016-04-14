@@ -231,14 +231,14 @@ func (b *FBlock) UnmarshalBinaryData(data []byte) (newdata []byte, err error) {
 	// To catch memory errors, I capture the panic and turn it into
 	// a reported error.
 	defer func() {
-		if r := recover(); r != nil {
+        return
+		if r := recover(); r != nil {  
 			err = fmt.Errorf("Error unmarshalling transaction: %v", r)
 		}
 	}()
 
-	// To capture the panic, my code needs to be in a function.  So I'm
-	// creating one here, and call it at the end of this function.
 	if bytes.Compare(data[:constants.ADDRESS_LENGTH], constants.FACTOID_CHAINID[:]) != 0 {
+        panic(fmt.Sprintf("error in: %x %x",data[:35], constants.FACTOID_CHAINID[:]))
 		return nil, fmt.Errorf("Block does not begin with the Factoid ChainID")
 	}
 	data = data[32:]
