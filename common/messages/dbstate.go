@@ -33,6 +33,7 @@ type DBStateMsg struct {
 	AdminBlock       interfaces.IAdminBlock
 	FactoidBlock     interfaces.IFBlock
 	EntryCreditBlock interfaces.IEntryCreditBlock
+	EntryBlocks      map[[32]byte]interfaces.IEntryBlock
 }
 
 var _ interfaces.IMsg = (*DBStateMsg)(nil)

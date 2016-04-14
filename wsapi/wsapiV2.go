@@ -433,7 +433,7 @@ func HandleV2EntryBlock(state interfaces.IState, params interface{}) (interface{
 			estack = append(estack, *l)
 		}
 	}
-
+	e.EntryList = estack
 	return e, nil
 }
 

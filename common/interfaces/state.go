@@ -78,9 +78,12 @@ type IState interface {
 
 	GetNewEBlocks(dbheight uint32, hash IHash) IEntryBlock
 	PutNewEBlocks(dbheight uint32, hash IHash, eb IEntryBlock)
+	PutNewEntries(dbheight uint32, hash IHash, eb IEntry)
 
 	GetCommits(hash IHash) IMsg
+	GetReveals(hash IHash) IMsg
 	PutCommits(hash IHash, msg IMsg)
+	PutReveals(hash IHash, msg IMsg)
 	// Server Configuration
 	// ====================
 
@@ -124,6 +127,7 @@ type IState interface {
 
 	ProcessAddServer(dbheight uint32, addServerMsg IMsg) bool
 	ProcessCommitChain(dbheight uint32, commitChain IMsg) bool
+	ProcessCommitEntry(dbheight uint32, commitChain IMsg) bool
 	ProcessDBSig(dbheight uint32, commitChain IMsg) bool
 	ProcessEOM(dbheight uint32, eom IMsg) bool
 

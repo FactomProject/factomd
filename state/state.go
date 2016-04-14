@@ -78,6 +78,8 @@ type State struct {
 	// For Follower
 	Holding map[[32]byte]interfaces.IMsg // Hold Messages
 	Acks    map[[32]byte]interfaces.IMsg // Hold Acknowledgemets
+	Commits map[[32]byte]interfaces.IMsg // Commit Messages
+	Reveals map[[32]byte]interfaces.IMsg // Reveal Messages
 
 	AuditHeartBeats []interfaces.IMsg   // The checklist of HeartBeats for this period
 	FedServerFaults [][]interfaces.IMsg // Keep a fault list for every server
@@ -257,6 +259,8 @@ func (s *State) Init() {
 	// Set up maps for the followers
 	s.Holding = make(map[[32]byte]interfaces.IMsg)
 	s.Acks = make(map[[32]byte]interfaces.IMsg)
+	s.Commits = make(map[[32]byte]interfaces.IMsg)
+	s.Reveals = make(map[[32]byte]interfaces.IMsg)
 
 	// Setup the FactoidState and Validation Service that holds factoid and entry credit balances
 	s.FactoidBalancesP = map[[32]byte]int64{}
@@ -376,6 +380,15 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 	}
 	if bytes.Compare(fblk.GetKeyMR().Bytes(), dblk.GetDBEntries()[2].GetKeyMR().Bytes()) != 0 {
 		panic("Should not happen")
+	}
+	eblks := make(map[[32]byte]interfaces.IEntryBlock)
+	if len(dblk.GetDBEntries()) > 3 {
+		for _, v := range dblk.GetDBEntries()[3:] {
+			eblks[v.GetKeyMR().Fixed()], err = s.DB.FetchEBlockByKeyMR(v.GetKeyMR())
+			if err != nil {
+				return nil, err
+			}
+		}
 	}
 
 	msg := messages.NewDBStateMsg(s.GetTimestamp(), dblk, ablk, fblk, ecblk)

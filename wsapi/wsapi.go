@@ -146,7 +146,7 @@ func HandleCommitEntry(ctx *web.Context) {
 		returnV1(ctx, nil, jsonError)
 		return
 	}
-	returnMsg(ctx, jsonResp.Result.(*CommitChainResponse).Message, true)
+	returnMsg(ctx, jsonResp.Result.(*CommitEntryResponse).Message, true)
 }
 
 func HandleRevealEntry(ctx *web.Context) {
