@@ -1,5 +1,7 @@
 #!/bin/bash
-cd .. 
+echo "run this from factomproject/factomd eg:"
+echo "$ ./p2p/twolocalnodestest.sh"
+echo
 echo "Compiling..."
 go install -a 
 echo "Running..."

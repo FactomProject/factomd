@@ -12,7 +12,6 @@ import (
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
@@ -116,9 +115,6 @@ func NetStart(s *state.State) {
 		s.DBType = db
 	}
 
-	// Start the heartbeat test.
-	go p2p.P2PNetworkStart(leader, address)
-
 	s.SetOut(false)
 	s.PortNumber = port
 
@@ -200,8 +196,19 @@ func NetStart(s *state.State) {
 	} else {
 		startServers(true)
 	}
+
+	// Start the P2P netowrk
+	// BUGBUG JAYJAY This peer stuff needs to be abstracted out into the p2p network.
+	// Set up a channel instead.
+	peer := new(P2PPeer).Init(fnodes[0].State.FactomNodeName, address).(*P2PPeer)
+	fnodes[0].Peers = append(fnodes[0].Peers, peer)
+
+	P2PNetworkStart(leader, address)
+
+	// Start the webserver
 	go wsapi.Start(fnodes[0].State)
 
+	// Listen for commands:
 	SimControl(listenTo)
 
 }
