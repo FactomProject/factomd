@@ -269,34 +269,6 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	p.Servers[ack.ServerIndex].List[ack.Height] = m
 }
 
-//func (p *ProcessList) GetCommits(key interfaces.IHash) interfaces.IMsg {
-//	fmt.Println("DEBUG: pl:", p)
-//	c := p.Commits[key.Fixed()]
-//	return c
-//}
-//
-//func (p *ProcessList) PutCommits(key interfaces.IHash, value interfaces.IMsg) {
-//	fmt.Println("DEBUG: pl:", p)
-//
-//	{
-//		cmsg, ok := value.(interfaces.ICounted)
-//		if ok {
-//			v := p.Commits[key.Fixed()]
-//			if v != nil {
-//				_, ok := v.(interfaces.ICounted)
-//				if ok {
-//					cmsg.SetCount(v.(interfaces.ICounted).GetCount() + 1)
-//				} else {
-//					p.State.Println(v)
-//					panic("Should never happen")
-//				}
-//			}
-//		}
-//
-//		p.Commits[key.Fixed()] = value
-//	}
-//}
-
 func (p *ProcessList) String() string {
 	prt := ""
 	if p == nil {

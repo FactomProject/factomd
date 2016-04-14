@@ -159,7 +159,6 @@ func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) 
 }
 
 func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg) bool {
-	fmt.Println("DEBUG: ProcessCommitChain")
 	c, ok := commitChain.(*messages.CommitChainMsg)
 	if !ok {
 		return false
@@ -180,7 +179,6 @@ func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)
 }
 
 func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg) bool {
-	fmt.Println("DEBUG: ProcessCommitEntry")
 	c, ok := commitEntry.(*messages.CommitEntryMsg)
 	if !ok {
 		return false
@@ -269,6 +267,11 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			DBS.FollowerExecute(s)
 		}
 	}
+	
+	// Add EOM to the EBlocks
+	for _, eb := range pl.NewEBlocks {
+		eb.AddEndOfMinuteMarker(e.Bytes()[0])
+	}
 
 	return true
 }
@@ -309,12 +312,10 @@ func (s *State) PutNewEntries(dbheight uint32, hash interfaces.IHash, e interfac
 
 
 func (s *State) GetCommits(hash interfaces.IHash) interfaces.IMsg {
-	fmt.Println("DEBUG: searching for commit", hash)
 	return s.Commits[hash.Fixed()]
 }
 
 func (s *State) GetReveals(hash interfaces.IHash) interfaces.IMsg {
-	fmt.Println("DEBUG: searching for Reveal", hash)
 	return s.Reveals[hash.Fixed()]
 }
 

@@ -385,7 +385,6 @@ func HandleV2EntryBlock(state interfaces.IState, params interface{}) (interface{
 	dbase := state.GetDB()
 
 	block, err := dbase.FetchEBlockByKeyMR(h)
-	fmt.Println("DEBUG: got block from db", block)
 	if err != nil {
 		return nil, NewInvalidHashError()
 	}
@@ -435,7 +434,6 @@ func HandleV2EntryBlock(state interfaces.IState, params interface{}) (interface{
 		}
 	}
 	e.EntryList = estack
-
 	return e, nil
 }
 

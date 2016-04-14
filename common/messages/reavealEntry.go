@@ -51,12 +51,10 @@ func (m *RevealEntryMsg) Process(dbheight uint32, state interfaces.IState) bool 
 		// Set the Directory Block Height for this Entry Block
 		eb.GetHeader().SetDBHeight(dbheight)
 		// Add our new entry
-		fmt.Println("DEBUG: Adding new entry", m.Entry)
 		eb.AddEBEntry(m.Entry)
 		// Put it in our list of new Entry Blocks for this Directory Block
 		state.PutNewEBlocks(dbheight, m.Entry.GetChainID(), eb)
 		state.PutNewEntries(dbheight, m.Entry.GetHash(), m.Entry)
-		fmt.Println("DEBUG: Adding NewEBlock", eb)
 		
 		return true
 	} else if _, isNewEntry := commit.(*CommitEntryMsg); isNewEntry {
@@ -65,7 +63,6 @@ func (m *RevealEntryMsg) Process(dbheight uint32, state interfaces.IState) bool 
 		if eb == nil {
 			prev, err := state.GetDB().FetchEBlockHead(chainID)
 			if prev == nil || err != nil {
-				fmt.Println("DEBUG:", prev, err)
 				return false
 			}
 			eb = entryBlock.NewEBlock()
@@ -74,7 +71,8 @@ func (m *RevealEntryMsg) Process(dbheight uint32, state interfaces.IState) bool 
 			// Set the Directory Block Height for this Entry Block
 			eb.GetHeader().SetDBHeight(dbheight)
 			// Set the PrevKeyMR
-			eb.GetHeader().SetPrevKeyMR(prev.GetHeader().GetPrevKeyMR())
+			key, _ := prev.KeyMR()
+			eb.GetHeader().SetPrevKeyMR(key)
 		}
 		// Add our new entry
 		eb.AddEBEntry(m.Entry)
