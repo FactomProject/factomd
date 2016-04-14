@@ -27,6 +27,8 @@ type IAdminBlock interface {
 	AddABEntry(e IABEntry) (err error)
 	AddEndOfMinuteMarker(eomType byte) (err error)
 	GetDBSignature() IABEntry
+	AddFedServer(IHash)
+	UpdateState(IState)
 }
 
 // Admin Block Header
@@ -54,7 +56,8 @@ type IABEntry interface {
 	BinaryMarshallable
 	ShortInterpretable
 
-	MarshalledSize() uint64
+	UpdateState(IState) // When loading Admin Blocks,
+
 	Type() byte
 	Hash() IHash
 }

@@ -22,6 +22,7 @@ import (
 	"github.com/FactomProject/factomd/wsapi"
 	"os"
 	"strings"
+	"sync"
 )
 
 var _ = fmt.Print
@@ -50,7 +51,6 @@ type State struct {
 	Replay                  *Replay
 	GreenFlg                bool
 
-	CoreChainID     interfaces.IHash // The ChainID of the first server when we boot a network.
 	IdentityChainID interfaces.IHash // If this node has an identity, this is it
 
 	// Just to print (so debugging doesn't drive functionaility)
@@ -85,7 +85,10 @@ type State struct {
 	NetworkNumber int // Encoded into Directory Blocks(s.Cfg.(*util.FactomdConfig)).String()
 
 	// Number of Servers acknowledged by Factom
-	Matryoshka []interfaces.IHash // Reverse Hash
+	Matryoshka   []interfaces.IHash        // Reverse Hash
+	AuditServers []interfaces.IFctServer   // List of Audit Servers
+	ServerOrder  [][]interfaces.IFctServer // 10 lists for Server Order for each minute
+	FedServers   []interfaces.IFctServer   // List of Federated Servers
 
 	// Database
 	DB     *databaseOverlay.Overlay
@@ -105,6 +108,7 @@ type State struct {
 	//
 	// Process list previous [0], present(@DBHeight) [1], and future (@DBHeight+1) [2]
 
+	AckLock      sync.Mutex
 	ProcessLists *ProcessLists
 
 	// Factom State
@@ -122,6 +126,10 @@ type State struct {
 	FactoshisPerEC uint64
 	// Web Services
 	Port int
+
+	//For Replay / journal
+	IsReplaying     bool
+	ReplayTimestamp interfaces.Timestamp
 }
 
 var _ interfaces.IState = (*State)(nil)
@@ -147,8 +155,7 @@ func (s *State) Clone(number string) interfaces.IState {
 	clone.DirectoryBlockInSeconds = s.DirectoryBlockInSeconds
 	clone.PortNumber = s.PortNumber
 
-	clone.CoreChainID = s.CoreChainID
-	clone.IdentityChainID = primitives.Sha([]byte(number))
+	clone.IdentityChainID = primitives.Sha([]byte(clone.FactomNodeName))
 
 	//generate and use a new deterministic PrivateKey for this clone
 	shaHashOfNodeName := primitives.Sha([]byte(clone.FactomNodeName)) //seed the private key with node name
@@ -195,12 +202,7 @@ func (s *State) LoadConfig(filename string) {
 		s.PortNumber = cfg.Wsapi.PortNumber
 
 		// TODO:  Actually load the IdentityChainID from the config file
-		s.IdentityChainID = primitives.Sha([]byte("0"))
-
-		// TODO:  CoreChainID is our 'authority chain' that will be used to manage Factom
-		// until the network is real, and to serve as the authority to reboot the network
-		// should consensus or software or networks fail in some unpredicted way.
-		s.CoreChainID = primitives.Sha([]byte("0"))
+		s.IdentityChainID = primitives.Sha([]byte(s.FactomNodeName))
 
 	} else {
 		s.LogPath = "database/"
@@ -219,12 +221,8 @@ func (s *State) LoadConfig(filename string) {
 		s.PortNumber = 8088
 
 		// TODO:  Actually load the IdentityChainID from the config file
-		s.IdentityChainID = primitives.Sha([]byte("0"))
+		s.IdentityChainID = primitives.Sha([]byte(s.FactomNodeName))
 
-		// TODO:  CoreChainID is our 'authority chain' that will be used to manage Factom
-		// until the network is real, and to serve as the authority to reboot the network
-		// should consensus or software or networks fail in some unpredicted way.
-		s.CoreChainID = primitives.Sha([]byte("0"))
 	}
 	s.JournalFile = s.LogPath + "journal0" + ".log"
 }
@@ -261,6 +259,10 @@ func (s *State) Init() {
 	s.ECBalancesP = map[[32]byte]int64{}
 	s.FactoidBalancesT = map[[32]byte]int64{}
 	s.ECBalancesT = map[[32]byte]int64{}
+
+	s.AuditServers = make([]interfaces.IFctServer, 0)
+	s.FedServers = make([]interfaces.IFctServer, 0)
+	s.ServerOrder = make([][]interfaces.IFctServer, 0)
 
 	fs := new(FactoidState)
 	fs.State = s
@@ -372,26 +374,40 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 		panic("Should not happen")
 	}
 
-	msg := messages.NewDBStateMsg(s, dblk, ablk, fblk, ecblk)
+	msg := messages.NewDBStateMsg(s.GetTimestamp(), dblk, ablk, fblk, ecblk)
 
 	return msg, nil
 
 }
 
-func (s *State) JournalMessage(msg interfaces.IMsg) {
+func (s *State) LoadSpecificMsg(dbheight uint32, plistheight uint32) (interfaces.IMsg, error) {
+	msg := s.ProcessLists.Get(dbheight).MsgQueue[plistheight]
+
+	if msg == nil {
+		return nil, fmt.Errorf("State process list does not include requested message")
+	}
+
+	return msg, nil
+}
+
+func (s *State) MessageToLogString(msg interfaces.IMsg) string {
 	bytes, err := msg.MarshalBinary()
 	if err != nil {
 		panic("Failed MarshalBinary: " + err.Error())
 	}
 	msgStr := hex.EncodeToString(bytes)
 
+	answer := "\n" + msg.String() + "\n  " + s.ShortString() + "\n" + "\t\t\tMsgHex: " + msgStr + "\n"
+	return answer
+}
+
+func (s *State) JournalMessage(msg interfaces.IMsg) {
 	f, err := os.OpenFile(s.JournalFile, os.O_APPEND+os.O_WRONLY, 0666)
 	if err != nil {
 		panic("Failed to open Journal File: " + s.JournalFile)
 	}
-	f.WriteString("\n" + msg.String())
-	f.WriteString("\n  " + s.ShortString() + "\n")
-	f.WriteString("\t\t\tMsgHex: " + msgStr + "\n")
+	str := s.MessageToLogString(msg)
+	f.WriteString(str)
 	f.Close()
 }
 
@@ -414,7 +430,8 @@ func (s *State) GetDirectoryBlockByHeight(height uint32) interfaces.IDirectoryBl
 }
 
 func (s *State) UpdateState() {
-    s.ProcessLists.UpdateState()
+	s.SetString()
+	s.ProcessLists.UpdateState()
 	s.DBStates.UpdateState()
 
 	if s.GetOut() {
@@ -426,6 +443,42 @@ func (s *State) UpdateState() {
 
 		s.Println(str)
 	}
+}
+
+// Add the given serverChain to this processlist, and return the server index number of the
+// added server
+func (s *State) AddFedServer(identityChainID interfaces.IHash) int {
+	found, i := s.GetFedServerIndexHash(identityChainID)
+	if found {
+		return i
+	}
+	s.FedServers = append(s.FedServers, nil)
+	copy(s.FedServers[i+1:], s.FedServers[i:])
+	s.FedServers[i] = &interfaces.Server{ChainID: identityChainID}
+	return i
+}
+
+// Add the given serverChain to this processlist, and return the server index number of the
+// added server
+func (p *State) RemoveFedServerHash(identityChainID interfaces.IHash) {
+	found, i := p.GetFedServerIndexHash(identityChainID)
+	if !found {
+		return
+	}
+	p.FedServers = append(p.FedServers[:i], p.FedServers[i+1:]...)
+}
+
+// Returns true and the index of this server, or false and the insertion point for this server
+func (s *State) GetFedServerIndexHash(identityChainID interfaces.IHash) (bool, int) {
+	scid := identityChainID.Bytes()
+
+	for i, fs := range s.FedServers {
+		// Find and remove
+		if bytes.Compare(scid, fs.GetChainID().Bytes()) == 0 {
+			return true, i
+		}
+	}
+	return false, len(s.FedServers)
 }
 
 func (s *State) GetFactoshisPerEC() uint64 {
@@ -442,10 +495,6 @@ func (s *State) GetIdentityChainID() interfaces.IHash {
 
 func (s *State) SetIdentityChainID(chainID interfaces.IHash) {
 	s.IdentityChainID = chainID
-}
-
-func (s *State) GetCoreChainID() interfaces.IHash {
-	return s.CoreChainID
 }
 
 func (s *State) GetDirectoryBlockInSeconds() int {
@@ -496,11 +545,28 @@ func (s *State) LogInfo(args ...interface{}) {
 func (s *State) GetAuditHeartBeats() []interfaces.IMsg {
 	return s.AuditHeartBeats
 }
+
+func (s *State) GetFedServers() []interfaces.IFctServer {
+	return s.FedServers
+}
+
 func (s *State) GetFedServerFaults() [][]interfaces.IMsg {
 	return s.FedServerFaults
 }
 
+func (s *State) SetIsReplaying() {
+	s.IsReplaying = true
+}
+
+func (s *State) SetIsDoneReplaying() {
+	s.IsReplaying = false
+	s.ReplayTimestamp = 0
+}
+
 func (s *State) GetTimestamp() interfaces.Timestamp {
+	if s.IsReplaying == true {
+		return s.ReplayTimestamp
+	}
 	return *interfaces.NewTimeStampNow()
 }
 
@@ -636,7 +702,7 @@ func (s *State) SetString() {
 			0,
 			s.GetHighestKnownBlock())
 	} else {
-		found, index := s.ProcessLists.Get(buildingBlock).GetFedServerIndex(s.IdentityChainID)
+		found, index := s.GetFedServerIndexHash(s.IdentityChainID)
 		stype := ""
 		if found {
 			stype = fmt.Sprintf("L %4d", index)
@@ -660,16 +726,17 @@ func (s *State) SetString() {
 			lastheight = s.DBStates.Last().DirectoryBlock.GetHeader().GetDBHeight()
 		}
 
-		s.serverPrt = fmt.Sprintf("%9s%9s Recorded: %d Building: %d Highest: %d DirBlk[:5]=%x ABHash[:5]=%x FBHash[:5]=%x ECHash[:5]=%x ",
+		s.serverPrt = fmt.Sprintf("%9s%9s %x Recorded: %d Building: %d Last: %d DirBlk[:5]=%x ABHash[:5]=%x FBHash[:5]=%x ECHash[:5]=%x ",
 			stype,
 			s.FactomNodeName,
+			s.IdentityChainID.Bytes()[:3],
 			s.GetHighestRecordedBlock(),
 			lastheight,
 			s.GetHighestKnownBlock(),
-			keyMR[:5],
-			abHash[:5],
-			fbHash[:5],
-			ecHash[:5])
+			keyMR[:3],
+			abHash[:3],
+			fbHash[:3],
+			ecHash[:3])
 	}
 }
 

@@ -86,10 +86,6 @@ func (bs *ByteSlice32) MarshalBinary() ([]byte, error) {
 	return bs[:], nil
 }
 
-func (bs *ByteSlice32) MarshalledSize() uint64 {
-	return 32
-}
-
 func (bs *ByteSlice32) Fixed() [32]byte {
 	return *bs
 }
@@ -139,10 +135,6 @@ func (bs *ByteSlice64) MarshalBinary() ([]byte, error) {
 	return bs[:], nil
 }
 
-func (bs *ByteSlice64) MarshalledSize() uint64 {
-	return 64
-}
-
 func (bs *ByteSlice64) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -188,10 +180,6 @@ func (bs *ByteSlice6) MarshalBinary() ([]byte, error) {
 	return bs[:], nil
 }
 
-func (bs *ByteSlice6) MarshalledSize() uint64 {
-	return 6
-}
-
 func (bs *ByteSlice6) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -235,10 +223,6 @@ var _ interfaces.BinaryMarshallable = (*ByteSliceSig)(nil)
 
 func (bs *ByteSliceSig) MarshalBinary() ([]byte, error) {
 	return bs[:], nil
-}
-
-func (bs *ByteSliceSig) MarshalledSize() uint64 {
-	return ed25519.SignatureSize
 }
 
 func (bs *ByteSliceSig) GetFixed() ([ed25519.SignatureSize]byte, error) {

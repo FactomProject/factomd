@@ -6,12 +6,11 @@ package interfaces
 
 import ()
 
-
 type INetwork interface {
 	Recieve() IMsg
 	Broadcast(IMsg)
 	SendToPeer(IMsg)
-    Control()
-    GetMLog() IMLog
-    SetMLog(IMLog)
+	Control()
+	GetMLog() IMLog
+	SetMLog(IMLog)
 }

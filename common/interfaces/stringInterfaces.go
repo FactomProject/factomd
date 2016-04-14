@@ -24,5 +24,5 @@ type Printable interface {
 //Interface for short, reoccuring data structures to interpret themselves into human-friendly form
 type ShortInterpretable interface {
 	IsInterpretable() bool //Whether the structure can interpret itself
-	Interpret() string     //Turns the data encoded int he structure into human-friendly string
+	Interpret() string     //Turns the data encoded in the structure into human-friendly string
 }

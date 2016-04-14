@@ -4,13 +4,6 @@ import (
 	"testing"
 )
 
-func TestEOMMarshalledSize(t *testing.T) {
-	eom := new(EndOfMinuteEntry)
-	if eom.MarshalledSize() != uint64(2) {
-		t.Fail()
-	}
-}
-
 func TestEOMMisc(t *testing.T) {
 	eom := new(EndOfMinuteEntry)
 	if eom.IsInterpretable() != true {

@@ -54,6 +54,12 @@ func SimControl(listenTo int) {
 					f.State.SetOut(false)
 					fmt.Printf("%8s %s\n", f.State.FactomNodeName, f.State.ShortString())
 				}
+				fmt.Println("Fed Servers:")
+				for _, fnode := range fnodes {
+					for _, fed := range fnode.State.GetFedServers() {
+						fmt.Printf("   %10s %x %x\n", fnode.State.FactomNodeName, fnode.State.GetIdentityChainID().Bytes()[:5], fed.GetChainID().Bytes()[:5])
+					}
+				}
 			case 'a':
 				mLog.all = false
 				for _, fnode := range fnodes {
@@ -155,7 +161,6 @@ func SimControl(listenTo int) {
 				mLog.all = false
 				msg := messages.NewAddServerMsg(fnodes[listenTo].State)
 				fnodes[listenTo].State.InMsgQueue() <- msg
-				fnodes[listenTo].State.SetOut(true)
 				os.Stderr.WriteString(fmt.Sprintln("Attempting to make", fnodes[listenTo].State.GetFactomNodeName(), "a Leader"))
 			default:
 			}

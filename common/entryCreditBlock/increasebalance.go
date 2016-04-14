@@ -10,8 +10,6 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
-//var IncreaseBalanceSize int = 32 + 4 + 32
-
 type IncreaseBalance struct {
 	ECPubKey *primitives.ByteSlice32
 	TXID     interfaces.IHash
@@ -24,10 +22,6 @@ var _ interfaces.Printable = (*IncreaseBalance)(nil)
 //var _ interfaces.BinaryMarshallable = (*IncreaseBalance)(nil)
 var _ interfaces.ShortInterpretable = (*IncreaseBalance)(nil)
 var _ interfaces.IECBlockEntry = (*IncreaseBalance)(nil)
-
-//func (c *IncreaseBalance) MarshalledSize() uint64 {
-//	return uint64(IncreaseBalanceSize)
-//}
 
 func NewIncreaseBalance() *IncreaseBalance {
 	r := new(IncreaseBalance)

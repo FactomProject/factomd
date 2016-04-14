@@ -15,8 +15,8 @@ import (
 //Structure to request missing messages in a node's process list
 type MissingMsg struct {
 	MessageBase
-	DBHeight          int
-	ProcessListHeight int
+	DBHeight          uint32
+	ProcessListHeight uint32
 	Timestamp         interfaces.Timestamp
 
 	//Not marshalled
@@ -128,7 +128,16 @@ func (m *MissingMsg) Follower(interfaces.IState) bool {
 	return true
 }
 
-func (m *MissingMsg) FollowerExecute(interfaces.IState) error {
+func (m *MissingMsg) FollowerExecute(state interfaces.IState) error {
+	msg, err := state.LoadSpecificMsg(m.DBHeight, m.ProcessListHeight)
+
+	if msg != nil && err == nil { // If I don't have this message, ignore.
+		msg.SetOrigin(m.GetOrigin())
+		state.NetworkOutMsgQueue() <- msg
+	} else {
+		return err
+	}
+
 	return nil
 }
 
@@ -142,4 +151,16 @@ func (e *MissingMsg) JSONString() (string, error) {
 
 func (e *MissingMsg) JSONBuffer(b *bytes.Buffer) error {
 	return primitives.EncodeJSONToBuffer(e, b)
+}
+
+func NewMissingMsg(state interfaces.IState, dbHeight uint32, processlistHeight uint32) interfaces.IMsg {
+
+	msg := new(MissingMsg)
+
+	msg.Peer2peer = true // Always a peer2peer request.
+	msg.Timestamp = state.GetTimestamp()
+	msg.DBHeight = dbHeight
+	msg.ProcessListHeight = processlistHeight
+
+	return msg
 }

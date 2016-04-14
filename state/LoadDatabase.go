@@ -11,6 +11,7 @@ import (
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 var _ = fmt.Print
@@ -53,7 +54,9 @@ func LoadDatabase(s *State) {
 		fblk := factoid.GetGenesisFBlock()
 		ecblk := entryCreditBlock.NewECBlock()
 
-		msg := messages.NewDBStateMsg(s, dblk, ablk, fblk, ecblk)
+		ablk.AddFedServer(primitives.Sha([]byte("FNode0")))
+
+		msg := messages.NewDBStateMsg(s.GetTimestamp(), dblk, ablk, fblk, ecblk)
 		s.InMsgQueue() <- msg
 	}
 	s.Println(fmt.Sprintf("Loaded %d directory blocks on %s", blkCnt, s.FactomNodeName))
