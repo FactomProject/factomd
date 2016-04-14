@@ -138,6 +138,7 @@ type IState interface {
 	Println(a ...interface{}) (n int, err error)
 
 	ValidatorLoop()
+	Dethrottle()
 
 	SetIsReplaying()
 	SetIsDoneReplaying()

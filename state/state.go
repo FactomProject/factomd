@@ -131,6 +131,9 @@ type State struct {
 	//For Replay / journal
 	IsReplaying     bool
 	ReplayTimestamp interfaces.Timestamp
+
+	//For throttling how many missing messages we request
+	IsThrottled bool
 }
 
 var _ interfaces.IState = (*State)(nil)
@@ -488,6 +491,10 @@ func (s *State) UpdateState() {
 
 		s.Println(str)
 	}
+}
+
+func (s *State) Dethrottle() {
+	s.IsThrottled = false
 }
 
 // Add the given serverChain to this processlist, and return the server index number of the

@@ -7,12 +7,13 @@ package engine
 import (
 	"flag"
 	"fmt"
+	"os"
+	"time"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/util"
-	"os"
-	"time"
 )
 
 var _ = fmt.Print
@@ -237,5 +238,6 @@ func startServers(load bool) {
 		}
 		go Timer(fnode.State)
 		go fnode.State.ValidatorLoop()
+		go Throttle(fnode.State)
 	}
 }
