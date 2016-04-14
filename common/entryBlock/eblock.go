@@ -10,10 +10,6 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
-const (
-	EBHeaderSize = 140 // 32+32+32+32+4+4+4
-)
-
 // EBlock is the Entry Block. It holds the hashes of the Entries and its Merkel
 // Root is written into the Directory Blocks. Each Entry Block represents all
 // of the entries for a paticular Chain during a 10 minute period.
@@ -80,10 +76,6 @@ func (c *EBlock) DatabasePrimaryIndex() interfaces.IHash {
 func (c *EBlock) DatabaseSecondaryIndex() interfaces.IHash {
 	h, _ := c.Hash()
 	return h
-}
-
-func (c *EBlock) MarshalledSize() uint64 {
-	return uint64(EBHeaderSize)
 }
 
 func (c *EBlock) GetHeader() interfaces.IEntryBlockHeader {

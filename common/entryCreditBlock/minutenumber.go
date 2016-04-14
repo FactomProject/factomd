@@ -40,10 +40,6 @@ func (b *MinuteNumber) Interpret() string {
 	return fmt.Sprintf("MinuteNumber %v", b.Number)
 }
 
-func (c *MinuteNumber) MarshalledSize() uint64 {
-	return uint64(MinuteNumberSize)
-}
-
 func NewMinuteNumber() *MinuteNumber {
 	return new(MinuteNumber)
 }
