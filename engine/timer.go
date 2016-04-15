@@ -6,10 +6,11 @@ package engine
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	s "github.com/FactomProject/factomd/state"
-	"time"
 )
 
 var _ = (*s.State)(nil)
@@ -65,6 +66,18 @@ func Timer(state interfaces.IState) {
 				}
 			}
 		}
+	}
+
+}
+
+func Throttle(state interfaces.IState) {
+	time.Sleep(2 * time.Second)
+
+	throttlePeriod := time.Duration(int64(state.GetDirectoryBlockInSeconds()) * 50000000)
+
+	for {
+		time.Sleep(throttlePeriod)
+		state.Dethrottle()
 	}
 
 }

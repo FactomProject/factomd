@@ -2,13 +2,15 @@ package state
 
 import (
 	"fmt"
+
 	"github.com/FactomProject/factomd/common/directoryBlock"
 	//"github.com/FactomProject/factomd/common/factoid"
+	"log"
+
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
-	"log"
 )
 
 var _ = fmt.Print
@@ -33,6 +35,7 @@ type ProcessList struct {
 	OldAcks map[[32]byte]interfaces.IMsg // messages processed in this list
 
 	NewEBlocks map[[32]byte]interfaces.IEntryBlock // Entry Blocks added within 10 minutes (follower and leader)
+	NewEntries map[[32]byte]interfaces.IEntry      // Entries added within 10 minutes (follower and leader)
 	Commits    map[[32]byte]interfaces.IMsg        // Used by the leader, validate
 
 	// State information about the directory block while it is under construction.  We may
@@ -95,15 +98,15 @@ func (p ProcessList) HasMessage() bool {
 }
 
 func (p *ProcessList) GetNewEBlocks(key interfaces.IHash) interfaces.IEntryBlock {
-
-	eb := p.NewEBlocks[key.Fixed()]
-	return eb
+	return p.NewEBlocks[key.Fixed()]
 }
 
 func (p *ProcessList) PutNewEBlocks(dbheight uint32, key interfaces.IHash, value interfaces.IEntryBlock) {
-
 	p.NewEBlocks[key.Fixed()] = value
+}
 
+func (p *ProcessList) PutNewEntries(dbheight uint32, key interfaces.IHash, value interfaces.IEntry) {
+	p.NewEntries[key.Fixed()] = value
 }
 
 // TODO:  Need to map the server identity to the process list for which it
@@ -171,16 +174,16 @@ func (p *ProcessList) Process(state *State) {
 	for i := 0; i < p.NumberServers; i++ {
 		plist := p.Servers[i].List
 
-		// state.Println("Process List: DBHeight, height in list, len(plist)", p.DBHeight, "/", p.Servers[i].Height, "/", len(plist))
-
 		for j := p.Servers[i].Height; j < len(plist); j++ {
 			if plist[j] == nil {
-				//TODO: issue missingMsg request
-				/*missingMsgRequest := messages.NewMissingMsg(list.State, p.DBHeight, uint32(j))
-				  if missingMsgRequest != nil {
-				      list.State.NetworkOutMsgQueue() <- missingMsgRequest
-				  }*/
-				p.State.Println("!!!!!!! Missing entry in process list at", j)
+				if !state.IsThrottled {
+					missingMsgRequest := messages.NewMissingMsg(state, p.DBHeight, uint32(j))
+					if missingMsgRequest != nil {
+						state.NetworkOutMsgQueue() <- missingMsgRequest
+					}
+					p.State.Println("!!!!!!! Missing entry in process list at", j)
+					state.IsThrottled = true
+				}
 				return
 			}
 
@@ -258,32 +261,6 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	p.Servers[ack.ServerIndex].List[ack.Height] = m
 }
 
-func (p *ProcessList) GetCommits(key interfaces.IHash) interfaces.IMsg {
-	c := p.Commits[key.Fixed()]
-	return c
-}
-
-func (p *ProcessList) PutCommits(key interfaces.IHash, value interfaces.IMsg) {
-
-	{
-		cmsg, ok := value.(interfaces.ICounted)
-		if ok {
-			v := p.Commits[key.Fixed()]
-			if v != nil {
-				_, ok := v.(interfaces.ICounted)
-				if ok {
-					cmsg.SetCount(v.(interfaces.ICounted).GetCount() + 1)
-				} else {
-					p.State.Println(v)
-					panic("Should never happen")
-				}
-			}
-		}
-
-		p.Commits[key.Fixed()] = value
-	}
-}
-
 func (p *ProcessList) String() string {
 	prt := ""
 	if p == nil {
@@ -348,6 +325,7 @@ func NewProcessList(state interfaces.IState, dbheight uint32) *ProcessList {
 	pl.OldAcks = make(map[[32]byte]interfaces.IMsg)
 
 	pl.NewEBlocks = make(map[[32]byte]interfaces.IEntryBlock)
+	pl.NewEntries = make(map[[32]byte]interfaces.IEntry)
 	pl.Commits = make(map[[32]byte]interfaces.IMsg)
 
 	// If a federated server, this is the server index, which is our index in the FedServers list

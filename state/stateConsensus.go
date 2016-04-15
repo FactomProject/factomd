@@ -160,14 +160,41 @@ func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) 
 
 func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg) bool {
 	c, ok := commitChain.(*messages.CommitChainMsg)
-	if ok {
-		pl := s.ProcessLists.Get(dbheight)
-		ecblk := pl.EntryCreditBlock
-		ecbody := ecblk.GetBody()
-		ecbody.AddEntry(c.CommitChain)
-		s.GetFactoidState().UpdateECTransaction(true, c.CommitChain)
-		s.PutCommits(c.GetHash(), c)
+	if !ok {
+		return false
 	}
+	
+	pl := s.ProcessLists.Get(dbheight)
+	pl.EntryCreditBlock.GetBody().AddEntry(c.CommitChain)
+	s.GetFactoidState().UpdateECTransaction(true, c.CommitChain)
+	
+	// save the Commit to match agains the Reveal later
+	s.PutCommits(c.GetHash(), c)
+	// check for a matching Reveal and, if found, execute it
+	if r := s.GetReveals(c.GetHash()); r != nil {
+		s.LeaderExecute(r)
+	}
+	
+	return true
+}
+
+func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg) bool {
+	c, ok := commitEntry.(*messages.CommitEntryMsg)
+	if !ok {
+		return false
+	}
+	
+	pl := s.ProcessLists.Get(dbheight)
+	pl.EntryCreditBlock.GetBody().AddEntry(c.CommitEntry)
+	s.GetFactoidState().UpdateECTransaction(true, c.CommitEntry)
+	
+	// save the Commit to match agains the Reveal later
+	s.PutCommits(c.GetHash(), c)
+	// check for a matching Reveal and, if found, execute it
+	if r := s.GetReveals(c.GetHash()); r != nil {
+		s.LeaderExecute(r)
+	}
+	
 	return true
 }
 
@@ -239,6 +266,11 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			DBS.FollowerExecute(s)
 		}
 	}
+	
+	// Add EOM to the EBlocks
+	for _, eb := range pl.NewEBlocks {
+		eb.AddEndOfMinuteMarker(e.Bytes()[0])
+	}
 
 	return true
 }
@@ -274,16 +306,59 @@ fmt.Println("Sig Complete: ",dbs.ServerIndex)
 }
 
 func (s *State) GetNewEBlocks(dbheight uint32, hash interfaces.IHash) interfaces.IEntryBlock {
-	return nil
+	pl := s.ProcessLists.Get(dbheight)
+	return pl.GetNewEBlocks(hash)
 }
+
 func (s *State) PutNewEBlocks(dbheight uint32, hash interfaces.IHash, eb interfaces.IEntryBlock) {
+	pl := s.ProcessLists.Get(dbheight)
+	pl.PutNewEBlocks(dbheight, hash, eb)
 }
+
+func (s *State) PutNewEntries(dbheight uint32, hash interfaces.IHash, e interfaces.IEntry) {
+	pl := s.ProcessLists.Get(dbheight)
+	pl.PutNewEntries(dbheight, hash, e)
+}
+
 
 func (s *State) GetCommits(hash interfaces.IHash) interfaces.IMsg {
-	return nil
+	return s.Commits[hash.Fixed()]
 }
-func (s *State) PutCommits(hash interfaces.IHash, msg interfaces.IMsg) {
 
+func (s *State) GetReveals(hash interfaces.IHash) interfaces.IMsg {
+	return s.Reveals[hash.Fixed()]
+}
+
+func (s *State) PutCommits(hash interfaces.IHash, msg interfaces.IMsg) {
+	cmsg, ok := msg.(interfaces.ICounted)
+	if ok {
+		v := s.Commits[hash.Fixed()]
+		if v != nil {
+			_, ok := v.(interfaces.ICounted)
+			if ok {
+				cmsg.SetCount(v.(interfaces.ICounted).GetCount() + 1)
+			} else {
+				panic("Should never happen")
+			}
+		}
+	}
+	s.Commits[hash.Fixed()] = msg
+}
+
+func (s *State) PutReveals(hash interfaces.IHash, msg interfaces.IMsg) {
+	cmsg, ok := msg.(interfaces.ICounted)
+	if ok {
+		v := s.Reveals[hash.Fixed()]
+		if v != nil {
+			_, ok := v.(interfaces.ICounted)
+			if ok {
+				cmsg.SetCount(v.(interfaces.ICounted).GetCount() + 1)
+			} else {
+				panic("Should never happen")
+			}
+		}
+	}
+	s.Reveals[hash.Fixed()] = msg
 }
 
 // This is the highest block signed off and recorded in the Database.

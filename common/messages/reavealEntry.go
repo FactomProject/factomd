@@ -31,14 +31,17 @@ type RevealEntryMsg struct {
 var _ interfaces.IMsg = (*RevealEntryMsg)(nil)
 
 func (m *RevealEntryMsg) Process(dbheight uint32, state interfaces.IState) bool {
-	c := state.GetCommits(m.GetHash())
-	_, isNewChain := c.(*CommitChainMsg)
-	if isNewChain {
+	commit := state.GetCommits(m.GetHash())
+	if commit == nil {
+		panic("commit was nil in process, this should not happen")
+	}
+
+	if _, isNewChain := commit.(*CommitChainMsg); isNewChain {
 		fmt.Println("New Chain")
 		chainID := m.Entry.GetChainID()
 		eb, err := state.GetDB().FetchEBlockHead(chainID)
 		if err != nil || eb != nil {
-			panic("This is wrong:  Chain already exists")
+			panic("Chain already exists")
 		}
 
 		// Create a new Entry Block for a new Entry Block Chain
@@ -47,22 +50,40 @@ func (m *RevealEntryMsg) Process(dbheight uint32, state interfaces.IState) bool 
 		eb.GetHeader().SetChainID(m.Entry.GetChainID())
 		// Set the Directory Block Height for this Entry Block
 		eb.GetHeader().SetDBHeight(dbheight)
+		// Add our new entry
+		eb.AddEBEntry(m.Entry)
 		// Put it in our list of new Entry Blocks for this Directory Block
 		state.PutNewEBlocks(dbheight, m.Entry.GetChainID(), eb)
-
-	} else {
-
-		fmt.Println("New Entry")
-
-		_, isNewEntry := c.(*CommitEntryMsg)
-
-		if !isNewEntry {
-			log.Printf("Bad commit detected %s", c.String())
+		state.PutNewEntries(dbheight, m.Entry.GetHash(), m.Entry)
+		
+		return true
+	} else if _, isNewEntry := commit.(*CommitEntryMsg); isNewEntry {
+		chainID := m.Entry.GetChainID()
+		eb := state.GetNewEBlocks(dbheight, chainID)
+		if eb == nil {
+			prev, err := state.GetDB().FetchEBlockHead(chainID)
+			if prev == nil || err != nil {
+				return false
+			}
+			eb = entryBlock.NewEBlock()
+			// Set the Chain ID
+			eb.GetHeader().SetChainID(m.Entry.GetChainID())
+			// Set the Directory Block Height for this Entry Block
+			eb.GetHeader().SetDBHeight(dbheight)
+			// Set the PrevKeyMR
+			key, _ := prev.KeyMR()
+			eb.GetHeader().SetPrevKeyMR(key)
 		}
+		// Add our new entry
+		eb.AddEBEntry(m.Entry)
+		// Put it in our list of new Entry Blocks for this Directory Block
+		state.PutNewEBlocks(dbheight, m.Entry.GetChainID(), eb)
+		state.PutNewEntries(dbheight, m.Entry.GetHash(), m.Entry)
 
+		return true
 	}
-
-	return true
+	log.Println("Found Bad Commit")
+	return false
 }
 
 func (m *RevealEntryMsg) GetHash() interfaces.IHash {
@@ -144,31 +165,7 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 		}
 	}
 
-	// Reveal Entry calls must have an existing chain.
-	if m.isEntry {
-		chainID := m.Entry.GetChainID()
-		eblk := state.GetNewEBlocks(0, chainID) // Look see if already in the new block.
-		if eblk == nil {                        // No?  Then look see if it exists in DB
-			eblk, _ := state.GetDB().FetchEBlockHead(chainID)
-			if eblk == nil {
-				fmt.Println("KSize", m.Entry.KSize(), ECs)
-				return -1
-			}
-		}
-	} else {
-		chainID := m.Entry.GetChainID()
-		eblk := state.GetNewEBlocks(0, chainID) // Look see if already in the new block.
-		if eblk != nil {
-			return -1
-		}
-		eb, err := state.GetDB().FetchEBlockHead(chainID)
-		if err != nil || eb != nil {
-			return -1
-		}
-	}
-
 	return 1
-
 }
 
 // Returns true if this is a message for this server to execute as
@@ -179,7 +176,13 @@ func (m *RevealEntryMsg) Leader(state interfaces.IState) bool {
 
 // Execute the leader functions of the given message
 func (m *RevealEntryMsg) LeaderExecute(state interfaces.IState) error {
-	return state.LeaderExecute(m)
+	c := state.GetCommits(m.GetHash())
+	if c != nil {
+		return state.LeaderExecute(m)
+	}
+	state.PutReveals(m.GetHash(), m)
+
+	return nil
 }
 
 // Returns true if this is a message for this server to execute as a follower
