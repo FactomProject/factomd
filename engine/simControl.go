@@ -27,8 +27,8 @@ func SimControl(listenTo int) {
 		l := make([]byte, 100)
 		var err error
 		if _, err = os.Stdin.Read(l); err != nil {
-			l = []byte("no command")
-			time.Sleep(10 * time.Second)
+			l = []byte("no command")  // This is a hack to handle running in the background. (Eg: as a detatched process)
+			// Being unable to read from StdIn gives error, this pretends like "no command" was typed, which causes nothing (unlike simply hitting return)
 		}
 
 		parseFunc := func(c rune) bool {

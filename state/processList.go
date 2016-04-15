@@ -2,13 +2,15 @@ package state
 
 import (
 	"fmt"
+
 	"github.com/FactomProject/factomd/common/directoryBlock"
 	//"github.com/FactomProject/factomd/common/factoid"
+	"log"
+
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
-	"log"
 )
 
 var _ = fmt.Print
@@ -33,6 +35,7 @@ type ProcessList struct {
 	OldAcks map[[32]byte]interfaces.IMsg // messages processed in this list
 
 	NewEBlocks map[[32]byte]interfaces.IEntryBlock // Entry Blocks added within 10 minutes (follower and leader)
+	NewEntries map[[32]byte]interfaces.IEntry      // Entries added within 10 minutes (follower and leader)
 	Commits    map[[32]byte]interfaces.IMsg        // Used by the leader, validate
 
 	// State information about the directory block while it is under construction.  We may
@@ -43,12 +46,13 @@ type ProcessList struct {
 }
 
 type ListServer struct {
-	List            []interfaces.IMsg // Lists of acknowledged messages
-	Height          int               // Height of messages that have been processed
-	EomComplete     bool              // Lists that are end of minute complete
-	SigComplete     bool              // Lists that are signature complete
-	LastLeaderAck   interfaces.IMsg  // The last Acknowledgement set by this leader
-	LastAck         interfaces.IMsg   // The last Acknowledgement set by this follower
+	List          []interfaces.IMsg // Lists of acknowledged messages
+	Height        int               // Height of messages that have been processed
+	EomComplete   bool              // Lists that are end of minute complete
+	SigComplete   bool              // Lists that are signature complete
+	Undo          interfaces.IMsg   // The Leader needs one level of undo to handle DB Sigs.
+    LastLeaderAck interfaces.IMsg   // The last Acknowledgement set by this leader
+	LastAck       interfaces.IMsg   // The last Acknowledgement set by this follower
 }
 
 // Given a server index, return the last Ack
@@ -71,8 +75,13 @@ func (p *ProcessList) GetLastLeaderAck(index int) interfaces.IMsg {
 // Given a server index, return the last Ack
 func (p *ProcessList) SetLastLeaderAck(index int, msg interfaces.IMsg) error {
 	// Check the hash of the previous msg before we over write
+    p.Servers[index].Undo = p.Servers[index].LastLeaderAck
 	p.Servers[index].LastLeaderAck = msg
 	return nil
+}
+
+func (p *ProcessList) UndoLeaderAck(index int) {
+    p.Servers[index].LastLeaderAck = p.Servers[index].Undo
 }
 
 func (p *ProcessList) GetLen(list int) int {
@@ -95,15 +104,15 @@ func (p ProcessList) HasMessage() bool {
 }
 
 func (p *ProcessList) GetNewEBlocks(key interfaces.IHash) interfaces.IEntryBlock {
-
-	eb := p.NewEBlocks[key.Fixed()]
-	return eb
+	return p.NewEBlocks[key.Fixed()]
 }
 
 func (p *ProcessList) PutNewEBlocks(dbheight uint32, key interfaces.IHash, value interfaces.IEntryBlock) {
-
 	p.NewEBlocks[key.Fixed()] = value
+}
 
+func (p *ProcessList) PutNewEntries(dbheight uint32, key interfaces.IHash, value interfaces.IEntry) {
+	p.NewEntries[key.Fixed()] = value
 }
 
 // TODO:  Need to map the server identity to the process list for which it
@@ -150,16 +159,6 @@ func (p *ProcessList) SigComplete() bool {
 	return true
 }
 
-// When we begin building on a Process List, we start it.  That marks everything
-// as needing to be complete.  When we get all the messages we need, then Complete() will
-// return true, because each process list will be signed off.
-func (p *ProcessList) SetComplete(index int, v bool) {
-	if p == nil {
-		return
-	}
-	p.Servers[index].SigComplete = v
-}
-
 // Process messages and update our state.
 func (p *ProcessList) Process(state *State) {
 
@@ -181,16 +180,16 @@ func (p *ProcessList) Process(state *State) {
 	for i := 0; i < p.NumberServers; i++ {
 		plist := p.Servers[i].List
 
-		// state.Println("Process List: DBHeight, height in list, len(plist)", p.DBHeight, "/", p.Servers[i].Height, "/", len(plist))
-
 		for j := p.Servers[i].Height; j < len(plist); j++ {
 			if plist[j] == nil {
-				//TODO: issue missingMsg request
-				/*missingMsgRequest := messages.NewMissingMsg(list.State, p.DBHeight, uint32(j))
-				  if missingMsgRequest != nil {
-				      list.State.NetworkOutMsgQueue() <- missingMsgRequest
-				  }*/
-				p.State.Println("!!!!!!! Missing entry in process list at", j)
+				if !state.IsThrottled {
+					missingMsgRequest := messages.NewMissingMsg(state, p.DBHeight, uint32(j))
+					if missingMsgRequest != nil {
+						state.NetworkOutMsgQueue() <- missingMsgRequest
+					}
+					p.State.Println("!!!!!!! Missing entry in process list at", j)
+					state.IsThrottled = true
+				}
 				return
 			}
 
@@ -233,10 +232,11 @@ func (p *ProcessList) Process(state *State) {
 				plist[j] = nil
 				return
 			}
-
 			if plist[j].Process(p.DBHeight, state) { // Try and Process this entry
 				p.Servers[i].Height = j + 1 // Don't process it again if the process worked.
-			}
+			} else {
+                break
+            }
 
 			// TODO:  If we carefully manage our state as we process messages, we
 			// would not need to check the messages here!  Checking for EOM and DBS
@@ -268,32 +268,6 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	p.Servers[ack.ServerIndex].List[ack.Height] = m
 }
 
-func (p *ProcessList) GetCommits(key interfaces.IHash) interfaces.IMsg {
-	c := p.Commits[key.Fixed()]
-	return c
-}
-
-func (p *ProcessList) PutCommits(key interfaces.IHash, value interfaces.IMsg) {
-
-	{
-		cmsg, ok := value.(interfaces.ICounted)
-		if ok {
-			v := p.Commits[key.Fixed()]
-			if v != nil {
-				_, ok := v.(interfaces.ICounted)
-				if ok {
-					cmsg.SetCount(v.(interfaces.ICounted).GetCount() + 1)
-				} else {
-					p.State.Println(v)
-					panic("Should never happen")
-				}
-			}
-		}
-
-		p.Commits[key.Fixed()] = value
-	}
-}
-
 func (p *ProcessList) String() string {
 	prt := ""
 	if p == nil {
@@ -305,8 +279,24 @@ func (p *ProcessList) String() string {
 			if i >= p.NumberServers {
 				break
 			}
-			prt = prt + fmt.Sprintf("  Server %d \n", i)
-			for _, msg := range server.List {
+            eom := ""
+            sig := ""
+            if server.EomComplete {
+                eom = "EOM Complete"
+            }
+            if server.SigComplete {
+                sig = "Sig Complete"
+            } 
+           
+			prt = prt + fmt.Sprintf("  Server %d %s %s\n", i,eom,sig)
+			for j, msg := range server.List {
+                
+                if j < server.Height {
+                    prt = prt + "  p"
+                }else{
+                    prt = prt + "   "
+                }
+            
 				if msg != nil {
 					prt = prt + "   " + msg.String() + "\n"
 				} else {
@@ -342,6 +332,7 @@ func NewProcessList(state interfaces.IState, dbheight uint32) *ProcessList {
 	pl.OldAcks = make(map[[32]byte]interfaces.IMsg)
 
 	pl.NewEBlocks = make(map[[32]byte]interfaces.IEntryBlock)
+	pl.NewEntries = make(map[[32]byte]interfaces.IEntry)
 	pl.Commits = make(map[[32]byte]interfaces.IMsg)
 
 	// If a federated server, this is the server index, which is our index in the FedServers list

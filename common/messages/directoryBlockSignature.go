@@ -26,6 +26,7 @@ type DirectoryBlockSignature struct {
 
 	//Not marshalled
 	hash interfaces.IHash
+    Local                 bool
 }
 
 var _ interfaces.IMsg = (*DirectoryBlockSignature)(nil)
@@ -78,30 +79,31 @@ func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 		// the message is considered invalid
 		return -1
 	}
-	isVer, err := m.VerifySignature()
-	if err != nil || !isVer {
-		// if there is an error during signature verification
-		// or if the signature is invalid
-		// the message is considered invalid
-		return -1
-	}
-
+    if !m.Local {
+        isVer, err := m.VerifySignature()
+        if err != nil || !isVer {
+            // if there is an error during signature verification
+            // or if the signature is invalid
+            // the message is considered invalid
+            return -1
+        }
+    }
 	return 1
 }
 
 // Returns true if this is a message for this server to execute as
 // a leader.
 func (m *DirectoryBlockSignature) Leader(state interfaces.IState) bool {
-	return false
+	return m.Local
 }
 
 // Execute the leader functions of the given message
 func (m *DirectoryBlockSignature) LeaderExecute(state interfaces.IState) error {
-	return fmt.Errorf("Leader execute of DirectoryBlockSignature message should not happen")
+	return state.LeaderExecuteDBSig(m)
 }
 
 // Returns true if this is a message for this server to execute as a follower
-func (m *DirectoryBlockSignature) Follower(interfaces.IState) bool {
+func (m *DirectoryBlockSignature) Follower(state interfaces.IState) bool {
 	return true
 }
 
@@ -179,8 +181,8 @@ func (m *DirectoryBlockSignature) UnmarshalBinary(data []byte) error {
 
 func (m *DirectoryBlockSignature) MarshalForSignature() ([]byte, error) {
 
-	if m.DirectoryBlockKeyMR == nil || m.ServerIdentityChainID == nil {
-		return nil, fmt.Errorf("Message is incomplete")
+	if m.DirectoryBlockKeyMR == nil {
+        m.DirectoryBlockKeyMR = new(primitives.Hash)
 	}
 
 	var buf bytes.Buffer
@@ -260,14 +262,3 @@ func (e *DirectoryBlockSignature) JSONBuffer(b *bytes.Buffer) error {
 	return primitives.EncodeJSONToBuffer(e, b)
 }
 
-/*******************************************************************
- * Support
- *******************************************************************/
-
-func NewDirectoryBlockSignature(dbHeight uint32) *DirectoryBlockSignature {
-	dbm := new(DirectoryBlockSignature)
-	dbm.DBHeight = dbHeight
-	dbm.DirectoryBlockKeyMR = primitives.NewHash(constants.ZERO_HASH)
-	dbm.ServerIdentityChainID = primitives.NewHash(constants.ZERO_HASH)
-	return dbm
-}
