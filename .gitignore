@@ -18,6 +18,7 @@ _obj
 _test
 bin
 pkg
+.vagrant
 
 # Architecture specific extensions/prefixes
 *.[568vq]
