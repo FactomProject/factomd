@@ -7,11 +7,13 @@ package engine
 import (
 	"fmt"
 	"os"
+	"strings"
 	"time"
+	"unicode"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/go-mangos/mangos"
-	"github.com/go-mangos/mangos/protocol/pair"
+	"github.com/go-mangos/mangos/protocol/bus"
 	"github.com/go-mangos/mangos/transport/tcp"
 )
 
@@ -226,71 +228,120 @@ func (f *P2PPeer) Len() int {
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Mangos example code below:
+
+///// PAIR EXAMPLE:
+
+// func sendMessage(sock mangos.Socket, payload []byte) {
+// 	fmt.Printf("%d: SENDING \"%s\"\n", os.Getpid(), string(payload))
+// 	if err := sock.Send(payload); err != nil {
+// 		die("failed sending: %s", err)
+// 	}
+// }
+
+// func recvMessage(sock mangos.Socket) {
+// 	var msg []byte
+// 	var err error
+// 	if msg, err = sock.Recv(); err == nil {
+// 		fmt.Printf("%d -- RECEIVED: \"%s\"\n", os.Getpid(), string(msg))
+// 	}
+// }
+
+// func heartbeat(sock mangos.Socket, name string) {
+// 	for {
+// 		sock.SetOption(mangos.OptionRecvDeadline, 100*time.Millisecond)
+// 		recvMessage(sock)
+// 		time.Sleep(time.Second)
+// 		sendMessage(sock, []byte(name))
+// 	}
+// }
+
+// func listen(url string) {
+// 	var err error
+// 	if err = p2pSocket.Listen(url); err != nil {
+// 		die("can't listen on pair socket: %s", err.Error())
+// 	}
+// 	go heartbeat(p2pSocket, "Listener Says Hello")
+// }
+
+// func dial(url string) {
+// 	var err error
+
+// 	// sock.AddTransport(ipc.NewTransport())
+// 	p2pSocket.AddTransport(tcp.NewTransport())
+// 	if err = p2pSocket.Dial(url); err != nil {
+// 		die("can't dial on pair socket: %s", err.Error())
+// 	}
+// 	go heartbeat(p2pSocket, "Caller says hello")
+// }
 func die(format string, v ...interface{}) {
-	fmt.Fprintln(os.Stderr, fmt.Sprintf("%d -- ", os.Getpid()), fmt.Sprintf(format, v...))
+	fmt.Fprintln(os.Stderr, fmt.Sprintf("%d:", os.Getpid()), fmt.Sprintf(format, v...))
 	os.Exit(1)
 }
-
-func sendMessage(sock mangos.Socket, payload []byte) {
-	fmt.Printf("%d: SENDING \"%s\"\n", os.Getpid(), string(payload))
-	if err := sock.Send(payload); err != nil {
-		die("failed sending: %s", err)
-	}
+func note(format string, v ...interface{}) {
+	fmt.Fprintln(os.Stdout, fmt.Sprintf("%d:", os.Getpid()), fmt.Sprintf(format, v...))
 }
 
-func recvMessage(sock mangos.Socket) {
+///// BUS EXAMPLE
+
+// BUGBUG TODO JAYJAY - switch to standard port, and read peers from peers.json.
+func P2PNetworkStart(address string, peers string) {
+	var err error
+	if p2pSocket, err = bus.NewSocket(); err != nil {
+		die("P2PNetworkStart.NewSocket: %s", err)
+	}
+	p2pSocket.AddTransport(tcp.NewTransport())
+
+	note("P2PNetworkStart- Start Listening on address: %s", address)
+
+	// address := "tcp://127.0.0.1:40891"
+	if err = p2pSocket.Listen(address); err != nil {
+		die("P2PNetworkStart.Listen: %s", err.Error())
+	}
+
+	note("P2PNetworkStart- Sleep for a few seconds to let peers wake up.")
+	// wait for everyone to start listening
+	time.Sleep(time.Second * 3)
+
+	// Parse the peers into an array.
+	parseFunc := func(c rune) bool {
+		return !unicode.IsLetter(c) && !unicode.IsNumber(c) && !unicode.IsPunct(c)
+	}
+
+	peerAddresses := strings.FieldsFunc(peers, parseFunc)
+	note("P2PNetworkStart- our peers: %+v", peerAddresses)
+
+	var x int
+	for x = 0; x < len(peerAddresses); x++ {
+		if err = p2pSocket.Dial(peerAddresses[x]); err != nil {
+			note("P2PNetworkStart.Dial: %s", err.Error())
+		}
+	}
+
+	note("P2PNetworkStart- waiting for peers to connect")
+	time.Sleep(time.Second)
+	note("P2PNetworkStart- spawning heartbeat")
+	go heartbeat(address)
+
+}
+
+func heartbeat(address string) {
+	beat := ""
 	var msg []byte
 	var err error
-	if msg, err = sock.Recv(); err == nil {
-		fmt.Printf("%d -- RECEIVED: \"%s\"\n", os.Getpid(), string(msg))
+	for i := 0; i < 500; i++ {
+		beat = fmt.Sprintf("Heartbeat FROM %s. Beat #%d", address, i)
+		// note("%s: SENDING >>>>>>>>>> '%s' ONTO BUS\n", address, beat)
+		if err = p2pSocket.Send([]byte(beat)); err != nil {
+			note("heartbeat.Send ERROR: %s", err.Error())
+		}
+		if msg, err = p2pSocket.Recv(); err != nil {
+			note("heartbeat.Recv ERROR: %s", err.Error())
+		} else {
+			note("RECEIVED \"%s\" FROM BUS", string(msg))
+		}
+		i += i
+		time.Sleep(time.Second * 1)
 	}
-}
-
-func heartbeat(sock mangos.Socket, name string) {
-	for {
-		sock.SetOption(mangos.OptionRecvDeadline, 100*time.Millisecond)
-		recvMessage(sock)
-		time.Sleep(time.Second)
-		sendMessage(sock, []byte(name))
-	}
-}
-
-func listen(url string) {
-	var err error
-	if err = p2pSocket.Listen(url); err != nil {
-		die("can't listen on pair socket: %s", err.Error())
-	}
-	go heartbeat(p2pSocket, "Listener Says Hello")
-}
-
-func dial(url string) {
-	var err error
-
-	// sock.AddTransport(ipc.NewTransport())
-	p2pSocket.AddTransport(tcp.NewTransport())
-	if err = p2pSocket.Dial(url); err != nil {
-		die("can't dial on pair socket: %s", err.Error())
-	}
-	go heartbeat(p2pSocket, "Caller says hello")
-}
-
-// BUGBUG TODO JAYJAY - get rid of passing in leader, shouldn't matter.
-func P2PNetworkStart(leader bool, address string) {
-	var err error
-	if p2pSocket, err = pair.NewSocket(); err != nil {
-		die("can't get new pair socket: %s", err)
-	}
-	// address := "tcp://127.0.0.1:40891"
-
-	// sock.AddTransport(ipc.NewTransport())
-	p2pSocket.AddTransport(tcp.NewTransport())
-
-	if leader {
-		listen(address)
-	} else {
-		dial(address)
-	}
-
 }
 
 // Thought process:

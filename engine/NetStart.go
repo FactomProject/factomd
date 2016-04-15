@@ -39,7 +39,8 @@ func NetStart(s *state.State) {
 	dbPtr := flag.String("db", "", "Override the Database in the Config file and use this Database implementation")
 	folderPtr := flag.String("folder", "", "Directory in .factom to store nodes. (eg: multiple nodes on one filesystem support)")
 	portPtr := flag.Int("port", 8089, "Address to serve WSAPI on")
-	addressPtr := flag.String("address", "", "Address & port to connect to or serve on: (eg: tcp://127.0.0.1:40891)")
+	addressPtr := flag.String("p2pAddress", "tcp://127.0.0.1:34340", "Address & port to listen for peers on: (eg: tcp://127.0.0.1:40891)")
+	peersPtr := flag.String("peers", "tcp://127.0.0.1:34341 tcp://127.0.0.1:34342 tcp://127.0.0.1:34343", "Array of peer addresses. Defaults to: \"tcp://127.0.0.1:34341 tcp://127.0.0.1:34342 tcp://127.0.0.1:34340\"")
 
 	flag.Parse()
 
@@ -53,6 +54,7 @@ func NetStart(s *state.State) {
 	folder := *folderPtr
 	port := *portPtr
 	address := *addressPtr
+	peers := *peersPtr
 
 	os.Stderr.WriteString(fmt.Sprintf("node     %d\n", listenTo))
 	os.Stderr.WriteString(fmt.Sprintf("count    %d\n", cnt))
@@ -73,6 +75,7 @@ func NetStart(s *state.State) {
 	os.Stderr.WriteString(fmt.Sprintf("folder   \"%s\"\n", folder))
 	os.Stderr.WriteString(fmt.Sprintf("port     \"%d\"\n", port))
 	os.Stderr.WriteString(fmt.Sprintf("address  \"%s\"\n", address))
+	os.Stderr.WriteString(fmt.Sprintf("peers  \"%s\"\n", peers))
 
 	if journal != "" {
 		cnt = 1
@@ -200,10 +203,10 @@ func NetStart(s *state.State) {
 	// Start the P2P netowrk
 	// BUGBUG JAYJAY This peer stuff needs to be abstracted out into the p2p network.
 	// Set up a channel instead.
-	peer := new(P2PPeer).Init(fnodes[0].State.FactomNodeName, address).(*P2PPeer)
-	fnodes[0].Peers = append(fnodes[0].Peers, peer)
+	p2pProxy := new(P2PPeer).Init(fnodes[0].State.FactomNodeName, address).(*P2PPeer)
+	fnodes[0].Peers = append(fnodes[0].Peers, p2pProxy)
 
-	P2PNetworkStart(leader, address)
+	P2PNetworkStart(address, peers)
 
 	// Start the webserver
 	go wsapi.Start(fnodes[0].State)
