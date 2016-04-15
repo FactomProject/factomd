@@ -6,6 +6,7 @@ package engine
 
 import (
 	"fmt"
+	"math/rand"
 	"os"
 	"strings"
 	"time"
@@ -20,9 +21,10 @@ import (
 var _ = fmt.Print
 
 var (
-	// ServePort = 40891
-	p2pSocket mangos.Socket // BUGBUG JAYJAY TODO This is a global! Assuming one network connection only!
-
+	p2pSocket mangos.Socket // BUGBUG JAYJAY TODO This is a global. This needs to migrate to p2p package.
+	// Frequency of issuing debug print statements in netowkr code-- 2 = %100, 100 = %1 of the time.
+	send_freq    = 2
+	recieve_freq = 2
 )
 
 type P2PPeer struct {
@@ -138,10 +140,10 @@ func (f *P2PPeer) GetNameTo() string {
 }
 
 func (f *P2PPeer) Send(msg interfaces.IMsg) error {
-	// if 1 == rand.Intn(send_freq) {
-	// 	fmt.Printf("%d -- P2PPeer.SEND %s -> %s\t %s \n", os.Getpid(), f.FromName, f.ToName, msg)
-	// }
-	// // fmt.Printf("P2PPeer.Send for:\n %+v\n\n", msg)
+	if 1 == rand.Intn(send_freq) {
+		fmt.Printf("%d -- P2PPeer.SEND %s -> %s\t %s \n", os.Getpid(), f.FromName, f.ToName, msg)
+	}
+	// fmt.Printf("P2PPeer.Send for:\n %+v\n\n", msg)
 
 	// data, err := msg.MarshalBinary()
 	// if err != nil {
@@ -160,9 +162,9 @@ func (f *P2PPeer) Send(msg interfaces.IMsg) error {
 
 // Non-blocking return value from channel.
 func (f *P2PPeer) Recieve() (interfaces.IMsg, error) {
-	// if 1 == rand.Intn(recieve_freq) {
-	// 	fmt.Printf("%d -- P2PPeer.RECIEVE %s -> %s\n", os.Getpid(), f.FromName, f.ToName)
-	// }
+	if 1 == rand.Intn(recieve_freq) {
+		fmt.Printf("%d -- P2PPeer.RECIEVE %s -> %s\n", os.Getpid(), f.FromName, f.ToName)
+	}
 	// 100ms Timeout
 	// f.Socket.SetOption(mangos.OptionRecvDeadline, 100*time.Millisecond)
 	// // Minimal blocking
@@ -347,17 +349,13 @@ func heartbeat(address string) {
 // Thought process:
 // X leader listens, follower connects.
 // X Change message format to binary
-// - Make this file P2PPeer  and make it work like iPeer
+// X Make this file P2PPeer  and make it work like iPeer
 // -- Split out the P@PNetworkStart and Send/Recoeve into a P2PNetowrk File
-// Change to Client/Server instead of Peer to Peer (get rid of the eader stuff- everyone starts a server and
-//		connects to the address give on command line )
+// XX we listen always on the given port (And we dial out to the peers we know about) (this requires we be probably in VMs)
+// XX no leadership awareness in p2p
+
 // Add a config file in .factom (peers.json?) and read it for a list of peers to connect to.
 
-// ??? Profit?Fnode0 talks to the iPeer, networks start does what?
-// - Think about how to refactor this to be really peer connections.
-// - Next step
-//      -- we listen always on the given port (And we dial out to the peers we know about) (this requires we be probably in VMs)
-//      -- no leadership awareness in p2p
 // - Make this no longer an iPEer. Make proxy iPeer
 // -  Setup Channels between the P2P network and the rest of the stuff.  Maybe an iPeer that talks over the
 //      channel to the P2P network stuff, so that we have process isolation of some sort.
