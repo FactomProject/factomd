@@ -26,9 +26,6 @@ func (state *State) ValidatorLoop() {
 	loop:
 		for {
 			state.UpdateState()
-			state.UpdateState()
-			state.UpdateState()
-			state.UpdateState()
 			msgProcess := func() {
 				state.JournalMessage(msg)
 
