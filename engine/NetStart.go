@@ -206,7 +206,7 @@ func NetStart(s *state.State) {
 	p2pProxy := new(P2PPeer).Init(fnodes[0].State.FactomNodeName, address).(*P2PPeer)
 	fnodes[0].Peers = append(fnodes[0].Peers, p2pProxy)
 
-	P2PNetworkStart(address, peers)
+	P2PNetworkStart(address, peers, p2pProxy)
 
 	// Start the webserver
 	go wsapi.Start(fnodes[0].State)

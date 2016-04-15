@@ -31,6 +31,7 @@ type P2PPeer struct {
 	// Channels that define the connection:
 	BroadcastOut chan []byte
 	BroadcastIn  chan []byte
+	testMode     bool
 }
 
 var _ interfaces.IPeer = (*P2PPeer)(nil)
@@ -38,6 +39,9 @@ var _ interfaces.IPeer = (*P2PPeer)(nil)
 func (f *P2PPeer) Init(fromName, toName string) interfaces.IPeer {
 	f.ToName = toName
 	f.FromName = fromName
+	f.BroadcastOut = make(chan []byte, 10000)
+	f.BroadcastIn = make(chan []byte, 10000)
+	f.testMode = true
 	return f
 }
 
@@ -48,24 +52,32 @@ func (f *P2PPeer) GetNameTo() string {
 	return f.ToName
 }
 func (f *P2PPeer) Send(msg interfaces.IMsg) error {
-	data, err := msg.MarshalBinary()
-	if err != nil {
-		return err
+	if !f.testMode {
+		fmt.Printf("S")
+		data, err := msg.MarshalBinary()
+		if err != nil {
+			die("Send error! %+v", err)
+			return err
+		}
+		note("S")
+		f.BroadcastOut <- data
 	}
-
-	f.BroadcastOut <- data
 	return nil
 }
 
 // Non-blocking return value from channel.
 func (f *P2PPeer) Recieve() (interfaces.IMsg, error) {
-	select {
-	case data, ok := <-f.BroadcastIn:
-		if ok {
-			msg, err := messages.UnmarshalMessage(data)
-			return msg, err
+	if !f.testMode {
+		fmt.Printf("R")
+		select {
+		case data, ok := <-f.BroadcastIn:
+			if ok {
+				msg, err := messages.UnmarshalMessage(data)
+				note("Recieve unmarshal error: %s", err)
+				return msg, err
+			}
+		default:
 		}
-	default:
 	}
 	return nil, nil
 }
@@ -120,7 +132,7 @@ func note(format string, v ...interface{}) {
 ///// BUS EXAMPLE
 
 // BUGBUG TODO JAYJAY - switch to standard port, and read peers from peers.json.
-func P2PNetworkStart(address string, peers string) {
+func P2PNetworkStart(address string, peers string, p2pProxy *P2PPeer) {
 	var err error
 	if p2pSocket, err = bus.NewSocket(); err != nil {
 		die("P2PNetworkStart.NewSocket: %s", err)
@@ -156,18 +168,51 @@ func P2PNetworkStart(address string, peers string) {
 	note("P2PNetworkStart- waiting for peers to connect")
 	time.Sleep(time.Second)
 	note("P2PNetworkStart- spawning heartbeat")
-	go heartbeat(address)
+
+	go p2pProxy.ManageOutChannel()
+	go p2pProxy.ManageInChannel()
+
+	// // BIG SWITCH between test code and factomd.  We switch which gets hooked up to channels
+	// useSampleCode := true
+	if p2pProxy.testMode {
+		go heartbeat(p2pProxy)
+	}
 
 }
 
-func heartbeat(address string) {
+func heartbeat(p2pProxy *P2PPeer) {
 	beat := ""
 	for i := 0; i < 500; i++ {
-		beat = fmt.Sprintf("Heartbeat FROM %s. Beat #%d", address, i)
-		sendP2P([]byte(beat))
-		recieveP2P()
-		i += i
-		time.Sleep(time.Second)
+		beat = fmt.Sprintf("Heartbeat FROM %s. Beat #%d", p2pProxy.GetNameTo(), i)
+		p2pProxy.BroadcastOut <- []byte(beat)
+		// sendP2P([]byte(beat))
+		// recieveP2P()
+		time.Sleep(time.Millisecond * 400)
+	}
+}
+
+// this is a goroutine infinite loop
+// manageOutChannel takes messages from the f.broadcastOut channel and sends them to the network.
+func (f *P2PPeer) ManageOutChannel() {
+	for {
+		select {
+		case data, ok := <-f.BroadcastOut:
+			if ok {
+				sendP2P(data)
+			}
+		default:
+		}
+		// time.Sleep(time.Millisecond * 100)
+	}
+}
+
+// this is a goroutine infinite loop
+// manageInChannel takes messages from the network and stuffs it in the f.BroadcastIn channel
+func (f *P2PPeer) ManageInChannel() {
+	for {
+		data := recieveP2P()
+		f.BroadcastIn <- data
+		// time.Sleep(time.Millisecond * 100)
 	}
 }
 
@@ -175,6 +220,7 @@ func sendP2P(msg []byte) {
 	if err := p2pSocket.Send(msg); err != nil {
 		note("sendP2P.Send ERROR: %s", err.Error())
 	}
+	note("SEND: %s", string(msg))
 }
 
 func recieveP2P() []byte {
@@ -182,7 +228,7 @@ func recieveP2P() []byte {
 	if err != nil {
 		note("recieveP2P.Recv ERROR: %s", err.Error())
 	} else {
-		note("recieveP2P RECEIVED \"%s\"", string(data))
+		note("..recieveP2P RECEIVED \"%s\"", string(data))
 	}
 	return data
 }
@@ -197,7 +243,9 @@ func recieveP2P() []byte {
 // X Verify sample code heart beat
 // X Split out the send and recieve functions from sample code (no channels)
 // X Verify heartbeat still works
-// -- Make the send and recieve functions from run as goroutines and work on channels (STILL WITH HeARTBEAT SAMPLE CODE)
+// X Make the send and recieve functions from run as goroutines and work on channels (STILL WITH HeARTBEAT SAMPLE CODE)
+// X Verify that test code works with channels
+// X Add the BIG SWITHC (to switch modes)
 // -- Switch the channels over to the ones that P2PPeer uses (copied from simpeers)
 
 // -- Split out the P@PNetworkStart and Send/Recoeve into a P2PNetowrk File
