@@ -53,7 +53,7 @@ func (f *P2PPeer) GetNameTo() string {
 }
 func (f *P2PPeer) Send(msg interfaces.IMsg) error {
 	if !f.testMode {
-		fmt.Printf("S")
+		// fmt.Printf("S")
 		data, err := msg.MarshalBinary()
 		if err != nil {
 			die("Send error! %+v", err)
@@ -67,16 +67,14 @@ func (f *P2PPeer) Send(msg interfaces.IMsg) error {
 // Non-blocking return value from channel.
 func (f *P2PPeer) Recieve() (interfaces.IMsg, error) {
 	if !f.testMode {
-		fmt.Printf("R")
 		select {
 		case data, ok := <-f.BroadcastIn:
 			if ok {
 				msg, err := messages.UnmarshalMessage(data)
-				note("Recieve unmarshal error: %s", err)
+				note("Recieved message: %+v", msg)
 				return msg, err
 			}
 		default:
-			fmt.Printf("0")
 		}
 	}
 	return nil, nil
@@ -185,8 +183,13 @@ func heartbeat(p2pProxy *P2PPeer) {
 	for i := 0; i < 500; i++ {
 		beat = fmt.Sprintf("Heartbeat FROM %s. Beat #%d", p2pProxy.GetNameTo(), i)
 		p2pProxy.BroadcastOut <- []byte(beat)
-		// sendP2P([]byte(beat))
-		// recieveP2P()
+		select {
+		case data, ok := <-p2pProxy.BroadcastIn:
+			if ok {
+				note("Recieved message: %s", string(data))
+			}
+		default:
+		}
 		time.Sleep(time.Millisecond * 400)
 	}
 }
@@ -220,15 +223,12 @@ func sendP2P(msg []byte) {
 	if err := p2pSocket.Send(msg); err != nil {
 		note("sendP2P.Send ERROR: %s", err.Error())
 	}
-	note("SEND: %s", string(msg))
 }
 
 func recieveP2P() []byte {
 	data, err := p2pSocket.Recv()
 	if err != nil {
 		note("recieveP2P.Recv ERROR: %s", err.Error())
-	} else {
-		note("..recieveP2P RECEIVED \"%s\"", string(data))
 	}
 	return data
 }

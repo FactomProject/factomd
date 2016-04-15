@@ -6,7 +6,6 @@ package engine
 
 import (
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -68,8 +67,6 @@ func Timer(state interfaces.IState) {
 				state.TimerMsgQueue() <- eom
 				if index == 1 {
 					fmt.Println("Sending", eom.String())
-				} else {
-					fmt.Printf("%d-%d\n", os.Getpid(), len(state.GetFedServers()))
 				}
 			}
 		}
