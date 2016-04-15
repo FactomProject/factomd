@@ -41,7 +41,7 @@ func (f *P2PPeer) Init(fromName, toName string) interfaces.IPeer {
 	f.FromName = fromName
 	f.BroadcastOut = make(chan []byte, 10000)
 	f.BroadcastIn = make(chan []byte, 10000)
-	f.testMode = false
+	f.testMode = false // When this is false, factomd is connected to the network.  When true, network is isolated, and a heartbeat test message sent over the network.
 	return f
 }
 
@@ -71,7 +71,7 @@ func (f *P2PPeer) Recieve() (interfaces.IMsg, error) {
 		case data, ok := <-f.BroadcastIn:
 			if ok {
 				msg, err := messages.UnmarshalMessage(data)
-				note("Recieved message: %+v", msg)
+				// note("Recieved message: %+v", msg)
 				return msg, err
 			}
 		default:
@@ -163,15 +163,13 @@ func P2PNetworkStart(address string, peers string, p2pProxy *P2PPeer) {
 		}
 	}
 
-	note("P2PNetworkStart- waiting for peers to connect")
-	time.Sleep(time.Second)
-	note("P2PNetworkStart- spawning heartbeat")
+	// note("P2PNetworkStart- waiting for peers to connect")
+	// time.Sleep(time.Second)
 
 	go p2pProxy.ManageOutChannel()
 	go p2pProxy.ManageInChannel()
 
 	// // BIG SWITCH between test code and factomd.  We switch which gets hooked up to channels
-	// useSampleCode := true
 	if p2pProxy.testMode {
 		go heartbeat(p2pProxy)
 	}
@@ -232,27 +230,3 @@ func recieveP2P() []byte {
 	}
 	return data
 }
-
-// Thought process:
-// X leader listens, follower connects.
-// X Change message format to binary
-// X Make this file P2PPeer  and make it work like iPeer
-// X we listen always on the given port (And we dial out to the peers we know about) (this requires we be probably in VMs)
-// X no leadership awareness in p2p
-// X Go back to Pauls' Send/Recieve from SimPeer
-// X Verify sample code heart beat
-// X Split out the send and recieve functions from sample code (no channels)
-// X Verify heartbeat still works
-// X Make the send and recieve functions from run as goroutines and work on channels (STILL WITH HeARTBEAT SAMPLE CODE)
-// X Verify that test code works with channels
-// X Add the BIG SWITHC (to switch modes)
-// -- Switch the channels over to the ones that P2PPeer uses (copied from simpeers)
-
-// -- Split out the P@PNetworkStart and Send/Recoeve into a P2PNetowrk File
-
-// Add a config file in .factom (peers.json?) and read it for a list of peers to connect to.
-
-// - Make this no longer an iPEer. Make proxy iPeer
-// -  Setup Channels between the P2P network and the rest of the stuff.  Maybe an iPeer that talks over the
-//      channel to the P2P network stuff, so that we have process isolation of some sort.
-// -- Add simple discovery (maybe scan 192.168.1.1-192.168.1.256 for connections.
