@@ -42,6 +42,8 @@ func NetStart(s *state.State) {
 	portPtr := flag.Int("port", 8089, "Address to serve WSAPI on")
 	addressPtr := flag.String("p2pAddress", "tcp://127.0.0.1:34340", "Address & port to listen for peers on: (eg: tcp://127.0.0.1:40891)")
 	peersPtr := flag.String("peers", "tcp://127.0.0.1:34341 tcp://127.0.0.1:34342 tcp://127.0.0.1:34343", "Array of peer addresses. Defaults to: \"tcp://127.0.0.1:34341 tcp://127.0.0.1:34342 tcp://127.0.0.1:34340\"")
+    blkTimePtr := flag.Int("blocktime", 0, "Number of seconds per block.")
+
 
 	flag.Parse()
 
@@ -57,29 +59,8 @@ func NetStart(s *state.State) {
 	port := *portPtr
 	address := *addressPtr
 	peers := *peersPtr
-
-	os.Stderr.WriteString(fmt.Sprintf("node     %d\n", listenTo))
-	os.Stderr.WriteString(fmt.Sprintf("count    %d\n", cnt))
-	os.Stderr.WriteString(fmt.Sprintf("net      \"%s\"\n", net))
-	os.Stderr.WriteString(fmt.Sprintf("drop     %d\n", droprate))
-	os.Stderr.WriteString(fmt.Sprintf("journal  \"%s\"\n", journal))
-	if follower {
-		os.Stderr.WriteString(fmt.Sprintf("follower \"%v\"\n", follower))
-		leader = false
-	}
-	if leader {
-		os.Stderr.WriteString(fmt.Sprintf("leader \"%v\"\n", leader))
-		follower = false
-	}
-	if !follower && !leader {
-		panic("Not a leader or a follower")
-	}
-	os.Stderr.WriteString(fmt.Sprintf("db       \"%s\"\n", db))
-	os.Stderr.WriteString(fmt.Sprintf("folder   \"%s\"\n", folder))
-	os.Stderr.WriteString(fmt.Sprintf("port     \"%d\"\n", port))
-	os.Stderr.WriteString(fmt.Sprintf("address  \"%s\"\n", address))
-	os.Stderr.WriteString(fmt.Sprintf("peers  \"%s\"\n", peers))
-
+    blkTime := *blkTimePtr
+    
 	if journal != "" {
 		cnt = 1
 	}
@@ -107,7 +88,37 @@ func NetStart(s *state.State) {
 	fmt.Println(fmt.Sprintf("factom config: %s", FactomConfigFilename))
 
 	s.LoadConfig(FactomConfigFilename, folder)
-	if journal != "" {
+	
+    	os.Stderr.WriteString(fmt.Sprintf("%10s %d\n", "node", listenTo))
+	os.Stderr.WriteString(fmt.Sprintf("%10s %d\n", "count", cnt))
+	os.Stderr.WriteString(fmt.Sprintf("%10s \"%s\"\n", "net", net))
+	os.Stderr.WriteString(fmt.Sprintf("%10s %d\n", "drop",droprate))
+	os.Stderr.WriteString(fmt.Sprintf("%10s \"%s\"\n", "journal", journal))
+	if follower {
+		os.Stderr.WriteString(fmt.Sprintf("%10s \"%v\"\n", "follower", follower))
+		leader = false
+	}
+	if leader {
+		os.Stderr.WriteString(fmt.Sprintf("%10s \"%v\"\n", "leader", leader))
+		follower = false
+	}
+	if !follower && !leader {
+		panic("Not a leader or a follower")
+	}
+	os.Stderr.WriteString(fmt.Sprintf("%10s \"%s\"\n", "db", db))
+	os.Stderr.WriteString(fmt.Sprintf("%10s \"%s\"\n", "folder", folder))
+	os.Stderr.WriteString(fmt.Sprintf("%10s \"%d\"\n", "port", port))
+	os.Stderr.WriteString(fmt.Sprintf("%10s \"%s\"\n", "address", address))
+	os.Stderr.WriteString(fmt.Sprintf("%10s \"%s\"\n", "peers", peers))
+    if blkTime == 0 {
+        os.Stderr.WriteString(fmt.Sprintf("%10s %d\n","blocktime", s.GetDirectoryBlockInSeconds()))
+    }else{
+        os.Stderr.WriteString(fmt.Sprintf("%10s %d\n","blocktime", blkTime))
+    }
+    
+    
+    
+    if journal != "" {
 		if s.DBType != "Map" {
 			fmt.Println("Journal is ALWAYS a Map database")
 			s.DBType = "Map"
@@ -133,6 +144,10 @@ func NetStart(s *state.State) {
 	s.SetDropRate(droprate)
 
 	mLog.init(cnt)
+
+    if blkTime > 0 {
+        s.SetDirectoryBlockInSeconds(blkTime)
+    }
 
 	//************************************************
 	// Actually setup the Network

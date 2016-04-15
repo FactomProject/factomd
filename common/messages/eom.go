@@ -103,7 +103,9 @@ func (m *EOM) Validate(state interfaces.IState) int {
 // a leader.
 func (m *EOM) Leader(state interfaces.IState) bool {
 	found, index := state.GetFedServerIndexHash(state.GetIdentityChainID())
+    fmt.Println("xxxxx",state.GetFactomNodeName(),"xxxxxx",found,"index",index,"ServerIndex",m.ServerIndex)
 	if found && index == m.ServerIndex {
+        fmt.Println("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx Leader for EOM",state.GetFactomNodeName())
 		return true
 	}
 	return false
@@ -111,6 +113,7 @@ func (m *EOM) Leader(state interfaces.IState) bool {
 
 // Execute the leader functions of the given message
 func (m *EOM) LeaderExecute(state interfaces.IState) error {
+    fmt.Println("LLLLLLLLLLLLLLLLLLLLLLL", state.GetFactomNodeName(),"Leader execute",m.String())
 	return state.LeaderExecuteEOM(m)
 }
 

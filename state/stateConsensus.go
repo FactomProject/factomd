@@ -555,6 +555,6 @@ func (s *State) NewAck(dbheight uint32, msg interfaces.IMsg, hash interfaces.IHa
 	pl.SetLastLeaderAck(index, ack)
 
 	ack.Sign(s)
-
+fmt.Println("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",ack.String())
 	return ack, nil
 }

@@ -580,6 +580,10 @@ func (s *State) GetDirectoryBlockInSeconds() int {
 	return s.DirectoryBlockInSeconds
 }
 
+func (s *State) SetDirectoryBlockInSeconds(t int) {
+	s.DirectoryBlockInSeconds=t
+}
+
 func (s *State) GetServer() interfaces.IServer {
 	return s.myServer
 }
