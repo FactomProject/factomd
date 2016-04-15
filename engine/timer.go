@@ -60,10 +60,16 @@ func Timer(state interfaces.IState) {
 				eom.ChainID = state.GetIdentityChainID()
 				eom.ServerIndex = index
 				eom.Sign(state)
-				state.TimerMsgQueue() <- eom
-				if index == 1 {
-					fmt.Println("Sending", eom.String())
-				}
+		
+                if i == 9 {
+                    DBS := new(messages.DirectoryBlockSignature)
+                    DBS.ServerIdentityChainID = state.GetIdentityChainID()
+                    DBS.Local = true
+    				state.TimerMsgQueue() <- eom
+                    state.TimerMsgQueue() <- DBS
+                }else{
+      				state.TimerMsgQueue() <- eom
+                }
 			}
 		}
 	}

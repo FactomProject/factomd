@@ -134,7 +134,8 @@ type IState interface {
 	// For messages that go into the Process List
 	LeaderExecute(m IMsg) error
 	LeaderExecuteEOM(m IMsg) error
-
+    LeaderExecuteDBSig(m IMsg) error
+    
 	GetTimestamp() Timestamp
 
 	PrintType(int) bool // Debugging
