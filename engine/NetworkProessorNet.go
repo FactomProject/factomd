@@ -76,10 +76,8 @@ func NetworkProcessorNet(fnode *FactomNode) {
 						if msg.IsPeer2peer() {
 							p := msg.GetOrigin() - 1
 							if len(fnode.Peers) == 0 {
-								// No peers yet, put back in queue
-								fmt.Println("NO PEERS")
+								// No peers yet, wait and drop the message
 								time.Sleep(1 * time.Second)
-								fnode.State.NetworkOutMsgQueue() <- msg
 								break
 							}
 							if p < 0 {

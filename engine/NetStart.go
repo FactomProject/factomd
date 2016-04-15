@@ -142,6 +142,19 @@ func NetStart(s *state.State) {
 		for i := 0; (i+13)*2 < cnt; i += 13 {
 			AddPeer(tcp, fnodes, i%cnt, (i+7)%cnt)
 		}
+    case "alot":
+        for i:=0; i<cnt; i++ {
+            for j:=0; j < cnt; j++ {
+                cnt := 0 
+                if i != j {
+                    cnt++
+                    AddPeer(tcp, fnodes,i,j)
+                    if cnt == 8 {
+                        break
+                    }
+                }
+            }
+        }
 	case "tree":
 		index := 0
 		row := 1
