@@ -51,6 +51,7 @@ type State struct {
 	PortNumber              int
 	Replay                  *Replay
 	GreenFlg                bool
+	DropRate                int
 
 	IdentityChainID interfaces.IHash // If this node has an identity, this is it
 
@@ -180,6 +181,14 @@ func (s *State) Clone(number string) interfaces.IState {
 
 func (s *State) GetFactomNodeName() string {
 	return s.FactomNodeName
+}
+
+func (s *State) GetDropRate() int {
+	return s.DropRate
+}
+
+func (s *State) SetDropRate(droprate int) {
+	s.DropRate = droprate
 }
 
 func (s *State) LoadConfig(filename string) {

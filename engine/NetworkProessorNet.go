@@ -20,9 +20,6 @@ func NetworkProcessorNet(fnode *FactomNode) {
 
 	like := 0
 
-	dropMessageCounter := 0
-	totalcnt := 0
-
 	for {
 		time.Sleep(time.Millisecond * 10)
 
@@ -66,11 +63,8 @@ func NetworkProcessorNet(fnode *FactomNode) {
 			select {
 			case msg, ok := <-fnode.State.NetworkOutMsgQueue():
 				if ok && msg != nil && msg.GetMsgHash() != nil {
-					totalcnt++
-					// TODO: replace "1" with droprate variable (passed in via command line)
-					if rand.Int()%1000 < 1 {
+					if rand.Int()%1000 < fnode.State.GetDropRate() {
 						//drop the message, rather than processing it normally
-						dropMessageCounter++
 					} else {
 						// We don't care about the result, but we do want to log that we have
 						// seen this message before, because we might have generated the message

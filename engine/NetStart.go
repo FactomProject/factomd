@@ -32,6 +32,7 @@ func NetStart(s *state.State) {
 	listenToPtr := flag.Int("node", 0, "Node Number the simulator will set as the focus")
 	cntPtr := flag.Int("count", 1, "The number of nodes to generate")
 	netPtr := flag.String("net", "tree", "The default algorithm to build the network connections")
+	dropPtr := flag.Int("drop", 0, "Number of messages to drop out of every thousand")
 	journalPtr := flag.String("journal", "", "Rerun a Journal of messages")
 	followerPtr := flag.Bool("follower", false, "If true, force node to be a follower.  Only used when replaying a journal.")
 	leaderPtr := flag.Bool("leader", true, "If true, force node to be a leader.  Only used when replaying a journal.")
@@ -43,6 +44,7 @@ func NetStart(s *state.State) {
 	listenTo := *listenToPtr
 	cnt := *cntPtr
 	net := *netPtr
+	droprate := *dropPtr
 	journal := *journalPtr
 	follower := *followerPtr
 	leader := *leaderPtr
@@ -52,6 +54,7 @@ func NetStart(s *state.State) {
 	os.Stderr.WriteString(fmt.Sprintf("node     %d\n", listenTo))
 	os.Stderr.WriteString(fmt.Sprintf("count    %d\n", cnt))
 	os.Stderr.WriteString(fmt.Sprintf("net      \"%s\"\n", net))
+	os.Stderr.WriteString(fmt.Sprintf("drop     %d\n", droprate))
 	os.Stderr.WriteString(fmt.Sprintf("journal  \"%s\"\n", journal))
 	if follower {
 		os.Stderr.WriteString(fmt.Sprintf("follower \"%v\"\n", follower))
@@ -109,6 +112,7 @@ func NetStart(s *state.State) {
 	}
 	s.SetOut(false)
 	s.Init()
+	s.SetDropRate(droprate)
 
 	mLog.init(cnt)
 
