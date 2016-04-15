@@ -139,10 +139,29 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
 	if err := s.LeaderExecute(m); err != nil {
 		return err
 	}
-	if eom.Minute == 9 {
-		s.LLeaderHeight++
-	}
+
 	return nil
+}
+
+func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) error {
+    DBS,ok := m.(*messages.DirectoryBlockSignature)
+    if !ok {
+        return fmt.Errorf("Bad Directory Block Signature")
+    }
+    
+    DBS.DBHeight = s.LLeaderHeight
+    
+	DBS.Timestamp = s.GetTimestamp()
+    hash := DBS.GetHash()
+    ack, err := s.NewAck(s.LLeaderHeight, DBS, hash)
+    if err != nil {
+        panic(err.Error())
+        return nil
+    }
+    ack.FollowerExecute(s)
+    DBS.FollowerExecute(s)
+    
+    return nil
 }
 
 func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) bool {
@@ -214,30 +233,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			mn := entryCreditBlock.NewMinuteNumber2(e.Minute)
 			ecbody.AddEntry(mn)
 		}
-
-        if pl.EomComplete() {
-		    s.AddDBState(true, pl.DirectoryBlock, pl.AdminBlock, s.GetFactoidState().GetCurrentBlock(), pl.EntryCreditBlock)
-        }
-        
-		found, index := s.GetFedServerIndexHash(s.IdentityChainID)
-		if found && e.ServerIndex == index {
-			dbstate := s.DBStates.Get(dbheight)
-			DBS := messages.NewDirectoryBlockSignature(dbheight)
-			DBS.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
-			DBS.Timestamp = s.GetTimestamp()
-			DBS.ServerIdentityChainID = s.IdentityChainID
-			DBS.Sign(s)
-
-			hash := DBS.GetHash()
-
-			ack, _ := s.NewAck(dbheight, DBS, hash)
-
-			// Leader Execute creates an acknowledgement and the EOM
-			s.NetworkOutMsgQueue() <- ack
-			s.NetworkOutMsgQueue() <- DBS
-			ack.FollowerExecute(s)
-			DBS.FollowerExecute(s)
-		}
 	}
 
 	return true
@@ -247,29 +242,43 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 // is then that we push it out to the rest of the network.  Otherwise, if we are not the
 // leader for the signature, it marks the sig complete for that list
 func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
-
-	found, index := s.GetFedServerIndexHash(s.IdentityChainID)
-
-	dbs := msg.(*messages.DirectoryBlockSignature)
-
 	pl := s.ProcessLists.Get(dbheight)
-	pl.SetSigComplete(int(dbs.ServerIndex), true)
+    if !pl.EomComplete() {
+        return false
+    }
 
-fmt.Println("Sig Complete: ",dbs.ServerIndex)
+    DBS, ok := msg.(*messages.DirectoryBlockSignature)
 
-	if found && uint32(index) == dbs.ServerIndex {
-		hash := dbs.GetHash()
-		ack, _ := s.NewAck(dbs.DBHeight, msg, hash)
-		s.NetworkOutMsgQueue() <- dbs
-		s.NetworkOutMsgQueue() <- ack
-	}
+	pl.SetSigComplete(int(DBS.ServerIndex), true)
+	
+    s.AddDBState(true, pl.DirectoryBlock, pl.AdminBlock, s.GetFactoidState().GetCurrentBlock(), pl.EntryCreditBlock)
+    	   
+    if !ok {
+        panic("DirectoryBlockSignature is the wrong type.")
+    }
+    
+    if DBS.Local {
+        dbstate := s.DBStates.Get(dbheight)
+	    DBS.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
+        DBS.Sign(s)
 
+    	hash := DBS.GetHash()
+        
+        pl.UndoLeaderAck(int(DBS.ServerIndex))
+	    ack, _ := s.NewAck(dbheight, DBS, hash)
+        
+    	// Leader Execute creates an acknowledgement and the EOM
+	    s.NetworkOutMsgQueue() <- ack
+	    s.NetworkOutMsgQueue() <- DBS	
+    }else{
+        // TODO follower should validate signature here.
+    }
+    
     if pl.SigComplete() {
         if s.LLeaderHeight <= dbheight {
 			s.LLeaderHeight = dbheight + 1
 		}
     }
-
 	return true
 }
 
