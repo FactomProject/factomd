@@ -45,8 +45,8 @@ func TestSign(t *testing.T) {
 	if sig.Sig == nil {
 		t.Fatalf("bad Sig")
 	}
-	t.Logf("Sig: %v", sig.Sig)
 
+	t.Logf("Sig: %v", sig.Sig)
 	t.Logf("Pub.Key: %v", sig.Pub.String())
 
 	if !sig.Verify([]byte(msg)) {

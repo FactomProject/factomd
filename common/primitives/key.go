@@ -70,7 +70,7 @@ func NewPrivateKeyFromHexBytes(privKeybytes []byte) *PrivateKey {
 // Sign signs msg with PrivateKey and return Signature
 func (pk *PrivateKey) Sign(msg []byte) (sig interfaces.IFullSignature) {
 	sig = new(Signature)
-	sig.SetPub(pk.Key[:])
+	sig.SetPub(pk.Pub[:])
 	s := ed25519.Sign(pk.Key, msg)
 	sig.SetSignature(s[:])
 	return
