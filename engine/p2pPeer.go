@@ -41,7 +41,7 @@ func (f *P2PPeer) Init(fromName, toName string) interfaces.IPeer {
 	f.FromName = fromName
 	f.BroadcastOut = make(chan []byte, 10000)
 	f.BroadcastIn = make(chan []byte, 10000)
-	f.testMode = true
+	f.testMode = false
 	return f
 }
 
@@ -59,7 +59,6 @@ func (f *P2PPeer) Send(msg interfaces.IMsg) error {
 			die("Send error! %+v", err)
 			return err
 		}
-		note("S")
 		f.BroadcastOut <- data
 	}
 	return nil
@@ -77,6 +76,7 @@ func (f *P2PPeer) Recieve() (interfaces.IMsg, error) {
 				return msg, err
 			}
 		default:
+			fmt.Printf("0")
 		}
 	}
 	return nil, nil

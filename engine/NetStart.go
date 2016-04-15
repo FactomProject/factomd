@@ -105,15 +105,20 @@ func NetStart(s *state.State) {
 
 	s.LoadConfig(FactomConfigFilename, folder)
 	if journal != "" {
-		s.DBType = "Map"
-		if follower {
-			s.NodeMode = "FULL"
-			s.SetIdentityChainID(primitives.Sha([]byte("follower"))) // Make sure this node is NOT a leader
-		}
-		if leader {
-			s.NodeMode = "SERVER"
+		if s.DBType != "Map" {
+			fmt.Println("Journal is ALWAYS a Map database")
+			s.DBType = "Map"
 		}
 	}
+	if follower {
+		s.NodeMode = "FULL"
+		s.SetIdentityChainID(primitives.Sha([]byte(time.Now().String()))) // Make sure this node is NOT a leader
+	}
+	if leader {
+		s.SetIdentityChainID(primitives.Sha([]byte("FNode0"))) // Make sure this node is NOT a leader
+		s.NodeMode = "SERVER"
+	}
+
 	if len(db) > 0 {
 		s.DBType = db
 	}
@@ -133,6 +138,14 @@ func NetStart(s *state.State) {
 	for i := 0; i < cnt; i++ {
 		makeServer(s) // We clone s to make all of our servers
 	}
+
+	// Start the P2P netowrk
+	// BUGBUG JAYJAY This peer stuff needs to be abstracted out into the p2p network.
+	// Set up a channel instead.
+	p2pProxy := new(P2PPeer).Init(fnodes[0].State.FactomNodeName, address).(*P2PPeer)
+	fnodes[0].Peers = append(fnodes[0].Peers, p2pProxy)
+
+	P2PNetworkStart(address, peers, p2pProxy)
 
 	switch net {
 	case "long":
@@ -199,14 +212,6 @@ func NetStart(s *state.State) {
 	} else {
 		startServers(true)
 	}
-
-	// Start the P2P netowrk
-	// BUGBUG JAYJAY This peer stuff needs to be abstracted out into the p2p network.
-	// Set up a channel instead.
-	p2pProxy := new(P2PPeer).Init(fnodes[0].State.FactomNodeName, address).(*P2PPeer)
-	fnodes[0].Peers = append(fnodes[0].Peers, p2pProxy)
-
-	P2PNetworkStart(address, peers, p2pProxy)
 
 	// Start the webserver
 	go wsapi.Start(fnodes[0].State)
