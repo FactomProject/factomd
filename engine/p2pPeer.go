@@ -6,7 +6,6 @@ package engine
 
 import (
 	"fmt"
-	"math/rand"
 	"os"
 	"strings"
 	"time"
@@ -24,12 +23,16 @@ var (
 	p2pSocket mangos.Socket // BUGBUG JAYJAY TODO This is a global. This needs to migrate to p2p package.
 	// Frequency of issuing debug print statements in netowkr code-- 2 = %100, 100 = %1 of the time.
 	send_freq    = 2
-	recieve_freq = 2
+	recieve_freq = 200
 )
 
 type P2PPeer struct {
+	// A connection to this node:
 	ToName   string
 	FromName string
+	// Channels that define the connection:
+	BroadcastOut chan []byte
+	BroadcastIn  chan []byte
 }
 
 var _ interfaces.IPeer = (*P2PPeer)(nil)
@@ -40,98 +43,6 @@ func (f *P2PPeer) Init(fromName, toName string) interfaces.IPeer {
 	return f
 }
 
-// I hope this isn't needed.
-// func (f *NetPeer) AddExistingConnection(conn mangos.f.Socketet) {
-// 	f.f.Socketet = conn
-// }
-
-// // Serves on a default poort, incremented each time its called.
-// func RemoteServe(fnodes []*FactomNode) {
-// 	// Increment the port so every connection is on a differnet port
-// 	ServePort += 1
-// 	fmt.Printf("%d -- $$$$$$$$$$$$$$$$$$$$$$$$$$ P2PPeer.RemoteServe port: %d \n", os.Getpid(), ServePort)
-// 	RemoteServeOnPort(fnodes, ServePort)
-// }
-
-// // Serve:  Connects us to fnode 0 and starts listening on ServePort (which is incremented for each server started)
-// // Returns: Address on which we are serving.
-// func RemoteServeOnPort(fnodes []*FactomNode, port int) {
-// 	f1 := fnodes[0]
-// 	fmt.Printf("%d -- P2PPeer.RemoteServeOnPort CHECKPOINT ENTRY\n", os.Getpid())
-// 	// Mangos implementation:
-// 	address := fmt.Sprintf("%s:%d", "tcp://127.0.0.1", port)
-// 	fmt.Printf("%d -- P2PPeer.RemoteServeOnPort listening on address: %s \n", os.Getpid(), address)
-
-// 	peer := new(P2PPeer).Init(f1.State.FactomNodeName, address).(*P2PPeer)
-// 	fmt.Printf("%d -- P2PPeer.RemoteServeOnPort CHECKPOINT ALPO\n", os.Getpid())
-// 	if err := peer.Connect(server, address); nil == err {
-// 		fmt.Printf("%d -- P2PPeer.RemoteServeOnPort CHECKPOINT CHEX\n", os.Getpid())
-// 		f1.Peers = append(f1.Peers, peer)
-// 		fmt.Printf("%d -- P2PPeer.RemoteServeOnPort CHECKPOINT LIFE\n", os.Getpid())
-// 	}
-// 	// fmt.Printf("%d -- peers: %+v\n", os.Getpid(), f1.Peers)
-// }
-
-// // Connects:  Connects us to fnode 0 and dials out to address, creating a TCP connection
-// func RemoteConnect(fnodes []*FactomNode, address string) error {
-// 	f1 := fnodes[0]
-
-// 	// Mangos implementation:
-// 	fmt.Printf("%d -- P2PPeer.RemoteConnect connecting to address: %s\n(should be in form of tcp://127.0.0.1:1234)\n", os.Getpid(), address)
-
-// 	peer := new(P2PPeer).Init(f1.State.FactomNodeName, address).(*P2PPeer)
-// 	fmt.Printf("%d -- P2PPeer.RemoteConnect CHECKPOINT BETA\n", os.Getpid())
-
-// 	if err := peer.Connect(client, address); nil == err {
-// 		fmt.Printf("%d -- P2PPeer.RemoteConnect CHECKPOINT KAPPA\n", os.Getpid())
-
-// 		f1.Peers = append(f1.Peers, peer)
-// 		fmt.Printf("%d -- P2PPeer.RemoteConnect CHECKPOINT GAMMA\n", os.Getpid())
-
-// 	} else {
-// 		fmt.Printf("%d -- P2PPeer.RemoteConnect: Failed to connect to remote peer at address: %s\n", os.Getpid(), address)
-// 		return err
-// 	}
-// 	fmt.Printf("%d -- P2PPeer.RemoteConnect CHECKPOINT LEAVING\n", os.Getpid())
-
-// 	// fmt.Printf("%d -- peers: %+v\n", os.Getpid(), f1.Peers)
-// 	return nil
-// }
-
-// // Connect sets us up with a scoket connection, type indicates whether we dial in (as client) or listen (as server). address is the URL.
-// func (f *P2PPeer) Connect(connectionType int, address string) error {
-// 	var err error
-// 	err = nil
-
-// 	if f.Socket, err = pair.NewSocket(); err != nil {
-// 		fmt.Printf("%d -- P2PPeer.Connect error from pair.NewSocket() for %s :\n %+v\n\n", os.Getpid(), address, err)
-// 	}
-// 	// f.Socket.AddTransport(ipc.NewTransport()) // ipc works on a single machine we want to at least simulate a full network connection.
-// 	f.Socket.AddTransport(tcp.NewTransport())
-
-// 	switch connectionType {
-// 	case server:
-// 		if err = f.Socket.Listen(address); err != nil {
-// 			fmt.Printf("%d -- P2PPeer.Connect error from pair.Listen() for %s :\n %+v\n\n", os.Getpid(), address, err)
-// 		} else {
-// 			fmt.Printf("%d -- P2PPeer.Connect LISTENING ON for %s :\n", os.Getpid(), address)
-// 		}
-
-// 	case client:
-// 		if err = f.Socket.Dial(address); err != nil {
-// 			fmt.Printf("%d -- P2PPeer.Connect error from pair.Dial() for %s :\n %+v\n\n", os.Getpid(), address, err)
-// 		} else {
-// 			fmt.Printf("%d -- P2PPeer.Connect DIALED IN for %s :\n", os.Getpid(), address)
-// 			msg := "HEARTBEAT"
-// 			if err = f.Socket.Send([]byte(msg)); err != nil {
-// 				fmt.Printf("%d -- P2PPeer.Connect ###### error from f.Socket.Send(data) for:\n %+v\n\n", os.Getpid(), msg)
-// 			}
-// 		}
-// 	}
-// 	fmt.Printf("%d -- P2PPeer.Connect CHECKPOINT ZETA\n", os.Getpid())
-// 	return err
-// }
-
 func (f *P2PPeer) GetNameFrom() string {
 	return f.FromName
 }
@@ -140,56 +51,73 @@ func (f *P2PPeer) GetNameTo() string {
 }
 
 func (f *P2PPeer) Send(msg interfaces.IMsg) error {
-	if 1 == rand.Intn(send_freq) {
-		fmt.Printf("%d -- P2PPeer.SEND %s -> %s\t %s \n", os.Getpid(), f.FromName, f.ToName, msg)
-	}
+
 	// fmt.Printf("P2PPeer.Send for:\n %+v\n\n", msg)
 
 	// data, err := msg.MarshalBinary()
 	// if err != nil {
-	// 	fmt.Printf("%d -- P2PPeer.Send !!!!!!!!!!!! FAILED TO MARSHALL BINARY for:\n %+v\n\n", os.Getpid(), msg)
-
+	// 	note("P2PPeer.Send !!!!!!!!!!!! FAILED TO MARSHALL BINARY for:\n %+v\n\n", msg)
 	// 	return err
 	// }
-
-	// if err = f.Socket.Send(data); err != nil {
-	// 	fmt.Printf("%d -- P2PPeer.Send error from f.Socket.Send(data) for:\n %+v\n\n", os.Getpid(), msg)
+	// if err = p2pSocket.Send(data); err != nil {
+	// 	note("P2PPeer.Send ERROR: %s", err.Error())
+	// 	return err
 	// }
-	// return err
-
+	// if 1 == rand.Intn(send_freq) {
+	// 	fmt.Printf("%d -- P2PPeer.SEND %s -> %s\t %s \n data: %s", os.Getpid(), f.FromName, f.ToName, msg, string(data))
+	// }
 	return nil
 }
 
-// Non-blocking return value from channel.
 func (f *P2PPeer) Recieve() (interfaces.IMsg, error) {
-	if 1 == rand.Intn(recieve_freq) {
-		fmt.Printf("%d -- P2PPeer.RECIEVE %s -> %s\n", os.Getpid(), f.FromName, f.ToName)
-	}
-	// 100ms Timeout
-	// f.Socket.SetOption(mangos.OptionRecvDeadline, 100*time.Millisecond)
-	// // Minimal blocking
-	// // f.Socket.SetOption(mangos.OptionRecvDeadline, 1*time.Millisecond)
-	// var data []byte
-	// var err error
-	// if data, err = f.Socket.Recv(); err == nil {
-	// 	// if len(data) > 0 {
+
+	// if 1 == rand.Intn(recieve_freq) {
+	// 	fmt.Printf("%d -- P2PPeer.RECIEVE %s -> %s\n", os.Getpid(), f.FromName, f.ToName)
+	// }
+
+	// if data, err := p2pSocket.Recv(); err != nil {
+	// 	note("P2PPeer.Recv ERROR: %s", err.Error())
+	// } else {
+	// 	note("P2PPeer.Recieve ######## \"%s\" FROM BUS", string(data))
+	// if len(data) > 0 {
 	// 	msg, err := messages.UnmarshalMessage(data)
 	// 	if nil == err {
-	// 		fmt.Printf("%d -- P2PPeer.Recieve $$$$$$$$$$$$ GOT VALID MESSAGE:\t %+v\n", os.Getpid(), msg)
-	// 	} else {
-	// 		fmt.Printf("%d -- P2PPeer.Recieve Got invalid MESSAGE:\t %+v\n", os.Getpid(), string(data))
-	// 		// }
+	// 		note("P2PPeer.Recieve $$$$$$$$$$$$ GOT VALID MESSAGE:\t %+v\n", msg)
 	// 		return msg, err
+	// 	} else {
+	// 		note("P2PPeer.Recieve Got invalid MESSAGE:\t %+v\n", string(data))
+	// 		return nil, nil
 	// 	}
+
+	// } else {
+	// 	note("P2PPeer.Recieve Zero byte message???? \"%s\"", string(data))
 	// }
-	// beat := "HEARTBEAT"
-	// if err = f.Socket.Send([]byte(beat)); err != nil {
-	// 	fmt.Printf("%d -- P2PPeer.Connect ###### error from f.Socket.Send(data) for:\n %+v\n\n", os.Getpid(), beat)
 	// }
 
 	return nil, nil
 }
 
+// 100ms Timeout
+// f.Socket.SetOption(mangos.OptionRecvDeadline, 100*time.Millisecond)
+// // Minimal blocking
+// // f.Socket.SetOption(mangos.OptionRecvDeadline, 1*time.Millisecond)
+// var data []byte
+// var err error
+// if data, err = f.Socket.Recv(); err == nil {
+// 	// if len(data) > 0 {
+// 	msg, err := messages.UnmarshalMessage(data)
+// 	if nil == err {
+// 		fmt.Printf("%d -- P2PPeer.Recieve $$$$$$$$$$$$ GOT VALID MESSAGE:\t %+v\n", os.Getpid(), msg)
+// 	} else {
+// 		fmt.Printf("%d -- P2PPeer.Recieve Got invalid MESSAGE:\t %+v\n", os.Getpid(), string(data))
+// 		// }
+// 		return msg, err
+// 	}
+// }
+// beat := "HEARTBEAT"
+// if err = f.Socket.Send([]byte(beat)); err != nil {
+// 	fmt.Printf("%d -- P2PPeer.Connect ###### error from f.Socket.Send(data) for:\n %+v\n\n", os.Getpid(), beat)
+// }
 // Is this connection equal to parm connection
 func (f *P2PPeer) Equals(ff interfaces.IPeer) bool {
 	f2, ok := ff.(*P2PPeer)
@@ -336,13 +264,13 @@ func heartbeat(address string) {
 		if err = p2pSocket.Send([]byte(beat)); err != nil {
 			note("heartbeat.Send ERROR: %s", err.Error())
 		}
+		time.Sleep(time.Second * 10)
 		if msg, err = p2pSocket.Recv(); err != nil {
 			note("heartbeat.Recv ERROR: %s", err.Error())
 		} else {
 			note("RECEIVED \"%s\" FROM BUS", string(msg))
 		}
 		i += i
-		time.Sleep(time.Second * 1)
 	}
 }
 
