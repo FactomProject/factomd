@@ -160,6 +160,8 @@ func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) error {
     }
     ack.FollowerExecute(s)
     DBS.FollowerExecute(s)
+     
+    s.LLeaderHeight++
     
     return nil
 }
@@ -305,12 +307,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
     }else{
         // TODO follower should validate signature here.
     }
-    
-    if pl.SigComplete() {
-        if s.LLeaderHeight <= dbheight {
-			s.LLeaderHeight = dbheight + 1
-		}
-    }
+  
 	return true
 }
 

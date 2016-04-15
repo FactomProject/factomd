@@ -34,6 +34,7 @@ func Timer(state interfaces.IState) {
 	time.Sleep(time.Duration(wait))
 	for {
 		found, index := state.GetFedServerIndexHash(state.GetIdentityChainID())
+        sent := false
 		for i := 0; i < 10; i++ {
 			now = time.Now().UnixNano()
 			wait := next - now
@@ -57,7 +58,8 @@ func Timer(state interfaces.IState) {
 			}
 			// End of the last period, and this is a server, send messages that
 			// close off the minute.
-			if found && state.Green() {
+			if found && state.Green() && (sent || i==0){
+                sent = true
 				eom := new(messages.EOM)
 				eom.Minute = byte(i)
 				eom.Timestamp = state.GetTimestamp()
