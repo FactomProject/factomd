@@ -9,30 +9,31 @@ import (
 )
 
 // DB Signature Entry -------------------------
-type AddFederatedServer struct {
+type AddFederatedServerSigningKey struct {
 	IdentityChainID interfaces.IHash
+	KeyPriority     byte
+	PublicKey       primitives.PublicKey
 }
 
-var _ interfaces.IABEntry = (*AddFederatedServer)(nil)
-var _ interfaces.BinaryMarshallable = (*AddFederatedServer)(nil)
+var _ interfaces.IABEntry = (*AddFederatedServerSigningKey)(nil)
+var _ interfaces.BinaryMarshallable = (*AddFederatedServerSigningKey)(nil)
 
-func (c *AddFederatedServer) UpdateState(state interfaces.IState) {
-	state.AddFedServer(c.IdentityChainID)
-	state.Println(fmt.Sprintf("Adding Federated Server: %x", c.IdentityChainID.Bytes()[:3]))
+func (c *AddFederatedServerSigningKey) UpdateState(state interfaces.IState) {
+
 }
 
 // Create a new DB Signature Entry
-func NewAddFederatedServer(identityChainID interfaces.IHash) (e *AddFederatedServer) {
-	e = new(AddFederatedServer)
+func NewAddFederatedServerSigningKey(identityChainID interfaces.IHash) (e *AddFederatedServerSigningKey) {
+	e = new(AddFederatedServerSigningKey)
 	e.IdentityChainID = primitives.NewHash(identityChainID.Bytes())
 	return
 }
 
-func (e *AddFederatedServer) Type() byte {
+func (e *AddFederatedServerSigningKey) Type() byte {
 	return constants.TYPE_ADD_FED_SERVER
 }
 
-func (e *AddFederatedServer) MarshalBinary() (data []byte, err error) {
+func (e *AddFederatedServerSigningKey) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
 
 	buf.Write([]byte{e.Type()})
@@ -46,7 +47,7 @@ func (e *AddFederatedServer) MarshalBinary() (data []byte, err error) {
 	return buf.Bytes(), nil
 }
 
-func (e *AddFederatedServer) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+func (e *AddFederatedServerSigningKey) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
@@ -64,37 +65,37 @@ func (e *AddFederatedServer) UnmarshalBinaryData(data []byte) (newData []byte, e
 	return
 }
 
-func (e *AddFederatedServer) UnmarshalBinary(data []byte) (err error) {
+func (e *AddFederatedServerSigningKey) UnmarshalBinary(data []byte) (err error) {
 	_, err = e.UnmarshalBinaryData(data)
 	return
 }
 
-func (e *AddFederatedServer) JSONByte() ([]byte, error) {
+func (e *AddFederatedServerSigningKey) JSONByte() ([]byte, error) {
 	return primitives.EncodeJSON(e)
 }
 
-func (e *AddFederatedServer) JSONString() (string, error) {
+func (e *AddFederatedServerSigningKey) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
 }
 
-func (e *AddFederatedServer) JSONBuffer(b *bytes.Buffer) error {
+func (e *AddFederatedServerSigningKey) JSONBuffer(b *bytes.Buffer) error {
 	return primitives.EncodeJSONToBuffer(e, b)
 }
 
-func (e *AddFederatedServer) String() string {
+func (e *AddFederatedServerSigningKey) String() string {
 	str := fmt.Sprintf("Add Server with Identity Chain ID = %x", e.IdentityChainID.Bytes()[:5])
 	return str
 }
 
-func (e *AddFederatedServer) IsInterpretable() bool {
+func (e *AddFederatedServerSigningKey) IsInterpretable() bool {
 	return false
 }
 
-func (e *AddFederatedServer) Interpret() string {
+func (e *AddFederatedServerSigningKey) Interpret() string {
 	return ""
 }
 
-func (e *AddFederatedServer) Hash() interfaces.IHash {
+func (e *AddFederatedServerSigningKey) Hash() interfaces.IHash {
 	bin, err := e.MarshalBinary()
 	if err != nil {
 		panic(err)

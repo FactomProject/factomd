@@ -65,7 +65,7 @@ func (a *Anchor) submitEntryToAnchorChain(aRecord *AnchorRecord) error {
 	tmp := buf.Bytes()
 	sig := a.serverECKey.Sign(tmp).(*primitives.Signature)
 	buf = bytes.NewBuffer(tmp)
-	buf.Write(a.serverECKey.Pub.Key[:])
+	buf.Write(a.serverECKey.Pub[:])
 	buf.Write(sig.Sig[:])
 
 	commit := entryCreditBlock.NewCommitEntry()

@@ -5,9 +5,11 @@
 package primitives
 
 import (
+	"bytes"
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
+
 	"github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factomd/common/interfaces"
 )
@@ -15,7 +17,7 @@ import (
 // PrivateKey contains Public/Private key pair
 type PrivateKey struct {
 	Key *[ed25519.PrivateKeySize]byte
-	Pub PublicKey
+	Pub *PublicKey
 }
 
 var _ interfaces.Signer = (*PrivateKey)(nil)
@@ -25,12 +27,12 @@ func (pk *PrivateKey) CustomMarshalText2(string) ([]byte, error) {
 }
 
 func (pk *PrivateKey) Public() []byte {
-	return (*pk.Pub.Key)[:]
+	return pk.Pub[:]
 }
 
 func (pk *PrivateKey) AllocateNew() {
 	pk.Key = new([ed25519.PrivateKeySize]byte)
-	pk.Pub.Key = new([ed25519.PublicKeySize]byte)
+	pk.Pub = new(PublicKey)
 }
 
 // Create a new private key from a hex string
@@ -53,7 +55,7 @@ func NewPrivateKeyFromHex(s string) (pk PrivateKey, err error) {
 	}
 	pk.AllocateNew()
 	copy(pk.Key[:], privKeybytes)
-	copy(pk.Pub.Key[:], privKeybytes[ed25519.PublicKeySize:])
+	err = pk.Pub.UnmarshalBinary(privKeybytes[len(privKeybytes)-ed25519.PublicKeySize:])
 	return
 }
 
@@ -61,14 +63,14 @@ func NewPrivateKeyFromHexBytes(privKeybytes []byte) *PrivateKey {
 	pk := new(PrivateKey)
 	pk.AllocateNew()
 	copy(pk.Key[:], privKeybytes)
-	copy(pk.Pub.Key[:], privKeybytes[ed25519.PublicKeySize:])
+	pk.Pub.UnmarshalBinary(privKeybytes)
 	return pk
 }
 
 // Sign signs msg with PrivateKey and return Signature
 func (pk *PrivateKey) Sign(msg []byte) (sig interfaces.IFullSignature) {
 	sig = new(Signature)
-	sig.SetPub(pk.Pub.Key[:])
+	sig.SetPub(pk.Key[:])
 	s := ed25519.Sign(pk.Key, msg)
 	sig.SetSignature(s[:])
 	return
@@ -81,8 +83,14 @@ func (pk *PrivateKey) MarshalSign(msg interfaces.BinaryMarshallable) (sig interf
 }
 
 //Generate creates new PrivateKey / PublciKey pair or returns error
-func (pk *PrivateKey) GenerateKey() (err error) {
-	pk.Pub.Key, pk.Key, err = ed25519.GenerateKey(rand.Reader)
+func (pk *PrivateKey) GenerateKey() error {
+	pub, priv, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		return err
+	}
+	pk.Key = priv
+	pk.Pub = new(PublicKey)
+	err = pk.Pub.UnmarshalBinary(pub[:])
 	return err
 }
 
@@ -94,9 +102,7 @@ func (pk *PrivateKey) PrivateKeyString() string {
 /******************PublicKey*******************************/
 
 // PublicKey contains only Public part of Public/Private key pair
-type PublicKey struct {
-	Key *[ed25519.PublicKeySize]byte
-}
+type PublicKey [ed25519.PublicKeySize]byte
 
 var _ interfaces.Verifier = (*PublicKey)(nil)
 
@@ -104,14 +110,8 @@ func (a *PublicKey) IsSameAs(b *PublicKey) bool {
 	if b == nil {
 		return false
 	}
-	if a.Key == nil && b.Key != nil {
-		return false
-	}
-	if b.Key == nil && a.Key != nil {
-		return false
-	}
-	for i := range a.Key {
-		if a.Key[i] != b.Key[i] {
+	for i := range a {
+		if a[i] != b[i] {
 			return false
 		}
 	}
@@ -127,24 +127,39 @@ func (pk *PublicKey) UnmarshalText(b []byte) error {
 	if err != nil {
 		return err
 	}
-	pk.Key = new([ed25519.PublicKeySize]byte)
-	copy(pk.Key[:], p)
+	copy(pk[:], p)
 	return nil
 }
 
 func (pk *PublicKey) String() string {
-	return hex.EncodeToString((*pk.Key)[:])
+	return hex.EncodeToString(pk[:])
 }
 
 func PubKeyFromString(instr string) (pk PublicKey) {
 	p, _ := hex.DecodeString(instr)
-	pk.Key = new([ed25519.PublicKeySize]byte)
-	copy(pk.Key[:], p)
+	copy(pk[:], p)
 	return
 }
 
 func (k *PublicKey) Verify(msg []byte, sig *[ed25519.SignatureSize]byte) bool {
-	return ed25519.VerifyCanonical(k.Key, msg, sig)
+	return ed25519.VerifyCanonical((*[32]byte)(k), msg, sig)
+}
+
+func (k *PublicKey) MarshalBinary() ([]byte, error) {
+	var buf bytes.Buffer
+	buf.Write(k[:])
+	return buf.Bytes(), nil
+}
+
+func (k *PublicKey) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
+	copy(k[:], p)
+	newData = p[ed25519.PublicKeySize:]
+	return
+}
+
+func (k *PublicKey) UnmarshalBinary(p []byte) (err error) {
+	_, err = k.UnmarshalBinaryData(p)
+	return
 }
 
 // Verify returns true iff sig is a valid signature of message by publicKey.
