@@ -4,8 +4,6 @@
 
 package interfaces
 
-import ()
-
 // Holds the state information for factomd.  This does imply that we will be
 // using accessors to access state information in the consensus algorithm.
 // This is a bit tedious, but does provide single choke points where information
@@ -17,7 +15,7 @@ type IState interface {
 	GetFactomNodeName() string
 	Clone(number string) IState
 	GetCfg() IFactomConfig
-	LoadConfig(filename string)
+	LoadConfig(filename string, folder string) // TODO JAYJAY remove folder here (hack to support multiple factomd processes on one .factom)
 	Init()
 	String() string
 	GetIdentityChainID() IHash
@@ -33,6 +31,7 @@ type IState interface {
 	GetOut() bool // Return true if Print or Println write output
 	LoadDBState(dbheight uint32) (IMsg, error)
 	LoadSpecificMsg(dbheight uint32, plistheight uint32) (IMsg, error)
+	LoadSpecificMsgAndAck(dbheight uint32, plistheight uint32) (IMsg, IMsg, error)
 	GetFedServerIndexHash(IHash) (bool, int)
 	SetString()
 	ShortString() string
@@ -79,9 +78,12 @@ type IState interface {
 
 	GetNewEBlocks(dbheight uint32, hash IHash) IEntryBlock
 	PutNewEBlocks(dbheight uint32, hash IHash, eb IEntryBlock)
+	PutNewEntries(dbheight uint32, hash IHash, eb IEntry)
 
 	GetCommits(hash IHash) IMsg
+	GetReveals(hash IHash) IMsg
 	PutCommits(hash IHash, msg IMsg)
+	PutReveals(hash IHash, msg IMsg)
 	// Server Configuration
 	// ====================
 
@@ -125,13 +127,15 @@ type IState interface {
 
 	ProcessAddServer(dbheight uint32, addServerMsg IMsg) bool
 	ProcessCommitChain(dbheight uint32, commitChain IMsg) bool
+	ProcessCommitEntry(dbheight uint32, commitChain IMsg) bool
 	ProcessDBSig(dbheight uint32, commitChain IMsg) bool
 	ProcessEOM(dbheight uint32, eom IMsg) bool
 
 	// For messages that go into the Process List
 	LeaderExecute(m IMsg) error
 	LeaderExecuteEOM(m IMsg) error
-
+    LeaderExecuteDBSig(m IMsg) error
+    
 	GetTimestamp() Timestamp
 
 	PrintType(int) bool // Debugging
@@ -139,6 +143,7 @@ type IState interface {
 	Println(a ...interface{}) (n int, err error)
 
 	ValidatorLoop()
+	Dethrottle()
 
 	SetIsReplaying()
 	SetIsDoneReplaying()

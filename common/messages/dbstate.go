@@ -33,6 +33,7 @@ type DBStateMsg struct {
 	AdminBlock       interfaces.IAdminBlock
 	FactoidBlock     interfaces.IFBlock
 	EntryCreditBlock interfaces.IEntryCreditBlock
+	EntryBlocks      map[[32]byte]interfaces.IEntryBlock
 }
 
 var _ interfaces.IMsg = (*DBStateMsg)(nil)
@@ -132,7 +133,7 @@ func (e *DBStateMsg) JSONBuffer(b *bytes.Buffer) error {
 
 func (m *DBStateMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
-        return
+		return
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}

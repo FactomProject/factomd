@@ -6,10 +6,12 @@ package engine
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/common/primitives"
 	s "github.com/FactomProject/factomd/state"
-	"time"
 )
 
 var _ = (*s.State)(nil)
@@ -32,6 +34,7 @@ func Timer(state interfaces.IState) {
 	time.Sleep(time.Duration(wait))
 	for {
 		found, index := state.GetFedServerIndexHash(state.GetIdentityChainID())
+        sent := false
 		for i := 0; i < 10; i++ {
 			now = time.Now().UnixNano()
 			wait := next - now
@@ -50,21 +53,42 @@ func Timer(state interfaces.IState) {
 				time.Sleep(time.Duration(tenthPeriod))
 			}
 
+			if len(state.GetFedServers()) == 0 {
+				state.AddFedServer(primitives.Sha([]byte("FNode0"))) // Make sure this node is NOT a leader
+			}
 			// End of the last period, and this is a server, send messages that
 			// close off the minute.
-			if found && state.Green() {
+			if found && state.Green() && (sent || i==0){
+                sent = true
 				eom := new(messages.EOM)
 				eom.Minute = byte(i)
 				eom.Timestamp = state.GetTimestamp()
 				eom.ChainID = state.GetIdentityChainID()
 				eom.ServerIndex = index
 				eom.Sign(state)
-				state.TimerMsgQueue() <- eom
-				if index == 1 {
-					fmt.Println("Sending", eom.String())
-				}
+		
+                if i == 9 {
+                    DBS := new(messages.DirectoryBlockSignature)
+                    DBS.ServerIdentityChainID = state.GetIdentityChainID()
+                    DBS.Local = true
+    				state.TimerMsgQueue() <- eom
+                    state.TimerMsgQueue() <- DBS
+                }else{
+      				state.TimerMsgQueue() <- eom
+                }
 			}
 		}
+	}
+}
+
+func Throttle(state interfaces.IState) {
+	time.Sleep(2 * time.Second)
+
+	throttlePeriod := time.Duration(int64(state.GetDirectoryBlockInSeconds()) * 50000000)
+
+	for {
+		time.Sleep(throttlePeriod)
+		state.Dethrottle()
 	}
 
 }

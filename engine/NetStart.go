@@ -7,12 +7,14 @@ package engine
 import (
 	"flag"
 	"fmt"
+	"os"
+	"time"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/util"
-	"os"
-	"time"
+	"github.com/FactomProject/factomd/wsapi"
 )
 
 var _ = fmt.Print
@@ -31,26 +33,35 @@ func NetStart(s *state.State) {
 	listenToPtr := flag.Int("node", 0, "Node Number the simulator will set as the focus")
 	cntPtr := flag.Int("count", 1, "The number of nodes to generate")
 	netPtr := flag.String("net", "tree", "The default algorithm to build the network connections")
+	dropPtr := flag.Int("drop", 0, "Number of messages to drop out of every thousand")
 	journalPtr := flag.String("journal", "", "Rerun a Journal of messages")
 	followerPtr := flag.Bool("follower", false, "If true, force node to be a follower.  Only used when replaying a journal.")
 	leaderPtr := flag.Bool("leader", true, "If true, force node to be a leader.  Only used when replaying a journal.")
-	tcpPtr := flag.Bool("tcp", false, "If true, use TCP connections (eg: netPeer vs SimPeer).  Defaults to SimPeer.")
 	dbPtr := flag.String("db", "", "Override the Database in the Config file and use this Database implementation")
+	folderPtr := flag.String("folder", "", "Directory in .factom to store nodes. (eg: multiple nodes on one filesystem support)")
+	portPtr := flag.Int("port", 8089, "Address to serve WSAPI on")
+	addressPtr := flag.String("p2pAddress", "tcp://127.0.0.1:34340", "Address & port to listen for peers on: (eg: tcp://127.0.0.1:40891)")
+	peersPtr := flag.String("peers", "tcp://127.0.0.1:34341 tcp://127.0.0.1:34342 tcp://127.0.0.1:34343", "Array of peer addresses. Defaults to: \"tcp://127.0.0.1:34341 tcp://127.0.0.1:34342 tcp://127.0.0.1:34340\"")
 
 	flag.Parse()
 
 	listenTo := *listenToPtr
 	cnt := *cntPtr
 	net := *netPtr
+	droprate := *dropPtr
 	journal := *journalPtr
 	follower := *followerPtr
 	leader := *leaderPtr
 	db := *dbPtr
-	tcp := *tcpPtr
+	folder := *folderPtr
+	port := *portPtr
+	address := *addressPtr
+	peers := *peersPtr
 
 	os.Stderr.WriteString(fmt.Sprintf("node     %d\n", listenTo))
 	os.Stderr.WriteString(fmt.Sprintf("count    %d\n", cnt))
 	os.Stderr.WriteString(fmt.Sprintf("net      \"%s\"\n", net))
+	os.Stderr.WriteString(fmt.Sprintf("drop     %d\n", droprate))
 	os.Stderr.WriteString(fmt.Sprintf("journal  \"%s\"\n", journal))
 	if follower {
 		os.Stderr.WriteString(fmt.Sprintf("follower \"%v\"\n", follower))
@@ -64,7 +75,10 @@ func NetStart(s *state.State) {
 		panic("Not a leader or a follower")
 	}
 	os.Stderr.WriteString(fmt.Sprintf("db       \"%s\"\n", db))
-	os.Stderr.WriteString(fmt.Sprintf("tcp \"%v\"\n", tcp))
+	os.Stderr.WriteString(fmt.Sprintf("folder   \"%s\"\n", folder))
+	os.Stderr.WriteString(fmt.Sprintf("port     \"%d\"\n", port))
+	os.Stderr.WriteString(fmt.Sprintf("address  \"%s\"\n", address))
+	os.Stderr.WriteString(fmt.Sprintf("peers  \"%s\"\n", peers))
 
 	if journal != "" {
 		cnt = 1
@@ -92,22 +106,31 @@ func NetStart(s *state.State) {
 
 	fmt.Println(fmt.Sprintf("factom config: %s", FactomConfigFilename))
 
-	s.LoadConfig(FactomConfigFilename)
+	s.LoadConfig(FactomConfigFilename, folder)
 	if journal != "" {
-		s.DBType = "Map"
-		if follower {
-			s.NodeMode = "FULL"
-			s.SetIdentityChainID(primitives.Sha([]byte("follower"))) // Make sure this node is NOT a leader
-		}
-		if leader {
-			s.NodeMode = "SERVER"
+		if s.DBType != "Map" {
+			fmt.Println("Journal is ALWAYS a Map database")
+			s.DBType = "Map"
 		}
 	}
+	if follower {
+		s.NodeMode = "FULL"
+		s.SetIdentityChainID(primitives.Sha([]byte(time.Now().String()))) // Make sure this node is NOT a leader
+	}
+	if leader {
+		s.SetIdentityChainID(primitives.Sha([]byte("FNode0"))) // Make sure this node is a leader
+		s.NodeMode = "SERVER"
+	}
+
 	if len(db) > 0 {
 		s.DBType = db
 	}
+
 	s.SetOut(false)
+	s.PortNumber = port
+
 	s.Init()
+	s.SetDropRate(droprate)
 
 	mLog.init(cnt)
 
@@ -120,22 +143,43 @@ func NetStart(s *state.State) {
 		makeServer(s) // We clone s to make all of our servers
 	}
 
+	// Start the P2P netowrk
+	// BUGBUG JAYJAY This peer stuff needs to be abstracted out into the p2p network.
+	// Set up a channel instead.
+	p2pProxy := new(P2PPeer).Init(fnodes[0].State.FactomNodeName, address).(*P2PPeer)
+	fnodes[0].Peers = append(fnodes[0].Peers, p2pProxy)
+
+	P2PNetworkStart(address, peers, p2pProxy)
+
 	switch net {
 	case "long":
 		fmt.Println("Using long Network")
 		for i := 1; i < cnt; i++ {
-			AddPeer(tcp, fnodes, i-1, i)
+			AddSimPeer(fnodes, i-1, i)
 		}
 	case "loops":
 		fmt.Println("Using loops Network")
 		for i := 1; i < cnt; i++ {
-			AddPeer(tcp, fnodes, i-1, i)
+			AddSimPeer(fnodes, i-1, i)
 		}
 		for i := 0; (i+17)*2 < cnt; i += 17 {
-			AddPeer(tcp, fnodes, i%cnt, (i+5)%cnt)
+			AddSimPeer(fnodes, i%cnt, (i+5)%cnt)
 		}
 		for i := 0; (i+13)*2 < cnt; i += 13 {
-			AddPeer(tcp, fnodes, i%cnt, (i+7)%cnt)
+			AddSimPeer(fnodes, i%cnt, (i+7)%cnt)
+		}
+	case "alot":
+		for i := 0; i < cnt; i++ {
+			for j := 0; j < cnt; j++ {
+				cnt := 0
+				if i != j {
+					cnt++
+					AddSimPeer(fnodes, i, j)
+					if cnt == 8 {
+						break
+					}
+				}
+			}
 		}
 	case "tree":
 		index := 0
@@ -143,8 +187,8 @@ func NetStart(s *state.State) {
 	treeloop:
 		for i := 0; true; i++ {
 			for j := 0; j <= i; j++ {
-				AddPeer(tcp, fnodes, index, row)
-				AddPeer(tcp, fnodes, index, row+1)
+				AddSimPeer(fnodes, index, row)
+				AddSimPeer(fnodes, index, row+1)
 				row++
 				index++
 				if index >= len(fnodes) {
@@ -157,16 +201,16 @@ func NetStart(s *state.State) {
 		circleSize := 7
 		index := 0
 		for {
-			AddPeer(tcp, fnodes, index, index+circleSize-1)
+			AddSimPeer(fnodes, index, index+circleSize-1)
 			for i := index; i < index+circleSize-1; i++ {
-				AddPeer(tcp, fnodes, i, i+1)
+				AddSimPeer(fnodes, i, i+1)
 			}
 			index += circleSize
 
-			AddPeer(tcp, fnodes, index, index-circleSize/3)
-			AddPeer(tcp, fnodes, index+2, index-circleSize-circleSize*2/3-1)
-			AddPeer(tcp, fnodes, index+3, index-(2*circleSize)-circleSize*2/3)
-			AddPeer(tcp, fnodes, index+5, index-(3*circleSize)-circleSize*2/3+1)
+			AddSimPeer(fnodes, index, index-circleSize/3)
+			AddSimPeer(fnodes, index+2, index-circleSize-circleSize*2/3-1)
+			AddSimPeer(fnodes, index+3, index-(2*circleSize)-circleSize*2/3)
+			AddSimPeer(fnodes, index+5, index-(3*circleSize)-circleSize*2/3+1)
 
 			if index >= len(fnodes) {
 				break
@@ -175,7 +219,7 @@ func NetStart(s *state.State) {
 	default:
 		fmt.Println("Didn't understand network type. Known types: mesh, long, circles, tree, loops.  Using a Long Network")
 		for i := 1; i < cnt; i++ {
-			AddPeer(tcp, fnodes, i-1, i)
+			AddSimPeer(fnodes, i-1, i)
 		}
 
 	}
@@ -186,20 +230,11 @@ func NetStart(s *state.State) {
 		startServers(true)
 	}
 
+	// Start the webserver
+	go wsapi.Start(fnodes[0].State)
+
+	// Listen for commands:
 	SimControl(listenTo)
-
-}
-
-// AddPeer adds a peer of the indicated type. There's probably a better
-// way to do  this using a closure or maybe a superclass function (but go isn't
-// "OO" so this isn't obvious to me.  This hack works for now.)
-func AddPeer(tcp bool, fnodes []*FactomNode, i1 int, i2 int) {
-	// tcp contains the command line flag indicating if this is a netPeer (vs SimPeer)
-	if tcp {
-		AddNetPeer(fnodes, i1, i2)
-	} else {
-		AddSimPeer(fnodes, i1, i2)
-	}
 
 }
 
@@ -237,5 +272,6 @@ func startServers(load bool) {
 		}
 		go Timer(fnode.State)
 		go fnode.State.ValidatorLoop()
+		go Throttle(fnode.State)
 	}
 }

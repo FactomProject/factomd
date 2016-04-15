@@ -139,10 +139,31 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
 	if err := s.LeaderExecute(m); err != nil {
 		return err
 	}
-	if eom.Minute == 9 {
-		s.LLeaderHeight++
-	}
+
 	return nil
+}
+
+func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) error {
+    DBS,ok := m.(*messages.DirectoryBlockSignature)
+    if !ok {
+        return fmt.Errorf("Bad Directory Block Signature")
+    }
+    
+    DBS.DBHeight = s.LLeaderHeight
+    
+	DBS.Timestamp = s.GetTimestamp()
+    hash := DBS.GetHash()
+    ack, err := s.NewAck(s.LLeaderHeight, DBS, hash)
+    if err != nil {
+        panic(err.Error())
+        return nil
+    }
+    ack.FollowerExecute(s)
+    DBS.FollowerExecute(s)
+     
+    s.LLeaderHeight++
+    
+    return nil
 }
 
 func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) bool {
@@ -160,14 +181,41 @@ func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) 
 
 func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg) bool {
 	c, ok := commitChain.(*messages.CommitChainMsg)
-	if ok {
-		pl := s.ProcessLists.Get(dbheight)
-		ecblk := pl.EntryCreditBlock
-		ecbody := ecblk.GetBody()
-		ecbody.AddEntry(c.CommitChain)
-		s.GetFactoidState().UpdateECTransaction(true, c.CommitChain)
-		s.PutCommits(c.GetHash(), c)
+	if !ok {
+		return false
 	}
+	
+	pl := s.ProcessLists.Get(dbheight)
+	pl.EntryCreditBlock.GetBody().AddEntry(c.CommitChain)
+	s.GetFactoidState().UpdateECTransaction(true, c.CommitChain)
+	
+	// save the Commit to match agains the Reveal later
+	s.PutCommits(c.GetHash(), c)
+	// check for a matching Reveal and, if found, execute it
+	if r := s.GetReveals(c.GetHash()); r != nil {
+		s.LeaderExecute(r)
+	}
+	
+	return true
+}
+
+func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg) bool {
+	c, ok := commitEntry.(*messages.CommitEntryMsg)
+	if !ok {
+		return false
+	}
+	
+	pl := s.ProcessLists.Get(dbheight)
+	pl.EntryCreditBlock.GetBody().AddEntry(c.CommitEntry)
+	s.GetFactoidState().UpdateECTransaction(true, c.CommitEntry)
+	
+	// save the Commit to match agains the Reveal later
+	s.PutCommits(c.GetHash(), c)
+	// check for a matching Reveal and, if found, execute it
+	if r := s.GetReveals(c.GetHash()); r != nil {
+		s.LeaderExecute(r)
+	}
+	
 	return true
 }
 
@@ -194,13 +242,16 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		if s.ServerIndexFor(constants.ADMIN_CHAINID) == e.ServerIndex {
 			pl.AdminBlock.AddEndOfMinuteMarker(e.Minute)
 		}
-		pl.SetEomComplete(e.ServerIndex, true)
 		e.MarkerSent = true
 	}
 
 	// We need to have all EOM markers before we start to clean up this height.
 	if e.Minute == 9 {
 
+        // Set this list complete
+		pl.SetEomComplete(e.ServerIndex, true)
+
+        // Check if all are complete
 		if !pl.EomComplete() {
 			return false
 		}
@@ -211,34 +262,11 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			mn := entryCreditBlock.NewMinuteNumber2(e.Minute)
 			ecbody.AddEntry(mn)
 		}
-
-		if s.ServerIndexFor(constants.D_CHAINID) == e.ServerIndex {
-			s.AddDBState(true, pl.DirectoryBlock, pl.AdminBlock, s.GetFactoidState().GetCurrentBlock(), pl.EntryCreditBlock)
-		}
-
-		if s.LLeaderHeight <= dbheight {
-			s.LLeaderHeight = dbheight + 1
-		}
-
-		found, index := s.GetFedServerIndexHash(s.IdentityChainID)
-		if found && e.ServerIndex == index {
-			dbstate := s.DBStates.Get(dbheight)
-			DBS := messages.NewDirectoryBlockSignature(dbheight)
-			DBS.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
-			DBS.Timestamp = s.GetTimestamp()
-			DBS.ServerIdentityChainID = s.IdentityChainID
-			DBS.Sign(s)
-
-			hash := DBS.GetHash()
-
-			ack, _ := s.NewAck(dbheight, DBS, hash)
-
-			// Leader Execute creates an acknowledgement and the EOM
-			s.NetworkOutMsgQueue() <- ack
-			s.NetworkOutMsgQueue() <- DBS
-			ack.FollowerExecute(s)
-			DBS.FollowerExecute(s)
-		}
+	}
+	
+	// Add EOM to the EBlocks
+	for _, eb := range pl.NewEBlocks {
+		eb.AddEndOfMinuteMarker(e.Bytes()[0])
 	}
 
 	return true
@@ -248,32 +276,95 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 // is then that we push it out to the rest of the network.  Otherwise, if we are not the
 // leader for the signature, it marks the sig complete for that list
 func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
+	pl := s.ProcessLists.Get(dbheight)
+    if !pl.EomComplete() {
+        return false
+    }
 
-	found, index := s.GetFedServerIndexHash(s.IdentityChainID)
+    DBS, ok := msg.(*messages.DirectoryBlockSignature)
 
-	dbs := msg.(*messages.DirectoryBlockSignature)
+	pl.SetSigComplete(int(DBS.ServerIndex), true)
+	
+    s.AddDBState(true, pl.DirectoryBlock, pl.AdminBlock, s.GetFactoidState().GetCurrentBlock(), pl.EntryCreditBlock)
+    	   
+    if !ok {
+        panic("DirectoryBlockSignature is the wrong type.")
+    }
+    
+    if DBS.Local {
+        dbstate := s.DBStates.Get(dbheight)
+	    DBS.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
+        DBS.Sign(s)
 
-	if found && uint32(index) == dbs.ServerIndex {
-		hash := dbs.GetHash()
-		ack, _ := s.NewAck(dbs.DBHeight, msg, hash)
-		s.NetworkOutMsgQueue() <- dbs
-		s.NetworkOutMsgQueue() <- ack
-	}
-
+    	hash := DBS.GetHash()
+        
+        pl.UndoLeaderAck(int(DBS.ServerIndex))
+	    ack, _ := s.NewAck(dbheight, DBS, hash)
+        
+    	// Leader Execute creates an acknowledgement and the EOM
+	    s.NetworkOutMsgQueue() <- ack
+	    s.NetworkOutMsgQueue() <- DBS	
+    }else{
+        // TODO follower should validate signature here.
+    }
+  
 	return true
 }
 
 func (s *State) GetNewEBlocks(dbheight uint32, hash interfaces.IHash) interfaces.IEntryBlock {
-	return nil
+	pl := s.ProcessLists.Get(dbheight)
+	return pl.GetNewEBlocks(hash)
 }
+
 func (s *State) PutNewEBlocks(dbheight uint32, hash interfaces.IHash, eb interfaces.IEntryBlock) {
+	pl := s.ProcessLists.Get(dbheight)
+	pl.PutNewEBlocks(dbheight, hash, eb)
 }
+
+func (s *State) PutNewEntries(dbheight uint32, hash interfaces.IHash, e interfaces.IEntry) {
+	pl := s.ProcessLists.Get(dbheight)
+	pl.PutNewEntries(dbheight, hash, e)
+}
+
 
 func (s *State) GetCommits(hash interfaces.IHash) interfaces.IMsg {
-	return nil
+	return s.Commits[hash.Fixed()]
 }
-func (s *State) PutCommits(hash interfaces.IHash, msg interfaces.IMsg) {
 
+func (s *State) GetReveals(hash interfaces.IHash) interfaces.IMsg {
+	return s.Reveals[hash.Fixed()]
+}
+
+func (s *State) PutCommits(hash interfaces.IHash, msg interfaces.IMsg) {
+	cmsg, ok := msg.(interfaces.ICounted)
+	if ok {
+		v := s.Commits[hash.Fixed()]
+		if v != nil {
+			_, ok := v.(interfaces.ICounted)
+			if ok {
+				cmsg.SetCount(v.(interfaces.ICounted).GetCount() + 1)
+			} else {
+				panic("Should never happen")
+			}
+		}
+	}
+	s.Commits[hash.Fixed()] = msg
+}
+
+func (s *State) PutReveals(hash interfaces.IHash, msg interfaces.IMsg) {
+	cmsg, ok := msg.(interfaces.ICounted)
+	if ok {
+		v := s.Reveals[hash.Fixed()]
+		if v != nil {
+			_, ok := v.(interfaces.ICounted)
+			if ok {
+				cmsg.SetCount(v.(interfaces.ICounted).GetCount() + 1)
+			} else {
+				panic("Should never happen")
+			}
+		}
+	}
+	s.Reveals[hash.Fixed()] = msg
 }
 
 // This is the highest block signed off and recorded in the Database.

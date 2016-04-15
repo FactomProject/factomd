@@ -387,7 +387,7 @@ func InitAnchor(s interfaces.IState) (*Anchor, error) {
 
 func (a *Anchor) readConfig() {
 	anchorLog.Info("readConfig")
-	a.cfg = util.ReadConfig("")
+	a.cfg = util.ReadConfig("", "")
 	a.confirmationsNeeded = a.cfg.Anchor.ConfirmationsNeeded
 	a.fee, _ = btcutil.NewAmount(a.cfg.Btc.BtcTransFee)
 

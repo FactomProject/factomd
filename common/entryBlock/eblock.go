@@ -90,6 +90,9 @@ func (c *EBlock) GetBody() interfaces.IEBlockBody {
 // and adds it to the Entry Block Body.
 func (e *EBlock) AddEBEntry(entry interfaces.IEBEntry) error {
 	e.Body.EBEntries = append(e.Body.EBEntries, entry.GetHash())
+	if err := e.BuildHeader(); err != nil {
+		return err
+	}
 	return nil
 }
 

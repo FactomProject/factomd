@@ -42,21 +42,19 @@ func (m *CommitEntryMsg) SetCount(cnt int) {
 	m.count = cnt
 }
 
-func (e *CommitEntryMsg) Process(dbheight uint32, state interfaces.IState) bool {
-	// panic prevents factomd from running continuously.
-	state.Println("*** CommitEntryMsg is not implemented.")
-	return true
+func (m *CommitEntryMsg) Process(dbheight uint32, state interfaces.IState) bool {
+	return state.ProcessCommitEntry(dbheight, m)
 }
 
 func (m *CommitEntryMsg) GetHash() interfaces.IHash {
-	if m.hash == nil {
+	if m.CommitEntry.EntryHash == nil {
 		data, err := m.CommitEntry.MarshalBinary()
 		if err != nil {
 			panic(fmt.Sprintf("Error in CommitChain.GetHash(): %s", err.Error()))
 		}
-		m.hash = primitives.Sha(data)
+		m.CommitEntry.EntryHash = primitives.Sha(data)
 	}
-	return m.hash
+	return m.CommitEntry.EntryHash
 }
 
 func (m *CommitEntryMsg) GetMsgHash() interfaces.IHash {

@@ -8,6 +8,10 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"os"
+	"strings"
+	"sync"
+
 	"github.com/FactomProject/factomd/anchor"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -20,9 +24,6 @@ import (
 	"github.com/FactomProject/factomd/logger"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
-	"os"
-	"strings"
-	"sync"
 )
 
 var _ = fmt.Print
@@ -50,6 +51,7 @@ type State struct {
 	PortNumber              int
 	Replay                  *Replay
 	GreenFlg                bool
+	DropRate                int
 
 	IdentityChainID interfaces.IHash // If this node has an identity, this is it
 
@@ -77,6 +79,8 @@ type State struct {
 	// For Follower
 	Holding map[[32]byte]interfaces.IMsg // Hold Messages
 	Acks    map[[32]byte]interfaces.IMsg // Hold Acknowledgemets
+	Commits map[[32]byte]interfaces.IMsg // Commit Messages
+	Reveals map[[32]byte]interfaces.IMsg // Reveal Messages
 
 	AuditHeartBeats []interfaces.IMsg   // The checklist of HeartBeats for this period
 	FedServerFaults [][]interfaces.IMsg // Keep a fault list for every server
@@ -130,6 +134,9 @@ type State struct {
 	//For Replay / journal
 	IsReplaying     bool
 	ReplayTimestamp interfaces.Timestamp
+
+	//For throttling how many missing messages we request
+	IsThrottled bool
 }
 
 var _ interfaces.IState = (*State)(nil)
@@ -176,12 +183,21 @@ func (s *State) GetFactomNodeName() string {
 	return s.FactomNodeName
 }
 
-func (s *State) LoadConfig(filename string) {
+func (s *State) GetDropRate() int {
+	return s.DropRate
+}
+
+func (s *State) SetDropRate(droprate int) {
+	s.DropRate = droprate
+}
+
+// TODO JAYJAY BUGBUG- passing in folder here is a hack for multiple factomd processes on a single machine (sharing a single .factom)
+func (s *State) LoadConfig(filename string, folder string) {
 
 	s.FactomNodeName = "FNode0" // Default Factom Node Name for Simulation
 	if len(filename) > 0 {
 		s.filename = filename
-		s.ReadCfg(filename)
+		s.ReadCfg(filename, folder)
 
 		// Get our factomd configuration information.
 		cfg := s.GetCfg().(*util.FactomdConfig)
@@ -253,6 +269,8 @@ func (s *State) Init() {
 	// Set up maps for the followers
 	s.Holding = make(map[[32]byte]interfaces.IMsg)
 	s.Acks = make(map[[32]byte]interfaces.IMsg)
+	s.Commits = make(map[[32]byte]interfaces.IMsg)
+	s.Reveals = make(map[[32]byte]interfaces.IMsg)
 
 	// Setup the FactoidState and Validation Service that holds factoid and entry credit balances
 	s.FactoidBalancesP = map[[32]byte]int64{}
@@ -373,6 +391,15 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 	if bytes.Compare(fblk.GetKeyMR().Bytes(), dblk.GetDBEntries()[2].GetKeyMR().Bytes()) != 0 {
 		panic("Should not happen")
 	}
+	eblks := make(map[[32]byte]interfaces.IEntryBlock)
+	if len(dblk.GetDBEntries()) > 3 {
+		for _, v := range dblk.GetDBEntries()[3:] {
+			eblks[v.GetKeyMR().Fixed()], err = s.DB.FetchEBlockByKeyMR(v.GetKeyMR())
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
 
 	msg := messages.NewDBStateMsg(s.GetTimestamp(), dblk, ablk, fblk, ecblk)
 
@@ -381,13 +408,61 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 }
 
 func (s *State) LoadSpecificMsg(dbheight uint32, plistheight uint32) (interfaces.IMsg, error) {
-	msg := s.ProcessLists.Get(dbheight).MsgQueue[plistheight]
+	if dbheight < s.ProcessLists.DBHeightBase {
+		return nil, fmt.Errorf("Missing message is too deeply buried in blocks")
+	} else if dbheight > (s.ProcessLists.DBHeightBase + uint32(len(s.ProcessLists.Lists))) {
+		return nil, fmt.Errorf("Answering node has not reached DBHeight of missing message")
+	}
+
+	procList := s.ProcessLists.Get(dbheight)
+	if procList == nil {
+		return nil, fmt.Errorf("Nil Process List")
+	} else if len(procList.Servers) == 0 {
+		return nil, fmt.Errorf("No servers in process list")
+	}
+	if len(procList.Servers[0].List) < int(plistheight)+1 {
+		return nil, fmt.Errorf("Process List too small (lacks requested msg)")
+	}
+
+	msg := procList.Servers[0].List[plistheight]
 
 	if msg == nil {
 		return nil, fmt.Errorf("State process list does not include requested message")
 	}
 
 	return msg, nil
+}
+
+func (s *State) LoadSpecificMsgAndAck(dbheight uint32, plistheight uint32) (interfaces.IMsg, interfaces.IMsg, error) {
+	if dbheight < s.ProcessLists.DBHeightBase {
+		return nil, nil, fmt.Errorf("Missing message is too deeply buried in blocks")
+	} else if dbheight > (s.ProcessLists.DBHeightBase + uint32(len(s.ProcessLists.Lists))) {
+		return nil, nil, fmt.Errorf("Answering node has not reached DBHeight of missing message")
+	}
+
+	procList := s.ProcessLists.Get(dbheight)
+	if procList == nil {
+		return nil, nil, fmt.Errorf("Nil Process List")
+	} else if len(procList.Servers) < 1 {
+		return nil, nil, fmt.Errorf("No servers?")
+	}
+	if len(procList.Servers[0].List) < int(plistheight)+1 {
+		return nil, nil, fmt.Errorf("Process List too small (lacks requested msg)")
+	}
+
+	msg := procList.Servers[0].List[plistheight]
+
+	if msg == nil {
+		return nil, nil, fmt.Errorf("State process list does not include requested message")
+	}
+
+	ackMsg, ok := s.ProcessLists.Get(dbheight).OldAcks[msg.GetHash().Fixed()]
+
+	if !ok || ackMsg == nil {
+		return nil, nil, fmt.Errorf("State process list does not include ack for message")
+	}
+
+	return msg, ackMsg, nil
 }
 
 func (s *State) MessageToLogString(msg interfaces.IMsg) string {
@@ -443,6 +518,10 @@ func (s *State) UpdateState() {
 
 		s.Println(str)
 	}
+}
+
+func (s *State) Dethrottle() {
+	s.IsThrottled = false
 }
 
 // Add the given serverChain to this processlist, and return the server index number of the
@@ -618,8 +697,8 @@ func (s *State) GetCfg() interfaces.IFactomConfig {
 // ReadCfg forces a read of the factom config file.  However, it does not change the
 // state of any cfg object held by other processes... Only what will be returned by
 // future calls to Cfg().(s.Cfg.(*util.FactomdConfig)).String()
-func (s *State) ReadCfg(filename string) interfaces.IFactomConfig {
-	s.Cfg = util.ReadConfig(filename)
+func (s *State) ReadCfg(filename string, folder string) interfaces.IFactomConfig {
+	s.Cfg = util.ReadConfig(filename, folder)
 	return s.Cfg
 }
 
