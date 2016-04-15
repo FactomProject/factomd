@@ -52,7 +52,7 @@ func Timer(state interfaces.IState) {
 				fmt.Println("Skip Period")
 				time.Sleep(time.Duration(tenthPeriod))
 			}
-
+                
 			if len(state.GetFedServers()) == 0 {
 				state.AddFedServer(primitives.Sha([]byte("FNode0"))) // Make sure this node is NOT a leader
 			}

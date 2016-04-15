@@ -22,6 +22,7 @@ type IState interface {
 	SetIdentityChainID(IHash)
 	Sign([]byte) IFullSignature
 	GetDirectoryBlockInSeconds() int
+	SetDirectoryBlockInSeconds(int)
 	GetServer() IServer
 	GetFactomdVersion() int
 	GetProtocolVersion() int

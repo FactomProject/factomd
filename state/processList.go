@@ -269,11 +269,12 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 }
 
 func (p *ProcessList) String() string {
-	prt := ""
+    
+    prt := ""
 	if p == nil {
 		prt = "-- <nil>\n"
 	} else {
-		prt = p.State.GetFactomNodeName() + "\n"
+		prt = fmt.Sprintf("%d with %d Federated Servers\n",p.State.GetFactomNodeName(),p.NumberServers)
 
 		for i, server := range p.Servers {
 			if i >= p.NumberServers {
