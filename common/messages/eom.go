@@ -83,6 +83,7 @@ func (m *EOM) Type() int {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *EOM) Validate(state interfaces.IState) int {
+    fmt.Println("VVVVVVVVVVVVVVVVVVVVVVv  Validate")
 	found, _ := state.GetFedServerIndexHash(m.DBHeight, m.ChainID)
 	if !found { // Only EOM from federated servers are valid.
 		return -1
@@ -102,6 +103,7 @@ func (m *EOM) Validate(state interfaces.IState) int {
 // Returns true if this is a message for this server to execute as
 // a leader.
 func (m *EOM) Leader(state interfaces.IState) bool {
+    fmt.Println("LLLLLLLLLLLLLLLLLLL Leader")
 	found, index := state.GetFedServerIndexHash(state.GetLeaderHeight(), state.GetIdentityChainID())
 	if found && index == m.ServerIndex {
 		return true

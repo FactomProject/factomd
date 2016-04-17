@@ -370,7 +370,7 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 		pl.Servers[i].List = make([]interfaces.IMsg, 0)
 
 	}
-    
+        
     // Make a copy of the previous FedServers
     pl.FedServers = append(pl.FedServers, previous.FedServers ...)
    	pl.AuditServers = append(pl.AuditServers, previous.AuditServers ...)
