@@ -62,7 +62,9 @@ type State struct {
 	networkOutMsgQueue     chan interfaces.IMsg
 	networkInvalidMsgQueue chan interfaces.IMsg
 	inMsgQueue             chan interfaces.IMsg
-	ShutdownChan           chan int // For gracefully halting Factom
+	leaderMsgQueue         chan interfaces.IMsg
+    undo                   interfaces.IMsg
+    ShutdownChan           chan int // For gracefully halting Factom
 	JournalFile            string
 
 	myServer      interfaces.IServer //the server running on this Federated Server
@@ -73,6 +75,7 @@ type State struct {
 	ServerIndex   int // Index of the server, as understood by the leader
 
 	LLeaderHeight uint32
+    
 
 	// Maps
 	// ====
@@ -256,7 +259,8 @@ func (s *State) Init() {
 	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 10000) //incoming message queue from the network messages
 	s.networkOutMsgQueue = make(chan interfaces.IMsg, 10000)     //Messages to be broadcast to the network
 	s.inMsgQueue = make(chan interfaces.IMsg, 10000)             //incoming message queue for factom application messages
-	s.ShutdownChan = make(chan int, 1)                           //Channel to gracefully shut down.
+	s.leaderMsgQueue = make(chan interfaces.IMsg, 10000)         //queue of Leadership messages
+    s.ShutdownChan = make(chan int, 1)                           //Channel to gracefully shut down.
 
 	os.Mkdir(s.LogPath, 0777)
 	_, err := os.Create(s.JournalFile) //Create the Journal File
@@ -684,6 +688,16 @@ func (s *State) NetworkOutMsgQueue() chan interfaces.IMsg {
 
 func (s *State) InMsgQueue() chan interfaces.IMsg {
 	return s.inMsgQueue
+}
+
+func (s *State) LeaderMsgQueue() chan interfaces.IMsg {
+	return s.leaderMsgQueue
+}
+
+func (s *State) Undo() interfaces.IMsg {
+	u := s.undo
+    s.undo = nil
+    return u
 }
 
 //var _ IState = (*State)(nil)

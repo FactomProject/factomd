@@ -155,7 +155,7 @@ func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) error {
     hash := DBS.GetHash()
     ack, err := s.NewAck(s.LLeaderHeight, DBS, hash)
     if err != nil {
-        panic(err.Error())
+        s.undo = m
         return nil
     }
     ack.FollowerExecute(s)

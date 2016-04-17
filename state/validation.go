@@ -44,11 +44,20 @@ func (state *State) ValidatorLoop() {
 				msgProcess()
 				break loop
 			default:
-				time.Sleep(time.Millisecond * 100)
 			}
+            msg = state.Undo()
+            if msg != nil {
+        		msg.FollowerExecute(state)
+            }else{
+                select {
+                    case msg = <-state.LeaderMsgQueue() :
+                        msg.FollowerExecute(state)               
+                    default:
+        				time.Sleep(time.Millisecond * 100)
+                }    
+            }            
 		}
 
-		time.Sleep(time.Millisecond * 100)
 
 		if state.IsReplaying == true {
 			state.ReplayTimestamp = msg.GetTimestamp()
@@ -74,7 +83,7 @@ func (state *State) ValidatorLoop() {
 				if state.PrintType(msg.Type()) {
 					state.Println(fmt.Sprintf("%20s %s\n", "Follower:", msg.String()))
 				}
-				msg.FollowerExecute(state)
+                state.LeaderMsgQueue() <- msg
 			} else {
 				state.Print(" Message ignored\n")
 			}

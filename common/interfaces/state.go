@@ -67,10 +67,12 @@ type IState interface {
 
 	// Journalling
 	JournalMessage(IMsg)
-
+    
 	// Consensus
 	InMsgQueue() chan IMsg // Read by Validate
-
+    LeaderMsgQueue() chan IMsg // Leader Queue
+    Undo() IMsg
+    
 	// Lists and Maps
 	// =====
 	GetAuditHeartBeats() []IMsg   // The checklist of HeartBeats for this period

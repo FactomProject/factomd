@@ -68,6 +68,9 @@ func Timer(state interfaces.IState) {
 				eom.Sign(state)
 		
                 if i == 9 {
+                    if index > 0 {
+                        fmt.Println("EOM9", index)
+                    }
                     DBS := new(messages.DirectoryBlockSignature)
                     DBS.ServerIdentityChainID = state.GetIdentityChainID()
                     DBS.Local = true
