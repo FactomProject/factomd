@@ -135,7 +135,7 @@ func (s *State) LeaderExecute(m interfaces.IMsg) error {
 
 func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
 	eom, _ := m.(*messages.EOM)
-	eom.DirectoryBlockHeight = s.LLeaderHeight
+	eom.DBHeight = s.LLeaderHeight
 	if err := s.LeaderExecute(m); err != nil {
 		return err
 	}
@@ -236,10 +236,10 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	pl := s.ProcessLists.Get(dbheight)
 
 	if !e.MarkerSent {
-		if s.ServerIndexFor(constants.FACTOID_CHAINID) == e.ServerIndex {
+		if s.ServerIndexFor(e.DBHeight, constants.FACTOID_CHAINID) == e.ServerIndex {
 			s.FactoidState.EndOfPeriod(int(e.Minute))
 		}
-		if s.ServerIndexFor(constants.ADMIN_CHAINID) == e.ServerIndex {
+		if s.ServerIndexFor(e.DBHeight, constants.ADMIN_CHAINID) == e.ServerIndex {
 			pl.AdminBlock.AddEndOfMinuteMarker(e.Minute)
 		}
 		e.MarkerSent = true
@@ -256,7 +256,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			return false
 		}
 
-		if s.ServerIndexFor(constants.EC_CHAINID) == e.ServerIndex {
+		if s.ServerIndexFor(e.DBHeight, constants.EC_CHAINID) == e.ServerIndex {
 			ecblk := pl.EntryCreditBlock
 			ecbody := ecblk.GetBody()
 			mn := entryCreditBlock.NewMinuteNumber2(e.Minute)
@@ -444,8 +444,8 @@ func (s *State) PutE(rt bool, adr [32]byte, v int64) {
 // Entry Credit Addresses
 // ChainIDs
 // ...
-func (s *State) ServerIndexFor(hash []byte) int {
-	n := len(s.FedServers)
+func (s *State) ServerIndexFor(dbheight uint32, hash []byte) int {
+	n := len(s.ProcessLists.Get(dbheight).FedServers)
 	v := 0
 	if len(hash) > 0 {
 		v = int(hash[0]) % n
@@ -454,12 +454,12 @@ func (s *State) ServerIndexFor(hash []byte) int {
 }
 
 func (s *State) LeaderFor(hash []byte) bool {
-	found, index := s.GetFedServerIndexHash(s.IdentityChainID)
+	found, index := s.GetFedServerIndexHash(s.LLeaderHeight, s.IdentityChainID)
 
 	if !found {
 		return false
 	}
-	return index == s.ServerIndexFor(hash)
+	return index == s.ServerIndexFor(s.LLeaderHeight, hash)
 }
 
 func (s *State) NewAdminBlock(dbheight uint32) interfaces.IAdminBlock {
@@ -527,7 +527,7 @@ func (s *State) NewAck(dbheight uint32, msg interfaces.IMsg, hash interfaces.IHa
 	s.AckLock.Lock()
 	defer s.AckLock.Unlock()
 
-	found, index := s.GetFedServerIndexHash(s.IdentityChainID)
+	found, index := s.GetFedServerIndexHash(dbheight, s.IdentityChainID)
 	if !found {
 		return nil, fmt.Errorf(s.FactomNodeName + ": Creation of an Ack attempted by non-server")
 	}

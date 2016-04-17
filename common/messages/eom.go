@@ -22,7 +22,7 @@ type EOM struct {
 	Timestamp interfaces.Timestamp
 	Minute    byte
 
-	DirectoryBlockHeight uint32
+	DBHeight             uint32
 	ServerIndex          int
 	ChainID              interfaces.IHash
 	Signature            interfaces.IFullSignature
@@ -83,7 +83,7 @@ func (m *EOM) Type() int {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *EOM) Validate(state interfaces.IState) int {
-	found, _ := state.GetFedServerIndexHash(m.ChainID)
+	found, _ := state.GetFedServerIndexHash(m.DBHeight, m.ChainID)
 	if !found { // Only EOM from federated servers are valid.
 		return -1
 	}
@@ -102,7 +102,7 @@ func (m *EOM) Validate(state interfaces.IState) int {
 // Returns true if this is a message for this server to execute as
 // a leader.
 func (m *EOM) Leader(state interfaces.IState) bool {
-	found, index := state.GetFedServerIndexHash(state.GetIdentityChainID())
+	found, index := state.GetFedServerIndexHash(state.GetLeaderHeight(), state.GetIdentityChainID())
 	if found && index == m.ServerIndex {
 		return true
 	}
@@ -181,7 +181,7 @@ func (m *EOM) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	m.ServerIndex = int(newData[0])
 	newData = newData[1:]
 
-	m.DirectoryBlockHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+	m.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
 	if len(newData) > 0 {
 		sig := new(primitives.Signature)
@@ -228,7 +228,7 @@ func (m *EOM) MarshalBinary() (data []byte, err error) {
 	}
 	buf.Write(resp)
 
-	binary.Write(&buf, binary.BigEndian, m.DirectoryBlockHeight)
+	binary.Write(&buf, binary.BigEndian, m.DBHeight)
 
 	sig := m.GetSignature()
 	if sig != nil {
@@ -246,7 +246,7 @@ func (m *EOM) String() string {
 		"EOM",
 		m.ServerIndex,
 		m.Minute,
-		m.DirectoryBlockHeight,
+		m.DBHeight,
 		m.ChainID.Bytes()[:5],
 		m.GetMsgHash().Bytes()[:5])
 

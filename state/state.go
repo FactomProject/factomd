@@ -91,12 +91,6 @@ type State struct {
 	//Network MAIN = 0, TEST = 1, LOCAL = 2, CUSTOM = 3
 	NetworkNumber int // Encoded into Directory Blocks(s.Cfg.(*util.FactomdConfig)).String()
 
-	// Number of Servers acknowledged by Factom
-	Matryoshka   []interfaces.IHash        // Reverse Hash
-	AuditServers []interfaces.IFctServer   // List of Audit Servers
-	ServerOrder  [][]interfaces.IFctServer // 10 lists for Server Order for each minute
-	FedServers   []interfaces.IFctServer   // List of Federated Servers
-
 	// Database
 	DB     *databaseOverlay.Overlay
 	Logger *logger.FLogger
@@ -281,10 +275,6 @@ func (s *State) Init() {
 	s.ECBalancesP = map[[32]byte]int64{}
 	s.FactoidBalancesT = map[[32]byte]int64{}
 	s.ECBalancesT = map[[32]byte]int64{}
-
-	s.AuditServers = make([]interfaces.IFctServer, 0)
-	s.FedServers = make([]interfaces.IFctServer, 0)
-	s.ServerOrder = make([][]interfaces.IFctServer, 0)
 
 	fs := new(FactoidState)
 	fs.State = s
@@ -528,40 +518,16 @@ func (s *State) Dethrottle() {
 	s.IsThrottled = false
 }
 
-// Add the given serverChain to this processlist, and return the server index number of the
-// added server
-func (s *State) AddFedServer(identityChainID interfaces.IHash) int {
-	found, i := s.GetFedServerIndexHash(identityChainID)
-	if found {
-		return i
-	}
-	s.FedServers = append(s.FedServers, nil)
-	copy(s.FedServers[i+1:], s.FedServers[i:])
-	s.FedServers[i] = &interfaces.Server{ChainID: identityChainID}
-	return i
+func (s *State) AddFedServer(dbheight uint32, hash interfaces.IHash) int {
+    return s.ProcessLists.Get(dbheight).AddFedServer(hash)    
 }
 
-// Add the given serverChain to this processlist, and return the server index number of the
-// added server
-func (p *State) RemoveFedServerHash(identityChainID interfaces.IHash) {
-	found, i := p.GetFedServerIndexHash(identityChainID)
-	if !found {
-		return
-	}
-	p.FedServers = append(p.FedServers[:i], p.FedServers[i+1:]...)
+func (s *State) GetFedServers(dbheight uint32) []interfaces.IFctServer{
+    return s.ProcessLists.Get(dbheight).FedServers
 }
 
-// Returns true and the index of this server, or false and the insertion point for this server
-func (s *State) GetFedServerIndexHash(identityChainID interfaces.IHash) (bool, int) {
-	scid := identityChainID.Bytes()
-
-	for i, fs := range s.FedServers {
-		// Find and remove
-		if bytes.Compare(scid, fs.GetChainID().Bytes()) == 0 {
-			return true, i
-		}
-	}
-	return false, len(s.FedServers)
+func (s *State) GetFedServerIndexHash(dbheight uint32, serverChainID interfaces.IHash) (bool, int) {
+    return s.ProcessLists.Get(dbheight).GetFedServerIndexHash(serverChainID)
 }
 
 func (s *State) GetFactoshisPerEC() uint64 {
@@ -627,10 +593,6 @@ func (s *State) LogInfo(args ...interface{}) {
 
 func (s *State) GetAuditHeartBeats() []interfaces.IMsg {
 	return s.AuditHeartBeats
-}
-
-func (s *State) GetFedServers() []interfaces.IFctServer {
-	return s.FedServers
 }
 
 func (s *State) GetFedServerFaults() [][]interfaces.IMsg {
@@ -795,7 +757,7 @@ func (s *State) SetString() {
 			0,
 			s.GetHighestKnownBlock())
 	} else {
-		found, index := s.GetFedServerIndexHash(s.IdentityChainID)
+		found, index := s.GetFedServerIndexHash(buildingBlock,s.IdentityChainID)
 		stype := ""
 		if found {
 			stype = fmt.Sprintf("L %4d", index)

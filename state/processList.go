@@ -6,7 +6,7 @@ import (
 	"github.com/FactomProject/factomd/common/directoryBlock"
 	//"github.com/FactomProject/factomd/common/factoid"
 	"log"
-
+    "bytes"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
@@ -43,6 +43,13 @@ type ProcessList struct {
 	AdminBlock       interfaces.IAdminBlock
 	EntryCreditBlock interfaces.IEntryCreditBlock
 	DirectoryBlock   interfaces.IDirectoryBlock
+    
+    // Number of Servers acknowledged by Factom
+	Matryoshka   []interfaces.IHash        // Reverse Hash
+	AuditServers []interfaces.IFctServer   // List of Audit Servers
+	ServerOrder  [][]interfaces.IFctServer // 10 lists for Server Order for each minute
+	FedServers   []interfaces.IFctServer   // List of Federated Servers
+
 }
 
 type ListServer struct {
@@ -54,6 +61,43 @@ type ListServer struct {
     LastLeaderAck interfaces.IMsg   // The last Acknowledgement set by this leader
 	LastAck       interfaces.IMsg   // The last Acknowledgement set by this follower
 }
+
+// Returns true and the index of this server, or false and the insertion point for this server
+func (p *ProcessList) GetFedServerIndexHash(identityChainID interfaces.IHash) (bool, int) {
+	scid := identityChainID.Bytes()
+
+	for i, fs := range p.FedServers {
+		// Find and remove
+		if bytes.Compare(scid, fs.GetChainID().Bytes()) == 0 {
+			return true, i
+		}
+	}
+	return false, len(p.FedServers)
+}
+
+// Add the given serverChain to this processlist, and return the server index number of the
+// added server
+func (s *ProcessList) AddFedServer(identityChainID interfaces.IHash) int {
+	found, i := s.GetFedServerIndexHash(identityChainID)
+	if found {
+		return i
+	}
+	s.FedServers = append(s.FedServers, nil)
+	copy(s.FedServers[i+1:], s.FedServers[i:])
+	s.FedServers[i] = &interfaces.Server{ChainID: identityChainID}
+	return i
+}
+
+// Add the given serverChain to this processlist, and return the server index number of the
+// added server
+func (p *ProcessList) RemoveFedServerHash(identityChainID interfaces.IHash) {
+	found, i := p.GetFedServerIndexHash(identityChainID)
+	if !found {
+		return
+	}
+	p.FedServers = append(p.FedServers[:i], p.FedServers[i+1:]...)
+}
+
 
 // Given a server index, return the last Ack
 func (p *ProcessList) GetLastAck(index int) interfaces.IMsg {
@@ -133,7 +177,7 @@ func (p *ProcessList) EomComplete() bool {
 	if p == nil {
 		return true
 	}
-	n := len(p.State.GetFedServers())
+	n := len(p.State.GetFedServers(p.DBHeight))
 	for i := 0; i < n; i++ {
 		c := p.Servers[i]
 		if !c.EomComplete {
@@ -149,7 +193,7 @@ func (p *ProcessList) SigComplete() bool {
 	if p == nil {
 		return true
 	}
-	n := len(p.State.GetFedServers())
+	n := len(p.State.GetFedServers(p.DBHeight))
 	for i := 0; i < n; i++ {
 		c := p.Servers[i]
 		if !c.SigComplete {
@@ -170,7 +214,7 @@ func (p *ProcessList) Process(state *State) {
 		lht := last.DirectoryBlock.GetHeader().GetDBHeight()
 		if last.Saved && lht >= p.DBHeight-1 {
 			p.good = true
-			p.NumberServers = len(state.FedServers)
+			p.NumberServers = len(p.FedServers)
 		} else {
 			//fmt.Println("ht/lht: ", p.DBHeight, " ", lht, " ", last.Saved)
 			return
@@ -313,7 +357,7 @@ func (p *ProcessList) String() string {
  * Support
  ************************************************/
 
-func NewProcessList(state interfaces.IState, dbheight uint32) *ProcessList {
+func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uint32) *ProcessList {
 	// We default to the number of Servers previous.   That's because we always
 	// allocate the FUTURE directoryblock, not the current or previous...
 
@@ -326,6 +370,14 @@ func NewProcessList(state interfaces.IState, dbheight uint32) *ProcessList {
 		pl.Servers[i].List = make([]interfaces.IMsg, 0)
 
 	}
+    
+    // Make a copy of the previous FedServers
+    pl.FedServers = append(pl.FedServers, previous.FedServers ...)
+   	pl.AuditServers = append(pl.AuditServers, previous.AuditServers ...)
+    pl.ServerOrder = append(pl.ServerOrder, previous.ServerOrder ...)
+ 
+
+    
 	pl.DBHeight = dbheight
 
 	pl.OldMsgs = make(map[[32]byte]interfaces.IMsg)

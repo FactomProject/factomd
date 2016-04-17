@@ -33,7 +33,7 @@ func Timer(state interfaces.IState) {
 	state.Print(fmt.Sprintf("Time: %v\r\n", time.Now()))
 	time.Sleep(time.Duration(wait))
 	for {
-		found, index := state.GetFedServerIndexHash(state.GetIdentityChainID())
+		found, index := state.GetFedServerIndexHash(state.GetLeaderHeight(), state.GetIdentityChainID())
         sent := false
 		for i := 0; i < 10; i++ {
 			now = time.Now().UnixNano()
@@ -53,8 +53,8 @@ func Timer(state interfaces.IState) {
 				time.Sleep(time.Duration(tenthPeriod))
 			}
 
-			if len(state.GetFedServers()) == 0 {
-				state.AddFedServer(primitives.Sha([]byte("FNode0"))) // Make sure this node is NOT a leader
+			if len(state.GetFedServers(state.GetLeaderHeight())) == 0 {
+				state.AddFedServer(state.GetLeaderHeight(), primitives.Sha([]byte("FNode0"))) // Make sure this node is NOT a leader
 			}
 			// End of the last period, and this is a server, send messages that
 			// close off the minute.

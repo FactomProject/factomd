@@ -32,12 +32,12 @@ type IState interface {
 	LoadDBState(dbheight uint32) (IMsg, error)
 	LoadSpecificMsg(dbheight uint32, plistheight uint32) (IMsg, error)
 	LoadSpecificMsgAndAck(dbheight uint32, plistheight uint32) (IMsg, IMsg, error)
-	GetFedServerIndexHash(IHash) (bool, int)
+	GetFedServerIndexHash(uint32, IHash) (bool, int)
 	SetString()
 	ShortString() string
 
-	AddFedServer(IHash) int
-	GetFedServers() []IFctServer
+	AddFedServer(uint32, IHash) int
+	GetFedServers(uint32) []IFctServer
 
 	Green() bool
 
@@ -97,7 +97,7 @@ type IState interface {
 
 	// These are methods run by the consensus algorithm to track what servers are the leaders
 	// and what lists they are responsible for.
-	ServerIndexFor(hash []byte) int // Returns the serverindex responsible for this hash
+	ServerIndexFor(uint32, []byte) int // Returns the serverindex responsible for this hash
 	LeaderFor(hash []byte) bool     // Tests if this server is the leader for this key
 
 	// Database
