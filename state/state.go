@@ -63,8 +63,8 @@ type State struct {
 	networkInvalidMsgQueue chan interfaces.IMsg
 	inMsgQueue             chan interfaces.IMsg
 	leaderMsgQueue         chan interfaces.IMsg
-    undo                   interfaces.IMsg
-    ShutdownChan           chan int // For gracefully halting Factom
+	undo                   interfaces.IMsg
+	ShutdownChan           chan int // For gracefully halting Factom
 	JournalFile            string
 
 	myServer      interfaces.IServer //the server running on this Federated Server
@@ -75,7 +75,6 @@ type State struct {
 	ServerIndex   int // Index of the server, as understood by the leader
 
 	LLeaderHeight uint32
-    
 
 	// Maps
 	// ====
@@ -254,7 +253,7 @@ func (s *State) Init() {
 	s.networkOutMsgQueue = make(chan interfaces.IMsg, 10000)     //Messages to be broadcast to the network
 	s.inMsgQueue = make(chan interfaces.IMsg, 10000)             //incoming message queue for factom application messages
 	s.leaderMsgQueue = make(chan interfaces.IMsg, 10000)         //queue of Leadership messages
-    s.ShutdownChan = make(chan int, 1)                           //Channel to gracefully shut down.
+	s.ShutdownChan = make(chan int, 1)                           //Channel to gracefully shut down.
 
 	os.Mkdir(s.LogPath, 0777)
 	_, err := os.Create(s.JournalFile) //Create the Journal File
@@ -499,25 +498,25 @@ func (s *State) GetDirectoryBlockByHeight(height uint32) interfaces.IDirectoryBl
 }
 
 func (s *State) UpdateState() {
-   for {
-        s.SetString()
-        progress1 := s.ProcessLists.UpdateState()
-        progress2 := s.DBStates.UpdateState()
+	for {
+		s.SetString()
+		progress1 := s.ProcessLists.UpdateState()
+		progress2 := s.DBStates.UpdateState()
 
-        if s.GetOut() {
-            str := fmt.Sprintf("%25s   %10s   %25s", "----------------", s.GetFactomNodeName(), "--------------------\n")
-            str = str + s.ProcessLists.String()
-            str = str + s.DBStates.String()
-            str = str + fmt.Sprintf("%25s   %10s   %25s", "================", s.GetFactomNodeName(), "===================\n")
-            str = str + "===================================================================="
+		if s.GetOut() {
+			str := fmt.Sprintf("%25s   %10s   %25s", "----------------", s.GetFactomNodeName(), "--------------------\n")
+			str = str + s.ProcessLists.String()
+			str = str + s.DBStates.String()
+			str = str + fmt.Sprintf("%25s   %10s   %25s", "================", s.GetFactomNodeName(), "===================\n")
+			str = str + "===================================================================="
 
-            s.Println(str)
-        }
-        
-        if !progress1 && !progress2 {
-            break
-        }
-   }
+			s.Println(str)
+		}
+
+		if !progress1 && !progress2 {
+			break
+		}
+	}
 }
 
 func (s *State) Dethrottle() {
@@ -525,20 +524,20 @@ func (s *State) Dethrottle() {
 }
 
 func (s *State) AddFedServer(dbheight uint32, hash interfaces.IHash) int {
-    return s.ProcessLists.Get(dbheight).AddFedServer(hash)    
+	return s.ProcessLists.Get(dbheight).AddFedServer(hash)
 }
 
-func (s *State) GetFedServers(dbheight uint32) []interfaces.IFctServer{
-    return s.ProcessLists.Get(dbheight).FedServers
+func (s *State) GetFedServers(dbheight uint32) []interfaces.IFctServer {
+	return s.ProcessLists.Get(dbheight).FedServers
 }
 
 func (s *State) GetFedServerIndexHash(dbheight uint32, serverChainID interfaces.IHash) (bool, int) {
-    pl := s.ProcessLists.Get(dbheight)
-    if pl == nil {
-        return false, 0
-    }
-    b,i := pl.GetFedServerIndexHash(serverChainID)
-    return b,i
+	pl := s.ProcessLists.Get(dbheight)
+	if pl == nil {
+		return false, 0
+	}
+	b, i := pl.GetFedServerIndexHash(serverChainID)
+	return b, i
 }
 
 func (s *State) GetFactoshisPerEC() uint64 {
@@ -562,7 +561,7 @@ func (s *State) GetDirectoryBlockInSeconds() int {
 }
 
 func (s *State) SetDirectoryBlockInSeconds(t int) {
-	s.DirectoryBlockInSeconds=t
+	s.DirectoryBlockInSeconds = t
 }
 
 func (s *State) GetServer() interfaces.IServer {
@@ -673,8 +672,8 @@ func (s *State) LeaderMsgQueue() chan interfaces.IMsg {
 
 func (s *State) Undo() interfaces.IMsg {
 	u := s.undo
-    s.undo = nil
-    return u
+	s.undo = nil
+	return u
 }
 
 //var _ IState = (*State)(nil)
@@ -772,7 +771,7 @@ func (s *State) SetString() {
 			0,
 			s.GetHighestKnownBlock())
 	} else {
-		found, index := s.GetFedServerIndexHash(buildingBlock,s.IdentityChainID)
+		found, index := s.GetFedServerIndexHash(buildingBlock, s.IdentityChainID)
 		stype := ""
 		if found {
 			stype = fmt.Sprintf("L %4d", index)

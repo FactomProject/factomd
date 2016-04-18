@@ -108,7 +108,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) error {
 		dbstatemsg.AdminBlock,
 		dbstatemsg.FactoidBlock,
 		dbstatemsg.EntryCreditBlock)
-	
+
 	return nil
 }
 
@@ -133,7 +133,7 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
 	eom, _ := m.(*messages.EOM)
 	eom.DBHeight = s.LLeaderHeight
 	if err := s.LeaderExecute(m); err != nil {
-        fmt.Println("Error: ",err)
+		fmt.Println("Error: ", err)
 		return err
 	}
 
@@ -141,27 +141,27 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
 }
 
 func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) error {
-    DBS,ok := m.(*messages.DirectoryBlockSignature)
-    if !ok {
-        return fmt.Errorf("Bad Directory Block Signature")
-    }
-    
-    DBS.DBHeight = s.LLeaderHeight
-    
+	DBS, ok := m.(*messages.DirectoryBlockSignature)
+	if !ok {
+		return fmt.Errorf("Bad Directory Block Signature")
+	}
+
+	DBS.DBHeight = s.LLeaderHeight
+
 	DBS.Timestamp = s.GetTimestamp()
-    hash := DBS.GetHash()
-    ack, err := s.NewAck(s.LLeaderHeight, DBS, hash)
-    if err != nil {
-        fmt.Println("Bad Ack")
-        s.undo = m
-        return nil
-    }
-    ack.FollowerExecute(s)
-    DBS.FollowerExecute(s)
-     
-    s.LLeaderHeight++
-    
-    return nil
+	hash := DBS.GetHash()
+	ack, err := s.NewAck(s.LLeaderHeight, DBS, hash)
+	if err != nil {
+		fmt.Println("Bad Ack")
+		s.undo = m
+		return nil
+	}
+	ack.FollowerExecute(s)
+	DBS.FollowerExecute(s)
+
+	s.LLeaderHeight++
+
+	return nil
 }
 
 func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) bool {
@@ -182,18 +182,18 @@ func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)
 	if !ok {
 		return false
 	}
-	
+
 	pl := s.ProcessLists.Get(dbheight)
 	pl.EntryCreditBlock.GetBody().AddEntry(c.CommitChain)
 	s.GetFactoidState().UpdateECTransaction(true, c.CommitChain)
-	
+
 	// save the Commit to match agains the Reveal later
 	s.PutCommits(c.GetHash(), c)
 	// check for a matching Reveal and, if found, execute it
 	if r := s.GetReveals(c.GetHash()); r != nil {
 		s.LeaderExecute(r)
 	}
-	
+
 	return true
 }
 
@@ -202,18 +202,18 @@ func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg)
 	if !ok {
 		return false
 	}
-	
+
 	pl := s.ProcessLists.Get(dbheight)
 	pl.EntryCreditBlock.GetBody().AddEntry(c.CommitEntry)
 	s.GetFactoidState().UpdateECTransaction(true, c.CommitEntry)
-	
+
 	// save the Commit to match agains the Reveal later
 	s.PutCommits(c.GetHash(), c)
 	// check for a matching Reveal and, if found, execute it
 	if r := s.GetReveals(c.GetHash()); r != nil {
 		s.LeaderExecute(r)
 	}
-	
+
 	return true
 }
 
@@ -246,10 +246,10 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	// We need to have all EOM markers before we start to clean up this height.
 	if e.Minute == 9 {
 
-        // Set this list complete
+		// Set this list complete
 		pl.SetEomComplete(e.ServerIndex, true)
 
-        // Check if all are complete
+		// Check if all are complete
 		if !pl.EomComplete() {
 			return false
 		}
@@ -261,7 +261,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			ecbody.AddEntry(mn)
 		}
 	}
-	
+
 	// Add EOM to the EBlocks
 	for _, eb := range pl.NewEBlocks {
 		eb.AddEndOfMinuteMarker(e.Bytes()[0])
@@ -274,45 +274,43 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 // is then that we push it out to the rest of the network.  Otherwise, if we are not the
 // leader for the signature, it marks the sig complete for that list
 func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
-    pl := s.ProcessLists.Get(dbheight)
-    if !pl.EomComplete() {
-        return false
-    }
+	pl := s.ProcessLists.Get(dbheight)
+	if !pl.EomComplete() {
+		return false
+	}
 
-    DBS, ok := msg.(*messages.DirectoryBlockSignature)
-    if !ok {
-        panic("DirectoryBlockSignature is the wrong type.")
-    }
-    
-    
-    if  !pl.Servers[DBS.ServerIndex].SigComplete {
-    	pl.SetSigComplete(int(DBS.ServerIndex), true)
-	
-        s.AddDBState(true, pl.DirectoryBlock, pl.AdminBlock, s.GetFactoidState().GetCurrentBlock(), pl.EntryCreditBlock)
-    }   
-    
-    
-    if DBS.Local {
-        dbstate := s.DBStates.Get(dbheight)
-	    DBS.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
-        DBS.Sign(s)
+	DBS, ok := msg.(*messages.DirectoryBlockSignature)
+	if !ok {
+		panic("DirectoryBlockSignature is the wrong type.")
+	}
 
-    	hash := DBS.GetHash()
-        
-        pl.UndoLeaderAck(int(DBS.ServerIndex))
-        s.LLeaderHeight--
-	    ack, _ := s.NewAck(dbheight, DBS, hash)
-        s.LLeaderHeight++
-        
-    	// Leader Execute creates an acknowledgement and the EOM
-	    s.NetworkOutMsgQueue() <- ack
-	    s.NetworkOutMsgQueue() <- DBS	
-                
-    }else{
-        
-        // TODO follower should validate signature here.
-    }
-  
+	if !pl.Servers[DBS.ServerIndex].SigComplete {
+		pl.SetSigComplete(int(DBS.ServerIndex), true)
+
+		s.AddDBState(true, pl.DirectoryBlock, pl.AdminBlock, s.GetFactoidState().GetCurrentBlock(), pl.EntryCreditBlock)
+	}
+
+	if DBS.Local {
+		dbstate := s.DBStates.Get(dbheight)
+		DBS.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
+		DBS.Sign(s)
+
+		hash := DBS.GetHash()
+
+		pl.UndoLeaderAck(int(DBS.ServerIndex))
+		s.LLeaderHeight--
+		ack, _ := s.NewAck(dbheight, DBS, hash)
+		s.LLeaderHeight++
+
+		// Leader Execute creates an acknowledgement and the EOM
+		s.NetworkOutMsgQueue() <- ack
+		s.NetworkOutMsgQueue() <- DBS
+
+	} else {
+
+		// TODO follower should validate signature here.
+	}
+
 	return true
 }
 
@@ -330,7 +328,6 @@ func (s *State) PutNewEntries(dbheight uint32, hash interfaces.IHash, e interfac
 	pl := s.ProcessLists.Get(dbheight)
 	pl.PutNewEntries(dbheight, hash, e)
 }
-
 
 func (s *State) GetCommits(hash interfaces.IHash) interfaces.IMsg {
 	return s.Commits[hash.Fixed()]
@@ -451,10 +448,10 @@ func (s *State) PutE(rt bool, adr [32]byte, v int64) {
 // ...
 func (s *State) ServerIndexFor(dbheight uint32, hash []byte) int {
 	pl := s.ProcessLists.Get(dbheight)
-    if pl == nil {
-        return 0
-    }
-    n := len(s.ProcessLists.Get(dbheight).FedServers)
+	if pl == nil {
+		return 0
+	}
+	n := len(s.ProcessLists.Get(dbheight).FedServers)
 	v := 0
 	if len(hash) > 0 {
 		v = int(hash[0]) % n
@@ -489,7 +486,7 @@ func (s *State) NewAdminBlockHeader(dbheight uint32) interfaces.IABlockHeader {
 
 func (s *State) PrintType(msgType int) bool {
 	r := true
-    return r
+	return r
 	r = r && msgType != constants.ACK_MSG
 	r = r && msgType != constants.EOM_MSG
 	r = r && msgType != constants.DIRECTORY_BLOCK_SIGNATURE_MSG

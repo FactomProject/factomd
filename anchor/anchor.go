@@ -109,9 +109,9 @@ func (a *Anchor) sanityCheck(hash interfaces.IHash) (*dbInfo.DirBlockInfo, error
 		return a.dirBlockInfoSlice[i].GetDBMerkleRoot().IsSameAs(hash)
 	})
 	var dirBlockInfo *dbInfo.DirBlockInfo
-    ok := false
+	ok := false
 	if index < len(a.dirBlockInfoSlice) {
-		dirBlockInfo,ok = a.dirBlockInfoSlice[index].(*dbInfo.DirBlockInfo)
+		dirBlockInfo, ok = a.dirBlockInfoSlice[index].(*dbInfo.DirBlockInfo)
 	}
 	if dirBlockInfo == nil || !ok {
 		s := fmt.Sprintf("Anchor Error: hash %s does not exist in dirBlockInfoSlice.\n", hash.String())

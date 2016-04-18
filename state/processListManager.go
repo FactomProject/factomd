@@ -30,7 +30,7 @@ func (lists *ProcessLists) UpdateState() (progress bool) {
 	// Look and see if we need to toss some previous blocks under construction.
 	diff := buildingBlock - lists.DBHeightBase
 	if diff > 1 && len(lists.Lists) > 1 {
-        progress = true
+		progress = true
 		lists.DBHeightBase += (diff - 1)
 		var newlist []*ProcessList
 		newlist = append(newlist, lists.Lists[(diff-1):]...)
@@ -38,7 +38,7 @@ func (lists *ProcessLists) UpdateState() (progress bool) {
 	}
 	// Create DState blocks for all completed Process Lists
 	progress = progress || pl.Process(lists.State)
-    return
+	return
 }
 
 func (lists *ProcessLists) Get(dbheight uint32) *ProcessList {
@@ -52,10 +52,10 @@ func (lists *ProcessLists) Get(dbheight uint32) *ProcessList {
 		lists.Lists = append(lists.Lists, nil)
 	}
 	pl := lists.Lists[i]
-    prev := (*ProcessList)(nil)
-    if dbheight > 0 {
-        prev = lists.Get(dbheight-1)
-    }
+	prev := (*ProcessList)(nil)
+	if dbheight > 0 {
+		prev = lists.Get(dbheight - 1)
+	}
 	if pl == nil {
 		pl = NewProcessList(lists.State, prev, dbheight)
 		lists.Lists[i] = pl

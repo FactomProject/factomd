@@ -12,7 +12,7 @@ import (
 // DB Signature Entry -------------------------
 type RemoveFederatedServer struct {
 	IdentityChainID interfaces.IHash
-    DBHeight uint32
+	DBHeight        uint32
 }
 
 var _ interfaces.IABEntry = (*RemoveFederatedServer)(nil)
@@ -29,7 +29,7 @@ func (c *RemoveFederatedServer) UpdateState(state interfaces.IState) {
 func NewRemoveFederatedServer(dbheight uint32, identityChainID interfaces.IHash) (e *RemoveFederatedServer) {
 	e = new(RemoveFederatedServer)
 	e.IdentityChainID = primitives.NewHash(identityChainID.Bytes())
-    e.DBHeight = dbheight
+	e.DBHeight = dbheight
 	return
 }
 
