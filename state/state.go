@@ -499,19 +499,25 @@ func (s *State) GetDirectoryBlockByHeight(height uint32) interfaces.IDirectoryBl
 }
 
 func (s *State) UpdateState() {
-	s.SetString()
-	s.ProcessLists.UpdateState()
-	s.DBStates.UpdateState()
+   for {
+        s.SetString()
+        progress1 := s.ProcessLists.UpdateState()
+        progress2 := s.DBStates.UpdateState()
 
-	if s.GetOut() {
-		str := fmt.Sprintf("%25s   %10s   %25s", "----------------", s.GetFactomNodeName(), "--------------------\n")
-		str = str + s.ProcessLists.String()
-		str = str + s.DBStates.String()
-		str = str + fmt.Sprintf("%25s   %10s   %25s", "================", s.GetFactomNodeName(), "===================\n")
-		str = str + "===================================================================="
+        if s.GetOut() {
+            str := fmt.Sprintf("%25s   %10s   %25s", "----------------", s.GetFactomNodeName(), "--------------------\n")
+            str = str + s.ProcessLists.String()
+            str = str + s.DBStates.String()
+            str = str + fmt.Sprintf("%25s   %10s   %25s", "================", s.GetFactomNodeName(), "===================\n")
+            str = str + "===================================================================="
 
-		s.Println(str)
-	}
+            s.Println(str)
+        }
+        
+        if !progress1 && !progress2 {
+            break
+        }
+   }
 }
 
 func (s *State) Dethrottle() {
@@ -528,7 +534,7 @@ func (s *State) GetFedServers(dbheight uint32) []interfaces.IFctServer{
 
 func (s *State) GetFedServerIndexHash(dbheight uint32, serverChainID interfaces.IHash) (bool, int) {
     pl := s.ProcessLists.Get(dbheight)
-    if pl == nil {
+    if pl == nil 
         return false, 0
     }
     b,i := pl.GetFedServerIndexHash(serverChainID)

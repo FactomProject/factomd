@@ -205,7 +205,7 @@ func (p *ProcessList) SigComplete() bool {
 }
 
 // Process messages and update our state.
-func (p *ProcessList) Process(state *State) {
+func (p *ProcessList) Process(state *State) (progress bool) {
 
 	if !p.good { // If we don't know this process list is good...
 		last := state.DBStates.Last() // Get our last state.
@@ -279,6 +279,7 @@ func (p *ProcessList) Process(state *State) {
 			}
 			if plist[j].Process(p.DBHeight, state) { // Try and Process this entry
 				p.Servers[i].Height = j + 1 // Don't process it again if the process worked.
+                progress = true
 			} else {
                 break
             }
@@ -296,6 +297,7 @@ func (p *ProcessList) Process(state *State) {
 			}
 		}
 	}
+    return
 }
 
 func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {

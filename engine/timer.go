@@ -43,18 +43,22 @@ func Timer(state interfaces.IState) {
 				for next < now {
 					next += tenthPeriod
 				}
+                wait = next - now
 			} else {
 				wait = next - now
 				next += tenthPeriod
 			}
 			time.Sleep(time.Duration(wait))
-			for found && len(state.InMsgQueue()) > 5000 {
+            for found && len(state.InMsgQueue()) > 5000 {
 				fmt.Println("Skip Period")
 				time.Sleep(time.Duration(tenthPeriod))
 			}
         	
         	// End of the last period, and this is a server, send messages that
 			// close off the minute.
+        
+           //fmt.Println("found",found,"green",state.Green(), "sent",sent,"i", i,"dbheight",state.GetLeaderHeight())
+           
            if found && state.Green() && (sent || i==0){
                 sent = true
 				eom := new(messages.EOM)
