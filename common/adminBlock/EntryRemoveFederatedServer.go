@@ -12,22 +12,24 @@ import (
 // DB Signature Entry -------------------------
 type RemoveFederatedServer struct {
 	IdentityChainID interfaces.IHash
+    DBHeight uint32
 }
 
 var _ interfaces.IABEntry = (*RemoveFederatedServer)(nil)
 var _ interfaces.BinaryMarshallable = (*RemoveFederatedServer)(nil)
 
 func (c *RemoveFederatedServer) UpdateState(state interfaces.IState) {
-	if len(state.GetFedServers()) == 0 {
-		state.AddFedServer(c.IdentityChainID)
+	if len(state.GetFedServers(c.DBHeight)) == 0 {
+		state.AddFedServer(c.DBHeight, c.IdentityChainID)
 	}
 	state.Println(fmt.Sprintf("Removed Federated Server: %x", c.IdentityChainID.Bytes()[:3]))
 }
 
 // Create a new DB Signature Entry
-func NewRemoveFederatedServer(identityChainID interfaces.IHash) (e *RemoveFederatedServer) {
+func NewRemoveFederatedServer(dbheight uint32, identityChainID interfaces.IHash) (e *RemoveFederatedServer) {
 	e = new(RemoveFederatedServer)
 	e.IdentityChainID = primitives.NewHash(identityChainID.Bytes())
+    e.DBHeight = dbheight
 	return
 }
 

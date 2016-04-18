@@ -58,12 +58,15 @@ func SimControl(listenTo int) {
 					f.State.SetOut(false)
 					fmt.Printf("%8s %s\n", f.State.FactomNodeName, f.State.ShortString())
 				}
-				fmt.Println("Fed Servers:")
-				for _, fnode := range fnodes {
-					for _, fed := range fnode.State.GetFedServers() {
-						fmt.Printf("   %10s %x %x\n", fnode.State.FactomNodeName, fnode.State.GetIdentityChainID().Bytes()[:5], fed.GetChainID().Bytes()[:5])
-					}
-				}
+                if listenTo >= 0 && listenTo < len(fnodes) {
+                    fmt.Printf("   %s\n",fnodes[listenTo].State.GetFactomNodeName())
+                    fmt.Printf("      InMsgQueue             %d\n",len(fnodes[listenTo].State.InMsgQueue()))
+                    fmt.Printf("      LeaderMsgQueue         %d\n",len(fnodes[listenTo].State.LeaderMsgQueue()))
+                    fmt.Printf("      TimerMsgQueue          %d\n",len(fnodes[listenTo].State.TimerMsgQueue()))
+                    fmt.Printf("      NetworkOutMsgQueue     %d\n",len(fnodes[listenTo].State.NetworkOutMsgQueue()))
+                    fmt.Printf("      NetworkInvalidMsgQueue %d\n",len(fnodes[listenTo].State.NetworkOutMsgQueue()))
+                }
+            
 			case 0 == strings.Compare(strings.ToLower(string(b)), "a"):
 				mLog.all = false
 				for _, fnode := range fnodes {

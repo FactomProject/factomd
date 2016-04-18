@@ -42,6 +42,7 @@ func NetStart(s *state.State) {
 	portPtr := flag.Int("port", 8089, "Address to serve WSAPI on")
 	addressPtr := flag.String("p2pAddress", "tcp://127.0.0.1:34340", "Address & port to listen for peers on: (eg: tcp://127.0.0.1:40891)")
 	peersPtr := flag.String("peers", "tcp://127.0.0.1:34341 tcp://127.0.0.1:34342 tcp://127.0.0.1:34343", "Array of peer addresses. Defaults to: \"tcp://127.0.0.1:34341 tcp://127.0.0.1:34342 tcp://127.0.0.1:34340\"")
+    blkTimePtr := flag.Int("blktime", 0, "Seconds per block.  Production is 600.")
 
 	flag.Parse()
 
@@ -57,6 +58,17 @@ func NetStart(s *state.State) {
 	port := *portPtr
 	address := *addressPtr
 	peers := *peersPtr
+    blkTime := *blkTimePtr
+    
+    FactomConfigFilename := util.GetConfigFilename("m2")
+	fmt.Println(fmt.Sprintf("factom config: %s", FactomConfigFilename))
+	s.LoadConfig(FactomConfigFilename, folder)
+
+    if blkTime != 0 {
+        s.DirectoryBlockInSeconds = blkTime
+    }else{
+        blkTime = s.DirectoryBlockInSeconds
+    }
 
 	os.Stderr.WriteString(fmt.Sprintf("node     %d\n", listenTo))
 	os.Stderr.WriteString(fmt.Sprintf("count    %d\n", cnt))
@@ -78,7 +90,8 @@ func NetStart(s *state.State) {
 	os.Stderr.WriteString(fmt.Sprintf("folder   \"%s\"\n", folder))
 	os.Stderr.WriteString(fmt.Sprintf("port     \"%d\"\n", port))
 	os.Stderr.WriteString(fmt.Sprintf("address  \"%s\"\n", address))
-	os.Stderr.WriteString(fmt.Sprintf("peers  \"%s\"\n", peers))
+	os.Stderr.WriteString(fmt.Sprintf("peers    \"%s\"\n", peers))
+	os.Stderr.WriteString(fmt.Sprintf("blkTime  %d\n", blkTime))
 
 	if journal != "" {
 		cnt = 1
@@ -102,11 +115,6 @@ func NetStart(s *state.State) {
 		os.Exit(0)
 	})
 
-	FactomConfigFilename := util.GetConfigFilename("m2")
-
-	fmt.Println(fmt.Sprintf("factom config: %s", FactomConfigFilename))
-
-	s.LoadConfig(FactomConfigFilename, folder)
 	if journal != "" {
 		if s.DBType != "Map" {
 			fmt.Println("Journal is ALWAYS a Map database")
@@ -262,6 +270,7 @@ func makeServer(s *state.State) *FactomNode {
 }
 
 func startServers(load bool) {
+    
 	for i, fnode := range fnodes {
 		if i > 0 {
 			fnode.State.Init()
