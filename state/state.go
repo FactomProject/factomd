@@ -504,11 +504,11 @@ func (s *State) UpdateState() {
 	s.DBStates.UpdateState()
 
 	if s.GetOut() {
-		str := fmt.Sprintf("%25s   %10s   %25s", "sssssssssssssssssssssssss", s.GetFactomNodeName(), "sssssssssssssssssssssssss\n")
+		str := fmt.Sprintf("%25s   %10s   %25s", "----------------", s.GetFactomNodeName(), "--------------------\n")
 		str = str + s.ProcessLists.String()
 		str = str + s.DBStates.String()
-		str = str + fmt.Sprintf("%25s   %10s   %25s", "eeeeeeeeeeeeeeeeeeeeeeeee", s.GetFactomNodeName(), "eeeeeeeeeeeeeeeeeeeeeeeee\n")
-		str = str + "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+		str = str + fmt.Sprintf("%25s   %10s   %25s", "================", s.GetFactomNodeName(), "===================\n")
+		str = str + "===================================================================="
 
 		s.Println(str)
 	}
@@ -527,7 +527,12 @@ func (s *State) GetFedServers(dbheight uint32) []interfaces.IFctServer{
 }
 
 func (s *State) GetFedServerIndexHash(dbheight uint32, serverChainID interfaces.IHash) (bool, int) {
-    return s.ProcessLists.Get(dbheight).GetFedServerIndexHash(serverChainID)
+    pl := s.ProcessLists.Get(dbheight)
+    if pl == nil {
+        return false, 0
+    }
+    b,i := pl.GetFedServerIndexHash(serverChainID)
+    return b,i
 }
 
 func (s *State) GetFactoshisPerEC() uint64 {
@@ -745,7 +750,7 @@ func (s *State) ShortString() string {
 }
 
 func (s *State) SetString() {
-	buildingBlock := s.GetLeaderHeight()
+	buildingBlock := s.GetHighestRecordedBlock()
 
 	lastheight := uint32(0)
 

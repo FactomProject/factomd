@@ -47,6 +47,7 @@ func (state *State) ValidatorLoop() {
 			}
             msg = state.Undo()
             if msg != nil {
+                fmt.Println("Undo")
         		msg.FollowerExecute(state)
             }else{
                 select {

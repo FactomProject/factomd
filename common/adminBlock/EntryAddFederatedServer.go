@@ -24,8 +24,9 @@ func (c *AddFederatedServer) UpdateState(state interfaces.IState) {
 }
 
 // Create a new DB Signature Entry
-func NewAddFederatedServer(identityChainID interfaces.IHash) (e *AddFederatedServer) {
+func NewAddFederatedServer(dbheight uint32, identityChainID interfaces.IHash) (e *AddFederatedServer) {
 	e = new(AddFederatedServer)
+    e.DBHeight = dbheight
 	e.IdentityChainID = primitives.NewHash(identityChainID.Bytes())
 	return
 }

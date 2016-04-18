@@ -25,7 +25,6 @@ type ProcessLists struct {
 func (lists *ProcessLists) UpdateState() {
 
 	buildingBlock := lists.State.GetHighestRecordedBlock() + 1
-
 	pl := lists.Get(buildingBlock)
 
 	// Look and see if we need to toss some previous blocks under construction.
@@ -51,7 +50,10 @@ func (lists *ProcessLists) Get(dbheight uint32) *ProcessList {
 		lists.Lists = append(lists.Lists, nil)
 	}
 	pl := lists.Lists[i]
-    prev := lists.Get(dbheight-1)
+    prev := (*ProcessList)(nil)
+    if dbheight > 0 {
+        prev = lists.Get(dbheight-1)
+    }
 	if pl == nil {
 		pl = NewProcessList(lists.State, prev, dbheight)
 		lists.Lists[i] = pl

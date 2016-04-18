@@ -83,10 +83,10 @@ func (m *EOM) Type() int {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *EOM) Validate(state interfaces.IState) int {
-    fmt.Println("VVVVVVVVVVVVVVVVVVVVVVv  Validate")
-	found, _ := state.GetFedServerIndexHash(m.DBHeight, m.ChainID)
+    found, _ := state.GetFedServerIndexHash(m.DBHeight, m.ChainID)
 	if !found { // Only EOM from federated servers are valid.
-		return -1
+       fmt.Printf("Couldn't match %x at dbheight %d Leader Height: %d",m.ChainID.Bytes()[:3],m.DBHeight,state.GetLeaderHeight())
+	   return -1
 	}
 	// Check signature
 	eomSigned, err := m.VerifySignature()
@@ -95,6 +95,7 @@ func (m *EOM) Validate(state interfaces.IState) int {
 		return -1
 	}
 	if !eomSigned {
+        fmt.Println("Not Signed",err)
 		return -1
 	}
 	return 1
@@ -103,8 +104,7 @@ func (m *EOM) Validate(state interfaces.IState) int {
 // Returns true if this is a message for this server to execute as
 // a leader.
 func (m *EOM) Leader(state interfaces.IState) bool {
-    fmt.Println("LLLLLLLLLLLLLLLLLLL Leader")
-	found, index := state.GetFedServerIndexHash(state.GetLeaderHeight(), state.GetIdentityChainID())
+    found, index := state.GetFedServerIndexHash(state.GetLeaderHeight(), state.GetIdentityChainID())
 	if found && index == m.ServerIndex {
 		return true
 	}
@@ -113,7 +113,7 @@ func (m *EOM) Leader(state interfaces.IState) bool {
 
 // Execute the leader functions of the given message
 func (m *EOM) LeaderExecute(state interfaces.IState) error {
-	return state.LeaderExecuteEOM(m)
+    return state.LeaderExecuteEOM(m)
 }
 
 // Returns true if this is a message for this server to execute as a follower

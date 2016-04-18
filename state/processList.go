@@ -64,7 +64,7 @@ type ListServer struct {
 
 // Returns true and the index of this server, or false and the insertion point for this server
 func (p *ProcessList) GetFedServerIndexHash(identityChainID interfaces.IHash) (bool, int) {
-	scid := identityChainID.Bytes()
+    scid := identityChainID.Bytes()
 
 	for i, fs := range p.FedServers {
 		// Find and remove
@@ -77,14 +77,14 @@ func (p *ProcessList) GetFedServerIndexHash(identityChainID interfaces.IHash) (b
 
 // Add the given serverChain to this processlist, and return the server index number of the
 // added server
-func (s *ProcessList) AddFedServer(identityChainID interfaces.IHash) int {
-	found, i := s.GetFedServerIndexHash(identityChainID)
+func (p *ProcessList) AddFedServer(identityChainID interfaces.IHash) int {
+	found, i := p.GetFedServerIndexHash(identityChainID)
 	if found {
 		return i
 	}
-	s.FedServers = append(s.FedServers, nil)
-	copy(s.FedServers[i+1:], s.FedServers[i:])
-	s.FedServers[i] = &interfaces.Server{ChainID: identityChainID}
+	p.FedServers = append(p.FedServers, nil)
+	copy(p.FedServers[i+1:], p.FedServers[i:])
+	p.FedServers[i] = &interfaces.Server{ChainID: identityChainID}
 	return i
 }
 
@@ -125,6 +125,7 @@ func (p *ProcessList) SetLastLeaderAck(index int, msg interfaces.IMsg) error {
 }
 
 func (p *ProcessList) UndoLeaderAck(index int) {
+    p.Servers[index].Height--
     p.Servers[index].LastLeaderAck = p.Servers[index].Undo
 }
 
@@ -313,16 +314,14 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 }
 
 func (p *ProcessList) String() string {
-	prt := ""
+    var buf bytes.Buffer
 	if p == nil {
-		prt = "-- <nil>\n"
+		buf.WriteString("-- <nil>\n")
 	} else {
-		prt = p.State.GetFactomNodeName() + "\n"
+		buf.WriteString(fmt.Sprintf("%s #servers %d\n",p.State.GetFactomNodeName(), p.NumberServers))
 
-		for i, server := range p.Servers {
-			if i >= p.NumberServers {
-				break
-			}
+		for i:=0; i < p.NumberServers; i++ {
+            server := p.Servers[i]
             eom := ""
             sig := ""
             if server.EomComplete {
@@ -332,25 +331,28 @@ func (p *ProcessList) String() string {
                 sig = "Sig Complete"
             } 
            
-			prt = prt + fmt.Sprintf("  Server %d %s %s\n", i,eom,sig)
+			buf.WriteString(fmt.Sprintf("  Server %d %s %s\n", i,eom,sig))
 			for j, msg := range server.List {
                 
                 if j < server.Height {
-                    prt = prt + "  p"
+                    buf.WriteString("  p")
                 }else{
-                    prt = prt + "   "
+                    buf.WriteString("   ")
                 }
             
 				if msg != nil {
-					prt = prt + "   " + msg.String() + "\n"
+					buf.WriteString("   " + msg.String() + "\n")
 				} else {
-					prt = prt + "   <nil>\n"
+					buf.WriteString("   <nil>\n")
 				}
 			}
-			prt = prt + "\n"
+			buf.WriteString("\n   Federated Servers:\n")
+            for _,fed := range p.FedServers {
+                buf.WriteString(fmt.Sprintf("    %x\n",fed.GetChainID().Bytes()[:3]))
+            }
 		}
 	}
-	return prt
+	return buf.String()
 }
 
 /************************************************
@@ -370,11 +372,18 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 		pl.Servers[i].List = make([]interfaces.IMsg, 0)
 
 	}
-        
+      
     // Make a copy of the previous FedServers
-    pl.FedServers = append(pl.FedServers, previous.FedServers ...)
-   	pl.AuditServers = append(pl.AuditServers, previous.AuditServers ...)
-    pl.ServerOrder = append(pl.ServerOrder, previous.ServerOrder ...)
+    if previous != nil {
+        pl.FedServers = append(pl.FedServers, previous.FedServers ...)
+   	    pl.AuditServers = append(pl.AuditServers, previous.AuditServers ...)
+        pl.ServerOrder = append(pl.ServerOrder, previous.ServerOrder ...)
+    }else{
+        pl.FedServers = make([]interfaces.IFctServer,0)
+        pl.AuditServers = make([]interfaces.IFctServer,0)
+        pl.ServerOrder = make([][]interfaces.IFctServer,0)
+        pl.AddFedServer(primitives.Sha([]byte("FNode0")))   // Our default for now fed server
+    }
  
 
     

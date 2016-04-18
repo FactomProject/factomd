@@ -10,7 +10,6 @@ import (
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
-	"github.com/FactomProject/factomd/common/primitives"
 	s "github.com/FactomProject/factomd/state"
 )
 
@@ -33,6 +32,7 @@ func Timer(state interfaces.IState) {
 	state.Print(fmt.Sprintf("Time: %v\r\n", time.Now()))
 	time.Sleep(time.Duration(wait))
 	for {
+       
 		found, index := state.GetFedServerIndexHash(state.GetLeaderHeight(), state.GetIdentityChainID())
         sent := false
 		for i := 0; i < 10; i++ {
@@ -52,13 +52,10 @@ func Timer(state interfaces.IState) {
 				fmt.Println("Skip Period")
 				time.Sleep(time.Duration(tenthPeriod))
 			}
-
-			if len(state.GetFedServers(state.GetLeaderHeight())) == 0 {
-				state.AddFedServer(state.GetLeaderHeight(), primitives.Sha([]byte("FNode0"))) // Make sure this node is NOT a leader
-			}
-			// End of the last period, and this is a server, send messages that
+        	
+        	// End of the last period, and this is a server, send messages that
 			// close off the minute.
-			if found && state.Green() && (sent || i==0){
+           if found && state.Green() && (sent || i==0){
                 sent = true
 				eom := new(messages.EOM)
 				eom.Minute = byte(i)
@@ -66,14 +63,12 @@ func Timer(state interfaces.IState) {
 				eom.ChainID = state.GetIdentityChainID()
 				eom.ServerIndex = index
 				eom.Sign(state)
-		
+		        eom.DBHeight = state.GetLeaderHeight()
                 if i == 9 {
-                    if index > 0 {
-                        fmt.Println("EOM9", index)
-                    }
                     DBS := new(messages.DirectoryBlockSignature)
                     DBS.ServerIdentityChainID = state.GetIdentityChainID()
                     DBS.Local = true
+                    DBS.DBHeight = state.GetLeaderHeight()
     				state.TimerMsgQueue() <- eom
                     state.TimerMsgQueue() <- DBS
                 }else{
