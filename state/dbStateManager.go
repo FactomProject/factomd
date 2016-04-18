@@ -109,6 +109,11 @@ func (list *DBStateList) Catchup() {
 
 	now := list.State.GetTimestamp()
 
+    dbsHeight := list.GetHighestRecordedBlock()
+    if list.State.LLeaderHeight < dbsHeight {
+        list.State.LLeaderHeight = dbsHeight+1
+    }
+
 	// We only check if we need updates once every so often.
 	if int(now)/1000-int(list.LastTime)/1000 < SecondsBetweenTests {
 		return
@@ -133,7 +138,6 @@ func (list *DBStateList) Catchup() {
 		end += int(list.Base)
 	} else {
 		plHeight := list.State.GetHighestKnownBlock()
-		dbsHeight := list.GetHighestRecordedBlock()
 		// Don't worry about the block initialization case.
 		if plHeight < 1 {
 			return
@@ -162,7 +166,7 @@ func (list *DBStateList) Catchup() {
 
 }
 
-func (list *DBStateList) UpdateState() {
+func (list *DBStateList) UpdateState() (progress bool) {
 	list.Catchup()
 
 	for i, d := range list.DBStates {
@@ -273,15 +277,10 @@ func (list *DBStateList) UpdateState() {
 			if err := list.State.GetDB().ExecuteMultiBatch(); err != nil {
 				panic(err.Error())
 			}
-
-			list.LastTime = list.State.GetTimestamp() // If I am saving stuff, I'm good for a while.
-			d.Saved = true                            // Only after all is done will I admit this state has been saved.
-			//fmt.Println("Saved!")
-		} else {
-			list.LastTime = list.State.GetTimestamp() //  If I am saving stuff, I'm good for a while
-			d.Saved = true
-		}
-
+        }
+		list.LastTime = list.State.GetTimestamp() // If I saved or processed stuff, I'm good for a while
+		d.Saved = true                            // Only after all is done will I admit this state has been saved.
+	
 		// Any updates required to the state as established by the AdminBlock are applied here.
 		d.AdminBlock.UpdateState(list.State)
 		list.State.Println("updateupdateupdateupdateupdateupdateupdate AdminBlock ", d.DirectoryBlock.GetHeader().GetDBHeight())
@@ -296,7 +295,9 @@ func (list *DBStateList) UpdateState() {
 		if uint32(i) > list.Complete {
 			list.Complete = uint32(i)
 		}
+        progress = true
 	}
+    return
 }
 
 func (list *DBStateList) Last() *DBState {

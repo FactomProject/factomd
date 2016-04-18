@@ -41,7 +41,7 @@ func (c *AdminBlock) UpdateState(state interfaces.IState) {
 }
 
 func (c *AdminBlock) AddFedServer(identityChainID interfaces.IHash) {
-	entry := NewAddFederatedServer(identityChainID)
+	entry := NewAddFederatedServer(c.Header.GetDBHeight()+1, identityChainID)  // Goes in the NEXT block
 	c.ABEntries = append(c.ABEntries, entry)
 }
 

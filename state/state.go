@@ -62,7 +62,9 @@ type State struct {
 	networkOutMsgQueue     chan interfaces.IMsg
 	networkInvalidMsgQueue chan interfaces.IMsg
 	inMsgQueue             chan interfaces.IMsg
-	ShutdownChan           chan int // For gracefully halting Factom
+	leaderMsgQueue         chan interfaces.IMsg
+    undo                   interfaces.IMsg
+    ShutdownChan           chan int // For gracefully halting Factom
 	JournalFile            string
 
 	myServer      interfaces.IServer //the server running on this Federated Server
@@ -73,6 +75,7 @@ type State struct {
 	ServerIndex   int // Index of the server, as understood by the leader
 
 	LLeaderHeight uint32
+    
 
 	// Maps
 	// ====
@@ -87,12 +90,6 @@ type State struct {
 
 	//Network MAIN = 0, TEST = 1, LOCAL = 2, CUSTOM = 3
 	NetworkNumber int // Encoded into Directory Blocks(s.Cfg.(*util.FactomdConfig)).String()
-
-	// Number of Servers acknowledged by Factom
-	Matryoshka   []interfaces.IHash        // Reverse Hash
-	AuditServers []interfaces.IFctServer   // List of Audit Servers
-	ServerOrder  [][]interfaces.IFctServer // 10 lists for Server Order for each minute
-	FedServers   []interfaces.IFctServer   // List of Federated Servers
 
 	// Database
 	DB     *databaseOverlay.Overlay
@@ -256,7 +253,8 @@ func (s *State) Init() {
 	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 10000) //incoming message queue from the network messages
 	s.networkOutMsgQueue = make(chan interfaces.IMsg, 10000)     //Messages to be broadcast to the network
 	s.inMsgQueue = make(chan interfaces.IMsg, 10000)             //incoming message queue for factom application messages
-	s.ShutdownChan = make(chan int, 1)                           //Channel to gracefully shut down.
+	s.leaderMsgQueue = make(chan interfaces.IMsg, 10000)         //queue of Leadership messages
+    s.ShutdownChan = make(chan int, 1)                           //Channel to gracefully shut down.
 
 	os.Mkdir(s.LogPath, 0777)
 	_, err := os.Create(s.JournalFile) //Create the Journal File
@@ -277,10 +275,6 @@ func (s *State) Init() {
 	s.ECBalancesP = map[[32]byte]int64{}
 	s.FactoidBalancesT = map[[32]byte]int64{}
 	s.ECBalancesT = map[[32]byte]int64{}
-
-	s.AuditServers = make([]interfaces.IFctServer, 0)
-	s.FedServers = make([]interfaces.IFctServer, 0)
-	s.ServerOrder = make([][]interfaces.IFctServer, 0)
 
 	fs := new(FactoidState)
 	fs.State = s
@@ -505,59 +499,46 @@ func (s *State) GetDirectoryBlockByHeight(height uint32) interfaces.IDirectoryBl
 }
 
 func (s *State) UpdateState() {
-	s.SetString()
-	s.ProcessLists.UpdateState()
-	s.DBStates.UpdateState()
+   for {
+        s.SetString()
+        progress1 := s.ProcessLists.UpdateState()
+        progress2 := s.DBStates.UpdateState()
 
-	if s.GetOut() {
-		str := fmt.Sprintf("%25s   %10s   %25s", "sssssssssssssssssssssssss", s.GetFactomNodeName(), "sssssssssssssssssssssssss\n")
-		str = str + s.ProcessLists.String()
-		str = str + s.DBStates.String()
-		str = str + fmt.Sprintf("%25s   %10s   %25s", "eeeeeeeeeeeeeeeeeeeeeeeee", s.GetFactomNodeName(), "eeeeeeeeeeeeeeeeeeeeeeeee\n")
-		str = str + "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        if s.GetOut() {
+            str := fmt.Sprintf("%25s   %10s   %25s", "----------------", s.GetFactomNodeName(), "--------------------\n")
+            str = str + s.ProcessLists.String()
+            str = str + s.DBStates.String()
+            str = str + fmt.Sprintf("%25s   %10s   %25s", "================", s.GetFactomNodeName(), "===================\n")
+            str = str + "===================================================================="
 
-		s.Println(str)
-	}
+            s.Println(str)
+        }
+        
+        if !progress1 && !progress2 {
+            break
+        }
+   }
 }
 
 func (s *State) Dethrottle() {
 	s.IsThrottled = false
 }
 
-// Add the given serverChain to this processlist, and return the server index number of the
-// added server
-func (s *State) AddFedServer(identityChainID interfaces.IHash) int {
-	found, i := s.GetFedServerIndexHash(identityChainID)
-	if found {
-		return i
-	}
-	s.FedServers = append(s.FedServers, nil)
-	copy(s.FedServers[i+1:], s.FedServers[i:])
-	s.FedServers[i] = &interfaces.Server{ChainID: identityChainID}
-	return i
+func (s *State) AddFedServer(dbheight uint32, hash interfaces.IHash) int {
+    return s.ProcessLists.Get(dbheight).AddFedServer(hash)    
 }
 
-// Add the given serverChain to this processlist, and return the server index number of the
-// added server
-func (p *State) RemoveFedServerHash(identityChainID interfaces.IHash) {
-	found, i := p.GetFedServerIndexHash(identityChainID)
-	if !found {
-		return
-	}
-	p.FedServers = append(p.FedServers[:i], p.FedServers[i+1:]...)
+func (s *State) GetFedServers(dbheight uint32) []interfaces.IFctServer{
+    return s.ProcessLists.Get(dbheight).FedServers
 }
 
-// Returns true and the index of this server, or false and the insertion point for this server
-func (s *State) GetFedServerIndexHash(identityChainID interfaces.IHash) (bool, int) {
-	scid := identityChainID.Bytes()
-
-	for i, fs := range s.FedServers {
-		// Find and remove
-		if bytes.Compare(scid, fs.GetChainID().Bytes()) == 0 {
-			return true, i
-		}
-	}
-	return false, len(s.FedServers)
+func (s *State) GetFedServerIndexHash(dbheight uint32, serverChainID interfaces.IHash) (bool, int) {
+    pl := s.ProcessLists.Get(dbheight)
+    if pl == nil {
+        return false, 0
+    }
+    b,i := pl.GetFedServerIndexHash(serverChainID)
+    return b,i
 }
 
 func (s *State) GetFactoshisPerEC() uint64 {
@@ -629,10 +610,6 @@ func (s *State) GetAuditHeartBeats() []interfaces.IMsg {
 	return s.AuditHeartBeats
 }
 
-func (s *State) GetFedServers() []interfaces.IFctServer {
-	return s.FedServers
-}
-
 func (s *State) GetFedServerFaults() [][]interfaces.IMsg {
 	return s.FedServerFaults
 }
@@ -688,6 +665,16 @@ func (s *State) NetworkOutMsgQueue() chan interfaces.IMsg {
 
 func (s *State) InMsgQueue() chan interfaces.IMsg {
 	return s.inMsgQueue
+}
+
+func (s *State) LeaderMsgQueue() chan interfaces.IMsg {
+	return s.leaderMsgQueue
+}
+
+func (s *State) Undo() interfaces.IMsg {
+	u := s.undo
+    s.undo = nil
+    return u
 }
 
 //var _ IState = (*State)(nil)
@@ -773,7 +760,7 @@ func (s *State) ShortString() string {
 }
 
 func (s *State) SetString() {
-	buildingBlock := s.GetLeaderHeight()
+	buildingBlock := s.GetHighestRecordedBlock()
 
 	lastheight := uint32(0)
 
@@ -785,7 +772,7 @@ func (s *State) SetString() {
 			0,
 			s.GetHighestKnownBlock())
 	} else {
-		found, index := s.GetFedServerIndexHash(s.IdentityChainID)
+		found, index := s.GetFedServerIndexHash(buildingBlock,s.IdentityChainID)
 		stype := ""
 		if found {
 			stype = fmt.Sprintf("L %4d", index)
