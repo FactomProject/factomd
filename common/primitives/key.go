@@ -9,6 +9,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
+	"fmt"
 
 	"github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -151,10 +152,12 @@ func (k *PublicKey) MarshalBinary() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func (k *PublicKey) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
+func (k *PublicKey) UnmarshalBinaryData(p []byte) ([]byte, error) {
+	if len(p) < ed25519.PublicKeySize {
+		return nil, fmt.Errorf("Invalid data passed")
+	}
 	copy(k[:], p)
-	newData = p[ed25519.PublicKeySize:]
-	return
+	return p[ed25519.PublicKeySize:], nil
 }
 
 func (k *PublicKey) UnmarshalBinary(p []byte) (err error) {

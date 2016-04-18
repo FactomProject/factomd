@@ -94,6 +94,7 @@ func (s *Signature) MarshalBinary() ([]byte, error) {
 func (sig *Signature) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	sig.Sig = new(ByteSliceSig)
 	var err error
+	sig.Pub = new(PublicKey)
 	data, err = sig.Pub.UnmarshalBinaryData(data)
 	if err != nil {
 		return nil, err
