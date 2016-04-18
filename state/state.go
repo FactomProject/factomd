@@ -534,7 +534,7 @@ func (s *State) GetFedServers(dbheight uint32) []interfaces.IFctServer{
 
 func (s *State) GetFedServerIndexHash(dbheight uint32, serverChainID interfaces.IHash) (bool, int) {
     pl := s.ProcessLists.Get(dbheight)
-    if pl == nil 
+    if pl == nil {
         return false, 0
     }
     b,i := pl.GetFedServerIndexHash(serverChainID)
