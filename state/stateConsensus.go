@@ -450,7 +450,11 @@ func (s *State) PutE(rt bool, adr [32]byte, v int64) {
 // ChainIDs
 // ...
 func (s *State) ServerIndexFor(dbheight uint32, hash []byte) int {
-	n := len(s.ProcessLists.Get(dbheight).FedServers)
+	pl := s.ProcessLists.Get(dbheight)
+    if pl == nil {
+        return 0
+    }
+    n := len(s.ProcessLists.Get(dbheight).FedServers)
 	v := 0
 	if len(hash) > 0 {
 		v = int(hash[0]) % n

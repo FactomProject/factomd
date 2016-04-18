@@ -48,11 +48,11 @@ func (state *State) ValidatorLoop() {
             msg = state.Undo()
             if msg != nil {
                 fmt.Println("Undo")
-        		msg.FollowerExecute(state)
+        		msg.LeaderExecute(state)
             }else{
                 select {
                     case msg = <-state.LeaderMsgQueue() :
-                        msg.FollowerExecute(state)               
+                        msg.LeaderExecute(state)               
                     default:
         				time.Sleep(time.Millisecond * 100)
                 }    
@@ -79,12 +79,12 @@ func (state *State) ValidatorLoop() {
 				if state.PrintType(msg.Type()) {
 					state.Println(fmt.Sprintf("%20s %s\n", "Leader:", msg.String()))
 				}
-				msg.LeaderExecute(state)
+				state.LeaderMsgQueue() <- msg
 			} else if msg.Follower(state) {
 				if state.PrintType(msg.Type()) {
 					state.Println(fmt.Sprintf("%20s %s\n", "Follower:", msg.String()))
 				}
-                state.LeaderMsgQueue() <- msg
+                msg.FollowerExecute(state)
 			} else {
 				state.Print(" Message ignored\n")
 			}
