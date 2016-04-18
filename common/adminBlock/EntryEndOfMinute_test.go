@@ -9,11 +9,10 @@ func TestEOMMisc(t *testing.T) {
 	if eom.IsInterpretable() != true {
 		t.Fail()
 	}
-	eom.EOM_Type = 1
+	eom.MinuteNumber = 1
 	if eom.Interpret() != "End of Minute 1" {
 		t.Fail()
 	}
-	eom.EntryType = 3
 	if eom.Type() != 3 {
 		t.Fail()
 	}
@@ -24,15 +23,15 @@ func TestEOMMarshalUnmarshal(t *testing.T) {
 	eom := new(EndOfMinuteEntry)
 	rest, err := eom.UnmarshalBinaryData(tmp)
 	if len(rest) != 1 {
-		t.Fail()
+		t.Errorf("Invalid length - %v", len(rest))
 	}
 	if rest[0] != 0x03 {
 		t.Fail()
 	}
-	if eom.EntryType != 0x01 {
+	if eom.Type() != 0x01 {
 		t.Fail()
 	}
-	if eom.EOM_Type != 0x02 {
+	if eom.MinuteNumber != 0x02 {
 		t.Fail()
 	}
 	tmp2, err := eom.MarshalBinary()
@@ -54,10 +53,10 @@ func TestEOMMarshalUnmarshal(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if eom.EntryType != 0x01 {
+	if eom.Type() != 0x01 {
 		t.Fail()
 	}
-	if eom.EOM_Type != 0x02 {
+	if eom.MinuteNumber != 0x02 {
 		t.Fail()
 	}
 }
