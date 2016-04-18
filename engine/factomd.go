@@ -6,12 +6,13 @@ package engine
 
 import (
 	"fmt"
-	"github.com/FactomProject/factomd/log"
-	"github.com/FactomProject/factomd/state"
 	"os"
 	"runtime"
 	"strings"
 	"time"
+
+	"github.com/FactomProject/factomd/log"
+	"github.com/FactomProject/factomd/state"
 )
 
 var _ = fmt.Print
@@ -28,8 +29,6 @@ var _ = fmt.Print
 var Build string
 
 func Factomd() {
-
-	//	go StartProfiler()
 
 	log.Print("//////////////////////// Copyright 2015 Factom Foundation")
 	log.Print("//////////////////////// Use of this source code is governed by the MIT")
