@@ -57,7 +57,8 @@ func Timer(state interfaces.IState) {
         	// End of the last period, and this is a server, send messages that
 			// close off the minute.
         
-           //fmt.Println("found",found,"green",state.Green(), "sent",sent,"i", i,"dbheight",state.GetLeaderHeight())
+          
+           //fmt.Println("         ", "found",found,"green",state.Green(), "sent",sent,"i", i,"dbheight",state.GetLeaderHeight())
            
            if found && state.Green() && (sent || i==0){
                 sent = true
@@ -71,8 +72,9 @@ func Timer(state interfaces.IState) {
                 if i == 9 {
                     DBS := new(messages.DirectoryBlockSignature)
                     DBS.ServerIdentityChainID = state.GetIdentityChainID()
-                    DBS.Local = true
+                    DBS.LocalOnly = true
                     DBS.DBHeight = state.GetLeaderHeight()
+                    DBS.ServerIndex = uint32(index)
     				state.TimerMsgQueue() <- eom
                     state.TimerMsgQueue() <- DBS
                 }else{

@@ -11,7 +11,7 @@ import (
 type MessageBase struct {
 	Origin    int  // Set and examined on a server, not marshaled with the message
 	Peer2peer bool // The nature of this message type, not marshaled with the message
-
+    LocalOnly bool // This message is only a local message, is not broadcasted and may skip verification
 	// Cash of the hash of a message
 	MsgHash interfaces.IHash
 }
@@ -28,4 +28,12 @@ func (m *MessageBase) SetOrigin(o int) {
 // request.
 func (m *MessageBase) IsPeer2peer() bool {
 	return m.Peer2peer
+}
+
+func (m *MessageBase) IsLocal() bool {
+    return m.LocalOnly
+}
+
+func (m *MessageBase) SetLocal(v bool) {
+    m.LocalOnly = v
 }

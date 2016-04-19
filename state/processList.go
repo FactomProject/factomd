@@ -347,12 +347,12 @@ func (p *ProcessList) String() string {
 				} else {
 					buf.WriteString("   <nil>\n")
 				}
-			}
-			buf.WriteString("\n   Federated Servers:\n")
-            for _,fed := range p.FedServers {
-                buf.WriteString(fmt.Sprintf("    %x\n",fed.GetChainID().Bytes()[:3]))
             }
 		}
+        buf.WriteString("\n   Federated Servers:\n")
+        for _,fed := range p.FedServers {
+            buf.WriteString(fmt.Sprintf("    %x\n",fed.GetChainID().Bytes()[:3]))
+        }
 	}
 	return buf.String()
 }

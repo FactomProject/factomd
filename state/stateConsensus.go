@@ -50,30 +50,26 @@ func (s *State) AddDBState(isNew bool,
 // Returns true if it finds a match
 func (s *State) FollowerExecuteMsg(m interfaces.IMsg) (bool, error) {
 
-	acks := s.Acks
-	ack, ok := acks[m.GetHash().Fixed()].(*messages.Ack)
+    hash := m.GetHash()
+    hashf := hash.Fixed()
+	ack, ok := s.Acks[hashf].(*messages.Ack)
 	if !ok || ack == nil {
-		s.Holding[m.GetHash().Fixed()] = m
+		s.Holding[hashf] = m
 		return false, nil
 	} else {
 		pl := s.ProcessLists.Get(ack.DBHeight)
 
 		if m.Type() == constants.COMMIT_CHAIN_MSG || m.Type() == constants.COMMIT_ENTRY_MSG {
-			s.PutCommits(m.GetHash(), m)
+			s.PutCommits(hash, m)
 		}
 
 		if pl != nil {
 			pl.AddToProcessList(ack, m)
 
-			pl.OldAcks[ack.GetHash().Fixed()] = ack
-			pl.OldMsgs[m.GetHash().Fixed()] = m
-			delete(acks, m.GetHash().Fixed())
-			delete(s.Holding, m.GetHash().Fixed())
-		} else {
-			s.Println(">>>>>>>>>>>>>>>>>> Nil Process List at: ", ack.DBHeight)
-			s.Println(">>>>>>>>>>>>>>>>>> Ack:                 ", ack.String())
-			s.Println(">>>>>>>>>>>>>>>>>> DBStates:\n", s.DBStates.String())
-			s.Println("\n\n>>>>>>>>>>>>>>>>>> ProcessLists:\n", s.ProcessLists.String())
+			pl.OldAcks[hashf] = ack
+			pl.OldMsgs[hashf] = m
+			delete(s.Acks, hashf)
+			delete(s.Holding, hashf)
 		}
 		return true, nil
 	}
@@ -292,21 +288,28 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
     }   
     
     
-    if DBS.Local {
+    if DBS.IsLocal() {
         dbstate := s.DBStates.Get(dbheight)
-	    DBS.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
-        DBS.Sign(s)
 
-    	hash := DBS.GetHash()
+        DBS2 := new(messages.DirectoryBlockSignature)
+        DBS2.ServerIdentityChainID = DBS.ServerIdentityChainID
+        DBS2.DBHeight = DBS.DBHeight
+        DBS2.ServerIndex = DBS.ServerIndex
+	    DBS2.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
+        DBS2.Sign(s)
+            
+    	hash := DBS2.GetHash()
         
+        // Here we replace out of the process list the local DBS message with one
+        // that can be broadcast.  This is a bit of necessary trickery
         pl.UndoLeaderAck(int(DBS.ServerIndex))
         s.LLeaderHeight--
-	    ack, _ := s.NewAck(dbheight, DBS, hash)
+	    ack, _ := s.NewAck(dbheight, DBS2, hash)
         s.LLeaderHeight++
         
     	// Leader Execute creates an acknowledgement and the EOM
 	    s.NetworkOutMsgQueue() <- ack
-	    s.NetworkOutMsgQueue() <- DBS	
+	    s.NetworkOutMsgQueue() <- DBS2
                 
     }else{
         
@@ -556,6 +559,7 @@ func (s *State) NewAck(dbheight uint32, msg interfaces.IMsg, hash interfaces.IHa
 		ack.SerialHash = ack.MessageHash
 	} else {
 		ack.Height = last.Height + 1
+        fmt.Println(ack.String(), last.Height+1)
 		ack.SerialHash, err = primitives.CreateHash(last.MessageHash, ack.MessageHash)
 		if err != nil {
 			return nil, err
