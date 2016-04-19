@@ -2,8 +2,8 @@ package adminBlock
 
 import (
 	"bytes"
+	"encoding/binary"
 	"fmt"
-    "encoding/binary"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -12,21 +12,21 @@ import (
 // DB Signature Entry -------------------------
 type AddFederatedServer struct {
 	IdentityChainID interfaces.IHash
-    DBHeight uint32
+	DBHeight        uint32
 }
 
 var _ interfaces.IABEntry = (*AddFederatedServer)(nil)
 var _ interfaces.BinaryMarshallable = (*AddFederatedServer)(nil)
 
 func (c *AddFederatedServer) UpdateState(state interfaces.IState) {
-	state.AddFedServer( c.DBHeight, c.IdentityChainID)
+	state.AddFedServer(c.DBHeight, c.IdentityChainID)
 	state.Println(fmt.Sprintf("Adding Federaed Server: %x at %d", c.IdentityChainID.Bytes()[:3], c.DBHeight))
 }
 
 // Create a new DB Signature Entry
 func NewAddFederatedServer(dbheight uint32, identityChainID interfaces.IHash) (e *AddFederatedServer) {
 	e = new(AddFederatedServer)
-    e.DBHeight = dbheight
+	e.DBHeight = dbheight
 	e.IdentityChainID = primitives.NewHash(identityChainID.Bytes())
 	return
 }
@@ -45,8 +45,8 @@ func (e *AddFederatedServer) MarshalBinary() (data []byte, err error) {
 		return nil, err
 	}
 	buf.Write(data)
-    
-    binary.Write(&buf, binary.BigEndian, e.DBHeight)
+
+	binary.Write(&buf, binary.BigEndian, e.DBHeight)
 
 	return buf.Bytes(), nil
 }
@@ -66,9 +66,9 @@ func (e *AddFederatedServer) UnmarshalBinaryData(data []byte) (newData []byte, e
 	if err != nil {
 		panic(err.Error())
 	}
-    
-    e.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
-    
+
+	e.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+
 	return
 }
 

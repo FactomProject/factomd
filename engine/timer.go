@@ -32,9 +32,9 @@ func Timer(state interfaces.IState) {
 	state.Print(fmt.Sprintf("Time: %v\r\n", time.Now()))
 	time.Sleep(time.Duration(wait))
 	for {
-       
+
 		found, index := state.GetFedServerIndexHash(state.GetLeaderHeight(), state.GetIdentityChainID())
-        sent := false
+		sent := false
 		for i := 0; i < 10; i++ {
 			now = time.Now().UnixNano()
 			wait := next - now
@@ -43,43 +43,42 @@ func Timer(state interfaces.IState) {
 				for next < now {
 					next += tenthPeriod
 				}
-                wait = next - now
+				wait = next - now
 			} else {
 				wait = next - now
 				next += tenthPeriod
 			}
 			time.Sleep(time.Duration(wait))
-            for found && len(state.InMsgQueue()) > 5000 {
+			for found && len(state.InMsgQueue()) > 5000 {
 				fmt.Println("Skip Period")
 				time.Sleep(time.Duration(tenthPeriod))
 			}
-        	
-        	// End of the last period, and this is a server, send messages that
+
+			// End of the last period, and this is a server, send messages that
 			// close off the minute.
-        
-          
-           //fmt.Println("         ", "found",found,"green",state.Green(), "sent",sent,"i", i,"dbheight",state.GetLeaderHeight())
-           
-           if found && state.Green() && (sent || i==0){
-                sent = true
+
+			//fmt.Println("         ", "found",found,"green",state.Green(), "sent",sent,"i", i,"dbheight",state.GetLeaderHeight())
+
+			if found && state.Green() && (sent || i == 0) {
+				sent = true
 				eom := new(messages.EOM)
 				eom.Minute = byte(i)
 				eom.Timestamp = state.GetTimestamp()
 				eom.ChainID = state.GetIdentityChainID()
 				eom.ServerIndex = index
 				eom.Sign(state)
-		        eom.DBHeight = state.GetLeaderHeight()
-                if i == 9 {
-                    DBS := new(messages.DirectoryBlockSignature)
-                    DBS.ServerIdentityChainID = state.GetIdentityChainID()
-                    DBS.LocalOnly = true
-                    DBS.DBHeight = state.GetLeaderHeight()
-                    DBS.ServerIndex = uint32(index)
-    				state.TimerMsgQueue() <- eom
-                    state.TimerMsgQueue() <- DBS
-                }else{
-      				state.TimerMsgQueue() <- eom
-                }
+				eom.DBHeight = state.GetLeaderHeight()
+				if i == 9 {
+					DBS := new(messages.DirectoryBlockSignature)
+					DBS.ServerIdentityChainID = state.GetIdentityChainID()
+					DBS.LocalOnly = true
+					DBS.DBHeight = state.GetLeaderHeight()
+					DBS.ServerIndex = uint32(index)
+					state.TimerMsgQueue() <- eom
+					state.TimerMsgQueue() <- DBS
+				} else {
+					state.TimerMsgQueue() <- eom
+				}
 			}
 		}
 	}

@@ -55,7 +55,7 @@ func (m *RevealEntryMsg) Process(dbheight uint32, state interfaces.IState) bool 
 		// Put it in our list of new Entry Blocks for this Directory Block
 		state.PutNewEBlocks(dbheight, m.Entry.GetChainID(), eb)
 		state.PutNewEntries(dbheight, m.Entry.GetHash(), m.Entry)
-		
+
 		return true
 	} else if _, isNewEntry := commit.(*CommitEntryMsg); isNewEntry {
 		chainID := m.Entry.GetChainID()

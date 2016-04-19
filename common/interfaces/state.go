@@ -67,12 +67,12 @@ type IState interface {
 
 	// Journalling
 	JournalMessage(IMsg)
-    
+
 	// Consensus
-	InMsgQueue() chan IMsg // Read by Validate
-    LeaderMsgQueue() chan IMsg // Leader Queue
-    Undo() IMsg
-    
+	InMsgQueue() chan IMsg     // Read by Validate
+	LeaderMsgQueue() chan IMsg // Leader Queue
+	Undo() IMsg
+
 	// Lists and Maps
 	// =====
 	GetAuditHeartBeats() []IMsg   // The checklist of HeartBeats for this period
@@ -98,7 +98,7 @@ type IState interface {
 	// These are methods run by the consensus algorithm to track what servers are the leaders
 	// and what lists they are responsible for.
 	ServerIndexFor(uint32, []byte) int // Returns the serverindex responsible for this hash
-	LeaderFor(hash []byte) bool     // Tests if this server is the leader for this key
+	LeaderFor(hash []byte) bool        // Tests if this server is the leader for this key
 
 	// Database
 	// ========
@@ -136,8 +136,8 @@ type IState interface {
 	// For messages that go into the Process List
 	LeaderExecute(m IMsg) error
 	LeaderExecuteEOM(m IMsg) error
-    LeaderExecuteDBSig(m IMsg) error
-    
+	LeaderExecuteDBSig(m IMsg) error
+
 	GetTimestamp() Timestamp
 
 	PrintType(int) bool // Debugging

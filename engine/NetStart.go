@@ -42,7 +42,7 @@ func NetStart(s *state.State) {
 	portPtr := flag.Int("port", 8089, "Address to serve WSAPI on")
 	addressPtr := flag.String("p2pAddress", "tcp://127.0.0.1:34340", "Address & port to listen for peers on: (eg: tcp://127.0.0.1:40891)")
 	peersPtr := flag.String("peers", "tcp://127.0.0.1:34341 tcp://127.0.0.1:34342 tcp://127.0.0.1:34343", "Array of peer addresses. Defaults to: \"tcp://127.0.0.1:34341 tcp://127.0.0.1:34342 tcp://127.0.0.1:34340\"")
-    blkTimePtr := flag.Int("blktime", 0, "Seconds per block.  Production is 600.")
+	blkTimePtr := flag.Int("blktime", 0, "Seconds per block.  Production is 600.")
 
 	flag.Parse()
 
@@ -58,17 +58,17 @@ func NetStart(s *state.State) {
 	port := *portPtr
 	address := *addressPtr
 	peers := *peersPtr
-    blkTime := *blkTimePtr
-    
-    FactomConfigFilename := util.GetConfigFilename("m2")
+	blkTime := *blkTimePtr
+
+	FactomConfigFilename := util.GetConfigFilename("m2")
 	fmt.Println(fmt.Sprintf("factom config: %s", FactomConfigFilename))
 	s.LoadConfig(FactomConfigFilename, folder)
 
-    if blkTime != 0 {
-        s.DirectoryBlockInSeconds = blkTime
-    }else{
-        blkTime = s.DirectoryBlockInSeconds
-    }
+	if blkTime != 0 {
+		s.DirectoryBlockInSeconds = blkTime
+	} else {
+		blkTime = s.DirectoryBlockInSeconds
+	}
 
 	os.Stderr.WriteString(fmt.Sprintf("node     %d\n", listenTo))
 	os.Stderr.WriteString(fmt.Sprintf("count    %d\n", cnt))
@@ -270,7 +270,7 @@ func makeServer(s *state.State) *FactomNode {
 }
 
 func startServers(load bool) {
-    
+
 	for i, fnode := range fnodes {
 		if i > 0 {
 			fnode.State.Init()

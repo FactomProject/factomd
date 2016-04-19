@@ -78,15 +78,15 @@ func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 		// the message is considered invalid
 		return -1
 	}
-    if !m.IsLocal() {
-        isVer, err := m.VerifySignature()
-        if err != nil || !isVer {
-            // if there is an error during signature verification
-            // or if the signature is invalid
-            // the message is considered invalid
-            return -1
-        }
-    }
+	if !m.IsLocal() {
+		isVer, err := m.VerifySignature()
+		if err != nil || !isVer {
+			// if there is an error during signature verification
+			// or if the signature is invalid
+			// the message is considered invalid
+			return -1
+		}
+	}
 	return 1
 }
 
@@ -181,7 +181,7 @@ func (m *DirectoryBlockSignature) UnmarshalBinary(data []byte) error {
 func (m *DirectoryBlockSignature) MarshalForSignature() ([]byte, error) {
 
 	if m.DirectoryBlockKeyMR == nil {
-        m.DirectoryBlockKeyMR = new(primitives.Hash)
+		m.DirectoryBlockKeyMR = new(primitives.Hash)
 	}
 
 	var buf bytes.Buffer
@@ -260,4 +260,3 @@ func (e *DirectoryBlockSignature) JSONString() (string, error) {
 func (e *DirectoryBlockSignature) JSONBuffer(b *bytes.Buffer) error {
 	return primitives.EncodeJSONToBuffer(e, b)
 }
-

@@ -27,7 +27,7 @@ func SimControl(listenTo int) {
 		l := make([]byte, 100)
 		var err error
 		if _, err = os.Stdin.Read(l); err != nil {
-			l = []byte("no command")  // This is a hack to handle running in the background. (Eg: as a detatched process)
+			l = []byte("no command") // This is a hack to handle running in the background. (Eg: as a detatched process)
 			// Being unable to read from StdIn gives error, this pretends like "no command" was typed, which causes nothing (unlike simply hitting return)
 		}
 
@@ -58,15 +58,15 @@ func SimControl(listenTo int) {
 					f.State.SetOut(false)
 					fmt.Printf("%8s %s\n", f.State.FactomNodeName, f.State.ShortString())
 				}
-                if listenTo >= 0 && listenTo < len(fnodes) {
-                    fmt.Printf("   %s\n",fnodes[listenTo].State.GetFactomNodeName())
-                    fmt.Printf("      InMsgQueue             %d\n",len(fnodes[listenTo].State.InMsgQueue()))
-                    fmt.Printf("      LeaderMsgQueue         %d\n",len(fnodes[listenTo].State.LeaderMsgQueue()))
-                    fmt.Printf("      TimerMsgQueue          %d\n",len(fnodes[listenTo].State.TimerMsgQueue()))
-                    fmt.Printf("      NetworkOutMsgQueue     %d\n",len(fnodes[listenTo].State.NetworkOutMsgQueue()))
-                    fmt.Printf("      NetworkInvalidMsgQueue %d\n",len(fnodes[listenTo].State.NetworkOutMsgQueue()))
-                }
-            
+				if listenTo >= 0 && listenTo < len(fnodes) {
+					fmt.Printf("   %s\n", fnodes[listenTo].State.GetFactomNodeName())
+					fmt.Printf("      InMsgQueue             %d\n", len(fnodes[listenTo].State.InMsgQueue()))
+					fmt.Printf("      LeaderMsgQueue         %d\n", len(fnodes[listenTo].State.LeaderMsgQueue()))
+					fmt.Printf("      TimerMsgQueue          %d\n", len(fnodes[listenTo].State.TimerMsgQueue()))
+					fmt.Printf("      NetworkOutMsgQueue     %d\n", len(fnodes[listenTo].State.NetworkOutMsgQueue()))
+					fmt.Printf("      NetworkInvalidMsgQueue %d\n", len(fnodes[listenTo].State.NetworkOutMsgQueue()))
+				}
+
 			case 0 == strings.Compare(strings.ToLower(string(b)), "a"):
 				mLog.all = false
 				for _, fnode := range fnodes {
