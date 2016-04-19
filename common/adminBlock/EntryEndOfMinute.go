@@ -25,6 +25,12 @@ func (c *EndOfMinuteEntry) UpdateState(state interfaces.IState) {
 
 }
 
+func NewEndOfMinuteEntry(minuteNumber byte) *EndOfMinuteEntry {
+	e := new(EndOfMinuteEntry)
+	e.MinuteNumber = minuteNumber
+	return e
+}
+
 func (e *EndOfMinuteEntry) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
 

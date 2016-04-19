@@ -22,6 +22,13 @@ func (m *RevealMatryoshkaHash) Type() byte {
 	return constants.TYPE_REVEAL_MATRYOSHKA
 }
 
+func NewRevealMatryoshkaHash(identityChainID interfaces.IHash, mHash interfaces.IHash) *RevealMatryoshkaHash {
+	e := new(RevealMatryoshkaHash)
+	e.IdentityChainID = identityChainID
+	e.MHash = mHash
+	return e
+}
+
 func (c *RevealMatryoshkaHash) UpdateState(state interfaces.IState) {
 
 }
