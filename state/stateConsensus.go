@@ -290,7 +290,8 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		dbstate := s.DBStates.Get(dbheight)
 
 		DBS2 := new(messages.DirectoryBlockSignature)
-		DBS2.ServerIdentityChainID = DBS.ServerIdentityChainID
+		DBS2.Timestamp = s.GetTimestamp()
+        DBS2.ServerIdentityChainID = DBS.ServerIdentityChainID
 		DBS2.DBHeight = DBS.DBHeight
 		DBS2.ServerIndex = DBS.ServerIndex
 		DBS2.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
@@ -308,7 +309,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		// Leader Execute creates an acknowledgement and the EOM
 		s.NetworkOutMsgQueue() <- ack
 		s.NetworkOutMsgQueue() <- DBS2
-
+        s.Print("SENT DBS2")
 	} else {
 
 		// TODO follower should validate signature here.
@@ -385,14 +386,19 @@ func (s *State) GetHighestRecordedBlock() uint32 {
 // We hare caught up with the network IF:
 // The highest recorded block is equal to or just below the highest known block
 func (s *State) Green() bool {
-	if s.GreenFlg {
+	if s.GreenCnt > 100 {
 		return true
 	}
 
 	rec := s.DBStates.GetHighestRecordedBlock()
 	high := s.GetHighestKnownBlock()
 	s.GreenFlg = rec >= high-1
-	return s.GreenFlg
+	if s.GreenFlg {
+        s.GreenCnt++
+    }else{
+        s.GreenCnt=0
+    }
+    return s.GreenFlg
 }
 
 // This is lowest block currently under construction under the "leader".

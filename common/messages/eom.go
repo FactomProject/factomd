@@ -85,7 +85,6 @@ func (m *EOM) Type() int {
 func (m *EOM) Validate(state interfaces.IState) int {
 	found, _ := state.GetFedServerIndexHash(m.DBHeight, m.ChainID)
 	if !found { // Only EOM from federated servers are valid.
-		fmt.Printf("Couldn't match %x at dbheight %d Leader Height: %d\n", m.ChainID.Bytes()[:3], m.DBHeight, state.GetLeaderHeight())
 		return -1
 	}
 	// Check signature
