@@ -26,7 +26,7 @@ func (c *RemoveFederatedServer) UpdateState(state interfaces.IState) {
 }
 
 // Create a new DB Signature Entry
-func NewRemoveFederatedServer(dbheight uint32, identityChainID interfaces.IHash) (e *RemoveFederatedServer) {
+func NewRemoveFederatedServer(identityChainID interfaces.IHash, dbheight uint32) (e *RemoveFederatedServer) {
 	e = new(RemoveFederatedServer)
 	e.IdentityChainID = primitives.NewHash(identityChainID.Bytes())
 	e.DBHeight = dbheight

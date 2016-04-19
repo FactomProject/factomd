@@ -26,6 +26,13 @@ func (c *AddReplaceMatryoshkaHash) UpdateState(state interfaces.IState) {
 
 }
 
+func NewAddReplaceMatryoshkaHash(identityChainID interfaces.IHash, mHash interfaces.IHash) *AddReplaceMatryoshkaHash {
+	e := new(AddReplaceMatryoshkaHash)
+	e.IdentityChainID = identityChainID
+	e.MHash = mHash
+	return e
+}
+
 func (e *AddReplaceMatryoshkaHash) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
 
