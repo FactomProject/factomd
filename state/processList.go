@@ -118,14 +118,14 @@ func (p *ProcessList) GetLastLeaderAck(index int) interfaces.IMsg {
 // Given a server index, return the last Ack
 func (p *ProcessList) SetLastLeaderAck(index int, msg interfaces.IMsg) error {
 	// Check the hash of the previous msg before we over write
-	p.Servers[index].Undo = p.Servers[index].LastLeaderAck
+    p.Servers[index].Undo = p.Servers[index].LastLeaderAck
 	p.Servers[index].LastLeaderAck = msg
 	return nil
 }
 
 func (p *ProcessList) UndoLeaderAck(index int) {
-	p.Servers[index].Height--
-	p.Servers[index].LastLeaderAck = p.Servers[index].Undo
+    p.Servers[index].Height--
+    p.Servers[index].LastLeaderAck = p.Servers[index].Undo
 }
 
 func (p *ProcessList) GetLen(list int) int {
@@ -278,10 +278,10 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			}
 			if plist[j].Process(p.DBHeight, state) { // Try and Process this entry
 				p.Servers[i].Height = j + 1 // Don't process it again if the process worked.
-				progress = true
+                progress = true
 			} else {
-				break
-			}
+                break
+            }
 
 			// TODO:  If we carefully manage our state as we process messages, we
 			// would not need to check the messages here!  Checking for EOM and DBS
@@ -347,10 +347,10 @@ func (p *ProcessList) String() string {
 					buf.WriteString("   <nil>\n")
 				}
 			}
-			buf.WriteString("\n   Federated Servers:\n")
-			for _, fed := range p.FedServers {
-				buf.WriteString(fmt.Sprintf("    %x\n", fed.GetChainID().Bytes()[:3]))
-			}
+		}
+		buf.WriteString("\n   Federated Servers:\n")
+		for _, fed := range p.FedServers {
+			buf.WriteString(fmt.Sprintf("    %x\n", fed.GetChainID().Bytes()[:3]))
 		}
 	}
 	return buf.String()

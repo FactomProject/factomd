@@ -25,8 +25,7 @@ type DirectoryBlockSignature struct {
 	Signature interfaces.IFullSignature
 
 	//Not marshalled
-	hash  interfaces.IHash
-	Local bool
+	hash interfaces.IHash
 }
 
 var _ interfaces.IMsg = (*DirectoryBlockSignature)(nil)
@@ -79,7 +78,7 @@ func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 		// the message is considered invalid
 		return -1
 	}
-	if !m.Local {
+	if !m.IsLocal() {
 		isVer, err := m.VerifySignature()
 		if err != nil || !isVer {
 			// if there is an error during signature verification
@@ -94,7 +93,7 @@ func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 // Returns true if this is a message for this server to execute as
 // a leader.
 func (m *DirectoryBlockSignature) Leader(state interfaces.IState) bool {
-	return m.Local
+	return m.IsLocal()
 }
 
 // Execute the leader functions of the given message
@@ -261,3 +260,4 @@ func (e *DirectoryBlockSignature) JSONString() (string, error) {
 func (e *DirectoryBlockSignature) JSONBuffer(b *bytes.Buffer) error {
 	return primitives.EncodeJSONToBuffer(e, b)
 }
+
