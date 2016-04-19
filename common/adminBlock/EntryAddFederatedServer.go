@@ -24,7 +24,7 @@ func (c *AddFederatedServer) UpdateState(state interfaces.IState) {
 }
 
 // Create a new DB Signature Entry
-func NewAddFederatedServer(dbheight uint32, identityChainID interfaces.IHash) (e *AddFederatedServer) {
+func NewAddFederatedServer(identityChainID interfaces.IHash, dbheight uint32) (e *AddFederatedServer) {
 	e = new(AddFederatedServer)
 	e.DBHeight = dbheight
 	e.IdentityChainID = primitives.NewHash(identityChainID.Bytes())
@@ -90,7 +90,7 @@ func (e *AddFederatedServer) JSONBuffer(b *bytes.Buffer) error {
 }
 
 func (e *AddFederatedServer) String() string {
-	str := fmt.Sprintf("Add Server with Identity Chain ID = %x", e.IdentityChainID.Bytes()[:5])
+	str, _ := e.JSONString()
 	return str
 }
 

@@ -8,12 +8,12 @@ import (
 	"github.com/FactomProject/factomd/testHelper"
 )
 
-func TestRevealMatryoshkaHashMarshalUnmarshal(t *testing.T) {
+func TestAddReplaceMatryoshkaHashMarshalUnmarshal(t *testing.T) {
 	identity := testHelper.NewRepeatingHash(0xAB)
 	mhash := testHelper.NewRepeatingHash(0xCD)
 
-	rmh := NewRevealMatryoshkaHash(identity, mhash)
-	if rmh.Type() != constants.TYPE_REVEAL_MATRYOSHKA {
+	rmh := NewAddReplaceMatryoshkaHash(identity, mhash)
+	if rmh.Type() != constants.TYPE_ADD_MATRYOSHKA {
 		t.Errorf("Invalid type")
 	}
 	if rmh.IdentityChainID.IsSameAs(identity) == false {
@@ -27,12 +27,12 @@ func TestRevealMatryoshkaHashMarshalUnmarshal(t *testing.T) {
 		t.Error(err)
 	}
 
-	rmh = new(RevealMatryoshkaHash)
+	rmh = new(AddReplaceMatryoshkaHash)
 	err = rmh.UnmarshalBinary(tmp2)
 	if err != nil {
 		t.Error(err)
 	}
-	if rmh.Type() != constants.TYPE_REVEAL_MATRYOSHKA {
+	if rmh.Type() != constants.TYPE_ADD_MATRYOSHKA {
 		t.Errorf("Invalid type")
 	}
 	if rmh.IdentityChainID.IsSameAs(identity) == false {

@@ -104,7 +104,7 @@ func (e *AddFederatedServerSigningKey) JSONBuffer(b *bytes.Buffer) error {
 }
 
 func (e *AddFederatedServerSigningKey) String() string {
-	str := fmt.Sprintf("AddFederatedServerSigningKey with Identity Chain ID = %x", e.IdentityChainID.Bytes()[:5])
+	str, _ := e.JSONString()
 	return str
 }
 

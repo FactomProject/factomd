@@ -81,6 +81,9 @@ func (e *AddFederatedServerBitcoinAnchorKey) UnmarshalBinaryData(data []byte) (n
 
 	e.KeyPriority, newData = newData[0], newData[1:]
 	e.KeyType, newData = newData[0], newData[1:]
+	if e.KeyType != 0 && e.KeyType != 1 {
+		return nil, fmt.Errorf("Invalid KeyType")
+	}
 
 	newData, err = e.ECDSAPublicKey.UnmarshalBinaryData(newData)
 	if err != nil {
@@ -108,7 +111,7 @@ func (e *AddFederatedServerBitcoinAnchorKey) JSONBuffer(b *bytes.Buffer) error {
 }
 
 func (e *AddFederatedServerBitcoinAnchorKey) String() string {
-	str := fmt.Sprintf("AddFederatedServerBitcoinAnchorKey with Identity Chain ID = %x", e.IdentityChainID.Bytes()[:5])
+	str, _ := e.JSONString()
 	return str
 }
 

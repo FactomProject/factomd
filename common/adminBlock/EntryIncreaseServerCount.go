@@ -34,6 +34,7 @@ func (e *IncreaseServerCount) Type() byte {
 func (e *IncreaseServerCount) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
 
+	buf.Write([]byte{e.Type()})
 	buf.Write([]byte{e.Amount})
 
 	return buf.Bytes(), nil

@@ -94,7 +94,7 @@ func (e *RemoveFederatedServer) JSONBuffer(b *bytes.Buffer) error {
 }
 
 func (e *RemoveFederatedServer) String() string {
-	str := fmt.Sprintf("Add Server with Identity Chain ID = %x", e.IdentityChainID.Bytes()[:5])
+	str, _ := e.JSONString()
 	return str
 }
 
