@@ -2,6 +2,7 @@ package adminBlock
 
 import (
 	"bytes"
+	"encoding/binary"
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -40,11 +41,13 @@ func (e *RemoveFederatedServer) Type() byte {
 func (e *RemoveFederatedServer) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
 
+	buf.Write([]byte{e.Type()})
 	data, err = e.IdentityChainID.MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
 	buf.Write(data)
+	binary.Write(&buf, binary.BigEndian, e.DBHeight)
 
 	return buf.Bytes(), nil
 }
@@ -57,6 +60,9 @@ func (e *RemoveFederatedServer) UnmarshalBinaryData(data []byte) (newData []byte
 	}()
 
 	newData = data
+	if newData[0] != e.Type() {
+		return nil, fmt.Errorf("Invalid Entry type")
+	}
 	newData = newData[1:]
 
 	e.IdentityChainID = new(primitives.Hash)
@@ -64,6 +70,9 @@ func (e *RemoveFederatedServer) UnmarshalBinaryData(data []byte) (newData []byte
 	if err != nil {
 		return
 	}
+
+	e.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+
 	return
 }
 
@@ -85,7 +94,7 @@ func (e *RemoveFederatedServer) JSONBuffer(b *bytes.Buffer) error {
 }
 
 func (e *RemoveFederatedServer) String() string {
-	str := fmt.Sprintf("Add Server with Identity Chain ID = %x", e.IdentityChainID.Bytes()[:5])
+	str, _ := e.JSONString()
 	return str
 }
 

@@ -386,7 +386,7 @@ func (s *State) GetHighestRecordedBlock() uint32 {
 // We hare caught up with the network IF:
 // The highest recorded block is equal to or just below the highest known block
 func (s *State) Green() bool {
-	if s.GreenCnt > 100 {
+	if s.GreenCnt > 1000 {
 		return true
 	}
 
