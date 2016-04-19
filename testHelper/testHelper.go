@@ -23,7 +23,7 @@ var DefaultCoinbaseAmount uint64 = 100000000
 
 func CreateEmptyTestState() *state.State {
 	s := new(state.State)
-	s.LoadConfig("")
+	s.LoadConfig("", "")
 	s.Init()
 	state.LoadDatabase(s)
 	return s
@@ -32,7 +32,7 @@ func CreateEmptyTestState() *state.State {
 func CreateAndPopulateTestState() *state.State {
 	s := new(state.State)
 	s.DB = CreateAndPopulateTestDatabaseOverlay()
-	s.LoadConfig("")
+	s.LoadConfig("", "")
 	s.Init()
 	/*err := s.RecalculateBalances()
 	if err != nil {

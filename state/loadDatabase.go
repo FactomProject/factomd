@@ -42,8 +42,8 @@ func LoadDatabase(s *State) {
 			}
 		}
 		msg, err = s.LoadDBState(uint32(i))
-        
-        s.Print("\r","\\|/-"[i%4:i%4+1])
+
+		s.Print("\r", "\\|/-"[i%4:i%4+1])
 	}
 
 	if blkCnt == 0 && s.NetworkNumber == constants.NETWORK_LOCAL {

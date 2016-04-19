@@ -267,3 +267,55 @@ func (bs *ByteSliceSig) String() string {
 func (bs *ByteSliceSig) MarshalText() ([]byte, error) {
 	return []byte(bs.String()), nil
 }
+
+type ByteSlice20 [20]byte
+
+var _ interfaces.Printable = (*ByteSlice20)(nil)
+var _ interfaces.BinaryMarshallable = (*ByteSlice20)(nil)
+
+func (bs *ByteSlice20) MarshalBinary() ([]byte, error) {
+	return bs[:], nil
+}
+
+func (bs *ByteSlice20) GetFixed() ([20]byte, error) {
+	answer := [20]byte{}
+	copy(answer[:], bs[:])
+
+	return answer, nil
+}
+
+func (bs *ByteSlice20) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("Error unmarshalling: %v", r)
+		}
+	}()
+	copy(bs[:], data[:20])
+	newData = data[20:]
+	return
+}
+
+func (bs *ByteSlice20) UnmarshalBinary(data []byte) (err error) {
+	copy(bs[:], data[:20])
+	return
+}
+
+func (e *ByteSlice20) JSONByte() ([]byte, error) {
+	return EncodeJSON(e)
+}
+
+func (e *ByteSlice20) JSONString() (string, error) {
+	return EncodeJSONString(e)
+}
+
+func (e *ByteSlice20) JSONBuffer(b *bytes.Buffer) error {
+	return EncodeJSONToBuffer(e, b)
+}
+
+func (bs *ByteSlice20) String() string {
+	return fmt.Sprintf("%x", bs[:])
+}
+
+func (bs *ByteSlice20) MarshalText() ([]byte, error) {
+	return []byte(bs.String()), nil
+}

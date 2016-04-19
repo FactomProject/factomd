@@ -50,30 +50,26 @@ func (s *State) AddDBState(isNew bool,
 // Returns true if it finds a match
 func (s *State) FollowerExecuteMsg(m interfaces.IMsg) (bool, error) {
 
-	acks := s.Acks
-	ack, ok := acks[m.GetHash().Fixed()].(*messages.Ack)
+	hash := m.GetHash()
+	hashf := hash.Fixed()
+	ack, ok := s.Acks[hashf].(*messages.Ack)
 	if !ok || ack == nil {
-		s.Holding[m.GetHash().Fixed()] = m
+		s.Holding[hashf] = m
 		return false, nil
 	} else {
 		pl := s.ProcessLists.Get(ack.DBHeight)
 
 		if m.Type() == constants.COMMIT_CHAIN_MSG || m.Type() == constants.COMMIT_ENTRY_MSG {
-			s.PutCommits(m.GetHash(), m)
+			s.PutCommits(hash, m)
 		}
 
 		if pl != nil {
 			pl.AddToProcessList(ack, m)
 
-			pl.OldAcks[ack.GetHash().Fixed()] = ack
-			pl.OldMsgs[m.GetHash().Fixed()] = m
-			delete(acks, m.GetHash().Fixed())
-			delete(s.Holding, m.GetHash().Fixed())
-		} else {
-			s.Println(">>>>>>>>>>>>>>>>>> Nil Process List at: ", ack.DBHeight)
-			s.Println(">>>>>>>>>>>>>>>>>> Ack:                 ", ack.String())
-			s.Println(">>>>>>>>>>>>>>>>>> DBStates:\n", s.DBStates.String())
-			s.Println("\n\n>>>>>>>>>>>>>>>>>> ProcessLists:\n", s.ProcessLists.String())
+			pl.OldAcks[hashf] = ack
+			pl.OldMsgs[hashf] = m
+			delete(s.Acks, hashf)
+			delete(s.Holding, hashf)
 		}
 		return true, nil
 	}
@@ -108,7 +104,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) error {
 		dbstatemsg.AdminBlock,
 		dbstatemsg.FactoidBlock,
 		dbstatemsg.EntryCreditBlock)
-	
+
 	return nil
 }
 
@@ -133,7 +129,7 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
 	eom, _ := m.(*messages.EOM)
 	eom.DBHeight = s.LLeaderHeight
 	if err := s.LeaderExecute(m); err != nil {
-        fmt.Println("Error: ",err)
+		fmt.Println("Error: ", err)
 		return err
 	}
 
@@ -141,27 +137,27 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
 }
 
 func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) error {
-    DBS,ok := m.(*messages.DirectoryBlockSignature)
-    if !ok {
-        return fmt.Errorf("Bad Directory Block Signature")
-    }
-    
-    DBS.DBHeight = s.LLeaderHeight
-    
+	DBS, ok := m.(*messages.DirectoryBlockSignature)
+	if !ok {
+		return fmt.Errorf("Bad Directory Block Signature")
+	}
+
+	DBS.DBHeight = s.LLeaderHeight
+
 	DBS.Timestamp = s.GetTimestamp()
-    hash := DBS.GetHash()
-    ack, err := s.NewAck(s.LLeaderHeight, DBS, hash)
-    if err != nil {
-        fmt.Println("Bad Ack")
-        s.undo = m
-        return nil
-    }
-    ack.FollowerExecute(s)
-    DBS.FollowerExecute(s)
-     
-    s.LLeaderHeight++
-    
-    return nil
+	hash := DBS.GetHash()
+	ack, err := s.NewAck(s.LLeaderHeight, DBS, hash)
+	if err != nil {
+		fmt.Println("Bad Ack")
+		s.undo = m
+		return nil
+	}
+	ack.FollowerExecute(s)
+	DBS.FollowerExecute(s)
+
+	s.LLeaderHeight++
+
+	return nil
 }
 
 func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) bool {
@@ -274,45 +270,51 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 // is then that we push it out to the rest of the network.  Otherwise, if we are not the
 // leader for the signature, it marks the sig complete for that list
 func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
-    pl := s.ProcessLists.Get(dbheight)
-    if !pl.EomComplete() {
-        return false
-    }
+	pl := s.ProcessLists.Get(dbheight)
+	if !pl.EomComplete() {
+		return false
+	}
 
-    DBS, ok := msg.(*messages.DirectoryBlockSignature)
-    if !ok {
-        panic("DirectoryBlockSignature is the wrong type.")
-    }
-    
-    
-    if  !pl.Servers[DBS.ServerIndex].SigComplete {
-    	pl.SetSigComplete(int(DBS.ServerIndex), true)
-	
-        s.AddDBState(true, pl.DirectoryBlock, pl.AdminBlock, s.GetFactoidState().GetCurrentBlock(), pl.EntryCreditBlock)
-    }   
-    
-    
-    if DBS.Local {
-        dbstate := s.DBStates.Get(dbheight)
-	    DBS.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
-        DBS.Sign(s)
+	DBS, ok := msg.(*messages.DirectoryBlockSignature)
+	if !ok {
+		panic("DirectoryBlockSignature is the wrong type.")
+	}
 
-    	hash := DBS.GetHash()
-        
-        pl.UndoLeaderAck(int(DBS.ServerIndex))
-        s.LLeaderHeight--
-	    ack, _ := s.NewAck(dbheight, DBS, hash)
-        s.LLeaderHeight++
-        
-    	// Leader Execute creates an acknowledgement and the EOM
-	    s.NetworkOutMsgQueue() <- ack
-	    s.NetworkOutMsgQueue() <- DBS	
-                
-    }else{
-        
-        // TODO follower should validate signature here.
-    }
-  
+	if !pl.Servers[DBS.ServerIndex].SigComplete {
+		pl.SetSigComplete(int(DBS.ServerIndex), true)
+
+		s.AddDBState(true, pl.DirectoryBlock, pl.AdminBlock, s.GetFactoidState().GetCurrentBlock(), pl.EntryCreditBlock)
+	}
+
+	if DBS.IsLocal() {
+		dbstate := s.DBStates.Get(dbheight)
+
+		DBS2 := new(messages.DirectoryBlockSignature)
+		DBS2.Timestamp = s.GetTimestamp()
+        DBS2.ServerIdentityChainID = DBS.ServerIdentityChainID
+		DBS2.DBHeight = DBS.DBHeight
+		DBS2.ServerIndex = DBS.ServerIndex
+		DBS2.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
+		DBS2.Sign(s)
+
+		hash := DBS2.GetHash()
+
+		// Here we replace out of the process list the local DBS message with one
+		// that can be broadcast.  This is a bit of necessary trickery
+		pl.UndoLeaderAck(int(DBS.ServerIndex))
+		s.LLeaderHeight--
+		ack, _ := s.NewAck(dbheight, DBS2, hash)
+		s.LLeaderHeight++
+
+		// Leader Execute creates an acknowledgement and the EOM
+		s.NetworkOutMsgQueue() <- ack
+		s.NetworkOutMsgQueue() <- DBS2
+        s.Print("SENT DBS2")
+	} else {
+
+		// TODO follower should validate signature here.
+	}
+
 	return true
 }
 
@@ -384,14 +386,19 @@ func (s *State) GetHighestRecordedBlock() uint32 {
 // We hare caught up with the network IF:
 // The highest recorded block is equal to or just below the highest known block
 func (s *State) Green() bool {
-	if s.GreenFlg {
+	if s.GreenCnt > 100 {
 		return true
 	}
 
 	rec := s.DBStates.GetHighestRecordedBlock()
 	high := s.GetHighestKnownBlock()
 	s.GreenFlg = rec >= high-1
-	return s.GreenFlg
+	if s.GreenFlg {
+        s.GreenCnt++
+    }else{
+        s.GreenCnt=0
+    }
+    return s.GreenFlg
 }
 
 // This is lowest block currently under construction under the "leader".

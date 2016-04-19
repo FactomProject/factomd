@@ -101,7 +101,6 @@ func (m *MsgLog) add2(fnode *FactomNode, out bool, peer string, where string, va
 }
 
 func (m *MsgLog) prtMsgs(state interfaces.IState) {
-	fmt.Println(m.all, "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
 	if m.all {
 		m.prtMsgAll(state)
 		return

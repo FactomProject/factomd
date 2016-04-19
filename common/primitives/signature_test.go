@@ -5,10 +5,55 @@
 package primitives_test
 
 import (
+	"encoding/hex"
 	"testing"
 
 	. "github.com/FactomProject/factomd/common/primitives"
 )
+
+func TestMarshalUnmarshalSignature(t *testing.T) {
+	sigS := "0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a83efbcbed19b5842e5aa06e66c41d8b61826d95d50c1cbc8bd5373f986c370547133462a9ffa0dcff025a6ad26747c95f1bdd88e2596fc8c6eaa8a2993c72c050002"
+
+	sig := new(Signature)
+	h, err := hex.DecodeString(sigS)
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+
+	rest, err := sig.UnmarshalBinaryData(h)
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	if len(rest) != 2 {
+		t.Errorf("Invalid rest - %x", rest)
+	}
+}
+
+func TestVerifySignature(t *testing.T) {
+	msg := "Test Message Sign"
+	sigS := "265ea436f627fc7817488f13bac6b10a4bf73a53f88de8b8b8de0aefb3fa5357e1770f6de3534f2671cbe69dd442c21800a61ef047e3393ca932743f75cf2506"
+	pubS := "a34fec8b47929d01db00cae8d2e83acd4530f777b636a9dfb35b604a8cc4680d"
+
+	sig := new(Signature)
+	h, err := hex.DecodeString(pubS)
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	sig.SetPub(h)
+
+	h, err = hex.DecodeString(sigS)
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	err = sig.SetSignature(h)
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+
+	if !sig.Verify([]byte(msg)) {
+		t.Fatalf("sig.Verify retuned false")
+	}
+}
 
 func TestSignatureMisc(t *testing.T) {
 	priv1 := new(PrivateKey)

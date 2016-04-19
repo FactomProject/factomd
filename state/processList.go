@@ -5,12 +5,12 @@ import (
 
 	"github.com/FactomProject/factomd/common/directoryBlock"
 	//"github.com/FactomProject/factomd/common/factoid"
-	"log"
-    "bytes"
+	"bytes"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
+	"log"
 )
 
 var _ = fmt.Print
@@ -43,8 +43,8 @@ type ProcessList struct {
 	AdminBlock       interfaces.IAdminBlock
 	EntryCreditBlock interfaces.IEntryCreditBlock
 	DirectoryBlock   interfaces.IDirectoryBlock
-    
-    // Number of Servers acknowledged by Factom
+
+	// Number of Servers acknowledged by Factom
 	Matryoshka   []interfaces.IHash        // Reverse Hash
 	AuditServers []interfaces.IFctServer   // List of Audit Servers
 	ServerOrder  [][]interfaces.IFctServer // 10 lists for Server Order for each minute
@@ -58,13 +58,13 @@ type ListServer struct {
 	EomComplete   bool              // Lists that are end of minute complete
 	SigComplete   bool              // Lists that are signature complete
 	Undo          interfaces.IMsg   // The Leader needs one level of undo to handle DB Sigs.
-    LastLeaderAck interfaces.IMsg   // The last Acknowledgement set by this leader
+	LastLeaderAck interfaces.IMsg   // The last Acknowledgement set by this leader
 	LastAck       interfaces.IMsg   // The last Acknowledgement set by this follower
 }
 
 // Returns true and the index of this server, or false and the insertion point for this server
 func (p *ProcessList) GetFedServerIndexHash(identityChainID interfaces.IHash) (bool, int) {
-    scid := identityChainID.Bytes()
+	scid := identityChainID.Bytes()
 
 	for i, fs := range p.FedServers {
 		// Find and remove
@@ -97,7 +97,6 @@ func (p *ProcessList) RemoveFedServerHash(identityChainID interfaces.IHash) {
 	}
 	p.FedServers = append(p.FedServers[:i], p.FedServers[i+1:]...)
 }
-
 
 // Given a server index, return the last Ack
 func (p *ProcessList) GetLastAck(index int) interfaces.IMsg {
@@ -297,7 +296,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			}
 		}
 	}
-    return
+	return
 }
 
 func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
@@ -316,42 +315,42 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 }
 
 func (p *ProcessList) String() string {
-    var buf bytes.Buffer
+	var buf bytes.Buffer
 	if p == nil {
 		buf.WriteString("-- <nil>\n")
 	} else {
-		buf.WriteString(fmt.Sprintf("%s #servers %d\n",p.State.GetFactomNodeName(), p.NumberServers))
+		buf.WriteString(fmt.Sprintf("%s #servers %d\n", p.State.GetFactomNodeName(), p.NumberServers))
 
-		for i:=0; i < p.NumberServers; i++ {
-            server := p.Servers[i]
-            eom := ""
-            sig := ""
-            if server.EomComplete {
-                eom = "EOM Complete"
-            }
-            if server.SigComplete {
-                sig = "Sig Complete"
-            } 
-           
-			buf.WriteString(fmt.Sprintf("  Server %d %s %s\n", i,eom,sig))
+		for i := 0; i < p.NumberServers; i++ {
+			server := p.Servers[i]
+			eom := ""
+			sig := ""
+			if server.EomComplete {
+				eom = "EOM Complete"
+			}
+			if server.SigComplete {
+				sig = "Sig Complete"
+			}
+
+			buf.WriteString(fmt.Sprintf("  Server %d %s %s\n", i, eom, sig))
 			for j, msg := range server.List {
-                
-                if j < server.Height {
-                    buf.WriteString("  p")
-                }else{
-                    buf.WriteString("   ")
-                }
-            
+
+				if j < server.Height {
+					buf.WriteString("  p")
+				} else {
+					buf.WriteString("   ")
+				}
+
 				if msg != nil {
 					buf.WriteString("   " + msg.String() + "\n")
 				} else {
 					buf.WriteString("   <nil>\n")
 				}
 			}
-			buf.WriteString("\n   Federated Servers:\n")
-            for _,fed := range p.FedServers {
-                buf.WriteString(fmt.Sprintf("    %x\n",fed.GetChainID().Bytes()[:3]))
-            }
+		}
+		buf.WriteString("\n   Federated Servers:\n")
+		for _, fed := range p.FedServers {
+			buf.WriteString(fmt.Sprintf("    %x\n", fed.GetChainID().Bytes()[:3]))
 		}
 	}
 	return buf.String()
@@ -374,21 +373,19 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 		pl.Servers[i].List = make([]interfaces.IMsg, 0)
 
 	}
-      
-    // Make a copy of the previous FedServers
-    if previous != nil {
-        pl.FedServers = append(pl.FedServers, previous.FedServers ...)
-   	    pl.AuditServers = append(pl.AuditServers, previous.AuditServers ...)
-        pl.ServerOrder = append(pl.ServerOrder, previous.ServerOrder ...)
-    }else{
-        pl.FedServers = make([]interfaces.IFctServer,0)
-        pl.AuditServers = make([]interfaces.IFctServer,0)
-        pl.ServerOrder = make([][]interfaces.IFctServer,0)
-        pl.AddFedServer(primitives.Sha([]byte("FNode0")))   // Our default for now fed server
-    }
- 
 
-    
+	// Make a copy of the previous FedServers
+	if previous != nil {
+		pl.FedServers = append(pl.FedServers, previous.FedServers...)
+		pl.AuditServers = append(pl.AuditServers, previous.AuditServers...)
+		pl.ServerOrder = append(pl.ServerOrder, previous.ServerOrder...)
+	} else {
+		pl.FedServers = make([]interfaces.IFctServer, 0)
+		pl.AuditServers = make([]interfaces.IFctServer, 0)
+		pl.ServerOrder = make([][]interfaces.IFctServer, 0)
+		pl.AddFedServer(primitives.Sha([]byte("FNode0"))) // Our default for now fed server
+	}
+
 	pl.DBHeight = dbheight
 
 	pl.OldMsgs = make(map[[32]byte]interfaces.IMsg)

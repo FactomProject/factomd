@@ -26,7 +26,7 @@ func (c *DBSignatureEntry) UpdateState(state interfaces.IState) {
 func NewDBSignatureEntry(identityAdminChainID interfaces.IHash, sig primitives.Signature) (e *DBSignatureEntry) {
 	e = new(DBSignatureEntry)
 	e.IdentityAdminChainID = identityAdminChainID
-	copy(e.PrevDBSig.Pub.Key[:], sig.Pub.Key[:])
+	copy(e.PrevDBSig.Pub[:], sig.Pub[:])
 	copy(e.PrevDBSig.Sig[:], sig.Sig[:])
 	return
 }
@@ -46,7 +46,7 @@ func (e *DBSignatureEntry) MarshalBinary() (data []byte, err error) {
 	}
 	buf.Write(data)
 
-	_, err = buf.Write(e.PrevDBSig.Pub.Key[:])
+	_, err = buf.Write(e.PrevDBSig.Pub[:])
 	if err != nil {
 		return nil, err
 	}

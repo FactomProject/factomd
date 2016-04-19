@@ -27,11 +27,8 @@ func TestGenerateKey(t *testing.T) {
 
 	t.Logf("PrivateKey-Hex: %v", hex.EncodeToString((*priv.Key)[:]))
 
-	if priv.Pub.Key == nil {
-		t.Fatalf("bad Pub.Key")
-	}
-	t.Logf("Pub.Key: %v", priv.Pub.Key)
-	t.Logf("Pub.Key - Hex: %v", hex.EncodeToString((*priv.Pub.Key)[:]))
+	t.Logf("Pub.Key: %v", priv.Pub)
+	t.Logf("Pub.Key - Hex: %v", hex.EncodeToString((*priv.Pub)[:]))
 }
 
 func TestSign(t *testing.T) {
@@ -48,12 +45,9 @@ func TestSign(t *testing.T) {
 	if sig.Sig == nil {
 		t.Fatalf("bad Sig")
 	}
-	t.Logf("Sig: %v", sig.Sig)
 
-	if sig.Pub.Key == nil {
-		t.Fatalf("bad Pub.Key")
-	}
-	t.Logf("Pub.Key: %v", sig.Pub.Key)
+	t.Logf("Sig: %v", sig.Sig)
+	t.Logf("Pub.Key: %v", sig.Pub.String())
 
 	if !sig.Verify([]byte(msg)) {
 		t.Fatalf("sig.Verify retuned false")
@@ -128,11 +122,11 @@ func TestVerify(t *testing.T) {
 		t.Fatalf("Pub.Verify retuned false")
 	}
 
-	if !Verify(priv1.Pub.Key, []byte(msg1), (*[ed25519.SignatureSize]byte)(sig11.Sig)) {
+	if !Verify((*[32]byte)(priv1.Pub), []byte(msg1), (*[ed25519.SignatureSize]byte)(sig11.Sig)) {
 		t.Fatalf("Verify retuned false")
 	}
 
-	if !VerifySlice(priv1.Pub.Key[:], []byte(msg1), sig11.Sig[:]) {
+	if !VerifySlice(priv1.Pub[:], []byte(msg1), sig11.Sig[:]) {
 		t.Fatalf("VerifySlice retuned false")
 	}
 }
@@ -153,7 +147,7 @@ func TestNewPrivateKeyFromHex(t *testing.T) {
 	if AreBytesEqual(pk1.Key[:], pk2.Key[:]) == false {
 		t.Error("Private keys are not equal")
 	}
-	if AreBytesEqual(pk1.Pub.Key[:], pk1.Pub.Key[:]) == false {
+	if AreBytesEqual(pk1.Pub[:], pk1.Pub[:]) == false {
 		t.Error("Public keys are not equal")
 	}
 
@@ -169,7 +163,7 @@ func TestNewPrivateKeyFromHex(t *testing.T) {
 	if AreBytesEqual(pk1.Key[:], privKeybytes[:]) == false {
 		t.Error("Private keys are not equal")
 	}
-	if AreBytesEqual(pk1.Pub.Key[:], pubKeyBytes[:]) == false {
-		t.Error("Public keys are not equal")
+	if AreBytesEqual(pk1.Pub[:], pubKeyBytes[:]) == false {
+		t.Errorf("Public keys are not equal - %x vs %x", pk1.Pub[:], pubKeyBytes[:])
 	}
 }

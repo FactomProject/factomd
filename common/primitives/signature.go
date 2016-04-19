@@ -19,7 +19,7 @@ type DetachedPublicKey [ed25519.PublicKeySize]byte
 */
 //Signature has signed data and its corresponsing PublicKey
 type Signature struct {
-	Pub PublicKey
+	Pub *PublicKey
 	Sig *ByteSliceSig
 }
 
@@ -44,7 +44,7 @@ func (a *Signature) IsSameAs(b interfaces.IFullSignature) bool {
 		}
 	}
 
-	if a.Pub.IsSameAs(&s.Pub) == false {
+	if a.Pub.IsSameAs(s.Pub) == false {
 		return false
 	}
 
@@ -63,12 +63,12 @@ func (sig *Signature) Bytes() []byte {
 }
 
 func (sig *Signature) SetPub(publicKey []byte) {
-	sig.Pub.Key = new([ed25519.PublicKeySize]byte)
-	copy(sig.Pub.Key[:], publicKey)
+	sig.Pub = new(PublicKey)
+	sig.Pub.UnmarshalBinary(publicKey)
 }
 
 func (sig *Signature) GetKey() []byte {
-	return (*sig.Pub.Key)[:]
+	return sig.Pub[:]
 }
 
 func (sig *Signature) SetSignature(signature []byte) error {
@@ -85,17 +85,20 @@ func (sig *Signature) GetSignature() *[ed25519.SignatureSize]byte {
 }
 
 func (s *Signature) MarshalBinary() ([]byte, error) {
-	if s.Pub.Key == nil || s.Sig == nil {
+	if s.Sig == nil {
 		return nil, fmt.Errorf("Signature not complete")
 	}
-	return append(s.Pub.Key[:], s.Sig[:]...), nil
+	return append(s.Pub[:], s.Sig[:]...), nil
 }
 
 func (sig *Signature) UnmarshalBinaryData(data []byte) ([]byte, error) {
-	sig.Pub.Key = new([ed25519.PublicKeySize]byte)
 	sig.Sig = new(ByteSliceSig)
-	copy(sig.Pub.Key[:], data[:ed25519.PublicKeySize])
-	data = data[ed25519.PublicKeySize:]
+	var err error
+	sig.Pub = new(PublicKey)
+	data, err = sig.Pub.UnmarshalBinaryData(data)
+	if err != nil {
+		return nil, err
+	}
 	copy(sig.Sig[:], data[:ed25519.SignatureSize])
 	data = data[ed25519.SignatureSize:]
 	return data, nil
@@ -117,7 +120,7 @@ func (ds *DetachedSignature) String() string {
 
 // Verify returns true iff sig is a valid signature of msg by PublicKey.
 func (sig *Signature) Verify(msg []byte) bool {
-	return ed25519.VerifyCanonical(sig.Pub.Key, msg, (*[ed25519.SignatureSize]byte)(sig.Sig))
+	return ed25519.VerifyCanonical((*[32]byte)(sig.Pub), msg, (*[ed25519.SignatureSize]byte)(sig.Sig))
 }
 
 func SignSignable(priv []byte, data interfaces.ISignable) ([]byte, error) {

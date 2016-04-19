@@ -90,7 +90,7 @@ func newEOM() *EOM {
 		panic(err)
 	}
 	eom.ChainID = h
-	eom.DirectoryBlockHeight = 123456
+	eom.DBHeight = 123456
 	eom.ServerIndex = 5
 	return eom
 }
