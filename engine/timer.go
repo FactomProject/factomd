@@ -31,11 +31,12 @@ func Timer(state interfaces.IState) {
 
 	state.Print(fmt.Sprintf("Time: %v\r\n", time.Now()))
 	time.Sleep(time.Duration(wait))
+    lastDBHeight := uint32(0)
 	for {
 
 		found, index := state.GetFedServerIndexHash(state.GetLeaderHeight(), state.GetIdentityChainID())
 		sent := false
-		for i := 0; i < 10; i++ {
+        minLoop: for i := 0; i < 10; i++ {
 			now = time.Now().UnixNano()
 			wait := next - now
 			if now > next {
@@ -60,6 +61,13 @@ func Timer(state interfaces.IState) {
 			//fmt.Println("         ", "found",found,"green",state.Green(), "sent",sent,"i", i,"dbheight",state.GetLeaderHeight())
 
 			if found && state.Green() && (sent || i == 0) {
+                if i==0 {
+                    if lastDBHeight == state.GetLeaderHeight() {
+                        break minLoop
+                    }else{
+                        lastDBHeight = state.GetLeaderHeight()
+                    }
+                }
 				sent = true
 				eom := new(messages.EOM)
 				eom.Minute = byte(i)
