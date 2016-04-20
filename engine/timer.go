@@ -28,8 +28,10 @@ func Timer(state interfaces.IState) {
 	wait := tenthPeriod - (now % tenthPeriod)
 
 	next := now + wait + tenthPeriod
-
-	state.Print(fmt.Sprintf("Time: %v\r\n", time.Now()))
+	
+	if state.GetOut() {
+		state.Print(fmt.Sprintf("Time: %v\r\n", time.Now()))
+	}
 	time.Sleep(time.Duration(wait))
     lastDBHeight := uint32(0)
 	for {
@@ -109,10 +111,12 @@ func PrintBusy(state interfaces.IState, i int) {
 	s := state.(*s.State)
 
 	if len(s.ShutdownChan) == 0 {
+		if state.GetOut() {
 		state.Print(fmt.Sprintf("\r%19s: %s %s",
 			"Timer",
 			state.String(),
 			(string)((([]byte)("-\\|/-\\|/-="))[i])))
+		}
 	}
 
 }

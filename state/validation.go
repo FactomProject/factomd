@@ -30,7 +30,9 @@ func (state *State) ValidatorLoop() {
 				state.JournalMessage(msg)
 
 				if state.PrintType(msg.Type()) {
-					state.Println(fmt.Sprintf("%20s %s", "Validator:", msg.String()))
+					if state.GetOut() {
+						state.Println(fmt.Sprintf("%20s %s", "Validator:", msg.String()))
+					}
 				}
 			}
 			select {
@@ -69,28 +71,40 @@ func (state *State) ValidatorLoop() {
 			}
 
 			if state.PrintType(msg.Type()) {
-				state.Print(" Valid\n")
+				if state.GetOut() {
+					state.Print(" Valid\n")
+				}
 			}
 			if msg.Leader(state) {
 				if state.PrintType(msg.Type()) {
-					state.Println(fmt.Sprintf("%20s %s\n", "Leader:", msg.String()))
+					if state.GetOut() {
+						state.Println(fmt.Sprintf("%20s %s\n", "Leader:", msg.String()))
+					}
 				}
 				state.LeaderMsgQueue() <- msg
 			} else if msg.Follower(state) {
 				if state.PrintType(msg.Type()) {
-					state.Println(fmt.Sprintf("%20s %s\n", "Follower:", msg.String()))
+					if state.GetOut() {
+						state.Println(fmt.Sprintf("%20s %s\n", "Follower:", msg.String()))
+					}
 				}
 				msg.FollowerExecute(state)
 			} else {
-				state.Print(" Message ignored\n")
+				if state.GetOut() {
+					state.Print(" Message ignored\n")
+				}
 			}
 		case 0: // Hold for later if unknown.
 			if state.PrintType(msg.Type()) {
-				state.Print(" Hold\n")
+				if state.GetOut() {
+					state.Print(" Hold\n")
+				}
 			}
 		default:
 			if state.PrintType(msg.Type()) {
-				state.Print(" Invalid\n")
+				if state.GetOut() {
+					state.Print(" Invalid\n")
+				}
 			}
 			state.NetworkInvalidMsgQueue() <- msg
 		}

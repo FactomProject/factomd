@@ -231,7 +231,9 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 					if missingMsgRequest != nil {
 						state.NetworkOutMsgQueue() <- missingMsgRequest
 					}
-					p.State.Println("!!!!!!! Missing entry in process list at", j)
+					if state.GetOut() {
+						p.State.Println("!!!!!!! Missing entry in process list at", j)
+					}
 					state.IsThrottled = true
 				}
 				return
@@ -272,7 +274,9 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 				}
 			} else {
 				// corresponding acknowledgement not found
-				p.State.Println("!!!!!!! Missing acknowledgement in process list for", j)
+				if state.GetOut() {
+					p.State.Println("!!!!!!! Missing acknowledgement in process list for", j)
+				}
 				plist[j] = nil
 				return
 			}
@@ -300,10 +304,12 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 }
 
 func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
-	//p.State.Println("AddToProcessList +++++++++++++++++++++++++++++++++++++++++++++++",
+	//if state.GetOut() {
+	//	p.State.Println("AddToProcessList +++++++++++++++++++++++++++++++++++++++++++++++",
 	//				m.String(),
 	//				" ",
 	//			 len(p.Servers[ack.ServerIndex].List))
+	//}
 	if p == nil || p.Servers[ack.ServerIndex].List == nil {
 		panic("This should not happen")
 	}

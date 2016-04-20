@@ -105,10 +105,10 @@ func (m *MsgLog) prtMsgs(state interfaces.IState) {
 		m.prtMsgAll(state)
 		return
 	}
-
-	state.Println(state.String())
-	state.Println("\n-----------------------------------------------------")
-
+	if state.GetOut() {
+		state.Println(state.String())
+		state.Println("\n-----------------------------------------------------")
+	}
 	for _, e := range m.MsgList {
 		if e.valid {
 			if e.fnode.State.GetOut() {
@@ -116,12 +116,16 @@ func (m *MsgLog) prtMsgs(state interfaces.IState) {
 				if !e.out {
 					dirstr = "<-"
 				}
+				
 				state.Print(fmt.Sprintf("**** %8s %2s %8s %10s %5v     **** %s\n", e.name, dirstr, e.peer, e.where, e.valid, e.msg.String()))
+				
 			}
 		}
 	}
-	state.Println(fmt.Sprintf("*** %42s **** ", fmt.Sprintf("Length: %d    Msgs/sec: T %d P %d", len(m.MsgList), m.msgPerSec, m.msgPerSecp)))
-	state.Println("\n-----------------------------------------------------")
+	if state.GetOut() {
+		state.Println(fmt.Sprintf("*** %42s **** ", fmt.Sprintf("Length: %d    Msgs/sec: T %d P %d", len(m.MsgList), m.msgPerSec, m.msgPerSecp)))
+		state.Println("\n-----------------------------------------------------")
+	}
 
 }
 
