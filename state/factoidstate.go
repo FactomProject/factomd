@@ -215,8 +215,10 @@ func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
 
 	// 	outstr := fs.CurrentBlock.String()
 	// 	if len(outstr) < 10000 {
-	// 		fs.State.Println("888888888888888888  ",fs.State.GetFactomNodeName()," 8888888888888888888")
-	// 		fs.State.Println(outstr)
+	//		if state.GetOut() {
+	// 			fs.State.Println("888888888888888888  ",fs.State.GetFactomNodeName()," 8888888888888888888")
+	// 			fs.State.Println(outstr)
+	//		}
 	// 	}
 
 	fs.CurrentBlock = factoid.NewFBlock(fs.State.GetFactoshisPerEC(), fs.DBHeight+1)

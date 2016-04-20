@@ -39,13 +39,13 @@ func (m *DirectoryBlockSignature) GetHash() interfaces.IHash {
 	return m.GetMsgHash()
 }
 
-func (m *DirectoryBlockSignature) GetMsgHash() interfaces.IHash {	
-    data, _ := m.MarshalForSignature()
-    if data == nil {
-        return nil
-    }
-    m.MsgHash = primitives.Sha(data)
-	
+func (m *DirectoryBlockSignature) GetMsgHash() interfaces.IHash {
+	data, _ := m.MarshalForSignature()
+	if data == nil {
+		return nil
+	}
+	m.MsgHash = primitives.Sha(data)
+
 	return m.MsgHash
 }
 
@@ -71,16 +71,16 @@ func (m *DirectoryBlockSignature) Bytes() []byte {
 //  1   -- Message is valid
 func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 	found, serverIndex := state.GetFedServerIndexHash(m.DBHeight, m.ServerIdentityChainID)
-	
-    _,serverIndex = found, serverIndex
-    
-    if m.IsLocal() {
-        return 1
+
+	_, serverIndex = found, serverIndex
+
+	if m.IsLocal() {
+		return 1
 	}
-    
-    // *********************************  NEEDS FIXED **************
-    return 1
-    // Need to check the signature for real. TODO:
+
+	// *********************************  NEEDS FIXED **************
+	return 1
+	// Need to check the signature for real. TODO:
 
 	if !m.IsLocal() && false {
 		isVer, err := m.VerifySignature()
@@ -264,4 +264,3 @@ func (e *DirectoryBlockSignature) JSONString() (string, error) {
 func (e *DirectoryBlockSignature) JSONBuffer(b *bytes.Buffer) error {
 	return primitives.EncodeJSONToBuffer(e, b)
 }
-

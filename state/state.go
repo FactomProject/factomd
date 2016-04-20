@@ -51,7 +51,7 @@ type State struct {
 	PortNumber              int
 	Replay                  *Replay
 	GreenFlg                bool
-    GreenCnt                int
+	GreenCnt                int
 	DropRate                int
 
 	IdentityChainID interfaces.IHash // If this node has an identity, this is it

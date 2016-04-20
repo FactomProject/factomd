@@ -283,7 +283,9 @@ func (list *DBStateList) UpdateState() (progress bool) {
 
 		// Any updates required to the state as established by the AdminBlock are applied here.
 		d.AdminBlock.UpdateState(list.State)
-		list.State.Println("updateupdateupdateupdateupdateupdateupdate AdminBlock ", d.DirectoryBlock.GetHeader().GetDBHeight())
+		if list.State.GetOut() {
+			list.State.Println("updateupdateupdateupdateupdateupdateupdate AdminBlock ", d.DirectoryBlock.GetHeader().GetDBHeight())
+		}
 		list.State.GetAnchor().UpdateDirBlockInfoMap(dbInfo.NewDirBlockInfoFromDirBlock(d.DirectoryBlock))
 
 		// Process the Factoid End of Block
@@ -353,7 +355,9 @@ func (list *DBStateList) Put(dbState *DBState) {
 
 	// If we have already processed this State, ignore it.
 	if index < int(list.Complete) {
-		list.State.Println("Ignoring!  Block vs Base: ", dbheight, "/", list.Base)
+		if list.State.GetOut() {
+			list.State.Println("Ignoring!  Block vs Base: ", dbheight, "/", list.Base)
+		}
 		return
 	}
 

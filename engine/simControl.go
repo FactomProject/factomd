@@ -67,7 +67,7 @@ func SimControl(listenTo int) {
 					fmt.Printf("      NetworkInvalidMsgQueue %d\n", len(fnodes[listenTo].State.NetworkOutMsgQueue()))
 				}
 
-			case 'a' ==b[0]:
+			case 'a' == b[0]:
 				mLog.all = false
 				for _, fnode := range fnodes {
 					fnode.State.SetOut(false)
@@ -94,7 +94,7 @@ func SimControl(listenTo int) {
 						fmt.Println("Error: ", err, msg)
 					}
 				}
-			case 'f' ==b[0] :
+			case 'f' == b[0]:
 				mLog.all = false
 				for _, fnode := range fnodes {
 					fnode.State.SetOut(false)

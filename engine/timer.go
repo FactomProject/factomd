@@ -29,14 +29,17 @@ func Timer(state interfaces.IState) {
 
 	next := now + wait + tenthPeriod
 
-	state.Print(fmt.Sprintf("Time: %v\r\n", time.Now()))
+	if state.GetOut() {
+		state.Print(fmt.Sprintf("Time: %v\r\n", time.Now()))
+	}
 	time.Sleep(time.Duration(wait))
-    lastDBHeight := uint32(0)
+	lastDBHeight := uint32(0)
 	for {
 
 		found, index := state.GetFedServerIndexHash(state.GetLeaderHeight(), state.GetIdentityChainID())
 		sent := false
-        minLoop: for i := 0; i < 10; i++ {
+	minLoop:
+		for i := 0; i < 10; i++ {
 			now = time.Now().UnixNano()
 			wait := next - now
 			if now > next {
@@ -61,15 +64,15 @@ func Timer(state interfaces.IState) {
 			//fmt.Println("         ", "found",found,"green",state.Green(), "sent",sent,"i", i,"dbheight",state.GetLeaderHeight())
 
 			if found && state.Green() && (sent || i == 0) {
-                if i==0 {
-                    if lastDBHeight == state.GetLeaderHeight() {
-                        break minLoop // If the state hasn't progressed, skip
-                    }else{
-                        lastDBHeight = state.GetLeaderHeight()
-                    }
-                }else if lastDBHeight < state.GetLeaderHeight() {
-                    break minLoop // If the state progresses while we were generating messages, skip
-                }
+				if i == 0 {
+					if lastDBHeight == state.GetLeaderHeight() {
+						break minLoop // If the state hasn't progressed, skip
+					} else {
+						lastDBHeight = state.GetLeaderHeight()
+					}
+				} else if lastDBHeight < state.GetLeaderHeight() {
+					break minLoop // If the state progresses while we were generating messages, skip
+				}
 				sent = true
 				eom := new(messages.EOM)
 				eom.Minute = byte(i)
@@ -111,10 +114,12 @@ func PrintBusy(state interfaces.IState, i int) {
 	s := state.(*s.State)
 
 	if len(s.ShutdownChan) == 0 {
-		state.Print(fmt.Sprintf("\r%19s: %s %s",
-			"Timer",
-			state.String(),
-			(string)((([]byte)("-\\|/-\\|/-="))[i])))
+		if state.GetOut() {
+			state.Print(fmt.Sprintf("\r%19s: %s %s",
+				"Timer",
+				state.String(),
+				(string)((([]byte)("-\\|/-\\|/-="))[i])))
+		}
 	}
 
 }

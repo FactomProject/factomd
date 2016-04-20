@@ -23,14 +23,17 @@ func (state *State) ValidatorLoop() {
 		}
 
 		var msg interfaces.IMsg
-        
-	    loop: for i:=0; i < 100; i++ {
+
+	loop:
+		for i := 0; i < 100; i++ {
 			state.UpdateState()
 			msgProcess := func() {
 				state.JournalMessage(msg)
 
 				if state.PrintType(msg.Type()) {
-					state.Println(fmt.Sprintf("%20s %s", "Validator:", msg.String()))
+					if state.GetOut() {
+						state.Println(fmt.Sprintf("%20s %s", "Validator:", msg.String()))
+					}
 				}
 			}
 			select {
@@ -46,61 +49,76 @@ func (state *State) ValidatorLoop() {
 			if msg != nil {
 				fmt.Println("Undo")
 				msg.LeaderExecute(state)
-                msg = (interfaces.IMsg)(nil)
-                break loop
+				msg = (interfaces.IMsg)(nil)
+				break loop
 			} else {
 				select {
 				case msg = <-state.LeaderMsgQueue():
 					msg.LeaderExecute(state)
-                    msg = (interfaces.IMsg)(nil)
-                    break loop
+					msg = (interfaces.IMsg)(nil)
+					break loop
 				default:
 					time.Sleep(time.Millisecond * 100)
 				}
 			}
 		}
-        
-        if msg != nil {
-        
-            if state.IsReplaying == true {
-                state.ReplayTimestamp = msg.GetTimestamp()
-            }
 
-            switch msg.Validate(state) { // Validate the message.
+		if msg != nil {
 
-            case 1: // Process if valid
+			if state.IsReplaying == true {
+				state.ReplayTimestamp = msg.GetTimestamp()
+			}
 
-                if !msg.IsPeer2peer() {
-                    state.NetworkOutMsgQueue() <- msg
-                }
+			if state.IsReplaying == true {
+				state.ReplayTimestamp = msg.GetTimestamp()
+			}
 
-                if state.PrintType(msg.Type()) {
-                    state.Print(" Valid\n")
-                }
-                if msg.Leader(state) {
-                    if state.PrintType(msg.Type()) {
-                        state.Println(fmt.Sprintf("%20s %s\n", "Leader:", msg.String()))
-                    }
-                    state.LeaderMsgQueue() <- msg
-                } else if msg.Follower(state) {
-                    if state.PrintType(msg.Type()) {
-                        state.Println(fmt.Sprintf("%20s %s\n", "Follower:", msg.String()))
-                    }
-                    msg.FollowerExecute(state)
-                } else {
-                    state.Print(" Message ignored\n")
-                }
-            case 0: // Hold for later if unknown.
-                if state.PrintType(msg.Type()) {
-                    state.Print(" Hold\n")
-                }
-            default:
-                if state.PrintType(msg.Type()) {
-                    state.Print(" Invalid\n")
-                }
-                state.NetworkInvalidMsgQueue() <- msg
-            }
-        }
+			switch msg.Validate(state) { // Validate the message.
+
+			case 1: // Process if valid
+
+				if !msg.IsPeer2peer() {
+					state.NetworkOutMsgQueue() <- msg
+				}
+
+				if state.PrintType(msg.Type()) {
+					if state.GetOut() {
+						state.Print(" Valid\n")
+					}
+				}
+				if msg.Leader(state) {
+					if state.PrintType(msg.Type()) {
+						if state.GetOut() {
+							state.Println(fmt.Sprintf("%20s %s\n", "Leader:", msg.String()))
+						}
+					}
+					state.LeaderMsgQueue() <- msg
+				} else if msg.Follower(state) {
+					if state.PrintType(msg.Type()) {
+						if state.GetOut() {
+							state.Println(fmt.Sprintf("%20s %s\n", "Follower:", msg.String()))
+						}
+					}
+					msg.FollowerExecute(state)
+				} else {
+					if state.GetOut() {
+						state.Print(" Message ignored\n")
+					}
+				}
+			case 0: // Hold for later if unknown.
+				if state.PrintType(msg.Type()) {
+					if state.GetOut() {
+						state.Print(" Hold\n")
+					}
+				}
+			default:
+				if state.PrintType(msg.Type()) {
+					if state.GetOut() {
+						state.Print(" Invalid\n")
+					}
+				}
+				state.NetworkInvalidMsgQueue() <- msg
+			}
+		}
 	}
-
 }

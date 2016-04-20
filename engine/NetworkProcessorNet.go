@@ -21,10 +21,10 @@ func NetworkProcessorNet(fnode *FactomNode) {
 	like := 0
 
 	for {
-        cnt := 0
+		cnt := 0
 		// Put any broadcasts from our peers into our BroadcastIn queue
 		for i, peer := range fnode.Peers {
-			for j:=0; j< 100;j++ {
+			for j := 0; j < 100; j++ {
 				msg, err := peer.Recieve()
 
 				if err == nil && msg != nil {
@@ -38,7 +38,9 @@ func NetworkProcessorNet(fnode *FactomNode) {
 					if fnode.State.Replay.IsTSValid_(msg.GetMsgHash().Fixed(),
 						int64(msg.GetTimestamp())/1000,
 						int64(fnode.State.GetTimestamp())/1000) {
-						//fnode.State.Println("In Comming!! ",msg)
+						//if state.GetOut() {
+						//	fnode.State.Println("In Comming!! ",msg)
+						//}
 						nme := fmt.Sprintf("%s %d", "PeerIn", i+1)
 						fnode.MLog.add2(fnode, false, peer.GetNameTo(), nme, true, msg)
 
@@ -47,7 +49,7 @@ func NetworkProcessorNet(fnode *FactomNode) {
 					} else {
 						fnode.MLog.add2(fnode, false, peer.GetNameTo(), "PeerIn", false, msg)
 					}
-                    cnt++
+					cnt++
 				} else {
 					if err != nil {
 						fmt.Println(fnode.State.GetFactomNodeName(), err)
@@ -58,7 +60,7 @@ func NetworkProcessorNet(fnode *FactomNode) {
 		}
 
 	loop2:
-		for i:=0; i<100; i++  {
+		for i := 0; i < 100; i++ {
 			select {
 			case msg, ok := <-fnode.State.NetworkOutMsgQueue():
 				// Local Messages are Not broadcast out.  This is mostly the block signature
@@ -66,7 +68,7 @@ func NetworkProcessorNet(fnode *FactomNode) {
 				// by an updated version when the block is ready.
 				if ok && !msg.IsLocal() {
 					cnt++
-                    if rand.Int()%1000 < fnode.State.GetDropRate() {
+					if rand.Int()%1000 < fnode.State.GetDropRate() {
 						//drop the message, rather than processing it normally
 					} else {
 						// We don't care about the result, but we do want to log that we have
@@ -111,19 +113,20 @@ func NetworkProcessorNet(fnode *FactomNode) {
 			}
 		}
 
-    	loop3: for i:=0; i<1000; i++{
+	loop3:
+		for i := 0; i < 1000; i++ {
 			select {
 			case _, ok := <-fnode.State.NetworkInvalidMsgQueue():
 				if ok {
-				    cnt++
-                }
+					cnt++
+				}
 			default:
 				break loop3
 			}
 		}
-        if cnt == 0 {
-            time.Sleep(time.Millisecond * 10)
-        }
+		if cnt == 0 {
+			time.Sleep(time.Millisecond * 10)
+		}
 	}
 
 }
