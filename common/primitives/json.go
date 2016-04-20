@@ -40,7 +40,7 @@ func NewJSON2RequestBlank() *JSON2Request {
 	return j
 }
 
-func NewJSON2Request(id, params interface{}, method string) *JSON2Request {
+func NewJSON2Request(method string, id, params interface{}) *JSON2Request {
 	j := new(JSON2Request)
 	j.JSONRPC = "2.0"
 	j.ID = id
