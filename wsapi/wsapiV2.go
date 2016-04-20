@@ -66,17 +66,53 @@ func HandleV2PostRequest(state interfaces.IState, j *primitives.JSON2Request) (*
 	var jsonError *primitives.JSONError
 	params := j.Params
 	switch j.Method {
-	case "factoid-submit":
-		resp, jsonError = HandleV2FactoidSubmit(state, params)
+	case "chain-head":
+		resp, jsonError = HandleV2ChainHead(state, params)
 		break
 	case "commit-chain":
 		resp, jsonError = HandleV2CommitChain(state, params)
 		break
-	case "reveal-chain":
-		resp, jsonError = HandleV2RevealChain(state, params)
-		break
 	case "commit-entry":
 		resp, jsonError = HandleV2CommitEntry(state, params)
+		break
+	case "directory-block-by-keymr":
+		resp, jsonError = HandleV2DirectoryBlock(state, params)
+		break
+	case "directory-block-head":
+		resp, jsonError = HandleV2DirectoryBlockHead(state, params)
+		break
+	case "directory-block-height":
+		resp, jsonError = HandleV2DirectoryBlockHeight(state, params)
+		break
+	case "entry-block-by-keymr":
+		resp, jsonError = HandleV2EntryBlock(state, params)
+		break
+	case "entry-by-hash":
+		resp, jsonError = HandleV2Entry(state, params)
+		break
+	case "entry-credit-balance":
+		resp, jsonError = HandleV2EntryCreditBalance(state, params)
+		break
+	case "factoid-balance":
+		resp, jsonError = HandleV2FactoidBalance(state, params)
+		break
+	case "factoid-get-fee":
+		resp, jsonError = HandleV2GetFee(state, params)
+		break
+	case "factoid-submit":
+		resp, jsonError = HandleV2FactoidSubmit(state, params)
+		break
+	case "get-raw-data":
+		resp, jsonError = HandleV2GetRaw(state, params)
+		break
+	case "get-receipt":
+		resp, jsonError = HandleV2GetReceipt(state, params)
+		break
+	case "properties":
+		resp, jsonError = HandleV2Properties(state, params)
+		break
+	case "reveal-chain":
+		resp, jsonError = HandleV2RevealChain(state, params)
 		break
 	case "reveal-entry":
 		resp, jsonError = HandleV2RevealEntry(state, params)
@@ -101,26 +137,29 @@ func HandleV2GetRequest(state interfaces.IState, j *primitives.JSON2Request) (*p
 	var jsonError *primitives.JSONError
 	params := j.Params
 	switch j.Method {
-	case "directory-block-head":
-		resp, jsonError = HandleV2DirectoryBlockHead(state, params)
+	case "chain-head":
+		resp, jsonError = HandleV2ChainHead(state, params)
 		break
-	case "get-raw-data":
-		resp, jsonError = HandleV2GetRaw(state, params)
+	case "commit-chain":
+		resp, jsonError = HandleV2CommitChain(state, params)
 		break
-	case "get-receipt":
-		resp, jsonError = HandleV2GetReceipt(state, params)
+	case "commit-entry":
+		resp, jsonError = HandleV2CommitEntry(state, params)
 		break
 	case "directory-block-by-keymr":
 		resp, jsonError = HandleV2DirectoryBlock(state, params)
+		break
+	case "directory-block-head":
+		resp, jsonError = HandleV2DirectoryBlockHead(state, params)
+		break
+	case "directory-block-height":
+		resp, jsonError = HandleV2DirectoryBlockHeight(state, params)
 		break
 	case "entry-block-by-keymr":
 		resp, jsonError = HandleV2EntryBlock(state, params)
 		break
 	case "entry-by-hash":
 		resp, jsonError = HandleV2Entry(state, params)
-		break
-	case "chain-head":
-		resp, jsonError = HandleV2ChainHead(state, params)
 		break
 	case "entry-credit-balance":
 		resp, jsonError = HandleV2EntryCreditBalance(state, params)
@@ -131,11 +170,23 @@ func HandleV2GetRequest(state interfaces.IState, j *primitives.JSON2Request) (*p
 	case "factoid-get-fee":
 		resp, jsonError = HandleV2GetFee(state, params)
 		break
-	case "directory-block-height":
-		resp, jsonError = HandleV2DirectoryBlockHeight(state, params)
+	case "factoid-submit":
+		resp, jsonError = HandleV2FactoidSubmit(state, params)
+		break
+	case "get-raw-data":
+		resp, jsonError = HandleV2GetRaw(state, params)
+		break
+	case "get-receipt":
+		resp, jsonError = HandleV2GetReceipt(state, params)
 		break
 	case "properties":
 		resp, jsonError = HandleV2Properties(state, params)
+		break
+	case "reveal-chain":
+		resp, jsonError = HandleV2RevealChain(state, params)
+		break
+	case "reveal-entry":
+		resp, jsonError = HandleV2RevealEntry(state, params)
 		break
 	default:
 		jsonError = NewMethodNotFoundError()
