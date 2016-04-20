@@ -295,7 +295,10 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		dbs2.DBHeight = dbs.DBHeight
 		dbs2.ServerIndex = dbs.ServerIndex
 		dbs2.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
-		dbs2.Sign(s)
+		err := dbs2.Sign(s)
+		if err != nil {
+			panic(err)
+		}
 
 		hash := dbs2.GetHash()
 
@@ -303,7 +306,10 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		// that can be broadcast.  This is a bit of necessary trickery
 		pl.UndoLeaderAck(int(dbs.ServerIndex))
 		s.LLeaderHeight--
-		ack, _ := s.NewAck(dbheight, dbs2, hash)
+		ack, err := s.NewAck(dbheight, dbs2, hash)
+		if err != nil {
+			panic(err)
+		}
 		s.LLeaderHeight++
 
 		// Leader Execute creates an acknowledgement and the EOM
@@ -311,8 +317,12 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		s.NetworkOutMsgQueue() <- dbs2
 		s.Print("SENT DBS2")
 	} else {
-
 		// TODO follower should validate signature here.
+		resp := dbs.Validate(s)
+		if resp == 1 {
+			return true
+		}
+		return false
 	}
 
 	return true

@@ -72,22 +72,27 @@ func (m *DirectoryBlockSignature) Bytes() []byte {
 func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 	found, serverIndex := state.GetFedServerIndexHash(m.DBHeight, m.ServerIdentityChainID)
 
-	_, serverIndex = found, serverIndex
+	if found == false {
+		return 0
+	}
 
 	if m.IsLocal() {
 		return 1
 	}
 
 	// *********************************  NEEDS FIXED **************
-	return 1
 	// Need to check the signature for real. TODO:
 
-	if !m.IsLocal() && false {
+	if !m.IsLocal() {
 		isVer, err := m.VerifySignature()
 		if err != nil || !isVer {
 			// if there is an error during signature verification
 			// or if the signature is invalid
 			// the message is considered invalid
+			return -1
+		}
+
+		if m.ServerIndex != uint32(serverIndex) {
 			return -1
 		}
 	}
