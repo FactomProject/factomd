@@ -54,6 +54,7 @@ type ProcessList struct {
 
 type ListServer struct {
 	List          []interfaces.IMsg // Lists of acknowledged messages
+    rList         []interfaces.IMsg // Lists of acknowledged messages
 	Height        int               // Height of messages that have been processed
 	EomComplete   bool              // Lists that are end of minute complete
 	SigComplete   bool              // Lists that are signature complete
@@ -310,8 +311,10 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 
 	for len(p.Servers[ack.ServerIndex].List) <= int(ack.Height) {
 		p.Servers[ack.ServerIndex].List = append(p.Servers[ack.ServerIndex].List, nil)
+        p.Servers[ack.ServerIndex].rList = append(p.Servers[ack.ServerIndex].rList, nil)
 	}
 	p.Servers[ack.ServerIndex].List[ack.Height] = m
+	p.Servers[ack.ServerIndex].rList[ack.Height] = m
 }
 
 func (p *ProcessList) String() string {
@@ -344,7 +347,12 @@ func (p *ProcessList) String() string {
 				if msg != nil {
 					buf.WriteString("   " + msg.String() + "\n")
 				} else {
-					buf.WriteString("   <nil>\n")
+                    msg := server.rList[j]
+                    if msg !=nil {
+                        buf.WriteString(" X " + msg.String() + "\n")
+                    }else{
+					    buf.WriteString("   <nil>\n")
+                    }
 				}
 			}
 		}
@@ -371,6 +379,7 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 	for i := 0; i < 32; i++ {
 		pl.Servers[i] = new(ListServer)
 		pl.Servers[i].List = make([]interfaces.IMsg, 0)
+		pl.Servers[i].rList = make([]interfaces.IMsg, 0)
 
 	}
 

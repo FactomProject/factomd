@@ -63,10 +63,12 @@ func Timer(state interfaces.IState) {
 			if found && state.Green() && (sent || i == 0) {
                 if i==0 {
                     if lastDBHeight == state.GetLeaderHeight() {
-                        break minLoop
+                        break minLoop // If the state hasn't progressed, skip
                     }else{
                         lastDBHeight = state.GetLeaderHeight()
                     }
+                }else if lastDBHeight < state.GetLeaderHeight() {
+                    break minLoop // If the state progresses while we were generating messages, skip
                 }
 				sent = true
 				eom := new(messages.EOM)
@@ -75,12 +77,12 @@ func Timer(state interfaces.IState) {
 				eom.ChainID = state.GetIdentityChainID()
 				eom.ServerIndex = index
 				eom.Sign(state)
-				eom.DBHeight = state.GetLeaderHeight()
+				eom.DBHeight = lastDBHeight
 				if i == 9 {
 					DBS := new(messages.DirectoryBlockSignature)
 					DBS.ServerIdentityChainID = state.GetIdentityChainID()
 					DBS.LocalOnly = true
-					DBS.DBHeight = state.GetLeaderHeight()
+					DBS.DBHeight = lastDBHeight
 					DBS.ServerIndex = uint32(index)
 					state.TimerMsgQueue() <- eom
 					state.TimerMsgQueue() <- DBS

@@ -23,8 +23,8 @@ func (state *State) ValidatorLoop() {
 		}
 
 		var msg interfaces.IMsg
-	loop:
-		for {
+        
+	    loop: for i:=0; i < 100; i++ {
 			state.UpdateState()
 			msgProcess := func() {
 				state.JournalMessage(msg)
@@ -46,54 +46,61 @@ func (state *State) ValidatorLoop() {
 			if msg != nil {
 				fmt.Println("Undo")
 				msg.LeaderExecute(state)
+                msg = (interfaces.IMsg)(nil)
+                break loop
 			} else {
 				select {
 				case msg = <-state.LeaderMsgQueue():
 					msg.LeaderExecute(state)
+                    msg = (interfaces.IMsg)(nil)
+                    break loop
 				default:
 					time.Sleep(time.Millisecond * 100)
 				}
 			}
 		}
+        
+        if msg != nil {
+        
+            if state.IsReplaying == true {
+                state.ReplayTimestamp = msg.GetTimestamp()
+            }
 
-		if state.IsReplaying == true {
-			state.ReplayTimestamp = msg.GetTimestamp()
-		}
+            switch msg.Validate(state) { // Validate the message.
 
-		switch msg.Validate(state) { // Validate the message.
+            case 1: // Process if valid
 
-		case 1: // Process if valid
+                if !msg.IsPeer2peer() {
+                    state.NetworkOutMsgQueue() <- msg
+                }
 
-			if !msg.IsPeer2peer() {
-				state.NetworkOutMsgQueue() <- msg
-			}
-
-			if state.PrintType(msg.Type()) {
-				state.Print(" Valid\n")
-			}
-			if msg.Leader(state) {
-				if state.PrintType(msg.Type()) {
-					state.Println(fmt.Sprintf("%20s %s\n", "Leader:", msg.String()))
-				}
-				state.LeaderMsgQueue() <- msg
-			} else if msg.Follower(state) {
-				if state.PrintType(msg.Type()) {
-					state.Println(fmt.Sprintf("%20s %s\n", "Follower:", msg.String()))
-				}
-				msg.FollowerExecute(state)
-			} else {
-				state.Print(" Message ignored\n")
-			}
-		case 0: // Hold for later if unknown.
-			if state.PrintType(msg.Type()) {
-				state.Print(" Hold\n")
-			}
-		default:
-			if state.PrintType(msg.Type()) {
-				state.Print(" Invalid\n")
-			}
-			state.NetworkInvalidMsgQueue() <- msg
-		}
+                if state.PrintType(msg.Type()) {
+                    state.Print(" Valid\n")
+                }
+                if msg.Leader(state) {
+                    if state.PrintType(msg.Type()) {
+                        state.Println(fmt.Sprintf("%20s %s\n", "Leader:", msg.String()))
+                    }
+                    state.LeaderMsgQueue() <- msg
+                } else if msg.Follower(state) {
+                    if state.PrintType(msg.Type()) {
+                        state.Println(fmt.Sprintf("%20s %s\n", "Follower:", msg.String()))
+                    }
+                    msg.FollowerExecute(state)
+                } else {
+                    state.Print(" Message ignored\n")
+                }
+            case 0: // Hold for later if unknown.
+                if state.PrintType(msg.Type()) {
+                    state.Print(" Hold\n")
+                }
+            default:
+                if state.PrintType(msg.Type()) {
+                    state.Print(" Invalid\n")
+                }
+                state.NetworkInvalidMsgQueue() <- msg
+            }
+        }
 	}
 
 }

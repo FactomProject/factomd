@@ -111,8 +111,7 @@ func NetworkProcessorNet(fnode *FactomNode) {
 			}
 		}
 
-	loop3:
-		for {
+    	loop3: for i:=0; i<1000; i++{
 			select {
 			case _, ok := <-fnode.State.NetworkInvalidMsgQueue():
 				if ok {
