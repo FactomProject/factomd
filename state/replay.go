@@ -5,9 +5,9 @@
 package state
 
 import (
-    "sync"
 	"fmt"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"sync"
 	"time"
 )
 
@@ -16,8 +16,8 @@ const numBuckets = 24
 var _ = time.Now()
 var _ = fmt.Print
 
-type Replay struct {  
-    mutex    sync.Mutex
+type Replay struct {
+	mutex    sync.Mutex
 	buckets  []map[[32]byte]int64
 	lasttime int64 // hours since 1970
 }
@@ -43,8 +43,8 @@ func (r *Replay) IsTSValid(hash interfaces.IHash, timestamp int64) bool {
 // at will.
 func (r *Replay) IsTSValid_(hash [32]byte, timestamp int64, now int64) bool {
 
-    r.mutex.Lock()
-    defer r.mutex.Unlock()
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
 
 	if len(r.buckets) < numBuckets {
 		r.buckets = make([]map[[32]byte]int64, numBuckets, numBuckets)
