@@ -539,9 +539,6 @@ func (s *State) GetNewHash() interfaces.IHash {
 // Create a new Acknowledgement.  This Acknowledgement
 func (s *State) NewAck(dbheight uint32, msg interfaces.IMsg, hash interfaces.IHash) (iack interfaces.IMsg, err error) {
 
-	s.AckLock.Lock()
-	defer s.AckLock.Unlock()
-
 	found, index := s.GetFedServerIndexHash(dbheight, s.IdentityChainID)
 	if !found {
 		return nil, fmt.Errorf(s.FactomNodeName + ": Creation of an Ack attempted by non-server")

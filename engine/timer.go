@@ -65,7 +65,7 @@ func Timer(state interfaces.IState) {
 
 			if found && state.Green() && (sent || i == 0) {
 				if i == 0 {
-					if lastDBHeight == state.GetLeaderHeight() {
+					if lastDBHeight == state.GetLeaderHeight() && state.GetLeaderHeight() > 0 {
 						break minLoop // If the state hasn't progressed, skip
 					} else {
 						lastDBHeight = state.GetLeaderHeight()
