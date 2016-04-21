@@ -59,6 +59,9 @@ func Peers(fnode *FactomNode) {
 
 func NetworkOutputs(fnode *FactomNode) {
 	for {
+        if len(fnode.State.NetworkOutMsgQueue()) > 500  {
+            fmt.Print(fnode.State.GetFactomNodeName(),"-",len(fnode.State.NetworkOutMsgQueue())," ")
+        }
 		time.Sleep(10 * time.Millisecond)
 		msg := <-fnode.State.NetworkOutMsgQueue()
 		// Local Messages are Not broadcast out.  This is mostly the block signature
