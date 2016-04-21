@@ -251,7 +251,7 @@ func (s *State) Init() {
 	s.networkOutMsgQueue = make(chan interfaces.IMsg, 100000)     //Messages to be broadcast to the network
 	s.inMsgQueue = make(chan interfaces.IMsg, 100000)             //incoming message queue for factom application messages
 	s.leaderMsgQueue = make(chan interfaces.IMsg, 100000)         //queue of Leadership messages
-	s.ShutdownChan = make(chan int, 1)                           //Channel to gracefully shut down.
+	s.ShutdownChan = make(chan int, 1)                            //Channel to gracefully shut down.
 
 	os.Mkdir(s.LogPath, 0777)
 	_, err := os.Create(s.JournalFile) //Create the Journal File
