@@ -50,6 +50,7 @@ func (m *MsgLog) init(nodecnt int) {
 }
 
 func (m *MsgLog) add2(fnode *FactomNode, out bool, peer string, where string, valid bool, msg interfaces.IMsg) {
+    return
 	m.sem.Lock()
 	defer m.sem.Unlock()
 	now := fnode.State.GetTimestamp() / 100

@@ -46,6 +46,12 @@ type ProcessList struct {
 
 	// Number of Servers acknowledged by Factom
 	Matryoshka   []interfaces.IHash        // Reverse Hash
+	
+    // The ServerMap is an index map providing a map of our Federated Servers into the 32 virtual Factom 
+    // servers.  For each minute we have an index for each of the virtual Factom servers into the list of
+    // Federated Servers.  The same Federated Server can be responsible for multiple virtual Factom servers.
+    ServerMap    [10][32]int               // For each minute, each server
+
 	AuditServers []interfaces.IFctServer   // List of Audit Servers
 	ServerOrder  [][]interfaces.IFctServer // 10 lists for Server Order for each minute
 	FedServers   []interfaces.IFctServer   // List of Federated Servers
@@ -53,8 +59,7 @@ type ProcessList struct {
 }
 
 type ListServer struct {
-	List          []interfaces.IMsg // Lists of acknowledged messages
-	rList         []interfaces.IMsg // Lists of acknowledged messages
+    List          []interfaces.IMsg // Lists of acknowledged messages
 	Height        int               // Height of messages that have been processed
 	EomComplete   bool              // Lists that are end of minute complete
 	SigComplete   bool              // Lists that are signature complete
@@ -64,7 +69,7 @@ type ListServer struct {
 }
 
 // Returns true and the index of this server, or false and the insertion point for this server
-func (p *ProcessList) GetFedServerIndexHash(identityChainID interfaces.IHash) (bool, int) {
+func (p *ProcessList) GetFedServerIndexHash(identityChainID interfaces.IHash) (bool, []int) {
 	scid := identityChainID.Bytes()
 
 	for i, fs := range p.FedServers {
@@ -400,6 +405,16 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 		pl.ServerOrder = make([][]interfaces.IFctServer, 0)
 		pl.AddFedServer(primitives.Sha([]byte("FNode0"))) // Our default for now fed server
 	}
+
+    // Calculate the mapping of the Federated Servers to the 32 virtual servers of the
+    // consensus algorithm.
+    cnt := dbheight%len(pl.FedServers)
+    for i,min := range pl.ServerMap {
+        for j,_ := range min {
+            min[j] := cnt
+            cnt := (cnt+1)%len(pl.FedServers)
+        }
+    }
 
 	pl.DBHeight = dbheight
 
