@@ -66,9 +66,9 @@ func (f *SimPeer) Send(msg interfaces.IMsg) error {
 	if err != nil {
 		return err
 	}
-    if len(f.BroadcastOut) < 9990 {
-    	f.BroadcastOut <- data
-    }
+	if len(f.BroadcastOut) < 1000 {
+		f.BroadcastOut <- data
+	}
 	return nil
 }
 
