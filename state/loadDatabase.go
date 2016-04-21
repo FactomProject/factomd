@@ -6,6 +6,7 @@ package state
 
 import (
 	"fmt"
+    "time"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
@@ -36,6 +37,11 @@ func LoadDatabase(s *State) {
 			break
 		} else {
 			if msg != nil {
+                if len(s.InMsgQueue()) > 100 {
+                    for len(s.InMsgQueue()) > 30 {
+                        time.Sleep(100*time.Millisecond)
+                    }
+                }
 				s.InMsgQueue() <- msg
 			} else {
 				break

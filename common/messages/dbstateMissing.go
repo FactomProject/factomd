@@ -88,11 +88,17 @@ func (m *DBStateMissing) Follower(interfaces.IState) bool {
 
 func (m *DBStateMissing) FollowerExecute(state interfaces.IState) error {
 
+	if len(state.NetworkOutMsgQueue()) > 1000 {
+		return nil
+	}
+
 	// TODO: Likely need to consider a limit on how many blocks we reply with.  For now,
 	// just give them what they ask for.
 	start := m.DBHeightStart
 	end := m.DBHeightEnd
-
+	if end-start > 10 {
+		end = start + 10
+	}
 	for dbs := start; dbs <= end; dbs++ {
 		msg, err := state.LoadDBState(dbs)
 		if msg != nil && err == nil { // If I don't have this block, ignore.

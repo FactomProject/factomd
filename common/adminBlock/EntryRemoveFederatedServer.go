@@ -23,7 +23,9 @@ func (c *RemoveFederatedServer) UpdateState(state interfaces.IState) {
 	if len(state.GetFedServers(c.DBHeight)) == 0 {
 		state.AddFedServer(c.DBHeight, c.IdentityChainID)
 	}
-	state.Println(fmt.Sprintf("Removed Federated Server: %x", c.IdentityChainID.Bytes()[:3]))
+	if state.GetOut() {
+		state.Println(fmt.Sprintf("Removed Federated Server: %x", c.IdentityChainID.Bytes()[:3]))
+	}
 }
 
 // Create a new DB Signature Entry

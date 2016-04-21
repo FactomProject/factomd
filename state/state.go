@@ -10,9 +10,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"sync"
 
-	"github.com/FactomProject/factomd/anchor"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
@@ -51,7 +49,7 @@ type State struct {
 	PortNumber              int
 	Replay                  *Replay
 	GreenFlg                bool
-    GreenCnt                int
+	GreenCnt                int
 	DropRate                int
 
 	IdentityChainID interfaces.IHash // If this node has an identity, this is it
@@ -109,7 +107,6 @@ type State struct {
 	//
 	// Process list previous [0], present(@DBHeight) [1], and future (@DBHeight+1) [2]
 
-	AckLock      sync.Mutex
 	ProcessLists *ProcessLists
 
 	// Factom State
@@ -249,11 +246,11 @@ func (s *State) Init() {
 
 	log.SetLevel(s.ConsoleLogLevel)
 
-	s.timerMsgQueue = make(chan interfaces.IMsg, 10000)          //incoming eom notifications, used by leaders
-	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 10000) //incoming message queue from the network messages
-	s.networkOutMsgQueue = make(chan interfaces.IMsg, 10000)     //Messages to be broadcast to the network
-	s.inMsgQueue = make(chan interfaces.IMsg, 10000)             //incoming message queue for factom application messages
-	s.leaderMsgQueue = make(chan interfaces.IMsg, 10000)         //queue of Leadership messages
+	s.timerMsgQueue = make(chan interfaces.IMsg, 100000)          //incoming eom notifications, used by leaders
+	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 100000) //incoming message queue from the network messages
+	s.networkOutMsgQueue = make(chan interfaces.IMsg, 100000)     //Messages to be broadcast to the network
+	s.inMsgQueue = make(chan interfaces.IMsg, 100000)             //incoming message queue for factom application messages
+	s.leaderMsgQueue = make(chan interfaces.IMsg, 100000)         //queue of Leadership messages
 	s.ShutdownChan = make(chan int, 1)                           //Channel to gracefully shut down.
 
 	os.Mkdir(s.LogPath, 0777)
@@ -345,9 +342,6 @@ func (s *State) Init() {
 
 	s.AuditHeartBeats = make([]interfaces.IMsg, 0)
 	s.FedServerFaults = make([][]interfaces.IMsg, 0)
-
-	a, _ := anchor.InitAnchor(s)
-	s.Anchor = a
 
 	s.initServerKeys()
 }

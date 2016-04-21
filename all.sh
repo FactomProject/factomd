@@ -105,8 +105,6 @@ checkout factom       $branch $default
 checkout web          $branch $default
 checkout go-spew      $branch $default
 checkout bolt         $branch $default
-checkout factoid      $branch $default
-checkout FactomCode   $branch $default
 checkout Testing      $branch $default
 checkout btcutil      $branch $default
 checkout goleveldb    $branch $default

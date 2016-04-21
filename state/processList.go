@@ -54,6 +54,7 @@ type ProcessList struct {
 
 type ListServer struct {
 	List          []interfaces.IMsg // Lists of acknowledged messages
+	rList         []interfaces.IMsg // Lists of acknowledged messages
 	Height        int               // Height of messages that have been processed
 	EomComplete   bool              // Lists that are end of minute complete
 	SigComplete   bool              // Lists that are signature complete
@@ -118,14 +119,14 @@ func (p *ProcessList) GetLastLeaderAck(index int) interfaces.IMsg {
 // Given a server index, return the last Ack
 func (p *ProcessList) SetLastLeaderAck(index int, msg interfaces.IMsg) error {
 	// Check the hash of the previous msg before we over write
-    p.Servers[index].Undo = p.Servers[index].LastLeaderAck
+	p.Servers[index].Undo = p.Servers[index].LastLeaderAck
 	p.Servers[index].LastLeaderAck = msg
 	return nil
 }
 
 func (p *ProcessList) UndoLeaderAck(index int) {
-    p.Servers[index].Height--
-    p.Servers[index].LastLeaderAck = p.Servers[index].Undo
+	p.Servers[index].Height--
+	p.Servers[index].LastLeaderAck = p.Servers[index].Undo
 }
 
 func (p *ProcessList) GetLen(list int) int {
@@ -231,7 +232,9 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 					if missingMsgRequest != nil {
 						state.NetworkOutMsgQueue() <- missingMsgRequest
 					}
-					p.State.Println("!!!!!!! Missing entry in process list at", j)
+					if state.GetOut() {
+						p.State.Println("!!!!!!! Missing entry in process list at", j)
+					}
 					state.IsThrottled = true
 				}
 				return
@@ -272,16 +275,18 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 				}
 			} else {
 				// corresponding acknowledgement not found
-				p.State.Println("!!!!!!! Missing acknowledgement in process list for", j)
+				if state.GetOut() {
+					p.State.Println("!!!!!!! Missing acknowledgement in process list for", j)
+				}
 				plist[j] = nil
 				return
 			}
 			if plist[j].Process(p.DBHeight, state) { // Try and Process this entry
 				p.Servers[i].Height = j + 1 // Don't process it again if the process worked.
-                progress = true
+				progress = true
 			} else {
-                break
-            }
+				break
+			}
 
 			// TODO:  If we carefully manage our state as we process messages, we
 			// would not need to check the messages here!  Checking for EOM and DBS
@@ -300,18 +305,22 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 }
 
 func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
-	//p.State.Println("AddToProcessList +++++++++++++++++++++++++++++++++++++++++++++++",
+	//if state.GetOut() {
+	//	p.State.Println("AddToProcessList +++++++++++++++++++++++++++++++++++++++++++++++",
 	//				m.String(),
 	//				" ",
 	//			 len(p.Servers[ack.ServerIndex].List))
+	//}
 	if p == nil || p.Servers[ack.ServerIndex].List == nil {
 		panic("This should not happen")
 	}
 
 	for len(p.Servers[ack.ServerIndex].List) <= int(ack.Height) {
 		p.Servers[ack.ServerIndex].List = append(p.Servers[ack.ServerIndex].List, nil)
+		p.Servers[ack.ServerIndex].rList = append(p.Servers[ack.ServerIndex].rList, nil)
 	}
 	p.Servers[ack.ServerIndex].List[ack.Height] = m
+	p.Servers[ack.ServerIndex].rList[ack.Height] = m
 }
 
 func (p *ProcessList) String() string {
@@ -344,7 +353,12 @@ func (p *ProcessList) String() string {
 				if msg != nil {
 					buf.WriteString("   " + msg.String() + "\n")
 				} else {
-					buf.WriteString("   <nil>\n")
+					msg := server.rList[j]
+					if msg != nil {
+						buf.WriteString(" X " + msg.String() + "\n")
+					} else {
+						buf.WriteString("   <nil>\n")
+					}
 				}
 			}
 		}
@@ -371,6 +385,7 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 	for i := 0; i < 32; i++ {
 		pl.Servers[i] = new(ListServer)
 		pl.Servers[i].List = make([]interfaces.IMsg, 0)
+		pl.Servers[i].rList = make([]interfaces.IMsg, 0)
 
 	}
 
