@@ -208,12 +208,24 @@ func (b *AdminBlock) UnmarshalBinaryData(data []byte) (newData []byte, err error
 	b.ABEntries = make([]interfaces.IABEntry, int(b.Header.GetMessageCount()))
 	for i := uint32(0); i < b.Header.GetMessageCount(); i++ {
 		switch newData[0] {
-		case constants.TYPE_DB_SIGNATURE:
-			b.ABEntries[i] = new(DBSignatureEntry)
 		case constants.TYPE_MINUTE_NUM:
 			b.ABEntries[i] = new(EndOfMinuteEntry)
+		case constants.TYPE_DB_SIGNATURE:
+			b.ABEntries[i] = new(DBSignatureEntry)
+		case constants.TYPE_REVEAL_MATRYOSHKA:
+			b.ABEntries[i] = new(RevealMatryoshkaHash)
+		case constants.TYPE_ADD_MATRYOSHKA:
+			b.ABEntries[i] = new(AddReplaceMatryoshkaHash)
+		case constants.TYPE_ADD_SERVER_COUNT:
+			b.ABEntries[i] = new(IncreaseServerCount)
 		case constants.TYPE_ADD_FED_SERVER:
 			b.ABEntries[i] = new(AddFederatedServer)
+		case constants.TYPE_REMOVE_FED_SERVER:
+			b.ABEntries[i] = new(RemoveFederatedServer)
+		case constants.TYPE_ADD_FED_SERVER_KEY:
+			b.ABEntries[i] = new(AddFederatedServerSigningKey)
+		case constants.TYPE_ADD_BTC_ANCHOR_KEY:
+			b.ABEntries[i] = new(AddFederatedServerBitcoinAnchorKey)
 		default:
 			fmt.Println("AB UNDEFINED ENTRY")
 			panic("Undefined Admin Block Entry Type")
@@ -234,7 +246,6 @@ func (b *AdminBlock) UnmarshalBinary(data []byte) (err error) {
 
 // Read in the binary into the Admin block.
 func (b *AdminBlock) GetDBSignature() interfaces.IABEntry {
-
 	for i := uint32(0); i < b.Header.GetMessageCount(); i++ {
 		if b.ABEntries[i].Type() == constants.TYPE_DB_SIGNATURE {
 			return b.ABEntries[i]

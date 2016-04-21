@@ -137,23 +137,23 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
 }
 
 func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) error {
-	DBS, ok := m.(*messages.DirectoryBlockSignature)
+	dbs, ok := m.(*messages.DirectoryBlockSignature)
 	if !ok {
 		return fmt.Errorf("Bad Directory Block Signature")
 	}
 
-	DBS.DBHeight = s.LLeaderHeight
+	dbs.DBHeight = s.LLeaderHeight
 
-	DBS.Timestamp = s.GetTimestamp()
-	hash := DBS.GetHash()
-	ack, err := s.NewAck(s.LLeaderHeight, DBS, hash)
+	dbs.Timestamp = s.GetTimestamp()
+	hash := dbs.GetHash()
+	ack, err := s.NewAck(s.LLeaderHeight, dbs, hash)
 	if err != nil {
 		fmt.Println("Bad Ack")
 		s.undo = m
 		return nil
 	}
 	ack.FollowerExecute(s)
-	DBS.FollowerExecute(s)
+	dbs.FollowerExecute(s)
 
 	s.LLeaderHeight++
 
@@ -275,44 +275,54 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		return false
 	}
 
-	DBS, ok := msg.(*messages.DirectoryBlockSignature)
+	dbs, ok := msg.(*messages.DirectoryBlockSignature)
 	if !ok {
 		panic("DirectoryBlockSignature is the wrong type.")
 	}
 
-	if !pl.Servers[DBS.ServerIndex].SigComplete {
-		pl.SetSigComplete(int(DBS.ServerIndex), true)
+	if !pl.Servers[dbs.ServerIndex].SigComplete {
+		pl.SetSigComplete(int(dbs.ServerIndex), true)
 
 		s.AddDBState(true, pl.DirectoryBlock, pl.AdminBlock, s.GetFactoidState().GetCurrentBlock(), pl.EntryCreditBlock)
 	}
 
-	if DBS.IsLocal() {
+	if dbs.IsLocal() {
 		dbstate := s.DBStates.Get(dbheight)
 
-		DBS2 := new(messages.DirectoryBlockSignature)
-		DBS2.Timestamp = s.GetTimestamp()
-		DBS2.ServerIdentityChainID = DBS.ServerIdentityChainID
-		DBS2.DBHeight = DBS.DBHeight
-		DBS2.ServerIndex = DBS.ServerIndex
-		DBS2.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
-		DBS2.Sign(s)
+		dbs2 := new(messages.DirectoryBlockSignature)
+		dbs2.Timestamp = s.GetTimestamp()
+		dbs2.ServerIdentityChainID = dbs.ServerIdentityChainID
+		dbs2.DBHeight = dbs.DBHeight
+		dbs2.ServerIndex = dbs.ServerIndex
+		dbs2.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
+		err := dbs2.Sign(s)
+		if err != nil {
+			panic(err)
+		}
 
-		hash := DBS2.GetHash()
+		hash := dbs2.GetHash()
 
 		// Here we replace out of the process list the local DBS message with one
 		// that can be broadcast.  This is a bit of necessary trickery
-		pl.UndoLeaderAck(int(DBS.ServerIndex))
+		pl.UndoLeaderAck(int(dbs.ServerIndex))
 		s.LLeaderHeight--
-		ack, _ := s.NewAck(dbheight, DBS2, hash)
+		ack, err := s.NewAck(dbheight, dbs2, hash)
+		if err != nil {
+			panic(err)
+		}
 		s.LLeaderHeight++
 
 		// Leader Execute creates an acknowledgement and the EOM
 		s.NetworkOutMsgQueue() <- ack
-		s.NetworkOutMsgQueue() <- DBS2
+		s.NetworkOutMsgQueue() <- dbs2
 		s.Print("SENT DBS2")
 	} else {
-
 		// TODO follower should validate signature here.
+		resp := dbs.Validate(s)
+		if resp == 1 {
+			return true
+		}
+		return false
 	}
 
 	return true
