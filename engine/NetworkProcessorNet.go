@@ -76,23 +76,20 @@ func NetworkOutputs(fnode *FactomNode) {
 					int64(msg.GetTimestamp())/1000,
 					int64(fnode.State.GetTimestamp())/1000)
 
+				p := msg.GetOrigin() - 1
 				if msg.IsPeer2peer() {
-					p := msg.GetOrigin() - 1
-					if len(fnode.Peers) == 0 {
-						fnode.State.Print("-n- Sleepy ")
-					} else {
+					// Must have a Peer to send a message to a peer
+                    if len(fnode.Peers) > 0 {						
 						if p < 0 {
 							p = rand.Int() % len(fnode.Peers)
 						}
-
 						fnode.MLog.add2(fnode, true, fnode.Peers[p].GetNameTo(), "P2P out", true, msg)
 						fnode.Peers[p].Send(msg)
 					}
 				} else {
-					p := msg.GetOrigin() - 1
 					for i, peer := range fnode.Peers {
 						// Don't resend to the node that sent it to you.
-						if i != p || true {
+						if i != p {
 							bco := fmt.Sprintf("%s/%d/%d", "BCast", p, i)
 							fnode.MLog.add2(fnode, true, peer.GetNameTo(), bco, true, msg)
 							peer.Send(msg)
