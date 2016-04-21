@@ -69,21 +69,26 @@ type ListServer struct {
 }
 
 // Returns true and the index of this server, or false and the insertion point for this server
-func (p *ProcessList) GetFedServerIndexHash(identityChainID interfaces.IHash) (bool, []int) {
+func (p *ProcessList) GetFedServerIndexHash(identityChainID interfaces.IHash) (found bool, indexes []int) {
 	scid := identityChainID.Bytes()
 
 	for i, fs := range p.FedServers {
 		// Find and remove
 		if bytes.Compare(scid, fs.GetChainID().Bytes()) == 0 {
-			return true, i
+			indexes = append(indexes,i)
 		}
 	}
-	return false, len(p.FedServers)
+    cnt := len(indxes)
+    if cnt > 0 {
+        return true,indexes
+    }
+    indexes = append(indexes,len(p.FedServers))
+	return false, indexes
 }
 
 // Add the given serverChain to this processlist, and return the server index number of the
 // added server
-func (p *ProcessList) AddFedServer(identityChainID interfaces.IHash) int {
+func (p *ProcessList) AddFedServer(identityChainID interfaces.IHash) (indexes []int) {
 	found, i := p.GetFedServerIndexHash(identityChainID)
 	if found {
 		return i
