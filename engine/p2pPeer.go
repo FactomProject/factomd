@@ -59,7 +59,9 @@ func (f *P2PPeer) Send(msg interfaces.IMsg) error {
 			die("Send error! %+v", err)
 			return err
 		}
-		f.BroadcastOut <- data
+		if len(f.BroadcastOut) < 1000 {
+			f.BroadcastOut <- data
+		}
 	}
 	return nil
 }

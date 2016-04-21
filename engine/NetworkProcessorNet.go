@@ -39,8 +39,11 @@ func Peers(fnode *FactomNode) {
 						//}
 						nme := fmt.Sprintf("%s %d", "PeerIn", i+1)
 						fnode.MLog.add2(fnode, false, peer.GetNameTo(), nme, true, msg)
-
-						fnode.State.InMsgQueue() <- msg
+                        
+                        // Ignore messages if there are too many.
+                        if len(fnode.State.InMsgQueue()) < 9000 {
+    						fnode.State.InMsgQueue() <- msg
+                        }
 
 					} else {
 						fnode.MLog.add2(fnode, false, peer.GetNameTo(), "PeerIn", false, msg)
@@ -59,9 +62,9 @@ func Peers(fnode *FactomNode) {
 
 func NetworkOutputs(fnode *FactomNode) {
 	for {
-        if len(fnode.State.NetworkOutMsgQueue()) > 500  {
-            fmt.Print(fnode.State.GetFactomNodeName(),"-",len(fnode.State.NetworkOutMsgQueue())," ")
-        }
+		if len(fnode.State.NetworkOutMsgQueue()) > 500 {
+			fmt.Print(fnode.State.GetFactomNodeName(), "-", len(fnode.State.NetworkOutMsgQueue()), " ")
+		}
 		time.Sleep(10 * time.Millisecond)
 		msg := <-fnode.State.NetworkOutMsgQueue()
 		// Local Messages are Not broadcast out.  This is mostly the block signature
@@ -80,21 +83,24 @@ func NetworkOutputs(fnode *FactomNode) {
 					int64(fnode.State.GetTimestamp())/1000)
 
 				p := msg.GetOrigin() - 1
+
 				if msg.IsPeer2peer() {
 					// Must have a Peer to send a message to a peer
-                    if len(fnode.Peers) > 0 {						
+					if len(fnode.Peers) > 0 {
 						if p < 0 {
 							p = rand.Int() % len(fnode.Peers)
 						}
-						fnode.MLog.add2(fnode, true, fnode.Peers[p].GetNameTo(), "P2P out", true, msg)
+						//fnode.MLog.add2(fnode, true, fnode.Peers[p].GetNameTo(), "P2P out", true, msg)
+
 						fnode.Peers[p].Send(msg)
+
 					}
 				} else {
 					for i, peer := range fnode.Peers {
 						// Don't resend to the node that sent it to you.
 						if i != p {
-							bco := fmt.Sprintf("%s/%d/%d", "BCast", p, i)
-							fnode.MLog.add2(fnode, true, peer.GetNameTo(), bco, true, msg)
+							//bco := fmt.Sprintf("%s/%d/%d", "BCast", p, i)
+							//fnode.MLog.add2(fnode, true, peer.GetNameTo(), bco, true, msg)
 							peer.Send(msg)
 						}
 					}
