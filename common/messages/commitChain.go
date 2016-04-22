@@ -43,7 +43,7 @@ func (m *CommitChainMsg) Process(dbheight uint32, state interfaces.IState) bool 
 }
 
 func (m *CommitChainMsg) GetHash() interfaces.IHash {
-	return m.CommitChain.EntryHash
+	return m.GetMsgHash()
 }
 
 func (m *CommitChainMsg) GetMsgHash() interfaces.IHash {
