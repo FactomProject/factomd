@@ -1,7 +1,7 @@
 fct newtransaction t
-fct addinput t ps 5
-fct addoutput t fct1 5
-fct addfee t ps
+fct addinput t b .1
+fct addoutput t b2 .1
+fct addfee t b
 fct sign t
 fct submit t
 
