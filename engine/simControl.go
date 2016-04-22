@@ -31,10 +31,11 @@ func SimControl(listenTo int) {
 			// Being unable to read from StdIn gives error, this pretends like "no command" was typed, which causes nothing (unlike simply hitting return)
 		}
 
+		// This splits up the command at anycodepoint that is not a letter, number of punctuation, so usually by spaces.
 		parseFunc := func(c rune) bool {
 			return !unicode.IsLetter(c) && !unicode.IsNumber(c) && !unicode.IsPunct(c)
 		}
-
+		// cmd is not a list of the parameters, much like command line args show up in args[]
 		cmd := strings.FieldsFunc(string(l), parseFunc)
 		if 0 == len(cmd) {
 			cmd = []string{"+"}
@@ -67,7 +68,7 @@ func SimControl(listenTo int) {
 					fmt.Printf("      NetworkInvalidMsgQueue %d\n", len(fnodes[listenTo].State.NetworkOutMsgQueue()))
 				}
 
-			case 'a' == b[0]:
+			case 0 == strings.Compare(strings.ToLower(string(b[0])), "a"):
 				mLog.all = false
 				for _, fnode := range fnodes {
 					fnode.State.SetOut(false)
@@ -94,7 +95,7 @@ func SimControl(listenTo int) {
 						fmt.Println("Error: ", err, msg)
 					}
 				}
-			case 'f' == b[0]:
+			case 0 == strings.Compare(strings.ToLower(string(b[0])), "f"):
 				mLog.all = false
 				for _, fnode := range fnodes {
 					fnode.State.SetOut(false)
@@ -154,7 +155,7 @@ func SimControl(listenTo int) {
 				for _, fnode := range fnodes {
 					fnode.State.SetOut(true)
 				}
-			case 0 == strings.Compare(strings.ToLower(string(b)), "m"):
+			case 0 == strings.Compare(strings.ToLower(string(b[0])), "m"):
 				os.Stderr.WriteString(fmt.Sprintf("Print all messages for node: %d\n", listenTo))
 				for _, fnode := range fnodes {
 					fnode.State.SetOut(false)
@@ -173,7 +174,7 @@ func SimControl(listenTo int) {
 				os.Stderr.WriteString(fmt.Sprint("\r\nSwitching to Node ", listenTo, "\r\n"))
 				wsapi.SetState(fnodes[listenTo].State)
 				mLog.all = false
-			case 0 == strings.Compare(strings.ToLower(string(b)), "s"):
+			case 0 == strings.Compare(strings.ToLower(string(b[0])), "s"):
 				for _, fnode := range fnodes {
 					fnode.State.SetOut(false)
 				}
@@ -181,17 +182,22 @@ func SimControl(listenTo int) {
 				msg := messages.NewAddServerMsg(fnodes[listenTo].State)
 				fnodes[listenTo].State.InMsgQueue() <- msg
 				os.Stderr.WriteString(fmt.Sprintln("Attempting to make", fnodes[listenTo].State.GetFactomNodeName(), "a Leader"))
+
+ERROR: Need to make an option that causes the p2p network to print out all messsages it gets and sends, for easier debugging.
+
 			case '?' == b[0], 'H' == b[0], 'h' == b[0]:
 				fmt.Println("-------------------------------------------------------------------------------")
-				fmt.Println("+ or ENTER    Silence")
-				fmt.Println("a             Show Admin blocks.")
-				fmt.Println("f             Show Factoid blocks.")
-				fmt.Println("d             Show Directory blocks.")
+				fmt.Println("+ or ENTER    Silence nodes and show Queues for focused node")
+				fmt.Println("a             Show Admin blocks. Indicate node eg:\"a5\" to shows blocks for that node.")
+				fmt.Println("f             Show Factoid blocks. Indicate node eg:\"f5\" to shows blocks for that node.")
+				fmt.Println("d             Show Directory blocks. Indicate node eg:\"d5\" to shows blocks for that node.")
 				fmt.Println("D             Dump all messages.")
 				fmt.Println("m             Show all messages for the focused node.")
 				fmt.Println("\" \" [space] Follow next node, print all messages from it.")
 				fmt.Println("s             Make focused node the Leader.")
-				fmt.Println("? or h        Show help")
+				fmt.Println("? or h		   Show help")
+				fmt.Println("")
+				fmt.Println("Most commands are case insensitive.")
 				fmt.Println("-------------------------------------------------------------------------------")
 			// -- add node (and give its connections or topology)
 

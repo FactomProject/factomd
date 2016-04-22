@@ -41,7 +41,7 @@ func NetStart(s *state.State) {
 	folderPtr := flag.String("folder", "", "Directory in .factom to store nodes. (eg: multiple nodes on one filesystem support)")
 	portPtr := flag.Int("port", 8088, "Address to serve WSAPI on")
 	addressPtr := flag.String("p2pAddress", "tcp://127.0.0.1:34340", "Address & port to listen for peers on: (eg: tcp://127.0.0.1:40891)")
-	peersPtr := flag.String("peers", "tcp://127.0.0.1:34341 tcp://127.0.0.1:34342 tcp://127.0.0.1:34343", "Array of peer addresses. Defaults to: \"tcp://127.0.0.1:34341 tcp://127.0.0.1:34342 tcp://127.0.0.1:34340\"")
+	peersPtr := flag.String("peers", "", "Array of peer addresses. Defaults to: \"tcp://127.0.0.1:34341 tcp://127.0.0.1:34342 tcp://127.0.0.1:34340\"")
 	blkTimePtr := flag.Int("blktime", 0, "Seconds per block.  Production is 600.")
 
 	flag.Parse()
@@ -154,6 +154,7 @@ func NetStart(s *state.State) {
 	// Start the P2P netowrk
 	// BUGBUG JAYJAY This peer stuff needs to be abstracted out into the p2p network.
 	// Set up a channel instead.
+	if len peers is zero then we don't set up  the peers.
 	p2pProxy := new(P2PPeer).Init(fnodes[0].State.FactomNodeName, address).(*P2PPeer)
 	fnodes[0].Peers = append(fnodes[0].Peers, p2pProxy)
 
