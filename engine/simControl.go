@@ -47,7 +47,7 @@ func SimControl(listenTo int) {
 				fnode.State.SetOut(false)
 			}
 			listenTo = v
-			fmt.Print("\r\nSwitching to Node ", listenTo, "\r\n")
+			os.Stderr.WriteString(fmt.Sprintf("Switching to Node %d\n", listenTo))
 			wsapi.SetState(fnodes[listenTo].State)
 		} else {
 			// fmt.Printf("Parsing command, found %d elements.  The first element is: %+v / %s \n Full command: %+v\n", len(cmd), b[0], string(b), cmd)
