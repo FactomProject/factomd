@@ -43,6 +43,7 @@ func NetStart(s *state.State) {
 	addressPtr := flag.String("p2pAddress", "tcp://127.0.0.1:34340", "Address & port to listen for peers on: (eg: tcp://127.0.0.1:40891)")
 	peersPtr := flag.String("peers", "", "Array of peer addresses. Defaults to: \"tcp://127.0.0.1:34341 tcp://127.0.0.1:34342 tcp://127.0.0.1:34340\"")
 	blkTimePtr := flag.Int("blktime", 0, "Seconds per block.  Production is 600.")
+    runtimeLogPtr := flag.Bool("runtimeLog", true, "If true, maintain runtime logs of messages passed.")
 
 	flag.Parse()
 
@@ -59,6 +60,7 @@ func NetStart(s *state.State) {
 	address := *addressPtr
 	peers := *peersPtr
 	blkTime := *blkTimePtr
+    runtimeLog := *runtimeLogPtr
 
 	FactomConfigFilename := util.GetConfigFilename("m2")
 	fmt.Println(fmt.Sprintf("factom config: %s", FactomConfigFilename))
@@ -70,28 +72,29 @@ func NetStart(s *state.State) {
 		blkTime = s.DirectoryBlockInSeconds
 	}
 
-	os.Stderr.WriteString(fmt.Sprintf("node     %d\n", listenTo))
-	os.Stderr.WriteString(fmt.Sprintf("count    %d\n", cnt))
-	os.Stderr.WriteString(fmt.Sprintf("net      \"%s\"\n", net))
-	os.Stderr.WriteString(fmt.Sprintf("drop     %d\n", droprate))
-	os.Stderr.WriteString(fmt.Sprintf("journal  \"%s\"\n", journal))
+	os.Stderr.WriteString(fmt.Sprintf("node        %d\n", listenTo))
+	os.Stderr.WriteString(fmt.Sprintf("count       %d\n", cnt))
+	os.Stderr.WriteString(fmt.Sprintf("net         \"%s\"\n", net))
+	os.Stderr.WriteString(fmt.Sprintf("drop        %d\n", droprate))
+	os.Stderr.WriteString(fmt.Sprintf("journal     \"%s\"\n", journal))
 	if follower {
-		os.Stderr.WriteString(fmt.Sprintf("follower \"%v\"\n", follower))
+		os.Stderr.WriteString(fmt.Sprintf("follower    \"%v\"\n", follower))
 		leader = false
 	}
 	if leader {
-		os.Stderr.WriteString(fmt.Sprintf("leader \"%v\"\n", leader))
+		os.Stderr.WriteString(fmt.Sprintf("leader    \"%v\"\n", leader))
 		follower = false
 	}
 	if !follower && !leader {
 		panic("Not a leader or a follower")
 	}
-	os.Stderr.WriteString(fmt.Sprintf("db       \"%s\"\n", db))
-	os.Stderr.WriteString(fmt.Sprintf("folder   \"%s\"\n", folder))
-	os.Stderr.WriteString(fmt.Sprintf("port     \"%d\"\n", port))
-	os.Stderr.WriteString(fmt.Sprintf("address  \"%s\"\n", address))
-	os.Stderr.WriteString(fmt.Sprintf("peers    \"%s\"\n", peers))
-	os.Stderr.WriteString(fmt.Sprintf("blkTime  %d\n", blkTime))
+	os.Stderr.WriteString(fmt.Sprintf("db          \"%s\"\n", db))
+	os.Stderr.WriteString(fmt.Sprintf("folder      \"%s\"\n", folder))
+	os.Stderr.WriteString(fmt.Sprintf("port        \"%d\"\n", port))
+	os.Stderr.WriteString(fmt.Sprintf("address     \"%s\"\n", address))
+	os.Stderr.WriteString(fmt.Sprintf("peers       \"%s\"\n", peers))
+	os.Stderr.WriteString(fmt.Sprintf("blkTime     %d\n", blkTime))
+	os.Stderr.WriteString(fmt.Sprintf("runtimeLog  %v\n", runtimeLog))
 
 	if journal != "" {
 		cnt = 1
@@ -140,7 +143,7 @@ func NetStart(s *state.State) {
 	s.Init()
 	s.SetDropRate(droprate)
 
-	mLog.init(cnt)
+	mLog.init(runtimeLog, cnt)
 
 	//************************************************
 	// Actually setup the Network
@@ -181,18 +184,25 @@ func NetStart(s *state.State) {
 			AddSimPeer(fnodes, i%cnt, (i+7)%cnt)
 		}
 	case "alot":
-		for i := 0; i < cnt; i++ {
-			for j := 0; j < cnt; j++ {
-				cnt := 0
-				if i != j {
-					cnt++
-					AddSimPeer(fnodes, i, j)
-					if cnt == 8 {
-						break
-					}
+		index := 0
+		row := 1
+	alotloop:
+		for i := 0; true; i++ {
+			for j := 0; j <= i; j++ {
+				AddSimPeer(fnodes, index, row)
+				AddSimPeer(fnodes, index, row+1)
+				if j%4 == 0 {
+					AddSimPeer(fnodes, 0, index)
+				}
+				row++
+				index++
+				if index >= len(fnodes) {
+					break alotloop
 				}
 			}
+			row += 1
 		}
+
 	case "tree":
 		index := 0
 		row := 1

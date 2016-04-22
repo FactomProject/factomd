@@ -10,9 +10,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"sync"
 
-	"github.com/FactomProject/factomd/anchor"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
@@ -109,7 +107,6 @@ type State struct {
 	//
 	// Process list previous [0], present(@DBHeight) [1], and future (@DBHeight+1) [2]
 
-	AckLock      sync.Mutex
 	ProcessLists *ProcessLists
 
 	// Factom State
@@ -345,9 +342,6 @@ func (s *State) Init() {
 
 	s.AuditHeartBeats = make([]interfaces.IMsg, 0)
 	s.FedServerFaults = make([][]interfaces.IMsg, 0)
-
-	a, _ := anchor.InitAnchor(s)
-	s.Anchor = a
 
 	s.initServerKeys()
 }

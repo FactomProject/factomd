@@ -12,6 +12,7 @@ import (
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
+	"time"
 )
 
 var _ = fmt.Print
@@ -36,6 +37,11 @@ func LoadDatabase(s *State) {
 			break
 		} else {
 			if msg != nil {
+				if len(s.InMsgQueue()) > 100 {
+					for len(s.InMsgQueue()) > 30 {
+						time.Sleep(100 * time.Millisecond)
+					}
+				}
 				s.InMsgQueue() <- msg
 			} else {
 				break
