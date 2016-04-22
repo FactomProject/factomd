@@ -90,7 +90,7 @@ func NetworkOutputs(fnode *FactomNode) {
 						if p < 0 {
 							p = rand.Int() % len(fnode.Peers)
 						}
-						//fnode.MLog.add2(fnode, true, fnode.Peers[p].GetNameTo(), "P2P out", true, msg)
+						fnode.MLog.add2(fnode, true, fnode.Peers[p].GetNameTo(), "P2P out", true, msg)
 
 						fnode.Peers[p].Send(msg)
 
@@ -99,8 +99,8 @@ func NetworkOutputs(fnode *FactomNode) {
 					for i, peer := range fnode.Peers {
 						// Don't resend to the node that sent it to you.
 						if i != p {
-							//bco := fmt.Sprintf("%s/%d/%d", "BCast", p, i)
-							//fnode.MLog.add2(fnode, true, peer.GetNameTo(), bco, true, msg)
+							bco := fmt.Sprintf("%s/%d/%d", "BCast", p, i)
+							fnode.MLog.add2(fnode, true, peer.GetNameTo(), bco, true, msg)
 							peer.Send(msg)
 						}
 					}

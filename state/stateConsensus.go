@@ -317,7 +317,6 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		// Leader Execute creates an acknowledgement and the EOM
 		s.NetworkOutMsgQueue() <- ack
 		s.NetworkOutMsgQueue() <- dbs2
-		s.Print("SENT DBS2")
 	} else {
 		// TODO follower should validate signature here.
 		resp := dbs.Validate(s)
