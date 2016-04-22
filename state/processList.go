@@ -96,15 +96,12 @@ func (p *ProcessList) GetFedServerIndexHash(identityChainID interfaces.IHash) (b
 // but for now, we are just going to make it a function of the dbheight. 
 func (p *ProcessList) MakeMap() {
     n := len(p.FedServers)+7
-    fmt.Println("[",p.DBHeight,"]")
     indx := int(p.DBHeight*131) % n
     for i := 0; i < 10; i++ {
-        fmt.Println()
         indx = (indx+1)%n
         for j:=0; j < 32; j++ {
             p.ServerMap[i][j] = indx
             indx = (indx+1) % n
-            fmt.Print(p.ServerMap[i][j]," ")
         }
     }
 }

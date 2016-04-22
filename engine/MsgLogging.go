@@ -53,7 +53,7 @@ func (m *MsgLog) init(enable bool, nodecnt int) {
 
 func (m *MsgLog) add2(fnode *FactomNode, out bool, peer string, where string, valid bool, msg interfaces.IMsg) {
     if !m.Enable {
-        //return
+        return
     }
 	m.sem.Lock()
 	defer m.sem.Unlock()
