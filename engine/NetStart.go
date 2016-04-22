@@ -154,11 +154,14 @@ func NetStart(s *state.State) {
 	// Start the P2P netowrk
 	// BUGBUG JAYJAY This peer stuff needs to be abstracted out into the p2p network.
 	// Set up a channel instead.
-	if len peers is zero then we don't set up  the peers.
-	p2pProxy := new(P2PPeer).Init(fnodes[0].State.FactomNodeName, address).(*P2PPeer)
-	fnodes[0].Peers = append(fnodes[0].Peers, p2pProxy)
 
-	P2PNetworkStart(address, peers, p2pProxy)
+	// don't start network if htere is no network to connect to.
+	if 0 < len(peers) {
+		p2pProxy := new(P2PPeer).Init(fnodes[0].State.FactomNodeName, address).(*P2PPeer)
+		fnodes[0].Peers = append(fnodes[0].Peers, p2pProxy)
+
+		P2PNetworkStart(address, peers, p2pProxy)
+	}
 
 	switch net {
 	case "long":

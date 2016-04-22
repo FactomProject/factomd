@@ -182,9 +182,6 @@ func SimControl(listenTo int) {
 				msg := messages.NewAddServerMsg(fnodes[listenTo].State)
 				fnodes[listenTo].State.InMsgQueue() <- msg
 				os.Stderr.WriteString(fmt.Sprintln("Attempting to make", fnodes[listenTo].State.GetFactomNodeName(), "a Leader"))
-
-ERROR: Need to make an option that causes the p2p network to print out all messsages it gets and sends, for easier debugging.
-
 			case '?' == b[0], 'H' == b[0], 'h' == b[0]:
 				fmt.Println("-------------------------------------------------------------------------------")
 				fmt.Println("+ or ENTER    Silence nodes and show Queues for focused node")
@@ -200,6 +197,7 @@ ERROR: Need to make an option that causes the p2p network to print out all messs
 				fmt.Println("Most commands are case insensitive.")
 				fmt.Println("-------------------------------------------------------------------------------")
 			// -- add node (and give its connections or topology)
+			// TODO JAYJAY Need to make an option that causes the p2p network to print out all messsages it gets and sends, for easier debugging.
 
 			default:
 			}
