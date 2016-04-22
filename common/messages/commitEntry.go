@@ -47,14 +47,7 @@ func (m *CommitEntryMsg) Process(dbheight uint32, state interfaces.IState) bool 
 }
 
 func (m *CommitEntryMsg) GetHash() interfaces.IHash {
-	if m.CommitEntry.EntryHash == nil {
-		data, err := m.CommitEntry.MarshalBinary()
-		if err != nil {
-			panic(fmt.Sprintf("Error in CommitChain.GetHash(): %s", err.Error()))
-		}
-		m.CommitEntry.EntryHash = primitives.Sha(data)
-	}
-	return m.CommitEntry.EntryHash
+	return m.GetMsgHash()
 }
 
 func (m *CommitEntryMsg) GetMsgHash() interfaces.IHash {
