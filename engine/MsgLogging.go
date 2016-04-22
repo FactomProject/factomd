@@ -25,6 +25,7 @@ type msglist struct {
 }
 
 type MsgLog struct {
+    Enable  bool
 	sem     sync.Mutex
 	MsgList []*msglist
 	last    interfaces.Timestamp
@@ -42,14 +43,18 @@ type MsgLog struct {
 	msgPerSecp int
 }
 
-func (m *MsgLog) init(nodecnt int) {
-	m.nodeCnt = nodecnt
+func (m *MsgLog) init(enable bool, nodecnt int) {
+	m.Enable = enable
+    m.nodeCnt = nodecnt
 	if nodecnt == 0 {
 		m.nodeCnt = 1
 	}
 }
 
 func (m *MsgLog) add2(fnode *FactomNode, out bool, peer string, where string, valid bool, msg interfaces.IMsg) {
+    if !m.Enable {
+        //return
+    }
 	m.sem.Lock()
 	defer m.sem.Unlock()
 	now := fnode.State.GetTimestamp() / 100
@@ -85,7 +90,7 @@ func (m *MsgLog) add2(fnode *FactomNode, out bool, peer string, where string, va
 	}
 
 	// If it has been 2 seconds, and we are printing, then print
-	if now-m.last > 1 && (fnode.State.GetOut() || m.all) {
+	if now-m.last > 0 && (fnode.State.GetOut() || m.all) {
 		m.prtMsgs(fnode.State)
 		m.last = now
 		m.msgCnt += len(m.MsgList) // Keep my counts
@@ -101,48 +106,28 @@ func (m *MsgLog) add2(fnode *FactomNode, out bool, peer string, where string, va
 }
 
 func (m *MsgLog) prtMsgs(state interfaces.IState) {
-	if m.all {
-		m.prtMsgAll(state)
-		return
-	}
-	if state.GetOut() {
-		state.Println(state.String())
-		state.Println("\n-----------------------------------------------------")
-	}
+
+	if !(state.GetOut() || m.all) {
+        return
+    }
+    
+	fmt.Println(state.String())
+	fmt.Println("\n-----------------------------------------------------")
+	
 	for _, e := range m.MsgList {
 		if e.valid {
-			if e.fnode.State.GetOut() {
+			if e.fnode.State.GetOut() || m.all {
 				dirstr := "->"
 				if !e.out {
 					dirstr = "<-"
 				}
 
-				state.Print(fmt.Sprintf("**** %8s %2s %8s %10s %5v     **** %s\n", e.name, dirstr, e.peer, e.where, e.valid, e.msg.String()))
+				fmt.Print(fmt.Sprintf("**** %8s %2s %8s %10s %5v     **** %s\n", e.name, dirstr, e.peer, e.where, e.valid, e.msg.String()))
 
 			}
 		}
 	}
-	if state.GetOut() {
-		state.Println(fmt.Sprintf("*** %42s **** ", fmt.Sprintf("Length: %d    Msgs/sec: T %d P %d", len(m.MsgList), m.msgPerSec, m.msgPerSecp)))
-		state.Println("\n-----------------------------------------------------")
-	}
-
+	fmt.Println(fmt.Sprintf("*** %42s **** ", fmt.Sprintf("Length: %d    Msgs/sec: T %d P %d", len(m.MsgList), m.msgPerSec, m.msgPerSecp)))
+	fmt.Println("\n-----------------------------------------------------")
 }
 
-func (m *MsgLog) prtMsgAll(state interfaces.IState) {
-	fmt.Println("\n-----------------------------------------------------")
-
-	for _, e := range m.MsgList {
-		if e.valid {
-			dirstr := "->"
-			if !e.out {
-				dirstr = "<-"
-			}
-			fmt.Printf("**** %8s %2s %8s %10s %5v     **** %s\n", e.name, dirstr, e.peer, e.where, e.valid, e.msg.String())
-		}
-	}
-
-	fmt.Printf("*** %42s **** ", fmt.Sprintf("Length: %d    Msgs/sec: T %d P %d", len(m.MsgList), m.msgPerSec, m.msgPerSecp))
-	fmt.Println("\n-----------------------------------------------------")
-
-}
