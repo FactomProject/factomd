@@ -221,13 +221,15 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		panic("Must pass an EOM message to ProcessEOM)")
 	}
 
-	// We need to save away the previous state before we begin to process the next height
-	last := s.DBStates.Last()
-	if e.Minute == 0 && (last == nil || !last.Saved) {
-		return false
-	}
-
 	pl := s.ProcessLists.Get(dbheight)
+
+	// Set this list complete
+	pl.SetMinute(e.ServerIndex, int(e.Minute))
+
+    if pl.MinuteHeight() <= int(e.Minute) {
+        return false
+    }
+
 
 	if !e.MarkerSent {
 		if s.ServerIndexFor(e.DBHeight, constants.FACTOID_CHAINID) == e.ServerIndex {
@@ -242,13 +244,13 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	// We need to have all EOM markers before we start to clean up this height.
 	if e.Minute == 9 {
 
-		// Set this list complete
-		pl.SetEomComplete(e.ServerIndex, true)
+         // Maybe we want to check the block is saved?   
+        	// We need to save away the previous state before we begin to process the next height
+	        // last := s.DBStates.Last()
+	        // if last == nil || !last.Saved {
+        	//    return false
+	        // }
 
-		// Check if all are complete
-		if !pl.EomComplete() {
-			return false
-		}
 
 		if s.ServerIndexFor(e.DBHeight, constants.EC_CHAINID) == e.ServerIndex {
 			ecblk := pl.EntryCreditBlock

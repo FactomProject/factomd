@@ -28,7 +28,8 @@ type ProcessList struct {
 	State         interfaces.IState
 	NumberServers int           // How many servers we are tracking
 	Servers       []*ListServer // Process list for each server (up to 32)
-
+	ServerMap     [10][32]int   // Map of FedServers to all Servers for each minute
+    
 	// Maps
 	// ====
 	OldMsgs map[[32]byte]interfaces.IMsg // messages processed in this list
@@ -46,49 +47,89 @@ type ProcessList struct {
 
 	// Number of Servers acknowledged by Factom
 	Matryoshka   []interfaces.IHash        // Reverse Hash
-	
-    // The ServerMap is an index map providing a map of our Federated Servers into the 32 virtual Factom 
-    // servers.  For each minute we have an index for each of the virtual Factom servers into the list of
-    // Federated Servers.  The same Federated Server can be responsible for multiple virtual Factom servers.
-    ServerMap    [10][32]int               // For each minute, each server
-
 	AuditServers []interfaces.IFctServer   // List of Audit Servers
-	ServerOrder  [][]interfaces.IFctServer // 10 lists for Server Order for each minute
 	FedServers   []interfaces.IFctServer   // List of Federated Servers
 
 }
 
 type ListServer struct {
-    List          []interfaces.IMsg // Lists of acknowledged messages
-	Height        int               // Height of messages that have been processed
-	EomComplete   bool              // Lists that are end of minute complete
-	SigComplete   bool              // Lists that are signature complete
-	Undo          interfaces.IMsg   // The Leader needs one level of undo to handle DB Sigs.
-	LastLeaderAck interfaces.IMsg   // The last Acknowledgement set by this leader
-	LastAck       interfaces.IMsg   // The last Acknowledgement set by this follower
+	List           []interfaces.IMsg // Lists of acknowledged messages
+	Height         int               // Height of messages that have been processed
+    MinuteComplete int               // Highest minute complete (0-9)   
+	SigComplete    bool              // Lists that are signature complete
+	Undo           interfaces.IMsg   // The Leader needs one level of undo to handle DB Sigs.
+	LastLeaderAck  interfaces.IMsg   // The last Acknowledgement set by this leader
+	LastAck        interfaces.IMsg   // The last Acknowledgement set by this follower
 }
 
+
+func (p *ProcessList) GetVirtualServers(minute int, identityChainID interfaces.IHash) (found bool, indexes []int) {
+    found, fedIndex := p.GetFedServerIndexHash(identityChainID)
+    if !found {
+        return false, indexes
+    }
+    
+    for _,fedix := range p.ServerMap[minute] {
+        if fedix == fedIndex {
+            indexes = append(indexes,fedix)
+        }
+    }
+    
+    return true, indexes
+}
+
+
 // Returns true and the index of this server, or false and the insertion point for this server
-func (p *ProcessList) GetFedServerIndexHash(identityChainID interfaces.IHash) (found bool, indexes []int) {
+func (p *ProcessList) GetFedServerIndexHash(identityChainID interfaces.IHash) (bool, int) {
 	scid := identityChainID.Bytes()
 
 	for i, fs := range p.FedServers {
 		// Find and remove
 		if bytes.Compare(scid, fs.GetChainID().Bytes()) == 0 {
-			indexes = append(indexes,i)
+			return true, i
 		}
 	}
-    cnt := len(indxes)
-    if cnt > 0 {
-        return true,indexes
-    }
-    indexes = append(indexes,len(p.FedServers))
-	return false, indexes
+	return false, len(p.FedServers)
 }
+
+// This function will be replaced by a calculation from the Matryoshka hashes from the servers
+// but for now, we are just going to make it a function of the dbheight. 
+func (p *ProcessList) MakeMap() {
+    n := len(p.FedServers)+7
+    fmt.Println("[",p.DBHeight,"]")
+    indx := int(p.DBHeight*131) % n
+    for i := 0; i < 10; i++ {
+        fmt.Println()
+        indx = (indx+1)%n
+        for j:=0; j < 32; j++ {
+            p.ServerMap[i][j] = indx
+            indx = (indx+1) % n
+            fmt.Print(p.ServerMap[i][j]," ")
+        }
+    }
+}
+
+// Take the minute that has completed.  The minute height then is 1 plus that number
+// i.e. the minute height is 0, or 1, or 2, or ... or 10 (all done)
+func (p *ProcessList) SetMinute(index int, minute int) {
+    p.Servers[index].MinuteComplete = minute+1
+}
+
+// Return the lowest minute number in our lists.
+func (p *ProcessList) MinuteHeight() int {
+    m := 10
+    for _, vs := range p.Servers {
+        if vs.MinuteComplete < m {
+            m = vs.MinuteComplete
+        }
+    }
+    return m
+}
+
 
 // Add the given serverChain to this processlist, and return the server index number of the
 // added server
-func (p *ProcessList) AddFedServer(identityChainID interfaces.IHash) (indexes []int) {
+func (p *ProcessList) AddFedServer(identityChainID interfaces.IHash) int {
 	found, i := p.GetFedServerIndexHash(identityChainID)
 	if found {
 		return i
@@ -96,6 +137,9 @@ func (p *ProcessList) AddFedServer(identityChainID interfaces.IHash) (indexes []
 	p.FedServers = append(p.FedServers, nil)
 	copy(p.FedServers[i+1:], p.FedServers[i:])
 	p.FedServers[i] = &interfaces.Server{ChainID: identityChainID}
+    
+    p.MakeMap()
+    
 	return i
 }
 
@@ -176,11 +220,6 @@ func (p *ProcessList) SetSigComplete(i int, value bool) {
 	p.Servers[i].SigComplete = value
 }
 
-// Set the EomComplete for the ith list
-func (p *ProcessList) SetEomComplete(i int, value bool) {
-	p.Servers[i].EomComplete = value
-}
-
 // Test if a process list for a server is EOM complete.  Return true if all messages
 // have been recieved, and we just need the signaure.  If we need EOM messages, or we
 // have all EOM messages and we have the Signature, then we return false.
@@ -191,7 +230,7 @@ func (p *ProcessList) EomComplete() bool {
 	n := len(p.State.GetFedServers(p.DBHeight))
 	for i := 0; i < n; i++ {
 		c := p.Servers[i]
-		if !c.EomComplete {
+		if c.MinuteComplete != 9 {
 			return false
 		}
 	}
@@ -302,8 +341,8 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			// would not need to check the messages here!  Checking for EOM and DBS
 			// as follows is a bit of a kludge.
 			eom, ok := plist[j].(*messages.EOM)
-			if ok && eom.Minute == 9 {
-				p.Servers[i].EomComplete = true
+			if ok {
+				p.Servers[i].MinuteComplete = int(eom.Minute)
 			}
 			_, ok = plist[j].(*messages.DirectoryBlockSignature)
 			if ok {
@@ -327,10 +366,8 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 
 	for len(p.Servers[ack.ServerIndex].List) <= int(ack.Height) {
 		p.Servers[ack.ServerIndex].List = append(p.Servers[ack.ServerIndex].List, nil)
-		p.Servers[ack.ServerIndex].rList = append(p.Servers[ack.ServerIndex].rList, nil)
 	}
 	p.Servers[ack.ServerIndex].List[ack.Height] = m
-	p.Servers[ack.ServerIndex].rList[ack.Height] = m
 }
 
 func (p *ProcessList) String() string {
@@ -342,11 +379,8 @@ func (p *ProcessList) String() string {
 
 		for i := 0; i < p.NumberServers; i++ {
 			server := p.Servers[i]
-			eom := ""
+			eom := fmt.Sprintf("Minute %d",server.MinuteComplete)
 			sig := ""
-			if server.EomComplete {
-				eom = "EOM Complete"
-			}
 			if server.SigComplete {
 				sig = "Sig Complete"
 			}
@@ -363,12 +397,7 @@ func (p *ProcessList) String() string {
 				if msg != nil {
 					buf.WriteString("   " + msg.String() + "\n")
 				} else {
-					msg := server.rList[j]
-					if msg != nil {
-						buf.WriteString(" X " + msg.String() + "\n")
-					} else {
-						buf.WriteString("   <nil>\n")
-					}
+					buf.WriteString("   <nil>\n")
 				}
 			}
 		}
@@ -395,7 +424,6 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 	for i := 0; i < 32; i++ {
 		pl.Servers[i] = new(ListServer)
 		pl.Servers[i].List = make([]interfaces.IMsg, 0)
-		pl.Servers[i].rList = make([]interfaces.IMsg, 0)
 
 	}
 
@@ -403,25 +431,15 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 	if previous != nil {
 		pl.FedServers = append(pl.FedServers, previous.FedServers...)
 		pl.AuditServers = append(pl.AuditServers, previous.AuditServers...)
-		pl.ServerOrder = append(pl.ServerOrder, previous.ServerOrder...)
 	} else {
 		pl.FedServers = make([]interfaces.IFctServer, 0)
 		pl.AuditServers = make([]interfaces.IFctServer, 0)
-		pl.ServerOrder = make([][]interfaces.IFctServer, 0)
 		pl.AddFedServer(primitives.Sha([]byte("FNode0"))) // Our default for now fed server
 	}
 
-    // Calculate the mapping of the Federated Servers to the 32 virtual servers of the
-    // consensus algorithm.
-    cnt := dbheight%len(pl.FedServers)
-    for i,min := range pl.ServerMap {
-        for j,_ := range min {
-            min[j] := cnt
-            cnt := (cnt+1)%len(pl.FedServers)
-        }
-    }
-
 	pl.DBHeight = dbheight
+
+    pl.MakeMap()
 
 	pl.OldMsgs = make(map[[32]byte]interfaces.IMsg)
 	pl.OldAcks = make(map[[32]byte]interfaces.IMsg)
