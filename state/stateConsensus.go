@@ -459,32 +459,12 @@ func (s *State) PutE(rt bool, adr [32]byte, v int64) {
 	}
 }
 
-// Tests the given hash, and returns true if this server is the leader for this key.
-// For example, keys we test include:
-//
-// The Hash of the Factoid Hash
-// Entry Credit Addresses
-// ChainIDs
-// ...
-func (s *State) ServerIndexFor(dbheight uint32, hash []byte) int {
-	pl := s.ProcessLists.Get(dbheight)
-	if pl == nil {
-		return 0
-	}
-	n := len(s.ProcessLists.Get(dbheight).FedServers)
-	v := 0
-	if len(hash) > 0 {
-		v = int(hash[0]) % n
-	}
-	return v
-}
 
+// Returns true if this is the leader for this hash given the current state of the leader
 func (s *State) LeaderFor(hash []byte) bool {
-	found, index := s.GetFedServerIndexHash(s.LLeaderHeight, s.IdentityChainID)
-	if !found {
-		return false
-	}
-	return index == s.ServerIndexFor(s.LLeaderHeight, hash)
+    pl := s.ProcessLists.Get(s.LLeaderHeight)
+	chainID := pl.FedServerFor(pl.LeaderMinute,hash).ChainID
+    return bytes.Compare(chainID.Bytes(),s.IdentityChainID.Bytes())==0
 }
 
 func (s *State) NewAdminBlock(dbheight uint32) interfaces.IAdminBlock {
@@ -548,12 +528,8 @@ func (s *State) GetNewHash() interfaces.IHash {
 }
 
 // Create a new Acknowledgement.  This Acknowledgement
-func (s *State) NewAck(dbheight uint32, msg interfaces.IMsg, hash interfaces.IHash) (iack interfaces.IMsg, err error) {
+func (s *State) NewAck(dbheight uint32, vsIndex int, msg interfaces.IMsg, hash interfaces.IHash) (iack interfaces.IMsg, err error) {
 
-	found, index := s.GetFedServerIndexHash(dbheight, s.IdentityChainID)
-	if !found {
-		return nil, fmt.Errorf(s.FactomNodeName + ": Creation of an Ack attempted by non-server")
-	}
 	pl := s.ProcessLists.Get(dbheight)
 	if pl == nil {
 		return nil, fmt.Errorf(s.FactomNodeName + ": No process list at this time")
@@ -562,7 +538,7 @@ func (s *State) NewAck(dbheight uint32, msg interfaces.IMsg, hash interfaces.IHa
 
 	ack := new(messages.Ack)
 	ack.DBHeight = dbheight
-	ack.ServerIndex = byte(index)
+	ack.ServerIndex = byte(vsIndex)
 	ack.Timestamp = s.GetTimestamp()
 	ack.MessageHash = hash
 	if !ok {
@@ -575,7 +551,7 @@ func (s *State) NewAck(dbheight uint32, msg interfaces.IMsg, hash interfaces.IHa
 			return nil, err
 		}
 	}
-	pl.SetLastLeaderAck(index, ack)
+	pl.SetLastLeaderAck(vsIndex, ack)
 
 	ack.Sign(s)
 

@@ -55,13 +55,33 @@ type ProcessList struct {
 type ListServer struct {
 	List           []interfaces.IMsg // Lists of acknowledged messages
 	Height         int               // Height of messages that have been processed
-    MinuteComplete int               // Highest minute complete (0-9)   
+    LeaderMinute   int               // Where the leader is in acknowledging messages
+    MinuteComplete int               // Highest minute complete (0-9) by the follower  
 	SigComplete    bool              // Lists that are signature complete
 	Undo           interfaces.IMsg   // The Leader needs one level of undo to handle DB Sigs.
 	LastLeaderAck  interfaces.IMsg   // The last Acknowledgement set by this leader
 	LastAck        interfaces.IMsg   // The last Acknowledgement set by this follower
 }
 
+// Returns the Virtual Server index for this hash for the given minute
+func (p *ProcessList) ServerIndexFor(minute int, hash []byte) int {
+	v := uint64(0)
+    for _,b := range hash {
+        v += uint64(b)
+    }
+    r := int(v % 32)
+	return r
+}
+
+// Returns the Federated Server responsible for this hash in this minute
+func(p *ProcessList) FedServerFor(minute int, hash []byte) interfaces.IFctServer{
+    vs := p.ServerIndexFor(minute,hash)
+    if vs < 0 {
+        return nil
+    }
+    fedIndex := p.ServerMap[minute][vs]
+    return p.FedServers[fedIndex]
+}
 
 func (p *ProcessList) GetVirtualServers(minute int, identityChainID interfaces.IHash) (found bool, indexes []int) {
     found, fedIndex := p.GetFedServerIndexHash(identityChainID)
