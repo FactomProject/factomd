@@ -282,9 +282,6 @@ func (list *DBStateList) UpdateState() (progress bool) {
 
 		// Any updates required to the state as established by the AdminBlock are applied here.
 		d.AdminBlock.UpdateState(list.State)
-		if list.State.GetOut() {
-			list.State.Println("updateupdateupdateupdateupdateupdateupdate AdminBlock ", d.DirectoryBlock.GetHeader().GetDBHeight())
-		}
 
 		// Process the Factoid End of Block
 		fs := list.State.GetFactoidState()
