@@ -232,8 +232,8 @@ func (m *DBStateMsg) MarshalForSignature() ([]byte, error) {
 		return nil, err
 	}
 	buf.Write(data)
-	
-    data, err = m.FactoidBlock.GetHash().MarshalBinary()
+
+	data, err = m.FactoidBlock.GetHash().MarshalBinary()
 	if err != nil {
 		return nil, err
 	}

@@ -43,7 +43,7 @@ func NetStart(s *state.State) {
 	addressPtr := flag.String("p2pAddress", "tcp://127.0.0.1:34340", "Address & port to listen for peers on: (eg: tcp://127.0.0.1:40891)")
 	peersPtr := flag.String("peers", "", "Array of peer addresses. Defaults to: \"tcp://127.0.0.1:34341 tcp://127.0.0.1:34342 tcp://127.0.0.1:34340\"")
 	blkTimePtr := flag.Int("blktime", 0, "Seconds per block.  Production is 600.")
-    runtimeLogPtr := flag.Bool("runtimeLog", true, "If true, maintain runtime logs of messages passed.")
+	runtimeLogPtr := flag.Bool("runtimeLog", true, "If true, maintain runtime logs of messages passed.")
 
 	flag.Parse()
 
@@ -60,7 +60,7 @@ func NetStart(s *state.State) {
 	address := *addressPtr
 	peers := *peersPtr
 	blkTime := *blkTimePtr
-    runtimeLog := *runtimeLogPtr
+	runtimeLog := *runtimeLogPtr
 
 	FactomConfigFilename := util.GetConfigFilename("m2")
 	fmt.Println(fmt.Sprintf("factom config: %s", FactomConfigFilename))
