@@ -56,7 +56,7 @@ func Start(state interfaces.IState) {
 		server.Get("/v2", HandleV2Get)
 
 		log.Print("Starting server")
-		go server.Run(fmt.Sprintf("localhost:%d", state.GetPort()))
+		go server.Run(fmt.Sprintf(":%d", state.GetPort()))
 	}
 }
 
