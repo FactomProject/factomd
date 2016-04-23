@@ -79,7 +79,9 @@ func (state *State) ValidatorLoop() {
 
 				if !msg.IsPeer2peer() {
 					state.NetworkOutMsgQueue() <- msg
-				}
+				}else{
+                    fmt.Println("**************************",msg)
+                }
 
 				if state.PrintType(msg.Type()) {
 					if state.GetOut() {
