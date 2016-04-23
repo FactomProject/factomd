@@ -184,9 +184,9 @@ func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)
 	s.GetFactoidState().UpdateECTransaction(true, c.CommitChain)
 
 	// save the Commit to match agains the Reveal later
-	s.PutCommits(c.GetHash(), c)
+	s.PutCommits(c.CommitChain.EntryHash, c)
 	// check for a matching Reveal and, if found, execute it
-	if r := s.GetReveals(c.GetHash()); r != nil {
+	if r := s.GetReveals(c.CommitChain.EntryHash); r != nil {
 		s.LeaderExecute(r)
 	}
 
@@ -204,9 +204,9 @@ func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg)
 	s.GetFactoidState().UpdateECTransaction(true, c.CommitEntry)
 
 	// save the Commit to match agains the Reveal later
-	s.PutCommits(c.GetHash(), c)
+	s.PutCommits(c.CommitEntry.EntryHash, c)
 	// check for a matching Reveal and, if found, execute it
-	if r := s.GetReveals(c.GetHash()); r != nil {
+	if r := s.GetReveals(c.CommitEntry.EntryHash); r != nil {
 		s.LeaderExecute(r)
 	}
 

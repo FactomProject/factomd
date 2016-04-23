@@ -7,7 +7,7 @@ package messages
 import (
 	"bytes"
 	"fmt"
-
+    "encoding/binary"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -47,14 +47,7 @@ func (m *CommitEntryMsg) Process(dbheight uint32, state interfaces.IState) bool 
 }
 
 func (m *CommitEntryMsg) GetHash() interfaces.IHash {
-	if m.CommitEntry.EntryHash == nil {
-		data, err := m.CommitEntry.MarshalBinary()
-		if err != nil {
-			panic(fmt.Sprintf("Error in CommitChain.GetHash(): %s", err.Error()))
-		}
-		m.CommitEntry.EntryHash = primitives.Sha(data)
-	}
-	return m.CommitEntry.EntryHash
+	return m.GetMsgHash()
 }
 
 func (m *CommitEntryMsg) GetMsgHash() interfaces.IHash {
@@ -91,6 +84,14 @@ func (m *CommitEntryMsg) UnmarshalBinaryData(data []byte) (newData []byte, err e
 		}
 	}()
 	newData = data[1:]
+    
+    t := new(interfaces.Timestamp)
+	newData, err = t.UnmarshalBinaryData(newData)
+	if err != nil {
+		return nil, err
+	}
+	m.Timestamp = *t
+    
 	ce := entryCreditBlock.NewCommitEntry()
 	newData, err = ce.UnmarshalBinaryData(newData)
 	if err != nil {
@@ -106,12 +107,24 @@ func (m *CommitEntryMsg) UnmarshalBinary(data []byte) error {
 }
 
 func (m *CommitEntryMsg) MarshalBinary() (data []byte, err error) {
-	data, err = m.CommitEntry.MarshalBinary()
+	var buf bytes.Buffer
+    
+    binary.Write(&buf, binary.BigEndian, byte(m.Type()))
+   
+    t := m.GetTimestamp()
+	data, err = t.MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
-	data = append([]byte{byte(m.Type())}, data...)
-	return data, nil
+	buf.Write(data)
+    
+    data, err = m.CommitEntry.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+    buf.Write(data)
+    
+	return buf.Bytes(), nil
 }
 
 func (m *CommitEntryMsg) String() string {

@@ -75,7 +75,10 @@ func (r *Replay) IsTSValid_(hash [32]byte, timestamp int64, now int64) bool {
 	if r.buckets[index] == nil {
 		r.buckets[index] = make(map[[32]byte]byte)
 	} else {
-		return false
+		_, ok := r.buckets[index][hash]
+		if ok {
+			return false
+		}
 	}
     // Mark this hash as seen
 	r.buckets[index][hash] = 'x'
