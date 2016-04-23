@@ -69,18 +69,12 @@ func (state *State) ValidatorLoop() {
 				state.ReplayTimestamp = msg.GetTimestamp()
 			}
 
-			if state.IsReplaying == true {
-				state.ReplayTimestamp = msg.GetTimestamp()
-			}
-
 			switch msg.Validate(state) { // Validate the message.
 
 			case 1: // Process if valid
 
 				if !msg.IsPeer2peer() {
 					state.NetworkOutMsgQueue() <- msg
-				} else {
-					fmt.Println("**************************", msg)
 				}
 
 				if state.PrintType(msg.Type()) {
