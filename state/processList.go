@@ -29,7 +29,7 @@ type ProcessList struct {
 	NumberServers int           // How many servers we are tracking
 	Servers       []*ListServer // Process list for each server (up to 32)
 	ServerMap     [10][32]int   // Map of FedServers to all Servers for each minute
-    
+
 	// Maps
 	// ====
 	OldMsgs map[[32]byte]interfaces.IMsg // messages processed in this list
@@ -46,17 +46,17 @@ type ProcessList struct {
 	DirectoryBlock   interfaces.IDirectoryBlock
 
 	// Number of Servers acknowledged by Factom
-	Matryoshka   []interfaces.IHash        // Reverse Hash
-	AuditServers []interfaces.IFctServer   // List of Audit Servers
-	FedServers   []interfaces.IFctServer   // List of Federated Servers
+	Matryoshka   []interfaces.IHash      // Reverse Hash
+	AuditServers []interfaces.IFctServer // List of Audit Servers
+	FedServers   []interfaces.IFctServer // List of Federated Servers
 
 }
 
 type ListServer struct {
 	List           []interfaces.IMsg // Lists of acknowledged messages
 	Height         int               // Height of messages that have been processed
-    LeaderMinute   int               // Where the leader is in acknowledging messages
-    MinuteComplete int               // Highest minute complete (0-9) by the follower  
+	LeaderMinute   int               // Where the leader is in acknowledging messages
+	MinuteComplete int               // Highest minute complete (0-9) by the follower
 	SigComplete    bool              // Lists that are signature complete
 	Undo           interfaces.IMsg   // The Leader needs one level of undo to handle DB Sigs.
 	LastLeaderAck  interfaces.IMsg   // The last Acknowledgement set by this leader
@@ -66,38 +66,37 @@ type ListServer struct {
 // Returns the Virtual Server index for this hash for the given minute
 func (p *ProcessList) ServerIndexFor(minute int, hash []byte) int {
 	v := uint64(0)
-    for _,b := range hash {
-        v += uint64(b)
-    }
-    r := int(v % 32)
+	for _, b := range hash {
+		v += uint64(b)
+	}
+	r := int(v % 32)
 	return r
 }
 
 // Returns the Federated Server responsible for this hash in this minute
-func(p *ProcessList) FedServerFor(minute int, hash []byte) interfaces.IFctServer{
-    vs := p.ServerIndexFor(minute,hash)
-    if vs < 0 {
-        return nil
-    }
-    fedIndex := p.ServerMap[minute][vs]
-    return p.FedServers[fedIndex]
+func (p *ProcessList) FedServerFor(minute int, hash []byte) interfaces.IFctServer {
+	vs := p.ServerIndexFor(minute, hash)
+	if vs < 0 {
+		return nil
+	}
+	fedIndex := p.ServerMap[minute][vs]
+	return p.FedServers[fedIndex]
 }
 
 func (p *ProcessList) GetVirtualServers(minute int, identityChainID interfaces.IHash) (found bool, indexes []int) {
-    found, fedIndex := p.GetFedServerIndexHash(identityChainID)
-    if !found {
-        return false, indexes
-    }
-    
-    for _,fedix := range p.ServerMap[minute] {
-        if fedix == fedIndex {
-            indexes = append(indexes,fedix)
-        }
-    }
-    
-    return true, indexes
-}
+	found, fedIndex := p.GetFedServerIndexHash(identityChainID)
+	if !found {
+		return false, indexes
+	}
 
+	for _, fedix := range p.ServerMap[minute] {
+		if fedix == fedIndex {
+			indexes = append(indexes, fedix)
+		}
+	}
+
+	return true, indexes
+}
 
 // Returns true and the index of this server, or false and the insertion point for this server
 func (p *ProcessList) GetFedServerIndexHash(identityChainID interfaces.IHash) (bool, int) {
@@ -113,36 +112,35 @@ func (p *ProcessList) GetFedServerIndexHash(identityChainID interfaces.IHash) (b
 }
 
 // This function will be replaced by a calculation from the Matryoshka hashes from the servers
-// but for now, we are just going to make it a function of the dbheight. 
+// but for now, we are just going to make it a function of the dbheight.
 func (p *ProcessList) MakeMap() {
-    n := len(p.FedServers)+7
-    indx := int(p.DBHeight*131) % n
-    for i := 0; i < 10; i++ {
-        indx = (indx+1)%n
-        for j:=0; j < 32; j++ {
-            p.ServerMap[i][j] = indx
-            indx = (indx+1) % n
-        }
-    }
+	n := len(p.FedServers) + 7
+	indx := int(p.DBHeight*131) % n
+	for i := 0; i < 10; i++ {
+		indx = (indx + 1) % n
+		for j := 0; j < 32; j++ {
+			p.ServerMap[i][j] = indx
+			indx = (indx + 1) % n
+		}
+	}
 }
 
 // Take the minute that has completed.  The minute height then is 1 plus that number
 // i.e. the minute height is 0, or 1, or 2, or ... or 10 (all done)
 func (p *ProcessList) SetMinute(index int, minute int) {
-    p.Servers[index].MinuteComplete = minute+1
+	p.Servers[index].MinuteComplete = minute + 1
 }
 
 // Return the lowest minute number in our lists.
 func (p *ProcessList) MinuteHeight() int {
-    m := 10
-    for _, vs := range p.Servers {
-        if vs.MinuteComplete < m {
-            m = vs.MinuteComplete
-        }
-    }
-    return m
+	m := 10
+	for _, vs := range p.Servers {
+		if vs.MinuteComplete < m {
+			m = vs.MinuteComplete
+		}
+	}
+	return m
 }
-
 
 // Add the given serverChain to this processlist, and return the server index number of the
 // added server
@@ -154,9 +152,9 @@ func (p *ProcessList) AddFedServer(identityChainID interfaces.IHash) int {
 	p.FedServers = append(p.FedServers, nil)
 	copy(p.FedServers[i+1:], p.FedServers[i:])
 	p.FedServers[i] = &interfaces.Server{ChainID: identityChainID}
-    
-    p.MakeMap()
-    
+
+	p.MakeMap()
+
 	return i
 }
 
@@ -396,7 +394,7 @@ func (p *ProcessList) String() string {
 
 		for i := 0; i < p.NumberServers; i++ {
 			server := p.Servers[i]
-			eom := fmt.Sprintf("Minute %d",server.MinuteComplete)
+			eom := fmt.Sprintf("Minute %d", server.MinuteComplete)
 			sig := ""
 			if server.SigComplete {
 				sig = "Sig Complete"
@@ -456,7 +454,7 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 
 	pl.DBHeight = dbheight
 
-    pl.MakeMap()
+	pl.MakeMap()
 
 	pl.OldMsgs = make(map[[32]byte]interfaces.IMsg)
 	pl.OldAcks = make(map[[32]byte]interfaces.IMsg)

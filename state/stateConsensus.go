@@ -226,10 +226,9 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	// Set this list complete
 	pl.SetMinute(e.ServerIndex, int(e.Minute))
 
-    if pl.MinuteHeight() <= int(e.Minute) {
-        return false
-    }
-
+	if pl.MinuteHeight() <= int(e.Minute) {
+		return false
+	}
 
 	if !e.MarkerSent {
 		if s.ServerIndexFor(e.DBHeight, constants.FACTOID_CHAINID) == e.ServerIndex {
@@ -244,13 +243,12 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	// We need to have all EOM markers before we start to clean up this height.
 	if e.Minute == 9 {
 
-         // Maybe we want to check the block is saved?   
-        	// We need to save away the previous state before we begin to process the next height
-	        // last := s.DBStates.Last()
-	        // if last == nil || !last.Saved {
-        	//    return false
-	        // }
-
+		// Maybe we want to check the block is saved?
+		// We need to save away the previous state before we begin to process the next height
+		// last := s.DBStates.Last()
+		// if last == nil || !last.Saved {
+		//    return false
+		// }
 
 		if s.ServerIndexFor(e.DBHeight, constants.EC_CHAINID) == e.ServerIndex {
 			ecblk := pl.EntryCreditBlock
@@ -459,12 +457,11 @@ func (s *State) PutE(rt bool, adr [32]byte, v int64) {
 	}
 }
 
-
 // Returns true if this is the leader for this hash given the current state of the leader
 func (s *State) LeaderFor(hash []byte) bool {
-    pl := s.ProcessLists.Get(s.LLeaderHeight)
-	chainID := pl.FedServerFor(pl.LeaderMinute,hash).ChainID
-    return bytes.Compare(chainID.Bytes(),s.IdentityChainID.Bytes())==0
+	pl := s.ProcessLists.Get(s.LLeaderHeight)
+	chainID := pl.FedServerFor(pl.LeaderMinute, hash).ChainID
+	return bytes.Compare(chainID.Bytes(), s.IdentityChainID.Bytes()) == 0
 }
 
 func (s *State) NewAdminBlock(dbheight uint32) interfaces.IAdminBlock {

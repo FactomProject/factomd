@@ -6,8 +6,8 @@ package messages
 
 import (
 	"bytes"
+	"encoding/binary"
 	"fmt"
-    "encoding/binary"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -227,21 +227,21 @@ func (m *RevealEntryMsg) UnmarshalBinaryData(data []byte) (newData []byte, err e
 		}
 	}()
 	newData = data[1:]
-    
-    t := new(interfaces.Timestamp)
+
+	t := new(interfaces.Timestamp)
 	newData, err = t.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
 	}
 	m.Timestamp = *t
-    
+
 	e := entryBlock.NewEntry()
 	newData, err = e.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
 	}
 	m.Entry = e
-    
+
 	return newData, nil
 }
 
@@ -252,22 +252,22 @@ func (m *RevealEntryMsg) UnmarshalBinary(data []byte) error {
 
 func (m *RevealEntryMsg) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
-    
-    binary.Write(&buf, binary.BigEndian, byte(m.Type()))
-   
-    t := m.GetTimestamp()
+
+	binary.Write(&buf, binary.BigEndian, byte(m.Type()))
+
+	t := m.GetTimestamp()
 	data, err = t.MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
 	buf.Write(data)
-    
-    data, err = m.Entry.MarshalBinary()
+
+	data, err = m.Entry.MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
 	buf.Write(data)
-    
+
 	return buf.Bytes(), nil
 }
 

@@ -39,11 +39,11 @@ func Peers(fnode *FactomNode) {
 						//}
 						nme := fmt.Sprintf("%s %d", "PeerIn", i+1)
 						fnode.MLog.add2(fnode, false, peer.GetNameTo(), nme, true, msg)
-                        
-                        // Ignore messages if there are too many.
-                        if len(fnode.State.InMsgQueue()) < 9000 {
-    						fnode.State.InMsgQueue() <- msg
-                        }
+
+						// Ignore messages if there are too many.
+						if len(fnode.State.InMsgQueue()) < 9000 {
+							fnode.State.InMsgQueue() <- msg
+						}
 
 					} else {
 						fnode.MLog.add2(fnode, false, peer.GetNameTo(), "PeerIn", false, msg)

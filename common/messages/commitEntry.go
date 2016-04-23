@@ -6,8 +6,8 @@ package messages
 
 import (
 	"bytes"
+	"encoding/binary"
 	"fmt"
-    "encoding/binary"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -84,14 +84,14 @@ func (m *CommitEntryMsg) UnmarshalBinaryData(data []byte) (newData []byte, err e
 		}
 	}()
 	newData = data[1:]
-    
-    t := new(interfaces.Timestamp)
+
+	t := new(interfaces.Timestamp)
 	newData, err = t.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
 	}
 	m.Timestamp = *t
-    
+
 	ce := entryCreditBlock.NewCommitEntry()
 	newData, err = ce.UnmarshalBinaryData(newData)
 	if err != nil {
@@ -108,22 +108,22 @@ func (m *CommitEntryMsg) UnmarshalBinary(data []byte) error {
 
 func (m *CommitEntryMsg) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
-    
-    binary.Write(&buf, binary.BigEndian, byte(m.Type()))
-   
-    t := m.GetTimestamp()
+
+	binary.Write(&buf, binary.BigEndian, byte(m.Type()))
+
+	t := m.GetTimestamp()
 	data, err = t.MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
 	buf.Write(data)
-    
-    data, err = m.CommitEntry.MarshalBinary()
+
+	data, err = m.CommitEntry.MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
-    buf.Write(data)
-    
+	buf.Write(data)
+
 	return buf.Bytes(), nil
 }
 
