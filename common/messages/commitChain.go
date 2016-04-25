@@ -46,6 +46,15 @@ func (a *CommitChainMsg) IsSameAs(b *CommitChainMsg) bool {
 		}
 	}
 
+	if a.Signature == nil && b.Signature != nil {
+		return false
+	}
+	if a.Signature != nil {
+		if a.Signature.IsSameAs(b.Signature) == false {
+			return false
+		}
+	}
+
 	return true
 }
 
