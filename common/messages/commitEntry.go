@@ -164,7 +164,7 @@ func (m *CommitEntryMsg) Validate(state interfaces.IState) int {
 // a leader.
 func (m *CommitEntryMsg) Leader(state interfaces.IState) bool {
 	//TODO: implement properly
-		return state.LeaderFor(m, constants.EC_CHAINID)
+	return state.LeaderFor(m, constants.EC_CHAINID)
 	/*
 		switch state.GetNetworkNumber() {
 		case 0: // Main Network

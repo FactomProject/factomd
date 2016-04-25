@@ -525,8 +525,8 @@ func (s *State) GetFedServers(dbheight uint32) []interfaces.IFctServer {
 }
 
 func (s *State) GetVirtualServers(dbheight uint32, minute int, identityChainID interfaces.IHash) (found bool, indexes []int) {
-    pl := s.ProcessLists.Get(dbheight)
-    return pl.GetVirtualServers(minute, identityChainID)
+	pl := s.ProcessLists.Get(dbheight)
+	return pl.GetVirtualServers(minute, identityChainID)
 }
 
 func (s *State) GetFactoshisPerEC() uint64 {
@@ -760,10 +760,10 @@ func (s *State) SetString() {
 			0,
 			s.GetHighestKnownBlock())
 	} else {
-        found, _ := s.GetVirtualServers(buildingBlock,9,s.GetIdentityChainID())
+		found, _ := s.GetVirtualServers(buildingBlock, 9, s.GetIdentityChainID())
 		stype := ""
 		if found {
-			stype = fmt.Sprintf("L     ", )
+			stype = fmt.Sprintf("L     ")
 		}
 		keyMR := []byte("aaaaa")
 		abHash := []byte("aaaaa")

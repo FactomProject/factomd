@@ -444,18 +444,18 @@ func (s *State) PutE(rt bool, adr [32]byte, v int64) {
 // Returns the Virtual Server Index for this hash if this server is the leader;
 // returns -1 if we are not the leader for this hash
 func (s *State) LeaderFor(msg interfaces.IMsg, hash []byte) bool {
-    pl := s.ProcessLists.Get(s.LLeaderHeight)
-    vmIndex := VMIndexFor(hash)
-    msg.SetVMIndex(vmIndex)     
-    found, vmIndexes := pl.GetVirtualServers(pl.VMs[vmIndex].LeaderMinute, s.IdentityChainID)
-    if !found { 
-        return false
-    }
-    for _,vmi := range vmIndexes {
-        if vmi == vmIndex {
-            return true
-        }
-    }
+	pl := s.ProcessLists.Get(s.LLeaderHeight)
+	vmIndex := VMIndexFor(hash)
+	msg.SetVMIndex(vmIndex)
+	found, vmIndexes := pl.GetVirtualServers(pl.VMs[vmIndex].LeaderMinute, s.IdentityChainID)
+	if !found {
+		return false
+	}
+	for _, vmi := range vmIndexes {
+		if vmi == vmIndex {
+			return true
+		}
+	}
 	return false
 }
 
@@ -522,21 +522,21 @@ func (s *State) GetNewHash() interfaces.IHash {
 // Create a new Acknowledgement.  This Acknowledgement
 func (s *State) NewAck(dbheight uint32, msg interfaces.IMsg) (iack interfaces.IMsg, err error) {
 
-    vmIndex := msg.GetVMIndex()
+	vmIndex := msg.GetVMIndex()
 
 	pl := s.ProcessLists.Get(dbheight)
 	if pl == nil {
 		return nil, fmt.Errorf(s.FactomNodeName + ": No process list at this time")
 	}
-	
+
 	ack := new(messages.Ack)
 	ack.DBHeight = dbheight
 	ack.VMIndex = vmIndex
 	ack.Timestamp = s.GetTimestamp()
 	ack.MessageHash = msg.GetHash()
-	
-    last, ok := pl.GetLastLeaderAck(vmIndex).(*messages.Ack)
-    if !ok {
+
+	last, ok := pl.GetLastLeaderAck(vmIndex).(*messages.Ack)
+	if !ok {
 		ack.Height = 0
 		ack.SerialHash = ack.MessageHash
 	} else {

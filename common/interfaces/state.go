@@ -98,8 +98,8 @@ type IState interface {
 	// These are methods run by the consensus algorithm to track what servers are the leaders
 	// and what lists they are responsible for.
 	LeaderFor(msg IMsg, hash []byte) bool // Tests if this server is the leader for this key
-    // Returns the list of VirtualServers at a given directory block height and minute
-    GetVirtualServers(dbheight uint32, minute int, identityChainID IHash) (found bool, indexes []int)  
+	// Returns the list of VirtualServers at a given directory block height and minute
+	GetVirtualServers(dbheight uint32, minute int, identityChainID IHash) (found bool, indexes []int)
 	// Database
 	// ========
 	GetDB() DBOverlay

@@ -172,11 +172,11 @@ func (b *DBlockHeader) MarshalBinary() ([]byte, error) {
 }
 
 func (b *DBlockHeader) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-    defer func() {
+	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling Directory Block Header: %v", r)
 		}
-	}() 
+	}()
 
 	//	fmt.Printf("Unmarshal %x\n",data[:113])
 

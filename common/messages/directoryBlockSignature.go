@@ -20,7 +20,7 @@ type DirectoryBlockSignature struct {
 	DBHeight              uint32
 	DirectoryBlockKeyMR   interfaces.IHash
 	ServerIdentityChainID interfaces.IHash
-    
+
 	Signature interfaces.IFullSignature
 
 	//Not marshalled
@@ -69,7 +69,7 @@ func (m *DirectoryBlockSignature) Bytes() []byte {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
-	found, vmIndexs := state.GetVirtualServers(m.DBHeight,9,state.GetIdentityChainID())
+	found, vmIndexs := state.GetVirtualServers(m.DBHeight, 9, state.GetIdentityChainID())
 
 	if found == false {
 		return 0
@@ -90,16 +90,16 @@ func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 			// the message is considered invalid
 			return -1
 		}
-    }else{
-        return 1
-    }
+	} else {
+		return 1
+	}
 
-    for _,vmi := range vmIndexs {
-        if m.VMIndex == vmi {
-            return 1
-        }
-    }    
-    return -1
+	for _, vmi := range vmIndexs {
+		if m.VMIndex == vmi {
+			return 1
+		}
+	}
+	return -1
 }
 
 // Returns true if this is a message for this server to execute as
@@ -158,8 +158,8 @@ func (m *DirectoryBlockSignature) UnmarshalBinaryData(data []byte) (newData []by
 
 	m.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 	vmi, newData := binary.BigEndian.Uint32(newData[0:4]), newData[4:]
-    m.VMIndex= int(vmi)
-    
+	m.VMIndex = int(vmi)
+
 	hash := new(primitives.Hash)
 	newData, err = hash.UnmarshalBinaryData(newData)
 	if err != nil {

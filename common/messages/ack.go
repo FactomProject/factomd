@@ -179,7 +179,7 @@ func (m *Ack) VerifySignature() (bool, error) {
 
 func (m *Ack) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
-        return
+		return
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling Acknowledgement Message: %v", r)
 		}

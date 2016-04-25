@@ -22,9 +22,9 @@ type EOM struct {
 	Timestamp interfaces.Timestamp
 	Minute    byte
 
-	DBHeight    uint32
-	ChainID     interfaces.IHash
-	Signature   interfaces.IFullSignature
+	DBHeight  uint32
+	ChainID   interfaces.IHash
+	Signature interfaces.IFullSignature
 
 	//Not marshalled
 	hash       interfaces.IHash
@@ -39,24 +39,24 @@ func (e *EOM) Process(dbheight uint32, state interfaces.IState) bool {
 }
 
 func (m *EOM) GetHash() interfaces.IHash {
-	
-		data, err := m.MarshalForSignature()
-		if err != nil {
-			panic(fmt.Sprintf("Error in EOM.GetHash(): %s", err.Error()))
-		}
-		m.hash = primitives.Sha(data)
-	
+
+	data, err := m.MarshalForSignature()
+	if err != nil {
+		panic(fmt.Sprintf("Error in EOM.GetHash(): %s", err.Error()))
+	}
+	m.hash = primitives.Sha(data)
+
 	return m.hash
 }
 
 func (m *EOM) GetMsgHash() interfaces.IHash {
-	
-		data, err := m.MarshalForSignature()
-		if err != nil {
-			return nil
-		}
-		m.MsgHash = primitives.Sha(data)
-	
+
+	data, err := m.MarshalForSignature()
+	if err != nil {
+		return nil
+	}
+	m.MsgHash = primitives.Sha(data)
+
 	return m.MsgHash
 }
 
@@ -82,14 +82,14 @@ func (m *EOM) Type() int {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *EOM) Validate(state interfaces.IState) int {
-    if m.IsLocal() {
-        return 1
-    }
-    found, _ := state.GetVirtualServers(m.DBHeight,int(m.Minute),m.ChainID)
+	if m.IsLocal() {
+		return 1
+	}
+	found, _ := state.GetVirtualServers(m.DBHeight, int(m.Minute), m.ChainID)
 	if !found { // Only EOM from federated servers are valid.
 		return -1
 	}
-     
+
 	// Check signature
 	eomSigned, err := m.VerifySignature()
 	if err != nil {
@@ -106,15 +106,15 @@ func (m *EOM) Validate(state interfaces.IState) int {
 // Returns true if this is a message for this server to execute as
 // a leader.
 func (m *EOM) Leader(state interfaces.IState) bool {
-    if m.IsLocal() {
-        return true
-    }
+	if m.IsLocal() {
+		return true
+	}
 	return false
 }
 
 // Execute the leader functions of the given message
 func (m *EOM) LeaderExecute(state interfaces.IState) error {
-    m.SetLocal(false)
+	m.SetLocal(false)
 	return state.LeaderExecute(m)
 }
 

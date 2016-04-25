@@ -21,8 +21,8 @@ type IMsg interface {
 
 	// A local message is never broadcast to the greater network.
 	IsLocal() bool
-    SetLocal(bool)
-    
+	SetLocal(bool)
+
 	// Returns the origin of this message; used to track
 	// where a message came from. If int == -1, then this
 	// FactomNode generated the message.
@@ -70,9 +70,9 @@ type IMsg interface {
 	// A message will only be processed once, and in order, guaranteed.
 	// Returns true if able to process, false if process is waiting on something.
 	Process(dbheight uint32, state IState) bool
-    
-    // Some Messages need to be processed on certain VMs.  We set this and querry
-    // the indexes of these machines here.
-    GetVMIndex() int
-    SetVMIndex(int)
+
+	// Some Messages need to be processed on certain VMs.  We set this and querry
+	// the indexes of these machines here.
+	GetVMIndex() int
+	SetVMIndex(int)
 }

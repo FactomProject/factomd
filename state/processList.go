@@ -25,9 +25,9 @@ type ProcessList struct {
 	// is built.
 	MsgQueue []interfaces.IMsg
 
-	State         interfaces.IState
-	VMs           []*VM         // Process list for each server (up to 32)
-	ServerMap     [10][32]int   // Map of FedServers to all Servers for each minute
+	State     interfaces.IState
+	VMs       []*VM       // Process list for each server (up to 32)
+	ServerMap [10][32]int // Map of FedServers to all Servers for each minute
 
 	// Maps
 	// ====
@@ -83,13 +83,13 @@ func (p *ProcessList) FedServerFor(minute int, hash []byte) interfaces.IFctServe
 }
 
 func (p *ProcessList) LeaderFor(chainID interfaces.IHash, hash []byte) int {
-    vmIndex := VMIndexFor(hash)
-    minute := p.VMs[vmIndex].LeaderMinute
-    vm := p.FedServers[p.ServerMap[minute][vmIndex]]
-    if bytes.Compare(chainID.Bytes(),vm.GetChainID().Bytes())==0 {
-        return vmIndex
-    }
-    return -1
+	vmIndex := VMIndexFor(hash)
+	minute := p.VMs[vmIndex].LeaderMinute
+	vm := p.FedServers[p.ServerMap[minute][vmIndex]]
+	if bytes.Compare(chainID.Bytes(), vm.GetChainID().Bytes()) == 0 {
+		return vmIndex
+	}
+	return -1
 }
 
 func (p *ProcessList) GetVirtualServers(minute int, identityChainID interfaces.IHash) (found bool, indexes []int) {
