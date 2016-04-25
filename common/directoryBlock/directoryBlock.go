@@ -235,11 +235,11 @@ func UnmarshalDBlock(data []byte) (interfaces.IDirectoryBlock, error) {
 }
 
 func (b *DirectoryBlock) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	/*defer func() {
+	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
+			err = fmt.Errorf("Error unmarshalling Directory Block: %v", r)
 		}
-	}()*/
+	}()
 
 	newData = data
 

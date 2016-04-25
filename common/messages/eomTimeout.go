@@ -58,7 +58,7 @@ func (m *EOMTimeout) Bytes() []byte {
 func (m *EOMTimeout) UnmarshalBinaryData(data []byte) (newdata []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
+			err = fmt.Errorf("Error unmarshalling Eom Timeout: %v", r)
 		}
 	}()
 

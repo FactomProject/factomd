@@ -62,7 +62,7 @@ func (m *AuditServerFault) Bytes() []byte {
 func (m *AuditServerFault) UnmarshalBinaryData(data []byte) (newdata []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
+			err = fmt.Errorf("Error unmarshalling Audit Server Fault: %v", r)
 		}
 	}()
 

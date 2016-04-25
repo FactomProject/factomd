@@ -57,7 +57,7 @@ func (e *RemoveFederatedServer) MarshalBinary() (data []byte, err error) {
 func (e *RemoveFederatedServer) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
+			err = fmt.Errorf("Error unmarshalling Remove Federated Server: %v", r)
 		}
 	}()
 

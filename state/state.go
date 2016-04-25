@@ -405,14 +405,12 @@ func (s *State) LoadSpecificMsg(dbheight uint32, plistheight uint32) (interfaces
 	procList := s.ProcessLists.Get(dbheight)
 	if procList == nil {
 		return nil, fmt.Errorf("Nil Process List")
-	} else if len(procList.Servers) == 0 {
-		return nil, fmt.Errorf("No servers in process list")
 	}
-	if len(procList.Servers[0].List) < int(plistheight)+1 {
+	if len(procList.VMs[0].List) < int(plistheight)+1 {
 		return nil, fmt.Errorf("Process List too small (lacks requested msg)")
 	}
 
-	msg := procList.Servers[0].List[plistheight]
+	msg := procList.VMs[0].List[plistheight]
 
 	if msg == nil {
 		return nil, fmt.Errorf("State process list does not include requested message")
@@ -431,14 +429,14 @@ func (s *State) LoadSpecificMsgAndAck(dbheight uint32, plistheight uint32) (inte
 	procList := s.ProcessLists.Get(dbheight)
 	if procList == nil {
 		return nil, nil, fmt.Errorf("Nil Process List")
-	} else if len(procList.Servers) < 1 {
+	} else if len(procList.VMs) < 1 {
 		return nil, nil, fmt.Errorf("No servers?")
 	}
-	if len(procList.Servers[0].List) < int(plistheight)+1 {
+	if len(procList.VMs[0].List) < int(plistheight)+1 {
 		return nil, nil, fmt.Errorf("Process List too small (lacks requested msg)")
 	}
 
-	msg := procList.Servers[0].List[plistheight]
+	msg := procList.VMs[0].List[plistheight]
 
 	if msg == nil {
 		return nil, nil, fmt.Errorf("State process list does not include requested message")
@@ -526,13 +524,9 @@ func (s *State) GetFedServers(dbheight uint32) []interfaces.IFctServer {
 	return s.ProcessLists.Get(dbheight).FedServers
 }
 
-func (s *State) GetFedServerIndexHash(dbheight uint32, serverChainID interfaces.IHash) (bool, int) {
-	pl := s.ProcessLists.Get(dbheight)
-	if pl == nil {
-		return false, 0
-	}
-	b, i := pl.GetFedServerIndexHash(serverChainID)
-	return b, i
+func (s *State) GetVirtualServers(dbheight uint32, minute int, identityChainID interfaces.IHash) (found bool, indexes []int) {
+    pl := s.ProcessLists.Get(dbheight)
+    return pl.GetVirtualServers(minute, identityChainID)
 }
 
 func (s *State) GetFactoshisPerEC() uint64 {
@@ -766,10 +760,10 @@ func (s *State) SetString() {
 			0,
 			s.GetHighestKnownBlock())
 	} else {
-		found, index := s.GetFedServerIndexHash(buildingBlock, s.IdentityChainID)
+        found, _ := s.GetVirtualServers(buildingBlock,9,s.GetIdentityChainID())
 		stype := ""
 		if found {
-			stype = fmt.Sprintf("L %4d", index)
+			stype = fmt.Sprintf("L     ", )
 		}
 		keyMR := []byte("aaaaa")
 		abHash := []byte("aaaaa")

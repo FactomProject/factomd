@@ -62,7 +62,7 @@ func (e *DBSignatureEntry) MarshalBinary() (data []byte, err error) {
 func (e *DBSignatureEntry) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
+			err = fmt.Errorf("Error unmarshallig DBSignature Entry: %v", r)
 		}
 	}()
 	newData = data

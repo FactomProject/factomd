@@ -80,7 +80,7 @@ func (m *CommitEntryMsg) Bytes() []byte {
 func (m *CommitEntryMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
+			err = fmt.Errorf("Error unmarshalling Commit entry Message: %v", r)
 		}
 	}()
 	newData = data[1:]
@@ -164,7 +164,7 @@ func (m *CommitEntryMsg) Validate(state interfaces.IState) int {
 // a leader.
 func (m *CommitEntryMsg) Leader(state interfaces.IState) bool {
 	//TODO: implement properly
-	return state.LeaderFor(nil)
+		return state.LeaderFor(m, constants.EC_CHAINID)
 	/*
 		switch state.GetNetworkNumber() {
 		case 0: // Main Network

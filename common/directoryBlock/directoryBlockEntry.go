@@ -62,11 +62,11 @@ func (e *DBEntry) MarshalBinary() (data []byte, err error) {
 }
 
 func (e *DBEntry) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	/*defer func() {
+	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
+			err = fmt.Errorf("Error unmarshalling Directory Block Entry: %v", r)
 		}
-	}()*/
+	}()
 	newData = data
 	e.ChainID = new(primitives.Hash)
 	newData, err = e.ChainID.UnmarshalBinaryData(newData)

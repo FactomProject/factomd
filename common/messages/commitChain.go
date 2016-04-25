@@ -94,7 +94,7 @@ func (m *CommitChainMsg) Validate(state interfaces.IState) int {
 // Returns true if this is a message for this server to execute as
 // a leader.
 func (m *CommitChainMsg) Leader(state interfaces.IState) bool {
-	return state.LeaderFor(constants.EC_CHAINID)
+	return state.LeaderFor(m, constants.EC_CHAINID)
 }
 
 // Execute the leader functions of the given message
@@ -127,7 +127,7 @@ func (e *CommitChainMsg) JSONBuffer(b *bytes.Buffer) error {
 func (m *CommitChainMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
+			err = fmt.Errorf("Error unmarshalling Commit Chain Message: %v", r)
 		}
 	}()
 	newData = data[1:]

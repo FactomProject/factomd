@@ -194,7 +194,7 @@ func UnmarshalABlock(data []byte) (interfaces.IAdminBlock, error) {
 func (b *AdminBlock) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
+			err = fmt.Errorf("Error unmarshalling Admin Block: %v", r)
 		}
 	}()
 	newData = data

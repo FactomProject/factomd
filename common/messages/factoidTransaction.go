@@ -79,7 +79,7 @@ func (m *FactoidTransaction) Validate(state interfaces.IState) int {
 // Returns true if this is a message for this server to execute as
 // a leader.
 func (m *FactoidTransaction) Leader(state interfaces.IState) bool {
-	return state.LeaderFor(constants.FACTOID_CHAINID)
+	return state.LeaderFor(m, constants.FACTOID_CHAINID)
 }
 
 // Execute the leader functions of the given message
@@ -126,7 +126,7 @@ func (m *FactoidTransaction) Bytes() []byte {
 func (m *FactoidTransaction) UnmarshalTransData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
+			err = fmt.Errorf("Error unmarshalling Transaction Factoid: %v", r)
 		}
 	}()
 
@@ -139,7 +139,7 @@ func (m *FactoidTransaction) UnmarshalTransData(data []byte) (newData []byte, er
 func (m *FactoidTransaction) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
+			err = fmt.Errorf("Error unmarshalling Factoid: %v", r)
 		}
 	}()
 

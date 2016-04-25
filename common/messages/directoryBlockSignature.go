@@ -18,10 +18,9 @@ type DirectoryBlockSignature struct {
 	MessageBase
 	Timestamp             interfaces.Timestamp
 	DBHeight              uint32
-	ServerIndex           uint32
 	DirectoryBlockKeyMR   interfaces.IHash
 	ServerIdentityChainID interfaces.IHash
-
+    
 	Signature interfaces.IFullSignature
 
 	//Not marshalled
@@ -70,7 +69,7 @@ func (m *DirectoryBlockSignature) Bytes() []byte {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
-	found, serverIndex := state.GetFedServerIndexHash(m.DBHeight, m.ServerIdentityChainID)
+	found, vmIndexs := state.GetVirtualServers(m.DBHeight,9,state.GetIdentityChainID())
 
 	if found == false {
 		return 0
@@ -91,12 +90,16 @@ func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 			// the message is considered invalid
 			return -1
 		}
+    }else{
+        return 1
+    }
 
-		if m.ServerIndex != uint32(serverIndex) {
-			return -1
-		}
-	}
-	return 1
+    for _,vmi := range vmIndexs {
+        if m.VMIndex == vmi {
+            return 1
+        }
+    }    
+    return -1
 }
 
 // Returns true if this is a message for this server to execute as
@@ -140,7 +143,7 @@ func (m *DirectoryBlockSignature) VerifySignature() (bool, error) {
 func (m *DirectoryBlockSignature) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
+			err = fmt.Errorf("Error unmarshalling Directory Block Signing Message: %v", r)
 		}
 	}()
 
@@ -154,8 +157,9 @@ func (m *DirectoryBlockSignature) UnmarshalBinaryData(data []byte) (newData []by
 	}
 
 	m.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
-	m.ServerIndex, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
-
+	vmi, newData := binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+    m.VMIndex= int(vmi)
+    
 	hash := new(primitives.Hash)
 	newData, err = hash.UnmarshalBinaryData(newData)
 	if err != nil {
@@ -204,7 +208,7 @@ func (m *DirectoryBlockSignature) MarshalForSignature() ([]byte, error) {
 	buf.Write(data)
 
 	binary.Write(&buf, binary.BigEndian, m.DBHeight)
-	binary.Write(&buf, binary.BigEndian, m.ServerIndex)
+	binary.Write(&buf, binary.BigEndian, m.VMIndex)
 
 	hash, err := m.DirectoryBlockKeyMR.MarshalBinary()
 	if err != nil {
@@ -250,7 +254,7 @@ func (m *DirectoryBlockSignature) MarshalBinary() (data []byte, err error) {
 func (m *DirectoryBlockSignature) String() string {
 	return fmt.Sprintf("%6s-%3d:          Ht:%5d -- chainID[:5]=%x hash[:5]=%x dbhash[:5]=%x",
 		"DBSig",
-		m.ServerIndex,
+		m.VMIndex,
 		m.DBHeight,
 		m.ServerIdentityChainID.Bytes()[:5],
 		m.GetHash().Bytes()[:5],

@@ -88,7 +88,7 @@ func (m *AddServerMsg) Validate(state interfaces.IState) int {
 // Returns true if this is a message for this server to execute as
 // a leader.
 func (m *AddServerMsg) Leader(state interfaces.IState) bool {
-	return state.LeaderFor(constants.ADMIN_CHAINID)
+	return state.LeaderFor(m, constants.ADMIN_CHAINID)
 }
 
 // Execute the leader functions of the given message
@@ -147,7 +147,7 @@ func (m *AddServerMsg) UnmarshalBinaryData(data []byte) (newData []byte, err err
 	defer func() {
 		return
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
+			err = fmt.Errorf("Error unmarshalling Add Server Message: %v", r)
 		}
 	}()
 

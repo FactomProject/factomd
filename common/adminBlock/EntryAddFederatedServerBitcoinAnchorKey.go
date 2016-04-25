@@ -63,7 +63,7 @@ func (e *AddFederatedServerBitcoinAnchorKey) MarshalBinary() ([]byte, error) {
 func (e *AddFederatedServerBitcoinAnchorKey) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
+			err = fmt.Errorf("Error unmarshalling Add Federated Server Bitcoin Anchor Key: %v", r)
 		}
 	}()
 

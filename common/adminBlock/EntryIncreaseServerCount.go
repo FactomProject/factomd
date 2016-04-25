@@ -43,7 +43,7 @@ func (e *IncreaseServerCount) MarshalBinary() (data []byte, err error) {
 func (e *IncreaseServerCount) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
+			err = fmt.Errorf("Error unmarshalling Entry Increase Server Count: %v", r)
 		}
 	}()
 

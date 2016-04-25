@@ -105,7 +105,7 @@ func (b *ABlockHeader) MarshalBinary() (data []byte, err error) {
 func (b *ABlockHeader) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
+			err = fmt.Errorf("Error unmarshalling Admin Block Header: %v", r)
 		}
 	}()
 	newData = data

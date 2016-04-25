@@ -46,7 +46,7 @@ func (e *RevealMatryoshkaHash) MarshalBinary() (data []byte, err error) {
 func (e *RevealMatryoshkaHash) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
+			err = fmt.Errorf("Error unmarshalling Reveal Matryoshka Hash: %v", r)
 		}
 	}()
 	newData = data

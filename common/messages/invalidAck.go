@@ -66,7 +66,7 @@ func (m *InvalidAck) Bytes() []byte {
 func (m *InvalidAck) MarshalForSignature() (data []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
+			err = fmt.Errorf("Error unmarshalling Invalid Ack: %v", r)
 		}
 	}()
 
@@ -76,7 +76,7 @@ func (m *InvalidAck) MarshalForSignature() (data []byte, err error) {
 func (m *InvalidAck) UnmarshalBinaryData(data []byte) (newdata []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
+			err = fmt.Errorf("Error unmarshalling With Signatures Invalid Ack: %v", r)
 		}
 	}()
 

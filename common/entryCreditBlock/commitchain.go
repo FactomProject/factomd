@@ -198,7 +198,7 @@ func (c *CommitChain) ECID() byte {
 func (c *CommitChain) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
+			err = fmt.Errorf("Error unmarshalling Commit Chain: %v", r)
 		}
 	}()
 	buf := bytes.NewBuffer(data)

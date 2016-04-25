@@ -33,7 +33,6 @@ type IState interface {
 	LoadDBState(dbheight uint32) (IMsg, error)
 	LoadSpecificMsg(dbheight uint32, plistheight uint32) (IMsg, error)
 	LoadSpecificMsgAndAck(dbheight uint32, plistheight uint32) (IMsg, IMsg, error)
-	GetFedServerIndexHash(uint32, IHash) (bool, int)
 	SetString()
 	ShortString() string
 
@@ -98,8 +97,9 @@ type IState interface {
 
 	// These are methods run by the consensus algorithm to track what servers are the leaders
 	// and what lists they are responsible for.
-	LeaderFor(hash []byte) bool // Tests if this server is the leader for this key
-
+	LeaderFor(msg IMsg, hash []byte) bool // Tests if this server is the leader for this key
+    // Returns the list of VirtualServers at a given directory block height and minute
+    GetVirtualServers(dbheight uint32, minute int, identityChainID IHash) (found bool, indexes []int)  
 	// Database
 	// ========
 	GetDB() DBOverlay
@@ -135,7 +135,6 @@ type IState interface {
 
 	// For messages that go into the Process List
 	LeaderExecute(m IMsg) error
-	LeaderExecuteEOM(m IMsg) error
 	LeaderExecuteDBSig(m IMsg) error
 
 	GetTimestamp() Timestamp

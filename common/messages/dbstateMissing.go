@@ -130,7 +130,7 @@ func (e *DBStateMissing) JSONBuffer(b *bytes.Buffer) error {
 func (m *DBStateMissing) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
+			err = fmt.Errorf("Error unmarshalling Directory Block State Missing Message: %v", r)
 		}
 	}()
 

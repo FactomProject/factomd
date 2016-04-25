@@ -71,7 +71,7 @@ func (m *Heartbeat) Bytes() []byte {
 func (m *Heartbeat) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
+			err = fmt.Errorf("Error unmarshalling HeartBeat: %v", r)
 		}
 	}()
 

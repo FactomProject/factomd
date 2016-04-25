@@ -135,7 +135,7 @@ func (m *DBStateMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error
 	defer func() {
 		return
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
+			err = fmt.Errorf("Error unmarshalling Directory Block State Message: %v", r)
 		}
 	}()
 

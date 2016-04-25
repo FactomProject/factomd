@@ -60,7 +60,7 @@ func (e *AddFederatedServerSigningKey) MarshalBinary() ([]byte, error) {
 func (e *AddFederatedServerSigningKey) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
+			err = fmt.Errorf("Error unmarshalling Add Federated server Signing Key Entry: %v", r)
 		}
 	}()
 

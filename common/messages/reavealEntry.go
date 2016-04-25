@@ -172,7 +172,7 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 // Returns true if this is a message for this server to execute as
 // a leader.
 func (m *RevealEntryMsg) Leader(state interfaces.IState) bool {
-	return state.LeaderFor(m.GetHash().Bytes())
+	return state.LeaderFor(m, m.GetHash().Bytes())
 }
 
 // Execute the leader functions of the given message

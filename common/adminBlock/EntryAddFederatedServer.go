@@ -56,7 +56,7 @@ func (e *AddFederatedServer) MarshalBinary() (data []byte, err error) {
 func (e *AddFederatedServer) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
+			err = fmt.Errorf("Error unmarshalling Add Federated Server Entry: %v", r)
 		}
 	}()
 
