@@ -39,6 +39,7 @@ func (a *Ack) IsSameAs(b *Ack) bool {
 	if b == nil {
 		return false
 	}
+
 	if a.ServerIndex != b.ServerIndex {
 		return false
 	}

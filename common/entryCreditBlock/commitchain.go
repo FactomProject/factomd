@@ -50,6 +50,21 @@ func NewCommitChain() *CommitChain {
 	return c
 }
 
+func (a *CommitChain) IsSameAs(b *CommitChain) bool {
+	if b == nil {
+		return false
+	}
+	bin1, err := a.MarshalBinary()
+	if err != nil {
+		return false
+	}
+	bin2, err := b.MarshalBinary()
+	if err != nil {
+		return false
+	}
+	return primitives.AreBytesEqual(bin1, bin2)
+}
+
 func (e *CommitChain) Hash() interfaces.IHash {
 	bin, err := e.MarshalBinary()
 	if err != nil {

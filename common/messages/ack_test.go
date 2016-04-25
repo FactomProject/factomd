@@ -83,7 +83,6 @@ func TestSignAndVerifyAck(t *testing.T) {
 	if valid == false {
 		t.Error("Signature 2 is not valid")
 	}
-
 }
 
 func newAck() *Ack {

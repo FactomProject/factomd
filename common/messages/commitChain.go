@@ -20,12 +20,34 @@ type CommitChainMsg struct {
 	Timestamp   interfaces.Timestamp
 	CommitChain *entryCreditBlock.CommitChain
 
+	Signature interfaces.IFullSignature
+
 	// Not marshaled... Just used by the leader
 	count int
 }
 
 var _ interfaces.IMsg = (*CommitChainMsg)(nil)
 var _ interfaces.ICounted = (*CommitChainMsg)(nil)
+
+func (a *CommitChainMsg) IsSameAs(b *CommitChainMsg) bool {
+	if b == nil {
+		return false
+	}
+	if a.Timestamp != b.Timestamp {
+		return false
+	}
+
+	if a.CommitChain == nil && b.CommitChain != nil {
+		return false
+	}
+	if a.CommitChain != nil {
+		if a.CommitChain.IsSameAs(b.CommitChain) == false {
+			return false
+		}
+	}
+
+	return true
+}
 
 func (m *CommitChainMsg) GetCount() int {
 	return m.count
@@ -123,6 +145,23 @@ func (e *CommitChainMsg) JSONBuffer(b *bytes.Buffer) error {
 	return primitives.EncodeJSONToBuffer(e, b)
 }
 
+func (m *CommitChainMsg) Sign(key interfaces.Signer) error {
+	signature, err := SignSignable(m, key)
+	if err != nil {
+		return err
+	}
+	m.Signature = signature
+	return nil
+}
+
+func (m *CommitChainMsg) GetSignature() interfaces.IFullSignature {
+	return m.Signature
+}
+
+func (m *CommitChainMsg) VerifySignature() (bool, error) {
+	return VerifyMessage(m)
+}
+
 func (m *CommitChainMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -145,6 +184,14 @@ func (m *CommitChainMsg) UnmarshalBinaryData(data []byte) (newData []byte, err e
 	}
 	m.CommitChain = cc
 
+	if len(newData) > 0 {
+		m.Signature = new(primitives.Signature)
+		newData, err = m.Signature.UnmarshalBinaryData(newData)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return newData, nil
 }
 
@@ -153,7 +200,7 @@ func (m *CommitChainMsg) UnmarshalBinary(data []byte) error {
 	return err
 }
 
-func (m *CommitChainMsg) MarshalBinary() (data []byte, err error) {
+func (m *CommitChainMsg) MarshalForSignature() (data []byte, err error) {
 	var buf bytes.Buffer
 
 	binary.Write(&buf, binary.BigEndian, byte(m.Type()))
@@ -172,6 +219,23 @@ func (m *CommitChainMsg) MarshalBinary() (data []byte, err error) {
 	buf.Write(data)
 
 	return buf.Bytes(), nil
+}
+
+func (m *CommitChainMsg) MarshalBinary() (data []byte, err error) {
+	resp, err := m.MarshalForSignature()
+	if err != nil {
+		return nil, err
+	}
+	sig := m.GetSignature()
+
+	if sig != nil {
+		sigBytes, err := sig.MarshalBinary()
+		if err != nil {
+			return nil, err
+		}
+		return append(resp, sigBytes...), nil
+	}
+	return resp, nil
 }
 
 func (m *CommitChainMsg) String() string {

@@ -21,6 +21,8 @@ type RevealEntryMsg struct {
 	Timestamp interfaces.Timestamp
 	Entry     interfaces.IEntry
 
+	//No signature!
+
 	//Not marshalled
 	hash        interfaces.IHash
 	chainIDHash interfaces.IHash
