@@ -6,8 +6,9 @@ package state
 
 import (
 	"fmt"
-	"github.com/FactomProject/factomd/common/interfaces"
 	"time"
+
+	"github.com/FactomProject/factomd/common/interfaces"
 )
 
 func (state *State) ValidatorLoop() {
@@ -41,6 +42,9 @@ func (state *State) ValidatorLoop() {
 				msgProcess()
 				break loop
 			case msg = <-state.InMsgQueue(): // Get message from the timer or input queue
+				if msg.Type() == 18 {
+					fmt.Println(state.FactomNodeName, " !i!i!i!i")
+				}
 				msgProcess()
 				break loop
 			default:

@@ -117,7 +117,8 @@ func (m *DataResponse) Follower(interfaces.IState) bool {
 
 func (m *DataResponse) FollowerExecute(state interfaces.IState) error {
 	fmt.Println("FOLLEX")
-	return state.FollowerExecuteAddData(m)
+	return nil
+	//return state.FollowerExecuteAddData(m)
 }
 
 // Acknowledgements do not go into the process list.
@@ -259,19 +260,20 @@ func (m *DataResponse) String() string {
 		m.DataObject)
 }
 
-func NewDataResponse(dataObject interface{},
+func NewDataResponse(state interfaces.IState, dataObject interface{},
 	dataType int,
 	dataHash interfaces.IHash) interfaces.IMsg {
 
 	msg := new(DataResponse)
 
 	msg.Peer2peer = true
+	msg.Timestamp = state.GetTimestamp()
 
 	msg.DataHash = dataHash
 	msg.DataType = dataType
 	msg.DataObject = dataObject
 
-	fmt.Println("DATARESPONSE: ", msg.DataObject)
+	//fmt.Println("DATARESPONSE: ", msg.DataObject)
 
 	return msg
 }

@@ -395,6 +395,34 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 
 }
 
+func (s *State) LoadDataByHash(requestedHash interfaces.IHash) (interface{}, int, error) {
+	if requestedHash == nil {
+		return nil, -1, fmt.Errorf("Requested hash must be non-empty")
+	}
+
+	fmt.Println("Getting hash", requestedHash)
+	var result interface{}
+	var err error
+
+	// Check for Entry
+	result, err = s.GetDB().FetchEntryByHash(requestedHash)
+	if result != nil && err == nil {
+		return result, 0, nil
+	}
+
+	// Check for Entry Block
+	result, err = s.GetDB().FetchEBlockByKeyMR(requestedHash)
+	if result != nil && err == nil {
+		return result, 1, nil
+	}
+	result, _ = s.GetDB().FetchEBlockByHash(requestedHash)
+	if result != nil && err == nil {
+		return result, 1, nil
+	}
+
+	return nil, -1, nil
+}
+
 func (s *State) LoadSpecificMsg(dbheight uint32, plistheight uint32) (interfaces.IMsg, error) {
 	if dbheight < s.ProcessLists.DBHeightBase {
 		return nil, fmt.Errorf("Missing message is too deeply buried in blocks")
