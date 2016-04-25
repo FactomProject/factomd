@@ -69,8 +69,10 @@ func (a *Ack) IsSameAs(b *Ack) bool {
 	if a.Signature == nil && b.Signature != nil {
 		return false
 	}
-	if a.Signature.IsSameAs(b.Signature) == false {
-		return false
+	if a.Signature != nil {
+		if a.Signature.IsSameAs(b.Signature) == false {
+			return false
+		}
 	}
 
 	return true
@@ -212,12 +214,11 @@ func (m *Ack) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	}
 
 	if len(newData) > 0 {
-		sig := new(primitives.Signature)
-		newData, err = sig.UnmarshalBinaryData(newData)
+		m.Signature = new(primitives.Signature)
+		newData, err = m.Signature.UnmarshalBinaryData(newData)
 		if err != nil {
 			return nil, err
 		}
-		m.Signature = sig
 	}
 	return
 }

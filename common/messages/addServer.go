@@ -27,10 +27,21 @@ type AddServerMsg struct {
 var _ interfaces.IMsg = (*AddServerMsg)(nil)
 
 func (m *AddServerMsg) IsSameAs(b *AddServerMsg) bool {
-	if uint64(m.Timestamp) == uint64(b.Timestamp) && m.ServerChainID.IsSameAs(b.ServerChainID) {
-		return true
+	if uint64(m.Timestamp) != uint64(b.Timestamp) {
+		return false
 	}
-	return false
+	if !m.ServerChainID.IsSameAs(b.ServerChainID) {
+		return false
+	}
+	if m.Signature == nil && b.Signature != nil {
+		return false
+	}
+	if m.Signature != nil {
+		if m.Signature.IsSameAs(b.Signature) == false {
+			return false
+		}
+	}
+	return true
 }
 
 func (m *AddServerMsg) GetHash() interfaces.IHash {
@@ -165,6 +176,7 @@ func (m *AddServerMsg) UnmarshalBinaryData(data []byte) (newData []byte, err err
 	}
 
 	if len(newData) > 32 {
+		m.Signature = new(primitives.Signature)
 		newData, err = m.Signature.UnmarshalBinaryData(newData)
 		if err != nil {
 			return nil, err
@@ -179,7 +191,6 @@ func (m *AddServerMsg) UnmarshalBinary(data []byte) error {
 }
 
 func (m *AddServerMsg) MarshalForSignature() ([]byte, error) {
-
 	var buf bytes.Buffer
 
 	binary.Write(&buf, binary.BigEndian, byte(m.Type()))
@@ -210,7 +221,7 @@ func (m *AddServerMsg) MarshalBinary() ([]byte, error) {
 	buf.Write(data)
 
 	if m.Signature != nil {
-		data, err = m.ServerChainID.MarshalBinary()
+		data, err = m.Signature.MarshalBinary()
 		if err != nil {
 			return nil, err
 		}
@@ -225,7 +236,6 @@ func (m *AddServerMsg) String() string {
 }
 
 func NewAddServerMsg(state interfaces.IState) interfaces.IMsg {
-
 	msg := new(AddServerMsg)
 	msg.ServerChainID = state.GetIdentityChainID()
 	msg.Timestamp = state.GetTimestamp()
