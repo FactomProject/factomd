@@ -38,11 +38,11 @@ func Peers(fnode *FactomNode) {
 						//	fnode.State.Println("In Comming!! ",msg)
 						//}
 						in := "PeerIn"
-                        if msg.IsPeer2peer() {
-                            in = "P2P In"
-                        }
-                        nme := fmt.Sprintf("%s %d", in, i+1)
-                        
+						if msg.IsPeer2peer() {
+							in = "P2P In"
+						}
+						nme := fmt.Sprintf("%s %d", in, i+1)
+
 						fnode.MLog.add2(fnode, false, peer.GetNameTo(), nme, true, msg)
 
 						// Ignore messages if there are too many.
