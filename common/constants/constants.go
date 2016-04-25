@@ -27,10 +27,12 @@ const (
 	REQUEST_BLOCK_MSG                    // 14
 	SIGNATURE_TIMEOUT_MSG                // 15
 	MISSING_MSG                          // 16
+	MISSING_DATA                         // 17
+	DATA_RESPONSE                        // 18
 
-	DBSTATE_MSG         // 17
-	DBSTATE_MISSING_MSG // 18
-	ADDSERVER_MSG       // 19
+	DBSTATE_MSG         // 19
+	DBSTATE_MISSING_MSG // 20
+	ADDSERVER_MSG       // 21
 )
 
 const (
