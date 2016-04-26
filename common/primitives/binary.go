@@ -13,6 +13,22 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 )
 
+type Buffer struct {
+	bytes.Buffer
+}
+
+func (b *Buffer) DeepCopyBytes() []byte {
+	tmp := make([]byte, b.Len())
+	copy(tmp, b.Bytes())
+	return tmp
+}
+
+func NewBuffer(buf []byte) *Buffer {
+	tmp := new(Buffer)
+	tmp.Buffer = *bytes.NewBuffer(buf)
+	return tmp
+}
+
 func AreBytesEqual(b1, b2 []byte) bool {
 	if len(b1) != len(b2) {
 		return false
