@@ -49,6 +49,8 @@ func UnmarshalMessage(data []byte) (interfaces.IMsg, error) {
 		msg = new(MissingAck)
 	case constants.MISSING_MSG:
 		msg = new(MissingMsg)
+	case constants.MISSING_DATA:
+		msg = new(MissingData)
 	case constants.DATA_RESPONSE:
 		msg = new(DataResponse)
 	case constants.REVEAL_ENTRY_MSG:
@@ -103,6 +105,8 @@ func MessageName(Type int) string {
 		return "Missing Ack"
 	case constants.MISSING_MSG:
 		return "Missing Msg"
+	case constants.MISSING_DATA:
+		return "Missing Data"
 	case constants.DATA_RESPONSE:
 		return "Data Response"
 	case constants.REVEAL_ENTRY_MSG:

@@ -451,7 +451,6 @@ func (s *State) LoadDataByHash(requestedHash interfaces.IHash) (interface{}, int
 		return nil, -1, fmt.Errorf("Requested hash must be non-empty")
 	}
 
-	fmt.Println("Getting hash", requestedHash)
 	var result interface{}
 	var err error
 
@@ -471,7 +470,6 @@ func (s *State) LoadDataByHash(requestedHash interfaces.IHash) (interface{}, int
 		return result, 1, nil
 	}
 
-	fmt.Println("neither fetch:", requestedHash)
 	return nil, -1, nil
 }
 
@@ -544,27 +542,21 @@ func (s *State) GetAllEntries(ebKeyMR interfaces.IHash) bool {
 	}
 	if eblock == nil {
 		if !s.HasDataRequest(ebKeyMR) {
-			fmt.Println(s.FactomNodeName, "Requesting eblock: ", ebKeyMR)
 			eBlockRequest := messages.NewMissingData(s, ebKeyMR)
 			s.NetworkOutMsgQueue() <- eBlockRequest
 		}
 		return false
 	}
 	for _, entryHash := range eblock.GetEntryHashes() {
-		fmt.Println("Checkking ", entryHash)
 		if !strings.HasPrefix(entryHash.String(), "000000000000000000000000000000000000000000000000000000000000000") {
 			if !s.DatabaseContains(entryHash) {
 				hasAllEntries = false
 			} else {
-				fmt.Println(s.FactomNodeName, "I already got: ", entryHash)
 				continue
 			}
 			if !s.HasDataRequest(entryHash) {
 				entryRequest := messages.NewMissingData(s, entryHash)
 				s.NetworkOutMsgQueue() <- entryRequest
-			} else {
-				fmt.Println(s.FactomNodeName, "I already req: ", entryHash)
-
 			}
 		}
 	}
@@ -574,7 +566,7 @@ func (s *State) GetAllEntries(ebKeyMR interfaces.IHash) bool {
 
 func (s *State) DatabaseContains(hash interfaces.IHash) bool {
 	result, _, err := s.LoadDataByHash(hash)
-	if result != nil || err == nil {
+	if result != nil && err == nil {
 		return true
 	}
 	return false

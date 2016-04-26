@@ -75,11 +75,9 @@ func (m *DataResponse) Validate(state interfaces.IState) int {
 	case 0: // DataType = entry
 		dataObject, ok := m.DataObject.(interfaces.IEBEntry)
 		if !ok {
-			fmt.Println("Entry failed validate")
 			return -1
 		}
 		dataHash = dataObject.GetHash()
-		fmt.Println("Entry passed but dataHash is ", dataHash)
 	case 1: // DataType = eblock
 		dataObject, ok := m.DataObject.(interfaces.IEntryBlock)
 		if !ok {
@@ -118,17 +116,6 @@ func (m *DataResponse) Follower(interfaces.IState) bool {
 }
 
 func (m *DataResponse) FollowerExecute(state interfaces.IState) error {
-	/*fmt.Println("FOLLEX: ", state.GetFactomNodeName())
-	if state.GetFactomNodeName() == "FNode13" {
-		fmt.Println("in 13")
-		state.AddDataRequest(m.DataHash, m.DataHash)
-	}
-	if state.HasDataRequest(m.DataHash) {
-		return state.FollowerExecuteAddData(m)
-	}
-	return nil*/
-	fmt.Println("FOLLEX: ", state.GetFactomNodeName(), m.DataHash)
-
 	if state.HasDataRequest(m.DataHash) {
 		switch m.DataType {
 		case 1: // Data is an entryBlock
@@ -137,14 +124,14 @@ func (m *DataResponse) FollowerExecute(state interfaces.IState) error {
 				return fmt.Errorf("Wrong DataType -- not IEntryBlock")
 			}
 			ebKeyMR, err := eblock.KeyMR()
-			if err != nil {
+
+			if err == nil {
 				if ebKeyMR.IsSameAs(m.DataHash) {
 					if !state.DatabaseContains(ebKeyMR) {
 						err := state.FollowerExecuteAddData(m) // Save EBlock
 
 						for _, hashMatchAttempt := range state.GetDirectoryBlockByHeight(state.GetEBDBHeightComplete()).GetEntryHashes() {
 							if hashMatchAttempt.IsSameAs(ebKeyMR) {
-
 								if state.GetAllEntries(ebKeyMR) {
 									state.SetEBDBHeightComplete(state.GetEBDBHeightComplete() + 1)
 								}
@@ -159,7 +146,6 @@ func (m *DataResponse) FollowerExecute(state interfaces.IState) error {
 			}
 		case 0: // Data is an entry
 			if !state.DatabaseContains(m.DataHash) {
-				fmt.Println("INSERTING ENTRY: ", m.DataHash)
 				entry, ok := m.DataObject.(interfaces.IEBEntry)
 				if !ok {
 					return fmt.Errorf("Wrong DataType -- not IEBEntry")

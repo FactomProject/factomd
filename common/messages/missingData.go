@@ -74,7 +74,7 @@ func (m *MissingData) UnmarshalBinaryData(data []byte) (newData []byte, err erro
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
 	}()
-	fmt.Println("UNMARSH MD")
+
 	newData = data[1:]
 
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
@@ -94,15 +94,11 @@ func (m *MissingData) UnmarshalBinaryData(data []byte) (newData []byte, err erro
 }
 
 func (m *MissingData) UnmarshalBinary(data []byte) error {
-	fmt.Println("UNMARSH MD1")
-
 	_, err := m.UnmarshalBinaryData(data)
 	return err
 }
 
 func (m *MissingData) MarshalBinary() ([]byte, error) {
-	fmt.Println("MARSH MD")
-
 	var buf bytes.Buffer
 	buf.Write([]byte{byte(m.Type())})
 	if d, err := m.Timestamp.MarshalBinary(); err != nil {
@@ -149,7 +145,6 @@ func (m *MissingData) Follower(interfaces.IState) bool {
 }
 
 func (m *MissingData) FollowerExecute(state interfaces.IState) error {
-	fmt.Println("FOOLLEX: ", m.RequestHash)
 	var dataObject interface{}
 	//var dataHash interfaces.IHash
 	rawObject, dataType, err := state.LoadDataByHash(m.RequestHash)
@@ -166,7 +161,6 @@ func (m *MissingData) FollowerExecute(state interfaces.IState) error {
 			return fmt.Errorf("Datatype unsupported")
 		}
 
-		fmt.Println(state.GetFactomNodeName(), "CRAFTING DR")
 		msg := NewDataResponse(state, dataObject, dataType, m.RequestHash)
 
 		msg.SetOrigin(m.GetOrigin())
@@ -200,7 +194,7 @@ func NewMissingData(state interfaces.IState, requestHash interfaces.IHash) inter
 
 	state.AddDataRequest(requestHash, msg.GetHash())
 
-	fmt.Printf("%v REQUESTING %x\n", state.GetFactomNodeName(), requestHash.Bytes()[:3])
+	//fmt.Printf("%v REQUESTING %x\n", state.GetFactomNodeName(), requestHash.Bytes()[:3])
 
 	return msg
 }
