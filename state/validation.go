@@ -6,8 +6,9 @@ package state
 
 import (
 	"fmt"
-	"github.com/FactomProject/factomd/common/interfaces"
 	"time"
+
+	"github.com/FactomProject/factomd/common/interfaces"
 )
 
 func (state *State) ValidatorLoop() {
@@ -110,7 +111,7 @@ func (state *State) ValidatorLoop() {
 			default:
 				if state.PrintType(msg.Type()) {
 					if state.GetOut() {
-						state.Print(" Invalid\n")
+						state.Print(" Invalid: ", msg.Type(), "\n")
 					}
 				}
 				state.NetworkInvalidMsgQueue() <- msg

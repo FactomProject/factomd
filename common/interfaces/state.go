@@ -30,8 +30,12 @@ type IState interface {
 	GetProtocolVersion() int
 	SetServer(IServer)
 	GetDBHeightComplete() uint32
+	GetEBDBHeightComplete() uint32
+	SetEBDBHeightComplete(uint32)
+	DatabaseContains(hash IHash) bool
 	SetOut(bool)  // Output is turned on if set to true
 	GetOut() bool // Return true if Print or Println write output
+	LoadDataByHash(requestedHash IHash) (interface{}, int, error)
 	LoadDBState(dbheight uint32) (IMsg, error)
 	LoadSpecificMsg(dbheight uint32, plistheight uint32) (IMsg, error)
 	LoadSpecificMsgAndAck(dbheight uint32, plistheight uint32) (IMsg, IMsg, error)
@@ -107,6 +111,7 @@ type IState interface {
 	GetDB() DBOverlay
 	SetDB(DBOverlay)
 
+	GetEBlockKeyMRFromEntryHash(entryHash IHash) IHash
 	GetAnchor() IAnchor
 
 	// Web Services
@@ -128,6 +133,7 @@ type IState interface {
 	FollowerExecuteMsg(m IMsg) (bool, error) // Messages that go into the process list
 	FollowerExecuteAck(m IMsg) (bool, error) // Ack Msg calls this function.
 	FollowerExecuteDBState(IMsg) error       // Add the given DBState to this server
+	FollowerExecuteAddData(m IMsg) error     // Add the entry or eblock to this Server
 
 	ProcessAddServer(dbheight uint32, addServerMsg IMsg) bool
 	ProcessCommitChain(dbheight uint32, commitChain IMsg) bool
@@ -147,6 +153,10 @@ type IState interface {
 
 	ValidatorLoop()
 	Dethrottle()
+
+	AddDataRequest(requestedHash, missingDataHash IHash)
+	HasDataRequest(checkHash IHash) bool
+	GetAllEntries(ebKeyMR IHash) bool
 
 	SetIsReplaying()
 	SetIsDoneReplaying()

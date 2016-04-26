@@ -68,8 +68,10 @@ func (a *Ack) IsSameAs(b *Ack) bool {
 	if a.Signature == nil && b.Signature != nil {
 		return false
 	}
-	if a.Signature.IsSameAs(b.Signature) == false {
-		return false
+	if a.Signature != nil {
+		if a.Signature.IsSameAs(b.Signature) == false {
+			return false
+		}
 	}
 
 	return true
@@ -114,6 +116,7 @@ func (m *Ack) Validate(state interfaces.IState) int {
 	// Check signature
 	ackSigned, err := m.VerifySignature()
 	if err != nil {
+		fmt.Println("Err is not nil on Ack sig check: ", err)
 		return -1
 	}
 	if !ackSigned {
@@ -179,9 +182,8 @@ func (m *Ack) VerifySignature() (bool, error) {
 
 func (m *Ack) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
-		return
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling Acknowledgement Message: %v", r)
+			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
 	}()
 
@@ -211,12 +213,11 @@ func (m *Ack) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	}
 
 	if len(newData) > 0 {
-		sig := new(primitives.Signature)
-		newData, err = sig.UnmarshalBinaryData(newData)
+		m.Signature = new(primitives.Signature)
+		newData, err = m.Signature.UnmarshalBinaryData(newData)
 		if err != nil {
 			return nil, err
 		}
-		m.Signature = sig
 	}
 	return
 }
