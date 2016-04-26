@@ -68,7 +68,7 @@ func VMIndexFor(hash []byte) int {
 	for _, b := range hash {
 		v += uint64(b)
 	}
-	r := int(v % 32)
+	r := int(v % uint64(interfaces.NumOfVMs))
 	return r
 }
 
@@ -98,8 +98,11 @@ func (p *ProcessList) GetVirtualServers(minute int, identityChainID interfaces.I
 		return false, indexes
 	}
 
-	for _, fedix := range p.ServerMap[minute] {
-		if fedix == fedIndex {
+	for i, fedix := range p.ServerMap[minute] {
+		if i == interfaces.NumOfVMs {
+            break
+        }
+        if fedix == fedIndex {
 			indexes = append(indexes, fedix)
 		}
 	}
@@ -109,6 +112,11 @@ func (p *ProcessList) GetVirtualServers(minute int, identityChainID interfaces.I
 
 // Returns true and the index of this server, or false and the insertion point for this server
 func (p *ProcessList) GetFedServerIndexHash(identityChainID interfaces.IHash) (bool, int) {
+
+    if p == nil {
+        return false,0
+    }
+
 	scid := identityChainID.Bytes()
 
 	for i, fs := range p.FedServers {
@@ -127,7 +135,7 @@ func (p *ProcessList) MakeMap() {
 	indx := int(p.DBHeight*131) % n
 	for i := 0; i < 10; i++ {
 		indx = (indx + 1) % n
-		for j := 0; j < 32; j++ {
+		for j := 0; j < interfaces.NumOfVMs; j++ {
 			p.ServerMap[i][j] = indx
 			indx = (indx + 1) % n
 		}
@@ -140,7 +148,8 @@ func (p *ProcessList) SetMinute(index int, minute int) {
 	p.VMs[index].MinuteComplete = minute + 1
 }
 
-// Return the lowest minute number in our lists.
+// Return the lowest minute number in our lists.  Note that Minute Markers END
+// a minute, so After MinuteComplete=0
 func (p *ProcessList) MinuteHeight() int {
 	m := 10
 	for _, vs := range p.VMs {
@@ -209,7 +218,7 @@ func (p *ProcessList) UndoLeaderAck(index int) {
 
 func (p ProcessList) HasMessage() bool {
 
-	for i := 0; i < 32; i++ {
+	for i := 0; i < interfaces.NumOfVMs; i++ {
 		if len(p.VMs[i].List) > 0 {
 			return true
 		}
@@ -243,10 +252,10 @@ func (p *ProcessList) EomComplete() bool {
 	if p == nil {
 		return true
 	}
-	n := len(p.State.GetFedServers(p.DBHeight))
-	for i := 0; i < n; i++ {
+	
+	for i := 0; i < interfaces.NumOfVMs; i++ {
 		c := p.VMs[i]
-		if c.MinuteComplete != 9 {
+		if c.MinuteComplete != 10 {
 			return false
 		}
 	}
@@ -286,10 +295,11 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 		}
 	}
 
-	for i := 0; i < 32; i++ {
-		plist := p.VMs[i].List
+	for i := 0; i < interfaces.NumOfVMs; i++ {
+		
+        plist := p.VMs[i].List
 
-		for j := p.VMs[i].Height; j < len(plist); j++ {
+        thisVM: for j := p.VMs[i].Height; j < len(plist); j++ {
 			if plist[j] == nil {
 				if !state.IsThrottled {
 					missingMsgRequest := messages.NewMissingMsg(state, p.DBHeight, uint32(j))
@@ -304,64 +314,54 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 				return
 			}
 
-			if oldAck, ok := p.OldAcks[plist[j].GetHash().Fixed()]; ok {
-				if thisAck, ok := oldAck.(*messages.Ack); ok {
-					var expectedSerialHash interfaces.IHash
-					var err error
-					last, ok := p.GetLastAck(i).(*messages.Ack)
-					if !ok || last.IsSameAs(thisAck) {
-						expectedSerialHash = thisAck.SerialHash
-					} else {
-						expectedSerialHash, err = primitives.CreateHash(last.MessageHash, thisAck.MessageHash)
-						if err != nil {
-							// cannot create a expectedSerialHash to compare to
-							plist[j] = nil
-							return
-						}
-					}
-					// compare the SerialHash of this acknowledgement with the
-					// expected serialHash (generated above)
-					if !expectedSerialHash.IsSameAs(thisAck.SerialHash) {
-						fmt.Println("DISCREPANCY: ", i, j, "on", state.GetFactomNodeName())
-						fmt.Printf("LAST MESS: %+v ::: LAST SERIAL: %+v\n", last.MessageHash, last.SerialHash)
-						fmt.Printf("THIS MESS: %+v ::: THIS SERIAL: %+v\n", thisAck.MessageHash, thisAck.SerialHash)
-						fmt.Println("EXPECT: ", expectedSerialHash)
-						// the SerialHash of this acknowledgment is incorrect
-						// according to this node's processList
-						plist[j] = nil
-						return
-					}
-					p.SetLastAck(i, thisAck)
-				} else {
-					// the message from OldAcks is not actually of type Ack
-					plist[j] = nil
-					return
-				}
-			} else {
-				// corresponding acknowledgement not found
+			oldAck, ok := p.OldAcks[plist[j].GetHash().Fixed()]
+            if !ok {
+				// the message from OldAcks is not actually of type Ack
+				plist[j] = nil
+				return
+			}
+            thisAck, ok := oldAck.(*messages.Ack)
+            if !ok {
+                // corresponding acknowledgement not found
 				if state.GetOut() {
 					p.State.Println("!!!!!!! Missing acknowledgement in process list for", j)
 				}
 				plist[j] = nil
 				return
 			}
+             
+            var expectedSerialHash interfaces.IHash
+            var err error
+            last, ok := p.GetLastAck(i).(*messages.Ack)
+            if !ok || last.IsSameAs(thisAck) {
+                expectedSerialHash = thisAck.SerialHash
+            } else {
+                expectedSerialHash, err = primitives.CreateHash(last.MessageHash, thisAck.MessageHash)
+                if err != nil {
+                    // cannot create a expectedSerialHash to compare to
+                    plist[j] = nil
+                    return
+                }
+            }
+            // compare the SerialHash of this acknowledgement with the
+            // expected serialHash (generated above)
+            if !expectedSerialHash.IsSameAs(thisAck.SerialHash) {
+                fmt.Println("DISCREPANCY: ", i, j, "on", state.GetFactomNodeName())
+                fmt.Printf("LAST MESS: %+v ::: LAST SERIAL: %+v\n", last.MessageHash, last.SerialHash)
+                fmt.Printf("THIS MESS: %+v ::: THIS SERIAL: %+v\n", thisAck.MessageHash, thisAck.SerialHash)
+                fmt.Println("EXPECT: ", expectedSerialHash)
+                // the SerialHash of this acknowledgment is incorrect
+                // according to this node's processList
+                plist[j] = nil
+                return
+            }
+            p.SetLastAck(i, thisAck)
+		
 			if plist[j].Process(p.DBHeight, state) { // Try and Process this entry
 				p.VMs[i].Height = j + 1 // Don't process it again if the process worked.
-				progress = true
+               progress = true
 			} else {
-				break
-			}
-
-			// TODO:  If we carefully manage our state as we process messages, we
-			// would not need to check the messages here!  Checking for EOM and DBS
-			// as follows is a bit of a kludge.
-			eom, ok := plist[j].(*messages.EOM)
-			if ok {
-				p.VMs[i].MinuteComplete = int(eom.Minute)
-			}
-			_, ok = plist[j].(*messages.DirectoryBlockSignature)
-			if ok {
-				p.VMs[i].SigComplete = true
+				break thisVM            // Don't process further in this list, go to the next.
 			}
 		}
 	}
@@ -390,9 +390,9 @@ func (p *ProcessList) String() string {
 	if p == nil {
 		buf.WriteString("-- <nil>\n")
 	} else {
-		buf.WriteString(fmt.Sprintf("%s #VMs %d\n", p.State.GetFactomNodeName(), 32))
+		buf.WriteString(fmt.Sprintf("%s #VMs %d\n", p.State.GetFactomNodeName(), interfaces.NumOfVMs))
 
-		for i := 0; i < 32; i++ {
+		for i := 0; i < interfaces.NumOfVMs; i++ {
 			server := p.VMs[i]
 			eom := fmt.Sprintf("Minute %d", server.MinuteComplete)
 			sig := ""
@@ -435,20 +435,20 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 	pl := new(ProcessList)
 
 	pl.State = state
-	pl.VMs = make([]*VM, 32)
-	for i := 0; i < 32; i++ {
+	pl.VMs = make([]*VM, interfaces.NumOfVMs)
+	for i := 0; i < interfaces.NumOfVMs; i++ {
 		pl.VMs[i] = new(VM)
 		pl.VMs[i].List = make([]interfaces.IMsg, 0)
 
 	}
-
-	// Make a copy of the previous FedServers
+    
+    // Make a copy of the previous FedServers
+	pl.FedServers = make([]interfaces.IFctServer, 0)
+	pl.AuditServers = make([]interfaces.IFctServer, 0)
 	if previous != nil {
 		pl.FedServers = append(pl.FedServers, previous.FedServers...)
 		pl.AuditServers = append(pl.AuditServers, previous.AuditServers...)
 	} else {
-		pl.FedServers = make([]interfaces.IFctServer, 0)
-		pl.AuditServers = make([]interfaces.IFctServer, 0)
 		pl.AddFedServer(primitives.Sha([]byte("FNode0"))) // Our default for now fed server
 	}
 

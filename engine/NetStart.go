@@ -44,6 +44,7 @@ func NetStart(s *state.State) {
 	peersPtr := flag.String("peers", "", "Array of peer addresses. Defaults to: \"tcp://127.0.0.1:34341 tcp://127.0.0.1:34342 tcp://127.0.0.1:34340\"")
 	blkTimePtr := flag.Int("blktime", 0, "Seconds per block.  Production is 600.")
 	runtimeLogPtr := flag.Bool("runtimeLog", true, "If true, maintain runtime logs of messages passed.")
+    vmCountPtr := flag.Int("vmCount",32,"Number of Virtual Machines running the consensus algorighm.")
 
 	flag.Parse()
 
@@ -61,6 +62,7 @@ func NetStart(s *state.State) {
 	peers := *peersPtr
 	blkTime := *blkTimePtr
 	runtimeLog := *runtimeLogPtr
+    vmCount := *vmCountPtr
 
 	FactomConfigFilename := util.GetConfigFilename("m2")
 	fmt.Println(fmt.Sprintf("factom config: %s", FactomConfigFilename))
@@ -71,6 +73,11 @@ func NetStart(s *state.State) {
 	} else {
 		blkTime = s.DirectoryBlockInSeconds
 	}
+
+    if vmCount < 0 || vmCount > 32 {
+        panic(fmt.Sprintf("Count of Virtual Machines %d is out of range",vmCount))
+    }
+    interfaces.NumOfVMs = vmCount
 
 	os.Stderr.WriteString(fmt.Sprintf("node        %d\n", listenTo))
 	os.Stderr.WriteString(fmt.Sprintf("count       %d\n", cnt))
@@ -95,6 +102,7 @@ func NetStart(s *state.State) {
 	os.Stderr.WriteString(fmt.Sprintf("peers       \"%s\"\n", peers))
 	os.Stderr.WriteString(fmt.Sprintf("blkTime     %d\n", blkTime))
 	os.Stderr.WriteString(fmt.Sprintf("runtimeLog  %v\n", runtimeLog))
+    os.Stderr.WriteString(fmt.Sprintf("vmCount     %d\n", vmCount))
 
 	if journal != "" {
 		cnt = 1

@@ -93,11 +93,9 @@ func (m *EOM) Validate(state interfaces.IState) int {
 	// Check signature
 	eomSigned, err := m.VerifySignature()
 	if err != nil {
-		fmt.Println("Err is not nil on EOM sig check: ", err)
 		return -1
 	}
 	if !eomSigned {
-		fmt.Println("Not Signed", err)
 		return -1
 	}
 	return 1

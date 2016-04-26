@@ -70,7 +70,6 @@ func (m *FactoidTransaction) Type() int {
 func (m *FactoidTransaction) Validate(state interfaces.IState) int {
 	err := state.GetFactoidState().Validate(1, m.Transaction)
 	if err != nil {
-		fmt.Println(err.Error())
 		return -1
 	}
 	return 1
@@ -103,12 +102,13 @@ func (m *FactoidTransaction) Process(dbheight uint32, state interfaces.IState) b
 		return true
 	}
 	m.processed = true
-	fmt.Println("Process Factoid: ", state.GetFactomNodeName())
 	err := state.GetFactoidState().AddTransaction(1, m.Transaction)
 	if err != nil {
+		// Need to do something here if the transaction sent from the leader
+		// does not validate.  Maybe the follower ignores, but leaders should fault
+		// the offending leader...   For now we print and ignore.
+		// TODO
 		fmt.Println(err)
-	} else {
-		fmt.Println("Good!")
 	}
 
 	return true

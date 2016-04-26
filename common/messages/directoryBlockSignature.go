@@ -157,7 +157,7 @@ func (m *DirectoryBlockSignature) UnmarshalBinaryData(data []byte) (newData []by
 	}
 
 	m.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
-	vmi, newData := binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+	vmi, newData := newData[0], newData[1:]
 	m.VMIndex = int(vmi)
 
 	hash := new(primitives.Hash)
@@ -208,7 +208,7 @@ func (m *DirectoryBlockSignature) MarshalForSignature() ([]byte, error) {
 	buf.Write(data)
 
 	binary.Write(&buf, binary.BigEndian, m.DBHeight)
-	binary.Write(&buf, binary.BigEndian, m.VMIndex)
+	binary.Write(&buf, binary.BigEndian, byte(m.VMIndex))
 
 	hash, err := m.DirectoryBlockKeyMR.MarshalBinary()
 	if err != nil {
@@ -252,7 +252,7 @@ func (m *DirectoryBlockSignature) MarshalBinary() (data []byte, err error) {
 // }
 
 func (m *DirectoryBlockSignature) String() string {
-	return fmt.Sprintf("%6s-%3d:          Ht:%5d -- chainID[:5]=%x hash[:5]=%x dbhash[:5]=%x",
+	return fmt.Sprintf("%6s-%3d:        DBHt:%5d -- chainID[:5]=%x hash[:5]=%x dbhash[:5]=%x",
 		"DBSig",
 		m.VMIndex,
 		m.DBHeight,

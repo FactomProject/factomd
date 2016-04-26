@@ -38,7 +38,6 @@ func (m *RevealEntryMsg) Process(dbheight uint32, state interfaces.IState) bool 
 	}
 
 	if _, isNewChain := commit.(*CommitChainMsg); isNewChain {
-		fmt.Println("New Chain")
 		chainID := m.Entry.GetChainID()
 		eb, err := state.GetDB().FetchEBlockHead(chainID)
 		if err != nil || eb != nil {
@@ -154,14 +153,12 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 		m.isEntry = true
 		ECs = int(m.commitEntry.CommitEntry.Credits)
 		if m.Entry.KSize() < ECs {
-			fmt.Println("KSize", m.Entry.KSize(), ECs)
 			return -1
 		}
 	} else {
 		m.isEntry = false
 		ECs = int(m.commitChain.CommitChain.Credits)
 		if m.Entry.KSize()+10 < ECs {
-			fmt.Println("KSize", m.Entry.KSize(), ECs)
 			return -1
 		}
 	}
@@ -192,14 +189,9 @@ func (m *RevealEntryMsg) Follower(interfaces.IState) bool {
 }
 
 func (m *RevealEntryMsg) FollowerExecute(state interfaces.IState) error {
-	matched, err := state.FollowerExecuteMsg(m)
+	_, err := state.FollowerExecuteMsg(m)
 	if err != nil {
 		return err
-	}
-	if matched { // We matched, we must be remembered!
-		fmt.Println("Matched!")
-	} else {
-		fmt.Println("Not Matched!")
 	}
 	return nil
 }

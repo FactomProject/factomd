@@ -37,8 +37,7 @@ func Timer(state interfaces.IState) {
 	for {
 		found, _ := state.GetVirtualServers(lastDBHeight, 0, state.GetIdentityChainID())
 		sent := false
-	minLoop:
-		for i := 0; i < 10; i++ {
+	    minloop: for i := 0; i < 10; i++ {
 			now = time.Now().UnixNano()
 			wait := next - now
 			if now > next {
@@ -61,22 +60,16 @@ func Timer(state interfaces.IState) {
 			// close off the minute.
 
 			//fmt.Println("         ", "found",found,"green",state.Green(), "sent",sent,"i", i,"dbheight",state.GetLeaderHeight())
-
 			if found && state.Green() && (sent || i == 0) {
 				if i == 0 {
-					if lastDBHeight == state.GetLeaderHeight() && state.GetLeaderHeight() > 0 {
-						break minLoop // If the state hasn't progressed, skip
-					} else {
+					if lastDBHeight != state.GetLeaderHeight() || state.GetLeaderHeight() == 0 {
 						lastDBHeight = state.GetLeaderHeight()
 					}
 				} else if lastDBHeight < state.GetLeaderHeight() {
-					break minLoop // If the state progresses while we were generating messages, skip
+					break minloop // If the state progresses while we were generating messages, skip
 				}
 				_, indexes := state.GetVirtualServers(lastDBHeight, i, state.GetIdentityChainID())
-
-				fmt.Println("\n")
-				for vmIndex, FedIndex := range indexes {
-					fmt.Print(vmIndex, "-", FedIndex, "/")
+				for vmIndex, _ := range indexes {
 					sent = true
 					eom := new(messages.EOM)
 					eom.Minute = byte(i)
@@ -94,9 +87,9 @@ func Timer(state interfaces.IState) {
 						DBS.VMIndex = vmIndex
 						state.TimerMsgQueue() <- eom
 						state.TimerMsgQueue() <- DBS
-					} else {
+          			} else {
 						state.TimerMsgQueue() <- eom
-					}
+     				}
 				}
 
 			}

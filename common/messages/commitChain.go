@@ -84,7 +84,6 @@ func (m *CommitChainMsg) Validate(state interfaces.IState) int {
 	}
 	ebal := state.GetFactoidState().GetECBalance(*m.CommitChain.ECPubKey)
 	if int(m.CommitChain.Credits) > int(ebal) {
-		fmt.Println("Not enough Credits")
 		return 0
 	}
 
