@@ -543,9 +543,10 @@ func (s *State) GetAllEntries(ebKeyMR interfaces.IHash) bool {
 		return false
 	}
 	if eblock == nil {
-		fmt.Println(s.FactomNodeName, "No eblock for: ", ebKeyMR)
 		if !s.HasDataRequest(ebKeyMR) {
-			fmt.Println("TODO ASKFORDATA GAE eb: ", ebKeyMR)
+			fmt.Println(s.FactomNodeName, "Requesting eblock: ", ebKeyMR)
+			eBlockRequest := messages.NewMissingData(s, ebKeyMR)
+			s.NetworkOutMsgQueue() <- eBlockRequest
 		}
 		return false
 	}
@@ -559,7 +560,8 @@ func (s *State) GetAllEntries(ebKeyMR interfaces.IHash) bool {
 				continue
 			}
 			if !s.HasDataRequest(entryHash) {
-				fmt.Println("TODO ASKFORDATA GAE: ", entryHash)
+				entryRequest := messages.NewMissingData(s, entryHash)
+				s.NetworkOutMsgQueue() <- entryRequest
 			} else {
 				fmt.Println(s.FactomNodeName, "I already req: ", entryHash)
 
@@ -644,19 +646,17 @@ func (s *State) catchupEBlocks() {
 	isComplete := true
 	if s.GetEBDBHeightComplete() < s.GetDBHeightComplete() {
 		dblockGathering := s.GetDirectoryBlockByHeight(s.GetEBDBHeightComplete())
-		for idx, ebHash := range dblockGathering.GetEntryHashes() {
+		for idx, ebKeyMR := range dblockGathering.GetEntryHashes() {
 			if idx > 2 {
-				if s.DatabaseContains(ebHash) {
-					if !s.GetAllEntries(ebHash) {
-						fmt.Println(s.FactomNodeName, "NOSURP1")
+				if s.DatabaseContains(ebKeyMR) {
+					if !s.GetAllEntries(ebKeyMR) {
 						isComplete = false
 					}
 				} else {
-					fmt.Println(s.FactomNodeName, "NOSURP2")
-
 					isComplete = false
-					if !s.HasDataRequest(ebHash) {
-						fmt.Println(s.FactomNodeName, "TODO ASKFORDATA CUEB")
+					if !s.HasDataRequest(ebKeyMR) {
+						eBlockRequest := messages.NewMissingData(s, ebKeyMR)
+						s.NetworkOutMsgQueue() <- eBlockRequest
 					}
 				}
 			}

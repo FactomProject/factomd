@@ -127,6 +127,7 @@ func (m *DataResponse) FollowerExecute(state interfaces.IState) error {
 		return state.FollowerExecuteAddData(m)
 	}
 	return nil*/
+	fmt.Println("FOLLEX: ", state.GetFactomNodeName(), m.DataHash)
 
 	if state.HasDataRequest(m.DataHash) {
 		switch m.DataType {
@@ -158,6 +159,7 @@ func (m *DataResponse) FollowerExecute(state interfaces.IState) error {
 			}
 		case 0: // Data is an entry
 			if !state.DatabaseContains(m.DataHash) {
+				fmt.Println("INSERTING ENTRY: ", m.DataHash)
 				entry, ok := m.DataObject.(interfaces.IEBEntry)
 				if !ok {
 					return fmt.Errorf("Wrong DataType -- not IEBEntry")
@@ -173,8 +175,9 @@ func (m *DataResponse) FollowerExecute(state interfaces.IState) error {
 						}
 					} else {
 						if !state.HasDataRequest(ebKeyMR) {
-							fmt.Println("TODO ASKFORDATA EBKEYMR")
 							// Need to get eblock itself
+							eBlockRequest := NewMissingData(state, ebKeyMR)
+							state.NetworkOutMsgQueue() <- eBlockRequest
 						}
 					}
 				}

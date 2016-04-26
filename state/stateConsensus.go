@@ -6,7 +6,6 @@ package state
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
@@ -139,68 +138,20 @@ func (s *State) FollowerExecuteAddData(msg interfaces.IMsg) error {
 
 func (s *State) addEBlock(eblock interfaces.IEntryBlock) {
 	hash, err := eblock.KeyMR()
-	var needEntries []interfaces.IHash
 
 	if err == nil {
-		_, ok := s.DataRequests[hash.Fixed()]
-		if ok {
-			haveAllEntries := true
-			for _, entryHash := range eblock.GetEntryHashes() {
-				if !strings.HasPrefix(entryHash.String(), "000000000000000000000000000000000000000000000000000000000000000") {
-					entry, err := s.DB.FetchEntryByHash(entryHash)
-					if err != nil || entry == nil {
-						haveAllEntries = false
-						needEntries = append(needEntries, entryHash)
-						/*entryRequest := messages.NewMissingData(s, entryHash)
-						s.NetworkOutMsgQueue() <- entryRequest*/
-					} /*else {
-						eblock.AddEBEntry(entry)
-					}*/
-				}
-			}
-			if haveAllEntries {
-				// Database includes all eblock entries, so we can consider
-				// the eblock verified and add it to the database
-				fmt.Println("HAD ALL")
-				s.DB.ProcessEBlockBatch(eblock)
-				delete(s.DataRequests, hash.Fixed())
+		if s.HasDataRequest(hash) {
+			s.DB.ProcessEBlockBatch(eblock)
+			delete(s.DataRequests, hash.Fixed())
+
+			if s.GetAllEntries(hash) {
 				if s.GetEBDBHeightComplete() < eblock.GetDatabaseHeight() {
 					s.SetEBDBHeightComplete(eblock.GetDatabaseHeight())
 				}
-				//s.DBHeightEBlockComplete = eblock.GetDatabaseHeight()
-			} else {
-				fmt.Println("DIDN'T HAVE: ", needEntries)
-				s.DB.ProcessEBlockBatch(eblock)
 			}
 		}
 	}
 }
-
-/*
-func (s *State) addEBlock(eblock interfaces.IEntryBlock) {
-	hash, err := eblock.Hash()
-	if err != nil {
-		_, ok := s.DataRequests[hash.Fixed()]
-		if ok {
-			haveAllEntries := true
-			for _, entryHash := range eblock.GetEntryHashes() {
-				entry, err := s.DB.FetchEntryByHash(entryHash)
-				if err != nil || entry == nil {
-					haveAllEntries = false
-					entryRequest := messages.NewMissingData(s, entryHash)
-					s.NetworkOutMsgQueue() <- entryRequest
-				}
-			}
-			if haveAllEntries {
-				// Database includes all eblock entries, so we can consider
-				// the eblock verified and add it to the database
-				s.DB.ProcessEBlockBatch(eblock)
-				delete(s.DataRequests, hash.Fixed())
-				s.DBHeightEBlockComplete = eblock.GetDatabaseHeight()
-			}
-		}
-	}
-}*/
 
 func (s *State) LeaderExecute(m interfaces.IMsg) error {
 
