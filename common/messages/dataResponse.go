@@ -75,15 +75,17 @@ func (m *DataResponse) Validate(state interfaces.IState) int {
 	case 0: // DataType = entry
 		dataObject, ok := m.DataObject.(interfaces.IEBEntry)
 		if !ok {
+			fmt.Println("Entry failed validate")
 			return -1
 		}
 		dataHash = dataObject.GetHash()
+		fmt.Println("Entry passed but dataHash is ", dataHash)
 	case 1: // DataType = eblock
 		dataObject, ok := m.DataObject.(interfaces.IEntryBlock)
 		if !ok {
 			return -1
 		}
-		dataHash, err = dataObject.Hash()
+		dataHash, err = dataObject.KeyMR()
 		if err != nil {
 			return -1
 		}
@@ -116,9 +118,75 @@ func (m *DataResponse) Follower(interfaces.IState) bool {
 }
 
 func (m *DataResponse) FollowerExecute(state interfaces.IState) error {
-	fmt.Println("FOLLEX")
+	/*fmt.Println("FOLLEX: ", state.GetFactomNodeName())
+	if state.GetFactomNodeName() == "FNode13" {
+		fmt.Println("in 13")
+		state.AddDataRequest(m.DataHash, m.DataHash)
+	}
+	if state.HasDataRequest(m.DataHash) {
+		return state.FollowerExecuteAddData(m)
+	}
+	return nil*/
+
+	if state.HasDataRequest(m.DataHash) {
+		switch m.DataType {
+		case 1: // Data is an entryBlock
+			eblock, ok := m.DataObject.(interfaces.IEntryBlock)
+			if !ok {
+				return fmt.Errorf("Wrong DataType -- not IEntryBlock")
+			}
+			ebKeyMR, err := eblock.KeyMR()
+			if err != nil {
+				if ebKeyMR.IsSameAs(m.DataHash) {
+					if !state.DatabaseContains(ebKeyMR) {
+						err := state.FollowerExecuteAddData(m) // Save EBlock
+
+						for _, hashMatchAttempt := range state.GetDirectoryBlockByHeight(state.GetEBDBHeightComplete()).GetEntryHashes() {
+							if hashMatchAttempt.IsSameAs(ebKeyMR) {
+
+								if state.GetAllEntries(ebKeyMR) {
+									state.SetEBDBHeightComplete(state.GetEBDBHeightComplete() + 1)
+								}
+							}
+						}
+
+						if err != nil { // If there was an error saving the data, return err
+							return err
+						}
+					}
+				}
+			}
+		case 0: // Data is an entry
+			if !state.DatabaseContains(m.DataHash) {
+				entry, ok := m.DataObject.(interfaces.IEBEntry)
+				if !ok {
+					return fmt.Errorf("Wrong DataType -- not IEBEntry")
+				}
+				err := state.FollowerExecuteAddData(m) // Save entry
+
+				ebKeyMR := state.GetEBlockKeyMRFromEntryHash(entry.GetHash())
+
+				if ebKeyMR != nil {
+					if state.DatabaseContains(ebKeyMR) { // Node already has eBlock in database
+						if state.GetAllEntries(ebKeyMR) {
+							state.SetEBDBHeightComplete(state.GetEBDBHeightComplete() + 1)
+						}
+					} else {
+						if !state.HasDataRequest(ebKeyMR) {
+							fmt.Println("TODO ASKFORDATA EBKEYMR")
+							// Need to get eblock itself
+						}
+					}
+				}
+
+				if err != nil { // If there was an error saving the data, return err
+					return err
+				}
+
+			}
+		}
+	}
 	return nil
-	//return state.FollowerExecuteAddData(m)
 }
 
 // Acknowledgements do not go into the process list.
@@ -160,17 +228,23 @@ func (m *DataResponse) UnmarshalBinaryData(data []byte) (newData []byte, err err
 	if err != nil {
 		return nil, err
 	}
-	eblockAttempt, err := attemptEBlockUnmarshal(newData)
-	if err != nil {
-		return nil, err
-	} else {
-		m.DataObject = eblockAttempt
-	}
-	entryAttempt, err := attemptEntryUnmarshal(newData)
-	if err != nil {
-
-	} else {
-		m.DataObject = entryAttempt
+	switch m.DataType {
+	case 0:
+		entryAttempt, err := attemptEntryUnmarshal(newData)
+		if err != nil {
+			return nil, err
+		} else {
+			m.DataObject = entryAttempt
+		}
+	case 1:
+		eblockAttempt, err := attemptEBlockUnmarshal(newData)
+		if err != nil {
+			return nil, err
+		} else {
+			m.DataObject = eblockAttempt
+		}
+	default:
+		return nil, fmt.Errorf("DataResponse's DataType not supported for unmarshalling yet")
 	}
 
 	m.Peer2peer = true // Always a peer2peer request.

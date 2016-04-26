@@ -42,9 +42,6 @@ func (state *State) ValidatorLoop() {
 				msgProcess()
 				break loop
 			case msg = <-state.InMsgQueue(): // Get message from the timer or input queue
-				if msg.Type() == 18 {
-					fmt.Println(state.FactomNodeName, " !i!i!i!i")
-				}
 				msgProcess()
 				break loop
 			default:
@@ -114,7 +111,7 @@ func (state *State) ValidatorLoop() {
 			default:
 				if state.PrintType(msg.Type()) {
 					if state.GetOut() {
-						state.Print(" Invalid\n")
+						state.Print(" Invalid: ", msg.Type(), "\n")
 					}
 				}
 				state.NetworkInvalidMsgQueue() <- msg

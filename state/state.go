@@ -129,6 +129,12 @@ type State struct {
 	IsReplaying     bool
 	ReplayTimestamp interfaces.Timestamp
 
+	// DBlock Height at which node has a complete set of eblocks+entries
+	EBDBHeightComplete uint32
+
+	// For dataRequests made by this node, which it's awaiting dataResponses for
+	DataRequests map[[32]byte]interfaces.IHash
+
 	//For throttling how many missing messages we request
 	IsThrottled bool
 }
@@ -287,6 +293,9 @@ func (s *State) Init() {
 	s.DBStates.State = s
 	s.DBStates.DBStates = make([]*DBState, 0)
 
+	s.EBDBHeightComplete = 0
+	s.DataRequests = make(map[[32]byte]interfaces.IHash)
+
 	switch s.NodeMode {
 	case "FULL":
 		s.serverState = 0
@@ -344,6 +353,48 @@ func (s *State) Init() {
 	s.FedServerFaults = make([][]interfaces.IMsg, 0)
 
 	s.initServerKeys()
+}
+
+func (s *State) AddDataRequest(requestedHash, missingDataHash interfaces.IHash) {
+	s.DataRequests[requestedHash.Fixed()] = missingDataHash
+}
+
+func (s *State) HasDataRequest(checkHash interfaces.IHash) bool {
+	if _, ok := s.DataRequests[checkHash.Fixed()]; ok {
+		return true
+	}
+	return false
+}
+
+func (s *State) GetEBDBHeightComplete() uint32 {
+	return s.EBDBHeightComplete
+}
+
+func (s *State) SetEBDBHeightComplete(newHeight uint32) {
+	s.EBDBHeightComplete = newHeight
+}
+
+func (s *State) GetEBlockKeyMRFromEntryHash(entryHash interfaces.IHash) interfaces.IHash {
+	entry, err := s.DB.FetchEntryByHash(entryHash)
+	if err != nil {
+		return nil
+	}
+	if entry != nil {
+		dblock := s.GetDirectoryBlockByHeight(entry.GetDatabaseHeight())
+		for idx, ebHash := range dblock.GetEntryHashes() {
+			if idx > 2 {
+				thisBlock, err := s.DB.FetchEBlockByKeyMR(ebHash)
+				if err == nil {
+					for _, attemptEntryHash := range thisBlock.GetEntryHashes() {
+						if attemptEntryHash.IsSameAs(entryHash) {
+							return ebHash
+						}
+					}
+				}
+			}
+		}
+	}
+	return nil
 }
 
 func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
@@ -420,6 +471,7 @@ func (s *State) LoadDataByHash(requestedHash interfaces.IHash) (interface{}, int
 		return result, 1, nil
 	}
 
+	fmt.Println("neither fetch:", requestedHash)
 	return nil, -1, nil
 }
 
@@ -481,6 +533,51 @@ func (s *State) LoadSpecificMsgAndAck(dbheight uint32, plistheight uint32) (inte
 	return msg, ackMsg, nil
 }
 
+// This will issue missingData requests for each entryHash in a particular EBlock
+// that is not already saved to the database or requested already.
+// It returns True if the EBlock is complete (all entries already exist in database)
+func (s *State) GetAllEntries(ebKeyMR interfaces.IHash) bool {
+	hasAllEntries := true
+	eblock, err := s.DB.FetchEBlockByKeyMR(ebKeyMR)
+	if err != nil {
+		return false
+	}
+	if eblock == nil {
+		fmt.Println(s.FactomNodeName, "No eblock for: ", ebKeyMR)
+		if !s.HasDataRequest(ebKeyMR) {
+			fmt.Println("TODO ASKFORDATA GAE eb: ", ebKeyMR)
+		}
+		return false
+	}
+	for _, entryHash := range eblock.GetEntryHashes() {
+		fmt.Println("Checkking ", entryHash)
+		if !strings.HasPrefix(entryHash.String(), "000000000000000000000000000000000000000000000000000000000000000") {
+			if !s.DatabaseContains(entryHash) {
+				hasAllEntries = false
+			} else {
+				fmt.Println(s.FactomNodeName, "I already got: ", entryHash)
+				continue
+			}
+			if !s.HasDataRequest(entryHash) {
+				fmt.Println("TODO ASKFORDATA GAE: ", entryHash)
+			} else {
+				fmt.Println(s.FactomNodeName, "I already req: ", entryHash)
+
+			}
+		}
+	}
+
+	return hasAllEntries
+}
+
+func (s *State) DatabaseContains(hash interfaces.IHash) bool {
+	result, _, err := s.LoadDataByHash(hash)
+	if result != nil || err == nil {
+		return true
+	}
+	return false
+}
+
 func (s *State) MessageToLogString(msg interfaces.IMsg) string {
 	bytes, err := msg.MarshalBinary()
 	if err != nil {
@@ -525,6 +622,7 @@ func (s *State) UpdateState() {
 		s.SetString()
 		progress1 := s.ProcessLists.UpdateState()
 		progress2 := s.DBStates.UpdateState()
+		s.catchupEBlocks()
 
 		if s.GetOut() {
 			str := fmt.Sprintf("%25s   %10s   %25s", "----------------", s.GetFactomNodeName(), "--------------------\n")
@@ -538,6 +636,33 @@ func (s *State) UpdateState() {
 
 		if !progress1 && !progress2 {
 			break
+		}
+	}
+}
+
+func (s *State) catchupEBlocks() {
+	isComplete := true
+	if s.GetEBDBHeightComplete() < s.GetDBHeightComplete() {
+		dblockGathering := s.GetDirectoryBlockByHeight(s.GetEBDBHeightComplete())
+		for idx, ebHash := range dblockGathering.GetEntryHashes() {
+			if idx > 2 {
+				if s.DatabaseContains(ebHash) {
+					if !s.GetAllEntries(ebHash) {
+						fmt.Println(s.FactomNodeName, "NOSURP1")
+						isComplete = false
+					}
+				} else {
+					fmt.Println(s.FactomNodeName, "NOSURP2")
+
+					isComplete = false
+					if !s.HasDataRequest(ebHash) {
+						fmt.Println(s.FactomNodeName, "TODO ASKFORDATA CUEB")
+					}
+				}
+			}
+		}
+		if isComplete {
+			s.SetEBDBHeightComplete(s.GetEBDBHeightComplete() + 1)
 		}
 	}
 }
