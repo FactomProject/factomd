@@ -8,6 +8,7 @@ import ()
 
 type IEBEntry interface {
 	DatabaseBatchable
+	Printable
 
 	GetHash() IHash
 	ExternalIDs() [][]byte
