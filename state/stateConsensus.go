@@ -273,10 +273,8 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 	pl := s.ProcessLists.Get(dbheight)
 	if !pl.EomComplete() {
-        fmt.Println("eeeeeeeeeeeeeeeeeee Not EOM complete")
 		return false
 	}
-    fmt.Println("eeeeeevvvvvvvvvvvvvvvvvvvvveeeeeeeeeeeee EOM complete")
 	dbs, ok := msg.(*messages.DirectoryBlockSignature)
 	if !ok {
 		panic("DirectoryBlockSignature is the wrong type.")
@@ -289,7 +287,6 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 	}
 
     if !pl.SigComplete() {
-        fmt.Println("nnnnnnnnnnnnnnnnnnnnnnnnnn Not Complete!")
          return false
     }
 
@@ -461,13 +458,17 @@ func (s *State) PutE(rt bool, adr [32]byte, v int64) {
 func (s *State) LeaderFor(msg interfaces.IMsg, hash []byte) bool {
 	pl := s.ProcessLists.Get(s.LLeaderHeight)
 	vmIndex := VMIndexFor(hash)
+
+    fmt.Println("VM for fct: ", vmIndex)
+
 	msg.SetVMIndex(vmIndex)
 	found, vmIndexes := pl.GetVirtualServers(pl.VMs[vmIndex].LeaderMinute, s.IdentityChainID)
 	if !found {
 		return false
 	}
 	for _, vmi := range vmIndexes {
-		if vmi == vmIndex {
+		fmt.Println("FCT", vmi)
+        if vmi == vmIndex {
 			return true
 		}
 	}

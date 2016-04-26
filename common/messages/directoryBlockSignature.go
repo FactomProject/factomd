@@ -69,7 +69,7 @@ func (m *DirectoryBlockSignature) Bytes() []byte {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
-	found, vmIndexs := state.GetVirtualServers(m.DBHeight, 9, state.GetIdentityChainID())
+	found, vmIndexs := state.GetVirtualServers(m.DBHeight, 9, m.ServerIdentityChainID)
 
 	if found == false {
 		return 0
@@ -157,8 +157,7 @@ func (m *DirectoryBlockSignature) UnmarshalBinaryData(data []byte) (newData []by
 	}
 
 	m.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
-	vmi, newData := newData[0], newData[1:]
-	m.VMIndex = int(vmi)
+	m.VMIndex, newData = int(newData[0]), newData[1:]
 
 	hash := new(primitives.Hash)
 	newData, err = hash.UnmarshalBinaryData(newData)
@@ -242,14 +241,6 @@ func (m *DirectoryBlockSignature) MarshalBinary() (data []byte, err error) {
 	}
 	return resp, nil
 }
-
-// func (m *DirectoryBlockSignature) String() string {
-// 	return fmt.Sprintf("%6s-%3d: db %2d ----------- hash[:10]=%x",
-// 		"DBSig",
-// 		m.ServerIndex,
-// 		m.DBHeight,
-// 		m.GetHash().Bytes()[:10])
-// }
 
 func (m *DirectoryBlockSignature) String() string {
 	return fmt.Sprintf("%6s-%3d:        DBHt:%5d -- chainID[:5]=%x hash[:5]=%x dbhash[:5]=%x",

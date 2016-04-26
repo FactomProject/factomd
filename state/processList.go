@@ -103,7 +103,7 @@ func (p *ProcessList) GetVirtualServers(minute int, identityChainID interfaces.I
             break
         }
         if fedix == fedIndex {
-			indexes = append(indexes, fedix)
+			indexes = append(indexes, i)
 		}
 	}
 
