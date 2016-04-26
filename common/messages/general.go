@@ -8,6 +8,7 @@ package messages
 
 import (
 	"fmt"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 )
@@ -48,6 +49,10 @@ func UnmarshalMessage(data []byte) (interfaces.IMsg, error) {
 		msg = new(MissingAck)
 	case constants.MISSING_MSG:
 		msg = new(MissingMsg)
+	case constants.MISSING_DATA:
+		msg = new(MissingData)
+	case constants.DATA_RESPONSE:
+		msg = new(DataResponse)
 	case constants.REVEAL_ENTRY_MSG:
 		msg = new(RevealEntryMsg)
 	case constants.REQUEST_BLOCK_MSG:
@@ -100,6 +105,10 @@ func MessageName(Type int) string {
 		return "Missing Ack"
 	case constants.MISSING_MSG:
 		return "Missing Msg"
+	case constants.MISSING_DATA:
+		return "Missing Data"
+	case constants.DATA_RESPONSE:
+		return "Data Response"
 	case constants.REVEAL_ENTRY_MSG:
 		return "Reveal Entry"
 	case constants.REQUEST_BLOCK_MSG:

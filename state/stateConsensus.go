@@ -6,6 +6,7 @@ package state
 
 import (
 	"fmt"
+
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
@@ -106,6 +107,50 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) error {
 		dbstatemsg.EntryCreditBlock)
 
 	return nil
+}
+
+func (s *State) FollowerExecuteAddData(msg interfaces.IMsg) error {
+	dataResponseMsg, ok := msg.(*messages.DataResponse)
+	if !ok {
+		return fmt.Errorf("Cannot execute the given DataResponse")
+	}
+
+	switch dataResponseMsg.DataType {
+	case 0: // DataType = entry
+		entry := dataResponseMsg.DataObject.(interfaces.IEBEntry)
+
+		if entry.GetHash().IsSameAs(dataResponseMsg.DataHash) {
+			s.DB.InsertEntry(entry)
+			delete(s.DataRequests, entry.GetHash().Fixed())
+		}
+	case 1: // DataType = eblock
+		eblock := dataResponseMsg.DataObject.(interfaces.IEntryBlock)
+		dataHash, _ := eblock.KeyMR()
+		if dataHash.IsSameAs(dataResponseMsg.DataHash) {
+			s.addEBlock(eblock)
+		}
+	default:
+		return fmt.Errorf("Datatype currently unsupported")
+	}
+
+	return nil
+}
+
+func (s *State) addEBlock(eblock interfaces.IEntryBlock) {
+	hash, err := eblock.KeyMR()
+
+	if err == nil {
+		if s.HasDataRequest(hash) {
+			s.DB.ProcessEBlockBatch(eblock)
+			delete(s.DataRequests, hash.Fixed())
+
+			if s.GetAllEntries(hash) {
+				if s.GetEBDBHeightComplete() < eblock.GetDatabaseHeight() {
+					s.SetEBDBHeightComplete(eblock.GetDatabaseHeight())
+				}
+			}
+		}
+	}
 }
 
 func (s *State) LeaderExecute(m interfaces.IMsg) error {
