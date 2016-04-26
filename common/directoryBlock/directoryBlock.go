@@ -39,6 +39,25 @@ func (c *DirectoryBlock) GetEntryHashes() []interfaces.IHash {
 	return answer
 }
 
+func (c *DirectoryBlock) Sort() {
+    done := false
+    for i := 3; !done && i < len(c.DBEntries)-1; i++ {
+        done = true
+        for j:= 3; j < len(c.DBEntries)-1-i+3; j++ {
+            comp:= bytes.Compare(c.DBEntries[j].GetChainID().Bytes(),
+                                 c.DBEntries[j+1].GetChainID().Bytes()) 
+            if comp > 0 {
+                h := c.DBEntries[j]
+                c.DBEntries[j] = c.DBEntries[j+1]
+                c.DBEntries[j+1] = h    
+            }
+            if comp != 0 {
+                done = false
+            }
+        }
+    }
+}
+
 func (c *DirectoryBlock) GetEntryHashesForBranch() []interfaces.IHash {
 	entries := c.DBEntries[:]
 	answer := make([]interfaces.IHash, 2*len(entries))
@@ -145,7 +164,8 @@ func (e *DirectoryBlock) String() string {
 
 func (b *DirectoryBlock) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
-
+    b.Sort()
+    
 	b.BuildBodyMR()
 
 	count := uint32(len(b.GetDBEntries()))

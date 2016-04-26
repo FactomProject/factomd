@@ -459,15 +459,12 @@ func (s *State) LeaderFor(msg interfaces.IMsg, hash []byte) bool {
 	pl := s.ProcessLists.Get(s.LLeaderHeight)
 	vmIndex := VMIndexFor(hash)
 
-    fmt.Println("VM for fct: ", vmIndex)
-
 	msg.SetVMIndex(vmIndex)
 	found, vmIndexes := pl.GetVirtualServers(pl.VMs[vmIndex].LeaderMinute, s.IdentityChainID)
 	if !found {
 		return false
 	}
 	for _, vmi := range vmIndexes {
-		fmt.Println("FCT", vmi)
         if vmi == vmIndex {
 			return true
 		}

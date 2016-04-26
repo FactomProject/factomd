@@ -80,7 +80,7 @@ func (m *CommitChainMsg) Bytes() []byte {
 //  1   -- Message is valid
 func (m *CommitChainMsg) Validate(state interfaces.IState) int {
 	if !m.CommitChain.IsValid() {
-		return 1
+		return -1
 	}
 	ebal := state.GetFactoidState().GetECBalance(*m.CommitChain.ECPubKey)
 	if int(m.CommitChain.Credits) > int(ebal) {
@@ -93,7 +93,7 @@ func (m *CommitChainMsg) Validate(state interfaces.IState) int {
 // Returns true if this is a message for this server to execute as
 // a leader.
 func (m *CommitChainMsg) Leader(state interfaces.IState) bool {
-	return state.LeaderFor(m, constants.EC_CHAINID)
+  	return state.LeaderFor(m, constants.EC_CHAINID)
 }
 
 // Execute the leader functions of the given message
