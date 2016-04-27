@@ -32,6 +32,7 @@ type P2PPeer struct {
 	BroadcastOut chan []byte
 	BroadcastIn  chan []byte
 	testMode     bool
+	debugMode    bool
 }
 
 var _ interfaces.IPeer = (*P2PPeer)(nil)
@@ -43,6 +44,10 @@ func (f *P2PPeer) Init(fromName, toName string) interfaces.IPeer {
 	f.BroadcastIn = make(chan []byte, 10000)
 	f.testMode = false // When this is false, factomd is connected to the network.  When true, network is isolated, and a heartbeat test message sent over the network.
 	return f
+}
+func (f *P2PPeer) SetDebugMode(netdebug bool) {
+
+	f.debugMode = netdebug
 }
 
 func (f *P2PPeer) GetNameFrom() string {
@@ -200,7 +205,7 @@ func (f *P2PPeer) ManageOutChannel() {
 		select {
 		case data, ok := <-f.BroadcastOut:
 			if ok {
-				sendP2P(data)
+				f.sendP2P(data)
 			}
 		default:
 		}
@@ -212,22 +217,25 @@ func (f *P2PPeer) ManageOutChannel() {
 // manageInChannel takes messages from the network and stuffs it in the f.BroadcastIn channel
 func (f *P2PPeer) ManageInChannel() {
 	for {
-		data := recieveP2P()
+		data := f.recieveP2P()
 		f.BroadcastIn <- data
 		// time.Sleep(time.Millisecond * 100)
 	}
 }
 
-func sendP2P(msg []byte) {
+func (f *P2PPeer) sendP2P(msg []byte) {
 	if err := p2pSocket.Send(msg); err != nil {
 		note("sendP2P.Send ERROR: %s", err.Error())
 	}
 }
 
-func recieveP2P() []byte {
+func (f *P2PPeer) recieveP2P() []byte {
 	data, err := p2pSocket.Recv()
 	if err != nil {
 		note("recieveP2P.Recv ERROR: %s", err.Error())
+	}
+	if f.debugMode {
+		note("recieveP2P.Recv Successfully got a message")
 	}
 	return data
 }
