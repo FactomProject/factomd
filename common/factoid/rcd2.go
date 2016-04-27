@@ -137,7 +137,7 @@ func (t *RCD_2) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 }
 
 func (a RCD_2) MarshalBinary() ([]byte, error) {
-	var out bytes.Buffer
+	var out primitives.Buffer
 
 	binary.Write(&out, binary.BigEndian, uint8(2))
 	binary.Write(&out, binary.BigEndian, uint16(a.N))
@@ -150,11 +150,11 @@ func (a RCD_2) MarshalBinary() ([]byte, error) {
 		out.Write(data)
 	}
 
-	return out.Bytes(), nil
+	return out.DeepCopyBytes(), nil
 }
 
 func (a RCD_2) CustomMarshalText() ([]byte, error) {
-	var out bytes.Buffer
+	var out primitives.Buffer
 
 	primitives.WriteNumber8(&out, uint8(2)) // Type 2 Authorization
 	out.WriteString("\n n: ")
@@ -168,5 +168,5 @@ func (a RCD_2) CustomMarshalText() ([]byte, error) {
 		out.WriteString("\n")
 	}
 
-	return out.Bytes(), nil
+	return out.DeepCopyBytes(), nil
 }

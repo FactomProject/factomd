@@ -508,7 +508,7 @@ func (t *Transaction) UnmarshalBinary(data []byte) (err error) {
 // This is what Gets Signed.  Yet signature blocks are part of the transaction.
 // We don't include them here, and tack them on later.
 func (t *Transaction) MarshalBinarySig() (newData []byte, err error) {
-	var out bytes.Buffer
+	var out primitives.Buffer
 
 	primitives.EncodeVarInt(&out, t.GetVersion())
 
@@ -545,13 +545,13 @@ func (t *Transaction) MarshalBinarySig() (newData []byte, err error) {
 		out.Write(data)
 	}
 
-	return out.Bytes(), nil
+	return out.DeepCopyBytes(), nil
 }
 
 // This just Marshals what gets signed, i.e. MarshalBinarySig(), then
 // Marshals the signatures and the RCDs for this transaction.
 func (t Transaction) MarshalBinary() ([]byte, error) {
-	var out bytes.Buffer
+	var out primitives.Buffer
 
 	data, err := t.MarshalBinarySig()
 	if err != nil {
@@ -583,7 +583,7 @@ func (t Transaction) MarshalBinary() ([]byte, error) {
 		out.Write(data)
 	}
 
-	return out.Bytes(), nil
+	return out.DeepCopyBytes(), nil
 }
 
 // Helper function for building transactions.  Add an input to
@@ -630,7 +630,7 @@ func (t *Transaction) CustomMarshalText() (text []byte, err error) {
 	if err != nil {
 		return nil, err
 	}
-	var out bytes.Buffer
+	var out primitives.Buffer
 	out.WriteString(fmt.Sprintf("Transaction (size %d):\n", len(data)))
 	out.WriteString("                 Version: ")
 	primitives.WriteNumber64(&out, uint64(t.GetVersion()))
@@ -674,7 +674,7 @@ func (t *Transaction) CustomMarshalText() (text []byte, err error) {
 		out.Write(text)
 	}
 
-	return out.Bytes(), nil
+	return out.DeepCopyBytes(), nil
 }
 
 // Helper Function.  This simply adds an Authorization to a

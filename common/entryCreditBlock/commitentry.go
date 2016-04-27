@@ -127,11 +127,11 @@ func (c *CommitEntry) GetSigHash() interfaces.IHash {
 }
 
 func (c *CommitEntry) MarshalBinarySig() ([]byte, error) {
-	buf := new(bytes.Buffer)
+	buf := new(primitives.Buffer)
 
 	// 1 byte Version
 	if err := binary.Write(buf, binary.BigEndian, c.Version); err != nil {
-		return buf.Bytes(), err
+		return nil, err
 	}
 
 	// 6 byte MilliTime
@@ -142,15 +142,15 @@ func (c *CommitEntry) MarshalBinarySig() ([]byte, error) {
 
 	// 1 byte number of Entry Credits
 	if err := binary.Write(buf, binary.BigEndian, c.Credits); err != nil {
-		return buf.Bytes(), err
+		return nil, err
 	}
 
-	return buf.Bytes(), nil
+	return buf.DeepCopyBytes(), nil
 
 }
 
 func (c *CommitEntry) MarshalBinary() ([]byte, error) {
-	buf := new(bytes.Buffer)
+	buf := new(primitives.Buffer)
 
 	b, err := c.MarshalBinarySig()
 	if err != nil {
@@ -165,7 +165,7 @@ func (c *CommitEntry) MarshalBinary() ([]byte, error) {
 	// 64 byte Signature
 	buf.Write(c.Sig[:])
 
-	return buf.Bytes(), nil
+	return buf.DeepCopyBytes(), nil
 }
 
 func (c *CommitEntry) Sign(privateKey []byte) error {
@@ -213,7 +213,7 @@ func (c *CommitEntry) ECID() byte {
 }
 
 func (c *CommitEntry) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	buf := bytes.NewBuffer(data)
+	buf := primitives.NewBuffer(data)
 	hash := make([]byte, 32)
 
 	var b byte
@@ -278,7 +278,7 @@ func (c *CommitEntry) UnmarshalBinaryData(data []byte) (newData []byte, err erro
 		copy(c.Sig[:], p)
 	}
 
-	newData = buf.Bytes()
+	newData = buf.DeepCopyBytes()
 
 	return
 }

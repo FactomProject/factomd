@@ -9,18 +9,18 @@ import (
 )
 
 func VarIntLength(v uint64) uint64 {
-	buf := new(bytes.Buffer)
+	buf := new(Buffer)
 
 	EncodeVarInt(buf, v)
 
-	return uint64(len(buf.Bytes()))
+	return uint64(buf.Len())
 }
 
 func DecodeVarInt(data []byte) (uint64, []byte) {
 	return DecodeVarIntGo(data)
 }
 
-func EncodeVarInt(out *bytes.Buffer, v uint64) error {
+func EncodeVarInt(out *Buffer, v uint64) error {
 	return EncodeVarIntGo(out, v)
 }
 
@@ -42,7 +42,7 @@ func DecodeVarIntGo(data []byte) (uint64, []byte) {
 }
 
 // Encode an integer as a variable int into the given data buffer.
-func EncodeVarIntGo(out *bytes.Buffer, v uint64) error {
+func EncodeVarIntGo(out *Buffer, v uint64) error {
 
 	if v == 0 {
 		out.WriteByte(0)

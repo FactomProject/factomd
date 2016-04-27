@@ -191,7 +191,7 @@ func (m *AddServerMsg) UnmarshalBinary(data []byte) error {
 }
 
 func (m *AddServerMsg) MarshalForSignature() ([]byte, error) {
-	var buf bytes.Buffer
+	var buf primitives.Buffer
 
 	binary.Write(&buf, binary.BigEndian, byte(m.Type()))
 
@@ -208,11 +208,11 @@ func (m *AddServerMsg) MarshalForSignature() ([]byte, error) {
 	}
 	buf.Write(data)
 
-	return buf.Bytes(), nil
+	return buf.DeepCopyBytes(), nil
 }
 
 func (m *AddServerMsg) MarshalBinary() ([]byte, error) {
-	var buf bytes.Buffer
+	var buf primitives.Buffer
 
 	data, err := m.MarshalForSignature()
 	if err != nil {
@@ -228,7 +228,7 @@ func (m *AddServerMsg) MarshalBinary() ([]byte, error) {
 		buf.Write(data)
 	}
 
-	return buf.Bytes(), nil
+	return buf.DeepCopyBytes(), nil
 }
 
 func (m *AddServerMsg) String() string {

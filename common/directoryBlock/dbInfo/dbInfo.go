@@ -105,7 +105,7 @@ func (e *DirBlockInfo) GetBTCBlockHeight() int32 {
 }
 
 func (e *DirBlockInfo) MarshalBinary() ([]byte, error) {
-	var data bytes.Buffer
+	var data primitives.Buffer
 
 	enc := gob.NewEncoder(&data)
 
@@ -113,11 +113,11 @@ func (e *DirBlockInfo) MarshalBinary() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return data.Bytes(), nil
+	return data.DeepCopyBytes(), nil
 }
 
 func (e *DirBlockInfo) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	dec := gob.NewDecoder(bytes.NewBuffer(data))
+	dec := gob.NewDecoder(primitives.NewBuffer(data))
 	dbic := newDirBlockInfoCopy()
 	err = dec.Decode(dbic)
 	if err != nil {

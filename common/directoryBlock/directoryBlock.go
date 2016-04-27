@@ -40,22 +40,22 @@ func (c *DirectoryBlock) GetEntryHashes() []interfaces.IHash {
 }
 
 func (c *DirectoryBlock) Sort() {
-    done := false
-    for i := 3; !done && i < len(c.DBEntries)-1; i++ {
-        done = true
-        for j:= 3; j < len(c.DBEntries)-1-i+3; j++ {
-            comp:= bytes.Compare(c.DBEntries[j].GetChainID().Bytes(),
-                                 c.DBEntries[j+1].GetChainID().Bytes()) 
-            if comp > 0 {
-                h := c.DBEntries[j]
-                c.DBEntries[j] = c.DBEntries[j+1]
-                c.DBEntries[j+1] = h    
-            }
-            if comp != 0 {
-                done = false
-            }
-        }
-    }
+	done := false
+	for i := 3; !done && i < len(c.DBEntries)-1; i++ {
+		done = true
+		for j := 3; j < len(c.DBEntries)-1-i+3; j++ {
+			comp := bytes.Compare(c.DBEntries[j].GetChainID().Bytes(),
+				c.DBEntries[j+1].GetChainID().Bytes())
+			if comp > 0 {
+				h := c.DBEntries[j]
+				c.DBEntries[j] = c.DBEntries[j+1]
+				c.DBEntries[j+1] = h
+			}
+			if comp != 0 {
+				done = false
+			}
+		}
+	}
 }
 
 func (c *DirectoryBlock) GetEntryHashesForBranch() []interfaces.IHash {
@@ -136,7 +136,7 @@ func (e *DirectoryBlock) JSONBuffer(b *bytes.Buffer) error {
 }
 
 func (e *DirectoryBlock) String() string {
-	var out bytes.Buffer
+	var out primitives.Buffer
 	kmr, err := e.BuildKeyMerkleRoot()
 
 	if err != nil {
@@ -158,14 +158,14 @@ func (e *DirectoryBlock) String() string {
 		out.WriteString(entry.String())
 	}
 
-	return (string)(out.Bytes())
+	return (string)(out.DeepCopyBytes())
 
 }
 
 func (b *DirectoryBlock) MarshalBinary() (data []byte, err error) {
-	var buf bytes.Buffer
-    b.Sort()
-    
+	var buf primitives.Buffer
+	b.Sort()
+
 	b.BuildBodyMR()
 
 	count := uint32(len(b.GetDBEntries()))
@@ -185,7 +185,7 @@ func (b *DirectoryBlock) MarshalBinary() (data []byte, err error) {
 		buf.Write(data)
 	}
 
-	return buf.Bytes(), err
+	return buf.DeepCopyBytes(), err
 }
 
 func (b *DirectoryBlock) BuildBodyMR() (interfaces.IHash, error) {

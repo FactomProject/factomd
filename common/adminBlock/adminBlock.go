@@ -159,26 +159,32 @@ func (b *AdminBlock) AddEndOfMinuteMarker(minuteNumber byte) (err error) {
 }
 
 // Write out the AdminBlock to binary.
-func (b *AdminBlock) MarshalBinary() (data []byte, err error) {
-	var buf bytes.Buffer
-
+func (b *AdminBlock) MarshalBinary() ([]byte, error) {
 	// Marshal all the entries into their own thing (need the size)
-	var buf2 bytes.Buffer
+	var buf2 primitives.Buffer
 	for _, v := range b.ABEntries {
-		data, _ := v.MarshalBinary()
+		data, err := v.MarshalBinary()
+		if err != nil {
+			return nil, err
+		}
 		buf2.Write(data)
 	}
 
 	b.Header.SetMessageCount(uint32(len(b.ABEntries)))
-	b.Header.SetBodySize(uint32(len(buf2.Bytes())))
+	b.Header.SetBodySize(uint32(buf2.Len()))
 
-	data, _ = b.Header.MarshalBinary()
+	data, err := b.Header.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+
+	var buf primitives.Buffer
 	buf.Write(data)
 
 	// Write the Body out
-	buf.Write(buf2.Bytes())
+	buf.Write(buf2.DeepCopyBytes())
 
-	return buf.Bytes(), err
+	return buf.DeepCopyBytes(), err
 }
 
 func UnmarshalABlock(data []byte) (interfaces.IAdminBlock, error) {

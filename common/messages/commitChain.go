@@ -124,7 +124,7 @@ func (m *CommitChainMsg) Validate(state interfaces.IState) int {
 // Returns true if this is a message for this server to execute as
 // a leader.
 func (m *CommitChainMsg) Leader(state interfaces.IState) bool {
-  	return state.LeaderFor(m, constants.EC_CHAINID)
+	return state.LeaderFor(m, constants.EC_CHAINID)
 }
 
 // Execute the leader functions of the given message
@@ -210,7 +210,7 @@ func (m *CommitChainMsg) UnmarshalBinary(data []byte) error {
 }
 
 func (m *CommitChainMsg) MarshalForSignature() (data []byte, err error) {
-	var buf bytes.Buffer
+	var buf primitives.Buffer
 
 	binary.Write(&buf, binary.BigEndian, byte(m.Type()))
 
@@ -227,7 +227,7 @@ func (m *CommitChainMsg) MarshalForSignature() (data []byte, err error) {
 	}
 	buf.Write(data)
 
-	return buf.Bytes(), nil
+	return buf.DeepCopyBytes(), nil
 }
 
 func (m *CommitChainMsg) MarshalBinary() (data []byte, err error) {

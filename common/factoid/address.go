@@ -12,7 +12,6 @@
 package factoid
 
 import (
-	"bytes"
 	"encoding/hex"
 	"fmt"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -38,11 +37,11 @@ func (b *Address) String() string {
 }*/
 
 func (a *Address) CustomMarshalText() (text []byte, err error) {
-	var out bytes.Buffer
+	var out primitives.Buffer
 	addr := hex.EncodeToString(a.Bytes())
 	out.WriteString("addr  ")
 	out.WriteString(addr)
-	return out.Bytes(), nil
+	return out.DeepCopyBytes(), nil
 }
 
 func NewAddress(b []byte) interfaces.IAddress {

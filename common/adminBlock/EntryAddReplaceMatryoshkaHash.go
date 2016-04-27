@@ -34,13 +34,13 @@ func NewAddReplaceMatryoshkaHash(identityChainID interfaces.IHash, mHash interfa
 }
 
 func (e *AddReplaceMatryoshkaHash) MarshalBinary() (data []byte, err error) {
-	var buf bytes.Buffer
+	var buf primitives.Buffer
 
 	buf.Write([]byte{e.Type()})
 	buf.Write(e.IdentityChainID.Bytes())
 	buf.Write(e.MHash.Bytes())
 
-	return buf.Bytes(), nil
+	return buf.DeepCopyBytes(), nil
 }
 
 func (e *AddReplaceMatryoshkaHash) UnmarshalBinaryData(data []byte) (newData []byte, err error) {

@@ -228,7 +228,7 @@ func (m *Ack) UnmarshalBinary(data []byte) error {
 }
 
 func (m *Ack) MarshalForSignature() ([]byte, error) {
-	var buf bytes.Buffer
+	var buf primitives.Buffer
 
 	binary.Write(&buf, binary.BigEndian, byte(m.Type()))
 	binary.Write(&buf, binary.BigEndian, byte(m.VMIndex))
@@ -255,7 +255,7 @@ func (m *Ack) MarshalForSignature() ([]byte, error) {
 	}
 	buf.Write(data)
 
-	return buf.Bytes(), nil
+	return buf.DeepCopyBytes(), nil
 }
 
 func (m *Ack) MarshalBinary() (data []byte, err error) {
