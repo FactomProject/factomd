@@ -117,7 +117,7 @@ func (m *RevealEntryMsg) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp
 }
 
-func (m *RevealEntryMsg) Type() int {
+func (m *RevealEntryMsg) Type() byte {
 	return constants.REVEAL_ENTRY_MSG
 }
 
@@ -220,7 +220,11 @@ func (m *RevealEntryMsg) UnmarshalBinaryData(data []byte) (newData []byte, err e
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
 	}()
-	newData = data[1:]
+	newData = data
+	if newData[0] != m.Type() {
+		return nil, fmt.Errorf("Invalid Message type")
+	}
+	newData = newData[1:]
 
 	t := new(interfaces.Timestamp)
 	newData, err = t.UnmarshalBinaryData(newData)
@@ -245,9 +249,9 @@ func (m *RevealEntryMsg) UnmarshalBinary(data []byte) error {
 }
 
 func (m *RevealEntryMsg) MarshalBinary() (data []byte, err error) {
-	var buf bytes.Buffer
+	var buf primitives.Buffer
 
-	binary.Write(&buf, binary.BigEndian, byte(m.Type()))
+	binary.Write(&buf, binary.BigEndian, m.Type())
 
 	t := m.GetTimestamp()
 	data, err = t.MarshalBinary()
@@ -262,7 +266,7 @@ func (m *RevealEntryMsg) MarshalBinary() (data []byte, err error) {
 	}
 	buf.Write(data)
 
-	return buf.Bytes(), nil
+	return buf.DeepCopyBytes(), nil
 }
 
 func (m *RevealEntryMsg) String() string {

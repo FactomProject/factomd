@@ -32,12 +32,12 @@ func NewEndOfMinuteEntry(minuteNumber byte) *EndOfMinuteEntry {
 }
 
 func (e *EndOfMinuteEntry) MarshalBinary() (data []byte, err error) {
-	var buf bytes.Buffer
+	var buf primitives.Buffer
 
 	buf.Write([]byte{e.Type()})
 	buf.Write([]byte{e.MinuteNumber})
 
-	return buf.Bytes(), nil
+	return buf.DeepCopyBytes(), nil
 }
 
 func (e *EndOfMinuteEntry) UnmarshalBinaryData(data []byte) (newData []byte, err error) {

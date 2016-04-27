@@ -48,7 +48,7 @@ func (m *DataResponse) GetMsgHash() interfaces.IHash {
 	return m.MsgHash
 }
 
-func (m *DataResponse) Type() int {
+func (m *DataResponse) Type() byte {
 	return constants.DATA_RESPONSE
 }
 
@@ -201,8 +201,11 @@ func (m *DataResponse) UnmarshalBinaryData(data []byte) (newData []byte, err err
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
 	}()
-
-	newData = data[1:]
+	newData = data
+	if newData[0] != m.Type() {
+		return nil, fmt.Errorf("Invalid Message type")
+	}
+	newData = newData[1:]
 
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
@@ -276,8 +279,8 @@ func attemptEBlockUnmarshal(data []byte) (eblock interfaces.IEntryBlock, err err
 }
 
 func (m *DataResponse) MarshalBinary() ([]byte, error) {
-	var buf bytes.Buffer
-	buf.Write([]byte{byte(m.Type())})
+	var buf primitives.Buffer
+	buf.Write([]byte{m.Type()})
 	if d, err := m.Timestamp.MarshalBinary(); err != nil {
 		return nil, err
 	} else {
@@ -313,7 +316,7 @@ func (m *DataResponse) MarshalBinary() ([]byte, error) {
 		}
 	}
 
-	return buf.Bytes(), nil
+	return buf.DeepCopyBytes(), nil
 }
 
 func (m *DataResponse) String() string {

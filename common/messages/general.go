@@ -20,7 +20,7 @@ func UnmarshalMessage(data []byte) (interfaces.IMsg, error) {
 	if len(data) == 0 {
 		return nil, fmt.Errorf("No data provided")
 	}
-	messageType := int(data[0])
+	messageType := data[0]
 	var msg interfaces.IMsg
 	switch messageType {
 	case constants.EOM_MSG:
@@ -77,7 +77,7 @@ func UnmarshalMessage(data []byte) (interfaces.IMsg, error) {
 
 }
 
-func MessageName(Type int) string {
+func MessageName(Type byte) string {
 	switch Type {
 	case constants.EOM_MSG:
 		return "EOM"

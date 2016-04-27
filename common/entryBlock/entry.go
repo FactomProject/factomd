@@ -117,11 +117,11 @@ func (e *Entry) GetHash() interfaces.IHash {
 }
 
 func (e *Entry) MarshalBinary() ([]byte, error) {
-	buf := new(bytes.Buffer)
+	buf := new(primitives.Buffer)
 
 	// 1 byte Version
 	if err := binary.Write(buf, binary.BigEndian, e.Version); err != nil {
-		return buf.Bytes(), err
+		return nil, err
 	}
 
 	// 32 byte ChainID
@@ -129,11 +129,11 @@ func (e *Entry) MarshalBinary() ([]byte, error) {
 
 	// ExtIDs
 	if ext, err := e.MarshalExtIDsBinary(); err != nil {
-		return buf.Bytes(), err
+		return nil, err
 	} else {
 		// 2 byte size of ExtIDs
 		if err := binary.Write(buf, binary.BigEndian, int16(len(ext))); err != nil {
-			return buf.Bytes(), err
+			return nil, err
 		}
 
 		// binary ExtIDs
@@ -143,25 +143,25 @@ func (e *Entry) MarshalBinary() ([]byte, error) {
 	// Content
 	buf.Write(e.Content)
 
-	return buf.Bytes(), nil
+	return buf.DeepCopyBytes(), nil
 }
 
 // MarshalExtIDsBinary marshals the ExtIDs into a []byte containing a series of
 // 2 byte size of each ExtID followed by the ExtID.
 func (e *Entry) MarshalExtIDsBinary() ([]byte, error) {
-	buf := new(bytes.Buffer)
+	buf := new(primitives.Buffer)
 
 	for _, x := range e.ExtIDs {
 		// 2 byte size of the ExtID
 		if err := binary.Write(buf, binary.BigEndian, uint16(len(x))); err != nil {
-			return buf.Bytes(), err
+			return nil, err
 		}
 
 		// ExtID bytes
 		buf.Write(x)
 	}
 
-	return buf.Bytes(), nil
+	return buf.DeepCopyBytes(), nil
 }
 
 func UnmarshalEntry(data []byte) (interfaces.IEBEntry, error) {
@@ -174,7 +174,7 @@ func UnmarshalEntry(data []byte) (interfaces.IEBEntry, error) {
 }
 
 func (e *Entry) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	buf := bytes.NewBuffer(data)
+	buf := primitives.NewBuffer(data)
 	hash := make([]byte, 32)
 
 	// 1 byte Version
@@ -227,7 +227,7 @@ func (e *Entry) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	}
 
 	// Content
-	e.Content = buf.Bytes()
+	e.Content = buf.DeepCopyBytes()
 
 	return
 }

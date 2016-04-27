@@ -34,13 +34,13 @@ func (c *RevealMatryoshkaHash) UpdateState(state interfaces.IState) {
 }
 
 func (e *RevealMatryoshkaHash) MarshalBinary() (data []byte, err error) {
-	var buf bytes.Buffer
+	var buf primitives.Buffer
 
 	buf.Write([]byte{e.Type()})
 	buf.Write(e.IdentityChainID.Bytes())
 	buf.Write(e.MHash.Bytes())
 
-	return buf.Bytes(), nil
+	return buf.DeepCopyBytes(), nil
 }
 
 func (e *RevealMatryoshkaHash) UnmarshalBinaryData(data []byte) (newData []byte, err error) {

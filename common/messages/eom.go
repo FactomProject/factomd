@@ -73,7 +73,7 @@ func (m *EOM) Bytes() []byte {
 	return append(ret, m.Minute)
 }
 
-func (m *EOM) Type() int {
+func (m *EOM) Type() byte {
 	return constants.EOM_MSG
 }
 
@@ -161,7 +161,11 @@ func (m *EOM) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 			err = fmt.Errorf("Error unmarshalling EOM message: %v", r)
 		}
 	}()
-	newData = data[1:]
+	newData = data
+	if newData[0] != m.Type() {
+		return nil, fmt.Errorf("Invalid Message type")
+	}
+	newData = newData[1:]
 
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
@@ -203,8 +207,8 @@ func (m *EOM) UnmarshalBinary(data []byte) error {
 }
 
 func (m *EOM) MarshalForSignature() (data []byte, err error) {
-	var buf bytes.Buffer
-	buf.Write([]byte{byte(m.Type())})
+	var buf primitives.Buffer
+	buf.Write([]byte{m.Type()})
 	if d, err := m.Timestamp.MarshalBinary(); err != nil {
 		return nil, err
 	} else {
@@ -219,11 +223,11 @@ func (m *EOM) MarshalForSignature() (data []byte, err error) {
 
 	binary.Write(&buf, binary.BigEndian, m.Minute)
 	binary.Write(&buf, binary.BigEndian, uint8(m.VMIndex))
-	return buf.Bytes(), nil
+	return buf.DeepCopyBytes(), nil
 }
 
 func (m *EOM) MarshalBinary() (data []byte, err error) {
-	var buf bytes.Buffer
+	var buf primitives.Buffer
 	resp, err := m.MarshalForSignature()
 	if err != nil {
 		return nil, err
@@ -240,7 +244,7 @@ func (m *EOM) MarshalBinary() (data []byte, err error) {
 		}
 		buf.Write(sigBytes)
 	}
-	return buf.Bytes(), nil
+	return buf.DeepCopyBytes(), nil
 }
 
 func (m *EOM) String() string {

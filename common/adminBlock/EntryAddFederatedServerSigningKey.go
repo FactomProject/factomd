@@ -36,7 +36,7 @@ func (e *AddFederatedServerSigningKey) Type() byte {
 }
 
 func (e *AddFederatedServerSigningKey) MarshalBinary() ([]byte, error) {
-	var buf bytes.Buffer
+	var buf primitives.Buffer
 
 	buf.Write([]byte{e.Type()})
 
@@ -54,7 +54,7 @@ func (e *AddFederatedServerSigningKey) MarshalBinary() ([]byte, error) {
 	}
 	buf.Write(data)
 
-	return buf.Bytes(), nil
+	return buf.DeepCopyBytes(), nil
 }
 
 func (e *AddFederatedServerSigningKey) UnmarshalBinaryData(data []byte) (newData []byte, err error) {

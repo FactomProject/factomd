@@ -92,7 +92,7 @@ func (m *Ack) GetMsgHash() interfaces.IHash {
 	return m.MsgHash
 }
 
-func (m *Ack) Type() int {
+func (m *Ack) Type() byte {
 	return constants.ACK_MSG
 }
 
@@ -186,8 +186,12 @@ func (m *Ack) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
 	}()
+	newData = data
+	if newData[0] != m.Type() {
+		return nil, fmt.Errorf("Invalid Message type")
+	}
+	newData = newData[1:]
 
-	newData = data[1:]
 	m.VMIndex, newData = int(newData[0]), newData[1:]
 
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
@@ -228,9 +232,9 @@ func (m *Ack) UnmarshalBinary(data []byte) error {
 }
 
 func (m *Ack) MarshalForSignature() ([]byte, error) {
-	var buf bytes.Buffer
+	var buf primitives.Buffer
 
-	binary.Write(&buf, binary.BigEndian, byte(m.Type()))
+	binary.Write(&buf, binary.BigEndian, m.Type())
 	binary.Write(&buf, binary.BigEndian, byte(m.VMIndex))
 
 	t := m.GetTimestamp()
@@ -255,7 +259,7 @@ func (m *Ack) MarshalForSignature() ([]byte, error) {
 	}
 	buf.Write(data)
 
-	return buf.Bytes(), nil
+	return buf.DeepCopyBytes(), nil
 }
 
 func (m *Ack) MarshalBinary() (data []byte, err error) {

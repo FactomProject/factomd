@@ -17,7 +17,7 @@ type IMsg interface {
 	BinaryMarshallable
 
 	// Returns a byte indicating the type of message.
-	Type() int
+	Type() byte
 
 	// A local message is never broadcast to the greater network.
 	IsLocal() bool

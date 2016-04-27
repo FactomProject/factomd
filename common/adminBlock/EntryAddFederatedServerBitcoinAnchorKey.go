@@ -38,7 +38,7 @@ func (e *AddFederatedServerBitcoinAnchorKey) Type() byte {
 }
 
 func (e *AddFederatedServerBitcoinAnchorKey) MarshalBinary() ([]byte, error) {
-	var buf bytes.Buffer
+	var buf primitives.Buffer
 
 	buf.Write([]byte{e.Type()})
 
@@ -57,7 +57,7 @@ func (e *AddFederatedServerBitcoinAnchorKey) MarshalBinary() ([]byte, error) {
 	}
 	buf.Write(data)
 
-	return buf.Bytes(), nil
+	return buf.DeepCopyBytes(), nil
 }
 
 func (e *AddFederatedServerBitcoinAnchorKey) UnmarshalBinaryData(data []byte) (newData []byte, err error) {

@@ -99,7 +99,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 // Build the report to show on the web page
 // Standard html (like <br> etc.) can be used.
 func handlerGetReport(w http.ResponseWriter, r *http.Request) {
-	var out bytes.Buffer
+	var out primitives.Buffer
 	since := time.Since(CP.LastCommunication())
 	out.WriteString("Last update: ")
 	if int(since.Hours()) > 0 {
@@ -149,7 +149,7 @@ func handlerGetReport(w http.ResponseWriter, r *http.Request) {
 		}
 		out.WriteString("</OL>")
 	}
-	fmt.Fprint(w, string(out.Bytes()))
+	fmt.Fprint(w, string(out.DeepCopyBytes()))
 }
 
 func handlerGetReport2(w http.ResponseWriter, r *http.Request) {

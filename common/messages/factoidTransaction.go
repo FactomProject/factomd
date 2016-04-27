@@ -59,7 +59,7 @@ func (m *FactoidTransaction) SetTransaction(transaction interfaces.ITransaction)
 	m.Transaction = transaction
 }
 
-func (m *FactoidTransaction) Type() int {
+func (m *FactoidTransaction) Type() byte {
 	return constants.FACTOID_TRANSACTION_MSG
 }
 
@@ -97,7 +97,6 @@ func (m *FactoidTransaction) FollowerExecute(state interfaces.IState) error {
 }
 
 func (m *FactoidTransaction) Process(dbheight uint32, state interfaces.IState) bool {
-
 	if m.processed {
 		return true
 	}
@@ -142,8 +141,11 @@ func (m *FactoidTransaction) UnmarshalBinaryData(data []byte) (newData []byte, e
 			err = fmt.Errorf("Error unmarshalling Factoid: %v", r)
 		}
 	}()
-
-	newData = data[1:]
+	newData = data
+	if newData[0] != m.Type() {
+		return nil, fmt.Errorf("Invalid Message type")
+	}
+	newData = newData[1:]
 
 	return m.UnmarshalTransData(newData)
 }
@@ -158,7 +160,7 @@ func (m *FactoidTransaction) MarshalBinary() (data []byte, err error) {
 	if err != nil {
 		return nil, err
 	}
-	data = append([]byte{byte(m.Type())}, data...)
+	data = append([]byte{m.Type()}, data...)
 	return data, nil
 }
 
