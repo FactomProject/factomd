@@ -73,7 +73,6 @@ func (f *P2PPeer) Recieve() (interfaces.IMsg, error) {
 		case data, ok := <-f.BroadcastIn:
 			if ok {
 				msg, err := messages.UnmarshalMessage(data)
-				// note("Recieved message: %+v", msg)
 				return msg, err
 			}
 		default:
