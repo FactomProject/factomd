@@ -5,9 +5,10 @@
 package messages_test
 
 import (
+	"testing"
+
 	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/messages"
-	"testing"
 
 	"github.com/FactomProject/factomd/common/primitives"
 )
@@ -95,7 +96,7 @@ func newAck() *Ack {
 	ack.MessageHash = hash
 	ack.DBHeight = 123
 	ack.Height = 456
-	ack.ServerIndex = 125
+	//ack.ServerIndex = 125
 
 	hash, err = primitives.NewShaHashFromStr("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
 	if err != nil {
