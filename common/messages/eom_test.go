@@ -91,6 +91,5 @@ func newEOM() *EOM {
 	}
 	eom.ChainID = h
 	eom.DBHeight = 123456
-	eom.ServerIndex = 5
 	return eom
 }

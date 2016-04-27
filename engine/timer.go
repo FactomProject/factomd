@@ -37,7 +37,8 @@ func Timer(state interfaces.IState) {
 	for {
 		found, _ := state.GetVirtualServers(lastDBHeight, 0, state.GetIdentityChainID())
 		sent := false
-	    minloop: for i := 0; i < 10; i++ {
+	minloop:
+		for i := 0; i < 10; i++ {
 			now = time.Now().UnixNano()
 			wait := next - now
 			if now > next {
@@ -87,9 +88,9 @@ func Timer(state interfaces.IState) {
 						DBS.VMIndex = vmIndex
 						state.TimerMsgQueue() <- eom
 						state.TimerMsgQueue() <- DBS
-          			} else {
+					} else {
 						state.TimerMsgQueue() <- eom
-     				}
+					}
 				}
 
 			}

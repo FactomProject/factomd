@@ -56,7 +56,7 @@ func (m *MissingData) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp
 }
 
-func (m *MissingData) Type() int {
+func (m *MissingData) Type() byte {
 	return constants.MISSING_DATA
 }
 
@@ -74,8 +74,11 @@ func (m *MissingData) UnmarshalBinaryData(data []byte) (newData []byte, err erro
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
 	}()
-
-	newData = data[1:]
+	newData = data
+	if newData[0] != m.Type() {
+		return nil, fmt.Errorf("Invalid Message type")
+	}
+	newData = newData[1:]
 
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
@@ -100,7 +103,7 @@ func (m *MissingData) UnmarshalBinary(data []byte) error {
 
 func (m *MissingData) MarshalBinary() ([]byte, error) {
 	var buf primitives.Buffer
-	buf.Write([]byte{byte(m.Type())})
+	buf.Write([]byte{m.Type()})
 	if d, err := m.Timestamp.MarshalBinary(); err != nil {
 		return nil, err
 	} else {

@@ -59,7 +59,7 @@ func (m *AddServerMsg) GetMsgHash() interfaces.IHash {
 	return m.MsgHash
 }
 
-func (m *AddServerMsg) Type() int {
+func (m *AddServerMsg) Type() byte {
 	return constants.ADDSERVER_MSG
 }
 
@@ -161,8 +161,11 @@ func (m *AddServerMsg) UnmarshalBinaryData(data []byte) (newData []byte, err err
 			err = fmt.Errorf("Error unmarshalling Add Server Message: %v", r)
 		}
 	}()
-
-	newData = data[1:] // Skip our type;  Someone else's problem.
+	newData = data
+	if newData[0] != m.Type() {
+		return nil, fmt.Errorf("Invalid Message type")
+	}
+	newData = newData[1:]
 
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
@@ -193,7 +196,7 @@ func (m *AddServerMsg) UnmarshalBinary(data []byte) error {
 func (m *AddServerMsg) MarshalForSignature() ([]byte, error) {
 	var buf primitives.Buffer
 
-	binary.Write(&buf, binary.BigEndian, byte(m.Type()))
+	binary.Write(&buf, binary.BigEndian, m.Type())
 
 	t := m.GetTimestamp()
 	data, err := t.MarshalBinary()

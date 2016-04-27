@@ -57,7 +57,7 @@ func (m *DBStateMsg) GetMsgHash() interfaces.IHash {
 	return m.MsgHash
 }
 
-func (m *DBStateMsg) Type() int {
+func (m *DBStateMsg) Type() byte {
 	return constants.DBSTATE_MSG
 }
 
@@ -138,10 +138,13 @@ func (m *DBStateMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error
 			err = fmt.Errorf("Error unmarshalling Directory Block State Message: %v", r)
 		}
 	}()
+	newData = data
+	if newData[0] != m.Type() {
+		return nil, fmt.Errorf("Invalid Message type")
+	}
+	newData = newData[1:]
 
 	m.Peer2peer = true
-
-	newData = data[1:] // Skip our type;  Someone else's problem.
 
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
@@ -211,7 +214,7 @@ func (m *DBStateMsg) UnmarshalBinary(data []byte) error {
 func (m *DBStateMsg) MarshalForSignature() ([]byte, error) {
 	var buf primitives.Buffer
 
-	binary.Write(&buf, binary.BigEndian, byte(m.Type()))
+	binary.Write(&buf, binary.BigEndian, m.Type())
 
 	t := m.GetTimestamp()
 	data, err := t.MarshalBinary()

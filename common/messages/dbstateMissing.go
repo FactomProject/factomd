@@ -46,7 +46,7 @@ func (m *DBStateMissing) GetMsgHash() interfaces.IHash {
 	return m.MsgHash
 }
 
-func (m *DBStateMissing) Type() int {
+func (m *DBStateMissing) Type() byte {
 	return constants.DBSTATE_MISSING_MSG
 }
 
@@ -133,10 +133,13 @@ func (m *DBStateMissing) UnmarshalBinaryData(data []byte) (newData []byte, err e
 			err = fmt.Errorf("Error unmarshalling Directory Block State Missing Message: %v", r)
 		}
 	}()
+	newData = data
+	if newData[0] != m.Type() {
+		return nil, fmt.Errorf("Invalid Message type")
+	}
+	newData = newData[1:]
 
 	m.Peer2peer = true // This is always a Peer2peer message
-
-	newData = data[1:] // Skip our type;  Someone else's problem.
 
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
@@ -157,7 +160,7 @@ func (m *DBStateMissing) UnmarshalBinary(data []byte) error {
 func (m *DBStateMissing) MarshalForSignature() ([]byte, error) {
 	var buf primitives.Buffer
 
-	binary.Write(&buf, binary.BigEndian, byte(m.Type()))
+	binary.Write(&buf, binary.BigEndian, m.Type())
 
 	t := m.GetTimestamp()
 	data, err := t.MarshalBinary()

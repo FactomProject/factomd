@@ -73,7 +73,7 @@ func (m *EOM) Bytes() []byte {
 	return append(ret, m.Minute)
 }
 
-func (m *EOM) Type() int {
+func (m *EOM) Type() byte {
 	return constants.EOM_MSG
 }
 
@@ -161,7 +161,11 @@ func (m *EOM) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 			err = fmt.Errorf("Error unmarshalling EOM message: %v", r)
 		}
 	}()
-	newData = data[1:]
+	newData = data
+	if newData[0] != m.Type() {
+		return nil, fmt.Errorf("Invalid Message type")
+	}
+	newData = newData[1:]
 
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
@@ -204,7 +208,7 @@ func (m *EOM) UnmarshalBinary(data []byte) error {
 
 func (m *EOM) MarshalForSignature() (data []byte, err error) {
 	var buf primitives.Buffer
-	buf.Write([]byte{byte(m.Type())})
+	buf.Write([]byte{m.Type()})
 	if d, err := m.Timestamp.MarshalBinary(); err != nil {
 		return nil, err
 	} else {

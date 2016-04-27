@@ -106,7 +106,6 @@ func (list *DBStateList) GetHighestRecordedBlock() uint32 {
 // Once a second at most, we check to see if we need to pull down some blocks to catch up.
 func (list *DBStateList) Catchup() {
 
-
 	now := list.State.GetTimestamp()
 
 	dbsHeight := list.GetHighestRecordedBlock()

@@ -51,7 +51,7 @@ func (m *RequestBlock) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp
 }
 
-func (m *RequestBlock) Type() int {
+func (m *RequestBlock) Type() byte {
 	return constants.REQUEST_BLOCK_MSG
 }
 
@@ -63,12 +63,17 @@ func (m *RequestBlock) Bytes() []byte {
 	return nil
 }
 
-func (m *RequestBlock) UnmarshalBinaryData(data []byte) (newdata []byte, err error) {
+func (m *RequestBlock) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
 	}()
+	newData = data
+	if newData[0] != m.Type() {
+		return nil, fmt.Errorf("Invalid Message type")
+	}
+	newData = newData[1:]
 
 	return nil, nil
 }

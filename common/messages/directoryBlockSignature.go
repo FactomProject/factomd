@@ -52,7 +52,7 @@ func (m *DirectoryBlockSignature) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp
 }
 
-func (m *DirectoryBlockSignature) Type() int {
+func (m *DirectoryBlockSignature) Type() byte {
 	return constants.DIRECTORY_BLOCK_SIGNATURE_MSG
 }
 
@@ -146,9 +146,11 @@ func (m *DirectoryBlockSignature) UnmarshalBinaryData(data []byte) (newData []by
 			err = fmt.Errorf("Error unmarshalling Directory Block Signing Message: %v", r)
 		}
 	}()
-
-	// Type byte:  Someone else's problem.
-	newData = data[1:]
+	newData = data
+	if newData[0] != m.Type() {
+		return nil, fmt.Errorf("Invalid Message type")
+	}
+	newData = newData[1:]
 
 	// TimeStamp
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
@@ -196,7 +198,7 @@ func (m *DirectoryBlockSignature) MarshalForSignature() ([]byte, error) {
 	}
 
 	var buf primitives.Buffer
-	buf.Write([]byte{byte(m.Type())})
+	buf.Write([]byte{m.Type()})
 
 	t := m.GetTimestamp()
 	data, err := t.MarshalBinary()

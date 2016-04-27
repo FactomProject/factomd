@@ -96,7 +96,7 @@ func (m *CommitEntryMsg) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp
 }
 
-func (m *CommitEntryMsg) Type() int {
+func (m *CommitEntryMsg) Type() byte {
 	return constants.COMMIT_ENTRY_MSG
 }
 
@@ -131,7 +131,11 @@ func (m *CommitEntryMsg) UnmarshalBinaryData(data []byte) (newData []byte, err e
 			err = fmt.Errorf("Error unmarshalling Commit entry Message: %v", r)
 		}
 	}()
-	newData = data[1:]
+	newData = data
+	if newData[0] != m.Type() {
+		return nil, fmt.Errorf("Invalid Message type")
+	}
+	newData = newData[1:]
 
 	t := new(interfaces.Timestamp)
 	newData, err = t.UnmarshalBinaryData(newData)
@@ -166,7 +170,7 @@ func (m *CommitEntryMsg) UnmarshalBinary(data []byte) error {
 func (m *CommitEntryMsg) MarshalForSignature() (data []byte, err error) {
 	var buf primitives.Buffer
 
-	binary.Write(&buf, binary.BigEndian, byte(m.Type()))
+	binary.Write(&buf, binary.BigEndian, m.Type())
 
 	t := m.GetTimestamp()
 	data, err = t.MarshalBinary()
