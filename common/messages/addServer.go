@@ -9,6 +9,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -20,6 +21,7 @@ type AddServerMsg struct {
 	MessageBase
 	Timestamp     interfaces.Timestamp // Message Timestamp
 	ServerChainID interfaces.IHash     // ChainID of new server
+	ServerType    int                  // 0 = Federated, 1 = Audit
 
 	Signature interfaces.IFullSignature
 }
@@ -31,6 +33,9 @@ func (m *AddServerMsg) IsSameAs(b *AddServerMsg) bool {
 		return false
 	}
 	if !m.ServerChainID.IsSameAs(b.ServerChainID) {
+		return false
+	}
+	if m.ServerType != b.ServerType {
 		return false
 	}
 	if m.Signature == nil && b.Signature != nil {
@@ -178,6 +183,9 @@ func (m *AddServerMsg) UnmarshalBinaryData(data []byte) (newData []byte, err err
 		return nil, err
 	}
 
+	m.ServerType = int(newData[0])
+	newData = newData[1:]
+
 	if len(newData) > 32 {
 		m.Signature = new(primitives.Signature)
 		newData, err = m.Signature.UnmarshalBinaryData(newData)
@@ -211,6 +219,8 @@ func (m *AddServerMsg) MarshalForSignature() ([]byte, error) {
 	}
 	buf.Write(data)
 
+	binary.Write(&buf, binary.BigEndian, uint8(m.ServerType))
+
 	return buf.DeepCopyBytes(), nil
 }
 
@@ -235,12 +245,19 @@ func (m *AddServerMsg) MarshalBinary() ([]byte, error) {
 }
 
 func (m *AddServerMsg) String() string {
-	return fmt.Sprintf("AddServer: ChainID: %s Time: %v", m.ServerChainID.String(), m.Timestamp)
+	var stype string
+	if m.ServerType == 0 {
+		stype = "Federated"
+	} else {
+		stype = "Audit"
+	}
+	return fmt.Sprintf("AddServer (%s): ChainID: %s Time: %v ", stype, m.ServerChainID.String(), m.Timestamp)
 }
 
-func NewAddServerMsg(state interfaces.IState) interfaces.IMsg {
+func NewAddServerMsg(state interfaces.IState, serverType int) interfaces.IMsg {
 	msg := new(AddServerMsg)
 	msg.ServerChainID = state.GetIdentityChainID()
+	msg.ServerType = serverType
 	msg.Timestamp = state.GetTimestamp()
 
 	return msg

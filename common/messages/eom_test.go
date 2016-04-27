@@ -5,9 +5,10 @@
 package messages_test
 
 import (
+	"testing"
+
 	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/messages"
-	"testing"
 
 	"github.com/FactomProject/factomd/common/primitives"
 )
@@ -91,5 +92,6 @@ func newEOM() *EOM {
 	}
 	eom.ChainID = h
 	eom.DBHeight = 123456
+
 	return eom
 }

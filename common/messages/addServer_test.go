@@ -5,10 +5,11 @@
 package messages_test
 
 import (
+	"testing"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/messages"
-	"testing"
 
 	"github.com/FactomProject/factomd/common/primitives"
 )
@@ -101,6 +102,7 @@ func newAddServer() *AddServerMsg {
 	ts.SetTimeNow()
 	addserv.Timestamp = *ts
 	addserv.ServerChainID = primitives.Sha([]byte("FNode0"))
+	addserv.ServerType = 0
 	return addserv
 }
 

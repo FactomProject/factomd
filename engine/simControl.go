@@ -179,7 +179,7 @@ func SimControl(listenTo int) {
 					fnode.State.SetOut(false)
 				}
 				mLog.all = false
-				msg := messages.NewAddServerMsg(fnodes[listenTo].State)
+				msg := messages.NewAddServerMsg(fnodes[listenTo].State, 0)
 				fnodes[listenTo].State.InMsgQueue() <- msg
 				os.Stderr.WriteString(fmt.Sprintln("Attempting to make", fnodes[listenTo].State.GetFactomNodeName(), "a Leader"))
 			case '?' == b[0], 'H' == b[0], 'h' == b[0]:
