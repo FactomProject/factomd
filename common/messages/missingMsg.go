@@ -100,7 +100,7 @@ func (m *MissingMsg) UnmarshalBinary(data []byte) error {
 }
 
 func (m *MissingMsg) MarshalBinary() ([]byte, error) {
-	var buf bytes.Buffer
+	var buf primitives.Buffer
 
 	binary.Write(&buf, binary.BigEndian, byte(m.Type()))
 
@@ -116,8 +116,9 @@ func (m *MissingMsg) MarshalBinary() ([]byte, error) {
 
 	var mmm MissingMsg
 
-	bb := buf.Bytes()
+	bb := buf.DeepCopyBytes()
 
+	//TODO: delete this once we have unit tests
 	if unmarshalErr := mmm.UnmarshalBinary(bb); unmarshalErr != nil {
 		return nil, unmarshalErr
 	}

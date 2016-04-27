@@ -155,8 +155,7 @@ func (m *DBStateMissing) UnmarshalBinary(data []byte) error {
 }
 
 func (m *DBStateMissing) MarshalForSignature() ([]byte, error) {
-
-	var buf bytes.Buffer
+	var buf primitives.Buffer
 
 	binary.Write(&buf, binary.BigEndian, byte(m.Type()))
 
@@ -170,7 +169,7 @@ func (m *DBStateMissing) MarshalForSignature() ([]byte, error) {
 	binary.Write(&buf, binary.BigEndian, m.DBHeightStart)
 	binary.Write(&buf, binary.BigEndian, m.DBHeightEnd)
 
-	return buf.Bytes(), nil
+	return buf.DeepCopyBytes(), nil
 }
 
 func (m *DBStateMissing) MarshalBinary() ([]byte, error) {

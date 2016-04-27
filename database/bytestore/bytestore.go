@@ -75,10 +75,10 @@ func (b *ByteStore) UnmarshalBinary(data []byte) error {
 }
 
 func (b ByteStore) MarshalBinary() ([]byte, error) {
-	var out bytes.Buffer
+	var out primitives.Buffer
 	binary.Write(&out, binary.BigEndian, uint32(len(b.byteData)))
 	out.Write(b.byteData)
-	return out.Bytes(), nil
+	return out.DeepCopyBytes(), nil
 }
 
 func (b1 ByteStore) IsEqual(b interfaces.IBlock) []interfaces.IBlock {

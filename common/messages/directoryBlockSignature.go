@@ -191,12 +191,11 @@ func (m *DirectoryBlockSignature) UnmarshalBinary(data []byte) error {
 }
 
 func (m *DirectoryBlockSignature) MarshalForSignature() ([]byte, error) {
-
 	if m.DirectoryBlockKeyMR == nil {
 		m.DirectoryBlockKeyMR = new(primitives.Hash)
 	}
 
-	var buf bytes.Buffer
+	var buf primitives.Buffer
 	buf.Write([]byte{byte(m.Type())})
 
 	t := m.GetTimestamp()
@@ -221,7 +220,7 @@ func (m *DirectoryBlockSignature) MarshalForSignature() ([]byte, error) {
 	}
 	buf.Write(hash)
 
-	return buf.Bytes(), nil
+	return buf.DeepCopyBytes(), nil
 }
 
 func (m *DirectoryBlockSignature) MarshalBinary() (data []byte, err error) {

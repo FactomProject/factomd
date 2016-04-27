@@ -203,7 +203,7 @@ func (m *EOM) UnmarshalBinary(data []byte) error {
 }
 
 func (m *EOM) MarshalForSignature() (data []byte, err error) {
-	var buf bytes.Buffer
+	var buf primitives.Buffer
 	buf.Write([]byte{byte(m.Type())})
 	if d, err := m.Timestamp.MarshalBinary(); err != nil {
 		return nil, err
@@ -219,11 +219,11 @@ func (m *EOM) MarshalForSignature() (data []byte, err error) {
 
 	binary.Write(&buf, binary.BigEndian, m.Minute)
 	binary.Write(&buf, binary.BigEndian, uint8(m.VMIndex))
-	return buf.Bytes(), nil
+	return buf.DeepCopyBytes(), nil
 }
 
 func (m *EOM) MarshalBinary() (data []byte, err error) {
-	var buf bytes.Buffer
+	var buf primitives.Buffer
 	resp, err := m.MarshalForSignature()
 	if err != nil {
 		return nil, err
@@ -240,7 +240,7 @@ func (m *EOM) MarshalBinary() (data []byte, err error) {
 		}
 		buf.Write(sigBytes)
 	}
-	return buf.Bytes(), nil
+	return buf.DeepCopyBytes(), nil
 }
 
 func (m *EOM) String() string {

@@ -5,7 +5,6 @@
 package primitives
 
 import (
-	"bytes"
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
@@ -147,9 +146,9 @@ func (k *PublicKey) Verify(msg []byte, sig *[ed25519.SignatureSize]byte) bool {
 }
 
 func (k *PublicKey) MarshalBinary() ([]byte, error) {
-	var buf bytes.Buffer
+	var buf Buffer
 	buf.Write(k[:])
-	return buf.Bytes(), nil
+	return buf.DeepCopyBytes(), nil
 }
 
 func (k *PublicKey) UnmarshalBinaryData(p []byte) ([]byte, error) {

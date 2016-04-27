@@ -276,7 +276,7 @@ func attemptEBlockUnmarshal(data []byte) (eblock interfaces.IEntryBlock, err err
 }
 
 func (m *DataResponse) MarshalBinary() ([]byte, error) {
-	var buf bytes.Buffer
+	var buf primitives.Buffer
 	buf.Write([]byte{byte(m.Type())})
 	if d, err := m.Timestamp.MarshalBinary(); err != nil {
 		return nil, err
@@ -313,7 +313,7 @@ func (m *DataResponse) MarshalBinary() ([]byte, error) {
 		}
 	}
 
-	return buf.Bytes(), nil
+	return buf.DeepCopyBytes(), nil
 }
 
 func (m *DataResponse) String() string {

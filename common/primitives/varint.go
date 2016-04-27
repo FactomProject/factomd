@@ -107,7 +107,6 @@ func DecodeVarIntBTC(data []byte) (uint64, []byte) {
 
 // Encode an integer as a variable int into the given data buffer.
 func EncodeVarIntBTC(out *bytes.Buffer, v uint64) error {
-
 	var err error
 	switch {
 	case v < 0xfd:

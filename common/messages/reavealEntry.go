@@ -245,7 +245,7 @@ func (m *RevealEntryMsg) UnmarshalBinary(data []byte) error {
 }
 
 func (m *RevealEntryMsg) MarshalBinary() (data []byte, err error) {
-	var buf bytes.Buffer
+	var buf primitives.Buffer
 
 	binary.Write(&buf, binary.BigEndian, byte(m.Type()))
 
@@ -262,7 +262,7 @@ func (m *RevealEntryMsg) MarshalBinary() (data []byte, err error) {
 	}
 	buf.Write(data)
 
-	return buf.Bytes(), nil
+	return buf.DeepCopyBytes(), nil
 }
 
 func (m *RevealEntryMsg) String() string {

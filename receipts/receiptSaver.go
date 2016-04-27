@@ -32,7 +32,7 @@ func Save(receipt *Receipt) error {
 
 	var out bytes.Buffer
 	json.Indent(&out, data, "", "\t")
-	data = out.Bytes()
+	data = out.Next(out.Len())
 
 	entryID := receipt.Entry.Key
 	dir := DataStorePath // + entryID

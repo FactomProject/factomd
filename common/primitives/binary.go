@@ -18,9 +18,7 @@ type Buffer struct {
 }
 
 func (b *Buffer) DeepCopyBytes() []byte {
-	tmp := make([]byte, b.Len())
-	copy(tmp, b.Bytes())
-	return tmp
+	return b.Next(b.Len())
 }
 
 func NewBuffer(buf []byte) *Buffer {
