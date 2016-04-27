@@ -1,12 +1,12 @@
 package util
 
 import (
-	"bytes"
 	"fmt"
 	"os"
 	"os/user"
 	"time"
 
+	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/log"
 
 	"gopkg.in/gcfg.v1"
@@ -150,7 +150,7 @@ BoltDBPath                            = ""
 `
 
 func (s *FactomdConfig) String() string {
-	var out bytes.Buffer
+	var out primitives.Buffer
 
 	out.WriteString(fmt.Sprintf("\nFactomd Config"))
 	out.WriteString(fmt.Sprintf("\n  App"))

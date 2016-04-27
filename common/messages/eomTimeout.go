@@ -43,7 +43,7 @@ func (m *EOMTimeout) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp
 }
 
-func (m *EOMTimeout) Type() int {
+func (m *EOMTimeout) Type() byte {
 	return constants.EOM_TIMEOUT_MSG
 }
 
@@ -55,12 +55,17 @@ func (m *EOMTimeout) Bytes() []byte {
 	return nil
 }
 
-func (m *EOMTimeout) UnmarshalBinaryData(data []byte) (newdata []byte, err error) {
+func (m *EOMTimeout) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling Eom Timeout: %v", r)
 		}
 	}()
+	newData = data
+	if newData[0] != m.Type() {
+		return nil, fmt.Errorf("Invalid Message type")
+	}
+	newData = newData[1:]
 
 	return nil, nil
 }

@@ -95,7 +95,6 @@ func newAck() *Ack {
 	ack.MessageHash = hash
 	ack.DBHeight = 123
 	ack.Height = 456
-	ack.ServerIndex = 125
 
 	hash, err = primitives.NewShaHashFromStr("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
 	if err != nil {

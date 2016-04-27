@@ -100,9 +100,9 @@ func (p *ProcessList) GetVirtualServers(minute int, identityChainID interfaces.I
 
 	for i, fedix := range p.ServerMap[minute] {
 		if i == interfaces.NumOfVMs {
-            break
-        }
-        if fedix == fedIndex {
+			break
+		}
+		if fedix == fedIndex {
 			indexes = append(indexes, i)
 		}
 	}
@@ -113,9 +113,9 @@ func (p *ProcessList) GetVirtualServers(minute int, identityChainID interfaces.I
 // Returns true and the index of this server, or false and the insertion point for this server
 func (p *ProcessList) GetFedServerIndexHash(identityChainID interfaces.IHash) (bool, int) {
 
-    if p == nil {
-        return false,0
-    }
+	if p == nil {
+		return false, 0
+	}
 
 	scid := identityChainID.Bytes()
 
@@ -252,7 +252,7 @@ func (p *ProcessList) EomComplete() bool {
 	if p == nil {
 		return true
 	}
-	
+
 	for i := 0; i < interfaces.NumOfVMs; i++ {
 		c := p.VMs[i]
 		if c.MinuteComplete != 10 {
@@ -296,10 +296,11 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 	}
 
 	for i := 0; i < interfaces.NumOfVMs; i++ {
-		
-        plist := p.VMs[i].List
 
-        thisVM: for j := p.VMs[i].Height; j < len(plist); j++ {
+		plist := p.VMs[i].List
+
+	thisVM:
+		for j := p.VMs[i].Height; j < len(plist); j++ {
 			if plist[j] == nil {
 				if !state.IsThrottled {
 					missingMsgRequest := messages.NewMissingMsg(state, p.DBHeight, uint32(j))
@@ -315,53 +316,53 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			}
 
 			oldAck, ok := p.OldAcks[plist[j].GetHash().Fixed()]
-            if !ok {
+			if !ok {
 				// the message from OldAcks is not actually of type Ack
 				plist[j] = nil
 				return
 			}
-            thisAck, ok := oldAck.(*messages.Ack)
-            if !ok {
-                // corresponding acknowledgement not found
+			thisAck, ok := oldAck.(*messages.Ack)
+			if !ok {
+				// corresponding acknowledgement not found
 				if state.GetOut() {
 					p.State.Println("!!!!!!! Missing acknowledgement in process list for", j)
 				}
 				plist[j] = nil
 				return
 			}
-             
-            var expectedSerialHash interfaces.IHash
-            var err error
-            last, ok := p.GetLastAck(i).(*messages.Ack)
-            if !ok || last.IsSameAs(thisAck) {
-                expectedSerialHash = thisAck.SerialHash
-            } else {
-                expectedSerialHash, err = primitives.CreateHash(last.MessageHash, thisAck.MessageHash)
-                if err != nil {
-                    // cannot create a expectedSerialHash to compare to
-                    plist[j] = nil
-                    return
-                }
-            }
-            // compare the SerialHash of this acknowledgement with the
-            // expected serialHash (generated above)
-            if !expectedSerialHash.IsSameAs(thisAck.SerialHash) {
-                fmt.Println("DISCREPANCY: ", i, j, "on", state.GetFactomNodeName())
-                fmt.Printf("LAST MESS: %+v ::: LAST SERIAL: %+v\n", last.MessageHash, last.SerialHash)
-                fmt.Printf("THIS MESS: %+v ::: THIS SERIAL: %+v\n", thisAck.MessageHash, thisAck.SerialHash)
-                fmt.Println("EXPECT: ", expectedSerialHash)
-                // the SerialHash of this acknowledgment is incorrect
-                // according to this node's processList
-                plist[j] = nil
-                return
-            }
-            p.SetLastAck(i, thisAck)
-		
+
+			var expectedSerialHash interfaces.IHash
+			var err error
+			last, ok := p.GetLastAck(i).(*messages.Ack)
+			if !ok || last.IsSameAs(thisAck) {
+				expectedSerialHash = thisAck.SerialHash
+			} else {
+				expectedSerialHash, err = primitives.CreateHash(last.MessageHash, thisAck.MessageHash)
+				if err != nil {
+					// cannot create a expectedSerialHash to compare to
+					plist[j] = nil
+					return
+				}
+			}
+			// compare the SerialHash of this acknowledgement with the
+			// expected serialHash (generated above)
+			if !expectedSerialHash.IsSameAs(thisAck.SerialHash) {
+				fmt.Println("DISCREPANCY: ", i, j, "on", state.GetFactomNodeName())
+				fmt.Printf("LAST MESS: %+v ::: LAST SERIAL: %+v\n", last.MessageHash, last.SerialHash)
+				fmt.Printf("THIS MESS: %+v ::: THIS SERIAL: %+v\n", thisAck.MessageHash, thisAck.SerialHash)
+				fmt.Println("EXPECT: ", expectedSerialHash)
+				// the SerialHash of this acknowledgment is incorrect
+				// according to this node's processList
+				plist[j] = nil
+				return
+			}
+			p.SetLastAck(i, thisAck)
+
 			if plist[j].Process(p.DBHeight, state) { // Try and Process this entry
 				p.VMs[i].Height = j + 1 // Don't process it again if the process worked.
-               progress = true
+				progress = true
 			} else {
-				break thisVM            // Don't process further in this list, go to the next.
+				break thisVM // Don't process further in this list, go to the next.
 			}
 		}
 	}
@@ -386,7 +387,7 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 }
 
 func (p *ProcessList) String() string {
-	var buf bytes.Buffer
+	var buf primitives.Buffer
 	if p == nil {
 		buf.WriteString("-- <nil>\n")
 	} else {
@@ -441,8 +442,8 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 		pl.VMs[i].List = make([]interfaces.IMsg, 0)
 
 	}
-    
-    // Make a copy of the previous FedServers
+
+	// Make a copy of the previous FedServers
 	pl.FedServers = make([]interfaces.IFctServer, 0)
 	pl.AuditServers = make([]interfaces.IFctServer, 0)
 	if previous != nil {

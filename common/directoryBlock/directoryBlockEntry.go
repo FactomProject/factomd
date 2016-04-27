@@ -40,7 +40,7 @@ func (c *DBEntry) SetKeyMR(keyMR interfaces.IHash) {
 }
 
 func (e *DBEntry) MarshalBinary() (data []byte, err error) {
-	var buf bytes.Buffer
+	var buf primitives.Buffer
 
 	data, err = e.ChainID.MarshalBinary()
 	if err != nil {
@@ -58,7 +58,7 @@ func (e *DBEntry) MarshalBinary() (data []byte, err error) {
 	}
 	buf.Write(data)
 
-	return buf.Bytes(), nil
+	return buf.DeepCopyBytes(), nil
 }
 
 func (e *DBEntry) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
@@ -106,8 +106,8 @@ func (e *DBEntry) JSONBuffer(b *bytes.Buffer) error {
 }
 
 func (e *DBEntry) String() string {
-	var out bytes.Buffer
+	var out primitives.Buffer
 	out.WriteString("ChainID: " + e.GetChainID().String() + "\n")
 	out.WriteString("KeyMR:   " + e.GetKeyMR().String() + "\n")
-	return (string)(out.Bytes())
+	return (string)(out.DeepCopyBytes())
 }

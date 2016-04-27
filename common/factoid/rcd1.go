@@ -138,20 +138,20 @@ func (t *RCD_1) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 }
 
 func (a RCD_1) MarshalBinary() ([]byte, error) {
-	var out bytes.Buffer
+	var out primitives.Buffer
 	out.WriteByte(byte(1)) // The First Authorization method
 	out.Write(a.PublicKey[:])
 
-	return out.Bytes(), nil
+	return out.DeepCopyBytes(), nil
 }
 
 func (a RCD_1) CustomMarshalText() (text []byte, err error) {
-	var out bytes.Buffer
+	var out primitives.Buffer
 	out.WriteString("RCD 1: ")
 	primitives.WriteNumber8(&out, uint8(1)) // Type Zero Authorization
 	out.WriteString(" ")
 	out.WriteString(hex.EncodeToString(a.PublicKey[:]))
 	out.WriteString("\n")
 
-	return out.Bytes(), nil
+	return out.DeepCopyBytes(), nil
 }

@@ -77,7 +77,7 @@ func (b *ABlockHeader) SetPrevFullHash(FullHash interfaces.IHash) {
 
 // Write out the ABlockHeader to binary.
 func (b *ABlockHeader) MarshalBinary() (data []byte, err error) {
-	var buf bytes.Buffer
+	var buf primitives.Buffer
 
 	data, err = b.GetAdminChainID().MarshalBinary()
 	if err != nil {
@@ -99,7 +99,7 @@ func (b *ABlockHeader) MarshalBinary() (data []byte, err error) {
 	binary.Write(&buf, binary.BigEndian, b.MessageCount)
 	binary.Write(&buf, binary.BigEndian, b.BodySize)
 
-	return buf.Bytes(), err
+	return buf.DeepCopyBytes(), err
 }
 
 func (b *ABlockHeader) UnmarshalBinaryData(data []byte) (newData []byte, err error) {

@@ -51,7 +51,7 @@ func (m *InvalidDirectoryBlock) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp
 }
 
-func (m *InvalidDirectoryBlock) Type() int {
+func (m *InvalidDirectoryBlock) Type() byte {
 	return constants.INVALID_DIRECTORY_BLOCK_MSG
 }
 
@@ -63,12 +63,17 @@ func (m *InvalidDirectoryBlock) Bytes() []byte {
 	return nil
 }
 
-func (m *InvalidDirectoryBlock) UnmarshalBinaryData(data []byte) (newdata []byte, err error) {
+func (m *InvalidDirectoryBlock) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
 	}()
+	newData = data
+	if newData[0] != m.Type() {
+		return nil, fmt.Errorf("Invalid Message type")
+	}
+	newData = newData[1:]
 
 	return nil, nil
 }

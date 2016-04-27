@@ -120,7 +120,7 @@ func (e *ECBlockHeader) String() string {
 }
 
 func (e *ECBlockHeader) MarshalBinary() ([]byte, error) {
-	buf := new(bytes.Buffer)
+	buf := new(primitives.Buffer)
 
 	// 32 byte ECChainID
 	buf.Write(e.GetECChainID().Bytes())
@@ -136,13 +136,13 @@ func (e *ECBlockHeader) MarshalBinary() ([]byte, error) {
 
 	// 4 byte Directory Block Height
 	if err := binary.Write(buf, binary.BigEndian, e.GetDBHeight()); err != nil {
-		return buf.Bytes(), err
+		return nil, err
 	}
 
 	// variable Header Expansion Size
 	if err := primitives.EncodeVarInt(buf,
 		uint64(len(e.GetHeaderExpansionArea()))); err != nil {
-		return buf.Bytes(), err
+		return nil, err
 	}
 
 	// varable byte Header Expansion Area
@@ -150,19 +150,19 @@ func (e *ECBlockHeader) MarshalBinary() ([]byte, error) {
 
 	// 8 byte Object Count
 	if err := binary.Write(buf, binary.BigEndian, e.GetObjectCount()); err != nil {
-		return buf.Bytes(), err
+		return nil, err
 	}
 
 	// 8 byte size of the Body
 	if err := binary.Write(buf, binary.BigEndian, e.GetBodySize()); err != nil {
-		return buf.Bytes(), err
+		return nil, err
 	}
 
-	return buf.Bytes(), nil
+	return buf.DeepCopyBytes(), nil
 }
 
 func (e *ECBlockHeader) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	buf := bytes.NewBuffer(data)
+	buf := primitives.NewBuffer(data)
 	hash := make([]byte, 32)
 
 	if _, err = buf.Read(hash); err != nil {
@@ -194,8 +194,8 @@ func (e *ECBlockHeader) UnmarshalBinaryData(data []byte) (newData []byte, err er
 	}
 
 	// read the Header Expansion Area
-	hesize, tmp := primitives.DecodeVarInt(buf.Bytes())
-	buf = bytes.NewBuffer(tmp)
+	hesize, tmp := primitives.DecodeVarInt(buf.DeepCopyBytes())
+	buf = primitives.NewBuffer(tmp)
 	e.HeaderExpansionArea = make([]byte, hesize)
 	if _, err = buf.Read(e.HeaderExpansionArea); err != nil {
 		return
@@ -209,7 +209,7 @@ func (e *ECBlockHeader) UnmarshalBinaryData(data []byte) (newData []byte, err er
 		return
 	}
 
-	newData = buf.Bytes()
+	newData = buf.DeepCopyBytes()
 	return
 }
 

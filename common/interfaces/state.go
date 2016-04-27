@@ -4,7 +4,7 @@
 
 package interfaces
 
-var NumOfVMs int =  2
+var NumOfVMs int = 2
 
 // Holds the state information for factomd.  This does imply that we will be
 // using accessors to access state information in the consensus algorithm.
@@ -147,7 +147,7 @@ type IState interface {
 
 	GetTimestamp() Timestamp
 
-	PrintType(int) bool // Debugging
+	PrintType(byte) bool // Debugging
 	Print(a ...interface{}) (n int, err error)
 	Println(a ...interface{}) (n int, err error)
 

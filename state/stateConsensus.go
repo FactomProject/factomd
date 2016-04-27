@@ -43,10 +43,10 @@ func (s *State) AddDBState(isNew bool,
 	dbState := s.DBStates.NewDBState(isNew, directoryBlock, adminBlock, factoidBlock, entryCreditBlock)
 	s.DBStates.Put(dbState)
 
-    dbh := directoryBlock.GetHeader().GetDBHeight()
-    if s.LLeaderHeight <  dbh {
-        s.LLeaderHeight = dbh
-    }
+	dbh := directoryBlock.GetHeader().GetDBHeight()
+	if s.LLeaderHeight < dbh {
+		s.LLeaderHeight = dbh
+	}
 }
 
 // Messages that will go into the Process List must match an Acknowledgement.
@@ -159,20 +159,20 @@ func (s *State) addEBlock(eblock interfaces.IEntryBlock) {
 
 func (s *State) LeaderExecute(m interfaces.IMsg) error {
 	dbheight := s.LLeaderHeight
-    
-    // We have two exceptions when it comes to using the LLeaderHeight.  These
-    // are internally generated messages that must be processed at their height,
-    // not the current height, to be valid.
-    eom, ok := m.(*messages.EOM)
-    if ok {
-        dbheight = eom.DBHeight
-    }
-    dbs, ok := m.(*messages.DirectoryBlockSignature)
-    if ok {
-        dbheight = dbs.DBHeight
-    }
-    
-    ack, err := s.NewAck(dbheight, m)
+
+	// We have two exceptions when it comes to using the LLeaderHeight.  These
+	// are internally generated messages that must be processed at their height,
+	// not the current height, to be valid.
+	eom, ok := m.(*messages.EOM)
+	if ok {
+		dbheight = eom.DBHeight
+	}
+	dbs, ok := m.(*messages.DirectoryBlockSignature)
+	if ok {
+		dbheight = dbs.DBHeight
+	}
+
+	ack, err := s.NewAck(dbheight, m)
 	if err != nil {
 		return err
 	}
@@ -201,7 +201,7 @@ func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) error {
 	ack.FollowerExecute(s)
 	dbs.FollowerExecute(s)
 
-	s.LLeaderHeight = dbs.DBHeight+1
+	s.LLeaderHeight = dbs.DBHeight + 1
 
 	return nil
 }
@@ -272,10 +272,10 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	// Set this list complete
 	pl.SetMinute(e.VMIndex, int(e.Minute))
 
-  	if pl.MinuteHeight() <= int(e.Minute) {
+	if pl.MinuteHeight() <= int(e.Minute) {
 		return false
 	}
-  	      
+
 	if !e.MarkerSent {
 		if VMIndexFor(constants.FACTOID_CHAINID) == e.VMIndex {
 			s.FactoidState.EndOfPeriod(int(e.Minute))
@@ -331,15 +331,15 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		s.AddDBState(true, pl.DirectoryBlock, pl.AdminBlock, s.GetFactoidState().GetCurrentBlock(), pl.EntryCreditBlock)
 	}
 
-    if !pl.SigComplete() {
-         return false
-    }
+	if !pl.SigComplete() {
+		return false
+	}
 
 	if dbs.IsLocal() {
 		dbstate := s.DBStates.Get(dbheight)
-        dbs.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
-		
-        err := dbs.Sign(s)
+		dbs.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
+
+		err := dbs.Sign(s)
 		if err != nil {
 			panic(err)
 		}
@@ -351,7 +351,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		if err != nil {
 			panic(err)
 		}
-        // Now we can broadcast the signature.
+		// Now we can broadcast the signature.
 		dbs.SetLocal(false)
 		// Leader Execute creates an acknowledgement and the EOM
 		s.NetworkOutMsgQueue() <- ack
@@ -510,7 +510,7 @@ func (s *State) LeaderFor(msg interfaces.IMsg, hash []byte) bool {
 		return false
 	}
 	for _, vmi := range vmIndexes {
-        if vmi == vmIndex {
+		if vmi == vmIndex {
 			return true
 		}
 	}
@@ -534,7 +534,7 @@ func (s *State) NewAdminBlockHeader(dbheight uint32) interfaces.IABlockHeader {
 	return header
 }
 
-func (s *State) PrintType(msgType int) bool {
+func (s *State) PrintType(msgType byte) bool {
 	r := true
 	return r
 	r = r && msgType != constants.ACK_MSG
@@ -598,7 +598,7 @@ func (s *State) NewAck(dbheight uint32, msg interfaces.IMsg) (iack interfaces.IM
 		ack.Height = 0
 		ack.SerialHash = ack.MessageHash
 	} else {
-		ack.Height = last.Height +1
+		ack.Height = last.Height + 1
 		ack.SerialHash, err = primitives.CreateHash(last.MessageHash, ack.MessageHash)
 		if err != nil {
 			return nil, err
@@ -607,6 +607,6 @@ func (s *State) NewAck(dbheight uint32, msg interfaces.IMsg) (iack interfaces.IM
 	pl.SetLastLeaderAck(vmIndex, ack)
 
 	ack.Sign(s)
-   
+
 	return ack, nil
 }
