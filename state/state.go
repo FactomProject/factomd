@@ -446,12 +446,12 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 
 }
 
-func (s *State) LoadDataByHash(requestedHash interfaces.IHash) (interface{}, int, error) {
+func (s *State) LoadDataByHash(requestedHash interfaces.IHash) (interfaces.BinaryMarshallable, int, error) {
 	if requestedHash == nil {
 		return nil, -1, fmt.Errorf("Requested hash must be non-empty")
 	}
 
-	var result interface{}
+	var result interfaces.BinaryMarshallable
 	var err error
 
 	// Check for Entry

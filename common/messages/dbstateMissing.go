@@ -87,7 +87,6 @@ func (m *DBStateMissing) Follower(interfaces.IState) bool {
 }
 
 func (m *DBStateMissing) FollowerExecute(state interfaces.IState) error {
-
 	if len(state.NetworkOutMsgQueue()) > 1000 {
 		return nil
 	}

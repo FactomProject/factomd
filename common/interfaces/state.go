@@ -35,7 +35,7 @@ type IState interface {
 	DatabaseContains(hash IHash) bool
 	SetOut(bool)  // Output is turned on if set to true
 	GetOut() bool // Return true if Print or Println write output
-	LoadDataByHash(requestedHash IHash) (interface{}, int, error)
+	LoadDataByHash(requestedHash IHash) (BinaryMarshallable, int, error)
 	LoadDBState(dbheight uint32) (IMsg, error)
 	LoadSpecificMsg(dbheight uint32, plistheight uint32) (IMsg, error)
 	LoadSpecificMsgAndAck(dbheight uint32, plistheight uint32) (IMsg, IMsg, error)

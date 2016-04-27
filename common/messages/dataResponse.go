@@ -9,7 +9,6 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"github.com/FactomProject/FactomCode/common"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -24,7 +23,7 @@ type DataResponse struct {
 
 	DataType   int // 0 = Entry, 1 = EntryBlock
 	DataHash   interfaces.IHash
-	DataObject interface{}
+	DataObject interfaces.BinaryMarshallable //Entry or EntryBlock
 }
 
 var _ interfaces.IMsg = (*DataResponse)(nil)
@@ -294,27 +293,11 @@ func (m *DataResponse) MarshalBinary() ([]byte, error) {
 	} else {
 		buf.Write(d)
 	}
-
-	if entryData, ok := m.DataObject.(interfaces.IEBEntry); ok {
-		if d, err := entryData.MarshalBinary(); err != nil {
-			return nil, err
-		} else {
-			buf.Write(d)
-		}
-	} else {
-		if eblockData, ok := m.DataObject.(interfaces.IEntryBlock); ok {
-			if d, err := eblockData.MarshalBinary(); err != nil {
-				return nil, err
-			} else {
-				testEBlock := common.NewEBlock()
-				err = testEBlock.UnmarshalBinary(d)
-				if err != nil {
-					return nil, err
-				}
-				buf.Write(d)
-			}
-		}
+	d, err := m.DataObject.MarshalBinary()
+	if err != nil {
+		return nil, err
 	}
+	buf.Write(d)
 
 	return buf.DeepCopyBytes(), nil
 }
@@ -326,7 +309,7 @@ func (m *DataResponse) String() string {
 		m.DataObject)
 }
 
-func NewDataResponse(state interfaces.IState, dataObject interface{},
+func NewDataResponse(state interfaces.IState, dataObject interfaces.BinaryMarshallable,
 	dataType int,
 	dataHash interfaces.IHash) interfaces.IMsg {
 
