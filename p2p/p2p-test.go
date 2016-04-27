@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/FactomProject/factomd/p2p"
 )
 
@@ -15,7 +16,7 @@ const (
 )
 
 func main() {
-
+	P2PCurrentLoggingLevel = Verbose
 	mode := simpleMinimalTest
 	switch mode {
 	case simpleMinimalTest:
@@ -34,5 +35,20 @@ func fullPeerManagement() {
 }
 
 func simpleMinimalTest() {
+	nodeA := new(P2PConnection).Init()
+	nodeB := new(P2PConnection).Init()
+	count :=0
+	var	message string
 
+	for {
+			message = fmt.Sprintf("Heartbeat #%d", count)
+			nodeA.SimpleSend([]byte(message))
+			nodeB.SimpleSend([]byte(message))
+			nodeA.ProcessNetworkMessages()
+			nodeA.ProcessInChannel()
+			nodeB.ProcessNetworkMessages()
+			nodeB.ProcessInChannel()
+		}
+
+	}
 }

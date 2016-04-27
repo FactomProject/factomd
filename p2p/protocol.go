@@ -9,6 +9,7 @@ const (
     ProtocolVersion uint16 = 01
     // ProtocolVersionMinimum is the earliest version this package supports
     ProtocolVersionMinimum uint16 = 01
+    ProtocolCookie uint32 = binary("Fact")
 )
 
 // NOTE JAYJAY -- define node service levels (if we need them?) 
@@ -41,6 +42,7 @@ func (n *NetworkID) String() string {
     return fmt.Sprintf("Unknown NetworkID: %x", uint32(n))
 }
 
+// This is a global... where *should* it be?
 var (
     P2PCurrentLoggingLevel := Silence
 )

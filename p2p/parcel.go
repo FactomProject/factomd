@@ -35,3 +35,12 @@ const uint16 ( // iota is reset to 0
 // MaxPayloadSize is the maximum bytes a message can be at the networking level.
 const MaxPayloadSize = (1024 * 1024 * 1) // 1MB
 
+func (p *ParcelHeader) Init()  {
+    p.Cookie = ProtocolCookie
+    p.NetworkID = TestNet
+    p.Version = ProtocolVersion
+    p.Type = TypeMessage
+}
+func (p *Parcel) Init(header ParcelHeader)  {
+    p.header = header
+}

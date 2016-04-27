@@ -15,7 +15,6 @@ import (
 // P2PController manages the peer to peer network.
 type P2PController struct {
     keepRunning bool    // Indicates its time to shut down when false.
-    loggingLevel uint8  
     // After launching the network, the management is done via these channels.
     commandChannel  chan P2PCommandMessage // Commands from the Application
     // responseChannel chan P2PResponseMessage // Command responses to the Application
@@ -136,15 +135,6 @@ func (p * P2PController) shutdown()  {
     // Go thru peer list and shut down connections.
     BUGBUG
     p.keepRunning = false
-}
-
-func (p * P2PController) dial(address string)  {
-    
-    
-}
-
-func (p * P2PController) listen(address string)  {
-    
 }
 
 
