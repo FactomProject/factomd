@@ -182,6 +182,14 @@ func SimControl(listenTo int) {
 				msg := messages.NewAddServerMsg(fnodes[listenTo].State, 0)
 				fnodes[listenTo].State.InMsgQueue() <- msg
 				os.Stderr.WriteString(fmt.Sprintln("Attempting to make", fnodes[listenTo].State.GetFactomNodeName(), "a Leader"))
+			case 0 == strings.Compare(strings.ToLower(string(b[0])), "w"):
+				for _, fnode := range fnodes {
+					fnode.State.SetOut(false)
+				}
+				mLog.all = false
+				msg := messages.NewAddServerMsg(fnodes[listenTo].State, 1)
+				fnodes[listenTo].State.InMsgQueue() <- msg
+				os.Stderr.WriteString(fmt.Sprintln("Attempting to add", fnodes[listenTo].State.GetFactomNodeName(), "as Audit Server"))
 			case '?' == b[0], 'H' == b[0], 'h' == b[0]:
 				fmt.Println("-------------------------------------------------------------------------------")
 				fmt.Println("+ or ENTER    Silence nodes and show Queues for focused node")
@@ -192,6 +200,7 @@ func SimControl(listenTo int) {
 				fmt.Println("m             Show all messages for the focused node.")
 				fmt.Println("\" \" [space] Follow next node, print all messages from it.")
 				fmt.Println("s             Make focused node the Leader.")
+				fmt.Println("w             Add Audit Server.")
 				fmt.Println("? or h		   Show help")
 				fmt.Println("")
 				fmt.Println("Most commands are case insensitive.")
