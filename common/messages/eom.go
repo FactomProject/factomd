@@ -33,13 +33,48 @@ type EOM struct {
 
 //var _ interfaces.IConfirmation = (*EOM)(nil)
 var _ Signable = (*EOM)(nil)
+var _ interfaces.IMsg = (*EOM)(nil)
+
+func (a *EOM) IsSameAs(b *EOM) bool {
+	if b == nil {
+		return false
+	}
+	if a.Timestamp != b.Timestamp {
+		return false
+	}
+	if a.Minute != b.Minute {
+		return false
+	}
+	if a.DBHeight != b.DBHeight {
+		return false
+	}
+
+	if a.ChainID == nil && b.ChainID != nil {
+		return false
+	}
+	if a.ChainID != nil {
+		if a.ChainID.IsSameAs(b.ChainID) == false {
+			return false
+		}
+	}
+
+	if a.Signature == nil && b.Signature != nil {
+		return false
+	}
+	if a.Signature != nil {
+		if a.Signature.IsSameAs(b.Signature) == false {
+			return false
+		}
+	}
+
+	return true
+}
 
 func (e *EOM) Process(dbheight uint32, state interfaces.IState) bool {
 	return state.ProcessEOM(dbheight, e)
 }
 
 func (m *EOM) GetHash() interfaces.IHash {
-
 	data, err := m.MarshalForSignature()
 	if err != nil {
 		panic(fmt.Sprintf("Error in EOM.GetHash(): %s", err.Error()))
@@ -50,7 +85,6 @@ func (m *EOM) GetHash() interfaces.IHash {
 }
 
 func (m *EOM) GetMsgHash() interfaces.IHash {
-
 	data, err := m.MarshalForSignature()
 	if err != nil {
 		return nil
@@ -255,5 +289,4 @@ func (m *EOM) String() string {
 		m.DBHeight,
 		m.ChainID.Bytes()[:5],
 		m.GetMsgHash().Bytes()[:5])
-
 }

@@ -22,6 +22,8 @@ type DBStateMissing struct {
 
 	DBHeightStart uint32 // First block missing
 	DBHeightEnd   uint32 // Last block missing.
+
+	//Not signed!
 }
 
 var _ interfaces.IMsg = (*DBStateMissing)(nil)
