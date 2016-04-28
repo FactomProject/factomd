@@ -6,11 +6,12 @@ import (
 	"github.com/FactomProject/factomd/common/directoryBlock"
 	//"github.com/FactomProject/factomd/common/factoid"
 	"bytes"
+	"log"
+
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
-	"log"
 )
 
 var _ = fmt.Print
@@ -163,6 +164,22 @@ func (p *ProcessList) MinuteHeight() int {
 // Add the given serverChain to this processlist, and return the server index number of the
 // added server
 func (p *ProcessList) AddFedServer(identityChainID interfaces.IHash) int {
+	found, i := p.GetFedServerIndexHash(identityChainID)
+	if found {
+		return i
+	}
+	p.FedServers = append(p.FedServers, nil)
+	copy(p.FedServers[i+1:], p.FedServers[i:])
+	p.FedServers[i] = &interfaces.Server{ChainID: identityChainID}
+
+	p.MakeMap()
+
+	return i
+}
+
+// Add the given serverChain to this processlist, and return the server index number of the
+// added server
+func (p *ProcessList) AddAuditServer(identityChainID interfaces.IHash) int {
 	found, i := p.GetFedServerIndexHash(identityChainID)
 	if found {
 		return i
