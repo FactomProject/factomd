@@ -6,11 +6,12 @@ import (
 	"github.com/FactomProject/factomd/common/directoryBlock"
 	//"github.com/FactomProject/factomd/common/factoid"
 	"bytes"
+	"log"
+
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
-	"log"
 )
 
 var _ = fmt.Print
@@ -128,6 +129,24 @@ func (p *ProcessList) GetFedServerIndexHash(identityChainID interfaces.IHash) (b
 	return false, len(p.FedServers)
 }
 
+// Returns true and the index of this server, or false and the insertion point for this server
+func (p *ProcessList) GetAuditServerIndexHash(identityChainID interfaces.IHash) (bool, int) {
+
+	if p == nil {
+		return false, 0
+	}
+
+	scid := identityChainID.Bytes()
+
+	for i, fs := range p.AuditServers {
+		// Find and remove
+		if bytes.Compare(scid, fs.GetChainID().Bytes()) == 0 {
+			return true, i
+		}
+	}
+	return false, len(p.AuditServers)
+}
+
 // This function will be replaced by a calculation from the Matryoshka hashes from the servers
 // but for now, we are just going to make it a function of the dbheight.
 func (p *ProcessList) MakeMap() {
@@ -160,8 +179,8 @@ func (p *ProcessList) MinuteHeight() int {
 	return m
 }
 
-// Add the given serverChain to this processlist, and return the server index number of the
-// added server
+// Add the given serverChain to this processlist as a Federated Server, and return
+// the server index number of the added server
 func (p *ProcessList) AddFedServer(identityChainID interfaces.IHash) int {
 	found, i := p.GetFedServerIndexHash(identityChainID)
 	if found {
@@ -176,14 +195,36 @@ func (p *ProcessList) AddFedServer(identityChainID interfaces.IHash) int {
 	return i
 }
 
-// Add the given serverChain to this processlist, and return the server index number of the
-// added server
+// Add the given serverChain to this processlist as an Audit Server, and return
+// the server index number of the added server
+func (p *ProcessList) AddAuditServer(identityChainID interfaces.IHash) int {
+	found, i := p.GetAuditServerIndexHash(identityChainID)
+	if found {
+		return i
+	}
+	p.AuditServers = append(p.AuditServers, nil)
+	copy(p.AuditServers[i+1:], p.AuditServers[i:])
+	p.AuditServers[i] = &interfaces.Server{ChainID: identityChainID}
+
+	return i
+}
+
+// Remove the given serverChain from this processlist's Federated Servers
 func (p *ProcessList) RemoveFedServerHash(identityChainID interfaces.IHash) {
 	found, i := p.GetFedServerIndexHash(identityChainID)
 	if !found {
 		return
 	}
 	p.FedServers = append(p.FedServers[:i], p.FedServers[i+1:]...)
+}
+
+// Remove the given serverChain from this processlist's Audit Servers
+func (p *ProcessList) RemoveAuditServerHash(identityChainID interfaces.IHash) {
+	found, i := p.GetAuditServerIndexHash(identityChainID)
+	if !found {
+		return
+	}
+	p.AuditServers = append(p.AuditServers[:i], p.AuditServers[i+1:]...)
 }
 
 // Given a server index, return the last Ack
@@ -420,6 +461,10 @@ func (p *ProcessList) String() string {
 		buf.WriteString("\n   Federated VMs:\n")
 		for _, fed := range p.FedServers {
 			buf.WriteString(fmt.Sprintf("    %x\n", fed.GetChainID().Bytes()[:3]))
+		}
+		buf.WriteString("\n   Audit VMs:\n")
+		for _, aud := range p.AuditServers {
+			buf.WriteString(fmt.Sprintf("    %x\n", aud.GetChainID().Bytes()[:3]))
 		}
 	}
 	return buf.String()

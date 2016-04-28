@@ -330,11 +330,14 @@ func (m *DataResponse) MarshalBinary() ([]byte, error) {
 	} else {
 		buf.Write(d)
 	}
-	d, err := m.DataObject.MarshalBinary()
-	if err != nil {
-		return nil, err
+
+	if m.DataObject != nil {
+		d, err := m.DataObject.MarshalBinary()
+		if err != nil {
+			return nil, err
+		}
+		buf.Write(d)
 	}
-	buf.Write(d)
 
 	return buf.DeepCopyBytes(), nil
 }
