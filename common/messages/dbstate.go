@@ -38,7 +38,46 @@ type DBStateMsg struct {
 
 var _ interfaces.IMsg = (*DBStateMsg)(nil)
 
-func (m *DBStateMsg) IsSameAs(b *DBStateMsg) bool {
+func (a *DBStateMsg) IsSameAs(b *DBStateMsg) bool {
+	if a.Timestamp != b.Timestamp {
+		return false
+	}
+
+	ok, err := primitives.AreBinaryMarshallablesEqual(a.DirectoryBlock, b.DirectoryBlock)
+	if err != nil || ok == false {
+		return false
+	}
+
+	ok, err = primitives.AreBinaryMarshallablesEqual(a.AdminBlock, b.AdminBlock)
+	if err != nil || ok == false {
+		return false
+	}
+
+	ok, err = primitives.AreBinaryMarshallablesEqual(a.FactoidBlock, b.FactoidBlock)
+	if err != nil || ok == false {
+		return false
+	}
+
+	ok, err = primitives.AreBinaryMarshallablesEqual(a.EntryCreditBlock, b.EntryCreditBlock)
+	if err != nil || ok == false {
+		return false
+	}
+
+	if a.EntryBlocks == nil && b.EntryBlocks != nil {
+		return false
+	}
+	if a.EntryBlocks != nil {
+		if len(a.EntryBlocks) != len(b.EntryBlocks) {
+			return false
+		}
+		for i := range a.EntryBlocks {
+			ok, err = primitives.AreBinaryMarshallablesEqual(a.EntryBlocks[i], b.EntryBlocks[i])
+			if err != nil || ok == false {
+				return false
+			}
+		}
+	}
+
 	return true
 }
 
