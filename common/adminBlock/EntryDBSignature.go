@@ -36,7 +36,7 @@ func (e *DBSignatureEntry) Type() byte {
 }
 
 func (e *DBSignatureEntry) MarshalBinary() (data []byte, err error) {
-	var buf bytes.Buffer
+	var buf primitives.Buffer
 
 	buf.Write([]byte{e.Type()})
 
@@ -56,13 +56,13 @@ func (e *DBSignatureEntry) MarshalBinary() (data []byte, err error) {
 		return nil, err
 	}
 
-	return buf.Bytes(), nil
+	return buf.DeepCopyBytes(), nil
 }
 
 func (e *DBSignatureEntry) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
+			err = fmt.Errorf("Error unmarshallig DBSignature Entry: %v", r)
 		}
 	}()
 	newData = data

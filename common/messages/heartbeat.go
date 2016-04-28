@@ -56,7 +56,7 @@ func (m *Heartbeat) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp
 }
 
-func (m *Heartbeat) Type() int {
+func (m *Heartbeat) Type() byte {
 	return constants.HEARTBEAT_MSG
 }
 
@@ -71,11 +71,14 @@ func (m *Heartbeat) Bytes() []byte {
 func (m *Heartbeat) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
+			err = fmt.Errorf("Error unmarshalling HeartBeat: %v", r)
 		}
 	}()
-
-	data = data[1:] // skip type
+	newData = data
+	if newData[0] != m.Type() {
+		return nil, fmt.Errorf("Invalid Message type")
+	}
+	newData = newData[1:]
 
 	newData, err = m.Timestamp.UnmarshalBinaryData(data)
 	if err != nil {
@@ -121,7 +124,7 @@ func (m *Heartbeat) MarshalForSignature() (data []byte, err error) {
 
 	answer := []byte{}
 
-	answer = append(answer, byte(m.Type()))
+	answer = append(answer, m.Type())
 
 	ts, err := m.Timestamp.MarshalBinary()
 	if err != nil {

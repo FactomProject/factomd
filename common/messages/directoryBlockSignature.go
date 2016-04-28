@@ -18,7 +18,6 @@ type DirectoryBlockSignature struct {
 	MessageBase
 	Timestamp             interfaces.Timestamp
 	DBHeight              uint32
-	ServerIndex           uint32
 	DirectoryBlockKeyMR   interfaces.IHash
 	ServerIdentityChainID interfaces.IHash
 
@@ -53,7 +52,7 @@ func (m *DirectoryBlockSignature) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp
 }
 
-func (m *DirectoryBlockSignature) Type() int {
+func (m *DirectoryBlockSignature) Type() byte {
 	return constants.DIRECTORY_BLOCK_SIGNATURE_MSG
 }
 
@@ -70,7 +69,7 @@ func (m *DirectoryBlockSignature) Bytes() []byte {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
-	found, serverIndex := state.GetFedServerIndexHash(m.DBHeight, m.ServerIdentityChainID)
+	found, vmIndexs := state.GetVirtualServers(m.DBHeight, 9, m.ServerIdentityChainID)
 
 	if found == false {
 		return 0
@@ -91,12 +90,16 @@ func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 			// the message is considered invalid
 			return -1
 		}
+	} else {
+		return 1
+	}
 
-		if m.ServerIndex != uint32(serverIndex) {
-			return -1
+	for _, vmi := range vmIndexs {
+		if m.VMIndex == vmi {
+			return 1
 		}
 	}
-	return 1
+	return -1
 }
 
 // Returns true if this is a message for this server to execute as
@@ -140,12 +143,14 @@ func (m *DirectoryBlockSignature) VerifySignature() (bool, error) {
 func (m *DirectoryBlockSignature) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
+			err = fmt.Errorf("Error unmarshalling Directory Block Signing Message: %v", r)
 		}
 	}()
-
-	// Type byte:  Someone else's problem.
-	newData = data[1:]
+	newData = data
+	if newData[0] != m.Type() {
+		return nil, fmt.Errorf("Invalid Message type")
+	}
+	newData = newData[1:]
 
 	// TimeStamp
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
@@ -154,7 +159,7 @@ func (m *DirectoryBlockSignature) UnmarshalBinaryData(data []byte) (newData []by
 	}
 
 	m.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
-	m.ServerIndex, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+	m.VMIndex, newData = int(newData[0]), newData[1:]
 
 	hash := new(primitives.Hash)
 	newData, err = hash.UnmarshalBinaryData(newData)
@@ -188,13 +193,12 @@ func (m *DirectoryBlockSignature) UnmarshalBinary(data []byte) error {
 }
 
 func (m *DirectoryBlockSignature) MarshalForSignature() ([]byte, error) {
-
 	if m.DirectoryBlockKeyMR == nil {
 		m.DirectoryBlockKeyMR = new(primitives.Hash)
 	}
 
-	var buf bytes.Buffer
-	buf.Write([]byte{byte(m.Type())})
+	var buf primitives.Buffer
+	buf.Write([]byte{m.Type()})
 
 	t := m.GetTimestamp()
 	data, err := t.MarshalBinary()
@@ -204,7 +208,7 @@ func (m *DirectoryBlockSignature) MarshalForSignature() ([]byte, error) {
 	buf.Write(data)
 
 	binary.Write(&buf, binary.BigEndian, m.DBHeight)
-	binary.Write(&buf, binary.BigEndian, m.ServerIndex)
+	binary.Write(&buf, binary.BigEndian, byte(m.VMIndex))
 
 	hash, err := m.DirectoryBlockKeyMR.MarshalBinary()
 	if err != nil {
@@ -218,7 +222,7 @@ func (m *DirectoryBlockSignature) MarshalForSignature() ([]byte, error) {
 	}
 	buf.Write(hash)
 
-	return buf.Bytes(), nil
+	return buf.DeepCopyBytes(), nil
 }
 
 func (m *DirectoryBlockSignature) MarshalBinary() (data []byte, err error) {
@@ -239,18 +243,10 @@ func (m *DirectoryBlockSignature) MarshalBinary() (data []byte, err error) {
 	return resp, nil
 }
 
-// func (m *DirectoryBlockSignature) String() string {
-// 	return fmt.Sprintf("%6s-%3d: db %2d ----------- hash[:10]=%x",
-// 		"DBSig",
-// 		m.ServerIndex,
-// 		m.DBHeight,
-// 		m.GetHash().Bytes()[:10])
-// }
-
 func (m *DirectoryBlockSignature) String() string {
-	return fmt.Sprintf("%6s-%3d:          Ht:%5d -- chainID[:5]=%x hash[:5]=%x dbhash[:5]=%x",
+	return fmt.Sprintf("%6s-%3d:        DBHt:%5d -- chainID[:5]=%x hash[:5]=%x dbhash[:5]=%x",
 		"DBSig",
-		m.ServerIndex,
+		m.VMIndex,
 		m.DBHeight,
 		m.ServerIdentityChainID.Bytes()[:5],
 		m.GetHash().Bytes()[:5],

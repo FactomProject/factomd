@@ -8,6 +8,7 @@ package messages
 
 import (
 	"fmt"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 )
@@ -19,7 +20,7 @@ func UnmarshalMessage(data []byte) (interfaces.IMsg, error) {
 	if len(data) == 0 {
 		return nil, fmt.Errorf("No data provided")
 	}
-	messageType := int(data[0])
+	messageType := data[0]
 	var msg interfaces.IMsg
 	switch messageType {
 	case constants.EOM_MSG:
@@ -48,6 +49,10 @@ func UnmarshalMessage(data []byte) (interfaces.IMsg, error) {
 		msg = new(MissingAck)
 	case constants.MISSING_MSG:
 		msg = new(MissingMsg)
+	case constants.MISSING_DATA:
+		msg = new(MissingData)
+	case constants.DATA_RESPONSE:
+		msg = new(DataResponse)
 	case constants.REVEAL_ENTRY_MSG:
 		msg = new(RevealEntryMsg)
 	case constants.REQUEST_BLOCK_MSG:
@@ -72,7 +77,7 @@ func UnmarshalMessage(data []byte) (interfaces.IMsg, error) {
 
 }
 
-func MessageName(Type int) string {
+func MessageName(Type byte) string {
 	switch Type {
 	case constants.EOM_MSG:
 		return "EOM"
@@ -100,6 +105,10 @@ func MessageName(Type int) string {
 		return "Missing Ack"
 	case constants.MISSING_MSG:
 		return "Missing Msg"
+	case constants.MISSING_DATA:
+		return "Missing Data"
+	case constants.DATA_RESPONSE:
+		return "Data Response"
 	case constants.REVEAL_ENTRY_MSG:
 		return "Reveal Entry"
 	case constants.REQUEST_BLOCK_MSG:

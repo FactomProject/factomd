@@ -41,8 +41,12 @@ func NetStart(s *state.State) {
 	folderPtr := flag.String("folder", "", "Directory in .factom to store nodes. (eg: multiple nodes on one filesystem support)")
 	portPtr := flag.Int("port", 8088, "Address to serve WSAPI on")
 	addressPtr := flag.String("p2pAddress", "tcp://127.0.0.1:34340", "Address & port to listen for peers on: (eg: tcp://127.0.0.1:40891)")
-	peersPtr := flag.String("peers", "tcp://127.0.0.1:34341 tcp://127.0.0.1:34342 tcp://127.0.0.1:34343", "Array of peer addresses. Defaults to: \"tcp://127.0.0.1:34341 tcp://127.0.0.1:34342 tcp://127.0.0.1:34340\"")
+	peersPtr := flag.String("peers", "", "Array of peer addresses. Defaults to: \"tcp://127.0.0.1:34341 tcp://127.0.0.1:34342 tcp://127.0.0.1:34340\"")
 	blkTimePtr := flag.Int("blktime", 0, "Seconds per block.  Production is 600.")
+	runtimeLogPtr := flag.Bool("runtimeLog", true, "If true, maintain runtime logs of messages passed.")
+	vmCountPtr := flag.Int("vmCount", 2, "Number of Virtual Machines running the consensus algorighm.")
+	netdebugPtr := flag.Bool("netdebug", false, "If true, print detailed network debugging info.")
+	heartbeatPtr := flag.Bool("heartbeat", false, "If true, network just sends heartbeats.")
 
 	flag.Parse()
 
@@ -59,6 +63,10 @@ func NetStart(s *state.State) {
 	address := *addressPtr
 	peers := *peersPtr
 	blkTime := *blkTimePtr
+	runtimeLog := *runtimeLogPtr
+	vmCount := *vmCountPtr
+	netdebug := *netdebugPtr
+	heartbeat := *heartbeatPtr
 
 	FactomConfigFilename := util.GetConfigFilename("m2")
 	fmt.Println(fmt.Sprintf("factom config: %s", FactomConfigFilename))
@@ -70,35 +78,42 @@ func NetStart(s *state.State) {
 		blkTime = s.DirectoryBlockInSeconds
 	}
 
-	os.Stderr.WriteString(fmt.Sprintf("node     %d\n", listenTo))
-	os.Stderr.WriteString(fmt.Sprintf("count    %d\n", cnt))
-	os.Stderr.WriteString(fmt.Sprintf("net      \"%s\"\n", net))
-	os.Stderr.WriteString(fmt.Sprintf("drop     %d\n", droprate))
-	os.Stderr.WriteString(fmt.Sprintf("journal  \"%s\"\n", journal))
+	if vmCount < 0 || vmCount > 32 {
+		panic(fmt.Sprintf("Count of Virtual Machines %d is out of range", vmCount))
+	}
+	interfaces.NumOfVMs = vmCount
+
+	os.Stderr.WriteString(fmt.Sprintf("node        %d\n", listenTo))
+	os.Stderr.WriteString(fmt.Sprintf("count       %d\n", cnt))
+	os.Stderr.WriteString(fmt.Sprintf("net         \"%s\"\n", net))
+	os.Stderr.WriteString(fmt.Sprintf("drop        %d\n", droprate))
+	os.Stderr.WriteString(fmt.Sprintf("journal     \"%s\"\n", journal))
 	if follower {
-		os.Stderr.WriteString(fmt.Sprintf("follower \"%v\"\n", follower))
+		os.Stderr.WriteString(fmt.Sprintf("follower    \"%v\"\n", follower))
 		leader = false
 	}
 	if leader {
-		os.Stderr.WriteString(fmt.Sprintf("leader \"%v\"\n", leader))
+		os.Stderr.WriteString(fmt.Sprintf("leader    \"%v\"\n", leader))
 		follower = false
 	}
 	if !follower && !leader {
 		panic("Not a leader or a follower")
 	}
-	os.Stderr.WriteString(fmt.Sprintf("db       \"%s\"\n", db))
-	os.Stderr.WriteString(fmt.Sprintf("folder   \"%s\"\n", folder))
-	os.Stderr.WriteString(fmt.Sprintf("port     \"%d\"\n", port))
-	os.Stderr.WriteString(fmt.Sprintf("address  \"%s\"\n", address))
-	os.Stderr.WriteString(fmt.Sprintf("peers    \"%s\"\n", peers))
-	os.Stderr.WriteString(fmt.Sprintf("blkTime  %d\n", blkTime))
+	os.Stderr.WriteString(fmt.Sprintf("db          \"%s\"\n", db))
+	os.Stderr.WriteString(fmt.Sprintf("folder      \"%s\"\n", folder))
+	os.Stderr.WriteString(fmt.Sprintf("port        \"%d\"\n", port))
+	os.Stderr.WriteString(fmt.Sprintf("address     \"%s\"\n", address))
+	os.Stderr.WriteString(fmt.Sprintf("peers       \"%s\"\n", peers))
+	os.Stderr.WriteString(fmt.Sprintf("blkTime     %d\n", blkTime))
+	os.Stderr.WriteString(fmt.Sprintf("runtimeLog  %v\n", runtimeLog))
+	os.Stderr.WriteString(fmt.Sprintf("vmCount     %d\n", vmCount))
 
 	if journal != "" {
 		cnt = 1
 	}
 
 	fmt.Println(">>>>>>>>>>>>>>>>")
-	fmt.Println(">>>>>>>>>>>>>>>> Net Sim Start!!!!!")
+	fmt.Println(">>>>>>>>>>>>>>>> Net Sim Start!")
 	fmt.Println(">>>>>>>>>>>>>>>>")
 	fmt.Println(">>>>>>>>>>>>>>>> Listening to Node", listenTo)
 	fmt.Println(">>>>>>>>>>>>>>>>")
@@ -140,7 +155,7 @@ func NetStart(s *state.State) {
 	s.Init()
 	s.SetDropRate(droprate)
 
-	mLog.init(cnt)
+	mLog.init(runtimeLog, cnt)
 
 	//************************************************
 	// Actually setup the Network
@@ -153,11 +168,18 @@ func NetStart(s *state.State) {
 
 	// Start the P2P netowrk
 	// BUGBUG JAYJAY This peer stuff needs to be abstracted out into the p2p network.
-	// Set up a channel instead.
-	p2pProxy := new(P2PPeer).Init(fnodes[0].State.FactomNodeName, address).(*P2PPeer)
-	fnodes[0].Peers = append(fnodes[0].Peers, p2pProxy)
 
-	P2PNetworkStart(address, peers, p2pProxy)
+	// don't start network if htere is no network to connect to.
+	if 0 < len(peers) {
+		p2pProxy := new(P2PPeer).Init(fnodes[0].State.FactomNodeName, address).(*P2PPeer)
+		fnodes[0].Peers = append(fnodes[0].Peers, p2pProxy)
+		p2pProxy.SetDebugMode(netdebug)
+		p2pProxy.SetTestMode(heartbeat)
+		P2PNetworkStart(address, peers, p2pProxy)
+		if netdebug {
+			go PeriodicStatusReport(fnodes)
+		}
+	}
 
 	switch net {
 	case "long":

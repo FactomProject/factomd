@@ -129,6 +129,12 @@ type State struct {
 	IsReplaying     bool
 	ReplayTimestamp interfaces.Timestamp
 
+	// DBlock Height at which node has a complete set of eblocks+entries
+	EBDBHeightComplete uint32
+
+	// For dataRequests made by this node, which it's awaiting dataResponses for
+	DataRequests map[[32]byte]interfaces.IHash
+
 	//For throttling how many missing messages we request
 	IsThrottled bool
 }
@@ -287,6 +293,9 @@ func (s *State) Init() {
 	s.DBStates.State = s
 	s.DBStates.DBStates = make([]*DBState, 0)
 
+	s.EBDBHeightComplete = 0
+	s.DataRequests = make(map[[32]byte]interfaces.IHash)
+
 	switch s.NodeMode {
 	case "FULL":
 		s.serverState = 0
@@ -346,6 +355,48 @@ func (s *State) Init() {
 	s.initServerKeys()
 }
 
+func (s *State) AddDataRequest(requestedHash, missingDataHash interfaces.IHash) {
+	s.DataRequests[requestedHash.Fixed()] = missingDataHash
+}
+
+func (s *State) HasDataRequest(checkHash interfaces.IHash) bool {
+	if _, ok := s.DataRequests[checkHash.Fixed()]; ok {
+		return true
+	}
+	return false
+}
+
+func (s *State) GetEBDBHeightComplete() uint32 {
+	return s.EBDBHeightComplete
+}
+
+func (s *State) SetEBDBHeightComplete(newHeight uint32) {
+	s.EBDBHeightComplete = newHeight
+}
+
+func (s *State) GetEBlockKeyMRFromEntryHash(entryHash interfaces.IHash) interfaces.IHash {
+	entry, err := s.DB.FetchEntryByHash(entryHash)
+	if err != nil {
+		return nil
+	}
+	if entry != nil {
+		dblock := s.GetDirectoryBlockByHeight(entry.GetDatabaseHeight())
+		for idx, ebHash := range dblock.GetEntryHashes() {
+			if idx > 2 {
+				thisBlock, err := s.DB.FetchEBlockByKeyMR(ebHash)
+				if err == nil {
+					for _, attemptEntryHash := range thisBlock.GetEntryHashes() {
+						if attemptEntryHash.IsSameAs(entryHash) {
+							return ebHash
+						}
+					}
+				}
+			}
+		}
+	}
+	return nil
+}
+
 func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 
 	dblk, err := s.DB.FetchDBlockByHeight(dbheight)
@@ -395,6 +446,33 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 
 }
 
+func (s *State) LoadDataByHash(requestedHash interfaces.IHash) (interfaces.BinaryMarshallable, int, error) {
+	if requestedHash == nil {
+		return nil, -1, fmt.Errorf("Requested hash must be non-empty")
+	}
+
+	var result interfaces.BinaryMarshallable
+	var err error
+
+	// Check for Entry
+	result, err = s.GetDB().FetchEntryByHash(requestedHash)
+	if result != nil && err == nil {
+		return result, 0, nil
+	}
+
+	// Check for Entry Block
+	result, err = s.GetDB().FetchEBlockByKeyMR(requestedHash)
+	if result != nil && err == nil {
+		return result, 1, nil
+	}
+	result, _ = s.GetDB().FetchEBlockByHash(requestedHash)
+	if result != nil && err == nil {
+		return result, 1, nil
+	}
+
+	return nil, -1, nil
+}
+
 func (s *State) LoadSpecificMsg(dbheight uint32, plistheight uint32) (interfaces.IMsg, error) {
 	if dbheight < s.ProcessLists.DBHeightBase {
 		return nil, fmt.Errorf("Missing message is too deeply buried in blocks")
@@ -405,14 +483,12 @@ func (s *State) LoadSpecificMsg(dbheight uint32, plistheight uint32) (interfaces
 	procList := s.ProcessLists.Get(dbheight)
 	if procList == nil {
 		return nil, fmt.Errorf("Nil Process List")
-	} else if len(procList.Servers) == 0 {
-		return nil, fmt.Errorf("No servers in process list")
 	}
-	if len(procList.Servers[0].List) < int(plistheight)+1 {
+	if len(procList.VMs[0].List) < int(plistheight)+1 {
 		return nil, fmt.Errorf("Process List too small (lacks requested msg)")
 	}
 
-	msg := procList.Servers[0].List[plistheight]
+	msg := procList.VMs[0].List[plistheight]
 
 	if msg == nil {
 		return nil, fmt.Errorf("State process list does not include requested message")
@@ -431,14 +507,14 @@ func (s *State) LoadSpecificMsgAndAck(dbheight uint32, plistheight uint32) (inte
 	procList := s.ProcessLists.Get(dbheight)
 	if procList == nil {
 		return nil, nil, fmt.Errorf("Nil Process List")
-	} else if len(procList.Servers) < 1 {
+	} else if len(procList.VMs) < 1 {
 		return nil, nil, fmt.Errorf("No servers?")
 	}
-	if len(procList.Servers[0].List) < int(plistheight)+1 {
+	if len(procList.VMs[0].List) < int(plistheight)+1 {
 		return nil, nil, fmt.Errorf("Process List too small (lacks requested msg)")
 	}
 
-	msg := procList.Servers[0].List[plistheight]
+	msg := procList.VMs[0].List[plistheight]
 
 	if msg == nil {
 		return nil, nil, fmt.Errorf("State process list does not include requested message")
@@ -451,6 +527,47 @@ func (s *State) LoadSpecificMsgAndAck(dbheight uint32, plistheight uint32) (inte
 	}
 
 	return msg, ackMsg, nil
+}
+
+// This will issue missingData requests for each entryHash in a particular EBlock
+// that is not already saved to the database or requested already.
+// It returns True if the EBlock is complete (all entries already exist in database)
+func (s *State) GetAllEntries(ebKeyMR interfaces.IHash) bool {
+	hasAllEntries := true
+	eblock, err := s.DB.FetchEBlockByKeyMR(ebKeyMR)
+	if err != nil {
+		return false
+	}
+	if eblock == nil {
+		if !s.HasDataRequest(ebKeyMR) {
+			eBlockRequest := messages.NewMissingData(s, ebKeyMR)
+			s.NetworkOutMsgQueue() <- eBlockRequest
+		}
+		return false
+	}
+	for _, entryHash := range eblock.GetEntryHashes() {
+		if !strings.HasPrefix(entryHash.String(), "000000000000000000000000000000000000000000000000000000000000000") {
+			if !s.DatabaseContains(entryHash) {
+				hasAllEntries = false
+			} else {
+				continue
+			}
+			if !s.HasDataRequest(entryHash) {
+				entryRequest := messages.NewMissingData(s, entryHash)
+				s.NetworkOutMsgQueue() <- entryRequest
+			}
+		}
+	}
+
+	return hasAllEntries
+}
+
+func (s *State) DatabaseContains(hash interfaces.IHash) bool {
+	result, _, err := s.LoadDataByHash(hash)
+	if result != nil && err == nil {
+		return true
+	}
+	return false
 }
 
 func (s *State) MessageToLogString(msg interfaces.IMsg) string {
@@ -497,6 +614,7 @@ func (s *State) UpdateState() {
 		s.SetString()
 		progress1 := s.ProcessLists.UpdateState()
 		progress2 := s.DBStates.UpdateState()
+		s.catchupEBlocks()
 
 		if s.GetOut() {
 			str := fmt.Sprintf("%25s   %10s   %25s", "----------------", s.GetFactomNodeName(), "--------------------\n")
@@ -514,6 +632,31 @@ func (s *State) UpdateState() {
 	}
 }
 
+func (s *State) catchupEBlocks() {
+	isComplete := true
+	if s.GetEBDBHeightComplete() < s.GetDBHeightComplete() {
+		dblockGathering := s.GetDirectoryBlockByHeight(s.GetEBDBHeightComplete())
+		for idx, ebKeyMR := range dblockGathering.GetEntryHashes() {
+			if idx > 2 {
+				if s.DatabaseContains(ebKeyMR) {
+					if !s.GetAllEntries(ebKeyMR) {
+						isComplete = false
+					}
+				} else {
+					isComplete = false
+					if !s.HasDataRequest(ebKeyMR) {
+						eBlockRequest := messages.NewMissingData(s, ebKeyMR)
+						s.NetworkOutMsgQueue() <- eBlockRequest
+					}
+				}
+			}
+		}
+		if isComplete {
+			s.SetEBDBHeightComplete(s.GetEBDBHeightComplete() + 1)
+		}
+	}
+}
+
 func (s *State) Dethrottle() {
 	s.IsThrottled = false
 }
@@ -526,13 +669,9 @@ func (s *State) GetFedServers(dbheight uint32) []interfaces.IFctServer {
 	return s.ProcessLists.Get(dbheight).FedServers
 }
 
-func (s *State) GetFedServerIndexHash(dbheight uint32, serverChainID interfaces.IHash) (bool, int) {
+func (s *State) GetVirtualServers(dbheight uint32, minute int, identityChainID interfaces.IHash) (found bool, indexes []int) {
 	pl := s.ProcessLists.Get(dbheight)
-	if pl == nil {
-		return false, 0
-	}
-	b, i := pl.GetFedServerIndexHash(serverChainID)
-	return b, i
+	return pl.GetVirtualServers(minute, identityChainID)
 }
 
 func (s *State) GetFactoshisPerEC() uint64 {
@@ -766,10 +905,10 @@ func (s *State) SetString() {
 			0,
 			s.GetHighestKnownBlock())
 	} else {
-		found, index := s.GetFedServerIndexHash(buildingBlock, s.IdentityChainID)
+		found, _ := s.GetVirtualServers(buildingBlock, 9, s.GetIdentityChainID())
 		stype := ""
 		if found {
-			stype = fmt.Sprintf("L %4d", index)
+			stype = fmt.Sprintf("L     ")
 		}
 		keyMR := []byte("aaaaa")
 		abHash := []byte("aaaaa")

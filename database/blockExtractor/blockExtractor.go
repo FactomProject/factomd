@@ -84,7 +84,7 @@ func (be *BlockExtractor) SaveJSON(block interfaces.DatabaseBatchable) error {
 
 	var out bytes.Buffer
 	json.Indent(&out, data, "", "\t")
-	data = out.Bytes()
+	data = out.Next(out.Len())
 
 	strChainID := fmt.Sprintf("%x", block.GetChainID().Bytes())
 	dir := be.DataStorePath + strChainID
@@ -112,7 +112,7 @@ func (be *BlockExtractor) SaveEntryJSON(entry interfaces.DatabaseBatchable, bloc
 
 	var out bytes.Buffer
 	json.Indent(&out, data, "", "\t")
-	data = out.Bytes()
+	data = out.Next(out.Len())
 
 	strChainID := fmt.Sprintf("%x", entry.GetChainID().Bytes())
 	dir := be.DataStorePath + strChainID + "/entries"

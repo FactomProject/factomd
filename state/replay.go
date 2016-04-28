@@ -18,7 +18,7 @@ var _ = fmt.Print
 
 type Replay struct {
 	mutex    sync.Mutex
-	buckets  []map[[32]byte]int64
+	buckets  []map[[32]byte]byte
 	lasttime int64 // hours since 1970
 }
 
@@ -47,7 +47,7 @@ func (r *Replay) IsTSValid_(hash [32]byte, timestamp int64, now int64) bool {
 	defer r.mutex.Unlock()
 
 	if len(r.buckets) < numBuckets {
-		r.buckets = make([]map[[32]byte]int64, numBuckets, numBuckets)
+		r.buckets = make([]map[[32]byte]byte, numBuckets, numBuckets)
 	}
 
 	now = hours(now)
@@ -62,7 +62,7 @@ func (r *Replay) IsTSValid_(hash [32]byte, timestamp int64, now int64) bool {
 	// for every hour that has passed, toss one bucket by shifting
 	// them all down a slot, and allocating a new bucket.
 	for r.lasttime < now {
-		r.buckets = append(r.buckets, make(map[[32]byte]int64))
+		r.buckets = append(r.buckets, make(map[[32]byte]byte))
 		r.lasttime++
 	}
 
@@ -73,14 +73,15 @@ func (r *Replay) IsTSValid_(hash [32]byte, timestamp int64, now int64) bool {
 	}
 
 	if r.buckets[index] == nil {
-		r.buckets[index] = make(map[[32]byte]int64)
+		r.buckets[index] = make(map[[32]byte]byte)
 	} else {
 		_, ok := r.buckets[index][hash]
 		if ok {
 			return false
 		}
 	}
-	r.buckets[index][hash] = t
+	// Mark this hash as seen
+	r.buckets[index][hash] = 'x'
 
 	return true
 }

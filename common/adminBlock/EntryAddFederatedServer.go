@@ -38,7 +38,7 @@ func (e *AddFederatedServer) Type() byte {
 }
 
 func (e *AddFederatedServer) MarshalBinary() (data []byte, err error) {
-	var buf bytes.Buffer
+	var buf primitives.Buffer
 
 	buf.Write([]byte{e.Type()})
 
@@ -50,13 +50,13 @@ func (e *AddFederatedServer) MarshalBinary() (data []byte, err error) {
 
 	binary.Write(&buf, binary.BigEndian, e.DBHeight)
 
-	return buf.Bytes(), nil
+	return buf.DeepCopyBytes(), nil
 }
 
 func (e *AddFederatedServer) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
+			err = fmt.Errorf("Error unmarshalling Add Federated Server Entry: %v", r)
 		}
 	}()
 

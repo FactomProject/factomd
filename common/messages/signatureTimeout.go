@@ -51,7 +51,7 @@ func (m *SignatureTimeout) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp
 }
 
-func (m *SignatureTimeout) Type() int {
+func (m *SignatureTimeout) Type() byte {
 	return constants.SIGNATURE_TIMEOUT_MSG
 }
 
@@ -63,12 +63,17 @@ func (m *SignatureTimeout) Bytes() []byte {
 	return nil
 }
 
-func (m *SignatureTimeout) UnmarshalBinaryData(data []byte) (newdata []byte, err error) {
+func (m *SignatureTimeout) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
 	}()
+	newData = data
+	if newData[0] != m.Type() {
+		return nil, fmt.Errorf("Invalid Message type")
+	}
+	newData = newData[1:]
 
 	return nil, nil
 }

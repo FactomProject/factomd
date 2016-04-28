@@ -4,6 +4,8 @@
 
 package interfaces
 
+var NumOfVMs int = 2
+
 // Holds the state information for factomd.  This does imply that we will be
 // using accessors to access state information in the consensus algorithm.
 // This is a bit tedious, but does provide single choke points where information
@@ -28,12 +30,15 @@ type IState interface {
 	GetProtocolVersion() int
 	SetServer(IServer)
 	GetDBHeightComplete() uint32
+	GetEBDBHeightComplete() uint32
+	SetEBDBHeightComplete(uint32)
+	DatabaseContains(hash IHash) bool
 	SetOut(bool)  // Output is turned on if set to true
 	GetOut() bool // Return true if Print or Println write output
+	LoadDataByHash(requestedHash IHash) (BinaryMarshallable, int, error)
 	LoadDBState(dbheight uint32) (IMsg, error)
 	LoadSpecificMsg(dbheight uint32, plistheight uint32) (IMsg, error)
 	LoadSpecificMsgAndAck(dbheight uint32, plistheight uint32) (IMsg, IMsg, error)
-	GetFedServerIndexHash(uint32, IHash) (bool, int)
 	SetString()
 	ShortString() string
 
@@ -98,14 +103,15 @@ type IState interface {
 
 	// These are methods run by the consensus algorithm to track what servers are the leaders
 	// and what lists they are responsible for.
-	ServerIndexFor(uint32, []byte) int // Returns the serverindex responsible for this hash
-	LeaderFor(hash []byte) bool        // Tests if this server is the leader for this key
-
+	LeaderFor(msg IMsg, hash []byte) bool // Tests if this server is the leader for this key
+	// Returns the list of VirtualServers at a given directory block height and minute
+	GetVirtualServers(dbheight uint32, minute int, identityChainID IHash) (found bool, indexes []int)
 	// Database
 	// ========
 	GetDB() DBOverlay
 	SetDB(DBOverlay)
 
+	GetEBlockKeyMRFromEntryHash(entryHash IHash) IHash
 	GetAnchor() IAnchor
 
 	// Web Services
@@ -127,6 +133,7 @@ type IState interface {
 	FollowerExecuteMsg(m IMsg) (bool, error) // Messages that go into the process list
 	FollowerExecuteAck(m IMsg) (bool, error) // Ack Msg calls this function.
 	FollowerExecuteDBState(IMsg) error       // Add the given DBState to this server
+	FollowerExecuteAddData(m IMsg) error     // Add the entry or eblock to this Server
 
 	ProcessAddServer(dbheight uint32, addServerMsg IMsg) bool
 	ProcessCommitChain(dbheight uint32, commitChain IMsg) bool
@@ -136,17 +143,20 @@ type IState interface {
 
 	// For messages that go into the Process List
 	LeaderExecute(m IMsg) error
-	LeaderExecuteEOM(m IMsg) error
 	LeaderExecuteDBSig(m IMsg) error
 
 	GetTimestamp() Timestamp
 
-	PrintType(int) bool // Debugging
+	PrintType(byte) bool // Debugging
 	Print(a ...interface{}) (n int, err error)
 	Println(a ...interface{}) (n int, err error)
 
 	ValidatorLoop()
 	Dethrottle()
+
+	AddDataRequest(requestedHash, missingDataHash IHash)
+	HasDataRequest(checkHash IHash) bool
+	GetAllEntries(ebKeyMR IHash) bool
 
 	SetIsReplaying()
 	SetIsDoneReplaying()

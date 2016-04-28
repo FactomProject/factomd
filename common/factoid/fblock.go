@@ -107,7 +107,7 @@ func (b *FBlock) GetEndOfPeriod() [10]int {
 }
 
 func (b *FBlock) MarshalTrans() ([]byte, error) {
-	var out bytes.Buffer
+	var out primitives.Buffer
 	var periodMark = 0
 	var i int
 	var trans interfaces.ITransaction
@@ -141,11 +141,11 @@ func (b *FBlock) MarshalTrans() ([]byte, error) {
 		out.WriteByte(constants.MARKER)
 		periodMark++
 	}
-	return out.Bytes(), nil
+	return out.DeepCopyBytes(), nil
 }
 
 func (b *FBlock) MarshalHeader() ([]byte, error) {
-	var out bytes.Buffer
+	var out primitives.Buffer
 
 	out.Write(constants.FACTOID_CHAINID)
 
@@ -191,12 +191,12 @@ func (b *FBlock) MarshalHeader() ([]byte, error) {
 
 	binary.Write(&out, binary.BigEndian, uint32(len(transdata))) // write out its length
 
-	return out.Bytes(), nil
+	return out.DeepCopyBytes(), nil
 }
 
 // Write out the block
 func (b *FBlock) MarshalBinary() ([]byte, error) {
-	var out bytes.Buffer
+	var out primitives.Buffer
 
 	data, err := b.MarshalHeader()
 	if err != nil {
@@ -210,7 +210,7 @@ func (b *FBlock) MarshalBinary() ([]byte, error) {
 	}
 	out.Write(transdata) // write out trans data
 
-	return out.Bytes(), nil
+	return out.DeepCopyBytes(), nil
 }
 
 func UnmarshalFBlock(data []byte) (interfaces.IFBlock, error) {
@@ -611,7 +611,7 @@ func (b FBlock) String() string {
 
 // Marshal to text.  Largely a debugging thing.
 func (b FBlock) CustomMarshalText() (text []byte, err error) {
-	var out bytes.Buffer
+	var out primitives.Buffer
 
 	out.WriteString("Transaction Block\n")
 	out.WriteString("  ChainID:       ")
@@ -646,7 +646,7 @@ func (b FBlock) CustomMarshalText() (text []byte, err error) {
 	primitives.WriteNumber32(&out, uint32(len(b.Transactions)))
 	transdata, err := b.MarshalTrans()
 	if err != nil {
-		return out.Bytes(), err
+		return nil, err
 	}
 	out.WriteString("\n  Body Size:     ")
 	primitives.WriteNumber32(&out, uint32(len(transdata)))
@@ -654,7 +654,6 @@ func (b FBlock) CustomMarshalText() (text []byte, err error) {
 	markPeriod := 0
 
 	for i, trans := range b.Transactions {
-
 		for markPeriod < 10 && i == b.endOfPeriod[markPeriod] {
 			out.WriteString(fmt.Sprintf("\n   End of Minute %d\n\n", markPeriod+1))
 			markPeriod++
@@ -662,11 +661,11 @@ func (b FBlock) CustomMarshalText() (text []byte, err error) {
 
 		txt, err := trans.CustomMarshalText()
 		if err != nil {
-			return out.Bytes(), err
+			return nil, err
 		}
 		out.Write(txt)
 	}
-	return out.Bytes(), nil
+	return out.DeepCopyBytes(), nil
 }
 
 func (e *FBlock) JSONByte() ([]byte, error) {

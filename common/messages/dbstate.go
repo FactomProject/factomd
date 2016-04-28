@@ -57,7 +57,7 @@ func (m *DBStateMsg) GetMsgHash() interfaces.IHash {
 	return m.MsgHash
 }
 
-func (m *DBStateMsg) Type() int {
+func (m *DBStateMsg) Type() byte {
 	return constants.DBSTATE_MSG
 }
 
@@ -135,13 +135,16 @@ func (m *DBStateMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error
 	defer func() {
 		return
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
+			err = fmt.Errorf("Error unmarshalling Directory Block State Message: %v", r)
 		}
 	}()
+	newData = data
+	if newData[0] != m.Type() {
+		return nil, fmt.Errorf("Invalid Message type")
+	}
+	newData = newData[1:]
 
 	m.Peer2peer = true
-
-	newData = data[1:] // Skip our type;  Someone else's problem.
 
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
@@ -209,10 +212,9 @@ func (m *DBStateMsg) UnmarshalBinary(data []byte) error {
 }
 
 func (m *DBStateMsg) MarshalForSignature() ([]byte, error) {
+	var buf primitives.Buffer
 
-	var buf bytes.Buffer
-
-	binary.Write(&buf, binary.BigEndian, byte(m.Type()))
+	binary.Write(&buf, binary.BigEndian, m.Type())
 
 	t := m.GetTimestamp()
 	data, err := t.MarshalBinary()
@@ -231,8 +233,8 @@ func (m *DBStateMsg) MarshalForSignature() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	buf.Write(data)
+
 	data, err = m.FactoidBlock.GetHash().MarshalBinary()
 	if err != nil {
 		return nil, err
@@ -269,7 +271,7 @@ func (m *DBStateMsg) MarshalForSignature() ([]byte, error) {
 	}
 	buf.Write(data)
 
-	return buf.Bytes(), nil
+	return buf.DeepCopyBytes(), nil
 }
 
 func (m *DBStateMsg) MarshalBinary() ([]byte, error) {

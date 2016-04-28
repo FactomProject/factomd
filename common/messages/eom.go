@@ -22,10 +22,9 @@ type EOM struct {
 	Timestamp interfaces.Timestamp
 	Minute    byte
 
-	DBHeight    uint32
-	ServerIndex int
-	ChainID     interfaces.IHash
-	Signature   interfaces.IFullSignature
+	DBHeight  uint32
+	ChainID   interfaces.IHash
+	Signature interfaces.IFullSignature
 
 	//Not marshalled
 	hash       interfaces.IHash
@@ -40,24 +39,24 @@ func (e *EOM) Process(dbheight uint32, state interfaces.IState) bool {
 }
 
 func (m *EOM) GetHash() interfaces.IHash {
-	if m.hash == nil {
-		data, err := m.MarshalForSignature()
-		if err != nil {
-			panic(fmt.Sprintf("Error in EOM.GetHash(): %s", err.Error()))
-		}
-		m.hash = primitives.Sha(data)
+
+	data, err := m.MarshalForSignature()
+	if err != nil {
+		panic(fmt.Sprintf("Error in EOM.GetHash(): %s", err.Error()))
 	}
+	m.hash = primitives.Sha(data)
+
 	return m.hash
 }
 
 func (m *EOM) GetMsgHash() interfaces.IHash {
-	if m.MsgHash == nil {
-		data, err := m.MarshalForSignature()
-		if err != nil {
-			return nil
-		}
-		m.MsgHash = primitives.Sha(data)
+
+	data, err := m.MarshalForSignature()
+	if err != nil {
+		return nil
 	}
+	m.MsgHash = primitives.Sha(data)
+
 	return m.MsgHash
 }
 
@@ -74,7 +73,7 @@ func (m *EOM) Bytes() []byte {
 	return append(ret, m.Minute)
 }
 
-func (m *EOM) Type() int {
+func (m *EOM) Type() byte {
 	return constants.EOM_MSG
 }
 
@@ -83,18 +82,20 @@ func (m *EOM) Type() int {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *EOM) Validate(state interfaces.IState) int {
-	found, _ := state.GetFedServerIndexHash(m.DBHeight, m.ChainID)
+	if m.IsLocal() {
+		return 1
+	}
+	found, _ := state.GetVirtualServers(m.DBHeight, int(m.Minute), m.ChainID)
 	if !found { // Only EOM from federated servers are valid.
 		return -1
 	}
+
 	// Check signature
 	eomSigned, err := m.VerifySignature()
 	if err != nil {
-		fmt.Println("Err is not nil on EOM sig check: ", err)
 		return -1
 	}
 	if !eomSigned {
-		fmt.Println("Not Signed", err)
 		return -1
 	}
 	return 1
@@ -103,8 +104,7 @@ func (m *EOM) Validate(state interfaces.IState) int {
 // Returns true if this is a message for this server to execute as
 // a leader.
 func (m *EOM) Leader(state interfaces.IState) bool {
-	found, index := state.GetFedServerIndexHash(state.GetLeaderHeight(), state.GetIdentityChainID())
-	if found && index == m.ServerIndex {
+	if m.IsLocal() {
 		return true
 	}
 	return false
@@ -112,7 +112,8 @@ func (m *EOM) Leader(state interfaces.IState) bool {
 
 // Execute the leader functions of the given message
 func (m *EOM) LeaderExecute(state interfaces.IState) error {
-	return state.LeaderExecuteEOM(m)
+	m.SetLocal(false)
+	return state.LeaderExecute(m)
 }
 
 // Returns true if this is a message for this server to execute as a follower
@@ -157,10 +158,14 @@ func (m *EOM) VerifySignature() (bool, error) {
 func (m *EOM) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
+			err = fmt.Errorf("Error unmarshalling EOM message: %v", r)
 		}
 	}()
-	newData = data[1:]
+	newData = data
+	if newData[0] != m.Type() {
+		return nil, fmt.Errorf("Invalid Message type")
+	}
+	newData = newData[1:]
 
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
@@ -179,7 +184,7 @@ func (m *EOM) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 		return nil, fmt.Errorf("Minute number is out of range")
 	}
 
-	m.ServerIndex = int(newData[0])
+	m.VMIndex = int(newData[0])
 	newData = newData[1:]
 
 	m.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
@@ -202,8 +207,8 @@ func (m *EOM) UnmarshalBinary(data []byte) error {
 }
 
 func (m *EOM) MarshalForSignature() (data []byte, err error) {
-	var buf bytes.Buffer
-	buf.Write([]byte{byte(m.Type())})
+	var buf primitives.Buffer
+	buf.Write([]byte{m.Type()})
 	if d, err := m.Timestamp.MarshalBinary(); err != nil {
 		return nil, err
 	} else {
@@ -217,12 +222,12 @@ func (m *EOM) MarshalForSignature() (data []byte, err error) {
 	}
 
 	binary.Write(&buf, binary.BigEndian, m.Minute)
-	binary.Write(&buf, binary.BigEndian, uint8(m.ServerIndex))
-	return buf.Bytes(), nil
+	binary.Write(&buf, binary.BigEndian, uint8(m.VMIndex))
+	return buf.DeepCopyBytes(), nil
 }
 
 func (m *EOM) MarshalBinary() (data []byte, err error) {
-	var buf bytes.Buffer
+	var buf primitives.Buffer
 	resp, err := m.MarshalForSignature()
 	if err != nil {
 		return nil, err
@@ -239,13 +244,13 @@ func (m *EOM) MarshalBinary() (data []byte, err error) {
 		}
 		buf.Write(sigBytes)
 	}
-	return buf.Bytes(), nil
+	return buf.DeepCopyBytes(), nil
 }
 
 func (m *EOM) String() string {
 	return fmt.Sprintf("%6s-%3d: Min:%4d Ht:%5d -- chainID[:5]=%x hash[:5]=%x",
 		"EOM",
-		m.ServerIndex,
+		m.VMIndex,
 		m.Minute,
 		m.DBHeight,
 		m.ChainID.Bytes()[:5],

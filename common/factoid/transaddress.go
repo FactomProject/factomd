@@ -98,7 +98,7 @@ func (t *TransAddress) UnmarshalBinaryData(data []byte) (newData []byte, err err
 
 // MarshalBinary.  'nuff said
 func (a TransAddress) MarshalBinary() ([]byte, error) {
-	var out bytes.Buffer
+	var out primitives.Buffer
 
 	err := primitives.EncodeVarInt(&out, a.Amount)
 	if err != nil {
@@ -107,7 +107,7 @@ func (a TransAddress) MarshalBinary() ([]byte, error) {
 	data, err := a.Address.MarshalBinary()
 	out.Write(data)
 
-	return out.Bytes(), err
+	return out.DeepCopyBytes(), err
 }
 
 // Accessor. Default to a zero length string.  This is a debug
@@ -141,7 +141,7 @@ func (ta *TransAddress) SetAddress(address interfaces.IAddress) {
 
 // Make this into somewhat readable text.
 func (ta TransAddress) CustomMarshalTextAll(fct bool, label string) ([]byte, error) {
-	var out bytes.Buffer
+	var out primitives.Buffer
 	out.WriteString(fmt.Sprintf("   %8s:", label))
 	v := primitives.ConvertDecimalToPaddedString(ta.Amount)
 	fill := 8 - len(v) + strings.Index(v, ".") + 1
@@ -154,7 +154,7 @@ func (ta TransAddress) CustomMarshalTextAll(fct bool, label string) ([]byte, err
 	}
 	str := fmt.Sprintf("\n                  %016x %038s\n\n", ta.Amount, string(hex.EncodeToString(ta.GetAddress().Bytes())))
 	out.WriteString(str)
-	return out.Bytes(), nil
+	return out.DeepCopyBytes(), nil
 }
 
 func (ta TransAddress) CustomMarshalText2(label string) ([]byte, error) {

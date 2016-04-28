@@ -46,7 +46,7 @@ func (m *DBStateMissing) GetMsgHash() interfaces.IHash {
 	return m.MsgHash
 }
 
-func (m *DBStateMissing) Type() int {
+func (m *DBStateMissing) Type() byte {
 	return constants.DBSTATE_MISSING_MSG
 }
 
@@ -87,7 +87,6 @@ func (m *DBStateMissing) Follower(interfaces.IState) bool {
 }
 
 func (m *DBStateMissing) FollowerExecute(state interfaces.IState) error {
-
 	if len(state.NetworkOutMsgQueue()) > 1000 {
 		return nil
 	}
@@ -130,13 +129,16 @@ func (e *DBStateMissing) JSONBuffer(b *bytes.Buffer) error {
 func (m *DBStateMissing) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
+			err = fmt.Errorf("Error unmarshalling Directory Block State Missing Message: %v", r)
 		}
 	}()
+	newData = data
+	if newData[0] != m.Type() {
+		return nil, fmt.Errorf("Invalid Message type")
+	}
+	newData = newData[1:]
 
 	m.Peer2peer = true // This is always a Peer2peer message
-
-	newData = data[1:] // Skip our type;  Someone else's problem.
 
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
@@ -155,10 +157,9 @@ func (m *DBStateMissing) UnmarshalBinary(data []byte) error {
 }
 
 func (m *DBStateMissing) MarshalForSignature() ([]byte, error) {
+	var buf primitives.Buffer
 
-	var buf bytes.Buffer
-
-	binary.Write(&buf, binary.BigEndian, byte(m.Type()))
+	binary.Write(&buf, binary.BigEndian, m.Type())
 
 	t := m.GetTimestamp()
 	data, err := t.MarshalBinary()
@@ -170,7 +171,7 @@ func (m *DBStateMissing) MarshalForSignature() ([]byte, error) {
 	binary.Write(&buf, binary.BigEndian, m.DBHeightStart)
 	binary.Write(&buf, binary.BigEndian, m.DBHeightEnd)
 
-	return buf.Bytes(), nil
+	return buf.DeepCopyBytes(), nil
 }
 
 func (m *DBStateMissing) MarshalBinary() ([]byte, error) {

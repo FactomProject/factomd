@@ -5,21 +5,17 @@
 package messages_test
 
 import (
+	"testing"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/messages"
-	"testing"
 
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
 func TestMarshalUnmarshalAddServer(t *testing.T) {
-
-	addserv := new(AddServerMsg)
-	ts := new(interfaces.Timestamp)
-	ts.SetTimeNow()
-	addserv.Timestamp = *ts
-	addserv.ServerChainID = primitives.Sha([]byte("FNode0"))
+	addserv := newAddServer()
 
 	str, err := addserv.JSONString()
 	if err != nil {
@@ -46,6 +42,83 @@ func TestMarshalUnmarshalAddServer(t *testing.T) {
 		t.Error("Invalid message type unmarshalled")
 	}
 
+	if addserv.IsSameAs(addserv2.(*AddServerMsg)) != true {
+		t.Errorf("AddServer messages are not identical")
+	}
+}
+
+func TestMarshalUnmarshalSignedAddServer(t *testing.T) {
+	addserv := newSignedAddServer()
+
+	str, err := addserv.JSONString()
+	if err != nil {
+		t.Error(err)
+	}
+	t.Logf("str1 - %v", str)
+	hex, err := addserv.MarshalBinary()
+	if err != nil {
+		t.Error(err)
+	}
+	t.Logf("Marshalled - %x", hex)
+
+	valid, err := addserv.VerifySignature()
+	if err != nil {
+		t.Error(err)
+	}
+	if valid == false {
+		t.Error("Signature is not valid")
+	}
+
+	addserv2, err := UnmarshalMessage(hex)
+	if err != nil {
+		t.Error(err)
+	}
+	str, err = addserv2.JSONString()
+	if err != nil {
+		t.Error(err)
+	}
+	t.Logf("str2 - %v", str)
+
+	if addserv2.Type() != constants.ADDSERVER_MSG {
+		t.Error("Invalid message type unmarshalled")
+	}
+
+	if addserv.IsSameAs(addserv2.(*AddServerMsg)) != true {
+		t.Errorf("AddServer messages are not identical")
+	}
+
+	valid, err = addserv2.(*AddServerMsg).VerifySignature()
+	if err != nil {
+		t.Error(err)
+	}
+	if valid == false {
+		t.Error("Signature is not valid")
+	}
+}
+
+func newAddServer() *AddServerMsg {
+	addserv := new(AddServerMsg)
+	ts := new(interfaces.Timestamp)
+	ts.SetTimeNow()
+	addserv.Timestamp = *ts
+	addserv.ServerChainID = primitives.Sha([]byte("FNode0"))
+	addserv.ServerType = 0
+	return addserv
+}
+
+func newSignedAddServer() *AddServerMsg {
+	addserv := newAddServer()
+
+	key, err := primitives.NewPrivateKeyFromHex("07c0d52cb74f4ca3106d80c4a70488426886bccc6ebc10c6bafb37bf8a65f4c38cee85c62a9e48039d4ac294da97943c2001be1539809ea5f54721f0c5477a0a")
+	if err != nil {
+		panic(err)
+	}
+	err = addserv.Sign(&key)
+	if err != nil {
+		panic(err)
+	}
+
+	return addserv
 }
 
 // TODO: Add test for signed messages (See ack_test.go)

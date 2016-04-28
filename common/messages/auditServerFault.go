@@ -47,7 +47,7 @@ func (m *AuditServerFault) GetMsgHash() interfaces.IHash {
 	return m.MsgHash
 }
 
-func (m *AuditServerFault) Type() int {
+func (m *AuditServerFault) Type() byte {
 	return constants.AUDIT_SERVER_FAULT_MSG
 }
 
@@ -59,12 +59,17 @@ func (m *AuditServerFault) Bytes() []byte {
 	return nil
 }
 
-func (m *AuditServerFault) UnmarshalBinaryData(data []byte) (newdata []byte, err error) {
+func (m *AuditServerFault) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
+			err = fmt.Errorf("Error unmarshalling Audit Server Fault: %v", r)
 		}
 	}()
+	newData = data
+	if newData[0] != m.Type() {
+		return nil, fmt.Errorf("Invalid Message type")
+	}
+	newData = newData[1:]
 
 	return nil, nil
 }

@@ -50,7 +50,7 @@ func (b *IncreaseBalance) Interpret() string {
 }
 
 func (b *IncreaseBalance) MarshalBinary() ([]byte, error) {
-	buf := new(bytes.Buffer)
+	buf := new(primitives.Buffer)
 
 	buf.Write(b.ECPubKey[:])
 
@@ -60,11 +60,11 @@ func (b *IncreaseBalance) MarshalBinary() ([]byte, error) {
 
 	primitives.EncodeVarInt(buf, b.NumEC)
 
-	return buf.Bytes(), nil
+	return buf.DeepCopyBytes(), nil
 }
 
 func (b *IncreaseBalance) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	buf := bytes.NewBuffer(data)
+	buf := primitives.NewBuffer(data)
 	hash := make([]byte, 32)
 
 	_, err = buf.Read(hash)
@@ -84,7 +84,7 @@ func (b *IncreaseBalance) UnmarshalBinaryData(data []byte) (newData []byte, err 
 	b.TXID.SetBytes(hash)
 
 	tmp := make([]byte, 0)
-	b.Index, tmp = primitives.DecodeVarInt(buf.Bytes())
+	b.Index, tmp = primitives.DecodeVarInt(buf.DeepCopyBytes())
 
 	b.NumEC, tmp = primitives.DecodeVarInt(tmp)
 

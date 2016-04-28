@@ -59,7 +59,7 @@ func (m *FactoidTransaction) SetTransaction(transaction interfaces.ITransaction)
 	m.Transaction = transaction
 }
 
-func (m *FactoidTransaction) Type() int {
+func (m *FactoidTransaction) Type() byte {
 	return constants.FACTOID_TRANSACTION_MSG
 }
 
@@ -70,7 +70,6 @@ func (m *FactoidTransaction) Type() int {
 func (m *FactoidTransaction) Validate(state interfaces.IState) int {
 	err := state.GetFactoidState().Validate(1, m.Transaction)
 	if err != nil {
-		fmt.Println(err.Error())
 		return -1
 	}
 	return 1
@@ -79,7 +78,7 @@ func (m *FactoidTransaction) Validate(state interfaces.IState) int {
 // Returns true if this is a message for this server to execute as
 // a leader.
 func (m *FactoidTransaction) Leader(state interfaces.IState) bool {
-	return state.LeaderFor(constants.FACTOID_CHAINID)
+	return state.LeaderFor(m, constants.FACTOID_CHAINID)
 }
 
 // Execute the leader functions of the given message
@@ -98,17 +97,17 @@ func (m *FactoidTransaction) FollowerExecute(state interfaces.IState) error {
 }
 
 func (m *FactoidTransaction) Process(dbheight uint32, state interfaces.IState) bool {
-
 	if m.processed {
 		return true
 	}
 	m.processed = true
-	fmt.Println("Process Factoid: ", state.GetFactomNodeName())
 	err := state.GetFactoidState().AddTransaction(1, m.Transaction)
 	if err != nil {
+		// Need to do something here if the transaction sent from the leader
+		// does not validate.  Maybe the follower ignores, but leaders should fault
+		// the offending leader...   For now we print and ignore.
+		// TODO
 		fmt.Println(err)
-	} else {
-		fmt.Println("Good!")
 	}
 
 	return true
@@ -126,7 +125,7 @@ func (m *FactoidTransaction) Bytes() []byte {
 func (m *FactoidTransaction) UnmarshalTransData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
+			err = fmt.Errorf("Error unmarshalling Transaction Factoid: %v", r)
 		}
 	}()
 
@@ -139,11 +138,14 @@ func (m *FactoidTransaction) UnmarshalTransData(data []byte) (newData []byte, er
 func (m *FactoidTransaction) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
+			err = fmt.Errorf("Error unmarshalling Factoid: %v", r)
 		}
 	}()
-
-	newData = data[1:]
+	newData = data
+	if newData[0] != m.Type() {
+		return nil, fmt.Errorf("Invalid Message type")
+	}
+	newData = newData[1:]
 
 	return m.UnmarshalTransData(newData)
 }
@@ -158,7 +160,7 @@ func (m *FactoidTransaction) MarshalBinary() (data []byte, err error) {
 	if err != nil {
 		return nil, err
 	}
-	data = append([]byte{byte(m.Type())}, data...)
+	data = append([]byte{m.Type()}, data...)
 	return data, nil
 }
 
