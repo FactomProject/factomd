@@ -57,24 +57,27 @@ type State struct {
 	// Just to print (so debugging doesn't drive functionaility)
 	serverPrt string
 
+    tickerQueue            chan int
 	timerMsgQueue          chan interfaces.IMsg
 	networkOutMsgQueue     chan interfaces.IMsg
 	networkInvalidMsgQueue chan interfaces.IMsg
 	inMsgQueue             chan interfaces.IMsg
 	leaderMsgQueue         chan interfaces.IMsg
+	followerMsgQueue       chan interfaces.IMsg
 	undo                   interfaces.IMsg
 	ShutdownChan           chan int // For gracefully halting Factom
 	JournalFile            string
 
-	myServer      interfaces.IServer //the server running on this Federated Server
 	serverPrivKey primitives.PrivateKey
 	serverPubKey  primitives.PublicKey
-	serverState   int
-	OutputAllowed bool
-	ServerIndex   int // Index of the server, as understood by the leader
 
-	LLeaderHeight uint32
-
+    // Server State
+	LLeaderHeight       uint32
+    Leader              bool
+    LeaderVMIndex       int
+    OutputAllowed       bool
+    EOM                 bool    // Set to true when all Process Lists have finished a minute
+    EOB                 bool    // Set to true when all Process Lists are complete for a block
 	// Maps
 	// ====
 	// For Follower
@@ -252,11 +255,13 @@ func (s *State) Init() {
 
 	log.SetLevel(s.ConsoleLogLevel)
 
+	s.tickerQueue = make(chan int, 10000)                        //ticks from a clock
 	s.timerMsgQueue = make(chan interfaces.IMsg, 10000)          //incoming eom notifications, used by leaders
 	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 10000) //incoming message queue from the network messages
 	s.networkOutMsgQueue = make(chan interfaces.IMsg, 10000)     //Messages to be broadcast to the network
 	s.inMsgQueue = make(chan interfaces.IMsg, 10000)             //incoming message queue for factom application messages
 	s.leaderMsgQueue = make(chan interfaces.IMsg, 10000)         //queue of Leadership messages
+	s.followerMsgQueue = make(chan interfaces.IMsg, 10000)       //queue of Leadership messages
 	s.ShutdownChan = make(chan int, 1)                           //Channel to gracefully shut down.
 
 	os.Mkdir(s.LogPath, 0777)
@@ -298,12 +303,12 @@ func (s *State) Init() {
 
 	switch s.NodeMode {
 	case "FULL":
-		s.serverState = 0
+		s.Leader = false
 		s.Println("\n   +---------------------------+")
 		s.Println("   +------ Follower Only ------+")
 		s.Println("   +---------------------------+\n")
 	case "SERVER":
-		s.serverState = 1
+		s.Leader = true
 		s.Println("\n   +-------------------------+")
 		s.Println("   |       Leader Node       |")
 		s.Println("   +-------------------------+\n")
@@ -609,27 +614,22 @@ func (s *State) GetDirectoryBlockByHeight(height uint32) interfaces.IDirectoryBl
 	return dblk
 }
 
-func (s *State) UpdateState() {
-	for {
-		s.SetString()
-		progress1 := s.ProcessLists.UpdateState()
-		progress2 := s.DBStates.UpdateState()
-		s.catchupEBlocks()
+func (s *State) UpdateState() (progress bool) {
+	progress = s.ProcessLists.UpdateState() 
+	progress = progress || s.DBStates.UpdateState()
 
-		if s.GetOut() {
-			str := fmt.Sprintf("%25s   %10s   %25s", "----------------", s.GetFactomNodeName(), "--------------------\n")
-			str = str + s.ProcessLists.String()
-			str = str + s.DBStates.String()
-			str = str + fmt.Sprintf("%25s   %10s   %25s", "================", s.GetFactomNodeName(), "===================\n")
-			str = str + "===================================================================="
+	s.catchupEBlocks()
 
-			s.Println(str)
-		}
+	if s.GetOut() {
+		str := fmt.Sprintf("%25s   %10s   %25s", "----------------", s.GetFactomNodeName(), "--------------------\n")
+		str = str + s.ProcessLists.String()
+		str = str + s.DBStates.String()
+		str = str + fmt.Sprintf("%25s   %10s   %25s", "================", s.GetFactomNodeName(), "===================\n")
+		str = str + "===================================================================="
 
-		if !progress1 && !progress2 {
-			break
-		}
+		s.Println(str)
 	}
+    return
 }
 
 func (s *State) catchupEBlocks() {
@@ -669,7 +669,7 @@ func (s *State) GetFedServers(dbheight uint32) []interfaces.IFctServer {
 	return s.ProcessLists.Get(dbheight).FedServers
 }
 
-func (s *State) GetVirtualServers(dbheight uint32, minute int, identityChainID interfaces.IHash) (found bool, indexes []int) {
+func (s *State) GetVirtualServers(dbheight uint32, minute int, identityChainID interfaces.IHash) (found bool, index int) {
 	pl := s.ProcessLists.Get(dbheight)
 	return pl.GetVirtualServers(minute, identityChainID)
 }
@@ -696,14 +696,6 @@ func (s *State) GetDirectoryBlockInSeconds() int {
 
 func (s *State) SetDirectoryBlockInSeconds(t int) {
 	s.DirectoryBlockInSeconds = t
-}
-
-func (s *State) GetServer() interfaces.IServer {
-	return s.myServer
-}
-
-func (s *State) SetServer(server interfaces.IServer) {
-	s.myServer = server
 }
 
 func (s *State) GetServerPrivateKey() primitives.PrivateKey {
@@ -784,6 +776,10 @@ func (s *State) GetPort() int {
 	return s.PortNumber
 }
 
+func (s *State) TickerQueue() chan int {
+	return s.tickerQueue
+}
+
 func (s *State) TimerMsgQueue() chan interfaces.IMsg {
 	return s.timerMsgQueue
 }
@@ -804,10 +800,8 @@ func (s *State) LeaderMsgQueue() chan interfaces.IMsg {
 	return s.leaderMsgQueue
 }
 
-func (s *State) Undo() interfaces.IMsg {
-	u := s.undo
-	s.undo = nil
-	return u
+func (s *State) FollowerMsgQueue() chan interfaces.IMsg {
+	return s.leaderMsgQueue
 }
 
 //var _ IState = (*State)(nil)
@@ -905,7 +899,7 @@ func (s *State) SetString() {
 			0,
 			s.GetHighestKnownBlock())
 	} else {
-		found, _ := s.GetVirtualServers(buildingBlock, 9, s.GetIdentityChainID())
+		found, _ := s.GetVirtualServers(buildingBlock+1, 0, s.GetIdentityChainID())
 		stype := ""
 		if found {
 			stype = fmt.Sprintf("L     ")

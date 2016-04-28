@@ -63,18 +63,18 @@ type VM struct {
 }
 
 // Returns the Virtual Server index for this hash for the given minute
-func VMIndexFor(hash []byte) int {
+func (p *ProcessList) VMIndexFor(hash []byte) int {
 	v := uint64(0)
 	for _, b := range hash {
 		v += uint64(b)
 	}
-	r := int(v % uint64(interfaces.NumOfVMs))
+	r := int(v % uint64(len(p.FedServers)))
 	return r
 }
 
 // Returns the Federated Server responsible for this hash in this minute
 func (p *ProcessList) FedServerFor(minute int, hash []byte) interfaces.IFctServer {
-	vs := VMIndexFor(hash)
+	vs := p.VMIndexFor(hash)
 	if vs < 0 {
 		return nil
 	}
@@ -83,7 +83,7 @@ func (p *ProcessList) FedServerFor(minute int, hash []byte) interfaces.IFctServe
 }
 
 func (p *ProcessList) LeaderFor(chainID interfaces.IHash, hash []byte) int {
-	vmIndex := VMIndexFor(hash)
+	vmIndex := p.VMIndexFor(hash)
 	minute := p.VMs[vmIndex].LeaderMinute
 	vm := p.FedServers[p.ServerMap[minute][vmIndex]]
 	if bytes.Compare(chainID.Bytes(), vm.GetChainID().Bytes()) == 0 {
@@ -92,22 +92,21 @@ func (p *ProcessList) LeaderFor(chainID interfaces.IHash, hash []byte) int {
 	return -1
 }
 
-func (p *ProcessList) GetVirtualServers(minute int, identityChainID interfaces.IHash) (found bool, indexes []int) {
+func (p *ProcessList) GetVirtualServers(minute int, identityChainID interfaces.IHash) (found bool, index int) {
 	found, fedIndex := p.GetFedServerIndexHash(identityChainID)
 	if !found {
-		return false, indexes
+		return false, -1
 	}
-
 	for i, fedix := range p.ServerMap[minute] {
-		if i == interfaces.NumOfVMs {
+		if i == len(p.FedServers) {
 			break
 		}
 		if fedix == fedIndex {
-			indexes = append(indexes, i)
+			return true, i
 		}
 	}
 
-	return true, indexes
+	return false,-1
 }
 
 // Returns true and the index of this server, or false and the insertion point for this server
@@ -121,9 +120,13 @@ func (p *ProcessList) GetFedServerIndexHash(identityChainID interfaces.IHash) (b
 
 	for i, fs := range p.FedServers {
 		// Find and remove
-		if bytes.Compare(scid, fs.GetChainID().Bytes()) == 0 {
+		comp := bytes.Compare(scid, fs.GetChainID().Bytes())
+        if comp == 0 {
 			return true, i
 		}
+        if comp < 0 {
+            return false, i
+        }
 	}
 	return false, len(p.FedServers)
 }
@@ -135,7 +138,7 @@ func (p *ProcessList) MakeMap() {
 	indx := int(p.DBHeight*131) % n
 	for i := 0; i < 10; i++ {
 		indx = (indx + 1) % n
-		for j := 0; j < interfaces.NumOfVMs; j++ {
+		for j := 0; j < len(p.FedServers); j++ {
 			p.ServerMap[i][j] = indx
 			indx = (indx + 1) % n
 		}
@@ -145,7 +148,8 @@ func (p *ProcessList) MakeMap() {
 // Take the minute that has completed.  The minute height then is 1 plus that number
 // i.e. the minute height is 0, or 1, or 2, or ... or 10 (all done)
 func (p *ProcessList) SetMinute(index int, minute int) {
-	p.VMs[index].MinuteComplete = minute + 1
+	p.VMs[index].LeaderMinute = minute
+    p.VMs[index].MinuteComplete = minute + 1
 }
 
 // Return the lowest minute number in our lists.  Note that Minute Markers END
@@ -218,7 +222,7 @@ func (p *ProcessList) UndoLeaderAck(index int) {
 
 func (p ProcessList) HasMessage() bool {
 
-	for i := 0; i < interfaces.NumOfVMs; i++ {
+	for i := 0; i < len(p.FedServers); i++ {
 		if len(p.VMs[i].List) > 0 {
 			return true
 		}
@@ -253,7 +257,7 @@ func (p *ProcessList) EomComplete() bool {
 		return true
 	}
 
-	for i := 0; i < interfaces.NumOfVMs; i++ {
+	for i := 0; i < len(p.FedServers); i++ {
 		c := p.VMs[i]
 		if c.MinuteComplete != 10 {
 			return false
@@ -295,7 +299,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 		}
 	}
 
-	for i := 0; i < interfaces.NumOfVMs; i++ {
+	for i := 0; i < len(p.FedServers); i++ {
 
 		plist := p.VMs[i].List
 
@@ -369,19 +373,10 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 	return
 }
 
-func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
-	//if state.GetOut() {
-	//	p.State.Println("AddToProcessList +++++++++++++++++++++++++++++++++++++++++++++++",
-	//				m.String(),
-	//				" ",
-	//			 len(p.VMs[ack.VMIndex].List))
-	//}
-	if p == nil || p.VMs[ack.VMIndex].List == nil {
-		panic("This should not happen")
-	}
 
+func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {	
 	for len(p.VMs[ack.VMIndex].List) <= int(ack.Height) {
-		p.VMs[ack.VMIndex].List = append(p.VMs[ack.VMIndex].List, nil)
+		p.VMs[ack.VMIndex].List = append(p.VMs[ack.VMIndex].List,nil)
 	}
 	p.VMs[ack.VMIndex].List[ack.Height] = m
 }
@@ -391,11 +386,11 @@ func (p *ProcessList) String() string {
 	if p == nil {
 		buf.WriteString("-- <nil>\n")
 	} else {
-		buf.WriteString(fmt.Sprintf("%s #VMs %d\n", p.State.GetFactomNodeName(), interfaces.NumOfVMs))
+		buf.WriteString(fmt.Sprintf("%s #VMs %d\n", p.State.GetFactomNodeName(), len(p.FedServers)))
 
-		for i := 0; i < interfaces.NumOfVMs; i++ {
+		for i := 0; i < len(p.FedServers); i++ {
 			server := p.VMs[i]
-			eom := fmt.Sprintf("Minute %d", server.MinuteComplete)
+			eom := fmt.Sprintf("Minute Complete %d", server.MinuteComplete)
 			sig := ""
 			if server.SigComplete {
 				sig = "Sig Complete"
@@ -436,13 +431,7 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 	pl := new(ProcessList)
 
 	pl.State = state
-	pl.VMs = make([]*VM, interfaces.NumOfVMs)
-	for i := 0; i < interfaces.NumOfVMs; i++ {
-		pl.VMs[i] = new(VM)
-		pl.VMs[i].List = make([]interfaces.IMsg, 0)
-
-	}
-
+	
 	// Make a copy of the previous FedServers
 	pl.FedServers = make([]interfaces.IFctServer, 0)
 	pl.AuditServers = make([]interfaces.IFctServer, 0)
@@ -451,6 +440,13 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 		pl.AuditServers = append(pl.AuditServers, previous.AuditServers...)
 	} else {
 		pl.AddFedServer(primitives.Sha([]byte("FNode0"))) // Our default for now fed server
+	}
+
+    pl.VMs = make([]*VM, len(pl.FedServers))
+	for i := 0; i < len(pl.FedServers); i++ {
+		pl.VMs[i] = new(VM)
+		pl.VMs[i].List = make([]interfaces.IMsg, 0)
+
 	}
 
 	pl.DBHeight = dbheight

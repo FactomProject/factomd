@@ -69,7 +69,7 @@ func (m *DirectoryBlockSignature) Bytes() []byte {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
-	found, vmIndexs := state.GetVirtualServers(m.DBHeight, 9, m.ServerIdentityChainID)
+	found, vmIndex := state.GetVirtualServers(m.DBHeight, 9, m.ServerIdentityChainID)
 
 	if found == false {
 		return 0
@@ -93,12 +93,11 @@ func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 	} else {
 		return 1
 	}
-
-	for _, vmi := range vmIndexs {
-		if m.VMIndex == vmi {
-			return 1
-		}
+    
+	if m.VMIndex == vmIndex {
+		return 1
 	}
+	
 	return -1
 }
 
