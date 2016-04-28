@@ -46,6 +46,7 @@ func NetStart(s *state.State) {
 	runtimeLogPtr := flag.Bool("runtimeLog", true, "If true, maintain runtime logs of messages passed.")
 	vmCountPtr := flag.Int("vmCount", 2, "Number of Virtual Machines running the consensus algorighm.")
 	netdebugPtr := flag.Bool("netdebug", false, "If true, print detailed network debugging info.")
+	heartbeatPtr := flag.Bool("heartbeat", false, "If true, network just sends heartbeats.")
 
 	flag.Parse()
 
@@ -65,6 +66,7 @@ func NetStart(s *state.State) {
 	runtimeLog := *runtimeLogPtr
 	vmCount := *vmCountPtr
 	netdebug := *netdebugPtr
+	heartbeat := *heartbeatPtr
 
 	FactomConfigFilename := util.GetConfigFilename("m2")
 	fmt.Println(fmt.Sprintf("factom config: %s", FactomConfigFilename))
@@ -172,7 +174,11 @@ func NetStart(s *state.State) {
 		p2pProxy := new(P2PPeer).Init(fnodes[0].State.FactomNodeName, address).(*P2PPeer)
 		fnodes[0].Peers = append(fnodes[0].Peers, p2pProxy)
 		p2pProxy.SetDebugMode(netdebug)
+		p2pProxy.SetTestMode(heartbeat)
 		P2PNetworkStart(address, peers, p2pProxy)
+		if netdebug {
+			go PeriodicStatusReport(fnodes)
+		}
 	}
 
 	switch net {
