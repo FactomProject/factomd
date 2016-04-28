@@ -28,7 +28,6 @@ type IAdminBlock interface {
 	AddEndOfMinuteMarker(eomType byte) (err error)
 	GetDBSignature() IABEntry
 	AddFedServer(IHash)
-	AddAuditServer(IHash)
 	UpdateState(IState)
 }
 

@@ -673,6 +673,10 @@ func (s *State) GetFedServers(dbheight uint32) []interfaces.IFctServer {
 	return s.ProcessLists.Get(dbheight).FedServers
 }
 
+func (s *State) GetAuditServers(dbheight uint32) []interfaces.IFctServer {
+	return s.ProcessLists.Get(dbheight).AuditServers
+}
+
 func (s *State) GetVirtualServers(dbheight uint32, minute int, identityChainID interfaces.IHash) (found bool, indexes []int) {
 	pl := s.ProcessLists.Get(dbheight)
 	return pl.GetVirtualServers(minute, identityChainID)
