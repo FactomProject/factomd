@@ -20,6 +20,7 @@ type EBlock struct {
 
 var _ interfaces.Printable = (*EBlock)(nil)
 var _ interfaces.BinaryMarshallableAndCopyable = (*EBlock)(nil)
+var _ interfaces.BinaryMarshallable = (*EBlock)(nil)
 var _ interfaces.DatabaseBatchable = (*EBlock)(nil)
 var _ interfaces.IEntryBlock = (*EBlock)(nil)
 var _ interfaces.DatabaseBlockWithEntries = (*EBlock)(nil)
