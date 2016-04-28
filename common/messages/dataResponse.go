@@ -24,11 +24,48 @@ type DataResponse struct {
 	DataType   int // 0 = Entry, 1 = EntryBlock
 	DataHash   interfaces.IHash
 	DataObject interfaces.BinaryMarshallable //Entry or EntryBlock
+
+	//Not signed!
 }
 
 var _ interfaces.IMsg = (*DataResponse)(nil)
 
-func (m *DataResponse) IsSameAs(b *DataResponse) bool {
+func (a *DataResponse) IsSameAs(b *DataResponse) bool {
+	if b == nil {
+		return false
+	}
+	if a.Timestamp != b.Timestamp {
+		return false
+	}
+	if a.DataType != b.DataType {
+		return false
+	}
+
+	if a.DataHash == nil && b.DataHash != nil {
+		return false
+	}
+	if a.DataHash != nil {
+		if a.DataHash.IsSameAs(b.DataHash) == false {
+			return false
+		}
+	}
+
+	if a.DataObject == nil && b.DataObject != nil {
+		return false
+	}
+	if a.DataObject != nil {
+		hex1, err := a.DataObject.MarshalBinary()
+		if err != nil {
+			return false
+		}
+		hex2, err := b.DataObject.MarshalBinary()
+		if err != nil {
+			return false
+		}
+		if primitives.AreBytesEqual(hex1, hex2) == false {
+			return false
+		}
+	}
 	return true
 }
 
