@@ -1,7 +1,8 @@
 #!/bin/bash +x
+echo
+echo "Stopping factomd on $1 before updating."
+ssh -n $1 './stop.sh'
 echo "Copies the local authorized_keys to ~/.ssh/authorized_keys"
-echo "usage: ./move_auth_keys foo@bar.baz.com"
-echo "executing scp now..."
 scp ../../../FactomInc/ops/authorized_keys $1:~/.ssh/authorized_keys
 echo "Removing previous log file."
 ssh -n $1 'echo \"Config Remote Test Box Reset\" > runlog.txt'

@@ -214,7 +214,9 @@ func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) 
 	}
 
 	pl := s.ProcessLists.Get(dbheight)
-	pl.AdminBlock.AddFedServer(as.ServerChainID)
+	if as.ServerType == 0 {
+		pl.AdminBlock.AddFedServer(as.ServerChainID)
+	}
 
 	return true
 }

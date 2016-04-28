@@ -44,6 +44,8 @@ type IState interface {
 
 	AddFedServer(uint32, IHash) int
 	GetFedServers(uint32) []IFctServer
+	AddAuditServer(uint32, IHash) int
+	GetAuditServers(uint32) []IFctServer
 
 	Green() bool
 

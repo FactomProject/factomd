@@ -30,6 +30,48 @@ type DirectoryBlockSignature struct {
 var _ interfaces.IMsg = (*DirectoryBlockSignature)(nil)
 var _ Signable = (*DirectoryBlockSignature)(nil)
 
+func (a *DirectoryBlockSignature) IsSameAs(b *DirectoryBlockSignature) bool {
+	if b == nil {
+		return false
+	}
+
+	if a.Timestamp != b.Timestamp {
+		return false
+	}
+	if a.DBHeight != b.DBHeight {
+		return false
+	}
+
+	if a.DirectoryBlockKeyMR == nil && b.DirectoryBlockKeyMR != nil {
+		return false
+	}
+	if a.DirectoryBlockKeyMR != nil {
+		if a.DirectoryBlockKeyMR.IsSameAs(b.DirectoryBlockKeyMR) == false {
+			return false
+		}
+	}
+
+	if a.ServerIdentityChainID == nil && b.ServerIdentityChainID != nil {
+		return false
+	}
+	if a.ServerIdentityChainID != nil {
+		if a.ServerIdentityChainID.IsSameAs(b.ServerIdentityChainID) == false {
+			return false
+		}
+	}
+
+	if a.Signature == nil && b.Signature != nil {
+		return false
+	}
+	if a.Signature != nil {
+		if a.Signature.IsSameAs(b.Signature) == false {
+			return false
+		}
+	}
+
+	return true
+}
+
 func (e *DirectoryBlockSignature) Process(dbheight uint32, state interfaces.IState) bool {
 	return state.ProcessDBSig(dbheight, e)
 }

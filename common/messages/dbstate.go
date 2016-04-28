@@ -9,9 +9,11 @@ import (
 	//	"encoding/binary"
 	"encoding/binary"
 	"fmt"
+
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
+	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -24,21 +26,58 @@ type DBStateMsg struct {
 	MessageBase
 	Timestamp interfaces.Timestamp
 
-	DBHash interfaces.IHash
-	ABHash interfaces.IHash
-	FBHash interfaces.IHash
-	ECHash interfaces.IHash
-
+	//TODO: handle misformed DBStates!
 	DirectoryBlock   interfaces.IDirectoryBlock
 	AdminBlock       interfaces.IAdminBlock
 	FactoidBlock     interfaces.IFBlock
 	EntryCreditBlock interfaces.IEntryCreditBlock
-	EntryBlocks      map[[32]byte]interfaces.IEntryBlock
+	EntryBlocks      []interfaces.IEntryBlock
+
+	//Not signed!
 }
 
 var _ interfaces.IMsg = (*DBStateMsg)(nil)
 
-func (m *DBStateMsg) IsSameAs(b *DBStateMsg) bool {
+func (a *DBStateMsg) IsSameAs(b *DBStateMsg) bool {
+	if a.Timestamp != b.Timestamp {
+		return false
+	}
+
+	ok, err := primitives.AreBinaryMarshallablesEqual(a.DirectoryBlock, b.DirectoryBlock)
+	if err != nil || ok == false {
+		return false
+	}
+
+	ok, err = primitives.AreBinaryMarshallablesEqual(a.AdminBlock, b.AdminBlock)
+	if err != nil || ok == false {
+		return false
+	}
+
+	ok, err = primitives.AreBinaryMarshallablesEqual(a.FactoidBlock, b.FactoidBlock)
+	if err != nil || ok == false {
+		return false
+	}
+
+	ok, err = primitives.AreBinaryMarshallablesEqual(a.EntryCreditBlock, b.EntryCreditBlock)
+	if err != nil || ok == false {
+		return false
+	}
+
+	if a.EntryBlocks == nil && b.EntryBlocks != nil {
+		return false
+	}
+	if a.EntryBlocks != nil {
+		if len(a.EntryBlocks) != len(b.EntryBlocks) {
+			return false
+		}
+		for i := range a.EntryBlocks {
+			ok, err = primitives.AreBinaryMarshallablesEqual(a.EntryBlocks[i], b.EntryBlocks[i])
+			if err != nil || ok == false {
+				return false
+			}
+		}
+	}
+
 	return true
 }
 
@@ -79,18 +118,6 @@ func (m *DBStateMsg) GetTimestamp() interfaces.Timestamp {
 //  1   -- Message is valid
 func (m *DBStateMsg) Validate(state interfaces.IState) int {
 
-	if !m.DBHash.IsSameAs(m.DirectoryBlock.GetHash()) {
-		return -1
-	}
-	if !m.ABHash.IsSameAs(m.AdminBlock.GetHash()) {
-		return -1
-	}
-	if !m.FBHash.IsSameAs(m.FactoidBlock.GetHash()) {
-		return -1
-	}
-	if !m.ECHash.IsSameAs(m.EntryCreditBlock.GetHash()) {
-		return -1
-	}
 	return 1
 }
 
@@ -151,30 +178,6 @@ func (m *DBStateMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error
 		return nil, err
 	}
 
-	m.DBHash = primitives.NewZeroHash()
-	newData, err = m.DBHash.UnmarshalBinaryData(newData)
-	if err != nil {
-		return nil, err
-	}
-
-	m.ABHash = primitives.NewZeroHash()
-	newData, err = m.ABHash.UnmarshalBinaryData(newData)
-	if err != nil {
-		return nil, err
-	}
-
-	m.FBHash = primitives.NewZeroHash()
-	newData, err = m.FBHash.UnmarshalBinaryData(newData)
-	if err != nil {
-		return nil, err
-	}
-
-	m.ECHash = primitives.NewZeroHash()
-	newData, err = m.ECHash.UnmarshalBinaryData(newData)
-	if err != nil {
-		return nil, err
-	}
-
 	m.DirectoryBlock = new(directoryBlock.DirectoryBlock)
 	newData, err = m.DirectoryBlock.UnmarshalBinaryData(newData)
 	if err != nil {
@@ -198,9 +201,13 @@ func (m *DBStateMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error
 	if err != nil {
 		return nil, err
 	}
-
-	if !m.DBHash.IsSameAs(m.DirectoryBlock.GetHash()) {
-		panic("Directory Block Hash is not correct")
+	for len(newData) > 0 {
+		entry, data, err := entryBlock.UnmarshalEBlockData(newData)
+		if err != nil {
+			return nil, err
+		}
+		m.EntryBlocks = append(m.EntryBlocks, entry)
+		newData = data
 	}
 
 	return
@@ -211,37 +218,13 @@ func (m *DBStateMsg) UnmarshalBinary(data []byte) error {
 	return err
 }
 
-func (m *DBStateMsg) MarshalForSignature() ([]byte, error) {
+func (m *DBStateMsg) MarshalBinary() ([]byte, error) {
 	var buf primitives.Buffer
 
 	binary.Write(&buf, binary.BigEndian, m.Type())
 
 	t := m.GetTimestamp()
 	data, err := t.MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
-	buf.Write(data)
-
-	data, err = m.DirectoryBlock.GetHash().MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
-	buf.Write(data)
-
-	data, err = m.AdminBlock.GetHash().MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
-	buf.Write(data)
-
-	data, err = m.FactoidBlock.GetHash().MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
-
-	buf.Write(data)
-	data, err = m.EntryCreditBlock.GetHash().MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
@@ -270,12 +253,15 @@ func (m *DBStateMsg) MarshalForSignature() ([]byte, error) {
 		return nil, err
 	}
 	buf.Write(data)
+	for i := range m.EntryBlocks {
+		data, err = m.EntryBlocks[i].MarshalBinary()
+		if err != nil {
+			return nil, err
+		}
+		buf.Write(data)
+	}
 
 	return buf.DeepCopyBytes(), nil
-}
-
-func (m *DBStateMsg) MarshalBinary() ([]byte, error) {
-	return m.MarshalForSignature()
 }
 
 func (m *DBStateMsg) String() string {
@@ -291,7 +277,8 @@ func NewDBStateMsg(timestamp interfaces.Timestamp,
 	d interfaces.IDirectoryBlock,
 	a interfaces.IAdminBlock,
 	f interfaces.IFBlock,
-	e interfaces.IEntryCreditBlock) interfaces.IMsg {
+	e interfaces.IEntryCreditBlock,
+	ebs []interfaces.IEntryBlock) interfaces.IMsg {
 
 	msg := new(DBStateMsg)
 
@@ -299,15 +286,11 @@ func NewDBStateMsg(timestamp interfaces.Timestamp,
 
 	msg.Timestamp = timestamp
 
-	msg.DBHash = d.GetHash()
-	msg.ABHash = a.GetHash()
-	msg.FBHash = f.GetHash()
-	msg.ECHash = e.GetHash()
-
 	msg.DirectoryBlock = d
 	msg.AdminBlock = a
 	msg.FactoidBlock = f
 	msg.EntryCreditBlock = e
+	msg.EntryBlocks = ebs
 
 	return msg
 }

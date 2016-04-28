@@ -398,7 +398,6 @@ func (s *State) GetEBlockKeyMRFromEntryHash(entryHash interfaces.IHash) interfac
 }
 
 func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
-
 	dblk, err := s.DB.FetchDBlockByHeight(dbheight)
 	if err != nil {
 		return nil, err
@@ -430,20 +429,19 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 	if bytes.Compare(fblk.GetKeyMR().Bytes(), dblk.GetDBEntries()[2].GetKeyMR().Bytes()) != 0 {
 		panic("Should not happen")
 	}
-	eblks := make(map[[32]byte]interfaces.IEntryBlock)
+	eblks := make([]interfaces.IEntryBlock, len(dblk.GetDBEntries())-3)
 	if len(dblk.GetDBEntries()) > 3 {
-		for _, v := range dblk.GetDBEntries()[3:] {
-			eblks[v.GetKeyMR().Fixed()], err = s.DB.FetchEBlockByKeyMR(v.GetKeyMR())
+		for i, v := range dblk.GetDBEntries()[3:] {
+			eblks[i], err = s.DB.FetchEBlockByKeyMR(v.GetKeyMR())
 			if err != nil {
 				return nil, err
 			}
 		}
 	}
 
-	msg := messages.NewDBStateMsg(s.GetTimestamp(), dblk, ablk, fblk, ecblk)
+	msg := messages.NewDBStateMsg(s.GetTimestamp(), dblk, ablk, fblk, ecblk, eblks)
 
 	return msg, nil
-
 }
 
 func (s *State) LoadDataByHash(requestedHash interfaces.IHash) (interfaces.BinaryMarshallable, int, error) {
@@ -665,8 +663,16 @@ func (s *State) AddFedServer(dbheight uint32, hash interfaces.IHash) int {
 	return s.ProcessLists.Get(dbheight).AddFedServer(hash)
 }
 
+func (s *State) AddAuditServer(dbheight uint32, hash interfaces.IHash) int {
+	return s.ProcessLists.Get(dbheight).AddAuditServer(hash)
+}
+
 func (s *State) GetFedServers(dbheight uint32) []interfaces.IFctServer {
 	return s.ProcessLists.Get(dbheight).FedServers
+}
+
+func (s *State) GetAuditServers(dbheight uint32) []interfaces.IFctServer {
+	return s.ProcessLists.Get(dbheight).AuditServers
 }
 
 func (s *State) GetVirtualServers(dbheight uint32, minute int, identityChainID interfaces.IHash) (found bool, indexes []int) {
