@@ -381,7 +381,10 @@ func HandleV2GetReceipt(state interfaces.IState, params interface{}) (interface{
 }
 
 func HandleV2DirectoryBlock(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
-	ps := params.([]interface{})
+	ps, ok := params.([]interface{})
+	if !ok {
+		return nil, NewInvalidParamsError()
+	}
 	if len(ps) < 1 {
 		return nil, NewInvalidParamsError()
 	}
@@ -524,7 +527,10 @@ func HandleV2Entry(state interfaces.IState, params interface{}) (interface{}, *p
 }
 
 func HandleV2ChainHead(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
-	ps := params.([]interface{})
+	ps, ok := params.([]interface{})
+	if !ok {
+		return nil, NewInvalidParamsError()
+	}
 	if len(ps) < 1 {
 		return nil, NewInvalidParamsError()
 	}
