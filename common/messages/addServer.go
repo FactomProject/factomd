@@ -29,6 +29,9 @@ type AddServerMsg struct {
 var _ interfaces.IMsg = (*AddServerMsg)(nil)
 
 func (m *AddServerMsg) IsSameAs(b *AddServerMsg) bool {
+	if b == nil {
+		return false
+	}
 	if uint64(m.Timestamp) != uint64(b.Timestamp) {
 		return false
 	}

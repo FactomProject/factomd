@@ -9,12 +9,11 @@ import (
 
 	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/messages"
-
-	"github.com/FactomProject/factomd/common/primitives"
+	//"github.com/FactomProject/factomd/common/primitives"
 )
 
 func TestMarshalUnmarshalEOM(t *testing.T) {
-	msg := newEOM()
+	msg := newEOMTimeout()
 
 	hex, err := msg.MarshalBinary()
 	if err != nil {
@@ -29,11 +28,11 @@ func TestMarshalUnmarshalEOM(t *testing.T) {
 	str := msg2.String()
 	t.Logf("str - %v", str)
 
-	if msg2.Type() != constants.EOM_MSG {
+	if msg2.Type() != constants.EOM_TIMEOUT_MSG {
 		t.Error("Invalid message type unmarshalled")
 	}
 
-	hex2, err := msg2.(*EOM).MarshalBinary()
+	hex2, err := msg2.(*EOMTimeout).MarshalBinary()
 	if err != nil {
 		t.Error(err)
 	}
@@ -46,25 +45,26 @@ func TestMarshalUnmarshalEOM(t *testing.T) {
 		}
 	}
 
-	if msg.IsSameAs(msg2.(*EOM)) != true {
-		t.Errorf("EOM messages are not identical")
+	if msg.IsSameAs(msg2.(*EOMTimeout)) != true {
+		t.Errorf("EOMTimeout messages are not identical")
 	}
 }
 
+/*
 func TestSignAndVerifyEOM(t *testing.T) {
-	msg := newSignedEOM()
-	hex, err := msg.MarshalBinary()
+	eom := newSignedEOM()
+	hex, err := eom.MarshalBinary()
 	if err != nil {
 		t.Error(err)
 	}
 	t.Logf("Marshalled - %x", hex)
 
-	t.Logf("Sig - %x", *msg.Signature.GetSignature())
-	if len(*msg.Signature.GetSignature()) == 0 {
+	t.Logf("Sig - %x", *eom.Signature.GetSignature())
+	if len(*eom.Signature.GetSignature()) == 0 {
 		t.Error("Signature not present")
 	}
 
-	valid, err := msg.VerifySignature()
+	valid, err := eom.VerifySignature()
 	if err != nil {
 		t.Error(err)
 	}
@@ -72,38 +72,34 @@ func TestSignAndVerifyEOM(t *testing.T) {
 		t.Error("Signature is not valid")
 	}
 
-	msg2, err := UnmarshalMessage(hex)
+	eom2, err := UnmarshalMessage(hex)
 	if err != nil {
 		t.Error(err)
 	}
 
-	if msg2.Type() != constants.EOM_MSG {
+	if eom2.Type() != constants.EOM_MSG {
 		t.Error("Invalid message type unmarshalled")
 	}
+	eomProper := eom2.(*EOM)
 
-	valid, err = msg2.(*EOM).VerifySignature()
+	valid, err = eomProper.VerifySignature()
 	if err != nil {
 		t.Error(err)
 	}
 	if valid == false {
 		t.Error("Signature 2 is not valid")
 	}
-}
 
-func newEOM() *EOM {
-	eom := new(EOM)
-	eom.Timestamp.SetTime(0xFF22100122FF)
-	eom.Minute = 3
-	h, err := primitives.NewShaHashFromStr("deadbeef00000000000000000000000000000000000000000000000000000000")
-	if err != nil {
-		panic(err)
-	}
-	eom.ChainID = h
-	eom.DBHeight = 123456
+}*/
+
+func newEOMTimeout() *EOMTimeout {
+	eom := new(EOMTimeout)
+	eom.Timestamp.SetTimeNow()
 
 	return eom
 }
 
+/*
 func newSignedEOM() *EOM {
 	ack := newEOM()
 
@@ -118,3 +114,4 @@ func newSignedEOM() *EOM {
 
 	return ack
 }
+*/
