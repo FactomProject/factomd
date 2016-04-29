@@ -17,6 +17,8 @@ type MissingAck struct {
 	MessageBase
 	Timestamp interfaces.Timestamp
 
+	//No signature!
+
 	//Not marshalled
 	hash interfaces.IHash
 }

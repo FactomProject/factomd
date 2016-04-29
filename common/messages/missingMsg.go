@@ -21,6 +21,8 @@ type MissingMsg struct {
 	ProcessListHeight uint32
 	Timestamp         interfaces.Timestamp
 
+	//No signature!
+
 	//Not marshalled
 	hash interfaces.IHash
 }

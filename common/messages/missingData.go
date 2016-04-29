@@ -20,6 +20,8 @@ type MissingData struct {
 
 	RequestHash interfaces.IHash
 
+	//No signature!
+
 	//Not marshalled
 	hash interfaces.IHash
 }
