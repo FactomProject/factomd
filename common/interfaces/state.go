@@ -41,9 +41,9 @@ type IState interface {
 	AddFedServer(uint32, IHash) int
 	GetFedServers(uint32) []IFctServer
 
-    // Routine for handling the syncroniztion of the leader and follower processes
-    // and how they process messages.
-    Process () (progress bool)
+	// Routine for handling the syncroniztion of the leader and follower processes
+	// and how they process messages.
+	Process() (progress bool)
 	// This is the highest block signed off and recorded in the Database.  This
 	// is a follower's state, but it is also critical to validation; we cannot
 	// validate transactions where the HighestRecordedBlock+1 != block holding said
@@ -64,7 +64,7 @@ type IState interface {
 	//==========
 
 	// Network Processor
-    TickerQueue() chan int
+	TickerQueue() chan int
 	TimerMsgQueue() chan IMsg
 	NetworkOutMsgQueue() chan IMsg
 	NetworkInvalidMsgQueue() chan IMsg
@@ -73,9 +73,9 @@ type IState interface {
 	JournalMessage(IMsg)
 
 	// Consensus
-	InMsgQueue() chan IMsg          // Read by Validate
-	LeaderMsgQueue() chan IMsg      // Leader Queue
-    
+	InMsgQueue() chan IMsg     // Read by Validate
+	LeaderMsgQueue() chan IMsg // Leader Queue
+
 	// Lists and Maps
 	// =====
 	GetAuditHeartBeats() []IMsg   // The checklist of HeartBeats for this period

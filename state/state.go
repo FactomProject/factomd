@@ -57,7 +57,7 @@ type State struct {
 	// Just to print (so debugging doesn't drive functionaility)
 	serverPrt string
 
-    tickerQueue            chan int
+	tickerQueue            chan int
 	timerMsgQueue          chan interfaces.IMsg
 	networkOutMsgQueue     chan interfaces.IMsg
 	networkInvalidMsgQueue chan interfaces.IMsg
@@ -71,13 +71,13 @@ type State struct {
 	serverPrivKey primitives.PrivateKey
 	serverPubKey  primitives.PublicKey
 
-    // Server State
-	LLeaderHeight       uint32
-    Leader              bool
-    LeaderVMIndex       int
-    OutputAllowed       bool
-    EOM                 bool    // Set to true when all Process Lists have finished a minute
-    EOB                 bool    // Set to true when all Process Lists are complete for a block
+	// Server State
+	LLeaderHeight uint32
+	Leader        bool
+	LeaderVMIndex int
+	OutputAllowed bool
+	EOM           bool // Set to true when all Process Lists have finished a minute
+	EOB           bool // Set to true when all Process Lists are complete for a block
 	// Maps
 	// ====
 	// For Follower
@@ -615,7 +615,7 @@ func (s *State) GetDirectoryBlockByHeight(height uint32) interfaces.IDirectoryBl
 }
 
 func (s *State) UpdateState() (progress bool) {
-	progress = s.ProcessLists.UpdateState() 
+	progress = s.ProcessLists.UpdateState()
 	progress = progress || s.DBStates.UpdateState()
 
 	s.catchupEBlocks()
@@ -629,7 +629,7 @@ func (s *State) UpdateState() (progress bool) {
 
 		s.Println(str)
 	}
-    return
+	return
 }
 
 func (s *State) catchupEBlocks() {

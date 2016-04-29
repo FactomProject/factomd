@@ -44,7 +44,7 @@ func NetStart(s *state.State) {
 	peersPtr := flag.String("peers", "", "Array of peer addresses. Defaults to: \"tcp://127.0.0.1:34341 tcp://127.0.0.1:34342 tcp://127.0.0.1:34340\"")
 	blkTimePtr := flag.Int("blktime", 0, "Seconds per block.  Production is 600.")
 	runtimeLogPtr := flag.Bool("runtimeLog", true, "If true, maintain runtime logs of messages passed.")
-	
+
 	flag.Parse()
 
 	listenTo := *listenToPtr
@@ -61,7 +61,7 @@ func NetStart(s *state.State) {
 	peers := *peersPtr
 	blkTime := *blkTimePtr
 	runtimeLog := *runtimeLogPtr
-	
+
 	FactomConfigFilename := util.GetConfigFilename("m2")
 	fmt.Println(fmt.Sprintf("factom config: %s", FactomConfigFilename))
 	s.LoadConfig(FactomConfigFilename, folder)
@@ -71,7 +71,6 @@ func NetStart(s *state.State) {
 	} else {
 		blkTime = s.DirectoryBlockInSeconds
 	}
-
 
 	os.Stderr.WriteString(fmt.Sprintf("node        %d\n", listenTo))
 	os.Stderr.WriteString(fmt.Sprintf("count       %d\n", cnt))
@@ -96,7 +95,7 @@ func NetStart(s *state.State) {
 	os.Stderr.WriteString(fmt.Sprintf("peers       \"%s\"\n", peers))
 	os.Stderr.WriteString(fmt.Sprintf("blkTime     %d\n", blkTime))
 	os.Stderr.WriteString(fmt.Sprintf("runtimeLog  %v\n", runtimeLog))
-	
+
 	if journal != "" {
 		cnt = 1
 	}

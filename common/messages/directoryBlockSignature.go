@@ -93,11 +93,11 @@ func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 	} else {
 		return 1
 	}
-    
+
 	if m.VMIndex == vmIndex {
 		return 1
 	}
-	
+
 	return -1
 }
 

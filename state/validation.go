@@ -8,21 +8,21 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages"
 )
 
 func (state *State) ValidatorLoop() {
-    timeStruct := new(Timer)
+	timeStruct := new(Timer)
 	for {
-        
-		state.SetString()   // Set the string for the state so we can print it later if we like.
 
-        // Process any messages we might have queued up.
-        state.Process()
-		
-        // Check if we should shut down.
-        select {
+		state.SetString() // Set the string for the state so we can print it later if we like.
+
+		// Process any messages we might have queued up.
+		state.Process()
+
+		// Check if we should shut down.
+		select {
 		case _ = <-state.ShutdownChan:
 			fmt.Println("Closing the Database on", state.GetFactomNodeName())
 			state.GetDB().(interfaces.IDatabase).Close()
@@ -31,83 +31,83 @@ func (state *State) ValidatorLoop() {
 		default:
 		}
 
-        // Look for pending messages, and get one if there is one.
+		// Look for pending messages, and get one if there is one.
 		var msg interfaces.IMsg
-		loop: for i := 0; i < 100; i++ {
+	loop:
+		for i := 0; i < 100; i++ {
 			state.UpdateState()
-            
+
 			select {
-                case min := <-state.tickerQueue:
-                    timeStruct.timer(state, min)
-                case msg = <-state.TimerMsgQueue():
-                    state.JournalMessage(msg)
-                    break loop
-                case msg = <-state.InMsgQueue(): // Get message from the timer or input queue
-                    state.JournalMessage(msg)
-                    break loop
-			default:    // No messages? Sleep for a bit.
-                state.SetString()
-                time.Sleep(10*time.Millisecond)
-			}	
+			case min := <-state.tickerQueue:
+				timeStruct.timer(state, min)
+			case msg = <-state.TimerMsgQueue():
+				state.JournalMessage(msg)
+				break loop
+			case msg = <-state.InMsgQueue(): // Get message from the timer or input queue
+				state.JournalMessage(msg)
+				break loop
+			default: // No messages? Sleep for a bit.
+				state.SetString()
+				time.Sleep(10 * time.Millisecond)
+			}
 		}
 
-        // Sort the messages.
+		// Sort the messages.
 		if msg != nil {
 			if state.IsReplaying == true {
 				state.ReplayTimestamp = msg.GetTimestamp()
 			}
-            if msg.Leader(state) {	
-                state.LeaderMsgQueue() <- msg
-            } else if msg.Follower(state) {		
-                state.FollowerMsgQueue() <- msg
-            }
-                
+			if msg.Leader(state) {
+				state.LeaderMsgQueue() <- msg
+			} else if msg.Follower(state) {
+				state.FollowerMsgQueue() <- msg
+			}
+
 		}
 	}
 }
 
 type Timer struct {
-    lastMin      int 
-    lastDBHeight uint32
+	lastMin      int
+	lastDBHeight uint32
 }
 
-
 func (t *Timer) timer(state *State, min int) {
-    if min != 0 && t.lastMin+1 != min {   // Must have consecutive minutes. 
-        return
-    }
-    t.lastMin = min
-    
-    stateheight := state.GetLeaderHeight()
-    if min == 0 {
-        state.UpdateState()
-        t.lastDBHeight = state.GetLeaderHeight()
-    }
-    
-    if t.lastDBHeight != stateheight {
-        return
-    }
-    
-    found, vmIndex := state.GetVirtualServers(t.lastDBHeight, min, state.GetIdentityChainID())
-    if found  {       
-        eom := new(messages.EOM)
-        eom.Minute = byte(min)
-        eom.Timestamp = state.GetTimestamp()
-        eom.ChainID = state.GetIdentityChainID()
-        eom.VMIndex = vmIndex
-        eom.Sign(state)
-        eom.DBHeight = t.lastDBHeight
-        eom.SetLocal(true)
-        if min == 9 {
-            DBS := new(messages.DirectoryBlockSignature)
-            DBS.ServerIdentityChainID = state.GetIdentityChainID()
-            DBS.SetLocal(true)
-            DBS.DBHeight = t.lastDBHeight
-            DBS.VMIndex = vmIndex
-            state.TimerMsgQueue() <- eom
-            state.TimerMsgQueue() <- DBS
-        } else {
-            state.TimerMsgQueue() <- eom
-        }
-    }
+	if min != 0 && t.lastMin+1 != min { // Must have consecutive minutes.
+		return
+	}
+	t.lastMin = min
+
+	stateheight := state.GetLeaderHeight()
+	if min == 0 {
+		state.UpdateState()
+		t.lastDBHeight = state.GetLeaderHeight()
+	}
+
+	if t.lastDBHeight != stateheight {
+		return
+	}
+
+	found, vmIndex := state.GetVirtualServers(t.lastDBHeight, min, state.GetIdentityChainID())
+	if found {
+		eom := new(messages.EOM)
+		eom.Minute = byte(min)
+		eom.Timestamp = state.GetTimestamp()
+		eom.ChainID = state.GetIdentityChainID()
+		eom.VMIndex = vmIndex
+		eom.Sign(state)
+		eom.DBHeight = t.lastDBHeight
+		eom.SetLocal(true)
+		if min == 9 {
+			DBS := new(messages.DirectoryBlockSignature)
+			DBS.ServerIdentityChainID = state.GetIdentityChainID()
+			DBS.SetLocal(true)
+			DBS.DBHeight = t.lastDBHeight
+			DBS.VMIndex = vmIndex
+			state.TimerMsgQueue() <- eom
+			state.TimerMsgQueue() <- DBS
+		} else {
+			state.TimerMsgQueue() <- eom
+		}
+	}
 }

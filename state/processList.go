@@ -97,7 +97,7 @@ func (p *ProcessList) GetVirtualServers(minute int, identityChainID interfaces.I
 	if !found {
 		return false, -1
 	}
-   // fmt.Println("Line 100 minute:",minute)
+	// fmt.Println("Line 100 minute:",minute)
 	for i, fedix := range p.ServerMap[minute] {
 		if i == len(p.FedServers) {
 			break
@@ -107,7 +107,7 @@ func (p *ProcessList) GetVirtualServers(minute int, identityChainID interfaces.I
 		}
 	}
 
-	return false,-1
+	return false, -1
 }
 
 // Returns true and the index of this server, or false and the insertion point for this server
@@ -122,12 +122,12 @@ func (p *ProcessList) GetFedServerIndexHash(identityChainID interfaces.IHash) (b
 	for i, fs := range p.FedServers {
 		// Find and remove
 		comp := bytes.Compare(scid, fs.GetChainID().Bytes())
-        if comp == 0 {
+		if comp == 0 {
 			return true, i
 		}
-        if comp < 0 {
-            return false, i
-        }
+		if comp < 0 {
+			return false, i
+		}
 	}
 	return false, len(p.FedServers)
 }
@@ -150,7 +150,7 @@ func (p *ProcessList) MakeMap() {
 // i.e. the minute height is 0, or 1, or 2, or ... or 10 (all done)
 func (p *ProcessList) SetMinute(index int, minute int) {
 	p.VMs[index].LeaderMinute = minute
-    p.VMs[index].MinuteComplete = minute + 1
+	p.VMs[index].MinuteComplete = minute + 1
 }
 
 // Return the lowest minute number in our lists.  Note that Minute Markers END
@@ -374,10 +374,9 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 	return
 }
 
-
-func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {	
+func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	for len(p.VMs[ack.VMIndex].List) <= int(ack.Height) {
-		p.VMs[ack.VMIndex].List = append(p.VMs[ack.VMIndex].List,nil)
+		p.VMs[ack.VMIndex].List = append(p.VMs[ack.VMIndex].List, nil)
 	}
 	p.VMs[ack.VMIndex].List[ack.Height] = m
 }
@@ -432,7 +431,7 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 	pl := new(ProcessList)
 
 	pl.State = state
-	
+
 	// Make a copy of the previous FedServers
 	pl.FedServers = make([]interfaces.IFctServer, 0)
 	pl.AuditServers = make([]interfaces.IFctServer, 0)
@@ -443,7 +442,7 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 		pl.AddFedServer(primitives.Sha([]byte("FNode0"))) // Our default for now fed server
 	}
 
-    pl.VMs = make([]*VM, len(pl.FedServers))
+	pl.VMs = make([]*VM, len(pl.FedServers))
 	for i := 0; i < len(pl.FedServers); i++ {
 		pl.VMs[i] = new(VM)
 		pl.VMs[i].List = make([]interfaces.IMsg, 0)

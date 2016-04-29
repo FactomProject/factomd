@@ -35,12 +35,12 @@ func Timer(state interfaces.IState) {
 	time.Sleep(time.Duration(wait))
 
 	for {
-		
-        for i := 0; i < 10; i++ {
-		
-        	now = time.Now().UnixNano()
-		
-        	if now > next {
+
+		for i := 0; i < 10; i++ {
+
+			now = time.Now().UnixNano()
+
+			if now > next {
 				wait = 1
 				for next < now {
 					next += tenthPeriod
@@ -55,9 +55,9 @@ func Timer(state interfaces.IState) {
 				fmt.Println("Skip Period")
 				time.Sleep(time.Duration(tenthPeriod))
 			}
-            
-            state.TickerQueue() <- i
-		
+
+			state.TickerQueue() <- i
+
 		}
 	}
 }
