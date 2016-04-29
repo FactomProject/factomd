@@ -294,10 +294,9 @@ func HandleChainHead(ctx *web.Context, hashkey string) {
 		returnV1(ctx, nil, jsonError)
 		return
 	}
+
 	d := new(CHead)
-
 	d.ChainHead = jsonResp.Result.(*ChainHeadResponse).ChainHead
-
 	returnMsg(ctx, d, true)
 }
 
