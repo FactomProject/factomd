@@ -801,7 +801,7 @@ func (s *State) LeaderMsgQueue() chan interfaces.IMsg {
 }
 
 func (s *State) FollowerMsgQueue() chan interfaces.IMsg {
-	return s.leaderMsgQueue
+	return s.followerMsgQueue
 }
 
 //var _ IState = (*State)(nil)

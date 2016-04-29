@@ -109,10 +109,11 @@ func (list *DBStateList) Catchup() {
 	now := list.State.GetTimestamp()
 
 	dbsHeight := list.GetHighestRecordedBlock()
-	if list.State.LLeaderHeight <= dbsHeight {
-		list.State.LLeaderHeight = dbsHeight + 1
-	}
-
+	
+    if dbsHeight > list.State.LLeaderHeight {
+        list.State.LLeaderHeight = dbsHeight+1
+    }
+    
 	// We only check if we need updates once every so often.
 	if int(now)/1000-int(list.LastTime)/1000 < SecondsBetweenTests {
 		return

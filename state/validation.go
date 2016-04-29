@@ -56,7 +56,7 @@ func (state *State) ValidatorLoop() {
 			if state.IsReplaying == true {
 				state.ReplayTimestamp = msg.GetTimestamp()
 			}
-            if msg.Leader(state) {		
+            if msg.Leader(state) {	
                 state.LeaderMsgQueue() <- msg
             } else if msg.Follower(state) {		
                 state.FollowerMsgQueue() <- msg
@@ -89,9 +89,7 @@ func (t *Timer) timer(state *State, min int) {
     }
     
     found, vmIndex := state.GetVirtualServers(t.lastDBHeight, min, state.GetIdentityChainID())
-    if found  {
-        fmt.Println("EOM written to: ",state.FactomNodeName,"min",min)
-       
+    if found  {       
         eom := new(messages.EOM)
         eom.Minute = byte(min)
         eom.Timestamp = state.GetTimestamp()

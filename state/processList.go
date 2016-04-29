@@ -97,6 +97,7 @@ func (p *ProcessList) GetVirtualServers(minute int, identityChainID interfaces.I
 	if !found {
 		return false, -1
 	}
+   // fmt.Println("Line 100 minute:",minute)
 	for i, fedix := range p.ServerMap[minute] {
 		if i == len(p.FedServers) {
 			break

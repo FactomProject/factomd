@@ -26,13 +26,17 @@ var _ = fmt.Print
 //***************************************************************
 func (s *State) Process () (progress bool) {
     if s.EOB {
-        s.LLeaderHeight++
+        s.LLeaderHeight= s.GetHighestRecordedBlock()+1
         s.EOB = false
     }
     pl := s.ProcessLists.Get(s.LLeaderHeight)
     if s.EOM {
+        min := pl.MinuteHeight()
+        if min > 9 {
+            min = 9
+        }
         // Get if this is a leader, and its VMIndex for this minute if so
-        s.Leader, s.LeaderVMIndex = pl.GetVirtualServers(pl.MinuteHeight(),s.IdentityChainID)
+        s.Leader, s.LeaderVMIndex = pl.GetVirtualServers(min,s.IdentityChainID)
         s.EOM = false
     }
     if s.Leader { 
@@ -44,11 +48,11 @@ func (s *State) Process () (progress bool) {
         if len(vm.List) == vm.Height {
             select {
                 case msg := <- s.leaderMsgQueue :
-                fmt.Println("LEADER LOOP:",msg.String())
                     v := msg.Validate(s)
                     switch(v) {
                         case 1:                       
                             msg.LeaderExecute(s)
+                            s.networkOutMsgQueue <- msg
                             for s.UpdateState() {}
                         case -1: 
                             s.networkInvalidMsgQueue <- msg
@@ -66,6 +70,7 @@ func (s *State) Process () (progress bool) {
             switch(v) {
                 case 1:
                     msg.FollowerExecute(s)
+                    s.networkOutMsgQueue <- msg
                     for s.UpdateState() {}
                 case -1:
                     s.networkInvalidMsgQueue <- msg
@@ -87,8 +92,6 @@ func (s *State) AddDBState(isNew bool,
 	adminBlock interfaces.IAdminBlock,
 	factoidBlock interfaces.IFBlock,
 	entryCreditBlock interfaces.IEntryCreditBlock) {
-
-fmt.Println("aaaaaaaaaaaaaaaaddddddddddddddddddddd")
     
 	// TODO:  Need to validate before we add, or at least validate once we have a contiguous set of blocks.
 
@@ -105,7 +108,7 @@ fmt.Println("aaaaaaaaaaaaaaaaddddddddddddddddddddd")
 
     dbh := directoryBlock.GetHeader().GetDBHeight()
     if s.LLeaderHeight <  dbh {
-        s.LLeaderHeight = dbh
+        s.LLeaderHeight = dbh+1
     }
 }
 
@@ -249,8 +252,6 @@ func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) error {
 	ack.FollowerExecute(s)
 	dbs.FollowerExecute(s)
 
-	s.EOB = true
-
 	return nil
 }
 
@@ -370,6 +371,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 	if !pl.EomComplete() {
 		return false
 	}
+    
 	dbs, ok := msg.(*messages.DirectoryBlockSignature)
 	if !ok {
 		panic("DirectoryBlockSignature is the wrong type.")
@@ -384,6 +386,8 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
     if !pl.SigComplete() {
          return false
     }
+
+    s.EOB=true
 
 	if dbs.IsLocal() {
 		dbstate := s.DBStates.Get(dbheight)
