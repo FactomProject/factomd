@@ -23,6 +23,19 @@ type InvalidAck struct {
 
 var _ interfaces.IMsg = (*InvalidAck)(nil)
 
+func (a *InvalidAck) IsSameAs(b *InvalidAck) bool {
+	if b == nil {
+		return false
+	}
+	if a.Timestamp != b.Timestamp {
+		return false
+	}
+
+	//TODO: expand
+
+	return true
+}
+
 func (m *InvalidAck) Process(uint32, interfaces.IState) bool { return true }
 
 func (m *InvalidAck) GetHash() interfaces.IHash {
@@ -70,7 +83,17 @@ func (m *InvalidAck) MarshalForSignature() (data []byte, err error) {
 		}
 	}()
 
-	return nil, nil
+	var buf primitives.Buffer
+	buf.Write([]byte{m.Type()})
+	if d, err := m.Timestamp.MarshalBinary(); err != nil {
+		return nil, err
+	} else {
+		buf.Write(d)
+	}
+
+	//TODO: expand
+
+	return buf.DeepCopyBytes(), nil
 }
 
 func (m *InvalidAck) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
@@ -85,7 +108,14 @@ func (m *InvalidAck) UnmarshalBinaryData(data []byte) (newData []byte, err error
 	}
 	newData = newData[1:]
 
-	return nil, nil
+	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
+	if err != nil {
+		return nil, err
+	}
+
+	//TODO: expand
+
+	return newData, nil
 }
 
 func (m *InvalidAck) UnmarshalBinary(data []byte) error {
@@ -94,7 +124,8 @@ func (m *InvalidAck) UnmarshalBinary(data []byte) error {
 }
 
 func (m *InvalidAck) MarshalBinary() (data []byte, err error) {
-	return nil, nil
+	//TODO: sign or delete
+	return m.MarshalForSignature()
 }
 
 func (m *InvalidAck) String() string {

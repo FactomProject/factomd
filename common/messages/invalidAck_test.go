@@ -13,7 +13,7 @@ import (
 )
 
 func TestMarshalUnmarshalEOM(t *testing.T) {
-	msg := newEOMTimeout()
+	msg := newInvalidAck()
 
 	hex, err := msg.MarshalBinary()
 	if err != nil {
@@ -28,11 +28,11 @@ func TestMarshalUnmarshalEOM(t *testing.T) {
 	str := msg2.String()
 	t.Logf("str - %v", str)
 
-	if msg2.Type() != constants.EOM_TIMEOUT_MSG {
+	if msg2.Type() != constants.INVALID_ACK_MSG {
 		t.Error("Invalid message type unmarshalled")
 	}
 
-	hex2, err := msg2.(*EOMTimeout).MarshalBinary()
+	hex2, err := msg2.(*InvalidAck).MarshalBinary()
 	if err != nil {
 		t.Error(err)
 	}
@@ -45,8 +45,8 @@ func TestMarshalUnmarshalEOM(t *testing.T) {
 		}
 	}
 
-	if msg.IsSameAs(msg2.(*EOMTimeout)) != true {
-		t.Errorf("EOMTimeout messages are not identical")
+	if msg.IsSameAs(msg2.(*InvalidAck)) != true {
+		t.Errorf("InvalidAck messages are not identical")
 	}
 }
 
@@ -92,8 +92,8 @@ func TestSignAndVerifyEOM(t *testing.T) {
 
 }*/
 
-func newEOMTimeout() *EOMTimeout {
-	eom := new(EOMTimeout)
+func newInvalidAck() *InvalidAck {
+	eom := new(InvalidAck)
 	eom.Timestamp.SetTimeNow()
 
 	return eom
