@@ -16,6 +16,7 @@ import (
 //A placeholder structure for messages
 type FactoidTransaction struct {
 	MessageBase
+	Timestamp   interfaces.Timestamp
 	Transaction interfaces.ITransaction
 
 	//Not marshalled
@@ -24,6 +25,22 @@ type FactoidTransaction struct {
 }
 
 var _ interfaces.IMsg = (*FactoidTransaction)(nil)
+
+func (a *FactoidTransaction) IsSameAs(b *FactoidTransaction) bool {
+	if b == nil {
+		return false
+	}
+	if a.Timestamp != b.Timestamp {
+		return false
+	}
+
+	ok, err := primitives.AreBinaryMarshallablesEqual(a.Transaction, b.Transaction)
+	if err != nil || ok == false {
+		return false
+	}
+
+	return true
+}
 
 func (m *FactoidTransaction) GetHash() interfaces.IHash {
 	if m.hash == nil {
@@ -48,7 +65,7 @@ func (m *FactoidTransaction) GetMsgHash() interfaces.IHash {
 }
 
 func (m *FactoidTransaction) GetTimestamp() interfaces.Timestamp {
-	return interfaces.Timestamp(m.Transaction.GetMilliTimestamp())
+	return m.Timestamp
 }
 
 func (m *FactoidTransaction) GetTransaction() interfaces.ITransaction {
@@ -147,6 +164,11 @@ func (m *FactoidTransaction) UnmarshalBinaryData(data []byte) (newData []byte, e
 	}
 	newData = newData[1:]
 
+	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
+	if err != nil {
+		return nil, err
+	}
+
 	return m.UnmarshalTransData(newData)
 }
 
@@ -156,12 +178,21 @@ func (m *FactoidTransaction) UnmarshalBinary(data []byte) error {
 }
 
 func (m *FactoidTransaction) MarshalBinary() (data []byte, err error) {
-	data, err = m.Transaction.MarshalBinary()
-	if err != nil {
+	var buf primitives.Buffer
+	buf.Write([]byte{m.Type()})
+	if d, err := m.Timestamp.MarshalBinary(); err != nil {
 		return nil, err
+	} else {
+		buf.Write(d)
 	}
-	data = append([]byte{m.Type()}, data...)
-	return data, nil
+
+	if d, err := m.Transaction.MarshalBinary(); err != nil {
+		return nil, err
+	} else {
+		buf.Write(d)
+	}
+
+	return buf.DeepCopyBytes(), nil
 }
 
 func (m *FactoidTransaction) String() string {
