@@ -1,3 +1,7 @@
+// Copyright 2016 Factom Foundation
+// Use of this source code is governed by the MIT
+// license that can be found in the LICENSE file.
+
 package p2p
 
 
@@ -34,7 +38,7 @@ type P2PCommandMessage struct {
 //     Error   error   // Error == nil on success
 // }
 
-const uint16 (
+const P2PCommand uint16 (
     AddPeer = iota
     Shutdown
     StartLogging
@@ -105,15 +109,7 @@ func (p * P2PController) runloop(address string)  {
         for 0 > len(p.commandChannel) {
          handleCommand(command <- p.commandChannel )  
         }
-        // For each peer, empty its network buffer (do recieves first)
-        for _, connection := range peers {
-            connection.ProcessNetworkMessages()
-        }
-        // For each peer, empty its outbound channel (and send to network.)
-        for _, connection := range peers {
-            connection.ProcessInChannel()
-        }
-    }   
+     }   
 }
 
 func (p * P2PController) handleCommand(message P2PCommandMessage)  {

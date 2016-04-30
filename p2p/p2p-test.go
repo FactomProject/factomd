@@ -1,3 +1,7 @@
+// Copyright 2016 Factom Foundation
+// Use of this source code is governed by the MIT
+// license that can be found in the LICENSE file.
+
 package main
 
 import (
@@ -42,13 +46,16 @@ func simpleMinimalTest() {
 
 	for {
 			message = fmt.Sprintf("Heartbeat #%d", count)
-			nodeA.SimpleSend([]byte(message))
-			nodeB.SimpleSend([]byte(message))
-			nodeA.ProcessNetworkMessages()
-			nodeA.ProcessInChannel()
-			nodeB.ProcessNetworkMessages()
-			nodeB.ProcessInChannel()
+			SimpleSend(nodeA, []byte(message))
+			SimpleSend(nodeA, []byte(message))
 		}
 
 	}
+}
+func SimpleSend(c *P2PConnection, payload []byte)  {
+    		header := new(ParcelHeader).Init().(*ParcelHeader)
+		parcel := new(Parcel).Init(header).(*Parcel)
+        parcel.payload = payload
+        parcel.header.PeerID = p.ConnectionID
+        c.OutChannel <- parcel
 }
