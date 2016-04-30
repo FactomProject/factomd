@@ -41,7 +41,7 @@ func (e *RemoveFederatedServer) Type() byte {
 }
 
 func (e *RemoveFederatedServer) MarshalBinary() (data []byte, err error) {
-	var buf bytes.Buffer
+	var buf primitives.Buffer
 
 	buf.Write([]byte{e.Type()})
 	data, err = e.IdentityChainID.MarshalBinary()
@@ -51,13 +51,13 @@ func (e *RemoveFederatedServer) MarshalBinary() (data []byte, err error) {
 	buf.Write(data)
 	binary.Write(&buf, binary.BigEndian, e.DBHeight)
 
-	return buf.Bytes(), nil
+	return buf.DeepCopyBytes(), nil
 }
 
 func (e *RemoveFederatedServer) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
+			err = fmt.Errorf("Error unmarshalling Remove Federated Server: %v", r)
 		}
 	}()
 

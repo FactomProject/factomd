@@ -5,9 +5,7 @@
 package primitives_test
 
 import (
-	"bytes"
 	"fmt"
-
 	"math/rand"
 	"testing"
 
@@ -39,7 +37,7 @@ func TestConversions(test *testing.T) {
 }
 
 func TestWriteNumber(t *testing.T) {
-	out := new(bytes.Buffer)
+	out := new(Buffer)
 
 	WriteNumber8(out, 0x01)
 	WriteNumber16(out, 0x0203)
@@ -66,9 +64,8 @@ func TestConvertion(t *testing.T) {
 // func EncodeVarInt(out *bytes.Buffer, v uint64)   error
 
 func TestVariable_Integers(test *testing.T) {
-
 	for i := 0; i < 1000; i++ {
-		var out bytes.Buffer
+		var out Buffer
 
 		v := make([]uint64, 10)
 

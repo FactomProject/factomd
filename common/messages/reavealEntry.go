@@ -6,6 +6,7 @@ package messages
 
 import (
 	"bytes"
+	"encoding/binary"
 	"fmt"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryBlock"
@@ -19,6 +20,8 @@ type RevealEntryMsg struct {
 	MessageBase
 	Timestamp interfaces.Timestamp
 	Entry     interfaces.IEntry
+
+	//No signature!
 
 	//Not marshalled
 	hash        interfaces.IHash
@@ -37,7 +40,6 @@ func (m *RevealEntryMsg) Process(dbheight uint32, state interfaces.IState) bool 
 	}
 
 	if _, isNewChain := commit.(*CommitChainMsg); isNewChain {
-		fmt.Println("New Chain")
 		chainID := m.Entry.GetChainID()
 		eb, err := state.GetDB().FetchEBlockHead(chainID)
 		if err != nil || eb != nil {
@@ -115,7 +117,7 @@ func (m *RevealEntryMsg) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp
 }
 
-func (m *RevealEntryMsg) Type() int {
+func (m *RevealEntryMsg) Type() byte {
 	return constants.REVEAL_ENTRY_MSG
 }
 
@@ -153,14 +155,12 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 		m.isEntry = true
 		ECs = int(m.commitEntry.CommitEntry.Credits)
 		if m.Entry.KSize() < ECs {
-			fmt.Println("KSize", m.Entry.KSize(), ECs)
 			return -1
 		}
 	} else {
 		m.isEntry = false
 		ECs = int(m.commitChain.CommitChain.Credits)
 		if m.Entry.KSize()+10 < ECs {
-			fmt.Println("KSize", m.Entry.KSize(), ECs)
 			return -1
 		}
 	}
@@ -171,7 +171,7 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 // Returns true if this is a message for this server to execute as
 // a leader.
 func (m *RevealEntryMsg) Leader(state interfaces.IState) bool {
-	return state.LeaderFor(m.GetHash().Bytes())
+	return state.LeaderFor(m, m.GetHash().Bytes())
 }
 
 // Execute the leader functions of the given message
@@ -191,14 +191,9 @@ func (m *RevealEntryMsg) Follower(interfaces.IState) bool {
 }
 
 func (m *RevealEntryMsg) FollowerExecute(state interfaces.IState) error {
-	matched, err := state.FollowerExecuteMsg(m)
+	_, err := state.FollowerExecuteMsg(m)
 	if err != nil {
 		return err
-	}
-	if matched { // We matched, we must be remembered!
-		fmt.Println("Matched!")
-	} else {
-		fmt.Println("Not Matched!")
 	}
 	return nil
 }
@@ -225,13 +220,26 @@ func (m *RevealEntryMsg) UnmarshalBinaryData(data []byte) (newData []byte, err e
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
 	}()
-	newData = data[1:]
+	newData = data
+	if newData[0] != m.Type() {
+		return nil, fmt.Errorf("Invalid Message type")
+	}
+	newData = newData[1:]
+
+	t := new(interfaces.Timestamp)
+	newData, err = t.UnmarshalBinaryData(newData)
+	if err != nil {
+		return nil, err
+	}
+	m.Timestamp = *t
+
 	e := entryBlock.NewEntry()
 	newData, err = e.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
 	}
 	m.Entry = e
+
 	return newData, nil
 }
 
@@ -241,12 +249,24 @@ func (m *RevealEntryMsg) UnmarshalBinary(data []byte) error {
 }
 
 func (m *RevealEntryMsg) MarshalBinary() (data []byte, err error) {
+	var buf primitives.Buffer
+
+	binary.Write(&buf, binary.BigEndian, m.Type())
+
+	t := m.GetTimestamp()
+	data, err = t.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	buf.Write(data)
+
 	data, err = m.Entry.MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
-	data = append([]byte{byte(m.Type())}, data...)
-	return data, nil
+	buf.Write(data)
+
+	return buf.DeepCopyBytes(), nil
 }
 
 func (m *RevealEntryMsg) String() string {

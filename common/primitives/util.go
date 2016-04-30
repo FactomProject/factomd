@@ -9,49 +9,50 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/btcsuitereleases/btcutil/base58"
 	"runtime/debug"
 	"strconv"
 	"strings"
+
+	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/btcsuitereleases/btcutil/base58"
 )
 
 /*********************************
  * Marshalling helper functions
  *********************************/
 
-func WriteNumber64(out *bytes.Buffer, num uint64) {
-	var buf bytes.Buffer
+func WriteNumber64(out *Buffer, num uint64) {
+	var buf Buffer
 
 	binary.Write(&buf, binary.BigEndian, num)
-	str := hex.EncodeToString(buf.Bytes())
+	str := hex.EncodeToString(buf.DeepCopyBytes())
 	out.WriteString(str)
 
 }
 
-func WriteNumber32(out *bytes.Buffer, num uint32) {
-	var buf bytes.Buffer
+func WriteNumber32(out *Buffer, num uint32) {
+	var buf Buffer
 
 	binary.Write(&buf, binary.BigEndian, num)
-	str := hex.EncodeToString(buf.Bytes())
+	str := hex.EncodeToString(buf.DeepCopyBytes())
 	out.WriteString(str)
 
 }
 
-func WriteNumber16(out *bytes.Buffer, num uint16) {
-	var buf bytes.Buffer
+func WriteNumber16(out *Buffer, num uint16) {
+	var buf Buffer
 
 	binary.Write(&buf, binary.BigEndian, num)
-	str := hex.EncodeToString(buf.Bytes())
+	str := hex.EncodeToString(buf.DeepCopyBytes())
 	out.WriteString(str)
 
 }
 
-func WriteNumber8(out *bytes.Buffer, num uint8) {
-	var buf bytes.Buffer
+func WriteNumber8(out *Buffer, num uint8) {
+	var buf Buffer
 
 	binary.Write(&buf, binary.BigEndian, num)
-	str := hex.EncodeToString(buf.Bytes())
+	str := hex.EncodeToString(buf.DeepCopyBytes())
 	out.WriteString(str)
 
 }

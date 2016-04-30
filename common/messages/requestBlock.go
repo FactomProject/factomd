@@ -51,7 +51,7 @@ func (m *RequestBlock) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp
 }
 
-func (m *RequestBlock) Type() int {
+func (m *RequestBlock) Type() byte {
 	return constants.REQUEST_BLOCK_MSG
 }
 
@@ -63,12 +63,17 @@ func (m *RequestBlock) Bytes() []byte {
 	return nil
 }
 
-func (m *RequestBlock) UnmarshalBinaryData(data []byte) (newdata []byte, err error) {
+func (m *RequestBlock) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
 	}()
+	newData = data
+	if newData[0] != m.Type() {
+		return nil, fmt.Errorf("Invalid Message type")
+	}
+	newData = newData[1:]
 
 	return nil, nil
 }
@@ -79,11 +84,22 @@ func (m *RequestBlock) UnmarshalBinary(data []byte) error {
 }
 
 func (m *RequestBlock) MarshalForSignature() (data []byte, err error) {
-	return nil, nil
+	var buf primitives.Buffer
+	buf.Write([]byte{m.Type()})
+	if d, err := m.Timestamp.MarshalBinary(); err != nil {
+		return nil, err
+	} else {
+		buf.Write(d)
+	}
+
+	//TODO: expand
+
+	return buf.DeepCopyBytes(), nil
 }
 
 func (m *RequestBlock) MarshalBinary() (data []byte, err error) {
-	return nil, nil
+	//TODO: sign or delete
+	return m.MarshalForSignature()
 }
 
 func (m *RequestBlock) String() string {

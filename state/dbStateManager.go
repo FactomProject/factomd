@@ -109,7 +109,7 @@ func (list *DBStateList) Catchup() {
 	now := list.State.GetTimestamp()
 
 	dbsHeight := list.GetHighestRecordedBlock()
-	if list.State.LLeaderHeight < dbsHeight {
+	if list.State.LLeaderHeight <= dbsHeight {
 		list.State.LLeaderHeight = dbsHeight + 1
 	}
 

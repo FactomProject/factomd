@@ -17,6 +17,8 @@ type MissingAck struct {
 	MessageBase
 	Timestamp interfaces.Timestamp
 
+	//No signature!
+
 	//Not marshalled
 	hash interfaces.IHash
 }
@@ -51,7 +53,7 @@ func (m *MissingAck) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp
 }
 
-func (m *MissingAck) Type() int {
+func (m *MissingAck) Type() byte {
 	return constants.MISSING_ACK_MSG
 }
 
@@ -63,12 +65,17 @@ func (m *MissingAck) Bytes() []byte {
 	return nil
 }
 
-func (m *MissingAck) UnmarshalBinaryData(data []byte) (newdata []byte, err error) {
+func (m *MissingAck) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
 	}()
+	newData = data
+	if newData[0] != m.Type() {
+		return nil, fmt.Errorf("Invalid Message type")
+	}
+	newData = newData[1:]
 
 	return nil, nil
 }
@@ -83,7 +90,17 @@ func (m *MissingAck) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *MissingAck) MarshalForSignature() (data []byte, err error) {
-	return nil, nil
+	var buf primitives.Buffer
+	buf.Write([]byte{m.Type()})
+	if d, err := m.Timestamp.MarshalBinary(); err != nil {
+		return nil, err
+	} else {
+		buf.Write(d)
+	}
+
+	//TODO: expand
+
+	return buf.DeepCopyBytes(), nil
 }
 
 func (m *MissingAck) String() string {

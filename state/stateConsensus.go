@@ -6,6 +6,7 @@ package state
 
 import (
 	"fmt"
+
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
@@ -42,6 +43,10 @@ func (s *State) AddDBState(isNew bool,
 	dbState := s.DBStates.NewDBState(isNew, directoryBlock, adminBlock, factoidBlock, entryCreditBlock)
 	s.DBStates.Put(dbState)
 
+	dbh := directoryBlock.GetHeader().GetDBHeight()
+	if s.LLeaderHeight < dbh {
+		s.LLeaderHeight = dbh
+	}
 }
 
 // Messages that will go into the Process List must match an Acknowledgement.
@@ -108,31 +113,74 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) error {
 	return nil
 }
 
+func (s *State) FollowerExecuteAddData(msg interfaces.IMsg) error {
+	dataResponseMsg, ok := msg.(*messages.DataResponse)
+	if !ok {
+		return fmt.Errorf("Cannot execute the given DataResponse")
+	}
+
+	switch dataResponseMsg.DataType {
+	case 0: // DataType = entry
+		entry := dataResponseMsg.DataObject.(interfaces.IEBEntry)
+
+		if entry.GetHash().IsSameAs(dataResponseMsg.DataHash) {
+			s.DB.InsertEntry(entry)
+			delete(s.DataRequests, entry.GetHash().Fixed())
+		}
+	case 1: // DataType = eblock
+		eblock := dataResponseMsg.DataObject.(interfaces.IEntryBlock)
+		dataHash, _ := eblock.KeyMR()
+		if dataHash.IsSameAs(dataResponseMsg.DataHash) {
+			s.addEBlock(eblock)
+		}
+	default:
+		return fmt.Errorf("Datatype currently unsupported")
+	}
+
+	return nil
+}
+
+func (s *State) addEBlock(eblock interfaces.IEntryBlock) {
+	hash, err := eblock.KeyMR()
+
+	if err == nil {
+		if s.HasDataRequest(hash) {
+			s.DB.ProcessEBlockBatch(eblock)
+			delete(s.DataRequests, hash.Fixed())
+
+			if s.GetAllEntries(hash) {
+				if s.GetEBDBHeightComplete() < eblock.GetDatabaseHeight() {
+					s.SetEBDBHeightComplete(eblock.GetDatabaseHeight())
+				}
+			}
+		}
+	}
+}
+
 func (s *State) LeaderExecute(m interfaces.IMsg) error {
+	dbheight := s.LLeaderHeight
 
-	hash := m.GetHash()
+	// We have two exceptions when it comes to using the LLeaderHeight.  These
+	// are internally generated messages that must be processed at their height,
+	// not the current height, to be valid.
+	eom, ok := m.(*messages.EOM)
+	if ok {
+		dbheight = eom.DBHeight
+	}
+	dbs, ok := m.(*messages.DirectoryBlockSignature)
+	if ok {
+		dbheight = dbs.DBHeight
+	}
 
-	ack, err := s.NewAck(s.LLeaderHeight, m, hash)
+	ack, err := s.NewAck(dbheight, m)
 	if err != nil {
 		return err
 	}
 
 	// Leader Execute creates an acknowledgement and the EOM
-	s.NetworkOutMsgQueue() <- ack
 	s.NetworkOutMsgQueue() <- m
 	s.InMsgQueue() <- ack
 	m.FollowerExecute(s)
-	return nil
-}
-
-func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
-	eom, _ := m.(*messages.EOM)
-	eom.DBHeight = s.LLeaderHeight
-	if err := s.LeaderExecute(m); err != nil {
-		fmt.Println("Error: ", err)
-		return err
-	}
-
 	return nil
 }
 
@@ -142,11 +190,9 @@ func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) error {
 		return fmt.Errorf("Bad Directory Block Signature")
 	}
 
-	dbs.DBHeight = s.LLeaderHeight
-
 	dbs.Timestamp = s.GetTimestamp()
-	hash := dbs.GetHash()
-	ack, err := s.NewAck(s.LLeaderHeight, dbs, hash)
+
+	ack, err := s.NewAck(dbs.DBHeight, dbs)
 	if err != nil {
 		fmt.Println("Bad Ack")
 		s.undo = m
@@ -155,7 +201,7 @@ func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) error {
 	ack.FollowerExecute(s)
 	dbs.FollowerExecute(s)
 
-	s.LLeaderHeight++
+	s.LLeaderHeight = dbs.DBHeight + 1
 
 	return nil
 }
@@ -168,7 +214,9 @@ func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) 
 	}
 
 	pl := s.ProcessLists.Get(dbheight)
-	pl.AdminBlock.AddFedServer(as.ServerChainID)
+	if as.ServerType == 0 {
+		pl.AdminBlock.AddFedServer(as.ServerChainID)
+	}
 
 	return true
 }
@@ -184,9 +232,9 @@ func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)
 	s.GetFactoidState().UpdateECTransaction(true, c.CommitChain)
 
 	// save the Commit to match agains the Reveal later
-	s.PutCommits(c.GetHash(), c)
+	s.PutCommits(c.CommitChain.EntryHash, c)
 	// check for a matching Reveal and, if found, execute it
-	if r := s.GetReveals(c.GetHash()); r != nil {
+	if r := s.GetReveals(c.CommitChain.EntryHash); r != nil {
 		s.LeaderExecute(r)
 	}
 
@@ -204,9 +252,9 @@ func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg)
 	s.GetFactoidState().UpdateECTransaction(true, c.CommitEntry)
 
 	// save the Commit to match agains the Reveal later
-	s.PutCommits(c.GetHash(), c)
+	s.PutCommits(c.CommitEntry.EntryHash, c)
 	// check for a matching Reveal and, if found, execute it
-	if r := s.GetReveals(c.GetHash()); r != nil {
+	if r := s.GetReveals(c.CommitEntry.EntryHash); r != nil {
 		s.LeaderExecute(r)
 	}
 
@@ -221,19 +269,20 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		panic("Must pass an EOM message to ProcessEOM)")
 	}
 
-	// We need to save away the previous state before we begin to process the next height
-	last := s.DBStates.Last()
-	if e.Minute == 0 && (last == nil || !last.Saved) {
+	pl := s.ProcessLists.Get(dbheight)
+
+	// Set this list complete
+	pl.SetMinute(e.VMIndex, int(e.Minute))
+
+	if pl.MinuteHeight() <= int(e.Minute) {
 		return false
 	}
 
-	pl := s.ProcessLists.Get(dbheight)
-
 	if !e.MarkerSent {
-		if s.ServerIndexFor(e.DBHeight, constants.FACTOID_CHAINID) == e.ServerIndex {
+		if VMIndexFor(constants.FACTOID_CHAINID) == e.VMIndex {
 			s.FactoidState.EndOfPeriod(int(e.Minute))
 		}
-		if s.ServerIndexFor(e.DBHeight, constants.ADMIN_CHAINID) == e.ServerIndex {
+		if VMIndexFor(constants.ADMIN_CHAINID) == e.VMIndex {
 			pl.AdminBlock.AddEndOfMinuteMarker(e.Minute)
 		}
 		e.MarkerSent = true
@@ -242,15 +291,14 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	// We need to have all EOM markers before we start to clean up this height.
 	if e.Minute == 9 {
 
-		// Set this list complete
-		pl.SetEomComplete(e.ServerIndex, true)
+		// Maybe we want to check the block is saved?
+		// We need to save away the previous state before we begin to process the next height
+		// last := s.DBStates.Last()
+		// if last == nil || !last.Saved {
+		//    return false
+		// }
 
-		// Check if all are complete
-		if !pl.EomComplete() {
-			return false
-		}
-
-		if s.ServerIndexFor(e.DBHeight, constants.EC_CHAINID) == e.ServerIndex {
+		if VMIndexFor(constants.EC_CHAINID) == e.VMIndex {
 			ecblk := pl.EntryCreditBlock
 			ecbody := ecblk.GetBody()
 			mn := entryCreditBlock.NewMinuteNumber2(e.Minute)
@@ -274,47 +322,42 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 	if !pl.EomComplete() {
 		return false
 	}
-
 	dbs, ok := msg.(*messages.DirectoryBlockSignature)
 	if !ok {
 		panic("DirectoryBlockSignature is the wrong type.")
 	}
 
-	if !pl.Servers[dbs.ServerIndex].SigComplete {
-		pl.SetSigComplete(int(dbs.ServerIndex), true)
+	if !pl.VMs[dbs.VMIndex].SigComplete {
+		pl.SetSigComplete(int(dbs.VMIndex), true)
 
 		s.AddDBState(true, pl.DirectoryBlock, pl.AdminBlock, s.GetFactoidState().GetCurrentBlock(), pl.EntryCreditBlock)
 	}
 
+	if !pl.SigComplete() {
+		return false
+	}
+
 	if dbs.IsLocal() {
 		dbstate := s.DBStates.Get(dbheight)
+		dbs.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
 
-		dbs2 := new(messages.DirectoryBlockSignature)
-		dbs2.Timestamp = s.GetTimestamp()
-		dbs2.ServerIdentityChainID = dbs.ServerIdentityChainID
-		dbs2.DBHeight = dbs.DBHeight
-		dbs2.ServerIndex = dbs.ServerIndex
-		dbs2.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
-		err := dbs2.Sign(s)
+		err := dbs.Sign(s)
 		if err != nil {
 			panic(err)
 		}
-
-		hash := dbs2.GetHash()
 
 		// Here we replace out of the process list the local DBS message with one
 		// that can be broadcast.  This is a bit of necessary trickery
-		pl.UndoLeaderAck(int(dbs.ServerIndex))
-		s.LLeaderHeight--
-		ack, err := s.NewAck(dbheight, dbs2, hash)
+		pl.UndoLeaderAck(int(dbs.VMIndex))
+		ack, err := s.NewAck(dbheight, dbs)
 		if err != nil {
 			panic(err)
 		}
-		s.LLeaderHeight++
-
+		// Now we can broadcast the signature.
+		dbs.SetLocal(false)
 		// Leader Execute creates an acknowledgement and the EOM
 		s.NetworkOutMsgQueue() <- ack
-		s.NetworkOutMsgQueue() <- dbs2
+		s.NetworkOutMsgQueue() <- dbs
 	} else {
 		// TODO follower should validate signature here.
 		resp := dbs.Validate(s)
@@ -457,32 +500,23 @@ func (s *State) PutE(rt bool, adr [32]byte, v int64) {
 	}
 }
 
-// Tests the given hash, and returns true if this server is the leader for this key.
-// For example, keys we test include:
-//
-// The Hash of the Factoid Hash
-// Entry Credit Addresses
-// ChainIDs
-// ...
-func (s *State) ServerIndexFor(dbheight uint32, hash []byte) int {
-	pl := s.ProcessLists.Get(dbheight)
-	if pl == nil {
-		return 0
-	}
-	n := len(s.ProcessLists.Get(dbheight).FedServers)
-	v := 0
-	if len(hash) > 0 {
-		v = int(hash[0]) % n
-	}
-	return v
-}
+// Returns the Virtual Server Index for this hash if this server is the leader;
+// returns -1 if we are not the leader for this hash
+func (s *State) LeaderFor(msg interfaces.IMsg, hash []byte) bool {
+	pl := s.ProcessLists.Get(s.LLeaderHeight)
+	vmIndex := VMIndexFor(hash)
 
-func (s *State) LeaderFor(hash []byte) bool {
-	found, index := s.GetFedServerIndexHash(s.LLeaderHeight, s.IdentityChainID)
+	msg.SetVMIndex(vmIndex)
+	found, vmIndexes := pl.GetVirtualServers(pl.VMs[vmIndex].LeaderMinute, s.IdentityChainID)
 	if !found {
 		return false
 	}
-	return index == s.ServerIndexFor(s.LLeaderHeight, hash)
+	for _, vmi := range vmIndexes {
+		if vmi == vmIndex {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *State) NewAdminBlock(dbheight uint32) interfaces.IAdminBlock {
@@ -502,7 +536,7 @@ func (s *State) NewAdminBlockHeader(dbheight uint32) interfaces.IABlockHeader {
 	return header
 }
 
-func (s *State) PrintType(msgType int) bool {
+func (s *State) PrintType(msgType byte) bool {
 	r := true
 	return r
 	r = r && msgType != constants.ACK_MSG
@@ -546,23 +580,22 @@ func (s *State) GetNewHash() interfaces.IHash {
 }
 
 // Create a new Acknowledgement.  This Acknowledgement
-func (s *State) NewAck(dbheight uint32, msg interfaces.IMsg, hash interfaces.IHash) (iack interfaces.IMsg, err error) {
+func (s *State) NewAck(dbheight uint32, msg interfaces.IMsg) (iack interfaces.IMsg, err error) {
 
-	found, index := s.GetFedServerIndexHash(dbheight, s.IdentityChainID)
-	if !found {
-		return nil, fmt.Errorf(s.FactomNodeName + ": Creation of an Ack attempted by non-server")
-	}
+	vmIndex := msg.GetVMIndex()
+
 	pl := s.ProcessLists.Get(dbheight)
 	if pl == nil {
 		return nil, fmt.Errorf(s.FactomNodeName + ": No process list at this time")
 	}
-	last, ok := pl.GetLastLeaderAck(index).(*messages.Ack)
 
 	ack := new(messages.Ack)
 	ack.DBHeight = dbheight
-	ack.ServerIndex = byte(index)
+	ack.VMIndex = vmIndex
 	ack.Timestamp = s.GetTimestamp()
-	ack.MessageHash = hash
+	ack.MessageHash = msg.GetHash()
+
+	last, ok := pl.GetLastLeaderAck(vmIndex).(*messages.Ack)
 	if !ok {
 		ack.Height = 0
 		ack.SerialHash = ack.MessageHash
@@ -573,7 +606,7 @@ func (s *State) NewAck(dbheight uint32, msg interfaces.IMsg, hash interfaces.IHa
 			return nil, err
 		}
 	}
-	pl.SetLastLeaderAck(index, ack)
+	pl.SetLastLeaderAck(vmIndex, ack)
 
 	ack.Sign(s)
 

@@ -28,7 +28,47 @@ type Heartbeat struct {
 var _ interfaces.IMsg = (*Heartbeat)(nil)
 var _ Signable = (*Heartbeat)(nil)
 
-func (m *Heartbeat) Process(uint32, interfaces.IState) bool { return true }
+func (a *Heartbeat) IsSameAs(b *Heartbeat) bool {
+	if b == nil {
+		return false
+	}
+	if a.Timestamp != b.Timestamp {
+		return false
+	}
+
+	if a.DBlockHash == nil && b.DBlockHash != nil {
+		return false
+	}
+	if a.DBlockHash != nil {
+		if a.DBlockHash.IsSameAs(b.DBlockHash) == false {
+			return false
+		}
+	}
+
+	if a.IdentityChainID == nil && b.IdentityChainID != nil {
+		return false
+	}
+	if a.IdentityChainID != nil {
+		if a.IdentityChainID.IsSameAs(b.IdentityChainID) == false {
+			return false
+		}
+	}
+
+	if a.Signature == nil && b.Signature != nil {
+		return false
+	}
+	if a.Signature != nil {
+		if a.Signature.IsSameAs(b.Signature) == false {
+			return false
+		}
+	}
+
+	return true
+}
+
+func (m *Heartbeat) Process(uint32, interfaces.IState) bool {
+	return true
+}
 
 func (m *Heartbeat) GetHash() interfaces.IHash {
 	if m.hash == nil {
@@ -56,7 +96,7 @@ func (m *Heartbeat) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp
 }
 
-func (m *Heartbeat) Type() int {
+func (m *Heartbeat) Type() byte {
 	return constants.HEARTBEAT_MSG
 }
 
@@ -71,20 +111,23 @@ func (m *Heartbeat) Bytes() []byte {
 func (m *Heartbeat) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
+			err = fmt.Errorf("Error unmarshalling HeartBeat: %v", r)
 		}
 	}()
+	newData = data
+	if newData[0] != m.Type() {
+		return nil, fmt.Errorf("Invalid Message type")
+	}
+	newData = newData[1:]
 
-	data = data[1:] // skip type
-
-	newData, err = m.Timestamp.UnmarshalBinaryData(data)
+	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
 	}
 
 	hash := new(primitives.Hash)
 
-	newData, err = hash.UnmarshalBinaryData(data)
+	newData, err = hash.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
 	}
@@ -119,28 +162,27 @@ func (m *Heartbeat) MarshalForSignature() (data []byte, err error) {
 		return nil, fmt.Errorf("Message is incomplete")
 	}
 
-	answer := []byte{}
-
-	answer = append(answer, byte(m.Type()))
-
-	ts, err := m.Timestamp.MarshalBinary()
-	if err != nil {
+	var buf primitives.Buffer
+	buf.Write([]byte{m.Type()})
+	if d, err := m.Timestamp.MarshalBinary(); err != nil {
 		return nil, err
+	} else {
+		buf.Write(d)
 	}
-	answer = append(answer, ts...)
 
-	hash, err := m.DBlockHash.MarshalBinary()
-	if err != nil {
+	if d, err := m.DBlockHash.MarshalBinary(); err != nil {
 		return nil, err
+	} else {
+		buf.Write(d)
 	}
-	answer = append(answer, hash...)
 
-	hash2, err := m.IdentityChainID.MarshalBinary()
-	if err != nil {
+	if d, err := m.IdentityChainID.MarshalBinary(); err != nil {
 		return nil, err
+	} else {
+		buf.Write(d)
 	}
-	answer = append(answer, hash2...)
-	return answer, nil
+
+	return buf.DeepCopyBytes(), nil
 }
 
 func (m *Heartbeat) MarshalBinary() (data []byte, err error) {
@@ -149,7 +191,6 @@ func (m *Heartbeat) MarshalBinary() (data []byte, err error) {
 		return nil, err
 	}
 	sig := m.GetSignature()
-
 	if sig != nil {
 		sigBytes, err := sig.MarshalBinary()
 		if err != nil {

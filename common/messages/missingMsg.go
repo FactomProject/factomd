@@ -21,6 +21,8 @@ type MissingMsg struct {
 	ProcessListHeight uint32
 	Timestamp         interfaces.Timestamp
 
+	//No signature!
+
 	//Not marshalled
 	hash interfaces.IHash
 }
@@ -57,7 +59,7 @@ func (m *MissingMsg) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp
 }
 
-func (m *MissingMsg) Type() int {
+func (m *MissingMsg) Type() byte {
 	return constants.MISSING_MSG
 }
 
@@ -75,7 +77,11 @@ func (m *MissingMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
 	}()
-	newData = data[1:]
+	newData = data
+	if newData[0] != m.Type() {
+		return nil, fmt.Errorf("Invalid Message type")
+	}
+	newData = newData[1:]
 
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
@@ -100,9 +106,9 @@ func (m *MissingMsg) UnmarshalBinary(data []byte) error {
 }
 
 func (m *MissingMsg) MarshalBinary() ([]byte, error) {
-	var buf bytes.Buffer
+	var buf primitives.Buffer
 
-	binary.Write(&buf, binary.BigEndian, byte(m.Type()))
+	binary.Write(&buf, binary.BigEndian, m.Type())
 
 	t := m.GetTimestamp()
 	data, err := t.MarshalBinary()
@@ -116,8 +122,9 @@ func (m *MissingMsg) MarshalBinary() ([]byte, error) {
 
 	var mmm MissingMsg
 
-	bb := buf.Bytes()
+	bb := buf.DeepCopyBytes()
 
+	//TODO: delete this once we have unit tests
 	if unmarshalErr := mmm.UnmarshalBinary(bb); unmarshalErr != nil {
 		return nil, unmarshalErr
 	}

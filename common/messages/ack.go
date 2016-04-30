@@ -17,7 +17,6 @@ import (
 //General acknowledge message
 type Ack struct {
 	MessageBase
-	ServerIndex byte // Server index (signature could be one of several)
 	Timestamp   interfaces.Timestamp
 	MessageHash interfaces.IHash
 
@@ -39,7 +38,7 @@ func (a *Ack) IsSameAs(b *Ack) bool {
 	if b == nil {
 		return false
 	}
-	if a.ServerIndex != b.ServerIndex {
+	if a.VMIndex != b.VMIndex {
 		return false
 	}
 	if a.DBHeight != b.DBHeight {
@@ -69,8 +68,10 @@ func (a *Ack) IsSameAs(b *Ack) bool {
 	if a.Signature == nil && b.Signature != nil {
 		return false
 	}
-	if a.Signature.IsSameAs(b.Signature) == false {
-		return false
+	if a.Signature != nil {
+		if a.Signature.IsSameAs(b.Signature) == false {
+			return false
+		}
 	}
 
 	return true
@@ -91,7 +92,7 @@ func (m *Ack) GetMsgHash() interfaces.IHash {
 	return m.MsgHash
 }
 
-func (m *Ack) Type() int {
+func (m *Ack) Type() byte {
 	return constants.ACK_MSG
 }
 
@@ -185,9 +186,13 @@ func (m *Ack) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
 	}()
+	newData = data
+	if newData[0] != m.Type() {
+		return nil, fmt.Errorf("Invalid Message type")
+	}
+	newData = newData[1:]
 
-	newData = data[1:]
-	m.ServerIndex, newData = newData[0], newData[1:]
+	m.VMIndex, newData = int(newData[0]), newData[1:]
 
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
@@ -212,12 +217,11 @@ func (m *Ack) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	}
 
 	if len(newData) > 0 {
-		sig := new(primitives.Signature)
-		newData, err = sig.UnmarshalBinaryData(newData)
+		m.Signature = new(primitives.Signature)
+		newData, err = m.Signature.UnmarshalBinaryData(newData)
 		if err != nil {
 			return nil, err
 		}
-		m.Signature = sig
 	}
 	return
 }
@@ -228,10 +232,10 @@ func (m *Ack) UnmarshalBinary(data []byte) error {
 }
 
 func (m *Ack) MarshalForSignature() ([]byte, error) {
-	var buf bytes.Buffer
+	var buf primitives.Buffer
 
-	binary.Write(&buf, binary.BigEndian, byte(m.Type()))
-	binary.Write(&buf, binary.BigEndian, m.ServerIndex)
+	binary.Write(&buf, binary.BigEndian, m.Type())
+	binary.Write(&buf, binary.BigEndian, byte(m.VMIndex))
 
 	t := m.GetTimestamp()
 	data, err := t.MarshalBinary()
@@ -255,7 +259,7 @@ func (m *Ack) MarshalForSignature() ([]byte, error) {
 	}
 	buf.Write(data)
 
-	return buf.Bytes(), nil
+	return buf.DeepCopyBytes(), nil
 }
 
 func (m *Ack) MarshalBinary() (data []byte, err error) {
@@ -278,7 +282,7 @@ func (m *Ack) MarshalBinary() (data []byte, err error) {
 func (m *Ack) String() string {
 	return fmt.Sprintf("%6s-%3d: PL:%5d Ht:%5d -- MessageHash[:5]=__________ hash[:5]=%x",
 		"ACK",
-		m.ServerIndex,
+		m.VMIndex,
 		m.Height,
 		m.DBHeight,
 		//m.ChainID.Bytes()[:5],

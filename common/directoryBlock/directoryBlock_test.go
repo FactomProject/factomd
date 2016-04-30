@@ -180,9 +180,9 @@ func TestMakeSureBlockCountIsNotDuplicates(t *testing.T) {
 			t.Errorf("Error: %v", err)
 		}
 		//Get the byte representation of BlockCount
-		var buf bytes.Buffer
+		var buf primitives.Buffer
 		binary.Write(&buf, binary.BigEndian, block.GetHeader().GetBlockCount())
-		hex := buf.Bytes()
+		hex := buf.DeepCopyBytes()
 
 		//How many times does BlockCount appear in the marshalled slice?
 		count := bytes.Count(marshalled, hex)

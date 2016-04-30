@@ -51,6 +51,10 @@ func (db *BoltDB) Delete(bucket []byte, key []byte) error {
 	defer db.Sem.Unlock()
 
 	db.db.Update(func(tx *bolt.Tx) error {
+		_, err := tx.CreateBucketIfNotExists(bucket)
+		if err != nil {
+			return err
+		}
 		b := tx.Bucket(bucket)
 		b.Delete(key)
 		return nil

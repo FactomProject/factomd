@@ -25,7 +25,7 @@ type msglist struct {
 }
 
 type MsgLog struct {
-    Enable  bool
+	Enable  bool
 	sem     sync.Mutex
 	MsgList []*msglist
 	last    interfaces.Timestamp
@@ -45,16 +45,16 @@ type MsgLog struct {
 
 func (m *MsgLog) init(enable bool, nodecnt int) {
 	m.Enable = enable
-    m.nodeCnt = nodecnt
+	m.nodeCnt = nodecnt
 	if nodecnt == 0 {
 		m.nodeCnt = 1
 	}
 }
 
 func (m *MsgLog) add2(fnode *FactomNode, out bool, peer string, where string, valid bool, msg interfaces.IMsg) {
-    if !m.Enable {
-        //return
-    }
+	if !m.Enable {
+		return
+	}
 	m.sem.Lock()
 	defer m.sem.Unlock()
 	now := fnode.State.GetTimestamp() / 100
@@ -108,12 +108,12 @@ func (m *MsgLog) add2(fnode *FactomNode, out bool, peer string, where string, va
 func (m *MsgLog) prtMsgs(state interfaces.IState) {
 
 	if !(state.GetOut() || m.all) {
-        return
-    }
-    
+		return
+	}
+
 	fmt.Println(state.String())
 	fmt.Println("\n-----------------------------------------------------")
-	
+
 	for _, e := range m.MsgList {
 		if e.valid {
 			if e.fnode.State.GetOut() || m.all {
@@ -130,4 +130,3 @@ func (m *MsgLog) prtMsgs(state interfaces.IState) {
 	fmt.Println(fmt.Sprintf("*** %42s **** ", fmt.Sprintf("Length: %d    Msgs/sec: T %d P %d", len(m.MsgList), m.msgPerSec, m.msgPerSecp)))
 	fmt.Println("\n-----------------------------------------------------")
 }
-

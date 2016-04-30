@@ -26,5 +26,5 @@ func (s *FctServer) GetChainID() IHash {
 }
 
 func (s *FctServer) String() string {
-	return fmt.Sprintf("Server[:10]: %x", s.GetChainID().Bytes()[:10])
+	return fmt.Sprintf("Server[:4]: %x", s.GetChainID().Bytes()[:10])
 }

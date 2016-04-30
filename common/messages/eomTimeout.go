@@ -20,6 +20,19 @@ type EOMTimeout struct {
 
 var _ interfaces.IMsg = (*EOMTimeout)(nil)
 
+func (a *EOMTimeout) IsSameAs(b *EOMTimeout) bool {
+	if b == nil {
+		return false
+	}
+	if a.Timestamp != b.Timestamp {
+		return false
+	}
+
+	//TODO: expand
+
+	return true
+}
+
 func (e *EOMTimeout) Process(uint32, interfaces.IState) bool {
 	panic("EOMTimeout is not implemented.")
 }
@@ -43,7 +56,7 @@ func (m *EOMTimeout) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp
 }
 
-func (m *EOMTimeout) Type() int {
+func (m *EOMTimeout) Type() byte {
 	return constants.EOM_TIMEOUT_MSG
 }
 
@@ -55,14 +68,26 @@ func (m *EOMTimeout) Bytes() []byte {
 	return nil
 }
 
-func (m *EOMTimeout) UnmarshalBinaryData(data []byte) (newdata []byte, err error) {
+func (m *EOMTimeout) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
+			err = fmt.Errorf("Error unmarshalling Eom Timeout: %v", r)
 		}
 	}()
+	newData = data
+	if newData[0] != m.Type() {
+		return nil, fmt.Errorf("Invalid Message type")
+	}
+	newData = newData[1:]
 
-	return nil, nil
+	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
+	if err != nil {
+		return nil, err
+	}
+
+	//TODO: expand
+
+	return newData, nil
 }
 
 func (m *EOMTimeout) UnmarshalBinary(data []byte) error {
@@ -71,7 +96,17 @@ func (m *EOMTimeout) UnmarshalBinary(data []byte) error {
 }
 
 func (m *EOMTimeout) MarshalBinary() (data []byte, err error) {
-	return nil, nil
+	var buf primitives.Buffer
+	buf.Write([]byte{m.Type()})
+	if d, err := m.Timestamp.MarshalBinary(); err != nil {
+		return nil, err
+	} else {
+		buf.Write(d)
+	}
+
+	//TODO: expand
+
+	return buf.DeepCopyBytes(), nil
 }
 
 func (m *EOMTimeout) String() string {
