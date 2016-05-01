@@ -84,11 +84,22 @@ func (m *RequestBlock) UnmarshalBinary(data []byte) error {
 }
 
 func (m *RequestBlock) MarshalForSignature() (data []byte, err error) {
-	return nil, nil
+	var buf primitives.Buffer
+	buf.Write([]byte{m.Type()})
+	if d, err := m.Timestamp.MarshalBinary(); err != nil {
+		return nil, err
+	} else {
+		buf.Write(d)
+	}
+
+	//TODO: expand
+
+	return buf.DeepCopyBytes(), nil
 }
 
 func (m *RequestBlock) MarshalBinary() (data []byte, err error) {
-	return nil, nil
+	//TODO: sign or delete
+	return m.MarshalForSignature()
 }
 
 func (m *RequestBlock) String() string {

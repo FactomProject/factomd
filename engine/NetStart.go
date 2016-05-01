@@ -39,7 +39,7 @@ func NetStart(s *state.State) {
 	leaderPtr := flag.Bool("leader", true, "If true, force node to be a leader.  Only used when replaying a journal.")
 	dbPtr := flag.String("db", "", "Override the Database in the Config file and use this Database implementation")
 	folderPtr := flag.String("folder", "", "Directory in .factom to store nodes. (eg: multiple nodes on one filesystem support)")
-	portPtr := flag.Int("port", 8088, "Address to serve WSAPI on")
+	portOverridePtr := flag.Int("port", 0, "Address to serve WSAPI on")
 	addressPtr := flag.String("p2pAddress", "tcp://127.0.0.1:34340", "Address & port to listen for peers on: (eg: tcp://127.0.0.1:40891)")
 	peersPtr := flag.String("peers", "", "Array of peer addresses. Defaults to: \"tcp://127.0.0.1:34341 tcp://127.0.0.1:34342 tcp://127.0.0.1:34340\"")
 	blkTimePtr := flag.Int("blktime", 0, "Seconds per block.  Production is 600.")
@@ -58,7 +58,7 @@ func NetStart(s *state.State) {
 	leader := *leaderPtr
 	db := *dbPtr
 	folder := *folderPtr
-	port := *portPtr
+	portOverride := *portOverridePtr
 	address := *addressPtr
 	peers := *peersPtr
 	blkTime := *blkTimePtr
@@ -69,6 +69,10 @@ func NetStart(s *state.State) {
 	FactomConfigFilename := util.GetConfigFilename("m2")
 	fmt.Println(fmt.Sprintf("factom config: %s", FactomConfigFilename))
 	s.LoadConfig(FactomConfigFilename, folder)
+
+	if 999 < portOverride { // The command line flag exists and seems reasonable.
+		s.PortNumber = portOverride
+	}
 
 	if blkTime != 0 {
 		s.DirectoryBlockInSeconds = blkTime
@@ -92,7 +96,7 @@ func NetStart(s *state.State) {
 	}
 	os.Stderr.WriteString(fmt.Sprintf("db          \"%s\"\n", db))
 	os.Stderr.WriteString(fmt.Sprintf("folder      \"%s\"\n", folder))
-	os.Stderr.WriteString(fmt.Sprintf("port        \"%d\"\n", port))
+	os.Stderr.WriteString(fmt.Sprintf("port        \"%d\"\n", s.PortNumber))
 	os.Stderr.WriteString(fmt.Sprintf("address     \"%s\"\n", address))
 	os.Stderr.WriteString(fmt.Sprintf("peers       \"%s\"\n", peers))
 	os.Stderr.WriteString(fmt.Sprintf("blkTime     %d\n", blkTime))
@@ -140,7 +144,6 @@ func NetStart(s *state.State) {
 	}
 
 	s.SetOut(false)
-	s.PortNumber = port
 
 	s.Init()
 	s.SetDropRate(droprate)

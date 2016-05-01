@@ -12,8 +12,8 @@ import (
 	//"github.com/FactomProject/factomd/common/primitives"
 )
 
-func TestMarshalUnmarshalEOM(t *testing.T) {
-	msg := newEOMTimeout()
+func TestMarshalUnmarshalInvalidDirectoryBlock(t *testing.T) {
+	msg := newInvalidDirectoryBlock()
 
 	hex, err := msg.MarshalBinary()
 	if err != nil {
@@ -28,11 +28,11 @@ func TestMarshalUnmarshalEOM(t *testing.T) {
 	str := msg2.String()
 	t.Logf("str - %v", str)
 
-	if msg2.Type() != constants.EOM_TIMEOUT_MSG {
+	if msg2.Type() != constants.INVALID_DIRECTORY_BLOCK_MSG {
 		t.Error("Invalid message type unmarshalled")
 	}
 
-	hex2, err := msg2.(*EOMTimeout).MarshalBinary()
+	hex2, err := msg2.(*InvalidDirectoryBlock).MarshalBinary()
 	if err != nil {
 		t.Error(err)
 	}
@@ -45,8 +45,8 @@ func TestMarshalUnmarshalEOM(t *testing.T) {
 		}
 	}
 
-	if msg.IsSameAs(msg2.(*EOMTimeout)) != true {
-		t.Errorf("EOMTimeout messages are not identical")
+	if msg.IsSameAs(msg2.(*InvalidDirectoryBlock)) != true {
+		t.Errorf("InvalidDirectoryBlock messages are not identical")
 	}
 }
 
@@ -92,8 +92,8 @@ func TestSignAndVerifyEOM(t *testing.T) {
 
 }*/
 
-func newEOMTimeout() *EOMTimeout {
-	eom := new(EOMTimeout)
+func newInvalidDirectoryBlock() *InvalidDirectoryBlock {
+	eom := new(InvalidDirectoryBlock)
 	eom.Timestamp.SetTimeNow()
 
 	return eom

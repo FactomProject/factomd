@@ -17,6 +17,8 @@ type MissingAck struct {
 	MessageBase
 	Timestamp interfaces.Timestamp
 
+	//No signature!
+
 	//Not marshalled
 	hash interfaces.IHash
 }
@@ -88,7 +90,17 @@ func (m *MissingAck) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *MissingAck) MarshalForSignature() (data []byte, err error) {
-	return nil, nil
+	var buf primitives.Buffer
+	buf.Write([]byte{m.Type()})
+	if d, err := m.Timestamp.MarshalBinary(); err != nil {
+		return nil, err
+	} else {
+		buf.Write(d)
+	}
+
+	//TODO: expand
+
+	return buf.DeepCopyBytes(), nil
 }
 
 func (m *MissingAck) String() string {

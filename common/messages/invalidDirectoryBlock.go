@@ -23,6 +23,19 @@ type InvalidDirectoryBlock struct {
 
 var _ interfaces.IMsg = (*InvalidDirectoryBlock)(nil)
 
+func (a *InvalidDirectoryBlock) IsSameAs(b *InvalidDirectoryBlock) bool {
+	if b == nil {
+		return false
+	}
+	if a.Timestamp != b.Timestamp {
+		return false
+	}
+
+	//TODO: expand
+
+	return true
+}
+
 func (m *InvalidDirectoryBlock) Process(uint32, interfaces.IState) bool { return true }
 
 func (m *InvalidDirectoryBlock) GetHash() interfaces.IHash {
@@ -75,7 +88,14 @@ func (m *InvalidDirectoryBlock) UnmarshalBinaryData(data []byte) (newData []byte
 	}
 	newData = newData[1:]
 
-	return nil, nil
+	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
+	if err != nil {
+		return nil, err
+	}
+
+	//TODO: expand
+
+	return newData, nil
 }
 
 func (m *InvalidDirectoryBlock) UnmarshalBinary(data []byte) error {
@@ -84,11 +104,22 @@ func (m *InvalidDirectoryBlock) UnmarshalBinary(data []byte) error {
 }
 
 func (m *InvalidDirectoryBlock) MarshalBinary() (data []byte, err error) {
-	return nil, nil
+	//TODO: sign or delete
+	return m.MarshalForSignature()
 }
 
 func (m *InvalidDirectoryBlock) MarshalForSignature() (data []byte, err error) {
-	return nil, nil
+	var buf primitives.Buffer
+	buf.Write([]byte{m.Type()})
+	if d, err := m.Timestamp.MarshalBinary(); err != nil {
+		return nil, err
+	} else {
+		buf.Write(d)
+	}
+
+	//TODO: expand
+
+	return buf.DeepCopyBytes(), nil
 }
 
 func (m *InvalidDirectoryBlock) String() string {
