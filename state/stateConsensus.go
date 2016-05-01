@@ -25,11 +25,14 @@ var _ = fmt.Print
 // Returns true if some message was processed.
 //***************************************************************
 func (s *State) Process() (progress bool) {
-	if s.EOB {
-		s.LLeaderHeight = s.GetHighestRecordedBlock() + 1
+    if s.EOB  {
 		s.EOB = false
 	}
+    s.LLeaderHeight = s.GetHighestRecordedBlock() + 1
 	pl := s.ProcessLists.Get(s.LLeaderHeight)
+	if s.LLeaderHeight == 0 {
+        s.Leader, s.LeaderVMIndex = pl.GetVirtualServers(0, s.IdentityChainID)
+    }
 	if s.EOM {
 		min := pl.MinuteHeight()
 		if min > 9 {
@@ -40,15 +43,18 @@ func (s *State) Process() (progress bool) {
 		s.EOM = false
 	}
 	if s.Leader {
-		vm := pl.VMs[s.LeaderVMIndex]
+    	vm := pl.VMs[s.LeaderVMIndex]
 		// To process a leader message, we have to have the follower process completely
 		// up to date.  Then we can validate the message.  Process is up to date if all
 		// messages in the process list have been processed by the follower, ie the Height
 		// is equal to the length of the process list.
+        fmt.Println(s.FactomNodeName,"leader", len(vm.List), vm.Height)
 		if len(vm.List) == vm.Height {
+            fmt.Println(s.FactomNodeName,"process", len(s.leaderMsgQueue))
 			select {
-			case msg := <-s.leaderMsgQueue:
-				v := msg.Validate(s)
+			case msg,_ := <-s.leaderMsgQueue:
+            fmt.Println("llllllllllleeeeeeaader", msg.String())
+                v := msg.Validate(s)
 				switch v {
 				case 1:
 					msg.LeaderExecute(s)
@@ -56,6 +62,7 @@ func (s *State) Process() (progress bool) {
 					for s.UpdateState() {
 					}
 				case -1:
+                    fmt.Println("INVALD MESSAGE:",msg)
 					s.networkInvalidMsgQueue <- msg
 				}
 				progress = true
@@ -223,7 +230,7 @@ func (s *State) addEBlock(eblock interfaces.IEntryBlock) {
 
 func (s *State) LeaderExecute(m interfaces.IMsg) error {
 	dbheight := s.LLeaderHeight
-
+fmt.Println("LLLLLLLLL Leader Execute",m.String())
 	ack, err := s.NewAck(dbheight, m)
 	if err != nil {
 		return err
@@ -264,7 +271,9 @@ func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) 
 	}
 
 	pl := s.ProcessLists.Get(dbheight)
-	pl.AdminBlock.AddFedServer(as.ServerChainID)
+	if as.ServerType == 0 {
+		pl.AdminBlock.AddFedServer(as.ServerChainID)
+	}
 
 	return true
 }

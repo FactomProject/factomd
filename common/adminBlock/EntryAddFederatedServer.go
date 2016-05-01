@@ -20,7 +20,6 @@ var _ interfaces.BinaryMarshallable = (*AddFederatedServer)(nil)
 
 func (c *AddFederatedServer) UpdateState(state interfaces.IState) {
 	state.AddFedServer(c.DBHeight, c.IdentityChainID)
-	fmt.Println(fmt.Sprintf("Adding Federated Server: %x at %d", c.IdentityChainID.Bytes()[:3], c.DBHeight))
 }
 
 // Create a new DB Signature Entry

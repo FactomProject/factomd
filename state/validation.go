@@ -90,6 +90,7 @@ func (t *Timer) timer(state *State, min int) {
 
 	found, vmIndex := state.GetVirtualServers(t.lastDBHeight, min, state.GetIdentityChainID())
 	if found {
+        fmt.Println(state.GetFactomNodeName(), vmIndex, "at dbht",t.lastDBHeight,min)
 		eom := new(messages.EOM)
 		eom.Minute = byte(min)
 		eom.Timestamp = state.GetTimestamp()

@@ -152,10 +152,6 @@ func handlerGetReport(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, string(out.DeepCopyBytes()))
 }
 
-func handlerGetReport2(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "fctWallet report")
-}
-
 func runPanel() {
 	http.HandleFunc("/controlpanel", handler)
 	http.HandleFunc("/getreport", handlerGetReport)

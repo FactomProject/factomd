@@ -22,7 +22,7 @@ const (
 	INVALID_ACK_MSG                           // 9
 	INVALID_DIRECTORY_BLOCK_MSG               // 10
 	MISSING_ACK_MSG                           // 11
-	PROMOTION_DEMOTION_MSG                    // 12
+	// 12
 	REVEAL_ENTRY_MSG                          // 13
 	REQUEST_BLOCK_MSG                         // 14
 	SIGNATURE_TIMEOUT_MSG                     // 15
@@ -37,25 +37,21 @@ const (
 
 const (
 	ADDRESS_LENGTH       = 32    // Length of an Address or a Hash or Public Key
-	PRIVATE_LENGTH       = 64    // length of a Private Key
+	// length of a Private Key
 	SIGNATURE_LENGTH     = 64    // Length of a signature
 	MAX_TRANSACTION_SIZE = 10240 // 10K like everything else?
-	MINIMUM_AMOUNT       = 1     // Not sure if we need a minimum amount.  Set at 1 Factoshi
+	// Not sure if we need a minimum amount.  Set at 1 Factoshi
 
 	// Database
 	//==================
 	// Limit on size of keys, since Maps in Go can't handle variable length keys.
-	KEY_LIMIT = ADDRESS_LENGTH * 2
+
 
 	// Wallet
 	//==================
-	W_SEEDS            = "wallet.address.seeds"      // Holds the root seeds for address generation
-	W_SEED_HEADS       = "wallet.address.seed.heads" // Holds the latest generated seed for each root seed.
-	W_RCD_ADDRESS_HASH = "wallet.address.addr"
-	W_ADDRESS_PUB_KEY  = "wallet.public.key"
-	W_NAME             = "wallet.address.name"
-	DB_BUILD_TRANS     = "Transactions_Under_Construction"
-	DB_TRANSACTIONS    = "Transactions_For_Addresses"
+	// Holds the root seeds for address generation
+	// Holds the latest generated seed for each root seed.
+
 
 	// Block
 	//==================
@@ -65,20 +61,20 @@ const (
 
 	//Entry Credit Blocks (For now, everyone gets the same cap)
 	EC_CAP = 5      //Number of ECBlocks we start with.
-	AB_CAP = EC_CAP //Administrative Block Cap for AB messages
+	//Administrative Block Cap for AB messages
 
 	//Limits and Sizes
 	//==================
-	MAX_ENTRY_SIZE    = uint16(10240) //Maximum size for Entry External IDs and the Data
+	//Maximum size for Entry External IDs and the Data
 	HASH_LENGTH       = int(32)       //Length of a Hash
-	SIG_LENGTH        = int(64)       //Length of a signature
-	MAX_ORPHAN_SIZE   = int(5000)     //Prphan mem pool size
-	MAX_TX_POOL_SIZE  = int(50000)    //Transaction mem pool size
-	MAX_BLK_POOL_SIZE = int(500000)   //Block mem bool size
-	MAX_PLIST_SIZE    = int(150000)   //MY Process List size
+	//Length of a signature
+	//Prphan mem pool size
+	//Transaction mem pool size
+	//Block mem bool size
+	//MY Process List size
 
-	MAX_ENTRY_CREDITS = uint8(10) //Max number of entry credits per entry
-	MAX_CHAIN_CREDITS = uint8(20) //Max number of entry credits per chain
+	//Max number of entry credits per entry
+	//Max number of entry credits per chain
 
 	COMMIT_TIME_WINDOW = time.Duration(12) //Time windows for commit chain and commit entry +/- 12 hours
 
@@ -87,9 +83,9 @@ const (
 	VERSION_0        = byte(0)
 	FACTOMD_VERSION  = 4000000
 	PROTOCOL_VERSION = 0
-	NETWORK_ID_DB    = uint32(4203931041) //0xFA92E5A1
-	NETWORK_ID_EB    = uint32(4203931042) //0xFA92E5A2
-	NETWORK_ID_CB    = uint32(4203931043) //0xFA92E5A3
+	//0xFA92E5A1
+	//0xFA92E5A2
+	//0xFA92E5A3
 	MaxBlocksPerMsg  = 500
 
 	// NETWORKS:
@@ -102,27 +98,26 @@ const (
 
 	//For Factom TestNet
 	//==================
-	NETWORK_ID_TEST = uint32(0) //0x0
+	//0x0
 
 	// Server Info
 	//==================
 	//Server running mode
-	FULL_NODE   = "FULL"
-	SERVER_NODE = "SERVER"
-	LIGHT_NODE  = "LIGHT"
+
+
 )
 
 const (
-	CLIENT_MODE       int = iota // 0
-	SERVER_MODE                  // 1
-	AUDIT_SERVER_MODE            // 2
+	// 0
+	// 1
+	// 2
 
 	//Server public key for milestone 1
 	SERVER_PUB_KEY = "0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a"
 	//Genesis directory block timestamp in RFC3339 format
-	GENESIS_BLK_TIMESTAMP = "2015-09-01T20:00:00+00:00"
+
 	//Genesis directory block hash
-	GENESIS_DIR_BLOCK_HASH = "cbd3d09db6defdc25dfc7d57f3479b339a077183cd67022e6d1ef6c041522b40"
+
 )
 
 // Slices and arrays that should not ever be modified:

@@ -61,6 +61,7 @@ func SimControl(listenTo int) {
 				}
 				if listenTo >= 0 && listenTo < len(fnodes) {
 					fmt.Printf("   %s\n", fnodes[listenTo].State.GetFactomNodeName())
+					fmt.Printf("      FollowerMsgQueue       %d\n", len(fnodes[listenTo].State.FollowerMsgQueue()))
 					fmt.Printf("      InMsgQueue             %d\n", len(fnodes[listenTo].State.InMsgQueue()))
 					fmt.Printf("      LeaderMsgQueue         %d\n", len(fnodes[listenTo].State.LeaderMsgQueue()))
 					fmt.Printf("      TimerMsgQueue          %d\n", len(fnodes[listenTo].State.TimerMsgQueue()))
@@ -179,7 +180,7 @@ func SimControl(listenTo int) {
 					fnode.State.SetOut(false)
 				}
 				mLog.all = false
-				msg := messages.NewAddServerMsg(fnodes[listenTo].State)
+				msg := messages.NewAddServerMsg(fnodes[listenTo].State, 0)
 				fnodes[listenTo].State.InMsgQueue() <- msg
 				os.Stderr.WriteString(fmt.Sprintln("Attempting to make", fnodes[listenTo].State.GetFactomNodeName(), "a Leader"))
 			case '?' == b[0], 'H' == b[0], 'h' == b[0]:

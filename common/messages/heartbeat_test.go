@@ -5,14 +5,16 @@
 package messages_test
 
 import (
+	"testing"
+
 	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/messages"
+
 	"github.com/FactomProject/factomd/common/primitives"
-	"testing"
 )
 
-func TestMarshalUnmarshalDirectoryBlockSignature(t *testing.T) {
-	msg := newDirectoryBlockSignature()
+func TestMarshalUnmarshalEOM(t *testing.T) {
+	msg := newHeartbeat()
 
 	hex, err := msg.MarshalBinary()
 	if err != nil {
@@ -27,11 +29,11 @@ func TestMarshalUnmarshalDirectoryBlockSignature(t *testing.T) {
 	str := msg2.String()
 	t.Logf("str - %v", str)
 
-	if msg2.Type() != constants.DIRECTORY_BLOCK_SIGNATURE_MSG {
+	if msg2.Type() != constants.HEARTBEAT_MSG {
 		t.Error("Invalid message type unmarshalled")
 	}
 
-	hex2, err := msg2.(*DirectoryBlockSignature).MarshalBinary()
+	hex2, err := msg2.(*Heartbeat).MarshalBinary()
 	if err != nil {
 		t.Error(err)
 	}
@@ -44,26 +46,25 @@ func TestMarshalUnmarshalDirectoryBlockSignature(t *testing.T) {
 		}
 	}
 
-	if msg.IsSameAs(msg2.(*DirectoryBlockSignature)) != true {
-		t.Errorf("DirectoryBlockSignature messages are not identical")
+	if msg.IsSameAs(msg2.(*Heartbeat)) != true {
+		t.Errorf("Heartbeat messages are not identical")
 	}
 }
 
-func TestSignAndVerifyDirectoryBlockSignature(t *testing.T) {
-	dbs := newSignedDirectoryBlockSignature()
-
-	hex, err := dbs.MarshalBinary()
+func TestSignAndVerifyEOM(t *testing.T) {
+	msg := newSignedHeartbeat()
+	hex, err := msg.MarshalBinary()
 	if err != nil {
 		t.Error(err)
 	}
 	t.Logf("Marshalled - %x", hex)
 
-	t.Logf("Sig - %x", *dbs.Signature.GetSignature())
-	if len(*dbs.Signature.GetSignature()) == 0 {
+	t.Logf("Sig - %x", *msg.Signature.GetSignature())
+	if len(*msg.Signature.GetSignature()) == 0 {
 		t.Error("Signature not present")
 	}
 
-	valid, err := dbs.VerifySignature()
+	valid, err := msg.VerifySignature()
 	if err != nil {
 		t.Error(err)
 	}
@@ -71,17 +72,16 @@ func TestSignAndVerifyDirectoryBlockSignature(t *testing.T) {
 		t.Error("Signature is not valid")
 	}
 
-	dbs2, err := UnmarshalMessage(hex)
+	msg2, err := UnmarshalMessage(hex)
 	if err != nil {
 		t.Error(err)
 	}
 
-	if dbs2.Type() != constants.DIRECTORY_BLOCK_SIGNATURE_MSG {
+	if msg2.Type() != constants.HEARTBEAT_MSG {
 		t.Error("Invalid message type unmarshalled")
 	}
-	dbsProper := dbs2.(*DirectoryBlockSignature)
 
-	valid, err = dbsProper.VerifySignature()
+	valid, err = msg2.(*Heartbeat).VerifySignature()
 	if err != nil {
 		t.Error(err)
 	}
@@ -90,25 +90,34 @@ func TestSignAndVerifyDirectoryBlockSignature(t *testing.T) {
 	}
 }
 
-func newDirectoryBlockSignature() *DirectoryBlockSignature {
-	dbs := new(DirectoryBlockSignature)
-	dbs.DBHeight = 123456
-	hash, _ := primitives.NewShaHashFromStr("cbd3d09db6defdc25dfc7d57f3479b339a077183cd67022e6d1ef6c041522b40")
-	dbs.DirectoryBlockKeyMR = hash
-	hash, _ = primitives.NewShaHashFromStr("a077183cd67022e6d1ef6c041522b40cbd3d09db6defdc25dfc7d57f3479b339")
-	dbs.ServerIdentityChainID = hash
-	return dbs
+func newHeartbeat() *Heartbeat {
+	eom := new(Heartbeat)
+	eom.Timestamp.SetTimeNow()
+	h, err := primitives.NewShaHashFromStr("deadbeef00000000000000000000000000000000000000000000000000000000")
+	if err != nil {
+		panic(err)
+	}
+	eom.DBlockHash = h
+	h, err = primitives.NewShaHashFromStr("deadbeef00000000000000000000000000000000000000000000000000000000")
+	if err != nil {
+		panic(err)
+	}
+	eom.IdentityChainID = h
+
+	return eom
 }
 
-func newSignedDirectoryBlockSignature() *DirectoryBlockSignature {
-	dbs := newDirectoryBlockSignature()
+func newSignedHeartbeat() *Heartbeat {
+	ack := newHeartbeat()
+
 	key, err := primitives.NewPrivateKeyFromHex("07c0d52cb74f4ca3106d80c4a70488426886bccc6ebc10c6bafb37bf8a65f4c38cee85c62a9e48039d4ac294da97943c2001be1539809ea5f54721f0c5477a0a")
 	if err != nil {
 		panic(err)
 	}
-	err = dbs.Sign(&key)
+	err = ack.Sign(&key)
 	if err != nil {
 		panic(err)
 	}
-	return dbs
+
+	return ack
 }

@@ -435,28 +435,28 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 	if bytes.Compare(fblk.GetKeyMR().Bytes(), dblk.GetDBEntries()[2].GetKeyMR().Bytes()) != 0 {
 		panic("Should not happen")
 	}
-	eblks := make(map[[32]byte]interfaces.IEntryBlock)
+	eblks := make([]interfaces.IEntryBlock, len(dblk.GetDBEntries())-3)
 	if len(dblk.GetDBEntries()) > 3 {
-		for _, v := range dblk.GetDBEntries()[3:] {
-			eblks[v.GetKeyMR().Fixed()], err = s.DB.FetchEBlockByKeyMR(v.GetKeyMR())
+		for i, v := range dblk.GetDBEntries()[3:] {
+			eblks[i], err = s.DB.FetchEBlockByKeyMR(v.GetKeyMR())
 			if err != nil {
 				return nil, err
 			}
 		}
 	}
 
-	msg := messages.NewDBStateMsg(s.GetTimestamp(), dblk, ablk, fblk, ecblk)
+	msg := messages.NewDBStateMsg(s.GetTimestamp(), dblk, ablk, fblk, ecblk, eblks)
 
 	return msg, nil
 
 }
 
-func (s *State) LoadDataByHash(requestedHash interfaces.IHash) (interface{}, int, error) {
+func (s *State) LoadDataByHash(requestedHash interfaces.IHash) (interfaces.BinaryMarshallable, int, error) {
 	if requestedHash == nil {
 		return nil, -1, fmt.Errorf("Requested hash must be non-empty")
 	}
 
-	var result interface{}
+	var result interfaces.BinaryMarshallable
 	var err error
 
 	// Check for Entry
@@ -665,8 +665,16 @@ func (s *State) AddFedServer(dbheight uint32, hash interfaces.IHash) int {
 	return s.ProcessLists.Get(dbheight).AddFedServer(hash)
 }
 
+func (s *State) AddAuditServer(dbheight uint32, hash interfaces.IHash) int {
+	return s.ProcessLists.Get(dbheight).AddAuditServer(hash)
+}
+
 func (s *State) GetFedServers(dbheight uint32) []interfaces.IFctServer {
 	return s.ProcessLists.Get(dbheight).FedServers
+}
+
+func (s *State) GetAuditServers(dbheight uint32) []interfaces.IFctServer {
+	return s.ProcessLists.Get(dbheight).AuditServers
 }
 
 func (s *State) GetVirtualServers(dbheight uint32, minute int, identityChainID interfaces.IHash) (found bool, index int) {
@@ -891,20 +899,23 @@ func (s *State) SetString() {
 
 	lastheight := uint32(0)
 
-	if buildingBlock == 0 {
+    found, _ := s.GetVirtualServers(buildingBlock+1, 0, s.GetIdentityChainID())
+    stype := ""
+    if found {
+        stype = fmt.Sprintf("L     ")
+    }
+	
+    if buildingBlock == 0 {
 		s.serverPrt = fmt.Sprintf("%9s%9s Recorded: %d Building: %d Highest: %d ",
-			"",
+			stype,
 			s.FactomNodeName,
 			s.GetHighestRecordedBlock(),
 			0,
 			s.GetHighestKnownBlock())
 	} else {
-		found, _ := s.GetVirtualServers(buildingBlock+1, 0, s.GetIdentityChainID())
-		stype := ""
-		if found {
-			stype = fmt.Sprintf("L     ")
-		}
-		keyMR := []byte("aaaaa")
+		
+		fmt.Println("fffffffffffff", found, buildingBlock+1,0, s.FactomNodeName)
+    	keyMR := []byte("aaaaa")
 		abHash := []byte("aaaaa")
 		fbHash := []byte("aaaaa")
 		ecHash := []byte("aaaaa")

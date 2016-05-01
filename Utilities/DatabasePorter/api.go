@@ -96,7 +96,7 @@ func GetEntry(hash string) (interfaces.IEBEntry, error) {
 }
 
 func GetDBlockHead() (string, error) {
-	return "3a5ec711a1dc1c6e463b0c0344560f830eb0b56e42def141cb423b0d8487a1dc", nil
+	//return "3a5ec711a1dc1c6e463b0c0344560f830eb0b56e42def141cb423b0d8487a1dc", nil
 
 	resp, err := http.Get(
 		fmt.Sprintf("http://%s/v1/directory-block-head/", server))

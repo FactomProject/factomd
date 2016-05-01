@@ -31,7 +31,7 @@ type IState interface {
 	DatabaseContains(hash IHash) bool
 	SetOut(bool)  // Output is turned on if set to true
 	GetOut() bool // Return true if Print or Println write output
-	LoadDataByHash(requestedHash IHash) (interface{}, int, error)
+	LoadDataByHash(requestedHash IHash) (BinaryMarshallable, int, error)
 	LoadDBState(dbheight uint32) (IMsg, error)
 	LoadSpecificMsg(dbheight uint32, plistheight uint32) (IMsg, error)
 	LoadSpecificMsgAndAck(dbheight uint32, plistheight uint32) (IMsg, IMsg, error)
@@ -40,6 +40,8 @@ type IState interface {
 
 	AddFedServer(uint32, IHash) int
 	GetFedServers(uint32) []IFctServer
+	AddAuditServer(uint32, IHash) int
+	GetAuditServers(uint32) []IFctServer
 
 	// Routine for handling the syncroniztion of the leader and follower processes
 	// and how they process messages.

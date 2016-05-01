@@ -381,11 +381,14 @@ func HandleV2GetReceipt(state interfaces.IState, params interface{}) (interface{
 }
 
 func HandleV2DirectoryBlock(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
-	hashkey, ok := params.(string)
-	if ok == false {
+	ps := params.([]interface{})
+	if len(ps) < 1 {
 		return nil, NewInvalidParamsError()
 	}
-	d := new(DirectoryBlockResponse)
+	hashkey, ok := ps[0].(string)
+	if !ok {
+		return nil, NewInvalidParamsError()
+	}
 
 	h, err := primitives.HexToHash(hashkey)
 	if err != nil {
@@ -408,6 +411,7 @@ func HandleV2DirectoryBlock(state interfaces.IState, params interface{}) (interf
 		}
 	}
 
+	d := new(DirectoryBlockResponse)
 	d.Header.PrevBlockKeyMR = block.GetHeader().GetPrevKeyMR().String()
 	d.Header.SequenceNumber = block.GetHeader().GetDBHeight()
 	d.Header.Timestamp = block.GetHeader().GetTimestamp() * 60
@@ -520,8 +524,12 @@ func HandleV2Entry(state interfaces.IState, params interface{}) (interface{}, *p
 }
 
 func HandleV2ChainHead(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
-	hashkey, ok := params.(string)
-	if ok == false {
+	ps := params.([]interface{})
+	if len(ps) < 1 {
+		return nil, NewInvalidParamsError()
+	}
+	hashkey, ok := ps[0].(string)
+	if !ok {
 		return nil, NewInvalidParamsError()
 	}
 

@@ -148,7 +148,7 @@ func (m *MissingData) Follower(interfaces.IState) bool {
 }
 
 func (m *MissingData) FollowerExecute(state interfaces.IState) error {
-	var dataObject interface{}
+	var dataObject interfaces.BinaryMarshallable
 	//var dataHash interfaces.IHash
 	rawObject, dataType, err := state.LoadDataByHash(m.RequestHash)
 

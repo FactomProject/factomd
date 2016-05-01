@@ -44,6 +44,8 @@ func NetStart(s *state.State) {
 	peersPtr := flag.String("peers", "", "Array of peer addresses. Defaults to: \"tcp://127.0.0.1:34341 tcp://127.0.0.1:34342 tcp://127.0.0.1:34340\"")
 	blkTimePtr := flag.Int("blktime", 0, "Seconds per block.  Production is 600.")
 	runtimeLogPtr := flag.Bool("runtimeLog", true, "If true, maintain runtime logs of messages passed.")
+	netdebugPtr := flag.Bool("netdebug", false, "If true, print detailed network debugging info.")
+	heartbeatPtr := flag.Bool("heartbeat", false, "If true, network just sends heartbeats.")
 
 	flag.Parse()
 
@@ -61,6 +63,8 @@ func NetStart(s *state.State) {
 	peers := *peersPtr
 	blkTime := *blkTimePtr
 	runtimeLog := *runtimeLogPtr
+	netdebug := *netdebugPtr
+	heartbeat := *heartbeatPtr
 
 	FactomConfigFilename := util.GetConfigFilename("m2")
 	fmt.Println(fmt.Sprintf("factom config: %s", FactomConfigFilename))
@@ -101,7 +105,7 @@ func NetStart(s *state.State) {
 	}
 
 	fmt.Println(">>>>>>>>>>>>>>>>")
-	fmt.Println(">>>>>>>>>>>>>>>> Net Sim Start!!!!!")
+	fmt.Println(">>>>>>>>>>>>>>>> Net Sim Start!")
 	fmt.Println(">>>>>>>>>>>>>>>>")
 	fmt.Println(">>>>>>>>>>>>>>>> Listening to Node", listenTo)
 	fmt.Println(">>>>>>>>>>>>>>>>")
@@ -156,14 +160,17 @@ func NetStart(s *state.State) {
 
 	// Start the P2P netowrk
 	// BUGBUG JAYJAY This peer stuff needs to be abstracted out into the p2p network.
-	// Set up a channel instead.
 
 	// don't start network if htere is no network to connect to.
 	if 0 < len(peers) {
 		p2pProxy := new(P2PPeer).Init(fnodes[0].State.FactomNodeName, address).(*P2PPeer)
 		fnodes[0].Peers = append(fnodes[0].Peers, p2pProxy)
-
+		p2pProxy.SetDebugMode(netdebug)
+		p2pProxy.SetTestMode(heartbeat)
 		P2PNetworkStart(address, peers, p2pProxy)
+		if netdebug {
+			go PeriodicStatusReport(fnodes)
+		}
 	}
 
 	switch net {

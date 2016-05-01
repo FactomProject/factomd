@@ -25,6 +25,7 @@ type Entry struct {
 
 var _ interfaces.IEBEntry = (*Entry)(nil)
 var _ interfaces.DatabaseBatchable = (*Entry)(nil)
+var _ interfaces.BinaryMarshallable = (*Entry)(nil)
 
 // Returns the size of the entry subject to payment in K.  So anything up
 // to 1K returns 1, everything up to and including 2K returns 2, etc.

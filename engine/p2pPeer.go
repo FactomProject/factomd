@@ -32,6 +32,7 @@ type P2PPeer struct {
 	BroadcastOut chan []byte
 	BroadcastIn  chan []byte
 	testMode     bool
+	debugMode    bool
 }
 
 var _ interfaces.IPeer = (*P2PPeer)(nil)
@@ -44,7 +45,15 @@ func (f *P2PPeer) Init(fromName, toName string) interfaces.IPeer {
 	f.testMode = false // When this is false, factomd is connected to the network.  When true, network is isolated, and a heartbeat test message sent over the network.
 	return f
 }
+func (f *P2PPeer) SetDebugMode(netdebug bool) {
 
+	f.debugMode = netdebug
+}
+
+func (f *P2PPeer) SetTestMode(test bool) {
+
+	f.testMode = test
+}
 func (f *P2PPeer) GetNameFrom() string {
 	return f.FromName
 }
@@ -73,7 +82,11 @@ func (f *P2PPeer) Recieve() (interfaces.IMsg, error) {
 		case data, ok := <-f.BroadcastIn:
 			if ok {
 				msg, err := messages.UnmarshalMessage(data)
-				// note("Recieved message: %+v", msg)
+				if f.debugMode {
+					fmt.Printf(".")
+					// m, _ := msg.JSONString()
+					// note("Recieve Successfully got a message %s", m)
+				}
 				return msg, err
 			}
 		default:
@@ -180,8 +193,10 @@ func P2PNetworkStart(address string, peers string, p2pProxy *P2PPeer) {
 
 func heartbeat(p2pProxy *P2PPeer) {
 	beat := ""
-	for i := 0; i < 500; i++ {
-		beat = fmt.Sprintf("Heartbeat FROM %s. Beat #%d", p2pProxy.GetNameTo(), i)
+	i := 0
+	for {
+		// for i := 0; i < 500; i++ {
+		beat = fmt.Sprintf("Heartbeat FROM %d. Beat #%d", os.Getpid(), i)
 		p2pProxy.BroadcastOut <- []byte(beat)
 		select {
 		case data, ok := <-p2pProxy.BroadcastIn:
@@ -190,7 +205,8 @@ func heartbeat(p2pProxy *P2PPeer) {
 			}
 		default:
 		}
-		time.Sleep(time.Millisecond * 400)
+		time.Sleep(time.Millisecond * 200)
+		i++
 	}
 }
 
@@ -201,7 +217,7 @@ func (f *P2PPeer) ManageOutChannel() {
 		select {
 		case data, ok := <-f.BroadcastOut:
 			if ok {
-				sendP2P(data)
+				f.sendP2P(data)
 			}
 		default:
 		}
@@ -213,22 +229,48 @@ func (f *P2PPeer) ManageOutChannel() {
 // manageInChannel takes messages from the network and stuffs it in the f.BroadcastIn channel
 func (f *P2PPeer) ManageInChannel() {
 	for {
-		data := recieveP2P()
+		data := f.recieveP2P()
 		f.BroadcastIn <- data
 		// time.Sleep(time.Millisecond * 100)
 	}
 }
 
-func sendP2P(msg []byte) {
+func (f *P2PPeer) sendP2P(msg []byte) {
 	if err := p2pSocket.Send(msg); err != nil {
 		note("sendP2P.Send ERROR: %s", err.Error())
 	}
 }
 
-func recieveP2P() []byte {
+func (f *P2PPeer) recieveP2P() []byte {
 	data, err := p2pSocket.Recv()
 	if err != nil {
 		note("recieveP2P.Recv ERROR: %s", err.Error())
 	}
+	// if f.debugMode {
+	// 	note("recieveP2P.Recv Successfully got a message")
+	// }
 	return data
+}
+
+func PeriodicStatusReport(fnodes []*FactomNode) {
+	for {
+		time.Sleep(time.Second * 5)
+
+		fmt.Println("-------------------------------------------------------------------------------")
+		fmt.Println("-------------------------------------------------------------------------------")
+		for _, f := range fnodes {
+			fmt.Printf("%8s %s\n", f.State.FactomNodeName, f.State.ShortString())
+		}
+		listenTo := 0
+		if listenTo >= 0 && listenTo < len(fnodes) {
+			fmt.Printf("   %s\n", fnodes[listenTo].State.GetFactomNodeName())
+			fmt.Printf("      InMsgQueue             %d\n", len(fnodes[listenTo].State.InMsgQueue()))
+			fmt.Printf("      LeaderMsgQueue         %d\n", len(fnodes[listenTo].State.LeaderMsgQueue()))
+			fmt.Printf("      TimerMsgQueue          %d\n", len(fnodes[listenTo].State.TimerMsgQueue()))
+			fmt.Printf("      NetworkOutMsgQueue     %d\n", len(fnodes[listenTo].State.NetworkOutMsgQueue()))
+			fmt.Printf("      NetworkInvalidMsgQueue %d\n", len(fnodes[listenTo].State.NetworkInvalidMsgQueue()))
+		}
+		fmt.Println("-------------------------------------------------------------------------------")
+		fmt.Println("-------------------------------------------------------------------------------")
+	}
 }
