@@ -410,10 +410,9 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		} else {
 			// TODO follower should validate signature here.
 			resp := dbs.Validate(s)
-			if resp == 1 {
-				return true
+			if resp != 1 {
+				return false
 			}
-			return false
 		}
 	}
 
