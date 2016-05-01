@@ -25,36 +25,35 @@ var _ = fmt.Print
 // Returns true if some message was processed.
 //***************************************************************
 func (s *State) Process() (progress bool) {
+
     if s.EOB  {
-		s.EOB = false
-	}
-    s.LLeaderHeight = s.GetHighestRecordedBlock() + 1
+	    s.LLeaderHeight = s.GetHighestRecordedBlock() + 1
+	    s.EOB = false
+    }
+	skip := false
 	pl := s.ProcessLists.Get(s.LLeaderHeight)
 	if s.LLeaderHeight == 0 {
-        s.Leader, s.LeaderVMIndex = pl.GetVirtualServers(0, s.IdentityChainID)
-    }
+		s.Leader, s.LeaderVMIndex = pl.GetVirtualServers(0, s.IdentityChainID)
+    	}
 	if s.EOM {
 		min := pl.MinuteHeight()
 		if min > 9 {
-			min = 9
+			skip = true
 		}
 		// Get if this is a leader, and its VMIndex for this minute if so
 		s.Leader, s.LeaderVMIndex = pl.GetVirtualServers(min, s.IdentityChainID)
 		s.EOM = false
 	}
-	if s.Leader {
-    	vm := pl.VMs[s.LeaderVMIndex]
+	if !skip && s.Leader {
+		vm := pl.VMs[s.LeaderVMIndex]
 		// To process a leader message, we have to have the follower process completely
 		// up to date.  Then we can validate the message.  Process is up to date if all
 		// messages in the process list have been processed by the follower, ie the Height
 		// is equal to the length of the process list.
-        fmt.Println(s.FactomNodeName,"leader", len(vm.List), vm.Height)
-		if len(vm.List) == vm.Height {
-            fmt.Println(s.FactomNodeName,"process", len(s.leaderMsgQueue))
-			select {
+        	if len(vm.List) == vm.Height {
+        		select {
 			case msg,_ := <-s.leaderMsgQueue:
-            fmt.Println("llllllllllleeeeeeaader", msg.String())
-                v := msg.Validate(s)
+        		        v := msg.Validate(s)
 				switch v {
 				case 1:
 					msg.LeaderExecute(s)
@@ -62,7 +61,6 @@ func (s *State) Process() (progress bool) {
 					for s.UpdateState() {
 					}
 				case -1:
-                    fmt.Println("INVALD MESSAGE:",msg)
 					s.networkInvalidMsgQueue <- msg
 				}
 				progress = true
@@ -230,7 +228,6 @@ func (s *State) addEBlock(eblock interfaces.IEntryBlock) {
 
 func (s *State) LeaderExecute(m interfaces.IMsg) error {
 	dbheight := s.LLeaderHeight
-fmt.Println("LLLLLLLLL Leader Execute",m.String())
 	ack, err := s.NewAck(dbheight, m)
 	if err != nil {
 		return err
@@ -253,7 +250,6 @@ func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) error {
 
 	ack, err := s.NewAck(dbs.DBHeight, dbs)
 	if err != nil {
-		fmt.Println("Bad Ack")
 		s.undo = m
 		return nil
 	}
@@ -266,7 +262,6 @@ func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) error {
 func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) bool {
 	as, ok := addServerMsg.(*messages.AddServerMsg)
 	if !ok {
-		fmt.Println("Bad Msg: ", addServerMsg.String())
 		return true
 	}
 
@@ -331,7 +326,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	// Set this list complete
 	pl.SetMinute(e.VMIndex, int(e.Minute))
 
-	if pl.MinuteHeight() <= int(e.Minute) {
+	if pl.MinuteHeight()  > int(e.Minute) {
 		return false
 	}
 
@@ -362,7 +357,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			ecbody.AddEntry(mn)
 		}
 
-		s.EOB = true
 	}
 
 	// Add EOM to the EBlocks
@@ -396,8 +390,6 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 	if !pl.SigComplete() {
 		return false
 	}
-
-	s.EOB = true
 
 	if dbs.IsLocal() {
 		dbstate := s.DBStates.Get(dbheight)

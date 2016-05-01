@@ -326,25 +326,22 @@ func (p *ProcessList) SigComplete() bool {
 
 // Process messages and update our state.
 func (p *ProcessList) Process(state *State) (progress bool) {
-    
+
 	if !p.good { // If we don't know this process list is good...
 		last := state.DBStates.Last() // Get our last state.
 		if last == nil {
-            return
+            		return
 		}
 		lht := last.DirectoryBlock.GetHeader().GetDBHeight()
-		if last.Saved && lht >= p.DBHeight-1 || lht == 0 {
-			p.good = true
-		} else {
+		if !last.Saved || lht < p.DBHeight-1  {
 			return
 		}
+		p.good = true
 	}
-
 	for i := 0; i < len(p.FedServers); i++ {
 
 		plist := p.VMs[i].List
-
-	    thisVM: for j := p.VMs[i].Height; j < len(plist); j++ {
+		thisVM: for j := p.VMs[i].Height; j < len(plist); j++ {
 			if plist[j] == nil {
 				if !state.IsThrottled {
 					missingMsgRequest := messages.NewMissingMsg(state, p.DBHeight, uint32(j))

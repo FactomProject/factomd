@@ -37,7 +37,8 @@ func (lists *ProcessLists) UpdateState() (progress bool) {
 		lists.Lists = newlist
 	}
 	// Create DState blocks for all completed Process Lists
-	progress = progress || pl.Process(lists.State)
+	p2 := pl.Process(lists.State)
+	progress = p2 || progress
 	return
 }
 

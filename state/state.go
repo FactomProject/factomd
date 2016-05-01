@@ -78,6 +78,7 @@ type State struct {
 	OutputAllowed bool
 	EOM           bool // Set to true when all Process Lists have finished a minute
 	EOB           bool // Set to true when all Process Lists are complete for a block
+
 	// Maps
 	// ====
 	// For Follower
@@ -914,12 +915,12 @@ func (s *State) SetString() {
 			s.GetHighestKnownBlock())
 	} else {
 		
-		fmt.Println("fffffffffffff", found, buildingBlock+1,0, s.FactomNodeName)
-    	keyMR := []byte("aaaaa")
+    		keyMR := []byte("aaaaa")
 		abHash := []byte("aaaaa")
 		fbHash := []byte("aaaaa")
 		ecHash := []byte("aaaaa")
-		switch {
+
+	    	switch {
 		case s.DBStates == nil:
 
 		case s.DBStates.Last() == nil:

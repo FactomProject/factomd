@@ -73,12 +73,18 @@ type Timer struct {
 }
 
 func (t *Timer) timer(state *State, min int) {
-	if min != 0 && t.lastMin+1 != min { // Must have consecutive minutes.
-		return
+	if t.lastMin+1 != min {
+		if !(t.lastMin == 9 && min == 0) && !(t.lastMin == 0 && min == 0) {
+			return
+		}
 	}
+
 	t.lastMin = min
 
 	stateheight := state.GetLeaderHeight()
+	if min == 0 && !state.EOB {
+		return
+	}
 	if min == 0 {
 		state.UpdateState()
 		t.lastDBHeight = state.GetLeaderHeight()
@@ -90,8 +96,7 @@ func (t *Timer) timer(state *State, min int) {
 
 	found, vmIndex := state.GetVirtualServers(t.lastDBHeight, min, state.GetIdentityChainID())
 	if found {
-        fmt.Println(state.GetFactomNodeName(), vmIndex, "at dbht",t.lastDBHeight,min)
-		eom := new(messages.EOM)
+        	eom := new(messages.EOM)
 		eom.Minute = byte(min)
 		eom.Timestamp = state.GetTimestamp()
 		eom.ChainID = state.GetIdentityChainID()

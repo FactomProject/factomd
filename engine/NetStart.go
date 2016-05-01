@@ -82,11 +82,9 @@ func NetStart(s *state.State) {
 	os.Stderr.WriteString(fmt.Sprintf("drop        %d\n", droprate))
 	os.Stderr.WriteString(fmt.Sprintf("journal     \"%s\"\n", journal))
 	if follower {
-		os.Stderr.WriteString(fmt.Sprintf("follower    \"%v\"\n", follower))
 		leader = false
 	}
 	if leader {
-		os.Stderr.WriteString(fmt.Sprintf("leader    \"%v\"\n", leader))
 		follower = false
 	}
 	if !follower && !leader {
