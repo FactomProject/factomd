@@ -73,18 +73,11 @@ type Timer struct {
 }
 
 func (t *Timer) timer(state *State, min int) {
-	if t.lastMin+1 != min {
-		if !(t.lastMin == 9 && min == 0) && !(t.lastMin == 0 && min == 0) {
-			return
-		}
-	}
 
 	t.lastMin = min
 
 	stateheight := state.GetLeaderHeight()
-	if min == 0 && !state.EOB {
-		return
-	}
+
 	if min == 0 {
 		state.UpdateState()
 		t.lastDBHeight = state.GetLeaderHeight()

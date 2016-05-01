@@ -39,6 +39,7 @@ func (s *State) Process() (progress bool) {
 		min := pl.MinuteHeight()
 		if min > 9 {
 			skip = true
+			fmt.Print("skip")
 		}
 		// Get if this is a leader, and its VMIndex for this minute if so
 		s.Leader, s.LeaderVMIndex = pl.GetVirtualServers(min, s.IdentityChainID)
@@ -384,41 +385,44 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 	if !pl.VMs[dbs.VMIndex].SigComplete {
 		pl.SetSigComplete(int(dbs.VMIndex), true)
 
-		s.AddDBState(true, pl.DirectoryBlock, pl.AdminBlock, s.GetFactoidState().GetCurrentBlock(), pl.EntryCreditBlock)
+		if dbs.IsLocal() {
+			s.AddDBState(true, pl.DirectoryBlock, pl.AdminBlock, s.GetFactoidState().GetCurrentBlock(), pl.EntryCreditBlock)
+			dbstate := s.DBStates.Get(dbheight)
+			dbs.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
+
+			err := dbs.Sign(s)
+			if err != nil {
+				panic(err)
+			}
+
+			// Here we replace out of the process list the local DBS message with one
+			// that can be broadcast.  This is a bit of necessary trickery
+			pl.UndoLeaderAck(int(dbs.VMIndex))
+			ack, err := s.NewAck(dbheight, dbs)
+			if err != nil {
+				panic(err)
+			}
+			// Now we can broadcast the signature.
+			dbs.SetLocal(false)
+			// Leader Execute creates an acknowledgement and the EOM
+			s.NetworkOutMsgQueue() <- ack
+			s.NetworkOutMsgQueue() <- dbs
+		} else {
+			// TODO follower should validate signature here.
+			resp := dbs.Validate(s)
+			if resp == 1 {
+				return true
+			}
+			return false
+		}
 	}
 
 	if !pl.SigComplete() {
 		return false
 	}
 
-	if dbs.IsLocal() {
-		dbstate := s.DBStates.Get(dbheight)
-		dbs.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
-
-		err := dbs.Sign(s)
-		if err != nil {
-			panic(err)
-		}
-
-		// Here we replace out of the process list the local DBS message with one
-		// that can be broadcast.  This is a bit of necessary trickery
-		pl.UndoLeaderAck(int(dbs.VMIndex))
-		ack, err := s.NewAck(dbheight, dbs)
-		if err != nil {
-			panic(err)
-		}
-		// Now we can broadcast the signature.
-		dbs.SetLocal(false)
-		// Leader Execute creates an acknowledgement and the EOM
-		s.NetworkOutMsgQueue() <- ack
-		s.NetworkOutMsgQueue() <- dbs
-	} else {
-		// TODO follower should validate signature here.
-		resp := dbs.Validate(s)
-		if resp == 1 {
-			return true
-		}
-		return false
+	if dbs.VMIndex == 0 {
+		s.AddDBState(true, pl.DirectoryBlock, pl.AdminBlock, s.GetFactoidState().GetCurrentBlock(), pl.EntryCreditBlock)
 	}
 
 	return true

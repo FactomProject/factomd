@@ -284,6 +284,8 @@ func (list *DBStateList) UpdateState() (progress bool) {
 			list.State.EOB=true
 		}
 
+		list.State.LLeaderHeight = list.State.GetHighestRecordedBlock() + 1
+
 		// Any updates required to the state as established by the AdminBlock are applied here.
 		d.AdminBlock.UpdateState(list.State)
 
