@@ -176,9 +176,10 @@ func (p *ProcessList) SetMinute(index int, minute int) {
 // a minute, so After MinuteComplete=0
 func (p *ProcessList) MinuteHeight() int {
 	m := 10
-	for _, vs := range p.VMs {
-		if vs.MinuteComplete < m {
-			m = vs.MinuteComplete
+	for i:=0;i<len(p.FedServers);i++ {
+		vm := p.VMs[i]
+		if vm.MinuteComplete < m {
+			m = vm.MinuteComplete
 		}
 	}
 	return m
@@ -411,9 +412,26 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 }
 
 func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
+
+	m.SetLeaderChainID(ack.GetLeaderChainID())
+	
+	if len(p.VMs[ack.VMIndex].List) > int(ack.Height) &&  p.VMs[ack.VMIndex].List[ack.Height]!= nil{
+		fmt.Println(p.String())
+		panic(fmt.Sprintf("\t%12s %s\n\t%12s %s\n\t %12s %s",
+			"OverWriting:",
+			p.VMs[ack.VMIndex].List[ack.Height].String(),
+			"With:",
+			m.String(),
+			"Detected on:",
+			p.State.GetFactomNodeName(),
+		))
+	}
+
 	for len(p.VMs[ack.VMIndex].List) <= int(ack.Height) {
 		p.VMs[ack.VMIndex].List = append(p.VMs[ack.VMIndex].List, nil)
 	}
+	p.VMs[ack.VMIndex].LastAck = ack
+
 	p.VMs[ack.VMIndex].List[ack.Height] = m
 }
 
@@ -432,7 +450,7 @@ func (p *ProcessList) String() string {
 				sig = "Sig Complete"
 			}
 
-			buf.WriteString(fmt.Sprintf("  Server %d %s %s\n", i, eom, sig))
+			buf.WriteString(fmt.Sprintf("  VM %d Fed %d %s %s\n", i, p.ServerMap[server.LeaderMinute][i], eom, sig))
 			for j, msg := range server.List {
 
 				if j < server.Height {

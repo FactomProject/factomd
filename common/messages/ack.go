@@ -17,15 +17,15 @@ import (
 //General acknowledge message
 type Ack struct {
 	MessageBase
-	Timestamp   interfaces.Timestamp
-	MessageHash interfaces.IHash
+	Timestamp   	interfaces.Timestamp
+	MessageHash 	interfaces.IHash
 
-	DBHeight uint32 // Directory Block Height that owns this ack
-	Height   uint32 // Height of this ack in this process list
+	DBHeight 	uint32 // Directory Block Height that owns this ack
+	Height   	uint32 // Height of this ack in this process list
 
-	SerialHash interfaces.IHash
+	SerialHash 	interfaces.IHash
 
-	Signature interfaces.IFullSignature
+	Signature 	interfaces.IFullSignature
 
 	//Not marshalled
 	hash interfaces.IHash
@@ -205,6 +205,13 @@ func (m *Ack) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 		return nil, err
 	}
 
+	m.LeaderChainID = new(primitives.Hash)
+	newData, err = m.LeaderChainID.UnmarshalBinaryData(newData)
+	if err != nil {
+		return nil, err
+	}
+
+
 	m.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 	m.Height, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
@@ -250,6 +257,12 @@ func (m *Ack) MarshalForSignature() ([]byte, error) {
 	}
 	buf.Write(data)
 
+	data, err = m.LeaderChainID.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	buf.Write(data)
+
 	binary.Write(&buf, binary.BigEndian, m.DBHeight)
 	binary.Write(&buf, binary.BigEndian, m.Height)
 
@@ -280,12 +293,12 @@ func (m *Ack) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *Ack) String() string {
-	return fmt.Sprintf("%6s-%3d: PL:%5d Ht:%5d -- MessageHash[:5]=__________ hash[:5]=%x",
+	return fmt.Sprintf("%6s-VM%3d: PL:%5d Ht:%5d -- Leader[:5]=%x  MsgHash[:5]=%x",
 		"ACK",
 		m.VMIndex,
 		m.Height,
 		m.DBHeight,
-		//m.ChainID.Bytes()[:5],
+		m.LeaderChainID.Bytes()[:5],
 		m.GetHash().Bytes()[:5])
 
 }

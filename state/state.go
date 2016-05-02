@@ -77,6 +77,7 @@ type State struct {
 	LeaderVMIndex int
 	OutputAllowed bool
 	EOM           bool // Set to true when all Process Lists have finished a minute
+	LeaderMinute  int  // The minute that just was processed by the follower, (1-10), set with EOM
 	EOB           bool // Set to true when all Process Lists are complete for a block
 
 	// Maps
@@ -359,6 +360,7 @@ func (s *State) Init() {
 	s.FedServerFaults = make([][]interfaces.IMsg, 0)
 
 	s.initServerKeys()
+
 }
 
 func (s *State) AddDataRequest(requestedHash, missingDataHash interfaces.IHash) {

@@ -26,24 +26,34 @@ var _ = fmt.Print
 //***************************************************************
 func (s *State) Process() (progress bool) {
 
-    if s.EOB  {
-	    s.LLeaderHeight = s.GetHighestRecordedBlock() + 1
-	    s.EOB = false
-    }
+	if s.EOB  {
+	    	s.LLeaderHeight = s.GetHighestRecordedBlock() + 1
+	}
 	skip := false
 	pl := s.ProcessLists.Get(s.LLeaderHeight)
 	if s.LLeaderHeight == 0 {
 		s.Leader, s.LeaderVMIndex = pl.GetVirtualServers(0, s.IdentityChainID)
-    	}
+	}
 	if s.EOM {
-		min := pl.MinuteHeight()
-		if min > 9 {
+		if s.LeaderMinute < pl.MinuteHeight() {
 			skip = true
-			fmt.Print("skip")
+		} else {
+			min := pl.MinuteHeight()
+			if min <= 9 {
+				// Get if this is a leader, and its VMIndex for this minute if so
+				s.Leader, s.LeaderVMIndex = pl.GetVirtualServers(min, s.IdentityChainID)
+				s.EOM = false
+			}
+
 		}
-		// Get if this is a leader, and its VMIndex for this minute if so
-		s.Leader, s.LeaderVMIndex = pl.GetVirtualServers(min, s.IdentityChainID)
+		for _,vm := range pl.VMs {
+			vm.LastLeaderAck=vm.LastAck
+		}
+	}
+	if s.EOB {
+		s.Leader, s.LeaderVMIndex = pl.GetVirtualServers(0, s.IdentityChainID)
 		s.EOM = false
+		s.EOB = false
 	}
 	if !skip && s.Leader {
 		vm := pl.VMs[s.LeaderVMIndex]
@@ -327,11 +337,12 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	// Set this list complete
 	pl.SetMinute(e.VMIndex, int(e.Minute))
 
-	if pl.MinuteHeight()  > int(e.Minute) {
+	if pl.MinuteHeight()  <= int(e.Minute) {
 		return false
 	}
 
 	s.EOM = true
+	s.LeaderMinute = int(e.Minute+1)
 
 	if pl.VMIndexFor(constants.FACTOID_CHAINID) == e.VMIndex {
 		s.FactoidState.EndOfPeriod(int(e.Minute))
@@ -629,12 +640,13 @@ func (s *State) NewAck(dbheight uint32, msg interfaces.IMsg) (iack interfaces.IM
 	if pl == nil {
 		return nil, fmt.Errorf(s.FactomNodeName + ": No process list at this time")
 	}
-
+	msg.SetLeaderChainID(s.IdentityChainID)
 	ack := new(messages.Ack)
 	ack.DBHeight = dbheight
 	ack.VMIndex = vmIndex
 	ack.Timestamp = s.GetTimestamp()
 	ack.MessageHash = msg.GetHash()
+	ack.LeaderChainID = s.IdentityChainID
 
 	last, ok := pl.GetLastLeaderAck(vmIndex).(*messages.Ack)
 	if !ok {

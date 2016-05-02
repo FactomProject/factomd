@@ -74,17 +74,18 @@ type Timer struct {
 
 func (t *Timer) timer(state *State, min int) {
 
+	state.UpdateState()
+
 	t.lastMin = min
 
 	stateheight := state.GetLeaderHeight()
 
 	if min == 0 {
-		state.UpdateState()
-		t.lastDBHeight = state.GetLeaderHeight()
-	}
-
-	if t.lastDBHeight != stateheight {
-		return
+		if t.lastDBHeight > 0 && t.lastDBHeight == stateheight {
+			t.lastDBHeight = stateheight + 1
+		} else {
+			t.lastDBHeight = stateheight
+		}
 	}
 
 	found, vmIndex := state.GetVirtualServers(t.lastDBHeight, min, state.GetIdentityChainID())

@@ -60,6 +60,10 @@ type IMsg interface {
 	// Execute the leader functions of the given message
 	LeaderExecute(IState) error
 
+	// Debugging thing to track the leader responsible for a message ack.
+	GetLeaderChainID() IHash
+	SetLeaderChainID(IHash)
+
 	// Returns true if this is a message for this server to execute as a follower
 	Follower(IState) bool
 
