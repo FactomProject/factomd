@@ -141,6 +141,7 @@ func (m *FactoidTransaction) Bytes() []byte {
 
 func (m *FactoidTransaction) UnmarshalTransData(data []byte) (newData []byte, err error) {
 	defer func() {
+		return
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling Transaction Factoid: %v", r)
 		}
@@ -154,6 +155,7 @@ func (m *FactoidTransaction) UnmarshalTransData(data []byte) (newData []byte, er
 
 func (m *FactoidTransaction) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
+		return
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling Factoid: %v", r)
 		}
@@ -180,6 +182,7 @@ func (m *FactoidTransaction) UnmarshalBinary(data []byte) error {
 func (m *FactoidTransaction) MarshalBinary() (data []byte, err error) {
 	var buf primitives.Buffer
 	buf.Write([]byte{m.Type()})
+
 	if d, err := m.Timestamp.MarshalBinary(); err != nil {
 		return nil, err
 	} else {
