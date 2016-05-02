@@ -23,12 +23,12 @@ const (
 	INVALID_DIRECTORY_BLOCK_MSG               // 10
 	MISSING_ACK_MSG                           // 11
 	// 12
-	REVEAL_ENTRY_MSG                          // 13
-	REQUEST_BLOCK_MSG                         // 14
-	SIGNATURE_TIMEOUT_MSG                     // 15
-	MISSING_MSG                               // 16
-	MISSING_DATA                              // 17
-	DATA_RESPONSE                             // 18
+	REVEAL_ENTRY_MSG      // 13
+	REQUEST_BLOCK_MSG     // 14
+	SIGNATURE_TIMEOUT_MSG // 15
+	MISSING_MSG           // 16
+	MISSING_DATA          // 17
+	DATA_RESPONSE         // 18
 
 	DBSTATE_MSG         // 19
 	DBSTATE_MISSING_MSG // 20
@@ -36,7 +36,7 @@ const (
 )
 
 const (
-	ADDRESS_LENGTH       = 32    // Length of an Address or a Hash or Public Key
+	ADDRESS_LENGTH = 32 // Length of an Address or a Hash or Public Key
 	// length of a Private Key
 	SIGNATURE_LENGTH     = 64    // Length of a signature
 	MAX_TRANSACTION_SIZE = 10240 // 10K like everything else?
@@ -46,12 +46,10 @@ const (
 	//==================
 	// Limit on size of keys, since Maps in Go can't handle variable length keys.
 
-
 	// Wallet
 	//==================
 	// Holds the root seeds for address generation
 	// Holds the latest generated seed for each root seed.
-
 
 	// Block
 	//==================
@@ -60,13 +58,13 @@ const (
 	TRANSACTION_POST_LIMIT  = int64(12 * 60 * 60 * 1000) // Transactions after 12hrs following a block are invalid
 
 	//Entry Credit Blocks (For now, everyone gets the same cap)
-	EC_CAP = 5      //Number of ECBlocks we start with.
+	EC_CAP = 5 //Number of ECBlocks we start with.
 	//Administrative Block Cap for AB messages
 
 	//Limits and Sizes
 	//==================
 	//Maximum size for Entry External IDs and the Data
-	HASH_LENGTH       = int(32)       //Length of a Hash
+	HASH_LENGTH = int(32) //Length of a Hash
 	//Length of a signature
 	//Prphan mem pool size
 	//Transaction mem pool size
@@ -86,7 +84,7 @@ const (
 	//0xFA92E5A1
 	//0xFA92E5A2
 	//0xFA92E5A3
-	MaxBlocksPerMsg  = 500
+	MaxBlocksPerMsg = 500
 
 	// NETWORKS:
 )
@@ -103,7 +101,6 @@ const (
 	// Server Info
 	//==================
 	//Server running mode
-
 
 )
 

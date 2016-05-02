@@ -12,7 +12,7 @@ import (
 	//"github.com/FactomProject/factomd/common/primitives"
 )
 
-func TestMarshalUnmarshalEOM(t *testing.T) {
+func TestMarshalUnmarshalEOMTimeout(t *testing.T) {
 	msg := newEOMTimeout()
 
 	hex, err := msg.MarshalBinary()
@@ -93,25 +93,25 @@ func TestSignAndVerifyEOM(t *testing.T) {
 }*/
 
 func newEOMTimeout() *EOMTimeout {
-	eom := new(EOMTimeout)
-	eom.Timestamp.SetTimeNow()
+	msg := new(EOMTimeout)
+	msg.Timestamp.SetTimeNow()
 
-	return eom
+	return msg
 }
 
 /*
 func newSignedEOM() *EOM {
-	ack := newEOM()
+	msg := newEOM()
 
 	key, err := primitives.NewPrivateKeyFromHex("07c0d52cb74f4ca3106d80c4a70488426886bccc6ebc10c6bafb37bf8a65f4c38cee85c62a9e48039d4ac294da97943c2001be1539809ea5f54721f0c5477a0a")
 	if err != nil {
 		panic(err)
 	}
-	err = ack.Sign(&key)
+	err = msg.Sign(&key)
 	if err != nil {
 		panic(err)
 	}
 
-	return ack
+	return msg
 }
 */

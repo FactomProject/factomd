@@ -282,7 +282,7 @@ func (list *DBStateList) UpdateState() (progress bool) {
 		d.Saved = true                            // Only after all is done will I admit this state has been saved.
 
 		if d.DirectoryBlock.GetHeader().GetDBHeight() == list.State.LLeaderHeight {
-			list.State.EOB=true
+			list.State.EOB = true
 		}
 
 		list.State.LLeaderHeight = list.State.GetHighestRecordedBlock() + 1
@@ -293,7 +293,6 @@ func (list *DBStateList) UpdateState() (progress bool) {
 		// Process the Factoid End of Block
 		fs := list.State.GetFactoidState()
 		fs.AddTransactionBlock(d.FactoidBlock)
-		fmt.Println(list.State.FactomNodeName," EOBBBBBBBBBBBBBBBBBB",d.DirectoryBlock.GetHeader().GetDBHeight(),int(list.Base)+i)
 		fs.AddECBlock(d.EntryCreditBlock)
 		fs.ProcessEndOfBlock(list.State)
 		// Step my counter of Complete blocks

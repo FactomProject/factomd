@@ -25,6 +25,19 @@ type MissingAck struct {
 
 var _ interfaces.IMsg = (*MissingAck)(nil)
 
+func (a *MissingAck) IsSameAs(b *MissingAck) bool {
+	if b == nil {
+		return false
+	}
+	if a.Timestamp != b.Timestamp {
+		return false
+	}
+
+	//TODO: expand
+
+	return true
+}
+
 func (m *MissingAck) Process(uint32, interfaces.IState) bool { return true }
 
 func (m *MissingAck) GetHash() interfaces.IHash {
@@ -68,7 +81,7 @@ func (m *MissingAck) Bytes() []byte {
 func (m *MissingAck) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
+			err = fmt.Errorf("Error unmarshalling Eom Timeout: %v", r)
 		}
 	}()
 	newData = data
@@ -77,7 +90,14 @@ func (m *MissingAck) UnmarshalBinaryData(data []byte) (newData []byte, err error
 	}
 	newData = newData[1:]
 
-	return nil, nil
+	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
+	if err != nil {
+		return nil, err
+	}
+
+	//TODO: expand
+
+	return newData, nil
 }
 
 func (m *MissingAck) UnmarshalBinary(data []byte) error {
@@ -86,7 +106,17 @@ func (m *MissingAck) UnmarshalBinary(data []byte) error {
 }
 
 func (m *MissingAck) MarshalBinary() (data []byte, err error) {
-	return nil, nil
+	var buf primitives.Buffer
+	buf.Write([]byte{m.Type()})
+	if d, err := m.Timestamp.MarshalBinary(); err != nil {
+		return nil, err
+	} else {
+		buf.Write(d)
+	}
+
+	//TODO: expand
+
+	return buf.DeepCopyBytes(), nil
 }
 
 func (m *MissingAck) MarshalForSignature() (data []byte, err error) {

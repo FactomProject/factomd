@@ -176,7 +176,7 @@ func (p *ProcessList) SetMinute(index int, minute int) {
 // a minute, so After MinuteComplete=0
 func (p *ProcessList) MinuteHeight() int {
 	m := 10
-	for i:=0;i<len(p.FedServers);i++ {
+	for i := 0; i < len(p.FedServers); i++ {
 		vm := p.VMs[i]
 		if vm.MinuteComplete < m {
 			m = vm.MinuteComplete
@@ -331,10 +331,10 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 	if !p.good { // If we don't know this process list is good...
 		last := state.DBStates.Last() // Get our last state.
 		if last == nil {
-            		return
+			return
 		}
 		lht := last.DirectoryBlock.GetHeader().GetDBHeight()
-		if !last.Saved || lht < p.DBHeight-1  {
+		if !last.Saved || lht < p.DBHeight-1 {
 			return
 		}
 		p.good = true
@@ -342,7 +342,8 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 	for i := 0; i < len(p.FedServers); i++ {
 
 		plist := p.VMs[i].List
-		thisVM: for j := p.VMs[i].Height; j < len(plist); j++ {
+	thisVM:
+		for j := p.VMs[i].Height; j < len(plist); j++ {
 			if plist[j] == nil {
 				if !state.IsThrottled {
 					missingMsgRequest := messages.NewMissingMsg(state, p.DBHeight, uint32(j))
@@ -420,7 +421,7 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 
 	m.SetLeaderChainID(ack.GetLeaderChainID())
 
-	if len(p.VMs[ack.VMIndex].List) > int(ack.Height) &&  p.VMs[ack.VMIndex].List[ack.Height]!= nil{
+	if len(p.VMs[ack.VMIndex].List) > int(ack.Height) && p.VMs[ack.VMIndex].List[ack.Height] != nil {
 		fmt.Println(p.String())
 		panic(fmt.Sprintf("\t%12s %s\n\t%12s %s\n\t %12s %s",
 			"OverWriting:",
