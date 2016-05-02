@@ -84,10 +84,10 @@ func (ds *DBState) String() string {
 	} else {
 
 		str = fmt.Sprintf("%s      DBlk Height   = %v\n", str, ds.DirectoryBlock.GetHeader().GetDBHeight())
-		str = fmt.Sprintf("%s      DBlock        = %x %x\n", str, ds.DirectoryBlock.GetHash().Bytes()[:5], ds.DBHash.Bytes()[:5])
-		str = fmt.Sprintf("%s      ABlock        = %x %x\n", str, ds.AdminBlock.GetHash().Bytes()[:5], ds.ABHash.Bytes()[:5])
-		str = fmt.Sprintf("%s      FBlock        = %x %x\n", str, ds.FactoidBlock.GetHash().Bytes()[:5], ds.FBHash.Bytes()[:5])
-		str = fmt.Sprintf("%s      ECBlock       = %x %x\n", str, ds.EntryCreditBlock.GetHash().Bytes()[:5], ds.ECHash.Bytes()[:5])
+		str = fmt.Sprintf("%s      DBlock        = %x \n", str, ds.DirectoryBlock.GetHash().Bytes()[:5])
+		str = fmt.Sprintf("%s      ABlock        = %x \n", str, ds.AdminBlock.GetHash().Bytes()[:5])
+		str = fmt.Sprintf("%s      FBlock        = %x \n", str, ds.FactoidBlock.GetHash().Bytes()[:5])
+		str = fmt.Sprintf("%s      ECBlock       = %x \n", str, ds.EntryCreditBlock.GetHash().Bytes()[:5])
 	}
 	return str
 }
@@ -170,6 +170,7 @@ func (list *DBStateList) UpdateState() (progress bool) {
 	list.Catchup()
 
 	for i, d := range list.DBStates {
+
 		// Must process blocks in sequence.  Missing a block says we must stop.
 		if d == nil {
 			return
@@ -292,6 +293,7 @@ func (list *DBStateList) UpdateState() (progress bool) {
 		// Process the Factoid End of Block
 		fs := list.State.GetFactoidState()
 		fs.AddTransactionBlock(d.FactoidBlock)
+		fmt.Println(list.State.FactomNodeName," EOBBBBBBBBBBBBBBBBBB",d.DirectoryBlock.GetHeader().GetDBHeight(),int(list.Base)+i)
 		fs.AddECBlock(d.EntryCreditBlock)
 		fs.ProcessEndOfBlock(list.State)
 		// Step my counter of Complete blocks
@@ -366,9 +368,10 @@ func (list *DBStateList) Put(dbState *DBState) {
 	for len(list.DBStates) <= index {
 		list.DBStates = append(list.DBStates, nil)
 	}
-
-	list.DBStates[index] = dbState
-
+	if list.DBStates[index]== nil {
+		list.DBStates[index] = dbState
+	}
+	
 	hash, err := dbState.AdminBlock.GetKeyMR()
 	if err != nil {
 		panic(err)
