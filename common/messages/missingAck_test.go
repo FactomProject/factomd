@@ -11,8 +11,8 @@ import (
 	. "github.com/FactomProject/factomd/common/messages"
 )
 
-func TestMarshalUnmarshalDBStateMissing(t *testing.T) {
-	msg := newDBStateMissing()
+func TestMarshalUnmarshalMissingAck(t *testing.T) {
+	msg := newMissingAck()
 
 	hex, err := msg.MarshalBinary()
 	if err != nil {
@@ -27,11 +27,11 @@ func TestMarshalUnmarshalDBStateMissing(t *testing.T) {
 	str := msg2.String()
 	t.Logf("str - %v", str)
 
-	if msg2.Type() != constants.DBSTATE_MISSING_MSG {
+	if msg2.Type() != constants.MISSING_ACK_MSG {
 		t.Error("Invalid message type unmarshalled")
 	}
 
-	hex2, err := msg2.(*DBStateMissing).MarshalBinary()
+	hex2, err := msg2.(*MissingAck).MarshalBinary()
 	if err != nil {
 		t.Error(err)
 	}
@@ -44,17 +44,14 @@ func TestMarshalUnmarshalDBStateMissing(t *testing.T) {
 		}
 	}
 
-	if msg.IsSameAs(msg2.(*DBStateMissing)) != true {
-		t.Errorf("DBStateMissing messages are not identical")
+	if msg.IsSameAs(msg2.(*MissingAck)) != true {
+		t.Errorf("MissingAck messages are not identical")
 	}
 }
 
-func newDBStateMissing() *DBStateMissing {
-	msg := new(DBStateMissing)
+func newMissingAck() *MissingAck {
+	msg := new(MissingAck)
 	msg.Timestamp.SetTimeNow()
-
-	msg.DBHeightStart = 0x01234567
-	msg.DBHeightEnd = 0x89012345
 
 	return msg
 }
