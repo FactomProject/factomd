@@ -390,10 +390,15 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			// compare the SerialHash of this acknowledgement with the
 			// expected serialHash (generated above)
 			if !expectedSerialHash.IsSameAs(thisAck.SerialHash) {
-				fmt.Println("DISCREPANCY: ", i, j, "on", state.GetFactomNodeName())
-				fmt.Printf("LAST MESS: %+v ::: LAST SERIAL: %+v\n", last.MessageHash, last.SerialHash)
-				fmt.Printf("THIS MESS: %+v ::: THIS SERIAL: %+v\n", thisAck.MessageHash, thisAck.SerialHash)
-				fmt.Println("EXPECT: ", expectedSerialHash)
+				fmt.Printf("DISCREPANCY: %d %x pl ht: %d \nDetected on: %s\n",
+					i,
+					p.FedServers[i].GetChainID().Bytes()[:3],
+					j,
+					state.GetFactomNodeName())
+				fmt.Printf("LAST MESS: %x ::: LAST SERIAL: %x\n", last.MessageHash.Bytes()[:3], last.SerialHash.Bytes()[:3])
+				fmt.Printf("THIS MESS: %x ::: THIS SERIAL: %x\n", thisAck.MessageHash.Bytes()[:3], thisAck.SerialHash.Bytes()[:3])
+				fmt.Printf("EXPECT:    %x \n", expectedSerialHash.Bytes()[:3])
+				fmt.Printf("The message that didn't work: %s\n\n",plist[j].String())
 				// the SerialHash of this acknowledgment is incorrect
 				// according to this node's processList
 				plist[j] = nil

@@ -33,16 +33,23 @@ func (state *State) ValidatorLoop() {
 
 		// Look for pending messages, and get one if there is one.
 		var msg interfaces.IMsg
-	loop:
-		for i := 0; i < 100; i++ {
+		loop: for i := 0; i < 100; i++ {
 			state.UpdateState()
 
 			select {
 			case min := <-state.tickerQueue:
 				timeStruct.timer(state, min)
+			default:
+			}
+
+			select {
 			case msg = <-state.TimerMsgQueue():
 				state.JournalMessage(msg)
 				break loop
+			default:
+			}
+
+			select {
 			case msg = <-state.InMsgQueue(): // Get message from the timer or input queue
 				state.JournalMessage(msg)
 				break loop
