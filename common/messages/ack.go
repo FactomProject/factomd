@@ -74,6 +74,15 @@ func (a *Ack) IsSameAs(b *Ack) bool {
 		}
 	}
 
+	if a.LeaderChainID == nil && b.LeaderChainID != nil {
+		return false
+	}
+	if a.LeaderChainID != nil {
+		if a.LeaderChainID.IsSameAs(b.LeaderChainID) == false {
+			return false
+		}
+	}
+
 	return true
 }
 

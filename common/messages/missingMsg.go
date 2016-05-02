@@ -29,6 +29,25 @@ type MissingMsg struct {
 
 var _ interfaces.IMsg = (*MissingMsg)(nil)
 
+func (a *MissingMsg) IsSameAs(b *MissingMsg) bool {
+	if b == nil {
+		return false
+	}
+	if a.Timestamp != b.Timestamp {
+		return false
+	}
+
+	if a.DBHeight != b.DBHeight {
+		return false
+	}
+
+	if a.ProcessListHeight != b.ProcessListHeight {
+		return false
+	}
+
+	return true
+}
+
 func (m *MissingMsg) Process(uint32, interfaces.IState) bool {
 	return true
 }

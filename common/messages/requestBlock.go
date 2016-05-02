@@ -79,7 +79,7 @@ func (m *RequestBlock) Bytes() []byte {
 func (m *RequestBlock) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling Eom Timeout: %v", r)
+			err = fmt.Errorf("Error unmarshalling RequestBlock: %v", r)
 		}
 	}()
 	newData = data
