@@ -51,6 +51,7 @@ func (state *State) ValidatorLoop() {
 
 			select {
 			case msg = <-state.InMsgQueue(): // Get message from the timer or input queue
+			fmt.Println ("VVVVVVVVVVVVVVVVVVVVV", msg.String())
 				state.JournalMessage(msg)
 				break loop
 			default: // No messages? Sleep for a bit.
