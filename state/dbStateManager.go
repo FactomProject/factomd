@@ -281,7 +281,7 @@ func (list *DBStateList) UpdateState() (progress bool) {
 		d.Saved = true                            // Only after all is done will I admit this state has been saved.
 
 		if d.DirectoryBlock.GetHeader().GetDBHeight() == list.State.LLeaderHeight {
-			list.State.EOB=true
+			list.State.EOB = true
 		}
 
 		list.State.LLeaderHeight = list.State.GetHighestRecordedBlock() + 1

@@ -17,15 +17,15 @@ import (
 //General acknowledge message
 type Ack struct {
 	MessageBase
-	Timestamp   	interfaces.Timestamp
-	MessageHash 	interfaces.IHash
+	Timestamp   interfaces.Timestamp
+	MessageHash interfaces.IHash
 
-	DBHeight 	uint32 // Directory Block Height that owns this ack
-	Height   	uint32 // Height of this ack in this process list
+	DBHeight uint32 // Directory Block Height that owns this ack
+	Height   uint32 // Height of this ack in this process list
 
-	SerialHash 	interfaces.IHash
+	SerialHash interfaces.IHash
 
-	Signature 	interfaces.IFullSignature
+	Signature interfaces.IFullSignature
 
 	//Not marshalled
 	hash interfaces.IHash
@@ -210,7 +210,6 @@ func (m *Ack) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	if err != nil {
 		return nil, err
 	}
-
 
 	m.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 	m.Height, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]

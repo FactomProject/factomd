@@ -902,13 +902,13 @@ func (s *State) SetString() {
 
 	lastheight := uint32(0)
 
-    found, _ := s.GetVirtualServers(buildingBlock+1, 0, s.GetIdentityChainID())
-    stype := ""
-    if found {
-        stype = fmt.Sprintf("L     ")
-    }
-	
-    if buildingBlock == 0 {
+	found, _ := s.GetVirtualServers(buildingBlock+1, 0, s.GetIdentityChainID())
+	stype := ""
+	if found {
+		stype = fmt.Sprintf("L     ")
+	}
+
+	if buildingBlock == 0 {
 		s.serverPrt = fmt.Sprintf("%9s%9s Recorded: %d Building: %d Highest: %d ",
 			stype,
 			s.FactomNodeName,
@@ -916,13 +916,13 @@ func (s *State) SetString() {
 			0,
 			s.GetHighestKnownBlock())
 	} else {
-		
-    		keyMR := []byte("aaaaa")
+
+		keyMR := []byte("aaaaa")
 		abHash := []byte("aaaaa")
 		fbHash := []byte("aaaaa")
 		ecHash := []byte("aaaaa")
 
-	    	switch {
+		switch {
 		case s.DBStates == nil:
 
 		case s.DBStates.Last() == nil:

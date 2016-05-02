@@ -26,8 +26,8 @@ var _ = fmt.Print
 //***************************************************************
 func (s *State) Process() (progress bool) {
 
-	if s.EOB  {
-	    	s.LLeaderHeight = s.GetHighestRecordedBlock() + 1
+	if s.EOB {
+		s.LLeaderHeight = s.GetHighestRecordedBlock() + 1
 	}
 	skip := false
 	pl := s.ProcessLists.Get(s.LLeaderHeight)
@@ -46,8 +46,8 @@ func (s *State) Process() (progress bool) {
 			}
 
 		}
-		for _,vm := range pl.VMs {
-			vm.LastLeaderAck=vm.LastAck
+		for _, vm := range pl.VMs {
+			vm.LastLeaderAck = vm.LastAck
 		}
 	}
 	if s.EOB {
@@ -61,10 +61,10 @@ func (s *State) Process() (progress bool) {
 		// up to date.  Then we can validate the message.  Process is up to date if all
 		// messages in the process list have been processed by the follower, ie the Height
 		// is equal to the length of the process list.
-        	if len(vm.List) == vm.Height {
-        		select {
-			case msg,_ := <-s.leaderMsgQueue:
-        		        v := msg.Validate(s)
+		if len(vm.List) == vm.Height {
+			select {
+			case msg, _ := <-s.leaderMsgQueue:
+				v := msg.Validate(s)
 				switch v {
 				case 1:
 					msg.LeaderExecute(s)
@@ -337,12 +337,12 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	// Set this list complete
 	pl.SetMinute(e.VMIndex, int(e.Minute))
 
-	if pl.MinuteHeight()  <= int(e.Minute) {
+	if pl.MinuteHeight() <= int(e.Minute) {
 		return false
 	}
 
 	s.EOM = true
-	s.LeaderMinute = int(e.Minute+1)
+	s.LeaderMinute = int(e.Minute + 1)
 
 	if pl.VMIndexFor(constants.FACTOID_CHAINID) == e.VMIndex {
 		s.FactoidState.EndOfPeriod(int(e.Minute))
