@@ -23,6 +23,19 @@ type AuditServerFault struct {
 
 var _ interfaces.IMsg = (*AuditServerFault)(nil)
 
+func (a *AuditServerFault) IsSameAs(b *AuditServerFault) bool {
+	if b == nil {
+		return false
+	}
+	if a.Timestamp != b.Timestamp {
+		return false
+	}
+
+	//TODO: expand
+
+	return true
+}
+
 func (e *AuditServerFault) Process(uint32, interfaces.IState) bool {
 	panic("AuditServerFault object should never have its Process() method called")
 }
@@ -62,7 +75,7 @@ func (m *AuditServerFault) Bytes() []byte {
 func (m *AuditServerFault) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling Audit Server Fault: %v", r)
+			err = fmt.Errorf("Error unmarshalling AuditServerFault: %v", r)
 		}
 	}()
 	newData = data
@@ -71,7 +84,14 @@ func (m *AuditServerFault) UnmarshalBinaryData(data []byte) (newData []byte, err
 	}
 	newData = newData[1:]
 
-	return nil, nil
+	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
+	if err != nil {
+		return nil, err
+	}
+
+	//TODO: expand
+
+	return newData, nil
 }
 
 func (m *AuditServerFault) UnmarshalBinary(data []byte) error {
@@ -80,7 +100,17 @@ func (m *AuditServerFault) UnmarshalBinary(data []byte) error {
 }
 
 func (m *AuditServerFault) MarshalBinary() (data []byte, err error) {
-	return nil, nil
+	var buf primitives.Buffer
+	buf.Write([]byte{m.Type()})
+	if d, err := m.Timestamp.MarshalBinary(); err != nil {
+		return nil, err
+	} else {
+		buf.Write(d)
+	}
+
+	//TODO: expand
+
+	return buf.DeepCopyBytes(), nil
 }
 
 func (m *AuditServerFault) String() string {
