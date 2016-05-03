@@ -89,8 +89,10 @@ func (m *FactoidTransaction) Type() byte {
 func (m *FactoidTransaction) Validate(state interfaces.IState) int {
 	err := state.GetFactoidState().Validate(1, m.Transaction)
 	if err != nil {
-		return -1
+		fmt.Println("fffffffffffffffff Invalid",state.GetFactomNodeName())
+			return -1
 	}
+	fmt.Println("vvvvvvvvvvvvvvvvvvvvv valid",state.GetFactomNodeName())
 	return 1
 }
 
@@ -143,7 +145,6 @@ func (m *FactoidTransaction) Bytes() []byte {
 
 func (m *FactoidTransaction) UnmarshalTransData(data []byte) (newData []byte, err error) {
 	defer func() {
-		return
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling Transaction Factoid: %v", r)
 		}
@@ -157,7 +158,6 @@ func (m *FactoidTransaction) UnmarshalTransData(data []byte) (newData []byte, er
 
 func (m *FactoidTransaction) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
-		return
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling Factoid: %v", r)
 		}
@@ -201,7 +201,7 @@ func (m *FactoidTransaction) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *FactoidTransaction) String() string {
-	return "Factoid Transaction " + m.GetHash().String()
+	return fmt.Sprintf("Factoid Transaction %x VM %d", m.GetHash().Bytes()[:3], m.VMIndex)
 }
 
 func (e *FactoidTransaction) JSONByte() ([]byte, error) {
