@@ -17,6 +17,8 @@ type RequestBlock struct {
 	MessageBase
 	Timestamp interfaces.Timestamp
 
+	//TODO: figure whether this should be signed or not?
+
 	//Not marshalled
 	hash interfaces.IHash
 }

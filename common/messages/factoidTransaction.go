@@ -19,6 +19,8 @@ type FactoidTransaction struct {
 	Timestamp   interfaces.Timestamp
 	Transaction interfaces.ITransaction
 
+	//No signature!
+
 	//Not marshalled
 	hash      interfaces.IHash
 	processed bool

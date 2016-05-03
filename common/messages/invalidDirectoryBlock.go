@@ -17,11 +17,14 @@ type InvalidDirectoryBlock struct {
 	MessageBase
 	Timestamp interfaces.Timestamp
 
+	Signature interfaces.IFullSignature
+
 	//Not marshalled
 	hash interfaces.IHash
 }
 
 var _ interfaces.IMsg = (*InvalidDirectoryBlock)(nil)
+var _ Signable = (*InvalidDirectoryBlock)(nil)
 
 func (a *InvalidDirectoryBlock) IsSameAs(b *InvalidDirectoryBlock) bool {
 	if b == nil {
@@ -33,7 +36,33 @@ func (a *InvalidDirectoryBlock) IsSameAs(b *InvalidDirectoryBlock) bool {
 
 	//TODO: expand
 
+	if a.Signature == nil && b.Signature != nil {
+		return false
+	}
+	if a.Signature != nil {
+		if a.Signature.IsSameAs(b.Signature) == false {
+			return false
+		}
+	}
+
 	return true
+}
+
+func (m *InvalidDirectoryBlock) Sign(key interfaces.Signer) error {
+	signature, err := SignSignable(m, key)
+	if err != nil {
+		return err
+	}
+	m.Signature = signature
+	return nil
+}
+
+func (m *InvalidDirectoryBlock) GetSignature() interfaces.IFullSignature {
+	return m.Signature
+}
+
+func (m *InvalidDirectoryBlock) VerifySignature() (bool, error) {
+	return VerifyMessage(m)
 }
 
 func (m *InvalidDirectoryBlock) Process(uint32, interfaces.IState) bool { return true }
@@ -95,6 +124,14 @@ func (m *InvalidDirectoryBlock) UnmarshalBinaryData(data []byte) (newData []byte
 
 	//TODO: expand
 
+	if len(newData) > 0 {
+		m.Signature = new(primitives.Signature)
+		newData, err = m.Signature.UnmarshalBinaryData(newData)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return newData, nil
 }
 
@@ -104,8 +141,20 @@ func (m *InvalidDirectoryBlock) UnmarshalBinary(data []byte) error {
 }
 
 func (m *InvalidDirectoryBlock) MarshalBinary() (data []byte, err error) {
-	//TODO: sign or delete
-	return m.MarshalForSignature()
+	resp, err := m.MarshalForSignature()
+	if err != nil {
+		return nil, err
+	}
+	sig := m.GetSignature()
+
+	if sig != nil {
+		sigBytes, err := sig.MarshalBinary()
+		if err != nil {
+			return nil, err
+		}
+		return append(resp, sigBytes...), nil
+	}
+	return resp, nil
 }
 
 func (m *InvalidDirectoryBlock) MarshalForSignature() (data []byte, err error) {
@@ -139,10 +188,6 @@ func (m *InvalidDirectoryBlock) ListHeight() int {
 }
 
 func (m *InvalidDirectoryBlock) SerialHash() []byte {
-	return nil
-}
-
-func (m *InvalidDirectoryBlock) Signature() []byte {
 	return nil
 }
 

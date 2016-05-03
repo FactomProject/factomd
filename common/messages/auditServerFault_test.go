@@ -9,7 +9,7 @@ import (
 
 	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/messages"
-	//"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 func TestMarshalUnmarshalAuditServerFault(t *testing.T) {
@@ -50,9 +50,8 @@ func TestMarshalUnmarshalAuditServerFault(t *testing.T) {
 	}
 }
 
-/*
-func TestSignAndVerifyEOM(t *testing.T) {
-	msg := newSignedEOM()
+func TestSignAndVerifyAuditServerFault(t *testing.T) {
+	msg := newSignedAuditServerFault()
 	hex, err := msg.MarshalBinary()
 	if err != nil {
 		t.Error(err)
@@ -77,12 +76,11 @@ func TestSignAndVerifyEOM(t *testing.T) {
 		t.Error(err)
 	}
 
-	if msg2.Type() != constants.EOM_MSG {
+	if msg2.Type() != constants.AUDIT_SERVER_FAULT_MSG {
 		t.Error("Invalid message type unmarshalled")
 	}
-	eomProper := msg2.(*EOM)
 
-	valid, err = eomProper.VerifySignature()
+	valid, err = msg2.(*AuditServerFault).VerifySignature()
 	if err != nil {
 		t.Error(err)
 	}
@@ -90,7 +88,7 @@ func TestSignAndVerifyEOM(t *testing.T) {
 		t.Error("Signature 2 is not valid")
 	}
 
-}*/
+}
 
 func newAuditServerFault() *AuditServerFault {
 	msg := new(AuditServerFault)
@@ -99,9 +97,8 @@ func newAuditServerFault() *AuditServerFault {
 	return msg
 }
 
-/*
-func newSignedEOM() *EOM {
-	msg := newEOM()
+func newSignedAuditServerFault() *AuditServerFault {
+	msg := newAuditServerFault()
 
 	key, err := primitives.NewPrivateKeyFromHex("07c0d52cb74f4ca3106d80c4a70488426886bccc6ebc10c6bafb37bf8a65f4c38cee85c62a9e48039d4ac294da97943c2001be1539809ea5f54721f0c5477a0a")
 	if err != nil {
@@ -114,4 +111,3 @@ func newSignedEOM() *EOM {
 
 	return msg
 }
-*/
