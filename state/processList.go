@@ -398,7 +398,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 				fmt.Printf("LAST MESS: %x ::: LAST SERIAL: %x\n", last.MessageHash.Bytes()[:3], last.SerialHash.Bytes()[:3])
 				fmt.Printf("THIS MESS: %x ::: THIS SERIAL: %x\n", thisAck.MessageHash.Bytes()[:3], thisAck.SerialHash.Bytes()[:3])
 				fmt.Printf("EXPECT:    %x \n", expectedSerialHash.Bytes()[:3])
-				fmt.Printf("The message that didn't work: %s\n\n",plist[j].String())
+				fmt.Printf("The message that didn't work: %s\n\n", plist[j].String())
 				// the SerialHash of this acknowledgment is incorrect
 				// according to this node's processList
 				plist[j] = nil

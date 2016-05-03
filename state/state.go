@@ -31,7 +31,7 @@ type State struct {
 
 	Cfg interfaces.IFactomConfig
 
-	Prefix			string
+	Prefix                  string
 	FactomNodeName          string
 	FactomdVersion          int
 	ProtocolVersion         int
@@ -139,13 +139,13 @@ type State struct {
 	EBDBHeightComplete uint32
 
 	// For dataRequests made by this node, which it's awaiting dataResponses for
-	DataRequests 	map[[32]byte]interfaces.IHash
+	DataRequests map[[32]byte]interfaces.IHash
 
 	//For throttling how many missing messages we request
-	IsThrottled 	bool
+	IsThrottled bool
 
-	LastPrint 	string
-	LastPrintCnt 	int
+	LastPrint    string
+	LastPrintCnt int
 }
 
 var _ interfaces.IState = (*State)(nil)
@@ -154,7 +154,7 @@ func (s *State) Clone(number string) interfaces.IState {
 
 	clone := new(State)
 
-	clone.FactomNodeName = s.Prefix+"FNode" + number
+	clone.FactomNodeName = s.Prefix + "FNode" + number
 	clone.FactomdVersion = s.FactomdVersion
 	clone.ProtocolVersion = s.ProtocolVersion
 	clone.LogPath = s.LogPath + "Sim" + number
@@ -188,7 +188,7 @@ func (s *State) Clone(number string) interfaces.IState {
 	return clone
 }
 
-func (s *State) AddPrefix(prefix string){
+func (s *State) AddPrefix(prefix string) {
 	s.Prefix = prefix
 }
 
@@ -207,7 +207,7 @@ func (s *State) SetDropRate(droprate int) {
 // TODO JAYJAY BUGBUG- passing in folder here is a hack for multiple factomd processes on a single machine (sharing a single .factom)
 func (s *State) LoadConfig(filename string, folder string) {
 
-	s.FactomNodeName = s.Prefix+"FNode0" // Default Factom Node Name for Simulation
+	s.FactomNodeName = s.Prefix + "FNode0" // Default Factom Node Name for Simulation
 	if len(filename) > 0 {
 		s.filename = filename
 		s.ReadCfg(filename, folder)
@@ -215,9 +215,9 @@ func (s *State) LoadConfig(filename string, folder string) {
 		// Get our factomd configuration information.
 		cfg := s.GetCfg().(*util.FactomdConfig)
 
-		s.LogPath = cfg.Log.LogPath+s.Prefix
-		s.LdbPath = cfg.App.LdbPath+s.Prefix
-		s.BoltDBPath = cfg.App.BoltDBPath+s.Prefix
+		s.LogPath = cfg.Log.LogPath + s.Prefix
+		s.LdbPath = cfg.App.LdbPath + s.Prefix
+		s.BoltDBPath = cfg.App.BoltDBPath + s.Prefix
 		s.LogLevel = cfg.Log.LogLevel
 		s.ConsoleLogLevel = cfg.Log.ConsoleLogLevel
 		s.NodeMode = cfg.App.NodeMode
@@ -966,8 +966,8 @@ func (s *State) Print(a ...interface{}) (n int, err error) {
 
 		if s.LastPrint == str {
 			s.LastPrintCnt++
-			fmt.Print(s.LastPrintCnt," ")
-		}else{
+			fmt.Print(s.LastPrintCnt, " ")
+		} else {
 			s.LastPrint = str
 			s.LastPrintCnt = 0
 		}
@@ -987,8 +987,8 @@ func (s *State) Println(a ...interface{}) (n int, err error) {
 
 		if s.LastPrint == str {
 			s.LastPrintCnt++
-			fmt.Print(s.LastPrintCnt," ")
-		}else{
+			fmt.Print(s.LastPrintCnt, " ")
+		} else {
 			s.LastPrint = str
 			s.LastPrintCnt = 0
 		}

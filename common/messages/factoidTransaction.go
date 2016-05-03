@@ -89,10 +89,10 @@ func (m *FactoidTransaction) Type() byte {
 func (m *FactoidTransaction) Validate(state interfaces.IState) int {
 	err := state.GetFactoidState().Validate(1, m.Transaction)
 	if err != nil {
-		fmt.Println("fffffffffffffffff Invalid",state.GetFactomNodeName())
-			return -1
+		fmt.Println("fffffffffffffffff Invalid", state.GetFactomNodeName())
+		return -1
 	}
-	fmt.Println("vvvvvvvvvvvvvvvvvvvvv valid",state.GetFactomNodeName())
+	fmt.Println("vvvvvvvvvvvvvvvvvvvvv valid", state.GetFactomNodeName())
 	return 1
 }
 

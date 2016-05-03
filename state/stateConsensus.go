@@ -69,10 +69,11 @@ func (s *State) Process() (progress bool) {
 				case 1:
 					msg.LeaderExecute(s)
 					s.networkOutMsgQueue <- msg
-					if _,ok := msg.(*messages.FactoidTransaction); ok {
+					if _, ok := msg.(*messages.FactoidTransaction); ok {
 						fmt.Println("Sending: FFFFFFFFFFFFFFFffffffff", msg.String())
 					}
-					for s.UpdateState() { }
+					for s.UpdateState() {
+					}
 				case -1:
 					s.networkInvalidMsgQueue <- msg
 				}
@@ -90,10 +91,11 @@ func (s *State) Process() (progress bool) {
 		case 1:
 			msg.FollowerExecute(s)
 			s.networkOutMsgQueue <- msg
-			if _,ok := msg.(*messages.FactoidTransaction); ok {
+			if _, ok := msg.(*messages.FactoidTransaction); ok {
 				fmt.Println("Sending: FFFFFFFFFFFFFFFffffffff", msg.String())
 			}
-			for s.UpdateState() { }
+			for s.UpdateState() {
+			}
 		case -1:
 			s.networkInvalidMsgQueue <- msg
 		}
