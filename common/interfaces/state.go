@@ -151,7 +151,6 @@ type IState interface {
 	Println(a ...interface{}) (n int, err error)
 
 	ValidatorLoop()
-	Dethrottle()
 
 	AddDataRequest(requestedHash, missingDataHash IHash)
 	HasDataRequest(checkHash IHash) bool

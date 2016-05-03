@@ -62,17 +62,6 @@ func Timer(state interfaces.IState) {
 	}
 }
 
-func Throttle(state interfaces.IState) {
-	time.Sleep(2 * time.Second)
-
-	throttlePeriod := time.Duration(int64(state.GetDirectoryBlockInSeconds()) * 50000000)
-
-	for {
-		time.Sleep(throttlePeriod)
-		state.Dethrottle()
-	}
-
-}
 
 func PrintBusy(state interfaces.IState, i int) {
 

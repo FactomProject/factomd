@@ -201,11 +201,6 @@ func (m *MissingMsg) FollowerExecute(state interfaces.IState) error {
 		ackMsg.SetOrigin(m.GetOrigin())
 		state.NetworkOutMsgQueue() <- msg
 		state.NetworkOutMsgQueue() <- ackMsg
-	} else {
-		// LoadSpecificMsgAndAck failed, so dethrottle the fnode state
-		// (so it can ask again if it needs to)
-		state.Dethrottle()
-		return err
 	}
 
 	return nil

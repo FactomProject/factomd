@@ -141,9 +141,6 @@ type State struct {
 	// For dataRequests made by this node, which it's awaiting dataResponses for
 	DataRequests map[[32]byte]interfaces.IHash
 
-	//For throttling how many missing messages we request
-	IsThrottled int64
-
 	LastPrint    string
 	LastPrintCnt int
 }
@@ -624,8 +621,14 @@ func (s *State) GetDirectoryBlockByHeight(height uint32) interfaces.IDirectoryBl
 }
 
 func (s *State) UpdateState() (progress bool) {
-	progress = s.ProcessLists.UpdateState()
-	progress = progress || s.DBStates.UpdateState()
+	dbheight := s.GetHighestRecordedBlock()
+	plbase := s.ProcessLists.DBHeightBase
+	if plbase <= dbheight+1 {
+		progress = s.ProcessLists.UpdateState(dbheight + 1)
+	}
+
+	p2 := s.DBStates.UpdateState()
+	progress = progress || p2
 
 	s.catchupEBlocks()
 
@@ -638,6 +641,7 @@ func (s *State) UpdateState() (progress bool) {
 
 		s.Println(str)
 	}
+
 	return
 }
 
@@ -664,10 +668,6 @@ func (s *State) catchupEBlocks() {
 			s.SetEBDBHeightComplete(s.GetEBDBHeightComplete() + 1)
 		}
 	}
-}
-
-func (s *State) Dethrottle() {
-	s.IsThrottled = 0
 }
 
 func (s *State) AddFedServer(dbheight uint32, hash interfaces.IHash) int {

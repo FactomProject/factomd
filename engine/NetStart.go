@@ -307,6 +307,5 @@ func startServers(load bool) {
 		}
 		go Timer(fnode.State)
 		go fnode.State.ValidatorLoop()
-		go Throttle(fnode.State)
 	}
 }

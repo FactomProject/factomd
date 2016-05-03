@@ -62,6 +62,7 @@ type VM struct {
 	Undo           interfaces.IMsg   // The Leader needs one level of undo to handle DB Sigs.
 	LastLeaderAck  interfaces.IMsg   // The last Acknowledgement set by this leader
 	LastAck        interfaces.IMsg   // The last Acknowledgement set by this follower
+	missingTime    int64             // How long we have been waiting for a missing message
 }
 
 // Returns the Virtual Server index for this hash for the given minute
@@ -346,14 +347,16 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 	thisVM:
 		for j := p.VMs[i].Height; j < len(plist); j++ {
 			if plist[j] == nil {
-				if state.IsThrottled == 0 {
-					state.IsThrottled = time.Now().Unix()
+				now := time.Now().Unix()
+				if p.VMs[i].missingTime == 0 {
+					p.VMs[i].missingTime = now
 				}
-				if time.Now().Unix()-state.IsThrottled > 0 {
+				if now-p.VMs[i].missingTime > 0 {
 					missingMsgRequest := messages.NewMissingMsg(state, p.DBHeight, uint32(j))
 					if missingMsgRequest != nil {
 						state.NetworkOutMsgQueue() <- missingMsgRequest
 					}
+					p.VMs[i].missingTime = now
 				}
 				return
 			}

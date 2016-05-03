@@ -22,13 +22,12 @@ type ProcessLists struct {
 // UpdateState is executed from a Follower's perspective.  So the block we are building
 // is always the block above the HighestRecordedBlock, but we only care about messages that
 // are at the highest known block, as long as that is above the highest recorded block.
-func (lists *ProcessLists) UpdateState() (progress bool) {
+func (lists *ProcessLists) UpdateState(dbheight uint32) (progress bool) {
 
-	buildingBlock := lists.State.GetHighestRecordedBlock() + 1
-	pl := lists.Get(buildingBlock)
+	pl := lists.Get(dbheight)
 
 	// Look and see if we need to toss some previous blocks under construction.
-	diff := buildingBlock - lists.DBHeightBase
+	diff := dbheight - lists.DBHeightBase
 	if diff > 1 && len(lists.Lists) > 1 {
 		progress = true
 		lists.DBHeightBase += (diff - 1)

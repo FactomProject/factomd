@@ -70,8 +70,10 @@ func UnmarshalMessage(data []byte) (interfaces.IMsg, error) {
 
 	err := msg.UnmarshalBinary(data[:])
 	if err != nil {
+		fmt.Sprintf("Transaction Failed to Unmarshal %x", data[0])
 		return nil, err
 	}
+
 	return msg, nil
 
 }

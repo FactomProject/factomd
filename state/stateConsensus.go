@@ -55,9 +55,6 @@ func (s *State) Process() (progress bool) {
 		s.Leader, s.LeaderVMIndex = pl.GetVirtualServers(0, s.IdentityChainID)
 		s.EOM = false
 		s.EOB = false
-		for _, vm := range pl.VMs {
-			vm.LastLeaderAck = vm.LastAck
-		}
 	}
 	if !skip && s.Leader {
 		vm := pl.VMs[s.LeaderVMIndex]
@@ -73,9 +70,7 @@ func (s *State) Process() (progress bool) {
 				case 1:
 					msg.LeaderExecute(s)
 					s.networkOutMsgQueue <- msg
-					if _, ok := msg.(*messages.FactoidTransaction); ok {
-						fmt.Println("Sending: FFFFFFFFFFFFFFFffffffff", msg.String())
-					}
+
 					for s.UpdateState() {
 					}
 				case -1:
@@ -95,9 +90,7 @@ func (s *State) Process() (progress bool) {
 		case 1:
 			msg.FollowerExecute(s)
 			s.networkOutMsgQueue <- msg
-			if _, ok := msg.(*messages.FactoidTransaction); ok {
-				fmt.Println("Sending: FFFFFFFFFFFFFFFffffffff", msg.String())
-			}
+
 			for s.UpdateState() {
 			}
 		case -1:
