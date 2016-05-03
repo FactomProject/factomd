@@ -90,7 +90,11 @@ func NetworkOutputs(fnode *FactomNode) {
 				}
 			}
 		}
+
+		fmt.Println(fnode.State.FactomNodeName, "nnnnnnnnnnn",msg.String())
+
 		if !msg.IsLocal() {
+			fmt.Println(fnode.State.FactomNodeName, "NNNNNNNNNNNNNNN",msg.String())
 			if rand.Int()%1000 < fnode.State.GetDropRate() {
 				//drop the message, rather than processing it normally
 			} else {

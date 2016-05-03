@@ -4,7 +4,7 @@
 
 package messages
 
-import (
+import(
 	"bytes"
 	"fmt"
 	"github.com/FactomProject/factomd/common/constants"
@@ -171,7 +171,10 @@ func (m *FactoidTransaction) UnmarshalBinaryData(data []byte) (newData []byte, e
 		return nil, err
 	}
 
-	return m.UnmarshalTransData(newData)
+	m.Transaction = new(factoid.Transaction)
+	newData, err = m.Transaction.UnmarshalBinaryData(data)
+
+	return newData, err
 }
 
 func (m *FactoidTransaction) UnmarshalBinary(data []byte) error {

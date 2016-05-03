@@ -12,6 +12,7 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
+	"time"
 )
 
 var _ = fmt.Print
@@ -345,15 +346,14 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 	thisVM:
 		for j := p.VMs[i].Height; j < len(plist); j++ {
 			if plist[j] == nil {
-				if !state.IsThrottled {
+				if state.IsThrottled == 0 {
+					state.IsThrottled = time.Now().Unix()
+				}
+				if time.Now().Unix() - state.IsThrottled > 0 {
 					missingMsgRequest := messages.NewMissingMsg(state, p.DBHeight, uint32(j))
 					if missingMsgRequest != nil {
 						state.NetworkOutMsgQueue() <- missingMsgRequest
 					}
-					if state.GetOut() {
-						p.State.Println("!!!!!!! Missing entry in process list at", j)
-					}
-					state.IsThrottled = true
 				}
 				return
 			}

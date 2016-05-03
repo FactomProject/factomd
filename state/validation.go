@@ -106,16 +106,14 @@ func (t *Timer) timer(state *State, min int) {
 		eom.Sign(state)
 		eom.DBHeight = t.lastDBHeight
 		eom.SetLocal(true)
+		state.TimerMsgQueue() <- eom
 		if min == 9 {
 			DBS := new(messages.DirectoryBlockSignature)
 			DBS.ServerIdentityChainID = state.GetIdentityChainID()
 			DBS.SetLocal(true)
 			DBS.DBHeight = t.lastDBHeight
 			DBS.VMIndex = vmIndex
-			state.TimerMsgQueue() <- eom
 			state.TimerMsgQueue() <- DBS
-		} else {
-			state.TimerMsgQueue() <- eom
 		}
 	}
 }

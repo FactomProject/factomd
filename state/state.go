@@ -142,7 +142,7 @@ type State struct {
 	DataRequests 	map[[32]byte]interfaces.IHash
 
 	//For throttling how many missing messages we request
-	IsThrottled 	bool
+	IsThrottled 	int64
 
 	LastPrint 	string
 	LastPrintCnt 	int
@@ -487,7 +487,7 @@ func (s *State) LoadDataByHash(requestedHash interfaces.IHash) (interfaces.Binar
 	return nil, -1, nil
 }
 
-func (s *State) LoadSpecificMsg(dbheight uint32, plistheight uint32) (interfaces.IMsg, error) {
+func (s *State) LoadSpecificMsg(dbheight uint32, vm int, plistheight uint32) (interfaces.IMsg, error) {
 	if dbheight < s.ProcessLists.DBHeightBase {
 		return nil, fmt.Errorf("Missing message is too deeply buried in blocks")
 	} else if dbheight > (s.ProcessLists.DBHeightBase + uint32(len(s.ProcessLists.Lists))) {
@@ -498,11 +498,11 @@ func (s *State) LoadSpecificMsg(dbheight uint32, plistheight uint32) (interfaces
 	if procList == nil {
 		return nil, fmt.Errorf("Nil Process List")
 	}
-	if len(procList.VMs[0].List) < int(plistheight)+1 {
+	if len(procList.VMs[vm].List) < int(plistheight)+1 {
 		return nil, fmt.Errorf("Process List too small (lacks requested msg)")
 	}
 
-	msg := procList.VMs[0].List[plistheight]
+	msg := procList.VMs[vm].List[plistheight]
 
 	if msg == nil {
 		return nil, fmt.Errorf("State process list does not include requested message")
@@ -511,7 +511,7 @@ func (s *State) LoadSpecificMsg(dbheight uint32, plistheight uint32) (interfaces
 	return msg, nil
 }
 
-func (s *State) LoadSpecificMsgAndAck(dbheight uint32, plistheight uint32) (interfaces.IMsg, interfaces.IMsg, error) {
+func (s *State) LoadSpecificMsgAndAck(dbheight uint32, vm int, plistheight uint32) (interfaces.IMsg, interfaces.IMsg, error) {
 	if dbheight < s.ProcessLists.DBHeightBase {
 		return nil, nil, fmt.Errorf("Missing message is too deeply buried in blocks")
 	} else if dbheight > (s.ProcessLists.DBHeightBase + uint32(len(s.ProcessLists.Lists))) {
@@ -524,11 +524,11 @@ func (s *State) LoadSpecificMsgAndAck(dbheight uint32, plistheight uint32) (inte
 	} else if len(procList.VMs) < 1 {
 		return nil, nil, fmt.Errorf("No servers?")
 	}
-	if len(procList.VMs[0].List) < int(plistheight)+1 {
+	if len(procList.VMs[vm].List) < int(plistheight)+1 {
 		return nil, nil, fmt.Errorf("Process List too small (lacks requested msg)")
 	}
 
-	msg := procList.VMs[0].List[plistheight]
+	msg := procList.VMs[vm].List[plistheight]
 
 	if msg == nil {
 		return nil, nil, fmt.Errorf("State process list does not include requested message")
@@ -667,7 +667,7 @@ func (s *State) catchupEBlocks() {
 }
 
 func (s *State) Dethrottle() {
-	s.IsThrottled = false
+	s.IsThrottled = 0
 }
 
 func (s *State) AddFedServer(dbheight uint32, hash interfaces.IHash) int {

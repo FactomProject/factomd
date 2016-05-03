@@ -33,8 +33,8 @@ type IState interface {
 	GetOut() bool // Return true if Print or Println write output
 	LoadDataByHash(requestedHash IHash) (BinaryMarshallable, int, error)
 	LoadDBState(dbheight uint32) (IMsg, error)
-	LoadSpecificMsg(dbheight uint32, plistheight uint32) (IMsg, error)
-	LoadSpecificMsgAndAck(dbheight uint32, plistheight uint32) (IMsg, IMsg, error)
+	LoadSpecificMsg(dbheight uint32, vm int, plistheight uint32) (IMsg, error)
+	LoadSpecificMsgAndAck(dbheight uint32, vm int, plistheight uint32) (IMsg, IMsg, error)
 	SetString()
 	ShortString() string
 

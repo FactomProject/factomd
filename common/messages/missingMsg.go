@@ -17,9 +17,11 @@ import (
 //Structure to request missing messages in a node's process list
 type MissingMsg struct {
 	MessageBase
-	DBHeight          uint32
-	ProcessListHeight uint32
-	Timestamp         interfaces.Timestamp
+
+	Timestamp         	interfaces.Timestamp
+	DBHeight          	uint32
+	VM			int
+	ProcessListHeight 	uint32
 
 	//No signature!
 
@@ -38,6 +40,10 @@ func (a *MissingMsg) IsSameAs(b *MissingMsg) bool {
 	}
 
 	if a.DBHeight != b.DBHeight {
+		return false
+	}
+
+	if a.VM != b.VM {
 		return false
 	}
 
@@ -152,7 +158,7 @@ func (m *MissingMsg) MarshalBinary() ([]byte, error) {
 }
 
 func (m *MissingMsg) String() string {
-	return fmt.Sprintf("MissingMsg: %d-%d", m.DBHeight, m.ProcessListHeight)
+	return fmt.Sprintf("MissMsg vm=%d DBHeight:%3d PL Height:%3d", m.VMIndex, m.DBHeight, m.ProcessListHeight)
 }
 
 func (m *MissingMsg) ChainID() []byte {
@@ -188,7 +194,7 @@ func (m *MissingMsg) Follower(interfaces.IState) bool {
 }
 
 func (m *MissingMsg) FollowerExecute(state interfaces.IState) error {
-	msg, ackMsg, err := state.LoadSpecificMsgAndAck(m.DBHeight, m.ProcessListHeight)
+	msg, ackMsg, err := state.LoadSpecificMsgAndAck(m.DBHeight, m.VM, m.ProcessListHeight)
 
 	if msg != nil && ackMsg != nil && err == nil { // If I don't have this message, ignore.
 		msg.SetOrigin(m.GetOrigin())
