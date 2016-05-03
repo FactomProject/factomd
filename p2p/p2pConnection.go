@@ -2,103 +2,113 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-
 package p2p
 
 import (
-    "time"
-    "math/rand"
-    "encoding/binary"
+	"encoding/gob"
+	"math/rand"
+	"net"
+	"time"
 )
 
-
 type P2PConnection struct {
-    conn net.Conn
-    OutChannel chan Parcel // Out means "towards the network"
-	InChannel  chan Parcel // In means "from the network"
-    ConnectionID uint64 // Random number used for loopback protection 
-    // and as "address" for sending messages to specific nodes.
+	conn           net.Conn
+	SendChannel    chan Parcel // Send means "towards the network"
+	ReceiveChannel chan Parcel // Recieve means "from the network"
+	ConnectionID   uint64      // Random number used for loopback protection
+	// and as "address" for sending messages to specific nodes.
+	Online  bool         // Indicates if the connection is connected to a peer or not.
+	encoder *gob.Encoder // Wire format is gobs in this version, may switch to binary
+	decoder *gob.Decoder // Wire format is gobs in this version, may switch to binary
 }
 
-func (c *P2PConnection) Init()   {
-    	p.OutChannel = make(chan Parcel, 1000)
-	p.InChannel = make(chan Parcel, 1000)
-    r := rand.New(rand.NewSource(time.Now().UnixNano()))
-    p.ConnectionID = r.Int63()
-    // f.ConnectionID = rand.Int(rand.Reader, math.MaxInt64)
-    go runloop()
+func (c *P2PConnection) Init() *P2PConnection {
+	c.SendChannel = make(chan Parcel, 1000)
+	c.ReceiveChannel = make(chan Parcel, 1000)
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	c.ConnectionID = uint64(r.Int63())
+	// f.ConnectionID = rand.Int(rand.Reader, math.MaxInt64)
+	c.Online = false
+	c.conn = nil
+	return c
 }
 
-
-
-func (c *P2PConnection) runloop()  {
-
-    for {
-           // For each peer, empty its network buffer (do recieves first)
-        for _, connection := range peers {
-            connection.processNetworkMessages()
-        }
-        // For each peer, empty its outbound channel (and send to network.)
-        for _, connection := range peers {
-            connection.processInChannel()
-  
-    }
-          }
-}
-// ProcessNetworkMessages gets all the messages from the network and sends them to the application
-func (c *P2PConnection) processNetworkMessages()  {
-    for -while there are more messages to recieve- {
-        BUGBUG need to send these messages to application
-        p.OutChannel <- message
-    }   
+// Called when we are online.
+func (c *P2PConnection) Configure(netConn net.Conn) {
+	c.conn = netConn
+	c.Online = true
+	c.encoder = gob.NewEncoder(c.conn)
+	c.decoder = gob.NewDecoder(c.conn)
+	go c.processReceives()
+	go c.processSends()
 }
 
-// ProcessOutChannel gets all the messages from the application and sends them out over the network
-func (c *P2PConnection) processInChannel()  {
-    for 0 < len(p.InChannel) {
-        BUGBUG need to send these messages to the network
-    }   
+// processSendChannel gets all the messages from the network and sends them to the application
+func (c *P2PConnection) processReceives() {
+	for c.Online {
+		var message Parcel
+		err := c.decoder.Decode(&message)
+		if nil != err {
+			error(true, "P2PConnection.processReceives() got decoding error: %+v", err)
+		} else {
+			if c.isValidParcel(message) {
+				// Store our connection ID so the controller can direct response to us.
+				message.Header.ConnectionID = c.ConnectionID
+				c.ReceiveChannel <- message
+				message.PrintMessageType()
+			} else {
+				debug(true, "P2PConnection.processReceives() got invalid message")
+				message.Print()
+			}
+		}
+	}
 }
 
-func (p * P2PConnection) dial(address string)  {
-    
-    
+// processReceiveChannel gets all the messages from the application and sends them out over the network
+func (c *P2PConnection) processSends() {
+	for c.Online {
+		for parcel := range c.SendChannel {
+			err := c.encoder.Encode(parcel)
+			if nil != err {
+				error(true, "P2PConnection.processSends() got encoding error: %+v", err)
+			}
+		}
+	}
 }
 
-func (p * P2PConnection) listen(address string)  {
-    
-}
-
-
-
-// // Sender is a goroutine that handles sending parcels out this connection
-// func (c *P2PConnection) Sender()  {
-    
+// TODO - make it easy to switch between encoding/binary and encoding/gob here.
+// func (c *P2PConnection) encodeAndSend(parcel Parcel)l error {
 // }
 
-func (p * P2PConnection) send([]byte)  {
-    
-   
-}
-
-// // Reciever is a goroutine that handles recieving parcels out this connection
-// func (p * P2PConnection) Reciever()  {
+// func (c *P2PConnection) receiveAndDecode(parcel Parcel) bool {
 // }
 
-func (p * P2PConnection) receive()  {
-    parcel Parcel
-    
-    if err := binary.Read(p.c)
-    
-    // if PeerID is our connectionID then this message came from ourselves.
+func (c *P2PConnection) dial(address string) {
+	conn, err := net.Dial("tcp", address)
+	if err != nil {
+		note(true, "P2PConnection.dial(%s) got error: %+v", address, err)
+	} else {
+		c.Configure(conn)
+	}
+}
+func (c *P2PConnection) isValidParcel(parcel Parcel) bool {
+	// TODO:  Check the network type (do we know it at this level?)
+	// yeah NetworkID is a global
+	// TODO:  Check the hash
+	// TODO: Check all the header info, basically!
+	return true
 }
 
-func (p * P2PConnection) gotBadMessage(address string)  {
-|
-    // TODO Track bad messages to ban bad peers at network level
-    // Array of in P2PConnection of bad messages
-    // Add this one to the array with timestamp
-    // Filter all messages with timestamps over an hour (put value in protocol.go maybe an hour is too logn)
-    // If count of bad messages in last hour exceeds threshold from protocol.go then we drop connection
-    // Add this IP address to our banned peers (for an hour or day, also define in protocol.go)
-|}
+func (c *P2PConnection) gotBadMessage() {
+
+	// TODO Track bad messages to ban bad peers at network level
+	// Array of in P2PConnection of bad messages
+	// Add this one to the array with timestamp
+	// Filter all messages with timestamps over an hour (put value in protocol.go maybe an hour is too logn)
+	// If count of bad messages in last hour exceeds threshold from protocol.go then we drop connection
+	// Add this IP address to our banned peers (for an hour or day, also define in protocol.go)
+}
+
+func (c *P2PConnection) shutdown() {
+	defer c.conn.Close()
+}
