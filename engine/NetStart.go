@@ -46,7 +46,7 @@ func NetStart(s *state.State) {
 	runtimeLogPtr := flag.Bool("runtimeLog", true, "If true, maintain runtime logs of messages passed.")
 	netdebugPtr := flag.Bool("netdebug", false, "If true, print detailed network debugging info.")
 	heartbeatPtr := flag.Bool("heartbeat", false, "If true, network just sends heartbeats.")
-	prefixNodePtr := flag.String("prefix","","Prefix the Factom Node Names with this value; used to create leaderless networks.")
+	prefixNodePtr := flag.String("prefix", "", "Prefix the Factom Node Names with this value; used to create leaderless networks.")
 
 	flag.Parse()
 
@@ -139,7 +139,7 @@ func NetStart(s *state.State) {
 		s.SetIdentityChainID(primitives.Sha([]byte(time.Now().String()))) // Make sure this node is NOT a leader
 	}
 	if leader {
-		s.SetIdentityChainID(primitives.Sha([]byte(s.Prefix+"FNode0"))) // Make sure this node is a leader
+		s.SetIdentityChainID(primitives.Sha([]byte(s.Prefix + "FNode0"))) // Make sure this node is a leader
 		s.NodeMode = "SERVER"
 	}
 

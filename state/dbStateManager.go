@@ -367,10 +367,10 @@ func (list *DBStateList) Put(dbState *DBState) {
 	for len(list.DBStates) <= index {
 		list.DBStates = append(list.DBStates, nil)
 	}
-	if list.DBStates[index]== nil {
+	if list.DBStates[index] == nil {
 		list.DBStates[index] = dbState
 	}
-	
+
 	hash, err := dbState.AdminBlock.GetKeyMR()
 	if err != nil {
 		panic(err)

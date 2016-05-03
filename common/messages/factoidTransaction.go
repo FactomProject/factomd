@@ -4,7 +4,7 @@
 
 package messages
 
-import(
+import (
 	"bytes"
 	"fmt"
 	"github.com/FactomProject/factomd/common/constants"
@@ -18,6 +18,8 @@ type FactoidTransaction struct {
 	MessageBase
 	Timestamp   interfaces.Timestamp
 	Transaction interfaces.ITransaction
+
+	//No signature!
 
 	//Not marshalled
 	hash      interfaces.IHash
@@ -87,10 +89,8 @@ func (m *FactoidTransaction) Type() byte {
 func (m *FactoidTransaction) Validate(state interfaces.IState) int {
 	err := state.GetFactoidState().Validate(1, m.Transaction)
 	if err != nil {
-		fmt.Println("fffffffffffffffff Invalid",state.GetFactomNodeName())
-			return -1
+		return -1
 	}
-	fmt.Println("vvvvvvvvvvvvvvvvvvvvv valid",state.GetFactomNodeName())
 	return 1
 }
 

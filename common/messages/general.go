@@ -64,7 +64,7 @@ func UnmarshalMessage(data []byte) (interfaces.IMsg, error) {
 	case constants.ADDSERVER_MSG:
 		msg = new(AddServerMsg)
 	default:
-		fmt.Sprintf("Transaction Failed to Validate %x",data[0])
+		fmt.Sprintf("Transaction Failed to Validate %x", data[0])
 		return nil, fmt.Errorf("Unknown message type %d %x", messageType, data[0])
 	}
 

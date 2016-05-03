@@ -18,10 +18,10 @@ import (
 type MissingMsg struct {
 	MessageBase
 
-	Timestamp         	interfaces.Timestamp
-	DBHeight          	uint32
-	VM			int
-	ProcessListHeight 	uint32
+	Timestamp         interfaces.Timestamp
+	DBHeight          uint32
+	VM                int
+	ProcessListHeight uint32
 
 	//No signature!
 

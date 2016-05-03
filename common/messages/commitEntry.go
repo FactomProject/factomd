@@ -31,6 +31,7 @@ type CommitEntryMsg struct {
 
 var _ interfaces.IMsg = (*CommitEntryMsg)(nil)
 var _ interfaces.ICounted = (*CommitEntryMsg)(nil)
+var _ Signable = (*CommitEntryMsg)(nil)
 
 func (a *CommitEntryMsg) IsSameAs(b *CommitEntryMsg) bool {
 	if b == nil {

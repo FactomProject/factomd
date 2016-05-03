@@ -9,7 +9,7 @@ import (
 
 	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/messages"
-	//"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 func TestMarshalUnmarshalInvalidDirectoryBlock(t *testing.T) {
@@ -50,9 +50,8 @@ func TestMarshalUnmarshalInvalidDirectoryBlock(t *testing.T) {
 	}
 }
 
-/*
-func TestSignAndVerifyEOM(t *testing.T) {
-	msg := newSignedEOM()
+func TestSignAndVerifyInvalidDirectoryBlock(t *testing.T) {
+	msg := newSignedInvalidDirectoryBlock()
 	hex, err := msg.MarshalBinary()
 	if err != nil {
 		t.Error(err)
@@ -77,20 +76,18 @@ func TestSignAndVerifyEOM(t *testing.T) {
 		t.Error(err)
 	}
 
-	if msg2.Type() != constants.EOM_MSG {
+	if msg2.Type() != constants.INVALID_DIRECTORY_BLOCK_MSG {
 		t.Error("Invalid message type unmarshalled")
 	}
-	eomProper := msg2.(*EOM)
 
-	valid, err = eomProper.VerifySignature()
+	valid, err = msg2.(*InvalidDirectoryBlock).VerifySignature()
 	if err != nil {
 		t.Error(err)
 	}
 	if valid == false {
 		t.Error("Signature 2 is not valid")
 	}
-
-}*/
+}
 
 func newInvalidDirectoryBlock() *InvalidDirectoryBlock {
 	eom := new(InvalidDirectoryBlock)
@@ -99,9 +96,8 @@ func newInvalidDirectoryBlock() *InvalidDirectoryBlock {
 	return eom
 }
 
-/*
-func newSignedEOM() *EOM {
-	ack := newEOM()
+func newSignedInvalidDirectoryBlock() *InvalidDirectoryBlock {
+	ack := newInvalidDirectoryBlock()
 
 	key, err := primitives.NewPrivateKeyFromHex("07c0d52cb74f4ca3106d80c4a70488426886bccc6ebc10c6bafb37bf8a65f4c38cee85c62a9e48039d4ac294da97943c2001be1539809ea5f54721f0c5477a0a")
 	if err != nil {
@@ -114,4 +110,3 @@ func newSignedEOM() *EOM {
 
 	return ack
 }
-*/
