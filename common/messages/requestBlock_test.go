@@ -9,11 +9,11 @@ import (
 
 	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/messages"
-	"github.com/FactomProject/factomd/common/primitives"
+	//"github.com/FactomProject/factomd/common/primitives"
 )
 
-func TestMarshalUnmarshalEOMTimeout(t *testing.T) {
-	msg := newEOMTimeout()
+func TestMarshalUnmarshalRequestBlock(t *testing.T) {
+	msg := newRequestBlock()
 
 	hex, err := msg.MarshalBinary()
 	if err != nil {
@@ -28,11 +28,11 @@ func TestMarshalUnmarshalEOMTimeout(t *testing.T) {
 	str := msg2.String()
 	t.Logf("str - %v", str)
 
-	if msg2.Type() != constants.EOM_TIMEOUT_MSG {
+	if msg2.Type() != constants.REQUEST_BLOCK_MSG {
 		t.Error("Invalid message type unmarshalled")
 	}
 
-	hex2, err := msg2.(*EOMTimeout).MarshalBinary()
+	hex2, err := msg2.(*RequestBlock).MarshalBinary()
 	if err != nil {
 		t.Error(err)
 	}
@@ -45,13 +45,14 @@ func TestMarshalUnmarshalEOMTimeout(t *testing.T) {
 		}
 	}
 
-	if msg.IsSameAs(msg2.(*EOMTimeout)) != true {
-		t.Errorf("EOMTimeout messages are not identical")
+	if msg.IsSameAs(msg2.(*RequestBlock)) != true {
+		t.Errorf("RequestBlock messages are not identical")
 	}
 }
 
-func TestSignAndVerifyEOMTimeout(t *testing.T) {
-	msg := newSignedEOMTimeout()
+/*
+func TestSignAndVerifyEOM(t *testing.T) {
+	msg := newSignedEOM()
 	hex, err := msg.MarshalBinary()
 	if err != nil {
 		t.Error(err)
@@ -76,28 +77,31 @@ func TestSignAndVerifyEOMTimeout(t *testing.T) {
 		t.Error(err)
 	}
 
-	if msg2.Type() != constants.EOM_TIMEOUT_MSG {
+	if msg2.Type() != constants.EOM_MSG {
 		t.Error("Invalid message type unmarshalled")
 	}
+	eomProper := msg2.(*EOM)
 
-	valid, err = msg2.(*EOMTimeout).VerifySignature()
+	valid, err = eomProper.VerifySignature()
 	if err != nil {
 		t.Error(err)
 	}
 	if valid == false {
 		t.Error("Signature 2 is not valid")
 	}
-}
 
-func newEOMTimeout() *EOMTimeout {
-	msg := new(EOMTimeout)
+}*/
+
+func newRequestBlock() *RequestBlock {
+	msg := new(RequestBlock)
 	msg.Timestamp.SetTimeNow()
 
 	return msg
 }
 
-func newSignedEOMTimeout() *EOMTimeout {
-	msg := newEOMTimeout()
+/*
+func newSignedEOM() *EOM {
+	msg := newEOM()
 
 	key, err := primitives.NewPrivateKeyFromHex("07c0d52cb74f4ca3106d80c4a70488426886bccc6ebc10c6bafb37bf8a65f4c38cee85c62a9e48039d4ac294da97943c2001be1539809ea5f54721f0c5477a0a")
 	if err != nil {
@@ -110,3 +114,4 @@ func newSignedEOMTimeout() *EOMTimeout {
 
 	return msg
 }
+*/

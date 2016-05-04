@@ -589,9 +589,7 @@ func HandleV2EntryCreditBalance(state interfaces.IState, params interface{}) (in
 func HandleV2GetFee(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	resp := new(FactoidGetFeeResponse)
 	resp.Fee = state.GetFactoshisPerEC()
-
-	fmt.Println(";;;;;;;;;;;;;;;;;;;;;;;;;;;;;; ", resp.Fee)
-
+	
 	return resp, nil
 }
 
@@ -602,6 +600,8 @@ func HandleV2FactoidSubmit(state interfaces.IState, params interface{}) (interfa
 	}
 
 	msg := new(messages.FactoidTransaction)
+	msg.Timestamp = state.GetTimestamp()
+
 	p, err := hex.DecodeString(t)
 	if err != nil {
 		return nil, NewUnableToDecodeTransactionError()

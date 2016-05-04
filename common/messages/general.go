@@ -45,8 +45,6 @@ func UnmarshalMessage(data []byte) (interfaces.IMsg, error) {
 		msg = new(InvalidAck)
 	case constants.INVALID_DIRECTORY_BLOCK_MSG:
 		msg = new(InvalidDirectoryBlock)
-	case constants.MISSING_ACK_MSG:
-		msg = new(MissingAck)
 	case constants.MISSING_MSG:
 		msg = new(MissingMsg)
 	case constants.MISSING_DATA:
@@ -66,13 +64,16 @@ func UnmarshalMessage(data []byte) (interfaces.IMsg, error) {
 	case constants.ADDSERVER_MSG:
 		msg = new(AddServerMsg)
 	default:
+		fmt.Sprintf("Transaction Failed to Validate %x", data[0])
 		return nil, fmt.Errorf("Unknown message type %d %x", messageType, data[0])
 	}
 
 	err := msg.UnmarshalBinary(data[:])
 	if err != nil {
+		fmt.Sprintf("Transaction Failed to Unmarshal %x", data[0])
 		return nil, err
 	}
+
 	return msg, nil
 
 }
@@ -101,8 +102,6 @@ func MessageName(Type byte) string {
 		return "Invalid Ack"
 	case constants.INVALID_DIRECTORY_BLOCK_MSG:
 		return "Invalid Directory Block"
-	case constants.MISSING_ACK_MSG:
-		return "Missing Ack"
 	case constants.MISSING_MSG:
 		return "Missing Msg"
 	case constants.MISSING_DATA:
