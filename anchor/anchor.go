@@ -335,56 +335,6 @@ func (a *Anchor) checkMissingDirBlockInfo() {
 
 // InitAnchor inits rpc clients for factom
 // and load up unconfirmed DirBlockInfo from leveldb
-func InitAnchor(s interfaces.IState) (*Anchor, error) {
-	anchorLog.Debug("InitAnchor")
-	a := NewAnchor()
-	a.state = s
-	a.db = s.GetDB()
-	a.minBalance, _ = btcutil.NewAmount(0.01)
-
-	var err error
-	a.dirBlockInfoSlice, err = a.db.FetchAllUnconfirmedDirBlockInfos()
-	if err != nil {
-		anchorLog.Error("InitAnchor error - " + err.Error())
-		return nil, err
-	}
-	anchorLog.Debug("init dirBlockInfoSlice.len=", len(a.dirBlockInfoSlice))
-	// this might take a while to check missing DirBlockInfo for existing DirBlocks in database
-
-	//TODO: handle concurrance better
-	go a.checkMissingDirBlockInfo()
-
-	a.readConfig()
-	if err = a.InitRPCClient(); err != nil {
-		anchorLog.Error(err.Error())
-	} else {
-		a.updateUTXO(a.minBalance)
-	}
-
-	ticker0 := time.NewTicker(time.Minute * time.Duration(1))
-	go func() {
-		for _ = range ticker0.C {
-			a.checkForAnchor()
-		}
-	}()
-
-	ticker := time.NewTicker(time.Minute * time.Duration(a.tenMinutes))
-	go func() {
-		for _ = range ticker.C {
-			anchorLog.Info("In 10 minutes ticker...")
-			a.readConfig()
-			if a.dclient == nil || a.wclient == nil {
-				if err = a.InitRPCClient(); err != nil {
-					anchorLog.Error(err.Error())
-				}
-			}
-			if a.wclient != nil {
-				a.checkTxConfirmations()
-			}
-		}
-	}()
-	return a, nil
-}
 
 func (a *Anchor) readConfig() {
 	anchorLog.Info("readConfig")

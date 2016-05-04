@@ -16,9 +16,12 @@ import (
 type EOMTimeout struct {
 	MessageBase
 	Timestamp interfaces.Timestamp
+
+	Signature interfaces.IFullSignature
 }
 
 var _ interfaces.IMsg = (*EOMTimeout)(nil)
+var _ Signable = (*EOMTimeout)(nil)
 
 func (a *EOMTimeout) IsSameAs(b *EOMTimeout) bool {
 	if b == nil {
@@ -30,7 +33,33 @@ func (a *EOMTimeout) IsSameAs(b *EOMTimeout) bool {
 
 	//TODO: expand
 
+	if a.Signature == nil && b.Signature != nil {
+		return false
+	}
+	if a.Signature != nil {
+		if a.Signature.IsSameAs(b.Signature) == false {
+			return false
+		}
+	}
+
 	return true
+}
+
+func (m *EOMTimeout) Sign(key interfaces.Signer) error {
+	signature, err := SignSignable(m, key)
+	if err != nil {
+		return err
+	}
+	m.Signature = signature
+	return nil
+}
+
+func (m *EOMTimeout) GetSignature() interfaces.IFullSignature {
+	return m.Signature
+}
+
+func (m *EOMTimeout) VerifySignature() (bool, error) {
+	return VerifyMessage(m)
 }
 
 func (e *EOMTimeout) Process(uint32, interfaces.IState) bool {
@@ -87,6 +116,14 @@ func (m *EOMTimeout) UnmarshalBinaryData(data []byte) (newData []byte, err error
 
 	//TODO: expand
 
+	if len(newData) > 0 {
+		m.Signature = new(primitives.Signature)
+		newData, err = m.Signature.UnmarshalBinaryData(newData)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return newData, nil
 }
 
@@ -95,7 +132,7 @@ func (m *EOMTimeout) UnmarshalBinary(data []byte) error {
 	return err
 }
 
-func (m *EOMTimeout) MarshalBinary() (data []byte, err error) {
+func (m *EOMTimeout) MarshalForSignature() (data []byte, err error) {
 	var buf primitives.Buffer
 	buf.Write([]byte{m.Type()})
 	if d, err := m.Timestamp.MarshalBinary(); err != nil {
@@ -107,6 +144,23 @@ func (m *EOMTimeout) MarshalBinary() (data []byte, err error) {
 	//TODO: expand
 
 	return buf.DeepCopyBytes(), nil
+}
+
+func (m *EOMTimeout) MarshalBinary() (data []byte, err error) {
+	resp, err := m.MarshalForSignature()
+	if err != nil {
+		return nil, err
+	}
+	sig := m.GetSignature()
+
+	if sig != nil {
+		sigBytes, err := sig.MarshalBinary()
+		if err != nil {
+			return nil, err
+		}
+		return append(resp, sigBytes...), nil
+	}
+	return resp, nil
 }
 
 func (m *EOMTimeout) String() string {
@@ -126,10 +180,6 @@ func (m *EOMTimeout) ListHeight() int {
 }
 
 func (m *EOMTimeout) SerialHash() []byte {
-	return nil
-}
-
-func (m *EOMTimeout) Signature() []byte {
 	return nil
 }
 

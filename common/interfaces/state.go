@@ -4,8 +4,6 @@
 
 package interfaces
 
-var NumOfVMs int = 2
-
 // Holds the state information for factomd.  This does imply that we will be
 // using accessors to access state information in the consensus algorithm.
 // This is a bit tedious, but does provide single choke points where information
@@ -25,10 +23,8 @@ type IState interface {
 	Sign([]byte) IFullSignature
 	GetDirectoryBlockInSeconds() int
 	SetDirectoryBlockInSeconds(int)
-	GetServer() IServer
 	GetFactomdVersion() int
 	GetProtocolVersion() int
-	SetServer(IServer)
 	GetDBHeightComplete() uint32
 	GetEBDBHeightComplete() uint32
 	SetEBDBHeightComplete(uint32)
@@ -37,18 +33,20 @@ type IState interface {
 	GetOut() bool // Return true if Print or Println write output
 	LoadDataByHash(requestedHash IHash) (BinaryMarshallable, int, error)
 	LoadDBState(dbheight uint32) (IMsg, error)
-	LoadSpecificMsg(dbheight uint32, plistheight uint32) (IMsg, error)
-	LoadSpecificMsgAndAck(dbheight uint32, plistheight uint32) (IMsg, IMsg, error)
+	LoadSpecificMsg(dbheight uint32, vm int, plistheight uint32) (IMsg, error)
+	LoadSpecificMsgAndAck(dbheight uint32, vm int, plistheight uint32) (IMsg, IMsg, error)
 	SetString()
 	ShortString() string
 
+	AddPrefix(string)
 	AddFedServer(uint32, IHash) int
 	GetFedServers(uint32) []IFctServer
 	AddAuditServer(uint32, IHash) int
 	GetAuditServers(uint32) []IFctServer
 
-	Green() bool
-
+	// Routine for handling the syncroniztion of the leader and follower processes
+	// and how they process messages.
+	Process() (progress bool)
 	// This is the highest block signed off and recorded in the Database.  This
 	// is a follower's state, but it is also critical to validation; we cannot
 	// validate transactions where the HighestRecordedBlock+1 != block holding said
@@ -69,6 +67,7 @@ type IState interface {
 	//==========
 
 	// Network Processor
+	TickerQueue() chan int
 	TimerMsgQueue() chan IMsg
 	NetworkOutMsgQueue() chan IMsg
 	NetworkInvalidMsgQueue() chan IMsg
@@ -79,7 +78,6 @@ type IState interface {
 	// Consensus
 	InMsgQueue() chan IMsg     // Read by Validate
 	LeaderMsgQueue() chan IMsg // Leader Queue
-	Undo() IMsg
 
 	// Lists and Maps
 	// =====
@@ -107,7 +105,7 @@ type IState interface {
 	// and what lists they are responsible for.
 	LeaderFor(msg IMsg, hash []byte) bool // Tests if this server is the leader for this key
 	// Returns the list of VirtualServers at a given directory block height and minute
-	GetVirtualServers(dbheight uint32, minute int, identityChainID IHash) (found bool, indexes []int)
+	GetVirtualServers(dbheight uint32, minute int, identityChainID IHash) (found bool, index int)
 	// Database
 	// ========
 	GetDB() DBOverlay
@@ -123,7 +121,7 @@ type IState interface {
 
 	// Factoid State
 	// =============
-	UpdateState()
+	UpdateState() bool
 	GetFactoidState() IFactoidState
 
 	SetFactoidState(dbheight uint32, fs IFactoidState)
@@ -149,12 +147,10 @@ type IState interface {
 
 	GetTimestamp() Timestamp
 
-	PrintType(byte) bool // Debugging
 	Print(a ...interface{}) (n int, err error)
 	Println(a ...interface{}) (n int, err error)
 
 	ValidatorLoop()
-	Dethrottle()
 
 	AddDataRequest(requestedHash, missingDataHash IHash)
 	HasDataRequest(checkHash IHash) bool

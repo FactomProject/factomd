@@ -16,7 +16,6 @@ import (
 )
 
 const (
-	httpOK  = 200
 	httpBad = 400
 )
 

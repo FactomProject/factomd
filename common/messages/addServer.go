@@ -27,6 +27,7 @@ type AddServerMsg struct {
 }
 
 var _ interfaces.IMsg = (*AddServerMsg)(nil)
+var _ Signable = (*AddServerMsg)(nil)
 
 func (m *AddServerMsg) IsSameAs(b *AddServerMsg) bool {
 	if b == nil {
@@ -254,7 +255,12 @@ func (m *AddServerMsg) String() string {
 	} else {
 		stype = "Audit"
 	}
-	return fmt.Sprintf("AddServer (%s): ChainID: %s Time: %v ", stype, m.ServerChainID.String(), m.Timestamp)
+	return fmt.Sprintf("AddServer (%s): ChainID: %x Time: %x Msg Hash %x ",
+		stype,
+		m.ServerChainID.Bytes()[:3],
+		m.Timestamp,
+		m.GetMsgHash().Bytes()[:3])
+
 }
 
 func NewAddServerMsg(state interfaces.IState, serverType int) interfaces.IMsg {
