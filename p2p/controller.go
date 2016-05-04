@@ -13,6 +13,7 @@ package p2p
 import (
 	"fmt"
 	"net"
+	"time"
 )
 
 // Controller manages the peer to peer network.
@@ -158,15 +159,18 @@ func (c *Controller) runloop() {
 	note(true, "Controller.runloop() starting up")
 
 	for c.keepRunning { // Run until we get the exit command
-		verbose(true, "Controller.runloop() Calling router")
-		c.router() // Route messages
+		time.Sleep(time.Millisecond * 100)
+
 		// Process commands...
 		verbose(true, "Controller.runloop() About to process commands. Commands in channel: %d", len(c.commandChannel))
-		for command := range c.commandChannel {
+		for 0 < len(c.commandChannel) {
+			command := <-c.commandChannel
 			verbose(true, "Controller.runloop() Processing command: %+v", command)
 			c.handleCommand(command)
 		}
 		// route messages to and from application
+		verbose(true, "Controller.runloop() Calling router")
+		c.router() // Route messages
 	}
 	note(true, "Controller.runloop() has exited. Shutdown command recieved?")
 }
@@ -175,40 +179,39 @@ func (c *Controller) runloop() {
 // peer. Broadcast messages go to everyone, directed messages go to the named peer.
 // route also passes incomming messages on to the application.
 func (c *Controller) router() {
-	note(true, "Controller.route() called. Number peers: %d", len(c.peers))
+	verbose(true, "Controller.route() called. Number peers: %d", len(c.peers))
 
 	// Recieve messages from the peers & forward to application.
 	for id, peer := range c.peers {
 		// Empty the recieve channel, stuff the application channel.
-		note(true, "Controller.route() size of recieve channel: %d", len(peer.ReceiveChannel))
-
-		for parcel := range peer.ReceiveChannel {
-			debug(true, "Controller.route() got parcel from NETWORK %+v", parcel)
+		verbose(true, "Controller.route() size of recieve channel: %d", len(peer.ReceiveChannel))
+		for 0 < len(peer.ReceiveChannel) { // effectively "While there are messages"
+			parcel := <-peer.ReceiveChannel
+			verbose(true, "Controller.route() got parcel from NETWORK %+v", parcel)
 			parcel.Header.ConnectionID = id // Set the connection ID so the application knows which peer the message is from.
 			c.FromNetwork <- parcel
 		}
 	}
 	// For each message, see if it is directed, if so, send to the
 	// specific peer, otherwise, broadcast.
-	note(true, "Controller.route() size of ToNetwork channel: %d", len(c.ToNetwork))
-
-	for parcel := range c.ToNetwork {
-		debug(true, "Controller.route() got parcel from APPLICATION %+v", parcel)
+	verbose(true, "Controller.route() size of ToNetwork channel: %d", len(c.ToNetwork))
+	for 0 < len(c.ToNetwork) { // effectively "While there are messages"
+		parcel := <-c.ToNetwork
+		verbose(true, "Controller.route() got parcel from APPLICATION %+v", parcel)
 		if 0 != parcel.Header.ConnectionID { // directed send
-			debug(true, "Controller.route() Directed send to %+v", parcel.Header.ConnectionID)
-
+			verbose(true, "Controller.route() Directed send to %+v", parcel.Header.ConnectionID)
 			peer := c.peers[parcel.Header.ConnectionID]
 			peer.SendChannel <- parcel
 		} else { // broadcast
-			debug(true, "Controller.route() Boadcast send to %d peers", len(c.peers))
-
+			verbose(true, "Controller.route() Boadcast send to %d peers", len(c.peers))
 			for _, peer := range c.peers {
-				debug(true, "Controller.route() Send to peer %d ", peer.ConnectionID)
-
+				verbose(true, "Controller.route() Send to peer %d ", peer.ConnectionID)
 				peer.SendChannel <- parcel
 			}
 		}
 	}
+	verbose(true, "Controller.route() Leaving Router Number peers: %d", len(c.peers))
+
 }
 
 func (c *Controller) handleCommand(command interface{}) {

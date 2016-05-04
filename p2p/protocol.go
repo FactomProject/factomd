@@ -92,16 +92,17 @@ func verbose(linebreak bool, format string, v ...interface{}) {
 }
 func log(level uint8, linebreak bool, format string, v ...interface{}) {
 	message := fmt.Sprintf(format, v...)
-	// levelStr := LoggingLevels[level]
+	levelStr := LoggingLevels[level]
 	breakStr := ""
 	if linebreak {
 		breakStr = "\n"
 	}
 	if level <= CurrentLoggingLevel { // lower level means more severe. "Silence" level always printed, overriding silence.
-		fmt.Fprintf(os.Stdout, "%d - %s  %s", os.Getpid(), message, breakStr)
+		fmt.Fprintf(os.Stdout, "%d (%s) %d/%d \t- %s  %s", os.Getpid(), levelStr, level, CurrentLoggingLevel, message, breakStr)
 	}
 	if level == Fatal {
-		fmt.Fprintf(os.Stderr, "%d - %s  %s", os.Getpid(), message, breakStr)
+		fmt.Fprintf(os.Stderr, "%d (%s) %d/%d ERROR:\t- %s  %s", os.Getpid(), levelStr, level, CurrentLoggingLevel, message, breakStr)
+
 		// BUGBUG - take out this exit before shipping JAYJAY TODO
 		os.Exit(1)
 	}

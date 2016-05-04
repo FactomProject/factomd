@@ -76,7 +76,7 @@ func (p *ParcelHeader) Print() {
 
 func (p *Parcel) Print() {
 	p.Header.Print()
-	log(Debugging, true, "\t\tPayload: \n %+v", p.Payload)
+	log(Debugging, true, "\t\tPayload: %+v", p.Payload)
 }
 
 func (p *Parcel) PrintMessageType() {
