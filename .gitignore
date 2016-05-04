@@ -40,3 +40,4 @@ _testmain.go
 .DS_Store
 
 *.out
+.idea/
