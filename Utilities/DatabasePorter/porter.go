@@ -32,6 +32,16 @@ func main() {
 
 	fmt.Printf("dbo - %v\n", dbo)
 
+	dbHead, err := dbo.FetchDirectoryBlockHead()
+	if err != nil {
+		panic(err)
+	}
+	endKeyMR := "0000000000000000000000000000000000000000000000000000000000000000"
+	if dbHead != nil {
+		endKeyMR = dbHead.GetKeyMR().String()
+		fmt.Printf("Local DB Head - %v - %v\n", dbHead.GetDatabaseHeight(), endKeyMR)
+	}
+
 	keymr, err := GetDBlockHead()
 	if err != nil {
 		panic(err)
@@ -48,7 +58,7 @@ func main() {
 
 	for {
 		keymr = dBlock.GetHeader().GetPrevKeyMR().String()
-		if keymr == "0000000000000000000000000000000000000000000000000000000000000000" {
+		if keymr == endKeyMR {
 			break
 		}
 		dBlock, err = GetDBlock(keymr)
