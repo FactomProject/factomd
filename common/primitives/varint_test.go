@@ -5,7 +5,6 @@
 package primitives_test
 
 import (
-	"bytes"
 	"fmt"
 	"math/rand"
 	"testing"
@@ -15,7 +14,7 @@ import (
 
 func TestVarInt(t *testing.T) {
 	for i := 0; i < 1000; i++ {
-		var out bytes.Buffer
+		var out Buffer
 
 		v := make([]uint64, 10)
 

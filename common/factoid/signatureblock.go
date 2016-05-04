@@ -106,7 +106,7 @@ func (s SignatureBlock) GetSignatures() []interfaces.ISignature {
 }
 
 func (a SignatureBlock) MarshalBinary() ([]byte, error) {
-	var out bytes.Buffer
+	var out primitives.Buffer
 
 	for _, sig := range a.GetSignatures() {
 
@@ -117,11 +117,11 @@ func (a SignatureBlock) MarshalBinary() ([]byte, error) {
 		out.Write(data)
 	}
 
-	return out.Bytes(), nil
+	return out.DeepCopyBytes(), nil
 }
 
 func (s SignatureBlock) CustomMarshalText() ([]byte, error) {
-	var out bytes.Buffer
+	var out primitives.Buffer
 
 	out.WriteString("Signature Block: \n")
 	for _, sig := range s.Signatures {
@@ -136,7 +136,7 @@ func (s SignatureBlock) CustomMarshalText() ([]byte, error) {
 
 	}
 
-	return out.Bytes(), nil
+	return out.DeepCopyBytes(), nil
 }
 
 func (s *SignatureBlock) UnmarshalBinaryData(data []byte) (newData []byte, err error) {

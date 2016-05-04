@@ -6,6 +6,7 @@ package messages
 
 import (
 	"bytes"
+	"encoding/binary"
 	"fmt"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
@@ -19,12 +20,44 @@ type CommitChainMsg struct {
 	Timestamp   interfaces.Timestamp
 	CommitChain *entryCreditBlock.CommitChain
 
+	Signature interfaces.IFullSignature
+
 	// Not marshaled... Just used by the leader
 	count int
 }
 
 var _ interfaces.IMsg = (*CommitChainMsg)(nil)
 var _ interfaces.ICounted = (*CommitChainMsg)(nil)
+var _ Signable = (*CommitChainMsg)(nil)
+
+func (a *CommitChainMsg) IsSameAs(b *CommitChainMsg) bool {
+	if b == nil {
+		return false
+	}
+	if a.Timestamp != b.Timestamp {
+		return false
+	}
+
+	if a.CommitChain == nil && b.CommitChain != nil {
+		return false
+	}
+	if a.CommitChain != nil {
+		if a.CommitChain.IsSameAs(b.CommitChain) == false {
+			return false
+		}
+	}
+
+	if a.Signature == nil && b.Signature != nil {
+		return false
+	}
+	if a.Signature != nil {
+		if a.Signature.IsSameAs(b.Signature) == false {
+			return false
+		}
+	}
+
+	return true
+}
 
 func (m *CommitChainMsg) GetCount() int {
 	return m.count
@@ -61,7 +94,7 @@ func (m *CommitChainMsg) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp
 }
 
-func (m *CommitChainMsg) Type() int {
+func (m *CommitChainMsg) Type() byte {
 	return constants.COMMIT_CHAIN_MSG
 }
 
@@ -83,7 +116,6 @@ func (m *CommitChainMsg) Validate(state interfaces.IState) int {
 	}
 	ebal := state.GetFactoidState().GetECBalance(*m.CommitChain.ECPubKey)
 	if int(m.CommitChain.Credits) > int(ebal) {
-		fmt.Println("Not enough Credits")
 		return 0
 	}
 
@@ -93,7 +125,7 @@ func (m *CommitChainMsg) Validate(state interfaces.IState) int {
 // Returns true if this is a message for this server to execute as
 // a leader.
 func (m *CommitChainMsg) Leader(state interfaces.IState) bool {
-	return state.LeaderFor(constants.EC_CHAINID)
+	return state.LeaderFor(m, constants.EC_CHAINID)
 }
 
 // Execute the leader functions of the given message
@@ -123,19 +155,57 @@ func (e *CommitChainMsg) JSONBuffer(b *bytes.Buffer) error {
 	return primitives.EncodeJSONToBuffer(e, b)
 }
 
+func (m *CommitChainMsg) Sign(key interfaces.Signer) error {
+	signature, err := SignSignable(m, key)
+	if err != nil {
+		return err
+	}
+	m.Signature = signature
+	return nil
+}
+
+func (m *CommitChainMsg) GetSignature() interfaces.IFullSignature {
+	return m.Signature
+}
+
+func (m *CommitChainMsg) VerifySignature() (bool, error) {
+	return VerifyMessage(m)
+}
+
 func (m *CommitChainMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
+			err = fmt.Errorf("Error unmarshalling Commit Chain Message: %v", r)
 		}
 	}()
-	newData = data[1:]
+	newData = data
+	if newData[0] != m.Type() {
+		return nil, fmt.Errorf("Invalid Message type")
+	}
+	newData = newData[1:]
+
+	t := new(interfaces.Timestamp)
+	newData, err = t.UnmarshalBinaryData(newData)
+	if err != nil {
+		return nil, err
+	}
+	m.Timestamp = *t
+
 	cc := entryCreditBlock.NewCommitChain()
 	newData, err = cc.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
 	}
 	m.CommitChain = cc
+
+	if len(newData) > 0 {
+		m.Signature = new(primitives.Signature)
+		newData, err = m.Signature.UnmarshalBinaryData(newData)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return newData, nil
 }
 
@@ -144,13 +214,42 @@ func (m *CommitChainMsg) UnmarshalBinary(data []byte) error {
 	return err
 }
 
-func (m *CommitChainMsg) MarshalBinary() (data []byte, err error) {
+func (m *CommitChainMsg) MarshalForSignature() (data []byte, err error) {
+	var buf primitives.Buffer
+
+	binary.Write(&buf, binary.BigEndian, m.Type())
+
+	t := m.GetTimestamp()
+	data, err = t.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	buf.Write(data)
+
 	data, err = m.CommitChain.MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
-	data = append([]byte{byte(m.Type())}, data...)
-	return data, nil
+	buf.Write(data)
+
+	return buf.DeepCopyBytes(), nil
+}
+
+func (m *CommitChainMsg) MarshalBinary() (data []byte, err error) {
+	resp, err := m.MarshalForSignature()
+	if err != nil {
+		return nil, err
+	}
+	sig := m.GetSignature()
+
+	if sig != nil {
+		sigBytes, err := sig.MarshalBinary()
+		if err != nil {
+			return nil, err
+		}
+		return append(resp, sigBytes...), nil
+	}
+	return resp, nil
 }
 
 func (m *CommitChainMsg) String() string {

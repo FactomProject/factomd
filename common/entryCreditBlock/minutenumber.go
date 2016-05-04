@@ -55,20 +55,20 @@ func (m *MinuteNumber) ECID() byte {
 }
 
 func (m *MinuteNumber) MarshalBinary() ([]byte, error) {
-	buf := new(bytes.Buffer)
+	buf := new(primitives.Buffer)
 	buf.WriteByte(m.Number)
-	return buf.Bytes(), nil
+	return buf.DeepCopyBytes(), nil
 }
 
 func (m *MinuteNumber) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	buf := bytes.NewBuffer(data)
+	buf := primitives.NewBuffer(data)
 	var c byte
 	if c, err = buf.ReadByte(); err != nil {
 		return
 	} else {
 		m.Number = c
 	}
-	newData = buf.Bytes()
+	newData = buf.DeepCopyBytes()
 	return
 }
 

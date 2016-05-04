@@ -84,10 +84,10 @@ func (ds *DBState) String() string {
 	} else {
 
 		str = fmt.Sprintf("%s      DBlk Height   = %v\n", str, ds.DirectoryBlock.GetHeader().GetDBHeight())
-		str = fmt.Sprintf("%s      DBlock        = %x %x\n", str, ds.DirectoryBlock.GetHash().Bytes()[:5], ds.DBHash.Bytes()[:5])
-		str = fmt.Sprintf("%s      ABlock        = %x %x\n", str, ds.AdminBlock.GetHash().Bytes()[:5], ds.ABHash.Bytes()[:5])
-		str = fmt.Sprintf("%s      FBlock        = %x %x\n", str, ds.FactoidBlock.GetHash().Bytes()[:5], ds.FBHash.Bytes()[:5])
-		str = fmt.Sprintf("%s      ECBlock       = %x %x\n", str, ds.EntryCreditBlock.GetHash().Bytes()[:5], ds.ECHash.Bytes()[:5])
+		str = fmt.Sprintf("%s      DBlock        = %x \n", str, ds.DirectoryBlock.GetHash().Bytes()[:5])
+		str = fmt.Sprintf("%s      ABlock        = %x \n", str, ds.AdminBlock.GetHash().Bytes()[:5])
+		str = fmt.Sprintf("%s      FBlock        = %x \n", str, ds.FactoidBlock.GetHash().Bytes()[:5])
+		str = fmt.Sprintf("%s      ECBlock       = %x \n", str, ds.EntryCreditBlock.GetHash().Bytes()[:5])
 	}
 	return str
 }
@@ -109,7 +109,8 @@ func (list *DBStateList) Catchup() {
 	now := list.State.GetTimestamp()
 
 	dbsHeight := list.GetHighestRecordedBlock()
-	if list.State.LLeaderHeight < dbsHeight {
+
+	if dbsHeight > list.State.LLeaderHeight {
 		list.State.LLeaderHeight = dbsHeight + 1
 	}
 
@@ -280,6 +281,12 @@ func (list *DBStateList) UpdateState() (progress bool) {
 		list.LastTime = list.State.GetTimestamp() // If I saved or processed stuff, I'm good for a while
 		d.Saved = true                            // Only after all is done will I admit this state has been saved.
 
+		if d.DirectoryBlock.GetHeader().GetDBHeight() == list.State.LLeaderHeight {
+			list.State.EOB = true
+		}
+
+		list.State.LLeaderHeight = list.State.GetHighestRecordedBlock() + 1
+
 		// Any updates required to the state as established by the AdminBlock are applied here.
 		d.AdminBlock.UpdateState(list.State)
 
@@ -360,8 +367,9 @@ func (list *DBStateList) Put(dbState *DBState) {
 	for len(list.DBStates) <= index {
 		list.DBStates = append(list.DBStates, nil)
 	}
-
-	list.DBStates[index] = dbState
+	if list.DBStates[index] == nil {
+		list.DBStates[index] = dbState
+	}
 
 	hash, err := dbState.AdminBlock.GetKeyMR()
 	if err != nil {

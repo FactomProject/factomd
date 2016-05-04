@@ -14,7 +14,7 @@ import (
 func main() {
 	fmt.Println("DatabasePorter")
 
-	cfg := util.ReadConfig("")
+	cfg := util.ReadConfig("", "")
 
 	var dbo interfaces.DBOverlay
 

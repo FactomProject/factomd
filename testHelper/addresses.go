@@ -1,7 +1,6 @@
 package testHelper
 
 import (
-	"bytes"
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
@@ -12,12 +11,12 @@ import (
 )
 
 func NewPrivKeyString(n uint64) string {
-	buf := new(bytes.Buffer)
+	buf := new(primitives.Buffer)
 	if err := binary.Write(buf, binary.BigEndian, n); err != nil {
 		panic(err)
 	}
 
-	priv := fmt.Sprintf("000000000000000000000000000000000000000000000000%x", buf.Bytes())
+	priv := fmt.Sprintf("000000000000000000000000000000000000000000000000%x", buf.DeepCopyBytes())
 	return priv
 }
 

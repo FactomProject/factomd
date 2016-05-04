@@ -50,6 +50,21 @@ func NewCommitChain() *CommitChain {
 	return c
 }
 
+func (a *CommitChain) IsSameAs(b *CommitChain) bool {
+	if b == nil {
+		return false
+	}
+	bin1, err := a.MarshalBinary()
+	if err != nil {
+		return false
+	}
+	bin2, err := b.MarshalBinary()
+	if err != nil {
+		return false
+	}
+	return primitives.AreBytesEqual(bin1, bin2)
+}
+
 func (e *CommitChain) Hash() interfaces.IHash {
 	bin, err := e.MarshalBinary()
 	if err != nil {
@@ -105,11 +120,11 @@ func (c *CommitChain) GetSigHash() interfaces.IHash {
 }
 
 func (c *CommitChain) MarshalBinarySig() ([]byte, error) {
-	buf := new(bytes.Buffer)
+	buf := new(primitives.Buffer)
 
 	// 1 byte Version
 	if err := binary.Write(buf, binary.BigEndian, c.Version); err != nil {
-		return buf.Bytes(), err
+		return nil, err
 	}
 
 	// 6 byte MilliTime
@@ -126,14 +141,14 @@ func (c *CommitChain) MarshalBinarySig() ([]byte, error) {
 
 	// 1 byte number of Entry Credits
 	if err := binary.Write(buf, binary.BigEndian, c.Credits); err != nil {
-		return buf.Bytes(), err
+		return nil, err
 	}
 
-	return buf.Bytes(), nil
+	return buf.DeepCopyBytes(), nil
 }
 
 func (c *CommitChain) MarshalBinary() ([]byte, error) {
-	buf := new(bytes.Buffer)
+	buf := new(primitives.Buffer)
 
 	b, err := c.MarshalBinarySig()
 	if err != nil {
@@ -148,7 +163,7 @@ func (c *CommitChain) MarshalBinary() ([]byte, error) {
 	// 64 byte Signature
 	buf.Write(c.Sig[:])
 
-	return buf.Bytes(), nil
+	return buf.DeepCopyBytes(), nil
 }
 
 func (c *CommitChain) Sign(privateKey []byte) error {
@@ -198,10 +213,10 @@ func (c *CommitChain) ECID() byte {
 func (c *CommitChain) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
+			err = fmt.Errorf("Error unmarshalling Commit Chain: %v", r)
 		}
 	}()
-	buf := bytes.NewBuffer(data)
+	buf := primitives.NewBuffer(data)
 	hash := make([]byte, 32)
 
 	// 1 byte Version
@@ -280,7 +295,7 @@ func (c *CommitChain) UnmarshalBinaryData(data []byte) (newData []byte, err erro
 		copy(c.Sig[:], p)
 	}
 
-	newData = buf.Bytes()
+	newData = buf.DeepCopyBytes()
 
 	return
 }

@@ -8,6 +8,7 @@ package messages
 
 import (
 	"fmt"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 )
@@ -19,7 +20,7 @@ func UnmarshalMessage(data []byte) (interfaces.IMsg, error) {
 	if len(data) == 0 {
 		return nil, fmt.Errorf("No data provided")
 	}
-	messageType := int(data[0])
+	messageType := data[0]
 	var msg interfaces.IMsg
 	switch messageType {
 	case constants.EOM_MSG:
@@ -44,10 +45,12 @@ func UnmarshalMessage(data []byte) (interfaces.IMsg, error) {
 		msg = new(InvalidAck)
 	case constants.INVALID_DIRECTORY_BLOCK_MSG:
 		msg = new(InvalidDirectoryBlock)
-	case constants.MISSING_ACK_MSG:
-		msg = new(MissingAck)
 	case constants.MISSING_MSG:
 		msg = new(MissingMsg)
+	case constants.MISSING_DATA:
+		msg = new(MissingData)
+	case constants.DATA_RESPONSE:
+		msg = new(DataResponse)
 	case constants.REVEAL_ENTRY_MSG:
 		msg = new(RevealEntryMsg)
 	case constants.REQUEST_BLOCK_MSG:
@@ -61,18 +64,21 @@ func UnmarshalMessage(data []byte) (interfaces.IMsg, error) {
 	case constants.ADDSERVER_MSG:
 		msg = new(AddServerMsg)
 	default:
+		fmt.Sprintf("Transaction Failed to Validate %x", data[0])
 		return nil, fmt.Errorf("Unknown message type %d %x", messageType, data[0])
 	}
 
 	err := msg.UnmarshalBinary(data[:])
 	if err != nil {
+		fmt.Sprintf("Transaction Failed to Unmarshal %x", data[0])
 		return nil, err
 	}
+
 	return msg, nil
 
 }
 
-func MessageName(Type int) string {
+func MessageName(Type byte) string {
 	switch Type {
 	case constants.EOM_MSG:
 		return "EOM"
@@ -96,10 +102,12 @@ func MessageName(Type int) string {
 		return "Invalid Ack"
 	case constants.INVALID_DIRECTORY_BLOCK_MSG:
 		return "Invalid Directory Block"
-	case constants.MISSING_ACK_MSG:
-		return "Missing Ack"
 	case constants.MISSING_MSG:
 		return "Missing Msg"
+	case constants.MISSING_DATA:
+		return "Missing Data"
+	case constants.DATA_RESPONSE:
+		return "Data Response"
 	case constants.REVEAL_ENTRY_MSG:
 		return "Reveal Entry"
 	case constants.REQUEST_BLOCK_MSG:

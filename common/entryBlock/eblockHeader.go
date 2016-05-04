@@ -107,7 +107,7 @@ func (c *EBlockHeader) SetEntryCount(entryCount uint32) {
 
 // marshalHeaderBinary returns a serialized binary Entry Block Header
 func (e *EBlockHeader) MarshalBinary() ([]byte, error) {
-	buf := new(bytes.Buffer)
+	buf := new(primitives.Buffer)
 
 	// 32 byte ChainID
 	buf.Write(e.ChainID.Bytes())
@@ -122,23 +122,23 @@ func (e *EBlockHeader) MarshalBinary() ([]byte, error) {
 	buf.Write(e.PrevFullHash.Bytes())
 
 	if err := binary.Write(buf, binary.BigEndian, e.EBSequence); err != nil {
-		return buf.Bytes(), err
+		return nil, err
 	}
 
 	if err := binary.Write(buf, binary.BigEndian, e.DBHeight); err != nil {
-		return buf.Bytes(), err
+		return nil, err
 	}
 
 	if err := binary.Write(buf, binary.BigEndian, e.EntryCount); err != nil {
-		return buf.Bytes(), err
+		return nil, err
 	}
 
-	return buf.Bytes(), nil
+	return buf.DeepCopyBytes(), nil
 }
 
 // unmarshalHeaderBinary builds the Entry Block Header from the serialized binary.
 func (e *EBlockHeader) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	buf := bytes.NewBuffer(data)
+	buf := primitives.NewBuffer(data)
 	hash := make([]byte, 32)
 	newData = data
 
@@ -178,7 +178,7 @@ func (e *EBlockHeader) UnmarshalBinaryData(data []byte) (newData []byte, err err
 		return
 	}
 
-	newData = buf.Bytes()
+	newData = buf.DeepCopyBytes()
 
 	return
 }

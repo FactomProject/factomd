@@ -23,25 +23,30 @@ type IState interface {
 	Sign([]byte) IFullSignature
 	GetDirectoryBlockInSeconds() int
 	SetDirectoryBlockInSeconds(int)
-	GetServer() IServer
 	GetFactomdVersion() int
 	GetProtocolVersion() int
-	SetServer(IServer)
 	GetDBHeightComplete() uint32
+	GetEBDBHeightComplete() uint32
+	SetEBDBHeightComplete(uint32)
+	DatabaseContains(hash IHash) bool
 	SetOut(bool)  // Output is turned on if set to true
 	GetOut() bool // Return true if Print or Println write output
+	LoadDataByHash(requestedHash IHash) (BinaryMarshallable, int, error)
 	LoadDBState(dbheight uint32) (IMsg, error)
-	LoadSpecificMsg(dbheight uint32, plistheight uint32) (IMsg, error)
-	LoadSpecificMsgAndAck(dbheight uint32, plistheight uint32) (IMsg, IMsg, error)
-	GetFedServerIndexHash(uint32, IHash) (bool, int)
+	LoadSpecificMsg(dbheight uint32, vm int, plistheight uint32) (IMsg, error)
+	LoadSpecificMsgAndAck(dbheight uint32, vm int, plistheight uint32) (IMsg, IMsg, error)
 	SetString()
 	ShortString() string
 
+	AddPrefix(string)
 	AddFedServer(uint32, IHash) int
 	GetFedServers(uint32) []IFctServer
+	AddAuditServer(uint32, IHash) int
+	GetAuditServers(uint32) []IFctServer
 
-	Green() bool
-
+	// Routine for handling the syncroniztion of the leader and follower processes
+	// and how they process messages.
+	Process() (progress bool)
 	// This is the highest block signed off and recorded in the Database.  This
 	// is a follower's state, but it is also critical to validation; we cannot
 	// validate transactions where the HighestRecordedBlock+1 != block holding said
@@ -62,6 +67,7 @@ type IState interface {
 	//==========
 
 	// Network Processor
+	TickerQueue() chan int
 	TimerMsgQueue() chan IMsg
 	NetworkOutMsgQueue() chan IMsg
 	NetworkInvalidMsgQueue() chan IMsg
@@ -72,7 +78,6 @@ type IState interface {
 	// Consensus
 	InMsgQueue() chan IMsg     // Read by Validate
 	LeaderMsgQueue() chan IMsg // Leader Queue
-	Undo() IMsg
 
 	// Lists and Maps
 	// =====
@@ -98,14 +103,15 @@ type IState interface {
 
 	// These are methods run by the consensus algorithm to track what servers are the leaders
 	// and what lists they are responsible for.
-	ServerIndexFor(uint32, []byte) int // Returns the serverindex responsible for this hash
-	LeaderFor(hash []byte) bool        // Tests if this server is the leader for this key
-
+	LeaderFor(msg IMsg, hash []byte) bool // Tests if this server is the leader for this key
+	// Returns the list of VirtualServers at a given directory block height and minute
+	GetVirtualServers(dbheight uint32, minute int, identityChainID IHash) (found bool, index int)
 	// Database
 	// ========
 	GetDB() DBOverlay
 	SetDB(DBOverlay)
 
+	GetEBlockKeyMRFromEntryHash(entryHash IHash) IHash
 	GetAnchor() IAnchor
 
 	// Web Services
@@ -115,7 +121,7 @@ type IState interface {
 
 	// Factoid State
 	// =============
-	UpdateState()
+	UpdateState() bool
 	GetFactoidState() IFactoidState
 
 	SetFactoidState(dbheight uint32, fs IFactoidState)
@@ -127,6 +133,7 @@ type IState interface {
 	FollowerExecuteMsg(m IMsg) (bool, error) // Messages that go into the process list
 	FollowerExecuteAck(m IMsg) (bool, error) // Ack Msg calls this function.
 	FollowerExecuteDBState(IMsg) error       // Add the given DBState to this server
+	FollowerExecuteAddData(m IMsg) error     // Add the entry or eblock to this Server
 
 	ProcessAddServer(dbheight uint32, addServerMsg IMsg) bool
 	ProcessCommitChain(dbheight uint32, commitChain IMsg) bool
@@ -136,17 +143,18 @@ type IState interface {
 
 	// For messages that go into the Process List
 	LeaderExecute(m IMsg) error
-	LeaderExecuteEOM(m IMsg) error
 	LeaderExecuteDBSig(m IMsg) error
 
 	GetTimestamp() Timestamp
 
-	PrintType(int) bool // Debugging
 	Print(a ...interface{}) (n int, err error)
 	Println(a ...interface{}) (n int, err error)
 
 	ValidatorLoop()
-	Dethrottle()
+
+	AddDataRequest(requestedHash, missingDataHash IHash)
+	HasDataRequest(checkHash IHash) bool
+	GetAllEntries(ebKeyMR IHash) bool
 
 	SetIsReplaying()
 	SetIsDoneReplaying()

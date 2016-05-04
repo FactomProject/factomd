@@ -17,11 +17,35 @@ type SignatureTimeout struct {
 	MessageBase
 	Timestamp interfaces.Timestamp
 
+	Signature interfaces.IFullSignature
+
 	//Not marshalled
 	hash interfaces.IHash
 }
 
 var _ interfaces.IMsg = (*SignatureTimeout)(nil)
+var _ Signable = (*SignatureTimeout)(nil)
+
+func (a *SignatureTimeout) IsSameAs(b *SignatureTimeout) bool {
+	if b == nil {
+		return false
+	}
+	if a.Timestamp != b.Timestamp {
+		return false
+	}
+
+	if a.Signature == nil && b.Signature != nil {
+		return false
+	}
+	if a.Signature != nil {
+		if a.Signature.IsSameAs(b.Signature) == false {
+			return false
+		}
+	}
+	//TODO: expand
+
+	return true
+}
 
 func (m *SignatureTimeout) Process(uint32, interfaces.IState) bool { return true }
 
@@ -51,7 +75,7 @@ func (m *SignatureTimeout) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp
 }
 
-func (m *SignatureTimeout) Type() int {
+func (m *SignatureTimeout) Type() byte {
 	return constants.SIGNATURE_TIMEOUT_MSG
 }
 
@@ -63,14 +87,32 @@ func (m *SignatureTimeout) Bytes() []byte {
 	return nil
 }
 
-func (m *SignatureTimeout) UnmarshalBinaryData(data []byte) (newdata []byte, err error) {
+func (m *SignatureTimeout) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
 	}()
+	newData = data
+	if newData[0] != m.Type() {
+		return nil, fmt.Errorf("Invalid Message type")
+	}
+	newData = newData[1:]
 
-	return nil, nil
+	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(newData) > 0 {
+		m.Signature = new(primitives.Signature)
+		newData, err = m.Signature.UnmarshalBinaryData(newData)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return newData, nil
 }
 
 func (m *SignatureTimeout) UnmarshalBinary(data []byte) error {
@@ -79,11 +121,50 @@ func (m *SignatureTimeout) UnmarshalBinary(data []byte) error {
 }
 
 func (m *SignatureTimeout) MarshalForSignature() (data []byte, err error) {
-	return nil, nil
+	var buf primitives.Buffer
+	buf.Write([]byte{m.Type()})
+	if d, err := m.Timestamp.MarshalBinary(); err != nil {
+		return nil, err
+	} else {
+		buf.Write(d)
+	}
+
+	//TODO: expand
+
+	return buf.DeepCopyBytes(), nil
+}
+func (m *SignatureTimeout) MarshalBinary() (data []byte, err error) {
+	resp, err := m.MarshalForSignature()
+	if err != nil {
+		return nil, err
+	}
+	sig := m.GetSignature()
+
+	if sig != nil {
+		sigBytes, err := sig.MarshalBinary()
+		if err != nil {
+			return nil, err
+		}
+		return append(resp, sigBytes...), nil
+	}
+	return resp, nil
 }
 
-func (m *SignatureTimeout) MarshalBinary() (data []byte, err error) {
-	return nil, nil
+func (m *SignatureTimeout) GetSignature() interfaces.IFullSignature {
+	return m.Signature
+}
+
+func (m *SignatureTimeout) VerifySignature() (bool, error) {
+	return VerifyMessage(m)
+}
+
+func (m *SignatureTimeout) Sign(key interfaces.Signer) error {
+	signature, err := SignSignable(m, key)
+	if err != nil {
+		return err
+	}
+	m.Signature = signature
+	return nil
 }
 
 func (m *SignatureTimeout) String() string {
@@ -103,10 +184,6 @@ func (m *SignatureTimeout) ListHeight() int {
 }
 
 func (m *SignatureTimeout) SerialHash() []byte {
-	return nil
-}
-
-func (m *SignatureTimeout) Signature() []byte {
 	return nil
 }
 

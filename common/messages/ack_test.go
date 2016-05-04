@@ -5,9 +5,10 @@
 package messages_test
 
 import (
+	"testing"
+
 	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/messages"
-	"testing"
 
 	"github.com/FactomProject/factomd/common/primitives"
 )
@@ -83,7 +84,6 @@ func TestSignAndVerifyAck(t *testing.T) {
 	if valid == false {
 		t.Error("Signature 2 is not valid")
 	}
-
 }
 
 func newAck() *Ack {
@@ -96,13 +96,18 @@ func newAck() *Ack {
 	ack.MessageHash = hash
 	ack.DBHeight = 123
 	ack.Height = 456
-	ack.ServerIndex = 125
 
 	hash, err = primitives.NewShaHashFromStr("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
 	if err != nil {
 		panic(err)
 	}
 	ack.SerialHash = hash
+
+	hash, err = primitives.NewShaHashFromStr("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
+	if err != nil {
+		panic(err)
+	}
+	ack.LeaderChainID = hash
 
 	return ack
 }

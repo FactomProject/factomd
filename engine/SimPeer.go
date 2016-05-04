@@ -64,9 +64,10 @@ func (f *SimPeer) GetNameTo() string {
 func (f *SimPeer) Send(msg interfaces.IMsg) error {
 	data, err := msg.MarshalBinary()
 	if err != nil {
+		fmt.Println("ERROR on Send: ",err)
 		return err
 	}
-	if len(f.BroadcastOut) < 1000 {
+	if len(f.BroadcastOut) < 9000 {
 		f.BroadcastOut <- data
 	}
 	return nil
@@ -78,6 +79,10 @@ func (f *SimPeer) Recieve() (interfaces.IMsg, error) {
 	case data, ok := <-f.BroadcastIn:
 		if ok {
 			msg, err := messages.UnmarshalMessage(data)
+			if err != nil {
+				fmt.Println("ERROR: ",err)
+			}
+
 			return msg, err
 		}
 	default:

@@ -120,7 +120,7 @@ func (e *DBlockHeader) JSONBuffer(b *bytes.Buffer) error {
 }
 
 func (e *DBlockHeader) String() string {
-	var out bytes.Buffer
+	var out primitives.Buffer
 	out.WriteString(fmt.Sprintf("  Version:         %v\n", e.Version))
 	out.WriteString(fmt.Sprintf("  NetworkID:       %d\n", e.NetworkID))
 	out.WriteString(fmt.Sprintf("  BodyMR:          %s\n", e.BodyMR.String()))
@@ -131,11 +131,11 @@ func (e *DBlockHeader) String() string {
 	out.WriteString(fmt.Sprintf("  BlockCount:      %d\n", e.BlockCount))
 	out.WriteString(fmt.Sprintf(" *FullHash:        %s\n", e.FullHash))
 
-	return (string)(out.Bytes())
+	return (string)(out.DeepCopyBytes())
 }
 
 func (b *DBlockHeader) MarshalBinary() ([]byte, error) {
-	var buf bytes.Buffer
+	var buf primitives.Buffer
 
 	buf.WriteByte(b.Version)
 	binary.Write(&buf, binary.BigEndian, b.NetworkID)
@@ -168,15 +168,15 @@ func (b *DBlockHeader) MarshalBinary() ([]byte, error) {
 		panic("Send: Blockcount too great in directory block")
 	}
 
-	return buf.Bytes(), err
+	return buf.DeepCopyBytes(), err
 }
 
 func (b *DBlockHeader) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	/* defer func() {
+	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
+			err = fmt.Errorf("Error unmarshalling Directory Block Header: %v", r)
 		}
-	}() */
+	}()
 
 	//	fmt.Printf("Unmarshal %x\n",data[:113])
 

@@ -39,11 +39,14 @@ func NetStart(s *state.State) {
 	leaderPtr := flag.Bool("leader", true, "If true, force node to be a leader.  Only used when replaying a journal.")
 	dbPtr := flag.String("db", "", "Override the Database in the Config file and use this Database implementation")
 	folderPtr := flag.String("folder", "", "Directory in .factom to store nodes. (eg: multiple nodes on one filesystem support)")
-	portPtr := flag.Int("port", 8088, "Address to serve WSAPI on")
+	portOverridePtr := flag.Int("port", 0, "Address to serve WSAPI on")
 	addressPtr := flag.String("p2pAddress", "tcp://127.0.0.1:34340", "Address & port to listen for peers on: (eg: tcp://127.0.0.1:40891)")
 	peersPtr := flag.String("peers", "", "Array of peer addresses. Defaults to: \"tcp://127.0.0.1:34341 tcp://127.0.0.1:34342 tcp://127.0.0.1:34340\"")
 	blkTimePtr := flag.Int("blktime", 0, "Seconds per block.  Production is 600.")
-    runtimeLogPtr := flag.Bool("runtimeLog", true, "If true, maintain runtime logs of messages passed.")
+	runtimeLogPtr := flag.Bool("runtimeLog", true, "If true, maintain runtime logs of messages passed.")
+	netdebugPtr := flag.Bool("netdebug", false, "If true, print detailed network debugging info.")
+	heartbeatPtr := flag.Bool("heartbeat", false, "If true, network just sends heartbeats.")
+	prefixNodePtr := flag.String("prefix", "", "Prefix the Factom Node Names with this value; used to create leaderless networks.")
 
 	flag.Parse()
 
@@ -56,15 +59,24 @@ func NetStart(s *state.State) {
 	leader := *leaderPtr
 	db := *dbPtr
 	folder := *folderPtr
-	port := *portPtr
+	portOverride := *portOverridePtr
 	address := *addressPtr
 	peers := *peersPtr
 	blkTime := *blkTimePtr
-    runtimeLog := *runtimeLogPtr
+	runtimeLog := *runtimeLogPtr
+	netdebug := *netdebugPtr
+	heartbeat := *heartbeatPtr
+	prefix := *prefixNodePtr
 
+	// Must add the prefix before loading the configuration.
+	s.AddPrefix(prefix)
 	FactomConfigFilename := util.GetConfigFilename("m2")
 	fmt.Println(fmt.Sprintf("factom config: %s", FactomConfigFilename))
 	s.LoadConfig(FactomConfigFilename, folder)
+
+	if 999 < portOverride { // The command line flag exists and seems reasonable.
+		s.PortNumber = portOverride
+	}
 
 	if blkTime != 0 {
 		s.DirectoryBlockInSeconds = blkTime
@@ -78,11 +90,9 @@ func NetStart(s *state.State) {
 	os.Stderr.WriteString(fmt.Sprintf("drop        %d\n", droprate))
 	os.Stderr.WriteString(fmt.Sprintf("journal     \"%s\"\n", journal))
 	if follower {
-		os.Stderr.WriteString(fmt.Sprintf("follower    \"%v\"\n", follower))
 		leader = false
 	}
 	if leader {
-		os.Stderr.WriteString(fmt.Sprintf("leader    \"%v\"\n", leader))
 		follower = false
 	}
 	if !follower && !leader {
@@ -90,7 +100,7 @@ func NetStart(s *state.State) {
 	}
 	os.Stderr.WriteString(fmt.Sprintf("db          \"%s\"\n", db))
 	os.Stderr.WriteString(fmt.Sprintf("folder      \"%s\"\n", folder))
-	os.Stderr.WriteString(fmt.Sprintf("port        \"%d\"\n", port))
+	os.Stderr.WriteString(fmt.Sprintf("port        \"%d\"\n", s.PortNumber))
 	os.Stderr.WriteString(fmt.Sprintf("address     \"%s\"\n", address))
 	os.Stderr.WriteString(fmt.Sprintf("peers       \"%s\"\n", peers))
 	os.Stderr.WriteString(fmt.Sprintf("blkTime     %d\n", blkTime))
@@ -101,7 +111,7 @@ func NetStart(s *state.State) {
 	}
 
 	fmt.Println(">>>>>>>>>>>>>>>>")
-	fmt.Println(">>>>>>>>>>>>>>>> Net Sim Start!!!!!")
+	fmt.Println(">>>>>>>>>>>>>>>> Net Sim Start!")
 	fmt.Println(">>>>>>>>>>>>>>>>")
 	fmt.Println(">>>>>>>>>>>>>>>> Listening to Node", listenTo)
 	fmt.Println(">>>>>>>>>>>>>>>>")
@@ -129,7 +139,7 @@ func NetStart(s *state.State) {
 		s.SetIdentityChainID(primitives.Sha([]byte(time.Now().String()))) // Make sure this node is NOT a leader
 	}
 	if leader {
-		s.SetIdentityChainID(primitives.Sha([]byte("FNode0"))) // Make sure this node is a leader
+		s.SetIdentityChainID(primitives.Sha([]byte(s.Prefix + "FNode0"))) // Make sure this node is a leader
 		s.NodeMode = "SERVER"
 	}
 
@@ -137,9 +147,8 @@ func NetStart(s *state.State) {
 		s.DBType = db
 	}
 
+	s.AddPrefix(prefix)
 	s.SetOut(false)
-	s.PortNumber = port
-
 	s.Init()
 	s.SetDropRate(droprate)
 
@@ -156,14 +165,17 @@ func NetStart(s *state.State) {
 
 	// Start the P2P netowrk
 	// BUGBUG JAYJAY This peer stuff needs to be abstracted out into the p2p network.
-	// Set up a channel instead.
 
 	// don't start network if htere is no network to connect to.
 	if 0 < len(peers) {
 		p2pProxy := new(P2PPeer).Init(fnodes[0].State.FactomNodeName, address).(*P2PPeer)
 		fnodes[0].Peers = append(fnodes[0].Peers, p2pProxy)
-
+		p2pProxy.SetDebugMode(netdebug)
+		p2pProxy.SetTestMode(heartbeat)
 		P2PNetworkStart(address, peers, p2pProxy)
+		if netdebug {
+			go PeriodicStatusReport(fnodes)
+		}
 	}
 
 	switch net {
@@ -295,6 +307,5 @@ func startServers(load bool) {
 		}
 		go Timer(fnode.State)
 		go fnode.State.ValidatorLoop()
-		go Throttle(fnode.State)
 	}
 }

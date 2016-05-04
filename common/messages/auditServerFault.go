@@ -17,11 +17,53 @@ type AuditServerFault struct {
 	MessageBase
 	Timestamp interfaces.Timestamp
 
+	Signature interfaces.IFullSignature
+
 	//Not marshalled
 	hash interfaces.IHash
 }
 
 var _ interfaces.IMsg = (*AuditServerFault)(nil)
+var _ Signable = (*AuditServerFault)(nil)
+
+func (a *AuditServerFault) IsSameAs(b *AuditServerFault) bool {
+	if b == nil {
+		return false
+	}
+	if a.Timestamp != b.Timestamp {
+		return false
+	}
+
+	//TODO: expand
+
+	if a.Signature == nil && b.Signature != nil {
+		return false
+	}
+	if a.Signature != nil {
+		if a.Signature.IsSameAs(b.Signature) == false {
+			return false
+		}
+	}
+
+	return true
+}
+
+func (m *AuditServerFault) Sign(key interfaces.Signer) error {
+	signature, err := SignSignable(m, key)
+	if err != nil {
+		return err
+	}
+	m.Signature = signature
+	return nil
+}
+
+func (m *AuditServerFault) GetSignature() interfaces.IFullSignature {
+	return m.Signature
+}
+
+func (m *AuditServerFault) VerifySignature() (bool, error) {
+	return VerifyMessage(m)
+}
 
 func (e *AuditServerFault) Process(uint32, interfaces.IState) bool {
 	panic("AuditServerFault object should never have its Process() method called")
@@ -47,7 +89,7 @@ func (m *AuditServerFault) GetMsgHash() interfaces.IHash {
 	return m.MsgHash
 }
 
-func (m *AuditServerFault) Type() int {
+func (m *AuditServerFault) Type() byte {
 	return constants.AUDIT_SERVER_FAULT_MSG
 }
 
@@ -59,14 +101,34 @@ func (m *AuditServerFault) Bytes() []byte {
 	return nil
 }
 
-func (m *AuditServerFault) UnmarshalBinaryData(data []byte) (newdata []byte, err error) {
+func (m *AuditServerFault) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
+			err = fmt.Errorf("Error unmarshalling AuditServerFault: %v", r)
 		}
 	}()
+	newData = data
+	if newData[0] != m.Type() {
+		return nil, fmt.Errorf("Invalid Message type")
+	}
+	newData = newData[1:]
 
-	return nil, nil
+	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
+	if err != nil {
+		return nil, err
+	}
+
+	//TODO: expand
+
+	if len(newData) > 0 {
+		m.Signature = new(primitives.Signature)
+		newData, err = m.Signature.UnmarshalBinaryData(newData)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return newData, nil
 }
 
 func (m *AuditServerFault) UnmarshalBinary(data []byte) error {
@@ -74,8 +136,35 @@ func (m *AuditServerFault) UnmarshalBinary(data []byte) error {
 	return err
 }
 
+func (m *AuditServerFault) MarshalForSignature() (data []byte, err error) {
+	var buf primitives.Buffer
+	buf.Write([]byte{m.Type()})
+	if d, err := m.Timestamp.MarshalBinary(); err != nil {
+		return nil, err
+	} else {
+		buf.Write(d)
+	}
+
+	//TODO: expand
+
+	return buf.DeepCopyBytes(), nil
+}
+
 func (m *AuditServerFault) MarshalBinary() (data []byte, err error) {
-	return nil, nil
+	resp, err := m.MarshalForSignature()
+	if err != nil {
+		return nil, err
+	}
+	sig := m.GetSignature()
+
+	if sig != nil {
+		sigBytes, err := sig.MarshalBinary()
+		if err != nil {
+			return nil, err
+		}
+		return append(resp, sigBytes...), nil
+	}
+	return resp, nil
 }
 
 func (m *AuditServerFault) String() string {
@@ -95,10 +184,6 @@ func (m *AuditServerFault) ListHeight() int {
 }
 
 func (m *AuditServerFault) SerialHash() []byte {
-	return nil
-}
-
-func (m *AuditServerFault) Signature() []byte {
 	return nil
 }
 

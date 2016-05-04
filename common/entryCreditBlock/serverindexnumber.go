@@ -55,20 +55,20 @@ func (s *ServerIndexNumber) ECID() byte {
 }
 
 func (s *ServerIndexNumber) MarshalBinary() ([]byte, error) {
-	buf := new(bytes.Buffer)
+	buf := new(primitives.Buffer)
 	buf.WriteByte(s.Number)
-	return buf.Bytes(), nil
+	return buf.DeepCopyBytes(), nil
 }
 
 func (s *ServerIndexNumber) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	buf := bytes.NewBuffer(data)
+	buf := primitives.NewBuffer(data)
 	var c byte
 	if c, err = buf.ReadByte(); err != nil {
 		return
 	} else {
 		s.Number = c
 	}
-	newData = buf.Bytes()
+	newData = buf.DeepCopyBytes()
 	return
 }
 

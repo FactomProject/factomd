@@ -85,9 +85,9 @@ func CreateHash(entities ...interfaces.BinaryMarshallable) (h interfaces.IHash, 
 }
 
 func (h *Hash) MarshalBinary() ([]byte, error) {
-	var buf bytes.Buffer
+	var buf Buffer
 	buf.Write(h[:])
-	return buf.Bytes(), nil
+	return buf.DeepCopyBytes(), nil
 }
 
 func (h *Hash) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
@@ -221,10 +221,10 @@ func (h *Hash) IsMinuteMarker() bool {
 }
 
 func (a Hash) CustomMarshalText() (text []byte, err error) {
-	var out bytes.Buffer
+	var out Buffer
 	hash := hex.EncodeToString(a[:])
 	out.WriteString(hash)
-	return out.Bytes(), nil
+	return out.DeepCopyBytes(), nil
 }
 
 func (e *Hash) JSONByte() ([]byte, error) {

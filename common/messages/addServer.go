@@ -9,6 +9,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -20,17 +21,36 @@ type AddServerMsg struct {
 	MessageBase
 	Timestamp     interfaces.Timestamp // Message Timestamp
 	ServerChainID interfaces.IHash     // ChainID of new server
+	ServerType    int                  // 0 = Federated, 1 = Audit
 
 	Signature interfaces.IFullSignature
 }
 
 var _ interfaces.IMsg = (*AddServerMsg)(nil)
+var _ Signable = (*AddServerMsg)(nil)
 
 func (m *AddServerMsg) IsSameAs(b *AddServerMsg) bool {
-	if uint64(m.Timestamp) == uint64(b.Timestamp) && m.ServerChainID.IsSameAs(b.ServerChainID) {
-		return true
+	if b == nil {
+		return false
 	}
-	return false
+	if uint64(m.Timestamp) != uint64(b.Timestamp) {
+		return false
+	}
+	if !m.ServerChainID.IsSameAs(b.ServerChainID) {
+		return false
+	}
+	if m.ServerType != b.ServerType {
+		return false
+	}
+	if m.Signature == nil && b.Signature != nil {
+		return false
+	}
+	if m.Signature != nil {
+		if m.Signature.IsSameAs(b.Signature) == false {
+			return false
+		}
+	}
+	return true
 }
 
 func (m *AddServerMsg) GetHash() interfaces.IHash {
@@ -48,7 +68,7 @@ func (m *AddServerMsg) GetMsgHash() interfaces.IHash {
 	return m.MsgHash
 }
 
-func (m *AddServerMsg) Type() int {
+func (m *AddServerMsg) Type() byte {
 	return constants.ADDSERVER_MSG
 }
 
@@ -88,7 +108,7 @@ func (m *AddServerMsg) Validate(state interfaces.IState) int {
 // Returns true if this is a message for this server to execute as
 // a leader.
 func (m *AddServerMsg) Leader(state interfaces.IState) bool {
-	return state.LeaderFor(constants.ADMIN_CHAINID)
+	return state.LeaderFor(m, constants.ADMIN_CHAINID)
 }
 
 // Execute the leader functions of the given message
@@ -147,11 +167,14 @@ func (m *AddServerMsg) UnmarshalBinaryData(data []byte) (newData []byte, err err
 	defer func() {
 		return
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
+			err = fmt.Errorf("Error unmarshalling Add Server Message: %v", r)
 		}
 	}()
-
-	newData = data[1:] // Skip our type;  Someone else's problem.
+	newData = data
+	if newData[0] != m.Type() {
+		return nil, fmt.Errorf("Invalid Message type")
+	}
+	newData = newData[1:]
 
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
@@ -164,7 +187,11 @@ func (m *AddServerMsg) UnmarshalBinaryData(data []byte) (newData []byte, err err
 		return nil, err
 	}
 
+	m.ServerType = int(newData[0])
+	newData = newData[1:]
+
 	if len(newData) > 32 {
+		m.Signature = new(primitives.Signature)
 		newData, err = m.Signature.UnmarshalBinaryData(newData)
 		if err != nil {
 			return nil, err
@@ -179,10 +206,9 @@ func (m *AddServerMsg) UnmarshalBinary(data []byte) error {
 }
 
 func (m *AddServerMsg) MarshalForSignature() ([]byte, error) {
+	var buf primitives.Buffer
 
-	var buf bytes.Buffer
-
-	binary.Write(&buf, binary.BigEndian, byte(m.Type()))
+	binary.Write(&buf, binary.BigEndian, m.Type())
 
 	t := m.GetTimestamp()
 	data, err := t.MarshalBinary()
@@ -197,11 +223,13 @@ func (m *AddServerMsg) MarshalForSignature() ([]byte, error) {
 	}
 	buf.Write(data)
 
-	return buf.Bytes(), nil
+	binary.Write(&buf, binary.BigEndian, uint8(m.ServerType))
+
+	return buf.DeepCopyBytes(), nil
 }
 
 func (m *AddServerMsg) MarshalBinary() ([]byte, error) {
-	var buf bytes.Buffer
+	var buf primitives.Buffer
 
 	data, err := m.MarshalForSignature()
 	if err != nil {
@@ -210,24 +238,35 @@ func (m *AddServerMsg) MarshalBinary() ([]byte, error) {
 	buf.Write(data)
 
 	if m.Signature != nil {
-		data, err = m.ServerChainID.MarshalBinary()
+		data, err = m.Signature.MarshalBinary()
 		if err != nil {
 			return nil, err
 		}
 		buf.Write(data)
 	}
 
-	return buf.Bytes(), nil
+	return buf.DeepCopyBytes(), nil
 }
 
 func (m *AddServerMsg) String() string {
-	return fmt.Sprintf("AddServer: ChainID: %s Time: %v", m.ServerChainID.String(), m.Timestamp)
+	var stype string
+	if m.ServerType == 0 {
+		stype = "Federated"
+	} else {
+		stype = "Audit"
+	}
+	return fmt.Sprintf("AddServer (%s): ChainID: %x Time: %x Msg Hash %x ",
+		stype,
+		m.ServerChainID.Bytes()[:3],
+		m.Timestamp,
+		m.GetMsgHash().Bytes()[:3])
+
 }
 
-func NewAddServerMsg(state interfaces.IState) interfaces.IMsg {
-
+func NewAddServerMsg(state interfaces.IState, serverType int) interfaces.IMsg {
 	msg := new(AddServerMsg)
 	msg.ServerChainID = state.GetIdentityChainID()
+	msg.ServerType = serverType
 	msg.Timestamp = state.GetTimestamp()
 
 	return msg

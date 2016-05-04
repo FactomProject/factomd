@@ -16,7 +16,10 @@ import (
 //A placeholder structure for messages
 type FactoidTransaction struct {
 	MessageBase
+	Timestamp   interfaces.Timestamp
 	Transaction interfaces.ITransaction
+
+	//No signature!
 
 	//Not marshalled
 	hash      interfaces.IHash
@@ -25,30 +28,46 @@ type FactoidTransaction struct {
 
 var _ interfaces.IMsg = (*FactoidTransaction)(nil)
 
+func (a *FactoidTransaction) IsSameAs(b *FactoidTransaction) bool {
+	if b == nil {
+		return false
+	}
+	if a.Timestamp != b.Timestamp {
+		return false
+	}
+
+	ok, err := primitives.AreBinaryMarshallablesEqual(a.Transaction, b.Transaction)
+	if err != nil || ok == false {
+		return false
+	}
+
+	return true
+}
+
 func (m *FactoidTransaction) GetHash() interfaces.IHash {
-	if m.hash == nil {
+
 		data, err := m.Transaction.MarshalBinarySig()
 		if err != nil {
 			panic(fmt.Sprintf("Error in CommitChain.GetHash(): %s", err.Error()))
 		}
 		m.hash = primitives.Sha(data)
-	}
+
 	return m.hash
 }
 
 func (m *FactoidTransaction) GetMsgHash() interfaces.IHash {
-	if m.MsgHash == nil {
+
 		data, err := m.MarshalBinary()
 		if err != nil {
 			return nil
 		}
 		m.MsgHash = primitives.Sha(data)
-	}
+
 	return m.MsgHash
 }
 
 func (m *FactoidTransaction) GetTimestamp() interfaces.Timestamp {
-	return interfaces.Timestamp(m.Transaction.GetMilliTimestamp())
+	return m.Timestamp
 }
 
 func (m *FactoidTransaction) GetTransaction() interfaces.ITransaction {
@@ -59,7 +78,7 @@ func (m *FactoidTransaction) SetTransaction(transaction interfaces.ITransaction)
 	m.Transaction = transaction
 }
 
-func (m *FactoidTransaction) Type() int {
+func (m *FactoidTransaction) Type() byte {
 	return constants.FACTOID_TRANSACTION_MSG
 }
 
@@ -70,7 +89,6 @@ func (m *FactoidTransaction) Type() int {
 func (m *FactoidTransaction) Validate(state interfaces.IState) int {
 	err := state.GetFactoidState().Validate(1, m.Transaction)
 	if err != nil {
-		fmt.Println(err.Error())
 		return -1
 	}
 	return 1
@@ -79,7 +97,7 @@ func (m *FactoidTransaction) Validate(state interfaces.IState) int {
 // Returns true if this is a message for this server to execute as
 // a leader.
 func (m *FactoidTransaction) Leader(state interfaces.IState) bool {
-	return state.LeaderFor(constants.FACTOID_CHAINID)
+	return state.LeaderFor(m, constants.FACTOID_CHAINID)
 }
 
 // Execute the leader functions of the given message
@@ -98,17 +116,17 @@ func (m *FactoidTransaction) FollowerExecute(state interfaces.IState) error {
 }
 
 func (m *FactoidTransaction) Process(dbheight uint32, state interfaces.IState) bool {
-
 	if m.processed {
 		return true
 	}
 	m.processed = true
-	fmt.Println("Process Factoid: ", state.GetFactomNodeName())
 	err := state.GetFactoidState().AddTransaction(1, m.Transaction)
 	if err != nil {
+		// Need to do something here if the transaction sent from the leader
+		// does not validate.  Maybe the follower ignores, but leaders should fault
+		// the offending leader...   For now we print and ignore.
+		// TODO
 		fmt.Println(err)
-	} else {
-		fmt.Println("Good!")
 	}
 
 	return true
@@ -123,29 +141,43 @@ func (m *FactoidTransaction) Bytes() []byte {
 	return nil
 }
 
-func (m *FactoidTransaction) UnmarshalTransData(data []byte) (newData []byte, err error) {
+func (m *FactoidTransaction) UnmarshalTransData(datax []byte) (newData []byte, err error) {
+	newData =datax
 	defer func() {
+		return
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
+			err = fmt.Errorf("Error unmarshalling Transaction Factoid: %v", r)
 		}
 	}()
 
 	m.Transaction = new(factoid.Transaction)
-	newData, err = m.Transaction.UnmarshalBinaryData(data)
+	newData, err = m.Transaction.UnmarshalBinaryData(newData)
 
 	return newData, err
 }
 
 func (m *FactoidTransaction) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+
+	newData = data
+
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
+			err = fmt.Errorf("Error unmarshalling Factoid: %v", r)
 		}
 	}()
+	if newData[0] != m.Type() {
+		return nil, fmt.Errorf("Invalid Message type")
+	}
+	newData = newData[1:]
 
-	newData = data[1:]
+	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
+	if err != nil {
+		return nil, err
+	}
 
-	return m.UnmarshalTransData(newData)
+	m.Transaction = new(factoid.Transaction)
+	newData, err = m.Transaction.UnmarshalBinaryData(newData)
+	return newData, err
 }
 
 func (m *FactoidTransaction) UnmarshalBinary(data []byte) error {
@@ -154,16 +186,26 @@ func (m *FactoidTransaction) UnmarshalBinary(data []byte) error {
 }
 
 func (m *FactoidTransaction) MarshalBinary() (data []byte, err error) {
-	data, err = m.Transaction.MarshalBinary()
-	if err != nil {
+	var buf primitives.Buffer
+	buf.Write([]byte{m.Type()})
+
+	if d, err := m.Timestamp.MarshalBinary(); err != nil {
 		return nil, err
+	} else {
+		buf.Write(d)
 	}
-	data = append([]byte{byte(m.Type())}, data...)
-	return data, nil
+
+	if d, err := m.Transaction.MarshalBinary(); err != nil {
+		return nil, err
+	} else {
+		buf.Write(d)
+	}
+
+	return buf.DeepCopyBytes(), nil
 }
 
 func (m *FactoidTransaction) String() string {
-	return "Factoid Transaction " + m.GetHash().String()
+	return fmt.Sprintf("Factoid Transaction %x VM %d", m.GetHash().Bytes()[:3], m.VMIndex)
 }
 
 func (e *FactoidTransaction) JSONByte() ([]byte, error) {

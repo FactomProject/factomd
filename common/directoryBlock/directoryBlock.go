@@ -39,6 +39,25 @@ func (c *DirectoryBlock) GetEntryHashes() []interfaces.IHash {
 	return answer
 }
 
+func (c *DirectoryBlock) Sort() {
+	done := false
+	for i := 3; !done && i < len(c.DBEntries)-1; i++ {
+		done = true
+		for j := 3; j < len(c.DBEntries)-1-i+3; j++ {
+			comp := bytes.Compare(c.DBEntries[j].GetChainID().Bytes(),
+				c.DBEntries[j+1].GetChainID().Bytes())
+			if comp > 0 {
+				h := c.DBEntries[j]
+				c.DBEntries[j] = c.DBEntries[j+1]
+				c.DBEntries[j+1] = h
+			}
+			if comp != 0 {
+				done = false
+			}
+		}
+	}
+}
+
 func (c *DirectoryBlock) GetEntryHashesForBranch() []interfaces.IHash {
 	entries := c.DBEntries[:]
 	answer := make([]interfaces.IHash, 2*len(entries))
@@ -117,7 +136,7 @@ func (e *DirectoryBlock) JSONBuffer(b *bytes.Buffer) error {
 }
 
 func (e *DirectoryBlock) String() string {
-	var out bytes.Buffer
+	var out primitives.Buffer
 	kmr, err := e.BuildKeyMerkleRoot()
 
 	if err != nil {
@@ -139,12 +158,14 @@ func (e *DirectoryBlock) String() string {
 		out.WriteString(entry.String())
 	}
 
-	return (string)(out.Bytes())
+	return (string)(out.DeepCopyBytes())
 
 }
 
 func (b *DirectoryBlock) MarshalBinary() (data []byte, err error) {
-	var buf bytes.Buffer
+	var buf primitives.Buffer
+
+	b.Sort()
 
 	b.BuildBodyMR()
 
@@ -165,7 +186,7 @@ func (b *DirectoryBlock) MarshalBinary() (data []byte, err error) {
 		buf.Write(data)
 	}
 
-	return buf.Bytes(), err
+	return buf.DeepCopyBytes(), err
 }
 
 func (b *DirectoryBlock) BuildBodyMR() (interfaces.IHash, error) {
@@ -235,11 +256,11 @@ func UnmarshalDBlock(data []byte) (interfaces.IDirectoryBlock, error) {
 }
 
 func (b *DirectoryBlock) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	/*defer func() {
+	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
+			err = fmt.Errorf("Error unmarshalling Directory Block: %v", r)
 		}
-	}()*/
+	}()
 
 	newData = data
 

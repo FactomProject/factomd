@@ -8,7 +8,6 @@
 package anchor
 
 import (
-	"bytes"
 	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
@@ -28,7 +27,7 @@ func (a *Anchor) submitEntryToAnchorChain(aRecord *AnchorRecord) error {
 	if err != nil {
 		return err
 	}
-	bufARecord := new(bytes.Buffer)
+	bufARecord := new(primitives.Buffer)
 	bufARecord.Write(jsonARecord)
 	aRecordSig := a.serverPrivKey.Sign(jsonARecord)
 
@@ -39,10 +38,10 @@ func (a *Anchor) submitEntryToAnchorChain(aRecord *AnchorRecord) error {
 	// instead of append signature at the end of anchor record
 	// it can be added as the first entry.ExtIDs[0]
 	entry.ExtIDs = append(entry.ExtIDs, aRecordSig.Bytes())
-	entry.Content = bufARecord.Bytes()
+	entry.Content = bufARecord.DeepCopyBytes()
 	//anchorLog.Debug("entry: ", spew.Sdump(entry))
 
-	buf := new(bytes.Buffer)
+	buf := new(primitives.Buffer)
 	// 1 byte version
 	buf.Write([]byte{0})
 	// 6 byte milliTimestamp (truncated unix time)
@@ -62,14 +61,14 @@ func (a *Anchor) submitEntryToAnchorChain(aRecord *AnchorRecord) error {
 		return err
 	}
 
-	tmp := buf.Bytes()
+	tmp := buf.DeepCopyBytes()
 	sig := a.serverECKey.Sign(tmp).(*primitives.Signature)
-	buf = bytes.NewBuffer(tmp)
+	buf = primitives.NewBuffer(tmp)
 	buf.Write(a.serverECKey.Pub[:])
 	buf.Write(sig.Sig[:])
 
 	commit := entryCreditBlock.NewCommitEntry()
-	err = commit.UnmarshalBinary(buf.Bytes())
+	err = commit.UnmarshalBinary(buf.DeepCopyBytes())
 	if err != nil {
 		return err
 	}
@@ -89,9 +88,9 @@ func (a *Anchor) submitEntryToAnchorChain(aRecord *AnchorRecord) error {
 
 // MilliTime returns a 6 byte slice representing the unix time in milliseconds
 func milliTime() (r []byte) {
-	buf := new(bytes.Buffer)
+	buf := new(primitives.Buffer)
 	t := time.Now().UnixNano()
 	m := t / 1e6
 	binary.Write(buf, binary.BigEndian, m)
-	return buf.Bytes()[2:]
+	return buf.DeepCopyBytes()[2:]
 }
