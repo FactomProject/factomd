@@ -50,25 +50,35 @@ func (n *NetworkID) String() string {
 
 // This is a global... where *should* it be?
 var (
-	P2PCurrentLoggingLevel = Silence
+	CurrentLoggingLevel = Verbose // Start at verbose because it takes a few minutes for the controller to adjust to what you set.
 )
 
 const ( // iota is reset to 0
-	Silence   uint8 = iota // Say nothing. A log output with level "Silence" is ALWAYS printed.
-	Fatal                  // Log only fatal errors (fatal errors are always logged even on "Silence")
-	Errors                 // Log all errors (many errors may be expected)
-	Notes                  // Log notifications, usually significant events
-	Debugging              // Log diagnostic info, pretty low level
-	Verbose                // Log everything
+	Silence   uint8 = iota // 0 Say nothing. A log output with level "Silence" is ALWAYS printed.
+	Fatal                  // 1 Log only fatal errors (fatal errors are always logged even on "Silence")
+	Errors                 // 2 Log all errors (many errors may be expected)
+	Notes                  // 3 Log notifications, usually significant events
+	Debugging              // 4 Log diagnostic info, pretty low level
+	Verbose                // 5 Log everything
 )
+
+// Map of network ids to strings for easy printing of network ID
+var LoggingLevels = map[uint8]string{
+	Silence:   "Silence",   // Say nothing. A log output with level "Silence" is ALWAYS printed.
+	Fatal:     "Fatal",     // Log only fatal errors (fatal errors are always logged even on "Silence")
+	Errors:    "Errors",    // Log all errors (many errors may be expected)
+	Notes:     "Notes",     // Log notifications, usually significant events
+	Debugging: "Debugging", // Log diagnostic info, pretty low level
+	Verbose:   "Verbose",   // Log everything
+}
 
 func silence(linebreak bool, format string, v ...interface{}) {
 	log(Silence, linebreak, format, v...)
 }
-func fatal(linebreak bool, format string, v ...interface{}) {
+func logfatal(linebreak bool, format string, v ...interface{}) {
 	log(Fatal, linebreak, format, v...)
 }
-func error(linebreak bool, format string, v ...interface{}) {
+func logerror(linebreak bool, format string, v ...interface{}) {
 	log(Errors, linebreak, format, v...)
 }
 func note(linebreak bool, format string, v ...interface{}) {
@@ -81,18 +91,18 @@ func verbose(linebreak bool, format string, v ...interface{}) {
 	log(Verbose, linebreak, format, v...)
 }
 func log(level uint8, linebreak bool, format string, v ...interface{}) {
-	if level >= P2PCurrentLoggingLevel {
-		breakStr := ""
-		if linebreak {
-			breakStr = "\n"
-		}
-		if level < Notes { // eg this is an error or higher
-			fmt.Fprintf(os.Stderr, fmt.Sprintf("%d: %s MARK %s", os.Getpid()), fmt.Sprintf(format, v...), breakStr)
-		} else {
-			fmt.Fprintf(os.Stdout, fmt.Sprintf("%d: %s MARK %s", os.Getpid()), fmt.Sprintf(format, v...), breakStr)
-		}
+	message := fmt.Sprintf(format, v...)
+	// levelStr := LoggingLevels[level]
+	breakStr := ""
+	if linebreak {
+		breakStr = "\n"
+	}
+	if level <= CurrentLoggingLevel { // lower level means more severe. "Silence" level always printed, overriding silence.
+		fmt.Fprintf(os.Stdout, "%d - %s  %s", os.Getpid(), message, breakStr)
 	}
 	if level == Fatal {
+		fmt.Fprintf(os.Stderr, "%d - %s  %s", os.Getpid(), message, breakStr)
+		// BUGBUG - take out this exit before shipping JAYJAY TODO
 		os.Exit(1)
 	}
 }
