@@ -51,6 +51,12 @@ var CommandStrings = map[ParcelCommandType]string{
 // MaxPayloadSize is the maximum bytes a message can be at the networking level.
 const MaxPayloadSize = (1024 * 512) // 512KB
 
+func NewParcel(network NetworkID) *Parcel {
+	header := new(ParcelHeader).Init(network)
+	parcel := new(Parcel).Init(*header)
+	return parcel
+}
+
 func (p *ParcelHeader) Init(network NetworkID) *ParcelHeader {
 	// p.Cookie = ProtocolCookie //COOKIE - no cookie for now.
 	p.Network = network
@@ -65,18 +71,18 @@ func (p *Parcel) Init(header ParcelHeader) *Parcel {
 }
 
 func (p *ParcelHeader) Print() {
-	// log(Debugging, true, "\t Cookie: \t%+v", string(p.Cookie))
-	log(Debugging, true, "\t Network:\t%+v", NetworkIDStrings[p.Network])
-	log(Debugging, true, "\t Payload:\t%+v", p.Version)
-	log(Debugging, true, "\t Type:   \t%+v", CommandStrings[p.Type])
-	log(Debugging, true, "\t Length:\t%+d", p.Length)
-	log(Debugging, true, "\t ConnectionID:\t%+d", p.ConnectionID)
-	log(Debugging, true, "\t Hash:\t%+d", p.Hash)
+	// debug( true, "\t Cookie: \t%+v", string(p.Cookie))
+	debug(true, "\t Network:\t%+v", NetworkIDStrings[p.Network])
+	debug(true, "\t Version:\t%+v", p.Version)
+	debug(true, "\t Type:   \t%+v", CommandStrings[p.Type])
+	debug(true, "\t Length:\t%+d", p.Length)
+	debug(true, "\t ConnectionID:\t%+d", p.ConnectionID)
+	debug(true, "\t Hash:\t%+d", p.Hash)
 }
 
 func (p *Parcel) Print() {
 	p.Header.Print()
-	log(Debugging, true, "\t\tPayload: %+v", p.Payload)
+	debug(true, "\t\tPayload: %+v", p.Payload)
 }
 
 func (p *Parcel) PrintMessageType() {

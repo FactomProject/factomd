@@ -46,32 +46,30 @@ func controllerManagedTest() {
 	for {
 		message = fmt.Sprintf("Heartbeat #%d", count)
 		ApplicationSend(controller, message)
-		fmt.Printf("p2p.controllerManagedTest() %+v\n", "ApplicationSend called")
+		// fmt.Printf("p2p.controllerManagedTest() %+v\n", "ApplicationSend called")
 		time.Sleep(time.Second * 2)
 		fmt.Printf("      ToNetwork             %d\n", len(controller.ToNetwork))
 		fmt.Printf("      FromNetwork           %d\n", len(controller.FromNetwork))
 		responses := ApplicationRecieve(controller)
-		fmt.Printf("p2p.controllerManagedTest() %+v\n", "ApplicationRecieve called")
+		// fmt.Printf("p2p.controllerManagedTest() %+v\n", "ApplicationRecieve called")
 		for _, parcel := range responses {
 			parcel.Print()
-			// fmt.Printf("Recieved: %s\n", parcel.Payload.(string))
+			fmt.Printf("Recieved: %s\n", parcel.Payload.(string))
 		}
-		controller.ChangeLogLevel(Debugging)
 		count++
 	}
 }
 
 func ApplicationSend(c *Controller, payload interface{}) {
-	fmt.Printf("p2p.ApplicationSend() %+v\n", payload)
-	header := new(ParcelHeader).Init(TestNet) //.(*ParcelHeader)
-	parcel := new(Parcel).Init(*header)       //.(*Parcel)
+	// fmt.Printf("p2p.ApplicationSend() %+v\n", payload)
+	parcel := NewParcel(TestNet)
 	parcel.Payload = payload
 	c.ToNetwork <- *parcel
 }
 
 // ApplicationRecieve prints details of the recieved messages.
 func ApplicationRecieve(c *Controller) []Parcel {
-	fmt.Printf("p2p.ApplicationRecieve() %+v\n", " ")
+	// fmt.Printf("p2p.ApplicationRecieve() %+v\n", " ")
 	var payloads []Parcel
 	for 0 < len(c.FromNetwork) {
 		parcel := <-c.FromNetwork

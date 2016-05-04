@@ -9,6 +9,12 @@ import (
 	"os"
 )
 
+// This is a global... where *should* it be?
+var (
+	CurrentLoggingLevel = Verbose // Start at verbose because it takes a few seconds for the controller to adjust to what you set.
+	CurrentNetwork      = TestNet
+)
+
 const (
 	// ProtocolVersion is the latest version this package supports
 	ProtocolVersion uint16 = 01
@@ -47,11 +53,6 @@ func (n *NetworkID) String() string {
 	}
 	return fmt.Sprintf("Unknown NetworkID: %x", *n)
 }
-
-// This is a global... where *should* it be?
-var (
-	CurrentLoggingLevel = Verbose // Start at verbose because it takes a few minutes for the controller to adjust to what you set.
-)
 
 const ( // iota is reset to 0
 	Silence   uint8 = iota // 0 Say nothing. A log output with level "Silence" is ALWAYS printed.
