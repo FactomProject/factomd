@@ -22,6 +22,9 @@ func SimControl(listenTo int) {
 
 	var _ = time.Sleep
 
+	var summary bool
+	var watchPL bool
+
 	for {
 
 		l := make([]byte, 100)
@@ -43,11 +46,6 @@ func SimControl(listenTo int) {
 		b := string(cmd[0])
 		v, err := strconv.Atoi(string(b))
 		if err == nil && v >= 0 && v < len(fnodes) {
-			if mLog.all == false {
-				for _, fnode := range fnodes {
-					fnode.State.SetOut(false)
-				}
-			}
 			listenTo = v
 			os.Stderr.WriteString(fmt.Sprintf("Switching to Node %d\n", listenTo))
 			wsapi.SetState(fnodes[listenTo].State)
@@ -55,22 +53,21 @@ func SimControl(listenTo int) {
 			// fmt.Printf("Parsing command, found %d elements.  The first element is: %+v / %s \n Full command: %+v\n", len(cmd), b[0], string(b), cmd)
 			switch {
 			case '+' == b[0]:
-				mLog.all = false
-				fmt.Println("-------------------------------------------------------------------------------")
-				for _, f := range fnodes {
-					f.State.SetOut(false)
-					fmt.Printf("%8s %s\n", f.State.FactomNodeName, f.State.ShortString())
+				summary = !summary
+				if summary {
+					os.Stderr.WriteString("--Print Summary On--\n")
+					go printSummary(&summary,&listenTo)
+				}else {
+					os.Stderr.WriteString("--Print Summary Off--\n")
 				}
-				if listenTo >= 0 && listenTo < len(fnodes) {
-					fmt.Printf("   %s\n", fnodes[listenTo].State.GetFactomNodeName())
-					fmt.Printf("      FollowerMsgQueue       %d\n", len(fnodes[listenTo].State.FollowerMsgQueue()))
-					fmt.Printf("      InMsgQueue             %d\n", len(fnodes[listenTo].State.InMsgQueue()))
-					fmt.Printf("      LeaderMsgQueue         %d\n", len(fnodes[listenTo].State.LeaderMsgQueue()))
-					fmt.Printf("      TimerMsgQueue          %d\n", len(fnodes[listenTo].State.TimerMsgQueue()))
-					fmt.Printf("      NetworkOutMsgQueue     %d\n", len(fnodes[listenTo].State.NetworkOutMsgQueue()))
-					fmt.Printf("      NetworkInvalidMsgQueue %d\n", len(fnodes[listenTo].State.NetworkInvalidMsgQueue()))
+			case '@' == b[0]:
+				watchPL = !watchPL
+				if watchPL {
+					os.Stderr.WriteString("--Print Process Lists On--\n")
+					go printProcessList(&watchPL,&listenTo)
+				}else {
+					os.Stderr.WriteString("--Print Process Lists Off--\n")
 				}
-
 			case 0 == strings.Compare(strings.ToLower(string(b[0])), "a"):
 				mLog.all = false
 				for _, fnode := range fnodes {
@@ -158,14 +155,14 @@ func SimControl(listenTo int) {
 				for _, fnode := range fnodes {
 					fnode.State.SetOut(true)
 				}
-			case 0 == strings.Compare(strings.ToLower(string(b[0])), "m"):
+			case 'm' == b[0]:
 				os.Stderr.WriteString(fmt.Sprintf("Print all messages for node: %d\n", listenTo))
 				for _, fnode := range fnodes {
 					fnode.State.SetOut(false)
 				}
 				fnodes[listenTo].State.SetOut(true)
 				mLog.all = false
-			case 32 == b[0]:
+			case ' ' == b[0]:
 				mLog.all = false
 				fnodes[listenTo].State.SetOut(false)
 				listenTo++
@@ -177,7 +174,7 @@ func SimControl(listenTo int) {
 				os.Stderr.WriteString(fmt.Sprint("\r\nSwitching to Node ", listenTo, "\r\n"))
 				wsapi.SetState(fnodes[listenTo].State)
 				mLog.all = false
-			case 0 == strings.Compare(strings.ToLower(string(b[0])), "s"):
+			case 's' == b[0]:
 				msg := messages.NewAddServerMsg(fnodes[listenTo].State, 0)
 				fnodes[listenTo].State.InMsgQueue() <- msg
 				os.Stderr.WriteString(fmt.Sprintln("Attempting to make", fnodes[listenTo].State.GetFactomNodeName(), "a Leader"))
@@ -203,4 +200,57 @@ func SimControl(listenTo int) {
 		}
 	}
 
+}
+
+
+func printSummary (summary *bool, listenTo *int ) {
+	out := ""
+	for {
+		if *summary {
+			prt :=""
+			for _, f := range fnodes {
+				f.State.SetOut(false)
+				prt = prt+fmt.Sprintf("%8s %s\n", f.State.FactomNodeName, f.State.ShortString())
+			}
+			if *listenTo >= 0 && *listenTo < len(fnodes) {
+				state := fnodes[*listenTo].State
+				prt = prt+fmt.Sprintf("   %s\n", fnodes[*listenTo].State.GetFactomNodeName())
+				prt = prt+fmt.Sprintf("      FollowerMsgQueue       %d\n", len(state.FollowerMsgQueue()))
+				prt = prt+fmt.Sprintf("      InMsgQueue             %d\n", len(state.InMsgQueue()))
+				prt = prt+fmt.Sprintf("      LeaderMsgQueue         %d\n", len(state.LeaderMsgQueue()))
+				prt = prt+fmt.Sprintf("      TimerMsgQueue          %d\n", len(state.TimerMsgQueue()))
+				prt = prt+fmt.Sprintf("      NetworkOutMsgQueue     %d\n", len(state.NetworkOutMsgQueue()))
+				prt = prt+fmt.Sprintf("      NetworkInvalidMsgQueue %d\n", len(state.NetworkInvalidMsgQueue()))
+			}
+			if prt != out  {
+				fmt.Println(prt)
+				out = prt
+			}
+		}else{
+			return
+		}
+		time.Sleep(time.Second*2)
+	}
+}
+
+func printProcessList (watchPL *bool, listenTo *int ) {
+	out := ""
+	for {
+		if *watchPL {
+			fnode := fnodes[*listenTo]
+			nprt := fnode.State.ProcessLists.String()
+			b := fnode.State.GetHighestRecordedBlock()+1
+			pl := fnode.State.ProcessLists.Get(b)
+			nprt = nprt+pl.PrintMap()
+
+			if out != nprt {
+				fmt.Println(nprt)
+				out = nprt
+			}
+
+		}else{
+			return
+		}
+		time.Sleep(time.Second)
+	}
 }
