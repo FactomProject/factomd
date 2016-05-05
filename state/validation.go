@@ -96,24 +96,12 @@ func (t *Timer) timer(state *State, min int) {
 		}
 	}
 
-	found, vmIndex := state.GetVirtualServers(t.lastDBHeight, min, state.GetIdentityChainID())
-	if found {
-		eom := new(messages.EOM)
-		eom.Minute = byte(min)
-		eom.Timestamp = state.GetTimestamp()
-		eom.ChainID = state.GetIdentityChainID()
-		eom.VMIndex = vmIndex
-		eom.Sign(state)
-		eom.DBHeight = t.lastDBHeight
-		eom.SetLocal(true)
-		state.TimerMsgQueue() <- eom
-		if min == 9 {
-			DBS := new(messages.DirectoryBlockSignature)
-			DBS.ServerIdentityChainID = state.GetIdentityChainID()
-			DBS.SetLocal(true)
-			DBS.DBHeight = t.lastDBHeight
-			DBS.VMIndex = vmIndex
-			state.TimerMsgQueue() <- DBS
-		}
-	}
+
+	eom := new(messages.EOM)
+	eom.Minute = byte(min)
+	eom.Timestamp = state.GetTimestamp()
+	eom.ChainID = state.GetIdentityChainID()
+	eom.Sign(state)
+	eom.SetLocal(true)
+	state.TimerMsgQueue() <- eom
 }

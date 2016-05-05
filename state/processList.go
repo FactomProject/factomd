@@ -167,6 +167,25 @@ func (p *ProcessList) MakeMap() {
 	}
 }
 
+// This function will be replaced by a calculation from the Matryoshka hashes from the servers
+// but for now, we are just going to make it a function of the dbheight.
+func (p *ProcessList) PrintMap() string {
+	n := len(p.FedServers)
+	prt := " min"
+	for i:=0;i<n;i++ {
+		prt = fmt.Sprintf("%s%3d",prt,i)
+	}
+	prt = prt+"\n"
+	for i := 0; i < 10; i++ {
+		prt = fmt.Sprintf("%s%3d  ",prt,i)
+		for j := 0; j < len(p.FedServers); j++ {
+			prt = fmt.Sprintf("%s%2d ",prt,p.ServerMap[i][j])
+		}
+		prt = prt+"\n"
+	}
+	return prt
+}
+
 // Take the minute that has completed.  The minute height then is 1 plus that number
 // i.e. the minute height is 0, or 1, or 2, or ... or 10 (all done)
 func (p *ProcessList) SetMinute(index int, minute int) {
@@ -426,6 +445,7 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 
 	if len(p.VMs[ack.VMIndex].List) > int(ack.Height) && p.VMs[ack.VMIndex].List[ack.Height] != nil {
 		fmt.Println(p.String())
+		fmt.Println(p.PrintMap())
 		panic(fmt.Sprintf("\t%12s %s\n\t%12s %s\n\t %12s %s",
 			"OverWriting:",
 			p.VMs[ack.VMIndex].List[ack.Height].String(),

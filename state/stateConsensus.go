@@ -15,6 +15,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/util"
+	
 )
 
 var _ = fmt.Print
@@ -26,45 +27,53 @@ var _ = fmt.Print
 //***************************************************************
 func (s *State) Process() (progress bool) {
 
-	if s.EOB {
+
+	if s.ProcessLists.Get(s.LLeaderHeight).SigComplete() {
 		s.LLeaderHeight = s.GetHighestRecordedBlock() + 1
 	}
 	skip := false
-	pl := s.ProcessLists.Get(s.LLeaderHeight)
+
+	s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 	if s.LLeaderHeight == 0 {
-		s.Leader, s.LeaderVMIndex = pl.GetVirtualServers(0, s.IdentityChainID)
+		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(0, s.IdentityChainID)
 	}
 	if s.EOM {
-		min := pl.MinuteHeight()
+		min := s.LeaderPL.MinuteHeight()
 		if s.LeaderMinute < min {
 			skip = true
 		} else {
 			if min <= 9 {
 				// Get if this is a leader, and its VMIndex for this minute if so
-				s.Leader, s.LeaderVMIndex = pl.GetVirtualServers(min, s.IdentityChainID)
-				s.EOM = false
-				for _, vm := range pl.VMs {
-					vm.LastLeaderAck = vm.LastAck
+				s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(min, s.IdentityChainID)
+				for _, vm := range s.LeaderPL.VMs {
+					ack1,ok1 := vm.LastLeaderAck.(*messages.Ack)
+					ack2,ok2 := vm.LastAck.(*messages.Ack)
+					if (!ok1 && ok2) || (ok1 && ok2 && ack2.Height >= ack1.Height) {
+						vm.LastLeaderAck = vm.LastAck
+					}
 				}
 			}
-
 		}
-
 	}
 	if s.EOB {
-		s.Leader, s.LeaderVMIndex = pl.GetVirtualServers(0, s.IdentityChainID)
+		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(0, s.IdentityChainID)
 		s.EOM = false
 		s.EOB = false
 	}
-	if !skip && s.Leader {
-		vm := pl.VMs[s.LeaderVMIndex]
+
+	if !s.Leader || (!skip && s.Leader) {
+		var vm *VM
+		if s.Leader {
+			vm = s.LeaderPL.VMs[s.LeaderVMIndex]
+		}
 		// To process a leader message, we have to have the follower process completely
 		// up to date.  Then we can validate the message.  Process is up to date if all
 		// messages in the process list have been processed by the follower, ie the Height
 		// is equal to the length of the process list.
-		if len(vm.List) == vm.Height {
+		if !s.Leader || len(vm.List) == vm.Height {
 			select {
 			case msg, _ := <-s.leaderMsgQueue:
+				msg.SetVMIndex(s.LeaderPL.VMIndexFor(msg.GetVMHash()))
 				v := msg.Validate(s)
 				switch v {
 				case 1:
@@ -241,6 +250,13 @@ func (s *State) addEBlock(eblock interfaces.IEntryBlock) {
 }
 
 func (s *State) LeaderExecute(m interfaces.IMsg) error {
+	m.SetVMIndex(s.LeaderPL.VMIndexFor(m.GetVMHash()))
+	if !s.Leader || m.GetVMIndex() != s.LeaderVMIndex {
+		if m.Follower(s) {
+			m.FollowerExecute(s)
+		}
+		return nil
+	}
 	dbheight := s.LLeaderHeight
 	ack, err := s.NewAck(dbheight, m)
 	if err != nil {
@@ -248,16 +264,39 @@ func (s *State) LeaderExecute(m interfaces.IMsg) error {
 	}
 
 	s.NetworkOutMsgQueue() <- m
+	s.NetworkOutMsgQueue() <- ack
 	s.InMsgQueue() <- ack
 	m.FollowerExecute(s)
 	return nil
 }
 
-func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) error {
-	dbs, ok := m.(*messages.DirectoryBlockSignature)
-	if !ok {
-		return fmt.Errorf("Bad Directory Block Signature")
+func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
+	if !s.Leader {		// Ignore local EOM messages when a follower only.
+		return nil
 	}
+
+	eom := m.(*messages.EOM)
+	eom.DBHeight = s.LLeaderHeight
+	eom.VMIndex = s.LeaderVMIndex
+	eom.Sign(s)
+	eom.SetLocal(false)
+	ack, err := s.NewAck(s.LLeaderHeight, m)
+
+	if err != nil {
+		return err
+	}
+
+	s.NetworkOutMsgQueue() <- m
+	s.NetworkOutMsgQueue() <- ack
+	s.InMsgQueue() <- ack
+
+	m.FollowerExecute(s)
+
+	return nil
+}
+
+func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) error {
+	dbs, _ := m.(*messages.DirectoryBlockSignature)
 
 	dbs.Timestamp = s.GetTimestamp()
 
@@ -357,6 +396,8 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	// We need to have all EOM markers before we start to clean up this height.
 	if e.Minute == 9 {
 
+		s.EOM_LAST = true
+
 		// Maybe we want to check the block is saved?
 		// We need to save away the previous state before we begin to process the next height
 		// last := s.DBStates.Last()
@@ -369,6 +410,16 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			ecbody := ecblk.GetBody()
 			mn := entryCreditBlock.NewMinuteNumber2(e.Minute)
 			ecbody.AddEntry(mn)
+		}
+		if s.Leader {
+			dbs := new(messages.DirectoryBlockSignature)
+			dbs.ServerIdentityChainID = s.GetIdentityChainID()
+			dbs.DBHeight = s.LLeaderHeight
+			dbs.Timestamp = s.GetTimestamp()
+			dbs.SetVMIndex(s.LeaderVMIndex)
+			dbs.SetLocal(true)
+			dbs.Sign(s)
+			s.LeaderExecute(dbs)
 		}
 
 	}
@@ -573,15 +624,10 @@ func (s *State) PutE(rt bool, adr [32]byte, v int64) {
 // Returns the Virtual Server Index for this hash if this server is the leader;
 // returns -1 if we are not the leader for this hash
 func (s *State) LeaderFor(msg interfaces.IMsg, hash []byte) bool {
-	pl := s.ProcessLists.Get(s.LLeaderHeight)
-	vmIndex := pl.VMIndexFor(hash)
-
-	msg.SetVMIndex(vmIndex)
-	found, vmi := pl.GetVirtualServers(pl.VMs[vmIndex].LeaderMinute, s.IdentityChainID)
-	if !found {
-		return false
-	}
-	return vmIndex == vmi
+	h := make([]byte, len(hash))
+	copy(h,hash)
+	msg.SetVMHash(h)		// <-- This is important
+	return true
 }
 
 func (s *State) NewAdminBlock(dbheight uint32) interfaces.IAdminBlock {
