@@ -45,7 +45,7 @@ func SimControl(listenTo int) {
 		}
 		b := string(cmd[0])
 		v, err := strconv.Atoi(string(b))
-		if err == nil && v >= 0 && v < len(fnodes) {
+		if err == nil && v >= 0 && v < len(fnodes) && fnodes[listenTo].State != nil {
 			listenTo = v
 			os.Stderr.WriteString(fmt.Sprintf("Switching to Node %d\n", listenTo))
 			wsapi.SetState(fnodes[listenTo].State)

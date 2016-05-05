@@ -58,6 +58,7 @@ type VM struct {
 	Height         int               // Height of messages that have been processed
 	LeaderMinute   int               // Where the leader is in acknowledging messages
 	MinuteComplete int               // Highest minute complete (0-9) by the follower
+	MinuteHeight   int               // Height of the last minute complete
 	SigComplete    bool              // Lists that are signature complete
 	Undo           interfaces.IMsg   // The Leader needs one level of undo to handle DB Sigs.
 	LastLeaderAck  interfaces.IMsg   // The last Acknowledgement set by this leader
@@ -191,6 +192,7 @@ func (p *ProcessList) PrintMap() string {
 func (p *ProcessList) SetMinute(index int, minute int) {
 	p.VMs[index].LeaderMinute = minute
 	p.VMs[index].MinuteComplete = minute + 1
+	p.VMs[index].MinuteHeight = p.VMs[index].Height
 }
 
 // Return the lowest minute number in our lists.  Note that Minute Markers END
@@ -346,6 +348,37 @@ func (p *ProcessList) SigComplete() bool {
 	return true
 }
 
+func (p *ProcessList) FinishedEOM() bool {
+	if p == nil || !p.HasMessage() { // Empty or nul, return true.
+		return true
+	}
+	n := len(p.State.GetFedServers(p.DBHeight))
+	for i := 0; i < n; i++ {
+		c := p.VMs[i]
+		if c.Height < c.MinuteHeight {
+			return false
+		}
+	}
+	return true
+}
+
+func (p *ProcessList) FinishedSIG() bool {
+	if p == nil || !p.HasMessage() { // Empty or nul, return true.
+		return true
+	}
+	n := len(p.State.GetFedServers(p.DBHeight))
+	for i := 0; i < n; i++ {
+		c := p.VMs[i]
+		if !c.SigComplete {
+			return false
+		}
+		if c.Height != len(c.List) {
+			return false
+		}
+	}
+	return true
+}
+
 // Process messages and update our state.
 func (p *ProcessList) Process(state *State) (progress bool) {
 
@@ -473,17 +506,23 @@ func (p *ProcessList) String() string {
 
 		for i := 0; i < len(p.FedServers); i++ {
 			server := p.VMs[i]
-			eom := fmt.Sprintf("Minute Complete %d", server.MinuteComplete)
+			eom := fmt.Sprintf("Minute Complete %d Height %d ", server.MinuteComplete,server.Height)
+			if p.FinishedEOM() {
+				eom = eom+"Finished EOM "
+			}
 			sig := ""
 			if server.SigComplete {
-				sig = "Sig Complete"
+				sig = "Sig Complete "
+			}
+			if p.FinishedSIG() {
+				eom = eom+"Finished SIG "
 			}
 
 			buf.WriteString(fmt.Sprintf("  VM %d Fed %d %s %s\n", i, p.ServerMap[server.LeaderMinute][i], eom, sig))
 			for j, msg := range server.List {
 
 				if j < server.Height {
-					buf.WriteString("  p")
+					buf.WriteString("  P")
 				} else {
 					buf.WriteString("   ")
 				}

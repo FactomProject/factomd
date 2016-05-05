@@ -80,6 +80,7 @@ type State struct {
 	OutputAllowed bool
 	LeaderMinute  int  // The minute that just was processed by the follower, (1-10), set with EOM
 	EOM           bool // Set to true when all Process Lists have finished a minute
+	EOM_ONCE      bool
 	EOB           bool // Set to true when all Process Lists are complete for a block
 	EOM_LAST      bool
 	// Maps

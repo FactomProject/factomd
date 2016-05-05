@@ -27,38 +27,68 @@ var _ = fmt.Print
 //***************************************************************
 func (s *State) Process() (progress bool) {
 
+/*
+ppl := s.ProcessLists.Get(s.LLeaderHeight)
+fmt.Println(
+	s.FactomNodeName,
+	"  DBHeight", s.LLeaderHeight,
+	"  Complete", ppl.SigComplete(),
+	"  Finished Sig:",ppl.FinishedSIG(),
+	"  Finished EOM:",ppl.FinishedEOM(),
+	"  EOM", s.EOM,
+	"  EOM_LAST", s.EOM_LAST,
+	"  Leader min:", s.LeaderMinute,
+	"  PL Min Ht:", ppl.MinuteHeight(),
+	"  PL Ht:", ppl.VMs[0].Height)
+*/
 
-	if s.ProcessLists.Get(s.LLeaderHeight).SigComplete() {
+	if s.LLeaderHeight < s.GetHighestRecordedBlock() + 1 {
 		s.LLeaderHeight = s.GetHighestRecordedBlock() + 1
+		s.EOM_LAST = false
+		s.EOM = false
 	}
+
+	blockDone := false
+	minuteDone := false
+	if s.EOM && s.ProcessLists.Get(s.LLeaderHeight).FinishedEOM() {
+		if s.LeaderMinute == 10 {
+			s.EOM_LAST = true
+			blockDone = true
+		}
+		minuteDone = true
+		s.EOM=false
+	}
+
+
+	if s.ProcessLists.Get(s.LLeaderHeight).FinishedSIG() {
+		s.EOM_LAST = false
+	}
+
 	skip := false
+	if s.EOM || s.EOM_LAST {
+		skip = true
+	}
 
 	s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
-	if s.LLeaderHeight == 0 {
-		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(0, s.IdentityChainID)
-	}
-	if s.EOM {
+	s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(0, s.IdentityChainID)
+
+	if minuteDone {
 		min := s.LeaderPL.MinuteHeight()
-		if s.LeaderMinute < min {
-			skip = true
-		} else {
-			if min <= 9 {
-				// Get if this is a leader, and its VMIndex for this minute if so
-				s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(min, s.IdentityChainID)
-				for _, vm := range s.LeaderPL.VMs {
-					ack1,ok1 := vm.LastLeaderAck.(*messages.Ack)
-					ack2,ok2 := vm.LastAck.(*messages.Ack)
-					if (!ok1 && ok2) || (ok1 && ok2 && ack2.Height >= ack1.Height) {
-						vm.LastLeaderAck = vm.LastAck
-					}
+
+		if min <= 9 {
+			// Get if this is a leader, and its VMIndex for this minute if so
+			for _, vm := range s.LeaderPL.VMs {
+				ack1,ok1 := vm.LastLeaderAck.(*messages.Ack)
+				ack2,ok2 := vm.LastAck.(*messages.Ack)
+				if (!ok1 && ok2) || (ok1 && ok2 && ack2.Height >= ack1.Height) {
+					vm.LastLeaderAck = vm.LastAck
 				}
 			}
 		}
 	}
-	if s.EOB {
-		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(0, s.IdentityChainID)
-		s.EOM = false
-		s.EOB = false
+
+	if blockDone {
+		s.EOM_LAST = false
 	}
 
 	if !s.Leader || (!skip && s.Leader) {
@@ -135,10 +165,10 @@ func (s *State) AddDBState(isNew bool,
 	dbState := s.DBStates.NewDBState(isNew, directoryBlock, adminBlock, factoidBlock, entryCreditBlock)
 	s.DBStates.Put(dbState)
 
-	dbh := directoryBlock.GetHeader().GetDBHeight()
-	if s.LLeaderHeight < dbh {
-		s.LLeaderHeight = dbh + 1
-	}
+//	dbh := directoryBlock.GetHeader().GetDBHeight()
+//	if s.LLeaderHeight < dbh {
+//		s.LLeaderHeight = dbh + 1
+//	}
 }
 
 // Messages that will go into the Process List must match an Acknowledgement.
@@ -298,13 +328,8 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
 func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) error {
 	dbs, _ := m.(*messages.DirectoryBlockSignature)
 
-	dbs.Timestamp = s.GetTimestamp()
+	ack, _ := s.NewAck(dbs.DBHeight, dbs)
 
-	ack, err := s.NewAck(dbs.DBHeight, dbs)
-	if err != nil {
-		s.undo = m
-		return nil
-	}
 	ack.FollowerExecute(s)
 	dbs.FollowerExecute(s)
 
@@ -376,17 +401,24 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	pl := s.ProcessLists.Get(dbheight)
 
 	// Set this list complete
+	s.LeaderMinute = int(e.Minute+1)
 	pl.SetMinute(e.VMIndex, int(e.Minute))
 
-	if pl.MinuteHeight() <= int(e.Minute) {
+
+	if pl.MinuteHeight() < s.LeaderMinute {
 		return false
 	}
 
 	s.EOM = true
-	s.LeaderMinute = int(e.Minute + 1)
 
 	if pl.VMIndexFor(constants.FACTOID_CHAINID) == e.VMIndex {
 		s.FactoidState.EndOfPeriod(int(e.Minute))
+		// Add EOM to the EBlocks.  We only do this once, so
+		// we piggy back on the fact that we only do the FactoidState
+		// EndOfPeriod once too.
+		for _, eb := range pl.NewEBlocks {
+			eb.AddEndOfMinuteMarker(e.Bytes()[0])
+		}
 	}
 	if pl.VMIndexFor(constants.ADMIN_CHAINID) == e.VMIndex {
 		pl.AdminBlock.AddEndOfMinuteMarker(e.Minute)
@@ -395,8 +427,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 	// We need to have all EOM markers before we start to clean up this height.
 	if e.Minute == 9 {
-
-		s.EOM_LAST = true
 
 		// Maybe we want to check the block is saved?
 		// We need to save away the previous state before we begin to process the next height
@@ -411,7 +441,8 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			mn := entryCreditBlock.NewMinuteNumber2(e.Minute)
 			ecbody.AddEntry(mn)
 		}
-		if s.Leader {
+
+		if s.Leader && e.GetVMIndex() == s.LeaderVMIndex {
 			dbs := new(messages.DirectoryBlockSignature)
 			dbs.ServerIdentityChainID = s.GetIdentityChainID()
 			dbs.DBHeight = s.LLeaderHeight
@@ -419,14 +450,9 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			dbs.SetVMIndex(s.LeaderVMIndex)
 			dbs.SetLocal(true)
 			dbs.Sign(s)
-			s.LeaderExecute(dbs)
+			dbs.LeaderExecute(s)
 		}
 
-	}
-
-	// Add EOM to the EBlocks
-	for _, eb := range pl.NewEBlocks {
-		eb.AddEndOfMinuteMarker(e.Bytes()[0])
 	}
 
 	return true
