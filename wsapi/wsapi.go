@@ -105,8 +105,8 @@ func HandleCommitChain(ctx *web.Context) {
 			return
 		}
 	}
-
-	req := primitives.NewJSON2Request("commit-chain", 1, c.CommitChainMsg)
+	param := MessageRequest{Message: c.CommitChainMsg}
+	req := primitives.NewJSON2Request("commit-chain", 1, param)
 
 	jsonResp, jsonError := HandleV2Request(state, req)
 	if jsonError != nil {
@@ -138,7 +138,8 @@ func HandleCommitEntry(ctx *web.Context) {
 		}
 	}
 
-	req := primitives.NewJSON2Request("commit-entry", 1, c.CommitEntryMsg)
+	param := EntryRequest{Entry: c.CommitEntryMsg}
+	req := primitives.NewJSON2Request("commit-entry", 1, param)
 
 	jsonResp, jsonError := HandleV2Request(state, req)
 	if jsonError != nil {
@@ -165,7 +166,8 @@ func HandleRevealEntry(ctx *web.Context) {
 		}
 	}
 
-	req := primitives.NewJSON2Request("reveal-entry", 1, e.Entry)
+	param := EntryRequest{Entry: e.Entry}
+	req := primitives.NewJSON2Request("reveal-entry", 1, param)
 
 	jsonResp, jsonError := HandleV2Request(state, req)
 	if jsonError != nil {
@@ -193,7 +195,8 @@ func HandleDirectoryBlockHead(ctx *web.Context) {
 func HandleGetRaw(ctx *web.Context, hashkey string) {
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
-	req := primitives.NewJSON2Request("get-raw-data", 1, hashkey)
+	param := HashRequest{Hash: hashkey}
+	req := primitives.NewJSON2Request("get-raw-data", 1, param)
 
 	jsonResp, jsonError := HandleV2Request(state, req)
 	returnV1(ctx, jsonResp, jsonError)
@@ -202,7 +205,8 @@ func HandleGetRaw(ctx *web.Context, hashkey string) {
 func HandleGetReceipt(ctx *web.Context, hashkey string) {
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
-	req := primitives.NewJSON2Request("get-receipt", 1, hashkey)
+	param := HashRequest{Hash: hashkey}
+	req := primitives.NewJSON2Request("get-receipt", 1, param)
 
 	jsonResp, jsonError := HandleV2Request(state, req)
 	returnV1(ctx, jsonResp, jsonError)
@@ -211,7 +215,8 @@ func HandleGetReceipt(ctx *web.Context, hashkey string) {
 func HandleDirectoryBlock(ctx *web.Context, hashkey string) {
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
-	req := primitives.NewJSON2Request("directory-block-by-keymr", 1, []interface{}{hashkey})
+	param := HashRequest{Hash: hashkey}
+	req := primitives.NewJSON2Request("directory-block-by-keymr", 1, param)
 
 	jsonResp, jsonError := HandleV2Request(state, req)
 	if jsonError != nil {
@@ -245,7 +250,8 @@ func HandleDirectoryBlockHeight(ctx *web.Context) {
 func HandleEntryBlock(ctx *web.Context, hashkey string) {
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
-	req := primitives.NewJSON2Request("entry-block-by-keymr", 1, hashkey)
+	param := HashRequest{Hash: hashkey}
+	req := primitives.NewJSON2Request("entry-block-by-keymr", 1, param)
 
 	jsonResp, jsonError := HandleV2Request(state, req)
 	if jsonError != nil {
@@ -267,7 +273,8 @@ func HandleEntryBlock(ctx *web.Context, hashkey string) {
 func HandleEntry(ctx *web.Context, hashkey string) {
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
-	req := primitives.NewJSON2Request("entry-by-hash", 1, hashkey)
+	param := HashRequest{Hash: hashkey}
+	req := primitives.NewJSON2Request("entry-by-hash", 1, param)
 
 	jsonResp, jsonError := HandleV2Request(state, req)
 	if jsonError != nil {
@@ -286,7 +293,8 @@ func HandleEntry(ctx *web.Context, hashkey string) {
 func HandleChainHead(ctx *web.Context, hashkey string) {
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
-	req := primitives.NewJSON2Request("chain-head", 1, []interface{}{hashkey})
+	param := HashRequest{Hash: hashkey}
+	req := primitives.NewJSON2Request("chain-head", 1, param)
 
 	jsonResp, jsonError := HandleV2Request(state, req)
 	if jsonError != nil {
@@ -307,7 +315,8 @@ func HandleEntryCreditBalance(ctx *web.Context, eckey string) {
 
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
-	req := primitives.NewJSON2Request("entry-credit-balance", 1, eckey)
+	param := KeyRequest{Key: eckey}
+	req := primitives.NewJSON2Request("entry-credit-balance", 1, param)
 
 	jsonResp, jsonError := HandleV2Request(state, req)
 	if jsonError != nil {
@@ -362,7 +371,8 @@ func HandleFactoidSubmit(ctx *web.Context) {
 		}
 	}
 
-	req := primitives.NewJSON2Request("factoid-submit", 1, t.Transaction)
+	param := TransactionRequest{Transaction: t.Transaction}
+	req := primitives.NewJSON2Request("factoid-submit", 1, param)
 
 	jsonResp, jsonError := HandleV2Request(state, req)
 	if jsonError != nil {
@@ -384,7 +394,8 @@ func HandleFactoidBalance(ctx *web.Context, eckey string) {
 
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
-	req := primitives.NewJSON2Request("factoid-balance", 1, eckey)
+	param := KeyRequest{Key: eckey}
+	req := primitives.NewJSON2Request("factoid-balance", 1, param)
 
 	jsonResp, jsonError := HandleV2Request(state, req)
 	if jsonError != nil {

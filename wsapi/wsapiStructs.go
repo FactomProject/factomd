@@ -167,3 +167,25 @@ type FactoidBalance struct {
 	Response string
 	Success  bool
 }
+
+//Requests
+
+type MessageRequest struct {
+	Message string
+}
+
+type EntryRequest struct {
+	Entry string
+}
+
+type TransactionRequest struct {
+	Transaction string
+}
+
+type HashRequest struct {
+	Hash string
+}
+
+type KeyRequest struct {
+	Key string
+}
