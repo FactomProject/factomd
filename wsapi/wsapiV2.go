@@ -21,15 +21,7 @@ import (
 
 var _ = fmt.Print
 
-func HandleV2Get(ctx *web.Context) {
-	HandleV2(ctx, false)
-}
-
-func HandleV2Post(ctx *web.Context) {
-	HandleV2(ctx, true)
-}
-
-func HandleV2(ctx *web.Context, post bool) {
+func HandleV2(ctx *web.Context) {
 	body, err := ioutil.ReadAll(ctx.Request.Body)
 	if err != nil {
 		HandleV2Error(ctx, nil, NewInvalidRequestError())
@@ -44,13 +36,7 @@ func HandleV2(ctx *web.Context, post bool) {
 
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
-	var jsonResp *primitives.JSON2Response
-	var jsonError *primitives.JSONError
-	if post == true {
-		jsonResp, jsonError = HandleV2PostRequest(state, j)
-	} else {
-		jsonResp, jsonError = HandleV2GetRequest(state, j)
-	}
+	jsonResp, jsonError := HandleV2Request(state, j)
 
 	if jsonError != nil {
 		HandleV2Error(ctx, j, jsonError)
@@ -61,78 +47,7 @@ func HandleV2(ctx *web.Context, post bool) {
 
 }
 
-func HandleV2PostRequest(state interfaces.IState, j *primitives.JSON2Request) (*primitives.JSON2Response, *primitives.JSONError) {
-	var resp interface{}
-	var jsonError *primitives.JSONError
-	params := j.Params
-	switch j.Method {
-	case "chain-head":
-		resp, jsonError = HandleV2ChainHead(state, params)
-		break
-	case "commit-chain":
-		resp, jsonError = HandleV2CommitChain(state, params)
-		break
-	case "commit-entry":
-		resp, jsonError = HandleV2CommitEntry(state, params)
-		break
-	case "directory-block-by-keymr":
-		resp, jsonError = HandleV2DirectoryBlock(state, params)
-		break
-	case "directory-block-head":
-		resp, jsonError = HandleV2DirectoryBlockHead(state, params)
-		break
-	case "directory-block-height":
-		resp, jsonError = HandleV2DirectoryBlockHeight(state, params)
-		break
-	case "entry-block-by-keymr":
-		resp, jsonError = HandleV2EntryBlock(state, params)
-		break
-	case "entry-by-hash":
-		resp, jsonError = HandleV2Entry(state, params)
-		break
-	case "entry-credit-balance":
-		resp, jsonError = HandleV2EntryCreditBalance(state, params)
-		break
-	case "factoid-balance":
-		resp, jsonError = HandleV2FactoidBalance(state, params)
-		break
-	case "factoid-get-fee":
-		resp, jsonError = HandleV2GetFee(state, params)
-		break
-	case "factoid-submit":
-		resp, jsonError = HandleV2FactoidSubmit(state, params)
-		break
-	case "get-raw-data":
-		resp, jsonError = HandleV2GetRaw(state, params)
-		break
-	case "get-receipt":
-		resp, jsonError = HandleV2GetReceipt(state, params)
-		break
-	case "properties":
-		resp, jsonError = HandleV2Properties(state, params)
-		break
-	case "reveal-chain":
-		resp, jsonError = HandleV2RevealChain(state, params)
-		break
-	case "reveal-entry":
-		resp, jsonError = HandleV2RevealEntry(state, params)
-		break
-	default:
-		jsonError = NewMethodNotFoundError()
-		break
-	}
-	if jsonError != nil {
-		return nil, jsonError
-	}
-
-	jsonResp := primitives.NewJSON2Response()
-	jsonResp.ID = j.ID
-	jsonResp.Result = resp
-
-	return jsonResp, nil
-}
-
-func HandleV2GetRequest(state interfaces.IState, j *primitives.JSON2Request) (*primitives.JSON2Response, *primitives.JSONError) {
+func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*primitives.JSON2Response, *primitives.JSONError) {
 	var resp interface{}
 	var jsonError *primitives.JSONError
 	params := j.Params
@@ -595,7 +510,7 @@ func HandleV2EntryCreditBalance(state interfaces.IState, params interface{}) (in
 func HandleV2GetFee(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	resp := new(FactoidGetFeeResponse)
 	resp.Fee = state.GetFactoshisPerEC()
-	
+
 	return resp, nil
 }
 

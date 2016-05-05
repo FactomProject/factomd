@@ -51,8 +51,8 @@ func Start(state interfaces.IState) {
 		server.Get("/v1/factoid-get-fee/", HandleGetFee)
 		server.Get("/v1/properties/", HandleProperties)
 
-		server.Post("/v2", HandleV2Post)
-		server.Get("/v2", HandleV2Get)
+		server.Post("/v2", HandleV2)
+		server.Get("/v2", HandleV2)
 
 		log.Print("Starting server")
 		go server.Run(fmt.Sprintf(":%d", state.GetPort()))
@@ -108,7 +108,7 @@ func HandleCommitChain(ctx *web.Context) {
 
 	req := primitives.NewJSON2Request("commit-chain", 1, c.CommitChainMsg)
 
-	jsonResp, jsonError := HandleV2PostRequest(state, req)
+	jsonResp, jsonError := HandleV2Request(state, req)
 	if jsonError != nil {
 		returnV1(ctx, nil, jsonError)
 		return
@@ -140,7 +140,7 @@ func HandleCommitEntry(ctx *web.Context) {
 
 	req := primitives.NewJSON2Request("commit-entry", 1, c.CommitEntryMsg)
 
-	jsonResp, jsonError := HandleV2PostRequest(state, req)
+	jsonResp, jsonError := HandleV2Request(state, req)
 	if jsonError != nil {
 		returnV1(ctx, nil, jsonError)
 		return
@@ -167,7 +167,7 @@ func HandleRevealEntry(ctx *web.Context) {
 
 	req := primitives.NewJSON2Request("reveal-entry", 1, e.Entry)
 
-	jsonResp, jsonError := HandleV2PostRequest(state, req)
+	jsonResp, jsonError := HandleV2Request(state, req)
 	if jsonError != nil {
 		returnV1(ctx, nil, jsonError)
 		return
@@ -180,7 +180,7 @@ func HandleDirectoryBlockHead(ctx *web.Context) {
 
 	req := primitives.NewJSON2Request("directory-block-head", 1, nil)
 
-	jsonResp, jsonError := HandleV2GetRequest(state, req)
+	jsonResp, jsonError := HandleV2Request(state, req)
 	if jsonError != nil {
 		returnV1(ctx, nil, jsonError)
 		return
@@ -195,7 +195,7 @@ func HandleGetRaw(ctx *web.Context, hashkey string) {
 
 	req := primitives.NewJSON2Request("get-raw-data", 1, hashkey)
 
-	jsonResp, jsonError := HandleV2GetRequest(state, req)
+	jsonResp, jsonError := HandleV2Request(state, req)
 	returnV1(ctx, jsonResp, jsonError)
 }
 
@@ -204,7 +204,7 @@ func HandleGetReceipt(ctx *web.Context, hashkey string) {
 
 	req := primitives.NewJSON2Request("get-receipt", 1, hashkey)
 
-	jsonResp, jsonError := HandleV2GetRequest(state, req)
+	jsonResp, jsonError := HandleV2Request(state, req)
 	returnV1(ctx, jsonResp, jsonError)
 }
 
@@ -213,7 +213,7 @@ func HandleDirectoryBlock(ctx *web.Context, hashkey string) {
 
 	req := primitives.NewJSON2Request("directory-block-by-keymr", 1, []interface{}{hashkey})
 
-	jsonResp, jsonError := HandleV2GetRequest(state, req)
+	jsonResp, jsonError := HandleV2Request(state, req)
 	if jsonError != nil {
 		returnV1(ctx, nil, jsonError)
 		return
@@ -233,7 +233,7 @@ func HandleDirectoryBlockHeight(ctx *web.Context) {
 
 	req := primitives.NewJSON2Request("directory-block-height", 1, nil)
 
-	jsonResp, jsonError := HandleV2GetRequest(state, req)
+	jsonResp, jsonError := HandleV2Request(state, req)
 	if jsonError != nil {
 		returnV1(ctx, nil, jsonError)
 		return
@@ -247,7 +247,7 @@ func HandleEntryBlock(ctx *web.Context, hashkey string) {
 
 	req := primitives.NewJSON2Request("entry-block-by-keymr", 1, hashkey)
 
-	jsonResp, jsonError := HandleV2GetRequest(state, req)
+	jsonResp, jsonError := HandleV2Request(state, req)
 	if jsonError != nil {
 		returnV1(ctx, nil, jsonError)
 		return
@@ -269,7 +269,7 @@ func HandleEntry(ctx *web.Context, hashkey string) {
 
 	req := primitives.NewJSON2Request("entry-by-hash", 1, hashkey)
 
-	jsonResp, jsonError := HandleV2GetRequest(state, req)
+	jsonResp, jsonError := HandleV2Request(state, req)
 	if jsonError != nil {
 		returnV1(ctx, nil, jsonError)
 		return
@@ -288,7 +288,7 @@ func HandleChainHead(ctx *web.Context, hashkey string) {
 
 	req := primitives.NewJSON2Request("chain-head", 1, []interface{}{hashkey})
 
-	jsonResp, jsonError := HandleV2GetRequest(state, req)
+	jsonResp, jsonError := HandleV2Request(state, req)
 	if jsonError != nil {
 		returnV1(ctx, nil, jsonError)
 		return
@@ -309,7 +309,7 @@ func HandleEntryCreditBalance(ctx *web.Context, eckey string) {
 
 	req := primitives.NewJSON2Request("entry-credit-balance", 1, eckey)
 
-	jsonResp, jsonError := HandleV2GetRequest(state, req)
+	jsonResp, jsonError := HandleV2Request(state, req)
 	if jsonError != nil {
 		returnV1(ctx, nil, jsonError)
 		return
@@ -326,7 +326,7 @@ func HandleGetFee(ctx *web.Context) {
 
 	req := primitives.NewJSON2Request("factoid-get-fee", 1, nil)
 
-	jsonResp, jsonError := HandleV2GetRequest(state, req)
+	jsonResp, jsonError := HandleV2Request(state, req)
 	if jsonError != nil {
 		returnV1(ctx, nil, jsonError)
 		return
@@ -364,7 +364,7 @@ func HandleFactoidSubmit(ctx *web.Context) {
 
 	req := primitives.NewJSON2Request("factoid-submit", 1, t.Transaction)
 
-	jsonResp, jsonError := HandleV2PostRequest(state, req)
+	jsonResp, jsonError := HandleV2Request(state, req)
 	if jsonError != nil {
 		returnV1(ctx, nil, jsonError)
 		return
@@ -386,7 +386,7 @@ func HandleFactoidBalance(ctx *web.Context, eckey string) {
 
 	req := primitives.NewJSON2Request("factoid-balance", 1, eckey)
 
-	jsonResp, jsonError := HandleV2GetRequest(state, req)
+	jsonResp, jsonError := HandleV2Request(state, req)
 	if jsonError != nil {
 		returnV1(ctx, nil, jsonError)
 		return
@@ -402,7 +402,7 @@ func HandleProperties(ctx *web.Context) {
 	fmt.Println("Connected to:", state.GetFactomNodeName())
 	req := primitives.NewJSON2Request("properties", 1, nil)
 
-	jsonResp, jsonError := HandleV2GetRequest(state, req)
+	jsonResp, jsonError := HandleV2Request(state, req)
 	if jsonError != nil {
 		returnV1(ctx, nil, jsonError)
 		return
