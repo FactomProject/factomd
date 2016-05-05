@@ -219,7 +219,7 @@ func HandleGetReceipt(ctx *web.Context, hashkey string) {
 func HandleDirectoryBlock(ctx *web.Context, hashkey string) {
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
-	req := primitives.NewJSON2Request("directory-block-by-keymr", 1, hashkey)
+	req := primitives.NewJSON2Request("directory-block-by-keymr", 1, []interface{}{hashkey})
 
 	jsonResp, jsonError := HandleV2GetRequest(state, req)
 	if jsonError != nil {
@@ -294,17 +294,16 @@ func HandleEntry(ctx *web.Context, hashkey string) {
 func HandleChainHead(ctx *web.Context, hashkey string) {
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
-	req := primitives.NewJSON2Request("chain-head", 1, hashkey)
+	req := primitives.NewJSON2Request("chain-head", 1, []interface{}{hashkey})
 
 	jsonResp, jsonError := HandleV2GetRequest(state, req)
 	if jsonError != nil {
 		returnV1(ctx, nil, jsonError)
 		return
 	}
+
 	d := new(CHead)
-
 	d.ChainHead = jsonResp.Result.(*ChainHeadResponse).ChainHead
-
 	returnMsg(ctx, d, true)
 }
 
