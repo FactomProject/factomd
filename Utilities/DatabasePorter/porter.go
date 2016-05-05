@@ -87,6 +87,8 @@ mainloop:
 
 		dBlockList = dBlockList[startIndex+1:]
 
+		fmt.Printf("Saving blocks")
+
 		for _, v := range dBlockList {
 			dbo.StartMultiBatch()
 
@@ -96,64 +98,82 @@ mainloop:
 			}
 
 			entries := v.GetDBEntries()
+			c := make(chan int, len(entries))
 			for _, e := range entries {
-				switch e.GetChainID().String() {
-				case "000000000000000000000000000000000000000000000000000000000000000a":
-					ablock, err := GetABlock(e.GetKeyMR().String())
-					if err != nil {
-						panic(err)
-					}
-					err = dbo.ProcessABlockMultiBatch(ablock)
-					if err != nil {
-						panic(err)
-					}
-					break
-				case "000000000000000000000000000000000000000000000000000000000000000f":
-					fblock, err := GetFBlock(e.GetKeyMR().String())
-					if err != nil {
-						panic(err)
-					}
-					err = dbo.ProcessFBlockMultiBatch(fblock)
-					if err != nil {
-						panic(err)
-					}
-					break
-				case "000000000000000000000000000000000000000000000000000000000000000c":
-					ecblock, err := GetECBlock(e.GetKeyMR().String())
-					if err != nil {
-						panic(err)
-					}
-					err = dbo.ProcessECBlockMultiBatch(ecblock)
-					if err != nil {
-						panic(err)
-					}
-					break
-				default:
-					eblock, err := GetEBlock(e.GetKeyMR().String())
-					if err != nil {
-						panic(err)
-					}
-					err = dbo.ProcessEBlockMultiBatch(eblock)
-					if err != nil {
-						panic(err)
-					}
-					entries := eblock.GetEntryHashes()
-					for _, eHash := range entries {
-						if eHash.IsMinuteMarker() == true {
-							continue
-						}
-						entry, err := GetEntry(eHash.String())
-						if err != nil {
-							fmt.Printf("Problem getting entry %v from block %v\n", eHash.String(), e.GetKeyMR().String())
-							panic(err)
-						}
-						err = dbo.InsertEntry(entry)
+				go func() {
+					defer func() {
+						c <- 1
+					}()
+					switch e.GetChainID().String() {
+					case "000000000000000000000000000000000000000000000000000000000000000a":
+						ablock, err := GetABlock(e.GetKeyMR().String())
 						if err != nil {
 							panic(err)
 						}
+						err = dbo.ProcessABlockMultiBatch(ablock)
+						if err != nil {
+							panic(err)
+						}
+						break
+					case "000000000000000000000000000000000000000000000000000000000000000f":
+						fblock, err := GetFBlock(e.GetKeyMR().String())
+						if err != nil {
+							panic(err)
+						}
+						err = dbo.ProcessFBlockMultiBatch(fblock)
+						if err != nil {
+							panic(err)
+						}
+						break
+					case "000000000000000000000000000000000000000000000000000000000000000c":
+						ecblock, err := GetECBlock(e.GetKeyMR().String())
+						if err != nil {
+							panic(err)
+						}
+						err = dbo.ProcessECBlockMultiBatch(ecblock)
+						if err != nil {
+							panic(err)
+						}
+						break
+					default:
+						eblock, err := GetEBlock(e.GetKeyMR().String())
+						if err != nil {
+							panic(err)
+						}
+						err = dbo.ProcessEBlockMultiBatch(eblock)
+						if err != nil {
+							panic(err)
+						}
+						eBlockEntries := eblock.GetEntryHashes()
+						c2 := make(chan int, len(eBlockEntries))
+						for _, eHash := range eBlockEntries {
+							go func() {
+								defer func() {
+									c2 <- 1
+								}()
+								if eHash.IsMinuteMarker() == true {
+									return
+								}
+								entry, err := GetEntry(eHash.String())
+								if err != nil {
+									fmt.Printf("Problem getting entry %v from block %v\n", eHash.String(), e.GetKeyMR().String())
+									panic(err)
+								}
+								err = dbo.InsertEntry(entry)
+								if err != nil {
+									panic(err)
+								}
+							}()
+						}
+						for range eBlockEntries {
+							<-c2
+						}
+						break
 					}
-					break
-				}
+				}()
+			}
+			for range entries {
+				<-c
 			}
 
 			if err := dbo.ExecuteMultiBatch(); err != nil {
