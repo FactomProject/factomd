@@ -16,6 +16,7 @@ type MessageBase struct {
 	LeaderChainID interfaces.IHash
 	MsgHash       interfaces.IHash // Cash of the hash of a message
 	VMIndex       int              // The Index of the VM responsible for this message.
+	VMHash        []byte	       // Basis for selecting a VMIndex
 	// Used by Leader code, but only Marshaled and Unmarshalled in Ack Messages
 	// EOM messages, and DirectoryBlockSignature messages
 }
@@ -57,4 +58,12 @@ func (m *MessageBase) GetVMIndex() (index int) {
 
 func (m *MessageBase) SetVMIndex(index int) {
 	m.VMIndex = index
+}
+
+func (m *MessageBase) GetVMHash() ([]byte) {
+	return m.VMHash
+}
+
+func (m *MessageBase) SetVMHash(vmhash []byte) {
+	m.VMHash = vmhash
 }

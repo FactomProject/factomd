@@ -13,6 +13,8 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/web"
+	"os"
+	"time"
 )
 
 const (
@@ -60,8 +62,14 @@ func Start(state interfaces.IState) {
 }
 
 func SetState(state interfaces.IState) {
-	Servers[state.GetPort()].Env["state"] = state
-	fmt.Println("API now directed to", state.GetFactomNodeName())
+	wait := func() {
+		for Servers == nil && Servers[state.GetPort()] != nil {
+			time.Sleep(10 * time.Millisecond)
+		}
+		Servers[state.GetPort()].Env["state"] = state
+		os.Stderr.WriteString("API now directed to "+ state.GetFactomNodeName()+"\n")
+	}
+	go wait()
 }
 
 func Stop(state interfaces.IState) {

@@ -76,11 +76,13 @@ type State struct {
 	LLeaderHeight uint32
 	Leader        bool
 	LeaderVMIndex int
+	LeaderPL      *ProcessList
 	OutputAllowed bool
-	EOM           bool // Set to true when all Process Lists have finished a minute
 	LeaderMinute  int  // The minute that just was processed by the follower, (1-10), set with EOM
+	EOM           bool // Set to true when all Process Lists have finished a minute
+	EOM_ONCE      bool
 	EOB           bool // Set to true when all Process Lists are complete for a block
-
+	EOM_LAST      bool
 	// Maps
 	// ====
 	// For Follower
