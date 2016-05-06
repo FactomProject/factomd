@@ -277,10 +277,6 @@ func (list *DBStateList) UpdateState() (progress bool) {
 		list.LastTime = list.State.GetTimestamp() // If I saved or processed stuff, I'm good for a while
 		d.Saved = true                            // Only after all is done will I admit this state has been saved.
 
-		if d.DirectoryBlock.GetHeader().GetDBHeight() == list.State.LLeaderHeight {
-			list.State.EOB = true
-		}
-
 		// Any updates required to the state as established by the AdminBlock are applied here.
 		d.AdminBlock.UpdateState(list.State)
 

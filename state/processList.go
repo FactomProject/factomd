@@ -370,18 +370,12 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 
 			oldAck, ok := p.OldAcks[plist[j].GetHash().Fixed()]
 			if !ok {
-				// the message from OldAcks is not actually of type Ack
 				plist[j] = nil
 				return
 			}
 			thisAck, ok := oldAck.(*messages.Ack)
-			if !ok {
-				// corresponding acknowledgement not found
-				if state.GetOut() {
-					p.State.Println("!!!!!!! Missing acknowledgement in process list for", j)
-				}
-				plist[j] = nil
-				return
+			if !ok {				// Missing an Ack, should never happen.
+				panic("Missing old ack in process list")
 			}
 
 			var expectedSerialHash interfaces.IHash

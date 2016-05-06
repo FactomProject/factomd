@@ -27,14 +27,13 @@ var _ = fmt.Print
 //***************************************************************
 func (s *State) Process() (progress bool) {
 
-	if false {
+	if true {
 		ppl := s.ProcessLists.Get(s.LLeaderHeight)
 		fmt.Println(
 			s.FactomNodeName,
 			"  DBHeight", s.LLeaderHeight,
 			"  Finished EOM:", ppl.FinishedEOM(),
 			"  EOM", s.EOM,
-			"  EOM_LAST", s.EOM_LAST,
 			"  Leader min:", s.LeaderMinute,
 			"  PL Min Ht:", ppl.MinuteHeight(),
 			"  PL Ht:", ppl.VMs[0].Height)
@@ -47,36 +46,38 @@ func (s *State) Process() (progress bool) {
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(0, s.IdentityChainID)
 	} else if s.LLeaderHeight <= highest {
-		if s.LLeaderHeight != 0 && s.LLeaderHeight == highest {
-			for _, vm := range s.LeaderPL.VMs {
-				ack1, ok1 := vm.LastLeaderAck.(*messages.Ack)
-				ack2, ok2 := vm.LastAck.(*messages.Ack)
-				if (!ok1 && ok2) || (ok1 && ok2 && ack2.Height >= ack1.Height) {
-					vm.LastLeaderAck = vm.LastAck
-				}
+
+		s.LeaderMinute = 0		// Last block leaves at 10, which blows up. New block = 0
+
+		for _, vm := range s.LeaderPL.VMs {
+			ack1, ok1 := vm.LastLeaderAck.(*messages.Ack)
+			ack2, ok2 := vm.LastAck.(*messages.Ack)
+			if (!ok1 && ok2) || (ok1 && ok2 && ack2.Height > ack1.Height) {
+				vm.LastLeaderAck = vm.LastAck
 			}
-			s.LLeaderHeight = s.GetHighestRecordedBlock() + 1
-
-			s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
-			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(0, s.IdentityChainID)
-
-			s.EOM = false
-
-			dbstate := s.DBStates.Get(s.LLeaderHeight-1)
-
-			dbs := new(messages.DirectoryBlockSignature)
-			dbs.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
-			dbs.ServerIdentityChainID = s.GetIdentityChainID()
-			dbs.DBHeight = s.LLeaderHeight
-			dbs.Timestamp = s.GetTimestamp()
-			dbs.SetVMIndex(s.LeaderVMIndex)
-			dbs.Sign(s)
-			err := dbs.Sign(s)
-			if err != nil {
-				panic(err)
-			}
-			s.leaderMsgQueue <- dbs
 		}
+		s.LLeaderHeight = s.GetHighestRecordedBlock() + 1
+
+		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
+		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(0, s.IdentityChainID)
+
+		s.EOM = false
+
+		dbstate := s.DBStates.Get(s.LLeaderHeight-1)
+
+		dbs := new(messages.DirectoryBlockSignature)
+		dbs.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
+		dbs.ServerIdentityChainID = s.GetIdentityChainID()
+		dbs.DBHeight = s.LLeaderHeight
+		dbs.Timestamp = s.GetTimestamp()
+		dbs.SetVMIndex(s.LeaderVMIndex)
+		dbs.SetLocal(true)
+		dbs.Sign(s)
+		err := dbs.Sign(s)
+		if err != nil {
+			panic(err)
+		}
+		s.inMsgQueue <- dbs
 	}
 
 
@@ -94,7 +95,6 @@ func (s *State) Process() (progress bool) {
 			s.EOM = false
 		case s.LeaderMinute == 10 :
 				s.AddDBState(true, s.LeaderPL.DirectoryBlock, s.LeaderPL.AdminBlock, s.GetFactoidState().GetCurrentBlock(), s.LeaderPL.EntryCreditBlock)
-				s.LeaderMinute = 0
 		}
 	}
 
@@ -171,11 +171,31 @@ func (s *State) AddDBState(isNew bool,
 
 	dbState := s.DBStates.NewDBState(isNew, directoryBlock, adminBlock, factoidBlock, entryCreditBlock)
 	s.DBStates.Put(dbState)
-
+	ht := dbState.DirectoryBlock.GetHeader().GetDBHeight()
+	if ht > s.LLeaderHeight {
+		s.LLeaderHeight = ht
+	}
 //	dbh := directoryBlock.GetHeader().GetDBHeight()
 //	if s.LLeaderHeight < dbh {
 //		s.LLeaderHeight = dbh + 1
 //	}
+}
+
+func (s *State) addEBlock(eblock interfaces.IEntryBlock) {
+	hash, err := eblock.KeyMR()
+
+	if err == nil {
+		if s.HasDataRequest(hash) {
+			s.DB.ProcessEBlockBatch(eblock)
+			delete(s.DataRequests, hash.Fixed())
+
+			if s.GetAllEntries(hash) {
+				if s.GetEBDBHeightComplete() < eblock.GetDatabaseHeight() {
+					s.SetEBDBHeightComplete(eblock.GetDatabaseHeight())
+				}
+			}
+		}
+	}
 }
 
 // Messages that will go into the Process List must match an Acknowledgement.
@@ -269,23 +289,6 @@ func (s *State) FollowerExecuteAddData(msg interfaces.IMsg) error {
 	return nil
 }
 
-func (s *State) addEBlock(eblock interfaces.IEntryBlock) {
-	hash, err := eblock.KeyMR()
-
-	if err == nil {
-		if s.HasDataRequest(hash) {
-			s.DB.ProcessEBlockBatch(eblock)
-			delete(s.DataRequests, hash.Fixed())
-
-			if s.GetAllEntries(hash) {
-				if s.GetEBDBHeightComplete() < eblock.GetDatabaseHeight() {
-					s.SetEBDBHeightComplete(eblock.GetDatabaseHeight())
-				}
-			}
-		}
-	}
-}
-
 func (s *State) LeaderExecute(m interfaces.IMsg) error {
 	m.SetVMIndex(s.LeaderPL.VMIndexFor(m.GetVMHash()))
 	if !s.Leader || m.GetVMIndex() != s.LeaderVMIndex {
@@ -327,18 +330,6 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
 	s.inMsgQueue <- ack
 
 
-
-	return nil
-}
-
-func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) error {
-	dbs, _ := m.(*messages.DirectoryBlockSignature)
-
-	ack, _ := s.NewAck(dbs.DBHeight, dbs)
-	s.networkOutMsgQueue <- ack
-	s.networkOutMsgQueue <- dbs
-	ack.FollowerExecute(s)
-	dbs.FollowerExecute(s)
 
 	return nil
 }
@@ -413,6 +404,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 
 	if pl.MinuteHeight() < s.LeaderMinute {
+		fmt.Println("skip")
 		return false
 	}
 
@@ -591,9 +583,11 @@ func (s *State) PutE(rt bool, adr [32]byte, v int64) {
 // Returns the Virtual Server Index for this hash if this server is the leader;
 // returns -1 if we are not the leader for this hash
 func (s *State) LeaderFor(msg interfaces.IMsg, hash []byte) bool {
-	h := make([]byte, len(hash))
-	copy(h,hash)
-	msg.SetVMHash(h)		// <-- This is important
+	if hash != nil {
+		h := make([]byte, len(hash))
+		copy(h, hash)
+		msg.SetVMHash(h)      // <-- This is important
+	}
 	return true
 }
 
