@@ -422,6 +422,8 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 
 func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 
+	fmt.Println(p.State.GetFactomNodeName(),"Addack them",ack.String())
+	fmt.Println(p.State.GetFactomNodeName(),"Addm   them",m.String())
 	m.SetLeaderChainID(ack.GetLeaderChainID())
 
 	if len(p.VMs[ack.VMIndex].List) > int(ack.Height) && p.VMs[ack.VMIndex].List[ack.Height] != nil {

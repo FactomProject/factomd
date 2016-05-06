@@ -68,6 +68,7 @@ func (s *State) Process() (progress bool) {
 			dbs.ServerIdentityChainID = s.GetIdentityChainID()
 			dbs.DBHeight = s.LLeaderHeight
 			dbs.Timestamp = s.GetTimestamp()
+			dbs.SetVMHash(nil)
 			dbs.SetVMIndex(s.LeaderVMIndex)
 			dbs.SetLocal(true)
 			dbs.Sign(s)
@@ -107,7 +108,6 @@ func (s *State) Process() (progress bool) {
 		if !s.Leader || len(vm.List) >= vm.Height {
 			select {
 			case msg, _ := <-s.leaderMsgQueue:
-				msg.SetVMIndex(s.LeaderPL.VMIndexFor(msg.GetVMHash()))
 				v := msg.Validate(s)
 				switch v {
 				case 1:
@@ -285,7 +285,12 @@ func (s *State) FollowerExecuteAddData(msg interfaces.IMsg) error {
 }
 
 func (s *State) LeaderExecute(m interfaces.IMsg) error {
-	m.SetVMIndex(s.LeaderPL.VMIndexFor(m.GetVMHash()))
+	h := m.GetVMHash()
+	if h != nil && len(h)>0 {
+		fmt.Println(s.FactomNodeName,"Leader Execute VMHash",m.GetVMIndex())
+		m.SetVMIndex(s.LeaderPL.VMIndexFor(m.GetVMHash()))
+	}
+	fmt.Println(s.FactomNodeName,"Leader",s.Leader,"MsgVMIndex",m.GetVMIndex(),"LeaderVM",s.LeaderVMIndex)
 	if !s.Leader || m.GetVMIndex() != s.LeaderVMIndex {
 		if m.Follower(s) {
 			m.FollowerExecute(s)
@@ -576,6 +581,7 @@ func (s *State) LeaderFor(msg interfaces.IMsg, hash []byte) bool {
 	if hash != nil {
 		h := make([]byte, len(hash))
 		copy(h, hash)
+fmt.Println("LeaderFor ... ",msg.String())
 		msg.SetVMHash(h) // <-- This is important
 	}
 	return true
@@ -634,7 +640,7 @@ func (s *State) GetNewHash() interfaces.IHash {
 func (s *State) NewAck(dbheight uint32, msg interfaces.IMsg) (iack interfaces.IMsg, err error) {
 
 	vmIndex := msg.GetVMIndex()
-
+fmt.Println(s.FactomNodeName,"NewAck",vmIndex,)
 	pl := s.ProcessLists.Get(dbheight)
 	if pl == nil {
 		return nil, fmt.Errorf(s.FactomNodeName + ": No process list at this time")
