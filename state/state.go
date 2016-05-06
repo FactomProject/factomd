@@ -31,6 +31,7 @@ type State struct {
 
 	Cfg interfaces.IFactomConfig
 
+	Prefix                  string
 	FactomNodeName          string
 	FactomdVersion          int
 	ProtocolVersion         int
@@ -57,23 +58,28 @@ type State struct {
 	// Just to print (so debugging doesn't drive functionaility)
 	serverPrt string
 
+	tickerQueue            chan int
 	timerMsgQueue          chan interfaces.IMsg
 	networkOutMsgQueue     chan interfaces.IMsg
 	networkInvalidMsgQueue chan interfaces.IMsg
 	inMsgQueue             chan interfaces.IMsg
 	leaderMsgQueue         chan interfaces.IMsg
+	followerMsgQueue       chan interfaces.IMsg
 	undo                   interfaces.IMsg
 	ShutdownChan           chan int // For gracefully halting Factom
 	JournalFile            string
 
-	myServer      interfaces.IServer //the server running on this Federated Server
 	serverPrivKey primitives.PrivateKey
 	serverPubKey  primitives.PublicKey
-	serverState   int
-	OutputAllowed bool
-	ServerIndex   int // Index of the server, as understood by the leader
 
+	// Server State
 	LLeaderHeight uint32
+	Leader        bool
+	LeaderVMIndex int
+	OutputAllowed bool
+	EOM           bool // Set to true when all Process Lists have finished a minute
+	LeaderMinute  int  // The minute that just was processed by the follower, (1-10), set with EOM
+	EOB           bool // Set to true when all Process Lists are complete for a block
 
 	// Maps
 	// ====
@@ -135,8 +141,8 @@ type State struct {
 	// For dataRequests made by this node, which it's awaiting dataResponses for
 	DataRequests map[[32]byte]interfaces.IHash
 
-	//For throttling how many missing messages we request
-	IsThrottled bool
+	LastPrint    string
+	LastPrintCnt int
 }
 
 var _ interfaces.IState = (*State)(nil)
@@ -145,7 +151,7 @@ func (s *State) Clone(number string) interfaces.IState {
 
 	clone := new(State)
 
-	clone.FactomNodeName = "FNode" + number
+	clone.FactomNodeName = s.Prefix + "FNode" + number
 	clone.FactomdVersion = s.FactomdVersion
 	clone.ProtocolVersion = s.ProtocolVersion
 	clone.LogPath = s.LogPath + "Sim" + number
@@ -179,6 +185,10 @@ func (s *State) Clone(number string) interfaces.IState {
 	return clone
 }
 
+func (s *State) AddPrefix(prefix string) {
+	s.Prefix = prefix
+}
+
 func (s *State) GetFactomNodeName() string {
 	return s.FactomNodeName
 }
@@ -194,7 +204,7 @@ func (s *State) SetDropRate(droprate int) {
 // TODO JAYJAY BUGBUG- passing in folder here is a hack for multiple factomd processes on a single machine (sharing a single .factom)
 func (s *State) LoadConfig(filename string, folder string) {
 
-	s.FactomNodeName = "FNode0" // Default Factom Node Name for Simulation
+	s.FactomNodeName = s.Prefix + "FNode0" // Default Factom Node Name for Simulation
 	if len(filename) > 0 {
 		s.filename = filename
 		s.ReadCfg(filename, folder)
@@ -202,9 +212,9 @@ func (s *State) LoadConfig(filename string, folder string) {
 		// Get our factomd configuration information.
 		cfg := s.GetCfg().(*util.FactomdConfig)
 
-		s.LogPath = cfg.Log.LogPath
-		s.LdbPath = cfg.App.LdbPath
-		s.BoltDBPath = cfg.App.BoltDBPath
+		s.LogPath = cfg.Log.LogPath + s.Prefix
+		s.LdbPath = cfg.App.LdbPath + s.Prefix
+		s.BoltDBPath = cfg.App.BoltDBPath + s.Prefix
 		s.LogLevel = cfg.Log.LogLevel
 		s.ConsoleLogLevel = cfg.Log.ConsoleLogLevel
 		s.NodeMode = cfg.App.NodeMode
@@ -219,7 +229,6 @@ func (s *State) LoadConfig(filename string, folder string) {
 
 		// TODO:  Actually load the IdentityChainID from the config file
 		s.IdentityChainID = primitives.Sha([]byte(s.FactomNodeName))
-
 	} else {
 		s.LogPath = "database/"
 		s.LdbPath = "database/ldb"
@@ -247,16 +256,17 @@ func (s *State) Init() {
 
 	wsapi.InitLogs(s.LogPath+s.FactomNodeName+".log", s.LogLevel)
 
-	s.Println("Logger: ", s.LogPath, s.LogLevel)
 	s.Logger = logger.NewLogFromConfig(s.LogPath, s.LogLevel, "State")
 
 	log.SetLevel(s.ConsoleLogLevel)
 
+	s.tickerQueue = make(chan int, 10000)                        //ticks from a clock
 	s.timerMsgQueue = make(chan interfaces.IMsg, 10000)          //incoming eom notifications, used by leaders
 	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 10000) //incoming message queue from the network messages
 	s.networkOutMsgQueue = make(chan interfaces.IMsg, 10000)     //Messages to be broadcast to the network
 	s.inMsgQueue = make(chan interfaces.IMsg, 10000)             //incoming message queue for factom application messages
 	s.leaderMsgQueue = make(chan interfaces.IMsg, 10000)         //queue of Leadership messages
+	s.followerMsgQueue = make(chan interfaces.IMsg, 10000)       //queue of Leadership messages
 	s.ShutdownChan = make(chan int, 1)                           //Channel to gracefully shut down.
 
 	os.Mkdir(s.LogPath, 0777)
@@ -298,12 +308,12 @@ func (s *State) Init() {
 
 	switch s.NodeMode {
 	case "FULL":
-		s.serverState = 0
+		s.Leader = false
 		s.Println("\n   +---------------------------+")
 		s.Println("   +------ Follower Only ------+")
 		s.Println("   +---------------------------+\n")
 	case "SERVER":
-		s.serverState = 1
+		s.Leader = true
 		s.Println("\n   +-------------------------+")
 		s.Println("   |       Leader Node       |")
 		s.Println("   +-------------------------+\n")
@@ -353,6 +363,7 @@ func (s *State) Init() {
 	s.FedServerFaults = make([][]interfaces.IMsg, 0)
 
 	s.initServerKeys()
+
 }
 
 func (s *State) AddDataRequest(requestedHash, missingDataHash interfaces.IHash) {
@@ -398,6 +409,7 @@ func (s *State) GetEBlockKeyMRFromEntryHash(entryHash interfaces.IHash) interfac
 }
 
 func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
+
 	dblk, err := s.DB.FetchDBlockByHeight(dbheight)
 	if err != nil {
 		return nil, err
@@ -442,6 +454,7 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 	msg := messages.NewDBStateMsg(s.GetTimestamp(), dblk, ablk, fblk, ecblk, eblks)
 
 	return msg, nil
+
 }
 
 func (s *State) LoadDataByHash(requestedHash interfaces.IHash) (interfaces.BinaryMarshallable, int, error) {
@@ -471,7 +484,7 @@ func (s *State) LoadDataByHash(requestedHash interfaces.IHash) (interfaces.Binar
 	return nil, -1, nil
 }
 
-func (s *State) LoadSpecificMsg(dbheight uint32, plistheight uint32) (interfaces.IMsg, error) {
+func (s *State) LoadSpecificMsg(dbheight uint32, vm int, plistheight uint32) (interfaces.IMsg, error) {
 	if dbheight < s.ProcessLists.DBHeightBase {
 		return nil, fmt.Errorf("Missing message is too deeply buried in blocks")
 	} else if dbheight > (s.ProcessLists.DBHeightBase + uint32(len(s.ProcessLists.Lists))) {
@@ -482,11 +495,11 @@ func (s *State) LoadSpecificMsg(dbheight uint32, plistheight uint32) (interfaces
 	if procList == nil {
 		return nil, fmt.Errorf("Nil Process List")
 	}
-	if len(procList.VMs[0].List) < int(plistheight)+1 {
+	if len(procList.VMs[vm].List) < int(plistheight)+1 {
 		return nil, fmt.Errorf("Process List too small (lacks requested msg)")
 	}
 
-	msg := procList.VMs[0].List[plistheight]
+	msg := procList.VMs[vm].List[plistheight]
 
 	if msg == nil {
 		return nil, fmt.Errorf("State process list does not include requested message")
@@ -495,7 +508,7 @@ func (s *State) LoadSpecificMsg(dbheight uint32, plistheight uint32) (interfaces
 	return msg, nil
 }
 
-func (s *State) LoadSpecificMsgAndAck(dbheight uint32, plistheight uint32) (interfaces.IMsg, interfaces.IMsg, error) {
+func (s *State) LoadSpecificMsgAndAck(dbheight uint32, vm int, plistheight uint32) (interfaces.IMsg, interfaces.IMsg, error) {
 	if dbheight < s.ProcessLists.DBHeightBase {
 		return nil, nil, fmt.Errorf("Missing message is too deeply buried in blocks")
 	} else if dbheight > (s.ProcessLists.DBHeightBase + uint32(len(s.ProcessLists.Lists))) {
@@ -508,11 +521,11 @@ func (s *State) LoadSpecificMsgAndAck(dbheight uint32, plistheight uint32) (inte
 	} else if len(procList.VMs) < 1 {
 		return nil, nil, fmt.Errorf("No servers?")
 	}
-	if len(procList.VMs[0].List) < int(plistheight)+1 {
+	if len(procList.VMs[vm].List) < int(plistheight)+1 {
 		return nil, nil, fmt.Errorf("Process List too small (lacks requested msg)")
 	}
 
-	msg := procList.VMs[0].List[plistheight]
+	msg := procList.VMs[vm].List[plistheight]
 
 	if msg == nil {
 		return nil, nil, fmt.Errorf("State process list does not include requested message")
@@ -607,27 +620,29 @@ func (s *State) GetDirectoryBlockByHeight(height uint32) interfaces.IDirectoryBl
 	return dblk
 }
 
-func (s *State) UpdateState() {
-	for {
-		s.SetString()
-		progress1 := s.ProcessLists.UpdateState()
-		progress2 := s.DBStates.UpdateState()
-		s.catchupEBlocks()
-
-		if s.GetOut() {
-			str := fmt.Sprintf("%25s   %10s   %25s", "----------------", s.GetFactomNodeName(), "--------------------\n")
-			str = str + s.ProcessLists.String()
-			str = str + s.DBStates.String()
-			str = str + fmt.Sprintf("%25s   %10s   %25s", "================", s.GetFactomNodeName(), "===================\n")
-			str = str + "===================================================================="
-
-			s.Println(str)
-		}
-
-		if !progress1 && !progress2 {
-			break
-		}
+func (s *State) UpdateState() (progress bool) {
+	dbheight := s.GetHighestRecordedBlock()
+	plbase := s.ProcessLists.DBHeightBase
+	if plbase <= dbheight+1 {
+		progress = s.ProcessLists.UpdateState(dbheight + 1)
 	}
+
+	p2 := s.DBStates.UpdateState()
+	progress = progress || p2
+
+	s.catchupEBlocks()
+
+	if progress && s.GetOut() {
+		str := fmt.Sprintf("%25s   %10s   %25s", "----------------", s.GetFactomNodeName(), "--------------------\n")
+		str = str + s.ProcessLists.String()
+		str = str + s.DBStates.String()
+		str = str + fmt.Sprintf("%25s   %10s   %25s", "================", s.GetFactomNodeName(), "===================\n")
+		str = str + "===================================================================="
+
+		s.Println(str)
+	}
+
+	return
 }
 
 func (s *State) catchupEBlocks() {
@@ -655,10 +670,6 @@ func (s *State) catchupEBlocks() {
 	}
 }
 
-func (s *State) Dethrottle() {
-	s.IsThrottled = false
-}
-
 func (s *State) AddFedServer(dbheight uint32, hash interfaces.IHash) int {
 	return s.ProcessLists.Get(dbheight).AddFedServer(hash)
 }
@@ -675,7 +686,7 @@ func (s *State) GetAuditServers(dbheight uint32) []interfaces.IFctServer {
 	return s.ProcessLists.Get(dbheight).AuditServers
 }
 
-func (s *State) GetVirtualServers(dbheight uint32, minute int, identityChainID interfaces.IHash) (found bool, indexes []int) {
+func (s *State) GetVirtualServers(dbheight uint32, minute int, identityChainID interfaces.IHash) (found bool, index int) {
 	pl := s.ProcessLists.Get(dbheight)
 	return pl.GetVirtualServers(minute, identityChainID)
 }
@@ -702,14 +713,6 @@ func (s *State) GetDirectoryBlockInSeconds() int {
 
 func (s *State) SetDirectoryBlockInSeconds(t int) {
 	s.DirectoryBlockInSeconds = t
-}
-
-func (s *State) GetServer() interfaces.IServer {
-	return s.myServer
-}
-
-func (s *State) SetServer(server interfaces.IServer) {
-	s.myServer = server
 }
 
 func (s *State) GetServerPrivateKey() primitives.PrivateKey {
@@ -790,6 +793,10 @@ func (s *State) GetPort() int {
 	return s.PortNumber
 }
 
+func (s *State) TickerQueue() chan int {
+	return s.tickerQueue
+}
+
 func (s *State) TimerMsgQueue() chan interfaces.IMsg {
 	return s.timerMsgQueue
 }
@@ -810,10 +817,8 @@ func (s *State) LeaderMsgQueue() chan interfaces.IMsg {
 	return s.leaderMsgQueue
 }
 
-func (s *State) Undo() interfaces.IMsg {
-	u := s.undo
-	s.undo = nil
-	return u
+func (s *State) FollowerMsgQueue() chan interfaces.IMsg {
+	return s.followerMsgQueue
 }
 
 //var _ IState = (*State)(nil)
@@ -903,23 +908,26 @@ func (s *State) SetString() {
 
 	lastheight := uint32(0)
 
+	found, _ := s.GetVirtualServers(buildingBlock+1, 0, s.GetIdentityChainID())
+	stype := ""
+	if found {
+		stype = fmt.Sprintf("L     ")
+	}
+
 	if buildingBlock == 0 {
 		s.serverPrt = fmt.Sprintf("%9s%9s Recorded: %d Building: %d Highest: %d ",
-			"",
+			stype,
 			s.FactomNodeName,
 			s.GetHighestRecordedBlock(),
 			0,
 			s.GetHighestKnownBlock())
 	} else {
-		found, _ := s.GetVirtualServers(buildingBlock, 9, s.GetIdentityChainID())
-		stype := ""
-		if found {
-			stype = fmt.Sprintf("L     ")
-		}
+
 		keyMR := []byte("aaaaa")
 		abHash := []byte("aaaaa")
 		fbHash := []byte("aaaaa")
 		ecHash := []byte("aaaaa")
+
 		switch {
 		case s.DBStates == nil:
 
@@ -956,7 +964,13 @@ func (s *State) Print(a ...interface{}) (n int, err error) {
 			str = str + fmt.Sprintf("%v", v)
 		}
 
-		str = strings.Replace(str, "\n", "\r\n", -1)
+		if s.LastPrint == str {
+			s.LastPrintCnt++
+			fmt.Print(s.LastPrintCnt, " ")
+		} else {
+			s.LastPrint = str
+			s.LastPrintCnt = 0
+		}
 		return fmt.Print(str)
 	}
 
@@ -971,8 +985,13 @@ func (s *State) Println(a ...interface{}) (n int, err error) {
 		}
 		str = str + "\n"
 
-		str = strings.Replace(str, "\n", "\r\n", -1)
-
+		if s.LastPrint == str {
+			s.LastPrintCnt++
+			fmt.Print(s.LastPrintCnt, " ")
+		} else {
+			s.LastPrint = str
+			s.LastPrintCnt = 0
+		}
 		return fmt.Print(str)
 	}
 

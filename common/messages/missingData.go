@@ -20,11 +20,33 @@ type MissingData struct {
 
 	RequestHash interfaces.IHash
 
+	//No signature!
+
 	//Not marshalled
 	hash interfaces.IHash
 }
 
 var _ interfaces.IMsg = (*MissingData)(nil)
+
+func (a *MissingData) IsSameAs(b *MissingData) bool {
+	if b == nil {
+		return false
+	}
+	if a.Timestamp != b.Timestamp {
+		return false
+	}
+
+	if a.RequestHash == nil && b.RequestHash != nil {
+		return false
+	}
+	if a.RequestHash != nil {
+		if a.RequestHash.IsSameAs(b.RequestHash) == false {
+			return false
+		}
+	}
+
+	return true
+}
 
 func (m *MissingData) Process(uint32, interfaces.IState) bool {
 	return true

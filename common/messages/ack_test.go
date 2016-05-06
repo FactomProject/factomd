@@ -103,6 +103,12 @@ func newAck() *Ack {
 	}
 	ack.SerialHash = hash
 
+	hash, err = primitives.NewShaHashFromStr("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
+	if err != nil {
+		panic(err)
+	}
+	ack.LeaderChainID = hash
+
 	return ack
 }
 

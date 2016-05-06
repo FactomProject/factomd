@@ -15,25 +15,26 @@ import (
 )
 
 func TestMarshalUnmarshalFactoidTransaction(t *testing.T) {
-	ft := newFactoidTransaction()
-	hex, err := ft.MarshalBinary()
+	msg := newFactoidTransaction()
+
+	hex, err := msg.MarshalBinary()
 	if err != nil {
 		t.Error(err)
 	}
 	t.Logf("Marshalled - %x", hex)
 
-	ft2, err := UnmarshalMessage(hex)
+	msg2, err := UnmarshalMessage(hex)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
-	str := ft2.String()
-	t.Logf("str - %v", str)
+	//str := msg2.String()
+	//t.Logf("str - %v", str)
 
-	if ft2.Type() != constants.FACTOID_TRANSACTION_MSG {
+	if msg2.Type() != constants.FACTOID_TRANSACTION_MSG {
 		t.Error("Invalid message type unmarshalled")
 	}
 
-	hex2, err := ft2.(*FactoidTransaction).MarshalBinary()
+	hex2, err := msg2.(*FactoidTransaction).MarshalBinary()
 	if err != nil {
 		t.Error(err)
 	}
@@ -45,10 +46,15 @@ func TestMarshalUnmarshalFactoidTransaction(t *testing.T) {
 			t.Error("Hexes do not match")
 		}
 	}
+
+	if msg.IsSameAs(msg2.(*FactoidTransaction)) != true {
+		t.Errorf("FactoidTransaction messages are not identical")
+	}
 }
 
 func newFactoidTransaction() *FactoidTransaction {
 	msg := new(FactoidTransaction)
+	msg.Timestamp.SetTimeNow()
 
 	t := new(factoid.Transaction)
 

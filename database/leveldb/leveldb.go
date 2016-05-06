@@ -175,8 +175,10 @@ func (db *LevelDB) GetAll(bucket []byte, sample interfaces.BinaryMarshallableAnd
 
 	for iter.Next() {
 		v := iter.Value()
+		vCopy := make([]byte, len(v))
+		copy(vCopy, v)
 		tmp := sample.New()
-		err := tmp.UnmarshalBinary(v)
+		err := tmp.UnmarshalBinary(vCopy)
 		if err != nil {
 			return nil, err
 		}

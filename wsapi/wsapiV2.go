@@ -381,7 +381,10 @@ func HandleV2GetReceipt(state interfaces.IState, params interface{}) (interface{
 }
 
 func HandleV2DirectoryBlock(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
-	ps := params.([]interface{})
+	ps, ok := params.([]interface{})
+	if !ok {
+		return nil, NewInvalidParamsError()
+	}
 	if len(ps) < 1 {
 		return nil, NewInvalidParamsError()
 	}
@@ -524,7 +527,10 @@ func HandleV2Entry(state interfaces.IState, params interface{}) (interface{}, *p
 }
 
 func HandleV2ChainHead(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
-	ps := params.([]interface{})
+	ps, ok := params.([]interface{})
+	if !ok {
+		return nil, NewInvalidParamsError()
+	}
 	if len(ps) < 1 {
 		return nil, NewInvalidParamsError()
 	}
@@ -539,7 +545,6 @@ func HandleV2ChainHead(state interfaces.IState, params interface{}) (interface{}
 	}
 
 	dbase := state.GetDB()
-
 	mr, err := dbase.FetchHeadIndexByChainID(h)
 	if err != nil {
 		return nil, NewInvalidHashError()
@@ -590,9 +595,7 @@ func HandleV2EntryCreditBalance(state interfaces.IState, params interface{}) (in
 func HandleV2GetFee(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	resp := new(FactoidGetFeeResponse)
 	resp.Fee = state.GetFactoshisPerEC()
-
-	fmt.Println(";;;;;;;;;;;;;;;;;;;;;;;;;;;;;; ", resp.Fee)
-
+	
 	return resp, nil
 }
 
@@ -603,6 +606,8 @@ func HandleV2FactoidSubmit(state interfaces.IState, params interface{}) (interfa
 	}
 
 	msg := new(messages.FactoidTransaction)
+	msg.Timestamp = state.GetTimestamp()
+
 	p, err := hex.DecodeString(t)
 	if err != nil {
 		return nil, NewUnableToDecodeTransactionError()

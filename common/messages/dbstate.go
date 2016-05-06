@@ -39,6 +39,9 @@ type DBStateMsg struct {
 var _ interfaces.IMsg = (*DBStateMsg)(nil)
 
 func (a *DBStateMsg) IsSameAs(b *DBStateMsg) bool {
+	if b == nil {
+		return false
+	}
 	if a.Timestamp != b.Timestamp {
 		return false
 	}
@@ -265,12 +268,12 @@ func (m *DBStateMsg) MarshalBinary() ([]byte, error) {
 }
 
 func (m *DBStateMsg) String() string {
-	return fmt.Sprintf("DBState: %d dblock %x admin %x fb %x ec %x",
+	return fmt.Sprintf("DBState: ht:%3d dblock %6x admin %6x fb %6x ec %6x",
 		m.DirectoryBlock.GetHeader().GetDBHeight(),
-		m.DirectoryBlock.GetKeyMR().Bytes()[:5],
-		m.AdminBlock.GetHash().Bytes()[:5],
-		m.FactoidBlock.GetHash().Bytes()[:5],
-		m.EntryCreditBlock.GetHash().Bytes()[:5])
+		m.DirectoryBlock.GetKeyMR().Bytes()[:3],
+		m.AdminBlock.GetHash().Bytes()[:3],
+		m.FactoidBlock.GetHash().Bytes()[:3],
+		m.EntryCreditBlock.GetHash().Bytes()[:3])
 }
 
 func NewDBStateMsg(timestamp interfaces.Timestamp,

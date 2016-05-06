@@ -282,11 +282,11 @@ func (m *EOM) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *EOM) String() string {
-	return fmt.Sprintf("%6s-%3d: Min:%4d Ht:%5d -- chainID[:5]=%x hash[:5]=%x",
+	return fmt.Sprintf("%6s-VM%3d: Min:%4d Ht:%5d -- Leader[:3]=%x hash[:3]=%x",
 		"EOM",
 		m.VMIndex,
 		m.Minute,
 		m.DBHeight,
-		m.ChainID.Bytes()[:5],
-		m.GetMsgHash().Bytes()[:5])
+		m.ChainID.Bytes()[:3],
+		m.GetMsgHash().Bytes()[:3])
 }

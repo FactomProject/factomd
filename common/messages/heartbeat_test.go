@@ -13,8 +13,8 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
-func TestMarshalUnmarshalEOM(t *testing.T) {
-	msg := newEOM()
+func TestMarshalUnmarshalHeartbeat(t *testing.T) {
+	msg := newHeartbeat()
 
 	hex, err := msg.MarshalBinary()
 	if err != nil {
@@ -29,11 +29,11 @@ func TestMarshalUnmarshalEOM(t *testing.T) {
 	str := msg2.String()
 	t.Logf("str - %v", str)
 
-	if msg2.Type() != constants.EOM_MSG {
+	if msg2.Type() != constants.HEARTBEAT_MSG {
 		t.Error("Invalid message type unmarshalled")
 	}
 
-	hex2, err := msg2.(*EOM).MarshalBinary()
+	hex2, err := msg2.(*Heartbeat).MarshalBinary()
 	if err != nil {
 		t.Error(err)
 	}
@@ -46,13 +46,13 @@ func TestMarshalUnmarshalEOM(t *testing.T) {
 		}
 	}
 
-	if msg.IsSameAs(msg2.(*EOM)) != true {
-		t.Errorf("EOM messages are not identical")
+	if msg.IsSameAs(msg2.(*Heartbeat)) != true {
+		t.Errorf("Heartbeat messages are not identical")
 	}
 }
 
-func TestSignAndVerifyEOM(t *testing.T) {
-	msg := newSignedEOM()
+func TestSignAndVerifyHeartbeat(t *testing.T) {
+	msg := newSignedHeartbeat()
 	hex, err := msg.MarshalBinary()
 	if err != nil {
 		t.Error(err)
@@ -77,11 +77,11 @@ func TestSignAndVerifyEOM(t *testing.T) {
 		t.Error(err)
 	}
 
-	if msg2.Type() != constants.EOM_MSG {
+	if msg2.Type() != constants.HEARTBEAT_MSG {
 		t.Error("Invalid message type unmarshalled")
 	}
 
-	valid, err = msg2.(*EOM).VerifySignature()
+	valid, err = msg2.(*Heartbeat).VerifySignature()
 	if err != nil {
 		t.Error(err)
 	}
@@ -90,22 +90,25 @@ func TestSignAndVerifyEOM(t *testing.T) {
 	}
 }
 
-func newEOM() *EOM {
-	eom := new(EOM)
-	eom.Timestamp.SetTime(0xFF22100122FF)
-	eom.Minute = 3
+func newHeartbeat() *Heartbeat {
+	eom := new(Heartbeat)
+	eom.Timestamp.SetTimeNow()
 	h, err := primitives.NewShaHashFromStr("deadbeef00000000000000000000000000000000000000000000000000000000")
 	if err != nil {
 		panic(err)
 	}
-	eom.ChainID = h
-	eom.DBHeight = 123456
+	eom.DBlockHash = h
+	h, err = primitives.NewShaHashFromStr("deadbeef00000000000000000000000000000000000000000000000000000000")
+	if err != nil {
+		panic(err)
+	}
+	eom.IdentityChainID = h
 
 	return eom
 }
 
-func newSignedEOM() *EOM {
-	ack := newEOM()
+func newSignedHeartbeat() *Heartbeat {
+	ack := newHeartbeat()
 
 	key, err := primitives.NewPrivateKeyFromHex("07c0d52cb74f4ca3106d80c4a70488426886bccc6ebc10c6bafb37bf8a65f4c38cee85c62a9e48039d4ac294da97943c2001be1539809ea5f54721f0c5477a0a")
 	if err != nil {

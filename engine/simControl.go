@@ -43,8 +43,10 @@ func SimControl(listenTo int) {
 		b := string(cmd[0])
 		v, err := strconv.Atoi(string(b))
 		if err == nil && v >= 0 && v < len(fnodes) {
-			for _, fnode := range fnodes {
-				fnode.State.SetOut(false)
+			if mLog.all == false {
+				for _, fnode := range fnodes {
+					fnode.State.SetOut(false)
+				}
 			}
 			listenTo = v
 			os.Stderr.WriteString(fmt.Sprintf("Switching to Node %d\n", listenTo))
@@ -61,6 +63,7 @@ func SimControl(listenTo int) {
 				}
 				if listenTo >= 0 && listenTo < len(fnodes) {
 					fmt.Printf("   %s\n", fnodes[listenTo].State.GetFactomNodeName())
+					fmt.Printf("      FollowerMsgQueue       %d\n", len(fnodes[listenTo].State.FollowerMsgQueue()))
 					fmt.Printf("      InMsgQueue             %d\n", len(fnodes[listenTo].State.InMsgQueue()))
 					fmt.Printf("      LeaderMsgQueue         %d\n", len(fnodes[listenTo].State.LeaderMsgQueue()))
 					fmt.Printf("      TimerMsgQueue          %d\n", len(fnodes[listenTo].State.TimerMsgQueue()))
@@ -175,10 +178,6 @@ func SimControl(listenTo int) {
 				wsapi.SetState(fnodes[listenTo].State)
 				mLog.all = false
 			case 0 == strings.Compare(strings.ToLower(string(b[0])), "s"):
-				for _, fnode := range fnodes {
-					fnode.State.SetOut(false)
-				}
-				mLog.all = false
 				msg := messages.NewAddServerMsg(fnodes[listenTo].State, 0)
 				fnodes[listenTo].State.InMsgQueue() <- msg
 				os.Stderr.WriteString(fmt.Sprintln("Attempting to make", fnodes[listenTo].State.GetFactomNodeName(), "a Leader"))
