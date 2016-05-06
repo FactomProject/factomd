@@ -96,7 +96,7 @@ func GetEntry(hash string) (interfaces.IEBEntry, error) {
 }
 
 func GetDBlockHead() (string, error) {
-	return "3a5ec711a1dc1c6e463b0c0344560f830eb0b56e42def141cb423b0d8487a1dc", nil //10
+	//return "3a5ec711a1dc1c6e463b0c0344560f830eb0b56e42def141cb423b0d8487a1dc", nil //10
 	//return "cde346e7ed87957edfd68c432c984f35596f29c7d23de6f279351cddecd5dc66", nil //100
 	//return "d13472838f0156a8773d78af137ca507c91caf7bf3b73124d6b09ebb0a98e4d9", nil //200
 

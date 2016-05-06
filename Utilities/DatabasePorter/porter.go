@@ -87,7 +87,7 @@ mainloop:
 
 		dBlockList = dBlockList[startIndex+1:]
 
-		fmt.Printf("Saving blocks\n")
+		fmt.Printf("\t\tSaving blocks\n")
 
 		for _, v := range dBlockList {
 			dbo.StartMultiBatch()

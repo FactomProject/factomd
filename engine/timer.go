@@ -62,7 +62,6 @@ func Timer(state interfaces.IState) {
 	}
 }
 
-
 func PrintBusy(state interfaces.IState, i int) {
 
 	s := state.(*s.State)

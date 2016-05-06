@@ -96,7 +96,6 @@ func (t *Timer) timer(state *State, min int) {
 		}
 	}
 
-
 	eom := new(messages.EOM)
 	eom.Minute = byte(min)
 	eom.Timestamp = state.GetTimestamp()
