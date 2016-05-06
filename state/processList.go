@@ -58,6 +58,7 @@ type VM struct {
 	Height         int               // Height of messages that have been processed
 	LeaderMinute   int               // Where the leader is in acknowledging messages
 	MinuteComplete int               // Highest minute complete (0-9) by the follower
+	MinuteHeight   int               // Height of the last minute complete
 	SigComplete    bool              // Lists that are signature complete
 	Undo           interfaces.IMsg   // The Leader needs one level of undo to handle DB Sigs.
 	LastLeaderAck  interfaces.IMsg   // The last Acknowledgement set by this leader
@@ -167,11 +168,31 @@ func (p *ProcessList) MakeMap() {
 	}
 }
 
+// This function will be replaced by a calculation from the Matryoshka hashes from the servers
+// but for now, we are just going to make it a function of the dbheight.
+func (p *ProcessList) PrintMap() string {
+	n := len(p.FedServers)
+	prt := " min"
+	for i:=0;i<n;i++ {
+		prt = fmt.Sprintf("%s%3d",prt,i)
+	}
+	prt = prt+"\n"
+	for i := 0; i < 10; i++ {
+		prt = fmt.Sprintf("%s%3d  ",prt,i)
+		for j := 0; j < len(p.FedServers); j++ {
+			prt = fmt.Sprintf("%s%2d ",prt,p.ServerMap[i][j])
+		}
+		prt = prt+"\n"
+	}
+	return prt
+}
+
 // Take the minute that has completed.  The minute height then is 1 plus that number
 // i.e. the minute height is 0, or 1, or 2, or ... or 10 (all done)
 func (p *ProcessList) SetMinute(index int, minute int) {
 	p.VMs[index].LeaderMinute = minute
 	p.VMs[index].MinuteComplete = minute + 1
+	p.VMs[index].MinuteHeight = p.VMs[index].Height
 }
 
 // Return the lowest minute number in our lists.  Note that Minute Markers END
@@ -327,6 +348,37 @@ func (p *ProcessList) SigComplete() bool {
 	return true
 }
 
+func (p *ProcessList) FinishedEOM() bool {
+	if p == nil || !p.HasMessage() { // Empty or nul, return true.
+		return true
+	}
+	n := len(p.State.GetFedServers(p.DBHeight))
+	for i := 0; i < n; i++ {
+		c := p.VMs[i]
+		if c.Height < c.MinuteHeight {
+			return false
+		}
+	}
+	return true
+}
+
+func (p *ProcessList) FinishedSIG() bool {
+	if p == nil || !p.HasMessage() { // Empty or nul, return true.
+		return true
+	}
+	n := len(p.State.GetFedServers(p.DBHeight))
+	for i := 0; i < n; i++ {
+		c := p.VMs[i]
+		if !c.SigComplete {
+			return false
+		}
+		if c.Height != len(c.List) {
+			return false
+		}
+	}
+	return true
+}
+
 // Process messages and update our state.
 func (p *ProcessList) Process(state *State) (progress bool) {
 
@@ -426,6 +478,7 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 
 	if len(p.VMs[ack.VMIndex].List) > int(ack.Height) && p.VMs[ack.VMIndex].List[ack.Height] != nil {
 		fmt.Println(p.String())
+		fmt.Println(p.PrintMap())
 		panic(fmt.Sprintf("\t%12s %s\n\t%12s %s\n\t %12s %s",
 			"OverWriting:",
 			p.VMs[ack.VMIndex].List[ack.Height].String(),
@@ -453,17 +506,23 @@ func (p *ProcessList) String() string {
 
 		for i := 0; i < len(p.FedServers); i++ {
 			server := p.VMs[i]
-			eom := fmt.Sprintf("Minute Complete %d", server.MinuteComplete)
+			eom := fmt.Sprintf("Minute Complete %d Height %d ", server.MinuteComplete,server.Height)
+			if p.FinishedEOM() {
+				eom = eom+"Finished EOM "
+			}
 			sig := ""
 			if server.SigComplete {
-				sig = "Sig Complete"
+				sig = "Sig Complete "
+			}
+			if p.FinishedSIG() {
+				eom = eom+"Finished SIG "
 			}
 
 			buf.WriteString(fmt.Sprintf("  VM %d Fed %d %s %s\n", i, p.ServerMap[server.LeaderMinute][i], eom, sig))
 			for j, msg := range server.List {
 
 				if j < server.Height {
-					buf.WriteString("  p")
+					buf.WriteString("  P")
 				} else {
 					buf.WriteString("   ")
 				}

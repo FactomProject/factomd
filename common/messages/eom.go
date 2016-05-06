@@ -138,16 +138,13 @@ func (m *EOM) Validate(state interfaces.IState) int {
 // Returns true if this is a message for this server to execute as
 // a leader.
 func (m *EOM) Leader(state interfaces.IState) bool {
-	if m.IsLocal() {
-		return true
-	}
-	return false
+	return m.IsLocal() 
 }
 
 // Execute the leader functions of the given message
 func (m *EOM) LeaderExecute(state interfaces.IState) error {
 	m.SetLocal(false)
-	return state.LeaderExecute(m)
+	return state.LeaderExecuteEOM(m)
 }
 
 // Returns true if this is a message for this server to execute as a follower

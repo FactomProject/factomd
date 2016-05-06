@@ -110,10 +110,6 @@ func (list *DBStateList) Catchup() {
 
 	dbsHeight := list.GetHighestRecordedBlock()
 
-	if dbsHeight > list.State.LLeaderHeight {
-		list.State.LLeaderHeight = dbsHeight + 1
-	}
-
 	// We only check if we need updates once every so often.
 	if int(now)/1000-int(list.LastTime)/1000 < SecondsBetweenTests {
 		return
@@ -284,8 +280,6 @@ func (list *DBStateList) UpdateState() (progress bool) {
 		if d.DirectoryBlock.GetHeader().GetDBHeight() == list.State.LLeaderHeight {
 			list.State.EOB = true
 		}
-
-		list.State.LLeaderHeight = list.State.GetHighestRecordedBlock() + 1
 
 		// Any updates required to the state as established by the AdminBlock are applied here.
 		d.AdminBlock.UpdateState(list.State)

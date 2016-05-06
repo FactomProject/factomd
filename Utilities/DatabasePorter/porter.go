@@ -87,7 +87,7 @@ mainloop:
 
 		dBlockList = dBlockList[startIndex+1:]
 
-		fmt.Printf("Saving blocks")
+		fmt.Printf("Saving blocks\n")
 
 		for _, v := range dBlockList {
 			dbo.StartMultiBatch()
@@ -99,8 +99,8 @@ mainloop:
 
 			entries := v.GetDBEntries()
 			c := make(chan int, len(entries))
-			for _, e := range entries {
-				go func() {
+			for _, ent := range entries {
+				go func(e interfaces.IDBEntry) {
 					defer func() {
 						c <- 1
 					}()
@@ -147,30 +147,30 @@ mainloop:
 						eBlockEntries := eblock.GetEntryHashes()
 						c2 := make(chan int, len(eBlockEntries))
 						for _, eHash := range eBlockEntries {
-							go func() {
+							go func(ehash interfaces.IHash) {
 								defer func() {
 									c2 <- 1
 								}()
-								if eHash.IsMinuteMarker() == true {
+								if ehash.IsMinuteMarker() == true {
 									return
 								}
-								entry, err := GetEntry(eHash.String())
+								entry, err := GetEntry(ehash.String())
 								if err != nil {
-									fmt.Printf("Problem getting entry %v from block %v\n", eHash.String(), e.GetKeyMR().String())
+									fmt.Printf("Problem getting entry `%v` from block %v\n", ehash.String(), e.GetKeyMR().String())
 									panic(err)
 								}
 								err = dbo.InsertEntry(entry)
 								if err != nil {
 									panic(err)
 								}
-							}()
+							}(eHash)
 						}
 						for range eBlockEntries {
 							<-c2
 						}
 						break
 					}
-				}()
+				}(ent)
 			}
 			for range entries {
 				<-c
