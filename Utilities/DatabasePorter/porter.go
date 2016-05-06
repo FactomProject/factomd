@@ -63,6 +63,7 @@ mainloop:
 		dBlockList := make([]interfaces.IDirectoryBlock, int(dBlock.GetDatabaseHeight())+1)
 		dBlockList[int(dBlock.GetDatabaseHeight())] = dBlock
 
+		fmt.Printf("\t\tFetching DBlocks\n")
 		for {
 			keymr = dBlock.GetHeader().GetPrevKeyMR().String()
 			if keymr == endKeyMR {
@@ -182,6 +183,7 @@ mainloop:
 			fmt.Printf("Saved block height %v\n", v.GetDatabaseHeight())
 		}
 	}
+	fmt.Printf("\t\tRebulding DirBlockInfo\n")
 	err := dbo.RebuildDirBlockInfo()
 	if err != nil {
 		panic(err)
