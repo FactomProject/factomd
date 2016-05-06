@@ -37,9 +37,13 @@ func Timer(state interfaces.IState) {
 	for {
 
 		for i := 0; i < 10; i++ {
+			// Don't stuff messages into the system if the
+			// Leader is behind.
+			for len(state.LeaderMsgQueue())>0 {
+				time.Sleep(time.Millisecond*10)
+			}
 
 			now = time.Now().UnixNano()
-
 			if now > next {
 				wait = 1
 				for next < now {

@@ -60,9 +60,6 @@ func (s *State) Process() (progress bool) {
 		}
 		s.LLeaderHeight = s.GetHighestRecordedBlock() + 1
 
-		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
-		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(0, s.IdentityChainID)
-
 		s.EOM = false
 
 		dbstate := s.DBStates.Get(s.LLeaderHeight - 1)
@@ -79,7 +76,9 @@ func (s *State) Process() (progress bool) {
 		if err != nil {
 			panic(err)
 		}
-		s.inMsgQueue <- dbs
+		s.leaderMsgQueue <- dbs
+
+		return	// Let's reset, and let things fall through again.
 	}
 
 	if s.EOM && s.LeaderPL.FinishedEOM() {
@@ -115,9 +114,9 @@ func (s *State) Process() (progress bool) {
 				switch v {
 				case 1:
 					msg.LeaderExecute(s)
+					s.networkOutMsgQueue<-msg
 					for s.UpdateState() {
 					}
-
 				case -1:
 					s.networkInvalidMsgQueue <- msg
 				}
@@ -134,6 +133,7 @@ func (s *State) Process() (progress bool) {
 		switch v {
 		case 1:
 			msg.FollowerExecute(s)
+			s.networkOutMsgQueue<-msg
 			for s.UpdateState() {
 			}
 		case -1:
@@ -300,10 +300,8 @@ func (s *State) LeaderExecute(m interfaces.IMsg) error {
 		return err
 	}
 
-	s.NetworkOutMsgQueue() <- m
-	s.NetworkOutMsgQueue() <- ack
-	s.InMsgQueue() <- ack
-	m.FollowerExecute(s)
+	s.followerMsgQueue <- ack
+	s.followerMsgQueue <- m
 	return nil
 }
 
@@ -323,8 +321,8 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
 		return err
 	}
 
-	s.inMsgQueue <- m
-	s.inMsgQueue <- ack
+	s.followerMsgQueue <- m
+	s.followerMsgQueue <- ack
 
 	return nil
 }
@@ -393,12 +391,12 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 	pl := s.ProcessLists.Get(dbheight)
 
+
 	// Set this list complete
 	s.LeaderMinute = int(e.Minute + 1)
 	pl.SetMinute(e.VMIndex, int(e.Minute))
 
 	if pl.MinuteHeight() < s.LeaderMinute {
-		fmt.Println("skip")
 		return false
 	}
 

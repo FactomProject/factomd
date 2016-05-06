@@ -631,16 +631,6 @@ func (s *State) UpdateState() (progress bool) {
 
 	s.catchupEBlocks()
 
-	if progress && s.GetOut() {
-		str := fmt.Sprintf("%25s   %10s   %25s", "----------------", s.GetFactomNodeName(), "--------------------\n")
-		str = str + s.ProcessLists.String()
-		str = str + s.DBStates.String()
-		str = str + fmt.Sprintf("%25s   %10s   %25s", "================", s.GetFactomNodeName(), "===================\n")
-		str = str + "===================================================================="
-
-		s.Println(str)
-	}
-
 	return
 }
 

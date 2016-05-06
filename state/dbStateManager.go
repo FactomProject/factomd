@@ -163,6 +163,7 @@ func (list *DBStateList) Catchup() {
 }
 
 func (list *DBStateList) UpdateState() (progress bool) {
+
 	list.Catchup()
 
 	for i, d := range list.DBStates {

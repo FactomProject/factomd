@@ -60,7 +60,7 @@ func SimControl(listenTo int) {
 				} else {
 					os.Stderr.WriteString("--Print Summary Off--\n")
 				}
-			case '@' == b[0]:
+			case '@' == b[0], 'q' == b[0]:
 				watchPL = !watchPL
 				if watchPL {
 					os.Stderr.WriteString("--Print Process Lists On--\n")

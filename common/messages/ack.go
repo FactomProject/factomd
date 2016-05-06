@@ -141,8 +141,9 @@ func (m *Ack) Leader(state interfaces.IState) bool {
 }
 
 // Execute the leader functions of the given message
+// Leader, follower, do the same thing.
 func (m *Ack) LeaderExecute(state interfaces.IState) error {
-	return fmt.Errorf("Should never execute an Acknowledgement in the Leader")
+	return m.FollowerExecute(state)
 }
 
 // Returns true if this is a message for this server to execute as a follower
