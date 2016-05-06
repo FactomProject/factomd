@@ -112,7 +112,7 @@ func (m *DirectoryBlockSignature) Bytes() []byte {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
-	found, vmIndex := state.GetVirtualServers(m.DBHeight, 9, m.ServerIdentityChainID)
+	found, _ := state.GetVirtualServers(m.DBHeight, 9, m.ServerIdentityChainID)
 
 	if found == false {
 		return 0
@@ -125,7 +125,6 @@ func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 	// *********************************  NEEDS FIXED **************
 	// Need to check the signature for real. TODO:
 
-	if !m.IsLocal() {
 		isVer, err := m.VerifySignature()
 		if err != nil || !isVer {
 			// if there is an error during signature verification
@@ -133,15 +132,8 @@ func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 			// the message is considered invalid
 			return -1
 		}
-	} else {
-		return 1
-	}
 
-	if m.VMIndex == vmIndex {
-		return 1
-	}
-
-	return -1
+	return 1
 }
 
 // Returns true if this is a message for this server to execute as

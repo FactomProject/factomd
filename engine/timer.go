@@ -55,9 +55,7 @@ func Timer(state interfaces.IState) {
 				next += tenthPeriod
 			}
 			time.Sleep(time.Duration(wait))
-			for len(state.InMsgQueue()) > 5000 {
-				fmt.Println("Skip Period")
-				time.Sleep(time.Duration(tenthPeriod))
+			for len(state.InMsgQueue()) > 5000 || state.GetEOM() {time.Sleep(100*time.Millisecond)
 			}
 
 			state.TickerQueue() <- i

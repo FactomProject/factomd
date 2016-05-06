@@ -44,7 +44,7 @@ func (s *State) Process() (progress bool) {
 		s.LLeaderHeight = s.GetHighestRecordedBlock() + 1
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(0, s.IdentityChainID)
-	} else if s.LLeaderHeight <= highest {
+	} else if s.LLeaderHeight <= highest && s.LeaderPL.FinishedEOM() {
 
 		s.LeaderMinute = 0 // Last block leaves at 10, which blows up. New block = 0
 
@@ -59,8 +59,6 @@ func (s *State) Process() (progress bool) {
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(0, s.IdentityChainID)
 		if s.Leader {
-			s.EOM = false
-
 			dbstate := s.DBStates.Get(s.LLeaderHeight - 1)
 
 			dbs := new(messages.DirectoryBlockSignature)
@@ -78,6 +76,7 @@ func (s *State) Process() (progress bool) {
 			}
 			s.leaderMsgQueue <- dbs
 		}
+		s.EOM = false
 	}
 
 	if s.EOM && s.LeaderPL.FinishedEOM() {
@@ -93,10 +92,17 @@ func (s *State) Process() (progress bool) {
 			s.EOM = false
 		case s.LeaderMinute == 10:
 			s.AddDBState(true, s.LeaderPL.DirectoryBlock, s.LeaderPL.AdminBlock, s.GetFactoidState().GetCurrentBlock(), s.LeaderPL.EntryCreditBlock)
+			for _, vm := range s.LeaderPL.VMs {
+				ack1, ok1 := vm.LastLeaderAck.(*messages.Ack)
+				ack2, ok2 := vm.LastAck.(*messages.Ack)
+				if (!ok1 && ok2) || (ok1 && ok2 && ack2.Height >= ack1.Height) {
+					vm.LastLeaderAck = vm.LastAck
+				}
+			}
 		}
 	}
 
-	if !s.Leader || (!s.EOM && s.Leader) {
+	if !s.EOM  {
 		var vm *VM
 		if s.Leader {
 			vm = s.LeaderPL.VMs[s.LeaderVMIndex]
@@ -287,10 +293,9 @@ func (s *State) FollowerExecuteAddData(msg interfaces.IMsg) error {
 func (s *State) LeaderExecute(m interfaces.IMsg) error {
 	h := m.GetVMHash()
 	if h != nil && len(h)>0 {
-		fmt.Println(s.FactomNodeName,"Leader Execute VMHash",m.GetVMIndex())
 		m.SetVMIndex(s.LeaderPL.VMIndexFor(m.GetVMHash()))
 	}
-	fmt.Println(s.FactomNodeName,"Leader",s.Leader,"MsgVMIndex",m.GetVMIndex(),"LeaderVM",s.LeaderVMIndex)
+	//fmt.Println(s.FactomNodeName,"Leader",s.Leader,"MsgVMIndex",m.GetVMIndex(),"LeaderVM",s.LeaderVMIndex)
 	if !s.Leader || m.GetVMIndex() != s.LeaderVMIndex {
 		if m.Follower(s) {
 			m.FollowerExecute(s)
@@ -302,7 +307,7 @@ func (s *State) LeaderExecute(m interfaces.IMsg) error {
 	if err != nil {
 		return err
 	}
-
+	s.networkOutMsgQueue <- ack
 	s.followerMsgQueue <- ack
 	s.followerMsgQueue <- m
 	return nil
@@ -581,7 +586,6 @@ func (s *State) LeaderFor(msg interfaces.IMsg, hash []byte) bool {
 	if hash != nil {
 		h := make([]byte, len(hash))
 		copy(h, hash)
-fmt.Println("LeaderFor ... ",msg.String())
 		msg.SetVMHash(h) // <-- This is important
 	}
 	return true
@@ -640,10 +644,11 @@ func (s *State) GetNewHash() interfaces.IHash {
 func (s *State) NewAck(dbheight uint32, msg interfaces.IMsg) (iack interfaces.IMsg, err error) {
 
 	vmIndex := msg.GetVMIndex()
-fmt.Println(s.FactomNodeName,"NewAck",vmIndex,)
 	pl := s.ProcessLists.Get(dbheight)
 	if pl == nil {
-		return nil, fmt.Errorf(s.FactomNodeName + ": No process list at this time")
+		err = fmt.Errorf(s.FactomNodeName + ": No process list at this time")
+		fmt.Println(err.Error())
+		return
 	}
 	msg.SetLeaderChainID(s.IdentityChainID)
 	ack := new(messages.Ack)

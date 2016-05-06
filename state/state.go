@@ -659,6 +659,10 @@ func (s *State) catchupEBlocks() {
 	}
 }
 
+func (s *State) GetEOM() bool {
+	return s.EOM
+}
+
 func (s *State) AddFedServer(dbheight uint32, hash interfaces.IHash) int {
 	return s.ProcessLists.Get(dbheight).AddFedServer(hash)
 }
