@@ -88,7 +88,7 @@ type FactoidBalanceResponse struct {
 	Balance int64
 }
 
-type FactoidGetFeeResponse struct {
+type FactoidFeeResponse struct {
 	Fee uint64
 }
 
@@ -170,16 +170,16 @@ type FactoidBalance struct {
 
 //Requests
 
-type MessageRequest struct {
-	Message string
+type AddressRequest struct {
+	Address string
+}
+
+type ChainIDRequest struct {
+	ChainID string
 }
 
 type EntryRequest struct {
 	Entry string
-}
-
-type TransactionRequest struct {
-	Transaction string
 }
 
 type HashRequest struct {
@@ -192,4 +192,12 @@ type KeyMRRequest struct {
 
 type KeyRequest struct {
 	Key string
+}
+
+type MessageRequest struct {
+	Message string
+}
+
+type TransactionRequest struct {
+	Transaction string
 }

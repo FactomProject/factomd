@@ -82,8 +82,8 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 	case "factoid-balance":
 		resp, jsonError = HandleV2FactoidBalance(state, params)
 		break
-	case "factoid-get-fee":
-		resp, jsonError = HandleV2GetFee(state, params)
+	case "factoid-fee":
+		resp, jsonError = HandleV2FactoidFee(state, params)
 		break
 	case "factoid-submit":
 		resp, jsonError = HandleV2FactoidSubmit(state, params)
@@ -435,12 +435,12 @@ func HandleV2Entry(state interfaces.IState, params interface{}) (interface{}, *p
 }
 
 func HandleV2ChainHead(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
-	hashkey, ok := params.(HashRequest)
+	chainid, ok := params.(ChainIDRequest)
 	if !ok {
 		return nil, NewInvalidParamsError()
 	}
 
-	h, err := primitives.HexToHash(hashkey.Hash)
+	h, err := primitives.HexToHash(chainid.ChainID)
 	if err != nil {
 		return nil, NewInvalidHashError()
 	}
@@ -459,7 +459,7 @@ func HandleV2ChainHead(state interfaces.IState, params interface{}) (interface{}
 }
 
 func HandleV2EntryCreditBalance(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
-	eckey, ok := params.(KeyRequest)
+	ecadr, ok := params.(AddressRequest)
 	if !ok {
 		return nil, NewInvalidParamsError()
 	}
@@ -467,10 +467,10 @@ func HandleV2EntryCreditBalance(state interfaces.IState, params interface{}) (in
 	var adr []byte
 	var err error
 
-	if primitives.ValidateECUserStr(eckey.Key) {
-		adr = primitives.ConvertUserStrToAddress(eckey.Key)
+	if primitives.ValidateECUserStr(ecadr.Address) {
+		adr = primitives.ConvertUserStrToAddress(ecadr.Address)
 	} else {
-		adr, err = hex.DecodeString(eckey.Key)
+		adr, err = hex.DecodeString(ecadr.Address)
 		if err == nil && len(adr) != constants.HASH_LENGTH {
 			return nil, NewInvalidAddressError()
 		}
@@ -489,12 +489,11 @@ func HandleV2EntryCreditBalance(state interfaces.IState, params interface{}) (in
 	}
 	resp := new(EntryCreditBalanceResponse)
 	resp.Balance = state.GetFactoidState().GetECBalance(address.Fixed())
-	fmt.Println(resp.Balance)
 	return resp, nil
 }
 
-func HandleV2GetFee(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
-	resp := new(FactoidGetFeeResponse)
+func HandleV2FactoidFee(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	resp := new(FactoidFeeResponse)
 	resp.Fee = state.GetFactoshisPerEC()
 
 	return resp, nil
@@ -533,7 +532,7 @@ func HandleV2FactoidSubmit(state interfaces.IState, params interface{}) (interfa
 }
 
 func HandleV2FactoidBalance(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
-	fkey, ok := params.(KeyRequest)
+	fadr, ok := params.(AddressRequest)
 	if !ok {
 		return nil, NewInvalidParamsError()
 	}
@@ -541,10 +540,10 @@ func HandleV2FactoidBalance(state interfaces.IState, params interface{}) (interf
 	var adr []byte
 	var err error
 
-	if primitives.ValidateFUserStr(fkey.Key) {
-		adr = primitives.ConvertUserStrToAddress(fkey.Key)
+	if primitives.ValidateFUserStr(fadr.Address) {
+		adr = primitives.ConvertUserStrToAddress(fadr.Address)
 	} else {
-		adr, err = hex.DecodeString(fkey.Key)
+		adr, err = hex.DecodeString(fadr.Address)
 		if err == nil && len(adr) != constants.HASH_LENGTH {
 			return nil, NewInvalidAddressError()
 		}
