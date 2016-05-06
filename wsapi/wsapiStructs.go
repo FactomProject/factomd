@@ -32,20 +32,6 @@ type RevealEntryResponse struct {
 	TxID    string
 }
 
-type DirectoryBlockHeadResponse struct {
-	KeyMR string
-	//Add height, etc?
-}
-
-type GetRawDataResponse struct {
-	Data string
-	//TODO: add
-}
-
-type GetReceiptResponse struct {
-	Receipt *receipts.Receipt
-}
-
 type DirectoryBlockResponse struct {
 	Header struct {
 		PrevBlockKeyMR string
@@ -53,6 +39,24 @@ type DirectoryBlockResponse struct {
 		Timestamp      uint32
 	}
 	EntryBlockList []EBlockAddr
+}
+
+type DirectoryBlockHeadResponse struct {
+	KeyMR string
+	//Add height, etc?
+}
+
+type DirectoryBlockHeightResponse struct {
+	Height int64
+}
+
+type RawDataResponse struct {
+	Data string
+	//TODO: add
+}
+
+type ReceiptResponse struct {
+	Receipt *receipts.Receipt
 }
 
 type EntryBlockResponse struct {
@@ -86,10 +90,6 @@ type FactoidBalanceResponse struct {
 
 type FactoidGetFeeResponse struct {
 	Fee uint64
-}
-
-type DirectoryBlockHeightResponse struct {
-	Height int64
 }
 
 type PropertiesResponse struct {
@@ -184,6 +184,10 @@ type TransactionRequest struct {
 
 type HashRequest struct {
 	Hash string
+}
+
+type KeyMRRequest struct {
+	KeyMR string
 }
 
 type KeyRequest struct {
