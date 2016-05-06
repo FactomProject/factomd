@@ -325,7 +325,7 @@ func (p *ProcessList) FinishedEOM() bool {
 	n := len(p.State.GetFedServers(p.DBHeight))
 	for i := 0; i < n; i++ {
 		c := p.VMs[i]
-		if c.Height < c.MinuteHeight {
+		if c.Height <= c.MinuteHeight {
 			return false
 		}
 	}

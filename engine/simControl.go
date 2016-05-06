@@ -24,6 +24,7 @@ func SimControl(listenTo int) {
 
 	var summary bool
 	var watchPL bool
+	var watchMessages bool
 
 	for {
 
@@ -156,12 +157,13 @@ func SimControl(listenTo int) {
 					fnode.State.SetOut(true)
 				}
 			case 'm' == b[0]:
-				os.Stderr.WriteString(fmt.Sprintf("Print all messages for node: %d\n", listenTo))
-				for _, fnode := range fnodes {
-					fnode.State.SetOut(false)
+				watchMessages = !watchMessages
+				if watchMessages {
+					os.Stderr.WriteString("--Print Messages On--\n")
+					go printMessages(&watchMessages, &listenTo)
+				} else {
+					os.Stderr.WriteString("--Print Messages Off--\n")
 				}
-				fnodes[listenTo].State.SetOut(true)
-				mLog.all = false
 			case ' ' == b[0]:
 				mLog.all = false
 				fnodes[listenTo].State.SetOut(false)
@@ -251,5 +253,19 @@ func printProcessList(watchPL *bool, listenTo *int) {
 			return
 		}
 		time.Sleep(time.Second)
+	}
+}
+
+func printMessages(Messages *bool, listenTo *int) {
+	fmt.Println("Printing Messages")
+	for {
+		if *Messages {
+			fnode := fnodes[*listenTo]
+			fnode.MLog.PrtMsgs(fnode.State)
+		} else {
+			fmt.Println("Done Printing Messages!")
+			return
+		}
+		time.Sleep(2*time.Second)
 	}
 }

@@ -26,9 +26,6 @@ var _ = fmt.Print
 //***************************************************************
 func (s *State) Process() (progress bool) {
 
-	s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
-	s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(0, s.IdentityChainID)
-
 	if false {
 		ppl := s.ProcessLists.Get(s.LLeaderHeight)
 		fmt.Println(
@@ -59,26 +56,27 @@ func (s *State) Process() (progress bool) {
 			}
 		}
 		s.LLeaderHeight = s.GetHighestRecordedBlock() + 1
+		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
+		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(0, s.IdentityChainID)
+		if s.Leader {
+			s.EOM = false
 
-		s.EOM = false
+			dbstate := s.DBStates.Get(s.LLeaderHeight - 1)
 
-		dbstate := s.DBStates.Get(s.LLeaderHeight - 1)
-
-		dbs := new(messages.DirectoryBlockSignature)
-		dbs.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
-		dbs.ServerIdentityChainID = s.GetIdentityChainID()
-		dbs.DBHeight = s.LLeaderHeight
-		dbs.Timestamp = s.GetTimestamp()
-		dbs.SetVMIndex(s.LeaderVMIndex)
-		dbs.SetLocal(true)
-		dbs.Sign(s)
-		err := dbs.Sign(s)
-		if err != nil {
-			panic(err)
+			dbs := new(messages.DirectoryBlockSignature)
+			dbs.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
+			dbs.ServerIdentityChainID = s.GetIdentityChainID()
+			dbs.DBHeight = s.LLeaderHeight
+			dbs.Timestamp = s.GetTimestamp()
+			dbs.SetVMIndex(s.LeaderVMIndex)
+			dbs.SetLocal(true)
+			dbs.Sign(s)
+			err := dbs.Sign(s)
+			if err != nil {
+				panic(err)
+			}
+			s.leaderMsgQueue <- dbs
 		}
-		s.leaderMsgQueue <- dbs
-
-		return	// Let's reset, and let things fall through again.
 	}
 
 	if s.EOM && s.LeaderPL.FinishedEOM() {
