@@ -31,7 +31,7 @@ func Peers(fnode *FactomNode) {
 
 				msg, err := peer.Recieve()
 
-				if msg == nil {	// Recieve is not blocking; nothing to do, we get a nil.
+				if msg == nil { // Recieve is not blocking; nothing to do, we get a nil.
 					break
 				}
 

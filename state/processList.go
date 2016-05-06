@@ -171,16 +171,16 @@ func (p *ProcessList) MakeMap() {
 func (p *ProcessList) PrintMap() string {
 	n := len(p.FedServers)
 	prt := " min"
-	for i:=0;i<n;i++ {
-		prt = fmt.Sprintf("%s%3d",prt,i)
+	for i := 0; i < n; i++ {
+		prt = fmt.Sprintf("%s%3d", prt, i)
 	}
-	prt = prt+"\n"
+	prt = prt + "\n"
 	for i := 0; i < 10; i++ {
-		prt = fmt.Sprintf("%s%3d  ",prt,i)
+		prt = fmt.Sprintf("%s%3d  ", prt, i)
 		for j := 0; j < len(p.FedServers); j++ {
-			prt = fmt.Sprintf("%s%2d ",prt,p.ServerMap[i][j])
+			prt = fmt.Sprintf("%s%2d ", prt, p.ServerMap[i][j])
 		}
-		prt = prt+"\n"
+		prt = prt + "\n"
 	}
 	return prt
 }
@@ -301,7 +301,6 @@ func (p *ProcessList) PutNewEntries(dbheight uint32, key interfaces.IHash, value
 	p.NewEntries[key.Fixed()] = value
 }
 
-
 // Test if a process list for a server is EOM complete.  Return true if all messages
 // have been recieved, and we just need the signaure.  If we need EOM messages, or we
 // have all EOM messages and we have the Signature, then we return false.
@@ -332,7 +331,6 @@ func (p *ProcessList) FinishedEOM() bool {
 	}
 	return true
 }
-
 
 // Process messages and update our state.
 func (p *ProcessList) Process(state *State) (progress bool) {
@@ -374,7 +372,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 				return
 			}
 			thisAck, ok := oldAck.(*messages.Ack)
-			if !ok {				// Missing an Ack, should never happen.
+			if !ok { // Missing an Ack, should never happen.
 				panic("Missing old ack in process list")
 			}
 
@@ -456,9 +454,9 @@ func (p *ProcessList) String() string {
 
 		for i := 0; i < len(p.FedServers); i++ {
 			server := p.VMs[i]
-			eom := fmt.Sprintf("Minute Complete %d Height %d ", server.MinuteComplete,server.Height)
+			eom := fmt.Sprintf("Minute Complete %d Height %d ", server.MinuteComplete, server.Height)
 			if p.FinishedEOM() {
-				eom = eom+"Finished EOM "
+				eom = eom + "Finished EOM "
 			}
 
 			buf.WriteString(fmt.Sprintf("  VM %d Fed %d %s\n", i, p.ServerMap[server.LeaderMinute][i], eom))

@@ -67,7 +67,7 @@ func SetState(state interfaces.IState) {
 			time.Sleep(10 * time.Millisecond)
 		}
 		Servers[state.GetPort()].Env["state"] = state
-		os.Stderr.WriteString("API now directed to "+ state.GetFactomNodeName()+"\n")
+		os.Stderr.WriteString("API now directed to " + state.GetFactomNodeName() + "\n")
 	}
 	go wait()
 }

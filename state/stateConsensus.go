@@ -15,7 +15,6 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/util"
-	
 )
 
 var _ = fmt.Print
@@ -27,7 +26,10 @@ var _ = fmt.Print
 //***************************************************************
 func (s *State) Process() (progress bool) {
 
-	if true {
+	s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
+	s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(0, s.IdentityChainID)
+
+	if false {
 		ppl := s.ProcessLists.Get(s.LLeaderHeight)
 		fmt.Println(
 			s.FactomNodeName,
@@ -47,7 +49,7 @@ func (s *State) Process() (progress bool) {
 		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(0, s.IdentityChainID)
 	} else if s.LLeaderHeight <= highest {
 
-		s.LeaderMinute = 0		// Last block leaves at 10, which blows up. New block = 0
+		s.LeaderMinute = 0 // Last block leaves at 10, which blows up. New block = 0
 
 		for _, vm := range s.LeaderPL.VMs {
 			ack1, ok1 := vm.LastLeaderAck.(*messages.Ack)
@@ -63,7 +65,7 @@ func (s *State) Process() (progress bool) {
 
 		s.EOM = false
 
-		dbstate := s.DBStates.Get(s.LLeaderHeight-1)
+		dbstate := s.DBStates.Get(s.LLeaderHeight - 1)
 
 		dbs := new(messages.DirectoryBlockSignature)
 		dbs.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
@@ -80,11 +82,9 @@ func (s *State) Process() (progress bool) {
 		s.inMsgQueue <- dbs
 	}
 
-
-
 	if s.EOM && s.LeaderPL.FinishedEOM() {
 		switch {
-		case s.LeaderMinute <= 9 :
+		case s.LeaderMinute <= 9:
 			for _, vm := range s.LeaderPL.VMs {
 				ack1, ok1 := vm.LastLeaderAck.(*messages.Ack)
 				ack2, ok2 := vm.LastAck.(*messages.Ack)
@@ -93,12 +93,12 @@ func (s *State) Process() (progress bool) {
 				}
 			}
 			s.EOM = false
-		case s.LeaderMinute == 10 :
-				s.AddDBState(true, s.LeaderPL.DirectoryBlock, s.LeaderPL.AdminBlock, s.GetFactoidState().GetCurrentBlock(), s.LeaderPL.EntryCreditBlock)
+		case s.LeaderMinute == 10:
+			s.AddDBState(true, s.LeaderPL.DirectoryBlock, s.LeaderPL.AdminBlock, s.GetFactoidState().GetCurrentBlock(), s.LeaderPL.EntryCreditBlock)
 		}
 	}
 
-	if !s.Leader || ( !s.EOM && s.Leader) {
+	if !s.Leader || (!s.EOM && s.Leader) {
 		var vm *VM
 		if s.Leader {
 			vm = s.LeaderPL.VMs[s.LeaderVMIndex]
@@ -115,10 +115,9 @@ func (s *State) Process() (progress bool) {
 				switch v {
 				case 1:
 					msg.LeaderExecute(s)
-					s.networkOutMsgQueue <- msg
-
 					for s.UpdateState() {
 					}
+
 				case -1:
 					s.networkInvalidMsgQueue <- msg
 				}
@@ -135,8 +134,6 @@ func (s *State) Process() (progress bool) {
 		switch v {
 		case 1:
 			msg.FollowerExecute(s)
-			s.networkOutMsgQueue <- msg
-
 			for s.UpdateState() {
 			}
 		case -1:
@@ -175,10 +172,10 @@ func (s *State) AddDBState(isNew bool,
 	if ht > s.LLeaderHeight {
 		s.LLeaderHeight = ht
 	}
-//	dbh := directoryBlock.GetHeader().GetDBHeight()
-//	if s.LLeaderHeight < dbh {
-//		s.LLeaderHeight = dbh + 1
-//	}
+	//	dbh := directoryBlock.GetHeader().GetDBHeight()
+	//	if s.LLeaderHeight < dbh {
+	//		s.LLeaderHeight = dbh + 1
+	//	}
 }
 
 func (s *State) addEBlock(eblock interfaces.IEntryBlock) {
@@ -311,7 +308,7 @@ func (s *State) LeaderExecute(m interfaces.IMsg) error {
 }
 
 func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
-	if !s.Leader {		// Ignore local EOM messages when a follower only.
+	if !s.Leader { // Ignore local EOM messages when a follower only.
 		return nil
 	}
 
@@ -328,8 +325,6 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
 
 	s.inMsgQueue <- m
 	s.inMsgQueue <- ack
-
-
 
 	return nil
 }
@@ -399,9 +394,8 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	pl := s.ProcessLists.Get(dbheight)
 
 	// Set this list complete
-	s.LeaderMinute = int(e.Minute+1)
+	s.LeaderMinute = int(e.Minute + 1)
 	pl.SetMinute(e.VMIndex, int(e.Minute))
-
 
 	if pl.MinuteHeight() < s.LeaderMinute {
 		fmt.Println("skip")
@@ -586,7 +580,7 @@ func (s *State) LeaderFor(msg interfaces.IMsg, hash []byte) bool {
 	if hash != nil {
 		h := make([]byte, len(hash))
 		copy(h, hash)
-		msg.SetVMHash(h)      // <-- This is important
+		msg.SetVMHash(h) // <-- This is important
 	}
 	return true
 }

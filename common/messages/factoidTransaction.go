@@ -46,22 +46,22 @@ func (a *FactoidTransaction) IsSameAs(b *FactoidTransaction) bool {
 
 func (m *FactoidTransaction) GetHash() interfaces.IHash {
 
-		data, err := m.Transaction.MarshalBinarySig()
-		if err != nil {
-			panic(fmt.Sprintf("Error in CommitChain.GetHash(): %s", err.Error()))
-		}
-		m.hash = primitives.Sha(data)
+	data, err := m.Transaction.MarshalBinarySig()
+	if err != nil {
+		panic(fmt.Sprintf("Error in CommitChain.GetHash(): %s", err.Error()))
+	}
+	m.hash = primitives.Sha(data)
 
 	return m.hash
 }
 
 func (m *FactoidTransaction) GetMsgHash() interfaces.IHash {
 
-		data, err := m.MarshalBinary()
-		if err != nil {
-			return nil
-		}
-		m.MsgHash = primitives.Sha(data)
+	data, err := m.MarshalBinary()
+	if err != nil {
+		return nil
+	}
+	m.MsgHash = primitives.Sha(data)
 
 	return m.MsgHash
 }
@@ -142,7 +142,7 @@ func (m *FactoidTransaction) Bytes() []byte {
 }
 
 func (m *FactoidTransaction) UnmarshalTransData(datax []byte) (newData []byte, err error) {
-	newData =datax
+	newData = datax
 	defer func() {
 		return
 		if r := recover(); r != nil {
