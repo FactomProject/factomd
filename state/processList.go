@@ -59,8 +59,6 @@ type VM struct {
 	LeaderMinute   int               // Where the leader is in acknowledging messages
 	MinuteComplete int               // Highest minute complete (0-9) by the follower
 	MinuteHeight   int               // Height of the last minute complete
-	SigComplete    bool              // Lists that are signature complete
-	Undo           interfaces.IMsg   // The Leader needs one level of undo to handle DB Sigs.
 	LastLeaderAck  interfaces.IMsg   // The last Acknowledgement set by this leader
 	LastAck        interfaces.IMsg   // The last Acknowledgement set by this follower
 	missingTime    int64             // How long we have been waiting for a missing message
@@ -276,14 +274,8 @@ func (p *ProcessList) GetLastLeaderAck(index int) interfaces.IMsg {
 // Given a server index, return the last Ack
 func (p *ProcessList) SetLastLeaderAck(index int, msg interfaces.IMsg) error {
 	// Check the hash of the previous msg before we over write
-	p.VMs[index].Undo = p.VMs[index].LastLeaderAck
 	p.VMs[index].LastLeaderAck = msg
 	return nil
-}
-
-func (p *ProcessList) UndoLeaderAck(index int) {
-	p.VMs[index].Height--
-	p.VMs[index].LastLeaderAck = p.VMs[index].Undo
 }
 
 func (p ProcessList) HasMessage() bool {
@@ -309,11 +301,6 @@ func (p *ProcessList) PutNewEntries(dbheight uint32, key interfaces.IHash, value
 	p.NewEntries[key.Fixed()] = value
 }
 
-// TODO:  Need to map the server identity to the process list for which it
-// is responsible.  Right now, works with only one server!
-func (p *ProcessList) SetSigComplete(i int, value bool) {
-	p.VMs[i].SigComplete = value
-}
 
 // Test if a process list for a server is EOM complete.  Return true if all messages
 // have been recieved, and we just need the signaure.  If we need EOM messages, or we
@@ -326,22 +313,6 @@ func (p *ProcessList) EomComplete() bool {
 	for i := 0; i < len(p.FedServers); i++ {
 		c := p.VMs[i]
 		if c.MinuteComplete != 10 {
-			return false
-		}
-	}
-	return true
-}
-
-// Test if the process list is complete.  Return true if all messages
-// have been recieved, and we have all the signaures for the directory blocks.
-func (p *ProcessList) SigComplete() bool {
-	if p == nil {
-		return true
-	}
-	n := len(p.State.GetFedServers(p.DBHeight))
-	for i := 0; i < n; i++ {
-		c := p.VMs[i]
-		if !c.SigComplete {
 			return false
 		}
 	}
@@ -362,22 +333,6 @@ func (p *ProcessList) FinishedEOM() bool {
 	return true
 }
 
-func (p *ProcessList) FinishedSIG() bool {
-	if p == nil || !p.HasMessage() { // Empty or nul, return true.
-		return true
-	}
-	n := len(p.State.GetFedServers(p.DBHeight))
-	for i := 0; i < n; i++ {
-		c := p.VMs[i]
-		if !c.SigComplete {
-			return false
-		}
-		if c.Height != len(c.List) {
-			return false
-		}
-	}
-	return true
-}
 
 // Process messages and update our state.
 func (p *ProcessList) Process(state *State) (progress bool) {
@@ -454,6 +409,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 				fmt.Printf("THIS MESS: %x ::: THIS SERIAL: %x\n", thisAck.MessageHash.Bytes()[:3], thisAck.SerialHash.Bytes()[:3])
 				fmt.Printf("EXPECT:    %x \n", expectedSerialHash.Bytes()[:3])
 				fmt.Printf("The message that didn't work: %s\n\n", plist[j].String())
+				fmt.Println(p.PrintMap())
 				// the SerialHash of this acknowledgment is incorrect
 				// according to this node's processList
 				plist[j] = nil
@@ -510,15 +466,8 @@ func (p *ProcessList) String() string {
 			if p.FinishedEOM() {
 				eom = eom+"Finished EOM "
 			}
-			sig := ""
-			if server.SigComplete {
-				sig = "Sig Complete "
-			}
-			if p.FinishedSIG() {
-				eom = eom+"Finished SIG "
-			}
 
-			buf.WriteString(fmt.Sprintf("  VM %d Fed %d %s %s\n", i, p.ServerMap[server.LeaderMinute][i], eom, sig))
+			buf.WriteString(fmt.Sprintf("  VM %d Fed %d %s\n", i, p.ServerMap[server.LeaderMinute][i], eom))
 			for j, msg := range server.List {
 
 				if j < server.Height {

@@ -25,6 +25,7 @@ type DirectoryBlockSignature struct {
 
 	//Not marshalled
 	hash interfaces.IHash
+	Once bool
 }
 
 var _ interfaces.IMsg = (*DirectoryBlockSignature)(nil)

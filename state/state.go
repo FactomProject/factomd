@@ -315,7 +315,6 @@ func (s *State) Init() {
 		s.Println("   +------ Follower Only ------+")
 		s.Println("   +---------------------------+\n")
 	case "SERVER":
-		s.Leader = true
 		s.Println("\n   +-------------------------+")
 		s.Println("   |       Leader Node       |")
 		s.Println("   +-------------------------+\n")
