@@ -264,7 +264,7 @@ func (list *DBStateList) UpdateState() (progress bool) {
 					panic(err.Error())
 				}
 				for _, e := range eb.GetBody().GetEBEntries() {
-					if err := list.State.GetDB().InsertEntry(pl.NewEntries[e.Fixed()]); err != nil {
+					if err := list.State.GetDB().InsertEntry(pl.NewEntries[e.Fixed()], false); err != nil {
 						panic(err.Error())
 					}
 				}

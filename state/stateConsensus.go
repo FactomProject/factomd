@@ -244,7 +244,7 @@ func (s *State) FollowerExecuteAddData(msg interfaces.IMsg) error {
 		entry := dataResponseMsg.DataObject.(interfaces.IEBEntry)
 
 		if entry.GetHash().IsSameAs(dataResponseMsg.DataHash) {
-			s.DB.InsertEntry(entry)
+			s.DB.InsertEntry(entry, false)
 			delete(s.DataRequests, entry.GetHash().Fixed())
 		}
 	case 1: // DataType = eblock

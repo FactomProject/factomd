@@ -20,7 +20,7 @@ type DBOverlay interface {
 	//**********************************Entry**********************************//
 
 	// InsertEntry inserts an entry
-	InsertEntry(entry IEBEntry) (err error)
+	InsertEntry(entry IEBEntry, checkForDuplicate bool) (err error)
 
 	// FetchEntry gets an entry by hash from the database.
 	FetchEntryByHash(IHash) (IEBEntry, error)
