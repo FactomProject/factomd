@@ -104,7 +104,7 @@ func (s *State) Process() (progress bool) {
 		}
 	}
 
-	if !s.EOM  {
+	if !s.EOM {
 		var vm *VM
 		if s.Leader {
 			vm = s.LeaderPL.VMs[s.LeaderVMIndex]
@@ -120,7 +120,7 @@ func (s *State) Process() (progress bool) {
 				switch v {
 				case 1:
 					msg.LeaderExecute(s)
-					s.networkOutMsgQueue<-msg
+					s.networkOutMsgQueue <- msg
 					for s.UpdateState() {
 					}
 				case -1:
@@ -139,7 +139,7 @@ func (s *State) Process() (progress bool) {
 		switch v {
 		case 1:
 			msg.FollowerExecute(s)
-			s.networkOutMsgQueue<-msg
+			s.networkOutMsgQueue <- msg
 			for s.UpdateState() {
 			}
 		case -1:
@@ -294,7 +294,7 @@ func (s *State) FollowerExecuteAddData(msg interfaces.IMsg) error {
 
 func (s *State) LeaderExecute(m interfaces.IMsg) error {
 	h := m.GetVMHash()
-	if h != nil && len(h)>0 {
+	if h != nil && len(h) > 0 {
 		m.SetVMIndex(s.LeaderPL.VMIndexFor(m.GetVMHash()))
 	}
 	//fmt.Println(s.FactomNodeName,"Leader",s.Leader,"MsgVMIndex",m.GetVMIndex(),"LeaderVM",s.LeaderVMIndex)
@@ -400,7 +400,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	}
 
 	pl := s.ProcessLists.Get(dbheight)
-
 
 	// Set this list complete
 	s.LeaderMinute = int(e.Minute + 1)

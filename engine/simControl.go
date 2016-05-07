@@ -266,6 +266,6 @@ func printMessages(Messages *bool, listenTo *int) {
 			fmt.Println("Done Printing Messages!")
 			return
 		}
-		time.Sleep(2*time.Second)
+		time.Sleep(2 * time.Second)
 	}
 }

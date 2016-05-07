@@ -39,8 +39,8 @@ func Timer(state interfaces.IState) {
 		for i := 0; i < 10; i++ {
 			// Don't stuff messages into the system if the
 			// Leader is behind.
-			for len(state.LeaderMsgQueue())>0 {
-				time.Sleep(time.Millisecond*10)
+			for len(state.LeaderMsgQueue()) > 0 {
+				time.Sleep(time.Millisecond * 10)
 			}
 
 			now = time.Now().UnixNano()
@@ -55,7 +55,8 @@ func Timer(state interfaces.IState) {
 				next += tenthPeriod
 			}
 			time.Sleep(time.Duration(wait))
-			for len(state.InMsgQueue()) > 5000 || state.GetEOM() {time.Sleep(100*time.Millisecond)
+			for len(state.InMsgQueue()) > 5000 || state.GetEOM() {
+				time.Sleep(100 * time.Millisecond)
 			}
 
 			state.TickerQueue() <- i

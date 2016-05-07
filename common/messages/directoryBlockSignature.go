@@ -125,13 +125,13 @@ func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 	// *********************************  NEEDS FIXED **************
 	// Need to check the signature for real. TODO:
 
-		isVer, err := m.VerifySignature()
-		if err != nil || !isVer {
-			// if there is an error during signature verification
-			// or if the signature is invalid
-			// the message is considered invalid
-			return -1
-		}
+	isVer, err := m.VerifySignature()
+	if err != nil || !isVer {
+		// if there is an error during signature verification
+		// or if the signature is invalid
+		// the message is considered invalid
+		return -1
+	}
 
 	return 1
 }

@@ -19,7 +19,8 @@ func (state *State) ValidatorLoop() {
 		state.SetString() // Set the string for the state so we can print it later if we like.
 
 		// Process any messages we might have queued up.
-		for state.Process() {}
+		for state.Process() {
+		}
 
 		// Check if we should shut down.
 		select {
@@ -90,7 +91,7 @@ func (t *Timer) timer(state *State, min int) {
 
 	if stateheight != t.lastDBHeight && min != 0 {
 		return
-	}else{
+	} else {
 		t.lastDBHeight = stateheight
 	}
 

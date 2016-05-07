@@ -114,12 +114,12 @@ func (m *MsgLog) PrtMsgs(state interfaces.IState) {
 	for _, e := range m.MsgList {
 		if e.valid {
 
-				dirstr := "->"
-				if !e.out {
-					dirstr = "<-"
-				}
+			dirstr := "->"
+			if !e.out {
+				dirstr = "<-"
+			}
 
-				fmt.Print(fmt.Sprintf("**** %8s %2s %8s %10s %5v     **** %s\n", e.name, dirstr, e.peer, e.where, e.valid, e.msg.String()))
+			fmt.Print(fmt.Sprintf("**** %8s %2s %8s %10s %5v     **** %s\n", e.name, dirstr, e.peer, e.where, e.valid, e.msg.String()))
 
 		}
 	}
