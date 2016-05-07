@@ -43,7 +43,7 @@ func (s *State) Process() (progress bool) {
 	if s.LLeaderHeight == 0 {
 		s.LLeaderHeight = s.GetHighestRecordedBlock() + 1
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
-		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(0, s.IdentityChainID)
+		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.LeaderMinute, s.IdentityChainID)
 	} else if s.LLeaderHeight <= highest && s.LeaderPL.FinishedEOM() {
 
 		s.LeaderMinute = 0 // Last block leaves at 10, which blows up. New block = 0
@@ -57,7 +57,7 @@ func (s *State) Process() (progress bool) {
 		}
 		s.LLeaderHeight = s.GetHighestRecordedBlock() + 1
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
-		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(0, s.IdentityChainID)
+		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.LeaderMinute, s.IdentityChainID)
 		if s.Leader {
 			dbstate := s.DBStates.Get(s.LLeaderHeight - 1)
 
@@ -89,6 +89,8 @@ func (s *State) Process() (progress bool) {
 					vm.LastLeaderAck = vm.LastAck
 				}
 			}
+			s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
+			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.LeaderMinute, s.IdentityChainID)
 			s.EOM = false
 		case s.LeaderMinute == 10:
 			s.AddDBState(true, s.LeaderPL.DirectoryBlock, s.LeaderPL.AdminBlock, s.GetFactoidState().GetCurrentBlock(), s.LeaderPL.EntryCreditBlock)
