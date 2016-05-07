@@ -322,7 +322,7 @@ func (p *ProcessList) FinishedEOM() bool {
 	if p == nil || !p.HasMessage() { // Empty or nul, return true.
 		return true
 	}
-	n := len(p.State.GetFedServers(p.DBHeight))
+	n := len(p.FedServers)
 	for i := 0; i < n; i++ {
 		c := p.VMs[i]
 		if c.Height <= c.MinuteHeight {
