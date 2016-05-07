@@ -7,7 +7,7 @@ import (
 )
 
 // InsertEntry inserts an entry
-func (db *Overlay) InsertEntry(entry interfaces.IEBEntry, checkForDuplicate bool) error {
+func (db *Overlay) InsertEntry(entry interfaces.IEBEntry) error {
 	if entry == nil {
 		return nil
 	}
@@ -18,22 +18,12 @@ func (db *Overlay) InsertEntry(entry interfaces.IEBEntry, checkForDuplicate bool
 
 	batch := []interfaces.Record{}
 	batch = append(batch, interfaces.Record{entry.GetChainID().Bytes(), entry.DatabasePrimaryIndex().Bytes(), entry})
-	if checkForDuplicate == false {
-		batch = append(batch, interfaces.Record{[]byte{byte(ENTRY)}, entry.DatabasePrimaryIndex().Bytes(), entry.GetChainIDHash()})
-	} else {
-		saved, err := db.Get([]byte{byte(ENTRY)}, entry.DatabasePrimaryIndex().Bytes(), primitives.NewZeroHash())
-		if err != nil {
-			return err
-		}
-		if saved == nil {
-			batch = append(batch, interfaces.Record{[]byte{byte(ENTRY)}, entry.DatabasePrimaryIndex().Bytes(), entry.GetChainIDHash()})
-		}
-	}
+	batch = append(batch, interfaces.Record{[]byte{byte(ENTRY)}, entry.DatabasePrimaryIndex().Bytes(), entry.GetChainIDHash()})
 
 	return db.PutInBatch(batch)
 }
 
-func (db *Overlay) InsertEntryMultiBatch(entry interfaces.IEBEntry, checkForDuplicate bool) error {
+func (db *Overlay) InsertEntryMultiBatch(entry interfaces.IEBEntry) error {
 	if entry == nil {
 		return nil
 	}
@@ -44,17 +34,7 @@ func (db *Overlay) InsertEntryMultiBatch(entry interfaces.IEBEntry, checkForDupl
 
 	batch := []interfaces.Record{}
 	batch = append(batch, interfaces.Record{entry.GetChainID().Bytes(), entry.DatabasePrimaryIndex().Bytes(), entry})
-	if checkForDuplicate == false {
-		batch = append(batch, interfaces.Record{[]byte{byte(ENTRY)}, entry.DatabasePrimaryIndex().Bytes(), entry.GetChainIDHash()})
-	} else {
-		saved, err := db.Get([]byte{byte(ENTRY)}, entry.DatabasePrimaryIndex().Bytes(), primitives.NewZeroHash())
-		if err != nil {
-			return err
-		}
-		if saved == nil {
-			batch = append(batch, interfaces.Record{[]byte{byte(ENTRY)}, entry.DatabasePrimaryIndex().Bytes(), entry.GetChainIDHash()})
-		}
-	}
+	batch = append(batch, interfaces.Record{[]byte{byte(ENTRY)}, entry.DatabasePrimaryIndex().Bytes(), entry.GetChainIDHash()})
 
 	db.PutInMultiBatch(batch)
 

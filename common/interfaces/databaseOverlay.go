@@ -20,7 +20,7 @@ type DBOverlay interface {
 	//**********************************Entry**********************************//
 
 	// InsertEntry inserts an entry
-	InsertEntry(entry IEBEntry, checkForDuplicate bool) (err error)
+	InsertEntry(entry IEBEntry) (err error)
 
 	// FetchEntry gets an entry by hash from the database.
 	FetchEntryByHash(IHash) (IEBEntry, error)
@@ -34,8 +34,8 @@ type DBOverlay interface {
 	//**********************************EBlock**********************************//
 
 	// ProcessEBlockBatche inserts the EBlock and update all it's ebentries in DB
-	ProcessEBlockBatch(eblock DatabaseBlockWithEntries) error
-	ProcessEBlockMultiBatch(eblock DatabaseBlockWithEntries) error
+	ProcessEBlockBatch(eblock DatabaseBlockWithEntries, checkForDuplicateEntries bool) error
+	ProcessEBlockMultiBatch(eblock DatabaseBlockWithEntries, checkForDuplicateEntries bool) error
 
 	// FetchEBlockByHash gets an entry by hash from the database.
 	FetchEBlockByHash(IHash) (IEntryBlock, error)
@@ -49,7 +49,7 @@ type DBOverlay interface {
 	// FetchAllEBlocksByChain gets all of the blocks by chain id
 	FetchAllEBlocksByChain(IHash) ([]IEntryBlock, error)
 
-	SaveEBlockHead(block DatabaseBlockWithEntries) error
+	SaveEBlockHead(block DatabaseBlockWithEntries, checkForDuplicateEntries bool) error
 
 	FetchEBlockHead(chainID IHash) (IEntryBlock, error)
 
@@ -174,8 +174,8 @@ type DBOverlay interface {
 	//******************************IncludedIn**********************************//
 
 	SaveIncludedIn(entry, block IHash) error
-	SaveIncludedInMultiFromBlock(block DatabaseBlockWithEntries) error
-	SaveIncludedInMulti(entries []IHash, block IHash) error
+	SaveIncludedInMultiFromBlock(block DatabaseBlockWithEntries, checkForDuplicateEntries bool) error
+	SaveIncludedInMulti(entries []IHash, block IHash, checkForDuplicateEntries bool) error
 	LoadIncludedIn(hash IHash) (IHash, error)
 	RebuildDirBlockInfo() error
 }

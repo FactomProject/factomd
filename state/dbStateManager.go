@@ -260,11 +260,11 @@ func (list *DBStateList) UpdateState() (progress bool) {
 
 			pl := list.State.ProcessLists.Get(d.DirectoryBlock.GetHeader().GetDBHeight())
 			for _, eb := range pl.NewEBlocks {
-				if err := list.State.GetDB().ProcessEBlockMultiBatch(eb); err != nil {
+				if err := list.State.GetDB().ProcessEBlockMultiBatch(eb, false); err != nil {
 					panic(err.Error())
 				}
 				for _, e := range eb.GetBody().GetEBEntries() {
-					if err := list.State.GetDB().InsertEntry(pl.NewEntries[e.Fixed()], false); err != nil {
+					if err := list.State.GetDB().InsertEntry(pl.NewEntries[e.Fixed()]); err != nil {
 						panic(err.Error())
 					}
 				}
