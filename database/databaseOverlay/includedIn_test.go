@@ -25,7 +25,7 @@ func TestIncludedIn(t *testing.T) {
 	for i := 0; i < max; i++ {
 		prev, _ = CreateTestEntryBlock(prev)
 		blocks = append(blocks, prev)
-		err := dbo.SaveEBlockHead(prev)
+		err := dbo.SaveEBlockHead(prev, false)
 		if err != nil {
 			t.Error(err)
 		}
