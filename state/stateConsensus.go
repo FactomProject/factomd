@@ -189,7 +189,7 @@ func (s *State) addEBlock(eblock interfaces.IEntryBlock) {
 
 	if err == nil {
 		if s.HasDataRequest(hash) {
-			s.DB.ProcessEBlockBatch(eblock)
+			s.DB.ProcessEBlockBatch(eblock, true)
 			delete(s.DataRequests, hash.Fixed())
 
 			if s.GetAllEntries(hash) {
