@@ -205,7 +205,7 @@ func (m *FactoidTransaction) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *FactoidTransaction) String() string {
-	return fmt.Sprintf("Factoid Transaction %x VM %d", m.GetHash().Bytes()[:3], m.VMIndex)
+	return fmt.Sprintf("Factoid Transaction %x VM %d Fed %x ", m.GetHash().Bytes()[:3], m.VMIndex)
 }
 
 func (e *FactoidTransaction) JSONByte() ([]byte, error) {

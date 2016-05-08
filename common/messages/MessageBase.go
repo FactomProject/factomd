@@ -9,14 +9,15 @@ import (
 )
 
 type MessageBase struct {
-	Origin    int  // Set and examined on a server, not marshaled with the message
-	Peer2peer bool // The nature of this message type, not marshaled with the message
-	LocalOnly bool // This message is only a local message, is not broadcasted and may skip verification
+	Origin    			int  // Set and examined on a server, not marshaled with the message
+	Peer2peer 			bool // The nature of this message type, not marshaled with the message
+	LocalOnly 			bool // This message is only a local message, is not broadcasted and may skip verification
 
-	LeaderChainID interfaces.IHash
-	MsgHash       interfaces.IHash // Cash of the hash of a message
-	VMIndex       int              // The Index of the VM responsible for this message.
-	VMHash        []byte           // Basis for selecting a VMIndex
+	LeaderChainID 		interfaces.IHash
+	MsgHash				interfaces.IHash // Cash of the hash of a message
+	VMIndex				int              // The Index of the VM responsible for this message.
+	VMHash   			[]byte           // Basis for selecting a VMIndex
+
 	// Used by Leader code, but only Marshaled and Unmarshalled in Ack Messages
 	// EOM messages, and DirectoryBlockSignature messages
 }
@@ -67,3 +68,5 @@ func (m *MessageBase) GetVMHash() []byte {
 func (m *MessageBase) SetVMHash(vmhash []byte) {
 	m.VMHash = vmhash
 }
+
+

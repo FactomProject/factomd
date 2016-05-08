@@ -326,7 +326,7 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
 	eom.Sign(s)
 	eom.SetLocal(false)
 	ack, err := s.NewAck(s.LLeaderHeight, m)
-
+	
 	if err != nil {
 		return err
 	}
@@ -402,7 +402,13 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	pl := s.ProcessLists.Get(dbheight)
 
 	// Set this list complete
-	s.LeaderMinute = int(e.Minute + 1)
+	if s.LeaderMinute < int(e.Minute + 1){
+		s.LeaderMinute = int(e.Minute + 1)
+		if e.VMIndex == s.LeaderVMIndex && s.LeaderMinute < 10 {
+			s.Leader, s.LeaderVMIndex = pl.GetVirtualServers(s.LeaderMinute, s.IdentityChainID)
+		}
+	}
+
 	pl.SetMinute(e.VMIndex, int(e.Minute))
 
 	if pl.MinuteHeight() < s.LeaderMinute {
