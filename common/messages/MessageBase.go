@@ -6,6 +6,7 @@ package messages
 
 import (
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 type MessageBase struct {
@@ -17,7 +18,7 @@ type MessageBase struct {
 	MsgHash				interfaces.IHash // Cash of the hash of a message
 	VMIndex				int              // The Index of the VM responsible for this message.
 	VMHash   			[]byte           // Basis for selecting a VMIndex
-
+	Minute            byte
 	// Used by Leader code, but only Marshaled and Unmarshalled in Ack Messages
 	// EOM messages, and DirectoryBlockSignature messages
 }
@@ -45,6 +46,9 @@ func (m *MessageBase) SetLocal(v bool) {
 }
 
 func (m *MessageBase) GetLeaderChainID() interfaces.IHash {
+	if m.LeaderChainID == nil {
+		m.LeaderChainID = primitives.NewZeroHash()
+	}
 	return m.LeaderChainID
 }
 
@@ -69,4 +73,10 @@ func (m *MessageBase) SetVMHash(vmhash []byte) {
 	m.VMHash = vmhash
 }
 
+func (m *MessageBase) GetMinute() byte {
+	return m.Minute
+}
 
+func (m *MessageBase) SetMinute(minute byte) {
+	m.Minute = minute
+}

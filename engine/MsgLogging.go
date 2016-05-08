@@ -52,9 +52,7 @@ func (m *MsgLog) init(enable bool, nodecnt int) {
 }
 
 func (m *MsgLog) add2(fnode *FactomNode, out bool, peer string, where string, valid bool, msg interfaces.IMsg) {
-	if !m.Enable {
-		return
-	}
+
 	m.sem.Lock()
 	defer m.sem.Unlock()
 	now := fnode.State.GetTimestamp() / 1000
@@ -88,26 +86,25 @@ func (m *MsgLog) add2(fnode *FactomNode, out bool, peer string, where string, va
 		m.msgCntp = 0
 		m.startp = now // Reset timer
 	}
-
-	// If it has been 2 seconds, and we are printing, then print
-	if now-m.last > 0 && (fnode.State.GetOut() || m.all) {
-		m.PrtMsgs(fnode.State)
-		m.last = now
-		m.msgCnt += len(m.MsgList) // Keep my counts
-		m.msgCntp += len(m.MsgList)
-
 		// If it has been 4 seconds and we are NOT printing, then toss.
 		// This gives us a second to get to print.
-	} else if now-m.last > 4 {
+	if now-m.last > 100  {
 		m.msgCnt += len(m.MsgList) // Keep my counts
 		m.msgCntp += len(m.MsgList)
 		m.MsgList = m.MsgList[0:0] // Clear the record.
+		m.last = now
 	}
+
 }
 
 func (m *MsgLog) PrtMsgs(state interfaces.IState) {
 	m.sem.Lock()
 	defer m.sem.Unlock()
+
+	if len(m.MsgList)== 0 {
+		return
+	}
+
 	fmt.Println(state.String())
 	fmt.Println("\n-----------------------------------------------------")
 
@@ -125,6 +122,8 @@ func (m *MsgLog) PrtMsgs(state interfaces.IState) {
 	}
 	now := state.GetTimestamp() / 1000
 	m.last = now
+	m.msgCnt += len(m.MsgList) // Keep my counts
+	m.msgCntp += len(m.MsgList)
 	m.MsgList = m.MsgList[0:0] // Once printed, clear the list
 
 	fmt.Println(fmt.Sprintf("*** %42s **** ", fmt.Sprintf("Length: %d    Msgs/sec: T %d P %d", len(m.MsgList), m.msgPerSec, m.msgPerSecp)))

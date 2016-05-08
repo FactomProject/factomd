@@ -42,7 +42,7 @@ func SimControl(listenTo int) {
 		// cmd is not a list of the parameters, much like command line args show up in args[]
 		cmd := strings.FieldsFunc(string(l), parseFunc)
 		if 0 == len(cmd) {
-			cmd = []string{"+"}
+			cmd = []string{"h"}
 		}
 		b := string(cmd[0])
 		v, err := strconv.Atoi(string(b))
@@ -53,7 +53,7 @@ func SimControl(listenTo int) {
 		} else {
 			// fmt.Printf("Parsing command, found %d elements.  The first element is: %+v / %s \n Full command: %+v\n", len(cmd), b[0], string(b), cmd)
 			switch {
-			case '+' == b[0]:
+			case 's' == b[0]:
 				summary = !summary
 				if summary {
 					os.Stderr.WriteString("--Print Summary On--\n")
@@ -61,7 +61,7 @@ func SimControl(listenTo int) {
 				} else {
 					os.Stderr.WriteString("--Print Summary Off--\n")
 				}
-			case '@' == b[0], 'q' == b[0]:
+			case 'p' == b[0]:
 				watchPL = !watchPL
 				if watchPL {
 					os.Stderr.WriteString("--Print Process Lists On--\n")
@@ -69,7 +69,7 @@ func SimControl(listenTo int) {
 				} else {
 					os.Stderr.WriteString("--Print Process Lists Off--\n")
 				}
-			case 0 == strings.Compare(strings.ToLower(string(b[0])), "a"):
+			case 'a' == b[0]:
 				mLog.all = false
 				for _, fnode := range fnodes {
 					fnode.State.SetOut(false)
@@ -96,7 +96,7 @@ func SimControl(listenTo int) {
 						fmt.Println("Error: ", err, msg)
 					}
 				}
-			case 0 == strings.Compare(strings.ToLower(string(b[0])), "f"):
+			case 'f' == b[0]:
 				mLog.all = false
 				for _, fnode := range fnodes {
 					fnode.State.SetOut(false)
@@ -150,12 +150,6 @@ func SimControl(listenTo int) {
 						fmt.Println("Error: ", err, msg)
 					}
 				}
-			case 'D' == b[0]:
-				mLog.all = true
-				os.Stderr.WriteString("Dump all messages\n")
-				for _, fnode := range fnodes {
-					fnode.State.SetOut(true)
-				}
 			case 'm' == b[0]:
 				watchMessages = !watchMessages
 				if watchMessages {
@@ -165,32 +159,30 @@ func SimControl(listenTo int) {
 					os.Stderr.WriteString("--Print Messages Off--\n")
 				}
 			case ' ' == b[0]:
-				mLog.all = false
 				fnodes[listenTo].State.SetOut(false)
 				listenTo++
 				if listenTo >= len(fnodes) {
 					listenTo = 0
 				}
 				fnodes[listenTo].State.SetOut(true)
-				os.Stderr.WriteString("Print all messages\n")
 				os.Stderr.WriteString(fmt.Sprint("\r\nSwitching to Node ", listenTo, "\r\n"))
 				wsapi.SetState(fnodes[listenTo].State)
-				mLog.all = false
-			case 's' == b[0]:
+			case 'l' == b[0]:
 				msg := messages.NewAddServerMsg(fnodes[listenTo].State, 0)
 				fnodes[listenTo].State.InMsgQueue() <- msg
 				os.Stderr.WriteString(fmt.Sprintln("Attempting to make", fnodes[listenTo].State.GetFactomNodeName(), "a Leader"))
-			case '?' == b[0], 'H' == b[0], 'h' == b[0]:
+			case 'h' == b[0]:
 				fmt.Println("-------------------------------------------------------------------------------")
 				fmt.Println("+ or ENTER    Silence nodes and show Queues for focused node")
-				fmt.Println("a             Show Admin blocks. Indicate node eg:\"a5\" to shows blocks for that node.")
-				fmt.Println("f             Show Factoid blocks. Indicate node eg:\"f5\" to shows blocks for that node.")
-				fmt.Println("d             Show Directory blocks. Indicate node eg:\"d5\" to shows blocks for that node.")
-				fmt.Println("D             Dump all messages.")
-				fmt.Println("m             Show all messages for the focused node.")
-				fmt.Println("\" \" [space] Follow next node, print all messages from it.")
-				fmt.Println("s             Make focused node the Leader.")
-				fmt.Println("? or h		   Show help")
+				fmt.Println("aN            Show Admin block N. Indicate node eg:\"a5\" to shows blocks for that node.")
+				fmt.Println("fN            Show Factoid block N. Indicate node eg:\"f5\" to shows blocks for that node.")
+				fmt.Println("dN            Show Directory block N. Indicate node eg:\"d5\" to shows blocks for that node.")
+				fmt.Println("m             Show Messages as they are passed through the simulator.")
+				fmt.Println("s             Show the state of all nodes as their state changes in the simulator.")
+				fmt.Println("p             Show the process lists and directory block states as they change.")
+				fmt.Println("\" \" [space] Change the focus to the next node.")
+				fmt.Println("l             Make focused node the Leader.")
+				fmt.Println("h or <enter>  Show help")
 				fmt.Println("")
 				fmt.Println("Most commands are case insensitive.")
 				fmt.Println("-------------------------------------------------------------------------------")
@@ -243,6 +235,7 @@ func printProcessList(watchPL *bool, listenTo *int) {
 			b := fnode.State.GetHighestRecordedBlock() + 1
 			pl := fnode.State.ProcessLists.Get(b)
 			nprt = nprt + pl.PrintMap()
+			nprt = nprt + fnode.State.DBStates.String()
 
 			if out != nprt {
 				fmt.Println(nprt)

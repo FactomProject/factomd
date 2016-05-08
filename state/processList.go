@@ -425,18 +425,26 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	//fmt.Println(p.State.GetFactomNodeName(),"Addack them",ack.String())
 	//fmt.Println(p.State.GetFactomNodeName(),"Addm   them",m.String())
 	m.SetLeaderChainID(ack.GetLeaderChainID())
+	m.SetMinute(ack.Minute)
 
 	if len(p.VMs[ack.VMIndex].List) > int(ack.Height) && p.VMs[ack.VMIndex].List[ack.Height] != nil {
 		fmt.Println(p.String())
 		fmt.Println(p.PrintMap())
-		panic(fmt.Sprintf("\t%12s %s\n\t%12s %s\n\t %12s %s",
+		panic(fmt.Sprintf("\t%12s %s\n\t%12s %s\n\t %12s %s\n %18s: %x\n %18s: %x\n %18s: %d  %18s: %d\n %18s %v  %18s %v\n %18s %d",
 			"OverWriting:",
 			p.VMs[ack.VMIndex].List[ack.Height].String(),
 			"With:",
 			m.String(),
 			"Detected on:",
 			p.State.GetFactomNodeName(),
-		))
+			"Old Msg Leader", p.VMs[ack.VMIndex].List[ack.Height].GetLeaderChainID().Bytes()[:3],
+			"New Msg Leader", m.GetLeaderChainID().Bytes()[:3],
+			"DBHeight", ack.DBHeight,
+			"Height", ack.Height,
+			"Old Minute", p.VMs[ack.VMIndex].List[ack.Height].GetMinute(),
+			"New Minute", ack.GetMinute(),
+			"VM",ack.VMIndex))
+
 	}
 
 	for len(p.VMs[ack.VMIndex].List) <= int(ack.Height) {
