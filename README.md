@@ -102,9 +102,9 @@ Which will get you something like:
 	  -netdebug
 	    	If true, print detailed network debugging info.
 	  -node int
-	  	Node Number the simulator will set as the focus
+	     	Node Number the simulator will set as the focus
 	  -p2pAddress string
-	  	Address & port to listen for peers on: (eg: tcp://127.0.0.1:40891) (default "tcp://127.0.0.1:34340")
+	     	Address & port to listen for peers on: (eg: tcp://127.0.0.1:40891) (default "tcp://127.0.0.1:34340")
 	  -peers string
 	    	Array of peer addresses. Defaults to: "tcp://127.0.0.1:34341 tcp://127.0.0.1:34342 tcp://127.0.0.1:34340"
 	  -port int
