@@ -158,6 +158,11 @@ func SimControl(listenTo int) {
 				} else {
 					os.Stderr.WriteString("--Print Messages Off--\n")
 				}
+			case 'l' == b[0]:
+				msg := messages.NewAddServerMsg(fnodes[listenTo].State, 0)
+				fnodes[listenTo].State.InMsgQueue() <- msg
+				os.Stderr.WriteString(fmt.Sprintln("Attempting to make", fnodes[listenTo].State.GetFactomNodeName(), "a Leader"))
+				fallthrough
 			case 'n' == b[0]:
 				fnodes[listenTo].State.SetOut(false)
 				listenTo++
@@ -167,10 +172,7 @@ func SimControl(listenTo int) {
 				fnodes[listenTo].State.SetOut(true)
 				os.Stderr.WriteString(fmt.Sprint("\r\nSwitching to Node ", listenTo, "\r\n"))
 				wsapi.SetState(fnodes[listenTo].State)
-			case 'l' == b[0]:
-				msg := messages.NewAddServerMsg(fnodes[listenTo].State, 0)
-				fnodes[listenTo].State.InMsgQueue() <- msg
-				os.Stderr.WriteString(fmt.Sprintln("Attempting to make", fnodes[listenTo].State.GetFactomNodeName(), "a Leader"))
+
 			case 'h' == b[0]:
 				os.Stderr.WriteString("-------------------------------------------------------------------------------\n")
 				os.Stderr.WriteString("h or ENTER    Shows this help\n")
