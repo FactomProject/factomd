@@ -698,7 +698,7 @@ func (s *State) NewAck(dbheight uint32, msg interfaces.IMsg) (iack interfaces.IM
 	vmIndex := msg.GetVMIndex()
 	pl := s.ProcessLists.Get(dbheight)
 
-	s.DebugPrt("Ack")
+	//s.DebugPrt("Ack")
 
 	if s.EOM_Step >= 0 || s.EOM {
 		if pl.MinuteFinished() == s.LeaderMinute {
