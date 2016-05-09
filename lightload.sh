@@ -1,9 +1,9 @@
 while true; do
 	fct balances
-	sleep 10
+	sleep 1
 	echo "Factoid Transaction"
 	./flight.sh
-	sleep 10
+	sleep 1
 	./eclight.sh
 	sleep 1
 done
