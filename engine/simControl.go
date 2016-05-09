@@ -158,7 +158,7 @@ func SimControl(listenTo int) {
 				} else {
 					os.Stderr.WriteString("--Print Messages Off--\n")
 				}
-			case ' ' == b[0]:
+			case 'n' == b[0]:
 				fnodes[listenTo].State.SetOut(false)
 				listenTo++
 				if listenTo >= len(fnodes) {
@@ -172,20 +172,20 @@ func SimControl(listenTo int) {
 				fnodes[listenTo].State.InMsgQueue() <- msg
 				os.Stderr.WriteString(fmt.Sprintln("Attempting to make", fnodes[listenTo].State.GetFactomNodeName(), "a Leader"))
 			case 'h' == b[0]:
-				fmt.Println("-------------------------------------------------------------------------------")
-				fmt.Println("+ or ENTER    Silence nodes and show Queues for focused node")
-				fmt.Println("aN            Show Admin block N. Indicate node eg:\"a5\" to shows blocks for that node.")
-				fmt.Println("fN            Show Factoid block N. Indicate node eg:\"f5\" to shows blocks for that node.")
-				fmt.Println("dN            Show Directory block N. Indicate node eg:\"d5\" to shows blocks for that node.")
-				fmt.Println("m             Show Messages as they are passed through the simulator.")
-				fmt.Println("s             Show the state of all nodes as their state changes in the simulator.")
-				fmt.Println("p             Show the process lists and directory block states as they change.")
-				fmt.Println("\" \" [space] Change the focus to the next node.")
-				fmt.Println("l             Make focused node the Leader.")
-				fmt.Println("h or <enter>  Show help")
-				fmt.Println("")
-				fmt.Println("Most commands are case insensitive.")
-				fmt.Println("-------------------------------------------------------------------------------")
+				os.Stderr.WriteString("-------------------------------------------------------------------------------\n")
+				os.Stderr.WriteString("h or ENTER    Shows this help\n")
+				os.Stderr.WriteString("aN            Show Admin block     N. Indicate node eg:\"a5\" to shows blocks for that node.\n")
+				os.Stderr.WriteString("fN            Show Factoid block   N. Indicate node eg:\"f5\" to shows blocks for that node.\n")
+				os.Stderr.WriteString("dN            Show Directory block N. Indicate node eg:\"d5\" to shows blocks for that node.\n")
+				os.Stderr.WriteString("m             Show Messages as they are passed through the simulator.\n")
+				os.Stderr.WriteString("s             Show the state of all nodes as their state changes in the simulator.\n")
+				os.Stderr.WriteString("p             Show the process lists and directory block states as they change.\n")
+				os.Stderr.WriteString("n             Change the focus to the next node.\n")
+				os.Stderr.WriteString("l             Make focused node the Leader.\n")
+				os.Stderr.WriteString("h or <enter>  Show help\n")
+				os.Stderr.WriteString("\n")
+				os.Stderr.WriteString("Most commands are case insensitive.\n")
+				os.Stderr.WriteString("-------------------------------------------------------------------------------")
 			// -- add node (and give its connections or topology)
 			// TODO JAYJAY Need to make an option that causes the p2p network to print out all messsages it gets and sends, for easier debugging.
 
@@ -231,11 +231,11 @@ func printProcessList(watchPL *bool, listenTo *int) {
 	for {
 		if *watchPL {
 			fnode := fnodes[*listenTo]
-			nprt := fnode.State.ProcessLists.String()
-			b := fnode.State.GetHighestRecordedBlock() + 1
+			nprt := fnode.State.DBStates.String()
+			b := fnode.State.GetHighestRecordedBlock()
+			nprt = nprt + fnode.State.ProcessLists.String()
 			pl := fnode.State.ProcessLists.Get(b)
 			nprt = nprt + pl.PrintMap()
-			nprt = nprt + fnode.State.DBStates.String()
 
 			if out != nprt {
 				fmt.Println(nprt)

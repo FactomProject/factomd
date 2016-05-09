@@ -65,6 +65,7 @@ type State struct {
 	inMsgQueue             chan interfaces.IMsg
 	leaderMsgQueue         chan interfaces.IMsg
 	followerMsgQueue       chan interfaces.IMsg
+	stall                  chan interfaces.IMsg
 	undo                   interfaces.IMsg
 	ShutdownChan           chan int // For gracefully halting Factom
 	JournalFile            string
@@ -80,6 +81,7 @@ type State struct {
 	OutputAllowed bool
 	LeaderMinute  int  // The minute that just was processed by the follower, (1-10), set with EOM
 	EOM           bool // Set to true when all Process Lists have finished a minute
+	EOM_Step      int // Found this leader's EOM.
 
 	// Maps
 	// ====
@@ -266,7 +268,8 @@ func (s *State) Init() {
 	s.networkOutMsgQueue = make(chan interfaces.IMsg, 10000)     //Messages to be broadcast to the network
 	s.inMsgQueue = make(chan interfaces.IMsg, 10000)             //incoming message queue for factom application messages
 	s.leaderMsgQueue = make(chan interfaces.IMsg, 10000)         //queue of Leadership messages
-	s.followerMsgQueue = make(chan interfaces.IMsg, 10000)       //queue of Leadership messages
+	s.followerMsgQueue = make(chan interfaces.IMsg, 10000)       //queue of Follower messages
+	s.stall = make(chan interfaces.IMsg, 10000)    				    //queue of Follower messages while stalled
 	s.ShutdownChan = make(chan int, 1)                           //Channel to gracefully shut down.
 
 	os.Mkdir(s.LogPath, 0777)

@@ -430,7 +430,10 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	if len(p.VMs[ack.VMIndex].List) > int(ack.Height) && p.VMs[ack.VMIndex].List[ack.Height] != nil {
 		fmt.Println(p.String())
 		fmt.Println(p.PrintMap())
-		panic(fmt.Sprintf("\t%12s %s\n\t%12s %s\n\t %12s %s\n %18s: %x\n %18s: %x\n %18s: %d  %18s: %d\n %18s %v  %18s %v\n %18s %d",
+		panic(fmt.Sprintf("\t%12s %s\n\t%12s %s\n\t %12s %s\n %18s: %x\n"+
+								" %18s: %x\n %18s: %d  %18s: %d\n %18s %v  %18s %v\n %18s %d"+
+					   		" %18s: %s"+
+								" %18s: %s",
 			"OverWriting:",
 			p.VMs[ack.VMIndex].List[ack.Height].String(),
 			"With:",
@@ -443,8 +446,9 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 			"Height", ack.Height,
 			"Old Minute", p.VMs[ack.VMIndex].List[ack.Height].GetMinute(),
 			"New Minute", ack.GetMinute(),
-			"VM",ack.VMIndex))
-
+			"VM",ack.VMIndex,
+			"LastAck",p.VMs[ack.VMIndex].LastAck.String(),
+			"LastLeaderAck",p.VMs[ack.VMIndex].LastLeaderAck.String(),))
 	}
 
 	for len(p.VMs[ack.VMIndex].List) <= int(ack.Height) {
