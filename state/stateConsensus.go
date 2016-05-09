@@ -15,9 +15,12 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/util"
+	"os"
 )
 
 var _ = fmt.Print
+
+
 
 //***************************************************************
 // Process Loop for Consensus
@@ -25,19 +28,6 @@ var _ = fmt.Print
 // Returns true if some message was processed.
 //***************************************************************
 func (s *State) Process() (progress bool) {
-
-	if false {
-		ppl := s.ProcessLists.Get(s.LLeaderHeight)
-		fmt.Println(
-			s.FactomNodeName,
-			"  DBHeight", s.LLeaderHeight,
-			"  Finished EOM:", ppl.FinishedEOM(),
-			"  EOM", s.EOM,
-			"  EOM_Step", s.EOM_Step,
-			"  Leader min:", s.LeaderMinute,
-			"  PL Min Ht:", ppl.MinuteHeight(),
-			"  PL Ht:", ppl.VMs[0].Height)
-	}
 
 	if s.EOM_Step >= 0 && s.LeaderPL.FinishedEOM() {
 		s.EOM_Step = -1
@@ -346,6 +336,10 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
 		return nil
 	}
 
+	vm := s.LeaderPL.VMs[s.LeaderVMIndex]
+	if vm.Height <= len(vm.List) {
+	//	return nil
+	}
 	if !s.LeaderPL.FinishedEOM() {
 		s.EOM_Step = -1
 	}
@@ -459,11 +453,10 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		vm.LastLeaderAck = vm.LastAck
 	}
 
-	if pl.MinuteHeight() < s.LeaderMinute {
+	if pl.MinuteComplete() < s.LeaderMinute {
 		return false
 	}
 
-	s.EOM = true
 
 	if pl.VMIndexFor(constants.FACTOID_CHAINID) == e.VMIndex {
 		s.FactoidState.EndOfPeriod(int(e.Minute))
@@ -487,6 +480,10 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		ecbody.AddEntry(mn)
 	}
 
+	if int(e.Minute) > vm.MinuteFinished {
+		vm.MinuteFinished = int(e.Minute)
+	}
+	s.EOM = true
 	return true
 }
 
@@ -700,6 +697,18 @@ func (s *State) NewAck(dbheight uint32, msg interfaces.IMsg) (iack interfaces.IM
 
 	vmIndex := msg.GetVMIndex()
 	pl := s.ProcessLists.Get(dbheight)
+
+	s.DebugPrt("Ack")
+
+	if s.EOM_Step >= 0 || s.EOM {
+		if pl.MinuteFinished() == s.LeaderMinute {
+			s.EOM_Step = -1
+			s.EOM = false
+		}	else {
+			s.stall <- msg
+			return nil, nil
+		}
+	}
 	if pl == nil {
 		err = fmt.Errorf(s.FactomNodeName + ": No process list at this time")
 		fmt.Println(err.Error())
@@ -730,4 +739,78 @@ func (s *State) NewAck(dbheight uint32, msg interfaces.IMsg) (iack interfaces.IM
 	ack.Sign(s)
 
 	return ack, nil
+}
+
+// ****************************************************************
+//                          Support
+// ****************************************************************
+
+func (s *State) DebugPrt(what string) {
+
+	ppl := s.ProcessLists.Get(s.LLeaderHeight)
+
+	fmt.Printf("tttt %8s %8s: VM %2d Leader %5v LLeaderHeight %2v Highest %2v Leaderminute %2v EOM %5v EOM_Step %2v PL Ht: %2v \n",
+		what,
+		s.FactomNodeName,
+		s.LeaderVMIndex,
+		s.Leader,
+		s.LLeaderHeight,
+		s.GetHighestRecordedBlock(),
+		s.LeaderMinute,
+		s.EOM,
+		s.EOM_Step,
+		ppl.MinuteComplete())
+	fmt.Printf("tttt\t\t%12s: %2v %2v %2v %2v %2v %2v %2v %2v %2v %2v\n",
+		"VM Ht",
+		ppl.VMs[0].Height,
+		ppl.VMs[1].Height,
+		ppl.VMs[2].Height,
+		ppl.VMs[3].Height,
+		ppl.VMs[4].Height,
+		ppl.VMs[5].Height,
+		ppl.VMs[6].Height,
+		ppl.VMs[7].Height,
+		ppl.VMs[8].Height,
+		ppl.VMs[9].Height,
+	)
+	fmt.Printf("tttt\t\t%12s %2v %2v %2v %2v %2v %2v %2v %2v %2v %2v\n",
+		"Complete:",
+		ppl.VMs[0].MinuteComplete,
+		ppl.VMs[1].MinuteComplete,
+		ppl.VMs[2].MinuteComplete,
+		ppl.VMs[3].MinuteComplete,
+		ppl.VMs[4].MinuteComplete,
+		ppl.VMs[5].MinuteComplete,
+		ppl.VMs[6].MinuteComplete,
+		ppl.VMs[7].MinuteComplete,
+		ppl.VMs[8].MinuteComplete,
+		ppl.VMs[9].MinuteComplete,
+	)
+	fmt.Printf("tttt\t\t%12s %2v %2v %2v %2v %2v %2v %2v %2v %2v %2v\n",
+		"Finished:",
+		ppl.VMs[0].MinuteFinished,
+		ppl.VMs[1].MinuteFinished,
+		ppl.VMs[2].MinuteFinished,
+		ppl.VMs[3].MinuteFinished,
+		ppl.VMs[4].MinuteFinished,
+		ppl.VMs[5].MinuteFinished,
+		ppl.VMs[6].MinuteFinished,
+		ppl.VMs[7].MinuteFinished,
+		ppl.VMs[8].MinuteFinished,
+		ppl.VMs[9].MinuteFinished,
+	)
+	fmt.Printf("tttt\t\t%12s %2v %2v %2v %2v %2v %2v %2v %2v %2v %2v\n",
+		"Min Ht:",
+		ppl.VMs[0].MinuteHeight,
+		ppl.VMs[1].MinuteHeight,
+		ppl.VMs[2].MinuteHeight,
+		ppl.VMs[3].MinuteHeight,
+		ppl.VMs[4].MinuteHeight,
+		ppl.VMs[5].MinuteHeight,
+		ppl.VMs[6].MinuteHeight,
+		ppl.VMs[7].MinuteHeight,
+		ppl.VMs[8].MinuteHeight,
+		ppl.VMs[9].MinuteHeight,
+	)
+	os.Stdout.Sync()
 }

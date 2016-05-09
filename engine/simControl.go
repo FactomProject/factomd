@@ -187,7 +187,7 @@ func SimControl(listenTo int) {
 				os.Stderr.WriteString("h or <enter>  Show help\n")
 				os.Stderr.WriteString("\n")
 				os.Stderr.WriteString("Most commands are case insensitive.\n")
-				os.Stderr.WriteString("-------------------------------------------------------------------------------")
+				os.Stderr.WriteString("-------------------------------------------------------------------------------\n\n")
 			// -- add node (and give its connections or topology)
 			// TODO JAYJAY Need to make an option that causes the p2p network to print out all messsages it gets and sends, for easier debugging.
 

@@ -57,7 +57,8 @@ type VM struct {
 	List           []interfaces.IMsg // Lists of acknowledged messages
 	Height         int               // Height of messages that have been processed
 	LeaderMinute   int               // Where the leader is in acknowledging messages
-	MinuteComplete int               // Highest minute complete (0-9) by the follower
+	MinuteComplete int               // Highest minute complete recorded (0-9) by the follower
+	MinuteFinished int               // Highest minute processed (0-9) by the follower
 	MinuteHeight   int               // Height of the last minute complete
 	LastLeaderAck  interfaces.IMsg   // The last Acknowledgement set by this leader
 	LastAck        interfaces.IMsg   // The last Acknowledgement set by this follower
@@ -195,12 +196,25 @@ func (p *ProcessList) SetMinute(index int, minute int) {
 
 // Return the lowest minute number in our lists.  Note that Minute Markers END
 // a minute, so After MinuteComplete=0
-func (p *ProcessList) MinuteHeight() int {
+func (p *ProcessList) MinuteComplete() int {
 	m := 10
 	for i := 0; i < len(p.FedServers); i++ {
 		vm := p.VMs[i]
 		if vm.MinuteComplete < m {
 			m = vm.MinuteComplete
+		}
+	}
+	return m
+}
+
+// Return the lowest minute number in our lists.  Note that Minute Markers END
+// a minute, so After MinuteComplete=0
+func (p *ProcessList) MinuteFinished() int {
+	m := 10
+	for i := 0; i < len(p.FedServers); i++ {
+		vm := p.VMs[i]
+		if vm.MinuteFinished < m {
+			m = vm.MinuteFinished
 		}
 	}
 	return m
