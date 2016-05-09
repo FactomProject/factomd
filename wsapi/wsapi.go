@@ -351,7 +351,7 @@ func HandleGetFee(ctx *web.Context) {
 	type x struct{ Fee int64 }
 	d := new(x)
 
-	d.Fee = int64(jsonResp.Result.(*FactoidGetFeeResponse).Fee)
+	d.Fee = int64(jsonResp.Result.(*FactoidFeeResponse).Fee)
 
 	returnMsg(ctx, d, true)
 }
