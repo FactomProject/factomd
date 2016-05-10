@@ -213,6 +213,7 @@ func printSummary(summary *bool, listenTo *int) {
 				prt = prt + fmt.Sprintf("      FollowerMsgQueue       %d\n", len(state.FollowerMsgQueue()))
 				prt = prt + fmt.Sprintf("      InMsgQueue             %d\n", len(state.InMsgQueue()))
 				prt = prt + fmt.Sprintf("      LeaderMsgQueue         %d\n", len(state.LeaderMsgQueue()))
+				prt = prt + fmt.Sprintf("      stall Queue            %d\n", len(state.Stall()))
 				prt = prt + fmt.Sprintf("      TimerMsgQueue          %d\n", len(state.TimerMsgQueue()))
 				prt = prt + fmt.Sprintf("      NetworkOutMsgQueue     %d\n", len(state.NetworkOutMsgQueue()))
 				prt = prt + fmt.Sprintf("      NetworkInvalidMsgQueue %d\n", len(state.NetworkInvalidMsgQueue()))

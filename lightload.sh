@@ -1,9 +1,12 @@
+#!/bin/bash
+
 while true; do
-	fct balances
-	sleep 1
+	factom-cli balances
+	sleep 3
 	echo "Factoid Transaction"
 	./flight.sh
-	sleep 1
+	factom-cli balances
+	sleep 3
 	./eclight.sh
-	sleep 1
+	sleep 3
 done

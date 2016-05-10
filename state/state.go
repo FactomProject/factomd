@@ -813,6 +813,10 @@ func (s *State) LeaderMsgQueue() chan interfaces.IMsg {
 	return s.leaderMsgQueue
 }
 
+func (s *State) Stall() chan interfaces.IMsg {
+	return s.stall
+}
+
 func (s *State) FollowerMsgQueue() chan interfaces.IMsg {
 	return s.followerMsgQueue
 }
@@ -920,9 +924,9 @@ func (s *State) SetString() {
 	} else {
 
 		keyMR := []byte("aaaaa")
-		abHash := []byte("aaaaa")
-		fbHash := []byte("aaaaa")
-		ecHash := []byte("aaaaa")
+		//abHash := []byte("aaaaa")
+		//fbHash := []byte("aaaaa")
+		//ecHash := []byte("aaaaa")
 
 		switch {
 		case s.DBStates == nil:
@@ -933,13 +937,13 @@ func (s *State) SetString() {
 
 		default:
 			keyMR = s.DBStates.Last().DirectoryBlock.GetKeyMR().Bytes()
-			abHash = s.DBStates.Last().AdminBlock.GetHash().Bytes()
-			fbHash = s.DBStates.Last().FactoidBlock.GetHash().Bytes()
-			ecHash = s.DBStates.Last().EntryCreditBlock.GetHash().Bytes()
+			//abHash = s.DBStates.Last().AdminBlock.GetHash().Bytes()
+			//fbHash = s.DBStates.Last().FactoidBlock.GetHash().Bytes()
+			//ecHash = s.DBStates.Last().EntryCreditBlock.GetHash().Bytes()
 			lastheight = s.DBStates.Last().DirectoryBlock.GetHeader().GetDBHeight()
 		}
 
-		s.serverPrt = fmt.Sprintf("%9s%9s %x Recorded: %d Building: %d Last: %d DirBlk[:5]=%x ABHash[:5]=%x FBHash[:5]=%x ECHash[:5]=%x ",
+		s.serverPrt = fmt.Sprintf("%9s%9s %x Recorded: %d Building: %d Last: %d DirBlk[:5]=%x L Min: %v L DBHT %v EOM %v EOM_S %v",
 			stype,
 			s.FactomNodeName,
 			s.IdentityChainID.Bytes()[:3],
@@ -947,9 +951,10 @@ func (s *State) SetString() {
 			lastheight,
 			s.GetHighestKnownBlock(),
 			keyMR[:3],
-			abHash[:3],
-			fbHash[:3],
-			ecHash[:3])
+			s.LeaderMinute,
+			s.LLeaderHeight,
+			s.EOM,
+			s.EOM_Step)
 	}
 }
 

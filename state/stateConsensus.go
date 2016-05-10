@@ -29,17 +29,15 @@ var _ = fmt.Print
 //***************************************************************
 func (s *State) Process() (progress bool) {
 
-	if s.EOM_Step >= 0 && s.LeaderPL.FinishedEOM() {
-		s.EOM_Step = -1
-	}
-
 	highest := s.GetHighestRecordedBlock()
 
 	if s.LLeaderHeight == 0 {
 		s.LLeaderHeight = s.GetHighestRecordedBlock() + 1
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.LeaderMinute, s.IdentityChainID)
-	} else if s.LLeaderHeight <= highest && s.LeaderPL.FinishedEOM() {
+		s.EOM_Step = -1
+
+	} else  if s.LLeaderHeight <= highest && s.LeaderMinute <= s.LeaderPL.MinuteFinished() {
 
 		s.LeaderMinute = 0 // Last block leaves at 10, which blows up. New block = 0
 
@@ -71,11 +69,11 @@ func (s *State) Process() (progress bool) {
 			}
 			s.leaderMsgQueue <- dbs
 		}
-		s.EOM = false
 		s.EOM_Step = -1
+		s.EOM = false
 	}
 
-	if s.EOM && s.LeaderPL.FinishedEOM() {
+	if s.EOM && s.LeaderMinute <= s.LeaderPL.MinuteFinished() {
 		switch {
 		case s.LeaderMinute <= 9:
 			for _, vm := range s.LeaderPL.VMs {
@@ -88,7 +86,6 @@ func (s *State) Process() (progress bool) {
 			s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.LeaderMinute, s.IdentityChainID)
 			s.EOM = false
-			s.EOM_Step = -1
 		case s.LeaderMinute == 10:
 			s.AddDBState(true, s.LeaderPL.DirectoryBlock, s.LeaderPL.AdminBlock, s.GetFactoidState().GetCurrentBlock(), s.LeaderPL.EntryCreditBlock)
 			for _, vm := range s.LeaderPL.VMs {
@@ -225,18 +222,21 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) (bool, error) {
 	} else {
 		pl := s.ProcessLists.Get(ack.DBHeight)
 
-		if m.Type() == constants.COMMIT_CHAIN_MSG || m.Type() == constants.COMMIT_ENTRY_MSG {
-			s.PutCommits(hash, m)
-		}
-
 		if pl != nil {
-			pl.AddToProcessList(ack, m)
+			if !pl.AddToProcessList(ack, m) {
+				return false, fmt.Errorf("Failed to add to Process List")
+			}
 
 			pl.OldAcks[hashf] = ack
 			pl.OldMsgs[hashf] = m
 			delete(s.Acks, hashf)
 			delete(s.Holding, hashf)
 		}
+
+		if m.Type() == constants.COMMIT_CHAIN_MSG || m.Type() == constants.COMMIT_ENTRY_MSG {
+			s.PutCommits(hash, m)
+		}
+
 		return true, nil
 	}
 }
@@ -337,14 +337,15 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
 	}
 
 	vm := s.LeaderPL.VMs[s.LeaderVMIndex]
-	if vm.Height <= len(vm.List) {
-	//	return nil
-	}
-	if !s.LeaderPL.FinishedEOM() {
-		s.EOM_Step = -1
+	if vm.Height < len(vm.List) {
+		return nil
 	}
 
-	if s.EOM_Step >= 0  {
+	if s.EOM {
+		return nil
+	}
+
+	if s.LeaderPL.MinuteFinished() < s.LeaderMinute {
 		return nil
 	}
 
@@ -432,9 +433,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 	// So we are now syncing up. Leader's can't add anything past the current
 	// minute now.
-	if s.EOM_Step < 0 && s.Leader && e.VMIndex == s.LeaderVMIndex {
-		s.EOM_Step = int(e.Minute)
-	}
+	s.EOM_Step = int(e.Minute)
 
 	// Set this list complete
 	if s.LeaderMinute < int(e.Minute + 1){
@@ -446,17 +445,9 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 	pl.SetMinute(e.VMIndex, int(e.Minute))
 
-	vm := pl.VMs[e.VMIndex]
-	ack1, ok1 := vm.LastLeaderAck.(*messages.Ack)
-	ack2, ok2 := vm.LastAck.(*messages.Ack)
-	if (!ok1 && ok2) || (ok1 && ok2 && ack2.Height > ack1.Height) {
-		vm.LastLeaderAck = vm.LastAck
-	}
-
 	if pl.MinuteComplete() < s.LeaderMinute {
 		return false
 	}
-
 
 	if pl.VMIndexFor(constants.FACTOID_CHAINID) == e.VMIndex {
 		s.FactoidState.EndOfPeriod(int(e.Minute))
@@ -480,9 +471,17 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		ecbody.AddEntry(mn)
 	}
 
-	if int(e.Minute) > vm.MinuteFinished {
-		vm.MinuteFinished = int(e.Minute)
+	vm := pl.VMs[e.VMIndex]
+
+	vm.MinuteFinished = int(e.Minute)+1
+
+	ack1, ok1 := vm.LastLeaderAck.(*messages.Ack)
+	ack2, ok2 := vm.LastAck.(*messages.Ack)
+	if (!ok1 && ok2) || (ok1 && ok2 && ack2.Height > ack1.Height) {
+		vm.LastLeaderAck = vm.LastAck
 	}
+
+	s.EOM_Step = -1
 	s.EOM = true
 	return true
 }
@@ -701,10 +700,7 @@ func (s *State) NewAck(dbheight uint32, msg interfaces.IMsg) (iack interfaces.IM
 	//s.DebugPrt("Ack")
 
 	if s.EOM_Step >= 0 || s.EOM {
-		if pl.MinuteFinished() == s.LeaderMinute {
-			s.EOM_Step = -1
-			s.EOM = false
-		}	else {
+		if pl.MinuteFinished() != s.LeaderMinute {
 			s.stall <- msg
 			return nil, nil
 		}
@@ -749,17 +745,18 @@ func (s *State) DebugPrt(what string) {
 
 	ppl := s.ProcessLists.Get(s.LLeaderHeight)
 
-	fmt.Printf("tttt %8s %8s: VM %2d Leader %5v LLeaderHeight %2v Highest %2v Leaderminute %2v EOM %5v EOM_Step %2v PL Ht: %2v \n",
+	fmt.Printf("tttt %8s %8s:  %v %v  %v %v   %v %v  %v %v  %v %v  %v %v  %v %v  %v %v  %v %v\n",
 		what,
 		s.FactomNodeName,
-		s.LeaderVMIndex,
-		s.Leader,
-		s.LLeaderHeight,
-		s.GetHighestRecordedBlock(),
-		s.LeaderMinute,
-		s.EOM,
-		s.EOM_Step,
-		ppl.MinuteComplete())
+		"LeaderVMIndex", s.LeaderVMIndex,
+		"Is Leader", s.Leader,
+		"LLeaderHeight", s.LLeaderHeight,
+		"Highest rec blk", s.GetHighestRecordedBlock(),
+		"Leader Minute", s.LeaderMinute,
+		"EOM", s.EOM,
+		"EOM_Step", s.EOM_Step,
+		"PL Min Complete", ppl.MinuteComplete(),
+		"PL Min Finish", ppl.MinuteFinished())
 	fmt.Printf("tttt\t\t%12s: %2v %2v %2v %2v %2v %2v %2v %2v %2v %2v\n",
 		"VM Ht",
 		ppl.VMs[0].Height,
@@ -772,6 +769,19 @@ func (s *State) DebugPrt(what string) {
 		ppl.VMs[7].Height,
 		ppl.VMs[8].Height,
 		ppl.VMs[9].Height,
+	)
+	fmt.Printf("tttt\t\t%12s: %2v %2v %2v %2v %2v %2v %2v %2v %2v %2v\n",
+		"List Len",
+		len(ppl.VMs[0].List),
+		len(ppl.VMs[1].List),
+		len(ppl.VMs[2].List),
+		len(ppl.VMs[3].List),
+		len(ppl.VMs[4].List),
+		len(ppl.VMs[5].List),
+		len(ppl.VMs[6].List),
+		len(ppl.VMs[7].List),
+		len(ppl.VMs[8].List),
+		len(ppl.VMs[9].List),
 	)
 	fmt.Printf("tttt\t\t%12s %2v %2v %2v %2v %2v %2v %2v %2v %2v %2v\n",
 		"Complete:",
