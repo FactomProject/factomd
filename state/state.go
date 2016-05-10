@@ -34,7 +34,6 @@ type State struct {
 	Prefix                  string
 	FactomNodeName          string
 	FactomdVersion          int
-	ProtocolVersion         int
 	LogPath                 string
 	LdbPath                 string
 	BoltDBPath              string
@@ -155,7 +154,6 @@ func (s *State) Clone(number string) interfaces.IState {
 
 	clone.FactomNodeName = s.Prefix + "FNode" + number
 	clone.FactomdVersion = s.FactomdVersion
-	clone.ProtocolVersion = s.ProtocolVersion
 	clone.LogPath = s.LogPath + "Sim" + number
 	clone.LdbPath = s.LdbPath + "Sim" + number
 	clone.JournalFile = s.LogPath + "journal" + number + ".log"
@@ -299,7 +297,6 @@ func (s *State) Init() {
 	s.ProcessLists = NewProcessLists(s)
 
 	s.FactomdVersion = constants.FACTOMD_VERSION
-	s.ProtocolVersion = constants.PROTOCOL_VERSION
 
 	s.DBStates = new(DBStateList)
 	s.DBStates.State = s
@@ -731,10 +728,6 @@ func (s *State) GetAnchor() interfaces.IAnchor {
 
 func (s *State) GetFactomdVersion() int {
 	return s.FactomdVersion
-}
-
-func (s *State) GetProtocolVersion() int {
-	return s.ProtocolVersion
 }
 
 func (s *State) initServerKeys() {

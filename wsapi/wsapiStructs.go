@@ -94,7 +94,6 @@ type FactoidFeeResponse struct {
 
 type PropertiesResponse struct {
 	FactomdVersion  string
-	ProtocolVersion string
 }
 
 /*********************************************************************/

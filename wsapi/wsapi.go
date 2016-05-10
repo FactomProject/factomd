@@ -432,7 +432,6 @@ func HandleProperties(ctx *web.Context) {
 	}
 	d := new(x)
 	d.Factomd_Version = jsonResp.Result.(*PropertiesResponse).FactomdVersion + " " + state.GetFactomNodeName()
-	d.Protocol_Version = jsonResp.Result.(*PropertiesResponse).ProtocolVersion
 
 	returnMsg(ctx, d, true)
 }

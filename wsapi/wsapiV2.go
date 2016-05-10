@@ -579,6 +579,5 @@ func HandleV2Properties(state interfaces.IState, params interface{}) (interface{
 
 	p := new(PropertiesResponse)
 	p.FactomdVersion = vtos(state.GetFactomdVersion())
-	p.ProtocolVersion = vtos(state.GetProtocolVersion())
 	return p, nil
 }
