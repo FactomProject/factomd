@@ -438,7 +438,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	// Set this list complete
 	if s.LeaderMinute < int(e.Minute + 1){
 		s.LeaderMinute = int(e.Minute + 1)
-		if e.VMIndex == s.LeaderVMIndex && s.LeaderMinute < 10 {
+		if s.LeaderMinute < 10 {
 			s.Leader, s.LeaderVMIndex = pl.GetVirtualServers(s.LeaderMinute, s.IdentityChainID)
 		}
 	}

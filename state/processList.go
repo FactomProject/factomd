@@ -29,7 +29,7 @@ type ProcessList struct {
 
 	State     interfaces.IState
 	VMs       []*VM       // Process list for each server (up to 32)
-	ServerMap [10][32]int // Map of FedServers to all Servers for each minute
+	ServerMap [10][64]int // Map of FedServers to all Servers for each minute
 
 	// Maps
 	// ====

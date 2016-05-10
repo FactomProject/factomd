@@ -2,7 +2,7 @@
 
 for i in `seq 1 13`;
 do
-	sleep 3
+	sleep 8
 	number1=$RANDOM
 	number2=$RANDOM
 	echo "Make Chain Named " $number
