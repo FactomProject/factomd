@@ -98,7 +98,7 @@ func (s *State) Process() (progress bool) {
 		}
 	}
 
-	if !s.EOM {
+
 		var vm *VM
 		if s.Leader {
 			vm = s.LeaderPL.VMs[s.LeaderVMIndex]
@@ -136,7 +136,7 @@ func (s *State) Process() (progress bool) {
 				progress = true
 			}
 		}
-	}
+
 	// Followers are less strict.  Messages can be validated as they are processed, but
 	// the acknowledgement from the leader is enough to put a message into the process list.
 	select {
@@ -212,6 +212,12 @@ func (s *State) addEBlock(eblock interfaces.IEntryBlock) {
 //
 // Returns true if it finds a match
 func (s *State) FollowerExecuteMsg(m interfaces.IMsg) (bool, error) {
+
+	if eom, ok := m.(*messages.EOM);
+	   s.EOM_Step >= 0 && ok && int(eom.Minute) > s.EOM_Step {
+		s.stall <- m
+		return false, nil
+	}
 
 	hash := m.GetHash()
 	hashf := hash.Fixed()
@@ -341,7 +347,7 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
 		return nil
 	}
 
-	if s.EOM {
+	if s.EOM || s.EOM_Step >= 0 {
 		return nil
 	}
 
