@@ -93,7 +93,8 @@ type FactoidFeeResponse struct {
 }
 
 type PropertiesResponse struct {
-	FactomdVersion  string
+	FactomdVersion string
+	ApiVersion     string
 }
 
 /*********************************************************************/

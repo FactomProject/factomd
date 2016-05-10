@@ -19,7 +19,7 @@ import (
 	"io/ioutil"
 )
 
-var _ = fmt.Print
+const VERSION string = "2.0"
 
 func HandleV2(ctx *web.Context) {
 	body, err := ioutil.ReadAll(ctx.Request.Body)
@@ -579,5 +579,6 @@ func HandleV2Properties(state interfaces.IState, params interface{}) (interface{
 
 	p := new(PropertiesResponse)
 	p.FactomdVersion = vtos(state.GetFactomdVersion())
+	p.ApiVersion = VERSION
 	return p, nil
 }
