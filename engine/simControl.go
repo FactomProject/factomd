@@ -197,6 +197,7 @@ func SimControl(listenTo int) {
 				os.Stderr.WriteString("p             Show the process lists and directory block states as they change.\n")
 				os.Stderr.WriteString("n             Change the focus to the next node.\n")
 				os.Stderr.WriteString("l             Make focused node the Leader.\n")
+				os.Stderr.WriteString("x             Take the given node out of the netork or bring an offline node back in.\n")
 				os.Stderr.WriteString("h or <enter>  Show help\n")
 				os.Stderr.WriteString("\n")
 				os.Stderr.WriteString("Most commands are case insensitive.\n")
