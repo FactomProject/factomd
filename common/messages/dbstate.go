@@ -174,7 +174,7 @@ func (m *DBStateMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error
 	}
 	newData = newData[1:]
 
-	m.Peer2peer = true
+	m.Peer2Peer = true
 
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
@@ -285,7 +285,7 @@ func NewDBStateMsg(timestamp interfaces.Timestamp,
 
 	msg := new(DBStateMsg)
 
-	msg.Peer2peer = true
+	msg.Peer2Peer = true
 
 	msg.Timestamp = timestamp
 

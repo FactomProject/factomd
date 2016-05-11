@@ -11,16 +11,22 @@ import (
 
 type MessageBase struct {
 	Origin    			int  // Set and examined on a server, not marshaled with the message
-	Peer2peer 			bool // The nature of this message type, not marshaled with the message
+	Peer2Peer 			bool // The nature of this message type, not marshaled with the message
 	LocalOnly 			bool // This message is only a local message, is not broadcasted and may skip verification
 
+	Salt					interfaces.Timestamp	// Might be used to get past duplicate protection when messages are missing
+
 	LeaderChainID 		interfaces.IHash
-	MsgHash				interfaces.IHash // Cash of the hash of a message
-	VMIndex				int              // The Index of the VM responsible for this message.
-	VMHash   			[]byte           // Basis for selecting a VMIndex
+	MsgHash				interfaces.IHash 		// Cash of the hash of a message
+	VMIndex				int              		// The Index of the VM responsible for this message.
+	VMHash   			[]byte           		// Basis for selecting a VMIndex
 	Minute            byte
 	// Used by Leader code, but only Marshaled and Unmarshalled in Ack Messages
 	// EOM messages, and DirectoryBlockSignature messages
+}
+
+func (m *MessageBase) SaltReply(state interfaces.IState) {
+	m.Salt = state.GetTimestamp()
 }
 
 func (m *MessageBase) GetOrigin() int {
@@ -33,8 +39,12 @@ func (m *MessageBase) SetOrigin(o int) {
 
 // Returns true if this is a response to a peer to peer
 // request.
-func (m *MessageBase) IsPeer2peer() bool {
-	return m.Peer2peer
+func (m *MessageBase) IsPeer2Peer() bool {
+	return m.Peer2Peer
+}
+
+func (m *MessageBase) SetPeer2Peer(f bool) {
+	m.Peer2Peer = f
 }
 
 func (m *MessageBase) IsLocal() bool {

@@ -66,6 +66,7 @@ type State struct {
 	leaderMsgQueue         chan interfaces.IMsg
 	followerMsgQueue       chan interfaces.IMsg
 	stall                  chan interfaces.IMsg
+	fstall                 chan interfaces.IMsg
 	undo                   interfaces.IMsg
 	ShutdownChan           chan int // For gracefully halting Factom
 	JournalFile            string
@@ -269,7 +270,8 @@ func (s *State) Init() {
 	s.inMsgQueue = make(chan interfaces.IMsg, 10000)             //incoming message queue for factom application messages
 	s.leaderMsgQueue = make(chan interfaces.IMsg, 10000)         //queue of Leadership messages
 	s.followerMsgQueue = make(chan interfaces.IMsg, 10000)       //queue of Follower messages
-	s.stall = make(chan interfaces.IMsg, 10000)    				    //queue of Follower messages while stalled
+	s.stall = make(chan interfaces.IMsg, 10000)    				    //queue of Leader messages while stalled
+	s.fstall = make(chan interfaces.IMsg, 10000)    				 //queue of Follower messages while stalled
 	s.ShutdownChan = make(chan int, 1)                           //Channel to gracefully shut down.
 
 	os.Mkdir(s.LogPath, 0777)
@@ -816,6 +818,11 @@ func (s *State) LeaderMsgQueue() chan interfaces.IMsg {
 func (s *State) Stall() chan interfaces.IMsg {
 	return s.stall
 }
+
+func (s *State) FStall() chan interfaces.IMsg {
+	return s.fstall
+}
+
 
 func (s *State) FollowerMsgQueue() chan interfaces.IMsg {
 	return s.followerMsgQueue

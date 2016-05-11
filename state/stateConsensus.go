@@ -152,6 +152,18 @@ func (s *State) Process() (progress bool) {
 			s.networkInvalidMsgQueue <- msg
 		}
 		progress = true
+	case msg := <-s.stall:
+		v := msg.Validate(s)
+		switch v {
+		case 1:
+			msg.FollowerExecute(s)
+			s.networkOutMsgQueue <- msg
+			for s.UpdateState() {
+			}
+		case -1:
+			s.networkInvalidMsgQueue <- msg
+		}
+		progress = true
 	default:
 	}
 	return
@@ -230,13 +242,16 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) (bool, error) {
 
 		if pl != nil {
 			if !pl.AddToProcessList(ack, m) {
-				return false, fmt.Errorf("Failed to add to Process List")
+				s.stall <- m
+				return false,nil
 			}
 
 			pl.OldAcks[hashf] = ack
 			pl.OldMsgs[hashf] = m
 			delete(s.Acks, hashf)
 			delete(s.Holding, hashf)
+		}else{
+			s.stall <- m
 		}
 
 		if m.Type() == constants.COMMIT_CHAIN_MSG || m.Type() == constants.COMMIT_ENTRY_MSG {
@@ -329,6 +344,7 @@ func (s *State) LeaderExecute(m interfaces.IMsg) error {
 	dbheight := s.LLeaderHeight
 	ack, err := s.NewAck(dbheight, m)
 	if err != nil {
+		s.stall <-m
 		return err
 	}
 	s.networkOutMsgQueue <- ack

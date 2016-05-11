@@ -398,6 +398,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			} else {
 				expectedSerialHash, err = primitives.CreateHash(last.MessageHash, thisAck.MessageHash)
 				if err != nil {
+
 					// cannot create a expectedSerialHash to compare to
 					plist[j] = nil
 					return
@@ -412,13 +413,14 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 					p.FedServers[i].GetChainID().Bytes()[:3],
 					j,
 					state.GetFactomNodeName())
-				fmt.Printf("LAST MESS: %x ::: LAST SERIAL: %x\n", last.MessageHash.Bytes()[:3], last.SerialHash.Bytes()[:3])
-				fmt.Printf("THIS MESS: %x ::: THIS SERIAL: %x\n", thisAck.MessageHash.Bytes()[:3], thisAck.SerialHash.Bytes()[:3])
+				fmt.Printf("LAST MESS: %x ::: LAST SERIAL: %x\n", last.GetHash().Bytes()[:3], last.SerialHash.Bytes()[:3])
+				fmt.Printf("THIS MESS: %x ::: THIS SERIAL: %x\n", thisAck.GetHash().Bytes()[:3], thisAck.SerialHash.Bytes()[:3])
 				fmt.Printf("EXPECT:    %x \n", expectedSerialHash.Bytes()[:3])
 				fmt.Printf("The message that didn't work: %s\n\n", plist[j].String())
 				fmt.Println(p.PrintMap())
 				// the SerialHash of this acknowledgment is incorrect
 				// according to this node's processList
+
 				plist[j] = nil
 				return
 			}

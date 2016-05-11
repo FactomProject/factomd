@@ -2,11 +2,13 @@
 
 while true; do
 	factom-cli balances
-	sleep 3
+	sleep 10
 	echo "Factoid Transaction"
-	./flight.sh
-	factom-cli balances
-	sleep 3
-	./eclight.sh
-	sleep 3
+
+	for i in `seq 1 3`;
+	do
+		./flight.sh
+		./eclight.sh
+		factom-cli balances	
+	 done
 done

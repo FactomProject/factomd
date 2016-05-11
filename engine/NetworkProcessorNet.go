@@ -48,7 +48,7 @@ func Peers(fnode *FactomNode) {
 					//	fnode.State.Println("In Comming!! ",msg)
 					//}
 					in := "PeerIn"
-					if msg.IsPeer2peer() {
+					if msg.IsPeer2Peer() {
 						in = "P2P In"
 					}
 					nme := fmt.Sprintf("%s %d", in, i+1)
@@ -94,7 +94,7 @@ func NetworkOutputs(fnode *FactomNode) {
 
 				p := msg.GetOrigin() - 1
 
-				if msg.IsPeer2peer() {
+				if msg.IsPeer2Peer() {
 					// Must have a Peer to send a message to a peer
 					if len(fnode.Peers) > 0 {
 						if p < 0 {
