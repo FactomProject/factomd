@@ -6,7 +6,9 @@ package p2p
 
 import (
 	"fmt"
+	"hash/crc32"
 	"os"
+	"time"
 )
 
 // This is a global... where *should* it be?
@@ -22,6 +24,13 @@ const (
 	ProtocolVersionMinimum uint16 = 01
 	// Don't think we need this.
 	// ProtocolCookie         uint32 = uint32([]bytes("Fact"))
+	TimeBetweenRedials        time.Duration = time.Second * 30
+	MaxNumberOfRedialAttempts int           = 15
+
+	MinumumQualityScore int = -200   // if a peer's score is less than this we ignore them.
+	BannedQualityScore  int = -32000 // Used to ban a peer
+	// Used in generating message CRC values
+	CRCKoopmanTable *Table = crc32.MakeTable(crc32.Koopman)
 )
 
 // NOTE JAYJAY -- define node service levels (if we need them?)
@@ -99,10 +108,11 @@ func log(level uint8, linebreak bool, format string, v ...interface{}) {
 		breakStr = "\n"
 	}
 	if level <= CurrentLoggingLevel { // lower level means more severe. "Silence" level always printed, overriding silence.
-		fmt.Fprintf(os.Stdout, "%d (%s) %d/%d \t- %s  %s", os.Getpid(), levelStr, level, CurrentLoggingLevel, message, breakStr)
+		// fmt.Fprintf(os.Stdout, "%d (%s) %d/%d \t- %s  %s", os.Getpid(), levelStr, level, CurrentLoggingLevel, message, breakStr)
+		fmt.Fprintf(os.Stdout, "%d (%s) \t- %s  %s", os.Getpid(), levelStr, message, breakStr)
 	}
 	if level == Fatal {
-		fmt.Fprintf(os.Stderr, "%d (%s) %d/%d ERROR:\t- %s  %s", os.Getpid(), levelStr, level, CurrentLoggingLevel, message, breakStr)
+		fmt.Fprintf(os.Stderr, "%d (%s) ERROR:\t- %s  %s", os.Getpid(), levelStr, message, breakStr)
 
 		// BUGBUG - take out this exit before shipping JAYJAY TODO
 		os.Exit(1)

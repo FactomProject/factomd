@@ -8,13 +8,16 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 	"time"
+	"unicode"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
+	"github.com/factomproject/factomd/p2p"
 )
 
 var _ = fmt.Print
@@ -27,6 +30,7 @@ type FactomNode struct {
 
 var fnodes []*FactomNode
 var mLog = new(MsgLog)
+var network p2p.Controller
 
 func NetStart(s *state.State) {
 
@@ -40,8 +44,8 @@ func NetStart(s *state.State) {
 	dbPtr := flag.String("db", "", "Override the Database in the Config file and use this Database implementation")
 	folderPtr := flag.String("folder", "", "Directory in .factom to store nodes. (eg: multiple nodes on one filesystem support)")
 	portPtr := flag.Int("port", 8088, "Address to serve WSAPI on")
-	addressPtr := flag.String("p2pAddress", "tcp://127.0.0.1:34340", "Address & port to listen for peers on: (eg: tcp://127.0.0.1:40891)")
-	peersPtr := flag.String("peers", "", "Array of peer addresses. Defaults to: \"tcp://127.0.0.1:34341 tcp://127.0.0.1:34342 tcp://127.0.0.1:34340\"")
+	addressPtr := flag.String("p2pPort", "8108", "Address & port to listen for peers on.")
+	peersPtr := flag.String("peers", "", "Array of peer addresses. ")
 	blkTimePtr := flag.Int("blktime", 0, "Seconds per block.  Production is 600.")
 	runtimeLogPtr := flag.Bool("runtimeLog", true, "If true, maintain runtime logs of messages passed.")
 	vmCountPtr := flag.Int("vmCount", 2, "Number of Virtual Machines running the consensus algorighm.")
@@ -125,6 +129,7 @@ func NetStart(s *state.State) {
 			fmt.Print("Shutting Down: ", fnode.State.FactomNodeName, "\r\n")
 			fnode.State.ShutdownChan <- 0
 		}
+		network.NetworkStop()
 		fmt.Print("Waiting...\r\n")
 		time.Sleep(3 * time.Second)
 		os.Exit(0)
@@ -160,25 +165,37 @@ func NetStart(s *state.State) {
 	//************************************************
 	// Actually setup the Network
 	//************************************************
-
 	// Make cnt Factom nodes
 	for i := 0; i < cnt; i++ {
 		makeServer(s) // We clone s to make all of our servers
 	}
 
 	// Start the P2P netowrk
-	// BUGBUG JAYJAY This peer stuff needs to be abstracted out into the p2p network.
-
-	// don't start network if htere is no network to connect to.
-	if 0 < len(peers) {
-		p2pProxy := new(P2PPeer).Init(fnodes[0].State.FactomNodeName, address).(*P2PPeer)
-		fnodes[0].Peers = append(fnodes[0].Peers, p2pProxy)
-		p2pProxy.SetDebugMode(netdebug)
-		p2pProxy.SetTestMode(heartbeat)
-		P2PNetworkStart(address, peers, p2pProxy)
-		if netdebug {
-			go PeriodicStatusReport(fnodes)
-		}
+	p2p := new(p2p.Controller).Init(address)
+	network = *p2p
+	network.StartLogging(uint8(0))
+	network.StartNetwork()
+	// Setup the proxy (Which translates from network parcels to factom messages, handling addressing for directed messages)
+	p2pProxy := new(P2PProxy).Init(fnodes[0].State.FactomNodeName, "P2P Network").(*P2PProxy)
+	p2pProxy.FromNetwork = network.FromNetwork
+	p2pProxy.ToNetwork = network.ToNetwork
+	fnodes[0].Peers = append(fnodes[0].Peers, p2pProxy)
+	p2pProxy.SetDebugMode(netdebug)
+	p2pProxy.SetTestMode(heartbeat)
+	if netdebug {
+		go PeriodicStatusReport(fnodes)
+		// go p2pProxy.ProxyStatusReport()
+	}
+	p2pProxy.startProxy()
+	// Bootstrap peers (will be obsolete when discovery is finished)
+	// Parse the peers into an array.
+	parseFunc := func(c rune) bool {
+		return !unicode.IsLetter(c) && !unicode.IsNumber(c) && !unicode.IsPunct(c)
+	}
+	peerAddresses := strings.FieldsFunc(peers, parseFunc)
+	for _, peer := range peerAddresses {
+		fmt.Println("Dialing Peer: ", peer)
+		network.DialPeer(peer)
 	}
 
 	switch net {

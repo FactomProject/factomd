@@ -26,26 +26,42 @@ type Controller struct {
 	ToNetwork   chan Parcel // Parcels from the application for us to route
 	FromNetwork chan Parcel // Parcels from the network for the application
 
-	listenPort string                // port we listen on for new connections
-	peers      map[uint64]Connection // map of the peers indexed by peer id
+	listenPort  string                // port we listen on for new connections
+	connections map[string]Connection // map of the peers indexed by peer hash
+	discovery   Discovery             // Our discovery structure
 }
 
-// CommandDialPeer are used to instruct the Controller to takve various actions.
+// CommandDialPeer is used to instruct the Controller to dial a peer address
 type CommandDialPeer struct {
-	Address string
+	Peer Peer
 }
 
-// CommandAddPeer are used to instruct the Controller to takve various actions.
+// CommandAddPeer is used to instruct the Controller to add a connection 
+// This connection can come from acceptLoop or some other way.
 type CommandAddPeer struct {
 	Peer Connection
 }
 
-// CommandShutdown are used to instruct the Controller to takve various actions.
+// CommandShutdown is used to instruct the Controller to takve various actions.
 type CommandShutdown struct {
 	_ uint8
 }
+// CommandDemerit is used to instruct the Controller to reduce a connections quality score
+type CommandDemerit struct {
+	ConnectionID string
+}
 
-// CommandChangeLogging are used to instruct the Controller to takve various actions.
+// CommandMerit is used to instruct the Controller to increase a connections quality score
+type CommandMerit struct {
+	ConnectionID string
+}
+
+// CommandBan is used to instruct the Controller to disconnect and ban a peer
+type CommandBan struct {
+	ConnectionID string
+}
+
+// CommandChangeLogging is used to instruct the Controller to takve various actions.
 type CommandChangeLogging struct {
 	Level uint8
 }
@@ -59,14 +75,15 @@ type CommandChangeLogging struct {
 // command channel.
 //////////////////////////////////////////////////////////////////////
 
-func (c *Controller) Init(port string) *Controller {
+func (c *Controller) Init(port string, peersFile string) *Controller {
 	verbose(true, "Controller.Init(%s)", port)
 	c.keepRunning = true
 	c.commandChannel = make(chan interface{}, 1000) // Commands from App
 	c.FromNetwork = make(chan Parcel, 1000)         // Channel to the app for network data
 	c.ToNetwork = make(chan Parcel, 1000)           // Parcels from the app for the network
 	c.listenPort = port
-	c.peers = make(map[uint64]Connection)
+	c.connections = make(map[string]Connection)
+	c.discovery = new(Discovery).Init(peersFile)
 	return c
 }
 
@@ -75,7 +92,13 @@ func (c *Controller) StartNetwork() {
 	verbose(true, "Controller.StartNetwork(%s)", " ")
 	// start listening on port given
 	c.listen()
+	// Start the discovery service?
+	// Get a list of peers from discovery
+	peers := c.discovery.GetStartupPeers()
 	// dial into the peers
+	for _, peer := range peers {
+		c.DialPeer(peer.Address)
+	}
 	/// start heartbeat process
 	// Start the runloop
 	go c.runloop()
@@ -107,6 +130,21 @@ func (c *Controller) AddPeer(connection *Connection) {
 func (c *Controller) NetworkStop() {
 	debug(true, "NetworkStop ")
 	c.commandChannel <- CommandShutdown{}
+}
+
+func (c *Controller) Demerit(connection uint64) {
+	debug(true, "NetworkStop ")
+	c.commandChannel <- CommandDemerit{ConnectionID: connection}
+}
+
+func (c *Controller) Merit(connection uint64) {
+	debug(true, "NetworkStop ")
+	c.commandChannel <- CommandMerit{ConnectionID: connection}
+}
+
+func (c *Controller) Ban(connection uint64) {
+	debug(true, "NetworkStop ")
+	c.commandChannel <- CommandBan{ConnectionID: connection}
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -142,10 +180,12 @@ func (c *Controller) acceptLoop(listener net.Listener) {
 		if nil != err {
 			logerror(true, "Controller.acceptLoop() Error: %+v", err)
 		} else {
-			peer := new(Connection).Init() //.(*Connection)
-			peer.Configure(conn)
-			c.AddPeer(peer) // Sends command to add the peer to the peers list
-			note(true, "Controller.acceptLoop() new peer: %+v", peer.ConnectionID)
+			address := conn.RemoteAddr().String()
+			peer := c.discovery.GetPeerByHash(PeerHashFromAddress(address))
+			connection := new(Connection).Init(*peer)
+			connection.Configure(conn)
+			c.AddPeer(connection) // Sends command to add the peer to the peers list
+			note(true, "Controller.acceptLoop() new peer: %+v", peer.address)
 		}
 	}
 }
@@ -171,6 +211,8 @@ func (c *Controller) runloop() {
 		// route messages to and from application
 		verbose(true, "Controller.runloop() Calling router")
 		c.router() // Route messages
+		// Manage peers (reconnect, etc.)
+		c.managePeers()
 	}
 	note(true, "Controller.runloop() has exited. Shutdown command recieved?")
 }
@@ -179,17 +221,29 @@ func (c *Controller) runloop() {
 // peer. Broadcast messages go to everyone, directed messages go to the named peer.
 // route also passes incomming messages on to the application.
 func (c *Controller) router() {
-	verbose(true, "Controller.route() called. Number peers: %d", len(c.peers))
+	verbose(true, "Controller.route() called. Number peers: %d", len(c.connections))
 
 	// Recieve messages from the peers & forward to application.
-	for id, peer := range c.peers {
+	for id, peer := range c.connections {
 		// Empty the recieve channel, stuff the application channel.
 		verbose(true, "Controller.route() size of recieve channel: %d", len(peer.ReceiveChannel))
 		for 0 < len(peer.ReceiveChannel) { // effectively "While there are messages"
 			parcel := <-peer.ReceiveChannel
 			verbose(true, "Controller.route() got parcel from NETWORK %+v", parcel)
 			parcel.Header.ConnectionID = id // Set the connection ID so the application knows which peer the message is from.
+			switch parcel.Header.Type {
+			case TypeMessage: // Application message, send it on.
 			c.FromNetwork <- parcel
+				case TypePeerRequest:
+				// Get selection of peers from discovery
+				response := NewParcel(CurrentNetwork, c.discovery.SharePeers())
+				response.Header.Type = TypePeerResponse
+				// Send them out to the network - on the connection that requested it!
+				peer.SendChannel <- response
+					case TypePeerResponse:
+					// Add these peers to our known peers
+					c.discovery.LearnPeers(parcel.Payload)
+			}
 		}
 	}
 	// For each message, see if it is directed, if so, send to the
@@ -200,17 +254,18 @@ func (c *Controller) router() {
 		verbose(true, "Controller.route() got parcel from APPLICATION %+v", parcel)
 		if 0 != parcel.Header.ConnectionID { // directed send
 			verbose(true, "Controller.route() Directed send to %+v", parcel.Header.ConnectionID)
-			peer := c.peers[parcel.Header.ConnectionID]
+			// BUGBUG Shouldn't this be the hash not the connectionID?
+			peer := c.connections[parcel.Header.ConnectionID]
 			peer.SendChannel <- parcel
 		} else { // broadcast
-			verbose(true, "Controller.route() Boadcast send to %d peers", len(c.peers))
-			for _, peer := range c.peers {
+			verbose(true, "Controller.route() Boadcast send to %d peers", len(c.connections))
+			for _, peer := range c.connections {
 				verbose(true, "Controller.route() Send to peer %d ", peer.ConnectionID)
 				peer.SendChannel <- parcel
 			}
 		}
 	}
-	verbose(true, "Controller.route() Leaving Router Number peers: %d", len(c.peers))
+	verbose(true, "Controller.route() Leaving Router Number peers: %d", len(c.connections))
 
 }
 
@@ -218,14 +273,21 @@ func (c *Controller) handleCommand(command interface{}) {
 	switch commandType := command.(type) {
 	case CommandDialPeer: // parameter is the peer address
 		parameters := command.(CommandDialPeer)
-		connection := new(Connection).Init() //.(*Connection)
-		connection.dial(parameters.Address)
-		c.peers[connection.ConnectionID] = *connection
+		if nil == c.connections[parameters.Peer] {
+		connection := new(Connection).Init(*peer)
+		connection.dial()
+		c.connections[connection.ConnectionID] = *connection
 		debug(true, "Controller.handleCommand(CommandDialPeer) got peer %s", parameters.Address)
+			
+		} else {
+		debug(true, "Controller.handleCommand(CommandDialPeer) ALREADY CONNECTED TO PEER %s", parameters.Address)
+			
+		}
+
 	case CommandAddPeer: // parameter is a Connection
 		parameters := command.(CommandAddPeer)
 		connection := parameters.Peer
-		c.peers[connection.ConnectionID] = connection
+		c.connections[connection.ConnectionID] = connection
 		debug(true, "Controller.handleCommand(CommandAddPeer) got peer %+v", parameters.Peer)
 	case CommandShutdown:
 		c.shutdown()
@@ -234,15 +296,55 @@ func (c *Controller) handleCommand(command interface{}) {
 		parameters := command.(CommandChangeLogging)
 		CurrentLoggingLevel = parameters.Level
 		debug(true, "Controller.handleCommand(CommandChangeLogging) new logging level %s", LoggingLevels[parameters.Level])
-
+	case CommandDemerit:
+		parameters := command.(CommandDemerit)
+		connectionID := parameters.ConnectionID
+		connection := c.connections[connectionID]
+		connection.peer.demerit()
+	case CommandMerit:
+		parameters := command.(CommandDemerit)
+		connectionID := parameters.ConnectionID
+		connection := c.connections[connectionID]
+		connection.peer.merit()
+	case CommandBan:
+		parameters := command.(CommandDemerit)
+		connectionID := parameters.ConnectionID
+		connection := c.connections[connectionID]
+		connection.peer.QualityScore = BannedQualityScore
+		connection.connectionDropped() // hang up on the peer
 	default:
 		note(true, "Unkown p2p.Controller command recieved: %+v", commandType)
 	}
 }
 
+func (c *Controller) managePeers() {
+	// check for and remove disconnected peers or peers offline after awhile
+	for key, connection := range c.connections {
+		if false == connection.Online {
+			duration := time.Now().Sub(connection.timeLastAttempt)
+			if MaxNumberOfRedialAttempts > connection.attempts && TimeBetweenRedials < duration {
+				connection.dial()
+			}
+			if MaxNumberOfRedialAttempts <= connection.attempts { // give up on the connection
+				//TODO BUGBUG Update discovery about this peer (eg: score)
+				connection.shutdown()
+				delete(c.connections, key)
+			}
+		} else { // Connection is online.  Send a heartbeat if it's been quiet for awhile.
+TODO BUGBUG WRITE THIS
+		}
+	}
+	// Go thru an update peers in discovery using discovery.UpdatePeer()
+	// so the known peers list is kept relatively up to date with peer score.
+	BUGBUG IMPLEMENT
+}
+
 func (c *Controller) shutdown() {
 	debug(true, "Controller.shutdown() ")
 	// Go thru peer list and shut down connections.
-	// BUGBUG
+	for key, connection := range c.connections {
+		connection.shutdown()
+		delete(c.connections, key)
+	}
 	c.keepRunning = false
 }
