@@ -44,7 +44,6 @@ func HandleV2(ctx *web.Context) {
 	}
 
 	ctx.Write([]byte(jsonResp.String()))
-
 }
 
 func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*primitives.JSON2Response, *primitives.JSONError) {

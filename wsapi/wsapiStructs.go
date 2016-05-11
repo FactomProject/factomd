@@ -10,115 +10,111 @@ import (
 )
 
 type FactoidSubmitResponse struct {
-	Message string
-	TxID    string
+	Message string `json:"message"`
+	TxID    string `json:"txid"`
 }
 
 type CommitChainResponse struct {
-	Message string
-	TxID    string
+	Message string `json:"message"`
+	TxID    string `json:"txid"`
 }
 
 type RevealChainResponse struct {
 }
 
 type CommitEntryResponse struct {
-	Message string
-	TxID    string
+	Message string `json:"message"`
+	TxID    string `json:"txid"`
 }
 
 type RevealEntryResponse struct {
-	Message string
-	TxID    string
+	Message string `json:"message"`
+	TxID    string `json:"txid"`
 }
 
 type DirectoryBlockResponse struct {
 	Header struct {
-		PrevBlockKeyMR string
-		SequenceNumber uint32
-		Timestamp      uint32
-	}
-	EntryBlockList []EBlockAddr
+		PrevBlockKeyMR string `json:"prevblockkeymr"`
+		SequenceNumber uint32 `json:"sequencenumber"`
+		Timestamp      uint32 `json:"timestamp"`
+	} `json:"header"`
+	EntryBlockList []EBlockAddr `json:"entryblocklist"`
 }
 
 type DirectoryBlockHeadResponse struct {
-	KeyMR string
+	KeyMR string `json:"keymr"`
 	//Add height, etc?
 }
 
 type DirectoryBlockHeightResponse struct {
-	Height int64
+	Height int64 `json:"height"`
 }
 
 type RawDataResponse struct {
-	Data string
+	Data string `json:"data"`
 	//TODO: add
 }
 
 type ReceiptResponse struct {
-	Receipt *receipts.Receipt
+	Receipt *receipts.Receipt `json:"receipt"`
 }
 
 type EntryBlockResponse struct {
 	Header struct {
-		BlockSequenceNumber uint32
-		ChainID             string
-		PrevKeyMR           string
-		Timestamp           uint32
-		DBHeight            uint32
-	}
-	EntryList []EntryAddr
+		BlockSequenceNumber uint32 `json:"blocksequencenumber"`
+		ChainID             string `json:"chainid"`
+		PrevKeyMR           string `json:"prevkeymr"`
+		Timestamp           uint32 `json:"timestamp"`
+		DBHeight            uint32 `json:"dbheight"`
+	} `json:"header"`
+	EntryList []EntryAddr `json:"timestamp"`
 }
 
 type EntryResponse struct {
-	ChainID string
-	Content string
-	ExtIDs  []string
+	ChainID string   `json:"chainid"`
+	Content string   `json:"content"`
+	ExtIDs  []string `json:"extids"`
 }
 
 type ChainHeadResponse struct {
-	ChainHead string
+	ChainHead string `json:"chainhead"`
 }
 
 type EntryCreditBalanceResponse struct {
-	Balance int64
+	Balance int64 `json:"balance"`
 }
 
 type FactoidBalanceResponse struct {
-	Balance int64
+	Balance int64 `json:"balance"`
 }
 
 type FactoidFeeResponse struct {
-	Fee uint64
+	Fee uint64 `json:"fee"`
 }
 
 type PropertiesResponse struct {
-	FactomdVersion string
-	ApiVersion     string
+	FactomdVersion string `json:"factomdversion"`
+	ApiVersion     string `json:"apiversion"`
 }
 
 /*********************************************************************/
 
 type DBHead struct {
-	KeyMR string
-}
-
-type RawData struct {
-	Data string
+	KeyMR string `json:"keymr"`
 }
 
 type EBlockAddr struct {
-	ChainID string
-	KeyMR   string
+	ChainID string `json:"chainid"`
+	KeyMR   string `json:"keymr"`
 }
 
 type DBlock struct {
 	Header struct {
-		PrevBlockKeyMR string
-		SequenceNumber uint32
-		Timestamp      uint32
-	}
-	EntryBlockList []EBlockAddr
+		PrevBlockKeyMR string `json:"prevblockkeymr"`
+		SequenceNumber uint32 `json:"sequencenumber"`
+		Timestamp      uint32 `json:"timestamp"`
+	} `json:"header"`
+	EntryBlockList []EBlockAddr `json:"entryblocklist"`
 }
 
 func (e *DBlock) JSONString() (string, error) {
@@ -126,19 +122,19 @@ func (e *DBlock) JSONString() (string, error) {
 }
 
 type EntryAddr struct {
-	EntryHash string
-	Timestamp uint32
+	EntryHash string `json:"entryhash"`
+	Timestamp uint32 `json:"timestamp"`
 }
 
 type EBlock struct {
 	Header struct {
-		BlockSequenceNumber uint32
-		ChainID             string
-		PrevKeyMR           string
-		Timestamp           uint32
-		DBHeight            uint32
+		BlockSequenceNumber uint32 `json:"blocksequencenumber"`
+		ChainID             string `json:"chainid"`
+		PrevKeyMR           string `json:"prevkeymr"`
+		Timestamp           uint32 `json:"timestamp"`
+		DBHeight            uint32 `json:"dbheight"`
 	}
-	EntryList []EntryAddr
+	EntryList []EntryAddr `json:"entrylist"`
 }
 
 func (e *EBlock) JSONString() (string, error) {
@@ -146,9 +142,9 @@ func (e *EBlock) JSONString() (string, error) {
 }
 
 type EntryStruct struct {
-	ChainID string
-	Content string
-	ExtIDs  []string
+	ChainID string   `json:"chainid"`
+	Content string   `json:"content"`
+	ExtIDs  []string `json:"extids"`
 }
 
 func (e *EntryStruct) JSONString() (string, error) {
@@ -156,7 +152,7 @@ func (e *EntryStruct) JSONString() (string, error) {
 }
 
 type CHead struct {
-	ChainHead string
+	ChainHead string `json:"chainhead"`
 }
 
 func (e *CHead) JSONString() (string, error) {
@@ -164,40 +160,40 @@ func (e *CHead) JSONString() (string, error) {
 }
 
 type FactoidBalance struct {
-	Response string
-	Success  bool
+	Response string `json:"response"`
+	Success  bool   `json:"success"`
 }
 
 //Requests
 
 type AddressRequest struct {
-	Address string
+	Address string `json:"address"`
 }
 
 type ChainIDRequest struct {
-	ChainID string
+	ChainID string `json:"chainid"`
 }
 
 type EntryRequest struct {
-	Entry string
+	Entry string `json:"entry"`
 }
 
 type HashRequest struct {
-	Hash string
+	Hash string `json:"hash"`
 }
 
 type KeyMRRequest struct {
-	KeyMR string
+	KeyMR string `json:"keymr"`
 }
 
 type KeyRequest struct {
-	Key string
+	Key string `json:"key"`
 }
 
 type MessageRequest struct {
-	Message string
+	Message string `json:"message"`
 }
 
 type TransactionRequest struct {
-	Transaction string
+	Transaction string `json:"transaction"`
 }
