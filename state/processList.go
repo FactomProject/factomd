@@ -173,16 +173,16 @@ func (p *ProcessList) MakeMap() {
 func (p *ProcessList) PrintMap() string {
 	n := len(p.FedServers)
 	prt := " min"
-	for i:=0;i<n;i++ {
-		prt = fmt.Sprintf("%s%3d",prt,i)
+	for i := 0; i < n; i++ {
+		prt = fmt.Sprintf("%s%3d", prt, i)
 	}
-	prt = prt+"\n"
+	prt = prt + "\n"
 	for i := 0; i < 10; i++ {
-		prt = fmt.Sprintf("%s%3d  ",prt,i)
+		prt = fmt.Sprintf("%s%3d  ", prt, i)
 		for j := 0; j < len(p.FedServers); j++ {
-			prt = fmt.Sprintf("%s%2d ",prt,p.ServerMap[i][j])
+			prt = fmt.Sprintf("%s%2d ", prt, p.ServerMap[i][j])
 		}
-		prt = prt+"\n"
+		prt = prt + "\n"
 	}
 	return prt
 }
@@ -506,16 +506,16 @@ func (p *ProcessList) String() string {
 
 		for i := 0; i < len(p.FedServers); i++ {
 			server := p.VMs[i]
-			eom := fmt.Sprintf("Minute Complete %d Height %d ", server.MinuteComplete,server.Height)
+			eom := fmt.Sprintf("Minute Complete %d Height %d ", server.MinuteComplete, server.Height)
 			if p.FinishedEOM() {
-				eom = eom+"Finished EOM "
+				eom = eom + "Finished EOM "
 			}
 			sig := ""
 			if server.SigComplete {
 				sig = "Sig Complete "
 			}
 			if p.FinishedSIG() {
-				eom = eom+"Finished SIG "
+				eom = eom + "Finished SIG "
 			}
 
 			buf.WriteString(fmt.Sprintf("  VM %d Fed %d %s %s\n", i, p.ServerMap[server.LeaderMinute][i], eom, sig))

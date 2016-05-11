@@ -15,7 +15,6 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/util"
-	
 )
 
 var _ = fmt.Print
@@ -27,22 +26,22 @@ var _ = fmt.Print
 //***************************************************************
 func (s *State) Process() (progress bool) {
 
-/*
-ppl := s.ProcessLists.Get(s.LLeaderHeight)
-fmt.Println(
-	s.FactomNodeName,
-	"  DBHeight", s.LLeaderHeight,
-	"  Complete", ppl.SigComplete(),
-	"  Finished Sig:",ppl.FinishedSIG(),
-	"  Finished EOM:",ppl.FinishedEOM(),
-	"  EOM", s.EOM,
-	"  EOM_LAST", s.EOM_LAST,
-	"  Leader min:", s.LeaderMinute,
-	"  PL Min Ht:", ppl.MinuteHeight(),
-	"  PL Ht:", ppl.VMs[0].Height)
-*/
+	/*
+	   ppl := s.ProcessLists.Get(s.LLeaderHeight)
+	   fmt.Println(
+	   	s.FactomNodeName,
+	   	"  DBHeight", s.LLeaderHeight,
+	   	"  Complete", ppl.SigComplete(),
+	   	"  Finished Sig:",ppl.FinishedSIG(),
+	   	"  Finished EOM:",ppl.FinishedEOM(),
+	   	"  EOM", s.EOM,
+	   	"  EOM_LAST", s.EOM_LAST,
+	   	"  Leader min:", s.LeaderMinute,
+	   	"  PL Min Ht:", ppl.MinuteHeight(),
+	   	"  PL Ht:", ppl.VMs[0].Height)
+	*/
 
-	if s.LLeaderHeight < s.GetHighestRecordedBlock() + 1 {
+	if s.LLeaderHeight < s.GetHighestRecordedBlock()+1 {
 		s.LLeaderHeight = s.GetHighestRecordedBlock() + 1
 		s.EOM_LAST = false
 		s.EOM = false
@@ -56,9 +55,8 @@ fmt.Println(
 			blockDone = true
 		}
 		minuteDone = true
-		s.EOM=false
+		s.EOM = false
 	}
-
 
 	if s.ProcessLists.Get(s.LLeaderHeight).FinishedSIG() {
 		s.EOM_LAST = false
@@ -78,8 +76,8 @@ fmt.Println(
 		if min <= 9 {
 			// Get if this is a leader, and its VMIndex for this minute if so
 			for _, vm := range s.LeaderPL.VMs {
-				ack1,ok1 := vm.LastLeaderAck.(*messages.Ack)
-				ack2,ok2 := vm.LastAck.(*messages.Ack)
+				ack1, ok1 := vm.LastLeaderAck.(*messages.Ack)
+				ack2, ok2 := vm.LastAck.(*messages.Ack)
 				if (!ok1 && ok2) || (ok1 && ok2 && ack2.Height >= ack1.Height) {
 					vm.LastLeaderAck = vm.LastAck
 				}
@@ -165,10 +163,10 @@ func (s *State) AddDBState(isNew bool,
 	dbState := s.DBStates.NewDBState(isNew, directoryBlock, adminBlock, factoidBlock, entryCreditBlock)
 	s.DBStates.Put(dbState)
 
-//	dbh := directoryBlock.GetHeader().GetDBHeight()
-//	if s.LLeaderHeight < dbh {
-//		s.LLeaderHeight = dbh + 1
-//	}
+	//	dbh := directoryBlock.GetHeader().GetDBHeight()
+	//	if s.LLeaderHeight < dbh {
+	//		s.LLeaderHeight = dbh + 1
+	//	}
 }
 
 // Messages that will go into the Process List must match an Acknowledgement.
@@ -301,7 +299,7 @@ func (s *State) LeaderExecute(m interfaces.IMsg) error {
 }
 
 func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
-	if !s.Leader {		// Ignore local EOM messages when a follower only.
+	if !s.Leader { // Ignore local EOM messages when a follower only.
 		return nil
 	}
 
@@ -401,9 +399,8 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	pl := s.ProcessLists.Get(dbheight)
 
 	// Set this list complete
-	s.LeaderMinute = int(e.Minute+1)
+	s.LeaderMinute = int(e.Minute + 1)
 	pl.SetMinute(e.VMIndex, int(e.Minute))
-
 
 	if pl.MinuteHeight() < s.LeaderMinute {
 		return false
@@ -651,8 +648,8 @@ func (s *State) PutE(rt bool, adr [32]byte, v int64) {
 // returns -1 if we are not the leader for this hash
 func (s *State) LeaderFor(msg interfaces.IMsg, hash []byte) bool {
 	h := make([]byte, len(hash))
-	copy(h,hash)
-	msg.SetVMHash(h)		// <-- This is important
+	copy(h, hash)
+	msg.SetVMHash(h) // <-- This is important
 	return true
 }
 

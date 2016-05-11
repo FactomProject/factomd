@@ -138,7 +138,7 @@ func (m *EOM) Validate(state interfaces.IState) int {
 // Returns true if this is a message for this server to execute as
 // a leader.
 func (m *EOM) Leader(state interfaces.IState) bool {
-	return m.IsLocal() 
+	return m.IsLocal()
 }
 
 // Execute the leader functions of the given message
