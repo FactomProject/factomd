@@ -85,6 +85,7 @@ func (s *State) Process() (progress bool) {
 			}
 			s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.LeaderMinute, s.IdentityChainID)
+			s.EOM_Step = -1
 			s.EOM = false
 		case s.LeaderMinute == 10:
 			s.AddDBState(true, s.LeaderPL.DirectoryBlock, s.LeaderPL.AdminBlock, s.GetFactoidState().GetCurrentBlock(), s.LeaderPL.EntryCreditBlock)
@@ -339,7 +340,6 @@ func (s *State) LeaderExecute(m interfaces.IMsg) error {
 	}
 
 	if s.EOM_Step >= 0  {
-		s.StallMsg(m)
 		return nil
 	}
 
@@ -359,21 +359,37 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
 	if !s.Leader { // Ignore local EOM messages when a follower only.
 		return nil
 	}
+	eom := m.(*messages.EOM)
 
+
+	// There are messages we have not yet processed in the Process List... Don't
+	// step to the next minute!
 	vm := s.LeaderPL.VMs[s.LeaderVMIndex]
 	if vm.Height < len(vm.List) {
+		if !s.EOM_Stall {
+			s.StallMsg(m)
+			s.EOM_Stall = true
+		}
 		return nil
 	}
 
 	if s.EOM || s.EOM_Step >= 0 {
+		if !s.EOM_Stall {
+			s.StallMsg(m)
+			s.EOM_Stall = true
+		}
 		return nil
 	}
 
 	if s.LeaderPL.MinuteFinished() < s.LeaderMinute {
+		if !s.EOM_Stall {
+			s.StallMsg(m)
+			s.EOM_Stall = true
+		}
 		return nil
 	}
 
-	eom := m.(*messages.EOM)
+	s.EOM_Stall = false
 	eom.DBHeight = s.LLeaderHeight
 	eom.VMIndex = s.LeaderVMIndex
 	eom.Minute = byte(s.LeaderMinute)
@@ -503,11 +519,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	ack2, ok2 := vm.LastAck.(*messages.Ack)
 	if (!ok1 && ok2) || (ok1 && ok2 && ack2.Height > ack1.Height) {
 		vm.LastLeaderAck = vm.LastAck
-	}
-
-	if s.LeaderMinute == 10 {
-		pl := s.ProcessLists.Get(dbheight+1)
-		s.Leader, s.LeaderVMIndex = pl.GetVirtualServers(0, s.IdentityChainID)
 	}
 
 	s.EOM_Step = -1
@@ -726,14 +737,6 @@ func (s *State) NewAck(dbheight uint32, msg interfaces.IMsg) (iack interfaces.IM
 	vmIndex := msg.GetVMIndex()
 	pl := s.ProcessLists.Get(dbheight)
 
-	//s.DebugPrt("Ack")
-
-	if s.EOM_Step >= 0 || s.EOM {
-		if pl.MinuteFinished() != s.LeaderMinute {
-			s.StallMsg(msg)
-			return nil, nil
-		}
-	}
 	if pl == nil {
 		err = fmt.Errorf(s.FactomNodeName + ": No process list at this time")
 		fmt.Println(err.Error())

@@ -80,11 +80,11 @@ type State struct {
 	LeaderVMIndex int
 	LeaderPL      *ProcessList
 	OutputAllowed bool
-	LeaderMinute  int  // The minute that just was processed by the follower, (1-10), set with EOM
-	EOM           bool // Set to true when all Process Lists have finished a minute
-	EOM_Step      int // Found this leader's EOM.
-
-	NetStateOff 	bool // Disable if true, Enable if false
+	LeaderMinute  int  	// The minute that just was processed by the follower, (1-10), set with EOM
+	EOM           bool 	// Set to true when all Process Lists have finished a minute
+	EOM_Step      int 	// Found this leader's EOM.
+	EOM_Stall     bool	// We have an EOM stalled currently... Only stall one.
+	NetStateOff   bool 	// Disable if true, Enable if false
 
 	// Maps
 	// ====
