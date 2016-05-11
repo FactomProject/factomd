@@ -150,6 +150,19 @@ func SimControl(listenTo int) {
 						fmt.Println("Error: ", err, msg)
 					}
 				}
+			case 'x' == b[0]:
+
+				if listenTo >= 0 && listenTo < len(fnodes) {
+					f := fnodes[listenTo]
+					v := f.State.GetNetStateOff()
+					if v {
+						os.Stderr.WriteString("Bring "+f.State.FactomNodeName+" Back onto the network\n")
+					}else{
+						os.Stderr.WriteString("Take  "+f.State.FactomNodeName+" off the network\n")
+					}
+					f.State.SetNetStateOff(!v)
+				}
+
 			case 'm' == b[0]:
 				watchMessages = !watchMessages
 				if watchMessages {

@@ -38,6 +38,7 @@ func NetStart(s *state.State) {
 	followerPtr := flag.Bool("follower", false, "If true, force node to be a follower.  Only used when replaying a journal.")
 	leaderPtr := flag.Bool("leader", true, "If true, force node to be a leader.  Only used when replaying a journal.")
 	dbPtr := flag.String("db", "", "Override the Database in the Config file and use this Database implementation")
+	cloneDBPtr := flag.String("clonedb","","Override the main node and use this database for the clones in a Network.")
 	folderPtr := flag.String("folder", "", "Directory in .factom to store nodes. (eg: multiple nodes on one filesystem support)")
 	portOverridePtr := flag.Int("port", 0, "Address to serve WSAPI on")
 	addressPtr := flag.String("p2pAddress", "tcp://127.0.0.1:34340", "Address & port to listen for peers on: (eg: tcp://127.0.0.1:40891)")
@@ -58,6 +59,7 @@ func NetStart(s *state.State) {
 	follower := *followerPtr
 	leader := *leaderPtr
 	db := *dbPtr
+	cloneDB := *cloneDBPtr
 	folder := *folderPtr
 	portOverride := *portOverridePtr
 	address := *addressPtr
@@ -84,11 +86,6 @@ func NetStart(s *state.State) {
 		blkTime = s.DirectoryBlockInSeconds
 	}
 
-	os.Stderr.WriteString(fmt.Sprintf("node        %d\n", listenTo))
-	os.Stderr.WriteString(fmt.Sprintf("count       %d\n", cnt))
-	os.Stderr.WriteString(fmt.Sprintf("net         \"%s\"\n", net))
-	os.Stderr.WriteString(fmt.Sprintf("drop        %d\n", droprate))
-	os.Stderr.WriteString(fmt.Sprintf("journal     \"%s\"\n", journal))
 	if follower {
 		leader = false
 	}
@@ -98,13 +95,6 @@ func NetStart(s *state.State) {
 	if !follower && !leader {
 		panic("Not a leader or a follower")
 	}
-	os.Stderr.WriteString(fmt.Sprintf("db          \"%s\"\n", db))
-	os.Stderr.WriteString(fmt.Sprintf("folder      \"%s\"\n", folder))
-	os.Stderr.WriteString(fmt.Sprintf("port        \"%d\"\n", s.PortNumber))
-	os.Stderr.WriteString(fmt.Sprintf("address     \"%s\"\n", address))
-	os.Stderr.WriteString(fmt.Sprintf("peers       \"%s\"\n", peers))
-	os.Stderr.WriteString(fmt.Sprintf("blkTime     %d\n", blkTime))
-	os.Stderr.WriteString(fmt.Sprintf("runtimeLog  %v\n", runtimeLog))
 
 	if journal != "" {
 		cnt = 1
@@ -145,7 +135,30 @@ func NetStart(s *state.State) {
 
 	if len(db) > 0 {
 		s.DBType = db
+	}else{
+		db = s.DBType
 	}
+
+	if len(cloneDB) > 0 {
+		s.CloneDBType = cloneDB
+	}else {
+		s.CloneDBType = db
+	}
+
+	os.Stderr.WriteString(fmt.Sprintf("node        %d\n", listenTo))
+	os.Stderr.WriteString(fmt.Sprintf("count       %d\n", cnt))
+	os.Stderr.WriteString(fmt.Sprintf("net         \"%s\"\n", net))
+	os.Stderr.WriteString(fmt.Sprintf("drop        %d\n", droprate))
+	os.Stderr.WriteString(fmt.Sprintf("journal     \"%s\"\n", journal))
+	os.Stderr.WriteString(fmt.Sprintf("db          \"%s\"\n", db))
+	os.Stderr.WriteString(fmt.Sprintf("clonedb     \"%s\"\n", cloneDB))
+	os.Stderr.WriteString(fmt.Sprintf("folder      \"%s\"\n", folder))
+	os.Stderr.WriteString(fmt.Sprintf("port        \"%d\"\n", s.PortNumber))
+	os.Stderr.WriteString(fmt.Sprintf("address     \"%s\"\n", address))
+	os.Stderr.WriteString(fmt.Sprintf("peers       \"%s\"\n", peers))
+	os.Stderr.WriteString(fmt.Sprintf("blkTime     %d\n", blkTime))
+	os.Stderr.WriteString(fmt.Sprintf("runtimeLog  %v\n", runtimeLog))
+
 
 	s.AddPrefix(prefix)
 	s.SetOut(false)

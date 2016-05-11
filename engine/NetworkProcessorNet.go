@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/log"
+	"github.com/FactomProject/factomd/common/interfaces"
 )
 
 var _ = log.Printf
@@ -29,7 +30,12 @@ func Peers(fnode *FactomNode) {
 		for i, peer := range fnode.Peers {
 			for j := 0; j < 100; j++ {
 
-				msg, err := peer.Recieve()
+				var msg interfaces.IMsg
+				var err error
+
+				if !fnode.State.GetNetStateOff() {
+					msg, err = peer.Recieve()
+				}
 
 				if msg == nil { // Recieve is not blocking; nothing to do, we get a nil.
 					break
@@ -94,16 +100,18 @@ func NetworkOutputs(fnode *FactomNode) {
 
 				p := msg.GetOrigin() - 1
 
-				if msg.IsPeer2Peer() {
+				if msg.GetStalled() {
+					fnode.MLog.add2(fnode,true,"Stalled","<nul>",true,msg)
+				}else if msg.IsPeer2Peer() {
 					// Must have a Peer to send a message to a peer
 					if len(fnode.Peers) > 0 {
 						if p < 0 {
 							p = rand.Int() % len(fnode.Peers)
 						}
 						fnode.MLog.add2(fnode, true, fnode.Peers[p].GetNameTo(), "P2P out", true, msg)
-
-						fnode.Peers[p].Send(msg)
-
+						if !fnode.State.GetNetStateOff() {
+							fnode.Peers[p].Send(msg)
+						}
 					}
 				} else {
 					for i, peer := range fnode.Peers {
@@ -111,7 +119,9 @@ func NetworkOutputs(fnode *FactomNode) {
 						if i != p {
 							bco := fmt.Sprintf("%s/%d/%d", "BCast", p, i)
 							fnode.MLog.add2(fnode, true, peer.GetNameTo(), bco, true, msg)
-							peer.Send(msg)
+							if !fnode.State.GetNetStateOff() {
+								peer.Send(msg)
+							}
 						}
 					}
 				}

@@ -29,6 +29,7 @@ var _ = fmt.Print
 //***************************************************************
 func (s *State) Process() (progress bool) {
 
+
 	highest := s.GetHighestRecordedBlock()
 
 	if s.LLeaderHeight == 0 {
@@ -36,7 +37,6 @@ func (s *State) Process() (progress bool) {
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.LeaderMinute, s.IdentityChainID)
 		s.EOM_Step = -1
-
 	} else  if s.LLeaderHeight <= highest && s.LeaderMinute <= s.LeaderPL.MinuteFinished() {
 
 		s.LeaderMinute = 0 // Last block leaves at 10, which blows up. New block = 0
@@ -73,7 +73,7 @@ func (s *State) Process() (progress bool) {
 		s.EOM = false
 	}
 
-	if s.EOM && s.LeaderMinute <= s.LeaderPL.MinuteFinished() {
+	if (s.EOM || s.EOM_Step >= 0) && s.LeaderMinute <= s.LeaderPL.MinuteFinished() {
 		switch {
 		case s.LeaderMinute <= 9:
 			for _, vm := range s.LeaderPL.VMs {
@@ -116,7 +116,8 @@ func (s *State) Process() (progress bool) {
 				}
 			}else {
 				select {
-				case msg = <-s.stall:
+				case msg = <-s.stallQueue:
+					msg.SetStalled(false)
 				case msg = <-s.leaderMsgQueue:
 				default:
 				}
@@ -152,7 +153,8 @@ func (s *State) Process() (progress bool) {
 			s.networkInvalidMsgQueue <- msg
 		}
 		progress = true
-	case msg := <-s.stall:
+	case msg := <-s.stallQueue:
+		msg.SetStalled(false)			// Hope for the best!
 		v := msg.Validate(s)
 		switch v {
 		case 1:
@@ -227,7 +229,7 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) (bool, error) {
 
 	if eom, ok := m.(*messages.EOM);
 	   s.EOM_Step >= 0 && ok && int(eom.Minute) > s.EOM_Step {
-		s.stall <- m
+		s.StallMsg(m)
 		return false, nil
 	}
 
@@ -242,7 +244,7 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) (bool, error) {
 
 		if pl != nil {
 			if !pl.AddToProcessList(ack, m) {
-				s.stall <- m
+				s.StallMsg(m)
 				return false,nil
 			}
 
@@ -251,7 +253,7 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) (bool, error) {
 			delete(s.Acks, hashf)
 			delete(s.Holding, hashf)
 		}else{
-			s.stall <- m
+			s.StallMsg(m)
 		}
 
 		if m.Type() == constants.COMMIT_CHAIN_MSG || m.Type() == constants.COMMIT_ENTRY_MSG {
@@ -337,14 +339,14 @@ func (s *State) LeaderExecute(m interfaces.IMsg) error {
 	}
 
 	if s.EOM_Step >= 0  {
-		s.stall <- m
+		s.StallMsg(m)
 		return nil
 	}
 
 	dbheight := s.LLeaderHeight
 	ack, err := s.NewAck(dbheight, m)
 	if err != nil {
-		s.stall <-m
+		s.StallMsg(m)
 		return err
 	}
 	s.networkOutMsgQueue <- ack
@@ -501,6 +503,11 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	ack2, ok2 := vm.LastAck.(*messages.Ack)
 	if (!ok1 && ok2) || (ok1 && ok2 && ack2.Height > ack1.Height) {
 		vm.LastLeaderAck = vm.LastAck
+	}
+
+	if s.LeaderMinute == 10 {
+		pl := s.ProcessLists.Get(dbheight+1)
+		s.Leader, s.LeaderVMIndex = pl.GetVirtualServers(0, s.IdentityChainID)
 	}
 
 	s.EOM_Step = -1
@@ -723,7 +730,7 @@ func (s *State) NewAck(dbheight uint32, msg interfaces.IMsg) (iack interfaces.IM
 
 	if s.EOM_Step >= 0 || s.EOM {
 		if pl.MinuteFinished() != s.LeaderMinute {
-			s.stall <- msg
+			s.StallMsg(msg)
 			return nil, nil
 		}
 	}
