@@ -105,45 +105,45 @@ func (c *Controller) StartNetwork() {
 }
 
 func (c *Controller) StartLogging(level uint8) {
-	note(true, "Changing log level to %s", LoggingLevels[level])
+	note("Changing log level to %s", LoggingLevels[level])
 	c.commandChannel <- CommandChangeLogging{Level: level}
 }
 func (c *Controller) StopLogging() {
-	note(true, "Changing log level to %s", LoggingLevels[Silence])
+	note("Changing log level to %s", LoggingLevels[Silence])
 	c.commandChannel <- CommandChangeLogging{Level: Silence}
 }
 func (c *Controller) ChangeLogLevel(level uint8) {
-	note(true, "Changing log level to %s", LoggingLevels[level])
+	note("Changing log level to %s", LoggingLevels[level])
 	c.commandChannel <- CommandChangeLogging{Level: level}
 }
 
 func (c *Controller) DialPeer(address string) {
-	debug(true, "DialPeer message for %s", address)
+	debug("DialPeer message for %s", address)
 	c.commandChannel <- CommandDialPeer{Address: address}
 }
 
 func (c *Controller) AddPeer(connection *Connection) {
-	debug(true, "CommandAddPeer for %+v", connection)
+	debug("CommandAddPeer for %+v", connection)
 	c.commandChannel <- CommandAddPeer{Peer: *connection}
 }
 
 func (c *Controller) NetworkStop() {
-	debug(true, "NetworkStop ")
+	debug("NetworkStop ")
 	c.commandChannel <- CommandShutdown{}
 }
 
 func (c *Controller) Demerit(connection uint64) {
-	debug(true, "NetworkStop ")
+	debug("NetworkStop ")
 	c.commandChannel <- CommandDemerit{ConnectionID: connection}
 }
 
 func (c *Controller) Merit(connection uint64) {
-	debug(true, "NetworkStop ")
+	debug("NetworkStop ")
 	c.commandChannel <- CommandMerit{ConnectionID: connection}
 }
 
 func (c *Controller) Ban(connection uint64) {
-	debug(true, "NetworkStop ")
+	debug("NetworkStop ")
 	c.commandChannel <- CommandBan{ConnectionID: connection}
 }
 
@@ -163,7 +163,7 @@ func (c *Controller) Ban(connection uint64) {
 func (c *Controller) listen() {
 	fmt.Printf("Controller.listen() %+v\n", " DEBUG statement immediately follows!")
 	address := fmt.Sprintf(":%s", c.listenPort)
-	note(true, "Controller.listen(%s) got address %s", c.listenPort, address)
+	note("Controller.listen(%s) got address %s", c.listenPort, address)
 	listener, err := net.Listen("tcp", address)
 	if nil != err {
 		logfatal(true, "Controller.listen() Error: %+v", err)
@@ -174,7 +174,7 @@ func (c *Controller) listen() {
 // Since this runs in its own goroutine we need to send a command when
 // when we get a new connection.
 func (c *Controller) acceptLoop(listener net.Listener) {
-	note(true, "Controller.acceptLoop() starting up")
+	note("Controller.acceptLoop() starting up")
 	for {
 		conn, err := listener.Accept()
 		if nil != err {
@@ -185,7 +185,7 @@ func (c *Controller) acceptLoop(listener net.Listener) {
 			connection := new(Connection).Init(*peer)
 			connection.Configure(conn)
 			c.AddPeer(connection) // Sends command to add the peer to the peers list
-			note(true, "Controller.acceptLoop() new peer: %+v", peer.address)
+			note("Controller.acceptLoop() new peer: %+v", peer.address)
 		}
 	}
 }
@@ -196,7 +196,7 @@ func (c *Controller) acceptLoop(listener net.Listener) {
 
 // runloop is a goroutine that does all the heavy lifting
 func (c *Controller) runloop() {
-	note(true, "Controller.runloop() starting up")
+	note("Controller.runloop() starting up")
 
 	for c.keepRunning { // Run until we get the exit command
 		time.Sleep(time.Millisecond * 100)
@@ -214,7 +214,7 @@ func (c *Controller) runloop() {
 		// Manage peers (reconnect, etc.)
 		c.managePeers()
 	}
-	note(true, "Controller.runloop() has exited. Shutdown command recieved?")
+	note("Controller.runloop() has exited. Shutdown command recieved?")
 }
 
 // Route pulls all of the messages from the application and sends them to the appropriate
@@ -277,10 +277,10 @@ func (c *Controller) handleCommand(command interface{}) {
 		connection := new(Connection).Init(*peer)
 		connection.dial()
 		c.connections[connection.ConnectionID] = *connection
-		debug(true, "Controller.handleCommand(CommandDialPeer) got peer %s", parameters.Address)
+		debug("Controller.handleCommand(CommandDialPeer) got peer %s", parameters.Address)
 			
 		} else {
-		debug(true, "Controller.handleCommand(CommandDialPeer) ALREADY CONNECTED TO PEER %s", parameters.Address)
+		debug("Controller.handleCommand(CommandDialPeer) ALREADY CONNECTED TO PEER %s", parameters.Address)
 			
 		}
 
@@ -288,14 +288,14 @@ func (c *Controller) handleCommand(command interface{}) {
 		parameters := command.(CommandAddPeer)
 		connection := parameters.Peer
 		c.connections[connection.ConnectionID] = connection
-		debug(true, "Controller.handleCommand(CommandAddPeer) got peer %+v", parameters.Peer)
+		debug("Controller.handleCommand(CommandAddPeer) got peer %+v", parameters.Peer)
 	case CommandShutdown:
 		c.shutdown()
-		debug(true, "Controller.handleCommand(CommandAddPeer) ")
+		debug("Controller.handleCommand(CommandAddPeer) ")
 	case CommandChangeLogging:
 		parameters := command.(CommandChangeLogging)
 		CurrentLoggingLevel = parameters.Level
-		debug(true, "Controller.handleCommand(CommandChangeLogging) new logging level %s", LoggingLevels[parameters.Level])
+		debug("Controller.handleCommand(CommandChangeLogging) new logging level %s", LoggingLevels[parameters.Level])
 	case CommandDemerit:
 		parameters := command.(CommandDemerit)
 		connectionID := parameters.ConnectionID
@@ -313,7 +313,7 @@ func (c *Controller) handleCommand(command interface{}) {
 		connection.peer.QualityScore = BannedQualityScore
 		connection.connectionDropped() // hang up on the peer
 	default:
-		note(true, "Unkown p2p.Controller command recieved: %+v", commandType)
+		note("Unkown p2p.Controller command recieved: %+v", commandType)
 	}
 }
 
@@ -330,8 +330,15 @@ func (c *Controller) managePeers() {
 				connection.shutdown()
 				delete(c.connections, key)
 			}
-		} else { // Connection is online.  Send a heartbeat if it's been quiet for awhile.
-TODO BUGBUG WRITE THIS
+		} 
+		// If it's been more than PingInterval since we last heard from a connection, send them a ping
+		duration := time.Now().Sub(connection.timeLastContact)
+		if PingInterval < duration {
+		ping := NewParcel(CurrentNetwork, []byte("Pong"))
+		pong.Header.Type = TypePing
+		connection.SendChannel <- parcel 
+			
+			
 		}
 	}
 	// Go thru an update peers in discovery using discovery.UpdatePeer()
@@ -340,7 +347,7 @@ TODO BUGBUG WRITE THIS
 }
 
 func (c *Controller) shutdown() {
-	debug(true, "Controller.shutdown() ")
+	debug("Controller.shutdown() ")
 	// Go thru peer list and shut down connections.
 	for key, connection := range c.connections {
 		connection.shutdown()
