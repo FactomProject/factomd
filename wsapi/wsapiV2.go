@@ -323,8 +323,8 @@ func HandleV2DirectoryBlock(state interfaces.IState, params interface{}) (interf
 
 	d := new(DirectoryBlockResponse)
 	d.Header.PrevBlockKeyMR = block.GetHeader().GetPrevKeyMR().String()
-	d.Header.SequenceNumber = block.GetHeader().GetDBHeight()
-	d.Header.Timestamp = block.GetHeader().GetTimestamp() * 60
+	d.Header.SequenceNumber = int64(block.GetHeader().GetDBHeight())
+	d.Header.Timestamp = int64(block.GetHeader().GetTimestamp() * 60)
 	for _, v := range block.GetDBEntries() {
 		l := new(EBlockAddr)
 		l.ChainID = v.GetChainID().String()
@@ -363,13 +363,13 @@ func HandleV2EntryBlock(state interfaces.IState, params interface{}) (interface{
 		}
 	}
 
-	e.Header.BlockSequenceNumber = block.GetHeader().GetEBSequence()
+	e.Header.BlockSequenceNumber = int64(block.GetHeader().GetEBSequence())
 	e.Header.ChainID = block.GetHeader().GetChainID().String()
 	e.Header.PrevKeyMR = block.GetHeader().GetPrevKeyMR().String()
-	e.Header.DBHeight = block.GetHeader().GetDBHeight()
+	e.Header.DBHeight = int64(block.GetHeader().GetDBHeight())
 
 	if dblock, err := dbase.FetchDBlockByHeight(block.GetHeader().GetDBHeight()); err == nil {
-		e.Header.Timestamp = dblock.GetHeader().GetTimestamp() * 60
+		e.Header.Timestamp = int64(dblock.GetHeader().GetTimestamp() * 60)
 	}
 
 	// create a map of possible minute markers that may be found in the
@@ -386,7 +386,7 @@ func HandleV2EntryBlock(state interfaces.IState, params interface{}) (interface{
 		if n, exist := mins[v.String()]; exist {
 			// the entry is a minute marker. add time to all of the
 			// previous entries for the minute
-			t := e.Header.Timestamp + 60*uint32(n)
+			t := int64(e.Header.Timestamp + 60*int64(n))
 			for _, w := range estack {
 				w.Timestamp = t
 				e.EntryList = append(e.EntryList, w)
@@ -493,7 +493,7 @@ func HandleV2EntryCreditBalance(state interfaces.IState, params interface{}) (in
 
 func HandleV2FactoidFee(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	resp := new(FactoidFeeResponse)
-	resp.Fee = state.GetFactoshisPerEC()
+	resp.Fee = int64(state.GetFactoshisPerEC())
 
 	return resp, nil
 }

@@ -35,8 +35,8 @@ type RevealEntryResponse struct {
 type DirectoryBlockResponse struct {
 	Header struct {
 		PrevBlockKeyMR string `json:"prevblockkeymr"`
-		SequenceNumber uint32 `json:"sequencenumber"`
-		Timestamp      uint32 `json:"timestamp"`
+		SequenceNumber int64  `json:"sequencenumber"`
+		Timestamp      int64  `json:"timestamp"`
 	} `json:"header"`
 	EntryBlockList []EBlockAddr `json:"entryblocklist"`
 }
@@ -61,11 +61,11 @@ type ReceiptResponse struct {
 
 type EntryBlockResponse struct {
 	Header struct {
-		BlockSequenceNumber uint32 `json:"blocksequencenumber"`
+		BlockSequenceNumber int64  `json:"blocksequencenumber"`
 		ChainID             string `json:"chainid"`
 		PrevKeyMR           string `json:"prevkeymr"`
-		Timestamp           uint32 `json:"timestamp"`
-		DBHeight            uint32 `json:"dbheight"`
+		Timestamp           int64  `json:"timestamp"`
+		DBHeight            int64  `json:"dbheight"`
 	} `json:"header"`
 	EntryList []EntryAddr `json:"timestamp"`
 }
@@ -89,7 +89,7 @@ type FactoidBalanceResponse struct {
 }
 
 type FactoidFeeResponse struct {
-	Fee uint64 `json:"fee"`
+	Fee int64 `json:"fee"`
 }
 
 type PropertiesResponse struct {
@@ -111,8 +111,8 @@ type EBlockAddr struct {
 type DBlock struct {
 	Header struct {
 		PrevBlockKeyMR string `json:"prevblockkeymr"`
-		SequenceNumber uint32 `json:"sequencenumber"`
-		Timestamp      uint32 `json:"timestamp"`
+		SequenceNumber int64  `json:"sequencenumber"`
+		Timestamp      int64  `json:"timestamp"`
 	} `json:"header"`
 	EntryBlockList []EBlockAddr `json:"entryblocklist"`
 }
@@ -123,16 +123,16 @@ func (e *DBlock) JSONString() (string, error) {
 
 type EntryAddr struct {
 	EntryHash string `json:"entryhash"`
-	Timestamp uint32 `json:"timestamp"`
+	Timestamp int64  `json:"timestamp"`
 }
 
 type EBlock struct {
 	Header struct {
-		BlockSequenceNumber uint32 `json:"blocksequencenumber"`
+		BlockSequenceNumber int64  `json:"blocksequencenumber"`
 		ChainID             string `json:"chainid"`
 		PrevKeyMR           string `json:"prevkeymr"`
-		Timestamp           uint32 `json:"timestamp"`
-		DBHeight            uint32 `json:"dbheight"`
+		Timestamp           int64  `json:"timestamp"`
+		DBHeight            int64  `json:"dbheight"`
 	} `json:"header"`
 	EntryList []EntryAddr `json:"entrylist"`
 }
