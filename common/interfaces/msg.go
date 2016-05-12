@@ -89,6 +89,4 @@ type IMsg interface {
 	SetVMHash([]byte)
 	GetMinute() byte
 	SetMinute(byte)
-
-
 }

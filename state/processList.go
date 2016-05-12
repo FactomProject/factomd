@@ -446,20 +446,20 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) boo
 
 	vm := p.VMs[ack.VMIndex]
 
-	if len(vm.List) > int(ack.Height) && vm.List[ack.Height]!= nil {
+	if len(vm.List) > int(ack.Height) && vm.List[ack.Height] != nil {
 
-		if ack == nil || m == nil || vm.List[ack.Height].GetMsgHash()== nil ||
-		   m.GetMsgHash()== nil || vm.List[ack.Height].GetMsgHash().IsSameAs(m.GetMsgHash()) {
+		if ack == nil || m == nil || vm.List[ack.Height].GetMsgHash() == nil ||
+			m.GetMsgHash() == nil || vm.List[ack.Height].GetMsgHash().IsSameAs(m.GetMsgHash()) {
 			return false
 		}
 
-	 	if vm.List[ack.Height] != nil {
+		if vm.List[ack.Height] != nil {
 			fmt.Println(p.String())
 			fmt.Println(p.PrintMap())
-			fmt.Printf("\t%12s %s\n\t%12s %s\n\t %12s %s\n %18s: %x\n" +
-			" %18s: %x\n %18s: %d  %18s: %d\n %18s %v  %18s %v\n %18s %d" +
-			" %18s: %s" +
-			" %18s: %s",
+			fmt.Printf("\t%12s %s\n\t%12s %s\n\t %12s %s\n %18s: %x\n"+
+				" %18s: %x\n %18s: %d  %18s: %d\n %18s %v  %18s %v\n %18s %d"+
+				" %18s: %s"+
+				" %18s: %s",
 				"OverWriting:",
 				vm.List[ack.Height].String(),
 				"With:",
@@ -474,7 +474,7 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) boo
 				"New Minute", ack.GetMinute(),
 				"VM", ack.VMIndex,
 				"LastAck", vm.LastAck.String(),
-				"LastLeaderAck", vm.LastLeaderAck.String(), )
+				"LastLeaderAck", vm.LastLeaderAck.String())
 			return false
 		}
 	}
@@ -485,7 +485,7 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) boo
 	p.VMs[ack.VMIndex].LastAck = ack
 
 	p.VMs[ack.VMIndex].List[ack.Height] = m
-	return  true
+	return true
 }
 
 func (p *ProcessList) String() string {

@@ -86,9 +86,9 @@ func (m *MsgLog) add2(fnode *FactomNode, out bool, peer string, where string, va
 		m.msgCntp = 0
 		m.startp = now // Reset timer
 	}
-		// If it has been 4 seconds and we are NOT printing, then toss.
-		// This gives us a second to get to print.
-	if now-m.last > 100  {
+	// If it has been 4 seconds and we are NOT printing, then toss.
+	// This gives us a second to get to print.
+	if now-m.last > 100 {
 		m.msgCnt += len(m.MsgList) // Keep my counts
 		m.msgCntp += len(m.MsgList)
 		m.MsgList = m.MsgList[0:0] // Clear the record.
@@ -101,7 +101,7 @@ func (m *MsgLog) PrtMsgs(state interfaces.IState) {
 	m.sem.Lock()
 	defer m.sem.Unlock()
 
-	if len(m.MsgList)== 0 {
+	if len(m.MsgList) == 0 {
 		return
 	}
 

@@ -20,15 +20,12 @@ import (
 
 var _ = fmt.Print
 
-
-
 //***************************************************************
 // Process Loop for Consensus
 //
 // Returns true if some message was processed.
 //***************************************************************
 func (s *State) Process() (progress bool) {
-
 
 	highest := s.GetHighestRecordedBlock()
 
@@ -37,7 +34,7 @@ func (s *State) Process() (progress bool) {
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.LeaderMinute, s.IdentityChainID)
 		s.EOM_Step = -1
-	} else  if s.LLeaderHeight <= highest && s.LeaderMinute <= s.LeaderPL.MinuteFinished() {
+	} else if s.LLeaderHeight <= highest && s.LeaderMinute <= s.LeaderPL.MinuteFinished() {
 
 		s.LeaderMinute = 0 // Last block leaves at 10, which blows up. New block = 0
 
@@ -99,45 +96,44 @@ func (s *State) Process() (progress bool) {
 		}
 	}
 
-
-		var vm *VM
-		if s.Leader {
-			vm = s.LeaderPL.VMs[s.LeaderVMIndex]
-		}
-		// To process a leader message, we have to have the follower process completely
-		// up to date.  Then we can validate the message.  Process is up to date if all
-		// messages in the process list have been processed by the follower, ie the Height
-		// is equal to the length of the process list.
-		if !s.Leader || len(vm.List) >= vm.Height {
-			var msg interfaces.IMsg
-			if s.EOM_Step >= 0 {
-				select {
-				case msg = <-s.leaderMsgQueue:
-				default:
-				}
-			}else {
-				select {
-				case msg = <-s.stallQueue:
-					msg.SetStalled(false)
-				case msg = <-s.leaderMsgQueue:
-				default:
-				}
+	var vm *VM
+	if s.Leader {
+		vm = s.LeaderPL.VMs[s.LeaderVMIndex]
+	}
+	// To process a leader message, we have to have the follower process completely
+	// up to date.  Then we can validate the message.  Process is up to date if all
+	// messages in the process list have been processed by the follower, ie the Height
+	// is equal to the length of the process list.
+	if !s.Leader || len(vm.List) >= vm.Height {
+		var msg interfaces.IMsg
+		if s.EOM_Step >= 0 {
+			select {
+			case msg = <-s.leaderMsgQueue:
+			default:
 			}
-			if msg != nil {
-				v := msg.Validate(s)
-				switch v {
-				case 1:
-					msg.LeaderExecute(s)
-					s.networkOutMsgQueue <- msg
-
-					for s.UpdateState() {
-					}
-				case -1:
-					s.networkInvalidMsgQueue <- msg
-				}
-				progress = true
+		} else {
+			select {
+			case msg = <-s.stallQueue:
+				msg.SetStalled(false)
+			case msg = <-s.leaderMsgQueue:
+			default:
 			}
 		}
+		if msg != nil {
+			v := msg.Validate(s)
+			switch v {
+			case 1:
+				msg.LeaderExecute(s)
+				s.networkOutMsgQueue <- msg
+
+				for s.UpdateState() {
+				}
+			case -1:
+				s.networkInvalidMsgQueue <- msg
+			}
+			progress = true
+		}
+	}
 
 	// Followers are less strict.  Messages can be validated as they are processed, but
 	// the acknowledgement from the leader is enough to put a message into the process list.
@@ -155,7 +151,7 @@ func (s *State) Process() (progress bool) {
 		}
 		progress = true
 	case msg := <-s.stallQueue:
-		msg.SetStalled(false)			// Hope for the best!
+		msg.SetStalled(false) // Hope for the best!
 		v := msg.Validate(s)
 		switch v {
 		case 1:
@@ -228,8 +224,7 @@ func (s *State) addEBlock(eblock interfaces.IEntryBlock) {
 // Returns true if it finds a match
 func (s *State) FollowerExecuteMsg(m interfaces.IMsg) (bool, error) {
 
-	if eom, ok := m.(*messages.EOM);
-	   s.EOM_Step >= 0 && ok && int(eom.Minute) > s.EOM_Step {
+	if eom, ok := m.(*messages.EOM); s.EOM_Step >= 0 && ok && int(eom.Minute) > s.EOM_Step {
 		s.StallMsg(m)
 		return false, nil
 	}
@@ -246,14 +241,14 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) (bool, error) {
 		if pl != nil {
 			if !pl.AddToProcessList(ack, m) {
 				s.StallMsg(m)
-				return false,nil
+				return false, nil
 			}
 
 			pl.OldAcks[hashf] = ack
 			pl.OldMsgs[hashf] = m
 			delete(s.Acks, hashf)
 			delete(s.Holding, hashf)
-		}else{
+		} else {
 			s.StallMsg(m)
 		}
 
@@ -339,7 +334,7 @@ func (s *State) LeaderExecute(m interfaces.IMsg) error {
 		return nil
 	}
 
-	if s.EOM_Step >= 0  {
+	if s.EOM_Step >= 0 {
 		return nil
 	}
 
@@ -360,7 +355,6 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
 		return nil
 	}
 	eom := m.(*messages.EOM)
-
 
 	// There are messages we have not yet processed in the Process List... Don't
 	// step to the next minute!
@@ -396,7 +390,7 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
 	eom.Sign(s)
 	eom.SetLocal(false)
 	ack, err := s.NewAck(s.LLeaderHeight, m)
-	
+
 	if err != nil {
 		return err
 	}
@@ -476,7 +470,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	s.EOM_Step = int(e.Minute)
 
 	// Set this list complete
-	if s.LeaderMinute < int(e.Minute + 1){
+	if s.LeaderMinute < int(e.Minute+1) {
 		s.LeaderMinute = int(e.Minute + 1)
 		if s.LeaderMinute < 10 {
 			s.Leader, s.LeaderVMIndex = pl.GetVirtualServers(s.LeaderMinute, s.IdentityChainID)
@@ -513,7 +507,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 	vm := pl.VMs[e.VMIndex]
 
-	vm.MinuteFinished = int(e.Minute)+1
+	vm.MinuteFinished = int(e.Minute) + 1
 
 	ack1, ok1 := vm.LastLeaderAck.(*messages.Ack)
 	ack2, ok2 := vm.LastAck.(*messages.Ack)

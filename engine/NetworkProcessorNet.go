@@ -9,8 +9,8 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/log"
 )
 
 var _ = log.Printf
@@ -101,8 +101,8 @@ func NetworkOutputs(fnode *FactomNode) {
 				p := msg.GetOrigin() - 1
 
 				if msg.GetStalled() {
-					fnode.MLog.add2(fnode,true,"Stalled","<nul>",true,msg)
-				}else if msg.IsPeer2Peer() {
+					fnode.MLog.add2(fnode, true, "Stalled", "<nul>", true, msg)
+				} else if msg.IsPeer2Peer() {
 					// Must have a Peer to send a message to a peer
 					if len(fnode.Peers) > 0 {
 						if p < 0 {

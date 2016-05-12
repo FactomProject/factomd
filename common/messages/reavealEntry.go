@@ -270,7 +270,7 @@ func (m *RevealEntryMsg) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *RevealEntryMsg) String() string {
-	if m.GetLeaderChainID()==nil {
+	if m.GetLeaderChainID() == nil {
 		m.SetLeaderChainID(primitives.NewZeroHash())
 	}
 	str := fmt.Sprintf("%6s-VM%3d: Min:%4d          -- Leader[:3]=%x hash[:3]=%x",

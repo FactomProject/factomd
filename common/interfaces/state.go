@@ -78,7 +78,7 @@ type IState interface {
 	// Consensus
 	InMsgQueue() chan IMsg     // Read by Validate
 	LeaderMsgQueue() chan IMsg // Leader Queue
-	Stall() chan IMsg // Leader Queue
+	Stall() chan IMsg          // Leader Queue
 
 	// Lists and Maps
 	// =====
@@ -149,7 +149,7 @@ type IState interface {
 	LeaderExecute(m IMsg) error
 	LeaderExecuteEOM(m IMsg) error
 
-	GetNetStateOff() bool	//	If true, all network communications are disabled
+	GetNetStateOff() bool //	If true, all network communications are disabled
 	SetNetStateOff(bool)
 
 	GetTimestamp() Timestamp

@@ -10,18 +10,18 @@ import (
 )
 
 type MessageBase struct {
-	Origin    			int  // Set and examined on a server, not marshaled with the message
-	Peer2Peer 			bool // The nature of this message type, not marshaled with the message
-	LocalOnly 			bool // This message is only a local message, is not broadcasted and may skip verification
+	Origin    int  // Set and examined on a server, not marshaled with the message
+	Peer2Peer bool // The nature of this message type, not marshaled with the message
+	LocalOnly bool // This message is only a local message, is not broadcasted and may skip verification
 
-	Salt					interfaces.Timestamp	// Might be used to get past duplicate protection when messages are missing
+	Salt interfaces.Timestamp // Might be used to get past duplicate protection when messages are missing
 
-	Stalled				bool						// Messages marked as stalled do not get transmitted out on the network.
-	LeaderChainID 		interfaces.IHash
-	MsgHash				interfaces.IHash 		// Cash of the hash of a message
-	VMIndex				int              		// The Index of the VM responsible for this message.
-	VMHash   			[]byte           		// Basis for selecting a VMIndex
-	Minute            byte
+	Stalled       bool // Messages marked as stalled do not get transmitted out on the network.
+	LeaderChainID interfaces.IHash
+	MsgHash       interfaces.IHash // Cash of the hash of a message
+	VMIndex       int              // The Index of the VM responsible for this message.
+	VMHash        []byte           // Basis for selecting a VMIndex
+	Minute        byte
 	// Used by Leader code, but only Marshaled and Unmarshalled in Ack Messages
 	// EOM messages, and DirectoryBlockSignature messages
 }
@@ -33,7 +33,6 @@ func (m *MessageBase) GetStalled() bool {
 func (m *MessageBase) SetStalled(stalled bool) {
 	m.Stalled = stalled
 }
-
 
 func (m *MessageBase) SaltReply(state interfaces.IState) {
 	m.Salt = state.GetTimestamp()

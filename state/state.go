@@ -80,11 +80,11 @@ type State struct {
 	LeaderVMIndex int
 	LeaderPL      *ProcessList
 	OutputAllowed bool
-	LeaderMinute  int  	// The minute that just was processed by the follower, (1-10), set with EOM
-	EOM           bool 	// Set to true when all Process Lists have finished a minute
-	EOM_Step      int 	// Found this leader's EOM.
-	EOM_Stall     bool	// We have an EOM stalled currently... Only stall one.
-	NetStateOff   bool 	// Disable if true, Enable if false
+	LeaderMinute  int  // The minute that just was processed by the follower, (1-10), set with EOM
+	EOM           bool // Set to true when all Process Lists have finished a minute
+	EOM_Step      int  // Found this leader's EOM.
+	EOM_Stall     bool // We have an EOM stalled currently... Only stall one.
+	NetStateOff   bool // Disable if true, Enable if false
 
 	// Maps
 	// ====
@@ -207,14 +207,13 @@ func (s *State) SetDropRate(droprate int) {
 	s.DropRate = droprate
 }
 
-func (s *State) GetNetStateOff() bool {	//	If true, all network communications are disabled
+func (s *State) GetNetStateOff() bool { //	If true, all network communications are disabled
 	return s.NetStateOff
 }
 
-func (s *State) SetNetStateOff(net bool){
+func (s *State) SetNetStateOff(net bool) {
 	s.NetStateOff = net
 }
-
 
 // TODO JAYJAY BUGBUG- passing in folder here is a hack for multiple factomd processes on a single machine (sharing a single .factom)
 func (s *State) LoadConfig(filename string, folder string) {
@@ -282,7 +281,7 @@ func (s *State) Init() {
 	s.inMsgQueue = make(chan interfaces.IMsg, 10000)             //incoming message queue for factom application messages
 	s.leaderMsgQueue = make(chan interfaces.IMsg, 10000)         //queue of Leadership messages
 	s.followerMsgQueue = make(chan interfaces.IMsg, 10000)       //queue of Follower messages
-	s.stallQueue = make(chan interfaces.IMsg, 10000)    		    //queue of Leader messages while stalled
+	s.stallQueue = make(chan interfaces.IMsg, 10000)             //queue of Leader messages while stalled
 	s.ShutdownChan = make(chan int, 1)                           //Channel to gracefully shut down.
 
 	os.Mkdir(s.LogPath, 0777)
@@ -835,7 +834,6 @@ func (s *State) Stall() chan interfaces.IMsg {
 	return s.stallQueue
 }
 
-
 func (s *State) FollowerMsgQueue() chan interfaces.IMsg {
 	return s.followerMsgQueue
 }
@@ -938,8 +936,7 @@ func (s *State) SetString() {
 		X = "X"
 	}
 
-	stype := fmt.Sprintf("%1s%1s",L,X)
-
+	stype := fmt.Sprintf("%1s%1s", L, X)
 
 	if buildingBlock == 0 {
 		s.serverPrt = fmt.Sprintf("%9s%9s Recorded: %d Building: %d Highest: %d ",

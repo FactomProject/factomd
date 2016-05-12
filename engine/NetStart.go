@@ -38,7 +38,7 @@ func NetStart(s *state.State) {
 	followerPtr := flag.Bool("follower", false, "If true, force node to be a follower.  Only used when replaying a journal.")
 	leaderPtr := flag.Bool("leader", true, "If true, force node to be a leader.  Only used when replaying a journal.")
 	dbPtr := flag.String("db", "", "Override the Database in the Config file and use this Database implementation")
-	cloneDBPtr := flag.String("clonedb","","Override the main node and use this database for the clones in a Network.")
+	cloneDBPtr := flag.String("clonedb", "", "Override the main node and use this database for the clones in a Network.")
 	folderPtr := flag.String("folder", "", "Directory in .factom to store nodes. (eg: multiple nodes on one filesystem support)")
 	portOverridePtr := flag.Int("port", 0, "Address to serve WSAPI on")
 	addressPtr := flag.String("p2pAddress", "tcp://127.0.0.1:34340", "Address & port to listen for peers on: (eg: tcp://127.0.0.1:40891)")
@@ -135,13 +135,13 @@ func NetStart(s *state.State) {
 
 	if len(db) > 0 {
 		s.DBType = db
-	}else{
+	} else {
 		db = s.DBType
 	}
 
 	if len(cloneDB) > 0 {
 		s.CloneDBType = cloneDB
-	}else {
+	} else {
 		s.CloneDBType = db
 	}
 
@@ -158,7 +158,6 @@ func NetStart(s *state.State) {
 	os.Stderr.WriteString(fmt.Sprintf("peers       \"%s\"\n", peers))
 	os.Stderr.WriteString(fmt.Sprintf("blkTime     %d\n", blkTime))
 	os.Stderr.WriteString(fmt.Sprintf("runtimeLog  %v\n", runtimeLog))
-
 
 	s.AddPrefix(prefix)
 	s.SetOut(false)
