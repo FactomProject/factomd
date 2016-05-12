@@ -133,7 +133,7 @@ type EBlock struct {
 		PrevKeyMR           string `json:"prevkeymr"`
 		Timestamp           uint32 `json:"timestamp"`
 		DBHeight            uint32 `json:"dbheight"`
-	}
+	} `json:"header"`
 	EntryList []EntryAddr `json:"entrylist"`
 }
 
