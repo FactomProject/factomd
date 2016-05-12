@@ -119,6 +119,7 @@ func (m *EOM) Validate(state interfaces.IState) int {
 	if m.IsLocal() {
 		return 1
 	}
+
 	found, _ := state.GetVirtualServers(m.DBHeight, int(m.Minute), m.ChainID)
 	if !found { // Only EOM from federated servers are valid.
 		return -1
@@ -138,7 +139,7 @@ func (m *EOM) Validate(state interfaces.IState) int {
 // Returns true if this is a message for this server to execute as
 // a leader.
 func (m *EOM) Leader(state interfaces.IState) bool {
-	return m.IsLocal()
+	return true
 }
 
 // Execute the leader functions of the given message

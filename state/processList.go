@@ -393,7 +393,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			var expectedSerialHash interfaces.IHash
 			var err error
 			last, ok := p.GetLastAck(i).(*messages.Ack)
-			if !ok || last.IsSameAs(thisAck) {
+			if !ok || last.IsSameAs(thisAck) || j == 0 {
 				expectedSerialHash = thisAck.SerialHash
 			} else {
 				expectedSerialHash, err = primitives.CreateHash(last.MessageHash, thisAck.MessageHash)
@@ -420,7 +420,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 				fmt.Println(p.PrintMap())
 				// the SerialHash of this acknowledgment is incorrect
 				// according to this node's processList
-
+				panic("xxxxxxxxxxxxxxx")
 				plist[j] = nil
 				return
 			}
@@ -475,12 +475,14 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) boo
 				"VM", ack.VMIndex,
 				"LastAck", vm.LastAck.String(),
 				"LastLeaderAck", vm.LastLeaderAck.String())
+			panic("xxxxxxxxxx")
 			return false
 		}
 	}
-
-	for len(p.VMs[ack.VMIndex].List) <= int(ack.Height) {
+	length := len(p.VMs[ack.VMIndex].List)
+	for length <= int(ack.Height) {
 		p.VMs[ack.VMIndex].List = append(p.VMs[ack.VMIndex].List, nil)
+		length = len(p.VMs[ack.VMIndex].List)
 	}
 	p.VMs[ack.VMIndex].LastAck = ack
 
@@ -497,12 +499,16 @@ func (p *ProcessList) String() string {
 
 		for i := 0; i < len(p.FedServers); i++ {
 			server := p.VMs[i]
-			eom := fmt.Sprintf("Minute Complete %d Height %d ", server.MinuteComplete, server.Height)
-			if p.FinishedEOM() {
-				eom = eom + "Finished EOM "
+			eom := fmt.Sprintf("Minute Complete %2d Minute Finished %2d Height %3d Len %3d ",
+				p.MinuteComplete(),
+				p.MinuteFinished(),
+				server.Height,
+				len(server.List))
+			min := server.LeaderMinute
+			if min > 9 {
+				min = 9
 			}
-
-			buf.WriteString(fmt.Sprintf("  VM %d Fed %d %s\n", i, p.ServerMap[server.LeaderMinute][i], eom))
+			buf.WriteString(fmt.Sprintf("  VM %d Fed %d %s\n", i, p.ServerMap[min][i], eom))
 			for j, msg := range server.List {
 
 				if j < server.Height {

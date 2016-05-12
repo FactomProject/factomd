@@ -81,9 +81,7 @@ type State struct {
 	LeaderPL      *ProcessList
 	OutputAllowed bool
 	LeaderMinute  int  // The minute that just was processed by the follower, (1-10), set with EOM
-	EOM           bool // Set to true when all Process Lists have finished a minute
-	EOM_Step      int  // Found this leader's EOM.
-	EOM_Stall     bool // We have an EOM stalled currently... Only stall one.
+	EOM           int  // Set to true when all Process Lists have finished a minute
 	NetStateOff   bool // Disable if true, Enable if false
 
 	// Maps
@@ -614,6 +612,10 @@ func (s *State) JournalMessage(msg interfaces.IMsg) {
 	str := s.MessageToLogString(msg)
 	f.WriteString(str)
 	f.Close()
+}
+
+func (s *State) GetLeaderVM() int {
+	return s.LeaderVMIndex
 }
 
 func (s *State) GetDBState(height uint32) *DBState {

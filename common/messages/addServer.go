@@ -108,7 +108,8 @@ func (m *AddServerMsg) Validate(state interfaces.IState) int {
 // Returns true if this is a message for this server to execute as
 // a leader.
 func (m *AddServerMsg) Leader(state interfaces.IState) bool {
-	return state.LeaderFor(m, constants.ADMIN_CHAINID)
+	state.LeaderFor(m, constants.ADMIN_CHAINID)
+	return true
 }
 
 // Execute the leader functions of the given message
