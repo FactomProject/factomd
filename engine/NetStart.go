@@ -44,7 +44,7 @@ func NetStart(s *state.State) {
 	dbPtr := flag.String("db", "", "Override the Database in the Config file and use this Database implementation")
 	cloneDBPtr := flag.String("clonedb", "", "Override the main node and use this database for the clones in a Network.")
 	folderPtr := flag.String("folder", "", "Directory in .factom to store nodes. (eg: multiple nodes on one filesystem support)")
-	portPtr := flag.Int("port", 8088, "Address to serve WSAPI on")
+	portOverridePtr := flag.Int("port", 0, "Address to serve WSAPI on")
 	addressPtr := flag.String("p2pPort", "8108", "Address & port to listen for peers on.")
 	peersPtr := flag.String("peers", "", "Array of peer addresses. ")
 	blkTimePtr := flag.Int("blktime", 0, "Seconds per block.  Production is 600.")
