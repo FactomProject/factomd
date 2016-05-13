@@ -72,13 +72,17 @@ func( p *ProcessList) Unseal(minute int) bool {
 	cnt := 0
 	for i :=0; i < len(p.FedServers); i++ {
 		vm := p.VMs[i]
+		if len(vm.List)!=vm.Height {
+			break
+		}
 		for _,v := range vm.List {
 			if v == nil {
 				break
 			}
 			if eom, ok := v.(*messages.EOM); ok {
-				if int(eom.Minute) == minute {
+				if int(eom.Minute+1) == minute {
 					cnt++
+					break
 				}
 			}
 		}
@@ -91,8 +95,9 @@ func( p *ProcessList) Unseal(minute int) bool {
 			p.VMs[i].Seal = 0
 			p.VMs[i].SealHeight = 0
 		}
+		return true
 	}
-	return true
+	return false
 }
 
 

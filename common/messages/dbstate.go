@@ -31,7 +31,6 @@ type DBStateMsg struct {
 	AdminBlock       interfaces.IAdminBlock
 	FactoidBlock     interfaces.IFBlock
 	EntryCreditBlock interfaces.IEntryCreditBlock
-	EntryBlocks      []interfaces.IEntryBlock
 
 	//Not signed!
 }
@@ -66,21 +65,6 @@ func (a *DBStateMsg) IsSameAs(b *DBStateMsg) bool {
 		return false
 	}
 
-	if a.EntryBlocks == nil && b.EntryBlocks != nil {
-		return false
-	}
-	if a.EntryBlocks != nil {
-		if len(a.EntryBlocks) != len(b.EntryBlocks) {
-			return false
-		}
-		for i := range a.EntryBlocks {
-			ok, err = primitives.AreBinaryMarshallablesEqual(a.EntryBlocks[i], b.EntryBlocks[i])
-			if err != nil || ok == false {
-				return false
-			}
-		}
-	}
-
 	return true
 }
 
@@ -89,13 +73,13 @@ func (m *DBStateMsg) GetHash() interfaces.IHash {
 }
 
 func (m *DBStateMsg) GetMsgHash() interfaces.IHash {
-	if m.MsgHash == nil {
-		data, err := m.MarshalBinary()
-		if err != nil {
-			return nil
-		}
-		m.MsgHash = primitives.Sha(data)
+
+	data, err := m.MarshalBinary()
+	if err != nil {
+		return nil
 	}
+	m.MsgHash = primitives.Sha(data)
+
 	return m.MsgHash
 }
 
@@ -204,14 +188,6 @@ func (m *DBStateMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error
 	if err != nil {
 		return nil, err
 	}
-	for len(newData) > 0 {
-		entry, data, err := entryBlock.UnmarshalEBlockData(newData)
-		if err != nil {
-			return nil, err
-		}
-		m.EntryBlocks = append(m.EntryBlocks, entry)
-		newData = data
-	}
 
 	return
 }
@@ -256,13 +232,6 @@ func (m *DBStateMsg) MarshalBinary() ([]byte, error) {
 		return nil, err
 	}
 	buf.Write(data)
-	for i := range m.EntryBlocks {
-		data, err = m.EntryBlocks[i].MarshalBinary()
-		if err != nil {
-			return nil, err
-		}
-		buf.Write(data)
-	}
 
 	return buf.DeepCopyBytes(), nil
 }
