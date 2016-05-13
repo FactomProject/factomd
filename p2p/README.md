@@ -6,26 +6,15 @@
 
 ## Architecture
 
-App <-> Peer (p2pPeer) <-> Protocol <-> Wire <-> TCP (or UDP in future)
+App <-> Controller <-> Connection <-> TCP (or UDP in future)
 
-Wire  
-- This is the lowest layer. It manages the sending and recieving of messages, ensuring that complete messages are transmitted/recieved.
-- Provides some sort of checksum for messages
-- Messages are sent in big endian format.
-- Over the air message format is:
-    - Magic Cookie (buffer over/underflow protection)
-    - Message Length 
-    - Checksum
-    - Payload
-- Speaks with higher levels using the Wire struct
+Controller - controller.go
+This manages the peers in the network. It keeps connections alive, and routes messages 
+from the application to the appropriate peer.  It talks to the application over several
+channels. It uses a commandChannel for process isolation, but provides public functions
+for all of the commands.  The messages for the network peers go over the ToNetwork and
+come in on the FromNetwork channels.
 
-Protocol
-- One level up, allows for running multiple protocols over a connection. (eg: heartbeat, factom, stats, etc.)
-- Protocols are registered with the network, along with a protocol id. Each message indicates which protocol it belongs to.
-- The network manager 
-
-
-Example code:
-
-Read (and other magnos stuff)
-https://github.com/go-mangos/mangos/blob/master/conn.go#L176
+Connection - connection.go
+This struct represents an individual connection to another peer. It talks to the 
+controller over channels, again providing process/memory isolation. 

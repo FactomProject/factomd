@@ -215,9 +215,8 @@ func (p *P2PProxy) startProxy() {
 func (f *P2PProxy) ManageOutChannel() {
 	for data := range f.BroadcastOut {
 		// Wrap it in a parcel and send it out channel ToNetwork.
-		parcel := p2p.NewParcel(p2p.CurrentNetwork)
+		parcel := p2p.NewParcel(p2p.CurrentNetwork, data)
 		parcel.Header.Type = p2p.TypeMessage
-		parcel.Payload = data
 		// BUGBUG JAYJAY TODO -- Load the target peer from the message, if there is one, int the parcel
 		// so it can be sent as a directed message
 		f.ToNetwork <- *parcel
@@ -229,7 +228,7 @@ func (f *P2PProxy) ManageOutChannel() {
 func (f *P2PProxy) ManageInChannel() {
 	for data := range f.FromNetwork {
 		// BUGBUG JAYJAY TODO Here is where you copy the connecton ID into the Factom message?
-		message := data.Payload.([]byte)
+		message := data.Payload
 		f.BroadcastIn <- message
 	}
 }

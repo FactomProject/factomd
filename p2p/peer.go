@@ -23,14 +23,15 @@ type Peer struct {
 
 const ( // iota is reset to 0
 	RegularPeer uint8 = iota
-	TrustedPeer
+	SpecialPeer
 )
 
-func (p *Peer) Init(address string, quality int) *Peer {
-	p.address = address
-	p.qualityScore = 0 // start at zero, zero is neutral, negative is a bad peer, positive is a good peer.
+func (p *Peer) Init(address string, quality int, peerType uint8) *Peer {
+	p.Address = address
+	p.QualityScore = 0 // start at zero, zero is neutral, negative is a bad peer, positive is a good peer.
 	p.Location = p.locationFromAddress()
 	p.Hash = PeerHashFromAddress(address)
+	p.Type = peerType
 	return p
 }
 
@@ -44,34 +45,53 @@ func (p *Peer) Init(address string, quality int) *Peer {
 //     return IPv6Int
 // }
 // Problem is we're working wiht string addresses, may never have made a connection.
-
+// BUGBUG - we might have a DNS address, not iP address and need to resolve it!
 // locationFromAddress converts the peers address into a uint32 "location" numeric
 func (p *Peer) locationFromAddress() uint32 {
 	// Split out the port
-	ip_port := strings.Split(p.Location, ":")
+	ip_port := strings.Split(p.Address, ":")
 	// Split the IPv4 octets
 	octets := strings.Split(ip_port[0], ".")
 	// Turn into uint32
 	var location uint32
-	location += uint32(strconv.Atoi(octets[0])) << 24
-	location += uint32(strconv.Atoi(octets[1])) << 16
-	location += uint32(strconv.Atoi(octets[2])) << 8
-	location += uint32(strconv.Atoi(octets[3]))
+	b0, _ := strconv.Atoi(octets[0])
+	b1, _ := strconv.Atoi(octets[1])
+	b2, _ := strconv.Atoi(octets[2])
+	b3, _ := strconv.Atoi(octets[3])
+	location += uint32(b0) << 24
+	location += uint32(b1) << 16
+	location += uint32(b2) << 8
+	location += uint32(b3)
+	debug("Peer: %s has Location: %d", p.Hash, location)
 	return location
 }
 
 func PeerHashFromAddress(address string) string {
-	raw := sha256.Sum256([]byte(p.address))
-	hash = base64.URLEncoding.EncodeToString(raw[0:sha256.Size])
+	raw := sha256.Sum256([]byte(address))
+	hash := base64.URLEncoding.EncodeToString(raw[0:sha256.Size])
+	debug("Peer address %s produces hash: %s", address, hash)
 	return hash
 }
 
 // merit increases a peers reputation
 func (p *Peer) merit() {
-	p.qualityScore++
+	p.QualityScore++
 }
 
 // demerit decreases a peers reputation
 func (p *Peer) demerit() {
-	p.qualityScore--
+	p.QualityScore--
+}
+
+// sort.Sort interface implementation
+type PeerSort []Peer
+
+func (p PeerSort) Len() int {
+	return len(p)
+}
+func (p PeerSort) Swap(i, j int) {
+	p[i], p[j] = p[j], p[i]
+}
+func (p PeerSort) Less(i, j int) bool {
+	return p[i].QualityScore < p[j].QualityScore
 }

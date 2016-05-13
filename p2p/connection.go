@@ -17,7 +17,7 @@ type Connection struct {
 	conn           net.Conn
 	SendChannel    chan Parcel // Send means "towards the network"
 	ReceiveChannel chan Parcel // Recieve means "from the network"
-	ConnectionID   string      // Random number used for loopback protection
+	// ConnectionID   string      // Random number used for loopback protection
 	// and as "address" for sending messages to specific nodes.
 	Online          bool         // Indicates if the connection is connected to a peer or not.
 	encoder         *gob.Encoder // Wire format is gobs in this version, may switch to binary
@@ -29,7 +29,7 @@ type Connection struct {
 }
 
 func (c *Connection) Init(peer Peer) *Connection {
-	note("Connection.Init() called.")
+	note(c.peer.Hash, "Connection.Init() called.")
 	c.peer = peer
 	c.SendChannel = make(chan Parcel, 1000)
 	c.ReceiveChannel = make(chan Parcel, 1000)
@@ -43,7 +43,7 @@ func (c *Connection) Init(peer Peer) *Connection {
 
 // Called when we are online and connected to the peer.
 func (c *Connection) Configure(netConn net.Conn) {
-	note("Connection.Configure() called. %d", c.ConnectionID)
+	note(c.peer.Hash, "Connection.Configure() called. %d", c.peer.Hash)
 	c.conn = netConn
 	c.Online = true
 	c.encoder = gob.NewEncoder(c.conn)
@@ -58,16 +58,17 @@ func (c *Connection) Configure(netConn net.Conn) {
 
 // processSends gets all the messages from the application and sends them out over the network
 func (c *Connection) processSends() {
-	note("Connection.processSends() called. %d Online? %b", c.ConnectionID, c.Online)
+	note(c.peer.Hash, "Connection.processSends() called. %d Online? %b", c.peer.Hash, c.Online)
 	for c.Online {
-		note("Connection.processSends() called. Items in send channel: %d Online? %b", len(c.SendChannel), c.Online)
+		note(c.peer.Hash, "Connection.processSends() called. Items in send channel: %d Online? %b", len(c.SendChannel), c.Online)
 		for parcel := range c.SendChannel {
-			parcel.Header.ConnectionID = c.ConnectionID // Send it out with our ID for loopback.
-			debug("Connection.processSends() Calling Encoder")
+			parcel.Header.TargetPeer = c.peer.Hash // Send it out with our ID for loopback.
+			debug(c.peer.Hash, "Connection.processSends() Calling Encoder")
 			err := c.encoder.Encode(parcel)
-			debug("Connection.processSends() BACK from Calling Encoder")
+			debug(c.peer.Hash, "Connection.processSends() BACK from Calling Encoder")
 			if nil != err {
-				logerror(true, "Connection.processSends() got encoding error: %+v", err)
+				parcel.Header.TargetPeer = c.peer.Hash // Send it out with our ID for loopback.
+				logerror(c.peer.Hash, c.peer.Hash, "Connection.processSends() got encoding error: %+v", err)
 				c.peer.demerit()
 				if io.EOF == err {
 					c.connectionDropped()
@@ -75,7 +76,7 @@ func (c *Connection) processSends() {
 			}
 		}
 	}
-	note("Connection.processSends() exited. %d", c.ConnectionID)
+	note(c.peer.Hash, "Connection.processSends() exited. %d", c.peer.Hash)
 }
 
 func (c *Connection) connectionDropped() {
@@ -87,17 +88,16 @@ func (c *Connection) connectionDropped() {
 	c.peer.demerit()
 }
 
-
 // processReceives gets all the messages from the network and sends them to the application
 func (c *Connection) processReceives() {
-	note("Connection.processReceives() called. %d Online? %b", c.ConnectionID, c.Online)
+	note(c.peer.Hash, "Connection.processReceives() called. %d Online? %b", c.peer.Hash, c.Online)
 	for c.Online {
 		var message Parcel
-		debug("Connection.processReceives() Calling Decoder")
+		debug(c.peer.Hash, "Connection.processReceives() Calling Decoder")
 		err := c.decoder.Decode(&message)
-		debug("Connection.processReceives() Out from Decoder")
+		debug(c.peer.Hash, "Connection.processReceives() Out from Decoder")
 		if nil != err {
-			logerror(true, "Connection.processReceives() got decoding error: %+v", err)
+			logerror(c.peer.Hash, "Connection.processReceives() got decoding error: %+v", err)
 			c.peer.demerit()
 			if io.EOF == err {
 				c.connectionDropped()
@@ -106,9 +106,8 @@ func (c *Connection) processReceives() {
 			c.handleParcel(message)
 		}
 	}
-	note("Connection.processReceives() exited. %s", c.peer.address)
+	note(c.peer.Hash, "Connection.processReceives() exited. %s", c.peer.Address)
 }
-
 
 // TODO - make it easy to switch between encoding/binary and encoding/gob here.
 // func (c *Connection) encodeAndSend(parcel Parcel)l error {
@@ -118,12 +117,12 @@ func (c *Connection) processReceives() {
 // }
 
 func (c *Connection) dial() {
-	conn, err := net.Dial("tcp", c.peer.address)
+	conn, err := net.Dial("tcp", c.peer.Address)
 	if err != nil {
 		c.timeLastAttempt = time.Now()
-		note("Connection.dial(%s) got error: %+v", c.peer.address, err)
+		note(c.peer.Hash, "Connection.dial(%s) got error: %+v", c.peer.Address, err)
 	} else {
-		debug("Connection.dial(%s) was successful.", c.peer.address)
+		debug(c.peer.Hash, "Connection.dial(%s) was successful.", c.peer.Address)
 		c.Configure(conn)
 	}
 }
@@ -131,49 +130,49 @@ func (c *Connection) dial() {
 // handleParcel checks the parcel command type, and either generates a response, or passes it along.
 func (c *Connection) handleParcel(parcel Parcel) {
 	parcel.Header.Timestamp = time.Now() // set the timestamp to the recieved time.
-
-	switch validity := c.parcelValidity(parcel) {
+	validity := c.parcelValidity(parcel)
+	switch validity {
 	case InvalidDisconnectPeer:
-				debug("Connection.handleParcel() Disconnecting peer for incompatibility: %s", c.peer.address)
-				c.attempts = MaxNumberOfRedialAttempts + 50 // so we don't redial invalid Peer
-				c.shutdown()
+		debug(c.peer.Hash, "Connection.handleParcel() Disconnecting peer for incompatibility: %s", c.peer.Address)
+		c.attempts = MaxNumberOfRedialAttempts + 50 // so we don't redial invalid Peer
+		c.shutdown()
 	case InvalidPeerDemerit:
-		debug("Connection.processReceives() got invalid message")
-		message.Print()
-				c.peer.demerit()
+		debug(c.peer.Hash, "Connection.processReceives() got invalid message")
+		parcel.Print()
+		c.peer.demerit()
 	case ParcelValid:
 		c.timeLastContact = time.Now() // We only update for valid messages (incluidng pings and heartbeats)
-		c.peer.merit() // Increase peer quality score.
-		message.PrintMessageType()
+		c.peer.merit()                 // Increase peer quality score.
+		parcel.PrintMessageType()
 		c.handleParcelTypes(parcel) // handles both network commands and application messages
 	}
 }
 
 // These constants support the multiple penalties and responses for Parcel validation
 const (
-	ParcelValid    uint8 = iota
+	ParcelValid           uint8 = iota
 	InvalidPeerDemerit          // The peer sent an invalid message
 	InvalidDisconnectPeer       // Eg they are on the wrong network or wrong version of the software
 )
 
 func (c *Connection) parcelValidity(parcel Parcel) uint8 {
-	debug("Connection.isValidParcel(%+v)", parcel)
+	debug(c.peer.Hash, "Connection.isValidParcel(%+v)", parcel)
 	crc := crc32.Checksum(parcel.Payload, CRCKoopmanTable)
 	switch {
-case parcel.Header.ConnectionID == c.ConnectionID: // We are talking to ourselves!
-		logerror(true, "Connection.isValidParcel(), failed due to loopback!: %+v", parcel)
+	case parcel.Header.TargetPeer == c.peer.Hash: // We are talking to ourselves!
+		logerror(c.peer.Hash, "Connection.isValidParcel(), failed due to loopback!: %+v", parcel)
 		return InvalidDisconnectPeer
 	case parcel.Header.Network != CurrentNetwork:
-		logerror(true, "Connection.isValidParcel(), failed due to wrong network: %+v", parcel)
+		logerror(c.peer.Hash, "Connection.isValidParcel(), failed due to wrong network: %+v", parcel)
 		return InvalidDisconnectPeer
 	case parcel.Header.Version < ProtocolVersionMinimum:
-		logerror(true, "Connection.isValidParcel(), failed due to wrong version: %+v", parcel)
+		logerror(c.peer.Hash, "Connection.isValidParcel(), failed due to wrong version: %+v", parcel)
 		return InvalidDisconnectPeer
 	case parcel.Header.Length != uint32(len(parcel.Payload)):
-		logerror(true, "Connection.isValidParcel(), failed due to wrong length: %+v", parcel)
+		logerror(c.peer.Hash, "Connection.isValidParcel(), failed due to wrong length: %+v", parcel)
 		return InvalidPeerDemerit
 	case parcel.Header.Crc32 != crc:
-		logerror(true, "Connection.isValidParcel(), failed due to bad checksum: %+v", parcel)
+		logerror(c.peer.Hash, "Connection.isValidParcel(), failed due to bad checksum: %+v", parcel)
 		return InvalidPeerDemerit
 	}
 	return ParcelValid
@@ -181,30 +180,30 @@ case parcel.Header.ConnectionID == c.ConnectionID: // We are talking to ourselve
 func (c *Connection) handleParcelTypes(parcel Parcel) {
 	switch parcel.Header.Type {
 	case TypeAlert:
-		silence("!!!!!!!!!!!!!!!!!! Alert: TODO Alert signature checking not supported yet! BUGBUG")
+		silence(c.peer.Hash, "!!!!!!!!!!!!!!!!!! Alert: TODO Alert signature checking not supported yet! BUGBUG")
 	case TypePing:
 		// Send Pong
-	pong := NewParcel(CurrentNetwork, []byte("Pong"))
+		pong := NewParcel(CurrentNetwork, []byte("Pong"))
 		pong.Header.Type = TypePong
 		c.SendChannel <- parcel
 	case TypePong: // all we need is the timestamp which is set already
-		return 
+		return
 	case TypePeerRequest:
-		c.ReceiveChannel <- parcel  // Controller handles these.
+		c.ReceiveChannel <- parcel // Controller handles these.
 	case TypePeerResponse:
-		c.ReceiveChannel <- parcel  // Controller handles these.
+		c.ReceiveChannel <- parcel // Controller handles these.
 	case TypeMessage:
 		// Store our connection ID so the controller can direct response to us.
-		parcel.Header.ConnectionID = c.ConnectionID
+		parcel.Header.TargetPeer = c.peer.Hash
 		c.ReceiveChannel <- parcel
 	default:
-		silence("!!!!!!!!!!!!!!!!!! Got message of unknown type?")
+		silence(c.peer.Hash, "!!!!!!!!!!!!!!!!!! Got message of unknown type?")
 		parcel.Print()
 	}
 }
 
 // func (c *Connection) gotBadMessage() {
-// 	debug("Connection.gotBadMessage()")
+// 	debug(c.peer.Hash, "Connection.gotBadMessage()")
 // 	// TODO Track bad messages to ban bad peers at network level
 // 	// Array of in Connection of bad messages
 // 	// Add this one to the array with timestamp
@@ -214,7 +213,7 @@ func (c *Connection) handleParcelTypes(parcel Parcel) {
 // }
 
 func (c *Connection) shutdown() {
-	debug("Connection.shutdown(%+v)", "")
+	debug(c.peer.Hash, "Connection.shutdown(%+v)", "")
 	c.Online = false
 	if nil != c.conn {
 		defer c.conn.Close()

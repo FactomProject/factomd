@@ -5,6 +5,7 @@
 package p2p
 
 import (
+	"fmt"
 	"hash/crc32"
 	"strconv"
 	"time"
@@ -21,13 +22,13 @@ type Parcel struct {
 const ParcelHeaderSize = 28
 
 type ParcelHeader struct {
-	Network      NetworkID         // 4 bytes - the network we are on (eg testnet, main net, etc.)
-	Version      uint16            // 2 bytes - the version of the protocol we are running.
-	Type         ParcelCommandType // 2 bytes - network level commands (eg: ping/pong)
-	Length       uint32            // 4 bytes - length of the payload (that follows this header) in bytes
-	ConnectionID string            // ? bytes - "" or nil for broadcast, otherwise the destination peer's hash.
-	Crc32        uint32            // 4 bytes - data integrity hash (of the payload itself.)
-	Timestamp    time.Time
+	Network    NetworkID         // 4 bytes - the network we are on (eg testnet, main net, etc.)
+	Version    uint16            // 2 bytes - the version of the protocol we are running.
+	Type       ParcelCommandType // 2 bytes - network level commands (eg: ping/pong)
+	Length     uint32            // 4 bytes - length of the payload (that follows this header) in bytes
+	TargetPeer string            // ? bytes - "" or nil for broadcast, otherwise the destination peer's hash.
+	Crc32      uint32            // 4 bytes - data integrity hash (of the payload itself.)
+	Timestamp  time.Time
 }
 
 type ParcelCommandType uint16
@@ -45,13 +46,13 @@ const ( // iota is reset to 0
 
 // CommandStrings is a Map of command ids to strings for easy printing of network comands
 var CommandStrings = map[ParcelCommandType]string{
-	TypeHeartbeat:    "Heartbeat",    // "Note, I'm still alive"
-	TypePing:         "Ping",         // "Are you there?"
-	TypePong:         "Pong",         // "yes, I'm here"
-	TypeHello:        "Hello",        // "TBD Share our public key, start talking"
-	TypeNetworkError: "NetworkError", // eg: "you sent me a message larger than max payload ParcelHeaderSize""
-	TypeAlert:        "Alert",        // network wide alerts (used in bitcoin to indicate criticalities)
-	TypeMessage:      "Message",      // Application level message
+	TypeHeartbeat:    "Heartbeat",     // "Note, I'm still alive"
+	TypePing:         "Ping",          // "Are you there?"
+	TypePong:         "Pong",          // "yes, I'm here"
+	TypePeerRequest:  "Peer Request",  // "Please share some peers"
+	TypePeerResponse: "Peer Response", // "Here's some peers I know about."
+	TypeAlert:        "Alert",         // network wide alerts (used in bitcoin to indicate criticalities)
+	TypeMessage:      "Message",       // Application level message
 }
 
 // MaxPayloadSize is the maximum bytes a message can be at the networking level.
@@ -70,7 +71,7 @@ func (p *ParcelHeader) Init(network NetworkID) *ParcelHeader {
 	p.Network = network
 	p.Version = ProtocolVersion
 	p.Type = TypeMessage
-	p.ConnectionID = uint64(0)
+	p.TargetPeer = "" // initially no target
 	return p
 }
 func (p *Parcel) Init(header ParcelHeader) *Parcel {
@@ -78,36 +79,28 @@ func (p *Parcel) Init(header ParcelHeader) *Parcel {
 	return p
 }
 
-func (p *Parcel) UpdateHeader() *Parcel {
+func (p *Parcel) UpdateHeader() {
 	p.Header.Crc32 = crc32.Checksum(p.Payload, CRCKoopmanTable)
 	p.Header.Length = uint32(len(p.Payload))
 }
 
 func (p *ParcelHeader) Print() {
 	// debug( true, "\t Cookie: \t%+v", string(p.Cookie))
-	debug(true, "\t Network:\t%+v", NetworkIDStrings[p.Network])
-	debug(true, "\t Version:\t%+v", p.Version)
-	debug(true, "\t Type:   \t%+v", CommandStrings[p.Type])
-	debug(true, "\t Length:\t%+d", p.Length)
-	debug(true, "\t ConnectionID:\t%+d", p.ConnectionID)
-	debug(true, "\t Hash:\t%+d", p.Hash)
+	debug("parcel", "\t Network:\t%+v", NetworkIDStrings[p.Network])
+	debug("parcel", "\t Version:\t%+v", p.Version)
+	debug("parcel", "\t Type:   \t%+v", CommandStrings[p.Type])
+	debug("parcel", "\t Length:\t%d", p.Length)
+	debug("parcel", "\t TargetPeer:\t%s", p.TargetPeer)
+	debug("parcel", "\t CRC32:\t%d", p.Crc32)
 }
 
 func (p *Parcel) Print() {
-	debug(true, "Pretty Printing Parcel:")
+	debug("parcel", "Pretty Printing Parcel:")
 	p.Header.Print()
-	switch p.Payload.(type) {
-	case string:
-		debug(true, "\t\tPayload: %s", p.Payload)
-	case []byte:
-		s := strconv.Quote(string(p.Payload.([]byte)))
-		debug(true, "\t\tPayload: %s", s)
-	default:
-		debug(true, "\t\tPayload: %+v", p.Payload)
-
-	}
+	s := strconv.Quote(string(p.Payload))
+	debug("parcel", "\t\tPayload: %s", s)
 }
 
 func (p *Parcel) PrintMessageType() {
-	log(Notes, false, "[%+v]", CommandStrings[p.Header.Type])
+	fmt.Printf("[%+v]", CommandStrings[p.Header.Type])
 }

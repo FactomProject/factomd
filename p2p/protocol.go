@@ -19,10 +19,14 @@ var (
 	PingInterval              time.Duration = time.Second * 30
 	TimeBetweenRedials        time.Duration = time.Second * 30
 	MaxNumberOfRedialAttempts int           = 15
+	PeerSaveInterval          time.Duration = time.Second * 30
 
-	MinumumQualityScore int = -200   // if a peer's score is less than this we ignore them.
-	BannedQualityScore  int = -32000 // Used to ban a peer
+	MinumumQualityScore int          = -200   // if a peer's score is less than this we ignore them.
+	BannedQualityScore  int          = -32000 // Used to ban a peer
+	CRCKoopmanTable     *crc32.Table = crc32.MakeTable(crc32.Koopman)
 
+	OnlySpecialPeers     bool = false
+	NumberPeersToConnect int  = 12
 )
 
 const (
@@ -33,7 +37,6 @@ const (
 	// Don't think we need this.
 	// ProtocolCookie         uint32 = uint32([]bytes("Fact"))
 	// Used in generating message CRC values
-	CRCKoopmanTable *Table = crc32.MakeTable(crc32.Koopman)
 )
 
 // NOTE JAYJAY -- define node service levels (if we need them?)
@@ -85,37 +88,36 @@ var LoggingLevels = map[uint8]string{
 	Verbose:   "Verbose",   // Log everything
 }
 
-func silence(format string, v ...interface{}) {
-	log(Silence, linebreak, format, v...)
+func silence(component string, format string, v ...interface{}) {
+	log(Silence, component, format, v...)
 }
-func logfatal(format string, v ...interface{}) {
-	log(Fatal, linebreak, format, v...)
+func logfatal(component string, format string, v ...interface{}) {
+	log(Fatal, component, format, v...)
 }
-func logerror(format string, v ...interface{}) {
-	log(Errors, linebreak, format, v...)
+func logerror(component string, format string, v ...interface{}) {
+	log(Errors, component, format, v...)
 }
-func note(format string, v ...interface{}) {
-	log(Notes, linebreak, format, v...)
+func note(component string, format string, v ...interface{}) {
+	log(Notes, component, format, v...)
 }
-func debug(format string, v ...interface{}) {
-	log(Debugging, linebreak, format, v...)
+func debug(component string, format string, v ...interface{}) {
+	log(Debugging, component, format, v...)
 }
-func verbose(format string, v ...interface{}) {
-	log(Verbose, linebreak, format, v...)
+func verbose(component string, format string, v ...interface{}) {
+	log(Verbose, component, format, v...)
 }
 
 // log is the base log function to produce parsable log output for mass metrics consumption
-func log(level uint8, format string, v ...interface{}) {
+func log(level uint8, component string, format string, v ...interface{}) {
 	message := strings.Replace(fmt.Sprintf(format, v...), ",", "-", -1) // Make CSV parsable.
-	message = message.Replace
 	levelStr := LoggingLevels[level]
 	host, _ := os.Hostname()
 	if level <= CurrentLoggingLevel { // lower level means more severe. "Silence" level always printed, overriding silence.
 		// fmt.Fprintf(os.Stdout, "%d (%s) %d/%d \t- %s  %s", os.Getpid(), levelStr, level, CurrentLoggingLevel, message, breakStr)
-		fmt.Fprintf(os.Stdout, "%s, %d, %s, %s\n", host, os.Getpid(), levelStr, message)
+		fmt.Fprintf(os.Stdout, "%s, %d, %s, %s, %s\n", host, os.Getpid(), component, levelStr, message)
 	}
 	if level == Fatal {
-		fmt.Fprintf(os.Stderr, "%s, %d, %s, %s\n", host, os.Getpid(), levelStr, message)
+		fmt.Fprintf(os.Stderr, "%s, %d, %s, %s\n", host, os.Getpid(), component, levelStr, message)
 
 		// BUGBUG - take out this exit before shipping JAYJAY TODO
 		os.Exit(1)
