@@ -81,7 +81,7 @@ func NetStart(s *state.State) {
 	s.LoadConfig(FactomConfigFilename, folder)
 
 	if 999 < portOverride { // The command line flag exists and seems reasonable.
-		s.PortNumber = portOverride
+		s.SetPort(portOverride)
 	}
 
 	if blkTime != 0 {
