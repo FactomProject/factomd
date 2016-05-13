@@ -74,7 +74,7 @@ func (s *State) Process() (progress bool) {
 		s.EOM = 0
 	}
 
-	if s.EOM > 0 && s.EOM == s.LeaderPL.MinuteFinished()  {
+	if s.EOM > 0 && s.LeaderPL.Unseal(s.EOM)  {
 		s.LeaderMinute++
 
 		switch {
@@ -96,14 +96,11 @@ func (s *State) Process() (progress bool) {
 }
 
 func (s *State) TryToProcess(msg interfaces.IMsg) {
-	msg.Leader(s)
-
 	v := msg.Validate(s)
-
 	if v == 1 {
-	if s.Leader && msg.Leader(s) {
+		if s.Leader && msg.Leader(s) {
 			vm := s.LeaderPL.VMs[s.LeaderVMIndex]
-			if s.EOM == 0 {
+			if s.EOM == 0 && len(vm.List)<=vm.Height{
 				if s.LeaderVMIndex == msg.GetVMIndex() || msg.IsLocal() {
 					if len(vm.List) >= vm.Height {
 						err := msg.LeaderExecute(s)
@@ -121,6 +118,7 @@ func (s *State) TryToProcess(msg interfaces.IMsg) {
 			} else {
 				if s.LeaderVMIndex == msg.GetVMIndex() || msg.IsLocal() {
 					s.StallMsg(msg)
+					return
 				}
 			}
 		}
@@ -317,7 +315,6 @@ func (s *State) LeaderExecute(m interfaces.IMsg) error {
 	dbheight := s.LLeaderHeight
 	ack, err := s.NewAck(dbheight, m)
 	if err != nil {
-		s.StallMsg(m)
 		return err
 	}
 
@@ -345,7 +342,6 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
 	eom.Sign(s)
 	eom.SetLocal(false)
 	ack, err := s.NewAck(s.LLeaderHeight, m)
-
 	if err != nil {
 		return err
 	}

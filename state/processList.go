@@ -57,6 +57,8 @@ type VM struct {
 	List           []interfaces.IMsg // Lists of acknowledged messages
 	Height         int               // Height of messages that have been processed
 	LeaderMinute   int               // Where the leader is in acknowledging messages
+	Seal           int	            // Sealed with an EOM minute, and released (0) when all EOM are found.
+	SealHeight     uint32            // Entries belowe the seal can still be recorded.
 	MinuteComplete int               // Highest minute complete recorded (0-9) by the follower
 	MinuteFinished int               // Highest minute processed (0-9) by the follower
 	MinuteHeight   int               // Height of the last minute complete
@@ -65,19 +67,34 @@ type VM struct {
 	missingTime    int64             // How long we have been waiting for a missing message
 }
 
-func (p *ProcessList) Done(minute int) bool {
-	for _,pl := range p.VMs {
-		if len(pl.List)>pl.Height+1 {
-			fmt.Println(len(pl.List),pl.Height)
+// Attempts to unseal. Takes a minute (1-10) Returns false if it cannot
+func( p *ProcessList) Unseal(minute int) bool {
+	cnt := 0
+	for i :=0; i < len(p.FedServers); i++ {
+		vm := p.VMs[i]
+		for _,v := range vm.List {
+			if v == nil {
+				break
+			}
+			if eom, ok := v.(*messages.EOM); ok {
+				if int(eom.Minute) == minute {
+					cnt++
+				}
+			}
+		}
+	}
+	if cnt > 0 {
+		if cnt < len(p.FedServers) {
 			return false
 		}
-		if pl.MinuteComplete < minute {
-			fmt.Println(pl.MinuteComplete, minute)
-			return false
+		for i :=0; i< len(p.FedServers); i++ {
+			p.VMs[i].Seal = 0
+			p.VMs[i].SealHeight = 0
 		}
 	}
 	return true
 }
+
 
 // Returns the Virtual Server index for this hash for the given minute
 func (p *ProcessList) VMIndexFor(hash []byte) int {
@@ -426,20 +443,19 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			// compare the SerialHash of this acknowledgement with the
 			// expected serialHash (generated above)
 			if !expectedSerialHash.IsSameAs(thisAck.SerialHash) {
-				p.State.(*State).DebugPrt("Stupid")
-				fmt.Printf("DISCREPANCY: %d %x pl ht: %d \nDetected on: %s\n",
+				p.State.(*State).DebugPrt("Process List")
+				fmt.Printf("Error detected on %s\nSerial Hash failure: Fed Server %d  Leader ID %x List Ht: %d \nDetected on: %s\n",
+					state.GetFactomNodeName(),
 					i,
 					p.FedServers[i].GetChainID().Bytes()[:3],
-					j,
-					state.GetFactomNodeName())
-				fmt.Printf("LAST MESS: %x ::: LAST SERIAL: %x\n", last.GetHash().Bytes()[:3], last.SerialHash.Bytes()[:3])
-				fmt.Printf("THIS MESS: %x ::: THIS SERIAL: %x\n", thisAck.GetHash().Bytes()[:3], thisAck.SerialHash.Bytes()[:3])
-				fmt.Printf("EXPECT:    %x \n", expectedSerialHash.Bytes()[:3])
+					j)
+				fmt.Printf("Last Ack: %6x  Last Serial: %6x\n", last.GetHash().Bytes()[:3], last.SerialHash.Bytes()[:3])
+				fmt.Printf("This Ack: %6x  This Serial: %6x\n", thisAck.GetHash().Bytes()[:3], thisAck.SerialHash.Bytes()[:3])
+				fmt.Printf("Expected: %6x\n", expectedSerialHash.Bytes()[:3])
 				fmt.Printf("The message that didn't work: %s\n\n", plist[j].String())
 				fmt.Println(p.PrintMap())
 				// the SerialHash of this acknowledgment is incorrect
 				// according to this node's processList
-				panic("xxxxxxxxxxxxxxx")
 				plist[j] = nil
 				return
 			}
@@ -464,6 +480,11 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) boo
 	m.SetMinute(ack.Minute)
 
 	vm := p.VMs[ack.VMIndex]
+
+	// If this vm is sealed, then we can't add more messages.
+	if vm.Seal > 0 &&  ack.Height < vm.SealHeight {
+		return false
+	}
 
 	if len(vm.List) > int(ack.Height) && vm.List[ack.Height] != nil {
 
@@ -494,9 +515,14 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) boo
 				"VM", ack.VMIndex,
 				"LastAck", vm.LastAck.String(),
 				"LastLeaderAck", vm.LastLeaderAck.String())
-			panic("xxxxxxxxxx")
 			return false
 		}
+	}
+
+	eom, ok := m.(*messages.EOM)
+	if ok {
+		vm.Seal = int(eom.Minute+1)
+		vm.SealHeight = ack.Height
 	}
 	length := len(p.VMs[ack.VMIndex].List)
 	for length <= int(ack.Height) {

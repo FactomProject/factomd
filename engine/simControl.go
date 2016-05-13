@@ -14,6 +14,8 @@ import (
 
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/wsapi"
+	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/interfaces"
 )
 
 var _ = fmt.Print
@@ -263,7 +265,61 @@ func printSummary(summary *bool, listenTo *int) {
 				for _,f := range fnodes {
 					list = list + fmt.Sprintf(" %3d", len(f.State.NetworkInvalidMsgQueue()))
 				}
-				prt = prt + fmt.Sprintf("      NetworkInvalidMsgQueue %s\n", list)
+				prt = prt + fmt.Sprintf("      NetworkInvalidMsgQueue %s\n\n", list)
+
+				for _,f := range fnodes {
+					if !f.State.Leader { continue }
+					prt = prt + "  VM State per Node\n"
+					list = ""
+					for i, vm := range f.State.ProcessLists.Get(f.State.LLeaderHeight).VMs {
+						if i >= len(f.State.ProcessLists.Get(f.State.LLeaderHeight).FedServers) { break }
+						list = list + fmt.Sprintf(" %3d ",vm.Height)
+					}
+					prt = prt + fmt.Sprintf("  %8s %12s %s\n",f.State.FactomNodeName, "Height",list)
+					list = ""
+					for i, vm := range f.State.ProcessLists.Get(f.State.LLeaderHeight).VMs {
+						if i >= len(f.State.ProcessLists.Get(f.State.LLeaderHeight).FedServers) { break }
+						list = list + fmt.Sprintf(" %3d ",len(vm.List))
+					}
+					prt = prt + fmt.Sprintf("  %8s %12s %s\n",f.State.FactomNodeName, "Len VM List",list)
+					list = ""
+					for i, vm := range f.State.ProcessLists.Get(f.State.LLeaderHeight).VMs {
+						if i >= len(f.State.ProcessLists.Get(f.State.LLeaderHeight).FedServers) { break }
+						var h interfaces.IHash
+						if vm.LastAck == nil {
+							h = primitives.NewZeroHash()
+						}else {
+							h = vm.LastAck.GetHash()
+						}
+						list = list + fmt.Sprintf(" %4x",h.Bytes()[:2])
+					}
+					prt = prt + fmt.Sprintf("  %8s %12s %s\n",f.State.FactomNodeName, "LastAck",list)
+					list = ""
+					for i, vm := range f.State.ProcessLists.Get(f.State.LLeaderHeight).VMs {
+						if i >= len(f.State.ProcessLists.Get(f.State.LLeaderHeight).FedServers) { break }
+						var h interfaces.IHash
+						if vm.LastLeaderAck == nil {
+							h = primitives.NewZeroHash()
+						}else {
+							h = vm.LastLeaderAck.GetHash()
+						}
+						list = list + fmt.Sprintf(" %4x",h.Bytes()[:2])
+					}
+					prt = prt + fmt.Sprintf("  %8s %12s %s\n",f.State.FactomNodeName, "LastLeadAck",list)
+					list = ""
+					for i, vm := range f.State.ProcessLists.Get(f.State.LLeaderHeight).VMs {
+						if i >= len(f.State.ProcessLists.Get(f.State.LLeaderHeight).FedServers) { break }
+						list = list + fmt.Sprintf(" %3d ",vm.MinuteHeight)
+					}
+					prt = prt + fmt.Sprintf("  %8s %12s %s\n",f.State.FactomNodeName, "Min Height",list)
+					list = ""
+					for i, vm := range f.State.ProcessLists.Get(f.State.LLeaderHeight).VMs {
+						if i >= len(f.State.ProcessLists.Get(f.State.LLeaderHeight).FedServers) { break }
+						list = list + fmt.Sprintf(" %3d ",vm.MinuteFinished)
+					}
+					prt = prt + fmt.Sprintf("  %8s %12s %s\n\n",f.State.FactomNodeName, "Min Finished",list)
+				}
+
 			}
 			if prt != out {
 				fmt.Println(prt)
