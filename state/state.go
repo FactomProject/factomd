@@ -676,7 +676,7 @@ func (s *State) catchupEBlocks() {
 	}
 }
 
-func (s *State) GetEOM() bool {
+func (s *State) GetEOM() int {
 	return s.EOM
 }
 
@@ -969,7 +969,7 @@ func (s *State) SetString() {
 			lastheight = s.DBStates.Last().DirectoryBlock.GetHeader().GetDBHeight()
 		}
 
-		s.serverPrt = fmt.Sprintf("%9s%9s %x Recorded: %d Building: %d Last: %d DirBlk[:5]=%x L Min: %v L DBHT %v Min C/F %v/%v EOM %v EOM_S %v",
+		s.serverPrt = fmt.Sprintf("%9s%9s %x Recorded: %d Building: %d Last: %d DirBlk[:5]=%x L Min: %v L DBHT %v Min C/F %v/%v EOM %v ",
 			stype,
 			s.FactomNodeName,
 			s.IdentityChainID.Bytes()[:3],
@@ -981,8 +981,7 @@ func (s *State) SetString() {
 			s.LLeaderHeight,
 			s.ProcessLists.Get(s.LLeaderHeight).MinuteComplete(),
 			s.ProcessLists.Get(s.LLeaderHeight).MinuteFinished(),
-			s.EOM,
-			s.EOM_Step)
+			s.EOM)
 	}
 }
 

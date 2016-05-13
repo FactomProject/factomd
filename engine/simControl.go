@@ -219,18 +219,51 @@ func printSummary(summary *bool, listenTo *int) {
 			prt := ""
 			for _, f := range fnodes {
 				f.State.SetOut(false)
-				prt = prt + fmt.Sprintf("%8s %s\n", f.State.FactomNodeName, f.State.ShortString())
+				prt = prt + fmt.Sprintf("%8s %s \n", f.State.FactomNodeName, f.State.ShortString())
 			}
 			if *listenTo >= 0 && *listenTo < len(fnodes) {
-				state := fnodes[*listenTo].State
-				prt = prt + fmt.Sprintf("   %s\n", fnodes[*listenTo].State.GetFactomNodeName())
-				prt = prt + fmt.Sprintf("      FollowerMsgQueue       %d\n", len(state.FollowerMsgQueue()))
-				prt = prt + fmt.Sprintf("      InMsgQueue             %d\n", len(state.InMsgQueue()))
-				prt = prt + fmt.Sprintf("      LeaderMsgQueue         %d\n", len(state.LeaderMsgQueue()))
-				prt = prt + fmt.Sprintf("      stall Queue            %d\n", len(state.Stall()))
-				prt = prt + fmt.Sprintf("      TimerMsgQueue          %d\n", len(state.TimerMsgQueue()))
-				prt = prt + fmt.Sprintf("      NetworkOutMsgQueue     %d\n", len(state.NetworkOutMsgQueue()))
-				prt = prt + fmt.Sprintf("      NetworkInvalidMsgQueue %d\n", len(state.NetworkInvalidMsgQueue()))
+
+				var list string
+				list = ""
+				for i,_ := range fnodes {
+					list = list + fmt.Sprintf(" %2d ", i)
+				}
+				prt = prt + fmt.Sprintf("      %6s            %6s%s\n", "Queues", "Nodes:",list)
+				list = ""
+				for _,f := range fnodes {
+					list = list + fmt.Sprintf(" %3d", len(f.State.FollowerMsgQueue()))
+				}
+				prt = prt + fmt.Sprintf("      FollowerMsgQueue       %s\n", list)
+				list = ""
+				for _,f := range fnodes {
+					list = list + fmt.Sprintf(" %3d", len(f.State.InMsgQueue()))
+				}
+				prt = prt + fmt.Sprintf("      InMsgQueue             %s\n", list)
+				list = ""
+				for _,f := range fnodes {
+					list = list + fmt.Sprintf(" %3d", len(f.State.LeaderMsgQueue()))
+				}
+				prt = prt + fmt.Sprintf("      LeaderMsgQueue         %s\n", list)
+				list = ""
+				for _,f := range fnodes {
+					list = list + fmt.Sprintf(" %3d", len(f.State.Stall()))
+				}
+				prt = prt + fmt.Sprintf("      stall Queue            %s\n", list)
+				list = ""
+				for _,f := range fnodes {
+					list = list + fmt.Sprintf(" %3d", len(f.State.TimerMsgQueue()))
+				}
+				prt = prt + fmt.Sprintf("      TimerMsgQueue          %s\n", list)
+				list = ""
+				for _,f := range fnodes {
+					list = list + fmt.Sprintf(" %3d", len(f.State.NetworkOutMsgQueue()))
+				}
+				prt = prt + fmt.Sprintf("      NetworkOutMsgQueue     %s\n", list)
+				list = ""
+				for _,f := range fnodes {
+					list = list + fmt.Sprintf(" %3d", len(f.State.NetworkInvalidMsgQueue()))
+				}
+				prt = prt + fmt.Sprintf("      NetworkInvalidMsgQueue %s\n", list)
 			}
 			if prt != out {
 				fmt.Println(prt)
@@ -242,6 +275,8 @@ func printSummary(summary *bool, listenTo *int) {
 		time.Sleep(time.Second * 2)
 	}
 }
+
+
 
 func printProcessList(watchPL *bool, listenTo *int) {
 	out := ""

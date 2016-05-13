@@ -27,6 +27,8 @@ var _ = fmt.Print
 //***************************************************************
 func (s *State) Process() (progress bool) {
 
+	//s.DebugPrt("Process")
+
 	highest := s.GetHighestRecordedBlock()
 
 	UpdateLastLeaderAck := func () {
@@ -39,12 +41,17 @@ func (s *State) Process() (progress bool) {
 		}
 	}
 
+	if s.EOM <= 9 {
+		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
+		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.LeaderMinute, s.IdentityChainID)
+		UpdateLastLeaderAck()
+	}
+
 	if s.LLeaderHeight <= highest {
 		s.LLeaderHeight = highest + 1
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(0, s.IdentityChainID)
 		UpdateLastLeaderAck()
-
 
 		dbstate := s.DBStates.Get(s.LLeaderHeight - 1)
 		if dbstate != nil {
@@ -63,22 +70,24 @@ func (s *State) Process() (progress bool) {
 			}
 			s.leaderMsgQueue <- dbs
 		}
-
+		s.LeaderMinute = 0
 		s.EOM = 0
 	}
 
-	if s.EOM <= s.LeaderPL.MinuteFinished() {
-		fmt.Println("vvvvvvvvvvvvvvvvvvvv",s.LeaderMinute, " and ", s.LeaderPL.MinuteFinished())
+	if s.EOM > 0 && s.EOM == s.LeaderPL.MinuteFinished()  {
+		s.LeaderMinute++
 
 		switch {
 		case s.LeaderMinute <= 9:
 			s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.LeaderMinute, s.IdentityChainID)
 			UpdateLastLeaderAck()
-			s.EOM = false
+			s.EOM = 0
 		case s.LeaderMinute == 10:
 			s.AddDBState(true, s.LeaderPL.DirectoryBlock, s.LeaderPL.AdminBlock, s.GetFactoidState().GetCurrentBlock(), s.LeaderPL.EntryCreditBlock)
-			s.LeaderMinute = 0
+			s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight+1)
+			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(0, s.IdentityChainID)
+			UpdateLastLeaderAck()
 		}
 
 	}
@@ -88,12 +97,14 @@ func (s *State) Process() (progress bool) {
 
 func (s *State) TryToProcess(msg interfaces.IMsg) {
 	msg.Leader(s)
+
 	v := msg.Validate(s)
+
 	if v == 1 {
-		if s.Leader && msg.Leader(s) {
+	if s.Leader && msg.Leader(s) {
 			vm := s.LeaderPL.VMs[s.LeaderVMIndex]
-			if !s.EOM {
-				if s.LeaderVMIndex == msg.GetVMIndex() {
+			if s.EOM == 0 {
+				if s.LeaderVMIndex == msg.GetVMIndex() || msg.IsLocal() {
 					if len(vm.List) >= vm.Height {
 						err := msg.LeaderExecute(s)
 						if err == nil {
@@ -106,6 +117,10 @@ func (s *State) TryToProcess(msg interfaces.IMsg) {
 						s.StallMsg(msg)
 						return
 					}
+				}
+			} else {
+				if s.LeaderVMIndex == msg.GetVMIndex() || msg.IsLocal() {
+					s.StallMsg(msg)
 				}
 			}
 		}
@@ -138,13 +153,6 @@ func (s *State) ProcessQueues() (progress bool){
 		select {
 		case msg = <-s.stallQueue:
 			msg.SetStalled(true)		// Allow them to rebroadcast if they work.
-		default:
-		}
-	}
-
-	// If all my messages are empy, see if I can process a stalled message
-	if msg == nil {
-		select {
 		case msg = <-s.followerMsgQueue:
 			progress = true
 		default:
@@ -324,7 +332,12 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
 
 	eom := m.(*messages.EOM)
 
-	s.EOM = true
+	if s.EOM > 0 {
+		return fmt.Errorf("Stalling")
+	}
+
+
+	s.EOM = int(eom.Minute+1)
 
 	eom.DBHeight = s.LLeaderHeight
 	eom.VMIndex = s.LeaderVMIndex
@@ -403,15 +416,11 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		panic("Must pass an EOM message to ProcessEOM)")
 	}
 
-	pl := s.ProcessLists.Get(dbheight)
-
-	// Set this list complete
-	if s.LeaderMinute < int(e.Minute+1) {
-		s.LeaderMinute = int(e.Minute + 1)
-		if s.LeaderMinute < 10 {
-			s.Leader, s.LeaderVMIndex = pl.GetVirtualServers(s.LeaderMinute, s.IdentityChainID)
-		}
+	if s.EOM == 0 && !s.Leader {
+		s.EOM = int(e.Minute+1)
 	}
+
+	pl := s.ProcessLists.Get(dbheight)
 
 	pl.SetMinute(e.VMIndex, int(e.Minute))
 
@@ -444,11 +453,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	vm := pl.VMs[e.VMIndex]
 
 	vm.MinuteFinished = int(e.Minute) + 1
-
-	if pl.FinishedEOM() == int(e.Minute) + 1 {
-		s.EOM = false
-		s.LeaderMinute = int(e.Minute) + 1
-	}
 
 	return true
 }
@@ -704,7 +708,7 @@ func (s *State) DebugPrt(what string) {
 
 	ppl := s.ProcessLists.Get(s.LLeaderHeight)
 
-	fmt.Printf("tttt %8s %8s:  %v %v  %v %v   %v %v  %v %v  %v %v  %v %v  %v %v  %v %v  %v %v\n",
+	fmt.Printf("tttt %8s %8s:  %v %v  %v %v   %v %v  %v %v  %v %v  %v %v  %v %v  %v %v \n",
 		what,
 		s.FactomNodeName,
 		"LeaderVMIndex", s.LeaderVMIndex,

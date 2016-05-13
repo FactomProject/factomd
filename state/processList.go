@@ -65,6 +65,20 @@ type VM struct {
 	missingTime    int64             // How long we have been waiting for a missing message
 }
 
+func (p *ProcessList) Done(minute int) bool {
+	for _,pl := range p.VMs {
+		if len(pl.List)>pl.Height+1 {
+			fmt.Println(len(pl.List),pl.Height)
+			return false
+		}
+		if pl.MinuteComplete < minute {
+			fmt.Println(pl.MinuteComplete, minute)
+			return false
+		}
+	}
+	return true
+}
+
 // Returns the Virtual Server index for this hash for the given minute
 func (p *ProcessList) VMIndexFor(hash []byte) int {
 	v := uint64(0)
@@ -213,6 +227,11 @@ func (p *ProcessList) MinuteFinished() int {
 	m := 10
 	for i := 0; i < len(p.FedServers); i++ {
 		vm := p.VMs[i]
+		for i,v := range p.VMs[i].List {
+			if v == nil && i <= vm.MinuteHeight {
+				m = vm.MinuteFinished-1
+			}
+		}
 		if vm.MinuteFinished < m {
 			m = vm.MinuteFinished
 		}
