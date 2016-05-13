@@ -174,14 +174,14 @@ func UnmarshalEntry(data []byte) (interfaces.IEBEntry, error) {
 	return entry, nil
 }
 
-func (e *Entry) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+func (e *Entry) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	buf := primitives.NewBuffer(data)
 	hash := make([]byte, 32)
 
 	// 1 byte Version
-	var b byte
-	if b, err = buf.ReadByte(); err != nil {
-		return
+	b, err := buf.ReadByte()
+	if err != nil {
+		return nil, err
 	} else {
 		e.Version = b
 	}
@@ -189,15 +189,15 @@ func (e *Entry) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	// 32 byte ChainID
 	e.ChainID = primitives.NewZeroHash()
 	if _, err = buf.Read(hash); err != nil {
-		return
+		return nil, err
 	} else if err = e.ChainID.SetBytes(hash); err != nil {
-		return
+		return nil, err
 	}
 
 	// 2 byte size of ExtIDs
 	var extSize uint16
 	if err = binary.Read(buf, binary.BigEndian, &extSize); err != nil {
-		return
+		return nil, err
 	}
 
 	// ExtIDs
@@ -207,22 +207,22 @@ func (e *Entry) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 		i -= 2
 		if i < 0 {
 			err = fmt.Errorf("Error parsing external IDs")
-			return
+			return nil, err
 		}
 		x := make([]byte, xsize)
 		var n int
 		if n, err = buf.Read(x); err != nil {
-			return
+			return nil, err
 		} else {
 			if c := cap(x); n != c {
 				err = fmt.Errorf("Could not read ExtID: Read %d bytes of %d\n", n, c)
-				return
+				return nil, err
 			}
 			e.ExtIDs = append(e.ExtIDs, x)
 			i -= int16(n)
 			if i < 0 {
 				err = fmt.Errorf("Error parsing external IDs")
-				return
+				return nil, err
 			}
 		}
 	}
@@ -230,7 +230,7 @@ func (e *Entry) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	// Content
 	e.Content = buf.DeepCopyBytes()
 
-	return
+	return nil, nil
 }
 
 func (e *Entry) UnmarshalBinary(data []byte) (err error) {

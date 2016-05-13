@@ -15,9 +15,158 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/util"
+	"os"
 )
 
 var _ = fmt.Print
+
+//***************************************************************
+// Process Loop for Consensus
+//
+// Returns true if some message was processed.
+//***************************************************************
+func (s *State) Process() (progress bool) {
+
+	highest := s.GetHighestRecordedBlock()
+
+	if s.LLeaderHeight == 0 {
+		s.LLeaderHeight = s.GetHighestRecordedBlock() + 1
+		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
+		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.LeaderMinute, s.IdentityChainID)
+		s.EOM_Step = -1
+	} else if s.LLeaderHeight <= highest && s.LeaderMinute <= s.LeaderPL.MinuteFinished() {
+
+		s.LeaderMinute = 0 // Last block leaves at 10, which blows up. New block = 0
+
+		for _, vm := range s.LeaderPL.VMs {
+			ack1, ok1 := vm.LastLeaderAck.(*messages.Ack)
+			ack2, ok2 := vm.LastAck.(*messages.Ack)
+			if (!ok1 && ok2) || (ok1 && ok2 && ack2.Height > ack1.Height) {
+				vm.LastLeaderAck = vm.LastAck
+			}
+		}
+		s.LLeaderHeight = s.GetHighestRecordedBlock() + 1
+		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
+		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.LeaderMinute, s.IdentityChainID)
+		if s.Leader {
+			dbstate := s.DBStates.Get(s.LLeaderHeight - 1)
+
+			dbs := new(messages.DirectoryBlockSignature)
+			dbs.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
+			dbs.ServerIdentityChainID = s.GetIdentityChainID()
+			dbs.DBHeight = s.LLeaderHeight
+			dbs.Timestamp = s.GetTimestamp()
+			dbs.SetVMHash(nil)
+			dbs.SetVMIndex(s.LeaderVMIndex)
+			dbs.SetLocal(true)
+			dbs.Sign(s)
+			err := dbs.Sign(s)
+			if err != nil {
+				panic(err)
+			}
+			s.leaderMsgQueue <- dbs
+		}
+		s.EOM_Step = -1
+		s.EOM = false
+	}
+
+	if (s.EOM || s.EOM_Step >= 0) && s.LeaderMinute <= s.LeaderPL.MinuteFinished() {
+		switch {
+		case s.LeaderMinute <= 9:
+			for _, vm := range s.LeaderPL.VMs {
+				ack1, ok1 := vm.LastLeaderAck.(*messages.Ack)
+				ack2, ok2 := vm.LastAck.(*messages.Ack)
+				if (!ok1 && ok2) || (ok1 && ok2 && ack2.Height >= ack1.Height) {
+					vm.LastLeaderAck = vm.LastAck
+				}
+			}
+			s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
+			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.LeaderMinute, s.IdentityChainID)
+			s.EOM_Step = -1
+			s.EOM = false
+		case s.LeaderMinute == 10:
+			s.AddDBState(true, s.LeaderPL.DirectoryBlock, s.LeaderPL.AdminBlock, s.GetFactoidState().GetCurrentBlock(), s.LeaderPL.EntryCreditBlock)
+			for _, vm := range s.LeaderPL.VMs {
+				ack1, ok1 := vm.LastLeaderAck.(*messages.Ack)
+				ack2, ok2 := vm.LastAck.(*messages.Ack)
+				if (!ok1 && ok2) || (ok1 && ok2 && ack2.Height >= ack1.Height) {
+					vm.LastLeaderAck = vm.LastAck
+				}
+			}
+		}
+	}
+
+	var vm *VM
+	if s.Leader {
+		vm = s.LeaderPL.VMs[s.LeaderVMIndex]
+	}
+	// To process a leader message, we have to have the follower process completely
+	// up to date.  Then we can validate the message.  Process is up to date if all
+	// messages in the process list have been processed by the follower, ie the Height
+	// is equal to the length of the process list.
+	if !s.Leader || len(vm.List) >= vm.Height {
+		var msg interfaces.IMsg
+		if s.EOM_Step >= 0 {
+			select {
+			case msg = <-s.leaderMsgQueue:
+			default:
+			}
+		} else {
+			select {
+			case msg = <-s.stallQueue:
+				msg.SetStalled(false)
+			case msg = <-s.leaderMsgQueue:
+			default:
+			}
+		}
+		if msg != nil {
+			v := msg.Validate(s)
+			switch v {
+			case 1:
+				msg.LeaderExecute(s)
+				s.networkOutMsgQueue <- msg
+
+				for s.UpdateState() {
+				}
+			case -1:
+				s.networkInvalidMsgQueue <- msg
+			}
+			progress = true
+		}
+	}
+
+	// Followers are less strict.  Messages can be validated as they are processed, but
+	// the acknowledgement from the leader is enough to put a message into the process list.
+	select {
+	case msg := <-s.followerMsgQueue:
+		v := msg.Validate(s)
+		switch v {
+		case 1:
+			msg.FollowerExecute(s)
+			s.networkOutMsgQueue <- msg
+			for s.UpdateState() {
+			}
+		case -1:
+			s.networkInvalidMsgQueue <- msg
+		}
+		progress = true
+	case msg := <-s.stallQueue:
+		msg.SetStalled(false) // Hope for the best!
+		v := msg.Validate(s)
+		switch v {
+		case 1:
+			msg.FollowerExecute(s)
+			s.networkOutMsgQueue <- msg
+			for s.UpdateState() {
+			}
+		case -1:
+			s.networkInvalidMsgQueue <- msg
+		}
+		progress = true
+	default:
+	}
+	return
+}
 
 //***************************************************************
 // Consensus Methods
@@ -42,10 +191,30 @@ func (s *State) AddDBState(isNew bool,
 
 	dbState := s.DBStates.NewDBState(isNew, directoryBlock, adminBlock, factoidBlock, entryCreditBlock)
 	s.DBStates.Put(dbState)
+	ht := dbState.DirectoryBlock.GetHeader().GetDBHeight()
+	if ht > s.LLeaderHeight {
+		s.LLeaderHeight = ht
+	}
+	//	dbh := directoryBlock.GetHeader().GetDBHeight()
+	//	if s.LLeaderHeight < dbh {
+	//		s.LLeaderHeight = dbh + 1
+	//	}
+}
 
-	dbh := directoryBlock.GetHeader().GetDBHeight()
-	if s.LLeaderHeight < dbh {
-		s.LLeaderHeight = dbh
+func (s *State) addEBlock(eblock interfaces.IEntryBlock) {
+	hash, err := eblock.KeyMR()
+
+	if err == nil {
+		if s.HasDataRequest(hash) {
+			s.DB.ProcessEBlockBatch(eblock, true)
+			delete(s.DataRequests, hash.Fixed())
+
+			if s.GetAllEntries(hash) {
+				if s.GetEBDBHeightComplete() < eblock.GetDatabaseHeight() {
+					s.SetEBDBHeightComplete(eblock.GetDatabaseHeight())
+				}
+			}
+		}
 	}
 }
 
@@ -54,6 +223,11 @@ func (s *State) AddDBState(isNew bool,
 //
 // Returns true if it finds a match
 func (s *State) FollowerExecuteMsg(m interfaces.IMsg) (bool, error) {
+
+	if eom, ok := m.(*messages.EOM); s.EOM_Step >= 0 && ok && int(eom.Minute) > s.EOM_Step {
+		s.StallMsg(m)
+		return false, nil
+	}
 
 	hash := m.GetHash()
 	hashf := hash.Fixed()
@@ -64,18 +238,24 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) (bool, error) {
 	} else {
 		pl := s.ProcessLists.Get(ack.DBHeight)
 
-		if m.Type() == constants.COMMIT_CHAIN_MSG || m.Type() == constants.COMMIT_ENTRY_MSG {
-			s.PutCommits(hash, m)
-		}
-
 		if pl != nil {
-			pl.AddToProcessList(ack, m)
+			if !pl.AddToProcessList(ack, m) {
+				s.StallMsg(m)
+				return false, nil
+			}
 
 			pl.OldAcks[hashf] = ack
 			pl.OldMsgs[hashf] = m
 			delete(s.Acks, hashf)
 			delete(s.Holding, hashf)
+		} else {
+			s.StallMsg(m)
 		}
+
+		if m.Type() == constants.COMMIT_CHAIN_MSG || m.Type() == constants.COMMIT_ENTRY_MSG {
+			s.PutCommits(hash, m)
+		}
+
 		return true, nil
 	}
 }
@@ -140,68 +320,83 @@ func (s *State) FollowerExecuteAddData(msg interfaces.IMsg) error {
 	return nil
 }
 
-func (s *State) addEBlock(eblock interfaces.IEntryBlock) {
-	hash, err := eblock.KeyMR()
-
-	if err == nil {
-		if s.HasDataRequest(hash) {
-			s.DB.ProcessEBlockBatch(eblock)
-			delete(s.DataRequests, hash.Fixed())
-
-			if s.GetAllEntries(hash) {
-				if s.GetEBDBHeightComplete() < eblock.GetDatabaseHeight() {
-					s.SetEBDBHeightComplete(eblock.GetDatabaseHeight())
-				}
-			}
-		}
+func (s *State) LeaderExecute(m interfaces.IMsg) error {
+	h := m.GetVMHash()
+	if h != nil && len(h) > 0 {
+		m.SetVMIndex(s.LeaderPL.VMIndexFor(m.GetVMHash()))
 	}
+
+	//fmt.Println(s.FactomNodeName,"Leader",s.Leader,"MsgVMIndex",m.GetVMIndex(),"LeaderVM",s.LeaderVMIndex)
+	if !s.Leader || m.GetVMIndex() != s.LeaderVMIndex {
+		if m.Follower(s) {
+			m.FollowerExecute(s)
+		}
+		return nil
+	}
+
+	if s.EOM_Step >= 0 {
+		return nil
+	}
+
+	dbheight := s.LLeaderHeight
+	ack, err := s.NewAck(dbheight, m)
+	if err != nil {
+		s.StallMsg(m)
+		return err
+	}
+	s.networkOutMsgQueue <- ack
+	s.followerMsgQueue <- ack
+	s.followerMsgQueue <- m
+	return nil
 }
 
-func (s *State) LeaderExecute(m interfaces.IMsg) error {
-	dbheight := s.LLeaderHeight
-
-	// We have two exceptions when it comes to using the LLeaderHeight.  These
-	// are internally generated messages that must be processed at their height,
-	// not the current height, to be valid.
-	eom, ok := m.(*messages.EOM)
-	if ok {
-		dbheight = eom.DBHeight
+func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
+	if !s.Leader { // Ignore local EOM messages when a follower only.
+		return nil
 	}
-	dbs, ok := m.(*messages.DirectoryBlockSignature)
-	if ok {
-		dbheight = dbs.DBHeight
+	eom := m.(*messages.EOM)
+
+	// There are messages we have not yet processed in the Process List... Don't
+	// step to the next minute!
+	vm := s.LeaderPL.VMs[s.LeaderVMIndex]
+	if vm.Height < len(vm.List) {
+		if !s.EOM_Stall {
+			s.StallMsg(m)
+			s.EOM_Stall = true
+		}
+		return nil
 	}
 
-	ack, err := s.NewAck(dbheight, m)
+	if s.EOM || s.EOM_Step >= 0 {
+		if !s.EOM_Stall {
+			s.StallMsg(m)
+			s.EOM_Stall = true
+		}
+		return nil
+	}
+
+	if s.LeaderPL.MinuteFinished() < s.LeaderMinute {
+		if !s.EOM_Stall {
+			s.StallMsg(m)
+			s.EOM_Stall = true
+		}
+		return nil
+	}
+
+	s.EOM_Stall = false
+	eom.DBHeight = s.LLeaderHeight
+	eom.VMIndex = s.LeaderVMIndex
+	eom.Minute = byte(s.LeaderMinute)
+	eom.Sign(s)
+	eom.SetLocal(false)
+	ack, err := s.NewAck(s.LLeaderHeight, m)
+
 	if err != nil {
 		return err
 	}
 
-	// Leader Execute creates an acknowledgement and the EOM
-	s.NetworkOutMsgQueue() <- m
-	s.InMsgQueue() <- ack
-	m.FollowerExecute(s)
-	return nil
-}
-
-func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) error {
-	dbs, ok := m.(*messages.DirectoryBlockSignature)
-	if !ok {
-		return fmt.Errorf("Bad Directory Block Signature")
-	}
-
-	dbs.Timestamp = s.GetTimestamp()
-
-	ack, err := s.NewAck(dbs.DBHeight, dbs)
-	if err != nil {
-		fmt.Println("Bad Ack")
-		s.undo = m
-		return nil
-	}
-	ack.FollowerExecute(s)
-	dbs.FollowerExecute(s)
-
-	s.LLeaderHeight = dbs.DBHeight + 1
+	s.followerMsgQueue <- m
+	s.followerMsgQueue <- ack
 
 	return nil
 }
@@ -209,7 +404,6 @@ func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) error {
 func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) bool {
 	as, ok := addServerMsg.(*messages.AddServerMsg)
 	if !ok {
-		fmt.Println("Bad Msg: ", addServerMsg.String())
 		return true
 	}
 
@@ -271,46 +465,58 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 	pl := s.ProcessLists.Get(dbheight)
 
+	// So we are now syncing up. Leader's can't add anything past the current
+	// minute now.
+	s.EOM_Step = int(e.Minute)
+
 	// Set this list complete
+	if s.LeaderMinute < int(e.Minute+1) {
+		s.LeaderMinute = int(e.Minute + 1)
+		if s.LeaderMinute < 10 {
+			s.Leader, s.LeaderVMIndex = pl.GetVirtualServers(s.LeaderMinute, s.IdentityChainID)
+		}
+	}
+
 	pl.SetMinute(e.VMIndex, int(e.Minute))
 
-	if pl.MinuteHeight() <= int(e.Minute) {
+	if pl.MinuteComplete() < s.LeaderMinute {
 		return false
 	}
 
-	if !e.MarkerSent {
-		if VMIndexFor(constants.FACTOID_CHAINID) == e.VMIndex {
-			s.FactoidState.EndOfPeriod(int(e.Minute))
-		}
-		if VMIndexFor(constants.ADMIN_CHAINID) == e.VMIndex {
-			pl.AdminBlock.AddEndOfMinuteMarker(e.Minute)
-		}
-		e.MarkerSent = true
-	}
+	if pl.VMIndexFor(constants.FACTOID_CHAINID) == e.VMIndex {
+		s.FactoidState.EndOfPeriod(int(e.Minute))
 
-	// We need to have all EOM markers before we start to clean up this height.
-	if e.Minute == 9 {
-
-		// Maybe we want to check the block is saved?
-		// We need to save away the previous state before we begin to process the next height
-		// last := s.DBStates.Last()
-		// if last == nil || !last.Saved {
-		//    return false
-		// }
-
-		if VMIndexFor(constants.EC_CHAINID) == e.VMIndex {
-			ecblk := pl.EntryCreditBlock
-			ecbody := ecblk.GetBody()
-			mn := entryCreditBlock.NewMinuteNumber2(e.Minute)
-			ecbody.AddEntry(mn)
+		// Add EOM to the EBlocks.  We only do this once, so
+		// we piggy back on the fact that we only do the FactoidState
+		// EndOfPeriod once too.
+		for _, eb := range pl.NewEBlocks {
+			eb.AddEndOfMinuteMarker(e.Bytes()[0])
 		}
 	}
 
-	// Add EOM to the EBlocks
-	for _, eb := range pl.NewEBlocks {
-		eb.AddEndOfMinuteMarker(e.Bytes()[0])
+	if pl.VMIndexFor(constants.ADMIN_CHAINID) == e.VMIndex {
+		pl.AdminBlock.AddEndOfMinuteMarker(e.Minute)
 	}
 
+	if pl.VMIndexFor(constants.EC_CHAINID) == e.VMIndex {
+		ecblk := pl.EntryCreditBlock
+		ecbody := ecblk.GetBody()
+		mn := entryCreditBlock.NewMinuteNumber2(e.Minute)
+		ecbody.AddEntry(mn)
+	}
+
+	vm := pl.VMs[e.VMIndex]
+
+	vm.MinuteFinished = int(e.Minute) + 1
+
+	ack1, ok1 := vm.LastLeaderAck.(*messages.Ack)
+	ack2, ok2 := vm.LastAck.(*messages.Ack)
+	if (!ok1 && ok2) || (ok1 && ok2 && ack2.Height > ack1.Height) {
+		vm.LastLeaderAck = vm.LastAck
+	}
+
+	s.EOM_Step = -1
+	s.EOM = true
 	return true
 }
 
@@ -318,52 +524,11 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 // is then that we push it out to the rest of the network.  Otherwise, if we are not the
 // leader for the signature, it marks the sig complete for that list
 func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
-	pl := s.ProcessLists.Get(dbheight)
-	if !pl.EomComplete() {
-		return false
-	}
-	dbs, ok := msg.(*messages.DirectoryBlockSignature)
-	if !ok {
-		panic("DirectoryBlockSignature is the wrong type.")
-	}
 
-	if !pl.VMs[dbs.VMIndex].SigComplete {
-		pl.SetSigComplete(int(dbs.VMIndex), true)
+	dbs := msg.(*messages.DirectoryBlockSignature)
 
-		s.AddDBState(true, pl.DirectoryBlock, pl.AdminBlock, s.GetFactoidState().GetCurrentBlock(), pl.EntryCreditBlock)
-	}
-
-	if !pl.SigComplete() {
-		return false
-	}
-
-	if dbs.IsLocal() {
-		dbstate := s.DBStates.Get(dbheight)
-		dbs.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
-
-		err := dbs.Sign(s)
-		if err != nil {
-			panic(err)
-		}
-
-		// Here we replace out of the process list the local DBS message with one
-		// that can be broadcast.  This is a bit of necessary trickery
-		pl.UndoLeaderAck(int(dbs.VMIndex))
-		ack, err := s.NewAck(dbheight, dbs)
-		if err != nil {
-			panic(err)
-		}
-		// Now we can broadcast the signature.
-		dbs.SetLocal(false)
-		// Leader Execute creates an acknowledgement and the EOM
-		s.NetworkOutMsgQueue() <- ack
-		s.NetworkOutMsgQueue() <- dbs
-	} else {
-		// TODO follower should validate signature here.
-		resp := dbs.Validate(s)
-		if resp == 1 {
-			return true
-		}
+	resp := dbs.Validate(s)
+	if resp != 1 {
 		return false
 	}
 
@@ -503,20 +668,12 @@ func (s *State) PutE(rt bool, adr [32]byte, v int64) {
 // Returns the Virtual Server Index for this hash if this server is the leader;
 // returns -1 if we are not the leader for this hash
 func (s *State) LeaderFor(msg interfaces.IMsg, hash []byte) bool {
-	pl := s.ProcessLists.Get(s.LLeaderHeight)
-	vmIndex := VMIndexFor(hash)
-
-	msg.SetVMIndex(vmIndex)
-	found, vmIndexes := pl.GetVirtualServers(pl.VMs[vmIndex].LeaderMinute, s.IdentityChainID)
-	if !found {
-		return false
+	if hash != nil {
+		h := make([]byte, len(hash))
+		copy(h, hash)
+		msg.SetVMHash(h) // <-- This is important
 	}
-	for _, vmi := range vmIndexes {
-		if vmi == vmIndex {
-			return true
-		}
-	}
-	return false
+	return true
 }
 
 func (s *State) NewAdminBlock(dbheight uint32) interfaces.IAdminBlock {
@@ -534,17 +691,6 @@ func (s *State) NewAdminBlockHeader(dbheight uint32) interfaces.IABlockHeader {
 	header.MessageCount = 0
 	header.BodySize = 0
 	return header
-}
-
-func (s *State) PrintType(msgType byte) bool {
-	r := true
-	return r
-	r = r && msgType != constants.ACK_MSG
-	r = r && msgType != constants.EOM_MSG
-	r = r && msgType != constants.DIRECTORY_BLOCK_SIGNATURE_MSG
-	r = r && msgType != constants.DBSTATE_MISSING_MSG
-	r = r && msgType != constants.DBSTATE_MSG
-	return r
 }
 
 func (s *State) GetNetworkName() string {
@@ -583,17 +729,21 @@ func (s *State) GetNewHash() interfaces.IHash {
 func (s *State) NewAck(dbheight uint32, msg interfaces.IMsg) (iack interfaces.IMsg, err error) {
 
 	vmIndex := msg.GetVMIndex()
-
 	pl := s.ProcessLists.Get(dbheight)
-	if pl == nil {
-		return nil, fmt.Errorf(s.FactomNodeName + ": No process list at this time")
-	}
 
+	if pl == nil {
+		err = fmt.Errorf(s.FactomNodeName + ": No process list at this time")
+		fmt.Println(err.Error())
+		return
+	}
+	msg.SetLeaderChainID(s.IdentityChainID)
 	ack := new(messages.Ack)
 	ack.DBHeight = dbheight
 	ack.VMIndex = vmIndex
+	ack.Minute = byte(s.LeaderMinute)
 	ack.Timestamp = s.GetTimestamp()
 	ack.MessageHash = msg.GetHash()
+	ack.LeaderChainID = s.IdentityChainID
 
 	last, ok := pl.GetLastLeaderAck(vmIndex).(*messages.Ack)
 	if !ok {
@@ -611,4 +761,92 @@ func (s *State) NewAck(dbheight uint32, msg interfaces.IMsg) (iack interfaces.IM
 	ack.Sign(s)
 
 	return ack, nil
+}
+
+// ****************************************************************
+//                          Support
+// ****************************************************************
+
+func (s *State) DebugPrt(what string) {
+
+	ppl := s.ProcessLists.Get(s.LLeaderHeight)
+
+	fmt.Printf("tttt %8s %8s:  %v %v  %v %v   %v %v  %v %v  %v %v  %v %v  %v %v  %v %v  %v %v\n",
+		what,
+		s.FactomNodeName,
+		"LeaderVMIndex", s.LeaderVMIndex,
+		"Is Leader", s.Leader,
+		"LLeaderHeight", s.LLeaderHeight,
+		"Highest rec blk", s.GetHighestRecordedBlock(),
+		"Leader Minute", s.LeaderMinute,
+		"EOM", s.EOM,
+		"EOM_Step", s.EOM_Step,
+		"PL Min Complete", ppl.MinuteComplete(),
+		"PL Min Finish", ppl.MinuteFinished())
+	fmt.Printf("tttt\t\t%12s: %2v %2v %2v %2v %2v %2v %2v %2v %2v %2v\n",
+		"VM Ht",
+		ppl.VMs[0].Height,
+		ppl.VMs[1].Height,
+		ppl.VMs[2].Height,
+		ppl.VMs[3].Height,
+		ppl.VMs[4].Height,
+		ppl.VMs[5].Height,
+		ppl.VMs[6].Height,
+		ppl.VMs[7].Height,
+		ppl.VMs[8].Height,
+		ppl.VMs[9].Height,
+	)
+	fmt.Printf("tttt\t\t%12s: %2v %2v %2v %2v %2v %2v %2v %2v %2v %2v\n",
+		"List Len",
+		len(ppl.VMs[0].List),
+		len(ppl.VMs[1].List),
+		len(ppl.VMs[2].List),
+		len(ppl.VMs[3].List),
+		len(ppl.VMs[4].List),
+		len(ppl.VMs[5].List),
+		len(ppl.VMs[6].List),
+		len(ppl.VMs[7].List),
+		len(ppl.VMs[8].List),
+		len(ppl.VMs[9].List),
+	)
+	fmt.Printf("tttt\t\t%12s %2v %2v %2v %2v %2v %2v %2v %2v %2v %2v\n",
+		"Complete:",
+		ppl.VMs[0].MinuteComplete,
+		ppl.VMs[1].MinuteComplete,
+		ppl.VMs[2].MinuteComplete,
+		ppl.VMs[3].MinuteComplete,
+		ppl.VMs[4].MinuteComplete,
+		ppl.VMs[5].MinuteComplete,
+		ppl.VMs[6].MinuteComplete,
+		ppl.VMs[7].MinuteComplete,
+		ppl.VMs[8].MinuteComplete,
+		ppl.VMs[9].MinuteComplete,
+	)
+	fmt.Printf("tttt\t\t%12s %2v %2v %2v %2v %2v %2v %2v %2v %2v %2v\n",
+		"Finished:",
+		ppl.VMs[0].MinuteFinished,
+		ppl.VMs[1].MinuteFinished,
+		ppl.VMs[2].MinuteFinished,
+		ppl.VMs[3].MinuteFinished,
+		ppl.VMs[4].MinuteFinished,
+		ppl.VMs[5].MinuteFinished,
+		ppl.VMs[6].MinuteFinished,
+		ppl.VMs[7].MinuteFinished,
+		ppl.VMs[8].MinuteFinished,
+		ppl.VMs[9].MinuteFinished,
+	)
+	fmt.Printf("tttt\t\t%12s %2v %2v %2v %2v %2v %2v %2v %2v %2v %2v\n",
+		"Min Ht:",
+		ppl.VMs[0].MinuteHeight,
+		ppl.VMs[1].MinuteHeight,
+		ppl.VMs[2].MinuteHeight,
+		ppl.VMs[3].MinuteHeight,
+		ppl.VMs[4].MinuteHeight,
+		ppl.VMs[5].MinuteHeight,
+		ppl.VMs[6].MinuteHeight,
+		ppl.VMs[7].MinuteHeight,
+		ppl.VMs[8].MinuteHeight,
+		ppl.VMs[9].MinuteHeight,
+	)
+	os.Stdout.Sync()
 }

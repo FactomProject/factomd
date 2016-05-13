@@ -21,27 +21,36 @@ func (db *Overlay) SaveIncludedIn(entry, block interfaces.IHash) error {
 	return nil
 }
 
-func (db *Overlay) SaveIncludedInMultiFromBlockMultiBatch(block interfaces.DatabaseBlockWithEntries) error {
+func (db *Overlay) SaveIncludedInMultiFromBlockMultiBatch(block interfaces.DatabaseBlockWithEntries, checkForDuplicateEntries bool) error {
 	entries := block.GetEntryHashes()
 	hash := block.DatabasePrimaryIndex()
 
-	return db.SaveIncludedInMultiMultiBatch(entries, hash)
+	return db.SaveIncludedInMultiMultiBatch(entries, hash, checkForDuplicateEntries)
 }
 
-func (db *Overlay) SaveIncludedInMultiFromBlock(block interfaces.DatabaseBlockWithEntries) error {
+func (db *Overlay) SaveIncludedInMultiFromBlock(block interfaces.DatabaseBlockWithEntries, checkForDuplicateEntries bool) error {
 	entries := block.GetEntryHashes()
 	hash := block.DatabasePrimaryIndex()
 
-	return db.SaveIncludedInMulti(entries, hash)
+	return db.SaveIncludedInMulti(entries, hash, checkForDuplicateEntries)
 }
 
-func (db *Overlay) SaveIncludedInMultiMultiBatch(entries []interfaces.IHash, block interfaces.IHash) error {
+func (db *Overlay) SaveIncludedInMultiMultiBatch(entries []interfaces.IHash, block interfaces.IHash, checkForDuplicateEntries bool) error {
 	if entries == nil || block == nil {
 		return nil
 	}
 	batch := []interfaces.Record{}
 
 	for _, entry := range entries {
+		if checkForDuplicateEntries == true {
+			loaded, err := db.Get([]byte{INCLUDED_IN}, entry.Bytes(), primitives.NewZeroHash())
+			if err != nil {
+				return err
+			}
+			if loaded != nil {
+				continue
+			}
+		}
 		batch = append(batch, interfaces.Record{[]byte{INCLUDED_IN}, entry.Bytes(), block})
 	}
 
@@ -50,13 +59,22 @@ func (db *Overlay) SaveIncludedInMultiMultiBatch(entries []interfaces.IHash, blo
 	return nil
 }
 
-func (db *Overlay) SaveIncludedInMulti(entries []interfaces.IHash, block interfaces.IHash) error {
+func (db *Overlay) SaveIncludedInMulti(entries []interfaces.IHash, block interfaces.IHash, checkForDuplicateEntries bool) error {
 	if entries == nil || block == nil {
 		return nil
 	}
 	batch := []interfaces.Record{}
 
 	for _, entry := range entries {
+		if checkForDuplicateEntries == true {
+			loaded, err := db.Get([]byte{INCLUDED_IN}, entry.Bytes(), primitives.NewZeroHash())
+			if err != nil {
+				return err
+			}
+			if loaded != nil {
+				continue
+			}
+		}
 		batch = append(batch, interfaces.Record{[]byte{INCLUDED_IN}, entry.Bytes(), block})
 	}
 

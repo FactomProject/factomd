@@ -84,10 +84,10 @@ func (ds *DBState) String() string {
 	} else {
 
 		str = fmt.Sprintf("%s      DBlk Height   = %v\n", str, ds.DirectoryBlock.GetHeader().GetDBHeight())
-		str = fmt.Sprintf("%s      DBlock        = %x %x\n", str, ds.DirectoryBlock.GetHash().Bytes()[:5], ds.DBHash.Bytes()[:5])
-		str = fmt.Sprintf("%s      ABlock        = %x %x\n", str, ds.AdminBlock.GetHash().Bytes()[:5], ds.ABHash.Bytes()[:5])
-		str = fmt.Sprintf("%s      FBlock        = %x %x\n", str, ds.FactoidBlock.GetHash().Bytes()[:5], ds.FBHash.Bytes()[:5])
-		str = fmt.Sprintf("%s      ECBlock       = %x %x\n", str, ds.EntryCreditBlock.GetHash().Bytes()[:5], ds.ECHash.Bytes()[:5])
+		str = fmt.Sprintf("%s      DBlock        = %x \n", str, ds.DirectoryBlock.GetHash().Bytes()[:5])
+		str = fmt.Sprintf("%s      ABlock        = %x \n", str, ds.AdminBlock.GetHash().Bytes()[:5])
+		str = fmt.Sprintf("%s      FBlock        = %x \n", str, ds.FactoidBlock.GetHash().Bytes()[:5])
+		str = fmt.Sprintf("%s      ECBlock       = %x \n", str, ds.EntryCreditBlock.GetHash().Bytes()[:5])
 	}
 	return str
 }
@@ -109,9 +109,6 @@ func (list *DBStateList) Catchup() {
 	now := list.State.GetTimestamp()
 
 	dbsHeight := list.GetHighestRecordedBlock()
-	if list.State.LLeaderHeight <= dbsHeight {
-		list.State.LLeaderHeight = dbsHeight + 1
-	}
 
 	// We only check if we need updates once every so often.
 	if int(now)/1000-int(list.LastTime)/1000 < SecondsBetweenTests {
@@ -166,6 +163,7 @@ func (list *DBStateList) Catchup() {
 }
 
 func (list *DBStateList) UpdateState() (progress bool) {
+
 	list.Catchup()
 
 	for i, d := range list.DBStates {
@@ -263,7 +261,7 @@ func (list *DBStateList) UpdateState() (progress bool) {
 
 			pl := list.State.ProcessLists.Get(d.DirectoryBlock.GetHeader().GetDBHeight())
 			for _, eb := range pl.NewEBlocks {
-				if err := list.State.GetDB().ProcessEBlockMultiBatch(eb); err != nil {
+				if err := list.State.GetDB().ProcessEBlockMultiBatch(eb, false); err != nil {
 					panic(err.Error())
 				}
 				for _, e := range eb.GetBody().GetEBEntries() {
@@ -360,8 +358,9 @@ func (list *DBStateList) Put(dbState *DBState) {
 	for len(list.DBStates) <= index {
 		list.DBStates = append(list.DBStates, nil)
 	}
-
-	list.DBStates[index] = dbState
+	if list.DBStates[index] == nil {
+		list.DBStates[index] = dbState
+	}
 
 	hash, err := dbState.AdminBlock.GetKeyMR()
 	if err != nil {

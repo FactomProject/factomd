@@ -47,8 +47,8 @@ type IMsg interface {
 	// be broadcast, this should be false.  If the Origin is 0, then the
 	// network can pick a peer to try.  If Origin is > 0, then the message
 	// must go back to that peer (this message is a reply).
-	IsPeer2peer() bool
-
+	IsPeer2Peer() bool
+	SetPeer2Peer(bool)
 	// Return the []byte value of the message, if defined
 	Bytes() []byte
 
@@ -65,11 +65,21 @@ type IMsg interface {
 	// Execute the leader functions of the given message
 	LeaderExecute(IState) error
 
+	// Debugging thing to track the leader responsible for a message ack.
+	GetLeaderChainID() IHash
+	SetLeaderChainID(IHash)
+
 	// Returns true if this is a message for this server to execute as a follower
 	Follower(IState) bool
 
 	// Exeucte the follower functions of the given message
 	FollowerExecute(IState) error
+
+	// Messages can be stalled if they cannot be processed at the time they are
+	// presented to a leader or follower.  Stalled messages cannot be transmitted
+	// to the network.
+	SetStalled(bool)
+	GetStalled() bool
 
 	// Process.  When we get a sequence of acknowledgements that we trust, we process.
 	// A message will only be processed once, and in order, guaranteed.
@@ -80,4 +90,8 @@ type IMsg interface {
 	// the indexes of these machines here.
 	GetVMIndex() int
 	SetVMIndex(int)
+	GetVMHash() []byte
+	SetVMHash([]byte)
+	GetMinute() byte
+	SetMinute(byte)
 }

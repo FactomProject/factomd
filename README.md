@@ -233,3 +233,28 @@ The simulator always keeps the focus on one node or another.  Some commands are 
 	
 Would start up with node 15 as the focus.
 
+### -p2pAddress
+
+This opens up a TCP port and listens for new connections.
+
+Usage:
+	-p2pAddress="tcp://:8108"
+
+### -peers
+
+This connects to a remote computer and passes messages and blocks between them.
+
+	-peers="tcp://192.168.1.69:8108" 
+
+### -prefix
+
+This makes all the simnodes in this process followers.  It prefixes the text to the output  
+
+Leaders cannot run with the prefix.
+	-prefix=a_
+
+Multi-computer example:
+Computer Leader (ip x.69) `factomd -count=2 -p2pAddress="tcp://:8108" -peers="tcp://192.168.1.72:8108"`
+Computer Follower (ip x.72) `factomd -count=5 -p2pAddress="tcp://:8108" -peers="tcp://192.168.1.69:8108" -follower=true -prefix=a_`
+
+

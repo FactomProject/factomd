@@ -9,11 +9,11 @@ import (
 
 	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/messages"
-	"github.com/FactomProject/factomd/common/primitives"
+	//"github.com/FactomProject/factomd/common/primitives"
 )
 
-func TestMarshalUnmarshalSignatureTimeout(t *testing.T) {
-	msg := newSignatureTimeout()
+func TestMarshalUnmarshalRequestBlock(t *testing.T) {
+	msg := newRequestBlock()
 
 	hex, err := msg.MarshalBinary()
 	if err != nil {
@@ -28,11 +28,11 @@ func TestMarshalUnmarshalSignatureTimeout(t *testing.T) {
 	str := msg2.String()
 	t.Logf("str - %v", str)
 
-	if msg2.Type() != constants.SIGNATURE_TIMEOUT_MSG {
+	if msg2.Type() != constants.REQUEST_BLOCK_MSG {
 		t.Error("Invalid message type unmarshalled")
 	}
 
-	hex2, err := msg2.(*SignatureTimeout).MarshalBinary()
+	hex2, err := msg2.(*RequestBlock).MarshalBinary()
 	if err != nil {
 		t.Error(err)
 	}
@@ -45,13 +45,14 @@ func TestMarshalUnmarshalSignatureTimeout(t *testing.T) {
 		}
 	}
 
-	if msg.IsSameAs(msg2.(*SignatureTimeout)) != true {
-		t.Errorf("SignatureTimeout messages are not identical")
+	if msg.IsSameAs(msg2.(*RequestBlock)) != true {
+		t.Errorf("RequestBlock messages are not identical")
 	}
 }
 
-func TestSignAndVerifySignatureTimeout(t *testing.T) {
-	msg := newSignedSignatureTimeout()
+/*
+func TestSignAndVerifyEOM(t *testing.T) {
+	msg := newSignedEOM()
 	hex, err := msg.MarshalBinary()
 	if err != nil {
 		t.Error(err)
@@ -76,10 +77,10 @@ func TestSignAndVerifySignatureTimeout(t *testing.T) {
 		t.Error(err)
 	}
 
-	if msg2.Type() != constants.SIGNATURE_TIMEOUT_MSG {
+	if msg2.Type() != constants.EOM_MSG {
 		t.Error("Invalid message type unmarshalled")
 	}
-	eomProper := msg2.(*SignatureTimeout)
+	eomProper := msg2.(*EOM)
 
 	valid, err = eomProper.VerifySignature()
 	if err != nil {
@@ -89,17 +90,18 @@ func TestSignAndVerifySignatureTimeout(t *testing.T) {
 		t.Error("Signature 2 is not valid")
 	}
 
-}
+}*/
 
-func newSignatureTimeout() *SignatureTimeout {
-	msg := new(SignatureTimeout)
+func newRequestBlock() *RequestBlock {
+	msg := new(RequestBlock)
 	msg.Timestamp.SetTimeNow()
 
 	return msg
 }
 
-func newSignedSignatureTimeout() *SignatureTimeout {
-	msg := newSignatureTimeout()
+/*
+func newSignedEOM() *EOM {
+	msg := newEOM()
 
 	key, err := primitives.NewPrivateKeyFromHex("07c0d52cb74f4ca3106d80c4a70488426886bccc6ebc10c6bafb37bf8a65f4c38cee85c62a9e48039d4ac294da97943c2001be1539809ea5f54721f0c5477a0a")
 	if err != nil {
@@ -112,3 +114,4 @@ func newSignedSignatureTimeout() *SignatureTimeout {
 
 	return msg
 }
+*/

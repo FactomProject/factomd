@@ -28,6 +28,7 @@ type CommitChainMsg struct {
 
 var _ interfaces.IMsg = (*CommitChainMsg)(nil)
 var _ interfaces.ICounted = (*CommitChainMsg)(nil)
+var _ Signable = (*CommitChainMsg)(nil)
 
 func (a *CommitChainMsg) IsSameAs(b *CommitChainMsg) bool {
 	if b == nil {
@@ -252,5 +253,13 @@ func (m *CommitChainMsg) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *CommitChainMsg) String() string {
-	return "CommitChainMsg " + m.Timestamp.String() + " " + m.GetHash().String()
+	if m.LeaderChainID == nil {
+		m.LeaderChainID = primitives.NewZeroHash()
+	}
+	str := fmt.Sprintf("%6s-VM%3d: Leader[:3]=%x MsgHash[:3]=%x",
+		"CChain",
+		m.VMIndex,
+		m.LeaderChainID.Bytes()[:3],
+		m.GetHash().Bytes()[:3])
+	return str
 }

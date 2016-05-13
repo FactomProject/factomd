@@ -17,11 +17,26 @@ type RequestBlock struct {
 	MessageBase
 	Timestamp interfaces.Timestamp
 
+	//TODO: figure whether this should be signed or not?
+
 	//Not marshalled
 	hash interfaces.IHash
 }
 
 var _ interfaces.IMsg = (*RequestBlock)(nil)
+
+func (a *RequestBlock) IsSameAs(b *RequestBlock) bool {
+	if b == nil {
+		return false
+	}
+	if a.Timestamp != b.Timestamp {
+		return false
+	}
+
+	//TODO: expand
+
+	return true
+}
 
 func (m *RequestBlock) Process(uint32, interfaces.IState) bool { return true }
 
@@ -29,7 +44,7 @@ func (m *RequestBlock) GetHash() interfaces.IHash {
 	if m.hash == nil {
 		data, err := m.MarshalForSignature()
 		if err != nil {
-			panic(fmt.Sprintf("Error in CommitChain.GetHash(): %s", err.Error()))
+			panic(fmt.Sprintf("Error in RequestBlock.GetHash(): %s", err.Error()))
 		}
 		m.hash = primitives.Sha(data)
 	}
@@ -66,7 +81,7 @@ func (m *RequestBlock) Bytes() []byte {
 func (m *RequestBlock) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
+			err = fmt.Errorf("Error unmarshalling RequestBlock: %v", r)
 		}
 	}()
 	newData = data
@@ -75,7 +90,14 @@ func (m *RequestBlock) UnmarshalBinaryData(data []byte) (newData []byte, err err
 	}
 	newData = newData[1:]
 
-	return nil, nil
+	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
+	if err != nil {
+		return nil, err
+	}
+
+	//TODO: expand
+
+	return newData, nil
 }
 
 func (m *RequestBlock) UnmarshalBinary(data []byte) error {
@@ -103,7 +125,8 @@ func (m *RequestBlock) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *RequestBlock) String() string {
-	return ""
+	str, _ := m.JSONString()
+	return str
 }
 
 func (m *RequestBlock) DBHeight() int {

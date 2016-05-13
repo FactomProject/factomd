@@ -164,6 +164,7 @@ func (e *DirectoryBlock) String() string {
 
 func (b *DirectoryBlock) MarshalBinary() (data []byte, err error) {
 	var buf primitives.Buffer
+
 	b.Sort()
 
 	b.BuildBodyMR()

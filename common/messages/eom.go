@@ -138,16 +138,13 @@ func (m *EOM) Validate(state interfaces.IState) int {
 // Returns true if this is a message for this server to execute as
 // a leader.
 func (m *EOM) Leader(state interfaces.IState) bool {
-	if m.IsLocal() {
-		return true
-	}
-	return false
+	return m.IsLocal()
 }
 
 // Execute the leader functions of the given message
 func (m *EOM) LeaderExecute(state interfaces.IState) error {
 	m.SetLocal(false)
-	return state.LeaderExecute(m)
+	return state.LeaderExecuteEOM(m)
 }
 
 // Returns true if this is a message for this server to execute as a follower
@@ -282,11 +279,11 @@ func (m *EOM) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *EOM) String() string {
-	return fmt.Sprintf("%6s-%3d: Min:%4d Ht:%5d -- chainID[:5]=%x hash[:5]=%x",
+	return fmt.Sprintf("%6s-VM%3d: Min:%4d Ht:%5d -- Leader[:3]=%x hash[:3]=%x",
 		"EOM",
 		m.VMIndex,
 		m.Minute,
 		m.DBHeight,
-		m.ChainID.Bytes()[:5],
-		m.GetMsgHash().Bytes()[:5])
+		m.ChainID.Bytes()[:3],
+		m.GetMsgHash().Bytes()[:3])
 }

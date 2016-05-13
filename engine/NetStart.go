@@ -42,15 +42,16 @@ func NetStart(s *state.State) {
 	followerPtr := flag.Bool("follower", false, "If true, force node to be a follower.  Only used when replaying a journal.")
 	leaderPtr := flag.Bool("leader", true, "If true, force node to be a leader.  Only used when replaying a journal.")
 	dbPtr := flag.String("db", "", "Override the Database in the Config file and use this Database implementation")
+	cloneDBPtr := flag.String("clonedb", "", "Override the main node and use this database for the clones in a Network.")
 	folderPtr := flag.String("folder", "", "Directory in .factom to store nodes. (eg: multiple nodes on one filesystem support)")
 	portPtr := flag.Int("port", 8088, "Address to serve WSAPI on")
 	addressPtr := flag.String("p2pPort", "8108", "Address & port to listen for peers on.")
 	peersPtr := flag.String("peers", "", "Array of peer addresses. ")
 	blkTimePtr := flag.Int("blktime", 0, "Seconds per block.  Production is 600.")
 	runtimeLogPtr := flag.Bool("runtimeLog", true, "If true, maintain runtime logs of messages passed.")
-	vmCountPtr := flag.Int("vmCount", 2, "Number of Virtual Machines running the consensus algorighm.")
 	netdebugPtr := flag.Bool("netdebug", false, "If true, print detailed network debugging info.")
 	heartbeatPtr := flag.Bool("heartbeat", false, "If true, network just sends heartbeats.")
+	prefixNodePtr := flag.String("prefix", "", "Prefix the Factom Node Names with this value; used to create leaderless networks.")
 
 	flag.Parse()
 
@@ -62,19 +63,26 @@ func NetStart(s *state.State) {
 	follower := *followerPtr
 	leader := *leaderPtr
 	db := *dbPtr
+	cloneDB := *cloneDBPtr
 	folder := *folderPtr
-	port := *portPtr
+	portOverride := *portOverridePtr
 	address := *addressPtr
 	peers := *peersPtr
 	blkTime := *blkTimePtr
 	runtimeLog := *runtimeLogPtr
-	vmCount := *vmCountPtr
 	netdebug := *netdebugPtr
 	heartbeat := *heartbeatPtr
+	prefix := *prefixNodePtr
 
+	// Must add the prefix before loading the configuration.
+	s.AddPrefix(prefix)
 	FactomConfigFilename := util.GetConfigFilename("m2")
 	fmt.Println(fmt.Sprintf("factom config: %s", FactomConfigFilename))
 	s.LoadConfig(FactomConfigFilename, folder)
+
+	if 999 < portOverride { // The command line flag exists and seems reasonable.
+		s.PortNumber = portOverride
+	}
 
 	if blkTime != 0 {
 		s.DirectoryBlockInSeconds = blkTime
@@ -82,35 +90,15 @@ func NetStart(s *state.State) {
 		blkTime = s.DirectoryBlockInSeconds
 	}
 
-	if vmCount < 0 || vmCount > 32 {
-		panic(fmt.Sprintf("Count of Virtual Machines %d is out of range", vmCount))
-	}
-	interfaces.NumOfVMs = vmCount
-
-	os.Stderr.WriteString(fmt.Sprintf("node        %d\n", listenTo))
-	os.Stderr.WriteString(fmt.Sprintf("count       %d\n", cnt))
-	os.Stderr.WriteString(fmt.Sprintf("net         \"%s\"\n", net))
-	os.Stderr.WriteString(fmt.Sprintf("drop        %d\n", droprate))
-	os.Stderr.WriteString(fmt.Sprintf("journal     \"%s\"\n", journal))
 	if follower {
-		os.Stderr.WriteString(fmt.Sprintf("follower    \"%v\"\n", follower))
 		leader = false
 	}
 	if leader {
-		os.Stderr.WriteString(fmt.Sprintf("leader    \"%v\"\n", leader))
 		follower = false
 	}
 	if !follower && !leader {
 		panic("Not a leader or a follower")
 	}
-	os.Stderr.WriteString(fmt.Sprintf("db          \"%s\"\n", db))
-	os.Stderr.WriteString(fmt.Sprintf("folder      \"%s\"\n", folder))
-	os.Stderr.WriteString(fmt.Sprintf("port        \"%d\"\n", port))
-	os.Stderr.WriteString(fmt.Sprintf("address     \"%s\"\n", address))
-	os.Stderr.WriteString(fmt.Sprintf("peers       \"%s\"\n", peers))
-	os.Stderr.WriteString(fmt.Sprintf("blkTime     %d\n", blkTime))
-	os.Stderr.WriteString(fmt.Sprintf("runtimeLog  %v\n", runtimeLog))
-	os.Stderr.WriteString(fmt.Sprintf("vmCount     %d\n", vmCount))
 
 	if journal != "" {
 		cnt = 1
@@ -146,17 +134,38 @@ func NetStart(s *state.State) {
 		s.SetIdentityChainID(primitives.Sha([]byte(time.Now().String()))) // Make sure this node is NOT a leader
 	}
 	if leader {
-		s.SetIdentityChainID(primitives.Sha([]byte("FNode0"))) // Make sure this node is a leader
+		s.SetIdentityChainID(primitives.Sha([]byte(s.Prefix + "FNode0"))) // Make sure this node is a leader
 		s.NodeMode = "SERVER"
 	}
 
 	if len(db) > 0 {
 		s.DBType = db
+	} else {
+		db = s.DBType
 	}
 
-	s.SetOut(false)
-	s.PortNumber = port
+	if len(cloneDB) > 0 {
+		s.CloneDBType = cloneDB
+	} else {
+		s.CloneDBType = db
+	}
 
+	os.Stderr.WriteString(fmt.Sprintf("node        %d\n", listenTo))
+	os.Stderr.WriteString(fmt.Sprintf("count       %d\n", cnt))
+	os.Stderr.WriteString(fmt.Sprintf("net         \"%s\"\n", net))
+	os.Stderr.WriteString(fmt.Sprintf("drop        %d\n", droprate))
+	os.Stderr.WriteString(fmt.Sprintf("journal     \"%s\"\n", journal))
+	os.Stderr.WriteString(fmt.Sprintf("db          \"%s\"\n", db))
+	os.Stderr.WriteString(fmt.Sprintf("clonedb     \"%s\"\n", cloneDB))
+	os.Stderr.WriteString(fmt.Sprintf("folder      \"%s\"\n", folder))
+	os.Stderr.WriteString(fmt.Sprintf("port        \"%d\"\n", s.PortNumber))
+	os.Stderr.WriteString(fmt.Sprintf("address     \"%s\"\n", address))
+	os.Stderr.WriteString(fmt.Sprintf("peers       \"%s\"\n", peers))
+	os.Stderr.WriteString(fmt.Sprintf("blkTime     %d\n", blkTime))
+	os.Stderr.WriteString(fmt.Sprintf("runtimeLog  %v\n", runtimeLog))
+
+	s.AddPrefix(prefix)
+	s.SetOut(false)
 	s.Init()
 	s.SetDropRate(droprate)
 
@@ -185,7 +194,7 @@ func NetStart(s *state.State) {
 	p2pProxy.SetTestMode(heartbeat)
 	if netdebug {
 		go PeriodicStatusReport(fnodes)
-		// go p2pProxy.ProxyStatusReport()
+		go p2pProxy.ProxyStatusReport()
 	}
 	p2pProxy.startProxy()
 	// Bootstrap peers (will be obsolete when discovery is finished)
@@ -328,6 +337,5 @@ func startServers(load bool) {
 		}
 		go Timer(fnode.State)
 		go fnode.State.ValidatorLoop()
-		go Throttle(fnode.State)
 	}
 }

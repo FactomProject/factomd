@@ -13,7 +13,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
-func TestMarshalUnmarshalEOM(t *testing.T) {
+func TestMarshalUnmarshalHeartbeat(t *testing.T) {
 	msg := newHeartbeat()
 
 	hex, err := msg.MarshalBinary()
@@ -51,7 +51,7 @@ func TestMarshalUnmarshalEOM(t *testing.T) {
 	}
 }
 
-func TestSignAndVerifyEOM(t *testing.T) {
+func TestSignAndVerifyHeartbeat(t *testing.T) {
 	msg := newSignedHeartbeat()
 	hex, err := msg.MarshalBinary()
 	if err != nil {

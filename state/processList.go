@@ -12,6 +12,7 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
+	"time"
 )
 
 var _ = fmt.Print
@@ -28,7 +29,7 @@ type ProcessList struct {
 
 	State     interfaces.IState
 	VMs       []*VM       // Process list for each server (up to 32)
-	ServerMap [10][32]int // Map of FedServers to all Servers for each minute
+	ServerMap [10][64]int // Map of FedServers to all Servers for each minute
 
 	// Maps
 	// ====
@@ -56,26 +57,27 @@ type VM struct {
 	List           []interfaces.IMsg // Lists of acknowledged messages
 	Height         int               // Height of messages that have been processed
 	LeaderMinute   int               // Where the leader is in acknowledging messages
-	MinuteComplete int               // Highest minute complete (0-9) by the follower
-	SigComplete    bool              // Lists that are signature complete
-	Undo           interfaces.IMsg   // The Leader needs one level of undo to handle DB Sigs.
+	MinuteComplete int               // Highest minute complete recorded (0-9) by the follower
+	MinuteFinished int               // Highest minute processed (0-9) by the follower
+	MinuteHeight   int               // Height of the last minute complete
 	LastLeaderAck  interfaces.IMsg   // The last Acknowledgement set by this leader
 	LastAck        interfaces.IMsg   // The last Acknowledgement set by this follower
+	missingTime    int64             // How long we have been waiting for a missing message
 }
 
 // Returns the Virtual Server index for this hash for the given minute
-func VMIndexFor(hash []byte) int {
+func (p *ProcessList) VMIndexFor(hash []byte) int {
 	v := uint64(0)
 	for _, b := range hash {
 		v += uint64(b)
 	}
-	r := int(v % uint64(interfaces.NumOfVMs))
+	r := int(v % uint64(len(p.FedServers)))
 	return r
 }
 
 // Returns the Federated Server responsible for this hash in this minute
 func (p *ProcessList) FedServerFor(minute int, hash []byte) interfaces.IFctServer {
-	vs := VMIndexFor(hash)
+	vs := p.VMIndexFor(hash)
 	if vs < 0 {
 		return nil
 	}
@@ -84,7 +86,7 @@ func (p *ProcessList) FedServerFor(minute int, hash []byte) interfaces.IFctServe
 }
 
 func (p *ProcessList) LeaderFor(chainID interfaces.IHash, hash []byte) int {
-	vmIndex := VMIndexFor(hash)
+	vmIndex := p.VMIndexFor(hash)
 	minute := p.VMs[vmIndex].LeaderMinute
 	vm := p.FedServers[p.ServerMap[minute][vmIndex]]
 	if bytes.Compare(chainID.Bytes(), vm.GetChainID().Bytes()) == 0 {
@@ -93,22 +95,22 @@ func (p *ProcessList) LeaderFor(chainID interfaces.IHash, hash []byte) int {
 	return -1
 }
 
-func (p *ProcessList) GetVirtualServers(minute int, identityChainID interfaces.IHash) (found bool, indexes []int) {
+func (p *ProcessList) GetVirtualServers(minute int, identityChainID interfaces.IHash) (found bool, index int) {
 	found, fedIndex := p.GetFedServerIndexHash(identityChainID)
 	if !found {
-		return false, indexes
+		return false, -1
 	}
-
+	// fmt.Println("Line 100 minute:",minute)
 	for i, fedix := range p.ServerMap[minute] {
-		if i == interfaces.NumOfVMs {
+		if i == len(p.FedServers) {
 			break
 		}
 		if fedix == fedIndex {
-			indexes = append(indexes, i)
+			return true, i
 		}
 	}
 
-	return true, indexes
+	return false, -1
 }
 
 // Returns true and the index of this server, or false and the insertion point for this server
@@ -122,8 +124,12 @@ func (p *ProcessList) GetFedServerIndexHash(identityChainID interfaces.IHash) (b
 
 	for i, fs := range p.FedServers {
 		// Find and remove
-		if bytes.Compare(scid, fs.GetChainID().Bytes()) == 0 {
+		comp := bytes.Compare(scid, fs.GetChainID().Bytes())
+		if comp == 0 {
 			return true, i
+		}
+		if comp < 0 {
+			return false, i
 		}
 	}
 	return false, len(p.FedServers)
@@ -154,26 +160,61 @@ func (p *ProcessList) MakeMap() {
 	indx := int(p.DBHeight*131) % n
 	for i := 0; i < 10; i++ {
 		indx = (indx + 1) % n
-		for j := 0; j < interfaces.NumOfVMs; j++ {
+		for j := 0; j < len(p.FedServers); j++ {
 			p.ServerMap[i][j] = indx
 			indx = (indx + 1) % n
 		}
 	}
 }
 
+// This function will be replaced by a calculation from the Matryoshka hashes from the servers
+// but for now, we are just going to make it a function of the dbheight.
+func (p *ProcessList) PrintMap() string {
+	n := len(p.FedServers)
+	prt := " min"
+	for i := 0; i < n; i++ {
+		prt = fmt.Sprintf("%s%3d", prt, i)
+	}
+	prt = prt + "\n"
+	for i := 0; i < 10; i++ {
+		prt = fmt.Sprintf("%s%3d  ", prt, i)
+		for j := 0; j < len(p.FedServers); j++ {
+			prt = fmt.Sprintf("%s%2d ", prt, p.ServerMap[i][j])
+		}
+		prt = prt + "\n"
+	}
+	return prt
+}
+
 // Take the minute that has completed.  The minute height then is 1 plus that number
 // i.e. the minute height is 0, or 1, or 2, or ... or 10 (all done)
 func (p *ProcessList) SetMinute(index int, minute int) {
+	p.VMs[index].LeaderMinute = minute
 	p.VMs[index].MinuteComplete = minute + 1
+	p.VMs[index].MinuteHeight = p.VMs[index].Height
 }
 
 // Return the lowest minute number in our lists.  Note that Minute Markers END
 // a minute, so After MinuteComplete=0
-func (p *ProcessList) MinuteHeight() int {
+func (p *ProcessList) MinuteComplete() int {
 	m := 10
-	for _, vs := range p.VMs {
-		if vs.MinuteComplete < m {
-			m = vs.MinuteComplete
+	for i := 0; i < len(p.FedServers); i++ {
+		vm := p.VMs[i]
+		if vm.MinuteComplete < m {
+			m = vm.MinuteComplete
+		}
+	}
+	return m
+}
+
+// Return the lowest minute number in our lists.  Note that Minute Markers END
+// a minute, so After MinuteComplete=0
+func (p *ProcessList) MinuteFinished() int {
+	m := 10
+	for i := 0; i < len(p.FedServers); i++ {
+		vm := p.VMs[i]
+		if vm.MinuteFinished < m {
+			m = vm.MinuteFinished
 		}
 	}
 	return m
@@ -247,19 +288,13 @@ func (p *ProcessList) GetLastLeaderAck(index int) interfaces.IMsg {
 // Given a server index, return the last Ack
 func (p *ProcessList) SetLastLeaderAck(index int, msg interfaces.IMsg) error {
 	// Check the hash of the previous msg before we over write
-	p.VMs[index].Undo = p.VMs[index].LastLeaderAck
 	p.VMs[index].LastLeaderAck = msg
 	return nil
 }
 
-func (p *ProcessList) UndoLeaderAck(index int) {
-	p.VMs[index].Height--
-	p.VMs[index].LastLeaderAck = p.VMs[index].Undo
-}
-
 func (p ProcessList) HasMessage() bool {
 
-	for i := 0; i < interfaces.NumOfVMs; i++ {
+	for i := 0; i < len(p.FedServers); i++ {
 		if len(p.VMs[i].List) > 0 {
 			return true
 		}
@@ -280,12 +315,6 @@ func (p *ProcessList) PutNewEntries(dbheight uint32, key interfaces.IHash, value
 	p.NewEntries[key.Fixed()] = value
 }
 
-// TODO:  Need to map the server identity to the process list for which it
-// is responsible.  Right now, works with only one server!
-func (p *ProcessList) SetSigComplete(i int, value bool) {
-	p.VMs[i].SigComplete = value
-}
-
 // Test if a process list for a server is EOM complete.  Return true if all messages
 // have been recieved, and we just need the signaure.  If we need EOM messages, or we
 // have all EOM messages and we have the Signature, then we return false.
@@ -294,7 +323,7 @@ func (p *ProcessList) EomComplete() bool {
 		return true
 	}
 
-	for i := 0; i < interfaces.NumOfVMs; i++ {
+	for i := 0; i < len(p.FedServers); i++ {
 		c := p.VMs[i]
 		if c.MinuteComplete != 10 {
 			return false
@@ -303,16 +332,14 @@ func (p *ProcessList) EomComplete() bool {
 	return true
 }
 
-// Test if the process list is complete.  Return true if all messages
-// have been recieved, and we have all the signaures for the directory blocks.
-func (p *ProcessList) SigComplete() bool {
-	if p == nil {
+func (p *ProcessList) FinishedEOM() bool {
+	if p == nil || !p.HasMessage() { // Empty or nul, return true.
 		return true
 	}
-	n := len(p.State.GetFedServers(p.DBHeight))
+	n := len(p.FedServers)
 	for i := 0; i < n; i++ {
 		c := p.VMs[i]
-		if !c.SigComplete {
+		if c.Height <= c.MinuteHeight {
 			return false
 		}
 	}
@@ -328,48 +355,39 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			return
 		}
 		lht := last.DirectoryBlock.GetHeader().GetDBHeight()
-		if last.Saved && lht >= p.DBHeight-1 {
-			p.good = true
-		} else {
-			//fmt.Println("ht/lht: ", p.DBHeight, " ", lht, " ", last.Saved)
+		if !last.Saved || lht < p.DBHeight-1 {
 			return
 		}
+		p.good = true
 	}
-
-	for i := 0; i < interfaces.NumOfVMs; i++ {
+	for i := 0; i < len(p.FedServers); i++ {
 
 		plist := p.VMs[i].List
-
 	thisVM:
 		for j := p.VMs[i].Height; j < len(plist); j++ {
 			if plist[j] == nil {
-				if !state.IsThrottled {
+				now := time.Now().Unix()
+				if p.VMs[i].missingTime == 0 {
+					p.VMs[i].missingTime = now
+				}
+				if now-p.VMs[i].missingTime > 0 {
 					missingMsgRequest := messages.NewMissingMsg(state, p.DBHeight, uint32(j))
 					if missingMsgRequest != nil {
 						state.NetworkOutMsgQueue() <- missingMsgRequest
 					}
-					if state.GetOut() {
-						p.State.Println("!!!!!!! Missing entry in process list at", j)
-					}
-					state.IsThrottled = true
+					p.VMs[i].missingTime = now
 				}
 				return
 			}
 
 			oldAck, ok := p.OldAcks[plist[j].GetHash().Fixed()]
 			if !ok {
-				// the message from OldAcks is not actually of type Ack
 				plist[j] = nil
 				return
 			}
 			thisAck, ok := oldAck.(*messages.Ack)
-			if !ok {
-				// corresponding acknowledgement not found
-				if state.GetOut() {
-					p.State.Println("!!!!!!! Missing acknowledgement in process list for", j)
-				}
-				plist[j] = nil
-				return
+			if !ok { // Missing an Ack, should never happen.
+				panic("Missing old ack in process list")
 			}
 
 			var expectedSerialHash interfaces.IHash
@@ -380,6 +398,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			} else {
 				expectedSerialHash, err = primitives.CreateHash(last.MessageHash, thisAck.MessageHash)
 				if err != nil {
+
 					// cannot create a expectedSerialHash to compare to
 					plist[j] = nil
 					return
@@ -388,12 +407,20 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			// compare the SerialHash of this acknowledgement with the
 			// expected serialHash (generated above)
 			if !expectedSerialHash.IsSameAs(thisAck.SerialHash) {
-				fmt.Println("DISCREPANCY: ", i, j, "on", state.GetFactomNodeName())
-				fmt.Printf("LAST MESS: %+v ::: LAST SERIAL: %+v\n", last.MessageHash, last.SerialHash)
-				fmt.Printf("THIS MESS: %+v ::: THIS SERIAL: %+v\n", thisAck.MessageHash, thisAck.SerialHash)
-				fmt.Println("EXPECT: ", expectedSerialHash)
+				p.State.(*State).DebugPrt("Stupid")
+				fmt.Printf("DISCREPANCY: %d %x pl ht: %d \nDetected on: %s\n",
+					i,
+					p.FedServers[i].GetChainID().Bytes()[:3],
+					j,
+					state.GetFactomNodeName())
+				fmt.Printf("LAST MESS: %x ::: LAST SERIAL: %x\n", last.GetHash().Bytes()[:3], last.SerialHash.Bytes()[:3])
+				fmt.Printf("THIS MESS: %x ::: THIS SERIAL: %x\n", thisAck.GetHash().Bytes()[:3], thisAck.SerialHash.Bytes()[:3])
+				fmt.Printf("EXPECT:    %x \n", expectedSerialHash.Bytes()[:3])
+				fmt.Printf("The message that didn't work: %s\n\n", plist[j].String())
+				fmt.Println(p.PrintMap())
 				// the SerialHash of this acknowledgment is incorrect
 				// according to this node's processList
+
 				plist[j] = nil
 				return
 			}
@@ -410,21 +437,55 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 	return
 }
 
-func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
-	//if state.GetOut() {
-	//	p.State.Println("AddToProcessList +++++++++++++++++++++++++++++++++++++++++++++++",
-	//				m.String(),
-	//				" ",
-	//			 len(p.VMs[ack.VMIndex].List))
-	//}
-	if p == nil || p.VMs[ack.VMIndex].List == nil {
-		panic("This should not happen")
+func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) bool {
+
+	//fmt.Println(p.State.GetFactomNodeName(),"Addack them",ack.String())
+	//fmt.Println(p.State.GetFactomNodeName(),"Addm   them",m.String())
+	m.SetLeaderChainID(ack.GetLeaderChainID())
+	m.SetMinute(ack.Minute)
+
+	vm := p.VMs[ack.VMIndex]
+
+	if len(vm.List) > int(ack.Height) && vm.List[ack.Height] != nil {
+
+		if ack == nil || m == nil || vm.List[ack.Height].GetMsgHash() == nil ||
+			m.GetMsgHash() == nil || vm.List[ack.Height].GetMsgHash().IsSameAs(m.GetMsgHash()) {
+			return false
+		}
+
+		if vm.List[ack.Height] != nil {
+			fmt.Println(p.String())
+			fmt.Println(p.PrintMap())
+			fmt.Printf("\t%12s %s\n\t%12s %s\n\t %12s %s\n %18s: %x\n"+
+				" %18s: %x\n %18s: %d  %18s: %d\n %18s %v  %18s %v\n %18s %d"+
+				" %18s: %s"+
+				" %18s: %s",
+				"OverWriting:",
+				vm.List[ack.Height].String(),
+				"With:",
+				m.String(),
+				"Detected on:",
+				p.State.GetFactomNodeName(),
+				"Old Msg Leader", vm.List[ack.Height].GetLeaderChainID().Bytes()[:3],
+				"New Msg Leader", m.GetLeaderChainID().Bytes()[:3],
+				"DBHeight", ack.DBHeight,
+				"Height", ack.Height,
+				"Old Minute", vm.List[ack.Height].GetMinute(),
+				"New Minute", ack.GetMinute(),
+				"VM", ack.VMIndex,
+				"LastAck", vm.LastAck.String(),
+				"LastLeaderAck", vm.LastLeaderAck.String())
+			return false
+		}
 	}
 
 	for len(p.VMs[ack.VMIndex].List) <= int(ack.Height) {
 		p.VMs[ack.VMIndex].List = append(p.VMs[ack.VMIndex].List, nil)
 	}
+	p.VMs[ack.VMIndex].LastAck = ack
+
 	p.VMs[ack.VMIndex].List[ack.Height] = m
+	return true
 }
 
 func (p *ProcessList) String() string {
@@ -432,21 +493,20 @@ func (p *ProcessList) String() string {
 	if p == nil {
 		buf.WriteString("-- <nil>\n")
 	} else {
-		buf.WriteString(fmt.Sprintf("%s #VMs %d\n", p.State.GetFactomNodeName(), interfaces.NumOfVMs))
+		buf.WriteString(fmt.Sprintf("%s #VMs %d\n", p.State.GetFactomNodeName(), len(p.FedServers)))
 
-		for i := 0; i < interfaces.NumOfVMs; i++ {
+		for i := 0; i < len(p.FedServers); i++ {
 			server := p.VMs[i]
-			eom := fmt.Sprintf("Minute %d", server.MinuteComplete)
-			sig := ""
-			if server.SigComplete {
-				sig = "Sig Complete"
+			eom := fmt.Sprintf("Minute Complete %d Height %d ", server.MinuteComplete, server.Height)
+			if p.FinishedEOM() {
+				eom = eom + "Finished EOM "
 			}
 
-			buf.WriteString(fmt.Sprintf("  Server %d %s %s\n", i, eom, sig))
+			buf.WriteString(fmt.Sprintf("  VM %d Fed %d %s\n", i, p.ServerMap[server.LeaderMinute][i], eom))
 			for j, msg := range server.List {
 
 				if j < server.Height {
-					buf.WriteString("  p")
+					buf.WriteString("  P")
 				} else {
 					buf.WriteString("   ")
 				}
@@ -481,12 +541,6 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 	pl := new(ProcessList)
 
 	pl.State = state
-	pl.VMs = make([]*VM, interfaces.NumOfVMs)
-	for i := 0; i < interfaces.NumOfVMs; i++ {
-		pl.VMs[i] = new(VM)
-		pl.VMs[i].List = make([]interfaces.IMsg, 0)
-
-	}
 
 	// Make a copy of the previous FedServers
 	pl.FedServers = make([]interfaces.IFctServer, 0)
@@ -496,6 +550,13 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 		pl.AuditServers = append(pl.AuditServers, previous.AuditServers...)
 	} else {
 		pl.AddFedServer(primitives.Sha([]byte("FNode0"))) // Our default for now fed server
+	}
+
+	pl.VMs = make([]*VM, 32)
+	for i := 0; i < 32; i++ {
+		pl.VMs[i] = new(VM)
+		pl.VMs[i].List = make([]interfaces.IMsg, 0)
+
 	}
 
 	pl.DBHeight = dbheight

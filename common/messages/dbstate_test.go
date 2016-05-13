@@ -13,7 +13,7 @@ import (
 	"github.com/FactomProject/factomd/testHelper"
 )
 
-func TestMarshalUnmarshalDataResponse(t *testing.T) {
+func TestMarshalUnmarshalDBStateMsg(t *testing.T) {
 	msg := newDBStateMsg()
 
 	hex, err := msg.MarshalBinary()

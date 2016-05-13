@@ -25,10 +25,10 @@ func TestMarshalUnmarshalFactoidTransaction(t *testing.T) {
 
 	msg2, err := UnmarshalMessage(hex)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
-	str := msg2.String()
-	t.Logf("str - %v", str)
+	//str := msg2.String()
+	//t.Logf("str - %v", str)
 
 	if msg2.Type() != constants.FACTOID_TRANSACTION_MSG {
 		t.Error("Invalid message type unmarshalled")

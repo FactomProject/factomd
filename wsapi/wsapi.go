@@ -13,10 +13,11 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/web"
+	"os"
+	"time"
 )
 
 const (
-	httpOK  = 200
 	httpBad = 400
 )
 
@@ -61,8 +62,14 @@ func Start(state interfaces.IState) {
 }
 
 func SetState(state interfaces.IState) {
-	Servers[state.GetPort()].Env["state"] = state
-	fmt.Println("API now directed to", state.GetFactomNodeName())
+	wait := func() {
+		for Servers == nil && Servers[state.GetPort()] != nil {
+			time.Sleep(10 * time.Millisecond)
+		}
+		Servers[state.GetPort()].Env["state"] = state
+		os.Stderr.WriteString("API now directed to " + state.GetFactomNodeName() + "\n")
+	}
+	go wait()
 }
 
 func Stop(state interfaces.IState) {
@@ -212,7 +219,7 @@ func HandleGetReceipt(ctx *web.Context, hashkey string) {
 func HandleDirectoryBlock(ctx *web.Context, hashkey string) {
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
-	req := primitives.NewJSON2Request("directory-block-by-keymr", 1, hashkey)
+	req := primitives.NewJSON2Request("directory-block-by-keymr", 1, []interface{}{hashkey})
 
 	jsonResp, jsonError := HandleV2GetRequest(state, req)
 	if jsonError != nil {
@@ -287,17 +294,16 @@ func HandleEntry(ctx *web.Context, hashkey string) {
 func HandleChainHead(ctx *web.Context, hashkey string) {
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
-	req := primitives.NewJSON2Request("chain-head", 1, hashkey)
+	req := primitives.NewJSON2Request("chain-head", 1, []interface{}{hashkey})
 
 	jsonResp, jsonError := HandleV2GetRequest(state, req)
 	if jsonError != nil {
 		returnV1(ctx, nil, jsonError)
 		return
 	}
+
 	d := new(CHead)
-
 	d.ChainHead = jsonResp.Result.(*ChainHeadResponse).ChainHead
-
 	returnMsg(ctx, d, true)
 }
 

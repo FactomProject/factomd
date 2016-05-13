@@ -20,7 +20,7 @@ func (db *Overlay) ProcessDBlockBatch(dblock interfaces.DatabaseBlockWithEntries
 	if err != nil {
 		return err
 	}
-	return db.SaveIncludedInMultiFromBlock(dblock)
+	return db.SaveIncludedInMultiFromBlock(dblock, false)
 }
 
 func (db *Overlay) ProcessDBlockMultiBatch(dblock interfaces.DatabaseBlockWithEntries) error {
@@ -30,7 +30,7 @@ func (db *Overlay) ProcessDBlockMultiBatch(dblock interfaces.DatabaseBlockWithEn
 	if err != nil {
 		return err
 	}
-	return db.SaveIncludedInMultiFromBlockMultiBatch(dblock)
+	return db.SaveIncludedInMultiFromBlockMultiBatch(dblock, false)
 }
 
 // FetchHeightRange looks up a range of blocks by the start and ending
