@@ -453,17 +453,8 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 	if bytes.Compare(fblk.GetKeyMR().Bytes(), dblk.GetDBEntries()[2].GetKeyMR().Bytes()) != 0 {
 		panic("Should not happen")
 	}
-	eblks := make([]interfaces.IEntryBlock, len(dblk.GetDBEntries())-3)
-	if len(dblk.GetDBEntries()) > 3 {
-		for i, v := range dblk.GetDBEntries()[3:] {
-			eblks[i], err = s.DB.FetchEBlockByKeyMR(v.GetKeyMR())
-			if err != nil {
-				return nil, err
-			}
-		}
-	}
 
-	msg := messages.NewDBStateMsg(s.GetTimestamp(), dblk, ablk, fblk, ecblk, eblks)
+	msg := messages.NewDBStateMsg(s.GetTimestamp(), dblk, ablk, fblk, ecblk)
 
 	return msg, nil
 
@@ -828,8 +819,10 @@ func (s *State) LeaderMsgQueue() chan interfaces.IMsg {
 }
 
 func (s *State) StallMsg(m interfaces.IMsg) {
-	s.stallQueue <- m
-	m.SetStalled(true)
+	if !m.IsLocal() {
+		s.stallQueue <- m
+		m.SetStalled(true)
+	}
 }
 
 func (s *State) Stall() chan interfaces.IMsg {

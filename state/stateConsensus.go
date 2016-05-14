@@ -90,39 +90,27 @@ func (s *State) Process() (progress bool) {
 			UpdateLastLeaderAck()
 		}
 
+		// Anything we are holding, we need to reprocess.
+		for k := range s.Holding {
+			s.StallMsg(s.Holding[k])
+		}
+		// Clear the holding map
+		s.Holding = make(map[[32]byte]interfaces.IMsg)
 	}
 
 	return s.ProcessQueues()
 }
 
 func (s *State) TryToProcess(msg interfaces.IMsg) {
-	v := msg.Validate(s)
-	if v == 1 {
-		if s.Leader && msg.Leader(s) {
-			vm := s.LeaderPL.VMs[s.LeaderVMIndex]
-			if s.EOM == 0 && len(vm.List)<=vm.Height{
-				if s.LeaderVMIndex == msg.GetVMIndex() || msg.IsLocal() {
-					if len(vm.List) >= vm.Height {
-						err := msg.LeaderExecute(s)
-						if err == nil {
-							s.networkOutMsgQueue <- msg
-						} else {
-							s.StallMsg(msg)
-						}
-						return
-					} else {
-						s.StallMsg(msg)
-						return
-					}
-				}
-			} else {
-				if s.LeaderVMIndex == msg.GetVMIndex() || msg.IsLocal() {
-					s.StallMsg(msg)
+	// First make sure the message is valid.
+
+	ExeFollow := func() {
+		if msg.Follower(s) {
+			if !s.Leader && msg.IsLocal(){
+				if _,ok := msg.(*messages.EOM); ok {
 					return
 				}
 			}
-		}
-		if msg.Follower(s) {
 			err := msg.FollowerExecute(s)
 			if err == nil {
 				s.networkOutMsgQueue <- msg
@@ -131,6 +119,52 @@ func (s *State) TryToProcess(msg interfaces.IMsg) {
 			}
 			s.networkOutMsgQueue <- msg
 		}
+	}
+
+	ExeLeader := func() {
+		if s.LeaderVMIndex == msg.GetVMIndex() || msg.IsLocal() {
+			if msg.Leader(s) {
+				err := msg.LeaderExecute(s)
+				if err == nil {
+					// If all went well, then send it to the world.
+					s.networkOutMsgQueue <- msg
+				} else {
+					// If bad, stall as long as it isn't our own EOM
+					if _, ok := msg.(*messages.EOM); !ok {
+						s.StallMsg(msg)
+					}
+				}
+				// If all to be done is follow, then so be it.
+			} else {
+				ExeFollow()
+			}
+		}else {
+			ExeFollow()
+		}
+	}
+
+	v := msg.Validate(s)
+	if v == 1 {
+		// If we are a leader, we are way more strict than simple followers.
+		if s.Leader {
+			// If we are in the middle of a minute
+			if s.EOM == 0 {
+				// Are we ready to go here?  Leaders add without gaps.
+				if s.LeaderPL.GoodTo(msg.GetVMIndex()) {
+					ExeLeader()
+					// Out of ourder.  Stall.
+				} else {
+					s.StallMsg(msg)
+				}
+				// We are in transition!
+			} else {
+				ExeLeader()
+			}
+			// If we are not a leader, then we just do the follower thing.
+		} else {
+			ExeFollow()
+		}
+	// If the transaction isn't valid (or we can't tell) we just drop it.
 	}else{
 		s.networkInvalidMsgQueue <- msg
 	}
@@ -158,7 +192,13 @@ func (s *State) ProcessQueues() (progress bool){
 	}
 
 	if msg != nil {
-		s.TryToProcess(msg)
+		if s.LeaderPL != nil {
+			if s.LeaderPL.OldMsgs[msg.GetHash().Fixed()] == nil {
+				s.TryToProcess(msg)
+			}
+		}else{
+			s.TryToProcess(msg)
+		}
 	}
 
 	return
@@ -226,24 +266,31 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) (bool, error) {
 		s.Holding[hashf] = m
 		return false, nil
 	} else {
+		delete(s.Acks, hashf)		// No matter what, we don't want to
+		delete(s.Holding, hashf)	// rematch.. If we stall, we will see them again.
+
+		if ack.DBHeight < s.LLeaderHeight {	// Toss if old.
+			return true, nil
+		}
+
 		pl := s.ProcessLists.Get(ack.DBHeight)
 
 		if pl != nil {
 			if !pl.AddToProcessList(ack, m) {
 				s.StallMsg(m)
+				s.StallMsg(ack)
 				return false, nil
+			}
+
+			if m.Type() == constants.COMMIT_CHAIN_MSG || m.Type() == constants.COMMIT_ENTRY_MSG {
+				s.PutCommits(hash, m)
 			}
 
 			pl.OldAcks[hashf] = ack
 			pl.OldMsgs[hashf] = m
-			delete(s.Acks, hashf)
-			delete(s.Holding, hashf)
 		} else {
 			s.StallMsg(m)
-		}
-
-		if m.Type() == constants.COMMIT_CHAIN_MSG || m.Type() == constants.COMMIT_ENTRY_MSG {
-			s.PutCommits(hash, m)
+			s.StallMsg(ack)
 		}
 
 		return true, nil
@@ -273,7 +320,6 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) error {
 	}
 
 	s.DBStates.LastTime = s.GetTimestamp()
-	//	fmt.Println("DBState Message  ")
 	s.AddDBState(true,
 		dbstatemsg.DirectoryBlock,
 		dbstatemsg.AdminBlock,
@@ -666,7 +712,6 @@ func (s *State) NewAck(dbheight uint32, msg interfaces.IMsg) (iack interfaces.IM
 
 	if pl == nil {
 		err = fmt.Errorf(s.FactomNodeName + ": No process list at this time")
-		fmt.Println(err.Error())
 		return
 	}
 	msg.SetLeaderChainID(s.IdentityChainID)

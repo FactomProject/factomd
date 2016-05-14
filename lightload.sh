@@ -8,8 +8,8 @@ while true; do
 	do
 		factom-cli balances
 		./flight.sh
-		factom-cli balances
-		./eclight.sh
-		sleep 3
+		# factom-cli balances
+		# ./eclight.sh
+		# sleep 3
 	 done
 done

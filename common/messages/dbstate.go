@@ -13,7 +13,6 @@ import (
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
-	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -69,17 +68,18 @@ func (a *DBStateMsg) IsSameAs(b *DBStateMsg) bool {
 }
 
 func (m *DBStateMsg) GetHash() interfaces.IHash {
-	return nil
+	data,_ := m.MarshalBinary()
+	return primitives.Sha(data)
 }
 
 func (m *DBStateMsg) GetMsgHash() interfaces.IHash {
-
-	data, err := m.MarshalBinary()
-	if err != nil {
-		return nil
+	if m.MsgHash == nil {
+		data, err := m.MarshalBinary()
+		if err != nil {
+			return nil
+		}
+		m.MsgHash = primitives.Sha(data)
 	}
-	m.MsgHash = primitives.Sha(data)
-
 	return m.MsgHash
 }
 
@@ -147,7 +147,6 @@ func (e *DBStateMsg) JSONBuffer(b *bytes.Buffer) error {
 
 func (m *DBStateMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
-		return
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling Directory Block State Message: %v", r)
 		}
@@ -249,8 +248,7 @@ func NewDBStateMsg(timestamp interfaces.Timestamp,
 	d interfaces.IDirectoryBlock,
 	a interfaces.IAdminBlock,
 	f interfaces.IFBlock,
-	e interfaces.IEntryCreditBlock,
-	ebs []interfaces.IEntryBlock) interfaces.IMsg {
+	e interfaces.IEntryCreditBlock) interfaces.IMsg {
 
 	msg := new(DBStateMsg)
 
@@ -262,7 +260,6 @@ func NewDBStateMsg(timestamp interfaces.Timestamp,
 	msg.AdminBlock = a
 	msg.FactoidBlock = f
 	msg.EntryCreditBlock = e
-	msg.EntryBlocks = ebs
 
 	return msg
 }

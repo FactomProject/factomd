@@ -136,7 +136,6 @@ func (p *ProcessList) GetVirtualServers(minute int, identityChainID interfaces.I
 	if !found {
 		return false, -1
 	}
-	// fmt.Println("Line 100 minute:",minute)
 	for i, fedix := range p.ServerMap[minute] {
 		if i == len(p.FedServers) {
 			break
@@ -477,6 +476,20 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 	return
 }
 
+// Check to assure that the given VM has been completely processed
+func (p *ProcessList) GoodTo(vmIndex int) bool{
+	vm := p.VMs[vmIndex]
+	if len(vm.List) > vm.Height {
+		return false
+	}
+	for _,v := range vm.List {
+		if v == nil {
+			return false
+		}
+	}
+	return true
+}
+
 func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) bool {
 
 	//fmt.Println(p.State.GetFactomNodeName(),"Addack them",ack.String())
@@ -487,7 +500,7 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) boo
 	vm := p.VMs[ack.VMIndex]
 
 	// If this vm is sealed, then we can't add more messages.
-	if vm.Seal > 0 &&  ack.Height < vm.SealHeight {
+	if p.State.(*State).Leader && vm.Seal > 0 &&  ack.Height >= vm.SealHeight {
 		return false
 	}
 
