@@ -501,6 +501,7 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) boo
 
 	// If this vm is sealed, then we can't add more messages.
 	if p.State.(*State).Leader && vm.Seal > 0 &&  ack.Height >= vm.SealHeight {
+		if p.State.(*State).DebugConsensus { fmt.Printf("%-30s,%10s,%s\n","add PL Height Stall",p.State.GetFactomNodeName(),m.String()) }
 		return false
 	}
 
@@ -508,6 +509,7 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) boo
 
 		if ack == nil || m == nil || vm.List[ack.Height].GetMsgHash() == nil ||
 			m.GetMsgHash() == nil || vm.List[ack.Height].GetMsgHash().IsSameAs(m.GetMsgHash()) {
+			fmt.Printf("%-30s,%10s,%s\n","xxxxxxxxx PL Duplicate",p.State.GetFactomNodeName(),m.String())
 			return false
 		}
 
@@ -533,12 +535,15 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) boo
 				"VM", ack.VMIndex,
 				"LastAck", vm.LastAck.String(),
 				"LastLeaderAck", vm.LastLeaderAck.String())
+			if p.State.(*State).DebugConsensus { fmt.Printf("%-30s,%10s,%s\n","add PL Overwrite",p.State.GetFactomNodeName(),m.String()) }
 			return false
 		}
 	}
 
 	eom, ok := m.(*messages.EOM)
 	if ok {
+		if p.State.(*State).DebugConsensus { fmt.Printf("%-30s,%10s,%s\n","add Seal        ",p.State.GetFactomNodeName(),m.String()) }
+		if p.State.(*State).DebugConsensus { fmt.Printf("%-30s,%10s,%s\n","add Seal        ",p.State.GetFactomNodeName(),ack.String()) }
 		vm.Seal = int(eom.Minute+1)
 		vm.SealHeight = ack.Height
 	}
@@ -547,9 +552,16 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) boo
 		p.VMs[ack.VMIndex].List = append(p.VMs[ack.VMIndex].List, nil)
 		length = len(p.VMs[ack.VMIndex].List)
 	}
-	p.VMs[ack.VMIndex].LastAck = ack
 
+	p.VMs[ack.VMIndex].LastAck = ack
 	p.VMs[ack.VMIndex].List[ack.Height] = m
+
+	now := int64(p.State.GetTimestamp())
+	// Both the ack and the message hash to the same GetHash()
+	p.State.(*State).InternalReplay.IsTSValid_(m.GetHash().Fixed(),int64(m.GetTimestamp()),now)
+	ack.SetStalled(false)
+	m.SetStalled(false)
+	if p.State.(*State).DebugConsensus { fmt.Printf("%-30s,%10s,%s\n","add !!!!!!Finished ",p.State.GetFactomNodeName(),m.String()) }
 	return true
 }
 

@@ -46,7 +46,7 @@ func (a *DBStateMissing) IsSameAs(b *DBStateMissing) bool {
 }
 
 func (m *DBStateMissing) GetHash() interfaces.IHash {
-	return nil
+	return m.GetMsgHash()
 }
 
 func (m *DBStateMissing) GetMsgHash() interfaces.IHash {

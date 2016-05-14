@@ -89,4 +89,8 @@ type IMsg interface {
 	SetVMHash([]byte)
 	GetMinute() byte
 	SetMinute(byte)
+
+	// Need to ignore messages already in the Process List
+	GetRecorded() bool
+	SetRecorded(bool)
 }

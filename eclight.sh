@@ -1,7 +1,7 @@
 #!/bin/bash
 
-sleep 3
-for i in `seq 1 15`;
+sleep 8
+for i in `seq 1 30`;
 do
 	sleep 1
 	number1=$RANDOM

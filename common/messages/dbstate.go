@@ -236,12 +236,13 @@ func (m *DBStateMsg) MarshalBinary() ([]byte, error) {
 }
 
 func (m *DBStateMsg) String() string {
-	return fmt.Sprintf("DBState: ht:%3d dblock %6x admin %6x fb %6x ec %6x",
+	return fmt.Sprintf("DBState: ht:%3d dblock %6x admin %6x fb %6x ec %6x hash %6x",
 		m.DirectoryBlock.GetHeader().GetDBHeight(),
 		m.DirectoryBlock.GetKeyMR().Bytes()[:3],
 		m.AdminBlock.GetHash().Bytes()[:3],
 		m.FactoidBlock.GetHash().Bytes()[:3],
-		m.EntryCreditBlock.GetHash().Bytes()[:3])
+		m.EntryCreditBlock.GetHash().Bytes()[:3],
+		m.GetHash().Bytes()[:3])
 }
 
 func NewDBStateMsg(timestamp interfaces.Timestamp,

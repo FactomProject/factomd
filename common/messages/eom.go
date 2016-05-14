@@ -284,7 +284,7 @@ func (m *EOM) String() string {
 	if m.IsLocal() {
 		local = "local"
 	}
-	return fmt.Sprintf("%6s-VM%3d: Min:%4d Ht:%5d -- Leader[:3]=%x hash[:3]=%x %s",
+	return fmt.Sprintf("%6s-VM%3d: Min:%4d DBHt:%5d -- Leader[:3]=%x hash[:3]=%x %s",
 		"EOM",
 		m.VMIndex,
 		m.Minute,

@@ -187,6 +187,18 @@ func SimControl(listenTo int) {
 				fnodes[listenTo].State.SetOut(true)
 				os.Stderr.WriteString(fmt.Sprint("\r\nSwitching to Node ", listenTo, "\r\n"))
 				wsapi.SetState(fnodes[listenTo].State)
+			case 'c' == b[0]:
+				c := !fnodes[0].State.DebugConsensus
+				if c {
+					os.Stderr.WriteString(fmt.Sprint("\r\nTrace Consensus\n"))
+				}else{
+					os.Stderr.WriteString(fmt.Sprint("\r\nTurn off Consensus Trace \n"))
+				}
+
+				for _,f := range fnodes {
+					f.State.DebugConsensus = c
+				}
+
 
 			case 'h' == b[0]:
 				os.Stderr.WriteString("-------------------------------------------------------------------------------\n")
@@ -195,6 +207,7 @@ func SimControl(listenTo int) {
 				os.Stderr.WriteString("fN            Show Factoid block   N. Indicate node eg:\"f5\" to shows blocks for that node.\n")
 				os.Stderr.WriteString("dN            Show Directory block N. Indicate node eg:\"d5\" to shows blocks for that node.\n")
 				os.Stderr.WriteString("m             Show Messages as they are passed through the simulator.\n")
+				os.Stderr.WriteString("c             Trace the Consensus Process\n")
 				os.Stderr.WriteString("s             Show the state of all nodes as their state changes in the simulator.\n")
 				os.Stderr.WriteString("p             Show the process lists and directory block states as they change.\n")
 				os.Stderr.WriteString("n             Change the focus to the next node.\n")

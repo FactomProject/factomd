@@ -50,6 +50,7 @@ type State struct {
 	DirectoryBlockInSeconds int
 	PortNumber              int
 	Replay                  *Replay
+	InternalReplay          *Replay
 	GreenFlg                bool
 	GreenCnt                int
 	DropRate                int
@@ -80,10 +81,10 @@ type State struct {
 	LeaderVMIndex int
 	LeaderPL      *ProcessList
 	OutputAllowed bool
-	LeaderMinute  int  // The minute that just was processed by the follower, (1-10), set with EOM
-	EOM           int  // Set to true when all Process Lists have finished a minute
-	NetStateOff   bool // Disable if true, Enable if false
-
+	LeaderMinute  int  	// The minute that just was processed by the follower, (1-10), set with EOM
+	EOM           int  	// Set to true when all Process Lists have finished a minute
+	NetStateOff   bool 	// Disable if true, Enable if false
+	DebugConsensus bool 	// If true, dump consensus trace
 	// Maps
 	// ====
 	// For Follower
@@ -289,6 +290,7 @@ func (s *State) Init() {
 	}
 	// Set up struct to stop replay attacks
 	s.Replay = new(Replay)
+	s.InternalReplay = new(Replay)
 
 	// Set up maps for the followers
 	s.Holding = make(map[[32]byte]interfaces.IMsg)
@@ -822,6 +824,7 @@ func (s *State) StallMsg(m interfaces.IMsg) {
 	if !m.IsLocal() {
 		s.stallQueue <- m
 		m.SetStalled(true)
+		if s.DebugConsensus {fmt.Printf("%-30s,%10s,%s\n","SSS Stalling Msg: ",s.FactomNodeName,m.String()) }
 	}
 }
 
