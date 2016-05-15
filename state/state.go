@@ -76,15 +76,15 @@ type State struct {
 	serverPubKey  primitives.PublicKey
 
 	// Server State
-	LLeaderHeight uint32
-	Leader        bool
-	LeaderVMIndex int
-	LeaderPL      *ProcessList
-	OutputAllowed bool
-	LeaderMinute  int  	// The minute that just was processed by the follower, (1-10), set with EOM
-	EOM           int  	// Set to true when all Process Lists have finished a minute
-	NetStateOff   bool 	// Disable if true, Enable if false
-	DebugConsensus bool 	// If true, dump consensus trace
+	LLeaderHeight  uint32
+	Leader         bool
+	LeaderVMIndex  int
+	LeaderPL       *ProcessList
+	OutputAllowed  bool
+	LeaderMinute   int  // The minute that just was processed by the follower, (1-10), set with EOM
+	EOM            int  // Set to true when all Process Lists have finished a minute
+	NetStateOff    bool // Disable if true, Enable if false
+	DebugConsensus bool // If true, dump consensus trace
 	// Maps
 	// ====
 	// For Follower
@@ -824,7 +824,9 @@ func (s *State) StallMsg(m interfaces.IMsg) {
 	if !m.IsLocal() {
 		s.stallQueue <- m
 		m.SetStalled(true)
-		if s.DebugConsensus {fmt.Printf("%-30s,%10s,%s\n","SSS Stalling Msg: ",s.FactomNodeName,m.String()) }
+		if s.DebugConsensus {
+			fmt.Printf("%-30s %10s %s\n", "SSS Stalling Msg: ", s.FactomNodeName, m.String())
+		}
 	}
 }
 

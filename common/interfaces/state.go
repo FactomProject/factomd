@@ -104,8 +104,8 @@ type IState interface {
 
 	// These are methods run by the consensus algorithm to track what servers are the leaders
 	// and what lists they are responsible for.
-	LeaderFor(msg IMsg, hash []byte) bool 	// Tests if this server is the leader for this key
-	GetLeaderVM() int								// Get the Leader VM (only good within a minute)
+	LeaderFor(msg IMsg, hash []byte) bool // Tests if this server is the leader for this key
+	GetLeaderVM() int                     // Get the Leader VM (only good within a minute)
 	// Returns the list of VirtualServers at a given directory block height and minute
 	GetVirtualServers(dbheight uint32, minute int, identityChainID IHash) (found bool, index int)
 	// Returns true if between minutes

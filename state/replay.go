@@ -31,7 +31,7 @@ func hours(unix int64) int64 {
 
 // Returns false if the hash is too old, or is already a
 // member of the set.
-func (r *Replay) Valid (hash [32]byte, timestamp int64, now int64) (index int, valid bool) {
+func (r *Replay) Valid(hash [32]byte, timestamp int64, now int64) (index int, valid bool) {
 
 	if len(r.buckets) < numBuckets {
 		r.buckets = make([]map[[32]byte]byte, numBuckets, numBuckets)
@@ -88,7 +88,7 @@ func (r *Replay) IsTSValid_(hash [32]byte, timestamp int64, now int64) bool {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
-	if index, ok := r.Valid(hash,timestamp,now); ok {
+	if index, ok := r.Valid(hash, timestamp, now); ok {
 		// Mark this hash as seen
 		r.buckets[index][hash] = 'x'
 

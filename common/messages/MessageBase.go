@@ -20,7 +20,7 @@ type MessageBase struct {
 	VMIndex       int              // The Index of the VM responsible for this message.
 	VMHash        []byte           // Basis for selecting a VMIndex
 	Minute        byte
-	Recorded      bool             // Marked true when it makes the process list
+	Recorded      bool // Marked true when it makes the process list
 	// Used by Leader code, but only Marshaled and Unmarshalled in Ack Messages
 	// EOM messages, and DirectoryBlockSignature messages
 }

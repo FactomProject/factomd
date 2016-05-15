@@ -8,20 +8,18 @@
 	factom-cli addecoutput t e1 .4
 	factom-cli addfee t factoid-wallet-address-name01
 	factom-cli sign t
-	factom-cli transactions
 	factom-cli submit t
 
 sleep 5
-for i in `seq 1 24`;
+for i in `seq 1 2`;
 do
-	sleep 1
+	sleep 3
 	factom-cli deletetransaction t
 	factom-cli newtransaction t
 	factom-cli addinput t factoid-wallet-address-name01 .0001
 	factom-cli addoutput t b1 .0001
 	factom-cli addfee t factoid-wallet-address-name01
 	factom-cli sign t
-	factom-cli transactions
 	factom-cli submit t
 done
 

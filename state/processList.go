@@ -57,7 +57,7 @@ type VM struct {
 	List           []interfaces.IMsg // Lists of acknowledged messages
 	Height         int               // Height of messages that have been processed
 	LeaderMinute   int               // Where the leader is in acknowledging messages
-	Seal           int	            // Sealed with an EOM minute, and released (0) when all EOM are found.
+	Seal           int               // Sealed with an EOM minute, and released (0) when all EOM are found.
 	SealHeight     uint32            // Entries belowe the seal can still be recorded.
 	MinuteComplete int               // Highest minute complete recorded (0-9) by the follower
 	MinuteFinished int               // Highest minute processed (0-9) by the follower
@@ -68,14 +68,14 @@ type VM struct {
 }
 
 // Attempts to unseal. Takes a minute (1-10) Returns false if it cannot
-func( p *ProcessList) Unseal(minute int) bool {
+func (p *ProcessList) Unseal(minute int) bool {
 	cnt := 0
-	for i :=0; i < len(p.FedServers); i++ {
+	for i := 0; i < len(p.FedServers); i++ {
 		vm := p.VMs[i]
-		if len(vm.List)!=vm.Height {
+		if len(vm.List) != vm.Height {
 			break
 		}
-		for _,v := range vm.List {
+		for _, v := range vm.List {
 			if v == nil {
 				break
 			}
@@ -91,7 +91,7 @@ func( p *ProcessList) Unseal(minute int) bool {
 		if cnt < len(p.FedServers) {
 			return false
 		}
-		for i :=0; i< len(p.FedServers); i++ {
+		for i := 0; i < len(p.FedServers); i++ {
 			p.VMs[i].Seal = 0
 			p.VMs[i].SealHeight = 0
 		}
@@ -99,7 +99,6 @@ func( p *ProcessList) Unseal(minute int) bool {
 	}
 	return false
 }
-
 
 // Returns the Virtual Server index for this hash for the given minute
 func (p *ProcessList) VMIndexFor(hash []byte) int {
@@ -248,9 +247,9 @@ func (p *ProcessList) MinuteFinished() int {
 	m := 10
 	for i := 0; i < len(p.FedServers); i++ {
 		vm := p.VMs[i]
-		for i,v := range p.VMs[i].List {
+		for i, v := range p.VMs[i].List {
 			if v == nil && i <= vm.MinuteHeight {
-				m = vm.MinuteFinished-1
+				m = vm.MinuteFinished - 1
 			}
 		}
 		if vm.MinuteFinished < m {
@@ -477,12 +476,12 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 }
 
 // Check to assure that the given VM has been completely processed
-func (p *ProcessList) GoodTo(vmIndex int) bool{
+func (p *ProcessList) GoodTo(vmIndex int) bool {
 	vm := p.VMs[vmIndex]
 	if len(vm.List) > vm.Height {
 		return false
 	}
-	for _,v := range vm.List {
+	for _, v := range vm.List {
 		if v == nil {
 			return false
 		}
@@ -500,8 +499,10 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) boo
 	vm := p.VMs[ack.VMIndex]
 
 	// If this vm is sealed, then we can't add more messages.
-	if p.State.(*State).Leader && vm.Seal > 0 &&  ack.Height >= vm.SealHeight {
-		if p.State.(*State).DebugConsensus { fmt.Printf("%-30s,%10s,%s\n","add PL Height Stall",p.State.GetFactomNodeName(),m.String()) }
+	if p.State.(*State).Leader && vm.Seal > 0 && ack.Height >= vm.SealHeight {
+		if p.State.(*State).DebugConsensus {
+			fmt.Printf("%-30s %10s %s\n", "add PL Height Stall", p.State.GetFactomNodeName(), m.String())
+		}
 		return false
 	}
 
@@ -509,7 +510,7 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) boo
 
 		if ack == nil || m == nil || vm.List[ack.Height].GetMsgHash() == nil ||
 			m.GetMsgHash() == nil || vm.List[ack.Height].GetMsgHash().IsSameAs(m.GetMsgHash()) {
-			fmt.Printf("%-30s,%10s,%s\n","xxxxxxxxx PL Duplicate",p.State.GetFactomNodeName(),m.String())
+			fmt.Printf("%-30s %10s %s\n", "xxxxxxxxx PL Duplicate", p.State.GetFactomNodeName(), m.String())
 			return false
 		}
 
@@ -535,16 +536,22 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) boo
 				"VM", ack.VMIndex,
 				"LastAck", vm.LastAck.String(),
 				"LastLeaderAck", vm.LastLeaderAck.String())
-			if p.State.(*State).DebugConsensus { fmt.Printf("%-30s,%10s,%s\n","add PL Overwrite",p.State.GetFactomNodeName(),m.String()) }
+			if p.State.(*State).DebugConsensus {
+				fmt.Printf("%-30s %10s %s\n", "add PL Overwrite", p.State.GetFactomNodeName(), m.String())
+			}
 			return false
 		}
 	}
 
 	eom, ok := m.(*messages.EOM)
 	if ok {
-		if p.State.(*State).DebugConsensus { fmt.Printf("%-30s,%10s,%s\n","add Seal        ",p.State.GetFactomNodeName(),m.String()) }
-		if p.State.(*State).DebugConsensus { fmt.Printf("%-30s,%10s,%s\n","add Seal        ",p.State.GetFactomNodeName(),ack.String()) }
-		vm.Seal = int(eom.Minute+1)
+		if p.State.(*State).DebugConsensus {
+			fmt.Printf("%-30s %10s %s\n", "add Seal        ", p.State.GetFactomNodeName(), m.String())
+		}
+		if p.State.(*State).DebugConsensus {
+			fmt.Printf("%-30s %10s %s\n", "add Seal        ", p.State.GetFactomNodeName(), ack.String())
+		}
+		vm.Seal = int(eom.Minute + 1)
 		vm.SealHeight = ack.Height
 	}
 	length := len(p.VMs[ack.VMIndex].List)
@@ -553,15 +560,19 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) boo
 		length = len(p.VMs[ack.VMIndex].List)
 	}
 
-	p.VMs[ack.VMIndex].LastAck = ack
 	p.VMs[ack.VMIndex].List[ack.Height] = m
 
 	now := int64(p.State.GetTimestamp())
 	// Both the ack and the message hash to the same GetHash()
-	p.State.(*State).InternalReplay.IsTSValid_(m.GetHash().Fixed(),int64(m.GetTimestamp()),now)
+	p.State.(*State).InternalReplay.IsTSValid_(m.GetHash().Fixed(), int64(m.GetTimestamp()), now)
 	ack.SetStalled(false)
 	m.SetStalled(false)
-	if p.State.(*State).DebugConsensus { fmt.Printf("%-30s,%10s,%s\n","add !!!!!!Finished ",p.State.GetFactomNodeName(),m.String()) }
+	if p.State.(*State).DebugConsensus {
+		fmt.Printf("%-30s %10s %s\n", "add !!!!!!Finished ", p.State.GetFactomNodeName(), m.String())
+	}
+	if p.State.(*State).DebugConsensus {
+		fmt.Printf("%-30s %10s %s\n", "add !!!!!!Finished ", p.State.GetFactomNodeName(), ack.String())
+	}
 	return true
 }
 
@@ -585,11 +596,11 @@ func (p *ProcessList) String() string {
 			}
 			buf.WriteString(fmt.Sprintf("  VM %d Fed %d %s\n", i, p.ServerMap[min][i], eom))
 			for j, msg := range server.List {
-
+				buf.WriteString(fmt.Sprintf("   %3d", j))
 				if j < server.Height {
-					buf.WriteString("  P")
+					buf.WriteString(" P")
 				} else {
-					buf.WriteString("   ")
+					buf.WriteString("  ")
 				}
 
 				if msg != nil {

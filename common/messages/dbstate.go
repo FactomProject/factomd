@@ -68,7 +68,7 @@ func (a *DBStateMsg) IsSameAs(b *DBStateMsg) bool {
 }
 
 func (m *DBStateMsg) GetHash() interfaces.IHash {
-	data,_ := m.MarshalBinary()
+	data, _ := m.MarshalBinary()
 	return primitives.Sha(data)
 }
 
