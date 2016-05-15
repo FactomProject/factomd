@@ -14,7 +14,7 @@ import (
 // Data structures and functions related to peers (eg other nodes in the network)
 
 type Peer struct {
-	QualityScore int    // 0 is neutral quality, negative is a bad peer.
+	QualityScore int32  // 0 is neutral quality, negative is a bad peer.
 	Address      string // Must be in form of x.x.x.x:p
 	Hash         string
 	Location     uint32 // IP address as an int.
@@ -75,12 +75,16 @@ func PeerHashFromAddress(address string) string {
 
 // merit increases a peers reputation
 func (p *Peer) merit() {
-	p.QualityScore++
+	if 2147483000 > p.QualityScore {
+		p.QualityScore++
+	}
 }
 
 // demerit decreases a peers reputation
 func (p *Peer) demerit() {
-	p.QualityScore--
+	if -2147483000 < p.QualityScore {
+		p.QualityScore--
+	}
 }
 
 // sort.Sort interface implementation
