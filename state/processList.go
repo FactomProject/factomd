@@ -416,31 +416,26 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 					}
 					p.VMs[i].missingTime = now
 				}
-				return
+				break thisVM
 			}
 
-			oldAck, ok := p.OldAcks[plist[j].GetHash().Fixed()]
-			if !ok {
-				plist[j] = nil
-				return
-			}
-			thisAck, ok := oldAck.(*messages.Ack)
-			if !ok { // Missing an Ack, should never happen.
-				panic("Missing old ack in process list")
+			thisAck, ok := p.OldAcks[plist[j].GetHash().Fixed()].(*messages.Ack)
+			if !ok {					// IF I don't have an Ack to match this entry
+				plist[j] = nil		// throw the entry away, and continue to the
+				break	thisVM		// next list.  SHOULD NEVER HAPPEN.
 			}
 
 			var expectedSerialHash interfaces.IHash
 			var err error
 			last, ok := p.GetLastAck(i).(*messages.Ack)
-			if !ok || last.IsSameAs(thisAck) || j == 0 {
+			if j == 0 || !ok  {
 				expectedSerialHash = thisAck.SerialHash
 			} else {
 				expectedSerialHash, err = primitives.CreateHash(last.MessageHash, thisAck.MessageHash)
 				if err != nil {
-
 					// cannot create a expectedSerialHash to compare to
 					plist[j] = nil
-					return
+					break thisVM
 				}
 			}
 			// compare the SerialHash of this acknowledgement with the
@@ -460,9 +455,8 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 				// the SerialHash of this acknowledgment is incorrect
 				// according to this node's processList
 				plist[j] = nil
-				return
+				break thisVM
 			}
-			p.SetLastAck(i, thisAck)
 
 			if plist[j].Process(p.DBHeight, state) { // Try and Process this entry
 				p.VMs[i].Height = j + 1 // Don't process it again if the process worked.
@@ -470,6 +464,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			} else {
 				break thisVM // Don't process further in this list, go to the next.
 			}
+			p.SetLastAck(i, thisAck)
 		}
 	}
 	return

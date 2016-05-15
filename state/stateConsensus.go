@@ -45,6 +45,10 @@ func (s *State) Process() (progress bool) {
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.LeaderMinute, s.IdentityChainID)
 		UpdateLastLeaderAck()
+		minFin := s.LeaderPL.MinuteFinished()
+		if s.EOM < minFin {
+			s.LeaderMinute = minFin
+		}
 	}
 
 	if s.LLeaderHeight <= highest {
@@ -95,7 +99,7 @@ func (s *State) Process() (progress bool) {
 			s.StallMsg(s.Holding[k])
 		}
 		// Clear the holding map
-		//s.Holding = make(map[[32]byte]interfaces.IMsg)
+		s.Holding = make(map[[32]byte]interfaces.IMsg)
 	}
 
 	return s.ProcessQueues()
@@ -129,21 +133,28 @@ func (s *State) TryToProcess(msg interfaces.IMsg) {
 	ExeLeader := func() {
 		if s.LeaderVMIndex == msg.GetVMIndex() || msg.IsLocal() {
 			if msg.Leader(s) {
-				if s.DebugConsensus {
-					fmt.Printf("%-30s %10s %s\n", "ttt Leader Exe", s.FactomNodeName, msg.String())
-				}
-				err := msg.LeaderExecute(s)
-				if err == nil {
-					// If all went well, then send it to the world.
-					s.networkOutMsgQueue <- msg
-				} else {
-					// If bad, stall as long as it isn't our own EOM
-					if _, ok := msg.(*messages.EOM); !ok {
-						if s.DebugConsensus {
-							fmt.Printf("%-30s %10s %s\n", "ttt Leader Stall 1", s.FactomNodeName, msg.String())
-						}
-						s.StallMsg(msg)
+				if s.EOM == 0 && s.LeaderPL.GoodTo(msg.GetVMIndex()) {
+					if s.DebugConsensus {
+						fmt.Printf("%-30s %10s %s\n", "ttt Leader Exe", s.FactomNodeName, msg.String())
 					}
+					err := msg.LeaderExecute(s)
+					if err == nil {
+						// If all went well, then send it to the world.
+						s.networkOutMsgQueue <- msg
+					} else {
+						// If bad, stall as long as it isn't our own EOM
+						if _, ok := msg.(*messages.EOM); !ok {
+							if s.DebugConsensus {
+								fmt.Printf("%-30s %10s %s\n", "ttt Leader Stall 1", s.FactomNodeName, msg.String())
+							}
+							s.StallMsg(msg)
+						}
+					}
+				}else{
+					if s.DebugConsensus {
+						fmt.Printf("%-30s %10s %s\n", "ttt Leader Stall 2", s.FactomNodeName, msg.String())
+					}
+					s.StallMsg(msg)
 				}
 				// If all to be done is follow, then so be it.
 			} else {
@@ -164,30 +175,12 @@ func (s *State) TryToProcess(msg interfaces.IMsg) {
 	if v == 1 {
 		// If we are a leader, we are way more strict than simple followers.
 		if s.Leader {
-			// If we are in the middle of a minute
-			if s.EOM == 0 {
-				ack, ok := msg.(*messages.Ack)
-				// Are we ready to go here?  Leaders add without gaps.
-				if s.LeaderPL.GoodTo(msg.GetVMIndex()) || (ok && int(ack.Height) < s.LeaderPL.VMs[s.LeaderVMIndex].Height) {
-					if s.DebugConsensus {
-						fmt.Printf("%-30s %10s %s\n", "--- Leader Exe", s.FactomNodeName, msg.String())
-					}
-					ExeLeader()
-					// Out of ourder.  Stall.
-				} else {
-					if s.DebugConsensus {
-						fmt.Printf("%-30s %10s %s\n", "--- Stall !LeaderPL.GoodTo(msg)", s.FactomNodeName, msg.String())
-					}
-					s.StallMsg(msg)
-				}
-				// We are in transition!
-			} else {
-				if s.DebugConsensus {
-					fmt.Printf("%-30s %10s %s\n", "---2 Leader Exe EOM>0", s.FactomNodeName, msg.String())
-				}
-				ExeLeader()
+			if s.DebugConsensus {
+				fmt.Printf("%-30s %10s %s\n", "--- Leader Exe", s.FactomNodeName, msg.String())
 			}
-			// If we are not a leader, then we just do the follower thing.
+			ExeLeader()
+
+		// If we are not a leader, then we just do the follower thing.
 		} else {
 			if s.DebugConsensus {
 				fmt.Printf("%-30s %10s %s\n", "--- Follower Exe", s.FactomNodeName, msg.String())
@@ -489,7 +482,7 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
 		return fmt.Errorf("Stalling")
 	}
 
-	s.EOM = int(eom.Minute + 1)
+	s.EOM = int(s.LeaderMinute + 1)
 
 	eom.DBHeight = s.LLeaderHeight
 	eom.VMIndex = s.LeaderVMIndex
@@ -597,7 +590,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	}
 
 	if pl.VMIndexFor(constants.FACTOID_CHAINID) == e.VMIndex {
-		s.FactoidState.EndOfPeriod(int(e.Minute))
+		//s.FactoidState.EndOfPeriod(int(e.Minute))
 
 		// Add EOM to the EBlocks.  We only do this once, so
 		// we piggy back on the fact that we only do the FactoidState

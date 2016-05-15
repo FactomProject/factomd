@@ -43,7 +43,7 @@ func (m *RevealEntryMsg) Process(dbheight uint32, state interfaces.IState) bool 
 		chainID := m.Entry.GetChainID()
 		eb, err := state.GetDB().FetchEBlockHead(chainID)
 		if err != nil || eb != nil {
-			panic("Chain already exists")
+			panic(fmt.Sprintf("%s\n%s","Chain already exists",m.String()))
 		}
 
 		// Create a new Entry Block for a new Entry Block Chain
