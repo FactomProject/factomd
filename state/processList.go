@@ -420,15 +420,15 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			}
 
 			thisAck, ok := p.OldAcks[plist[j].GetHash().Fixed()].(*messages.Ack)
-			if !ok {					// IF I don't have an Ack to match this entry
-				plist[j] = nil		// throw the entry away, and continue to the
-				break	thisVM		// next list.  SHOULD NEVER HAPPEN.
+			if !ok { // IF I don't have an Ack to match this entry
+				plist[j] = nil // throw the entry away, and continue to the
+				break thisVM   // next list.  SHOULD NEVER HAPPEN.
 			}
 
 			var expectedSerialHash interfaces.IHash
 			var err error
 			last, ok := p.GetLastAck(i).(*messages.Ack)
-			if j == 0 || !ok  {
+			if j == 0 || !ok {
 				expectedSerialHash = thisAck.SerialHash
 			} else {
 				expectedSerialHash, err = primitives.CreateHash(last.MessageHash, thisAck.MessageHash)

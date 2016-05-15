@@ -150,7 +150,7 @@ func (s *State) TryToProcess(msg interfaces.IMsg) {
 							s.StallMsg(msg)
 						}
 					}
-				}else{
+				} else {
 					if s.DebugConsensus {
 						fmt.Printf("%-30s %10s %s\n", "ttt Leader Stall 2", s.FactomNodeName, msg.String())
 					}
@@ -180,7 +180,7 @@ func (s *State) TryToProcess(msg interfaces.IMsg) {
 			}
 			ExeLeader()
 
-		// If we are not a leader, then we just do the follower thing.
+			// If we are not a leader, then we just do the follower thing.
 		} else {
 			if s.DebugConsensus {
 				fmt.Printf("%-30s %10s %s\n", "--- Follower Exe", s.FactomNodeName, msg.String())
