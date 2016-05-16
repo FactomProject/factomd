@@ -277,7 +277,7 @@ func (f *P2PProxy) ManageInChannel() {
 
 // ProxyStatusReport: Report the status of the peer channels
 func (f *P2PProxy) ProxyStatusReport() {
-	time.Sleep(time.Second * 15) // wait for things to spin up
+	time.Sleep(time.Second * 5) // wait for things to spin up
 	for {
 		time.Sleep(time.Second * 20)
 		note("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
@@ -291,10 +291,10 @@ func (f *P2PProxy) ProxyStatusReport() {
 	}
 }
 func PeriodicStatusReport(fnodes []*FactomNode) {
-	time.Sleep(time.Second * 15) // wait for things to spin up
+	time.Sleep(time.Second * 5) // wait for things to spin up
 
 	for {
-		time.Sleep(time.Second * 15)
+		time.Sleep(time.Second * 5)
 
 		fmt.Println("-------------------------------------------------------------------------------")
 		fmt.Println("-------------------------------------------------------------------------------")

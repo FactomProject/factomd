@@ -183,8 +183,7 @@ func NetStart(s *state.State) {
 	// BUGBUG Get peers file from config
 	p2p := new(p2p.Controller).Init(address, "~/.factom/peers.json")
 	network = *p2p
-	network.StartLogging(uint8(0))
-	network.StartNetwork(0 < len(peers)) //BUGBUG This should be flag? Talk to Brian
+	network.StartNetwork(false) //BUGBUG This should be command line flag? Talk to Brian
 	// Setup the proxy (Which translates from network parcels to factom messages, handling addressing for directed messages)
 	p2pProxy := new(P2PProxy).Init(fnodes[0].State.FactomNodeName, "P2P Network").(*P2PProxy)
 	p2pProxy.FromNetwork = network.FromNetwork
@@ -195,6 +194,7 @@ func NetStart(s *state.State) {
 	if netdebug {
 		go PeriodicStatusReport(fnodes)
 		go p2pProxy.ProxyStatusReport()
+		network.StartLogging(uint8(0))
 	}
 	p2pProxy.startProxy()
 	// Bootstrap peers (will be obsolete when discovery is finished)

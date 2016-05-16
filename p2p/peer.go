@@ -29,9 +29,9 @@ const ( // iota is reset to 0
 func (p *Peer) Init(address string, quality int, peerType uint8) *Peer {
 	p.Address = address
 	p.QualityScore = 0 // start at zero, zero is neutral, negative is a bad peer, positive is a good peer.
-	p.Location = p.locationFromAddress()
 	p.Hash = PeerHashFromAddress(address)
 	p.Type = peerType
+	p.Location = p.locationFromAddress()
 	return p
 }
 
@@ -62,14 +62,14 @@ func (p *Peer) locationFromAddress() uint32 {
 	location += uint32(b1) << 16
 	location += uint32(b2) << 8
 	location += uint32(b3)
-	debug("Peer: %s has Location: %d", p.Hash, location)
+	debug("peer", "Peer: %s with ip_port: %+v and octets: %+v has Location: %d", p.Hash, ip_port, octets, location)
 	return location
 }
 
 func PeerHashFromAddress(address string) string {
 	raw := sha256.Sum256([]byte(address))
 	hash := base64.URLEncoding.EncodeToString(raw[0:sha256.Size])
-	debug("Peer address %s produces hash: %s", address, hash)
+	debug("peer", "Peer address %s produces hash: %s", address, hash)
 	return hash
 }
 

@@ -9,12 +9,13 @@ import (
 	"fmt"
 	"io/ioutil"
 
+	"os"
+	"time"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/web"
-	"os"
-	"time"
 )
 
 const (
@@ -61,11 +62,24 @@ func Start(state interfaces.IState) {
 	}
 }
 
+// This function is dangerous. It changes the .Env on a server,
+// which is running in another go-routine, out from underneath it. The correct
+// solution is to have that server watching a channel for Env updates.
+// but that server is an external package.  BUGBUG PAUL
+// The issue became apparent when running detatched where hundreds of SetState
+// goroutines would be in flight, and between the sleep statemetn and the update,
+// the server would be changed by another goroutine! (for now, fixed that
+// in SimControl.)
 func SetState(state interfaces.IState) {
 	wait := func() {
-		for Servers == nil && Servers[state.GetPort()] != nil {
-			time.Sleep(10 * time.Millisecond)
+		for Servers == nil || Servers[state.GetPort()] == nil {
+			time.Sleep(100 * time.Millisecond)
 		}
+		fmt.Printf("state %+v\n", state)
+		fmt.Printf("Servers %+v\n", Servers)
+		fmt.Printf("tate.GetPort()] %+v\n", state.GetPort())
+		fmt.Printf("Servers[state.GetPort()] %+v\n", Servers[state.GetPort()])
+		fmt.Printf("Servers[state.GetPort()].Env[] %+v\n", Servers[state.GetPort()].Env)
 		Servers[state.GetPort()].Env["state"] = state
 		os.Stderr.WriteString("API now directed to " + state.GetFactomNodeName() + "\n")
 	}

@@ -22,8 +22,10 @@ if [ $? -eq 0 ]; then
     echo "####################################################################################################################"
     echo
     echo
+    sleep 60
+    echo
+    echo
     echo "Killing processes now..."
     echo
-    sleep 60
     kill -2 $node0 $node1 $node2 $node3
 fi

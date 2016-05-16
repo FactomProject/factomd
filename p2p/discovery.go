@@ -6,11 +6,12 @@ package p2p
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
-	"math"
 	"math/rand"
 	"os"
 	"sort"
+	"strconv"
 	"time"
 )
 
@@ -38,9 +39,10 @@ func (d *Discovery) Init(peersFile string) *Discovery {
 // SavePeers just saves our known peers out to disk. Called periodically.
 func (d *Discovery) SavePeers() {
 	// save known peers to peers.json
+	d.lastPeerSave = time.Now()
 	file, err := os.Create(d.peersFilePath)
 	if nil != err {
-		logerror("Discover.SavePeers() File write error on file: %s, Error: %+v", d.peersFilePath, err)
+		logerror("discovery", "Discover.SavePeers() File write error on file: %s, Error: %+v", d.peersFilePath, err)
 		return
 	}
 	defer file.Close()
@@ -48,17 +50,20 @@ func (d *Discovery) SavePeers() {
 	encoder := json.NewEncoder(writer)
 	encoder.Encode(d.knownPeers)
 	writer.Flush()
+	note("discovery", "SavePeers() saved %d peers in peers.josn", len(d.knownPeers))
+
 }
 
 // LoadPeers loads the known peers from disk OVERWRITING PREVIOUS VALUES
 func (d *Discovery) LoadPeers() {
 	file, err := os.Open(d.peersFilePath)
 	if nil != err {
-		logerror("Discover.LoadPeers() File read error on file: %s, Error: %+v", d.peersFilePath, err)
+		logerror("discovery", "Discover.LoadPeers() File read error on file: %s, Error: %+v", d.peersFilePath, err)
 		return
 	}
 	dec := json.NewDecoder(bufio.NewReader(file))
 	dec.Decode(&d.knownPeers)
+	note("discovery", "LoadPeers() found %d peers in peers.josn", len(d.knownPeers))
 	file.Close()
 }
 
@@ -79,6 +84,7 @@ func (d *Discovery) ServePeers() string {
 
 // BUGBUG - we need to filter on special peers, and rewrite share peers and serve peers for this
 // Also need to update the controller stuff for them.
+// Exclusive flag is:  OnlySpecialPeers
 
 // Returns a set of peers from the ones we know about.
 // Right now returns the set of all peers we know about.
@@ -90,46 +96,57 @@ func (d *Discovery) getPeerSelection() []byte {
 	// BUGBUG doesn't take into account peer type or exclusive flag
 	// BUGBUG couldn't we implemetn a distance sort, the n take the first and last of the sorted peers as furthest away?
 
-	var peer, currentBest Peer
-	var currentBestDistance float64
-
-	peers := []Peer{}
-	for _, peer = range d.knownPeers {
-		peers = append(peers, peer)
+	// var peer, currentBest Peer
+	// var currentBestDistance float64
+	selectedPeers := []Peer{}
+	peerPool := []Peer{}
+	for _, peer := range d.knownPeers {
+		if SpecialPeer != peer.Type {
+			peerPool = append(peerPool, peer)
+		}
 	}
-	// Pick a random peer
-	numPeers := len(peers)
+	numPeers := len(peerPool)
 	numToSelect := 24
 	if numToSelect > numPeers {
-		numToSelect = numPeers
-	}
-	if numToSelect >= 1 {
-		peer = peers[d.rng.Intn(numPeers-1)]
+		// then we return all of the peers
+		selectedPeers = peerPool
 	} else {
-		return []byte{}
+		selectedPeers = peerPool
+		// BUGBUG Rewrite this to sort by location, then take first, middle, last repeatedly. More deterministic
+		// 	// Pick a random peer
+		// 	if numToSelect >= 1 && numPeers > 0 {
+		// 		peer = peers[d.rng.Intn(numPeers-1)]
+		// 	} else {
+		// 		return []byte{}
+		// 	}
+		// 	currentBest = peer
+		// 	currentBestDistance = 0.0
+		// 	selectedPeers := []Peer{peer}
+		// 	verbose("discovery", "getPeerSelection() numToSelect %d, numPeers: %d", numToSelect, numPeers)
+
+		// 	for numToSelect > len(selectedPeers) {
+		// 		verbose("discovery", "getPeerSelection() numToSelect %d, selected: %d", numToSelect, len(selectedPeers))
+		// 		// Iterate thru the peers and find the peer that is furthest away by location
+		// 		for _, target := range peers {
+		// 			distance := math.Abs(float64(target.Location) - float64(peer.Location))
+		// 			if distance > currentBestDistance { // better peer found
+		// 				currentBest = target
+		// 				currentBestDistance = distance
+		// 			}
+		// 		}
+		// 		if currentBest != peer {
+		// 			selectedPeers = append(selectedPeers, currentBest)
+		// 			currentBestDistance = 0.0
+		// 			currentBest = peer
+		// 		}
+		// 	}
 	}
-	currentBest = peer
-	currentBestDistance = 0.0
-	selectedPeers := []Peer{peer}
-	for numToSelect > len(selectedPeers) {
-		// Iterate thru the peers and find the peer that is furthest away by location
-		for _, target := range peers {
-			distance := math.Abs(float64(target.Location) - float64(peer.Location))
-			if distance > currentBestDistance { // better peer found
-				currentBest = target
-				currentBestDistance = distance
-			}
-		}
-		if currentBest != peer {
-			selectedPeers = append(selectedPeers, currentBest)
-			currentBestDistance = 0.0
-			currentBest = peer
-		}
-	}
+
 	json, err := json.Marshal(selectedPeers)
 	if nil != err {
 		logerror("discovery", "Discovery.getPeerSelection got an error marshalling json. error: %+v selectedPeers: %+v", err, selectedPeers)
 	}
+	note("discovery", "peers we are sharing: %+v", string(json))
 	return json
 }
 
@@ -137,7 +154,21 @@ func (d *Discovery) getPeerSelection() []byte {
 // The unique peers are added to our peer list.
 // The peers are in a json encoded string as a byte slice
 func (d *Discovery) LearnPeers(payload []byte) {
-
+	var newPeers map[string]Peer // peers we know about indexed by hash
+	dec := json.NewDecoder(bytes.NewReader(payload))
+	err := dec.Decode(&newPeers)
+	if nil != err {
+		logerror("discovery", "Discovery.LearnPeers got an error unmarshalling json. error: %+v json: %+v", err, strconv.Quote(string(payload)))
+		return
+	}
+	for key, value := range newPeers {
+		_, present := d.knownPeers[key]
+		if !present {
+			value.QualityScore = 0
+			d.knownPeers[key] = value
+			note("discovery", "Discovery.LearnPeers !!!!!!!!!!!!! Discoverd new PEER!   %+v ", value)
+		}
+	}
 }
 
 // GetStartupPeers gets a set of peers to connect to on startup

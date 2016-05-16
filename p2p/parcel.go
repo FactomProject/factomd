@@ -29,6 +29,7 @@ type ParcelHeader struct {
 	TargetPeer string            // ? bytes - "" or nil for broadcast, otherwise the destination peer's hash.
 	Crc32      uint32            // 4 bytes - data integrity hash (of the payload itself.)
 	Timestamp  time.Time
+	NodeID     uint64
 }
 
 type ParcelCommandType uint16
@@ -92,6 +93,8 @@ func (p *ParcelHeader) Print() {
 	debug("parcel", "\t Length:\t%d", p.Length)
 	debug("parcel", "\t TargetPeer:\t%s", p.TargetPeer)
 	debug("parcel", "\t CRC32:\t%d", p.Crc32)
+	debug("parcel", "\t Timestamp:\t%d", p.Timestamp)
+	debug("parcel", "\t NodeID:\t%d", p.NodeID)
 }
 
 func (p *Parcel) Print() {
@@ -101,6 +104,25 @@ func (p *Parcel) Print() {
 	debug("parcel", "\t\tPayload: %s", s)
 }
 
+func (p *Parcel) MessageType() string {
+	return (fmt.Sprintf("[%s]", CommandStrings[p.Header.Type]))
+}
+
 func (p *Parcel) PrintMessageType() {
 	fmt.Printf("[%+v]", CommandStrings[p.Header.Type])
+}
+
+func (p *Parcel) String() string {
+	var output string
+	s := strconv.Quote(string(p.Payload))
+	fmt.Sprintf(output, "\t Network:\t%+v\n", NetworkIDStrings[p.Header.Network])
+	fmt.Sprintf(output, "\t Version:\t%+v\n", p.Header.Version)
+	fmt.Sprintf(output, "\t Type:   \t%+v\n", CommandStrings[p.Header.Type])
+	fmt.Sprintf(output, "\t Length:\t%d\n", p.Header.Length)
+	fmt.Sprintf(output, "\t TargetPeer:\t%s\n", p.Header.TargetPeer)
+	fmt.Sprintf(output, "\t CRC32:\t%d\n", p.Header.Crc32)
+	fmt.Sprintf(output, "\t Timestamp:\t%+v\n", p.Header.Timestamp)
+	fmt.Sprintf(output, "\t NodeID:\t%d\n", p.Header.NodeID)
+	fmt.Sprintf(output, "\t Payload: %s\n", s)
+	return output
 }
