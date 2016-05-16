@@ -309,7 +309,7 @@ func (m *Ack) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *Ack) String() string {
-	return fmt.Sprintf("%6s-VM%3d: PL:%5d Ht:%5d -- Leader[:3]=%x hash[:3]=%x",
+	return fmt.Sprintf("%6s-VM%3d: PL:%5d DBHt:%5d -- Leader[:3]=%x hash[:3]=%x",
 		"ACK",
 		m.VMIndex,
 		m.Height,

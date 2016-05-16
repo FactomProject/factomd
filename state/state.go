@@ -50,6 +50,7 @@ type State struct {
 	DirectoryBlockInSeconds int
 	PortNumber              int
 	Replay                  *Replay
+	InternalReplay          *Replay
 	GreenFlg                bool
 	GreenCnt                int
 	DropRate                int
@@ -75,17 +76,18 @@ type State struct {
 	serverPubKey  primitives.PublicKey
 
 	// Server State
-	LLeaderHeight uint32
-	Leader        bool
-	LeaderVMIndex int
-	LeaderPL      *ProcessList
-	OutputAllowed bool
-	LeaderMinute  int  // The minute that just was processed by the follower, (1-10), set with EOM
-	EOM           bool // Set to true when all Process Lists have finished a minute
-	EOM_Step      int  // Found this leader's EOM.
-	EOM_Stall     bool // We have an EOM stalled currently... Only stall one.
-	NetStateOff   bool // Disable if true, Enable if false
-
+	LLeaderHeight  uint32
+	Leader         bool
+	LeaderVMIndex  int
+	LeaderPL       *ProcessList
+	OutputAllowed  bool
+	LeaderMinute   int  // The minute that just was processed by the follower, (1-10), set with EOM
+	EOM            int  // Set to true when all Process Lists have finished a minute
+	NetStateOff    bool // Disable if true, Enable if false
+	DebugConsensus bool // If true, dump consensus trace
+	FactoidTrans 	int
+	NewEntryChains	int
+	NewEntries		int
 	// Maps
 	// ====
 	// For Follower
@@ -291,6 +293,7 @@ func (s *State) Init() {
 	}
 	// Set up struct to stop replay attacks
 	s.Replay = new(Replay)
+	s.InternalReplay = new(Replay)
 
 	// Set up maps for the followers
 	s.Holding = make(map[[32]byte]interfaces.IMsg)
@@ -455,17 +458,8 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 	if bytes.Compare(fblk.GetKeyMR().Bytes(), dblk.GetDBEntries()[2].GetKeyMR().Bytes()) != 0 {
 		panic("Should not happen")
 	}
-	eblks := make([]interfaces.IEntryBlock, len(dblk.GetDBEntries())-3)
-	if len(dblk.GetDBEntries()) > 3 {
-		for i, v := range dblk.GetDBEntries()[3:] {
-			eblks[i], err = s.DB.FetchEBlockByKeyMR(v.GetKeyMR())
-			if err != nil {
-				return nil, err
-			}
-		}
-	}
 
-	msg := messages.NewDBStateMsg(s.GetTimestamp(), dblk, ablk, fblk, ecblk, eblks)
+	msg := messages.NewDBStateMsg(s.GetTimestamp(), dblk, ablk, fblk, ecblk)
 
 	return msg, nil
 
@@ -587,6 +581,19 @@ func (s *State) GetAllEntries(ebKeyMR interfaces.IHash) bool {
 	return hasAllEntries
 }
 
+func (s *State) IncFactoidTrans() {
+	s.FactoidTrans++
+}
+
+func (s *State) IncEntryChains() {
+	s.NewEntryChains++
+}
+
+func (s *State) IncEntries() {
+	s.NewEntries++
+}
+
+
 func (s *State) DatabaseContains(hash interfaces.IHash) bool {
 	result, _, err := s.LoadDataByHash(hash)
 	if result != nil && err == nil {
@@ -614,6 +621,10 @@ func (s *State) JournalMessage(msg interfaces.IMsg) {
 	str := s.MessageToLogString(msg)
 	f.WriteString(str)
 	f.Close()
+}
+
+func (s *State) GetLeaderVM() int {
+	return s.LeaderVMIndex
 }
 
 func (s *State) GetDBState(height uint32) *DBState {
@@ -674,7 +685,7 @@ func (s *State) catchupEBlocks() {
 	}
 }
 
-func (s *State) GetEOM() bool {
+func (s *State) GetEOM() int {
 	return s.EOM
 }
 
@@ -826,8 +837,13 @@ func (s *State) LeaderMsgQueue() chan interfaces.IMsg {
 }
 
 func (s *State) StallMsg(m interfaces.IMsg) {
-	s.stallQueue <- m
-	m.SetStalled(true)
+	if !m.IsLocal() {
+		s.stallQueue <- m
+		m.SetStalled(true)
+		if s.DebugConsensus {
+			fmt.Printf("%-30s %10s %s\n", "SSS Stalling Msg: ", s.FactomNodeName, m.String())
+		}
+	}
 }
 
 func (s *State) Stall() chan interfaces.IMsg {
@@ -967,7 +983,7 @@ func (s *State) SetString() {
 			lastheight = s.DBStates.Last().DirectoryBlock.GetHeader().GetDBHeight()
 		}
 
-		s.serverPrt = fmt.Sprintf("%9s%9s %x Recorded: %d Building: %d Last: %d DirBlk[:5]=%x L Min: %v L DBHT %v Min C/F %v/%v EOM %v EOM_S %v",
+		s.serverPrt = fmt.Sprintf("%4s%8s %x Saved: %5d Build: %5d Last: %5d DirBlk=%x L Min: %2v L DBHT %5v Min C/F %02v/%02v EOM %2v %3dFct %3dEC %3dE",
 			stype,
 			s.FactomNodeName,
 			s.IdentityChainID.Bytes()[:3],
@@ -980,7 +996,9 @@ func (s *State) SetString() {
 			s.ProcessLists.Get(s.LLeaderHeight).MinuteComplete(),
 			s.ProcessLists.Get(s.LLeaderHeight).MinuteFinished(),
 			s.EOM,
-			s.EOM_Step)
+			s.FactoidTrans,
+			s.NewEntryChains,
+			s.NewEntries)
 	}
 }
 

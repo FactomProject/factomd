@@ -43,7 +43,7 @@ func (m *RevealEntryMsg) Process(dbheight uint32, state interfaces.IState) bool 
 		chainID := m.Entry.GetChainID()
 		eb, err := state.GetDB().FetchEBlockHead(chainID)
 		if err != nil || eb != nil {
-			panic("Chain already exists")
+			panic(fmt.Sprintf("%s\n%s", "Chain already exists", m.String()))
 		}
 
 		// Create a new Entry Block for a new Entry Block Chain
@@ -58,6 +58,8 @@ func (m *RevealEntryMsg) Process(dbheight uint32, state interfaces.IState) bool 
 		state.PutNewEBlocks(dbheight, m.Entry.GetChainID(), eb)
 		state.PutNewEntries(dbheight, m.Entry.GetHash(), m.Entry)
 
+		state.IncEntryChains()
+		state.IncEntries()
 		return true
 	} else if _, isNewEntry := commit.(*CommitEntryMsg); isNewEntry {
 		chainID := m.Entry.GetChainID()
@@ -82,6 +84,7 @@ func (m *RevealEntryMsg) Process(dbheight uint32, state interfaces.IState) bool 
 		state.PutNewEBlocks(dbheight, m.Entry.GetChainID(), eb)
 		state.PutNewEntries(dbheight, m.Entry.GetHash(), m.Entry)
 
+		state.IncEntries()
 		return true
 	}
 	log.Println("Found Bad Commit")
@@ -138,7 +141,7 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 	ECs := 0
 
 	if commit == nil {
-		return 0
+		return -1
 	}
 
 	//
@@ -171,7 +174,7 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 // Returns true if this is a message for this server to execute as
 // a leader.
 func (m *RevealEntryMsg) Leader(state interfaces.IState) bool {
-	return state.LeaderFor(m, m.GetHash().Bytes())
+	return state.LeaderFor(m, m.Entry.GetChainID().Bytes())
 }
 
 // Execute the leader functions of the given message

@@ -10,6 +10,5 @@ while true; do
 		./flight.sh
 		factom-cli balances
 		./eclight.sh
-		sleep 3
 	 done
 done
