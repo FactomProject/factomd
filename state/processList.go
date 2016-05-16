@@ -55,6 +55,7 @@ type ProcessList struct {
 
 type VM struct {
 	List           []interfaces.IMsg // Lists of acknowledged messages
+	ListAck        []*messages.Ack   // Acknowledgements
 	Height         int               // Height of messages that have been processed
 	LeaderMinute   int               // Where the leader is in acknowledging messages
 	Seal           int               // Sealed with an EOM minute, and released (0) when all EOM are found.
@@ -62,8 +63,6 @@ type VM struct {
 	MinuteComplete int               // Highest minute complete recorded (0-9) by the follower
 	MinuteFinished int               // Highest minute processed (0-9) by the follower
 	MinuteHeight   int               // Height of the last minute complete
-	LastLeaderAck  interfaces.IMsg   // The last Acknowledgement set by this leader
-	LastAck        interfaces.IMsg   // The last Acknowledgement set by this follower
 	missingTime    int64             // How long we have been waiting for a missing message
 }
 
@@ -308,27 +307,18 @@ func (p *ProcessList) RemoveAuditServerHash(identityChainID interfaces.IHash) {
 }
 
 // Given a server index, return the last Ack
-func (p *ProcessList) GetLastAck(index int) interfaces.IMsg {
-	return p.VMs[index].LastAck
+func (p *ProcessList) GetAck(vmIndex int) *messages.Ack {
+	return p.GetAckAt(vmIndex, p.VMs[vmIndex].Height)
 }
 
-// Given a server index, return the last Ack
-func (p *ProcessList) SetLastAck(index int, msg interfaces.IMsg) error {
-	// Check the hash of the previous msg before we over write
-	p.VMs[index].LastAck = msg
-	return nil
-}
 
 // Given a server index, return the last Ack
-func (p *ProcessList) GetLastLeaderAck(index int) interfaces.IMsg {
-	return p.VMs[index].LastLeaderAck
-}
-
-// Given a server index, return the last Ack
-func (p *ProcessList) SetLastLeaderAck(index int, msg interfaces.IMsg) error {
-	// Check the hash of the previous msg before we over write
-	p.VMs[index].LastLeaderAck = msg
-	return nil
+func (p *ProcessList) GetAckAt(vmIndex int, height int) *messages.Ack {
+	vm := p.VMs[vmIndex]
+	if height < 0  || height >= vm.Height {
+		return nil
+	}
+	return vm.ListAck[height]
 }
 
 func (p ProcessList) HasMessage() bool {
@@ -402,6 +392,8 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 	for i := 0; i < len(p.FedServers); i++ {
 
 		plist := p.VMs[i].List
+		alist := p.VMs[i].ListAck
+
 	thisVM:
 		for j := p.VMs[i].Height; j < len(plist); j++ {
 			if plist[j] == nil {
@@ -419,16 +411,16 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 				break thisVM
 			}
 
-			thisAck, ok := p.OldAcks[plist[j].GetHash().Fixed()].(*messages.Ack)
-			if !ok { // IF I don't have an Ack to match this entry
+			thisAck := alist[j]
+			if thisAck == nil { // IF I don't have an Ack to match this entry
 				plist[j] = nil // throw the entry away, and continue to the
 				break thisVM   // next list.  SHOULD NEVER HAPPEN.
 			}
 
 			var expectedSerialHash interfaces.IHash
 			var err error
-			last, ok := p.GetLastAck(i).(*messages.Ack)
-			if j == 0 || !ok {
+			last := p.GetAckAt(i,p.VMs[i].Height-1)
+			if last == nil {
 				expectedSerialHash = thisAck.SerialHash
 			} else {
 				expectedSerialHash, err = primitives.CreateHash(last.MessageHash, thisAck.MessageHash)
@@ -464,7 +456,6 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			} else {
 				break thisVM // Don't process further in this list, go to the next.
 			}
-			p.SetLastAck(i, thisAck)
 		}
 	}
 	return
@@ -528,9 +519,7 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) boo
 				"Height", ack.Height,
 				"Old Minute", vm.List[ack.Height].GetMinute(),
 				"New Minute", ack.GetMinute(),
-				"VM", ack.VMIndex,
-				"LastAck", vm.LastAck.String(),
-				"LastLeaderAck", vm.LastLeaderAck.String())
+				"VM", ack.VMIndex)
 			if p.State.(*State).DebugConsensus {
 				fmt.Printf("%-30s %10s %s\n", "add PL Overwrite", p.State.GetFactomNodeName(), m.String())
 			}
@@ -552,10 +541,12 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) boo
 	length := len(p.VMs[ack.VMIndex].List)
 	for length <= int(ack.Height) {
 		p.VMs[ack.VMIndex].List = append(p.VMs[ack.VMIndex].List, nil)
+		p.VMs[ack.VMIndex].ListAck = append(p.VMs[ack.VMIndex].ListAck, nil)
 		length = len(p.VMs[ack.VMIndex].List)
 	}
 
 	p.VMs[ack.VMIndex].List[ack.Height] = m
+	p.VMs[ack.VMIndex].ListAck[ack.Height] = ack
 
 	now := int64(p.State.GetTimestamp())
 	// Both the ack and the message hash to the same GetHash()

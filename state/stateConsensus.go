@@ -31,20 +31,9 @@ func (s *State) Process() (progress bool) {
 
 	highest := s.GetHighestRecordedBlock()
 
-	UpdateLastLeaderAck := func() {
-		for _, vm := range s.LeaderPL.VMs {
-			ack1, ok1 := vm.LastLeaderAck.(*messages.Ack)
-			ack2, ok2 := vm.LastAck.(*messages.Ack)
-			if (!ok1 && ok2) || (ok1 && ok2 && ack2.Height >= ack1.Height) {
-				vm.LastLeaderAck = vm.LastAck
-			}
-		}
-	}
-
 	if s.EOM <= 9 {
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.LeaderMinute, s.IdentityChainID)
-		UpdateLastLeaderAck()
 		minFin := s.LeaderPL.MinuteFinished()
 		if s.EOM < minFin {
 			s.LeaderMinute = minFin
@@ -55,7 +44,6 @@ func (s *State) Process() (progress bool) {
 		s.LLeaderHeight = highest + 1
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(0, s.IdentityChainID)
-		UpdateLastLeaderAck()
 
 		dbstate := s.DBStates.Get(s.LLeaderHeight - 1)
 		if dbstate != nil {
@@ -85,13 +73,11 @@ func (s *State) Process() (progress bool) {
 		case s.LeaderMinute <= 9:
 			s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.LeaderMinute, s.IdentityChainID)
-			UpdateLastLeaderAck()
 			s.EOM = 0
 		case s.LeaderMinute == 10:
 			s.AddDBState(true, s.LeaderPL.DirectoryBlock, s.LeaderPL.AdminBlock, s.GetFactoidState().GetCurrentBlock(), s.LeaderPL.EntryCreditBlock)
 			s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight + 1)
 			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(0, s.IdentityChainID)
-			UpdateLastLeaderAck()
 		}
 
 		// Anything we are holding, we need to reprocess.
@@ -856,8 +842,8 @@ func (s *State) NewAck(dbheight uint32, msg interfaces.IMsg) (iack interfaces.IM
 	ack.MessageHash = msg.GetHash()
 	ack.LeaderChainID = s.IdentityChainID
 
-	last, ok := pl.GetLastLeaderAck(vmIndex).(*messages.Ack)
-	if !ok {
+	last := pl.GetAckAt(vmIndex,pl.VMs[vmIndex].Height-1)
+	if last == nil {
 		ack.Height = 0
 		ack.SerialHash = ack.MessageHash
 	} else {
@@ -870,7 +856,6 @@ func (s *State) NewAck(dbheight uint32, msg interfaces.IMsg) (iack interfaces.IM
 			return nil, err
 		}
 	}
-	pl.SetLastLeaderAck(vmIndex, ack)
 
 	ack.Sign(s)
 

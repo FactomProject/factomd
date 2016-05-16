@@ -309,28 +309,15 @@ func printSummary(summary *bool, listenTo *int) {
 							break
 						}
 						var h interfaces.IHash
-						if vm.LastAck == nil {
+
+						if vm.Height == 0 {
 							h = primitives.NewZeroHash()
 						} else {
-							h = vm.LastAck.GetHash()
+							h = vm.ListAck[vm.Height-1].GetHash()
 						}
 						list = list + fmt.Sprintf(" %4x", h.Bytes()[:2])
 					}
 					prt = prt + fmt.Sprintf("  %8s %12s %s\n", f.State.FactomNodeName, "LastAck", list)
-					list = ""
-					for i, vm := range f.State.ProcessLists.Get(f.State.LLeaderHeight).VMs {
-						if i >= len(f.State.ProcessLists.Get(f.State.LLeaderHeight).FedServers) {
-							break
-						}
-						var h interfaces.IHash
-						if vm.LastLeaderAck == nil {
-							h = primitives.NewZeroHash()
-						} else {
-							h = vm.LastLeaderAck.GetHash()
-						}
-						list = list + fmt.Sprintf(" %4x", h.Bytes()[:2])
-					}
-					prt = prt + fmt.Sprintf("  %8s %12s %s\n", f.State.FactomNodeName, "LastLeadAck", list)
 					list = ""
 					for i, vm := range f.State.ProcessLists.Get(f.State.LLeaderHeight).VMs {
 						if i >= len(f.State.ProcessLists.Get(f.State.LLeaderHeight).FedServers) {

@@ -141,7 +141,7 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 	ECs := 0
 
 	if commit == nil {
-		return 0
+		return -1
 	}
 
 	//
