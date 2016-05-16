@@ -129,6 +129,8 @@ func (m *FactoidTransaction) Process(dbheight uint32, state interfaces.IState) b
 		fmt.Println(err)
 	}
 
+	state.IncFactoidTrans()
+
 	return true
 
 }

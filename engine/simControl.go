@@ -51,10 +51,13 @@ func SimControl(listenTo int) {
 		if err == nil && v >= 0 && v < len(fnodes) && fnodes[listenTo].State != nil {
 			listenTo = v
 			os.Stderr.WriteString(fmt.Sprintf("Switching to Node %d\n", listenTo))
-			wsapi.SetState(fnodes[listenTo].State)
 		} else {
 			// fmt.Printf("Parsing command, found %d elements.  The first element is: %+v / %s \n Full command: %+v\n", len(cmd), b[0], string(b), cmd)
 			switch {
+			case 'w' == b[0]:
+				if listenTo >= 0 && listenTo < len(fnodes) {
+					wsapi.SetState(fnodes[listenTo].State)
+				}
 			case 's' == b[0]:
 				summary = !summary
 				if summary {
@@ -186,7 +189,6 @@ func SimControl(listenTo int) {
 				}
 				fnodes[listenTo].State.SetOut(true)
 				os.Stderr.WriteString(fmt.Sprint("\r\nSwitching to Node ", listenTo, "\r\n"))
-				wsapi.SetState(fnodes[listenTo].State)
 			case 'c' == b[0]:
 				c := !fnodes[0].State.DebugConsensus
 				if c {
@@ -212,6 +214,7 @@ func SimControl(listenTo int) {
 				os.Stderr.WriteString("n             Change the focus to the next node.\n")
 				os.Stderr.WriteString("l             Make focused node the Leader.\n")
 				os.Stderr.WriteString("x             Take the given node out of the netork or bring an offline node back in.\n")
+				os.Stderr.WriteString("w             Point the WSAPI to send API calls to the current node.")
 				os.Stderr.WriteString("h or <enter>  Show help\n")
 				os.Stderr.WriteString("\n")
 				os.Stderr.WriteString("Most commands are case insensitive.\n")

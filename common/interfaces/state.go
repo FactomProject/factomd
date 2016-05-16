@@ -93,6 +93,8 @@ type IState interface {
 	GetReveals(hash IHash) IMsg
 	PutCommits(hash IHash, msg IMsg)
 	PutReveals(hash IHash, msg IMsg)
+	IncEntryChains()
+	IncEntries()
 	// Server Configuration
 	// ====================
 
@@ -132,6 +134,7 @@ type IState interface {
 	SetFactoidState(dbheight uint32, fs IFactoidState)
 	GetFactoshisPerEC() uint64
 	SetFactoshisPerEC(factoshisPerEC uint64)
+	IncFactoidTrans()
 	// MISC
 	// ====
 

@@ -118,13 +118,17 @@ func (s *State) TryToProcess(msg interfaces.IMsg) {
 			if s.DebugConsensus {
 				fmt.Printf("%-30s %10s %s\n", "ttt Follower Exe", s.FactomNodeName, msg.String())
 			}
-			err := msg.FollowerExecute(s)
-			if err == nil {
-				s.networkOutMsgQueue <- msg
-			} else {
-				if s.DebugConsensus {
-					fmt.Printf("%-30s %10s %s\n", "ttt Follower Stall", s.FactomNodeName, msg.String())
+			if s.LeaderPL.GoodTo(msg.GetVMIndex()) {
+				err := msg.FollowerExecute(s)
+				if err == nil {
+					s.networkOutMsgQueue <- msg
+				} else {
+					if s.DebugConsensus {
+						fmt.Printf("%-30s %10s %s\n", "ttt Follower Stall", s.FactomNodeName, msg.String())
+					}
+					s.StallMsg(msg)
 				}
+			}else{
 				s.StallMsg(msg)
 			}
 		}
@@ -304,6 +308,7 @@ func (s *State) AddDBState(isNew bool,
 	ht := dbState.DirectoryBlock.GetHeader().GetDBHeight()
 	if ht > s.LLeaderHeight {
 		s.LLeaderHeight = ht
+		s.EOM=0
 	}
 	//	dbh := directoryBlock.GetHeader().GetDBHeight()
 	//	if s.LLeaderHeight < dbh {
@@ -483,7 +488,9 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
 	}
 
 	s.EOM = int(s.LeaderMinute + 1)
-
+	if s.LeaderPL.VMIndexFor(constants.FACTOID_CHAINID) == s.LeaderVMIndex {
+		eom.FactoidVM = true
+	}
 	eom.DBHeight = s.LLeaderHeight
 	eom.VMIndex = s.LeaderVMIndex
 	eom.Minute = byte(s.LeaderMinute)
@@ -589,13 +596,16 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		return false
 	}
 
-	if pl.VMIndexFor(constants.FACTOID_CHAINID) == e.VMIndex {
-		//s.FactoidState.EndOfPeriod(int(e.Minute))
+	if e.FactoidVM {
+		s.FactoidState.EndOfPeriod(int(e.Minute))
 
 		// Add EOM to the EBlocks.  We only do this once, so
 		// we piggy back on the fact that we only do the FactoidState
 		// EndOfPeriod once too.
-		for _, eb := range pl.NewEBlocks {
+	}
+
+	for _, eb := range pl.NewEBlocks {
+		if pl.VMIndexFor(eb.GetChainID().Bytes())==e.VMIndex {
 			eb.AddEndOfMinuteMarker(e.Bytes()[0])
 		}
 	}
@@ -769,7 +779,8 @@ func (s *State) LeaderFor(msg interfaces.IMsg, hash []byte) bool {
 	if hash != nil {
 		h := make([]byte, len(hash))
 		copy(h, hash)
-		msg.SetVMHash(h) // <-- This is important
+		msg.SetVMHash(h)
+		msg.SetVMIndex(s.LeaderPL.VMIndexFor(h))
 	}
 	return true
 }

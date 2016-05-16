@@ -85,6 +85,9 @@ type State struct {
 	EOM            int  // Set to true when all Process Lists have finished a minute
 	NetStateOff    bool // Disable if true, Enable if false
 	DebugConsensus bool // If true, dump consensus trace
+	FactoidTrans 	int
+	NewEntryChains	int
+	NewEntries		int
 	// Maps
 	// ====
 	// For Follower
@@ -578,6 +581,19 @@ func (s *State) GetAllEntries(ebKeyMR interfaces.IHash) bool {
 	return hasAllEntries
 }
 
+func (s *State) IncFactoidTrans() {
+	s.FactoidTrans++
+}
+
+func (s *State) IncEntryChains() {
+	s.NewEntryChains++
+}
+
+func (s *State) IncEntries() {
+	s.NewEntries++
+}
+
+
 func (s *State) DatabaseContains(hash interfaces.IHash) bool {
 	result, _, err := s.LoadDataByHash(hash)
 	if result != nil && err == nil {
@@ -967,7 +983,7 @@ func (s *State) SetString() {
 			lastheight = s.DBStates.Last().DirectoryBlock.GetHeader().GetDBHeight()
 		}
 
-		s.serverPrt = fmt.Sprintf("%9s%9s %x Recorded: %d Building: %d Last: %d DirBlk[:5]=%x L Min: %v L DBHT %v Min C/F %v/%v EOM %v ",
+		s.serverPrt = fmt.Sprintf("%4s%8s %x Saved: %5d Build: %5d Last: %5d DirBlk=%x L Min: %2v L DBHT %5v Min C/F %02v/%02v EOM %2v Trans %5d EC %5d E %5d",
 			stype,
 			s.FactomNodeName,
 			s.IdentityChainID.Bytes()[:3],
@@ -979,7 +995,10 @@ func (s *State) SetString() {
 			s.LLeaderHeight,
 			s.ProcessLists.Get(s.LLeaderHeight).MinuteComplete(),
 			s.ProcessLists.Get(s.LLeaderHeight).MinuteFinished(),
-			s.EOM)
+			s.EOM,
+			s.FactoidTrans,
+			s.NewEntryChains,
+			s.NewEntries)
 	}
 }
 
