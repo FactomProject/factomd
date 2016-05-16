@@ -24,7 +24,7 @@ func TestSaveLoadEBlockHead(t *testing.T) {
 	dbo := NewOverlay(new(mapdb.MapDB))
 	defer dbo.Close()
 
-	err = dbo.SaveEBlockHead(b1)
+	err = dbo.SaveEBlockHead(b1, false)
 	if err != nil {
 		t.Error(err)
 	}
@@ -52,7 +52,7 @@ func TestSaveLoadEBlockHead(t *testing.T) {
 
 	b2, _ := CreateTestEntryBlock(b1)
 
-	err = dbo.SaveEBlockHead(b2)
+	err = dbo.SaveEBlockHead(b2, false)
 	if err != nil {
 		t.Error(err)
 	}
@@ -88,7 +88,7 @@ func TestSaveLoadEBlockChain(t *testing.T) {
 	for i := 0; i < max; i++ {
 		prev, _ = CreateTestEntryBlock(prev)
 		blocks = append(blocks, prev)
-		err := dbo.SaveEBlockHead(prev)
+		err := dbo.SaveEBlockHead(prev, false)
 		if err != nil {
 			t.Error(err)
 		}

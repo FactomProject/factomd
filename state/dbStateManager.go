@@ -110,10 +110,6 @@ func (list *DBStateList) Catchup() {
 
 	dbsHeight := list.GetHighestRecordedBlock()
 
-	if dbsHeight > list.State.LLeaderHeight {
-		list.State.LLeaderHeight = dbsHeight + 1
-	}
-
 	// We only check if we need updates once every so often.
 	if int(now)/1000-int(list.LastTime)/1000 < SecondsBetweenTests {
 		return
@@ -167,6 +163,7 @@ func (list *DBStateList) Catchup() {
 }
 
 func (list *DBStateList) UpdateState() (progress bool) {
+
 	list.Catchup()
 
 	for i, d := range list.DBStates {
@@ -264,7 +261,7 @@ func (list *DBStateList) UpdateState() (progress bool) {
 
 			pl := list.State.ProcessLists.Get(d.DirectoryBlock.GetHeader().GetDBHeight())
 			for _, eb := range pl.NewEBlocks {
-				if err := list.State.GetDB().ProcessEBlockMultiBatch(eb); err != nil {
+				if err := list.State.GetDB().ProcessEBlockMultiBatch(eb, false); err != nil {
 					panic(err.Error())
 				}
 				for _, e := range eb.GetBody().GetEBEntries() {
@@ -280,12 +277,6 @@ func (list *DBStateList) UpdateState() (progress bool) {
 		}
 		list.LastTime = list.State.GetTimestamp() // If I saved or processed stuff, I'm good for a while
 		d.Saved = true                            // Only after all is done will I admit this state has been saved.
-
-		if d.DirectoryBlock.GetHeader().GetDBHeight() == list.State.LLeaderHeight {
-			list.State.EOB = true
-		}
-
-		list.State.LLeaderHeight = list.State.GetHighestRecordedBlock() + 1
 
 		// Any updates required to the state as established by the AdminBlock are applied here.
 		d.AdminBlock.UpdateState(list.State)

@@ -106,6 +106,9 @@ type IState interface {
 	LeaderFor(msg IMsg, hash []byte) bool // Tests if this server is the leader for this key
 	// Returns the list of VirtualServers at a given directory block height and minute
 	GetVirtualServers(dbheight uint32, minute int, identityChainID IHash) (found bool, index int)
+	// Returns true if between minutes
+	GetEOM() bool
+
 	// Database
 	// ========
 	GetDB() DBOverlay
@@ -143,7 +146,7 @@ type IState interface {
 
 	// For messages that go into the Process List
 	LeaderExecute(m IMsg) error
-	LeaderExecuteDBSig(m IMsg) error
+	LeaderExecuteEOM(m IMsg) error
 
 	GetTimestamp() Timestamp
 

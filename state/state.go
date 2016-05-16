@@ -76,10 +76,10 @@ type State struct {
 	LLeaderHeight uint32
 	Leader        bool
 	LeaderVMIndex int
+	LeaderPL      *ProcessList
 	OutputAllowed bool
-	EOM           bool // Set to true when all Process Lists have finished a minute
 	LeaderMinute  int  // The minute that just was processed by the follower, (1-10), set with EOM
-	EOB           bool // Set to true when all Process Lists are complete for a block
+	EOM           bool // Set to true when all Process Lists have finished a minute
 
 	// Maps
 	// ====
@@ -313,7 +313,6 @@ func (s *State) Init() {
 		s.Println("   +------ Follower Only ------+")
 		s.Println("   +---------------------------+\n")
 	case "SERVER":
-		s.Leader = true
 		s.Println("\n   +-------------------------+")
 		s.Println("   |       Leader Node       |")
 		s.Println("   +-------------------------+\n")
@@ -632,16 +631,6 @@ func (s *State) UpdateState() (progress bool) {
 
 	s.catchupEBlocks()
 
-	if progress && s.GetOut() {
-		str := fmt.Sprintf("%25s   %10s   %25s", "----------------", s.GetFactomNodeName(), "--------------------\n")
-		str = str + s.ProcessLists.String()
-		str = str + s.DBStates.String()
-		str = str + fmt.Sprintf("%25s   %10s   %25s", "================", s.GetFactomNodeName(), "===================\n")
-		str = str + "===================================================================="
-
-		s.Println(str)
-	}
-
 	return
 }
 
@@ -668,6 +657,10 @@ func (s *State) catchupEBlocks() {
 			s.SetEBDBHeightComplete(s.GetEBDBHeightComplete() + 1)
 		}
 	}
+}
+
+func (s *State) GetEOM() bool {
+	return s.EOM
 }
 
 func (s *State) AddFedServer(dbheight uint32, hash interfaces.IHash) int {
