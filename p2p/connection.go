@@ -57,16 +57,26 @@ func (c *Connection) Configure(netConn net.Conn) {
 	c.SendChannel <- *parcel
 }
 
+func (c *Connection) dial() {
+	note(c.peer.Hash, "Connection.dial() dialing: %+v", c.peer.Address)
+	conn, err := net.Dial("tcp", c.peer.Address)
+	if err != nil {
+		note(c.peer.Hash, "Connection.dial(%s) got error: %+v", c.peer.Address, err)
+	} else {
+		debug(c.peer.Hash, "Connection.dial(%s) was successful.", c.peer.Address)
+		c.Configure(conn)
+	}
+}
+
 // processSends gets all the messages from the application and sends them out over the network
 func (c *Connection) processSends() {
 	note(c.peer.Hash, "Connection.processSends() called. Online? %+v", c.Online)
 	for c.Online {
 		note(c.peer.Hash, "Connection.processSends() called. Items in send channel: %d Online? %b", len(c.SendChannel), c.Online)
 		for parcel := range c.SendChannel {
+			debug(c.peer.Hash, "processSends() sending message to network of type: %s", parcel.PrintMessageType)
 			parcel.Header.NodeID = NodeID // Send it out with our ID for loopback.
-			debug(c.peer.Hash, "Connection.processSends() Calling Encoder")
 			err := c.encoder.Encode(parcel)
-			debug(c.peer.Hash, "Connection.processSends() BACK from Calling Encoder")
 			if nil != err {
 				logerror(c.peer.Hash, c.peer.Hash, "Connection.processSends() got encoding error: %+v", err)
 				c.peer.demerit()
@@ -79,29 +89,21 @@ func (c *Connection) processSends() {
 	note(c.peer.Hash, "Connection.processSends() exited. %d", c.peer.Hash)
 }
 
-func (c *Connection) connectionDropped() {
-	// Connection dropped.
-	c.Online = false
-	defer c.conn.Close()
-	c.decoder = nil
-	c.encoder = nil
-	c.peer.demerit()
-}
-
 // processReceives gets all the messages from the network and sends them to the application
 func (c *Connection) processReceives() {
 	note(c.peer.Hash, "Connection.processReceives() called. %d Online? %b", c.peer.Hash, c.Online)
 	for c.Online {
 		var message Parcel
-		debug(c.peer.Hash, "Connection.processReceives() Calling Decoder")
 		err := c.decoder.Decode(&message)
-		debug(c.peer.Hash, "Connection.processReceives() Out from Decoder")
 		if nil != err {
+			// Golang apparently doesn't provide a good way to detect various error types.
+			// So, errors from "Decode" are presumed to be network type- eg closed connection.
+			// So we drop our end.
 			logerror(c.peer.Hash, "Connection.processReceives() got decoding error: %+v", err)
 			c.peer.demerit()
-			if io.EOF == err {
-				c.connectionDropped()
-			}
+			// if io.EOF == err {
+			c.connectionDropped()
+			// }
 		} else {
 			c.handleParcel(message)
 		}
@@ -115,18 +117,6 @@ func (c *Connection) processReceives() {
 
 // func (c *Connection) receiveAndDecode(parcel Parcel) bool {
 // }
-
-func (c *Connection) dial() {
-	conn, err := net.Dial("tcp", c.peer.Address)
-	if err != nil {
-		c.timeLastAttempt = time.Now()
-		c.attempts++
-		note(c.peer.Hash, "Connection.dial(%s) got error: %+v", c.peer.Address, err)
-	} else {
-		debug(c.peer.Hash, "Connection.dial(%s) was successful.", c.peer.Address)
-		c.Configure(conn)
-	}
-}
 
 // handleParcel checks the parcel command type, and either generates a response, or passes it along.
 func (c *Connection) handleParcel(parcel Parcel) {
@@ -146,7 +136,9 @@ func (c *Connection) handleParcel(parcel Parcel) {
 		c.attempts = 0                 // reset since we are clearly in touch now.
 		c.peer.merit()                 // Increase peer quality score.
 		debug(c.peer.Hash, "Connection.handleParcel() got ParcelValid %s", parcel.MessageType())
-		parcel.PrintMessageType()
+		if Notes <= CurrentLoggingLevel {
+			parcel.PrintMessageType()
+		}
 		c.handleParcelTypes(parcel) // handles both network commands and application messages
 	}
 }
@@ -190,6 +182,7 @@ func (c *Connection) handleParcelTypes(parcel Parcel) {
 		// Send Pong
 		pong := NewParcel(CurrentNetwork, []byte("Pong"))
 		pong.Header.Type = TypePong
+		debug(c.peer.Hash, "Sending Pong.")
 		c.SendChannel <- parcel
 	case TypePong: // all we need is the timestamp which is set already
 		return
@@ -208,21 +201,23 @@ func (c *Connection) handleParcelTypes(parcel Parcel) {
 	}
 }
 
-// func (c *Connection) gotBadMessage() {
-// 	debug(c.peer.Hash, "Connection.gotBadMessage()")
-// 	// TODO Track bad messages to ban bad peers at network level
-// 	// Array of in Connection of bad messages
-// 	// Add this one to the array with timestamp
-// 	// Filter all messages with timestamps over an hour (put value in protocol.go maybe an hour is too logn)
-// 	// If count of bad messages in last hour exceeds threshold from protocol.go then we drop connection
-// 	// Add this IP address to our banned peers (for an hour or day, also define in protocol.go)
-// }
-
-func (c *Connection) shutdown() {
-	debug(c.peer.Hash, "Connection.shutdown(%+v)", "")
+// We're unable to talk to the other side, but might be able to reconnect.
+// So don't set c.Shutdown, which causes us to give up on the peer.
+func (c *Connection) connectionDropped() {
+	debug(c.peer.Hash, "Connection.connectionDropped(%+v)", "")
+	// Connection dropped.
 	c.Online = false
 	if nil != c.conn {
 		defer c.conn.Close()
 	}
+	c.decoder = nil
+	c.encoder = nil
+	c.peer.demerit()
+}
+
+// We're hanging up, or giving up on this peer, the connection is going away.
+func (c *Connection) shutdown() {
+	debug(c.peer.Hash, "Connection.shutdown(%+v)", "")
+	c.connectionDropped()
 	c.Shutdown = true
 }

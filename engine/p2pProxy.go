@@ -279,7 +279,7 @@ func (f *P2PProxy) ManageInChannel() {
 func (f *P2PProxy) ProxyStatusReport() {
 	time.Sleep(time.Second * 5) // wait for things to spin up
 	for {
-		time.Sleep(time.Second * 20)
+		time.Sleep(time.Second * 60)
 		note("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
 		note("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
 		note("     ToNetwork Queue:   %d", len(f.ToNetwork))
@@ -294,7 +294,7 @@ func PeriodicStatusReport(fnodes []*FactomNode) {
 	time.Sleep(time.Second * 5) // wait for things to spin up
 
 	for {
-		time.Sleep(time.Second * 5)
+		time.Sleep(time.Second * 30)
 
 		fmt.Println("-------------------------------------------------------------------------------")
 		fmt.Println("-------------------------------------------------------------------------------")

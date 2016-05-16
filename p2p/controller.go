@@ -27,9 +27,10 @@ type Controller struct {
 	ToNetwork   chan Parcel // Parcels from the application for us to route
 	FromNetwork chan Parcel // Parcels from the network for the application
 
-	listenPort  string                // port we listen on for new connections
-	connections map[string]Connection // map of the peers indexed by peer hash
-	discovery   Discovery             // Our discovery structure
+	listenPort         string                // port we listen on for new connections
+	connections        map[string]Connection // map of the peers indexed by peer hash
+	discovery          Discovery             // Our discovery structure
+	lastPeerManagement time.Time             // Last time we ran peer management.
 }
 
 // CommandDialPeer is used to instruct the Controller to dial a peer address
@@ -202,9 +203,10 @@ func (c *Controller) acceptLoop(listener net.Listener) {
 // runloop is a goroutine that does all the heavy lifting
 func (c *Controller) runloop() {
 	note("controller", "Controller.runloop() starting up")
+	time.Sleep(time.Second * 5) // Wait a few seconds to let the system come up.
 
 	for c.keepRunning { // Run until we get the exit command
-		time.Sleep(time.Millisecond * 100)
+		time.Sleep(time.Millisecond * 100) // This can be a tight loop, don't want to starve the application
 		// Process commands...
 		verbose("controller", "Controller.runloop() About to process commands. Commands in channel: %d", len(c.commandChannel))
 		for 0 < len(c.commandChannel) {
@@ -229,7 +231,7 @@ func (c *Controller) route() {
 	// Recieve messages from the peers & forward to application.
 	for id, peer := range c.connections {
 		// Empty the recieve channel, stuff the application channel.
-		verbose("controller", "Controller.route() size of recieve channel: %d", len(peer.ReceiveChannel))
+		verbose(peer.peer.Hash, "Controller.route() size of recieve channel: %d", len(peer.ReceiveChannel))
 		for 0 < len(peer.ReceiveChannel) { // effectively "While there are messages"
 			parcel := <-peer.ReceiveChannel
 			verbose("controller", "Controller.route() got parcel from NETWORK %+v", parcel.MessageType())
@@ -255,7 +257,7 @@ func (c *Controller) route() {
 	verbose("controller", "Controller.route() size of ToNetwork channel: %d", len(c.ToNetwork))
 	for 0 < len(c.ToNetwork) { // effectively "While there are messages"
 		parcel := <-c.ToNetwork
-		verbose("controller", "Controller.route() got parcel from APPLICATION %+v", parcel)
+		verbose("controller", "Controller.route() got parcel from APPLICATION %+v", parcel.Header)
 		if "" != parcel.Header.TargetPeer { // directed send
 			verbose("controller", "Controller.route() Directed send to %+v", parcel.Header.TargetPeer)
 			connection, present := c.connections[parcel.Header.TargetPeer]
@@ -287,7 +289,7 @@ func (c *Controller) handleCommand(command interface{}) {
 		} else {
 			debug("controller", "Controller.handleCommand(CommandDialPeer) ALREADY CONNECTED TO PEER %s", peer.Address)
 		}
-	case CommandAddPeer: // parameter is a Connection
+	case CommandAddPeer: // parameter is a Connection. This message is sent by the accept loop which is in a different goroutine
 		parameters := command.(CommandAddPeer)
 		connection := parameters.connection
 		c.connections[connection.peer.Hash] = connection
@@ -327,19 +329,30 @@ func (c *Controller) handleCommand(command interface{}) {
 }
 
 func (c *Controller) managePeers() {
-	var duration, pingDuration time.Duration
 	// check for and remove disconnected peers or peers offline after awhile
-	for _, connection := range c.connections {
-		if false == connection.Online {
-			c.attemptToBringOnline(connection)
+	// Due to a problem with connection attempts and timestamps being overwritten somehow,
+	// This is now set to retry only every PeerSaveInterval as a workaround.
+	managementDuration := time.Since(c.lastPeerManagement)
+	if PeerSaveInterval < managementDuration {
+		c.lastPeerManagement = time.Now()
+		debug("controller", "managePeers() time since last peer management: %s", managementDuration.String())
+		for _, connection := range c.connections {
+			note(connection.peer.Hash, "      SendChannel Queue:   %d", len(connection.SendChannel))
+			note(connection.peer.Hash, "   ReceiveChannel Queue:   %d", len(connection.ReceiveChannel))
+			if connection.Online {
+				// Check if we should ping
+				if PingInterval > time.Since(connection.timeLastContact) {
+					c.attemptToWakeUp(connection) // only does anything if connection quiet
+				}
+			} else { // I think if we can't dial a peer, it's not there, and we shouldn't keep doing so. Unless it is a special.
+				c.attemptToBringOnline(connection)
+			}
+			// Go thru an update peers in discovery using discovery.UpdatePeer()
+			// so the known peers list is kept relatively up to date with peer score.
+			c.discovery.UpdatePeer(connection.peer)
 		}
-		c.attemptToWakeUp(connection) // only does anything if connection quiet
-
-		// Go thru an update peers in discovery using discovery.UpdatePeer()
-		// so the known peers list is kept relatively up to date with peer score.
-		c.discovery.UpdatePeer(connection.peer)
 	}
-	duration = time.Since(c.discovery.lastPeerSave)
+	duration := time.Since(c.discovery.lastPeerSave)
 	// Every so often, tell the discovery service to save peers.
 	if PeerSaveInterval < duration {
 		c.discovery.SavePeers()
@@ -348,33 +361,45 @@ func (c *Controller) managePeers() {
 	for key, connection := range c.connections {
 		if connection.Shutdown {
 			delete(c.connections, key)
-
 		}
 	}
-
+	// If we are low on peers, attempt to connect to some more.
+	// BUGBUG Not implemented
+	// Get list of peers ordered by quality from discovery
+	// For each one, if we don't already have a connection, create command message.
+	// Do this for the number of peers we need to add to get to desired number.
 }
 
 func (c *Controller) attemptToBringOnline(connection Connection) {
 	duration := time.Since(connection.timeLastAttempt)
-	debug("controller", "Attemptign to bring connection %s back online. Duration since last attempt: %+v Number of attempts: %d", connection.peer.Hash, duration, connection.attempts)
 	if MaxNumberOfRedialAttempts > connection.attempts && TimeBetweenRedials < duration {
+		debug("controller", "Attempting to bring connection %s back online. Duration since last attempt: %+v Number of attempts: %d", connection.peer.Hash, duration.String(), connection.attempts)
+		debug("controller", "BEFORE Timelastattempt %s number attempts: %d", connection.timeLastAttempt, connection.attempts)
+		connection.timeLastAttempt = time.Now()
+		connection.attempts++
+		debug("controller", "AFTER Timelastattempt %s number attempts: %d", connection.timeLastAttempt, connection.attempts)
 		connection.dial()
+		debug("controller", "AFTERDIAL Timelastattempt %s number attempts: %d", connection.timeLastAttempt, connection.attempts)
 	}
 	if MaxNumberOfRedialAttempts <= connection.attempts { // give up on the connection
+		debug("controller", "Shutting down connection %s . Duration since last attempt: %+v Number of attempts: %d", connection.peer.Hash, duration.String(), connection.attempts)
 		connection.shutdown()
 	}
 }
 
 func (c *Controller) attemptToWakeUp(connection Connection) {
+	var duration, pingDuration time.Duration
 	// If it's been more than PingInterval since we last heard from a connection, send them a ping
 	duration = time.Since(connection.timeLastContact)
 	pingDuration = time.Since(connection.timeLastAttempt)
 	if PingInterval < duration && PingInterval < pingDuration {
-		debug("controller", "attemptToWakeUp() Ping interval %s is less than duration since last contact: %s and ping duration: %s", PingInterval.String(), connection.timeLastContact.String(), connection.timeLastAttempt.String())
+		debug("controller", "attemptToWakeUp(%s) Ping interval %s is less than duration since last contact: %s and ping duration: %s", connection.peer.Hash, PingInterval.String(), duration.String(), pingDuration.String())
 		parcel := NewParcel(CurrentNetwork, []byte("Ping"))
 		parcel.Header.Type = TypePing
+		debug("controller", "attemptToWakeUp() BEFORE Timelastattempt %s number attempts: %d timeLastContact: %s", connection.timeLastAttempt, connection.attempts, connection.timeLastContact.String())
 		connection.timeLastAttempt = time.Now()
 		connection.attempts++
+		debug("controller", "attemptToWakeUp() AFTER Timelastattempt %s number attempts: %dtimeLastContact: %s", connection.timeLastAttempt, connection.attempts, connection.timeLastContact.String())
 		connection.SendChannel <- *parcel
 	}
 }

@@ -154,18 +154,18 @@ func (d *Discovery) getPeerSelection() []byte {
 // The unique peers are added to our peer list.
 // The peers are in a json encoded string as a byte slice
 func (d *Discovery) LearnPeers(payload []byte) {
-	var newPeers map[string]Peer // peers we know about indexed by hash
 	dec := json.NewDecoder(bytes.NewReader(payload))
-	err := dec.Decode(&newPeers)
+	var peerArray []Peer
+	err := dec.Decode(&peerArray)
 	if nil != err {
 		logerror("discovery", "Discovery.LearnPeers got an error unmarshalling json. error: %+v json: %+v", err, strconv.Quote(string(payload)))
 		return
 	}
-	for key, value := range newPeers {
-		_, present := d.knownPeers[key]
+	for _, value := range peerArray {
+		_, present := d.knownPeers[value.Hash]
 		if !present {
 			value.QualityScore = 0
-			d.knownPeers[key] = value
+			d.knownPeers[value.Hash] = value
 			note("discovery", "Discovery.LearnPeers !!!!!!!!!!!!! Discoverd new PEER!   %+v ", value)
 		}
 	}
@@ -224,3 +224,15 @@ func (d *Discovery) GetPeerByAddress(address string) Peer {
 func (d *Discovery) UpdatePeer(peer Peer) {
 	d.knownPeers[peer.Hash] = peer
 }
+
+// Maybe a DDOS resistence mechanism that looks at rate of bad messsages over time.
+// Right now, we just get enough demerits and we give up on the peer... forever.
+// func (c *Connection) gotBadMessage() {
+// 	debug(c.peer.Hash, "Connection.gotBadMessage()")
+// 	// TODO Track bad messages to ban bad peers at network level
+// 	// Array of in Connection of bad messages
+// 	// Add this one to the array with timestamp
+// 	// Filter all messages with timestamps over an hour (put value in protocol.go maybe an hour is too logn)
+// 	// If count of bad messages in last hour exceeds threshold from protocol.go then we drop connection
+// 	// Add this IP address to our banned peers (for an hour or day, also define in protocol.go)
+// }
