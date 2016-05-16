@@ -270,5 +270,15 @@ func (m *RevealEntryMsg) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *RevealEntryMsg) String() string {
-	return "RevealEntryMsg " + m.Timestamp.String() + " " + m.GetHash().String()
+	if m.GetLeaderChainID() == nil {
+		m.SetLeaderChainID(primitives.NewZeroHash())
+	}
+	str := fmt.Sprintf("%6s-VM%3d: Min:%4d          -- Leader[:3]=%x hash[:3]=%x",
+		"REntry",
+		m.VMIndex,
+		m.Minute,
+		m.GetLeaderChainID().Bytes()[:3],
+		m.GetHash().Bytes()[:3])
+
+	return str
 }

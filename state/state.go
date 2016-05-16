@@ -42,6 +42,7 @@ type State struct {
 	ConsoleLogLevel         string
 	NodeMode                string
 	DBType                  string
+	CloneDBType             string
 	ExportData              bool
 	ExportDataSubpath       string
 	Network                 string
@@ -65,6 +66,7 @@ type State struct {
 	inMsgQueue             chan interfaces.IMsg
 	leaderMsgQueue         chan interfaces.IMsg
 	followerMsgQueue       chan interfaces.IMsg
+	stallQueue             chan interfaces.IMsg
 	undo                   interfaces.IMsg
 	ShutdownChan           chan int // For gracefully halting Factom
 	JournalFile            string
@@ -80,6 +82,9 @@ type State struct {
 	OutputAllowed bool
 	LeaderMinute  int  // The minute that just was processed by the follower, (1-10), set with EOM
 	EOM           bool // Set to true when all Process Lists have finished a minute
+	EOM_Step      int  // Found this leader's EOM.
+	EOM_Stall     bool // We have an EOM stalled currently... Only stall one.
+	NetStateOff   bool // Disable if true, Enable if false
 
 	// Maps
 	// ====
@@ -161,7 +166,8 @@ func (s *State) Clone(number string) interfaces.IState {
 	clone.LogLevel = s.LogLevel
 	clone.ConsoleLogLevel = s.ConsoleLogLevel
 	clone.NodeMode = "FULL"
-	clone.DBType = s.DBType
+	clone.CloneDBType = s.CloneDBType
+	clone.DBType = s.CloneDBType
 	clone.ExportData = s.ExportData
 	clone.ExportDataSubpath = s.ExportDataSubpath + "sim-" + number
 	clone.Network = s.Network
@@ -199,6 +205,14 @@ func (s *State) GetDropRate() int {
 
 func (s *State) SetDropRate(droprate int) {
 	s.DropRate = droprate
+}
+
+func (s *State) GetNetStateOff() bool { //	If true, all network communications are disabled
+	return s.NetStateOff
+}
+
+func (s *State) SetNetStateOff(net bool) {
+	s.NetStateOff = net
 }
 
 // TODO JAYJAY BUGBUG- passing in folder here is a hack for multiple factomd processes on a single machine (sharing a single .factom)
@@ -266,7 +280,8 @@ func (s *State) Init() {
 	s.networkOutMsgQueue = make(chan interfaces.IMsg, 10000)     //Messages to be broadcast to the network
 	s.inMsgQueue = make(chan interfaces.IMsg, 10000)             //incoming message queue for factom application messages
 	s.leaderMsgQueue = make(chan interfaces.IMsg, 10000)         //queue of Leadership messages
-	s.followerMsgQueue = make(chan interfaces.IMsg, 10000)       //queue of Leadership messages
+	s.followerMsgQueue = make(chan interfaces.IMsg, 10000)       //queue of Follower messages
+	s.stallQueue = make(chan interfaces.IMsg, 10000)             //queue of Leader messages while stalled
 	s.ShutdownChan = make(chan int, 1)                           //Channel to gracefully shut down.
 
 	os.Mkdir(s.LogPath, 0777)
@@ -810,6 +825,15 @@ func (s *State) LeaderMsgQueue() chan interfaces.IMsg {
 	return s.leaderMsgQueue
 }
 
+func (s *State) StallMsg(m interfaces.IMsg) {
+	s.stallQueue <- m
+	m.SetStalled(true)
+}
+
+func (s *State) Stall() chan interfaces.IMsg {
+	return s.stallQueue
+}
+
 func (s *State) FollowerMsgQueue() chan interfaces.IMsg {
 	return s.followerMsgQueue
 }
@@ -902,10 +926,17 @@ func (s *State) SetString() {
 	lastheight := uint32(0)
 
 	found, _ := s.GetVirtualServers(buildingBlock+1, 0, s.GetIdentityChainID())
-	stype := ""
+
+	L := ""
+	X := ""
 	if found {
-		stype = fmt.Sprintf("L     ")
+		L = "L"
 	}
+	if s.NetStateOff {
+		X = "X"
+	}
+
+	stype := fmt.Sprintf("%1s%1s", L, X)
 
 	if buildingBlock == 0 {
 		s.serverPrt = fmt.Sprintf("%9s%9s Recorded: %d Building: %d Highest: %d ",
@@ -917,9 +948,9 @@ func (s *State) SetString() {
 	} else {
 
 		keyMR := []byte("aaaaa")
-		abHash := []byte("aaaaa")
-		fbHash := []byte("aaaaa")
-		ecHash := []byte("aaaaa")
+		//abHash := []byte("aaaaa")
+		//fbHash := []byte("aaaaa")
+		//ecHash := []byte("aaaaa")
 
 		switch {
 		case s.DBStates == nil:
@@ -930,13 +961,13 @@ func (s *State) SetString() {
 
 		default:
 			keyMR = s.DBStates.Last().DirectoryBlock.GetKeyMR().Bytes()
-			abHash = s.DBStates.Last().AdminBlock.GetHash().Bytes()
-			fbHash = s.DBStates.Last().FactoidBlock.GetHash().Bytes()
-			ecHash = s.DBStates.Last().EntryCreditBlock.GetHash().Bytes()
+			//abHash = s.DBStates.Last().AdminBlock.GetHash().Bytes()
+			//fbHash = s.DBStates.Last().FactoidBlock.GetHash().Bytes()
+			//ecHash = s.DBStates.Last().EntryCreditBlock.GetHash().Bytes()
 			lastheight = s.DBStates.Last().DirectoryBlock.GetHeader().GetDBHeight()
 		}
 
-		s.serverPrt = fmt.Sprintf("%9s%9s %x Recorded: %d Building: %d Last: %d DirBlk[:5]=%x ABHash[:5]=%x FBHash[:5]=%x ECHash[:5]=%x ",
+		s.serverPrt = fmt.Sprintf("%9s%9s %x Recorded: %d Building: %d Last: %d DirBlk[:5]=%x L Min: %v L DBHT %v Min C/F %v/%v EOM %v EOM_S %v",
 			stype,
 			s.FactomNodeName,
 			s.IdentityChainID.Bytes()[:3],
@@ -944,9 +975,12 @@ func (s *State) SetString() {
 			lastheight,
 			s.GetHighestKnownBlock(),
 			keyMR[:3],
-			abHash[:3],
-			fbHash[:3],
-			ecHash[:3])
+			s.LeaderMinute,
+			s.LLeaderHeight,
+			s.ProcessLists.Get(s.LLeaderHeight).MinuteComplete(),
+			s.ProcessLists.Get(s.LLeaderHeight).MinuteFinished(),
+			s.EOM,
+			s.EOM_Step)
 	}
 }
 

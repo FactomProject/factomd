@@ -41,6 +41,11 @@ func (a *Ack) IsSameAs(b *Ack) bool {
 	if a.VMIndex != b.VMIndex {
 		return false
 	}
+
+	if a.Minute != b.Minute {
+		return false
+	}
+
 	if a.DBHeight != b.DBHeight {
 		return false
 	}
@@ -223,6 +228,7 @@ func (m *Ack) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 
 	m.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 	m.Height, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+	m.Minute, newData = newData[0], newData[1:]
 
 	if m.SerialHash == nil {
 		m.SerialHash = primitives.NewHash(constants.ZERO_HASH)
@@ -274,6 +280,7 @@ func (m *Ack) MarshalForSignature() ([]byte, error) {
 
 	binary.Write(&buf, binary.BigEndian, m.DBHeight)
 	binary.Write(&buf, binary.BigEndian, m.Height)
+	binary.Write(&buf, binary.BigEndian, m.Minute)
 
 	data, err = m.SerialHash.MarshalBinary()
 	if err != nil {

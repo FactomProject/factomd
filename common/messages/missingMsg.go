@@ -120,7 +120,7 @@ func (m *MissingMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error
 		return nil, fmt.Errorf("DBHeight or ProcListHeight is negative")
 	}
 
-	m.Peer2peer = true // Always a peer2peer request.
+	m.Peer2Peer = true // Always a peer2peer request.
 
 	return data, nil
 }
@@ -198,7 +198,9 @@ func (m *MissingMsg) FollowerExecute(state interfaces.IState) error {
 
 	if msg != nil && ackMsg != nil && err == nil { // If I don't have this message, ignore.
 		msg.SetOrigin(m.GetOrigin())
+		msg.SetPeer2Peer(true)
 		ackMsg.SetOrigin(m.GetOrigin())
+		ackMsg.SetPeer2Peer(true)
 		state.NetworkOutMsgQueue() <- msg
 		state.NetworkOutMsgQueue() <- ackMsg
 	}
@@ -222,7 +224,7 @@ func NewMissingMsg(state interfaces.IState, dbHeight uint32, processlistHeight u
 
 	msg := new(MissingMsg)
 
-	msg.Peer2peer = true // Always a peer2peer request.
+	msg.Peer2Peer = true // Always a peer2peer request.
 	msg.Timestamp = state.GetTimestamp()
 	msg.DBHeight = dbHeight
 	msg.ProcessListHeight = processlistHeight

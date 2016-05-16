@@ -113,7 +113,7 @@ func (m *MissingData) UnmarshalBinaryData(data []byte) (newData []byte, err erro
 		return nil, err
 	}
 
-	m.Peer2peer = true // Always a peer2peer request.
+	m.Peer2Peer = true // Always a peer2peer request.
 
 	return data, nil
 }
@@ -213,7 +213,7 @@ func NewMissingData(state interfaces.IState, requestHash interfaces.IHash) inter
 
 	msg := new(MissingData)
 
-	msg.Peer2peer = true // Always a peer2peer request.
+	msg.Peer2Peer = true // Always a peer2peer request.
 	msg.Timestamp = state.GetTimestamp()
 	msg.RequestHash = requestHash
 
