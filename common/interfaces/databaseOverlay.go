@@ -96,8 +96,8 @@ type DBOverlay interface {
 	//**********************************ECBlock**********************************//
 
 	// ProcessECBlockBatch inserts the ECBlock and update all it's ecbentries in DB
-	ProcessECBlockBatch(block DatabaseBatchable) (err error)
-	ProcessECBlockMultiBatch(block DatabaseBatchable) (err error)
+	ProcessECBlockBatch(block DatabaseBlockWithEntries) (err error)
+	ProcessECBlockMultiBatch(block DatabaseBlockWithEntries) (err error)
 
 	// FetchECBlockByHash gets an Entry Credit block by hash from the database.
 	FetchECBlockByHash(IHash) (IEntryCreditBlock, error)
@@ -108,7 +108,7 @@ type DBOverlay interface {
 	// FetchAllECBlocks gets all of the entry credit blocks
 	FetchAllECBlocks() ([]IEntryCreditBlock, error)
 
-	SaveECBlockHead(DatabaseBatchable) error
+	SaveECBlockHead(DatabaseBlockWithEntries) error
 
 	FetchECBlockHead() (IEntryCreditBlock, error)
 
