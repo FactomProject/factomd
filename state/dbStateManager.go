@@ -139,7 +139,7 @@ func (list *DBStateList) Catchup() {
 			return
 		}
 
-		if plHeight > dbsHeight && plHeight-dbsHeight > 2 {
+		if plHeight > dbsHeight && plHeight-dbsHeight > 1 {
 			begin = int(dbsHeight + 1)
 			end = int(plHeight - 1)
 		} else {
@@ -157,6 +157,8 @@ func (list *DBStateList) Catchup() {
 	msg := messages.NewDBStateMissing(list.State, uint32(begin), uint32(end2))
 
 	if msg != nil {
+		list.State.EOM = 0
+		list.State.stallQueue = make(chan interfaces.IMsg, 10000)	// If we are loading blocks, give up on messages.
 		list.State.NetworkOutMsgQueue() <- msg
 	}
 
