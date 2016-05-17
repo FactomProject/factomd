@@ -66,7 +66,8 @@ type VM struct {
 	missingTime    int64             // How long we have been waiting for a missing message
 }
 
-// Attempts to unseal. Takes a minute (1-10) Returns false if it cannot
+// Attempts to unseal. Takes a minute (1-10) Returns false if it cannot.
+// Returns false if no seal is found.
 func (p *ProcessList) Unseal(minute int) bool {
 	cnt := 0
 	for i := 0; i < len(p.FedServers); i++ {
@@ -249,6 +250,9 @@ func (p *ProcessList) MinuteFinished() int {
 		for i, v := range p.VMs[i].List {
 			if v == nil && i <= vm.MinuteHeight {
 				m = vm.MinuteFinished - 1
+				if m < 0 {
+					m = 0
+				}
 			}
 		}
 		if vm.MinuteFinished < m {
@@ -463,6 +467,9 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 
 // Check to assure that the given VM has been completely processed
 func (p *ProcessList) GoodTo(vmIndex int) bool {
+	if vmIndex < 0{
+		vmIndex = p.State.(*State).LeaderVMIndex
+	}
 	vm := p.VMs[vmIndex]
 	if len(vm.List) > vm.Height {
 		return false

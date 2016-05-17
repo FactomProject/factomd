@@ -92,6 +92,7 @@ type State struct {
 	// ====
 	// For Follower
 	Holding map[[32]byte]interfaces.IMsg // Hold Messages
+	Review  [] interfaces.IMsg				 // After the EOM, we must review the messages in Holding
 	Acks    map[[32]byte]interfaces.IMsg // Hold Acknowledgemets
 	Commits map[[32]byte]interfaces.IMsg // Commit Messages
 	Reveals map[[32]byte]interfaces.IMsg // Reveal Messages
@@ -983,7 +984,7 @@ func (s *State) SetString() {
 			lastheight = s.DBStates.Last().DirectoryBlock.GetHeader().GetDBHeight()
 		}
 
-		s.serverPrt = fmt.Sprintf("%4s%8s %x Saved: %5d Build: %5d Last: %5d DirBlk=%x L Min: %2v L DBHT %5v Min C/F %02v/%02v EOM %2v %3dFct %3dEC %3dE",
+		s.serverPrt = fmt.Sprintf("%4s%8s ID %x Save:%4d Next:%4d High:%4d DBMR <%x> L Min: %2v L DBHT%4v Min C/F %02v/%02v EOM %2v %3d-Fct %3d-EC %3d-E",
 			stype,
 			s.FactomNodeName,
 			s.IdentityChainID.Bytes()[:3],

@@ -25,6 +25,21 @@ var _ = fmt.Print
 //
 // Returns true if some message was processed.
 //***************************************************************
+func (s *State) NewMinute() {
+	s.Review = make([]interfaces.IMsg, 0, len(s.Holding))
+	// Anything we are holding, we need to reprocess.
+	for k := range s.Holding {
+		if v:= s.Holding[k]; v != nil {
+			s.Review = append(s.Review,v)
+			s.Holding[k] = nil
+		}
+	}
+	// Clear the holding map
+	s.Holding = make(map[[32]byte]interfaces.IMsg)
+	s.Reveals = make(map[[32]byte]interfaces.IMsg)
+	s.EOM=0
+}
+
 func (s *State) Process() (progress bool) {
 
 	//s.DebugPrt("Process")
@@ -40,13 +55,13 @@ func (s *State) Process() (progress bool) {
 		}
 	}
 
-	if s.LLeaderHeight <= highest {
+	dbstate := s.DBStates.Get(s.LLeaderHeight)
+	if s.LLeaderHeight <= highest && (dbstate == nil || dbstate.Saved){
 		s.LLeaderHeight = highest + 1
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(0, s.IdentityChainID)
 
-		dbstate := s.DBStates.Get(s.LLeaderHeight - 1)
-		if dbstate != nil {
+		if s.Leader && dbstate != nil {
 			dbs := new(messages.DirectoryBlockSignature)
 			dbs.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
 			dbs.ServerIdentityChainID = s.GetIdentityChainID()
@@ -63,7 +78,7 @@ func (s *State) Process() (progress bool) {
 			s.leaderMsgQueue <- dbs
 		}
 		s.LeaderMinute = 0
-		s.EOM = 0
+		s.NewMinute()
 	}
 
 	if s.EOM > 0 && s.LeaderPL.Unseal(s.EOM) {
@@ -73,19 +88,14 @@ func (s *State) Process() (progress bool) {
 		case s.LeaderMinute <= 9:
 			s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.LeaderMinute, s.IdentityChainID)
-			s.EOM = 0
+			s.NewMinute()
 		case s.LeaderMinute == 10:
 			s.AddDBState(true, s.LeaderPL.DirectoryBlock, s.LeaderPL.AdminBlock, s.GetFactoidState().GetCurrentBlock(), s.LeaderPL.EntryCreditBlock)
 			s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight + 1)
 			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(0, s.IdentityChainID)
 		}
 
-		// Anything we are holding, we need to reprocess.
-		for k := range s.Holding {
-			s.StallMsg(s.Holding[k])
-		}
-		// Clear the holding map
-		s.Holding = make(map[[32]byte]interfaces.IMsg)
+
 	}
 
 	return s.ProcessQueues()
@@ -94,6 +104,8 @@ func (s *State) Process() (progress bool) {
 func (s *State) TryToProcess(msg interfaces.IMsg) {
 	// First make sure the message is valid.
 
+//fmt.Println("xxxxxxxxxx", s.FactomNodeName, msg.String())
+
 	ExeFollow := func() {
 		if msg.Follower(s) {
 			if !s.Leader && msg.IsLocal() {
@@ -101,93 +113,49 @@ func (s *State) TryToProcess(msg interfaces.IMsg) {
 					return
 				}
 			}
-			if s.DebugConsensus {
-				fmt.Printf("%-30s %10s %s\n", "ttt Follower Exe", s.FactomNodeName, msg.String())
-			}
-			if s.LeaderPL.GoodTo(msg.GetVMIndex()) {
-				err := msg.FollowerExecute(s)
-				if err == nil {
-					s.networkOutMsgQueue <- msg
-				} else {
-					if s.DebugConsensus {
-						fmt.Printf("%-30s %10s %s\n", "ttt Follower Stall", s.FactomNodeName, msg.String())
-					}
-					s.StallMsg(msg)
-				}
-			}else{
+			err := msg.FollowerExecute(s)
+			if err == nil && !msg.IsRepeat() {
+				s.networkOutMsgQueue <- msg
+			} else {
 				s.StallMsg(msg)
 			}
 		}
 	}
 
-	ExeLeader := func() {
-		if s.LeaderVMIndex == msg.GetVMIndex() || msg.IsLocal() {
-			if msg.Leader(s) {
-				if s.EOM == 0 && s.LeaderPL.GoodTo(msg.GetVMIndex()) {
-					if s.DebugConsensus {
-						fmt.Printf("%-30s %10s %s\n", "ttt Leader Exe", s.FactomNodeName, msg.String())
-					}
-					err := msg.LeaderExecute(s)
-					if err == nil {
-						// If all went well, then send it to the world.
+
+	msgLeader := msg.Leader(s)
+	if ack, ok := msg.(*messages.Ack);
+	      s.LeaderPL.GoodTo(msg.GetVMIndex()) &&
+	      (!ok || int(ack.Height) == s.LeaderPL.VMs[ack.VMIndex].Height) {
+		v := msg.Validate(s)
+		if v == 1 {
+			// If we are a leader, we are way more strict than simple followers.
+			if msgLeader && s.Leader && s.EOM == 0  &&
+			(s.LeaderVMIndex == msg.GetVMIndex() || msg.IsLocal()) {
+				err := msg.LeaderExecute(s)
+				if err == nil {
+					// If all went well, then send it to the world.
+					if !msg.IsRepeat() {
 						s.networkOutMsgQueue <- msg
-					} else {
-						// If bad, stall as long as it isn't our own EOM
-						if _, ok := msg.(*messages.EOM); !ok {
-							if s.DebugConsensus {
-								fmt.Printf("%-30s %10s %s\n", "ttt Leader Stall 1", s.FactomNodeName, msg.String())
-							}
-							s.StallMsg(msg)
-						}
 					}
 				} else {
-					if s.DebugConsensus {
-						fmt.Printf("%-30s %10s %s\n", "ttt Leader Stall 2", s.FactomNodeName, msg.String())
+					// If bad, stall as long as it isn't our own EOM
+					if _, ok := msg.(*messages.EOM); !ok {
+						s.StallMsg(msg)
 					}
-					s.StallMsg(msg)
 				}
-				// If all to be done is follow, then so be it.
 			} else {
-				if s.DebugConsensus {
-					fmt.Printf("%-30s %10s %s\n", "ttt LeaderExe => FollowExe 1", s.FactomNodeName, msg.String())
-				}
 				ExeFollow()
 			}
+		} else if v == 0 {
+			// Could be good, might not be.  Stall it.
+			s.StallMsg(msg)
+			// If the transaction isn't valid (or we can't tell) we just drop it.
 		} else {
-			if s.DebugConsensus {
-				fmt.Printf("%-30s %10s %s\n", "ttt LeaderExe => FollowExe 2", s.FactomNodeName, msg.String())
-			}
-			ExeFollow()
+			s.networkInvalidMsgQueue <- msg
 		}
-	}
-
-	v := msg.Validate(s)
-	if v == 1 {
-		// If we are a leader, we are way more strict than simple followers.
-		if s.Leader {
-			if s.DebugConsensus {
-				fmt.Printf("%-30s %10s %s\n", "--- Leader Exe", s.FactomNodeName, msg.String())
-			}
-			ExeLeader()
-
-			// If we are not a leader, then we just do the follower thing.
-		} else {
-			if s.DebugConsensus {
-				fmt.Printf("%-30s %10s %s\n", "--- Follower Exe", s.FactomNodeName, msg.String())
-			}
-			ExeFollow()
-		}
-	} else if v == 0 { // Could be good, might not be.  Stall it.
-		if s.DebugConsensus {
-			fmt.Printf("%-30s %10s %s\n", "--- Validation Unknown", s.FactomNodeName, msg.String())
-		}
+	}else{
 		s.StallMsg(msg)
-		// If the transaction isn't valid (or we can't tell) we just drop it.
-	} else {
-		if s.DebugConsensus {
-			fmt.Printf("%-30s %10s %s\n", "--- Invalid", s.FactomNodeName, msg.String())
-		}
-		s.networkInvalidMsgQueue <- msg
 	}
 }
 
@@ -195,60 +163,42 @@ func (s *State) ProcessQueues() (progress bool) {
 
 	var msg interfaces.IMsg
 
-	select {
-	case msg = <-s.leaderMsgQueue:
-		if s.DebugConsensus {
-			fmt.Printf("%-30s %10s TS %v %s\n", "==? Leader ", s.FactomNodeName, int64(msg.GetTimestamp()), msg.String())
-		}
-		_, ok := s.InternalReplay.Valid(msg.GetHash().Fixed(), int64(msg.GetTimestamp()), int64(s.GetTimestamp()))
-		if !ok {
-			if s.DebugConsensus {
-				fmt.Printf("%-30s %10s TS %v %s\n", "==X Leader ", s.FactomNodeName, int64(msg.GetTimestamp()), msg.String())
-			}
-			msg = nil
-		} else {
-			if s.DebugConsensus {
-				fmt.Printf("%-30s %10s TS %v %s\n", "==> Leader ", s.FactomNodeName, int64(msg.GetTimestamp()), msg.String())
-			}
-		}
+	for msg == nil && s.Review != nil && len(s.Review) > 0 {
+		msg = s.Review[0]
+		s.Review = s.Review[1:]
 		progress = true
-	default:
+		if msg != nil {
+			msg.SetRepeat(true)
+		}
 	}
 
+	if msg == nil {
+		select {
+		case msg = <-s.leaderMsgQueue:
+			_, ok := s.InternalReplay.Valid(msg.GetHash().Fixed(), int64(msg.GetTimestamp()), int64(s.GetTimestamp()))
+			if !ok {
+				msg = nil
+			}
+			progress = true
+		default:
+		}
+	}
 	// If all my messages are empy, see if I can process a stalled message
 	if msg == nil {
 		select {
 		case msg = <-s.stallQueue:
-			if s.DebugConsensus {
-				fmt.Printf("%-30s %10s TS %v %s\n", "==? Stall ", s.FactomNodeName, int64(msg.GetTimestamp()), msg.String())
-			}
 			_, ok := s.InternalReplay.Valid(msg.GetHash().Fixed(), int64(msg.GetTimestamp()), int64(s.GetTimestamp()))
 			if !ok {
-				if s.DebugConsensus {
-					fmt.Printf("%-30s %10s TS %v %s\n", "==X Stall ", s.FactomNodeName, int64(msg.GetTimestamp()), msg.String())
-				}
 				msg = nil
 			} else {
-				if s.DebugConsensus {
-					fmt.Printf("%-30s %10s TS %v %s\n", "==> Stall ", s.FactomNodeName, int64(msg.GetTimestamp()), msg.String())
-				}
 				msg.SetStalled(true) // Allow them to rebroadcast if they work.
 			}
 
 		case msg = <-s.followerMsgQueue:
-			if s.DebugConsensus {
-				fmt.Printf("%-30s %10s TS %v %s\n", "==? Follower ", s.FactomNodeName, int64(msg.GetTimestamp()), msg.String())
-			}
 			_, ok := s.InternalReplay.Valid(msg.GetHash().Fixed(), int64(msg.GetTimestamp()), int64(s.GetTimestamp()))
 			if !ok {
-				if s.DebugConsensus {
-					fmt.Printf("%-30s %10s TS %v %s\n", "==X Follower ", s.FactomNodeName, int64(msg.GetTimestamp()), msg.String())
-				}
 				msg = nil
 			} else {
-				if s.DebugConsensus {
-					fmt.Printf("%-30s %10s TS %v %s\n", "==> Follower ", s.FactomNodeName, int64(msg.GetTimestamp()), msg.String())
-				}
 			}
 			progress = true
 		default:
@@ -434,25 +384,13 @@ func (s *State) FollowerExecuteAddData(msg interfaces.IMsg) error {
 func (s *State) LeaderExecute(m interfaces.IMsg) error {
 
 	if s.EOM > 0 {
-		if s.DebugConsensus {
-			fmt.Printf("%-30s %10s %s\n", "LLL Leader EOM>0", s.FactomNodeName, m.String())
-		}
-		return fmt.Errorf("Stalling")
+		return fmt.Errorf("Cannot Lead right now")
 	}
 
 	dbheight := s.LLeaderHeight
 	ack, err := s.NewAck(dbheight, m)
 	if err != nil {
-		if s.DebugConsensus {
-			fmt.Printf("%-30s %10s %s\n", "LLL Leader Ack Failed", s.FactomNodeName, m.String())
-		}
 		return err
-	}
-	if s.DebugConsensus {
-		fmt.Printf("%-30s %10s %s\n", "LLL Leader Ack Generated", s.FactomNodeName, m.String())
-	}
-	if s.DebugConsensus {
-		fmt.Printf("%-30s %10s %s\n", "LLL Leader Ack Generated", s.FactomNodeName, ack.String())
 	}
 
 	ack.FollowerExecute(s)
@@ -467,9 +405,6 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
 	eom := m.(*messages.EOM)
 
 	if s.EOM > 0 {
-		if s.DebugConsensus {
-			fmt.Printf("%-30s %10s %s\n", "LLL LeaderEOM EOM>0", s.FactomNodeName, m.String())
-		}
 		return fmt.Errorf("Stalling")
 	}
 
@@ -484,16 +419,7 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
 	eom.SetLocal(false)
 	ack, err := s.NewAck(s.LLeaderHeight, m)
 	if err != nil {
-		if s.DebugConsensus {
-			fmt.Printf("%-30s %10s %s\n", "LLL LeaderEOM Ack Failed", s.FactomNodeName, m.String())
-		}
 		return err
-	}
-	if s.DebugConsensus {
-		fmt.Printf("%-30s %10s %s\n", "LLL LeaderEOM EOM Generated", s.FactomNodeName, m.String())
-	}
-	if s.DebugConsensus {
-		fmt.Printf("%-30s %10s %s\n", "LLL LeaderEOM EOM Generated", s.FactomNodeName, ack.String())
 	}
 
 	ack.FollowerExecute(s)
@@ -523,10 +449,7 @@ func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) 
 }
 
 func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg) bool {
-	c, ok := commitChain.(*messages.CommitChainMsg)
-	if !ok {
-		return false
-	}
+	c, _ := commitChain.(*messages.CommitChainMsg)
 
 	pl := s.ProcessLists.Get(dbheight)
 	pl.EntryCreditBlock.GetBody().AddEntry(c.CommitChain)
@@ -534,10 +457,6 @@ func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)
 
 	// save the Commit to match agains the Reveal later
 	s.PutCommits(c.CommitChain.EntryHash, c)
-	// check for a matching Reveal and, if found, execute it
-	if r := s.GetReveals(c.CommitChain.EntryHash); r != nil {
-		s.LeaderExecute(r)
-	}
 
 	return true
 }
@@ -554,10 +473,6 @@ func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg)
 
 	// save the Commit to match agains the Reveal later
 	s.PutCommits(c.CommitEntry.EntryHash, c)
-	// check for a matching Reveal and, if found, execute it
-	if r := s.GetReveals(c.CommitEntry.EntryHash); r != nil {
-		s.LeaderExecute(r)
-	}
 
 	return true
 }
@@ -649,7 +564,8 @@ func (s *State) GetCommits(hash interfaces.IHash) interfaces.IMsg {
 }
 
 func (s *State) GetReveals(hash interfaces.IHash) interfaces.IMsg {
-	return s.Reveals[hash.Fixed()]
+	v := s.Reveals[hash.Fixed()]
+	return v
 }
 
 func (s *State) PutCommits(hash interfaces.IHash, msg interfaces.IMsg) {

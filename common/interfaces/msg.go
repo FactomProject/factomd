@@ -91,6 +91,6 @@ type IMsg interface {
 	SetMinute(byte)
 
 	// Need to ignore messages already in the Process List
-	GetRecorded() bool
-	SetRecorded(bool)
+	IsRepeat() bool
+	SetRepeat(bool)
 }

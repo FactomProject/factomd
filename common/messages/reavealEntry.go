@@ -34,7 +34,8 @@ type RevealEntryMsg struct {
 var _ interfaces.IMsg = (*RevealEntryMsg)(nil)
 
 func (m *RevealEntryMsg) Process(dbheight uint32, state interfaces.IState) bool {
-	commit := state.GetCommits(m.GetHash())
+	myhash := m.GetHash()
+	commit := state.GetCommits(myhash)
 	if commit == nil {
 		panic("commit was nil in process, this should not happen")
 	}
@@ -58,6 +59,11 @@ func (m *RevealEntryMsg) Process(dbheight uint32, state interfaces.IState) bool 
 		state.PutNewEBlocks(dbheight, m.Entry.GetChainID(), eb)
 		state.PutNewEntries(dbheight, m.Entry.GetHash(), m.Entry)
 
+		if v := state.GetReveals(myhash); v != nil {
+			state.PutReveals(myhash,nil)
+		}
+
+		state.PutCommits(myhash,nil)
 		state.IncEntryChains()
 		state.IncEntries()
 		return true
@@ -84,6 +90,11 @@ func (m *RevealEntryMsg) Process(dbheight uint32, state interfaces.IState) bool 
 		state.PutNewEBlocks(dbheight, m.Entry.GetChainID(), eb)
 		state.PutNewEntries(dbheight, m.Entry.GetHash(), m.Entry)
 
+		if v := state.GetReveals(myhash); v != nil {
+			state.PutReveals(myhash,nil)
+		}
+
+		state.PutCommits(myhash,nil)
 		state.IncEntries()
 		return true
 	}
@@ -179,13 +190,8 @@ func (m *RevealEntryMsg) Leader(state interfaces.IState) bool {
 
 // Execute the leader functions of the given message
 func (m *RevealEntryMsg) LeaderExecute(state interfaces.IState) error {
-	c := state.GetCommits(m.GetHash())
-	if c != nil {
-		return state.LeaderExecute(m)
-	}
-	state.PutReveals(m.GetHash(), m)
-
-	return nil
+	state.PutCommits(m.GetHash(),nil)
+	return state.LeaderExecute(m)
 }
 
 // Returns true if this is a message for this server to execute as a follower
