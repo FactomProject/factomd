@@ -102,6 +102,12 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 	case "reveal-entry":
 		resp, jsonError = HandleV2RevealEntry(state, params)
 		break
+	case "factoid-ack":
+		resp, jsonError = HandleV2FactoidACK(state, params)
+		break
+	case "entry-ack":
+		resp, jsonError = HandleV2EntryACK(state, params)
+		break
 	default:
 		jsonError = NewMethodNotFoundError()
 		break
