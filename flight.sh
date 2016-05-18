@@ -14,7 +14,7 @@
 sleep 5
 for i in `seq 1 10`;
 do
-	sleep 1
+	sleep 3
 	factom-cli deletetransaction t
 	factom-cli newtransaction t
 	factom-cli addinput t factoid-wallet-address-name01 .0001

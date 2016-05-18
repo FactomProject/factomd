@@ -344,7 +344,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) error {
 func (s *State) FollowerExecuteAddData(msg interfaces.IMsg) error {
 	dataResponseMsg, ok := msg.(*messages.DataResponse)
 	if !ok {
-		return fmt.Errorf("Cannot execute the given DataResponse")
+		return nil
 	}
 
 	switch dataResponseMsg.DataType {
@@ -362,7 +362,7 @@ func (s *State) FollowerExecuteAddData(msg interfaces.IMsg) error {
 			s.addEBlock(eblock)
 		}
 	default:
-		return fmt.Errorf("Datatype currently unsupported")
+		return nil
 	}
 
 	return nil
