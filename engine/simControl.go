@@ -258,6 +258,11 @@ func printSummary(summary *bool, listenTo *int) {
 				prt = prt + fmt.Sprintf("      InMsgQueue             %s\n", list)
 				list = ""
 				for _, f := range fnodes {
+					list = list + fmt.Sprintf(" %3d", len(f.State.APIQueue()))
+				}
+				prt = prt + fmt.Sprintf("      APIQueue               %s\n", list)
+				list = ""
+				for _, f := range fnodes {
 					list = list + fmt.Sprintf(" %3d", len(f.State.LeaderMsgQueue()))
 				}
 				prt = prt + fmt.Sprintf("      LeaderMsgQueue         %s\n", list)

@@ -235,7 +235,7 @@ func HandleV2CommitChain(state interfaces.IState, params interface{}) (interface
 	msg := new(messages.CommitChainMsg)
 	msg.CommitChain = commit
 	msg.Timestamp = state.GetTimestamp()
-	state.InMsgQueue() <- msg
+	state.APIQueue() <- msg
 
 	resp := new(CommitChainResponse)
 	resp.Message = "Chain Commit Success"
@@ -266,7 +266,7 @@ func HandleV2CommitEntry(state interfaces.IState, params interface{}) (interface
 	msg := new(messages.CommitEntryMsg)
 	msg.CommitEntry = commit
 	msg.Timestamp = state.GetTimestamp()
-	state.InMsgQueue() <- msg
+	state.APIQueue() <- msg
 
 	resp := new(CommitEntryResponse)
 	resp.Message = "Entry Commit Success"
@@ -293,7 +293,7 @@ func HandleV2RevealEntry(state interfaces.IState, params interface{}) (interface
 	msg := new(messages.RevealEntryMsg)
 	msg.Entry = entry
 	msg.Timestamp = state.GetTimestamp()
-	state.InMsgQueue() <- msg
+	state.APIQueue() <- msg
 
 	resp := new(RevealEntryResponse)
 	resp.Message = "Entry Reveal Success"
@@ -623,7 +623,7 @@ func HandleV2FactoidSubmit(state interfaces.IState, params interface{}) (interfa
 		return nil, NewInvalidTransactionError()
 	}
 
-	state.InMsgQueue() <- msg
+	state.APIQueue() <- msg
 
 	resp := new(FactoidSubmitResponse)
 	resp.Message = "Successfully submitted the transaction"

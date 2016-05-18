@@ -76,6 +76,7 @@ type IState interface {
 	JournalMessage(IMsg)
 
 	// Consensus
+	APIQueue() chan IMsg     	// Input Queue from the API
 	InMsgQueue() chan IMsg     // Read by Validate
 	LeaderMsgQueue() chan IMsg // Leader Queue
 	Stall() chan IMsg          // Leader Queue

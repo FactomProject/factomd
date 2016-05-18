@@ -11,8 +11,8 @@
 	factom-cli transactions
 	factom-cli submit t
 
-sleep 1
-for i in `seq 1 2`;
+sleep 5
+for i in `seq 1 10`;
 do
 	sleep 1
 	factom-cli deletetransaction t

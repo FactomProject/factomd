@@ -207,11 +207,17 @@ func (s *State) ProcessQueues() (progress bool) {
 
 	if msg != nil {
 		if s.LeaderPL != nil {
-			if s.LeaderPL.OldMsgs[msg.GetHash().Fixed()] == nil {
+			if !s.NetStateOff {
 				s.TryToProcess(msg)
+			}else{
+				fmt.Println(s.FactomNodeName, "Msg: ", msg.String())
 			}
 		} else {
-			s.TryToProcess(msg)
+			if !s.NetStateOff {
+				s.TryToProcess(msg)
+			}else{
+				fmt.Println(s.FactomNodeName, "Msg: ", msg.String())
+			}
 		}
 	}
 
