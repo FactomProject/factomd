@@ -41,8 +41,6 @@ func UnmarshalMessage(data []byte) (interfaces.IMsg, error) {
 		msg = new(FactoidTransaction)
 	case constants.HEARTBEAT_MSG:
 		msg = new(Heartbeat)
-	case constants.INVALID_ACK_MSG:
-		msg = new(InvalidAck)
 	case constants.INVALID_DIRECTORY_BLOCK_MSG:
 		msg = new(InvalidDirectoryBlock)
 	case constants.MISSING_MSG:

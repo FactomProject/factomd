@@ -292,7 +292,8 @@ func (s *State) Init() {
 	os.Mkdir(s.LogPath, 0777)
 	_, err := os.Create(s.JournalFile) //Create the Journal File
 	if err != nil {
-		panic("Could not create the file: " + s.JournalFile)
+		fmt.Println("Could not create the file: " + s.JournalFile)
+		s.JournalFile = ""
 	}
 	// Set up struct to stop replay attacks
 	s.Replay = new(Replay)
@@ -616,13 +617,15 @@ func (s *State) MessageToLogString(msg interfaces.IMsg) string {
 }
 
 func (s *State) JournalMessage(msg interfaces.IMsg) {
-	f, err := os.OpenFile(s.JournalFile, os.O_APPEND+os.O_WRONLY, 0666)
-	if err != nil {
-		panic("Failed to open Journal File: " + s.JournalFile)
+	if len(s.JournalFile) == 0 {
+		f, err := os.OpenFile(s.JournalFile, os.O_APPEND + os.O_WRONLY, 0666)
+		if err != nil {
+			panic("Failed to open Journal File: " + s.JournalFile)
+		}
+		str := s.MessageToLogString(msg)
+		f.WriteString(str)
+		f.Close()
 	}
-	str := s.MessageToLogString(msg)
-	f.WriteString(str)
-	f.Close()
 }
 
 func (s *State) GetLeaderVM() int {
