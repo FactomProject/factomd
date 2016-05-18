@@ -17,7 +17,7 @@ type ServerFault struct {
 	MessageBase
 	Timestamp interfaces.Timestamp
 	KnownEOM	 int
-	
+
 	Signature interfaces.IFullSignature
 
 	//Not marshalled
