@@ -984,7 +984,7 @@ func (s *State) SetString() {
 			lastheight = s.DBStates.Last().DirectoryBlock.GetHeader().GetDBHeight()
 		}
 
-		s.serverPrt = fmt.Sprintf("%4s%8s ID %x Save:%4d Next:%4d High:%4d DBMR <%x> L Min: %2v L DBHT%4v Min C/F %02v/%02v EOM %2v %3d-Fct %3d-EC %3d-E",
+		s.serverPrt = fmt.Sprintf("%4s%8s ID %x Save:%4d Next:%4d High:%4d DBMR <%x> L Min: %2v L DBHT%5v Min C/F %02v/%02v EOM %2v %3d-Fct %3d-EC %3d-E",
 			stype,
 			s.FactomNodeName,
 			s.IdentityChainID.Bytes()[:3],

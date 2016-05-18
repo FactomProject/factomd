@@ -279,9 +279,6 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) (bool, error) {
 	ack, ok := s.Acks[hashf].(*messages.Ack)
 	if !ok || ack == nil {
 		s.Holding[hashf] = m
-		if s.DebugConsensus {
-			fmt.Printf("%-30s %10s %s\n", "mmm Follow Msg", s.FactomNodeName, m.String())
-		}
 		return false, nil
 	} else {
 		delete(s.Acks, hashf)    // No matter what, we don't want to
@@ -291,27 +288,14 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) (bool, error) {
 
 		if pl != nil {
 			if !pl.AddToProcessList(ack, m) {
-				if s.DebugConsensus {
-					fmt.Printf("%-30s %10s %s\n", "fff Follow Msg", s.FactomNodeName, m.String())
-				}
-				s.StallMsg(m)
-				s.StallMsg(ack)
-				return false, nil
-			}
-			if s.DebugConsensus {
-				fmt.Printf("%-30s %10s %s\n", "fff Done!**** Follow Msg", s.FactomNodeName, m.String())
-			}
-
-			if m.Type() == constants.COMMIT_CHAIN_MSG || m.Type() == constants.COMMIT_ENTRY_MSG {
-				s.PutCommits(hash, m)
+				return false, fmt.Errorf("Could not add message")
 			}
 
 			pl.OldAcks[hashf] = ack
 			pl.OldMsgs[hashf] = m
 		} else {
 			if ack.DBHeight >= s.ProcessLists.DBHeightBase {
-				s.StallMsg(m)
-				s.StallMsg(ack)
+				return false, fmt.Errorf("Could not add message")
 			}
 		}
 
@@ -324,19 +308,16 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) (bool, error) {
 // message.
 func (s *State) FollowerExecuteAck(msg interfaces.IMsg) (bool, error) {
 	ack := msg.(*messages.Ack)
-	s.Acks[ack.GetHash().Fixed()] = ack
 	match := s.Holding[ack.GetHash().Fixed()]
 	if match != nil {
-		if s.DebugConsensus {
-			fmt.Printf("%-30s %10s %s\n", "fff Follow Ack", s.FactomNodeName, msg.String())
+		s.Acks[ack.GetHash().Fixed()] = ack
+		if err := match.FollowerExecute(s); err != nil {
+			s.Acks[ack.GetHash().Fixed()] = nil
+			return false, err
 		}
-		match.FollowerExecute(s)
 		return true, nil
 	}
-	if s.DebugConsensus {
-		fmt.Printf("%-30s %10s %s\n", "fff Follow Ack", s.FactomNodeName, msg.String())
-	}
-
+	s.Acks[ack.GetHash().Fixed()] = ack
 	return false, nil
 }
 
@@ -393,12 +374,44 @@ func (s *State) LeaderExecute(m interfaces.IMsg) error {
 		return err
 	}
 
-	ack.FollowerExecute(s)
-	m.FollowerExecute(s)
+	if err := ack.FollowerExecute(s); err == nil {
+		m.FollowerExecute(s);
+		s.networkOutMsgQueue <- ack
+	}else{
+		return err
+	}
+	fmt.Printf("%20s  %8s  %s\n", "e leader",s.FactomNodeName,m.String())
+	fmt.Printf("%20s  %8s  %s\n\n", "e leader",s.FactomNodeName,ack.String())
 
-	s.networkOutMsgQueue <- ack
 	return nil
 }
+
+// Leader Execute for Reveal Entry
+func (s *State) LeaderExecuteRE(m interfaces.IMsg) error {
+	fmt.Printf("%20s  %8s  %s\n", "leaderRE",s.FactomNodeName,m.String())
+
+	if s.EOM > 0 {
+		return fmt.Errorf("Cannot Lead right now")
+	}
+
+	dbheight := s.LLeaderHeight
+	ack, err := s.NewAck(dbheight, m)
+	if err != nil {
+		return err
+	}
+
+	if err := ack.FollowerExecute(s); err != nil {
+		return err
+	}
+	m.FollowerExecute(s);
+	s.networkOutMsgQueue <- ack
+
+	fmt.Printf("%20s  %8s  %s\n", "e leaderRE",s.FactomNodeName,m.String())
+	fmt.Printf("%20s  %8s  %s\n\n", "e leaderRE",s.FactomNodeName,ack.String())
+
+	return nil
+}
+
 
 func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
 
@@ -422,10 +435,15 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
 		return err
 	}
 
-	ack.FollowerExecute(s)
-	m.FollowerExecute(s)
+	if err := ack.FollowerExecute(s); err == nil {
+		m.FollowerExecute(s);
+		s.networkOutMsgQueue <- ack
+	}else{
+		return err
+	}
 
-	s.networkOutMsgQueue <- ack
+	fmt.Printf("%20s  %8s  %s\n", "e leaderEOM",s.FactomNodeName,m.String())
+	fmt.Printf("%20s  %8s  %s\n\n", "e leaderEOM",s.FactomNodeName,ack.String())
 
 	return nil
 }
@@ -462,10 +480,7 @@ func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)
 }
 
 func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg) bool {
-	c, ok := commitEntry.(*messages.CommitEntryMsg)
-	if !ok {
-		return false
-	}
+	c, _ := commitEntry.(*messages.CommitEntryMsg)
 
 	pl := s.ProcessLists.Get(dbheight)
 	pl.EntryCreditBlock.GetBody().AddEntry(c.CommitEntry)

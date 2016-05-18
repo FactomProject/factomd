@@ -510,38 +510,18 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) boo
 		if vm.List[ack.Height] != nil {
 			fmt.Println(p.String())
 			fmt.Println(p.PrintMap())
-			fmt.Printf("\t%12s %s\n\t%12s %s\n\t %12s %s\n %18s: %x\n"+
-				" %18s: %x\n %18s: %d  %18s: %d\n %18s %v  %18s %v\n %18s %d"+
-				" %18s: %s"+
-				" %18s: %s",
-				"OverWriting:",
-				vm.List[ack.Height].String(),
-				"With:",
-				m.String(),
-				"Detected on:",
-				p.State.GetFactomNodeName(),
-				"Old Msg Leader", vm.List[ack.Height].GetLeaderChainID().Bytes()[:3],
-				"New Msg Leader", m.GetLeaderChainID().Bytes()[:3],
-				"DBHeight", ack.DBHeight,
-				"Height", ack.Height,
-				"Old Minute", vm.List[ack.Height].GetMinute(),
-				"New Minute", ack.GetMinute(),
-				"VM", ack.VMIndex)
-			if p.State.(*State).DebugConsensus {
-				fmt.Printf("%-30s %10s %s\n", "add PL Overwrite", p.State.GetFactomNodeName(), m.String())
-			}
+			fmt.Printf("\t%12s %s %s\n", "OverWriting:",vm.List[ack.Height].String(),"with")
+			fmt.Printf("\t%12s %s\n","with:",m.String())
+			fmt.Printf("\t%12s %s\n","Detected on:",p.State.GetFactomNodeName())
+			fmt.Printf("\t%12s %s\n","old ack",vm.ListAck[ack.Height].String())
+			fmt.Printf("\t%12s %s\n","new ack",ack.String())
+			fmt.Printf("\t%12s %s\n","VM Index",ack.VMIndex)
 			return false
 		}
 	}
 
 	eom, ok := m.(*messages.EOM)
 	if ok {
-		if p.State.(*State).DebugConsensus {
-			fmt.Printf("%-30s %10s %s\n", "add Seal        ", p.State.GetFactomNodeName(), m.String())
-		}
-		if p.State.(*State).DebugConsensus {
-			fmt.Printf("%-30s %10s %s\n", "add Seal        ", p.State.GetFactomNodeName(), ack.String())
-		}
 		vm.Seal = int(eom.Minute + 1)
 		vm.SealHeight = ack.Height
 	}
@@ -560,12 +540,10 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) boo
 	p.State.(*State).InternalReplay.IsTSValid_(m.GetHash().Fixed(), int64(m.GetTimestamp()), now)
 	ack.SetStalled(false)
 	m.SetStalled(false)
-	if p.State.(*State).DebugConsensus {
-		fmt.Printf("%-30s %10s %s\n", "add !!!!!!Finished ", p.State.GetFactomNodeName(), m.String())
-	}
-	if p.State.(*State).DebugConsensus {
-		fmt.Printf("%-30s %10s %s\n", "add !!!!!!Finished ", p.State.GetFactomNodeName(), ack.String())
-	}
+
+	//	fmt.Printf("%-30s %10s %s\n", "add !!!!!!Finished ", p.State.GetFactomNodeName(), m.String())
+	//	fmt.Printf("%-30s %10s %s\n", "add !!!!!!Finished ", p.State.GetFactomNodeName(), ack.String())
+
 	return true
 }
 

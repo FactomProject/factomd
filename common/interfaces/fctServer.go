@@ -13,10 +13,12 @@ import (
 type IFctServer interface {
 	GetChainID() IHash
 	String() string
+	GetName() string
 }
 
 type FctServer struct {
 	ChainID IHash
+	Name    string
 }
 
 var _ IFctServer = (*FctServer)(nil)
@@ -27,4 +29,8 @@ func (s *FctServer) GetChainID() IHash {
 
 func (s *FctServer) String() string {
 	return fmt.Sprintf("Server[:4]: %x", s.GetChainID().Bytes()[:10])
+}
+
+func (s *FctServer) GetName() string {
+	return s.Name
 }

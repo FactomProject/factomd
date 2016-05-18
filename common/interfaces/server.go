@@ -13,13 +13,19 @@ import (
 type IServer interface {
 	GetChainID() IHash
 	String() string
+	GetName() string
 }
 
 type Server struct {
 	ChainID IHash
+	Name    string
 }
 
 var _ IServer = (*Server)(nil)
+
+func(s *Server) GetName() string {
+	return s.Name
+}
 
 func (s *Server) GetChainID() IHash {
 	return s.ChainID
