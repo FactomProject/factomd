@@ -380,15 +380,12 @@ func (s *State) LeaderExecute(m interfaces.IMsg) error {
 	}else{
 		return err
 	}
-	fmt.Printf("%20s  %8s  %s\n", "e leader",s.FactomNodeName,m.String())
-	fmt.Printf("%20s  %8s  %s\n\n", "e leader",s.FactomNodeName,ack.String())
 
 	return nil
 }
 
 // Leader Execute for Reveal Entry
 func (s *State) LeaderExecuteRE(m interfaces.IMsg) error {
-	fmt.Printf("%20s  %8s  %s\n", "leaderRE",s.FactomNodeName,m.String())
 
 	if s.EOM > 0 {
 		return fmt.Errorf("Cannot Lead right now")
@@ -405,9 +402,6 @@ func (s *State) LeaderExecuteRE(m interfaces.IMsg) error {
 	}
 	m.FollowerExecute(s);
 	s.networkOutMsgQueue <- ack
-
-	fmt.Printf("%20s  %8s  %s\n", "e leaderRE",s.FactomNodeName,m.String())
-	fmt.Printf("%20s  %8s  %s\n\n", "e leaderRE",s.FactomNodeName,ack.String())
 
 	return nil
 }
@@ -441,9 +435,6 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
 	}else{
 		return err
 	}
-
-	fmt.Printf("%20s  %8s  %s\n", "e leaderEOM",s.FactomNodeName,m.String())
-	fmt.Printf("%20s  %8s  %s\n\n", "e leaderEOM",s.FactomNodeName,ack.String())
 
 	return nil
 }

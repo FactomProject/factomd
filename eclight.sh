@@ -1,6 +1,6 @@
 #!/bin/bash
 
-sleep 3
+sleep 2
 for i in `seq 1 2`;
 do
 	sleep 3
