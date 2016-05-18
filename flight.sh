@@ -11,10 +11,10 @@
 	factom-cli transactions
 	factom-cli submit t
 
-sleep 5
-for i in `seq 1 10`;
+sleep 15
+for i in `seq 1 25`;
 do
-	sleep 3
+	
 	factom-cli deletetransaction t
 	factom-cli newtransaction t
 	factom-cli addinput t factoid-wallet-address-name01 .0001
