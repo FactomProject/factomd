@@ -42,7 +42,7 @@ func (db *Overlay) SaveIncludedInMultiMultiBatch(entries []interfaces.IHash, blo
 	batch := []interfaces.Record{}
 
 	for _, entry := range entries {
-		batch = append(batch, interfaces.Record{[]byte{INCLUDED_IN}, entry.Bytes(), block})
+		batch = append(batch, interfaces.Record{[]byte{INCLUDED_IN}, entry.Bytes(), block.Copy()})
 	}
 
 	db.PutInMultiBatch(batch)
@@ -57,7 +57,7 @@ func (db *Overlay) SaveIncludedInMulti(entries []interfaces.IHash, block interfa
 	batch := []interfaces.Record{}
 
 	for _, entry := range entries {
-		batch = append(batch, interfaces.Record{[]byte{INCLUDED_IN}, entry.Bytes(), block})
+		batch = append(batch, interfaces.Record{[]byte{INCLUDED_IN}, entry.Bytes(), block.Copy()})
 	}
 
 	err := db.DB.PutInBatch(batch)
