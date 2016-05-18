@@ -12,87 +12,223 @@ import (
 	"time"
 )
 
+// Connection represents a single connection to another peer over the network. It communicates with the application
+// via two channels, send and recieve.  These channels take structs of type ConnectionCommand or ConnectionParcel
+// (defined below).
 type Connection struct {
 	conn           net.Conn
-	SendChannel    chan Parcel // Send means "towards the network"
-	ReceiveChannel chan Parcel // Recieve means "from the network"
+	SendChannel    chan interface{} // Send means "towards the network" Channel takes Parcels and ConnectionCommands
+	ReceiveChannel chan interface{} // Recieve means "from the network" Channel sends Parcels and ConnectionCommands
 	// and as "address" for sending messages to specific nodes.
-	Online          bool         // Indicates if the connection is connected to a peer or not.
-	Shutdown        bool         // Indicates that this connection is broken and should be shut down.
 	encoder         *gob.Encoder // Wire format is gobs in this version, may switch to binary
 	decoder         *gob.Decoder // Wire format is gobs in this version, may switch to binary
 	timeLastContact time.Time    // We track how recently we have heard from a peer to determin if it is still active.
 	peer            Peer         // the datastructure representing the peer we are talking to. defined in peer.go
 	attempts        int          // reconnection attempts
-	timeLastAttempt time.Time    // time of last attempt to connect
+	timeLastAttempt time.Time    // time of last attempt to connect via dial
+	timeLastPing    time.Time    // time of last ping sent
+	timeLastUpdate    time.Time    // time of last peer update sent
+	state           uint8        // Current state of the connection. Private. Only communication
 }
 
-func (c *Connection) Init(peer Peer) *Connection {
+// Each connection is a simple state machine.  The state is managed by a single goroutine which also does netowrking.
+// The flow is this:  Connection gets initialized, and either has a peer or a net connection (From an accept())
+// If no network connection, the Connection dials.  If the dial is successful, it moves to the Online state
+// If not, it moves to the Shutdown state-- we only dial out once when initialized with a peer.
+// If we are online and get a network error, we shift to offline mode.  In offline state we attempt to reconnect for
+// a period defined in protocol.go.  IF successful, we go back Online.  If too many attempts are made, we go to
+// The ConnectionShutdown state, and exit the runloop.  In the Shutdown state we notify the controller so that we can be
+// cleaned up.
+const (
+	ConnectionInitialized uint8 = iota //Structure created, have peer info. Dial command moves us to Online or Shutdown (depending)
+	ConnectionOnline                   // We're connected to the other side.  Normal state
+	ConnectionOffline                  // We've been disconnected for whatever reason.  Attempt to reconnect some number of times. Moves to Online if successful, Shutdown if not.
+	ConnectionShutdown                 // We're shut down, the runloop exits. Controller can clean us up.
+)
+
+// ConnectionParcel is sent to convey an appication message destined for the network.
+type ConnectionParcel struct {
+	parcel Parcel
+}
+
+// ConnectionCommand is used to instruct the Connection to carry out some functionality.
+type ConnectionCommand struct {
+	command uint8
+	peer    Peer
+}
+
+// These are the commands that connections can send/recieve
+const (
+	ConnectionIsShutdown uint8 = iota // Notifies the controlle that we are shut down and can be released
+	ConnectionShutdownNow
+	ConnectionUpdatingPeer
+)
+
+//////////////////////////////
+//
+// Public API
+//
+//////////////////////////////
+
+// InitWithConn is called from our accept loop when a peer dials into us and we already have a network conn
+func (c *Connection) InitWithConn(conn net.Conn, peer Peer) *Connection {
 	c.peer = peer
-	note(c.peer.Hash, "Connection.Init() called.")
-	c.SendChannel = make(chan Parcel, 1000)
-	c.ReceiveChannel = make(chan Parcel, 1000)
-	c.Online = false
-	c.conn = nil
-	c.Shutdown = false
+	note(c.peer.Hash, "Connection.InitWithConn() called.")
+	c.conn = conn
+	c.commonInit()
+	c.goOnline()
+	go c.runLoop()
 	return c
 }
 
+// Init is called when we have peer info and need to dial into the peer
+func (c *Connection) Init(peer Peer) *Connection {
+	c.peer = peer
+	note(c.peer.Hash, "Connection.Init() called.")
+	c.conn = nil
+	c.state = ConnectionInitialized
+	c.commonInit()
+	go c.runLoop()
+	return c
+}
+
+//////////////////////////////
+//
+// Private API
+//
+//////////////////////////////
+
+func (c *Connection) commonInit() *Connection {
+	c.SendChannel = make(chan interface{}, 1000)
+	c.ReceiveChannel = make(chan interface{}, 1000)
+		c.timeLastUpdate = time.Now()
+
+}
+
 // Called when we are online and connected to the peer.
-func (c *Connection) Configure(netConn net.Conn) {
+func (c *Connection) goOnline() {
 	note(c.peer.Hash, "Connection.Configure() called. %s", c.peer.Hash)
-	c.conn = netConn
-	c.Online = true
 	c.encoder = gob.NewEncoder(c.conn)
 	c.decoder = gob.NewDecoder(c.conn)
+	c.timeLastPing = time.Now()
 	c.timeLastContact = time.Now()
 	c.timeLastAttempt = time.Now()
+		c.timeLastUpdate = time.Now()
+
 	c.attempts = 0
-	// Start goroutines
-	go c.processSends()
-	go c.processReceives()
+	c.state = ConnectionOnline
+	go c.processReceives() // restart this goroutine, which exits when we go offline.
 	// Now ask the other side for the peers they know about.
 	parcel := NewParcel(CurrentNetwork, []byte("Peer Request"))
 	parcel.Header.Type = TypePeerRequest
 	c.SendChannel <- *parcel
 }
 
-func (c *Connection) dial() {
-	note(c.peer.Hash, "Connection.dial() dialing: %+v", c.peer.Address)
-	conn, err := net.Dial("tcp", c.peer.Address)
-	if err != nil {
-		note(c.peer.Hash, "Connection.dial(%s) got error: %+v", c.peer.Address, err)
-	} else {
-		debug(c.peer.Hash, "Connection.dial(%s) was successful.", c.peer.Address)
-		c.Configure(conn)
+func (c *Connection) goOffline() {
+	c.state = ConnectionOffline
+	c.attempts = 0
+	debug(c.peer.Hash, "Connection.connectionDropped(%+v)", "")
+	// Connection dropped.
+	c.Online = false
+	if nil != c.conn {
+		defer c.conn.Close()
 	}
+	c.decoder = nil
+	c.encoder = nil
+	c.peer.demerit()
 }
 
-// processSends gets all the messages from the application and sends them out over the network
-func (c *Connection) processSends() {
-	note(c.peer.Hash, "Connection.processSends() called. Online? %+v", c.Online)
-	for c.Online {
-		note(c.peer.Hash, "Connection.processSends() called. Items in send channel: %d Online? %b", len(c.SendChannel), c.Online)
-		for parcel := range c.SendChannel {
-			debug(c.peer.Hash, "processSends() sending message to network of type: %s", parcel.PrintMessageType)
-			parcel.Header.NodeID = NodeID // Send it out with our ID for loopback.
-			err := c.encoder.Encode(parcel)
-			if nil != err {
-				logerror(c.peer.Hash, c.peer.Hash, "Connection.processSends() got encoding error: %+v", err)
-				c.peer.demerit()
-				if io.EOF == err {
-					c.connectionDropped()
+func (c *Connection) goShutdown() {
+	c.state = ConnectionShutdown
+	c.ReceiveChannel <- ConnectionCommand{command: ConnectionIsShutdown}
+}
+
+// runLoop operates the state machine and routes messages out to network (messages from network are routed in processReceives)
+func (c *Connection) runLoop() {
+	for Shutdown != c.state { // loop exits when we hit shutdown state
+		switch c.state {
+		case ConnectionInitialized:
+			if c.dial() {
+				c.goOnline()
+			} else { //  we did not connect successfully
+				c.goShutdown()
+			}
+		case ConnectionOnline:
+			c.processSends()
+			c.pingPeer() // sends a ping periodically if things have been quiet
+			c.updatePeer() // every PeerSaveInterval * 0.90 we send an update peer to the controller.
+		case ConnectionOffline:
+			duration = time.Since(c.timeLastAttempt)
+			if TimeBetweenRedials < duration && MaxNumberOfRedialAttempts > c.attempts {
+				if c.dial() {
+					c.goOnline()
+				} else { //  we did not connect successfully
+					c.attempts++
+					c.timeLastAttempt = time.Now()
+				}
+				if MaxNumberOfRedialAttempts <= c.attempts {
+					c.goShutdown()
+				} else {
+					time.Sleep(TimeBetweenRedials)
 				}
 			}
 		}
 	}
-	note(c.peer.Hash, "Connection.processSends() exited. %d", c.peer.Hash)
+}
+
+func (c *Connection) dial() bool {
+	note(c.peer.Hash, "Connection.dial() dialing: %+v", c.peer.Address)
+	conn, err := net.Dial("tcp", c.peer.Address)
+	if err != nil {
+		note(c.peer.Hash, "Connection.dial(%s) got error: %+v", c.peer.Address, err)
+		return false
+	}
+	debug(c.peer.Hash, "Connection.dial(%s) was successful.", c.peer.Address)
+	c.Configure(conn)
+	return true
+}
+
+// processSends gets all the messages from the application and sends them out over the network
+func (c *Connection) processSends() {
+	note(c.peer.Hash, "Connection.processSends() called. Items in send channel: %d Online? %b", len(c.SendChannel), c.Online)
+	for 0 < len(c.SendChannel) { // effectively "While there are messages"
+		message := <-c.SendChannel
+		switch messageType := message.(type) {
+		case ConnectionParcel:
+			parameters := message.(ConnectionParcel)
+			c.sendParcel(parameters.parcel)
+		case ConnectionCommand:
+			parameters := message.(ConnectionCommand)
+			c.handleCommand(parameters)
+		}
+	}
+}
+
+func (c *Connection) handleCommand(command ConnectionCommand) {
+	switch command.command {
+	case ConnectionShutdownNow:
+		c.goShutdown()
+	}
+}
+
+func (c *Connection) sendParcel(parcel Parcel) {
+	debug(c.peer.Hash, "sendParcel() sending message to network of type: %s", parcel.MessageType())
+	parcel.Header.NodeID = NodeID // Send it out with our ID for loopback.
+	debug(c.peer.Hash, "sendParcel() Sanity check. Encoder: %+v, Parcel: %s", c.encoder, parcel.MessageType())
+	err := c.encoder.Encode(parcel)
+	if nil != err {
+		logerror(c.peer.Hash, "Connection.sendParcel() got encoding error: %+v", err)
+		c.peer.demerit()
+		if io.EOF == err {
+			c.goOffline()
+		}
+	}
 }
 
 // processReceives gets all the messages from the network and sends them to the application
 func (c *Connection) processReceives() {
 	note(c.peer.Hash, "Connection.processReceives() called. %d Online? %b", c.peer.Hash, c.Online)
-	for c.Online {
+	for c.state = ConnectionOnline {
 		var message Parcel
 		err := c.decoder.Decode(&message)
 		if nil != err {
@@ -101,9 +237,7 @@ func (c *Connection) processReceives() {
 			// So we drop our end.
 			logerror(c.peer.Hash, "Connection.processReceives() got decoding error: %+v", err)
 			c.peer.demerit()
-			// if io.EOF == err {
-			c.connectionDropped()
-			// }
+			c.goOffline()
 		} else {
 			c.handleParcel(message)
 		}
@@ -201,23 +335,21 @@ func (c *Connection) handleParcelTypes(parcel Parcel) {
 	}
 }
 
-// We're unable to talk to the other side, but might be able to reconnect.
-// So don't set c.Shutdown, which causes us to give up on the peer.
-func (c *Connection) connectionDropped() {
-	debug(c.peer.Hash, "Connection.connectionDropped(%+v)", "")
-	// Connection dropped.
-	c.Online = false
-	if nil != c.conn {
-		defer c.conn.Close()
+func (c *Connection) pingPeer() {
+	if PingInterval > time.Since(c.timeLastContact) && PingInterval > time.Since(c.timeLastPing) {
+		debug(c.peer.Hash, "pingPeer() Ping interval %s is less than duration since last contact: %s and time since last ping: %s", PingInterval.String(), time.Since(c.timeLastContact).String(), time.Since(c.timeLastPing).String())
+		parcel := NewParcel(CurrentNetwork, []byte("Ping"))
+		parcel.Header.Type = TypePing
+		c.timeLastPing = time.Now()
+		c.attempts++
+		c.SendChannel <- *parcel
 	}
-	c.decoder = nil
-	c.encoder = nil
-	c.peer.demerit()
 }
 
-// We're hanging up, or giving up on this peer, the connection is going away.
-func (c *Connection) shutdown() {
-	debug(c.peer.Hash, "Connection.shutdown(%+v)", "")
-	c.connectionDropped()
-	c.Shutdown = true
+func (c *Connection) updatePeer() {
+		if PeerSaveInterval > time.Since(c.timeLastUpdate) {
+		debug(c.peer.Hash, "updatePeer() PeerSaveInterval interval %s is less than duration since last update: %s ", PeerSaveInterval.String(), time.Since(c.timeLastUpdate).String())
+		c.timeLastUpdate = time.Now()
+	c.ReceiveChannel <- ConnectionCommand{command: ConnectionUpdatingPeer, peer: c.peer}
+		}	
 }

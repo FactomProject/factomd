@@ -16,8 +16,8 @@ import (
 var (
 	CurrentLoggingLevel                     = Verbose // Start at verbose because it takes a few seconds for the controller to adjust to what you set.
 	CurrentNetwork                          = TestNet
-	PingInterval              time.Duration = time.Second * 30
-	TimeBetweenRedials        time.Duration = time.Second * 30
+	PingInterval              time.Duration = time.Second * 15
+	TimeBetweenRedials        time.Duration = time.Second * 20
 	MaxNumberOfRedialAttempts int           = 15
 	PeerSaveInterval          time.Duration = time.Second * 30
 

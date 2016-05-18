@@ -167,57 +167,8 @@ func handleCommand(l []byte, listenTo int) {
 				} else {
 					os.Stderr.WriteString("Take  " + f.State.FactomNodeName + " off the network\n")
 				}
-<<<<<<< HEAD
 				f.State.SetNetStateOff(!v)
 			}
-=======
-			case 'l' == b[0]:
-				msg := messages.NewAddServerMsg(fnodes[listenTo].State, 0)
-				fnodes[listenTo].State.InMsgQueue() <- msg
-				os.Stderr.WriteString(fmt.Sprintln("Attempting to make", fnodes[listenTo].State.GetFactomNodeName(), "a Leader"))
-				fallthrough
-			case 'n' == b[0]:
-				fnodes[listenTo].State.SetOut(false)
-				listenTo++
-				if listenTo >= len(fnodes) {
-					listenTo = 0
-				}
-				fnodes[listenTo].State.SetOut(true)
-				os.Stderr.WriteString(fmt.Sprint("\r\nSwitching to Node ", listenTo, "\r\n"))
-			case 'c' == b[0]:
-				c := !fnodes[0].State.DebugConsensus
-				if c {
-					os.Stderr.WriteString(fmt.Sprint("\r\nTrace Consensus\n"))
-				} else {
-					os.Stderr.WriteString(fmt.Sprint("\r\nTurn off Consensus Trace \n"))
-				}
-
-				for _, f := range fnodes {
-					f.State.DebugConsensus = c
-				}
-
-			case 'h' == b[0]:
-				os.Stderr.WriteString("-------------------------------------------------------------------------------\n")
-				os.Stderr.WriteString("h or ENTER    Shows this help\n")
-				os.Stderr.WriteString("aN            Show Admin block     N. Indicate node eg:\"a5\" to shows blocks for that node.\n")
-				os.Stderr.WriteString("fN            Show Factoid block   N. Indicate node eg:\"f5\" to shows blocks for that node.\n")
-				os.Stderr.WriteString("dN            Show Directory block N. Indicate node eg:\"d5\" to shows blocks for that node.\n")
-				os.Stderr.WriteString("m             Show Messages as they are passed through the simulator.\n")
-				os.Stderr.WriteString("c             Trace the Consensus Process\n")
-				os.Stderr.WriteString("s             Show the state of all nodes as their state changes in the simulator.\n")
-				os.Stderr.WriteString("p             Show the process lists and directory block states as they change.\n")
-				os.Stderr.WriteString("n             Change the focus to the next node.\n")
-				os.Stderr.WriteString("l             Make focused node the Leader.\n")
-				os.Stderr.WriteString("x             Take the given node out of the netork or bring an offline node back in.\n")
-				os.Stderr.WriteString("w             Point the WSAPI to send API calls to the current node.")
-				os.Stderr.WriteString("h or <enter>  Show help\n")
-				os.Stderr.WriteString("\n")
-				os.Stderr.WriteString("Most commands are case insensitive.\n")
-				os.Stderr.WriteString("-------------------------------------------------------------------------------\n\n")
-			// -- add node (and give its connections or topology)
-			// TODO JAYJAY Need to make an option that causes the p2p network to print out all messsages it gets and sends, for easier debugging.
->>>>>>> m2c
-
 		case 'm' == b[0]:
 			watchMessages = !watchMessages
 			if watchMessages {

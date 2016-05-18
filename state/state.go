@@ -85,9 +85,9 @@ type State struct {
 	EOM            int  // Set to true when all Process Lists have finished a minute
 	NetStateOff    bool // Disable if true, Enable if false
 	DebugConsensus bool // If true, dump consensus trace
-	FactoidTrans 	int
-	NewEntryChains	int
-	NewEntries		int
+	FactoidTrans   int
+	NewEntryChains int
+	NewEntries     int
 	// Maps
 	// ====
 	// For Follower
@@ -286,7 +286,7 @@ func (s *State) Init() {
 	s.stallQueue = make(chan interfaces.IMsg, 10000)             //queue of Leader messages while stalled
 	s.ShutdownChan = make(chan int, 1)                           //Channel to gracefully shut down.
 
-	os.Mkdir(s.LogPath, 0777)
+	os.MkdirAll(s.LogPath, 0777)
 	_, err := os.Create(s.JournalFile) //Create the Journal File
 	if err != nil {
 		panic("Could not create the file: " + s.JournalFile)
@@ -592,7 +592,6 @@ func (s *State) IncEntryChains() {
 func (s *State) IncEntries() {
 	s.NewEntries++
 }
-
 
 func (s *State) DatabaseContains(hash interfaces.IHash) bool {
 	result, _, err := s.LoadDataByHash(hash)

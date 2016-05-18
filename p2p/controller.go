@@ -188,8 +188,7 @@ func (c *Controller) acceptLoop(listener net.Listener) {
 		} else {
 			address := conn.RemoteAddr().String()
 			peer := c.discovery.GetPeerByAddress(address)
-			connection := new(Connection).Init(peer)
-			connection.Configure(conn)
+			connection := new(Connection).InitWithConn(conn, peer)
 			c.AddPeer(connection) // Sends command to add the peer to the peers list
 			note("controller", "Controller.acceptLoop() new peer: %+v", peer.Address)
 		}
@@ -283,8 +282,7 @@ func (c *Controller) handleCommand(command interface{}) {
 		if !present { // we are not connected to the peer
 			conn := new(Connection).Init(peer)
 			connection := *conn
-			connection.dial()
-			c.connections[peer.Hash] = connection
+			c.connections[connection.peer.Hash] = connection
 			debug("controller", "Controller.handleCommand(CommandDialPeer) got peer %s", peer.Address)
 		} else {
 			debug("controller", "Controller.handleCommand(CommandDialPeer) ALREADY CONNECTED TO PEER %s", peer.Address)
@@ -292,7 +290,10 @@ func (c *Controller) handleCommand(command interface{}) {
 	case CommandAddPeer: // parameter is a Connection. This message is sent by the accept loop which is in a different goroutine
 		parameters := command.(CommandAddPeer)
 		connection := parameters.connection
-		c.connections[connection.peer.Hash] = connection
+		_, present := c.connections[connection.peer.Hash] // check if we are already connected to the peer
+		if !present {                                     // we are not connected to the peer
+			c.connections[connection.peer.Hash] = connection
+		}
 		debug("controller", "Controller.handleCommand(CommandAddPeer) got peer %+v", parameters.connection)
 	case CommandShutdown:
 		verbose("controller", "handleCommand() Processing command: CommandShutdown")
@@ -340,10 +341,10 @@ func (c *Controller) managePeers() {
 			note(connection.peer.Hash, "      SendChannel Queue:   %d", len(connection.SendChannel))
 			note(connection.peer.Hash, "   ReceiveChannel Queue:   %d", len(connection.ReceiveChannel))
 			if connection.Online {
-				// Check if we should ping
-				if PingInterval > time.Since(connection.timeLastContact) {
-					c.attemptToWakeUp(connection) // only does anything if connection quiet
-				}
+				// // Check if we should ping
+				// if PingInterval > time.Since(connection.timeLastContact) {
+				// 	c.attemptToWakeUp(connection) // only does anything if connection quiet
+				// }
 			} else { // I think if we can't dial a peer, it's not there, and we shouldn't keep doing so. Unless it is a special.
 				c.attemptToBringOnline(connection)
 			}
@@ -408,7 +409,9 @@ func (c *Controller) shutdown() {
 	debug("controller", "Controller.shutdown() ")
 	// Go thru peer list and shut down connections.
 	for key, connection := range c.connections {
-		connection.shutdown()
+		cmd := new(ConnectionCommand)
+		cmd.command = ConnectionShutdownNow
+		connection.SendChannel <- cmd
 		delete(c.connections, key)
 	}
 	c.keepRunning = false
