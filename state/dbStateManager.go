@@ -158,6 +158,8 @@ func (list *DBStateList) Catchup() {
 
 	if msg != nil {
 		list.State.NetworkOutMsgQueue() <- msg
+		list.State.stallQueue = make(chan interfaces.IMsg, 10000)
+		list.State.EOM = 0
 	}
 
 }
@@ -236,7 +238,7 @@ func (list *DBStateList) UpdateState() (progress bool) {
 					}
 					d.DirectoryBlock.AddEntry(eb.GetChainID(), key)
 				}
-
+				d.DirectoryBlock.GetKeyMR()
 				_, err = d.DirectoryBlock.BuildBodyMR()
 				if err != nil {
 					panic(err.Error())
@@ -274,6 +276,13 @@ func (list *DBStateList) UpdateState() (progress bool) {
 			if err := list.State.GetDB().ExecuteMultiBatch(); err != nil {
 				panic(err.Error())
 			}
+		}
+
+		dblk2, _ := list.State.GetDB().FetchDBlockByKeyMR(d.DirectoryBlock.GetKeyMR())
+		if dblk2 == nil {
+			fmt.Printf("Failed to save the Directory Block %d %x\n",
+				d.DirectoryBlock.GetHeader().GetDBHeight(),
+				d.DirectoryBlock.GetKeyMR().Bytes()[:3])
 		}
 		list.LastTime = list.State.GetTimestamp() // If I saved or processed stuff, I'm good for a while
 		d.Saved = true                            // Only after all is done will I admit this state has been saved.

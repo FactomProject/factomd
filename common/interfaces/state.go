@@ -76,8 +76,11 @@ type IState interface {
 	JournalMessage(IMsg)
 
 	// Consensus
+	APIQueue() chan IMsg       // Input Queue from the API
 	InMsgQueue() chan IMsg     // Read by Validate
 	LeaderMsgQueue() chan IMsg // Leader Queue
+	Stall() chan IMsg          // Leader Queue
+	StallMsg(IMsg)             // Stall a message that we need to execute later
 
 	// Lists and Maps
 	// =====
@@ -92,6 +95,8 @@ type IState interface {
 	GetReveals(hash IHash) IMsg
 	PutCommits(hash IHash, msg IMsg)
 	PutReveals(hash IHash, msg IMsg)
+	IncEntryChains()
+	IncEntries()
 	// Server Configuration
 	// ====================
 
@@ -104,10 +109,11 @@ type IState interface {
 	// These are methods run by the consensus algorithm to track what servers are the leaders
 	// and what lists they are responsible for.
 	LeaderFor(msg IMsg, hash []byte) bool // Tests if this server is the leader for this key
+	GetLeaderVM() int                     // Get the Leader VM (only good within a minute)
 	// Returns the list of VirtualServers at a given directory block height and minute
 	GetVirtualServers(dbheight uint32, minute int, identityChainID IHash) (found bool, index int)
 	// Returns true if between minutes
-	GetEOM() bool
+	GetEOM() int
 
 	// Database
 	// ========
@@ -130,6 +136,7 @@ type IState interface {
 	SetFactoidState(dbheight uint32, fs IFactoidState)
 	GetFactoshisPerEC() uint64
 	SetFactoshisPerEC(factoshisPerEC uint64)
+	IncFactoidTrans()
 	// MISC
 	// ====
 
@@ -147,6 +154,10 @@ type IState interface {
 	// For messages that go into the Process List
 	LeaderExecute(m IMsg) error
 	LeaderExecuteEOM(m IMsg) error
+	LeaderExecuteRE(m IMsg) error
+
+	GetNetStateOff() bool //	If true, all network communications are disabled
+	SetNetStateOff(bool)
 
 	GetTimestamp() Timestamp
 

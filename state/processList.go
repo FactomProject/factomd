@@ -29,7 +29,7 @@ type ProcessList struct {
 
 	State     interfaces.IState
 	VMs       []*VM       // Process list for each server (up to 32)
-	ServerMap [10][32]int // Map of FedServers to all Servers for each minute
+	ServerMap [10][64]int // Map of FedServers to all Servers for each minute
 
 	// Maps
 	// ====
@@ -55,13 +55,49 @@ type ProcessList struct {
 
 type VM struct {
 	List           []interfaces.IMsg // Lists of acknowledged messages
+	ListAck        []*messages.Ack   // Acknowledgements
 	Height         int               // Height of messages that have been processed
 	LeaderMinute   int               // Where the leader is in acknowledging messages
-	MinuteComplete int               // Highest minute complete (0-9) by the follower
+	Seal           int               // Sealed with an EOM minute, and released (0) when all EOM are found.
+	SealHeight     uint32            // Entries belowe the seal can still be recorded.
+	MinuteComplete int               // Highest minute complete recorded (0-9) by the follower
+	MinuteFinished int               // Highest minute processed (0-9) by the follower
 	MinuteHeight   int               // Height of the last minute complete
-	LastLeaderAck  interfaces.IMsg   // The last Acknowledgement set by this leader
-	LastAck        interfaces.IMsg   // The last Acknowledgement set by this follower
 	missingTime    int64             // How long we have been waiting for a missing message
+}
+
+// Attempts to unseal. Takes a minute (1-10) Returns false if it cannot.
+// Returns false if no seal is found.
+func (p *ProcessList) Unseal(minute int) bool {
+	cnt := 0
+	for i := 0; i < len(p.FedServers); i++ {
+		vm := p.VMs[i]
+		if len(vm.List) != vm.Height {
+			break
+		}
+		for _, v := range vm.List {
+			if v == nil {
+				break
+			}
+			if eom, ok := v.(*messages.EOM); ok {
+				if int(eom.Minute+1) == minute {
+					cnt++
+					break
+				}
+			}
+		}
+	}
+	if cnt > 0 {
+		if cnt < len(p.FedServers) {
+			return false
+		}
+		for i := 0; i < len(p.FedServers); i++ {
+			p.VMs[i].Seal = 0
+			p.VMs[i].SealHeight = 0
+		}
+		return true
+	}
+	return false
 }
 
 // Returns the Virtual Server index for this hash for the given minute
@@ -99,7 +135,6 @@ func (p *ProcessList) GetVirtualServers(minute int, identityChainID interfaces.I
 	if !found {
 		return false, -1
 	}
-	// fmt.Println("Line 100 minute:",minute)
 	for i, fedix := range p.ServerMap[minute] {
 		if i == len(p.FedServers) {
 			break
@@ -195,12 +230,33 @@ func (p *ProcessList) SetMinute(index int, minute int) {
 
 // Return the lowest minute number in our lists.  Note that Minute Markers END
 // a minute, so After MinuteComplete=0
-func (p *ProcessList) MinuteHeight() int {
+func (p *ProcessList) MinuteComplete() int {
 	m := 10
 	for i := 0; i < len(p.FedServers); i++ {
 		vm := p.VMs[i]
 		if vm.MinuteComplete < m {
 			m = vm.MinuteComplete
+		}
+	}
+	return m
+}
+
+// Return the lowest minute number in our lists.  Note that Minute Markers END
+// a minute, so After MinuteComplete=0
+func (p *ProcessList) MinuteFinished() int {
+	m := 10
+	for i := 0; i < len(p.FedServers); i++ {
+		vm := p.VMs[i]
+		for i, v := range p.VMs[i].List {
+			if v == nil && i <= vm.MinuteHeight {
+				m = vm.MinuteFinished - 1
+				if m < 0 {
+					m = 0
+				}
+			}
+		}
+		if vm.MinuteFinished < m {
+			m = vm.MinuteFinished
 		}
 	}
 	return m
@@ -255,27 +311,17 @@ func (p *ProcessList) RemoveAuditServerHash(identityChainID interfaces.IHash) {
 }
 
 // Given a server index, return the last Ack
-func (p *ProcessList) GetLastAck(index int) interfaces.IMsg {
-	return p.VMs[index].LastAck
+func (p *ProcessList) GetAck(vmIndex int) *messages.Ack {
+	return p.GetAckAt(vmIndex, p.VMs[vmIndex].Height)
 }
 
 // Given a server index, return the last Ack
-func (p *ProcessList) SetLastAck(index int, msg interfaces.IMsg) error {
-	// Check the hash of the previous msg before we over write
-	p.VMs[index].LastAck = msg
-	return nil
-}
-
-// Given a server index, return the last Ack
-func (p *ProcessList) GetLastLeaderAck(index int) interfaces.IMsg {
-	return p.VMs[index].LastLeaderAck
-}
-
-// Given a server index, return the last Ack
-func (p *ProcessList) SetLastLeaderAck(index int, msg interfaces.IMsg) error {
-	// Check the hash of the previous msg before we over write
-	p.VMs[index].LastLeaderAck = msg
-	return nil
+func (p *ProcessList) GetAckAt(vmIndex int, height int) *messages.Ack {
+	vm := p.VMs[vmIndex]
+	if height < 0 || height >= vm.Height {
+		return nil
+	}
+	return vm.ListAck[height]
 }
 
 func (p ProcessList) HasMessage() bool {
@@ -349,6 +395,8 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 	for i := 0; i < len(p.FedServers); i++ {
 
 		plist := p.VMs[i].List
+		alist := p.VMs[i].ListAck
+
 	thisVM:
 		for j := p.VMs[i].Height; j < len(plist); j++ {
 			if plist[j] == nil {
@@ -363,51 +411,47 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 					}
 					p.VMs[i].missingTime = now
 				}
-				return
+				break thisVM
 			}
 
-			oldAck, ok := p.OldAcks[plist[j].GetHash().Fixed()]
-			if !ok {
-				plist[j] = nil
-				return
-			}
-			thisAck, ok := oldAck.(*messages.Ack)
-			if !ok { // Missing an Ack, should never happen.
-				panic("Missing old ack in process list")
+			thisAck := alist[j]
+			if thisAck == nil { // IF I don't have an Ack to match this entry
+				plist[j] = nil // throw the entry away, and continue to the
+				break thisVM   // next list.  SHOULD NEVER HAPPEN.
 			}
 
 			var expectedSerialHash interfaces.IHash
 			var err error
-			last, ok := p.GetLastAck(i).(*messages.Ack)
-			if !ok || last.IsSameAs(thisAck) {
+			last := p.GetAckAt(i, p.VMs[i].Height-1)
+			if last == nil {
 				expectedSerialHash = thisAck.SerialHash
 			} else {
 				expectedSerialHash, err = primitives.CreateHash(last.MessageHash, thisAck.MessageHash)
 				if err != nil {
 					// cannot create a expectedSerialHash to compare to
 					plist[j] = nil
-					return
+					break thisVM
 				}
 			}
 			// compare the SerialHash of this acknowledgement with the
 			// expected serialHash (generated above)
 			if !expectedSerialHash.IsSameAs(thisAck.SerialHash) {
-				fmt.Printf("DISCREPANCY: %d %x pl ht: %d \nDetected on: %s\n",
+				p.State.(*State).DebugPrt("Process List")
+				fmt.Printf("Error detected on %s\nSerial Hash failure: Fed Server %d  Leader ID %x List Ht: %d \nDetected on: %s\n",
+					state.GetFactomNodeName(),
 					i,
 					p.FedServers[i].GetChainID().Bytes()[:3],
-					j,
-					state.GetFactomNodeName())
-				fmt.Printf("LAST MESS: %x ::: LAST SERIAL: %x\n", last.MessageHash.Bytes()[:3], last.SerialHash.Bytes()[:3])
-				fmt.Printf("THIS MESS: %x ::: THIS SERIAL: %x\n", thisAck.MessageHash.Bytes()[:3], thisAck.SerialHash.Bytes()[:3])
-				fmt.Printf("EXPECT:    %x \n", expectedSerialHash.Bytes()[:3])
+					j)
+				fmt.Printf("Last Ack: %6x  Last Serial: %6x\n", last.GetHash().Bytes()[:3], last.SerialHash.Bytes()[:3])
+				fmt.Printf("This Ack: %6x  This Serial: %6x\n", thisAck.GetHash().Bytes()[:3], thisAck.SerialHash.Bytes()[:3])
+				fmt.Printf("Expected: %6x\n", expectedSerialHash.Bytes()[:3])
 				fmt.Printf("The message that didn't work: %s\n\n", plist[j].String())
 				fmt.Println(p.PrintMap())
 				// the SerialHash of this acknowledgment is incorrect
 				// according to this node's processList
 				plist[j] = nil
-				return
+				break thisVM
 			}
-			p.SetLastAck(i, thisAck)
 
 			if plist[j].Process(p.DBHeight, state) { // Try and Process this entry
 				p.VMs[i].Height = j + 1 // Don't process it again if the process worked.
@@ -420,31 +464,86 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 	return
 }
 
-func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
+// Check to assure that the given VM has been completely processed
+func (p *ProcessList) GoodTo(vmIndex int) bool {
+	if vmIndex < 0 {
+		vmIndex = p.State.(*State).LeaderVMIndex
+	}
+	vm := p.VMs[vmIndex]
+	if len(vm.List) > vm.Height {
+		return false
+	}
+	for _, v := range vm.List {
+		if v == nil {
+			return false
+		}
+	}
+	return true
+}
+
+func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) bool {
 
 	//fmt.Println(p.State.GetFactomNodeName(),"Addack them",ack.String())
 	//fmt.Println(p.State.GetFactomNodeName(),"Addm   them",m.String())
 	m.SetLeaderChainID(ack.GetLeaderChainID())
+	m.SetMinute(ack.Minute)
 
-	if len(p.VMs[ack.VMIndex].List) > int(ack.Height) && p.VMs[ack.VMIndex].List[ack.Height] != nil {
-		fmt.Println(p.String())
-		fmt.Println(p.PrintMap())
-		panic(fmt.Sprintf("\t%12s %s\n\t%12s %s\n\t %12s %s",
-			"OverWriting:",
-			p.VMs[ack.VMIndex].List[ack.Height].String(),
-			"With:",
-			m.String(),
-			"Detected on:",
-			p.State.GetFactomNodeName(),
-		))
+	vm := p.VMs[ack.VMIndex]
+
+	// If this vm is sealed, then we can't add more messages.
+	if p.State.(*State).Leader && vm.Seal > 0 && ack.Height >= vm.SealHeight {
+		if p.State.(*State).DebugConsensus {
+			fmt.Printf("%-30s %10s %s\n", "add PL Height Stall", p.State.GetFactomNodeName(), m.String())
+		}
+		return false
 	}
 
-	for len(p.VMs[ack.VMIndex].List) <= int(ack.Height) {
+	if len(vm.List) > int(ack.Height) && vm.List[ack.Height] != nil {
+
+		if ack == nil || m == nil || vm.List[ack.Height].GetMsgHash() == nil ||
+			m.GetMsgHash() == nil || vm.List[ack.Height].GetMsgHash().IsSameAs(m.GetMsgHash()) {
+			fmt.Printf("%-30s %10s %s\n", "xxxxxxxxx PL Duplicate", p.State.GetFactomNodeName(), m.String())
+			return false
+		}
+
+		if vm.List[ack.Height] != nil {
+			fmt.Println(p.String())
+			fmt.Println(p.PrintMap())
+			fmt.Printf("\t%12s %s %s\n", "OverWriting:", vm.List[ack.Height].String(), "with")
+			fmt.Printf("\t%12s %s\n", "with:", m.String())
+			fmt.Printf("\t%12s %s\n", "Detected on:", p.State.GetFactomNodeName())
+			fmt.Printf("\t%12s %s\n", "old ack", vm.ListAck[ack.Height].String())
+			fmt.Printf("\t%12s %s\n", "new ack", ack.String())
+			fmt.Printf("\t%12s %s\n", "VM Index", ack.VMIndex)
+			return false
+		}
+	}
+
+	eom, ok := m.(*messages.EOM)
+	if ok {
+		vm.Seal = int(eom.Minute + 1)
+		vm.SealHeight = ack.Height
+	}
+	length := len(p.VMs[ack.VMIndex].List)
+	for length <= int(ack.Height) {
 		p.VMs[ack.VMIndex].List = append(p.VMs[ack.VMIndex].List, nil)
+		p.VMs[ack.VMIndex].ListAck = append(p.VMs[ack.VMIndex].ListAck, nil)
+		length = len(p.VMs[ack.VMIndex].List)
 	}
-	p.VMs[ack.VMIndex].LastAck = ack
 
 	p.VMs[ack.VMIndex].List[ack.Height] = m
+	p.VMs[ack.VMIndex].ListAck[ack.Height] = ack
+
+	now := int64(p.State.GetTimestamp())
+	// Both the ack and the message hash to the same GetHash()
+	p.State.(*State).InternalReplay.IsTSValid_(m.GetHash().Fixed(), int64(m.GetTimestamp()), now)
+	ack.SetStalled(false)
+	m.SetStalled(false)
+
+	//	fmt.Printf("%-30s %10s %s\n", "add !!!!!!Finished ", p.State.GetFactomNodeName(), m.String())
+	//	fmt.Printf("%-30s %10s %s\n", "add !!!!!!Finished ", p.State.GetFactomNodeName(), ack.String())
+
+	return true
 }
 
 func (p *ProcessList) String() string {
@@ -456,18 +555,22 @@ func (p *ProcessList) String() string {
 
 		for i := 0; i < len(p.FedServers); i++ {
 			server := p.VMs[i]
-			eom := fmt.Sprintf("Minute Complete %d Height %d ", server.MinuteComplete, server.Height)
-			if p.FinishedEOM() {
-				eom = eom + "Finished EOM "
+			eom := fmt.Sprintf("Minute Complete %2d Minute Finished %2d Height %3d Len %3d ",
+				p.MinuteComplete(),
+				p.MinuteFinished(),
+				server.Height,
+				len(server.List))
+			min := server.LeaderMinute
+			if min > 9 {
+				min = 9
 			}
-
-			buf.WriteString(fmt.Sprintf("  VM %d Fed %d %s\n", i, p.ServerMap[server.LeaderMinute][i], eom))
+			buf.WriteString(fmt.Sprintf("  VM %d Fed %d %s\n", i, p.ServerMap[min][i], eom))
 			for j, msg := range server.List {
-
+				buf.WriteString(fmt.Sprintf("   %3d", j))
 				if j < server.Height {
-					buf.WriteString("  P")
+					buf.WriteString(" P")
 				} else {
-					buf.WriteString("   ")
+					buf.WriteString("  ")
 				}
 
 				if msg != nil {

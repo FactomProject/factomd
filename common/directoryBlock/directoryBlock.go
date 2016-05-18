@@ -178,7 +178,7 @@ func (b *DirectoryBlock) MarshalBinary() (data []byte, err error) {
 	}
 	buf.Write(data)
 
-	for i := uint32(0); i < count; i = i + 1 {
+	for i := uint32(0); i < count; i++ {
 		data, err = b.GetDBEntries()[i].MarshalBinary()
 		if err != nil {
 			return

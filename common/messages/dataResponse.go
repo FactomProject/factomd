@@ -275,7 +275,7 @@ func (m *DataResponse) UnmarshalBinaryData(data []byte) (newData []byte, err err
 		return nil, fmt.Errorf("DataResponse's DataType not supported for unmarshalling yet")
 	}
 
-	m.Peer2peer = true // Always a peer2peer request.
+	m.Peer2Peer = true // Always a peer2peer request.
 	return data, nil
 }
 
@@ -355,7 +355,7 @@ func NewDataResponse(state interfaces.IState, dataObject interfaces.BinaryMarsha
 
 	msg := new(DataResponse)
 
-	msg.Peer2peer = true
+	msg.Peer2Peer = true
 	msg.Timestamp = state.GetTimestamp()
 
 	msg.DataHash = dataHash

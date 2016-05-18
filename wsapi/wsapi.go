@@ -14,6 +14,7 @@ import (
 	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/web"
 	"os"
+	"sync"
 	"time"
 )
 
@@ -22,9 +23,13 @@ const (
 )
 
 var Servers map[int]*web.Server
+var ServersSync sync.Mutex
 
 func Start(state interfaces.IState) {
 	var server *web.Server
+
+	ServersSync.Lock()
+	defer ServersSync.Unlock()
 
 	if Servers == nil {
 		Servers = make(map[int]*web.Server)
@@ -63,6 +68,8 @@ func Start(state interfaces.IState) {
 
 func SetState(state interfaces.IState) {
 	wait := func() {
+		ServersSync.Lock()
+		defer ServersSync.Unlock()
 		for Servers == nil && Servers[state.GetPort()] != nil {
 			time.Sleep(10 * time.Millisecond)
 		}
@@ -73,6 +80,9 @@ func SetState(state interfaces.IState) {
 }
 
 func Stop(state interfaces.IState) {
+	ServersSync.Lock()
+	defer ServersSync.Unlock()
+
 	Servers[state.GetPort()].Close()
 }
 
