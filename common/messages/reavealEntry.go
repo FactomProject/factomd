@@ -60,10 +60,10 @@ func (m *RevealEntryMsg) Process(dbheight uint32, state interfaces.IState) bool 
 		state.PutNewEntries(dbheight, m.Entry.GetHash(), m.Entry)
 
 		if v := state.GetReveals(myhash); v != nil {
-			state.PutReveals(myhash,nil)
+			state.PutReveals(myhash, nil)
 		}
 
-		state.PutCommits(myhash,nil)
+		state.PutCommits(myhash, nil)
 		state.IncEntryChains()
 		state.IncEntries()
 		return true
@@ -91,10 +91,10 @@ func (m *RevealEntryMsg) Process(dbheight uint32, state interfaces.IState) bool 
 		state.PutNewEntries(dbheight, m.Entry.GetHash(), m.Entry)
 
 		if v := state.GetReveals(myhash); v != nil {
-			state.PutReveals(myhash,nil)
+			state.PutReveals(myhash, nil)
 		}
 
-		state.PutCommits(myhash,nil)
+		state.PutCommits(myhash, nil)
 		state.IncEntries()
 		return true
 	}

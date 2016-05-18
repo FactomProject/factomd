@@ -260,7 +260,7 @@ func (m *EOM) MarshalForSignature() (data []byte, err error) {
 	binary.Write(&buf, binary.BigEndian, uint8(m.VMIndex))
 	if m.FactoidVM {
 		binary.Write(&buf, binary.BigEndian, uint8(1))
-	}else{
+	} else {
 		binary.Write(&buf, binary.BigEndian, uint8(0))
 	}
 	return buf.DeepCopyBytes(), nil

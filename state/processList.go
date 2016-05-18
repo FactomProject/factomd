@@ -315,11 +315,10 @@ func (p *ProcessList) GetAck(vmIndex int) *messages.Ack {
 	return p.GetAckAt(vmIndex, p.VMs[vmIndex].Height)
 }
 
-
 // Given a server index, return the last Ack
 func (p *ProcessList) GetAckAt(vmIndex int, height int) *messages.Ack {
 	vm := p.VMs[vmIndex]
-	if height < 0  || height >= vm.Height {
+	if height < 0 || height >= vm.Height {
 		return nil
 	}
 	return vm.ListAck[height]
@@ -423,7 +422,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 
 			var expectedSerialHash interfaces.IHash
 			var err error
-			last := p.GetAckAt(i,p.VMs[i].Height-1)
+			last := p.GetAckAt(i, p.VMs[i].Height-1)
 			if last == nil {
 				expectedSerialHash = thisAck.SerialHash
 			} else {
@@ -467,7 +466,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 
 // Check to assure that the given VM has been completely processed
 func (p *ProcessList) GoodTo(vmIndex int) bool {
-	if vmIndex < 0{
+	if vmIndex < 0 {
 		vmIndex = p.State.(*State).LeaderVMIndex
 	}
 	vm := p.VMs[vmIndex]
@@ -510,12 +509,12 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) boo
 		if vm.List[ack.Height] != nil {
 			fmt.Println(p.String())
 			fmt.Println(p.PrintMap())
-			fmt.Printf("\t%12s %s %s\n", "OverWriting:",vm.List[ack.Height].String(),"with")
-			fmt.Printf("\t%12s %s\n","with:",m.String())
-			fmt.Printf("\t%12s %s\n","Detected on:",p.State.GetFactomNodeName())
-			fmt.Printf("\t%12s %s\n","old ack",vm.ListAck[ack.Height].String())
-			fmt.Printf("\t%12s %s\n","new ack",ack.String())
-			fmt.Printf("\t%12s %s\n","VM Index",ack.VMIndex)
+			fmt.Printf("\t%12s %s %s\n", "OverWriting:", vm.List[ack.Height].String(), "with")
+			fmt.Printf("\t%12s %s\n", "with:", m.String())
+			fmt.Printf("\t%12s %s\n", "Detected on:", p.State.GetFactomNodeName())
+			fmt.Printf("\t%12s %s\n", "old ack", vm.ListAck[ack.Height].String())
+			fmt.Printf("\t%12s %s\n", "new ack", ack.String())
+			fmt.Printf("\t%12s %s\n", "VM Index", ack.VMIndex)
 			return false
 		}
 	}

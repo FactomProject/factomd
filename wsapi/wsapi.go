@@ -14,8 +14,8 @@ import (
 	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/web"
 	"os"
-	"time"
 	"sync"
+	"time"
 )
 
 const (

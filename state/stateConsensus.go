@@ -29,15 +29,15 @@ func (s *State) NewMinute() {
 	s.Review = make([]interfaces.IMsg, 0, len(s.Holding))
 	// Anything we are holding, we need to reprocess.
 	for k := range s.Holding {
-		if v:= s.Holding[k]; v != nil {
-			s.Review = append(s.Review,v)
+		if v := s.Holding[k]; v != nil {
+			s.Review = append(s.Review, v)
 			s.Holding[k] = nil
 		}
 	}
 	// Clear the holding map
 	s.Holding = make(map[[32]byte]interfaces.IMsg)
 	s.Reveals = make(map[[32]byte]interfaces.IMsg)
-	s.EOM=0
+	s.EOM = 0
 }
 
 func (s *State) Process() (progress bool) {
@@ -56,7 +56,7 @@ func (s *State) Process() (progress bool) {
 	}
 
 	dbstate := s.DBStates.Get(s.LLeaderHeight)
-	if s.LLeaderHeight <= highest && (dbstate == nil || dbstate.Saved){
+	if s.LLeaderHeight <= highest && (dbstate == nil || dbstate.Saved) {
 		s.LLeaderHeight = highest + 1
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(0, s.IdentityChainID)
@@ -95,7 +95,6 @@ func (s *State) Process() (progress bool) {
 			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(0, s.IdentityChainID)
 		}
 
-
 	}
 
 	return s.ProcessQueues()
@@ -104,7 +103,7 @@ func (s *State) Process() (progress bool) {
 func (s *State) TryToProcess(msg interfaces.IMsg) {
 	// First make sure the message is valid.
 
-//fmt.Println("xxxxxxxxxx", s.FactomNodeName, msg.String())
+	//fmt.Println("xxxxxxxxxx", s.FactomNodeName, msg.String())
 
 	ExeFollow := func() {
 		if msg.Follower(s) {
@@ -122,16 +121,14 @@ func (s *State) TryToProcess(msg interfaces.IMsg) {
 		}
 	}
 
-
 	msgLeader := msg.Leader(s)
-	if ack, ok := msg.(*messages.Ack);
-	      s.LeaderPL.GoodTo(msg.GetVMIndex()) &&
-	      (!ok || int(ack.Height) == s.LeaderPL.VMs[ack.VMIndex].Height) {
+	if ack, ok := msg.(*messages.Ack); s.LeaderPL.GoodTo(msg.GetVMIndex()) &&
+		(!ok || int(ack.Height) == s.LeaderPL.VMs[ack.VMIndex].Height) {
 		v := msg.Validate(s)
 		if v == 1 {
 			// If we are a leader, we are way more strict than simple followers.
-			if msgLeader && s.Leader && s.EOM == 0  &&
-			(s.LeaderVMIndex == msg.GetVMIndex() || msg.IsLocal()) {
+			if msgLeader && s.Leader && s.EOM == 0 &&
+				(s.LeaderVMIndex == msg.GetVMIndex() || msg.IsLocal()) {
 				err := msg.LeaderExecute(s)
 				if err == nil {
 					// If all went well, then send it to the world.
@@ -154,7 +151,7 @@ func (s *State) TryToProcess(msg interfaces.IMsg) {
 		} else {
 			s.networkInvalidMsgQueue <- msg
 		}
-	}else{
+	} else {
 		s.StallMsg(msg)
 	}
 }
@@ -209,13 +206,13 @@ func (s *State) ProcessQueues() (progress bool) {
 		if s.LeaderPL != nil {
 			if !s.NetStateOff {
 				s.TryToProcess(msg)
-			}else{
+			} else {
 				fmt.Println(s.FactomNodeName, "Msg: ", msg.String())
 			}
 		} else {
 			if !s.NetStateOff {
 				s.TryToProcess(msg)
-			}else{
+			} else {
 				fmt.Println(s.FactomNodeName, "Msg: ", msg.String())
 			}
 		}
@@ -250,7 +247,7 @@ func (s *State) AddDBState(isNew bool,
 	ht := dbState.DirectoryBlock.GetHeader().GetDBHeight()
 	if ht > s.LLeaderHeight {
 		s.LLeaderHeight = ht
-		s.EOM=0
+		s.EOM = 0
 	}
 	//	dbh := directoryBlock.GetHeader().GetDBHeight()
 	//	if s.LLeaderHeight < dbh {
@@ -381,9 +378,9 @@ func (s *State) LeaderExecute(m interfaces.IMsg) error {
 	}
 
 	if err := ack.FollowerExecute(s); err == nil {
-		m.FollowerExecute(s);
+		m.FollowerExecute(s)
 		s.networkOutMsgQueue <- ack
-	}else{
+	} else {
 		return err
 	}
 
@@ -406,12 +403,11 @@ func (s *State) LeaderExecuteRE(m interfaces.IMsg) error {
 	if err := ack.FollowerExecute(s); err != nil {
 		return err
 	}
-	m.FollowerExecute(s);
+	m.FollowerExecute(s)
 	s.networkOutMsgQueue <- ack
 
 	return nil
 }
-
 
 func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
 
@@ -436,9 +432,9 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
 	}
 
 	if err := ack.FollowerExecute(s); err == nil {
-		m.FollowerExecute(s);
+		m.FollowerExecute(s)
 		s.networkOutMsgQueue <- ack
-	}else{
+	} else {
 		return err
 	}
 
@@ -518,7 +514,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	}
 
 	for _, eb := range pl.NewEBlocks {
-		if pl.VMIndexFor(eb.GetChainID().Bytes())==e.VMIndex {
+		if pl.VMIndexFor(eb.GetChainID().Bytes()) == e.VMIndex {
 			eb.AddEndOfMinuteMarker(e.Bytes()[0])
 		}
 	}
@@ -770,7 +766,7 @@ func (s *State) NewAck(dbheight uint32, msg interfaces.IMsg) (iack interfaces.IM
 	ack.MessageHash = msg.GetHash()
 	ack.LeaderChainID = s.IdentityChainID
 
-	last := pl.GetAckAt(vmIndex,pl.VMs[vmIndex].Height-1)
+	last := pl.GetAckAt(vmIndex, pl.VMs[vmIndex].Height-1)
 	if last == nil {
 		ack.Height = 0
 		ack.SerialHash = ack.MessageHash

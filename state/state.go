@@ -65,7 +65,7 @@ type State struct {
 	networkOutMsgQueue     chan interfaces.IMsg
 	networkInvalidMsgQueue chan interfaces.IMsg
 	inMsgQueue             chan interfaces.IMsg
-	apiQueue					  chan interfaces.IMsg
+	apiQueue               chan interfaces.IMsg
 	leaderMsgQueue         chan interfaces.IMsg
 	followerMsgQueue       chan interfaces.IMsg
 	stallQueue             chan interfaces.IMsg
@@ -86,14 +86,14 @@ type State struct {
 	EOM            int  // Set to true when all Process Lists have finished a minute
 	NetStateOff    bool // Disable if true, Enable if false
 	DebugConsensus bool // If true, dump consensus trace
-	FactoidTrans 	int
-	NewEntryChains	int
-	NewEntries		int
+	FactoidTrans   int
+	NewEntryChains int
+	NewEntries     int
 	// Maps
 	// ====
 	// For Follower
 	Holding map[[32]byte]interfaces.IMsg // Hold Messages
-	Review  [] interfaces.IMsg				 // After the EOM, we must review the messages in Holding
+	Review  []interfaces.IMsg            // After the EOM, we must review the messages in Holding
 	Acks    map[[32]byte]interfaces.IMsg // Hold Acknowledgemets
 	Commits map[[32]byte]interfaces.IMsg // Commit Messages
 	Reveals map[[32]byte]interfaces.IMsg // Reveal Messages
@@ -596,7 +596,6 @@ func (s *State) IncEntries() {
 	s.NewEntries++
 }
 
-
 func (s *State) DatabaseContains(hash interfaces.IHash) bool {
 	result, _, err := s.LoadDataByHash(hash)
 	if result != nil && err == nil {
@@ -838,7 +837,6 @@ func (s *State) InMsgQueue() chan interfaces.IMsg {
 func (s *State) APIQueue() chan interfaces.IMsg {
 	return s.apiQueue
 }
-
 
 func (s *State) LeaderMsgQueue() chan interfaces.IMsg {
 	return s.leaderMsgQueue

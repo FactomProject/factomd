@@ -34,8 +34,8 @@ func Peers(fnode *FactomNode) {
 				cnt++
 				msg.SetOrigin(0)
 				if fnode.State.Replay.IsTSValid_(msg.GetMsgHash().Fixed(),
-					int64(msg.GetTimestamp()) / 1000,
-					int64(fnode.State.GetTimestamp()) / 1000) {
+					int64(msg.GetTimestamp())/1000,
+					int64(fnode.State.GetTimestamp())/1000) {
 
 					fnode.MLog.add2(fnode, false, fnode.State.FactomNodeName, "API", true, msg)
 					if len(fnode.State.InMsgQueue()) < 9000 {
@@ -66,14 +66,14 @@ func Peers(fnode *FactomNode) {
 				cnt++
 
 				if err != nil {
-					fmt.Println("ERROR recieving message on", fnode.State.FactomNodeName + ":", err)
+					fmt.Println("ERROR recieving message on", fnode.State.FactomNodeName+":", err)
 					break
 				}
 
 				msg.SetOrigin(i + 1)
 				if fnode.State.Replay.IsTSValid_(msg.GetMsgHash().Fixed(),
-					int64(msg.GetTimestamp()) / 1000,
-					int64(fnode.State.GetTimestamp()) / 1000) {
+					int64(msg.GetTimestamp())/1000,
+					int64(fnode.State.GetTimestamp())/1000) {
 					//if state.GetOut() {
 					//	fnode.State.Println("In Comming!! ",msg)
 					//}
@@ -81,7 +81,7 @@ func Peers(fnode *FactomNode) {
 					if msg.IsPeer2Peer() {
 						in = "P2P In"
 					}
-					nme := fmt.Sprintf("%s %d", in, i + 1)
+					nme := fmt.Sprintf("%s %d", in, i+1)
 
 					fnode.MLog.add2(fnode, false, peer.GetNameTo(), nme, true, msg)
 

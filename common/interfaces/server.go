@@ -23,7 +23,7 @@ type Server struct {
 
 var _ IServer = (*Server)(nil)
 
-func(s *Server) GetName() string {
+func (s *Server) GetName() string {
 	return s.Name
 }
 
