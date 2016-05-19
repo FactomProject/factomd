@@ -22,9 +22,9 @@ type ProcessList struct {
 	DBHeight uint32 // The directory block height for these lists
 	good     bool   // Means we have the previous blocks, so we can process!
 
-	// List of messsages that came in before the previous block was built
-	// We can not completely validate these messages until the previous block
-	// is built.
+						 // List of messsages that came in before the previous block was built
+						 // We can not completely validate these messages until the previous block
+						 // is built.
 	MsgQueue []interfaces.IMsg
 
 	State     interfaces.IState
@@ -51,6 +51,7 @@ type ProcessList struct {
 	AuditServers []interfaces.IFctServer // List of Audit Servers
 	FedServers   []interfaces.IFctServer // List of Federated Servers
 
+	Sealing		  bool					// We are in the process of sealing this process list
 }
 
 type VM struct {
@@ -59,6 +60,7 @@ type VM struct {
 	Height         int               // Height of messages that have been processed
 	LeaderMinute   int               // Where the leader is in acknowledging messages
 	Seal           int               // Sealed with an EOM minute, and released (0) when all EOM are found.
+	SealTime       int64					// The time since we started waiting
 	SealHeight     uint32            // Entries belowe the seal can still be recorded.
 	MinuteComplete int               // Highest minute complete recorded (0-9) by the follower
 	MinuteFinished int               // Highest minute processed (0-9) by the follower
@@ -94,6 +96,7 @@ func (p *ProcessList) Unseal(minute int) bool {
 		for i := 0; i < len(p.FedServers); i++ {
 			p.VMs[i].Seal = 0
 			p.VMs[i].SealHeight = 0
+			p.Sealing = false
 		}
 		return true
 	}
@@ -381,6 +384,22 @@ func (p *ProcessList) FinishedEOM() bool {
 // Process messages and update our state.
 func (p *ProcessList) Process(state *State) (progress bool) {
 
+	now := time.Now().Unix()
+	ask := func(vm *VM, thetime int64, j int) (int64) {
+		if thetime == 0 {
+			thetime = now
+		}
+		if now-thetime > 2 {
+			missingMsgRequest := messages.NewMissingMsg(state, p.DBHeight, uint32(j))
+			if missingMsgRequest != nil {
+				state.NetworkOutMsgQueue() <- missingMsgRequest
+			}
+			thetime = now
+		}
+		return thetime
+	}
+
+
 	if !p.good { // If we don't know this process list is good...
 		last := state.DBStates.Last() // Get our last state.
 		if last == nil {
@@ -393,36 +412,31 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 		p.good = true
 	}
 	for i := 0; i < len(p.FedServers); i++ {
+		vm := p.VMs[i]
 
-		plist := p.VMs[i].List
-		alist := p.VMs[i].ListAck
+		plist := vm.List
+		alist := vm.ListAck
 
-	thisVM:
-		for j := p.VMs[i].Height; j < len(plist); j++ {
+
+		for j := vm.Height; j < len(plist); j++ {
 			if plist[j] == nil {
-				now := time.Now().Unix()
-				if p.VMs[i].missingTime == 0 {
-					p.VMs[i].missingTime = now
-				}
-				if now-p.VMs[i].missingTime > 0 {
-					missingMsgRequest := messages.NewMissingMsg(state, p.DBHeight, uint32(j))
-					if missingMsgRequest != nil {
-						state.NetworkOutMsgQueue() <- missingMsgRequest
-					}
-					p.VMs[i].missingTime = now
-				}
-				break thisVM
+				vm.missingTime = ask(vm,vm.missingTime,j)
+				break
+			}
+
+			if p.Sealing && vm.Seal == 0 {
+				vm.SealTime = ask(vm,vm.SealTime+4,vm.Height)
 			}
 
 			thisAck := alist[j]
 			if thisAck == nil { // IF I don't have an Ack to match this entry
 				plist[j] = nil // throw the entry away, and continue to the
-				break thisVM   // next list.  SHOULD NEVER HAPPEN.
+				break    // next list.  SHOULD NEVER HAPPEN.
 			}
 
 			var expectedSerialHash interfaces.IHash
 			var err error
-			last := p.GetAckAt(i, p.VMs[i].Height-1)
+			last := p.GetAckAt(i, vm.Height-1)
 			if last == nil {
 				expectedSerialHash = thisAck.SerialHash
 			} else {
@@ -430,7 +444,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 				if err != nil {
 					// cannot create a expectedSerialHash to compare to
 					plist[j] = nil
-					break thisVM
+					break
 				}
 			}
 			// compare the SerialHash of this acknowledgement with the
@@ -450,14 +464,14 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 				// the SerialHash of this acknowledgment is incorrect
 				// according to this node's processList
 				plist[j] = nil
-				break thisVM
+				break
 			}
 
 			if plist[j].Process(p.DBHeight, state) { // Try and Process this entry
-				p.VMs[i].Height = j + 1 // Don't process it again if the process worked.
+				vm.Height = j + 1 // Don't process it again if the process worked.
 				progress = true
 			} else {
-				break thisVM // Don't process further in this list, go to the next.
+				break  // Don't process further in this list, go to the next.
 			}
 		}
 	}
@@ -492,16 +506,13 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) boo
 
 	// If this vm is sealed, then we can't add more messages.
 	if p.State.(*State).Leader && vm.Seal > 0 && ack.Height >= vm.SealHeight {
-		if p.State.(*State).DebugConsensus {
-			fmt.Printf("%-30s %10s %s\n", "add PL Height Stall", p.State.GetFactomNodeName(), m.String())
-		}
 		return false
 	}
 
 	if len(vm.List) > int(ack.Height) && vm.List[ack.Height] != nil {
 
 		if ack == nil || m == nil || vm.List[ack.Height].GetMsgHash() == nil ||
-			m.GetMsgHash() == nil || vm.List[ack.Height].GetMsgHash().IsSameAs(m.GetMsgHash()) {
+		m.GetMsgHash() == nil || vm.List[ack.Height].GetMsgHash().IsSameAs(m.GetMsgHash()) {
 			fmt.Printf("%-30s %10s %s\n", "xxxxxxxxx PL Duplicate", p.State.GetFactomNodeName(), m.String())
 			return false
 		}
@@ -521,6 +532,7 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) boo
 
 	eom, ok := m.(*messages.EOM)
 	if ok {
+		p.Sealing = true
 		vm.Seal = int(eom.Minute + 1)
 		vm.SealHeight = ack.Height
 	}
@@ -554,20 +566,20 @@ func (p *ProcessList) String() string {
 		buf.WriteString(fmt.Sprintf("%s #VMs %d\n", p.State.GetFactomNodeName(), len(p.FedServers)))
 
 		for i := 0; i < len(p.FedServers); i++ {
-			server := p.VMs[i]
-			eom := fmt.Sprintf("Minute Complete %2d Minute Finished %2d Height %3d Len %3d ",
+			vm := p.VMs[i]
+			eom := fmt.Sprintf("MinuteComplete() %2d MinuteFinished() %2d vm.Height %3d Len %3d ",
 				p.MinuteComplete(),
 				p.MinuteFinished(),
-				server.Height,
-				len(server.List))
-			min := server.LeaderMinute
+				vm.Height,
+				len(vm.List))
+			min := vm.LeaderMinute
 			if min > 9 {
 				min = 9
 			}
-			buf.WriteString(fmt.Sprintf("  VM %d Fed %d %s\n", i, p.ServerMap[min][i], eom))
-			for j, msg := range server.List {
+			buf.WriteString(fmt.Sprintf("  VM %d VM Minute %d Fed Server: %d %s\n", i, vm.LeaderMinute, p.ServerMap[min][i], eom))
+			for j, msg := range vm.List {
 				buf.WriteString(fmt.Sprintf("   %3d", j))
-				if j < server.Height {
+				if j < vm.Height {
 					buf.WriteString(" P")
 				} else {
 					buf.WriteString("  ")

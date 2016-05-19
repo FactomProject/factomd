@@ -139,7 +139,7 @@ func (list *DBStateList) Catchup() {
 			return
 		}
 
-		if plHeight > dbsHeight && plHeight-dbsHeight > 2 {
+		if plHeight > dbsHeight && plHeight-dbsHeight > 1 {
 			list.State.ProcessLists.Reset(dbsHeight)
 			begin = int(dbsHeight + 1)
 			end = int(plHeight - 1)
