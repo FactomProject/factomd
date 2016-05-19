@@ -101,9 +101,6 @@ func (s *State) Process() (progress bool) {
 }
 
 func (s *State) TryToProcess(msg interfaces.IMsg) {
-	// First make sure the message is valid.
-
-	//fmt.Println("xxxxxxxxxx", s.FactomNodeName, msg.String())
 
 	ExeFollow := func() {
 		if msg.Follower(s) {
@@ -185,12 +182,28 @@ func (s *State) ProcessQueues() (progress bool) {
 		select {
 		case msg = <-s.stallQueue:
 			_, ok := s.InternalReplay.Valid(msg.GetHash().Fixed(), int64(msg.GetTimestamp()), int64(s.GetTimestamp()))
-			if !ok {
+			if ok {
 				msg = nil
 			} else {
+				mh := msg.GetHash()
+				mf := mh.Fixed()
+				if len(s.stallQueue) > 20 {
+					msg = nil
+				} else if ack, ok := msg.(*messages.Ack); ok && ack.Height <= s.ProcessLists.DBHeightBase {
+					msg = nil
+				} else if s.Holding[mf] != nil {
+					msg = nil
+				} else if _, ok := msg.(*messages.CommitChainMsg); ok && s.GetCommits(mh) != nil {
+					msg = nil
+				} else if _, ok := msg.(*messages.CommitEntryMsg); ok && s.GetCommits(mh) != nil {
+					msg = nil
+				} else if s.GetReveals(mh) != nil {
+					msg = nil
+				}
+			}
+			if msg != nil {
 				msg.SetStalled(true) // Allow them to rebroadcast if they work.
 			}
-
 		case msg = <-s.followerMsgQueue:
 			_, ok := s.InternalReplay.Valid(msg.GetHash().Fixed(), int64(msg.GetTimestamp()), int64(s.GetTimestamp()))
 			if !ok {
@@ -311,6 +324,8 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) (bool, error) {
 // message.
 func (s *State) FollowerExecuteAck(msg interfaces.IMsg) (bool, error) {
 	ack := msg.(*messages.Ack)
+
+
 	match := s.Holding[ack.GetHash().Fixed()]
 	if match != nil {
 		s.Acks[ack.GetHash().Fixed()] = ack
@@ -379,6 +394,9 @@ func (s *State) LeaderExecute(m interfaces.IMsg) error {
 
 	if err := ack.FollowerExecute(s); err == nil {
 		m.FollowerExecute(s)
+		m.SetLocal(false)
+		m.SetRepeat(false)
+		s.networkOutMsgQueue <- m
 		s.networkOutMsgQueue <- ack
 	} else {
 		return err
@@ -400,11 +418,16 @@ func (s *State) LeaderExecuteRE(m interfaces.IMsg) error {
 		return err
 	}
 
-	if err := ack.FollowerExecute(s); err != nil {
+	if err := ack.FollowerExecute(s); err == nil {
+		m.FollowerExecute(s)
+		m.SetLocal(false)
+		m.SetRepeat(false)
+		s.networkOutMsgQueue <- m
+		s.networkOutMsgQueue <- ack
+	} else {
 		return err
 	}
-	m.FollowerExecute(s)
-	s.networkOutMsgQueue <- ack
+
 
 	return nil
 }
@@ -432,7 +455,10 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
 	}
 
 	if err := ack.FollowerExecute(s); err == nil {
+		m.SetLocal(false)
+		m.SetRepeat(false)
 		m.FollowerExecute(s)
+		s.networkOutMsgQueue <- m
 		s.networkOutMsgQueue <- ack
 	} else {
 		return err
