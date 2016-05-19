@@ -4,7 +4,7 @@
     once1=1
 }
 
-/ min  0  1 / {
+/ min  0/ {
     if (once==1) {
         min=1
         collect=1
