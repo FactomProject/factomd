@@ -148,6 +148,62 @@ type State struct {
 
 var _ interfaces.IState = (*State)(nil)
 
+func (s *State) IsStateFullySynced() bool {
+	//TODO: do
+	return true
+}
+
+func (s *State) GetACKStatus(hash interfaces.IHash, hashType string) (int, error) {
+	switch hashType {
+	case "fct":
+		//TODO: fetch data status from state first
+		in, err := s.GetDB().LoadIncludedIn(hash)
+		if err != nil {
+			return 0, err
+		}
+		if in == nil {
+			if s.IsStateFullySynced() {
+				return constants.AckStatusNotConfirmed, nil
+			} else {
+				return constants.AckStatusUnknown, nil
+			}
+			return constants.AckStatusDBlockConfirmed, nil
+		}
+		break
+	case "ec":
+		//TODO: fetch data status from state first
+		in, err := s.GetDB().LoadIncludedIn(hash)
+		if err != nil {
+			return 0, err
+		}
+		if in == nil {
+			if s.IsStateFullySynced() {
+				return constants.AckStatusNotConfirmed, nil
+			} else {
+				return constants.AckStatusUnknown, nil
+			}
+		}
+		return constants.AckStatusDBlockConfirmed, nil
+		break
+	case "e":
+		//TODO: fetch data status from state first
+		in, err := s.GetDB().LoadIncludedIn(hash)
+		if err != nil {
+			return 0, err
+		}
+		if in == nil {
+			if s.IsStateFullySynced() {
+				return constants.AckStatusNotConfirmed, nil
+			} else {
+				return constants.AckStatusUnknown, nil
+			}
+			return constants.AckStatusDBlockConfirmed, nil
+		}
+		break
+	}
+	return 0, nil
+}
+
 func (s *State) Clone(number string) interfaces.IState {
 
 	clone := new(State)

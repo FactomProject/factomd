@@ -126,5 +126,5 @@ const (
 	AckStatusNotConfirmed    = "NotConfirmed"
 	AckStatusACK             = "TransactionACK"
 	AckStatus1Minute         = "1Minute"
-	AckStatusDBlockConfiemed = "DBlockConfirmed"
+	AckStatusDBlockConfirmed = "DBlockConfirmed"
 )

@@ -50,7 +50,6 @@ type ProcessList struct {
 	Matryoshka   []interfaces.IHash      // Reverse Hash
 	AuditServers []interfaces.IFctServer // List of Audit Servers
 	FedServers   []interfaces.IFctServer // List of Federated Servers
-
 }
 
 type VM struct {
