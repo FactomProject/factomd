@@ -16,7 +16,7 @@ import (
 type ServerFault struct {
 	MessageBase
 	Timestamp interfaces.Timestamp
-	KnownEOM	 int
+	KnownEOM  int
 
 	Signature interfaces.IFullSignature
 

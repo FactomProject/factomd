@@ -671,9 +671,9 @@ func (s *State) MessageToLogString(msg interfaces.IMsg) string {
 
 func (s *State) JournalMessage(msg interfaces.IMsg) {
 	if len(s.JournalFile) == 0 {
-		f, err := os.OpenFile(s.JournalFile, os.O_APPEND + os.O_WRONLY, 0666)
+		f, err := os.OpenFile(s.JournalFile, os.O_APPEND+os.O_WRONLY, 0666)
 		if err != nil {
-			s.JournalFile=""
+			s.JournalFile = ""
 			return
 		}
 		str := s.MessageToLogString(msg)

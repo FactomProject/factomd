@@ -325,7 +325,6 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) (bool, error) {
 func (s *State) FollowerExecuteAck(msg interfaces.IMsg) (bool, error) {
 	ack := msg.(*messages.Ack)
 
-
 	match := s.Holding[ack.GetHash().Fixed()]
 	if match != nil {
 		s.Acks[ack.GetHash().Fixed()] = ack
@@ -427,7 +426,6 @@ func (s *State) LeaderExecuteRE(m interfaces.IMsg) error {
 	} else {
 		return err
 	}
-
 
 	return nil
 }

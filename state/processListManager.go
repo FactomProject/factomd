@@ -20,9 +20,9 @@ type ProcessLists struct {
 }
 
 func (lists *ProcessLists) Reset(dbheight uint32) {
-	lists.Get(dbheight+1)
-	lists.State.EOM=0
-	lists.State.stallQueue = make(chan interfaces.IMsg,10000)
+	lists.Get(dbheight + 1)
+	lists.State.EOM = 0
+	lists.State.stallQueue = make(chan interfaces.IMsg, 10000)
 	lists.State.Holding = make(map[[32]byte]interfaces.IMsg)
 	lists.State.Acks = make(map[[32]byte]interfaces.IMsg)
 	lists.State.Commits = make(map[[32]byte]interfaces.IMsg)
