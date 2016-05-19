@@ -33,6 +33,7 @@ type Controller struct {
 	lastPeerManagement time.Time             // Last time we ran peer management.
 	NodeID             uint64
 	lastStatusReport   time.Time
+	lastPeerRequest    time.Time // Last time we asked peers about the peers they know about.
 }
 
 // CommandDialPeer is used to instruct the Controller to dial a peer address
@@ -92,6 +93,9 @@ func (c *Controller) Init(port string, peersFile string) *Controller {
 	c.discovery = *discovery
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	NodeID = uint64(r.Int63()) // This is a global used by all connections
+	c.lastPeerManagement = time.Now()
+	c.lastPeerRequest = time.Now()
+	c.lastStatusReport = time.Now()
 	return c
 }
 
@@ -249,6 +253,8 @@ func (c *Controller) route() {
 			case ConnectionParcel:
 				debug(peerHash, "Controller.route() ConnectionParcel")
 				c.handleParcelReceive(message, peerHash, connection)
+			default:
+				fatal("controller", "route() unknown message?: %+v ", message)
 			}
 		}
 		// For each message, see if it is directed, if so, send to the
@@ -293,6 +299,8 @@ func (c *Controller) handleParcelReceive(message interface{}, peerHash string, c
 	case TypePeerResponse:
 		// Add these peers to our known peers
 		c.discovery.LearnPeers(parcel.Payload)
+	default:
+		fatal("controller", "handleParcelReceive() unknown parcel.Header.Type?: %+v ", parcel)
 	}
 
 }
@@ -305,12 +313,13 @@ func (c *Controller) handleConnectionCommand(command ConnectionCommand, connecti
 	case ConnectionUpdatingPeer:
 		debug("controller", "handleConnectionCommand() Got ConnectionUpdatingPeer from  %s", connection.peer.Hash)
 		c.discovery.UpdatePeer(command.peer)
+	default:
+		fatal("controller", "handleParcelReceive() unknown command.command?: %+v ", command.command)
 	}
 }
 
 func (c *Controller) handleCommand(command interface{}) {
 	switch commandType := command.(type) {
-
 	case CommandDialPeer: // parameter is the peer address
 		parameters := command.(CommandDialPeer)
 		peer := c.discovery.GetPeerByAddress(parameters.address)
@@ -354,7 +363,7 @@ func (c *Controller) handleCommand(command interface{}) {
 		peerHash := parameters.peerHash
 		c.applicationPeerUpdate(BannedQualityScore, peerHash)
 	default:
-		note("controller", "Unkown p2p.Controller command recieved: %+v", commandType)
+		fatal("controller", "Unkown p2p.Controller command recieved: %+v", commandType)
 	}
 }
 func (c *Controller) applicationPeerUpdate(qualityDelta int32, peerHash string) {
@@ -386,6 +395,14 @@ func (c *Controller) managePeers() {
 		if PeerSaveInterval < duration {
 			c.discovery.SavePeers()
 			c.discovery.PrintPeers() // No-op if debugging off.
+		}
+		duration = time.Since(c.lastPeerRequest)
+		if PeerRequestInterval < duration {
+			for _, connection := range c.connections {
+				parcel := NewParcel(CurrentNetwork, []byte("Peer Request"))
+				parcel.Header.Type = TypePeerRequest
+				cconnection.SendChannel <- ConnectionParcel{parcel: *parcel}
+			}
 		}
 	}
 }

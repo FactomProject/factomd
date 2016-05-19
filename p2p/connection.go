@@ -112,7 +112,6 @@ func (c *Connection) commonInit() {
 	c.SendChannel = make(chan interface{}, 1000)
 	c.ReceiveChannel = make(chan interface{}, 1000)
 	c.timeLastUpdate = time.Now()
-
 }
 
 // runLoop operates the state machine and routes messages out to network (messages from network are routed in processReceives)
@@ -131,7 +130,6 @@ func (c *Connection) runLoop() {
 			c.pingPeer() // sends a ping periodically if things have been quiet
 			if PeerSaveInterval < time.Since(c.timeLastUpdate) {
 				debug(c.peer.Hash, "updatePeer() PeerSaveInterval interval %s is less than duration since last update: %s ", PeerSaveInterval.String(), time.Since(c.timeLastUpdate).String())
-
 				c.updatePeer() // every PeerSaveInterval * 0.90 we send an update peer to the controller.
 			}
 		case ConnectionOffline:
@@ -149,6 +147,8 @@ func (c *Connection) runLoop() {
 					time.Sleep(TimeBetweenRedials)
 				}
 			}
+		default:
+			fatal(c.peer.Hash, "runLoop() unknown state?: %d ", c.state)
 		}
 	}
 }
@@ -216,6 +216,8 @@ func (c *Connection) processSends() {
 			debug(c.peer.Hash, "processSends() ConnectionCommand")
 			parameters := message.(ConnectionCommand)
 			c.handleCommand(parameters)
+		default:
+			fatal(c.peer.Hash, "processSends() unknown message?: %+v ", message)
 		}
 	}
 }
@@ -239,6 +241,9 @@ func (c *Connection) handleCommand(command ConnectionCommand) {
 			c.updatePeer()
 			c.goShutdown()
 		}
+	default:
+		fatal(c.peer.Hash, "handleCommand() unknown command?: %+v ", command)
+
 	}
 }
 
@@ -311,6 +316,9 @@ func (c *Connection) handleParcel(parcel Parcel) {
 			parcel.PrintMessageType()
 		}
 		c.handleParcelTypes(parcel) // handles both network commands and application messages
+	default:
+		fatal(c.peer.Hash, "handleParcel() unknown parcelValidity?: %+v ", validity)
+
 	}
 }
 
@@ -371,6 +379,7 @@ func (c *Connection) handleParcelTypes(parcel Parcel) {
 		parcel.Header.NodeID = NodeID
 		c.ReceiveChannel <- ConnectionParcel{parcel: parcel}
 	default:
+
 		silence(c.peer.Hash, "!!!!!!!!!!!!!!!!!! Got message of unknown type?")
 		parcel.Print()
 	}

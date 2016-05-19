@@ -20,6 +20,7 @@ var (
 	TimeBetweenRedials        time.Duration = time.Second * 20
 	MaxNumberOfRedialAttempts int           = 15
 	PeerSaveInterval          time.Duration = time.Second * 30
+	PeerRequestInterval       time.Duration = time.Second * 180
 
 	MinumumQualityScore int32        = -200        // if a peer's score is less than this we ignore them.
 	BannedQualityScore  int32        = -2147000000 // Used to ban a peer
@@ -117,7 +118,7 @@ func log(level uint8, component string, format string, v ...interface{}) {
 		// fmt.Fprintf(os.Stdout, "%d (%s) %d/%d \t- %s  %s", os.Getpid(), levelStr, level, CurrentLoggingLevel, message, breakStr)
 		fmt.Fprintf(os.Stdout, "%s, %d, %s, %s, %s\n", host, os.Getpid(), component, levelStr, message)
 	}
-	if level == Fatal {
+	if level == Fatal && CurrentLoggingLevel > Silence {
 		fmt.Fprintf(os.Stderr, "%s, %d, %s, %s\n", host, os.Getpid(), component, levelStr, message)
 
 		// BUGBUG - take out this exit before shipping JAYJAY TODO
