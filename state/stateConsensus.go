@@ -163,8 +163,9 @@ func (s *State) TryToProcess(msg interfaces.IMsg) {
 
 	v := msg.Validate(s)
 	if v == 1 {
-		// If we are a leader, we are way more strict than simple followers.
-		if s.Leader {
+		if msg.IsExeAlways() || msg.IsPeer2Peer() {
+			msg.FollowerExecute(s)
+		}else	if s.Leader {
 			if s.DebugConsensus {
 				fmt.Printf("%-30s %10s %s\n", "--- Leader Exe", s.FactomNodeName, msg.String())
 			}
@@ -281,20 +282,13 @@ func (s *State) AddDBState(isNew bool,
 
 	// TODO:  Need to validate before we add, or at least validate once we have a contiguous set of blocks.
 
-	// 	fmt.Printf("AddDBState %s: DirectoryBlock %d %x %x %x %x\n",
-	// 			   s.FactomNodeName,
-	// 			   directoryBlock.GetHeader().GetDBHeight(),
-	// 			   directoryBlock.GetKeyMR().Bytes()[:5],
-	// 			   adminBlock.GetHash().Bytes()[:5],
-	// 			   factoidBlock.GetHash().Bytes()[:5],
-	// 			   entryCreditBlock.GetHash().Bytes()[:5])
-
 	dbState := s.DBStates.NewDBState(isNew, directoryBlock, adminBlock, factoidBlock, entryCreditBlock)
 	s.DBStates.Put(dbState)
 	ht := dbState.DirectoryBlock.GetHeader().GetDBHeight()
 	if ht > s.LLeaderHeight {
 		s.LLeaderHeight = ht
 		s.EOM=0
+		s.stallQueue = make(chan interfaces.IMsg, 10000)	// If we are loading blocks, give up on messages.
 	}
 	//	dbh := directoryBlock.GetHeader().GetDBHeight()
 	//	if s.LLeaderHeight < dbh {

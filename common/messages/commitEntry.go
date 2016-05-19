@@ -152,6 +152,9 @@ func (m *CommitEntryMsg) UnmarshalBinaryData(data []byte) (newData []byte, err e
 	}
 	m.CommitEntry = ce
 
+	m.Peer2Peer = uint8(newData[0])==1
+	newData = newData[1:]
+
 	if len(newData) > 0 {
 		m.Signature = new(primitives.Signature)
 		newData, err = m.Signature.UnmarshalBinaryData(newData)
@@ -194,6 +197,13 @@ func (m *CommitEntryMsg) MarshalBinary() (data []byte, err error) {
 	if err != nil {
 		return nil, err
 	}
+
+	if m.Peer2Peer {
+		resp = append(resp,uint8(1))
+	}else{
+		resp = append(resp,uint8(0))
+	}
+
 	sig := m.GetSignature()
 
 	if sig != nil {

@@ -1,9 +1,9 @@
 #!/bin/bash
 
-sleep 3
-for i in `seq 1 2`;
+sleep 1
+for i in `seq 1 4`;
 do
-	sleep 3
+	sleep 4
 	number1=$RANDOM
 	number2=$RANDOM
 	echo "Make Chain Named " $number

@@ -14,6 +14,7 @@ type MessageBase struct {
 	Peer2Peer bool // The nature of this message type, not marshaled with the message
 	LocalOnly bool // This message is only a local message, is not broadcasted and may skip verification
 
+	ExeAlways     bool
 	Stalled       bool // Messages marked as stalled do not get transmitted out on the network.
 	LeaderChainID interfaces.IHash
 	MsgHash       interfaces.IHash // Cash of the hash of a message
@@ -24,6 +25,15 @@ type MessageBase struct {
 	// Used by Leader code, but only Marshaled and Unmarshalled in Ack Messages
 	// EOM messages, and DirectoryBlockSignature messages
 }
+
+func (m *MessageBase) IsExeAlways() bool {
+	return m.ExeAlways
+}
+
+func (m *MessageBase) SetExeAlways(exeAlways bool) {
+	m.ExeAlways= exeAlways
+}
+
 
 func (m *MessageBase) GetStalled() bool {
 	return m.Stalled
