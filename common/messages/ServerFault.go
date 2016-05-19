@@ -13,9 +13,10 @@ import (
 )
 
 //A placeholder structure for messages
-type InvalidAck struct {
+type ServerFault struct {
 	MessageBase
 	Timestamp interfaces.Timestamp
+	KnownEOM	 int
 
 	Signature interfaces.IFullSignature
 
@@ -23,10 +24,10 @@ type InvalidAck struct {
 	hash interfaces.IHash
 }
 
-var _ interfaces.IMsg = (*InvalidAck)(nil)
-var _ Signable = (*InvalidAck)(nil)
+var _ interfaces.IMsg = (*ServerFault)(nil)
+var _ Signable = (*ServerFault)(nil)
 
-func (a *InvalidAck) IsSameAs(b *InvalidAck) bool {
+func (a *ServerFault) IsSameAs(b *ServerFault) bool {
 	if b == nil {
 		return false
 	}
@@ -47,9 +48,9 @@ func (a *InvalidAck) IsSameAs(b *InvalidAck) bool {
 	return true
 }
 
-func (m *InvalidAck) Process(uint32, interfaces.IState) bool { return true }
+func (m *ServerFault) Process(uint32, interfaces.IState) bool { return true }
 
-func (m *InvalidAck) GetHash() interfaces.IHash {
+func (m *ServerFault) GetHash() interfaces.IHash {
 	if m.hash == nil {
 		data, err := m.MarshalForSignature()
 		if err != nil {
@@ -60,7 +61,7 @@ func (m *InvalidAck) GetHash() interfaces.IHash {
 	return m.hash
 }
 
-func (m *InvalidAck) GetMsgHash() interfaces.IHash {
+func (m *ServerFault) GetMsgHash() interfaces.IHash {
 	if m.MsgHash == nil {
 		data, err := m.MarshalBinary()
 		if err != nil {
@@ -71,23 +72,23 @@ func (m *InvalidAck) GetMsgHash() interfaces.IHash {
 	return m.MsgHash
 }
 
-func (m *InvalidAck) GetTimestamp() interfaces.Timestamp {
+func (m *ServerFault) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp
 }
 
-func (m *InvalidAck) Type() byte {
+func (m *ServerFault) Type() byte {
 	return constants.INVALID_ACK_MSG
 }
 
-func (m *InvalidAck) Int() int {
+func (m *ServerFault) Int() int {
 	return -1
 }
 
-func (m *InvalidAck) Bytes() []byte {
+func (m *ServerFault) Bytes() []byte {
 	return nil
 }
 
-func (m *InvalidAck) MarshalForSignature() (data []byte, err error) {
+func (m *ServerFault) MarshalForSignature() (data []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling Invalid Ack: %v", r)
@@ -107,7 +108,7 @@ func (m *InvalidAck) MarshalForSignature() (data []byte, err error) {
 	return buf.DeepCopyBytes(), nil
 }
 
-func (m *InvalidAck) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+func (m *ServerFault) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling With Signatures Invalid Ack: %v", r)
@@ -136,12 +137,12 @@ func (m *InvalidAck) UnmarshalBinaryData(data []byte) (newData []byte, err error
 	return newData, nil
 }
 
-func (m *InvalidAck) UnmarshalBinary(data []byte) error {
+func (m *ServerFault) UnmarshalBinary(data []byte) error {
 	_, err := m.UnmarshalBinaryData(data)
 	return err
 }
 
-func (m *InvalidAck) MarshalBinary() (data []byte, err error) {
+func (m *ServerFault) MarshalBinary() (data []byte, err error) {
 	resp, err := m.MarshalForSignature()
 	if err != nil {
 		return nil, err
@@ -158,15 +159,15 @@ func (m *InvalidAck) MarshalBinary() (data []byte, err error) {
 	return resp, nil
 }
 
-func (m *InvalidAck) GetSignature() interfaces.IFullSignature {
+func (m *ServerFault) GetSignature() interfaces.IFullSignature {
 	return m.Signature
 }
 
-func (m *InvalidAck) VerifySignature() (bool, error) {
+func (m *ServerFault) VerifySignature() (bool, error) {
 	return VerifyMessage(m)
 }
 
-func (m *InvalidAck) Sign(key interfaces.Signer) error {
+func (m *ServerFault) Sign(key interfaces.Signer) error {
 	signature, err := SignSignable(m, key)
 	if err != nil {
 		return err
@@ -175,23 +176,23 @@ func (m *InvalidAck) Sign(key interfaces.Signer) error {
 	return nil
 }
 
-func (m *InvalidAck) String() string {
+func (m *ServerFault) String() string {
 	return ""
 }
 
-func (m *InvalidAck) DBHeight() int {
+func (m *ServerFault) DBHeight() int {
 	return 0
 }
 
-func (m *InvalidAck) ChainID() []byte {
+func (m *ServerFault) ChainID() []byte {
 	return nil
 }
 
-func (m *InvalidAck) ListHeight() int {
+func (m *ServerFault) ListHeight() int {
 	return 0
 }
 
-func (m *InvalidAck) SerialHash() []byte {
+func (m *ServerFault) SerialHash() []byte {
 	return nil
 }
 
@@ -199,13 +200,13 @@ func (m *InvalidAck) SerialHash() []byte {
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
-func (m *InvalidAck) Validate(state interfaces.IState) int {
+func (m *ServerFault) Validate(state interfaces.IState) int {
 	return 0
 }
 
 // Returns true if this is a message for this server to execute as
 // a leader.
-func (m *InvalidAck) Leader(state interfaces.IState) bool {
+func (m *ServerFault) Leader(state interfaces.IState) bool {
 	switch state.GetNetworkNumber() {
 	case 0: // Main Network
 		panic("Not implemented yet")
@@ -220,27 +221,27 @@ func (m *InvalidAck) Leader(state interfaces.IState) bool {
 }
 
 // Execute the leader functions of the given message
-func (m *InvalidAck) LeaderExecute(state interfaces.IState) error {
+func (m *ServerFault) LeaderExecute(state interfaces.IState) error {
 	return nil
 }
 
 // Returns true if this is a message for this server to execute as a follower
-func (m *InvalidAck) Follower(interfaces.IState) bool {
+func (m *ServerFault) Follower(interfaces.IState) bool {
 	return true
 }
 
-func (m *InvalidAck) FollowerExecute(interfaces.IState) error {
+func (m *ServerFault) FollowerExecute(interfaces.IState) error {
 	return nil
 }
 
-func (e *InvalidAck) JSONByte() ([]byte, error) {
+func (e *ServerFault) JSONByte() ([]byte, error) {
 	return primitives.EncodeJSON(e)
 }
 
-func (e *InvalidAck) JSONString() (string, error) {
+func (e *ServerFault) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
 }
 
-func (e *InvalidAck) JSONBuffer(b *bytes.Buffer) error {
+func (e *ServerFault) JSONBuffer(b *bytes.Buffer) error {
 	return primitives.EncodeJSONToBuffer(e, b)
 }

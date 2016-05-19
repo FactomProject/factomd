@@ -129,6 +129,8 @@ func (m *FactoidTransaction) Process(dbheight uint32, state interfaces.IState) b
 		fmt.Println(err)
 	}
 
+	state.IncFactoidTrans()
+
 	return true
 
 }
@@ -205,7 +207,10 @@ func (m *FactoidTransaction) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *FactoidTransaction) String() string {
-	return fmt.Sprintf("Factoid Transaction %x VM %d", m.GetHash().Bytes()[:3], m.VMIndex)
+	return fmt.Sprintf("Factoid VM %d Leader %x GetHash %x",
+		m.VMIndex,
+		m.GetLeaderChainID().Bytes()[:3],
+		m.GetHash().Bytes()[:3])
 }
 
 func (e *FactoidTransaction) JSONByte() ([]byte, error) {

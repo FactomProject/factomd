@@ -248,9 +248,10 @@ This connects to a remote computer and passes messages and blocks between them.
 
 ### -prefix
 
-This makes all the simnodes in this process followers.  It prefixes the text to the output  
+This makes all the simnodes in this process followers.  It prefixes the text provided to the Node names (and the generated file names) of all the Factom instances created.   So without a prefix, you would get nodes named FNode0, FNode1, etc.  With the a_ prefix described below, you would get a_FNode0, a_FNode1, etc.
 
-Leaders cannot run with the prefix.
+FNode0 is currently a "magic name", and the node with that name becomes the first default Leader when building Factom up from scratch.  (Of course, if you are loading an existing network, it will come up with the last set of leaders).   In any event, adding the prefix avoids having FNode0 as a name, and as a result all the nodes will be followers.
+
 	-prefix=a_
 
 Multi-computer example:

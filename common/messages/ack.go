@@ -41,6 +41,11 @@ func (a *Ack) IsSameAs(b *Ack) bool {
 	if a.VMIndex != b.VMIndex {
 		return false
 	}
+
+	if a.Minute != b.Minute {
+		return false
+	}
+
 	if a.DBHeight != b.DBHeight {
 		return false
 	}
@@ -86,6 +91,7 @@ func (a *Ack) IsSameAs(b *Ack) bool {
 	return true
 }
 
+// We have to return the haswh of the underlying message.
 func (m *Ack) GetHash() interfaces.IHash {
 	return m.MessageHash
 }
@@ -141,8 +147,9 @@ func (m *Ack) Leader(state interfaces.IState) bool {
 }
 
 // Execute the leader functions of the given message
+// Leader, follower, do the same thing.
 func (m *Ack) LeaderExecute(state interfaces.IState) error {
-	return fmt.Errorf("Should never execute an Acknowledgement in the Leader")
+	return m.FollowerExecute(state)
 }
 
 // Returns true if this is a message for this server to execute as a follower
@@ -222,6 +229,7 @@ func (m *Ack) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 
 	m.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 	m.Height, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+	m.Minute, newData = newData[0], newData[1:]
 
 	if m.SerialHash == nil {
 		m.SerialHash = primitives.NewHash(constants.ZERO_HASH)
@@ -273,6 +281,7 @@ func (m *Ack) MarshalForSignature() ([]byte, error) {
 
 	binary.Write(&buf, binary.BigEndian, m.DBHeight)
 	binary.Write(&buf, binary.BigEndian, m.Height)
+	binary.Write(&buf, binary.BigEndian, m.Minute)
 
 	data, err = m.SerialHash.MarshalBinary()
 	if err != nil {
@@ -301,7 +310,7 @@ func (m *Ack) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *Ack) String() string {
-	return fmt.Sprintf("%6s-VM%3d: PL:%5d Ht:%5d -- Leader[:3]=%x hash[:3]=%x",
+	return fmt.Sprintf("%6s-VM%3d: PL:%5d DBHt:%5d -- Leader[:3]=%x hash[:3]=%x",
 		"ACK",
 		m.VMIndex,
 		m.Height,

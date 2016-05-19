@@ -42,8 +42,8 @@ type IMsg interface {
 	// be broadcast, this should be false.  If the Origin is 0, then the
 	// network can pick a peer to try.  If Origin is > 0, then the message
 	// must go back to that peer (this message is a reply).
-	IsPeer2peer() bool
-
+	IsPeer2Peer() bool
+	SetPeer2Peer(bool)
 	// Return the []byte value of the message, if defined
 	Bytes() []byte
 
@@ -70,6 +70,12 @@ type IMsg interface {
 	// Exeucte the follower functions of the given message
 	FollowerExecute(IState) error
 
+	// Messages can be stalled if they cannot be processed at the time they are
+	// presented to a leader or follower.  Stalled messages cannot be transmitted
+	// to the network.
+	SetStalled(bool)
+	GetStalled() bool
+
 	// Process.  When we get a sequence of acknowledgements that we trust, we process.
 	// A message will only be processed once, and in order, guaranteed.
 	// Returns true if able to process, false if process is waiting on something.
@@ -81,4 +87,10 @@ type IMsg interface {
 	SetVMIndex(int)
 	GetVMHash() []byte
 	SetVMHash([]byte)
+	GetMinute() byte
+	SetMinute(byte)
+
+	// Need to ignore messages already in the Process List
+	IsRepeat() bool
+	SetRepeat(bool)
 }

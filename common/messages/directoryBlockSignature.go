@@ -25,6 +25,7 @@ type DirectoryBlockSignature struct {
 
 	//Not marshalled
 	hash interfaces.IHash
+	Once bool
 }
 
 var _ interfaces.IMsg = (*DirectoryBlockSignature)(nil)
@@ -111,7 +112,7 @@ func (m *DirectoryBlockSignature) Bytes() []byte {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
-	found, vmIndex := state.GetVirtualServers(m.DBHeight, 9, m.ServerIdentityChainID)
+	found, _ := state.GetVirtualServers(m.DBHeight, 9, m.ServerIdentityChainID)
 
 	if found == false {
 		return 0
@@ -124,23 +125,15 @@ func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 	// *********************************  NEEDS FIXED **************
 	// Need to check the signature for real. TODO:
 
-	if !m.IsLocal() {
-		isVer, err := m.VerifySignature()
-		if err != nil || !isVer {
-			// if there is an error during signature verification
-			// or if the signature is invalid
-			// the message is considered invalid
-			return -1
-		}
-	} else {
-		return 1
+	isVer, err := m.VerifySignature()
+	if err != nil || !isVer {
+		// if there is an error during signature verification
+		// or if the signature is invalid
+		// the message is considered invalid
+		return -1
 	}
 
-	if m.VMIndex == vmIndex {
-		return 1
-	}
-
-	return -1
+	return 1
 }
 
 // Returns true if this is a message for this server to execute as
@@ -151,7 +144,8 @@ func (m *DirectoryBlockSignature) Leader(state interfaces.IState) bool {
 
 // Execute the leader functions of the given message
 func (m *DirectoryBlockSignature) LeaderExecute(state interfaces.IState) error {
-	return state.LeaderExecuteDBSig(m)
+	m.SetLocal(false)
+	return state.LeaderExecute(m)
 }
 
 // Returns true if this is a message for this server to execute as a follower
@@ -285,7 +279,7 @@ func (m *DirectoryBlockSignature) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *DirectoryBlockSignature) String() string {
-	return fmt.Sprintf("%6s-VM%3d:          Ht:%5d -- Leader[:3]=%x dbkeyMR[:3]=%x hash[:3]=%x",
+	return fmt.Sprintf("%6s-VM%3d:          DBHt:%5d -- Signer[:3]=%x dbkeyMR[:3]=%x hash[:3]=%x",
 		"DBSig",
 		m.VMIndex,
 		m.DBHeight,

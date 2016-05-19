@@ -51,6 +51,46 @@ func CreateTestEntryBlock(p interfaces.IEntryBlock) (*entryBlock.EBlock, []*entr
 	return e, entries
 }
 
+func CreateTestEntryBlockWithContentN(p interfaces.IEntryBlock, content uint32) (*entryBlock.EBlock, []*entryBlock.Entry) {
+	prev, ok := p.(*entryBlock.EBlock)
+	if ok == false {
+		prev = nil
+	}
+
+	e := entryBlock.NewEBlock()
+	entries := []*entryBlock.Entry{}
+
+	if prev != nil {
+		keyMR, err := prev.KeyMR()
+		if err != nil {
+			panic(err)
+		}
+
+		e.Header.SetPrevKeyMR(keyMR)
+		hash, err := prev.Hash()
+		if err != nil {
+			panic(err)
+		}
+		e.Header.SetPrevFullHash(hash)
+		e.Header.SetDBHeight(prev.GetHeader().GetDBHeight() + 1)
+
+		e.Header.SetChainID(prev.GetHeader().GetChainID())
+		entry := CreateTestEnry(content)
+		e.AddEBEntry(entry)
+		entries = append(entries, entry)
+	} else {
+		e.Header.SetPrevKeyMR(primitives.NewZeroHash())
+		e.Header.SetDBHeight(0)
+		e.Header.SetChainID(GetChainID())
+
+		entry := CreateFirstTestEntry()
+		e.AddEBEntry(entry)
+		entries = append(entries, entry)
+	}
+
+	return e, entries
+}
+
 func CreateTestAnchorEntryBlock(p interfaces.IEntryBlock, prevDBlock *directoryBlock.DirectoryBlock) (*entryBlock.EBlock, []*entryBlock.Entry) {
 	prev, ok := p.(*entryBlock.EBlock)
 	if ok == false {

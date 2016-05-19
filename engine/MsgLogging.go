@@ -52,14 +52,12 @@ func (m *MsgLog) init(enable bool, nodecnt int) {
 }
 
 func (m *MsgLog) add2(fnode *FactomNode, out bool, peer string, where string, valid bool, msg interfaces.IMsg) {
-	if !m.Enable {
-		return
-	}
+
 	m.sem.Lock()
 	defer m.sem.Unlock()
-	now := fnode.State.GetTimestamp() / 100
+	now := fnode.State.GetTimestamp() / 1000
 	if m.start == 0 {
-		m.start = fnode.State.GetTimestamp() / 100
+		m.start = fnode.State.GetTimestamp() / 1000
 		m.last = m.start // last is start
 		m.period = 2
 		m.startp = m.start
@@ -88,26 +86,22 @@ func (m *MsgLog) add2(fnode *FactomNode, out bool, peer string, where string, va
 		m.msgCntp = 0
 		m.startp = now // Reset timer
 	}
-
-	// If it has been 2 seconds, and we are printing, then print
-	if now-m.last > 0 && (fnode.State.GetOut() || m.all) {
-		m.prtMsgs(fnode.State)
-		m.last = now
-		m.msgCnt += len(m.MsgList) // Keep my counts
-		m.msgCntp += len(m.MsgList)
-		m.MsgList = m.MsgList[0:0] // Once printed, clear the list
-		// If it has been 4 seconds and we are NOT printing, then toss.
-		// This gives us a second to get to print.
-	} else if now-m.last > 4 {
+	// If it has been 4 seconds and we are NOT printing, then toss.
+	// This gives us a second to get to print.
+	if now-m.last > 100 {
 		m.msgCnt += len(m.MsgList) // Keep my counts
 		m.msgCntp += len(m.MsgList)
 		m.MsgList = m.MsgList[0:0] // Clear the record.
+		m.last = now
 	}
+
 }
 
-func (m *MsgLog) prtMsgs(state interfaces.IState) {
+func (m *MsgLog) PrtMsgs(state interfaces.IState) {
+	m.sem.Lock()
+	defer m.sem.Unlock()
 
-	if !(state.GetOut() || m.all) {
+	if len(m.MsgList) == 0 {
 		return
 	}
 
@@ -116,17 +110,22 @@ func (m *MsgLog) prtMsgs(state interfaces.IState) {
 
 	for _, e := range m.MsgList {
 		if e.valid {
-			if e.fnode.State.GetOut() || m.all {
-				dirstr := "->"
-				if !e.out {
-					dirstr = "<-"
-				}
 
-				fmt.Print(fmt.Sprintf("**** %8s %2s %8s %10s %5v     **** %s\n", e.name, dirstr, e.peer, e.where, e.valid, e.msg.String()))
-
+			dirstr := "->"
+			if !e.out {
+				dirstr = "<-"
 			}
+
+			fmt.Print(fmt.Sprintf("**** %8s %2s %8s %10s %5v     **** %s\n", e.name, dirstr, e.peer, e.where, e.valid, e.msg.String()))
+
 		}
 	}
+	now := state.GetTimestamp() / 1000
+	m.last = now
+	m.msgCnt += len(m.MsgList) // Keep my counts
+	m.msgCntp += len(m.MsgList)
+	m.MsgList = m.MsgList[0:0] // Once printed, clear the list
+
 	fmt.Println(fmt.Sprintf("*** %42s **** ", fmt.Sprintf("Length: %d    Msgs/sec: T %d P %d", len(m.MsgList), m.msgPerSec, m.msgPerSecp)))
 	fmt.Println("\n-----------------------------------------------------")
 }
