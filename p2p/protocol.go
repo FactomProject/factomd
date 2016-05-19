@@ -21,7 +21,7 @@ var (
 	MaxNumberOfRedialAttempts int           = 15
 	PeerSaveInterval          time.Duration = time.Second * 30
 
-	MinumumQualityScore int          = -200        // if a peer's score is less than this we ignore them.
+	MinumumQualityScore int32        = -200        // if a peer's score is less than this we ignore them.
 	BannedQualityScore  int32        = -2147000000 // Used to ban a peer
 	CRCKoopmanTable     *crc32.Table = crc32.MakeTable(crc32.Koopman)
 

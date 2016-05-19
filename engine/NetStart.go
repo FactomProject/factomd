@@ -194,10 +194,13 @@ func NetStart(s *state.State) {
 	fnodes[0].Peers = append(fnodes[0].Peers, p2pProxy)
 	p2pProxy.SetDebugMode(netdebug)
 	p2pProxy.SetTestMode(heartbeat)
-	if netdebug {
+	switch {
+	case netdebug:
 		go PeriodicStatusReport(fnodes)
 		go p2pProxy.ProxyStatusReport()
 		network.StartLogging(uint8(5))
+	default:
+		network.StartLogging(uint8(0))
 	}
 	p2pProxy.startProxy()
 	// Bootstrap peers (will be obsolete when discovery is finished)

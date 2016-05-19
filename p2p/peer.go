@@ -88,14 +88,27 @@ func (p *Peer) demerit() {
 }
 
 // sort.Sort interface implementation
-type PeerSort []Peer
+type PeerQualitySort []Peer
 
-func (p PeerSort) Len() int {
+func (p PeerQualitySort) Len() int {
 	return len(p)
 }
-func (p PeerSort) Swap(i, j int) {
+func (p PeerQualitySort) Swap(i, j int) {
 	p[i], p[j] = p[j], p[i]
 }
-func (p PeerSort) Less(i, j int) bool {
+func (p PeerQualitySort) Less(i, j int) bool {
 	return p[i].QualityScore < p[j].QualityScore
+}
+
+// sort.Sort interface implementation
+type PeerDistanceSort []Peer
+
+func (p PeerDistanceSort) Len() int {
+	return len(p)
+}
+func (p PeerDistanceSort) Swap(i, j int) {
+	p[i], p[j] = p[j], p[i]
+}
+func (p PeerDistanceSort) Less(i, j int) bool {
+	return p[i].Location < p[j].Location
 }
