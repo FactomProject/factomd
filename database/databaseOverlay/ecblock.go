@@ -16,7 +16,7 @@ func (db *Overlay) ProcessECBlockBatch(block interfaces.DatabaseBlockWithEntries
 	if err != nil {
 		return err
 	}
-	return db.SaveIncludedInMultiFromBlock(block)
+	return db.SaveIncludedInMultiFromBlock(block, false)
 }
 
 func (db *Overlay) ProcessECBlockMultiBatch(block interfaces.DatabaseBlockWithEntries) error {
@@ -26,7 +26,7 @@ func (db *Overlay) ProcessECBlockMultiBatch(block interfaces.DatabaseBlockWithEn
 	if err != nil {
 		return err
 	}
-	return db.SaveIncludedInMultiFromBlockMultiBatch(block)
+	return db.SaveIncludedInMultiFromBlockMultiBatch(block, false)
 }
 
 // FetchECBlockByHeaderHash gets an Entry Credit block by hash from the database.
