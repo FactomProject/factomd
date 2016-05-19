@@ -244,8 +244,10 @@ func (c *Controller) route() {
 			message := <-connection.ReceiveChannel
 			switch message.(type) {
 			case ConnectionCommand:
+				debug(peerHash, "Controller.route() ConnectionCommand")
 				c.handleConnectionCommand(message.(ConnectionCommand), connection)
 			case ConnectionParcel:
+				debug(peerHash, "Controller.route() ConnectionParcel")
 				c.handleParcelReceive(message, peerHash, connection)
 			}
 		}
@@ -259,13 +261,13 @@ func (c *Controller) route() {
 				verbose("controller", "Controller.route() Directed send to %+v", parcel.Header.TargetPeer)
 				connection, present := c.connections[parcel.Header.TargetPeer]
 				if present { // We're still connected to the target
-					connection.SendChannel <- parcel
+					connection.SendChannel <- ConnectionParcel{parcel: parcel}
 				}
 			} else { // broadcast
 				verbose("controller", "Controller.route() Broadcast send to %d peers", len(c.connections))
 				for _, connection := range c.connections {
 					verbose("controller", "Controller.route() Send to peer %s ", connection.peer.Hash)
-					connection.SendChannel <- parcel
+					connection.SendChannel <- ConnectionParcel{parcel: parcel}
 				}
 			}
 		}
@@ -286,7 +288,7 @@ func (c *Controller) handleParcelReceive(message interface{}, peerHash string, c
 		response := NewParcel(CurrentNetwork, c.discovery.SharePeers())
 		response.Header.Type = TypePeerResponse
 		// Send them out to the network - on the connection that requested it!
-		connection.SendChannel <- *response
+		connection.SendChannel <- ConnectionParcel{parcel: *response}
 		verbose("controller", "Controller.route() sent the SharePeers response: %+v", response.MessageType())
 	case TypePeerResponse:
 		// Add these peers to our known peers
@@ -383,7 +385,7 @@ func (c *Controller) managePeers() {
 		// Every so often, tell the discovery service to save peers.
 		if PeerSaveInterval < duration {
 			c.discovery.SavePeers()
-			c.discovery.PrintPeers() // No-op if debugging off. 
+			c.discovery.PrintPeers() // No-op if debugging off.
 		}
 	}
 }

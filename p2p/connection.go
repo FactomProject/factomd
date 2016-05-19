@@ -168,7 +168,7 @@ func (c *Connection) goOnline() {
 	// Now ask the other side for the peers they know about.
 	parcel := NewParcel(CurrentNetwork, []byte("Peer Request"))
 	parcel.Header.Type = TypePeerRequest
-	c.SendChannel <- *parcel
+	c.SendChannel <- ConnectionParcel{parcel: *parcel}
 }
 
 func (c *Connection) goOffline() {
@@ -209,9 +209,11 @@ func (c *Connection) processSends() {
 		message := <-c.SendChannel
 		switch message.(type) {
 		case ConnectionParcel:
+			debug(c.peer.Hash, "processSends() ConnectionParcel")
 			parameters := message.(ConnectionParcel)
 			c.sendParcel(parameters.parcel)
 		case ConnectionCommand:
+			debug(c.peer.Hash, "processSends() ConnectionCommand")
 			parameters := message.(ConnectionCommand)
 			c.handleCommand(parameters)
 		}
@@ -223,11 +225,13 @@ func (c *Connection) handleCommand(command ConnectionCommand) {
 	case ConnectionShutdownNow:
 		c.goShutdown()
 	case ConnectionUpdatingPeer: // at this level we're only updating the quality score, to pass on application level demerits
+		debug(c.peer.Hash, "handleCommand() ConnectionUpdatingPeer")
 		peer := command.peer
 		if peer.QualityScore < c.peer.QualityScore {
 			c.peer.QualityScore = peer.QualityScore
 		}
 	case ConnectionAdjustPeerQuality:
+		debug(c.peer.Hash, "handleCommand() ConnectionAdjustPeerQuality")
 		delta := command.delta
 		c.peer.QualityScore = c.peer.QualityScore + delta
 		if MinumumQualityScore > c.peer.QualityScore {
@@ -257,7 +261,7 @@ func (c *Connection) processReceives() {
 	note(c.peer.Hash, "Connection.processReceives() called. State: %s", c.ConnectionState())
 	for c.state == ConnectionOnline {
 		var message Parcel
-		c.conn.SetReadDeadline(time.Now().Add(1 * time.Second))
+		// c.conn.SetReadDeadline(time.Now().Add(1 * time.Second))
 		err := c.decoder.Decode(&message)
 		if nil != err {
 			// Golang apparently doesn't provide a good way to detect various error types.
@@ -271,6 +275,7 @@ func (c *Connection) processReceives() {
 				c.goOffline()
 			}
 		} else {
+			note(c.peer.Hash, "Connection.processReceives() RECIEVED FROM NETWORK!  State: %s MessageType: %s", c.ConnectionState(), message.MessageType)
 			c.handleParcel(message)
 		}
 	}
@@ -348,19 +353,23 @@ func (c *Connection) handleParcelTypes(parcel Parcel) {
 		// Send Pong
 		pong := NewParcel(CurrentNetwork, []byte("Pong"))
 		pong.Header.Type = TypePong
-		debug(c.peer.Hash, "Sending Pong.")
-		c.SendChannel <- parcel
+		debug(c.peer.Hash, "handleParcelTypes() GOT PING, Sending Pong.")
+		c.SendChannel <- ConnectionParcel{parcel: parcel}
 	case TypePong: // all we need is the timestamp which is set already
+		debug(c.peer.Hash, "handleParcelTypes() GOT Pong.")
 		return
 	case TypePeerRequest:
-		c.ReceiveChannel <- parcel // Controller handles these.
+		debug(c.peer.Hash, "handleParcelTypes() TypePeerRequest")
+		c.ReceiveChannel <- ConnectionParcel{parcel: parcel} // Controller handles these.
 	case TypePeerResponse:
-		c.ReceiveChannel <- parcel // Controller handles these.
+		debug(c.peer.Hash, "handleParcelTypes() TypePeerResponse")
+		c.ReceiveChannel <- ConnectionParcel{parcel: parcel} // Controller handles these.
 	case TypeMessage:
+		debug(c.peer.Hash, "handleParcelTypes() TypeMessage. Message is a: %s", parcel.MessageType())
 		// Store our connection ID so the controller can direct response to us.
 		parcel.Header.TargetPeer = c.peer.Hash
 		parcel.Header.NodeID = NodeID
-		c.ReceiveChannel <- parcel
+		c.ReceiveChannel <- ConnectionParcel{parcel: parcel}
 	default:
 		silence(c.peer.Hash, "!!!!!!!!!!!!!!!!!! Got message of unknown type?")
 		parcel.Print()
@@ -379,7 +388,7 @@ func (c *Connection) pingPeer() {
 			parcel.Header.Type = TypePing
 			c.timeLastPing = time.Now()
 			c.attempts++
-			c.SendChannel <- *parcel
+			c.SendChannel <- ConnectionParcel{parcel: *parcel}
 		}
 	}
 }
