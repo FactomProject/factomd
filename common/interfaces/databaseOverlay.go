@@ -178,6 +178,9 @@ type DBOverlay interface {
 	SaveIncludedInMulti(entries []IHash, block IHash, checkForDuplicateEntries bool) error
 	LoadIncludedIn(hash IHash) (IHash, error)
 	RebuildDirBlockInfo() error
+
+	FetchFactoidTransactionByHash(hash IHash) (ITransaction, error)
+	FetchECTransactionByHash(hash IHash) (IECBlockEntry, error)
 }
 
 type ISCDatabaseOverlay interface {
