@@ -118,7 +118,7 @@ func (c *Connection) commonInit() {
 func (c *Connection) runLoop() {
 	for ConnectionShutdown != c.state { // loop exits when we hit shutdown state
 		// time.Sleep(time.Second * 1) // This can be a tight loop, don't want to starve the application
-		time.Sleep(time.Millisecond * 10) // This can be a tight loop, don't want to starve the application
+		time.Sleep(time.Millisecond * 1) // This can be a tight loop, don't want to starve the application
 		switch c.state {
 		case ConnectionInitialized:
 			if c.dial() {

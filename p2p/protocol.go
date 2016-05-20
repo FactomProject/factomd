@@ -16,6 +16,7 @@ import (
 var (
 	CurrentLoggingLevel                     = Silence // Start at verbose because it takes a few seconds for the controller to adjust to what you set.
 	CurrentNetwork                          = TestNet
+	NetworkStatusInterval     time.Duration = time.Second * 7
 	PingInterval              time.Duration = time.Second * 15
 	TimeBetweenRedials        time.Duration = time.Second * 20
 	MaxNumberOfRedialAttempts int           = 15
@@ -118,7 +119,7 @@ func log(level uint8, component string, format string, v ...interface{}) {
 		// fmt.Fprintf(os.Stdout, "%d (%s) %d/%d \t- %s  %s", os.Getpid(), levelStr, level, CurrentLoggingLevel, message, breakStr)
 		fmt.Fprintf(os.Stdout, "%s, %d, %s, %s, %s\n", host, os.Getpid(), component, levelStr, message)
 	}
-	if level == Fatal && CurrentLoggingLevel > Silence {
+	if level == Fatal {
 		fmt.Fprintf(os.Stderr, "%s, %d, %s, %s\n", host, os.Getpid(), component, levelStr, message)
 
 		// BUGBUG - take out this exit before shipping JAYJAY TODO

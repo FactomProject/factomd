@@ -95,7 +95,6 @@ func (c *Controller) Init(port string, peersFile string) *Controller {
 	NodeID = uint64(r.Int63()) // This is a global used by all connections
 	c.lastPeerManagement = time.Now()
 	c.lastPeerRequest = time.Now()
-	c.lastStatusReport = time.Now()
 	return c
 }
 
@@ -113,6 +112,7 @@ func (c *Controller) StartNetwork(exclusive bool) {
 		c.DialPeer(peer.Address)
 	}
 	/// start heartbeat process
+	c.lastStatusReport = time.Now()
 	// Start the runloop
 	go c.runloop()
 }
@@ -179,8 +179,9 @@ func (c *Controller) listen() {
 	listener, err := net.Listen("tcp", address)
 	if nil != err {
 		logfatal("controller", "Controller.listen() Error: %+v", err)
+	} else {
+		go c.acceptLoop(listener)
 	}
-	go c.acceptLoop(listener)
 }
 
 // Since this runs in its own goroutine we need to send a command when
@@ -208,10 +209,10 @@ func (c *Controller) acceptLoop(listener net.Listener) {
 // runloop is a goroutine that does all the heavy lifting
 func (c *Controller) runloop() {
 	note("controller", "Controller.runloop() starting up")
-	time.Sleep(time.Second * 5) // Wait a few seconds to let the system come up.
+	// time.Sleep(time.Second * 5) // Wait a few seconds to let the system come up.
 
 	for c.keepRunning { // Run until we get the exit command
-		time.Sleep(time.Millisecond * 10) // This can be a tight loop, don't want to starve the application
+		time.Sleep(time.Millisecond * 1) // This can be a tight loop, don't want to starve the application
 		// time.Sleep(time.Second * 1) // This can be a tight loop, don't want to starve the application
 		// Process commands...
 		// verbose("controller", "Controller.runloop() About to process commands. Commands in channel: %d", len(c.commandChannel))
@@ -227,10 +228,7 @@ func (c *Controller) runloop() {
 		c.managePeers()
 		// BUGBUG Remove for production
 		// Since this is a good interval, we're print out a network status report.
-		duration := 10 * time.Second
-		if 0 < CurrentLoggingLevel && duration < time.Since(c.lastStatusReport) {
-			c.networkStatusReport()
-		}
+		c.networkStatusReport()
 
 	}
 	note("controller", "Controller.runloop() has exited. Shutdown command recieved?")
@@ -417,6 +415,11 @@ func (c *Controller) shutdown() {
 }
 
 func (c *Controller) networkStatusReport() {
+	managementDuration := time.Since(c.lastPeerManagement)
+	if NetworkStatusInterval > managementDuration {
+		return
+	}
+	silence("conroller", "networkStatusReport() NetworkStatusInterval: %s managementDuration: %s c.lastPeerManagement: %s", NetworkStatusInterval.String(), managementDuration.String(), c.lastPeerManagement.String())
 	c.lastStatusReport = time.Now()
 	silence("conroller", "###########################")
 	silence("conroller", "Network Status Report:")
