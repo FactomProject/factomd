@@ -199,7 +199,6 @@ func (p *ProcessList) MakeMap() {
 
 	for i := 0; i < 10; i++ {
 		indx = (indx + 1) % n
-		indx = 0 // No Swap.
 		for j := 0; j < len(p.FedServers); j++ {
 			p.ServerMap[i][j] = indx
 			indx = (indx + 1) % n
@@ -232,9 +231,14 @@ func (p *ProcessList) PrintMap() string {
 func (p *ProcessList) MinuteComplete() int {
 	m := 10
 	for i := 0; i < len(p.FedServers); i++ {
-		vm := p.VMs[i]
-		if vm.MinuteComplete < m {
-			m = vm.MinuteComplete
+		mm := 0
+		for _,msg := range p.VMs[i].List {
+			if eom, ok := msg.(*messages.EOM); ok {
+				mm = int(eom.Minute+1)
+			}
+		}
+		if m > mm {
+			m = mm
 		}
 	}
 	return m
@@ -526,6 +530,26 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) boo
 		}
 	}
 
+	// From this point on, we consider the transaction recorded.  If we detect it has already been
+	// recorded, then we still treat it as if we recorded it.
+
+	// Both the ack and the message hash to the same GetHash()
+	m.SetLocal(false)
+	ack.SetLocal(false)
+	ack.SetPeer2Peer(false)
+	m.SetPeer2Peer(false)
+
+	now := int64(p.State.GetTimestamp())
+
+	msgOk := p.State.(*State).InternalReplay.IsTSValid_(m.GetHash().Fixed(), int64(m.GetTimestamp()), now)
+
+	if !msgOk {	// If we already have this message or acknowledgement recorded,
+		return true				// we don't have to do anything.  Just say we got it handled.
+	}
+
+	p.State.NetworkOutMsgQueue() <- ack
+	p.State.NetworkOutMsgQueue() <- m
+
 	eom, ok := m.(*messages.EOM)
 	if ok {
 		p.Sealing = true
@@ -544,15 +568,6 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) boo
 
 	p.VMs[ack.VMIndex].List[ack.Height] = m
 	p.VMs[ack.VMIndex].ListAck[ack.Height] = ack
-
-	m.SetRecorded(true)
-	ack.SetRecorded(true)
-
-	now := int64(p.State.GetTimestamp())
-	// Both the ack and the message hash to the same GetHash()
-	p.State.(*State).InternalReplay.IsTSValid_(m.GetHash().Fixed(), int64(m.GetTimestamp()), now)
-	ack.SetStalled(false)
-	m.SetStalled(false)
 
 	//	fmt.Printf("%-30s %10s %s\n", "add !!!!!!Finished ", p.State.GetFactomNodeName(), m.String())
 	//	fmt.Printf("%-30s %10s %s\n", "add !!!!!!Finished ", p.State.GetFactomNodeName(), ack.String())

@@ -127,9 +127,7 @@ func NetworkOutputs(fnode *FactomNode) {
 
 				p := msg.GetOrigin() - 1
 
-				if msg.GetStalled() {
-					fnode.MLog.add2(fnode, true, "Stalled", "<nul>", true, msg)
-				} else if msg.IsPeer2Peer() {
+				if msg.IsPeer2Peer() {
 					// Must have a Peer to send a message to a peer
 					if len(fnode.Peers) > 0 {
 						if p < 0 {

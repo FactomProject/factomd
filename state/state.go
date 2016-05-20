@@ -850,10 +850,6 @@ func (s *State) LeaderMsgQueue() chan interfaces.IMsg {
 func (s *State) StallMsg(m interfaces.IMsg) {
 	if !m.IsLocal() {
 		s.stallQueue <- m
-		m.SetStalled(true)
-		if s.DebugConsensus {
-			fmt.Printf("%-30s %10s %s\n", "SSS Stalling Msg: ", s.FactomNodeName, m.String())
-		}
 	}
 }
 

@@ -70,11 +70,6 @@ type IMsg interface {
 	// Exeucte the follower functions of the given message
 	FollowerExecute(IState) error
 
-	// Messages can be stalled if they cannot be processed at the time they are
-	// presented to a leader or follower.  Stalled messages cannot be transmitted
-	// to the network.
-	SetStalled(bool)
-	GetStalled() bool
 
 	// Process.  When we get a sequence of acknowledgements that we trust, we process.
 	// A message will only be processed once, and in order, guaranteed.
@@ -90,10 +85,4 @@ type IMsg interface {
 	GetMinute() byte
 	SetMinute(byte)
 
-	// Need to ignore messages already in the Process List
-	IsRepeat() bool
-	SetRepeat(bool)
-
-	IsRecorded() bool
-	SetRecorded(bool)
 }

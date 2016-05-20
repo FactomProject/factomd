@@ -29,7 +29,7 @@ func (s *State) NewMinute() {
 	s.Review = make([]interfaces.IMsg, 0, len(s.Holding))
 	// Anything we are holding, we need to reprocess.
 	for k := range s.Holding {
-		if v := s.Holding[k]; v != nil && !v.IsRecorded() {
+		if v := s.Holding[k]; v != nil  {
 			s.Review = append(s.Review, v)
 			s.Holding[k] = nil
 		}
@@ -109,7 +109,7 @@ func (s *State) TryToProcess(msg interfaces.IMsg) {
 				}
 			}
 			err := msg.FollowerExecute(s)
-			if err == nil && !msg.IsRepeat() {
+			if err == nil {
 				s.networkOutMsgQueue <- msg
 			} else {
 				s.StallMsg(msg)
@@ -128,9 +128,7 @@ func (s *State) TryToProcess(msg interfaces.IMsg) {
 				err := msg.LeaderExecute(s)
 				if err == nil {
 					// If all went well, then send it to the world.
-					if !msg.IsRepeat() {
-						s.networkOutMsgQueue <- msg
-					}
+					s.networkOutMsgQueue <- msg
 				} else {
 					// If bad, stall as long as it isn't our own EOM
 					if _, ok := msg.(*messages.EOM); !ok {
@@ -158,11 +156,12 @@ func (s *State) ProcessQueues() (progress bool) {
 
 	for msg == nil && s.Review != nil && len(s.Review) > 0 {
 		msg = s.Review[0]
+		_, ok := s.InternalReplay.Valid(msg.GetHash().Fixed(), int64(msg.GetTimestamp()), int64(s.GetTimestamp()))
+		if !ok {
+			msg = nil
+		}
 		s.Review = s.Review[1:]
 		progress = true
-		if msg != nil {
-			msg.SetRepeat(true)
-		}
 	}
 
 	if msg == nil {
@@ -182,43 +181,18 @@ func (s *State) ProcessQueues() (progress bool) {
 		select {
 		case msg = <-s.stallQueue:
 			_, ok := s.InternalReplay.Valid(msg.GetHash().Fixed(), int64(msg.GetTimestamp()), int64(s.GetTimestamp()))
-			if ok {
+			if !ok {
 				msg = nil
-			} else {
-				mh := msg.GetHash()
-				mf := mh.Fixed()
-				if len(s.stallQueue) > 20 {
-					msg = nil
-				} else if ack, ok := msg.(*messages.Ack); ok && ack.Height <= s.ProcessLists.DBHeightBase {
-					msg = nil
-				} else if s.Holding[mf] != nil {
-					msg = nil
-				} else if _, ok := msg.(*messages.CommitChainMsg); ok && s.GetCommits(mh) != nil {
-					msg = nil
-				} else if _, ok := msg.(*messages.CommitEntryMsg); ok && s.GetCommits(mh) != nil {
-					msg = nil
-				} else if s.GetReveals(mh) != nil {
-					msg = nil
-				}
-			}
-			if msg != nil {
-				msg.SetStalled(true) // Allow them to rebroadcast if they work.
 			}
 		case msg = <-s.followerMsgQueue:
 			_, ok := s.InternalReplay.Valid(msg.GetHash().Fixed(), int64(msg.GetTimestamp()), int64(s.GetTimestamp()))
 			if !ok {
 				msg = nil
-			} else {
 			}
 			progress = true
 		default:
 		}
 	}
-
-	if msg != nil && msg.IsRecorded() {	// Once recorded, we need not bother.
-		msg = nil
-	}
-
 
 	if msg != nil {
 		if s.LeaderPL != nil {
@@ -400,7 +374,6 @@ func (s *State) LeaderExecute(m interfaces.IMsg) error {
 	if err := ack.FollowerExecute(s); err == nil {
 		m.FollowerExecute(s)
 		m.SetLocal(false)
-		m.SetRepeat(false)
 		s.networkOutMsgQueue <- m
 		s.networkOutMsgQueue <- ack
 	} else {
@@ -426,7 +399,6 @@ func (s *State) LeaderExecuteRE(m interfaces.IMsg) error {
 	if err := ack.FollowerExecute(s); err == nil {
 		m.FollowerExecute(s)
 		m.SetLocal(false)
-		m.SetRepeat(false)
 		s.networkOutMsgQueue <- m
 		s.networkOutMsgQueue <- ack
 	} else {
@@ -461,7 +433,6 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
 
 	if err := ack.FollowerExecute(s); err == nil {
 		m.SetLocal(false)
-		m.SetRepeat(false)
 		m.FollowerExecute(s)
 		s.networkOutMsgQueue <- m
 		s.networkOutMsgQueue <- ack
