@@ -118,7 +118,7 @@ func (c *Connection) commonInit() {
 func (c *Connection) runLoop() {
 	for ConnectionShutdown != c.state { // loop exits when we hit shutdown state
 		// time.Sleep(time.Second * 1) // This can be a tight loop, don't want to starve the application
-		time.Sleep(time.Millisecond * 100) // This can be a tight loop, don't want to starve the application
+		time.Sleep(time.Millisecond * 10) // This can be a tight loop, don't want to starve the application
 		switch c.state {
 		case ConnectionInitialized:
 			if c.dial() {
@@ -246,7 +246,6 @@ func (c *Connection) handleCommand(command ConnectionCommand) {
 		}
 	default:
 		logfatal(c.peer.Hash, "handleCommand() unknown command?: %+v ", command)
-
 	}
 }
 
@@ -272,24 +271,8 @@ func (c *Connection) processReceives() {
 		// c.conn.SetReadDeadline(time.Now().Add(1 * time.Second))
 		err := c.decoder.Decode(&message)
 		if nil != err {
-			// errType := reflect.TypeOf(err)
-			// switch errType {
-			// case net.Error:
-			// 	e := err.(net.Error)
-			// 	if !e.Timeout() {
-			// 		logerror(c.peer.Hash, "Connection.processReceives() error is NOT a timeout. GOING OFFLINE: %+v", e)
-			// 		c.goOffline()
-			// 	}
-			// case io.Error:
-			// 	if io.EOF == err {
-			// 		logerror(c.peer.Hash, "Connection.processReceives() error is EOF. GOING OFFLINE: %+v", e)
-			// 		c.goOffline()
-			// 	}
-			// default:
-			// 	note(c.peer.Hash, "Connection.processReceives() $$$$$$$$$ $$$$$$$$$ $$$$$$$$$ Got error of uknown Type: %+v", errType)
-			// }
-			logerror(c.peer.Hash, "Connection.processReceives() got decoding error: %+v", err)
 			c.goOffline()
+			logerror(c.peer.Hash, "Connection.processReceives() got decoding error: %+v", err)
 		} else {
 			note(c.peer.Hash, "Connection.processReceives() RECIEVED FROM NETWORK!  State: %s MessageType: %s", c.ConnectionState(), message.MessageType())
 			c.handleParcel(message)

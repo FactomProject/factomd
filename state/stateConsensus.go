@@ -7,6 +7,8 @@ package state
 import (
 	"fmt"
 
+	"os"
+
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
@@ -15,7 +17,6 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/util"
-	"os"
 )
 
 var _ = fmt.Print
@@ -252,12 +253,7 @@ func (s *State) AddDBState(isNew bool,
 	ht := dbState.DirectoryBlock.GetHeader().GetDBHeight()
 	if ht > s.LLeaderHeight {
 		s.LLeaderHeight = ht
-<<<<<<< HEAD
-		s.EOM=0
-		s.stallQueue = make(chan interfaces.IMsg, 10000)	// If we are loading blocks, give up on messages.
-=======
 		s.EOM = 0
->>>>>>> m2
 	}
 	//	dbh := directoryBlock.GetHeader().GetDBHeight()
 	//	if s.LLeaderHeight < dbh {
@@ -321,7 +317,6 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) (bool, error) {
 // message.
 func (s *State) FollowerExecuteAck(msg interfaces.IMsg) (bool, error) {
 	ack := msg.(*messages.Ack)
-
 
 	match := s.Holding[ack.GetHash().Fixed()]
 	if match != nil {
@@ -424,7 +419,6 @@ func (s *State) LeaderExecuteRE(m interfaces.IMsg) error {
 	} else {
 		return err
 	}
-
 
 	return nil
 }

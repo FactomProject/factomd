@@ -115,14 +115,14 @@ func (p *Parcel) PrintMessageType() {
 func (p *Parcel) String() string {
 	var output string
 	s := strconv.Quote(string(p.Payload))
-	fmt.Sprintf(output, "\t Network:\t%+v\n", NetworkIDStrings[p.Header.Network])
-	fmt.Sprintf(output, "\t Version:\t%+v\n", p.Header.Version)
-	fmt.Sprintf(output, "\t Type:   \t%+v\n", CommandStrings[p.Header.Type])
-	fmt.Sprintf(output, "\t Length:\t%d\n", p.Header.Length)
-	fmt.Sprintf(output, "\t TargetPeer:\t%s\n", p.Header.TargetPeer)
-	fmt.Sprintf(output, "\t CRC32:\t%d\n", p.Header.Crc32)
-	fmt.Sprintf(output, "\t Timestamp:\t%+v\n", p.Header.Timestamp)
-	fmt.Sprintf(output, "\t NodeID:\t%d\n", p.Header.NodeID)
-	fmt.Sprintf(output, "\t Payload: %s\n", s)
+	fmt.Sprintf(output, "%s\t Network:\t%+v\n", output, NetworkIDStrings[p.Header.Network])
+	fmt.Sprintf(output, "%s\t Version:\t%+v\n", output, p.Header.Version)
+	fmt.Sprintf(output, "%s\t Type:   \t%+v\n", output, CommandStrings[p.Header.Type])
+	fmt.Sprintf(output, "%s\t Length:\t%d\n", output, p.Header.Length)
+	fmt.Sprintf(output, "%s\t TargetPeer:\t%s\n", output, p.Header.TargetPeer)
+	fmt.Sprintf(output, "%s\t CRC32:\t%d\n", output, p.Header.Crc32)
+	fmt.Sprintf(output, "%s\t Timestamp:\t%+v\n", output, p.Header.Timestamp)
+	fmt.Sprintf(output, "%s\t NodeID:\t%d\n", output, p.Header.NodeID)
+	fmt.Sprintf(output, "%s\t Payload: %s\n", output, s)
 	return output
 }

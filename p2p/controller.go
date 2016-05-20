@@ -211,7 +211,7 @@ func (c *Controller) runloop() {
 	time.Sleep(time.Second * 5) // Wait a few seconds to let the system come up.
 
 	for c.keepRunning { // Run until we get the exit command
-		time.Sleep(time.Millisecond * 100) // This can be a tight loop, don't want to starve the application
+		time.Sleep(time.Millisecond * 10) // This can be a tight loop, don't want to starve the application
 		// time.Sleep(time.Second * 1) // This can be a tight loop, don't want to starve the application
 		// Process commands...
 		// verbose("controller", "Controller.runloop() About to process commands. Commands in channel: %d", len(c.commandChannel))
