@@ -117,7 +117,8 @@ func (c *Connection) commonInit() {
 // runLoop operates the state machine and routes messages out to network (messages from network are routed in processReceives)
 func (c *Connection) runLoop() {
 	for ConnectionShutdown != c.state { // loop exits when we hit shutdown state
-		time.Sleep(time.Second * 1) // This can be a tight loop, don't want to starve the application
+		// time.Sleep(time.Second * 1) // This can be a tight loop, don't want to starve the application
+		time.Sleep(time.Millisecond * 100) // This can be a tight loop, don't want to starve the application
 		switch c.state {
 		case ConnectionInitialized:
 			if c.dial() {
@@ -129,7 +130,7 @@ func (c *Connection) runLoop() {
 			c.processSends()
 			c.pingPeer() // sends a ping periodically if things have been quiet
 			if PeerSaveInterval < time.Since(c.timeLastUpdate) {
-				debug(c.peer.Hash, "updatePeer() PeerSaveInterval interval %s is less than duration since last update: %s ", PeerSaveInterval.String(), time.Since(c.timeLastUpdate).String())
+				debug(c.peer.Hash, "runLoop() PeerSaveInterval interval %s is less than duration since last update: %s ", PeerSaveInterval.String(), time.Since(c.timeLastUpdate).String())
 				c.updatePeer() // every PeerSaveInterval * 0.90 we send an update peer to the controller.
 			}
 		case ConnectionOffline:
@@ -147,8 +148,10 @@ func (c *Connection) runLoop() {
 					time.Sleep(TimeBetweenRedials)
 				}
 			}
+		case ConnectionShutdown:
+			debug(c.peer.Hash, "runLoop() SHUTDOWN STATE runloop() exiting. ")
 		default:
-			fatal(c.peer.Hash, "runLoop() unknown state?: %d ", c.state)
+			logfatal(c.peer.Hash, "runLoop() unknown state?: %s ", connectionStateStrings[c.state])
 		}
 	}
 }
@@ -217,7 +220,7 @@ func (c *Connection) processSends() {
 			parameters := message.(ConnectionCommand)
 			c.handleCommand(parameters)
 		default:
-			fatal(c.peer.Hash, "processSends() unknown message?: %+v ", message)
+			logfatal(c.peer.Hash, "processSends() unknown message?: %+v ", message)
 		}
 	}
 }
@@ -242,7 +245,7 @@ func (c *Connection) handleCommand(command ConnectionCommand) {
 			c.goShutdown()
 		}
 	default:
-		fatal(c.peer.Hash, "handleCommand() unknown command?: %+v ", command)
+		logfatal(c.peer.Hash, "handleCommand() unknown command?: %+v ", command)
 
 	}
 }
@@ -269,18 +272,26 @@ func (c *Connection) processReceives() {
 		// c.conn.SetReadDeadline(time.Now().Add(1 * time.Second))
 		err := c.decoder.Decode(&message)
 		if nil != err {
-			// Golang apparently doesn't provide a good way to detect various error types.
-			// So, errors from "Decode" are presumed to be network type- eg closed connection.
-			// So we drop our end.
+			// errType := reflect.TypeOf(err)
+			// switch errType {
+			// case net.Error:
+			// 	e := err.(net.Error)
+			// 	if !e.Timeout() {
+			// 		logerror(c.peer.Hash, "Connection.processReceives() error is NOT a timeout. GOING OFFLINE: %+v", e)
+			// 		c.goOffline()
+			// 	}
+			// case io.Error:
+			// 	if io.EOF == err {
+			// 		logerror(c.peer.Hash, "Connection.processReceives() error is EOF. GOING OFFLINE: %+v", e)
+			// 		c.goOffline()
+			// 	}
+			// default:
+			// 	note(c.peer.Hash, "Connection.processReceives() $$$$$$$$$ $$$$$$$$$ $$$$$$$$$ Got error of uknown Type: %+v", errType)
+			// }
 			logerror(c.peer.Hash, "Connection.processReceives() got decoding error: %+v", err)
-			e := err.(net.Error)
-			if !e.Timeout() {
-				logerror(c.peer.Hash, "Connection.processReceives() error is NOT a timeout. GOING OFFLINE: %+v", e)
-				c.peer.demerit()
-				c.goOffline()
-			}
+			c.goOffline()
 		} else {
-			note(c.peer.Hash, "Connection.processReceives() RECIEVED FROM NETWORK!  State: %s MessageType: %s", c.ConnectionState(), message.MessageType)
+			note(c.peer.Hash, "Connection.processReceives() RECIEVED FROM NETWORK!  State: %s MessageType: %s", c.ConnectionState(), message.MessageType())
 			c.handleParcel(message)
 		}
 	}
@@ -317,7 +328,7 @@ func (c *Connection) handleParcel(parcel Parcel) {
 		}
 		c.handleParcelTypes(parcel) // handles both network commands and application messages
 	default:
-		fatal(c.peer.Hash, "handleParcel() unknown parcelValidity?: %+v ", validity)
+		logfatal(c.peer.Hash, "handleParcel() unknown parcelValidity?: %+v ", validity)
 
 	}
 }

@@ -211,8 +211,8 @@ func (c *Controller) runloop() {
 	time.Sleep(time.Second * 5) // Wait a few seconds to let the system come up.
 
 	for c.keepRunning { // Run until we get the exit command
-		// time.Sleep(time.Millisecond * 100) // This can be a tight loop, don't want to starve the application
-		time.Sleep(time.Second * 1) // This can be a tight loop, don't want to starve the application
+		time.Sleep(time.Millisecond * 100) // This can be a tight loop, don't want to starve the application
+		// time.Sleep(time.Second * 1) // This can be a tight loop, don't want to starve the application
 		// Process commands...
 		// verbose("controller", "Controller.runloop() About to process commands. Commands in channel: %d", len(c.commandChannel))
 		for 0 < len(c.commandChannel) {
@@ -227,9 +227,10 @@ func (c *Controller) runloop() {
 		c.managePeers()
 		// BUGBUG Remove for production
 		// Since this is a good interval, we're print out a network status report.
-		// if 3 <= CurrentLoggingLevel && (2*time.Second) < time.Since(c.lastStatusReport) {
-		c.networkStatusReport()
-		// }
+		duration := 10 * time.Second
+		if 0 < CurrentLoggingLevel && duration < time.Since(c.lastStatusReport) {
+			c.networkStatusReport()
+		}
 
 	}
 	note("controller", "Controller.runloop() has exited. Shutdown command recieved?")
@@ -254,7 +255,7 @@ func (c *Controller) route() {
 				debug(peerHash, "Controller.route() ConnectionParcel")
 				c.handleParcelReceive(message, peerHash, connection)
 			default:
-				fatal("controller", "route() unknown message?: %+v ", message)
+				logfatal("controller", "route() unknown message?: %+v ", message)
 			}
 		}
 		// For each message, see if it is directed, if so, send to the
@@ -300,7 +301,7 @@ func (c *Controller) handleParcelReceive(message interface{}, peerHash string, c
 		// Add these peers to our known peers
 		c.discovery.LearnPeers(parcel.Payload)
 	default:
-		fatal("controller", "handleParcelReceive() unknown parcel.Header.Type?: %+v ", parcel)
+		logfatal("controller", "handleParcelReceive() unknown parcel.Header.Type?: %+v ", parcel)
 	}
 
 }
@@ -314,7 +315,7 @@ func (c *Controller) handleConnectionCommand(command ConnectionCommand, connecti
 		debug("controller", "handleConnectionCommand() Got ConnectionUpdatingPeer from  %s", connection.peer.Hash)
 		c.discovery.UpdatePeer(command.peer)
 	default:
-		fatal("controller", "handleParcelReceive() unknown command.command?: %+v ", command.command)
+		logfatal("controller", "handleParcelReceive() unknown command.command?: %+v ", command.command)
 	}
 }
 
@@ -363,7 +364,7 @@ func (c *Controller) handleCommand(command interface{}) {
 		peerHash := parameters.peerHash
 		c.applicationPeerUpdate(BannedQualityScore, peerHash)
 	default:
-		fatal("controller", "Unkown p2p.Controller command recieved: %+v", commandType)
+		logfatal("controller", "Unkown p2p.Controller command recieved: %+v", commandType)
 	}
 }
 func (c *Controller) applicationPeerUpdate(qualityDelta int32, peerHash string) {
@@ -401,7 +402,7 @@ func (c *Controller) managePeers() {
 			for _, connection := range c.connections {
 				parcel := NewParcel(CurrentNetwork, []byte("Peer Request"))
 				parcel.Header.Type = TypePeerRequest
-				cconnection.SendChannel <- ConnectionParcel{parcel: *parcel}
+				connection.SendChannel <- ConnectionParcel{parcel: *parcel}
 			}
 		}
 	}
@@ -425,7 +426,7 @@ func (c *Controller) networkStatusReport() {
 		silence("conroller", "          State: %s", value.ConnectionState())
 		silence("conroller", " ReceiveChannel: %d", len(value.ReceiveChannel))
 		silence("conroller", "    SendChannel: %d", len(value.SendChannel))
-		silence("conroller", "     Connection: %+v", value)
+		// silence("conroller", "     Connection: %+v", value)
 		silence("conroller", "===========================")
 	}
 	silence("conroller", "   Command Queue: %d", len(c.commandChannel))

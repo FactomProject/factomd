@@ -30,7 +30,7 @@ type P2PProxy struct {
 	FromNetwork chan p2p.Parcel // Parcels from the network for the application
 
 	testMode  bool
-	debugMode bool
+	debugMode int
 }
 
 var _ interfaces.IPeer = (*P2PProxy)(nil)
@@ -43,7 +43,7 @@ func (f *P2PProxy) Init(fromName, toName string) interfaces.IPeer {
 	f.testMode = false // When this is false, factomd is connected to the network.  When true, network is isolated, and a heartbeat test message sent over the network.
 	return f
 }
-func (f *P2PProxy) SetDebugMode(netdebug bool) {
+func (f *P2PProxy) SetDebugMode(netdebug int) {
 
 	f.debugMode = netdebug
 }
@@ -80,10 +80,8 @@ func (f *P2PProxy) Recieve() (interfaces.IMsg, error) {
 		case data, ok := <-f.BroadcastIn:
 			if ok {
 				msg, err := messages.UnmarshalMessage(data)
-				if f.debugMode {
+				if 0 < f.debugMode {
 					fmt.Printf(".")
-					// m, _ := msg.JSONString()
-					// note("Recieve Successfully got a message %s", m)
 				}
 				return msg, err
 			}
@@ -295,12 +293,11 @@ func (f *P2PProxy) ProxyStatusReport() {
 		note("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
 	}
 }
+
 func PeriodicStatusReport(fnodes []*FactomNode) {
 	time.Sleep(time.Second * 5) // wait for things to spin up
-
 	for {
 		time.Sleep(time.Second * 30)
-
 		fmt.Println("-------------------------------------------------------------------------------")
 		fmt.Println("-------------------------------------------------------------------------------")
 		for _, f := range fnodes {

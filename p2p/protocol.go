@@ -14,7 +14,7 @@ import (
 
 // Global variables for the p2p protocol
 var (
-	CurrentLoggingLevel                     = Verbose // Start at verbose because it takes a few seconds for the controller to adjust to what you set.
+	CurrentLoggingLevel                     = Silence // Start at verbose because it takes a few seconds for the controller to adjust to what you set.
 	CurrentNetwork                          = TestNet
 	PingInterval              time.Duration = time.Second * 15
 	TimeBetweenRedials        time.Duration = time.Second * 20

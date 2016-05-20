@@ -50,7 +50,7 @@ func NetStart(s *state.State) {
 	peersPtr := flag.String("peers", "", "Array of peer addresses. ")
 	blkTimePtr := flag.Int("blktime", 0, "Seconds per block.  Production is 600.")
 	runtimeLogPtr := flag.Bool("runtimeLog", true, "If true, maintain runtime logs of messages passed.")
-	netdebugPtr := flag.Bool("netdebug", false, "If true, print detailed network debugging info.")
+	netdebugPtr := flag.Int("netdebug", 0, "0-5: 0 = quiet, >0 = increasing levels of logging")
 	heartbeatPtr := flag.Bool("heartbeat", false, "If true, network just sends heartbeats.")
 	prefixNodePtr := flag.String("prefix", "", "Prefix the Factom Node Names with this value; used to create leaderless networks.")
 
@@ -194,12 +194,11 @@ func NetStart(s *state.State) {
 	fnodes[0].Peers = append(fnodes[0].Peers, p2pProxy)
 	p2pProxy.SetDebugMode(netdebug)
 	p2pProxy.SetTestMode(heartbeat)
-	switch {
-	case netdebug:
+	if 0 < netdebug {
 		go PeriodicStatusReport(fnodes)
 		go p2pProxy.ProxyStatusReport()
-		network.StartLogging(uint8(5))
-	default:
+		network.StartLogging(uint8(netdebug))
+	} else {
 		network.StartLogging(uint8(0))
 	}
 	p2pProxy.startProxy()
