@@ -290,7 +290,7 @@ func (s *State) Init() {
 	s.stallQueue = make(chan interfaces.IMsg, 10000)             //queue of Leader messages while stalled
 	s.ShutdownChan = make(chan int, 1)                           //Channel to gracefully shut down.
 
-	os.Mkdir(s.LogPath, 0777)
+	os.MkdirAll(s.LogPath, 0777)
 	_, err := os.Create(s.JournalFile) //Create the Journal File
 	if err != nil {
 		fmt.Println("Could not create the file: " + s.JournalFile)

@@ -1,2 +1,0 @@
-#!/bin/bash +x
-tail -f runlog.txt

@@ -7,6 +7,8 @@ package state
 import (
 	"fmt"
 
+	"os"
+
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
@@ -15,7 +17,6 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/util"
-	"os"
 )
 
 var _ = fmt.Print
@@ -226,14 +227,6 @@ func (s *State) AddDBState(isNew bool,
 
 	// TODO:  Need to validate before we add, or at least validate once we have a contiguous set of blocks.
 
-	// 	fmt.Printf("AddDBState %s: DirectoryBlock %d %x %x %x %x\n",
-	// 			   s.FactomNodeName,
-	// 			   directoryBlock.GetHeader().GetDBHeight(),
-	// 			   directoryBlock.GetKeyMR().Bytes()[:5],
-	// 			   adminBlock.GetHash().Bytes()[:5],
-	// 			   factoidBlock.GetHash().Bytes()[:5],
-	// 			   entryCreditBlock.GetHash().Bytes()[:5])
-
 	dbState := s.DBStates.NewDBState(isNew, directoryBlock, adminBlock, factoidBlock, entryCreditBlock)
 	s.DBStates.Put(dbState)
 	ht := dbState.DirectoryBlock.GetHeader().GetDBHeight()
@@ -303,7 +296,6 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) (bool, error) {
 // message.
 func (s *State) FollowerExecuteAck(msg interfaces.IMsg) (bool, error) {
 	ack := msg.(*messages.Ack)
-
 
 	match := s.Holding[ack.GetHash().Fixed()]
 	if match != nil {
@@ -404,7 +396,6 @@ func (s *State) LeaderExecuteRE(m interfaces.IMsg) error {
 	} else {
 		return err
 	}
-
 
 	return nil
 }

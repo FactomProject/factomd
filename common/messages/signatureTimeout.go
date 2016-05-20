@@ -198,17 +198,7 @@ func (m *SignatureTimeout) Validate(state interfaces.IState) int {
 // Returns true if this is a message for this server to execute as
 // a leader.
 func (m *SignatureTimeout) Leader(state interfaces.IState) bool {
-	switch state.GetNetworkNumber() {
-	case 0: // Main Network
-		panic("Not implemented yet")
-	case 1: // Test Network
-		panic("Not implemented yet")
-	case 2: // Local Network
-		panic("Not implemented yet")
-	default:
-		panic("Not implemented yet")
-	}
-
+	return false
 }
 
 // Execute the leader functions of the given message
