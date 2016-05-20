@@ -139,7 +139,8 @@ func (list *DBStateList) Catchup() {
 			return
 		}
 
-		if plHeight > dbsHeight && plHeight-dbsHeight > 2 {
+		if plHeight > dbsHeight && plHeight-dbsHeight > 1 {
+			list.State.ProcessLists.Reset(dbsHeight)
 			begin = int(dbsHeight + 1)
 			end = int(plHeight - 1)
 		} else {
@@ -158,11 +159,14 @@ func (list *DBStateList) Catchup() {
 
 	if msg != nil {
 		list.State.NetworkOutMsgQueue() <- msg
+		list.State.stallQueue = make(chan interfaces.IMsg, 10000)
+		list.State.NewMinute()
 	}
 
 }
 
 func (list *DBStateList) UpdateState() (progress bool) {
+
 	list.Catchup()
 
 	for i, d := range list.DBStates {
@@ -235,7 +239,7 @@ func (list *DBStateList) UpdateState() (progress bool) {
 					}
 					d.DirectoryBlock.AddEntry(eb.GetChainID(), key)
 				}
-
+				d.DirectoryBlock.GetKeyMR()
 				_, err = d.DirectoryBlock.BuildBodyMR()
 				if err != nil {
 					panic(err.Error())
@@ -260,7 +264,7 @@ func (list *DBStateList) UpdateState() (progress bool) {
 
 			pl := list.State.ProcessLists.Get(d.DirectoryBlock.GetHeader().GetDBHeight())
 			for _, eb := range pl.NewEBlocks {
-				if err := list.State.GetDB().ProcessEBlockMultiBatch(eb); err != nil {
+				if err := list.State.GetDB().ProcessEBlockMultiBatch(eb, false); err != nil {
 					panic(err.Error())
 				}
 				for _, e := range eb.GetBody().GetEBEntries() {
@@ -274,12 +278,15 @@ func (list *DBStateList) UpdateState() (progress bool) {
 				panic(err.Error())
 			}
 		}
+
+		dblk2, _ := list.State.GetDB().FetchDBlockByKeyMR(d.DirectoryBlock.GetKeyMR())
+		if dblk2 == nil {
+			fmt.Printf("Failed to save the Directory Block %d %x\n",
+				d.DirectoryBlock.GetHeader().GetDBHeight(),
+				d.DirectoryBlock.GetKeyMR().Bytes()[:3])
+		}
 		list.LastTime = list.State.GetTimestamp() // If I saved or processed stuff, I'm good for a while
 		d.Saved = true                            // Only after all is done will I admit this state has been saved.
-
-		if d.DirectoryBlock.GetHeader().GetDBHeight() == list.State.LLeaderHeight {
-			list.State.EOB = true
-		}
 
 		// Any updates required to the state as established by the AdminBlock are applied here.
 		d.AdminBlock.UpdateState(list.State)

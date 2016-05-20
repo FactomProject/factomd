@@ -14,6 +14,7 @@ type IEntryCreditBlock interface {
 	GetHash() IHash
 	HeaderHash() (IHash, error)
 	Hash() (IHash, error)
+	GetEntryHashes() []IHash
 }
 
 type IECBlockHeader interface {

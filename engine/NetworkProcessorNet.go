@@ -9,6 +9,7 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/log"
 )
 
@@ -22,18 +23,47 @@ func NetworkProcessorNet(fnode *FactomNode) {
 }
 
 func Peers(fnode *FactomNode) {
+	cnt := 0
 	for {
-		time.Sleep(50 * time.Millisecond)
-		cnt := 0
+		for i := 0; i < 100 && len(fnode.State.APIQueue()) > 0; i++ {
+			select {
+			case msg := <-fnode.State.APIQueue():
+				if msg == nil {
+					break
+				}
+				cnt++
+				msg.SetOrigin(0)
+				if fnode.State.Replay.IsTSValid_(msg.GetMsgHash().Fixed(),
+					int64(msg.GetTimestamp())/1000,
+					int64(fnode.State.GetTimestamp())/1000) {
+
+					fnode.MLog.add2(fnode, false, fnode.State.FactomNodeName, "API", true, msg)
+					if len(fnode.State.InMsgQueue()) < 9000 {
+						fnode.State.InMsgQueue() <- msg
+					}
+				}
+			default:
+
+			}
+		}
+
 		// Put any broadcasts from our peers into our BroadcastIn queue
 		for i, peer := range fnode.Peers {
 			for j := 0; j < 100; j++ {
 
-				msg, err := peer.Recieve()
+				var msg interfaces.IMsg
+				var err error
 
-				if msg == nil { // Recieve is not blocking; nothing to do, we get a nil.
+				if !fnode.State.GetNetStateOff() {
+					msg, err = peer.Recieve()
+				}
+
+				if msg == nil {
+					// Recieve is not blocking; nothing to do, we get a nil.
 					break
 				}
+
+				cnt++
 
 				if err != nil {
 					fmt.Println("ERROR recieving message on", fnode.State.FactomNodeName+":", err)
@@ -48,7 +78,7 @@ func Peers(fnode *FactomNode) {
 					//	fnode.State.Println("In Comming!! ",msg)
 					//}
 					in := "PeerIn"
-					if msg.IsPeer2peer() {
+					if msg.IsPeer2Peer() {
 						in = "P2P In"
 					}
 					nme := fmt.Sprintf("%s %d", in, i+1)
@@ -63,9 +93,12 @@ func Peers(fnode *FactomNode) {
 				} else {
 					fnode.MLog.add2(fnode, false, peer.GetNameTo(), "PeerIn", false, msg)
 				}
-				cnt++
 			}
 		}
+		if cnt == 0 {
+			time.Sleep(50 * time.Millisecond)
+		}
+		cnt = 0
 	}
 }
 
@@ -74,7 +107,7 @@ func NetworkOutputs(fnode *FactomNode) {
 		if len(fnode.State.NetworkOutMsgQueue()) > 500 {
 			fmt.Print(fnode.State.GetFactomNodeName(), "-", len(fnode.State.NetworkOutMsgQueue()), " ")
 		}
-		time.Sleep(10 * time.Millisecond)
+		time.Sleep(1 * time.Millisecond)
 		msg := <-fnode.State.NetworkOutMsgQueue()
 
 		// Local Messages are Not broadcast out.  This is mostly the block signature
@@ -94,16 +127,18 @@ func NetworkOutputs(fnode *FactomNode) {
 
 				p := msg.GetOrigin() - 1
 
-				if msg.IsPeer2peer() {
+				if msg.GetStalled() {
+					fnode.MLog.add2(fnode, true, "Stalled", "<nul>", true, msg)
+				} else if msg.IsPeer2Peer() {
 					// Must have a Peer to send a message to a peer
 					if len(fnode.Peers) > 0 {
 						if p < 0 {
 							p = rand.Int() % len(fnode.Peers)
 						}
 						fnode.MLog.add2(fnode, true, fnode.Peers[p].GetNameTo(), "P2P out", true, msg)
-
-						fnode.Peers[p].Send(msg)
-
+						if !fnode.State.GetNetStateOff() {
+							fnode.Peers[p].Send(msg)
+						}
 					}
 				} else {
 					for i, peer := range fnode.Peers {
@@ -111,7 +146,9 @@ func NetworkOutputs(fnode *FactomNode) {
 						if i != p {
 							bco := fmt.Sprintf("%s/%d/%d", "BCast", p, i)
 							fnode.MLog.add2(fnode, true, peer.GetNameTo(), bco, true, msg)
-							peer.Send(msg)
+							if !fnode.State.GetNetStateOff() {
+								peer.Send(msg)
+							}
 						}
 					}
 				}
@@ -123,7 +160,7 @@ func NetworkOutputs(fnode *FactomNode) {
 // Just throw away the trash
 func InvalidOutputs(fnode *FactomNode) {
 	for {
-		time.Sleep(10 * time.Millisecond)
+		time.Sleep(1 * time.Millisecond)
 		<-fnode.State.NetworkInvalidMsgQueue()
 	}
 }

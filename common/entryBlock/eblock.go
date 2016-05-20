@@ -117,6 +117,11 @@ func (e *EBlock) BuildHeader() error {
 	return nil
 }
 
+func (e *EBlock) GetHash() interfaces.IHash {
+	h, _ := e.Hash()
+	return h
+}
+
 // Hash returns the simple Sha256 hash of the serialized Entry Block. Hash is
 // used to provide the PrevFullHash to the next Entry Block in a Chain.
 func (e *EBlock) Hash() (interfaces.IHash, error) {

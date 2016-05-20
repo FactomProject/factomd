@@ -29,22 +29,9 @@ func hours(unix int64) int64 {
 	return unix / 60 / 60
 }
 
-// Checks if the timestamp is valid.  If the timestamp is too old or
-// too far into the future, then we don't consider it valid.  Or if we
-// have seen this hash before, then it is not valid.  To that end,
-// this code remembers hashes tested in the past, and rejects the
-// second submission of the same hash.
-func (r *Replay) IsTSValid(hash interfaces.IHash, timestamp int64) bool {
-	return r.IsTSValid_(hash.Fixed(), timestamp, time.Now().Unix())
-}
-
-// To make the function testable, the logic accepts the current time
-// as a parameter.  This way, the test code can manipulate the clock
-// at will.
-func (r *Replay) IsTSValid_(hash [32]byte, timestamp int64, now int64) bool {
-
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
+// Returns false if the hash is too old, or is already a
+// member of the set.
+func (r *Replay) Valid(hash [32]byte, timestamp int64, now int64) (index int, valid bool) {
 
 	if len(r.buckets) < numBuckets {
 		r.buckets = make([]map[[32]byte]byte, numBuckets, numBuckets)
@@ -67,9 +54,9 @@ func (r *Replay) IsTSValid_(hash [32]byte, timestamp int64, now int64) bool {
 	}
 
 	t := hours(timestamp)
-	index := int(t - now + int64(numBuckets)/2)
+	index = int(t - now + int64(numBuckets)/2)
 	if index < 0 || index >= numBuckets {
-		return false
+		return 0, false
 	}
 
 	if r.buckets[index] == nil {
@@ -77,11 +64,36 @@ func (r *Replay) IsTSValid_(hash [32]byte, timestamp int64, now int64) bool {
 	} else {
 		_, ok := r.buckets[index][hash]
 		if ok {
-			return false
+			return 0, false
 		}
 	}
-	// Mark this hash as seen
-	r.buckets[index][hash] = 'x'
 
-	return true
+	return index, true
+}
+
+// Checks if the timestamp is valid.  If the timestamp is too old or
+// too far into the future, then we don't consider it valid.  Or if we
+// have seen this hash before, then it is not valid.  To that end,
+// this code remembers hashes tested in the past, and rejects the
+// second submission of the same hash.
+func (r *Replay) IsTSValid(hash interfaces.IHash, timestamp int64) bool {
+	return r.IsTSValid_(hash.Fixed(), timestamp, time.Now().Unix())
+}
+
+// To make the function testable, the logic accepts the current time
+// as a parameter.  This way, the test code can manipulate the clock
+// at will.
+func (r *Replay) IsTSValid_(hash [32]byte, timestamp int64, now int64) bool {
+
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	if index, ok := r.Valid(hash, timestamp, now); ok {
+		// Mark this hash as seen
+		r.buckets[index][hash] = 'x'
+
+		return true
+	}
+
+	return false
 }

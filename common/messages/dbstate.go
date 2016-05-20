@@ -13,7 +13,6 @@ import (
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
-	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -31,7 +30,6 @@ type DBStateMsg struct {
 	AdminBlock       interfaces.IAdminBlock
 	FactoidBlock     interfaces.IFBlock
 	EntryCreditBlock interfaces.IEntryCreditBlock
-	EntryBlocks      []interfaces.IEntryBlock
 
 	//Not signed!
 }
@@ -66,26 +64,12 @@ func (a *DBStateMsg) IsSameAs(b *DBStateMsg) bool {
 		return false
 	}
 
-	if a.EntryBlocks == nil && b.EntryBlocks != nil {
-		return false
-	}
-	if a.EntryBlocks != nil {
-		if len(a.EntryBlocks) != len(b.EntryBlocks) {
-			return false
-		}
-		for i := range a.EntryBlocks {
-			ok, err = primitives.AreBinaryMarshallablesEqual(a.EntryBlocks[i], b.EntryBlocks[i])
-			if err != nil || ok == false {
-				return false
-			}
-		}
-	}
-
 	return true
 }
 
 func (m *DBStateMsg) GetHash() interfaces.IHash {
-	return nil
+	data, _ := m.MarshalBinary()
+	return primitives.Sha(data)
 }
 
 func (m *DBStateMsg) GetMsgHash() interfaces.IHash {
@@ -163,7 +147,6 @@ func (e *DBStateMsg) JSONBuffer(b *bytes.Buffer) error {
 
 func (m *DBStateMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
-		return
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling Directory Block State Message: %v", r)
 		}
@@ -174,7 +157,7 @@ func (m *DBStateMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error
 	}
 	newData = newData[1:]
 
-	m.Peer2peer = true
+	m.Peer2Peer = true
 
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
@@ -203,14 +186,6 @@ func (m *DBStateMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error
 	newData, err = m.EntryCreditBlock.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
-	}
-	for len(newData) > 0 {
-		entry, data, err := entryBlock.UnmarshalEBlockData(newData)
-		if err != nil {
-			return nil, err
-		}
-		m.EntryBlocks = append(m.EntryBlocks, entry)
-		newData = data
 	}
 
 	return
@@ -256,36 +231,29 @@ func (m *DBStateMsg) MarshalBinary() ([]byte, error) {
 		return nil, err
 	}
 	buf.Write(data)
-	for i := range m.EntryBlocks {
-		data, err = m.EntryBlocks[i].MarshalBinary()
-		if err != nil {
-			return nil, err
-		}
-		buf.Write(data)
-	}
 
 	return buf.DeepCopyBytes(), nil
 }
 
 func (m *DBStateMsg) String() string {
-	return fmt.Sprintf("DBState: ht:%3d dblock %6x admin %6x fb %6x ec %6x",
+	return fmt.Sprintf("DBState: ht:%3d dblock %6x admin %6x fb %6x ec %6x hash %6x",
 		m.DirectoryBlock.GetHeader().GetDBHeight(),
 		m.DirectoryBlock.GetKeyMR().Bytes()[:3],
 		m.AdminBlock.GetHash().Bytes()[:3],
 		m.FactoidBlock.GetHash().Bytes()[:3],
-		m.EntryCreditBlock.GetHash().Bytes()[:3])
+		m.EntryCreditBlock.GetHash().Bytes()[:3],
+		m.GetHash().Bytes()[:3])
 }
 
 func NewDBStateMsg(timestamp interfaces.Timestamp,
 	d interfaces.IDirectoryBlock,
 	a interfaces.IAdminBlock,
 	f interfaces.IFBlock,
-	e interfaces.IEntryCreditBlock,
-	ebs []interfaces.IEntryBlock) interfaces.IMsg {
+	e interfaces.IEntryCreditBlock) interfaces.IMsg {
 
 	msg := new(DBStateMsg)
 
-	msg.Peer2peer = true
+	msg.Peer2Peer = true
 
 	msg.Timestamp = timestamp
 
@@ -293,7 +261,6 @@ func NewDBStateMsg(timestamp interfaces.Timestamp,
 	msg.AdminBlock = a
 	msg.FactoidBlock = f
 	msg.EntryCreditBlock = e
-	msg.EntryBlocks = ebs
 
 	return msg
 }

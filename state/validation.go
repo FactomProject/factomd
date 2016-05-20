@@ -16,11 +16,6 @@ func (state *State) ValidatorLoop() {
 	timeStruct := new(Timer)
 	for {
 
-		state.SetString() // Set the string for the state so we can print it later if we like.
-
-		// Process any messages we might have queued up.
-		state.Process()
-
 		// Check if we should shut down.
 		select {
 		case _ = <-state.ShutdownChan:
@@ -29,6 +24,12 @@ func (state *State) ValidatorLoop() {
 			fmt.Println(state.GetFactomNodeName(), "closed")
 			return
 		default:
+		}
+
+		state.SetString() // Set the string for the state so we can print it later if we like.
+		// Process any messages we might have queued up.
+		for state.Process() {
+			state.UpdateState()
 		}
 
 		// Look for pending messages, and get one if there is one.
@@ -86,14 +87,12 @@ func (t *Timer) timer(state *State, min int) {
 
 	t.lastMin = min
 
-	stateheight := state.GetLeaderHeight()
+	stateheight := state.LLeaderHeight
 
-	if min == 0 {
-		if t.lastDBHeight > 0 && t.lastDBHeight == stateheight {
-			t.lastDBHeight = stateheight + 1
-		} else {
-			t.lastDBHeight = stateheight
-		}
+	if stateheight != t.lastDBHeight && min != 0 {
+		return
+	} else {
+		t.lastDBHeight = stateheight
 	}
 
 	eom := new(messages.EOM)

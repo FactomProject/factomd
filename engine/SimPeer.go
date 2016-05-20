@@ -80,7 +80,7 @@ func (f *SimPeer) Recieve() (interfaces.IMsg, error) {
 		if ok {
 			msg, err := messages.UnmarshalMessage(data)
 			if err != nil {
-				fmt.Println("ERROR: ", err)
+				fmt.Printf("SimPeer ERROR: %s %x %s\n", err.Error(), data[:8], messages.MessageName(data[0]))
 			}
 
 			return msg, err

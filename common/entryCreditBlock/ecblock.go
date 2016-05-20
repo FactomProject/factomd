@@ -33,6 +33,18 @@ type ECBlock struct {
 var _ interfaces.Printable = (*ECBlock)(nil)
 var _ interfaces.BinaryMarshallableAndCopyable = (*ECBlock)(nil)
 var _ interfaces.IEntryCreditBlock = (*ECBlock)(nil)
+var _ interfaces.DatabaseBlockWithEntries = (*ECBlock)(nil)
+
+func (c *ECBlock) GetEntryHashes() []interfaces.IHash {
+	entries := c.Body.GetEntries()
+	answer := make([]interfaces.IHash, 0, len(entries))
+	for _, entry := range entries {
+		if entry.ECID() == ECIDBalanceIncrease {
+			answer = append(answer, entry.Hash())
+		}
+	}
+	return answer
+}
 
 func (c *ECBlock) GetBody() interfaces.IECBlockBody {
 	return c.Body

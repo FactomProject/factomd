@@ -41,6 +41,7 @@ type State struct {
 	ConsoleLogLevel         string
 	NodeMode                string
 	DBType                  string
+	CloneDBType             string
 	ExportData              bool
 	ExportDataSubpath       string
 	Network                 string
@@ -48,6 +49,7 @@ type State struct {
 	DirectoryBlockInSeconds int
 	PortNumber              int
 	Replay                  *Replay
+	InternalReplay          *Replay
 	GreenFlg                bool
 	GreenCnt                int
 	DropRate                int
@@ -62,8 +64,10 @@ type State struct {
 	networkOutMsgQueue     chan interfaces.IMsg
 	networkInvalidMsgQueue chan interfaces.IMsg
 	inMsgQueue             chan interfaces.IMsg
+	apiQueue               chan interfaces.IMsg
 	leaderMsgQueue         chan interfaces.IMsg
 	followerMsgQueue       chan interfaces.IMsg
+	stallQueue             chan interfaces.IMsg
 	undo                   interfaces.IMsg
 	ShutdownChan           chan int // For gracefully halting Factom
 	JournalFile            string
@@ -72,20 +76,23 @@ type State struct {
 	serverPubKey  primitives.PublicKey
 
 	// Server State
-	LLeaderHeight uint32
-	Leader        bool
-	LeaderVMIndex int
-	LeaderPL      *ProcessList
-	OutputAllowed bool
-	LeaderMinute  int  // The minute that just was processed by the follower, (1-10), set with EOM
-	EOM           bool // Set to true when all Process Lists have finished a minute
-	EOM_ONCE      bool
-	EOB           bool // Set to true when all Process Lists are complete for a block
-	EOM_LAST      bool
+	LLeaderHeight  uint32
+	Leader         bool
+	LeaderVMIndex  int
+	LeaderPL       *ProcessList
+	OutputAllowed  bool
+	LeaderMinute   int  // The minute that just was processed by the follower, (1-10), set with EOM
+	EOM            int  // Set to true when all Process Lists have finished a minute
+	NetStateOff    bool // Disable if true, Enable if false
+	DebugConsensus bool // If true, dump consensus trace
+	FactoidTrans   int
+	NewEntryChains int
+	NewEntries     int
 	// Maps
 	// ====
 	// For Follower
 	Holding map[[32]byte]interfaces.IMsg // Hold Messages
+	Review  []interfaces.IMsg            // After the EOM, we must review the messages in Holding
 	Acks    map[[32]byte]interfaces.IMsg // Hold Acknowledgemets
 	Commits map[[32]byte]interfaces.IMsg // Commit Messages
 	Reveals map[[32]byte]interfaces.IMsg // Reveal Messages
@@ -148,6 +155,62 @@ type State struct {
 
 var _ interfaces.IState = (*State)(nil)
 
+func (s *State) IsStateFullySynced() bool {
+	//TODO: do
+	return true
+}
+
+func (s *State) GetACKStatus(hash interfaces.IHash, hashType string) (int, error) {
+	switch hashType {
+	case "fct":
+		//TODO: fetch data status from state first
+		in, err := s.GetDB().LoadIncludedIn(hash)
+		if err != nil {
+			return 0, err
+		}
+		if in == nil {
+			if s.IsStateFullySynced() {
+				return constants.AckStatusNotConfirmed, nil
+			} else {
+				return constants.AckStatusUnknown, nil
+			}
+			return constants.AckStatusDBlockConfirmed, nil
+		}
+		break
+	case "ec":
+		//TODO: fetch data status from state first
+		in, err := s.GetDB().LoadIncludedIn(hash)
+		if err != nil {
+			return 0, err
+		}
+		if in == nil {
+			if s.IsStateFullySynced() {
+				return constants.AckStatusNotConfirmed, nil
+			} else {
+				return constants.AckStatusUnknown, nil
+			}
+		}
+		return constants.AckStatusDBlockConfirmed, nil
+		break
+	case "e":
+		//TODO: fetch data status from state first
+		in, err := s.GetDB().LoadIncludedIn(hash)
+		if err != nil {
+			return 0, err
+		}
+		if in == nil {
+			if s.IsStateFullySynced() {
+				return constants.AckStatusNotConfirmed, nil
+			} else {
+				return constants.AckStatusUnknown, nil
+			}
+			return constants.AckStatusDBlockConfirmed, nil
+		}
+		break
+	}
+	return 0, nil
+}
+
 func (s *State) Clone(number string) interfaces.IState {
 
 	clone := new(State)
@@ -161,7 +224,8 @@ func (s *State) Clone(number string) interfaces.IState {
 	clone.LogLevel = s.LogLevel
 	clone.ConsoleLogLevel = s.ConsoleLogLevel
 	clone.NodeMode = "FULL"
-	clone.DBType = s.DBType
+	clone.CloneDBType = s.CloneDBType
+	clone.DBType = s.CloneDBType
 	clone.ExportData = s.ExportData
 	clone.ExportDataSubpath = s.ExportDataSubpath + "sim-" + number
 	clone.Network = s.Network
@@ -199,6 +263,14 @@ func (s *State) GetDropRate() int {
 
 func (s *State) SetDropRate(droprate int) {
 	s.DropRate = droprate
+}
+
+func (s *State) GetNetStateOff() bool { //	If true, all network communications are disabled
+	return s.NetStateOff
+}
+
+func (s *State) SetNetStateOff(net bool) {
+	s.NetStateOff = net
 }
 
 // TODO JAYJAY BUGBUG- passing in folder here is a hack for multiple factomd processes on a single machine (sharing a single .factom)
@@ -241,7 +313,7 @@ func (s *State) LoadConfig(filename string, folder string) {
 		s.ExportDataSubpath = "data/export"
 		s.Network = "LOCAL"
 		s.LocalServerPrivKey = "4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c9b08946553448d26d"
-		s.FactoshisPerEC = 00100000
+		s.FactoshisPerEC = 006666
 		s.DirectoryBlockInSeconds = 6
 		s.PortNumber = 8088
 
@@ -265,17 +337,21 @@ func (s *State) Init() {
 	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 10000) //incoming message queue from the network messages
 	s.networkOutMsgQueue = make(chan interfaces.IMsg, 10000)     //Messages to be broadcast to the network
 	s.inMsgQueue = make(chan interfaces.IMsg, 10000)             //incoming message queue for factom application messages
+	s.apiQueue = make(chan interfaces.IMsg, 10000)               //incoming message queue from the API
 	s.leaderMsgQueue = make(chan interfaces.IMsg, 10000)         //queue of Leadership messages
-	s.followerMsgQueue = make(chan interfaces.IMsg, 10000)       //queue of Leadership messages
+	s.followerMsgQueue = make(chan interfaces.IMsg, 10000)       //queue of Follower messages
+	s.stallQueue = make(chan interfaces.IMsg, 10000)             //queue of Leader messages while stalled
 	s.ShutdownChan = make(chan int, 1)                           //Channel to gracefully shut down.
 
 	os.Mkdir(s.LogPath, 0777)
 	_, err := os.Create(s.JournalFile) //Create the Journal File
 	if err != nil {
-		panic("Could not create the file: " + s.JournalFile)
+		fmt.Println("Could not create the file: " + s.JournalFile)
+		s.JournalFile = ""
 	}
 	// Set up struct to stop replay attacks
 	s.Replay = new(Replay)
+	s.InternalReplay = new(Replay)
 
 	// Set up maps for the followers
 	s.Holding = make(map[[32]byte]interfaces.IMsg)
@@ -312,7 +388,6 @@ func (s *State) Init() {
 		s.Println("   +------ Follower Only ------+")
 		s.Println("   +---------------------------+\n")
 	case "SERVER":
-		s.Leader = true
 		s.Println("\n   +-------------------------+")
 		s.Println("   |       Leader Node       |")
 		s.Println("   +-------------------------+\n")
@@ -440,17 +515,8 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 	if bytes.Compare(fblk.GetKeyMR().Bytes(), dblk.GetDBEntries()[2].GetKeyMR().Bytes()) != 0 {
 		panic("Should not happen")
 	}
-	eblks := make([]interfaces.IEntryBlock, len(dblk.GetDBEntries())-3)
-	if len(dblk.GetDBEntries()) > 3 {
-		for i, v := range dblk.GetDBEntries()[3:] {
-			eblks[i], err = s.DB.FetchEBlockByKeyMR(v.GetKeyMR())
-			if err != nil {
-				return nil, err
-			}
-		}
-	}
 
-	msg := messages.NewDBStateMsg(s.GetTimestamp(), dblk, ablk, fblk, ecblk, eblks)
+	msg := messages.NewDBStateMsg(s.GetTimestamp(), dblk, ablk, fblk, ecblk)
 
 	return msg, nil
 
@@ -572,6 +638,18 @@ func (s *State) GetAllEntries(ebKeyMR interfaces.IHash) bool {
 	return hasAllEntries
 }
 
+func (s *State) IncFactoidTrans() {
+	s.FactoidTrans++
+}
+
+func (s *State) IncEntryChains() {
+	s.NewEntryChains++
+}
+
+func (s *State) IncEntries() {
+	s.NewEntries++
+}
+
 func (s *State) DatabaseContains(hash interfaces.IHash) bool {
 	result, _, err := s.LoadDataByHash(hash)
 	if result != nil && err == nil {
@@ -592,13 +670,20 @@ func (s *State) MessageToLogString(msg interfaces.IMsg) string {
 }
 
 func (s *State) JournalMessage(msg interfaces.IMsg) {
-	f, err := os.OpenFile(s.JournalFile, os.O_APPEND+os.O_WRONLY, 0666)
-	if err != nil {
-		panic("Failed to open Journal File: " + s.JournalFile)
+	if len(s.JournalFile) == 0 {
+		f, err := os.OpenFile(s.JournalFile, os.O_APPEND+os.O_WRONLY, 0666)
+		if err != nil {
+			s.JournalFile = ""
+			return
+		}
+		str := s.MessageToLogString(msg)
+		f.WriteString(str)
+		f.Close()
 	}
-	str := s.MessageToLogString(msg)
-	f.WriteString(str)
-	f.Close()
+}
+
+func (s *State) GetLeaderVM() int {
+	return s.LeaderVMIndex
 }
 
 func (s *State) GetDBState(height uint32) *DBState {
@@ -631,16 +716,6 @@ func (s *State) UpdateState() (progress bool) {
 
 	s.catchupEBlocks()
 
-	if progress && s.GetOut() {
-		str := fmt.Sprintf("%25s   %10s   %25s", "----------------", s.GetFactomNodeName(), "--------------------\n")
-		str = str + s.ProcessLists.String()
-		str = str + s.DBStates.String()
-		str = str + fmt.Sprintf("%25s   %10s   %25s", "================", s.GetFactomNodeName(), "===================\n")
-		str = str + "===================================================================="
-
-		s.Println(str)
-	}
-
 	return
 }
 
@@ -667,6 +742,10 @@ func (s *State) catchupEBlocks() {
 			s.SetEBDBHeightComplete(s.GetEBDBHeightComplete() + 1)
 		}
 	}
+}
+
+func (s *State) GetEOM() int {
+	return s.EOM
 }
 
 func (s *State) AddFedServer(dbheight uint32, hash interfaces.IHash) int {
@@ -808,8 +887,26 @@ func (s *State) InMsgQueue() chan interfaces.IMsg {
 	return s.inMsgQueue
 }
 
+func (s *State) APIQueue() chan interfaces.IMsg {
+	return s.apiQueue
+}
+
 func (s *State) LeaderMsgQueue() chan interfaces.IMsg {
 	return s.leaderMsgQueue
+}
+
+func (s *State) StallMsg(m interfaces.IMsg) {
+	if !m.IsLocal() {
+		s.stallQueue <- m
+		m.SetStalled(true)
+		if s.DebugConsensus {
+			fmt.Printf("%-30s %10s %s\n", "SSS Stalling Msg: ", s.FactomNodeName, m.String())
+		}
+	}
+}
+
+func (s *State) Stall() chan interfaces.IMsg {
+	return s.stallQueue
 }
 
 func (s *State) FollowerMsgQueue() chan interfaces.IMsg {
@@ -904,10 +1001,17 @@ func (s *State) SetString() {
 	lastheight := uint32(0)
 
 	found, _ := s.GetVirtualServers(buildingBlock+1, 0, s.GetIdentityChainID())
-	stype := ""
+
+	L := ""
+	X := ""
 	if found {
-		stype = fmt.Sprintf("L     ")
+		L = "L"
 	}
+	if s.NetStateOff {
+		X = "X"
+	}
+
+	stype := fmt.Sprintf("%1s%1s", L, X)
 
 	if buildingBlock == 0 {
 		s.serverPrt = fmt.Sprintf("%9s%9s Recorded: %d Building: %d Highest: %d ",
@@ -919,9 +1023,9 @@ func (s *State) SetString() {
 	} else {
 
 		keyMR := []byte("aaaaa")
-		abHash := []byte("aaaaa")
-		fbHash := []byte("aaaaa")
-		ecHash := []byte("aaaaa")
+		//abHash := []byte("aaaaa")
+		//fbHash := []byte("aaaaa")
+		//ecHash := []byte("aaaaa")
 
 		switch {
 		case s.DBStates == nil:
@@ -932,13 +1036,13 @@ func (s *State) SetString() {
 
 		default:
 			keyMR = s.DBStates.Last().DirectoryBlock.GetKeyMR().Bytes()
-			abHash = s.DBStates.Last().AdminBlock.GetHash().Bytes()
-			fbHash = s.DBStates.Last().FactoidBlock.GetHash().Bytes()
-			ecHash = s.DBStates.Last().EntryCreditBlock.GetHash().Bytes()
+			//abHash = s.DBStates.Last().AdminBlock.GetHash().Bytes()
+			//fbHash = s.DBStates.Last().FactoidBlock.GetHash().Bytes()
+			//ecHash = s.DBStates.Last().EntryCreditBlock.GetHash().Bytes()
 			lastheight = s.DBStates.Last().DirectoryBlock.GetHeader().GetDBHeight()
 		}
 
-		s.serverPrt = fmt.Sprintf("%9s%9s %x Recorded: %d Building: %d Last: %d DirBlk[:5]=%x ABHash[:5]=%x FBHash[:5]=%x ECHash[:5]=%x ",
+		s.serverPrt = fmt.Sprintf("%4s%8s ID %x Save:%4d Next:%4d High:%4d DBMR <%x> L Min: %2v L DBHT%5v Min C/F %02v/%02v EOM %2v %3d-Fct %3d-EC %3d-E",
 			stype,
 			s.FactomNodeName,
 			s.IdentityChainID.Bytes()[:3],
@@ -946,9 +1050,14 @@ func (s *State) SetString() {
 			lastheight,
 			s.GetHighestKnownBlock(),
 			keyMR[:3],
-			abHash[:3],
-			fbHash[:3],
-			ecHash[:3])
+			s.LeaderMinute,
+			s.LLeaderHeight,
+			s.ProcessLists.Get(s.LLeaderHeight).MinuteComplete(),
+			s.ProcessLists.Get(s.LLeaderHeight).MinuteFinished(),
+			s.EOM,
+			s.FactoidTrans,
+			s.NewEntryChains,
+			s.NewEntries)
 	}
 }
 

@@ -25,6 +25,7 @@ type EOM struct {
 	DBHeight  uint32
 	ChainID   interfaces.IHash
 	Signature interfaces.IFullSignature
+	FactoidVM bool
 
 	//Not marshalled
 	hash       interfaces.IHash
@@ -119,6 +120,7 @@ func (m *EOM) Validate(state interfaces.IState) int {
 	if m.IsLocal() {
 		return 1
 	}
+
 	found, _ := state.GetVirtualServers(m.DBHeight, int(m.Minute), m.ChainID)
 	if !found { // Only EOM from federated servers are valid.
 		return -1
@@ -217,6 +219,8 @@ func (m *EOM) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 
 	m.VMIndex = int(newData[0])
 	newData = newData[1:]
+	m.FactoidVM = uint8(newData[0]) == 1
+	newData = newData[1:]
 
 	m.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
@@ -254,6 +258,11 @@ func (m *EOM) MarshalForSignature() (data []byte, err error) {
 
 	binary.Write(&buf, binary.BigEndian, m.Minute)
 	binary.Write(&buf, binary.BigEndian, uint8(m.VMIndex))
+	if m.FactoidVM {
+		binary.Write(&buf, binary.BigEndian, uint8(1))
+	} else {
+		binary.Write(&buf, binary.BigEndian, uint8(0))
+	}
 	return buf.DeepCopyBytes(), nil
 }
 
@@ -279,11 +288,21 @@ func (m *EOM) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *EOM) String() string {
-	return fmt.Sprintf("%6s-VM%3d: Min:%4d Ht:%5d -- Leader[:3]=%x hash[:3]=%x",
+	local := ""
+	if m.IsLocal() {
+		local = "local"
+	}
+	f := "-"
+	if m.FactoidVM {
+		f = "F"
+	}
+	return fmt.Sprintf("%6s-VM%3d: Min:%4d DBHt:%5d -%1s-Leader[:3]=%x hash[:3]=%x %s",
 		"EOM",
 		m.VMIndex,
 		m.Minute,
 		m.DBHeight,
+		f,
 		m.ChainID.Bytes()[:3],
-		m.GetMsgHash().Bytes()[:3])
+		m.GetMsgHash().Bytes()[:3],
+		local)
 }

@@ -216,27 +216,20 @@ func (m *CommitEntryMsg) String() string {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *CommitEntryMsg) Validate(state interfaces.IState) int {
-	//TODO: implement properly, check EC balance
+	if !m.CommitEntry.IsValid() {
+		return -1
+	}
+	ebal := state.GetFactoidState().GetECBalance(*m.CommitEntry.ECPubKey)
+	if int(m.CommitEntry.Credits) > int(ebal) {
+		return -1
+	}
 	return 1
 }
 
 // Returns true if this is a message for this server to execute as
 // a leader.
 func (m *CommitEntryMsg) Leader(state interfaces.IState) bool {
-	//TODO: implement properly
 	return state.LeaderFor(m, constants.EC_CHAINID)
-	/*
-		switch state.GetNetworkNumber() {
-		case 0: // Main Network
-			panic("Not implemented yet")
-		case 1: // Test Network
-			panic("Not implemented yet")
-		case 2: // Local Network
-			panic("Not implemented yet")
-		default:
-			panic("Not implemented yet")
-		}*/
-
 }
 
 // Execute the leader functions of the given message
