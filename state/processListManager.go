@@ -19,6 +19,16 @@ type ProcessLists struct {
 
 }
 
+func (lists *ProcessLists) Reset(dbheight uint32) {
+	lists.Get(dbheight+1)
+	lists.State.EOM=0
+	lists.State.stallQueue = make(chan interfaces.IMsg,10000)
+	lists.State.Holding = make(map[[32]byte]interfaces.IMsg)
+	lists.State.Acks = make(map[[32]byte]interfaces.IMsg)
+	lists.State.Commits = make(map[[32]byte]interfaces.IMsg)
+	lists.State.Reveals = make(map[[32]byte]interfaces.IMsg)
+}
+
 // UpdateState is executed from a Follower's perspective.  So the block we are building
 // is always the block above the HighestRecordedBlock, but we only care about messages that
 // are at the highest known block, as long as that is above the highest recorded block.

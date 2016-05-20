@@ -23,9 +23,30 @@ func NetworkProcessorNet(fnode *FactomNode) {
 }
 
 func Peers(fnode *FactomNode) {
+	cnt := 0
 	for {
-		time.Sleep(50 * time.Millisecond)
-		cnt := 0
+		for i := 0; i < 100 && len(fnode.State.APIQueue()) > 0; i++ {
+			select {
+			case msg := <-fnode.State.APIQueue():
+				if msg == nil {
+					break
+				}
+				cnt++
+				msg.SetOrigin(0)
+				if fnode.State.Replay.IsTSValid_(msg.GetMsgHash().Fixed(),
+					int64(msg.GetTimestamp())/1000,
+					int64(fnode.State.GetTimestamp())/1000) {
+
+					fnode.MLog.add2(fnode, false, fnode.State.FactomNodeName, "API", true, msg)
+					if len(fnode.State.InMsgQueue()) < 9000 {
+						fnode.State.InMsgQueue() <- msg
+					}
+				}
+			default:
+
+			}
+		}
+
 		// Put any broadcasts from our peers into our BroadcastIn queue
 		for i, peer := range fnode.Peers {
 			for j := 0; j < 100; j++ {
@@ -37,9 +58,12 @@ func Peers(fnode *FactomNode) {
 					msg, err = peer.Recieve()
 				}
 
-				if msg == nil { // Recieve is not blocking; nothing to do, we get a nil.
+				if msg == nil {
+					// Recieve is not blocking; nothing to do, we get a nil.
 					break
 				}
+
+				cnt++
 
 				if err != nil {
 					fmt.Println("ERROR recieving message on", fnode.State.FactomNodeName+":", err)
@@ -69,9 +93,12 @@ func Peers(fnode *FactomNode) {
 				} else {
 					fnode.MLog.add2(fnode, false, peer.GetNameTo(), "PeerIn", false, msg)
 				}
-				cnt++
 			}
 		}
+		if cnt == 0 {
+			time.Sleep(50 * time.Millisecond)
+		}
+		cnt = 0
 	}
 }
 
@@ -80,7 +107,7 @@ func NetworkOutputs(fnode *FactomNode) {
 		if len(fnode.State.NetworkOutMsgQueue()) > 500 {
 			fmt.Print(fnode.State.GetFactomNodeName(), "-", len(fnode.State.NetworkOutMsgQueue()), " ")
 		}
-		time.Sleep(10 * time.Millisecond)
+		time.Sleep(1 * time.Millisecond)
 		msg := <-fnode.State.NetworkOutMsgQueue()
 
 		// Local Messages are Not broadcast out.  This is mostly the block signature
@@ -133,7 +160,7 @@ func NetworkOutputs(fnode *FactomNode) {
 // Just throw away the trash
 func InvalidOutputs(fnode *FactomNode) {
 	for {
-		time.Sleep(10 * time.Millisecond)
+		time.Sleep(1 * time.Millisecond)
 		<-fnode.State.NetworkInvalidMsgQueue()
 	}
 }

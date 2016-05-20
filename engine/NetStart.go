@@ -231,23 +231,11 @@ func NetStart(s *state.State) {
 			AddSimPeer(fnodes, i%cnt, (i+7)%cnt)
 		}
 	case "alot":
-		index := 0
-		row := 1
-	alotloop:
-		for i := 0; true; i++ {
-			for j := 0; j <= i; j++ {
-				AddSimPeer(fnodes, index, row)
-				AddSimPeer(fnodes, index, row+1)
-				if j%4 == 0 {
-					AddSimPeer(fnodes, 0, index)
-				}
-				row++
-				index++
-				if index >= len(fnodes) {
-					break alotloop
-				}
-			}
-			row += 1
+		n := len(fnodes)
+		for i := 0; i < n; i++ {
+			AddSimPeer(fnodes, i, (i+1)%n)
+			AddSimPeer(fnodes, i, (i+3)%n)
+			AddSimPeer(fnodes, i, (i+5)%n)
 		}
 
 	case "tree":

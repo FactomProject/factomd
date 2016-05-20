@@ -76,9 +76,11 @@ type IState interface {
 	JournalMessage(IMsg)
 
 	// Consensus
+	APIQueue() chan IMsg       // Input Queue from the API
 	InMsgQueue() chan IMsg     // Read by Validate
 	LeaderMsgQueue() chan IMsg // Leader Queue
 	Stall() chan IMsg          // Leader Queue
+	StallMsg(IMsg)             // Stall a message that we need to execute later
 
 	// Lists and Maps
 	// =====
@@ -152,6 +154,7 @@ type IState interface {
 	// For messages that go into the Process List
 	LeaderExecute(m IMsg) error
 	LeaderExecuteEOM(m IMsg) error
+	LeaderExecuteRE(m IMsg) error
 
 	GetNetStateOff() bool //	If true, all network communications are disabled
 	SetNetStateOff(bool)

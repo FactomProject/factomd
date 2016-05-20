@@ -96,11 +96,6 @@ type IMsg interface {
 	SetMinute(byte)
 
 	// Need to ignore messages already in the Process List
-	GetRecorded() bool
-	SetRecorded(bool)
-
-	// Some messages we just need to execute always
-	IsExeAlways() bool
-	SetExeAlways(exeAlways bool)
-
+	IsRepeat() bool
+	SetRepeat(bool)
 }

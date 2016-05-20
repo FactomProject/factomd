@@ -91,6 +91,7 @@ func (a *Ack) IsSameAs(b *Ack) bool {
 	return true
 }
 
+// We have to return the haswh of the underlying message.
 func (m *Ack) GetHash() interfaces.IHash {
 	return m.MessageHash
 }

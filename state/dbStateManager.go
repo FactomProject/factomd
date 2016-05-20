@@ -140,6 +140,10 @@ func (list *DBStateList) Catchup() {
 		}
 
 		if plHeight > dbsHeight && plHeight-dbsHeight > 1 {
+<<<<<<< HEAD
+=======
+			list.State.ProcessLists.Reset(dbsHeight)
+>>>>>>> m2
 			begin = int(dbsHeight + 1)
 			end = int(plHeight - 1)
 		} else {
@@ -160,6 +164,8 @@ func (list *DBStateList) Catchup() {
 		list.State.EOM = 0
 		list.State.stallQueue = make(chan interfaces.IMsg, 10000)	// If we are loading blocks, give up on messages.
 		list.State.NetworkOutMsgQueue() <- msg
+		list.State.stallQueue = make(chan interfaces.IMsg, 10000)
+		list.State.NewMinute()
 	}
 
 }

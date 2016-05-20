@@ -65,6 +65,7 @@ type State struct {
 	networkOutMsgQueue     chan interfaces.IMsg
 	networkInvalidMsgQueue chan interfaces.IMsg
 	inMsgQueue             chan interfaces.IMsg
+	apiQueue               chan interfaces.IMsg
 	leaderMsgQueue         chan interfaces.IMsg
 	followerMsgQueue       chan interfaces.IMsg
 	stallQueue             chan interfaces.IMsg
@@ -92,6 +93,7 @@ type State struct {
 	// ====
 	// For Follower
 	Holding map[[32]byte]interfaces.IMsg // Hold Messages
+	Review  []interfaces.IMsg            // After the EOM, we must review the messages in Holding
 	Acks    map[[32]byte]interfaces.IMsg // Hold Acknowledgemets
 	Commits map[[32]byte]interfaces.IMsg // Commit Messages
 	Reveals map[[32]byte]interfaces.IMsg // Reveal Messages
@@ -257,7 +259,7 @@ func (s *State) LoadConfig(filename string, folder string) {
 		s.ExportDataSubpath = "data/export"
 		s.Network = "LOCAL"
 		s.LocalServerPrivKey = "4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c9b08946553448d26d"
-		s.FactoshisPerEC = 00100000
+		s.FactoshisPerEC = 006666
 		s.DirectoryBlockInSeconds = 6
 		s.PortNumber = 8088
 
@@ -281,6 +283,7 @@ func (s *State) Init() {
 	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 10000) //incoming message queue from the network messages
 	s.networkOutMsgQueue = make(chan interfaces.IMsg, 10000)     //Messages to be broadcast to the network
 	s.inMsgQueue = make(chan interfaces.IMsg, 10000)             //incoming message queue for factom application messages
+	s.apiQueue = make(chan interfaces.IMsg, 10000)               //incoming message queue from the API
 	s.leaderMsgQueue = make(chan interfaces.IMsg, 10000)         //queue of Leadership messages
 	s.followerMsgQueue = make(chan interfaces.IMsg, 10000)       //queue of Follower messages
 	s.stallQueue = make(chan interfaces.IMsg, 10000)             //queue of Leader messages while stalled
@@ -289,7 +292,8 @@ func (s *State) Init() {
 	os.MkdirAll(s.LogPath, 0777)
 	_, err := os.Create(s.JournalFile) //Create the Journal File
 	if err != nil {
-		panic("Could not create the file: " + s.JournalFile)
+		fmt.Println("Could not create the file: " + s.JournalFile)
+		s.JournalFile = ""
 	}
 	// Set up struct to stop replay attacks
 	s.Replay = new(Replay)
@@ -613,13 +617,16 @@ func (s *State) MessageToLogString(msg interfaces.IMsg) string {
 }
 
 func (s *State) JournalMessage(msg interfaces.IMsg) {
-	f, err := os.OpenFile(s.JournalFile, os.O_APPEND+os.O_WRONLY, 0666)
-	if err != nil {
-		panic("Failed to open Journal File: " + s.JournalFile)
+	if len(s.JournalFile) == 0 {
+		f, err := os.OpenFile(s.JournalFile, os.O_APPEND + os.O_WRONLY, 0666)
+		if err != nil {
+			s.JournalFile=""
+			return
+		}
+		str := s.MessageToLogString(msg)
+		f.WriteString(str)
+		f.Close()
 	}
-	str := s.MessageToLogString(msg)
-	f.WriteString(str)
-	f.Close()
 }
 
 func (s *State) GetLeaderVM() int {
@@ -831,6 +838,10 @@ func (s *State) InMsgQueue() chan interfaces.IMsg {
 	return s.inMsgQueue
 }
 
+func (s *State) APIQueue() chan interfaces.IMsg {
+	return s.apiQueue
+}
+
 func (s *State) LeaderMsgQueue() chan interfaces.IMsg {
 	return s.leaderMsgQueue
 }
@@ -982,7 +993,7 @@ func (s *State) SetString() {
 			lastheight = s.DBStates.Last().DirectoryBlock.GetHeader().GetDBHeight()
 		}
 
-		s.serverPrt = fmt.Sprintf("%4s%8s %x Saved: %5d Build: %5d Last: %5d DirBlk=%x L Min: %2v L DBHT %5v Min C/F %02v/%02v EOM %2v %3dFct %3dEC %3dE",
+		s.serverPrt = fmt.Sprintf("%4s%8s ID %x Save:%4d Next:%4d High:%4d DBMR <%x> L Min: %2v L DBHT%5v Min C/F %02v/%02v EOM %2v %3d-Fct %3d-EC %3d-E",
 			stype,
 			s.FactomNodeName,
 			s.IdentityChainID.Bytes()[:3],

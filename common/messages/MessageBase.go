@@ -21,7 +21,7 @@ type MessageBase struct {
 	VMIndex       int              // The Index of the VM responsible for this message.
 	VMHash        []byte           // Basis for selecting a VMIndex
 	Minute        byte
-	Recorded      bool // Marked true when it makes the process list
+	Repeat        bool // Mark as a message that is being repeated, so don't broadcast
 	// Used by Leader code, but only Marshaled and Unmarshalled in Ack Messages
 	// EOM messages, and DirectoryBlockSignature messages
 }
@@ -43,12 +43,12 @@ func (m *MessageBase) SetStalled(stalled bool) {
 	m.Stalled = stalled
 }
 
-func (m *MessageBase) GetRecorded() bool {
-	return m.Recorded
+func (m *MessageBase) IsRepeat() bool {
+	return m.Repeat
 }
 
-func (m *MessageBase) SetRecorded(b bool) {
-	m.Recorded = b
+func (m *MessageBase) SetRepeat(b bool) {
+	m.Repeat = b
 }
 
 func (m *MessageBase) GetOrigin() int {
