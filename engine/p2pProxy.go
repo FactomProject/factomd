@@ -11,7 +11,7 @@ import (
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
-	"github.com/factomproject/factomd/p2p"
+	"github.com/FactomProject/factomd/p2p"
 )
 
 var _ = fmt.Print
