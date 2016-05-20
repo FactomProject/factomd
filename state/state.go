@@ -947,6 +947,7 @@ func (s *State) ShortString() string {
 }
 
 func (s *State) SetString() {
+
 	buildingBlock := s.GetHighestRecordedBlock()
 
 	lastheight := uint32(0)
