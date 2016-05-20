@@ -93,4 +93,7 @@ type IMsg interface {
 	// Need to ignore messages already in the Process List
 	IsRepeat() bool
 	SetRepeat(bool)
+
+	IsRecorded() bool
+	SetRecorded(bool)
 }

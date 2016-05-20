@@ -20,6 +20,8 @@ type ProcessLists struct {
 }
 
 func (lists *ProcessLists) Reset(dbheight uint32) {
+	lists.DBHeightBase=dbheight
+	lists.Lists = lists.Lists[:0]
 	lists.Get(dbheight+1)
 	lists.State.EOM=0
 	lists.State.stallQueue = make(chan interfaces.IMsg,10000)

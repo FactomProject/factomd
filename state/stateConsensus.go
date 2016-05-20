@@ -29,14 +29,13 @@ func (s *State) NewMinute() {
 	s.Review = make([]interfaces.IMsg, 0, len(s.Holding))
 	// Anything we are holding, we need to reprocess.
 	for k := range s.Holding {
-		if v := s.Holding[k]; v != nil {
+		if v := s.Holding[k]; v != nil && !v.IsRecorded() {
 			s.Review = append(s.Review, v)
 			s.Holding[k] = nil
 		}
 	}
 	// Clear the holding map
 	s.Holding = make(map[[32]byte]interfaces.IMsg)
-	s.Reveals = make(map[[32]byte]interfaces.IMsg)
 	s.EOM = 0
 }
 
@@ -177,6 +176,7 @@ func (s *State) ProcessQueues() (progress bool) {
 		default:
 		}
 	}
+
 	// If all my messages are empy, see if I can process a stalled message
 	if msg == nil {
 		select {
@@ -214,6 +214,11 @@ func (s *State) ProcessQueues() (progress bool) {
 		default:
 		}
 	}
+
+	if msg != nil && msg.IsRecorded() {	// Once recorded, we need not bother.
+		msg = nil
+	}
+
 
 	if msg != nil {
 		if s.LeaderPL != nil {
@@ -524,8 +529,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	}
 
 	pl := s.ProcessLists.Get(dbheight)
-
-	pl.SetMinute(e.VMIndex, int(e.Minute))
 
 	if pl.MinuteComplete() < s.LeaderMinute {
 		return false

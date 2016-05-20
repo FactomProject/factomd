@@ -66,12 +66,11 @@ func (state *State) ValidatorLoop() {
 			if state.IsReplaying == true {
 				state.ReplayTimestamp = msg.GetTimestamp()
 			}
-			if msg.Leader(state) {
-				state.LeaderMsgQueue() <- msg
-			} else if msg.Follower(state) {
+			if _,ok := msg.(*messages.EOM); ok {
+				state.leaderMsgQueue <- msg
+			} else {
 				state.FollowerMsgQueue() <- msg
 			}
-
 		}
 	}
 }

@@ -21,8 +21,17 @@ type MessageBase struct {
 	VMHash        []byte           // Basis for selecting a VMIndex
 	Minute        byte
 	Repeat        bool // Mark as a message that is being repeated, so don't broadcast
-	// Used by Leader code, but only Marshaled and Unmarshalled in Ack Messages
+
+	Recorded      bool// Used by Leader code, but only Marshaled and Unmarshalled in Ack Messages
 	// EOM messages, and DirectoryBlockSignature messages
+}
+
+func (m *MessageBase) IsRecorded() bool {
+	return m.Recorded
+}
+
+func (m *MessageBase) SetRecorded (b bool) {
+	m.Recorded = b
 }
 
 func (m *MessageBase) GetStalled() bool {

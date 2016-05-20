@@ -195,8 +195,11 @@ func (p *ProcessList) GetAuditServerIndexHash(identityChainID interfaces.IHash) 
 func (p *ProcessList) MakeMap() {
 	n := len(p.FedServers)
 	indx := int(p.DBHeight*131) % n
+
+
 	for i := 0; i < 10; i++ {
 		indx = (indx + 1) % n
+		indx = 0 // No Swap.
 		for j := 0; j < len(p.FedServers); j++ {
 			p.ServerMap[i][j] = indx
 			indx = (indx + 1) % n
@@ -223,13 +226,6 @@ func (p *ProcessList) PrintMap() string {
 	return prt
 }
 
-// Take the minute that has completed.  The minute height then is 1 plus that number
-// i.e. the minute height is 0, or 1, or 2, or ... or 10 (all done)
-func (p *ProcessList) SetMinute(index int, minute int) {
-	p.VMs[index].LeaderMinute = minute
-	p.VMs[index].MinuteComplete = minute + 1
-	p.VMs[index].MinuteHeight = p.VMs[index].Height
-}
 
 // Return the lowest minute number in our lists.  Note that Minute Markers END
 // a minute, so After MinuteComplete=0
@@ -425,7 +421,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			}
 
 			if p.Sealing && vm.Seal == 0 {
-				vm.SealTime = ask(vm,vm.SealTime+4,vm.Height)
+				vm.SealTime = ask(vm,vm.SealTime+1,vm.Height)
 			}
 
 			thisAck := alist[j]
@@ -535,7 +531,10 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) boo
 		p.Sealing = true
 		vm.Seal = int(eom.Minute + 1)
 		vm.SealHeight = ack.Height
+		vm.MinuteComplete = int(eom.Minute+1)
+		vm.MinuteHeight = vm.Height
 	}
+
 	length := len(p.VMs[ack.VMIndex].List)
 	for length <= int(ack.Height) {
 		p.VMs[ack.VMIndex].List = append(p.VMs[ack.VMIndex].List, nil)
@@ -545,6 +544,9 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) boo
 
 	p.VMs[ack.VMIndex].List[ack.Height] = m
 	p.VMs[ack.VMIndex].ListAck[ack.Height] = ack
+
+	m.SetRecorded(true)
+	ack.SetRecorded(true)
 
 	now := int64(p.State.GetTimestamp())
 	// Both the ack and the message hash to the same GetHash()

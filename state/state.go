@@ -22,6 +22,7 @@ import (
 	"github.com/FactomProject/factomd/logger"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
+	"math/rand"
 )
 
 var _ = fmt.Print
@@ -947,6 +948,10 @@ func (s *State) ShortString() string {
 }
 
 func (s *State) SetString() {
+
+	if rand.Int()%100 > 5 {
+		return
+	}
 
 	buildingBlock := s.GetHighestRecordedBlock()
 
