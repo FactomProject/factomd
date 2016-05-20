@@ -239,12 +239,16 @@ func (m *RevealEntryMsg) UnmarshalBinaryData(data []byte) (newData []byte, err e
 	}
 	m.Timestamp = *t
 
+	m.Peer2Peer = newData[0]==1
+	newData = newData[1:]
+
 	e := entryBlock.NewEntry()
 	newData, err = e.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
 	}
 	m.Entry = e
+
 
 	return newData, nil
 }
@@ -266,11 +270,18 @@ func (m *RevealEntryMsg) MarshalBinary() (data []byte, err error) {
 	}
 	buf.Write(data)
 
+	if m.Peer2Peer {
+		buf.WriteByte(uint8(1))
+	}else {
+		buf.WriteByte(uint8(0))
+	}
+
 	data, err = m.Entry.MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
 	buf.Write(data)
+
 
 	return buf.DeepCopyBytes(), nil
 }

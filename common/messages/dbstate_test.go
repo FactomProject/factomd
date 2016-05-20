@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/testHelper"
 )
@@ -62,7 +61,6 @@ func newDBStateMsg() *DBStateMsg {
 	msg.AdminBlock = set.ABlock
 	msg.FactoidBlock = set.FBlock
 	msg.EntryCreditBlock = set.ECBlock
-	msg.EntryBlocks = []interfaces.IEntryBlock{set.AnchorEBlock, set.EBlock}
 
 	return msg
 }

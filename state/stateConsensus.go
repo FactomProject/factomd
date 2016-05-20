@@ -7,6 +7,8 @@ package state
 import (
 	"fmt"
 
+	"os"
+
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
@@ -15,7 +17,6 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/util"
-	"os"
 )
 
 var _ = fmt.Print
@@ -246,14 +247,6 @@ func (s *State) AddDBState(isNew bool,
 	entryCreditBlock interfaces.IEntryCreditBlock) {
 
 	// TODO:  Need to validate before we add, or at least validate once we have a contiguous set of blocks.
-
-	// 	fmt.Printf("AddDBState %s: DirectoryBlock %d %x %x %x %x\n",
-	// 			   s.FactomNodeName,
-	// 			   directoryBlock.GetHeader().GetDBHeight(),
-	// 			   directoryBlock.GetKeyMR().Bytes()[:5],
-	// 			   adminBlock.GetHash().Bytes()[:5],
-	// 			   factoidBlock.GetHash().Bytes()[:5],
-	// 			   entryCreditBlock.GetHash().Bytes()[:5])
 
 	dbState := s.DBStates.NewDBState(isNew, directoryBlock, adminBlock, factoidBlock, entryCreditBlock)
 	s.DBStates.Put(dbState)

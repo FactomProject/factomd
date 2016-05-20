@@ -210,6 +210,9 @@ func (m *DirectoryBlockSignature) UnmarshalBinaryData(data []byte) (newData []by
 	}
 	m.ServerIdentityChainID = hash
 
+	m.Peer2Peer = newData[0]==1
+	newData = newData[1:]
+
 	if len(newData) > 0 {
 		sig := new(primitives.Signature)
 		newData, err = sig.UnmarshalBinaryData(newData)
@@ -264,6 +267,13 @@ func (m *DirectoryBlockSignature) MarshalBinary() (data []byte, err error) {
 
 	var sig interfaces.IFullSignature
 	resp, err := m.MarshalForSignature()
+
+	if m.Peer2Peer {
+		resp = append(resp,uint8(1))
+	}else{
+		resp = append(resp,uint8(0))
+	}
+
 	if err == nil {
 		sig = m.GetSignature()
 	}
