@@ -70,37 +70,38 @@ type VM struct {
 
 // Attempts to unseal. Takes a minute (1-10) Returns false if it cannot.
 // Returns false if no seal is found.
-func (p *ProcessList) Unseal(minute int) bool {
-	cnt := 0
+func (p *ProcessList) Unsealable(minute int) bool {
+	searchVMs:
 	for i := 0; i < len(p.FedServers); i++ {
 		vm := p.VMs[i]
 		if len(vm.List) != vm.Height {
-			break
+			return false
 		}
 		for _, v := range vm.List {
 			if v == nil {
-				break
+				return false
 			}
 			if eom, ok := v.(*messages.EOM); ok {
-				if int(eom.Minute+1) == minute {
-					cnt++
-					break
+				if int(eom.Minute + 1) == minute {
+					continue searchVMs
 				}
 			}
 		}
+		return false
 	}
-	if cnt > 0 {
-		if cnt < len(p.FedServers) {
-			return false
-		}
-		for i := 0; i < len(p.FedServers); i++ {
-			p.VMs[i].Seal = 0
-			p.VMs[i].SealHeight = 0
-			p.Sealing = false
-		}
-		return true
+	return true
+}
+
+func (p *ProcessList) Unseal(minute int) bool {
+	if !p.Unsealable(minute) {
+		return false
 	}
-	return false
+	for i := 0; i < len(p.FedServers); i++ {
+		p.VMs[i].Seal = 0
+		p.VMs[i].SealHeight = 0
+		p.Sealing = false
+	}
+	return true
 }
 
 // Returns the Virtual Server index for this hash for the given minute

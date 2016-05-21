@@ -26,10 +26,11 @@ var _ = fmt.Print
 // Returns true if some message was processed.
 //***************************************************************
 func (s *State) NewMinute() {
+	s.LeaderPL.Unseal(s.EOM)
 	s.Review = make([]interfaces.IMsg, 0, len(s.Holding))
 	// Anything we are holding, we need to reprocess.
 	for k := range s.Holding {
-		if v := s.Holding[k]; v != nil  {
+		if v := s.Holding[k]; v != nil {
 			s.Review = append(s.Review, v)
 			s.Holding[k] = nil
 		}
@@ -80,7 +81,7 @@ func (s *State) Process() (progress bool) {
 		s.NewMinute()
 	}
 
-	if s.EOM > 0 && s.LeaderPL.Unseal(s.EOM) {
+	if s.EOM > 0 && s.LeaderPL.Unsealable(s.EOM) {
 		s.LeaderMinute++
 
 		switch {
@@ -371,12 +372,15 @@ func (s *State) LeaderExecute(m interfaces.IMsg) error {
 		return err
 	}
 
-	if err := ack.FollowerExecute(s); err == nil {
-		m.FollowerExecute(s)
-		m.SetLocal(false)
-		s.networkOutMsgQueue <- m
-		s.networkOutMsgQueue <- ack
-	} else {
+	if err := m.FollowerExecute(s); err == nil {
+		if err := ack.FollowerExecute(s); err == nil {
+			m.SetLocal(false)
+			s.networkOutMsgQueue <- m
+			s.networkOutMsgQueue <- ack
+		} else {
+			return err
+		}
+	}else {
 		return err
 	}
 
@@ -396,12 +400,15 @@ func (s *State) LeaderExecuteRE(m interfaces.IMsg) error {
 		return err
 	}
 
-	if err := ack.FollowerExecute(s); err == nil {
-		m.FollowerExecute(s)
-		m.SetLocal(false)
-		s.networkOutMsgQueue <- m
-		s.networkOutMsgQueue <- ack
-	} else {
+	if err := m.FollowerExecute(s); err == nil {
+		if err := ack.FollowerExecute(s); err == nil {
+			m.SetLocal(false)
+			s.networkOutMsgQueue <- m
+			s.networkOutMsgQueue <- ack
+		} else {
+			return err
+		}
+	}else {
 		return err
 	}
 
@@ -431,12 +438,15 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
 		return err
 	}
 
-	if err := ack.FollowerExecute(s); err == nil {
-		m.SetLocal(false)
-		m.FollowerExecute(s)
-		s.networkOutMsgQueue <- m
-		s.networkOutMsgQueue <- ack
-	} else {
+	if err := m.FollowerExecute(s); err == nil {
+		if err := ack.FollowerExecute(s); err == nil {
+			m.SetLocal(false)
+			s.networkOutMsgQueue <- m
+			s.networkOutMsgQueue <- ack
+		} else {
+			return err
+		}
+	}else {
 		return err
 	}
 

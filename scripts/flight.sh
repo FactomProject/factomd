@@ -2,7 +2,7 @@
 
 	echo "Transactions: "
 sleep 3
-for i in `seq 1 10`;
+for i in `seq 1 50`;
 do
 	factom-cli deletetransaction t
 	factom-cli newtransaction t

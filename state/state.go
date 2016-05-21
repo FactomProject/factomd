@@ -945,7 +945,7 @@ func (s *State) ShortString() string {
 
 func (s *State) SetString() {
 
-	if rand.Int()%100 > 5 {
+	if rand.Int()%100 > 50 {
 		return
 	}
 
