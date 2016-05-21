@@ -224,9 +224,6 @@ func (m *EOM) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 
 	m.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
-	m.Peer2Peer = newData[0]==1
-	newData = newData[1:]
-
 	if len(newData) > 0 {
 		sig := new(primitives.Signature)
 		newData, err = sig.UnmarshalBinaryData(newData)
@@ -278,12 +275,6 @@ func (m *EOM) MarshalBinary() (data []byte, err error) {
 	buf.Write(resp)
 
 	binary.Write(&buf, binary.BigEndian, m.DBHeight)
-
-	if m.Peer2Peer {
-		buf.WriteByte(uint8(1))
-	}else{
-		buf.WriteByte(uint8(0))
-	}
 
 	sig := m.GetSignature()
 	if sig != nil {

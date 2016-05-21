@@ -73,7 +73,7 @@ func Peers(fnode *FactomNode) {
 				msg.SetOrigin(i + 1)
 				if fnode.State.Replay.IsTSValid_(msg.GetMsgHash().Fixed(),
 					int64(msg.GetTimestamp())/1000,
-					int64(fnode.State.GetTimestamp())/1000) || msg.IsPeer2Peer() {
+					int64(fnode.State.GetTimestamp())/1000) {
 					//if state.GetOut() {
 					//	fnode.State.Println("In Comming!! ",msg)
 					//}

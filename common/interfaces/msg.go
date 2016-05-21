@@ -4,6 +4,8 @@
 
 package interfaces
 
+import ()
+
 /**************************
  * IRCD  Interface for Redeem Condition Datastructures (RCD)
  *
@@ -26,13 +28,6 @@ type IMsg interface {
 	// FactomNode generated the message.
 	GetOrigin() int
 	SetOrigin(int)
-
-	// The peer is an arbitrary hash that identifies a peer we are
-	// connected to on the network.  This is used to track where
-	// a message originated, and to indicate the destination of a response.
-	// nil or "" represent a broadcast message.
-	// GetPeer() string
-	// SetPeeer() string
 
 	// Returns the timestamp for a message
 	GetTimestamp() Timestamp

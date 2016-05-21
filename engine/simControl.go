@@ -42,11 +42,11 @@ func handleCommand(l []byte, listenTo int) {
 	var watchPL bool
 	var watchMessages bool
 
-	// This splits up the command at any codepoint that is not a letter, number of punctuation, so usually by spaces.
+	// This splits up the command at anycodepoint that is not a letter, number of punctuation, so usually by spaces.
 	parseFunc := func(c rune) bool {
 		return !unicode.IsLetter(c) && !unicode.IsNumber(c) && !unicode.IsPunct(c)
 	}
-	// cmd[] is now a list of the parameters, much like command line args show up in args[]
+	// cmd is not a list of the parameters, much like command line args show up in args[]
 	cmd := strings.FieldsFunc(string(l), parseFunc)
 	if 0 == len(cmd) {
 		cmd = []string{"h"}
@@ -56,10 +56,13 @@ func handleCommand(l []byte, listenTo int) {
 	if err == nil && v >= 0 && v < len(fnodes) && fnodes[listenTo].State != nil {
 		listenTo = v
 		os.Stderr.WriteString(fmt.Sprintf("Switching to Node %d\n", listenTo))
-		wsapi.SetState(fnodes[listenTo].State)
 	} else {
 		// fmt.Printf("Parsing command, found %d elements.  The first element is: %+v / %s \n Full command: %+v\n", len(cmd), b[0], string(b), cmd)
 		switch {
+		case 'w' == b[0]:
+			if listenTo >= 0 && listenTo < len(fnodes) {
+				wsapi.SetState(fnodes[listenTo].State)
+			}
 		case 's' == b[0]:
 			summary = !summary
 			if summary {
@@ -169,6 +172,7 @@ func handleCommand(l []byte, listenTo int) {
 				}
 				f.State.SetNetStateOff(!v)
 			}
+
 		case 'm' == b[0]:
 			watchMessages = !watchMessages
 			if watchMessages {
@@ -190,7 +194,17 @@ func handleCommand(l []byte, listenTo int) {
 			}
 			fnodes[listenTo].State.SetOut(true)
 			os.Stderr.WriteString(fmt.Sprint("\r\nSwitching to Node ", listenTo, "\r\n"))
-			wsapi.SetState(fnodes[listenTo].State)
+		case 'c' == b[0]:
+			c := !fnodes[0].State.DebugConsensus
+			if c {
+				os.Stderr.WriteString(fmt.Sprint("\r\nTrace Consensus\n"))
+			} else {
+				os.Stderr.WriteString(fmt.Sprint("\r\nTurn off Consensus Trace \n"))
+			}
+
+			for _, f := range fnodes {
+				f.State.DebugConsensus = c
+			}
 
 		case 'h' == b[0]:
 			os.Stderr.WriteString("-------------------------------------------------------------------------------\n")
@@ -199,15 +213,18 @@ func handleCommand(l []byte, listenTo int) {
 			os.Stderr.WriteString("fN            Show Factoid block   N. Indicate node eg:\"f5\" to shows blocks for that node.\n")
 			os.Stderr.WriteString("dN            Show Directory block N. Indicate node eg:\"d5\" to shows blocks for that node.\n")
 			os.Stderr.WriteString("m             Show Messages as they are passed through the simulator.\n")
+			os.Stderr.WriteString("c             Trace the Consensus Process\n")
 			os.Stderr.WriteString("s             Show the state of all nodes as their state changes in the simulator.\n")
 			os.Stderr.WriteString("p             Show the process lists and directory block states as they change.\n")
 			os.Stderr.WriteString("n             Change the focus to the next node.\n")
 			os.Stderr.WriteString("l             Make focused node the Leader.\n")
 			os.Stderr.WriteString("x             Take the given node out of the netork or bring an offline node back in.\n")
+			os.Stderr.WriteString("w             Point the WSAPI to send API calls to the current node.")
 			os.Stderr.WriteString("h or <enter>  Show help\n")
 			os.Stderr.WriteString("\n")
 			os.Stderr.WriteString("Most commands are case insensitive.\n")
 			os.Stderr.WriteString("-------------------------------------------------------------------------------\n\n")
+
 		default:
 		}
 	}

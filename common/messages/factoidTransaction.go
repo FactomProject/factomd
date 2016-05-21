@@ -179,10 +179,6 @@ func (m *FactoidTransaction) UnmarshalBinaryData(data []byte) (newData []byte, e
 
 	m.Transaction = new(factoid.Transaction)
 	newData, err = m.Transaction.UnmarshalBinaryData(newData)
-
-	m.Peer2Peer = newData[0]==1
-	newData = newData[1:]
-
 	return newData, err
 }
 
@@ -205,12 +201,6 @@ func (m *FactoidTransaction) MarshalBinary() (data []byte, err error) {
 		return nil, err
 	} else {
 		buf.Write(d)
-	}
-
-	if m.Peer2Peer {
-		buf.Write([]byte{uint8(1)})
-	}else{
-		buf.Write([]byte{uint8(0)})
 	}
 
 	return buf.DeepCopyBytes(), nil

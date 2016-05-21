@@ -85,8 +85,8 @@ func (c *Controller) Init(port string, peersFile string) *Controller {
 	verbose("controller", "Controller.Init(%s)", port)
 	c.keepRunning = true
 	c.commandChannel = make(chan interface{}, 1000) // Commands from App
-	c.FromNetwork = make(chan Parcel, 1000)         // Channel to the app for network data
-	c.ToNetwork = make(chan Parcel, 1000)           // Parcels from the app for the network
+	c.FromNetwork = make(chan Parcel, 10000)        // Channel to the app for network data
+	c.ToNetwork = make(chan Parcel, 10000)          // Parcels from the app for the network
 	c.listenPort = port
 	c.connections = make(map[string]Connection)
 	discovery := new(Discovery).Init(peersFile)
@@ -95,7 +95,6 @@ func (c *Controller) Init(port string, peersFile string) *Controller {
 	NodeID = uint64(r.Int63()) // This is a global used by all connections
 	c.lastPeerManagement = time.Now()
 	c.lastPeerRequest = time.Now()
-	c.lastStatusReport = time.Now()
 	return c
 }
 
@@ -113,6 +112,7 @@ func (c *Controller) StartNetwork(exclusive bool) {
 		c.DialPeer(peer.Address)
 	}
 	/// start heartbeat process
+	c.lastStatusReport = time.Now()
 	// Start the runloop
 	go c.runloop()
 }
@@ -179,8 +179,9 @@ func (c *Controller) listen() {
 	listener, err := net.Listen("tcp", address)
 	if nil != err {
 		logfatal("controller", "Controller.listen() Error: %+v", err)
+	} else {
+		go c.acceptLoop(listener)
 	}
-	go c.acceptLoop(listener)
 }
 
 // Since this runs in its own goroutine we need to send a command when
@@ -208,10 +209,10 @@ func (c *Controller) acceptLoop(listener net.Listener) {
 // runloop is a goroutine that does all the heavy lifting
 func (c *Controller) runloop() {
 	note("controller", "Controller.runloop() starting up")
-	time.Sleep(time.Second * 5) // Wait a few seconds to let the system come up.
+	// time.Sleep(time.Second * 5) // Wait a few seconds to let the system come up.
 
 	for c.keepRunning { // Run until we get the exit command
-		time.Sleep(time.Millisecond * 10) // This can be a tight loop, don't want to starve the application
+		time.Sleep(time.Millisecond * 1) // This can be a tight loop, don't want to starve the application
 		// time.Sleep(time.Second * 1) // This can be a tight loop, don't want to starve the application
 		// Process commands...
 		// verbose("controller", "Controller.runloop() About to process commands. Commands in channel: %d", len(c.commandChannel))
@@ -225,10 +226,8 @@ func (c *Controller) runloop() {
 		// Manage peers
 		// verbose("controller", "Controller.runloop() Calling managePeers")
 		c.managePeers()
-		// BUGBUG Remove for production
-		// Since this is a good interval, we're print out a network status report.
-		duration := 10 * time.Second
-		if 0 < CurrentLoggingLevel && duration < time.Since(c.lastStatusReport) {
+
+		if CurrentLoggingLevel > 0 {
 			c.networkStatusReport()
 		}
 
@@ -258,27 +257,28 @@ func (c *Controller) route() {
 				logfatal("controller", "route() unknown message?: %+v ", message)
 			}
 		}
-		// For each message, see if it is directed, if so, send to the
-		// specific peer, otherwise, broadcast.
-		verbose("controller", "Controller.route() size of ToNetwork channel: %d", len(c.ToNetwork))
-		for 0 < len(c.ToNetwork) { // effectively "While there are messages"
-			parcel := <-c.ToNetwork
-			verbose("controller", "Controller.route() got parcel from APPLICATION %+v", parcel.Header)
-			if "" != parcel.Header.TargetPeer { // directed send
-				verbose("controller", "Controller.route() Directed send to %+v", parcel.Header.TargetPeer)
-				connection, present := c.connections[parcel.Header.TargetPeer]
-				if present { // We're still connected to the target
-					connection.SendChannel <- ConnectionParcel{parcel: parcel}
-				}
-			} else { // broadcast
-				verbose("controller", "Controller.route() Broadcast send to %d peers", len(c.connections))
-				for _, connection := range c.connections {
-					verbose("controller", "Controller.route() Send to peer %s ", connection.peer.Hash)
-					connection.SendChannel <- ConnectionParcel{parcel: parcel}
-				}
+	}
+	// For each message, see if it is directed, if so, send to the
+	// specific peer, otherwise, broadcast.
+	verbose("controller", "Controller.route() size of ToNetwork channel: %d", len(c.ToNetwork))
+	for 0 < len(c.ToNetwork) { // effectively "While there are messages"
+		parcel := <-c.ToNetwork
+		verbose("controller", "Controller.route() got parcel from APPLICATION %+v", parcel.Header)
+		if "" != parcel.Header.TargetPeer { // directed send
+			verbose("controller", "Controller.route() Directed send to %+v", parcel.Header.TargetPeer)
+			connection, present := c.connections[parcel.Header.TargetPeer]
+			if present { // We're still connected to the target
+				connection.SendChannel <- ConnectionParcel{parcel: parcel}
+			}
+		} else { // broadcast
+			verbose("controller", "Controller.route() Broadcast send to %d peers", len(c.connections))
+			for _, connection := range c.connections {
+				verbose("controller", "Controller.route() Send to peer %s ", connection.peer.Hash)
+				connection.SendChannel <- ConnectionParcel{parcel: parcel}
 			}
 		}
 	}
+
 }
 
 // handleParcelReceive takes a parcel from the network and annotates it for the application then routes it.
@@ -417,20 +417,24 @@ func (c *Controller) shutdown() {
 }
 
 func (c *Controller) networkStatusReport() {
-	c.lastStatusReport = time.Now()
-	silence("conroller", "###########################")
-	silence("conroller", "Network Status Report:")
-	silence("conroller", "===========================")
-	for key, value := range c.connections {
-		silence("conroller", "Connection Hash: %s", key)
-		silence("conroller", "          State: %s", value.ConnectionState())
-		silence("conroller", " ReceiveChannel: %d", len(value.ReceiveChannel))
-		silence("conroller", "    SendChannel: %d", len(value.SendChannel))
-		// silence("conroller", "     Connection: %+v", value)
+	reportDuration := time.Since(c.lastStatusReport)
+	if reportDuration > NetworkStatusInterval {
+		silence("conroller", "networkStatusReport() NetworkStatusInterval: %s reportDuration: %s c.lastPeerManagement: %s", NetworkStatusInterval.String(), reportDuration.String(), c.lastPeerManagement.String())
+		c.lastStatusReport = time.Now()
+		silence("conroller", "###########################")
+		silence("conroller", "Network Status Report:")
 		silence("conroller", "===========================")
+		for key, value := range c.connections {
+			silence("conroller", "Connection Hash: %s", key)
+			silence("conroller", "          State: %s", value.ConnectionState())
+			silence("conroller", " ReceiveChannel: %d", len(value.ReceiveChannel))
+			silence("conroller", "    SendChannel: %d", len(value.SendChannel))
+			// silence("conroller", "     Connection: %+v", value)
+			silence("conroller", "===========================")
+		}
+		silence("conroller", "   Command Queue: %d", len(c.commandChannel))
+		silence("conroller", "       ToNetwork: %d", len(c.ToNetwork))
+		silence("conroller", "     FromNetwork: %d", len(c.FromNetwork))
+		silence("conroller", "###########################")
 	}
-	silence("conroller", "   Command Queue: %d", len(c.commandChannel))
-	silence("conroller", "       ToNetwork: %d", len(c.ToNetwork))
-	silence("conroller", "     FromNetwork: %d", len(c.FromNetwork))
-	silence("conroller", "###########################")
 }
