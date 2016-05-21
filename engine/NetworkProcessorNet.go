@@ -73,7 +73,7 @@ func Peers(fnode *FactomNode) {
 				msg.SetOrigin(i + 1)
 				if fnode.State.Replay.IsTSValid_(msg.GetMsgHash().Fixed(),
 					int64(msg.GetTimestamp())/1000,
-					int64(fnode.State.GetTimestamp())/1000) || msg.IsPeer2Peer() {
+					int64(fnode.State.GetTimestamp())/1000) {
 					//if state.GetOut() {
 					//	fnode.State.Println("In Comming!! ",msg)
 					//}
@@ -127,9 +127,7 @@ func NetworkOutputs(fnode *FactomNode) {
 
 				p := msg.GetOrigin() - 1
 
-				if msg.GetStalled() {
-					fnode.MLog.add2(fnode, true, "Stalled", "<nul>", true, msg)
-				} else if msg.IsPeer2Peer() {
+				if msg.IsPeer2Peer() {
 					// Must have a Peer to send a message to a peer
 					if len(fnode.Peers) > 0 {
 						if p < 0 {

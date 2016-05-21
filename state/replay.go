@@ -94,5 +94,6 @@ func (r *Replay) IsTSValid_(hash [32]byte, timestamp int64, now int64) bool {
 
 		return true
 	}
+
 	return false
 }

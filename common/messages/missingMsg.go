@@ -151,6 +151,7 @@ func (m *MissingMsg) MarshalBinary() ([]byte, error) {
 
 	//TODO: delete this once we have unit tests
 	if unmarshalErr := mmm.UnmarshalBinary(bb); unmarshalErr != nil {
+		fmt.Println("Missing failed to marshal/unmarshal")
 		return nil, unmarshalErr
 	}
 
@@ -158,7 +159,7 @@ func (m *MissingMsg) MarshalBinary() ([]byte, error) {
 }
 
 func (m *MissingMsg) String() string {
-	return fmt.Sprintf("MissMsg vm=%d DBHeight:%3d PL Height:%3d", m.VMIndex, m.DBHeight, m.ProcessListHeight)
+	return fmt.Sprintf("MissingMsg vm=%d DBHeight:%3d PL Height:%3d", m.VMIndex, m.DBHeight, m.ProcessListHeight)
 }
 
 func (m *MissingMsg) ChainID() []byte {

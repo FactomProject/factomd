@@ -6,7 +6,7 @@ do
 	do
 		factom-cli balances
 		if [ $? -eq 0 ]; then
-    		./flight.sh
+    		./scripts/flight.sh
         else
             sleep 10
         fi

@@ -4,6 +4,8 @@
 
 package interfaces
 
+import ()
+
 /**************************
  * IRCD  Interface for Redeem Condition Datastructures (RCD)
  *
@@ -26,13 +28,6 @@ type IMsg interface {
 	// FactomNode generated the message.
 	GetOrigin() int
 	SetOrigin(int)
-
-	// The peer is an arbitrary hash that identifies a peer we are
-	// connected to on the network.  This is used to track where
-	// a message originated, and to indicate the destination of a response.
-	// nil or "" represent a broadcast message.
-	// GetPeer() string
-	// SetPeeer() string
 
 	// Returns the timestamp for a message
 	GetTimestamp() Timestamp
@@ -75,11 +70,6 @@ type IMsg interface {
 	// Exeucte the follower functions of the given message
 	FollowerExecute(IState) error
 
-	// Messages can be stalled if they cannot be processed at the time they are
-	// presented to a leader or follower.  Stalled messages cannot be transmitted
-	// to the network.
-	SetStalled(bool)
-	GetStalled() bool
 
 	// Process.  When we get a sequence of acknowledgements that we trust, we process.
 	// A message will only be processed once, and in order, guaranteed.
@@ -95,7 +85,4 @@ type IMsg interface {
 	GetMinute() byte
 	SetMinute(byte)
 
-	// Need to ignore messages already in the Process List
-	IsRepeat() bool
-	SetRepeat(bool)
 }

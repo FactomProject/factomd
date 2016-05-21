@@ -22,6 +22,7 @@ import (
 	"github.com/FactomProject/factomd/logger"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
+	"math/rand"
 )
 
 var _ = fmt.Print
@@ -289,7 +290,7 @@ func (s *State) Init() {
 	s.stallQueue = make(chan interfaces.IMsg, 10000)             //queue of Leader messages while stalled
 	s.ShutdownChan = make(chan int, 1)                           //Channel to gracefully shut down.
 
-	os.MkdirAll(s.LogPath, 0777)
+	os.Mkdir(s.LogPath, 0777)
 	_, err := os.Create(s.JournalFile) //Create the Journal File
 	if err != nil {
 		fmt.Println("Could not create the file: " + s.JournalFile)
@@ -849,10 +850,6 @@ func (s *State) LeaderMsgQueue() chan interfaces.IMsg {
 func (s *State) StallMsg(m interfaces.IMsg) {
 	if !m.IsLocal() {
 		s.stallQueue <- m
-		m.SetStalled(true)
-		if s.DebugConsensus {
-			fmt.Printf("%-30s %10s %s\n", "SSS Stalling Msg: ", s.FactomNodeName, m.String())
-		}
 	}
 }
 
@@ -947,6 +944,11 @@ func (s *State) ShortString() string {
 }
 
 func (s *State) SetString() {
+
+	if rand.Int()%100 > 5 {
+		return
+	}
+
 	buildingBlock := s.GetHighestRecordedBlock()
 
 	lastheight := uint32(0)

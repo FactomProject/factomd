@@ -275,7 +275,6 @@ func (m *DataResponse) UnmarshalBinaryData(data []byte) (newData []byte, err err
 		return nil, fmt.Errorf("DataResponse's DataType not supported for unmarshalling yet")
 	}
 
-	m.ExeAlways = true
 	m.Peer2Peer = true // Always a peer2peer request.
 	return data, nil
 }

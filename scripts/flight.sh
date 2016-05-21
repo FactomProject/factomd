@@ -1,9 +1,9 @@
 #!/bin/bash
 
 	echo "Transactions: "
+sleep 3
 for i in `seq 1 10`;
 do
-    sleep 1
 	factom-cli deletetransaction t
 	factom-cli newtransaction t
 	factom-cli addinput t factoid-wallet-address-name01 .0003
