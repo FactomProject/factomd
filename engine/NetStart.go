@@ -205,7 +205,7 @@ func NetStart(s *state.State) {
 	p2pProxy.SetTestMode(heartbeat)
 	if 0 < netdebug {
 		go PeriodicStatusReport(fnodes)
-		go p2pProxy.ProxyStatusReport()
+		go p2pProxy.ProxyStatusReport(fnodes)
 		network.StartLogging(uint8(netdebug))
 	} else {
 		network.StartLogging(uint8(0))

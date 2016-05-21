@@ -44,26 +44,27 @@ func (f *P2PProxy) Init(fromName, toName string) interfaces.IPeer {
 	return f
 }
 func (f *P2PProxy) SetDebugMode(netdebug int) {
-
 	f.debugMode = netdebug
 }
 
 func (f *P2PProxy) SetTestMode(test bool) {
-
 	f.testMode = test
 }
+
 func (f *P2PProxy) GetNameFrom() string {
 	return f.FromName
 }
+
 func (f *P2PProxy) GetNameTo() string {
 	return f.ToName
 }
+
 func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 	if !f.testMode {
 		// fmt.Printf("S")
 		data, err := msg.MarshalBinary()
 		if err != nil {
-			die("Send error! %+v", err)
+			fmt.Println("ERROR on Send: ", err)
 			return err
 		}
 		if len(f.BroadcastOut) < 10000 {
@@ -97,12 +98,10 @@ func (f *P2PProxy) Equals(ff interfaces.IPeer) bool {
 	if !ok {
 		return false
 	} // Different peer type can't be equal
-
 	// Check If this is another connection from here to there
 	if f.FromName == f2.FromName && f.ToName == f2.FromName {
 		return true
 	}
-
 	// Check if this is a connection from there to here
 	if f.FromName == f2.ToName && f.ToName == f2.FromName {
 		return true
@@ -110,98 +109,13 @@ func (f *P2PProxy) Equals(ff interfaces.IPeer) bool {
 	return false
 }
 
-// Unused!
-// // Returns the number of messages waiting to be read
+// Returns the number of messages waiting to be read
 func (f *P2PProxy) Len() int {
-	//TODO IMPLEMENT JAYJAY
-	fmt.Printf("P2PProxy.Len Not implemented.")
-	// Sim Peer:
-	//	return len(f.BroadcastIn)
-	// Broadcase in is the Sim Peer channel.  We have a way to see how many TCP MEssages?
-	return 1
+	return len(f.BroadcastIn)
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////////
-
-func die(format string, v ...interface{}) {
-	fmt.Fprintln(os.Stderr, fmt.Sprintf("%d:", os.Getpid()), fmt.Sprintf(format, v...))
-	os.Exit(1)
-}
-func note(format string, v ...interface{}) {
-	fmt.Fprintln(os.Stdout, fmt.Sprintf("%d:", os.Getpid()), fmt.Sprintf(format, v...))
-}
-
-///// BUS EXAMPLE
-
-// BUGBUG TODO JAYJAY - switch to standard port, and read peers from peers.json.
-// func P2PNetworkStart(address string, peers string, p2pProxy *P2PProxy) {
-// 	var err error
-// 	if p2pSocket, err = bus.NewSocket(); err != nil {
-// 		die("P2PNetworkStart.NewSocket: %s", err)
-// 	}
-// 	p2pSocket.AddTransport(tcp.NewTransport())
-
-// 	note("P2PNetworkStart- Start Listening on address: %s", address)
-
-// 	// address := "tcp://127.0.0.1:40891"
-// 	if err = p2pSocket.Listen(address); err != nil {
-// 		die("P2PNetworkStart.Listen: %s", err.Error())
-// 	}
-
-// 	note("P2PNetworkStart- Sleep for a few seconds to let peers wake up.")
-// 	// wait for everyone to start listening
-// 	time.Sleep(time.Second)
-
-// 	// Parse the peers into an array.
-// 	parseFunc := func(c rune) bool {
-// 		return !unicode.IsLetter(c) && !unicode.IsNumber(c) && !unicode.IsPunct(c)
-// 	}
-
-// 	peerAddresses := strings.FieldsFunc(peers, parseFunc)
-// 	note("P2PNetworkStart- our peers: %+v", peerAddresses)
-
-// 	var x int
-// 	for x = 0; x < len(peerAddresses); x++ {
-// 		if err = p2pSocket.Dial(peerAddresses[x]); err != nil {
-// 			note("P2PNetworkStart.Dial: %s", err.Error())
-// 		}
-// 	}
-
-// 	// note("P2PNetworkStart- waiting for peers to connect")
-// 	// time.Sleep(time.Second)
-
-// 	// // BIG SWITCH between test code and factomd.  We switch which gets hooked up to channels
-// 	if p2pProxy.testMode {
-// 		go heartbeat(p2pProxy)
-// 	}
-
-// }
-
-// func heartbeat(p2pProxy *P2PProxy) {
-// 	beat := ""
-// 	i := 0
-// 	for {
-// 		// for i := 0; i < 500; i++ {
-// 		beat = fmt.Sprintf("Heartbeat FROM %d. Beat #%d", os.Getpid(), i)
-// 		p2pProxy.BroadcastOut <- []byte(beat)
-// 		select {
-// 		case data, ok := <-p2pProxy.BroadcastIn:
-// 			if ok {
-// 				note("Recieved message: %s", string(data))
-// 			}
-// 		default:
-// 		}
-// 		time.Sleep(time.Millisecond * 200)
-// 		i++
-// 	}
-// }
 
 func (p *P2PProxy) startProxy() {
 	go p.ManageOutChannel() // Bridges between network format Parcels and factomd messages (incl. addressing to peers)
@@ -213,7 +127,6 @@ func (p *P2PProxy) startProxy() {
 // Paul says its ok to punt on this for the alpha
 //
 
-// this is a goroutine infinite loop
 // manageOutChannel takes messages from the f.broadcastOut channel and sends them to the network.
 func (f *P2PProxy) ManageOutChannel() {
 	for data := range f.BroadcastOut {
@@ -226,7 +139,6 @@ func (f *P2PProxy) ManageOutChannel() {
 	}
 }
 
-// this is a goroutine infinite loop
 // manageInChannel takes messages from the network and stuffs it in the f.BroadcastIn channel
 func (f *P2PProxy) ManageInChannel() {
 	for data := range f.FromNetwork {
@@ -236,68 +148,26 @@ func (f *P2PProxy) ManageInChannel() {
 	}
 }
 
-// // this is a goroutine infinite loop
-// // manageOutChannel takes messages from the f.broadcastOut channel and sends them to the network.
-// func (f *P2PProxy) ManageOutChannel() {
-// 	for {
-// 		select {
-// 		case data, ok := <-f.BroadcastOut:
-// 			if ok {
-// 				f.sendP2P(data)
-// 			}
-// 		default:
-// 		}
-// 		// time.Sleep(time.Millisecond * 100)
-// 	}
-// }
-
-// // this is a goroutine infinite loop
-// // manageInChannel takes messages from the network and stuffs it in the f.BroadcastIn channel
-// func (f *P2PProxy) ManageInChannel() {
-// 	for {
-// 		data := f.recieveP2P()
-// 		f.BroadcastIn <- data
-// 		// time.Sleep(time.Millisecond * 100)
-// 	}
-// }
-
-// func (f *P2PProxy) sendP2P(msg []byte) {
-// 	if err := p2pSocket.Send(msg); err != nil {
-// 		note("sendP2P.Send ERROR: %s", err.Error())
-// 	}
-// }
-
-// func (f *P2PProxy) recieveP2P() []byte {
-// 	data, err := p2pSocket.Recv()
-// 	if err != nil {
-// 		note("recieveP2P.Recv ERROR: %s", err.Error())
-// 	}
-// 	// if f.debugMode {
-// 	// 	note("recieveP2P.Recv Successfully got a message")
-// 	// }
-// 	return data
-// }
-
 // ProxyStatusReport: Report the status of the peer channels
-func (f *P2PProxy) ProxyStatusReport() {
+func (f *P2PProxy) ProxyStatusReport(fnodes []*FactomNode) {
 	time.Sleep(time.Second * 3) // wait for things to spin up
 	for {
-		time.Sleep(time.Second * 3)
-		note("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
-		note("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
+		time.Sleep(time.Second * 20)
+		listenTo := 0
+		if listenTo >= 0 && listenTo < len(fnodes) {
+			fmt.Printf("   %s\n", fnodes[listenTo].State.GetFactomNodeName())
+		}
 		note("     ToNetwork Queue:   %d", len(f.ToNetwork))
 		note("   FromNetwork Queue:   %d", len(f.FromNetwork))
 		note("  BroadcastOut Queue:   %d", len(f.BroadcastOut))
 		note("   BroadcastIn Queue:   %d", len(f.BroadcastIn))
-		note("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
-		note("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
 	}
 }
 
 func PeriodicStatusReport(fnodes []*FactomNode) {
-	time.Sleep(time.Second * 5) // wait for things to spin up
+	time.Sleep(time.Second * 2) // wait for things to spin up
 	for {
-		time.Sleep(time.Second * 5)
+		time.Sleep(time.Second * 15)
 		fmt.Println("-------------------------------------------------------------------------------")
 		fmt.Println("-------------------------------------------------------------------------------")
 		for _, f := range fnodes {
@@ -315,4 +185,8 @@ func PeriodicStatusReport(fnodes []*FactomNode) {
 		fmt.Println("-------------------------------------------------------------------------------")
 		fmt.Println("-------------------------------------------------------------------------------")
 	}
+}
+
+func note(format string, v ...interface{}) {
+	fmt.Fprintln(os.Stdout, fmt.Sprintf("%d:", os.Getpid()), fmt.Sprintf(format, v...))
 }

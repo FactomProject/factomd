@@ -207,7 +207,7 @@ func (c *Connection) dial() bool {
 
 // processSends gets all the messages from the application and sends them out over the network
 func (c *Connection) processSends() {
-	note(c.peer.Hash, "Connection.processSends() called. Items in send channel: %d State: %s", len(c.SendChannel), c.ConnectionState())
+	// note(c.peer.Hash, "Connection.processSends() called. Items in send channel: %d State: %s", len(c.SendChannel), c.ConnectionState())
 	for 0 < len(c.SendChannel) { // effectively "While there are messages"
 		message := <-c.SendChannel
 		switch message.(type) {
