@@ -14,9 +14,9 @@ import (
 
 // Global variables for the p2p protocol
 var (
-	CurrentLoggingLevel                     = Silence // Start at verbose because it takes a few seconds for the controller to adjust to what you set.
+	CurrentLoggingLevel                     = Verbose // Start at verbose because it takes a few seconds for the controller to adjust to what you set.
 	CurrentNetwork                          = TestNet
-	NetworkStatusInterval     time.Duration = time.Second * 7
+	NetworkStatusInterval     time.Duration = time.Second * 22
 	PingInterval              time.Duration = time.Second * 15
 	TimeBetweenRedials        time.Duration = time.Second * 20
 	MaxNumberOfRedialAttempts int           = 15
@@ -30,6 +30,9 @@ var (
 	OnlySpecialPeers     bool   = false
 	NumberPeersToConnect int    = 12
 	NodeID               uint64 = 0 // Random number used for loopback protection
+	// Testing metrics
+	TotalMessagesRecieved uint64 = 0
+	TotalMessagesSent     uint64 = 0
 )
 
 const (
@@ -116,13 +119,12 @@ func log(level uint8, component string, format string, v ...interface{}) {
 	levelStr := LoggingLevels[level]
 	host, _ := os.Hostname()
 	if level <= CurrentLoggingLevel { // lower level means more severe. "Silence" level always printed, overriding silence.
-		// fmt.Fprintf(os.Stdout, "%d (%s) %d/%d \t- %s  %s", os.Getpid(), levelStr, level, CurrentLoggingLevel, message, breakStr)
-		fmt.Fprintf(os.Stdout, "%s, %d, %s, %s, %s\n", host, os.Getpid(), component, levelStr, message)
+		fmt.Fprintf(os.Stdout, "%s, %d, %s, (%s), %d/%d, %s \n", host, os.Getpid(), component, levelStr, level, CurrentLoggingLevel, message)
+		// fmt.Fprintf(os.Stdout, "%s, %d, %s, (%s), %s\n", host, os.Getpid(), component, levelStr, message)
 	}
 	if level == Fatal {
 		fmt.Fprintf(os.Stderr, "%s, %d, %s, %s\n", host, os.Getpid(), component, levelStr, message)
-
-		// BUGBUG - take out this exit before shipping JAYJAY TODO
+		// BUGBUG - take out this exit before shipping JAYJAY TODO, or check that all fatals are fatal.
 		os.Exit(1)
 	}
 }
