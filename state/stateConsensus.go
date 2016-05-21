@@ -106,6 +106,7 @@ func (s *State) TryToProcess(msg interfaces.IMsg) {
 		if msg.Follower(s) {
 			if !s.Leader && msg.IsLocal() {
 				if _, ok := msg.(*messages.EOM); ok {
+					fmt.Println("Leader EOM message found in follower")
 					return
 				}
 			}
@@ -120,18 +121,14 @@ func (s *State) TryToProcess(msg interfaces.IMsg) {
 
 	msgLeader := msg.Leader(s)
 	if ack, ok := msg.(*messages.Ack); s.LeaderPL.GoodTo(msg.GetVMIndex()) &&
-		(!ok || int(ack.Height) == s.LeaderPL.VMs[ack.VMIndex].Height) {
-		v := msg.Validate(s)
-		if v == 1 {
+		(!ok || int(ack.Height) <= s.LeaderPL.VMs[ack.VMIndex].Height) {
+		switch msg.Validate(s) {
+		case 1:
 			// If we are a leader, we are way more strict than simple followers.
-			if msgLeader && s.Leader && s.EOM == 0 &&
-				(s.LeaderVMIndex == msg.GetVMIndex() || msg.IsLocal()) {
+			if msgLeader && s.Leader &&
+			(s.LeaderVMIndex == msg.GetVMIndex() || msg.IsLocal()) {
 				err := msg.LeaderExecute(s)
-				if err == nil {
-					// If all went well, then send it to the world.
-					s.networkOutMsgQueue <- msg
-				} else {
-					// If bad, stall as long as it isn't our own EOM
+				if err != nil {
 					if _, ok := msg.(*messages.EOM); !ok {
 						s.StallMsg(msg)
 					}
@@ -139,11 +136,11 @@ func (s *State) TryToProcess(msg interfaces.IMsg) {
 			} else {
 				ExeFollow()
 			}
-		} else if v == 0 {
+		case 0:
 			// Could be good, might not be.  Stall it.
 			s.StallMsg(msg)
-			// If the transaction isn't valid (or we can't tell) we just drop it.
-		} else {
+		// If the transaction isn't valid (or we can't tell) we just drop it.
+		default:
 			s.networkInvalidMsgQueue <- msg
 		}
 	} else {
