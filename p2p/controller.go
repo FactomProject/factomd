@@ -226,11 +226,9 @@ func (c *Controller) runloop() {
 		// Manage peers
 		// verbose("controller", "Controller.runloop() Calling managePeers")
 		c.managePeers()
-
 		if CurrentLoggingLevel > 0 {
 			c.networkStatusReport()
 		}
-
 	}
 	note("controller", "Controller.runloop() has exited. Shutdown command recieved?")
 }

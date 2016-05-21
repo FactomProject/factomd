@@ -295,9 +295,13 @@ func (f *P2PProxy) ProxyStatusReport() {
 }
 
 func PeriodicStatusReport(fnodes []*FactomNode) {
-	time.Sleep(time.Second * 5) // wait for things to spin up
+	time.Sleep(time.Second * 2) // wait for things to spin up
 	for {
+<<<<<<< HEAD
+		time.Sleep(time.Second * 2)
+=======
 		time.Sleep(time.Second * 5)
+>>>>>>> m2
 		fmt.Println("-------------------------------------------------------------------------------")
 		fmt.Println("-------------------------------------------------------------------------------")
 		for _, f := range fnodes {
