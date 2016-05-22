@@ -22,9 +22,9 @@ type ProcessList struct {
 	DBHeight uint32 // The directory block height for these lists
 	good     bool   // Means we have the previous blocks, so we can process!
 
-						 // List of messsages that came in before the previous block was built
-						 // We can not completely validate these messages until the previous block
-						 // is built.
+	// List of messsages that came in before the previous block was built
+	// We can not completely validate these messages until the previous block
+	// is built.
 	MsgQueue []interfaces.IMsg
 
 	State     interfaces.IState
@@ -51,7 +51,7 @@ type ProcessList struct {
 	AuditServers []interfaces.IFctServer // List of Audit Servers
 	FedServers   []interfaces.IFctServer // List of Federated Servers
 
-	Sealing		  bool					// We are in the process of sealing this process list
+	Sealing bool // We are in the process of sealing this process list
 }
 
 type VM struct {
@@ -60,7 +60,7 @@ type VM struct {
 	Height         int               // Height of messages that have been processed
 	LeaderMinute   int               // Where the leader is in acknowledging messages
 	Seal           int               // Sealed with an EOM minute, and released (0) when all EOM are found.
-	SealTime       int64					// The time since we started waiting
+	SealTime       int64             // The time since we started waiting
 	SealHeight     uint32            // Entries belowe the seal can still be recorded.
 	MinuteComplete int               // Highest minute complete recorded (0-9) by the follower
 	MinuteFinished int               // Highest minute processed (0-9) by the follower
@@ -71,7 +71,7 @@ type VM struct {
 // Attempts to unseal. Takes a minute (1-10) Returns false if it cannot.
 // Returns false if no seal is found.
 func (p *ProcessList) Unsealable(minute int) bool {
-	searchVMs:
+searchVMs:
 	for i := 0; i < len(p.FedServers); i++ {
 		vm := p.VMs[i]
 		if len(vm.List) != vm.Height {
@@ -82,7 +82,7 @@ func (p *ProcessList) Unsealable(minute int) bool {
 				return false
 			}
 			if eom, ok := v.(*messages.EOM); ok {
-				if int(eom.Minute + 1) == minute {
+				if int(eom.Minute+1) == minute {
 					continue searchVMs
 				}
 			}
@@ -197,7 +197,6 @@ func (p *ProcessList) MakeMap() {
 	n := len(p.FedServers)
 	indx := int(p.DBHeight*131) % n
 
-
 	for i := 0; i < 10; i++ {
 		indx = (indx + 1) % n
 		for j := 0; j < len(p.FedServers); j++ {
@@ -211,8 +210,8 @@ func (p *ProcessList) MakeMap() {
 // but for now, we are just going to make it a function of the dbheight.
 func (p *ProcessList) PrintMap() string {
 	n := len(p.FedServers)
-	prt := fmt.Sprintf("===PrintMapStart=== %d\n",p.DBHeight)
-	prt = prt+ " min"
+	prt := fmt.Sprintf("===PrintMapStart=== %d\n", p.DBHeight)
+	prt = prt + " min"
 	for i := 0; i < n; i++ {
 		prt = fmt.Sprintf("%s%3d", prt, i)
 	}
@@ -224,10 +223,9 @@ func (p *ProcessList) PrintMap() string {
 		}
 		prt = prt + "\n"
 	}
-	prt = prt+fmt.Sprintf("===PrintMapEnd=== %d\n",p.DBHeight)
+	prt = prt + fmt.Sprintf("===PrintMapEnd=== %d\n", p.DBHeight)
 	return prt
 }
-
 
 // Return the lowest minute number in our lists.  Note that Minute Markers END
 // a minute, so After MinuteComplete=0
@@ -235,9 +233,9 @@ func (p *ProcessList) MinuteComplete() int {
 	m := 10
 	for i := 0; i < len(p.FedServers); i++ {
 		mm := 0
-		for _,msg := range p.VMs[i].List {
+		for _, msg := range p.VMs[i].List {
 			if eom, ok := msg.(*messages.EOM); ok {
-				mm = int(eom.Minute+1)
+				mm = int(eom.Minute + 1)
 			}
 		}
 		if m > mm {
@@ -388,7 +386,7 @@ func (p *ProcessList) FinishedEOM() bool {
 func (p *ProcessList) Process(state *State) (progress bool) {
 
 	now := time.Now().Unix()
-	ask := func(vm *VM, thetime int64, j int) (int64) {
+	ask := func(vm *VM, thetime int64, j int) int64 {
 		if thetime == 0 {
 			thetime = now
 		}
@@ -401,7 +399,6 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 		}
 		return thetime
 	}
-
 
 	if !p.good { // If we don't know this process list is good...
 		last := state.DBStates.Last() // Get our last state.
@@ -420,21 +417,20 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 		plist := vm.List
 		alist := vm.ListAck
 
-
 		for j := vm.Height; j < len(plist); j++ {
 			if plist[j] == nil {
-				vm.missingTime = ask(vm,vm.missingTime,j)
+				vm.missingTime = ask(vm, vm.missingTime, j)
 				break
 			}
 
 			if p.Sealing && vm.Seal == 0 {
-				vm.SealTime = ask(vm,vm.SealTime+1,vm.Height)
+				vm.SealTime = ask(vm, vm.SealTime+1, vm.Height)
 			}
 
 			thisAck := alist[j]
 			if thisAck == nil { // IF I don't have an Ack to match this entry
 				plist[j] = nil // throw the entry away, and continue to the
-				break    // next list.  SHOULD NEVER HAPPEN.
+				break          // next list.  SHOULD NEVER HAPPEN.
 			}
 
 			var expectedSerialHash interfaces.IHash
@@ -474,7 +470,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 				vm.Height = j + 1 // Don't process it again if the process worked.
 				progress = true
 			} else {
-				break  // Don't process further in this list, go to the next.
+				break // Don't process further in this list, go to the next.
 			}
 		}
 	}
@@ -515,11 +511,10 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) boo
 		return false
 	}
 
-
 	if len(vm.List) > int(ack.Height) && vm.List[ack.Height] != nil {
 
 		if ack == nil || m == nil || vm.List[ack.Height].GetMsgHash() == nil ||
-		m.GetMsgHash() == nil || vm.List[ack.Height].GetMsgHash().IsSameAs(m.GetMsgHash()) {
+			m.GetMsgHash() == nil || vm.List[ack.Height].GetMsgHash().IsSameAs(m.GetMsgHash()) {
 			fmt.Printf("%-30s %10s %s\n", "xxxxxxxxx PL Duplicate", p.State.GetFactomNodeName(), m.String())
 			return false
 		}
@@ -550,8 +545,8 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) boo
 
 	msgOk := p.State.(*State).InternalReplay.IsTSValid_(m.GetHash().Fixed(), int64(m.GetTimestamp()), now)
 
-	if !msgOk {	// If we already have this message or acknowledgement recorded,
-		return true				// we don't have to do anything.  Just say we got it handled.
+	if !msgOk { // If we already have this message or acknowledgement recorded,
+		return true // we don't have to do anything.  Just say we got it handled.
 	}
 
 	p.State.NetworkOutMsgQueue() <- ack
@@ -562,7 +557,7 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) boo
 		p.Sealing = true
 		vm.Seal = int(eom.Minute + 1)
 		vm.SealHeight = ack.Height
-		vm.MinuteComplete = int(eom.Minute+1)
+		vm.MinuteComplete = int(eom.Minute + 1)
 		vm.MinuteHeight = vm.Height
 	}
 
@@ -619,16 +614,16 @@ func (p *ProcessList) String() string {
 				}
 			}
 		}
-		buf.WriteString(fmt.Sprintf("===FederatedServersStart=== %d\n",len(p.FedServers)))
+		buf.WriteString(fmt.Sprintf("===FederatedServersStart=== %d\n", len(p.FedServers)))
 		for _, fed := range p.FedServers {
 			buf.WriteString(fmt.Sprintf("    %x\n", fed.GetChainID().Bytes()[:3]))
 		}
-		buf.WriteString(fmt.Sprintf("===FederatedServersEnd=== %d\n",len(p.FedServers)))
-		buf.WriteString(fmt.Sprintf("===AuditServersStart=== %d\n",len(p.AuditServers)))
+		buf.WriteString(fmt.Sprintf("===FederatedServersEnd=== %d\n", len(p.FedServers)))
+		buf.WriteString(fmt.Sprintf("===AuditServersStart=== %d\n", len(p.AuditServers)))
 		for _, aud := range p.AuditServers {
 			buf.WriteString(fmt.Sprintf("    %x\n", aud.GetChainID().Bytes()[:3]))
 		}
-		buf.WriteString(fmt.Sprintf("===AuditServersEnd=== %d\n",len(p.AuditServers)))
+		buf.WriteString(fmt.Sprintf("===AuditServersEnd=== %d\n", len(p.AuditServers)))
 	}
 	buf.WriteString(fmt.Sprintf("===ProcessListEnd=== %s %d\n", p.State.GetFactomNodeName(), p.DBHeight))
 	return buf.String()

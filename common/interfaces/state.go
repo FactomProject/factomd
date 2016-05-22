@@ -115,13 +115,12 @@ type IState interface {
 	// Returns true if between minutes
 	GetEOM() int
 
-	// Database
-	// ========
-	GetDB() DBOverlay
-	SetDB(DBOverlay)
-
 	GetEBlockKeyMRFromEntryHash(entryHash IHash) IHash
 	GetAnchor() IAnchor
+
+	// Database
+	GetAndLockDB() DBOverlay
+	UnlockDB()
 
 	// Web Services
 	// ============
@@ -150,7 +149,7 @@ type IState interface {
 	ProcessCommitEntry(dbheight uint32, commitChain IMsg) bool
 	ProcessDBSig(dbheight uint32, commitChain IMsg) bool
 	ProcessEOM(dbheight uint32, eom IMsg) bool
-
+	ProcessRevealEntry(dbheight uint32, m IMsg) bool
 	// For messages that go into the Process List
 	LeaderExecute(m IMsg) error
 	LeaderExecuteEOM(m IMsg) error

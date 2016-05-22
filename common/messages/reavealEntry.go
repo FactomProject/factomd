@@ -12,7 +12,6 @@ import (
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/log"
 )
 
 //A placeholder structure for messages
@@ -34,72 +33,7 @@ type RevealEntryMsg struct {
 var _ interfaces.IMsg = (*RevealEntryMsg)(nil)
 
 func (m *RevealEntryMsg) Process(dbheight uint32, state interfaces.IState) bool {
-	myhash := m.GetHash()
-	commit := state.GetCommits(myhash)
-	if commit == nil {
-		return false
-	}
-
-	if _, isNewChain := commit.(*CommitChainMsg); isNewChain {
-		chainID := m.Entry.GetChainID()
-		eb, err := state.GetDB().FetchEBlockHead(chainID)
-		if err != nil || eb != nil {
-			panic(fmt.Sprintf("%s\n%s", "Chain already exists", m.String()))
-		}
-
-		// Create a new Entry Block for a new Entry Block Chain
-		eb = entryBlock.NewEBlock()
-		// Set the Chain ID
-		eb.GetHeader().SetChainID(m.Entry.GetChainID())
-		// Set the Directory Block Height for this Entry Block
-		eb.GetHeader().SetDBHeight(dbheight)
-		// Add our new entry
-		eb.AddEBEntry(m.Entry)
-		// Put it in our list of new Entry Blocks for this Directory Block
-		state.PutNewEBlocks(dbheight, m.Entry.GetChainID(), eb)
-		state.PutNewEntries(dbheight, m.Entry.GetHash(), m.Entry)
-
-		if v := state.GetReveals(myhash); v != nil {
-			state.PutReveals(myhash, nil)
-		}
-
-		state.PutCommits(myhash, nil)
-		state.IncEntryChains()
-		state.IncEntries()
-		return true
-	} else if _, isNewEntry := commit.(*CommitEntryMsg); isNewEntry {
-		chainID := m.Entry.GetChainID()
-		eb := state.GetNewEBlocks(dbheight, chainID)
-		if eb == nil {
-			prev, err := state.GetDB().FetchEBlockHead(chainID)
-			if prev == nil || err != nil {
-				return false
-			}
-			eb = entryBlock.NewEBlock()
-			// Set the Chain ID
-			eb.GetHeader().SetChainID(m.Entry.GetChainID())
-			// Set the Directory Block Height for this Entry Block
-			eb.GetHeader().SetDBHeight(dbheight)
-			// Set the PrevKeyMR
-			key, _ := prev.KeyMR()
-			eb.GetHeader().SetPrevKeyMR(key)
-		}
-		// Add our new entry
-		eb.AddEBEntry(m.Entry)
-		// Put it in our list of new Entry Blocks for this Directory Block
-		state.PutNewEBlocks(dbheight, m.Entry.GetChainID(), eb)
-		state.PutNewEntries(dbheight, m.Entry.GetHash(), m.Entry)
-
-		if v := state.GetReveals(myhash); v != nil {
-			state.PutReveals(myhash, nil)
-		}
-
-		state.PutCommits(myhash, nil)
-		state.IncEntries()
-		return true
-	}
-	log.Println("Found Bad Commit")
-	return false
+	return state.ProcessRevealEntry(dbheight, m)
 }
 
 func (m *RevealEntryMsg) GetHash() interfaces.IHash {

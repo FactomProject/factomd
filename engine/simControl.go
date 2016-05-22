@@ -342,7 +342,7 @@ func printSummary(summary *bool, listenTo *int) {
 				}
 
 			}
-			prt = prt+"===SummaryEnd===\n"
+			prt = prt + "===SummaryEnd===\n"
 
 			if prt != out {
 				fmt.Println(prt)

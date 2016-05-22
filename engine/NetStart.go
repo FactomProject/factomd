@@ -48,7 +48,7 @@ func NetStart(s *state.State) {
 	netdebugPtr := flag.Bool("netdebug", false, "If true, print detailed network debugging info.")
 	heartbeatPtr := flag.Bool("heartbeat", false, "If true, network just sends heartbeats.")
 	prefixNodePtr := flag.String("prefix", "", "Prefix the Factom Node Names with this value; used to create leaderless networks.")
-	profilePtr := flag.String("profile","","If true, turn on the go Profiler to profile execution of Factomd")
+	profilePtr := flag.String("profile", "", "If true, turn on the go Profiler to profile execution of Factomd")
 
 	flag.Parse()
 
@@ -149,7 +149,7 @@ func NetStart(s *state.State) {
 
 	if profile == "true" {
 		go StartProfiler()
-	}else{
+	} else {
 		profile = "false"
 	}
 

@@ -70,7 +70,6 @@ type IMsg interface {
 	// Exeucte the follower functions of the given message
 	FollowerExecute(IState) error
 
-
 	// Process.  When we get a sequence of acknowledgements that we trust, we process.
 	// A message will only be processed once, and in order, guaranteed.
 	// Returns true if able to process, false if process is waiting on something.
@@ -84,5 +83,4 @@ type IMsg interface {
 	SetVMHash([]byte)
 	GetMinute() byte
 	SetMinute(byte)
-
 }

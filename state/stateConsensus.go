@@ -9,11 +9,11 @@ import (
 
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/util"
 	"os"
 )
@@ -124,7 +124,7 @@ func (s *State) TryToProcess(msg interfaces.IMsg) {
 	case 1:
 		// If we are a leader, we are way more strict than simple followers.
 		if msgLeader && s.Leader &&
-		(s.LeaderVMIndex == msg.GetVMIndex() || msg.IsLocal()) {
+			(s.LeaderVMIndex == msg.GetVMIndex() || msg.IsLocal()) {
 			err := msg.LeaderExecute(s)
 			if err != nil {
 				if _, ok := msg.(*messages.EOM); !ok {
@@ -231,7 +231,7 @@ func (s *State) AddDBState(isNew bool,
 	ht := dbState.DirectoryBlock.GetHeader().GetDBHeight()
 	if ht > s.LLeaderHeight {
 		s.LLeaderHeight = ht
-		s.ProcessLists.Get(ht+1)
+		s.ProcessLists.Get(ht + 1)
 		s.EOM = 0
 	}
 	//	dbh := directoryBlock.GetHeader().GetDBHeight()
@@ -245,6 +245,9 @@ func (s *State) addEBlock(eblock interfaces.IEntryBlock) {
 
 	if err == nil {
 		if s.HasDataRequest(hash) {
+			s.DBMutex.Lock()
+			defer s.DBMutex.Unlock()
+
 			s.DB.ProcessEBlockBatch(eblock, true)
 			delete(s.DataRequests, hash.Fixed())
 
@@ -278,12 +281,12 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) (bool, error) {
 			if !pl.AddToProcessList(ack, m) {
 				s.StallMsg(m)
 				s.StallMsg(ack)
-				fmt.Println(s.GetFactomNodeName(),"Could not add to list")
+				fmt.Println(s.GetFactomNodeName(), "Could not add to list")
 				return false, fmt.Errorf("Could not add message")
 			}
 		} else {
 			if ack.DBHeight >= s.ProcessLists.DBHeightBase {
-				fmt.Println(s.GetFactomNodeName(),"PL Null Could not add to list")
+				fmt.Println(s.GetFactomNodeName(), "PL Null Could not add to list")
 				return false, fmt.Errorf("Could not add message")
 			}
 		}
@@ -335,6 +338,9 @@ func (s *State) FollowerExecuteAddData(msg interfaces.IMsg) error {
 		entry := dataResponseMsg.DataObject.(interfaces.IEBEntry)
 
 		if entry.GetHash().IsSameAs(dataResponseMsg.DataHash) {
+			s.DBMutex.Lock()
+			defer s.DBMutex.Unlock()
+
 			s.DB.InsertEntry(entry)
 			delete(s.DataRequests, entry.GetHash().Fixed())
 		}
@@ -371,7 +377,7 @@ func (s *State) LeaderExecute(m interfaces.IMsg) error {
 		} else {
 			return err
 		}
-	}else {
+	} else {
 		return err
 	}
 
@@ -399,10 +405,9 @@ func (s *State) LeaderExecuteRE(m interfaces.IMsg) error {
 		} else {
 			return err
 		}
-	}else {
+	} else {
 		return err
 	}
-
 
 	return nil
 }
@@ -412,7 +417,7 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
 	eom := m.(*messages.EOM)
 
 	if s.EOM > 0 {
-		fmt.Println(s.FactomNodeName, "Stalling",eom.String())
+		fmt.Println(s.FactomNodeName, "Stalling", eom.String())
 		return fmt.Errorf("Stalling")
 	}
 
@@ -438,7 +443,7 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
 		} else {
 			return err
 		}
-	}else {
+	} else {
 		return err
 	}
 
@@ -537,6 +542,79 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	vm.MinuteFinished = int(e.Minute) + 1
 
 	return true
+}
+
+func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
+	msg := m.(*messages.RevealEntryMsg)
+	myhash := msg.GetHash()
+	commit := s.GetCommits(myhash)
+	if commit == nil {
+		return false
+	}
+
+	if _, isNewChain := commit.(*messages.CommitChainMsg); isNewChain {
+		chainID := msg.Entry.GetChainID()
+		s.DBMutex.Lock()
+		eb, err := s.DB.FetchEBlockHead(chainID)
+		s.DBMutex.Unlock()
+		if err != nil || eb != nil {
+			panic(fmt.Sprintf("%s\n%s", "Chain already exists", msg.String()))
+		}
+
+		// Create a new Entry Block for a new Entry Block Chain
+		eb = entryBlock.NewEBlock()
+		// Set the Chain ID
+		eb.GetHeader().SetChainID(msg.Entry.GetChainID())
+		// Set the Directory Block Height for this Entry Block
+		eb.GetHeader().SetDBHeight(dbheight)
+		// Add our new entry
+		eb.AddEBEntry(msg.Entry)
+		// Put it in our list of new Entry Blocks for this Directory Block
+		s.PutNewEBlocks(dbheight, msg.Entry.GetChainID(), eb)
+		s.PutNewEntries(dbheight, msg.Entry.GetHash(), msg.Entry)
+
+		if v := s.GetReveals(myhash); v != nil {
+			s.PutReveals(myhash, nil)
+		}
+
+		s.PutCommits(myhash, nil)
+		s.IncEntryChains()
+		s.IncEntries()
+		return true
+	} else if _, isNewEntry := commit.(*messages.CommitEntryMsg); isNewEntry {
+		chainID := msg.Entry.GetChainID()
+		eb := s.GetNewEBlocks(dbheight, chainID)
+		if eb == nil {
+			s.DBMutex.Lock()
+			prev, err := s.DB.FetchEBlockHead(chainID)
+			s.DBMutex.Unlock()
+			if prev == nil || err != nil {
+				return false
+			}
+			eb = entryBlock.NewEBlock()
+			// Set the Chain ID
+			eb.GetHeader().SetChainID(msg.Entry.GetChainID())
+			// Set the Directory Block Height for this Entry Block
+			eb.GetHeader().SetDBHeight(dbheight)
+			// Set the PrevKeyMR
+			key, _ := prev.KeyMR()
+			eb.GetHeader().SetPrevKeyMR(key)
+		}
+		// Add our new entry
+		eb.AddEBEntry(msg.Entry)
+		// Put it in our list of new Entry Blocks for this Directory Block
+		s.PutNewEBlocks(dbheight, msg.Entry.GetChainID(), eb)
+		s.PutNewEntries(dbheight, msg.Entry.GetHash(), msg.Entry)
+
+		if v := s.GetReveals(myhash); v != nil {
+			s.PutReveals(myhash, nil)
+		}
+
+		s.PutCommits(myhash, nil)
+		s.IncEntries()
+		return true
+	}
+	return false
 }
 
 // When we process the directory Signature, and we are the leader for said signature, it
@@ -652,7 +730,12 @@ func (s *State) GetHighestKnownBlock() uint32 {
 }
 
 func (s *State) GetF(adr [32]byte) int64 {
+	s.FactoidBalancesTMutex.Lock()
+	defer s.FactoidBalancesTMutex.Unlock()
+
 	if v, ok := s.FactoidBalancesT[adr]; !ok {
+		s.FactoidBalancesPMutex.Lock()
+		defer s.FactoidBalancesPMutex.Unlock()
 		v = s.FactoidBalancesP[adr]
 		return v
 	} else {
@@ -662,14 +745,23 @@ func (s *State) GetF(adr [32]byte) int64 {
 
 func (s *State) PutF(rt bool, adr [32]byte, v int64) {
 	if rt {
+		s.FactoidBalancesTMutex.Lock()
+		defer s.FactoidBalancesTMutex.Unlock()
 		s.FactoidBalancesT[adr] = v
 	} else {
+		s.FactoidBalancesPMutex.Lock()
+		defer s.FactoidBalancesPMutex.Unlock()
 		s.FactoidBalancesP[adr] = v
 	}
 }
 
 func (s *State) GetE(adr [32]byte) int64 {
+	s.ECBalancesTMutex.Lock()
+	defer s.ECBalancesTMutex.Unlock()
+
 	if v, ok := s.ECBalancesT[adr]; !ok {
+		s.ECBalancesPMutex.Lock()
+		defer s.ECBalancesPMutex.Unlock()
 		v = s.ECBalancesP[adr]
 		return v
 	} else {
@@ -679,8 +771,12 @@ func (s *State) GetE(adr [32]byte) int64 {
 
 func (s *State) PutE(rt bool, adr [32]byte, v int64) {
 	if rt {
+		s.ECBalancesTMutex.Lock()
+		defer s.ECBalancesTMutex.Unlock()
 		s.ECBalancesT[adr] = v
 	} else {
+		s.ECBalancesPMutex.Lock()
+		defer s.ECBalancesPMutex.Unlock()
 		s.ECBalancesP[adr] = v
 	}
 }
@@ -717,14 +813,6 @@ func (s *State) NewAdminBlockHeader(dbheight uint32) interfaces.IABlockHeader {
 func (s *State) GetNetworkName() string {
 	return (s.Cfg.(util.FactomdConfig)).App.Network
 
-}
-
-func (s *State) GetDB() interfaces.DBOverlay {
-	return s.DB
-}
-
-func (s *State) SetDB(dbase interfaces.DBOverlay) {
-	s.DB = databaseOverlay.NewOverlay(dbase)
 }
 
 func (s *State) GetDBHeightComplete() uint32 {
