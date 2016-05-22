@@ -211,7 +211,8 @@ func (p *ProcessList) MakeMap() {
 // but for now, we are just going to make it a function of the dbheight.
 func (p *ProcessList) PrintMap() string {
 	n := len(p.FedServers)
-	prt := " min"
+	prt := fmt.Sprintf("===PrintMapStart=== %d\n",p.DBHeight)
+	prt = prt+ " min"
 	for i := 0; i < n; i++ {
 		prt = fmt.Sprintf("%s%3d", prt, i)
 	}
@@ -223,6 +224,7 @@ func (p *ProcessList) PrintMap() string {
 		}
 		prt = prt + "\n"
 	}
+	prt = prt+fmt.Sprintf("===PrintMapEnd=== %d\n",p.DBHeight)
 	return prt
 }
 
@@ -506,9 +508,13 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) boo
 	vm := p.VMs[ack.VMIndex]
 
 	// If this vm is sealed, then we can't add more messages.
-	if p.State.(*State).Leader && vm.Seal > 0 && ack.Height >= vm.SealHeight {
+	if vm.Seal > 0 && ack.Height >= vm.SealHeight {
 		return false
 	}
+	if len(vm.List) > vm.Height {
+		return false
+	}
+
 
 	if len(vm.List) > int(ack.Height) && vm.List[ack.Height] != nil {
 
@@ -569,6 +575,8 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) boo
 
 	p.VMs[ack.VMIndex].List[ack.Height] = m
 	p.VMs[ack.VMIndex].ListAck[ack.Height] = ack
+	p.OldMsgs[m.GetHash().Fixed()] = m
+	p.OldAcks[m.GetHash().Fixed()] = ack
 
 	//	fmt.Printf("%-30s %10s %s\n", "add !!!!!!Finished ", p.State.GetFactomNodeName(), m.String())
 	//	fmt.Printf("%-30s %10s %s\n", "add !!!!!!Finished ", p.State.GetFactomNodeName(), ack.String())
@@ -581,6 +589,7 @@ func (p *ProcessList) String() string {
 	if p == nil {
 		buf.WriteString("-- <nil>\n")
 	} else {
+		buf.WriteString(fmt.Sprintf("===ProcessListStart=== %s %d\n", p.State.GetFactomNodeName(), p.DBHeight))
 		buf.WriteString(fmt.Sprintf("%s #VMs %d\n", p.State.GetFactomNodeName(), len(p.FedServers)))
 
 		for i := 0; i < len(p.FedServers); i++ {
@@ -610,15 +619,18 @@ func (p *ProcessList) String() string {
 				}
 			}
 		}
-		buf.WriteString("\n   Federated VMs:\n")
+		buf.WriteString(fmt.Sprintf("===FederatedServersStart=== %d\n",len(p.FedServers)))
 		for _, fed := range p.FedServers {
 			buf.WriteString(fmt.Sprintf("    %x\n", fed.GetChainID().Bytes()[:3]))
 		}
-		buf.WriteString("\n   Audit VMs:\n")
+		buf.WriteString(fmt.Sprintf("===FederatedServersEnd=== %d\n",len(p.FedServers)))
+		buf.WriteString(fmt.Sprintf("===AuditServersStart=== %d\n",len(p.AuditServers)))
 		for _, aud := range p.AuditServers {
 			buf.WriteString(fmt.Sprintf("    %x\n", aud.GetChainID().Bytes()[:3]))
 		}
+		buf.WriteString(fmt.Sprintf("===AuditServersEnd=== %d\n",len(p.AuditServers)))
 	}
+	buf.WriteString(fmt.Sprintf("===ProcessListEnd=== %s %d\n", p.State.GetFactomNodeName(), p.DBHeight))
 	return buf.String()
 }
 

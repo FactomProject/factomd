@@ -1,7 +1,7 @@
 #!/bin/bash
 
 	echo "Transactions: "
-sleep 3
+sleep 1
 for i in `seq 1 50`;
 do
 	factom-cli deletetransaction t

@@ -106,7 +106,6 @@ func (s *State) TryToProcess(msg interfaces.IMsg) {
 		if msg.Follower(s) {
 			if !s.Leader && msg.IsLocal() {
 				if _, ok := msg.(*messages.EOM); ok {
-					fmt.Println("Leader EOM message found in follower")
 					return
 				}
 			}
@@ -120,32 +119,27 @@ func (s *State) TryToProcess(msg interfaces.IMsg) {
 	}
 
 	msgLeader := msg.Leader(s)
-	if ack, ok := msg.(*messages.Ack); s.LeaderPL.GoodTo(msg.GetVMIndex()) &&
-		(!ok || int(ack.Height) <= s.LeaderPL.VMs[ack.VMIndex].Height) {
-		switch msg.Validate(s) {
-		case 1:
-			// If we are a leader, we are way more strict than simple followers.
-			if msgLeader && s.Leader &&
-			(s.LeaderVMIndex == msg.GetVMIndex() || msg.IsLocal()) {
-				err := msg.LeaderExecute(s)
-				if err != nil {
-					if _, ok := msg.(*messages.EOM); !ok {
-						s.StallMsg(msg)
-					}
+
+	switch msg.Validate(s) {
+	case 1:
+		// If we are a leader, we are way more strict than simple followers.
+		if msgLeader && s.Leader &&
+		(s.LeaderVMIndex == msg.GetVMIndex() || msg.IsLocal()) {
+			err := msg.LeaderExecute(s)
+			if err != nil {
+				if _, ok := msg.(*messages.EOM); !ok {
+					s.StallMsg(msg)
 				}
-			} else {
-				ExeFollow()
 			}
-		case 0:
-			// Could be good, might not be.  Stall it.
-			s.StallMsg(msg)
-		// If the transaction isn't valid (or we can't tell) we just drop it.
-		default:
-			s.networkInvalidMsgQueue <- msg
+		} else {
+			ExeFollow()
 		}
-	} else {
+	case 0:
 		s.StallMsg(msg)
+	default:
+		s.networkInvalidMsgQueue <- msg
 	}
+
 }
 
 func (s *State) ProcessQueues() (progress bool) {
@@ -237,6 +231,7 @@ func (s *State) AddDBState(isNew bool,
 	ht := dbState.DirectoryBlock.GetHeader().GetDBHeight()
 	if ht > s.LLeaderHeight {
 		s.LLeaderHeight = ht
+		s.ProcessLists.Get(ht+1)
 		s.EOM = 0
 	}
 	//	dbh := directoryBlock.GetHeader().GetDBHeight()
@@ -281,13 +276,14 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) (bool, error) {
 
 		if pl != nil {
 			if !pl.AddToProcessList(ack, m) {
+				s.StallMsg(m)
+				s.StallMsg(ack)
+				fmt.Println(s.GetFactomNodeName(),"Could not add to list")
 				return false, fmt.Errorf("Could not add message")
 			}
-
-			pl.OldAcks[hashf] = ack
-			pl.OldMsgs[hashf] = m
 		} else {
 			if ack.DBHeight >= s.ProcessLists.DBHeightBase {
+				fmt.Println(s.GetFactomNodeName(),"PL Null Could not add to list")
 				return false, fmt.Errorf("Could not add message")
 			}
 		}
@@ -302,18 +298,16 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) (bool, error) {
 func (s *State) FollowerExecuteAck(msg interfaces.IMsg) (bool, error) {
 	ack := msg.(*messages.Ack)
 
+	s.Acks[ack.GetHash().Fixed()] = ack
 
 	match := s.Holding[ack.GetHash().Fixed()]
 	if match != nil {
-		s.Acks[ack.GetHash().Fixed()] = ack
 		if err := match.FollowerExecute(s); err != nil {
-			s.Acks[ack.GetHash().Fixed()] = nil
 			return false, err
 		}
 		return true, nil
 	}
-	s.Acks[ack.GetHash().Fixed()] = ack
-	return false, nil
+	return false, fmt.Errorf("Failed to Match")
 }
 
 func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) error {
@@ -418,6 +412,7 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
 	eom := m.(*messages.EOM)
 
 	if s.EOM > 0 {
+		fmt.Println(s.FactomNodeName, "Stalling",eom.String())
 		return fmt.Errorf("Stalling")
 	}
 

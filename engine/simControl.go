@@ -233,7 +233,7 @@ func printSummary(summary *bool, listenTo *int) {
 	out := ""
 	for {
 		if *summary {
-			prt := ""
+			prt := "===SummaryStart===\n"
 			for _, f := range fnodes {
 				f.State.SetOut(false)
 				prt = prt + fmt.Sprintf("%8s %s \n", f.State.FactomNodeName, f.State.ShortString())
@@ -342,6 +342,8 @@ func printSummary(summary *bool, listenTo *int) {
 				}
 
 			}
+			prt = prt+"===SummaryEnd===\n"
+
 			if prt != out {
 				fmt.Println(prt)
 				out = prt
