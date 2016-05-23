@@ -8,14 +8,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-
+	"strings"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/web"
 	"os"
-	"sync"
 	"time"
+	
 )
 
 const (
@@ -23,13 +23,9 @@ const (
 )
 
 var Servers map[int]*web.Server
-var ServersSync sync.Mutex
 
 func Start(state interfaces.IState) {
 	var server *web.Server
-
-	ServersSync.Lock()
-	defer ServersSync.Unlock()
 
 	if Servers == nil {
 		Servers = make(map[int]*web.Server)
@@ -68,8 +64,6 @@ func Start(state interfaces.IState) {
 
 func SetState(state interfaces.IState) {
 	wait := func() {
-		ServersSync.Lock()
-		defer ServersSync.Unlock()
 		for Servers == nil && Servers[state.GetPort()] != nil {
 			time.Sleep(10 * time.Millisecond)
 		}
@@ -80,9 +74,6 @@ func SetState(state interfaces.IState) {
 }
 
 func Stop(state interfaces.IState) {
-	ServersSync.Lock()
-	defer ServersSync.Unlock()
-
 	Servers[state.GetPort()].Close()
 }
 
@@ -112,29 +103,36 @@ func HandleCommitChain(ctx *web.Context) {
 	type commitchain struct {
 		CommitChainMsg string
 	}
-
 	c := new(commitchain)
-	if p, err := ioutil.ReadAll(ctx.Request.Body); err != nil {
+	if p, err := ioutil.ReadAll(ctx.Request.Body); err != nil {		
 		handleV1Error(ctx, NewInvalidParamsError())
 		return
 	} else {
-		if err := json.Unmarshal(p, c); err != nil {
+		if err := json.Unmarshal(p, c); err != nil {			
 			handleV1Error(ctx, NewInvalidParamsError())
 			return
 		}
 	}
 	param := MessageRequest{Message: c.CommitChainMsg}
 	req := primitives.NewJSON2Request("commit-chain", 1, param)
-
 	jsonResp, jsonError := HandleV2Request(state, req)
+	
+	
+	
 	if jsonError != nil {
 		returnV1(ctx, nil, jsonError)
 		return
 	}
-	returnMsg(ctx, jsonResp.Result.(*CommitChainResponse).Message, true)
+	log.Print(jsonResp.Result.(*RevealEntryResponse).Message)
+		
+	// this is the blank '200 ok' that is returned for V1
+	returnV1Msg(ctx, "", false)
+
+
 }
 
 func HandleRevealChain(ctx *web.Context) {
+	fmt.Println("RevealChain")
 	HandleRevealEntry(ctx)
 }
 
@@ -164,10 +162,15 @@ func HandleCommitEntry(ctx *web.Context) {
 		returnV1(ctx, nil, jsonError)
 		return
 	}
-	returnMsg(ctx, jsonResp.Result.(*CommitEntryResponse).Message, true)
+	log.Print( jsonResp.Result.(*RevealEntryResponse).Message)
+	
+	// this is the blank '200 ok' that is returned for V1
+	returnV1Msg(ctx, "", true)
+	
 }
 
 func HandleRevealEntry(ctx *web.Context) {
+	fmt.Println("RevealEntry")
 	state := ctx.Server.Env["state"].(interfaces.IState)
 	type revealentry struct {
 		Entry string
@@ -192,7 +195,9 @@ func HandleRevealEntry(ctx *web.Context) {
 		returnV1(ctx, nil, jsonError)
 		return
 	}
-	returnMsg(ctx, jsonResp.Result.(*RevealEntryResponse).Message, true)
+	log.Print(jsonResp.Result.(*RevealEntryResponse).Message)
+	returnV1Msg(ctx, "", true)
+	
 }
 
 func HandleDirectoryBlockHead(ctx *web.Context) {
@@ -205,9 +210,16 @@ func HandleDirectoryBlockHead(ctx *web.Context) {
 		returnV1(ctx, nil, jsonError)
 		return
 	}
-	dhead := new(DBHead)
-	dhead.KeyMR = jsonResp.Result.(*DirectoryBlockHeadResponse).KeyMR
-	returnMsg(ctx, dhead, true)
+	tmp, err := json.Marshal(jsonResp.Result)
+	resp :=string(tmp)
+	if err != nil {
+		resp="{\"KeyMR\",0}"
+		returnV1Msg(ctx, resp, true)
+	}
+
+	resp= strings.Replace(resp, "keymr", "KeyMR", -1)
+	
+	returnV1Msg(ctx,resp, true)
 }
 
 func HandleGetRaw(ctx *web.Context, hashkey string) {
@@ -232,14 +244,23 @@ func HandleGetReceipt(ctx *web.Context, hashkey string) {
 
 func HandleDirectoryBlock(ctx *web.Context, hashkey string) {
 	state := ctx.Server.Env["state"].(interfaces.IState)
-
-	param := HashRequest{Hash: hashkey}
-	req := primitives.NewJSON2Request("directory-block-by-keymr", 1, param)
-
+	param := KeyMRRequest{KeyMR: hashkey}
+	req := primitives.NewJSON2Request("directory-block", 1, param)
 	jsonResp, jsonError := HandleV2Request(state, req)
 	if jsonError != nil {
 		returnV1(ctx, nil, jsonError)
 		return
+	}
+	
+	
+	
+	type DBlock struct {
+		Header struct {
+			PrevBlockKeyMR string
+			SequenceNumber int64
+			Timestamp      int64
+		} 
+		EntryBlockList []EBlockAddr
 	}
 	d := new(DBlock)
 
@@ -248,7 +269,17 @@ func HandleDirectoryBlock(ctx *web.Context, hashkey string) {
 	d.Header.Timestamp = jsonResp.Result.(*DirectoryBlockResponse).Header.Timestamp
 	d.EntryBlockList = jsonResp.Result.(*DirectoryBlockResponse).EntryBlockList
 
-	returnMsg(ctx, d, true)
+// conflict if I use local structs.  using a string replace on the structs that would be pointer handled (*DirectoryBlockResponse)
+	bResp, err := json.Marshal(d)
+	if err != nil {
+		
+		returnMsg(ctx, d, true)
+	}
+	resp := string(bResp)
+	resp = strings.Replace(resp,"{\"chainid\"","{\"ChainID\"",-1)
+	resp = strings.Replace(resp,",\"keymr\":",",\"KeyMR\":",-1)
+	
+	returnV1Msg(ctx, resp, true)
 }
 
 func HandleDirectoryBlockHeight(ctx *web.Context) {
@@ -261,21 +292,45 @@ func HandleDirectoryBlockHeight(ctx *web.Context) {
 		returnV1(ctx, nil, jsonError)
 		return
 	}
-
-	returnMsg(ctx, jsonResp.Result.(*DirectoryBlockHeightResponse), true)
+	tmp, err := json.Marshal(jsonResp.Result)
+	resp :=string(tmp)
+	if err != nil {
+		resp="{\"Height\",0}"
+		returnV1Msg(ctx, resp, true)
+	}
+	
+	type DirectoryBlockHeightResponse struct {
+		Height int64 /*`json:"height"` V1 doesn't use the json tye def */
+	}
+	
+	
+	resp= strings.Replace(resp, "height", "Height", -1)
+	
+	returnV1Msg(ctx,resp, true)
 }
 
 func HandleEntryBlock(ctx *web.Context, hashkey string) {
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
-	param := HashRequest{Hash: hashkey}
-	req := primitives.NewJSON2Request("entry-block-by-keymr", 1, param)
+	param := KeyMRRequest{KeyMR: hashkey}
+	req := primitives.NewJSON2Request("entry-block", 1, param)
 
 	jsonResp, jsonError := HandleV2Request(state, req)
 	if jsonError != nil {
 		returnV1(ctx, nil, jsonError)
 		return
 	}
+	
+	type EBlock struct {
+	Header struct {
+		BlockSequenceNumber int64  
+		ChainID             string 
+		PrevKeyMR           string 
+		Timestamp           int64  
+		DBHeight            int64 
+	} 
+	EntryList []EntryAddr 
+}
 	d := new(EBlock)
 
 	d.Header.BlockSequenceNumber = jsonResp.Result.(*EntryBlockResponse).Header.BlockSequenceNumber
@@ -308,24 +363,31 @@ func HandleEntry(ctx *web.Context, hashkey string) {
 	returnMsg(ctx, d, true)
 }
 
-func HandleChainHead(ctx *web.Context, hashkey string) {
-	state := ctx.Server.Env["state"].(interfaces.IState)
+func HandleChainHead(ctx *web.Context, chainid string) {
 
-	param := HashRequest{Hash: hashkey}
+	state := ctx.Server.Env["state"].(interfaces.IState)
+	param := ChainIDRequest{ChainID: chainid}
 	req := primitives.NewJSON2Request("chain-head", 1, param)
+
 
 	jsonResp, jsonError := HandleV2Request(state, req)
 	if jsonError != nil {
-		returnV1(ctx, nil, jsonError)
-		return
+			returnV1(ctx, nil, jsonError)
+			return
+		
 	}
+// restatement of chead from structs file
+// v1 doesn't like the lcase in v2'
+type CHead struct {
+	ChainHead string 
+}
 
 	d := new(CHead)
 	d.ChainHead = jsonResp.Result.(*ChainHeadResponse).ChainHead
 	returnMsg(ctx, d, true)
 }
 
-func HandleEntryCreditBalance(ctx *web.Context, eckey string) {
+func HandleEntryCreditBalance(ctx *web.Context, address string) {
 	type x struct {
 		Response string
 		Success  bool
@@ -333,7 +395,7 @@ func HandleEntryCreditBalance(ctx *web.Context, eckey string) {
 
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
-	param := KeyRequest{Key: eckey}
+	param := AddressRequest{Address: address}
 	req := primitives.NewJSON2Request("entry-credit-balance", 1, param)
 
 	jsonResp, jsonError := HandleV2Request(state, req)
@@ -351,7 +413,7 @@ func HandleEntryCreditBalance(ctx *web.Context, eckey string) {
 func HandleGetFee(ctx *web.Context) {
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
-	req := primitives.NewJSON2Request("factoid-get-fee", 1, nil)
+	req := primitives.NewJSON2Request("factoid-fee", 1, nil)
 
 	jsonResp, jsonError := HandleV2Request(state, req)
 	if jsonError != nil {
@@ -403,16 +465,14 @@ func HandleFactoidSubmit(ctx *web.Context) {
 	returnMsg(ctx, r, true)
 }
 
-func HandleFactoidBalance(ctx *web.Context, eckey string) {
+func HandleFactoidBalance(ctx *web.Context, address string) {
+
 	type x struct {
 		Response string
 		Success  bool
 	}
-	t := new(x)
-
 	state := ctx.Server.Env["state"].(interfaces.IState)
-
-	param := KeyRequest{Key: eckey}
+	param := AddressRequest{Address: address}
 	req := primitives.NewJSON2Request("factoid-balance", 1, param)
 
 	jsonResp, jsonError := HandleV2Request(state, req)
@@ -421,9 +481,12 @@ func HandleFactoidBalance(ctx *web.Context, eckey string) {
 		return
 	}
 
-	t.Response = fmt.Sprint(jsonResp.Result.(*FactoidBalanceResponse).Balance)
-	t.Success = true
-	returnMsg(ctx, t, true)
+
+	r := new(x)
+	r.Response = fmt.Sprint(jsonResp.Result.(*FactoidBalanceResponse).Balance)
+	r.Success = true
+	returnMsg(ctx, r, true)	
+
 }
 
 func HandleProperties(ctx *web.Context) {
@@ -441,8 +504,8 @@ func HandleProperties(ctx *web.Context) {
 		Factomd_Version  string
 	}
 	d := new(x)
-	d.Factomd_Version = jsonResp.Result.(*PropertiesResponse).FactomdVersion + " " + state.GetFactomNodeName()
-
+	d.Factomd_Version = jsonResp.Result.(*PropertiesResponse).FactomdVersion 
+	d.Protocol_Version = "0.0.0.0" // meaningless after v1
 	returnMsg(ctx, d, true)
 }
 
@@ -473,3 +536,17 @@ func returnMsg(ctx *web.Context, msg interface{}, success bool) {
 		ctx.Write(p)
 	}
 }
+
+
+func returnV1Msg(ctx *web.Context, msg string, success bool) {
+
+	/* V1 requires call specific case changes that can't be handled with
+	  interfaces for example.  Block Height needs to return  height as the json item name
+	  in golang, lower case names are private so won't be returned.
+	  Deal with the responses in the call specific v1 handlers until they are depricated.
+	  */
+	  bMsg :=[]byte(msg)
+		ctx.Write(bMsg)
+
+}
+
