@@ -171,4 +171,5 @@ type IState interface {
 
 	SetIsReplaying()
 	SetIsDoneReplaying()
+	GetACKStatus(hash IHash) (int, error)
 }

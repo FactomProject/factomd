@@ -8,14 +8,24 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+<<<<<<< HEAD
 	"strings"
+=======
+	"os"
+	"sync"
+	"time"
+
+>>>>>>> refs/remotes/origin/m2-api
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/web"
+<<<<<<< HEAD
 	"os"
 	"time"
 	
+=======
+>>>>>>> refs/remotes/origin/m2-api
 )
 
 const (

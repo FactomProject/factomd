@@ -7,6 +7,7 @@ package wsapi
 import (
 	"encoding/hex"
 
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid"
@@ -46,7 +47,44 @@ func HandleV2FactoidACK(state interfaces.IState, params interface{}) (interface{
 		txid = tx.GetHash().String()
 	}
 
-	return nil, nil
+	txhash, err := primitives.NewShaHashFromStr(txid)
+	if err != nil {
+		return nil, NewInvalidParamsError()
+	}
+
+	status, err := state.GetACKStatus(txhash)
+	if err != nil {
+		return nil, NewInternalError()
+	}
+
+	answer := new(FactoidTxStatus)
+	answer.TxID = txid
+
+	switch status {
+	case constants.AckStatusInvalid:
+		answer.Status = AckStatusInvalid
+		break
+	case constants.AckStatusUnknown:
+		answer.Status = AckStatusUnknown
+		break
+	case constants.AckStatusNotConfirmed:
+		answer.Status = AckStatusNotConfirmed
+		break
+	case constants.AckStatusACK:
+		answer.Status = AckStatusACK
+		break
+	case constants.AckStatus1Minute:
+		answer.Status = AckStatus1Minute
+		break
+	case constants.AckStatusDBlockConfirmed:
+		answer.Status = AckStatusDBlockConfirmed
+		break
+	default:
+		return nil, NewInternalError()
+		break
+	}
+
+	return answer, nil
 }
 
 func HandleV2EntryACK(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
@@ -60,6 +98,8 @@ func HandleV2EntryACK(state interfaces.IState, params interface{}) (interface{},
 	}
 
 	txid := ackReq.TxID
+	eTxID := ""
+	ecTxID := ""
 
 	if txid == "" {
 		b, err := hex.DecodeString(ackReq.FullTransaction)
@@ -72,16 +112,53 @@ func HandleV2EntryACK(state interfaces.IState, params interface{}) (interface{},
 			ec := new(entryCreditBlock.CommitEntry)
 			err = ec.UnmarshalBinary(b)
 			if err != nil {
-				return nil, NewUnableToDecodeTransactionError()
+				cc := new(entryCreditBlock.CommitChain)
+				err = cc.UnmarshalBinary(b)
+				if err != nil {
+					return nil, NewUnableToDecodeTransactionError()
+				} else {
+					txid = cc.GetHash().String()
+					ecTxID = cc.EntryHash.String()
+				}
 			} else {
 				txid = ec.GetHash().String()
+				ecTxID = ec.EntryHash.String()
 			}
 		} else {
 			txid = e.GetHash().String()
+			eTxID = txid
 		}
 	}
 
-	return nil, nil
+	answer := new(EntryStatus)
+	answer.CommitTxID = ecTxID
+	answer.EntryHash = eTxID
+	/*
+		switch status {
+		case constants.AckStatusInvalid:
+			answer.Status = AckStatusInvalid
+			break
+		case constants.AckStatusUnknown:
+			answer.Status = AckStatusUnknown
+			break
+		case constants.AckStatusNotConfirmed:
+			answer.Status = AckStatusNotConfirmed
+			break
+		case constants.AckStatusACK:
+			answer.Status = AckStatusACK
+			break
+		case constants.AckStatus1Minute:
+			answer.Status = AckStatus1Minute
+			break
+		case constants.AckStatusDBlockConfirmed:
+			answer.Status = AckStatusDBlockConfirmed
+			break
+		default:
+			return nil, NewInternalError()
+			break
+		}*/
+
+	return answer, nil
 }
 
 type AckRequest struct {

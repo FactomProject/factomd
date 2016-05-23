@@ -239,6 +239,9 @@ func (m *Ack) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 		return nil, err
 	}
 
+	m.Peer2Peer = newData[0]==1
+	newData = newData[1:]
+
 	if len(newData) > 0 {
 		m.Signature = new(primitives.Signature)
 		newData, err = m.Signature.UnmarshalBinaryData(newData)
@@ -297,6 +300,13 @@ func (m *Ack) MarshalBinary() (data []byte, err error) {
 	if err != nil {
 		return nil, err
 	}
+
+	if m.Peer2Peer {
+		resp = append(resp,uint8(1))
+	}else{
+		resp = append(resp,uint8(0))
+	}
+
 	sig := m.GetSignature()
 
 	if sig != nil {

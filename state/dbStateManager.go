@@ -7,10 +7,11 @@ package state
 import (
 	"encoding/hex"
 	"fmt"
+	"time"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/log"
-	"time"
 )
 
 var _ = hex.EncodeToString
@@ -158,6 +159,8 @@ func (list *DBStateList) Catchup() {
 	msg := messages.NewDBStateMissing(list.State, uint32(begin), uint32(end2))
 
 	if msg != nil {
+		list.State.EOM = 0
+		list.State.stallQueue = make(chan interfaces.IMsg, 10000) // If we are loading blocks, give up on messages.
 		list.State.NetworkOutMsgQueue() <- msg
 		list.State.stallQueue = make(chan interfaces.IMsg, 10000)
 		list.State.NewMinute()

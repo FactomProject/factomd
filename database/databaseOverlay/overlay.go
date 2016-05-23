@@ -58,6 +58,9 @@ const (
 
 	//IncludedIn
 	INCLUDED_IN
+
+	//Which EC transaction paid for this Entry
+	PAID_FOR
 )
 
 type Overlay struct {
