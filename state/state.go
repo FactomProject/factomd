@@ -174,7 +174,7 @@ func (s *State) GetACKStatus(hash interfaces.IHash) (int, error) {
 
 	//TODO: check if message is invalid
 
-	in, err := s.GetDB().LoadIncludedIn(hash)
+	in, err := s.DB.LoadIncludedIn(hash)
 	if err != nil {
 		return 0, err
 	}

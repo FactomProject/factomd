@@ -19,6 +19,10 @@ type ProcessLists struct {
 
 }
 
+func (lists *ProcessLists) LastList() *ProcessList {
+	return lists.Lists[len(lists.Lists)-1]
+}
+
 func (lists *ProcessLists) Reset(dbheight uint32) {
 }
 
