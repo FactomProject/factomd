@@ -8,24 +8,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-<<<<<<< HEAD
 	"strings"
-=======
 	"os"
-	"sync"
 	"time"
 
->>>>>>> refs/remotes/origin/m2-api
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/web"
-<<<<<<< HEAD
-	"os"
-	"time"
 	
-=======
->>>>>>> refs/remotes/origin/m2-api
+
 )
 
 const (
@@ -125,7 +117,7 @@ func HandleCommitChain(ctx *web.Context) {
 	}
 	param := MessageRequest{Message: c.CommitChainMsg}
 	req := primitives.NewJSON2Request("commit-chain", 1, param)
-	jsonResp, jsonError := HandleV2Request(state, req)
+	_, jsonError := HandleV2Request(state, req)
 	
 	
 	
@@ -133,7 +125,7 @@ func HandleCommitChain(ctx *web.Context) {
 		returnV1(ctx, nil, jsonError)
 		return
 	}
-	log.Print(jsonResp.Result.(*RevealEntryResponse).Message)
+	//log.Print(jsonResp.Result.(*RevealEntryResponse).Message)
 		
 	// this is the blank '200 ok' that is returned for V1
 	returnV1Msg(ctx, "", false)
@@ -167,12 +159,12 @@ func HandleCommitEntry(ctx *web.Context) {
 	param := EntryRequest{Entry: c.CommitEntryMsg}
 	req := primitives.NewJSON2Request("commit-entry", 1, param)
 
-	jsonResp, jsonError := HandleV2Request(state, req)
+	_, jsonError := HandleV2Request(state, req)
 	if jsonError != nil {
 		returnV1(ctx, nil, jsonError)
 		return
 	}
-	log.Print( jsonResp.Result.(*RevealEntryResponse).Message)
+	//log.Print( jsonResp.Result.(*RevealEntryResponse).Message)
 	
 	// this is the blank '200 ok' that is returned for V1
 	returnV1Msg(ctx, "", true)
@@ -200,12 +192,12 @@ func HandleRevealEntry(ctx *web.Context) {
 	param := EntryRequest{Entry: e.Entry}
 	req := primitives.NewJSON2Request("reveal-entry", 1, param)
 
-	jsonResp, jsonError := HandleV2Request(state, req)
+	_, jsonError := HandleV2Request(state, req)
 	if jsonError != nil {
 		returnV1(ctx, nil, jsonError)
 		return
 	}
-	log.Print(jsonResp.Result.(*RevealEntryResponse).Message)
+	//log.Print(jsonResp.Result.(*RevealEntryResponse).Message)
 	returnV1Msg(ctx, "", true)
 	
 }
