@@ -22,6 +22,8 @@ import (
 	"github.com/FactomProject/factomd/logger"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
+	"math/rand"
+	"sync"
 )
 
 var _ = fmt.Print
@@ -104,9 +106,10 @@ type State struct {
 	NetworkNumber int // Encoded into Directory Blocks(s.Cfg.(*util.FactomdConfig)).String()
 
 	// Database
-	DB     *databaseOverlay.Overlay
-	Logger *logger.FLogger
-	Anchor interfaces.IAnchor
+	DB      *databaseOverlay.Overlay
+	DBMutex sync.Mutex
+	Logger  *logger.FLogger
+	Anchor  interfaces.IAnchor
 
 	// Directory Block State
 	DBStates *DBStateList // Holds all DBStates not yet processed.
@@ -128,12 +131,16 @@ type State struct {
 	NumTransactions int
 
 	// Permanent balances from processing blocks.
-	FactoidBalancesP map[[32]byte]int64
-	ECBalancesP      map[[32]byte]int64
+	FactoidBalancesP      map[[32]byte]int64
+	FactoidBalancesPMutex sync.Mutex
+	ECBalancesP           map[[32]byte]int64
+	ECBalancesPMutex      sync.Mutex
 
 	// Temporary balances from updating transactions in real time.
-	FactoidBalancesT map[[32]byte]int64
-	ECBalancesT      map[[32]byte]int64
+	FactoidBalancesT      map[[32]byte]int64
+	FactoidBalancesTMutex sync.Mutex
+	ECBalancesT           map[[32]byte]int64
+	ECBalancesTMutex      sync.Mutex
 
 	FactoshisPerEC uint64
 	// Web Services
@@ -316,7 +323,7 @@ func (s *State) Init() {
 	s.stallQueue = make(chan interfaces.IMsg, 10000)             //queue of Leader messages while stalled
 	s.ShutdownChan = make(chan int, 1)                           //Channel to gracefully shut down.
 
-	os.MkdirAll(s.LogPath, 0777)
+	os.Mkdir(s.LogPath, 0777)
 	_, err := os.Create(s.JournalFile) //Create the Journal File
 	if err != nil {
 		fmt.Println("Could not create the file: " + s.JournalFile)
@@ -387,7 +394,9 @@ func (s *State) Init() {
 	}
 
 	if s.ExportData {
+		s.DBMutex.Lock()
 		s.DB.SetExportData(s.ExportDataSubpath)
+		s.DBMutex.Unlock()
 	}
 
 	//Network
@@ -433,6 +442,9 @@ func (s *State) SetEBDBHeightComplete(newHeight uint32) {
 }
 
 func (s *State) GetEBlockKeyMRFromEntryHash(entryHash interfaces.IHash) interfaces.IHash {
+	s.DBMutex.Lock()
+	defer s.DBMutex.Unlock()
+
 	entry, err := s.DB.FetchEntryByHash(entryHash)
 	if err != nil {
 		return nil
@@ -455,7 +467,18 @@ func (s *State) GetEBlockKeyMRFromEntryHash(entryHash interfaces.IHash) interfac
 	return nil
 }
 
+func (s *State) GetAndLockDB() interfaces.DBOverlay {
+	s.DBMutex.Lock()
+	return s.DB
+}
+
+func (s *State) UnlockDB() {
+	s.DBMutex.Unlock()
+}
+
 func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
+	s.DBMutex.Lock()
+	defer s.DBMutex.Unlock()
 
 	dblk, err := s.DB.FetchDBlockByHeight(dbheight)
 	if err != nil {
@@ -504,17 +527,17 @@ func (s *State) LoadDataByHash(requestedHash interfaces.IHash) (interfaces.Binar
 	var err error
 
 	// Check for Entry
-	result, err = s.GetDB().FetchEntryByHash(requestedHash)
+	result, err = s.DB.FetchEntryByHash(requestedHash)
 	if result != nil && err == nil {
 		return result, 0, nil
 	}
 
 	// Check for Entry Block
-	result, err = s.GetDB().FetchEBlockByKeyMR(requestedHash)
+	result, err = s.DB.FetchEBlockByKeyMR(requestedHash)
 	if result != nil && err == nil {
 		return result, 1, nil
 	}
-	result, _ = s.GetDB().FetchEBlockByHash(requestedHash)
+	result, _ = s.DB.FetchEBlockByHash(requestedHash)
 	if result != nil && err == nil {
 		return result, 1, nil
 	}
@@ -583,7 +606,9 @@ func (s *State) LoadSpecificMsgAndAck(dbheight uint32, vm int, plistheight uint3
 // It returns True if the EBlock is complete (all entries already exist in database)
 func (s *State) GetAllEntries(ebKeyMR interfaces.IHash) bool {
 	hasAllEntries := true
+	s.DBMutex.Lock()
 	eblock, err := s.DB.FetchEBlockByKeyMR(ebKeyMR)
+	s.DBMutex.Unlock()
 	if err != nil {
 		return false
 	}
@@ -670,7 +695,9 @@ func (s *State) GetDirectoryBlockByHeight(height uint32) interfaces.IDirectoryBl
 	if dbstate != nil {
 		return dbstate.DirectoryBlock
 	}
+	s.DBMutex.Lock()
 	dblk, err := s.DB.FetchDBlockByHeight(height)
+	s.DBMutex.Unlock()
 	if err != nil {
 		return nil
 	}
@@ -871,10 +898,6 @@ func (s *State) LeaderMsgQueue() chan interfaces.IMsg {
 func (s *State) StallMsg(m interfaces.IMsg) {
 	if !m.IsLocal() {
 		s.stallQueue <- m
-		m.SetStalled(true)
-		if s.DebugConsensus {
-			fmt.Printf("%-30s %10s %s\n", "SSS Stalling Msg: ", s.FactomNodeName, m.String())
-		}
 	}
 }
 
@@ -911,6 +934,9 @@ func (s *State) GetMatryoshka(dbheight uint32) interfaces.IHash {
 }
 
 func (s *State) InitLevelDB() error {
+	s.DBMutex.Lock()
+	defer s.DBMutex.Unlock()
+
 	if s.DB != nil {
 		return nil
 	}
@@ -933,6 +959,8 @@ func (s *State) InitLevelDB() error {
 }
 
 func (s *State) InitBoltDB() error {
+	s.DBMutex.Lock()
+	defer s.DBMutex.Unlock()
 	if s.DB != nil {
 		return nil
 	}
@@ -947,6 +975,9 @@ func (s *State) InitBoltDB() error {
 }
 
 func (s *State) InitMapDB() error {
+	s.DBMutex.Lock()
+	defer s.DBMutex.Unlock()
+
 	if s.DB != nil {
 		return nil
 	}
@@ -969,6 +1000,11 @@ func (s *State) ShortString() string {
 }
 
 func (s *State) SetString() {
+
+	if rand.Int()%100 > 50 {
+		return
+	}
+
 	buildingBlock := s.GetHighestRecordedBlock()
 
 	lastheight := uint32(0)

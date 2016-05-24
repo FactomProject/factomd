@@ -118,7 +118,7 @@ func (c *Connection) commonInit() {
 func (c *Connection) runLoop() {
 	for ConnectionShutdown != c.state { // loop exits when we hit shutdown state
 		// time.Sleep(time.Second * 1) // This can be a tight loop, don't want to starve the application
-		time.Sleep(time.Millisecond * 10) // This can be a tight loop, don't want to starve the application
+		time.Sleep(time.Millisecond * 1) // This can be a tight loop, don't want to starve the application
 		switch c.state {
 		case ConnectionInitialized:
 			if c.dial() {
@@ -207,7 +207,7 @@ func (c *Connection) dial() bool {
 
 // processSends gets all the messages from the application and sends them out over the network
 func (c *Connection) processSends() {
-	note(c.peer.Hash, "Connection.processSends() called. Items in send channel: %d State: %s", len(c.SendChannel), c.ConnectionState())
+	// note(c.peer.Hash, "Connection.processSends() called. Items in send channel: %d State: %s", len(c.SendChannel), c.ConnectionState())
 	for 0 < len(c.SendChannel) { // effectively "While there are messages"
 		message := <-c.SendChannel
 		switch message.(type) {

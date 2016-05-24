@@ -1,8 +1,8 @@
 
 # Factom P2P Networking
 
-
-
+### Diagram
+![diagram.jpg](https://raw.githubusercontent.com/FactomProject/factomd/m2/p2p/diagram.jpg)
 
 ## Architecture
 

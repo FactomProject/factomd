@@ -240,7 +240,8 @@ func HandleV2RawData(state interfaces.IState, params interface{}) (interface{}, 
 		return nil, NewInvalidHashError()
 	}
 
-	dbase := state.GetDB()
+	dbase := state.GetAndLockDB()
+	defer state.UnlockDB()
 
 	var b []byte
 
@@ -289,7 +290,8 @@ func HandleV2Receipt(state interfaces.IState, params interface{}) (interface{}, 
 		return nil, NewInvalidHashError()
 	}
 
-	dbase := state.GetDB()
+	dbase := state.GetAndLockDB()
+	defer state.UnlockDB()
 
 	receipt, err := receipts.CreateFullReceipt(dbase, h)
 	if err != nil {
@@ -311,7 +313,8 @@ func HandleV2DirectoryBlock(state interfaces.IState, params interface{}) (interf
 		return nil, NewInvalidHashError()
 	}
 
-	dbase := state.GetDB()
+	dbase := state.GetAndLockDB()
+	defer state.UnlockDB()
 
 	block, err := dbase.FetchDBlockByKeyMR(h)
 	if err != nil {
@@ -353,7 +356,8 @@ func HandleV2EntryBlock(state interfaces.IState, params interface{}) (interface{
 		return nil, NewInvalidHashError()
 	}
 
-	dbase := state.GetDB()
+	dbase := state.GetAndLockDB()
+	defer state.UnlockDB()
 
 	block, err := dbase.FetchEBlockByKeyMR(h)
 	if err != nil {
@@ -420,7 +424,8 @@ func HandleV2Entry(state interfaces.IState, params interface{}) (interface{}, *p
 		return nil, NewInvalidHashError()
 	}
 
-	dbase := state.GetDB()
+	dbase := state.GetAndLockDB()
+	defer state.UnlockDB()
 
 	entry, err := dbase.FetchEntryByHash(h)
 	if err != nil {
@@ -450,7 +455,9 @@ func HandleV2ChainHead(state interfaces.IState, params interface{}) (interface{}
 		return nil, NewInvalidHashError()
 	}
 
-	dbase := state.GetDB()
+	dbase := state.GetAndLockDB()
+	defer state.UnlockDB()
+
 	mr, err := dbase.FetchHeadIndexByChainID(h)
 	if err != nil {
 		return nil, NewInvalidHashError()

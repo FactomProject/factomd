@@ -39,7 +39,6 @@ func NetStart(s *state.State) {
 	netPtr := flag.String("net", "tree", "The default algorithm to build the network connections")
 	dropPtr := flag.Int("drop", 0, "Number of messages to drop out of every thousand")
 	journalPtr := flag.String("journal", "", "Rerun a Journal of messages")
-	journalingPtr := flag.Bool("journaling", false, "Enable recording a Journal of messages")
 	followerPtr := flag.Bool("follower", false, "If true, force node to be a follower.  Only used when replaying a journal.")
 	leaderPtr := flag.Bool("leader", true, "If true, force node to be a leader.  Only used when replaying a journal.")
 	dbPtr := flag.String("db", "", "Override the Database in the Config file and use this Database implementation")
@@ -53,6 +52,7 @@ func NetStart(s *state.State) {
 	netdebugPtr := flag.Int("netdebug", 0, "0-5: 0 = quiet, >0 = increasing levels of logging")
 	heartbeatPtr := flag.Bool("heartbeat", false, "If true, network just sends heartbeats.")
 	prefixNodePtr := flag.String("prefix", "", "Prefix the Factom Node Names with this value; used to create leaderless networks.")
+	profilePtr := flag.String("profile", "", "If true, turn on the go Profiler to profile execution of Factomd")
 
 	flag.Parse()
 
@@ -61,7 +61,6 @@ func NetStart(s *state.State) {
 	net := *netPtr
 	droprate := *dropPtr
 	journal := *journalPtr
-	journaling := *journalingPtr
 	follower := *followerPtr
 	leader := *leaderPtr
 	db := *dbPtr
@@ -75,6 +74,7 @@ func NetStart(s *state.State) {
 	netdebug := *netdebugPtr
 	heartbeat := *heartbeatPtr
 	prefix := *prefixNodePtr
+	profile := *profilePtr
 
 	// Must add the prefix before loading the configuration.
 	s.AddPrefix(prefix)
@@ -152,12 +152,18 @@ func NetStart(s *state.State) {
 		s.CloneDBType = db
 	}
 
+	if profile == "true" {
+		go StartProfiler()
+	} else {
+		profile = "false"
+	}
+
 	os.Stderr.WriteString(fmt.Sprintf("node        %d\n", listenTo))
+	os.Stderr.WriteString(fmt.Sprintf("prefix      %s\n", prefix))
 	os.Stderr.WriteString(fmt.Sprintf("count       %d\n", cnt))
 	os.Stderr.WriteString(fmt.Sprintf("net         \"%s\"\n", net))
 	os.Stderr.WriteString(fmt.Sprintf("drop        %d\n", droprate))
 	os.Stderr.WriteString(fmt.Sprintf("journal     \"%s\"\n", journal))
-	os.Stderr.WriteString(fmt.Sprintf("journaling     \"%v\"\n", journaling))
 	os.Stderr.WriteString(fmt.Sprintf("db          \"%s\"\n", db))
 	os.Stderr.WriteString(fmt.Sprintf("clonedb     \"%s\"\n", cloneDB))
 	os.Stderr.WriteString(fmt.Sprintf("folder      \"%s\"\n", folder))
@@ -166,6 +172,7 @@ func NetStart(s *state.State) {
 	os.Stderr.WriteString(fmt.Sprintf("peers       \"%s\"\n", peers))
 	os.Stderr.WriteString(fmt.Sprintf("blkTime     %d\n", blkTime))
 	os.Stderr.WriteString(fmt.Sprintf("runtimeLog  %v\n", runtimeLog))
+	os.Stderr.WriteString(fmt.Sprintf("profile     %v\n", profile))
 
 	s.AddPrefix(prefix)
 	s.SetOut(false)
@@ -177,12 +184,14 @@ func NetStart(s *state.State) {
 	//************************************************
 	// Actually setup the Network
 	//************************************************
+
 	// Make cnt Factom nodes
 	for i := 0; i < cnt; i++ {
 		makeServer(s) // We clone s to make all of our servers
 	}
 
 	// Start the P2P netowrk
+
 	// BUGBUG Get peers file from config
 	p2p := new(p2p.Controller).Init(address, "~/.factom/peers.json")
 	network = *p2p
@@ -196,7 +205,7 @@ func NetStart(s *state.State) {
 	p2pProxy.SetTestMode(heartbeat)
 	if 0 < netdebug {
 		go PeriodicStatusReport(fnodes)
-		go p2pProxy.ProxyStatusReport()
+		go p2pProxy.ProxyStatusReport(fnodes)
 		network.StartLogging(uint8(netdebug))
 	} else {
 		network.StartLogging(uint8(0))
@@ -236,6 +245,7 @@ func NetStart(s *state.State) {
 			AddSimPeer(fnodes, i, (i+1)%n)
 			AddSimPeer(fnodes, i, (i+3)%n)
 			AddSimPeer(fnodes, i, (i+5)%n)
+			AddSimPeer(fnodes, i, (i+7)%n)
 		}
 
 	case "tree":
