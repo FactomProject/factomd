@@ -130,9 +130,20 @@ func HandleV2EntryACK(state interfaces.IState, params interface{}) (interface{},
 		}
 	}
 
+	if ecTxID == "" && eTxID == "" {
+
+	}
+
 	answer := new(EntryStatus)
 	answer.CommitTxID = ecTxID
 	answer.EntryHash = eTxID
+
+	if answer.CommitTxID != "" {
+
+	} else {
+
+	}
+
 	/*
 		switch status {
 		case constants.AckStatusInvalid:

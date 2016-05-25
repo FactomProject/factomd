@@ -268,7 +268,7 @@ func (list *DBStateList) UpdateState() (progress bool) {
 				panic(err.Error())
 			}
 
-			if err := list.State.DB.ProcessECBlockMultiBatch(d.EntryCreditBlock); err != nil {
+			if err := list.State.DB.ProcessECBlockMultiBatch(d.EntryCreditBlock, false); err != nil {
 				list.State.DBMutex.Unlock()
 				panic(err.Error())
 			}
