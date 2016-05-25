@@ -7,11 +7,10 @@ package state
 import (
 	"encoding/hex"
 	"fmt"
-	"time"
-
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/log"
+	"time"
 )
 
 var _ = hex.EncodeToString
@@ -56,7 +55,9 @@ func (list *DBStateList) String() string {
 	for i, ds := range list.DBStates {
 		rec = "M"
 		if ds != nil && ds.DirectoryBlock != nil {
-			dblk, _ := list.State.GetDB().FetchDBlockByHash(ds.DirectoryBlock.GetKeyMR())
+			list.State.DBMutex.Lock()
+			dblk, _ := list.State.DB.FetchDBlockByHash(ds.DirectoryBlock.GetKeyMR())
+			list.State.DBMutex.Unlock()
 			if dblk != nil {
 				rec = "R"
 			}
@@ -159,8 +160,6 @@ func (list *DBStateList) Catchup() {
 	msg := messages.NewDBStateMissing(list.State, uint32(begin), uint32(end2))
 
 	if msg != nil {
-		list.State.EOM = 0
-		list.State.stallQueue = make(chan interfaces.IMsg, 10000) // If we are loading blocks, give up on messages.
 		list.State.NetworkOutMsgQueue() <- msg
 		list.State.stallQueue = make(chan interfaces.IMsg, 10000)
 		list.State.NewMinute()
@@ -186,7 +185,9 @@ func (list *DBStateList) UpdateState() (progress bool) {
 		// Make sure the directory block is properly synced up with the prior block, if there
 		// is one.
 
-		dblk, _ := list.State.GetDB().FetchDBlockByKeyMR(d.DirectoryBlock.GetKeyMR())
+		list.State.DBMutex.Lock()
+		dblk, _ := list.State.DB.FetchDBlockByKeyMR(d.DirectoryBlock.GetKeyMR())
+		list.State.DBMutex.Unlock()
 		if dblk == nil {
 			if i > 0 {
 				p := list.DBStates[i-1]
@@ -194,7 +195,9 @@ func (list *DBStateList) UpdateState() (progress bool) {
 					continue
 				}
 			}
-			list.State.GetDB().StartMultiBatch()
+			list.State.DBMutex.Lock()
+			list.State.DB.StartMultiBatch()
+			list.State.DBMutex.Unlock()
 
 			//fmt.Println("Saving DBHeight ", d.DirectoryBlock.GetHeader().GetDBHeight(), " on ", list.State.GetFactomNodeName())
 
@@ -249,40 +252,52 @@ func (list *DBStateList) UpdateState() (progress bool) {
 				}
 
 			}
-			if err := list.State.GetDB().ProcessDBlockMultiBatch(d.DirectoryBlock); err != nil {
+			list.State.DBMutex.Lock()
+			if err := list.State.DB.ProcessDBlockMultiBatch(d.DirectoryBlock); err != nil {
+				list.State.DBMutex.Unlock()
 				panic(err.Error())
 			}
 
-			if err := list.State.GetDB().ProcessABlockMultiBatch(d.AdminBlock); err != nil {
+			if err := list.State.DB.ProcessABlockMultiBatch(d.AdminBlock); err != nil {
+				list.State.DBMutex.Unlock()
 				panic(err.Error())
 			}
 
-			if err := list.State.GetDB().ProcessFBlockMultiBatch(d.FactoidBlock); err != nil {
+			if err := list.State.DB.ProcessFBlockMultiBatch(d.FactoidBlock); err != nil {
+				list.State.DBMutex.Unlock()
 				panic(err.Error())
 			}
 
-			if err := list.State.GetDB().ProcessECBlockMultiBatch(d.EntryCreditBlock); err != nil {
+			if err := list.State.DB.ProcessECBlockMultiBatch(d.EntryCreditBlock); err != nil {
+				list.State.DBMutex.Unlock()
 				panic(err.Error())
 			}
 
 			pl := list.State.ProcessLists.Get(d.DirectoryBlock.GetHeader().GetDBHeight())
 			for _, eb := range pl.NewEBlocks {
-				if err := list.State.GetDB().ProcessEBlockMultiBatch(eb, false); err != nil {
+				if err := list.State.DB.ProcessEBlockMultiBatch(eb, false); err != nil {
+					list.State.DBMutex.Unlock()
 					panic(err.Error())
 				}
 				for _, e := range eb.GetBody().GetEBEntries() {
-					if err := list.State.GetDB().InsertEntry(pl.NewEntries[e.Fixed()]); err != nil {
+					if err := list.State.DB.InsertEntry(pl.NewEntries[e.Fixed()]); err != nil {
+						list.State.DBMutex.Unlock()
 						panic(err.Error())
 					}
 				}
 			}
 
-			if err := list.State.GetDB().ExecuteMultiBatch(); err != nil {
+			if err := list.State.DB.ExecuteMultiBatch(); err != nil {
+				list.State.DBMutex.Unlock()
 				panic(err.Error())
 			}
+			list.State.DBMutex.Unlock()
+
 		}
 
-		dblk2, _ := list.State.GetDB().FetchDBlockByKeyMR(d.DirectoryBlock.GetKeyMR())
+		list.State.DBMutex.Lock()
+		dblk2, _ := list.State.DB.FetchDBlockByKeyMR(d.DirectoryBlock.GetKeyMR())
+		list.State.DBMutex.Unlock()
 		if dblk2 == nil {
 			fmt.Printf("Failed to save the Directory Block %d %x\n",
 				d.DirectoryBlock.GetHeader().GetDBHeight(),

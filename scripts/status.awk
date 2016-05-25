@@ -1,40 +1,29 @@
-/FNode0.*L.*ID/ {
-    collect=1
-    once=1
-    once1=1
-}
-
-/ min  0  1 / {
-    if (once==1) {
-        min=1
-        collect=1
-        once=0
+/===SummaryEnd===/ {
+    for (i=0; i<on2; i++) {
+        print out2[i]
     }
-}
 
-{
-    if ($1=="ht:" && collect && once1==0) {
-        stuff[on++]=$0
-        once1==1
+    for (i=0; i<on1; i++) {
+        print out1[i]
     }
+    c1=0
+    on1=0
+    on2=0
 }
 
-
-collect { stuff[on++]=$0 }
-
-
-/VM State per Node/ {
-
-    collect=0
+/===PrintMapEnd===/ {
+    c2=0
 }
 
-{
-    if (min && $1==9) {
-        for (i=0; i<on; i++) {
-            print stuff[i]
-        }
-        collect=0
-        on=0
-        min=0
-    }
- }
+c1 { out1[on1++]=$0 }
+c2 { out2[on2++]=$0 }
+
+/===SummaryStart===/ {
+    on1=0
+    c1=1
+}
+/===PrintMapStart===/ {
+    on2=0
+    c2=1
+}
+

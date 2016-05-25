@@ -70,37 +70,38 @@ type VM struct {
 
 // Attempts to unseal. Takes a minute (1-10) Returns false if it cannot.
 // Returns false if no seal is found.
-func (p *ProcessList) Unseal(minute int) bool {
-	cnt := 0
+func (p *ProcessList) Unsealable(minute int) bool {
+searchVMs:
 	for i := 0; i < len(p.FedServers); i++ {
 		vm := p.VMs[i]
 		if len(vm.List) != vm.Height {
-			break
+			return false
 		}
 		for _, v := range vm.List {
 			if v == nil {
-				break
+				return false
 			}
 			if eom, ok := v.(*messages.EOM); ok {
 				if int(eom.Minute+1) == minute {
-					cnt++
-					break
+					continue searchVMs
 				}
 			}
 		}
+		return false
 	}
-	if cnt > 0 {
-		if cnt < len(p.FedServers) {
-			return false
-		}
-		for i := 0; i < len(p.FedServers); i++ {
-			p.VMs[i].Seal = 0
-			p.VMs[i].SealHeight = 0
-			p.Sealing = false
-		}
-		return true
+	return true
+}
+
+func (p *ProcessList) Unseal(minute int) bool {
+	if !p.Unsealable(minute) {
+		return false
 	}
-	return false
+	for i := 0; i < len(p.FedServers); i++ {
+		p.VMs[i].Seal = 0
+		p.VMs[i].SealHeight = 0
+		p.Sealing = false
+	}
+	return true
 }
 
 // Returns the Virtual Server index for this hash for the given minute
@@ -195,6 +196,7 @@ func (p *ProcessList) GetAuditServerIndexHash(identityChainID interfaces.IHash) 
 func (p *ProcessList) MakeMap() {
 	n := len(p.FedServers)
 	indx := int(p.DBHeight*131) % n
+
 	for i := 0; i < 10; i++ {
 		indx = (indx + 1) % n
 		for j := 0; j < len(p.FedServers); j++ {
@@ -208,7 +210,8 @@ func (p *ProcessList) MakeMap() {
 // but for now, we are just going to make it a function of the dbheight.
 func (p *ProcessList) PrintMap() string {
 	n := len(p.FedServers)
-	prt := " min"
+	prt := fmt.Sprintf("===PrintMapStart=== %d\n", p.DBHeight)
+	prt = prt + " min"
 	for i := 0; i < n; i++ {
 		prt = fmt.Sprintf("%s%3d", prt, i)
 	}
@@ -220,15 +223,8 @@ func (p *ProcessList) PrintMap() string {
 		}
 		prt = prt + "\n"
 	}
+	prt = prt + fmt.Sprintf("===PrintMapEnd=== %d\n", p.DBHeight)
 	return prt
-}
-
-// Take the minute that has completed.  The minute height then is 1 plus that number
-// i.e. the minute height is 0, or 1, or 2, or ... or 10 (all done)
-func (p *ProcessList) SetMinute(index int, minute int) {
-	p.VMs[index].LeaderMinute = minute
-	p.VMs[index].MinuteComplete = minute + 1
-	p.VMs[index].MinuteHeight = p.VMs[index].Height
 }
 
 // Return the lowest minute number in our lists.  Note that Minute Markers END
@@ -236,9 +232,14 @@ func (p *ProcessList) SetMinute(index int, minute int) {
 func (p *ProcessList) MinuteComplete() int {
 	m := 10
 	for i := 0; i < len(p.FedServers); i++ {
-		vm := p.VMs[i]
-		if vm.MinuteComplete < m {
-			m = vm.MinuteComplete
+		mm := 0
+		for _, msg := range p.VMs[i].List {
+			if eom, ok := msg.(*messages.EOM); ok {
+				mm = int(eom.Minute + 1)
+			}
+		}
+		if m > mm {
+			m = mm
 		}
 	}
 	return m
@@ -423,7 +424,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			}
 
 			if p.Sealing && vm.Seal == 0 {
-				vm.SealTime = ask(vm, vm.SealTime+4, vm.Height)
+				vm.SealTime = ask(vm, vm.SealTime+1, vm.Height)
 			}
 
 			thisAck := alist[j]
@@ -503,7 +504,10 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) boo
 	vm := p.VMs[ack.VMIndex]
 
 	// If this vm is sealed, then we can't add more messages.
-	if p.State.(*State).Leader && vm.Seal > 0 && ack.Height >= vm.SealHeight {
+	if vm.Seal > 0 && ack.Height >= vm.SealHeight {
+		return false
+	}
+	if len(vm.List) > vm.Height {
 		return false
 	}
 
@@ -528,12 +532,35 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) boo
 		}
 	}
 
+	// From this point on, we consider the transaction recorded.  If we detect it has already been
+	// recorded, then we still treat it as if we recorded it.
+
+	// Both the ack and the message hash to the same GetHash()
+	m.SetLocal(false)
+	ack.SetLocal(false)
+	ack.SetPeer2Peer(false)
+	m.SetPeer2Peer(false)
+
+	now := int64(p.State.GetTimestamp())
+
+	msgOk := p.State.(*State).InternalReplay.IsTSValid_(m.GetHash().Fixed(), int64(m.GetTimestamp()), now)
+
+	if !msgOk { // If we already have this message or acknowledgement recorded,
+		return true // we don't have to do anything.  Just say we got it handled.
+	}
+
+	p.State.NetworkOutMsgQueue() <- ack
+	p.State.NetworkOutMsgQueue() <- m
+
 	eom, ok := m.(*messages.EOM)
 	if ok {
 		p.Sealing = true
 		vm.Seal = int(eom.Minute + 1)
 		vm.SealHeight = ack.Height
+		vm.MinuteComplete = int(eom.Minute + 1)
+		vm.MinuteHeight = vm.Height
 	}
+
 	length := len(p.VMs[ack.VMIndex].List)
 	for length <= int(ack.Height) {
 		p.VMs[ack.VMIndex].List = append(p.VMs[ack.VMIndex].List, nil)
@@ -543,12 +570,8 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) boo
 
 	p.VMs[ack.VMIndex].List[ack.Height] = m
 	p.VMs[ack.VMIndex].ListAck[ack.Height] = ack
-
-	now := int64(p.State.GetTimestamp())
-	// Both the ack and the message hash to the same GetHash()
-	p.State.(*State).InternalReplay.IsTSValid_(m.GetHash().Fixed(), int64(m.GetTimestamp()), now)
-	ack.SetStalled(false)
-	m.SetStalled(false)
+	p.OldMsgs[m.GetHash().Fixed()] = m
+	p.OldAcks[m.GetHash().Fixed()] = ack
 
 	//	fmt.Printf("%-30s %10s %s\n", "add !!!!!!Finished ", p.State.GetFactomNodeName(), m.String())
 	//	fmt.Printf("%-30s %10s %s\n", "add !!!!!!Finished ", p.State.GetFactomNodeName(), ack.String())
@@ -561,6 +584,7 @@ func (p *ProcessList) String() string {
 	if p == nil {
 		buf.WriteString("-- <nil>\n")
 	} else {
+		buf.WriteString(fmt.Sprintf("===ProcessListStart=== %s %d\n", p.State.GetFactomNodeName(), p.DBHeight))
 		buf.WriteString(fmt.Sprintf("%s #VMs %d\n", p.State.GetFactomNodeName(), len(p.FedServers)))
 
 		for i := 0; i < len(p.FedServers); i++ {
@@ -590,15 +614,18 @@ func (p *ProcessList) String() string {
 				}
 			}
 		}
-		buf.WriteString("\n   Federated VMs:\n")
+		buf.WriteString(fmt.Sprintf("===FederatedServersStart=== %d\n", len(p.FedServers)))
 		for _, fed := range p.FedServers {
 			buf.WriteString(fmt.Sprintf("    %x\n", fed.GetChainID().Bytes()[:3]))
 		}
-		buf.WriteString("\n   Audit VMs:\n")
+		buf.WriteString(fmt.Sprintf("===FederatedServersEnd=== %d\n", len(p.FedServers)))
+		buf.WriteString(fmt.Sprintf("===AuditServersStart=== %d\n", len(p.AuditServers)))
 		for _, aud := range p.AuditServers {
 			buf.WriteString(fmt.Sprintf("    %x\n", aud.GetChainID().Bytes()[:3]))
 		}
+		buf.WriteString(fmt.Sprintf("===AuditServersEnd=== %d\n", len(p.AuditServers)))
 	}
+	buf.WriteString(fmt.Sprintf("===ProcessListEnd=== %s %d\n", p.State.GetFactomNodeName(), p.DBHeight))
 	return buf.String()
 }
 
