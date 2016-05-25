@@ -86,7 +86,7 @@ func (db *Overlay) SaveIncludedInMulti(entries []interfaces.IHash, block interfa
 	return nil
 }
 
-func (db *Overlay) LoadIncludedIn(hash interfaces.IHash) (interfaces.IHash, error) {
+func (db *Overlay) FetchIncludedIn(hash interfaces.IHash) (interfaces.IHash, error) {
 	block, err := db.DB.Get([]byte{INCLUDED_IN}, hash.Bytes(), new(primitives.Hash))
 	if err != nil {
 		return nil, err

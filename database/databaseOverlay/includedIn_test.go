@@ -33,7 +33,7 @@ func TestIncludedIn(t *testing.T) {
 
 	for _, block := range blocks {
 		for _, entry := range block.GetEntryHashes() {
-			blockHash, err := dbo.LoadIncludedIn(entry)
+			blockHash, err := dbo.FetchIncludedIn(entry)
 			if err != nil {
 				t.Error(err)
 			}
@@ -62,7 +62,7 @@ func TestIncludedInOverwriting(t *testing.T) {
 
 	for i, block := range blocks {
 		for _, entry := range block.GetEntryHashes() {
-			blockHash, err := dbo.LoadIncludedIn(entry)
+			blockHash, err := dbo.FetchIncludedIn(entry)
 			if err != nil {
 				t.Error(err)
 			}
@@ -94,7 +94,7 @@ func TestIncludedInOverwriting(t *testing.T) {
 
 	for i, block := range blocks {
 		for _, entry := range block.GetEntryHashes() {
-			blockHash, err := dbo.LoadIncludedIn(entry)
+			blockHash, err := dbo.FetchIncludedIn(entry)
 			if err != nil {
 				t.Error(err)
 			}
@@ -123,7 +123,7 @@ func TestIncludedInFromAllBlocks(t *testing.T) {
 		blockHash := block.DatabasePrimaryIndex()
 		entries := block.GetEntryHashes()
 		for _, entry := range entries {
-			in, err := dbo.LoadIncludedIn(entry)
+			in, err := dbo.FetchIncludedIn(entry)
 			if err != nil {
 				t.Error(err)
 			}
@@ -142,7 +142,7 @@ func TestIncludedInFromAllBlocks(t *testing.T) {
 		blockHash := block.DatabasePrimaryIndex()
 		entries := block.GetEntryHashes()
 		for _, entry := range entries {
-			in, err := dbo.LoadIncludedIn(entry)
+			in, err := dbo.FetchIncludedIn(entry)
 			if err != nil {
 				t.Error(err)
 			}
@@ -161,7 +161,7 @@ func TestIncludedInFromAllBlocks(t *testing.T) {
 		blockHash := block.DatabasePrimaryIndex()
 		entries := block.GetEntryHashes()
 		for _, entry := range entries {
-			in, err := dbo.LoadIncludedIn(entry)
+			in, err := dbo.FetchIncludedIn(entry)
 			if err != nil {
 				t.Error(err)
 			}
@@ -180,7 +180,7 @@ func TestIncludedInFromAllBlocks(t *testing.T) {
 		blockHash := block.DatabasePrimaryIndex()
 		entries := block.GetEntryHashes()
 		for _, entry := range entries {
-			in, err := dbo.LoadIncludedIn(entry)
+			in, err := dbo.FetchIncludedIn(entry)
 			if err != nil {
 				t.Error(err)
 			}
@@ -199,7 +199,7 @@ func TestIncludedInFromAllBlocks(t *testing.T) {
 		blockHash := block.DatabasePrimaryIndex()
 		entries := block.GetEntryHashes()
 		for _, entry := range entries {
-			in, err := dbo.LoadIncludedIn(entry)
+			in, err := dbo.FetchIncludedIn(entry)
 			if err != nil {
 				t.Error(err)
 			}

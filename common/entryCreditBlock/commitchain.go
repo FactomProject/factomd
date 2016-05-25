@@ -50,6 +50,10 @@ func NewCommitChain() *CommitChain {
 	return c
 }
 
+func (a *CommitChain) GetEntryHash() interfaces.IHash {
+	return a.EntryHash
+}
+
 func (a *CommitChain) IsSameAs(b *CommitChain) bool {
 	if b == nil {
 		return false

@@ -32,6 +32,10 @@ func (e *MinuteNumber) Hash() interfaces.IHash {
 	return primitives.Sha(bin)
 }
 
+func (a *MinuteNumber) GetEntryHash() interfaces.IHash {
+	return nil
+}
+
 func (b *MinuteNumber) IsInterpretable() bool {
 	return true
 }

@@ -103,7 +103,7 @@ func (db *Overlay) SavePaidForMultiFromBlock(block interfaces.IEntryCreditBlock,
 	return nil
 }
 
-func (db *Overlay) LoadPaidFor(hash interfaces.IHash) (interfaces.IHash, error) {
+func (db *Overlay) FetchPaidFor(hash interfaces.IHash) (interfaces.IHash, error) {
 	block, err := db.DB.Get([]byte{PAID_FOR}, hash.Bytes(), new(primitives.Hash))
 	if err != nil {
 		return nil, err

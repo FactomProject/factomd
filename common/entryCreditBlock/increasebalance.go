@@ -29,6 +29,10 @@ func NewIncreaseBalance() *IncreaseBalance {
 	return r
 }
 
+func (a *IncreaseBalance) GetEntryHash() interfaces.IHash {
+	return nil
+}
+
 func (e *IncreaseBalance) Hash() interfaces.IHash {
 	bin, err := e.MarshalBinary()
 	if err != nil {

@@ -13,7 +13,7 @@ import (
 )
 
 type MapDB struct {
-	Sem   sync.Mutex
+	Sem   sync.RWMutex
 	Cache map[string]map[string][]byte // Our Cache
 }
 
@@ -81,8 +81,8 @@ func (db *MapDB) PutInBatch(records []interfaces.Record) error {
 }
 
 func (db *MapDB) Get(bucket, key []byte, destination interfaces.BinaryMarshallable) (interfaces.BinaryMarshallable, error) {
-	db.Sem.Lock()
-	defer db.Sem.Unlock()
+	db.Sem.RLock()
+	defer db.Sem.RUnlock()
 
 	if db.Cache == nil {
 		db.Cache = map[string]map[string][]byte{}
@@ -121,8 +121,8 @@ func (db *MapDB) Delete(bucket, key []byte) error {
 }
 
 func (db *MapDB) ListAllKeys(bucket []byte) ([][]byte, error) {
-	db.Sem.Lock()
-	defer db.Sem.Unlock()
+	db.Sem.RLock()
+	defer db.Sem.RUnlock()
 
 	if db.Cache == nil {
 		db.Cache = map[string]map[string][]byte{}
@@ -142,8 +142,8 @@ func (db *MapDB) ListAllKeys(bucket []byte) ([][]byte, error) {
 }
 
 func (db *MapDB) GetAll(bucket []byte, sample interfaces.BinaryMarshallableAndCopyable) ([]interfaces.BinaryMarshallableAndCopyable, error) {
-	db.Sem.Lock()
-	defer db.Sem.Unlock()
+	db.Sem.RLock()
+	defer db.Sem.RUnlock()
 
 	if db.Cache == nil {
 		db.Cache = map[string]map[string][]byte{}

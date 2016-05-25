@@ -16,6 +16,7 @@ type DBOverlay interface {
 	StartMultiBatch()
 	PutInMultiBatch(records []Record)
 	ExecuteMultiBatch() error
+	GetEntryType(hash IHash) (IHash, error)
 
 	//**********************************Entry**********************************//
 
@@ -176,8 +177,10 @@ type DBOverlay interface {
 	SaveIncludedIn(entry, block IHash) error
 	SaveIncludedInMultiFromBlock(block DatabaseBlockWithEntries, checkForDuplicateEntries bool) error
 	SaveIncludedInMulti(entries []IHash, block IHash, checkForDuplicateEntries bool) error
-	LoadIncludedIn(hash IHash) (IHash, error)
+	FetchIncludedIn(hash IHash) (IHash, error)
 	RebuildDirBlockInfo() error
+
+	FetchPaidFor(hash IHash) (IHash, error)
 
 	FetchFactoidTransactionByHash(hash IHash) (ITransaction, error)
 	FetchECTransactionByHash(hash IHash) (IECBlockEntry, error)

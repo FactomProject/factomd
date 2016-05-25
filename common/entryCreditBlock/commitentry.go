@@ -37,6 +37,10 @@ var _ interfaces.ShortInterpretable = (*CommitEntry)(nil)
 var _ interfaces.IECBlockEntry = (*CommitEntry)(nil)
 var _ interfaces.ISignable = (*CommitEntry)(nil)
 
+func (a *CommitEntry) GetEntryHash() interfaces.IHash {
+	return a.EntryHash
+}
+
 func (a *CommitEntry) IsSameAs(b *CommitEntry) bool {
 	if b == nil {
 		return false

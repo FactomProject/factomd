@@ -375,3 +375,79 @@ func (db *Overlay) FetchBlockIndexesInHeightRange(numberBucket []byte, startHeig
 
 	return shalist, nil
 }
+
+func (db *Overlay) GetEntryType(hash interfaces.IHash) (interfaces.IHash, error) {
+	if hash == nil {
+		return nil, nil
+	}
+
+	in, err := db.FetchIncludedIn(hash)
+	if err != nil {
+		return nil, err
+	}
+
+	if in == nil {
+		//Entry not included anywhere, it might be still a dBlock (or the special block not included in dblocks)
+		dBlock, err := db.FetchDBlockByKeyMR(hash)
+		if err != nil {
+			return nil, err
+		}
+		if dBlock == nil {
+			//TODO: search for the free-floating block here
+
+			//Entry is nowhere to be found
+			return nil, nil
+		}
+		return dBlock.GetChainID(), nil
+	}
+
+	eBlock, err := db.FetchEBlockByKeyMR(in)
+	if err != nil {
+		return nil, err
+	}
+	if eBlock != nil {
+		return eBlock.GetChainID(), nil
+	}
+
+	ecBlock, err := db.FetchECBlockByHeaderHash(in)
+	if err != nil {
+		return nil, err
+	}
+	if ecBlock != nil {
+		return ecBlock.GetChainID(), nil
+	}
+
+	fblock, err := db.FetchFBlockByKeyMR(in)
+	if err != nil {
+		return nil, err
+	}
+	if fblock != nil {
+		return fblock.GetChainID(), nil
+	}
+
+	ablock, err := db.FetchABlockByKeyMR(in)
+	if err != nil {
+		return nil, err
+	}
+	if ablock != nil {
+		return ablock.GetChainID(), nil
+	}
+
+	dBlock, err := db.FetchDBlockByKeyMR(in)
+	if err != nil {
+		return nil, err
+	}
+	if dBlock != nil {
+		dbEntries := dBlock.GetDBEntries()
+		for _, dbEntry := range dbEntries {
+			if dbEntry.GetKeyMR().IsSameAs(hash) {
+				return dbEntry.GetChainID(), nil
+			}
+		}
+		if dBlock.GetKeyMR().IsSameAs(hash) == true {
+			return dBlock.GetChainID(), nil
+		}
+	}
+
+	return nil, nil
+}

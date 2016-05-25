@@ -7,7 +7,7 @@ import (
 )
 
 func (db *Overlay) FetchFactoidTransactionByHash(hash interfaces.IHash) (interfaces.ITransaction, error) {
-	in, err := db.LoadIncludedIn(hash)
+	in, err := db.FetchIncludedIn(hash)
 	if err != nil {
 		return nil, err
 	}
@@ -31,7 +31,7 @@ func (db *Overlay) FetchFactoidTransactionByHash(hash interfaces.IHash) (interfa
 }
 
 func (db *Overlay) FetchECTransactionByHash(hash interfaces.IHash) (interfaces.IECBlockEntry, error) {
-	in, err := db.LoadIncludedIn(hash)
+	in, err := db.FetchIncludedIn(hash)
 	if err != nil {
 		return nil, err
 	}

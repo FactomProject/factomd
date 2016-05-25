@@ -130,18 +130,135 @@ func HandleV2EntryACK(state interfaces.IState, params interface{}) (interface{},
 		}
 	}
 
-	if ecTxID == "" && eTxID == "" {
+	dbase := state.GetAndLockDB()
+	defer state.UnlockDB()
 
+	//TODO: fetch entries, ec TXs from state as well
+
+	if ecTxID == "" && eTxID == "" {
+		h, err := primitives.NewShaHashFromStr(txid)
+		if err != nil {
+			return nil, NewInvalidParamsError()
+		}
+		entry, err := dbase.FetchEntryByHash(h)
+		if err != nil {
+			return nil, NewInternalError()
+		}
+		if entry == nil {
+			eTxID = txid
+		} else {
+			ecTxID = txid
+		}
 	}
 
 	answer := new(EntryStatus)
 	answer.CommitTxID = ecTxID
 	answer.EntryHash = eTxID
 
+	//Fetching the second part of the transaction pair
+
 	if answer.CommitTxID != "" {
-
+		h, err := primitives.NewShaHashFromStr(answer.EntryHash)
+		if err != nil {
+			return nil, NewInvalidParamsError()
+		}
+		ec, err := dbase.FetchECTransactionByHash(h)
+		if err != nil {
+			return nil, NewInternalError()
+		}
+		if ec != nil {
+			answer.EntryHash = ec.GetEntryHash().String()
+		}
 	} else {
+		h, err := primitives.NewShaHashFromStr(answer.EntryHash)
+		if err != nil {
+			return nil, NewInvalidParamsError()
+		}
+		ec, err := dbase.FetchPaidFor(h)
+		if err != nil {
+			return nil, NewInternalError()
+		}
+		if ec != nil {
+			answer.CommitTxID = ec.String()
+		}
+	}
 
+	//Fetching statuses
+
+	if answer.CommitTxID == "" {
+		answer.CommitData.Status = AckStatusUnknown
+	} else {
+		h, err := primitives.NewShaHashFromStr(answer.EntryHash)
+		if err != nil {
+			return nil, NewInvalidParamsError()
+		}
+
+		status, err := state.GetACKStatus(h)
+		if err != nil {
+			return nil, NewInternalError()
+		}
+
+		switch status {
+		case constants.AckStatusInvalid:
+			answer.CommitData.Status = AckStatusInvalid
+			break
+		case constants.AckStatusUnknown:
+			answer.CommitData.Status = AckStatusUnknown
+			break
+		case constants.AckStatusNotConfirmed:
+			answer.CommitData.Status = AckStatusNotConfirmed
+			break
+		case constants.AckStatusACK:
+			answer.CommitData.Status = AckStatusACK
+			break
+		case constants.AckStatus1Minute:
+			answer.CommitData.Status = AckStatus1Minute
+			break
+		case constants.AckStatusDBlockConfirmed:
+			answer.CommitData.Status = AckStatusDBlockConfirmed
+			break
+		default:
+			return nil, NewInternalError()
+			break
+		}
+	}
+
+	if answer.EntryHash == "" {
+		answer.EntryData.Status = AckStatusUnknown
+	} else {
+		h, err := primitives.NewShaHashFromStr(answer.EntryHash)
+		if err != nil {
+			return nil, NewInvalidParamsError()
+		}
+
+		status, err := state.GetACKStatus(h)
+		if err != nil {
+			return nil, NewInternalError()
+		}
+
+		switch status {
+		case constants.AckStatusInvalid:
+			answer.EntryData.Status = AckStatusInvalid
+			break
+		case constants.AckStatusUnknown:
+			answer.EntryData.Status = AckStatusUnknown
+			break
+		case constants.AckStatusNotConfirmed:
+			answer.EntryData.Status = AckStatusNotConfirmed
+			break
+		case constants.AckStatusACK:
+			answer.EntryData.Status = AckStatusACK
+			break
+		case constants.AckStatus1Minute:
+			answer.EntryData.Status = AckStatus1Minute
+			break
+		case constants.AckStatusDBlockConfirmed:
+			answer.EntryData.Status = AckStatusDBlockConfirmed
+			break
+		default:
+			return nil, NewInternalError()
+			break
+		}
 	}
 
 	/*
