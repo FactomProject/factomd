@@ -162,35 +162,6 @@ type State struct {
 
 var _ interfaces.IState = (*State)(nil)
 
-func (s *State) IsStateFullySynced() bool {
-	return s.ProcessLists.DBHeightBase == uint32(len(s.ProcessLists.Lists))
-}
-
-func (s *State) GetACKStatus(hash interfaces.IHash) (int, error) {
-	_, found := s.ProcessLists.LastList().OldMsgs[hash.Fixed()]
-	if found {
-		return constants.AckStatusACK, nil
-	}
-
-	//TODO: check if message is invalid
-
-	in, err := s.DB.FetchIncludedIn(hash)
-	if err != nil {
-		return 0, err
-	}
-
-	if in == nil {
-		if s.IsStateFullySynced() {
-			return constants.AckStatusNotConfirmed, nil
-		} else {
-			return constants.AckStatusUnknown, nil
-		}
-		return constants.AckStatusDBlockConfirmed, nil
-	}
-
-	return 0, nil
-}
-
 func (s *State) Clone(number string) interfaces.IState {
 
 	clone := new(State)

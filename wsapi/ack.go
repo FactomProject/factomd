@@ -97,11 +97,10 @@ func HandleV2EntryACK(state interfaces.IState, params interface{}) (interface{},
 		return nil, NewInvalidParamsError()
 	}
 
-	txid := ackReq.TxID
 	eTxID := ""
 	ecTxID := ""
 
-	if txid == "" {
+	if ackReq.TxID == "" {
 		b, err := hex.DecodeString(ackReq.FullTransaction)
 		if err != nil {
 			return nil, NewUnableToDecodeTransactionError()
@@ -117,37 +116,42 @@ func HandleV2EntryACK(state interfaces.IState, params interface{}) (interface{},
 				if err != nil {
 					return nil, NewUnableToDecodeTransactionError()
 				} else {
-					txid = cc.GetHash().String()
-					ecTxID = cc.EntryHash.String()
+					eTxID = cc.EntryHash.String()
+					ecTxID = ackReq.TxID
 				}
 			} else {
-				txid = ec.GetHash().String()
-				ecTxID = ec.EntryHash.String()
+				eTxID = ec.EntryHash.String()
+				ecTxID = ackReq.TxID
 			}
 		} else {
-			txid = e.GetHash().String()
-			eTxID = txid
+			eTxID = ackReq.TxID
 		}
 	}
 
-	dbase := state.GetAndLockDB()
-	defer state.UnlockDB()
-
 	//TODO: fetch entries, ec TXs from state as well
 
+	//We didn't receive a full transaction, but a transaction hash
+	//We have to figure out which transaction hash we got
 	if ecTxID == "" && eTxID == "" {
-		h, err := primitives.NewShaHashFromStr(txid)
+		h, err := primitives.NewShaHashFromStr(ackReq.TxID)
 		if err != nil {
 			return nil, NewInvalidParamsError()
 		}
-		entry, err := dbase.FetchEntryByHash(h)
+		entry, err := state.FetchEntryByHash(h)
 		if err != nil {
 			return nil, NewInternalError()
 		}
-		if entry == nil {
-			eTxID = txid
+		if entry != nil {
+			eTxID = ackReq.TxID
 		} else {
-			ecTxID = txid
+			ec, err := state.FetchECTransactionByHash(h)
+			if err != nil {
+				return nil, NewInternalError()
+			}
+			if ec != nil {
+				ecTxID = ackReq.TxID
+				eTxID = ec.GetEntryHash().String()
+			}
 		}
 	}
 
@@ -155,26 +159,34 @@ func HandleV2EntryACK(state interfaces.IState, params interface{}) (interface{},
 	answer.CommitTxID = ecTxID
 	answer.EntryHash = eTxID
 
-	//Fetching the second part of the transaction pair
+	if answer.CommitTxID == "" && answer.EntryHash == "" {
+		//We know nothing about the transaction, so we return unknown status
+		answer.CommitData.Status = AckStatusUnknown
+		answer.EntryData.Status = AckStatusUnknown
+		return answer, nil
+	}
 
-	if answer.CommitTxID != "" {
+	//Fetching the second part of the transaction pair
+	if answer.EntryHash == "" {
 		h, err := primitives.NewShaHashFromStr(answer.EntryHash)
 		if err != nil {
 			return nil, NewInvalidParamsError()
 		}
-		ec, err := dbase.FetchECTransactionByHash(h)
+		ec, err := state.FetchECTransactionByHash(h)
 		if err != nil {
 			return nil, NewInternalError()
 		}
 		if ec != nil {
 			answer.EntryHash = ec.GetEntryHash().String()
 		}
-	} else {
+	}
+
+	if answer.CommitTxID == "" {
 		h, err := primitives.NewShaHashFromStr(answer.EntryHash)
 		if err != nil {
 			return nil, NewInvalidParamsError()
 		}
-		ec, err := dbase.FetchPaidFor(h)
+		ec, err := state.FetchPaidFor(h)
 		if err != nil {
 			return nil, NewInternalError()
 		}
@@ -184,7 +196,6 @@ func HandleV2EntryACK(state interfaces.IState, params interface{}) (interface{},
 	}
 
 	//Fetching statuses
-
 	if answer.CommitTxID == "" {
 		answer.CommitData.Status = AckStatusUnknown
 	} else {
@@ -260,31 +271,6 @@ func HandleV2EntryACK(state interfaces.IState, params interface{}) (interface{},
 			break
 		}
 	}
-
-	/*
-		switch status {
-		case constants.AckStatusInvalid:
-			answer.Status = AckStatusInvalid
-			break
-		case constants.AckStatusUnknown:
-			answer.Status = AckStatusUnknown
-			break
-		case constants.AckStatusNotConfirmed:
-			answer.Status = AckStatusNotConfirmed
-			break
-		case constants.AckStatusACK:
-			answer.Status = AckStatusACK
-			break
-		case constants.AckStatus1Minute:
-			answer.Status = AckStatus1Minute
-			break
-		case constants.AckStatusDBlockConfirmed:
-			answer.Status = AckStatusDBlockConfirmed
-			break
-		default:
-			return nil, NewInternalError()
-			break
-		}*/
 
 	return answer, nil
 }

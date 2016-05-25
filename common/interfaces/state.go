@@ -170,5 +170,11 @@ type IState interface {
 
 	SetIsReplaying()
 	SetIsDoneReplaying()
+
+	//For ACK
 	GetACKStatus(hash IHash) (int, error)
+	FetchPaidFor(hash IHash) (IHash, error)
+	FetchFactoidTransactionByHash(hash IHash) (ITransaction, error)
+	FetchECTransactionByHash(hash IHash) (IECBlockEntry, error)
+	FetchEntryByHash(IHash) (IEBEntry, error)
 }
