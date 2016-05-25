@@ -21,7 +21,6 @@ type MessageBase struct {
 	Minute        byte
 }
 
-
 func (m *MessageBase) GetOrigin() int {
 	return m.Origin
 }
