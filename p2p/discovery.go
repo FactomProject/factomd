@@ -245,7 +245,7 @@ func (d *Discovery) PrintPeers() {
 	for key, value := range d.knownPeers {
 		note("discovery", "%s \t Address: %s \t Quality: %d", key, value.Address, value.QualityScore)
 	}
-	note("discovery", "\n\n\n\n")
+	note("discovery", "End Peer Report\n\n\n\n")
 }
 
 // Mbe a DDOS resistence mechanism that looks at rate of bad messsages over time.

@@ -40,22 +40,22 @@ type Connection struct {
 // The ConnectionShutdown state, and exit the runloop.  In the Shutdown state we notify the controller so that we can be
 // cleaned up.
 const (
-	ConnectionInitialized      uint8 = iota //Structure created, have peer info. Dial command moves us to Online or Shutdown (depending)
-	ConnectionOnline                        // We're connected to the other side.  Normal state
-	ConnectionOffline                       // We've been disconnected for whatever reason.  Attempt to reconnect some number of times. Moves to Online if successful, Shutdown if not.
-	ConnectionShuttingDown                  // We're shutting down, the recieves loop exits.
-	ConnectionReceivesShutdown              // The receives loop has exited, now waiting on the runloop
-	ConnectionClosed                        // We're shut down, the runloop sets this state right before exiting. Controller can clean us up.
+	ConnectionInitialized  uint8 = iota //Structure created, have peer info. Dial command moves us to Online or Shutdown (depending)
+	ConnectionOnline                    // We're connected to the other side.  Normal state
+	ConnectionOffline                   // We've been disconnected for whatever reason.  Attempt to reconnect some number of times. Moves to Online if successful, Shutdown if not.
+	ConnectionShuttingDown              // We're shutting down, the recieves loop exits.
+	// ConnectionReceivesShutdown              // The receives loop has exited, now waiting on the runloop
+	ConnectionClosed // We're shut down, the runloop sets this state right before exiting. Controller can clean us up.
 )
 
 // Map of network ids to strings for easy printing of network ID
 var connectionStateStrings = map[uint8]string{
-	ConnectionInitialized:      "Initialized",
-	ConnectionOnline:           "Online",
-	ConnectionOffline:          "Offline",
-	ConnectionShuttingDown:     "Shutting Down",
-	ConnectionReceivesShutdown: "Receive Loop Shutting Down",
-	ConnectionClosed:           "Closed",
+	ConnectionInitialized:  "Initialized",
+	ConnectionOnline:       "Online",
+	ConnectionOffline:      "Offline",
+	ConnectionShuttingDown: "Shutting Down",
+	// ConnectionReceivesShutdown: "Receive Loop Shutting Down",
+	ConnectionClosed: "Closed",
 }
 
 // ConnectionParcel is sent to convey an appication message destined for the network.
@@ -114,8 +114,8 @@ func (c *Connection) commonInit(peer Peer) {
 	c.SendChannel = make(chan interface{}, 10000)
 	c.ReceiveChannel = make(chan interface{}, 10000)
 	c.timeLastUpdate = time.Now()
-	go c.processReceives() // Need seperate goroutine for send and recieves since they are blocking, or long timeouts
-	go c.runLoop()         // handles sending messages, processing commands
+	// go c.processReceives() // Need seperate goroutine for send and recieves since they are blocking, or long timeouts
+	go c.runLoop() // handles sending messages, processing commands
 }
 
 // runloop OWNs the connection.  It is the only goroutine that can change values in the connection struct
@@ -132,11 +132,14 @@ func (c *Connection) runLoop() {
 				c.goShutdown()
 			}
 		case ConnectionOnline:
+			c.processReceives()
 			c.processSends()
-			c.pingPeer() // sends a ping periodically if things have been quiet
-			if PeerSaveInterval < time.Since(c.timeLastUpdate) {
-				debug(c.peer.Hash, "runLoop() PeerSaveInterval interval %s is less than duration since last update: %s ", PeerSaveInterval.String(), time.Since(c.timeLastUpdate).String())
-				c.updatePeer() // every PeerSaveInterval * 0.90 we send an update peer to the controller.
+			if ConnectionOnline == c.state {
+				c.pingPeer() // sends a ping periodically if things have been quiet
+				if PeerSaveInterval < time.Since(c.timeLastUpdate) {
+					debug(c.peer.Hash, "runLoop() PeerSaveInterval interval %s is less than duration since last update: %s ", PeerSaveInterval.String(), time.Since(c.timeLastUpdate).String())
+					c.updatePeer() // every PeerSaveInterval * 0.90 we send an update peer to the controller.
+				}
 			}
 		case ConnectionOffline:
 			duration := time.Since(c.timeLastAttempt)
@@ -154,9 +157,6 @@ func (c *Connection) runLoop() {
 				}
 			}
 		case ConnectionShuttingDown:
-			debug(c.peer.Hash, "runLoop() ConnectionShuttingdown STATE runloop() waiting for recieves loop to exit.. ")
-			// In this state only the recieves loop can change the state.
-		case ConnectionReceivesShutdown:
 			debug(c.peer.Hash, "runLoop() ConnectionReceivesShutdown STATE runloop() cleaning up. ")
 			c.state = ConnectionClosed
 			c.ReceiveChannel <- ConnectionCommand{command: ConnectionIsClosed}
@@ -165,6 +165,19 @@ func (c *Connection) runLoop() {
 			logfatal(c.peer.Hash, "runLoop() unknown state?: %s ", connectionStateStrings[c.state])
 		}
 	}
+}
+
+func (c *Connection) dial() bool {
+	note(c.peer.Hash, "Connection.dial() dialing: %+v", c.peer.Address)
+	// conn, err := net.Dial("tcp", c.peer.Address)
+	conn, err := net.DialTimeout("tcp", c.peer.Address, time.Second*10)
+	if err != nil {
+		note(c.peer.Hash, "Connection.dial(%s) got error: %+v", c.peer.Address, err)
+		return false
+	}
+	c.conn = conn
+	debug(c.peer.Hash, "Connection.dial(%s) was successful.", c.peer.Address)
+	return true
 }
 
 // Called when we are online and connected to the peer.
@@ -188,34 +201,24 @@ func (c *Connection) goOffline() {
 	debug(c.peer.Hash, "Connection.goOffline()")
 	c.state = ConnectionOffline
 	c.attempts = 0
+	c.peer.demerit()
+}
+
+func (c *Connection) goShutdown() {
+	c.goOffline()
 	if nil != c.conn {
 		defer c.conn.Close()
 	}
 	c.decoder = nil
 	c.encoder = nil
-	c.peer.demerit()
-}
-
-func (c *Connection) dial() bool {
-	note(c.peer.Hash, "Connection.dial() dialing: %+v", c.peer.Address)
-	// conn, err := net.Dial("tcp", c.peer.Address)
-	conn, err := net.DialTimeout("tcp", c.peer.Address, time.Second*10)
-	if err != nil {
-		note(c.peer.Hash, "Connection.dial(%s) got error: %+v", c.peer.Address, err)
-		return false
-	}
-	c.conn = conn
-	debug(c.peer.Hash, "Connection.dial(%s) was successful.", c.peer.Address)
-	return true
-}
-
-func (c *Connection) goShutdown() {
-	c.goOffline()
 	c.state = ConnectionShuttingDown
 }
 
 // processSends gets all the messages from the application and sends them out over the network
 func (c *Connection) processSends() {
+	if ConnectionOnline != c.state {
+		return
+	}
 	// note(c.peer.Hash, "Connection.processSends() called. Items in send channel: %d State: %s", len(c.SendChannel), c.ConnectionState())
 	for 0 < len(c.SendChannel) { // effectively "While there are messages"
 		message := <-c.SendChannel
@@ -265,48 +268,83 @@ func (c *Connection) sendParcel(parcel Parcel) {
 	debug(c.peer.Hash, "sendParcel() sending message to network of type: %s", parcel.MessageType())
 	parcel.Header.NodeID = NodeID // Send it out with our ID for loopback.
 	verbose(c.peer.Hash, "sendParcel() Sanity check. Encoder: %+v, Parcel: %s", c.encoder, parcel.MessageType())
+	c.conn.SetWriteDeadline(time.Now().Add(20 * time.Millisecond))
 	err := c.encoder.Encode(parcel)
-	if nil != err {
-		logerror(c.peer.Hash, "Connection.sendParcel() got encoding error: %+v", err)
-		c.peer.demerit()
-		if io.EOF == err {
-			c.goOffline()
+	switch {
+	case nil == err:
+		verbose(c.peer.Hash, "Connection.processReceives() Timeout()  State: %s", c.ConnectionState())
+	default:
+		c.handleNetErrors(err)
+		return
+	}
+}
+
+// New version: Recieves is called as part of runloop
+func (c *Connection) processReceives() {
+	note(c.peer.Hash, "Connection.processReceives() called. State: %s", c.ConnectionState())
+	for {
+		var message Parcel
+		c.conn.SetReadDeadline(time.Now().Add(100 * time.Millisecond))
+		err := c.decoder.Decode(&message)
+		switch {
+		case nil == err:
+			note(c.peer.Hash, "Connection.processReceives() RECIEVED FROM NETWORK!  State: %s MessageType: %s", c.ConnectionState(), message.MessageType())
+			c.handleParcel(message)
+		default:
+			c.handleNetErrors(err)
+			return
 		}
 	}
 }
 
+//handleNetErrors Reacts to errors we get from encoder or decoder
+func (c *Connection) handleNetErrors(err error) {
+	nerr, isNetError := err.(net.Error)
+	logerror(c.peer.Hash, "Connection.handleNetErrors() got error: %+v", err)
+	switch {
+	case isNetError && nerr.Timeout(): /// buffer empty
+		return
+	case io.EOF == err, io.ErrClosedPipe == err: // Remote hung up
+		c.goOffline()
+	default:
+		logfatal(c.peer.Hash, "Connection.handleNetErrors() got unhandled coding error: %+v", err)
+	}
+
+}
+
+// OLD VERSION: Recieves is a goroutine:
 // processReceives only interacts with channels for new data, as runloop() owns the datastructure
 // processReceives gets all the messages from the network and sends them to the application
-func (c *Connection) processReceives() {
-	note(c.peer.Hash, "Connection.processReceives() called. State: %s", c.ConnectionState())
-	for c.state < ConnectionReceivesShutdown {
-		switch c.state {
-		case ConnectionOnline:
-			var message Parcel
-			c.conn.SetReadDeadline(time.Now().Add(5 * time.Second))
-			err := c.decoder.Decode(&message)
-			nerr, ok := err.(net.Error)
-			switch {
-			case nil == err:
-				note(c.peer.Hash, "Connection.processReceives() RECIEVED FROM NETWORK!  State: %s MessageType: %s", c.ConnectionState(), message.MessageType())
-				c.handleParcel(message)
-			case ok && nerr.Timeout(): /// Just a timeout error
-				note(c.peer.Hash, "Connection.processReceives() Timeout()  State: %s", c.ConnectionState())
-			case io.EOF == err: // Remote hung up
-				c.SendChannel <- ConnectionCommand{command: ConnectionGoOffline} // sendchannel is read by the runloop
-				logerror(c.peer.Hash, "Connection.processReceives() got EOF error: %+v", err)
-			default:
-				logfatal(c.peer.Hash, "Connection.processReceives() got unhandled decoding error: %+v", err)
-			}
-		case ConnectionOffline, ConnectionInitialized:
-			time.Sleep(time.Second)
-		case ConnectionShuttingDown:
-			c.state = ConnectionReceivesShutdown
-			return // exiting the processReceives() goroutine
-		}
-	}
-	note(c.peer.Hash, "Connection.processReceives() exited. %s State: %s", c.peer.Address, c.ConnectionState())
-}
+// func (c *Connection) processReceives() {
+// 	note(c.peer.Hash, "Connection.processReceives() called. State: %s", c.ConnectionState())
+// 	for c.state < ConnectionReceivesShutdown {
+// 		switch c.state {
+// 		case ConnectionOnline:
+// 			var message Parcel
+// 			c.conn.SetReadDeadline(time.Now().Add(5 * time.Second))
+// 			err := c.decoder.Decode(&message)
+// 			nerr, ok := err.(net.Error)
+// 			switch {
+// 			case nil == err:
+// 				note(c.peer.Hash, "Connection.processReceives() RECIEVED FROM NETWORK!  State: %s MessageType: %s", c.ConnectionState(), message.MessageType())
+// 				c.handleParcel(message)
+// 			case ok && nerr.Timeout(): /// Just a timeout error
+// 				note(c.peer.Hash, "Connection.processReceives() Timeout()  State: %s", c.ConnectionState())
+// 			case io.EOF == err: // Remote hung up
+// 				c.SendChannel <- ConnectionCommand{command: ConnectionGoOffline} // sendchannel is read by the runloop
+// 				logerror(c.peer.Hash, "Connection.processReceives() got EOF error: %+v", err)
+// 			default:
+// 				logfatal(c.peer.Hash, "Connection.processReceives() got unhandled decoding error: %+v", err)
+// 			}
+// 		case ConnectionOffline, ConnectionInitialized:
+// 			time.Sleep(time.Second)
+// 		case ConnectionShuttingDown:
+// 			c.state = ConnectionReceivesShutdown
+// 			return // exiting the processReceives() goroutine
+// 		}
+// 	}
+// 	note(c.peer.Hash, "Connection.processReceives() exited. %s State: %s", c.peer.Address, c.ConnectionState())
+// }
 
 // TODO - make it easy to switch between encoding/binary and encoding/gob here.
 // func (c *Connection) encodeAndSend(parcel Parcel)l error {
@@ -321,7 +359,7 @@ func (c *Connection) handleParcel(parcel Parcel) {
 	validity := c.parcelValidity(parcel)
 	switch validity {
 	case InvalidDisconnectPeer:
-		debug(c.peer.Hash, "Connection.handleParcel() Disconnecting peer for incompatibility: %s", c.peer.Address)
+		debug(c.peer.Hash, "Connection.handleParcel() Disconnecting peer: %s", c.peer.Address)
 		c.attempts = MaxNumberOfRedialAttempts + 50 // so we don't redial invalid Peer
 		c.goShutdown()
 	case InvalidPeerDemerit:
