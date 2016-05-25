@@ -175,7 +175,7 @@ func (c *Controller) Ban(peerHash string) {
 
 func (c *Controller) listen() {
 	address := fmt.Sprintf(":%s", c.listenPort)
-	note("ctrlr", "Controller.listen(%s) got address %s", c.listenPort, address)
+	debug("ctrlr", "Controller.listen(%s) got address %s", c.listenPort, address)
 	listener, err := net.Listen("tcp", address)
 	if nil != err {
 		logfatal("ctrlr", "Controller.listen() Error: %+v", err)
@@ -246,10 +246,10 @@ func (c *Controller) route() {
 			message := <-connection.ReceiveChannel
 			switch message.(type) {
 			case ConnectionCommand:
-				debug(peerHash, "Controller.route() ConnectionCommand")
+				verbose(peerHash, "Controller.route() ConnectionCommand")
 				c.handleConnectionCommand(message.(ConnectionCommand), connection)
 			case ConnectionParcel:
-				debug(peerHash, "Controller.route() ConnectionParcel")
+				verbose(peerHash, "Controller.route() ConnectionParcel")
 				c.handleParcelReceive(message, peerHash, connection)
 			default:
 				logfatal("ctrlr", "route() unknown message?: %+v ", message)
@@ -308,7 +308,7 @@ func (c *Controller) handleParcelReceive(message interface{}, peerHash string, c
 
 func (c *Controller) handleConnectionCommand(command ConnectionCommand, connection Connection) {
 	switch command.command {
-	case ConnectionIsShutdown:
+	case ConnectionIsClosed:
 		debug("ctrlr", "handleConnectionCommand() Got ConnectionIsShutdown from  %s", connection.peer.Hash)
 		delete(c.connections, connection.peer.Hash)
 	case ConnectionUpdatingPeer:
@@ -413,19 +413,20 @@ func (c *Controller) shutdown() {
 	for _, connection := range c.connections {
 		connection.SendChannel <- ConnectionCommand{command: ConnectionShutdownNow}
 	}
+	//BUGBUG Make sure connetions are actually shut down.
 	c.keepRunning = false
 }
 
 func (c *Controller) networkStatusReport() {
 	reportDuration := time.Since(c.lastStatusReport)
+	// silence("ctrlr", "networkStatusReport() NetworkStatusInterval: %s reportDuration: %s c.lastStatusReport: %s", NetworkStatusInterval.String(), reportDuration.String(), c.lastPeerManagement.String())
 	if reportDuration > NetworkStatusInterval {
-		// silence("ctrlr", "networkStatusReport() NetworkStatusInterval: %s reportDuration: %s c.lastStatusReport: %s", NetworkStatusInterval.String(), reportDuration.String(), c.lastPeerManagement.String())
 		c.lastStatusReport = time.Now()
 		silence("ctrlr", "###########################")
 		silence("ctrlr", "Network Status Report:")
 		silence("ctrlr", "===========================")
-		for key, value := range c.connections {
-			silence("ctrlr", "Connection Hash: %s", key)
+		for _, value := range c.connections {
+			silence("ctrlr", "     Connection: %s", value.peer.Address)
 			silence("ctrlr", "          State: %s", value.ConnectionState())
 			silence("ctrlr", " ReceiveChannel: %d", len(value.ReceiveChannel))
 			silence("ctrlr", "    SendChannel: %d", len(value.SendChannel))
