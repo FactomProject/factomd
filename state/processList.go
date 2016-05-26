@@ -435,35 +435,36 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 
 			var expectedSerialHash interfaces.IHash
 			var err error
-			last := p.GetAckAt(i, vm.Height-1)
-			if last == nil {
+			if vm.Height == 0 {
 				expectedSerialHash = thisAck.SerialHash
 			} else {
+				last := p.GetAckAt(i, vm.Height-1)
 				expectedSerialHash, err = primitives.CreateHash(last.MessageHash, thisAck.MessageHash)
 				if err != nil {
 					// cannot create a expectedSerialHash to compare to
 					plist[j] = nil
 					break
 				}
-			}
-			// compare the SerialHash of this acknowledgement with the
-			// expected serialHash (generated above)
-			if !expectedSerialHash.IsSameAs(thisAck.SerialHash) {
-				p.State.(*State).DebugPrt("Process List")
-				fmt.Printf("Error detected on %s\nSerial Hash failure: Fed Server %d  Leader ID %x List Ht: %d \nDetected on: %s\n",
-					state.GetFactomNodeName(),
-					i,
-					p.FedServers[i].GetChainID().Bytes()[:3],
-					j)
-				fmt.Printf("Last Ack: %6x  Last Serial: %6x\n", last.GetHash().Bytes()[:3], last.SerialHash.Bytes()[:3])
-				fmt.Printf("This Ack: %6x  This Serial: %6x\n", thisAck.GetHash().Bytes()[:3], thisAck.SerialHash.Bytes()[:3])
-				fmt.Printf("Expected: %6x\n", expectedSerialHash.Bytes()[:3])
-				fmt.Printf("The message that didn't work: %s\n\n", plist[j].String())
-				fmt.Println(p.PrintMap())
-				// the SerialHash of this acknowledgment is incorrect
-				// according to this node's processList
-				plist[j] = nil
-				break
+
+				// compare the SerialHash of this acknowledgement with the
+				// expected serialHash (generated above)
+				if !expectedSerialHash.IsSameAs(thisAck.SerialHash) {
+					p.State.(*State).DebugPrt("Process List")
+					fmt.Printf("Error detected on %s\nSerial Hash failure: Fed Server %d  Leader ID %x List Ht: %d \nDetected on: %s\n",
+						state.GetFactomNodeName(),
+						i,
+						p.FedServers[i].GetChainID().Bytes()[:3],
+						j)
+					fmt.Printf("Last Ack: %6x  Last Serial: %6x\n", last.GetHash().Bytes()[:3], last.SerialHash.Bytes()[:3])
+					fmt.Printf("This Ack: %6x  This Serial: %6x\n", thisAck.GetHash().Bytes()[:3], thisAck.SerialHash.Bytes()[:3])
+					fmt.Printf("Expected: %6x\n", expectedSerialHash.Bytes()[:3])
+					fmt.Printf("The message that didn't work: %s\n\n", plist[j].String())
+					fmt.Println(p.PrintMap())
+					// the SerialHash of this acknowledgment is incorrect
+					// according to this node's processList
+					plist[j] = nil
+					break
+				}
 			}
 
 			if plist[j].Process(p.DBHeight, state) { // Try and Process this entry
@@ -551,7 +552,8 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) boo
 
 	p.State.NetworkOutMsgQueue() <- ack
 	p.State.NetworkOutMsgQueue() <- m
-
+	fmt.Println(p.State.GetFactomNodeName(), "------>", ack.String())
+	fmt.Println(p.State.GetFactomNodeName(), "------>", m.String())
 	eom, ok := m.(*messages.EOM)
 	if ok {
 		p.Sealing = true

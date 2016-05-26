@@ -15,10 +15,12 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/util"
+	"hash"
 	"os"
 )
 
 var _ = fmt.Print
+var _ = (*hash.Hash32)(nil)
 
 //***************************************************************
 // Process Loop for Consensus
@@ -29,10 +31,15 @@ func (s *State) NewMinute() {
 	s.LeaderPL.Unseal(s.EOM)
 	s.Review = make([]interfaces.IMsg, 0, len(s.Holding))
 	// Anything we are holding, we need to reprocess.
-	for k := range s.Holding {
-		if v := s.Holding[k]; v != nil {
-			s.Review = append(s.Review, v)
-			s.Holding[k] = nil
+	for k := range s.Acks {
+		if v := s.Acks[k].(*messages.Ack); v != nil {
+			if v.DBHeight == s.LLeaderHeight {
+				s.Review = append(s.Review, v)
+				s.Holding[k] = nil
+			} else if v.DBHeight < s.LLeaderHeight {
+				delete(s.Acks, k)
+				delete(s.Holding, k)
+			}
 		}
 	}
 	// Clear the holding map
@@ -75,7 +82,7 @@ func (s *State) Process() (progress bool) {
 			if err != nil {
 				panic(err)
 			}
-			s.leaderMsgQueue <- dbs
+			dbs.LeaderExecute(s)
 		}
 		s.LeaderMinute = 0
 		s.NewMinute()
@@ -100,108 +107,59 @@ func (s *State) Process() (progress bool) {
 	return s.ProcessQueues()
 }
 
-func (s *State) TryToProcess(msg interfaces.IMsg) {
-
-	ExeFollow := func() {
-		if msg.Follower(s) {
-			if !s.Leader && msg.IsLocal() {
-				if _, ok := msg.(*messages.EOM); ok {
-					return
-				}
-			}
-			err := msg.FollowerExecute(s)
-			if err == nil {
-				s.networkOutMsgQueue <- msg
-			} else {
-				s.StallMsg(msg)
-			}
-		}
-	}
-
-	msgLeader := msg.Leader(s)
-
-	switch msg.Validate(s) {
-	case 1:
-		// If we are a leader, we are way more strict than simple followers.
-		if msgLeader && s.Leader &&
-			(s.LeaderVMIndex == msg.GetVMIndex() || msg.IsLocal()) {
-			err := msg.LeaderExecute(s)
-			if err != nil {
-				if _, ok := msg.(*messages.EOM); !ok {
-					s.StallMsg(msg)
-				}
-			}
-		} else {
-			ExeFollow()
-		}
-	case 0:
-		s.StallMsg(msg)
-	default:
-		s.networkInvalidMsgQueue <- msg
-	}
-
-}
-
 func (s *State) ProcessQueues() (progress bool) {
 
-	var msg interfaces.IMsg
-
-	for msg == nil && s.Review != nil && len(s.Review) > 0 {
-		msg = s.Review[0]
-		_, ok := s.InternalReplay.Valid(msg.GetHash().Fixed(), int64(msg.GetTimestamp()), int64(s.GetTimestamp()))
-		if !ok {
+	// Reprocess any stalled Acknowledgements
+	for len(s.Review) > 0 {
+		msg := s.Review[0]
+		if _, ok := s.InternalReplay.Valid(msg.GetHash().Fixed(), int64(msg.GetTimestamp()), int64(s.GetTimestamp())); !ok {
 			msg = nil
+		} else {
+			msg.FollowerExecute(s)
 		}
 		s.Review = s.Review[1:]
+	}
+
+	select {
+	case ack := <-s.leaderMsgQueue:
+		_, ok := s.InternalReplay.Valid(ack.GetHash().Fixed(), int64(ack.GetTimestamp()), int64(s.GetTimestamp()))
+		if ok {
+			ack.FollowerExecute(s)
+		}
 		progress = true
-	}
-
-	if msg == nil {
-		select {
-		case msg = <-s.leaderMsgQueue:
-			_, ok := s.InternalReplay.Valid(msg.GetHash().Fixed(), int64(msg.GetTimestamp()), int64(s.GetTimestamp()))
-			if !ok {
-				msg = nil
-			}
+	case ack := <-s.stallQueue:
+		_, ok := s.InternalReplay.Valid(ack.GetHash().Fixed(), int64(ack.GetTimestamp()), int64(s.GetTimestamp()))
+		if ok {
+			ack.FollowerExecute(s)
 			progress = true
-		default:
 		}
-	}
+		progress = true
+	case msg := <-s.followerMsgQueue:
+		_, ok := s.InternalReplay.Valid(msg.GetHash().Fixed(), int64(msg.GetTimestamp()), int64(s.GetTimestamp()))
+		if ok {
+			msgLeader := msg.Leader(s)
+			switch msg.Validate(s) {
 
-	// If all my messages are empy, see if I can process a stalled message
-	if msg == nil {
-		select {
-		case msg = <-s.stallQueue:
-			_, ok := s.InternalReplay.Valid(msg.GetHash().Fixed(), int64(msg.GetTimestamp()), int64(s.GetTimestamp()))
-			if !ok {
-				msg = nil
-			}
-		case msg = <-s.followerMsgQueue:
-			_, ok := s.InternalReplay.Valid(msg.GetHash().Fixed(), int64(msg.GetTimestamp()), int64(s.GetTimestamp()))
-			if !ok {
-				msg = nil
-			}
-			progress = true
-		default:
-		}
-	}
-
-	if msg != nil {
-		if s.LeaderPL != nil {
-			if !s.NetStateOff {
-				s.TryToProcess(msg)
-			} else {
-				fmt.Println(s.FactomNodeName, "Msg: ", msg.String())
-			}
-		} else {
-			if !s.NetStateOff {
-				s.TryToProcess(msg)
-			} else {
-				fmt.Println(s.FactomNodeName, "Msg: ", msg.String())
+			case 1:
+				if s.EOM == 0 {
+					if msgLeader && s.Leader &&
+					(s.LeaderVMIndex == msg.GetVMIndex() || msg.IsLocal()) {
+						msg.LeaderExecute(s)
+					} else {
+						msg.FollowerExecute(s)
+					}
+				}else{
+					s.Holding[msg.GetHash().Fixed()]=msg
+				}
+			case 0:	// Put at the end of the line, and hopefully we will resolve it.
+				s.followerMsgQueue <- msg
+			default:
+				delete(s.Acks, msg.GetHash().Fixed())
+				s.networkInvalidMsgQueue <- msg
 			}
 		}
+	default:
 	}
-
 	return
 }
 
@@ -263,34 +221,42 @@ func (s *State) addEBlock(eblock interfaces.IEntryBlock) {
 // Messages that will go into the Process List must match an Acknowledgement.
 // The code for this is the same for all such messages, so we put it here.
 //
-// Returns true if it finds a match
+// Returns true if it finds a match, puts the message in holding, or invalidates the message
 func (s *State) FollowerExecuteMsg(m interfaces.IMsg) (bool, error) {
+
 	hash := m.GetHash()
 	hashf := hash.Fixed()
+	s.Holding[hashf] = m
 	ack, ok := s.Acks[hashf].(*messages.Ack)
 	if !ok || ack == nil {
 		s.Holding[hashf] = m
 		return false, nil
 	} else {
-		delete(s.Acks, hashf)    // No matter what, we don't want to
-		delete(s.Holding, hashf) // rematch.. If we stall, we will see them again.
-
-		pl := s.ProcessLists.Get(ack.DBHeight)
-
-		if pl != nil {
-			if !pl.AddToProcessList(ack, m) {
-				s.StallMsg(m)
-				s.StallMsg(ack)
-				fmt.Println(s.GetFactomNodeName(), "Could not add to list")
-				return false, fmt.Errorf("Could not add message")
-			}
-		} else {
-			if ack.DBHeight >= s.ProcessLists.DBHeightBase {
-				fmt.Println(s.GetFactomNodeName(), "PL Null Could not add to list")
-				return false, fmt.Errorf("Could not add message")
-			}
+		fmt.Println(s.FactomNodeName, "******A Match", m.String())
+		fmt.Println(s.FactomNodeName, "******A Match", ack.String())
+		if ack.DBHeight < s.LLeaderHeight {
+			delete(s.Acks, hashf)    // No matter what, we don't want to
+			delete(s.Holding, hashf) // rematch.. If we stall, we will see them again.
+			return true, nil
 		}
-
+		if ack.DBHeight > s.LLeaderHeight {
+			s.Holding[hashf] = m
+			return true, nil
+		}
+		vm := s.LeaderPL.VMs[ack.VMIndex]
+		if ack.Height > uint32(vm.Height) {
+			s.Holding[hashf] = m
+			delete(s.Acks, hashf)
+			s.StallMsg(ack)
+			return false, nil
+		}
+		if vm.Seal > 0 {
+			s.Holding[hashf] = m
+			delete(s.Acks, hashf)
+			s.StallMsg(ack)
+			return false, nil
+		}
+		s.LeaderPL.AddToProcessList(ack, m)
 		return true, nil
 	}
 }
@@ -300,17 +266,16 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) (bool, error) {
 // message.
 func (s *State) FollowerExecuteAck(msg interfaces.IMsg) (bool, error) {
 	ack := msg.(*messages.Ack)
-
-	s.Acks[ack.GetHash().Fixed()] = ack
-
+	fmt.Println(s.FactomNodeName, "***aaa***A Match", ack.String())
 	match := s.Holding[ack.GetHash().Fixed()]
 	if match != nil {
-		if err := match.FollowerExecute(s); err != nil {
-			return false, err
-		}
-		return true, nil
+		fmt.Println(s.FactomNodeName, "***aaa***A Match", match.String())
+		s.Acks[ack.GetHash().Fixed()] = ack
+		return true, match.FollowerExecute(s)
+	} else {
+		s.Acks[ack.GetHash().Fixed()] = ack
 	}
-	return false, fmt.Errorf("Failed to Match")
+	return false, nil
 }
 
 func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) error {
@@ -359,55 +324,10 @@ func (s *State) FollowerExecuteAddData(msg interfaces.IMsg) error {
 
 func (s *State) LeaderExecute(m interfaces.IMsg) error {
 
-	if s.EOM > 0 {
-		return fmt.Errorf("Cannot Lead right now")
-	}
-
 	dbheight := s.LLeaderHeight
-	ack, err := s.NewAck(dbheight, m)
-	if err != nil {
-		return err
-	}
+	ack, _ := s.NewAck(dbheight, m)
 
-	if err := m.FollowerExecute(s); err == nil {
-		if err := ack.FollowerExecute(s); err == nil {
-			m.SetLocal(false)
-			s.networkOutMsgQueue <- m
-			s.networkOutMsgQueue <- ack
-		} else {
-			return err
-		}
-	} else {
-		return err
-	}
-
-	return nil
-}
-
-// Leader Execute for Reveal Entry
-func (s *State) LeaderExecuteRE(m interfaces.IMsg) error {
-
-	if s.EOM > 0 {
-		return fmt.Errorf("Cannot Lead right now")
-	}
-
-	dbheight := s.LLeaderHeight
-	ack, err := s.NewAck(dbheight, m)
-	if err != nil {
-		return err
-	}
-
-	if err := m.FollowerExecute(s); err == nil {
-		if err := ack.FollowerExecute(s); err == nil {
-			m.SetLocal(false)
-			s.networkOutMsgQueue <- m
-			s.networkOutMsgQueue <- ack
-		} else {
-			return err
-		}
-	} else {
-		return err
-	}
+	s.LeaderPL.AddToProcessList(ack.(*messages.Ack), m)
 
 	return nil
 }
@@ -415,11 +335,6 @@ func (s *State) LeaderExecuteRE(m interfaces.IMsg) error {
 func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
 
 	eom := m.(*messages.EOM)
-
-	if s.EOM > 0 {
-		fmt.Println(s.FactomNodeName, "Stalling", eom.String())
-		return fmt.Errorf("Stalling")
-	}
 
 	s.EOM = int(s.LeaderMinute + 1)
 	if s.LeaderPL.VMIndexFor(constants.FACTOID_CHAINID) == s.LeaderVMIndex {
@@ -430,22 +345,9 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
 	eom.Minute = byte(s.LeaderMinute)
 	eom.Sign(s)
 	eom.SetLocal(false)
-	ack, err := s.NewAck(s.LLeaderHeight, m)
-	if err != nil {
-		return err
-	}
+	ack, _ := s.NewAck(s.LLeaderHeight, m)
 
-	if err := m.FollowerExecute(s); err == nil {
-		if err := ack.FollowerExecute(s); err == nil {
-			m.SetLocal(false)
-			s.networkOutMsgQueue <- m
-			s.networkOutMsgQueue <- ack
-		} else {
-			return err
-		}
-	} else {
-		return err
-	}
+	s.LeaderPL.AddToProcessList(ack.(*messages.Ack), eom)
 
 	return nil
 }

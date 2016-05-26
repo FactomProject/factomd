@@ -29,29 +29,7 @@ type AddServerMsg struct {
 var _ interfaces.IMsg = (*AddServerMsg)(nil)
 var _ Signable = (*AddServerMsg)(nil)
 
-func (m *AddServerMsg) IsSameAs(b *AddServerMsg) bool {
-	if b == nil {
-		return false
-	}
-	if uint64(m.Timestamp) != uint64(b.Timestamp) {
-		return false
-	}
-	if !m.ServerChainID.IsSameAs(b.ServerChainID) {
-		return false
-	}
-	if m.ServerType != b.ServerType {
-		return false
-	}
-	if m.Signature == nil && b.Signature != nil {
-		return false
-	}
-	if m.Signature != nil {
-		if m.Signature.IsSameAs(b.Signature) == false {
-			return false
-		}
-	}
-	return true
-}
+
 
 func (m *AddServerMsg) GetHash() interfaces.IHash {
 	return m.GetMsgHash()
@@ -259,6 +237,30 @@ func (m *AddServerMsg) String() string {
 		m.Timestamp,
 		m.GetMsgHash().Bytes()[:3])
 
+}
+
+func (m *AddServerMsg) IsSameAs(b *AddServerMsg) bool {
+	if b == nil {
+		return false
+	}
+	if uint64(m.Timestamp) != uint64(b.Timestamp) {
+		return false
+	}
+	if !m.ServerChainID.IsSameAs(b.ServerChainID) {
+		return false
+	}
+	if m.ServerType != b.ServerType {
+		return false
+	}
+	if m.Signature == nil && b.Signature != nil {
+		return false
+	}
+	if m.Signature != nil {
+		if m.Signature.IsSameAs(b.Signature) == false {
+			return false
+		}
+	}
+	return true
 }
 
 func NewAddServerMsg(state interfaces.IState, serverType int) interfaces.IMsg {
