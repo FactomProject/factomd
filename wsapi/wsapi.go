@@ -8,9 +8,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"strings"
 	"os"
+	"strings"
 	"time"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/log"
@@ -103,11 +104,11 @@ func HandleCommitChain(ctx *web.Context) {
 		CommitChainMsg string
 	}
 	c := new(commitchain)
-	if p, err := ioutil.ReadAll(ctx.Request.Body); err != nil {		
+	if p, err := ioutil.ReadAll(ctx.Request.Body); err != nil {
 		handleV1Error(ctx, NewInvalidParamsError())
 		return
 	} else {
-		if err := json.Unmarshal(p, c); err != nil {			
+		if err := json.Unmarshal(p, c); err != nil {
 			handleV1Error(ctx, NewInvalidParamsError())
 			return
 		}
@@ -115,18 +116,15 @@ func HandleCommitChain(ctx *web.Context) {
 	param := MessageRequest{Message: c.CommitChainMsg}
 	req := primitives.NewJSON2Request("commit-chain", 1, param)
 	_, jsonError := HandleV2Request(state, req)
-	
-	
-	
+
 	if jsonError != nil {
 		returnV1(ctx, nil, jsonError)
 		return
 	}
 	//log.Print(jsonResp.Result.(*RevealEntryResponse).Message)
-		
+
 	// this is the blank '200 ok' that is returned for V1
 	returnV1Msg(ctx, "", false)
-
 
 }
 
@@ -162,10 +160,10 @@ func HandleCommitEntry(ctx *web.Context) {
 		return
 	}
 	//log.Print( jsonResp.Result.(*RevealEntryResponse).Message)
-	
+
 	// this is the blank '200 ok' that is returned for V1
 	returnV1Msg(ctx, "", true)
-	
+
 }
 
 func HandleRevealEntry(ctx *web.Context) {
@@ -196,7 +194,7 @@ func HandleRevealEntry(ctx *web.Context) {
 	}
 	//log.Print(jsonResp.Result.(*RevealEntryResponse).Message)
 	returnV1Msg(ctx, "", true)
-	
+
 }
 
 func HandleDirectoryBlockHead(ctx *web.Context) {
@@ -210,22 +208,22 @@ func HandleDirectoryBlockHead(ctx *web.Context) {
 		return
 	}
 	tmp, err := json.Marshal(jsonResp.Result)
-	resp :=string(tmp)
+	resp := string(tmp)
 	if err != nil {
-		resp="{\"KeyMR\",0}"
+		resp = "{\"KeyMR\",0}"
 		returnV1Msg(ctx, resp, true)
 	}
 
-	resp= strings.Replace(resp, "keymr", "KeyMR", -1)
-	
-	returnV1Msg(ctx,resp, true)
+	resp = strings.Replace(resp, "keymr", "KeyMR", -1)
+
+	returnV1Msg(ctx, resp, true)
 }
 
 func HandleGetRaw(ctx *web.Context, hashkey string) {
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
 	param := HashRequest{Hash: hashkey}
-	req := primitives.NewJSON2Request("get-raw-data", 1, param)
+	req := primitives.NewJSON2Request("raw-data", 1, param)
 
 	jsonResp, jsonError := HandleV2Request(state, req)
 	returnV1(ctx, jsonResp, jsonError)
@@ -250,15 +248,13 @@ func HandleDirectoryBlock(ctx *web.Context, hashkey string) {
 		returnV1(ctx, nil, jsonError)
 		return
 	}
-	
-	
-	
+
 	type DBlock struct {
 		Header struct {
 			PrevBlockKeyMR string
 			SequenceNumber int64
 			Timestamp      int64
-		} 
+		}
 		EntryBlockList []EBlockAddr
 	}
 	d := new(DBlock)
@@ -268,16 +264,16 @@ func HandleDirectoryBlock(ctx *web.Context, hashkey string) {
 	d.Header.Timestamp = jsonResp.Result.(*DirectoryBlockResponse).Header.Timestamp
 	d.EntryBlockList = jsonResp.Result.(*DirectoryBlockResponse).EntryBlockList
 
-// conflict if I use local structs.  using a string replace on the structs that would be pointer handled (*DirectoryBlockResponse)
+	// conflict if I use local structs.  using a string replace on the structs that would be pointer handled (*DirectoryBlockResponse)
 	bResp, err := json.Marshal(d)
 	if err != nil {
-		
+
 		returnMsg(ctx, d, true)
 	}
 	resp := string(bResp)
-	resp = strings.Replace(resp,"{\"chainid\"","{\"ChainID\"",-1)
-	resp = strings.Replace(resp,",\"keymr\":",",\"KeyMR\":",-1)
-	
+	resp = strings.Replace(resp, "{\"chainid\"", "{\"ChainID\"", -1)
+	resp = strings.Replace(resp, ",\"keymr\":", ",\"KeyMR\":", -1)
+
 	returnV1Msg(ctx, resp, true)
 }
 
@@ -292,20 +288,19 @@ func HandleDirectoryBlockHeight(ctx *web.Context) {
 		return
 	}
 	tmp, err := json.Marshal(jsonResp.Result)
-	resp :=string(tmp)
+	resp := string(tmp)
 	if err != nil {
-		resp="{\"Height\",0}"
+		resp = "{\"Height\",0}"
 		returnV1Msg(ctx, resp, true)
 	}
-	
+
 	type DirectoryBlockHeightResponse struct {
 		Height int64 /*`json:"height"` V1 doesn't use the json tye def */
 	}
-	
-	
-	resp= strings.Replace(resp, "height", "Height", -1)
-	
-	returnV1Msg(ctx,resp, true)
+
+	resp = strings.Replace(resp, "height", "Height", -1)
+
+	returnV1Msg(ctx, resp, true)
 }
 
 func HandleEntryBlock(ctx *web.Context, hashkey string) {
@@ -319,17 +314,17 @@ func HandleEntryBlock(ctx *web.Context, hashkey string) {
 		returnV1(ctx, nil, jsonError)
 		return
 	}
-	
+
 	type EBlock struct {
-	Header struct {
-		BlockSequenceNumber int64  
-		ChainID             string 
-		PrevKeyMR           string 
-		Timestamp           int64  
-		DBHeight            int64 
-	} 
-	EntryList []EntryAddr 
-}
+		Header struct {
+			BlockSequenceNumber int64
+			ChainID             string
+			PrevKeyMR           string
+			Timestamp           int64
+			DBHeight            int64
+		}
+		EntryList []EntryAddr
+	}
 	d := new(EBlock)
 
 	d.Header.BlockSequenceNumber = jsonResp.Result.(*EntryBlockResponse).Header.BlockSequenceNumber
@@ -368,18 +363,17 @@ func HandleChainHead(ctx *web.Context, chainid string) {
 	param := ChainIDRequest{ChainID: chainid}
 	req := primitives.NewJSON2Request("chain-head", 1, param)
 
-
 	jsonResp, jsonError := HandleV2Request(state, req)
 	if jsonError != nil {
-			returnV1(ctx, nil, jsonError)
-			return
-		
+		returnV1(ctx, nil, jsonError)
+		return
+
 	}
-// restatement of chead from structs file
-// v1 doesn't like the lcase in v2'
-type CHead struct {
-	ChainHead string 
-}
+	// restatement of chead from structs file
+	// v1 doesn't like the lcase in v2'
+	type CHead struct {
+		ChainHead string
+	}
 
 	d := new(CHead)
 	d.ChainHead = jsonResp.Result.(*ChainHeadResponse).ChainHead
@@ -480,11 +474,10 @@ func HandleFactoidBalance(ctx *web.Context, address string) {
 		return
 	}
 
-
 	r := new(x)
 	r.Response = fmt.Sprint(jsonResp.Result.(*FactoidBalanceResponse).Balance)
 	r.Success = true
-	returnMsg(ctx, r, true)	
+	returnMsg(ctx, r, true)
 
 }
 
@@ -503,7 +496,7 @@ func HandleProperties(ctx *web.Context) {
 		Factomd_Version  string
 	}
 	d := new(x)
-	d.Factomd_Version = jsonResp.Result.(*PropertiesResponse).FactomdVersion 
+	d.Factomd_Version = jsonResp.Result.(*PropertiesResponse).FactomdVersion
 	d.Protocol_Version = "0.0.0.0" // meaningless after v1
 	returnMsg(ctx, d, true)
 }
@@ -536,16 +529,14 @@ func returnMsg(ctx *web.Context, msg interface{}, success bool) {
 	}
 }
 
-
 func returnV1Msg(ctx *web.Context, msg string, success bool) {
 
 	/* V1 requires call specific case changes that can't be handled with
-	  interfaces for example.  Block Height needs to return  height as the json item name
-	  in golang, lower case names are private so won't be returned.
-	  Deal with the responses in the call specific v1 handlers until they are depricated.
-	  */
-	  bMsg :=[]byte(msg)
-		ctx.Write(bMsg)
+	interfaces for example.  Block Height needs to return  height as the json item name
+	in golang, lower case names are private so won't be returned.
+	Deal with the responses in the call specific v1 handlers until they are depricated.
+	*/
+	bMsg := []byte(msg)
+	ctx.Write(bMsg)
 
 }
-

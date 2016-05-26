@@ -168,7 +168,7 @@ func TestHandleGetRaw(t *testing.T) {
 
 func TestHandleDirectoryBlock(t *testing.T) {
 	context := testHelper.CreateWebContext()
-	hash := "93b9d8bc11869819aed5e11ff15c865435a58d7b57c9f27fe4638dfc23f13b34"
+	hash := "d57f08eb468113a882e1c6610d7d726fdbba3096dbcbc58ca2340239ad358880"
 
 	HandleDirectoryBlock(context, hash)
 
@@ -184,7 +184,7 @@ func TestHandleDirectoryBlock(t *testing.T) {
 		t.Errorf("%v", testHelper.GetBody(context))
 	}
 
-	if strings.Contains(testHelper.GetBody(context), "4878cdd3e80af547c59ea8bcb17471d676a0fdb1bcc01ab17a438cb5fb9ad4da") == false {
+	if strings.Contains(testHelper.GetBody(context), "1c290560040542fcbe3cf088d70b7178b3c45b2c4ef20b258593673663455357") == false {
 		t.Errorf("%v", testHelper.GetBody(context))
 	}
 
@@ -192,7 +192,7 @@ func TestHandleDirectoryBlock(t *testing.T) {
 		t.Errorf("%v", testHelper.GetBody(context))
 	}
 
-	if strings.Contains(testHelper.GetBody(context), "067f353dda05ac27261d4b35a09f211f7a4b0182dff0b6098a16ae8659eb7f5f") == false {
+	if strings.Contains(testHelper.GetBody(context), "c6cd2ab21d75af1e8589e1eb441411838a508d0674eb294bac4efdc591c3fef4") == false {
 		t.Errorf("%v", testHelper.GetBody(context))
 	}
 
@@ -208,7 +208,7 @@ func TestHandleDirectoryBlock(t *testing.T) {
 		t.Errorf("%v", testHelper.GetBody(context))
 	}
 
-	if strings.Contains(testHelper.GetBody(context), "5b60c30aa371c6551ae6644c06c30339fa5296b32082a1779ac40880986434b6") == false {
+	if strings.Contains(testHelper.GetBody(context), "1a1586498d5dc5607274cbbef23c92d786df7f06674f3297348e7213f8e5583e") == false {
 		t.Errorf("%v", testHelper.GetBody(context))
 	}
 }

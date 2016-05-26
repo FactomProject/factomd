@@ -19,3 +19,7 @@ import (
 func TestHandleV2FactoidACK(t *testing.T) {
 
 }
+
+func TestHandleV2EntryACK(t *testing.T) {
+
+}
