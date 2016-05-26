@@ -552,8 +552,9 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) boo
 
 	p.State.NetworkOutMsgQueue() <- ack
 	p.State.NetworkOutMsgQueue() <- m
-	fmt.Println(p.State.GetFactomNodeName(), "------>", ack.String())
-	fmt.Println(p.State.GetFactomNodeName(), "------>", m.String())
+	delete(p.State.(*State).Acks,ack.GetHash().Fixed())
+	delete(p.State.(*State).Holding,m.GetHash().Fixed())
+
 	eom, ok := m.(*messages.EOM)
 	if ok {
 		p.Sealing = true

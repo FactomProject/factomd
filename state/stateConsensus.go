@@ -29,22 +29,29 @@ var _ = (*hash.Hash32)(nil)
 //***************************************************************
 func (s *State) NewMinute() {
 	s.LeaderPL.Unseal(s.EOM)
-	s.Review = make([]interfaces.IMsg, 0, len(s.Holding))
-	// Anything we are holding, we need to reprocess.
-	for k := range s.Acks {
-		if v := s.Acks[k].(*messages.Ack); v != nil {
-			if v.DBHeight == s.LLeaderHeight {
-				s.Review = append(s.Review, v)
-				s.Holding[k] = nil
-			} else if v.DBHeight < s.LLeaderHeight {
-				delete(s.Acks, k)
-				delete(s.Holding, k)
+	s.XReview = []interfaces.IMsg{}
+	if s.Leader {
+		// Anything we are holding, we need to reprocess.
+		for k := range s.Holding {
+			if v := s.Holding[k]; v != nil {
+				v.Leader(s)
+				if v.GetVMIndex() == s.LeaderVMIndex {
+					fmt.Println(s.FactomNodeName,"rrrrrr",v.GetVMIndex(),v.String())
+					//s.XReview = append(s.XReview, v)
+					delete(s.Holding, k)
+				}
 			}
 		}
 	}
 	// Clear the holding map
-	s.Holding = make(map[[32]byte]interfaces.IMsg)
 	s.EOM = 0
+
+	for k:= range s.Acks {
+		m,ok := s.Holding[k]
+		if ok && m != nil {
+			m.FollowerExecute(s)
+		}
+	}
 }
 
 func (s *State) Process() (progress bool) {
@@ -110,21 +117,24 @@ func (s *State) Process() (progress bool) {
 func (s *State) ProcessQueues() (progress bool) {
 
 	// Reprocess any stalled Acknowledgements
-	for len(s.Review) > 0 {
-		msg := s.Review[0]
+	for len(s.XReview) > 0 {
+		msg := s.XReview[0]
 		if _, ok := s.InternalReplay.Valid(msg.GetHash().Fixed(), int64(msg.GetTimestamp()), int64(s.GetTimestamp())); !ok {
 			msg = nil
 		} else {
-			msg.FollowerExecute(s)
+			msg.LeaderExecute(s)
 		}
-		s.Review = s.Review[1:]
+		s.XReview = s.XReview[1:]
 	}
 
 	select {
-	case ack := <-s.leaderMsgQueue:
-		_, ok := s.InternalReplay.Valid(ack.GetHash().Fixed(), int64(ack.GetTimestamp()), int64(s.GetTimestamp()))
-		if ok {
-			ack.FollowerExecute(s)
+	case ack := <-s.ackQueue:
+		if ack.Validate(s) == 1 {
+			_, ok := s.InternalReplay.Valid(ack.GetHash().Fixed(), int64(ack.GetTimestamp()), int64(s.GetTimestamp()))
+			if ok {
+				ack.FollowerExecute(s)
+			}
+			s.networkOutMsgQueue <- ack
 		}
 		progress = true
 	case ack := <-s.stallQueue:
@@ -134,7 +144,7 @@ func (s *State) ProcessQueues() (progress bool) {
 			progress = true
 		}
 		progress = true
-	case msg := <-s.followerMsgQueue:
+	case msg := <-s.msgQueue:
 		_, ok := s.InternalReplay.Valid(msg.GetHash().Fixed(), int64(msg.GetTimestamp()), int64(s.GetTimestamp()))
 		if ok {
 			msgLeader := msg.Leader(s)
@@ -151,8 +161,9 @@ func (s *State) ProcessQueues() (progress bool) {
 				}else{
 					s.Holding[msg.GetHash().Fixed()]=msg
 				}
+				s.networkOutMsgQueue <- msg
 			case 0:	// Put at the end of the line, and hopefully we will resolve it.
-				s.followerMsgQueue <- msg
+				s.msgQueue <- msg
 			default:
 				delete(s.Acks, msg.GetHash().Fixed())
 				s.networkInvalidMsgQueue <- msg
@@ -232,8 +243,6 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) (bool, error) {
 		s.Holding[hashf] = m
 		return false, nil
 	} else {
-		fmt.Println(s.FactomNodeName, "******A Match", m.String())
-		fmt.Println(s.FactomNodeName, "******A Match", ack.String())
 		if ack.DBHeight < s.LLeaderHeight {
 			delete(s.Acks, hashf)    // No matter what, we don't want to
 			delete(s.Holding, hashf) // rematch.. If we stall, we will see them again.
@@ -266,10 +275,8 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) (bool, error) {
 // message.
 func (s *State) FollowerExecuteAck(msg interfaces.IMsg) (bool, error) {
 	ack := msg.(*messages.Ack)
-	fmt.Println(s.FactomNodeName, "***aaa***A Match", ack.String())
 	match := s.Holding[ack.GetHash().Fixed()]
 	if match != nil {
-		fmt.Println(s.FactomNodeName, "***aaa***A Match", match.String())
 		s.Acks[ack.GetHash().Fixed()] = ack
 		return true, match.FollowerExecute(s)
 	} else {

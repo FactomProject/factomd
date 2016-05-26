@@ -78,7 +78,8 @@ type IState interface {
 	// Consensus
 	APIQueue() chan IMsg       // Input Queue from the API
 	InMsgQueue() chan IMsg     // Read by Validate
-	LeaderMsgQueue() chan IMsg // Leader Queue
+	AckQueue() chan IMsg       // Leader Queue
+	MsgQueue() chan IMsg       // Follower Queue
 	Stall() chan IMsg          // Leader Queue
 	StallMsg(IMsg)             // Stall a message that we need to execute later
 

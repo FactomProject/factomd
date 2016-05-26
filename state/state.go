@@ -53,14 +53,14 @@ type State struct {
 	PortNumber              int
 	Replay                  *Replay
 	InternalReplay          *Replay
-	GreenFlg                bool
-	GreenCnt                int
-	DropRate                int
+	GreenFlg               bool
+	GreenCnt               int
+	DropRate               int
 
-	IdentityChainID interfaces.IHash // If this node has an identity, this is it
+	IdentityChainID        interfaces.IHash // If this node has an identity, this is it
 
 	// Just to print (so debugging doesn't drive functionaility)
-	serverPrt string
+	serverPrt              string
 
 	tickerQueue            chan int
 	timerMsgQueue          chan interfaces.IMsg
@@ -68,23 +68,23 @@ type State struct {
 	networkInvalidMsgQueue chan interfaces.IMsg
 	inMsgQueue             chan interfaces.IMsg
 	apiQueue               chan interfaces.IMsg
-	leaderMsgQueue         chan interfaces.IMsg
-	followerMsgQueue       chan interfaces.IMsg
+	ackQueue               chan interfaces.IMsg
+	msgQueue               chan interfaces.IMsg
 	stallQueue             chan interfaces.IMsg
 	undo                   interfaces.IMsg
 	ShutdownChan           chan int // For gracefully halting Factom
 	JournalFile            string
 
-	serverPrivKey primitives.PrivateKey
-	serverPubKey  primitives.PublicKey
+	serverPrivKey          primitives.PrivateKey
+	serverPubKey           primitives.PublicKey
 
 	// Server State
-	LLeaderHeight  uint32
-	Leader         bool
-	LeaderVMIndex  int
-	LeaderPL       *ProcessList
-	OutputAllowed  bool
-	LeaderMinute   int  // The minute that just was processed by the follower, (1-10), set with EOM
+	LLeaderHeight          uint32
+	Leader                 bool
+	LeaderVMIndex          int
+	LeaderPL               *ProcessList
+	OutputAllowed          bool
+	LeaderMinute           int  // The minute that just was processed by the follower, (1-10), set with EOM
 	EOM            int  // Set to true when all Process Lists have finished a minute
 	NetStateOff    bool // Disable if true, Enable if false
 	DebugConsensus bool // If true, dump consensus trace
@@ -95,7 +95,7 @@ type State struct {
 	// ====
 	// For Follower
 	Holding map[[32]byte]interfaces.IMsg // Hold Messages
-	Review  []interfaces.IMsg            // After the EOM, we must review the messages in Holding
+	XReview  []interfaces.IMsg            // After the EOM, we must review the messages in Holding
 	Acks    map[[32]byte]interfaces.IMsg // Hold Acknowledgemets
 	Commits map[[32]byte]interfaces.IMsg // Commit Messages
 	Reveals map[[32]byte]interfaces.IMsg // Reveal Messages
@@ -291,8 +291,8 @@ func (s *State) Init() {
 	s.networkOutMsgQueue = make(chan interfaces.IMsg, 10000)     //Messages to be broadcast to the network
 	s.inMsgQueue = make(chan interfaces.IMsg, 10000)             //incoming message queue for factom application messages
 	s.apiQueue = make(chan interfaces.IMsg, 10000)               //incoming message queue from the API
-	s.leaderMsgQueue = make(chan interfaces.IMsg, 10000)         //queue of Leadership messages
-	s.followerMsgQueue = make(chan interfaces.IMsg, 10000)       //queue of Follower messages
+	s.ackQueue = make(chan interfaces.IMsg, 10000)         //queue of Leadership messages
+	s.msgQueue = make(chan interfaces.IMsg, 10000)       //queue of Follower messages
 	s.stallQueue = make(chan interfaces.IMsg, 10000)             //queue of Leader messages while stalled
 	s.ShutdownChan = make(chan int, 1)                           //Channel to gracefully shut down.
 
@@ -869,8 +869,8 @@ func (s *State) APIQueue() chan interfaces.IMsg {
 	return s.apiQueue
 }
 
-func (s *State) LeaderMsgQueue() chan interfaces.IMsg {
-	return s.leaderMsgQueue
+func (s *State) AckQueue() chan interfaces.IMsg {
+	return s.ackQueue
 }
 
 func (s *State) StallMsg(m interfaces.IMsg) {
@@ -883,8 +883,8 @@ func (s *State) Stall() chan interfaces.IMsg {
 	return s.stallQueue
 }
 
-func (s *State) FollowerMsgQueue() chan interfaces.IMsg {
-	return s.followerMsgQueue
+func (s *State) MsgQueue() chan interfaces.IMsg {
+	return s.msgQueue
 }
 
 //var _ IState = (*State)(nil)

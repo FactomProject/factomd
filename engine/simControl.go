@@ -245,9 +245,24 @@ func printSummary(summary *bool, listenTo *int) {
 				prt = prt + fmt.Sprintf("      %6s            %6s%s\n", "Queues", "Nodes:", list)
 				list = ""
 				for _, f := range fnodes {
-					list = list + fmt.Sprintf(" %3d", len(f.State.FollowerMsgQueue()))
+					list = list + fmt.Sprintf(" %3d", len(f.State.XReview))
 				}
-				prt = prt + fmt.Sprintf("      FollowerMsgQueue       %s\n", list)
+				prt = prt + fmt.Sprintf("      Review                 %s\n", list)
+				list = ""
+				for _, f := range fnodes {
+					list = list + fmt.Sprintf(" %3d", len(f.State.Holding))
+				}
+				prt = prt + fmt.Sprintf("      Holding                %s\n", list)
+				list = ""
+				for _, f := range fnodes {
+					list = list + fmt.Sprintf(" %3d", len(f.State.Acks))
+				}
+				prt = prt + fmt.Sprintf("      Acks                   %s\n", list)
+				list = ""
+				for _, f := range fnodes {
+					list = list + fmt.Sprintf(" %3d", len(f.State.MsgQueue()))
+				}
+				prt = prt + fmt.Sprintf("      MsgQueue               %s\n", list)
 				list = ""
 				for _, f := range fnodes {
 					list = list + fmt.Sprintf(" %3d", len(f.State.InMsgQueue()))
@@ -260,12 +275,12 @@ func printSummary(summary *bool, listenTo *int) {
 				prt = prt + fmt.Sprintf("      APIQueue               %s\n", list)
 				list = ""
 				for _, f := range fnodes {
-					list = list + fmt.Sprintf(" %3d", len(f.State.LeaderMsgQueue()))
+					list = list + fmt.Sprintf(" %3d", len(f.State.AckQueue()))
 				}
-				prt = prt + fmt.Sprintf("      LeaderMsgQueue         %s\n", list)
+				prt = prt + fmt.Sprintf("      AckQueue               %s\n", list)
 				list = ""
 				for _, f := range fnodes {
-					list = list + fmt.Sprintf(" %3d", len(f.State.Stall()))
+					list = list + fmt.Sprintf(" %3d", len(f.State.MsgQueue()))
 				}
 				prt = prt + fmt.Sprintf("      stall Queue            %s\n", list)
 				list = ""
