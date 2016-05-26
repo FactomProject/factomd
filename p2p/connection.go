@@ -309,47 +309,6 @@ func (c *Connection) handleNetErrors(err error) {
 
 }
 
-// OLD VERSION: Recieves is a goroutine:
-// processReceives only interacts with channels for new data, as runloop() owns the datastructure
-// processReceives gets all the messages from the network and sends them to the application
-// func (c *Connection) processReceives() {
-// 	note(c.peer.Hash, "Connection.processReceives() called. State: %s", c.ConnectionState())
-// 	for c.state < ConnectionReceivesShutdown {
-// 		switch c.state {
-// 		case ConnectionOnline:
-// 			var message Parcel
-// 			c.conn.SetReadDeadline(time.Now().Add(5 * time.Second))
-// 			err := c.decoder.Decode(&message)
-// 			nerr, ok := err.(net.Error)
-// 			switch {
-// 			case nil == err:
-// 				note(c.peer.Hash, "Connection.processReceives() RECIEVED FROM NETWORK!  State: %s MessageType: %s", c.ConnectionState(), message.MessageType())
-// 				c.handleParcel(message)
-// 			case ok && nerr.Timeout(): /// Just a timeout error
-// 				note(c.peer.Hash, "Connection.processReceives() Timeout()  State: %s", c.ConnectionState())
-// 			case io.EOF == err: // Remote hung up
-// 				c.SendChannel <- ConnectionCommand{command: ConnectionGoOffline} // sendchannel is read by the runloop
-// 				logerror(c.peer.Hash, "Connection.processReceives() got EOF error: %+v", err)
-// 			default:
-// 				logfatal(c.peer.Hash, "Connection.processReceives() got unhandled decoding error: %+v", err)
-// 			}
-// 		case ConnectionOffline, ConnectionInitialized:
-// 			time.Sleep(time.Second)
-// 		case ConnectionShuttingDown:
-// 			c.state = ConnectionReceivesShutdown
-// 			return // exiting the processReceives() goroutine
-// 		}
-// 	}
-// 	note(c.peer.Hash, "Connection.processReceives() exited. %s State: %s", c.peer.Address, c.ConnectionState())
-// }
-
-// TODO - make it easy to switch between encoding/binary and encoding/gob here.
-// func (c *Connection) encodeAndSend(parcel Parcel)l error {
-// }
-
-// func (c *Connection) receiveAndDecode(parcel Parcel) bool {
-// }
-
 // handleParcel checks the parcel command type, and either generates a response, or passes it along.
 func (c *Connection) handleParcel(parcel Parcel) {
 	parcel.Header.Timestamp = time.Now() // set the timestamp to the recieved time.

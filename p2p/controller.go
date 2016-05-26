@@ -52,14 +52,10 @@ type CommandShutdown struct {
 	_ uint8
 }
 
-// CommandDemerit is used to instruct the Controller to reduce a connections quality score
-type CommandDemerit struct {
-	peerHash string
-}
-
-// CommandMerit is used to instruct the Controller to increase a connections quality score
-type CommandMerit struct {
-	peerHash string
+// CommandAdjustPeerQuality is used to instruct the Controller to reduce a connections quality score
+type CommandAdjustPeerQuality struct {
+	peerHash   string
+	adjustment int32
 }
 
 // CommandBan is used to instruct the Controller to disconnect and ban a peer
@@ -145,14 +141,9 @@ func (c *Controller) NetworkStop() {
 	c.commandChannel <- CommandShutdown{}
 }
 
-func (c *Controller) Demerit(peerHash string) {
-	debug("ctrlr", "NetworkStop ")
-	c.commandChannel <- CommandDemerit{peerHash: peerHash}
-}
-
-func (c *Controller) Merit(peerHash string) {
-	debug("ctrlr", "NetworkStop ")
-	c.commandChannel <- CommandMerit{peerHash: peerHash}
+func (c *Controller) AdjustPeerQuality(peerHash string, adjustment int32) {
+	debug("ctrlr", "AdjustPeerQuality ")
+	c.commandChannel <- CommandAdjustPeerQuality{peerHash: peerHash, adjustment: adjustment}
 }
 
 func (c *Controller) Ban(peerHash string) {
@@ -348,16 +339,11 @@ func (c *Controller) handleCommand(command interface{}) {
 		parameters := command.(CommandChangeLogging)
 		CurrentLoggingLevel = parameters.level
 		debug("ctrlr", "Controller.handleCommand(CommandChangeLogging) new logging level %s", LoggingLevels[parameters.level])
-	case CommandDemerit:
+	case CommandAdjustPeerQuality:
 		verbose("ctrlr", "handleCommand() Processing command: CommandDemerit")
-		parameters := command.(CommandDemerit)
+		parameters := command.(CommandAdjustPeerQuality)
 		peerHash := parameters.peerHash
-		c.applicationPeerUpdate(-1, peerHash)
-	case CommandMerit:
-		verbose("ctrlr", "handleCommand() Processing command: CommandMerit")
-		parameters := command.(CommandMerit)
-		peerHash := parameters.peerHash
-		c.applicationPeerUpdate(1, peerHash)
+		c.applicationPeerUpdate(parameters.adjustment, peerHash)
 	case CommandBan:
 		verbose("ctrlr", "handleCommand() Processing command: CommandBan")
 		parameters := command.(CommandBan)
