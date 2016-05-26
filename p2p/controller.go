@@ -304,7 +304,7 @@ func (c *Controller) handleConnectionCommand(command ConnectionCommand, connecti
 		delete(c.connections, connection.peer.Hash)
 	case ConnectionUpdatingPeer:
 		debug("ctrlr", "handleConnectionCommand() Got ConnectionUpdatingPeer from  %s", connection.peer.Hash)
-		c.discovery.UpdatePeer(command.peer)
+		c.discovery.updatePeer(command.peer)
 	default:
 		logfatal("ctrlr", "handleParcelReceive() unknown command.command?: %+v ", command.command)
 	}
