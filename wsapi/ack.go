@@ -13,14 +13,7 @@ import (
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-	/*"encoding/json"
-	  "fmt"
-	  "io/ioutil"
-
-	  "github.com/FactomProject/factomd/log"
-	  "github.com/FactomProject/web"
-	  "os"
-	  "time"*/)
+)
 
 func HandleV2FactoidACK(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	ackReq, ok := params.(AckRequest)
