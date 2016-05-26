@@ -97,7 +97,6 @@ func (c *Connection) InitWithConn(conn net.Conn, peer Peer) *Connection {
 // Init is called when we have peer info and need to dial into the peer
 func (c *Connection) Init(peer Peer) *Connection {
 	c.conn = nil
-	c.state = ConnectionInitialized
 	c.commonInit(peer)
 	debug(c.peer.Hash, "Connection.Init() called.")
 	return c
@@ -110,6 +109,7 @@ func (c *Connection) Init(peer Peer) *Connection {
 //////////////////////////////
 
 func (c *Connection) commonInit(peer Peer) {
+	c.state = ConnectionInitialized
 	c.peer = peer
 	c.SendChannel = make(chan interface{}, 10000)
 	c.ReceiveChannel = make(chan interface{}, 10000)
@@ -216,11 +216,8 @@ func (c *Connection) goShutdown() {
 
 // processSends gets all the messages from the application and sends them out over the network
 func (c *Connection) processSends() {
-	if ConnectionOnline != c.state {
-		return
-	}
 	// note(c.peer.Hash, "Connection.processSends() called. Items in send channel: %d State: %s", len(c.SendChannel), c.ConnectionState())
-	for 0 < len(c.SendChannel) { // effectively "While there are messages"
+	for 0 < len(c.SendChannel) && ConnectionOnline == c.state {
 		message := <-c.SendChannel
 		switch message.(type) {
 		case ConnectionParcel:
@@ -267,7 +264,7 @@ func (c *Connection) handleCommand(command ConnectionCommand) {
 func (c *Connection) sendParcel(parcel Parcel) {
 	debug(c.peer.Hash, "sendParcel() sending message to network of type: %s", parcel.MessageType())
 	parcel.Header.NodeID = NodeID // Send it out with our ID for loopback.
-	verbose(c.peer.Hash, "sendParcel() Sanity check. Encoder: %+v, Parcel: %s", c.encoder, parcel.MessageType())
+	verbose(c.peer.Hash, "sendParcel() Sanity check. State: %s Encoder: %+v, Parcel: %s", c.ConnectionState(), c.encoder, parcel.MessageType())
 	c.conn.SetWriteDeadline(time.Now().Add(20 * time.Millisecond))
 	err := c.encoder.Encode(parcel)
 	switch {
@@ -281,9 +278,9 @@ func (c *Connection) sendParcel(parcel Parcel) {
 
 // New version: Recieves is called as part of runloop
 func (c *Connection) processReceives() {
-	note(c.peer.Hash, "Connection.processReceives() called. State: %s", c.ConnectionState())
-	for {
+	for ConnectionOnline == c.state {
 		var message Parcel
+		note(c.peer.Hash, "Connection.processReceives() called. State: %s", c.ConnectionState())
 		c.conn.SetReadDeadline(time.Now().Add(100 * time.Millisecond))
 		err := c.decoder.Decode(&message)
 		switch {
