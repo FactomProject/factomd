@@ -6,6 +6,7 @@ package wsapi
 
 import (
 	"encoding/hex"
+	//"fmt"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryBlock"
@@ -110,14 +111,14 @@ func HandleV2EntryACK(state interfaces.IState, params interface{}) (interface{},
 					return nil, NewUnableToDecodeTransactionError()
 				} else {
 					eTxID = cc.EntryHash.String()
-					ecTxID = ackReq.TxID
+					ecTxID = cc.GetHash().String()
 				}
 			} else {
 				eTxID = ec.EntryHash.String()
-				ecTxID = ackReq.TxID
+				ecTxID = ec.GetHash().String()
 			}
 		} else {
-			eTxID = ackReq.TxID
+			eTxID = e.GetHash().String()
 		}
 	}
 
@@ -141,6 +142,8 @@ func HandleV2EntryACK(state interfaces.IState, params interface{}) (interface{},
 			if err != nil {
 				return nil, NewInternalError()
 			}
+
+			//fmt.Printf("ec - %v\n", ec)
 			if ec != nil {
 				ecTxID = ackReq.TxID
 				eTxID = ec.GetEntryHash().String()
