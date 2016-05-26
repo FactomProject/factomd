@@ -6,6 +6,8 @@ package entryCreditBlock
 
 import (
 	"bytes"
+	"fmt"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 )
@@ -68,6 +70,12 @@ func (b *IncreaseBalance) MarshalBinary() ([]byte, error) {
 }
 
 func (b *IncreaseBalance) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("Error unmarshalling: %v", r)
+		}
+	}()
+
 	buf := primitives.NewBuffer(data)
 	hash := make([]byte, 32)
 

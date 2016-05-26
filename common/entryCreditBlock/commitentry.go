@@ -217,6 +217,12 @@ func (c *CommitEntry) ECID() byte {
 }
 
 func (c *CommitEntry) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("Error unmarshalling: %v", r)
+		}
+	}()
+
 	buf := primitives.NewBuffer(data)
 	hash := make([]byte, 32)
 

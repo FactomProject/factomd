@@ -157,6 +157,12 @@ func UnmarshalECBlock(data []byte) (interfaces.IEntryCreditBlock, error) {
 }
 
 func (e *ECBlock) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("Error unmarshalling: %v", r)
+		}
+	}()
+
 	// Unmarshal Header
 	if e.GetHeader() == nil {
 		e.Header = NewECBlockHeader()
@@ -240,6 +246,11 @@ func (e *ECBlock) marshalHeaderBinary() ([]byte, error) {
 func (e *ECBlock) unmarshalBodyBinaryData(data []byte) ([]byte, error) {
 	buf := primitives.NewBuffer(data)
 	var err error
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("Error unmarshalling: %v", r)
+		}
+	}()
 
 	for i := uint64(0); i < e.Header.GetObjectCount(); i++ {
 		var id byte

@@ -65,6 +65,12 @@ func (s *ServerIndexNumber) MarshalBinary() ([]byte, error) {
 }
 
 func (s *ServerIndexNumber) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("Error unmarshalling: %v", r)
+		}
+	}()
+
 	buf := primitives.NewBuffer(data)
 	var c byte
 	if c, err = buf.ReadByte(); err != nil {
