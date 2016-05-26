@@ -73,11 +73,15 @@ func (c *DirectoryBlock) GetDBEntries() []interfaces.IDBEntry {
 }
 
 func (c *DirectoryBlock) GetKeyMR() interfaces.IHash {
-	keyMR, err := c.BuildKeyMerkleRoot()
-	if err != nil {
-		panic("Failed to build the key MR")
+	if c.KeyMR == nil {
+		keyMR, err := c.BuildKeyMerkleRoot()
+		if err != nil {
+			panic("Failed to build the key MR")
+		}
+
+		c.KeyMR = keyMR
 	}
-	c.KeyMR = keyMR
+
 	return c.KeyMR
 }
 
@@ -164,6 +168,7 @@ func (e *DirectoryBlock) String() string {
 
 func (b *DirectoryBlock) MarshalBinary() (data []byte, err error) {
 	var buf primitives.Buffer
+
 	b.Sort()
 
 	b.BuildBodyMR()
@@ -177,7 +182,7 @@ func (b *DirectoryBlock) MarshalBinary() (data []byte, err error) {
 	}
 	buf.Write(data)
 
-	for i := uint32(0); i < count; i = i + 1 {
+	for i := uint32(0); i < count; i++ {
 		data, err = b.GetDBEntries()[i].MarshalBinary()
 		if err != nil {
 			return

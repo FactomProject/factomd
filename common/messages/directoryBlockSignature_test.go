@@ -12,35 +12,46 @@ import (
 )
 
 func TestMarshalUnmarshalDirectoryBlockSignature(t *testing.T) {
-	dbs := newDirectoryBlockSignature()
-	hex, err := dbs.MarshalBinary()
+	msg := newDirectoryBlockSignature()
+
+	hex, err := msg.MarshalBinary()
 	if err != nil {
 		t.Error(err)
 	}
 	t.Logf("Marshalled - %x", hex)
 
-	dbs2, err := UnmarshalMessage(hex)
+	msg2, err := UnmarshalMessage(hex)
 	if err != nil {
 		t.Error(err)
 	}
-	str := dbs2.String()
+	str := msg2.String()
 	t.Logf("str - %v", str)
 
-	if dbs2.Type() != constants.DIRECTORY_BLOCK_SIGNATURE_MSG {
+	if msg2.Type() != constants.DIRECTORY_BLOCK_SIGNATURE_MSG {
 		t.Error("Invalid message type unmarshalled")
+	}
+
+	hex2, err := msg2.(*DirectoryBlockSignature).MarshalBinary()
+	if err != nil {
+		t.Error(err)
+	}
+	if len(hex) != len(hex2) {
+		t.Error("Hexes aren't of identical length")
+	}
+	for i := range hex {
+		if hex[i] != hex2[i] {
+			t.Error("Hexes do not match")
+		}
+	}
+
+	if msg.IsSameAs(msg2.(*DirectoryBlockSignature)) != true {
+		t.Errorf("DirectoryBlockSignature messages are not identical")
 	}
 }
 
 func TestSignAndVerifyDirectoryBlockSignature(t *testing.T) {
-	dbs := newDirectoryBlockSignature()
-	key, err := primitives.NewPrivateKeyFromHex("07c0d52cb74f4ca3106d80c4a70488426886bccc6ebc10c6bafb37bf8a65f4c38cee85c62a9e48039d4ac294da97943c2001be1539809ea5f54721f0c5477a0a")
-	if err != nil {
-		t.Error(err)
-	}
-	err = dbs.Sign(&key)
-	if err != nil {
-		t.Error(err)
-	}
+	dbs := newSignedDirectoryBlockSignature()
+
 	hex, err := dbs.MarshalBinary()
 	if err != nil {
 		t.Error(err)
@@ -77,7 +88,6 @@ func TestSignAndVerifyDirectoryBlockSignature(t *testing.T) {
 	if valid == false {
 		t.Error("Signature 2 is not valid")
 	}
-
 }
 
 func newDirectoryBlockSignature() *DirectoryBlockSignature {
@@ -87,5 +97,18 @@ func newDirectoryBlockSignature() *DirectoryBlockSignature {
 	dbs.DirectoryBlockKeyMR = hash
 	hash, _ = primitives.NewShaHashFromStr("a077183cd67022e6d1ef6c041522b40cbd3d09db6defdc25dfc7d57f3479b339")
 	dbs.ServerIdentityChainID = hash
+	return dbs
+}
+
+func newSignedDirectoryBlockSignature() *DirectoryBlockSignature {
+	dbs := newDirectoryBlockSignature()
+	key, err := primitives.NewPrivateKeyFromHex("07c0d52cb74f4ca3106d80c4a70488426886bccc6ebc10c6bafb37bf8a65f4c38cee85c62a9e48039d4ac294da97943c2001be1539809ea5f54721f0c5477a0a")
+	if err != nil {
+		panic(err)
+	}
+	err = dbs.Sign(&key)
+	if err != nil {
+		panic(err)
+	}
 	return dbs
 }

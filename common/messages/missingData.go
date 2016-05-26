@@ -20,11 +20,33 @@ type MissingData struct {
 
 	RequestHash interfaces.IHash
 
+	//No signature!
+
 	//Not marshalled
 	hash interfaces.IHash
 }
 
 var _ interfaces.IMsg = (*MissingData)(nil)
+
+func (a *MissingData) IsSameAs(b *MissingData) bool {
+	if b == nil {
+		return false
+	}
+	if a.Timestamp != b.Timestamp {
+		return false
+	}
+
+	if a.RequestHash == nil && b.RequestHash != nil {
+		return false
+	}
+	if a.RequestHash != nil {
+		if a.RequestHash.IsSameAs(b.RequestHash) == false {
+			return false
+		}
+	}
+
+	return true
+}
 
 func (m *MissingData) Process(uint32, interfaces.IState) bool {
 	return true
@@ -91,7 +113,7 @@ func (m *MissingData) UnmarshalBinaryData(data []byte) (newData []byte, err erro
 		return nil, err
 	}
 
-	m.Peer2peer = true // Always a peer2peer request.
+	m.Peer2Peer = true // Always a peer2peer request.
 
 	return data, nil
 }
@@ -191,7 +213,7 @@ func NewMissingData(state interfaces.IState, requestHash interfaces.IHash) inter
 
 	msg := new(MissingData)
 
-	msg.Peer2peer = true // Always a peer2peer request.
+	msg.Peer2Peer = true // Always a peer2peer request.
 	msg.Timestamp = state.GetTimestamp()
 	msg.RequestHash = requestHash
 

@@ -235,7 +235,7 @@ func HandleV2CommitChain(state interfaces.IState, params interface{}) (interface
 	msg := new(messages.CommitChainMsg)
 	msg.CommitChain = commit
 	msg.Timestamp = state.GetTimestamp()
-	state.InMsgQueue() <- msg
+	state.APIQueue() <- msg
 
 	resp := new(CommitChainResponse)
 	resp.Message = "Chain Commit Success"
@@ -266,7 +266,7 @@ func HandleV2CommitEntry(state interfaces.IState, params interface{}) (interface
 	msg := new(messages.CommitEntryMsg)
 	msg.CommitEntry = commit
 	msg.Timestamp = state.GetTimestamp()
-	state.InMsgQueue() <- msg
+	state.APIQueue() <- msg
 
 	resp := new(CommitEntryResponse)
 	resp.Message = "Entry Commit Success"
@@ -293,7 +293,7 @@ func HandleV2RevealEntry(state interfaces.IState, params interface{}) (interface
 	msg := new(messages.RevealEntryMsg)
 	msg.Entry = entry
 	msg.Timestamp = state.GetTimestamp()
-	state.InMsgQueue() <- msg
+	state.APIQueue() <- msg
 
 	resp := new(RevealEntryResponse)
 	resp.Message = "Entry Reveal Success"
@@ -320,7 +320,8 @@ func HandleV2GetRaw(state interfaces.IState, params interface{}) (interface{}, *
 		return nil, NewInvalidHashError()
 	}
 
-	dbase := state.GetDB()
+	dbase := state.GetAndLockDB()
+	defer state.UnlockDB()
 
 	var b []byte
 
@@ -369,7 +370,8 @@ func HandleV2GetReceipt(state interfaces.IState, params interface{}) (interface{
 		return nil, NewInvalidHashError()
 	}
 
-	dbase := state.GetDB()
+	dbase := state.GetAndLockDB()
+	defer state.UnlockDB()
 
 	receipt, err := receipts.CreateFullReceipt(dbase, h)
 	if err != nil {
@@ -381,18 +383,25 @@ func HandleV2GetReceipt(state interfaces.IState, params interface{}) (interface{
 }
 
 func HandleV2DirectoryBlock(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
-	hashkey, ok := params.(string)
-	if ok == false {
+	ps, ok := params.([]interface{})
+	if !ok {
 		return nil, NewInvalidParamsError()
 	}
-	d := new(DirectoryBlockResponse)
+	if len(ps) < 1 {
+		return nil, NewInvalidParamsError()
+	}
+	hashkey, ok := ps[0].(string)
+	if !ok {
+		return nil, NewInvalidParamsError()
+	}
 
 	h, err := primitives.HexToHash(hashkey)
 	if err != nil {
 		return nil, NewInvalidHashError()
 	}
 
-	dbase := state.GetDB()
+	dbase := state.GetAndLockDB()
+	defer state.UnlockDB()
 
 	block, err := dbase.FetchDBlockByKeyMR(h)
 	if err != nil {
@@ -408,6 +417,7 @@ func HandleV2DirectoryBlock(state interfaces.IState, params interface{}) (interf
 		}
 	}
 
+	d := new(DirectoryBlockResponse)
 	d.Header.PrevBlockKeyMR = block.GetHeader().GetPrevKeyMR().String()
 	d.Header.SequenceNumber = block.GetHeader().GetDBHeight()
 	d.Header.Timestamp = block.GetHeader().GetTimestamp() * 60
@@ -433,7 +443,8 @@ func HandleV2EntryBlock(state interfaces.IState, params interface{}) (interface{
 		return nil, NewInvalidHashError()
 	}
 
-	dbase := state.GetDB()
+	dbase := state.GetAndLockDB()
+	defer state.UnlockDB()
 
 	block, err := dbase.FetchEBlockByKeyMR(h)
 	if err != nil {
@@ -500,7 +511,8 @@ func HandleV2Entry(state interfaces.IState, params interface{}) (interface{}, *p
 		return nil, NewInvalidHashError()
 	}
 
-	dbase := state.GetDB()
+	dbase := state.GetAndLockDB()
+	defer state.UnlockDB()
 
 	entry, err := dbase.FetchEntryByHash(h)
 	if err != nil {
@@ -520,8 +532,15 @@ func HandleV2Entry(state interfaces.IState, params interface{}) (interface{}, *p
 }
 
 func HandleV2ChainHead(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
-	hashkey, ok := params.(string)
-	if ok == false {
+	ps, ok := params.([]interface{})
+	if !ok {
+		return nil, NewInvalidParamsError()
+	}
+	if len(ps) < 1 {
+		return nil, NewInvalidParamsError()
+	}
+	hashkey, ok := ps[0].(string)
+	if !ok {
 		return nil, NewInvalidParamsError()
 	}
 
@@ -530,7 +549,8 @@ func HandleV2ChainHead(state interfaces.IState, params interface{}) (interface{}
 		return nil, NewInvalidHashError()
 	}
 
-	dbase := state.GetDB()
+	dbase := state.GetAndLockDB()
+	defer state.UnlockDB()
 
 	mr, err := dbase.FetchHeadIndexByChainID(h)
 	if err != nil {
@@ -575,15 +595,12 @@ func HandleV2EntryCreditBalance(state interfaces.IState, params interface{}) (in
 	}
 	resp := new(EntryCreditBalanceResponse)
 	resp.Balance = state.GetFactoidState().GetECBalance(address.Fixed())
-	fmt.Println(resp.Balance)
 	return resp, nil
 }
 
 func HandleV2GetFee(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	resp := new(FactoidGetFeeResponse)
 	resp.Fee = state.GetFactoshisPerEC()
-
-	fmt.Println(";;;;;;;;;;;;;;;;;;;;;;;;;;;;;; ", resp.Fee)
 
 	return resp, nil
 }
@@ -595,6 +612,8 @@ func HandleV2FactoidSubmit(state interfaces.IState, params interface{}) (interfa
 	}
 
 	msg := new(messages.FactoidTransaction)
+	msg.Timestamp = state.GetTimestamp()
+
 	p, err := hex.DecodeString(t)
 	if err != nil {
 		return nil, NewUnableToDecodeTransactionError()
@@ -610,7 +629,7 @@ func HandleV2FactoidSubmit(state interfaces.IState, params interface{}) (interfa
 		return nil, NewInvalidTransactionError()
 	}
 
-	state.InMsgQueue() <- msg
+	state.APIQueue() <- msg
 
 	resp := new(FactoidSubmitResponse)
 	resp.Message = "Successfully submitted the transaction"

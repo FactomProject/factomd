@@ -9,6 +9,7 @@ import (
 	//	"encoding/binary"
 	"encoding/binary"
 	"fmt"
+
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
@@ -24,26 +25,51 @@ type DBStateMsg struct {
 	MessageBase
 	Timestamp interfaces.Timestamp
 
-	DBHash interfaces.IHash
-	ABHash interfaces.IHash
-	FBHash interfaces.IHash
-	ECHash interfaces.IHash
-
+	//TODO: handle misformed DBStates!
 	DirectoryBlock   interfaces.IDirectoryBlock
 	AdminBlock       interfaces.IAdminBlock
 	FactoidBlock     interfaces.IFBlock
 	EntryCreditBlock interfaces.IEntryCreditBlock
-	EntryBlocks      map[[32]byte]interfaces.IEntryBlock
+
+	//Not signed!
 }
 
 var _ interfaces.IMsg = (*DBStateMsg)(nil)
 
-func (m *DBStateMsg) IsSameAs(b *DBStateMsg) bool {
+func (a *DBStateMsg) IsSameAs(b *DBStateMsg) bool {
+	if b == nil {
+		return false
+	}
+	if a.Timestamp != b.Timestamp {
+		return false
+	}
+
+	ok, err := primitives.AreBinaryMarshallablesEqual(a.DirectoryBlock, b.DirectoryBlock)
+	if err != nil || ok == false {
+		return false
+	}
+
+	ok, err = primitives.AreBinaryMarshallablesEqual(a.AdminBlock, b.AdminBlock)
+	if err != nil || ok == false {
+		return false
+	}
+
+	ok, err = primitives.AreBinaryMarshallablesEqual(a.FactoidBlock, b.FactoidBlock)
+	if err != nil || ok == false {
+		return false
+	}
+
+	ok, err = primitives.AreBinaryMarshallablesEqual(a.EntryCreditBlock, b.EntryCreditBlock)
+	if err != nil || ok == false {
+		return false
+	}
+
 	return true
 }
 
 func (m *DBStateMsg) GetHash() interfaces.IHash {
-	return nil
+	data, _ := m.MarshalBinary()
+	return primitives.Sha(data)
 }
 
 func (m *DBStateMsg) GetMsgHash() interfaces.IHash {
@@ -79,18 +105,6 @@ func (m *DBStateMsg) GetTimestamp() interfaces.Timestamp {
 //  1   -- Message is valid
 func (m *DBStateMsg) Validate(state interfaces.IState) int {
 
-	if !m.DBHash.IsSameAs(m.DirectoryBlock.GetHash()) {
-		return -1
-	}
-	if !m.ABHash.IsSameAs(m.AdminBlock.GetHash()) {
-		return -1
-	}
-	if !m.FBHash.IsSameAs(m.FactoidBlock.GetHash()) {
-		return -1
-	}
-	if !m.ECHash.IsSameAs(m.EntryCreditBlock.GetHash()) {
-		return -1
-	}
 	return 1
 }
 
@@ -133,7 +147,6 @@ func (e *DBStateMsg) JSONBuffer(b *bytes.Buffer) error {
 
 func (m *DBStateMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
-		return
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling Directory Block State Message: %v", r)
 		}
@@ -144,33 +157,9 @@ func (m *DBStateMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error
 	}
 	newData = newData[1:]
 
-	m.Peer2peer = true
+	m.Peer2Peer = true
 
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
-	if err != nil {
-		return nil, err
-	}
-
-	m.DBHash = primitives.NewZeroHash()
-	newData, err = m.DBHash.UnmarshalBinaryData(newData)
-	if err != nil {
-		return nil, err
-	}
-
-	m.ABHash = primitives.NewZeroHash()
-	newData, err = m.ABHash.UnmarshalBinaryData(newData)
-	if err != nil {
-		return nil, err
-	}
-
-	m.FBHash = primitives.NewZeroHash()
-	newData, err = m.FBHash.UnmarshalBinaryData(newData)
-	if err != nil {
-		return nil, err
-	}
-
-	m.ECHash = primitives.NewZeroHash()
-	newData, err = m.ECHash.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
 	}
@@ -199,10 +188,6 @@ func (m *DBStateMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error
 		return nil, err
 	}
 
-	if !m.DBHash.IsSameAs(m.DirectoryBlock.GetHash()) {
-		panic("Directory Block Hash is not correct")
-	}
-
 	return
 }
 
@@ -211,37 +196,13 @@ func (m *DBStateMsg) UnmarshalBinary(data []byte) error {
 	return err
 }
 
-func (m *DBStateMsg) MarshalForSignature() ([]byte, error) {
+func (m *DBStateMsg) MarshalBinary() ([]byte, error) {
 	var buf primitives.Buffer
 
 	binary.Write(&buf, binary.BigEndian, m.Type())
 
 	t := m.GetTimestamp()
 	data, err := t.MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
-	buf.Write(data)
-
-	data, err = m.DirectoryBlock.GetHash().MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
-	buf.Write(data)
-
-	data, err = m.AdminBlock.GetHash().MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
-	buf.Write(data)
-
-	data, err = m.FactoidBlock.GetHash().MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
-
-	buf.Write(data)
-	data, err = m.EntryCreditBlock.GetHash().MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
@@ -274,17 +235,14 @@ func (m *DBStateMsg) MarshalForSignature() ([]byte, error) {
 	return buf.DeepCopyBytes(), nil
 }
 
-func (m *DBStateMsg) MarshalBinary() ([]byte, error) {
-	return m.MarshalForSignature()
-}
-
 func (m *DBStateMsg) String() string {
-	return fmt.Sprintf("DBState: %d dblock %x admin %x fb %x ec %x",
+	return fmt.Sprintf("DBState: ht:%3d dblock %6x admin %6x fb %6x ec %6x hash %6x",
 		m.DirectoryBlock.GetHeader().GetDBHeight(),
-		m.DirectoryBlock.GetKeyMR().Bytes()[:5],
-		m.AdminBlock.GetHash().Bytes()[:5],
-		m.FactoidBlock.GetHash().Bytes()[:5],
-		m.EntryCreditBlock.GetHash().Bytes()[:5])
+		m.DirectoryBlock.GetKeyMR().Bytes()[:3],
+		m.AdminBlock.GetHash().Bytes()[:3],
+		m.FactoidBlock.GetHash().Bytes()[:3],
+		m.EntryCreditBlock.GetHash().Bytes()[:3],
+		m.GetHash().Bytes()[:3])
 }
 
 func NewDBStateMsg(timestamp interfaces.Timestamp,
@@ -295,14 +253,9 @@ func NewDBStateMsg(timestamp interfaces.Timestamp,
 
 	msg := new(DBStateMsg)
 
-	msg.Peer2peer = true
+	msg.Peer2Peer = true
 
 	msg.Timestamp = timestamp
-
-	msg.DBHash = d.GetHash()
-	msg.ABHash = a.GetHash()
-	msg.FBHash = f.GetHash()
-	msg.ECHash = e.GetHash()
 
 	msg.DirectoryBlock = d
 	msg.AdminBlock = a

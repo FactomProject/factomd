@@ -25,6 +25,7 @@ type EOM struct {
 	DBHeight  uint32
 	ChainID   interfaces.IHash
 	Signature interfaces.IFullSignature
+	FactoidVM bool
 
 	//Not marshalled
 	hash       interfaces.IHash
@@ -33,13 +34,48 @@ type EOM struct {
 
 //var _ interfaces.IConfirmation = (*EOM)(nil)
 var _ Signable = (*EOM)(nil)
+var _ interfaces.IMsg = (*EOM)(nil)
+
+func (a *EOM) IsSameAs(b *EOM) bool {
+	if b == nil {
+		return false
+	}
+	if a.Timestamp != b.Timestamp {
+		return false
+	}
+	if a.Minute != b.Minute {
+		return false
+	}
+	if a.DBHeight != b.DBHeight {
+		return false
+	}
+
+	if a.ChainID == nil && b.ChainID != nil {
+		return false
+	}
+	if a.ChainID != nil {
+		if a.ChainID.IsSameAs(b.ChainID) == false {
+			return false
+		}
+	}
+
+	if a.Signature == nil && b.Signature != nil {
+		return false
+	}
+	if a.Signature != nil {
+		if a.Signature.IsSameAs(b.Signature) == false {
+			return false
+		}
+	}
+
+	return true
+}
 
 func (e *EOM) Process(dbheight uint32, state interfaces.IState) bool {
 	return state.ProcessEOM(dbheight, e)
 }
 
 func (m *EOM) GetHash() interfaces.IHash {
-
 	data, err := m.MarshalForSignature()
 	if err != nil {
 		panic(fmt.Sprintf("Error in EOM.GetHash(): %s", err.Error()))
@@ -50,7 +86,6 @@ func (m *EOM) GetHash() interfaces.IHash {
 }
 
 func (m *EOM) GetMsgHash() interfaces.IHash {
-
 	data, err := m.MarshalForSignature()
 	if err != nil {
 		return nil
@@ -85,6 +120,7 @@ func (m *EOM) Validate(state interfaces.IState) int {
 	if m.IsLocal() {
 		return 1
 	}
+
 	found, _ := state.GetVirtualServers(m.DBHeight, int(m.Minute), m.ChainID)
 	if !found { // Only EOM from federated servers are valid.
 		return -1
@@ -104,16 +140,13 @@ func (m *EOM) Validate(state interfaces.IState) int {
 // Returns true if this is a message for this server to execute as
 // a leader.
 func (m *EOM) Leader(state interfaces.IState) bool {
-	if m.IsLocal() {
-		return true
-	}
-	return false
+	return m.IsLocal()
 }
 
 // Execute the leader functions of the given message
 func (m *EOM) LeaderExecute(state interfaces.IState) error {
 	m.SetLocal(false)
-	return state.LeaderExecute(m)
+	return state.LeaderExecuteEOM(m)
 }
 
 // Returns true if this is a message for this server to execute as a follower
@@ -186,6 +219,8 @@ func (m *EOM) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 
 	m.VMIndex = int(newData[0])
 	newData = newData[1:]
+	m.FactoidVM = uint8(newData[0]) == 1
+	newData = newData[1:]
 
 	m.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
@@ -223,6 +258,11 @@ func (m *EOM) MarshalForSignature() (data []byte, err error) {
 
 	binary.Write(&buf, binary.BigEndian, m.Minute)
 	binary.Write(&buf, binary.BigEndian, uint8(m.VMIndex))
+	if m.FactoidVM {
+		binary.Write(&buf, binary.BigEndian, uint8(1))
+	} else {
+		binary.Write(&buf, binary.BigEndian, uint8(0))
+	}
 	return buf.DeepCopyBytes(), nil
 }
 
@@ -248,12 +288,21 @@ func (m *EOM) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *EOM) String() string {
-	return fmt.Sprintf("%6s-%3d: Min:%4d Ht:%5d -- chainID[:5]=%x hash[:5]=%x",
+	local := ""
+	if m.IsLocal() {
+		local = "local"
+	}
+	f := "-"
+	if m.FactoidVM {
+		f = "F"
+	}
+	return fmt.Sprintf("%6s-VM%3d: Min:%4d DBHt:%5d -%1s-Leader[:3]=%x hash[:3]=%x %s",
 		"EOM",
 		m.VMIndex,
 		m.Minute,
 		m.DBHeight,
-		m.ChainID.Bytes()[:5],
-		m.GetMsgHash().Bytes()[:5])
-
+		f,
+		m.ChainID.Bytes()[:3],
+		m.GetMsgHash().Bytes()[:3],
+		local)
 }

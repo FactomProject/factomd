@@ -233,3 +233,29 @@ The simulator always keeps the focus on one node or another.  Some commands are 
 	
 Would start up with node 15 as the focus.
 
+### -p2pAddress
+
+This opens up a TCP port and listens for new connections.
+
+Usage:
+	-p2pAddress="tcp://:8108"
+
+### -peers
+
+This connects to a remote computer and passes messages and blocks between them.
+
+	-peers="tcp://192.168.1.69:8108" 
+
+### -prefix
+
+This makes all the simnodes in this process followers.  It prefixes the text provided to the Node names (and the generated file names) of all the Factom instances created.   So without a prefix, you would get nodes named FNode0, FNode1, etc.  With the a_ prefix described below, you would get a_FNode0, a_FNode1, etc.
+
+FNode0 is currently a "magic name", and the node with that name becomes the first default Leader when building Factom up from scratch.  (Of course, if you are loading an existing network, it will come up with the last set of leaders).   In any event, adding the prefix avoids having FNode0 as a name, and as a result all the nodes will be followers.
+
+	-prefix=a_
+
+Multi-computer example:
+Computer Leader (ip x.69) `factomd -count=2 -p2pAddress="tcp://:8108" -peers="tcp://192.168.1.72:8108"`
+Computer Follower (ip x.72) `factomd -count=5 -p2pAddress="tcp://:8108" -peers="tcp://192.168.1.69:8108" -follower=true -prefix=a_`
+
+

@@ -12,7 +12,6 @@ import (
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/log"
 )
 
 //A placeholder structure for messages
@@ -34,58 +33,7 @@ type RevealEntryMsg struct {
 var _ interfaces.IMsg = (*RevealEntryMsg)(nil)
 
 func (m *RevealEntryMsg) Process(dbheight uint32, state interfaces.IState) bool {
-	commit := state.GetCommits(m.GetHash())
-	if commit == nil {
-		panic("commit was nil in process, this should not happen")
-	}
-
-	if _, isNewChain := commit.(*CommitChainMsg); isNewChain {
-		chainID := m.Entry.GetChainID()
-		eb, err := state.GetDB().FetchEBlockHead(chainID)
-		if err != nil || eb != nil {
-			panic("Chain already exists")
-		}
-
-		// Create a new Entry Block for a new Entry Block Chain
-		eb = entryBlock.NewEBlock()
-		// Set the Chain ID
-		eb.GetHeader().SetChainID(m.Entry.GetChainID())
-		// Set the Directory Block Height for this Entry Block
-		eb.GetHeader().SetDBHeight(dbheight)
-		// Add our new entry
-		eb.AddEBEntry(m.Entry)
-		// Put it in our list of new Entry Blocks for this Directory Block
-		state.PutNewEBlocks(dbheight, m.Entry.GetChainID(), eb)
-		state.PutNewEntries(dbheight, m.Entry.GetHash(), m.Entry)
-
-		return true
-	} else if _, isNewEntry := commit.(*CommitEntryMsg); isNewEntry {
-		chainID := m.Entry.GetChainID()
-		eb := state.GetNewEBlocks(dbheight, chainID)
-		if eb == nil {
-			prev, err := state.GetDB().FetchEBlockHead(chainID)
-			if prev == nil || err != nil {
-				return false
-			}
-			eb = entryBlock.NewEBlock()
-			// Set the Chain ID
-			eb.GetHeader().SetChainID(m.Entry.GetChainID())
-			// Set the Directory Block Height for this Entry Block
-			eb.GetHeader().SetDBHeight(dbheight)
-			// Set the PrevKeyMR
-			key, _ := prev.KeyMR()
-			eb.GetHeader().SetPrevKeyMR(key)
-		}
-		// Add our new entry
-		eb.AddEBEntry(m.Entry)
-		// Put it in our list of new Entry Blocks for this Directory Block
-		state.PutNewEBlocks(dbheight, m.Entry.GetChainID(), eb)
-		state.PutNewEntries(dbheight, m.Entry.GetHash(), m.Entry)
-
-		return true
-	}
-	log.Println("Found Bad Commit")
-	return false
+	return state.ProcessRevealEntry(dbheight, m)
 }
 
 func (m *RevealEntryMsg) GetHash() interfaces.IHash {
@@ -135,10 +83,9 @@ func (m *RevealEntryMsg) Bytes() []byte {
 //  1   -- Message is valid
 func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 	commit := state.GetCommits(m.GetHash())
-	ECs := 0
 
 	if commit == nil {
-		return 0
+		return -1
 	}
 
 	//
@@ -153,13 +100,13 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 	// Now make sure the proper amount of credits were paid to record the entry.
 	if okEntry {
 		m.isEntry = true
-		ECs = int(m.commitEntry.CommitEntry.Credits)
+		ECs := int(m.commitEntry.CommitEntry.Credits)
 		if m.Entry.KSize() < ECs {
 			return -1
 		}
 	} else {
 		m.isEntry = false
-		ECs = int(m.commitChain.CommitChain.Credits)
+		ECs := int(m.commitChain.CommitChain.Credits)
 		if m.Entry.KSize()+10 < ECs {
 			return -1
 		}
@@ -171,18 +118,14 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 // Returns true if this is a message for this server to execute as
 // a leader.
 func (m *RevealEntryMsg) Leader(state interfaces.IState) bool {
-	return state.LeaderFor(m, m.GetHash().Bytes())
+	state.LeaderFor(m, m.Entry.GetChainID().Bytes())
+	return true
+
 }
 
 // Execute the leader functions of the given message
 func (m *RevealEntryMsg) LeaderExecute(state interfaces.IState) error {
-	c := state.GetCommits(m.GetHash())
-	if c != nil {
-		return state.LeaderExecute(m)
-	}
-	state.PutReveals(m.GetHash(), m)
-
-	return nil
+	return state.LeaderExecuteRE(m)
 }
 
 // Returns true if this is a message for this server to execute as a follower
@@ -192,10 +135,7 @@ func (m *RevealEntryMsg) Follower(interfaces.IState) bool {
 
 func (m *RevealEntryMsg) FollowerExecute(state interfaces.IState) error {
 	_, err := state.FollowerExecuteMsg(m)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 func (e *RevealEntryMsg) JSONByte() ([]byte, error) {
@@ -270,5 +210,15 @@ func (m *RevealEntryMsg) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *RevealEntryMsg) String() string {
-	return "RevealEntryMsg " + m.Timestamp.String() + " " + m.GetHash().String()
+	if m.GetLeaderChainID() == nil {
+		m.SetLeaderChainID(primitives.NewZeroHash())
+	}
+	str := fmt.Sprintf("%6s-VM%3d: Min:%4d          -- Leader[:3]=%x hash[:3]=%x",
+		"REntry",
+		m.VMIndex,
+		m.Minute,
+		m.GetLeaderChainID().Bytes()[:3],
+		m.GetHash().Bytes()[:3])
+
+	return str
 }

@@ -32,12 +32,12 @@ func TestMultiBatch(t *testing.T) {
 			t.Error(err)
 		}
 
-		err = dbo.ProcessEBlockMultiBatch(prev.EBlock)
+		err = dbo.ProcessEBlockMultiBatch(prev.EBlock, false)
 		if err != nil {
 			t.Error(err)
 		}
 
-		err = dbo.ProcessEBlockMultiBatch(prev.AnchorEBlock)
+		err = dbo.ProcessEBlockMultiBatch(prev.AnchorEBlock, false)
 		if err != nil {
 			t.Error(err)
 		}

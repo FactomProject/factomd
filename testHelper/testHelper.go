@@ -89,12 +89,12 @@ func CreateAndPopulateTestDatabaseOverlay() *databaseOverlay.Overlay {
 			panic(err)
 		}
 
-		err = dbo.ProcessEBlockMultiBatch(prev.EBlock)
+		err = dbo.ProcessEBlockMultiBatch(prev.EBlock, false)
 		if err != nil {
 			panic(err)
 		}
 
-		err = dbo.ProcessEBlockMultiBatch(prev.AnchorEBlock)
+		err = dbo.ProcessEBlockMultiBatch(prev.AnchorEBlock, false)
 		if err != nil {
 			panic(err)
 		}

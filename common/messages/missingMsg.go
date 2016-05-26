@@ -17,15 +17,42 @@ import (
 //Structure to request missing messages in a node's process list
 type MissingMsg struct {
 	MessageBase
-	DBHeight          uint32
-	ProcessListHeight uint32
+
 	Timestamp         interfaces.Timestamp
+	DBHeight          uint32
+	VM                int
+	ProcessListHeight uint32
+
+	//No signature!
 
 	//Not marshalled
 	hash interfaces.IHash
 }
 
 var _ interfaces.IMsg = (*MissingMsg)(nil)
+
+func (a *MissingMsg) IsSameAs(b *MissingMsg) bool {
+	if b == nil {
+		return false
+	}
+	if a.Timestamp != b.Timestamp {
+		return false
+	}
+
+	if a.DBHeight != b.DBHeight {
+		return false
+	}
+
+	if a.VM != b.VM {
+		return false
+	}
+
+	if a.ProcessListHeight != b.ProcessListHeight {
+		return false
+	}
+
+	return true
+}
 
 func (m *MissingMsg) Process(uint32, interfaces.IState) bool {
 	return true
@@ -93,7 +120,7 @@ func (m *MissingMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error
 		return nil, fmt.Errorf("DBHeight or ProcListHeight is negative")
 	}
 
-	m.Peer2peer = true // Always a peer2peer request.
+	m.Peer2Peer = true // Always a peer2peer request.
 
 	return data, nil
 }
@@ -124,6 +151,7 @@ func (m *MissingMsg) MarshalBinary() ([]byte, error) {
 
 	//TODO: delete this once we have unit tests
 	if unmarshalErr := mmm.UnmarshalBinary(bb); unmarshalErr != nil {
+		fmt.Println("Missing failed to marshal/unmarshal")
 		return nil, unmarshalErr
 	}
 
@@ -131,7 +159,7 @@ func (m *MissingMsg) MarshalBinary() ([]byte, error) {
 }
 
 func (m *MissingMsg) String() string {
-	return fmt.Sprintf("MissingMsg: %d-%d", m.DBHeight, m.ProcessListHeight)
+	return fmt.Sprintf("MissingMsg vm=%d DBHeight:%3d PL Height:%3d", m.VMIndex, m.DBHeight, m.ProcessListHeight)
 }
 
 func (m *MissingMsg) ChainID() []byte {
@@ -167,18 +195,15 @@ func (m *MissingMsg) Follower(interfaces.IState) bool {
 }
 
 func (m *MissingMsg) FollowerExecute(state interfaces.IState) error {
-	msg, ackMsg, err := state.LoadSpecificMsgAndAck(m.DBHeight, m.ProcessListHeight)
+	msg, ackMsg, err := state.LoadSpecificMsgAndAck(m.DBHeight, m.VM, m.ProcessListHeight)
 
 	if msg != nil && ackMsg != nil && err == nil { // If I don't have this message, ignore.
 		msg.SetOrigin(m.GetOrigin())
+		msg.SetPeer2Peer(true)
 		ackMsg.SetOrigin(m.GetOrigin())
+		ackMsg.SetPeer2Peer(true)
 		state.NetworkOutMsgQueue() <- msg
 		state.NetworkOutMsgQueue() <- ackMsg
-	} else {
-		// LoadSpecificMsgAndAck failed, so dethrottle the fnode state
-		// (so it can ask again if it needs to)
-		state.Dethrottle()
-		return err
 	}
 
 	return nil
@@ -200,7 +225,7 @@ func NewMissingMsg(state interfaces.IState, dbHeight uint32, processlistHeight u
 
 	msg := new(MissingMsg)
 
-	msg.Peer2peer = true // Always a peer2peer request.
+	msg.Peer2Peer = true // Always a peer2peer request.
 	msg.Timestamp = state.GetTimestamp()
 	msg.DBHeight = dbHeight
 	msg.ProcessListHeight = processlistHeight

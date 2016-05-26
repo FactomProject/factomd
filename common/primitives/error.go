@@ -31,7 +31,6 @@ const (
 	ErrorHTTPNewRequestFailure = 19
 	ErrorHTTPDoRequestFailure  = 20
 	ErrorHTMLMarshal           = 21
-	ErrorVerifySignature       = 22
 )
 
 type Error struct {

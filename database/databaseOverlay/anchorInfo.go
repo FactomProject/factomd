@@ -30,10 +30,12 @@ func (dbo *Overlay) RebuildDirBlockInfo() error {
 func (dbo *Overlay) FetchAllAnchorInfo() ([]*anchor.AnchorRecord, error) {
 	chainID, err := primitives.NewShaHashFromStr(AnchorBlockID)
 	if err != nil {
+		panic(err)
 		return nil, err
 	}
 	entries, err := dbo.FetchAllEntriesByChainID(chainID)
 	if err != nil {
+		panic(err)
 		return nil, err
 	}
 	answer := []*anchor.AnchorRecord{}
@@ -44,6 +46,7 @@ func (dbo *Overlay) FetchAllAnchorInfo() ([]*anchor.AnchorRecord, error) {
 		content := entry.GetContent()
 		ar, err := anchor.UnmarshalAnchorRecord(content)
 		if err != nil {
+			panic(err)
 			return nil, err
 		}
 		answer = append(answer, ar)

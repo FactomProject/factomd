@@ -27,8 +27,12 @@ type AddServerMsg struct {
 }
 
 var _ interfaces.IMsg = (*AddServerMsg)(nil)
+var _ Signable = (*AddServerMsg)(nil)
 
 func (m *AddServerMsg) IsSameAs(b *AddServerMsg) bool {
+	if b == nil {
+		return false
+	}
 	if uint64(m.Timestamp) != uint64(b.Timestamp) {
 		return false
 	}
@@ -104,7 +108,8 @@ func (m *AddServerMsg) Validate(state interfaces.IState) int {
 // Returns true if this is a message for this server to execute as
 // a leader.
 func (m *AddServerMsg) Leader(state interfaces.IState) bool {
-	return state.LeaderFor(m, constants.ADMIN_CHAINID)
+	state.LeaderFor(m, constants.ADMIN_CHAINID)
+	return true
 }
 
 // Execute the leader functions of the given message
@@ -124,9 +129,6 @@ func (m *AddServerMsg) FollowerExecute(state interfaces.IState) error {
 
 // Acknowledgements do not go into the process list.
 func (e *AddServerMsg) Process(dbheight uint32, state interfaces.IState) bool {
-	if state.GetOut() == true {
-		state.Println("Processing to add a Server: ", dbheight)
-	}
 	return state.ProcessAddServer(dbheight, e)
 }
 
@@ -251,7 +253,12 @@ func (m *AddServerMsg) String() string {
 	} else {
 		stype = "Audit"
 	}
-	return fmt.Sprintf("AddServer (%s): ChainID: %s Time: %v ", stype, m.ServerChainID.String(), m.Timestamp)
+	return fmt.Sprintf("AddServer (%s): ChainID: %x Time: %x Msg Hash %x ",
+		stype,
+		m.ServerChainID.Bytes()[:3],
+		m.Timestamp,
+		m.GetMsgHash().Bytes()[:3])
+
 }
 
 func NewAddServerMsg(state interfaces.IState, serverType int) interfaces.IMsg {

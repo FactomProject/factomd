@@ -9,113 +9,98 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages"
 )
 
 func (state *State) ValidatorLoop() {
+	timeStruct := new(Timer)
 	for {
-		state.SetString()
+
+		// Check if we should shut down.
 		select {
 		case _ = <-state.ShutdownChan:
+			state.DBMutex.Lock()
+			defer state.DBMutex.Unlock()
 			fmt.Println("Closing the Database on", state.GetFactomNodeName())
-			state.GetDB().(interfaces.IDatabase).Close()
+			state.DB.Close()
 			fmt.Println(state.GetFactomNodeName(), "closed")
 			return
 		default:
 		}
 
-		var msg interfaces.IMsg
+		state.SetString() // Set the string for the state so we can print it later if we like.
+		// Process any messages we might have queued up.
+		for state.Process() {
+			state.UpdateState()
+		}
 
+		// Look for pending messages, and get one if there is one.
+		var msg interfaces.IMsg
 	loop:
 		for i := 0; i < 100; i++ {
 			state.UpdateState()
-			msgProcess := func() {
-				state.JournalMessage(msg)
 
-				if state.PrintType(msg.Type()) {
-					if state.GetOut() {
-						state.Println(fmt.Sprintf("%20s %s", "Validator:", msg.String()))
-					}
-				}
+			select {
+			case min := <-state.tickerQueue:
+				timeStruct.timer(state, min)
+			default:
 			}
+
 			select {
 			case msg = <-state.TimerMsgQueue():
-				msgProcess()
-				break loop
-			case msg = <-state.InMsgQueue(): // Get message from the timer or input queue
-				msgProcess()
+				state.JournalMessage(msg)
 				break loop
 			default:
 			}
-			msg = state.Undo()
-			if msg != nil {
-				fmt.Println("Undo")
-				msg.LeaderExecute(state)
-				msg = (interfaces.IMsg)(nil)
+
+			select {
+			case msg = <-state.InMsgQueue(): // Get message from the timer or input queue
+				state.JournalMessage(msg)
 				break loop
-			} else {
-				select {
-				case msg = <-state.LeaderMsgQueue():
-					msg.LeaderExecute(state)
-					msg = (interfaces.IMsg)(nil)
-					break loop
-				default:
-					time.Sleep(time.Millisecond * 100)
-				}
+			default: // No messages? Sleep for a bit.
+				state.SetString()
+				time.Sleep(10 * time.Millisecond)
 			}
 		}
 
+		// Sort the messages.
 		if msg != nil {
-
 			if state.IsReplaying == true {
 				state.ReplayTimestamp = msg.GetTimestamp()
 			}
-
-			switch msg.Validate(state) { // Validate the message.
-
-			case 1: // Process if valid
-
-				if !msg.IsPeer2peer() {
-					state.NetworkOutMsgQueue() <- msg
-				}
-
-				if state.PrintType(msg.Type()) {
-					if state.GetOut() {
-						state.Print(" Valid\n")
-					}
-				}
-				if msg.Leader(state) {
-					if state.PrintType(msg.Type()) {
-						if state.GetOut() {
-							state.Println(fmt.Sprintf("%20s %s\n", "Leader:", msg.String()))
-						}
-					}
-					state.LeaderMsgQueue() <- msg
-				} else if msg.Follower(state) {
-					if state.PrintType(msg.Type()) {
-						if state.GetOut() {
-							state.Println(fmt.Sprintf("%20s %s\n", "Follower:", msg.String()))
-						}
-					}
-					msg.FollowerExecute(state)
-				} else {
-					if state.GetOut() {
-						state.Print(" Message ignored\n")
-					}
-				}
-			case 0: // Hold for later if unknown.
-				if state.PrintType(msg.Type()) {
-					if state.GetOut() {
-						state.Print(" Hold\n")
-					}
-				}
-			default:
-				if state.PrintType(msg.Type()) {
-					if state.GetOut() {
-						state.Print(" Invalid: ", msg.Type(), "\n")
-					}
-				}
-				state.NetworkInvalidMsgQueue() <- msg
+			if _, ok := msg.(*messages.EOM); ok {
+				state.leaderMsgQueue <- msg
+			} else {
+				state.FollowerMsgQueue() <- msg
 			}
 		}
 	}
+}
+
+type Timer struct {
+	lastMin      int
+	lastDBHeight uint32
+}
+
+func (t *Timer) timer(state *State, min int) {
+
+	state.UpdateState()
+
+	t.lastMin = min
+
+	stateheight := state.LLeaderHeight
+
+	if stateheight != t.lastDBHeight && min != 0 {
+		return
+	} else {
+		t.lastDBHeight = stateheight
+	}
+
+	eom := new(messages.EOM)
+	eom.Minute = byte(min)
+	eom.Timestamp = state.GetTimestamp()
+	eom.ChainID = state.GetIdentityChainID()
+	eom.Sign(state)
+	eom.SetLocal(true)
+	state.TimerMsgQueue() <- eom
 }
