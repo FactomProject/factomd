@@ -341,7 +341,7 @@ func HandleEntry(ctx *web.Context, hashkey string) {
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
 	param := HashRequest{Hash: hashkey}
-	req := primitives.NewJSON2Request("entry-by-hash", 1, param)
+	req := primitives.NewJSON2Request("entry", 1, param)
 
 	jsonResp, jsonError := HandleV2Request(state, req)
 	if jsonError != nil {
