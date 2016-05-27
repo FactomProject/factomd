@@ -32,6 +32,10 @@ func (e *MinuteNumber) Hash() interfaces.IHash {
 	return primitives.Sha(bin)
 }
 
+func (e *MinuteNumber) GetHash() interfaces.IHash {
+	return e.Hash()
+}
+
 func (a *MinuteNumber) GetEntryHash() interfaces.IHash {
 	return nil
 }

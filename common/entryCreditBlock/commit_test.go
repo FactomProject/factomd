@@ -8,7 +8,9 @@ import (
 
 	ed "github.com/FactomProject/ed25519"
 	. "github.com/FactomProject/factomd/common/entryCreditBlock"
+	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/testHelper"
 )
 
 var (
@@ -53,5 +55,57 @@ func TestCommitEntryMarshal(t *testing.T) {
 
 	if !ce2.IsValid() {
 		t.Errorf("signature did not match after unmarshalbinary")
+	}
+}
+
+func TestCommitMarshalUnmarshal(t *testing.T) {
+	blocks := testHelper.CreateFullTestBlockSet()
+	for _, block := range blocks {
+		for _, tx := range block.ECBlock.GetEntries() {
+			h1, err := tx.MarshalBinary()
+			if err != nil {
+				t.Errorf("Error marshalling - %v", err)
+			}
+			var h2 []byte
+			var e interfaces.BinaryMarshallable
+			switch tx.ECID() {
+			case ECIDChainCommit:
+				e = new(CommitChain)
+				break
+			case ECIDEntryCommit:
+				e = new(CommitEntry)
+				break
+			case ECIDBalanceIncrease:
+				e = new(IncreaseBalance)
+				break
+			case ECIDMinuteNumber:
+				e = new(MinuteNumber)
+				break
+			case ECIDServerIndexNumber:
+				e = new(ServerIndexNumber)
+				break
+			default:
+				t.Error("Wrong ECID")
+				break
+			}
+
+			h2, err = e.UnmarshalBinaryData(h1)
+			if err != nil {
+				t.Errorf("Error unmarshalling - %v", err)
+				continue
+			}
+			if len(h2) > 0 {
+				t.Errorf("Leftovers from unmarshalling - %x", h2)
+			}
+			h2, err = e.MarshalBinary()
+			if err != nil {
+				t.Errorf("Error marshalling2 - %v", err)
+				continue
+			}
+
+			if primitives.AreBytesEqual(h1, h2) == false {
+				t.Error("ECEntries are not identical - %x vs %x", h1, h2)
+			}
+		}
 	}
 }

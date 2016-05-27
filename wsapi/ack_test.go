@@ -1,23 +1,79 @@
 package wsapi_test
 
 import (
-	/*"encoding/json"
-	  "fmt"
-	  "github.com/FactomProject/factomd/common/entryBlock"
-	  "github.com/FactomProject/factomd/common/interfaces"
-	  "github.com/FactomProject/factomd/common/primitives"
-	  "github.com/FactomProject/factomd/receipts"
-	  "github.com/FactomProject/web"
-	  "net/http"
-	  "strings"*/
-
 	"encoding/hex"
+	"fmt"
 	"testing"
 
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/testHelper"
 	. "github.com/FactomProject/factomd/wsapi"
 )
+
+func TestDecodeTransactionToHashes(t *testing.T) {
+	blocks := testHelper.CreateFullTestBlockSet()
+
+	for _, block := range blocks {
+		for _, tx := range block.Entries {
+			txID := tx.GetHash().String()
+
+			h, err := tx.MarshalBinary()
+			if err != nil {
+				t.Errorf("%v", err)
+				continue
+			}
+			fullTx := hex.EncodeToString(h)
+
+			eTxID, ecTxID := DecodeTransactionToHashes(fullTx)
+			if eTxID == "" && ecTxID == "" {
+				t.Error("No TxID returned")
+				continue
+			}
+			if ecTxID != "" {
+				t.Error("Entry mistaken for EC Transaction")
+			}
+
+			if eTxID != txID {
+				t.Errorf("Returned wrong Entry hash - %v vs %v", eTxID, txID)
+			}
+		}
+
+		for _, tx := range block.ECBlock.GetEntries() {
+			if tx.ECID() != entryCreditBlock.ECIDChainCommit && tx.ECID() != entryCreditBlock.ECIDEntryCommit {
+				continue
+			}
+			if tx.ECID() == entryCreditBlock.ECIDChainCommit {
+				fmt.Println("CC!")
+			}
+			if tx.ECID() == entryCreditBlock.ECIDEntryCommit {
+				fmt.Println("EC!")
+			}
+			txID := tx.GetHash().String()
+			entryHash := tx.GetEntryHash().String()
+
+			h, err := tx.MarshalBinary()
+			if err != nil {
+				t.Errorf("%v", err)
+				continue
+			}
+			fullTx := hex.EncodeToString(h)
+
+			eTxID, ecTxID := DecodeTransactionToHashes(fullTx)
+			if eTxID == "" && ecTxID == "" {
+				t.Error("No TxID returned")
+				continue
+			}
+
+			if eTxID != entryHash {
+				t.Errorf("Returned wrong Entry hash - %v vs %v", eTxID, entryHash)
+			}
+
+			if ecTxID != txID {
+				t.Errorf("Returned wrong EC TxID - %v vs %v", ecTxID, txID)
+			}
+		}
+	}
+}
 
 func TestHandleV2FactoidACK(t *testing.T) {
 	state := testHelper.CreateAndPopulateTestState()
@@ -209,11 +265,12 @@ func TestHandleV2EntryACK(t *testing.T) {
 				t.Error("Invalid response type returned")
 				continue
 			}
+			t.Logf("resp - %v", resp)
 
 			if resp.CommitTxID != txID {
 				t.Errorf("Invalid CommitTxID returned - %v vs %v", resp.CommitTxID, txID)
 			}
-			if resp.EntryHash == entryHash {
+			if resp.EntryHash != entryHash {
 				t.Errorf("Invalid EntryHash returned - %v vs %v", resp.EntryHash, entryHash)
 			}
 			if resp.CommitData.Status != AckStatusDBlockConfirmed {
@@ -243,11 +300,12 @@ func TestHandleV2EntryACK(t *testing.T) {
 				t.Error("Invalid response type returned")
 				continue
 			}
+			t.Logf("resp - %v", resp)
 
 			if resp.CommitTxID != txID {
 				t.Errorf("Invalid CommitTxID returned - %v vs %v", resp.CommitTxID, txID)
 			}
-			if resp.EntryHash == entryHash {
+			if resp.EntryHash != entryHash {
 				t.Errorf("Invalid EntryHash returned - %v vs %v", resp.EntryHash, entryHash)
 			}
 			if resp.CommitData.Status != AckStatusDBlockConfirmed {

@@ -299,6 +299,11 @@ func (c *CommitChain) UnmarshalBinaryData(data []byte) (newData []byte, err erro
 		copy(c.Sig[:], p)
 	}
 
+	err = c.ValidateSignatures()
+	if err != nil {
+		return
+	}
+
 	newData = buf.DeepCopyBytes()
 
 	return

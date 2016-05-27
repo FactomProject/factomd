@@ -32,6 +32,10 @@ func (e *ServerIndexNumber) Hash() interfaces.IHash {
 	return primitives.Sha(bin)
 }
 
+func (e *ServerIndexNumber) GetHash() interfaces.IHash {
+	return e.Hash()
+}
+
 func (a *ServerIndexNumber) GetEntryHash() interfaces.IHash {
 	return nil
 }

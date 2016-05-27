@@ -52,5 +52,6 @@ type IECBlockEntry interface {
 	MarshalBinary() ([]byte, error)
 	UnmarshalBinary(data []byte) error
 	Hash() IHash
+	GetHash() IHash
 	GetEntryHash() IHash
 }

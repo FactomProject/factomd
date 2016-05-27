@@ -6,7 +6,7 @@ package wsapi
 
 import (
 	"encoding/hex"
-	//"fmt"
+	"fmt"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryBlock"
@@ -95,30 +95,9 @@ func HandleV2EntryACK(state interfaces.IState, params interface{}) (interface{},
 	ecTxID := ""
 
 	if ackReq.TxID == "" {
-		b, err := hex.DecodeString(ackReq.FullTransaction)
-		if err != nil {
+		eTxID, ecTxID = DecodeTransactionToHashes(ackReq.FullTransaction)
+		if ecTxID == "" && eTxID == "" {
 			return nil, NewUnableToDecodeTransactionError()
-		}
-		e := new(entryBlock.Entry)
-		err = e.UnmarshalBinary(b)
-		if err != nil {
-			ec := new(entryCreditBlock.CommitEntry)
-			err = ec.UnmarshalBinary(b)
-			if err != nil {
-				cc := new(entryCreditBlock.CommitChain)
-				err = cc.UnmarshalBinary(b)
-				if err != nil {
-					return nil, NewUnableToDecodeTransactionError()
-				} else {
-					eTxID = cc.EntryHash.String()
-					ecTxID = cc.GetHash().String()
-				}
-			} else {
-				eTxID = ec.EntryHash.String()
-				ecTxID = ec.GetHash().String()
-			}
-		} else {
-			eTxID = e.GetHash().String()
 		}
 	}
 
@@ -269,6 +248,42 @@ func HandleV2EntryACK(state interfaces.IState, params interface{}) (interface{},
 	}
 
 	return answer, nil
+}
+
+func DecodeTransactionToHashes(fullTransaction string) (eTxID string, ecTxID string) {
+	b, err := hex.DecodeString(fullTransaction)
+	if err != nil {
+		return
+	}
+
+	cc := new(entryCreditBlock.CommitChain)
+	err = cc.UnmarshalBinary(b)
+	if err != nil {
+		fmt.Printf("err - %v\n", err)
+		ec := new(entryCreditBlock.CommitEntry)
+		err = ec.UnmarshalBinary(b)
+		if err != nil {
+			fmt.Printf("err - %v\n", err)
+			e := new(entryBlock.Entry)
+			err = e.UnmarshalBinary(b)
+			if err != nil {
+				fmt.Printf("err - %v\n", err)
+				return
+			} else {
+				fmt.Println("e")
+				eTxID = e.GetHash().String()
+			}
+		} else {
+			fmt.Println("ec")
+			eTxID = ec.GetEntryHash().String()
+			ecTxID = ec.GetHash().String()
+		}
+	} else {
+		fmt.Println("cc")
+		eTxID = cc.GetEntryHash().String()
+		ecTxID = cc.GetHash().String()
+	}
+	return
 }
 
 type AckRequest struct {
