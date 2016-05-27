@@ -161,13 +161,16 @@ func (s *State) ProcessQueues() (progress bool) {
 					if msgLeader && s.Leader &&
 					(s.LeaderVMIndex == msg.GetVMIndex() || msg.IsLocal()) {
 						msg.LeaderExecute(s)
+						s.networkOutMsgQueue <- msg
 					} else {
+						s.networkOutMsgQueue <- msg
 						msg.FollowerExecute(s)
 					}
 				}else{
+					s.networkOutMsgQueue <- msg
 					msg.FollowerExecute(s)
 				}
-				s.networkOutMsgQueue <- msg
+
 			case 0:	// Put at the end of the line, and hopefully we will resolve it.
 				s.msgQueue <- msg
 			default:
