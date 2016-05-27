@@ -48,8 +48,10 @@ func (state *State) ValidatorLoop() {
 
 			select {
 			case msg = <-state.TimerMsgQueue():
-				state.JournalMessage(msg)
-				break loop
+				if state.Leader {
+					state.JournalMessage(msg)
+					break loop
+				}
 			default:
 			}
 

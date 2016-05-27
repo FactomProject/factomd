@@ -29,21 +29,19 @@ var _ = (*hash.Hash32)(nil)
 //***************************************************************
 func (s *State) NewMinute() {
 	s.LeaderPL.Unseal(s.EOM)
-	s.XReview = []interfaces.IMsg{}
-	if s.Leader {
 		// Anything we are holding, we need to reprocess.
 		for k := range s.Holding {
 			if v := s.Holding[k]; v != nil {
-				v.Leader(s)
-				if v.GetVMIndex() == s.LeaderVMIndex {
-					fmt.Println(s.FactomNodeName,"rrrrrr",v.GetVMIndex(),v.String())
-					//s.XReview = append(s.XReview, v)
+				if _, ok := s.InternalReplay.Valid(v.GetHash().Fixed(), int64(v.GetTimestamp()), int64(s.GetTimestamp())); !ok {
+					fmt.Println(s.FactomNodeName, "rrrrrr", v.GetVMIndex(), v.String())
+					s.XReview = append(s.XReview, v)
+					delete(s.Holding, k)
+				}else{
 					delete(s.Holding, k)
 				}
 			}
 		}
-	}
-	// Clear the holding map
+
 	s.EOM = 0
 
 	for k:= range s.Acks {
@@ -51,6 +49,13 @@ func (s *State) NewMinute() {
 		if ok && m != nil {
 			m.FollowerExecute(s)
 		}
+	}
+
+	fmt.Println(s.FactomNodeName,">>>")
+
+	for k:= range s.Holding {
+		m := s.Holding[k]
+		fmt.Println(s.FactomNodeName,">>>",m.String())
 	}
 }
 
@@ -117,7 +122,7 @@ func (s *State) Process() (progress bool) {
 func (s *State) ProcessQueues() (progress bool) {
 
 	// Reprocess any stalled Acknowledgements
-	for len(s.XReview) > 0 {
+	for s.EOM == 0 && len(s.XReview) > 0 {
 		msg := s.XReview[0]
 		if _, ok := s.InternalReplay.Valid(msg.GetHash().Fixed(), int64(msg.GetTimestamp()), int64(s.GetTimestamp())); !ok {
 			msg = nil
@@ -151,6 +156,7 @@ func (s *State) ProcessQueues() (progress bool) {
 			switch msg.Validate(s) {
 
 			case 1:
+				msg.Leader(s)
 				if s.EOM == 0 {
 					if msgLeader && s.Leader &&
 					(s.LeaderVMIndex == msg.GetVMIndex() || msg.IsLocal()) {
@@ -159,7 +165,7 @@ func (s *State) ProcessQueues() (progress bool) {
 						msg.FollowerExecute(s)
 					}
 				}else{
-					s.Holding[msg.GetHash().Fixed()]=msg
+					msg.FollowerExecute(s)
 				}
 				s.networkOutMsgQueue <- msg
 			case 0:	// Put at the end of the line, and hopefully we will resolve it.
@@ -235,12 +241,15 @@ func (s *State) addEBlock(eblock interfaces.IEntryBlock) {
 // Returns true if it finds a match, puts the message in holding, or invalidates the message
 func (s *State) FollowerExecuteMsg(m interfaces.IMsg) (bool, error) {
 
+	if _,ok := m.(*messages.EOM); ok && m.IsLocal() {
+		return true, nil
+	}
+
 	hash := m.GetHash()
 	hashf := hash.Fixed()
 	s.Holding[hashf] = m
 	ack, ok := s.Acks[hashf].(*messages.Ack)
 	if !ok || ack == nil {
-		s.Holding[hashf] = m
 		return false, nil
 	} else {
 		if ack.DBHeight < s.LLeaderHeight {
@@ -331,6 +340,10 @@ func (s *State) FollowerExecuteAddData(msg interfaces.IMsg) error {
 
 func (s *State) LeaderExecute(m interfaces.IMsg) error {
 
+	if !s.Leader {
+		return m.FollowerExecute(s)
+	}
+
 	dbheight := s.LLeaderHeight
 	ack, _ := s.NewAck(dbheight, m)
 
@@ -340,6 +353,10 @@ func (s *State) LeaderExecute(m interfaces.IMsg) error {
 }
 
 func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
+
+	if !s.Leader {
+		return nil
+	}
 
 	eom := m.(*messages.EOM)
 
