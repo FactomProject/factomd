@@ -38,14 +38,14 @@ func (db *Overlay) FetchECTransactionByHash(hash interfaces.IHash) (interfaces.I
 	if in == nil {
 		return nil, nil
 	}
-	block, err := db.FetchECBlockByHeaderHash(in)
+	block, err := db.FetchECBlockByHash(in)
 	if err != nil {
 		return nil, err
 	}
 	if block == nil {
 		return nil, fmt.Errorf("Block not found, should not happen")
 	}
-	txs := block.GetBody().GetEntries()
+	txs := block.GetEntries()
 	for _, tx := range txs {
 		if tx.Hash().IsSameAs(hash) {
 			return tx, nil

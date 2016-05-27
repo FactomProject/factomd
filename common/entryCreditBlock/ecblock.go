@@ -8,10 +8,11 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"io"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-	"io"
 )
 
 const (
@@ -43,7 +44,7 @@ func (c *ECBlock) GetEntryHashes() []interfaces.IHash {
 	entries := c.Body.GetEntries()
 	answer := make([]interfaces.IHash, 0, len(entries))
 	for _, entry := range entries {
-		if entry.ECID() == ECIDBalanceIncrease {
+		if entry.ECID() == ECIDBalanceIncrease || entry.ECID() == ECIDChainCommit || entry.ECID() == ECIDEntryCommit {
 			answer = append(answer, entry.Hash())
 		}
 	}
