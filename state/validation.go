@@ -30,7 +30,7 @@ func (state *State) ValidatorLoop() {
 
 		state.SetString() // Set the string for the state so we can print it later if we like.
 		// Process any messages we might have queued up.
-		for state.Process() {
+		for i := 0; i < 10 && state.Process(); i++ {
 			state.UpdateState()
 		}
 
@@ -48,10 +48,8 @@ func (state *State) ValidatorLoop() {
 
 			select {
 			case msg = <-state.TimerMsgQueue():
-				if state.Leader {
-					state.JournalMessage(msg)
-					break loop
-				}
+				state.JournalMessage(msg)
+				break loop
 			default:
 			}
 

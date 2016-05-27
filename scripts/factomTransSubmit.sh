@@ -17,7 +17,7 @@ do
 	number1=$RANDOM
 	number2=$RANDOM
 	echo "Make Chain Named " $number
-	echo "one two three four, this is a test of making an entry.  More to test, Test, Test, test" $RANDOM $RANDOM $RANDOM | factom-cli mkchain -e $number1 -e $number2 e1 &
+//	echo "one two three four, this is a test of making an entry.  More to test, Test, Test, test" $RANDOM $RANDOM $RANDOM | factom-cli mkchain -e $number1 -e $number2 e1 &
 done
 
 

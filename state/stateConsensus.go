@@ -29,33 +29,34 @@ var _ = (*hash.Hash32)(nil)
 //***************************************************************
 func (s *State) NewMinute() {
 	s.LeaderPL.Unseal(s.EOM)
-		// Anything we are holding, we need to reprocess.
-		for k := range s.Holding {
-			if v := s.Holding[k]; v != nil {
-				if _, ok := s.InternalReplay.Valid(v.GetHash().Fixed(), int64(v.GetTimestamp()), int64(s.GetTimestamp())); !ok {
-					fmt.Println(s.FactomNodeName, "rrrrrr", v.GetVMIndex(), v.String())
-					s.XReview = append(s.XReview, v)
-					delete(s.Holding, k)
-				}else{
-					delete(s.Holding, k)
-				}
+	// Anything we are holding, we need to reprocess.
+	for k := range s.Holding {
+		if v := s.Holding[k]; v != nil {
+			if _, ok := s.InternalReplay.Valid(v.GetHash().Fixed(), int64(v.GetTimestamp()), int64(s.GetTimestamp())); !ok {
+				v.Leader(s)
+				fmt.Println(s.FactomNodeName, "rrrrrr", v.GetVMIndex(), v.String())
+				s.XReview = append(s.XReview, v)
+				delete(s.Holding, k)
+			} else {
+				delete(s.Holding, k)
 			}
 		}
+	}
 
 	s.EOM = 0
 
-	for k:= range s.Acks {
-		m,ok := s.Holding[k]
+	for k := range s.Acks {
+		m, ok := s.Holding[k]
 		if ok && m != nil {
 			m.FollowerExecute(s)
 		}
 	}
 
-	fmt.Println(s.FactomNodeName,">>>")
+	fmt.Println(s.FactomNodeName, ">>>")
 
-	for k:= range s.Holding {
+	for k := range s.Holding {
 		m := s.Holding[k]
-		fmt.Println(s.FactomNodeName,">>>",m.String())
+		fmt.Println(s.FactomNodeName, ">>>", m.String())
 	}
 }
 
@@ -63,16 +64,16 @@ func (s *State) Process() (progress bool) {
 
 	//s.DebugPrt("Process")
 
-	highest := s.GetHighestRecordedBlock()
-
 	if s.EOM <= 9 {
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.LeaderMinute, s.IdentityChainID)
-		minFin := s.LeaderPL.MinuteFinished()
-		if s.EOM < minFin {
-			s.LeaderMinute = minFin
-		}
+		//minFin := s.LeaderPL.MinuteFinished()
+		//if s.EOM < minFin {
+		//	s.LeaderMinute = minFin
+		//}
 	}
+
+	highest := s.GetHighestRecordedBlock()
 
 	dbstate := s.DBStates.Get(s.LLeaderHeight)
 	if s.LLeaderHeight <= highest && (dbstate == nil || dbstate.Saved) {
@@ -126,25 +127,24 @@ func (s *State) ProcessQueues() (progress bool) {
 		msg := s.XReview[0]
 		if _, ok := s.InternalReplay.Valid(msg.GetHash().Fixed(), int64(msg.GetTimestamp()), int64(s.GetTimestamp())); !ok {
 			msg = nil
-		} else {
+		} else if s.Leader && msg.GetVMIndex() == s.LeaderVMIndex {
 			msg.LeaderExecute(s)
+		} else {
+			msg.FollowerExecute(s)
 		}
 		s.XReview = s.XReview[1:]
 	}
 
 	select {
 	case ack := <-s.ackQueue:
-		if ack.Validate(s) == 1 {
-			_, ok := s.InternalReplay.Valid(ack.GetHash().Fixed(), int64(ack.GetTimestamp()), int64(s.GetTimestamp()))
-			if ok {
-				ack.FollowerExecute(s)
-			}
-			s.networkOutMsgQueue <- ack
+		_, ok := s.InternalReplay.Valid(ack.GetHash().Fixed(), int64(ack.GetTimestamp()), int64(s.GetTimestamp()))
+		if ok && ack.Validate(s) == 1 {
+			ack.FollowerExecute(s)
 		}
 		progress = true
 	case ack := <-s.stallQueue:
 		_, ok := s.InternalReplay.Valid(ack.GetHash().Fixed(), int64(ack.GetTimestamp()), int64(s.GetTimestamp()))
-		if ok {
+		if ok && ack.Validate(s) == 1 {
 			ack.FollowerExecute(s)
 			progress = true
 		}
@@ -159,19 +159,19 @@ func (s *State) ProcessQueues() (progress bool) {
 				msg.Leader(s)
 				if s.EOM == 0 {
 					if msgLeader && s.Leader &&
-					(s.LeaderVMIndex == msg.GetVMIndex() || msg.IsLocal()) {
+						(s.LeaderVMIndex == msg.GetVMIndex() || msg.IsLocal()) {
 						msg.LeaderExecute(s)
 						s.networkOutMsgQueue <- msg
 					} else {
 						s.networkOutMsgQueue <- msg
 						msg.FollowerExecute(s)
 					}
-				}else{
+				} else {
 					s.networkOutMsgQueue <- msg
 					msg.FollowerExecute(s)
 				}
 
-			case 0:	// Put at the end of the line, and hopefully we will resolve it.
+			case 0: // Put at the end of the line, and hopefully we will resolve it.
 				s.msgQueue <- msg
 			default:
 				delete(s.Acks, msg.GetHash().Fixed())
@@ -244,7 +244,7 @@ func (s *State) addEBlock(eblock interfaces.IEntryBlock) {
 // Returns true if it finds a match, puts the message in holding, or invalidates the message
 func (s *State) FollowerExecuteMsg(m interfaces.IMsg) (bool, error) {
 
-	if _,ok := m.(*messages.EOM); ok && m.IsLocal() {
+	if _, ok := m.(*messages.EOM); ok && m.IsLocal() {
 		return true, nil
 	}
 
@@ -255,30 +255,38 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) (bool, error) {
 	if !ok || ack == nil {
 		return false, nil
 	} else {
-		if ack.DBHeight < s.LLeaderHeight {
+		vm := s.LeaderPL.VMs[ack.VMIndex]
+		switch {
+		// too late
+		case ack.DBHeight < s.LLeaderHeight:
 			delete(s.Acks, hashf)    // No matter what, we don't want to
 			delete(s.Holding, hashf) // rematch.. If we stall, we will see them again.
 			return true, nil
-		}
-		if ack.DBHeight > s.LLeaderHeight {
-			s.Holding[hashf] = m
+
+		// too early
+		case ack.DBHeight > s.LLeaderHeight:
 			return true, nil
-		}
-		vm := s.LeaderPL.VMs[ack.VMIndex]
-		if ack.Height > uint32(vm.Height) {
-			s.Holding[hashf] = m
+
+		// Right dbheight, but too soon in the list
+		case ack.Height > uint32(vm.Height):
 			delete(s.Acks, hashf)
 			s.StallMsg(ack)
-			return false, nil
-		}
-		if vm.Seal > 0 {
-			s.Holding[hashf] = m
+			return true, nil
+
+		case vm.Seal > 0:
 			delete(s.Acks, hashf)
 			s.StallMsg(ack)
-			return false, nil
+			return true, nil
+
+		default:
+			if s.LeaderPL.AddToProcessList(ack, m) {
+				return true, nil
+			} else {
+				delete(s.Acks, hashf)
+				s.StallMsg(ack)
+				return true, nil
+			}
 		}
-		s.LeaderPL.AddToProcessList(ack, m)
-		return true, nil
 	}
 }
 
@@ -287,12 +295,10 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) (bool, error) {
 // message.
 func (s *State) FollowerExecuteAck(msg interfaces.IMsg) (bool, error) {
 	ack := msg.(*messages.Ack)
+	s.Acks[ack.GetHash().Fixed()] = ack
 	match := s.Holding[ack.GetHash().Fixed()]
 	if match != nil {
-		s.Acks[ack.GetHash().Fixed()] = ack
 		return true, match.FollowerExecute(s)
-	} else {
-		s.Acks[ack.GetHash().Fixed()] = ack
 	}
 	return false, nil
 }
@@ -347,8 +353,7 @@ func (s *State) LeaderExecute(m interfaces.IMsg) error {
 		return m.FollowerExecute(s)
 	}
 
-	dbheight := s.LLeaderHeight
-	ack, _ := s.NewAck(dbheight, m)
+	ack := s.NewAck(m)
 
 	s.LeaderPL.AddToProcessList(ack.(*messages.Ack), m)
 
@@ -372,7 +377,7 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
 	eom.Minute = byte(s.LeaderMinute)
 	eom.Sign(s)
 	eom.SetLocal(false)
-	ack, _ := s.NewAck(s.LLeaderHeight, m)
+	ack := s.NewAck(m)
 
 	s.LeaderPL.AddToProcessList(ack.(*messages.Ack), eom)
 
@@ -763,46 +768,33 @@ func (s *State) GetNewHash() interfaces.IHash {
 	return new(primitives.Hash)
 }
 
-// Create a new Acknowledgement.  This Acknowledgement
-func (s *State) NewAck(dbheight uint32, msg interfaces.IMsg) (iack interfaces.IMsg, err error) {
+// Create a new Acknowledgement.  Must be called by a leader.  This
+// call assumes all the pieces are in place to create a new acknowledgement
+func (s *State) NewAck(msg interfaces.IMsg) (iack interfaces.IMsg) {
 
 	vmIndex := msg.GetVMIndex()
-	pl := s.ProcessLists.Get(dbheight)
 
-	if pl == nil {
-		if s.DebugConsensus {
-			fmt.Printf("%-30s %10s %s\n", "aaa Ack PL==nil", s.FactomNodeName, msg.String())
-		}
-		err = fmt.Errorf(s.FactomNodeName + ": No process list at this time")
-		return
-	}
 	msg.SetLeaderChainID(s.IdentityChainID)
 	ack := new(messages.Ack)
-	ack.DBHeight = dbheight
+	ack.DBHeight = s.LLeaderHeight
 	ack.VMIndex = vmIndex
 	ack.Minute = byte(s.LeaderMinute)
 	ack.Timestamp = s.GetTimestamp()
 	ack.MessageHash = msg.GetHash()
 	ack.LeaderChainID = s.IdentityChainID
 
-	last := pl.GetAckAt(vmIndex, pl.VMs[vmIndex].Height-1)
-	if last == nil {
+	if s.LeaderPL.VMs[vmIndex].Height == 0 {
 		ack.Height = 0
 		ack.SerialHash = ack.MessageHash
 	} else {
+		last := s.LeaderPL.GetAckAt(vmIndex, s.LeaderPL.VMs[vmIndex].Height-1)
 		ack.Height = last.Height + 1
-		ack.SerialHash, err = primitives.CreateHash(last.MessageHash, ack.MessageHash)
-		if err != nil {
-			if s.DebugConsensus {
-				fmt.Printf("%-30s %10s %s\n", "aaa Ack Serial Hash Failed", s.FactomNodeName, msg.String())
-			}
-			return nil, err
-		}
+		ack.SerialHash, _ = primitives.CreateHash(last.MessageHash, ack.MessageHash)
 	}
 
 	ack.Sign(s)
 
-	return ack, nil
+	return ack
 }
 
 // ****************************************************************

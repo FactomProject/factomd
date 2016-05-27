@@ -53,14 +53,14 @@ type State struct {
 	PortNumber              int
 	Replay                  *Replay
 	InternalReplay          *Replay
-	GreenFlg               bool
-	GreenCnt               int
-	DropRate               int
+	GreenFlg                bool
+	GreenCnt                int
+	DropRate                int
 
-	IdentityChainID        interfaces.IHash // If this node has an identity, this is it
+	IdentityChainID interfaces.IHash // If this node has an identity, this is it
 
 	// Just to print (so debugging doesn't drive functionaility)
-	serverPrt              string
+	serverPrt string
 
 	tickerQueue            chan int
 	timerMsgQueue          chan interfaces.IMsg
@@ -75,16 +75,16 @@ type State struct {
 	ShutdownChan           chan int // For gracefully halting Factom
 	JournalFile            string
 
-	serverPrivKey          primitives.PrivateKey
-	serverPubKey           primitives.PublicKey
+	serverPrivKey primitives.PrivateKey
+	serverPubKey  primitives.PublicKey
 
 	// Server State
-	LLeaderHeight          uint32
-	Leader                 bool
-	LeaderVMIndex          int
-	LeaderPL               *ProcessList
-	OutputAllowed          bool
-	LeaderMinute           int  // The minute that just was processed by the follower, (1-10), set with EOM
+	LLeaderHeight  uint32
+	Leader         bool
+	LeaderVMIndex  int
+	LeaderPL       *ProcessList
+	OutputAllowed  bool
+	LeaderMinute   int  // The minute that just was processed by the follower, (1-10), set with EOM
 	EOM            int  // Set to true when all Process Lists have finished a minute
 	NetStateOff    bool // Disable if true, Enable if false
 	DebugConsensus bool // If true, dump consensus trace
@@ -95,7 +95,7 @@ type State struct {
 	// ====
 	// For Follower
 	Holding map[[32]byte]interfaces.IMsg // Hold Messages
-	XReview  []interfaces.IMsg            // After the EOM, we must review the messages in Holding
+	XReview []interfaces.IMsg            // After the EOM, we must review the messages in Holding
 	Acks    map[[32]byte]interfaces.IMsg // Hold Acknowledgemets
 	Commits map[[32]byte]interfaces.IMsg // Commit Messages
 	Reveals map[[32]byte]interfaces.IMsg // Reveal Messages
@@ -291,8 +291,8 @@ func (s *State) Init() {
 	s.networkOutMsgQueue = make(chan interfaces.IMsg, 10000)     //Messages to be broadcast to the network
 	s.inMsgQueue = make(chan interfaces.IMsg, 10000)             //incoming message queue for factom application messages
 	s.apiQueue = make(chan interfaces.IMsg, 10000)               //incoming message queue from the API
-	s.ackQueue = make(chan interfaces.IMsg, 10000)         //queue of Leadership messages
-	s.msgQueue = make(chan interfaces.IMsg, 10000)       //queue of Follower messages
+	s.ackQueue = make(chan interfaces.IMsg, 10000)               //queue of Leadership messages
+	s.msgQueue = make(chan interfaces.IMsg, 10000)               //queue of Follower messages
 	s.stallQueue = make(chan interfaces.IMsg, 10000)             //queue of Leader messages while stalled
 	s.ShutdownChan = make(chan int, 1)                           //Channel to gracefully shut down.
 
@@ -1000,52 +1000,44 @@ func (s *State) SetString() {
 
 	stype := fmt.Sprintf("%1s%1s", L, X)
 
-	if buildingBlock == 0 {
-		s.serverPrt = fmt.Sprintf("%9s%9s Recorded: %d Building: %d Highest: %d ",
-			stype,
-			s.FactomNodeName,
-			s.GetHighestRecordedBlock(),
-			0,
-			s.GetHighestKnownBlock())
-	} else {
+	keyMR := primitives.NewZeroHash().Bytes()
+	//abHash := []byte("aaaaa")
+	//fbHash := []byte("aaaaa")
+	//ecHash := []byte("aaaaa")
 
-		keyMR := []byte("aaaaa")
-		//abHash := []byte("aaaaa")
-		//fbHash := []byte("aaaaa")
-		//ecHash := []byte("aaaaa")
+	switch {
+	case s.DBStates == nil:
 
-		switch {
-		case s.DBStates == nil:
+	case s.DBStates.Last() == nil:
 
-		case s.DBStates.Last() == nil:
+	case s.DBStates.Last().DirectoryBlock == nil:
 
-		case s.DBStates.Last().DirectoryBlock == nil:
-
-		default:
+	default:
+		if s.DBStates.Last().DirectoryBlock.GetHeader().GetDBHeight() > 0 {
 			keyMR = s.DBStates.Last().DirectoryBlock.GetKeyMR().Bytes()
-			//abHash = s.DBStates.Last().AdminBlock.GetHash().Bytes()
-			//fbHash = s.DBStates.Last().FactoidBlock.GetHash().Bytes()
-			//ecHash = s.DBStates.Last().EntryCreditBlock.GetHash().Bytes()
-			lastheight = s.DBStates.Last().DirectoryBlock.GetHeader().GetDBHeight()
 		}
-
-		s.serverPrt = fmt.Sprintf("%4s%8s ID %x Save:%4d Next:%4d High:%4d DBMR <%x> L Min: %2v L DBHT%5v Min C/F %02v/%02v EOM %2v %3d-Fct %3d-EC %3d-E",
-			stype,
-			s.FactomNodeName,
-			s.IdentityChainID.Bytes()[:3],
-			s.GetHighestRecordedBlock(),
-			lastheight,
-			s.GetHighestKnownBlock(),
-			keyMR[:3],
-			s.LeaderMinute,
-			s.LLeaderHeight,
-			s.ProcessLists.Get(s.LLeaderHeight).MinuteComplete(),
-			s.ProcessLists.Get(s.LLeaderHeight).MinuteFinished(),
-			s.EOM,
-			s.FactoidTrans,
-			s.NewEntryChains,
-			s.NewEntries)
+		//abHash = s.DBStates.Last().AdminBlock.GetHash().Bytes()
+		//fbHash = s.DBStates.Last().FactoidBlock.GetHash().Bytes()
+		//ecHash = s.DBStates.Last().EntryCreditBlock.GetHash().Bytes()
+		lastheight = s.DBStates.Last().DirectoryBlock.GetHeader().GetDBHeight()
 	}
+
+	s.serverPrt = fmt.Sprintf("%4s%8s ID %x Save:%4d Next:%4d High:%4d DBMR <%x> L Min: %2v L DBHT%5v Min C/F %02v/%02v EOM %2v %3d-Fct %3d-EC %3d-E",
+		stype,
+		s.FactomNodeName,
+		s.IdentityChainID.Bytes()[:3],
+		s.GetHighestRecordedBlock(),
+		lastheight,
+		s.GetHighestKnownBlock(),
+		keyMR[:3],
+		s.LeaderMinute,
+		s.LLeaderHeight,
+		s.ProcessLists.Get(s.LLeaderHeight).MinuteComplete(),
+		s.ProcessLists.Get(s.LLeaderHeight).MinuteFinished(),
+		s.EOM,
+		s.FactoidTrans,
+		s.NewEntryChains,
+		s.NewEntries)
 }
 
 func (s *State) Print(a ...interface{}) (n int, err error) {

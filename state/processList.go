@@ -552,8 +552,8 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) boo
 
 	p.State.NetworkOutMsgQueue() <- ack
 	p.State.NetworkOutMsgQueue() <- m
-	delete(p.State.(*State).Acks,ack.GetHash().Fixed())
-	delete(p.State.(*State).Holding,m.GetHash().Fixed())
+	delete(p.State.(*State).Acks, ack.GetHash().Fixed())
+	delete(p.State.(*State).Holding, m.GetHash().Fixed())
 
 	eom, ok := m.(*messages.EOM)
 	if ok {
