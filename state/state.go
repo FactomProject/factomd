@@ -11,6 +11,9 @@ import (
 	"os"
 	"strings"
 
+	"math/rand"
+	"sync"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
@@ -22,8 +25,6 @@ import (
 	"github.com/FactomProject/factomd/logger"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
-	"math/rand"
-	"sync"
 )
 
 var _ = fmt.Print
@@ -48,6 +49,7 @@ type State struct {
 	ExportData              bool
 	ExportDataSubpath       string
 	Network                 string
+	PeersFile               string
 	LocalServerPrivKey      string
 	DirectoryBlockInSeconds int
 	PortNumber              int
@@ -182,6 +184,7 @@ func (s *State) Clone(number string) interfaces.IState {
 	clone.ExportData = s.ExportData
 	clone.ExportDataSubpath = s.ExportDataSubpath + "sim-" + number
 	clone.Network = s.Network
+	clone.PeersFile = s.PeersFile
 	clone.DirectoryBlockInSeconds = s.DirectoryBlockInSeconds
 	clone.PortNumber = s.PortNumber
 
@@ -247,6 +250,7 @@ func (s *State) LoadConfig(filename string, folder string) {
 		s.ExportData = cfg.App.ExportData // bool
 		s.ExportDataSubpath = cfg.App.ExportDataSubpath
 		s.Network = cfg.App.Network
+		s.PeersFile = cfg.App.PeersFile
 		s.LocalServerPrivKey = cfg.App.LocalServerPrivKey
 		s.FactoshisPerEC = cfg.App.ExchangeRate
 		s.DirectoryBlockInSeconds = cfg.App.DirectoryBlockInSeconds
@@ -265,6 +269,7 @@ func (s *State) LoadConfig(filename string, folder string) {
 		s.ExportData = false
 		s.ExportDataSubpath = "data/export"
 		s.Network = "LOCAL"
+		s.PeersFile = "~/.factom/peers.json"
 		s.LocalServerPrivKey = "4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c9b08946553448d26d"
 		s.FactoshisPerEC = 006666
 		s.DirectoryBlockInSeconds = 6
