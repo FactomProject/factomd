@@ -91,6 +91,7 @@ func TestCommitMarshalUnmarshal(t *testing.T) {
 
 			h2, err = e.UnmarshalBinaryData(h1)
 			if err != nil {
+				t.Logf("Tried to unmarshal %x", h1)
 				t.Errorf("Error unmarshalling - %v", err)
 				continue
 			}

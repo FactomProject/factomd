@@ -76,7 +76,7 @@ func (b *IncreaseBalance) MarshalBinary() ([]byte, error) {
 func (b *IncreaseBalance) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
+			err = fmt.Errorf("Error unmarshalling IncreaseBalance: %v", r)
 		}
 	}()
 

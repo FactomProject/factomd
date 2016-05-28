@@ -8,9 +8,10 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"io"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-	"io"
 
 	ed "github.com/FactomProject/ed25519"
 )
@@ -217,7 +218,7 @@ func (c *CommitChain) ECID() byte {
 func (c *CommitChain) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling Commit Chain: %v", r)
+			err = fmt.Errorf("Error unmarshalling CommitChain: %v", r)
 		}
 	}()
 	buf := primitives.NewBuffer(data)
@@ -242,29 +243,30 @@ func (c *CommitChain) UnmarshalBinaryData(data []byte) (newData []byte, err erro
 		err = fmt.Errorf("Could not read MilliTime")
 		return
 	} else {
-		copy(c.MilliTime[:], p)
+		c.MilliTime = new(primitives.ByteSlice6)
+		err = c.MilliTime.UnmarshalBinary(p)
+		if err != nil {
+			return
+		}
 	}
 
 	// 32 byte ChainIDHash
 	if _, err = buf.Read(hash); err != nil {
 		return
-	} else if err = c.ChainIDHash.SetBytes(hash); err != nil {
-		return
 	}
+	c.ChainIDHash = primitives.NewHash(hash)
 
 	// 32 byte Weld
 	if _, err = buf.Read(hash); err != nil {
 		return
-	} else if err = c.Weld.SetBytes(hash); err != nil {
-		return
 	}
+	c.Weld = primitives.NewHash(hash)
 
 	// 32 byte Entry Hash
 	if _, err = buf.Read(hash); err != nil {
 		return
-	} else if err = c.EntryHash.SetBytes(hash); err != nil {
-		return
 	}
+	c.EntryHash = primitives.NewHash(hash)
 
 	// 1 byte number of Entry Credits
 	if b, err = buf.ReadByte(); err != nil {
@@ -283,7 +285,11 @@ func (c *CommitChain) UnmarshalBinaryData(data []byte) (newData []byte, err erro
 		err = fmt.Errorf("Could not read ECPubKey")
 		return
 	} else {
-		copy(c.ECPubKey[:], p)
+		c.ECPubKey = new(primitives.ByteSlice32)
+		err = c.ECPubKey.UnmarshalBinary(p)
+		if err != nil {
+			return
+		}
 	}
 
 	if buf.Len() < 64 {
@@ -296,7 +302,11 @@ func (c *CommitChain) UnmarshalBinaryData(data []byte) (newData []byte, err erro
 		err = fmt.Errorf("Could not read Sig")
 		return
 	} else {
-		copy(c.Sig[:], p)
+		c.Sig = new(primitives.ByteSlice64)
+		err = c.Sig.UnmarshalBinary(p)
+		if err != nil {
+			return
+		}
 	}
 
 	err = c.ValidateSignatures()

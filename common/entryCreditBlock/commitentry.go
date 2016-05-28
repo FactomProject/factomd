@@ -219,7 +219,7 @@ func (c *CommitEntry) ECID() byte {
 func (c *CommitEntry) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
+			err = fmt.Errorf("Error unmarshalling CommitEntry: %v", r)
 		}
 	}()
 
@@ -245,15 +245,18 @@ func (c *CommitEntry) UnmarshalBinaryData(data []byte) (newData []byte, err erro
 		err = fmt.Errorf("Could not read MilliTime")
 		return
 	} else {
-		copy(c.MilliTime[:], p)
+		c.MilliTime = new(primitives.ByteSlice6)
+		err = c.MilliTime.UnmarshalBinary(p)
+		if err != nil {
+			return
+		}
 	}
 
 	// 32 byte Entry Hash
 	if _, err = buf.Read(hash); err != nil {
 		return
-	} else if err = c.EntryHash.SetBytes(hash); err != nil {
-		return
 	}
+	c.EntryHash = primitives.NewHash(hash)
 
 	// 1 byte number of Entry Credits
 	if b, err = buf.ReadByte(); err != nil {
@@ -272,7 +275,11 @@ func (c *CommitEntry) UnmarshalBinaryData(data []byte) (newData []byte, err erro
 		err = fmt.Errorf("Could not read ECPubKey")
 		return
 	} else {
-		copy(c.ECPubKey[:], p)
+		c.ECPubKey = new(primitives.ByteSlice32)
+		err = c.ECPubKey.UnmarshalBinary(p)
+		if err != nil {
+			return
+		}
 	}
 
 	if buf.Len() < 64 {
@@ -285,7 +292,11 @@ func (c *CommitEntry) UnmarshalBinaryData(data []byte) (newData []byte, err erro
 		err = fmt.Errorf("Could not read Sig")
 		return
 	} else {
-		copy(c.Sig[:], p)
+		c.Sig = new(primitives.ByteSlice64)
+		err = c.Sig.UnmarshalBinary(p)
+		if err != nil {
+			return
+		}
 	}
 
 	err = c.ValidateSignatures()

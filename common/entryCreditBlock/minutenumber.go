@@ -71,7 +71,7 @@ func (m *MinuteNumber) MarshalBinary() ([]byte, error) {
 func (m *MinuteNumber) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
+			err = fmt.Errorf("Error unmarshalling MinuteNumber: %v", r)
 		}
 	}()
 
