@@ -33,10 +33,11 @@ func (s *State) NewMinute() {
 	for k := range s.Holding {
 		if v := s.Holding[k]; v != nil {
 			if _, ok := s.InternalReplay.Valid(v.GetHash().Fixed(), int64(v.GetTimestamp()), int64(s.GetTimestamp())); !ok {
-				v.Leader(s)
-				fmt.Println(s.FactomNodeName, "rrrrrr", v.GetVMIndex(), v.String())
-				s.XReview = append(s.XReview, v)
-				delete(s.Holding, k)
+				v.ComputeVMIndex(s)
+				if s.Leader {
+					s.XReview = append(s.XReview, v)
+					delete(s.Holding, k)
+				}
 			} else {
 				delete(s.Holding, k)
 			}
@@ -51,13 +52,14 @@ func (s *State) NewMinute() {
 			m.FollowerExecute(s)
 		}
 	}
-
+	/**
 	fmt.Println(s.FactomNodeName, ">>>")
 
 	for k := range s.Holding {
 		m := s.Holding[k]
 		fmt.Println(s.FactomNodeName, ">>>", m.String())
 	}
+	**/
 }
 
 func (s *State) Process() (progress bool) {
@@ -67,10 +69,6 @@ func (s *State) Process() (progress bool) {
 	if s.EOM <= 9 {
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.LeaderMinute, s.IdentityChainID)
-		//minFin := s.LeaderPL.MinuteFinished()
-		//if s.EOM < minFin {
-		//	s.LeaderMinute = minFin
-		//}
 	}
 
 	highest := s.GetHighestRecordedBlock()
@@ -123,11 +121,11 @@ func (s *State) Process() (progress bool) {
 func (s *State) ProcessQueues() (progress bool) {
 
 	// Reprocess any stalled Acknowledgements
-	for s.EOM == 0 && len(s.XReview) > 0 {
+	for s.Leader && s.EOM == 0 && len(s.XReview) > 0 {
 		msg := s.XReview[0]
 		if _, ok := s.InternalReplay.Valid(msg.GetHash().Fixed(), int64(msg.GetTimestamp()), int64(s.GetTimestamp())); !ok {
 			msg = nil
-		} else if s.Leader && msg.GetVMIndex() == s.LeaderVMIndex {
+		} else if s.Leader {
 			msg.LeaderExecute(s)
 		} else {
 			msg.FollowerExecute(s)
@@ -152,16 +150,13 @@ func (s *State) ProcessQueues() (progress bool) {
 	case msg := <-s.msgQueue:
 		_, ok := s.InternalReplay.Valid(msg.GetHash().Fixed(), int64(msg.GetTimestamp()), int64(s.GetTimestamp()))
 		if ok {
-			msgLeader := msg.Leader(s)
+			msg.ComputeVMIndex(s)
 			switch msg.Validate(s) {
-
 			case 1:
-				msg.Leader(s)
 				if s.EOM == 0 {
-					if msgLeader && s.Leader &&
-						(s.LeaderVMIndex == msg.GetVMIndex() || msg.IsLocal()) {
-						msg.LeaderExecute(s)
+					if s.Leader {
 						s.networkOutMsgQueue <- msg
+						msg.LeaderExecute(s)
 					} else {
 						s.networkOutMsgQueue <- msg
 						msg.FollowerExecute(s)
@@ -242,68 +237,36 @@ func (s *State) addEBlock(eblock interfaces.IEntryBlock) {
 // The code for this is the same for all such messages, so we put it here.
 //
 // Returns true if it finds a match, puts the message in holding, or invalidates the message
-func (s *State) FollowerExecuteMsg(m interfaces.IMsg) (bool, error) {
+func (s *State) FollowerExecuteMsg(m interfaces.IMsg) {
 
-	if _, ok := m.(*messages.EOM); ok && m.IsLocal() {
-		return true, nil
+	if eom, ok := m.(*messages.EOM); ok && m.IsLocal() {
+		return // This is an internal EOM message.  We are not a leader so ignore.
+	} else if ok && !s.Leader {
+		s.EOM = int(eom.Minute + 1)
 	}
 
 	hash := m.GetHash()
 	hashf := hash.Fixed()
 	s.Holding[hashf] = m
-	ack, ok := s.Acks[hashf].(*messages.Ack)
-	if !ok || ack == nil {
-		return false, nil
-	} else {
-		vm := s.LeaderPL.VMs[ack.VMIndex]
-		switch {
-		// too late
-		case ack.DBHeight < s.LLeaderHeight:
-			delete(s.Acks, hashf)    // No matter what, we don't want to
-			delete(s.Holding, hashf) // rematch.. If we stall, we will see them again.
-			return true, nil
-
-		// too early
-		case ack.DBHeight > s.LLeaderHeight:
-			return true, nil
-
-		// Right dbheight, but too soon in the list
-		case ack.Height > uint32(vm.Height):
-			delete(s.Acks, hashf)
-			s.StallMsg(ack)
-			return true, nil
-
-		case vm.Seal > 0:
-			delete(s.Acks, hashf)
-			s.StallMsg(ack)
-			return true, nil
-
-		default:
-			if s.LeaderPL.AddToProcessList(ack, m) {
-				return true, nil
-			} else {
-				delete(s.Acks, hashf)
-				s.StallMsg(ack)
-				return true, nil
-			}
-		}
+	ack, _ := s.Acks[hashf].(*messages.Ack)
+	if ack != nil {
+		s.LeaderPL.AddToProcessList(ack, m)
 	}
 }
 
 // Ack messages always match some message in the Process List.   That is
 // done here, though the only msg that should call this routine is the Ack
 // message.
-func (s *State) FollowerExecuteAck(msg interfaces.IMsg) (bool, error) {
+func (s *State) FollowerExecuteAck(msg interfaces.IMsg) {
 	ack := msg.(*messages.Ack)
 	s.Acks[ack.GetHash().Fixed()] = ack
-	match := s.Holding[ack.GetHash().Fixed()]
-	if match != nil {
-		return true, match.FollowerExecute(s)
+	m, _ := s.Holding[ack.GetHash().Fixed()]
+	if m != nil {
+		s.LeaderPL.AddToProcessList(ack, m)
 	}
-	return false, nil
 }
 
-func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) error {
+func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 
 	dbstatemsg, _ := msg.(*messages.DBStateMsg)
 
@@ -314,13 +277,12 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) error {
 		dbstatemsg.FactoidBlock,
 		dbstatemsg.EntryCreditBlock)
 
-	return nil
 }
 
-func (s *State) FollowerExecuteAddData(msg interfaces.IMsg) error {
+func (s *State) FollowerExecuteAddData(msg interfaces.IMsg) {
 	dataResponseMsg, ok := msg.(*messages.DataResponse)
 	if !ok {
-		return nil
+		return
 	}
 
 	switch dataResponseMsg.DataType {
@@ -341,29 +303,28 @@ func (s *State) FollowerExecuteAddData(msg interfaces.IMsg) error {
 			s.addEBlock(eblock)
 		}
 	default:
-		return nil
+		s.networkInvalidMsgQueue <- msg
 	}
 
-	return nil
 }
 
-func (s *State) LeaderExecute(m interfaces.IMsg) error {
+func (s *State) LeaderExecute(m interfaces.IMsg) {
 
-	if !s.Leader {
-		return m.FollowerExecute(s)
+	if !s.Leader || m.GetVMIndex() != s.LeaderVMIndex {
+		m.FollowerExecute(s)
 	}
 
 	ack := s.NewAck(m)
 
 	s.LeaderPL.AddToProcessList(ack.(*messages.Ack), m)
 
-	return nil
 }
 
-func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
+func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 
-	if !s.Leader {
-		return nil
+	if !s.Leader || !m.IsLocal() {
+		m.FollowerExecute(s)
+		return
 	}
 
 	eom := m.(*messages.EOM)
@@ -378,10 +339,10 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) error {
 	eom.Sign(s)
 	eom.SetLocal(false)
 	ack := s.NewAck(m)
-
+	s.networkOutMsgQueue <- ack
+	s.networkOutMsgQueue <- eom
 	s.LeaderPL.AddToProcessList(ack.(*messages.Ack), eom)
 
-	return nil
 }
 
 func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) bool {
@@ -390,13 +351,12 @@ func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) 
 		return true
 	}
 
-	pl := s.ProcessLists.Get(dbheight)
-	if leader, _ := pl.GetFedServerIndexHash(as.ServerChainID); leader {
+	if leader, _ := s.LeaderPL.GetFedServerIndexHash(as.ServerChainID); leader {
 		return true
 	}
 
 	if as.ServerType == 0 {
-		pl.AdminBlock.AddFedServer(as.ServerChainID)
+		s.LeaderPL.AdminBlock.AddFedServer(as.ServerChainID)
 	}
 
 	return true
@@ -717,14 +677,8 @@ func (s *State) PutE(rt bool, adr [32]byte, v int64) {
 
 // Returns the Virtual Server Index for this hash if this server is the leader;
 // returns -1 if we are not the leader for this hash
-func (s *State) LeaderFor(msg interfaces.IMsg, hash []byte) bool {
-	if hash != nil {
-		h := make([]byte, len(hash))
-		copy(h, hash)
-		msg.SetVMHash(h)
-		msg.SetVMIndex(s.LeaderPL.VMIndexFor(h))
-	}
-	return true
+func (s *State) ComputeVMIndex(hash []byte) int {
+	return s.LeaderPL.VMIndexFor(hash)
 }
 
 func (s *State) NewAdminBlock(dbheight uint32) interfaces.IAdminBlock {

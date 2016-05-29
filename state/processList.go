@@ -27,7 +27,7 @@ type ProcessList struct {
 	// is built.
 	MsgQueue []interfaces.IMsg
 
-	State     interfaces.IState
+	State     *State
 	VMs       []*VM       // Process list for each server (up to 32)
 	ServerMap [10][64]int // Map of FedServers to all Servers for each minute
 
@@ -449,12 +449,13 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 				// compare the SerialHash of this acknowledgement with the
 				// expected serialHash (generated above)
 				if !expectedSerialHash.IsSameAs(thisAck.SerialHash) {
-					p.State.(*State).DebugPrt("Process List")
+					p.State.DebugPrt("Process List")
 					fmt.Printf("Error detected on %s\nSerial Hash failure: Fed Server %d  Leader ID %x List Ht: %d \nDetected on: %s\n",
 						state.GetFactomNodeName(),
 						i,
 						p.FedServers[i].GetChainID().Bytes()[:3],
-						j)
+						j,
+						plist[j].String())
 					fmt.Printf("Last Ack: %6x  Last Serial: %6x\n", last.GetHash().Bytes()[:3], last.SerialHash.Bytes()[:3])
 					fmt.Printf("This Ack: %6x  This Serial: %6x\n", thisAck.GetHash().Bytes()[:3], thisAck.SerialHash.Bytes()[:3])
 					fmt.Printf("Expected: %6x\n", expectedSerialHash.Bytes()[:3])
@@ -481,7 +482,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 // Check to assure that the given VM has been completely processed
 func (p *ProcessList) GoodTo(vmIndex int) bool {
 	if vmIndex < 0 {
-		vmIndex = p.State.(*State).LeaderVMIndex
+		vmIndex = p.State.LeaderVMIndex
 	}
 	vm := p.VMs[vmIndex]
 	if len(vm.List) > vm.Height {
@@ -495,21 +496,45 @@ func (p *ProcessList) GoodTo(vmIndex int) bool {
 	return true
 }
 
-func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) bool {
+func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 
-	//fmt.Println(p.State.GetFactomNodeName(),"Addack them",ack.String())
-	//fmt.Println(p.State.GetFactomNodeName(),"Addm   them",m.String())
-	m.SetLeaderChainID(ack.GetLeaderChainID())
-	m.SetMinute(ack.Minute)
+	stall := func() {
+		p.State.StallMsg(ack)
+		p.State.Holding[m.GetHash().Fixed()] = m
+		delete(p.State.Acks, ack.GetHash().Fixed())
+	}
+
+	toss := func() {
+		delete(p.State.Holding, ack.GetHash().Fixed())
+		delete(p.State.Acks, ack.GetHash().Fixed())
+	}
 
 	vm := p.VMs[ack.VMIndex]
 
+	if ack.DBHeight > p.DBHeight {
+		stall()
+		return
+	}
+
+	if ack.DBHeight < p.DBHeight {
+		toss()
+		return
+	}
+
 	// If this vm is sealed, then we can't add more messages.
 	if vm.Seal > 0 && ack.Height >= vm.SealHeight {
-		return false
+		stall()
+		return
 	}
+
 	if len(vm.List) > vm.Height {
-		return false
+		stall()
+		return
+	}
+
+	if int(ack.Height) > vm.Height {
+		stall()
+		return
 	}
 
 	if len(vm.List) > int(ack.Height) && vm.List[ack.Height] != nil {
@@ -517,7 +542,8 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) boo
 		if ack == nil || m == nil || vm.List[ack.Height].GetMsgHash() == nil ||
 			m.GetMsgHash() == nil || vm.List[ack.Height].GetMsgHash().IsSameAs(m.GetMsgHash()) {
 			fmt.Printf("%-30s %10s %s\n", "xxxxxxxxx PL Duplicate", p.State.GetFactomNodeName(), m.String())
-			return false
+			toss()
+			return
 		}
 
 		if vm.List[ack.Height] != nil {
@@ -529,7 +555,8 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) boo
 			fmt.Printf("\t%12s %s\n", "old ack", vm.ListAck[ack.Height].String())
 			fmt.Printf("\t%12s %s\n", "new ack", ack.String())
 			fmt.Printf("\t%12s %s\n", "VM Index", ack.VMIndex)
-			return false
+			toss()
+			return
 		}
 	}
 
@@ -544,16 +571,20 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) boo
 
 	now := int64(p.State.GetTimestamp())
 
-	msgOk := p.State.(*State).InternalReplay.IsTSValid_(m.GetHash().Fixed(), int64(m.GetTimestamp()), now)
+	msgOk := p.State.InternalReplay.IsTSValid_(m.GetHash().Fixed(), int64(m.GetTimestamp()), now)
 
 	if !msgOk { // If we already have this message or acknowledgement recorded,
-		return true // we don't have to do anything.  Just say we got it handled.
+		toss()
+		return // we don't have to do anything.  Just say we got it handled.
 	}
 
 	p.State.NetworkOutMsgQueue() <- ack
 	p.State.NetworkOutMsgQueue() <- m
-	delete(p.State.(*State).Acks, ack.GetHash().Fixed())
-	delete(p.State.(*State).Holding, m.GetHash().Fixed())
+	delete(p.State.Acks, ack.GetHash().Fixed())
+	delete(p.State.Holding, m.GetHash().Fixed())
+
+	m.SetLeaderChainID(ack.GetLeaderChainID())
+	m.SetMinute(ack.Minute)
 
 	eom, ok := m.(*messages.EOM)
 	if ok {
@@ -576,10 +607,6 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) boo
 	p.OldMsgs[m.GetHash().Fixed()] = m
 	p.OldAcks[m.GetHash().Fixed()] = ack
 
-	//	fmt.Printf("%-30s %10s %s\n", "add !!!!!!Finished ", p.State.GetFactomNodeName(), m.String())
-	//	fmt.Printf("%-30s %10s %s\n", "add !!!!!!Finished ", p.State.GetFactomNodeName(), ack.String())
-
-	return true
 }
 
 func (p *ProcessList) String() string {
@@ -642,7 +669,7 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 
 	pl := new(ProcessList)
 
-	pl.State = state
+	pl.State = state.(*State)
 
 	// Make a copy of the previous FedServers
 	pl.FedServers = make([]interfaces.IFctServer, 0)

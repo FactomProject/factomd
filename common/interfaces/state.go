@@ -109,8 +109,9 @@ type IState interface {
 
 	// These are methods run by the consensus algorithm to track what servers are the leaders
 	// and what lists they are responsible for.
-	LeaderFor(msg IMsg, hash []byte) bool // Tests if this server is the leader for this key
-	GetLeaderVM() int                     // Get the Leader VM (only good within a minute)
+	ComputeVMIndex(hash []byte) int // Returns the VMIndex determined by some hash (usually) for the current processlist
+	IsLeader() bool                 // Returns true if this is the leader in the current minute
+	GetLeaderVM() int               // Get the Leader VM (only good within a minute)
 	// Returns the list of VirtualServers at a given directory block height and minute
 	GetVirtualServers(dbheight uint32, minute int, identityChainID IHash) (found bool, index int)
 	// Returns true if between minutes
@@ -140,10 +141,10 @@ type IState interface {
 	// MISC
 	// ====
 
-	FollowerExecuteMsg(m IMsg) (bool, error) // Messages that go into the process list
-	FollowerExecuteAck(m IMsg) (bool, error) // Ack Msg calls this function.
-	FollowerExecuteDBState(IMsg) error       // Add the given DBState to this server
-	FollowerExecuteAddData(m IMsg) error     // Add the entry or eblock to this Server
+	FollowerExecuteMsg(m IMsg)     // Messages that go into the process list
+	FollowerExecuteAck(m IMsg)     // Ack Msg calls this function.
+	FollowerExecuteDBState(IMsg)   // Add the given DBState to this server
+	FollowerExecuteAddData(m IMsg) // Add the entry or eblock to this Server
 
 	ProcessAddServer(dbheight uint32, addServerMsg IMsg) bool
 	ProcessCommitChain(dbheight uint32, commitChain IMsg) bool
@@ -152,8 +153,8 @@ type IState interface {
 	ProcessEOM(dbheight uint32, eom IMsg) bool
 	ProcessRevealEntry(dbheight uint32, m IMsg) bool
 	// For messages that go into the Process List
-	LeaderExecute(m IMsg) error
-	LeaderExecuteEOM(m IMsg) error
+	LeaderExecute(m IMsg)
+	LeaderExecuteEOM(m IMsg)
 
 	GetNetStateOff() bool //	If true, all network communications are disabled
 	SetNetStateOff(bool)

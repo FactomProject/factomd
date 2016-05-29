@@ -117,26 +117,17 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 
 // Returns true if this is a message for this server to execute as
 // a leader.
-func (m *RevealEntryMsg) Leader(state interfaces.IState) bool {
-	state.LeaderFor(m, m.Entry.GetChainID().Bytes())
-	return true
-
+func (m *RevealEntryMsg) ComputeVMIndex(state interfaces.IState) {
+	m.VMIndex = state.ComputeVMIndex(m.Entry.GetChainID().Bytes())
 }
 
 // Execute the leader functions of the given message
-func (m *RevealEntryMsg) LeaderExecute(state interfaces.IState) error {
-	m.SetLocal(false)
-	return state.LeaderExecute(m)
+func (m *RevealEntryMsg) LeaderExecute(state interfaces.IState) {
+	state.LeaderExecute(m)
 }
 
-// Returns true if this is a message for this server to execute as a follower
-func (m *RevealEntryMsg) Follower(interfaces.IState) bool {
-	return true
-}
-
-func (m *RevealEntryMsg) FollowerExecute(state interfaces.IState) error {
-	_, err := state.FollowerExecuteMsg(m)
-	return err
+func (m *RevealEntryMsg) FollowerExecute(state interfaces.IState) {
+	state.FollowerExecuteMsg(m)
 }
 
 func (e *RevealEntryMsg) JSONByte() ([]byte, error) {

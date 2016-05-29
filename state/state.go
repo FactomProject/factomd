@@ -22,7 +22,6 @@ import (
 	"github.com/FactomProject/factomd/logger"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
-	"math/rand"
 	"sync"
 )
 
@@ -60,6 +59,7 @@ type State struct {
 	IdentityChainID interfaces.IHash // If this node has an identity, this is it
 
 	// Just to print (so debugging doesn't drive functionaility)
+	Status    bool
 	serverPrt string
 
 	tickerQueue            chan int
@@ -738,6 +738,10 @@ func (s *State) GetAuditServers(dbheight uint32) []interfaces.IFctServer {
 	return s.ProcessLists.Get(dbheight).AuditServers
 }
 
+func (s *State) IsLeader() bool {
+	return s.Leader
+}
+
 func (s *State) GetVirtualServers(dbheight uint32, minute int, identityChainID interfaces.IHash) (found bool, index int) {
 	pl := s.ProcessLists.Get(dbheight)
 	return pl.GetVirtualServers(minute, identityChainID)
@@ -874,9 +878,7 @@ func (s *State) AckQueue() chan interfaces.IMsg {
 }
 
 func (s *State) StallMsg(m interfaces.IMsg) {
-	if !m.IsLocal() {
-		s.stallQueue <- m
-	}
+	s.stallQueue <- m
 }
 
 func (s *State) Stall() chan interfaces.IMsg {
@@ -979,9 +981,10 @@ func (s *State) ShortString() string {
 
 func (s *State) SetString() {
 
-	if rand.Int()%100 > 50 {
+	if !s.Status {
 		return
 	}
+	s.Status = false
 
 	buildingBlock := s.GetHighestRecordedBlock()
 

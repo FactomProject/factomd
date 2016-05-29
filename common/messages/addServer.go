@@ -83,24 +83,17 @@ func (m *AddServerMsg) Validate(state interfaces.IState) int {
 
 // Returns true if this is a message for this server to execute as
 // a leader.
-func (m *AddServerMsg) Leader(state interfaces.IState) bool {
-	state.LeaderFor(m, constants.ADMIN_CHAINID)
-	return true
+func (m *AddServerMsg) ComputeVMIndex(state interfaces.IState) {
+	m.VMIndex = state.ComputeVMIndex(constants.ADMIN_CHAINID)
 }
 
 // Execute the leader functions of the given message
-func (m *AddServerMsg) LeaderExecute(state interfaces.IState) error {
-	return state.LeaderExecute(m)
+func (m *AddServerMsg) LeaderExecute(state interfaces.IState) {
+	state.LeaderExecute(m)
 }
 
-// Returns true if this is a message for this server to execute as a follower
-func (m *AddServerMsg) Follower(interfaces.IState) bool {
-	return true
-}
-
-func (m *AddServerMsg) FollowerExecute(state interfaces.IState) error {
-	_, err := state.FollowerExecuteMsg(m)
-	return err
+func (m *AddServerMsg) FollowerExecute(state interfaces.IState) {
+	state.FollowerExecuteMsg(m)
 }
 
 // Acknowledgements do not go into the process list.

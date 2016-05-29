@@ -157,24 +157,13 @@ func (m *RequestBlock) Validate(state interfaces.IState) int {
 	return 0
 }
 
-// Returns true if this is a message for this server to execute as
-// a leader.
-func (m *RequestBlock) Leader(state interfaces.IState) bool {
-	return false
+func (m *RequestBlock) ComputeVMIndex(state interfaces.IState) {
 }
 
-// Execute the leader functions of the given message
-func (m *RequestBlock) LeaderExecute(state interfaces.IState) error {
-	return nil
+func (m *RequestBlock) LeaderExecute(state interfaces.IState) {
 }
 
-// Returns true if this is a message for this server to execute as a follower
-func (m *RequestBlock) Follower(interfaces.IState) bool {
-	return true
-}
-
-func (m *RequestBlock) FollowerExecute(interfaces.IState) error {
-	return nil
+func (m *RequestBlock) FollowerExecute(interfaces.IState) {
 }
 
 func (e *RequestBlock) JSONByte() ([]byte, error) {
