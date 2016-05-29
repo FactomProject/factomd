@@ -67,7 +67,7 @@ type EntryBlockResponse struct {
 		Timestamp           int64  `json:"timestamp"`
 		DBHeight            int64  `json:"dbheight"`
 	} `json:"header"`
-	EntryList []EntryAddr `json:"timestamp"`
+	EntryList []EntryAddr `json:"entrylist"`
 }
 
 type EntryResponse struct {
