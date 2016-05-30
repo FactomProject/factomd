@@ -7,7 +7,6 @@ package state
 import (
 	"fmt"
 	"time"
-
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 )
@@ -18,17 +17,13 @@ func (state *State) ValidatorLoop() {
 
 		// Check if we should shut down.
 		select {
-		case _ = <-state.ShutdownChan:
-			state.DBMutex.Lock()
-			defer state.DBMutex.Unlock()
+		case <-state.ShutdownChan:
 			fmt.Println("Closing the Database on", state.GetFactomNodeName())
 			state.DB.Close()
 			fmt.Println(state.GetFactomNodeName(), "closed")
 			return
 		default:
 		}
-
-		state.SetString() // Set the string for the state so we can print it later if we like.
 		// Process any messages we might have queued up.
 		for i := 0; i < 10 && state.Process(); i++ {
 			state.UpdateState()
@@ -57,8 +52,7 @@ func (state *State) ValidatorLoop() {
 			case msg = <-state.InMsgQueue(): // Get message from the timer or input queue
 				state.JournalMessage(msg)
 				break loop
-			default: // No messages? Sleep for a bit.
-				state.SetString()
+			default: // No messages? Sleep for a bit
 				time.Sleep(10 * time.Millisecond)
 			}
 		}

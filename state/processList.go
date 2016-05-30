@@ -322,7 +322,7 @@ func (p *ProcessList) GetAck(vmIndex int) *messages.Ack {
 // Given a server index, return the last Ack
 func (p *ProcessList) GetAckAt(vmIndex int, height int) *messages.Ack {
 	vm := p.VMs[vmIndex]
-	if height < 0 || height >= vm.Height {
+	if height < 0 || height >= len(vm.ListAck) {
 		return nil
 	}
 	return vm.ListAck[height]
@@ -504,9 +504,10 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 		delete(p.State.Acks, ack.GetHash().Fixed())
 	}
 
-	toss := func() {
+	toss := func(hint string) {
 		delete(p.State.Holding, ack.GetHash().Fixed())
 		delete(p.State.Acks, ack.GetHash().Fixed())
+		fmt.Println("dddd",hint, p.State.FactomNodeName, "Toss",m.String())
 	}
 
 	vm := p.VMs[ack.VMIndex]
@@ -517,7 +518,7 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	}
 
 	if ack.DBHeight < p.DBHeight {
-		toss()
+		toss("1")
 		return
 	}
 
@@ -542,7 +543,7 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 		if ack == nil || m == nil || vm.List[ack.Height].GetMsgHash() == nil ||
 			m.GetMsgHash() == nil || vm.List[ack.Height].GetMsgHash().IsSameAs(m.GetMsgHash()) {
 			fmt.Printf("%-30s %10s %s\n", "xxxxxxxxx PL Duplicate", p.State.GetFactomNodeName(), m.String())
-			toss()
+			toss("2")
 			return
 		}
 
@@ -555,7 +556,7 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 			fmt.Printf("\t%12s %s\n", "old ack", vm.ListAck[ack.Height].String())
 			fmt.Printf("\t%12s %s\n", "new ack", ack.String())
 			fmt.Printf("\t%12s %s\n", "VM Index", ack.VMIndex)
-			toss()
+			toss("3")
 			return
 		}
 	}
@@ -574,7 +575,8 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	msgOk := p.State.InternalReplay.IsTSValid_(m.GetHash().Fixed(), int64(m.GetTimestamp()), now)
 
 	if !msgOk { // If we already have this message or acknowledgement recorded,
-		toss()
+		fmt.Println("****", p.State.FactomNodeName,m.String())
+		toss("4")
 		return // we don't have to do anything.  Just say we got it handled.
 	}
 

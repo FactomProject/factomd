@@ -61,7 +61,7 @@ func (m *AddServerMsg) GetTimestamp() interfaces.Timestamp {
 }
 
 func (m *AddServerMsg) Validate(state interfaces.IState) int {
-	return 1 // Not going to check right now.
+	return 1
 	authoritativeKey, _ := hex.DecodeString("cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a")
 
 	if m.GetSignature() == nil || bytes.Compare(m.GetSignature().GetKey(), authoritativeKey) != 0 {

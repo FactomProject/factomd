@@ -31,27 +31,22 @@ func (s *State) NewMinute() {
 	s.LeaderPL.Unseal(s.EOM)
 	// Anything we are holding, we need to reprocess.
 	for k := range s.Holding {
-		if v := s.Holding[k]; v != nil {
-			if _, ok := s.InternalReplay.Valid(v.GetHash().Fixed(), int64(v.GetTimestamp()), int64(s.GetTimestamp())); !ok {
-				v.ComputeVMIndex(s)
-				if s.Leader {
-					s.XReview = append(s.XReview, v)
-					delete(s.Holding, k)
-				}
-			} else {
-				delete(s.Holding, k)
-			}
+		v := s.Holding[k]
+		v.ComputeVMIndex(s)
+		if s.Leader {
+			s.XReview = append(s.XReview, v)
+			delete(s.Holding, k)
 		}
 	}
 
 	s.EOM = 0
 
 	for k := range s.Acks {
-		m, ok := s.Holding[k]
-		if ok && m != nil {
-			m.FollowerExecute(s)
-		}
+		s.StallMsg(s.Acks[k])
 	}
+
+	s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
+	s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.LeaderMinute, s.IdentityChainID)
 	/**
 	fmt.Println(s.FactomNodeName, ">>>")
 
@@ -65,11 +60,6 @@ func (s *State) NewMinute() {
 func (s *State) Process() (progress bool) {
 
 	//s.DebugPrt("Process")
-
-	if s.EOM <= 9 {
-		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
-		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.LeaderMinute, s.IdentityChainID)
-	}
 
 	highest := s.GetHighestRecordedBlock()
 
@@ -155,14 +145,13 @@ func (s *State) ProcessQueues() (progress bool) {
 			case 1:
 				if s.EOM == 0 {
 					if s.Leader {
-						s.networkOutMsgQueue <- msg
 						msg.LeaderExecute(s)
 					} else {
-						s.networkOutMsgQueue <- msg
+						s.networkOutMsgQueue <-msg
 						msg.FollowerExecute(s)
 					}
 				} else {
-					s.networkOutMsgQueue <- msg
+					s.networkOutMsgQueue <-msg
 					msg.FollowerExecute(s)
 				}
 
@@ -218,8 +207,6 @@ func (s *State) addEBlock(eblock interfaces.IEntryBlock) {
 
 	if err == nil {
 		if s.HasDataRequest(hash) {
-			s.DBMutex.Lock()
-			defer s.DBMutex.Unlock()
 
 			s.DB.ProcessEBlockBatch(eblock, true)
 			delete(s.DataRequests, hash.Fixed())
@@ -290,8 +277,6 @@ func (s *State) FollowerExecuteAddData(msg interfaces.IMsg) {
 		entry := dataResponseMsg.DataObject.(interfaces.IEBEntry)
 
 		if entry.GetHash().IsSameAs(dataResponseMsg.DataHash) {
-			s.DBMutex.Lock()
-			defer s.DBMutex.Unlock()
 
 			s.DB.InsertEntry(entry)
 			delete(s.DataRequests, entry.GetHash().Fixed())
@@ -310,8 +295,14 @@ func (s *State) FollowerExecuteAddData(msg interfaces.IMsg) {
 
 func (s *State) LeaderExecute(m interfaces.IMsg) {
 
-	if !s.Leader || m.GetVMIndex() != s.LeaderVMIndex {
+	if !s.Leader || s.EOM > 0 || m.GetVMIndex() != s.LeaderVMIndex {
 		m.FollowerExecute(s)
+		return
+	}
+
+	vm := s.LeaderPL.VMs[s.LeaderVMIndex]
+	if len(vm.List) > vm.Height {
+		s.msgQueue <- m
 	}
 
 	ack := s.NewAck(m)
@@ -322,7 +313,12 @@ func (s *State) LeaderExecute(m interfaces.IMsg) {
 
 func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 
-	if !s.Leader || !m.IsLocal() {
+	vm := s.LeaderPL.VMs[s.LeaderVMIndex]
+	if len(vm.List) > vm.Height {
+		s.msgQueue <- m
+	}
+
+	if !m.IsLocal() {
 		m.FollowerExecute(s)
 		return
 	}
@@ -339,8 +335,6 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 	eom.Sign(s)
 	eom.SetLocal(false)
 	ack := s.NewAck(m)
-	s.networkOutMsgQueue <- ack
-	s.networkOutMsgQueue <- eom
 	s.LeaderPL.AddToProcessList(ack.(*messages.Ack), eom)
 
 }
@@ -448,9 +442,7 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
 
 	if _, isNewChain := commit.(*messages.CommitChainMsg); isNewChain {
 		chainID := msg.Entry.GetChainID()
-		s.DBMutex.Lock()
 		eb, err := s.DB.FetchEBlockHead(chainID)
-		s.DBMutex.Unlock()
 		if err != nil || eb != nil {
 			panic(fmt.Sprintf("%s\n%s", "Chain already exists", msg.String()))
 		}
@@ -479,9 +471,7 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
 		chainID := msg.Entry.GetChainID()
 		eb := s.GetNewEBlocks(dbheight, chainID)
 		if eb == nil {
-			s.DBMutex.Lock()
 			prev, err := s.DB.FetchEBlockHead(chainID)
-			s.DBMutex.Unlock()
 			if prev == nil || err != nil {
 				return false
 			}
@@ -725,6 +715,7 @@ func (s *State) GetNewHash() interfaces.IHash {
 // Create a new Acknowledgement.  Must be called by a leader.  This
 // call assumes all the pieces are in place to create a new acknowledgement
 func (s *State) NewAck(msg interfaces.IMsg) (iack interfaces.IMsg) {
+	s.DBStates.UpdateState()
 
 	vmIndex := msg.GetVMIndex()
 
@@ -737,11 +728,12 @@ func (s *State) NewAck(msg interfaces.IMsg) (iack interfaces.IMsg) {
 	ack.MessageHash = msg.GetHash()
 	ack.LeaderChainID = s.IdentityChainID
 
-	if s.LeaderPL.VMs[vmIndex].Height == 0 {
+	listlen := len(s.LeaderPL.VMs[vmIndex].List)
+	if listlen == 0 {
 		ack.Height = 0
 		ack.SerialHash = ack.MessageHash
 	} else {
-		last := s.LeaderPL.GetAckAt(vmIndex, s.LeaderPL.VMs[vmIndex].Height-1)
+		last := s.LeaderPL.GetAckAt(vmIndex, listlen-1)
 		ack.Height = last.Height + 1
 		ack.SerialHash, _ = primitives.CreateHash(last.MessageHash, ack.MessageHash)
 	}

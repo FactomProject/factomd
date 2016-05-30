@@ -108,7 +108,6 @@ type State struct {
 
 	// Database
 	DB      *databaseOverlay.Overlay
-	DBMutex sync.Mutex
 	Logger  *logger.FLogger
 	Anchor  interfaces.IAnchor
 
@@ -368,9 +367,7 @@ func (s *State) Init() {
 	}
 
 	if s.ExportData {
-		s.DBMutex.Lock()
 		s.DB.SetExportData(s.ExportDataSubpath)
-		s.DBMutex.Unlock()
 	}
 
 	//Network
@@ -416,8 +413,6 @@ func (s *State) SetEBDBHeightComplete(newHeight uint32) {
 }
 
 func (s *State) GetEBlockKeyMRFromEntryHash(entryHash interfaces.IHash) interfaces.IHash {
-	s.DBMutex.Lock()
-	defer s.DBMutex.Unlock()
 
 	entry, err := s.DB.FetchEntryByHash(entryHash)
 	if err != nil {
@@ -442,17 +437,13 @@ func (s *State) GetEBlockKeyMRFromEntryHash(entryHash interfaces.IHash) interfac
 }
 
 func (s *State) GetAndLockDB() interfaces.DBOverlay {
-	s.DBMutex.Lock()
 	return s.DB
 }
 
 func (s *State) UnlockDB() {
-	s.DBMutex.Unlock()
 }
 
 func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
-	s.DBMutex.Lock()
-	defer s.DBMutex.Unlock()
 
 	dblk, err := s.DB.FetchDBlockByHeight(dbheight)
 	if err != nil {
@@ -580,9 +571,7 @@ func (s *State) LoadSpecificMsgAndAck(dbheight uint32, vm int, plistheight uint3
 // It returns True if the EBlock is complete (all entries already exist in database)
 func (s *State) GetAllEntries(ebKeyMR interfaces.IHash) bool {
 	hasAllEntries := true
-	s.DBMutex.Lock()
 	eblock, err := s.DB.FetchEBlockByKeyMR(ebKeyMR)
-	s.DBMutex.Unlock()
 	if err != nil {
 		return false
 	}
@@ -669,9 +658,7 @@ func (s *State) GetDirectoryBlockByHeight(height uint32) interfaces.IDirectoryBl
 	if dbstate != nil {
 		return dbstate.DirectoryBlock
 	}
-	s.DBMutex.Lock()
 	dblk, err := s.DB.FetchDBlockByHeight(height)
-	s.DBMutex.Unlock()
 	if err != nil {
 		return nil
 	}
@@ -690,6 +677,7 @@ func (s *State) UpdateState() (progress bool) {
 
 	s.catchupEBlocks()
 
+	s.SetString()
 	return
 }
 
@@ -914,8 +902,6 @@ func (s *State) GetMatryoshka(dbheight uint32) interfaces.IHash {
 }
 
 func (s *State) InitLevelDB() error {
-	s.DBMutex.Lock()
-	defer s.DBMutex.Unlock()
 
 	if s.DB != nil {
 		return nil
@@ -939,8 +925,6 @@ func (s *State) InitLevelDB() error {
 }
 
 func (s *State) InitBoltDB() error {
-	s.DBMutex.Lock()
-	defer s.DBMutex.Unlock()
 	if s.DB != nil {
 		return nil
 	}
@@ -955,8 +939,6 @@ func (s *State) InitBoltDB() error {
 }
 
 func (s *State) InitMapDB() error {
-	s.DBMutex.Lock()
-	defer s.DBMutex.Unlock()
 
 	if s.DB != nil {
 		return nil
