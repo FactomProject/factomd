@@ -141,11 +141,11 @@ func (s *State) ProcessQueues() (progress bool) {
 	case msg := <-s.msgQueue:
 		_, ok := s.InternalReplay.Valid(msg.GetHash().Fixed(), int64(msg.GetTimestamp()), int64(s.GetTimestamp()))
 		if ok {
-			msg.ComputeVMIndex(s)
 			switch msg.Validate(s) {
 			case 1:
 				if s.EOM == 0 {
 					if s.Leader {
+						msg.ComputeVMIndex(s)
 						msg.LeaderExecute(s)
 					} else {
 						s.networkOutMsgQueue <-msg
@@ -195,6 +195,7 @@ func (s *State) AddDBState(isNew bool,
 	if ht > s.LLeaderHeight {
 		s.LLeaderHeight = ht
 		s.ProcessLists.Get(ht + 1)
+		s.Holding = make(map[[32]byte] interfaces.IMsg)
 		s.EOM = 0
 	}
 	//	dbh := directoryBlock.GetHeader().GetDBHeight()
@@ -227,6 +228,8 @@ func (s *State) addEBlock(eblock interfaces.IEntryBlock) {
 // Returns true if it finds a match, puts the message in holding, or invalidates the message
 func (s *State) FollowerExecuteMsg(m interfaces.IMsg) {
 
+	// Leaders set s.EOM when they see their EOM.  Followers set
+	// s.EOM when they see the first EOM.
 	if eom, ok := m.(*messages.EOM); ok && m.IsLocal() {
 		return // This is an internal EOM message.  We are not a leader so ignore.
 	} else if ok && !s.Leader {

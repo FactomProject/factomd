@@ -2,7 +2,7 @@
 
 	echo "Transactions: "
 sleep 2
-for i in `seq 1 1`;
+for i in `seq 1 10`;
 do
 	factom-cli newtransaction t
 	factom-cli addinput t factoid-wallet-address-name01 .000005

@@ -231,7 +231,9 @@ func (list *DBStateList) UpdateState() (progress bool) {
 				d.DirectoryBlock.GetDBEntries()[0].SetKeyMR(d.AdminBlock.GetHash())
 				d.DirectoryBlock.GetDBEntries()[1].SetKeyMR(d.EntryCreditBlock.GetHash())
 				d.DirectoryBlock.GetDBEntries()[2].SetKeyMR(d.FactoidBlock.GetHash())
+
 				pl := list.State.ProcessLists.Get(d.DirectoryBlock.GetHeader().GetDBHeight())
+
 				for _, eb := range pl.NewEBlocks {
 					key, err := eb.KeyMR()
 					if err != nil {
@@ -239,6 +241,7 @@ func (list *DBStateList) UpdateState() (progress bool) {
 					}
 					d.DirectoryBlock.AddEntry(eb.GetChainID(), key)
 				}
+
 				d.DirectoryBlock.GetKeyMR()
 				_, err = d.DirectoryBlock.BuildBodyMR()
 				if err != nil {
@@ -285,6 +288,13 @@ func (list *DBStateList) UpdateState() (progress bool) {
 			fmt.Printf("Failed to save the Directory Block %d %x\n",
 				d.DirectoryBlock.GetHeader().GetDBHeight(),
 				d.DirectoryBlock.GetKeyMR().Bytes()[:3])
+			panic("Failed to save Directory Block")
+		}
+		keyMR2 := dblk2.GetKeyMR()
+		if !d.DirectoryBlock.GetKeyMR().IsSameAs(keyMR2) {
+			fmt.Println(dblk == nil)
+			fmt.Printf("Keys differ %x and %x",d.DirectoryBlock.GetKeyMR().Bytes()[:3],keyMR2.Bytes()[:3])
+			panic("KeyMR failure")
 		}
 		list.LastTime = list.State.GetTimestamp() // If I saved or processed stuff, I'm good for a while
 		d.Saved = true                            // Only after all is done will I admit this state has been saved.
