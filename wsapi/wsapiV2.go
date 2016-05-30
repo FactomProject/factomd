@@ -159,6 +159,8 @@ func HandleV2CommitChain(state interfaces.IState, params interface{}) (interface
 
 	resp := new(CommitChainResponse)
 	resp.Message = "Chain Commit Success"
+	transID := commit.GetSigHash().Fixed()
+	resp.TxID = string(transID[:])
 
 	return resp, nil
 }
@@ -190,6 +192,8 @@ func HandleV2CommitEntry(state interfaces.IState, params interface{}) (interface
 
 	resp := new(CommitEntryResponse)
 	resp.Message = "Entry Commit Success"
+	transID := commit.GetSigHash().Fixed()
+	resp.TxID = string(transID[:])
 
 	return resp, nil
 }
