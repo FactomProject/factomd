@@ -16,6 +16,7 @@ type DBOverlay interface {
 	StartMultiBatch()
 	PutInMultiBatch(records []Record)
 	ExecuteMultiBatch() error
+	GetEntryType(hash IHash) (IHash, error)
 
 	//**********************************Entry**********************************//
 
@@ -34,8 +35,8 @@ type DBOverlay interface {
 	//**********************************EBlock**********************************//
 
 	// ProcessEBlockBatche inserts the EBlock and update all it's ebentries in DB
-	ProcessEBlockBatch(eblock DatabaseBlockWithEntries) error
-	ProcessEBlockMultiBatch(eblock DatabaseBlockWithEntries) error
+	ProcessEBlockBatch(eblock DatabaseBlockWithEntries, checkForDuplicateEntries bool) error
+	ProcessEBlockMultiBatch(eblock DatabaseBlockWithEntries, checkForDuplicateEntries bool) error
 
 	// FetchEBlockByHash gets an entry by hash from the database.
 	FetchEBlockByHash(IHash) (IEntryBlock, error)
@@ -49,7 +50,7 @@ type DBOverlay interface {
 	// FetchAllEBlocksByChain gets all of the blocks by chain id
 	FetchAllEBlocksByChain(IHash) ([]IEntryBlock, error)
 
-	SaveEBlockHead(block DatabaseBlockWithEntries) error
+	SaveEBlockHead(block DatabaseBlockWithEntries, checkForDuplicateEntries bool) error
 
 	FetchEBlockHead(chainID IHash) (IEntryBlock, error)
 
@@ -96,8 +97,8 @@ type DBOverlay interface {
 	//**********************************ECBlock**********************************//
 
 	// ProcessECBlockBatch inserts the ECBlock and update all it's ecbentries in DB
-	ProcessECBlockBatch(block DatabaseBatchable) (err error)
-	ProcessECBlockMultiBatch(block DatabaseBatchable) (err error)
+	ProcessECBlockBatch(IEntryCreditBlock, bool) (err error)
+	ProcessECBlockMultiBatch(IEntryCreditBlock, bool) (err error)
 
 	// FetchECBlockByHash gets an Entry Credit block by hash from the database.
 	FetchECBlockByHash(IHash) (IEntryCreditBlock, error)
@@ -108,7 +109,7 @@ type DBOverlay interface {
 	// FetchAllECBlocks gets all of the entry credit blocks
 	FetchAllECBlocks() ([]IEntryCreditBlock, error)
 
-	SaveECBlockHead(DatabaseBatchable) error
+	SaveECBlockHead(IEntryCreditBlock, bool) error
 
 	FetchECBlockHead() (IEntryCreditBlock, error)
 
@@ -174,10 +175,15 @@ type DBOverlay interface {
 	//******************************IncludedIn**********************************//
 
 	SaveIncludedIn(entry, block IHash) error
-	SaveIncludedInMultiFromBlock(block DatabaseBlockWithEntries) error
-	SaveIncludedInMulti(entries []IHash, block IHash) error
-	LoadIncludedIn(hash IHash) (IHash, error)
+	SaveIncludedInMultiFromBlock(block DatabaseBlockWithEntries, checkForDuplicateEntries bool) error
+	SaveIncludedInMulti(entries []IHash, block IHash, checkForDuplicateEntries bool) error
+	FetchIncludedIn(hash IHash) (IHash, error)
 	RebuildDirBlockInfo() error
+
+	FetchPaidFor(hash IHash) (IHash, error)
+
+	FetchFactoidTransactionByHash(hash IHash) (ITransaction, error)
+	FetchECTransactionByHash(hash IHash) (IECBlockEntry, error)
 }
 
 type ISCDatabaseOverlay interface {

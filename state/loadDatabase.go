@@ -21,7 +21,9 @@ func LoadDatabase(s *State) {
 
 	var blkCnt uint32
 
-	head, err := s.GetDB().FetchDirectoryBlockHead()
+	s.DBMutex.Lock()
+	head, err := s.DB.FetchDirectoryBlockHead()
+	s.DBMutex.Unlock()
 
 	if err == nil && head != nil {
 		blkCnt = head.GetHeader().GetDBHeight()
@@ -64,7 +66,7 @@ func LoadDatabase(s *State) {
 
 		ablk.AddFedServer(primitives.Sha([]byte("FNode0")))
 
-		msg := messages.NewDBStateMsg(s.GetTimestamp(), dblk, ablk, fblk, ecblk, nil)
+		msg := messages.NewDBStateMsg(s.GetTimestamp(), dblk, ablk, fblk, ecblk)
 		s.InMsgQueue() <- msg
 	}
 	s.Println(fmt.Sprintf("Loaded %d directory blocks on %s", blkCnt, s.FactomNodeName))

@@ -46,7 +46,7 @@ func (a *DBStateMissing) IsSameAs(b *DBStateMissing) bool {
 }
 
 func (m *DBStateMissing) GetHash() interfaces.IHash {
-	return nil
+	return m.GetMsgHash()
 }
 
 func (m *DBStateMissing) GetMsgHash() interfaces.IHash {
@@ -155,7 +155,7 @@ func (m *DBStateMissing) UnmarshalBinaryData(data []byte) (newData []byte, err e
 	}
 	newData = newData[1:]
 
-	m.Peer2peer = true // This is always a Peer2peer message
+	m.Peer2Peer = true // This is always a Peer2peer message
 
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
@@ -202,7 +202,7 @@ func (m *DBStateMissing) String() string {
 func NewDBStateMissing(state interfaces.IState, dbheightStart uint32, dbheightEnd uint32) interfaces.IMsg {
 	msg := new(DBStateMissing)
 
-	msg.Peer2peer = true // Always a peer2peer request.
+	msg.Peer2Peer = true // Always a peer2peer request.
 	msg.Timestamp = state.GetTimestamp()
 	msg.DBHeightStart = dbheightStart
 	msg.DBHeightEnd = dbheightEnd

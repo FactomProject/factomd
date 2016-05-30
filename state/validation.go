@@ -16,19 +16,22 @@ func (state *State) ValidatorLoop() {
 	timeStruct := new(Timer)
 	for {
 
-		state.SetString() // Set the string for the state so we can print it later if we like.
-
-		// Process any messages we might have queued up.
-		state.Process()
-
 		// Check if we should shut down.
 		select {
 		case _ = <-state.ShutdownChan:
+			state.DBMutex.Lock()
+			defer state.DBMutex.Unlock()
 			fmt.Println("Closing the Database on", state.GetFactomNodeName())
-			state.GetDB().(interfaces.IDatabase).Close()
+			state.DB.Close()
 			fmt.Println(state.GetFactomNodeName(), "closed")
 			return
 		default:
+		}
+
+		state.SetString() // Set the string for the state so we can print it later if we like.
+		// Process any messages we might have queued up.
+		for state.Process() {
+			state.UpdateState()
 		}
 
 		// Look for pending messages, and get one if there is one.
@@ -65,12 +68,11 @@ func (state *State) ValidatorLoop() {
 			if state.IsReplaying == true {
 				state.ReplayTimestamp = msg.GetTimestamp()
 			}
-			if msg.Leader(state) {
-				state.LeaderMsgQueue() <- msg
-			} else if msg.Follower(state) {
+			if _, ok := msg.(*messages.EOM); ok {
+				state.leaderMsgQueue <- msg
+			} else {
 				state.FollowerMsgQueue() <- msg
 			}
-
 		}
 	}
 }
@@ -86,34 +88,19 @@ func (t *Timer) timer(state *State, min int) {
 
 	t.lastMin = min
 
-	stateheight := state.GetLeaderHeight()
+	stateheight := state.LLeaderHeight
 
-	if min == 0 {
-		if t.lastDBHeight > 0 && t.lastDBHeight == stateheight {
-			t.lastDBHeight = stateheight + 1
-		} else {
-			t.lastDBHeight = stateheight
-		}
+	if stateheight != t.lastDBHeight && min != 0 {
+		return
+	} else {
+		t.lastDBHeight = stateheight
 	}
 
-	found, vmIndex := state.GetVirtualServers(t.lastDBHeight, min, state.GetIdentityChainID())
-	if found {
-		eom := new(messages.EOM)
-		eom.Minute = byte(min)
-		eom.Timestamp = state.GetTimestamp()
-		eom.ChainID = state.GetIdentityChainID()
-		eom.VMIndex = vmIndex
-		eom.Sign(state)
-		eom.DBHeight = t.lastDBHeight
-		eom.SetLocal(true)
-		state.TimerMsgQueue() <- eom
-		if min == 9 {
-			DBS := new(messages.DirectoryBlockSignature)
-			DBS.ServerIdentityChainID = state.GetIdentityChainID()
-			DBS.SetLocal(true)
-			DBS.DBHeight = t.lastDBHeight
-			DBS.VMIndex = vmIndex
-			state.TimerMsgQueue() <- DBS
-		}
-	}
+	eom := new(messages.EOM)
+	eom.Minute = byte(min)
+	eom.Timestamp = state.GetTimestamp()
+	eom.ChainID = state.GetIdentityChainID()
+	eom.Sign(state)
+	eom.SetLocal(true)
+	state.TimerMsgQueue() <- eom
 }

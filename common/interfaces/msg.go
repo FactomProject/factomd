@@ -42,8 +42,8 @@ type IMsg interface {
 	// be broadcast, this should be false.  If the Origin is 0, then the
 	// network can pick a peer to try.  If Origin is > 0, then the message
 	// must go back to that peer (this message is a reply).
-	IsPeer2peer() bool
-
+	IsPeer2Peer() bool
+	SetPeer2Peer(bool)
 	// Return the []byte value of the message, if defined
 	Bytes() []byte
 
@@ -79,4 +79,8 @@ type IMsg interface {
 	// the indexes of these machines here.
 	GetVMIndex() int
 	SetVMIndex(int)
+	GetVMHash() []byte
+	SetVMHash([]byte)
+	GetMinute() byte
+	SetMinute(byte)
 }

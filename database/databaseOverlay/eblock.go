@@ -11,24 +11,24 @@ import (
 )
 
 // ProcessEBlockBatche inserts the EBlock and update all it's ebentries in DB
-func (db *Overlay) ProcessEBlockBatch(eblock interfaces.DatabaseBlockWithEntries) error {
+func (db *Overlay) ProcessEBlockBatch(eblock interfaces.DatabaseBlockWithEntries, checkForDuplicateEntries bool) error {
 	//Each chain has its own number bucket, otherwise we would have conflicts
 	numberBucket := append([]byte{byte(ENTRYBLOCK_CHAIN_NUMBER)}, eblock.GetChainID().Bytes()...)
 	err := db.ProcessBlockBatch([]byte{byte(ENTRYBLOCK)}, numberBucket, []byte{byte(ENTRYBLOCK_KEYMR)}, eblock)
 	if err != nil {
 		return err
 	}
-	return db.SaveIncludedInMultiFromBlock(eblock)
+	return db.SaveIncludedInMultiFromBlock(eblock, checkForDuplicateEntries)
 }
 
-func (db *Overlay) ProcessEBlockMultiBatch(eblock interfaces.DatabaseBlockWithEntries) error {
+func (db *Overlay) ProcessEBlockMultiBatch(eblock interfaces.DatabaseBlockWithEntries, checkForDuplicateEntries bool) error {
 	//Each chain has its own number bucket, otherwise we would have conflicts
 	numberBucket := append([]byte{byte(ENTRYBLOCK_CHAIN_NUMBER)}, eblock.GetChainID().Bytes()...)
 	err := db.ProcessBlockMultiBatch([]byte{byte(ENTRYBLOCK)}, numberBucket, []byte{byte(ENTRYBLOCK_KEYMR)}, eblock)
 	if err != nil {
 		return err
 	}
-	return db.SaveIncludedInMultiFromBlockMultiBatch(eblock)
+	return db.SaveIncludedInMultiFromBlockMultiBatch(eblock, checkForDuplicateEntries)
 }
 
 // FetchEBlockByHash gets an entry block by merkle root from the database.
@@ -108,8 +108,8 @@ func (db *Overlay) FetchAllEBlocksByChain(chainID interfaces.IHash) ([]interface
 	return list, nil
 }
 
-func (db *Overlay) SaveEBlockHead(block interfaces.DatabaseBlockWithEntries) error {
-	return db.ProcessEBlockBatch(block)
+func (db *Overlay) SaveEBlockHead(block interfaces.DatabaseBlockWithEntries, checkForDuplicateEntries bool) error {
+	return db.ProcessEBlockBatch(block, checkForDuplicateEntries)
 }
 
 func (db *Overlay) FetchEBlockHead(chainID interfaces.IHash) (interfaces.IEntryBlock, error) {

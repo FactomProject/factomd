@@ -57,7 +57,7 @@ func CreateTestDBStateList() []interfaces.IMsg {
 		timestamp := interfaces.NewTimeStampNow()
 		timestamp.SetTime(uint64(i * 1000 * 60 * 60 * 6)) //6 hours of difference between messages
 
-		answer[i] = messages.NewDBStateMsg(*timestamp, prev.DBlock, prev.ABlock, prev.FBlock, prev.ECBlock, []interfaces.IEntryBlock{prev.AnchorEBlock, prev.EBlock})
+		answer[i] = messages.NewDBStateMsg(*timestamp, prev.DBlock, prev.ABlock, prev.FBlock, prev.ECBlock)
 	}
 	return answer
 }
@@ -89,17 +89,17 @@ func CreateAndPopulateTestDatabaseOverlay() *databaseOverlay.Overlay {
 			panic(err)
 		}
 
-		err = dbo.ProcessEBlockMultiBatch(prev.EBlock)
+		err = dbo.ProcessEBlockMultiBatch(prev.EBlock, false)
 		if err != nil {
 			panic(err)
 		}
 
-		err = dbo.ProcessEBlockMultiBatch(prev.AnchorEBlock)
+		err = dbo.ProcessEBlockMultiBatch(prev.AnchorEBlock, false)
 		if err != nil {
 			panic(err)
 		}
 
-		err = dbo.ProcessECBlockMultiBatch(prev.ECBlock)
+		err = dbo.ProcessECBlockMultiBatch(prev.ECBlock, false)
 		if err != nil {
 			panic(err)
 		}
@@ -155,6 +155,18 @@ func newBlockSet() *BlockSet {
 	bs.AnchorEBlock = nil
 	bs.Entries = nil
 	return bs
+}
+
+func CreateFullTestBlockSet() []*BlockSet {
+	answer := make([]*BlockSet, BlockCount)
+	var prev *BlockSet = nil
+
+	for i := 0; i < BlockCount; i++ {
+		prev = CreateTestBlockSet(prev)
+		answer[i] = prev
+	}
+
+	return answer
 }
 
 func CreateTestBlockSet(prev *BlockSet) *BlockSet {

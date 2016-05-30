@@ -120,7 +120,7 @@ func (m *MissingMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error
 		return nil, fmt.Errorf("DBHeight or ProcListHeight is negative")
 	}
 
-	m.Peer2peer = true // Always a peer2peer request.
+	m.Peer2Peer = true // Always a peer2peer request.
 
 	return data, nil
 }
@@ -151,6 +151,7 @@ func (m *MissingMsg) MarshalBinary() ([]byte, error) {
 
 	//TODO: delete this once we have unit tests
 	if unmarshalErr := mmm.UnmarshalBinary(bb); unmarshalErr != nil {
+		fmt.Println("Missing failed to marshal/unmarshal")
 		return nil, unmarshalErr
 	}
 
@@ -158,7 +159,7 @@ func (m *MissingMsg) MarshalBinary() ([]byte, error) {
 }
 
 func (m *MissingMsg) String() string {
-	return fmt.Sprintf("MissMsg vm=%d DBHeight:%3d PL Height:%3d", m.VMIndex, m.DBHeight, m.ProcessListHeight)
+	return fmt.Sprintf("MissingMsg vm=%d DBHeight:%3d PL Height:%3d", m.VMIndex, m.DBHeight, m.ProcessListHeight)
 }
 
 func (m *MissingMsg) ChainID() []byte {
@@ -198,7 +199,9 @@ func (m *MissingMsg) FollowerExecute(state interfaces.IState) error {
 
 	if msg != nil && ackMsg != nil && err == nil { // If I don't have this message, ignore.
 		msg.SetOrigin(m.GetOrigin())
+		msg.SetPeer2Peer(true)
 		ackMsg.SetOrigin(m.GetOrigin())
+		ackMsg.SetPeer2Peer(true)
 		state.NetworkOutMsgQueue() <- msg
 		state.NetworkOutMsgQueue() <- ackMsg
 	}
@@ -222,7 +225,7 @@ func NewMissingMsg(state interfaces.IState, dbHeight uint32, processlistHeight u
 
 	msg := new(MissingMsg)
 
-	msg.Peer2peer = true // Always a peer2peer request.
+	msg.Peer2Peer = true // Always a peer2peer request.
 	msg.Timestamp = state.GetTimestamp()
 	msg.DBHeight = dbHeight
 	msg.ProcessListHeight = processlistHeight

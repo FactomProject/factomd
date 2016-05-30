@@ -9,75 +9,73 @@ import (
 	"github.com/FactomProject/factomd/receipts"
 	"github.com/FactomProject/factomd/testHelper"
 	. "github.com/FactomProject/factomd/wsapi"
-	"github.com/FactomProject/web"
-	"net/http"
 	"strings"
 	"testing"
 )
 
 /*
 func TestHandleFactoidSubmit(t *testing.T) {
-	context := createWebContext()
+	context := testHelper.CreateWebContext()
 
 	HandleFactoidSubmit(context)
 
-	if strings.Contains(GetBody(context), "") == false {
-		t.Errorf("%v", GetBody(context))
+	if strings.Contains(testHelper.GetBody(context), "") == false {
+		t.Errorf("%v", testHelper.GetBody(context))
 	}
 }
 */
 /*
 func TestHandleCommitChain(t *testing.T) {
-	context := createWebContext()
+	context := testHelper.CreateWebContext()
 
 	HandleCommitChain(context)
 
-	if strings.Contains(GetBody(context), "") == false {
-		t.Errorf("%v", GetBody(context))
+	if strings.Contains(testHelper.GetBody(context), "") == false {
+		t.Errorf("%v", testHelper.GetBody(context))
 	}
 }
 */
 /*
 func TestHandleRevealChain(t *testing.T) {
-	context := createWebContext()
+	context := testHelper.CreateWebContext()
 
 	HandleRevealChain(context)
 
-	if strings.Contains(GetBody(context), "") == false {
-		t.Errorf("%v", GetBody(context))
+	if strings.Contains(testHelper.GetBody(context), "") == false {
+		t.Errorf("%v", testHelper.GetBody(context))
 	}
 }
 */
 /*
 func TestHandleCommitEntry(t *testing.T) {
-	context := createWebContext()
+	context := testHelper.CreateWebContext()
 
 	HandleCommitEntry(context)
 
-	if strings.Contains(GetBody(context), "") == false {
-		t.Errorf("%v", GetBody(context))
+	if strings.Contains(testHelper.GetBody(context), "") == false {
+		t.Errorf("%v", testHelper.GetBody(context))
 	}
 }
 */
 /*
 func TestHandleRevealEntry(t *testing.T) {
-	context := createWebContext()
+	context := testHelper.CreateWebContext()
 
 	HandleRevealEntry(context)
 
-	if strings.Contains(GetBody(context), "") == false {
-		t.Errorf("%v", GetBody(context))
+	if strings.Contains(testHelper.GetBody(context), "") == false {
+		t.Errorf("%v", testHelper.GetBody(context))
 	}
 }
 */
 
 func TestHandleDirectoryBlockHead(t *testing.T) {
-	context := createWebContext()
+	context := testHelper.CreateWebContext()
 
 	HandleDirectoryBlockHead(context)
 
-	if strings.Contains(GetBody(context), "93b9d8bc11869819aed5e11ff15c865435a58d7b57c9f27fe4638dfc23f13b34") == false {
-		t.Errorf("Context does not contain proper DBlock Head - %v", GetBody(context))
+	if strings.Contains(testHelper.GetBody(context), "93b9d8bc11869819aed5e11ff15c865435a58d7b57c9f27fe4638dfc23f13b34") == false {
+		t.Errorf("Context does not contain proper DBlock Head - %v", testHelper.GetBody(context))
 	}
 }
 
@@ -148,80 +146,84 @@ func TestHandleGetRaw(t *testing.T) {
 	raw.Raw = primitives.EncodeBinary(hex)
 	toTest = append(toTest, raw) //5
 
-	context := createWebContext()
+	context := testHelper.CreateWebContext()
 	for i, v := range toTest {
-		clearContextResponseWriter(context)
+		testHelper.ClearContextResponseWriter(context)
 		HandleGetRaw(context, v.Hash1)
 
-		if strings.Contains(GetBody(context), v.Raw) == false {
+		if strings.Contains(testHelper.GetBody(context), v.Raw) == false {
 			t.Errorf("Looking for %v", v.Hash1)
-			t.Errorf("GetRaw %v/%v from Hash1 failed - %v", i, len(toTest), GetBody(context))
+			t.Errorf("GetRaw %v/%v from Hash1 failed - %v", i, len(toTest), testHelper.GetBody(context))
 		}
 
-		clearContextResponseWriter(context)
+		testHelper.ClearContextResponseWriter(context)
 		HandleGetRaw(context, v.Hash2)
 
-		if strings.Contains(GetBody(context), v.Raw) == false {
+		if strings.Contains(testHelper.GetBody(context), v.Raw) == false {
 			t.Errorf("Looking for %v", v.Hash2)
-			t.Errorf("GetRaw %v/%v from Hash2 failed - %v", i, len(toTest), GetBody(context))
+			t.Errorf("GetRaw %v/%v from Hash2 failed - %v", i, len(toTest), testHelper.GetBody(context))
 		}
 	}
 }
 
 func TestHandleDirectoryBlock(t *testing.T) {
-	context := createWebContext()
-	hash := "93b9d8bc11869819aed5e11ff15c865435a58d7b57c9f27fe4638dfc23f13b34"
+	context := testHelper.CreateWebContext()
+	hash := "d57f08eb468113a882e1c6610d7d726fdbba3096dbcbc58ca2340239ad358880"
 
 	HandleDirectoryBlock(context, hash)
 
-	if strings.Contains(GetBody(context), "000000000000000000000000000000000000000000000000000000000000000a") == false {
-		t.Errorf("%v", GetBody(context))
+	if strings.Contains(testHelper.GetBody(context), "000000000000000000000000000000000000000000000000000000000000000a") == false {
+		t.Errorf("%v", testHelper.GetBody(context))
 	}
 
-	if strings.Contains(GetBody(context), "b07a252e7ff13ef3ae6b18356949af34f535eca0383a03f71f5f4c526c58b562") == false {
-		t.Errorf("%v", GetBody(context))
+	if strings.Contains(testHelper.GetBody(context), "b07a252e7ff13ef3ae6b18356949af34f535eca0383a03f71f5f4c526c58b562") == false {
+		t.Errorf("%v", testHelper.GetBody(context))
 	}
 
-	if strings.Contains(GetBody(context), "000000000000000000000000000000000000000000000000000000000000000c") == false {
-		t.Errorf("%v", GetBody(context))
+	if strings.Contains(testHelper.GetBody(context), "000000000000000000000000000000000000000000000000000000000000000c") == false {
+		t.Errorf("%v", testHelper.GetBody(context))
 	}
 
-	if strings.Contains(GetBody(context), "4878cdd3e80af547c59ea8bcb17471d676a0fdb1bcc01ab17a438cb5fb9ad4da") == false {
-		t.Errorf("%v", GetBody(context))
+	if strings.Contains(testHelper.GetBody(context), "1c290560040542fcbe3cf088d70b7178b3c45b2c4ef20b258593673663455357") == false {
+		t.Errorf("%v", testHelper.GetBody(context))
 	}
 
-	if strings.Contains(GetBody(context), "000000000000000000000000000000000000000000000000000000000000000f") == false {
-		t.Errorf("%v", GetBody(context))
+	if strings.Contains(testHelper.GetBody(context), "000000000000000000000000000000000000000000000000000000000000000f") == false {
+		t.Errorf("%v", testHelper.GetBody(context))
 	}
 
-	if strings.Contains(GetBody(context), "067f353dda05ac27261d4b35a09f211f7a4b0182dff0b6098a16ae8659eb7f5f") == false {
-		t.Errorf("%v", GetBody(context))
+	if strings.Contains(testHelper.GetBody(context), "c6cd2ab21d75af1e8589e1eb441411838a508d0674eb294bac4efdc591c3fef4") == false {
+		t.Errorf("%v", testHelper.GetBody(context))
 	}
 
-	if strings.Contains(GetBody(context), "6e7e64ac45ff57edbf8537a0c99fba2e9ee351ef3d3f4abd93af9f01107e592c") == false {
-		t.Errorf("%v", GetBody(context))
+	if strings.Contains(testHelper.GetBody(context), "6e7e64ac45ff57edbf8537a0c99fba2e9ee351ef3d3f4abd93af9f01107e592c") == false {
+		t.Errorf("%v", testHelper.GetBody(context))
 	}
 
-	if strings.Contains(GetBody(context), "1127ed78303976572f25dfba2a058e475234c079ea0d0f645280d03caff08347") == false {
-		t.Errorf("%v", GetBody(context))
+	if strings.Contains(testHelper.GetBody(context), "1127ed78303976572f25dfba2a058e475234c079ea0d0f645280d03caff08347") == false {
+		t.Errorf("%v", testHelper.GetBody(context))
 	}
 
-	if strings.Contains(GetBody(context), "df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604") == false {
-		t.Errorf("%v", GetBody(context))
+	if strings.Contains(testHelper.GetBody(context), "df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604") == false {
+		t.Errorf("%v", testHelper.GetBody(context))
 	}
 
-	if strings.Contains(GetBody(context), "5b60c30aa371c6551ae6644c06c30339fa5296b32082a1779ac40880986434b6") == false {
-		t.Errorf("%v", GetBody(context))
+	if strings.Contains(testHelper.GetBody(context), "1a1586498d5dc5607274cbbef23c92d786df7f06674f3297348e7213f8e5583e") == false {
+		t.Errorf("%v", testHelper.GetBody(context))
 	}
 }
 
 func TestHandleEntryBlock(t *testing.T) {
-	context := createWebContext()
+	context := testHelper.CreateWebContext()
 	chain, err := primitives.HexToHash("df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604")
 	if err != nil {
 		t.Error(err)
 	}
-	blocks, err := context.Server.Env["state"].(interfaces.IState).GetDB().FetchAllEBlocksByChain(chain)
+
+	dbo := context.Server.Env["state"].(interfaces.IState).GetAndLockDB()
+	defer context.Server.Env["state"].(interfaces.IState).UnlockDB()
+
+	blocks, err := dbo.FetchAllEBlocksByChain(chain)
 	if err != nil {
 		t.Error(err)
 	}
@@ -230,36 +232,36 @@ func TestHandleEntryBlock(t *testing.T) {
 		hash := b.(*entryBlock.EBlock).DatabasePrimaryIndex().String()
 		hash2 := b.(*entryBlock.EBlock).DatabaseSecondaryIndex().String()
 
-		clearContextResponseWriter(context)
+		testHelper.ClearContextResponseWriter(context)
 		HandleEntryBlock(context, hash)
 
 		eBlock := new(EBlock)
 
-		UnmarshalRespDirectly(context, eBlock)
+		testHelper.UnmarshalRespDirectly(context, eBlock)
 
 		if eBlock.Header.ChainID != "df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604" {
 			t.Errorf("Wrong ChainID - %v", eBlock.Header.ChainID)
 			t.Errorf("eBlock - %v", eBlock)
-			t.Errorf("%v", GetBody(context))
+			t.Errorf("%v", testHelper.GetBody(context))
 		}
 
-		if eBlock.Header.DBHeight != b.(*entryBlock.EBlock).GetHeader().GetDBHeight() {
+		if eBlock.Header.DBHeight != int64(b.(*entryBlock.EBlock).GetHeader().GetDBHeight()) {
 			t.Errorf("DBHeight is wrong - %v vs %v", eBlock.Header.DBHeight, b.(*entryBlock.EBlock).GetHeader().GetDBHeight())
 		}
 
-		clearContextResponseWriter(context)
+		testHelper.ClearContextResponseWriter(context)
 		HandleEntryBlock(context, hash2)
 
 		eBlock = new(EBlock)
 
-		UnmarshalRespDirectly(context, eBlock)
+		testHelper.UnmarshalRespDirectly(context, eBlock)
 
 		if eBlock.Header.ChainID != "df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604" {
 			t.Errorf("Wrong ChainID - %v", eBlock.Header.ChainID)
-			t.Errorf("%v", GetBody(context))
+			t.Errorf("%v", testHelper.GetBody(context))
 		}
 
-		if eBlock.Header.DBHeight != b.(*entryBlock.EBlock).GetHeader().GetDBHeight() {
+		if eBlock.Header.DBHeight != int64(b.(*entryBlock.EBlock).GetHeader().GetDBHeight()) {
 			t.Errorf("DBHeight is wrong - %v vs %v", eBlock.Header.DBHeight, b.(*entryBlock.EBlock).GetHeader().GetDBHeight())
 		}
 
@@ -272,75 +274,75 @@ func TestHandleEntryBlock(t *testing.T) {
 
 /*
 func TestHandleEntry(t *testing.T) {
-	context := createWebContext()
+	context := testHelper.CreateWebContext()
 	hash := ""
 
 	HandleEntry(context, hash)
 
-	if strings.Contains(GetBody(context), "") == false {
-		t.Errorf("%v", GetBody(context))
+	if strings.Contains(testHelper.GetBody(context), "") == false {
+		t.Errorf("%v", testHelper.GetBody(context))
 	}
 }
 */
 func TestHandleChainHead(t *testing.T) {
-	context := createWebContext()
+	context := testHelper.CreateWebContext()
 	hash := "000000000000000000000000000000000000000000000000000000000000000d"
 
 	HandleChainHead(context, hash)
 
-	if strings.Contains(GetBody(context), "93b9d8bc11869819aed5e11ff15c865435a58d7b57c9f27fe4638dfc23f13b34") == false {
-		t.Errorf("Invalid directory block head: %v", GetBody(context))
+	if strings.Contains(testHelper.GetBody(context), "93b9d8bc11869819aed5e11ff15c865435a58d7b57c9f27fe4638dfc23f13b34") == false {
+		t.Errorf("Invalid directory block head: %v", testHelper.GetBody(context))
 	}
 
 	hash = "000000000000000000000000000000000000000000000000000000000000000a"
 
-	clearContextResponseWriter(context)
+	testHelper.ClearContextResponseWriter(context)
 	HandleChainHead(context, hash)
 
-	if strings.Contains(GetBody(context), "b07a252e7ff13ef3ae6b18356949af34f535eca0383a03f71f5f4c526c58b562") == false {
-		t.Errorf("Invalid admin block head: %v", GetBody(context))
+	if strings.Contains(testHelper.GetBody(context), "b07a252e7ff13ef3ae6b18356949af34f535eca0383a03f71f5f4c526c58b562") == false {
+		t.Errorf("Invalid admin block head: %v", testHelper.GetBody(context))
 	}
 
 	hash = "6e7e64ac45ff57edbf8537a0c99fba2e9ee351ef3d3f4abd93af9f01107e592c"
 
-	clearContextResponseWriter(context)
+	testHelper.ClearContextResponseWriter(context)
 	HandleChainHead(context, hash)
 
-	if strings.Contains(GetBody(context), "1127ed78303976572f25dfba2a058e475234c079ea0d0f645280d03caff08347") == false {
-		t.Errorf("Invalid entry block head: %v", GetBody(context))
+	if strings.Contains(testHelper.GetBody(context), "1127ed78303976572f25dfba2a058e475234c079ea0d0f645280d03caff08347") == false {
+		t.Errorf("Invalid entry block head: %v", testHelper.GetBody(context))
 	}
 
 	hash = "000000000000000000000000000000000000000000000000000000000000000c"
 
-	clearContextResponseWriter(context)
+	testHelper.ClearContextResponseWriter(context)
 	HandleChainHead(context, hash)
 
-	if strings.Contains(GetBody(context), "4878cdd3e80af547c59ea8bcb17471d676a0fdb1bcc01ab17a438cb5fb9ad4da") == false {
-		t.Errorf("Invalid entry credit block head: %v", GetBody(context))
+	if strings.Contains(testHelper.GetBody(context), "4878cdd3e80af547c59ea8bcb17471d676a0fdb1bcc01ab17a438cb5fb9ad4da") == false {
+		t.Errorf("Invalid entry credit block head: %v", testHelper.GetBody(context))
 	}
 
 	hash = "000000000000000000000000000000000000000000000000000000000000000f"
 
-	clearContextResponseWriter(context)
+	testHelper.ClearContextResponseWriter(context)
 	HandleChainHead(context, hash)
 
-	if strings.Contains(GetBody(context), "067f353dda05ac27261d4b35a09f211f7a4b0182dff0b6098a16ae8659eb7f5f") == false {
-		t.Errorf("Invalid factoid block head: %v", GetBody(context))
+	if strings.Contains(testHelper.GetBody(context), "067f353dda05ac27261d4b35a09f211f7a4b0182dff0b6098a16ae8659eb7f5f") == false {
+		t.Errorf("Invalid factoid block head: %v", testHelper.GetBody(context))
 	}
 }
 
 //func TestHandleEntryCreditBalance(t *testing.T) {
-//	context := createWebContext()
+//	context := testHelper.CreateWebContext()
 //
 //	HandleEntryCreditBalance(context)
 //
-//	if strings.Contains(GetBody(context), "") == false {
-//		t.Errorf("%v", GetBody(context))
+//	if strings.Contains(testHelper.GetBody(context), "") == false {
+//		t.Errorf("%v", testHelper.GetBody(context))
 //	}
 //}
 
 func TestHandleFactoidBalance(t *testing.T) {
-	context := createWebContext()
+	context := testHelper.CreateWebContext()
 	eckey := testHelper.NewFactoidRCDAddressString(0)
 
 	fmt.Printf("%v\n", eckey)
@@ -349,28 +351,28 @@ func TestHandleFactoidBalance(t *testing.T) {
 
 	//expectedAmount := fmt.Sprintf("%v", uint64(testHelper.BlockCount)*testHelper.DefaultCoinbaseAmount)
 	expectedAmount := "1099877900"
-	if strings.Contains(GetBody(context), expectedAmount) == false {
-		t.Errorf("%v", GetBody(context))
+	if strings.Contains(testHelper.GetBody(context), expectedAmount) == false {
+		t.Errorf("%v", testHelper.GetBody(context))
 	}
 }
 
 func TestHandleGetFee(t *testing.T) {
-	context := createWebContext()
+	context := testHelper.CreateWebContext()
 
 	HandleGetFee(context)
 
-	if strings.Contains(GetBody(context), "") == false {
-		t.Errorf("%v", GetBody(context))
+	if strings.Contains(testHelper.GetBody(context), "") == false {
+		t.Errorf("%v", testHelper.GetBody(context))
 	}
 }
 
 func TestBlockIteration(t *testing.T) {
-	context := createWebContext()
+	context := testHelper.CreateWebContext()
 	hash := "000000000000000000000000000000000000000000000000000000000000000d"
 
 	HandleChainHead(context, hash)
 
-	j := GetRespText(context)
+	j := testHelper.GetRespText(context)
 	head := new(CHead)
 	err := primitives.DecodeJSONString(j, head)
 	if err != nil {
@@ -383,10 +385,10 @@ func TestBlockIteration(t *testing.T) {
 		if prev == "0000000000000000000000000000000000000000000000000000000000000000" || prev == "" {
 			break
 		}
-		clearContextResponseWriter(context)
+		testHelper.ClearContextResponseWriter(context)
 		HandleDirectoryBlock(context, prev)
 
-		j = GetRespText(context)
+		j = testHelper.GetRespText(context)
 		block := new(DBlock)
 		err = primitives.DecodeJSONString(j, block)
 		if err != nil {
@@ -401,14 +403,15 @@ func TestBlockIteration(t *testing.T) {
 }
 
 func TestHandleGetReceipt(t *testing.T) {
-	context := createWebContext()
+	context := testHelper.CreateWebContext()
 	hash := "cf9503fad6a6cf3cf6d7a5a491e23d84f9dee6dacb8c12f428633995655bd0d0"
 
 	HandleGetReceipt(context, hash)
 
-	j := GetRespMap(context)
+	j := testHelper.GetRespMap(context)
 
-	dbo := context.Server.Env["state"].(interfaces.IState).GetDB()
+	dbo := context.Server.Env["state"].(interfaces.IState).GetAndLockDB()
+	defer context.Server.Env["state"].(interfaces.IState).UnlockDB()
 
 	receipt := j["Receipt"].(map[string]interface{})
 	marshalled, err := json.Marshal(receipt)
@@ -421,103 +424,4 @@ func TestHandleGetReceipt(t *testing.T) {
 		t.Logf("receipt - %v", j)
 		t.Error(err)
 	}
-}
-
-//****************************************************************
-
-func GetRespMap(context *web.Context) map[string]interface{} {
-	j := GetBody(context)
-
-	unmarshalled := map[string]interface{}{}
-	err := json.Unmarshal([]byte(j), &unmarshalled)
-	if err != nil {
-		panic(err)
-	}
-	return unmarshalled
-}
-
-func UnmarshalResp(context *web.Context, dst interface{}) {
-	j := GetBody(context)
-
-	type rtn struct {
-		Response interface{}
-		Success  bool
-	}
-	r := new(rtn)
-	r.Response = dst
-
-	err := json.Unmarshal([]byte(j), r)
-	if err != nil {
-		fmt.Printf("body - %v\n", j)
-		panic(err)
-	}
-}
-
-func UnmarshalRespDirectly(context *web.Context, dst interface{}) {
-	j := GetBody(context)
-
-	err := json.Unmarshal([]byte(j), dst)
-	if err != nil {
-		fmt.Printf("body - %v\n", j)
-		panic(err)
-	}
-}
-
-func GetRespText(context *web.Context) string {
-	unmarshalled := GetRespMap(context)
-	if unmarshalled["Response"] != nil {
-		marshalled, err := json.Marshal(unmarshalled["Response"])
-		if err != nil {
-			panic(err)
-		}
-		return string(marshalled)
-	} else {
-		marshalled, err := json.Marshal(unmarshalled)
-		if err != nil {
-			panic(err)
-		}
-		return string(marshalled)
-	}
-}
-
-func clearContextResponseWriter(context *web.Context) {
-	context.ResponseWriter = new(TestResponseWriter)
-}
-
-func createWebContext() *web.Context {
-	context := new(web.Context)
-	context.Server = new(web.Server)
-	context.Server.Env = map[string]interface{}{}
-	context.Server.Env["state"] = testHelper.CreateAndPopulateTestState()
-	context.ResponseWriter = new(TestResponseWriter)
-
-	return context
-}
-
-type TestResponseWriter struct {
-	HeaderCode int
-	Head       map[string][]string
-	Body       string
-}
-
-var _ http.ResponseWriter = (*TestResponseWriter)(nil)
-
-func (t *TestResponseWriter) Header() http.Header {
-	if t.Head == nil {
-		t.Head = map[string][]string{}
-	}
-	return (http.Header)(t.Head)
-}
-
-func (t *TestResponseWriter) WriteHeader(h int) {
-	t.HeaderCode = h
-}
-
-func (t *TestResponseWriter) Write(b []byte) (int, error) {
-	t.Body = t.Body + string(b)
-	return len(b), nil
-}
-
-func GetBody(context *web.Context) string {
-	return context.ResponseWriter.(*TestResponseWriter).Body
 }

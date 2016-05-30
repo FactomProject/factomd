@@ -55,7 +55,9 @@ func (list *DBStateList) String() string {
 	for i, ds := range list.DBStates {
 		rec = "M"
 		if ds != nil && ds.DirectoryBlock != nil {
-			dblk, _ := list.State.GetDB().FetchDBlockByHash(ds.DirectoryBlock.GetKeyMR())
+			list.State.DBMutex.Lock()
+			dblk, _ := list.State.DB.FetchDBlockByHash(ds.DirectoryBlock.GetKeyMR())
+			list.State.DBMutex.Unlock()
 			if dblk != nil {
 				rec = "R"
 			}
@@ -110,10 +112,6 @@ func (list *DBStateList) Catchup() {
 
 	dbsHeight := list.GetHighestRecordedBlock()
 
-	if dbsHeight > list.State.LLeaderHeight {
-		list.State.LLeaderHeight = dbsHeight + 1
-	}
-
 	// We only check if we need updates once every so often.
 	if int(now)/1000-int(list.LastTime)/1000 < SecondsBetweenTests {
 		return
@@ -143,7 +141,8 @@ func (list *DBStateList) Catchup() {
 			return
 		}
 
-		if plHeight > dbsHeight && plHeight-dbsHeight > 2 {
+		if plHeight > dbsHeight && plHeight-dbsHeight > 1 {
+			list.State.ProcessLists.Reset(dbsHeight)
 			begin = int(dbsHeight + 1)
 			end = int(plHeight - 1)
 		} else {
@@ -162,11 +161,14 @@ func (list *DBStateList) Catchup() {
 
 	if msg != nil {
 		list.State.NetworkOutMsgQueue() <- msg
+		list.State.stallQueue = make(chan interfaces.IMsg, 10000)
+		list.State.NewMinute()
 	}
 
 }
 
 func (list *DBStateList) UpdateState() (progress bool) {
+
 	list.Catchup()
 
 	for i, d := range list.DBStates {
@@ -183,7 +185,9 @@ func (list *DBStateList) UpdateState() (progress bool) {
 		// Make sure the directory block is properly synced up with the prior block, if there
 		// is one.
 
-		dblk, _ := list.State.GetDB().FetchDBlockByKeyMR(d.DirectoryBlock.GetKeyMR())
+		list.State.DBMutex.Lock()
+		dblk, _ := list.State.DB.FetchDBlockByKeyMR(d.DirectoryBlock.GetKeyMR())
+		list.State.DBMutex.Unlock()
 		if dblk == nil {
 			if i > 0 {
 				p := list.DBStates[i-1]
@@ -191,7 +195,9 @@ func (list *DBStateList) UpdateState() (progress bool) {
 					continue
 				}
 			}
-			list.State.GetDB().StartMultiBatch()
+			list.State.DBMutex.Lock()
+			list.State.DB.StartMultiBatch()
+			list.State.DBMutex.Unlock()
 
 			//fmt.Println("Saving DBHeight ", d.DirectoryBlock.GetHeader().GetDBHeight(), " on ", list.State.GetFactomNodeName())
 
@@ -239,53 +245,66 @@ func (list *DBStateList) UpdateState() (progress bool) {
 					}
 					d.DirectoryBlock.AddEntry(eb.GetChainID(), key)
 				}
-
+				d.DirectoryBlock.GetKeyMR()
 				_, err = d.DirectoryBlock.BuildBodyMR()
 				if err != nil {
 					panic(err.Error())
 				}
 
 			}
-			if err := list.State.GetDB().ProcessDBlockMultiBatch(d.DirectoryBlock); err != nil {
+			list.State.DBMutex.Lock()
+			if err := list.State.DB.ProcessDBlockMultiBatch(d.DirectoryBlock); err != nil {
+				list.State.DBMutex.Unlock()
 				panic(err.Error())
 			}
 
-			if err := list.State.GetDB().ProcessABlockMultiBatch(d.AdminBlock); err != nil {
+			if err := list.State.DB.ProcessABlockMultiBatch(d.AdminBlock); err != nil {
+				list.State.DBMutex.Unlock()
 				panic(err.Error())
 			}
 
-			if err := list.State.GetDB().ProcessFBlockMultiBatch(d.FactoidBlock); err != nil {
+			if err := list.State.DB.ProcessFBlockMultiBatch(d.FactoidBlock); err != nil {
+				list.State.DBMutex.Unlock()
 				panic(err.Error())
 			}
 
-			if err := list.State.GetDB().ProcessECBlockMultiBatch(d.EntryCreditBlock); err != nil {
+			if err := list.State.DB.ProcessECBlockMultiBatch(d.EntryCreditBlock, false); err != nil {
+				list.State.DBMutex.Unlock()
 				panic(err.Error())
 			}
 
 			pl := list.State.ProcessLists.Get(d.DirectoryBlock.GetHeader().GetDBHeight())
 			for _, eb := range pl.NewEBlocks {
-				if err := list.State.GetDB().ProcessEBlockMultiBatch(eb); err != nil {
+				if err := list.State.DB.ProcessEBlockMultiBatch(eb, false); err != nil {
+					list.State.DBMutex.Unlock()
 					panic(err.Error())
 				}
 				for _, e := range eb.GetBody().GetEBEntries() {
-					if err := list.State.GetDB().InsertEntry(pl.NewEntries[e.Fixed()]); err != nil {
+					if err := list.State.DB.InsertEntry(pl.NewEntries[e.Fixed()]); err != nil {
+						list.State.DBMutex.Unlock()
 						panic(err.Error())
 					}
 				}
 			}
 
-			if err := list.State.GetDB().ExecuteMultiBatch(); err != nil {
+			if err := list.State.DB.ExecuteMultiBatch(); err != nil {
+				list.State.DBMutex.Unlock()
 				panic(err.Error())
 			}
+			list.State.DBMutex.Unlock()
+
+		}
+
+		list.State.DBMutex.Lock()
+		dblk2, _ := list.State.DB.FetchDBlockByKeyMR(d.DirectoryBlock.GetKeyMR())
+		list.State.DBMutex.Unlock()
+		if dblk2 == nil {
+			fmt.Printf("Failed to save the Directory Block %d %x\n",
+				d.DirectoryBlock.GetHeader().GetDBHeight(),
+				d.DirectoryBlock.GetKeyMR().Bytes()[:3])
 		}
 		list.LastTime = list.State.GetTimestamp() // If I saved or processed stuff, I'm good for a while
 		d.Saved = true                            // Only after all is done will I admit this state has been saved.
-
-		if d.DirectoryBlock.GetHeader().GetDBHeight() == list.State.LLeaderHeight {
-			list.State.EOB = true
-		}
-
-		list.State.LLeaderHeight = list.State.GetHighestRecordedBlock() + 1
 
 		// Any updates required to the state as established by the AdminBlock are applied here.
 		d.AdminBlock.UpdateState(list.State)

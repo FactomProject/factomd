@@ -19,6 +19,13 @@ type ProcessLists struct {
 
 }
 
+func (lists *ProcessLists) LastList() *ProcessList {
+	return lists.Lists[len(lists.Lists)-1]
+}
+
+func (lists *ProcessLists) Reset(dbheight uint32) {
+}
+
 // UpdateState is executed from a Follower's perspective.  So the block we are building
 // is always the block above the HighestRecordedBlock, but we only care about messages that
 // are at the highest known block, as long as that is above the highest recorded block.
