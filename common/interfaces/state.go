@@ -80,8 +80,8 @@ type IState interface {
 	InMsgQueue() chan IMsg // Read by Validate
 	AckQueue() chan IMsg   // Leader Queue
 	MsgQueue() chan IMsg   // Follower Queue
-	Stall() chan IMsg      // Leader Queue
 	StallMsg(IMsg)         // Stall a message that we need to execute later
+	GetStalled(int) IMsg
 
 	// Lists and Maps
 	// =====

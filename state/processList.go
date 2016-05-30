@@ -498,22 +498,25 @@ func (p *ProcessList) GoodTo(vmIndex int) bool {
 
 func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 
-	stall := func() {
+	stall := func(hint string) {
 		p.State.StallMsg(ack)
 		p.State.Holding[m.GetHash().Fixed()] = m
 		delete(p.State.Acks, ack.GetHash().Fixed())
+		fmt.Println("dddd",hint, p.State.FactomNodeName, "Stall",m.String())
+		fmt.Println("dddd",hint, p.State.FactomNodeName, "Stall",ack.String())
 	}
 
 	toss := func(hint string) {
 		delete(p.State.Holding, ack.GetHash().Fixed())
 		delete(p.State.Acks, ack.GetHash().Fixed())
 		fmt.Println("dddd",hint, p.State.FactomNodeName, "Toss",m.String())
+		fmt.Println("dddd",hint, p.State.FactomNodeName, "Toss",ack.String())
 	}
 
 	vm := p.VMs[ack.VMIndex]
 
 	if ack.DBHeight > p.DBHeight {
-		stall()
+		stall("a")
 		return
 	}
 
@@ -524,17 +527,17 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 
 	// If this vm is sealed, then we can't add more messages.
 	if vm.Seal > 0 && ack.Height >= vm.SealHeight {
-		stall()
+		stall("b")
 		return
 	}
 
 	if len(vm.List) > vm.Height {
-		stall()
+		stall("c")
 		return
 	}
 
 	if int(ack.Height) > vm.Height {
-		stall()
+		stall("d")
 		return
 	}
 
@@ -564,12 +567,6 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	// From this point on, we consider the transaction recorded.  If we detect it has already been
 	// recorded, then we still treat it as if we recorded it.
 
-	// Both the ack and the message hash to the same GetHash()
-	m.SetLocal(false)
-	ack.SetLocal(false)
-	ack.SetPeer2Peer(false)
-	m.SetPeer2Peer(false)
-
 	now := int64(p.State.GetTimestamp())
 
 	msgOk := p.State.InternalReplay.IsTSValid_(m.GetHash().Fixed(), int64(m.GetTimestamp()), now)
@@ -590,12 +587,21 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 
 	eom, ok := m.(*messages.EOM)
 	if ok {
+		if p.State.Leader && eom.IsLocal() {
+			p.State.EOM = int(eom.Minute + 1)
+		}
 		p.Sealing = true
 		vm.Seal = int(eom.Minute + 1)
 		vm.SealHeight = ack.Height
 		vm.MinuteComplete = int(eom.Minute + 1)
 		vm.MinuteHeight = vm.Height
 	}
+
+	// Both the ack and the message hash to the same GetHash()
+	m.SetLocal(false)
+	ack.SetLocal(false)
+	ack.SetPeer2Peer(false)
+	m.SetPeer2Peer(false)
 
 	length := len(p.VMs[ack.VMIndex].List)
 	for length <= int(ack.Height) {

@@ -116,26 +116,27 @@ func (s *State) ProcessQueues() (progress bool) {
 		if _, ok := s.InternalReplay.Valid(msg.GetHash().Fixed(), int64(msg.GetTimestamp()), int64(s.GetTimestamp())); !ok {
 			msg = nil
 		} else if s.Leader {
-			msg.LeaderExecute(s)
+			s.LeaderExecute(msg)				// Just do Server execution for the message
 		} else {
-			msg.FollowerExecute(s)
+			s.FollowerExecuteMsg(msg)		// Just do Server execution for the message
 		}
 		s.XReview = s.XReview[1:]
 		s.UpdateState()
 	}
+
+	if ack := s.GetStalled(0); ack != nil {
+		_, ok := s.InternalReplay.Valid(ack.GetHash().Fixed(), int64(ack.GetTimestamp()), int64(s.GetTimestamp()))
+		if ok && ack.Validate(s) == 1 {
+			ack.FollowerExecute(s)
+		}
+	}
+
 
 	select {
 	case ack := <-s.ackQueue:
 		_, ok := s.InternalReplay.Valid(ack.GetHash().Fixed(), int64(ack.GetTimestamp()), int64(s.GetTimestamp()))
 		if ok && ack.Validate(s) == 1 {
 			ack.FollowerExecute(s)
-		}
-		progress = true
-	case ack := <-s.stallQueue:
-		_, ok := s.InternalReplay.Valid(ack.GetHash().Fixed(), int64(ack.GetTimestamp()), int64(s.GetTimestamp()))
-		if ok && ack.Validate(s) == 1 {
-			ack.FollowerExecute(s)
-			progress = true
 		}
 		progress = true
 	case msg := <-s.msgQueue:
@@ -241,7 +242,10 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) {
 	s.Holding[hashf] = m
 	ack, _ := s.Acks[hashf].(*messages.Ack)
 	if ack != nil {
-		s.LeaderPL.AddToProcessList(ack, m)
+		pl := s.ProcessLists.Get(ack.DBHeight)
+		if pl != nil {
+			pl.AddToProcessList(ack, m)
+		}
 	}
 }
 
@@ -253,7 +257,10 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) {
 	s.Acks[ack.GetHash().Fixed()] = ack
 	m, _ := s.Holding[ack.GetHash().Fixed()]
 	if m != nil {
-		s.LeaderPL.AddToProcessList(ack, m)
+		pl := s.ProcessLists.Get(ack.DBHeight)
+		if pl != nil {
+			pl.AddToProcessList(ack, m)
+		}
 	}
 }
 
@@ -299,14 +306,13 @@ func (s *State) FollowerExecuteAddData(msg interfaces.IMsg) {
 
 func (s *State) LeaderExecute(m interfaces.IMsg) {
 
+	for i:=0; s.UpdateState() && i<10; i++ {
+
+	}
+
 	if !s.Leader || s.EOM > 0 || m.GetVMIndex() != s.LeaderVMIndex {
 		m.FollowerExecute(s)
 		return
-	}
-
-	vm := s.LeaderPL.VMs[s.LeaderVMIndex]
-	if len(vm.List) > vm.Height {
-		s.msgQueue <- m
 	}
 
 	ack := s.NewAck(m)
@@ -317,9 +323,8 @@ func (s *State) LeaderExecute(m interfaces.IMsg) {
 
 func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 
-	vm := s.LeaderPL.VMs[s.LeaderVMIndex]
-	if len(vm.List) > vm.Height {
-		s.msgQueue <- m
+	for i:=0; s.UpdateState() && i<10; i++ {
+
 	}
 
 	if !m.IsLocal() {
@@ -329,7 +334,6 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 
 	eom := m.(*messages.EOM)
 
-	s.EOM = int(s.LeaderMinute + 1)
 	if s.LeaderPL.VMIndexFor(constants.FACTOID_CHAINID) == s.LeaderVMIndex {
 		eom.FactoidVM = true
 	}
@@ -337,7 +341,6 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 	eom.VMIndex = s.LeaderVMIndex
 	eom.Minute = byte(s.LeaderMinute)
 	eom.Sign(s)
-	eom.SetLocal(false)
 	ack := s.NewAck(m)
 	s.LeaderPL.AddToProcessList(ack.(*messages.Ack), eom)
 

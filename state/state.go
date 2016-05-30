@@ -70,8 +70,7 @@ type State struct {
 	apiQueue               chan interfaces.IMsg
 	ackQueue               chan interfaces.IMsg
 	msgQueue               chan interfaces.IMsg
-	stallQueue             chan interfaces.IMsg
-	undo                   interfaces.IMsg
+	StallList              [] interfaces.IMsg
 	ShutdownChan           chan int // For gracefully halting Factom
 	JournalFile            string
 
@@ -292,7 +291,6 @@ func (s *State) Init() {
 	s.apiQueue = make(chan interfaces.IMsg, 10000)               //incoming message queue from the API
 	s.ackQueue = make(chan interfaces.IMsg, 10000)               //queue of Leadership messages
 	s.msgQueue = make(chan interfaces.IMsg, 10000)               //queue of Follower messages
-	s.stallQueue = make(chan interfaces.IMsg, 10000)             //queue of Leader messages while stalled
 	s.ShutdownChan = make(chan int, 1)                           //Channel to gracefully shut down.
 
 	os.Mkdir(s.LogPath, 0777)
@@ -866,11 +864,21 @@ func (s *State) AckQueue() chan interfaces.IMsg {
 }
 
 func (s *State) StallMsg(m interfaces.IMsg) {
-	s.stallQueue <- m
+	s.StallList = append(s.StallList,m)
 }
 
-func (s *State) Stall() chan interfaces.IMsg {
-	return s.stallQueue
+// Get the ith message out of the stall queue.  Note getting i=0 makes
+// the stall queue into a FIFO, but other options are possible.
+func (s *State) GetStalled(i int) interfaces.IMsg {
+	if len(s.StallList) == 0 {
+		return nil
+	}
+	m := s.StallList[0]
+
+	copy(s.StallList[i:], s.StallList[i+1:])
+	s.StallList[len(s.StallList)-1] = nil
+	s.StallList = s.StallList[:len(s.StallList)-1]
+	return m
 }
 
 func (s *State) MsgQueue() chan interfaces.IMsg {

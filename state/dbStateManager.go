@@ -159,7 +159,6 @@ func (list *DBStateList) Catchup() {
 
 	if msg != nil {
 		list.State.NetworkOutMsgQueue() <- msg
-		list.State.stallQueue = make(chan interfaces.IMsg, 10000)
 		list.State.NewMinute()
 	}
 

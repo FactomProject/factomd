@@ -309,7 +309,7 @@ func printSummary(summary *bool, listenTo *int) {
 				prt = prt + fmt.Sprintf("      AckQueue               %s\n", list)
 				list = ""
 				for _, f := range fnodes {
-					list = list + fmt.Sprintf(" %3d", len(f.State.MsgQueue()))
+					list = list + fmt.Sprintf(" %3d", len(f.State.StallList))
 				}
 				prt = prt + fmt.Sprintf("      stall Queue            %s\n", list)
 				list = ""
