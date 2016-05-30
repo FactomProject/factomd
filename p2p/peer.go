@@ -62,14 +62,15 @@ func (p *Peer) locationFromAddress() uint32 {
 	location += uint32(b1) << 16
 	location += uint32(b2) << 8
 	location += uint32(b3)
-	debug("peer", "Peer: %s with ip_port: %+v and octets: %+v has Location: %d", p.Hash, ip_port, octets, location)
+	verbose("peer", "Peer: %s with ip_port: %+v and octets: %+v has Location: %d", p.Hash, ip_port, octets, location)
 	return location
 }
 
+// BUGBUG Exclude port from hash
 func PeerHashFromAddress(address string) string {
 	raw := sha256.Sum256([]byte(address))
 	hash := base64.URLEncoding.EncodeToString(raw[0:sha256.Size])
-	debug("peer", "Peer address %s produces hash: %s", address, hash)
+	verbose("peer", "Peer address %s produces hash: %s", address, hash)
 	return hash
 }
 
