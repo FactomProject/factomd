@@ -121,6 +121,7 @@ func (s *State) ProcessQueues() (progress bool) {
 			msg.FollowerExecute(s)
 		}
 		s.XReview = s.XReview[1:]
+		s.UpdateState()
 	}
 
 	select {
