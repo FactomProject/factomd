@@ -51,7 +51,7 @@ func (d *Discovery) SavePeers() {
 	encoder := json.NewEncoder(writer)
 	encoder.Encode(d.knownPeers)
 	writer.Flush()
-	note("discovery", "SavePeers() saved %d peers in peers.josn", len(d.knownPeers))
+	note("discovery", "SavePeers() saved %d peers in peers.json", len(d.knownPeers))
 
 }
 
@@ -64,7 +64,7 @@ func (d *Discovery) LoadPeers() {
 	}
 	dec := json.NewDecoder(bufio.NewReader(file))
 	dec.Decode(&d.knownPeers)
-	note("discovery", "LoadPeers() found %d peers in peers.josn", len(d.knownPeers))
+	note("discovery", "LoadPeers() found %d peers in peers.json", len(d.knownPeers))
 	file.Close()
 }
 
