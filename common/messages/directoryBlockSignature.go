@@ -138,24 +138,16 @@ func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 
 // Returns true if this is a message for this server to execute as
 // a leader.
-func (m *DirectoryBlockSignature) Leader(state interfaces.IState) bool {
-	return m.IsLocal()
+func (m *DirectoryBlockSignature) ComputeVMIndex(state interfaces.IState) {
 }
 
 // Execute the leader functions of the given message
-func (m *DirectoryBlockSignature) LeaderExecute(state interfaces.IState) error {
-	m.SetLocal(false)
-	return state.LeaderExecute(m)
+func (m *DirectoryBlockSignature) LeaderExecute(state interfaces.IState) {
+	state.LeaderExecute(m)
 }
 
-// Returns true if this is a message for this server to execute as a follower
-func (m *DirectoryBlockSignature) Follower(state interfaces.IState) bool {
-	return true
-}
-
-func (m *DirectoryBlockSignature) FollowerExecute(state interfaces.IState) error {
-	_, err := state.FollowerExecuteMsg(m)
-	return err
+func (m *DirectoryBlockSignature) FollowerExecute(state interfaces.IState) {
+	state.FollowerExecuteMsg(m)
 }
 
 func (m *DirectoryBlockSignature) Sign(key interfaces.Signer) error {

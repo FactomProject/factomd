@@ -23,6 +23,22 @@ func (MapDB) Close() error {
 	return nil
 }
 
+func (db *MapDB) createCache(bucket []byte) {
+	if db.Cache == nil {
+		db.Sem.Lock()
+		db.Cache = map[string]map[string][]byte{}
+		db.Sem.Unlock()
+	}
+	db.Sem.RLock()
+	_, ok := db.Cache[string(bucket)]
+	db.Sem.RUnlock()
+	if ok == false {
+		db.Sem.Lock()
+		db.Cache[string(bucket)] = map[string][]byte{}
+		db.Sem.Unlock()
+	}
+}
+
 func (db *MapDB) Init(bucketList [][]byte) {
 	db.Sem.Lock()
 	defer db.Sem.Unlock()
@@ -81,6 +97,8 @@ func (db *MapDB) PutInBatch(records []interfaces.Record) error {
 }
 
 func (db *MapDB) Get(bucket, key []byte, destination interfaces.BinaryMarshallable) (interfaces.BinaryMarshallable, error) {
+	db.createCache(bucket)
+
 	db.Sem.RLock()
 	defer db.Sem.RUnlock()
 
@@ -121,6 +139,8 @@ func (db *MapDB) Delete(bucket, key []byte) error {
 }
 
 func (db *MapDB) ListAllKeys(bucket []byte) ([][]byte, error) {
+	db.createCache(bucket)
+
 	db.Sem.RLock()
 	defer db.Sem.RUnlock()
 
@@ -142,6 +162,8 @@ func (db *MapDB) ListAllKeys(bucket []byte) ([][]byte, error) {
 }
 
 func (db *MapDB) GetAll(bucket []byte, sample interfaces.BinaryMarshallableAndCopyable) ([]interfaces.BinaryMarshallableAndCopyable, error) {
+	db.createCache(bucket)
+
 	db.Sem.RLock()
 	defer db.Sem.RUnlock()
 

@@ -52,14 +52,10 @@ type CommandShutdown struct {
 	_ uint8
 }
 
-// CommandDemerit is used to instruct the Controller to reduce a connections quality score
-type CommandDemerit struct {
-	peerHash string
-}
-
-// CommandMerit is used to instruct the Controller to increase a connections quality score
-type CommandMerit struct {
-	peerHash string
+// CommandAdjustPeerQuality is used to instruct the Controller to reduce a connections quality score
+type CommandAdjustPeerQuality struct {
+	peerHash   string
+	adjustment int32
 }
 
 // CommandBan is used to instruct the Controller to disconnect and ban a peer
@@ -145,14 +141,9 @@ func (c *Controller) NetworkStop() {
 	c.commandChannel <- CommandShutdown{}
 }
 
-func (c *Controller) Demerit(peerHash string) {
-	debug("ctrlr", "NetworkStop ")
-	c.commandChannel <- CommandDemerit{peerHash: peerHash}
-}
-
-func (c *Controller) Merit(peerHash string) {
-	debug("ctrlr", "NetworkStop ")
-	c.commandChannel <- CommandMerit{peerHash: peerHash}
+func (c *Controller) AdjustPeerQuality(peerHash string, adjustment int32) {
+	debug("ctrlr", "AdjustPeerQuality ")
+	c.commandChannel <- CommandAdjustPeerQuality{peerHash: peerHash, adjustment: adjustment}
 }
 
 func (c *Controller) Ban(peerHash string) {
@@ -175,7 +166,7 @@ func (c *Controller) Ban(peerHash string) {
 
 func (c *Controller) listen() {
 	address := fmt.Sprintf(":%s", c.listenPort)
-	note("ctrlr", "Controller.listen(%s) got address %s", c.listenPort, address)
+	debug("ctrlr", "Controller.listen(%s) got address %s", c.listenPort, address)
 	listener, err := net.Listen("tcp", address)
 	if nil != err {
 		logfatal("ctrlr", "Controller.listen() Error: %+v", err)
@@ -246,10 +237,10 @@ func (c *Controller) route() {
 			message := <-connection.ReceiveChannel
 			switch message.(type) {
 			case ConnectionCommand:
-				debug(peerHash, "Controller.route() ConnectionCommand")
+				verbose(peerHash, "Controller.route() ConnectionCommand")
 				c.handleConnectionCommand(message.(ConnectionCommand), connection)
 			case ConnectionParcel:
-				debug(peerHash, "Controller.route() ConnectionParcel")
+				verbose(peerHash, "Controller.route() ConnectionParcel")
 				c.handleParcelReceive(message, peerHash, connection)
 			default:
 				logfatal("ctrlr", "route() unknown message?: %+v ", message)
@@ -308,12 +299,12 @@ func (c *Controller) handleParcelReceive(message interface{}, peerHash string, c
 
 func (c *Controller) handleConnectionCommand(command ConnectionCommand, connection Connection) {
 	switch command.command {
-	case ConnectionIsShutdown:
+	case ConnectionIsClosed:
 		debug("ctrlr", "handleConnectionCommand() Got ConnectionIsShutdown from  %s", connection.peer.Hash)
 		delete(c.connections, connection.peer.Hash)
 	case ConnectionUpdatingPeer:
 		debug("ctrlr", "handleConnectionCommand() Got ConnectionUpdatingPeer from  %s", connection.peer.Hash)
-		c.discovery.UpdatePeer(command.peer)
+		c.discovery.updatePeer(command.peer)
 	default:
 		logfatal("ctrlr", "handleParcelReceive() unknown command.command?: %+v ", command.command)
 	}
@@ -348,16 +339,11 @@ func (c *Controller) handleCommand(command interface{}) {
 		parameters := command.(CommandChangeLogging)
 		CurrentLoggingLevel = parameters.level
 		debug("ctrlr", "Controller.handleCommand(CommandChangeLogging) new logging level %s", LoggingLevels[parameters.level])
-	case CommandDemerit:
+	case CommandAdjustPeerQuality:
 		verbose("ctrlr", "handleCommand() Processing command: CommandDemerit")
-		parameters := command.(CommandDemerit)
+		parameters := command.(CommandAdjustPeerQuality)
 		peerHash := parameters.peerHash
-		c.applicationPeerUpdate(-1, peerHash)
-	case CommandMerit:
-		verbose("ctrlr", "handleCommand() Processing command: CommandMerit")
-		parameters := command.(CommandMerit)
-		peerHash := parameters.peerHash
-		c.applicationPeerUpdate(1, peerHash)
+		c.applicationPeerUpdate(parameters.adjustment, peerHash)
 	case CommandBan:
 		verbose("ctrlr", "handleCommand() Processing command: CommandBan")
 		parameters := command.(CommandBan)
@@ -413,19 +399,20 @@ func (c *Controller) shutdown() {
 	for _, connection := range c.connections {
 		connection.SendChannel <- ConnectionCommand{command: ConnectionShutdownNow}
 	}
+	//BUGBUG Make sure connetions are actually shut down.
 	c.keepRunning = false
 }
 
 func (c *Controller) networkStatusReport() {
 	reportDuration := time.Since(c.lastStatusReport)
+	// silence("ctrlr", "networkStatusReport() NetworkStatusInterval: %s reportDuration: %s c.lastStatusReport: %s", NetworkStatusInterval.String(), reportDuration.String(), c.lastPeerManagement.String())
 	if reportDuration > NetworkStatusInterval {
-		// silence("ctrlr", "networkStatusReport() NetworkStatusInterval: %s reportDuration: %s c.lastStatusReport: %s", NetworkStatusInterval.String(), reportDuration.String(), c.lastPeerManagement.String())
 		c.lastStatusReport = time.Now()
 		silence("ctrlr", "###########################")
 		silence("ctrlr", "Network Status Report:")
 		silence("ctrlr", "===========================")
-		for key, value := range c.connections {
-			silence("ctrlr", "Connection Hash: %s", key)
+		for _, value := range c.connections {
+			silence("ctrlr", "     Connection: %s", value.peer.Address)
 			silence("ctrlr", "          State: %s", value.ConnectionState())
 			silence("ctrlr", " ReceiveChannel: %d", len(value.ReceiveChannel))
 			silence("ctrlr", "    SendChannel: %d", len(value.SendChannel))

@@ -21,9 +21,7 @@ func LoadDatabase(s *State) {
 
 	var blkCnt uint32
 
-	s.DBMutex.Lock()
 	head, err := s.DB.FetchDirectoryBlockHead()
-	s.DBMutex.Unlock()
 
 	if err == nil && head != nil {
 		blkCnt = head.GetHeader().GetDBHeight()

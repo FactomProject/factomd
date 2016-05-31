@@ -177,7 +177,8 @@ func PeriodicStatusReport(fnodes []*FactomNode) {
 		if listenTo >= 0 && listenTo < len(fnodes) {
 			fmt.Printf("   %s\n", fnodes[listenTo].State.GetFactomNodeName())
 			fmt.Printf("      InMsgQueue             %d\n", len(fnodes[listenTo].State.InMsgQueue()))
-			fmt.Printf("      LeaderMsgQueue         %d\n", len(fnodes[listenTo].State.LeaderMsgQueue()))
+			fmt.Printf("      AckQueue               %d\n", len(fnodes[listenTo].State.AckQueue()))
+			fmt.Printf("      MsgQueue               %d\n", len(fnodes[listenTo].State.MsgQueue()))
 			fmt.Printf("      TimerMsgQueue          %d\n", len(fnodes[listenTo].State.TimerMsgQueue()))
 			fmt.Printf("      NetworkOutMsgQueue     %d\n", len(fnodes[listenTo].State.NetworkOutMsgQueue()))
 			fmt.Printf("      NetworkInvalidMsgQueue %d\n", len(fnodes[listenTo].State.NetworkInvalidMsgQueue()))

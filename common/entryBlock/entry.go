@@ -174,7 +174,13 @@ func UnmarshalEntry(data []byte) (interfaces.IEBEntry, error) {
 	return entry, nil
 }
 
-func (e *Entry) UnmarshalBinaryData(data []byte) ([]byte, error) {
+func (e *Entry) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("Error unmarshalling: %v", r)
+		}
+	}()
+
 	buf := primitives.NewBuffer(data)
 	hash := make([]byte, 32)
 
@@ -230,7 +236,7 @@ func (e *Entry) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	// Content
 	e.Content = buf.DeepCopyBytes()
 
-	return nil, nil
+	return
 }
 
 func (e *Entry) UnmarshalBinary(data []byte) (err error) {

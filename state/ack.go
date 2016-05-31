@@ -32,10 +32,9 @@ func (s *State) GetACKStatus(hash interfaces.IHash) (int, error) {
 		} else {
 			return constants.AckStatusUnknown, nil
 		}
-		return constants.AckStatusDBlockConfirmed, nil
 	}
 
-	return 0, nil
+	return constants.AckStatusDBlockConfirmed, nil
 }
 
 func (s *State) FetchECTransactionByHash(hash interfaces.IHash) (interfaces.IECBlockEntry, error) {

@@ -122,25 +122,17 @@ func (m *CommitChainMsg) Validate(state interfaces.IState) int {
 	return 1
 }
 
-// Returns true if this is a message for this server to execute as
-// a leader.
-func (m *CommitChainMsg) Leader(state interfaces.IState) bool {
-	return state.LeaderFor(m, constants.EC_CHAINID)
+func (m *CommitChainMsg) ComputeVMIndex(state interfaces.IState) {
+	m.VMIndex = state.ComputeVMIndex(constants.EC_CHAINID)
 }
 
 // Execute the leader functions of the given message
-func (m *CommitChainMsg) LeaderExecute(state interfaces.IState) error {
-	return state.LeaderExecute(m)
+func (m *CommitChainMsg) LeaderExecute(state interfaces.IState) {
+	state.LeaderExecute(m)
 }
 
-// Returns true if this is a message for this server to execute as a follower
-func (m *CommitChainMsg) Follower(state interfaces.IState) bool {
-	return true
-}
-
-func (m *CommitChainMsg) FollowerExecute(state interfaces.IState) error {
-	_, err := state.FollowerExecuteMsg(m)
-	return err
+func (m *CommitChainMsg) FollowerExecute(state interfaces.IState) {
+	state.FollowerExecuteMsg(m)
 }
 
 func (e *CommitChainMsg) JSONByte() ([]byte, error) {

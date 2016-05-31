@@ -12,6 +12,7 @@ import (
 	"os"
 	"sort"
 	"strconv"
+	"sync"
 	"time"
 )
 
@@ -23,6 +24,8 @@ type Discovery struct {
 	rng           *rand.Rand // RNG = random number generator
 }
 
+var UpdateKnownPeers sync.Mutex
+
 // Discovery provides the code for sharing and managing peers,
 // namely keeping track of all the peers we know about (not just the ones
 // we are connected to.)  The discovery "service" is owned by the
@@ -30,11 +33,46 @@ type Discovery struct {
 // This ensures that all shared memory is accessed from that goroutine.
 
 func (d *Discovery) Init(peersFile string) *Discovery {
-	d.peersFilePath = peersFile
+	UpdateKnownPeers.Lock()
 	d.knownPeers = map[string]Peer{}
+	UpdateKnownPeers.Unlock()
+	d.peersFilePath = peersFile
 	d.LoadPeers()
 	d.rng = rand.New(rand.NewSource(time.Now().UnixNano()))
 	return d
+}
+
+// Only controller should be able to read this, but we still got
+// a concurrent read/write error, so isolating changes to knownPeers
+
+// UpdatePeer updates the values in our known peers. Creates peer if its not in there.
+func (d *Discovery) updatePeer(peer Peer) {
+	UpdateKnownPeers.Lock()
+	d.knownPeers[peer.Hash] = peer
+	UpdateKnownPeers.Unlock()
+}
+
+// UpdatePeer updates the values in our known peers. Creates peer if its not in there.
+func (d *Discovery) isPeerPresent(peer Peer) bool {
+	UpdateKnownPeers.Lock()
+	_, present := d.knownPeers[peer.Hash]
+	UpdateKnownPeers.Unlock()
+	return present
+}
+
+// LoadPeers loads the known peers from disk OVERWRITING PREVIOUS VALUES
+func (d *Discovery) LoadPeers() {
+	file, err := os.Open(d.peersFilePath)
+	if nil != err {
+		logerror("discovery", "Discover.LoadPeers() File read error on file: %s, Error: %+v", d.peersFilePath, err)
+		return
+	}
+	dec := json.NewDecoder(bufio.NewReader(file))
+	UpdateKnownPeers.Lock()
+	dec.Decode(&d.knownPeers)
+	UpdateKnownPeers.Unlock()
+	note("discovery", "LoadPeers() found %d peers in peers.josn", len(d.knownPeers))
+	file.Close()
 }
 
 // SavePeers just saves our known peers out to disk. Called periodically.
@@ -49,23 +87,12 @@ func (d *Discovery) SavePeers() {
 	defer file.Close()
 	writer := bufio.NewWriter(file)
 	encoder := json.NewEncoder(writer)
+	UpdateKnownPeers.Lock()
 	encoder.Encode(d.knownPeers)
+	UpdateKnownPeers.Unlock()
 	writer.Flush()
 	note("discovery", "SavePeers() saved %d peers in peers.josn", len(d.knownPeers))
 
-}
-
-// LoadPeers loads the known peers from disk OVERWRITING PREVIOUS VALUES
-func (d *Discovery) LoadPeers() {
-	file, err := os.Open(d.peersFilePath)
-	if nil != err {
-		logerror("discovery", "Discover.LoadPeers() File read error on file: %s, Error: %+v", d.peersFilePath, err)
-		return
-	}
-	dec := json.NewDecoder(bufio.NewReader(file))
-	dec.Decode(&d.knownPeers)
-	note("discovery", "LoadPeers() found %d peers in peers.josn", len(d.knownPeers))
-	file.Close()
 }
 
 // SharePeers gets a set of peers to send to other hosts
@@ -166,14 +193,13 @@ func (d *Discovery) LearnPeers(payload []byte) {
 	var peerArray []Peer
 	err := dec.Decode(&peerArray)
 	if nil != err {
-		logerror("discovery", "Discovery.LearnPeers got an error unmarshalling json. error: %+v json: %+v", err, strconv.Quote(string(payload)))
+		logfatal("discovery", "Discovery.LearnPeers got an error unmarshalling json. error: %+v json: %+v", err, strconv.Quote(string(payload)))
 		return
 	}
 	for _, value := range peerArray {
-		_, present := d.knownPeers[value.Hash]
-		if !present {
+		if d.isPeerPresent(value) {
 			value.QualityScore = 0
-			d.knownPeers[value.Hash] = value
+			d.updatePeer(value)
 			note("discovery", "Discovery.LearnPeers !!!!!!!!!!!!! Discoverd new PEER!   %+v ", value)
 		}
 	}
@@ -229,14 +255,9 @@ func (d *Discovery) GetPeerByAddress(address string) Peer {
 	if !present {
 		temp := new(Peer).Init(address, 0, RegularPeer)
 		peer = *temp
-		d.knownPeers[hash] = peer
+		d.updatePeer(peer)
 	}
 	return peer
-}
-
-// UpdatePeer updates the values in our known peers. Creates peer if its not in there.
-func (d *Discovery) UpdatePeer(peer Peer) {
-	d.knownPeers[peer.Hash] = peer
 }
 
 // PrintPeers Print details about the known peers
@@ -245,7 +266,7 @@ func (d *Discovery) PrintPeers() {
 	for key, value := range d.knownPeers {
 		note("discovery", "%s \t Address: %s \t Quality: %d", key, value.Address, value.QualityScore)
 	}
-	note("discovery", "\n\n\n\n")
+	note("discovery", "End Peer Report\n\n\n\n")
 }
 
 // Mbe a DDOS resistence mechanism that looks at rate of bad messsages over time.

@@ -87,25 +87,18 @@ func (m *DBStateMissing) Validate(state interfaces.IState) int {
 	return 1
 }
 
-// Returns true if this is a message for this server to execute as
-// a leader.
-func (m *DBStateMissing) Leader(state interfaces.IState) bool {
-	return false
+func (m *DBStateMissing) ComputeVMIndex(state interfaces.IState) {
+
 }
 
 // Execute the leader functions of the given message
-func (m *DBStateMissing) LeaderExecute(state interfaces.IState) error {
-	return fmt.Errorf("Should never execute a DBState in the Leader")
+func (m *DBStateMissing) LeaderExecute(state interfaces.IState) {
+	m.FollowerExecute(state)
 }
 
-// Returns true if this is a message for this server to execute as a follower
-func (m *DBStateMissing) Follower(interfaces.IState) bool {
-	return true
-}
-
-func (m *DBStateMissing) FollowerExecute(state interfaces.IState) error {
+func (m *DBStateMissing) FollowerExecute(state interfaces.IState) {
 	if len(state.NetworkOutMsgQueue()) > 1000 {
-		return nil
+		return
 	}
 
 	// TODO: Likely need to consider a limit on how many blocks we reply with.  For now,
@@ -123,7 +116,7 @@ func (m *DBStateMissing) FollowerExecute(state interfaces.IState) error {
 		}
 	}
 
-	return nil
+	return
 }
 
 // Acknowledgements do not go into the process list.
