@@ -301,10 +301,13 @@ func (c *Connection) handleNetErrors(err error) {
 	switch {
 	case isNetError && nerr.Timeout(): /// buffer empty
 		return
+	case isNetError && nerr.Temporary(): /// Temporary error, try to reconnect.
+		c.goOffline()
 	case io.EOF == err, io.ErrClosedPipe == err: // Remote hung up
 		c.goOffline()
 	default:
-		logfatal(c.peer.Hash, "Connection.handleNetErrors() got unhandled coding error: %+v", err)
+		silence(c.peer.Hash, "Connection.handleNetErrors() got unhandled coding error: %+v", err)
+		c.goOffline()
 	}
 
 }
