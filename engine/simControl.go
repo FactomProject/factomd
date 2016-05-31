@@ -12,9 +12,7 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
-	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/wsapi"
 )
 
@@ -337,7 +335,7 @@ func printSummary(summary *bool, listenTo *int) {
 					list = list + fmt.Sprintf(" %3d", len(f.State.NetworkInvalidMsgQueue()))
 				}
 				prt = prt + fmt.Sprintf("      NetworkInvalidMsgQueue %s\n\n", list)
-				
+
 			}
 			prt = prt + "===SummaryEnd===\n"
 

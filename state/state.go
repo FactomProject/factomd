@@ -70,9 +70,9 @@ type State struct {
 	apiQueue               chan interfaces.IMsg
 	ackQueue               chan interfaces.IMsg
 	msgQueue               chan interfaces.IMsg
-	OutOfOrders            [] *messages.Ack
-	StallAcks              [] *messages.Ack
-	StallMsgs              [] interfaces.IMsg
+	OutOfOrders            []*messages.Ack
+	StallAcks              []*messages.Ack
+	StallMsgs              []interfaces.IMsg
 	ShutdownChan           chan int // For gracefully halting Factom
 	JournalFile            string
 
@@ -108,9 +108,9 @@ type State struct {
 	NetworkNumber int // Encoded into Directory Blocks(s.Cfg.(*util.FactomdConfig)).String()
 
 	// Database
-	DB      *databaseOverlay.Overlay
-	Logger  *logger.FLogger
-	Anchor  interfaces.IAnchor
+	DB     *databaseOverlay.Overlay
+	Logger *logger.FLogger
+	Anchor interfaces.IAnchor
 
 	// Directory Block State
 	DBStates *DBStateList // Holds all DBStates not yet processed.
@@ -866,7 +866,7 @@ func (s *State) AckQueue() chan interfaces.IMsg {
 }
 
 func (s *State) StallAck(ack *messages.Ack) {
-	s.StallAcks = append(s.StallAcks,ack)
+	s.StallAcks = append(s.StallAcks, ack)
 }
 
 // Get the ith message out of the stall queue.  Note getting i=0 makes
@@ -884,7 +884,7 @@ func (s *State) GetStalledAck(i int) *messages.Ack {
 }
 
 func (s *State) OutOfOrderAck(ack *messages.Ack) {
-	s.OutOfOrders = append(s.OutOfOrders,ack)
+	s.OutOfOrders = append(s.OutOfOrders, ack)
 }
 
 // Get the ith message out of the stall queue.  Note getting i=0 makes
@@ -902,7 +902,7 @@ func (s *State) GetOutOfOrder(i int) *messages.Ack {
 }
 
 func (s *State) StallMsg(msg interfaces.IMsg) {
-	s.StallMsgs = append(s.StallMsgs,msg)
+	s.StallMsgs = append(s.StallMsgs, msg)
 }
 
 // Get the ith message out of the stall queue.  Note getting i=0 makes

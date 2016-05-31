@@ -292,7 +292,7 @@ func (list *DBStateList) UpdateState() (progress bool) {
 		keyMR2 := dblk2.GetKeyMR()
 		if !d.DirectoryBlock.GetKeyMR().IsSameAs(keyMR2) {
 			fmt.Println(dblk == nil)
-			fmt.Printf("Keys differ %x and %x",d.DirectoryBlock.GetKeyMR().Bytes()[:3],keyMR2.Bytes()[:3])
+			fmt.Printf("Keys differ %x and %x", d.DirectoryBlock.GetKeyMR().Bytes()[:3], keyMR2.Bytes()[:3])
 			panic("KeyMR failure")
 		}
 		list.LastTime = list.State.GetTimestamp() // If I saved or processed stuff, I'm good for a while

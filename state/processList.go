@@ -502,24 +502,23 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 		p.State.StallAck(ack)
 		p.State.Holding[m.GetHash().Fixed()] = m
 		delete(p.State.Acks, ack.GetHash().Fixed())
-		fmt.Println("dddd",hint, p.State.FactomNodeName, "Stall",m.String())
-		fmt.Println("dddd",hint, p.State.FactomNodeName, "Stall",ack.String())
+		fmt.Println("dddd", hint, p.State.FactomNodeName, "Stall", m.String())
+		fmt.Println("dddd", hint, p.State.FactomNodeName, "Stall", ack.String())
 	}
 
 	outOfOrder := func(hint string) {
 		p.State.OutOfOrderAck(ack)
 		p.State.Holding[m.GetHash().Fixed()] = m
 		delete(p.State.Acks, ack.GetHash().Fixed())
-		fmt.Println("dddd",hint, p.State.FactomNodeName, "OutOfOrder",m.String())
-		fmt.Println("dddd",hint, p.State.FactomNodeName, "OutOfOrder",ack.String())
+		fmt.Println("dddd", hint, p.State.FactomNodeName, "OutOfOrder", m.String())
+		fmt.Println("dddd", hint, p.State.FactomNodeName, "OutOfOrder", ack.String())
 	}
-
 
 	toss := func(hint string) {
 		delete(p.State.Holding, ack.GetHash().Fixed())
 		delete(p.State.Acks, ack.GetHash().Fixed())
-		fmt.Println("dddd",hint, p.State.FactomNodeName, "Toss",m.String())
-		fmt.Println("dddd",hint, p.State.FactomNodeName, "Toss",ack.String())
+		fmt.Println("dddd", hint, p.State.FactomNodeName, "Toss", m.String())
+		fmt.Println("dddd", hint, p.State.FactomNodeName, "Toss", ack.String())
 	}
 
 	vm := p.VMs[ack.VMIndex]
@@ -581,7 +580,7 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	msgOk := p.State.InternalReplay.IsTSValid_(m.GetHash().Fixed(), int64(m.GetTimestamp()), now)
 
 	if !msgOk { // If we already have this message or acknowledgement recorded,
-		fmt.Println("****", p.State.FactomNodeName,m.String())
+		fmt.Println("****", p.State.FactomNodeName, m.String())
 		toss("4")
 		return // we don't have to do anything.  Just say we got it handled.
 	}
@@ -626,7 +625,7 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 
 	// Look at all the other out of orders.  Note that if we kept this list sorted,
 	// this would be really efficent, and wouldn't require a loop.
-	for i := len(p.State.OutOfOrders)-1; i>=0; i-- {
+	for i := len(p.State.OutOfOrders) - 1; i >= 0; i-- {
 		a := p.State.GetOutOfOrder(i)
 		m := p.State.Holding[a.GetHash().Fixed()]
 		if m != nil && a != nil {

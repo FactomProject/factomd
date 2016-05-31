@@ -116,9 +116,9 @@ func (s *State) ProcessQueues() (progress bool) {
 		if _, ok := s.InternalReplay.Valid(msg.GetHash().Fixed(), int64(msg.GetTimestamp()), int64(s.GetTimestamp())); !ok {
 			msg = nil
 		} else if s.Leader {
-			s.LeaderExecute(msg)				// Just do Server execution for the message
+			s.LeaderExecute(msg) // Just do Server execution for the message
 		} else {
-			s.FollowerExecuteMsg(msg)		// Just do Server execution for the message
+			s.FollowerExecuteMsg(msg) // Just do Server execution for the message
 		}
 		s.XReview = s.XReview[1:]
 		s.UpdateState()
@@ -129,9 +129,9 @@ func (s *State) ProcessQueues() (progress bool) {
 		if _, ok := s.InternalReplay.Valid(msg.GetHash().Fixed(), int64(msg.GetTimestamp()), int64(s.GetTimestamp())); !ok {
 			msg = nil
 		} else if s.Leader {
-			s.LeaderExecute(msg)				// Just do Server execution for the message
+			s.LeaderExecute(msg) // Just do Server execution for the message
 		} else {
-			s.FollowerExecuteMsg(msg)		// Just do Server execution for the message
+			s.FollowerExecuteMsg(msg) // Just do Server execution for the message
 		}
 		s.StallMsgs = s.StallMsgs[1:]
 		s.UpdateState()
@@ -143,7 +143,6 @@ func (s *State) ProcessQueues() (progress bool) {
 			ack.FollowerExecute(s)
 		}
 	}
-
 
 	select {
 	case ack := <-s.ackQueue:
@@ -162,11 +161,11 @@ func (s *State) ProcessQueues() (progress bool) {
 						msg.ComputeVMIndex(s)
 						msg.LeaderExecute(s)
 					} else {
-						s.networkOutMsgQueue <-msg
+						s.networkOutMsgQueue <- msg
 						msg.FollowerExecute(s)
 					}
 				} else {
-					s.networkOutMsgQueue <-msg
+					s.networkOutMsgQueue <- msg
 					msg.FollowerExecute(s)
 				}
 
@@ -209,7 +208,7 @@ func (s *State) AddDBState(isNew bool,
 	if ht > s.LLeaderHeight {
 		s.LLeaderHeight = ht
 		s.ProcessLists.Get(ht + 1)
-		s.Holding = make(map[[32]byte] interfaces.IMsg)
+		s.Holding = make(map[[32]byte]interfaces.IMsg)
 		s.EOM = 0
 	}
 	//	dbh := directoryBlock.GetHeader().GetDBHeight()
@@ -319,16 +318,16 @@ func (s *State) FollowerExecuteAddData(msg interfaces.IMsg) {
 
 func (s *State) LeaderExecute(m interfaces.IMsg) {
 
-	for i:=0; s.UpdateState() && i<10; i++ {}
+	for i := 0; s.UpdateState() && i < 10; i++ {
+	}
 
 	if m.GetVMIndex() != s.LeaderVMIndex {
-		s.networkOutMsgQueue <-m
+		s.networkOutMsgQueue <- m
 		m.FollowerExecute(s)
 		return
 	}
 
-	vm := s.LeaderPL.VMs[s.LeaderVMIndex]
-	if s.EOM > 0 || vm.Height < len(vm.List) {
+	if s.EOM > 0 {
 		s.StallMsg(m)
 		return
 	}
@@ -341,13 +340,17 @@ func (s *State) LeaderExecute(m interfaces.IMsg) {
 
 func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 
-	for i:=0; s.UpdateState() && i<10; i++ {
-
+	for i := 0; s.UpdateState() && i < 10; i++ {
 	}
 
 	if !m.IsLocal() {
-		s.networkOutMsgQueue <-m
+		s.networkOutMsgQueue <- m
 		m.FollowerExecute(s)
+		return
+	}
+
+	if s.EOM > 0 {
+		s.StallMsg(m)
 		return
 	}
 
