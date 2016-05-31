@@ -125,6 +125,11 @@ func (c *CommitEntry) GetHash() interfaces.IHash {
 	return primitives.Sha(h)
 }
 
+func (c *CommitEntry) GetTransactionHash() interfaces.IHash {
+	h, _ := c.MarshalBinaryTransaction()
+	return primitives.Sha(h)
+}
+
 func (c *CommitEntry) GetSigHash() interfaces.IHash {
 	data := c.CommitMsg()
 	return primitives.Sha(data)
@@ -153,7 +158,8 @@ func (c *CommitEntry) MarshalBinarySig() ([]byte, error) {
 
 }
 
-func (c *CommitEntry) MarshalBinary() ([]byte, error) {
+// Transaction hash of entry commit. (version through pub key hashed)
+func (c *CommitEntry) MarshalBinaryTransaction() ([]byte, error) {
 	buf := new(primitives.Buffer)
 
 	b, err := c.MarshalBinarySig()
@@ -165,6 +171,22 @@ func (c *CommitEntry) MarshalBinary() ([]byte, error) {
 
 	// 32 byte Public Key
 	buf.Write(c.ECPubKey[:])
+
+	return buf.DeepCopyBytes(), nil
+}
+
+func (c *CommitEntry) MarshalBinary() ([]byte, error) {
+	buf := new(primitives.Buffer)
+
+	b, err := c.MarshalBinaryTransaction()
+	if err != nil {
+		return nil, err
+	}
+
+	buf.Write(b)
+
+	// 32 byte Public Key
+	//buf.Write(c.ECPubKey[:])
 
 	// 64 byte Signature
 	buf.Write(c.Sig[:])
