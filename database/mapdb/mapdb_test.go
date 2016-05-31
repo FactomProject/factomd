@@ -142,7 +142,7 @@ func TestParallelAccess(t *testing.T) {
 	c := make(chan int)
 	closed := make(chan int, threads)
 	for i := 0; i < threads; i++ {
-		go func(j int) {
+		go func() {
 			for {
 				select {
 				case <-c:
@@ -161,7 +161,7 @@ func TestParallelAccess(t *testing.T) {
 					}
 				}
 			}
-		}(i)
+		}()
 	}
 	time.Sleep(10 * time.Second)
 	close(c)
