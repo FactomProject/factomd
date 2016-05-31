@@ -28,8 +28,8 @@ type CommitEntryResponse struct {
 }
 
 type RevealEntryResponse struct {
-	Message string `json:"message"`
-	TxID    string `json:"txid"`
+	Message   string `json:"message"`
+	EntryHash string `json:"entryhash"`
 }
 
 type DirectoryBlockResponse struct {
