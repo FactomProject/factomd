@@ -26,6 +26,8 @@ func SimControl(listenTo int) {
 	var summary bool
 	var watchPL bool
 	var watchMessages bool
+	var rotate bool
+	var wsapiNode int
 
 	for {
 		l := make([]byte, 100)
@@ -56,7 +58,8 @@ func SimControl(listenTo int) {
 			switch {
 			case 'w' == b[0]:
 				if listenTo >= 0 && listenTo < len(fnodes) {
-					wsapi.SetState(fnodes[listenTo].State)
+					wsapiNode = listenTo
+					wsapi.SetState(fnodes[wsapiNode].State)
 				}
 			case 's' == b[0]:
 				summary = !summary
@@ -73,6 +76,15 @@ func SimControl(listenTo int) {
 					go printProcessList(&watchPL, &listenTo)
 				} else {
 					os.Stderr.WriteString("--Print Process Lists Off--\n")
+				}
+			case 'r' == b[0]:
+				rotate = !rotate
+				if rotate {
+					os.Stderr.WriteString("--Rotate the WSAPI around the nodes--\n")
+					go rotateWSAPI(&rotate)
+				} else {
+					os.Stderr.WriteString("--Stop Rotation of the WSAPI around the nodes.  Now --\n")
+					wsapi.SetState(fnodes[wsapiNode].State)
 				}
 			case 'a' == b[0]:
 				mLog.all = false
@@ -226,13 +238,30 @@ func SimControl(listenTo int) {
 	}
 }
 
+// Allows us to scatter transactions across all nodes.
+//
+func rotateWSAPI(rotate *bool) {
+	for *rotate { // Only if true
+		for _, fnode := range fnodes {
+			if *rotate { // Only if true
+				// Swap entry points once per second.
+				wsapi.SetState(fnode.State)
+				time.Sleep(time.Second)
+			}
+		}
+	}
+}
+
 func printSummary(summary *bool, listenTo *int) {
 	out := ""
 	for {
 		if *summary {
 			prt := "===SummaryStart===\n"
 			for _, f := range fnodes {
-				f.State.SetOut(false)
+				f.State.Status = true
+			}
+			time.Sleep(100 * time.Millisecond)
+			for _, f := range fnodes {
 				prt = prt + fmt.Sprintf("%8s %s \n", f.State.FactomNodeName, f.State.ShortString())
 			}
 			if *listenTo >= 0 && *listenTo < len(fnodes) {
@@ -245,9 +274,24 @@ func printSummary(summary *bool, listenTo *int) {
 				prt = prt + fmt.Sprintf("      %6s            %6s%s\n", "Queues", "Nodes:", list)
 				list = ""
 				for _, f := range fnodes {
-					list = list + fmt.Sprintf(" %3d", len(f.State.FollowerMsgQueue()))
+					list = list + fmt.Sprintf(" %3d", len(f.State.XReview))
 				}
-				prt = prt + fmt.Sprintf("      FollowerMsgQueue       %s\n", list)
+				prt = prt + fmt.Sprintf("      Review                 %s\n", list)
+				list = ""
+				for _, f := range fnodes {
+					list = list + fmt.Sprintf(" %3d", len(f.State.Holding))
+				}
+				prt = prt + fmt.Sprintf("      Holding                %s\n", list)
+				list = ""
+				for _, f := range fnodes {
+					list = list + fmt.Sprintf(" %3d", len(f.State.Acks))
+				}
+				prt = prt + fmt.Sprintf("      Acks                   %s\n", list)
+				list = ""
+				for _, f := range fnodes {
+					list = list + fmt.Sprintf(" %3d", len(f.State.MsgQueue()))
+				}
+				prt = prt + fmt.Sprintf("      MsgQueue               %s\n", list)
 				list = ""
 				for _, f := range fnodes {
 					list = list + fmt.Sprintf(" %3d", len(f.State.InMsgQueue()))
@@ -260,12 +304,12 @@ func printSummary(summary *bool, listenTo *int) {
 				prt = prt + fmt.Sprintf("      APIQueue               %s\n", list)
 				list = ""
 				for _, f := range fnodes {
-					list = list + fmt.Sprintf(" %3d", len(f.State.LeaderMsgQueue()))
+					list = list + fmt.Sprintf(" %3d", len(f.State.AckQueue()))
 				}
-				prt = prt + fmt.Sprintf("      LeaderMsgQueue         %s\n", list)
+				prt = prt + fmt.Sprintf("      AckQueue               %s\n", list)
 				list = ""
 				for _, f := range fnodes {
-					list = list + fmt.Sprintf(" %3d", len(f.State.Stall()))
+					list = list + fmt.Sprintf(" %3d", len(f.State.StallList))
 				}
 				prt = prt + fmt.Sprintf("      stall Queue            %s\n", list)
 				list = ""

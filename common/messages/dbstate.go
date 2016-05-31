@@ -108,24 +108,15 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 	return 1
 }
 
-// Returns true if this is a message for this server to execute as
-// a leader.
-func (m *DBStateMsg) Leader(state interfaces.IState) bool {
-	return false
-}
+func (m *DBStateMsg) ComputeVMIndex(state interfaces.IState) {}
 
 // Execute the leader functions of the given message
-func (m *DBStateMsg) LeaderExecute(state interfaces.IState) error {
-	return fmt.Errorf("Should never execute a DBState in the Leader")
+func (m *DBStateMsg) LeaderExecute(state interfaces.IState) {
+	m.FollowerExecute(state)
 }
 
-// Returns true if this is a message for this server to execute as a follower
-func (m *DBStateMsg) Follower(interfaces.IState) bool {
-	return true
-}
-
-func (m *DBStateMsg) FollowerExecute(state interfaces.IState) error {
-	return state.FollowerExecuteDBState(m)
+func (m *DBStateMsg) FollowerExecute(state interfaces.IState) {
+	state.FollowerExecuteDBState(m)
 }
 
 // Acknowledgements do not go into the process list.
