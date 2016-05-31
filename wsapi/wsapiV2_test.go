@@ -161,7 +161,7 @@ func TestHandleV2CommitEntry(t *testing.T) {
 	txID := CheckEntryTransactionID(msg.Entry)
 	e := strings.Compare(respObj.TxID, txID)
 	if e != 0 {
-		t.Error("TxID returned during Commit Entry is incorrect")
+		t.Error("Error: TxID returned during Commit Entry is incorrect")
 	}
 
 }
@@ -206,6 +206,6 @@ func TestHandleV2CommitChain(t *testing.T) {
 	txID := CheckChainTransactionID(msg.Message)
 	e := strings.Compare(respObj.TxID, txID)
 	if e != 0 {
-		t.Error("TxID returned during Commit Entry is incorrect")
+		t.Error("Error: TxID returned during Commit Chain is incorrect")
 	}
 }
