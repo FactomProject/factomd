@@ -204,7 +204,7 @@ func HandleV2CommitEntry(state interfaces.IState, params interface{}) (interface
 
 	resp := new(CommitEntryResponse)
 	resp.Message = "Entry Commit Success"
-	resp.TxID = commit.GetSigHash().Fixed()
+	resp.TxID = commit.GetSigHash().String()
 
 	return resp, nil
 }
