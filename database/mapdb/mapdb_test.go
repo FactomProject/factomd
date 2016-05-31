@@ -1,8 +1,8 @@
 package mapdb_test
 
 import (
+	"crypto/rand"
 	"fmt"
-	"math/rand"
 	"testing"
 	"time"
 
@@ -138,7 +138,6 @@ func TestMultiValue(t *testing.T) {
 func TestParallelAccess(t *testing.T) {
 	threads := 100
 	m := new(MapDB)
-	bucket := []byte{byte(0x01)}
 	c := make(chan int)
 	closed := make(chan int, threads)
 	for i := 0; i < threads; i++ {
@@ -150,12 +149,12 @@ func TestParallelAccess(t *testing.T) {
 					return
 				default:
 					str := new(TestData)
-					str.Str = fmt.Sprintf("%v", rand.Int())
-					err := m.Put(bucket, []byte{byte(rand.Uint32() % 255)}, str)
+					str.Str = fmt.Sprintf("%x", RandomHex(32))
+					err := m.Put(RandomHex(5), RandomHex(5), str)
 					if err != nil {
 						t.Errorf("Got error - %v", err)
 					}
-					_, err = m.Get(bucket, []byte{byte(rand.Uint32() % 255)}, str)
+					_, err = m.Get(RandomHex(5), RandomHex(5), str)
 					if err != nil {
 						t.Errorf("Got error - %v", err)
 					}
@@ -169,4 +168,16 @@ func TestParallelAccess(t *testing.T) {
 	for i := 0; i < threads; i++ {
 		<-closed
 	}
+}
+
+func RandomHex(length int) []byte {
+	if length <= 0 {
+		return nil
+	}
+	answer := make([]byte, length)
+	_, err := rand.Read(answer)
+	if err != nil {
+		return nil
+	}
+	return answer
 }
