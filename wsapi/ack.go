@@ -17,8 +17,9 @@ import (
 )
 
 func HandleV2FactoidACK(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
-	ackReq, ok := params.(AckRequest)
-	if !ok {
+	ackReq := new(AckRequest)
+	err := MapToObject(params, ackReq)
+	if err != nil {
 		return nil, NewInvalidParamsError()
 	}
 
@@ -82,8 +83,9 @@ func HandleV2FactoidACK(state interfaces.IState, params interface{}) (interface{
 }
 
 func HandleV2EntryACK(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
-	ackReq, ok := params.(AckRequest)
-	if !ok {
+	ackReq := new(AckRequest)
+	err := MapToObject(params, ackReq)
+	if err != nil {
 		return nil, NewInvalidParamsError()
 	}
 
