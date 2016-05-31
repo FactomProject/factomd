@@ -595,6 +595,10 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 
 	eom, ok := m.(*messages.EOM)
 	if ok {
+		if vm.Seal > 0 {
+			fmt.Println("dddd",p.State.FactomNodeName,"Sealing a sealed EOM")
+			stall("eom")
+		}
 		if p.State.Leader && eom.IsLocal() {
 			p.State.EOM = int(eom.Minute + 1)
 		}
