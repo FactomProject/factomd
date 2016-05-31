@@ -264,8 +264,8 @@ func printSummary(summary *bool, listenTo *int) {
 			for _, f := range fnodes {
 				prt = prt + fmt.Sprintf("%8s %s \n", f.State.FactomNodeName, f.State.ShortString())
 			}
-			if *listenTo >= 0 && *listenTo < len(fnodes) {
 
+			if *listenTo >= 0 && *listenTo < len(fnodes) {
 				var list string
 				list = ""
 				for i, _ := range fnodes {
@@ -309,9 +309,19 @@ func printSummary(summary *bool, listenTo *int) {
 				prt = prt + fmt.Sprintf("      AckQueue               %s\n", list)
 				list = ""
 				for _, f := range fnodes {
-					list = list + fmt.Sprintf(" %3d", len(f.State.StallList))
+					list = list + fmt.Sprintf(" %3d", len(f.State.StallAcks))
 				}
-				prt = prt + fmt.Sprintf("      stall Queue            %s\n", list)
+				prt = prt + fmt.Sprintf("      stall acks             %s\n", list)
+				list = ""
+				for _, f := range fnodes {
+					list = list + fmt.Sprintf(" %3d", len(f.State.StallMsgs))
+				}
+				prt = prt + fmt.Sprintf("      stall msgs             %s\n", list)
+				list = ""
+				for _, f := range fnodes {
+					list = list + fmt.Sprintf(" %3d", len(f.State.OutOfOrders))
+				}
+				prt = prt + fmt.Sprintf("      Out of Order           %s\n", list)
 				list = ""
 				for _, f := range fnodes {
 					list = list + fmt.Sprintf(" %3d", len(f.State.TimerMsgQueue()))
@@ -327,61 +337,7 @@ func printSummary(summary *bool, listenTo *int) {
 					list = list + fmt.Sprintf(" %3d", len(f.State.NetworkInvalidMsgQueue()))
 				}
 				prt = prt + fmt.Sprintf("      NetworkInvalidMsgQueue %s\n\n", list)
-
-				for _, f := range fnodes {
-					if !f.State.Leader {
-						continue
-					}
-					prt = prt + "  VM State per Node\n"
-					list = ""
-					for i, vm := range f.State.ProcessLists.Get(f.State.LLeaderHeight).VMs {
-						if i >= len(f.State.ProcessLists.Get(f.State.LLeaderHeight).FedServers) {
-							break
-						}
-						list = list + fmt.Sprintf(" %3d ", vm.Height)
-					}
-					prt = prt + fmt.Sprintf("  %8s %12s %s\n", f.State.FactomNodeName, "Height", list)
-					list = ""
-					for i, vm := range f.State.ProcessLists.Get(f.State.LLeaderHeight).VMs {
-						if i >= len(f.State.ProcessLists.Get(f.State.LLeaderHeight).FedServers) {
-							break
-						}
-						list = list + fmt.Sprintf(" %3d ", len(vm.List))
-					}
-					prt = prt + fmt.Sprintf("  %8s %12s %s\n", f.State.FactomNodeName, "Len VM List", list)
-					list = ""
-					for i, vm := range f.State.ProcessLists.Get(f.State.LLeaderHeight).VMs {
-						if i >= len(f.State.ProcessLists.Get(f.State.LLeaderHeight).FedServers) {
-							break
-						}
-						var h interfaces.IHash
-
-						if vm.Height == 0 {
-							h = primitives.NewZeroHash()
-						} else {
-							h = vm.ListAck[vm.Height-1].GetHash()
-						}
-						list = list + fmt.Sprintf(" %4x", h.Bytes()[:2])
-					}
-					prt = prt + fmt.Sprintf("  %8s %12s %s\n", f.State.FactomNodeName, "LastAck", list)
-					list = ""
-					for i, vm := range f.State.ProcessLists.Get(f.State.LLeaderHeight).VMs {
-						if i >= len(f.State.ProcessLists.Get(f.State.LLeaderHeight).FedServers) {
-							break
-						}
-						list = list + fmt.Sprintf(" %3d ", vm.MinuteHeight)
-					}
-					prt = prt + fmt.Sprintf("  %8s %12s %s\n", f.State.FactomNodeName, "Min Height", list)
-					list = ""
-					for i, vm := range f.State.ProcessLists.Get(f.State.LLeaderHeight).VMs {
-						if i >= len(f.State.ProcessLists.Get(f.State.LLeaderHeight).FedServers) {
-							break
-						}
-						list = list + fmt.Sprintf(" %3d ", vm.MinuteFinished)
-					}
-					prt = prt + fmt.Sprintf("  %8s %12s %s\n\n", f.State.FactomNodeName, "Min Finished", list)
-				}
-
+				
 			}
 			prt = prt + "===SummaryEnd===\n"
 

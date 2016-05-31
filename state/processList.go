@@ -499,12 +499,21 @@ func (p *ProcessList) GoodTo(vmIndex int) bool {
 func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 
 	stall := func(hint string) {
-		p.State.StallMsg(ack)
+		p.State.StallAck(ack)
 		p.State.Holding[m.GetHash().Fixed()] = m
 		delete(p.State.Acks, ack.GetHash().Fixed())
 		fmt.Println("dddd",hint, p.State.FactomNodeName, "Stall",m.String())
 		fmt.Println("dddd",hint, p.State.FactomNodeName, "Stall",ack.String())
 	}
+
+	outOfOrder := func(hint string) {
+		p.State.OutOfOrderAck(ack)
+		p.State.Holding[m.GetHash().Fixed()] = m
+		delete(p.State.Acks, ack.GetHash().Fixed())
+		fmt.Println("dddd",hint, p.State.FactomNodeName, "OutOfOrder",m.String())
+		fmt.Println("dddd",hint, p.State.FactomNodeName, "OutOfOrder",ack.String())
+	}
+
 
 	toss := func(hint string) {
 		delete(p.State.Holding, ack.GetHash().Fixed())
@@ -516,7 +525,7 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	vm := p.VMs[ack.VMIndex]
 
 	if ack.DBHeight > p.DBHeight {
-		stall("a")
+		outOfOrder("a")
 		return
 	}
 
@@ -532,12 +541,12 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	}
 
 	if len(vm.List) > vm.Height {
-		stall("c")
+		outOfOrder("c")
 		return
 	}
 
 	if int(ack.Height) > vm.Height {
-		stall("d")
+		outOfOrder("d")
 		return
 	}
 
@@ -615,6 +624,15 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	p.OldMsgs[m.GetHash().Fixed()] = m
 	p.OldAcks[m.GetHash().Fixed()] = ack
 
+	// Look at all the other out of orders.  Note that if we kept this list sorted,
+	// this would be really efficent, and wouldn't require a loop.
+	for i := len(p.State.OutOfOrders)-1; i>=0; i-- {
+		a := p.State.GetOutOfOrder(i)
+		m := p.State.Holding[a.GetHash().Fixed()]
+		if m != nil && a != nil {
+			p.AddToProcessList(a, m)
+		}
+	}
 }
 
 func (p *ProcessList) String() string {
