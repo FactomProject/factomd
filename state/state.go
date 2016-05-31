@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"encoding/json"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -58,7 +59,7 @@ type State struct {
 
 	IdentityChainID interfaces.IHash // If this node has an identity, this is it
 
-	// Just to print (so debugging doesn't drive functionaility)
+	// Just to print (so debugging doesn't drive functionality)
 	serverPrt string
 
 	tickerQueue            chan int
@@ -142,7 +143,6 @@ type State struct {
 	ECBalancesT           map[[32]byte]int64
 	ECBalancesTMutex      sync.Mutex
 
-	FactoshisPerEC uint64
 	// Web Services
 	Port int
 
@@ -158,6 +158,11 @@ type State struct {
 
 	LastPrint    string
 	LastPrintCnt int
+
+	// FER section
+	FactoshisPerEC uint64
+	FERChainId string
+	FEREntries []interfaces.IFEREntry  // Map of (residentBlock, targerActivationBlock, price)
 }
 
 var _ interfaces.IState = (*State)(nil)
@@ -196,6 +201,10 @@ func (s *State) Clone(number string) interfaces.IState {
 	clone.FactoshisPerEC = s.FactoshisPerEC
 
 	clone.Port = s.Port
+
+	// FER section
+	clone.FactoshisPerEC = s.FactoshisPerEC
+	clone.FERChainId = s.FERChainId
 
 	return clone
 }
@@ -249,6 +258,7 @@ func (s *State) LoadConfig(filename string, folder string) {
 		s.FactoshisPerEC = cfg.App.ExchangeRate
 		s.DirectoryBlockInSeconds = cfg.App.DirectoryBlockInSeconds
 		s.PortNumber = cfg.Wsapi.PortNumber
+		s.FERChainId = cfg.App.ExchangeRateChainId
 
 		// TODO:  Actually load the IdentityChainID from the config file
 		s.IdentityChainID = primitives.Sha([]byte(s.FactomNodeName))
@@ -265,6 +275,7 @@ func (s *State) LoadConfig(filename string, folder string) {
 		s.Network = "LOCAL"
 		s.LocalServerPrivKey = "4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c9b08946553448d26d"
 		s.FactoshisPerEC = 006666
+		s.FERChainId = "eac57815972c504ec5ae3f9e5c1fe12321a3c8c78def62528fb74cf7af5e7389"
 		s.DirectoryBlockInSeconds = 6
 		s.PortNumber = 8088
 
@@ -276,6 +287,8 @@ func (s *State) LoadConfig(filename string, folder string) {
 }
 
 func (s *State) Init() {
+
+	s.SetOut(true)
 
 	wsapi.InitLogs(s.LogPath+s.FactomNodeName+".log", s.LogLevel)
 
@@ -309,6 +322,7 @@ func (s *State) Init() {
 	s.Acks = make(map[[32]byte]interfaces.IMsg)
 	s.Commits = make(map[[32]byte]interfaces.IMsg)
 	s.Reveals = make(map[[32]byte]interfaces.IMsg)
+	s.FEREntries = make([]interfaces.IFEREntry, 0, 1000)
 
 	// Setup the FactoidState and Validation Service that holds factoid and entry credit balances
 	s.FactoidBalancesP = map[[32]byte]int64{}
@@ -385,6 +399,8 @@ func (s *State) Init() {
 	}
 
 	s.Println("\nRunning on the ", s.Network, "Network")
+	s.Println("\nExchange rate chain id set to ", s.GetFactoshisPerEC())
+	s.DetermineAndSetFER()
 
 	s.AuditHeartBeats = make([]interfaces.IMsg, 0)
 	s.FedServerFaults = make([][]interfaces.IMsg, 0)
@@ -674,6 +690,144 @@ func (s *State) GetDirectoryBlockByHeight(height uint32) interfaces.IDirectoryBl
 	}
 	return dblk
 }
+
+func (s *State) DetermineAndSetFER() (newFER uint64){
+	FERChainHash, err := primitives.HexToHash(s.FERChainId)
+	if err != nil {
+		s.Println("The FERChainId couldn't be turned into a IHASH")
+		return s.GetFactoshisPerEC()
+	}
+
+	//  Get the first eblock from the FERChain
+	entryBlock, err := s.DB.FetchEBlockHead(FERChainHash)
+	if err != nil {
+		s.Println("Couldn't find the FER chain for id ", s.FERChainId)
+		return s.GetFactoshisPerEC()
+	}
+	if entryBlock == nil {
+		s.Println("FER Chain head found to be nil")
+		return s.GetFactoshisPerEC()
+	}
+
+	s.Println("Checking first block with height of: ", entryBlock.GetHeader().GetDBHeight())
+	s.Println("Current block height: ", s.GetDBHeightComplete())
+
+	// create a map of possible minute markers that may be found in the
+	// EBlock Body
+	mins := make(map[string]uint8)
+	for i := byte(0); i <= 10; i++ {
+		h := make([]byte, 32)
+		h[len(h)-1] = i
+		mins[hex.EncodeToString(h)] = i
+	}
+
+	// While the target entry block isn't more than 6 away from the current block height
+	for (entryBlock.GetHeader().GetDBHeight() >= (s.GetDBHeightComplete() - 6)) || true {
+		entryHashes := entryBlock.GetEntryHashes()
+
+		s.Println("Found FER entry hashes in a block as: ", entryHashes)
+
+		for _, entryHash := range entryHashes {
+
+			// if this entryhash is a minute mark then continue
+			if _, exist := mins[entryHash.String()]; exist {
+				s.Println("Skipping minute marker: ", entryHash)
+				continue
+			}
+
+			// Make sure the entry exists
+			anEntry, err := s.DB.FetchEntryByHash(entryHash)
+			if (err != nil) {
+				s.Println("Error during FetchEntryByHash: ", err)
+				continue
+			}
+			if (anEntry == nil) {
+				s.Println("Nil entry during FetchEntryByHash: ", entryHash)
+				continue
+			}
+
+			entryContent := anEntry.GetContent()
+			s.Println("Found content of an FER entry is:  ", string(entryContent))
+			anFEREntry := new(FEREntry)
+			err = json.Unmarshal(entryContent, &anFEREntry)
+			if err != nil {
+				s.Println("A FEREntry messgae didn't unmarshall correctly: ", err)
+				continue
+			}
+
+			s.FEREntries = append(s.FEREntries, anFEREntry)
+			s.Println("ENTRIES = len=", len(s.FEREntries), " cap= ", cap(s.FEREntries), " body= [")
+			for index, entry := range s.FEREntries {
+				marshaledEntry, _ := json.Marshal(entry)
+				s.Println("  [", index, "] = ", string(marshaledEntry))
+			}
+			s.Println("]")
+		}
+
+		//  Get the previous entry block from the FERChain
+		previousKeyMR := entryBlock.GetHeader().GetPrevKeyMR()
+		if previousKeyMR == nil {
+			// no more entry blocks previous to this chain
+			s.Println("No more blocks in FER chain as empty previousKeyMR")
+			break
+		}
+		entryBlock, err = s.DB.FetchEBlockByKeyMR(previousKeyMR)
+		if err != nil || entryBlock == nil {
+			// no more entry blocks previous to this chain
+			s.Println("No more blocks in FER chain as prev entry block not found")
+			break
+		}
+	}
+
+	// clean the window by running through any validation needed
+	//s.cleanWindowOfFEREntries(10);
+
+	//predictivePrice := s.FactoshisPerEC
+	//currentDirectoryBlock := s.GetDirectoryBlock()
+	//
+	//if currentDirectoryBlock != nil {
+	//	currentBlockHeight := currentDirectoryBlock.GetDatabaseHeight()
+	//
+	//	for _, ferEntry := range s.FEREntries {
+	//		if (ferEntry.GetResidentBlock() < (currentBlockHeight - 2)) && (ferEntry.GetTargetPrice() > predictivePrice) {
+	//			predictivePrice = ferEntry.GetTargetPrice()
+	//		}
+	//	}
+	//}
+	//
+
+	// s.SetFactoshisPerEC(predictivePrice)
+	return s.FactoshisPerEC
+}
+
+func (s *State) ProcessFERValue(passedFerEntry interfaces.IFEREntry)  {
+	newFEREntry := new (FEREntry)
+
+	newFEREntry.SetExpirationHeight(passedFerEntry.GetExpirationHeight())
+	newFEREntry.SetTargetActivationHeight(passedFerEntry.GetTargetActivationHeight())
+	newFEREntry.SetPriority(passedFerEntry.GetPriority())
+	newFEREntry.SetTargetPrice(passedFerEntry.GetTargetPrice())
+
+	// Add them to the entry map with an index equal to their reported target activation block
+	s.FEREntries = append(s.FEREntries, newFEREntry)
+}
+
+// Goes through the entries listed in the FEREntries and throws away any that are within 10 of the current block
+func (s *State) cleanWindowOfFEREntries(windowRange uint32) {
+	//currentDirectoryBlock := s.GetDirectoryBlock()
+	//
+	//if currentDirectoryBlock != nil {
+	//	currentBlockHeight := currentDirectoryBlock.GetDatabaseHeight()
+	//
+	//	for targetActivationHeight, _ := range s.FEREntries {
+	//		if targetActivationHeight < (currentBlockHeight - windowRange) || targetActivationHeight > (currentBlockHeight + windowRange) {
+	//			delete(s.FEREntries, targetActivationHeight)
+	//		}
+	//	}
+	//}
+}
+
+
 
 func (s *State) UpdateState() (progress bool) {
 	dbheight := s.GetHighestRecordedBlock()

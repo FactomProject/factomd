@@ -177,4 +177,8 @@ type IState interface {
 	FetchFactoidTransactionByHash(hash IHash) (ITransaction, error)
 	FetchECTransactionByHash(hash IHash) (IECBlockEntry, error)
 	FetchEntryByHash(IHash) (IEBEntry, error)
+
+	// FER section
+	DetermineAndSetFER() (uint64)
+	ProcessFERValue(IFEREntry)
 }

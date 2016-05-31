@@ -30,7 +30,8 @@ type FactomdConfig struct {
 		LocalServerPrivKey      string
 		LocalServerPublicKey    string
 		ExchangeRate            uint64
-	}
+		ExchangeRateChainId     string
+	    }
 	Peer struct {
 		AddPeers     []string      `short:"a" long:"addpeer" description:"Add a peer to connect with at startup"`
 		ConnectPeers []string      `long:"connect" description:"Connect only to the specified peers at startup"`
@@ -107,6 +108,7 @@ NodeMode                              = FULL
 LocalServerPrivKey                    = 4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c9b08946553448d26d
 LocalServerPublicKey                  = cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a
 ExchangeRate                          = 00100000
+ExchangeRateChainId		      = eac57815972c504ec5ae3f9e5c1fe12321a3c8c78def62528fb74cf7af5e7389
 
 [anchor]
 ServerECPrivKey                       = 397c49e182caa97737c6b394591c614156fbe7998d7bf5d76273961e9fa1edd4
@@ -168,6 +170,7 @@ func (s *FactomdConfig) String() string {
 	out.WriteString(fmt.Sprintf("\n    LocalServerPrivKey      %v", s.App.LocalServerPrivKey))
 	out.WriteString(fmt.Sprintf("\n    LocalServerPublicKey    %v", s.App.LocalServerPublicKey))
 	out.WriteString(fmt.Sprintf("\n    ExchangeRate            %v", s.App.ExchangeRate))
+	out.WriteString(fmt.Sprintf("\n    ExchangeRateChainId     %v", s.App.ExchangeRateChainId))
 
 	out.WriteString(fmt.Sprintf("\n  Anchor"))
 	out.WriteString(fmt.Sprintf("\n    ServerECPrivKey         %v", s.Anchor.ServerECPrivKey))
