@@ -60,6 +60,53 @@ func (d *Discovery) isPeerPresent(peer Peer) bool {
 	return present
 }
 
+// GetFullPeer looks for a peer in the known peers, and if so, returns it  (based on
+// the hash of the passed in peer.)  If the peer is unknown , we create it and
+// add it to the known peers.
+// func (d *Discovery) GetFullPeer(prototype Peer) Peer {
+// 	return d.GetPeerByAddress(prototype.Address)
+// }
+
+func (d *Discovery) GetPeerByAddress(address string) Peer {
+	hash := PeerHashFromAddress(address)
+	UpdateKnownPeers.Lock()
+	peer, present := d.knownPeers[hash]
+	UpdateKnownPeers.Unlock()
+	// If it exists, return it, otherwise create and add to knownPeers
+	if !present {
+		temp := new(Peer).Init(address, 0, RegularPeer)
+		peer = *temp
+		d.updatePeer(peer)
+	}
+	return peer
+}
+
+// PrintPeers Print details about the known peers
+func (d *Discovery) PrintPeers() {
+	note("discovery", "\n\n\n\nPeer Report:")
+	UpdateKnownPeers.Lock()
+	for key, value := range d.knownPeers {
+		note("discovery", "%s \t Address: %s \t Quality: %d", key, value.Address, value.QualityScore)
+	}
+	UpdateKnownPeers.Unlock()
+	note("discovery", "End Peer Report\n\n\n\n")
+}
+
+// LoadPeers loads the known peers from disk OVERWRITING PREVIOUS VALUES
+func (d *Discovery) LoadPeers() {
+	file, err := os.Open(d.peersFilePath)
+	if nil != err {
+		logerror("discovery", "Discover.LoadPeers() File read error on file: %s, Error: %+v", d.peersFilePath, err)
+		return
+	}
+	dec := json.NewDecoder(bufio.NewReader(file))
+	UpdateKnownPeers.Lock()
+	dec.Decode(&d.knownPeers)
+	UpdateKnownPeers.Unlock()
+	note("discovery", "LoadPeers() found %d peers in peers.josn", len(d.knownPeers))
+	file.Close()
+}
+
 // SavePeers just saves our known peers out to disk. Called periodically.
 func (d *Discovery) SavePeers() {
 	// save known peers to peers.json
@@ -78,19 +125,6 @@ func (d *Discovery) SavePeers() {
 	writer.Flush()
 	note("discovery", "SavePeers() saved %d peers in peers.json", len(d.knownPeers))
 
-}
-
-// LoadPeers loads the known peers from disk OVERWRITING PREVIOUS VALUES
-func (d *Discovery) LoadPeers() {
-	file, err := os.Open(d.peersFilePath)
-	if nil != err {
-		logerror("discovery", "Discover.LoadPeers() File read error on file: %s, Error: %+v", d.peersFilePath, err)
-		return
-	}
-	dec := json.NewDecoder(bufio.NewReader(file))
-	dec.Decode(&d.knownPeers)
-	note("discovery", "LoadPeers() found %d peers in peers.json", len(d.knownPeers))
-	file.Close()
 }
 
 // LearnPeers recieves a set of peers from other hosts
