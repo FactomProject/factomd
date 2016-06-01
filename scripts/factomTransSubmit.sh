@@ -1,8 +1,8 @@
 #!/bin/bash
 
 	echo "Transactions: "
-sleep 5
-for i in `seq 1 5`;
+
+for i in `seq 1 1`;
 do
 	factom-cli newtransaction t
 	factom-cli addinput t factoid-wallet-address-name01 .000005
@@ -20,4 +20,4 @@ do
 //	echo "one two three four, this is a test of making an entry.  More to test, Test, Test, test" $RANDOM $RANDOM $RANDOM | factom-cli mkchain -e $number1 -e $number2 e1 &
 done
 
-
+sleep 5
