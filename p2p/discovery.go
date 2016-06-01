@@ -171,8 +171,10 @@ func (d *Discovery) GetStartupPeers() []Peer {
 	}
 	UpdateKnownPeers.Unlock()
 	sort.Sort(PeerDistanceSort(peerPool))
-	desiredQuantity := NumberPeersToConnect * 3 // Get three times as many as who knows how many will be online
-	if len(peerPool) < desiredQuantity {
+	// Get three times as many as who knows how many will be online
+	desiredQuantity := NumberPeersToConnect * 3
+	// If the peer pool isn't at least twice the size of what we need, then location diversity is meaningless.
+	if len(peerPool) < desiredQuantity*2 {
 		return peerPool
 	}
 	for index := 1; index < desiredQuantity; index++ {
