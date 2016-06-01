@@ -20,4 +20,4 @@ do
 //	echo "one two three four, this is a test of making an entry.  More to test, Test, Test, test" $RANDOM $RANDOM $RANDOM | factom-cli mkchain -e $number1 -e $number2 e1 &
 done
 
-sleep 1
+sleep 5

@@ -631,9 +631,11 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	// this would be really efficent, and wouldn't require a loop.
 	for i := len(p.State.OutOfOrders) - 1; i >= 0; i-- {
 		a := p.State.GetOutOfOrder(i)
-		m := p.State.Holding[a.GetHash().Fixed()]
-		if m != nil && a != nil {
-			p.AddToProcessList(a, m)
+		if a != nil {
+			m := p.State.Holding[a.GetHash().Fixed()]
+			if m != nil {
+				p.AddToProcessList(a, m)
+			}
 		}
 	}
 }
