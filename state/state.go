@@ -10,8 +10,6 @@ import (
 	"fmt"
 	"os"
 	"strings"
-
-	"math/rand"
 	"sync"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -72,7 +70,7 @@ type State struct {
 	apiQueue               chan interfaces.IMsg
 	ackQueue               chan interfaces.IMsg
 	msgQueue               chan interfaces.IMsg
-	StallList              [] interfaces.IMsg
+	StallList              []interfaces.IMsg
 	ShutdownChan           chan int // For gracefully halting Factom
 	JournalFile            string
 
@@ -108,9 +106,9 @@ type State struct {
 	NetworkNumber int // Encoded into Directory Blocks(s.Cfg.(*util.FactomdConfig)).String()
 
 	// Database
-	DB      *databaseOverlay.Overlay
-	Logger  *logger.FLogger
-	Anchor  interfaces.IAnchor
+	DB     *databaseOverlay.Overlay
+	Logger *logger.FLogger
+	Anchor interfaces.IAnchor
 
 	// Directory Block State
 	DBStates *DBStateList // Holds all DBStates not yet processed.
@@ -863,7 +861,7 @@ func (s *State) AckQueue() chan interfaces.IMsg {
 }
 
 func (s *State) StallMsg(m interfaces.IMsg) {
-	s.StallList = append(s.StallList,m)
+	s.StallList = append(s.StallList, m)
 }
 
 // Get the ith message out of the stall queue.  Note getting i=0 makes
