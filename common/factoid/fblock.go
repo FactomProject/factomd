@@ -52,6 +52,15 @@ func (c *FBlock) GetEntryHashes() []interfaces.IHash {
 	return answer
 }
 
+func (c *FBlock) GetEntrySigHashes() []interfaces.IHash {
+	entries := c.Transactions[:]
+	answer := make([]interfaces.IHash, len(entries))
+	for i, entry := range entries {
+		answer[i] = entry.GetSigHash()
+	}
+	return answer
+}
+
 func (c *FBlock) New() interfaces.BinaryMarshallableAndCopyable {
 	return new(FBlock)
 }

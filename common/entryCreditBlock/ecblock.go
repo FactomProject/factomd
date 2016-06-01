@@ -51,6 +51,20 @@ func (c *ECBlock) GetEntryHashes() []interfaces.IHash {
 	return answer
 }
 
+func (c *ECBlock) GetEntrySigHashes() []interfaces.IHash {
+	entries := c.Body.GetEntries()
+	answer := make([]interfaces.IHash, 0, len(entries))
+	for _, entry := range entries {
+		if entry.ECID() == ECIDBalanceIncrease || entry.ECID() == ECIDChainCommit || entry.ECID() == ECIDEntryCommit {
+			sHash := entry.GetSigHash()
+			if sHash != nil {
+				answer = append(answer, sHash)
+			}
+		}
+	}
+	return answer
+}
+
 func (c *ECBlock) GetBody() interfaces.IECBlockBody {
 	return c.Body
 }
