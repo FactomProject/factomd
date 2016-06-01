@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -22,7 +23,6 @@ import (
 	"github.com/FactomProject/factomd/logger"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
-	"sync"
 )
 
 var _ = fmt.Print
@@ -46,6 +46,7 @@ type State struct {
 	ExportData              bool
 	ExportDataSubpath       string
 	Network                 string
+	PeersFile               string
 	LocalServerPrivKey      string
 	DirectoryBlockInSeconds int
 	PortNumber              int
@@ -69,7 +70,7 @@ type State struct {
 	apiQueue               chan interfaces.IMsg
 	ackQueue               chan interfaces.IMsg
 	msgQueue               chan interfaces.IMsg
-	StallList              [] interfaces.IMsg
+	StallList              []interfaces.IMsg
 	ShutdownChan           chan int // For gracefully halting Factom
 	JournalFile            string
 
@@ -105,9 +106,9 @@ type State struct {
 	NetworkNumber int // Encoded into Directory Blocks(s.Cfg.(*util.FactomdConfig)).String()
 
 	// Database
-	DB      *databaseOverlay.Overlay
-	Logger  *logger.FLogger
-	Anchor  interfaces.IAnchor
+	DB     *databaseOverlay.Overlay
+	Logger *logger.FLogger
+	Anchor interfaces.IAnchor
 
 	// Directory Block State
 	DBStates *DBStateList // Holds all DBStates not yet processed.
@@ -178,6 +179,7 @@ func (s *State) Clone(number string) interfaces.IState {
 	clone.ExportData = s.ExportData
 	clone.ExportDataSubpath = s.ExportDataSubpath + "sim-" + number
 	clone.Network = s.Network
+	clone.PeersFile = s.PeersFile
 	clone.DirectoryBlockInSeconds = s.DirectoryBlockInSeconds
 	clone.PortNumber = s.PortNumber
 
@@ -243,6 +245,7 @@ func (s *State) LoadConfig(filename string, folder string) {
 		s.ExportData = cfg.App.ExportData // bool
 		s.ExportDataSubpath = cfg.App.ExportDataSubpath
 		s.Network = cfg.App.Network
+		s.PeersFile = cfg.App.PeersFile
 		s.LocalServerPrivKey = cfg.App.LocalServerPrivKey
 		s.FactoshisPerEC = cfg.App.ExchangeRate
 		s.DirectoryBlockInSeconds = cfg.App.DirectoryBlockInSeconds
@@ -261,6 +264,7 @@ func (s *State) LoadConfig(filename string, folder string) {
 		s.ExportData = false
 		s.ExportDataSubpath = "data/export"
 		s.Network = "LOCAL"
+		s.PeersFile = "~/.factom/peers.json"
 		s.LocalServerPrivKey = "4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c9b08946553448d26d"
 		s.FactoshisPerEC = 006666
 		s.DirectoryBlockInSeconds = 6
@@ -857,7 +861,7 @@ func (s *State) AckQueue() chan interfaces.IMsg {
 }
 
 func (s *State) StallMsg(m interfaces.IMsg) {
-	s.StallList = append(s.StallList,m)
+	s.StallList = append(s.StallList, m)
 }
 
 // Get the ith message out of the stall queue.  Note getting i=0 makes

@@ -191,9 +191,7 @@ func NetStart(s *state.State) {
 	}
 
 	// Start the P2P netowrk
-
-	// BUGBUG Get peers file from config
-	p2p := new(p2p.Controller).Init(address, "~/.factom/peers.json", exclusive)
+	p2p := new(p2p.Controller).Init(address, s.PeersFile, exclusive)
 	network = *p2p
 	network.StartNetwork(false) //BUGBUG This should be command line flag? Talk to Brian
 	// Setup the proxy (Which translates from network parcels to factom messages, handling addressing for directed messages)

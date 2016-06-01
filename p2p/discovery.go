@@ -123,7 +123,7 @@ func (d *Discovery) SavePeers() {
 	encoder.Encode(d.knownPeers)
 	UpdateKnownPeers.Unlock()
 	writer.Flush()
-	note("discovery", "SavePeers() saved %d peers in peers.josn", len(d.knownPeers))
+	note("discovery", "SavePeers() saved %d peers in peers.json", len(d.knownPeers))
 
 }
 
