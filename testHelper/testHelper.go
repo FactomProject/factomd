@@ -99,7 +99,7 @@ func CreateAndPopulateTestDatabaseOverlay() *databaseOverlay.Overlay {
 			panic(err)
 		}
 
-		err = dbo.ProcessECBlockMultiBatch(prev.ECBlock)
+		err = dbo.ProcessECBlockMultiBatch(prev.ECBlock, false)
 		if err != nil {
 			panic(err)
 		}
@@ -155,6 +155,18 @@ func newBlockSet() *BlockSet {
 	bs.AnchorEBlock = nil
 	bs.Entries = nil
 	return bs
+}
+
+func CreateFullTestBlockSet() []*BlockSet {
+	answer := make([]*BlockSet, BlockCount)
+	var prev *BlockSet = nil
+
+	for i := 0; i < BlockCount; i++ {
+		prev = CreateTestBlockSet(prev)
+		answer[i] = prev
+	}
+
+	return answer
 }
 
 func CreateTestBlockSet(prev *BlockSet) *BlockSet {

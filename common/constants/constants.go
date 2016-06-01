@@ -78,9 +78,8 @@ const (
 
 	//NETWORK constants
 	//==================
-	VERSION_0        = byte(0)
-	FACTOMD_VERSION  = 4000000
-	PROTOCOL_VERSION = 0
+	VERSION_0       = byte(0)
+	FACTOMD_VERSION = 4000000
 	//0xFA92E5A1
 	//0xFA92E5A2
 	//0xFA92E5A3

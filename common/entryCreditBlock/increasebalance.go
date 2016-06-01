@@ -6,6 +6,8 @@ package entryCreditBlock
 
 import (
 	"bytes"
+	"fmt"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 )
@@ -29,12 +31,20 @@ func NewIncreaseBalance() *IncreaseBalance {
 	return r
 }
 
+func (a *IncreaseBalance) GetEntryHash() interfaces.IHash {
+	return nil
+}
+
 func (e *IncreaseBalance) Hash() interfaces.IHash {
 	bin, err := e.MarshalBinary()
 	if err != nil {
 		panic(err)
 	}
 	return primitives.Sha(bin)
+}
+
+func (e *IncreaseBalance) GetHash() interfaces.IHash {
+	return e.Hash()
 }
 
 func (b *IncreaseBalance) ECID() byte {
@@ -64,6 +74,12 @@ func (b *IncreaseBalance) MarshalBinary() ([]byte, error) {
 }
 
 func (b *IncreaseBalance) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("Error unmarshalling IncreaseBalance: %v", r)
+		}
+	}()
+
 	buf := primitives.NewBuffer(data)
 	hash := make([]byte, 32)
 

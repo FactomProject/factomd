@@ -5,13 +5,13 @@
 package databaseOverlay_test
 
 import (
-	/*
-		"github.com/FactomProject/factomd/common/primitives"*/
+	//"github.com/FactomProject/factomd/common/primitives"
 
 	. "github.com/FactomProject/factomd/common/entryBlock"
 	. "github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/database/mapdb"
 	. "github.com/FactomProject/factomd/testHelper"
+
 	"testing"
 )
 
@@ -33,7 +33,7 @@ func TestIncludedIn(t *testing.T) {
 
 	for _, block := range blocks {
 		for _, entry := range block.GetEntryHashes() {
-			blockHash, err := dbo.LoadIncludedIn(entry)
+			blockHash, err := dbo.FetchIncludedIn(entry)
 			if err != nil {
 				t.Error(err)
 			}
@@ -62,7 +62,7 @@ func TestIncludedInOverwriting(t *testing.T) {
 
 	for i, block := range blocks {
 		for _, entry := range block.GetEntryHashes() {
-			blockHash, err := dbo.LoadIncludedIn(entry)
+			blockHash, err := dbo.FetchIncludedIn(entry)
 			if err != nil {
 				t.Error(err)
 			}
@@ -94,7 +94,7 @@ func TestIncludedInOverwriting(t *testing.T) {
 
 	for i, block := range blocks {
 		for _, entry := range block.GetEntryHashes() {
-			blockHash, err := dbo.LoadIncludedIn(entry)
+			blockHash, err := dbo.FetchIncludedIn(entry)
 			if err != nil {
 				t.Error(err)
 			}
@@ -106,6 +106,105 @@ func TestIncludedInOverwriting(t *testing.T) {
 				if blockHash.IsSameAs(blocks[max-1].DatabasePrimaryIndex()) == false {
 					t.Error("Wrong IncludedIn result")
 				}
+			}
+		}
+	}
+}
+
+func TestIncludedInFromAllBlocks(t *testing.T) {
+	dbo := CreateAndPopulateTestDatabaseOverlay()
+
+	dBlocks, err := dbo.FetchAllDBlocks()
+	if err != nil {
+		t.Error(err)
+	}
+
+	for _, block := range dBlocks {
+		blockHash := block.DatabasePrimaryIndex()
+		entries := block.GetEntryHashes()
+		for _, entry := range entries {
+			in, err := dbo.FetchIncludedIn(entry)
+			if err != nil {
+				t.Error(err)
+			}
+			if in.IsSameAs(blockHash) == false {
+				t.Errorf("Entry not found in dBlocks - %v vs %v for %v", in.String(), blockHash.String(), entry)
+			}
+		}
+	}
+
+	fBlocks, err := dbo.FetchAllFBlocks()
+	if err != nil {
+		t.Error(err)
+	}
+
+	for _, block := range fBlocks {
+		blockHash := block.DatabasePrimaryIndex()
+		entries := block.GetEntryHashes()
+		for _, entry := range entries {
+			in, err := dbo.FetchIncludedIn(entry)
+			if err != nil {
+				t.Error(err)
+			}
+			if in.IsSameAs(blockHash) == false {
+				t.Errorf("Entry not found in fBlocks - %v vs %v for %v", in.String(), blockHash.String(), entry)
+			}
+		}
+	}
+
+	ecBlocks, err := dbo.FetchAllECBlocks()
+	if err != nil {
+		t.Error(err)
+	}
+
+	for _, block := range ecBlocks {
+		blockHash := block.DatabasePrimaryIndex()
+		entries := block.GetEntryHashes()
+		for _, entry := range entries {
+			in, err := dbo.FetchIncludedIn(entry)
+			if err != nil {
+				t.Error(err)
+			}
+			if in.IsSameAs(blockHash) == false {
+				t.Errorf("Entry not found in ecBlocks - %v vs %v for %v", in.String(), blockHash.String(), entry)
+			}
+		}
+	}
+
+	eBlocks, err := dbo.FetchAllEBlocksByChain(GetChainID())
+	if err != nil {
+		t.Error(err)
+	}
+
+	for _, block := range eBlocks {
+		blockHash := block.DatabasePrimaryIndex()
+		entries := block.GetEntryHashes()
+		for _, entry := range entries {
+			in, err := dbo.FetchIncludedIn(entry)
+			if err != nil {
+				t.Error(err)
+			}
+			if in.IsSameAs(blockHash) == false {
+				t.Errorf("Entry not found in eBlocks - %v vs %v for %v", in.String(), blockHash.String(), entry)
+			}
+		}
+	}
+
+	anchorBlocks, err := dbo.FetchAllEBlocksByChain(GetAnchorChainID())
+	if err != nil {
+		t.Error(err)
+	}
+
+	for _, block := range anchorBlocks {
+		blockHash := block.DatabasePrimaryIndex()
+		entries := block.GetEntryHashes()
+		for _, entry := range entries {
+			in, err := dbo.FetchIncludedIn(entry)
+			if err != nil {
+				t.Error(err)
+			}
+			if in.IsSameAs(blockHash) == false {
+				t.Errorf("Entry not found in anchorBlocks - %v vs %v for %v", in.String(), blockHash.String(), entry)
 			}
 		}
 	}

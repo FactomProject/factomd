@@ -36,6 +36,7 @@ type IEntryBlock interface {
 
 	GetEntryHashes() []IHash
 	HeaderHash() (IHash, error)
+	GetHash() IHash
 	BodyKeyMR() IHash
 }
 

@@ -24,7 +24,6 @@ type IState interface {
 	GetDirectoryBlockInSeconds() int
 	SetDirectoryBlockInSeconds(int)
 	GetFactomdVersion() int
-	GetProtocolVersion() int
 	GetDBHeightComplete() uint32
 	GetEBDBHeightComplete() uint32
 	SetEBDBHeightComplete(uint32)
@@ -172,4 +171,11 @@ type IState interface {
 
 	SetIsReplaying()
 	SetIsDoneReplaying()
+
+	//For ACK
+	GetACKStatus(hash IHash) (int, error)
+	FetchPaidFor(hash IHash) (IHash, error)
+	FetchFactoidTransactionByHash(hash IHash) (ITransaction, error)
+	FetchECTransactionByHash(hash IHash) (IECBlockEntry, error)
+	FetchEntryByHash(IHash) (IEBEntry, error)
 }
