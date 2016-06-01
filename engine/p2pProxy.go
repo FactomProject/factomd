@@ -23,13 +23,18 @@ type P2PProxy struct {
 	ToName   string
 	FromName string
 	// Channels that define the connection:
-	BroadcastOut chan []byte // ToNetwork from factomd
-	BroadcastIn  chan []byte // FromNetwork for Factomd
+	BroadcastOut chan factomMessage // ToNetwork from factomd
+	BroadcastIn  chan factomMessage // FromNetwork for Factomd
 
 	ToNetwork   chan p2p.Parcel // Parcels from the application for us to route
 	FromNetwork chan p2p.Parcel // Parcels from the network for the application
 
 	debugMode int
+}
+
+type factomMessage struct {
+	message  []byte
+	peerHash string
 }
 
 var _ interfaces.IPeer = (*P2PProxy)(nil)
@@ -59,6 +64,7 @@ func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 		fmt.Println("ERROR on Send: ", err)
 		return err
 	}
+	message := factomMessage{message: data, peerHash: }
 	if len(f.BroadcastOut) < 10000 {
 		f.BroadcastOut <- data
 	}
