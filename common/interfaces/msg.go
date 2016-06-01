@@ -4,8 +4,6 @@
 
 package interfaces
 
-import ()
-
 /**************************
  * IRCD  Interface for Redeem Condition Datastructures (RCD)
  *
@@ -28,6 +26,9 @@ type IMsg interface {
 	// FactomNode generated the message.
 	GetOrigin() int
 	SetOrigin(int)
+
+	GetNetworkOrigin() string
+	SetNetworkOrigin(string)
 
 	// Returns the timestamp for a message
 	GetTimestamp() Timestamp
