@@ -106,6 +106,7 @@ func (p *ProcessList) Unseal(minute int) bool {
 
 // Returns the Virtual Server index for this hash for the given minute
 func (p *ProcessList) VMIndexFor(hash []byte) int {
+	return 0
 	v := uint64(0)
 	for _, b := range hash {
 		v += uint64(b)
@@ -236,6 +237,7 @@ func (p *ProcessList) MinuteComplete() int {
 		for _, msg := range p.VMs[i].List {
 			if eom, ok := msg.(*messages.EOM); ok {
 				mm = int(eom.Minute + 1)
+				p.VMs[i].MinuteComplete = mm
 			}
 		}
 		if m > mm {
@@ -250,20 +252,22 @@ func (p *ProcessList) MinuteComplete() int {
 func (p *ProcessList) MinuteFinished() int {
 	m := 10
 	for i := 0; i < len(p.FedServers); i++ {
-		vm := p.VMs[i]
-		for i, v := range p.VMs[i].List {
-			if v == nil && i <= vm.MinuteHeight {
-				m = vm.MinuteFinished - 1
-				if m < 0 {
-					m = 0
-				}
+		mm := 0
+		for j, msg := range p.VMs[i].List {
+			if j == p.VMs[i].Height {
+				break
+			}
+			if eom, ok := msg.(*messages.EOM); ok {
+				mm = int(eom.Minute + 1)
+				p.VMs[i].MinuteFinished = mm
 			}
 		}
-		if vm.MinuteFinished < m {
-			m = vm.MinuteFinished
+		if m > mm {
+			m = mm
 		}
 	}
 	return m
+
 }
 
 // Add the given serverChain to this processlist as a Federated Server, and return

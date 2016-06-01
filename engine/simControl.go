@@ -244,6 +244,7 @@ func rotateWSAPI(rotate *bool) {
 			if *rotate { // Only if true
 				// Swap entry points once per second.
 				wsapi.SetState(fnode.State)
+				os.Stderr.WriteString("\rAPI now directed to " + fnode.State.GetFactomNodeName() + "   ")
 				time.Sleep(time.Second)
 			}
 		}
