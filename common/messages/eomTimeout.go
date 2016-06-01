@@ -191,34 +191,14 @@ func (m *EOMTimeout) Validate(state interfaces.IState) int {
 	return 0
 }
 
-// Returns true if this is a message for this server to execute as
-// a leader.
-func (m *EOMTimeout) Leader(state interfaces.IState) bool {
-	switch state.GetNetworkNumber() {
-	case 0: // Main Network
-		panic("Not implemented yet")
-	case 1: // Test Network
-		panic("Not implemented yet")
-	case 2: // Local Network
-		panic("Not implemented yet")
-	default:
-		panic("Not implemented yet")
-	}
-
+func (m *EOMTimeout) ComputeVMIndex(state interfaces.IState) {
 }
 
 // Execute the leader functions of the given message
-func (m *EOMTimeout) LeaderExecute(state interfaces.IState) error {
-	return nil
+func (m *EOMTimeout) LeaderExecute(state interfaces.IState) {
 }
 
-// Returns true if this is a message for this server to execute as a follower
-func (m *EOMTimeout) Follower(interfaces.IState) bool {
-	return true
-}
-
-func (m *EOMTimeout) FollowerExecute(interfaces.IState) error {
-	return nil
+func (m *EOMTimeout) FollowerExecute(interfaces.IState) {
 }
 
 func (e *EOMTimeout) JSONByte() ([]byte, error) {

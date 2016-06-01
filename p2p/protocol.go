@@ -123,7 +123,7 @@ func log(level uint8, component string, format string, v ...interface{}) {
 		// fmt.Fprintf(os.Stdout, "%s, %d, %s, (%s), %s\n", host, os.Getpid(), component, levelStr, message)
 	}
 	if level == Fatal {
-		fmt.Fprintf(os.Stderr, "%s, %d, %s, %s\n", host, os.Getpid(), component, levelStr, message)
+		fmt.Fprintf(os.Stderr, "%s, %d, %s, (%s), %s\n", host, os.Getpid(), component, levelStr, message)
 		// BUGBUG - take out this exit before shipping JAYJAY TODO, or check that all fatals are fatal.
 		os.Exit(1)
 	}

@@ -178,23 +178,15 @@ func (m *MissingMsg) Validate(state interfaces.IState) int {
 	return 1
 }
 
-// Returns true if this is a message for this server to execute as
-// a leader.
-func (m *MissingMsg) Leader(state interfaces.IState) bool {
-	return false
+func (m *MissingMsg) ComputeVMIndex(state interfaces.IState) {
+
 }
 
-// Execute the leader functions of the given message
-func (m *MissingMsg) LeaderExecute(state interfaces.IState) error {
-	return nil
+func (m *MissingMsg) LeaderExecute(state interfaces.IState) {
+	m.FollowerExecute(state)
 }
 
-// Returns true if this is a message for this server to execute as a follower
-func (m *MissingMsg) Follower(interfaces.IState) bool {
-	return true
-}
-
-func (m *MissingMsg) FollowerExecute(state interfaces.IState) error {
+func (m *MissingMsg) FollowerExecute(state interfaces.IState) {
 	msg, ackMsg, err := state.LoadSpecificMsgAndAck(m.DBHeight, m.VM, m.ProcessListHeight)
 
 	if msg != nil && ackMsg != nil && err == nil { // If I don't have this message, ignore.
@@ -206,7 +198,7 @@ func (m *MissingMsg) FollowerExecute(state interfaces.IState) error {
 		state.NetworkOutMsgQueue() <- ackMsg
 	}
 
-	return nil
+	return
 }
 
 func (e *MissingMsg) JSONByte() ([]byte, error) {

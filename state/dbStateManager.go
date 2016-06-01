@@ -55,9 +55,7 @@ func (list *DBStateList) String() string {
 	for i, ds := range list.DBStates {
 		rec = "M"
 		if ds != nil && ds.DirectoryBlock != nil {
-			list.State.DBMutex.Lock()
 			dblk, _ := list.State.DB.FetchDBlockByHash(ds.DirectoryBlock.GetKeyMR())
-			list.State.DBMutex.Unlock()
 			if dblk != nil {
 				rec = "R"
 			}
@@ -161,7 +159,6 @@ func (list *DBStateList) Catchup() {
 
 	if msg != nil {
 		list.State.NetworkOutMsgQueue() <- msg
-		list.State.stallQueue = make(chan interfaces.IMsg, 10000)
 		list.State.NewMinute()
 	}
 
@@ -185,9 +182,7 @@ func (list *DBStateList) UpdateState() (progress bool) {
 		// Make sure the directory block is properly synced up with the prior block, if there
 		// is one.
 
-		list.State.DBMutex.Lock()
 		dblk, _ := list.State.DB.FetchDBlockByKeyMR(d.DirectoryBlock.GetKeyMR())
-		list.State.DBMutex.Unlock()
 		if dblk == nil {
 			if i > 0 {
 				p := list.DBStates[i-1]
@@ -195,9 +190,7 @@ func (list *DBStateList) UpdateState() (progress bool) {
 					continue
 				}
 			}
-			list.State.DBMutex.Lock()
 			list.State.DB.StartMultiBatch()
-			list.State.DBMutex.Unlock()
 
 			//fmt.Println("Saving DBHeight ", d.DirectoryBlock.GetHeader().GetDBHeight(), " on ", list.State.GetFactomNodeName())
 
@@ -237,7 +230,9 @@ func (list *DBStateList) UpdateState() (progress bool) {
 				d.DirectoryBlock.GetDBEntries()[0].SetKeyMR(d.AdminBlock.GetHash())
 				d.DirectoryBlock.GetDBEntries()[1].SetKeyMR(d.EntryCreditBlock.GetHash())
 				d.DirectoryBlock.GetDBEntries()[2].SetKeyMR(d.FactoidBlock.GetHash())
+
 				pl := list.State.ProcessLists.Get(d.DirectoryBlock.GetHeader().GetDBHeight())
+
 				for _, eb := range pl.NewEBlocks {
 					key, err := eb.KeyMR()
 					if err != nil {
@@ -245,6 +240,7 @@ func (list *DBStateList) UpdateState() (progress bool) {
 					}
 					d.DirectoryBlock.AddEntry(eb.GetChainID(), key)
 				}
+
 				d.DirectoryBlock.GetKeyMR()
 				_, err = d.DirectoryBlock.BuildBodyMR()
 				if err != nil {
@@ -252,56 +248,52 @@ func (list *DBStateList) UpdateState() (progress bool) {
 				}
 
 			}
-			list.State.DBMutex.Lock()
 			if err := list.State.DB.ProcessDBlockMultiBatch(d.DirectoryBlock); err != nil {
-				list.State.DBMutex.Unlock()
 				panic(err.Error())
 			}
 
 			if err := list.State.DB.ProcessABlockMultiBatch(d.AdminBlock); err != nil {
-				list.State.DBMutex.Unlock()
 				panic(err.Error())
 			}
 
 			if err := list.State.DB.ProcessFBlockMultiBatch(d.FactoidBlock); err != nil {
-				list.State.DBMutex.Unlock()
 				panic(err.Error())
 			}
 
 			if err := list.State.DB.ProcessECBlockMultiBatch(d.EntryCreditBlock, false); err != nil {
-				list.State.DBMutex.Unlock()
 				panic(err.Error())
 			}
 
 			pl := list.State.ProcessLists.Get(d.DirectoryBlock.GetHeader().GetDBHeight())
 			for _, eb := range pl.NewEBlocks {
 				if err := list.State.DB.ProcessEBlockMultiBatch(eb, false); err != nil {
-					list.State.DBMutex.Unlock()
 					panic(err.Error())
 				}
 				for _, e := range eb.GetBody().GetEBEntries() {
 					if err := list.State.DB.InsertEntry(pl.NewEntries[e.Fixed()]); err != nil {
-						list.State.DBMutex.Unlock()
 						panic(err.Error())
 					}
 				}
 			}
 
 			if err := list.State.DB.ExecuteMultiBatch(); err != nil {
-				list.State.DBMutex.Unlock()
 				panic(err.Error())
 			}
-			list.State.DBMutex.Unlock()
 
 		}
 
-		list.State.DBMutex.Lock()
 		dblk2, _ := list.State.DB.FetchDBlockByKeyMR(d.DirectoryBlock.GetKeyMR())
-		list.State.DBMutex.Unlock()
 		if dblk2 == nil {
 			fmt.Printf("Failed to save the Directory Block %d %x\n",
 				d.DirectoryBlock.GetHeader().GetDBHeight(),
 				d.DirectoryBlock.GetKeyMR().Bytes()[:3])
+			panic("Failed to save Directory Block")
+		}
+		keyMR2 := dblk2.GetKeyMR()
+		if !d.DirectoryBlock.GetKeyMR().IsSameAs(keyMR2) {
+			fmt.Println(dblk == nil)
+			fmt.Printf("Keys differ %x and %x", d.DirectoryBlock.GetKeyMR().Bytes()[:3], keyMR2.Bytes()[:3])
+			panic("KeyMR failure")
 		}
 		list.LastTime = list.State.GetTimestamp() // If I saved or processed stuff, I'm good for a while
 		d.Saved = true                            // Only after all is done will I admit this state has been saved.

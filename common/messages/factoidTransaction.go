@@ -94,25 +94,17 @@ func (m *FactoidTransaction) Validate(state interfaces.IState) int {
 	return 1
 }
 
-// Returns true if this is a message for this server to execute as
-// a leader.
-func (m *FactoidTransaction) Leader(state interfaces.IState) bool {
-	return state.LeaderFor(m, constants.FACTOID_CHAINID)
+func (m *FactoidTransaction) ComputeVMIndex(state interfaces.IState) {
+	m.VMIndex = state.ComputeVMIndex(constants.FACTOID_CHAINID)
 }
 
 // Execute the leader functions of the given message
-func (m *FactoidTransaction) LeaderExecute(state interfaces.IState) error {
-	return state.LeaderExecute(m)
+func (m *FactoidTransaction) LeaderExecute(state interfaces.IState) {
+	state.LeaderExecute(m)
 }
 
-// Returns true if this is a message for this server to execute as a follower
-func (m *FactoidTransaction) Follower(state interfaces.IState) bool {
-	return true
-}
-
-func (m *FactoidTransaction) FollowerExecute(state interfaces.IState) error {
-	_, err := state.FollowerExecuteMsg(m)
-	return err
+func (m *FactoidTransaction) FollowerExecute(state interfaces.IState) {
+	state.FollowerExecuteMsg(m)
 }
 
 func (m *FactoidTransaction) Process(dbheight uint32, state interfaces.IState) bool {
