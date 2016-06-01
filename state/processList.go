@@ -8,11 +8,14 @@ import (
 	"bytes"
 	"log"
 
+	"time"
+
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
-	"time"
+	"github.com/FactomProject/factomd/database/databaseOverlay"
 )
 
 var _ = fmt.Print
@@ -31,6 +34,9 @@ type ProcessList struct {
 	VMs       []*VM       // Process list for each server (up to 32)
 	ServerMap [10][64]int // Map of FedServers to all Servers for each minute
 
+	diffSigTally int /*     Tally of how many VMs have provided different
+		                    Directory Block Signatures than what we have
+	                        (discard DBlock if > 1/2 have sig differences) */
 	// Maps
 	// ====
 	OldMsgs map[[32]byte]interfaces.IMsg // messages processed in this list
@@ -412,6 +418,10 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 		p.good = true
 	}
 	for i := 0; i < len(p.FedServers); i++ {
+		// Just in case, set p.diffSigTally to 0 when initiating pass-through
+		if i == 0 {
+			p.diffSigTally = 0
+		}
 		vm := p.VMs[i]
 
 		plist := vm.List
@@ -421,6 +431,22 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			if plist[j] == nil {
 				vm.missingTime = ask(vm, vm.missingTime, j)
 				break
+			}
+
+			// When processing DirectoryBlockSignatures, we check to see if the signed block
+			// matches our own saved block. If the majority of VMs' signatures do not match
+			// our saved block, we discard that block from our database.
+			if plist[j].Type() == constants.DIRECTORY_BLOCK_SIGNATURE_MSG {
+				dbs := plist[j].(*messages.DirectoryBlockSignature)
+				if !dbs.DirectoryBlockKeyMR.IsSameAs(state.ProcessLists.Lists[0].DirectoryBlock.GetKeyMR()) {
+					p.diffSigTally++
+					if p.diffSigTally > 0 && p.diffSigTally > (len(p.FedServers)/2) {
+						state.DB.Delete([]byte{byte(databaseOverlay.DIRECTORYBLOCK)}, state.ProcessLists.Lists[0].DirectoryBlock.GetKeyMR().Bytes())
+					}
+				}
+				if i >= len(p.FedServers) {
+					p.diffSigTally = 0
+				}
 			}
 
 			if p.Sealing && vm.Seal == 0 {
