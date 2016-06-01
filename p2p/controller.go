@@ -77,7 +77,7 @@ type CommandChangeLogging struct {
 // command channel.
 //////////////////////////////////////////////////////////////////////
 
-func (c *Controller) Init(port string, peersFile string) *Controller {
+func (c *Controller) Init(port string, peersFile string, exclusivity bool) *Controller {
 	verbose("ctrlr", "Controller.Init(%s)", port)
 	c.keepRunning = true
 	c.commandChannel = make(chan interface{}, 1000) // Commands from App
@@ -91,6 +91,7 @@ func (c *Controller) Init(port string, peersFile string) *Controller {
 	NodeID = uint64(r.Int63()) // This is a global used by all connections
 	c.lastPeerManagement = time.Now()
 	c.lastPeerRequest = time.Now()
+	OnlySpecialPeers = exclusivity
 	return c
 }
 
@@ -184,6 +185,8 @@ func (c *Controller) acceptLoop(listener net.Listener) {
 		if nil != err {
 			logerror("ctrlr", "Controller.acceptLoop() Error: %+v", err)
 		} else {
+			// BUGBUG - this is the source of the hashmap concurrent access issue.
+			// Possibly change the AddPeer command to just take the conn and do the RemoteAddr on the other side!
 			address := conn.RemoteAddr().String()
 			peer := c.discovery.GetPeerByAddress(address)
 			connection := new(Connection).InitWithConn(conn, peer)
@@ -338,7 +341,7 @@ func (c *Controller) handleCommand(command interface{}) {
 	case CommandChangeLogging:
 		parameters := command.(CommandChangeLogging)
 		CurrentLoggingLevel = parameters.level
-		debug("ctrlr", "Controller.handleCommand(CommandChangeLogging) new logging level %s", LoggingLevels[parameters.level])
+		silence("ctrlr", "Controller.handleCommand(CommandChangeLogging) new logging level %s", LoggingLevels[parameters.level])
 	case CommandAdjustPeerQuality:
 		verbose("ctrlr", "handleCommand() Processing command: CommandDemerit")
 		parameters := command.(CommandAdjustPeerQuality)
@@ -365,8 +368,14 @@ func (c *Controller) managePeers() {
 	if PeerSaveInterval < managementDuration {
 		c.lastPeerManagement = time.Now()
 		debug("ctrlr", "managePeers() time since last peer management: %s", managementDuration.String())
-		// If we are low on peers, attempt to connect to some more.
-		if NumberPeersToConnect > len(c.connections) {
+		// If we are low on outgoing connections, attempt to connect to some more.
+		outgoing := 0
+		for _, connection := range c.connections {
+			if connection.IsOutGoing() {
+				outgoing++
+			}
+		}
+		if NumberPeersToConnect > outgoing {
 			// Get list of peers ordered by quality from discovery
 			peers := c.discovery.GetStartupPeers()
 			// For each one, if we don't already have a connection, create command message.
