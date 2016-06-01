@@ -32,10 +32,6 @@ var fnodes []*FactomNode
 var mLog = new(MsgLog)
 var network p2p.Controller
 
-// Meta information to help QA know which build they are working on.
-var gitStatus string
-var buildTime string
-
 func NetStart(s *state.State) {
 
 	listenToPtr := flag.Int("node", 0, "Node Number the simulator will set as the focus")
@@ -115,11 +111,6 @@ func NetStart(s *state.State) {
 	fmt.Println(">>>>>>>>>>>>>>>>")
 	fmt.Println(">>>>>>>>>>>>>>>> Listening to Node", listenTo)
 	fmt.Println(">>>>>>>>>>>>>>>>")
-
-	fmt.Printf("\n\n ###### \n")
-	fmt.Printf("GIT STATUS: %s \n", gitStatus)
-	fmt.Printf("BUILD TIME: %s \n", buildTime)
-	fmt.Printf(" ###### \n")
 
 	AddInterruptHandler(func() {
 		fmt.Print("<Break>\n")

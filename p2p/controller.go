@@ -79,6 +79,7 @@ type CommandChangeLogging struct {
 
 func (c *Controller) Init(port string, peersFile string, exclusivity bool) *Controller {
 	verbose("ctrlr", "Controller.Init(%s)", port)
+	silence("#################", "META:  Jay's last touched: Wed, June 1, 2:51pm")
 	c.keepRunning = true
 	c.commandChannel = make(chan interface{}, 1000) // Commands from App
 	c.FromNetwork = make(chan Parcel, 10000)        // Channel to the app for network data

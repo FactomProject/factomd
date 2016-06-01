@@ -94,9 +94,8 @@ compile() {
     current=`pwd`
     cd $1
     echo "Compiling: " $1
-    flags="-X NetStart.buildTime=`date -u +.%Y%m%d.%H%M%S` -X NetStart.gitStatus=`git status`"
     go clean
-    go install -ldflags "$flags" || cerr=1
+    go install || cerr=1
     cd $current
     return $cerr
 }
