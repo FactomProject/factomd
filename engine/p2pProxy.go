@@ -42,8 +42,8 @@ var _ interfaces.IPeer = (*P2PProxy)(nil)
 func (f *P2PProxy) Init(fromName, toName string) interfaces.IPeer {
 	f.ToName = toName
 	f.FromName = fromName
-	f.BroadcastOut = make(chan []byte, 10000)
-	f.BroadcastIn = make(chan []byte, 10000)
+	f.BroadcastOut = make(chan factomMessage, 10000)
+	f.BroadcastIn = make(chan factomMessage, 10000)
 	return f
 }
 func (f *P2PProxy) SetDebugMode(netdebug int) {
@@ -64,9 +64,9 @@ func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 		fmt.Println("ERROR on Send: ", err)
 		return err
 	}
-	message := factomMessage{message: data, peerHash: }
+	message := factomMessage{message: data, peerHash: msg.GetNetworkOrigin()}
 	if len(f.BroadcastOut) < 10000 {
-		f.BroadcastOut <- data
+		f.BroadcastOut <- message
 	}
 	return nil
 }
@@ -76,9 +76,12 @@ func (f *P2PProxy) Recieve() (interfaces.IMsg, error) {
 	select {
 	case data, ok := <-f.BroadcastIn:
 		if ok {
-			msg, err := messages.UnmarshalMessage(data)
+			msg, err := messages.UnmarshalMessage(data.message)
 			if 0 < f.debugMode {
 				fmt.Printf(".")
+			}
+			if nil == err {
+				msg.SetNetworkOrigin(data.peerHash)
 			}
 			return msg, err
 		}
@@ -120,16 +123,14 @@ func (p *P2PProxy) startProxy() {
 // Note: BUGBUG - the NetworkProcessorNet / state has a channel of bad messages "Bad message queue?"
 // We need to rpocess these messages and get / give demerits.
 // Paul says its ok to punt on this for the alpha
-//
 
 // manageOutChannel takes messages from the f.broadcastOut channel and sends them to the network.
 func (f *P2PProxy) ManageOutChannel() {
 	for data := range f.BroadcastOut {
 		// Wrap it in a parcel and send it out channel ToNetwork.
-		parcel := p2p.NewParcel(p2p.CurrentNetwork, data)
+		parcel := p2p.NewParcel(p2p.CurrentNetwork, data.message)
 		parcel.Header.Type = p2p.TypeMessage
-		// BUGBUG JAYJAY TODO -- Load the target peer from the message, if there is one, int the parcel
-		// so it can be sent as a directed message
+		parcel.Header.TargetPeer = data.peerHash
 		f.ToNetwork <- *parcel
 	}
 }
@@ -137,8 +138,7 @@ func (f *P2PProxy) ManageOutChannel() {
 // manageInChannel takes messages from the network and stuffs it in the f.BroadcastIn channel
 func (f *P2PProxy) ManageInChannel() {
 	for data := range f.FromNetwork {
-		// BUGBUG JAYJAY TODO Here is where you copy the connecton ID into the Factom message?
-		message := data.Payload
+		message := factomMessage{message: data.Payload, peerHash: data.Header.TargetPeer}
 		f.BroadcastIn <- message
 	}
 }
@@ -166,8 +166,11 @@ func PeriodicStatusReport(fnodes []*FactomNode) {
 		fmt.Println("-------------------------------------------------------------------------------")
 		fmt.Println("-------------------------------------------------------------------------------")
 		for _, f := range fnodes {
-			f.State.SetString()
-			fmt.Printf("%8s %s\n", f.State.FactomNodeName, f.State.ShortString())
+			f.State.Status = true
+		}
+		time.Sleep(100 * time.Millisecond)
+		for _, f := range fnodes {
+			fmt.Printf("%8s %s \n", f.State.FactomNodeName, f.State.ShortString())
 		}
 		listenTo := 0
 		if listenTo >= 0 && listenTo < len(fnodes) {
