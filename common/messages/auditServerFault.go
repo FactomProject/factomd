@@ -197,32 +197,16 @@ func (m *AuditServerFault) Validate(state interfaces.IState) int {
 
 // Returns true if this is a message for this server to execute as
 // a leader.
-func (m *AuditServerFault) Leader(state interfaces.IState) bool {
-	switch state.GetNetworkNumber() {
-	case 0: // Main Network
-		panic("Not implemented yet")
-	case 1: // Test Network
-		panic("Not implemented yet")
-	case 2: // Local Network
-		panic("Not implemented yet")
-	default:
-		panic("Not implemented yet")
-	}
+func (m *AuditServerFault) ComputeVMIndex(state interfaces.IState) {
 
 }
 
 // Execute the leader functions of the given message
-func (m *AuditServerFault) LeaderExecute(state interfaces.IState) error {
-	return nil
+func (m *AuditServerFault) LeaderExecute(state interfaces.IState) {
+
 }
 
-// Returns true if this is a message for this server to execute as a follower
-func (m *AuditServerFault) Follower(interfaces.IState) bool {
-	return true
-}
-
-func (m *AuditServerFault) FollowerExecute(interfaces.IState) error {
-	return nil
+func (m *AuditServerFault) FollowerExecute(interfaces.IState) {
 }
 
 func (e *AuditServerFault) JSONByte() ([]byte, error) {

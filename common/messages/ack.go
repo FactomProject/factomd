@@ -142,24 +142,18 @@ func (m *Ack) Validate(state interfaces.IState) int {
 
 // Returns true if this is a message for this server to execute as
 // a leader.
-func (m *Ack) Leader(state interfaces.IState) bool {
-	return false
+func (m *Ack) ComputeVMIndex(state interfaces.IState) {
+
 }
 
 // Execute the leader functions of the given message
 // Leader, follower, do the same thing.
-func (m *Ack) LeaderExecute(state interfaces.IState) error {
-	return m.FollowerExecute(state)
+func (m *Ack) LeaderExecute(state interfaces.IState) {
+	m.FollowerExecute(state)
 }
 
-// Returns true if this is a message for this server to execute as a follower
-func (m *Ack) Follower(interfaces.IState) bool {
-	return true
-}
-
-func (m *Ack) FollowerExecute(state interfaces.IState) error {
-	_, err := state.FollowerExecuteAck(m)
-	return err
+func (m *Ack) FollowerExecute(state interfaces.IState) {
+	state.FollowerExecuteAck(m)
 }
 
 // Acknowledgements do not go into the process list.

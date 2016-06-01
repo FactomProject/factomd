@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 fct newaddress fct b1
 fct newaddress fct b2
 fct newaddress fct b3
