@@ -6,6 +6,7 @@ package state
 
 import (
 	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 )
 
@@ -39,6 +40,17 @@ func (s *State) GetACKStatus(hash interfaces.IHash) (int, error) {
 
 func (s *State) FetchECTransactionByHash(hash interfaces.IHash) (interfaces.IECBlockEntry, error) {
 	//TODO: expand to search data from outside database
+	if hash == nil {
+		return nil, nil
+	}
+
+	ecBlock := s.ProcessLists.LastList().EntryCreditBlock
+	if ecBlock != nil {
+		tx := ecBlock.GetEntryByHash(hash)
+		if tx != nil {
+			return tx, nil
+		}
+	}
 
 	dbase := s.GetAndLockDB()
 	defer s.UnlockDB()
@@ -48,6 +60,18 @@ func (s *State) FetchECTransactionByHash(hash interfaces.IHash) (interfaces.IECB
 
 func (s *State) FetchFactoidTransactionByHash(hash interfaces.IHash) (interfaces.ITransaction, error) {
 	//TODO: expand to search data from outside database
+	if hash == nil {
+		return nil, nil
+	}
+	/*
+		fBlock := s.ProcessLists.LastList().FactoidCreditBlock
+		if fBlock != nil {
+			tx := fBlock.GetTransactionByHash(hash)
+			if tx != nil {
+				return tx, nil
+			}
+		}
+	*/
 
 	dbase := s.GetAndLockDB()
 	defer s.UnlockDB()
@@ -57,6 +81,25 @@ func (s *State) FetchFactoidTransactionByHash(hash interfaces.IHash) (interfaces
 
 func (s *State) FetchPaidFor(hash interfaces.IHash) (interfaces.IHash, error) {
 	//TODO: expand to search data from outside database
+	if hash == nil {
+		return nil, nil
+	}
+
+	ecBlock := s.ProcessLists.LastList().EntryCreditBlock
+	for _, tx := range ecBlock.GetEntries() {
+		switch tx.ECID() {
+		case entryCreditBlock.ECIDEntryCommit:
+			if hash.IsSameAs(tx.(*entryCreditBlock.CommitEntry).EntryHash) {
+				return tx.GetSigHash(), nil
+			}
+			break
+		case entryCreditBlock.ECIDChainCommit:
+			if hash.IsSameAs(tx.(*entryCreditBlock.CommitChain).EntryHash) {
+				return tx.GetSigHash(), nil
+			}
+			break
+		}
+	}
 
 	dbase := s.GetAndLockDB()
 	defer s.UnlockDB()
@@ -66,6 +109,15 @@ func (s *State) FetchPaidFor(hash interfaces.IHash) (interfaces.IHash, error) {
 
 func (s *State) FetchEntryByHash(hash interfaces.IHash) (interfaces.IEBEntry, error) {
 	//TODO: expand to search data from outside database
+	if hash == nil {
+		return nil, nil
+	}
+
+	for _, tx := range s.ProcessLists.LastList().NewEntries {
+		if hash.IsSameAs(tx.GetHash()) {
+			return tx, nil
+		}
+	}
 
 	dbase := s.GetAndLockDB()
 	defer s.UnlockDB()

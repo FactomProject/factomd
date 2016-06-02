@@ -52,6 +52,23 @@ func (c *FBlock) GetEntryHashes() []interfaces.IHash {
 	return answer
 }
 
+func (c *FBlock) GetTransactionByHash(hash interfaces.IHash) interfaces.ITransaction {
+	if hash == nil {
+		return nil
+	}
+
+	txs := c.GetTransactions()
+	for _, tx := range txs {
+		if hash.IsSameAs(tx.GetHash()) {
+			return tx
+		}
+		if hash.IsSameAs(tx.GetSigHash()) {
+			return tx
+		}
+	}
+	return nil
+}
+
 func (c *FBlock) GetEntrySigHashes() []interfaces.IHash {
 	entries := c.Transactions[:]
 	answer := make([]interfaces.IHash, len(entries))
