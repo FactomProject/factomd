@@ -191,9 +191,9 @@ func NetStart(s *state.State) {
 	}
 
 	// Start the P2P netowrk
-	p2p := new(p2p.Controller).Init(address, s.PeersFile, exclusive)
+	p2p := new(p2p.Controller).Init(address, s.PeersFile)
 	network = *p2p
-	network.StartNetwork(false) //BUGBUG This should be command line flag? Talk to Brian
+	network.StartNetwork(exclusive)
 	// Setup the proxy (Which translates from network parcels to factom messages, handling addressing for directed messages)
 	p2pProxy := new(P2PProxy).Init(fnodes[0].State.FactomNodeName, "P2P Network").(*P2PProxy)
 	p2pProxy.FromNetwork = network.FromNetwork

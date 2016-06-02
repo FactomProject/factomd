@@ -147,7 +147,7 @@ func (d *Discovery) LearnPeers(payload []byte) {
 	}
 }
 
-// GetStartupPeers gets a set of peers to connect to on startup
+// GetOutgoingPeers gets a set of peers to connect to on startup
 // For now, this gives a set of 12 of the total known peers.
 // We want peers from diverse networks.  So,method is this:
 //	-- generate list of candidates (if exclusive, only special peers)
@@ -156,7 +156,7 @@ func (d *Discovery) LearnPeers(payload []byte) {
 //  -- Otherwise,repeatedly take candidates at the 0%, %25, %50, %75, %100 points in the list
 //  -- remove each candidate from the list.
 //  -- continue until there are no candidates left, or we have our set.
-func (d *Discovery) GetStartupPeers() []Peer {
+func (d *Discovery) GetOutgoingPeers() []Peer {
 	peerPool := []Peer{}
 	selectedPeers := []Peer{}
 	UpdateKnownPeers.Lock()

@@ -136,7 +136,9 @@ func (c *Connection) runLoop() {
 			if c.dial() {
 				c.goOnline()
 			} else { //  we did not connect successfully
-				c.goShutdown()
+				// BUGBUG Go offline for testing now. Ask brian how tough we should be
+				// c.goShutdown()
+				c.goOffline()
 			}
 		case ConnectionOnline:
 			c.processReceives()
