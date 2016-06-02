@@ -70,7 +70,9 @@ type State struct {
 	apiQueue               chan interfaces.IMsg
 	ackQueue               chan interfaces.IMsg
 	msgQueue               chan interfaces.IMsg
-	StallList              []interfaces.IMsg
+	OutOfOrders            []*messages.Ack
+	StallAcks              []*messages.Ack
+	StallMsgs              []interfaces.IMsg
 	ShutdownChan           chan int // For gracefully halting Factom
 	JournalFile            string
 
@@ -860,21 +862,57 @@ func (s *State) AckQueue() chan interfaces.IMsg {
 	return s.ackQueue
 }
 
-func (s *State) StallMsg(m interfaces.IMsg) {
-	s.StallList = append(s.StallList, m)
+func (s *State) StallAck(ack *messages.Ack) {
+	s.StallAcks = append(s.StallAcks, ack)
 }
 
 // Get the ith message out of the stall queue.  Note getting i=0 makes
 // the stall queue into a FIFO, but other options are possible.
-func (s *State) GetStalled(i int) interfaces.IMsg {
-	if len(s.StallList) == 0 {
+func (s *State) GetStalledAck(i int) *messages.Ack {
+	if len(s.StallAcks) == 0 {
 		return nil
 	}
-	m := s.StallList[0]
+	m := s.StallAcks[0]
 
-	copy(s.StallList[i:], s.StallList[i+1:])
-	s.StallList[len(s.StallList)-1] = nil
-	s.StallList = s.StallList[:len(s.StallList)-1]
+	copy(s.StallAcks[i:], s.StallAcks[i+1:])
+	s.StallAcks[len(s.StallAcks)-1] = nil
+	s.StallAcks = s.StallAcks[:len(s.StallAcks)-1]
+	return m
+}
+
+func (s *State) OutOfOrderAck(ack *messages.Ack) {
+	s.OutOfOrders = append(s.OutOfOrders, ack)
+}
+
+// Get the ith message out of the stall queue.  Note getting i=0 makes
+// the stall queue into a FIFO, but other options are possible.
+func (s *State) GetOutOfOrder(i int) *messages.Ack {
+	if len(s.OutOfOrders) == 0 {
+		return nil
+	}
+	m := s.OutOfOrders[0]
+
+	copy(s.OutOfOrders[i:], s.OutOfOrders[i+1:])
+	s.OutOfOrders[len(s.OutOfOrders)-1] = nil
+	s.OutOfOrders = s.OutOfOrders[:len(s.OutOfOrders)-1]
+	return m
+}
+
+func (s *State) StallMsg(msg interfaces.IMsg) {
+	s.StallMsgs = append(s.StallMsgs, msg)
+}
+
+// Get the ith message out of the stall queue.  Note getting i=0 makes
+// the stall queue into a FIFO, but other options are possible.
+func (s *State) GetStalledMsg(i int) interfaces.IMsg {
+	if len(s.StallMsgs) == 0 {
+		return nil
+	}
+	m := s.StallMsgs[0]
+
+	copy(s.StallMsgs[i:], s.StallMsgs[i+1:])
+	s.StallMsgs[len(s.StallMsgs)-1] = nil
+	s.StallMsgs = s.StallMsgs[:len(s.StallMsgs)-1]
 	return m
 }
 

@@ -3,19 +3,19 @@ package state
 import (
 	"fmt"
 
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
+	"github.com/FactomProject/factomd/database/databaseOverlay"
 	//"github.com/FactomProject/factomd/common/factoid"
 	"bytes"
 	"log"
 
 	"time"
 
-	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/database/databaseOverlay"
 )
 
 var _ = fmt.Print
@@ -112,6 +112,7 @@ func (p *ProcessList) Unseal(minute int) bool {
 
 // Returns the Virtual Server index for this hash for the given minute
 func (p *ProcessList) VMIndexFor(hash []byte) int {
+	return 0
 	v := uint64(0)
 	for _, b := range hash {
 		v += uint64(b)
@@ -242,6 +243,7 @@ func (p *ProcessList) MinuteComplete() int {
 		for _, msg := range p.VMs[i].List {
 			if eom, ok := msg.(*messages.EOM); ok {
 				mm = int(eom.Minute + 1)
+				p.VMs[i].MinuteComplete = mm
 			}
 		}
 		if m > mm {
@@ -256,20 +258,22 @@ func (p *ProcessList) MinuteComplete() int {
 func (p *ProcessList) MinuteFinished() int {
 	m := 10
 	for i := 0; i < len(p.FedServers); i++ {
-		vm := p.VMs[i]
-		for i, v := range p.VMs[i].List {
-			if v == nil && i <= vm.MinuteHeight {
-				m = vm.MinuteFinished - 1
-				if m < 0 {
-					m = 0
-				}
+		mm := 0
+		for j, msg := range p.VMs[i].List {
+			if j == p.VMs[i].Height {
+				break
+			}
+			if eom, ok := msg.(*messages.EOM); ok {
+				mm = int(eom.Minute + 1)
+				p.VMs[i].MinuteFinished = mm
 			}
 		}
-		if vm.MinuteFinished < m {
-			m = vm.MinuteFinished
+		if m > mm {
+			m = mm
 		}
 	}
 	return m
+
 }
 
 // Add the given serverChain to this processlist as a Federated Server, and return
@@ -537,24 +541,32 @@ func (p *ProcessList) GoodTo(vmIndex int) bool {
 func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 
 	stall := func(hint string) {
-		p.State.StallMsg(ack)
+		p.State.StallAck(ack)
 		p.State.Holding[m.GetHash().Fixed()] = m
 		delete(p.State.Acks, ack.GetHash().Fixed())
-		// fmt.Println("dddd",hint, p.State.FactomNodeName, "Stall",m.String())
-		// fmt.Println("dddd",hint, p.State.FactomNodeName, "Stall",ack.String())
+		//fmt.Println("dddd", hint, p.State.FactomNodeName, "Stall", m.String())
+		//fmt.Println("dddd", hint, p.State.FactomNodeName, "Stall", ack.String())
+	}
+
+	outOfOrder := func(hint string) {
+		p.State.OutOfOrderAck(ack)
+		p.State.Holding[m.GetHash().Fixed()] = m
+		delete(p.State.Acks, ack.GetHash().Fixed())
+		//fmt.Println("dddd", hint, p.State.FactomNodeName, "OutOfOrder", m.String())
+		//fmt.Println("dddd", hint, p.State.FactomNodeName, "OutOfOrder", ack.String())
 	}
 
 	toss := func(hint string) {
 		delete(p.State.Holding, ack.GetHash().Fixed())
 		delete(p.State.Acks, ack.GetHash().Fixed())
-		fmt.Println("dddd", hint, p.State.FactomNodeName, "Toss", m.String())
-		fmt.Println("dddd", hint, p.State.FactomNodeName, "Toss", ack.String())
+		//fmt.Println("dddd", hint, p.State.FactomNodeName, "Toss", m.String())
+		//fmt.Println("dddd", hint, p.State.FactomNodeName, "Toss", ack.String())
 	}
 
 	vm := p.VMs[ack.VMIndex]
 
 	if ack.DBHeight > p.DBHeight {
-		stall("a")
+		outOfOrder("a")
 		return
 	}
 
@@ -570,12 +582,12 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	}
 
 	if len(vm.List) > vm.Height {
-		stall("c")
+		outOfOrder("c")
 		return
 	}
 
 	if int(ack.Height) > vm.Height {
-		stall("d")
+		outOfOrder("d")
 		return
 	}
 
@@ -625,6 +637,10 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 
 	eom, ok := m.(*messages.EOM)
 	if ok {
+		if vm.Seal > 0 {
+			fmt.Println("dddd", p.State.FactomNodeName, "Sealing a sealed EOM")
+			stall("eom")
+		}
 		if p.State.Leader && eom.IsLocal() {
 			p.State.EOM = int(eom.Minute + 1)
 		}
@@ -653,6 +669,17 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	p.OldMsgs[m.GetHash().Fixed()] = m
 	p.OldAcks[m.GetHash().Fixed()] = ack
 
+	// Look at all the other out of orders.  Note that if we kept this list sorted,
+	// this would be really efficent, and wouldn't require a loop.
+	for i := len(p.State.OutOfOrders) - 1; i >= 0; i-- {
+		a := p.State.GetOutOfOrder(i)
+		if a != nil {
+			m := p.State.Holding[a.GetHash().Fixed()]
+			if m != nil {
+				p.AddToProcessList(a, m)
+			}
+		}
+	}
 }
 
 func (p *ProcessList) String() string {
