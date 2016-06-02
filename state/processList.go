@@ -438,8 +438,9 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			// our saved block, we discard that block from our database.
 			if plist[j].Type() == constants.DIRECTORY_BLOCK_SIGNATURE_MSG {
 				dbs := plist[j].(*messages.DirectoryBlockSignature)
-				myDBlock := state.GetDirectoryBlockByHeight(dbs.DBHeight - 1)
-				myDBlock.GetHeader().SetTimestamp(p.GetLeaderTimestamp())
+				state.SetLeaderTimestamp(uint64(dbs.Timestamp.GetTime().Unix()))
+				state.GetDirectoryBlock().GetHeader().SetTimestamp(uint32(state.GetLeaderTimestamp()))
+
 				if !dbs.DirectoryBlockKeyMR.IsSameAs(state.ProcessLists.Lists[0].DirectoryBlock.GetKeyMR()) {
 					p.diffSigTally++
 					if p.diffSigTally > 0 && p.diffSigTally > (len(p.FedServers)/2) {
@@ -505,16 +506,6 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 		}
 	}
 	return
-}
-
-func (p *ProcessList) GetLeaderTimestamp() uint32 {
-	for _, msg := range p.VMs[0].List {
-		if msg.Type() == constants.DIRECTORY_BLOCK_SIGNATURE_MSG {
-			ts := msg.GetTimestamp()
-			return uint32(ts.GetTime().Unix())
-		}
-	}
-	return 0
 }
 
 // Check to assure that the given VM has been completely processed

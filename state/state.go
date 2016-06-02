@@ -78,18 +78,19 @@ type State struct {
 	serverPubKey  primitives.PublicKey
 
 	// Server State
-	LLeaderHeight  uint32
-	Leader         bool
-	LeaderVMIndex  int
-	LeaderPL       *ProcessList
-	OutputAllowed  bool
-	LeaderMinute   int  // The minute that just was processed by the follower, (1-10), set with EOM
-	EOM            int  // Set to true when all Process Lists have finished a minute
-	NetStateOff    bool // Disable if true, Enable if false
-	DebugConsensus bool // If true, dump consensus trace
-	FactoidTrans   int
-	NewEntryChains int
-	NewEntries     int
+	LLeaderHeight   uint32
+	Leader          bool
+	LeaderVMIndex   int
+	LeaderPL        *ProcessList
+	OutputAllowed   bool
+	LeaderMinute    int  // The minute that just was processed by the follower, (1-10), set with EOM
+	EOM             int  // Set to true when all Process Lists have finished a minute
+	NetStateOff     bool // Disable if true, Enable if false
+	DebugConsensus  bool // If true, dump consensus trace
+	FactoidTrans    int
+	NewEntryChains  int
+	NewEntries      int
+	LeaderTimestamp uint64
 	// Maps
 	// ====
 	// For Follower
@@ -880,6 +881,14 @@ func (s *State) GetStalled(i int) interfaces.IMsg {
 
 func (s *State) MsgQueue() chan interfaces.IMsg {
 	return s.msgQueue
+}
+
+func (s *State) GetLeaderTimestamp() uint64 {
+	return s.LeaderTimestamp
+}
+
+func (s *State) SetLeaderTimestamp(ts uint64) {
+	s.LeaderTimestamp = ts
 }
 
 //var _ IState = (*State)(nil)
