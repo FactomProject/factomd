@@ -207,7 +207,14 @@ func (m *CommitEntryMsg) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *CommitEntryMsg) String() string {
-	str, _ := m.JSONString()
+	if m.LeaderChainID == nil {
+		m.LeaderChainID = primitives.NewZeroHash()
+	}
+	str := fmt.Sprintf("%6s-VM%3d: Leader[:3]=%x Hash[:3]=%x",
+		"REntry",
+		m.VMIndex,
+		m.LeaderChainID.Bytes()[:3],
+		m.GetHash().Bytes()[:3])
 	return str
 }
 
