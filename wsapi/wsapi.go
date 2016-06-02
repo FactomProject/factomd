@@ -87,15 +87,22 @@ func Stop(state interfaces.IState) {
 }
 
 func handleV1Error(ctx *web.Context, err *primitives.JSONError) {
+	/*
 	if err.Data != nil {
 		data, ok := err.Data.(string)
 		if ok == true {
-			returnMsg(ctx, err.Message+": "+data, false)
+	ctx.WriteHeader(httpBad)
+			returnMsg(ctx, "", false)
 			return
 		}
 	}
-	returnMsg(ctx, err.Message, false)
+	ctx.WriteHeader(httpBad)
+	returnMsg(ctx,"", false)
 	return
+	*/
+	ctx.WriteHeader(httpBad)
+	
+	return	
 }
 
 func returnV1(ctx *web.Context, jsonResp *primitives.JSON2Response, jsonError *primitives.JSONError) {
