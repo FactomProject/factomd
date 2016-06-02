@@ -40,6 +40,23 @@ func (c *ECBlock) GetEntries() []interfaces.IECBlockEntry {
 	return c.Body.GetEntries()
 }
 
+func (c *ECBlock) GetEntryByHash(hash interfaces.IHash) interfaces.IECBlockEntry {
+	if hash == nil {
+		return nil
+	}
+
+	txs := c.GetEntries()
+	for _, tx := range txs {
+		if hash.IsSameAs(tx.Hash()) {
+			return tx
+		}
+		if hash.IsSameAs(tx.GetSigHash()) {
+			return tx
+		}
+	}
+	return nil
+}
+
 func (c *ECBlock) GetEntryHashes() []interfaces.IHash {
 	entries := c.Body.GetEntries()
 	answer := make([]interfaces.IHash, 0, len(entries))
