@@ -6,9 +6,9 @@ package state
 
 import (
 	"fmt"
-	"time"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
+	"time"
 )
 
 func (state *State) ValidatorLoop() {

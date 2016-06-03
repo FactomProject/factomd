@@ -502,15 +502,15 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 		p.State.StallMsg(ack)
 		p.State.Holding[m.GetHash().Fixed()] = m
 		delete(p.State.Acks, ack.GetHash().Fixed())
-		fmt.Println("dddd",hint, p.State.FactomNodeName, "Stall",m.String())
-		fmt.Println("dddd",hint, p.State.FactomNodeName, "Stall",ack.String())
+		fmt.Println("dddd", hint, p.State.FactomNodeName, "Stall", m.String())
+		fmt.Println("dddd", hint, p.State.FactomNodeName, "Stall", ack.String())
 	}
 
 	toss := func(hint string) {
 		delete(p.State.Holding, ack.GetHash().Fixed())
 		delete(p.State.Acks, ack.GetHash().Fixed())
-		fmt.Println("dddd",hint, p.State.FactomNodeName, "Toss",m.String())
-		fmt.Println("dddd",hint, p.State.FactomNodeName, "Toss",ack.String())
+		fmt.Println("dddd", hint, p.State.FactomNodeName, "Toss", m.String())
+		fmt.Println("dddd", hint, p.State.FactomNodeName, "Toss", ack.String())
 	}
 
 	vm := p.VMs[ack.VMIndex]
@@ -572,7 +572,7 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	msgOk := p.State.InternalReplay.IsTSValid_(m.GetHash().Fixed(), int64(m.GetTimestamp()), now)
 
 	if !msgOk { // If we already have this message or acknowledgement recorded,
-		fmt.Println("****", p.State.FactomNodeName,m.String())
+		fmt.Println("****", p.State.FactomNodeName, m.String())
 		toss("4")
 		return // we don't have to do anything.  Just say we got it handled.
 	}
