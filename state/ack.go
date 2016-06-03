@@ -20,6 +20,26 @@ func (s *State) GetACKStatus(hash interfaces.IHash) (int, error) {
 		return constants.AckStatusACK, nil
 	}
 
+	for _, tx := range s.ProcessLists.LastList().NewEntries {
+		if hash.IsSameAs(tx.GetHash()) {
+			return constants.AckStatusACK, nil
+		}
+	}
+	ecBlock := s.ProcessLists.LastList().EntryCreditBlock
+	if ecBlock != nil {
+		tx := ecBlock.GetEntryByHash(hash)
+		if tx != nil {
+			return constants.AckStatusACK, nil
+		}
+	}
+	fBlock := s.FactoidState.GetCurrentBlock()
+	if fBlock != nil {
+		tx := fBlock.GetTransactionByHash(hash)
+		if tx != nil {
+			return constants.AckStatusACK, nil
+		}
+	}
+
 	//TODO: check if message is invalid
 
 	in, err := s.DB.FetchIncludedIn(hash)
@@ -63,15 +83,13 @@ func (s *State) FetchFactoidTransactionByHash(hash interfaces.IHash) (interfaces
 	if hash == nil {
 		return nil, nil
 	}
-	/*
-		fBlock := s.ProcessLists.LastList().FactoidCreditBlock
-		if fBlock != nil {
-			tx := fBlock.GetTransactionByHash(hash)
-			if tx != nil {
-				return tx, nil
-			}
+	fBlock := s.FactoidState.GetCurrentBlock()
+	if fBlock != nil {
+		tx := fBlock.GetTransactionByHash(hash)
+		if tx != nil {
+			return tx, nil
 		}
-	*/
+	}
 
 	dbase := s.GetAndLockDB()
 	defer s.UnlockDB()
