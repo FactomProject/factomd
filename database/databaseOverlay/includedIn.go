@@ -23,6 +23,7 @@ func (db *Overlay) SaveIncludedIn(entry, block interfaces.IHash) error {
 
 func (db *Overlay) SaveIncludedInMultiFromBlockMultiBatch(block interfaces.DatabaseBlockWithEntries, checkForDuplicateEntries bool) error {
 	entries := block.GetEntryHashes()
+	entries = append(entries, block.GetEntrySigHashes()...)
 	hash := block.DatabasePrimaryIndex()
 
 	return db.SaveIncludedInMultiMultiBatch(entries, hash, checkForDuplicateEntries)
@@ -30,6 +31,7 @@ func (db *Overlay) SaveIncludedInMultiFromBlockMultiBatch(block interfaces.Datab
 
 func (db *Overlay) SaveIncludedInMultiFromBlock(block interfaces.DatabaseBlockWithEntries, checkForDuplicateEntries bool) error {
 	entries := block.GetEntryHashes()
+	entries = append(entries, block.GetEntrySigHashes()...)
 	hash := block.DatabasePrimaryIndex()
 
 	return db.SaveIncludedInMulti(entries, hash, checkForDuplicateEntries)

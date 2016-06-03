@@ -9,13 +9,16 @@ import ()
 type IEntryCreditBlock interface {
 	Printable
 	DatabaseBatchable
+
 	GetHeader() IECBlockHeader
 	GetBody() IECBlockBody
 	GetHash() IHash
 	HeaderHash() (IHash, error)
 	Hash() (IHash, error)
 	GetEntryHashes() []IHash
+	GetEntrySigHashes() []IHash
 	GetEntries() []IECBlockEntry
+	GetEntryByHash(hash IHash) IECBlockEntry
 }
 
 type IECBlockHeader interface {
@@ -54,4 +57,5 @@ type IECBlockEntry interface {
 	Hash() IHash
 	GetHash() IHash
 	GetEntryHash() IHash
+	GetSigHash() IHash
 }

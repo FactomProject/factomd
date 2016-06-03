@@ -40,12 +40,43 @@ func (c *ECBlock) GetEntries() []interfaces.IECBlockEntry {
 	return c.Body.GetEntries()
 }
 
+func (c *ECBlock) GetEntryByHash(hash interfaces.IHash) interfaces.IECBlockEntry {
+	if hash == nil {
+		return nil
+	}
+
+	txs := c.GetEntries()
+	for _, tx := range txs {
+		if hash.IsSameAs(tx.Hash()) {
+			return tx
+		}
+		if hash.IsSameAs(tx.GetSigHash()) {
+			return tx
+		}
+	}
+	return nil
+}
+
 func (c *ECBlock) GetEntryHashes() []interfaces.IHash {
 	entries := c.Body.GetEntries()
 	answer := make([]interfaces.IHash, 0, len(entries))
 	for _, entry := range entries {
 		if entry.ECID() == ECIDBalanceIncrease || entry.ECID() == ECIDChainCommit || entry.ECID() == ECIDEntryCommit {
 			answer = append(answer, entry.Hash())
+		}
+	}
+	return answer
+}
+
+func (c *ECBlock) GetEntrySigHashes() []interfaces.IHash {
+	entries := c.Body.GetEntries()
+	answer := make([]interfaces.IHash, 0, len(entries))
+	for _, entry := range entries {
+		if entry.ECID() == ECIDBalanceIncrease || entry.ECID() == ECIDChainCommit || entry.ECID() == ECIDEntryCommit {
+			sHash := entry.GetSigHash()
+			if sHash != nil {
+				answer = append(answer, sHash)
+			}
 		}
 	}
 	return answer

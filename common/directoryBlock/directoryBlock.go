@@ -39,6 +39,10 @@ func (c *DirectoryBlock) GetEntryHashes() []interfaces.IHash {
 	return answer
 }
 
+func (c *DirectoryBlock) GetEntrySigHashes() []interfaces.IHash {
+	return nil
+}
+
 func (c *DirectoryBlock) Sort() {
 	done := false
 	for i := 3; !done && i < len(c.DBEntries)-1; i++ {
@@ -73,12 +77,12 @@ func (c *DirectoryBlock) GetDBEntries() []interfaces.IDBEntry {
 }
 
 func (c *DirectoryBlock) GetKeyMR() interfaces.IHash {
-		keyMR, err := c.BuildKeyMerkleRoot()
-		if err != nil {
-			panic("Failed to build the key MR")
-		}
+	keyMR, err := c.BuildKeyMerkleRoot()
+	if err != nil {
+		panic("Failed to build the key MR")
+	}
 
-		c.KeyMR = keyMR
+	c.KeyMR = keyMR
 
 	return c.KeyMR
 }

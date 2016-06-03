@@ -150,6 +150,16 @@ func TestIncludedInFromAllBlocks(t *testing.T) {
 				t.Errorf("Entry not found in fBlocks - %v vs %v for %v", in.String(), blockHash.String(), entry)
 			}
 		}
+		entries = block.GetEntrySigHashes()
+		for _, entry := range entries {
+			in, err := dbo.FetchIncludedIn(entry)
+			if err != nil {
+				t.Error(err)
+			}
+			if in.IsSameAs(blockHash) == false {
+				t.Errorf("Entry not found in fBlocks - %v vs %v for %v", in.String(), blockHash.String(), entry)
+			}
+		}
 	}
 
 	ecBlocks, err := dbo.FetchAllECBlocks()
@@ -160,6 +170,16 @@ func TestIncludedInFromAllBlocks(t *testing.T) {
 	for _, block := range ecBlocks {
 		blockHash := block.DatabasePrimaryIndex()
 		entries := block.GetEntryHashes()
+		for _, entry := range entries {
+			in, err := dbo.FetchIncludedIn(entry)
+			if err != nil {
+				t.Error(err)
+			}
+			if in.IsSameAs(blockHash) == false {
+				t.Errorf("Entry not found in ecBlocks - %v vs %v for %v", in.String(), blockHash.String(), entry)
+			}
+		}
+		entries = block.GetEntrySigHashes()
 		for _, entry := range entries {
 			in, err := dbo.FetchIncludedIn(entry)
 			if err != nil {

@@ -36,6 +36,10 @@ func (e *MinuteNumber) GetHash() interfaces.IHash {
 	return e.Hash()
 }
 
+func (e *MinuteNumber) GetSigHash() interfaces.IHash {
+	return nil
+}
+
 func (a *MinuteNumber) GetEntryHash() interfaces.IHash {
 	return nil
 }
