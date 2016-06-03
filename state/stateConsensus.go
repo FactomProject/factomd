@@ -42,7 +42,7 @@ func (s *State) NewMinute() {
 	s.EOM = 0
 
 	for k := range s.Acks {
-		s.StallMsg(s.Acks[k])
+		s.StallAck(s.Acks[k].(*messages.Ack))
 	}
 
 	s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
@@ -124,7 +124,7 @@ func (s *State) ProcessQueues() (progress bool) {
 		s.UpdateState()
 	}
 
-	for s.Leader && s.EOM == 0 && len(s.StallMsgs) > 0 {
+	if s.Leader && s.EOM == 0 && len(s.StallMsgs) > 0 {
 		msg := s.StallMsgs[0]
 		if _, ok := s.InternalReplay.Valid(msg.GetHash().Fixed(), int64(msg.GetTimestamp()), int64(s.GetTimestamp())); !ok {
 			msg = nil
@@ -170,8 +170,9 @@ func (s *State) ProcessQueues() (progress bool) {
 				}
 
 			case 0: // Put at the end of the line, and hopefully we will resolve it.
-				s.msgQueue <- msg
+				s.Holding[msg.GetHash().Fixed()] = msg
 			default:
+				fmt.Println("dddd Deleted=== Msg:", s.FactomNodeName,msg.String())
 				delete(s.Acks, msg.GetHash().Fixed())
 				s.networkInvalidMsgQueue <- msg
 			}
@@ -208,7 +209,6 @@ func (s *State) AddDBState(isNew bool,
 	if ht > s.LLeaderHeight {
 		s.LLeaderHeight = ht
 		s.ProcessLists.Get(ht + 1)
-		s.Holding = make(map[[32]byte]interfaces.IMsg)
 		s.EOM = 0
 	}
 	//	dbh := directoryBlock.GetHeader().GetDBHeight()

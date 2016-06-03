@@ -565,12 +565,12 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	vm := p.VMs[ack.VMIndex]
 
 	if ack.DBHeight > p.DBHeight {
-		outOfOrder("a")
+		panic(fmt.Sprintf("Ack is wrong height.  Expected: %d Ack: %s",p.DBHeight,ack.String()))
 		return
 	}
 
 	if ack.DBHeight < p.DBHeight {
-		toss("1")
+		panic(fmt.Sprintf("Ack is wrong height.  Expected: %d Ack: %s",p.DBHeight,ack.String()))
 		return
 	}
 
@@ -626,14 +626,6 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 		return // we don't have to do anything.  Just say we got it handled.
 	}
 
-	p.State.NetworkOutMsgQueue() <- ack
-	p.State.NetworkOutMsgQueue() <- m
-	delete(p.State.Acks, ack.GetHash().Fixed())
-	delete(p.State.Holding, m.GetHash().Fixed())
-
-	m.SetLeaderChainID(ack.GetLeaderChainID())
-	m.SetMinute(ack.Minute)
-
 	eom, ok := m.(*messages.EOM)
 	if ok {
 		if vm.Seal > 0 {
@@ -649,6 +641,15 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 		vm.MinuteComplete = int(eom.Minute + 1)
 		vm.MinuteHeight = vm.Height
 	}
+
+	p.State.NetworkOutMsgQueue() <- ack
+	p.State.NetworkOutMsgQueue() <- m
+	delete(p.State.Acks, ack.GetHash().Fixed())
+	delete(p.State.Holding, m.GetHash().Fixed())
+
+	m.SetLeaderChainID(ack.GetLeaderChainID())
+	m.SetMinute(ack.Minute)
+
 
 	// Both the ack and the message hash to the same GetHash()
 	m.SetLocal(false)
