@@ -59,7 +59,9 @@ func (lists *ProcessLists) Get(dbheight uint32) *ProcessList {
 		lists.Lists = append(lists.Lists, nil)
 	}
 	pl := lists.Lists[i]
-	prev := (*ProcessList)(nil)
+
+	var prev *ProcessList
+
 	if dbheight > 0 {
 		prev = lists.Get(dbheight - 1)
 	}
