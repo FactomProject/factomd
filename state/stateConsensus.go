@@ -172,7 +172,7 @@ func (s *State) ProcessQueues() (progress bool) {
 			case 0: // Put at the end of the line, and hopefully we will resolve it.
 				s.Holding[msg.GetHash().Fixed()] = msg
 			default:
-				fmt.Println("dddd Deleted=== Msg:", s.FactomNodeName,msg.String())
+				fmt.Println("dddd Deleted=== Msg:", s.FactomNodeName, msg.String())
 				delete(s.Acks, msg.GetHash().Fixed())
 				s.networkInvalidMsgQueue <- msg
 			}

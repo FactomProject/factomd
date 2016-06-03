@@ -565,12 +565,12 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	vm := p.VMs[ack.VMIndex]
 
 	if ack.DBHeight > p.DBHeight {
-		panic(fmt.Sprintf("Ack is wrong height.  Expected: %d Ack: %s",p.DBHeight,ack.String()))
+		panic(fmt.Sprintf("Ack is wrong height.  Expected: %d Ack: %s", p.DBHeight, ack.String()))
 		return
 	}
 
 	if ack.DBHeight < p.DBHeight {
-		panic(fmt.Sprintf("Ack is wrong height.  Expected: %d Ack: %s",p.DBHeight,ack.String()))
+		panic(fmt.Sprintf("Ack is wrong height.  Expected: %d Ack: %s", p.DBHeight, ack.String()))
 		return
 	}
 
@@ -649,7 +649,6 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 
 	m.SetLeaderChainID(ack.GetLeaderChainID())
 	m.SetMinute(ack.Minute)
-
 
 	// Both the ack and the message hash to the same GetHash()
 	m.SetLocal(false)
