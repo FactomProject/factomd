@@ -106,7 +106,6 @@ func (p *ProcessList) Unseal(minute int) bool {
 
 // Returns the Virtual Server index for this hash for the given minute
 func (p *ProcessList) VMIndexFor(hash []byte) int {
-	return 0
 	v := uint64(0)
 	for _, b := range hash {
 		v += uint64(b)
@@ -600,8 +599,8 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	eom, ok := m.(*messages.EOM)
 	if ok {
 		if vm.Seal > 0 {
-			fmt.Println("dddd",p.State.FactomNodeName,"Sealing a sealed EOM")
-			stall("eom")
+			fmt.Println("dddd", p.State.FactomNodeName, "Sealing a sealed EOM")
+			outOfOrder("eom")
 		}
 		if p.State.Leader && eom.IsLocal() {
 			p.State.EOM = int(eom.Minute + 1)
@@ -631,17 +630,6 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	p.OldMsgs[m.GetHash().Fixed()] = m
 	p.OldAcks[m.GetHash().Fixed()] = ack
 
-	// Look at all the other out of orders.  Note that if we kept this list sorted,
-	// this would be really efficent, and wouldn't require a loop.
-	for i := len(p.State.OutOfOrders) - 1; i >= 0; i-- {
-		a := p.State.GetOutOfOrder(i)
-		if a != nil {
-			m := p.State.Holding[a.GetHash().Fixed()]
-			if m != nil {
-				p.AddToProcessList(a, m)
-			}
-		}
-	}
 }
 
 func (p *ProcessList) String() string {
