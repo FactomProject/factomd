@@ -23,14 +23,18 @@ type P2PProxy struct {
 	ToName   string
 	FromName string
 	// Channels that define the connection:
-	BroadcastOut chan []byte // ToNetwork from factomd
-	BroadcastIn  chan []byte // FromNetwork for Factomd
+	BroadcastOut chan factomMessage // ToNetwork from factomd
+	BroadcastIn  chan factomMessage // FromNetwork for Factomd
 
 	ToNetwork   chan p2p.Parcel // Parcels from the application for us to route
 	FromNetwork chan p2p.Parcel // Parcels from the network for the application
 
-	testMode  bool
 	debugMode int
+}
+
+type factomMessage struct {
+	message  []byte
+	peerHash string
 }
 
 var _ interfaces.IPeer = (*P2PProxy)(nil)
@@ -38,17 +42,12 @@ var _ interfaces.IPeer = (*P2PProxy)(nil)
 func (f *P2PProxy) Init(fromName, toName string) interfaces.IPeer {
 	f.ToName = toName
 	f.FromName = fromName
-	f.BroadcastOut = make(chan []byte, 10000)
-	f.BroadcastIn = make(chan []byte, 10000)
-	f.testMode = false // When this is false, factomd is connected to the network.  When true, network is isolated, and a heartbeat test message sent over the network.
+	f.BroadcastOut = make(chan factomMessage, 10000)
+	f.BroadcastIn = make(chan factomMessage, 10000)
 	return f
 }
 func (f *P2PProxy) SetDebugMode(netdebug int) {
 	f.debugMode = netdebug
-}
-
-func (f *P2PProxy) SetTestMode(test bool) {
-	f.testMode = test
 }
 
 func (f *P2PProxy) GetNameFrom() string {
@@ -60,34 +59,33 @@ func (f *P2PProxy) GetNameTo() string {
 }
 
 func (f *P2PProxy) Send(msg interfaces.IMsg) error {
-	if !f.testMode {
-		// fmt.Printf("S")
-		data, err := msg.MarshalBinary()
-		if err != nil {
-			fmt.Println("ERROR on Send: ", err)
-			return err
-		}
-		if len(f.BroadcastOut) < 10000 {
-			f.BroadcastOut <- data
-		}
+	data, err := msg.MarshalBinary()
+	if err != nil {
+		fmt.Println("ERROR on Send: ", err)
+		return err
+	}
+	message := factomMessage{message: data, peerHash: msg.GetNetworkOrigin()}
+	if len(f.BroadcastOut) < 10000 {
+		f.BroadcastOut <- message
 	}
 	return nil
 }
 
 // Non-blocking return value from channel.
 func (f *P2PProxy) Recieve() (interfaces.IMsg, error) {
-	if !f.testMode {
-		select {
-		case data, ok := <-f.BroadcastIn:
-			if ok {
-				msg, err := messages.UnmarshalMessage(data)
-				if 0 < f.debugMode {
-					fmt.Printf(".")
-				}
-				return msg, err
+	select {
+	case data, ok := <-f.BroadcastIn:
+		if ok {
+			msg, err := messages.UnmarshalMessage(data.message)
+			if 0 < f.debugMode {
+				fmt.Printf(".")
 			}
-		default:
+			if nil == err {
+				msg.SetNetworkOrigin(data.peerHash)
+			}
+			return msg, err
 		}
+	default:
 	}
 	return nil, nil
 }
@@ -125,16 +123,14 @@ func (p *P2PProxy) startProxy() {
 // Note: BUGBUG - the NetworkProcessorNet / state has a channel of bad messages "Bad message queue?"
 // We need to rpocess these messages and get / give demerits.
 // Paul says its ok to punt on this for the alpha
-//
 
 // manageOutChannel takes messages from the f.broadcastOut channel and sends them to the network.
 func (f *P2PProxy) ManageOutChannel() {
 	for data := range f.BroadcastOut {
 		// Wrap it in a parcel and send it out channel ToNetwork.
-		parcel := p2p.NewParcel(p2p.CurrentNetwork, data)
+		parcel := p2p.NewParcel(p2p.CurrentNetwork, data.message)
 		parcel.Header.Type = p2p.TypeMessage
-		// BUGBUG JAYJAY TODO -- Load the target peer from the message, if there is one, int the parcel
-		// so it can be sent as a directed message
+		parcel.Header.TargetPeer = data.peerHash
 		f.ToNetwork <- *parcel
 	}
 }
@@ -142,8 +138,7 @@ func (f *P2PProxy) ManageOutChannel() {
 // manageInChannel takes messages from the network and stuffs it in the f.BroadcastIn channel
 func (f *P2PProxy) ManageInChannel() {
 	for data := range f.FromNetwork {
-		// BUGBUG JAYJAY TODO Here is where you copy the connecton ID into the Factom message?
-		message := data.Payload
+		message := factomMessage{message: data.Payload, peerHash: data.Header.TargetPeer}
 		f.BroadcastIn <- message
 	}
 }
@@ -171,7 +166,11 @@ func PeriodicStatusReport(fnodes []*FactomNode) {
 		fmt.Println("-------------------------------------------------------------------------------")
 		fmt.Println("-------------------------------------------------------------------------------")
 		for _, f := range fnodes {
-			fmt.Printf("%8s %s\n", f.State.FactomNodeName, f.State.ShortString())
+			f.State.Status = true
+		}
+		time.Sleep(100 * time.Millisecond)
+		for _, f := range fnodes {
+			fmt.Printf("%8s %s \n", f.State.FactomNodeName, f.State.ShortString())
 		}
 		listenTo := 0
 		if listenTo >= 0 && listenTo < len(fnodes) {

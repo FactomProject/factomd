@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -22,7 +23,6 @@ import (
 	"github.com/FactomProject/factomd/logger"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
-	"sync"
 )
 
 var _ = fmt.Print
@@ -46,6 +46,7 @@ type State struct {
 	ExportData              bool
 	ExportDataSubpath       string
 	Network                 string
+	PeersFile               string
 	LocalServerPrivKey      string
 	DirectoryBlockInSeconds int
 	PortNumber              int
@@ -69,7 +70,9 @@ type State struct {
 	apiQueue               chan interfaces.IMsg
 	ackQueue               chan interfaces.IMsg
 	msgQueue               chan interfaces.IMsg
-	StallList              []interfaces.IMsg
+	OutOfOrders            []*messages.Ack
+	StallAcks              []*messages.Ack
+	StallMsgs              []interfaces.IMsg
 	ShutdownChan           chan int // For gracefully halting Factom
 	JournalFile            string
 
@@ -98,11 +101,11 @@ type State struct {
 	Commits map[[32]byte]interfaces.IMsg // Commit Messages
 	Reveals map[[32]byte]interfaces.IMsg // Reveal Messages
 
-	AuditHeartBeats []interfaces.IMsg   // The checklist of HeartBeats for this period
-	FedServerFaults [][]interfaces.IMsg // Keep a fault list for every server
-
 	InvalidMessages      map[[32]byte]interfaces.IMsg
 	InvalidMessagesMutex sync.RWMutex
+
+	AuditHeartBeats []interfaces.IMsg   // The checklist of HeartBeats for this period
+	FedServerFaults [][]interfaces.IMsg // Keep a fault list for every server
 
 	//Network MAIN = 0, TEST = 1, LOCAL = 2, CUSTOM = 3
 	NetworkNumber int // Encoded into Directory Blocks(s.Cfg.(*util.FactomdConfig)).String()
@@ -181,6 +184,7 @@ func (s *State) Clone(number string) interfaces.IState {
 	clone.ExportData = s.ExportData
 	clone.ExportDataSubpath = s.ExportDataSubpath + "sim-" + number
 	clone.Network = s.Network
+	clone.PeersFile = s.PeersFile
 	clone.DirectoryBlockInSeconds = s.DirectoryBlockInSeconds
 	clone.PortNumber = s.PortNumber
 
@@ -246,6 +250,7 @@ func (s *State) LoadConfig(filename string, folder string) {
 		s.ExportData = cfg.App.ExportData // bool
 		s.ExportDataSubpath = cfg.App.ExportDataSubpath
 		s.Network = cfg.App.Network
+		s.PeersFile = cfg.App.PeersFile
 		s.LocalServerPrivKey = cfg.App.LocalServerPrivKey
 		s.FactoshisPerEC = cfg.App.ExchangeRate
 		s.DirectoryBlockInSeconds = cfg.App.DirectoryBlockInSeconds
@@ -264,6 +269,7 @@ func (s *State) LoadConfig(filename string, folder string) {
 		s.ExportData = false
 		s.ExportDataSubpath = "data/export"
 		s.Network = "LOCAL"
+		s.PeersFile = "~/.factom/peers.json"
 		s.LocalServerPrivKey = "4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c9b08946553448d26d"
 		s.FactoshisPerEC = 006666
 		s.DirectoryBlockInSeconds = 6
@@ -664,6 +670,39 @@ func (s *State) GetDirectoryBlockByHeight(height uint32) interfaces.IDirectoryBl
 }
 
 func (s *State) UpdateState() (progress bool) {
+
+	process := func(a *messages.Ack) {
+		if a != nil {
+			m := s.Holding[a.GetHash().Fixed()]
+			if m != nil {
+				pl := s.ProcessLists.Get(a.DBHeight)
+				if pl != nil {
+					pl.AddToProcessList(a, m)
+				}
+			}
+		}
+	}
+
+	// Look at all the other out of orders.  Note that if we kept this list sorted,
+	// this would be really efficent, and wouldn't require a loop.
+	for i := len(s.OutOfOrders) - 1; i >= 0; i-- {
+		a := s.GetOutOfOrder(i)
+		process(a)
+	}
+	// Look at all the other out of orders.  Note that if we kept this list sorted,
+	// this would be really efficent, and wouldn't require a loop.
+	for i := len(s.StallAcks) - 1; i >= 0; i-- {
+		a := s.GetStalledAck(i)
+		process(a)
+	}
+
+	// Look at all the other out of orders.  Note that if we kept this list sorted,
+	// this would be really efficent, and wouldn't require a loop.
+	for k := range s.Acks {
+		a, _ := s.Acks[k].(*messages.Ack)
+		process(a)
+	}
+
 	dbheight := s.GetHighestRecordedBlock()
 	plbase := s.ProcessLists.DBHeightBase
 	if plbase <= dbheight+1 {
@@ -859,21 +898,57 @@ func (s *State) AckQueue() chan interfaces.IMsg {
 	return s.ackQueue
 }
 
-func (s *State) StallMsg(m interfaces.IMsg) {
-	s.StallList = append(s.StallList, m)
+func (s *State) StallAck(ack *messages.Ack) {
+	s.StallAcks = append(s.StallAcks, ack)
 }
 
 // Get the ith message out of the stall queue.  Note getting i=0 makes
 // the stall queue into a FIFO, but other options are possible.
-func (s *State) GetStalled(i int) interfaces.IMsg {
-	if len(s.StallList) == 0 {
+func (s *State) GetStalledAck(i int) *messages.Ack {
+	if len(s.StallAcks) == 0 {
 		return nil
 	}
-	m := s.StallList[0]
+	m := s.StallAcks[0]
 
-	copy(s.StallList[i:], s.StallList[i+1:])
-	s.StallList[len(s.StallList)-1] = nil
-	s.StallList = s.StallList[:len(s.StallList)-1]
+	copy(s.StallAcks[i:], s.StallAcks[i+1:])
+	s.StallAcks[len(s.StallAcks)-1] = nil
+	s.StallAcks = s.StallAcks[:len(s.StallAcks)-1]
+	return m
+}
+
+func (s *State) OutOfOrderAck(ack *messages.Ack) {
+	s.OutOfOrders = append(s.OutOfOrders, ack)
+}
+
+// Get the ith message out of the stall queue.  Note getting i=0 makes
+// the stall queue into a FIFO, but other options are possible.
+func (s *State) GetOutOfOrder(i int) *messages.Ack {
+	if len(s.OutOfOrders) == 0 {
+		return nil
+	}
+	m := s.OutOfOrders[0]
+
+	copy(s.OutOfOrders[i:], s.OutOfOrders[i+1:])
+	s.OutOfOrders[len(s.OutOfOrders)-1] = nil
+	s.OutOfOrders = s.OutOfOrders[:len(s.OutOfOrders)-1]
+	return m
+}
+
+func (s *State) StallMsg(msg interfaces.IMsg) {
+	s.StallMsgs = append(s.StallMsgs, msg)
+}
+
+// Get the ith message out of the stall queue.  Note getting i=0 makes
+// the stall queue into a FIFO, but other options are possible.
+func (s *State) GetStalledMsg(i int) interfaces.IMsg {
+	if len(s.StallMsgs) == 0 {
+		return nil
+	}
+	m := s.StallMsgs[0]
+
+	copy(s.StallMsgs[i:], s.StallMsgs[i+1:])
+	s.StallMsgs[len(s.StallMsgs)-1] = nil
+	s.StallMsgs = s.StallMsgs[:len(s.StallMsgs)-1]
 	return m
 }
 

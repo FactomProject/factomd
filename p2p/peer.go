@@ -15,7 +15,7 @@ import (
 
 type Peer struct {
 	QualityScore int32  // 0 is neutral quality, negative is a bad peer.
-	Address      string // Must be in form of x.x.x.x:p
+	Address      string // Must be in form of x.x.x.x
 	Hash         string
 	Location     uint32 // IP address as an int.
 	Type         uint8

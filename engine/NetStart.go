@@ -50,7 +50,7 @@ func NetStart(s *state.State) {
 	blkTimePtr := flag.Int("blktime", 0, "Seconds per block.  Production is 600.")
 	runtimeLogPtr := flag.Bool("runtimeLog", true, "If true, maintain runtime logs of messages passed.")
 	netdebugPtr := flag.Int("netdebug", 0, "0-5: 0 = quiet, >0 = increasing levels of logging")
-	heartbeatPtr := flag.Bool("heartbeat", false, "If true, network just sends heartbeats.")
+	exclusivePtr := flag.Bool("exclusive", false, "If true, we only dial out to special/trusted peers.")
 	prefixNodePtr := flag.String("prefix", "", "Prefix the Factom Node Names with this value; used to create leaderless networks.")
 	profilePtr := flag.String("profile", "", "If true, turn on the go Profiler to profile execution of Factomd")
 
@@ -72,7 +72,7 @@ func NetStart(s *state.State) {
 	blkTime := *blkTimePtr
 	runtimeLog := *runtimeLogPtr
 	netdebug := *netdebugPtr
-	heartbeat := *heartbeatPtr
+	exclusive := *exclusivePtr
 	prefix := *prefixNodePtr
 	profile := *profilePtr
 
@@ -190,19 +190,28 @@ func NetStart(s *state.State) {
 		makeServer(s) // We clone s to make all of our servers
 	}
 
-	// Start the P2P netowrk
+	// Start the P2P netowork
+	var networkID p2p.NetworkID
+	switch s.Network {
+	case "MAIN", "main":
+		networkID = p2p.MainNet
+	case "LOCAL", "local":
+		networkID = p2p.MainNet
+	case "TEST", "test":
+		networkID = p2p.MainNet
+	default:
+		panic("Invalid Network choice in Config File. Choose MAIN, TEST or LOCAL")
 
-	// BUGBUG Get peers file from config
-	p2p := new(p2p.Controller).Init(address, "~/.factom/peers.json")
+	}
+	p2p := new(p2p.Controller).Init(address, s.PeersFile, networkID)
 	network = *p2p
-	network.StartNetwork(false) //BUGBUG This should be command line flag? Talk to Brian
+	network.StartNetwork(exclusive)
 	// Setup the proxy (Which translates from network parcels to factom messages, handling addressing for directed messages)
 	p2pProxy := new(P2PProxy).Init(fnodes[0].State.FactomNodeName, "P2P Network").(*P2PProxy)
 	p2pProxy.FromNetwork = network.FromNetwork
 	p2pProxy.ToNetwork = network.ToNetwork
 	fnodes[0].Peers = append(fnodes[0].Peers, p2pProxy)
 	p2pProxy.SetDebugMode(netdebug)
-	p2pProxy.SetTestMode(heartbeat)
 	if 0 < netdebug {
 		go PeriodicStatusReport(fnodes)
 		go p2pProxy.ProxyStatusReport(fnodes)
