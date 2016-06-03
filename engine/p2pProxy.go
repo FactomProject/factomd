@@ -29,7 +29,6 @@ type P2PProxy struct {
 	ToNetwork   chan p2p.Parcel // Parcels from the application for us to route
 	FromNetwork chan p2p.Parcel // Parcels from the network for the application
 
-	testMode  bool
 	debugMode int
 }
 
@@ -40,15 +39,10 @@ func (f *P2PProxy) Init(fromName, toName string) interfaces.IPeer {
 	f.FromName = fromName
 	f.BroadcastOut = make(chan []byte, 10000)
 	f.BroadcastIn = make(chan []byte, 10000)
-	f.testMode = false // When this is false, factomd is connected to the network.  When true, network is isolated, and a heartbeat test message sent over the network.
 	return f
 }
 func (f *P2PProxy) SetDebugMode(netdebug int) {
 	f.debugMode = netdebug
-}
-
-func (f *P2PProxy) SetTestMode(test bool) {
-	f.testMode = test
 }
 
 func (f *P2PProxy) GetNameFrom() string {
@@ -60,34 +54,29 @@ func (f *P2PProxy) GetNameTo() string {
 }
 
 func (f *P2PProxy) Send(msg interfaces.IMsg) error {
-	if !f.testMode {
-		// fmt.Printf("S")
-		data, err := msg.MarshalBinary()
-		if err != nil {
-			fmt.Println("ERROR on Send: ", err)
-			return err
-		}
-		if len(f.BroadcastOut) < 10000 {
-			f.BroadcastOut <- data
-		}
+	data, err := msg.MarshalBinary()
+	if err != nil {
+		fmt.Println("ERROR on Send: ", err)
+		return err
+	}
+	if len(f.BroadcastOut) < 10000 {
+		f.BroadcastOut <- data
 	}
 	return nil
 }
 
 // Non-blocking return value from channel.
 func (f *P2PProxy) Recieve() (interfaces.IMsg, error) {
-	if !f.testMode {
-		select {
-		case data, ok := <-f.BroadcastIn:
-			if ok {
-				msg, err := messages.UnmarshalMessage(data)
-				if 0 < f.debugMode {
-					fmt.Printf(".")
-				}
-				return msg, err
+	select {
+	case data, ok := <-f.BroadcastIn:
+		if ok {
+			msg, err := messages.UnmarshalMessage(data)
+			if 0 < f.debugMode {
+				fmt.Printf(".")
 			}
-		default:
+			return msg, err
 		}
+	default:
 	}
 	return nil, nil
 }
@@ -171,13 +160,15 @@ func PeriodicStatusReport(fnodes []*FactomNode) {
 		fmt.Println("-------------------------------------------------------------------------------")
 		fmt.Println("-------------------------------------------------------------------------------")
 		for _, f := range fnodes {
+			f.State.SetString()
 			fmt.Printf("%8s %s\n", f.State.FactomNodeName, f.State.ShortString())
 		}
 		listenTo := 0
 		if listenTo >= 0 && listenTo < len(fnodes) {
 			fmt.Printf("   %s\n", fnodes[listenTo].State.GetFactomNodeName())
 			fmt.Printf("      InMsgQueue             %d\n", len(fnodes[listenTo].State.InMsgQueue()))
-			fmt.Printf("      LeaderMsgQueue         %d\n", len(fnodes[listenTo].State.LeaderMsgQueue()))
+			fmt.Printf("      AckQueue               %d\n", len(fnodes[listenTo].State.AckQueue()))
+			fmt.Printf("      MsgQueue               %d\n", len(fnodes[listenTo].State.MsgQueue()))
 			fmt.Printf("      TimerMsgQueue          %d\n", len(fnodes[listenTo].State.TimerMsgQueue()))
 			fmt.Printf("      NetworkOutMsgQueue     %d\n", len(fnodes[listenTo].State.NetworkOutMsgQueue()))
 			fmt.Printf("      NetworkInvalidMsgQueue %d\n", len(fnodes[listenTo].State.NetworkInvalidMsgQueue()))

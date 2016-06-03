@@ -73,14 +73,12 @@ func (c *DirectoryBlock) GetDBEntries() []interfaces.IDBEntry {
 }
 
 func (c *DirectoryBlock) GetKeyMR() interfaces.IHash {
-	if c.KeyMR == nil {
-		keyMR, err := c.BuildKeyMerkleRoot()
-		if err != nil {
-			panic("Failed to build the key MR")
-		}
-
-		c.KeyMR = keyMR
+	keyMR, err := c.BuildKeyMerkleRoot()
+	if err != nil {
+		panic("Failed to build the key MR")
 	}
+
+	c.KeyMR = keyMR
 
 	return c.KeyMR
 }
@@ -244,7 +242,7 @@ func (b *DirectoryBlock) BuildKeyMerkleRoot() (keyMR interfaces.IHash, err error
 
 	b.GetFullHash() // Create the Full Hash when we create the keyMR
 
-	return keyMR, nil
+	return primitives.NewHash(keyMR.Bytes()), nil
 }
 
 func UnmarshalDBlock(data []byte) (interfaces.IDirectoryBlock, error) {

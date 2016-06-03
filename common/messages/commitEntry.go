@@ -207,7 +207,14 @@ func (m *CommitEntryMsg) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *CommitEntryMsg) String() string {
-	str, _ := m.JSONString()
+	if m.LeaderChainID == nil {
+		m.LeaderChainID = primitives.NewZeroHash()
+	}
+	str := fmt.Sprintf("%6s-VM%3d: Leader[:3]=%x Hash[:3]=%x",
+		"REntry",
+		m.VMIndex,
+		m.LeaderChainID.Bytes()[:3],
+		m.GetHash().Bytes()[:3])
 	return str
 }
 
@@ -226,25 +233,17 @@ func (m *CommitEntryMsg) Validate(state interfaces.IState) int {
 	return 1
 }
 
-// Returns true if this is a message for this server to execute as
-// a leader.
-func (m *CommitEntryMsg) Leader(state interfaces.IState) bool {
-	return state.LeaderFor(m, constants.EC_CHAINID)
+func (m *CommitEntryMsg) ComputeVMIndex(state interfaces.IState) {
+	m.VMIndex = state.ComputeVMIndex(constants.EC_CHAINID)
 }
 
 // Execute the leader functions of the given message
-func (m *CommitEntryMsg) LeaderExecute(state interfaces.IState) error {
-	return state.LeaderExecute(m)
+func (m *CommitEntryMsg) LeaderExecute(state interfaces.IState) {
+	state.LeaderExecute(m)
 }
 
-// Returns true if this is a message for this server to execute as a follower
-func (m *CommitEntryMsg) Follower(interfaces.IState) bool {
-	return true
-}
-
-func (m *CommitEntryMsg) FollowerExecute(state interfaces.IState) error {
-	_, err := state.FollowerExecuteMsg(m)
-	return err
+func (m *CommitEntryMsg) FollowerExecute(state interfaces.IState) {
+	state.FollowerExecuteMsg(m)
 }
 
 func (e *CommitEntryMsg) JSONByte() ([]byte, error) {

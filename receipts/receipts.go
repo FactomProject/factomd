@@ -295,7 +295,7 @@ func CreateReceipt(dbo interfaces.DBOverlay, entryID interfaces.IHash) (*Receipt
 
 	//EBlock
 
-	hash, err := dbo.LoadIncludedIn(entryID)
+	hash, err := dbo.FetchIncludedIn(entryID)
 	if err != nil {
 		return nil, err
 	}
@@ -336,7 +336,7 @@ func CreateReceipt(dbo interfaces.DBOverlay, entryID interfaces.IHash) (*Receipt
 
 	//DBlock
 
-	hash, err = dbo.LoadIncludedIn(hash)
+	hash, err = dbo.FetchIncludedIn(hash)
 	if err != nil {
 		return nil, err
 	}

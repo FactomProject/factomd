@@ -32,6 +32,14 @@ func (e *MinuteNumber) Hash() interfaces.IHash {
 	return primitives.Sha(bin)
 }
 
+func (e *MinuteNumber) GetHash() interfaces.IHash {
+	return e.Hash()
+}
+
+func (a *MinuteNumber) GetEntryHash() interfaces.IHash {
+	return nil
+}
+
 func (b *MinuteNumber) IsInterpretable() bool {
 	return true
 }
@@ -61,6 +69,12 @@ func (m *MinuteNumber) MarshalBinary() ([]byte, error) {
 }
 
 func (m *MinuteNumber) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("Error unmarshalling MinuteNumber: %v", r)
+		}
+	}()
+
 	buf := primitives.NewBuffer(data)
 	var c byte
 	if c, err = buf.ReadByte(); err != nil {

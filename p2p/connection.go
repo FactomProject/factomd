@@ -29,6 +29,7 @@ type Connection struct {
 	timeLastPing    time.Time    // time of last ping sent
 	timeLastUpdate  time.Time    // time of last peer update sent
 	state           uint8        // Current state of the connection. Private. Only communication
+	isOutGoing      bool         // We keep track of outgoing dial() vs incomming accept() connections
 }
 
 // Each connection is a simple state machine.  The state is managed by a single goroutine which also does netowrking.
@@ -88,6 +89,7 @@ const (
 // InitWithConn is called from our accept loop when a peer dials into us and we already have a network conn
 func (c *Connection) InitWithConn(conn net.Conn, peer Peer) *Connection {
 	c.conn = conn
+	c.isOutGoing = false // InitWithConn is called by controller's accept() loop
 	c.commonInit(peer)
 	debug(c.peer.Hash, "Connection.InitWithConn() called.")
 	c.goOnline()
@@ -97,9 +99,14 @@ func (c *Connection) InitWithConn(conn net.Conn, peer Peer) *Connection {
 // Init is called when we have peer info and need to dial into the peer
 func (c *Connection) Init(peer Peer) *Connection {
 	c.conn = nil
+	c.isOutGoing = true
 	c.commonInit(peer)
 	debug(c.peer.Hash, "Connection.Init() called.")
 	return c
+}
+
+func (c *Connection) IsOutGoing() bool {
+	return c.isOutGoing
 }
 
 //////////////////////////////
@@ -172,7 +179,7 @@ func (c *Connection) dial() bool {
 	// conn, err := net.Dial("tcp", c.peer.Address)
 	conn, err := net.DialTimeout("tcp", c.peer.Address, time.Second*10)
 	if err != nil {
-		note(c.peer.Hash, "Connection.dial(%s) got error: %+v", c.peer.Address, err)
+		silence(c.peer.Hash, "Connection.dial(%s) got error: %+v", c.peer.Address, err)
 		return false
 	}
 	c.conn = conn
@@ -301,10 +308,13 @@ func (c *Connection) handleNetErrors(err error) {
 	switch {
 	case isNetError && nerr.Timeout(): /// buffer empty
 		return
+	case isNetError && nerr.Temporary(): /// Temporary error, try to reconnect.
+		c.goOffline()
 	case io.EOF == err, io.ErrClosedPipe == err: // Remote hung up
 		c.goOffline()
 	default:
-		logfatal(c.peer.Hash, "Connection.handleNetErrors() got unhandled coding error: %+v", err)
+		silence(c.peer.Hash, "Connection.handleNetErrors() got unhandled coding error: %+v", err)
+		c.goOffline()
 	}
 
 }

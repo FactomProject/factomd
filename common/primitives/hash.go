@@ -22,6 +22,15 @@ var _ interfaces.Printable = (*Hash)(nil)
 var _ interfaces.IHash = (*Hash)(nil)
 var _ interfaces.BinaryMarshallableAndCopyable = (*Hash)(nil)
 
+func (c *Hash) Copy() interfaces.IHash {
+	h := new(Hash)
+	err := h.SetBytes(c.Bytes())
+	if err != nil {
+		panic(err)
+	}
+	return h
+}
+
 func (c *Hash) New() interfaces.BinaryMarshallableAndCopyable {
 	return new(Hash)
 }
@@ -85,17 +94,15 @@ func CreateHash(entities ...interfaces.BinaryMarshallable) (h interfaces.IHash, 
 }
 
 func (h *Hash) MarshalBinary() ([]byte, error) {
-	var buf Buffer
-	buf.Write(h[:])
-	return buf.DeepCopyBytes(), nil
+	return h.Bytes(), nil
 }
 
 func (h *Hash) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
-	/*defer func() {
+	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
-	}()*/
+	}()
 	copy(h[:], p)
 	newData = p[constants.HASH_LENGTH:]
 	return

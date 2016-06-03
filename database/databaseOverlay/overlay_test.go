@@ -16,6 +16,92 @@ import (
 	"testing"
 )
 
+func TestGetEntryType(t *testing.T) {
+	blocks := testHelper.CreateFullTestBlockSet()
+	dbo := testHelper.CreateAndPopulateTestDatabaseOverlay()
+
+	for _, block := range blocks {
+		eType, err := dbo.GetEntryType(block.DBlock.DatabasePrimaryIndex())
+		if err != nil {
+			t.Error(err)
+		}
+		if eType == nil {
+			t.Error("eType==nil")
+		}
+		if eType.IsSameAs(block.DBlock.GetChainID()) == false {
+			t.Error("Block type mismatch")
+		}
+
+		eType, err = dbo.GetEntryType(block.ABlock.DatabasePrimaryIndex())
+		if err != nil {
+			t.Error(err)
+		}
+		if eType == nil {
+			t.Error("eType==nil")
+		}
+		if eType.IsSameAs(block.ABlock.GetChainID()) == false {
+			t.Error("Block type mismatch")
+		}
+
+		eType, err = dbo.GetEntryType(block.ECBlock.DatabasePrimaryIndex())
+		if err != nil {
+			t.Error(err)
+		}
+		if eType == nil {
+			t.Error("eType==nil")
+		}
+		if eType.IsSameAs(block.ECBlock.GetChainID()) == false {
+			t.Error("Block type mismatch")
+		}
+
+		eType, err = dbo.GetEntryType(block.FBlock.DatabasePrimaryIndex())
+		if err != nil {
+			t.Error(err)
+		}
+		if eType == nil {
+			t.Error("eType==nil")
+		}
+		if eType.IsSameAs(block.FBlock.GetChainID()) == false {
+			t.Error("Block type mismatch")
+		}
+
+		eType, err = dbo.GetEntryType(block.AnchorEBlock.DatabasePrimaryIndex())
+		if err != nil {
+			t.Error(err)
+		}
+		if eType == nil {
+			t.Error("eType==nil")
+		}
+		if eType.IsSameAs(block.AnchorEBlock.GetChainID()) == false {
+			t.Error("Block type mismatch")
+		}
+
+		eType, err = dbo.GetEntryType(block.EBlock.DatabasePrimaryIndex())
+		if err != nil {
+			t.Error(err)
+		}
+		if eType == nil {
+			t.Error("eType==nil")
+		}
+		if eType.IsSameAs(block.EBlock.GetChainID()) == false {
+			t.Error("Block type mismatch")
+		}
+
+		for _, entry := range block.Entries {
+			eType, err = dbo.GetEntryType(entry.GetHash())
+			if err != nil {
+				t.Error(err)
+			}
+			if eType == nil {
+				t.Error("eType==nil")
+			}
+			if eType.IsSameAs(entry.GetChainID()) == false {
+				t.Error("Entry type mismatch")
+			}
+		}
+	}
+}
+
 func TestMultiBatch(t *testing.T) {
 	dbo := NewOverlay(new(mapdb.MapDB))
 
@@ -42,7 +128,7 @@ func TestMultiBatch(t *testing.T) {
 			t.Error(err)
 		}
 
-		err = dbo.ProcessECBlockMultiBatch(prev.ECBlock)
+		err = dbo.ProcessECBlockMultiBatch(prev.ECBlock, false)
 		if err != nil {
 			t.Error(err)
 		}

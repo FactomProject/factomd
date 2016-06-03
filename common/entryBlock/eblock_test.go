@@ -36,6 +36,25 @@ func TestEBlockMarshal(t *testing.T) {
 	}
 }
 
+func TestAddEBEntry(t *testing.T) {
+	eb := newTestingEntryBlock()
+	e := newEntry()
+	if err := eb.AddEBEntry(e); err != nil {
+		t.Error(err)
+	}
+	t.Log(eb)
+	p, err := eb.MarshalBinary()
+	if err != nil {
+		t.Error(err)
+	}
+
+	eb2 := NewEBlock()
+	if err := eb2.UnmarshalBinary(p); err != nil {
+		t.Error(err)
+	}
+	t.Log(eb2)
+}
+
 func byteof(b byte) []byte {
 	r := make([]byte, 0, 32)
 	for i := 0; i < 32; i++ {

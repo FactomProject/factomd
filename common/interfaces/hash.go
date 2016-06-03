@@ -9,6 +9,7 @@ import ()
 type IHash interface {
 	IBlock // Implements IBlock
 
+	Copy() IHash
 	Fixed() [32]byte                                   // Returns the fixed array for use in maps
 	Bytes() []byte                                     // Return the byte slice for this Hash
 	SetBytes([]byte) error                             // Set the bytes

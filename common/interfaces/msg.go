@@ -53,22 +53,18 @@ type IMsg interface {
 	//  1   -- Message is valid
 	Validate(IState) int
 
-	// Returns true if this is a message for this server to execute as
-	// a leader.
-	Leader(IState) bool
+	//Set the VMIndex for a message
+	ComputeVMIndex(IState)
 
-	// Execute the leader functions of the given message
-	LeaderExecute(IState) error
+	// Call here if the server is a leader
+	LeaderExecute(IState)
 
 	// Debugging thing to track the leader responsible for a message ack.
 	GetLeaderChainID() IHash
 	SetLeaderChainID(IHash)
 
-	// Returns true if this is a message for this server to execute as a follower
-	Follower(IState) bool
-
-	// Exeucte the follower functions of the given message
-	FollowerExecute(IState) error
+	// Call here if the server is a follower
+	FollowerExecute(IState)
 
 	// Process.  When we get a sequence of acknowledgements that we trust, we process.
 	// A message will only be processed once, and in order, guaranteed.
