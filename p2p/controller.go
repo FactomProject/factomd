@@ -77,8 +77,9 @@ type CommandChangeLogging struct {
 // command channel.
 //////////////////////////////////////////////////////////////////////
 
-func (c *Controller) Init(port string, peersFile string, exclusivity bool) *Controller {
+func (c *Controller) Init(port string, peersFile string, network NetworkID) *Controller {
 	verbose("ctrlr", "Controller.Init(%s)", port)
+	silence("#################", "META:  Jay's last touched: THURSDAY June 2 1050AM")
 	c.keepRunning = true
 	c.commandChannel = make(chan interface{}, 1000) // Commands from App
 	c.FromNetwork = make(chan Parcel, 10000)        // Channel to the app for network data
@@ -91,7 +92,7 @@ func (c *Controller) Init(port string, peersFile string, exclusivity bool) *Cont
 	NodeID = uint64(r.Int63()) // This is a global used by all connections
 	c.lastPeerManagement = time.Now()
 	c.lastPeerRequest = time.Now()
-	OnlySpecialPeers = exclusivity
+	CurrentNetwork = network
 	return c
 }
 
@@ -103,10 +104,13 @@ func (c *Controller) StartNetwork(exclusive bool) {
 	// start listening on port given
 	c.listen()
 	// Get a list of peers from discovery
-	peers := c.discovery.GetStartupPeers()
-	// dial into the peers
-	for _, peer := range peers {
-		c.DialPeer(peer.Address)
+	// BUGBUG - in exclusivity we only dial the command line peers.
+	if !OnlySpecialPeers {
+		peers := c.discovery.GetOutgoingPeers()
+		// dial into the peers
+		for _, peer := range peers {
+			c.DialPeer(peer.Address)
+		}
 	}
 	c.lastStatusReport = time.Now()
 	// Start the runloop
@@ -377,7 +381,7 @@ func (c *Controller) managePeers() {
 		}
 		if NumberPeersToConnect > outgoing {
 			// Get list of peers ordered by quality from discovery
-			peers := c.discovery.GetStartupPeers()
+			peers := c.discovery.GetOutgoingPeers()
 			// For each one, if we don't already have a connection, create command message.
 			for _, peer := range peers {
 				_, present := c.connections[peer.Hash]

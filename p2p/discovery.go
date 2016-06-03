@@ -123,7 +123,7 @@ func (d *Discovery) SavePeers() {
 	encoder.Encode(d.knownPeers)
 	UpdateKnownPeers.Unlock()
 	writer.Flush()
-	note("discovery", "SavePeers() saved %d peers in peers.josn", len(d.knownPeers))
+	note("discovery", "SavePeers() saved %d peers in peers.json", len(d.knownPeers))
 
 }
 
@@ -147,7 +147,7 @@ func (d *Discovery) LearnPeers(payload []byte) {
 	}
 }
 
-// GetStartupPeers gets a set of peers to connect to on startup
+// GetOutgoingPeers gets a set of peers to connect to on startup
 // For now, this gives a set of 12 of the total known peers.
 // We want peers from diverse networks.  So,method is this:
 //	-- generate list of candidates (if exclusive, only special peers)
@@ -156,7 +156,7 @@ func (d *Discovery) LearnPeers(payload []byte) {
 //  -- Otherwise,repeatedly take candidates at the 0%, %25, %50, %75, %100 points in the list
 //  -- remove each candidate from the list.
 //  -- continue until there are no candidates left, or we have our set.
-func (d *Discovery) GetStartupPeers() []Peer {
+func (d *Discovery) GetOutgoingPeers() []Peer {
 	peerPool := []Peer{}
 	selectedPeers := []Peer{}
 	UpdateKnownPeers.Lock()
@@ -171,8 +171,10 @@ func (d *Discovery) GetStartupPeers() []Peer {
 	}
 	UpdateKnownPeers.Unlock()
 	sort.Sort(PeerDistanceSort(peerPool))
-	desiredQuantity := NumberPeersToConnect * 3 // Get three times as many as who knows how many will be online
-	if len(peerPool) < desiredQuantity {
+	// Get three times as many as who knows how many will be online
+	desiredQuantity := NumberPeersToConnect * 3
+	// If the peer pool isn't at least twice the size of what we need, then location diversity is meaningless.
+	if len(peerPool) < desiredQuantity*2 {
 		return peerPool
 	}
 	for index := 1; index < desiredQuantity; index++ {

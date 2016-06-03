@@ -136,7 +136,9 @@ func (c *Connection) runLoop() {
 			if c.dial() {
 				c.goOnline()
 			} else { //  we did not connect successfully
-				c.goShutdown()
+				// BUGBUG Go offline for testing now. Ask brian how tough we should be
+				// c.goShutdown()
+				c.goOffline()
 			}
 		case ConnectionOnline:
 			c.processReceives()
@@ -164,7 +166,7 @@ func (c *Connection) runLoop() {
 				}
 			}
 		case ConnectionShuttingDown:
-			debug(c.peer.Hash, "runLoop() ConnectionReceivesShutdown STATE runloop() cleaning up. ")
+			debug(c.peer.Hash, "runLoop() ConnectionShuttingDown STATE runloop() cleaning up. ")
 			c.state = ConnectionClosed
 			c.ReceiveChannel <- ConnectionCommand{command: ConnectionIsClosed}
 			return // ending runloop() goroutine
@@ -276,7 +278,7 @@ func (c *Connection) sendParcel(parcel Parcel) {
 	err := c.encoder.Encode(parcel)
 	switch {
 	case nil == err:
-		verbose(c.peer.Hash, "Connection.processReceives() Timeout()  State: %s", c.ConnectionState())
+		verbose(c.peer.Hash, "Connection.sendParcel() Timeout()  State: %s", c.ConnectionState())
 	default:
 		c.handleNetErrors(err)
 		return
@@ -287,7 +289,7 @@ func (c *Connection) sendParcel(parcel Parcel) {
 func (c *Connection) processReceives() {
 	for ConnectionOnline == c.state {
 		var message Parcel
-		note(c.peer.Hash, "Connection.processReceives() called. State: %s", c.ConnectionState())
+		verbose(c.peer.Hash, "Connection.processReceives() called. State: %s", c.ConnectionState())
 		c.conn.SetReadDeadline(time.Now().Add(100 * time.Millisecond))
 		err := c.decoder.Decode(&message)
 		switch {
@@ -304,7 +306,7 @@ func (c *Connection) processReceives() {
 //handleNetErrors Reacts to errors we get from encoder or decoder
 func (c *Connection) handleNetErrors(err error) {
 	nerr, isNetError := err.(net.Error)
-	logerror(c.peer.Hash, "Connection.handleNetErrors() got error: %+v", err)
+	verbose(c.peer.Hash, "Connection.handleNetErrors() got error: %+v", err)
 	switch {
 	case isNetError && nerr.Timeout(): /// buffer empty
 		return
@@ -355,7 +357,7 @@ const (
 )
 
 func (c *Connection) parcelValidity(parcel Parcel) uint8 {
-	debug(c.peer.Hash, "Connection.isValidParcel(%s)", parcel.MessageType())
+	verbose(c.peer.Hash, "Connection.isValidParcel(%s)", parcel.MessageType())
 	crc := crc32.Checksum(parcel.Payload, CRCKoopmanTable)
 	switch {
 	case parcel.Header.NodeID == NodeID: // We are talking to ourselves!

@@ -190,12 +190,22 @@ func NetStart(s *state.State) {
 		makeServer(s) // We clone s to make all of our servers
 	}
 
-	// Start the P2P netowrk
+	// Start the P2P netowork
+	var networkID p2p.NetworkID
+	switch s.Network {
+	case "MAIN", "main":
+		networkID = p2p.MainNet
+	case "LOCAL", "local":
+		networkID = p2p.MainNet
+	case "TEST", "test":
+		networkID = p2p.MainNet
+	default:
+		panic("Invalid Network choice in Config File. Choose MAIN, TEST or LOCAL")
 
-	// BUGBUG Get peers file from config
-	p2p := new(p2p.Controller).Init(address, "~/.factom/peers.json", exclusive)
+	}
+	p2p := new(p2p.Controller).Init(address, s.PeersFile, networkID)
 	network = *p2p
-	network.StartNetwork(false) //BUGBUG This should be command line flag? Talk to Brian
+	network.StartNetwork(exclusive)
 	// Setup the proxy (Which translates from network parcels to factom messages, handling addressing for directed messages)
 	p2pProxy := new(P2PProxy).Init(fnodes[0].State.FactomNodeName, "P2P Network").(*P2PProxy)
 	p2pProxy.FromNetwork = network.FromNetwork
