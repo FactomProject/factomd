@@ -60,12 +60,16 @@ const (
 
 	// TestNet represents a testing network
 	TestNet NetworkID = 0xdeadbeef
+
+	// LocalNet represents any arbitrary/private network
+	LocalNet NetworkID = 0xbeaded
 )
 
 // Map of network ids to strings for easy printing of network ID
 var NetworkIDStrings = map[NetworkID]string{
-	MainNet: "MainNet",
-	TestNet: "TestNet",
+	MainNet:  "MainNet",
+	TestNet:  "TestNet",
+	LocalNet: "LocalNet",
 }
 
 func (n *NetworkID) String() string {

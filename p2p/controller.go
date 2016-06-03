@@ -77,7 +77,7 @@ type CommandChangeLogging struct {
 // command channel.
 //////////////////////////////////////////////////////////////////////
 
-func (c *Controller) Init(port string, peersFile string) *Controller {
+func (c *Controller) Init(port string, peersFile string, network NetworkID) *Controller {
 	verbose("ctrlr", "Controller.Init(%s)", port)
 	silence("#################", "META:  Jay's last touched: THURSDAY June 2 1050AM")
 	c.keepRunning = true
@@ -92,6 +92,7 @@ func (c *Controller) Init(port string, peersFile string) *Controller {
 	NodeID = uint64(r.Int63()) // This is a global used by all connections
 	c.lastPeerManagement = time.Now()
 	c.lastPeerRequest = time.Now()
+	CurrentNetwork = network
 	return c
 }
 
