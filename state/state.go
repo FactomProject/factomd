@@ -664,34 +664,34 @@ func (s *State) GetDirectoryBlockByHeight(height uint32) interfaces.IDirectoryBl
 
 func (s *State) UpdateState() (progress bool) {
 
-		// Look at all the other out of orders.  Note that if we kept this list sorted,
-		// this would be really efficent, and wouldn't require a loop.
-		for i := len(s.OutOfOrders) - 1; i >= 0; i-- {
-			a := s.GetOutOfOrder(i)
-			if a != nil {
-				m := s.Holding[a.GetHash().Fixed()]
-				if m != nil {
-					pl := s.ProcessLists.Get(a.DBHeight)
-					if pl != nil {
-						pl.AddToProcessList(a, m)
-					}
+	// Look at all the other out of orders.  Note that if we kept this list sorted,
+	// this would be really efficent, and wouldn't require a loop.
+	for i := len(s.OutOfOrders) - 1; i >= 0; i-- {
+		a := s.GetOutOfOrder(i)
+		if a != nil {
+			m := s.Holding[a.GetHash().Fixed()]
+			if m != nil {
+				pl := s.ProcessLists.Get(a.DBHeight)
+				if pl != nil {
+					pl.AddToProcessList(a, m)
 				}
 			}
 		}
-		// Look at all the other out of orders.  Note that if we kept this list sorted,
-		// this would be really efficent, and wouldn't require a loop.
-		for i := len(s.StallAcks) - 1; i >= 0; i-- {
-			a := s.GetStalledAck(i)
-			if a != nil {
-				m := s.Holding[a.GetHash().Fixed()]
-				if m != nil {
-					pl := s.ProcessLists.Get(a.DBHeight)
-					if pl != nil {
-						pl.AddToProcessList(a, m)
-					}
+	}
+	// Look at all the other out of orders.  Note that if we kept this list sorted,
+	// this would be really efficent, and wouldn't require a loop.
+	for i := len(s.StallAcks) - 1; i >= 0; i-- {
+		a := s.GetStalledAck(i)
+		if a != nil {
+			m := s.Holding[a.GetHash().Fixed()]
+			if m != nil {
+				pl := s.ProcessLists.Get(a.DBHeight)
+				if pl != nil {
+					pl.AddToProcessList(a, m)
 				}
 			}
 		}
+	}
 
 	dbheight := s.GetHighestRecordedBlock()
 	plbase := s.ProcessLists.DBHeightBase
