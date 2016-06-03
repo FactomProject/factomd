@@ -40,7 +40,10 @@ func (s *State) GetACKStatus(hash interfaces.IHash) (int, error) {
 		}
 	}
 
-	//TODO: check if message is invalid
+	msg := s.GetInvalidMsg(hash)
+	if msg != nil {
+		return constants.AckStatusInvalid, nil
+	}
 
 	in, err := s.DB.FetchIncludedIn(hash)
 	if err != nil {

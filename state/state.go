@@ -1156,6 +1156,10 @@ func (s *State) SetOut(o bool) {
 func (s *State) ProcessInvalidMsgQueue() {
 	s.InvalidMessagesMutex.Lock()
 	defer s.InvalidMessagesMutex.Unlock()
+	if len(s.InvalidMessages)+len(s.networkInvalidMsgQueue) > 2048 {
+		//Clearing old invalid messages
+		s.InvalidMessages = map[[32]byte]interfaces.IMsg{}
+	}
 
 	for {
 		if len(s.networkInvalidMsgQueue) == 0 {
