@@ -156,6 +156,6 @@ func NetworkOutputs(fnode *FactomNode) {
 func InvalidOutputs(fnode *FactomNode) {
 	for {
 		time.Sleep(1 * time.Millisecond)
-		<-fnode.State.NetworkInvalidMsgQueue()
+		fnode.State.ProcessInvalidMsgQueue()
 	}
 }

@@ -69,7 +69,7 @@ type State struct {
 	apiQueue               chan interfaces.IMsg
 	ackQueue               chan interfaces.IMsg
 	msgQueue               chan interfaces.IMsg
-	StallList              [] interfaces.IMsg
+	StallList              []interfaces.IMsg
 	ShutdownChan           chan int // For gracefully halting Factom
 	JournalFile            string
 
@@ -101,13 +101,16 @@ type State struct {
 	AuditHeartBeats []interfaces.IMsg   // The checklist of HeartBeats for this period
 	FedServerFaults [][]interfaces.IMsg // Keep a fault list for every server
 
+	InvalidMessages      map[[32]byte]interfaces.IMsg
+	InvalidMessagesMutex sync.RWMutex
+
 	//Network MAIN = 0, TEST = 1, LOCAL = 2, CUSTOM = 3
 	NetworkNumber int // Encoded into Directory Blocks(s.Cfg.(*util.FactomdConfig)).String()
 
 	// Database
-	DB      *databaseOverlay.Overlay
-	Logger  *logger.FLogger
-	Anchor  interfaces.IAnchor
+	DB     *databaseOverlay.Overlay
+	Logger *logger.FLogger
+	Anchor interfaces.IAnchor
 
 	// Directory Block State
 	DBStates *DBStateList // Holds all DBStates not yet processed.
@@ -857,7 +860,7 @@ func (s *State) AckQueue() chan interfaces.IMsg {
 }
 
 func (s *State) StallMsg(m interfaces.IMsg) {
-	s.StallList = append(s.StallList,m)
+	s.StallList = append(s.StallList, m)
 }
 
 // Get the ith message out of the stall queue.  Note getting i=0 makes
@@ -1073,4 +1076,30 @@ func (s *State) GetOut() bool {
 
 func (s *State) SetOut(o bool) {
 	s.OutputAllowed = o
+}
+
+func (s *State) ProcessInvalidMsgQueue() {
+	s.InvalidMessagesMutex.Lock()
+	defer s.InvalidMessagesMutex.Unlock()
+
+	for {
+		if len(s.networkInvalidMsgQueue) == 0 {
+			return
+		}
+		select {
+		case msg := <-s.networkInvalidMsgQueue:
+			s.InvalidMessages[msg.GetHash().Fixed()] = msg
+		}
+	}
+}
+
+func (s *State) GetInvalidMsg(hash interfaces.IHash) interfaces.IMsg {
+	if hash == nil {
+		return nil
+	}
+
+	s.InvalidMessagesMutex.RLock()
+	defer s.InvalidMessagesMutex.RUnlock()
+
+	return s.InvalidMessages[hash.Fixed()]
 }
