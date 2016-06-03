@@ -10,25 +10,10 @@ var _ = fmt.Print
 type FEREntry struct {
 	Version string 			`json:"version"`
 	ExpirationHeight uint32 	`json:"exiration_height"`
+	ResidentHeight uint32		`json:"resident_height"`
 	TargetActivationHeight uint32 	`json:"target_activation_height"`
 	Priority uint32			`json:"priority"`
 	TargetPrice uint64		`json:"target_price"`
-}
-
-
-
-
-
-// Load this fer entry from json.  The fer messages should have this structure in their body
-func (this *FEREntry) LoadFromJson(passedJson string) (interfaces.IFEREntry) {
-
-	this.Version = "1.0"
-	this.ExpirationHeight = 1
-	this.TargetActivationHeight = 2
-	this.Priority = 1.0
-	this.TargetPrice = 3
-	
-	return this
 }
 
 
@@ -46,6 +31,7 @@ func (this *FEREntry) SetVersion(passedVersion string) (interfaces.IFEREntry) {
 
 
 
+
 // Getter ExpirationHeight
 func (this *FEREntry) GetExpirationHeight() (uint32) {
 	return this.ExpirationHeight
@@ -54,6 +40,21 @@ func (this *FEREntry) GetExpirationHeight() (uint32) {
 // Setter ExpirationHeight
 func (this *FEREntry) SetExpirationHeight(passedExpirationHeight uint32) (interfaces.IFEREntry) {
 	this.ExpirationHeight = passedExpirationHeight
+	return this
+}
+
+
+
+
+
+// Getter ResidentHeight
+func (this *FEREntry) GetResidentHeight() (uint32) {
+	return this.ResidentHeight
+}
+
+// Setter ResidentHeight
+func (this *FEREntry) SetResidentHeight(passedResidentHeight uint32) (interfaces.IFEREntry) {
+	this.ResidentHeight = passedResidentHeight
 	return this
 }
 

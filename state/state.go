@@ -24,6 +24,8 @@ import (
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
 	"sync"
+	ed "github.com/agl/ed25519"
+	"github.com/FactomProject/btcutil/base58"
 )
 
 var _ = fmt.Print
@@ -159,8 +161,11 @@ type State struct {
 
 	// FER section
 	FactoshisPerEC uint64
+	NextScheduledFactoshisPerEC uint64
 	FERChainId string
 	FEREntries []interfaces.IFEREntry  // Map of (residentBlock, targerActivationBlock, price)
+	ExchangeRateAuthorityAddress string
+
 }
 
 var _ interfaces.IState = (*State)(nil)
@@ -203,6 +208,7 @@ func (s *State) Clone(number string) interfaces.IState {
 	// FER section
 	clone.FactoshisPerEC = s.FactoshisPerEC
 	clone.FERChainId = s.FERChainId
+	clone.ExchangeRateAuthorityAddress = s.ExchangeRateAuthorityAddress
 
 	return clone
 }
@@ -257,6 +263,7 @@ func (s *State) LoadConfig(filename string, folder string) {
 		s.DirectoryBlockInSeconds = cfg.App.DirectoryBlockInSeconds
 		s.PortNumber = cfg.Wsapi.PortNumber
 		s.FERChainId = cfg.App.ExchangeRateChainId
+		s.ExchangeRateAuthorityAddress = cfg.App.ExchangeRateAuthorityAddress
 
 		// TODO:  Actually load the IdentityChainID from the config file
 		s.IdentityChainID = primitives.Sha([]byte(s.FactomNodeName))
@@ -274,6 +281,7 @@ func (s *State) LoadConfig(filename string, folder string) {
 		s.LocalServerPrivKey = "4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c9b08946553448d26d"
 		s.FactoshisPerEC = 006666
 		s.FERChainId = "eac57815972c504ec5ae3f9e5c1fe12321a3c8c78def62528fb74cf7af5e7389"
+		s.ExchangeRateAuthorityAddress = ""   // default to nothing so that there is no default FER manipulation
 		s.DirectoryBlockInSeconds = 6
 		s.PortNumber = 8088
 
@@ -395,13 +403,12 @@ func (s *State) Init() {
 
 	s.Println("\nRunning on the ", s.Network, "Network")
 	s.Println("\nExchange rate chain id set to ", s.GetFactoshisPerEC())
-	s.DetermineAndSetFER()
+	s.Println("\nExchange rate Authority Public Key set to ", s.ExchangeRateAuthorityAddress)
 
 	s.AuditHeartBeats = make([]interfaces.IMsg, 0)
 	s.FedServerFaults = make([][]interfaces.IMsg, 0)
 
 	s.initServerKeys()
-
 }
 
 func (s *State) AddDataRequest(requestedHash, missingDataHash interfaces.IHash) {
@@ -676,22 +683,29 @@ func (s *State) GetDirectoryBlockByHeight(height uint32) interfaces.IDirectoryBl
 	return dblk
 }
 
-func (s *State) DetermineAndSetFER() (newFER uint64){
+// Go through the factoid exchange rate chain and determine if an FER change should be scheduled
+func (s *State) DetermineAndSetNextFER() (newFER uint64) {
+	s.FEREntries = make([]interfaces.IFEREntry, 0, 1000)
+
+	// Find the FER entry chain
 	FERChainHash, err := primitives.HexToHash(s.FERChainId)
 	if err != nil {
 		s.Println("The FERChainId couldn't be turned into a IHASH")
-		return s.GetFactoshisPerEC()
+		s.NextScheduledFactoshisPerEC = 0
+		return s.NextScheduledFactoshisPerEC
 	}
 
 	//  Get the first eblock from the FERChain
 	entryBlock, err := s.DB.FetchEBlockHead(FERChainHash)
 	if err != nil {
 		s.Println("Couldn't find the FER chain for id ", s.FERChainId)
-		return s.GetFactoshisPerEC()
+		s.NextScheduledFactoshisPerEC = 0
+		return s.NextScheduledFactoshisPerEC
 	}
 	if entryBlock == nil {
 		s.Println("FER Chain head found to be nil")
-		return s.GetFactoshisPerEC()
+		s.NextScheduledFactoshisPerEC = 0
+		return s.NextScheduledFactoshisPerEC
 	}
 
 	s.Println("Checking first block with height of: ", entryBlock.GetHeader().GetDBHeight())
@@ -707,16 +721,15 @@ func (s *State) DetermineAndSetFER() (newFER uint64){
 	}
 
 	// While the target entry block isn't more than 6 away from the current block height
-	for (entryBlock.GetHeader().GetDBHeight() >= (s.GetDBHeightComplete() - 6)) || true {
+	for (entryBlock.GetHeader().GetDBHeight() >= (s.GetDBHeightComplete() - 6)) {
 		entryHashes := entryBlock.GetEntryHashes()
 
-		s.Println("Found FER entry hashes in a block as: ", entryHashes)
+		// s.Println("Found FER entry hashes in a block as: ", entryHashes)
 
 		for _, entryHash := range entryHashes {
 
 			// if this entryhash is a minute mark then continue
 			if _, exist := mins[entryHash.String()]; exist {
-				s.Println("Skipping minute marker: ", entryHash)
 				continue
 			}
 
@@ -732,7 +745,7 @@ func (s *State) DetermineAndSetFER() (newFER uint64){
 			}
 
 			entryContent := anEntry.GetContent()
-			s.Println("Found content of an FER entry is:  ", string(entryContent))
+			// s.Println("Found content of an FER entry is:  ", string(entryContent))
 			anFEREntry := new(FEREntry)
 			err = json.Unmarshal(entryContent, &anFEREntry)
 			if err != nil {
@@ -740,13 +753,14 @@ func (s *State) DetermineAndSetFER() (newFER uint64){
 				continue
 			}
 
-			s.FEREntries = append(s.FEREntries, anFEREntry)
-			s.Println("ENTRIES = len=", len(s.FEREntries), " cap= ", cap(s.FEREntries), " body= [")
-			for index, entry := range s.FEREntries {
-				marshaledEntry, _ := json.Marshal(entry)
-				s.Println("  [", index, "] = ", string(marshaledEntry))
+			anFEREntry.SetResidentHeight(entryBlock.GetHeader().GetDBHeight())
+
+			// make sure the exchange authority signed it before adding it to consideration
+			if ( s.ExchangeRateAuthorityIsValid(anEntry) ) {
+				s.FEREntries = append(s.FEREntries, anFEREntry)
+			} else {
+				s.Println("Found FERentry from non-authority with content: ", entryContent)
 			}
-			s.Println("]")
 		}
 
 		//  Get the previous entry block from the FERChain
@@ -759,15 +773,22 @@ func (s *State) DetermineAndSetFER() (newFER uint64){
 		entryBlock, err = s.DB.FetchEBlockByKeyMR(previousKeyMR)
 		if err != nil || entryBlock == nil {
 			// no more entry blocks previous to this chain
-			s.Println("No more blocks in FER chain as prev entry block not found")
+			// s.Println("No more blocks in FER chain as prev entry block not found")
 			break
 		}
 	}
 
+	s.Println("ENTRIES = len=", len(s.FEREntries), " cap= ", cap(s.FEREntries), " body= [")
+	for index, entry := range s.FEREntries {
+		marshaledEntry, _ := json.Marshal(entry)
+		s.Println("  [", index, "] = ", string(marshaledEntry))
+	}
+	s.Println("]")
+
 	// clean the window by running through any validation needed
 	//s.cleanWindowOfFEREntries(10);
 
-	//predictivePrice := s.FactoshisPerEC
+	predictiveFER := s.FactoshisPerEC
 	//currentDirectoryBlock := s.GetDirectoryBlock()
 	//
 	//if currentDirectoryBlock != nil {
@@ -781,10 +802,74 @@ func (s *State) DetermineAndSetFER() (newFER uint64){
 	//}
 	//
 
-	// s.SetFactoshisPerEC(predictivePrice)
-	return s.FactoshisPerEC
+	s.NextScheduledFactoshisPerEC = predictiveFER
+	return s.NextScheduledFactoshisPerEC
 }
 
+
+
+
+func (s *State) ExchangeRateAuthorityIsValid(e interfaces.IEBEntry) bool {
+
+	// convert the conf quthority address into a
+	authorityAddress := base58.Decode(s.ExchangeRateAuthorityAddress)
+	ecPubPrefix := []byte{0x59, 0x2a}
+
+	if !bytes.Equal(authorityAddress[:2], ecPubPrefix) {
+		fmt.Errorf("Invalid Entry Credit Private Address")
+		return false
+	}
+
+	pub := new([32]byte)
+	copy(pub[:], authorityAddress[2:34])
+
+	// in case verify can't handle empty public key
+	if (s.ExchangeRateAuthorityAddress == "") {
+		return false
+	}
+	sig := new([64]byte)
+	externalIds := e.ExternalIDs()
+
+	// check for number of ext ids
+	if len(externalIds) < 1 {
+		return false
+	}
+
+	copy(sig[:], externalIds[0])   // First ext id needs to be the signature of the content
+
+	if !ed.Verify(pub, e.GetContent(), sig) {
+		return false
+	}
+
+	return true
+}
+
+
+
+
+
+
+// Promotes the factoid exchange rate that was previously stored in the s.NextScheduledFactoshisPerEC if there is one
+func (s *State) PromoteNextFER() {
+	if (s.NextScheduledFactoshisPerEC != 0 ) {
+		s.SetFactoshisPerEC(s.NextScheduledFactoshisPerEC)
+		s.NextScheduledFactoshisPerEC = 0
+	}
+}
+
+
+// Returns the higher of the current factoid exchange rate and what it knows will change in the future
+func (s *State) GetPredictiveFER() (uint64) {
+	if (s.NextScheduledFactoshisPerEC != 0 ) {
+		if (s.NextScheduledFactoshisPerEC > s.GetFactoshisPerEC()) {
+			return s.NextScheduledFactoshisPerEC
+		}
+	}
+
+	return s.GetFactoshisPerEC()
+}
+
+// Validates factoid exchange entry
 func (s *State) ProcessFERValue(passedFerEntry interfaces.IFEREntry)  {
 	newFEREntry := new (FEREntry)
 

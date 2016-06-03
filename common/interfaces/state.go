@@ -180,6 +180,9 @@ type IState interface {
 	FetchEntryByHash(IHash) (IEBEntry, error)
 
 	// FER section
-	DetermineAndSetFER() (uint64)
 	ProcessFERValue(IFEREntry)
+	DetermineAndSetNextFER() (uint64)
+	PromoteNextFER()
+	GetPredictiveFER() (uint64)
+	ExchangeRateAuthorityIsValid(IEBEntry) bool
 }

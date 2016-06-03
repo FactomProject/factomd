@@ -306,6 +306,11 @@ func (list *DBStateList) UpdateState() (progress bool) {
 		fs.AddTransactionBlock(d.FactoidBlock)
 		fs.AddECBlock(d.EntryCreditBlock)
 		fs.ProcessEndOfBlock(list.State)
+
+		// Promote the currently scheduled next FER
+		list.State.PromoteNextFER()
+		list.State.DetermineAndSetNextFER()
+
 		// Step my counter of Complete blocks
 		if uint32(i) > list.Complete {
 			list.Complete = uint32(i)

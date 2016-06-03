@@ -1,12 +1,12 @@
 package interfaces
 
 type IFEREntry interface {
-	LoadFromJson(passedJson string) (IFEREntry)
-
 	GetVersion() (string)
 	SetVersion(passedVersion string) (IFEREntry)
 	GetExpirationHeight() (uint32)
 	SetExpirationHeight(passedExpirationHeight uint32) (IFEREntry)
+	GetResidentHeight() (uint32)
+	SetResidentHeight(passedGetResidentHeight uint32) (IFEREntry)
 	GetTargetActivationHeight() (uint32)
 	SetTargetActivationHeight(passedTargetActivationHeight uint32) (IFEREntry)
 	GetPriority() (uint32)
