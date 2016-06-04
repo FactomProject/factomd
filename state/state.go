@@ -670,6 +670,7 @@ func (s *State) UpdateState() (progress bool) {
 
 	process := func(a *messages.Ack){
 		if a != nil {
+			s.Acks[a.GetHash().Fixed()]=a
 			m := s.Holding[a.GetHash().Fixed()]
 			if m != nil {
 				pl := s.ProcessLists.Get(a.DBHeight)

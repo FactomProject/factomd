@@ -33,7 +33,7 @@ func (s *State) NewMinute() {
 	for k := range s.Holding {
 		v := s.Holding[k]
 		v.ComputeVMIndex(s)
-		if s.Leader && s.LeaderVMIndex == v.GetVMIndex() {
+		if s.Leader  {
 			s.XReview = append(s.XReview, v)
 			delete(s.Holding, k)
 		}

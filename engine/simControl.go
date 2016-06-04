@@ -14,6 +14,7 @@ import (
 
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/wsapi"
+	"math/rand"
 )
 
 var _ = fmt.Print
@@ -240,13 +241,12 @@ func SimControl(listenTo int) {
 //
 func rotateWSAPI(rotate *bool) {
 	for *rotate { // Only if true
-		for _, fnode := range fnodes {
-			if *rotate { // Only if true
-				// Swap entry points once per second.
-				wsapi.SetState(fnode.State)
-				os.Stderr.WriteString("\rAPI now directed to " + fnode.State.GetFactomNodeName() + "   ")
-				time.Sleep(time.Second)
-			}
+		fnode := fnodes[rand.Int()%len(fnodes)]
+		if *rotate { // Only if true
+			// Swap entry points once per second.
+			wsapi.SetState(fnode.State)
+			os.Stderr.WriteString("\rAPI now directed to " + fnode.State.GetFactomNodeName() + "   ")
+			time.Sleep(3*time.Second)
 		}
 	}
 }
@@ -370,7 +370,7 @@ func printProcessList(watchPL *bool, listenTo *int) {
 		} else {
 			return
 		}
-		time.Sleep(time.Second)
+		time.Sleep(time.Second*5)
 	}
 }
 

@@ -4,9 +4,7 @@ chain="$(echo "one two three four, this is a test of making an entry.  More to t
 sleep 201
 echo "Made Chain: " $chain
 
-sleep 1
-
-for i in `seq 1 4`;
+for i in `seq 1 10`;
 do
     entry="$(echo "Here are some random numbers: " $RANDOM $RANDOM $RANDOM $RANDOM $RANDOM $RANDOM)"
     echo $entry | factom-cli put -c $chain e1
