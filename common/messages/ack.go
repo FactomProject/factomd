@@ -17,13 +17,13 @@ import (
 //General acknowledge message
 type Ack struct {
 	MessageBase
-	Timestamp   interfaces.Timestamp
-	MessageHash interfaces.IHash
-
-	DBHeight uint32 // Directory Block Height that owns this ack
-	Height   uint32 // Height of this ack in this process list
-
-	SerialHash interfaces.IHash
+	Timestamp  				interfaces.Timestamp		// Timestamp of Ack by Leader
+	MessageHash 			interfaces.IHash				// Hash of message acknowledged
+	MessageFullHash   interfaces.IHash 				// Full hash of whatever we are acknowledging
+																						//   to prevent malibility attacks
+	DBHeight uint32 													// Directory Block Height that owns this ack
+	Height   uint32 													// Height of this ack in this process list
+	SerialHash interfaces.IHash								// Serial hash including previous ack
 
 	Signature interfaces.IFullSignature
 
@@ -34,62 +34,6 @@ type Ack struct {
 var _ interfaces.IMsg = (*Ack)(nil)
 var _ Signable = (*Ack)(nil)
 
-func (a *Ack) IsSameAs(b *Ack) bool {
-	if b == nil {
-		return false
-	}
-	if a.VMIndex != b.VMIndex {
-		return false
-	}
-
-	if a.Minute != b.Minute {
-		return false
-	}
-
-	if a.DBHeight != b.DBHeight {
-		return false
-	}
-	if a.Height != b.Height {
-		return false
-	}
-	if a.Timestamp != b.Timestamp {
-		return false
-	}
-
-	if a.MessageHash == nil && b.MessageHash != nil {
-		return false
-	}
-	if a.MessageHash.IsSameAs(b.MessageHash) == false {
-		return false
-	}
-
-	if a.SerialHash == nil && b.SerialHash != nil {
-		return false
-	}
-	if a.SerialHash.IsSameAs(b.SerialHash) == false {
-		return false
-	}
-
-	if a.Signature == nil && b.Signature != nil {
-		return false
-	}
-	if a.Signature != nil {
-		if a.Signature.IsSameAs(b.Signature) == false {
-			return false
-		}
-	}
-
-	if a.LeaderChainID == nil && b.LeaderChainID != nil {
-		return false
-	}
-	if a.LeaderChainID != nil {
-		if a.LeaderChainID.IsSameAs(b.LeaderChainID) == false {
-			return false
-		}
-	}
-
-	return true
-}
 
 // We have to return the haswh of the underlying message.
 func (m *Ack) GetHash() interfaces.IHash {
@@ -105,6 +49,10 @@ func (m *Ack) GetMsgHash() interfaces.IHash {
 		m.MsgHash = primitives.Sha(data)
 	}
 	return m.MsgHash
+}
+
+func (m *Ack) GetFullMsgHash() interfaces.IHash {
+	return m.GetMsgHash()
 }
 
 func (m *Ack) Type() byte {
@@ -215,6 +163,12 @@ func (m *Ack) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 		return nil, err
 	}
 
+	m.MessageFullHash = new(primitives.Hash)
+	newData, err = m.MessageFullHash.UnmarshalBinaryData(newData)
+	if err != nil {
+		return nil, err
+	}
+
 	m.LeaderChainID = new(primitives.Hash)
 	newData, err = m.LeaderChainID.UnmarshalBinaryData(newData)
 	if err != nil {
@@ -267,6 +221,12 @@ func (m *Ack) MarshalForSignature() ([]byte, error) {
 	}
 	buf.Write(data)
 
+	data, err = m.MessageFullHash.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	buf.Write(data)
+
 	data, err = m.LeaderChainID.MarshalBinary()
 	if err != nil {
 		return nil, err
@@ -312,4 +272,61 @@ func (m *Ack) String() string {
 		m.LeaderChainID.Bytes()[:3],
 		m.GetHash().Bytes()[:3])
 
+}
+
+func (a *Ack) IsSameAs(b *Ack) bool {
+	if a == nil && b == nil {
+		return true
+	}
+
+	if a == nil {
+		return false
+	}
+
+	if a.VMIndex != b.VMIndex {
+		return false
+	}
+
+	if a.Minute != b.Minute {
+		return false
+	}
+
+	if a.DBHeight != b.DBHeight {
+		return false
+	}
+	if a.Height != b.Height {
+		return false
+	}
+	if a.Timestamp != b.Timestamp {
+		return false
+	}
+
+	if a.MessageFullHash.IsSameAs(b.MessageFullHash) == false {
+		return false
+	}
+
+	if a.MessageHash.IsSameAs(b.MessageHash) == false {
+		return false
+	}
+
+	if a.SerialHash.IsSameAs(b.SerialHash) == false {
+		return false
+	}
+
+	if a.Signature != nil {
+		if a.Signature.IsSameAs(b.Signature) == false {
+			return false
+		}
+	}
+
+	if a.LeaderChainID == nil && b.LeaderChainID != nil {
+		return false
+	}
+	if a.LeaderChainID != nil {
+		if a.LeaderChainID.IsSameAs(b.LeaderChainID) == false {
+			return false
+		}
+	}
+
+	return true
 }
