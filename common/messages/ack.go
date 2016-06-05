@@ -17,13 +17,12 @@ import (
 //General acknowledge message
 type Ack struct {
 	MessageBase
-	Timestamp  				interfaces.Timestamp		// Timestamp of Ack by Leader
-	MessageHash 			interfaces.IHash				// Hash of message acknowledged
-	MessageFullHash   interfaces.IHash 				// Full hash of whatever we are acknowledging
-																						//   to prevent malibility attacks
-	DBHeight uint32 													// Directory Block Height that owns this ack
-	Height   uint32 													// Height of this ack in this process list
-	SerialHash interfaces.IHash								// Serial hash including previous ack
+	Timestamp   interfaces.Timestamp // Timestamp of Ack by Leader
+	MessageHash interfaces.IHash     // Hash of message acknowledged
+
+	DBHeight   uint32           // Directory Block Height that owns this ack
+	Height     uint32           // Height of this ack in this process list
+	SerialHash interfaces.IHash // Serial hash including previous ack
 
 	Signature interfaces.IFullSignature
 
@@ -33,7 +32,6 @@ type Ack struct {
 
 var _ interfaces.IMsg = (*Ack)(nil)
 var _ Signable = (*Ack)(nil)
-
 
 // We have to return the haswh of the underlying message.
 func (m *Ack) GetHash() interfaces.IHash {
@@ -49,10 +47,6 @@ func (m *Ack) GetMsgHash() interfaces.IHash {
 		m.MsgHash = primitives.Sha(data)
 	}
 	return m.MsgHash
-}
-
-func (m *Ack) GetFullMsgHash() interfaces.IHash {
-	return m.GetMsgHash()
 }
 
 func (m *Ack) Type() byte {
@@ -163,8 +157,7 @@ func (m *Ack) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 		return nil, err
 	}
 
-	m.MessageFullHash = new(primitives.Hash)
-	newData, err = m.MessageFullHash.UnmarshalBinaryData(newData)
+	newData, err = m.GetFullMsgHash().UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
 	}
@@ -221,7 +214,7 @@ func (m *Ack) MarshalForSignature() ([]byte, error) {
 	}
 	buf.Write(data)
 
-	data, err = m.MessageFullHash.MarshalBinary()
+	data, err = m.GetFullMsgHash().MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
@@ -301,7 +294,7 @@ func (a *Ack) IsSameAs(b *Ack) bool {
 		return false
 	}
 
-	if a.MessageFullHash.IsSameAs(b.MessageFullHash) == false {
+	if a.GetFullMsgHash().IsSameAs(b.GetFullMsgHash()) == false {
 		return false
 	}
 

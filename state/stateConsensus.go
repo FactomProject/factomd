@@ -33,7 +33,7 @@ func (s *State) NewMinute() {
 	for k := range s.Holding {
 		v := s.Holding[k]
 		v.ComputeVMIndex(s)
-		if s.Leader  {
+		if s.Leader {
 			s.XReview = append(s.XReview, v)
 			delete(s.Holding, k)
 		}
@@ -172,7 +172,7 @@ func (s *State) ProcessQueues() (progress bool) {
 			case 0: // Put at the end of the line, and hopefully we will resolve it.
 				s.Holding[msg.GetHash().Fixed()] = msg
 			default:
-				fmt.Println("dddd Deleted=== Msg:", s.FactomNodeName,msg.String())
+				fmt.Println("dddd Deleted=== Msg:", s.FactomNodeName, msg.String())
 				delete(s.Acks, msg.GetHash().Fixed())
 				s.networkInvalidMsgQueue <- msg
 			}
@@ -755,6 +755,7 @@ func (s *State) NewAck(msg interfaces.IMsg) (iack interfaces.IMsg) {
 	ack.Minute = byte(s.LeaderMinute)
 	ack.Timestamp = s.GetTimestamp()
 	ack.MessageHash = msg.GetHash()
+	ack.SetFullMsgHash(msg.GetFullMsgHash())
 	ack.LeaderChainID = s.IdentityChainID
 
 	listlen := len(s.LeaderPL.VMs[vmIndex].List)

@@ -29,6 +29,8 @@ type ITransaction interface {
 
 	// Get the hash of the signed portion (not including signatures)
 	GetSigHash() IHash
+	// Get the full hash of the transaction (including signatures)
+	GetFullHash() IHash
 
 	// Accessors the inputs, outputs, and Entry Credit outputs (ecoutputs)
 	// to this transaction.

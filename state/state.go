@@ -668,9 +668,9 @@ func (s *State) GetDirectoryBlockByHeight(height uint32) interfaces.IDirectoryBl
 
 func (s *State) UpdateState() (progress bool) {
 
-	process := func(a *messages.Ack){
+	process := func(a *messages.Ack) {
 		if a != nil {
-			s.Acks[a.GetHash().Fixed()]=a
+			s.Acks[a.GetHash().Fixed()] = a
 			m := s.Holding[a.GetHash().Fixed()]
 			if m != nil {
 				pl := s.ProcessLists.Get(a.DBHeight)
@@ -697,7 +697,7 @@ func (s *State) UpdateState() (progress bool) {
 	// Look at all the other out of orders.  Note that if we kept this list sorted,
 	// this would be really efficent, and wouldn't require a loop.
 	for k := range s.Acks {
-		a,_ := s.Acks[k].(*messages.Ack)
+		a, _ := s.Acks[k].(*messages.Ack)
 		process(a)
 	}
 
@@ -1047,8 +1047,6 @@ func (s *State) SetString() {
 
 	buildingBlock := s.GetHighestRecordedBlock()
 
-	lastheight := uint32(0)
-
 	found, _ := s.GetVirtualServers(buildingBlock+1, 0, s.GetIdentityChainID())
 
 	L := ""
@@ -1078,20 +1076,16 @@ func (s *State) SetString() {
 		if s.DBStates.Last().DirectoryBlock.GetHeader().GetDBHeight() > 0 {
 			keyMR = s.DBStates.Last().DirectoryBlock.GetKeyMR().Bytes()
 		}
-		//abHash = s.DBStates.Last().AdminBlock.GetHash().Bytes()
-		//fbHash = s.DBStates.Last().FactoidBlock.GetHash().Bytes()
-		//ecHash = s.DBStates.Last().EntryCreditBlock.GetHash().Bytes()
-		lastheight = s.DBStates.Last().DirectoryBlock.GetHeader().GetDBHeight()
 	}
 
-	s.serverPrt = fmt.Sprintf("%4s%8s ID %x Save:%4d Next:%4d High:%4d DBMR <%x> L Min: %2v L DBHT%5v Min C/F %02v/%02v EOM %2v %3d-Fct %3d-EC %3d-E",
-		stype,
+	s.serverPrt = fmt.Sprintf("%8s[%6x]%4s Save:%4d[%6x] PL:%d/%d Min: %2v DBHT %v Min C/F %02v/%02v EOM %2v %3d-Fct %3d-EC %3d-E",
 		s.FactomNodeName,
 		s.IdentityChainID.Bytes()[:3],
+		stype,
 		s.GetHighestRecordedBlock(),
-		lastheight,
-		s.GetHighestKnownBlock(),
 		keyMR[:3],
+		s.ProcessLists.DBHeightBase,
+		int(s.ProcessLists.DBHeightBase)+len(s.ProcessLists.Lists)-1,
 		s.LeaderMinute,
 		s.LLeaderHeight,
 		s.ProcessLists.Get(s.LLeaderHeight).MinuteComplete(),

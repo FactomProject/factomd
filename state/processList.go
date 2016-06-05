@@ -562,15 +562,16 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 		//fmt.Println("dddd", hint, p.State.FactomNodeName, "Toss", ack.String())
 	}
 
-	vm := p.VMs[ack.VMIndex]
-
-	if ack.DBHeight > p.DBHeight {
-		panic(fmt.Sprintf("Ack is wrong height.  Expected: %d Ack: %s",p.DBHeight,ack.String()))
-		return
+	// If the message doesn't match the full hash of the ack, then it is no good.
+	// Get rid of the message, and let the request for messages get you the right one.
+	if !ack.GetFullMsgHash().IsSameAs(m.GetFullMsgHash()) {
+		delete(p.State.Holding, m.GetHash().Fixed())
 	}
 
-	if ack.DBHeight < p.DBHeight {
-		panic(fmt.Sprintf("Ack is wrong height.  Expected: %d Ack: %s",p.DBHeight,ack.String()))
+	vm := p.VMs[ack.VMIndex]
+
+	if ack.DBHeight != p.DBHeight {
+		panic(fmt.Sprintf("Ack is wrong height.  Expected: %d Ack: %s", p.DBHeight, ack.String()))
 		return
 	}
 
@@ -594,7 +595,7 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 
 		if ack == nil || m == nil || vm.List[ack.Height].GetMsgHash() == nil ||
 			m.GetMsgHash() == nil || vm.List[ack.Height].GetMsgHash().IsSameAs(m.GetMsgHash()) {
-			fmt.Printf("%-30s %10s %s\n", "xxxxxxxxx PL Duplicate", p.State.GetFactomNodeName(), m.String())
+			fmt.Printf("dddd %-30s %10s %s\n", "xxxxxxxxx PL Duplicate", p.State.GetFactomNodeName(), m.String())
 			toss("2")
 			return
 		}
@@ -602,12 +603,12 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 		if vm.List[ack.Height] != nil {
 			fmt.Println(p.String())
 			fmt.Println(p.PrintMap())
-			fmt.Printf("\t%12s %s %s\n", "OverWriting:", vm.List[ack.Height].String(), "with")
-			fmt.Printf("\t%12s %s\n", "with:", m.String())
-			fmt.Printf("\t%12s %s\n", "Detected on:", p.State.GetFactomNodeName())
-			fmt.Printf("\t%12s %s\n", "old ack", vm.ListAck[ack.Height].String())
-			fmt.Printf("\t%12s %s\n", "new ack", ack.String())
-			fmt.Printf("\t%12s %s\n", "VM Index", ack.VMIndex)
+			fmt.Printf("dddd\t%12s %s %s\n", "OverWriting:", vm.List[ack.Height].String(), "with")
+			fmt.Printf("dddd\t%12s %s\n", "with:", m.String())
+			fmt.Printf("dddd\t%12s %s\n", "Detected on:", p.State.GetFactomNodeName())
+			fmt.Printf("dddd\t%12s %s\n", "old ack", vm.ListAck[ack.Height].String())
+			fmt.Printf("dddd\t%12s %s\n", "new ack", ack.String())
+			fmt.Printf("dddd\t%12s %s\n", "VM Index", ack.VMIndex)
 			toss("3")
 			return
 		}
@@ -616,20 +617,12 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	// From this point on, we consider the transaction recorded.  If we detect it has already been
 	// recorded, then we still treat it as if we recorded it.
 
-	now := int64(p.State.GetTimestamp())
-
-	msgOk := p.State.InternalReplay.IsTSValid_(m.GetHash().Fixed(), int64(m.GetTimestamp()), now)
-
-	if !msgOk { // If we already have this message or acknowledgement recorded,
-		fmt.Println("****", p.State.FactomNodeName, m.String())
-		toss("4")
-		return // we don't have to do anything.  Just say we got it handled.
-	}
 
 	eom, ok := m.(*messages.EOM)
 	if ok {
 		if vm.Seal > 0 {
-			fmt.Println("dddd", p.State.FactomNodeName, "Sealing a sealed EOM")
+			fmt.Println("dddd EOM after Seal", p.State.FactomNodeName,m.String())
+			fmt.Println("dddd EOM after Seal", p.State.FactomNodeName,ack.String())
 			outOfOrder("eom")
 		}
 		if p.State.Leader && eom.IsLocal() {
@@ -642,6 +635,17 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 		vm.MinuteHeight = vm.Height
 	}
 
+	now := int64(p.State.GetTimestamp())
+
+	msgOk := p.State.InternalReplay.IsTSValid_(m.GetHash().Fixed(), int64(m.GetTimestamp()), now)
+
+	if !msgOk { // If we already have this message or acknowledgement recorded,
+		fmt.Println("dddd Msg Repeat", p.State.FactomNodeName, m.String())
+		fmt.Println("dddd Msg Repeat", p.State.FactomNodeName, ack.String())
+		toss("4")
+		return // we don't have to do anything.  Just say we got it handled.
+	}
+
 	p.State.NetworkOutMsgQueue() <- ack
 	p.State.NetworkOutMsgQueue() <- m
 	delete(p.State.Acks, ack.GetHash().Fixed())
@@ -649,7 +653,6 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 
 	m.SetLeaderChainID(ack.GetLeaderChainID())
 	m.SetMinute(ack.Minute)
-
 
 	// Both the ack and the message hash to the same GetHash()
 	m.SetLocal(false)
