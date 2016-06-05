@@ -392,6 +392,8 @@ func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) 
 
 	if as.ServerType == 0 {
 		s.LeaderPL.AdminBlock.AddFedServer(as.ServerChainID)
+	} else if as.ServerType == 1 {
+		s.LeaderPL.AdminBlock.AddAuditServer(as.ServerChainID)
 	}
 
 	return true

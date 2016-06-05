@@ -59,6 +59,7 @@ func SimControl(listenTo int) {
 				if listenTo >= 0 && listenTo < len(fnodes) {
 					wsapiNode = listenTo
 					wsapi.SetState(fnodes[wsapiNode].State)
+					os.Stderr.WriteString(fmt.Sprintf("--Listen to %s --\n", fnodes[wsapiNode].State.FactomNodeName))
 				}
 			case 's' == b[0]:
 				summary++
@@ -187,10 +188,17 @@ func SimControl(listenTo int) {
 				} else {
 					os.Stderr.WriteString("--Print Messages Off--\n")
 				}
-			case 'l' == b[0]:
-				msg := messages.NewAddServerMsg(fnodes[listenTo].State, 0)
+			case 'o' == b[0]: // Add Audit server and Add Leader fall through to 'n', switch to next node.
+				msg := messages.NewAddServerMsg(fnodes[listenTo].State, 1)
 				fnodes[listenTo].State.InMsgQueue() <- msg
-				os.Stderr.WriteString(fmt.Sprintln("Attempting to make", fnodes[listenTo].State.GetFactomNodeName(), "a Leader"))
+				os.Stderr.WriteString(fmt.Sprintln("Attempting to make", fnodes[listenTo].State.GetFactomNodeName(), "a Audit Server"))
+				fallthrough
+			case 'l' == b[0]: // Add Audit server and Add Leader fall through to 'n', switch to next node.
+				if b[0] == 'l' { // (Don't do anything if just passing along the audit server)
+					msg := messages.NewAddServerMsg(fnodes[listenTo].State, 0)
+					fnodes[listenTo].State.InMsgQueue() <- msg
+					os.Stderr.WriteString(fmt.Sprintln("Attempting to make", fnodes[listenTo].State.GetFactomNodeName(), "a Leader"))
+				}
 				fallthrough
 			case 'n' == b[0]:
 				fnodes[listenTo].State.SetOut(false)
