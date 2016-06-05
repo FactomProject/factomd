@@ -83,4 +83,8 @@ type IMsg interface {
 	SetVMHash([]byte)
 	GetMinute() byte
 	SetMinute(byte)
+
+	// Stall handling
+	IsStalled() bool
+	SetStall(bool)
 }

@@ -145,6 +145,10 @@ func (p *ProcessList) GetVirtualServers(minute int, identityChainID interfaces.I
 	if !found {
 		return false, -1
 	}
+	if !p.State.Green() && p.State.GetIdentityChainID().IsSameAs(identityChainID) {
+		return false, -1
+	}
+
 	for i, fedix := range p.ServerMap[minute] {
 		if i == len(p.FedServers) {
 			break
@@ -558,14 +562,22 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	toss := func(hint string) {
 		delete(p.State.Holding, ack.GetHash().Fixed())
 		delete(p.State.Acks, ack.GetHash().Fixed())
-		//fmt.Println("dddd", hint, p.State.FactomNodeName, "Toss", m.String())
-		//fmt.Println("dddd", hint, p.State.FactomNodeName, "Toss", ack.String())
+		fmt.Println("dddd", hint, p.State.FactomNodeName, "Toss", m.String())
+		fmt.Println("dddd", hint, p.State.FactomNodeName, "Toss", ack.String())
 	}
 
 	// If the message doesn't match the full hash of the ack, then it is no good.
 	// Get rid of the message, and let the request for messages get you the right one.
 	if !ack.GetFullMsgHash().IsSameAs(m.GetFullMsgHash()) {
 		delete(p.State.Holding, m.GetHash().Fixed())
+	}
+
+	now := int64(p.State.GetTimestamp() / 1000)
+
+	_, isnew := p.State.InternalReplay.Valid(m.GetHash().Fixed(), int64(m.GetTimestamp()/1000), now)
+	if !isnew {
+		toss("seen before")
+		return
 	}
 
 	vm := p.VMs[ack.VMIndex]
@@ -617,12 +629,11 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	// From this point on, we consider the transaction recorded.  If we detect it has already been
 	// recorded, then we still treat it as if we recorded it.
 
-
 	eom, ok := m.(*messages.EOM)
 	if ok {
 		if vm.Seal > 0 {
-			fmt.Println("dddd EOM after Seal", p.State.FactomNodeName,m.String())
-			fmt.Println("dddd EOM after Seal", p.State.FactomNodeName,ack.String())
+			fmt.Println("dddd EOM after Seal", p.State.FactomNodeName, m.String())
+			fmt.Println("dddd EOM after Seal", p.State.FactomNodeName, ack.String())
 			outOfOrder("eom")
 		}
 		if p.State.Leader && eom.IsLocal() {
@@ -635,9 +646,7 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 		vm.MinuteHeight = vm.Height
 	}
 
-	now := int64(p.State.GetTimestamp())
-
-	msgOk := p.State.InternalReplay.IsTSValid_(m.GetHash().Fixed(), int64(m.GetTimestamp()), now)
+	msgOk := p.State.InternalReplay.IsTSValid_(m.GetHash().Fixed(), int64(m.GetTimestamp()/1000), now)
 
 	if !msgOk { // If we already have this message or acknowledgement recorded,
 		fmt.Println("dddd Msg Repeat", p.State.FactomNodeName, m.String())

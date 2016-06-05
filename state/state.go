@@ -53,7 +53,7 @@ type State struct {
 	Replay                  *Replay
 	InternalReplay          *Replay
 	GreenFlg                bool
-	GreenCnt                int
+	GreenTimestamp          interfaces.Timestamp
 	DropRate                int
 
 	IdentityChainID interfaces.IHash // If this node has an identity, this is it
@@ -669,37 +669,69 @@ func (s *State) GetDirectoryBlockByHeight(height uint32) interfaces.IDirectoryBl
 func (s *State) UpdateState() (progress bool) {
 
 	process := func(a *messages.Ack) {
-		if a != nil {
-			s.Acks[a.GetHash().Fixed()] = a
-			m := s.Holding[a.GetHash().Fixed()]
-			if m != nil {
-				pl := s.ProcessLists.Get(a.DBHeight)
-				if pl != nil {
-					pl.AddToProcessList(a, m)
-				}
+		s.Acks[a.GetHash().Fixed()] = a
+		m := s.Holding[a.GetHash().Fixed()]
+		if m != nil {
+			pl := s.ProcessLists.Get(a.DBHeight)
+			if pl != nil {
+				pl.AddToProcessList(a, m)
 			}
 		}
 	}
 
 	// Look at all the other out of orders.  Note that if we kept this list sorted,
 	// this would be really efficent, and wouldn't require a loop.
-	for i := len(s.OutOfOrders) - 1; i >= 0; i-- {
-		a := s.GetOutOfOrder(i)
-		process(a)
+	end := len(s.OutOfOrders)
+	for i := 0; i < end; i++ {
+		a := s.GetOutOfOrder(0)
+		if a != nil {
+			fmt.Println("dddd Out of Order Processing", s.FactomNodeName, end, i, a.String())
+			process(a)
+		}
 	}
 	// Look at all the other out of orders.  Note that if we kept this list sorted,
 	// this would be really efficent, and wouldn't require a loop.
-	for i := len(s.StallAcks) - 1; i >= 0; i-- {
-		a := s.GetStalledAck(i)
-		process(a)
+	end = len(s.StallAcks)
+	for i := 0; i < end; i++ {
+		a := s.GetStalledAck(0)
+		if a != nil {
+			fmt.Println("dddd Stall Ack             ", s.FactomNodeName, end, i, a.String())
+			process(a)
+		}
 	}
 
 	// Look at all the other out of orders.  Note that if we kept this list sorted,
 	// this would be really efficent, and wouldn't require a loop.
+	end = len(s.Acks)
+	i := 0
 	for k := range s.Acks {
 		a, _ := s.Acks[k].(*messages.Ack)
-		process(a)
+		i++
+		if i >= end {
+			break
+		}
+		if a != nil {
+			process(a)
+		}
 	}
+
+	sort := func(msgs []*messages.Ack) {
+		for i := 0; i < len(msgs)-1; i++ {
+			for j := 0; j < len(msgs)-1-i; j++ {
+				dbht1 := msgs[j].DBHeight > msgs[j+1].DBHeight
+				dbht2 := msgs[j].DBHeight == msgs[j+1].DBHeight
+				ht := msgs[j].Height > msgs[j+1].Height
+				if dbht1 || (dbht2 && ht) {
+					hld := msgs[j]
+					msgs[j] = msgs[j+1]
+					msgs[j+1] = hld
+				}
+			}
+		}
+	}
+
+	sort(s.OutOfOrders)
+	sort(s.StallAcks)
 
 	dbheight := s.GetHighestRecordedBlock()
 	plbase := s.ProcessLists.DBHeightBase
@@ -840,6 +872,7 @@ func (s *State) SetIsDoneReplaying() {
 	s.ReplayTimestamp = 0
 }
 
+// Returns Milliseconds
 func (s *State) GetTimestamp() interfaces.Timestamp {
 	if s.IsReplaying == true {
 		return s.ReplayTimestamp
@@ -897,56 +930,71 @@ func (s *State) AckQueue() chan interfaces.IMsg {
 }
 
 func (s *State) StallAck(ack *messages.Ack) {
+	if ack.IsStalled() {
+		return
+	}
+	ack.SetStall(true)
 	s.StallAcks = append(s.StallAcks, ack)
 }
 
 // Get the ith message out of the stall queue.  Note getting i=0 makes
 // the stall queue into a FIFO, but other options are possible.
 func (s *State) GetStalledAck(i int) *messages.Ack {
-	if len(s.StallAcks) == 0 {
+	if len(s.StallAcks) == 0 || i >= len(s.StallAcks) {
 		return nil
 	}
-	m := s.StallAcks[0]
+	m := s.StallAcks[i]
 
 	copy(s.StallAcks[i:], s.StallAcks[i+1:])
 	s.StallAcks[len(s.StallAcks)-1] = nil
 	s.StallAcks = s.StallAcks[:len(s.StallAcks)-1]
+	m.SetStall(false)
 	return m
 }
 
 func (s *State) OutOfOrderAck(ack *messages.Ack) {
+	if ack.IsStalled() {
+		return
+	}
+	ack.SetStall(true)
 	s.OutOfOrders = append(s.OutOfOrders, ack)
 }
 
 // Get the ith message out of the stall queue.  Note getting i=0 makes
 // the stall queue into a FIFO, but other options are possible.
 func (s *State) GetOutOfOrder(i int) *messages.Ack {
-	if len(s.OutOfOrders) == 0 {
+	if len(s.OutOfOrders) == 0 || i >= len(s.OutOfOrders) {
 		return nil
 	}
-	m := s.OutOfOrders[0]
+	m := s.OutOfOrders[i]
 
 	copy(s.OutOfOrders[i:], s.OutOfOrders[i+1:])
 	s.OutOfOrders[len(s.OutOfOrders)-1] = nil
 	s.OutOfOrders = s.OutOfOrders[:len(s.OutOfOrders)-1]
+	m.SetStall(false)
 	return m
 }
 
 func (s *State) StallMsg(msg interfaces.IMsg) {
+	if msg.IsStalled() {
+		return
+	}
+	msg.SetStall(true)
 	s.StallMsgs = append(s.StallMsgs, msg)
 }
 
 // Get the ith message out of the stall queue.  Note getting i=0 makes
 // the stall queue into a FIFO, but other options are possible.
 func (s *State) GetStalledMsg(i int) interfaces.IMsg {
-	if len(s.StallMsgs) == 0 {
+	if len(s.StallMsgs) == 0 || i >= len(s.StallMsgs) {
 		return nil
 	}
-	m := s.StallMsgs[0]
+	m := s.StallMsgs[i]
 
 	copy(s.StallMsgs[i:], s.StallMsgs[i+1:])
 	s.StallMsgs[len(s.StallMsgs)-1] = nil
 	s.StallMsgs = s.StallMsgs[:len(s.StallMsgs)-1]
+	m.SetStall(false)
 	return m
 }
 
@@ -1051,14 +1099,18 @@ func (s *State) SetString() {
 
 	L := ""
 	X := ""
+	W := ""
 	if found {
 		L = "L"
 	}
 	if s.NetStateOff {
 		X = "X"
 	}
+	if !s.GreenFlg {
+		W = "W"
+	}
 
-	stype := fmt.Sprintf("%1s%1s", L, X)
+	stype := fmt.Sprintf("%1s%1s%1s", L, X, W)
 
 	keyMR := primitives.NewZeroHash().Bytes()
 	//abHash := []byte("aaaaa")
@@ -1078,7 +1130,7 @@ func (s *State) SetString() {
 		}
 	}
 
-	s.serverPrt = fmt.Sprintf("%8s[%6x]%4s Save:%4d[%6x] PL:%d/%d Min: %2v DBHT %v Min C/F %02v/%02v EOM %2v %3d-Fct %3d-EC %3d-E",
+	s.serverPrt = fmt.Sprintf("%8s[%6x]%4s Save: %d[%6x] PL:%d/%d Min: %2v DBHT %v Min C/F %02v/%02v EOM %2v %3d-Fct %3d-EC %3d-E",
 		s.FactomNodeName,
 		s.IdentityChainID.Bytes()[:3],
 		stype,

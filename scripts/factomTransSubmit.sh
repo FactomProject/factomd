@@ -2,7 +2,7 @@
 
 	echo "Transactions: "
 
-for i in `seq 1 1`;
+for i in `seq 1 10`;
 do
 	factom-cli newtransaction t
 	factom-cli addinput t b .000016
@@ -17,7 +17,7 @@ do
 	factom-cli sign t
 	factom-cli transactions
 	factom-cli submit t
-    sleep 4
-    scripts/factomEC.sh &
+	scripts/factomEC.sh &
+	sleep 10
 done
-sleep 3
+sleep 2

@@ -22,6 +22,15 @@ type MessageBase struct {
 	VMIndex       int              // The Index of the VM responsible for this message.
 	VMHash        []byte           // Basis for selecting a VMIndex
 	Minute        byte
+
+	Stalled bool // This message is currently stalled
+}
+
+func (m *MessageBase) IsStalled() bool {
+	return m.Stalled
+}
+func (m *MessageBase) SetStall(b bool) {
+	m.Stalled = b
 }
 
 func (m *MessageBase) GetFullMsgHash() interfaces.IHash {
