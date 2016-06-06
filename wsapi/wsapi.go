@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"os"
 	"strings"
 	"time"
 
@@ -16,6 +15,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/web"
+	"sync"
 )
 
 const (
@@ -23,9 +23,13 @@ const (
 )
 
 var Servers map[int]*web.Server
+var ServersMutex sync.Mutex
 
 func Start(state interfaces.IState) {
 	var server *web.Server
+
+	ServersMutex.Lock()
+	defer ServersMutex.Unlock()
 
 	if Servers == nil {
 		Servers = make(map[int]*web.Server)
@@ -64,35 +68,40 @@ func Start(state interfaces.IState) {
 
 func SetState(state interfaces.IState) {
 	wait := func() {
+		ServersMutex.Lock()
+		defer ServersMutex.Unlock()
+
 		for Servers == nil && Servers[state.GetPort()] != nil {
 			time.Sleep(10 * time.Millisecond)
 		}
 		Servers[state.GetPort()].Env["state"] = state
-		os.Stderr.WriteString("API now directed to " + state.GetFactomNodeName() + "\n")
 	}
 	go wait()
 }
 
 func Stop(state interfaces.IState) {
+	ServersMutex.Lock()
+	defer ServersMutex.Unlock()
+
 	Servers[state.GetPort()].Close()
 }
 
 func handleV1Error(ctx *web.Context, err *primitives.JSONError) {
 	/*
-	if err.Data != nil {
-		data, ok := err.Data.(string)
-		if ok == true {
-	ctx.WriteHeader(httpBad)
-			returnMsg(ctx, "", false)
-			return
+		if err.Data != nil {
+			data, ok := err.Data.(string)
+			if ok == true {
+		ctx.WriteHeader(httpBad)
+				returnMsg(ctx, "", false)
+				return
+			}
 		}
-	}
-	ctx.WriteHeader(httpBad)
-	returnMsg(ctx,"", false)
-	return
+		ctx.WriteHeader(httpBad)
+		returnMsg(ctx,"", false)
+		return
 	*/
 	ctx.WriteHeader(httpBad)
-	
+
 	return
 }
 
@@ -105,6 +114,9 @@ func returnV1(ctx *web.Context, jsonResp *primitives.JSON2Response, jsonError *p
 }
 
 func HandleCommitChain(ctx *web.Context) {
+	ServersMutex.Lock()
+	defer ServersMutex.Unlock()
+
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
 	type commitchain struct {
@@ -141,6 +153,9 @@ func HandleRevealChain(ctx *web.Context) {
 }
 
 func HandleCommitEntry(ctx *web.Context) {
+	ServersMutex.Lock()
+	defer ServersMutex.Unlock()
+
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
 	type commitentry struct {
@@ -174,8 +189,11 @@ func HandleCommitEntry(ctx *web.Context) {
 }
 
 func HandleRevealEntry(ctx *web.Context) {
-	fmt.Println("RevealEntry")
+	ServersMutex.Lock()
+
+	defer ServersMutex.Unlock()
 	state := ctx.Server.Env["state"].(interfaces.IState)
+
 	type revealentry struct {
 		Entry string
 	}
@@ -205,6 +223,9 @@ func HandleRevealEntry(ctx *web.Context) {
 }
 
 func HandleDirectoryBlockHead(ctx *web.Context) {
+	ServersMutex.Lock()
+	defer ServersMutex.Unlock()
+
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
 	req := primitives.NewJSON2Request("directory-block-head", 1, nil)
@@ -227,6 +248,9 @@ func HandleDirectoryBlockHead(ctx *web.Context) {
 }
 
 func HandleGetRaw(ctx *web.Context, hashkey string) {
+	ServersMutex.Lock()
+	defer ServersMutex.Unlock()
+
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
 	param := HashRequest{Hash: hashkey}
@@ -237,6 +261,9 @@ func HandleGetRaw(ctx *web.Context, hashkey string) {
 }
 
 func HandleGetReceipt(ctx *web.Context, hashkey string) {
+	ServersMutex.Lock()
+	defer ServersMutex.Unlock()
+
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
 	param := HashRequest{Hash: hashkey}
@@ -247,6 +274,9 @@ func HandleGetReceipt(ctx *web.Context, hashkey string) {
 }
 
 func HandleDirectoryBlock(ctx *web.Context, hashkey string) {
+	ServersMutex.Lock()
+	defer ServersMutex.Unlock()
+
 	state := ctx.Server.Env["state"].(interfaces.IState)
 	param := KeyMRRequest{KeyMR: hashkey}
 	req := primitives.NewJSON2Request("directory-block", 1, param)
@@ -285,6 +315,9 @@ func HandleDirectoryBlock(ctx *web.Context, hashkey string) {
 }
 
 func HandleDirectoryBlockHeight(ctx *web.Context) {
+	ServersMutex.Lock()
+	defer ServersMutex.Unlock()
+
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
 	req := primitives.NewJSON2Request("directory-block-height", 1, nil)
@@ -311,6 +344,9 @@ func HandleDirectoryBlockHeight(ctx *web.Context) {
 }
 
 func HandleEntryBlock(ctx *web.Context, hashkey string) {
+	ServersMutex.Lock()
+	defer ServersMutex.Unlock()
+
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
 	param := KeyMRRequest{KeyMR: hashkey}
@@ -345,6 +381,9 @@ func HandleEntryBlock(ctx *web.Context, hashkey string) {
 }
 
 func HandleEntry(ctx *web.Context, hashkey string) {
+	ServersMutex.Lock()
+	defer ServersMutex.Unlock()
+
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
 	param := HashRequest{Hash: hashkey}
@@ -365,6 +404,9 @@ func HandleEntry(ctx *web.Context, hashkey string) {
 }
 
 func HandleChainHead(ctx *web.Context, chainid string) {
+
+	ServersMutex.Lock()
+	defer ServersMutex.Unlock()
 
 	state := ctx.Server.Env["state"].(interfaces.IState)
 	param := ChainIDRequest{ChainID: chainid}
@@ -393,6 +435,9 @@ func HandleEntryCreditBalance(ctx *web.Context, address string) {
 		Success  bool
 	}
 
+	ServersMutex.Lock()
+	defer ServersMutex.Unlock()
+
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
 	param := AddressRequest{Address: address}
@@ -411,6 +456,9 @@ func HandleEntryCreditBalance(ctx *web.Context, address string) {
 }
 
 func HandleGetFee(ctx *web.Context) {
+	ServersMutex.Lock()
+	defer ServersMutex.Unlock()
+
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
 	req := primitives.NewJSON2Request("factoid-fee", 1, nil)
@@ -436,6 +484,9 @@ func HandleFactoidSubmit(ctx *web.Context) {
 
 	type transaction struct{ Transaction string }
 	t := new(transaction)
+
+	ServersMutex.Lock()
+	defer ServersMutex.Unlock()
 
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
@@ -471,6 +522,9 @@ func HandleFactoidBalance(ctx *web.Context, address string) {
 		Response string
 		Success  bool
 	}
+	ServersMutex.Lock()
+	defer ServersMutex.Unlock()
+
 	state := ctx.Server.Env["state"].(interfaces.IState)
 	param := AddressRequest{Address: address}
 	req := primitives.NewJSON2Request("factoid-balance", 1, param)
@@ -489,6 +543,9 @@ func HandleFactoidBalance(ctx *web.Context, address string) {
 }
 
 func HandleProperties(ctx *web.Context) {
+	ServersMutex.Lock()
+	defer ServersMutex.Unlock()
+
 	state := ctx.Server.Env["state"].(interfaces.IState)
 	fmt.Println("Connected to:", state.GetFactomNodeName())
 	req := primitives.NewJSON2Request("properties", 1, nil)

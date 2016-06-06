@@ -77,8 +77,9 @@ type CommandChangeLogging struct {
 // command channel.
 //////////////////////////////////////////////////////////////////////
 
-func (c *Controller) Init(port string, peersFile string) *Controller {
+func (c *Controller) Init(port string, peersFile string, network NetworkID) *Controller {
 	verbose("ctrlr", "Controller.Init(%s)", port)
+	silence("#################", "META:  M2-FRIDAY BRANCH")
 	c.keepRunning = true
 	c.commandChannel = make(chan interface{}, 1000) // Commands from App
 	c.FromNetwork = make(chan Parcel, 10000)        // Channel to the app for network data
@@ -91,6 +92,7 @@ func (c *Controller) Init(port string, peersFile string) *Controller {
 	NodeID = uint64(r.Int63()) // This is a global used by all connections
 	c.lastPeerManagement = time.Now()
 	c.lastPeerRequest = time.Now()
+	CurrentNetwork = network
 	return c
 }
 
@@ -102,10 +104,13 @@ func (c *Controller) StartNetwork(exclusive bool) {
 	// start listening on port given
 	c.listen()
 	// Get a list of peers from discovery
-	peers := c.discovery.GetStartupPeers()
-	// dial into the peers
-	for _, peer := range peers {
-		c.DialPeer(peer.Address)
+	// BUGBUG - in exclusivity we only dial the command line peers.
+	if !OnlySpecialPeers {
+		peers := c.discovery.GetOutgoingPeers()
+		// dial into the peers
+		for _, peer := range peers {
+			c.DialPeer(peer.Address)
+		}
 	}
 	c.lastStatusReport = time.Now()
 	// Start the runloop
@@ -184,6 +189,8 @@ func (c *Controller) acceptLoop(listener net.Listener) {
 		if nil != err {
 			logerror("ctrlr", "Controller.acceptLoop() Error: %+v", err)
 		} else {
+			// BUGBUG - this is the source of the hashmap concurrent access issue.
+			// Possibly change the AddPeer command to just take the conn and do the RemoteAddr on the other side!
 			address := conn.RemoteAddr().String()
 			peer := c.discovery.GetPeerByAddress(address)
 			connection := new(Connection).InitWithConn(conn, peer)
@@ -338,7 +345,7 @@ func (c *Controller) handleCommand(command interface{}) {
 	case CommandChangeLogging:
 		parameters := command.(CommandChangeLogging)
 		CurrentLoggingLevel = parameters.level
-		debug("ctrlr", "Controller.handleCommand(CommandChangeLogging) new logging level %s", LoggingLevels[parameters.level])
+		silence("ctrlr", "Controller.handleCommand(CommandChangeLogging) new logging level %s", LoggingLevels[parameters.level])
 	case CommandAdjustPeerQuality:
 		verbose("ctrlr", "handleCommand() Processing command: CommandDemerit")
 		parameters := command.(CommandAdjustPeerQuality)
@@ -365,10 +372,16 @@ func (c *Controller) managePeers() {
 	if PeerSaveInterval < managementDuration {
 		c.lastPeerManagement = time.Now()
 		debug("ctrlr", "managePeers() time since last peer management: %s", managementDuration.String())
-		// If we are low on peers, attempt to connect to some more.
-		if NumberPeersToConnect > len(c.connections) {
+		// If we are low on outgoing connections, attempt to connect to some more.
+		outgoing := 0
+		for _, connection := range c.connections {
+			if connection.IsOutGoing() {
+				outgoing++
+			}
+		}
+		if NumberPeersToConnect > outgoing {
 			// Get list of peers ordered by quality from discovery
-			peers := c.discovery.GetStartupPeers()
+			peers := c.discovery.GetOutgoingPeers()
 			// For each one, if we don't already have a connection, create command message.
 			for _, peer := range peers {
 				_, present := c.connections[peer.Hash]

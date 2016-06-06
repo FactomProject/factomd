@@ -3,16 +3,19 @@ package state
 import (
 	"fmt"
 
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
+	"github.com/FactomProject/factomd/database/databaseOverlay"
 	//"github.com/FactomProject/factomd/common/factoid"
 	"bytes"
 	"log"
+
+	"time"
 
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
-	"time"
 )
 
 var _ = fmt.Print
@@ -31,6 +34,9 @@ type ProcessList struct {
 	VMs       []*VM       // Process list for each server (up to 32)
 	ServerMap [10][64]int // Map of FedServers to all Servers for each minute
 
+	diffSigTally int /*     Tally of how many VMs have provided different
+		                    Directory Block Signatures than what we have
+	                        (discard DBlock if > 1/2 have sig differences) */
 	// Maps
 	// ====
 	OldMsgs map[[32]byte]interfaces.IMsg // messages processed in this list
@@ -236,6 +242,7 @@ func (p *ProcessList) MinuteComplete() int {
 		for _, msg := range p.VMs[i].List {
 			if eom, ok := msg.(*messages.EOM); ok {
 				mm = int(eom.Minute + 1)
+				p.VMs[i].MinuteComplete = mm
 			}
 		}
 		if m > mm {
@@ -250,20 +257,22 @@ func (p *ProcessList) MinuteComplete() int {
 func (p *ProcessList) MinuteFinished() int {
 	m := 10
 	for i := 0; i < len(p.FedServers); i++ {
-		vm := p.VMs[i]
-		for i, v := range p.VMs[i].List {
-			if v == nil && i <= vm.MinuteHeight {
-				m = vm.MinuteFinished - 1
-				if m < 0 {
-					m = 0
-				}
+		mm := 0
+		for j, msg := range p.VMs[i].List {
+			if j == p.VMs[i].Height {
+				break
+			}
+			if eom, ok := msg.(*messages.EOM); ok {
+				mm = int(eom.Minute + 1)
+				p.VMs[i].MinuteFinished = mm
 			}
 		}
-		if vm.MinuteFinished < m {
-			m = vm.MinuteFinished
+		if m > mm {
+			m = mm
 		}
 	}
 	return m
+
 }
 
 // Add the given serverChain to this processlist as a Federated Server, and return
@@ -412,6 +421,10 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 		p.good = true
 	}
 	for i := 0; i < len(p.FedServers); i++ {
+		// Just in case, set p.diffSigTally to 0 when initiating pass-through
+		if i == 0 {
+			p.diffSigTally = 0
+		}
 		vm := p.VMs[i]
 
 		plist := vm.List
@@ -421,6 +434,24 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			if plist[j] == nil {
 				vm.missingTime = ask(vm, vm.missingTime, j)
 				break
+			}
+
+			// When processing DirectoryBlockSignatures, we check to see if the signed block
+			// matches our own saved block. If the majority of VMs' signatures do not match
+			// our saved block, we discard that block from our database.
+			if plist[j].Type() == constants.DIRECTORY_BLOCK_SIGNATURE_MSG {
+				dbs := plist[j].(*messages.DirectoryBlockSignature)
+				myDBlock := state.GetDirectoryBlockByHeight(dbs.DBHeight - 1)
+				myDBlock.GetHeader().SetTimestamp(p.GetLeaderTimestamp())
+				if !dbs.DirectoryBlockKeyMR.IsSameAs(state.ProcessLists.Lists[0].DirectoryBlock.GetKeyMR()) {
+					p.diffSigTally++
+					if p.diffSigTally > 0 && p.diffSigTally > (len(p.FedServers)/2) {
+						state.DB.Delete([]byte{byte(databaseOverlay.DIRECTORYBLOCK)}, state.ProcessLists.Lists[0].DirectoryBlock.GetKeyMR().Bytes())
+					}
+				}
+				if i >= len(p.FedServers) {
+					p.diffSigTally = 0
+				}
 			}
 
 			if p.Sealing && vm.Seal == 0 {
@@ -479,6 +510,16 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 	return
 }
 
+func (p *ProcessList) GetLeaderTimestamp() uint32 {
+	for _, msg := range p.VMs[0].List {
+		if msg.Type() == constants.DIRECTORY_BLOCK_SIGNATURE_MSG {
+			ts := msg.GetTimestamp()
+			return uint32(ts.GetTime().Unix())
+		}
+	}
+	return 0
+}
+
 // Check to assure that the given VM has been completely processed
 func (p *ProcessList) GoodTo(vmIndex int) bool {
 	if vmIndex < 0 {
@@ -499,29 +540,37 @@ func (p *ProcessList) GoodTo(vmIndex int) bool {
 func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 
 	stall := func(hint string) {
-		p.State.StallMsg(ack)
+		p.State.StallAck(ack)
 		p.State.Holding[m.GetHash().Fixed()] = m
 		delete(p.State.Acks, ack.GetHash().Fixed())
-		fmt.Println("dddd",hint, p.State.FactomNodeName, "Stall",m.String())
-		fmt.Println("dddd",hint, p.State.FactomNodeName, "Stall",ack.String())
+		//fmt.Println("dddd", hint, p.State.FactomNodeName, "Stall", m.String())
+		//fmt.Println("dddd", hint, p.State.FactomNodeName, "Stall", ack.String())
+	}
+
+	outOfOrder := func(hint string) {
+		p.State.OutOfOrderAck(ack)
+		p.State.Holding[m.GetHash().Fixed()] = m
+		delete(p.State.Acks, ack.GetHash().Fixed())
+		//fmt.Println("dddd", hint, p.State.FactomNodeName, "OutOfOrder", m.String())
+		//fmt.Println("dddd", hint, p.State.FactomNodeName, "OutOfOrder", ack.String())
 	}
 
 	toss := func(hint string) {
 		delete(p.State.Holding, ack.GetHash().Fixed())
 		delete(p.State.Acks, ack.GetHash().Fixed())
-		fmt.Println("dddd",hint, p.State.FactomNodeName, "Toss",m.String())
-		fmt.Println("dddd",hint, p.State.FactomNodeName, "Toss",ack.String())
+		//fmt.Println("dddd", hint, p.State.FactomNodeName, "Toss", m.String())
+		//fmt.Println("dddd", hint, p.State.FactomNodeName, "Toss", ack.String())
 	}
 
 	vm := p.VMs[ack.VMIndex]
 
 	if ack.DBHeight > p.DBHeight {
-		stall("a")
+		panic(fmt.Sprintf("Ack is wrong height.  Expected: %d Ack: %s", p.DBHeight, ack.String()))
 		return
 	}
 
 	if ack.DBHeight < p.DBHeight {
-		toss("1")
+		panic(fmt.Sprintf("Ack is wrong height.  Expected: %d Ack: %s", p.DBHeight, ack.String()))
 		return
 	}
 
@@ -532,12 +581,12 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	}
 
 	if len(vm.List) > vm.Height {
-		stall("c")
+		outOfOrder("c")
 		return
 	}
 
 	if int(ack.Height) > vm.Height {
-		stall("d")
+		outOfOrder("d")
 		return
 	}
 
@@ -572,21 +621,17 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	msgOk := p.State.InternalReplay.IsTSValid_(m.GetHash().Fixed(), int64(m.GetTimestamp()), now)
 
 	if !msgOk { // If we already have this message or acknowledgement recorded,
-		fmt.Println("****", p.State.FactomNodeName,m.String())
+		fmt.Println("****", p.State.FactomNodeName, m.String())
 		toss("4")
 		return // we don't have to do anything.  Just say we got it handled.
 	}
 
-	p.State.NetworkOutMsgQueue() <- ack
-	p.State.NetworkOutMsgQueue() <- m
-	delete(p.State.Acks, ack.GetHash().Fixed())
-	delete(p.State.Holding, m.GetHash().Fixed())
-
-	m.SetLeaderChainID(ack.GetLeaderChainID())
-	m.SetMinute(ack.Minute)
-
 	eom, ok := m.(*messages.EOM)
 	if ok {
+		if vm.Seal > 0 {
+			fmt.Println("dddd", p.State.FactomNodeName, "Sealing a sealed EOM")
+			outOfOrder("eom")
+		}
 		if p.State.Leader && eom.IsLocal() {
 			p.State.EOM = int(eom.Minute + 1)
 		}
@@ -596,6 +641,14 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 		vm.MinuteComplete = int(eom.Minute + 1)
 		vm.MinuteHeight = vm.Height
 	}
+
+	p.State.NetworkOutMsgQueue() <- ack
+	p.State.NetworkOutMsgQueue() <- m
+	delete(p.State.Acks, ack.GetHash().Fixed())
+	delete(p.State.Holding, m.GetHash().Fixed())
+
+	m.SetLeaderChainID(ack.GetLeaderChainID())
+	m.SetMinute(ack.Minute)
 
 	// Both the ack and the message hash to the same GetHash()
 	m.SetLocal(false)
