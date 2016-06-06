@@ -160,7 +160,7 @@ func InvalidOutputs(fnode *FactomNode) {
 	for {
 		time.Sleep(1 * time.Millisecond)
 		invalidMsg := <-fnode.State.NetworkInvalidMsgQueue()
-		fmt.Println(invalidMsg)
+		//fmt.Println(invalidMsg)
 		if len(invalidMsg.GetNetworkOrigin()) > 0 {
 			network.AdjustPeerQuality(invalidMsg.GetNetworkOrigin(), -1)
 		}
