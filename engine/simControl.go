@@ -14,6 +14,7 @@ import (
 
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/wsapi"
+	"math/rand"
 )
 
 var _ = fmt.Print
@@ -21,10 +22,10 @@ var _ = fmt.Print
 func SimControl(listenTo int) {
 
 	var _ = time.Sleep
-	var summary bool
-	var watchPL bool
-	var watchMessages bool
-	var rotate bool
+	var summary int
+	var watchPL int
+	var watchMessages int
+	var rotate int
 	var wsapiNode int
 
 	for {
@@ -58,28 +59,29 @@ func SimControl(listenTo int) {
 				if listenTo >= 0 && listenTo < len(fnodes) {
 					wsapiNode = listenTo
 					wsapi.SetState(fnodes[wsapiNode].State)
+					os.Stderr.WriteString(fmt.Sprintf("--Listen to %s --\n", fnodes[wsapiNode].State.FactomNodeName))
 				}
 			case 's' == b[0]:
-				summary = !summary
-				if summary {
+				summary++
+				if summary%2 == 1 {
 					os.Stderr.WriteString("--Print Summary On--\n")
-					go printSummary(&summary, &listenTo)
+					go printSummary(&summary, summary, &listenTo)
 				} else {
 					os.Stderr.WriteString("--Print Summary Off--\n")
 				}
 			case 'p' == b[0]:
-				watchPL = !watchPL
-				if watchPL {
+				watchPL++
+				if watchPL%2 == 1 {
 					os.Stderr.WriteString("--Print Process Lists On--\n")
-					go printProcessList(&watchPL, &listenTo)
+					go printProcessList(&watchPL, watchPL, &listenTo)
 				} else {
 					os.Stderr.WriteString("--Print Process Lists Off--\n")
 				}
 			case 'r' == b[0]:
-				rotate = !rotate
-				if rotate {
+				rotate++
+				if rotate%2 == 1 {
 					os.Stderr.WriteString("--Rotate the WSAPI around the nodes--\n")
-					go rotateWSAPI(&rotate)
+					go rotateWSAPI(&rotate, rotate)
 				} else {
 					os.Stderr.WriteString("--Stop Rotation of the WSAPI around the nodes.  Now --\n")
 					wsapi.SetState(fnodes[wsapiNode].State)
@@ -179,17 +181,24 @@ func SimControl(listenTo int) {
 				}
 
 			case 'm' == b[0]:
-				watchMessages = !watchMessages
-				if watchMessages {
+				watchMessages++
+				if watchMessages%2 == 1 {
 					os.Stderr.WriteString("--Print Messages On--\n")
-					go printMessages(&watchMessages, &listenTo)
+					go printMessages(&watchMessages, watchMessages, &listenTo)
 				} else {
 					os.Stderr.WriteString("--Print Messages Off--\n")
 				}
-			case 'l' == b[0]:
-				msg := messages.NewAddServerMsg(fnodes[listenTo].State, 0)
+			case 'o' == b[0]: // Add Audit server and Add Leader fall through to 'n', switch to next node.
+				msg := messages.NewAddServerMsg(fnodes[listenTo].State, 1)
 				fnodes[listenTo].State.InMsgQueue() <- msg
-				os.Stderr.WriteString(fmt.Sprintln("Attempting to make", fnodes[listenTo].State.GetFactomNodeName(), "a Leader"))
+				os.Stderr.WriteString(fmt.Sprintln("Attempting to make", fnodes[listenTo].State.GetFactomNodeName(), "a Audit Server"))
+				fallthrough
+			case 'l' == b[0]: // Add Audit server and Add Leader fall through to 'n', switch to next node.
+				if b[0] == 'l' { // (Don't do anything if just passing along the audit server)
+					msg := messages.NewAddServerMsg(fnodes[listenTo].State, 0)
+					fnodes[listenTo].State.InMsgQueue() <- msg
+					os.Stderr.WriteString(fmt.Sprintln("Attempting to make", fnodes[listenTo].State.GetFactomNodeName(), "a Leader"))
+				}
 				fallthrough
 			case 'n' == b[0]:
 				fnodes[listenTo].State.SetOut(false)
@@ -238,152 +247,158 @@ func SimControl(listenTo int) {
 
 // Allows us to scatter transactions across all nodes.
 //
-func rotateWSAPI(rotate *bool) {
-	for *rotate { // Only if true
-		for _, fnode := range fnodes {
-			if *rotate { // Only if true
-				// Swap entry points once per second.
-				wsapi.SetState(fnode.State)
-				os.Stderr.WriteString("\rAPI now directed to " + fnode.State.GetFactomNodeName() + "   ")
-				time.Sleep(time.Second)
-			}
-		}
+func rotateWSAPI(rotate *int, value int) {
+	for *rotate == value { // Only if true
+		fnode := fnodes[rand.Int()%len(fnodes)]
+
+		wsapi.SetState(fnode.State)
+		os.Stderr.WriteString("\rAPI now directed to " + fnode.State.GetFactomNodeName() + "   ")
+
+		time.Sleep(3 * time.Second)
 	}
 }
 
-func printSummary(summary *bool, listenTo *int) {
+func printSummary(summary *int, value int, listenTo *int) {
 	out := ""
-	for {
-		if *summary {
-			prt := "===SummaryStart===\n"
-			for _, f := range fnodes {
-				f.State.Status = true
-			}
-			time.Sleep(100 * time.Millisecond)
-			for _, f := range fnodes {
-				prt = prt + fmt.Sprintf("%8s %s \n", f.State.FactomNodeName, f.State.ShortString())
-			}
-
-			if *listenTo >= 0 && *listenTo < len(fnodes) {
-				var list string
-				list = ""
-				for i, _ := range fnodes {
-					list = list + fmt.Sprintf(" %2d ", i)
-				}
-				prt = prt + fmt.Sprintf("      %6s            %6s%s\n", "Queues", "Nodes:", list)
-				list = ""
-				for _, f := range fnodes {
-					list = list + fmt.Sprintf(" %3d", len(f.State.XReview))
-				}
-				prt = prt + fmt.Sprintf("      Review                 %s\n", list)
-				list = ""
-				for _, f := range fnodes {
-					list = list + fmt.Sprintf(" %3d", len(f.State.Holding))
-				}
-				prt = prt + fmt.Sprintf("      Holding                %s\n", list)
-				list = ""
-				for _, f := range fnodes {
-					list = list + fmt.Sprintf(" %3d", len(f.State.Acks))
-				}
-				prt = prt + fmt.Sprintf("      Acks                   %s\n", list)
-				list = ""
-				for _, f := range fnodes {
-					list = list + fmt.Sprintf(" %3d", len(f.State.MsgQueue()))
-				}
-				prt = prt + fmt.Sprintf("      MsgQueue               %s\n", list)
-				list = ""
-				for _, f := range fnodes {
-					list = list + fmt.Sprintf(" %3d", len(f.State.InMsgQueue()))
-				}
-				prt = prt + fmt.Sprintf("      InMsgQueue             %s\n", list)
-				list = ""
-				for _, f := range fnodes {
-					list = list + fmt.Sprintf(" %3d", len(f.State.APIQueue()))
-				}
-				prt = prt + fmt.Sprintf("      APIQueue               %s\n", list)
-				list = ""
-				for _, f := range fnodes {
-					list = list + fmt.Sprintf(" %3d", len(f.State.AckQueue()))
-				}
-				prt = prt + fmt.Sprintf("      AckQueue               %s\n", list)
-				list = ""
-				for _, f := range fnodes {
-					list = list + fmt.Sprintf(" %3d", len(f.State.StallAcks))
-				}
-				prt = prt + fmt.Sprintf("      stall acks             %s\n", list)
-				list = ""
-				for _, f := range fnodes {
-					list = list + fmt.Sprintf(" %3d", len(f.State.StallMsgs))
-				}
-				prt = prt + fmt.Sprintf("      stall msgs             %s\n", list)
-				list = ""
-				for _, f := range fnodes {
-					list = list + fmt.Sprintf(" %3d", len(f.State.OutOfOrders))
-				}
-				prt = prt + fmt.Sprintf("      Out of Order           %s\n", list)
-				list = ""
-				for _, f := range fnodes {
-					list = list + fmt.Sprintf(" %3d", len(f.State.TimerMsgQueue()))
-				}
-				prt = prt + fmt.Sprintf("      TimerMsgQueue          %s\n", list)
-				list = ""
-				for _, f := range fnodes {
-					list = list + fmt.Sprintf(" %3d", len(f.State.NetworkOutMsgQueue()))
-				}
-				prt = prt + fmt.Sprintf("      NetworkOutMsgQueue     %s\n", list)
-				list = ""
-				for _, f := range fnodes {
-					list = list + fmt.Sprintf(" %3d", len(f.State.NetworkInvalidMsgQueue()))
-				}
-				prt = prt + fmt.Sprintf("      NetworkInvalidMsgQueue %s\n\n", list)
-
-			}
-			prt = prt + "===SummaryEnd===\n"
-
-			if prt != out {
-				fmt.Println(prt)
-				out = prt
-			}
-		} else {
-			return
-		}
-		time.Sleep(time.Second * 2)
+	if *listenTo < 0 || *listenTo >= len(fnodes) {
+		return
 	}
-}
 
-func printProcessList(watchPL *bool, listenTo *int) {
-	out := ""
-	for {
-		if *watchPL {
-			fnode := fnodes[*listenTo]
-			nprt := fnode.State.DBStates.String()
-			b := fnode.State.GetHighestRecordedBlock()
-			nprt = nprt + fnode.State.ProcessLists.String()
-			pl := fnode.State.ProcessLists.Get(b)
-			nprt = nprt + pl.PrintMap()
-
-			if out != nprt {
-				fmt.Println(nprt)
-				out = nprt
-			}
-
-		} else {
-			return
+	for *summary == value {
+		prt := "===SummaryStart===\n"
+		for _, f := range fnodes {
+			f.State.Status = true
 		}
+
+		time.Sleep(time.Second)
+
+		for _, f := range fnodes {
+			prt = prt + fmt.Sprintf("%s \n", f.State.ShortString())
+		}
+
+		fmtstr := "%22s%s\n"
+
+		var list string
+
+		prt = prt + "\n"
+
+		list = ""
+		for i, _ := range fnodes {
+			list = list + fmt.Sprintf(" %3d", i)
+		}
+		prt = prt + fmt.Sprintf(fmtstr, "", list)
+		prt = prt + "\n"
+		list = ""
+		for _, f := range fnodes {
+			list = list + fmt.Sprintf(" %3d", len(f.State.XReview))
+		}
+		prt = prt + fmt.Sprintf(fmtstr, "Review", list)
+		list = ""
+		for _, f := range fnodes {
+			list = list + fmt.Sprintf(" %3d", len(f.State.Holding))
+		}
+		prt = prt + fmt.Sprintf(fmtstr, "Holding", list)
+		list = ""
+		for _, f := range fnodes {
+			list = list + fmt.Sprintf(" %3d", len(f.State.Acks))
+		}
+		prt = prt + fmt.Sprintf(fmtstr, "Acks", list)
+
+		prt = prt + "\n"
+
+		list = ""
+		for _, f := range fnodes {
+			list = list + fmt.Sprintf(" %3d", len(f.State.MsgQueue()))
+		}
+		prt = prt + fmt.Sprintf(fmtstr, "MsgQueue", list)
+		list = ""
+		for _, f := range fnodes {
+			list = list + fmt.Sprintf(" %3d", len(f.State.InMsgQueue()))
+		}
+		prt = prt + fmt.Sprintf(fmtstr, "InMsgQueue", list)
+		list = ""
+		for _, f := range fnodes {
+			list = list + fmt.Sprintf(" %3d", len(f.State.APIQueue()))
+		}
+		prt = prt + fmt.Sprintf(fmtstr, "APIQueue", list)
+		list = ""
+		for _, f := range fnodes {
+			list = list + fmt.Sprintf(" %3d", len(f.State.AckQueue()))
+		}
+		prt = prt + fmt.Sprintf(fmtstr, "AckQueue", list)
+
+		prt = prt + "\n"
+
+		list = ""
+		for _, f := range fnodes {
+			list = list + fmt.Sprintf(" %3d", len(f.State.StallAcks))
+		}
+		prt = prt + fmt.Sprintf(fmtstr, "stall acks", list)
+		list = ""
+		for _, f := range fnodes {
+			list = list + fmt.Sprintf(" %3d", len(f.State.StallMsgs))
+		}
+		prt = prt + fmt.Sprintf(fmtstr, "stall msgs", list)
+		list = ""
+		for _, f := range fnodes {
+			list = list + fmt.Sprintf(" %3d", len(f.State.OutOfOrders))
+		}
+		prt = prt + fmt.Sprintf(fmtstr, "Out of Order", list)
+		list = ""
+
+		prt = prt + "\n"
+
+		for _, f := range fnodes {
+			list = list + fmt.Sprintf(" %3d", len(f.State.TimerMsgQueue()))
+		}
+		prt = prt + fmt.Sprintf(fmtstr, "TimerMsgQueue", list)
+		list = ""
+		for _, f := range fnodes {
+			list = list + fmt.Sprintf(" %3d", len(f.State.NetworkOutMsgQueue()))
+		}
+		prt = prt + fmt.Sprintf(fmtstr, "NetworkOutMsgQueue", list)
+		list = ""
+		for _, f := range fnodes {
+			list = list + fmt.Sprintf(" %3d", len(f.State.NetworkInvalidMsgQueue()))
+		}
+		prt = prt + fmt.Sprintf(fmtstr, "NetworkInvalidMsgQueue", list)
+
+		prt = prt + "===SummaryEnd===\n"
+
+		if prt != out {
+			fmt.Println(prt)
+			out = prt
+		}
+
 		time.Sleep(time.Second)
 	}
 }
 
-func printMessages(Messages *bool, listenTo *int) {
-	fmt.Println("Printing Messages")
-	for {
-		if *Messages {
-			fnode := fnodes[*listenTo]
-			fnode.MLog.PrtMsgs(fnode.State)
-		} else {
-			fmt.Println("Done Printing Messages!")
-			return
+func printProcessList(watchPL *int, value int, listenTo *int) {
+	out := ""
+	for *watchPL == value {
+		fnode := fnodes[*listenTo]
+		nprt := fnode.State.DBStates.String()
+		b := fnode.State.GetHighestRecordedBlock()
+		nprt = nprt + fnode.State.ProcessLists.String()
+		pl := fnode.State.ProcessLists.Get(b)
+		nprt = nprt + pl.PrintMap()
+
+		if out != nprt {
+			fmt.Println(nprt)
+			out = nprt
 		}
+
+		time.Sleep(time.Second * 5)
+	}
+}
+
+func printMessages(Messages *int, value int, listenTo *int) {
+	fmt.Println("Printing Messages")
+	for *Messages == value {
+		fnode := fnodes[*listenTo]
+		fnode.MLog.PrtMsgs(fnode.State)
+
 		time.Sleep(2 * time.Second)
 	}
 }

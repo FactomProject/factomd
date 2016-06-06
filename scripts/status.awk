@@ -7,8 +7,6 @@
         print out1[i]
     }
     c1=0
-    on1=0
-    on2=0
 }
 
 /===PrintMapEnd===/ {

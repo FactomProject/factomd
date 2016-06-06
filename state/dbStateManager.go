@@ -43,7 +43,7 @@ type DBStateList struct {
 	DBStates            []*DBState
 }
 
-const SecondsBetweenTests = 3 // Default
+const SecondsBetweenTests = 1 // Default
 
 func (list *DBStateList) String() string {
 	str := "\nDBStates\n"
@@ -158,8 +158,10 @@ func (list *DBStateList) Catchup() {
 	msg := messages.NewDBStateMissing(list.State, uint32(begin), uint32(end2))
 
 	if msg != nil {
+		list.State.ProcessLists = NewProcessLists(list.State)
+		list.State.EOM = 0
+		list.State.GreenFlg = false
 		list.State.NetworkOutMsgQueue() <- msg
-		list.State.NewMinute()
 	}
 
 }
