@@ -245,7 +245,7 @@ func (c *Controller) runloop() {
 		}
 	}
 	note("ctrlr", "Controller.runloop() has exited. Shutdown command recieved?")
-	silence("ctrlr", "runloop() - Final network statistics: TotalMessagesRecieved: %d TotalMessagesSent: %d", TotalMessagesRecieved, TotalMessagesSent)
+	significant("ctrlr", "runloop() - Final network statistics: TotalMessagesRecieved: %d TotalMessagesSent: %d", TotalMessagesRecieved, TotalMessagesSent)
 }
 
 // Route pulls all of the messages from the application and sends them to the appropriate
@@ -273,7 +273,7 @@ func (c *Controller) route() {
 	}
 	// For each message, see if it is directed, if so, send to the
 	// specific peer, otherwise, broadcast.
-	// silence("ctrlr", "Controller.route() size of ToNetwork channel: %d", len(c.ToNetwork))
+	// significant("ctrlr", "Controller.route() size of ToNetwork channel: %d", len(c.ToNetwork))
 	for 0 < len(c.ToNetwork) { // effectively "While there are messages"
 		parcel := <-c.ToNetwork
 		TotalMessagesSent++
@@ -359,7 +359,7 @@ func (c *Controller) handleCommand(command interface{}) {
 	case CommandChangeLogging:
 		parameters := command.(CommandChangeLogging)
 		CurrentLoggingLevel = parameters.level
-		silence("ctrlr", "Controller.handleCommand(CommandChangeLogging) new logging level %s", LoggingLevels[parameters.level])
+		significant("ctrlr", "Controller.handleCommand(CommandChangeLogging) new logging level %s", LoggingLevels[parameters.level])
 	case CommandAdjustPeerQuality:
 		verbose("ctrlr", "handleCommand() Processing command: CommandDemerit")
 		parameters := command.(CommandAdjustPeerQuality)

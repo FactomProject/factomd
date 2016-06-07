@@ -199,11 +199,11 @@ func (c *Connection) dial() bool {
 	// conn, err := net.Dial("tcp", c.peer.Address)
 	conn, err := net.DialTimeout("tcp", address, time.Second*10)
 	if err != nil {
-		silence(c.peer.Hash, "Connection.dial(%s) got error: %+v", address, err)
+		significant(c.peer.Hash, "Connection.dial(%s) got error: %+v", address, err)
 		return false
 	}
 	c.conn = conn
-	silence(c.peer.Hash, "Connection.dial(%s) was successful.", address)
+	significant(c.peer.Hash, "Connection.dial(%s) was successful.", address)
 	return true
 }
 
@@ -335,7 +335,7 @@ func (c *Connection) handleNetErrors(err error) {
 	case io.EOF == err, io.ErrClosedPipe == err: // Remote hung up
 		c.goOffline()
 	default:
-		silence(c.peer.Hash, "Connection.handleNetErrors() got unhandled coding error: %+v", err)
+		significant(c.peer.Hash, "Connection.handleNetErrors() got unhandled coding error: %+v", err)
 		c.goOffline()
 	}
 
@@ -382,19 +382,19 @@ func (c *Connection) parcelValidity(parcel Parcel) uint8 {
 	crc := crc32.Checksum(parcel.Payload, CRCKoopmanTable)
 	switch {
 	case parcel.Header.NodeID == NodeID: // We are talking to ourselves!
-		logerror(c.peer.Hash, "Connection.isValidParcel(), failed due to loopback!: %+v", parcel.Header)
+		significant(c.peer.Hash, "Connection.isValidParcel(), failed due to loopback!: %+v", parcel.Header)
 		return InvalidDisconnectPeer
 	case parcel.Header.Network != CurrentNetwork:
-		logerror(c.peer.Hash, "Connection.isValidParcel(), failed due to wrong network: %+v", parcel.Header)
+		significant(c.peer.Hash, "Connection.isValidParcel(), failed due to wrong network. Remote: %0x Us: %0x", parcel.Header.Network, CurrentNetwork)
 		return InvalidDisconnectPeer
 	case parcel.Header.Version < ProtocolVersionMinimum:
-		logerror(c.peer.Hash, "Connection.isValidParcel(), failed due to wrong version: %+v", parcel.Header)
+		significant(c.peer.Hash, "Connection.isValidParcel(), failed due to wrong version: %+v", parcel.Header)
 		return InvalidDisconnectPeer
 	case parcel.Header.Length != uint32(len(parcel.Payload)):
-		logerror(c.peer.Hash, "Connection.isValidParcel(), failed due to wrong length: %+v", parcel.Header)
+		significant(c.peer.Hash, "Connection.isValidParcel(), failed due to wrong length: %+v", parcel.Header)
 		return InvalidPeerDemerit
 	case parcel.Header.Crc32 != crc:
-		logerror(c.peer.Hash, "Connection.isValidParcel(), failed due to bad checksum: %+v", parcel.Header)
+		significant(c.peer.Hash, "Connection.isValidParcel(), failed due to bad checksum: %+v", parcel.Header)
 		return InvalidPeerDemerit
 	default:
 		return ParcelValid
@@ -404,7 +404,7 @@ func (c *Connection) parcelValidity(parcel Parcel) uint8 {
 func (c *Connection) handleParcelTypes(parcel Parcel) {
 	switch parcel.Header.Type {
 	case TypeAlert:
-		silence(c.peer.Hash, "!!!!!!!!!!!!!!!!!! Alert: TODO Alert signature checking not supported yet! BUGBUG")
+		significant(c.peer.Hash, "!!!!!!!!!!!!!!!!!! Alert: TODO Alert signature checking not supported yet! BUGBUG")
 	case TypePing:
 		// Send Pong
 		pong := NewParcel(CurrentNetwork, []byte("Pong"))
@@ -429,7 +429,7 @@ func (c *Connection) handleParcelTypes(parcel Parcel) {
 		c.ReceiveChannel <- ConnectionParcel{parcel: parcel}
 	default:
 
-		silence(c.peer.Hash, "!!!!!!!!!!!!!!!!!! Got message of unknown type?")
+		significant(c.peer.Hash, "!!!!!!!!!!!!!!!!!! Got message of unknown type?")
 		parcel.Print()
 	}
 }
