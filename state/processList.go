@@ -547,15 +547,15 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 		p.State.OutOfOrderAck(ack)
 		p.State.Holding[m.GetHash().Fixed()] = m
 		delete(p.State.Acks, ack.GetHash().Fixed())
-		fmt.Println("dddd", hint, p.State.FactomNodeName, "OutOfOrder", m.String())
-		fmt.Println("dddd", hint, p.State.FactomNodeName, "OutOfOrder", ack.String())
+		// fmt.Println("dddd", hint, p.State.FactomNodeName, "OutOfOrder", m.String())
+		// fmt.Println("dddd", hint, p.State.FactomNodeName, "OutOfOrder", ack.String())
 	}
 
 	toss := func(hint string) {
 		delete(p.State.Holding, ack.GetHash().Fixed())
 		delete(p.State.Acks, ack.GetHash().Fixed())
-		fmt.Println("dddd", hint, p.State.FactomNodeName, "Toss", m.String())
-		fmt.Println("dddd", hint, p.State.FactomNodeName, "Toss", ack.String())
+		// fmt.Println("dddd", hint, p.State.FactomNodeName, "Toss", m.String())
+		// fmt.Println("dddd", hint, p.State.FactomNodeName, "Toss", ack.String())
 	}
 
 	// If the message doesn't match the full hash of the ack, then it is no good.
