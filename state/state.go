@@ -673,6 +673,7 @@ func (s *State) GetDirectoryBlockByHeight(height uint32) interfaces.IDirectoryBl
 func (s *State) UpdateState() (progress bool) {
 
 	process := func(a *messages.Ack) {
+		s.ProcessLists.Get(a.DBHeight)
 		s.Acks[a.GetHash().Fixed()] = a
 		m := s.Holding[a.GetHash().Fixed()]
 		if m != nil {

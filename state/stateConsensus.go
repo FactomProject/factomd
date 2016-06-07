@@ -293,7 +293,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	dbstatemsg, _ := msg.(*messages.DBStateMsg)
 
 	s.DBStates.LastTime = s.GetTimestamp()
-	s.AddDBState(true,
+	s.AddDBState(false,						// Not a new block; got it from the network
 		dbstatemsg.DirectoryBlock,
 		dbstatemsg.AdminBlock,
 		dbstatemsg.FactoidBlock,

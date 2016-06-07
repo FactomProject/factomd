@@ -27,8 +27,6 @@ type DBlockHeader struct {
 	DBHeight   uint32
 	BlockCount uint32
 
-	// Not marshaled
-	FullHash interfaces.IHash
 }
 
 var _ interfaces.Printable = (*DBlockHeader)(nil)
@@ -65,14 +63,6 @@ func (h *DBlockHeader) GetPrevKeyMR() interfaces.IHash {
 
 func (h *DBlockHeader) SetPrevKeyMR(prevKeyMR interfaces.IHash) {
 	h.PrevKeyMR = prevKeyMR
-}
-
-func (h *DBlockHeader) GetFullHash() interfaces.IHash {
-	return h.FullHash
-}
-
-func (h *DBlockHeader) SetFullHash(FullHash interfaces.IHash) {
-	h.FullHash = FullHash
 }
 
 func (h *DBlockHeader) GetPrevFullHash() interfaces.IHash {
@@ -129,7 +119,6 @@ func (e *DBlockHeader) String() string {
 	out.WriteString(fmt.Sprintf("  Timestamp:       %d\n", e.Timestamp))
 	out.WriteString(fmt.Sprintf("  DBHeight:        %d\n", e.DBHeight))
 	out.WriteString(fmt.Sprintf("  BlockCount:      %d\n", e.BlockCount))
-	out.WriteString(fmt.Sprintf(" *FullHash:        %s\n", e.FullHash))
 
 	return (string)(out.DeepCopyBytes())
 }

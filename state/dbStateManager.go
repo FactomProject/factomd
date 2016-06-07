@@ -34,6 +34,7 @@ type DBState struct {
 }
 
 type DBStateList struct {
+	SrcNetwork          bool   // True if I got this block from the network.
 	LastTime            interfaces.Timestamp
 	SecondsBetweenTests int
 	Lastreq             int
@@ -166,6 +167,52 @@ func (list *DBStateList) Catchup() {
 
 }
 
+func (list *DBStateList) FixupLinks (i int, d *DBState) {
+	p := list.DBStates[i-1]
+
+	// If this block is new, then make sure all hashes are fully computed.
+	if d.isNew {
+
+		hash, _ :=  p.EntryCreditBlock.HeaderHash()
+		d.EntryCreditBlock.GetHeader().SetPrevHeaderHash(hash)
+
+		hash, _ = p.EntryCreditBlock.GetFullHash()
+		d.EntryCreditBlock.GetHeader().SetPrevFullHash(hash)
+
+		d.AdminBlock.GetHeader().SetPrevFullHash(hash)
+
+		p.FactoidBlock.SetDBHeight(p.DirectoryBlock.GetHeader().GetDBHeight())
+		d.FactoidBlock.SetDBHeight(d.DirectoryBlock.GetHeader().GetDBHeight())
+		d.FactoidBlock.SetPrevKeyMR(p.FactoidBlock.GetKeyMR().Bytes())
+		d.FactoidBlock.SetPrevFullHash(p.FactoidBlock.GetPrevFullHash().Bytes())
+
+		d.DirectoryBlock.GetHeader().SetPrevFullHash(p.DirectoryBlock.GetFullHash())
+		d.DirectoryBlock.GetHeader().SetPrevKeyMR(p.DirectoryBlock.GetKeyMR())
+		d.DirectoryBlock.GetHeader().SetTimestamp(0)
+
+		d.DirectoryBlock.GetDBEntries()[0].SetKeyMR(d.AdminBlock.GetHash())
+		d.DirectoryBlock.GetDBEntries()[1].SetKeyMR(d.EntryCreditBlock.GetHash())
+		d.DirectoryBlock.GetDBEntries()[2].SetKeyMR(d.FactoidBlock.GetHash())
+
+		pl := list.State.ProcessLists.Get(d.DirectoryBlock.GetHeader().GetDBHeight())
+
+		for _, eb := range pl.NewEBlocks {
+			key, err := eb.KeyMR()
+			if err != nil {
+				panic(err.Error())
+			}
+			d.DirectoryBlock.AddEntry(eb.GetChainID(), key)
+		}
+		d.DirectoryBlock.BuildBodyMR()
+
+		//d.DirectoryBlock.GetKeyMR()
+		//_, err := d.DirectoryBlock.BuildBodyMR()
+		//if err != nil {
+		//	panic(err.Error())
+		//}
+	}
+}
+
 func (list *DBStateList) UpdateState() (progress bool) {
 
 	list.Catchup()
@@ -189,10 +236,10 @@ func (list *DBStateList) UpdateState() (progress bool) {
 			if i > 0 {
 				p := list.DBStates[i-1]
 				if !p.Saved {
-					continue
+					break
 				}
 			}
-			list.State.DB.StartMultiBatch()
+
 
 			//fmt.Println("Saving DBHeight ", d.DirectoryBlock.GetHeader().GetDBHeight(), " on ", list.State.GetFactomNodeName())
 
@@ -200,56 +247,13 @@ func (list *DBStateList) UpdateState() (progress bool) {
 			// this step if we got the block from a peer.  TODO we must however check the sigantures on the
 			// block before we write it to disk.
 			if i > 0 {
-				p := list.DBStates[i-1]
-
-				hash, err := p.AdminBlock.FullHash()
-				if err != nil {
-					return
-				}
-
-				hash, err = p.EntryCreditBlock.HeaderHash()
-				if err != nil {
-					return
-				}
-				d.EntryCreditBlock.GetHeader().SetPrevHeaderHash(hash)
-
-				hash, err = p.EntryCreditBlock.Hash()
-				if err != nil {
-					return
-				}
-				d.EntryCreditBlock.GetHeader().SetPrevFullHash(hash)
-
-				d.AdminBlock.GetHeader().SetPrevFullHash(hash)
-
-				p.FactoidBlock.SetDBHeight(p.DirectoryBlock.GetHeader().GetDBHeight())
-				d.FactoidBlock.SetDBHeight(d.DirectoryBlock.GetHeader().GetDBHeight())
-				d.FactoidBlock.SetPrevKeyMR(p.FactoidBlock.GetKeyMR().Bytes())
-				d.FactoidBlock.SetPrevFullHash(p.FactoidBlock.GetPrevFullHash().Bytes())
-
-				d.DirectoryBlock.GetHeader().SetPrevFullHash(p.DirectoryBlock.GetHeader().GetFullHash())
-				d.DirectoryBlock.GetHeader().SetPrevKeyMR(p.DirectoryBlock.GetKeyMR())
-				d.DirectoryBlock.GetHeader().SetTimestamp(0)
-				d.DirectoryBlock.GetDBEntries()[0].SetKeyMR(d.AdminBlock.GetHash())
-				d.DirectoryBlock.GetDBEntries()[1].SetKeyMR(d.EntryCreditBlock.GetHash())
-				d.DirectoryBlock.GetDBEntries()[2].SetKeyMR(d.FactoidBlock.GetHash())
-
-				pl := list.State.ProcessLists.Get(d.DirectoryBlock.GetHeader().GetDBHeight())
-
-				for _, eb := range pl.NewEBlocks {
-					key, err := eb.KeyMR()
-					if err != nil {
-						panic(err.Error())
-					}
-					d.DirectoryBlock.AddEntry(eb.GetChainID(), key)
-				}
-
-				d.DirectoryBlock.GetKeyMR()
-				_, err = d.DirectoryBlock.BuildBodyMR()
-				if err != nil {
-					panic(err.Error())
-				}
-
+				list.FixupLinks(i,d)
 			}
+			d.DirectoryBlock.MarshalBinary()
+
+
+			list.State.DB.StartMultiBatch()
+
 			if err := list.State.DB.ProcessDBlockMultiBatch(d.DirectoryBlock); err != nil {
 				panic(err.Error())
 			}
@@ -265,7 +269,6 @@ func (list *DBStateList) UpdateState() (progress bool) {
 			if err := list.State.DB.ProcessECBlockMultiBatch(d.EntryCreditBlock, false); err != nil {
 				panic(err.Error())
 			}
-
 			pl := list.State.ProcessLists.Get(d.DirectoryBlock.GetHeader().GetDBHeight())
 			for _, eb := range pl.NewEBlocks {
 				if err := list.State.DB.ProcessEBlockMultiBatch(eb, false); err != nil {
@@ -297,6 +300,7 @@ func (list *DBStateList) UpdateState() (progress bool) {
 			fmt.Printf("Keys differ %x and %x", d.DirectoryBlock.GetKeyMR().Bytes()[:3], keyMR2.Bytes()[:3])
 			panic("KeyMR failure")
 		}
+
 		list.LastTime = list.State.GetTimestamp() // If I saved or processed stuff, I'm good for a while
 		d.Saved = true                            // Only after all is done will I admit this state has been saved.
 
@@ -389,7 +393,7 @@ func (list *DBStateList) Put(dbState *DBState) {
 		panic(err)
 	}
 	dbState.DirectoryBlock.GetDBEntries()[0].SetKeyMR(hash)
-	hash, err = dbState.EntryCreditBlock.Hash()
+	hash, err = dbState.EntryCreditBlock.GetFullHash()
 	if err != nil {
 		panic(err)
 	}
