@@ -413,7 +413,7 @@ func TestBlockIteration(t *testing.T) {
 
 func TestHandleGetReceipt(t *testing.T) {
 	context := testHelper.CreateWebContext()
-	hash := "69596993f1d45eb4cdc188df9150c1979686d52faeaca28befe0e82a4193584a"
+	hash := "be5fb8c3ba92c0436269fab394ff7277c67e9b2de4431b723ce5d89799c0b93a"
 
 	HandleGetReceipt(context, hash)
 
