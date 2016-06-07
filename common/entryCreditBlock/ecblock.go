@@ -104,7 +104,7 @@ func (c *ECBlock) GetChainID() interfaces.IHash {
 }
 
 func (c *ECBlock) DatabasePrimaryIndex() interfaces.IHash {
-	key, _ := c.Hash()
+	key, _ := c.GetFullHash()
 	return key
 }
 
@@ -118,12 +118,12 @@ func (e *ECBlock) AddEntry(entries ...interfaces.IECBlockEntry) {
 }
 
 func (e *ECBlock) GetHash() interfaces.IHash {
-	h, _ := e.Hash()
+	h, _ := e.GetFullHash()
 	return h
 }
 
-// This is the FullHash.  TODO: rename to GetFullHash()
-func (e *ECBlock) Hash() (interfaces.IHash, error) {
+// This is the FullHash.
+func (e *ECBlock) GetFullHash() (interfaces.IHash, error) {
 	p, err := e.MarshalBinary()
 	if err != nil {
 		return nil, err
@@ -464,7 +464,7 @@ func NextECBlock(prev interfaces.IEntryCreditBlock) (interfaces.IEntryCreditBloc
 		}
 		e.GetHeader().SetPrevHeaderHash(v)
 
-		v, err = prev.Hash()
+		v, err = prev.GetFullHash()
 		if err != nil {
 			return nil, err
 		}

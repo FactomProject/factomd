@@ -148,7 +148,8 @@ const (
 	TYPE_ADD_MATRYOSHKA                  // 3
 	TYPE_ADD_SERVER_COUNT                // 4
 	TYPE_ADD_FED_SERVER                  // 5
-	TYPE_REMOVE_FED_SERVER               // 6
-	TYPE_ADD_FED_SERVER_KEY              // 7
-	TYPE_ADD_BTC_ANCHOR_KEY              // 8
+	TYPE_ADD_AUDIT_SERVER                // 6
+	TYPE_REMOVE_FED_SERVER               // 7
+	TYPE_ADD_FED_SERVER_KEY              // 8
+	TYPE_ADD_BTC_ANCHOR_KEY              // 9
 )

@@ -28,6 +28,9 @@ func Peers(fnode *FactomNode) {
 		for i := 0; i < 100 && len(fnode.State.APIQueue()) > 0; i++ {
 			select {
 			case msg := <-fnode.State.APIQueue():
+				if msg == nil {
+					break
+				}
 				cnt++
 				msg.SetOrigin(0)
 				if fnode.State.Replay.IsTSValid_(msg.GetMsgHash().Fixed(),
@@ -156,6 +159,10 @@ func NetworkOutputs(fnode *FactomNode) {
 func InvalidOutputs(fnode *FactomNode) {
 	for {
 		time.Sleep(1 * time.Millisecond)
-		fnode.State.ProcessInvalidMsgQueue()
+		invalidMsg := <-fnode.State.NetworkInvalidMsgQueue()
+		//fmt.Println(invalidMsg)
+		if len(invalidMsg.GetNetworkOrigin()) > 0 {
+			network.AdjustPeerQuality(invalidMsg.GetNetworkOrigin(), -2)
+		}
 	}
 }
