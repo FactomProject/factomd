@@ -203,8 +203,7 @@ func (list *DBStateList) FixupLinks (i int, d *DBState) {
 			}
 			d.DirectoryBlock.AddEntry(eb.GetChainID(), key)
 		}
-		d.DirectoryBlock.BuildBodyMR()
-
+		d.DirectoryBlock.BuildKeyMerkleRoot()
 		//d.DirectoryBlock.GetKeyMR()
 		//_, err := d.DirectoryBlock.BuildBodyMR()
 		//if err != nil {
@@ -249,7 +248,7 @@ func (list *DBStateList) UpdateState() (progress bool) {
 			if i > 0 {
 				list.FixupLinks(i,d)
 			}
-			d.DirectoryBlock.MarshalBinary()
+
 			d.dbstring = d.DirectoryBlock.String()
 
 			list.State.DB.StartMultiBatch()

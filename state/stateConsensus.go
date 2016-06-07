@@ -334,6 +334,14 @@ func (s *State) FollowerExecuteAddData(msg interfaces.IMsg) {
 
 }
 
+func (s *State) FollowerExecuteSFault(m interfaces.IMsg){
+	sf, _ := msg.(*messages.ServerFault)
+	pl := s.ProcessLists.Get(sf.DBHeight)
+	if pl != nil {
+		pl.Faultcnt[sf.]
+	}
+}
+
 func (s *State) LeaderExecute(m interfaces.IMsg) {
 
 	for i := 0; s.UpdateState() && i < 10; i++ {

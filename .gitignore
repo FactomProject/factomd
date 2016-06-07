@@ -13,6 +13,7 @@ debug
 *.log
 .vscode/
 .idea/
+peers.json
 
 # Folders
 _obj

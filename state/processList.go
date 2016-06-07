@@ -70,6 +70,7 @@ type VM struct {
 	MinuteFinished int               // Highest minute processed (0-9) by the follower
 	MinuteHeight   int               // Height of the last minute complete
 	missingTime    int64             // How long we have been waiting for a missing message
+	FaultCnt       map[[32]byte]int  // Count of faults against the Federated Servers
 }
 
 // Attempts to unseal. Takes a minute (1-10) Returns false if it cannot.
@@ -397,17 +398,25 @@ func (p *ProcessList) FinishedEOM() bool {
 func (p *ProcessList) Process(state *State) (progress bool) {
 
 	now := time.Now().Unix()
-	ask := func(vm *VM, thetime int64, j int) int64 {
+	ask := func(vmIndex int, vm *VM, thetime int64, j int) int64 {
 		if thetime == 0 {
 			thetime = now
 		}
-		if now-thetime > 2 {
+		if now-thetime > 1 {
 			missingMsgRequest := messages.NewMissingMsg(state, p.DBHeight, uint32(j))
 			if missingMsgRequest != nil {
 				state.NetworkOutMsgQueue() <- missingMsgRequest
 			}
 			thetime = now
 		}
+		if p.State.Leader && now-thetime > 2 {
+			id := p.FedServers[p.ServerMap[vm.MinuteComplete][vmIndex]].GetChainID()
+			sf := messages.NewServerFault(state.GetTimestamp(),id,vmIndex,p.DBHeight,uint32(j))
+			if sf != nil {
+				state.NetworkOutMsgQueue() <- sf
+			}
+		}
+
 		return thetime
 	}
 
@@ -434,7 +443,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 
 		for j := vm.Height; j < len(plist); j++ {
 			if plist[j] == nil {
-				vm.missingTime = ask(vm, vm.missingTime, j)
+				vm.missingTime = ask(i, vm, vm.missingTime, j)
 				break
 			}
 
@@ -457,7 +466,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			//}
 
 			if p.Sealing && vm.Seal == 0 {
-				vm.SealTime = ask(vm, vm.SealTime+1, vm.Height)
+				vm.SealTime = ask(i, vm, vm.SealTime+1, vm.Height)
 			}
 
 			thisAck := alist[j]
@@ -545,8 +554,10 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 		p.State.StallAck(ack)
 		p.State.Holding[m.GetHash().Fixed()] = m
 		delete(p.State.Acks, ack.GetHash().Fixed())
-		//fmt.Println("dddd", hint, p.State.FactomNodeName, "Stall", m.String())
-		//fmt.Println("dddd", hint, p.State.FactomNodeName, "Stall", ack.String())
+		if p.State.DebugConsensus {
+			fmt.Println("dddd", hint, p.State.FactomNodeName, "Stall", m.String())
+			fmt.Println("dddd", hint, p.State.FactomNodeName, "Stall", ack.String())
+		}
 	}
 
 	outOfOrder := func(hint string) {

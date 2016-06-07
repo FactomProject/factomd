@@ -99,7 +99,7 @@ func newAck() *Ack {
 	if err != nil {
 		panic(err)
 	}
-	ack.MessageFullHash = hash
+	ack.MessageHash = hash
 
 	ack.DBHeight = 123
 	ack.Height = 456

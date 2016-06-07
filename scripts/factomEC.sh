@@ -5,7 +5,7 @@ chain="$(echo "one two three four, this is a test of making an entry.  More to t
 sleep 31
 echo "Made Chain: " ${chain}
 
-for i in `seq 1 10`;
+for i in `seq 1 3`;
 do
     sleep 1
     entry="$(echo "Here are some random numbers: " $RANDOM $RANDOM $RANDOM $RANDOM $RANDOM $RANDOM)"

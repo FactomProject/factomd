@@ -674,6 +674,12 @@ func (s *State) GetDirectoryBlockByHeight(height uint32) interfaces.IDirectoryBl
 func (s *State) UpdateState() (progress bool) {
 
 	process := func(a *messages.Ack) {
+		if _, ok := s.InternalReplay.Valid(a.GetHash().Fixed(),int64(a.GetTimestamp()),int64(s.GetTimestamp()));
+			a.DBHeight < s.LLeaderHeight || !ok {
+			delete(s.Holding, a.GetHash().Fixed())
+			delete(s.Acks,    a.GetHash().Fixed())
+			return
+		}
 		s.ProcessLists.Get(a.DBHeight)
 		s.Acks[a.GetHash().Fixed()] = a
 		m := s.Holding[a.GetHash().Fixed()]
@@ -708,6 +714,15 @@ func (s *State) UpdateState() (progress bool) {
 			}
 			process(a)
 		}
+	}
+
+	for k := range s.Holding {
+		m := s.Holding[k]
+		if _, ok := s.InternalReplay.Valid(k,int64(m.GetTimestamp()),int64(s.GetTimestamp())); !ok {
+			delete(s.Holding, k)
+			delete(s.Acks,    k)
+		}
+
 	}
 
 	// Look at all the other out of orders.  Note that if we kept this list sorted,
