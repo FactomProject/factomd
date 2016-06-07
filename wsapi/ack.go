@@ -272,16 +272,16 @@ func DecodeTransactionToHashes(fullTransaction string) (eTxID string, ecTxID str
 				fmt.Printf("err - %v\n", err)
 				return
 			} else {
-				fmt.Println("e")
+				//fmt.Println("e")
 				eTxID = e.GetHash().String()
 			}
 		} else {
-			fmt.Println("ec")
+			//fmt.Println("ec")
 			eTxID = ec.GetEntryHash().String()
 			ecTxID = ec.GetHash().String()
 		}
 	} else {
-		fmt.Println("cc")
+		//fmt.Println("cc")
 		eTxID = cc.GetEntryHash().String()
 		ecTxID = cc.GetHash().String()
 	}
