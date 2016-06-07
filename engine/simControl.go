@@ -12,9 +12,10 @@ import (
 	"time"
 	"unicode"
 
+	"math/rand"
+
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/wsapi"
-	"math/rand"
 )
 
 var _ = fmt.Print
@@ -260,6 +261,7 @@ func rotateWSAPI(rotate *int, value int) {
 
 func printSummary(summary *int, value int, listenTo *int) {
 	out := ""
+
 	if *listenTo < 0 || *listenTo >= len(fnodes) {
 		return
 	}
