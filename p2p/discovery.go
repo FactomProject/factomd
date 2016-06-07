@@ -92,13 +92,13 @@ func (d *Discovery) isPeerPresent(peer Peer) bool {
 
 // PrintPeers Print details about the known peers
 func (d *Discovery) PrintPeers() {
-	note("discovery", "\n\n\n\nPeer Report:")
+	silence("discovery", "Peer Report:")
 	UpdateKnownPeers.Lock()
 	for key, value := range d.knownPeers {
-		note("discovery", "%s \t Address: %s \t Quality: %d \t Hash: %s", key, value.Address, value.QualityScore, value.Hash)
+		silence("discovery", "%s \t Address: %s \t Port: %s \tQuality: %d", key, value.Address, value.Port, value.QualityScore)
 	}
 	UpdateKnownPeers.Unlock()
-	note("discovery", "End Peer Report\n\n\n\n")
+	silence("discovery", "End Peer Report\n\n\n\n")
 }
 
 // LoadPeers loads the known peers from disk OVERWRITING PREVIOUS VALUES

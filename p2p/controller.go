@@ -89,7 +89,7 @@ type CommandChangeLogging struct {
 
 func (c *Controller) Init(ci ControllerInit) *Controller {
 	verbose("ctrlr", "Controller.Init(%s)", ci.Port)
-	silence("#################", "META:  Jay's last touched: MONDAY JUNE 6")
+	silence("#################", "META:  Jay's last touched: TUESDAY JUNE 7")
 	c.keepRunning = true
 	c.commandChannel = make(chan interface{}, 1000) // Commands from App
 	c.FromNetwork = make(chan Parcel, 10000)        // Channel to the app for network data
@@ -346,6 +346,8 @@ func (c *Controller) handleCommand(command interface{}) {
 		parameters := command.(CommandAddPeer)
 		conn := parameters.conn // net.Conn
 		addPort := strings.Split(conn.RemoteAddr().String(), ":")
+		debug("ctrlr", "Controller.handleCommand(CommandAddPeer) got rconn.RemoteAddr().String() %s and parsed IP: %s and Port: %s",
+			conn.RemoteAddr().String(), addPort[0], addPort[1])
 		// Port initially stored will be the connection port (not the listen port), but peer will update it on first messae.
 		peer := new(Peer).Init(addPort[0], addPort[1], 0, RegularPeer, 0)
 		connection := new(Connection).InitWithConn(conn, *peer)

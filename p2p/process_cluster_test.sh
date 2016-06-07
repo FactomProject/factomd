@@ -10,7 +10,7 @@ if [ $? -eq 0 ]; then
 # 
 # 
     echo "Running..."
-    factomd -count=2 -folder="test1-" -port=9120 -p2pPort="34340" -peers="127.0.0.1:34341 127.0.0.1:34342 127.0.0.1:34343" -netdebug=4 & node0=$!
+    factomd -count=2 -folder="test1-" -port=9120 -p2pPort="34340" -peers="127.0.0.1:34341 127.0.0.1:34342 127.0.0.1:34343" -netdebug=1 & node0=$!
     sleep 6
     factomd -count=2 -folder="test2-" -prefix="test2-" -port=9121 -p2pPort="34341" -peers="127.0.0.1:34340 127.0.0.1:34342 127.0.0.1:34343" -netdebug=1 & node1=$!
     sleep 6

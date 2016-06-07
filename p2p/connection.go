@@ -411,7 +411,7 @@ func (c *Connection) handleParcelTypes(parcel Parcel) {
 		pong.Header.Type = TypePong
 		debug(c.peer.Hash, "handleParcelTypes() GOT PING, Sending Pong: %s", pong.String())
 		parcel.Print()
-		c.SendChannel <- ConnectionParcel{parcel: pong}
+		c.SendChannel <- ConnectionParcel{parcel: *pong}
 	case TypePong: // all we need is the timestamp which is set already
 		debug(c.peer.Hash, "handleParcelTypes() GOT Pong.")
 		return
