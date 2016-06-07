@@ -6,7 +6,7 @@ package wsapi
 
 import (
 	"encoding/hex"
-	"fmt"
+	//"fmt"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryBlock"
@@ -261,15 +261,15 @@ func DecodeTransactionToHashes(fullTransaction string) (eTxID string, ecTxID str
 	cc := new(entryCreditBlock.CommitChain)
 	err = cc.UnmarshalBinary(b)
 	if err != nil {
-		fmt.Printf("err - %v\n", err)
+		//fmt.Printf("err - %v\n", err)
 		ec := new(entryCreditBlock.CommitEntry)
 		err = ec.UnmarshalBinary(b)
 		if err != nil {
-			fmt.Printf("err - %v\n", err)
+			//fmt.Printf("err - %v\n", err)
 			e := new(entryBlock.Entry)
 			err = e.UnmarshalBinary(b)
 			if err != nil {
-				fmt.Printf("err - %v\n", err)
+				//fmt.Printf("err - %v\n", err)
 				return
 			} else {
 				//fmt.Println("e")

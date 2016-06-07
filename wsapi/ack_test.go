@@ -2,7 +2,7 @@ package wsapi_test
 
 import (
 	"encoding/hex"
-	"fmt"
+	//"fmt"
 	"testing"
 
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
@@ -42,12 +42,12 @@ func TestDecodeTransactionToHashes(t *testing.T) {
 			if tx.ECID() != entryCreditBlock.ECIDChainCommit && tx.ECID() != entryCreditBlock.ECIDEntryCommit {
 				continue
 			}
-			if tx.ECID() == entryCreditBlock.ECIDChainCommit {
+			/*if tx.ECID() == entryCreditBlock.ECIDChainCommit {
 				fmt.Println("CC!")
 			}
 			if tx.ECID() == entryCreditBlock.ECIDEntryCommit {
 				fmt.Println("EC!")
-			}
+			}*/
 			txID := tx.GetHash().String()
 			entryHash := tx.GetEntryHash().String()
 

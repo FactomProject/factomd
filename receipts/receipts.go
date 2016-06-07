@@ -409,7 +409,7 @@ func VerifyFullReceipt(dbo interfaces.DBOverlay, receiptStr string) error {
 		return err
 	}
 
-	fmt.Printf("receipt - %v\n", receipt.CustomMarshalString())
+	//fmt.Printf("receipt - %v\n", receipt.CustomMarshalString())
 
 	err = receipt.Validate()
 	if err != nil {
