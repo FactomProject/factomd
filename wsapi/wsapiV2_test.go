@@ -12,6 +12,7 @@ import (
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/receipts"
 	"github.com/FactomProject/factomd/testHelper"
 	. "github.com/FactomProject/factomd/wsapi"
 )
@@ -207,5 +208,34 @@ func TestHandleV2CommitChain(t *testing.T) {
 	e := strings.Compare(respObj.TxID, txID)
 	if e != 0 {
 		t.Error("Error: TxID returned during Commit Chain is incorrect")
+	}
+}
+
+func TestHandleV2GetReceipt(t *testing.T) {
+	state := testHelper.CreateAndPopulateTestState()
+	//Start(state)
+
+	hashkey := new(HashRequest)
+	hashkey.Hash = "8c35266c406e5a42fc3ca93f2d850b954bdfa79f49b2ceaf7f7086b691ffc022"
+
+	resp, jErr := HandleV2Receipt(state, hashkey)
+	if jErr != nil {
+		t.Errorf("%v", jErr)
+		return
+	}
+
+	dbo := state.GetAndLockDB()
+	defer state.UnlockDB()
+
+	marshalled, err := json.Marshal(resp.(*ReceiptResponse).Receipt)
+	if err != nil {
+		t.Error(err)
+	}
+	t.Logf("Resp - %s", marshalled)
+
+	err = receipts.VerifyFullReceipt(dbo, string(marshalled))
+	if err != nil {
+		t.Logf("receipt - %s", marshalled)
+		t.Error(err)
 	}
 }

@@ -12,29 +12,33 @@ import (
 
 func TestReceipts(t *testing.T) {
 	dbo := CreateAndPopulateTestDatabaseOverlay()
-	entry := CreateFirstTestEntry()
-	receipt, err := CreateFullReceipt(dbo, entry.DatabasePrimaryIndex())
-	if err != nil {
-		t.Error(err)
-	}
-	t.Logf("\n\n%v\n", receipt.CustomMarshalString())
+	blocks := CreateFullTestBlockSet()
+	for _, block := range blocks[:len(blocks)-2] {
+		for _, entry := range block.Entries {
+			receipt, err := CreateFullReceipt(dbo, entry.DatabasePrimaryIndex())
+			if err != nil {
+				t.Error(err)
+			}
+			t.Logf("\n\n%v\n", receipt.CustomMarshalString())
 
-	err = VerifyFullReceipt(dbo, receipt.CustomMarshalString())
-	if err != nil {
-		t.Error(err)
-	}
+			err = VerifyFullReceipt(dbo, receipt.CustomMarshalString())
+			if err != nil {
+				t.Error(err)
+			}
 
-	receipt.TrimReceipt()
-	t.Logf("\n\n%v\n", receipt.CustomMarshalString())
+			receipt.TrimReceipt()
+			t.Logf("\n\n%v\n", receipt.CustomMarshalString())
 
-	err = VerifyFullReceipt(dbo, receipt.CustomMarshalString())
-	if err == nil {
-		t.Errorf("\n\nError is nil when it shouldn't be for receipt\n\n%v\n\n", receipt)
-	}
+			err = VerifyFullReceipt(dbo, receipt.CustomMarshalString())
+			if err == nil {
+				t.Errorf("\n\nError is nil when it shouldn't be for receipt\n\n%v\n\n", receipt)
+			}
 
-	err = VerifyMinimalReceipt(dbo, receipt.CustomMarshalString())
-	if err != nil {
-		t.Error(err)
+			err = VerifyMinimalReceipt(dbo, receipt.CustomMarshalString())
+			if err != nil {
+				t.Error(err)
+			}
+		}
 	}
 
 	//t.Fail()

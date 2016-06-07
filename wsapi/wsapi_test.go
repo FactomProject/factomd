@@ -414,7 +414,7 @@ func TestBlockIteration(t *testing.T) {
 
 func TestHandleGetReceipt(t *testing.T) {
 	context := testHelper.CreateWebContext()
-	hash := "f6dc70879a5c5733e60b1d391915e39aa0fed79869e87b9a51473a54c9427ff5"
+	hash := "8c35266c406e5a42fc3ca93f2d850b954bdfa79f49b2ceaf7f7086b691ffc022"
 
 	HandleGetReceipt(context, hash)
 
@@ -428,7 +428,7 @@ func TestHandleGetReceipt(t *testing.T) {
 	dbo := context.Server.Env["state"].(interfaces.IState).GetAndLockDB()
 	defer context.Server.Env["state"].(interfaces.IState).UnlockDB()
 
-	receipt := j["Receipt"].(map[string]interface{})
+	receipt := j["receipt"].(map[string]interface{})
 	marshalled, err := json.Marshal(receipt)
 	if err != nil {
 		t.Error(err)

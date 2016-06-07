@@ -23,6 +23,9 @@ type Receipt struct {
 }
 
 func (e *Receipt) TrimReceipt() {
+	if e == nil {
+		return
+	}
 	entry, _ := primitives.NewShaHashFromStr(e.Entry.Key)
 	for i := range e.MerkleBranch {
 		if entry.IsSameAs(e.MerkleBranch[i].Left) {
@@ -38,6 +41,9 @@ func (e *Receipt) TrimReceipt() {
 }
 
 func (e *Receipt) Validate() error {
+	if e == nil {
+		return fmt.Errorf("No receipt provided")
+	}
 	if e.Entry == nil {
 		return fmt.Errorf("Receipt has no entry")
 	}
@@ -403,7 +409,7 @@ func VerifyFullReceipt(dbo interfaces.DBOverlay, receiptStr string) error {
 		return err
 	}
 
-	//fmt.Printf("receipt - %v\n", receipt.CustomMarshalString())
+	fmt.Printf("receipt - %v\n", receipt.CustomMarshalString())
 
 	err = receipt.Validate()
 	if err != nil {
