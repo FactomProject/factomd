@@ -201,7 +201,6 @@ func NetStart(s *state.State) {
 		networkID = p2p.MainNet
 	default:
 		panic("Invalid Network choice in Config File. Choose MAIN, TEST or LOCAL")
-
 	}
 	ci := p2p.ControllerInit{
 		Port:      networkPort,
