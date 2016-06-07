@@ -9,9 +9,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"math/rand"
+	"net/http"
 	"os"
 	"sort"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -22,6 +24,7 @@ type Discovery struct {
 	peersFilePath string     // the path to the peers.
 	lastPeerSave  time.Time  // Last time we saved known peers.
 	rng           *rand.Rand // RNG = random number generator
+	seedURL       string     // URL to the source of a list of peers
 }
 
 var UpdateKnownPeers sync.Mutex
@@ -48,14 +51,14 @@ func (d *Discovery) Init(peersFile string) *Discovery {
 // UpdatePeer updates the values in our known peers. Creates peer if its not in there.
 func (d *Discovery) updatePeer(peer Peer) {
 	UpdateKnownPeers.Lock()
-	d.knownPeers[peer.Hash] = peer
+	d.knownPeers[peer.Address] = peer
 	UpdateKnownPeers.Unlock()
 }
 
 // UpdatePeer updates the values in our known peers. Creates peer if its not in there.
 func (d *Discovery) isPeerPresent(peer Peer) bool {
 	UpdateKnownPeers.Lock()
-	_, present := d.knownPeers[peer.Hash]
+	_, present := d.knownPeers[peer.Address]
 	UpdateKnownPeers.Unlock()
 	return present
 }
@@ -67,26 +70,32 @@ func (d *Discovery) isPeerPresent(peer Peer) bool {
 // 	return d.GetPeerByAddress(prototype.Address)
 // }
 
-func (d *Discovery) GetPeerByAddress(address string) Peer {
-	hash := PeerHashFromAddress(address)
-	UpdateKnownPeers.Lock()
-	peer, present := d.knownPeers[hash]
-	UpdateKnownPeers.Unlock()
-	// If it exists, return it, otherwise create and add to knownPeers
-	if !present {
-		temp := new(Peer).Init(address, 0, RegularPeer)
-		peer = *temp
-		d.updatePeer(peer)
-	}
-	return peer
-}
+// Since we can't deterministically find peers anymore, we
+// we don't need GetPeer - We get peers from discovery
+// for dialing and we can update them.
+// When new peers come in, they are created elsewhere and then
+// later saved by update peer.
+
+// func (d *Discovery) GetPeer(address string, port string) Peer {
+// 	hash := PeerHashFromAddress(address, port)
+// 	UpdateKnownPeers.Lock()
+// 	peer, present := d.knownPeers[hash]
+// 	UpdateKnownPeers.Unlock()
+// 	// If it exists, return it, otherwise create and add to knownPeers
+// 	if !present {
+// 		temp := new(Peer).Init(address, 0, RegularPeer)
+// 		peer = *temp
+// 		d.updatePeer(peer)
+// 	}
+// 	return peer
+// }
 
 // PrintPeers Print details about the known peers
 func (d *Discovery) PrintPeers() {
 	note("discovery", "\n\n\n\nPeer Report:")
 	UpdateKnownPeers.Lock()
 	for key, value := range d.knownPeers {
-		note("discovery", "%s \t Address: %s \t Quality: %d", key, value.Address, value.QualityScore)
+		note("discovery", "%s \t Address: %s \t Quality: %d \t Hash: %s", key, value.Address, value.QualityScore, value.Hash)
 	}
 	UpdateKnownPeers.Unlock()
 	note("discovery", "End Peer Report\n\n\n\n")
@@ -102,6 +111,11 @@ func (d *Discovery) LoadPeers() {
 	dec := json.NewDecoder(bufio.NewReader(file))
 	UpdateKnownPeers.Lock()
 	dec.Decode(&d.knownPeers)
+	// since this is run at startup, reset quality scores.
+	for _, peer := range d.knownPeers {
+		peer.QualityScore = 0
+		d.knownPeers[peer.Address] = peer
+	}
 	UpdateKnownPeers.Unlock()
 	note("discovery", "LoadPeers() found %d peers in peers.josn", len(d.knownPeers))
 	file.Close()
@@ -120,11 +134,16 @@ func (d *Discovery) SavePeers() {
 	writer := bufio.NewWriter(file)
 	encoder := json.NewEncoder(writer)
 	UpdateKnownPeers.Lock()
+	// Purge peers we have not talked to in awhile.
+	for _, peer := range d.knownPeers {
+		if time.Since(peer.LastContact) > (time.Hour * 168) { // a week
+			delete(d.knownPeers, peer.Address)
+		}
+	}
 	encoder.Encode(d.knownPeers)
 	UpdateKnownPeers.Unlock()
 	writer.Flush()
 	note("discovery", "SavePeers() saved %d peers in peers.json", len(d.knownPeers))
-
 }
 
 // LearnPeers recieves a set of peers from other hosts
@@ -161,18 +180,18 @@ func (d *Discovery) GetOutgoingPeers() []Peer {
 	selectedPeers := []Peer{}
 	UpdateKnownPeers.Lock()
 	for _, peer := range d.knownPeers {
-		if OnlySpecialPeers {
-			if SpecialPeer == peer.Type {
-				peerPool = append(peerPool, peer)
-			}
-		} else {
+		switch {
+		case OnlySpecialPeers && SpecialPeer == peer.Type:
 			peerPool = append(peerPool, peer)
+		case !OnlySpecialPeers:
+			peerPool = append(peerPool, peer)
+		default:
 		}
 	}
 	UpdateKnownPeers.Unlock()
 	sort.Sort(PeerDistanceSort(peerPool))
-	// Get three times as many as who knows how many will be online
-	desiredQuantity := NumberPeersToConnect * 3
+	// Get four times as many as who knows how many will be online
+	desiredQuantity := NumberPeersToConnect * 4
 	// If the peer pool isn't at least twice the size of what we need, then location diversity is meaningless.
 	if len(peerPool) < desiredQuantity*2 {
 		return peerPool
@@ -226,14 +245,23 @@ func (d *Discovery) getPeerSelection() []byte {
 	return json
 }
 
-// Mbe a DDOS resistence mechanism that looks at rate of bad messsages over time.
-// Right now, we just get enough demerits and we give up on the peer... forever.
-// func (c *Connection) gotBadMessage() {
-// 	debug(c.peer.Hash, "Connection.gotBadMessage()")
-// 	// TODO Track bad messages to ban bad peers at network level
-// 	// Array of in Connection of bad messages
-// 	// Add this one to the array with timestamp
-// 	// Filter all messages with timestamps over an hour (put value in protocol.go maybe an hour is too logn)
-// 	// If count of bad messages in last hour exceeds threshold from protocol.go then we drop connection
-// 	// Add this IP address to our banned peers (for an hour or day, also define in protocol.go)
-// }
+// DiscoverPeers gets a set of peers from a DNS Seed
+func (d *Discovery) DiscoverPeers() {
+	resp, err := http.Get(d.seedURL)
+	if nil != err {
+		logerror("discovery", "DiscoverPeers getting peers from %s produced error %+v", d.seedURL, err)
+		return
+	}
+	defer resp.Body.Close()
+	var lines []string
+	scanner := bufio.NewScanner(resp.Body)
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
+	}
+	for _, line := range lines {
+		ipAndPort := strings.Split(line, ":")
+		peer := new(Peer).Init(ipAndPort[0], ipAndPort[1], 0, RegularPeer, 0)
+		d.updatePeer(*peer)
+	}
+	silence("discovery", "DiscoverPeers got peers: %+v", lines)
+}

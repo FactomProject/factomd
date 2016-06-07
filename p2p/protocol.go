@@ -7,6 +7,7 @@ package p2p
 import (
 	"fmt"
 	"hash/crc32"
+	"math/rand"
 	"os"
 	"strings"
 	"time"
@@ -14,25 +15,29 @@ import (
 
 // Global variables for the p2p protocol
 var (
-	CurrentLoggingLevel                     = Verbose // Start at verbose because it takes a few seconds for the controller to adjust to what you set.
-	CurrentNetwork                          = TestNet
-	NetworkStatusInterval     time.Duration = time.Second * 22
-	PingInterval              time.Duration = time.Second * 15
-	TimeBetweenRedials        time.Duration = time.Second * 20
-	MaxNumberOfRedialAttempts int           = 15
-	PeerSaveInterval          time.Duration = time.Second * 30
-	PeerRequestInterval       time.Duration = time.Second * 180
+	CurrentLoggingLevel                         = Verbose // Start at verbose because it takes a few seconds for the controller to adjust to what you set.
+	CurrentNetwork                              = TestNet
+	NetworkListenPort             string        = "8108"
+	NodeID                        uint64        = 0           // Random number used for loopback protection
+	MinumumQualityScore           int32         = -200        // if a peer's score is less than this we ignore them.
+	BannedQualityScore            int32         = -2147000000 // Used to ban a peer
+	OnlySpecialPeers              bool          = false
+	NumberPeersToConnect          int           = 12
+	MaxNumberIncommingConnections int           = 150
+	MaxNumberOfRedialAttempts     int           = 15
+	NetworkStatusInterval         time.Duration = time.Second * 22
+	PingInterval                  time.Duration = time.Second * 15
+	TimeBetweenRedials            time.Duration = time.Second * 20
+	PeerSaveInterval              time.Duration = time.Second * 30
+	PeerRequestInterval           time.Duration = time.Second * 180
 
-	MinumumQualityScore int32        = -200        // if a peer's score is less than this we ignore them.
-	BannedQualityScore  int32        = -2147000000 // Used to ban a peer
-	CRCKoopmanTable     *crc32.Table = crc32.MakeTable(crc32.Koopman)
-
-	OnlySpecialPeers     bool   = false
-	NumberPeersToConnect int    = 12
-	NodeID               uint64 = 0 // Random number used for loopback protection
 	// Testing metrics
 	TotalMessagesRecieved uint64 = 0
 	TotalMessagesSent     uint64 = 0
+
+	CRCKoopmanTable *crc32.Table = crc32.MakeTable(crc32.Koopman)
+	RandomGenerator *rand.Rand   // seeded pseudo-random number generator
+
 )
 
 const (
