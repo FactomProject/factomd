@@ -690,7 +690,9 @@ func (s *State) UpdateState() (progress bool) {
 	for i := 0; i < end; i++ {
 		a := s.GetOutOfOrder(0)
 		if a != nil {
-			fmt.Println("dddd Out of Order Processing", s.FactomNodeName, end, i, a.String())
+			if s.DebugConsensus {
+				fmt.Println("dddd Out of Order Processing", s.FactomNodeName, end, i, a.String())
+			}
 			process(a)
 		}
 	}
@@ -700,7 +702,9 @@ func (s *State) UpdateState() (progress bool) {
 	for i := 0; i < end; i++ {
 		a := s.GetStalledAck(0)
 		if a != nil {
-			fmt.Println("dddd Stall Ack             ", s.FactomNodeName, end, i, a.String())
+			if s.DebugConsensus {
+				fmt.Println("dddd Stall Ack             ", s.FactomNodeName, end, i, a.String())
+			}
 			process(a)
 		}
 	}

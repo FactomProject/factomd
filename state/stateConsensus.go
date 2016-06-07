@@ -118,7 +118,9 @@ func (s *State) ProcessQueues() (progress bool) {
 	for s.Leader && s.EOM == 0 && len(s.XReview) > 0 {
 		msg := s.XReview[0]
 		if _, ok := s.InternalReplay.Valid(msg.GetHash().Fixed(), int64(msg.GetTimestamp()/1000), int64(s.GetTimestamp()/1000)); !ok {
-			fmt.Println("dddd Repeat XReview", msg.String())
+			if s.DebugConsensus {
+				fmt.Println("dddd Repeat XReview", msg.String())
+			}
 			msg = nil
 		} else if s.Leader {
 			s.LeaderExecute(msg) // Just do Server execution for the message
@@ -132,7 +134,9 @@ func (s *State) ProcessQueues() (progress bool) {
 	if s.Leader && s.EOM == 0 && len(s.StallMsgs) > 0 {
 		msg := s.StallMsgs[0]
 		if _, ok := s.InternalReplay.Valid(msg.GetHash().Fixed(), int64(msg.GetTimestamp()/1000), int64(s.GetTimestamp()/1000)); !ok {
-			fmt.Println("dddd Repeat StallMsgs ", msg.String())
+			if s.DebugConsensus {
+				fmt.Println("dddd Repeat StallMsgs ", msg.String())
+			}
 			msg = nil
 		} else if s.Leader {
 			s.LeaderExecute(msg) // Just do Server execution for the message
@@ -147,7 +151,7 @@ func (s *State) ProcessQueues() (progress bool) {
 		_, ok := s.InternalReplay.Valid(ack.GetHash().Fixed(), int64(ack.GetTimestamp()/1000), int64(s.GetTimestamp()/1000))
 		if ok && ack.Validate(s) == 1 {
 			ack.FollowerExecute(s)
-		} else {
+		} else if s.DebugConsensus {
 			fmt.Println("dddd StalledAck ok:", ok, "validate:", ack.Validate(s), ack.String())
 		}
 	}
@@ -157,7 +161,7 @@ func (s *State) ProcessQueues() (progress bool) {
 		_, ok := s.InternalReplay.Valid(ack.GetHash().Fixed(), int64(ack.GetTimestamp()/1000), int64(s.GetTimestamp()/1000))
 		if ok && ack.Validate(s) == 1 {
 			ack.FollowerExecute(s)
-		} else {
+		} else if s.DebugConsensus {
 			fmt.Println("dddd ackQueue ok:", ok, "validate:", ack.Validate(s), ack.String())
 		}
 		progress = true
@@ -182,11 +186,13 @@ func (s *State) ProcessQueues() (progress bool) {
 			case 0: // Put at the end of the line, and hopefully we will resolve it.
 				s.Holding[msg.GetHash().Fixed()] = msg
 			default:
-				fmt.Println("dddd Deleted=== Msg:", s.FactomNodeName, msg.String())
+				if s.DebugConsensus {
+					fmt.Println("dddd Deleted=== Msg:", s.FactomNodeName, msg.String())
+				}
 				delete(s.Acks, msg.GetHash().Fixed())
 				s.networkInvalidMsgQueue <- msg
 			}
-		} else {
+		} else if s.DebugConsensus {
 			fmt.Println("dddd msgQueue ok:", ok, msg.String())
 		}
 	default:

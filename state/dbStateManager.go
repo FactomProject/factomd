@@ -26,6 +26,7 @@ type DBState struct {
 	FBHash interfaces.IHash
 	ECHash interfaces.IHash
 
+	dbstring				 string
 	DirectoryBlock   interfaces.IDirectoryBlock
 	AdminBlock       interfaces.IAdminBlock
 	FactoidBlock     interfaces.IFBlock
@@ -141,7 +142,6 @@ func (list *DBStateList) Catchup() {
 		}
 
 		if plHeight > dbsHeight && plHeight-dbsHeight > 1 {
-			list.State.ProcessLists.Reset(dbsHeight)
 			begin = int(dbsHeight + 1)
 			end = int(plHeight - 1)
 		} else {
@@ -159,7 +159,7 @@ func (list *DBStateList) Catchup() {
 	msg := messages.NewDBStateMissing(list.State, uint32(begin), uint32(end2))
 
 	if msg != nil {
-		list.State.ProcessLists = NewProcessLists(list.State)
+		//list.State.ProcessLists = NewProcessLists(list.State)
 		list.State.EOM = 0
 		list.State.GreenFlg = false
 		list.State.NetworkOutMsgQueue() <- msg
@@ -250,7 +250,7 @@ func (list *DBStateList) UpdateState() (progress bool) {
 				list.FixupLinks(i,d)
 			}
 			d.DirectoryBlock.MarshalBinary()
-
+			d.dbstring = d.DirectoryBlock.String()
 
 			list.State.DB.StartMultiBatch()
 
@@ -303,6 +303,9 @@ func (list *DBStateList) UpdateState() (progress bool) {
 		if i > 0 {
 			dbprev,_ := list.State.DB.FetchDBlockByKeyMR(d.DirectoryBlock.GetHeader().GetPrevKeyMR())
 			if dbprev == nil {
+				fmt.Println(list.DBStates[i-1].dbstring)
+				fmt.Println(list.DBStates[i-1].DirectoryBlock.String())
+				fmt.Println(d.DirectoryBlock.String())
 				panic("Hashes have been altered for Directory Blocks")
 			}
 		}

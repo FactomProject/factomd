@@ -5,8 +5,6 @@ import (
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
-	"github.com/FactomProject/factomd/database/databaseOverlay"
-	//"github.com/FactomProject/factomd/common/factoid"
 	"bytes"
 	"log"
 
@@ -443,20 +441,20 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			// When processing DirectoryBlockSignatures, we check to see if the signed block
 			// matches our own saved block. If the majority of VMs' signatures do not match
 			// our saved block, we discard that block from our database.
-			if plist[j].Type() == constants.DIRECTORY_BLOCK_SIGNATURE_MSG {
-				dbs := plist[j].(*messages.DirectoryBlockSignature)
+			//if plist[j].Type() == constants.DIRECTORY_BLOCK_SIGNATURE_MSG {
+				//dbs := plist[j].(*messages.DirectoryBlockSignature)
 				//myDBlock := state.GetDirectoryBlockByHeight(dbs.DBHeight - 1)
 				//myDBlock.GetHeader().SetTimestamp(p.GetLeaderTimestamp())
-				if !dbs.DirectoryBlockKeyMR.IsSameAs(state.ProcessLists.Lists[0].DirectoryBlock.GetKeyMR()) {
-					p.diffSigTally++
-					if p.diffSigTally > 0 && p.diffSigTally > (len(p.FedServers)/2) {
-						state.DB.Delete([]byte{byte(databaseOverlay.DIRECTORYBLOCK)}, state.ProcessLists.Lists[0].DirectoryBlock.GetKeyMR().Bytes())
-					}
-				}
-				if i >= len(p.FedServers) {
-					p.diffSigTally = 0
-				}
-			}
+				//if !dbs.DirectoryBlockKeyMR.IsSameAs(state.ProcessLists.Lists[0].DirectoryBlock.GetKeyMR()) {
+				//	p.diffSigTally++
+				//	if p.diffSigTally > 0 && p.diffSigTally > (len(p.FedServers)/2) {
+				//		state.DB.Delete([]byte{byte(databaseOverlay.DIRECTORYBLOCK)}, state.ProcessLists.Lists[0].DirectoryBlock.GetKeyMR().Bytes())
+				//	}
+				//}
+				//if i >= len(p.FedServers) {
+				//	p.diffSigTally = 0
+				//}
+			//}
 
 			if p.Sealing && vm.Seal == 0 {
 				vm.SealTime = ask(vm, vm.SealTime+1, vm.Height)
@@ -555,15 +553,19 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 		p.State.OutOfOrderAck(ack)
 		p.State.Holding[m.GetHash().Fixed()] = m
 		delete(p.State.Acks, ack.GetHash().Fixed())
-		fmt.Println("dddd", hint, p.State.FactomNodeName, "OutOfOrder", m.String())
-		fmt.Println("dddd", hint, p.State.FactomNodeName, "OutOfOrder", ack.String())
+		if p.State.DebugConsensus {
+			fmt.Println("dddd", hint, p.State.FactomNodeName, "OutOfOrder", m.String())
+			fmt.Println("dddd", hint, p.State.FactomNodeName, "OutOfOrder", ack.String())
+		}
 	}
 
 	toss := func(hint string) {
 		delete(p.State.Holding, ack.GetHash().Fixed())
 		delete(p.State.Acks, ack.GetHash().Fixed())
-		fmt.Println("dddd", hint, p.State.FactomNodeName, "Toss", m.String())
-		fmt.Println("dddd", hint, p.State.FactomNodeName, "Toss", ack.String())
+		if p.State.DebugConsensus {
+			fmt.Println("dddd", hint, p.State.FactomNodeName, "Toss", m.String())
+			fmt.Println("dddd", hint, p.State.FactomNodeName, "Toss", ack.String())
+		}
 	}
 
 	// If the message doesn't match the full hash of the ack, then it is no good.
@@ -632,8 +634,10 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	eom, ok := m.(*messages.EOM)
 	if ok {
 		if vm.Seal > 0 {
-			fmt.Println("dddd EOM after Seal", p.State.FactomNodeName, m.String())
-			fmt.Println("dddd EOM after Seal", p.State.FactomNodeName, ack.String())
+			if p.State.DebugConsensus {
+				fmt.Println("dddd EOM after Seal", p.State.FactomNodeName, m.String())
+				fmt.Println("dddd EOM after Seal", p.State.FactomNodeName, ack.String())
+			}
 			outOfOrder("eom")
 		}
 		if p.State.Leader && eom.IsLocal() {
@@ -649,8 +653,10 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	msgOk := p.State.InternalReplay.IsTSValid_(m.GetHash().Fixed(), int64(m.GetTimestamp()/1000), now)
 
 	if !msgOk { // If we already have this message or acknowledgement recorded,
-		fmt.Println("dddd Msg Repeat", p.State.FactomNodeName, m.String())
-		fmt.Println("dddd Msg Repeat", p.State.FactomNodeName, ack.String())
+		if p.State.DebugConsensus {
+			fmt.Println("dddd Msg Repeat", p.State.FactomNodeName, m.String())
+			fmt.Println("dddd Msg Repeat", p.State.FactomNodeName, ack.String())
+		}
 		toss("4")
 		return // we don't have to do anything.  Just say we got it handled.
 	}
