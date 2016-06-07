@@ -59,7 +59,9 @@ func (lists *ProcessLists) Get(dbheight uint32) *ProcessList {
 		lists.Lists = append(lists.Lists, nil)
 	}
 	pl := lists.Lists[i]
-	prev := (*ProcessList)(nil)
+
+	var prev *ProcessList
+
 	if dbheight > 0 {
 		prev = lists.Get(dbheight - 1)
 	}
@@ -73,9 +75,9 @@ func (lists *ProcessLists) Get(dbheight uint32) *ProcessList {
 func (lists *ProcessLists) String() string {
 	str := "Process Lists"
 	str = fmt.Sprintf("%s  DBBase: %d\n", str, lists.DBHeightBase)
-	for i, pl := range lists.Lists {
-		str = fmt.Sprintf("%s ht: %d pl: %s\n", str, uint32(i)+lists.DBHeightBase, pl.String())
-	}
+	ht := lists.State.GetHighestRecordedBlock()
+	pl := lists.Get(ht + 1)
+	str = fmt.Sprintf("%s ht: %d pl: %s\n", str, ht+1, pl.String())
 	return str
 }
 

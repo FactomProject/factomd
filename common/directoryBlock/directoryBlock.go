@@ -39,6 +39,10 @@ func (c *DirectoryBlock) GetEntryHashes() []interfaces.IHash {
 	return answer
 }
 
+func (c *DirectoryBlock) GetEntrySigHashes() []interfaces.IHash {
+	return nil
+}
+
 func (c *DirectoryBlock) Sort() {
 	done := false
 	for i := 3; !done && i < len(c.DBEntries)-1; i++ {
@@ -153,6 +157,9 @@ func (e *DirectoryBlock) String() string {
 	} else {
 		out.WriteString(fmt.Sprintf("%20s %v\n", "BodyMR:", kmr.String()))
 	}
+
+	fh := e.GetFullHash()
+	out.WriteString(fmt.Sprintf("%20s %v\n", "BodyMR:", fh.String()))
 
 	out.WriteString(e.Header.String())
 	out.WriteString("Entries: \n")
@@ -307,7 +314,6 @@ func (b *DirectoryBlock) GetFullHash() interfaces.IHash {
 		return nil
 	}
 	b.DBHash = primitives.Sha(binaryDblock)
-	b.Header.SetFullHash(b.DBHash)
 	return b.DBHash
 }
 

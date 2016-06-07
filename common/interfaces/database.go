@@ -37,4 +37,5 @@ type DatabaseBlockWithEntries interface {
 	DatabaseBatchable
 
 	GetEntryHashes() []IHash
+	GetEntrySigHashes() []IHash
 }

@@ -30,7 +30,7 @@ func hours(unix int64) int64 {
 }
 
 // Returns false if the hash is too old, or is already a
-// member of the set.
+// member of the set.  Timestamp is in seconds.
 func (r *Replay) Valid(hash [32]byte, timestamp int64, now int64) (index int, valid bool) {
 
 	if len(r.buckets) < numBuckets {

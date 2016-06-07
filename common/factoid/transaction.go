@@ -57,11 +57,19 @@ func (t *Transaction) clearCaches() {
 	t.MarshalSig = nil
 }
 
-func (Transaction) GetVersion() uint64 {
+func (*Transaction) GetVersion() uint64 {
 	return 2
 }
 
-func (t Transaction) GetHash() interfaces.IHash {
+func (t *Transaction) GetHash() interfaces.IHash {
+	m, err := t.MarshalBinarySig()
+	if err != nil {
+		return nil
+	}
+	return primitives.Sha(m)
+}
+
+func (t Transaction) GetFullHash() interfaces.IHash {
 	m, err := t.MarshalBinary()
 	if err != nil {
 		return nil

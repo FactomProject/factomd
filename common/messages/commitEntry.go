@@ -228,7 +228,7 @@ func (m *CommitEntryMsg) Validate(state interfaces.IState) int {
 	}
 	ebal := state.GetFactoidState().GetECBalance(*m.CommitEntry.ECPubKey)
 	if int(m.CommitEntry.Credits) > int(ebal) {
-		return -1
+		return 0
 	}
 	return 1
 }

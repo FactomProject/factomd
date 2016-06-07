@@ -36,7 +36,7 @@ func TestECBlockMarshal(t *testing.T) {
 
 func TestECBlockHashingConsistency(t *testing.T) {
 	ecb := createECBlock()
-	h1, err := ecb.Hash()
+	h1, err := ecb.GetFullHash()
 	if err != nil {
 		t.Error(err)
 	}
@@ -44,7 +44,7 @@ func TestECBlockHashingConsistency(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	h2, err := ecb.Hash()
+	h2, err := ecb.GetFullHash()
 	if err != nil {
 		t.Error(err)
 	}

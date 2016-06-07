@@ -248,7 +248,7 @@ func CreateTestBlockSet(prev *BlockSet) *BlockSet {
 	if err != nil {
 		panic(err)
 	}
-	de.KeyMR, err = answer.ECBlock.Hash()
+	de.KeyMR, err = answer.ECBlock.GetFullHash()
 	if err != nil {
 		panic(err)
 	}

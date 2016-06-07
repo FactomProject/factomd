@@ -122,6 +122,11 @@ func (fs *FactoidState) AddTransaction(index int, trans interfaces.ITransaction)
 		return err
 	}
 	if err := fs.CurrentBlock.AddTransaction(trans); err != nil {
+		if err == nil {
+			// We assume validity has been done elsewhere.  We are maintaining the "seen" state of
+			// all transactions here.
+			fs.State.InternalReplay.IsTSValid(trans.GetHash(), int64(trans.GetMilliTimestamp()/1000))
+		}
 		return err
 	}
 

@@ -47,6 +47,10 @@ func (e *IncreaseBalance) GetHash() interfaces.IHash {
 	return e.Hash()
 }
 
+func (e *IncreaseBalance) GetSigHash() interfaces.IHash {
+	return nil
+}
+
 func (b *IncreaseBalance) ECID() byte {
 	return ECIDBalanceIncrease
 }

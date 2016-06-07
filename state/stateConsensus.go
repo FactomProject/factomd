@@ -32,9 +32,13 @@ func (s *State) NewMinute() {
 	// Anything we are holding, we need to reprocess.
 	for k := range s.Holding {
 		v := s.Holding[k]
-		v.ComputeVMIndex(s)
-		if s.Leader && s.LeaderVMIndex == v.GetVMIndex() {
-			s.XReview = append(s.XReview, v)
+		if _, ok := s.InternalReplay.Valid(v.GetHash().Fixed(), int64(v.GetTimestamp()/1000), int64(s.GetTimestamp()/1000)); ok {
+			v.ComputeVMIndex(s)
+			if s.Leader {
+				s.XReview = append(s.XReview, v)
+				delete(s.Holding, k)
+			}
+		} else {
 			delete(s.Holding, k)
 		}
 	}
@@ -42,7 +46,7 @@ func (s *State) NewMinute() {
 	s.EOM = 0
 
 	for k := range s.Acks {
-		s.StallMsg(s.Acks[k])
+		s.StallAck(s.Acks[k].(*messages.Ack))
 	}
 
 	s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
@@ -113,7 +117,8 @@ func (s *State) ProcessQueues() (progress bool) {
 	// Reprocess any stalled Acknowledgements
 	for s.Leader && s.EOM == 0 && len(s.XReview) > 0 {
 		msg := s.XReview[0]
-		if _, ok := s.InternalReplay.Valid(msg.GetHash().Fixed(), int64(msg.GetTimestamp()), int64(s.GetTimestamp())); !ok {
+		if _, ok := s.InternalReplay.Valid(msg.GetHash().Fixed(), int64(msg.GetTimestamp()/1000), int64(s.GetTimestamp()/1000)); !ok {
+			fmt.Println("dddd Repeat XReview", msg.String())
 			msg = nil
 		} else if s.Leader {
 			s.LeaderExecute(msg) // Just do Server execution for the message
@@ -124,9 +129,10 @@ func (s *State) ProcessQueues() (progress bool) {
 		s.UpdateState()
 	}
 
-	for s.Leader && s.EOM == 0 && len(s.StallMsgs) > 0 {
+	if s.Leader && s.EOM == 0 && len(s.StallMsgs) > 0 {
 		msg := s.StallMsgs[0]
-		if _, ok := s.InternalReplay.Valid(msg.GetHash().Fixed(), int64(msg.GetTimestamp()), int64(s.GetTimestamp())); !ok {
+		if _, ok := s.InternalReplay.Valid(msg.GetHash().Fixed(), int64(msg.GetTimestamp()/1000), int64(s.GetTimestamp()/1000)); !ok {
+			fmt.Println("dddd Repeat StallMsgs ", msg.String())
 			msg = nil
 		} else if s.Leader {
 			s.LeaderExecute(msg) // Just do Server execution for the message
@@ -138,21 +144,25 @@ func (s *State) ProcessQueues() (progress bool) {
 	}
 
 	if ack := s.GetStalledAck(0); ack != nil {
-		_, ok := s.InternalReplay.Valid(ack.GetHash().Fixed(), int64(ack.GetTimestamp()), int64(s.GetTimestamp()))
+		_, ok := s.InternalReplay.Valid(ack.GetHash().Fixed(), int64(ack.GetTimestamp()/1000), int64(s.GetTimestamp()/1000))
 		if ok && ack.Validate(s) == 1 {
 			ack.FollowerExecute(s)
+		} else {
+			fmt.Println("dddd StalledAck ok:", ok, "validate:", ack.Validate(s), ack.String())
 		}
 	}
 
 	select {
 	case ack := <-s.ackQueue:
-		_, ok := s.InternalReplay.Valid(ack.GetHash().Fixed(), int64(ack.GetTimestamp()), int64(s.GetTimestamp()))
+		_, ok := s.InternalReplay.Valid(ack.GetHash().Fixed(), int64(ack.GetTimestamp()/1000), int64(s.GetTimestamp()/1000))
 		if ok && ack.Validate(s) == 1 {
 			ack.FollowerExecute(s)
+		} else {
+			fmt.Println("dddd ackQueue ok:", ok, "validate:", ack.Validate(s), ack.String())
 		}
 		progress = true
 	case msg := <-s.msgQueue:
-		_, ok := s.InternalReplay.Valid(msg.GetHash().Fixed(), int64(msg.GetTimestamp()), int64(s.GetTimestamp()))
+		_, ok := s.InternalReplay.Valid(msg.GetHash().Fixed(), int64(msg.GetTimestamp()/1000), int64(s.GetTimestamp()/1000))
 		if ok {
 			switch msg.Validate(s) {
 			case 1:
@@ -170,11 +180,14 @@ func (s *State) ProcessQueues() (progress bool) {
 				}
 
 			case 0: // Put at the end of the line, and hopefully we will resolve it.
-				s.msgQueue <- msg
+				s.Holding[msg.GetHash().Fixed()] = msg
 			default:
+				fmt.Println("dddd Deleted=== Msg:", s.FactomNodeName, msg.String())
 				delete(s.Acks, msg.GetHash().Fixed())
 				s.networkInvalidMsgQueue <- msg
 			}
+		} else {
+			fmt.Println("dddd msgQueue ok:", ok, msg.String())
 		}
 	default:
 	}
@@ -208,7 +221,6 @@ func (s *State) AddDBState(isNew bool,
 	if ht > s.LLeaderHeight {
 		s.LLeaderHeight = ht
 		s.ProcessLists.Get(ht + 1)
-		s.Holding = make(map[[32]byte]interfaces.IMsg)
 		s.EOM = 0
 	}
 	//	dbh := directoryBlock.GetHeader().GetDBHeight()
@@ -281,7 +293,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	dbstatemsg, _ := msg.(*messages.DBStateMsg)
 
 	s.DBStates.LastTime = s.GetTimestamp()
-	s.AddDBState(true,
+	s.AddDBState(false,						// Not a new block; got it from the network
 		dbstatemsg.DirectoryBlock,
 		dbstatemsg.AdminBlock,
 		dbstatemsg.FactoidBlock,
@@ -321,7 +333,7 @@ func (s *State) LeaderExecute(m interfaces.IMsg) {
 	for i := 0; s.UpdateState() && i < 10; i++ {
 	}
 
-	if m.GetVMIndex() != s.LeaderVMIndex {
+	if !s.Green() || m.GetVMIndex() != s.LeaderVMIndex {
 		s.networkOutMsgQueue <- m
 		m.FollowerExecute(s)
 		return
@@ -343,7 +355,7 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 	for i := 0; s.UpdateState() && i < 10; i++ {
 	}
 
-	if !m.IsLocal() {
+	if !s.Green() || !m.IsLocal() {
 		s.networkOutMsgQueue <- m
 		m.FollowerExecute(s)
 		return
@@ -380,6 +392,8 @@ func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) 
 
 	if as.ServerType == 0 {
 		s.LeaderPL.AdminBlock.AddFedServer(as.ServerChainID)
+	} else if as.ServerType == 1 {
+		s.LeaderPL.AdminBlock.AddAuditServer(as.ServerChainID)
 	}
 
 	return true
@@ -613,17 +627,23 @@ func (s *State) GetHighestRecordedBlock() uint32 {
 // We hare caught up with the network IF:
 // The highest recorded block is equal to or just below the highest known block
 func (s *State) Green() bool {
-	if s.GreenCnt > 1000 {
+
+	// Make sure the process lists cover our known height...
+	s.ProcessLists.Get(s.LLeaderHeight)
+	// If we have been green for 10 seconds, and are still green, return true
+	if s.GreenFlg && s.GetTimestamp()-s.GreenTimestamp < 10000 {
 		return true
 	}
+
+	oldflg := s.GreenFlg // Remember our old state.
 
 	rec := s.DBStates.GetHighestRecordedBlock()
 	high := s.GetHighestKnownBlock()
 	s.GreenFlg = rec >= high-1
-	if s.GreenFlg {
-		s.GreenCnt++
-	} else {
-		s.GreenCnt = 0
+
+	// If we were not green, but we are green now, set our timestamp
+	if !oldflg && s.GreenFlg {
+		s.GreenTimestamp = s.GetTimestamp()
 	}
 	return s.GreenFlg
 }
@@ -755,6 +775,7 @@ func (s *State) NewAck(msg interfaces.IMsg) (iack interfaces.IMsg) {
 	ack.Minute = byte(s.LeaderMinute)
 	ack.Timestamp = s.GetTimestamp()
 	ack.MessageHash = msg.GetHash()
+	ack.SetFullMsgHash(msg.GetFullMsgHash())
 	ack.LeaderChainID = s.IdentityChainID
 
 	listlen := len(s.LeaderPL.VMs[vmIndex].List)

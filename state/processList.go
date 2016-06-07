@@ -112,7 +112,6 @@ func (p *ProcessList) Unseal(minute int) bool {
 
 // Returns the Virtual Server index for this hash for the given minute
 func (p *ProcessList) VMIndexFor(hash []byte) int {
-	return 0
 	v := uint64(0)
 	for _, b := range hash {
 		v += uint64(b)
@@ -146,6 +145,10 @@ func (p *ProcessList) GetVirtualServers(minute int, identityChainID interfaces.I
 	if !found {
 		return false, -1
 	}
+	if !p.State.Green() && p.State.GetIdentityChainID().IsSameAs(identityChainID) {
+		return false, -1
+	}
+
 	for i, fedix := range p.ServerMap[minute] {
 		if i == len(p.FedServers) {
 			break
@@ -444,7 +447,8 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 				dbs := plist[j].(*messages.DirectoryBlockSignature)
 				state.SetLeaderTimestamp(uint64(dbs.Timestamp.GetTime().Unix()))
 				state.GetDirectoryBlock().GetHeader().SetTimestamp(uint32(state.GetLeaderTimestamp()))
-
+				//myDBlock := state.GetDirectoryBlockByHeight(dbs.DBHeight - 1)
+				//myDBlock.GetHeader().SetTimestamp(p.GetLeaderTimestamp())
 				if !dbs.DirectoryBlockKeyMR.IsSameAs(state.ProcessLists.Lists[0].DirectoryBlock.GetKeyMR()) {
 					p.diffSigTally++
 					if p.diffSigTally > 0 && p.diffSigTally > (len(p.FedServers)/2) {
@@ -543,26 +547,35 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 		p.State.OutOfOrderAck(ack)
 		p.State.Holding[m.GetHash().Fixed()] = m
 		delete(p.State.Acks, ack.GetHash().Fixed())
-		//fmt.Println("dddd", hint, p.State.FactomNodeName, "OutOfOrder", m.String())
-		//fmt.Println("dddd", hint, p.State.FactomNodeName, "OutOfOrder", ack.String())
+		fmt.Println("dddd", hint, p.State.FactomNodeName, "OutOfOrder", m.String())
+		fmt.Println("dddd", hint, p.State.FactomNodeName, "OutOfOrder", ack.String())
 	}
 
 	toss := func(hint string) {
 		delete(p.State.Holding, ack.GetHash().Fixed())
 		delete(p.State.Acks, ack.GetHash().Fixed())
-		//fmt.Println("dddd", hint, p.State.FactomNodeName, "Toss", m.String())
-		//fmt.Println("dddd", hint, p.State.FactomNodeName, "Toss", ack.String())
+		fmt.Println("dddd", hint, p.State.FactomNodeName, "Toss", m.String())
+		fmt.Println("dddd", hint, p.State.FactomNodeName, "Toss", ack.String())
+	}
+
+	// If the message doesn't match the full hash of the ack, then it is no good.
+	// Get rid of the message, and let the request for messages get you the right one.
+	if !ack.GetFullMsgHash().IsSameAs(m.GetFullMsgHash()) {
+		delete(p.State.Holding, m.GetHash().Fixed())
+	}
+
+	now := int64(p.State.GetTimestamp() / 1000)
+
+	_, isnew := p.State.InternalReplay.Valid(m.GetHash().Fixed(), int64(m.GetTimestamp()/1000), now)
+	if !isnew {
+		toss("seen before")
+		return
 	}
 
 	vm := p.VMs[ack.VMIndex]
 
-	if ack.DBHeight > p.DBHeight {
-		outOfOrder("a")
-		return
-	}
-
-	if ack.DBHeight < p.DBHeight {
-		toss("1")
+	if ack.DBHeight != p.DBHeight {
+		panic(fmt.Sprintf("Ack is wrong height.  Expected: %d Ack: %s", p.DBHeight, ack.String()))
 		return
 	}
 
@@ -586,7 +599,7 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 
 		if ack == nil || m == nil || vm.List[ack.Height].GetMsgHash() == nil ||
 			m.GetMsgHash() == nil || vm.List[ack.Height].GetMsgHash().IsSameAs(m.GetMsgHash()) {
-			fmt.Printf("%-30s %10s %s\n", "xxxxxxxxx PL Duplicate", p.State.GetFactomNodeName(), m.String())
+			fmt.Printf("dddd %-30s %10s %s\n", "xxxxxxxxx PL Duplicate", p.State.GetFactomNodeName(), m.String())
 			toss("2")
 			return
 		}
@@ -594,12 +607,12 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 		if vm.List[ack.Height] != nil {
 			fmt.Println(p.String())
 			fmt.Println(p.PrintMap())
-			fmt.Printf("\t%12s %s %s\n", "OverWriting:", vm.List[ack.Height].String(), "with")
-			fmt.Printf("\t%12s %s\n", "with:", m.String())
-			fmt.Printf("\t%12s %s\n", "Detected on:", p.State.GetFactomNodeName())
-			fmt.Printf("\t%12s %s\n", "old ack", vm.ListAck[ack.Height].String())
-			fmt.Printf("\t%12s %s\n", "new ack", ack.String())
-			fmt.Printf("\t%12s %s\n", "VM Index", ack.VMIndex)
+			fmt.Printf("dddd\t%12s %s %s\n", "OverWriting:", vm.List[ack.Height].String(), "with")
+			fmt.Printf("dddd\t%12s %s\n", "with:", m.String())
+			fmt.Printf("dddd\t%12s %s\n", "Detected on:", p.State.GetFactomNodeName())
+			fmt.Printf("dddd\t%12s %s\n", "old ack", vm.ListAck[ack.Height].String())
+			fmt.Printf("dddd\t%12s %s\n", "new ack", ack.String())
+			fmt.Printf("dddd\t%12s %s\n", "VM Index", ack.VMIndex)
 			toss("3")
 			return
 		}
@@ -608,12 +621,28 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	// From this point on, we consider the transaction recorded.  If we detect it has already been
 	// recorded, then we still treat it as if we recorded it.
 
-	now := int64(p.State.GetTimestamp())
+	eom, ok := m.(*messages.EOM)
+	if ok {
+		if vm.Seal > 0 {
+			fmt.Println("dddd EOM after Seal", p.State.FactomNodeName, m.String())
+			fmt.Println("dddd EOM after Seal", p.State.FactomNodeName, ack.String())
+			outOfOrder("eom")
+		}
+		if p.State.Leader && eom.IsLocal() {
+			p.State.EOM = int(eom.Minute + 1)
+		}
+		p.Sealing = true
+		vm.Seal = int(eom.Minute + 1)
+		vm.SealHeight = ack.Height
+		vm.MinuteComplete = int(eom.Minute + 1)
+		vm.MinuteHeight = vm.Height
+	}
 
-	msgOk := p.State.InternalReplay.IsTSValid_(m.GetHash().Fixed(), int64(m.GetTimestamp()), now)
+	msgOk := p.State.InternalReplay.IsTSValid_(m.GetHash().Fixed(), int64(m.GetTimestamp()/1000), now)
 
 	if !msgOk { // If we already have this message or acknowledgement recorded,
-		fmt.Println("****", p.State.FactomNodeName, m.String())
+		fmt.Println("dddd Msg Repeat", p.State.FactomNodeName, m.String())
+		fmt.Println("dddd Msg Repeat", p.State.FactomNodeName, ack.String())
 		toss("4")
 		return // we don't have to do anything.  Just say we got it handled.
 	}
@@ -625,22 +654,6 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 
 	m.SetLeaderChainID(ack.GetLeaderChainID())
 	m.SetMinute(ack.Minute)
-
-	eom, ok := m.(*messages.EOM)
-	if ok {
-		if vm.Seal > 0 {
-			fmt.Println("dddd", p.State.FactomNodeName, "Sealing a sealed EOM")
-			stall("eom")
-		}
-		if p.State.Leader && eom.IsLocal() {
-			p.State.EOM = int(eom.Minute + 1)
-		}
-		p.Sealing = true
-		vm.Seal = int(eom.Minute + 1)
-		vm.SealHeight = ack.Height
-		vm.MinuteComplete = int(eom.Minute + 1)
-		vm.MinuteHeight = vm.Height
-	}
 
 	// Both the ack and the message hash to the same GetHash()
 	m.SetLocal(false)
@@ -660,17 +673,6 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	p.OldMsgs[m.GetHash().Fixed()] = m
 	p.OldAcks[m.GetHash().Fixed()] = ack
 
-	// Look at all the other out of orders.  Note that if we kept this list sorted,
-	// this would be really efficent, and wouldn't require a loop.
-	for i := len(p.State.OutOfOrders) - 1; i >= 0; i-- {
-		a := p.State.GetOutOfOrder(i)
-		if a != nil {
-			m := p.State.Holding[a.GetHash().Fixed()]
-			if m != nil {
-				p.AddToProcessList(a, m)
-			}
-		}
-	}
 }
 
 func (p *ProcessList) String() string {
