@@ -74,7 +74,7 @@ func TestHandleDirectoryBlockHead(t *testing.T) {
 
 	HandleDirectoryBlockHead(context)
 
-	if strings.Contains(testHelper.GetBody(context), "93b9d8bc11869819aed5e11ff15c865435a58d7b57c9f27fe4638dfc23f13b34") == false {
+	if strings.Contains(testHelper.GetBody(context), "d405071f6e382adeca5954be80fd012758bd0a298a7f4730e87c37efc11094c6") == false {
 		t.Errorf("Context does not contain proper DBlock Head - %v", testHelper.GetBody(context))
 	}
 }
@@ -290,7 +290,7 @@ func TestHandleChainHead(t *testing.T) {
 
 	HandleChainHead(context, hash)
 
-	if strings.Contains(testHelper.GetBody(context), "93b9d8bc11869819aed5e11ff15c865435a58d7b57c9f27fe4638dfc23f13b34") == false {
+	if strings.Contains(testHelper.GetBody(context), "d405071f6e382adeca5954be80fd012758bd0a298a7f4730e87c37efc11094c6") == false {
 		t.Errorf("Invalid directory block head: %v", testHelper.GetBody(context))
 	}
 
@@ -312,12 +312,21 @@ func TestHandleChainHead(t *testing.T) {
 		t.Errorf("Invalid entry block head: %v", testHelper.GetBody(context))
 	}
 
+	hash = "df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604"
+
+	testHelper.ClearContextResponseWriter(context)
+	HandleChainHead(context, hash)
+
+	if strings.Contains(testHelper.GetBody(context), "1a1586498d5dc5607274cbbef23c92d786df7f06674f3297348e7213f8e5583e") == false {
+		t.Errorf("Invalid entry block head: %v", testHelper.GetBody(context))
+	}
+
 	hash = "000000000000000000000000000000000000000000000000000000000000000c"
 
 	testHelper.ClearContextResponseWriter(context)
 	HandleChainHead(context, hash)
 
-	if strings.Contains(testHelper.GetBody(context), "4878cdd3e80af547c59ea8bcb17471d676a0fdb1bcc01ab17a438cb5fb9ad4da") == false {
+	if strings.Contains(testHelper.GetBody(context), "1c290560040542fcbe3cf088d70b7178b3c45b2c4ef20b258593673663455357") == false {
 		t.Errorf("Invalid entry credit block head: %v", testHelper.GetBody(context))
 	}
 
@@ -326,7 +335,7 @@ func TestHandleChainHead(t *testing.T) {
 	testHelper.ClearContextResponseWriter(context)
 	HandleChainHead(context, hash)
 
-	if strings.Contains(testHelper.GetBody(context), "067f353dda05ac27261d4b35a09f211f7a4b0182dff0b6098a16ae8659eb7f5f") == false {
+	if strings.Contains(testHelper.GetBody(context), "c6cd2ab21d75af1e8589e1eb441411838a508d0674eb294bac4efdc591c3fef4") == false {
 		t.Errorf("Invalid factoid block head: %v", testHelper.GetBody(context))
 	}
 }
@@ -404,11 +413,16 @@ func TestBlockIteration(t *testing.T) {
 
 func TestHandleGetReceipt(t *testing.T) {
 	context := testHelper.CreateWebContext()
-	hash := "cf9503fad6a6cf3cf6d7a5a491e23d84f9dee6dacb8c12f428633995655bd0d0"
+	hash := "69596993f1d45eb4cdc188df9150c1979686d52faeaca28befe0e82a4193584a"
 
 	HandleGetReceipt(context, hash)
 
 	j := testHelper.GetRespMap(context)
+
+	if j == nil {
+		t.Error("Receipt not found!")
+		return
+	}
 
 	dbo := context.Server.Env["state"].(interfaces.IState).GetAndLockDB()
 	defer context.Server.Env["state"].(interfaces.IState).UnlockDB()
