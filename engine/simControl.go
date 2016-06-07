@@ -280,14 +280,11 @@ func printSummary(summary *int, value int, listenTo *int) {
 
 		var list string
 
-		prt = prt + "\n"
-
 		list = ""
 		for i, _ := range fnodes {
 			list = list + fmt.Sprintf(" %3d", i)
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "", list)
-		prt = prt + "\n"
 		list = ""
 		for _, f := range fnodes {
 			list = list + fmt.Sprintf(" %3d", len(f.State.XReview))

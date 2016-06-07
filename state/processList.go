@@ -445,8 +445,8 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			// our saved block, we discard that block from our database.
 			if plist[j].Type() == constants.DIRECTORY_BLOCK_SIGNATURE_MSG {
 				dbs := plist[j].(*messages.DirectoryBlockSignature)
-				myDBlock := state.GetDirectoryBlockByHeight(dbs.DBHeight - 1)
-				myDBlock.GetHeader().SetTimestamp(p.GetLeaderTimestamp())
+				//myDBlock := state.GetDirectoryBlockByHeight(dbs.DBHeight - 1)
+				//myDBlock.GetHeader().SetTimestamp(p.GetLeaderTimestamp())
 				if !dbs.DirectoryBlockKeyMR.IsSameAs(state.ProcessLists.Lists[0].DirectoryBlock.GetKeyMR()) {
 					p.diffSigTally++
 					if p.diffSigTally > 0 && p.diffSigTally > (len(p.FedServers)/2) {
@@ -555,8 +555,8 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 		p.State.OutOfOrderAck(ack)
 		p.State.Holding[m.GetHash().Fixed()] = m
 		delete(p.State.Acks, ack.GetHash().Fixed())
-		//fmt.Println("dddd", hint, p.State.FactomNodeName, "OutOfOrder", m.String())
-		//fmt.Println("dddd", hint, p.State.FactomNodeName, "OutOfOrder", ack.String())
+		fmt.Println("dddd", hint, p.State.FactomNodeName, "OutOfOrder", m.String())
+		fmt.Println("dddd", hint, p.State.FactomNodeName, "OutOfOrder", ack.String())
 	}
 
 	toss := func(hint string) {
