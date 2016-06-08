@@ -14,12 +14,12 @@ import (
 )
 
 type Receipt struct {
-	Entry                  *JSON
-	MerkleBranch           []*primitives.MerkleNode
-	EntryBlockKeyMR        *primitives.Hash
-	DirectoryBlockKeyMR    *primitives.Hash
-	BitcoinTransactionHash *primitives.Hash
-	BitcoinBlockHash       *primitives.Hash
+	Entry                  *JSON                    `json:"entry,omitempty"`
+	MerkleBranch           []*primitives.MerkleNode `json:"merklebranch,omitempty"`
+	EntryBlockKeyMR        *primitives.Hash         `json:"entryblockkeymr,omitempty"`
+	DirectoryBlockKeyMR    *primitives.Hash         `json:"directoryblockkeymr,omitempty"`
+	BitcoinTransactionHash *primitives.Hash         `json:"bitcointransactionhash,omitempty"`
+	BitcoinBlockHash       *primitives.Hash         `json:"bitcoinblockhash,omitempty"`
 }
 
 func (e *Receipt) TrimReceipt() {
@@ -241,9 +241,9 @@ func DecodeReceiptString(str string) (*Receipt, error) {
 }
 
 type JSON struct {
-	Raw  string `json:",omitempty"`
-	Key  string `json:",omitempty"`
-	Json string `json:",omitempty"`
+	Raw  string `json:"raw,omitempty"`
+	Key  string `json:"key,omitempty"`
+	Json string `json:"json,omitempty"`
 }
 
 func (e *JSON) JSONByte() ([]byte, error) {
