@@ -18,6 +18,7 @@ import (
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
+	"math"
 )
 
 var _ = fmt.Print
@@ -241,6 +242,17 @@ func NetStart(s *state.State) {
 	}
 
 	switch net {
+	case "square":
+		side := int(math.Sqrt(float64(cnt)))
+
+		for i := 0; i < side; i++ {
+			AddSimPeer(fnodes,i*side,(i+1)*side-1)
+			AddSimPeer(fnodes,i,side*(side-1)+i)
+			for j:=0; j<side; j++ {
+				if j < side -1 { AddSimPeer(fnodes,i*side+j,i*side+j+1) }
+				AddSimPeer(fnodes,i*side+j,((i+1)*side)+j)
+			}
+		}
 	case "long":
 		fmt.Println("Using long Network")
 		for i := 1; i < cnt; i++ {

@@ -335,10 +335,14 @@ func (s *State) FollowerExecuteAddData(msg interfaces.IMsg) {
 }
 
 func (s *State) FollowerExecuteSFault(m interfaces.IMsg){
-	sf, _ := msg.(*messages.ServerFault)
+	sf, _ := m.(*messages.ServerFault)
 	pl := s.ProcessLists.Get(sf.DBHeight)
 	if pl != nil {
-		pl.Faultcnt[sf.]
+		pl.FaultCnt[sf.ServerID.Fixed()]++
+		cnt := pl.FaultCnt[sf.ServerID.Fixed()]
+		if s.Leader && cnt > len(pl.FedServers)/2 {
+
+		}
 	}
 }
 
@@ -497,34 +501,41 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
 		return false
 	}
 
+	handleAsEntry := false
 	if _, isNewChain := commit.(*messages.CommitChainMsg); isNewChain {
 		chainID := msg.Entry.GetChainID()
 		eb, err := s.DB.FetchEBlockHead(chainID)
 		if err != nil || eb != nil {
-			panic(fmt.Sprintf("%s\n%s", "Chain already exists", msg.String()))
+			if s.DebugConsensus {
+				fmt.Printf("dddd %s %s\n", s.FactomNodeName, "Chain already exists", msg.String())
+			}
+			handleAsEntry = true
+		}else {
+
+			// Create a new Entry Block for a new Entry Block Chain
+			eb = entryBlock.NewEBlock()
+			// Set the Chain ID
+			eb.GetHeader().SetChainID(msg.Entry.GetChainID())
+			// Set the Directory Block Height for this Entry Block
+			eb.GetHeader().SetDBHeight(dbheight)
+			// Add our new entry
+			eb.AddEBEntry(msg.Entry)
+			// Put it in our list of new Entry Blocks for this Directory Block
+			s.PutNewEBlocks(dbheight, msg.Entry.GetChainID(), eb)
+			s.PutNewEntries(dbheight, msg.Entry.GetHash(), msg.Entry)
+
+			if v := s.GetReveals(myhash); v != nil {
+				s.PutReveals(myhash, nil)
+			}
+
+			s.PutCommits(myhash, nil)
+			s.IncEntryChains()
+			s.IncEntries()
+			return true
 		}
+	}
 
-		// Create a new Entry Block for a new Entry Block Chain
-		eb = entryBlock.NewEBlock()
-		// Set the Chain ID
-		eb.GetHeader().SetChainID(msg.Entry.GetChainID())
-		// Set the Directory Block Height for this Entry Block
-		eb.GetHeader().SetDBHeight(dbheight)
-		// Add our new entry
-		eb.AddEBEntry(msg.Entry)
-		// Put it in our list of new Entry Blocks for this Directory Block
-		s.PutNewEBlocks(dbheight, msg.Entry.GetChainID(), eb)
-		s.PutNewEntries(dbheight, msg.Entry.GetHash(), msg.Entry)
-
-		if v := s.GetReveals(myhash); v != nil {
-			s.PutReveals(myhash, nil)
-		}
-
-		s.PutCommits(myhash, nil)
-		s.IncEntryChains()
-		s.IncEntries()
-		return true
-	} else if _, isNewEntry := commit.(*messages.CommitEntryMsg); isNewEntry {
+	if _, isNewEntry := commit.(*messages.CommitEntryMsg); handleAsEntry || isNewEntry {
 		chainID := msg.Entry.GetChainID()
 		eb := s.GetNewEBlocks(dbheight, chainID)
 		if eb == nil {

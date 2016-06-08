@@ -191,7 +191,7 @@ func (m *ServerFault) LeaderExecute(state interfaces.IState) {
 }
 
 func (m *ServerFault) FollowerExecute(state interfaces.IState) {
-	state.FollowerExecuteSFault()
+	state.FollowerExecuteSFault(m)
 }
 
 func (e *ServerFault) JSONByte() ([]byte, error) {

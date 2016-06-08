@@ -51,10 +51,10 @@ type ProcessList struct {
 	DirectoryBlock   interfaces.IDirectoryBlock
 
 	// Number of Servers acknowledged by Factom
-	Matryoshka   []interfaces.IHash      // Reverse Hash
-	AuditServers []interfaces.IFctServer // List of Audit Servers
-	FedServers   []interfaces.IFctServer // List of Federated Servers
-
+	Matryoshka   []interfaces.IHash      	// Reverse Hash
+	AuditServers []interfaces.IFctServer 	// List of Audit Servers
+	FedServers   []interfaces.IFctServer 	// List of Federated Servers
+	FaultCnt     map[[32]byte]int  				// Count of faults against the Federated Servers
 	Sealing bool // We are in the process of sealing this process list
 }
 
@@ -70,7 +70,6 @@ type VM struct {
 	MinuteFinished int               // Highest minute processed (0-9) by the follower
 	MinuteHeight   int               // Height of the last minute complete
 	missingTime    int64             // How long we have been waiting for a missing message
-	FaultCnt       map[[32]byte]int  // Count of faults against the Federated Servers
 }
 
 // Attempts to unseal. Takes a minute (1-10) Returns false if it cannot.
@@ -421,12 +420,12 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 	}
 
 	if !p.good { // If we don't know this process list is good...
-		last := state.DBStates.Last() // Get our last state.
-		if last == nil {
+		prev := state.DBStates.Get(p.DBHeight-1)
+
+		if prev == nil {
 			return
 		}
-		lht := last.DirectoryBlock.GetHeader().GetDBHeight()
-		if !last.Saved || lht < p.DBHeight-1 {
+		if !prev.Saved {
 			return
 		}
 		p.good = true

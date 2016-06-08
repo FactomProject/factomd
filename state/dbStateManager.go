@@ -257,17 +257,33 @@ func (list *DBStateList) UpdateState() (progress bool) {
 				panic(err.Error())
 			}
 
+			if d.DirectoryBlock.String() != d.dbstring {
+				panic("dddd Change 2")
+			}
+
+
 			if err := list.State.DB.ProcessABlockMultiBatch(d.AdminBlock); err != nil {
 				panic(err.Error())
+			}
+
+			if d.DirectoryBlock.String() != d.dbstring {
+				panic("dddd Change 3")
 			}
 
 			if err := list.State.DB.ProcessFBlockMultiBatch(d.FactoidBlock); err != nil {
 				panic(err.Error())
 			}
+			if d.DirectoryBlock.String() != d.dbstring {
+				panic("dddd Change 4")
+			}
 
 			if err := list.State.DB.ProcessECBlockMultiBatch(d.EntryCreditBlock, false); err != nil {
 				panic(err.Error())
 			}
+			if d.DirectoryBlock.String() != d.dbstring {
+				panic("dddd Change 5")
+			}
+
 			pl := list.State.ProcessLists.Get(d.DirectoryBlock.GetHeader().GetDBHeight())
 			for _, eb := range pl.NewEBlocks {
 				if err := list.State.DB.ProcessEBlockMultiBatch(eb, false); err != nil {
@@ -280,8 +296,16 @@ func (list *DBStateList) UpdateState() (progress bool) {
 				}
 			}
 
+			if d.DirectoryBlock.String() != d.dbstring {
+				panic("dddd Change 6")
+			}
+
 			if err := list.State.DB.ExecuteMultiBatch(); err != nil {
 				panic(err.Error())
+			}
+
+			if d.DirectoryBlock.String() != d.dbstring {
+				panic("dddd Change 7")
 			}
 
 		}
@@ -305,7 +329,7 @@ func (list *DBStateList) UpdateState() (progress bool) {
 				fmt.Println(list.DBStates[i-1].dbstring)
 				fmt.Println(list.DBStates[i-1].DirectoryBlock.String())
 				fmt.Println(d.DirectoryBlock.String())
-				panic("Hashes have been altered for Directory Blocks")
+				panic(fmt.Sprintf("%s Hashes have been altered for Directory Blocks",list.State.FactomNodeName))
 			}
 		}
 

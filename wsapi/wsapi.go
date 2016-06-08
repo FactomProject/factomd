@@ -148,7 +148,6 @@ func HandleCommitChain(ctx *web.Context) {
 }
 
 func HandleRevealChain(ctx *web.Context) {
-	fmt.Println("RevealChain")
 	HandleRevealEntry(ctx)
 }
 
@@ -547,7 +546,6 @@ func HandleProperties(ctx *web.Context) {
 	defer ServersMutex.Unlock()
 
 	state := ctx.Server.Env["state"].(interfaces.IState)
-	fmt.Println("Connected to:", state.GetFactomNodeName())
 	req := primitives.NewJSON2Request("properties", 1, nil)
 
 	jsonResp, jsonError := HandleV2Request(state, req)
