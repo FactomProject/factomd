@@ -94,7 +94,7 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 	m.commitChain, okChain = commit.(*CommitChainMsg)
 	m.commitEntry, okEntry = commit.(*CommitEntryMsg)
 	if !okChain && !okEntry {
-		return 0
+		return -1
 	}
 
 	// Now make sure the proper amount of credits were paid to record the entry.

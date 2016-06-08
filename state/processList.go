@@ -3,9 +3,9 @@ package state
 import (
 	"fmt"
 
+	"bytes"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
-	"bytes"
 	"log"
 
 	"time"
@@ -51,11 +51,11 @@ type ProcessList struct {
 	DirectoryBlock   interfaces.IDirectoryBlock
 
 	// Number of Servers acknowledged by Factom
-	Matryoshka   []interfaces.IHash      	// Reverse Hash
-	AuditServers []interfaces.IFctServer 	// List of Audit Servers
-	FedServers   []interfaces.IFctServer 	// List of Federated Servers
-	FaultCnt     map[[32]byte]int  				// Count of faults against the Federated Servers
-	Sealing bool // We are in the process of sealing this process list
+	Matryoshka   []interfaces.IHash      // Reverse Hash
+	AuditServers []interfaces.IFctServer // List of Audit Servers
+	FedServers   []interfaces.IFctServer // List of Federated Servers
+	FaultCnt     map[[32]byte]int        // Count of faults against the Federated Servers
+	Sealing      bool                    // We are in the process of sealing this process list
 }
 
 type VM struct {
@@ -411,7 +411,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 		}
 		if p.State.Leader && now-thetime > 2 {
 			id := p.FedServers[p.ServerMap[vm.MinuteComplete][vmIndex]].GetChainID()
-			sf := messages.NewServerFault(state.GetTimestamp(),id,vmIndex,p.DBHeight,uint32(j))
+			sf := messages.NewServerFault(state.GetTimestamp(), id, vmIndex, p.DBHeight, uint32(j))
 			if sf != nil {
 				state.NetworkOutMsgQueue() <- sf
 			}
@@ -421,7 +421,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 	}
 
 	if !p.good { // If we don't know this process list is good...
-		prev := state.DBStates.Get(p.DBHeight-1)
+		prev := state.DBStates.Get(p.DBHeight - 1)
 
 		if prev == nil {
 			return
@@ -451,18 +451,18 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			// matches our own saved block. If the majority of VMs' signatures do not match
 			// our saved block, we discard that block from our database.
 			//if plist[j].Type() == constants.DIRECTORY_BLOCK_SIGNATURE_MSG {
-				//dbs := plist[j].(*messages.DirectoryBlockSignature)
-				//myDBlock := state.GetDirectoryBlockByHeight(dbs.DBHeight - 1)
-				//myDBlock.GetHeader().SetTimestamp(p.GetLeaderTimestamp())
-				//if !dbs.DirectoryBlockKeyMR.IsSameAs(state.ProcessLists.Lists[0].DirectoryBlock.GetKeyMR()) {
-				//	p.diffSigTally++
-				//	if p.diffSigTally > 0 && p.diffSigTally > (len(p.FedServers)/2) {
-				//		state.DB.Delete([]byte{byte(databaseOverlay.DIRECTORYBLOCK)}, state.ProcessLists.Lists[0].DirectoryBlock.GetKeyMR().Bytes())
-				//	}
-				//}
-				//if i >= len(p.FedServers) {
-				//	p.diffSigTally = 0
-				//}
+			//dbs := plist[j].(*messages.DirectoryBlockSignature)
+			//myDBlock := state.GetDirectoryBlockByHeight(dbs.DBHeight - 1)
+			//myDBlock.GetHeader().SetTimestamp(p.GetLeaderTimestamp())
+			//if !dbs.DirectoryBlockKeyMR.IsSameAs(state.ProcessLists.Lists[0].DirectoryBlock.GetKeyMR()) {
+			//	p.diffSigTally++
+			//	if p.diffSigTally > 0 && p.diffSigTally > (len(p.FedServers)/2) {
+			//		state.DB.Delete([]byte{byte(databaseOverlay.DIRECTORYBLOCK)}, state.ProcessLists.Lists[0].DirectoryBlock.GetKeyMR().Bytes())
+			//	}
+			//}
+			//if i >= len(p.FedServers) {
+			//	p.diffSigTally = 0
+			//}
 			//}
 
 			if p.Sealing && vm.Seal == 0 {

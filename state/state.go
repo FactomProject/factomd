@@ -294,13 +294,13 @@ func (s *State) Init() {
 	s.tickerQueue = make(chan int, 10000)                        //ticks from a clock
 	s.timerMsgQueue = make(chan interfaces.IMsg, 10000)          //incoming eom notifications, used by leaders
 	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 10000) //incoming message queue from the network messages
-	s.InvalidMessages = make(map[[32]byte]interfaces.IMsg,0)
-	s.networkOutMsgQueue = make(chan interfaces.IMsg, 10000)     //Messages to be broadcast to the network
-	s.inMsgQueue = make(chan interfaces.IMsg, 10000)             //incoming message queue for factom application messages
-	s.apiQueue = make(chan interfaces.IMsg, 10000)               //incoming message queue from the API
-	s.ackQueue = make(chan interfaces.IMsg, 10000)               //queue of Leadership messages
-	s.msgQueue = make(chan interfaces.IMsg, 10000)               //queue of Follower messages
-	s.ShutdownChan = make(chan int, 1)                           //Channel to gracefully shut down.
+	s.InvalidMessages = make(map[[32]byte]interfaces.IMsg, 0)
+	s.networkOutMsgQueue = make(chan interfaces.IMsg, 10000) //Messages to be broadcast to the network
+	s.inMsgQueue = make(chan interfaces.IMsg, 10000)         //incoming message queue for factom application messages
+	s.apiQueue = make(chan interfaces.IMsg, 10000)           //incoming message queue from the API
+	s.ackQueue = make(chan interfaces.IMsg, 10000)           //queue of Leadership messages
+	s.msgQueue = make(chan interfaces.IMsg, 10000)           //queue of Follower messages
+	s.ShutdownChan = make(chan int, 1)                       //Channel to gracefully shut down.
 
 	os.Mkdir(s.LogPath, 0777)
 	_, err := os.Create(s.JournalFile) //Create the Journal File
@@ -674,10 +674,9 @@ func (s *State) GetDirectoryBlockByHeight(height uint32) interfaces.IDirectoryBl
 func (s *State) UpdateState() (progress bool) {
 
 	process := func(a *messages.Ack) {
-		if _, ok := s.InternalReplay.Valid(a.GetHash().Fixed(),int64(a.GetTimestamp()),int64(s.GetTimestamp()));
-			a.DBHeight < s.LLeaderHeight || !ok {
+		if _, ok := s.InternalReplay.Valid(a.GetHash().Fixed(), int64(a.GetTimestamp()), int64(s.GetTimestamp())); a.DBHeight < s.LLeaderHeight || !ok {
 			delete(s.Holding, a.GetHash().Fixed())
-			delete(s.Acks,    a.GetHash().Fixed())
+			delete(s.Acks, a.GetHash().Fixed())
 			return
 		}
 		s.ProcessLists.Get(a.DBHeight)
@@ -718,9 +717,9 @@ func (s *State) UpdateState() (progress bool) {
 
 	for k := range s.Holding {
 		m := s.Holding[k]
-		if _, ok := s.InternalReplay.Valid(k,int64(m.GetTimestamp()),int64(s.GetTimestamp())); !ok {
+		if _, ok := s.InternalReplay.Valid(k, int64(m.GetTimestamp()), int64(s.GetTimestamp())); !ok {
 			delete(s.Holding, k)
-			delete(s.Acks,    k)
+			delete(s.Acks, k)
 		}
 
 	}

@@ -18,10 +18,10 @@ type ServerFault struct {
 	MessageBase
 	Timestamp interfaces.Timestamp
 
-	ServerID  interfaces.IHash
-	VMIndex   int
-	DBHeight  uint32
-	Height    uint32
+	ServerID interfaces.IHash
+	VMIndex  int
+	DBHeight uint32
+	Height   uint32
 
 	Signature interfaces.IFullSignature
 
@@ -31,7 +31,6 @@ type ServerFault struct {
 
 var _ interfaces.IMsg = (*ServerFault)(nil)
 var _ Signable = (*ServerFault)(nil)
-
 
 func (m *ServerFault) Process(uint32, interfaces.IState) bool { return true }
 
@@ -57,7 +56,6 @@ func (m *ServerFault) GetTimestamp() interfaces.Timestamp {
 func (m *ServerFault) Type() byte {
 	return constants.FED_SERVER_FAULT_MSG
 }
-
 
 func (m *ServerFault) MarshalForSignature() (data []byte, err error) {
 	defer func() {
@@ -122,9 +120,9 @@ func (m *ServerFault) UnmarshalBinaryData(data []byte) (newData []byte, err erro
 		return nil, err
 	}
 
-	m.VMIndex,  newData = int(newData[0]), newData[1:]
+	m.VMIndex, newData = int(newData[0]), newData[1:]
 	m.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
-	m.Height,   newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+	m.Height, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
 	if len(newData) > 0 {
 		m.Signature = new(primitives.Signature)
@@ -171,7 +169,6 @@ func (m *ServerFault) String() string {
 func (m *ServerFault) GetDBHeight() uint32 {
 	return m.DBHeight
 }
-
 
 // Validate the message, given the state.  Three possible results:
 //  < 0 -- Message is invalid.  Discard
@@ -231,7 +228,7 @@ func (a *ServerFault) IsSameAs(b *ServerFault) bool {
 // Support Functions
 //*******************************************************************************
 
-func NewServerFault(timeStamp interfaces.Timestamp, serverID interfaces.IHash,vmIndex int, dbheight uint32, height uint32) *ServerFault {
+func NewServerFault(timeStamp interfaces.Timestamp, serverID interfaces.IHash, vmIndex int, dbheight uint32, height uint32) *ServerFault {
 	sf := new(ServerFault)
 	sf.Timestamp = timeStamp
 	sf.VMIndex = vmIndex

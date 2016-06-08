@@ -12,7 +12,7 @@ import (
 const (
 	EOM_MSG                       byte = iota // 0
 	ACK_MSG                                   // 1
-	FED_SERVER_FAULT_MSG     	                // 2
+	FED_SERVER_FAULT_MSG                      // 2
 	AUDIT_SERVER_FAULT_MSG                    // 3
 	COMMIT_CHAIN_MSG                          // 4
 	COMMIT_ENTRY_MSG                          // 5
