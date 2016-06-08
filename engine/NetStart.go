@@ -191,15 +191,14 @@ func NetStart(s *state.State) {
 	}
 
 	// Start the P2P netowork
-	fmt.Println("@@@@@@@@@@@@@@@@@ Factomd conf NETWORK is: %s", s.Network)
 	var networkID p2p.NetworkID
 	switch s.Network {
 	case "MAIN", "main":
 		networkID = p2p.MainNet
 	case "LOCAL", "local":
-		networkID = p2p.MainNet
+		networkID = p2p.LocalNet
 	case "TEST", "test":
-		networkID = p2p.MainNet
+		networkID = p2p.TestNet
 	default:
 		panic("Invalid Network choice in Config File. Choose MAIN, TEST or LOCAL")
 	}
@@ -237,7 +236,7 @@ func NetStart(s *state.State) {
 		fmt.Println("Dialing Peer: ", peerAddress)
 		ipPort := strings.Split(peerAddress, ":")
 		peer := new(p2p.Peer).Init(ipPort[0], ipPort[1], 0, p2p.SpecialPeer, 0)
-		network.DialPeer(*peer)
+		network.DialPeer(*peer, true) // these are persistent connections
 	}
 
 	switch net {

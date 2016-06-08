@@ -48,7 +48,8 @@ type ControllerInit struct {
 
 // CommandDialPeer is used to instruct the Controller to dial a peer address
 type CommandDialPeer struct {
-	peer Peer
+	persistent bool
+	peer       Peer
 }
 
 // CommandAddPeer is used to instruct the Controller to add a connection
@@ -124,7 +125,7 @@ func (c *Controller) StartNetwork() {
 	}
 	// dial into the peers
 	for _, peer := range peers {
-		c.DialPeer(peer)
+		c.DialPeer(peer, false)
 	}
 	c.lastStatusReport = time.Now()
 	c.discovery.PrintPeers()
@@ -146,9 +147,9 @@ func (c *Controller) ChangeLogLevel(level uint8) {
 	c.commandChannel <- CommandChangeLogging{level: level}
 }
 
-func (c *Controller) DialPeer(peer Peer) {
+func (c *Controller) DialPeer(peer Peer, persistent bool) {
 	debug("ctrlr", "DialPeer message for %s", peer.Address)
-	c.commandChannel <- CommandDialPeer{peer: peer}
+	c.commandChannel <- CommandDialPeer{peer: peer, persistent: persistent}
 }
 
 func (c *Controller) AddPeer(conn net.Conn) {
@@ -256,7 +257,7 @@ func (c *Controller) route() {
 	// Recieve messages from the peers & forward to application.
 	for peerHash, connection := range c.connections {
 		// Empty the recieve channel, stuff the application channel.
-		verbose(peerHash, "Controller.route() size of recieve channel: %d", len(connection.ReceiveChannel))
+		// verbose(peerHash, "Controller.route() size of recieve channel: %d", len(connection.ReceiveChannel))
 		for 0 < len(connection.ReceiveChannel) { // effectively "While there are messages"
 			message := <-connection.ReceiveChannel
 			switch message.(type) {
@@ -338,7 +339,7 @@ func (c *Controller) handleCommand(command interface{}) {
 	switch commandType := command.(type) {
 	case CommandDialPeer: // parameter is the peer address
 		parameters := command.(CommandDialPeer)
-		conn := new(Connection).Init(parameters.peer)
+		conn := new(Connection).Init(parameters.peer, parameters.persistent)
 		connection := *conn
 		c.connections[connection.peer.Hash] = connection
 		debug("ctrlr", "Controller.handleCommand(CommandDialPeer) got peer %s", parameters.peer.Address)
@@ -404,7 +405,7 @@ func (c *Controller) managePeers() {
 			for _, peer := range peers {
 				_, present := c.connections[peer.Hash]
 				if !present {
-					c.DialPeer(peer)
+					c.DialPeer(peer, false)
 				}
 			}
 		}
@@ -446,6 +447,8 @@ func (c *Controller) networkStatusReport() {
 			silence("ctrlr", "     Connection: %s:%s", value.peer.Address, value.peer.Port)
 			silence("ctrlr", "          State: %s", value.ConnectionState())
 			silence("ctrlr", "           Hash: %s", value.peer.Hash)
+			silence("ctrlr", "     Persistent: %t", value.IsPersistent())
+			silence("ctrlr", "       Outgoing: %t", value.IsOutGoing())
 			silence("ctrlr", " ReceiveChannel: %d", len(value.ReceiveChannel))
 			silence("ctrlr", "    SendChannel: %d", len(value.SendChannel))
 			// silence("ctrlr", "     Connection: %+v", value)

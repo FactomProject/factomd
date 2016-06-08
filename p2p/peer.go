@@ -49,6 +49,10 @@ func (p *Peer) generatePeerHash() string {
 	return hash
 }
 
+func (p *Peer) AddressPort() string {
+	return p.Address + ":" + p.Port
+}
+
 // BUGBUG Hadn't considered IPV6 addresses.
 // BUGBUG Need to audit all the net code to check IPv6 addresses
 // Here's an IPv6 conversion:
