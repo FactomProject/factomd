@@ -191,6 +191,7 @@ func NetStart(s *state.State) {
 	}
 
 	// Start the P2P netowork
+	fmt.Println("@@@@@@@@@@@@@@@@@ Factomd conf NETWORK is: %s", s.Network)
 	var networkID p2p.NetworkID
 	switch s.Network {
 	case "MAIN", "main":
