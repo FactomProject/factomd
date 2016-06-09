@@ -686,21 +686,6 @@ func (s *State) GetDirectoryBlockByHeight(height uint32) interfaces.IDirectoryBl
 
 // Go through the factoid exchange rate chain and determine if an FER change should be scheduled
 func (s *State) ProcessRecentFERChainEntries() {
-	// Check to see if a price change targets the next block
-	if (s.FERChangeHeight == (s.GetDBHeightComplete()+1)) {
-		s.FactoshisPerEC = s.FERChangePrice
-		s.FERChangePrice = 100000000
-		s.FERChangeHeight = 0
-	}
-
-	// Check for the need to clear the priority
-	if ((s.GetDBHeightComplete()-12) > s.FERPrioritySetHeight) {
-		s.FERPrioritySetHeight = 0
-		s.FERPriority = 0
-		// Now the next entry to come through with a priority of 1 or more will be considered
-	}
-
-
 
 	// Find the FER entry chain
 	FERChainHash, err := primitives.HexToHash(s.FERChainId)
@@ -720,11 +705,30 @@ func (s *State) ProcessRecentFERChainEntries() {
 		return
 	}
 
-	s.Println("Checking first block with height of: ", entryBlock.GetHeader().GetDBHeight())
+
+	s.Println("Checking last e block of FER chain with height of: ", entryBlock.GetHeader().GetDBHeight())
 	s.Println("Current block height: ", s.GetDBHeightComplete())
 	s.Println("FER current: ", s.GetFactoshisPerEC())
+	s.Println("BEFORE processing recent block: ")
+	s.Println("    FERChangePrice: ", s.FERChangePrice)
+	s.Println("    FERChangeHeight: ", s.FERChangeHeight)
+	s.Println("    FERPriority: ", s.FERPriority)
+	s.Println("    FERPrioritySetHeight: ", s.FERPrioritySetHeight)
 
 
+	// Check to see if a price change targets the next block
+	if (s.FERChangeHeight == (s.GetDBHeightComplete()+1)) {
+		s.FactoshisPerEC = s.FERChangePrice
+		s.FERChangePrice = 100000000
+		s.FERChangeHeight = 0
+	}
+
+	// Check for the need to clear the priority
+	if ((s.GetDBHeightComplete()-12) >= s.FERPrioritySetHeight) {
+		s.FERPrioritySetHeight = 0
+		s.FERPriority = 0
+		// Now the next entry to come through with a priority of 1 or more will be considered
+	}
 
 
 	// Check last entry block method
@@ -777,6 +781,8 @@ func (s *State) ProcessRecentFERChainEntries() {
 			anFEREntry.SetResidentHeight(s.GetDBHeightComplete())
 
 			if ((s.FerEntryIsValid(anFEREntry)) && (anFEREntry.Priority > s.FERPriority)) {
+
+				fmt.Println(" Processing FER entry : ", string(entryContent))
 				s.FERPriority = anFEREntry.GetPriority()
 				s.FERPrioritySetHeight = s.GetDBHeightComplete()
 				s.FERChangePrice = anFEREntry.GetTargetPrice()
@@ -789,6 +795,13 @@ func (s *State) ProcessRecentFERChainEntries() {
 			}
 		}
 	}
+
+	s.Println("AFTER processing recent block: ")
+	s.Println("    FERChangePrice: ", s.FERChangePrice)
+	s.Println("    FERChangeHeight: ", s.FERChangeHeight)
+	s.Println("    FERPriority: ", s.FERPriority)
+	s.Println("    FERPrioritySetHeight: ", s.FERPrioritySetHeight)
+	s.Println("----------------------------------")
 
 	return
 }
@@ -816,6 +829,7 @@ func (s *State) ExchangeRateAuthorityIsValid(e interfaces.IEBEntry) bool {
 	}
 	sig := new([64]byte)
 	externalIds := e.ExternalIDs()
+
 
 	// check for number of ext ids
 	if len(externalIds) < 1 {
