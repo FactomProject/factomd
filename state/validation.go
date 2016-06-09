@@ -80,6 +80,11 @@ func (t *Timer) timer(state *State, min int) {
 
 	state.UpdateState()
 
+	// Start up in Minute 0 always.
+	if !state.Green() {
+		t.lastDBHeight = 0xffffffff
+	}
+
 	t.lastMin = min
 
 	stateheight := state.LLeaderHeight

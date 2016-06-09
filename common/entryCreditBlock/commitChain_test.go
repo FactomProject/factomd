@@ -72,12 +72,7 @@ func TestCommitChainMarshalUnmarshalEmpty(t *testing.T) {
 	}
 	t.Logf("%x\n", p)
 	err = cc2.UnmarshalBinary(p)
-	if err != nil {
-		t.Error(err)
+	if err == nil {
+		t.Error("Error is nil when it shouldn't be")
 	}
-
-	// Can't be valid if it isn't signed.
-	//if !cc2.IsValid() {
-	//	t.Errorf("signature did not match after unmarshalbinary")
-	//}
 }

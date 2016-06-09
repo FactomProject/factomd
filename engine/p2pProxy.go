@@ -120,10 +120,6 @@ func (p *P2PProxy) startProxy() {
 	go p.ManageInChannel()
 }
 
-// Note: BUGBUG - the NetworkProcessorNet / state has a channel of bad messages "Bad message queue?"
-// We need to rpocess these messages and get / give demerits.
-// Paul says its ok to punt on this for the alpha
-
 // manageOutChannel takes messages from the f.broadcastOut channel and sends them to the network.
 func (f *P2PProxy) ManageOutChannel() {
 	for data := range f.BroadcastOut {

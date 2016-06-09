@@ -40,6 +40,10 @@ func (a *ServerIndexNumber) GetEntryHash() interfaces.IHash {
 	return nil
 }
 
+func (e *ServerIndexNumber) GetSigHash() interfaces.IHash {
+	return nil
+}
+
 func (b *ServerIndexNumber) IsInterpretable() bool {
 	return true
 }

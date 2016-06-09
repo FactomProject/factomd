@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net"
+	"strings"
 	"time"
 )
 
@@ -27,24 +28,33 @@ type Controller struct {
 	ToNetwork   chan Parcel // Parcels from the application for us to route
 	FromNetwork chan Parcel // Parcels from the network for the application
 
-	listenPort         string                // port we listen on for new connections
-	connections        map[string]Connection // map of the peers indexed by peer hash
-	discovery          Discovery             // Our discovery structure
-	lastPeerManagement time.Time             // Last time we ran peer management.
-	NodeID             uint64
-	lastStatusReport   time.Time
-	lastPeerRequest    time.Time // Last time we asked peers about the peers they know about.
+	listenPort                 string                // port we listen on for new connections
+	connections                map[string]Connection // map of the peers indexed by peer hash
+	discovery                  Discovery             // Our discovery structure
+	numberIncommingConnections int                   // In PeerManagmeent we track this and refuse incomming connections when we have too many.
+	lastPeerManagement         time.Time             // Last time we ran peer management.
+	NodeID                     uint64
+	lastStatusReport           time.Time
+	lastPeerRequest            time.Time // Last time we asked peers about the peers they know about.
+}
+
+type ControllerInit struct {
+	Port      string    // Port to listen on
+	PeersFile string    // Path to file to find / save peers
+	Network   NetworkID // Network - eg MainNet, TestNet etc.
+	Exclusive bool      // flag to indicate we should only connect to trusted peers
+	SeedURL   string    // URL to a source of peer info
 }
 
 // CommandDialPeer is used to instruct the Controller to dial a peer address
 type CommandDialPeer struct {
-	address string
+	peer Peer
 }
 
 // CommandAddPeer is used to instruct the Controller to add a connection
 // This connection can come from acceptLoop or some other way.
 type CommandAddPeer struct {
-	connection Connection
+	conn net.Conn
 }
 
 // CommandShutdown is used to instruct the Controller to takve various actions.
@@ -77,41 +87,47 @@ type CommandChangeLogging struct {
 // command channel.
 //////////////////////////////////////////////////////////////////////
 
-func (c *Controller) Init(port string, peersFile string) *Controller {
-	verbose("ctrlr", "Controller.Init(%s)", port)
-	silence("#################", "META:  Jay's last touched: THURSDAY June 2 1050AM")
+func (c *Controller) Init(ci ControllerInit) *Controller {
+	verbose("ctrlr", "Controller.Init(%s)", ci.Port)
+	silence("#################", "META:  Jay's last touched: TUESDAY JUNE 7")
 	c.keepRunning = true
 	c.commandChannel = make(chan interface{}, 1000) // Commands from App
 	c.FromNetwork = make(chan Parcel, 10000)        // Channel to the app for network data
 	c.ToNetwork = make(chan Parcel, 10000)          // Parcels from the app for the network
-	c.listenPort = port
+	c.listenPort = ci.Port
+	NetworkListenPort = ci.Port
 	c.connections = make(map[string]Connection)
-	discovery := new(Discovery).Init(peersFile)
+	discovery := new(Discovery).Init(ci.PeersFile)
 	c.discovery = *discovery
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	NodeID = uint64(r.Int63()) // This is a global used by all connections
+	c.discovery.seedURL = ci.SeedURL
+	RandomGenerator = rand.New(rand.NewSource(time.Now().UnixNano()))
+	NodeID = uint64(RandomGenerator.Int63()) // This is a global used by all connections
 	c.lastPeerManagement = time.Now()
 	c.lastPeerRequest = time.Now()
+	CurrentNetwork = ci.Network
+	OnlySpecialPeers = ci.Exclusive
 	return c
 }
 
 // StartNetwork configures the network, starts the runloop
-func (c *Controller) StartNetwork(exclusive bool) {
+func (c *Controller) StartNetwork() {
 	verbose("ctrlr", "Controller.StartNetwork(%s)", " ")
 	// exclusive means we only connect to special peers
-	OnlySpecialPeers = exclusive
 	// start listening on port given
 	c.listen()
 	// Get a list of peers from discovery
 	// BUGBUG - in exclusivity we only dial the command line peers.
-	if !OnlySpecialPeers {
-		peers := c.discovery.GetOutgoingPeers()
-		// dial into the peers
-		for _, peer := range peers {
-			c.DialPeer(peer.Address)
-		}
+	peers := c.discovery.GetOutgoingPeers()
+	if len(peers) < NumberPeersToConnect*2 && !OnlySpecialPeers {
+		c.discovery.DiscoverPeers()
+		peers = c.discovery.GetOutgoingPeers()
+	}
+	// dial into the peers
+	for _, peer := range peers {
+		c.DialPeer(peer)
 	}
 	c.lastStatusReport = time.Now()
+	c.discovery.PrintPeers()
 	// Start the runloop
 	go c.runloop()
 }
@@ -130,14 +146,14 @@ func (c *Controller) ChangeLogLevel(level uint8) {
 	c.commandChannel <- CommandChangeLogging{level: level}
 }
 
-func (c *Controller) DialPeer(address string) {
-	debug("ctrlr", "DialPeer message for %s", address)
-	c.commandChannel <- CommandDialPeer{address: address}
+func (c *Controller) DialPeer(peer Peer) {
+	debug("ctrlr", "DialPeer message for %s", peer.Address)
+	c.commandChannel <- CommandDialPeer{peer: peer}
 }
 
-func (c *Controller) AddPeer(connection *Connection) {
-	debug("ctrlr", "CommandAddPeer for %+v", connection)
-	c.commandChannel <- CommandAddPeer{connection: *connection}
+func (c *Controller) AddPeer(conn net.Conn) {
+	debug("ctrlr", "CommandAddPeer for %+v", conn)
+	c.commandChannel <- CommandAddPeer{conn: conn}
 }
 
 func (c *Controller) NetworkStop() {
@@ -185,16 +201,18 @@ func (c *Controller) acceptLoop(listener net.Listener) {
 	note("ctrlr", "Controller.acceptLoop() starting up")
 	for {
 		conn, err := listener.Accept()
-		if nil != err {
+		switch err {
+		case nil:
+			switch {
+			case c.numberIncommingConnections < MaxNumberIncommingConnections:
+				c.AddPeer(conn) // Sends command to add the peer to the peers list
+				note("ctrlr", "Controller.acceptLoop() new peer: %+v", conn)
+			default:
+				note("ctrlr", "Controller.acceptLoop() new peer, but too many incomming connections. %d", c.numberIncommingConnections)
+				conn.Close()
+			}
+		default:
 			logerror("ctrlr", "Controller.acceptLoop() Error: %+v", err)
-		} else {
-			// BUGBUG - this is the source of the hashmap concurrent access issue.
-			// Possibly change the AddPeer command to just take the conn and do the RemoteAddr on the other side!
-			address := conn.RemoteAddr().String()
-			peer := c.discovery.GetPeerByAddress(address)
-			connection := new(Connection).InitWithConn(conn, peer)
-			c.AddPeer(connection) // Sends command to add the peer to the peers list
-			note("ctrlr", "Controller.acceptLoop() new peer: %+v", peer.Address)
 		}
 	}
 }
@@ -320,24 +338,21 @@ func (c *Controller) handleCommand(command interface{}) {
 	switch commandType := command.(type) {
 	case CommandDialPeer: // parameter is the peer address
 		parameters := command.(CommandDialPeer)
-		peer := c.discovery.GetPeerByAddress(parameters.address)
-		_, present := c.connections[peer.Hash]
-		if !present { // we are not connected to the peer
-			conn := new(Connection).Init(peer)
-			connection := *conn
-			c.connections[connection.peer.Hash] = connection
-			debug("ctrlr", "Controller.handleCommand(CommandDialPeer) got peer %s", peer.Address)
-		} else {
-			debug("ctrlr", "Controller.handleCommand(CommandDialPeer) ALREADY CONNECTED TO PEER %s", peer.Address)
-		}
+		conn := new(Connection).Init(parameters.peer)
+		connection := *conn
+		c.connections[connection.peer.Hash] = connection
+		debug("ctrlr", "Controller.handleCommand(CommandDialPeer) got peer %s", parameters.peer.Address)
 	case CommandAddPeer: // parameter is a Connection. This message is sent by the accept loop which is in a different goroutine
 		parameters := command.(CommandAddPeer)
-		connection := parameters.connection
-		_, present := c.connections[connection.peer.Hash] // check if we are already connected to the peer
-		if !present {                                     // we are not connected to the peer
-			c.connections[connection.peer.Hash] = connection
-		}
-		debug("ctrlr", "Controller.handleCommand(CommandAddPeer) got peer %+v", parameters.connection)
+		conn := parameters.conn // net.Conn
+		addPort := strings.Split(conn.RemoteAddr().String(), ":")
+		debug("ctrlr", "Controller.handleCommand(CommandAddPeer) got rconn.RemoteAddr().String() %s and parsed IP: %s and Port: %s",
+			conn.RemoteAddr().String(), addPort[0], addPort[1])
+		// Port initially stored will be the connection port (not the listen port), but peer will update it on first messae.
+		peer := new(Peer).Init(addPort[0], addPort[1], 0, RegularPeer, 0)
+		connection := new(Connection).InitWithConn(conn, *peer)
+		c.connections[connection.peer.Hash] = *connection
+		debug("ctrlr", "Controller.handleCommand(CommandAddPeer) got peer %+v", *peer)
 	case CommandShutdown:
 		verbose("ctrlr", "handleCommand() Processing command: CommandShutdown")
 		c.shutdown()
@@ -371,11 +386,15 @@ func (c *Controller) managePeers() {
 	if PeerSaveInterval < managementDuration {
 		c.lastPeerManagement = time.Now()
 		debug("ctrlr", "managePeers() time since last peer management: %s", managementDuration.String())
-		// If we are low on outgoing connections, attempt to connect to some more.
+		// If we are low on outgoing onnections, attempt to connect to some more.
+		// If the connection is not online, we don't count it as connected.
 		outgoing := 0
+		c.numberIncommingConnections = 0
 		for _, connection := range c.connections {
-			if connection.IsOutGoing() {
+			if connection.IsOutGoing() && connection.IsOnline() {
 				outgoing++
+			} else {
+				c.numberIncommingConnections++
 			}
 		}
 		if NumberPeersToConnect > outgoing {
@@ -385,7 +404,7 @@ func (c *Controller) managePeers() {
 			for _, peer := range peers {
 				_, present := c.connections[peer.Hash]
 				if !present {
-					c.DialPeer(peer.Address)
+					c.DialPeer(peer)
 				}
 			}
 		}
@@ -424,8 +443,9 @@ func (c *Controller) networkStatusReport() {
 		silence("ctrlr", "Network Status Report:")
 		silence("ctrlr", "===========================")
 		for _, value := range c.connections {
-			silence("ctrlr", "     Connection: %s", value.peer.Address)
+			silence("ctrlr", "     Connection: %s:%s", value.peer.Address, value.peer.Port)
 			silence("ctrlr", "          State: %s", value.ConnectionState())
+			silence("ctrlr", "           Hash: %s", value.peer.Hash)
 			silence("ctrlr", " ReceiveChannel: %d", len(value.ReceiveChannel))
 			silence("ctrlr", "    SendChannel: %d", len(value.SendChannel))
 			// silence("ctrlr", "     Connection: %+v", value)

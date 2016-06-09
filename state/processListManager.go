@@ -23,9 +23,6 @@ func (lists *ProcessLists) LastList() *ProcessList {
 	return lists.Lists[len(lists.Lists)-1]
 }
 
-func (lists *ProcessLists) Reset(dbheight uint32) {
-}
-
 // UpdateState is executed from a Follower's perspective.  So the block we are building
 // is always the block above the HighestRecordedBlock, but we only care about messages that
 // are at the highest known block, as long as that is above the highest recorded block.
@@ -59,7 +56,9 @@ func (lists *ProcessLists) Get(dbheight uint32) *ProcessList {
 		lists.Lists = append(lists.Lists, nil)
 	}
 	pl := lists.Lists[i]
-	prev := (*ProcessList)(nil)
+
+	var prev *ProcessList
+
 	if dbheight > 0 {
 		prev = lists.Get(dbheight - 1)
 	}
@@ -73,9 +72,9 @@ func (lists *ProcessLists) Get(dbheight uint32) *ProcessList {
 func (lists *ProcessLists) String() string {
 	str := "Process Lists"
 	str = fmt.Sprintf("%s  DBBase: %d\n", str, lists.DBHeightBase)
-	for i, pl := range lists.Lists {
-		str = fmt.Sprintf("%s ht: %d pl: %s\n", str, uint32(i)+lists.DBHeightBase, pl.String())
-	}
+	ht := lists.State.GetHighestRecordedBlock()
+	pl := lists.Get(ht + 1)
+	str = fmt.Sprintf("%s ht: %d pl: %s\n", str, ht+1, pl.String())
 	return str
 }
 

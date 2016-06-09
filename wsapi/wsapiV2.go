@@ -233,6 +233,7 @@ func HandleV2RevealEntry(state interfaces.IState, params interface{}) (interface
 
 	resp := new(RevealEntryResponse)
 	resp.Message = "Entry Reveal Success"
+	resp.EntryHash = entry.GetHash().String()
 
 	return resp, nil
 }
@@ -318,6 +319,7 @@ func HandleV2Receipt(state interfaces.IState, params interface{}) (interface{}, 
 	}
 	resp := new(ReceiptResponse)
 	resp.Receipt = receipt
+
 	return resp, nil
 }
 

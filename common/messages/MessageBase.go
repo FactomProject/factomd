@@ -10,6 +10,8 @@ import (
 )
 
 type MessageBase struct {
+	FullMsgHash interfaces.IHash
+
 	Origin        int    // Set and examined on a server, not marshaled with the message
 	NetworkOrigin string // Hash of the network peer/connection where the message is from
 	Peer2Peer     bool   // The nature of this message type, not marshaled with the message
@@ -20,6 +22,26 @@ type MessageBase struct {
 	VMIndex       int              // The Index of the VM responsible for this message.
 	VMHash        []byte           // Basis for selecting a VMIndex
 	Minute        byte
+
+	Stalled bool // This message is currently stalled
+}
+
+func (m *MessageBase) IsStalled() bool {
+	return m.Stalled
+}
+func (m *MessageBase) SetStall(b bool) {
+	m.Stalled = b
+}
+
+func (m *MessageBase) GetFullMsgHash() interfaces.IHash {
+	if m.FullMsgHash == nil {
+		m.FullMsgHash = primitives.NewZeroHash()
+	}
+	return m.FullMsgHash
+}
+
+func (m *MessageBase) SetFullMsgHash(hash interfaces.IHash) {
+	m.GetFullMsgHash().SetBytes(hash.Bytes())
 }
 
 func (m *MessageBase) GetOrigin() int {

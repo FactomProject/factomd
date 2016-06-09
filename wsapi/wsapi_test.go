@@ -2,15 +2,16 @@ package wsapi_test
 
 import (
 	"encoding/json"
-	"fmt"
+	//"fmt"
+	"strings"
+	"testing"
+
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/receipts"
 	"github.com/FactomProject/factomd/testHelper"
 	. "github.com/FactomProject/factomd/wsapi"
-	"strings"
-	"testing"
 )
 
 /*
@@ -74,7 +75,7 @@ func TestHandleDirectoryBlockHead(t *testing.T) {
 
 	HandleDirectoryBlockHead(context)
 
-	if strings.Contains(testHelper.GetBody(context), "93b9d8bc11869819aed5e11ff15c865435a58d7b57c9f27fe4638dfc23f13b34") == false {
+	if strings.Contains(testHelper.GetBody(context), "3d5f53c7a065a15591251ec4d98863733ce2ada64143b847019aa1c93dce250c") == false {
 		t.Errorf("Context does not contain proper DBlock Head - %v", testHelper.GetBody(context))
 	}
 }
@@ -168,7 +169,7 @@ func TestHandleGetRaw(t *testing.T) {
 
 func TestHandleDirectoryBlock(t *testing.T) {
 	context := testHelper.CreateWebContext()
-	hash := "d57f08eb468113a882e1c6610d7d726fdbba3096dbcbc58ca2340239ad358880"
+	hash := "3d5f53c7a065a15591251ec4d98863733ce2ada64143b847019aa1c93dce250c"
 
 	HandleDirectoryBlock(context, hash)
 
@@ -184,7 +185,7 @@ func TestHandleDirectoryBlock(t *testing.T) {
 		t.Errorf("%v", testHelper.GetBody(context))
 	}
 
-	if strings.Contains(testHelper.GetBody(context), "1c290560040542fcbe3cf088d70b7178b3c45b2c4ef20b258593673663455357") == false {
+	if strings.Contains(testHelper.GetBody(context), "22726119f744a149b0d8fe887b6de3f9a1a98d43825a520ae332c38ea1bee308") == false {
 		t.Errorf("%v", testHelper.GetBody(context))
 	}
 
@@ -192,7 +193,7 @@ func TestHandleDirectoryBlock(t *testing.T) {
 		t.Errorf("%v", testHelper.GetBody(context))
 	}
 
-	if strings.Contains(testHelper.GetBody(context), "c6cd2ab21d75af1e8589e1eb441411838a508d0674eb294bac4efdc591c3fef4") == false {
+	if strings.Contains(testHelper.GetBody(context), "769c1a58507f8f62bf0dd7e7b8eb7f1edf61f19a6508a0fea632a492e7d93e00") == false {
 		t.Errorf("%v", testHelper.GetBody(context))
 	}
 
@@ -208,7 +209,7 @@ func TestHandleDirectoryBlock(t *testing.T) {
 		t.Errorf("%v", testHelper.GetBody(context))
 	}
 
-	if strings.Contains(testHelper.GetBody(context), "1a1586498d5dc5607274cbbef23c92d786df7f06674f3297348e7213f8e5583e") == false {
+	if strings.Contains(testHelper.GetBody(context), "c5e93a3b7a37957eb21ce409ee263cb3dc2403711ffe3e1b126abe431e57defe") == false {
 		t.Errorf("%v", testHelper.GetBody(context))
 	}
 }
@@ -290,7 +291,7 @@ func TestHandleChainHead(t *testing.T) {
 
 	HandleChainHead(context, hash)
 
-	if strings.Contains(testHelper.GetBody(context), "93b9d8bc11869819aed5e11ff15c865435a58d7b57c9f27fe4638dfc23f13b34") == false {
+	if strings.Contains(testHelper.GetBody(context), "3d5f53c7a065a15591251ec4d98863733ce2ada64143b847019aa1c93dce250c") == false {
 		t.Errorf("Invalid directory block head: %v", testHelper.GetBody(context))
 	}
 
@@ -312,12 +313,21 @@ func TestHandleChainHead(t *testing.T) {
 		t.Errorf("Invalid entry block head: %v", testHelper.GetBody(context))
 	}
 
+	hash = "df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604"
+
+	testHelper.ClearContextResponseWriter(context)
+	HandleChainHead(context, hash)
+
+	if strings.Contains(testHelper.GetBody(context), "c5e93a3b7a37957eb21ce409ee263cb3dc2403711ffe3e1b126abe431e57defe") == false {
+		t.Errorf("Invalid entry block head: %v", testHelper.GetBody(context))
+	}
+
 	hash = "000000000000000000000000000000000000000000000000000000000000000c"
 
 	testHelper.ClearContextResponseWriter(context)
 	HandleChainHead(context, hash)
 
-	if strings.Contains(testHelper.GetBody(context), "4878cdd3e80af547c59ea8bcb17471d676a0fdb1bcc01ab17a438cb5fb9ad4da") == false {
+	if strings.Contains(testHelper.GetBody(context), "22726119f744a149b0d8fe887b6de3f9a1a98d43825a520ae332c38ea1bee308") == false {
 		t.Errorf("Invalid entry credit block head: %v", testHelper.GetBody(context))
 	}
 
@@ -326,7 +336,7 @@ func TestHandleChainHead(t *testing.T) {
 	testHelper.ClearContextResponseWriter(context)
 	HandleChainHead(context, hash)
 
-	if strings.Contains(testHelper.GetBody(context), "067f353dda05ac27261d4b35a09f211f7a4b0182dff0b6098a16ae8659eb7f5f") == false {
+	if strings.Contains(testHelper.GetBody(context), "769c1a58507f8f62bf0dd7e7b8eb7f1edf61f19a6508a0fea632a492e7d93e00") == false {
 		t.Errorf("Invalid factoid block head: %v", testHelper.GetBody(context))
 	}
 }
@@ -345,12 +355,12 @@ func TestHandleFactoidBalance(t *testing.T) {
 	context := testHelper.CreateWebContext()
 	eckey := testHelper.NewFactoidRCDAddressString(0)
 
-	fmt.Printf("%v\n", eckey)
+	t.Logf("%v\n", eckey)
 
 	HandleFactoidBalance(context, eckey)
 
 	//expectedAmount := fmt.Sprintf("%v", uint64(testHelper.BlockCount)*testHelper.DefaultCoinbaseAmount)
-	expectedAmount := "1099877900"
+	expectedAmount := "999889000"
 	if strings.Contains(testHelper.GetBody(context), expectedAmount) == false {
 		t.Errorf("%v", testHelper.GetBody(context))
 	}
@@ -404,16 +414,21 @@ func TestBlockIteration(t *testing.T) {
 
 func TestHandleGetReceipt(t *testing.T) {
 	context := testHelper.CreateWebContext()
-	hash := "cf9503fad6a6cf3cf6d7a5a491e23d84f9dee6dacb8c12f428633995655bd0d0"
+	hash := "8c35266c406e5a42fc3ca93f2d850b954bdfa79f49b2ceaf7f7086b691ffc022"
 
 	HandleGetReceipt(context, hash)
 
 	j := testHelper.GetRespMap(context)
 
+	if j == nil {
+		t.Error("Receipt not found!")
+		return
+	}
+
 	dbo := context.Server.Env["state"].(interfaces.IState).GetAndLockDB()
 	defer context.Server.Env["state"].(interfaces.IState).UnlockDB()
 
-	receipt := j["Receipt"].(map[string]interface{})
+	receipt := j["receipt"].(map[string]interface{})
 	marshalled, err := json.Marshal(receipt)
 	if err != nil {
 		t.Error(err)

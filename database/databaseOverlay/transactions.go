@@ -26,6 +26,9 @@ func (db *Overlay) FetchFactoidTransactionByHash(hash interfaces.IHash) (interfa
 		if tx.GetHash().IsSameAs(hash) {
 			return tx, nil
 		}
+		if tx.GetSigHash().IsSameAs(hash) {
+			return tx, nil
+		}
 	}
 	return nil, fmt.Errorf("Transaction not found in block, should not happen")
 }
@@ -45,11 +48,9 @@ func (db *Overlay) FetchECTransactionByHash(hash interfaces.IHash) (interfaces.I
 	if block == nil {
 		return nil, fmt.Errorf("Block not found, should not happen")
 	}
-	txs := block.GetEntries()
-	for _, tx := range txs {
-		if tx.Hash().IsSameAs(hash) {
-			return tx, nil
-		}
+	tx := block.GetEntryByHash(hash)
+	if tx != nil {
+		return tx, nil
 	}
 	return nil, fmt.Errorf("Transaction not found in block, should not happen")
 }

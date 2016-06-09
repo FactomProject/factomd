@@ -32,6 +32,8 @@ type IFBlock interface {
 	DatabaseSecondaryIndex() IHash //block.GetHash()
 	New() BinaryMarshallableAndCopyable
 	GetEntryHashes() []IHash
+	GetEntrySigHashes() []IHash
+	GetTransactionByHash(hash IHash) ITransaction
 
 	// Get the ChainID. This is a constant for all Factoids.
 	GetChainID() IHash

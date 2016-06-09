@@ -9,6 +9,7 @@ import (
 	"encoding/base64"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // Data structures and functions related to peers (eg other nodes in the network)
@@ -16,9 +17,13 @@ import (
 type Peer struct {
 	QualityScore int32  // 0 is neutral quality, negative is a bad peer.
 	Address      string // Must be in form of x.x.x.x
+	Port         string // Must be in form of xxxx
+	NodeID       uint64 // a nonce to distinguish multiple nodes behind one IP address
 	Hash         string
 	Location     uint32 // IP address as an int.
 	Type         uint8
+	Connections  int       // Number of successful connections.
+	LastContact  time.Time // Keep track of how long ago we talked to the peer.
 }
 
 const ( // iota is reset to 0
@@ -26,13 +31,22 @@ const ( // iota is reset to 0
 	SpecialPeer
 )
 
-func (p *Peer) Init(address string, quality int, peerType uint8) *Peer {
+func (p *Peer) Init(address string, port string, quality int32, peerType uint8, connections int) *Peer {
 	p.Address = address
-	p.QualityScore = 0 // start at zero, zero is neutral, negative is a bad peer, positive is a good peer.
-	p.Hash = PeerHashFromAddress(address)
+	p.Port = port
+	p.QualityScore = quality
+	p.Hash = p.generatePeerHash()
 	p.Type = peerType
 	p.Location = p.locationFromAddress()
 	return p
+}
+
+func (p *Peer) generatePeerHash() string {
+	buff := make([]byte, 256)
+	RandomGenerator.Read(buff)
+	raw := sha256.Sum256(buff)
+	hash := base64.URLEncoding.EncodeToString(raw[0:sha256.Size])
+	return hash
 }
 
 // BUGBUG Hadn't considered IPV6 addresses.
@@ -64,14 +78,6 @@ func (p *Peer) locationFromAddress() uint32 {
 	location += uint32(b3)
 	verbose("peer", "Peer: %s with ip_port: %+v and octets: %+v has Location: %d", p.Hash, ip_port, octets, location)
 	return location
-}
-
-// BUGBUG Exclude port from hash
-func PeerHashFromAddress(address string) string {
-	raw := sha256.Sum256([]byte(address))
-	hash := base64.URLEncoding.EncodeToString(raw[0:sha256.Size])
-	verbose("peer", "Peer address %s produces hash: %s", address, hash)
-	return hash
 }
 
 // merit increases a peers reputation

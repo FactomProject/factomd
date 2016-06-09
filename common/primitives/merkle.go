@@ -69,9 +69,9 @@ func BuildMerkleTreeStore(hashes []interfaces.IHash) (merkles []interfaces.IHash
 }
 
 type MerkleNode struct {
-	Left  *Hash // `json:",omitempty"`
-	Right *Hash // `json:",omitempty"`
-	Top   *Hash //`json:",omitempty"`
+	Left  *Hash `json:"left,omitempty"`
+	Right *Hash `json:"right,omitempty"`
+	Top   *Hash `json:"top,omitempty"`
 }
 
 func BuildMerkleBranchForEntryHash(hashes []interfaces.IHash, entryHash interfaces.IHash, fullDetail bool) []*MerkleNode {

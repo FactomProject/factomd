@@ -30,6 +30,7 @@ type ParcelHeader struct {
 	Crc32      uint32            // 4 bytes - data integrity hash (of the payload itself.)
 	Timestamp  time.Time
 	NodeID     uint64
+	PeerPort   string // port the peer , or we are listening on
 }
 
 type ParcelCommandType uint16
@@ -72,7 +73,8 @@ func (p *ParcelHeader) Init(network NetworkID) *ParcelHeader {
 	p.Network = network
 	p.Version = ProtocolVersion
 	p.Type = TypeMessage
-	p.TargetPeer = "" // initially no target
+	p.TargetPeer = ""              // initially no target
+	p.PeerPort = NetworkListenPort // store our listening port
 	return p
 }
 func (p *Parcel) Init(header ParcelHeader) *Parcel {

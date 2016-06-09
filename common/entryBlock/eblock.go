@@ -31,6 +31,10 @@ func (c *EBlock) GetEntryHashes() []interfaces.IHash {
 	return c.Body.EBEntries[:]
 }
 
+func (c *EBlock) GetEntrySigHashes() []interfaces.IHash {
+	return nil
+}
+
 func (c *EBlock) New() interfaces.BinaryMarshallableAndCopyable {
 	return NewEBlock()
 }

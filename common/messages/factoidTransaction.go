@@ -46,6 +46,8 @@ func (a *FactoidTransaction) IsSameAs(b *FactoidTransaction) bool {
 
 func (m *FactoidTransaction) GetHash() interfaces.IHash {
 
+	m.SetFullMsgHash(m.Transaction.GetFullHash())
+
 	data, err := m.Transaction.MarshalBinarySig()
 	if err != nil {
 		panic(fmt.Sprintf("Error in CommitChain.GetHash(): %s", err.Error()))

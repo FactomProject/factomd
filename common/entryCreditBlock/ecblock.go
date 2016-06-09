@@ -40,12 +40,43 @@ func (c *ECBlock) GetEntries() []interfaces.IECBlockEntry {
 	return c.Body.GetEntries()
 }
 
+func (c *ECBlock) GetEntryByHash(hash interfaces.IHash) interfaces.IECBlockEntry {
+	if hash == nil {
+		return nil
+	}
+
+	txs := c.GetEntries()
+	for _, tx := range txs {
+		if hash.IsSameAs(tx.Hash()) {
+			return tx
+		}
+		if hash.IsSameAs(tx.GetSigHash()) {
+			return tx
+		}
+	}
+	return nil
+}
+
 func (c *ECBlock) GetEntryHashes() []interfaces.IHash {
 	entries := c.Body.GetEntries()
 	answer := make([]interfaces.IHash, 0, len(entries))
 	for _, entry := range entries {
 		if entry.ECID() == ECIDBalanceIncrease || entry.ECID() == ECIDChainCommit || entry.ECID() == ECIDEntryCommit {
 			answer = append(answer, entry.Hash())
+		}
+	}
+	return answer
+}
+
+func (c *ECBlock) GetEntrySigHashes() []interfaces.IHash {
+	entries := c.Body.GetEntries()
+	answer := make([]interfaces.IHash, 0, len(entries))
+	for _, entry := range entries {
+		if entry.ECID() == ECIDBalanceIncrease || entry.ECID() == ECIDChainCommit || entry.ECID() == ECIDEntryCommit {
+			sHash := entry.GetSigHash()
+			if sHash != nil {
+				answer = append(answer, sHash)
+			}
 		}
 	}
 	return answer
@@ -73,7 +104,7 @@ func (c *ECBlock) GetChainID() interfaces.IHash {
 }
 
 func (c *ECBlock) DatabasePrimaryIndex() interfaces.IHash {
-	key, _ := c.Hash()
+	key, _ := c.GetFullHash()
 	return key
 }
 
@@ -87,12 +118,12 @@ func (e *ECBlock) AddEntry(entries ...interfaces.IECBlockEntry) {
 }
 
 func (e *ECBlock) GetHash() interfaces.IHash {
-	h, _ := e.Hash()
+	h, _ := e.GetFullHash()
 	return h
 }
 
-// This is the FullHash.  TODO: rename to GetFullHash()
-func (e *ECBlock) Hash() (interfaces.IHash, error) {
+// This is the FullHash.
+func (e *ECBlock) GetFullHash() (interfaces.IHash, error) {
 	p, err := e.MarshalBinary()
 	if err != nil {
 		return nil, err
@@ -433,7 +464,7 @@ func NextECBlock(prev interfaces.IEntryCreditBlock) (interfaces.IEntryCreditBloc
 		}
 		e.GetHeader().SetPrevHeaderHash(v)
 
-		v, err = prev.Hash()
+		v, err = prev.GetFullHash()
 		if err != nil {
 			return nil, err
 		}
