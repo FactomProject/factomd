@@ -32,22 +32,19 @@ func (s *State) NewMinute() {
 	// Anything we are holding, we need to reprocess.
 	for k := range s.Holding {
 		v := s.Holding[k]
-		if _, ok := s.InternalReplay.Valid(v.GetHash().Fixed(), int64(v.GetTimestamp()/1000), int64(s.GetTimestamp()/1000)); ok {
+		a, _ := s.Acks[k].(*messages.Ack)
+		if a != nil && v != nil {
+			s.ProcessLists.Get(a.DBHeight).AddToProcessList(a, v)
+		} else if v != nil {
 			v.ComputeVMIndex(s)
 			if s.Leader {
 				s.XReview = append(s.XReview, v)
 				delete(s.Holding, k)
 			}
-		} else {
-			delete(s.Holding, k)
 		}
 	}
 
 	s.EOM = 0
-
-	for k := range s.Acks {
-		s.StallAck(s.Acks[k].(*messages.Ack))
-	}
 
 	s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 	s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.LeaderMinute, s.IdentityChainID)
@@ -64,6 +61,10 @@ func (s *State) NewMinute() {
 func (s *State) Process() (progress bool) {
 
 	//s.DebugPrt("Process")
+
+	if s.EOM > 0 {
+		s.LeaderMinute = s.EOM
+	}
 
 	highest := s.GetHighestRecordedBlock()
 
@@ -158,13 +159,6 @@ func (s *State) ProcessQueues() (progress bool) {
 		s.UpdateState()
 	}
 
-	if s.Leader && s.EOM == 0 && len(s.StallMsgs) > 0 {
-		msg := s.StallMsgs[0]
-		executeMsg(msg)
-		s.StallMsgs = s.StallMsgs[1:]
-		s.UpdateState()
-	}
-
 	if ack := s.GetStalledAck(0); ack != nil {
 		_, ok := s.InternalReplay.Valid(ack.GetHash().Fixed(), int64(ack.GetTimestamp()/1000), int64(s.GetTimestamp()/1000))
 		if ok && ack.Validate(s) == 1 {
@@ -180,7 +174,7 @@ func (s *State) ProcessQueues() (progress bool) {
 		if ok && ack.Validate(s) == 1 {
 			ack.FollowerExecute(s)
 		} else if s.DebugConsensus {
-			fmt.Println("dddd ackQueue ok:", ok, "validate:", ack.Validate(s), ack.String())
+			fmt.Println("dddd ackQueue ok:", s.FactomNodeName, ok, "validate:", ack.Validate(s), ack.String())
 		}
 		progress = true
 	case msg := <-s.msgQueue:
@@ -349,11 +343,6 @@ func (s *State) LeaderExecute(m interfaces.IMsg) {
 		return
 	}
 
-	if s.EOM > 0 {
-		s.StallMsg(m)
-		return
-	}
-
 	ack := s.NewAck(m)
 
 	s.LeaderPL.AddToProcessList(ack.(*messages.Ack), m)
@@ -368,11 +357,6 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 	if !s.Green() || !m.IsLocal() {
 		s.networkOutMsgQueue <- m
 		m.FollowerExecute(s)
-		return
-	}
-
-	if s.EOM > 0 {
-		s.StallMsg(m)
 		return
 	}
 
@@ -431,56 +415,6 @@ func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg)
 
 	// save the Commit to match agains the Reveal later
 	s.PutCommits(c.CommitEntry.EntryHash, c)
-
-	return true
-}
-
-// TODO: Should fault the server if we don't have the proper sequence of EOM messages.
-func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
-
-	e, ok := msg.(*messages.EOM)
-	if !ok {
-		panic("Must pass an EOM message to ProcessEOM)")
-	}
-
-	if s.EOM == 0 && !s.Leader {
-		s.EOM = int(e.Minute + 1)
-	}
-
-	pl := s.ProcessLists.Get(dbheight)
-
-	if pl.MinuteComplete() < s.LeaderMinute {
-		return false
-	}
-
-	if e.FactoidVM {
-		s.FactoidState.EndOfPeriod(int(e.Minute))
-
-		// Add EOM to the EBlocks.  We only do this once, so
-		// we piggy back on the fact that we only do the FactoidState
-		// EndOfPeriod once too.
-	}
-
-	for _, eb := range pl.NewEBlocks {
-		if pl.VMIndexFor(eb.GetChainID().Bytes()) == e.VMIndex {
-			eb.AddEndOfMinuteMarker(e.Bytes()[0])
-		}
-	}
-
-	if pl.VMIndexFor(constants.ADMIN_CHAINID) == e.VMIndex {
-		pl.AdminBlock.AddEndOfMinuteMarker(e.Minute)
-	}
-
-	if pl.VMIndexFor(constants.EC_CHAINID) == e.VMIndex {
-		ecblk := pl.EntryCreditBlock
-		ecbody := ecblk.GetBody()
-		mn := entryCreditBlock.NewMinuteNumber2(e.Minute)
-		ecbody.AddEntry(mn)
-	}
-
-	vm := pl.VMs[e.VMIndex]
-
-	vm.MinuteFinished = int(e.Minute) + 1
 
 	return true
 }
@@ -559,6 +493,56 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
 		return true
 	}
 	return false
+}
+
+// TODO: Should fault the server if we don't have the proper sequence of EOM messages.
+func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
+
+	e, ok := msg.(*messages.EOM)
+	if !ok {
+		panic("Must pass an EOM message to ProcessEOM)")
+	}
+
+	if s.EOM == 0 && !s.Leader {
+		s.EOM = int(e.Minute + 1)
+	}
+
+	pl := s.ProcessLists.Get(dbheight)
+
+	if pl.MinuteComplete() < s.LeaderMinute {
+		return false
+	}
+
+	if e.FactoidVM {
+		s.FactoidState.EndOfPeriod(int(e.Minute))
+
+		// Add EOM to the EBlocks.  We only do this once, so
+		// we piggy back on the fact that we only do the FactoidState
+		// EndOfPeriod once too.
+	}
+
+	for _, eb := range pl.NewEBlocks {
+		if pl.VMIndexFor(eb.GetChainID().Bytes()) == e.VMIndex {
+			eb.AddEndOfMinuteMarker(e.Bytes()[0])
+		}
+	}
+
+	if pl.VMIndexFor(constants.ADMIN_CHAINID) == e.VMIndex {
+		pl.AdminBlock.AddEndOfMinuteMarker(e.Minute)
+	}
+
+	if pl.VMIndexFor(constants.EC_CHAINID) == e.VMIndex {
+		ecblk := pl.EntryCreditBlock
+		ecbody := ecblk.GetBody()
+		mn := entryCreditBlock.NewMinuteNumber2(e.Minute)
+		ecbody.AddEntry(mn)
+	}
+
+	vm := pl.VMs[e.VMIndex]
+
+	vm.MinuteFinished = int(e.Minute) + 1
+
+	return true
 }
 
 // When we process the directory Signature, and we are the leader for said signature, it

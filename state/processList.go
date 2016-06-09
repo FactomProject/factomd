@@ -441,6 +441,10 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 		plist := vm.List
 		alist := vm.ListAck
 
+		if vm.Height == len(plist) && p.Sealing && vm.Seal == 0 {
+			vm.SealTime = ask(i, vm, vm.SealTime+2, vm.Height)
+		}
+
 		for j := vm.Height; j < len(plist); j++ {
 			if plist[j] == nil {
 				vm.missingTime = ask(i, vm, vm.missingTime, j)
@@ -464,10 +468,6 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			//	p.diffSigTally = 0
 			//}
 			//}
-
-			if p.Sealing && vm.Seal == 0 {
-				vm.SealTime = ask(i, vm, vm.SealTime+1, vm.Height)
-			}
 
 			thisAck := alist[j]
 			if thisAck == nil { // IF I don't have an Ack to match this entry

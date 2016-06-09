@@ -224,6 +224,10 @@ func (list *DBStateList) UpdateState() (progress bool) {
 		}
 
 		if d.Saved {
+			dblk, _ := list.State.DB.FetchDBlockByKeyMR(d.DirectoryBlock.GetKeyMR())
+			if dblk == nil {
+				panic("Claimed to be saved, but isn't")
+			}
 			continue
 		}
 
