@@ -732,7 +732,9 @@ func (s *State) ProcessRecentFERChainEntries() {
 	}
 
 	// Check for the need to clear the priority
-	if ((s.GetDBHeightComplete()-12) >= s.FERPrioritySetHeight) {
+	// (s.GetDBHeightComplete() >= 12) is import because height is a uint and can't break logic if subtracted into false sub-zero
+	if ( 	(s.GetDBHeightComplete() >= 12) &&
+		(s.GetDBHeightComplete() - 12) >= s.FERPrioritySetHeight) {
 		s.FERPrioritySetHeight = 0
 		s.FERPriority = 0
 		// Now the next entry to come through with a priority of 1 or more will be considered
