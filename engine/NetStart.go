@@ -170,6 +170,8 @@ func NetStart(s *state.State) {
 	os.Stderr.WriteString(fmt.Sprintf("port        \"%d\"\n", s.PortNumber))
 	os.Stderr.WriteString(fmt.Sprintf("networkPort \"%s\"\n", networkPort))
 	os.Stderr.WriteString(fmt.Sprintf("peers       \"%s\"\n", peers))
+	os.Stderr.WriteString(fmt.Sprintf("netdebug       \"%d\"\n", netdebug))
+	os.Stderr.WriteString(fmt.Sprintf("exclusive       \"%t\"\n", exclusive))
 	os.Stderr.WriteString(fmt.Sprintf("blkTime     %d\n", blkTime))
 	os.Stderr.WriteString(fmt.Sprintf("runtimeLog  %v\n", runtimeLog))
 	os.Stderr.WriteString(fmt.Sprintf("profile     %v\n", profile))
