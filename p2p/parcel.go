@@ -67,7 +67,6 @@ func NewParcel(network NetworkID, payload []byte) *Parcel {
 }
 
 func (p *ParcelHeader) Init(network NetworkID) *ParcelHeader {
-	// p.Cookie = ProtocolCookie //COOKIE - no cookie for now.
 	p.Network = network
 	p.Version = ProtocolVersion
 	p.Type = TypeMessage

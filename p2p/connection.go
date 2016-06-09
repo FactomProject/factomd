@@ -33,6 +33,8 @@ type Connection struct {
 	isOutGoing      bool         // We keep track of outgoing dial() vs incomming accept() connections
 	isPersistent    bool         // Persistent connections we always redail. BUGBUG - should this be handled by peer type logic?
 	notes           string       // Notes about the connection, for debugging (eg: error)
+	bytesSent       uint32       // Keeping track of the data sent/recieved for console
+	bytesReceived   uint32       // Keeping track of the data sent/recieved for console
 }
 
 // Each connection is a simple state machine.  The state is managed by a single goroutine which also does netowrking.
@@ -48,8 +50,7 @@ const (
 	ConnectionOnline                    // We're connected to the other side.  Normal state
 	ConnectionOffline                   // We've been disconnected for whatever reason.  Attempt to reconnect some number of times. Moves to Online if successful, Shutdown if not.
 	ConnectionShuttingDown              // We're shutting down, the recieves loop exits.
-	// ConnectionReceivesShutdown              // The receives loop has exited, now waiting on the runloop
-	ConnectionClosed // We're shut down, the runloop sets this state right before exiting. Controller can clean us up.
+	ConnectionClosed                    // We're shut down, the runloop sets this state right before exiting. Controller can clean us up.
 )
 
 // Map of network ids to strings for easy printing of network ID
@@ -58,8 +59,7 @@ var connectionStateStrings = map[uint8]string{
 	ConnectionOnline:       "Online",
 	ConnectionOffline:      "Offline",
 	ConnectionShuttingDown: "Shutting Down",
-	// ConnectionReceivesShutdown: "Receive Loop Shutting Down",
-	ConnectionClosed: "Closed",
+	ConnectionClosed:       "Closed",
 }
 
 // ConnectionParcel is sent to convey an appication message destined for the network.
@@ -97,6 +97,7 @@ func (c *Connection) InitWithConn(conn net.Conn, peer Peer) *Connection {
 	c.isPersistent = false
 	debug(c.peer.PeerIdent(), "Connection.InitWithConn() called.")
 	c.goOnline()
+	c.notes = "Incomming connection from accept()"
 	return c
 }
 
@@ -153,12 +154,13 @@ func (c *Connection) runLoop() {
 		case ConnectionInitialized:
 			// BUGBUG Note this means that we will redial ourselves if we are set as a persistent connection with ourselves as peer.
 			if MinumumQualityScore > c.peer.QualityScore && !c.isPersistent {
-				significant(c.peer.PeerIdent(), "Connection.runloop(%s) ConnectionInitialized quality score too low: %d", c.peer.PeerIdent(), c.peer.QualityScore)
+				note(c.peer.PeerIdent(), "Connection.runloop(%s) ConnectionInitialized quality score too low: %d", c.peer.PeerIdent(), c.peer.QualityScore)
 				c.updatePeer() // every PeerSaveInterval * 0.90 we send an update peer to the controller.
 				c.goShutdown()
+			} else {
+				note(c.peer.PeerIdent(), "Connection.runLoop() ConnectionInitialized, going dialLoop().")
+				c.dialLoop() // dialLoop dials until it connects or shuts down.
 			}
-			significant(c.peer.PeerIdent(), "Connection.runLoop() ConnectionInitialized, going dialLoop().")
-			c.dialLoop() // dialLoop dials until it connects or shuts down.
 		case ConnectionOnline:
 			c.processReceives()
 			c.processSends()
@@ -170,12 +172,12 @@ func (c *Connection) runLoop() {
 				}
 			}
 			if MinumumQualityScore > c.peer.QualityScore && !c.isPersistent {
-				significant(c.peer.PeerIdent(), "Connection.runloop(%s) ConnectionOnline quality score too low: %d", c.peer.PeerIdent(), c.peer.QualityScore)
+				note(c.peer.PeerIdent(), "Connection.runloop(%s) ConnectionOnline quality score too low: %d", c.peer.PeerIdent(), c.peer.QualityScore)
 				c.updatePeer() // every PeerSaveInterval * 0.90 we send an update peer to the controller.
 				c.goShutdown()
 			}
 		case ConnectionOffline:
-			significant(c.peer.PeerIdent(), "Connection.runLoop() ConnectionOffline, going dialLoop().")
+			note(c.peer.PeerIdent(), "Connection.runLoop() ConnectionOffline, going dialLoop().")
 			c.dialLoop() // dialLoop dials until it connects or shuts down.
 		case ConnectionShuttingDown:
 			debug(c.peer.PeerIdent(), "runLoop() ConnectionShuttingDown STATE runloop() cleaning up. ")
@@ -191,45 +193,46 @@ func (c *Connection) runLoop() {
 // dialLoop:  dials the connection until giving up. Called in offline or initializing states.
 // All exits from dialLoop change the state of the connection allowing the outside run_loop to proceed.
 func (c *Connection) dialLoop() {
+	c.notes = fmt.Sprintf("dialLoop() dialing: %+v", c.peer.PeerIdent())
 	for {
 		elapsed := time.Since(c.timeLastAttempt)
-		significant(c.peer.PeerIdent(), "Connection.dialLoop() elapsed: %s Attempts: %d", elapsed.String(), c.attempts)
+		debug(c.peer.PeerIdent(), "Connection.dialLoop() elapsed: %s Attempts: %d", elapsed.String(), c.attempts)
 		if TimeBetweenRedials < elapsed {
 			c.timeLastAttempt = time.Now()
 			switch c.dial() {
 			case true:
-				significant(c.peer.PeerIdent(), "Connection.dialLoop() Connected, going online.")
+				note(c.peer.PeerIdent(), "Connection.dialLoop() Connected, going online.")
 				c.goOnline()
 				return
 			case false:
 				switch {
 				case c.isPersistent:
-					significant(c.peer.PeerIdent(), "Connection.dialLoop() Persistent connection - Sleeping until next redial.")
+					note(c.peer.PeerIdent(), "Connection.dialLoop() Persistent connection - Sleeping until next redial.")
 					time.Sleep(TimeBetweenRedials)
 				case !c.isOutGoing: // incomming connection we redial once, then give up.
-					significant(c.peer.PeerIdent(), "Connection.dialLoop() Incomming Connections - One Shot dial, so we're shutting down.")
+					note(c.peer.PeerIdent(), "Connection.dialLoop() Incomming Connections - One Shot dial, so we're shutting down.")
 					c.goShutdown()
 					return
 				case ConnectionInitialized == c.state:
-					significant(c.peer.PeerIdent(), "Connection.dialLoop() ConnectionInitialized - One Shot dial, so we're shutting down.")
+					note(c.peer.PeerIdent(), "Connection.dialLoop() ConnectionInitialized - One Shot dial, so we're shutting down.")
 					c.goShutdown() // We're dialing possibly many peers who are no longer there.
 					return
 				case ConnectionOffline == c.state: // We were online with the peer at one point.
-					significant(c.peer.PeerIdent(), "Connection.dialLoop() ConnectionOffline - Attempts: %d - since redial: %s TimeBetweenRedials: %s", c.attempts, elapsed.String(), TimeBetweenRedials.String())
+					note(c.peer.PeerIdent(), "Connection.dialLoop() ConnectionOffline - Attempts: %d - since redial: %s TimeBetweenRedials: %s", c.attempts, elapsed.String(), TimeBetweenRedials.String())
 					c.attempts++
 					switch {
 					case MaxNumberOfRedialAttempts < c.attempts:
-						significant(c.peer.PeerIdent(), "Connection.dialLoop() MaxNumberOfRedialAttempts < Attempts: %d - since redial: %s TimeBetweenRedials: %s", c.attempts, elapsed.String(), TimeBetweenRedials.String())
+						note(c.peer.PeerIdent(), "Connection.dialLoop() MaxNumberOfRedialAttempts < Attempts: %d - since redial: %s TimeBetweenRedials: %s", c.attempts, elapsed.String(), TimeBetweenRedials.String())
 						c.goShutdown()
 						return
 					default:
-						significant(c.peer.PeerIdent(), "Connection.dialLoop() MaxNumberOfRedialAttempts > Attempts: %d - since redial: %s TimeBetweenRedials: %s", c.attempts, elapsed.String(), TimeBetweenRedials.String())
+						note(c.peer.PeerIdent(), "Connection.dialLoop() MaxNumberOfRedialAttempts > Attempts: %d - since redial: %s TimeBetweenRedials: %s", c.attempts, elapsed.String(), TimeBetweenRedials.String())
 						time.Sleep(TimeBetweenRedials)
 					}
 				}
 			}
 		} else {
-			significant(c.peer.PeerIdent(), "Connection.dialLoop() TimeBetweenRedials > elapsed")
+			note(c.peer.PeerIdent(), "Connection.dialLoop() TimeBetweenRedials > elapsed")
 			time.Sleep(TimeBetweenRedials)
 		}
 	}
@@ -242,12 +245,13 @@ func (c *Connection) dial() bool {
 	// conn, err := net.Dial("tcp", c.peer.Address)
 	conn, err := net.DialTimeout("tcp", address, time.Second*10)
 	if nil != err {
-		significant(c.peer.PeerIdent(), "Connection.dial(%s) got error: %+v", address, err)
+		note(c.peer.PeerIdent(), "Connection.dial(%s) got error: %+v", address, err)
 		c.notes = fmt.Sprintf("dial() error: %+v", err)
 		return false
 	}
 	c.conn = conn
-	significant(c.peer.PeerIdent(), "Connection.dial(%s) was successful.", address)
+	note(c.peer.PeerIdent(), "Connection.dial(%s) was successful.", address)
+	c.notes = "Successful Dial"
 	return true
 }
 
@@ -343,10 +347,9 @@ func (c *Connection) sendParcel(parcel Parcel) {
 	err := c.encoder.Encode(parcel)
 	switch {
 	case nil == err:
-		verbose(c.peer.PeerIdent(), "Connection.sendParcel() Timeout()  State: %s", c.ConnectionState())
+		c.bytesSent += parcel.Header.Length
 	default:
 		c.handleNetErrors(err)
-		return
 	}
 }
 
@@ -360,6 +363,7 @@ func (c *Connection) processReceives() {
 		switch {
 		case nil == err:
 			note(c.peer.PeerIdent(), "Connection.processReceives() RECIEVED FROM NETWORK!  State: %s MessageType: %s", c.ConnectionState(), message.MessageType())
+			c.bytesReceived += message.Header.Length
 			c.handleParcel(message)
 		default:
 			c.handleNetErrors(err)
@@ -391,6 +395,7 @@ func (c *Connection) handleNetErrors(err error) {
 
 // handleParcel checks the parcel command type, and either generates a response, or passes it along.
 func (c *Connection) handleParcel(parcel Parcel) {
+	c.peer.Port = parcel.Header.PeerPort // Peers communicate their port in the header. Could be moved to a handshake
 	validity := c.parcelValidity(parcel)
 	switch validity {
 	case InvalidDisconnectPeer:
@@ -402,10 +407,9 @@ func (c *Connection) handleParcel(parcel Parcel) {
 		parcel.Print()
 		c.peer.demerit()
 	case ParcelValid:
-		c.timeLastContact = time.Now()       // We only update for valid messages (incluidng pings and heartbeats)
-		c.attempts = 0                       // reset since we are clearly in touch now.
-		c.peer.merit()                       // Increase peer quality score.
-		c.peer.Port = parcel.Header.PeerPort // Peers communicate their port in the header. Could be moved to a handshake
+		c.timeLastContact = time.Now() // We only update for valid messages (incluidng pings and heartbeats)
+		c.attempts = 0                 // reset since we are clearly in touch now.
+		c.peer.merit()                 // Increase peer quality score.
 		debug(c.peer.PeerIdent(), "Connection.handleParcel() got ParcelValid %s", parcel.MessageType())
 		if Notes <= CurrentLoggingLevel {
 			parcel.PrintMessageType()

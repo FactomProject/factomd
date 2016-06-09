@@ -90,7 +90,7 @@ type CommandChangeLogging struct {
 
 func (c *Controller) Init(ci ControllerInit) *Controller {
 	significant("ctrlr", "Controller.Init(%s) %#x", ci.Port, ci.Network)
-	silence("#################", "META:  Jay's last touched: WEDNESDAY JUNE 8")
+	silence("#################", "META: Last touched: THURSDAY JUNE 9")
 	c.keepRunning = true
 	c.commandChannel = make(chan interface{}, 1000) // Commands from App
 	c.FromNetwork = make(chan Parcel, 10000)        // Channel to the app for network data
