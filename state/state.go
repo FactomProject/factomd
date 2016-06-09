@@ -715,16 +715,14 @@ func (s *State) ProcessRecentFERChainEntries() {
 		return
 	}
 
-
 	s.Println("Checking last e block of FER chain with height of: ", entryBlock.GetHeader().GetDBHeight())
 	s.Println("Current block height: ", s.GetDBHeightComplete())
-	s.Println("FER current: ", s.GetFactoshisPerEC())
 	s.Println("BEFORE processing recent block: ")
 	s.Println("    FERChangePrice: ", s.FERChangePrice)
 	s.Println("    FERChangeHeight: ", s.FERChangeHeight)
 	s.Println("    FERPriority: ", s.FERPriority)
 	s.Println("    FERPrioritySetHeight: ", s.FERPrioritySetHeight)
-
+	s.Println("    FER current: ", s.GetFactoshisPerEC())
 
 	// Check to see if a price change targets the next block
 	if (s.FERChangeHeight == (s.GetDBHeightComplete()+1)) {
@@ -802,6 +800,8 @@ func (s *State) ProcessRecentFERChainEntries() {
 				if ( s.FERChangeHeight < (s.GetDBHeightComplete() + 2)) {
 					s.FERChangeHeight = s.GetDBHeightComplete() + 2
 				}
+			} else {
+				fmt.Println(" Failed FER entry : ", string(entryContent))
 			}
 		}
 	}
@@ -811,6 +811,7 @@ func (s *State) ProcessRecentFERChainEntries() {
 	s.Println("    FERChangeHeight: ", s.FERChangeHeight)
 	s.Println("    FERPriority: ", s.FERPriority)
 	s.Println("    FERPrioritySetHeight: ", s.FERPrioritySetHeight)
+	s.Println("    FER current: ", s.GetFactoshisPerEC())
 	s.Println("----------------------------------")
 
 	return
@@ -869,14 +870,16 @@ func (s *State) FerEntryIsValid(passedFEREntry interfaces.IFEREntry) bool {
 	}
 
 	// fail if target is out of range of the expire height
+	// The check for expire height >= 6 is import because a lower value results in a uint binary wrap to near maxint, cracks logic
 	if (	(passedFEREntry.GetTargetActivationHeight() > (passedFEREntry.GetExpirationHeight() + 6)) ||
-		(passedFEREntry.GetTargetActivationHeight() < (passedFEREntry.GetExpirationHeight() - 6))) {
+	( 	(passedFEREntry.GetExpirationHeight() >= 6) &&
+	(passedFEREntry.GetTargetActivationHeight() < (passedFEREntry.GetExpirationHeight() - 6) ))) {
+
 		return false
 	}
 
 	return true
 }
-
 
 
 // Returns the higher of the current factoid exchange rate and what it knows will change in the future
