@@ -211,6 +211,9 @@ func SimControl(listenTo int) {
 				os.Stderr.WriteString(fmt.Sprint("\r\nSwitching to Node ", listenTo, "\r\n"))
 			case 'c' == b[0]:
 				c := !fnodes[0].State.DebugConsensus
+				for _, n := range fnodes {
+					n.State.DebugConsensus = fnodes[0].State.DebugConsensus
+				}
 				if c {
 					os.Stderr.WriteString(fmt.Sprint("\r\nTrace Consensus\n"))
 				} else {
@@ -333,11 +336,6 @@ func printSummary(summary *int, value int, listenTo *int) {
 			list = list + fmt.Sprintf(" %3d", len(f.State.StallAcks))
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "stall acks", list)
-		list = ""
-		for _, f := range fnodes {
-			list = list + fmt.Sprintf(" %3d", len(f.State.StallMsgs))
-		}
-		prt = prt + fmt.Sprintf(fmtstr, "stall msgs", list)
 		list = ""
 		for _, f := range fnodes {
 			list = list + fmt.Sprintf(" %3d", len(f.State.OutOfOrders))

@@ -90,7 +90,7 @@ type CommandChangeLogging struct {
 
 func (c *Controller) Init(ci ControllerInit) *Controller {
 	significant("ctrlr", "Controller.Init(%s) %#x", ci.Port, ci.Network)
-	silence("#################", "META: Last touched: THURSDAY JUNE 9")
+	silence("#################", "META: Last touched: THURSDAY JUNE 9 - 2PM")
 	c.keepRunning = true
 	c.commandChannel = make(chan interface{}, 1000) // Commands from App
 	c.FromNetwork = make(chan Parcel, 10000)        // Channel to the app for network data
@@ -282,13 +282,13 @@ func (c *Controller) route() {
 		TotalMessagesSent++
 		verbose("ctrlr", "Controller.route() got parcel from APPLICATION %+v", parcel.Header)
 		if "" != parcel.Header.TargetPeer { // directed send
-			verbose("ctrlr", "Controller.route() Directed send to %+v", parcel.Header.TargetPeer)
+			debug("ctrlr", "Controller.route() Directed send to %+v", parcel.Header.TargetPeer)
 			connection, present := c.connections[parcel.Header.TargetPeer]
 			if present { // We're still connected to the target
 				connection.SendChannel <- ConnectionParcel{parcel: parcel}
 			}
 		} else { // broadcast
-			verbose("ctrlr", "Controller.route() Broadcast send to %d peers", len(c.connections))
+			debug("ctrlr", "Controller.route() Broadcast send to %d peers", len(c.connections))
 			for _, connection := range c.connections {
 				verbose("ctrlr", "Controller.route() Send to peer %s ", connection.peer.Hash)
 				connection.SendChannel <- ConnectionParcel{parcel: parcel}

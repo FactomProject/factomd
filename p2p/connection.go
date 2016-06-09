@@ -355,8 +355,7 @@ func (c *Connection) sendParcel(parcel Parcel) {
 
 // New version: Recieves is called as part of runloop
 func (c *Connection) processReceives() {
-	keepGoing := true // we loop until we run out of messages or get a message that changes state
-	for ConnectionOnline == c.state && keepGoing {
+	for ConnectionOnline == c.state {
 		var message Parcel
 		verbose(c.peer.PeerIdent(), "Connection.processReceives() called. State: %s", c.ConnectionState())
 		c.conn.SetReadDeadline(time.Now().Add(100 * time.Millisecond))
@@ -365,7 +364,7 @@ func (c *Connection) processReceives() {
 		case nil == err:
 			note(c.peer.PeerIdent(), "Connection.processReceives() RECIEVED FROM NETWORK!  State: %s MessageType: %s", c.ConnectionState(), message.MessageType())
 			c.bytesReceived += message.Header.Length
-			keepGoing = c.handleParcel(message)
+			c.handleParcel(message)
 		default:
 			c.handleNetErrors(err)
 			return
@@ -396,7 +395,7 @@ func (c *Connection) handleNetErrors(err error) {
 
 // handleParcel checks the parcel command type, and either generates a response, or passes it along.
 // return value:  Indicate whether we got a good message or not and thus whether we should keep reading from network
-func (c *Connection) handleParcel(parcel Parcel) bool {
+func (c *Connection) handleParcel(parcel Parcel) {
 	c.peer.Port = parcel.Header.PeerPort // Peers communicate their port in the header. Could be moved to a handshake
 	validity := c.parcelValidity(parcel)
 	switch validity {
@@ -404,12 +403,12 @@ func (c *Connection) handleParcel(parcel Parcel) bool {
 		debug(c.peer.PeerIdent(), "Connection.handleParcel() Disconnecting peer: %s", c.peer.PeerIdent())
 		c.attempts = MaxNumberOfRedialAttempts + 50 // so we don't redial invalid Peer
 		c.goShutdown()
-		return false
+		return
 	case InvalidPeerDemerit:
 		debug(c.peer.PeerIdent(), "Connection.handleParcel() got invalid message")
 		parcel.Print()
 		c.peer.demerit()
-		return false
+		return
 	case ParcelValid:
 		c.timeLastContact = time.Now() // We only update for valid messages (incluidng pings and heartbeats)
 		c.attempts = 0                 // reset since we are clearly in touch now.
@@ -419,10 +418,10 @@ func (c *Connection) handleParcel(parcel Parcel) bool {
 			parcel.PrintMessageType()
 		}
 		c.handleParcelTypes(parcel) // handles both network commands and application messages
-		return true
+		return
 	default:
 		logfatal(c.peer.PeerIdent(), "handleParcel() unknown parcelValidity?: %+v ", validity)
-		return false
+		return
 	}
 }
 
