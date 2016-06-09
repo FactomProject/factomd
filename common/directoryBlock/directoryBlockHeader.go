@@ -26,7 +26,6 @@ type DBlockHeader struct {
 	Timestamp  uint32
 	DBHeight   uint32
 	BlockCount uint32
-
 }
 
 var _ interfaces.Printable = (*DBlockHeader)(nil)
