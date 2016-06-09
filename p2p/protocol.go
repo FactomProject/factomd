@@ -32,8 +32,9 @@ var (
 	PeerRequestInterval           time.Duration = time.Second * 180
 
 	// Testing metrics
-	TotalMessagesRecieved uint64 = 0
-	TotalMessagesSent     uint64 = 0
+	TotalMessagesRecieved       uint64 = 0
+	TotalMessagesSent           uint64 = 0
+	ApplicationMessagesRecieved uint64 = 0
 
 	CRCKoopmanTable *crc32.Table = crc32.MakeTable(crc32.Koopman)
 	RandomGenerator *rand.Rand   // seeded pseudo-random number generator
