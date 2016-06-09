@@ -83,7 +83,7 @@ func (ds *DBState) String() string {
 		str = "  Directory Block = <nil>\n"
 	} else {
 
-		str = fmt.Sprintf("%s      DBlk Height   = %v\n", str, ds.DirectoryBlock.GetHeader().GetDBHeight())
+		str = fmt.Sprintf("%s      DBlk Height   = %v \n", str, ds.DirectoryBlock.GetHeader().GetDBHeight())
 		str = fmt.Sprintf("%s      DBlock        = %x \n", str, ds.DirectoryBlock.GetHash().Bytes()[:5])
 		str = fmt.Sprintf("%s      ABlock        = %x \n", str, ds.AdminBlock.GetHash().Bytes()[:5])
 		str = fmt.Sprintf("%s      FBlock        = %x \n", str, ds.FactoidBlock.GetHash().Bytes()[:5])
@@ -308,8 +308,7 @@ func (list *DBStateList) UpdateState() (progress bool) {
 		fs.ProcessEndOfBlock(list.State)
 
 		// Promote the currently scheduled next FER
-		list.State.PromoteNextFER()
-		list.State.DetermineAndSetNextFER()
+		list.State.ProcessRecentFERChainEntries()
 
 		// Step my counter of Complete blocks
 		if uint32(i) > list.Complete {
