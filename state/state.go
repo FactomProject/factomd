@@ -270,7 +270,7 @@ func (s *State) LoadConfig(filename string, folder string) {
 		s.ExportData = false
 		s.ExportDataSubpath = "data/export"
 		s.Network = "LOCAL"
-		s.PeersFile = "~/.factom/peers.json"
+		s.PeersFile = "peers.json"
 		s.LocalServerPrivKey = "4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c9b08946553448d26d"
 		s.FactoshisPerEC = 006666
 		s.DirectoryBlockInSeconds = 6
@@ -294,13 +294,13 @@ func (s *State) Init() {
 	s.tickerQueue = make(chan int, 10000)                        //ticks from a clock
 	s.timerMsgQueue = make(chan interfaces.IMsg, 10000)          //incoming eom notifications, used by leaders
 	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 10000) //incoming message queue from the network messages
-	s.InvalidMessages = make(map[[32]byte]interfaces.IMsg,0)
-	s.networkOutMsgQueue = make(chan interfaces.IMsg, 10000)     //Messages to be broadcast to the network
-	s.inMsgQueue = make(chan interfaces.IMsg, 10000)             //incoming message queue for factom application messages
-	s.apiQueue = make(chan interfaces.IMsg, 10000)               //incoming message queue from the API
-	s.ackQueue = make(chan interfaces.IMsg, 10000)               //queue of Leadership messages
-	s.msgQueue = make(chan interfaces.IMsg, 10000)               //queue of Follower messages
-	s.ShutdownChan = make(chan int, 1)                           //Channel to gracefully shut down.
+	s.InvalidMessages = make(map[[32]byte]interfaces.IMsg, 0)
+	s.networkOutMsgQueue = make(chan interfaces.IMsg, 10000) //Messages to be broadcast to the network
+	s.inMsgQueue = make(chan interfaces.IMsg, 10000)         //incoming message queue for factom application messages
+	s.apiQueue = make(chan interfaces.IMsg, 10000)           //incoming message queue from the API
+	s.ackQueue = make(chan interfaces.IMsg, 10000)           //queue of Leadership messages
+	s.msgQueue = make(chan interfaces.IMsg, 10000)           //queue of Follower messages
+	s.ShutdownChan = make(chan int, 1)                       //Channel to gracefully shut down.
 
 	os.Mkdir(s.LogPath, 0777)
 	_, err := os.Create(s.JournalFile) //Create the Journal File

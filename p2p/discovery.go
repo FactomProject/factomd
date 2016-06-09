@@ -92,13 +92,13 @@ func (d *Discovery) isPeerPresent(peer Peer) bool {
 
 // PrintPeers Print details about the known peers
 func (d *Discovery) PrintPeers() {
-	silence("discovery", "Peer Report:")
+	note("discovery", "Peer Report:")
 	UpdateKnownPeers.Lock()
 	for key, value := range d.knownPeers {
-		silence("discovery", "%s \t Address: %s \t Port: %s \tQuality: %d", key, value.Address, value.Port, value.QualityScore)
+		note("discovery", "%s \t Address: %s \t Port: %s \tQuality: %d", key, value.Address, value.Port, value.QualityScore)
 	}
 	UpdateKnownPeers.Unlock()
-	silence("discovery", "End Peer Report\n\n\n\n")
+	note("discovery", "End Peer Report\n\n\n\n")
 }
 
 // LoadPeers loads the known peers from disk OVERWRITING PREVIOUS VALUES
@@ -135,11 +135,12 @@ func (d *Discovery) SavePeers() {
 	encoder := json.NewEncoder(writer)
 	UpdateKnownPeers.Lock()
 	// Purge peers we have not talked to in awhile.
-	for _, peer := range d.knownPeers {
-		if time.Since(peer.LastContact) > (time.Hour * 168) { // a week
-			delete(d.knownPeers, peer.Address)
-		}
-	}
+	// BUGBUG Check with Brian. IF you enable this code, make sure you are saving the last contact accurately.
+	// for _, peer := range d.knownPeers {
+	// 	if time.Since(peer.LastContact) > (time.Hour * 168) { // a week
+	// 		delete(d.knownPeers, peer.Address)
+	// 	}
+	// }
 	encoder.Encode(d.knownPeers)
 	UpdateKnownPeers.Unlock()
 	writer.Flush()

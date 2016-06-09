@@ -85,26 +85,31 @@ func (n *NetworkID) String() string {
 }
 
 const ( // iota is reset to 0
-	Silence   uint8 = iota // 0 Say nothing. A log output with level "Silence" is ALWAYS printed.
-	Fatal                  // 1 Log only fatal errors (fatal errors are always logged even on "Silence")
-	Errors                 // 2 Log all errors (many errors may be expected)
-	Notes                  // 3 Log notifications, usually significant events
-	Debugging              // 4 Log diagnostic info, pretty low level
-	Verbose                // 5 Log everything
+	Silence     uint8 = iota // 0 Say nothing. A log output with level "Silence" is ALWAYS printed.
+	Significant              // 1 Significant messages that should be logged in normal ops
+	Fatal                    // 2 Log only fatal errors (fatal errors are always logged even on "Silence")
+	Errors                   // 3 Log all errors (many errors may be expected)
+	Notes                    // 4 Log notifications, usually significant events
+	Debugging                // 5 Log diagnostic info, pretty low level
+	Verbose                  // 6 Log everything
 )
 
 // Map of network ids to strings for easy printing of network ID
 var LoggingLevels = map[uint8]string{
-	Silence:   "Silence",   // Say nothing. A log output with level "Silence" is ALWAYS printed.
-	Fatal:     "Fatal",     // Log only fatal errors (fatal errors are always logged even on "Silence")
-	Errors:    "Errors",    // Log all errors (many errors may be expected)
-	Notes:     "Notes",     // Log notifications, usually significant events
-	Debugging: "Debugging", // Log diagnostic info, pretty low level
-	Verbose:   "Verbose",   // Log everything
+	Silence:     "Silence",     // Say nothing. A log output with level "Silence" is ALWAYS printed.
+	Significant: "Significant", // Significant things that should be printed, but aren't necessary errors.
+	Fatal:       "Fatal",       // Log only fatal errors (fatal errors are always logged even on "Silence")
+	Errors:      "Errors",      // Log all errors (many errors may be expected)
+	Notes:       "Notes",       // Log notifications, usually significant events
+	Debugging:   "Debugging",   // Log diagnostic info, pretty low level
+	Verbose:     "Verbose",     // Log everything
 }
 
 func silence(component string, format string, v ...interface{}) {
 	log(Silence, component, format, v...)
+}
+func significant(component string, format string, v ...interface{}) {
+	log(Significant, component, format, v...)
 }
 func logfatal(component string, format string, v ...interface{}) {
 	log(Fatal, component, format, v...)
