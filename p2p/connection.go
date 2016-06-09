@@ -391,7 +391,6 @@ func (c *Connection) handleNetErrors(err error) {
 
 // handleParcel checks the parcel command type, and either generates a response, or passes it along.
 func (c *Connection) handleParcel(parcel Parcel) {
-	parcel.Header.Timestamp = time.Now() // set the timestamp to the recieved time.
 	validity := c.parcelValidity(parcel)
 	switch validity {
 	case InvalidDisconnectPeer:

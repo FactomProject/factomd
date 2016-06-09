@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"hash/crc32"
 	"strconv"
-	"time"
 )
 
 // Parcel is the atomic level of communication for the p2p network.  It contains within it the necessary info for
@@ -28,7 +27,6 @@ type ParcelHeader struct {
 	Length     uint32            // 4 bytes - length of the payload (that follows this header) in bytes
 	TargetPeer string            // ? bytes - "" or nil for broadcast, otherwise the destination peer's hash.
 	Crc32      uint32            // 4 bytes - data integrity hash (of the payload itself.)
-	Timestamp  time.Time
 	NodeID     uint64
 	PeerPort   string // port the peer , or we are listening on
 }
@@ -95,7 +93,6 @@ func (p *ParcelHeader) Print() {
 	debug("parcel", "\t Length:\t%d", p.Length)
 	debug("parcel", "\t TargetPeer:\t%s", p.TargetPeer)
 	debug("parcel", "\t CRC32:\t%d", p.Crc32)
-	debug("parcel", "\t Timestamp:\t%d", p.Timestamp)
 	debug("parcel", "\t NodeID:\t%d", p.NodeID)
 }
 
@@ -123,7 +120,6 @@ func (p *Parcel) String() string {
 	fmt.Sprintf(output, "%s\t Length:\t%d\n", output, p.Header.Length)
 	fmt.Sprintf(output, "%s\t TargetPeer:\t%s\n", output, p.Header.TargetPeer)
 	fmt.Sprintf(output, "%s\t CRC32:\t%d\n", output, p.Header.Crc32)
-	fmt.Sprintf(output, "%s\t Timestamp:\t%+v\n", output, p.Header.Timestamp)
 	fmt.Sprintf(output, "%s\t NodeID:\t%d\n", output, p.Header.NodeID)
 	fmt.Sprintf(output, "%s\t Payload: %s\n", output, s)
 	return output
