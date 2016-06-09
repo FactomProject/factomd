@@ -75,7 +75,6 @@ type State struct {
 	msgQueue               chan interfaces.IMsg
 	OutOfOrders            []*messages.Ack
 	StallAcks              []*messages.Ack
-	StallMsgs              []interfaces.IMsg
 	ShutdownChan           chan int // For gracefully halting Factom
 	JournalFile            string
 
@@ -289,7 +288,7 @@ func (s *State) LoadConfig(filename string, folder string) {
 		s.ExportData = false
 		s.ExportDataSubpath = "data/export"
 		s.Network = "LOCAL"
-		s.PeersFile = "~/.factom/peers.json"
+		s.PeersFile = "peers.json"
 		s.LocalServerPrivKey = "4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c9b08946553448d26d"
 		s.FactoshisPerEC = 006666
 		s.FERChainId = "eac57815972c504ec5ae3f9e5c1fe12321a3c8c78def62528fb74cf7af5e7389"
@@ -317,13 +316,13 @@ func (s *State) Init() {
 	s.tickerQueue = make(chan int, 10000)                        //ticks from a clock
 	s.timerMsgQueue = make(chan interfaces.IMsg, 10000)          //incoming eom notifications, used by leaders
 	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 10000) //incoming message queue from the network messages
-	s.InvalidMessages = make(map[[32]byte]interfaces.IMsg,0)
-	s.networkOutMsgQueue = make(chan interfaces.IMsg, 10000)     //Messages to be broadcast to the network
-	s.inMsgQueue = make(chan interfaces.IMsg, 10000)             //incoming message queue for factom application messages
-	s.apiQueue = make(chan interfaces.IMsg, 10000)               //incoming message queue from the API
-	s.ackQueue = make(chan interfaces.IMsg, 10000)               //queue of Leadership messages
-	s.msgQueue = make(chan interfaces.IMsg, 10000)               //queue of Follower messages
-	s.ShutdownChan = make(chan int, 1)                           //Channel to gracefully shut down.
+	s.InvalidMessages = make(map[[32]byte]interfaces.IMsg, 0)
+	s.networkOutMsgQueue = make(chan interfaces.IMsg, 10000) //Messages to be broadcast to the network
+	s.inMsgQueue = make(chan interfaces.IMsg, 10000)         //incoming message queue for factom application messages
+	s.apiQueue = make(chan interfaces.IMsg, 10000)           //incoming message queue from the API
+	s.ackQueue = make(chan interfaces.IMsg, 10000)           //queue of Leadership messages
+	s.msgQueue = make(chan interfaces.IMsg, 10000)           //queue of Follower messages
+	s.ShutdownChan = make(chan int, 1)                       //Channel to gracefully shut down.
 
 	os.Mkdir(s.LogPath, 0777)
 	_, err := os.Create(s.JournalFile) //Create the Journal File
@@ -896,6 +895,11 @@ func (s *State) GetPredictiveFER() (uint64) {
 func (s *State) UpdateState() (progress bool) {
 
 	process := func(a *messages.Ack) {
+		if _, ok := s.InternalReplay.Valid(a.GetHash().Fixed(), int64(a.GetTimestamp()), int64(s.GetTimestamp())); a.DBHeight < s.LLeaderHeight || !ok {
+			delete(s.Holding, a.GetHash().Fixed())
+			delete(s.Acks, a.GetHash().Fixed())
+			return
+		}
 		s.ProcessLists.Get(a.DBHeight)
 		s.Acks[a.GetHash().Fixed()] = a
 		m := s.Holding[a.GetHash().Fixed()]
@@ -929,6 +933,14 @@ func (s *State) UpdateState() (progress bool) {
 				fmt.Println("dddd Stall Ack             ", s.FactomNodeName, end, i, a.String())
 			}
 			process(a)
+		}
+	}
+
+	for k := range s.Holding {
+		m := s.Holding[k]
+		if _, ok := s.InternalReplay.Valid(k, int64(m.GetTimestamp()), int64(s.GetTimestamp())); !ok {
+			delete(s.Holding, k)
+			delete(s.Acks, k)
 		}
 	}
 
@@ -1202,29 +1214,6 @@ func (s *State) GetOutOfOrder(i int) *messages.Ack {
 	copy(s.OutOfOrders[i:], s.OutOfOrders[i+1:])
 	s.OutOfOrders[len(s.OutOfOrders)-1] = nil
 	s.OutOfOrders = s.OutOfOrders[:len(s.OutOfOrders)-1]
-	m.SetStall(false)
-	return m
-}
-
-func (s *State) StallMsg(msg interfaces.IMsg) {
-	if msg.IsStalled() {
-		return
-	}
-	msg.SetStall(true)
-	s.StallMsgs = append(s.StallMsgs, msg)
-}
-
-// Get the ith message out of the stall queue.  Note getting i=0 makes
-// the stall queue into a FIFO, but other options are possible.
-func (s *State) GetStalledMsg(i int) interfaces.IMsg {
-	if len(s.StallMsgs) == 0 || i >= len(s.StallMsgs) {
-		return nil
-	}
-	m := s.StallMsgs[i]
-
-	copy(s.StallMsgs[i:], s.StallMsgs[i+1:])
-	s.StallMsgs[len(s.StallMsgs)-1] = nil
-	s.StallMsgs = s.StallMsgs[:len(s.StallMsgs)-1]
 	m.SetStall(false)
 	return m
 }

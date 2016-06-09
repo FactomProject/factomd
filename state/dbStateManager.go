@@ -26,7 +26,7 @@ type DBState struct {
 	FBHash interfaces.IHash
 	ECHash interfaces.IHash
 
-	dbstring				 string
+	dbstring         string
 	DirectoryBlock   interfaces.IDirectoryBlock
 	AdminBlock       interfaces.IAdminBlock
 	FactoidBlock     interfaces.IFBlock
@@ -35,7 +35,7 @@ type DBState struct {
 }
 
 type DBStateList struct {
-	SrcNetwork          bool   // True if I got this block from the network.
+	SrcNetwork          bool // True if I got this block from the network.
 	LastTime            interfaces.Timestamp
 	SecondsBetweenTests int
 	Lastreq             int
@@ -167,13 +167,13 @@ func (list *DBStateList) Catchup() {
 
 }
 
-func (list *DBStateList) FixupLinks (i int, d *DBState) {
+func (list *DBStateList) FixupLinks(i int, d *DBState) {
 	p := list.DBStates[i-1]
 
 	// If this block is new, then make sure all hashes are fully computed.
 	if d.isNew {
 
-		hash, _ :=  p.EntryCreditBlock.HeaderHash()
+		hash, _ := p.EntryCreditBlock.HeaderHash()
 		d.EntryCreditBlock.GetHeader().SetPrevHeaderHash(hash)
 
 		hash, _ = p.EntryCreditBlock.GetFullHash()
@@ -225,6 +225,10 @@ func (list *DBStateList) UpdateState() (progress bool) {
 		}
 
 		if d.Saved {
+			dblk, _ := list.State.DB.FetchDBlockByKeyMR(d.DirectoryBlock.GetKeyMR())
+			if dblk == nil {
+				panic("Claimed to be saved, but isn't")
+			}
 			continue
 		}
 
@@ -240,14 +244,13 @@ func (list *DBStateList) UpdateState() (progress bool) {
 				}
 			}
 
-
 			//fmt.Println("Saving DBHeight ", d.DirectoryBlock.GetHeader().GetDBHeight(), " on ", list.State.GetFactomNodeName())
 
 			// If we have previous blocks, update blocks that this follower potentially constructed.  We can optimize and skip
 			// this step if we got the block from a peer.  TODO we must however check the sigantures on the
 			// block before we write it to disk.
 			if i > 0 {
-				list.FixupLinks(i,d)
+				list.FixupLinks(i, d)
 			}
 			d.DirectoryBlock.MarshalBinary()
 			d.dbstring = d.DirectoryBlock.String()
@@ -258,17 +261,32 @@ func (list *DBStateList) UpdateState() (progress bool) {
 				panic(err.Error())
 			}
 
+			if d.DirectoryBlock.String() != d.dbstring {
+				panic("dddd Change 2")
+			}
+
 			if err := list.State.DB.ProcessABlockMultiBatch(d.AdminBlock); err != nil {
 				panic(err.Error())
+			}
+
+			if d.DirectoryBlock.String() != d.dbstring {
+				panic("dddd Change 3")
 			}
 
 			if err := list.State.DB.ProcessFBlockMultiBatch(d.FactoidBlock); err != nil {
 				panic(err.Error())
 			}
+			if d.DirectoryBlock.String() != d.dbstring {
+				panic("dddd Change 4")
+			}
 
 			if err := list.State.DB.ProcessECBlockMultiBatch(d.EntryCreditBlock, false); err != nil {
 				panic(err.Error())
 			}
+			if d.DirectoryBlock.String() != d.dbstring {
+				panic("dddd Change 5")
+			}
+
 			pl := list.State.ProcessLists.Get(d.DirectoryBlock.GetHeader().GetDBHeight())
 			for _, eb := range pl.NewEBlocks {
 				if err := list.State.DB.ProcessEBlockMultiBatch(eb, false); err != nil {
@@ -281,8 +299,16 @@ func (list *DBStateList) UpdateState() (progress bool) {
 				}
 			}
 
+			if d.DirectoryBlock.String() != d.dbstring {
+				panic("dddd Change 6")
+			}
+
 			if err := list.State.DB.ExecuteMultiBatch(); err != nil {
 				panic(err.Error())
+			}
+
+			if d.DirectoryBlock.String() != d.dbstring {
+				panic("dddd Change 7")
 			}
 
 		}
@@ -301,16 +327,14 @@ func (list *DBStateList) UpdateState() (progress bool) {
 			panic("KeyMR failure")
 		}
 		if i > 0 {
-			dbprev,_ := list.State.DB.FetchDBlockByKeyMR(d.DirectoryBlock.GetHeader().GetPrevKeyMR())
+			dbprev, _ := list.State.DB.FetchDBlockByKeyMR(d.DirectoryBlock.GetHeader().GetPrevKeyMR())
 			if dbprev == nil {
 				fmt.Println(list.DBStates[i-1].dbstring)
 				fmt.Println(list.DBStates[i-1].DirectoryBlock.String())
 				fmt.Println(d.DirectoryBlock.String())
-				panic("Hashes have been altered for Directory Blocks")
+				panic(fmt.Sprintf("%s Hashes have been altered for Directory Blocks", list.State.FactomNodeName))
 			}
 		}
-
-
 
 		list.LastTime = list.State.GetTimestamp() // If I saved or processed stuff, I'm good for a while
 		d.Saved = true                            // Only after all is done will I admit this state has been saved.

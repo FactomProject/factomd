@@ -18,6 +18,7 @@ import (
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
+	"math"
 )
 
 var _ = fmt.Print
@@ -170,6 +171,8 @@ func NetStart(s *state.State) {
 	os.Stderr.WriteString(fmt.Sprintf("port        \"%d\"\n", s.PortNumber))
 	os.Stderr.WriteString(fmt.Sprintf("networkPort \"%s\"\n", networkPort))
 	os.Stderr.WriteString(fmt.Sprintf("peers       \"%s\"\n", peers))
+	os.Stderr.WriteString(fmt.Sprintf("netdebug       \"%d\"\n", netdebug))
+	os.Stderr.WriteString(fmt.Sprintf("exclusive       \"%t\"\n", exclusive))
 	os.Stderr.WriteString(fmt.Sprintf("blkTime     %d\n", blkTime))
 	os.Stderr.WriteString(fmt.Sprintf("runtimeLog  %v\n", runtimeLog))
 	os.Stderr.WriteString(fmt.Sprintf("profile     %v\n", profile))
@@ -196,12 +199,11 @@ func NetStart(s *state.State) {
 	case "MAIN", "main":
 		networkID = p2p.MainNet
 	case "LOCAL", "local":
-		networkID = p2p.MainNet
+		networkID = p2p.LocalNet
 	case "TEST", "test":
-		networkID = p2p.MainNet
+		networkID = p2p.TestNet
 	default:
 		panic("Invalid Network choice in Config File. Choose MAIN, TEST or LOCAL")
-
 	}
 	ci := p2p.ControllerInit{
 		Port:      networkPort,
@@ -237,10 +239,23 @@ func NetStart(s *state.State) {
 		fmt.Println("Dialing Peer: ", peerAddress)
 		ipPort := strings.Split(peerAddress, ":")
 		peer := new(p2p.Peer).Init(ipPort[0], ipPort[1], 0, p2p.SpecialPeer, 0)
-		network.DialPeer(*peer)
+		network.DialPeer(*peer, true) // these are persistent connections
 	}
 
 	switch net {
+	case "square":
+		side := int(math.Sqrt(float64(cnt)))
+
+		for i := 0; i < side; i++ {
+			AddSimPeer(fnodes, i*side, (i+1)*side-1)
+			AddSimPeer(fnodes, i, side*(side-1)+i)
+			for j := 0; j < side; j++ {
+				if j < side-1 {
+					AddSimPeer(fnodes, i*side+j, i*side+j+1)
+				}
+				AddSimPeer(fnodes, i*side+j, ((i+1)*side)+j)
+			}
+		}
 	case "long":
 		fmt.Println("Using long Network")
 		for i := 1; i < cnt; i++ {
