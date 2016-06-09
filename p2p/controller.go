@@ -444,9 +444,9 @@ func (c *Controller) networkStatusReport() {
 		silence("ctrlr", "Network Status Report:")
 		silence("ctrlr", "===========================")
 		for _, value := range c.connections {
-			silence("ctrlr", "     Connection: %s:%s", value.peer.Address, value.peer.Port)
+			silence("ctrlr", "     Connection: %s", value.peer.PeerIdent())
 			silence("ctrlr", "          State: %s", value.ConnectionState())
-			silence("ctrlr", "           Hash: %s", value.peer.Hash)
+			silence("ctrlr", "          Notes: %s", value.Notes())
 			silence("ctrlr", "     Persistent: %t", value.IsPersistent())
 			silence("ctrlr", "       Outgoing: %t", value.IsOutGoing())
 			silence("ctrlr", " ReceiveChannel: %d", len(value.ReceiveChannel))

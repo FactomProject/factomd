@@ -35,22 +35,25 @@ func (p *Peer) Init(address string, port string, quality int32, peerType uint8, 
 	p.Address = address
 	p.Port = port
 	p.QualityScore = quality
-	p.Hash = p.generatePeerHash()
+	p.generatePeerHash()
 	p.Type = peerType
 	p.Location = p.locationFromAddress()
 	return p
 }
 
-func (p *Peer) generatePeerHash() string {
+func (p *Peer) generatePeerHash() {
 	buff := make([]byte, 256)
 	RandomGenerator.Read(buff)
 	raw := sha256.Sum256(buff)
-	hash := base64.URLEncoding.EncodeToString(raw[0:sha256.Size])
-	return hash
+	p.Hash = base64.URLEncoding.EncodeToString(raw[0:sha256.Size])
 }
 
 func (p *Peer) AddressPort() string {
 	return p.Address + ":" + p.Port
+}
+
+func (p *Peer) PeerIdent() string {
+	return p.Hash[0:12] + "-" + p.Address + ":" + p.Port
 }
 
 // BUGBUG Hadn't considered IPV6 addresses.
