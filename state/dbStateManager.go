@@ -7,11 +7,10 @@ package state
 import (
 	"encoding/hex"
 	"fmt"
-	"time"
-
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/log"
+	"time"
 )
 
 var _ = hex.EncodeToString
@@ -226,6 +225,10 @@ func (list *DBStateList) UpdateState() (progress bool) {
 		}
 
 		if d.Saved {
+			dblk, _ := list.State.DB.FetchDBlockByKeyMR(d.DirectoryBlock.GetKeyMR())
+			if dblk == nil {
+				panic("Claimed to be saved, but isn't")
+			}
 			continue
 		}
 
@@ -258,17 +261,32 @@ func (list *DBStateList) UpdateState() (progress bool) {
 				panic(err.Error())
 			}
 
+			if d.DirectoryBlock.String() != d.dbstring {
+				panic("dddd Change 2")
+			}
+
 			if err := list.State.DB.ProcessABlockMultiBatch(d.AdminBlock); err != nil {
 				panic(err.Error())
+			}
+
+			if d.DirectoryBlock.String() != d.dbstring {
+				panic("dddd Change 3")
 			}
 
 			if err := list.State.DB.ProcessFBlockMultiBatch(d.FactoidBlock); err != nil {
 				panic(err.Error())
 			}
+			if d.DirectoryBlock.String() != d.dbstring {
+				panic("dddd Change 4")
+			}
 
 			if err := list.State.DB.ProcessECBlockMultiBatch(d.EntryCreditBlock, false); err != nil {
 				panic(err.Error())
 			}
+			if d.DirectoryBlock.String() != d.dbstring {
+				panic("dddd Change 5")
+			}
+
 			pl := list.State.ProcessLists.Get(d.DirectoryBlock.GetHeader().GetDBHeight())
 			for _, eb := range pl.NewEBlocks {
 				if err := list.State.DB.ProcessEBlockMultiBatch(eb, false); err != nil {
@@ -281,34 +299,42 @@ func (list *DBStateList) UpdateState() (progress bool) {
 				}
 			}
 
+			if d.DirectoryBlock.String() != d.dbstring {
+				panic("dddd Change 6")
+			}
+
 			if err := list.State.DB.ExecuteMultiBatch(); err != nil {
 				panic(err.Error())
 			}
 
+			if d.DirectoryBlock.String() != d.dbstring {
+				panic("dddd Change 7")
+			}
+
 		}
 
-		// dblk2, _ := list.State.DB.FetchDBlockByKeyMR(d.DirectoryBlock.GetKeyMR())
-		// if dblk2 == nil {
-		// 	fmt.Printf("Failed to save the Directory Block %d %x\n",
-		// 		d.DirectoryBlock.GetHeader().GetDBHeight(),
-		// 		d.DirectoryBlock.GetKeyMR().Bytes()[:3])
-		// 	panic("Failed to save Directory Block")
-		// }
-		// keyMR2 := dblk2.GetKeyMR()
-		// if !d.DirectoryBlock.GetKeyMR().IsSameAs(keyMR2) {
-		// 	fmt.Println(dblk == nil)
-		// 	fmt.Printf("Keys differ %x and %x", d.DirectoryBlock.GetKeyMR().Bytes()[:3], keyMR2.Bytes()[:3])
-		// 	panic("KeyMR failure")
-		// }
-		// if i > 0 {
-		// 	dbprev,_ := list.State.DB.FetchDBlockByKeyMR(d.DirectoryBlock.GetHeader().GetPrevKeyMR())
-		// 	if dbprev == nil {
-		// 		fmt.Println(list.DBStates[i-1].dbstring)
-		// 		fmt.Println(list.DBStates[i-1].DirectoryBlock.String())
-		// 		fmt.Println(d.DirectoryBlock.String())
-		// 		panic("Hashes have been altered for Directory Blocks")
-		// 	}
-		// }
+		dblk2, _ := list.State.DB.FetchDBlockByKeyMR(d.DirectoryBlock.GetKeyMR())
+		if dblk2 == nil {
+			fmt.Printf("Failed to save the Directory Block %d %x\n",
+				d.DirectoryBlock.GetHeader().GetDBHeight(),
+				d.DirectoryBlock.GetKeyMR().Bytes()[:3])
+			panic("Failed to save Directory Block")
+		}
+		keyMR2 := dblk2.GetKeyMR()
+		if !d.DirectoryBlock.GetKeyMR().IsSameAs(keyMR2) {
+			fmt.Println(dblk == nil)
+			fmt.Printf("Keys differ %x and %x", d.DirectoryBlock.GetKeyMR().Bytes()[:3], keyMR2.Bytes()[:3])
+			panic("KeyMR failure")
+		}
+		if i > 0 {
+			dbprev, _ := list.State.DB.FetchDBlockByKeyMR(d.DirectoryBlock.GetHeader().GetPrevKeyMR())
+			if dbprev == nil {
+				fmt.Println(list.DBStates[i-1].dbstring)
+				fmt.Println(list.DBStates[i-1].DirectoryBlock.String())
+				fmt.Println(d.DirectoryBlock.String())
+				panic(fmt.Sprintf("%s Hashes have been altered for Directory Blocks", list.State.FactomNodeName))
+			}
+		}
 
 		list.LastTime = list.State.GetTimestamp() // If I saved or processed stuff, I'm good for a while
 		d.Saved = true                            // Only after all is done will I admit this state has been saved.

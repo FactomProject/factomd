@@ -72,7 +72,6 @@ type State struct {
 	msgQueue               chan interfaces.IMsg
 	OutOfOrders            []*messages.Ack
 	StallAcks              []*messages.Ack
-	StallMsgs              []interfaces.IMsg
 	ShutdownChan           chan int // For gracefully halting Factom
 	JournalFile            string
 
@@ -674,6 +673,11 @@ func (s *State) GetDirectoryBlockByHeight(height uint32) interfaces.IDirectoryBl
 func (s *State) UpdateState() (progress bool) {
 
 	process := func(a *messages.Ack) {
+		if _, ok := s.InternalReplay.Valid(a.GetHash().Fixed(), int64(a.GetTimestamp()), int64(s.GetTimestamp())); a.DBHeight < s.LLeaderHeight || !ok {
+			delete(s.Holding, a.GetHash().Fixed())
+			delete(s.Acks, a.GetHash().Fixed())
+			return
+		}
 		s.ProcessLists.Get(a.DBHeight)
 		s.Acks[a.GetHash().Fixed()] = a
 		m := s.Holding[a.GetHash().Fixed()]
@@ -707,6 +711,14 @@ func (s *State) UpdateState() (progress bool) {
 				fmt.Println("dddd Stall Ack             ", s.FactomNodeName, end, i, a.String())
 			}
 			process(a)
+		}
+	}
+
+	for k := range s.Holding {
+		m := s.Holding[k]
+		if _, ok := s.InternalReplay.Valid(k, int64(m.GetTimestamp()), int64(s.GetTimestamp())); !ok {
+			delete(s.Holding, k)
+			delete(s.Acks, k)
 		}
 	}
 
@@ -980,29 +992,6 @@ func (s *State) GetOutOfOrder(i int) *messages.Ack {
 	copy(s.OutOfOrders[i:], s.OutOfOrders[i+1:])
 	s.OutOfOrders[len(s.OutOfOrders)-1] = nil
 	s.OutOfOrders = s.OutOfOrders[:len(s.OutOfOrders)-1]
-	m.SetStall(false)
-	return m
-}
-
-func (s *State) StallMsg(msg interfaces.IMsg) {
-	if msg.IsStalled() {
-		return
-	}
-	msg.SetStall(true)
-	s.StallMsgs = append(s.StallMsgs, msg)
-}
-
-// Get the ith message out of the stall queue.  Note getting i=0 makes
-// the stall queue into a FIFO, but other options are possible.
-func (s *State) GetStalledMsg(i int) interfaces.IMsg {
-	if len(s.StallMsgs) == 0 || i >= len(s.StallMsgs) {
-		return nil
-	}
-	m := s.StallMsgs[i]
-
-	copy(s.StallMsgs[i:], s.StallMsgs[i+1:])
-	s.StallMsgs[len(s.StallMsgs)-1] = nil
-	s.StallMsgs = s.StallMsgs[:len(s.StallMsgs)-1]
 	m.SetStall(false)
 	return m
 }

@@ -48,8 +48,6 @@ type IMsg interface {
 	// must go back to that peer (this message is a reply).
 	IsPeer2Peer() bool
 	SetPeer2Peer(bool)
-	// Return the []byte value of the message, if defined
-	Bytes() []byte
 
 	// Validate the message, given the state.  Three possible results:
 	//  < 0 -- Message is invalid.  Discard

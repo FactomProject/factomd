@@ -32,22 +32,19 @@ func (s *State) NewMinute() {
 	// Anything we are holding, we need to reprocess.
 	for k := range s.Holding {
 		v := s.Holding[k]
-		if _, ok := s.InternalReplay.Valid(v.GetHash().Fixed(), int64(v.GetTimestamp()/1000), int64(s.GetTimestamp()/1000)); ok {
+		a, _ := s.Acks[k].(*messages.Ack)
+		if a != nil && v != nil {
+			s.ProcessLists.Get(a.DBHeight).AddToProcessList(a, v)
+		} else if v != nil {
 			v.ComputeVMIndex(s)
 			if s.Leader {
 				s.XReview = append(s.XReview, v)
 				delete(s.Holding, k)
 			}
-		} else {
-			delete(s.Holding, k)
 		}
 	}
 
 	s.EOM = 0
-
-	for k := range s.Acks {
-		s.StallAck(s.Acks[k].(*messages.Ack))
-	}
 
 	s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 	s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.LeaderMinute, s.IdentityChainID)
@@ -64,6 +61,10 @@ func (s *State) NewMinute() {
 func (s *State) Process() (progress bool) {
 
 	//s.DebugPrt("Process")
+
+	if s.EOM > 0 {
+		s.LeaderMinute = s.EOM
+	}
 
 	highest := s.GetHighestRecordedBlock()
 
@@ -94,14 +95,14 @@ func (s *State) Process() (progress bool) {
 	}
 
 	if s.EOM > 0 && s.LeaderPL.Unsealable(s.EOM) {
-		s.LeaderMinute++
+		s.LeaderMinute = s.EOM
 
 		switch {
-		case s.LeaderMinute <= 9:
+		case s.EOM <= 9:
 			s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.LeaderMinute, s.IdentityChainID)
 			s.NewMinute()
-		case s.LeaderMinute == 10:
+		case s.EOM == 10:
 			s.AddDBState(true, s.LeaderPL.DirectoryBlock, s.LeaderPL.AdminBlock, s.GetFactoidState().GetCurrentBlock(), s.LeaderPL.EntryCreditBlock)
 			s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight + 1)
 			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(0, s.IdentityChainID)
@@ -114,36 +115,47 @@ func (s *State) Process() (progress bool) {
 
 func (s *State) ProcessQueues() (progress bool) {
 
+	// Executing a message means looking if it is valid, checking if we are a leader.
+	executeMsg := func(msg interfaces.IMsg) (ret bool) {
+		_, ok := s.InternalReplay.Valid(msg.GetHash().Fixed(), int64(msg.GetTimestamp()/1000), int64(s.GetTimestamp()/1000))
+		if !ok {
+			if s.DebugConsensus {
+				fmt.Println("dddd msgQueue ok:", ok, msg.String())
+			}
+			return
+		}
+
+		switch msg.Validate(s) {
+		case 1:
+			if s.EOM == 0 {
+				if s.Leader {
+					msg.ComputeVMIndex(s)
+					msg.LeaderExecute(s)
+				} else {
+					msg.FollowerExecute(s)
+				}
+			} else {
+				msg.FollowerExecute(s)
+			}
+			ret = true
+		case 0: // Put at the end of the line, and hopefully we will resolve it.
+			s.Holding[msg.GetHash().Fixed()] = msg
+		default:
+			if s.DebugConsensus {
+				fmt.Println("dddd Deleted=== Msg:", s.FactomNodeName, msg.String())
+			}
+			delete(s.Acks, msg.GetHash().Fixed())
+			s.networkInvalidMsgQueue <- msg
+		}
+
+		return
+	}
+
 	// Reprocess any stalled Acknowledgements
 	for s.Leader && s.EOM == 0 && len(s.XReview) > 0 {
 		msg := s.XReview[0]
-		if _, ok := s.InternalReplay.Valid(msg.GetHash().Fixed(), int64(msg.GetTimestamp()/1000), int64(s.GetTimestamp()/1000)); !ok {
-			if s.DebugConsensus {
-				fmt.Println("dddd Repeat XReview", msg.String())
-			}
-			msg = nil
-		} else if s.Leader {
-			s.LeaderExecute(msg) // Just do Server execution for the message
-		} else {
-			s.FollowerExecuteMsg(msg) // Just do Server execution for the message
-		}
+		executeMsg(msg)
 		s.XReview = s.XReview[1:]
-		s.UpdateState()
-	}
-
-	if s.Leader && s.EOM == 0 && len(s.StallMsgs) > 0 {
-		msg := s.StallMsgs[0]
-		if _, ok := s.InternalReplay.Valid(msg.GetHash().Fixed(), int64(msg.GetTimestamp()/1000), int64(s.GetTimestamp()/1000)); !ok {
-			if s.DebugConsensus {
-				fmt.Println("dddd Repeat StallMsgs ", msg.String())
-			}
-			msg = nil
-		} else if s.Leader {
-			s.LeaderExecute(msg) // Just do Server execution for the message
-		} else {
-			s.FollowerExecuteMsg(msg) // Just do Server execution for the message
-		}
-		s.StallMsgs = s.StallMsgs[1:]
 		s.UpdateState()
 	}
 
@@ -162,38 +174,12 @@ func (s *State) ProcessQueues() (progress bool) {
 		if ok && ack.Validate(s) == 1 {
 			ack.FollowerExecute(s)
 		} else if s.DebugConsensus {
-			fmt.Println("dddd ackQueue ok:", ok, "validate:", ack.Validate(s), ack.String())
+			fmt.Println("dddd ackQueue ok:", s.FactomNodeName, ok, "validate:", ack.Validate(s), ack.String())
 		}
 		progress = true
 	case msg := <-s.msgQueue:
-		_, ok := s.InternalReplay.Valid(msg.GetHash().Fixed(), int64(msg.GetTimestamp()/1000), int64(s.GetTimestamp()/1000))
-		if ok {
-			switch msg.Validate(s) {
-			case 1:
-				if s.EOM == 0 {
-					if s.Leader {
-						msg.ComputeVMIndex(s)
-						msg.LeaderExecute(s)
-					} else {
-						s.networkOutMsgQueue <- msg
-						msg.FollowerExecute(s)
-					}
-				} else {
-					s.networkOutMsgQueue <- msg
-					msg.FollowerExecute(s)
-				}
-
-			case 0: // Put at the end of the line, and hopefully we will resolve it.
-				s.Holding[msg.GetHash().Fixed()] = msg
-			default:
-				if s.DebugConsensus {
-					fmt.Println("dddd Deleted=== Msg:", s.FactomNodeName, msg.String())
-				}
-				delete(s.Acks, msg.GetHash().Fixed())
-				s.networkInvalidMsgQueue <- msg
-			}
-		} else if s.DebugConsensus {
-			fmt.Println("dddd msgQueue ok:", ok, msg.String())
+		if executeMsg(msg) {
+			s.networkOutMsgQueue <- msg
 		}
 	default:
 	}
@@ -299,7 +285,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	dbstatemsg, _ := msg.(*messages.DBStateMsg)
 
 	s.DBStates.LastTime = s.GetTimestamp()
-	s.AddDBState(false,						// Not a new block; got it from the network
+	s.AddDBState(false, // Not a new block; got it from the network
 		dbstatemsg.DirectoryBlock,
 		dbstatemsg.AdminBlock,
 		dbstatemsg.FactoidBlock,
@@ -334,6 +320,18 @@ func (s *State) FollowerExecuteAddData(msg interfaces.IMsg) {
 
 }
 
+func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
+	sf, _ := m.(*messages.ServerFault)
+	pl := s.ProcessLists.Get(sf.DBHeight)
+	if pl != nil {
+		pl.FaultCnt[sf.ServerID.Fixed()]++
+		cnt := pl.FaultCnt[sf.ServerID.Fixed()]
+		if s.Leader && cnt > len(pl.FedServers)/2 {
+
+		}
+	}
+}
+
 func (s *State) LeaderExecute(m interfaces.IMsg) {
 
 	for i := 0; s.UpdateState() && i < 10; i++ {
@@ -342,11 +340,6 @@ func (s *State) LeaderExecute(m interfaces.IMsg) {
 	if !s.Green() || m.GetVMIndex() != s.LeaderVMIndex {
 		s.networkOutMsgQueue <- m
 		m.FollowerExecute(s)
-		return
-	}
-
-	if s.EOM > 0 {
-		s.StallMsg(m)
 		return
 	}
 
@@ -364,11 +357,6 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 	if !s.Green() || !m.IsLocal() {
 		s.networkOutMsgQueue <- m
 		m.FollowerExecute(s)
-		return
-	}
-
-	if s.EOM > 0 {
-		s.StallMsg(m)
 		return
 	}
 
@@ -431,6 +419,82 @@ func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg)
 	return true
 }
 
+func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
+	msg := m.(*messages.RevealEntryMsg)
+	myhash := msg.GetHash()
+	commit := s.GetCommits(myhash)
+	if commit == nil {
+		return false
+	}
+
+	handleAsEntry := false
+	if _, isNewChain := commit.(*messages.CommitChainMsg); isNewChain {
+		chainID := msg.Entry.GetChainID()
+		eb, err := s.DB.FetchEBlockHead(chainID)
+		if err != nil || eb != nil {
+			if s.DebugConsensus {
+				fmt.Printf("dddd %s %s\n", s.FactomNodeName, "Chain already exists", msg.String())
+			}
+			handleAsEntry = true
+		} else {
+
+			// Create a new Entry Block for a new Entry Block Chain
+			eb = entryBlock.NewEBlock()
+			// Set the Chain ID
+			eb.GetHeader().SetChainID(msg.Entry.GetChainID())
+			// Set the Directory Block Height for this Entry Block
+			eb.GetHeader().SetDBHeight(dbheight)
+			// Add our new entry
+			eb.AddEBEntry(msg.Entry)
+			// Put it in our list of new Entry Blocks for this Directory Block
+			s.PutNewEBlocks(dbheight, msg.Entry.GetChainID(), eb)
+			s.PutNewEntries(dbheight, msg.Entry.GetHash(), msg.Entry)
+
+			if v := s.GetReveals(myhash); v != nil {
+				s.PutReveals(myhash, nil)
+			}
+
+			s.PutCommits(myhash, nil)
+			s.IncEntryChains()
+			s.IncEntries()
+			return true
+		}
+	}
+
+	if _, isNewEntry := commit.(*messages.CommitEntryMsg); handleAsEntry || isNewEntry {
+		chainID := msg.Entry.GetChainID()
+		eb := s.GetNewEBlocks(dbheight, chainID)
+		if eb == nil {
+			prev, err := s.DB.FetchEBlockHead(chainID)
+			if prev == nil || err != nil {
+				return false
+			}
+			eb = entryBlock.NewEBlock()
+			// Set the Chain ID
+			eb.GetHeader().SetChainID(msg.Entry.GetChainID())
+			// Set the Directory Block Height for this Entry Block
+			eb.GetHeader().SetDBHeight(dbheight)
+			// Set the PrevKeyMR
+			key, _ := prev.KeyMR()
+			eb.GetHeader().SetPrevKeyMR(key)
+		}
+		// Add our new entry
+		eb.AddEBEntry(msg.Entry)
+		// Put it in our list of new Entry Blocks for this Directory Block
+		s.PutNewEBlocks(dbheight, msg.Entry.GetChainID(), eb)
+		s.PutNewEntries(dbheight, msg.Entry.GetHash(), msg.Entry)
+
+		if v := s.GetReveals(myhash); v != nil {
+			s.PutReveals(myhash, nil)
+		}
+
+		s.PutCommits(myhash, nil)
+		s.IncEntries()
+		return true
+	}
+	return false
+}
+
 // TODO: Should fault the server if we don't have the proper sequence of EOM messages.
 func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
@@ -479,75 +543,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	vm.MinuteFinished = int(e.Minute) + 1
 
 	return true
-}
-
-func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
-	msg := m.(*messages.RevealEntryMsg)
-	myhash := msg.GetHash()
-	commit := s.GetCommits(myhash)
-	if commit == nil {
-		return false
-	}
-
-	if _, isNewChain := commit.(*messages.CommitChainMsg); isNewChain {
-		chainID := msg.Entry.GetChainID()
-		eb, err := s.DB.FetchEBlockHead(chainID)
-		if err != nil || eb != nil {
-			panic(fmt.Sprintf("%s\n%s", "Chain already exists", msg.String()))
-		}
-
-		// Create a new Entry Block for a new Entry Block Chain
-		eb = entryBlock.NewEBlock()
-		// Set the Chain ID
-		eb.GetHeader().SetChainID(msg.Entry.GetChainID())
-		// Set the Directory Block Height for this Entry Block
-		eb.GetHeader().SetDBHeight(dbheight)
-		// Add our new entry
-		eb.AddEBEntry(msg.Entry)
-		// Put it in our list of new Entry Blocks for this Directory Block
-		s.PutNewEBlocks(dbheight, msg.Entry.GetChainID(), eb)
-		s.PutNewEntries(dbheight, msg.Entry.GetHash(), msg.Entry)
-
-		if v := s.GetReveals(myhash); v != nil {
-			s.PutReveals(myhash, nil)
-		}
-
-		s.PutCommits(myhash, nil)
-		s.IncEntryChains()
-		s.IncEntries()
-		return true
-	} else if _, isNewEntry := commit.(*messages.CommitEntryMsg); isNewEntry {
-		chainID := msg.Entry.GetChainID()
-		eb := s.GetNewEBlocks(dbheight, chainID)
-		if eb == nil {
-			prev, err := s.DB.FetchEBlockHead(chainID)
-			if prev == nil || err != nil {
-				return false
-			}
-			eb = entryBlock.NewEBlock()
-			// Set the Chain ID
-			eb.GetHeader().SetChainID(msg.Entry.GetChainID())
-			// Set the Directory Block Height for this Entry Block
-			eb.GetHeader().SetDBHeight(dbheight)
-			// Set the PrevKeyMR
-			key, _ := prev.KeyMR()
-			eb.GetHeader().SetPrevKeyMR(key)
-		}
-		// Add our new entry
-		eb.AddEBEntry(msg.Entry)
-		// Put it in our list of new Entry Blocks for this Directory Block
-		s.PutNewEBlocks(dbheight, msg.Entry.GetChainID(), eb)
-		s.PutNewEntries(dbheight, msg.Entry.GetHash(), msg.Entry)
-
-		if v := s.GetReveals(myhash); v != nil {
-			s.PutReveals(myhash, nil)
-		}
-
-		s.PutCommits(myhash, nil)
-		s.IncEntries()
-		return true
-	}
-	return false
 }
 
 // When we process the directory Signature, and we are the leader for said signature, it
