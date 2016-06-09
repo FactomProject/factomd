@@ -3,16 +3,17 @@ package state
 import (
 	"fmt"
 
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
-	//"github.com/FactomProject/factomd/common/factoid"
 	"bytes"
 	"log"
+
+	"time"
 
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
-	"time"
 )
 
 var _ = fmt.Print
@@ -31,6 +32,9 @@ type ProcessList struct {
 	VMs       []*VM       // Process list for each server (up to 32)
 	ServerMap [10][64]int // Map of FedServers to all Servers for each minute
 
+	diffSigTally int /*     Tally of how many VMs have provided different
+		                    Directory Block Signatures than what we have
+	                        (discard DBlock if > 1/2 have sig differences) */
 	// Maps
 	// ====
 	OldMsgs map[[32]byte]interfaces.IMsg // messages processed in this list
@@ -139,6 +143,10 @@ func (p *ProcessList) GetVirtualServers(minute int, identityChainID interfaces.I
 	if !found {
 		return false, -1
 	}
+	if !p.State.Green() && p.State.GetIdentityChainID().IsSameAs(identityChainID) {
+		return false, -1
+	}
+
 	for i, fedix := range p.ServerMap[minute] {
 		if i == len(p.FedServers) {
 			break
@@ -236,6 +244,7 @@ func (p *ProcessList) MinuteComplete() int {
 		for _, msg := range p.VMs[i].List {
 			if eom, ok := msg.(*messages.EOM); ok {
 				mm = int(eom.Minute + 1)
+				p.VMs[i].MinuteComplete = mm
 			}
 		}
 		if m > mm {
@@ -250,20 +259,22 @@ func (p *ProcessList) MinuteComplete() int {
 func (p *ProcessList) MinuteFinished() int {
 	m := 10
 	for i := 0; i < len(p.FedServers); i++ {
-		vm := p.VMs[i]
-		for i, v := range p.VMs[i].List {
-			if v == nil && i <= vm.MinuteHeight {
-				m = vm.MinuteFinished - 1
-				if m < 0 {
-					m = 0
-				}
+		mm := 0
+		for j, msg := range p.VMs[i].List {
+			if j == p.VMs[i].Height {
+				break
+			}
+			if eom, ok := msg.(*messages.EOM); ok {
+				mm = int(eom.Minute + 1)
+				p.VMs[i].MinuteFinished = mm
 			}
 		}
-		if vm.MinuteFinished < m {
-			m = vm.MinuteFinished
+		if m > mm {
+			m = mm
 		}
 	}
 	return m
+
 }
 
 // Add the given serverChain to this processlist as a Federated Server, and return
@@ -412,6 +423,10 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 		p.good = true
 	}
 	for i := 0; i < len(p.FedServers); i++ {
+		// Just in case, set p.diffSigTally to 0 when initiating pass-through
+		if i == 0 {
+			p.diffSigTally = 0
+		}
 		vm := p.VMs[i]
 
 		plist := vm.List
@@ -422,6 +437,24 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 				vm.missingTime = ask(vm, vm.missingTime, j)
 				break
 			}
+
+			// When processing DirectoryBlockSignatures, we check to see if the signed block
+			// matches our own saved block. If the majority of VMs' signatures do not match
+			// our saved block, we discard that block from our database.
+			//if plist[j].Type() == constants.DIRECTORY_BLOCK_SIGNATURE_MSG {
+				//dbs := plist[j].(*messages.DirectoryBlockSignature)
+				//myDBlock := state.GetDirectoryBlockByHeight(dbs.DBHeight - 1)
+				//myDBlock.GetHeader().SetTimestamp(p.GetLeaderTimestamp())
+				//if !dbs.DirectoryBlockKeyMR.IsSameAs(state.ProcessLists.Lists[0].DirectoryBlock.GetKeyMR()) {
+				//	p.diffSigTally++
+				//	if p.diffSigTally > 0 && p.diffSigTally > (len(p.FedServers)/2) {
+				//		state.DB.Delete([]byte{byte(databaseOverlay.DIRECTORYBLOCK)}, state.ProcessLists.Lists[0].DirectoryBlock.GetKeyMR().Bytes())
+				//	}
+				//}
+				//if i >= len(p.FedServers) {
+				//	p.diffSigTally = 0
+				//}
+			//}
 
 			if p.Sealing && vm.Seal == 0 {
 				vm.SealTime = ask(vm, vm.SealTime+1, vm.Height)
@@ -479,6 +512,16 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 	return
 }
 
+func (p *ProcessList) GetLeaderTimestamp() uint32 {
+	for _, msg := range p.VMs[0].List {
+		if msg.Type() == constants.DIRECTORY_BLOCK_SIGNATURE_MSG {
+			ts := msg.GetTimestamp()
+			return uint32(ts.GetTime().Unix())
+		}
+	}
+	return 0
+}
+
 // Check to assure that the given VM has been completely processed
 func (p *ProcessList) GoodTo(vmIndex int) bool {
 	if vmIndex < 0 {
@@ -499,29 +542,50 @@ func (p *ProcessList) GoodTo(vmIndex int) bool {
 func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 
 	stall := func(hint string) {
-		p.State.StallMsg(ack)
+		p.State.StallAck(ack)
 		p.State.Holding[m.GetHash().Fixed()] = m
 		delete(p.State.Acks, ack.GetHash().Fixed())
-		fmt.Println("dddd",hint, p.State.FactomNodeName, "Stall",m.String())
-		fmt.Println("dddd",hint, p.State.FactomNodeName, "Stall",ack.String())
+		//fmt.Println("dddd", hint, p.State.FactomNodeName, "Stall", m.String())
+		//fmt.Println("dddd", hint, p.State.FactomNodeName, "Stall", ack.String())
+	}
+
+	outOfOrder := func(hint string) {
+		p.State.OutOfOrderAck(ack)
+		p.State.Holding[m.GetHash().Fixed()] = m
+		delete(p.State.Acks, ack.GetHash().Fixed())
+		if p.State.DebugConsensus {
+			fmt.Println("dddd", hint, p.State.FactomNodeName, "OutOfOrder", m.String())
+			fmt.Println("dddd", hint, p.State.FactomNodeName, "OutOfOrder", ack.String())
+		}
 	}
 
 	toss := func(hint string) {
 		delete(p.State.Holding, ack.GetHash().Fixed())
 		delete(p.State.Acks, ack.GetHash().Fixed())
-		fmt.Println("dddd",hint, p.State.FactomNodeName, "Toss",m.String())
-		fmt.Println("dddd",hint, p.State.FactomNodeName, "Toss",ack.String())
+		if p.State.DebugConsensus {
+			fmt.Println("dddd", hint, p.State.FactomNodeName, "Toss", m.String())
+			fmt.Println("dddd", hint, p.State.FactomNodeName, "Toss", ack.String())
+		}
+	}
+
+	// If the message doesn't match the full hash of the ack, then it is no good.
+	// Get rid of the message, and let the request for messages get you the right one.
+	if !ack.GetFullMsgHash().IsSameAs(m.GetFullMsgHash()) {
+		delete(p.State.Holding, m.GetHash().Fixed())
+	}
+
+	now := int64(p.State.GetTimestamp() / 1000)
+
+	_, isnew := p.State.InternalReplay.Valid(m.GetHash().Fixed(), int64(m.GetTimestamp()/1000), now)
+	if !isnew {
+		toss("seen before")
+		return
 	}
 
 	vm := p.VMs[ack.VMIndex]
 
-	if ack.DBHeight > p.DBHeight {
-		stall("a")
-		return
-	}
-
-	if ack.DBHeight < p.DBHeight {
-		toss("1")
+	if ack.DBHeight != p.DBHeight {
+		panic(fmt.Sprintf("Ack is wrong height.  Expected: %d Ack: %s", p.DBHeight, ack.String()))
 		return
 	}
 
@@ -532,12 +596,12 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	}
 
 	if len(vm.List) > vm.Height {
-		stall("c")
+		outOfOrder("c")
 		return
 	}
 
 	if int(ack.Height) > vm.Height {
-		stall("d")
+		outOfOrder("d")
 		return
 	}
 
@@ -545,7 +609,7 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 
 		if ack == nil || m == nil || vm.List[ack.Height].GetMsgHash() == nil ||
 			m.GetMsgHash() == nil || vm.List[ack.Height].GetMsgHash().IsSameAs(m.GetMsgHash()) {
-			fmt.Printf("%-30s %10s %s\n", "xxxxxxxxx PL Duplicate", p.State.GetFactomNodeName(), m.String())
+			fmt.Printf("dddd %-30s %10s %s\n", "xxxxxxxxx PL Duplicate", p.State.GetFactomNodeName(), m.String())
 			toss("2")
 			return
 		}
@@ -553,12 +617,12 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 		if vm.List[ack.Height] != nil {
 			fmt.Println(p.String())
 			fmt.Println(p.PrintMap())
-			fmt.Printf("\t%12s %s %s\n", "OverWriting:", vm.List[ack.Height].String(), "with")
-			fmt.Printf("\t%12s %s\n", "with:", m.String())
-			fmt.Printf("\t%12s %s\n", "Detected on:", p.State.GetFactomNodeName())
-			fmt.Printf("\t%12s %s\n", "old ack", vm.ListAck[ack.Height].String())
-			fmt.Printf("\t%12s %s\n", "new ack", ack.String())
-			fmt.Printf("\t%12s %s\n", "VM Index", ack.VMIndex)
+			fmt.Printf("dddd\t%12s %s %s\n", "OverWriting:", vm.List[ack.Height].String(), "with")
+			fmt.Printf("dddd\t%12s %s\n", "with:", m.String())
+			fmt.Printf("dddd\t%12s %s\n", "Detected on:", p.State.GetFactomNodeName())
+			fmt.Printf("dddd\t%12s %s\n", "old ack", vm.ListAck[ack.Height].String())
+			fmt.Printf("dddd\t%12s %s\n", "new ack", ack.String())
+			fmt.Printf("dddd\t%12s %s\n", "VM Index", ack.VMIndex)
 			toss("3")
 			return
 		}
@@ -567,12 +631,32 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	// From this point on, we consider the transaction recorded.  If we detect it has already been
 	// recorded, then we still treat it as if we recorded it.
 
-	now := int64(p.State.GetTimestamp())
+	eom, ok := m.(*messages.EOM)
+	if ok {
+		if vm.Seal > 0 {
+			if p.State.DebugConsensus {
+				fmt.Println("dddd EOM after Seal", p.State.FactomNodeName, m.String())
+				fmt.Println("dddd EOM after Seal", p.State.FactomNodeName, ack.String())
+			}
+			outOfOrder("eom")
+		}
+		if p.State.Leader && eom.IsLocal() {
+			p.State.EOM = int(eom.Minute + 1)
+		}
+		p.Sealing = true
+		vm.Seal = int(eom.Minute + 1)
+		vm.SealHeight = ack.Height
+		vm.MinuteComplete = int(eom.Minute + 1)
+		vm.MinuteHeight = vm.Height
+	}
 
-	msgOk := p.State.InternalReplay.IsTSValid_(m.GetHash().Fixed(), int64(m.GetTimestamp()), now)
+	msgOk := p.State.InternalReplay.IsTSValid_(m.GetHash().Fixed(), int64(m.GetTimestamp()/1000), now)
 
 	if !msgOk { // If we already have this message or acknowledgement recorded,
-		fmt.Println("****", p.State.FactomNodeName,m.String())
+		if p.State.DebugConsensus {
+			fmt.Println("dddd Msg Repeat", p.State.FactomNodeName, m.String())
+			fmt.Println("dddd Msg Repeat", p.State.FactomNodeName, ack.String())
+		}
 		toss("4")
 		return // we don't have to do anything.  Just say we got it handled.
 	}
@@ -584,18 +668,6 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 
 	m.SetLeaderChainID(ack.GetLeaderChainID())
 	m.SetMinute(ack.Minute)
-
-	eom, ok := m.(*messages.EOM)
-	if ok {
-		if p.State.Leader && eom.IsLocal() {
-			p.State.EOM = int(eom.Minute + 1)
-		}
-		p.Sealing = true
-		vm.Seal = int(eom.Minute + 1)
-		vm.SealHeight = ack.Height
-		vm.MinuteComplete = int(eom.Minute + 1)
-		vm.MinuteHeight = vm.Height
-	}
 
 	// Both the ack and the message hash to the same GetHash()
 	m.SetLocal(false)

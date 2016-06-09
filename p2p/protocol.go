@@ -7,6 +7,7 @@ package p2p
 import (
 	"fmt"
 	"hash/crc32"
+	"math/rand"
 	"os"
 	"strings"
 	"time"
@@ -14,25 +15,29 @@ import (
 
 // Global variables for the p2p protocol
 var (
-	CurrentLoggingLevel                     = Verbose // Start at verbose because it takes a few seconds for the controller to adjust to what you set.
-	CurrentNetwork                          = TestNet
-	NetworkStatusInterval     time.Duration = time.Second * 22
-	PingInterval              time.Duration = time.Second * 15
-	TimeBetweenRedials        time.Duration = time.Second * 20
-	MaxNumberOfRedialAttempts int           = 15
-	PeerSaveInterval          time.Duration = time.Second * 30
-	PeerRequestInterval       time.Duration = time.Second * 180
+	CurrentLoggingLevel                         = Verbose // Start at verbose because it takes a few seconds for the controller to adjust to what you set.
+	CurrentNetwork                              = TestNet
+	NetworkListenPort             string        = "8108"
+	NodeID                        uint64        = 0           // Random number used for loopback protection
+	MinumumQualityScore           int32         = -200        // if a peer's score is less than this we ignore them.
+	BannedQualityScore            int32         = -2147000000 // Used to ban a peer
+	OnlySpecialPeers              bool          = false
+	NumberPeersToConnect          int           = 12
+	MaxNumberIncommingConnections int           = 150
+	MaxNumberOfRedialAttempts     int           = 15
+	NetworkStatusInterval         time.Duration = time.Second * 22
+	PingInterval                  time.Duration = time.Second * 15
+	TimeBetweenRedials            time.Duration = time.Second * 20
+	PeerSaveInterval              time.Duration = time.Second * 30
+	PeerRequestInterval           time.Duration = time.Second * 180
 
-	MinumumQualityScore int32        = -200        // if a peer's score is less than this we ignore them.
-	BannedQualityScore  int32        = -2147000000 // Used to ban a peer
-	CRCKoopmanTable     *crc32.Table = crc32.MakeTable(crc32.Koopman)
-
-	OnlySpecialPeers     bool   = false
-	NumberPeersToConnect int    = 12
-	NodeID               uint64 = 0 // Random number used for loopback protection
 	// Testing metrics
 	TotalMessagesRecieved uint64 = 0
 	TotalMessagesSent     uint64 = 0
+
+	CRCKoopmanTable *crc32.Table = crc32.MakeTable(crc32.Koopman)
+	RandomGenerator *rand.Rand   // seeded pseudo-random number generator
+
 )
 
 const (
@@ -60,12 +65,16 @@ const (
 
 	// TestNet represents a testing network
 	TestNet NetworkID = 0xdeadbeef
+
+	// LocalNet represents any arbitrary/private network
+	LocalNet NetworkID = 0xbeaded
 )
 
 // Map of network ids to strings for easy printing of network ID
 var NetworkIDStrings = map[NetworkID]string{
-	MainNet: "MainNet",
-	TestNet: "TestNet",
+	MainNet:  "MainNet",
+	TestNet:  "TestNet",
+	LocalNet: "LocalNet",
 }
 
 func (n *NetworkID) String() string {
@@ -116,14 +125,17 @@ func verbose(component string, format string, v ...interface{}) {
 // log is the base log function to produce parsable log output for mass metrics consumption
 func log(level uint8, component string, format string, v ...interface{}) {
 	message := strings.Replace(fmt.Sprintf(format, v...), ",", "-", -1) // Make CSV parsable.
-	levelStr := LoggingLevels[level]
-	host, _ := os.Hostname()
+	// levelStr := LoggingLevels[level]
+	// host, _ := os.Hostname()
+	// fmt.Fprintf(os.Stdout, "%s, %s, %d, %s, (%s), %d/%d, %s \n", now.String(), host, os.Getpid(), component, levelStr, level, CurrentLoggingLevel, message)
+
+	now := time.Now().Format("01/02/2006 15:04:05.000")
 	if level <= CurrentLoggingLevel { // lower level means more severe. "Silence" level always printed, overriding silence.
-		fmt.Fprintf(os.Stdout, "%s, %d, %s, (%s), %d/%d, %s \n", host, os.Getpid(), component, levelStr, level, CurrentLoggingLevel, message)
+		fmt.Fprintf(os.Stdout, "%s, %s, %d/%d, %s \n", now, component, level, CurrentLoggingLevel, message)
 		// fmt.Fprintf(os.Stdout, "%s, %d, %s, (%s), %s\n", host, os.Getpid(), component, levelStr, message)
 	}
 	if level == Fatal {
-		fmt.Fprintf(os.Stderr, "%s, %d, %s, (%s), %s\n", host, os.Getpid(), component, levelStr, message)
+		fmt.Fprintf(os.Stderr, "%s, %s, %d/%d, %s \n", now, component, level, CurrentLoggingLevel, message)
 		// BUGBUG - take out this exit before shipping JAYJAY TODO, or check that all fatals are fatal.
 		os.Exit(1)
 	}

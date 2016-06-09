@@ -319,6 +319,7 @@ func HandleV2Receipt(state interfaces.IState, params interface{}) (interface{}, 
 	}
 	resp := new(ReceiptResponse)
 	resp.Receipt = receipt
+
 	return resp, nil
 }
 

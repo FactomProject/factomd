@@ -10,15 +10,38 @@ import (
 )
 
 type MessageBase struct {
-	Origin    int  // Set and examined on a server, not marshaled with the message
-	Peer2Peer bool // The nature of this message type, not marshaled with the message
-	LocalOnly bool // This message is only a local message, is not broadcasted and may skip verification
+	FullMsgHash interfaces.IHash
+
+	Origin        int    // Set and examined on a server, not marshaled with the message
+	NetworkOrigin string // Hash of the network peer/connection where the message is from
+	Peer2Peer     bool   // The nature of this message type, not marshaled with the message
+	LocalOnly     bool   // This message is only a local message, is not broadcasted and may skip verification
 
 	LeaderChainID interfaces.IHash
 	MsgHash       interfaces.IHash // Cash of the hash of a message
 	VMIndex       int              // The Index of the VM responsible for this message.
 	VMHash        []byte           // Basis for selecting a VMIndex
 	Minute        byte
+
+	Stalled bool // This message is currently stalled
+}
+
+func (m *MessageBase) IsStalled() bool {
+	return m.Stalled
+}
+func (m *MessageBase) SetStall(b bool) {
+	m.Stalled = b
+}
+
+func (m *MessageBase) GetFullMsgHash() interfaces.IHash {
+	if m.FullMsgHash == nil {
+		m.FullMsgHash = primitives.NewZeroHash()
+	}
+	return m.FullMsgHash
+}
+
+func (m *MessageBase) SetFullMsgHash(hash interfaces.IHash) {
+	m.GetFullMsgHash().SetBytes(hash.Bytes())
 }
 
 func (m *MessageBase) GetOrigin() int {
@@ -27,6 +50,14 @@ func (m *MessageBase) GetOrigin() int {
 
 func (m *MessageBase) SetOrigin(o int) {
 	m.Origin = o
+}
+
+func (m *MessageBase) GetNetworkOrigin() string {
+	return m.NetworkOrigin
+}
+
+func (m *MessageBase) SetNetworkOrigin(o string) {
+	m.NetworkOrigin = o
 }
 
 // Returns true if this is a response to a peer to peer

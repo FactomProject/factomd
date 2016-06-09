@@ -6,9 +6,9 @@ package state
 
 import (
 	"fmt"
-	"time"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
+	"time"
 )
 
 func (state *State) ValidatorLoop() {
@@ -79,6 +79,11 @@ type Timer struct {
 func (t *Timer) timer(state *State, min int) {
 
 	state.UpdateState()
+
+	// Start up in Minute 0 always.
+	if !state.Green() {
+		t.lastDBHeight = 0xffffffff
+	}
 
 	t.lastMin = min
 

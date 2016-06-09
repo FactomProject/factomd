@@ -14,7 +14,7 @@ type IEntryCreditBlock interface {
 	GetBody() IECBlockBody
 	GetHash() IHash
 	HeaderHash() (IHash, error)
-	Hash() (IHash, error)
+	GetFullHash() (IHash, error)
 	GetEntryHashes() []IHash
 	GetEntrySigHashes() []IHash
 	GetEntries() []IECBlockEntry

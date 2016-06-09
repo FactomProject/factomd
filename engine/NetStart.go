@@ -45,12 +45,12 @@ func NetStart(s *state.State) {
 	cloneDBPtr := flag.String("clonedb", "", "Override the main node and use this database for the clones in a Network.")
 	folderPtr := flag.String("folder", "", "Directory in .factom to store nodes. (eg: multiple nodes on one filesystem support)")
 	portOverridePtr := flag.Int("port", 0, "Address to serve WSAPI on")
-	addressPtr := flag.String("p2pPort", "8108", "Address & port to listen for peers on.")
+	networkPortPtr := flag.String("p2pPort", "8108", "Port to listen for peers on.")
 	peersPtr := flag.String("peers", "", "Array of peer addresses. ")
 	blkTimePtr := flag.Int("blktime", 0, "Seconds per block.  Production is 600.")
 	runtimeLogPtr := flag.Bool("runtimeLog", true, "If true, maintain runtime logs of messages passed.")
 	netdebugPtr := flag.Int("netdebug", 0, "0-5: 0 = quiet, >0 = increasing levels of logging")
-	heartbeatPtr := flag.Bool("heartbeat", false, "If true, network just sends heartbeats.")
+	exclusivePtr := flag.Bool("exclusive", false, "If true, we only dial out to special/trusted peers.")
 	prefixNodePtr := flag.String("prefix", "", "Prefix the Factom Node Names with this value; used to create leaderless networks.")
 	profilePtr := flag.String("profile", "", "If true, turn on the go Profiler to profile execution of Factomd")
 
@@ -67,12 +67,12 @@ func NetStart(s *state.State) {
 	cloneDB := *cloneDBPtr
 	folder := *folderPtr
 	portOverride := *portOverridePtr
-	address := *addressPtr
+	networkPort := *networkPortPtr
 	peers := *peersPtr
 	blkTime := *blkTimePtr
 	runtimeLog := *runtimeLogPtr
 	netdebug := *netdebugPtr
-	heartbeat := *heartbeatPtr
+	exclusive := *exclusivePtr
 	prefix := *prefixNodePtr
 	profile := *profilePtr
 
@@ -168,7 +168,7 @@ func NetStart(s *state.State) {
 	os.Stderr.WriteString(fmt.Sprintf("clonedb     \"%s\"\n", cloneDB))
 	os.Stderr.WriteString(fmt.Sprintf("folder      \"%s\"\n", folder))
 	os.Stderr.WriteString(fmt.Sprintf("port        \"%d\"\n", s.PortNumber))
-	os.Stderr.WriteString(fmt.Sprintf("address     \"%s\"\n", address))
+	os.Stderr.WriteString(fmt.Sprintf("networkPort \"%s\"\n", networkPort))
 	os.Stderr.WriteString(fmt.Sprintf("peers       \"%s\"\n", peers))
 	os.Stderr.WriteString(fmt.Sprintf("blkTime     %d\n", blkTime))
 	os.Stderr.WriteString(fmt.Sprintf("runtimeLog  %v\n", runtimeLog))
@@ -190,19 +190,35 @@ func NetStart(s *state.State) {
 		makeServer(s) // We clone s to make all of our servers
 	}
 
-	// Start the P2P netowrk
+	// Start the P2P netowork
+	var networkID p2p.NetworkID
+	switch s.Network {
+	case "MAIN", "main":
+		networkID = p2p.MainNet
+	case "LOCAL", "local":
+		networkID = p2p.MainNet
+	case "TEST", "test":
+		networkID = p2p.MainNet
+	default:
+		panic("Invalid Network choice in Config File. Choose MAIN, TEST or LOCAL")
 
-	// BUGBUG Get peers file from config
-	p2p := new(p2p.Controller).Init(address, "~/.factom/peers.json")
-	network = *p2p
-	network.StartNetwork(false) //BUGBUG This should be command line flag? Talk to Brian
+	}
+	ci := p2p.ControllerInit{
+		Port:      networkPort,
+		PeersFile: s.PeersFile,
+		Network:   networkID,
+		Exclusive: exclusive,
+		SeedURL:   "http://n1rvana.github.io/seed.txt",
+	}
+	p2pController := new(p2p.Controller).Init(ci)
+	network = *p2pController
+	network.StartNetwork()
 	// Setup the proxy (Which translates from network parcels to factom messages, handling addressing for directed messages)
 	p2pProxy := new(P2PProxy).Init(fnodes[0].State.FactomNodeName, "P2P Network").(*P2PProxy)
 	p2pProxy.FromNetwork = network.FromNetwork
 	p2pProxy.ToNetwork = network.ToNetwork
 	fnodes[0].Peers = append(fnodes[0].Peers, p2pProxy)
 	p2pProxy.SetDebugMode(netdebug)
-	p2pProxy.SetTestMode(heartbeat)
 	if 0 < netdebug {
 		go PeriodicStatusReport(fnodes)
 		go p2pProxy.ProxyStatusReport(fnodes)
@@ -211,15 +227,17 @@ func NetStart(s *state.State) {
 		network.StartLogging(uint8(0))
 	}
 	p2pProxy.startProxy()
-	// Bootstrap peers (will be obsolete when discovery is finished)
+	// Command line peers lets us manually set special peers
 	// Parse the peers into an array.
 	parseFunc := func(c rune) bool {
 		return !unicode.IsLetter(c) && !unicode.IsNumber(c) && !unicode.IsPunct(c)
 	}
 	peerAddresses := strings.FieldsFunc(peers, parseFunc)
-	for _, peer := range peerAddresses {
-		fmt.Println("Dialing Peer: ", peer)
-		network.DialPeer(peer)
+	for _, peerAddress := range peerAddresses {
+		fmt.Println("Dialing Peer: ", peerAddress)
+		ipPort := strings.Split(peerAddress, ":")
+		peer := new(p2p.Peer).Init(ipPort[0], ipPort[1], 0, p2p.SpecialPeer, 0)
+		network.DialPeer(*peer)
 	}
 
 	switch net {
@@ -246,6 +264,8 @@ func NetStart(s *state.State) {
 			AddSimPeer(fnodes, i, (i+3)%n)
 			AddSimPeer(fnodes, i, (i+5)%n)
 			AddSimPeer(fnodes, i, (i+7)%n)
+			AddSimPeer(fnodes, i, (i+17)%n)
+			AddSimPeer(fnodes, i, (i+31)%n)
 		}
 
 	case "tree":

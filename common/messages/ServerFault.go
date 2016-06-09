@@ -6,6 +6,7 @@ package messages
 
 import (
 	"bytes"
+	"encoding/binary"
 	"fmt"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -16,7 +17,8 @@ import (
 type ServerFault struct {
 	MessageBase
 	Timestamp interfaces.Timestamp
-	KnownEOM  int
+	DBHeight  uint32
+	Height    uint32
 
 	Signature interfaces.IFullSignature
 
@@ -96,6 +98,7 @@ func (m *ServerFault) MarshalForSignature() (data []byte, err error) {
 	}()
 
 	var buf primitives.Buffer
+
 	buf.Write([]byte{m.Type()})
 	if d, err := m.Timestamp.MarshalBinary(); err != nil {
 		return nil, err
@@ -103,9 +106,28 @@ func (m *ServerFault) MarshalForSignature() (data []byte, err error) {
 		buf.Write(d)
 	}
 
-	//TODO: expand
+	binary.Write(&buf, binary.BigEndian, uint32(m.DBHeight))
+	binary.Write(&buf, binary.BigEndian, uint32(m.Height))
 
 	return buf.DeepCopyBytes(), nil
+}
+
+func (m *ServerFault) MarshalBinary() (data []byte, err error) {
+	resp, err := m.MarshalForSignature()
+	if err != nil {
+		return nil, err
+	}
+	sig := m.GetSignature()
+
+	if sig != nil {
+		sigBytes, err := sig.MarshalBinary()
+		if err != nil {
+			return nil, err
+		}
+		return append(resp, sigBytes...), nil
+	}
+
+	return resp, nil
 }
 
 func (m *ServerFault) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
@@ -125,7 +147,8 @@ func (m *ServerFault) UnmarshalBinaryData(data []byte) (newData []byte, err erro
 		return nil, err
 	}
 
-	//TODO: expand
+	m.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+	m.Height, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
 	if len(newData) > 0 {
 		m.Signature = new(primitives.Signature)
@@ -134,29 +157,13 @@ func (m *ServerFault) UnmarshalBinaryData(data []byte) (newData []byte, err erro
 			return nil, err
 		}
 	}
+
 	return newData, nil
 }
 
 func (m *ServerFault) UnmarshalBinary(data []byte) error {
 	_, err := m.UnmarshalBinaryData(data)
 	return err
-}
-
-func (m *ServerFault) MarshalBinary() (data []byte, err error) {
-	resp, err := m.MarshalForSignature()
-	if err != nil {
-		return nil, err
-	}
-	sig := m.GetSignature()
-
-	if sig != nil {
-		sigBytes, err := sig.MarshalBinary()
-		if err != nil {
-			return nil, err
-		}
-		return append(resp, sigBytes...), nil
-	}
-	return resp, nil
 }
 
 func (m *ServerFault) GetSignature() interfaces.IFullSignature {
@@ -180,8 +187,8 @@ func (m *ServerFault) String() string {
 	return ""
 }
 
-func (m *ServerFault) DBHeight() int {
-	return 0
+func (m *ServerFault) GetDBHeight() uint32 {
+	return m.DBHeight
 }
 
 func (m *ServerFault) ChainID() []byte {

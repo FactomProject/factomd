@@ -45,6 +45,11 @@ func (c *AdminBlock) AddFedServer(identityChainID interfaces.IHash) {
 	c.ABEntries = append(c.ABEntries, entry)
 }
 
+func (c *AdminBlock) AddAuditServer(identityChainID interfaces.IHash) {
+	entry := NewAddAuditServer(identityChainID, c.Header.GetDBHeight()+1) // Goes in the NEXT block
+	c.ABEntries = append(c.ABEntries, entry)
+}
+
 func (c *AdminBlock) GetHeader() interfaces.IABlockHeader {
 	return c.Header
 }

@@ -9,12 +9,13 @@ package state
 
 import (
 	"fmt"
+	"runtime/debug"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-	"runtime/debug"
 )
 
 var _ = debug.PrintStack
@@ -70,7 +71,7 @@ func (fs *FactoidState) AddTransactionBlock(blk interfaces.IFBlock) error {
 		}
 	}
 	fs.CurrentBlock = blk
-	//	fs.State.SetFactoshisPerEC(blk.GetExchRate())
+	//fs.State.SetFactoshisPerEC(blk.GetExchRate())
 
 	return nil
 }
@@ -121,6 +122,11 @@ func (fs *FactoidState) AddTransaction(index int, trans interfaces.ITransaction)
 		return err
 	}
 	if err := fs.CurrentBlock.AddTransaction(trans); err != nil {
+		if err == nil {
+			// We assume validity has been done elsewhere.  We are maintaining the "seen" state of
+			// all transactions here.
+			fs.State.InternalReplay.IsTSValid(trans.GetHash(), int64(trans.GetMilliTimestamp()/1000))
+		}
 		return err
 	}
 
@@ -223,9 +229,7 @@ func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
 
 	fs.CurrentBlock = factoid.NewFBlock(fs.State.GetFactoshisPerEC(), fs.DBHeight+1)
 
-	// TODO:  Need to get the leader time to put in the Coinbase ... Can't compute
-	// this on the fly and expect everyone to come up with the same timestamp.
-	t := factoid.GetCoinbase(0)
+	t := factoid.GetCoinbase(fs.State.GetLeaderTimestamp()) //state.GetLeaderTimestamp())
 	err := fs.CurrentBlock.AddCoinbase(t)
 	if err != nil {
 		panic(err.Error())

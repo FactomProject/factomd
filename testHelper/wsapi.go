@@ -11,6 +11,10 @@ import (
 func GetRespMap(context *web.Context) map[string]interface{} {
 	j := GetBody(context)
 
+	if j == "" {
+		return nil
+	}
+
 	unmarshalled := map[string]interface{}{}
 	err := json.Unmarshal([]byte(j), &unmarshalled)
 	if err != nil {

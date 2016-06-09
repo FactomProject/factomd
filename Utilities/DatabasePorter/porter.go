@@ -131,7 +131,7 @@ mainloop:
 						if err != nil {
 							panic(err)
 						}
-						err = dbo.ProcessECBlockMultiBatch(ecblock)
+						err = dbo.ProcessECBlockMultiBatch(ecblock, true)
 						if err != nil {
 							panic(err)
 						}
@@ -141,7 +141,7 @@ mainloop:
 						if err != nil {
 							panic(err)
 						}
-						err = dbo.ProcessEBlockMultiBatch(eblock)
+						err = dbo.ProcessEBlockMultiBatch(eblock, true)
 						if err != nil {
 							panic(err)
 						}

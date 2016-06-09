@@ -4,8 +4,6 @@
 
 package interfaces
 
-import ()
-
 /**************************
  * IRCD  Interface for Redeem Condition Datastructures (RCD)
  *
@@ -29,14 +27,20 @@ type IMsg interface {
 	GetOrigin() int
 	SetOrigin(int)
 
+	GetNetworkOrigin() string
+	SetNetworkOrigin(string)
+
 	// Returns the timestamp for a message
 	GetTimestamp() Timestamp
 
 	// Hash for this message as used by Consensus (i.e. what we match)
 	GetHash() IHash
 
-	// Hash of this message.  Each message must be unique
+	// Hash of this message.  Each message must be unique (excludes signatures)
 	GetMsgHash() IHash
+
+	// Returns the full message hash of a message (includes signatures)
+	GetFullMsgHash() IHash
 
 	// If this message should only reply to a peer, this is true.  If to
 	// be broadcast, this should be false.  If the Origin is 0, then the
@@ -79,4 +83,8 @@ type IMsg interface {
 	SetVMHash([]byte)
 	GetMinute() byte
 	SetMinute(byte)
+
+	// Stall handling
+	IsStalled() bool
+	SetStall(bool)
 }

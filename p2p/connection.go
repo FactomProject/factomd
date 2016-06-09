@@ -29,6 +29,7 @@ type Connection struct {
 	timeLastPing    time.Time    // time of last ping sent
 	timeLastUpdate  time.Time    // time of last peer update sent
 	state           uint8        // Current state of the connection. Private. Only communication
+	isOutGoing      bool         // We keep track of outgoing dial() vs incomming accept() connections
 }
 
 // Each connection is a simple state machine.  The state is managed by a single goroutine which also does netowrking.
@@ -88,6 +89,7 @@ const (
 // InitWithConn is called from our accept loop when a peer dials into us and we already have a network conn
 func (c *Connection) InitWithConn(conn net.Conn, peer Peer) *Connection {
 	c.conn = conn
+	c.isOutGoing = false // InitWithConn is called by controller's accept() loop
 	c.commonInit(peer)
 	debug(c.peer.Hash, "Connection.InitWithConn() called.")
 	c.goOnline()
@@ -97,9 +99,18 @@ func (c *Connection) InitWithConn(conn net.Conn, peer Peer) *Connection {
 // Init is called when we have peer info and need to dial into the peer
 func (c *Connection) Init(peer Peer) *Connection {
 	c.conn = nil
+	c.isOutGoing = true
 	c.commonInit(peer)
 	debug(c.peer.Hash, "Connection.Init() called.")
 	return c
+}
+
+func (c *Connection) IsOutGoing() bool {
+	return c.isOutGoing
+}
+
+func (c *Connection) IsOnline() bool {
+	return ConnectionOnline == c.state
 }
 
 //////////////////////////////
@@ -126,10 +137,19 @@ func (c *Connection) runLoop() {
 		time.Sleep(time.Millisecond * 1) // This can be a tight loop, don't want to starve the application
 		switch c.state {
 		case ConnectionInitialized:
-			if c.dial() {
-				c.goOnline()
-			} else { //  we did not connect successfully
+			if MinumumQualityScore > c.peer.QualityScore {
 				c.goShutdown()
+			}
+			switch c.dial() {
+			case true:
+				c.goOnline()
+			case false:
+				switch { //  we did not connect successfully
+				case OnlySpecialPeers:
+					c.goOffline() // We very much want to connect to these people
+				default:
+					c.goShutdown() // We're dialing possibly many peers who are no longer there.
+				}
 			}
 		case ConnectionOnline:
 			c.processReceives()
@@ -141,23 +161,29 @@ func (c *Connection) runLoop() {
 					c.updatePeer() // every PeerSaveInterval * 0.90 we send an update peer to the controller.
 				}
 			}
+			if MinumumQualityScore > c.peer.QualityScore {
+				c.updatePeer() // every PeerSaveInterval * 0.90 we send an update peer to the controller.
+				c.goShutdown()
+			}
 		case ConnectionOffline:
 			duration := time.Since(c.timeLastAttempt)
-			if TimeBetweenRedials < duration && MaxNumberOfRedialAttempts > c.attempts {
-				if c.dial() {
+			switch {
+			case !c.isOutGoing: // Not outgoing, meaning they called us.
+				c.goShutdown()
+			case TimeBetweenRedials < duration && MaxNumberOfRedialAttempts > c.attempts:
+				switch c.dial() {
+				case true:
 					c.goOnline()
-				} else { //  we did not connect successfully
+				default: //  we did not connect successfully
 					c.attempts++
 					c.timeLastAttempt = time.Now()
 				}
-				if MaxNumberOfRedialAttempts <= c.attempts {
-					c.goShutdown()
-				} else {
-					time.Sleep(TimeBetweenRedials)
-				}
+			// If score is low, or we've attempted too many times, we don't try any more.
+			case MaxNumberOfRedialAttempts <= c.attempts || c.peer.QualityScore < 0:
+				c.goShutdown()
 			}
 		case ConnectionShuttingDown:
-			debug(c.peer.Hash, "runLoop() ConnectionReceivesShutdown STATE runloop() cleaning up. ")
+			debug(c.peer.Hash, "runLoop() ConnectionShuttingDown STATE runloop() cleaning up. ")
 			c.state = ConnectionClosed
 			c.ReceiveChannel <- ConnectionCommand{command: ConnectionIsClosed}
 			return // ending runloop() goroutine
@@ -168,28 +194,31 @@ func (c *Connection) runLoop() {
 }
 
 func (c *Connection) dial() bool {
-	note(c.peer.Hash, "Connection.dial() dialing: %+v", c.peer.Address)
+	address := c.peer.Address + ":" + c.peer.Port
+	note(c.peer.Hash, "Connection.dial() dialing: %+v", address)
 	// conn, err := net.Dial("tcp", c.peer.Address)
-	conn, err := net.DialTimeout("tcp", c.peer.Address, time.Second*10)
+	conn, err := net.DialTimeout("tcp", address, time.Second*10)
 	if err != nil {
-		note(c.peer.Hash, "Connection.dial(%s) got error: %+v", c.peer.Address, err)
+		silence(c.peer.Hash, "Connection.dial(%s) got error: %+v", address, err)
 		return false
 	}
 	c.conn = conn
-	debug(c.peer.Hash, "Connection.dial(%s) was successful.", c.peer.Address)
+	silence(c.peer.Hash, "Connection.dial(%s) was successful.", address)
 	return true
 }
 
 // Called when we are online and connected to the peer.
 func (c *Connection) goOnline() {
 	debug(c.peer.Hash, "Connection.goOnline() called. %s", c.peer.Hash)
+	now := time.Now()
 	c.encoder = gob.NewEncoder(c.conn)
 	c.decoder = gob.NewDecoder(c.conn)
-	c.timeLastPing = time.Now()
-	c.timeLastContact = time.Now()
-	c.timeLastAttempt = time.Now()
-	c.timeLastUpdate = time.Now()
 	c.attempts = 0
+	c.timeLastPing = now
+	c.timeLastContact = now
+	c.timeLastAttempt = now
+	c.timeLastUpdate = now
+	c.peer.LastContact = now
 	c.state = ConnectionOnline
 	// Now ask the other side for the peers they know about.
 	parcel := NewParcel(CurrentNetwork, []byte("Peer Request"))
@@ -269,7 +298,7 @@ func (c *Connection) sendParcel(parcel Parcel) {
 	err := c.encoder.Encode(parcel)
 	switch {
 	case nil == err:
-		verbose(c.peer.Hash, "Connection.processReceives() Timeout()  State: %s", c.ConnectionState())
+		verbose(c.peer.Hash, "Connection.sendParcel() Timeout()  State: %s", c.ConnectionState())
 	default:
 		c.handleNetErrors(err)
 		return
@@ -280,7 +309,7 @@ func (c *Connection) sendParcel(parcel Parcel) {
 func (c *Connection) processReceives() {
 	for ConnectionOnline == c.state {
 		var message Parcel
-		note(c.peer.Hash, "Connection.processReceives() called. State: %s", c.ConnectionState())
+		verbose(c.peer.Hash, "Connection.processReceives() called. State: %s", c.ConnectionState())
 		c.conn.SetReadDeadline(time.Now().Add(100 * time.Millisecond))
 		err := c.decoder.Decode(&message)
 		switch {
@@ -297,7 +326,7 @@ func (c *Connection) processReceives() {
 //handleNetErrors Reacts to errors we get from encoder or decoder
 func (c *Connection) handleNetErrors(err error) {
 	nerr, isNetError := err.(net.Error)
-	logerror(c.peer.Hash, "Connection.handleNetErrors() got error: %+v", err)
+	verbose(c.peer.Hash, "Connection.handleNetErrors() got error: %+v", err)
 	switch {
 	case isNetError && nerr.Timeout(): /// buffer empty
 		return
@@ -326,9 +355,10 @@ func (c *Connection) handleParcel(parcel Parcel) {
 		parcel.Print()
 		c.peer.demerit()
 	case ParcelValid:
-		c.timeLastContact = time.Now() // We only update for valid messages (incluidng pings and heartbeats)
-		c.attempts = 0                 // reset since we are clearly in touch now.
-		c.peer.merit()                 // Increase peer quality score.
+		c.timeLastContact = time.Now()       // We only update for valid messages (incluidng pings and heartbeats)
+		c.attempts = 0                       // reset since we are clearly in touch now.
+		c.peer.merit()                       // Increase peer quality score.
+		c.peer.Port = parcel.Header.PeerPort // Peers communicate their port in the header. Could be moved to a handshake
 		debug(c.peer.Hash, "Connection.handleParcel() got ParcelValid %s", parcel.MessageType())
 		if Notes <= CurrentLoggingLevel {
 			parcel.PrintMessageType()
@@ -348,7 +378,7 @@ const (
 )
 
 func (c *Connection) parcelValidity(parcel Parcel) uint8 {
-	debug(c.peer.Hash, "Connection.isValidParcel(%s)", parcel.MessageType())
+	verbose(c.peer.Hash, "Connection.isValidParcel(%s)", parcel.MessageType())
 	crc := crc32.Checksum(parcel.Payload, CRCKoopmanTable)
 	switch {
 	case parcel.Header.NodeID == NodeID: // We are talking to ourselves!
@@ -380,7 +410,8 @@ func (c *Connection) handleParcelTypes(parcel Parcel) {
 		pong := NewParcel(CurrentNetwork, []byte("Pong"))
 		pong.Header.Type = TypePong
 		debug(c.peer.Hash, "handleParcelTypes() GOT PING, Sending Pong: %s", pong.String())
-		c.SendChannel <- ConnectionParcel{parcel: parcel}
+		parcel.Print()
+		c.SendChannel <- ConnectionParcel{parcel: *pong}
 	case TypePong: // all we need is the timestamp which is set already
 		debug(c.peer.Hash, "handleParcelTypes() GOT Pong.")
 		return
@@ -409,7 +440,6 @@ func (c *Connection) pingPeer() {
 	if PingInterval < durationLastContact && PingInterval < durationLastPing {
 		if MaxNumberOfRedialAttempts < c.attempts {
 			debug(c.peer.Hash, "pingPeer() GOING OFFLINE - No response to pings. Attempts: %d Ti  since last contact: %s and time since last ping: %s", PingInterval.String(), durationLastContact.String(), durationLastPing.String())
-
 			c.goOffline()
 			return
 		} else {
