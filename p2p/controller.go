@@ -118,14 +118,16 @@ func (c *Controller) StartNetwork() {
 	c.listen()
 	// Get a list of peers from discovery
 	// BUGBUG - in exclusivity we only dial the command line peers.
-	peers := c.discovery.GetOutgoingPeers()
-	if len(peers) < NumberPeersToConnect*2 && !OnlySpecialPeers {
-		c.discovery.DiscoverPeers()
-		peers = c.discovery.GetOutgoingPeers()
-	}
-	// dial into the peers
-	for _, peer := range peers {
-		c.DialPeer(peer, false)
+	if !OnlySpecialPeers {
+		peers := c.discovery.GetOutgoingPeers()
+		if len(peers) < NumberPeersToConnect*2 {
+			c.discovery.DiscoverPeers()
+			peers = c.discovery.GetOutgoingPeers()
+		}
+		// dial into the peers
+		for _, peer := range peers {
+			c.DialPeer(peer, false)
+		}
 	}
 	c.lastStatusReport = time.Now()
 	c.discovery.PrintPeers()
@@ -349,7 +351,7 @@ func (c *Controller) handleCommand(command interface{}) {
 		addPort := strings.Split(conn.RemoteAddr().String(), ":")
 		debug("ctrlr", "Controller.handleCommand(CommandAddPeer) got rconn.RemoteAddr().String() %s and parsed IP: %s and Port: %s",
 			conn.RemoteAddr().String(), addPort[0], addPort[1])
-		// Port initially stored will be the connection port (not the listen port), but peer will update it on first messae.
+		// Port initially stored will be the connection port (not the listen port), but peer will update it on first message.
 		peer := new(Peer).Init(addPort[0], addPort[1], 0, RegularPeer, 0)
 		connection := new(Connection).InitWithConn(conn, *peer)
 		c.connections[connection.peer.Hash] = *connection
