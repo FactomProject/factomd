@@ -26,7 +26,7 @@ type DBState struct {
 	FBHash interfaces.IHash
 	ECHash interfaces.IHash
 
-	dbstring				 string
+	dbstring         string
 	DirectoryBlock   interfaces.IDirectoryBlock
 	AdminBlock       interfaces.IAdminBlock
 	FactoidBlock     interfaces.IFBlock
@@ -35,7 +35,7 @@ type DBState struct {
 }
 
 type DBStateList struct {
-	SrcNetwork          bool   // True if I got this block from the network.
+	SrcNetwork          bool // True if I got this block from the network.
 	LastTime            interfaces.Timestamp
 	SecondsBetweenTests int
 	Lastreq             int
@@ -167,13 +167,13 @@ func (list *DBStateList) Catchup() {
 
 }
 
-func (list *DBStateList) FixupLinks (i int, d *DBState) {
+func (list *DBStateList) FixupLinks(i int, d *DBState) {
 	p := list.DBStates[i-1]
 
 	// If this block is new, then make sure all hashes are fully computed.
 	if d.isNew {
 
-		hash, _ :=  p.EntryCreditBlock.HeaderHash()
+		hash, _ := p.EntryCreditBlock.HeaderHash()
 		d.EntryCreditBlock.GetHeader().SetPrevHeaderHash(hash)
 
 		hash, _ = p.EntryCreditBlock.GetFullHash()
@@ -240,14 +240,13 @@ func (list *DBStateList) UpdateState() (progress bool) {
 				}
 			}
 
-
 			//fmt.Println("Saving DBHeight ", d.DirectoryBlock.GetHeader().GetDBHeight(), " on ", list.State.GetFactomNodeName())
 
 			// If we have previous blocks, update blocks that this follower potentially constructed.  We can optimize and skip
 			// this step if we got the block from a peer.  TODO we must however check the sigantures on the
 			// block before we write it to disk.
 			if i > 0 {
-				list.FixupLinks(i,d)
+				list.FixupLinks(i, d)
 			}
 			d.DirectoryBlock.MarshalBinary()
 			d.dbstring = d.DirectoryBlock.String()
@@ -301,7 +300,7 @@ func (list *DBStateList) UpdateState() (progress bool) {
 			panic("KeyMR failure")
 		}
 		if i > 0 {
-			dbprev,_ := list.State.DB.FetchDBlockByKeyMR(d.DirectoryBlock.GetHeader().GetPrevKeyMR())
+			dbprev, _ := list.State.DB.FetchDBlockByKeyMR(d.DirectoryBlock.GetHeader().GetPrevKeyMR())
 			if dbprev == nil {
 				fmt.Println(list.DBStates[i-1].dbstring)
 				fmt.Println(list.DBStates[i-1].DirectoryBlock.String())
@@ -309,8 +308,6 @@ func (list *DBStateList) UpdateState() (progress bool) {
 				panic("Hashes have been altered for Directory Blocks")
 			}
 		}
-
-
 
 		list.LastTime = list.State.GetTimestamp() // If I saved or processed stuff, I'm good for a while
 		d.Saved = true                            // Only after all is done will I admit this state has been saved.

@@ -3,9 +3,9 @@ package state
 import (
 	"fmt"
 
+	"bytes"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
-	"bytes"
 	"log"
 
 	"time"
@@ -442,18 +442,18 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			// matches our own saved block. If the majority of VMs' signatures do not match
 			// our saved block, we discard that block from our database.
 			//if plist[j].Type() == constants.DIRECTORY_BLOCK_SIGNATURE_MSG {
-				//dbs := plist[j].(*messages.DirectoryBlockSignature)
-				//myDBlock := state.GetDirectoryBlockByHeight(dbs.DBHeight - 1)
-				//myDBlock.GetHeader().SetTimestamp(p.GetLeaderTimestamp())
-				//if !dbs.DirectoryBlockKeyMR.IsSameAs(state.ProcessLists.Lists[0].DirectoryBlock.GetKeyMR()) {
-				//	p.diffSigTally++
-				//	if p.diffSigTally > 0 && p.diffSigTally > (len(p.FedServers)/2) {
-				//		state.DB.Delete([]byte{byte(databaseOverlay.DIRECTORYBLOCK)}, state.ProcessLists.Lists[0].DirectoryBlock.GetKeyMR().Bytes())
-				//	}
-				//}
-				//if i >= len(p.FedServers) {
-				//	p.diffSigTally = 0
-				//}
+			//dbs := plist[j].(*messages.DirectoryBlockSignature)
+			//myDBlock := state.GetDirectoryBlockByHeight(dbs.DBHeight - 1)
+			//myDBlock.GetHeader().SetTimestamp(p.GetLeaderTimestamp())
+			//if !dbs.DirectoryBlockKeyMR.IsSameAs(state.ProcessLists.Lists[0].DirectoryBlock.GetKeyMR()) {
+			//	p.diffSigTally++
+			//	if p.diffSigTally > 0 && p.diffSigTally > (len(p.FedServers)/2) {
+			//		state.DB.Delete([]byte{byte(databaseOverlay.DIRECTORYBLOCK)}, state.ProcessLists.Lists[0].DirectoryBlock.GetKeyMR().Bytes())
+			//	}
+			//}
+			//if i >= len(p.FedServers) {
+			//	p.diffSigTally = 0
+			//}
 			//}
 
 			if p.Sealing && vm.Seal == 0 {
