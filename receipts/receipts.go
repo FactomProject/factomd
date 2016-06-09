@@ -14,15 +14,18 @@ import (
 )
 
 type Receipt struct {
-	Entry                  *JSON
-	MerkleBranch           []*primitives.MerkleNode
-	EntryBlockKeyMR        *primitives.Hash
-	DirectoryBlockKeyMR    *primitives.Hash
-	BitcoinTransactionHash *primitives.Hash
-	BitcoinBlockHash       *primitives.Hash
+	Entry                  *JSON                    `json:"entry,omitempty"`
+	MerkleBranch           []*primitives.MerkleNode `json:"merklebranch,omitempty"`
+	EntryBlockKeyMR        *primitives.Hash         `json:"entryblockkeymr,omitempty"`
+	DirectoryBlockKeyMR    *primitives.Hash         `json:"directoryblockkeymr,omitempty"`
+	BitcoinTransactionHash *primitives.Hash         `json:"bitcointransactionhash,omitempty"`
+	BitcoinBlockHash       *primitives.Hash         `json:"bitcoinblockhash,omitempty"`
 }
 
 func (e *Receipt) TrimReceipt() {
+	if e == nil {
+		return
+	}
 	entry, _ := primitives.NewShaHashFromStr(e.Entry.Key)
 	for i := range e.MerkleBranch {
 		if entry.IsSameAs(e.MerkleBranch[i].Left) {
@@ -38,6 +41,9 @@ func (e *Receipt) TrimReceipt() {
 }
 
 func (e *Receipt) Validate() error {
+	if e == nil {
+		return fmt.Errorf("No receipt provided")
+	}
 	if e.Entry == nil {
 		return fmt.Errorf("Receipt has no entry")
 	}
@@ -235,9 +241,9 @@ func DecodeReceiptString(str string) (*Receipt, error) {
 }
 
 type JSON struct {
-	Raw  string `json:",omitempty"`
-	Key  string `json:",omitempty"`
-	Json string `json:",omitempty"`
+	Raw  string `json:"raw,omitempty"`
+	Key  string `json:"key,omitempty"`
+	Json string `json:"json,omitempty"`
 }
 
 func (e *JSON) JSONByte() ([]byte, error) {
