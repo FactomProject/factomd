@@ -318,7 +318,7 @@ func (c *Controller) handleParcelReceive(message interface{}, peerHash string, c
 		verbose("ctrlr", "Controller.route() sent the SharePeers response: %+v", response.MessageType())
 	case TypePeerResponse:
 		// Add these peers to our known peers
-		c.discovery.LearnPeers(parcel.Payload)
+		c.discovery.LearnPeers(parcel)
 	default:
 		logfatal("ctrlr", "handleParcelReceive() unknown parcel.Header.Type?: %+v ", parcel)
 	}
