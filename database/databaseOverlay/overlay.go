@@ -63,6 +63,44 @@ const (
 	PAID_FOR
 )
 
+var ConstantNamesMap map[uint8]string
+
+func init() {
+	ConstantNamesMap = map[uint8]string{}
+	ConstantNamesMap[DIRECTORYBLOCK] = "DirectoryBlock"
+	ConstantNamesMap[DIRECTORYBLOCK_NUMBER] = "DirectoryBlockNumber"
+	ConstantNamesMap[DIRECTORYBLOCK_KEYMR] = "DirectoryBlockKeyMR"
+
+	ConstantNamesMap[ADMINBLOCK] = "AdminBlock"
+	ConstantNamesMap[ADMINBLOCK_NUMBER] = "AdminBlockNumber"
+	ConstantNamesMap[ADMINBLOCK_KEYMR] = "AdminBlockKeyMR"
+
+	ConstantNamesMap[FACTOIDBLOCK] = "FactoidBlock"
+	ConstantNamesMap[FACTOIDBLOCK_NUMBER] = "FactoidBlockNumber"
+	ConstantNamesMap[FACTOIDBLOCK_KEYMR] = "FactoidBlockKeyMR"
+
+	ConstantNamesMap[ENTRYCREDITBLOCK] = "EntryCreditBlock"
+	ConstantNamesMap[ENTRYCREDITBLOCK_NUMBER] = "EntryCreditBlockNumber"
+	ConstantNamesMap[ENTRYCREDITBLOCK_KEYMR] = "EntryCreditBlockKeyMR"
+
+	ConstantNamesMap[CHAIN_HEAD] = "ChainHead"
+
+	ConstantNamesMap[ENTRYBLOCK] = "EntryBlock"
+	ConstantNamesMap[ENTRYBLOCK_CHAIN_NUMBER] = "EntryBlockChainNumber"
+	ConstantNamesMap[ENTRYBLOCK_KEYMR] = "EntryBlockKeyMR"
+
+	ConstantNamesMap[ENTRY] = "Entry"
+
+	ConstantNamesMap[DIRBLOCKINFO] = "DirBlockInfo"
+	ConstantNamesMap[DIRBLOCKINFO_UNCONFIRMED] = "DirBlockInfoUnconfirmed"
+	ConstantNamesMap[DIRBLOCKINFO_NUMBER] = "DirBlockInfoNumber"
+	ConstantNamesMap[DIRBLOCKINFO_KEYMR] = "DirBlockInfoKeyMR"
+
+	ConstantNamesMap[INCLUDED_IN] = "IncludedIn"
+
+	ConstantNamesMap[PAID_FOR] = "PaidFor"
+}
+
 type Overlay struct {
 	DB interfaces.IDatabase
 
@@ -72,6 +110,10 @@ type Overlay struct {
 	BatchSemaphore sync.Mutex
 	MultiBatch     []interfaces.Record
 	BlockExtractor blockExtractor.BlockExtractor
+}
+
+func (db *Overlay) ListAllBuckets() ([][]byte, error) {
+	return db.DB.ListAllBuckets()
 }
 
 func (db *Overlay) SetExportData(path string) {
@@ -109,7 +151,7 @@ func (db *Overlay) ListAllKeys(bucket []byte) ([][]byte, error) {
 	return db.DB.ListAllKeys(bucket)
 }
 
-func (db *Overlay) GetAll(bucket []byte, sample interfaces.BinaryMarshallableAndCopyable) ([]interfaces.BinaryMarshallableAndCopyable, error) {
+func (db *Overlay) GetAll(bucket []byte, sample interfaces.BinaryMarshallableAndCopyable) ([]interfaces.BinaryMarshallableAndCopyable, [][]byte, error) {
 	return db.DB.GetAll(bucket, sample)
 }
 
@@ -194,7 +236,7 @@ func (db *Overlay) FetchBlock(bucket []byte, key interfaces.IHash, dst interface
 }
 
 func (db *Overlay) FetchAllBlocksFromBucket(bucket []byte, sample interfaces.BinaryMarshallableAndCopyable) ([]interfaces.BinaryMarshallableAndCopyable, error) {
-	answer, err := db.DB.GetAll(bucket, sample)
+	answer, _, err := db.DB.GetAll(bucket, sample)
 	if err != nil {
 		return nil, err
 	}

@@ -116,7 +116,7 @@ func TestMultiValueLevelMap(t *testing.T) {
 		}
 	}
 
-	all, err := m.GetAll(bucket, new(TestData))
+	all, _, err := m.GetAll(bucket, new(TestData))
 	if err != nil {
 		t.Error(err)
 	}
@@ -219,7 +219,7 @@ func TestMultiValueBoltMap(t *testing.T) {
 		}
 	}
 
-	all, err := m.GetAll(bucket, new(TestData))
+	all, _, err := m.GetAll(bucket, new(TestData))
 	if err != nil {
 		t.Error(err)
 	}

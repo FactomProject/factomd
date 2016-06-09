@@ -5,7 +5,6 @@ import (
 
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/primitives"
-	. "github.com/FactomProject/factomd/database/databaseOverlay"
 	. "github.com/FactomProject/factomd/testHelper"
 )
 

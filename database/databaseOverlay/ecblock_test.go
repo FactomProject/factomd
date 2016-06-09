@@ -19,7 +19,7 @@ func TestSaveLoadECBlockHead(t *testing.T) {
 	dbo := NewOverlay(new(mapdb.MapDB))
 	defer dbo.Close()
 
-	err := dbo.SaveECBlockHead(b1)
+	err := dbo.SaveECBlockHead(b1, false)
 	if err != nil {
 		t.Error(err)
 	}
@@ -47,7 +47,7 @@ func TestSaveLoadECBlockHead(t *testing.T) {
 
 	b2 := CreateTestEntryCreditBlock(b1)
 
-	err = dbo.SaveECBlockHead(b2)
+	err = dbo.SaveECBlockHead(b2, false)
 	if err != nil {
 		t.Error(err)
 	}
@@ -82,7 +82,7 @@ func TestSaveLoadECBlockChain(t *testing.T) {
 
 	for i := 0; i < max; i++ {
 		prev = CreateTestEntryCreditBlock(prev)
-		err := dbo.SaveECBlockHead(prev)
+		err := dbo.SaveECBlockHead(prev, false)
 		if err != nil {
 			t.Error(err)
 		}

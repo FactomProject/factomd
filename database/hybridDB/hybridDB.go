@@ -18,6 +18,12 @@ type HybridDB struct {
 
 var _ interfaces.IDatabase = (*HybridDB)(nil)
 
+func (db *HybridDB) ListAllBuckets() ([][]byte, error) {
+	db.Sem.RLock()
+	defer db.Sem.RUnlock()
+	return db.persistentStorage.ListAllBuckets()
+}
+
 func (db *HybridDB) Trim() {
 	db.Sem.Lock()
 	defer db.Sem.Unlock()
@@ -145,7 +151,7 @@ func (db *HybridDB) ListAllKeys(bucket []byte) ([][]byte, error) {
 	return db.persistentStorage.ListAllKeys(bucket)
 }
 
-func (db *HybridDB) GetAll(bucket []byte, sample interfaces.BinaryMarshallableAndCopyable) ([]interfaces.BinaryMarshallableAndCopyable, error) {
+func (db *HybridDB) GetAll(bucket []byte, sample interfaces.BinaryMarshallableAndCopyable) ([]interfaces.BinaryMarshallableAndCopyable, [][]byte, error) {
 	db.Sem.RLock()
 	defer db.Sem.RUnlock()
 

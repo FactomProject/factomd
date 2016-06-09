@@ -76,7 +76,7 @@ func (db *Overlay) InsertChain(chain *EChain) error {
 func (db *Overlay) FetchAllChains() (chains []*EChain, err error) {
 	bucket := []byte{byte(ENTRYCHAIN)}
 
-	list, err := db.DB.GetAll(bucket, new(primitives.Hash))
+	list, _, err := db.DB.GetAll(bucket, new(primitives.Hash))
 	if err != nil {
 		return nil, err
 	}
