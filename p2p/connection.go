@@ -162,8 +162,8 @@ func (c *Connection) runLoop() {
 				c.dialLoop() // dialLoop dials until it connects or shuts down.
 			}
 		case ConnectionOnline:
-			c.processReceives()
 			c.processSends()
+			c.processReceives()
 			if ConnectionOnline == c.state {
 				c.pingPeer() // sends a ping periodically if things have been quiet
 				if PeerSaveInterval < time.Since(c.timeLastUpdate) {
