@@ -23,6 +23,7 @@ import (
 	"github.com/FactomProject/factomd/logger"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
+	"time"
 )
 
 var _ = fmt.Print
@@ -60,6 +61,7 @@ type State struct {
 
 	// Just to print (so debugging doesn't drive functionaility)
 	Status    bool
+	starttime time.Time
 	serverPrt string
 
 	tickerQueue            chan int
@@ -172,10 +174,10 @@ func (s *State) Clone(number string) interfaces.IState {
 
 	clone.FactomNodeName = s.Prefix + "FNode" + number
 	clone.FactomdVersion = s.FactomdVersion
-	clone.LogPath = s.LogPath + "Sim" + number
-	clone.LdbPath = s.LdbPath + "Sim" + number
-	clone.JournalFile = s.LogPath + "journal" + number + ".log"
-	clone.BoltDBPath = s.BoltDBPath + "Sim" + number
+	clone.LogPath = s.LogPath + "/Sim" + number
+	clone.LdbPath = s.LdbPath + "/Sim" + number
+	clone.JournalFile = s.LogPath + "/journal" + number + ".log"
+	clone.BoltDBPath = s.BoltDBPath + "/Sim" + number
 	clone.LogLevel = s.LogLevel
 	clone.ConsoleLogLevel = s.ConsoleLogLevel
 	clone.NodeMode = "FULL"
@@ -279,7 +281,7 @@ func (s *State) LoadConfig(filename string, folder string) {
 		s.IdentityChainID = primitives.Sha([]byte(s.FactomNodeName))
 
 	}
-	s.JournalFile = s.LogPath + "journal0" + ".log"
+	s.JournalFile = s.LogPath + "/journal0" + ".log"
 }
 
 func (s *State) Init() {
@@ -301,7 +303,10 @@ func (s *State) Init() {
 	s.msgQueue = make(chan interfaces.IMsg, 10000)           //queue of Follower messages
 	s.ShutdownChan = make(chan int, 1)                       //Channel to gracefully shut down.
 
-	os.Mkdir(s.LogPath, 0777)
+	er := os.MkdirAll(s.LogPath, 0777)
+	if er != nil {
+		fmt.Println("Could not create "+s.LogPath+"\n error: "+er.Error())
+	}
 	_, err := os.Create(s.JournalFile) //Create the Journal File
 	if err != nil {
 		fmt.Println("Could not create the file: " + s.JournalFile)
@@ -396,6 +401,7 @@ func (s *State) Init() {
 
 	s.initServerKeys()
 
+	s.starttime = time.Now()
 }
 
 func (s *State) AddDataRequest(requestedHash, missingDataHash interfaces.IHash) {
@@ -636,9 +642,11 @@ func (s *State) MessageToLogString(msg interfaces.IMsg) string {
 }
 
 func (s *State) JournalMessage(msg interfaces.IMsg) {
-	if len(s.JournalFile) == 0 {
+	if len(s.JournalFile) != 0 {
+		fmt.Println("Journal file:",s.JournalFile)
 		f, err := os.OpenFile(s.JournalFile, os.O_APPEND+os.O_WRONLY, 0666)
 		if err != nil {
+			fmt.Println(err)
 			s.JournalFile = ""
 			return
 		}
@@ -1136,7 +1144,10 @@ func (s *State) SetString() {
 		}
 	}
 
-	s.serverPrt = fmt.Sprintf("%8s[%6x]%4s Save: %d[%6x] PL:%d/%d Min: %2v DBHT %v Min C/F %02v/%02v EOM %2v %3d-Fct %3d-EC %3d-E",
+	runtime := time.Since(s.starttime)
+	tps := float64(s.FactoidTrans+s.NewEntryChains+s.NewEntries)/float64(runtime.Seconds())
+
+	s.serverPrt = fmt.Sprintf("%8s[%6x]%4s Save: %d[%6x] PL:%d/%d Min: %2v DBHT %v Min C/F %02v/%02v EOM %2v %3d-Fct %3d-EC %3d-E  %7.2f tps",
 		s.FactomNodeName,
 		s.IdentityChainID.Bytes()[:3],
 		stype,
@@ -1151,7 +1162,10 @@ func (s *State) SetString() {
 		s.EOM,
 		s.FactoidTrans,
 		s.NewEntryChains,
-		s.NewEntries)
+		s.NewEntries,
+		tps)
+
+
 }
 
 func (s *State) Print(a ...interface{}) (n int, err error) {

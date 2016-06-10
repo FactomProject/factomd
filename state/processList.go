@@ -421,15 +421,20 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 	}
 
 	if !p.good { // If we don't know this process list is good...
-		prev := state.DBStates.Get(p.DBHeight - 1)
+		if p.DBHeight == 0 {
+			p.good = true
+		}else {
+			prev := state.DBStates.Get(p.DBHeight - 1)
 
-		if prev == nil {
-			return
+			if prev == nil {
+				return
+			}
+			if !prev.Saved {
+				return
+			}
+			p.good = true
 		}
-		if !prev.Saved {
-			return
-		}
-		p.good = true
+		fmt.Println("dddd xxxx Not Good", p.State.FactomNodeName)
 	}
 	for i := 0; i < len(p.FedServers); i++ {
 		// Just in case, set p.diffSigTally to 0 when initiating pass-through
@@ -579,12 +584,6 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 		}
 	}
 
-	// If the message doesn't match the full hash of the ack, then it is no good.
-	// Get rid of the message, and let the request for messages get you the right one.
-	if !ack.GetFullMsgHash().IsSameAs(m.GetFullMsgHash()) {
-		delete(p.State.Holding, m.GetHash().Fixed())
-	}
-
 	now := int64(p.State.GetTimestamp() / 1000)
 
 	_, isnew := p.State.InternalReplay.Valid(m.GetHash().Fixed(), int64(m.GetTimestamp()/1000), now)
@@ -618,8 +617,7 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 
 	if len(vm.List) > int(ack.Height) && vm.List[ack.Height] != nil {
 
-		if ack == nil || m == nil || vm.List[ack.Height].GetMsgHash() == nil ||
-			m.GetMsgHash() == nil || vm.List[ack.Height].GetMsgHash().IsSameAs(m.GetMsgHash()) {
+		if vm.List[ack.Height].GetMsgHash().IsSameAs(m.GetMsgHash()) {
 			fmt.Printf("dddd %-30s %10s %s\n", "xxxxxxxxx PL Duplicate", p.State.GetFactomNodeName(), m.String())
 			toss("2")
 			return
@@ -692,6 +690,7 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 		p.VMs[ack.VMIndex].ListAck = append(p.VMs[ack.VMIndex].ListAck, nil)
 		length = len(p.VMs[ack.VMIndex].List)
 	}
+
 
 	p.VMs[ack.VMIndex].List[ack.Height] = m
 	p.VMs[ack.VMIndex].ListAck[ack.Height] = ack

@@ -37,10 +37,7 @@ func (m *RevealEntryMsg) Process(dbheight uint32, state interfaces.IState) bool 
 }
 
 func (m *RevealEntryMsg) GetHash() interfaces.IHash {
-	if m.hash == nil {
-		m.hash = m.Entry.GetHash()
-	}
-	return m.hash
+	return m.GetMsgHash()
 }
 
 func (m *RevealEntryMsg) GetMsgHash() interfaces.IHash {
@@ -82,7 +79,7 @@ func (m *RevealEntryMsg) Bytes() []byte {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
-	commit := state.GetCommits(m.GetHash())
+	commit := state.GetCommits(m.Entry.GetHash())
 
 	if commit == nil {
 		return 0
