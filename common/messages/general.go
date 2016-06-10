@@ -18,15 +18,15 @@ func UnmarshalMessage(data []byte) (interfaces.IMsg, error) {
 	return msg, err
 }
 
-func UnmarshalMessageData(data []byte) (newdata [] byte, interfaces.IMsg, error) {
+func UnmarshalMessageData(data []byte) (newdata [] byte, msg interfaces.IMsg, err error) {
 	if data == nil {
-		return nil, fmt.Errorf("No data provided")
+		return nil, nil, fmt.Errorf("No data provided")
 	}
 	if len(data) == 0 {
-		return nil, fmt.Errorf("No data provided")
+		return nil, nil, fmt.Errorf("No data provided")
 	}
 	messageType := data[0]
-	var msg interfaces.IMsg
+
 	switch messageType {
 	case constants.EOM_MSG:
 		msg = new(EOM)
@@ -70,13 +70,13 @@ func UnmarshalMessageData(data []byte) (newdata [] byte, interfaces.IMsg, error)
 		msg = new(AddServerMsg)
 	default:
 		fmt.Sprintf("Transaction Failed to Validate %x", data[0])
-		return nil, fmt.Errorf("Unknown message type %d %x", messageType, data[0])
+		return data, nil, fmt.Errorf("Unknown message type %d %x", messageType, data[0])
 	}
 
-	newdata, err := msg.UnmarshalBinaryData(data[:])
+	newdata, err = msg.UnmarshalBinaryData(data[:])
 	if err != nil {
 		fmt.Sprintf("Transaction Failed to Unmarshal %x", data[0])
-		return nil, err
+		return data, nil, err
 	}
 
 	return newdata, msg, nil
