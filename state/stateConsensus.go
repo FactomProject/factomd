@@ -29,6 +29,9 @@ var _ = (*hash.Hash32)(nil)
 //***************************************************************
 func (s *State) NewMinute() {
 	s.LeaderPL.Unseal(s.EOM)
+	s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
+	s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.LeaderMinute, s.IdentityChainID)
+	s.EOM = 0
 	// Anything we are holding, we need to reprocess.
 	for k := range s.Holding {
 		v := s.Holding[k]
@@ -37,17 +40,11 @@ func (s *State) NewMinute() {
 			s.ProcessLists.Get(a.DBHeight).AddToProcessList(a, v)
 		} else if v != nil {
 			v.ComputeVMIndex(s)
-			if s.Leader {
-				s.XReview = append(s.XReview, v)
-				delete(s.Holding, k)
-			}
+			s.XReview = append(s.XReview, v)
+			delete(s.Holding, k)
 		}
 	}
 
-	s.EOM = 0
-
-	s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
-	s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.LeaderMinute, s.IdentityChainID)
 	/**
 	fmt.Println(s.FactomNodeName, ">>>")
 
@@ -151,22 +148,28 @@ func (s *State) ProcessQueues() (progress bool) {
 		return
 	}
 
-	// Reprocess any stalled Acknowledgements
-	for s.Leader && s.EOM == 0 && len(s.XReview) > 0 {
-		msg := s.XReview[0]
-		executeMsg(msg)
-		s.XReview = s.XReview[1:]
-		s.UpdateState()
-	}
 
-	if ack := s.GetStalledAck(0); ack != nil {
-		_, ok := s.InternalReplay.Valid(ack.GetHash().Fixed(), int64(ack.GetTimestamp()/1000), int64(s.GetTimestamp()/1000))
-		if ok && ack.Validate(s) == 1 {
-			ack.FollowerExecute(s)
-		} else if s.DebugConsensus {
-			fmt.Println("dddd StalledAck ok:", ok, "validate:", ack.Validate(s), ack.String())
+	// Reprocess any stalled Acknowledgements
+		for len(s.XReview) > 0 {
+			msg := s.XReview[0]
+			executeMsg(msg)
+			s.XReview = s.XReview[1:]
+			s.UpdateState()
 		}
-	}
+
+		if len(s.StallAcks) > 0 {
+			ack := s.GetStalledAck(0)
+			if ack != nil {
+				_, ok := s.InternalReplay.Valid(ack.GetHash().Fixed(), int64(ack.GetTimestamp() / 1000), int64(s.GetTimestamp() / 1000))
+				v := ack.Validate(s)
+				if ok && v == 1 {
+					ack.FollowerExecute(s)
+				} else if s.DebugConsensus {
+					fmt.Println("dddd StalledAck ok:", ok, "validate:", ack.Validate(s), ack.String())
+				}
+			}
+		}
+
 
 	select {
 	case ack := <-s.ackQueue:
@@ -247,9 +250,10 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) {
 
 	// Leaders set s.EOM when they see their EOM.  Followers set
 	// s.EOM when they see the first EOM.
-	if eom, ok := m.(*messages.EOM); ok && m.IsLocal() {
+	eom, ok := m.(*messages.EOM)
+	if ok && m.IsLocal() {
 		return // This is an internal EOM message.  We are not a leader so ignore.
-	} else if ok && !s.Leader {
+	} else if ok {
 		s.EOM = int(eom.Minute + 1)
 	}
 
@@ -343,9 +347,9 @@ func (s *State) LeaderExecute(m interfaces.IMsg) {
 		return
 	}
 
-	ack := s.NewAck(m)
+	ack := s.NewAck(m).(*messages.Ack)
 
-	s.LeaderPL.AddToProcessList(ack.(*messages.Ack), m)
+	s.ProcessLists.Get(ack.DBHeight).AddToProcessList(ack, m)
 
 }
 
@@ -421,7 +425,7 @@ func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg)
 
 func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
 	msg := m.(*messages.RevealEntryMsg)
-	myhash := msg.GetHash()
+	myhash := msg.Entry.GetHash()
 	commit := s.GetCommits(myhash)
 	if commit == nil {
 		return false
@@ -498,14 +502,7 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
 // TODO: Should fault the server if we don't have the proper sequence of EOM messages.
 func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
-	e, ok := msg.(*messages.EOM)
-	if !ok {
-		panic("Must pass an EOM message to ProcessEOM)")
-	}
-
-	if s.EOM == 0 && !s.Leader {
-		s.EOM = int(e.Minute + 1)
-	}
+	e := msg.(*messages.EOM)
 
 	pl := s.ProcessLists.Get(dbheight)
 
@@ -514,7 +511,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	}
 
 	if e.FactoidVM {
-		s.FactoidState.EndOfPeriod(int(e.Minute))
+		s.FactoidState.EndOfPeriod(int(e.Minute+1))
 
 		// Add EOM to the EBlocks.  We only do this once, so
 		// we piggy back on the fact that we only do the FactoidState
