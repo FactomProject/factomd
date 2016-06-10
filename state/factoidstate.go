@@ -229,7 +229,7 @@ func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
 
 	fs.CurrentBlock = factoid.NewFBlock(fs.State.GetFactoshisPerEC(), fs.DBHeight+1)
 
-	t := factoid.GetCoinbase(fs.State.GetLeaderTimestamp()) //state.GetLeaderTimestamp())
+	t := factoid.GetCoinbase(fs.State.GetLeaderTimestamp())
 	err := fs.CurrentBlock.AddCoinbase(t)
 	if err != nil {
 		panic(err.Error())
