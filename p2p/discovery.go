@@ -95,7 +95,7 @@ func (d *Discovery) PrintPeers() {
 	note("discovery", "Peer Report:")
 	UpdateKnownPeers.Lock()
 	for key, value := range d.knownPeers {
-		note("discovery", "%s \t Address: %s \t Port: %s \tQuality: %d", key, value.Address, value.Port, value.QualityScore)
+		note("discovery", "%s \t Address: %s \t Port: %s \tQuality: %d Source: %+v", key, value.Address, value.Port, value.QualityScore, value.Source)
 	}
 	UpdateKnownPeers.Unlock()
 	note("discovery", "End Peer Report\n\n\n\n")
