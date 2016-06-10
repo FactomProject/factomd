@@ -252,7 +252,7 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) {
 	eom, ok := m.(*messages.EOM)
 	if ok && m.IsLocal() {
 		return // This is an internal EOM message.  We are not a leader so ignore.
-	} else if ok {
+	} else if ok && !s.Leader {
 		s.EOM = int(eom.Minute + 1)
 	}
 
