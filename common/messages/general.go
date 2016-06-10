@@ -14,6 +14,11 @@ import (
 )
 
 func UnmarshalMessage(data []byte) (interfaces.IMsg, error) {
+	_, msg, err := UnmarshalMessageData(data)
+	return msg, err
+}
+
+func UnmarshalMessageData(data []byte) (newdata [] byte, interfaces.IMsg, error) {
 	if data == nil {
 		return nil, fmt.Errorf("No data provided")
 	}
@@ -68,13 +73,13 @@ func UnmarshalMessage(data []byte) (interfaces.IMsg, error) {
 		return nil, fmt.Errorf("Unknown message type %d %x", messageType, data[0])
 	}
 
-	err := msg.UnmarshalBinary(data[:])
+	newdata, err := msg.UnmarshalBinaryData(data[:])
 	if err != nil {
 		fmt.Sprintf("Transaction Failed to Unmarshal %x", data[0])
 		return nil, err
 	}
 
-	return msg, nil
+	return newdata, msg, nil
 
 }
 
