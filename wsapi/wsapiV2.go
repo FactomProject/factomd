@@ -530,7 +530,7 @@ func HandleV2EntryCreditBalance(state interfaces.IState, params interface{}) (in
 
 func HandleV2FactoidFee(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	resp := new(FactoidFeeResponse)
-	resp.Fee = state.GetPredictiveFER()
+	resp.Fee = int64(state.GetPredictiveFER())
 
 	return resp, nil
 }
