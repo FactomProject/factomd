@@ -17,8 +17,11 @@ import (
 type ServerFault struct {
 	MessageBase
 	Timestamp interfaces.Timestamp
-	DBHeight  uint32
-	Height    uint32
+
+	ServerID interfaces.IHash
+	VMIndex  int
+	DBHeight uint32
+	Height   uint32
 
 	Signature interfaces.IFullSignature
 
@@ -29,38 +32,10 @@ type ServerFault struct {
 var _ interfaces.IMsg = (*ServerFault)(nil)
 var _ Signable = (*ServerFault)(nil)
 
-func (a *ServerFault) IsSameAs(b *ServerFault) bool {
-	if b == nil {
-		return false
-	}
-	if a.Timestamp != b.Timestamp {
-		return false
-	}
-
-	if a.Signature == nil && b.Signature != nil {
-		return false
-	}
-	if a.Signature != nil {
-		if a.Signature.IsSameAs(b.Signature) == false {
-			return false
-		}
-	}
-	//TODO: expand
-
-	return true
-}
-
 func (m *ServerFault) Process(uint32, interfaces.IState) bool { return true }
 
 func (m *ServerFault) GetHash() interfaces.IHash {
-	if m.hash == nil {
-		data, err := m.MarshalForSignature()
-		if err != nil {
-			panic(fmt.Sprintf("Error in CommitChain.GetHash(): %s", err.Error()))
-		}
-		m.hash = primitives.Sha(data)
-	}
-	return m.hash
+	return m.GetMsgHash()
 }
 
 func (m *ServerFault) GetMsgHash() interfaces.IHash {
@@ -79,21 +54,13 @@ func (m *ServerFault) GetTimestamp() interfaces.Timestamp {
 }
 
 func (m *ServerFault) Type() byte {
-	return constants.INVALID_ACK_MSG
-}
-
-func (m *ServerFault) Int() int {
-	return -1
-}
-
-func (m *ServerFault) Bytes() []byte {
-	return nil
+	return constants.FED_SERVER_FAULT_MSG
 }
 
 func (m *ServerFault) MarshalForSignature() (data []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling Invalid Ack: %v", r)
+			err = fmt.Errorf("Error unmarshalling Invalid Server Fault: %v", r)
 		}
 	}()
 
@@ -105,7 +72,13 @@ func (m *ServerFault) MarshalForSignature() (data []byte, err error) {
 	} else {
 		buf.Write(d)
 	}
+	if d, err := m.ServerID.MarshalBinary(); err != nil {
+		return nil, err
+	} else {
+		buf.Write(d)
+	}
 
+	buf.WriteByte(byte(m.VMIndex))
 	binary.Write(&buf, binary.BigEndian, uint32(m.DBHeight))
 	binary.Write(&buf, binary.BigEndian, uint32(m.Height))
 
@@ -133,7 +106,7 @@ func (m *ServerFault) MarshalBinary() (data []byte, err error) {
 func (m *ServerFault) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling With Signatures Invalid Ack: %v", r)
+			err = fmt.Errorf("Error unmarshalling With Signatures Invalid Server Fault: %v", r)
 		}
 	}()
 	newData = data
@@ -147,6 +120,7 @@ func (m *ServerFault) UnmarshalBinaryData(data []byte) (newData []byte, err erro
 		return nil, err
 	}
 
+	m.VMIndex, newData = int(newData[0]), newData[1:]
 	m.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 	m.Height, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
@@ -184,23 +158,16 @@ func (m *ServerFault) Sign(key interfaces.Signer) error {
 }
 
 func (m *ServerFault) String() string {
-	return ""
+	return fmt.Sprintf("%6s-VM%3d: PL:%5d DBHt:%5d -- hash[:3]=%x",
+		"SFault",
+		m.VMIndex,
+		m.Height,
+		m.DBHeight,
+		m.GetHash().Bytes()[:3])
 }
 
 func (m *ServerFault) GetDBHeight() uint32 {
 	return m.DBHeight
-}
-
-func (m *ServerFault) ChainID() []byte {
-	return nil
-}
-
-func (m *ServerFault) ListHeight() int {
-	return 0
-}
-
-func (m *ServerFault) SerialHash() []byte {
-	return nil
 }
 
 // Validate the message, given the state.  Three possible results:
@@ -208,21 +175,20 @@ func (m *ServerFault) SerialHash() []byte {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *ServerFault) Validate(state interfaces.IState) int {
-	return 0
+	return 1 //ToDo:  Need to Validate the sigature against known federated servers
 }
 
-// Returns true if this is a message for this server to execute as
-// a leader.
 func (m *ServerFault) ComputeVMIndex(state interfaces.IState) {
 
 }
 
 // Execute the leader functions of the given message
 func (m *ServerFault) LeaderExecute(state interfaces.IState) {
+	m.FollowerExecute(state)
 }
 
-func (m *ServerFault) FollowerExecute(interfaces.IState) {
-	return
+func (m *ServerFault) FollowerExecute(state interfaces.IState) {
+	state.FollowerExecuteSFault(m)
 }
 
 func (e *ServerFault) JSONByte() ([]byte, error) {
@@ -235,4 +201,38 @@ func (e *ServerFault) JSONString() (string, error) {
 
 func (e *ServerFault) JSONBuffer(b *bytes.Buffer) error {
 	return primitives.EncodeJSONToBuffer(e, b)
+}
+
+func (a *ServerFault) IsSameAs(b *ServerFault) bool {
+	if b == nil {
+		return false
+	}
+	if a.Timestamp != b.Timestamp {
+		return false
+	}
+
+	if a.Signature == nil && b.Signature != nil {
+		return false
+	}
+	if a.Signature != nil {
+		if a.Signature.IsSameAs(b.Signature) == false {
+			return false
+		}
+	}
+	//TODO: expand
+
+	return true
+}
+
+//*******************************************************************************
+// Support Functions
+//*******************************************************************************
+
+func NewServerFault(timeStamp interfaces.Timestamp, serverID interfaces.IHash, vmIndex int, dbheight uint32, height uint32) *ServerFault {
+	sf := new(ServerFault)
+	sf.Timestamp = timeStamp
+	sf.VMIndex = vmIndex
+	sf.DBHeight = dbheight
+	sf.Height = height
+	return sf
 }

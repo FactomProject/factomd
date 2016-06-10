@@ -116,7 +116,7 @@ func AddSimPeer(fnodes []*FactomNode, i1 int, i2 int) {
 	f1 := fnodes[i1]
 	f2 := fnodes[i2]
 
-	fmt.Println("Connecting", f1.State.FactomNodeName, f2.State.FactomNodeName)
+	fmt.Println(f1.State.FactomNodeName, " -> ", f2.State.FactomNodeName)
 
 	peer12 := new(SimPeer).Init(f1.State.FactomNodeName, f2.State.FactomNodeName).(*SimPeer)
 	peer21 := new(SimPeer).Init(f2.State.FactomNodeName, f1.State.FactomNodeName).(*SimPeer)

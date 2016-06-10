@@ -48,7 +48,8 @@ type ControllerInit struct {
 
 // CommandDialPeer is used to instruct the Controller to dial a peer address
 type CommandDialPeer struct {
-	peer Peer
+	persistent bool
+	peer       Peer
 }
 
 // CommandAddPeer is used to instruct the Controller to add a connection
@@ -88,8 +89,8 @@ type CommandChangeLogging struct {
 //////////////////////////////////////////////////////////////////////
 
 func (c *Controller) Init(ci ControllerInit) *Controller {
-	verbose("ctrlr", "Controller.Init(%s)", ci.Port)
-	silence("#################", "META:  Jay's last touched: TUESDAY JUNE 7")
+	significant("ctrlr", "Controller.Init(%s) %#x", ci.Port, ci.Network)
+	silence("#################", "META: Last touched: THURSDAY JUNE 9 - 2PM")
 	c.keepRunning = true
 	c.commandChannel = make(chan interface{}, 1000) // Commands from App
 	c.FromNetwork = make(chan Parcel, 10000)        // Channel to the app for network data
@@ -117,14 +118,16 @@ func (c *Controller) StartNetwork() {
 	c.listen()
 	// Get a list of peers from discovery
 	// BUGBUG - in exclusivity we only dial the command line peers.
-	peers := c.discovery.GetOutgoingPeers()
-	if len(peers) < NumberPeersToConnect*2 && !OnlySpecialPeers {
-		c.discovery.DiscoverPeers()
-		peers = c.discovery.GetOutgoingPeers()
-	}
-	// dial into the peers
-	for _, peer := range peers {
-		c.DialPeer(peer)
+	if !OnlySpecialPeers {
+		peers := c.discovery.GetOutgoingPeers()
+		if len(peers) < NumberPeersToConnect*2 {
+			c.discovery.DiscoverPeers()
+			peers = c.discovery.GetOutgoingPeers()
+		}
+		// dial into the peers
+		for _, peer := range peers {
+			c.DialPeer(peer, false)
+		}
 	}
 	c.lastStatusReport = time.Now()
 	c.discovery.PrintPeers()
@@ -146,9 +149,9 @@ func (c *Controller) ChangeLogLevel(level uint8) {
 	c.commandChannel <- CommandChangeLogging{level: level}
 }
 
-func (c *Controller) DialPeer(peer Peer) {
+func (c *Controller) DialPeer(peer Peer, persistent bool) {
 	debug("ctrlr", "DialPeer message for %s", peer.Address)
-	c.commandChannel <- CommandDialPeer{peer: peer}
+	c.commandChannel <- CommandDialPeer{peer: peer, persistent: persistent}
 }
 
 func (c *Controller) AddPeer(conn net.Conn) {
@@ -245,7 +248,7 @@ func (c *Controller) runloop() {
 		}
 	}
 	note("ctrlr", "Controller.runloop() has exited. Shutdown command recieved?")
-	silence("ctrlr", "runloop() - Final network statistics: TotalMessagesRecieved: %d TotalMessagesSent: %d", TotalMessagesRecieved, TotalMessagesSent)
+	significant("ctrlr", "runloop() - Final network statistics: TotalMessagesRecieved: %d TotalMessagesSent: %d", TotalMessagesRecieved, TotalMessagesSent)
 }
 
 // Route pulls all of the messages from the application and sends them to the appropriate
@@ -256,7 +259,7 @@ func (c *Controller) route() {
 	// Recieve messages from the peers & forward to application.
 	for peerHash, connection := range c.connections {
 		// Empty the recieve channel, stuff the application channel.
-		verbose(peerHash, "Controller.route() size of recieve channel: %d", len(connection.ReceiveChannel))
+		// verbose(peerHash, "Controller.route() size of recieve channel: %d", len(connection.ReceiveChannel))
 		for 0 < len(connection.ReceiveChannel) { // effectively "While there are messages"
 			message := <-connection.ReceiveChannel
 			switch message.(type) {
@@ -273,19 +276,19 @@ func (c *Controller) route() {
 	}
 	// For each message, see if it is directed, if so, send to the
 	// specific peer, otherwise, broadcast.
-	// silence("ctrlr", "Controller.route() size of ToNetwork channel: %d", len(c.ToNetwork))
+	// significant("ctrlr", "Controller.route() size of ToNetwork channel: %d", len(c.ToNetwork))
 	for 0 < len(c.ToNetwork) { // effectively "While there are messages"
 		parcel := <-c.ToNetwork
 		TotalMessagesSent++
 		verbose("ctrlr", "Controller.route() got parcel from APPLICATION %+v", parcel.Header)
 		if "" != parcel.Header.TargetPeer { // directed send
-			verbose("ctrlr", "Controller.route() Directed send to %+v", parcel.Header.TargetPeer)
+			debug("ctrlr", "Controller.route() Directed send to %+v", parcel.Header.TargetPeer)
 			connection, present := c.connections[parcel.Header.TargetPeer]
 			if present { // We're still connected to the target
 				connection.SendChannel <- ConnectionParcel{parcel: parcel}
 			}
 		} else { // broadcast
-			verbose("ctrlr", "Controller.route() Broadcast send to %d peers", len(c.connections))
+			debug("ctrlr", "Controller.route() Broadcast send to %d peers", len(c.connections))
 			for _, connection := range c.connections {
 				verbose("ctrlr", "Controller.route() Send to peer %s ", connection.peer.Hash)
 				connection.SendChannel <- ConnectionParcel{parcel: parcel}
@@ -338,7 +341,7 @@ func (c *Controller) handleCommand(command interface{}) {
 	switch commandType := command.(type) {
 	case CommandDialPeer: // parameter is the peer address
 		parameters := command.(CommandDialPeer)
-		conn := new(Connection).Init(parameters.peer)
+		conn := new(Connection).Init(parameters.peer, parameters.persistent)
 		connection := *conn
 		c.connections[connection.peer.Hash] = connection
 		debug("ctrlr", "Controller.handleCommand(CommandDialPeer) got peer %s", parameters.peer.Address)
@@ -348,7 +351,7 @@ func (c *Controller) handleCommand(command interface{}) {
 		addPort := strings.Split(conn.RemoteAddr().String(), ":")
 		debug("ctrlr", "Controller.handleCommand(CommandAddPeer) got rconn.RemoteAddr().String() %s and parsed IP: %s and Port: %s",
 			conn.RemoteAddr().String(), addPort[0], addPort[1])
-		// Port initially stored will be the connection port (not the listen port), but peer will update it on first messae.
+		// Port initially stored will be the connection port (not the listen port), but peer will update it on first message.
 		peer := new(Peer).Init(addPort[0], addPort[1], 0, RegularPeer, 0)
 		connection := new(Connection).InitWithConn(conn, *peer)
 		c.connections[connection.peer.Hash] = *connection
@@ -359,7 +362,7 @@ func (c *Controller) handleCommand(command interface{}) {
 	case CommandChangeLogging:
 		parameters := command.(CommandChangeLogging)
 		CurrentLoggingLevel = parameters.level
-		silence("ctrlr", "Controller.handleCommand(CommandChangeLogging) new logging level %s", LoggingLevels[parameters.level])
+		significant("ctrlr", "Controller.handleCommand(CommandChangeLogging) new logging level %s", LoggingLevels[parameters.level])
 	case CommandAdjustPeerQuality:
 		verbose("ctrlr", "handleCommand() Processing command: CommandDemerit")
 		parameters := command.(CommandAdjustPeerQuality)
@@ -404,7 +407,7 @@ func (c *Controller) managePeers() {
 			for _, peer := range peers {
 				_, present := c.connections[peer.Hash]
 				if !present {
-					c.DialPeer(peer)
+					c.DialPeer(peer, false)
 				}
 			}
 		}
@@ -443,9 +446,11 @@ func (c *Controller) networkStatusReport() {
 		silence("ctrlr", "Network Status Report:")
 		silence("ctrlr", "===========================")
 		for _, value := range c.connections {
-			silence("ctrlr", "     Connection: %s:%s", value.peer.Address, value.peer.Port)
+			silence("ctrlr", "     Connection: %s", value.peer.PeerIdent())
 			silence("ctrlr", "          State: %s", value.ConnectionState())
-			silence("ctrlr", "           Hash: %s", value.peer.Hash)
+			silence("ctrlr", "          Notes: %s", value.Notes())
+			silence("ctrlr", "     Persistent: %t", value.IsPersistent())
+			silence("ctrlr", "       Outgoing: %t", value.IsOutGoing())
 			silence("ctrlr", " ReceiveChannel: %d", len(value.ReceiveChannel))
 			silence("ctrlr", "    SendChannel: %d", len(value.SendChannel))
 			// silence("ctrlr", "     Connection: %+v", value)

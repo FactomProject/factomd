@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"sync"
+	"encoding/json"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -23,6 +23,9 @@ import (
 	"github.com/FactomProject/factomd/logger"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
+	"sync"
+	ed "github.com/agl/ed25519"
+	"github.com/FactomProject/btcutil/base58"
 )
 
 var _ = fmt.Print
@@ -72,7 +75,6 @@ type State struct {
 	msgQueue               chan interfaces.IMsg
 	OutOfOrders            []*messages.Ack
 	StallAcks              []*messages.Ack
-	StallMsgs              []interfaces.IMsg
 	ShutdownChan           chan int // For gracefully halting Factom
 	JournalFile            string
 
@@ -147,7 +149,6 @@ type State struct {
 	ECBalancesT           map[[32]byte]int64
 	ECBalancesTMutex      sync.Mutex
 
-	FactoshisPerEC uint64
 	// Web Services
 	Port int
 
@@ -163,6 +164,16 @@ type State struct {
 
 	LastPrint    string
 	LastPrintCnt int
+
+	// FER section
+	FactoshisPerEC uint64
+	FERChainId string
+	ExchangeRateAuthorityAddress string
+
+	FERChangeHeight uint32
+	FERChangePrice uint64
+	FERPriority uint32
+	FERPrioritySetHeight uint32
 }
 
 var _ interfaces.IState = (*State)(nil)
@@ -202,6 +213,11 @@ func (s *State) Clone(number string) interfaces.IState {
 	clone.FactoshisPerEC = s.FactoshisPerEC
 
 	clone.Port = s.Port
+
+	// FER section
+	clone.FactoshisPerEC = s.FactoshisPerEC
+	clone.FERChainId = s.FERChainId
+	clone.ExchangeRateAuthorityAddress = s.ExchangeRateAuthorityAddress
 
 	return clone
 }
@@ -256,6 +272,8 @@ func (s *State) LoadConfig(filename string, folder string) {
 		s.FactoshisPerEC = cfg.App.ExchangeRate
 		s.DirectoryBlockInSeconds = cfg.App.DirectoryBlockInSeconds
 		s.PortNumber = cfg.Wsapi.PortNumber
+		s.FERChainId = cfg.App.ExchangeRateChainId
+		s.ExchangeRateAuthorityAddress = cfg.App.ExchangeRateAuthorityAddress
 
 		// TODO:  Actually load the IdentityChainID from the config file
 		s.IdentityChainID = primitives.Sha([]byte(s.FactomNodeName))
@@ -270,9 +288,11 @@ func (s *State) LoadConfig(filename string, folder string) {
 		s.ExportData = false
 		s.ExportDataSubpath = "data/export"
 		s.Network = "LOCAL"
-		s.PeersFile = "~/.factom/peers.json"
+		s.PeersFile = "peers.json"
 		s.LocalServerPrivKey = "4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c9b08946553448d26d"
 		s.FactoshisPerEC = 006666
+		s.FERChainId = "eac57815972c504ec5ae3f9e5c1fe12321a3c8c78def62528fb74cf7af5e7389"
+		s.ExchangeRateAuthorityAddress = ""   // default to nothing so that there is no default FER manipulation
 		s.DirectoryBlockInSeconds = 6
 		s.PortNumber = 8088
 
@@ -284,6 +304,8 @@ func (s *State) LoadConfig(filename string, folder string) {
 }
 
 func (s *State) Init() {
+
+	s.SetOut(true)
 
 	wsapi.InitLogs(s.LogPath+s.FactomNodeName+".log", s.LogLevel)
 
@@ -391,12 +413,13 @@ func (s *State) Init() {
 	}
 
 	s.Println("\nRunning on the ", s.Network, "Network")
+	s.Println("\nExchange rate chain id set to ", s.GetFactoshisPerEC())
+	s.Println("\nExchange rate Authority Public Key set to ", s.ExchangeRateAuthorityAddress)
 
 	s.AuditHeartBeats = make([]interfaces.IMsg, 0)
 	s.FedServerFaults = make([][]interfaces.IMsg, 0)
 
 	s.initServerKeys()
-
 }
 
 func (s *State) AddDataRequest(requestedHash, missingDataHash interfaces.IHash) {
@@ -671,9 +694,217 @@ func (s *State) GetDirectoryBlockByHeight(height uint32) interfaces.IDirectoryBl
 	return dblk
 }
 
+// Go through the factoid exchange rate chain and determine if an FER change should be scheduled
+func (s *State) ProcessRecentFERChainEntries() {
+
+	// Find the FER entry chain
+	FERChainHash, err := primitives.HexToHash(s.FERChainId)
+	if err != nil {
+		s.Println("The FERChainId couldn't be turned into a IHASH")
+		return
+	}
+
+	//  Get the first eblock from the FERChain
+	entryBlock, err := s.DB.FetchEBlockHead(FERChainHash)
+	if err != nil {
+		s.Println("Couldn't find the FER chain for id ", s.FERChainId)
+		return
+	}
+	if entryBlock == nil {
+		s.Println("FER Chain head found to be nil")
+		return
+	}
+
+	s.Println("Checking last e block of FER chain with height of: ", entryBlock.GetHeader().GetDBHeight())
+	s.Println("Current block height: ", s.GetDBHeightComplete())
+	s.Println("BEFORE processing recent block: ")
+	s.Println("    FERChangePrice: ", s.FERChangePrice)
+	s.Println("    FERChangeHeight: ", s.FERChangeHeight)
+	s.Println("    FERPriority: ", s.FERPriority)
+	s.Println("    FERPrioritySetHeight: ", s.FERPrioritySetHeight)
+	s.Println("    FER current: ", s.GetFactoshisPerEC())
+
+	// Check to see if a price change targets the next block
+	if (s.FERChangeHeight == (s.GetDBHeightComplete()+1)) {
+		s.FactoshisPerEC = s.FERChangePrice
+		s.FERChangePrice = 100000000
+		s.FERChangeHeight = 0
+	}
+
+	// Check for the need to clear the priority
+	// (s.GetDBHeightComplete() >= 12) is import because height is a uint and can't break logic if subtracted into false sub-zero
+	if ( 	(s.GetDBHeightComplete() >= 12) &&
+		(s.GetDBHeightComplete() - 12) >= s.FERPrioritySetHeight) {
+		s.FERPrioritySetHeight = 0
+		s.FERPriority = 0
+		// Now the next entry to come through with a priority of 1 or more will be considered
+	}
+
+
+	// Check last entry block method
+	if (entryBlock.GetHeader().GetDBHeight() == s.GetDBHeightComplete()) {
+		entryHashes := entryBlock.GetEntryHashes()
+
+		// s.Println("Found FER entry hashes in a block as: ", entryHashes)
+		// create a map of possible minute markers that may be found in the EBlock Body
+		mins := make(map[string]uint8)
+		for i := byte(0); i <= 10; i++ {
+			h := make([]byte, 32)
+			h[len(h)-1] = i
+			mins[hex.EncodeToString(h)] = i
+		}
+
+		// Loop through the hashes from the last blocks FER entries and evaluate them individually
+		for _, entryHash := range entryHashes {
+
+			// if this entryhash is a minute mark then continue
+			if _, exist := mins[entryHash.String()]; exist {
+				continue
+			}
+
+			// Make sure the entry exists
+			anEntry, err := s.DB.FetchEntryByHash(entryHash)
+			if (err != nil) {
+				s.Println("Error during FetchEntryByHash: ", err)
+				continue
+			}
+			if (anEntry == nil) {
+				s.Println("Nil entry during FetchEntryByHash: ", entryHash)
+				continue
+			}
+
+			if ( ! s.ExchangeRateAuthorityIsValid(anEntry) ) {
+				s.Println("Skipping non-authority FER chain entry", entryHash)
+				continue
+			}
+
+			entryContent := anEntry.GetContent()
+			// s.Println("Found content of an FER entry is:  ", string(entryContent))
+			anFEREntry := new(FEREntry)
+			err = json.Unmarshal(entryContent, &anFEREntry)
+			if err != nil {
+				s.Println("A FEREntry messgae didn't unmarshall correctly: ", err)
+				continue
+			}
+
+			// Set it's resident height for validity checking
+			anFEREntry.SetResidentHeight(s.GetDBHeightComplete())
+
+			if ((s.FerEntryIsValid(anFEREntry)) && (anFEREntry.Priority > s.FERPriority)) {
+
+				fmt.Println(" Processing FER entry : ", string(entryContent))
+				s.FERPriority = anFEREntry.GetPriority()
+				s.FERPrioritySetHeight = s.GetDBHeightComplete()
+				s.FERChangePrice = anFEREntry.GetTargetPrice()
+				s.FERChangeHeight = anFEREntry.GetTargetActivationHeight()
+
+				// Adjust the target if needed
+				if ( s.FERChangeHeight < (s.GetDBHeightComplete() + 2)) {
+					s.FERChangeHeight = s.GetDBHeightComplete() + 2
+				}
+			} else {
+				fmt.Println(" Failed FER entry : ", string(entryContent))
+			}
+		}
+	}
+
+	s.Println("AFTER processing recent block: ")
+	s.Println("    FERChangePrice: ", s.FERChangePrice)
+	s.Println("    FERChangeHeight: ", s.FERChangeHeight)
+	s.Println("    FERPriority: ", s.FERPriority)
+	s.Println("    FERPrioritySetHeight: ", s.FERPrioritySetHeight)
+	s.Println("    FER current: ", s.GetFactoshisPerEC())
+	s.Println("----------------------------------")
+
+	return
+}
+
+
+
+
+func (s *State) ExchangeRateAuthorityIsValid(e interfaces.IEBEntry) bool {
+
+	// convert the conf quthority address into a
+	authorityAddress := base58.Decode(s.ExchangeRateAuthorityAddress)
+	ecPubPrefix := []byte{0x59, 0x2a}
+
+	if !bytes.Equal(authorityAddress[:2], ecPubPrefix) {
+		fmt.Errorf("Invalid Entry Credit Private Address")
+		return false
+	}
+
+	pub := new([32]byte)
+	copy(pub[:], authorityAddress[2:34])
+
+	// in case verify can't handle empty public key
+	if (s.ExchangeRateAuthorityAddress == "") {
+		return false
+	}
+	sig := new([64]byte)
+	externalIds := e.ExternalIDs()
+
+
+	// check for number of ext ids
+	if len(externalIds) < 1 {
+		return false
+	}
+
+	copy(sig[:], externalIds[0])   // First ext id needs to be the signature of the content
+
+	if !ed.Verify(pub, e.GetContent(), sig) {
+		return false
+	}
+
+	return true
+}
+
+
+
+func (s *State) FerEntryIsValid(passedFEREntry interfaces.IFEREntry) bool {
+	// fail if expired
+	if (passedFEREntry.GetExpirationHeight() < passedFEREntry.GetResidentHeight()) {
+		return false
+	}
+
+	// fail if expired height is too far out
+	if (passedFEREntry.GetExpirationHeight() > (passedFEREntry.GetResidentHeight() + 6)) {
+		return false
+	}
+
+	// fail if target is out of range of the expire height
+	// The check for expire height >= 6 is import because a lower value results in a uint binary wrap to near maxint, cracks logic
+	if (	(passedFEREntry.GetTargetActivationHeight() > (passedFEREntry.GetExpirationHeight() + 6)) ||
+	( 	(passedFEREntry.GetExpirationHeight() >= 6) &&
+	(passedFEREntry.GetTargetActivationHeight() < (passedFEREntry.GetExpirationHeight() - 6) ))) {
+
+		return false
+	}
+
+	return true
+}
+
+
+// Returns the higher of the current factoid exchange rate and what it knows will change in the future
+// TODO: this needs to look in the current block being formed and in the process list messages
+func (s *State) GetPredictiveFER() (uint64) {
+	if (s.FERChangePrice != 0 ) {
+		if (s.FERChangePrice > s.GetFactoshisPerEC()) {
+			return s.FERChangePrice
+		}
+	}
+
+	return s.GetFactoshisPerEC()
+}
+
+
 func (s *State) UpdateState() (progress bool) {
 
 	process := func(a *messages.Ack) {
+		if _, ok := s.InternalReplay.Valid(a.GetHash().Fixed(), int64(a.GetTimestamp()), int64(s.GetTimestamp())); a.DBHeight < s.LLeaderHeight || !ok {
+			delete(s.Holding, a.GetHash().Fixed())
+			delete(s.Acks, a.GetHash().Fixed())
+			return
+		}
 		s.ProcessLists.Get(a.DBHeight)
 		s.Acks[a.GetHash().Fixed()] = a
 		m := s.Holding[a.GetHash().Fixed()]
@@ -707,6 +938,14 @@ func (s *State) UpdateState() (progress bool) {
 				fmt.Println("dddd Stall Ack             ", s.FactomNodeName, end, i, a.String())
 			}
 			process(a)
+		}
+	}
+
+	for k := range s.Holding {
+		m := s.Holding[k]
+		if _, ok := s.InternalReplay.Valid(k, int64(m.GetTimestamp()), int64(s.GetTimestamp())); !ok {
+			delete(s.Holding, k)
+			delete(s.Acks, k)
 		}
 	}
 
@@ -980,29 +1219,6 @@ func (s *State) GetOutOfOrder(i int) *messages.Ack {
 	copy(s.OutOfOrders[i:], s.OutOfOrders[i+1:])
 	s.OutOfOrders[len(s.OutOfOrders)-1] = nil
 	s.OutOfOrders = s.OutOfOrders[:len(s.OutOfOrders)-1]
-	m.SetStall(false)
-	return m
-}
-
-func (s *State) StallMsg(msg interfaces.IMsg) {
-	if msg.IsStalled() {
-		return
-	}
-	msg.SetStall(true)
-	s.StallMsgs = append(s.StallMsgs, msg)
-}
-
-// Get the ith message out of the stall queue.  Note getting i=0 makes
-// the stall queue into a FIFO, but other options are possible.
-func (s *State) GetStalledMsg(i int) interfaces.IMsg {
-	if len(s.StallMsgs) == 0 || i >= len(s.StallMsgs) {
-		return nil
-	}
-	m := s.StallMsgs[i]
-
-	copy(s.StallMsgs[i:], s.StallMsgs[i+1:])
-	s.StallMsgs[len(s.StallMsgs)-1] = nil
-	s.StallMsgs = s.StallMsgs[:len(s.StallMsgs)-1]
 	m.SetStall(false)
 	return m
 }

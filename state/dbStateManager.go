@@ -85,7 +85,7 @@ func (ds *DBState) String() string {
 		str = "  Directory Block = <nil>\n"
 	} else {
 
-		str = fmt.Sprintf("%s      DBlk Height   = %v\n", str, ds.DirectoryBlock.GetHeader().GetDBHeight())
+		str = fmt.Sprintf("%s      DBlk Height   = %v \n", str, ds.DirectoryBlock.GetHeader().GetDBHeight())
 		str = fmt.Sprintf("%s      DBlock        = %x \n", str, ds.DirectoryBlock.GetHash().Bytes()[:5])
 		str = fmt.Sprintf("%s      ABlock        = %x \n", str, ds.AdminBlock.GetHash().Bytes()[:5])
 		str = fmt.Sprintf("%s      FBlock        = %x \n", str, ds.FactoidBlock.GetHash().Bytes()[:5])
@@ -225,6 +225,10 @@ func (list *DBStateList) UpdateState() (progress bool) {
 		}
 
 		if d.Saved {
+			dblk, _ := list.State.DB.FetchDBlockByKeyMR(d.DirectoryBlock.GetKeyMR())
+			if dblk == nil {
+				panic("Claimed to be saved, but isn't")
+			}
 			continue
 		}
 
@@ -257,17 +261,32 @@ func (list *DBStateList) UpdateState() (progress bool) {
 				panic(err.Error())
 			}
 
+			if d.DirectoryBlock.String() != d.dbstring {
+				panic("dddd Change 2")
+			}
+
 			if err := list.State.DB.ProcessABlockMultiBatch(d.AdminBlock); err != nil {
 				panic(err.Error())
+			}
+
+			if d.DirectoryBlock.String() != d.dbstring {
+				panic("dddd Change 3")
 			}
 
 			if err := list.State.DB.ProcessFBlockMultiBatch(d.FactoidBlock); err != nil {
 				panic(err.Error())
 			}
+			if d.DirectoryBlock.String() != d.dbstring {
+				panic("dddd Change 4")
+			}
 
 			if err := list.State.DB.ProcessECBlockMultiBatch(d.EntryCreditBlock, false); err != nil {
 				panic(err.Error())
 			}
+			if d.DirectoryBlock.String() != d.dbstring {
+				panic("dddd Change 5")
+			}
+
 			pl := list.State.ProcessLists.Get(d.DirectoryBlock.GetHeader().GetDBHeight())
 			for _, eb := range pl.NewEBlocks {
 				if err := list.State.DB.ProcessEBlockMultiBatch(eb, false); err != nil {
@@ -280,8 +299,16 @@ func (list *DBStateList) UpdateState() (progress bool) {
 				}
 			}
 
+			if d.DirectoryBlock.String() != d.dbstring {
+				panic("dddd Change 6")
+			}
+
 			if err := list.State.DB.ExecuteMultiBatch(); err != nil {
 				panic(err.Error())
+			}
+
+			if d.DirectoryBlock.String() != d.dbstring {
+				panic("dddd Change 7")
 			}
 
 		}
@@ -305,7 +332,7 @@ func (list *DBStateList) UpdateState() (progress bool) {
 				fmt.Println(list.DBStates[i-1].dbstring)
 				fmt.Println(list.DBStates[i-1].DirectoryBlock.String())
 				fmt.Println(d.DirectoryBlock.String())
-				panic("Hashes have been altered for Directory Blocks")
+				panic(fmt.Sprintf("%s Hashes have been altered for Directory Blocks", list.State.FactomNodeName))
 			}
 		}
 
@@ -320,6 +347,10 @@ func (list *DBStateList) UpdateState() (progress bool) {
 		fs.AddTransactionBlock(d.FactoidBlock)
 		fs.AddECBlock(d.EntryCreditBlock)
 		fs.ProcessEndOfBlock(list.State)
+
+		// Promote the currently scheduled next FER
+		list.State.ProcessRecentFERChainEntries()
+
 		// Step my counter of Complete blocks
 		if uint32(i) > list.Complete {
 			list.Complete = uint32(i)

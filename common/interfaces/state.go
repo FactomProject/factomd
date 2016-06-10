@@ -142,6 +142,7 @@ type IState interface {
 	FollowerExecuteAck(m IMsg)     // Ack Msg calls this function.
 	FollowerExecuteDBState(IMsg)   // Add the given DBState to this server
 	FollowerExecuteAddData(m IMsg) // Add the entry or eblock to this Server
+	FollowerExecuteSFault(m IMsg)  // Handle Server Fault Messages
 
 	ProcessAddServer(dbheight uint32, addServerMsg IMsg) bool
 	ProcessCommitChain(dbheight uint32, commitChain IMsg) bool
@@ -176,4 +177,10 @@ type IState interface {
 	FetchFactoidTransactionByHash(hash IHash) (ITransaction, error)
 	FetchECTransactionByHash(hash IHash) (IECBlockEntry, error)
 	FetchEntryByHash(IHash) (IEBEntry, error)
+
+	// FER section
+	ProcessRecentFERChainEntries()
+	ExchangeRateAuthorityIsValid(IEBEntry) bool
+	FerEntryIsValid(passedFEREntry IFEREntry) bool
+	GetPredictiveFER() (uint64)
 }
