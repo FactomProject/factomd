@@ -44,6 +44,9 @@ func (db *Overlay) SaveIncludedInMultiMultiBatch(entries []interfaces.IHash, blo
 	batch := []interfaces.Record{}
 
 	for _, entry := range entries {
+		if entry.IsMinuteMarker() == true {
+			continue
+		}
 		if checkForDuplicateEntries == true {
 			loaded, err := db.Get([]byte{INCLUDED_IN}, entry.Bytes(), primitives.NewZeroHash())
 			if err != nil {

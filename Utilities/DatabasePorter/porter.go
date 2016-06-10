@@ -86,7 +86,7 @@ mainloop:
 			fmt.Printf("Fetched dblock %v\n", dBlock.GetDatabaseHeight())
 		}
 
-		dBlockList = dBlockList[startIndex+1:]
+		dBlockList = dBlockList[startIndex:]
 
 		fmt.Printf("\t\tSaving blocks\n")
 
