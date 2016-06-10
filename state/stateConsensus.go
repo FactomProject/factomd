@@ -59,10 +59,6 @@ func (s *State) Process() (progress bool) {
 
 	//s.DebugPrt("Process")
 
-	if s.EOM > 0 {
-		s.LeaderMinute = s.EOM
-	}
-
 	highest := s.GetHighestRecordedBlock()
 
 	dbstate := s.DBStates.Get(s.LLeaderHeight)
@@ -87,22 +83,21 @@ func (s *State) Process() (progress bool) {
 			}
 			dbs.LeaderExecute(s)
 		}
-		s.LeaderMinute = 0
 		s.NewMinute()
 	}
 
 	if s.EOM > 0 && s.LeaderPL.Unsealable(s.EOM) {
-		s.LeaderMinute = s.EOM
-
 		switch {
 		case s.EOM <= 9:
 			s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
-			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.LeaderMinute, s.IdentityChainID)
+			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.EOM, s.IdentityChainID)
+			s.LeaderMinute = s.EOM
 			s.NewMinute()
 		case s.EOM == 10:
 			s.AddDBState(true, s.LeaderPL.DirectoryBlock, s.LeaderPL.AdminBlock, s.GetFactoidState().GetCurrentBlock(), s.LeaderPL.EntryCreditBlock)
 			s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight + 1)
 			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(0, s.IdentityChainID)
+			s.LeaderMinute = 0
 		}
 
 	}
@@ -250,11 +245,9 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) {
 
 	// Leaders set s.EOM when they see their EOM.  Followers set
 	// s.EOM when they see the first EOM.
-	eom, ok := m.(*messages.EOM)
+	_, ok := m.(*messages.EOM)
 	if ok && m.IsLocal() {
 		return // This is an internal EOM message.  We are not a leader so ignore.
-	} else if ok && !s.Leader {
-		s.EOM = int(eom.Minute + 1)
 	}
 
 	hash := m.GetHash()
@@ -342,15 +335,19 @@ func (s *State) LeaderExecute(m interfaces.IMsg) {
 	}
 
 	if !s.Green() || m.GetVMIndex() != s.LeaderVMIndex {
-		s.networkOutMsgQueue <- m
 		m.FollowerExecute(s)
 		return
 	}
 
-	ack := s.NewAck(m).(*messages.Ack)
-
-	s.ProcessLists.Get(ack.DBHeight).AddToProcessList(ack, m)
-
+	switch m.Validate(s) {
+	case 1:
+		ack := s.NewAck(m).(*messages.Ack)
+		s.ProcessLists.Get(ack.DBHeight).AddToProcessList(ack, m)
+	case 0:
+		s.Holding[m.GetHash().Fixed()] = m
+	default:
+		s.networkInvalidMsgQueue <- m
+	}
 }
 
 func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
@@ -359,7 +356,6 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 	}
 
 	if !s.Green() || !m.IsLocal() {
-		s.networkOutMsgQueue <- m
 		m.FollowerExecute(s)
 		return
 	}
@@ -371,6 +367,8 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 	}
 	eom.DBHeight = s.LLeaderHeight
 	eom.VMIndex = s.LeaderVMIndex
+	// eom.Minute is zerobased, while s.LeaderMinute is 1 based.  So
+	// a simple assignment works.
 	eom.Minute = byte(s.LeaderMinute)
 	eom.Sign(s)
 	ack := s.NewAck(m)
