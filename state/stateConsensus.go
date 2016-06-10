@@ -7,6 +7,9 @@ package state
 import (
 	"fmt"
 
+	"hash"
+	"os"
+
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryBlock"
@@ -15,8 +18,6 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/util"
-	"hash"
-	"os"
 )
 
 var _ = fmt.Print
@@ -143,28 +144,26 @@ func (s *State) ProcessQueues() (progress bool) {
 		return
 	}
 
-
 	// Reprocess any stalled Acknowledgements
-		for len(s.XReview) > 0 {
-			msg := s.XReview[0]
-			executeMsg(msg)
-			s.XReview = s.XReview[1:]
-			s.UpdateState()
-		}
+	for len(s.XReview) > 0 {
+		msg := s.XReview[0]
+		executeMsg(msg)
+		s.XReview = s.XReview[1:]
+		s.UpdateState()
+	}
 
-		if len(s.StallAcks) > 0 {
-			ack := s.GetStalledAck(0)
-			if ack != nil {
-				_, ok := s.InternalReplay.Valid(ack.GetHash().Fixed(), int64(ack.GetTimestamp() / 1000), int64(s.GetTimestamp() / 1000))
-				v := ack.Validate(s)
-				if ok && v == 1 {
-					ack.FollowerExecute(s)
-				} else if s.DebugConsensus {
-					fmt.Println("dddd StalledAck ok:", ok, "validate:", ack.Validate(s), ack.String())
-				}
+	if len(s.StallAcks) > 0 {
+		ack := s.GetStalledAck(0)
+		if ack != nil {
+			_, ok := s.InternalReplay.Valid(ack.GetHash().Fixed(), int64(ack.GetTimestamp()/1000), int64(s.GetTimestamp()/1000))
+			v := ack.Validate(s)
+			if ok && v == 1 {
+				ack.FollowerExecute(s)
+			} else if s.DebugConsensus {
+				fmt.Println("dddd StalledAck ok:", ok, "validate:", ack.Validate(s), ack.String())
 			}
 		}
-
+	}
 
 	select {
 	case ack := <-s.ackQueue:
@@ -509,7 +508,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	}
 
 	if e.FactoidVM {
-		s.FactoidState.EndOfPeriod(int(e.Minute+1))
+		s.FactoidState.EndOfPeriod(int(e.Minute + 1))
 
 		// Add EOM to the EBlocks.  We only do this once, so
 		// we piggy back on the fact that we only do the FactoidState
@@ -551,6 +550,8 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 	if resp != 1 {
 		return false
 	}
+
+	s.SetLeaderTimestamp(uint64(dbs.Timestamp.GetTime().Unix()))
 
 	return true
 }
