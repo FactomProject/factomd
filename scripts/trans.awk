@@ -7,5 +7,5 @@
 /Command Failed:  Server Error/ { print "\n******* No Factom System Available ******" }
 /    b.  / {print}
 /    e.  / {print}
-
+/^Date/ {print}
 

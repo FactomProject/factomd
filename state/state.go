@@ -66,6 +66,9 @@ type State struct {
 	// Just to print (so debugging doesn't drive functionaility)
 	Status    bool
 	starttime time.Time
+	transCnt  int
+	lasttime  time.Time
+	tps       float64
 	serverPrt string
 
 	tickerQueue            chan int
@@ -1227,9 +1230,14 @@ func (s *State) SetString() {
 	}
 
 	runtime := time.Since(s.starttime)
-	tps := float64(s.FactoidTrans+s.NewEntryChains+s.NewEntries) / float64(runtime.Seconds())
-
-	s.serverPrt = fmt.Sprintf("%8s[%6x]%4s Save: %d[%6x] PL:%d/%d Min: %2v DBHT %v Min C/F %02v/%02v EOM %2v %3d-Fct %3d-EC %3d-E  %7.2f tps",
+	shorttime := time.Since(s.lasttime)
+	total := s.FactoidTrans+s.NewEntryChains+s.NewEntries
+	tps := float64(total) / float64(runtime.Seconds())
+	delta := (s.FactoidTrans+s.NewEntryChains+s.NewEntries)-s.transCnt
+	s.tps = (2*float64(delta) / float64(shorttime.Seconds())+s.tps)/3
+	s.transCnt = total
+	s.lasttime = time.Now()
+	s.serverPrt = fmt.Sprintf("%8s[%6x]%4s Save: %d[%6x] PL:%d/%d Min: %2v DBHT %v Min C/F %02v/%02v EOM %2v %3d-Fct %3d-EC %3d-E  %7.2f total tps %7.2f tps",
 		s.FactomNodeName,
 		s.IdentityChainID.Bytes()[:3],
 		stype,
@@ -1245,7 +1253,8 @@ func (s *State) SetString() {
 		s.FactoidTrans,
 		s.NewEntryChains,
 		s.NewEntries,
-		tps)
+		tps,
+		s.tps)
 
 }
 

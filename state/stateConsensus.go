@@ -123,13 +123,9 @@ func (s *State) ProcessQueues() (progress bool) {
 
 		switch msg.Validate(s) {
 		case 1:
-			if s.EOM == 0 {
-				if s.Leader {
-					msg.ComputeVMIndex(s)
-					msg.LeaderExecute(s)
-				} else {
-					msg.FollowerExecute(s)
-				}
+			if s.Leader {
+				msg.ComputeVMIndex(s)
+				msg.LeaderExecute(s)
 			} else {
 				msg.FollowerExecute(s)
 			}
@@ -233,13 +229,6 @@ func (s *State) addEBlock(eblock interfaces.IEntryBlock) {
 // Returns true if it finds a match, puts the message in holding, or invalidates the message
 func (s *State) FollowerExecuteMsg(m interfaces.IMsg) {
 
-	// Leaders set s.EOM when they see their EOM.  Followers set
-	// s.EOM when they see the first EOM.
-	_, ok := m.(*messages.EOM)
-	if ok && m.IsLocal() {
-		return // This is an internal EOM message.  We are not a leader so ignore.
-	}
-
 	s.Holding[m.GetMsgHash().Fixed()] = m
 	ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
 	if ack != nil {
@@ -249,6 +238,19 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) {
 		pl := s.ProcessLists.Get(ack.DBHeight)
 		pl.AddToProcessList(ack, m)
 	}
+}
+
+// Messages that will go into the Process List must match an Acknowledgement.
+// The code for this is the same for all such messages, so we put it here.
+//
+// Returns true if it finds a match, puts the message in holding, or invalidates the message
+func (s *State) FollowerExecuteEOM(m interfaces.IMsg) {
+
+	if m.IsLocal() {
+		return // This is an internal EOM message.  We are not a leader so ignore.
+	}
+
+	s.FollowerExecuteMsg(m)
 }
 
 // Ack messages always match some message in the Process List.   That is
@@ -354,8 +356,12 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 	for i := 0; s.UpdateState() && i < 10; i++ {
 	}
 
-	if !s.Green() || !m.IsLocal() {
-		fmt.Println("dddd",s.FactomNodeName,m.String())
+	if m.IsLocal() && s.LeaderMinute > 9 {
+		return
+	}
+
+	if !s.Green() || !m.IsLocal()  {
+		s.FollowerExecuteEOM(m)
 		return
 	}
 

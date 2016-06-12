@@ -144,15 +144,11 @@ func (m *EOM) ComputeVMIndex(state interfaces.IState) {
 
 // Execute the leader functions of the given message
 func (m *EOM) LeaderExecute(state interfaces.IState) {
-	if state.IsLeader() && m.IsLocal() {
 		state.LeaderExecuteEOM(m)
-	} else {
-		m.FollowerExecute(state)
-	}
 }
 
 func (m *EOM) FollowerExecute(state interfaces.IState) {
-	state.FollowerExecuteMsg(m)
+	state.FollowerExecuteEOM(m)
 }
 
 func (e *EOM) JSONByte() ([]byte, error) {

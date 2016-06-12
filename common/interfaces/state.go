@@ -139,6 +139,7 @@ type IState interface {
 	// ====
 
 	FollowerExecuteMsg(m IMsg)     // Messages that go into the process list
+	FollowerExecuteEOM(m IMsg)     // Messages that go into the process list
 	FollowerExecuteAck(m IMsg)     // Ack Msg calls this function.
 	FollowerExecuteDBState(IMsg)   // Add the given DBState to this server
 	FollowerExecuteAddData(m IMsg) // Add the entry or eblock to this Server
