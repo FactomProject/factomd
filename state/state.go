@@ -76,8 +76,6 @@ type State struct {
 	apiQueue               chan interfaces.IMsg
 	ackQueue               chan interfaces.IMsg
 	msgQueue               chan interfaces.IMsg
-	OutOfOrders            []*messages.Ack
-	StallAcks              []*messages.Ack
 	ShutdownChan           chan int // For gracefully halting Factom
 	JournalFile            string
 
@@ -664,7 +662,6 @@ func (s *State) MessageToLogString(msg interfaces.IMsg) string {
 
 func (s *State) JournalMessage(msg interfaces.IMsg) {
 	if len(s.JournalFile) != 0 {
-		fmt.Println("Journal file:", s.JournalFile)
 		f, err := os.OpenFile(s.JournalFile, os.O_APPEND+os.O_WRONLY, 0666)
 		if err != nil {
 			s.JournalFile = ""
@@ -699,89 +696,6 @@ func (s *State) GetDirectoryBlockByHeight(height uint32) interfaces.IDirectoryBl
 }
 
 func (s *State) UpdateState() (progress bool) {
-
-	process := func(a *messages.Ack) {
-		if _, ok := s.InternalReplay.Valid(a.GetHash().Fixed(), int64(a.GetTimestamp()), int64(s.GetTimestamp())); a.DBHeight < s.LLeaderHeight || !ok {
-			delete(s.Holding, a.GetHash().Fixed())
-			delete(s.Acks, a.GetHash().Fixed())
-			return
-		}
-		s.ProcessLists.Get(a.DBHeight)
-		s.Acks[a.GetHash().Fixed()] = a
-		m := s.Holding[a.GetHash().Fixed()]
-		if m != nil {
-			pl := s.ProcessLists.Get(a.DBHeight)
-			if pl != nil {
-				pl.AddToProcessList(a, m)
-			}
-		}
-	}
-
-	// Look at all the other out of orders.  Note that if we kept this list sorted,
-	// this would be really efficent, and wouldn't require a loop.
-	end := len(s.OutOfOrders)
-	for i := 0; i < end; i++ {
-		a := s.GetOutOfOrder(0)
-		if a != nil {
-			if s.DebugConsensus {
-				fmt.Println("dddd Out of Order Processing", s.FactomNodeName, end, i, a.String())
-			}
-			process(a)
-		}
-	}
-	// Look at all the other out of orders.  Note that if we kept this list sorted,
-	// this would be really efficent, and wouldn't require a loop.
-	end = len(s.StallAcks)
-	for i := 0; i < end; i++ {
-		a := s.GetStalledAck(0)
-		if a != nil {
-			if s.DebugConsensus {
-				fmt.Println("dddd Stall Ack             ", s.FactomNodeName, end, i, a.String())
-			}
-			process(a)
-		}
-	}
-
-	for k := range s.Holding {
-		m := s.Holding[k]
-		if _, ok := s.InternalReplay.Valid(k, int64(m.GetTimestamp()), int64(s.GetTimestamp())); !ok {
-			delete(s.Holding, k)
-			delete(s.Acks, k)
-		}
-	}
-
-	// Look at all the other out of orders.  Note that if we kept this list sorted,
-	// this would be really efficent, and wouldn't require a loop.
-	end = len(s.Acks)
-	i := 0
-	for k := range s.Acks {
-		a, _ := s.Acks[k].(*messages.Ack)
-		i++
-		if i >= end {
-			break
-		}
-		if a != nil {
-			process(a)
-		}
-	}
-
-	sort := func(msgs []*messages.Ack) {
-		for i := 0; i < len(msgs)-1; i++ {
-			for j := 0; j < len(msgs)-1-i; j++ {
-				dbht1 := msgs[j].DBHeight > msgs[j+1].DBHeight
-				dbht2 := msgs[j].DBHeight == msgs[j+1].DBHeight
-				ht := msgs[j].Height > msgs[j+1].Height
-				if dbht1 || (dbht2 && ht) {
-					hld := msgs[j]
-					msgs[j] = msgs[j+1]
-					msgs[j+1] = hld
-				}
-			}
-		}
-	}
-
-	sort(s.OutOfOrders)
-	sort(s.StallAcks)
 
 	dbheight := s.GetHighestRecordedBlock()
 	plbase := s.ProcessLists.DBHeightBase
@@ -1170,52 +1084,6 @@ func (s *State) APIQueue() chan interfaces.IMsg {
 
 func (s *State) AckQueue() chan interfaces.IMsg {
 	return s.ackQueue
-}
-
-func (s *State) StallAck(ack *messages.Ack) {
-	if ack.IsStalled() {
-		return
-	}
-	ack.SetStall(true)
-	s.StallAcks = append(s.StallAcks, ack)
-}
-
-// Get the ith message out of the stall queue.  Note getting i=0 makes
-// the stall queue into a FIFO, but other options are possible.
-func (s *State) GetStalledAck(i int) *messages.Ack {
-	if len(s.StallAcks) == 0 || i >= len(s.StallAcks) {
-		return nil
-	}
-	m := s.StallAcks[i]
-
-	copy(s.StallAcks[i:], s.StallAcks[i+1:])
-	s.StallAcks[len(s.StallAcks)-1] = nil
-	s.StallAcks = s.StallAcks[:len(s.StallAcks)-1]
-	m.SetStall(false)
-	return m
-}
-
-func (s *State) OutOfOrderAck(ack *messages.Ack) {
-	if ack.IsStalled() {
-		return
-	}
-	ack.SetStall(true)
-	s.OutOfOrders = append(s.OutOfOrders, ack)
-}
-
-// Get the ith message out of the stall queue.  Note getting i=0 makes
-// the stall queue into a FIFO, but other options are possible.
-func (s *State) GetOutOfOrder(i int) *messages.Ack {
-	if len(s.OutOfOrders) == 0 || i >= len(s.OutOfOrders) {
-		return nil
-	}
-	m := s.OutOfOrders[i]
-
-	copy(s.OutOfOrders[i:], s.OutOfOrders[i+1:])
-	s.OutOfOrders[len(s.OutOfOrders)-1] = nil
-	s.OutOfOrders = s.OutOfOrders[:len(s.OutOfOrders)-1]
-	m.SetStall(false)
-	return m
 }
 
 func (s *State) MsgQueue() chan interfaces.IMsg {

@@ -40,9 +40,12 @@ func (s *State) NewMinute() {
 		if a != nil && v != nil {
 			s.ProcessLists.Get(a.DBHeight).AddToProcessList(a, v)
 		} else if v != nil {
-			v.ComputeVMIndex(s)
-			s.XReview = append(s.XReview, v)
-			delete(s.Holding, k)
+			_,ok := s.InternalReplay.Valid(v.GetMsgHash().Fixed(),int64(v.GetTimestamp()/1000),int64(s.GetTimestamp()/1000))
+			if ok {
+				v.ComputeVMIndex(s)
+				s.XReview = append(s.XReview, v)
+				delete(s.Holding, k)
+			}
 		}
 	}
 
@@ -152,18 +155,6 @@ func (s *State) ProcessQueues() (progress bool) {
 		s.UpdateState()
 	}
 
-	if len(s.StallAcks) > 0 {
-		ack := s.GetStalledAck(0)
-		if ack != nil {
-			_, ok := s.InternalReplay.Valid(ack.GetHash().Fixed(), int64(ack.GetTimestamp()/1000), int64(s.GetTimestamp()/1000))
-			v := ack.Validate(s)
-			if ok && v == 1 {
-				ack.FollowerExecute(s)
-			} else if s.DebugConsensus {
-				fmt.Println("dddd StalledAck ok:", ok, "validate:", ack.Validate(s), ack.String())
-			}
-		}
-	}
 
 	select {
 	case ack := <-s.ackQueue:
@@ -249,15 +240,14 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) {
 		return // This is an internal EOM message.  We are not a leader so ignore.
 	}
 
-	hash := m.GetHash()
-	hashf := hash.Fixed()
-	s.Holding[hashf] = m
-	ack, _ := s.Acks[hashf].(*messages.Ack)
+	s.Holding[m.GetMsgHash().Fixed()] = m
+	ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
 	if ack != nil {
+		m.SetLeaderChainID(ack.GetLeaderChainID())
+		m.SetMinute(ack.Minute)
+
 		pl := s.ProcessLists.Get(ack.DBHeight)
-		if pl != nil {
-			pl.AddToProcessList(ack, m)
-		}
+		pl.AddToProcessList(ack, m)
 	}
 }
 
@@ -269,10 +259,11 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) {
 	s.Acks[ack.GetHash().Fixed()] = ack
 	m, _ := s.Holding[ack.GetHash().Fixed()]
 	if m != nil {
+		m.SetLeaderChainID(ack.GetLeaderChainID())
+		m.SetMinute(ack.Minute)
+
 		pl := s.ProcessLists.Get(ack.DBHeight)
-		if pl != nil {
-			pl.AddToProcessList(ack, m)
-		}
+		pl.AddToProcessList(ack, m)
 	}
 }
 
@@ -333,7 +324,14 @@ func (s *State) LeaderExecute(m interfaces.IMsg) {
 	for i := 0; s.UpdateState() && i < 10; i++ {
 	}
 
-	if !s.Green() || m.GetVMIndex() != s.LeaderVMIndex {
+	// If we haven't saved the previous block, then punt to Follower
+	// which (most likely) will put the message into Holding.
+	if !s.DBStates.Get(s.LLeaderHeight-1).Saved {
+		m.FollowerExecute(s)
+		return
+	}
+
+	if s.EOM > 0 || !s.Green() || m.GetVMIndex() != s.LeaderVMIndex {
 		m.FollowerExecute(s)
 		return
 	}
@@ -341,9 +339,11 @@ func (s *State) LeaderExecute(m interfaces.IMsg) {
 	switch m.Validate(s) {
 	case 1:
 		ack := s.NewAck(m).(*messages.Ack)
+		m.SetLeaderChainID(ack.GetLeaderChainID())
+		m.SetMinute(ack.Minute)
 		s.ProcessLists.Get(ack.DBHeight).AddToProcessList(ack, m)
 	case 0:
-		s.Holding[m.GetHash().Fixed()] = m
+		s.Holding[m.GetMsgHash().Fixed()] = m
 	default:
 		s.networkInvalidMsgQueue <- m
 	}
@@ -355,7 +355,7 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 	}
 
 	if !s.Green() || !m.IsLocal() {
-		m.FollowerExecute(s)
+		fmt.Println("dddd",s.FactomNodeName,m.String())
 		return
 	}
 
@@ -371,6 +371,8 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 	eom.Minute = byte(s.LeaderMinute)
 	eom.Sign(s)
 	ack := s.NewAck(m)
+
+	fmt.Println("dddd EOM",s.FactomNodeName)
 	s.LeaderPL.AddToProcessList(ack.(*messages.Ack), eom)
 
 }
@@ -503,9 +505,10 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 	pl := s.ProcessLists.Get(dbheight)
 
-	if pl.MinuteComplete() < s.LeaderMinute {
-		return false
-	}
+	pl.VMs[e.VMIndex].Seal=int(e.Minute+1)
+
+	s.EOM = int(e.Minute+1)
+	s.LeaderMinute = s.EOM
 
 	if e.FactoidVM {
 		s.FactoidState.EndOfPeriod(int(e.Minute + 1))
@@ -551,8 +554,9 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		return false
 	}
 
-	s.SetLeaderTimestamp(uint64(dbs.Timestamp.GetTime().Unix()))
-
+	if dbs.VMIndex==0 {
+		s.SetLeaderTimestamp(uint64(dbs.Timestamp.GetTime().Unix()))
+	}
 	return true
 }
 
@@ -771,7 +775,7 @@ func (s *State) NewAck(msg interfaces.IMsg) (iack interfaces.IMsg) {
 	ack.VMIndex = vmIndex
 	ack.Minute = byte(s.LeaderMinute)
 	ack.Timestamp = s.GetTimestamp()
-	ack.MessageHash = msg.GetHash()
+	ack.MessageHash = msg.GetMsgHash()
 	ack.SetFullMsgHash(msg.GetFullMsgHash())
 	ack.LeaderChainID = s.IdentityChainID
 
