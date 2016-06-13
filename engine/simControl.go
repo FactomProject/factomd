@@ -224,6 +224,24 @@ func SimControl(listenTo int) {
 					f.State.DebugConsensus = c
 				}
 
+			case 'i' == b[0]:
+
+			for _, i := range fnodes[listenTo].State.Identities {
+				os.Stderr.WriteString("-------------------------------------------------------------------------------\n")
+				os.Stderr.WriteString(fmt.Sprint("Server Status: ",i.Status,"\n"))
+				os.Stderr.WriteString(fmt.Sprint("Identity Chain: ",i.IdentityChainID,"\n"))
+				os.Stderr.WriteString(fmt.Sprint("Management Chain: ",i.ManagementChainID,"\n"))
+				os.Stderr.WriteString(fmt.Sprint("Matryoshka Hash: ",i.MatryoshkaHash,"\n"))
+				os.Stderr.WriteString(fmt.Sprint("Key 1: ",i.Key1,"\n"))
+				os.Stderr.WriteString(fmt.Sprint("Key 2: ",i.Key2,"\n"))
+				os.Stderr.WriteString(fmt.Sprint("Key 3: ",i.Key3,"\n"))
+				os.Stderr.WriteString(fmt.Sprint("Key 4: ",i.Key4,"\n"))
+				os.Stderr.WriteString(fmt.Sprint("Signing Key: ",i.SigningKey,"\n"))
+				os.Stderr.WriteString(fmt.Sprint("Anchor Key: ",i.AnchorKeys,"\n"))
+			}
+				//os.Stderr.WriteString(fmt.Sprint(fnodes[listenTo].State.Identities))
+				
+
 			case 'h' == b[0]:
 				os.Stderr.WriteString("-------------------------------------------------------------------------------\n")
 				os.Stderr.WriteString("h or ENTER    Shows this help\n")
