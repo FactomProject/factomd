@@ -17,7 +17,7 @@ END {
 	scale 	 = 500 / cnt
 	realdays = 10/60/60/24
 	simdays  = realdays / scale
-
+		
 	for (i=0;i<cnt;i++){
 		oldptr = ptr		# Remember the old pointer
 		ptr    = int(i*scale)	# Pointer into output data
@@ -30,8 +30,14 @@ END {
 			simtime = sumCnt*simdays
 			cpu = sumCPU/sumCnt
 			mem = sumMEM/sumCnt
-			print realtime "\t" simtime "\t" cpu "\t" mem
+			outstr = realtime "\t" simtime "\t" cpu "\t" mem
+			print outstr
 			realtime = simtime = 0
+			ot++
 		}
 	}
+	for (;ot<500;ot++){
+		print outstr
+	}
+
 } 

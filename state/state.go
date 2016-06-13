@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"sync"
+	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -23,6 +23,7 @@ import (
 	"github.com/FactomProject/factomd/logger"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
+	"sync"
 )
 
 var _ = fmt.Print
@@ -60,6 +61,10 @@ type State struct {
 
 	// Just to print (so debugging doesn't drive functionaility)
 	Status    bool
+	starttime time.Time
+	transCnt  int
+	lasttime  time.Time
+	tps       float64
 	serverPrt string
 
 	tickerQueue            chan int
@@ -70,8 +75,6 @@ type State struct {
 	apiQueue               chan interfaces.IMsg
 	ackQueue               chan interfaces.IMsg
 	msgQueue               chan interfaces.IMsg
-	OutOfOrders            []*messages.Ack
-	StallAcks              []*messages.Ack
 	ShutdownChan           chan int // For gracefully halting Factom
 	JournalFile            string
 
@@ -91,7 +94,7 @@ type State struct {
 	FactoidTrans    int
 	NewEntryChains  int
 	NewEntries      int
-	LeaderTimestamp uint64
+	LeaderTimestamp interfaces.Timestamp
 	// Maps
 	// ====
 	// For Follower
@@ -163,13 +166,13 @@ type State struct {
 	LastPrintCnt int
 
 	// FER section
-	FactoshisPerEC uint64
-	FERChainId string
+	FactoshisPerEC               uint64
+	FERChainId                   string
 	ExchangeRateAuthorityAddress string
 
-	FERChangeHeight uint32
-	FERChangePrice uint64
-	FERPriority uint32
+	FERChangeHeight      uint32
+	FERChangePrice       uint64
+	FERPriority          uint32
 	FERPrioritySetHeight uint32
 }
 
@@ -181,10 +184,10 @@ func (s *State) Clone(number string) interfaces.IState {
 
 	clone.FactomNodeName = s.Prefix + "FNode" + number
 	clone.FactomdVersion = s.FactomdVersion
-	clone.LogPath = s.LogPath + "Sim" + number
-	clone.LdbPath = s.LdbPath + "Sim" + number
-	clone.JournalFile = s.LogPath + "journal" + number + ".log"
-	clone.BoltDBPath = s.BoltDBPath + "Sim" + number
+	clone.LogPath = s.LogPath + "/Sim" + number
+	clone.LdbPath = s.LdbPath + "/Sim" + number
+	clone.JournalFile = s.LogPath + "/journal" + number + ".log"
+	clone.BoltDBPath = s.BoltDBPath + "/Sim" + number
 	clone.LogLevel = s.LogLevel
 	clone.ConsoleLogLevel = s.ConsoleLogLevel
 	clone.NodeMode = "FULL"
@@ -204,17 +207,14 @@ func (s *State) Clone(number string) interfaces.IState {
 	clonePrivateKey := primitives.NewPrivateKeyFromHexBytes(shaHashOfNodeName.Bytes())
 	clone.LocalServerPrivKey = clonePrivateKey.PrivateKeyString()
 
+	clone.SetLeaderTimestamp(s.GetLeaderTimestamp())
+
 	//serverPrivKey primitives.PrivateKey
 	//serverPubKey  primitives.PublicKey
 
 	clone.FactoshisPerEC = s.FactoshisPerEC
 
 	clone.Port = s.Port
-
-	// FER section
-	clone.FactoshisPerEC = s.FactoshisPerEC
-	clone.FERChainId = s.FERChainId
-	clone.ExchangeRateAuthorityAddress = s.ExchangeRateAuthorityAddress
 
 	return clone
 }
@@ -289,7 +289,7 @@ func (s *State) LoadConfig(filename string, folder string) {
 		s.LocalServerPrivKey = "4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c9b08946553448d26d"
 		s.FactoshisPerEC = 006666
 		s.FERChainId = "eac57815972c504ec5ae3f9e5c1fe12321a3c8c78def62528fb74cf7af5e7389"
-		s.ExchangeRateAuthorityAddress = ""   // default to nothing so that there is no default FER manipulation
+		s.ExchangeRateAuthorityAddress = "" // default to nothing so that there is no default FER manipulation
 		s.DirectoryBlockInSeconds = 6
 		s.PortNumber = 8088
 
@@ -297,12 +297,10 @@ func (s *State) LoadConfig(filename string, folder string) {
 		s.IdentityChainID = primitives.Sha([]byte(s.FactomNodeName))
 
 	}
-	s.JournalFile = s.LogPath + "journal0" + ".log"
+	s.JournalFile = s.LogPath + "/journal0" + ".log"
 }
 
 func (s *State) Init() {
-
-	s.SetOut(true)
 
 	wsapi.InitLogs(s.LogPath+s.FactomNodeName+".log", s.LogLevel)
 
@@ -321,7 +319,10 @@ func (s *State) Init() {
 	s.msgQueue = make(chan interfaces.IMsg, 10000)           //queue of Follower messages
 	s.ShutdownChan = make(chan int, 1)                       //Channel to gracefully shut down.
 
-	os.Mkdir(s.LogPath, 0777)
+	er := os.MkdirAll(s.LogPath, 0777)
+	if er != nil {
+		fmt.Println("Could not create " + s.LogPath + "\n error: " + er.Error())
+	}
 	_, err := os.Create(s.JournalFile) //Create the Journal File
 	if err != nil {
 		fmt.Println("Could not create the file: " + s.JournalFile)
@@ -417,6 +418,8 @@ func (s *State) Init() {
 	s.FedServerFaults = make([][]interfaces.IMsg, 0)
 
 	s.initServerKeys()
+
+	s.starttime = time.Now()
 }
 
 func (s *State) AddDataRequest(requestedHash, missingDataHash interfaces.IHash) {
@@ -657,7 +660,7 @@ func (s *State) MessageToLogString(msg interfaces.IMsg) string {
 }
 
 func (s *State) JournalMessage(msg interfaces.IMsg) {
-	if len(s.JournalFile) == 0 {
+	if len(s.JournalFile) != 0 {
 		f, err := os.OpenFile(s.JournalFile, os.O_APPEND+os.O_WRONLY, 0666)
 		if err != nil {
 			s.JournalFile = ""
@@ -692,89 +695,6 @@ func (s *State) GetDirectoryBlockByHeight(height uint32) interfaces.IDirectoryBl
 }
 
 func (s *State) UpdateState() (progress bool) {
-
-	process := func(a *messages.Ack) {
-		if _, ok := s.InternalReplay.Valid(a.GetHash().Fixed(), int64(a.GetTimestamp()), int64(s.GetTimestamp())); a.DBHeight < s.LLeaderHeight || !ok {
-			delete(s.Holding, a.GetHash().Fixed())
-			delete(s.Acks, a.GetHash().Fixed())
-			return
-		}
-		s.ProcessLists.Get(a.DBHeight)
-		s.Acks[a.GetHash().Fixed()] = a
-		m := s.Holding[a.GetHash().Fixed()]
-		if m != nil {
-			pl := s.ProcessLists.Get(a.DBHeight)
-			if pl != nil {
-				pl.AddToProcessList(a, m)
-			}
-		}
-	}
-
-	// Look at all the other out of orders.  Note that if we kept this list sorted,
-	// this would be really efficent, and wouldn't require a loop.
-	end := len(s.OutOfOrders)
-	for i := 0; i < end; i++ {
-		a := s.GetOutOfOrder(0)
-		if a != nil {
-			if s.DebugConsensus {
-				fmt.Println("dddd Out of Order Processing", s.FactomNodeName, end, i, a.String())
-			}
-			process(a)
-		}
-	}
-	// Look at all the other out of orders.  Note that if we kept this list sorted,
-	// this would be really efficent, and wouldn't require a loop.
-	end = len(s.StallAcks)
-	for i := 0; i < end; i++ {
-		a := s.GetStalledAck(0)
-		if a != nil {
-			if s.DebugConsensus {
-				fmt.Println("dddd Stall Ack             ", s.FactomNodeName, end, i, a.String())
-			}
-			process(a)
-		}
-	}
-
-	for k := range s.Holding {
-		m := s.Holding[k]
-		if _, ok := s.InternalReplay.Valid(k, int64(m.GetTimestamp()), int64(s.GetTimestamp())); !ok {
-			delete(s.Holding, k)
-			delete(s.Acks, k)
-		}
-	}
-
-	// Look at all the other out of orders.  Note that if we kept this list sorted,
-	// this would be really efficent, and wouldn't require a loop.
-	end = len(s.Acks)
-	i := 0
-	for k := range s.Acks {
-		a, _ := s.Acks[k].(*messages.Ack)
-		i++
-		if i >= end {
-			break
-		}
-		if a != nil {
-			process(a)
-		}
-	}
-
-	sort := func(msgs []*messages.Ack) {
-		for i := 0; i < len(msgs)-1; i++ {
-			for j := 0; j < len(msgs)-1-i; j++ {
-				dbht1 := msgs[j].DBHeight > msgs[j+1].DBHeight
-				dbht2 := msgs[j].DBHeight == msgs[j+1].DBHeight
-				ht := msgs[j].Height > msgs[j+1].Height
-				if dbht1 || (dbht2 && ht) {
-					hld := msgs[j]
-					msgs[j] = msgs[j+1]
-					msgs[j+1] = hld
-				}
-			}
-		}
-	}
-
-	sort(s.OutOfOrders)
-	sort(s.StallAcks)
 
 	dbheight := s.GetHighestRecordedBlock()
 	plbase := s.ProcessLists.DBHeightBase
@@ -971,61 +891,15 @@ func (s *State) AckQueue() chan interfaces.IMsg {
 	return s.ackQueue
 }
 
-func (s *State) StallAck(ack *messages.Ack) {
-	if ack.IsStalled() {
-		return
-	}
-	ack.SetStall(true)
-	s.StallAcks = append(s.StallAcks, ack)
-}
-
-// Get the ith message out of the stall queue.  Note getting i=0 makes
-// the stall queue into a FIFO, but other options are possible.
-func (s *State) GetStalledAck(i int) *messages.Ack {
-	if len(s.StallAcks) == 0 || i >= len(s.StallAcks) {
-		return nil
-	}
-	m := s.StallAcks[i]
-
-	copy(s.StallAcks[i:], s.StallAcks[i+1:])
-	s.StallAcks[len(s.StallAcks)-1] = nil
-	s.StallAcks = s.StallAcks[:len(s.StallAcks)-1]
-	m.SetStall(false)
-	return m
-}
-
-func (s *State) OutOfOrderAck(ack *messages.Ack) {
-	if ack.IsStalled() {
-		return
-	}
-	ack.SetStall(true)
-	s.OutOfOrders = append(s.OutOfOrders, ack)
-}
-
-// Get the ith message out of the stall queue.  Note getting i=0 makes
-// the stall queue into a FIFO, but other options are possible.
-func (s *State) GetOutOfOrder(i int) *messages.Ack {
-	if len(s.OutOfOrders) == 0 || i >= len(s.OutOfOrders) {
-		return nil
-	}
-	m := s.OutOfOrders[i]
-
-	copy(s.OutOfOrders[i:], s.OutOfOrders[i+1:])
-	s.OutOfOrders[len(s.OutOfOrders)-1] = nil
-	s.OutOfOrders = s.OutOfOrders[:len(s.OutOfOrders)-1]
-	m.SetStall(false)
-	return m
-}
-
 func (s *State) MsgQueue() chan interfaces.IMsg {
 	return s.msgQueue
 }
 
-func (s *State) GetLeaderTimestamp() uint64 {
+func (s *State) GetLeaderTimestamp() interfaces.Timestamp {
 	return s.LeaderTimestamp
 }
 
-func (s *State) SetLeaderTimestamp(ts uint64) {
+func (s *State) SetLeaderTimestamp(ts interfaces.Timestamp) {
 	s.LeaderTimestamp = ts
 }
 
@@ -1157,7 +1031,15 @@ func (s *State) SetString() {
 		}
 	}
 
-	s.serverPrt = fmt.Sprintf("%8s[%6x]%4s Save: %d[%6x] PL:%d/%d Min: %2v DBHT %v Min C/F %02v/%02v EOM %2v %3d-Fct %3d-EC %3d-E",
+	runtime := time.Since(s.starttime)
+	shorttime := time.Since(s.lasttime)
+	total := s.FactoidTrans + s.NewEntryChains + s.NewEntries
+	tps := float64(total) / float64(runtime.Seconds())
+	delta := (s.FactoidTrans + s.NewEntryChains + s.NewEntries) - s.transCnt
+	s.tps = float64(delta) / float64(shorttime.Seconds())
+	s.transCnt = total
+	s.lasttime = time.Now()
+	s.serverPrt = fmt.Sprintf("%8s[%6x]%4s Save: %d[%6x] PL:%d/%d Min: %2v DBHT %v Min C/F %02v/%02v EOM %2v %3d-Fct %3d-EC %3d-E  %7.2f total tps %7.2f tps",
 		s.FactomNodeName,
 		s.IdentityChainID.Bytes()[:3],
 		stype,
@@ -1172,7 +1054,10 @@ func (s *State) SetString() {
 		s.EOM,
 		s.FactoidTrans,
 		s.NewEntryChains,
-		s.NewEntries)
+		s.NewEntries,
+		tps,
+		s.tps)
+
 }
 
 func (s *State) Print(a ...interface{}) (n int, err error) {

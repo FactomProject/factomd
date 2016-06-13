@@ -29,10 +29,11 @@ const (
 	MISSING_MSG           // 15
 	MISSING_DATA          // 16
 	DATA_RESPONSE         // 17
+	MISSING_MSG_RESPONSE  //18
 
-	DBSTATE_MSG         // 18
-	DBSTATE_MISSING_MSG // 19
-	ADDSERVER_MSG       // 20
+	DBSTATE_MSG         // 19
+	DBSTATE_MISSING_MSG // 20
+	ADDSERVER_MSG       // 21
 )
 
 const (
