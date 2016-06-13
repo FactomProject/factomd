@@ -575,7 +575,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 	}
 
 	if dbs.VMIndex == 0 {
-		s.SetLeaderTimestamp(uint64(dbs.Timestamp.GetTime().Unix()))
+		s.SetLeaderTimestamp(dbs.GetTimestamp())
 	}
 	s.ConsiderSaved(dbs.DBHeight)
 

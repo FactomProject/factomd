@@ -98,7 +98,7 @@ type State struct {
 	FactoidTrans    int
 	NewEntryChains  int
 	NewEntries      int
-	LeaderTimestamp uint64
+	LeaderTimestamp interfaces.Timestamp
 	// Maps
 	// ====
 	// For Follower
@@ -1093,11 +1093,11 @@ func (s *State) MsgQueue() chan interfaces.IMsg {
 	return s.msgQueue
 }
 
-func (s *State) GetLeaderTimestamp() uint64 {
+func (s *State) GetLeaderTimestamp() interfaces.Timestamp {
 	return s.LeaderTimestamp
 }
 
-func (s *State) SetLeaderTimestamp(ts uint64) {
+func (s *State) SetLeaderTimestamp(ts interfaces.Timestamp) {
 	s.LeaderTimestamp = ts
 }
 
