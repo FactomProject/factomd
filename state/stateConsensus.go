@@ -334,7 +334,7 @@ func (s *State) LeaderExecute(m interfaces.IMsg) {
 
 	// If we haven't saved the previous block, then punt to Follower
 	// which (most likely) will put the message into Holding.
-	if !s.DBStates.Get(s.LLeaderHeight - 1).Saved {
+	if !s.DBStates.Get(s.LLeaderHeight - 1).Locked {
 		m.FollowerExecute(s)
 		return
 	}
