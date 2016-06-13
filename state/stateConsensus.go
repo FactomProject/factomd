@@ -67,7 +67,7 @@ func (s *State) Process() (progress bool) {
 	highest := s.GetHighestRecordedBlock()
 
 	dbstate := s.DBStates.Get(s.LLeaderHeight)
-	if s.LLeaderHeight <= highest && (dbstate == nil || dbstate.Saved) {
+	if s.LLeaderHeight <= highest && (dbstate == nil || dbstate.Locked) {
 		s.LLeaderHeight = highest + 1
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(0, s.IdentityChainID)
@@ -335,6 +335,13 @@ func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 	}
 }
 
+func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
+	mmr, _ := m.(*messages.MissingMsgResponse)
+	s.Holding[mmr.MsgResponse.GetHash().Fixed()] = mmr.MsgResponse
+	ackResp := mmr.AckResponse.(*messages.Ack)
+	s.OutOfOrderAck(ackResp)
+}
+
 func (s *State) LeaderExecute(m interfaces.IMsg) {
 
 	for i := 0; s.UpdateState() && i < 10; i++ {
@@ -555,7 +562,17 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 
 	s.SetLeaderTimestamp(uint64(dbs.Timestamp.GetTime().Unix()))
 
+	s.ConsiderSaved(dbs.DBHeight)
+
 	return true
+}
+
+func (s *State) ConsiderSaved(dbheight uint32) {
+	for _, dbs := range s.DBStates.DBStates {
+		if dbs.DirectoryBlock.GetDatabaseHeight() == dbheight {
+			dbs.Saved = true
+		}
+	}
 }
 
 func (s *State) GetNewEBlocks(dbheight uint32, hash interfaces.IHash) interfaces.IEntryBlock {

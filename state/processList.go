@@ -4,9 +4,10 @@ import (
 	"fmt"
 
 	"bytes"
+	"log"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
-	"log"
 
 	"time"
 
@@ -423,13 +424,13 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 	if !p.good { // If we don't know this process list is good...
 		if p.DBHeight == 0 {
 			p.good = true
-		}else {
+		} else {
 			prev := state.DBStates.Get(p.DBHeight - 1)
 
 			if prev == nil {
 				return
 			}
-			if !prev.Saved {
+			if !prev.Locked {
 				return
 			}
 			p.good = true
@@ -690,7 +691,6 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 		p.VMs[ack.VMIndex].ListAck = append(p.VMs[ack.VMIndex].ListAck, nil)
 		length = len(p.VMs[ack.VMIndex].List)
 	}
-
 
 	p.VMs[ack.VMIndex].List[ack.Height] = m
 	p.VMs[ack.VMIndex].ListAck[ack.Height] = ack
