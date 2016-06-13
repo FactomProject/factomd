@@ -97,6 +97,14 @@ type PropertiesResponse struct {
 	ApiVersion     string `json:"apiversion"`
 }
 
+type AddServerResponse struct {
+	Message string `json:"message"`
+}
+
+type SendRawMessageResponse struct {
+	Message string `json:"message"`
+}
+
 /*********************************************************************/
 
 type DBHead struct {
@@ -196,4 +204,13 @@ type MessageRequest struct {
 
 type TransactionRequest struct {
 	Transaction string `json:"transaction"`
+}
+
+type AddServerRequest struct {
+	ChainID string `json:"hash"`
+	Type    string `json:"servertype"`
+}
+
+type SendRawMessageRequest struct {
+	Message string `json:"message"`
 }

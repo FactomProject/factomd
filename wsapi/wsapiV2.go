@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"reflect"
+	"strconv"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryBlock"
@@ -111,6 +112,11 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 	case "entry-ack":
 		resp, jsonError = HandleV2EntryACK(state, params)
 		break
+	case "send-raw-message":
+		resp, jsonError = HandleV2SendRawMessage(state, params)
+		break
+	case "add-server":
+		resp, jsonError = HandleV2AddServer(state, params)
 	default:
 		jsonError = NewMethodNotFoundError()
 		break
@@ -167,7 +173,7 @@ func HandleV2CommitChain(state interfaces.IState, params interface{}) (interface
 	msg := new(messages.CommitChainMsg)
 	msg.CommitChain = commit
 	msg.Timestamp = state.GetTimestamp()
-	state.InMsgQueue() <- msg
+	state.APIQueue() <- msg
 
 	resp := new(CommitChainResponse)
 	resp.Message = "Chain Commit Success"
@@ -200,7 +206,7 @@ func HandleV2CommitEntry(state interfaces.IState, params interface{}) (interface
 	msg := new(messages.CommitEntryMsg)
 	msg.CommitEntry = commit
 	msg.Timestamp = state.GetTimestamp()
-	state.InMsgQueue() <- msg
+	state.APIQueue() <- msg
 
 	resp := new(CommitEntryResponse)
 	resp.Message = "Entry Commit Success"
@@ -229,7 +235,7 @@ func HandleV2RevealEntry(state interfaces.IState, params interface{}) (interface
 	msg := new(messages.RevealEntryMsg)
 	msg.Entry = entry
 	msg.Timestamp = state.GetTimestamp()
-	state.InMsgQueue() <- msg
+	state.APIQueue() <- msg
 
 	resp := new(RevealEntryResponse)
 	resp.Message = "Entry Reveal Success"
@@ -560,7 +566,7 @@ func HandleV2FactoidSubmit(state interfaces.IState, params interface{}) (interfa
 		return nil, NewInvalidTransactionError()
 	}
 
-	state.InMsgQueue() <- msg
+	state.APIQueue() <- msg
 
 	resp := new(FactoidSubmitResponse)
 	resp.Message = "Successfully submitted the transaction"
@@ -618,4 +624,47 @@ func HandleV2Properties(state interfaces.IState, params interface{}) (interface{
 	p.FactomdVersion = vtos(state.GetFactomdVersion())
 	p.ApiVersion = API_VERSION
 	return p, nil
+}
+
+func HandleV2AddServer(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	r := new(AddServerRequest)
+	err := MapToObject(params, r)
+	if err != nil {
+		return nil, NewInvalidParamsError()
+	}
+
+	h, err := primitives.HexToHash(r.ChainID)
+	if err != nil {
+		return nil, NewInvalidHashError()
+	}
+
+	i, err := strconv.Atoi(r.Type)
+	if err != nil {
+		return nil, NewInvalidHashError()
+	}
+
+	state.SetIdentityChainID(h)
+	msg := messages.NewAddServerMsg(state, i)
+
+	state.APIQueue() <- msg
+	resp := new(AddServerResponse)
+	resp.Message = "Add Server message sent"
+
+	return resp, nil
+}
+
+func HandleV2SendRawMessage(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	r := new(SendRawMessageRequest)
+	err := MapToObject(params, r)
+	if err != nil {
+		return nil, NewInvalidParamsError()
+	}
+	msg := messages.NewSendRawMsg(state, r.Message)
+
+	state.APIQueue() <- msg
+
+	resp := new(SendRawMessageResponse)
+	resp.Message = "Successfully sent the message"
+
+	return resp, nil
 }
