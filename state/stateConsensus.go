@@ -249,8 +249,8 @@ func (s *State) FollowerExecuteEOM(m interfaces.IMsg) {
 		return // This is an internal EOM message.  We are not a leader so ignore.
 	}
 
-	eom,_ := m.(*messages.EOM)
-	s.EOM = int(eom.Minute+1)
+	eom, _ := m.(*messages.EOM)
+	s.EOM = int(eom.Minute + 1)
 
 	s.FollowerExecuteMsg(m)
 }
@@ -369,7 +369,7 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 	}
 
 	if m.IsLocal() && s.LeaderMinute > 9 {
-		fmt.Println("dddd Leader Slip:",m.String())
+		fmt.Println("dddd Leader Slip:", m.String())
 		return
 	}
 

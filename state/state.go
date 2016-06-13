@@ -62,7 +62,7 @@ type State struct {
 	DropRate                int
 
 	IdentityChainID interfaces.IHash // If this node has an identity, this is it
-	Identities			[]Identity // Identities of all servers in management chain
+	Identities      []Identity       // Identities of all servers in management chain
 
 	// Just to print (so debugging doesn't drive functionaility)
 	Status    bool
@@ -425,8 +425,8 @@ func (s *State) Init() {
 
 	s.initServerKeys()
 
-	LoadIdentityCache(s) 
-	 //StubIdentityCache(s)	
+	LoadIdentityCache(s)
+	//StubIdentityCache(s)
 
 	s.starttime = time.Now()
 }
