@@ -322,9 +322,12 @@ func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 
 func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 	mmr, _ := m.(*messages.MissingMsgResponse)
-	s.Holding[mmr.MsgResponse.GetHash().Fixed()] = mmr.MsgResponse
 	ackResp := mmr.AckResponse.(*messages.Ack)
-	s.Acks[ackResp.GetHash().Fixed()] = ackResp
+	//s.Holding[mmr.MsgResponse.GetHash().Fixed()] = mmr.MsgResponse
+	//s.Acks[ackResp.GetHash().Fixed()] = ackResp
+
+	pl := s.ProcessLists.Get(ackResp.DBHeight)
+	pl.AddToProcessList(ackResp, mmr.MsgResponse)
 }
 
 func (s *State) LeaderExecute(m interfaces.IMsg) {
