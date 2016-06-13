@@ -207,8 +207,7 @@ type TransactionRequest struct {
 }
 
 type AddServerRequest struct {
-	ChainID string `json:"hash"`
-	Type    string `json:"servertype"`
+	Server string `json:"server"`
 }
 
 type SendRawMessageRequest struct {

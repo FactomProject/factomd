@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"reflect"
-	"strconv"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryBlock"
@@ -633,18 +632,16 @@ func HandleV2AddServer(state interfaces.IState, params interface{}) (interface{}
 		return nil, NewInvalidParamsError()
 	}
 
-	h, err := primitives.HexToHash(r.ChainID)
+	h, err := hex.DecodeString(r.Server)
 	if err != nil {
-		return nil, NewInvalidHashError()
+		return nil, NewInvalidParamsError()
 	}
 
-	i, err := strconv.Atoi(r.Type)
+	msg := new(messages.AddServerMsg)
+	err = msg.UnmarshalBinary(h)
 	if err != nil {
-		return nil, NewInvalidHashError()
+		return nil, NewInvalidParamsError()
 	}
-
-	state.SetIdentityChainID(h)
-	msg := messages.NewAddServerMsg(state, i)
 
 	state.APIQueue() <- msg
 	resp := new(AddServerResponse)
