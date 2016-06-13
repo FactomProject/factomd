@@ -97,10 +97,6 @@ type PropertiesResponse struct {
 	ApiVersion     string `json:"apiversion"`
 }
 
-type AddServerResponse struct {
-	Message string `json:"message"`
-}
-
 type SendRawMessageResponse struct {
 	Message string `json:"message"`
 }
@@ -204,10 +200,6 @@ type MessageRequest struct {
 
 type TransactionRequest struct {
 	Transaction string `json:"transaction"`
-}
-
-type AddServerRequest struct {
-	Server string `json:"server"`
 }
 
 type SendRawMessageRequest struct {

@@ -114,8 +114,6 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 	case "send-raw-message":
 		resp, jsonError = HandleV2SendRawMessage(state, params)
 		break
-	case "add-server":
-		resp, jsonError = HandleV2AddServer(state, params)
 	default:
 		jsonError = NewMethodNotFoundError()
 		break
@@ -623,31 +621,6 @@ func HandleV2Properties(state interfaces.IState, params interface{}) (interface{
 	p.FactomdVersion = vtos(state.GetFactomdVersion())
 	p.ApiVersion = API_VERSION
 	return p, nil
-}
-
-func HandleV2AddServer(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
-	r := new(AddServerRequest)
-	err := MapToObject(params, r)
-	if err != nil {
-		return nil, NewInvalidParamsError()
-	}
-
-	h, err := hex.DecodeString(r.Server)
-	if err != nil {
-		return nil, NewInvalidParamsError()
-	}
-
-	msg := new(messages.AddServerMsg)
-	err = msg.UnmarshalBinary(h)
-	if err != nil {
-		return nil, NewInvalidParamsError()
-	}
-
-	state.APIQueue() <- msg
-	resp := new(AddServerResponse)
-	resp.Message = "Add Server message sent"
-
-	return resp, nil
 }
 
 func HandleV2SendRawMessage(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
