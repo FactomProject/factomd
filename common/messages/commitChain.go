@@ -248,10 +248,9 @@ func (m *CommitChainMsg) String() string {
 	if m.LeaderChainID == nil {
 		m.LeaderChainID = primitives.NewZeroHash()
 	}
-	str := fmt.Sprintf("%6s-VM%3d: Leader[%x] entryhash[%x] hash[%x]",
+	str := fmt.Sprintf("%6s-VM%3d: entryhash[%x] hash[%x]",
 		"CChain",
 		m.VMIndex,
-		m.LeaderChainID.Bytes()[:3],
 		m.CommitChain.EntryHash.Bytes()[:3],
 		m.GetHash().Bytes()[:3])
 	return str

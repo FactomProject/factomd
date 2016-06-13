@@ -66,14 +66,6 @@ func (m *RevealEntryMsg) Type() byte {
 	return constants.REVEAL_ENTRY_MSG
 }
 
-func (m *RevealEntryMsg) Int() int {
-	return -1
-}
-
-func (m *RevealEntryMsg) Bytes() []byte {
-	return nil
-}
-
 // Validate the message, given the state.  Three possible results:
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
@@ -202,11 +194,12 @@ func (m *RevealEntryMsg) String() string {
 	if m.GetLeaderChainID() == nil {
 		m.SetLeaderChainID(primitives.NewZeroHash())
 	}
-	str := fmt.Sprintf("%6s-VM%3d: Min:%4d          -- Leader[:3]=%x hash[:3]=%x",
+	str := fmt.Sprintf("%6s-VM%3d: Min:%4d          -- Leader[%x] Entry[%x] hash[%x]",
 		"REntry",
 		m.VMIndex,
 		m.Minute,
 		m.GetLeaderChainID().Bytes()[:3],
+		m.Entry.GetHash().Bytes()[:3],
 		m.GetHash().Bytes()[:3])
 
 	return str

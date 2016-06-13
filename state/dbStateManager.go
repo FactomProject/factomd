@@ -32,6 +32,7 @@ type DBState struct {
 	AdminBlock       interfaces.IAdminBlock
 	FactoidBlock     interfaces.IFBlock
 	EntryCreditBlock interfaces.IEntryCreditBlock
+	Locked           bool
 	Saved            bool
 }
 
@@ -62,7 +63,7 @@ func (list *DBStateList) String() string {
 			if dblk != nil {
 				rec = "R"
 			}
-			if ds.Saved {
+			if ds.Locked {
 				rec = "S"
 			}
 		}
@@ -98,7 +99,7 @@ func (ds *DBState) String() string {
 func (list *DBStateList) GetHighestRecordedBlock() uint32 {
 	ht := uint32(0)
 	for i, dbstate := range list.DBStates {
-		if dbstate != nil && dbstate.Saved {
+		if dbstate != nil && dbstate.Locked {
 			ht = list.Base + uint32(i)
 		}
 	}
@@ -225,7 +226,7 @@ func (list *DBStateList) UpdateState() (progress bool) {
 			return
 		}
 
-		if d.Saved {
+		if d.Locked {
 			continue
 		}
 
@@ -236,7 +237,7 @@ func (list *DBStateList) UpdateState() (progress bool) {
 		if dblk == nil {
 			if i > 0 {
 				p := list.DBStates[i-1]
-				if !p.Saved {
+				if !p.Locked {
 					break
 				}
 			}
@@ -313,7 +314,7 @@ func (list *DBStateList) UpdateState() (progress bool) {
 			}
 		*/
 		list.LastTime = list.State.GetTimestamp() // If I saved or processed stuff, I'm good for a while
-		d.Saved = true                            // Only after all is done will I admit this state has been saved.
+		d.Locked = true                           // Only after all is done will I admit this state has been saved.
 
 		// Any updates required to the state as established by the AdminBlock are applied here.
 		d.AdminBlock.UpdateState(list.State)
@@ -367,7 +368,7 @@ func (list *DBStateList) Put(dbState *DBState) {
 	// zero.
 	cnt := 0
 	for i, v := range list.DBStates {
-		if v == nil || v.DirectoryBlock == nil || !v.Saved {
+		if v == nil || v.DirectoryBlock == nil || !v.Locked {
 			if v != nil && v.DirectoryBlock == nil {
 				list.DBStates[i] = nil
 			}

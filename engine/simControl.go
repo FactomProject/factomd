@@ -290,16 +290,19 @@ func printSummary(summary *int, value int, listenTo *int) {
 			list = list + fmt.Sprintf(" %3d", i)
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "", list)
+
 		list = ""
 		for _, f := range fnodes {
 			list = list + fmt.Sprintf(" %3d", len(f.State.XReview))
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "Review", list)
+
 		list = ""
 		for _, f := range fnodes {
 			list = list + fmt.Sprintf(" %3d", len(f.State.Holding))
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "Holding", list)
+
 		list = ""
 		for _, f := range fnodes {
 			list = list + fmt.Sprintf(" %3d", len(f.State.Acks))
@@ -313,16 +316,19 @@ func printSummary(summary *int, value int, listenTo *int) {
 			list = list + fmt.Sprintf(" %3d", len(f.State.MsgQueue()))
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "MsgQueue", list)
+
 		list = ""
 		for _, f := range fnodes {
 			list = list + fmt.Sprintf(" %3d", len(f.State.InMsgQueue()))
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "InMsgQueue", list)
+
 		list = ""
 		for _, f := range fnodes {
 			list = list + fmt.Sprintf(" %3d", len(f.State.APIQueue()))
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "APIQueue", list)
+
 		list = ""
 		for _, f := range fnodes {
 			list = list + fmt.Sprintf(" %3d", len(f.State.AckQueue()))
@@ -333,27 +339,16 @@ func printSummary(summary *int, value int, listenTo *int) {
 
 		list = ""
 		for _, f := range fnodes {
-			list = list + fmt.Sprintf(" %3d", len(f.State.StallAcks))
-		}
-		prt = prt + fmt.Sprintf(fmtstr, "stall acks", list)
-		list = ""
-		for _, f := range fnodes {
-			list = list + fmt.Sprintf(" %3d", len(f.State.OutOfOrders))
-		}
-		prt = prt + fmt.Sprintf(fmtstr, "Out of Order", list)
-		list = ""
-
-		prt = prt + "\n"
-
-		for _, f := range fnodes {
 			list = list + fmt.Sprintf(" %3d", len(f.State.TimerMsgQueue()))
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "TimerMsgQueue", list)
+
 		list = ""
 		for _, f := range fnodes {
 			list = list + fmt.Sprintf(" %3d", len(f.State.NetworkOutMsgQueue()))
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "NetworkOutMsgQueue", list)
+
 		list = ""
 		for _, f := range fnodes {
 			list = list + fmt.Sprintf(" %3d", len(f.State.NetworkInvalidMsgQueue()))

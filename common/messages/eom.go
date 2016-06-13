@@ -144,15 +144,11 @@ func (m *EOM) ComputeVMIndex(state interfaces.IState) {
 
 // Execute the leader functions of the given message
 func (m *EOM) LeaderExecute(state interfaces.IState) {
-	if state.IsLeader() && m.IsLocal() {
-		state.LeaderExecuteEOM(m)
-	} else {
-		m.FollowerExecute(state)
-	}
+	state.LeaderExecuteEOM(m)
 }
 
 func (m *EOM) FollowerExecute(state interfaces.IState) {
-	state.FollowerExecuteMsg(m)
+	state.FollowerExecuteEOM(m)
 }
 
 func (e *EOM) JSONByte() ([]byte, error) {
@@ -292,7 +288,7 @@ func (m *EOM) String() string {
 	if m.FactoidVM {
 		f = "F"
 	}
-	return fmt.Sprintf("%6s-VM%3d: Min:%4d DBHt:%5d -%1s-Leader[:3]=%x hash[:3]=%x %s",
+	return fmt.Sprintf("%6s-VM%3d: Min:%4d DBHt:%5d -%1s-Leader[%x] hash[%x] %s",
 		"EOM",
 		m.VMIndex,
 		m.Minute,

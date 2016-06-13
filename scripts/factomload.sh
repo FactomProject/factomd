@@ -4,6 +4,7 @@ while true ;
 do
 	for j in `seq 1 10`;
 	do
+	    echo "Date: $(date)"
 		factom-cli balances
 		if [ $? -eq 0 ]; then
     		./scripts/factomTransSubmit.sh

@@ -40,9 +40,12 @@ func (s *State) NewMinute() {
 		if a != nil && v != nil {
 			s.ProcessLists.Get(a.DBHeight).AddToProcessList(a, v)
 		} else if v != nil {
-			v.ComputeVMIndex(s)
-			s.XReview = append(s.XReview, v)
-			delete(s.Holding, k)
+			_, ok := s.InternalReplay.Valid(v.GetMsgHash().Fixed(), int64(v.GetTimestamp()/1000), int64(s.GetTimestamp()/1000))
+			if ok {
+				v.ComputeVMIndex(s)
+				s.XReview = append(s.XReview, v)
+				delete(s.Holding, k)
+			}
 		}
 	}
 
@@ -63,7 +66,7 @@ func (s *State) Process() (progress bool) {
 	highest := s.GetHighestRecordedBlock()
 
 	dbstate := s.DBStates.Get(s.LLeaderHeight)
-	if s.LLeaderHeight <= highest && (dbstate == nil || dbstate.Saved) {
+	if s.LLeaderHeight <= highest && (dbstate == nil || dbstate.Locked) {
 		s.LLeaderHeight = highest + 1
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(0, s.IdentityChainID)
@@ -120,18 +123,14 @@ func (s *State) ProcessQueues() (progress bool) {
 
 		switch msg.Validate(s) {
 		case 1:
-			if s.EOM == 0 {
-				if s.Leader {
-					msg.ComputeVMIndex(s)
-					msg.LeaderExecute(s)
-				} else {
-					msg.FollowerExecute(s)
-				}
+			if s.Green() && s.Leader {
+				msg.ComputeVMIndex(s)
+				msg.LeaderExecute(s)
 			} else {
 				msg.FollowerExecute(s)
 			}
 			ret = true
-		case 0: // Put at the end of the line, and hopefully we will resolve it.
+		case 0:
 			s.Holding[msg.GetHash().Fixed()] = msg
 		default:
 			if s.DebugConsensus {
@@ -150,19 +149,6 @@ func (s *State) ProcessQueues() (progress bool) {
 		executeMsg(msg)
 		s.XReview = s.XReview[1:]
 		s.UpdateState()
-	}
-
-	if len(s.StallAcks) > 0 {
-		ack := s.GetStalledAck(0)
-		if ack != nil {
-			_, ok := s.InternalReplay.Valid(ack.GetHash().Fixed(), int64(ack.GetTimestamp()/1000), int64(s.GetTimestamp()/1000))
-			v := ack.Validate(s)
-			if ok && v == 1 {
-				ack.FollowerExecute(s)
-			} else if s.DebugConsensus {
-				fmt.Println("dddd StalledAck ok:", ok, "validate:", ack.Validate(s), ack.String())
-			}
-		}
 	}
 
 	select {
@@ -242,23 +228,31 @@ func (s *State) addEBlock(eblock interfaces.IEntryBlock) {
 // Returns true if it finds a match, puts the message in holding, or invalidates the message
 func (s *State) FollowerExecuteMsg(m interfaces.IMsg) {
 
-	// Leaders set s.EOM when they see their EOM.  Followers set
-	// s.EOM when they see the first EOM.
-	_, ok := m.(*messages.EOM)
-	if ok && m.IsLocal() {
+	s.Holding[m.GetMsgHash().Fixed()] = m
+	ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
+	if ack != nil {
+		m.SetLeaderChainID(ack.GetLeaderChainID())
+		m.SetMinute(ack.Minute)
+
+		pl := s.ProcessLists.Get(ack.DBHeight)
+		pl.AddToProcessList(ack, m)
+	}
+}
+
+// Messages that will go into the Process List must match an Acknowledgement.
+// The code for this is the same for all such messages, so we put it here.
+//
+// Returns true if it finds a match, puts the message in holding, or invalidates the message
+func (s *State) FollowerExecuteEOM(m interfaces.IMsg) {
+
+	if m.IsLocal() {
 		return // This is an internal EOM message.  We are not a leader so ignore.
 	}
 
-	hash := m.GetHash()
-	hashf := hash.Fixed()
-	s.Holding[hashf] = m
-	ack, _ := s.Acks[hashf].(*messages.Ack)
-	if ack != nil {
-		pl := s.ProcessLists.Get(ack.DBHeight)
-		if pl != nil {
-			pl.AddToProcessList(ack, m)
-		}
-	}
+	eom,_ := m.(*messages.EOM)
+	s.EOM = int(eom.Minute+1)
+
+	s.FollowerExecuteMsg(m)
 }
 
 // Ack messages always match some message in the Process List.   That is
@@ -269,10 +263,11 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) {
 	s.Acks[ack.GetHash().Fixed()] = ack
 	m, _ := s.Holding[ack.GetHash().Fixed()]
 	if m != nil {
+		m.SetLeaderChainID(ack.GetLeaderChainID())
+		m.SetMinute(ack.Minute)
+
 		pl := s.ProcessLists.Get(ack.DBHeight)
-		if pl != nil {
-			pl.AddToProcessList(ack, m)
-		}
+		pl.AddToProcessList(ack, m)
 	}
 }
 
@@ -328,12 +323,29 @@ func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 	}
 }
 
+func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
+	mmr, _ := m.(*messages.MissingMsgResponse)
+	ackResp := mmr.AckResponse.(*messages.Ack)
+	//s.Holding[mmr.MsgResponse.GetHash().Fixed()] = mmr.MsgResponse
+	//s.Acks[ackResp.GetHash().Fixed()] = ackResp
+
+	pl := s.ProcessLists.Get(ackResp.DBHeight)
+	pl.AddToProcessList(ackResp, mmr.MsgResponse)
+}
+
 func (s *State) LeaderExecute(m interfaces.IMsg) {
 
 	for i := 0; s.UpdateState() && i < 10; i++ {
 	}
 
-	if !s.Green() || m.GetVMIndex() != s.LeaderVMIndex {
+	// If we haven't saved the previous block, then punt to Follower
+	// which (most likely) will put the message into Holding.
+	if !s.DBStates.Get(s.LLeaderHeight - 1).Locked {
+		m.FollowerExecute(s)
+		return
+	}
+
+	if s.EOM > 0 || !s.Green() || m.GetVMIndex() != s.LeaderVMIndex {
 		m.FollowerExecute(s)
 		return
 	}
@@ -341,9 +353,11 @@ func (s *State) LeaderExecute(m interfaces.IMsg) {
 	switch m.Validate(s) {
 	case 1:
 		ack := s.NewAck(m).(*messages.Ack)
+		m.SetLeaderChainID(ack.GetLeaderChainID())
+		m.SetMinute(ack.Minute)
 		s.ProcessLists.Get(ack.DBHeight).AddToProcessList(ack, m)
 	case 0:
-		s.Holding[m.GetHash().Fixed()] = m
+		s.Holding[m.GetMsgHash().Fixed()] = m
 	default:
 		s.networkInvalidMsgQueue <- m
 	}
@@ -354,10 +368,17 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 	for i := 0; s.UpdateState() && i < 10; i++ {
 	}
 
-	if !s.Green() || !m.IsLocal() {
-		m.FollowerExecute(s)
+	if m.IsLocal() && s.LeaderMinute > 9 {
+		fmt.Println("dddd Leader Slip:",m.String())
 		return
 	}
+
+	if !s.Green() || !m.IsLocal() {
+		s.FollowerExecuteEOM(m)
+		return
+	}
+
+	s.EOM = s.LeaderMinute + 1
 
 	eom := m.(*messages.EOM)
 
@@ -371,7 +392,8 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 	eom.Minute = byte(s.LeaderMinute)
 	eom.Sign(s)
 	ack := s.NewAck(m)
-	s.LeaderPL.AddToProcessList(ack.(*messages.Ack), eom)
+
+	s.ProcessLists.Get(ack.(*messages.Ack).DBHeight).AddToProcessList(ack.(*messages.Ack), eom)
 
 }
 
@@ -503,9 +525,10 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 	pl := s.ProcessLists.Get(dbheight)
 
-	if pl.MinuteComplete() < s.LeaderMinute {
-		return false
-	}
+	pl.VMs[e.VMIndex].Seal = int(e.Minute + 1)
+
+	s.EOM = int(e.Minute + 1)
+	s.LeaderMinute = s.EOM
 
 	if e.FactoidVM {
 		s.FactoidState.EndOfPeriod(int(e.Minute + 1))
@@ -551,9 +574,20 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		return false
 	}
 
-	s.SetLeaderTimestamp(uint64(dbs.Timestamp.GetTime().Unix()))
+	if dbs.VMIndex == 0 {
+		s.SetLeaderTimestamp(dbs.GetTimestamp())
+	}
+	s.ConsiderSaved(dbs.DBHeight)
 
 	return true
+}
+
+func (s *State) ConsiderSaved(dbheight uint32) {
+	for _, dbs := range s.DBStates.DBStates {
+		if dbs.DirectoryBlock.GetDatabaseHeight() == dbheight {
+			dbs.Saved = true
+		}
+	}
 }
 
 func (s *State) GetNewEBlocks(dbheight uint32, hash interfaces.IHash) interfaces.IEntryBlock {
@@ -771,7 +805,7 @@ func (s *State) NewAck(msg interfaces.IMsg) (iack interfaces.IMsg) {
 	ack.VMIndex = vmIndex
 	ack.Minute = byte(s.LeaderMinute)
 	ack.Timestamp = s.GetTimestamp()
-	ack.MessageHash = msg.GetHash()
+	ack.MessageHash = msg.GetMsgHash()
 	ack.SetFullMsgHash(msg.GetFullMsgHash())
 	ack.LeaderChainID = s.IdentityChainID
 
