@@ -130,7 +130,7 @@ func (s *State) ProcessQueues() (progress bool) {
 				msg.FollowerExecute(s)
 			}
 			ret = true
-		case 0: // Put at the end of the line, and hopefully we will resolve it.
+		case 0:
 			s.Holding[msg.GetHash().Fixed()] = msg
 		default:
 			if s.DebugConsensus {
@@ -379,7 +379,7 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 	ack := s.NewAck(m)
 
 	fmt.Println("dddd EOM",s.FactomNodeName)
-	s.LeaderPL.AddToProcessList(ack.(*messages.Ack), eom)
+	s.ProcessLists.Get(ack.(*messages.Ack).DBHeight).AddToProcessList(ack.(*messages.Ack), eom)
 
 }
 
