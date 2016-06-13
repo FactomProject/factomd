@@ -659,7 +659,15 @@ func HandleV2SendRawMessage(state interfaces.IState, params interface{}) (interf
 	if err != nil {
 		return nil, NewInvalidParamsError()
 	}
-	msg := messages.NewSendRawMsg(state, r.Message)
+	data, err := hex.DecodeString(r.Message)
+	if err != nil {
+		return nil, NewInvalidParamsError()
+	}
+
+	_, msg, err := messages.UnmarshalMessageData(data)
+	if err != nil {
+		return nil, NewInvalidParamsError()
+	}
 
 	state.APIQueue() <- msg
 
