@@ -241,6 +241,8 @@ func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
 		fs.CurrentBlock.SetPrevFullHash(hash2.Bytes())
 	}
 
+	LoadIdentityByDirectoryBlockHeight(fs.DBHeight, fs.State)
+
 	fs.DBHeight++
 }
 

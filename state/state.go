@@ -58,6 +58,7 @@ type State struct {
 	DropRate                int
 
 	IdentityChainID interfaces.IHash // If this node has an identity, this is it
+	Identities      []Identity       // Identities of all servers in management chain
 
 	// Just to print (so debugging doesn't drive functionaility)
 	Status    bool
@@ -201,6 +202,7 @@ func (s *State) Clone(number string) interfaces.IState {
 	clone.PortNumber = s.PortNumber
 
 	clone.IdentityChainID = primitives.Sha([]byte(clone.FactomNodeName))
+	clone.Identities = s.Identities
 
 	//generate and use a new deterministic PrivateKey for this clone
 	shaHashOfNodeName := primitives.Sha([]byte(clone.FactomNodeName)) //seed the private key with node name
@@ -418,6 +420,9 @@ func (s *State) Init() {
 	s.FedServerFaults = make([][]interfaces.IMsg, 0)
 
 	s.initServerKeys()
+
+	LoadIdentityCache(s)
+	//StubIdentityCache(s)
 
 	s.starttime = time.Now()
 }
