@@ -123,7 +123,7 @@ func (s *State) ProcessQueues() (progress bool) {
 
 		switch msg.Validate(s) {
 		case 1:
-			if s.Leader {
+			if s.Green() && s.Leader {
 				msg.ComputeVMIndex(s)
 				msg.LeaderExecute(s)
 			} else {
@@ -374,6 +374,8 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 		return
 	}
 
+	s.EOM = s.LeaderMinute + 1
+
 	eom := m.(*messages.EOM)
 
 	if s.LeaderPL.VMIndexFor(constants.FACTOID_CHAINID) == s.LeaderVMIndex {
@@ -387,7 +389,6 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 	eom.Sign(s)
 	ack := s.NewAck(m)
 
-	fmt.Println("dddd EOM", s.FactomNodeName)
 	s.ProcessLists.Get(ack.(*messages.Ack).DBHeight).AddToProcessList(ack.(*messages.Ack), eom)
 
 }

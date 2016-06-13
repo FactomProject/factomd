@@ -39,7 +39,7 @@ func Timer(state interfaces.IState) {
 		for i := 0; i < 10; i++ {
 			// Don't stuff messages into the system if the
 			// Leader is behind.
-			for j:=0; j < 10 && len(state.AckQueue()) > 1000; j++ {
+			for j := 0; j < 10 && len(state.AckQueue()) > 1000; j++ {
 				time.Sleep(time.Millisecond * 10)
 			}
 
@@ -55,7 +55,7 @@ func Timer(state interfaces.IState) {
 				next += tenthPeriod
 			}
 			time.Sleep(time.Duration(wait))
-			for len(state.InMsgQueue()) > 5000  {
+			for len(state.InMsgQueue()) > 5000 {
 				time.Sleep(100 * time.Millisecond)
 			}
 

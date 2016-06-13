@@ -1231,9 +1231,9 @@ func (s *State) SetString() {
 
 	runtime := time.Since(s.starttime)
 	shorttime := time.Since(s.lasttime)
-	total := s.FactoidTrans+s.NewEntryChains+s.NewEntries
+	total := s.FactoidTrans + s.NewEntryChains + s.NewEntries
 	tps := float64(total) / float64(runtime.Seconds())
-	delta := (s.FactoidTrans+s.NewEntryChains+s.NewEntries)-s.transCnt
+	delta := (s.FactoidTrans + s.NewEntryChains + s.NewEntries) - s.transCnt
 	s.tps = float64(delta) / float64(shorttime.Seconds())
 	s.transCnt = total
 	s.lasttime = time.Now()

@@ -16,24 +16,24 @@ var _ = fmt.Print
 
 type FactomdConfig struct {
 	App struct {
-		PortNumber              int
-		HomeDir                 string
-		DBType                  string
-		LdbPath                 string
-		BoltDBPath              string
-		DataStorePath           string
-		DirectoryBlockInSeconds int
-		ExportData              bool
-		ExportDataSubpath       string
-		Network                 string
-		PeersFile               string
-		NodeMode                string
-		LocalServerPrivKey      string
-		LocalServerPublicKey    string
-		ExchangeRate            uint64
-		ExchangeRateChainId     string
-		ExchangeRateAuthorityAddress	string
-	    }
+		PortNumber                   int
+		HomeDir                      string
+		DBType                       string
+		LdbPath                      string
+		BoltDBPath                   string
+		DataStorePath                string
+		DirectoryBlockInSeconds      int
+		ExportData                   bool
+		ExportDataSubpath            string
+		Network                      string
+		PeersFile                    string
+		NodeMode                     string
+		LocalServerPrivKey           string
+		LocalServerPublicKey         string
+		ExchangeRate                 uint64
+		ExchangeRateChainId          string
+		ExchangeRateAuthorityAddress string
+	}
 	Peer struct {
 		AddPeers     []string      `short:"a" long:"addpeer" description:"Add a peer to connect with at startup"`
 		ConnectPeers []string      `long:"connect" description:"Connect only to the specified peers at startup"`
