@@ -553,7 +553,6 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	}
 
 	if p == nil {
-		toss("nil process list")
 		return
 	}
 
