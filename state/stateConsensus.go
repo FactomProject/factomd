@@ -324,7 +324,7 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 	mmr, _ := m.(*messages.MissingMsgResponse)
 	s.Holding[mmr.MsgResponse.GetHash().Fixed()] = mmr.MsgResponse
 	ackResp := mmr.AckResponse.(*messages.Ack)
-	s.OutOfOrderAck(ackResp)
+	s.Acks[ackResp.GetHash().Fixed()] = ackResp
 }
 
 func (s *State) LeaderExecute(m interfaces.IMsg) {
