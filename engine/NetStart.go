@@ -261,6 +261,8 @@ func NetStart(s *state.State) {
 		for i := 1; i < cnt; i++ {
 			AddSimPeer(fnodes, i-1, i)
 		}
+		// Make long into a circle
+		AddSimPeer(fnodes,0,cnt-1)
 	case "loops":
 		fmt.Println("Using loops Network")
 		for i := 1; i < cnt; i++ {
