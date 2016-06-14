@@ -28,6 +28,7 @@ func TestListAllBuckets(t *testing.T) {
 	}
 }
 */
+
 func TestGetEntryType(t *testing.T) {
 	blocks := testHelper.CreateFullTestBlockSet()
 	dbo := testHelper.CreateAndPopulateTestDatabaseOverlay()

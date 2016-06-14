@@ -44,7 +44,7 @@ func (db *Overlay) FetchDBlockHeightRange(startHeight, endHeight int64) ([]inter
 // FetchBlockHeightByKeyMR returns the block height for the given hash.  This is
 // part of the database.Db interface implementation.
 func (db *Overlay) FetchDBlockHeightByKeyMR(sha interfaces.IHash) (int64, error) {
-	dblk, err := db.FetchDBlockByKeyMR(sha)
+	dblk, err := db.FetchDBlock(sha)
 	if err != nil {
 		return -1, err
 	}
@@ -57,9 +57,32 @@ func (db *Overlay) FetchDBlockHeightByKeyMR(sha interfaces.IHash) (int64, error)
 	return height, nil
 }
 
+func (db *Overlay) FetchDBlock(hash interfaces.IHash) (interfaces.IDirectoryBlock, error) {
+	block, err := db.FetchDBlockByPrimary(hash)
+	if err != nil {
+		return nil, err
+	}
+	if block != nil {
+		return block, nil
+	}
+	return db.FetchDBlockBySecondary(hash)
+}
+
 // FetchDBlock gets an entry by hash from the database.
-func (db *Overlay) FetchDBlockByKeyMR(keyMR interfaces.IHash) (interfaces.IDirectoryBlock, error) {
+func (db *Overlay) FetchDBlockByPrimary(keyMR interfaces.IHash) (interfaces.IDirectoryBlock, error) {
 	block, err := db.FetchBlock([]byte{byte(DIRECTORYBLOCK)}, keyMR, new(directoryBlock.DirectoryBlock))
+	if err != nil {
+		return nil, err
+	}
+	if block == nil {
+		return nil, nil
+	}
+	return block.(interfaces.IDirectoryBlock), nil
+}
+
+// FetchDBlockByMR gets a directory block by merkle root from the database.
+func (db *Overlay) FetchDBlockBySecondary(dBMR interfaces.IHash) (interfaces.IDirectoryBlock, error) {
+	block, err := db.FetchBlockBySecondaryIndex([]byte{byte(DIRECTORYBLOCK_KEYMR)}, []byte{byte(DIRECTORYBLOCK)}, dBMR, new(directoryBlock.DirectoryBlock))
 	if err != nil {
 		return nil, err
 	}
@@ -89,18 +112,6 @@ func (db *Overlay) FetchDBKeyMRByHeight(dBlockHeight uint32) (interfaces.IHash, 
 // FetchDBKeyMRByHash gets a DBlock KeyMR by hash.
 func (db *Overlay) FetchDBKeyMRByHash(hash interfaces.IHash) (interfaces.IHash, error) {
 	return db.FetchPrimaryIndexBySecondaryIndex([]byte{byte(DIRECTORYBLOCK_KEYMR)}, hash)
-}
-
-// FetchDBlockByMR gets a directory block by merkle root from the database.
-func (db *Overlay) FetchDBlockByHash(dBMR interfaces.IHash) (interfaces.IDirectoryBlock, error) {
-	block, err := db.FetchBlockBySecondaryIndex([]byte{byte(DIRECTORYBLOCK_KEYMR)}, []byte{byte(DIRECTORYBLOCK)}, dBMR, new(directoryBlock.DirectoryBlock))
-	if err != nil {
-		return nil, err
-	}
-	if block == nil {
-		return nil, nil
-	}
-	return block.(interfaces.IDirectoryBlock), nil
 }
 
 // FetchAllDBlocks gets all of the fbInfo

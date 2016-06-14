@@ -430,7 +430,7 @@ func (db *Overlay) GetEntryType(hash interfaces.IHash) (interfaces.IHash, error)
 
 	if in == nil {
 		//Entry not included anywhere, it might be still a dBlock (or the special block not included in dblocks)
-		dBlock, err := db.FetchDBlockByKeyMR(hash)
+		dBlock, err := db.FetchDBlock(hash)
 		if err != nil {
 			return nil, err
 		}
@@ -443,7 +443,7 @@ func (db *Overlay) GetEntryType(hash interfaces.IHash) (interfaces.IHash, error)
 		return dBlock.GetChainID(), nil
 	}
 
-	eBlock, err := db.FetchEBlockByKeyMR(in)
+	eBlock, err := db.FetchEBlock(in)
 	if err != nil {
 		return nil, err
 	}
@@ -451,7 +451,7 @@ func (db *Overlay) GetEntryType(hash interfaces.IHash) (interfaces.IHash, error)
 		return eBlock.GetChainID(), nil
 	}
 
-	ecBlock, err := db.FetchECBlockByHeaderHash(in)
+	ecBlock, err := db.FetchECBlock(in)
 	if err != nil {
 		return nil, err
 	}
@@ -459,7 +459,7 @@ func (db *Overlay) GetEntryType(hash interfaces.IHash) (interfaces.IHash, error)
 		return ecBlock.GetChainID(), nil
 	}
 
-	fblock, err := db.FetchFBlockByKeyMR(in)
+	fblock, err := db.FetchFBlock(in)
 	if err != nil {
 		return nil, err
 	}
@@ -467,7 +467,7 @@ func (db *Overlay) GetEntryType(hash interfaces.IHash) (interfaces.IHash, error)
 		return fblock.GetChainID(), nil
 	}
 
-	ablock, err := db.FetchABlockByKeyMR(in)
+	ablock, err := db.FetchABlock(in)
 	if err != nil {
 		return nil, err
 	}
@@ -475,7 +475,7 @@ func (db *Overlay) GetEntryType(hash interfaces.IHash) (interfaces.IHash, error)
 		return ablock.GetChainID(), nil
 	}
 
-	dBlock, err := db.FetchDBlockByKeyMR(in)
+	dBlock, err := db.FetchDBlock(in)
 	if err != nil {
 		return nil, err
 	}

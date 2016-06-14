@@ -42,7 +42,7 @@ func (db *Overlay) InsertEntryMultiBatch(entry interfaces.IEBEntry) error {
 }
 
 // FetchEntry gets an entry by hash from the database.
-func (db *Overlay) FetchEntryByHash(hash interfaces.IHash) (interfaces.IEBEntry, error) {
+func (db *Overlay) FetchEntry(hash interfaces.IHash) (interfaces.IEBEntry, error) {
 	chainID, err := db.FetchPrimaryIndexBySecondaryIndex([]byte{byte(ENTRY)}, hash)
 	if err != nil {
 		return nil, err

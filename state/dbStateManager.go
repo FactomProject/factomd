@@ -57,7 +57,7 @@ func (list *DBStateList) String() string {
 	for i, ds := range list.DBStates {
 		rec = "M"
 		if ds != nil && ds.DirectoryBlock != nil {
-			dblk, _ := list.State.DB.FetchDBlockByHash(ds.DirectoryBlock.GetKeyMR())
+			dblk, _ := list.State.DB.FetchDBlock(ds.DirectoryBlock.GetKeyMR())
 			if dblk != nil {
 				rec = "R"
 			}
@@ -190,9 +190,9 @@ func (list *DBStateList) FixupLinks(i int, d *DBState) {
 		d.DirectoryBlock.GetHeader().SetPrevKeyMR(p.DirectoryBlock.GetKeyMR())
 		d.DirectoryBlock.GetHeader().SetTimestamp(0)
 
-		d.DirectoryBlock.GetDBEntries()[0].SetKeyMR(d.AdminBlock.GetHash())
-		d.DirectoryBlock.GetDBEntries()[1].SetKeyMR(d.EntryCreditBlock.GetHash())
-		d.DirectoryBlock.GetDBEntries()[2].SetKeyMR(d.FactoidBlock.GetHash())
+		d.DirectoryBlock.SetABlockHash(d.AdminBlock)
+		d.DirectoryBlock.SetECBlockHash(d.EntryCreditBlock)
+		d.DirectoryBlock.SetFBlockHash(d.FactoidBlock)
 
 		pl := list.State.ProcessLists.Get(d.DirectoryBlock.GetHeader().GetDBHeight())
 
@@ -231,7 +231,7 @@ func (list *DBStateList) UpdateState() (progress bool) {
 		// Make sure the directory block is properly synced up with the prior block, if there
 		// is one.
 
-		dblk, _ := list.State.DB.FetchDBlockByKeyMR(d.DirectoryBlock.GetKeyMR())
+		dblk, _ := list.State.DB.FetchDBlock(d.DirectoryBlock.GetKeyMR())
 		if dblk == nil {
 			if i > 0 {
 				p := list.DBStates[i-1]
@@ -286,7 +286,7 @@ func (list *DBStateList) UpdateState() (progress bool) {
 
 		}
 
-		dblk2, _ := list.State.DB.FetchDBlockByKeyMR(d.DirectoryBlock.GetKeyMR())
+		dblk2, _ := list.State.DB.FetchDBlock(d.DirectoryBlock.GetKeyMR())
 		if dblk2 == nil {
 			fmt.Printf("Failed to save the Directory Block %d %x\n",
 				d.DirectoryBlock.GetHeader().GetDBHeight(),
@@ -300,7 +300,7 @@ func (list *DBStateList) UpdateState() (progress bool) {
 			panic("KeyMR failure")
 		}
 		if i > 0 {
-			dbprev, _ := list.State.DB.FetchDBlockByKeyMR(d.DirectoryBlock.GetHeader().GetPrevKeyMR())
+			dbprev, _ := list.State.DB.FetchDBlock(d.DirectoryBlock.GetHeader().GetPrevKeyMR())
 			if dbprev == nil {
 				fmt.Println(list.DBStates[i-1].dbstring)
 				fmt.Println(list.DBStates[i-1].DirectoryBlock.String())

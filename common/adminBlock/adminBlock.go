@@ -89,12 +89,12 @@ func (c *AdminBlock) GetChainID() interfaces.IHash {
 }
 
 func (c *AdminBlock) DatabasePrimaryIndex() interfaces.IHash {
-	key, _ := c.FullHash()
+	key, _ := c.PartialHash()
 	return key
 }
 
 func (c *AdminBlock) DatabaseSecondaryIndex() interfaces.IHash {
-	key, _ := c.PartialHash()
+	key, _ := c.FullHash()
 	return key
 }
 

@@ -37,8 +37,19 @@ func (db *Overlay) ProcessECBlockMultiBatch(block interfaces.IEntryCreditBlock, 
 	return db.SavePaidForMultiFromBlockMultiBatch(block, checkForDuplicateEntries)
 }
 
+func (db *Overlay) FetchECBlock(hash interfaces.IHash) (interfaces.IEntryCreditBlock, error) {
+	block, err := db.FetchECBlockByPrimary(hash)
+	if err != nil {
+		return nil, err
+	}
+	if block != nil {
+		return block, nil
+	}
+	return db.FetchECBlockBySecondary(hash)
+}
+
 // FetchECBlockByHeaderHash gets an Entry Credit block by hash from the database.
-func (db *Overlay) FetchECBlockByHeaderHash(hash interfaces.IHash) (interfaces.IEntryCreditBlock, error) {
+func (db *Overlay) FetchECBlockBySecondary(hash interfaces.IHash) (interfaces.IEntryCreditBlock, error) {
 	block, err := db.FetchBlockBySecondaryIndex([]byte{byte(ENTRYCREDITBLOCK_KEYMR)}, []byte{byte(ENTRYCREDITBLOCK)}, hash, entryCreditBlock.NewECBlock())
 	if err != nil {
 		return nil, err
@@ -50,7 +61,7 @@ func (db *Overlay) FetchECBlockByHeaderHash(hash interfaces.IHash) (interfaces.I
 }
 
 // FetchECBlockByHash gets an Entry Credit block by hash from the database.
-func (db *Overlay) FetchECBlockByHash(hash interfaces.IHash) (interfaces.IEntryCreditBlock, error) {
+func (db *Overlay) FetchECBlockByPrimary(hash interfaces.IHash) (interfaces.IEntryCreditBlock, error) {
 	block, err := db.FetchBlock([]byte{byte(ENTRYCREDITBLOCK)}, hash, entryCreditBlock.NewECBlock())
 	if err != nil {
 		return nil, err

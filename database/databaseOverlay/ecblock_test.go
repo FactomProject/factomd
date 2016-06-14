@@ -103,7 +103,7 @@ func TestSaveLoadECBlockChain(t *testing.T) {
 		//t.Logf("KeyMR - %v", keyMR.String())
 		hash := current.GetHeader().GetPrevFullHash()
 
-		current, err = dbo.FetchECBlockByHeaderHash(keyMR)
+		current, err = dbo.FetchECBlockByPrimary(keyMR)
 		if err != nil {
 			t.Error(err)
 		}
@@ -112,7 +112,7 @@ func TestSaveLoadECBlockChain(t *testing.T) {
 		}
 		fetchedCount++
 
-		byHash, err := dbo.FetchECBlockByHash(hash)
+		byHash, err := dbo.FetchECBlockBySecondary(hash)
 
 		same, err := primitives.AreBinaryMarshallablesEqual(current, byHash)
 		if err != nil {
@@ -155,14 +155,14 @@ func TestLoadUnknownECBlocks(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		data, err := dbo.FetchECBlockByHash(hash)
+		data, err := dbo.FetchECBlockBySecondary(hash)
 		if err != nil {
 			t.Error(err)
 		}
 		if data != nil {
 			t.Error("Fetched entry while we expected nil - %v", data)
 		}
-		data, err = dbo.FetchECBlockByHeaderHash(hash)
+		data, err = dbo.FetchECBlockByPrimary(hash)
 		if err != nil {
 			t.Error(err)
 		}
