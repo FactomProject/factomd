@@ -396,19 +396,9 @@ func (list *DBStateList) Put(dbState *DBState) {
 		list.DBStates[index] = dbState
 	}
 
-	hash, err := dbState.AdminBlock.GetKeyMR()
-	if err != nil {
-		panic(err)
-	}
-	dbState.DirectoryBlock.GetDBEntries()[0].SetKeyMR(hash)
-	hash, err = dbState.EntryCreditBlock.GetFullHash()
-	if err != nil {
-		panic(err)
-	}
-	dbState.DirectoryBlock.GetDBEntries()[1].SetKeyMR(hash)
-	hash = dbState.FactoidBlock.GetHash()
-	dbState.DirectoryBlock.GetDBEntries()[2].SetKeyMR(hash)
-
+	dbState.DirectoryBlock.SetABlockHash(dbState.AdminBlock)
+	dbState.DirectoryBlock.SetECBlockHash(dbState.EntryCreditBlock)
+	dbState.DirectoryBlock.SetFBlockHash(dbState.FactoidBlock)
 }
 
 func (list *DBStateList) Get(height uint32) *DBState {
@@ -427,10 +417,10 @@ func (list *DBStateList) NewDBState(isNew bool,
 
 	dbState := new(DBState)
 
-	dbState.DBHash = directoryBlock.GetHash()
-	dbState.ABHash = adminBlock.GetHash()
-	dbState.FBHash = factoidBlock.GetHash()
-	dbState.ECHash = entryCreditBlock.GetHash()
+	dbState.DBHash = directoryBlock.DatabasePrimaryIndex()
+	dbState.ABHash = adminBlock.DatabasePrimaryIndex()
+	dbState.FBHash = factoidBlock.DatabasePrimaryIndex()
+	dbState.ECHash = entryCreditBlock.DatabasePrimaryIndex()
 
 	dbState.isNew = isNew
 	dbState.DirectoryBlock = directoryBlock
