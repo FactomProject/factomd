@@ -157,10 +157,10 @@ func LoadIdentityCache (st *State)  {
 
                         ent, _ := st.DB.FetchEntryByHash(eHash)
 
-                        if string(ent.ExternalIDs()[1]) == "Identity Chain" {
+                        if len(ent.ExternalIDs())>1 && string(ent.ExternalIDs()[1]) == "Identity Chain" {
                             // this is a new identity
                             addIdentity (ent.ExternalIDs(),cid,st)
-                        } else if string(ent.ExternalIDs()[1]) == "Server Management" {
+                        } else if len(ent.ExternalIDs())>1 && string(ent.ExternalIDs()[1]) == "Server Management" {
                               // this is a new identity
                               if len(ent.ExternalIDs()) == 4 {  // update management should have 4 items
                                     updateManagementKey (ent.ExternalIDs(),cid,st)

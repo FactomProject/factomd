@@ -31,7 +31,7 @@ var _ = (*hash.Hash32)(nil)
 func (s *State) NewMinute() {
 	s.LeaderPL.Unseal(s.EOM)
 	s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
-	s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.LeaderMinute, s.IdentityChainID)
+	s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(0, s.IdentityChainID)
 	s.EOM = 0
 	// Anything we are holding, we need to reprocess.
 	for k := range s.Holding {
@@ -70,6 +70,7 @@ func (s *State) Process() (progress bool) {
 		s.LLeaderHeight = highest + 1
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(0, s.IdentityChainID)
+		s.NewMinute()
 
 		if s.Leader && dbstate != nil {
 			dbs := new(messages.DirectoryBlockSignature)
@@ -87,7 +88,7 @@ func (s *State) Process() (progress bool) {
 			}
 			dbs.LeaderExecute(s)
 		}
-		s.NewMinute()
+		s.UpdateState()
 	}
 
 	if s.EOM > 0 && s.LeaderPL.Unsealable(s.EOM) {
