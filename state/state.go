@@ -90,6 +90,7 @@ type State struct {
 	Leader          bool
 	LeaderVMIndex   int
 	LeaderPL        *ProcessList
+	OneLeader				bool
 	OutputAllowed   bool
 	LeaderMinute    int  // The minute that just was processed by the follower, (1-10), set with EOM
 	EOM             int  // Set to true when all Process Lists have finished a minute
