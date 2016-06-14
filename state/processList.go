@@ -109,7 +109,11 @@ func (p *ProcessList) Unseal(minute int) bool {
 
 // Returns the Virtual Server index for this hash for the given minute
 func (p *ProcessList) VMIndexFor(hash []byte) int {
-	return 0
+
+	if p.State.OneLeader {
+		return 0
+	}
+
 	v := uint64(0)
 	for _, b := range hash {
 		v += uint64(b)
