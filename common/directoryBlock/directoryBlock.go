@@ -265,7 +265,8 @@ func (b *DirectoryBlock) HeaderHash() (interfaces.IHash, error) {
 }
 
 func (b *DirectoryBlock) BodyKeyMR() interfaces.IHash {
-	return b.GetHeader().GetBodyMR()
+	key, _ := b.BuildBodyMR()
+	return key
 }
 
 func (b *DirectoryBlock) BuildKeyMerkleRoot() (keyMR interfaces.IHash, err error) {
