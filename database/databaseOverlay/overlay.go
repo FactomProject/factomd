@@ -15,90 +15,90 @@ import (
 )
 
 // the "table" prefix
-const (
+var (
 	// Directory Block
-	DIRECTORYBLOCK uint8 = iota
-	DIRECTORYBLOCK_NUMBER
-	DIRECTORYBLOCK_KEYMR
+	DIRECTORYBLOCK                = []byte("DirectoryBlock")
+	DIRECTORYBLOCK_NUMBER         = []byte("DirectoryBlockNumber")
+	DIRECTORYBLOCK_SECONDARYINDEX = []byte("DirectoryBlockSecondaryIndex")
 
 	// Admin Block
-	ADMINBLOCK //4
-	ADMINBLOCK_NUMBER
-	ADMINBLOCK_KEYMR
+	ADMINBLOCK                = []byte("AdminBlock")
+	ADMINBLOCK_NUMBER         = []byte("AdminBlockNumber")
+	ADMINBLOCK_SECONDARYINDEX = []byte("AdminBlockSecondaryIndex")
 
 	//Factoid Block
-	FACTOIDBLOCK //7
-	FACTOIDBLOCK_NUMBER
-	FACTOIDBLOCK_KEYMR
+	FACTOIDBLOCK                = []byte("FactoidBlock")
+	FACTOIDBLOCK_NUMBER         = []byte("FactoidBlockNumber")
+	FACTOIDBLOCK_SECONDARYINDEX = []byte("FactoidBlockSecondaryIndex")
 
 	// Entry Credit Block
-	ENTRYCREDITBLOCK //10
-	ENTRYCREDITBLOCK_NUMBER
-	ENTRYCREDITBLOCK_KEYMR
+	ENTRYCREDITBLOCK                = []byte("EntryCreditBlock")
+	ENTRYCREDITBLOCK_NUMBER         = []byte("EntryCreditBlockNumber")
+	ENTRYCREDITBLOCK_SECONDARYINDEX = []byte("EntryCreditBlockSecondaryIndex")
 
 	// Entry Chain
 	//ENTRYCHAIN //11
 
 	// The latest Block MR for chains including special chains
-	CHAIN_HEAD //13
+	CHAIN_HEAD = []byte("ChainHead")
 
 	// Entry Block
-	ENTRYBLOCK //14
-	ENTRYBLOCK_CHAIN_NUMBER
-	ENTRYBLOCK_KEYMR
+	ENTRYBLOCK                = []byte("EntryBlock")
+	ENTRYBLOCK_CHAIN_NUMBER   = []byte("EntryBlockNumber")
+	ENTRYBLOCK_SECONDARYINDEX = []byte("EntryBlockSecondaryIndex")
 
 	//Entry
-	ENTRY
+	ENTRY = []byte("Entry")
 
 	//Directory Block Info
-	DIRBLOCKINFO
-	DIRBLOCKINFO_UNCONFIRMED
-	DIRBLOCKINFO_NUMBER
-	DIRBLOCKINFO_KEYMR
+	DIRBLOCKINFO                = []byte("DirBlockInfo")
+	DIRBLOCKINFO_UNCONFIRMED    = []byte("DirBlockInfoUnconfirmed")
+	DIRBLOCKINFO_NUMBER         = []byte("DirBlockInfoNumber")
+	DIRBLOCKINFO_SECONDARYINDEX = []byte("DirBlockInfoSecondaryIndex")
 
 	//IncludedIn
-	INCLUDED_IN
+	INCLUDED_IN = []byte("IncludedIn")
 
 	//Which EC transaction paid for this Entry
-	PAID_FOR
+	PAID_FOR = []byte("PaidFor")
 )
 
-var ConstantNamesMap map[uint8]string
+var ConstantNamesMap map[string]string
 
 func init() {
-	ConstantNamesMap = map[uint8]string{}
-	ConstantNamesMap[DIRECTORYBLOCK] = "DirectoryBlock"
-	ConstantNamesMap[DIRECTORYBLOCK_NUMBER] = "DirectoryBlockNumber"
-	ConstantNamesMap[DIRECTORYBLOCK_KEYMR] = "DirectoryBlockKeyMR"
+	ConstantNamesMap = map[string]string{}
+	ConstantNamesMap[string(DIRECTORYBLOCK)] = "DirectoryBlock"
+	ConstantNamesMap[string(DIRECTORYBLOCK_NUMBER)] = "DirectoryBlockNumber"
+	ConstantNamesMap[string(DIRECTORYBLOCK_SECONDARYINDEX)] = "DirectoryBlockSecondaryIndex"
 
-	ConstantNamesMap[ADMINBLOCK] = "AdminBlock"
-	ConstantNamesMap[ADMINBLOCK_NUMBER] = "AdminBlockNumber"
-	ConstantNamesMap[ADMINBLOCK_KEYMR] = "AdminBlockKeyMR"
+	ConstantNamesMap[string(ADMINBLOCK)] = "AdminBlock"
+	ConstantNamesMap[string(ADMINBLOCK_NUMBER)] = "AdminBlockNumber"
+	ConstantNamesMap[string(ADMINBLOCK_SECONDARYINDEX)] = "AdminBlockSecondaryIndex"
 
-	ConstantNamesMap[FACTOIDBLOCK] = "FactoidBlock"
-	ConstantNamesMap[FACTOIDBLOCK_NUMBER] = "FactoidBlockNumber"
-	ConstantNamesMap[FACTOIDBLOCK_KEYMR] = "FactoidBlockKeyMR"
+	ConstantNamesMap[string(FACTOIDBLOCK)] = "FactoidBlock"
+	ConstantNamesMap[string(FACTOIDBLOCK_NUMBER)] = "FactoidBlockNumber"
+	ConstantNamesMap[string(FACTOIDBLOCK_SECONDARYINDEX)] = "FactoidBlockSecondaryIndex"
 
-	ConstantNamesMap[ENTRYCREDITBLOCK] = "EntryCreditBlock"
-	ConstantNamesMap[ENTRYCREDITBLOCK_NUMBER] = "EntryCreditBlockNumber"
-	ConstantNamesMap[ENTRYCREDITBLOCK_KEYMR] = "EntryCreditBlockKeyMR"
+	ConstantNamesMap[string(ENTRYCREDITBLOCK)] = "EntryCreditBlock"
+	ConstantNamesMap[string(ENTRYCREDITBLOCK_NUMBER)] = "EntryCreditBlockNumber"
+	ConstantNamesMap[string(ENTRYCREDITBLOCK_SECONDARYINDEX)] = "EntryCreditBlockSecondaryIndex"
 
-	ConstantNamesMap[CHAIN_HEAD] = "ChainHead"
+	ConstantNamesMap[string(CHAIN_HEAD)] = "ChainHead"
 
-	ConstantNamesMap[ENTRYBLOCK] = "EntryBlock"
-	ConstantNamesMap[ENTRYBLOCK_CHAIN_NUMBER] = "EntryBlockChainNumber"
-	ConstantNamesMap[ENTRYBLOCK_KEYMR] = "EntryBlockKeyMR"
+	ConstantNamesMap[string(ENTRYBLOCK)] = "EntryBlock"
+	ConstantNamesMap[string(ENTRYBLOCK_CHAIN_NUMBER)] = "EntryBlockChainNumber"
+	ConstantNamesMap[string(ENTRYBLOCK_SECONDARYINDEX)] = "EntryBlockSecondaryIndex"
 
-	ConstantNamesMap[ENTRY] = "Entry"
+	ConstantNamesMap[string(ENTRY)] = "Entry"
 
-	ConstantNamesMap[DIRBLOCKINFO] = "DirBlockInfo"
-	ConstantNamesMap[DIRBLOCKINFO_UNCONFIRMED] = "DirBlockInfoUnconfirmed"
-	ConstantNamesMap[DIRBLOCKINFO_NUMBER] = "DirBlockInfoNumber"
-	ConstantNamesMap[DIRBLOCKINFO_KEYMR] = "DirBlockInfoKeyMR"
+	ConstantNamesMap[string(DIRBLOCKINFO)] = "DirBlockInfo"
+	ConstantNamesMap[string(DIRBLOCKINFO_UNCONFIRMED)] = "DirBlockInfoUnconfirmed"
+	ConstantNamesMap[string(DIRBLOCKINFO_NUMBER)] = "DirBlockInfoNumber"
+	ConstantNamesMap[string(DIRBLOCKINFO_SECONDARYINDEX)] = "DirBlockInfoSecondaryIndex"
 
-	ConstantNamesMap[INCLUDED_IN] = "IncludedIn"
+	ConstantNamesMap[string(INCLUDED_IN)] = "IncludedIn"
 
-	ConstantNamesMap[PAID_FOR] = "PaidFor"
+	ConstantNamesMap[string(PAID_FOR)] = "PaidFor"
 }
 
 type Overlay struct {
@@ -285,7 +285,7 @@ func (db *Overlay) ProcessBlockMultiBatch(blockBucket, numberBucket, secondaryIn
 		batch = append(batch, interfaces.Record{secondaryIndexBucket, block.DatabaseSecondaryIndex().Bytes(), block.DatabasePrimaryIndex()})
 	}
 
-	batch = append(batch, interfaces.Record{[]byte{CHAIN_HEAD}, block.GetChainID().Bytes(), block.DatabasePrimaryIndex()})
+	batch = append(batch, interfaces.Record{CHAIN_HEAD, block.GetChainID().Bytes(), block.DatabasePrimaryIndex()})
 
 	db.PutInMultiBatch(batch)
 
@@ -318,7 +318,7 @@ func (db *Overlay) ProcessBlockBatch(blockBucket, numberBucket, secondaryIndexBu
 		batch = append(batch, interfaces.Record{secondaryIndexBucket, block.DatabaseSecondaryIndex().Bytes(), block.DatabasePrimaryIndex()})
 	}
 
-	batch = append(batch, interfaces.Record{[]byte{CHAIN_HEAD}, block.GetChainID().Bytes(), block.DatabasePrimaryIndex()})
+	batch = append(batch, interfaces.Record{CHAIN_HEAD, block.GetChainID().Bytes(), block.DatabasePrimaryIndex()})
 
 	err := db.DB.PutInBatch(batch)
 	if err != nil {
@@ -368,7 +368,7 @@ func (db *Overlay) FetchHeadIndexByChainID(chainID interfaces.IHash) (interfaces
 		return nil, nil
 	}
 
-	bucket := []byte{byte(CHAIN_HEAD)}
+	bucket := CHAIN_HEAD
 	key := chainID.Bytes()
 
 	block, err := db.DB.Get(bucket, key, new(primitives.Hash))

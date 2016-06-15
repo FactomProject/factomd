@@ -18,7 +18,7 @@ func (db *Overlay) InsertEntry(entry interfaces.IEBEntry) error {
 
 	batch := []interfaces.Record{}
 	batch = append(batch, interfaces.Record{entry.GetChainID().Bytes(), entry.DatabasePrimaryIndex().Bytes(), entry})
-	batch = append(batch, interfaces.Record{[]byte{byte(ENTRY)}, entry.DatabasePrimaryIndex().Bytes(), entry.GetChainIDHash()})
+	batch = append(batch, interfaces.Record{ENTRY, entry.DatabasePrimaryIndex().Bytes(), entry.GetChainIDHash()})
 
 	return db.PutInBatch(batch)
 }
@@ -34,7 +34,7 @@ func (db *Overlay) InsertEntryMultiBatch(entry interfaces.IEBEntry) error {
 
 	batch := []interfaces.Record{}
 	batch = append(batch, interfaces.Record{entry.GetChainID().Bytes(), entry.DatabasePrimaryIndex().Bytes(), entry})
-	batch = append(batch, interfaces.Record{[]byte{byte(ENTRY)}, entry.DatabasePrimaryIndex().Bytes(), entry.GetChainIDHash()})
+	batch = append(batch, interfaces.Record{ENTRY, entry.DatabasePrimaryIndex().Bytes(), entry.GetChainIDHash()})
 
 	db.PutInMultiBatch(batch)
 
@@ -43,7 +43,7 @@ func (db *Overlay) InsertEntryMultiBatch(entry interfaces.IEBEntry) error {
 
 // FetchEntry gets an entry by hash from the database.
 func (db *Overlay) FetchEntry(hash interfaces.IHash) (interfaces.IEBEntry, error) {
-	chainID, err := db.FetchPrimaryIndexBySecondaryIndex([]byte{byte(ENTRY)}, hash)
+	chainID, err := db.FetchPrimaryIndexBySecondaryIndex(ENTRY, hash)
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +75,7 @@ func (db *Overlay) FetchAllEntryIDsByChainID(chainID interfaces.IHash) ([]interf
 }
 
 func (db *Overlay) FetchAllEntryIDs() ([]interfaces.IHash, error) {
-	ids, err := db.ListAllKeys([]byte{byte(ENTRY)})
+	ids, err := db.ListAllKeys(ENTRY)
 	if err != nil {
 		return nil, err
 	}

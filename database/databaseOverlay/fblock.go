@@ -9,7 +9,7 @@ import (
 )
 
 func (db *Overlay) ProcessFBlockBatch(block interfaces.DatabaseBlockWithEntries) error {
-	err := db.ProcessBlockBatch([]byte{byte(FACTOIDBLOCK)}, []byte{byte(FACTOIDBLOCK_NUMBER)}, []byte{byte(FACTOIDBLOCK_KEYMR)}, block)
+	err := db.ProcessBlockBatch(FACTOIDBLOCK, FACTOIDBLOCK_NUMBER, FACTOIDBLOCK_SECONDARYINDEX, block)
 	if err != nil {
 		return err
 	}
@@ -17,7 +17,7 @@ func (db *Overlay) ProcessFBlockBatch(block interfaces.DatabaseBlockWithEntries)
 }
 
 func (db *Overlay) ProcessFBlockMultiBatch(block interfaces.DatabaseBlockWithEntries) error {
-	err := db.ProcessBlockMultiBatch([]byte{byte(FACTOIDBLOCK)}, []byte{byte(FACTOIDBLOCK_NUMBER)}, []byte{byte(FACTOIDBLOCK_KEYMR)}, block)
+	err := db.ProcessBlockMultiBatch(FACTOIDBLOCK, FACTOIDBLOCK_NUMBER, FACTOIDBLOCK_SECONDARYINDEX, block)
 	if err != nil {
 		return err
 	}
@@ -36,7 +36,7 @@ func (db *Overlay) FetchFBlock(hash interfaces.IHash) (interfaces.IFBlock, error
 }
 
 func (db *Overlay) FetchFBlockBySecondary(hash interfaces.IHash) (interfaces.IFBlock, error) {
-	block, err := db.FetchBlockBySecondaryIndex([]byte{byte(FACTOIDBLOCK_KEYMR)}, []byte{byte(FACTOIDBLOCK)}, hash, new(factoid.FBlock))
+	block, err := db.FetchBlockBySecondaryIndex(FACTOIDBLOCK_SECONDARYINDEX, FACTOIDBLOCK, hash, new(factoid.FBlock))
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +47,7 @@ func (db *Overlay) FetchFBlockBySecondary(hash interfaces.IHash) (interfaces.IFB
 }
 
 func (db *Overlay) FetchFBlockByPrimary(keyMR interfaces.IHash) (interfaces.IFBlock, error) {
-	block, err := db.FetchBlock([]byte{byte(FACTOIDBLOCK)}, keyMR, new(factoid.FBlock))
+	block, err := db.FetchBlock(FACTOIDBLOCK, keyMR, new(factoid.FBlock))
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +58,7 @@ func (db *Overlay) FetchFBlockByPrimary(keyMR interfaces.IHash) (interfaces.IFBl
 }
 
 func (db *Overlay) FetchAllFBlocks() ([]interfaces.IFBlock, error) {
-	list, err := db.FetchAllBlocksFromBucket([]byte{byte(FACTOIDBLOCK)}, new(factoid.FBlock))
+	list, err := db.FetchAllBlocksFromBucket(FACTOIDBLOCK, new(factoid.FBlock))
 	if err != nil {
 		return nil, err
 	}
@@ -84,7 +84,7 @@ func (db *Overlay) FetchFBlockHead() (interfaces.IFBlock, error) {
 
 func (db *Overlay) FetchFactoidBlockHead() (interfaces.IFBlock, error) {
 	blk := new(factoid.FBlock)
-	block, err := db.FetchChainHeadByChainID([]byte{byte(FACTOIDBLOCK)}, primitives.NewHash(blk.GetChainID().Bytes()), blk)
+	block, err := db.FetchChainHeadByChainID(FACTOIDBLOCK, primitives.NewHash(blk.GetChainID().Bytes()), blk)
 	if err != nil {
 		return nil, err
 	}
