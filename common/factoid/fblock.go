@@ -83,11 +83,11 @@ func (c *FBlock) New() interfaces.BinaryMarshallableAndCopyable {
 }
 
 func (c *FBlock) DatabasePrimaryIndex() interfaces.IHash {
-	return c.GetKeyMR()
+	return c.GetFullHash()
 }
 
 func (c *FBlock) DatabaseSecondaryIndex() interfaces.IHash {
-	return c.GetHash()
+	return c.GetKeyMR()
 }
 
 func (c *FBlock) GetDatabaseHeight() uint32 {
@@ -123,9 +123,7 @@ func (b FBlock) GetNewInstance() interfaces.IFBlock {
 }
 
 func (b *FBlock) GetHash() interfaces.IHash {
-	kmr := b.GetKeyMR()
-
-	return kmr
+	return b.GetFullHash()
 }
 
 func (b *FBlock) GetEndOfPeriod() [10]int {
@@ -384,7 +382,6 @@ func (b *FBlock) GetChainID() interfaces.IHash {
 
 // Calculates the Key Merkle Root for this block and returns it.
 func (b *FBlock) GetKeyMR() interfaces.IHash {
-
 	bodyMR := b.GetBodyMR()
 
 	data, err := b.MarshalHeader()
@@ -399,7 +396,6 @@ func (b *FBlock) GetKeyMR() interfaces.IHash {
 
 // Calculates the Key Merkle Root for this block and returns it.
 func (b *FBlock) GetFullHash() interfaces.IHash {
-
 	ledgerMR := b.GetLedgerMR()
 
 	data, err := b.MarshalHeader()
@@ -415,7 +411,6 @@ func (b *FBlock) GetFullHash() interfaces.IHash {
 
 // Returns the LedgerMR for this block.
 func (b *FBlock) GetLedgerMR() interfaces.IHash {
-
 	hashes := make([]interfaces.IHash, 0, len(b.Transactions))
 	marker := 0
 	for i, trans := range b.Transactions {
