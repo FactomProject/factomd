@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/state"
-	"github.com/FactomProject/factomd/common/interfaces"
 )
 
 var _ = fmt.Print
