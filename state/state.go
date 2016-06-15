@@ -24,6 +24,7 @@ import (
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
 	"sync"
+	"math/rand"
 )
 
 var _ = fmt.Print
@@ -70,6 +71,7 @@ type State struct {
 
 	tickerQueue            chan int
 	timerMsgQueue          chan interfaces.IMsg
+	timeoffset             int64
 	networkOutMsgQueue     chan interfaces.IMsg
 	networkInvalidMsgQueue chan interfaces.IMsg
 	inMsgQueue             chan interfaces.IMsg
@@ -313,6 +315,7 @@ func (s *State) Init() {
 
 	s.tickerQueue = make(chan int, 10000)                        //ticks from a clock
 	s.timerMsgQueue = make(chan interfaces.IMsg, 10000)          //incoming eom notifications, used by leaders
+	s.timeoffset = int64(rand.Int63()%int64(time.Millisecond*10))
 	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 10000) //incoming message queue from the network messages
 	s.InvalidMessages = make(map[[32]byte]interfaces.IMsg, 0)
 	s.networkOutMsgQueue = make(chan interfaces.IMsg, 10000) //Messages to be broadcast to the network
@@ -841,11 +844,12 @@ func (s *State) SetIsDoneReplaying() {
 	s.ReplayTimestamp = 0
 }
 
+// Returns a millisecond timestamp
 func (s *State) GetTimestamp() interfaces.Timestamp {
 	if s.IsReplaying == true {
 		return s.ReplayTimestamp
 	}
-	return *interfaces.NewTimeStampNow()
+	return interfaces.Timestamp(int64(*interfaces.NewTimeStampNow())+s.timeoffset)
 }
 
 func (s *State) Sign(b []byte) interfaces.IFullSignature {
