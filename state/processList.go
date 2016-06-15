@@ -8,6 +8,7 @@ import (
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
+	"github.com/FactomProject/factomd/database/databaseOverlay"
 
 	"time"
 
@@ -424,6 +425,22 @@ func (p *ProcessList) GoodTo(vmIndex int) bool {
 	return true
 }
 
+func (p *ProcessList) ResetDiffSigTally() {
+	p.diffSigTally = 0
+}
+
+func (p *ProcessList) IncrementDiffSigTally() {
+	p.diffSigTally++
+}
+
+func (p *ProcessList) CheckDiffSigTally() {
+	// If the majority of VMs' signatures do not match our
+	// saved block, we discard that block from our database.
+	if p.diffSigTally > 0 && p.diffSigTally > (len(p.FedServers)/2) {
+		p.State.DB.Delete([]byte{byte(databaseOverlay.DIRECTORYBLOCK)}, p.State.ProcessLists.Lists[0].DirectoryBlock.GetKeyMR().Bytes())
+	}
+}
+
 // Process messages and update our state.
 func (p *ProcessList) Process(state *State) (progress bool) {
 
@@ -465,11 +482,6 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 
 VMLoop:
 	for i := 0; i < len(p.FedServers); i++ {
-		// Just in case, set p.diffSigTally to 0 when initiating pass-through
-		if i == 0 {
-			p.diffSigTally = 0
-		}
-
 		vm := p.VMs[i]
 
 		// If we are up to date with this VM, then continue to the next
@@ -729,6 +741,8 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 	pl.DirectoryBlock = directoryBlock.NewDirectoryBlock(dbheight, nil)
 	pl.AdminBlock = s.NewAdminBlock(dbheight)
 	pl.EntryCreditBlock, err = entryCreditBlock.NextECBlock(nil)
+
+	pl.ResetDiffSigTally()
 
 	if err != nil {
 		panic(err.Error())
