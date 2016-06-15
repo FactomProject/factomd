@@ -28,7 +28,7 @@ func NewTimeStampNow() *Timestamp {
 }
 
 func (t *Timestamp) SetTimeNow() {
-	*t = Timestamp(GetTimeMilli())
+	*t = Timestamp(GetTime())
 }
 
 func (t *Timestamp) SetTime(miliseconds uint64) {

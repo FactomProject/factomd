@@ -610,6 +610,24 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 	}
 	s.ConsiderSaved(dbs.DBHeight)
 
+	// When processing DirectoryBlockSignatures, we check to see if the signed block
+	// matches our own saved block. If the majority of VMs' signatures do not match
+	// our saved block, we discard that block from our database.
+	prevBlockFromDatabase, err := s.DB.FetchDBlockByHeight(dbheight - 1)
+	if err != nil {
+		fmt.Println("Error fetching previous DBlock from database:", err)
+		return true
+	}
+
+	p := s.ProcessLists.Get(dbheight)
+
+	if !dbs.DirectoryBlockKeyMR.IsSameAs(prevBlockFromDatabase.GetKeyMR()) {
+		fmt.Println("COMPARED: ", dbs.DirectoryBlockKeyMR, "TO", prevBlockFromDatabase.GetKeyMR(), "(", prevBlockFromDatabase.GetDatabaseHeight(), " - ", (dbheight - 1), ")")
+
+		p.IncrementDiffSigTally()
+		p.CheckDiffSigTally()
+	}
+
 	return true
 }
 
