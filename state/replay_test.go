@@ -28,13 +28,17 @@ func Test_Replay(test *testing.T) {
 		time int64
 	}
 
-	XTrans := 15000
+	XTrans := 145000
 
 	h := make([]*mh, XTrans)
 
 	start := now
 
 	for i := 0; i < XTrans; i++ {
+
+		if i % 10240 == 0 {
+			fmt.Println("Testing ",i)
+		}
 
 		// We are going to remember some large set of transactions.
 		h[i] = new(mh)

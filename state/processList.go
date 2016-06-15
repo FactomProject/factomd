@@ -132,16 +132,6 @@ func (p *ProcessList) FedServerFor(minute int, hash []byte) interfaces.IFctServe
 	return p.FedServers[fedIndex]
 }
 
-func (p *ProcessList) LeaderFor(chainID interfaces.IHash, hash []byte) int {
-	vmIndex := p.VMIndexFor(hash)
-	minute := p.VMs[vmIndex].LeaderMinute
-	vm := p.FedServers[p.ServerMap[minute][vmIndex]]
-	if bytes.Compare(chainID.Bytes(), vm.GetChainID().Bytes()) == 0 {
-		return vmIndex
-	}
-	return -1
-}
-
 func (p *ProcessList) GetVirtualServers(minute int, identityChainID interfaces.IHash) (found bool, index int) {
 	found, fedIndex := p.GetFedServerIndexHash(identityChainID)
 	if !found {
@@ -550,10 +540,10 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	toss := func(hint string) {
 		delete(p.State.Holding, ack.GetHash().Fixed())
 		delete(p.State.Acks, ack.GetHash().Fixed())
-		if p.State.DebugConsensus {
+
 			fmt.Println("dddd", hint, p.State.FactomNodeName, "Toss", m.String())
 			fmt.Println("dddd", hint, p.State.FactomNodeName, "Toss", ack.String())
-		}
+
 	}
 
 	if p == nil {
@@ -562,9 +552,9 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 
 	now := int64(p.State.GetTimestamp() / 1000)
 
-	_, isNew := p.State.InternalReplay.Valid(m.GetHash().Fixed(), int64(m.GetTimestamp()/1000), now)
-	_, isAckNew := p.State.InternalReplay.Valid(ack.GetHash().Fixed(), int64(m.GetTimestamp()/1000), now)
-	if !isNew || !isAckNew {
+	_, isNew1 := p.State.InternalReplay.Valid(m.GetHash().Fixed(), int64(m.GetTimestamp()/1000), now)
+	_, isNew2 := p.State.InternalReplay.Valid(m.GetMsgHash().Fixed(), int64(m.GetTimestamp()/1000), now)
+	if !isNew1 || !isNew2 {
 		toss("seen before, or too old")
 		return
 	}
@@ -579,34 +569,34 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	if len(vm.List) > int(ack.Height) && vm.List[ack.Height] != nil {
 
 		if vm.List[ack.Height].GetMsgHash().IsSameAs(m.GetMsgHash()) {
-			fmt.Printf("dddd %-30s %10s %s\n", "xxxxxxxxx PL Duplicate", p.State.GetFactomNodeName(), m.String())
-			fmt.Printf("dddd %-30s %10s %s\n", "xxxxxxxxx PL Duplicate", p.State.GetFactomNodeName(), ack.String())
+			fmt.Printf("dddd %-30s %10s %s\n", "xxxxxxxxx PL Duplicate   ", p.State.GetFactomNodeName(), m.String())
+			fmt.Printf("dddd %-30s %10s %s\n", "xxxxxxxxx PL Duplicate   ", p.State.GetFactomNodeName(), ack.String())
+			fmt.Printf("dddd %-30s %10s %s\n", "xxxxxxxxx PL Duplicate vm", p.State.GetFactomNodeName(), vm.List[ack.Height].String())
+			fmt.Printf("dddd %-30s %10s %s\n", "xxxxxxxxx PL Duplicate vm", p.State.GetFactomNodeName(), vm.ListAck[ack.Height].String())
 			toss("2")
 			return
 		}
 
-		if vm.List[ack.Height] != nil {
-			fmt.Println(p.String())
-			fmt.Println(p.PrintMap())
-			fmt.Printf("dddd\t%12s %s %s\n", "OverWriting:", vm.List[ack.Height].String(), "with")
-			fmt.Printf("dddd\t%12s %s\n", "with:", m.String())
-			fmt.Printf("dddd\t%12s %s\n", "Detected on:", p.State.GetFactomNodeName())
-			fmt.Printf("dddd\t%12s %s\n", "old ack", vm.ListAck[ack.Height].String())
-			fmt.Printf("dddd\t%12s %s\n", "new ack", ack.String())
-			fmt.Printf("dddd\t%12s %s\n", "VM Index", ack.VMIndex)
-			toss("3")
-			return
-		}
+		fmt.Println(p.String())
+		fmt.Println(p.PrintMap())
+		fmt.Printf("dddd\t%12s %s %s\n", "OverWriting:", vm.List[ack.Height].String(), "with")
+		fmt.Printf("dddd\t%12s %s\n", "with:", m.String())
+		fmt.Printf("dddd\t%12s %s\n", "Detected on:", p.State.GetFactomNodeName())
+		fmt.Printf("dddd\t%12s %s\n", "old ack", vm.ListAck[ack.Height].String())
+		fmt.Printf("dddd\t%12s %s\n", "new ack", ack.String())
+		fmt.Printf("dddd\t%12s %s\n", "VM Index", ack.VMIndex)
+		toss("3")
+		return
 	}
 
 	// From this point on, we consider the transaction recorded.  If we detect it has already been
 	// recorded, then we still treat it as if we recorded it.
 
+  // We have already tested and found m to be a new message.  We now record its hashes so later, we
+	// can detect that it has been recorded.  We don't care about the results of IsTSValid_ at this point.
 	p.State.InternalReplay.IsTSValid_(m.GetHash().Fixed(), int64(m.GetTimestamp()/1000), now)
 	p.State.InternalReplay.IsTSValid_(m.GetMsgHash().Fixed(), int64(m.GetTimestamp()/1000), now)
 
-	p.State.NetworkOutMsgQueue() <- ack
-	p.State.NetworkOutMsgQueue() <- m
 	delete(p.State.Acks, ack.GetHash().Fixed())
 	delete(p.State.Holding, m.GetMsgHash().Fixed())
 
@@ -616,17 +606,18 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	ack.SetPeer2Peer(false)
 	m.SetPeer2Peer(false)
 
-	length := len(p.VMs[ack.VMIndex].List)
-	for length <= int(ack.Height) {
-		p.VMs[ack.VMIndex].List = append(p.VMs[ack.VMIndex].List, nil)
-		p.VMs[ack.VMIndex].ListAck = append(p.VMs[ack.VMIndex].ListAck, nil)
-		length = len(p.VMs[ack.VMIndex].List)
+	p.State.NetworkOutMsgQueue() <- ack
+	p.State.NetworkOutMsgQueue() <- m
+
+	for len(vm.List) <= int(ack.Height) {
+		vm.List = append(vm.List, nil)
+		vm.ListAck = append(vm.ListAck, nil)
 	}
 
 	p.VMs[ack.VMIndex].List[ack.Height] = m
 	p.VMs[ack.VMIndex].ListAck[ack.Height] = ack
 	p.OldMsgs[m.GetHash().Fixed()] = m
-	p.OldAcks[m.GetHash().Fixed()] = ack
+	p.OldAcks[m.GetMsgHash().Fixed()] = ack
 
 }
 

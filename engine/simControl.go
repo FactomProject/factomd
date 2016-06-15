@@ -392,13 +392,13 @@ func printProcessList(watchPL *int, value int, listenTo *int) {
 		b := fnode.State.GetHighestRecordedBlock()
 		nprt = nprt + fnode.State.ProcessLists.String()
 		pl := fnode.State.ProcessLists.Get(b)
-		nprt = nprt + pl.PrintMap()
-
-		if out != nprt {
-			fmt.Println(nprt)
-			out = nprt
+		if pl != nil {
+			nprt = nprt + pl.PrintMap()
+			if out != nprt {
+				fmt.Println(nprt)
+				out = nprt
+			}
 		}
-
 		time.Sleep(time.Second * 5)
 	}
 }

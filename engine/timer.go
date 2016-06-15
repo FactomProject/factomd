@@ -10,6 +10,7 @@ import (
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	s "github.com/FactomProject/factomd/state"
+	"math/rand"
 )
 
 var _ = (*s.State)(nil)
@@ -31,6 +32,8 @@ func Timer(state interfaces.IState) {
 	if state.GetOut() {
 		state.Print(fmt.Sprintf("Time: %v\r\n", time.Now()))
 	}
+
+	delta := rand.Int63()%10
 
 	time.Sleep(time.Duration(wait))
 
@@ -58,6 +61,9 @@ func Timer(state interfaces.IState) {
 			for len(state.InMsgQueue()) > 5000 {
 				time.Sleep(100 * time.Millisecond)
 			}
+
+			// Delay some number of milliseconds.
+			time.Sleep(time.Duration(delta)*time.Millisecond)
 
 			state.TickerQueue() <- i
 

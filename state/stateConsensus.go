@@ -30,12 +30,18 @@ var _ = (*hash.Hash32)(nil)
 //***************************************************************
 func (s *State) NewMinute() {
 	s.LeaderPL.Unseal(s.EOM)
-	s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
-	s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(0, s.IdentityChainID)
 	s.EOM = 0
 	// Anything we are holding, we need to reprocess.
 	for k := range s.Holding {
 		v := s.Holding[k]
+
+		// Make sure we don't process any dups...
+		if _,ok := s.InternalReplay.Valid(v.GetHash().Fixed(), int64(v.GetTimestamp()/1000), int64(s.GetTimestamp()/1000)); !ok {
+			continue
+		}
+		if _,ok := s.InternalReplay.Valid(v.GetMsgHash().Fixed(), int64(v.GetTimestamp()/1000), int64(s.GetTimestamp()/1000)); !ok {
+			continue
+		}
 		a, _ := s.Acks[k].(*messages.Ack)
 		if a != nil && v != nil {
 			s.ProcessLists.Get(a.DBHeight).AddToProcessList(a, v)
@@ -48,15 +54,6 @@ func (s *State) NewMinute() {
 			}
 		}
 	}
-
-	/**
-	fmt.Println(s.FactomNodeName, ">>>")
-
-	for k := range s.Holding {
-		m := s.Holding[k]
-		fmt.Println(s.FactomNodeName, ">>>", m.String())
-	}
-	**/
 }
 
 func (s *State) Process() (progress bool) {
@@ -250,10 +247,21 @@ func (s *State) FollowerExecuteEOM(m interfaces.IMsg) {
 		return // This is an internal EOM message.  We are not a leader so ignore.
 	}
 
-	eom, _ := m.(*messages.EOM)
-	s.EOM = int(eom.Minute + 1)
+	s.Holding[m.GetMsgHash().Fixed()] = m
+	ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
+	if ack != nil {
+		m.SetLeaderChainID(ack.GetLeaderChainID())
+		m.SetMinute(ack.Minute)
 
-	s.FollowerExecuteMsg(m)
+		eom, _ := m.(*messages.EOM)
+
+		if s.EOM == 0 {
+			s.EOM = int(eom.Minute + 1)
+		}
+
+		pl := s.ProcessLists.Get(ack.DBHeight)
+		pl.AddToProcessList(ack, m)
+	}
 }
 
 // Ack messages always match some message in the Process List.   That is
@@ -339,6 +347,14 @@ func (s *State) LeaderExecute(m interfaces.IMsg) {
 	for i := 0; s.UpdateState() && i < 10; i++ {
 	}
 
+	_,ok1 := s.InternalReplay.Valid(m.GetHash().Fixed(), int64(m.GetTimestamp()/1000), int64(s.GetTimestamp()/1000))
+	_,ok2 := s.InternalReplay.Valid(m.GetMsgHash().Fixed(), int64(m.GetTimestamp()/1000), int64(s.GetTimestamp()/1000))
+	if !ok1 || !ok2 {
+		fmt.Println("dddd Replay detected",s.FactomNodeName, m.String())
+		delete(s.Holding, m.GetMsgHash().Fixed())
+		return
+	}
+
 	// If we haven't saved the previous block, then punt to Follower
 	// which (most likely) will put the message into Holding.
 	if !s.DBStates.Get(s.LLeaderHeight - 1).Locked {
@@ -369,17 +385,30 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 	for i := 0; s.UpdateState() && i < 10; i++ {
 	}
 
-	if m.IsLocal() && s.LeaderMinute > 9 {
-		fmt.Println("dddd Leader Slip:", m.String())
-		return
-	}
-
 	if !s.Green() || !m.IsLocal() {
 		s.FollowerExecuteEOM(m)
 		return
 	}
 
-	s.EOM = s.LeaderMinute + 1
+	// Calculate the zero based next minute from our state.
+	min := s.LeaderMinute
+	if s.EOM > 0 {
+		min--
+	}
+
+	if s.LeaderPL.VMs[s.LeaderVMIndex].Seal == s.EOM {
+//		return
+	}
+
+	if s.LastHeight == s.LLeaderHeight && s.LastMinute+1 != min {
+		min = s.LeaderMinute+1
+	}
+	s.LastMinute = min
+	s.LastHeight = s.LLeaderHeight
+
+	if s.EOM > 0 && min > s.EOM {
+		return
+	}
 
 	eom := m.(*messages.EOM)
 
@@ -390,11 +419,12 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 	eom.VMIndex = s.LeaderVMIndex
 	// eom.Minute is zerobased, while s.LeaderMinute is 1 based.  So
 	// a simple assignment works.
-	eom.Minute = byte(s.LeaderMinute)
+	eom.Minute = byte(min)
 	eom.Sign(s)
 	ack := s.NewAck(m)
-
-	s.ProcessLists.Get(ack.(*messages.Ack).DBHeight).AddToProcessList(ack.(*messages.Ack), eom)
+	s.Acks[ack.GetHash().Fixed()] = ack
+	m.SetLocal(false)
+	s.FollowerExecuteEOM(m)
 
 }
 

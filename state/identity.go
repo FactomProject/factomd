@@ -150,24 +150,28 @@ func LoadIdentityCache (st *State)  {
                 // read the entry and see if it looks like an initial Identity Chain Creation
                 entkmr := eBlk.GetKeyMR()  //eBlock Hash
                 ecb, _ := st.DB.FetchEBlockByKeyMR(entkmr)
-                entryHashes := ecb.GetEntryHashes()
-                for _, eHash := range entryHashes {
+                if ecb != nil {
+                  entryHashes := ecb.GetEntryHashes()
+                  for _, eHash := range entryHashes {
                     hs := eHash.String()
-                    if hs[0:10] != "0000000000" { //ignore minute markers
+                    if hs[0:10] != "0000000000" {
+                      //ignore minute markers
 
-                        ent, _ := st.DB.FetchEntryByHash(eHash)
+                      ent, _ := st.DB.FetchEntryByHash(eHash)
 
-                        if len(ent.ExternalIDs())>1 && string(ent.ExternalIDs()[1]) == "Identity Chain" {
-                            // this is a new identity
-                            addIdentity (ent.ExternalIDs(),cid,st)
-                        } else if len(ent.ExternalIDs())>1 && string(ent.ExternalIDs()[1]) == "Server Management" {
-                              // this is a new identity
-                              if len(ent.ExternalIDs()) == 4 {  // update management should have 4 items
-                                    updateManagementKey (ent.ExternalIDs(),cid,st)
-                              }                   
+                      if len(ent.ExternalIDs()) > 1 && string(ent.ExternalIDs()[1]) == "Identity Chain" {
+                        // this is a new identity
+                        addIdentity(ent.ExternalIDs(), cid, st)
+                      } else if len(ent.ExternalIDs()) > 1 && string(ent.ExternalIDs()[1]) == "Server Management" {
+                        // this is a new identity
+                        if len(ent.ExternalIDs()) == 4 {
+                          // update management should have 4 items
+                          updateManagementKey(ent.ExternalIDs(), cid, st)
                         }
+                      }
                     }
-                }                   
+                  }
+                }
                }
            } else {
 

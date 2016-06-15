@@ -92,6 +92,8 @@ type State struct {
 	OneLeader				bool
 	OutputAllowed   bool
 	LeaderMinute    int  // The minute that just was processed by the follower, (1-10), set with EOM
+	LastMinute      int
+	LastHeight      uint32
 	EOM             int  // Set to true when all Process Lists have finished a minute
 	NetStateOff     bool // Disable if true, Enable if false
 	DebugConsensus  bool // If true, dump consensus trace
@@ -220,6 +222,8 @@ func (s *State) Clone(number string) interfaces.IState {
 	clone.FactoshisPerEC = s.FactoshisPerEC
 
 	clone.Port = s.Port
+
+	clone.OneLeader = s.OneLeader
 
 	return clone
 }
@@ -595,9 +599,9 @@ func (s *State) LoadSpecificMsgAndAck(dbheight uint32, vm int, plistheight uint3
 		return nil, nil, fmt.Errorf("State process list does not include requested message")
 	}
 
-	ackMsg, ok := s.ProcessLists.Get(dbheight).OldAcks[msg.GetHash().Fixed()]
+	ackMsg := procList.VMs[vm].ListAck[plistheight]
 
-	if !ok || ackMsg == nil {
+	if ackMsg == nil {
 		return nil, nil, fmt.Errorf("State process list does not include ack for message")
 	}
 
@@ -1045,10 +1049,13 @@ func (s *State) SetString() {
 	shorttime := time.Since(s.lasttime)
 	total := s.FactoidTrans + s.NewEntryChains + s.NewEntries
 	tps := float64(total) / float64(runtime.Seconds())
-	delta := (s.FactoidTrans + s.NewEntryChains + s.NewEntries) - s.transCnt
-	s.tps = float64(delta) / float64(shorttime.Seconds())
-	s.transCnt = total
-	s.lasttime = time.Now()
+	if shorttime > time.Second*3 {
+		delta := (s.FactoidTrans + s.NewEntryChains + s.NewEntries) - s.transCnt
+		s.tps = float64(delta) / float64(shorttime.Seconds())
+		s.lasttime = time.Now()
+		s.transCnt = total			// transactions accounted for
+	}
+
 	s.serverPrt = fmt.Sprintf("%8s[%6x]%4s Save: %d[%6x] PL:%d/%d Min: %2v DBHT %v Min C/F %02v/%02v EOM %2v %3d-Fct %3d-EC %3d-E  %7.2f total tps %7.2f tps",
 		s.FactomNodeName,
 		s.IdentityChainID.Bytes()[:3],

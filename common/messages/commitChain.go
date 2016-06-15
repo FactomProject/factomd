@@ -80,13 +80,13 @@ func (m *CommitChainMsg) GetHash() interfaces.IHash {
 }
 
 func (m *CommitChainMsg) GetMsgHash() interfaces.IHash {
-	if m.MsgHash == nil {
+
 		data, err := m.MarshalBinary()
 		if err != nil {
 			return nil
 		}
 		m.MsgHash = primitives.Sha(data)
-	}
+
 	return m.MsgHash
 }
 
