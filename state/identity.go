@@ -106,7 +106,6 @@ func LoadIdentityByDirectoryBlockHeight(height uint32, st *State) {
 				if hs[0:10] != "0000000000" { //ignore minute markers
 
 					ent, _ := st.DB.FetchEntry(eHash)
-
 					if string(ent.ExternalIDs()[1]) == "Register Server Management" {
 						// this is an Identity that should have been registered already with a 0 status.
 						//  this registers it with the management chain.  Now it can be assigned as federated or audit.
@@ -129,7 +128,6 @@ func LoadIdentityByDirectoryBlockHeight(height uint32, st *State) {
 						if len(ent.ExternalIDs()) == 7 { // update management should have 4 items
 							updateMatryoshkaHash(ent.ExternalIDs(), cid, st)
 						}
-
 					} else if len(ent.ExternalIDs()) > 1 && string(ent.ExternalIDs()[1]) == "Identity Chain" {
 						// this is a new identity
 						addIdentity(ent.ExternalIDs(), cid, st, height)
