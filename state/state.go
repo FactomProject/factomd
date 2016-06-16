@@ -163,13 +163,13 @@ type State struct {
 	LastPrintCnt int
 
 	// FER section
-	FactoshisPerEC uint64
-	FERChainId string
+	FactoshisPerEC               uint64
+	FERChainId                   string
 	ExchangeRateAuthorityAddress string
 
-	FERChangeHeight uint32
-	FERChangePrice uint64
-	FERPriority uint32
+	FERChangeHeight      uint32
+	FERChangePrice       uint64
+	FERPriority          uint32
 	FERPrioritySetHeight uint32
 }
 
@@ -289,7 +289,7 @@ func (s *State) LoadConfig(filename string, folder string) {
 		s.LocalServerPrivKey = "4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c9b08946553448d26d"
 		s.FactoshisPerEC = 006666
 		s.FERChainId = "eac57815972c504ec5ae3f9e5c1fe12321a3c8c78def62528fb74cf7af5e7389"
-		s.ExchangeRateAuthorityAddress = ""   // default to nothing so that there is no default FER manipulation
+		s.ExchangeRateAuthorityAddress = "" // default to nothing so that there is no default FER manipulation
 		s.DirectoryBlockInSeconds = 6
 		s.PortNumber = 8088
 

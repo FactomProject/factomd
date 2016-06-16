@@ -15,44 +15,42 @@ import (
 	// "github.com/FactomProject/goleveldb/leveldb/errors"
 	//"fmt"
 
-	"github.com/FactomProject/factomd/state"
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factom"
 	ed "github.com/FactomProject/ed25519"
+	"github.com/FactomProject/factom"
+	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/state"
 
-	"fmt"
-	"time"
-	"encoding/json"
 	"encoding/hex"
-	"github.com/FactomProject/factomd/database/databaseOverlay"
-	"github.com/FactomProject/factomd/common/entryBlock"
+	"encoding/json"
+	"fmt"
 	"github.com/FactomProject/factomd/common/directoryBlock"
+	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/database/databaseOverlay"
+	"time"
 	//"github.com/FactomProject/FactomCode/common"
 )
 
 var _ = fmt.Print
 
-
-
 type FEREntryWithHeight struct {
 	AnFEREntry interfaces.IEBEntry
-	Height uint32
+	Height     uint32
 }
 
 func MakeFEREntryWithHeightFromContent(passedResidentHeight uint32, passedTargetActivationHeight uint32,
-	passedTargetPrice uint64, passedExpirationHeight uint32, passedPriority uint32) (*FEREntryWithHeight) {
+	passedTargetPrice uint64, passedExpirationHeight uint32, passedPriority uint32) *FEREntryWithHeight {
 
 	// Create and format the signing private key
 	var signingPrivateKey [64]byte
 	SigningPrivateKey := "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
 	signingBytes, err := hex.DecodeString(SigningPrivateKey)
-	if (err != nil) {
+	if err != nil {
 		fmt.Println("Signing private key isn't parsable")
 		return nil
 	}
 	copy(signingPrivateKey[:], signingBytes[:])
-	_ = ed.GetPublicKey(&signingPrivateKey)  // Needed to format the public half of the key set
+	_ = ed.GetPublicKey(&signingPrivateKey) // Needed to format the public half of the key set
 
 	anFEREntry := new(state.FEREntry)
 
@@ -95,14 +93,6 @@ func MakeFEREntryWithHeightFromContent(passedResidentHeight uint32, passedTarget
 	return ewh
 }
 
-
-
-
-
-
-
-
-
 func CreateAndPopulateTestStateForFER(testEntries []FEREntryWithHeight, desiredHeight int) *state.State {
 
 	s := new(state.State)
@@ -123,7 +113,6 @@ func CreateAndPopulateTestStateForFER(testEntries []FEREntryWithHeight, desiredH
 	return s
 }
 
-
 func CreateAndPopulateTestDatabaseOverlayForFER(testEntries []FEREntryWithHeight, desiredHeight int) *databaseOverlay.Overlay {
 	dbo := CreateEmptyTestDatabaseOverlay()
 
@@ -132,8 +121,8 @@ func CreateAndPopulateTestDatabaseOverlayForFER(testEntries []FEREntryWithHeight
 
 	var err error
 
-	if (desiredHeight <= 0) {
-		desiredHeight = 1;
+	if desiredHeight <= 0 {
+		desiredHeight = 1
 	}
 
 	for i := 0; i < desiredHeight; i++ {
@@ -193,9 +182,6 @@ func CreateAndPopulateTestDatabaseOverlayForFER(testEntries []FEREntryWithHeight
 	return dbo
 }
 
-
-
-
 func CreateTestBlockSetForFER(prev *BlockSet, db *databaseOverlay.Overlay, testEntries []FEREntryWithHeight) *BlockSet {
 	var err error
 	height := 0
@@ -238,13 +224,13 @@ func CreateTestBlockSetForFER(prev *BlockSet, db *databaseOverlay.Overlay, testE
 	//EBlock
 	answer.EBlock, answer.Entries = CreateTestEntryBlockForFER(prev.EBlock, uint32(height))
 
-//  Loop through the passed FEREntries and see which ones need to go into this EBlock
-for _, testEntry := range testEntries {
-	if (testEntry.Height == uint32(height)) {
-		answer.EBlock.AddEBEntry(testEntry.AnFEREntry)
-		// db.InsertEntry(testEntry.AnFEREntry)    // I don't think I need this
+	//  Loop through the passed FEREntries and see which ones need to go into this EBlock
+	for _, testEntry := range testEntries {
+		if testEntry.Height == uint32(height) {
+			answer.EBlock.AddEBEntry(testEntry.AnFEREntry)
+			// db.InsertEntry(testEntry.AnFEREntry)    // I don't think I need this
+		}
 	}
-}
 
 	de = new(directoryBlock.DBEntry)
 	de.ChainID, err = primitives.NewShaHash(answer.EBlock.GetChainID().Bytes())
@@ -298,9 +284,6 @@ for _, testEntry := range testEntries {
 
 	return answer
 }
-
-
-
 
 func CreateTestEntryBlockForFER(p interfaces.IEntryBlock, height uint32) (*entryBlock.EBlock, []*entryBlock.Entry) {
 	prev, ok := p.(*entryBlock.EBlock)

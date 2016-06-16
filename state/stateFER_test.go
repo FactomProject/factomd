@@ -2,8 +2,8 @@ package state_test
 
 import (
 	"fmt"
-	"testing"
 	"github.com/FactomProject/factomd/testHelper"
+	"testing"
 )
 
 var _ = fmt.Print
