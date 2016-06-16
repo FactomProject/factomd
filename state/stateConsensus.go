@@ -36,10 +36,10 @@ func (s *State) NewMinute() {
 		v := s.Holding[k]
 
 		// Make sure we don't process any dups...
-		if _,ok := s.InternalReplay.Valid(v.GetHash().Fixed(), int64(v.GetTimestamp()/1000), int64(s.GetTimestamp()/1000)); !ok {
+		if _, ok := s.InternalReplay.Valid(v.GetHash().Fixed(), int64(v.GetTimestamp()/1000), int64(s.GetTimestamp()/1000)); !ok {
 			continue
 		}
-		if _,ok := s.InternalReplay.Valid(v.GetMsgHash().Fixed(), int64(v.GetTimestamp()/1000), int64(s.GetTimestamp()/1000)); !ok {
+		if _, ok := s.InternalReplay.Valid(v.GetMsgHash().Fixed(), int64(v.GetTimestamp()/1000), int64(s.GetTimestamp()/1000)); !ok {
 			continue
 		}
 		a, _ := s.Acks[k].(*messages.Ack)
@@ -347,10 +347,10 @@ func (s *State) LeaderExecute(m interfaces.IMsg) {
 	for i := 0; s.UpdateState() && i < 10; i++ {
 	}
 
-	_,ok1 := s.InternalReplay.Valid(m.GetHash().Fixed(), int64(m.GetTimestamp()/1000), int64(s.GetTimestamp()/1000))
-	_,ok2 := s.InternalReplay.Valid(m.GetMsgHash().Fixed(), int64(m.GetTimestamp()/1000), int64(s.GetTimestamp()/1000))
+	_, ok1 := s.InternalReplay.Valid(m.GetHash().Fixed(), int64(m.GetTimestamp()/1000), int64(s.GetTimestamp()/1000))
+	_, ok2 := s.InternalReplay.Valid(m.GetMsgHash().Fixed(), int64(m.GetTimestamp()/1000), int64(s.GetTimestamp()/1000))
 	if !ok1 || !ok2 {
-		fmt.Println("dddd Replay detected",s.FactomNodeName, m.String())
+		fmt.Println("dddd Replay detected", s.FactomNodeName, m.String())
 		delete(s.Holding, m.GetMsgHash().Fixed())
 		return
 	}
@@ -397,11 +397,11 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 	}
 
 	if s.LeaderPL.VMs[s.LeaderVMIndex].Seal == s.EOM {
-//		return
+		//		return
 	}
 
 	if s.LastHeight == s.LLeaderHeight && s.LastMinute+1 != min {
-		min = s.LeaderMinute+1
+		min = s.LeaderMinute + 1
 	}
 	s.LastMinute = min
 	s.LastHeight = s.LLeaderHeight
@@ -740,7 +740,7 @@ func (s *State) GetHighestKnownBlock() uint32 {
 		return 0
 	}
 	plh := s.ProcessLists.DBHeightBase + uint32(len(s.ProcessLists.Lists)-1)
-	dbsh := s.DBStates.Base+ uint32(len(s.DBStates.DBStates))
+	dbsh := s.DBStates.Base + uint32(len(s.DBStates.DBStates))
 	if dbsh > plh {
 		return dbsh
 	}

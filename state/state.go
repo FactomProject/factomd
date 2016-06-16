@@ -23,8 +23,8 @@ import (
 	"github.com/FactomProject/factomd/logger"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
-	"sync"
 	"math/rand"
+	"sync"
 )
 
 var _ = fmt.Print
@@ -89,9 +89,9 @@ type State struct {
 	Leader          bool
 	LeaderVMIndex   int
 	LeaderPL        *ProcessList
-	OneLeader				bool
+	OneLeader       bool
 	OutputAllowed   bool
-	LeaderMinute    int  // The minute that just was processed by the follower, (1-10), set with EOM
+	LeaderMinute    int // The minute that just was processed by the follower, (1-10), set with EOM
 	LastMinute      int
 	LastHeight      uint32
 	EOM             int  // Set to true when all Process Lists have finished a minute
@@ -317,9 +317,9 @@ func (s *State) Init() {
 
 	log.SetLevel(s.ConsoleLogLevel)
 
-	s.tickerQueue = make(chan int, 10000)                        //ticks from a clock
-	s.timerMsgQueue = make(chan interfaces.IMsg, 10000)          //incoming eom notifications, used by leaders
-	s.timeoffset = int64(rand.Int63()%int64(time.Millisecond*10))
+	s.tickerQueue = make(chan int, 10000)               //ticks from a clock
+	s.timerMsgQueue = make(chan interfaces.IMsg, 10000) //incoming eom notifications, used by leaders
+	s.timeoffset = int64(rand.Int63() % int64(time.Millisecond*10))
 	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 10000) //incoming message queue from the network messages
 	s.InvalidMessages = make(map[[32]byte]interfaces.IMsg, 0)
 	s.networkOutMsgQueue = make(chan interfaces.IMsg, 10000) //Messages to be broadcast to the network
@@ -456,7 +456,7 @@ func (s *State) SetEBDBHeightComplete(newHeight uint32) {
 
 func (s *State) GetEBlockKeyMRFromEntryHash(entryHash interfaces.IHash) interfaces.IHash {
 
-	entry, err := s.DB.FetchEntryByHash(entryHash)
+	entry, err := s.DB.FetchEntry(entryHash)
 	if err != nil {
 		return nil
 	}
@@ -464,7 +464,7 @@ func (s *State) GetEBlockKeyMRFromEntryHash(entryHash interfaces.IHash) interfac
 		dblock := s.GetDirectoryBlockByHeight(entry.GetDatabaseHeight())
 		for idx, ebHash := range dblock.GetEntryHashes() {
 			if idx > 2 {
-				thisBlock, err := s.DB.FetchEBlockByKeyMR(ebHash)
+				thisBlock, err := s.DB.FetchEBlock(ebHash)
 				if err == nil {
 					for _, attemptEntryHash := range thisBlock.GetEntryHashes() {
 						if attemptEntryHash.IsSameAs(entryHash) {
@@ -494,21 +494,21 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 	if dblk == nil {
 		return nil, nil
 	}
-	ablk, err := s.DB.FetchABlockByKeyMR(dblk.GetDBEntries()[0].GetKeyMR())
+	ablk, err := s.DB.FetchABlock(dblk.GetDBEntries()[0].GetKeyMR())
 	if err != nil {
 		return nil, err
 	}
 	if ablk == nil {
 		return nil, fmt.Errorf("ABlock not found")
 	}
-	ecblk, err := s.DB.FetchECBlockByHash(dblk.GetDBEntries()[1].GetKeyMR())
+	ecblk, err := s.DB.FetchECBlock(dblk.GetDBEntries()[1].GetKeyMR())
 	if err != nil {
 		return nil, err
 	}
 	if ecblk == nil {
 		return nil, fmt.Errorf("ECBlock not found")
 	}
-	fblk, err := s.DB.FetchFBlockByKeyMR(dblk.GetDBEntries()[2].GetKeyMR())
+	fblk, err := s.DB.FetchFBlock(dblk.GetDBEntries()[2].GetKeyMR())
 	if err != nil {
 		return nil, err
 	}
@@ -534,17 +534,17 @@ func (s *State) LoadDataByHash(requestedHash interfaces.IHash) (interfaces.Binar
 	var err error
 
 	// Check for Entry
-	result, err = s.DB.FetchEntryByHash(requestedHash)
+	result, err = s.DB.FetchEntry(requestedHash)
 	if result != nil && err == nil {
 		return result, 0, nil
 	}
 
 	// Check for Entry Block
-	result, err = s.DB.FetchEBlockByKeyMR(requestedHash)
+	result, err = s.DB.FetchEBlock(requestedHash)
 	if result != nil && err == nil {
 		return result, 1, nil
 	}
-	result, _ = s.DB.FetchEBlockByHash(requestedHash)
+	result, _ = s.DB.FetchEBlock(requestedHash)
 	if result != nil && err == nil {
 		return result, 1, nil
 	}
@@ -613,7 +613,7 @@ func (s *State) LoadSpecificMsgAndAck(dbheight uint32, vm int, plistheight uint3
 // It returns True if the EBlock is complete (all entries already exist in database)
 func (s *State) GetAllEntries(ebKeyMR interfaces.IHash) bool {
 	hasAllEntries := true
-	eblock, err := s.DB.FetchEBlockByKeyMR(ebKeyMR)
+	eblock, err := s.DB.FetchEBlock(ebKeyMR)
 	if err != nil {
 		return false
 	}
@@ -853,7 +853,7 @@ func (s *State) GetTimestamp() interfaces.Timestamp {
 	if s.IsReplaying == true {
 		return s.ReplayTimestamp
 	}
-	return interfaces.Timestamp(int64(*interfaces.NewTimeStampNow())+s.timeoffset)
+	return interfaces.Timestamp(int64(*interfaces.NewTimeStampNow()) + s.timeoffset)
 }
 
 func (s *State) Sign(b []byte) interfaces.IFullSignature {
@@ -1053,7 +1053,7 @@ func (s *State) SetString() {
 		delta := (s.FactoidTrans + s.NewEntryChains + s.NewEntries) - s.transCnt
 		s.tps = float64(delta) / float64(shorttime.Seconds())
 		s.lasttime = time.Now()
-		s.transCnt = total			// transactions accounted for
+		s.transCnt = total // transactions accounted for
 	}
 
 	s.serverPrt = fmt.Sprintf("%8s[%6x]%4s Save: %d[%6x] PL:%d/%d Min: %2v DBHT %v Min C/F %02v/%02v EOM %2v %3d-Fct %3d-EC %3d-E  %7.2f total tps %7.2f tps",

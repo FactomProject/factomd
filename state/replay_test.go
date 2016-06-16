@@ -36,8 +36,8 @@ func Test_Replay(test *testing.T) {
 
 	for i := 0; i < XTrans; i++ {
 
-		if i % 10240 == 0 {
-			fmt.Println("Testing ",i)
+		if i%10240 == 0 {
+			fmt.Println("Testing ", i)
 		}
 
 		// We are going to remember some large set of transactions.

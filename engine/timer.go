@@ -33,7 +33,7 @@ func Timer(state interfaces.IState) {
 		state.Print(fmt.Sprintf("Time: %v\r\n", time.Now()))
 	}
 
-	delta := rand.Int63()%10
+	delta := rand.Int63() % 10
 
 	time.Sleep(time.Duration(wait))
 
@@ -63,7 +63,7 @@ func Timer(state interfaces.IState) {
 			}
 
 			// Delay some number of milliseconds.
-			time.Sleep(time.Duration(delta)*time.Millisecond)
+			time.Sleep(time.Duration(delta) * time.Millisecond)
 
 			state.TickerQueue() <- i
 

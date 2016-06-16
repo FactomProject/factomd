@@ -3,15 +3,14 @@ package state
 import (
 	"bytes"
 	"encoding/hex"
-	"fmt"
 	"encoding/json"
+	"fmt"
 
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/btcutil/base58"
 	ed "github.com/FactomProject/ed25519"
+	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 )
-
 
 // Go through the factoid exchange rate chain and determine if an FER change should be scheduled
 func (this *State) ProcessRecentFERChainEntries() {
@@ -44,7 +43,7 @@ func (this *State) ProcessRecentFERChainEntries() {
 	this.Println("    FER current: ", this.GetFactoshisPerEC())
 
 	// Check to see if a price change targets the next block
-	if (this.FERChangeHeight == (this.GetDBHeightComplete()+1)) {
+	if this.FERChangeHeight == (this.GetDBHeightComplete() + 1) {
 		this.FactoshisPerEC = this.FERChangePrice
 		this.FERChangePrice = 100000000
 		this.FERChangeHeight = 0
@@ -52,16 +51,15 @@ func (this *State) ProcessRecentFERChainEntries() {
 
 	// Check for the need to clear the priority
 	// (this.GetDBHeightComplete() >= 12) is import because height is a uint and can't break logic if subtracted into false sub-zero
-	if ( 	(this.GetDBHeightComplete() >= 12) &&
-	(this.GetDBHeightComplete() - 12) >= this.FERPrioritySetHeight) {
+	if (this.GetDBHeightComplete() >= 12) &&
+		(this.GetDBHeightComplete()-12) >= this.FERPrioritySetHeight {
 		this.FERPrioritySetHeight = 0
 		this.FERPriority = 0
 		// Now the next entry to come through with a priority of 1 or more will be considered
 	}
 
-
 	// Check last entry block method
-	if (entryBlock.GetHeader().GetDBHeight() == this.GetDBHeightComplete()) {
+	if entryBlock.GetHeader().GetDBHeight() == this.GetDBHeightComplete() {
 		entryHashes := entryBlock.GetEntryHashes()
 
 		// this.Println("Found FER entry hashes in a block as: ", entryHashes)
@@ -82,17 +80,17 @@ func (this *State) ProcessRecentFERChainEntries() {
 			}
 
 			// Make sure the entry exists
-			anEntry, err := this.DB.FetchEntryByHash(entryHash)
-			if (err != nil) {
+			anEntry, err := this.DB.FetchEntry(entryHash)
+			if err != nil {
 				this.Println("Error during FetchEntryByHash: ", err)
 				continue
 			}
-			if (anEntry == nil) {
+			if anEntry == nil {
 				this.Println("Nil entry during FetchEntryByHash: ", entryHash)
 				continue
 			}
 
-			if ( ! this.ExchangeRateAuthorityIsValid(anEntry) ) {
+			if !this.ExchangeRateAuthorityIsValid(anEntry) {
 				this.Println("Skipping non-authority FER chain entry", entryHash)
 				continue
 			}
@@ -109,7 +107,7 @@ func (this *State) ProcessRecentFERChainEntries() {
 			// Set it's resident height for validity checking
 			anFEREntry.SetResidentHeight(this.GetDBHeightComplete())
 
-			if ((this.FerEntryIsValid(anFEREntry)) && (anFEREntry.Priority > this.FERPriority)) {
+			if (this.FerEntryIsValid(anFEREntry)) && (anFEREntry.Priority > this.FERPriority) {
 
 				fmt.Println(" Processing FER entry : ", string(entryContent))
 				this.FERPriority = anFEREntry.GetPriority()
@@ -118,7 +116,7 @@ func (this *State) ProcessRecentFERChainEntries() {
 				this.FERChangeHeight = anFEREntry.GetTargetActivationHeight()
 
 				// Adjust the target if needed
-				if ( this.FERChangeHeight < (this.GetDBHeightComplete() + 2)) {
+				if this.FERChangeHeight < (this.GetDBHeightComplete() + 2) {
 					this.FERChangeHeight = this.GetDBHeightComplete() + 2
 				}
 			} else {
@@ -138,9 +136,6 @@ func (this *State) ProcessRecentFERChainEntries() {
 	return
 }
 
-
-
-
 func (this *State) ExchangeRateAuthorityIsValid(e interfaces.IEBEntry) bool {
 
 	// convert the conf quthority address into a
@@ -156,19 +151,18 @@ func (this *State) ExchangeRateAuthorityIsValid(e interfaces.IEBEntry) bool {
 	copy(pub[:], authorityAddress[2:34])
 
 	// in case verify can't handle empty public key
-	if (this.ExchangeRateAuthorityAddress == "") {
+	if this.ExchangeRateAuthorityAddress == "" {
 		return false
 	}
 	sig := new([64]byte)
 	externalIds := e.ExternalIDs()
-
 
 	// check for number of ext ids
 	if len(externalIds) < 1 {
 		return false
 	}
 
-	copy(sig[:], externalIds[0])   // First ext id needs to be the signature of the content
+	copy(sig[:], externalIds[0]) // First ext id needs to be the signature of the content
 
 	if !ed.Verify(pub, e.GetContent(), sig) {
 		return false
@@ -177,24 +171,22 @@ func (this *State) ExchangeRateAuthorityIsValid(e interfaces.IEBEntry) bool {
 	return true
 }
 
-
-
 func (this *State) FerEntryIsValid(passedFEREntry interfaces.IFEREntry) bool {
 	// fail if expired
-	if (passedFEREntry.GetExpirationHeight() < passedFEREntry.GetResidentHeight()) {
+	if passedFEREntry.GetExpirationHeight() < passedFEREntry.GetResidentHeight() {
 		return false
 	}
 
 	// fail if expired height is too far out
-	if (passedFEREntry.GetExpirationHeight() > (passedFEREntry.GetResidentHeight() + 6)) {
+	if passedFEREntry.GetExpirationHeight() > (passedFEREntry.GetResidentHeight() + 6) {
 		return false
 	}
 
 	// fail if target is out of range of the expire height
 	// The check for expire height >= 6 is import because a lower value results in a uint binary wrap to near maxint, cracks logic
-	if (	(passedFEREntry.GetTargetActivationHeight() > (passedFEREntry.GetExpirationHeight() + 6)) ||
-	( 	(passedFEREntry.GetExpirationHeight() >= 6) &&
-	(passedFEREntry.GetTargetActivationHeight() < (passedFEREntry.GetExpirationHeight() - 6) ))) {
+	if (passedFEREntry.GetTargetActivationHeight() > (passedFEREntry.GetExpirationHeight() + 6)) ||
+		((passedFEREntry.GetExpirationHeight() >= 6) &&
+			(passedFEREntry.GetTargetActivationHeight() < (passedFEREntry.GetExpirationHeight() - 6))) {
 
 		return false
 	}
@@ -202,16 +194,14 @@ func (this *State) FerEntryIsValid(passedFEREntry interfaces.IFEREntry) bool {
 	return true
 }
 
-
 // Returns the higher of the current factoid exchange rate and what it knows will change in the future
-func (this *State) GetPredictiveFER() (uint64) {
+func (this *State) GetPredictiveFER() uint64 {
 	currentFER := this.GetFactoshisPerEC()
 
-	if 	(this.FERChangeHeight == 0) ||		// Check to see if no change has been registered
+	if (this.FERChangeHeight == 0) || // Check to see if no change has been registered
 		(this.FERChangePrice <= currentFER) {
 		return currentFER
 	}
 
 	return this.FERChangePrice
 }
-

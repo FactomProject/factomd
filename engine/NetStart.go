@@ -54,7 +54,7 @@ func NetStart(s *state.State) {
 	exclusivePtr := flag.Bool("exclusive", false, "If true, we only dial out to special/trusted peers.")
 	prefixNodePtr := flag.String("prefix", "", "Prefix the Factom Node Names with this value; used to create leaderless networks.")
 	profilePtr := flag.String("profile", "", "If true, turn on the go Profiler to profile execution of Factomd")
-	multiLeaderPtr := flag.Bool("multileader",true,"If true, split responsiblity over all leaders. If false, only one leader rules at a time.")
+	multiLeaderPtr := flag.Bool("multileader", true, "If true, split responsiblity over all leaders. If false, only one leader rules at a time.")
 
 	flag.Parse()
 
@@ -163,14 +163,14 @@ func NetStart(s *state.State) {
 		profile = "false"
 	}
 
-	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "node",listenTo))
-	os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "prefix",prefix))
-	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "node count",cnt))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "node", listenTo))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "prefix", prefix))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "node count", cnt))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "net type", net))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "Msgs droped", droprate))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "journal", journal))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "database", db))
-	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "database for clones",cloneDB))
+	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "database for clones", cloneDB))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "folder", folder))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%d\"\n", "port", s.PortNumber))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "networkPort", networkPort))
@@ -180,7 +180,7 @@ func NetStart(s *state.State) {
 	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "block time", blkTime))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "runtimeLog", runtimeLog))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "profile", profile))
-	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "multiLeader",multiLeader))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "multiLeader", multiLeader))
 
 	s.AddPrefix(prefix)
 	s.SetOut(false)

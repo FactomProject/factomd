@@ -78,13 +78,13 @@ func LoadIdentityByDirectoryBlockHeight(height uint32, st *State) {
 		if cid.IsSameAs(ManagementChain) {
 			// is it a new one?
 			entkmr := eBlk.GetKeyMR() //eBlock Hash
-			ecb, _ := st.DB.FetchEBlockByKeyMR(entkmr)
+			ecb, _ := st.DB.FetchEBlock(entkmr)
 			entryHashes := ecb.GetEntryHashes()
 			for _, eHash := range entryHashes {
 
 				hs := eHash.String()
 				if hs[0:10] != "0000000000" { //ignore minute markers
-					ent, _ := st.DB.FetchEntryByHash(eHash)
+					ent, _ := st.DB.FetchEntry(eHash)
 					if len(ent.ExternalIDs()) > 2 {
 						fmt.Println("Federated Management Chain:", string(ent.ExternalIDs()[1]))
 					}
@@ -98,20 +98,20 @@ func LoadIdentityByDirectoryBlockHeight(height uint32, st *State) {
 				// if so, what kind of entry is it?
 
 				entkmr := eBlk.GetKeyMR() //eBlock Hash
-				ecb, _ := st.DB.FetchEBlockByKeyMR(entkmr)
+				ecb, _ := st.DB.FetchEBlock(entkmr)
 				entryHashes := ecb.GetEntryHashes()
 				for _, eHash := range entryHashes {
 
 					hs := eHash.String()
 					if hs[0:10] != "0000000000" { //ignore minute markers
 
-						ent, _ := st.DB.FetchEntryByHash(eHash)
+						ent, _ := st.DB.FetchEntry(eHash)
 
 						if string(ent.ExternalIDs()[1]) == "Register Server Management" {
 							// this is an Identity that should have been registered already with a 0 status.
 							//  this registers it with the management chain.  Now it can be assigned as federated or audit.
 							//  set it to status 6 - Pending Full
-							registerIdentityAsServer(IdentityIndex, cid, st)
+							registerIdentityAsServer(ent.ExternalIDs(), cid, st)
 						} else if string(ent.ExternalIDs()[1]) == "New Block Signing Key" {
 							// this is the Signing Key for this Identity
 							if len(ent.ExternalIDs()) == 7 { // update management should have 4 items
@@ -140,7 +140,7 @@ func LoadIdentityByDirectoryBlockHeight(height uint32, st *State) {
 				// this identity is not in the
 				// read the entry and see if it looks like an initial Identity Chain Creation
 				entkmr := eBlk.GetKeyMR() //eBlock Hash
-				ecb, _ := st.DB.FetchEBlockByKeyMR(entkmr)
+				ecb, _ := st.DB.FetchEBlock(entkmr)
 				if ecb != nil {
 					entryHashes := ecb.GetEntryHashes()
 					for _, eHash := range entryHashes {
@@ -148,7 +148,7 @@ func LoadIdentityByDirectoryBlockHeight(height uint32, st *State) {
 						if hs[0:10] != "0000000000" {
 							//ignore minute markers
 
-							ent, _ := st.DB.FetchEntryByHash(eHash)
+							ent, _ := st.DB.FetchEntry(eHash)
 
 							if len(ent.ExternalIDs()) > 1 && string(ent.ExternalIDs()[1]) == "Identity Chain" {
 								// this is a new identity
@@ -217,16 +217,18 @@ func addIdentity(extIDs [][]byte, chainID interfaces.IHash, st *State) {
 	oneID.Status = constants.IDENTITY_UNASSIGNED // new identity.
 	idnew[len(id)] = oneID
 
-	//sigmsg := appendbytes(extIDs[0],extIDs[1])
-	//sigmsg = appendbytes (sigmsg,extIDs[2])
-	//verify Signature
-	//if ed.Verify(oneID.Key4,sigmsg,extIDs[4]){
 	st.Identities = idnew
-	//}
 }
 
 func updateManagementKey(extIDs [][]byte, chainID interfaces.IHash, st *State) {
 	// find the Identity index from the chain id in the external id.  add this chainID as the management id
+	idChain := primitives.NewHash(extIDs[2])
+	IdentityIndex := isIdentityChain(idChain, st.Identities)
+
+	st.Identities[IdentityIndex].ManagementChainID = chainID
+}
+
+func registerIdentityAsServer(extIDs [][]byte, chainID interfaces.IHash, st *State) {
 	idChain := primitives.NewHash(extIDs[2])
 	IdentityIndex := isIdentityChain(idChain, st.Identities)
 
@@ -236,18 +238,16 @@ func updateManagementKey(extIDs [][]byte, chainID interfaces.IHash, st *State) {
 		fmt.Println("############################################################################")
 	} else {
 		// Verify Signature
+		fmt.Printf("DebugLen:%d\n", len(extIDs[3]))
 		idKey := st.Identities[IdentityIndex].Key1
 		if checkSig(idKey, extIDs[3][1:33], sigmsg, extIDs[4]) {
-			st.Identities[IdentityIndex].ManagementChainID = chainID
+			st.Identities[IdentityIndex].Status = constants.IDENTITY_PENDING_FULL
 		} else {
-			log.Println("New Management Chain for identity [" + chainID.String()[:10] + "] is invalid. Bad signiture")
+			log.Println("New Management Chain Register for identity [" + chainID.String()[:10] + "] is invalid. Bad signiture")
 		}
 
 	}
-}
-
-func registerIdentityAsServer(IdentityIndex int, chainID interfaces.IHash, st *State) {
-	st.Identities[IdentityIndex].Status = constants.IDENTITY_PENDING_FULL
+	//st.Identities[IdentityIndex].Status = constants.IDENTITY_PENDING_FULL
 }
 
 func registerBlockSigningKey(extIDs [][]byte, chainID interfaces.IHash, st *State) {

@@ -81,11 +81,11 @@ func (m *CommitChainMsg) GetHash() interfaces.IHash {
 
 func (m *CommitChainMsg) GetMsgHash() interfaces.IHash {
 
-		data, err := m.MarshalBinary()
-		if err != nil {
-			return nil
-		}
-		m.MsgHash = primitives.Sha(data)
+	data, err := m.MarshalBinary()
+	if err != nil {
+		return nil
+	}
+	m.MsgHash = primitives.Sha(data)
 
 	return m.MsgHash
 }

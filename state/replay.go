@@ -30,15 +30,14 @@ func hours(unix int64) int {
 	return int(unix / 60 / 60)
 }
 
-
 // Returns false if the hash is too old, or is already a
 // member of the set.  Timestamp is in seconds.
 func (r *Replay) Valid(hash [32]byte, timestamp int64, systemtime int64) (index int, valid bool) {
 
 	// Check the timestamp to see if within 12 hours of the system time.  That not valid, we are
 	// just done without any added concerns.
-	if timestamp - systemtime > 60*60*12 || systemtime - timestamp > 60*60*12 {
-			return -1, false
+	if timestamp-systemtime > 60*60*12 || systemtime-timestamp > 60*60*12 {
+		return -1, false
 	}
 
 	_, okc := r.check[hash]
@@ -51,21 +50,21 @@ func (r *Replay) Valid(hash [32]byte, timestamp int64, systemtime int64) (index 
 	}
 
 	if r.center == 0 {
-			r.center = now
-			r.basetime = now-(numBuckets/2)
-			r.check = make(map[[32]byte]byte,0)
+		r.center = now
+		r.basetime = now - (numBuckets / 2)
+		r.check = make(map[[32]byte]byte, 0)
 	}
 	for r.center < now {
-			copy(r.buckets[:],r.buckets[1:])
-			r.buckets[numBuckets-1]=nil
-			r.center++
-			r.basetime++
+		copy(r.buckets[:], r.buckets[1:])
+		r.buckets[numBuckets-1] = nil
+		r.center++
+		r.basetime++
 	}
 
 	t := hours(timestamp)
-	index = t-r.basetime
+	index = t - r.basetime
 	if index < 0 || index >= numBuckets {
-		fmt.Println("dddd Timestamp false on time:",index)
+		fmt.Println("dddd Timestamp false on time:", index)
 		return 0, false
 	}
 
@@ -75,7 +74,7 @@ func (r *Replay) Valid(hash [32]byte, timestamp int64, systemtime int64) (index 
 		_, ok := r.buckets[index][hash]
 		if ok {
 			if !okc {
-				panic(fmt.Sprintf("dddd Replay Failure returns false %x %d",hash,timestamp))
+				panic(fmt.Sprintf("dddd Replay Failure returns false %x %d", hash, timestamp))
 			}
 			return index, false
 		}
@@ -106,7 +105,7 @@ func (r *Replay) IsTSValid_(hash [32]byte, timestamp int64, now int64) bool {
 	if index, ok := r.Valid(hash, timestamp, now); ok {
 		// Mark this hash as seen
 		r.buckets[index][hash] = 'x'
-		r.check[hash]='x'
+		r.check[hash] = 'x'
 		return true
 	}
 
