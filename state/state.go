@@ -12,6 +12,9 @@ import (
 	"strings"
 	"time"
 
+	"math/rand"
+	"sync"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
@@ -23,8 +26,6 @@ import (
 	"github.com/FactomProject/factomd/logger"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
-	"math/rand"
-	"sync"
 )
 
 var _ = fmt.Print
@@ -319,7 +320,7 @@ func (s *State) Init() {
 
 	s.tickerQueue = make(chan int, 10000)               //ticks from a clock
 	s.timerMsgQueue = make(chan interfaces.IMsg, 10000) //incoming eom notifications, used by leaders
-	s.timeoffset = int64(rand.Int63() % int64(time.Millisecond*10))
+	s.timeoffset = int64(rand.Int63() % int64(time.Microsecond*10))
 	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 10000) //incoming message queue from the network messages
 	s.InvalidMessages = make(map[[32]byte]interfaces.IMsg, 0)
 	s.networkOutMsgQueue = make(chan interfaces.IMsg, 10000) //Messages to be broadcast to the network
