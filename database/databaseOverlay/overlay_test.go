@@ -16,6 +16,19 @@ import (
 	"testing"
 )
 
+/*
+func TestListAllBuckets(t *testing.T) {
+	dbo := testHelper.CreateAndPopulateTestDatabaseOverlay()
+	buckets, err := dbo.ListAllBuckets()
+	if err != nil {
+		t.Error(err.Error())
+	}
+	for _, b := range buckets {
+		t.Errorf("%x", b)
+	}
+}
+*/
+
 func TestGetEntryType(t *testing.T) {
 	blocks := testHelper.CreateFullTestBlockSet()
 	dbo := testHelper.CreateAndPopulateTestDatabaseOverlay()

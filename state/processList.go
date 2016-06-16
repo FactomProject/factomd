@@ -3,12 +3,11 @@ package state
 import (
 	"fmt"
 
+	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/database/databaseOverlay"
+	"github.com/FactomProject/factomd/common/directoryBlock"
 	"bytes"
 	"log"
-
-	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/common/directoryBlock"
-	"github.com/FactomProject/factomd/database/databaseOverlay"
 
 	"time"
 
@@ -442,6 +441,7 @@ VMLoop:
 			}
 
 			thisAck := vm.ListAck[j]
+
 
 			if thisAck == nil { // IF I don't have an Ack to match this entry
 				vm.List[j] = nil // throw the entry away, and continue to the

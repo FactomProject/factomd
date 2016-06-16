@@ -5,12 +5,8 @@
 package databaseOverlay_test
 
 import (
-	//"github.com/FactomProject/factomd/common/primitives"
-
-	. "github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/database/databaseOverlay"
 	. "github.com/FactomProject/factomd/testHelper"
 
 	"testing"
@@ -42,7 +38,7 @@ func TestPaidFor(t *testing.T) {
 				entryHash = entry.(*entryCreditBlock.CommitEntry).EntryHash
 			}
 
-			h, err := dbo.LoadPaidFor(entryHash)
+			h, err := dbo.FetchPaidFor(entryHash)
 			if err != nil {
 				t.Error(err)
 			}
@@ -56,7 +52,7 @@ func TestPaidFor(t *testing.T) {
 		}
 
 		for _, entry := range block.Entries {
-			h, err := dbo.LoadPaidFor(entry.GetHash())
+			h, err := dbo.FetchPaidFor(entry.GetHash())
 			if err != nil {
 				t.Error(err)
 			}

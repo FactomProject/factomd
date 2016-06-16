@@ -310,7 +310,7 @@ func CreateReceipt(dbo interfaces.DBOverlay, entryID interfaces.IHash) (*Receipt
 		return nil, fmt.Errorf("Block containing entry not found")
 	}
 
-	eBlock, err := dbo.FetchEBlockByKeyMR(hash)
+	eBlock, err := dbo.FetchEBlock(hash)
 	if err != nil {
 		return nil, err
 	}
@@ -351,7 +351,7 @@ func CreateReceipt(dbo interfaces.DBOverlay, entryID interfaces.IHash) (*Receipt
 		return nil, fmt.Errorf("Block containing EBlock not found")
 	}
 
-	dBlock, err := dbo.FetchDBlockByKeyMR(hash)
+	dBlock, err := dbo.FetchDBlock(hash)
 	if err != nil {
 		return nil, err
 	}

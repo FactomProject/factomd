@@ -45,6 +45,27 @@ func NewBoltDB(bucketList [][]byte, filename string) *BoltDB {
  *       Methods
  ***************************************/
 
+func (db *BoltDB) ListAllBuckets() ([][]byte, error) {
+	db.Sem.RLock()
+	defer db.Sem.RUnlock()
+
+	answer := [][]byte{}
+	db.db.View(func(tx *bolt.Tx) error {
+		c := tx.Cursor()
+		k, _ := c.First()
+		for {
+			if k == nil {
+				break
+			}
+			answer = append(answer, k)
+			k, _ = c.Next()
+		}
+		return nil
+	})
+
+	return answer, nil
+}
+
 // We don't care if delete works or not.  If the key isn't there, that's ok
 func (db *BoltDB) Delete(bucket []byte, key []byte) error {
 	db.Sem.Lock()
@@ -179,11 +200,12 @@ func (db *BoltDB) ListAllKeys(bucket []byte) (keys [][]byte, err error) {
 	return
 }
 
-func (db *BoltDB) GetAll(bucket []byte, sample interfaces.BinaryMarshallableAndCopyable) ([]interfaces.BinaryMarshallableAndCopyable, error) {
+func (db *BoltDB) GetAll(bucket []byte, sample interfaces.BinaryMarshallableAndCopyable) ([]interfaces.BinaryMarshallableAndCopyable, [][]byte, error) {
 	db.Sem.Lock()
 	defer db.Sem.Unlock()
 
 	answer := []interfaces.BinaryMarshallableAndCopyable{}
+	keys := [][]byte{}
 	err := db.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(bucket))
 		if b == nil {
@@ -195,6 +217,7 @@ func (db *BoltDB) GetAll(bucket []byte, sample interfaces.BinaryMarshallableAndC
 				if err != nil {
 					return err
 				}
+				keys = append(keys, k)
 				answer = append(answer, tmp)
 				return nil
 			})
@@ -203,9 +226,9 @@ func (db *BoltDB) GetAll(bucket []byte, sample interfaces.BinaryMarshallableAndC
 		return nil
 	})
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return answer, nil
+	return answer, keys, nil
 }
 
 // We have to make accomadation for many Init functions.  But what we really

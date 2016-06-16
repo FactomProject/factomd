@@ -268,29 +268,19 @@ func HandleV2RawData(state interfaces.IState, params interface{}) (interface{}, 
 	var b []byte
 
 	// try to find the block data in db and return the first one found
-	if block, _ = dbase.FetchFBlockByKeyMR(h); block != nil {
+	if block, _ = dbase.FetchFBlock(h); block != nil {
 		b, _ = block.MarshalBinary()
-	} else if block, _ = dbase.FetchDBlockByKeyMR(h); block != nil {
+	} else if block, _ = dbase.FetchDBlock(h); block != nil {
 		b, _ = block.MarshalBinary()
-	} else if block, _ = dbase.FetchABlockByKeyMR(h); block != nil {
+	} else if block, _ = dbase.FetchABlock(h); block != nil {
 		b, _ = block.MarshalBinary()
-	} else if block, _ = dbase.FetchEBlockByKeyMR(h); block != nil {
+	} else if block, _ = dbase.FetchEBlock(h); block != nil {
 		b, _ = block.MarshalBinary()
-	} else if block, _ = dbase.FetchECBlockByHeaderHash(h); block != nil {
+	} else if block, _ = dbase.FetchECBlock(h); block != nil {
 		b, _ = block.MarshalBinary()
-
-	} else if block, _ = dbase.FetchEntryByHash(h); block != nil {
+	} else if block, _ = dbase.FetchFBlock(h); block != nil {
 		b, _ = block.MarshalBinary()
-
-	} else if block, _ = dbase.FetchFBlockByHash(h); block != nil {
-		b, _ = block.MarshalBinary()
-	} else if block, _ = dbase.FetchDBlockByHash(h); block != nil {
-		b, _ = block.MarshalBinary()
-	} else if block, _ = dbase.FetchABlockByHash(h); block != nil {
-		b, _ = block.MarshalBinary()
-	} else if block, _ = dbase.FetchEBlockByHash(h); block != nil {
-		b, _ = block.MarshalBinary()
-	} else if block, _ = dbase.FetchECBlockByHash(h); block != nil {
+	} else if block, _ = dbase.FetchEntry(h); block != nil {
 		b, _ = block.MarshalBinary()
 	} else {
 		return nil, NewEntryNotFoundError()
@@ -341,12 +331,12 @@ func HandleV2DirectoryBlock(state interfaces.IState, params interface{}) (interf
 	dbase := state.GetAndLockDB()
 	defer state.UnlockDB()
 
-	block, err := dbase.FetchDBlockByKeyMR(h)
+	block, err := dbase.FetchDBlock(h)
 	if err != nil {
 		return nil, NewInvalidHashError()
 	}
 	if block == nil {
-		block, err = dbase.FetchDBlockByHash(h)
+		block, err = dbase.FetchDBlock(h)
 		if err != nil {
 			return nil, NewInvalidHashError()
 		}
@@ -385,12 +375,12 @@ func HandleV2EntryBlock(state interfaces.IState, params interface{}) (interface{
 	dbase := state.GetAndLockDB()
 	defer state.UnlockDB()
 
-	block, err := dbase.FetchEBlockByKeyMR(h)
+	block, err := dbase.FetchEBlock(h)
 	if err != nil {
 		return nil, NewInvalidHashError()
 	}
 	if block == nil {
-		block, err = dbase.FetchEBlockByHash(h)
+		block, err = dbase.FetchEBlock(h)
 		if err != nil {
 			return nil, NewInvalidHashError()
 		}
@@ -454,7 +444,7 @@ func HandleV2Entry(state interfaces.IState, params interface{}) (interface{}, *p
 	dbase := state.GetAndLockDB()
 	defer state.UnlockDB()
 
-	entry, err := dbase.FetchEntryByHash(h)
+	entry, err := dbase.FetchEntry(h)
 	if err != nil {
 		return nil, NewInvalidHashError()
 	}

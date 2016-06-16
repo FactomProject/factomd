@@ -30,6 +30,42 @@ var _ interfaces.IDirectoryBlock = (*DirectoryBlock)(nil)
 var _ interfaces.DatabaseBatchable = (*DirectoryBlock)(nil)
 var _ interfaces.DatabaseBlockWithEntries = (*DirectoryBlock)(nil)
 
+func (c *DirectoryBlock) SetEntryHash(hash, chainID interfaces.IHash, index int) {
+	if len(c.DBEntries) < index {
+		ent := make([]interfaces.IDBEntry, index)
+		copy(ent, c.DBEntries)
+		c.DBEntries = ent
+	}
+	dbe := new(DBEntry)
+	dbe.ChainID = chainID
+	dbe.KeyMR = hash
+	c.DBEntries[index] = dbe
+}
+
+func (c *DirectoryBlock) SetABlockHash(aBlock interfaces.IAdminBlock) error {
+	hash, err := aBlock.PartialHash()
+	if err != nil {
+		return err
+	}
+	c.SetEntryHash(hash, aBlock.GetChainID(), 0)
+	return nil
+}
+
+func (c *DirectoryBlock) SetECBlockHash(ecBlock interfaces.IEntryCreditBlock) error {
+	hash, err := ecBlock.HeaderHash()
+	if err != nil {
+		return err
+	}
+	c.SetEntryHash(hash, ecBlock.GetChainID(), 1)
+	return nil
+}
+
+func (c *DirectoryBlock) SetFBlockHash(fBlock interfaces.IFBlock) error {
+	hash := fBlock.GetKeyMR()
+	c.SetEntryHash(hash, fBlock.GetChainID(), 2)
+	return nil
+}
+
 func (c *DirectoryBlock) GetEntryHashes() []interfaces.IHash {
 	entries := c.DBEntries[:]
 	answer := make([]interfaces.IHash, len(entries))
@@ -229,7 +265,8 @@ func (b *DirectoryBlock) HeaderHash() (interfaces.IHash, error) {
 }
 
 func (b *DirectoryBlock) BodyKeyMR() interfaces.IHash {
-	return b.GetHeader().GetBodyMR()
+	key, _ := b.BuildBodyMR()
+	return key
 }
 
 func (b *DirectoryBlock) BuildKeyMerkleRoot() (keyMR interfaces.IHash, err error) {
