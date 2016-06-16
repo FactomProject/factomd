@@ -238,7 +238,6 @@ func registerIdentityAsServer(extIDs [][]byte, chainID interfaces.IHash, st *Sta
 		fmt.Println("############################################################################")
 	} else {
 		// Verify Signature
-		fmt.Printf("DebugLen:%d\n", len(extIDs[3]))
 		idKey := st.Identities[IdentityIndex].Key1
 		if checkSig(idKey, extIDs[3][1:33], sigmsg, extIDs[4]) {
 			st.Identities[IdentityIndex].Status = constants.IDENTITY_PENDING_FULL
@@ -263,7 +262,14 @@ func registerBlockSigningKey(extIDs [][]byte, chainID interfaces.IHash, st *Stat
 		if checkSig(idKey, extIDs[5][1:33], sigmsg, extIDs[6]) {
 			st.Identities[IdentityIndex].SigningKey = primitives.NewHash(extIDs[3])
 			// Add to admin block
-			// TODO: Add to admin block
+			//IHash, *[32]byte) (err error)
+			var key [32]byte
+			if len(extIDs[3]) != 32 {
+				log.Println("New Block Signing key for identity [" + chainID.String()[:10] + "] is invalid length")
+				return
+			}
+			copy(key[:32], extIDs[3][:32])
+			st.LeaderPL.AdminBlock.AddFederatedServerSigningKey(chainID, &key)
 		} else {
 			log.Println("New Block Signing key for identity [" + chainID.String()[:10] + "] is invalid. Bad signiture")
 		}
@@ -324,7 +330,13 @@ func registerAnchorSigningKey(extIDs [][]byte, chainID interfaces.IHash, st *Sta
 		if checkSig(idKey, extIDs[7][1:33], sigmsg, extIDs[8]) {
 			st.Identities[IdentityIndex].AnchorKeys = newAsk
 			// Add to admin block
-			// TODO: Add to admin block
+			var key [20]byte
+			if len(extIDs[5]) != 20 {
+				log.Println("New Anchor key for identity [" + chainID.String()[:10] + "] is invalid length")
+				return
+			}
+			copy(key[:20], extIDs[5][:20])
+			st.LeaderPL.AdminBlock.AddFederatedServerBitcoinAnchorKey(chainID, extIDs[3][0], extIDs[4][0], &key)
 		} else {
 			log.Println("New Anchor key for identity [" + chainID.String()[:10] + "] is invalid. Bad signiture")
 		}
@@ -412,7 +424,6 @@ func checkSig(idKey interfaces.IHash, pub []byte, msg []byte, sig []byte) bool {
 	pre = append(pre, pubFix[:]...)
 	id := primitives.Shad(pre)
 
-	// TODO Check idkey
 	if id.IsSameAs(idKey) {
 		return ed.Verify(&pubFix, msg, &sigFix)
 	} else {

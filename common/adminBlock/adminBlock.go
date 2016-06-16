@@ -55,6 +55,29 @@ func (c *AdminBlock) AddMatryoshkaHash(identityChainID interfaces.IHash, mHash i
 	c.ABEntries = append(c.ABEntries, entry)
 }
 
+func (c *AdminBlock) AddFederatedServerSigningKey(identityChainID interfaces.IHash, publicKey *[32]byte) error {
+	p := new(primitives.PublicKey)
+	err := p.UnmarshalBinary(publicKey[:])
+	if err != nil {
+		return err
+	}
+	entry := NewAddFederatedServerSigningKey(identityChainID, byte(0), *p)
+	c.ABEntries = append(c.ABEntries, entry)
+	return nil
+}
+
+func (c *AdminBlock) AddFederatedServerBitcoinAnchorKey(identityChainID interfaces.IHash, keyPriority byte, keyType byte, ecdsaPublicKey *[20]byte) error {
+	b := new(primitives.ByteSlice20)
+	err := b.UnmarshalBinary(ecdsaPublicKey[:])
+	if err != nil {
+		return err
+	} else {
+		entry := NewAddFederatedServerBitcoinAnchorKey(identityChainID, keyPriority, keyType, *b)
+		c.ABEntries = append(c.ABEntries, entry)
+		return nil
+	}
+}
+
 func (c *AdminBlock) GetHeader() interfaces.IABlockHeader {
 	return c.Header
 }
@@ -160,10 +183,11 @@ func (b *AdminBlock) AddABEntry(e interfaces.IABEntry) (err error) {
 
 // Add the end-of-minute marker into the admin block
 func (b *AdminBlock) AddEndOfMinuteMarker(minuteNumber byte) (err error) {
-	eOMEntry := &EndOfMinuteEntry{
-		MinuteNumber: minuteNumber}
+	// Minute Markers removed.
+	//eOMEntry := &EndOfMinuteEntry{
+	//	MinuteNumber: minuteNumber}
 
-	b.AddABEntry(eOMEntry)
+	//b.AddABEntry(eOMEntry)
 
 	return
 }
