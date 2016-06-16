@@ -77,13 +77,13 @@ func LoadIdentityByDirectoryBlockHeight(height uint32, st *State) {
 		if cid.IsSameAs(ManagementChain) {
 			// is it a new one?
 			entkmr := eBlk.GetKeyMR() //eBlock Hash
-			ecb, _ := st.DB.FetchEBlockByKeyMR(entkmr)
+			ecb, _ := st.DB.FetchEBlock(entkmr)
 			entryHashes := ecb.GetEntryHashes()
 			for _, eHash := range entryHashes {
 
 				hs := eHash.String()
 				if hs[0:10] != "0000000000" { //ignore minute markers
-					ent, _ := st.DB.FetchEntryByHash(eHash)
+					ent, _ := st.DB.FetchEntry(eHash)
 					if len(ent.ExternalIDs()) > 2 {
 						fmt.Println("Federated Management Chain:", string(ent.ExternalIDs()[1]))
 					}
@@ -97,14 +97,14 @@ func LoadIdentityByDirectoryBlockHeight(height uint32, st *State) {
 				// if so, what kind of entry is it?
 
 				entkmr := eBlk.GetKeyMR() //eBlock Hash
-				ecb, _ := st.DB.FetchEBlockByKeyMR(entkmr)
+				ecb, _ := st.DB.FetchEBlock(entkmr)
 				entryHashes := ecb.GetEntryHashes()
 				for _, eHash := range entryHashes {
 
 					hs := eHash.String()
 					if hs[0:10] != "0000000000" { //ignore minute markers
 
-						ent, _ := st.DB.FetchEntryByHash(eHash)
+						ent, _ := st.DB.FetchEntry(eHash)
 
 						if string(ent.ExternalIDs()[1]) == "Register Server Management" {
 							// this is an Identity that should have been registered already with a 0 status.
@@ -139,7 +139,7 @@ func LoadIdentityByDirectoryBlockHeight(height uint32, st *State) {
 				// this identity is not in the
 				// read the entry and see if it looks like an initial Identity Chain Creation
 				entkmr := eBlk.GetKeyMR() //eBlock Hash
-				ecb, _ := st.DB.FetchEBlockByKeyMR(entkmr)
+				ecb, _ := st.DB.FetchEBlock(entkmr)
 				if ecb != nil {
 					entryHashes := ecb.GetEntryHashes()
 					for _, eHash := range entryHashes {
@@ -147,7 +147,7 @@ func LoadIdentityByDirectoryBlockHeight(height uint32, st *State) {
 						if hs[0:10] != "0000000000" {
 							//ignore minute markers
 
-							ent, _ := st.DB.FetchEntryByHash(eHash)
+							ent, _ := st.DB.FetchEntry(eHash)
 
 							if len(ent.ExternalIDs()) > 1 && string(ent.ExternalIDs()[1]) == "Identity Chain" {
 								// this is a new identity
