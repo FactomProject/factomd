@@ -87,7 +87,7 @@ func (c *FBlock) DatabasePrimaryIndex() interfaces.IHash {
 }
 
 func (c *FBlock) DatabaseSecondaryIndex() interfaces.IHash {
-	return c.GetHash()
+	return c.GetFullHash()
 }
 
 func (c *FBlock) GetDatabaseHeight() uint32 {
@@ -123,9 +123,7 @@ func (b FBlock) GetNewInstance() interfaces.IFBlock {
 }
 
 func (b *FBlock) GetHash() interfaces.IHash {
-	kmr := b.GetKeyMR()
-
-	return kmr
+	return b.GetFullHash()
 }
 
 func (b *FBlock) GetEndOfPeriod() [10]int {
@@ -266,64 +264,63 @@ func (b *FBlock) UnmarshalBinaryData(data []byte) (newdata []byte, err error) {
 		panic(fmt.Sprintf("error in: %x %x", data[:35], constants.FACTOID_CHAINID[:]))
 		return nil, fmt.Errorf("Block does not begin with the Factoid ChainID")
 	}
-	data = data[32:]
+	newdata = data[32:]
 
 	b.BodyMR = new(primitives.Hash)
-	data, err = b.BodyMR.UnmarshalBinaryData(data)
+	newdata, err = b.BodyMR.UnmarshalBinaryData(newdata)
 	if err != nil {
 		return nil, err
 	}
 
 	b.PrevKeyMR = new(primitives.Hash)
-	data, err = b.PrevKeyMR.UnmarshalBinaryData(data)
+	newdata, err = b.PrevKeyMR.UnmarshalBinaryData(newdata)
 	if err != nil {
 		return nil, err
 	}
 
 	b.PrevFullHash = new(primitives.Hash)
-	data, err = b.PrevFullHash.UnmarshalBinaryData(data)
+	newdata, err = b.PrevFullHash.UnmarshalBinaryData(newdata)
 	if err != nil {
 		return nil, err
 	}
 
-	b.ExchRate, data = binary.BigEndian.Uint64(data[0:8]), data[8:]
-	b.DBHeight, data = binary.BigEndian.Uint32(data[0:4]), data[4:]
+	b.ExchRate, newdata = binary.BigEndian.Uint64(newdata[0:8]), newdata[8:]
+	b.DBHeight, newdata = binary.BigEndian.Uint32(newdata[0:4]), newdata[4:]
 
-	skip, data := primitives.DecodeVarInt(data) // Skip the Expansion Header, if any, since
-	data = data[skip:]                          // we don't know what to do with it.
+	skip, newdata := primitives.DecodeVarInt(newdata) // Skip the Expansion Header, if any, since
+	newdata = newdata[skip:]                          // we don't know what to do with it.
 
-	cnt, data := binary.BigEndian.Uint32(data[0:4]), data[4:]
+	cnt, newdata := binary.BigEndian.Uint32(newdata[0:4]), newdata[4:]
 
-	data = data[4:] // Just skip the size... We don't really need it.
+	newdata = newdata[4:] // Just skip the size... We don't really need it.
 
 	b.Transactions = make([]interfaces.ITransaction, cnt, cnt)
 	for i, _ := range b.endOfPeriod {
 		b.endOfPeriod[i] = 0
 	}
 	var periodMark = 0
-	for i := uint32(0); i < cnt; i++ {
 
-		for data[0] == constants.MARKER {
+	for i := uint32(0); i < cnt; i++ {
+		for newdata[0] == constants.MARKER {
 			b.endOfPeriod[periodMark] = int(i)
-			data = data[1:]
+			newdata = newdata[1:]
 			periodMark++
 		}
 
 		trans := new(Transaction)
-		data, err = trans.UnmarshalBinaryData(data)
+		newdata, err = trans.UnmarshalBinaryData(newdata)
 		if err != nil {
 			return nil, fmt.Errorf("Failed to unmarshal a transaction in block.\n" + err.Error())
 		}
 		b.Transactions[i] = trans
 	}
 	for periodMark < len(b.endOfPeriod) {
-		data = data[1:]
+		newdata = newdata[1:]
 		b.endOfPeriod[periodMark] = int(cnt)
 		periodMark++
 	}
 
-	return data, nil
-
+	return newdata, nil
 }
 
 func (b *FBlock) UnmarshalBinary(data []byte) (err error) {
@@ -392,6 +389,7 @@ func (b *FBlock) GetKeyMR() interfaces.IHash {
 		panic("Failed to create KeyMR: " + err.Error())
 	}
 	headerHash := primitives.Sha(data)
+
 	cat := append(headerHash.Bytes(), bodyMR.Bytes()...)
 	kmr := primitives.Sha(cat)
 	return kmr
@@ -399,7 +397,6 @@ func (b *FBlock) GetKeyMR() interfaces.IHash {
 
 // Calculates the Key Merkle Root for this block and returns it.
 func (b *FBlock) GetFullHash() interfaces.IHash {
-
 	ledgerMR := b.GetLedgerMR()
 
 	data, err := b.MarshalHeader()
@@ -415,7 +412,6 @@ func (b *FBlock) GetFullHash() interfaces.IHash {
 
 // Returns the LedgerMR for this block.
 func (b *FBlock) GetLedgerMR() interfaces.IHash {
-
 	hashes := make([]interfaces.IHash, 0, len(b.Transactions))
 	marker := 0
 	for i, trans := range b.Transactions {
@@ -423,12 +419,7 @@ func (b *FBlock) GetLedgerMR() interfaces.IHash {
 			marker++
 			hashes = append(hashes, primitives.Sha(constants.ZERO))
 		}
-		data, err := trans.MarshalBinarySig()
-		hash := primitives.Sha(data)
-		if err != nil {
-			panic("Failed to get LedgerMR: " + err.Error())
-		}
-		hashes = append(hashes, hash)
+		hashes = append(hashes, trans.GetSigHash())
 	}
 
 	// Add any lagging markers

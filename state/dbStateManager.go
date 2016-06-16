@@ -7,11 +7,10 @@ package state
 import (
 	"encoding/hex"
 	"fmt"
-	"time"
-
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/log"
+	"time"
 )
 
 var _ = hex.EncodeToString
@@ -59,7 +58,7 @@ func (list *DBStateList) String() string {
 	for i, ds := range list.DBStates {
 		rec = "M"
 		if ds != nil && ds.DirectoryBlock != nil {
-			dblk, _ := list.State.DB.FetchDBlockByHash(ds.DirectoryBlock.GetKeyMR())
+			dblk, _ := list.State.DB.FetchDBlock(ds.DirectoryBlock.GetKeyMR())
 			if dblk != nil {
 				rec = "R"
 			}
@@ -192,9 +191,9 @@ func (list *DBStateList) FixupLinks(i int, d *DBState) {
 		d.DirectoryBlock.GetHeader().SetPrevKeyMR(p.DirectoryBlock.GetKeyMR())
 		d.DirectoryBlock.GetHeader().SetTimestamp(uint32(list.State.GetLeaderTimestamp()))
 
-		d.DirectoryBlock.GetDBEntries()[0].SetKeyMR(d.AdminBlock.GetHash())
-		d.DirectoryBlock.GetDBEntries()[1].SetKeyMR(d.EntryCreditBlock.GetHash())
-		d.DirectoryBlock.GetDBEntries()[2].SetKeyMR(d.FactoidBlock.GetHash())
+		d.DirectoryBlock.SetABlockHash(d.AdminBlock)
+		d.DirectoryBlock.SetECBlockHash(d.EntryCreditBlock)
+		d.DirectoryBlock.SetFBlockHash(d.FactoidBlock)
 
 		pl := list.State.ProcessLists.Get(d.DirectoryBlock.GetHeader().GetDBHeight())
 
@@ -233,7 +232,7 @@ func (list *DBStateList) UpdateState() (progress bool) {
 		// Make sure the directory block is properly synced up with the prior block, if there
 		// is one.
 
-		dblk, _ := list.State.DB.FetchDBlockByKeyMR(d.DirectoryBlock.GetKeyMR())
+		dblk, _ := list.State.DB.FetchDBlock(d.DirectoryBlock.GetKeyMR())
 		if dblk == nil {
 			if i > 0 {
 				p := list.DBStates[i-1]
@@ -270,7 +269,6 @@ func (list *DBStateList) UpdateState() (progress bool) {
 			if err := list.State.DB.ProcessECBlockMultiBatch(d.EntryCreditBlock, false); err != nil {
 				panic(err.Error())
 			}
-
 			pl := list.State.ProcessLists.Get(d.DirectoryBlock.GetHeader().GetDBHeight())
 			for _, eb := range pl.NewEBlocks {
 				if err := list.State.DB.ProcessEBlockMultiBatch(eb, false); err != nil {
@@ -289,30 +287,6 @@ func (list *DBStateList) UpdateState() (progress bool) {
 
 		}
 
-		/*
-			dblk2, _ := list.State.DB.FetchDBlockByKeyMR(d.DirectoryBlock.GetKeyMR())
-			if dblk2 == nil {
-				fmt.Printf("Failed to save the Directory Block %d %x\n",
-					d.DirectoryBlock.GetHeader().GetDBHeight(),
-					d.DirectoryBlock.GetKeyMR().Bytes()[:3])
-				panic("Failed to save Directory Block")
-			}
-			keyMR2 := dblk2.GetKeyMR()
-			if !d.DirectoryBlock.GetKeyMR().IsSameAs(keyMR2) {
-				fmt.Println(dblk == nil)
-				fmt.Printf("Keys differ %x and %x", d.DirectoryBlock.GetKeyMR().Bytes()[:3], keyMR2.Bytes()[:3])
-				panic("KeyMR failure")
-			}
-			if i > 0 {
-				dbprev, _ := list.State.DB.FetchDBlockByKeyMR(d.DirectoryBlock.GetHeader().GetPrevKeyMR())
-				if dbprev == nil {
-					fmt.Println(list.DBStates[i-1].dbstring)
-					fmt.Println(list.DBStates[i-1].DirectoryBlock.String())
-					fmt.Println(d.DirectoryBlock.String())
-					panic(fmt.Sprintf("%s Hashes have been altered for Directory Blocks", list.State.FactomNodeName))
-				}
-			}
-		*/
 		list.LastTime = list.State.GetTimestamp() // If I saved or processed stuff, I'm good for a while
 		d.Locked = true                           // Only after all is done will I admit this state has been saved.
 
@@ -404,19 +378,9 @@ func (list *DBStateList) Put(dbState *DBState) {
 		list.DBStates[index] = dbState
 	}
 
-	hash, err := dbState.AdminBlock.GetKeyMR()
-	if err != nil {
-		panic(err)
-	}
-	dbState.DirectoryBlock.GetDBEntries()[0].SetKeyMR(hash)
-	hash, err = dbState.EntryCreditBlock.GetFullHash()
-	if err != nil {
-		panic(err)
-	}
-	dbState.DirectoryBlock.GetDBEntries()[1].SetKeyMR(hash)
-	hash = dbState.FactoidBlock.GetHash()
-	dbState.DirectoryBlock.GetDBEntries()[2].SetKeyMR(hash)
-
+	dbState.DirectoryBlock.SetABlockHash(dbState.AdminBlock)
+	dbState.DirectoryBlock.SetECBlockHash(dbState.EntryCreditBlock)
+	dbState.DirectoryBlock.SetFBlockHash(dbState.FactoidBlock)
 }
 
 func (list *DBStateList) Get(height uint32) *DBState {
@@ -435,10 +399,10 @@ func (list *DBStateList) NewDBState(isNew bool,
 
 	dbState := new(DBState)
 
-	dbState.DBHash = directoryBlock.GetHash()
-	dbState.ABHash = adminBlock.GetHash()
-	dbState.FBHash = factoidBlock.GetHash()
-	dbState.ECHash = entryCreditBlock.GetHash()
+	dbState.DBHash = directoryBlock.DatabasePrimaryIndex()
+	dbState.ABHash = adminBlock.DatabasePrimaryIndex()
+	dbState.FBHash = factoidBlock.DatabasePrimaryIndex()
+	dbState.ECHash = entryCreditBlock.DatabasePrimaryIndex()
 
 	dbState.isNew = isNew
 	dbState.DirectoryBlock = directoryBlock

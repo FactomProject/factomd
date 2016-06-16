@@ -3,12 +3,11 @@ package state
 import (
 	"fmt"
 
+	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/database/databaseOverlay"
+	"github.com/FactomProject/factomd/common/directoryBlock"
 	"bytes"
 	"log"
-
-	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/common/directoryBlock"
-	"github.com/FactomProject/factomd/database/databaseOverlay"
 
 	"time"
 
@@ -379,7 +378,7 @@ func (p *ProcessList) CheckDiffSigTally() {
 	// If the majority of VMs' signatures do not match our
 	// saved block, we discard that block from our database.
 	if p.diffSigTally > 0 && p.diffSigTally > (len(p.FedServers)/2) {
-		p.State.DB.Delete([]byte{byte(databaseOverlay.DIRECTORYBLOCK)}, p.State.ProcessLists.Lists[0].DirectoryBlock.GetKeyMR().Bytes())
+		p.State.DB.Delete([]byte(databaseOverlay.DIRECTORYBLOCK), p.State.ProcessLists.Lists[0].DirectoryBlock.GetKeyMR().Bytes())
 	}
 }
 
@@ -442,6 +441,7 @@ VMLoop:
 			}
 
 			thisAck := vm.ListAck[j]
+
 
 			if thisAck == nil { // IF I don't have an Ack to match this entry
 				vm.List[j] = nil // throw the entry away, and continue to the

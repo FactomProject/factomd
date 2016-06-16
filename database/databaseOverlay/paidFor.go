@@ -12,7 +12,7 @@ func (db *Overlay) SavePaidFor(entry, ecEntry interfaces.IHash) error {
 	}
 	batch := []interfaces.Record{}
 
-	batch = append(batch, interfaces.Record{[]byte{PAID_FOR}, entry.Bytes(), ecEntry})
+	batch = append(batch, interfaces.Record{PAID_FOR, entry.Bytes(), ecEntry})
 
 	err := db.DB.PutInBatch(batch)
 	if err != nil {
@@ -42,7 +42,7 @@ func (db *Overlay) SavePaidForMultiFromBlockMultiBatch(block interfaces.IEntryCr
 		}
 
 		if checkForDuplicateEntries == true {
-			loaded, err := db.Get([]byte{PAID_FOR}, entryHash.Bytes(), primitives.NewZeroHash())
+			loaded, err := db.Get(PAID_FOR, entryHash.Bytes(), primitives.NewZeroHash())
 			if err != nil {
 				return err
 			}
@@ -50,7 +50,7 @@ func (db *Overlay) SavePaidForMultiFromBlockMultiBatch(block interfaces.IEntryCr
 				continue
 			}
 		}
-		batch = append(batch, interfaces.Record{[]byte{PAID_FOR}, entryHash.Bytes(), entry.Hash()})
+		batch = append(batch, interfaces.Record{PAID_FOR, entryHash.Bytes(), entry.Hash()})
 	}
 	if len(batch) == 0 {
 		return nil
@@ -81,7 +81,7 @@ func (db *Overlay) SavePaidForMultiFromBlock(block interfaces.IEntryCreditBlock,
 		}
 
 		if checkForDuplicateEntries == true {
-			loaded, err := db.Get([]byte{PAID_FOR}, entryHash.Bytes(), primitives.NewZeroHash())
+			loaded, err := db.Get(PAID_FOR, entryHash.Bytes(), primitives.NewZeroHash())
 			if err != nil {
 				return err
 			}
@@ -89,7 +89,7 @@ func (db *Overlay) SavePaidForMultiFromBlock(block interfaces.IEntryCreditBlock,
 				continue
 			}
 		}
-		batch = append(batch, interfaces.Record{[]byte{PAID_FOR}, entryHash.Bytes(), entry.Hash()})
+		batch = append(batch, interfaces.Record{PAID_FOR, entryHash.Bytes(), entry.Hash()})
 	}
 	if len(batch) == 0 {
 		return nil
@@ -104,7 +104,7 @@ func (db *Overlay) SavePaidForMultiFromBlock(block interfaces.IEntryCreditBlock,
 }
 
 func (db *Overlay) FetchPaidFor(hash interfaces.IHash) (interfaces.IHash, error) {
-	block, err := db.DB.Get([]byte{PAID_FOR}, hash.Bytes(), new(primitives.Hash))
+	block, err := db.DB.Get(PAID_FOR, hash.Bytes(), new(primitives.Hash))
 	if err != nil {
 		return nil, err
 	}

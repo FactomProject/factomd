@@ -78,7 +78,7 @@ func (s *State) FetchECTransactionByHash(hash interfaces.IHash) (interfaces.IECB
 	dbase := s.GetAndLockDB()
 	defer s.UnlockDB()
 
-	return dbase.FetchECTransactionByHash(hash)
+	return dbase.FetchECTransaction(hash)
 }
 
 func (s *State) FetchFactoidTransactionByHash(hash interfaces.IHash) (interfaces.ITransaction, error) {
@@ -97,7 +97,7 @@ func (s *State) FetchFactoidTransactionByHash(hash interfaces.IHash) (interfaces
 	dbase := s.GetAndLockDB()
 	defer s.UnlockDB()
 
-	return dbase.FetchFactoidTransactionByHash(hash)
+	return dbase.FetchFactoidTransaction(hash)
 }
 
 func (s *State) FetchPaidFor(hash interfaces.IHash) (interfaces.IHash, error) {
@@ -143,5 +143,5 @@ func (s *State) FetchEntryByHash(hash interfaces.IHash) (interfaces.IEBEntry, er
 	dbase := s.GetAndLockDB()
 	defer s.UnlockDB()
 
-	return dbase.FetchEntryByHash(hash)
+	return dbase.FetchEntry(hash)
 }
