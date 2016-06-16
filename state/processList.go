@@ -357,7 +357,6 @@ func (p *ProcessList) PutNewEntries(dbheight uint32, key interfaces.IHash, value
 	p.NewEntries[key.Fixed()] = value
 }
 
-
 func (p *ProcessList) GetLeaderTimestamp() uint32 {
 	for _, msg := range p.VMs[0].List {
 		if msg.Type() == constants.DIRECTORY_BLOCK_SIGNATURE_MSG {
@@ -506,8 +505,8 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 		delete(p.State.Holding, ack.GetHash().Fixed())
 		delete(p.State.Acks, ack.GetHash().Fixed())
 
-			fmt.Println("dddd", hint, p.State.FactomNodeName, "Toss", m.String())
-			fmt.Println("dddd", hint, p.State.FactomNodeName, "Toss", ack.String())
+		fmt.Println("dddd", hint, p.State.FactomNodeName, "Toss", m.String())
+		fmt.Println("dddd", hint, p.State.FactomNodeName, "Toss", ack.String())
 
 	}
 
@@ -557,7 +556,7 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	// From this point on, we consider the transaction recorded.  If we detect it has already been
 	// recorded, then we still treat it as if we recorded it.
 
-  // We have already tested and found m to be a new message.  We now record its hashes so later, we
+	// We have already tested and found m to be a new message.  We now record its hashes so later, we
 	// can detect that it has been recorded.  We don't care about the results of IsTSValid_ at this point.
 	p.State.InternalReplay.IsTSValid_(m.GetHash().Fixed(), int64(m.GetTimestamp()/1000), now)
 	p.State.InternalReplay.IsTSValid_(m.GetMsgHash().Fixed(), int64(m.GetTimestamp()/1000), now)
