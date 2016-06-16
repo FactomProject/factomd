@@ -136,7 +136,7 @@ func CreateAndPopulateTestDatabaseOverlayForFER(testEntries []FEREntryWithHeight
 
 	for i := 0; i < desiredHeight; i++ {
 		dbo.StartMultiBatch()
-		prev = CreateTestBlockSetForFER(prev, testEntries)
+		prev = CreateTestBlockSetForFER(prev, dbo, testEntries)
 
 		err = dbo.ProcessABlockMultiBatch(prev.ABlock)
 		if err != nil {
@@ -191,7 +191,7 @@ func CreateAndPopulateTestDatabaseOverlayForFER(testEntries []FEREntryWithHeight
 
 
 
-func CreateTestBlockSetForFER(prev *BlockSet, testEntries []FEREntryWithHeight) *BlockSet {
+func CreateTestBlockSetForFER(prev *BlockSet, db *databaseOverlay.Overlay, testEntries []FEREntryWithHeight) *BlockSet {
 	var err error
 	height := 0
 	if prev != nil {
@@ -237,6 +237,7 @@ func CreateTestBlockSetForFER(prev *BlockSet, testEntries []FEREntryWithHeight) 
 for _, testEntry := range testEntries {
 	if (testEntry.Height == uint32(height)) {
 		answer.EBlock.AddEBEntry(testEntry.AnFEREntry)
+		// db.InsertEntry(testEntry.AnFEREntry)    // I don't think I need this
 	}
 }
 
