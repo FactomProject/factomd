@@ -266,7 +266,7 @@ func HandleGetReceipt(ctx *web.Context, hashkey string) {
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
 	param := HashRequest{Hash: hashkey}
-	req := primitives.NewJSON2Request("get-receipt", 1, param)
+	req := primitives.NewJSON2Request("receipt", 1, param)
 
 	jsonResp, jsonError := HandleV2Request(state, req)
 	returnV1(ctx, jsonResp, jsonError)
