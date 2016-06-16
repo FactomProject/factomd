@@ -721,10 +721,6 @@ func (s *State) Green() bool {
 	high := s.GetHighestKnownBlock()
 	s.GreenFlg = rec >= high-1
 
-	if int(s.DBStates.Complete) < len(s.DBStates.DBStates) {
-		s.GreenFlg = false
-	}
-
 	// If we were not green, but we are green now, set our timestamp
 	if !oldflg && s.GreenFlg {
 		s.GreenTimestamp = s.GetTimestamp()
