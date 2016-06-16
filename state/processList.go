@@ -73,17 +73,15 @@ type VM struct {
 	missingTime    int64             // How long we have been waiting for a missing message
 }
 
-// Attempts to unseal. Takes a minute (1-10) Returns false if it cannot.
+//  Takes a minute (1-10) Returns false if the VM is not ready to unseal (i.e. move to the next minute)
 // Returns false if no seal is found.
 func (p *ProcessList) Unsealable(minute int) bool {
 searchVMs:
 	for i := 0; i < len(p.FedServers); i++ {
 		vm := p.VMs[i]
-		if len(vm.List) != vm.Height {
-			return false
-		}
-		for _, v := range vm.List {
-			if v == nil {
+
+		for i, v := range vm.List {
+			if v == nil || i == vm.Height {
 				return false
 			}
 			if eom, ok := v.(*messages.EOM); ok {
@@ -368,23 +366,6 @@ func (p *ProcessList) GetLeaderTimestamp() uint32 {
 		}
 	}
 	return 0
-}
-
-// Check to assure that the given VM has been completely processed
-func (p *ProcessList) GoodTo(vmIndex int) bool {
-	if vmIndex < 0 {
-		vmIndex = p.State.LeaderVMIndex
-	}
-	vm := p.VMs[vmIndex]
-	if len(vm.List) > vm.Height {
-		return false
-	}
-	for _, v := range vm.List {
-		if v == nil {
-			return false
-		}
-	}
-	return true
 }
 
 func (p *ProcessList) ResetDiffSigTally() {
