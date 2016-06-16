@@ -721,6 +721,10 @@ func (s *State) Green() bool {
 	high := s.GetHighestKnownBlock()
 	s.GreenFlg = rec >= high-1
 
+	if int(s.DBStates.Complete) < len(s.DBStates.DBStates) {
+		s.GreenFlg = false
+	}
+
 	// If we were not green, but we are green now, set our timestamp
 	if !oldflg && s.GreenFlg {
 		s.GreenTimestamp = s.GetTimestamp()
@@ -739,7 +743,12 @@ func (s *State) GetHighestKnownBlock() uint32 {
 	if s.ProcessLists == nil {
 		return 0
 	}
-	return s.ProcessLists.DBHeightBase + uint32(len(s.ProcessLists.Lists)-1)
+	plh := s.ProcessLists.DBHeightBase + uint32(len(s.ProcessLists.Lists)-1)
+	dbsh := s.DBStates.Base+ uint32(len(s.DBStates.DBStates))
+	if dbsh > plh {
+		return dbsh
+	}
+	return plh
 }
 
 func (s *State) GetF(adr [32]byte) int64 {

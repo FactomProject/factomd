@@ -239,7 +239,9 @@ func (p *ProcessList) MinuteComplete() int {
 		for _, msg := range p.VMs[i].List {
 			if eom, ok := msg.(*messages.EOM); ok {
 				mm = int(eom.Minute + 1)
-				p.VMs[i].MinuteComplete = mm
+				if mm < m {
+					p.VMs[i].MinuteComplete = mm
+				}
 			}
 		}
 		if m > mm {
@@ -255,13 +257,13 @@ func (p *ProcessList) MinuteFinished() int {
 	m := 10
 	for i := 0; i < len(p.FedServers); i++ {
 		mm := 0
-		for j, msg := range p.VMs[i].List {
-			if j == p.VMs[i].Height {
-				break
-			}
+		for j := 0; j < p.VMs[i].Height; i++ {
+			msg := p.VMs[i].List[j]
 			if eom, ok := msg.(*messages.EOM); ok {
 				mm = int(eom.Minute + 1)
-				p.VMs[i].MinuteFinished = mm
+				if mm < m {
+					p.VMs[i].MinuteFinished = mm
+				}
 			}
 		}
 		if m > mm {
@@ -357,36 +359,6 @@ func (p *ProcessList) PutNewEntries(dbheight uint32, key interfaces.IHash, value
 	p.NewEntries[key.Fixed()] = value
 }
 
-// Test if a process list for a server is EOM complete.  Return true if all messages
-// have been recieved, and we just need the signaure.  If we need EOM messages, or we
-// have all EOM messages and we have the Signature, then we return false.
-func (p *ProcessList) EomComplete() bool {
-	if p == nil {
-		return true
-	}
-
-	for i := 0; i < len(p.FedServers); i++ {
-		c := p.VMs[i]
-		if c.MinuteComplete != 10 {
-			return false
-		}
-	}
-	return true
-}
-
-func (p *ProcessList) FinishedEOM() bool {
-	if p == nil || !p.HasMessage() { // Empty or nul, return true.
-		return true
-	}
-	n := len(p.FedServers)
-	for i := 0; i < n; i++ {
-		c := p.VMs[i]
-		if c.Height <= c.MinuteHeight {
-			return false
-		}
-	}
-	return true
-}
 
 func (p *ProcessList) GetLeaderTimestamp() uint32 {
 	for _, msg := range p.VMs[0].List {
