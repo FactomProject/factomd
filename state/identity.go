@@ -217,26 +217,11 @@ func addIdentity(extIDs [][]byte, chainID interfaces.IHash, st *State) {
 	oneID.Status = constants.IDENTITY_UNASSIGNED // new identity.
 	idnew[len(id)] = oneID
 
-	sigmsg, err := appendExtIDs(extIDs, 0, 2)
-	if err != nil {
-		fmt.Println("ERR:", err)
-		fmt.Println("############################################################################")
-	} else {
-		// Verify Signature
-		idKey := oneID.Key1
-		if checkSig(idKey, extIDs[3][1:33], sigmsg, extIDs[4]) {
-			st.Identities = idnew
-		} else {
-			log.Println("New Identity Chain for identity [" + chainID.String()[:10] + "] is invalid. Bad signiture")
-		}
-
-	}
-
 	//sigmsg := appendbytes(extIDs[0],extIDs[1])
 	//sigmsg = appendbytes (sigmsg,extIDs[2])
 	//verify Signature
 	//if ed.Verify(oneID.Key4,sigmsg,extIDs[4]){
-	//st.Identities = idnew
+	st.Identities = idnew
 	//}
 }
 
