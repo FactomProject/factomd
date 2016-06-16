@@ -17,20 +17,20 @@ type AnchorSigningKey struct {
 	SigningKey string //if bytes, it is hex
 }
 type Identity struct {
-	IdentityChainID   interfaces.IHash
+	IdentityChainID      interfaces.IHash
 	IdentityRegistered   uint32
-	IdentityCreated      uint32	
-	ManagementChainID interfaces.IHash
+	IdentityCreated      uint32
+	ManagementChainID    interfaces.IHash
 	ManagementRegistered uint32
-	ManagementCreated    uint32	
-	MatryoshkaHash    interfaces.IHash
-	Key1              interfaces.IHash
-	Key2              interfaces.IHash
-	Key3              interfaces.IHash
-	Key4              interfaces.IHash
-	SigningKey        interfaces.IHash
-	Status            int
-	AnchorKeys        []AnchorSigningKey
+	ManagementCreated    uint32
+	MatryoshkaHash       interfaces.IHash
+	Key1                 interfaces.IHash
+	Key2                 interfaces.IHash
+	Key3                 interfaces.IHash
+	Key4                 interfaces.IHash
+	SigningKey           interfaces.IHash
+	Status               int
+	AnchorKeys           []AnchorSigningKey
 }
 
 func LoadIdentityCache(st *State) {
@@ -90,94 +90,90 @@ func LoadIdentityByDirectoryBlockHeight(height uint32, st *State) {
 
 		} else if cid.String()[0:6] == "888888" {
 
+			entkmr := eBlk.GetKeyMR() //eBlock Hash
+			ecb, _ := st.DB.FetchEBlock(entkmr)
+			entryHashes := ecb.GetEntryHashes()
+			for _, eHash := range entryHashes {
 
-				entkmr := eBlk.GetKeyMR() //eBlock Hash
-				ecb, _ := st.DB.FetchEBlock(entkmr)
-				entryHashes := ecb.GetEntryHashes()
-				for _, eHash := range entryHashes {
+				hs := eHash.String()
+				if hs[0:10] != "0000000000" { //ignore minute markers
 
-					hs := eHash.String()
-					if hs[0:10] != "0000000000" { //ignore minute markers
+					ent, _ := st.DB.FetchEntry(eHash)
 
-						ent, _ := st.DB.FetchEntry(eHash)
+					if string(ent.ExternalIDs()[1]) == "Register Server Management" {
+						// this is an Identity that should have been registered already with a 0 status.
+						//  this registers it with the management chain.  Now it can be assigned as federated or audit.
+						//  set it to status 6 - Pending Full
+						registerIdentityAsServer(ent.ExternalIDs(), cid, st, height)
+					} else if string(ent.ExternalIDs()[1]) == "New Block Signing Key" {
+						// this is the Signing Key for this Identity
+						if len(ent.ExternalIDs()) == 7 { // update management should have 4 items
+							registerBlockSigningKey(ent.ExternalIDs(), cid, st)
+						}
 
-						if string(ent.ExternalIDs()[1]) == "Register Server Management" {
-							// this is an Identity that should have been registered already with a 0 status.
-							//  this registers it with the management chain.  Now it can be assigned as federated or audit.
-							//  set it to status 6 - Pending Full
-							registerIdentityAsServer(ent.ExternalIDs(), cid, st, height)
-						} else if string(ent.ExternalIDs()[1]) == "New Block Signing Key" {
-							// this is the Signing Key for this Identity
-							if len(ent.ExternalIDs()) == 7 { // update management should have 4 items
-								registerBlockSigningKey(ent.ExternalIDs(), cid, st)
-							}
+					} else if string(ent.ExternalIDs()[1]) == "New Bitcoin Key" {
+						// this is the Signing Key for this Identity
+						if len(ent.ExternalIDs()) == 9 { // update management should have 4 items
+							registerAnchorSigningKey(ent.ExternalIDs(), cid, st, "BTC")
+						}
 
-						} else if string(ent.ExternalIDs()[1]) == "New Bitcoin Key" {
-							// this is the Signing Key for this Identity
-							if len(ent.ExternalIDs()) == 9 { // update management should have 4 items
-								registerAnchorSigningKey(ent.ExternalIDs(), cid, st, "BTC")
-							}
+					} else if string(ent.ExternalIDs()[1]) == "New Matryoshka Hash" {
+						// this is the Signing Key for this Identity
+						if len(ent.ExternalIDs()) == 7 { // update management should have 4 items
+							updateMatryoshkaHash(ent.ExternalIDs(), cid, st)
+						}
 
-						} else if string(ent.ExternalIDs()[1]) == "New Matryoshka Hash" {
-							// this is the Signing Key for this Identity
-							if len(ent.ExternalIDs()) == 7 { // update management should have 4 items
-								updateMatryoshkaHash(ent.ExternalIDs(), cid, st)
-							}
-
-						} else if len(ent.ExternalIDs()) > 1 && string(ent.ExternalIDs()[1]) == "Identity Chain" {
-								// this is a new identity
-								addIdentity(ent.ExternalIDs(), cid, st, height)
-						} else if len(ent.ExternalIDs()) > 1 && string(ent.ExternalIDs()[1]) == "Server Management" {
-							// this is a new identity
-							if len(ent.ExternalIDs()) == 4 {
-								// update management should have 4 items
-								updateManagementKey(ent.ExternalIDs(), cid, st, height)
-							}
+					} else if len(ent.ExternalIDs()) > 1 && string(ent.ExternalIDs()[1]) == "Identity Chain" {
+						// this is a new identity
+						addIdentity(ent.ExternalIDs(), cid, st, height)
+					} else if len(ent.ExternalIDs()) > 1 && string(ent.ExternalIDs()[1]) == "Server Management" {
+						// this is a new identity
+						if len(ent.ExternalIDs()) == 4 {
+							// update management should have 4 items
+							updateManagementKey(ent.ExternalIDs(), cid, st, height)
 						}
 					}
 				}
-			} else {
-				if cid.String()[0:10] != "0000000000" { //ignore minute markers
-					//  not a chain id I care about
-				}
-			
-			} 
-		}
-	
-
-		if err != nil {
-			log.Printfln("Identity Error:", err)
-		}
-			// Remove Stale Identities 
-			// if an identity has taken more than 72 blocks (12 hours) to be fully created, remove it from the state identity list.
-			var i int
-			for  i = 0 ; i < len(st.Identities); i++ {
-				if st.Identities[i].IdentityCreated < height - 72 && st.Identities[i].IdentityRegistered == 0 && st.Identities[i].IdentityCreated != 0 {
-					removeIdentity(i, st)
-				} else if st.Identities[i].IdentityRegistered < height - 72 && st.Identities[i].IdentityCreated == 0 && st.Identities[i].IdentityRegistered != 0 {
-					removeIdentity(i, st)
-				} else if st.Identities[i].ManagementCreated < height - 72 && st.Identities[i].ManagementRegistered == 0 && st.Identities[i].ManagementCreated != 0 {
-					removeIdentity(i, st)
-				} else if st.Identities[i].ManagementRegistered < height - 72 && st.Identities[i].ManagementCreated == 0 && st.Identities[i].ManagementRegistered != 0 {
-					removeIdentity(i, st)
-				} 
+			}
+		} else {
+			if cid.String()[0:10] != "0000000000" { //ignore minute markers
+				//  not a chain id I care about
 			}
 
 		}
+	}
 
+	if err != nil {
+		log.Printfln("Identity Error:", err)
+	}
+	// Remove Stale Identities
+	// if an identity has taken more than 72 blocks (12 hours) to be fully created, remove it from the state identity list.
+	var i int
+	for i = 0; i < len(st.Identities); i++ {
+		if st.Identities[i].IdentityCreated < height-72 && st.Identities[i].IdentityRegistered == 0 && st.Identities[i].IdentityCreated != 0 {
+			removeIdentity(i, st)
+		} else if st.Identities[i].IdentityRegistered < height-72 && st.Identities[i].IdentityCreated == 0 && st.Identities[i].IdentityRegistered != 0 {
+			removeIdentity(i, st)
+		} else if st.Identities[i].ManagementCreated < height-72 && st.Identities[i].ManagementRegistered == 0 && st.Identities[i].ManagementCreated != 0 {
+			removeIdentity(i, st)
+		} else if st.Identities[i].ManagementRegistered < height-72 && st.Identities[i].ManagementCreated == 0 && st.Identities[i].ManagementRegistered != 0 {
+			removeIdentity(i, st)
+		}
+	}
 
+}
 
-func removeIdentity(i int , st *State){
-  var newIDs []Identity
-  newIDs = make([]Identity, len(st.Identities)-1)
-  var j int
-  for j = 0 ; j < i ; j++ {
-    newIDs[j]=st.Identities[j]
-  }
-// skip removed Identity
-    for j = i+1; j < len(newIDs) ; j++ {
-    newIDs[j-1]=st.Identities[j]
-  }
+func removeIdentity(i int, st *State) {
+	var newIDs []Identity
+	newIDs = make([]Identity, len(st.Identities)-1)
+	var j int
+	for j = 0; j < i; j++ {
+		newIDs[j] = st.Identities[j]
+	}
+	// skip removed Identity
+	for j = i + 1; j < len(newIDs); j++ {
+		newIDs[j-1] = st.Identities[j]
+	}
 }
 
 func isIdentityChain(cid interfaces.IHash, ids []Identity) int {
@@ -199,7 +195,6 @@ func isIdentityChain(cid interfaces.IHash, ids []Identity) int {
 	}
 	return -1
 }
-
 
 func createFactomIdentity(st *State, chainID interfaces.IHash) int {
 
@@ -225,7 +220,6 @@ func createFactomIdentity(st *State, chainID interfaces.IHash) int {
 	return len(st.Identities) - 1
 }
 
-
 func registerFactomIdentity(extIDs [][]byte, chainID interfaces.IHash, st *State, height uint32) {
 	// find the Identity index from the chain id in the external id.  add this chainID as the management id
 	idChain := primitives.NewHash(extIDs[2])
@@ -241,7 +235,7 @@ func registerFactomIdentity(extIDs [][]byte, chainID interfaces.IHash, st *State
 		// Verify Signature
 		idKey := st.Identities[IdentityIndex].Key1
 		if checkSig(idKey, extIDs[3][1:33], sigmsg, extIDs[4]) {
-			st.Identities[IdentityIndex].ManagementRegistered=height
+			st.Identities[IdentityIndex].ManagementRegistered = height
 			checkIdentityInitialStatus(IdentityIndex, st)
 		} else {
 			log.Println("New Management Chain Register for identity [" + chainID.String()[:10] + "] is invalid. Bad signiture")
@@ -274,7 +268,6 @@ func addIdentity(extIDs [][]byte, chainID interfaces.IHash, st *State, height ui
 	checkIdentityInitialStatus(IdentityIndex, st)
 }
 
-
 func checkIdentityInitialStatus(IdentityIndex int, st *State) {
 	// if all needed information is ready for the Identity , set it to IDENTITY_FULL
 	if st.Identities[IdentityIndex].IdentityCreated > st.Identities[IdentityIndex].IdentityRegistered-144 {
@@ -287,8 +280,6 @@ func checkIdentityInitialStatus(IdentityIndex int, st *State) {
 		}
 	}
 }
-
-
 
 func updateManagementKey(extIDs [][]byte, chainID interfaces.IHash, st *State, height uint32) {
 	// find the Identity index from the chain id in the external id.  add this chainID as the management id
@@ -308,7 +299,6 @@ func registerIdentityAsServer(extIDs [][]byte, chainID interfaces.IHash, st *Sta
 		IdentityIndex = createFactomIdentity(st, idChain)
 	}
 
-
 	sigmsg, err := appendExtIDs(extIDs, 0, 2)
 	if err != nil {
 		log.Printfln("Identity Error:", err)
@@ -316,7 +306,7 @@ func registerIdentityAsServer(extIDs [][]byte, chainID interfaces.IHash, st *Sta
 		// Verify Signature
 		idKey := st.Identities[IdentityIndex].Key1
 		if checkSig(idKey, extIDs[3][1:33], sigmsg, extIDs[4]) {
-			st.Identities[IdentityIndex].ManagementRegistered=height
+			st.Identities[IdentityIndex].ManagementRegistered = height
 			checkIdentityInitialStatus(IdentityIndex, st)
 		} else {
 			log.Println("New Management Chain Register for identity [" + chainID.String()[:10] + "] is invalid. Bad signiture")
