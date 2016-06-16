@@ -115,6 +115,7 @@ func CreateAndPopulateTestStateForFER(testEntries []FEREntryWithHeight, desiredH
 	}*/
 	s.SetFactoshisPerEC(1)
 	state.LoadDatabase(s)
+	s.FERChainId = "eac57815972c504ec5ae3f9e5c1fe12321a3c8c78def62528fb74cf7af5e7389"
 	s.UpdateState()
 	go s.ValidatorLoop()
 	time.Sleep(20 * time.Millisecond)
@@ -127,6 +128,7 @@ func CreateAndPopulateTestDatabaseOverlayForFER(testEntries []FEREntryWithHeight
 	dbo := CreateEmptyTestDatabaseOverlay()
 
 	var prev *BlockSet = nil
+	var currentBlockSet *BlockSet = nil
 
 	var err error
 
@@ -135,45 +137,48 @@ func CreateAndPopulateTestDatabaseOverlayForFER(testEntries []FEREntryWithHeight
 	}
 
 	for i := 0; i < desiredHeight; i++ {
+
+		fmt.Println("Making block number ", i)
 		dbo.StartMultiBatch()
-		prev = CreateTestBlockSetForFER(prev, dbo, testEntries)
+		currentBlockSet = CreateTestBlockSetForFER(prev, dbo, testEntries)
 
-		err = dbo.ProcessABlockMultiBatch(prev.ABlock)
+		err = dbo.ProcessABlockMultiBatch(currentBlockSet.ABlock)
 		if err != nil {
 			panic(err)
 		}
 
-		err = dbo.ProcessEBlockMultiBatch(prev.EBlock, false)
+		err = dbo.ProcessEBlockMultiBatch(currentBlockSet.EBlock, false)
 		if err != nil {
 			panic(err)
 		}
 
-		err = dbo.ProcessEBlockMultiBatch(prev.AnchorEBlock, false)
+		err = dbo.ProcessEBlockMultiBatch(currentBlockSet.AnchorEBlock, false)
 		if err != nil {
 			panic(err)
 		}
 
-		err = dbo.ProcessECBlockMultiBatch(prev.ECBlock, false)
+		err = dbo.ProcessECBlockMultiBatch(currentBlockSet.ECBlock, false)
 		if err != nil {
 			panic(err)
 		}
 
-		err = dbo.ProcessFBlockMultiBatch(prev.FBlock)
+		err = dbo.ProcessFBlockMultiBatch(currentBlockSet.FBlock)
 		if err != nil {
 			panic(err)
 		}
 
-		err = dbo.ProcessDBlockMultiBatch(prev.DBlock)
+		err = dbo.ProcessDBlockMultiBatch(currentBlockSet.DBlock)
 		if err != nil {
 			panic(err)
 		}
 
-		for _, entry := range prev.Entries {
+		for _, entry := range currentBlockSet.Entries {
 			err = dbo.InsertEntry(entry)
 			if err != nil {
 				panic(err)
 			}
 		}
+		prev = currentBlockSet
 
 		if err := dbo.ExecuteMultiBatch(); err != nil {
 			panic(err)
@@ -231,7 +236,7 @@ func CreateTestBlockSetForFER(prev *BlockSet, db *databaseOverlay.Overlay, testE
 	dbEntries = append(dbEntries, de)
 
 	//EBlock
-	answer.EBlock, answer.Entries = CreateTestEntryBlock(prev.EBlock)
+	answer.EBlock, answer.Entries = CreateTestEntryBlockForFER(prev.EBlock, uint32(height))
 
 //  Loop through the passed FEREntries and see which ones need to go into this EBlock
 for _, testEntry := range testEntries {
@@ -294,3 +299,48 @@ for _, testEntry := range testEntries {
 	return answer
 }
 
+
+
+
+func CreateTestEntryBlockForFER(p interfaces.IEntryBlock, height uint32) (*entryBlock.EBlock, []*entryBlock.Entry) {
+	prev, ok := p.(*entryBlock.EBlock)
+	if ok == false {
+		prev = nil
+	}
+
+	e := entryBlock.NewEBlock()
+	entries := []*entryBlock.Entry{}
+
+	if prev != nil {
+		keyMR, err := prev.KeyMR()
+		if err != nil {
+			panic(err)
+		}
+
+		e.Header.SetPrevKeyMR(keyMR)
+		hash, err := prev.Hash()
+		if err != nil {
+			panic(err)
+		}
+		e.Header.SetPrevFullHash(hash)
+		e.Header.SetDBHeight(prev.GetHeader().GetDBHeight() + 1)
+
+		e.Header.SetChainID(prev.GetHeader().GetChainID())
+		entry := CreateTestEnry(e.Header.GetDBHeight())
+		e.AddEBEntry(entry)
+		entries = append(entries, entry)
+	} else {
+		e.Header.SetPrevKeyMR(primitives.NewZeroHash())
+		e.Header.SetDBHeight(0)
+		chainId := "eac57815972c504ec5ae3f9e5c1fe12321a3c8c78def62528fb74cf7af5e7389"
+		hexBytes, _ := hex.DecodeString(chainId)
+		chainIdHash := primitives.NewHash(hexBytes)
+		e.Header.SetChainID(chainIdHash)
+
+		entry := CreateFirstTestEntry()
+		e.AddEBEntry(entry)
+		entries = append(entries, entry)
+	}
+
+	return e, entries
+}

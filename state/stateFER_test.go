@@ -17,5 +17,8 @@ func Test_StateFER(t *testing.T) {
 	aState := testHelper.CreateAndPopulateTestStateForFER(FEREntries, 10)
 	FER := aState.GetPredictiveFER()
 
+	aState.ValidatorLoop()
+
 	fmt.Println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!  Factoids found to be ", FER)
+	fmt.Println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!  Chain id ", aState.FERChainId)
 }
