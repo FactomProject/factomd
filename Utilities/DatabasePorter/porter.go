@@ -191,14 +191,14 @@ mainloop:
 }
 
 func GetDBlockList() []string {
-	/*keymr, err := GetDBlockHead()
+	keymr, err := GetDBlockHead()
 	if err != nil {
 		panic(err)
-	}*/
+	}
 	return []string{
 		"3a5ec711a1dc1c6e463b0c0344560f830eb0b56e42def141cb423b0d8487a1dc", //10
 		"cde346e7ed87957edfd68c432c984f35596f29c7d23de6f279351cddecd5dc66", //100
-		/*"d13472838f0156a8773d78af137ca507c91caf7bf3b73124d6b09ebb0a98e4d9", //200
+		"d13472838f0156a8773d78af137ca507c91caf7bf3b73124d6b09ebb0a98e4d9", //200
 		"2978233e69cf207a92bac162598a0398c408caecec7092151db5d044587af5d6", //500
 		"cd45e38f53c090a03513f0c67afb93c774a064a5614a772cd079f31b3db4d011", //1000
 		"264394dffc9be2bc408c12b54d98f053b3def493804f7beafac99f7bfaa95ddb", //2500
@@ -209,5 +209,5 @@ func GetDBlockList() []string {
 		"be8f161e0ffa2e3d50cdbded924ee47e9419bf52b900a4150ef74d9016dfd1c0", //25000
 		"50d9cf6c596a09d0fab37467601a4caa5c7d1b5fd2ee007af25646f6152a392b", //30000
 		"e630fbd538efcdece0b134ba93b719072d871297e233abda7e79dcc5f3bba9f5", //35000
-		keymr*/}
+		keymr}
 }
