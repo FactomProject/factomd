@@ -12,6 +12,9 @@ import (
 	"strings"
 	"time"
 
+	"math/rand"
+	"sync"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
@@ -23,8 +26,6 @@ import (
 	"github.com/FactomProject/factomd/logger"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
-	"sync"
-	"math/rand"
 )
 
 var _ = fmt.Print
@@ -89,9 +90,9 @@ type State struct {
 	Leader          bool
 	LeaderVMIndex   int
 	LeaderPL        *ProcessList
-	OneLeader				bool
+	OneLeader       bool
 	OutputAllowed   bool
-	LeaderMinute    int  // The minute that just was processed by the follower, (1-10), set with EOM
+	LeaderMinute    int // The minute that just was processed by the follower, (1-10), set with EOM
 	LastMinute      int
 	LastHeight      uint32
 	EOM             int  // Set to true when all Process Lists have finished a minute
@@ -317,9 +318,9 @@ func (s *State) Init() {
 
 	log.SetLevel(s.ConsoleLogLevel)
 
-	s.tickerQueue = make(chan int, 10000)                        //ticks from a clock
-	s.timerMsgQueue = make(chan interfaces.IMsg, 10000)          //incoming eom notifications, used by leaders
-	s.timeoffset = int64(rand.Int63()%int64(time.Millisecond*10))
+	s.tickerQueue = make(chan int, 10000)               //ticks from a clock
+	s.timerMsgQueue = make(chan interfaces.IMsg, 10000) //incoming eom notifications, used by leaders
+	s.timeoffset = int64(rand.Int63() % int64(time.Microsecond*10))
 	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 10000) //incoming message queue from the network messages
 	s.InvalidMessages = make(map[[32]byte]interfaces.IMsg, 0)
 	s.networkOutMsgQueue = make(chan interfaces.IMsg, 10000) //Messages to be broadcast to the network
@@ -853,7 +854,7 @@ func (s *State) GetTimestamp() interfaces.Timestamp {
 	if s.IsReplaying == true {
 		return s.ReplayTimestamp
 	}
-	return interfaces.Timestamp(int64(*interfaces.NewTimeStampNow())+s.timeoffset)
+	return interfaces.Timestamp(int64(*interfaces.NewTimeStampNow()) + s.timeoffset)
 }
 
 func (s *State) Sign(b []byte) interfaces.IFullSignature {
@@ -1053,7 +1054,7 @@ func (s *State) SetString() {
 		delta := (s.FactoidTrans + s.NewEntryChains + s.NewEntries) - s.transCnt
 		s.tps = float64(delta) / float64(shorttime.Seconds())
 		s.lasttime = time.Now()
-		s.transCnt = total			// transactions accounted for
+		s.transCnt = total // transactions accounted for
 	}
 
 	s.serverPrt = fmt.Sprintf("%8s[%6x]%4s Save: %d[%6x] PL:%d/%d Min: %2v DBHT %v Min C/F %02v/%02v EOM %2v %3d-Fct %3d-EC %3d-E  %7.2f total tps %7.2f tps",
