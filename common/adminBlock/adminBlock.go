@@ -50,6 +50,11 @@ func (c *AdminBlock) AddAuditServer(identityChainID interfaces.IHash) {
 	c.ABEntries = append(c.ABEntries, entry)
 }
 
+func (c *AdminBlock) AddMatryoshkaHash(identityChainID interfaces.IHash, mHash interfaces.IHash) {
+	entry := NewAddReplaceMatryoshkaHash(identityChainID, mHash)
+	c.ABEntries = append(c.ABEntries, entry)
+}
+
 func (c *AdminBlock) GetHeader() interfaces.IABlockHeader {
 	return c.Header
 }
@@ -231,6 +236,8 @@ func (b *AdminBlock) UnmarshalBinaryData(data []byte) (newData []byte, err error
 			b.ABEntries[i] = new(IncreaseServerCount)
 		case constants.TYPE_ADD_FED_SERVER:
 			b.ABEntries[i] = new(AddFederatedServer)
+		case constants.TYPE_ADD_AUDIT_SERVER:
+			b.ABEntries[i] = new(AddAuditServer)
 		case constants.TYPE_REMOVE_FED_SERVER:
 			b.ABEntries[i] = new(RemoveFederatedServer)
 		case constants.TYPE_ADD_FED_SERVER_KEY:
