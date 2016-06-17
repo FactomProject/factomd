@@ -287,9 +287,11 @@ func checkIdentityInitialStatus(IdentityIndex int, st *State) {
 }
 
 func updateManagementKey(extIDs [][]byte, chainID interfaces.IHash, st *State, height uint32) {
-	// find the Identity index from the chain id in the external id.  add this chainID as the management id
 	idChain := primitives.NewHash(extIDs[2])
 	IdentityIndex := isIdentityChain(idChain, st.Identities)
+	if IdentityIndex == -1 {
+		IdentityIndex = createFactomIdentity(st, idChain)
+	}
 
 	st.Identities[IdentityIndex].ManagementChainID = chainID
 	st.Identities[IdentityIndex].ManagementCreated = height
@@ -323,6 +325,10 @@ func registerIdentityAsServer(extIDs [][]byte, chainID interfaces.IHash, st *Sta
 
 func registerBlockSigningKey(extIDs [][]byte, chainID interfaces.IHash, st *State, update bool) {
 	IdentityIndex := isIdentityChain(chainID, st.Identities)
+	if IdentityIndex == -1 {
+		log.Println("Identity_Error: This cannot happen. New block signing key to nonexistent identity")
+		return
+	}
 
 	sigmsg, err := appendExtIDs(extIDs, 0, 4)
 	if err != nil {
@@ -359,6 +365,10 @@ func registerBlockSigningKey(extIDs [][]byte, chainID interfaces.IHash, st *Stat
 
 func updateMatryoshkaHash(extIDs [][]byte, chainID interfaces.IHash, st *State, update bool) {
 	IdentityIndex := isIdentityChain(chainID, st.Identities)
+	if IdentityIndex == -1 {
+		log.Println("Identity_Error: This cannot happen. New Matryoshka Hash to nonexistent identity")
+		return
+	}
 
 	sigmsg, err := appendExtIDs(extIDs, 0, 4)
 	if err != nil {
@@ -393,6 +403,10 @@ func updateMatryoshkaHash(extIDs [][]byte, chainID interfaces.IHash, st *State, 
 
 func registerAnchorSigningKey(extIDs [][]byte, chainID interfaces.IHash, st *State, BlockChain string, update bool) {
 	IdentityIndex := isIdentityChain(chainID, st.Identities)
+	if IdentityIndex == -1 {
+		log.Println("Identity_Error: This cannot happen. New Bitcoin Key to nonexistent identity")
+		return
+	}
 
 	var ask []AnchorSigningKey
 	var newAsk []AnchorSigningKey
