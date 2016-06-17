@@ -4,12 +4,13 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"strings"
+
 	ed "github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/log"
-	"strings"
 )
 
 var (
@@ -337,7 +338,7 @@ func registerBlockSigningKey(extIDs [][]byte, chainID interfaces.IHash, st *Stat
 				return
 			}
 			// Check timestamp of message
-			if !checkTimeStamp(extIDs[4]) {
+			if !CheckTimestamp(extIDs[4]) {
 				log.Println("New Block Signing key for identity [" + chainID.String()[:10] + "] timestamp is too old")
 				return
 			}
@@ -376,7 +377,7 @@ func updateMatryoshkaHash(extIDs [][]byte, chainID interfaces.IHash, st *State, 
 				return
 			}
 			// Check Timestamp of message
-			if !checkTimeStamp(extIDs[4]) {
+			if !CheckTimestamp(extIDs[4]) {
 				log.Println("New Matryoshka Hash for identity [" + chainID.String()[:10] + "] timestamp is too old")
 				return
 			}
@@ -432,7 +433,7 @@ func registerAnchorSigningKey(extIDs [][]byte, chainID interfaces.IHash, st *Sta
 				return
 			}
 			// Check Timestamp of message
-			if !checkTimeStamp(extIDs[6]) {
+			if !CheckTimestamp(extIDs[6]) {
 				log.Println("New Anchor key for identity [" + chainID.String()[:10] + "] timestamp is too old")
 				return
 			}
@@ -593,7 +594,7 @@ func AppendExtIDs(extIDs [][]byte, start int, end int) ([]byte, error) {
 }
 
 // Makes sure the timestamp is within the designated window to be valid : 12 hours
-func checkTimeStamp(time []byte) bool {
+func CheckTimestamp(time []byte) bool {
 	if len(time) < 8 {
 		zero := []byte{00}
 		add := make([]byte, 0)
@@ -602,12 +603,15 @@ func checkTimeStamp(time []byte) bool {
 		}
 		time = append(add, time...)
 	}
+	//TODO: get time from State for replaying?
 	now := interfaces.GetTime()
 
 	ts := binary.BigEndian.Uint64(time)
-	res := now - ts
-	if res < 0 {
-		res = -res
+	var res uint64
+	if now > ts {
+		res = now - ts
+	} else {
+		res = ts - now
 	}
 	if res <= TWELVE_HOURS_S {
 		return true
@@ -615,5 +619,4 @@ func checkTimeStamp(time []byte) bool {
 		return false
 	}
 	return true
-
 }
