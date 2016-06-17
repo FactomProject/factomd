@@ -443,6 +443,9 @@ func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) 
 	} else if as.ServerType == 1 {
 		s.LeaderPL.AdminBlock.AddAuditServer(as.ServerChainID)
 	}
+	if !ProcessIdentityToAdminBlock(s, as.ServerChainID, as.ServerType) {
+		fmt.Printf("dddd %s %s\n", s.FactomNodeName, "Addserver message did not add to admin block.")
+	}
 
 	return true
 }

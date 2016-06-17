@@ -2,26 +2,27 @@ package state
 
 import (
 	"encoding/binary"
-	"encoding/hex"
 	"errors"
+	"fmt"
 	ed "github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/log"
+	"strings"
 )
 
 var (
-	TWELVE_HOURS_MS uint64 = 12 * 60 * 60 * 1000
+	TWELVE_HOURS_S uint64 = 12 * 60 * 60
 	// Time window for identity to require registration: 24hours = 144 blocks
-	TIME_WINDOW uint32 = 144
+	TIME_WINDOW uint32 = 1
 )
 
 type AnchorSigningKey struct {
 	BlockChain string
-	KeyLevel   string
-	KeyType    string
-	SigningKey string //if bytes, it is hex
+	KeyLevel   byte
+	KeyType    byte
+	SigningKey []byte //if bytes, it is hex
 }
 type Identity struct {
 	IdentityChainID      interfaces.IHash
@@ -59,12 +60,12 @@ func LoadIdentityCache(st *State) {
 	var i uint32
 	for i = 1; i < height; i++ {
 
-		LoadIdentityByDirectoryBlockHeight(i, st)
+		LoadIdentityByDirectoryBlockHeight(i, st, false)
 	}
 
 }
 
-func LoadIdentityByDirectoryBlockHeight(height uint32, st *State) {
+func LoadIdentityByDirectoryBlockHeight(height uint32, st *State, update bool) {
 
 	dblk, err := st.DB.FetchDBlockByHeight(uint32(height))
 	if err != nil {
@@ -114,19 +115,19 @@ func LoadIdentityByDirectoryBlockHeight(height uint32, st *State) {
 					} else if string(ent.ExternalIDs()[1]) == "New Block Signing Key" {
 						// this is the Signing Key for this Identity
 						if len(ent.ExternalIDs()) == 7 { // update management should have 4 items
-							registerBlockSigningKey(ent.ExternalIDs(), cid, st)
+							registerBlockSigningKey(ent.ExternalIDs(), cid, st, update)
 						}
 
 					} else if string(ent.ExternalIDs()[1]) == "New Bitcoin Key" {
 						// this is the Signing Key for this Identity
 						if len(ent.ExternalIDs()) == 9 { // update management should have 4 items
-							registerAnchorSigningKey(ent.ExternalIDs(), cid, st, "BTC")
+							registerAnchorSigningKey(ent.ExternalIDs(), cid, st, "BTC", update)
 						}
 
 					} else if string(ent.ExternalIDs()[1]) == "New Matryoshka Hash" {
 						// this is the Signing Key for this Identity
 						if len(ent.ExternalIDs()) == 7 { // update management should have 4 items
-							updateMatryoshkaHash(ent.ExternalIDs(), cid, st)
+							updateMatryoshkaHash(ent.ExternalIDs(), cid, st, update)
 						}
 					} else if len(ent.ExternalIDs()) > 1 && string(ent.ExternalIDs()[1]) == "Identity Chain" {
 						// this is a new identity
@@ -169,6 +170,7 @@ func LoadIdentityByDirectoryBlockHeight(height uint32, st *State) {
 }
 
 func removeIdentity(i int, st *State) {
+	fmt.Println("Stale ID Removed")
 	var newIDs []Identity
 	newIDs = make([]Identity, len(st.Identities)-1)
 	var j int
@@ -275,14 +277,12 @@ func addIdentity(extIDs [][]byte, chainID interfaces.IHash, st *State, height ui
 
 func checkIdentityInitialStatus(IdentityIndex int, st *State) {
 	// if all needed information is ready for the Identity , set it to IDENTITY_FULL
-	if st.Identities[IdentityIndex].IdentityCreated > st.Identities[IdentityIndex].IdentityRegistered-TIME_WINDOW {
-		if st.Identities[IdentityIndex].IdentityCreated < st.Identities[IdentityIndex].IdentityRegistered+TIME_WINDOW {
-			if st.Identities[IdentityIndex].IdentityCreated > st.Identities[IdentityIndex].IdentityRegistered-TIME_WINDOW {
-				if st.Identities[IdentityIndex].IdentityCreated < st.Identities[IdentityIndex].IdentityRegistered+TIME_WINDOW {
-					st.Identities[IdentityIndex].Status = constants.IDENTITY_FULL
-				}
-			}
-		}
+	dif := st.Identities[IdentityIndex].IdentityCreated - st.Identities[IdentityIndex].IdentityRegistered
+	if dif < 0 {
+		dif = -dif
+	}
+	if dif < TIME_WINDOW {
+		st.Identities[IdentityIndex].Status = constants.IDENTITY_FULL
 	}
 }
 
@@ -321,7 +321,7 @@ func registerIdentityAsServer(extIDs [][]byte, chainID interfaces.IHash, st *Sta
 	checkIdentityInitialStatus(IdentityIndex, st)
 }
 
-func registerBlockSigningKey(extIDs [][]byte, chainID interfaces.IHash, st *State) {
+func registerBlockSigningKey(extIDs [][]byte, chainID interfaces.IHash, st *State, update bool) {
 	IdentityIndex := isIdentityChain(chainID, st.Identities)
 
 	sigmsg, err := appendExtIDs(extIDs, 0, 4)
@@ -344,8 +344,12 @@ func registerBlockSigningKey(extIDs [][]byte, chainID interfaces.IHash, st *Stat
 			}
 
 			st.Identities[IdentityIndex].SigningKey = primitives.NewHash(extIDs[3])
-			copy(key[:32], extIDs[3][:32])
-			st.LeaderPL.AdminBlock.AddFederatedServerSigningKey(chainID, &key)
+			// Add to admin block
+			status := st.Identities[IdentityIndex].Status
+			if update && (status == constants.IDENTITY_FEDERATED_SERVER || status == constants.IDENTITY_AUDIT_SERVER) {
+				copy(key[:32], extIDs[3][:32])
+				st.LeaderPL.AdminBlock.AddFederatedServerSigningKey(chainID, &key)
+			}
 		} else {
 			log.Println("New Block Signing key for identity [" + chainID.String()[:10] + "] is invalid. Bad signiture")
 		}
@@ -353,7 +357,7 @@ func registerBlockSigningKey(extIDs [][]byte, chainID interfaces.IHash, st *Stat
 
 }
 
-func updateMatryoshkaHash(extIDs [][]byte, chainID interfaces.IHash, st *State) {
+func updateMatryoshkaHash(extIDs [][]byte, chainID interfaces.IHash, st *State, update bool) {
 	IdentityIndex := isIdentityChain(chainID, st.Identities)
 
 	sigmsg, err := appendExtIDs(extIDs, 0, 4)
@@ -376,7 +380,10 @@ func updateMatryoshkaHash(extIDs [][]byte, chainID interfaces.IHash, st *State) 
 			mhash := primitives.NewHash(extIDs[3])
 			st.Identities[IdentityIndex].MatryoshkaHash = mhash
 			// Add to admin block
-			st.LeaderPL.AdminBlock.AddMatryoshkaHash(chainID, mhash)
+			status := st.Identities[IdentityIndex].Status
+			if update && (status == constants.IDENTITY_FEDERATED_SERVER || status == constants.IDENTITY_AUDIT_SERVER) {
+				st.LeaderPL.AdminBlock.AddMatryoshkaHash(chainID, mhash)
+			}
 		} else {
 			log.Println("New Matryoshka Hash for identity [" + chainID.String()[:10] + "] is invalid. Bad signiture")
 		}
@@ -384,7 +391,7 @@ func updateMatryoshkaHash(extIDs [][]byte, chainID interfaces.IHash, st *State) 
 	}
 }
 
-func registerAnchorSigningKey(extIDs [][]byte, chainID interfaces.IHash, st *State, BlockChain string) {
+func registerAnchorSigningKey(extIDs [][]byte, chainID interfaces.IHash, st *State, BlockChain string, update bool) {
 	IdentityIndex := isIdentityChain(chainID, st.Identities)
 
 	var ask []AnchorSigningKey
@@ -399,9 +406,9 @@ func registerAnchorSigningKey(extIDs [][]byte, chainID interfaces.IHash, st *Sta
 	}
 
 	oneAsk.BlockChain = BlockChain
-	oneAsk.KeyLevel = hex.EncodeToString(extIDs[3])
-	oneAsk.KeyType = hex.EncodeToString(extIDs[4])
-	oneAsk.SigningKey = hex.EncodeToString(extIDs[5])
+	oneAsk.KeyLevel = extIDs[3][0]
+	oneAsk.KeyType = extIDs[4][0]
+	oneAsk.SigningKey = extIDs[5]
 
 	newAsk[len(ask)] = oneAsk
 
@@ -424,8 +431,11 @@ func registerAnchorSigningKey(extIDs [][]byte, chainID interfaces.IHash, st *Sta
 			}
 			st.Identities[IdentityIndex].AnchorKeys = newAsk
 			// Add to admin block
-			copy(key[:20], extIDs[5][:20])
-			st.LeaderPL.AdminBlock.AddFederatedServerBitcoinAnchorKey(chainID, extIDs[3][0], extIDs[4][0], &key)
+			status := st.Identities[IdentityIndex].Status
+			if update && (status == constants.IDENTITY_FEDERATED_SERVER || status == constants.IDENTITY_AUDIT_SERVER) {
+				copy(key[:20], extIDs[5][:20])
+				st.LeaderPL.AdminBlock.AddFederatedServerBitcoinAnchorKey(chainID, extIDs[3][0], extIDs[4][0], &key)
+			}
 		} else {
 			log.Println("New Anchor key for identity [" + chainID.String()[:10] + "] is invalid. Bad signiture")
 		}
@@ -466,6 +476,52 @@ func StubIdentityCache(st *State) {
 
 }
 
+func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype int) bool {
+	index := isIdentityChain(chainID, st.Identities)
+	if index != -1 {
+		id := st.Identities[index]
+
+		if id.SigningKey == nil {
+			log.Println("New Fed/Audit server [" + chainID.String()[:10] + "] does not have an Block Signing Key associated to it")
+			return false
+		} else {
+			var pub [32]byte
+			copy(pub[:32], id.SigningKey.Bytes()[:32])
+			st.LeaderPL.AdminBlock.AddFederatedServerSigningKey(chainID, &pub)
+		}
+
+		if id.AnchorKeys == nil {
+			log.Println("New Fed/Audit server [" + chainID.String()[:10] + "] does not have an BTC Anchor Key associated to it")
+		} else {
+			for _, aKey := range id.AnchorKeys {
+				if strings.Compare(aKey.BlockChain, "BTC") == 0 {
+					var key [20]byte
+					copy(key[:20], aKey.SigningKey[:20])
+					st.LeaderPL.AdminBlock.AddFederatedServerBitcoinAnchorKey(chainID, aKey.KeyLevel, aKey.KeyType, &key)
+				}
+			}
+		}
+
+		if id.MatryoshkaHash == nil {
+			log.Println("New Fed/Audit server [" + chainID.String()[:10] + "] does not have an Matryoshka Hash associated to it")
+		} else {
+			st.LeaderPL.AdminBlock.AddMatryoshkaHash(chainID, id.MatryoshkaHash)
+		}
+
+		if servertype == 0 {
+			id.Status = constants.IDENTITY_PENDING_FEDERATED_SERVER
+		} else if servertype == 1 {
+			id.Status = constants.IDENTITY_PENDING_AUDIT_SERVER
+		}
+
+		st.Identities[index] = id
+	} else {
+		log.Println("New Fed/Audit server [" + chainID.String()[:10] + "] does not have an identity associated to it")
+		return false
+	}
+	return true
+}
+
 func MakeID(seed string, ServerType int) Identity {
 
 	var id Identity
@@ -493,8 +549,8 @@ func MakeID(seed string, ServerType int) Identity {
 
 	var ak AnchorSigningKey
 	ak.BlockChain = "BTC"
-	ak.KeyType = "P2PKH"
-	ak.SigningKey = hex.EncodeToString(id.SigningKey.Bytes()[0:20])
+	ak.KeyType = 0
+	ak.SigningKey = id.SigningKey.Bytes()[0:20]
 	id.AnchorKeys = make([]AnchorSigningKey, 1)
 	id.AnchorKeys[0] = ak
 	return id
@@ -541,17 +597,14 @@ func checkTimeStamp(time []byte) bool {
 		}
 		time = append(add, time...)
 	}
-	now := interfaces.GetTimeMilli()
+	now := interfaces.GetTime()
 
-	ts := binary.BigEndian.Uint64(time[:])
+	ts := binary.BigEndian.Uint64(time)
 	res := now - ts
 	if res < 0 {
 		res = -res
 	}
-	//fmt.Printf("DEBUG Now : %d\n", now)
-	//fmt.Printf("DEBUG Then: %x\n", time)
-	//fmt.Printf("DEBUG: %d\n", res)
-	if res <= TWELVE_HOURS_MS {
+	if res <= TWELVE_HOURS_S {
 		return true
 	} else {
 		return false
