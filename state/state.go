@@ -61,7 +61,7 @@ type State struct {
 
 	IdentityChainID interfaces.IHash // If this node has an identity, this is it
 	Identities      []Identity       // Identities of all servers in management chain
-
+	Authorities		[]Authority
 	// Just to print (so debugging doesn't drive functionaility)
 	Status    bool
 	starttime time.Time
@@ -209,6 +209,7 @@ func (s *State) Clone(number string) interfaces.IState {
 
 	clone.IdentityChainID = primitives.Sha([]byte(clone.FactomNodeName))
 	clone.Identities = s.Identities
+	clone.Authorities = s.Authorities
 
 	//generate and use a new deterministic PrivateKey for this clone
 	shaHashOfNodeName := primitives.Sha([]byte(clone.FactomNodeName)) //seed the private key with node name
@@ -432,6 +433,8 @@ func (s *State) Init() {
 
 	LoadIdentityCache(s)
 	//StubIdentityCache(s)
+	LoadAuthorityCache(s)
+	//StubAuthorityCache(s)
 
 	s.starttime = time.Now()
 }

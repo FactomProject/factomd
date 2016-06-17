@@ -140,6 +140,9 @@ type DBOverlay interface {
 
 	FetchABlockHead() (IAdminBlock, error)
 
+		// FetchABlockByHeight gets an admin block by hash from the database.
+	FetchABlockByHeight(height uint32) (IAdminBlock, err error)
+
 	//**********************************FBlock**********************************//
 
 	// ProcessFBlockBatch inserts the Factoid

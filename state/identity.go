@@ -3,6 +3,7 @@ package state
 import (
 	"encoding/hex"
 	"errors"
+	"fmt"
 	ed "github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -95,7 +96,7 @@ func LoadIdentityByDirectoryBlockHeight(height uint32, st *State) {
 				ecb, _ := st.DB.FetchEBlock(entkmr)
 				entryHashes := ecb.GetEntryHashes()
 				for _, eHash := range entryHashes {
-
+fmt.Println(height)
 					hs := eHash.String()
 					if hs[0:10] != "0000000000" { //ignore minute markers
 

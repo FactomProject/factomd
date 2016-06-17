@@ -242,6 +242,7 @@ func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
 	}
 
 	LoadIdentityByDirectoryBlockHeight(fs.DBHeight, fs.State)
+	LoadAuthorityByAdminBlockHeight(fs.DBHeight, fs.State)
 
 	fs.DBHeight++
 }
