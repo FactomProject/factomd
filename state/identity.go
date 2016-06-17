@@ -42,8 +42,6 @@ type Identity struct {
 }
 
 func LoadIdentityCache(st *State) {
-
-	// var s State
 	blockHead, err := st.DB.FetchDirectoryBlockHead()
 
 	if blockHead == nil {
@@ -66,7 +64,6 @@ func LoadIdentityCache(st *State) {
 }
 
 func LoadIdentityByDirectoryBlockHeight(height uint32, st *State, update bool) {
-
 	dblk, err := st.DB.FetchDBlockByHeight(uint32(height))
 	if err != nil {
 		log.Printfln("Identity Error:", err)
@@ -76,7 +73,6 @@ func LoadIdentityByDirectoryBlockHeight(height uint32, st *State, update bool) {
 
 	entries := dblk.GetDBEntries()
 	for _, eBlk := range entries {
-
 		cid := eBlk.GetChainID()
 		if cid.IsSameAs(ManagementChain) {
 			// is it a new one?
@@ -95,9 +91,7 @@ func LoadIdentityByDirectoryBlockHeight(height uint32, st *State, update bool) {
 					}
 				}
 			}
-
 		} else if cid.String()[0:6] == "888888" {
-
 			entkmr := eBlk.GetKeyMR() //eBlock Hash
 			ecb, _ := st.DB.FetchEBlock(entkmr)
 			entryHashes := ecb.GetEntryHashes()
@@ -204,7 +198,6 @@ func isIdentityChain(cid interfaces.IHash, ids []Identity) int {
 }
 
 func createFactomIdentity(st *State, chainID interfaces.IHash) int {
-
 	var idnew []Identity
 	idnew = make([]Identity, len(st.Identities)+1)
 
@@ -235,7 +228,7 @@ func registerFactomIdentity(extIDs [][]byte, chainID interfaces.IHash, st *State
 		IdentityIndex = createFactomIdentity(st, idChain)
 	}
 
-	sigmsg, err := appendExtIDs(extIDs, 0, 2)
+	sigmsg, err := AppendExtIDs(extIDs, 0, 2)
 	if err != nil {
 		log.Printfln("Identity Error:", err)
 	} else {
@@ -306,7 +299,7 @@ func registerIdentityAsServer(extIDs [][]byte, chainID interfaces.IHash, st *Sta
 		IdentityIndex = createFactomIdentity(st, idChain)
 	}
 
-	sigmsg, err := appendExtIDs(extIDs, 0, 2)
+	sigmsg, err := AppendExtIDs(extIDs, 0, 2)
 	if err != nil {
 		log.Printfln("Identity Error:", err)
 	} else {
@@ -330,7 +323,7 @@ func registerBlockSigningKey(extIDs [][]byte, chainID interfaces.IHash, st *Stat
 		return
 	}
 
-	sigmsg, err := appendExtIDs(extIDs, 0, 4)
+	sigmsg, err := AppendExtIDs(extIDs, 0, 4)
 	if err != nil {
 		log.Printfln("Identity Error:", err)
 	} else {
@@ -370,7 +363,7 @@ func updateMatryoshkaHash(extIDs [][]byte, chainID interfaces.IHash, st *State, 
 		return
 	}
 
-	sigmsg, err := appendExtIDs(extIDs, 0, 4)
+	sigmsg, err := AppendExtIDs(extIDs, 0, 4)
 	if err != nil {
 		log.Printfln("Identity Error:", err)
 	} else {
@@ -426,7 +419,7 @@ func registerAnchorSigningKey(extIDs [][]byte, chainID interfaces.IHash, st *Sta
 
 	newAsk[len(ask)] = oneAsk
 
-	sigmsg, err := appendExtIDs(extIDs, 0, 6)
+	sigmsg, err := AppendExtIDs(extIDs, 0, 6)
 	if err != nil {
 		log.Printfln("Identity Error:", err)
 	} else {
@@ -458,8 +451,8 @@ func registerAnchorSigningKey(extIDs [][]byte, chainID interfaces.IHash, st *Sta
 
 //  stub for fake identity entries
 func StubIdentityCache(st *State) {
-
 	var id []Identity
+
 	id = make([]Identity, 24)
 	id[0] = MakeID("FED1", 1)
 	id[1] = MakeID("FED2", 1)
@@ -487,7 +480,6 @@ func StubIdentityCache(st *State) {
 	id[23] = MakeID("FUL8", 3)
 
 	st.Identities = id
-
 }
 
 func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype int) bool {
@@ -537,7 +529,6 @@ func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype
 }
 
 func MakeID(seed string, ServerType int) Identity {
-
 	var id Identity
 	nonce := primitives.Sha([]byte("Nonce")).Bytes()
 
@@ -590,9 +581,9 @@ func checkSig(idKey interfaces.IHash, pub []byte, msg []byte, sig []byte) bool {
 	}
 }
 
-func appendExtIDs(extIDs [][]byte, start int, end int) ([]byte, error) {
-	if len(extIDs) < end {
-		return nil, errors.New("Error: Index out of bound exception in appendExtIDs()")
+func AppendExtIDs(extIDs [][]byte, start int, end int) ([]byte, error) {
+	if len(extIDs) < (end + 1) {
+		return nil, errors.New("Error: Index out of bound exception in AppendExtIDs()")
 	}
 	appended := make([]byte, 0)
 	for i := start; i <= end; i++ {
