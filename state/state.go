@@ -311,6 +311,7 @@ func (s *State) LoadConfig(filename string, folder string) {
 }
 
 func (s *State) Init() {
+	s.SetOut(true)
 
 	wsapi.InitLogs(s.LogPath+s.FactomNodeName+".log", s.LogLevel)
 
@@ -422,7 +423,7 @@ func (s *State) Init() {
 	}
 
 	s.Println("\nRunning on the ", s.Network, "Network")
-	s.Println("\nExchange rate chain id set to ", s.GetFactoshisPerEC())
+	s.Println("\nExchange rate chain id set to ", s.FERChainId)
 	s.Println("\nExchange rate Authority Public Key set to ", s.ExchangeRateAuthorityAddress)
 
 	s.AuditHeartBeats = make([]interfaces.IMsg, 0)
