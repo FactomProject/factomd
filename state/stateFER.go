@@ -82,7 +82,7 @@ func (this *State) ProcessRecentFERChainEntries() {
 			}
 
 			// Make sure the entry exists
-			anEntry, err := this.DB.FetchEntryByHash(entryHash)
+			anEntry, err := this.DB.FetchEntry(entryHash)
 			if err != nil {
 				this.Println("Error during FetchEntryByHash: ", err)
 				continue

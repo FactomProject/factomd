@@ -216,7 +216,7 @@ func TestHandleV2GetReceipt(t *testing.T) {
 	//Start(state)
 
 	hashkey := new(HashRequest)
-	hashkey.Hash = "8c35266c406e5a42fc3ca93f2d850b954bdfa79f49b2ceaf7f7086b691ffc022"
+	hashkey.Hash = "be5fb8c3ba92c0436269fab394ff7277c67e9b2de4431b723ce5d89799c0b93a"
 
 	resp, jErr := HandleV2Receipt(state, hashkey)
 	if jErr != nil {

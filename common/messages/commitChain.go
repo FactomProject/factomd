@@ -80,13 +80,13 @@ func (m *CommitChainMsg) GetHash() interfaces.IHash {
 }
 
 func (m *CommitChainMsg) GetMsgHash() interfaces.IHash {
-	if m.MsgHash == nil {
-		data, err := m.MarshalBinary()
-		if err != nil {
-			return nil
-		}
-		m.MsgHash = primitives.Sha(data)
+
+	data, err := m.MarshalBinary()
+	if err != nil {
+		return nil
 	}
+	m.MsgHash = primitives.Sha(data)
+
 	return m.MsgHash
 }
 
@@ -248,10 +248,9 @@ func (m *CommitChainMsg) String() string {
 	if m.LeaderChainID == nil {
 		m.LeaderChainID = primitives.NewZeroHash()
 	}
-	str := fmt.Sprintf("%6s-VM%3d: Leader[%x] entryhash[%x] hash[%x]",
+	str := fmt.Sprintf("%6s-VM%3d: entryhash[%x] hash[%x]",
 		"CChain",
 		m.VMIndex,
-		m.LeaderChainID.Bytes()[:3],
 		m.CommitChain.EntryHash.Bytes()[:3],
 		m.GetHash().Bytes()[:3])
 	return str

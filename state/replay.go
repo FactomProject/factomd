@@ -11,51 +11,60 @@ import (
 	"time"
 )
 
-const numBuckets = 24
+const numBuckets = 27
 
 var _ = time.Now()
 var _ = fmt.Print
 
 type Replay struct {
 	mutex    sync.Mutex
-	buckets  []map[[32]byte]byte
-	lasttime int64 // hours since 1970
+	buckets  [numBuckets]map[[32]byte]byte
+	basetime int // hours since 1970
+	center   int // Hour of the current time.
+	check    map[[32]byte]byte
 }
 
 // Remember that Unix time is in seconds since 1970.  This code
 // wants to be handed time in seconds.
-
-func hours(unix int64) int64 {
-	return unix / 60 / 60
+func hours(unix int64) int {
+	return int(unix / 60 / 60)
 }
 
 // Returns false if the hash is too old, or is already a
 // member of the set.  Timestamp is in seconds.
-func (r *Replay) Valid(hash [32]byte, timestamp int64, now int64) (index int, valid bool) {
+func (r *Replay) Valid(hash [32]byte, timestamp int64, systemtime int64) (index int, valid bool) {
 
-	if len(r.buckets) < numBuckets {
-		r.buckets = make([]map[[32]byte]byte, numBuckets, numBuckets)
+	// Check the timestamp to see if within 12 hours of the system time.  That not valid, we are
+	// just done without any added concerns.
+	if timestamp-systemtime > 60*60*12 || systemtime-timestamp > 60*60*12 {
+		return -1, false
 	}
 
-	now = hours(now)
+	_, okc := r.check[hash]
 
-	// If we have no buckets, or more than 24 hours has passed,
-	// toss all the buckets. We do this by setting lasttime 24 hours
-	// in the past.
-	if now-r.lasttime > int64(numBuckets) {
-		r.lasttime = now - int64(numBuckets)
+	now := hours(systemtime)
+
+	// We don't let the system clock go backwards.  likely an attack if it does.
+	if now < r.center {
+		now = r.center
 	}
 
-	// for every hour that has passed, toss one bucket by shifting
-	// them all down a slot, and allocating a new bucket.
-	for r.lasttime < now {
-		r.buckets = append(r.buckets, make(map[[32]byte]byte))
-		r.lasttime++
+	if r.center == 0 {
+		r.center = now
+		r.basetime = now - (numBuckets / 2)
+		r.check = make(map[[32]byte]byte, 0)
+	}
+	for r.center < now {
+		copy(r.buckets[:], r.buckets[1:])
+		r.buckets[numBuckets-1] = nil
+		r.center++
+		r.basetime++
 	}
 
 	t := hours(timestamp)
-	index = int(t - now + int64(numBuckets)/2)
+	index = t - r.basetime
 	if index < 0 || index >= numBuckets {
+		fmt.Println("dddd Timestamp false on time:", index)
 		return 0, false
 	}
 
@@ -64,10 +73,15 @@ func (r *Replay) Valid(hash [32]byte, timestamp int64, now int64) (index int, va
 	} else {
 		_, ok := r.buckets[index][hash]
 		if ok {
-			return 0, false
+			if !okc {
+				panic(fmt.Sprintf("dddd Replay Failure returns false %x %d", hash, timestamp))
+			}
+			return index, false
 		}
 	}
-
+	if okc {
+		panic(fmt.Sprintf("dddd Replay Failure returns true %x %d", hash, timestamp))
+	}
 	return index, true
 }
 
@@ -91,7 +105,7 @@ func (r *Replay) IsTSValid_(hash [32]byte, timestamp int64, now int64) bool {
 	if index, ok := r.Valid(hash, timestamp, now); ok {
 		// Mark this hash as seen
 		r.buckets[index][hash] = 'x'
-
+		r.check[hash] = 'x'
 		return true
 	}
 

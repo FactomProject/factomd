@@ -102,7 +102,7 @@ func TestSaveLoadFBlockChain(t *testing.T) {
 		}
 		t.Logf("KeyMR - %v", keyMR.String())
 
-		current, err = dbo.FetchFBlockByKeyMR(keyMR)
+		current, err = dbo.FetchFBlockByPrimary(keyMR)
 		if err != nil {
 			t.Error(err)
 		}
@@ -112,7 +112,7 @@ func TestSaveLoadFBlockChain(t *testing.T) {
 		fetchedCount++
 		hash := current.GetHash()
 
-		byHash, err := dbo.FetchFBlockByHash(hash)
+		byHash, err := dbo.FetchFBlockBySecondary(hash)
 
 		same, err := primitives.AreBinaryMarshallablesEqual(current, byHash)
 		if err != nil {
@@ -156,14 +156,14 @@ func TestLoadUnknownFBlocks(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		data, err := dbo.FetchFBlockByHash(hash)
+		data, err := dbo.FetchFBlockByPrimary(hash)
 		if err != nil {
 			t.Error(err)
 		}
 		if data != nil {
 			t.Error("Fetched entry while we expected nil - %v", data)
 		}
-		data, err = dbo.FetchFBlockByKeyMR(hash)
+		data, err = dbo.FetchFBlockBySecondary(hash)
 		if err != nil {
 			t.Error(err)
 		}
