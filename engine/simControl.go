@@ -256,7 +256,7 @@ func SimControl(listenTo int) {
 						break
 					}
 					stat := returnStatString(i.Status)
-					os.Stderr.WriteString("-------------------------------------------------------------------------------\n")
+					os.Stderr.WriteString(fmt.Sprint("-----------------------------------Identity: ", c, "---------------------------------------\n"))
 					if show == 0 {
 						os.Stderr.WriteString(fmt.Sprint("Server Status: ", stat, "\n"))
 						os.Stderr.WriteString(fmt.Sprint("Identity Chain: ", i.IdentityChainID, "\n"))
