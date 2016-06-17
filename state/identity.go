@@ -15,7 +15,7 @@ import (
 var (
 	TWELVE_HOURS_S uint64 = 12 * 60 * 60
 	// Time window for identity to require registration: 24hours = 144 blocks
-	TIME_WINDOW uint32 = 1
+	TIME_WINDOW uint32 = 144
 )
 
 type AnchorSigningKey struct {
