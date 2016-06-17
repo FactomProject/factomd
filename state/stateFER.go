@@ -15,7 +15,7 @@ import (
 // Go through the factoid exchange rate chain and determine if an FER change should be scheduled
 func (this *State) ProcessRecentFERChainEntries() {
 
-	fmt.Println("----------- PRFCE")
+	this.Println("----------- PRFCE")
 
 	// Find the FER entry chain
 	FERChainHash, err := primitives.HexToHash(this.FERChainId)
@@ -35,6 +35,7 @@ func (this *State) ProcessRecentFERChainEntries() {
 		return
 	}
 
+	this.Println("Node node = ", this.FactomNodeName)
 	this.Println("Checking last e block of FER chain with height of: ", entryBlock.GetHeader().GetDBHeight())
 	this.Println("Current block height: ", this.GetDBHeightComplete())
 	this.Println("BEFORE processing recent block: ")

@@ -51,8 +51,17 @@ func SimControl(listenTo int) {
 		b := string(cmd[0])
 		v, err := strconv.Atoi(string(b))
 		if err == nil && v >= 0 && v < len(fnodes) && fnodes[listenTo].State != nil {
-			listenTo = v
-			os.Stderr.WriteString(fmt.Sprintf("Switching to Node %d\n", listenTo))
+
+			if v >= 0 && v < len(fnodes) {
+				if listenTo >= 0 && listenTo < len(fnodes) {
+					fnodes[listenTo].State.SetOut(false)
+				}
+				listenTo = v
+				os.Stderr.WriteString(fmt.Sprintf("Switching to Node %d\n", listenTo))
+				fnodes[listenTo].State.SetOut(true)
+			} else {
+				os.Stderr.WriteString(fmt.Sprintf("Ignored input: out of range"))
+			}
 		} else {
 			// fmt.Printf("Parsing command, found %d elements.  The first element is: %+v / %s \n Full command: %+v\n", len(cmd), b[0], string(b), cmd)
 			switch {
