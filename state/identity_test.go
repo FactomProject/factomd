@@ -9,8 +9,37 @@ import (
 	//"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	. "github.com/FactomProject/factomd/state"
-	//"github.com/FactomProject/factomd/testHelper"
+	"github.com/FactomProject/factomd/testHelper"
 )
+
+/*
+func TestMakeID(t *testing.T) {
+	id := MakeID("seed", 1)
+
+	t.Errorf("%v", id.String())
+}*/
+
+func TestCheckSig(t *testing.T) {
+	priv := testHelper.NewPrivKey(1)
+	msg := []byte("Hello!")
+	pub := testHelper.PrivateKeyToEDPub(priv)
+
+	pre := []byte{0x01}
+	pre = append(pre, pub...)
+	id := primitives.Shad(pre)
+
+	sig := primitives.Sign(priv, msg)
+
+	if CheckSig(id, pub, msg, sig) == false {
+		t.Error("Valid signature not valid")
+	}
+
+	sig[0] += 1
+
+	if CheckSig(id, pub, msg, sig) == true {
+		t.Error("Invalid signature valid")
+	}
+}
 
 func TestAppendExtIDs(t *testing.T) {
 	ids := [][]byte{
