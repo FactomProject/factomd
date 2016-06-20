@@ -73,6 +73,14 @@ func LoadIdentityByDirectoryBlockHeight(height uint32, st *State, update bool) {
 	ManagementChain, _ = primitives.HexToHash("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")
 
 	entries := dblk.GetDBEntries()
+
+	// Used to hold key update entries to process at end of entry block
+	type updateKeyEntry struct {
+		cid interfaces.IHash
+		ent interfaces.IEBEntry
+	}
+	holdEntry := make([]updateKeyEntry, 0)
+
 	for _, eBlk := range entries {
 		cid := eBlk.GetChainID()
 		if cid.IsSameAs(ManagementChain) {
@@ -97,10 +105,8 @@ func LoadIdentityByDirectoryBlockHeight(height uint32, st *State, update bool) {
 			ecb, _ := st.DB.FetchEBlock(entkmr)
 			entryHashes := ecb.GetEntryHashes()
 			for _, eHash := range entryHashes {
-
 				hs := eHash.String()
 				if hs[0:10] != "0000000000" { //ignore minute markers
-
 					ent, _ := st.DB.FetchEntry(eHash)
 					if string(ent.ExternalIDs()[1]) == "Register Server Management" {
 						// this is an Identity that should have been registered already with a 0 status.
@@ -110,19 +116,22 @@ func LoadIdentityByDirectoryBlockHeight(height uint32, st *State, update bool) {
 					} else if string(ent.ExternalIDs()[1]) == "New Block Signing Key" {
 						// this is the Signing Key for this Identity
 						if len(ent.ExternalIDs()) == 7 { // update management should have 4 items
-							registerBlockSigningKey(ent.ExternalIDs(), cid, st, update)
+							// Hold
+							holdEntry = append(holdEntry, updateKeyEntry{cid, ent})
 						}
 
 					} else if string(ent.ExternalIDs()[1]) == "New Bitcoin Key" {
 						// this is the Signing Key for this Identity
 						if len(ent.ExternalIDs()) == 9 { // update management should have 4 items
-							registerAnchorSigningKey(ent.ExternalIDs(), cid, st, "BTC", update)
+							// Hold
+							holdEntry = append(holdEntry, updateKeyEntry{cid, ent})
 						}
 
 					} else if string(ent.ExternalIDs()[1]) == "New Matryoshka Hash" {
 						// this is the Signing Key for this Identity
 						if len(ent.ExternalIDs()) == 7 { // update management should have 4 items
-							updateMatryoshkaHash(ent.ExternalIDs(), cid, st, update)
+							// hold
+							holdEntry = append(holdEntry, updateKeyEntry{cid, ent})
 						}
 					} else if len(ent.ExternalIDs()) > 1 && string(ent.ExternalIDs()[1]) == "Identity Chain" {
 						// this is a new identity
@@ -140,7 +149,24 @@ func LoadIdentityByDirectoryBlockHeight(height uint32, st *State, update bool) {
 			if cid.String()[0:10] != "0000000000" { //ignore minute markers
 				//  not a chain id I care about
 			}
-
+		}
+	}
+	// Proces holded entries
+	if len(holdEntry) > 0 {
+		for _, entry := range holdEntry {
+			if string(entry.ent.ExternalIDs()[1]) == "New Block Signing Key" {
+				if len(entry.ent.ExternalIDs()) == 7 {
+					registerBlockSigningKey(entry.ent.ExternalIDs(), entry.cid, st, update)
+				}
+			} else if string(entry.ent.ExternalIDs()[1]) == "New Bitcoin Key" {
+				if len(entry.ent.ExternalIDs()) == 9 {
+					registerAnchorSigningKey(entry.ent.ExternalIDs(), entry.cid, st, "BTC", update)
+				}
+			} else if string(entry.ent.ExternalIDs()[1]) == "New Matryoshka Hash" {
+				if len(entry.ent.ExternalIDs()) == 7 {
+					updateMatryoshkaHash(entry.ent.ExternalIDs(), entry.cid, st, update)
+				}
+			}
 		}
 	}
 
@@ -161,7 +187,6 @@ func LoadIdentityByDirectoryBlockHeight(height uint32, st *State, update bool) {
 			removeIdentity(i, st)
 		}
 	}
-
 }
 
 func removeIdentity(i int, st *State) {
@@ -346,7 +371,10 @@ func registerBlockSigningKey(extIDs [][]byte, chainID interfaces.IHash, st *Stat
 			st.Identities[IdentityIndex].SigningKey = primitives.NewHash(extIDs[3])
 			// Add to admin block
 			status := st.Identities[IdentityIndex].Status
-			if update && (status == constants.IDENTITY_FEDERATED_SERVER || status == constants.IDENTITY_AUDIT_SERVER) {
+			if update && (status == constants.IDENTITY_FEDERATED_SERVER ||
+				status == constants.IDENTITY_AUDIT_SERVER ||
+				status == constants.IDENTITY_PENDING_FEDERATED_SERVER ||
+				status == constants.IDENTITY_PENDING_AUDIT_SERVER) {
 				copy(key[:32], extIDs[3][:32])
 				st.LeaderPL.AdminBlock.AddFederatedServerSigningKey(chainID, &key)
 			}
@@ -385,7 +413,10 @@ func updateMatryoshkaHash(extIDs [][]byte, chainID interfaces.IHash, st *State, 
 			st.Identities[IdentityIndex].MatryoshkaHash = mhash
 			// Add to admin block
 			status := st.Identities[IdentityIndex].Status
-			if update && (status == constants.IDENTITY_FEDERATED_SERVER || status == constants.IDENTITY_AUDIT_SERVER) {
+			if update && (status == constants.IDENTITY_FEDERATED_SERVER ||
+				status == constants.IDENTITY_AUDIT_SERVER ||
+				status == constants.IDENTITY_PENDING_FEDERATED_SERVER ||
+				status == constants.IDENTITY_PENDING_AUDIT_SERVER) {
 				st.LeaderPL.AdminBlock.AddMatryoshkaHash(chainID, mhash)
 			}
 		} else {
@@ -440,7 +471,10 @@ func registerAnchorSigningKey(extIDs [][]byte, chainID interfaces.IHash, st *Sta
 			st.Identities[IdentityIndex].AnchorKeys = newAsk
 			// Add to admin block
 			status := st.Identities[IdentityIndex].Status
-			if update && (status == constants.IDENTITY_FEDERATED_SERVER || status == constants.IDENTITY_AUDIT_SERVER) {
+			if update && (status == constants.IDENTITY_FEDERATED_SERVER ||
+				status == constants.IDENTITY_AUDIT_SERVER ||
+				status == constants.IDENTITY_PENDING_FEDERATED_SERVER ||
+				status == constants.IDENTITY_PENDING_AUDIT_SERVER) {
 				copy(key[:20], extIDs[5][:20])
 				st.LeaderPL.AdminBlock.AddFederatedServerBitcoinAnchorKey(chainID, extIDs[3][0], extIDs[4][0], &key)
 			}
@@ -574,6 +608,11 @@ func checkSig(idKey interfaces.IHash, pub []byte, msg []byte, sig []byte) bool {
 	pre = append(pre, []byte{0x01}...)
 	pre = append(pre, pubFix[:]...)
 	id := primitives.Shad(pre)
+
+	/*if idKey == nil {
+		log.Println("Identity Issue: No identity currently exist to check public key against identity key. Not full validation")
+		return ed.Verify(&pubFix, msg, &sigFix)
+	}*/
 
 	if id.IsSameAs(idKey) {
 		return ed.Verify(&pubFix, msg, &sigFix)
