@@ -96,11 +96,7 @@ func LoadIdentityByDirectoryBlockHeight(height uint32, st *State, update bool) {
 	entries := dblk.GetDBEntries()
 
 	// Used to hold key update entries to process at end of entry block
-	type updateKeyEntry struct {
-		cid interfaces.IHash
-		ent interfaces.IEBEntry
-	}
-	holdEntry := make([]updateKeyEntry, 0)
+	holdEntry := make([]interfaces.IEBEntry, 0)
 
 	for _, eBlk := range entries {
 		cid := eBlk.GetChainID()
@@ -138,21 +134,21 @@ func LoadIdentityByDirectoryBlockHeight(height uint32, st *State, update bool) {
 						// this is the Signing Key for this Identity
 						if len(ent.ExternalIDs()) == 7 { // update management should have 4 items
 							// Hold
-							holdEntry = append(holdEntry, updateKeyEntry{cid, ent})
+							holdEntry = append(holdEntry, ent)
 						}
 
 					} else if string(ent.ExternalIDs()[1]) == "New Bitcoin Key" {
 						// this is the Signing Key for this Identity
 						if len(ent.ExternalIDs()) == 9 { // update management should have 4 items
 							// Hold
-							holdEntry = append(holdEntry, updateKeyEntry{cid, ent})
+							holdEntry = append(holdEntry, ent)
 						}
 
 					} else if string(ent.ExternalIDs()[1]) == "New Matryoshka Hash" {
 						// this is the Signing Key for this Identity
 						if len(ent.ExternalIDs()) == 7 { // update management should have 4 items
 							// hold
-							holdEntry = append(holdEntry, updateKeyEntry{cid, ent})
+							holdEntry = append(holdEntry, ent)
 						}
 					} else if len(ent.ExternalIDs()) > 1 && string(ent.ExternalIDs()[1]) == "Identity Chain" {
 						// this is a new identity
@@ -175,17 +171,17 @@ func LoadIdentityByDirectoryBlockHeight(height uint32, st *State, update bool) {
 	// Process entries that are being held
 	if len(holdEntry) > 0 {
 		for _, entry := range holdEntry {
-			if string(entry.ent.ExternalIDs()[1]) == "New Block Signing Key" {
-				if len(entry.ent.ExternalIDs()) == 7 {
-					registerBlockSigningKey(entry.ent.ExternalIDs(), entry.cid, st, update)
+			if string(entry.ExternalIDs()[1]) == "New Block Signing Key" {
+				if len(entry.ExternalIDs()) == 7 {
+					registerBlockSigningKey(entry.ExternalIDs(), entry.GetChainID(), st, update)
 				}
-			} else if string(entry.ent.ExternalIDs()[1]) == "New Bitcoin Key" {
-				if len(entry.ent.ExternalIDs()) == 9 {
-					registerAnchorSigningKey(entry.ent.ExternalIDs(), entry.cid, st, "BTC", update)
+			} else if string(entry.ExternalIDs()[1]) == "New Bitcoin Key" {
+				if len(entry.ExternalIDs()) == 9 {
+					registerAnchorSigningKey(entry.ExternalIDs(), entry.GetChainID(), st, "BTC", update)
 				}
-			} else if string(entry.ent.ExternalIDs()[1]) == "New Matryoshka Hash" {
-				if len(entry.ent.ExternalIDs()) == 7 {
-					updateMatryoshkaHash(entry.ent.ExternalIDs(), entry.cid, st, update)
+			} else if string(entry.ExternalIDs()[1]) == "New Matryoshka Hash" {
+				if len(entry.ExternalIDs()) == 7 {
+					updateMatryoshkaHash(entry.ExternalIDs(), entry.GetChainID(), st, update)
 				}
 			}
 		}
