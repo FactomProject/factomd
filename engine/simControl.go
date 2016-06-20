@@ -238,8 +238,11 @@ func SimControl(listenTo int) {
 						show = 4
 					}
 					if len(b) > 2 {
-						if amt, err = strconv.Atoi(b[2:]); err == nil {
-
+						amt, err = strconv.Atoi(b[2:])
+						if b[1] == 's' {
+							show = 5
+						} else if err == nil {
+							show = 0
 						} else {
 							amt = -1
 						}
@@ -248,27 +251,39 @@ func SimControl(listenTo int) {
 				if amt == -1 {
 					os.Stderr.WriteString(fmt.Sprintf("=== Identity List === Total: %d Displaying: All\n", len(fnodes[listenTo].State.Identities)))
 
+				} else if show == 5 {
+					os.Stderr.WriteString(fmt.Sprintf("=== Identity List === Total: %d Displaying Only: %d\n", len(fnodes[listenTo].State.Identities), amt))
 				} else {
 					os.Stderr.WriteString(fmt.Sprintf("=== Identity List === Total: %d Displaying: %d\n", len(fnodes[listenTo].State.Identities), amt))
 				}
 				for c, i := range fnodes[listenTo].State.Identities {
-					if amt != -1 && c == amt {
+					if amt != -1 && c == amt+1 {
 						break
 					}
 					stat := returnStatString(i.Status)
-					os.Stderr.WriteString(fmt.Sprint("-----------------------------------Identity: ", c, "---------------------------------------\n"))
-					if show == 0 {
-						os.Stderr.WriteString(fmt.Sprint("Server Status: ", stat, "\n"))
-						os.Stderr.WriteString(fmt.Sprint("Identity Chain: ", i.IdentityChainID, "\n"))
-						os.Stderr.WriteString(fmt.Sprint("Management Chain: ", i.ManagementChainID, "\n"))
-						os.Stderr.WriteString(fmt.Sprint("Matryoshka Hash: ", i.MatryoshkaHash, "\n"))
-						os.Stderr.WriteString(fmt.Sprint("Key 1: ", i.Key1, "\n"))
-						os.Stderr.WriteString(fmt.Sprint("Key 2: ", i.Key2, "\n"))
-						os.Stderr.WriteString(fmt.Sprint("Key 3: ", i.Key3, "\n"))
-						os.Stderr.WriteString(fmt.Sprint("Key 4: ", i.Key4, "\n"))
-						os.Stderr.WriteString(fmt.Sprint("Signing Key: ", i.SigningKey, "\n"))
-						for _, a := range i.AnchorKeys {
-							os.Stderr.WriteString(fmt.Sprintf("Anchor Key: {'%s' L%x T%x K:%x}\n", a.BlockChain, a.KeyLevel, a.KeyType, a.SigningKey))
+					if show == 5 {
+						if c != amt {
+
+						} else {
+							os.Stderr.WriteString(fmt.Sprint("-----------------------------------Identity: ", amt, "---------------------------------------\n"))
+						}
+					} else {
+						os.Stderr.WriteString(fmt.Sprint("-----------------------------------Identity: ", c, "---------------------------------------\n"))
+					}
+					if show == 0 || show == 5 {
+						if show == 0 || c == amt {
+							os.Stderr.WriteString(fmt.Sprint("Server Status: ", stat, "\n"))
+							os.Stderr.WriteString(fmt.Sprint("Identity Chain: ", i.IdentityChainID, "\n"))
+							os.Stderr.WriteString(fmt.Sprint("Management Chain: ", i.ManagementChainID, "\n"))
+							os.Stderr.WriteString(fmt.Sprint("Matryoshka Hash: ", i.MatryoshkaHash, "\n"))
+							os.Stderr.WriteString(fmt.Sprint("Key 1: ", i.Key1, "\n"))
+							os.Stderr.WriteString(fmt.Sprint("Key 2: ", i.Key2, "\n"))
+							os.Stderr.WriteString(fmt.Sprint("Key 3: ", i.Key3, "\n"))
+							os.Stderr.WriteString(fmt.Sprint("Key 4: ", i.Key4, "\n"))
+							os.Stderr.WriteString(fmt.Sprint("Signing Key: ", i.SigningKey, "\n"))
+							for _, a := range i.AnchorKeys {
+								os.Stderr.WriteString(fmt.Sprintf("Anchor Key: {'%s' L%x T%x K:%x}\n", a.BlockChain, a.KeyLevel, a.KeyType, a.SigningKey))
+							}
 						}
 					} else if show == 1 {
 						os.Stderr.WriteString(fmt.Sprint("Server Status: ", stat, "\n"))
