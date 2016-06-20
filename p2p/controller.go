@@ -236,7 +236,7 @@ func (c *Controller) runloop() {
 			c.networkStatusReport()
 		}
 	}
-	note("ctrlr", "Controller.runloop() has exited. Shutdown command recieved?")
+	silence("ctrlr", "Controller.runloop() has exited. Shutdown command recieved?")
 	significant("ctrlr", "runloop() - Final network statistics: TotalMessagesRecieved: %d TotalMessagesSent: %d", TotalMessagesRecieved, TotalMessagesSent)
 }
 
@@ -284,7 +284,6 @@ func (c *Controller) route() {
 			}
 		}
 	}
-
 }
 
 // handleParcelReceive takes a parcel from the network and annotates it for the application then routes it.
