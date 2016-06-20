@@ -81,11 +81,11 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 	case "entry-credit-balance":
 		resp, jsonError = HandleV2EntryCreditBalance(state, params)
 		break
+	case "entry-credit-rate":
+		resp, jsonError = HandleV2EntryCreditRate(state, params)
+		break
 	case "factoid-balance":
 		resp, jsonError = HandleV2FactoidBalance(state, params)
-		break
-	case "factoid-fee":
-		resp, jsonError = HandleV2FactoidFee(state, params)
 		break
 	case "factoid-submit":
 		resp, jsonError = HandleV2FactoidSubmit(state, params)
@@ -521,9 +521,9 @@ func HandleV2EntryCreditBalance(state interfaces.IState, params interface{}) (in
 	return resp, nil
 }
 
-func HandleV2FactoidFee(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
-	resp := new(FactoidFeeResponse)
-	resp.Fee = int64(state.GetPredictiveFER())
+func HandleV2EntryCreditRate(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	resp := new(EntryCreditRateResponse)
+	resp.Rate = int64(state.GetPredictiveFER())
 
 	return resp, nil
 }
