@@ -574,7 +574,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 	for _, eb := range pl.NewEBlocks {
 		if pl.VMIndexFor(eb.GetChainID().Bytes()) == e.VMIndex {
-			eb.AddEndOfMinuteMarker(e.Bytes()[0])
+			eb.AddEndOfMinuteMarker(byte(e.Minute + 1))
 		}
 	}
 
