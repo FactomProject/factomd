@@ -242,8 +242,8 @@ func SimControl(listenTo int) {
 						if b[1] == 's' {
 							show = 5
 						} else if err == nil {
-							show = 0
 						} else {
+							show = 0
 							amt = -1
 						}
 					}
@@ -320,9 +320,10 @@ func SimControl(listenTo int) {
 				os.Stderr.WriteString("n             Change the focus to the next node.\n")
 				os.Stderr.WriteString("l             Make focused node the Leader.\n")
 				os.Stderr.WriteString("x             Take the given node out of the netork or bring an offline node back in.\n")
-				os.Stderr.WriteString("w             Point the WSAPI to send API calls to the current node.")
-				os.Stderr.WriteString("i             Shows the identities in the current state.")
-				os.Stderr.WriteString("i[m/b/a/s][#] Shows only the Mhash, block signing key, anchor key, select identity")
+				os.Stderr.WriteString("w             Point the WSAPI to send API calls to the current node.\n")
+				os.Stderr.WriteString("i             Shows the identities in the current state.\n")
+				os.Stderr.WriteString("i[m/b/a][N]   Shows only the Mhash, block signing key, or anchor key up to the Nth identity\n")
+				os.Stderr.WriteString("isN           Shows only Nth identity\n")
 				os.Stderr.WriteString("h or <enter>  Show help\n")
 				os.Stderr.WriteString("\n")
 				os.Stderr.WriteString("Most commands are case insensitive.\n")
