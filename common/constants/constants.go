@@ -29,10 +29,11 @@ const (
 	MISSING_MSG           // 15
 	MISSING_DATA          // 16
 	DATA_RESPONSE         // 17
+	MISSING_MSG_RESPONSE  //18
 
-	DBSTATE_MSG         // 18
-	DBSTATE_MISSING_MSG // 19
-	ADDSERVER_MSG       // 20
+	DBSTATE_MSG         // 19
+	DBSTATE_MISSING_MSG // 20
+	ADDSERVER_MSG       // 21
 )
 
 const (
@@ -152,4 +153,18 @@ const (
 	TYPE_REMOVE_FED_SERVER               // 7
 	TYPE_ADD_FED_SERVER_KEY              // 8
 	TYPE_ADD_BTC_ANCHOR_KEY              // 9
+)
+
+//---------------------------------------------------------------------
+// Identity Status Types
+//---------------------------------------------------------------------
+const (
+	IDENTITY_UNASSIGNED               = 0
+	IDENTITY_FEDERATED_SERVER         = 1
+	IDENTITY_AUDIT_SERVER             = 2
+	IDENTITY_FULL                     = 3
+	IDENTITY_PENDING_FEDERATED_SERVER = 4
+	IDENTITY_PENDING_AUDIT_SERVER     = 5
+	IDENTITY_PENDING_FULL             = 6
+	IDENTITY_PENDING                  = 7
 )

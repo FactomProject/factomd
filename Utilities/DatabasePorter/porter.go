@@ -44,7 +44,7 @@ mainloop:
 		endKeyMR := "0000000000000000000000000000000000000000000000000000000000000000"
 		startIndex := 0
 		if dbHead != nil {
-			endKeyMR = dbHead.GetKeyMR().String()
+			endKeyMR = dbHead.GetHeader().GetPrevKeyMR().String()
 			fmt.Printf("Local DB Head - %v - %v\n", dbHead.GetDatabaseHeight(), endKeyMR)
 			startIndex = int(dbHead.GetDatabaseHeight())
 		}
@@ -86,7 +86,7 @@ mainloop:
 			fmt.Printf("Fetched dblock %v\n", dBlock.GetDatabaseHeight())
 		}
 
-		dBlockList = dBlockList[startIndex+1:]
+		dBlockList = dBlockList[startIndex:]
 
 		fmt.Printf("\t\tSaving blocks\n")
 

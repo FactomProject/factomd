@@ -24,6 +24,11 @@ type IDirectoryBlock interface {
 	HeaderHash() (IHash, error)
 	BodyKeyMR() IHash
 	GetEntryHashesForBranch() []IHash
+
+	SetEntryHash(hash, chainID IHash, index int)
+	SetABlockHash(aBlock IAdminBlock) error
+	SetECBlockHash(ecBlock IEntryCreditBlock) error
+	SetFBlockHash(fBlock IFBlock) error
 }
 
 type IDirectoryBlockHeader interface {

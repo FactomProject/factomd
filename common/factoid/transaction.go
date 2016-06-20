@@ -62,7 +62,7 @@ func (*Transaction) GetVersion() uint64 {
 }
 
 func (t *Transaction) GetHash() interfaces.IHash {
-	m, err := t.MarshalBinarySig()
+	m, err := t.MarshalBinary()
 	if err != nil {
 		return nil
 	}

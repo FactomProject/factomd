@@ -307,6 +307,7 @@ func (c *Controller) handleParcelReceive(message interface{}, peerHash string, c
 	parcel.Header.TargetPeer = peerHash // Set the connection ID so the application knows which peer the message is from.
 	switch parcel.Header.Type {
 	case TypeMessage: // Application message, send it on.
+		ApplicationMessagesRecieved++
 		c.FromNetwork <- parcel
 	case TypePeerRequest: // send a response to the connection over its connection.SendChannel
 		// Get selection of peers from discovery
@@ -460,6 +461,7 @@ func (c *Controller) networkStatusReport() {
 		silence("ctrlr", "       ToNetwork: %d", len(c.ToNetwork))
 		silence("ctrlr", "     FromNetwork: %d", len(c.FromNetwork))
 		silence("ctrlr", "      Total RECV: %d", TotalMessagesRecieved)
+		silence("ctrlr", "Application RECV: %d", ApplicationMessagesRecieved)
 		silence("ctrlr", "      Total XMIT: %d", TotalMessagesSent)
 		silence("ctrlr", "###########################")
 	}

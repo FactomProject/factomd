@@ -51,8 +51,17 @@ func SimControl(listenTo int) {
 		b := string(cmd[0])
 		v, err := strconv.Atoi(string(b))
 		if err == nil && v >= 0 && v < len(fnodes) && fnodes[listenTo].State != nil {
-			listenTo = v
-			os.Stderr.WriteString(fmt.Sprintf("Switching to Node %d\n", listenTo))
+
+			if v >= 0 && v < len(fnodes) {
+				if listenTo >= 0 && listenTo < len(fnodes) {
+					fnodes[listenTo].State.SetOut(false)
+				}
+				listenTo = v
+				os.Stderr.WriteString(fmt.Sprintf("Switching to Node %d\n", listenTo))
+				fnodes[listenTo].State.SetOut(true)
+			} else {
+				os.Stderr.WriteString(fmt.Sprintf("Ignored input: out of range"))
+			}
 		} else {
 			// fmt.Printf("Parsing command, found %d elements.  The first element is: %+v / %s \n Full command: %+v\n", len(cmd), b[0], string(b), cmd)
 			switch {
@@ -224,6 +233,23 @@ func SimControl(listenTo int) {
 					f.State.DebugConsensus = c
 				}
 
+			case 'i' == b[0]:
+
+				for _, i := range fnodes[listenTo].State.Identities {
+					os.Stderr.WriteString("-------------------------------------------------------------------------------\n")
+					os.Stderr.WriteString(fmt.Sprint("Server Status: ", i.Status, "\n"))
+					os.Stderr.WriteString(fmt.Sprint("Identity Chain: ", i.IdentityChainID, "\n"))
+					os.Stderr.WriteString(fmt.Sprint("Management Chain: ", i.ManagementChainID, "\n"))
+					os.Stderr.WriteString(fmt.Sprint("Matryoshka Hash: ", i.MatryoshkaHash, "\n"))
+					os.Stderr.WriteString(fmt.Sprint("Key 1: ", i.Key1, "\n"))
+					os.Stderr.WriteString(fmt.Sprint("Key 2: ", i.Key2, "\n"))
+					os.Stderr.WriteString(fmt.Sprint("Key 3: ", i.Key3, "\n"))
+					os.Stderr.WriteString(fmt.Sprint("Key 4: ", i.Key4, "\n"))
+					os.Stderr.WriteString(fmt.Sprint("Signing Key: ", i.SigningKey, "\n"))
+					os.Stderr.WriteString(fmt.Sprint("Anchor Key: ", i.AnchorKeys, "\n"))
+				}
+				//os.Stderr.WriteString(fmt.Sprint(fnodes[listenTo].State.Identities))
+
 			case 'h' == b[0]:
 				os.Stderr.WriteString("-------------------------------------------------------------------------------\n")
 				os.Stderr.WriteString("h or ENTER    Shows this help\n")
@@ -290,16 +316,19 @@ func printSummary(summary *int, value int, listenTo *int) {
 			list = list + fmt.Sprintf(" %3d", i)
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "", list)
+
 		list = ""
 		for _, f := range fnodes {
 			list = list + fmt.Sprintf(" %3d", len(f.State.XReview))
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "Review", list)
+
 		list = ""
 		for _, f := range fnodes {
 			list = list + fmt.Sprintf(" %3d", len(f.State.Holding))
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "Holding", list)
+
 		list = ""
 		for _, f := range fnodes {
 			list = list + fmt.Sprintf(" %3d", len(f.State.Acks))
@@ -313,16 +342,19 @@ func printSummary(summary *int, value int, listenTo *int) {
 			list = list + fmt.Sprintf(" %3d", len(f.State.MsgQueue()))
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "MsgQueue", list)
+
 		list = ""
 		for _, f := range fnodes {
 			list = list + fmt.Sprintf(" %3d", len(f.State.InMsgQueue()))
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "InMsgQueue", list)
+
 		list = ""
 		for _, f := range fnodes {
 			list = list + fmt.Sprintf(" %3d", len(f.State.APIQueue()))
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "APIQueue", list)
+
 		list = ""
 		for _, f := range fnodes {
 			list = list + fmt.Sprintf(" %3d", len(f.State.AckQueue()))
@@ -333,27 +365,16 @@ func printSummary(summary *int, value int, listenTo *int) {
 
 		list = ""
 		for _, f := range fnodes {
-			list = list + fmt.Sprintf(" %3d", len(f.State.StallAcks))
-		}
-		prt = prt + fmt.Sprintf(fmtstr, "stall acks", list)
-		list = ""
-		for _, f := range fnodes {
-			list = list + fmt.Sprintf(" %3d", len(f.State.OutOfOrders))
-		}
-		prt = prt + fmt.Sprintf(fmtstr, "Out of Order", list)
-		list = ""
-
-		prt = prt + "\n"
-
-		for _, f := range fnodes {
 			list = list + fmt.Sprintf(" %3d", len(f.State.TimerMsgQueue()))
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "TimerMsgQueue", list)
+
 		list = ""
 		for _, f := range fnodes {
 			list = list + fmt.Sprintf(" %3d", len(f.State.NetworkOutMsgQueue()))
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "NetworkOutMsgQueue", list)
+
 		list = ""
 		for _, f := range fnodes {
 			list = list + fmt.Sprintf(" %3d", len(f.State.NetworkInvalidMsgQueue()))
@@ -379,13 +400,13 @@ func printProcessList(watchPL *int, value int, listenTo *int) {
 		b := fnode.State.GetHighestRecordedBlock()
 		nprt = nprt + fnode.State.ProcessLists.String()
 		pl := fnode.State.ProcessLists.Get(b)
-		nprt = nprt + pl.PrintMap()
-
-		if out != nprt {
-			fmt.Println(nprt)
-			out = nprt
+		if pl != nil {
+			nprt = nprt + pl.PrintMap()
+			if out != nprt {
+				fmt.Println(nprt)
+				out = nprt
+			}
 		}
-
 		time.Sleep(time.Second * 5)
 	}
 }

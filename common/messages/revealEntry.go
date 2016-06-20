@@ -37,10 +37,7 @@ func (m *RevealEntryMsg) Process(dbheight uint32, state interfaces.IState) bool 
 }
 
 func (m *RevealEntryMsg) GetHash() interfaces.IHash {
-	if m.hash == nil {
-		m.hash = m.Entry.GetHash()
-	}
-	return m.hash
+	return m.GetMsgHash()
 }
 
 func (m *RevealEntryMsg) GetMsgHash() interfaces.IHash {
@@ -69,20 +66,12 @@ func (m *RevealEntryMsg) Type() byte {
 	return constants.REVEAL_ENTRY_MSG
 }
 
-func (m *RevealEntryMsg) Int() int {
-	return -1
-}
-
-func (m *RevealEntryMsg) Bytes() []byte {
-	return nil
-}
-
 // Validate the message, given the state.  Three possible results:
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
-	commit := state.GetCommits(m.GetHash())
+	commit := state.GetCommits(m.Entry.GetHash())
 
 	if commit == nil {
 		return 0
@@ -205,11 +194,12 @@ func (m *RevealEntryMsg) String() string {
 	if m.GetLeaderChainID() == nil {
 		m.SetLeaderChainID(primitives.NewZeroHash())
 	}
-	str := fmt.Sprintf("%6s-VM%3d: Min:%4d          -- Leader[:3]=%x hash[:3]=%x",
+	str := fmt.Sprintf("%6s-VM%3d: Min:%4d          -- Leader[%x] Entry[%x] hash[%x]",
 		"REntry",
 		m.VMIndex,
 		m.Minute,
 		m.GetLeaderChainID().Bytes()[:3],
+		m.Entry.GetHash().Bytes()[:3],
 		m.GetHash().Bytes()[:3])
 
 	return str

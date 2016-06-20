@@ -88,21 +88,21 @@ func Stop(state interfaces.IState) {
 
 func handleV1Error(ctx *web.Context, err *primitives.JSONError) {
 	/*
-	if err.Data != nil {
-		data, ok := err.Data.(string)
-		if ok == true {
-	ctx.WriteHeader(httpBad)
-			returnMsg(ctx, "", false)
-			return
+		if err.Data != nil {
+			data, ok := err.Data.(string)
+			if ok == true {
+		ctx.WriteHeader(httpBad)
+				returnMsg(ctx, "", false)
+				return
+			}
 		}
-	}
-	ctx.WriteHeader(httpBad)
-	returnMsg(ctx,"", false)
-	return
+		ctx.WriteHeader(httpBad)
+		returnMsg(ctx,"", false)
+		return
 	*/
 	ctx.WriteHeader(httpBad)
-	
-	return	
+
+	return
 }
 
 func returnV1(ctx *web.Context, jsonResp *primitives.JSON2Response, jsonError *primitives.JSONError) {
@@ -266,7 +266,7 @@ func HandleGetReceipt(ctx *web.Context, hashkey string) {
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
 	param := HashRequest{Hash: hashkey}
-	req := primitives.NewJSON2Request("get-receipt", 1, param)
+	req := primitives.NewJSON2Request("receipt", 1, param)
 
 	jsonResp, jsonError := HandleV2Request(state, req)
 	returnV1(ctx, jsonResp, jsonError)

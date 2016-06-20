@@ -141,7 +141,7 @@ func NetworkOutputs(fnode *FactomNode) {
 				} else {
 					for i, peer := range fnode.Peers {
 						// Don't resend to the node that sent it to you.
-						if i != p {
+						if i != p || true {
 							bco := fmt.Sprintf("%s/%d/%d", "BCast", p, i)
 							fnode.MLog.add2(fnode, true, peer.GetNameTo(), bco, true, msg)
 							if !fnode.State.GetNetStateOff() {
