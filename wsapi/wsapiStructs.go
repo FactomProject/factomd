@@ -88,8 +88,8 @@ type FactoidBalanceResponse struct {
 	Balance int64 `json:"balance"`
 }
 
-type FactoidFeeResponse struct {
-	Fee int64 `json:"fee"`
+type EntryCreditRateResponse struct {
+	Rate int64 `json:"rate"`
 }
 
 type PropertiesResponse struct {

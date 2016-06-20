@@ -1,6 +1,7 @@
 package state
 
 import (
+	"bytes"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -25,6 +26,7 @@ type AnchorSigningKey struct {
 	KeyType    byte
 	SigningKey []byte //if bytes, it is hex
 }
+
 type Identity struct {
 	IdentityChainID      interfaces.IHash
 	IdentityRegistered   uint32
@@ -40,6 +42,25 @@ type Identity struct {
 	SigningKey           interfaces.IHash
 	Status               int
 	AnchorKeys           []AnchorSigningKey
+}
+
+var _ interfaces.Printable = (*Identity)(nil)
+
+func (e *Identity) JSONByte() ([]byte, error) {
+	return primitives.EncodeJSON(e)
+}
+
+func (e *Identity) JSONString() (string, error) {
+	return primitives.EncodeJSONString(e)
+}
+
+func (e *Identity) JSONBuffer(b *bytes.Buffer) error {
+	return primitives.EncodeJSONToBuffer(e, b)
+}
+
+func (e *Identity) String() string {
+	str, _ := e.JSONString()
+	return str
 }
 
 func LoadIdentityCache(st *State) {
@@ -260,7 +281,7 @@ func registerFactomIdentity(extIDs [][]byte, chainID interfaces.IHash, st *State
 	} else {
 		// Verify Signature
 		idKey := st.Identities[IdentityIndex].Key1
-		if checkSig(idKey, extIDs[3][1:33], sigmsg, extIDs[4]) {
+		if CheckSig(idKey, extIDs[3][1:33], sigmsg, extIDs[4]) {
 			st.Identities[IdentityIndex].ManagementRegistered = height
 			checkIdentityInitialStatus(IdentityIndex, st)
 		} else {
@@ -331,7 +352,7 @@ func registerIdentityAsServer(extIDs [][]byte, chainID interfaces.IHash, st *Sta
 	} else {
 		// Verify Signature
 		idKey := st.Identities[IdentityIndex].Key1
-		if checkSig(idKey, extIDs[3][1:33], sigmsg, extIDs[4]) {
+		if CheckSig(idKey, extIDs[3][1:33], sigmsg, extIDs[4]) {
 			st.Identities[IdentityIndex].ManagementRegistered = height
 			checkIdentityInitialStatus(IdentityIndex, st)
 		} else {
@@ -355,7 +376,7 @@ func registerBlockSigningKey(extIDs [][]byte, chainID interfaces.IHash, st *Stat
 	} else {
 		//verify Signature
 		idKey := st.Identities[IdentityIndex].Key1
-		if checkSig(idKey, extIDs[5][1:33], sigmsg, extIDs[6]) {
+		if CheckSig(idKey, extIDs[5][1:33], sigmsg, extIDs[6]) {
 			// Check block key length
 			var key [32]byte
 			if len(extIDs[3]) != 32 {
@@ -398,7 +419,7 @@ func updateMatryoshkaHash(extIDs [][]byte, chainID interfaces.IHash, st *State, 
 	} else {
 		// Verify Signature
 		idKey := st.Identities[IdentityIndex].Key1
-		if checkSig(idKey, extIDs[5][1:33], sigmsg, extIDs[6]) {
+		if CheckSig(idKey, extIDs[5][1:33], sigmsg, extIDs[6]) {
 			// Check MHash length
 			if len(extIDs[3]) != 32 {
 				log.Println("New Matryoshka Hash for identity [" + chainID.String()[:10] + "] is invalid length")
@@ -457,7 +478,7 @@ func registerAnchorSigningKey(extIDs [][]byte, chainID interfaces.IHash, st *Sta
 	} else {
 		// Verify Signature
 		idKey := st.Identities[IdentityIndex].Key1
-		if checkSig(idKey, extIDs[7][1:33], sigmsg, extIDs[8]) {
+		if CheckSig(idKey, extIDs[7][1:33], sigmsg, extIDs[8]) {
 			var key [20]byte
 			if len(extIDs[5]) != 20 {
 				log.Println("New Anchor key for identity [" + chainID.String()[:10] + "] is invalid length")
@@ -597,7 +618,7 @@ func MakeID(seed string, ServerType int) Identity {
 }
 
 // Sig is signed message, msg is raw message
-func checkSig(idKey interfaces.IHash, pub []byte, msg []byte, sig []byte) bool {
+func CheckSig(idKey interfaces.IHash, pub []byte, msg []byte, sig []byte) bool {
 	var pubFix [32]byte
 	var sigFix [64]byte
 
@@ -657,5 +678,4 @@ func CheckTimestamp(time []byte) bool {
 	} else {
 		return false
 	}
-	return true
 }
