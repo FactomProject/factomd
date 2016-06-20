@@ -15,8 +15,6 @@ import (
 // Go through the factoid exchange rate chain and determine if an FER change should be scheduled
 func (this *State) ProcessRecentFERChainEntries() {
 
-	this.Println("----------- PRFCE")
-
 	// Find the FER entry chain
 	FERChainHash, err := primitives.HexToHash(this.FERChainId)
 	if err != nil {

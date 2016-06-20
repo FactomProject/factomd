@@ -9,6 +9,7 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/log"
+	"fmt"
 )
 
 var (
@@ -67,6 +68,10 @@ func LoadIdentityCache(st *State) {
 func LoadIdentityByDirectoryBlockHeight(height uint32, st *State) {
 
 	dblk, err := st.DB.FetchDBlockByHeight(uint32(height))
+	if (dblk == nil) {
+		fmt.Println("  dblk nil in LoadIdentityByDirectoryBlockHeight, should never happen outside of tests")
+		return
+	}
 	if err != nil {
 		log.Printfln("Identity Error:", err)
 	}
