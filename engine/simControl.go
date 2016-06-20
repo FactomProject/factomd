@@ -307,6 +307,26 @@ func SimControl(listenTo int) {
 				}
 				//os.Stderr.WriteString(fmt.Sprint(fnodes[listenTo].State.Identities))
 
+			case 't' == b[0]:
+				if len(b) > 1 {
+					index, err := strconv.Atoi(string(b[1:]))
+					if err != nil {
+						fmt.Println("Incorrect input. bN where N is a number")
+						break
+					}
+					if index >= len(fnodes[listenTo].State.Identities) {
+						fmt.Println("Identity index does not exist")
+						break
+					}
+					id := fnodes[listenTo].State.Identities[index].IdentityChainID
+					if id == nil {
+						fmt.Println("Invalid identity, try 'isN' to see if identity exists.")
+						break
+					}
+					fnodes[listenTo].State.IdentityChainID = id
+					fmt.Println("Identity of " + fnodes[listenTo].State.GetFactomNodeName() + " changed to [" + id.String()[:10] + "]")
+				}
+
 			case 'h' == b[0]:
 				os.Stderr.WriteString("-------------------------------------------------------------------------------\n")
 				os.Stderr.WriteString("h or ENTER    Shows this help\n")
@@ -322,6 +342,7 @@ func SimControl(listenTo int) {
 				os.Stderr.WriteString("x             Take the given node out of the netork or bring an offline node back in.\n")
 				os.Stderr.WriteString("w             Point the WSAPI to send API calls to the current node.\n")
 				os.Stderr.WriteString("i             Shows the identities in the current state.\n")
+				os.Stderr.WriteString("tN            Attaches identity N to the current node\n")
 				os.Stderr.WriteString("i[m/b/a][N]   Shows only the Mhash, block signing key, or anchor key up to the Nth identity\n")
 				os.Stderr.WriteString("isN           Shows only Nth identity\n")
 				os.Stderr.WriteString("h or <enter>  Show help\n")
