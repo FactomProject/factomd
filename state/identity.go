@@ -172,7 +172,7 @@ func LoadIdentityByDirectoryBlockHeight(height uint32, st *State, update bool) {
 			}
 		}
 	}
-	// Proces holded entries
+	// Process entries that are being held
 	if len(holdEntry) > 0 {
 		for _, entry := range holdEntry {
 			if string(entry.ent.ExternalIDs()[1]) == "New Block Signing Key" {
