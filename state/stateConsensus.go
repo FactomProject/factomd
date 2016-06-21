@@ -59,7 +59,7 @@ func (s *State) Process() (progress bool) {
 	// Check if we the leader isn't running, and if so, can we start it?
 	if !s.RunLeader {
 		now := s.GetTimestamp() // Timestamps are in milliseconds, so wait 20
-		fmt.Println("dddd RunLeader",s.FactomNodeName,now,s.StartDelay, now-s.StartDelay)
+		fmt.Println("dddd RunLeader", s.FactomNodeName, now, s.StartDelay, now-s.StartDelay)
 		if now-s.StartDelay > 20*1000 {
 			s.RunLeader = true
 		}

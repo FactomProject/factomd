@@ -33,7 +33,7 @@ func (t *Timestamp) SetTime(miliseconds uint64) {
 
 // Get the seconds from a Timestamp
 func (t *Timestamp) GetTime() time.Time {
-	return time.Unix(0, t*1000000)
+	return time.Unix(0, int64(*t)*1000000)
 }
 
 func (t *Timestamp) UnmarshalBinaryData(data []byte) (newData []byte, err error) {

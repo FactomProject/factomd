@@ -52,20 +52,20 @@ type State struct {
 	LocalServerPrivKey      string
 	DirectoryBlockInSeconds int
 	PortNumber              int
-	Replay                 *Replay
-	InternalReplay         *Replay
-	DropRate               int
+	Replay                  *Replay
+	InternalReplay          *Replay
+	DropRate                int
 
-	IdentityChainID        interfaces.IHash // If this node has an identity, this is it
-	Identities             []Identity       // Identities of all servers in management chain
+	IdentityChainID interfaces.IHash // If this node has an identity, this is it
+	Identities      []Identity       // Identities of all servers in management chain
 
 	// Just to print (so debugging doesn't drive functionaility)
-	Status                 bool
-	starttime              time.Time
-	transCnt               int
-	lasttime               time.Time
-	tps                    float64
-	serverPrt              string
+	Status    bool
+	starttime time.Time
+	transCnt  int
+	lasttime  time.Time
+	tps       float64
+	serverPrt string
 
 	tickerQueue            chan int
 	timerMsgQueue          chan interfaces.IMsg
@@ -79,11 +79,11 @@ type State struct {
 	ShutdownChan           chan int // For gracefully halting Factom
 	JournalFile            string
 
-	serverPrivKey          primitives.PrivateKey
-	serverPubKey           primitives.PublicKey
+	serverPrivKey primitives.PrivateKey
+	serverPubKey  primitives.PublicKey
 
 	// Server State
-	StartDelay             interfaces.Timestamp
+	StartDelay    interfaces.Timestamp
 	RunLeader     bool
 	LLeaderHeight uint32
 	Leader        bool
@@ -326,9 +326,9 @@ func (s *State) Init() {
 
 	log.SetLevel(s.ConsoleLogLevel)
 
-	s.tickerQueue = make(chan int, 10000)               //ticks from a clock
-	s.timerMsgQueue = make(chan interfaces.IMsg, 10000) //incoming eom notifications, used by leaders
-	s.TimeOffset = 0 //interfaces.Timestamp(int64(rand.Int63() % int64(time.Microsecond*10)))
+	s.tickerQueue = make(chan int, 10000)                        //ticks from a clock
+	s.timerMsgQueue = make(chan interfaces.IMsg, 10000)          //incoming eom notifications, used by leaders
+	s.TimeOffset = 0                                             //interfaces.Timestamp(int64(rand.Int63() % int64(time.Microsecond*10)))
 	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 10000) //incoming message queue from the network messages
 	s.InvalidMessages = make(map[[32]byte]interfaces.IMsg, 0)
 	s.networkOutMsgQueue = make(chan interfaces.IMsg, 10000) //Messages to be broadcast to the network
@@ -1075,7 +1075,7 @@ func (s *State) SetString() {
 
 	plht := ""
 	if s.LeaderPL != nil {
-		plht = fmt.Sprintf("%4d",s.LeaderPL.DBHeight)
+		plht = fmt.Sprintf("%4d", s.LeaderPL.DBHeight)
 	}
 
 	s.serverPrt = fmt.Sprintf("%8s[%6x]%4s %4s DB: %d[%6x] PL:%d/%d Min: %2v DBHT %v Min EOM %5v Saving %5v PLHT %4s %3d-Fct %3d-EC %3d-E  %7.2f total tps %7.2f tps",

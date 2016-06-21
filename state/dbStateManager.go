@@ -162,7 +162,7 @@ func (list *DBStateList) Catchup() {
 
 	if msg != nil {
 
-		fmt.Println("dddd Ask for blocks",begin, end2)
+		fmt.Println("dddd Ask for blocks", begin, end2)
 
 		list.State.RunLeader = false
 		list.State.StartDelay = list.State.GetTimestamp()
