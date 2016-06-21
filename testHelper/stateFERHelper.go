@@ -3,32 +3,19 @@ package testHelper
 // A package for functions used multiple times in tests that aren't useful in production code.
 
 import (
-	//"github.com/FactomProject/factomd/common/adminBlock"
-	//"github.com/FactomProject/factomd/common/directoryBlock"
-	//"github.com/FactomProject/factomd/common/entryBlock"
-	//"github.com/FactomProject/factomd/common/messages"
-	//"github.com/FactomProject/factomd/common/primitives"
-	//"github.com/FactomProject/factomd/database/databaseOverlay"
-	//"github.com/FactomProject/factomd/database/mapdb"
-	//"github.com/FactomProject/factomd/engine"
-	//"github.com/FactomProject/factomd/log"
-	// "github.com/FactomProject/goleveldb/leveldb/errors"
-	//"fmt"
-
-	ed "github.com/FactomProject/ed25519"
-	"github.com/FactomProject/factom"
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/state"
-
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"time"
+
+	ed "github.com/FactomProject/ed25519"
+	"github.com/FactomProject/factom"
 	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/entryBlock"
+	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
-	"time"
-	//"github.com/FactomProject/FactomCode/common"
+	"github.com/FactomProject/factomd/state"
 )
 
 var _ = fmt.Print
@@ -94,7 +81,6 @@ func MakeFEREntryWithHeightFromContent(passedResidentHeight uint32, passedTarget
 }
 
 func CreateAndPopulateTestStateForFER(testEntries []FEREntryWithHeight, desiredHeight int) *state.State {
-
 	s := new(state.State)
 	s.DB = CreateAndPopulateTestDatabaseOverlayForFER(testEntries, desiredHeight)
 	s.LoadConfig("", "")
@@ -126,7 +112,6 @@ func CreateAndPopulateTestDatabaseOverlayForFER(testEntries []FEREntryWithHeight
 	}
 
 	for i := 0; i < desiredHeight; i++ {
-
 		fmt.Println("Making block number ", i)
 		dbo.StartMultiBatch()
 		currentBlockSet = CreateTestBlockSetForFER(prev, dbo, testEntries)
@@ -309,7 +294,7 @@ func CreateTestEntryBlockForFER(p interfaces.IEntryBlock, height uint32) (*entry
 		e.Header.SetDBHeight(prev.GetHeader().GetDBHeight() + 1)
 
 		e.Header.SetChainID(prev.GetHeader().GetChainID())
-		entry := CreateTestEnry(e.Header.GetDBHeight())
+		entry := CreateTestFEREntry(e.Header.GetDBHeight())
 		e.AddEBEntry(entry)
 		entries = append(entries, entry)
 	} else {
@@ -326,4 +311,15 @@ func CreateTestEntryBlockForFER(p interfaces.IEntryBlock, height uint32) (*entry
 	}
 
 	return e, entries
+}
+
+func CreateTestFEREntry(n uint32) *entryBlock.Entry {
+	answer := entryBlock.NewEntry()
+
+	answer.ChainID = GetChainID()
+	answer.Version = 1
+	answer.ExtIDs = [][]byte{[]byte(fmt.Sprintf("ExtID %v", n))}
+	answer.Content = []byte(fmt.Sprintf("Content %v", n))
+
+	return answer
 }
