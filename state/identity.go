@@ -457,17 +457,23 @@ func registerAnchorSigningKey(extIDs [][]byte, chainID interfaces.IHash, st *Sta
 	ask = st.Identities[IdentityIndex].AnchorKeys
 	newAsk = make([]AnchorSigningKey, len(ask)+1)
 
-	for i := 0; i < len(ask); i++ {
-		newAsk[i] = ask[i]
-	}
-
 	oneAsk.BlockChain = BlockChain
 	oneAsk.KeyLevel = extIDs[3][0]
 	oneAsk.KeyType = extIDs[4][0]
 	oneAsk.SigningKey = extIDs[5]
 
-	newAsk[len(ask)] = oneAsk
+	contains := false
+	for i := 0; i < len(ask); i++ {
+		if ask[i].KeyLevel == oneAsk.KeyLevel &&
+			strings.Compare(ask[i].BlockChain, oneAsk.BlockChain) == 0 {
+			contains = true
+			ask[i] = oneAsk
+		} else {
+			newAsk[i] = ask[i]
+		}
+	}
 
+	newAsk[len(ask)] = oneAsk
 	sigmsg, err := AppendExtIDs(extIDs, 0, 6)
 	if err != nil {
 		log.Printfln("Identity Error:", err)
@@ -485,7 +491,11 @@ func registerAnchorSigningKey(extIDs [][]byte, chainID interfaces.IHash, st *Sta
 				log.Println("New Anchor key for identity [" + chainID.String()[:10] + "] timestamp is too old")
 				return
 			}
-			st.Identities[IdentityIndex].AnchorKeys = newAsk
+			if contains {
+				st.Identities[IdentityIndex].AnchorKeys = ask
+			} else {
+				st.Identities[IdentityIndex].AnchorKeys = newAsk
+			}
 			// Add to admin block
 			status := st.Identities[IdentityIndex].Status
 			if update && (status == constants.IDENTITY_FEDERATED_SERVER ||
