@@ -5,10 +5,28 @@
 package receipts_test
 
 import (
+	"github.com/FactomProject/factomd/common/primitives"
 	. "github.com/FactomProject/factomd/receipts"
 	. "github.com/FactomProject/factomd/testHelper"
 	"testing"
 )
+
+func TestCreateFullReceipt(t *testing.T) {
+	dbo := CreateAndPopulateTestDatabaseOverlay()
+	hash, err := primitives.NewShaHashFromStr("be5fb8c3ba92c0436269fab394ff7277c67e9b2de4431b723ce5d89799c0b93a")
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	receipt, err := CreateFullReceipt(dbo, hash)
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	if receipt == nil {
+		t.Errorf("Receipt is nil!")
+	}
+	//str, _ := receipt.JSONString()
+	//t.Errorf("%v", str)
+}
 
 func TestReceipts(t *testing.T) {
 	dbo := CreateAndPopulateTestDatabaseOverlay()

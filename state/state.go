@@ -61,7 +61,9 @@ type State struct {
 
 	IdentityChainID interfaces.IHash // If this node has an identity, this is it
 	Identities      []Identity       // Identities of all servers in management chain
-	Authorities		[]Authority
+	Authorities      []Authority       // Identities of all servers in management chain
+	AuthorityServerCount	int 	// number of federated or audit servers allowed
+
 	// Just to print (so debugging doesn't drive functionaility)
 	Status    bool
 	starttime time.Time
@@ -210,6 +212,7 @@ func (s *State) Clone(number string) interfaces.IState {
 	clone.IdentityChainID = primitives.Sha([]byte(clone.FactomNodeName))
 	clone.Identities = s.Identities
 	clone.Authorities = s.Authorities
+	clone.AuthorityServerCount = s.AuthorityServerCount
 
 	//generate and use a new deterministic PrivateKey for this clone
 	shaHashOfNodeName := primitives.Sha([]byte(clone.FactomNodeName)) //seed the private key with node name
@@ -312,6 +315,7 @@ func (s *State) LoadConfig(filename string, folder string) {
 }
 
 func (s *State) Init() {
+	s.SetOut(true)
 
 	wsapi.InitLogs(s.LogPath+s.FactomNodeName+".log", s.LogLevel)
 
@@ -423,18 +427,18 @@ func (s *State) Init() {
 	}
 
 	s.Println("\nRunning on the ", s.Network, "Network")
-	s.Println("\nExchange rate chain id set to ", s.GetFactoshisPerEC())
+	s.Println("\nExchange rate chain id set to ", s.FERChainId)
 	s.Println("\nExchange rate Authority Public Key set to ", s.ExchangeRateAuthorityAddress)
 
 	s.AuditHeartBeats = make([]interfaces.IMsg, 0)
 	s.FedServerFaults = make([][]interfaces.IMsg, 0)
 
 	s.initServerKeys()
-
+	s.AuthorityServerCount=0
 	LoadIdentityCache(s)
 	//StubIdentityCache(s)
 	LoadAuthorityCache(s)
-	//StubAuthorityCache(s)
+	
 
 	s.starttime = time.Now()
 }
