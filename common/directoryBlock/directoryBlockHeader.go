@@ -72,12 +72,12 @@ func (h *DBlockHeader) SetPrevFullHash(PrevFullHash interfaces.IHash) {
 	h.PrevFullHash = PrevFullHash
 }
 
-func (h *DBlockHeader) GetTimestamp() uint32 {
-	return h.Timestamp
+func (h *DBlockHeader) GetTimestamp() interfaces.Timestamp {
+	return *interfaces.NewTimestampFromSeconds(h.Timestamp)
 }
 
-func (h *DBlockHeader) SetTimestamp(timestamp uint32) {
-	h.Timestamp = timestamp
+func (h *DBlockHeader) SetTimestamp(timestamp interfaces.Timestamp) {
+	h.Timestamp = timestamp.GetTimeSecondsUInt32()
 }
 
 func (h *DBlockHeader) GetDBHeight() uint32 {
