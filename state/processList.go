@@ -135,9 +135,6 @@ func (p *ProcessList) GetVirtualServers(minute int, identityChainID interfaces.I
 	if !found {
 		return false, -1
 	}
-	if !p.State.Green() && p.State.GetIdentityChainID().IsSameAs(identityChainID) {
-		return false, -1
-	}
 
 	for i, fedix := range p.ServerMap[minute] {
 		if i == len(p.FedServers) {
@@ -410,7 +407,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 
 	if p.DBHeight > 0 {
 
-		prev := state.DBStates.Get(p.DBHeight - 1)
+		prev := state.DBStates.Get(int(p.DBHeight - 1))
 
 		if prev == nil {
 			return

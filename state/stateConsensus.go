@@ -29,8 +29,6 @@ var _ = (*hash.Hash32)(nil)
 // Returns true if some message was processed.
 //***************************************************************
 func (s *State) NewMinute() {
-	s.LeaderPL.Unseal(s.EOM)
-	s.EOM = 0
 	// Anything we are holding, we need to reprocess.
 	for k := range s.Holding {
 		v := s.Holding[k]
@@ -58,15 +56,17 @@ func (s *State) NewMinute() {
 
 func (s *State) Process() (progress bool) {
 
-	//s.DebugPrt("Process")
+	// Check if we the leader isn't running, and if so, can we start it?
+	if !s.RunLeader {
+		now := s.GetTimestamp() // Timestamps are in milliseconds, so wait 20
+		fmt.Println("dddd RunLeader",s.FactomNodeName,now,s.StartDelay, now-s.StartDelay)
+		if now-s.StartDelay > 20*1000 {
+			s.RunLeader = true
+		}
+	}
 
-	highest := s.GetHighestRecordedBlock()
-
-	dbstate := s.DBStates.Get(s.LLeaderHeight)
-	if s.LLeaderHeight <= highest && (dbstate == nil || dbstate.Locked) {
-		s.LLeaderHeight = highest + 1
-		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
-		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(0, s.IdentityChainID)
+	dbstate := s.DBStates.Get(int(s.LLeaderHeight - 1))
+	if s.Saving && (dbstate == nil || dbstate.Saved) {
 		s.NewMinute()
 
 		if s.Leader && dbstate != nil {
@@ -88,20 +88,21 @@ func (s *State) Process() (progress bool) {
 		s.UpdateState()
 	}
 
-	if s.EOM > 0 && s.LeaderPL.Unsealable(s.EOM) {
+	if s.EOM && s.EOMProcessed == len(s.LeaderPL.FedServers) {
 		switch {
-		case s.EOM <= 9:
+		case s.LeaderMinute > 0:
 			s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
-			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.EOM, s.IdentityChainID)
-			s.LeaderMinute = s.EOM
+			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.LeaderMinute, s.IdentityChainID)
 			s.NewMinute()
-		case s.EOM == 10:
+		case s.LeaderMinute == 0:
 			s.AddDBState(true, s.LeaderPL.DirectoryBlock, s.LeaderPL.AdminBlock, s.GetFactoidState().GetCurrentBlock(), s.LeaderPL.EntryCreditBlock)
-			s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight + 1)
+			s.LastHeight = s.LLeaderHeight
+			s.LLeaderHeight++
+			s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(0, s.IdentityChainID)
-			s.LeaderMinute = 0
+			s.Saving = true
 		}
-
+		s.EOM = false
 	}
 
 	return s.ProcessQueues()
@@ -121,7 +122,7 @@ func (s *State) ProcessQueues() (progress bool) {
 
 		switch msg.Validate(s) {
 		case 1:
-			if s.Green() && s.Leader {
+			if !s.EOM && !s.Saving && s.RunLeader && s.Leader {
 				msg.ComputeVMIndex(s)
 				msg.LeaderExecute(s)
 			} else {
@@ -178,28 +179,16 @@ func (s *State) AddDBState(isNew bool,
 	factoidBlock interfaces.IFBlock,
 	entryCreditBlock interfaces.IEntryCreditBlock) {
 
-	// TODO:  Need to validate before we add, or at least validate once we have a contiguous set of blocks.
-
-	// 	fmt.Printf("AddDBState %s: DirectoryBlock %d %x %x %x %x\n",
-	// 			   s.FactomNodeName,
-	// 			   directoryBlock.GetHeader().GetDBHeight(),
-	// 			   directoryBlock.GetKeyMR().Bytes()[:5],
-	// 			   adminBlock.GetHash().Bytes()[:5],
-	// 			   factoidBlock.GetHash().Bytes()[:5],
-	// 			   entryCreditBlock.GetHash().Bytes()[:5])
-
 	dbState := s.DBStates.NewDBState(isNew, directoryBlock, adminBlock, factoidBlock, entryCreditBlock)
 	s.DBStates.Put(dbState)
 	ht := dbState.DirectoryBlock.GetHeader().GetDBHeight()
 	if ht > s.LLeaderHeight {
 		s.LLeaderHeight = ht
 		s.ProcessLists.Get(ht + 1)
-		s.EOM = 0
 	}
-	//	dbh := directoryBlock.GetHeader().GetDBHeight()
-	//	if s.LLeaderHeight < dbh {
-	//		s.LLeaderHeight = dbh + 1
-	//	}
+
+	// Possible we need to update our state now, so give it a shot.
+	s.DBStates.UpdateState()
 }
 
 func (s *State) addEBlock(eblock interfaces.IEntryBlock) {
@@ -247,16 +236,39 @@ func (s *State) FollowerExecuteEOM(m interfaces.IMsg) {
 		return // This is an internal EOM message.  We are not a leader so ignore.
 	}
 
+	eom, _ := m.(*messages.EOM)
+
+	if s.EOM {
+		if int(eom.Minute) != s.LastMinute {
+			// Can only process the next minute
+			s.Holding[m.GetMsgHash().Fixed()] = m // Save for later (or culling)
+			return
+		}
+	} else {
+		if int(eom.Minute) != s.LeaderMinute {
+			s.Holding[m.GetMsgHash().Fixed()] = m
+			return
+		}
+	}
+
 	s.Holding[m.GetMsgHash().Fixed()] = m
 	ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
 	if ack != nil {
 		m.SetLeaderChainID(ack.GetLeaderChainID())
 		m.SetMinute(ack.Minute)
 
-		eom, _ := m.(*messages.EOM)
+		if !s.EOM {
+			s.EOM = true
 
-		if s.EOM == 0 {
-			s.EOM = int(eom.Minute + 1)
+			s.LeaderMinute++
+			if s.LeaderMinute == 10 {
+				s.LeaderMinute = 0
+			}
+
+			s.LastMinute++
+			if s.LastMinute == 10 {
+				s.LastMinute = 0
+			}
 		}
 
 		pl := s.ProcessLists.Get(ack.DBHeight)
@@ -272,11 +284,7 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) {
 	s.Acks[ack.GetHash().Fixed()] = ack
 	m, _ := s.Holding[ack.GetHash().Fixed()]
 	if m != nil {
-		m.SetLeaderChainID(ack.GetLeaderChainID())
-		m.SetMinute(ack.Minute)
-
-		pl := s.ProcessLists.Get(ack.DBHeight)
-		pl.AddToProcessList(ack, m)
+		m.FollowerExecute(s)
 	}
 }
 
@@ -355,59 +363,40 @@ func (s *State) LeaderExecute(m interfaces.IMsg) {
 		return
 	}
 
-	// If we haven't saved the previous block, then punt to Follower
-	// which (most likely) will put the message into Holding.
-	if dbstate := s.DBStates.Get(s.LLeaderHeight - 1); dbstate == nil || !dbstate.Locked {
-		m.FollowerExecute(s)
-		return
-	}
+	ack := s.NewAck(m).(*messages.Ack)
+	m.SetLeaderChainID(ack.GetLeaderChainID())
+	m.SetMinute(ack.Minute)
+	s.ProcessLists.Get(ack.DBHeight).AddToProcessList(ack, m)
 
-	if s.EOM > 0 || !s.Green() || m.GetVMIndex() != s.LeaderVMIndex {
-		m.FollowerExecute(s)
-		return
-	}
-
-	switch m.Validate(s) {
-	case 1:
-		ack := s.NewAck(m).(*messages.Ack)
-		m.SetLeaderChainID(ack.GetLeaderChainID())
-		m.SetMinute(ack.Minute)
-		s.ProcessLists.Get(ack.DBHeight).AddToProcessList(ack, m)
-	case 0:
-		s.Holding[m.GetMsgHash().Fixed()] = m
-	default:
-		s.networkInvalidMsgQueue <- m
-	}
 }
 
 func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 
-	for i := 0; s.UpdateState() && i < 10; i++ {
-	}
-
-	if !s.Green() || !m.IsLocal() {
+	if !m.IsLocal() {
 		s.FollowerExecuteEOM(m)
 		return
 	}
 
-	// Calculate the zero based next minute from our state.
+	// The zero based minute for the message is equal to
+	// the one based "LastMinute".  This way we know we are
+	// generating minutes in order.
 	min := s.LeaderMinute
-	if s.EOM > 0 {
+
+	if s.EOM {
 		min--
-	}
+	} else {
+		s.EOM = true
 
-	if s.LeaderPL.VMs[s.LeaderVMIndex].Seal == s.EOM {
-		//		return
-	}
+		s.LeaderMinute++
+		if s.LeaderMinute == 10 {
+			s.LeaderMinute = 0
+		}
 
-	if s.LastHeight == s.LLeaderHeight && s.LastMinute+1 != min {
-		min = s.LeaderMinute + 1
-	}
-	s.LastMinute = min
-	s.LastHeight = s.LLeaderHeight
+		s.LastMinute++
+		if s.LastMinute == 10 {
+			s.LastMinute = 0
+		}
 
-	if s.EOM > 0 && min > s.EOM {
-		return
 	}
 
 	eom := m.(*messages.EOM)
@@ -556,10 +545,10 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 	pl := s.ProcessLists.Get(dbheight)
 
-	pl.VMs[e.VMIndex].Seal = int(e.Minute + 1)
-
-	s.EOM = int(e.Minute + 1)
-	s.LeaderMinute = s.EOM
+	s.EOMProcessed++
+	if s.EOMProcessed == len(pl.FedServers) {
+		s.Saving = true
+	}
 
 	if e.FactoidVM {
 		s.FactoidState.EndOfPeriod(int(e.Minute + 1))
@@ -586,10 +575,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		ecbody.AddEntry(mn)
 	}
 
-	vm := pl.VMs[e.VMIndex]
-
-	vm.MinuteFinished = int(e.Minute) + 1
-
 	return true
 }
 
@@ -608,24 +593,15 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 	if dbs.VMIndex == 0 {
 		s.SetLeaderTimestamp(dbs.GetTimestamp())
 	}
-	s.ConsiderSaved(dbs.DBHeight)
 
-	// When processing DirectoryBlockSignatures, we check to see if the signed block
-	// matches our own saved block. If the majority of VMs' signatures do not match
-	// our saved block, we discard that block from our database.
-	prevBlockFromDatabase, err := s.DB.FetchDBlockByHeight(dbheight - 1)
-	if err != nil {
-		fmt.Println("Error fetching previous DBlock from database:", err)
-		return true
-	}
+	// TODO: check signatures here.  Count what match and what don't.  Then if a majority
+	// disagree with us, null our entry out.  Otherwise toss our DBState and ask for one from
+	// our neighbors.
 
-	p := s.ProcessLists.Get(dbheight)
-
-	if !dbs.DirectoryBlockKeyMR.IsSameAs(prevBlockFromDatabase.GetKeyMR()) {
-		fmt.Println("COMPARED: ", dbs.DirectoryBlockKeyMR, "TO", prevBlockFromDatabase.GetKeyMR(), "(", prevBlockFromDatabase.GetDatabaseHeight(), " - ", (dbheight - 1), ")")
-
-		p.IncrementDiffSigTally()
-		p.CheckDiffSigTally()
+	s.DBSigProcessed++
+	if s.DBSigProcessed == len(s.ProcessLists.Get(s.LastHeight).FedServers) {
+		s.DBStates.Get(int(s.LastHeight)).ReadyToSave = true
+		s.DBSigProcessed = 0
 	}
 
 	return true
@@ -698,34 +674,6 @@ func (s *State) PutReveals(hash interfaces.IHash, msg interfaces.IMsg) {
 // This is the highest block signed off and recorded in the Database.
 func (s *State) GetHighestRecordedBlock() uint32 {
 	return s.DBStates.GetHighestRecordedBlock()
-}
-
-// If Green, this server is, to the best of its knowledge, caught up with the
-// network.  TODO there should be a timeout that requires seeing a message within
-// some period of time, but not there yet.
-//
-// We hare caught up with the network IF:
-// The highest recorded block is equal to or just below the highest known block
-func (s *State) Green() bool {
-
-	// Make sure the process lists cover our known height...
-	s.ProcessLists.Get(s.LLeaderHeight)
-	// If we have been green for 10 seconds, and are still green, return true
-	if s.GreenFlg && s.GetTimestamp()-s.GreenTimestamp < 10000 {
-		return true
-	}
-
-	oldflg := s.GreenFlg // Remember our old state.
-
-	rec := s.DBStates.GetHighestRecordedBlock()
-	high := s.GetHighestKnownBlock()
-	s.GreenFlg = rec >= high-1
-
-	// If we were not green, but we are green now, set our timestamp
-	if !oldflg && s.GreenFlg {
-		s.GreenTimestamp = s.GetTimestamp()
-	}
-	return s.GreenFlg
 }
 
 // This is lowest block currently under construction under the "leader".

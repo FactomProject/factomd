@@ -12,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"math/rand"
 	"sync"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -53,26 +52,24 @@ type State struct {
 	LocalServerPrivKey      string
 	DirectoryBlockInSeconds int
 	PortNumber              int
-	Replay                  *Replay
-	InternalReplay          *Replay
-	GreenFlg                bool
-	GreenTimestamp          interfaces.Timestamp
-	DropRate                int
+	Replay                 *Replay
+	InternalReplay         *Replay
+	DropRate               int
 
-	IdentityChainID interfaces.IHash // If this node has an identity, this is it
-	Identities      []Identity       // Identities of all servers in management chain
+	IdentityChainID        interfaces.IHash // If this node has an identity, this is it
+	Identities             []Identity       // Identities of all servers in management chain
 
 	// Just to print (so debugging doesn't drive functionaility)
-	Status    bool
-	starttime time.Time
-	transCnt  int
-	lasttime  time.Time
-	tps       float64
-	serverPrt string
+	Status                 bool
+	starttime              time.Time
+	transCnt               int
+	lasttime               time.Time
+	tps                    float64
+	serverPrt              string
 
 	tickerQueue            chan int
 	timerMsgQueue          chan interfaces.IMsg
-	timeoffset             int64
+	TimeOffset             interfaces.Timestamp
 	networkOutMsgQueue     chan interfaces.IMsg
 	networkInvalidMsgQueue chan interfaces.IMsg
 	inMsgQueue             chan interfaces.IMsg
@@ -82,20 +79,28 @@ type State struct {
 	ShutdownChan           chan int // For gracefully halting Factom
 	JournalFile            string
 
-	serverPrivKey primitives.PrivateKey
-	serverPubKey  primitives.PublicKey
+	serverPrivKey          primitives.PrivateKey
+	serverPubKey           primitives.PublicKey
 
 	// Server State
-	LLeaderHeight   uint32
-	Leader          bool
-	LeaderVMIndex   int
-	LeaderPL        *ProcessList
-	OneLeader       bool
-	OutputAllowed   bool
-	LeaderMinute    int // The minute that just was processed by the follower, (1-10), set with EOM
-	LastMinute      int
-	LastHeight      uint32
-	EOM             int  // Set to true when all Process Lists have finished a minute
+	StartDelay             interfaces.Timestamp
+	RunLeader     bool
+	LLeaderHeight uint32
+	Leader        bool
+	LeaderVMIndex int
+	LeaderPL      *ProcessList
+	OneLeader     bool
+	OutputAllowed bool
+
+	LeaderMinute int // The minute that just was processed by the follower, (1-10), set with EOM
+	LastMinute   int
+	LastHeight   uint32
+
+	EOM            bool // Set to true when the first EOM is encountered
+	EOMProcessed   int
+	DBSigProcessed int  // Number of DBSignatures received and processed.
+	Saving         bool // True if we are in the process of saving to the database
+
 	NetStateOff     bool // Disable if true, Enable if false
 	DebugConsensus  bool // If true, dump consensus trace
 	FactoidTrans    int
@@ -312,6 +317,9 @@ func (s *State) LoadConfig(filename string, folder string) {
 
 func (s *State) Init() {
 
+	s.StartDelay = s.GetTimestamp() // We cant start as a leader until we know we are upto date
+	s.RunLeader = false
+
 	wsapi.InitLogs(s.LogPath+s.FactomNodeName+".log", s.LogLevel)
 
 	s.Logger = logger.NewLogFromConfig(s.LogPath, s.LogLevel, "State")
@@ -320,7 +328,7 @@ func (s *State) Init() {
 
 	s.tickerQueue = make(chan int, 10000)               //ticks from a clock
 	s.timerMsgQueue = make(chan interfaces.IMsg, 10000) //incoming eom notifications, used by leaders
-	s.timeoffset = int64(rand.Int63() % int64(time.Microsecond*10))
+	s.TimeOffset = 0 //interfaces.Timestamp(int64(rand.Int63() % int64(time.Microsecond*10)))
 	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 10000) //incoming message queue from the network messages
 	s.InvalidMessages = make(map[[32]byte]interfaces.IMsg, 0)
 	s.networkOutMsgQueue = make(chan interfaces.IMsg, 10000) //Messages to be broadcast to the network
@@ -691,13 +699,13 @@ func (s *State) GetLeaderVM() int {
 }
 
 func (s *State) GetDBState(height uint32) *DBState {
-	return s.DBStates.Get(height)
+	return s.DBStates.Get(int(height))
 }
 
 // Return the Directory block if it is in memory, or hit the database if it must
 // be loaded.
 func (s *State) GetDirectoryBlockByHeight(height uint32) interfaces.IDirectoryBlock {
-	dbstate := s.DBStates.Get(height)
+	dbstate := s.DBStates.Get(int(height))
 	if dbstate != nil {
 		return dbstate.DirectoryBlock
 	}
@@ -750,7 +758,7 @@ func (s *State) catchupEBlocks() {
 	}
 }
 
-func (s *State) GetEOM() int {
+func (s *State) GetEOM() bool {
 	return s.EOM
 }
 
@@ -854,7 +862,11 @@ func (s *State) GetTimestamp() interfaces.Timestamp {
 	if s.IsReplaying == true {
 		return s.ReplayTimestamp
 	}
-	return interfaces.Timestamp(int64(*interfaces.NewTimeStampNow()) + s.timeoffset)
+	return interfaces.Timestamp(int64(*interfaces.NewTimeStampNow() + s.TimeOffset))
+}
+
+func (s *State) GetTimeOffset() interfaces.Timestamp {
+	return s.TimeOffset
 }
 
 func (s *State) Sign(b []byte) interfaces.IFullSignature {
@@ -1009,10 +1021,16 @@ func (s *State) SetString() {
 	}
 	s.Status = false
 
-	buildingBlock := s.GetHighestRecordedBlock()
+	lmin := s.LeaderMinute
+	if s.EOM {
+		lmin--
+	}
 
-	found, _ := s.GetVirtualServers(buildingBlock+1, 0, s.GetIdentityChainID())
-
+	found, vm := s.GetVirtualServers(s.LLeaderHeight, lmin, s.GetIdentityChainID())
+	vmIndex := ""
+	if found {
+		vmIndex = fmt.Sprintf("vm%2d", vm)
+	}
 	L := ""
 	X := ""
 	W := ""
@@ -1022,28 +1040,26 @@ func (s *State) SetString() {
 	if s.NetStateOff {
 		X = "X"
 	}
-	if !s.GreenFlg {
+	if !s.RunLeader && found {
 		W = "W"
 	}
 
 	stype := fmt.Sprintf("%1s%1s%1s", L, X, W)
 
 	keyMR := primitives.NewZeroHash().Bytes()
-	//abHash := []byte("aaaaa")
-	//fbHash := []byte("aaaaa")
-	//ecHash := []byte("aaaaa")
-
+	var d interfaces.IDirectoryBlock
+	var dHeight uint32
 	switch {
 	case s.DBStates == nil:
 
-	case s.DBStates.Last() == nil:
+	case s.LLeaderHeight == 0:
 
 	case s.DBStates.Last().DirectoryBlock == nil:
 
 	default:
-		if s.DBStates.Last().DirectoryBlock.GetHeader().GetDBHeight() > 0 {
-			keyMR = s.DBStates.Last().DirectoryBlock.GetKeyMR().Bytes()
-		}
+		d = s.DBStates.Last().DirectoryBlock
+		keyMR = d.GetKeyMR().Bytes()
+		dHeight = d.GetHeader().GetDBHeight()
 	}
 
 	runtime := time.Since(s.starttime)
@@ -1052,24 +1068,30 @@ func (s *State) SetString() {
 	tps := float64(total) / float64(runtime.Seconds())
 	if shorttime > time.Second*3 {
 		delta := (s.FactoidTrans + s.NewEntryChains + s.NewEntries) - s.transCnt
-		s.tps = float64(delta) / float64(shorttime.Seconds())
+		s.tps = ((float64(delta) / float64(shorttime.Seconds())) + 2*s.tps) / 3
 		s.lasttime = time.Now()
 		s.transCnt = total // transactions accounted for
 	}
 
-	s.serverPrt = fmt.Sprintf("%8s[%6x]%4s Save: %d[%6x] PL:%d/%d Min: %2v DBHT %v Min C/F %02v/%02v EOM %2v %3d-Fct %3d-EC %3d-E  %7.2f total tps %7.2f tps",
+	plht := ""
+	if s.LeaderPL != nil {
+		plht = fmt.Sprintf("%4d",s.LeaderPL.DBHeight)
+	}
+
+	s.serverPrt = fmt.Sprintf("%8s[%6x]%4s %4s DB: %d[%6x] PL:%d/%d Min: %2v DBHT %v Min EOM %5v Saving %5v PLHT %4s %3d-Fct %3d-EC %3d-E  %7.2f total tps %7.2f tps",
 		s.FactomNodeName,
 		s.IdentityChainID.Bytes()[:3],
+		vmIndex,
 		stype,
-		s.GetHighestRecordedBlock(),
+		dHeight,
 		keyMR[:3],
 		s.ProcessLists.DBHeightBase,
 		int(s.ProcessLists.DBHeightBase)+len(s.ProcessLists.Lists)-1,
-		s.LeaderMinute,
+		lmin,
 		s.LLeaderHeight,
-		s.ProcessLists.Get(s.LLeaderHeight).MinuteComplete(),
-		s.ProcessLists.Get(s.LLeaderHeight).MinuteFinished(),
 		s.EOM,
+		s.Saving,
+		plht,
 		s.FactoidTrans,
 		s.NewEntryChains,
 		s.NewEntries,

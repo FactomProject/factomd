@@ -112,7 +112,7 @@ type IState interface {
 	// Returns the list of VirtualServers at a given directory block height and minute
 	GetVirtualServers(dbheight uint32, minute int, identityChainID IHash) (found bool, index int)
 	// Returns true if between minutes
-	GetEOM() int
+	GetEOM() bool
 
 	GetEBlockKeyMRFromEntryHash(entryHash IHash) IHash
 	GetAnchor() IAnchor
@@ -159,7 +159,8 @@ type IState interface {
 	GetNetStateOff() bool //	If true, all network communications are disabled
 	SetNetStateOff(bool)
 
-	GetTimestamp() Timestamp
+	GetTimestamp()  Timestamp
+	GetTimeOffset() Timestamp
 
 	Print(a ...interface{}) (n int, err error)
 	Println(a ...interface{}) (n int, err error)

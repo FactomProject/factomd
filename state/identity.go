@@ -60,8 +60,9 @@ func LoadIdentityCache(st *State) {
 func LoadIdentityByDirectoryBlockHeight(height uint32, st *State) {
 
 	dblk, err := st.DB.FetchDBlockByHeight(uint32(height))
-	if err != nil {
+	if err != nil || dblk == nil {
 		log.Printfln("Identity Error:", err)
+		return
 	}
 	var ManagementChain interfaces.IHash
 	ManagementChain, _ = primitives.HexToHash("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")
