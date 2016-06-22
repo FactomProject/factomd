@@ -100,6 +100,9 @@ func LoadIdentityByDirectoryBlockHeight(height uint32, st *State, update bool) {
 
 	for _, eBlk := range entries {
 		cid := eBlk.GetChainID()
+		if cid == nil {
+			continue
+		}
 		if cid.IsSameAs(ManagementChain) {
 			// is it a new one?
 			entkmr := eBlk.GetKeyMR() //eBlock Hash
@@ -292,6 +295,7 @@ func registerFactomIdentity(extIDs [][]byte, chainID interfaces.IHash, st *State
 	sigmsg, err := AppendExtIDs(extIDs, 0, 2)
 	if err != nil {
 		log.Printfln("Identity Error:", err)
+		return
 	} else {
 		// Verify Signature
 		idKey := st.Identities[IdentityIndex].Key1

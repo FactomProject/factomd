@@ -3,6 +3,8 @@ package state_test
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/hex"
+	"fmt"
 	"testing"
 	"time"
 
@@ -114,5 +116,32 @@ func TestCheckTimestamp(t *testing.T) {
 
 	if CheckTimestamp(hex) == true {
 		t.Error("Timestamp check failed")
+	}
+}
+
+func TestCheckLength(t *testing.T) {
+	// Invalid
+	x := []byte{0x00, 0x00, 0x00, 0x00, 0x00}
+	if CheckLength(6, x) {
+		t.Error("CheckLength check failed")
+	}
+
+	// Invalid
+	if CheckLength(4, x) {
+		t.Error("CheckLength check failed")
+	}
+
+	// Invalid
+	if CheckLength(0, x) {
+		t.Error("CheckLength check failed")
+	}
+
+	// Valid
+	x = []byte{}
+	for i := 0; i < 15; i++ {
+		if !CheckLength(len(x), x) {
+			t.Error("CheckLength check failed")
+		}
+		x = append(x, []byte{0x00}...)
 	}
 }
