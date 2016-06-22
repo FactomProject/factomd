@@ -435,6 +435,7 @@ func (c *Controller) fillOutgoingSlots() {
 		// dial into the peers
 		for _, peer := range peers {
 			if c.weAreNotAlreadyConnectedTo(peer) {
+				significant("We think we are not already connected to: %s so dialing.", peer.Address)
 				c.DialPeer(peer, false)
 			}
 		}

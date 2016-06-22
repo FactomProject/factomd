@@ -6,7 +6,6 @@ package engine
 
 import (
 	"bufio"
-	"encoding/json"
 	"fmt"
 	"os"
 	"time"
@@ -31,11 +30,11 @@ type P2PProxy struct {
 	ToNetwork   chan p2p.Parcel // Parcels from the application for us to route
 	FromNetwork chan p2p.Parcel // Parcels from the network for the application
 
-	logEncoder *json.Encoder
-	logFile    *os.File
-	logWriter  *bufio.Writer
-	debugMode  int
-	logging    chan messageLog
+	// logEncoder *json.Encoder
+	logFile   os.File
+	logWriter bufio.Writer
+	debugMode int
+	logging   chan messageLog
 }
 
 type factomMessage struct {
@@ -124,43 +123,53 @@ func (f *P2PProxy) Len() int {
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
 func (p *P2PProxy) startProxy() {
-	// if 0 < p.debugMode {
-	// 	note("setting up message logging")
+	if 1 < p.debugMode {
+		note("setting up message logging")
 
-	// 	var err error
-	// 	p.logFile, err = os.OpenFile("message_log.json", os.O_CREATE|os.O_RDWR|os.O_APPEND, 0660)
-	// 	if nil != err {
-	// 		note("Unable to open logging file. %v", err)
-	// 		panic("unable to open logging file")
-	// 	}
-	// 	p.logWriter = bufio.NewWriter(p.logFile)
-	// 	p.logEncoder = json.NewEncoder(p.logWriter)
-	// 	p.logging = make(chan messageLog, 10000)
-	// 	go p.ManageLogging()
-	// }
+		// var err error
+		file, err := os.OpenFile("message_log.csv", os.O_CREATE|os.O_RDWR|os.O_APPEND, 0660)
+		p.logFile = *file
+		if nil != err {
+			note("Unable to open logging file. %v", err)
+			panic("unable to open logging file")
+		}
+		writer := bufio.NewWriter(&p.logFile)
+		p.logWriter = *writer
+		// p.logEncoder = json.NewEncoder(p.logWriter)
+		p.logging = make(chan messageLog, 10000)
+		go p.ManageLogging()
+	}
 	go p.ManageOutChannel() // Bridges between network format Parcels and factomd messages (incl. addressing to peers)
 	go p.ManageInChannel()
 }
 func (p *P2PProxy) stopProxy() {
-	// p.logWriter.Flush()
+	p.logWriter.Flush()
 	defer p.logFile.Close()
 }
 
 type messageLog struct {
 	hash     string // string(GetMsgHash().Bytes())
 	received bool   // true if logging a recieved message, false if sending
+	time     int64
 }
 
 func (p *P2PProxy) ManageLogging() {
 	for message := range p.logging {
-		note("logging message: %s recieved? %v", message.hash, message.received)
-		p.logEncoder.Encode(message)
+		line := fmt.Sprintf("%s, %t, %d\n", message.hash, message.received, message.time)
+		note(line)
+		// p.logEncoder.Encode(message)
+		_, err := p.logWriter.Write([]byte(line))
+		if nil != err {
+			note("Error writing to logging file. %v", err)
+			panic("Error writing to logging file")
+		}
 	}
 }
 
 func (p *P2PProxy) logMessage(msg interfaces.IMsg, received bool) {
 	hash := fmt.Sprintf("%x", msg.GetMsgHash().Bytes())
-	ml := messageLog{hash: hash, received: received}
+	time := time.Now().Unix()
+	ml := messageLog{hash: hash, received: received, time: time}
 	p.logging <- ml
 }
 
