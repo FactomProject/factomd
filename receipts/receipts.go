@@ -392,13 +392,12 @@ func CreateReceipt(dbo interfaces.DBOverlay, entryID interfaces.IHash) (*Receipt
 		return nil, err
 	}
 
-	if dirBlockInfo == nil {
-		return nil, fmt.Errorf("dirBlockInfo not found")
-	}
-	dbi := dirBlockInfo.(*dbInfo.DirBlockInfo)
+	if dirBlockInfo != nil {
+		dbi := dirBlockInfo.(*dbInfo.DirBlockInfo)
 
-	receipt.BitcoinTransactionHash = dbi.BTCTxHash.(*primitives.Hash)
-	receipt.BitcoinBlockHash = dbi.BTCBlockHash.(*primitives.Hash)
+		receipt.BitcoinTransactionHash = dbi.BTCTxHash.(*primitives.Hash)
+		receipt.BitcoinBlockHash = dbi.BTCBlockHash.(*primitives.Hash)
+	}
 
 	return receipt, nil
 }

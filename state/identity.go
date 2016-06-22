@@ -230,6 +230,7 @@ func removeIdentity(i int, st *State) {
 	for j = i + 1; j < len(newIDs); j++ {
 		newIDs[j-1] = st.Identities[j]
 	}
+	st.Identities = newIDs
 }
 
 func isIdentityChain(cid interfaces.IHash, ids []Identity) int {
@@ -276,7 +277,7 @@ func createFactomIdentity(st *State, chainID interfaces.IHash) int {
 }
 
 func registerFactomIdentity(extIDs [][]byte, chainID interfaces.IHash, st *State, height uint32) {
-	if !CheckLength(1, extIDs[0]) || // Version
+	if bytes.Compare([]byte{0x00}, extIDs[0]) == 0 || // Version
 		!CheckLength(24, extIDs[1]) || // Ascii
 		!CheckLength(32, extIDs[2]) || // ID Chain
 		!CheckLength(33, extIDs[3]) || // Preimage
@@ -315,7 +316,7 @@ func registerFactomIdentity(extIDs [][]byte, chainID interfaces.IHash, st *State
 }
 
 func addIdentity(extIDs [][]byte, chainID interfaces.IHash, st *State, height uint32) {
-	if !CheckLength(1, extIDs[0]) || // Version
+	if bytes.Compare([]byte{0x00}, extIDs[0]) != 0 || // Version
 		!CheckLength(14, extIDs[1]) || // Ascii
 		!CheckLength(32, extIDs[2]) || // ID Key
 		!CheckLength(32, extIDs[3]) || // ID Key
@@ -356,7 +357,7 @@ func checkIdentityInitialStatus(IdentityIndex int, st *State) {
 }
 
 func updateManagementKey(extIDs [][]byte, chainID interfaces.IHash, st *State, height uint32) {
-	if !CheckLength(1, extIDs[0]) || // Version
+	if bytes.Compare([]byte{0x00}, extIDs[0]) != 0 || // Version
 		!CheckLength(17, extIDs[1]) || // Ascii
 		!CheckLength(32, extIDs[2]) || // ID Chain
 		extIDs[3] == nil { // Nonce
@@ -376,7 +377,7 @@ func updateManagementKey(extIDs [][]byte, chainID interfaces.IHash, st *State, h
 }
 
 func registerIdentityAsServer(extIDs [][]byte, chainID interfaces.IHash, st *State, height uint32) {
-	if !CheckLength(1, extIDs[0]) || // Version
+	if bytes.Compare([]byte{0x00}, extIDs[0]) != 0 || // Version
 		!CheckLength(26, extIDs[1]) || // Ascii
 		!CheckLength(32, extIDs[2]) || // Sub ID Chain
 		!CheckLength(33, extIDs[3]) || // Preimage
@@ -408,7 +409,7 @@ func registerIdentityAsServer(extIDs [][]byte, chainID interfaces.IHash, st *Sta
 }
 
 func registerBlockSigningKey(extIDs [][]byte, chainID interfaces.IHash, st *State, update bool) {
-	if !CheckLength(1, extIDs[0]) || // Version
+	if bytes.Compare([]byte{0x00}, extIDs[0]) != 0 || // Version
 		!CheckLength(21, extIDs[1]) || // Ascii
 		!CheckLength(32, extIDs[2]) || // ID Chain
 		!CheckLength(32, extIDs[3]) || // New Key
@@ -462,7 +463,7 @@ func registerBlockSigningKey(extIDs [][]byte, chainID interfaces.IHash, st *Stat
 }
 
 func updateMatryoshkaHash(extIDs [][]byte, chainID interfaces.IHash, st *State, update bool) {
-	if !CheckLength(1, extIDs[0]) || // Version
+	if bytes.Compare([]byte{0x00}, extIDs[0]) != 0 || // Version
 		!CheckLength(19, extIDs[1]) || // Ascii
 		!CheckLength(32, extIDs[2]) || // ID Chain
 		!CheckLength(32, extIDs[3]) || // MHash
@@ -514,7 +515,7 @@ func updateMatryoshkaHash(extIDs [][]byte, chainID interfaces.IHash, st *State, 
 }
 
 func registerAnchorSigningKey(extIDs [][]byte, chainID interfaces.IHash, st *State, BlockChain string, update bool) {
-	if !CheckLength(1, extIDs[0]) || // Version
+	if bytes.Compare([]byte{0x00}, extIDs[0]) != 0 || // Version
 		!CheckLength(15, extIDs[1]) || // Ascii
 		!CheckLength(32, extIDs[2]) || // ID Chain
 		!CheckLength(1, extIDs[3]) || // Key Level
