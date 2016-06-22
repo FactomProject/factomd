@@ -440,3 +440,32 @@ func TestHandleGetReceipt(t *testing.T) {
 		t.Error(err)
 	}
 }
+
+func TestHandleGetUnanchoredReceipt(t *testing.T) {
+	context := testHelper.CreateWebContext()
+	hash := "68a503bd3d5b87d3a41a737e430d2ce78f5e556f6a9269859eeb1e053b7f92f7"
+
+	HandleGetReceipt(context, hash)
+
+	j := testHelper.GetRespMap(context)
+
+	if j == nil {
+		t.Error("Receipt not found!")
+		return
+	}
+
+	dbo := context.Server.Env["state"].(interfaces.IState).GetAndLockDB()
+	defer context.Server.Env["state"].(interfaces.IState).UnlockDB()
+
+	receipt := j["receipt"].(map[string]interface{})
+	marshalled, err := json.Marshal(receipt)
+	if err != nil {
+		t.Error(err)
+	}
+
+	err = receipts.VerifyFullReceipt(dbo, string(marshalled))
+	if err != nil {
+		t.Logf("receipt - %v", j)
+		t.Error(err)
+	}
+}
