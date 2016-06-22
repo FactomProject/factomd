@@ -189,7 +189,7 @@ func (list *DBStateList) FixupLinks(i int, d *DBState) {
 
 		d.DirectoryBlock.GetHeader().SetPrevFullHash(p.DirectoryBlock.GetFullHash())
 		d.DirectoryBlock.GetHeader().SetPrevKeyMR(p.DirectoryBlock.GetKeyMR())
-		d.DirectoryBlock.GetHeader().SetTimestamp(uint32(list.State.GetLeaderTimestamp()))
+		d.DirectoryBlock.GetHeader().SetTimestamp(list.State.GetLeaderTimestamp())
 
 		d.DirectoryBlock.SetABlockHash(d.AdminBlock)
 		d.DirectoryBlock.SetECBlockHash(d.EntryCreditBlock)

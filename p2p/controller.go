@@ -28,11 +28,13 @@ type Controller struct {
 	ToNetwork   chan Parcel // Parcels from the application for us to route
 	FromNetwork chan Parcel // Parcels from the network for the application
 
-	listenPort                 string                // port we listen on for new connections
-	connections                map[string]Connection // map of the peers indexed by peer hash
-	discovery                  Discovery             // Our discovery structure
-	numberIncommingConnections int                   // In PeerManagmeent we track this and refuse incomming connections when we have too many.
-	lastPeerManagement         time.Time             // Last time we ran peer management.
+	listenPort           string                // port we listen on for new connections
+	connections          map[string]Connection // map of the connections indexed by peer hash
+	connectionsByAddress map[string]Connection // map of the connections indexed by peer address
+
+	discovery                  Discovery // Our discovery structure
+	numberIncommingConnections int       // In PeerManagmeent we track this and refuse incomming connections when we have too many.
+	lastPeerManagement         time.Time // Last time we ran peer management.
 	NodeID                     uint64
 	lastStatusReport           time.Time
 	lastPeerRequest            time.Time // Last time we asked peers about the peers they know about.
@@ -90,7 +92,7 @@ type CommandChangeLogging struct {
 
 func (c *Controller) Init(ci ControllerInit) *Controller {
 	significant("ctrlr", "Controller.Init(%s) %#x", ci.Port, ci.Network)
-	silence("#################", "META: Last touched: THURSDAY JUNE 9 - 2PM")
+	silence("#################", "META: Last touched: WEDNESDAY JUNE 22 - 1AM")
 	c.keepRunning = true
 	c.commandChannel = make(chan interface{}, 1000) // Commands from App
 	c.FromNetwork = make(chan Parcel, 10000)        // Channel to the app for network data
@@ -113,24 +115,11 @@ func (c *Controller) Init(ci ControllerInit) *Controller {
 // StartNetwork configures the network, starts the runloop
 func (c *Controller) StartNetwork() {
 	verbose("ctrlr", "Controller.StartNetwork(%s)", " ")
-	// exclusive means we only connect to special peers
+	c.lastStatusReport = time.Now()
 	// start listening on port given
 	c.listen()
-	// Get a list of peers from discovery
-	// BUGBUG - in exclusivity we only dial the command line peers.
-	if !OnlySpecialPeers {
-		peers := c.discovery.GetOutgoingPeers()
-		if len(peers) < NumberPeersToConnect*2 {
-			c.discovery.DiscoverPeers()
-			peers = c.discovery.GetOutgoingPeers()
-		}
-		// dial into the peers
-		for _, peer := range peers {
-			c.DialPeer(peer, false)
-		}
-	}
-	c.lastStatusReport = time.Now()
-	c.discovery.PrintPeers()
+	// Dial out to peers
+	c.fillOutgoingSlots()
 	// Start the runloop
 	go c.runloop()
 }
@@ -247,7 +236,7 @@ func (c *Controller) runloop() {
 			c.networkStatusReport()
 		}
 	}
-	note("ctrlr", "Controller.runloop() has exited. Shutdown command recieved?")
+	silence("ctrlr", "Controller.runloop() has exited. Shutdown command recieved?")
 	significant("ctrlr", "runloop() - Final network statistics: TotalMessagesRecieved: %d TotalMessagesSent: %d", TotalMessagesRecieved, TotalMessagesSent)
 }
 
@@ -295,7 +284,6 @@ func (c *Controller) route() {
 			}
 		}
 	}
-
 }
 
 // handleParcelReceive takes a parcel from the network and annotates it for the application then routes it.
@@ -318,7 +306,7 @@ func (c *Controller) handleParcelReceive(message interface{}, peerHash string, c
 		verbose("ctrlr", "Controller.route() sent the SharePeers response: %+v", response.MessageType())
 	case TypePeerResponse:
 		// Add these peers to our known peers
-		c.discovery.LearnPeers(parcel.Payload)
+		c.discovery.LearnPeers(parcel)
 	default:
 		logfatal("ctrlr", "handleParcelReceive() unknown parcel.Header.Type?: %+v ", parcel)
 	}
@@ -403,14 +391,7 @@ func (c *Controller) managePeers() {
 		}
 		if NumberPeersToConnect > outgoing {
 			// Get list of peers ordered by quality from discovery
-			peers := c.discovery.GetOutgoingPeers()
-			// For each one, if we don't already have a connection, create command message.
-			for _, peer := range peers {
-				_, present := c.connections[peer.Hash]
-				if !present {
-					c.DialPeer(peer, false)
-				}
-			}
+			c.fillOutgoingSlots()
 		}
 		duration := time.Since(c.discovery.lastPeerSave)
 		// Every so often, tell the discovery service to save peers.
@@ -428,6 +409,39 @@ func (c *Controller) managePeers() {
 		}
 	}
 }
+
+func (c *Controller) updateConnectionAddressHash() {
+	c.connectionsByAddress = map[string]Connection{}
+	for _, value := range c.connections {
+		c.connectionsByAddress[value.peer.Address] = value
+	}
+}
+
+func (c *Controller) weAreNotAlreadyConnectedTo(peer Peer) bool {
+	_, present := c.connectionsByAddress[peer.Address]
+	return !present
+}
+
+func (c *Controller) fillOutgoingSlots() {
+	c.updateConnectionAddressHash()
+	// If exclusive/OnlySpecialPeers is set, then the connections for those peers are persistent.
+	// This means we never fill our slots.
+	if !OnlySpecialPeers {
+		peers := c.discovery.GetOutgoingPeers()
+		if len(peers) < NumberPeersToConnect*2 {
+			c.discovery.DiscoverPeers()
+			peers = c.discovery.GetOutgoingPeers()
+		}
+		// dial into the peers
+		for _, peer := range peers {
+			if c.weAreNotAlreadyConnectedTo(peer) {
+				c.DialPeer(peer, false)
+			}
+		}
+	}
+	c.discovery.PrintPeers()
+}
+
 func (c *Controller) shutdown() {
 	debug("ctrlr", "Controller.shutdown() ")
 	// Go thru peer list and shut down connections.

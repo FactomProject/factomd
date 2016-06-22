@@ -116,14 +116,14 @@ func (e *EBlock) AddEndOfMinuteMarker(m byte) {
 		h[len(h)-1] = i
 		mins[hex.EncodeToString(h)] = i
 	}
-	
+
 	// check if the previous entry is a minute marker and return without
 	// writing if it is
 	prevEntry := e.Body.EBEntries[len(e.Body.EBEntries)-1]
 	if _, exist := mins[prevEntry.String()]; exist {
 		return
 	}
-	
+
 	h := make([]byte, 32)
 	h[len(h)-1] = m
 	hash := primitives.NewZeroHash()

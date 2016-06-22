@@ -776,3 +776,24 @@ func CheckTimestamp(time []byte) bool {
 		return false
 	}
 }
+
+func UpdateIdentityStatus(ChainID interfaces.IHash,StatusFrom int, StatusTo int,st *State) {
+	// if StatusFrom < 0 then it will change from any status to the StatusTo status.
+	//  if StatusFrom is > -1 then it will only change the status if it is = to the statusFrom
+	
+	IdentityIndex := isIdentityChain(ChainID, st.Identities)
+	if IdentityIndex == -1 {
+		log.Println("Cannot Update Status for ChainID " + ChainID.String() + ". Chain not found in Identities")
+		return
+	}
+	
+	if StatusFrom < 0 {
+		st.Identities[IdentityIndex].Status=StatusTo
+	} else {
+		if st.Identities[IdentityIndex].Status == StatusFrom {
+			st.Identities[IdentityIndex].Status=StatusTo
+		} else {
+			log.Println("Cannot Update Status for ChainID " + ChainID.String() + ". Status not equal to expected Current Status.")
+		}
+	}
+}

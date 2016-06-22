@@ -61,6 +61,8 @@ type State struct {
 
 	IdentityChainID interfaces.IHash // If this node has an identity, this is it
 	Identities      []Identity       // Identities of all servers in management chain
+	Authorities      []Authority       // Identities of all servers in management chain
+	AuthorityServerCount	int 	// number of federated or audit servers allowed
 
 	// Just to print (so debugging doesn't drive functionaility)
 	Status    bool
@@ -209,6 +211,8 @@ func (s *State) Clone(number string) interfaces.IState {
 
 	clone.IdentityChainID = primitives.Sha([]byte(clone.FactomNodeName))
 	clone.Identities = s.Identities
+	clone.Authorities = s.Authorities
+	clone.AuthorityServerCount = s.AuthorityServerCount
 
 	//generate and use a new deterministic PrivateKey for this clone
 	shaHashOfNodeName := primitives.Sha([]byte(clone.FactomNodeName)) //seed the private key with node name
@@ -430,9 +434,11 @@ func (s *State) Init() {
 	s.FedServerFaults = make([][]interfaces.IMsg, 0)
 
 	s.initServerKeys()
-
+	s.AuthorityServerCount=0
 	LoadIdentityCache(s)
 	//StubIdentityCache(s)
+	LoadAuthorityCache(s)
+	
 
 	s.starttime = time.Now()
 }
@@ -855,7 +861,7 @@ func (s *State) GetTimestamp() interfaces.Timestamp {
 	if s.IsReplaying == true {
 		return s.ReplayTimestamp
 	}
-	return interfaces.Timestamp(int64(*interfaces.NewTimeStampNow()) + s.timeoffset)
+	return interfaces.Timestamp(int64(*interfaces.NewTimestampNow()) + s.timeoffset)
 }
 
 func (s *State) Sign(b []byte) interfaces.IFullSignature {

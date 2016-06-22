@@ -21,14 +21,26 @@ func GetTime() uint64 {
 //A structure for handling timestamps for messages
 type Timestamp uint64 //in miliseconds
 
-func NewTimeStampNow() *Timestamp {
+func NewTimestampNow() *Timestamp {
 	t := new(Timestamp)
 	t.SetTimeNow()
 	return t
 }
 
+func NewTimestampFromSeconds(s uint32) *Timestamp {
+	t := new(Timestamp)
+	*t = Timestamp(int64(s) * 1000)
+	return t
+}
+
+func NewTimestampFromMilliseconds(s uint64) *Timestamp {
+	t := new(Timestamp)
+	*t = Timestamp(s)
+	return t
+}
+
 func (t *Timestamp) SetTimeNow() {
-	*t = Timestamp(GetTime())
+	*t = Timestamp(GetTimeMilli())
 }
 
 func (t *Timestamp) SetTime(miliseconds uint64) {
@@ -51,8 +63,12 @@ func (t *Timestamp) UnmarshalBinary(data []byte) error {
 	return err
 }
 
-func (t *Timestamp) GetTimeSecond() int64 {
+func (t *Timestamp) GetTimeSeconds() int64 {
 	return int64(*t / 1000)
+}
+
+func (t *Timestamp) GetTimeSecondsUInt32() uint32 {
+	return uint32(*t / 1000)
 }
 
 func (t *Timestamp) MarshalBinary() ([]byte, error) {

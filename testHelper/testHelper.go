@@ -54,7 +54,7 @@ func CreateTestDBStateList() []interfaces.IMsg {
 	for i := 0; i < BlockCount; i++ {
 		prev = CreateTestBlockSet(prev)
 
-		timestamp := interfaces.NewTimeStampNow()
+		timestamp := interfaces.NewTimestampNow()
 		timestamp.SetTime(uint64(i * 1000 * 60 * 60 * 6)) //6 hours of difference between messages
 
 		answer[i] = messages.NewDBStateMsg(*timestamp, prev.DBlock, prev.ABlock, prev.FBlock, prev.ECBlock)

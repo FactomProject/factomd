@@ -364,6 +364,7 @@ func (c *Connection) processReceives() {
 		case nil == err:
 			note(c.peer.PeerIdent(), "Connection.processReceives() RECIEVED FROM NETWORK!  State: %s MessageType: %s", c.ConnectionState(), message.MessageType())
 			c.bytesReceived += message.Header.Length
+			message.Header.PeerAddress = c.peer.Address
 			c.handleParcel(message)
 		default:
 			c.handleNetErrors(err)
