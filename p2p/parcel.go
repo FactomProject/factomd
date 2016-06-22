@@ -21,14 +21,15 @@ type Parcel struct {
 const ParcelHeaderSize = 28
 
 type ParcelHeader struct {
-	Network    NetworkID         // 4 bytes - the network we are on (eg testnet, main net, etc.)
-	Version    uint16            // 2 bytes - the version of the protocol we are running.
-	Type       ParcelCommandType // 2 bytes - network level commands (eg: ping/pong)
-	Length     uint32            // 4 bytes - length of the payload (that follows this header) in bytes
-	TargetPeer string            // ? bytes - "" or nil for broadcast, otherwise the destination peer's hash.
-	Crc32      uint32            // 4 bytes - data integrity hash (of the payload itself.)
-	NodeID     uint64
-	PeerPort   string // port the peer , or we are listening on
+	Network     NetworkID         // 4 bytes - the network we are on (eg testnet, main net, etc.)
+	Version     uint16            // 2 bytes - the version of the protocol we are running.
+	Type        ParcelCommandType // 2 bytes - network level commands (eg: ping/pong)
+	Length      uint32            // 4 bytes - length of the payload (that follows this header) in bytes
+	TargetPeer  string            // ? bytes - "" or nil for broadcast, otherwise the destination peer's hash.
+	Crc32       uint32            // 4 bytes - data integrity hash (of the payload itself.)
+	NodeID      uint64
+	PeerAddress string // address of the peer set by connection to know who sent message (for tracking source of other peers)
+	PeerPort    string // port of the peer , or we are listening on
 }
 
 type ParcelCommandType uint16
