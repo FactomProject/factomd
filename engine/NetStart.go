@@ -12,13 +12,14 @@ import (
 	"time"
 	"unicode"
 
+	"math"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
-	"math"
 )
 
 var _ = fmt.Print
@@ -32,6 +33,7 @@ type FactomNode struct {
 var fnodes []*FactomNode
 var mLog = new(MsgLog)
 var network p2p.Controller
+var p2pProxy *P2PProxy
 
 func NetStart(s *state.State) {
 
@@ -121,6 +123,7 @@ func NetStart(s *state.State) {
 			fnode.State.ShutdownChan <- 0
 		}
 		network.NetworkStop()
+		p2pProxy.stopProxy()
 		fmt.Print("Waiting...\r\n")
 		time.Sleep(3 * time.Second)
 		os.Exit(0)
@@ -216,7 +219,7 @@ func NetStart(s *state.State) {
 	network = *p2pController
 	network.StartNetwork()
 	// Setup the proxy (Which translates from network parcels to factom messages, handling addressing for directed messages)
-	p2pProxy := new(P2PProxy).Init(fnodes[0].State.FactomNodeName, "P2P Network").(*P2PProxy)
+	p2pProxy = new(P2PProxy).Init(fnodes[0].State.FactomNodeName, "P2P Network").(*P2PProxy)
 	p2pProxy.FromNetwork = network.FromNetwork
 	p2pProxy.ToNetwork = network.ToNetwork
 	fnodes[0].Peers = append(fnodes[0].Peers, p2pProxy)
