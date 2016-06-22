@@ -59,10 +59,10 @@ type State struct {
 	GreenTimestamp          interfaces.Timestamp
 	DropRate                int
 
-	IdentityChainID interfaces.IHash // If this node has an identity, this is it
-	Identities      []Identity       // Identities of all servers in management chain
-	Authorities      []Authority       // Identities of all servers in management chain
-	AuthorityServerCount	int 	// number of federated or audit servers allowed
+	IdentityChainID      interfaces.IHash // If this node has an identity, this is it
+	Identities           []Identity       // Identities of all servers in management chain
+	Authorities          []Authority      // Identities of all servers in management chain
+	AuthorityServerCount int              // number of federated or audit servers allowed
 
 	// Just to print (so debugging doesn't drive functionaility)
 	Status    bool
@@ -434,11 +434,10 @@ func (s *State) Init() {
 	s.FedServerFaults = make([][]interfaces.IMsg, 0)
 
 	s.initServerKeys()
-	s.AuthorityServerCount=0
+	s.AuthorityServerCount = 0
 	LoadIdentityCache(s)
 	//StubIdentityCache(s)
 	LoadAuthorityCache(s)
-	
 
 	s.starttime = time.Now()
 }
