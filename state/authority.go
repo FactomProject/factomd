@@ -1,8 +1,6 @@
 package state
 
 import (
-	//"encoding/hex"
-
 	"bytes"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -62,10 +60,11 @@ func LoadAuthorityByAdminBlockHeight(height uint32, st *State, update bool) {
 		abBytes = abBytes[32:] //remove admin chain id
 		abBytes = abBytes[32:] //Previous Hash
 		abBytes = abBytes[4:]  //remove Block Height
-		abBytes = abBytes[1:]  //remove Header Expansion
-		abBytes = abBytes[0:]  //remove admin chain id
-		abBytes = abBytes[4:]  //remove message count (we are parsing bytes instead of messages)
-		abBytes = abBytes[4:]  //remove body size
+		ext, abBytes := primitives.DecodeVarIntBTC(abBytes)
+		//	don't care about header expansion at this time.  skip it.
+		abBytes = abBytes[ext:] //remove admin chain id
+		abBytes = abBytes[4:]   //remove message count (we are parsing bytes instead of messages)
+		abBytes = abBytes[4:]   //remove body size
 		// the rest is admin byte messages
 
 		ChainID := new(primitives.Hash)
@@ -77,9 +76,17 @@ func LoadAuthorityByAdminBlockHeight(height uint32, st *State, update bool) {
 			case constants.TYPE_MINUTE_NUM:
 				// "Minute Marker"
 				// don't care
+				if len(abBytes) < 2 {
+					log.Printfln("Invalid Length. Minute Marker Height: ", height)
+					return
+				}
 				abBytes = abBytes[2:]
 
 			case 1:
+				if len(abBytes) < 129 {
+					log.Printfln("Invalid Length. DB Signature Height: %s", string(height))
+					return
+				}
 				//  "DB Signature"
 				//ChainID = abBytes[1:32]
 				//pubKey = abBytes[33:65]
@@ -91,13 +98,18 @@ func LoadAuthorityByAdminBlockHeight(height uint32, st *State, update bool) {
 			case 2:
 				// "Reveal Matryoshka Hash"
 				// future use
+				if len(abBytes) < 65 {
+					log.Printfln("Invalid Length. Reveal Matryoshka Hash Height:", string(height))
+					return
+				}
+
 				ChainID.SetBytes(abBytes[1:32])
 				//AuthorityIndex=isAuthorityChain(ChainID,st.Authorities)
 				abBytes = abBytes[65:]
 			case 3:
 				// "Add/Replace Matryoshka Hash"
 				if len(abBytes) < 65 {
-					log.Println("Invalid Length. Add MatryoshkaHash AdminBlock Height:" + string(height))
+					log.Printfln("Invalid Length. Add MatryoshkaHash AdminBlock Height:", string(height))
 					return
 				}
 				ChainID.SetBytes(abBytes[1:32])
@@ -111,6 +123,10 @@ func LoadAuthorityByAdminBlockHeight(height uint32, st *State, update bool) {
 				abBytes = abBytes[65:]
 			case 4:
 				// "Increase Server Count"
+				if len(abBytes) < 2 {
+					log.Println("Invalid Length. Increase Server Count Height:" + string(height))
+					return
+				}
 				st.AuthorityServerCount = st.AuthorityServerCount + int(abBytes[1])
 				// don't care at this time, but keeping track
 				abBytes = abBytes[2:]
