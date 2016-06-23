@@ -718,6 +718,9 @@ func (s *State) GetDirectoryBlockByHeight(height uint32) interfaces.IDirectoryBl
 
 func (s *State) UpdateState() (progress bool) {
 
+	if s.DebugConsensus {
+		fmt.Printf("dddd %20s %10s  \n", "Update State:<<<<", s.FactomNodeName)
+	}
 	dbheight := s.GetHighestRecordedBlock()
 	plbase := s.ProcessLists.DBHeightBase
 	if plbase <= dbheight+1 {
@@ -730,6 +733,10 @@ func (s *State) UpdateState() (progress bool) {
 	s.catchupEBlocks()
 
 	s.SetString()
+
+	if s.DebugConsensus {
+		fmt.Printf("dddd %20s %10s --- %10s %10v\n", "Update State:>>>>", s.FactomNodeName, "progress:", progress)
+	}
 	return
 }
 
@@ -1021,9 +1028,13 @@ func (s *State) SetString() {
 	}
 	s.Status = false
 
+	fmt.Println("dddd  SetString::::::", s.FactomNodeName, "LeaderMinute", s.LeaderMinute)
 	lmin := s.LeaderMinute
 	if s.EOM {
 		lmin--
+		if lmin < 0 {
+			lmin = 9
+		}
 	}
 
 	found, vm := s.GetVirtualServers(s.LLeaderHeight, lmin, s.GetIdentityChainID())
@@ -1078,7 +1089,7 @@ func (s *State) SetString() {
 		plht = fmt.Sprintf("%4d", s.LeaderPL.DBHeight)
 	}
 
-	s.serverPrt = fmt.Sprintf("%8s[%6x]%4s %4s DB: %d[%6x] PL:%d/%d Min: %2v DBHT %v Min EOM %5v Saving %5v PLHT %4s %3d-Fct %3d-EC %3d-E  %7.2f total tps %7.2f tps",
+	s.serverPrt = fmt.Sprintf("%8s[%6x]%4s %4s DB: %d[%6x] PL:%d/%d Min: %2v DBHT %v EOM %5v Saving %5v PLHT %4s %3d-Fct %3d-EC %3d-E  %7.2f total tps %7.2f tps",
 		s.FactomNodeName,
 		s.IdentityChainID.Bytes()[:3],
 		vmIndex,

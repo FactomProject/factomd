@@ -56,17 +56,28 @@ func (s *State) NewMinute() {
 
 func (s *State) Process() (progress bool) {
 
+	fmt.Printf("dddd %20s %10s --- %10s %10v %10s %10v\n", "Process() Start?", s.FactomNodeName, "RunLeader", s.RunLeader, "Leader", s.Leader)
 	// Check if we the leader isn't running, and if so, can we start it?
 	if !s.RunLeader {
+		fmt.Printf("dddd %20s %10s --- \n", "Process() Start", s.FactomNodeName)
 		now := s.GetTimestamp() // Timestamps are in milliseconds, so wait 20
-		fmt.Println("dddd RunLeader", s.FactomNodeName, now, s.StartDelay, now-s.StartDelay)
-		if now-s.StartDelay > 20*1000 {
+		if now-s.StartDelay > 5*1000 {
 			s.RunLeader = true
 		}
+		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
+		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.LeaderMinute, s.IdentityChainID)
 	}
 
 	dbstate := s.DBStates.Get(int(s.LLeaderHeight - 1))
-	if s.Saving && (dbstate == nil || dbstate.Saved) {
+	if s.Saving && dbstate != nil {
+		dbstate = s.DBStates.Get(int(s.LLeaderHeight - 2))
+	}
+	lock := true
+	if dbstate != nil {
+		lock = dbstate.Locked
+	}
+	fmt.Printf("dddd %20s %10s --- %10s %10v %10s %10v %10s %10v\n", "Process() EOB?", s.FactomNodeName, "LLeaderHt", s.LLeaderHeight, "Saving", s.Saving, "Locked", lock)
+	if s.Saving && (dbstate == nil || dbstate.Locked) {
 		s.NewMinute()
 
 		if s.Leader && dbstate != nil {
@@ -81,21 +92,30 @@ func (s *State) Process() (progress bool) {
 			dbs.Sign(s)
 			err := dbs.Sign(s)
 			if err != nil {
+				fmt.Println("dddd ERROR:", s.FactomNodeName, err.Error())
 				panic(err)
 			}
+			fmt.Println("dddd DBSig:", s.FactomNodeName, dbs.String())
 			dbs.LeaderExecute(s)
 		}
-		s.UpdateState()
+		s.Saving = false
 	}
+
+	fmt.Printf("dddd %20s %10s --- %10s %10v %10s %10v %10s %10v %10s %10v\n", "Process2() EOM?", s.FactomNodeName, "EOM", s.EOM,
+		"EomCnt:", s.EOMProcessed, "FedServ#", len(s.ProcessLists.Get(s.LLeaderHeight).FedServers), "Saving", s.Saving)
 
 	if s.EOM && s.EOMProcessed == len(s.LeaderPL.FedServers) {
 		switch {
 		case s.LeaderMinute > 0:
+			fmt.Printf("dddd %20s %10s --- %10s %10v\n", "Process() lmin  > 0", s.FactomNodeName, "LeaderMin", s.LeaderMinute)
 			s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.LeaderMinute, s.IdentityChainID)
 			s.NewMinute()
 		case s.LeaderMinute == 0:
+			fmt.Printf("dddd %20s %10s --- %10s %10v\n", "Process() lmin == 0", s.FactomNodeName, "LeaderMin", s.LeaderMinute,
+				"DBHT", s.LeaderPL.DirectoryBlock.GetHeader().GetDBHeight())
 			s.AddDBState(true, s.LeaderPL.DirectoryBlock, s.LeaderPL.AdminBlock, s.GetFactoidState().GetCurrentBlock(), s.LeaderPL.EntryCreditBlock)
+
 			s.LastHeight = s.LLeaderHeight
 			s.LLeaderHeight++
 			s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
@@ -114,28 +134,34 @@ func (s *State) ProcessQueues() (progress bool) {
 	executeMsg := func(msg interfaces.IMsg) (ret bool) {
 		_, ok := s.InternalReplay.Valid(msg.GetHash().Fixed(), int64(msg.GetTimestamp()/1000), int64(s.GetTimestamp()/1000))
 		if !ok {
-			if s.DebugConsensus {
-				fmt.Println("dddd msgQueue ok:", ok, msg.String())
-			}
 			return
 		}
 
 		switch msg.Validate(s) {
 		case 1:
+			fmt.Printf("dddd %20s %10s --- %10s %10v %10s %10v %10s %10v %10s %10v\n", "ProcessQ()>", s.FactomNodeName,
+				"EOM", s.EOM, "Saving", s.Saving, "RunLeader", s.RunLeader, "leader", s.Leader)
 			if !s.EOM && !s.Saving && s.RunLeader && s.Leader {
+
 				msg.ComputeVMIndex(s)
 				msg.LeaderExecute(s)
+				fmt.Printf("dddd %20s %10s --- %10s %s \n", "Leader()>", s.FactomNodeName, "Msg", msg.String())
+				if eom, ok := msg.(*messages.EOM); ok {
+					fmt.Printf("dddd %20s %10s ->> %10s     [[%2d]]\n", "Leader()>", s.FactomNodeName, "MIN", int(eom.Minute))
+				}
 			} else {
+				fmt.Printf("dddd %20s %10s --- %10s %s \n", "xLeader()>", s.FactomNodeName, "Msg", msg.String())
 				msg.FollowerExecute(s)
 			}
 			ret = true
 		case 0:
-			s.Holding[msg.GetHash().Fixed()] = msg
+			fmt.Println("dddd msg holding", s.FactomNodeName, msg.String())
+			s.Holding[msg.GetMsgHash().Fixed()] = msg
 		default:
 			if s.DebugConsensus {
 				fmt.Println("dddd Deleted=== Msg:", s.FactomNodeName, msg.String())
 			}
-			delete(s.Acks, msg.GetHash().Fixed())
+			s.Holding[msg.GetMsgHash().Fixed()] = msg
 			s.networkInvalidMsgQueue <- msg
 		}
 
@@ -147,7 +173,6 @@ func (s *State) ProcessQueues() (progress bool) {
 		msg := s.XReview[0]
 		executeMsg(msg)
 		s.XReview = s.XReview[1:]
-		s.UpdateState()
 	}
 
 	select {
@@ -177,7 +202,7 @@ func (s *State) AddDBState(isNew bool,
 	directoryBlock interfaces.IDirectoryBlock,
 	adminBlock interfaces.IAdminBlock,
 	factoidBlock interfaces.IFBlock,
-	entryCreditBlock interfaces.IEntryCreditBlock) {
+	entryCreditBlock interfaces.IEntryCreditBlock) *DBState {
 
 	dbState := s.DBStates.NewDBState(isNew, directoryBlock, adminBlock, factoidBlock, entryCreditBlock)
 	s.DBStates.Put(dbState)
@@ -186,9 +211,11 @@ func (s *State) AddDBState(isNew bool,
 		s.LLeaderHeight = ht
 		s.ProcessLists.Get(ht + 1)
 	}
+	if ht == 0 {
+		s.LLeaderHeight = 1
+	}
 
-	// Possible we need to update our state now, so give it a shot.
-	s.DBStates.UpdateState()
+	return dbState
 }
 
 func (s *State) addEBlock(eblock interfaces.IEntryBlock) {
@@ -231,46 +258,48 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) {
 //
 // Returns true if it finds a match, puts the message in holding, or invalidates the message
 func (s *State) FollowerExecuteEOM(m interfaces.IMsg) {
-
+	fmt.Println("dddd 1", s.FactomNodeName)
 	if m.IsLocal() {
 		return // This is an internal EOM message.  We are not a leader so ignore.
 	}
+	fmt.Println("dddd 1", s.FactomNodeName)
 
 	eom, _ := m.(*messages.EOM)
+	fmt.Println("dddd 2", s.FactomNodeName)
 
-	if s.EOM {
-		if int(eom.Minute) != s.LastMinute {
-			// Can only process the next minute
-			s.Holding[m.GetMsgHash().Fixed()] = m // Save for later (or culling)
-			return
-		}
-	} else {
-		if int(eom.Minute) != s.LeaderMinute {
-			s.Holding[m.GetMsgHash().Fixed()] = m
-			return
-		}
+	if int(eom.Minute) != s.LastMinute {
+		// Can only process the next minute
+		s.Holding[m.GetMsgHash().Fixed()] = m // Save for later (or culling)
+		fmt.Println("dddd Follower fail 1 ", s.FactomNodeName, s.EOM, eom.Minute, s.LeaderMinute, s.LastMinute)
+		return
 	}
+
+	fmt.Println("dddd 3", s.FactomNodeName)
 
 	s.Holding[m.GetMsgHash().Fixed()] = m
 	ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
 	if ack != nil {
+		fmt.Println("dddd 4", s.FactomNodeName)
 		m.SetLeaderChainID(ack.GetLeaderChainID())
 		m.SetMinute(ack.Minute)
 
 		if !s.EOM {
-			s.EOM = true
+			pl := s.ProcessLists.Get(ack.DBHeight)
+			vm := pl.VMs[ack.VMIndex]
+			min := vm.LeaderMinute
+			vm.LeaderMinute++
 
-			s.LeaderMinute++
+			s.EOM = true
+			s.EOMProcessed = 0
+
+			s.LeaderMinute = min + 1
 			if s.LeaderMinute == 10 {
 				s.LeaderMinute = 0
 			}
 
-			s.LastMinute++
-			if s.LastMinute == 10 {
-				s.LastMinute = 0
-			}
+			s.LastMinute = min
 		}
-
+		fmt.Println("dddd ACK", s.FactomNodeName, ack.String())
 		pl := s.ProcessLists.Get(ack.DBHeight)
 		pl.AddToProcessList(ack, m)
 	}
@@ -293,12 +322,12 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	dbstatemsg, _ := msg.(*messages.DBStateMsg)
 
 	s.DBStates.LastTime = s.GetTimestamp()
-	s.AddDBState(false, // Not a new block; got it from the network
+	dbstate := s.AddDBState(false, // Not a new block; got it from the network
 		dbstatemsg.DirectoryBlock,
 		dbstatemsg.AdminBlock,
 		dbstatemsg.FactoidBlock,
 		dbstatemsg.EntryCreditBlock)
-
+	dbstate.ReadyToSave = true
 }
 
 func (s *State) FollowerExecuteAddData(msg interfaces.IMsg) {
@@ -352,9 +381,6 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 
 func (s *State) LeaderExecute(m interfaces.IMsg) {
 
-	for i := 0; s.UpdateState() && i < 10; i++ {
-	}
-
 	_, ok1 := s.InternalReplay.Valid(m.GetHash().Fixed(), int64(m.GetTimestamp()/1000), int64(s.GetTimestamp()/1000))
 	_, ok2 := s.InternalReplay.Valid(m.GetMsgHash().Fixed(), int64(m.GetTimestamp()/1000), int64(s.GetTimestamp()/1000))
 	if !ok1 || !ok2 {
@@ -373,6 +399,7 @@ func (s *State) LeaderExecute(m interfaces.IMsg) {
 func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 
 	if !m.IsLocal() {
+		fmt.Println("dddd Leader Fail 1 ", s.FactomNodeName, s.EOM, s.LeaderMinute, s.LastMinute)
 		s.FollowerExecuteEOM(m)
 		return
 	}
@@ -380,23 +407,21 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 	// The zero based minute for the message is equal to
 	// the one based "LastMinute".  This way we know we are
 	// generating minutes in order.
-	min := s.LeaderMinute
 
-	if s.EOM {
-		min--
-	} else {
+	if !s.EOM {
+		vm := s.LeaderPL.VMs[s.LeaderVMIndex]
+		min := vm.LeaderMinute
+		vm.LeaderMinute++
+
 		s.EOM = true
+		s.EOMProcessed = 0
 
-		s.LeaderMinute++
+		s.LeaderMinute = min + 1
 		if s.LeaderMinute == 10 {
 			s.LeaderMinute = 0
 		}
 
-		s.LastMinute++
-		if s.LastMinute == 10 {
-			s.LastMinute = 0
-		}
-
+		s.LastMinute = min
 	}
 
 	eom := m.(*messages.EOM)
@@ -408,11 +433,13 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 	eom.VMIndex = s.LeaderVMIndex
 	// eom.Minute is zerobased, while s.LeaderMinute is 1 based.  So
 	// a simple assignment works.
-	eom.Minute = byte(min)
+	eom.Minute = byte(s.LastMinute)
 	eom.Sign(s)
 	ack := s.NewAck(m)
-	s.Acks[ack.GetHash().Fixed()] = ack
+	s.Acks[eom.GetMsgHash().Fixed()] = ack
 	m.SetLocal(false)
+	fmt.Println("dddd L", s.FactomNodeName)
+
 	s.FollowerExecuteEOM(m)
 
 }
@@ -546,17 +573,16 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	pl := s.ProcessLists.Get(dbheight)
 
 	s.EOMProcessed++
-	if s.EOMProcessed == len(pl.FedServers) {
-		s.Saving = true
-	}
+
+	fmt.Printf("dddd %20s %10s --- %10s %10v \n", "ProcessEOM()", s.FactomNodeName, "EomCnt", s.EOMProcessed)
 
 	if e.FactoidVM {
 		s.FactoidState.EndOfPeriod(int(e.Minute + 1))
-
-		// Add EOM to the EBlocks.  We only do this once, so
-		// we piggy back on the fact that we only do the FactoidState
-		// EndOfPeriod once too.
 	}
+
+	// Add EOM to the EBlocks.  We only do this once, so
+	// we piggy back on the fact that we only do the FactoidState
+	// EndOfPeriod once too.
 
 	for _, eb := range pl.NewEBlocks {
 		if pl.VMIndexFor(eb.GetChainID().Bytes()) == e.VMIndex {
@@ -585,8 +611,11 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 
 	dbs := msg.(*messages.DirectoryBlockSignature)
 
+	fmt.Printf("dddd %20s %10s --- %10s %10v \n", "ProcessDBSig()", s.FactomNodeName, "DBHeight", dbheight)
+
 	resp := dbs.Validate(s)
 	if resp != 1 {
+		fmt.Printf("dddd %20s %10s --- %10s %10v \n", "ProcessDBSig()-", s.FactomNodeName, "DBHeight", dbheight)
 		return false
 	}
 
@@ -598,10 +627,14 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 	// disagree with us, null our entry out.  Otherwise toss our DBState and ask for one from
 	// our neighbors.
 
-	s.DBSigProcessed++
-	if s.DBSigProcessed == len(s.ProcessLists.Get(s.LastHeight).FedServers) {
-		s.DBStates.Get(int(s.LastHeight)).ReadyToSave = true
-		s.DBSigProcessed = 0
+	pl := s.ProcessLists.Get(dbheight - 1)
+	fmt.Printf("dddd %20s %10s --- %10s %10v \n", "ProcessDBSig()?", s.FactomNodeName, "LeaderMinute", pl.VMs[dbs.VMIndex].LeaderMinute)
+	if pl.VMs[dbs.VMIndex].LeaderMinute == 10 {
+		s.DBSigProcessed++
+		if s.DBSigProcessed == len(pl.FedServers) {
+			s.DBStates.Get(int(dbheight - 1)).ReadyToSave = true
+			s.DBSigProcessed = 0
+		}
 	}
 
 	return true
@@ -797,7 +830,6 @@ func (s *State) GetNewHash() interfaces.IHash {
 // Create a new Acknowledgement.  Must be called by a leader.  This
 // call assumes all the pieces are in place to create a new acknowledgement
 func (s *State) NewAck(msg interfaces.IMsg) (iack interfaces.IMsg) {
-	s.DBStates.UpdateState()
 
 	vmIndex := msg.GetVMIndex()
 
@@ -808,7 +840,6 @@ func (s *State) NewAck(msg interfaces.IMsg) (iack interfaces.IMsg) {
 	ack.Minute = byte(s.LeaderMinute)
 	ack.Timestamp = s.GetTimestamp()
 	ack.MessageHash = msg.GetMsgHash()
-	ack.SetFullMsgHash(msg.GetFullMsgHash())
 	ack.LeaderChainID = s.IdentityChainID
 
 	listlen := len(s.LeaderPL.VMs[vmIndex].List)

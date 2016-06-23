@@ -382,6 +382,8 @@ func (p *ProcessList) CheckDiffSigTally() {
 // Process messages and update our state.
 func (p *ProcessList) Process(state *State) (progress bool) {
 
+	fmt.Printf("dddd %20s %10s --- %10s %10v \n", "ProcessList.Process", p.State.FactomNodeName, "len(Lists)", len(p.State.ProcessLists.Lists))
+
 	now := time.Now().Unix()
 	ask := func(vmIndex int, vm *VM, thetime int64, j int) int64 {
 		if thetime == 0 {
@@ -410,10 +412,12 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 		prev := state.DBStates.Get(int(p.DBHeight - 1))
 
 		if prev == nil {
+			fmt.Printf("dddd %20s %10s --- %10s %10v \n", "PLProcess-", p.State.FactomNodeName, "PrevHt", "<nil>")
 			return
 		}
 
 		if !prev.Locked {
+			fmt.Printf("dddd %20s %10s --- %10s %10v \n", "PLProcess-", p.State.FactomNodeName, "PrevHt", p.DBHeight-1)
 			return
 		}
 	}
@@ -424,6 +428,7 @@ VMLoop:
 
 		// If we are up to date with this VM, then continue to the next
 		if vm.Height == len(vm.List) {
+			//fmt.Printf("dddd %20s %10s --- %10s %10v %10s %10v %10s %10v \n", "VMLoop-", p.State.FactomNodeName, "vm.Height", vm.Height, "len(List)", len(vm.List))
 			if p.Sealing && vm.Seal == 0 {
 				vm.SealTime = ask(i, vm, vm.SealTime+2, vm.Height)
 			}
@@ -433,6 +438,7 @@ VMLoop:
 	VMListLoop:
 		for j := vm.Height; j < len(vm.List); j++ {
 			if vm.List[j] == nil {
+				fmt.Printf("dddd %20s %10s --- %10s %10v %10s %10v %10s %10v \n", "ListLoop-", p.State.FactomNodeName, "HT", j, "vm.Height", vm.Height, "len(List)", len(vm.List))
 				vm.missingTime = ask(i, vm, vm.missingTime, j)
 				break VMListLoop
 			}
@@ -453,6 +459,7 @@ VMLoop:
 				last := vm.ListAck[vm.Height-1]
 				expectedSerialHash, err = primitives.CreateHash(last.MessageHash, thisAck.MessageHash)
 				if err != nil {
+					fmt.Printf("dddd %20s %10s --- %10s %10v %10s %10v \n", "ListLoop-", p.State.FactomNodeName, "Err", err.Error())
 					// cannot create a expectedSerialHash to compare to
 					vm.List[j] = nil
 					vm.ListAck[j] = nil
@@ -464,17 +471,18 @@ VMLoop:
 				// compare the SerialHash of this acknowledgement with the
 				// expected serialHash (generated above)
 				if !expectedSerialHash.IsSameAs(thisAck.SerialHash) {
+					fmt.Printf("dddd %20s %10s --- %10s %10x %10s %10x \n", "expected", expectedSerialHash.Bytes()[:3], "This", thisAck.Bytes()[:3])
 					p.State.DebugPrt("Process List")
-					fmt.Printf("Error detected on %s\nSerial Hash failure: Fed Server %d  Leader ID %x List Ht: %d \nDetected on: %s\n",
+					fmt.Printf("dddd Error detected on %s\nSerial Hash failure: Fed Server %d  Leader ID %x List Ht: %d \nDetected on: %s\n",
 						state.GetFactomNodeName(),
 						i,
 						p.FedServers[i].GetChainID().Bytes()[:3],
 						j,
 						vm.List[j].String())
-					fmt.Printf("Last Ack: %6x  Last Serial: %6x\n", last.GetHash().Bytes()[:3], last.SerialHash.Bytes()[:3])
-					fmt.Printf("This Ack: %6x  This Serial: %6x\n", thisAck.GetHash().Bytes()[:3], thisAck.SerialHash.Bytes()[:3])
-					fmt.Printf("Expected: %6x\n", expectedSerialHash.Bytes()[:3])
-					fmt.Printf("The message that didn't work: %s\n\n", vm.List[j].String())
+					fmt.Printf("dddd Last Ack: %6x  Last Serial: %6x\n", last.GetHash().Bytes()[:3], last.SerialHash.Bytes()[:3])
+					fmt.Printf("dddd his Ack: %6x  This Serial: %6x\n", thisAck.GetHash().Bytes()[:3], thisAck.SerialHash.Bytes()[:3])
+					fmt.Printf("dddd Expected: %6x\n", expectedSerialHash.Bytes()[:3])
+					fmt.Printf("dddd The message that didn't work: %s\n\n", vm.List[j].String())
 					fmt.Println(p.PrintMap())
 					// the SerialHash of this acknowledgment is incorrect
 					// according to this node's processList
@@ -484,7 +492,10 @@ VMLoop:
 				}
 			}
 
+			fmt.Printf("dddd %20s %10s --- %10s %10v  \n", "ListLoop+", p.State.FactomNodeName, "Executing", vm.List[j].String())
+
 			if vm.List[j].Process(p.DBHeight, state) { // Try and Process this entry
+
 				vm.Height = j + 1 // Don't process it again if the process worked.
 				progress = true
 			} else {
@@ -505,7 +516,8 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 		fmt.Println("dddd", hint, p.State.FactomNodeName, "Toss", ack.String())
 
 	}
-
+	fmt.Printf("dddd %20s %10s --- %10s %s \n", "AddToPL()", p.State.FactomNodeName, "Msg", m.String())
+	fmt.Printf("dddd %20s %10s --- %10s %s \n", "AddToPL()", p.State.FactomNodeName, "Ack", ack.String())
 	if p == nil {
 		return
 	}
@@ -578,6 +590,9 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	p.VMs[ack.VMIndex].ListAck[ack.Height] = ack
 	p.OldMsgs[m.GetHash().Fixed()] = m
 	p.OldAcks[m.GetMsgHash().Fixed()] = ack
+
+	fmt.Printf("dddd %20s %10s --- %10s %s \n", "AddToPL()+", p.State.FactomNodeName, "Msg", m.String())
+	fmt.Printf("dddd %20s %10s --- %10s %s \n", "AddToPL()+", p.State.FactomNodeName, "Ack", ack.String())
 
 }
 
