@@ -35,7 +35,7 @@ type P2PProxy struct {
 	logFile    *os.File
 	logWriter  *bufio.Writer
 	debugMode  int
-	logging    chan messageLog
+	//logging    chan messageLog // NODE_TALK_FIX
 }
 
 type factomMessage struct {
@@ -65,7 +65,7 @@ func (f *P2PProxy) GetNameTo() string {
 }
 
 func (f *P2PProxy) Send(msg interfaces.IMsg) error {
-	f.logMessage(msg, false)
+	//	f.logMessage(msg, false) // NODE_TALK_FIX
 	data, err := msg.MarshalBinary()
 	if err != nil {
 		fmt.Println("ERROR on Send: ", err)
@@ -85,7 +85,7 @@ func (f *P2PProxy) Recieve() (interfaces.IMsg, error) {
 		if ok {
 			msg, err := messages.UnmarshalMessage(data.message)
 			if 0 < f.debugMode {
-				f.logMessage(msg, true)
+				//	f.logMessage(msg, true) // NODE_TALK_FIX
 				fmt.Printf(".")
 			}
 			if nil == err {
@@ -141,7 +141,9 @@ func (p *P2PProxy) startProxy() {
 	go p.ManageOutChannel() // Bridges between network format Parcels and factomd messages (incl. addressing to peers)
 	go p.ManageInChannel()
 }
-func (p *P2PProxy) stopProxy() {
+
+// NODE_TALK_FIX
+/*func (p *P2PProxy) stopProxy() {
 	// p.logWriter.Flush()
 	defer p.logFile.Close()
 }
@@ -162,7 +164,7 @@ func (p *P2PProxy) logMessage(msg interfaces.IMsg, received bool) {
 	hash := fmt.Sprintf("%x", msg.GetMsgHash().Bytes())
 	ml := messageLog{hash: hash, received: received}
 	p.logging <- ml
-}
+}*/
 
 // manageOutChannel takes messages from the f.broadcastOut channel and sends them to the network.
 func (f *P2PProxy) ManageOutChannel() {
