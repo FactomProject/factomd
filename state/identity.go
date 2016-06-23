@@ -206,13 +206,17 @@ func LoadIdentityByDirectoryBlockHeight(height uint32, st *State, update bool) {
 	// if an identity has taken more than 72 blocks (12 hours) to be fully created, remove it from the state identity list.
 	var i int
 	for i = 0; i < len(st.Identities); i++ {
-		if st.Identities[i].IdentityCreated < height-TIME_WINDOW && st.Identities[i].IdentityRegistered == 0 && st.Identities[i].IdentityCreated != 0 {
+		cutoff := height - TIME_WINDOW
+		if TIME_WINDOW > height {
+			cutoff = 0
+		}
+		if st.Identities[i].IdentityCreated < cutoff && st.Identities[i].IdentityRegistered == 0 && st.Identities[i].IdentityCreated != 0 {
 			removeIdentity(i, st)
-		} else if st.Identities[i].IdentityRegistered < height-TIME_WINDOW && st.Identities[i].IdentityCreated == 0 && st.Identities[i].IdentityRegistered != 0 {
+		} else if st.Identities[i].IdentityRegistered < cutoff && st.Identities[i].IdentityCreated == 0 && st.Identities[i].IdentityRegistered != 0 {
 			removeIdentity(i, st)
-		} else if st.Identities[i].ManagementCreated < height-TIME_WINDOW && st.Identities[i].ManagementRegistered == 0 && st.Identities[i].ManagementCreated != 0 {
+		} else if st.Identities[i].ManagementCreated < cutoff && st.Identities[i].ManagementRegistered == 0 && st.Identities[i].ManagementCreated != 0 {
 			removeIdentity(i, st)
-		} else if st.Identities[i].ManagementRegistered < height-TIME_WINDOW && st.Identities[i].ManagementCreated == 0 && st.Identities[i].ManagementRegistered != 0 {
+		} else if st.Identities[i].ManagementRegistered < cutoff && st.Identities[i].ManagementCreated == 0 && st.Identities[i].ManagementRegistered != 0 {
 			removeIdentity(i, st)
 		}
 	}
