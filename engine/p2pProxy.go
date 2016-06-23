@@ -35,7 +35,7 @@ type P2PProxy struct {
 	logFile    *os.File
 	logWriter  *bufio.Writer
 	debugMode  int
-	logging    chan p2pMessageLog // NODE_TALK_FIX
+	logging    chan messageLog // NODE_TALK_FIX
 }
 
 type factomMessage struct {
@@ -135,7 +135,7 @@ func (p *P2PProxy) startProxy() {
 		}
 		p.logWriter = bufio.NewWriter(p.logFile)
 		p.logEncoder = json.NewEncoder(p.logWriter)
-		p.logging = make(chan p2pMessageLog, 10000)
+		p.logging = make(chan messageLog, 10000)
 		go p.ManageLogging()
 	}
 	go p.ManageOutChannel() // Bridges between network format Parcels and factomd messages (incl. addressing to peers)
@@ -150,7 +150,7 @@ func (p *P2PProxy) stopProxy() {
 	}
 }
 
-type p2pMessageLog struct {
+type messageLog struct {
 	hash     string // string(GetMsgHash().Bytes())
 	received bool   // true if logging a recieved message, false if sending
 }
@@ -164,7 +164,7 @@ func (p *P2PProxy) ManageLogging() {
 
 func (p *P2PProxy) logMessage(msg interfaces.IMsg, received bool) {
 	hash := fmt.Sprintf("%x", msg.GetMsgHash().Bytes())
-	ml := p2pMessageLog{hash: hash, received: received}
+	ml := messageLog{hash: hash, received: received}
 	p.logging <- ml
 }
 
