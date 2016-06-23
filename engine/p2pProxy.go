@@ -156,7 +156,6 @@ type messageLog struct {
 func (p *P2PProxy) ManageLogging() {
 	for message := range p.logging {
 		line := fmt.Sprintf("%s, %t, %d\n", message.hash, message.received, message.time)
-		note(line)
 		// p.logEncoder.Encode(message)
 		_, err := p.logWriter.Write([]byte(line))
 		if nil != err {
