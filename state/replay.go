@@ -6,9 +6,10 @@ package state
 
 import (
 	"fmt"
-	"github.com/FactomProject/factomd/common/interfaces"
 	"sync"
 	"time"
+
+	"github.com/FactomProject/factomd/common/interfaces"
 )
 
 const numBuckets = 27
@@ -75,7 +76,7 @@ func (r *Replay) Valid(hash [32]byte, timestamp interfaces.Timestamp, systemtime
 		_, ok := r.buckets[index][hash]
 		if ok {
 			if !okc {
-				panic(fmt.Sprintf("dddd Replay Failure returns false %x %d", hash, timestamp))
+				panic(fmt.Sprintf("dddd Replay Failure returns false %x timestamp: %d timeseconds: %v systemtime-seconds: %v", hash, timestamp, timeSeconds, systemTimeSeconds))
 			}
 			return index, false
 		}

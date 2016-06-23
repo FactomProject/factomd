@@ -858,6 +858,7 @@ func (s *State) SetIsDoneReplaying() {
 // Returns a millisecond timestamp
 func (s *State) GetTimestamp() interfaces.Timestamp {
 	if s.IsReplaying == true {
+		fmt.Println("^^^^^^^^ IsReplying is true")
 		return s.ReplayTimestamp
 	}
 	return interfaces.Timestamp(int64(*interfaces.NewTimestampNow()) + s.timeoffset)
