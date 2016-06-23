@@ -177,8 +177,14 @@ func (c *Connection) runLoop() {
 				c.goShutdown()
 			}
 		case ConnectionOffline:
-			note(c.peer.PeerIdent(), "Connection.runLoop() ConnectionOffline, going dialLoop().")
-			c.dialLoop() // dialLoop dials until it connects or shuts down.
+			switch {
+			case c.isOutGoing:
+				note(c.peer.PeerIdent(), "Connection.runLoop() ConnectionOffline, going dialLoop().")
+				c.dialLoop() // dialLoop dials until it connects or shuts down.
+			default: // the connection dialed us, so we shutdown
+				c.goShutdown()
+			}
+
 		case ConnectionShuttingDown:
 			debug(c.peer.PeerIdent(), "runLoop() ConnectionShuttingDown STATE runloop() cleaning up. ")
 			c.state = ConnectionClosed
