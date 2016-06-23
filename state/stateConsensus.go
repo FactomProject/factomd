@@ -36,17 +36,17 @@ func (s *State) NewMinute() {
 		v := s.Holding[k]
 
 		// Make sure we don't process any dups...
-		if _, ok := s.InternalReplay.Valid(v.GetHash().Fixed(), int64(v.GetTimestamp()/1000), int64(s.GetTimestamp()/1000)); !ok {
+		if _, ok := s.InternalReplay.Valid(v.GetHash().Fixed(), v.GetTimestamp(), s.GetTimestamp()); !ok {
 			continue
 		}
-		if _, ok := s.InternalReplay.Valid(v.GetMsgHash().Fixed(), int64(v.GetTimestamp()/1000), int64(s.GetTimestamp()/1000)); !ok {
+		if _, ok := s.InternalReplay.Valid(v.GetMsgHash().Fixed(), v.GetTimestamp(), s.GetTimestamp()); !ok {
 			continue
 		}
 		a, _ := s.Acks[k].(*messages.Ack)
 		if a != nil && v != nil {
 			s.ProcessLists.Get(a.DBHeight).AddToProcessList(a, v)
 		} else if v != nil {
-			_, ok := s.InternalReplay.Valid(v.GetMsgHash().Fixed(), int64(v.GetTimestamp()/1000), int64(s.GetTimestamp()/1000))
+			_, ok := s.InternalReplay.Valid(v.GetMsgHash().Fixed(), v.GetTimestamp(), s.GetTimestamp())
 			if ok {
 				v.ComputeVMIndex(s)
 				s.XReview = append(s.XReview, v)
@@ -111,7 +111,7 @@ func (s *State) ProcessQueues() (progress bool) {
 
 	// Executing a message means looking if it is valid, checking if we are a leader.
 	executeMsg := func(msg interfaces.IMsg) (ret bool) {
-		_, ok := s.InternalReplay.Valid(msg.GetHash().Fixed(), int64(msg.GetTimestamp()/1000), int64(s.GetTimestamp()/1000))
+		_, ok := s.InternalReplay.Valid(msg.GetHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp())
 		if !ok {
 			if s.DebugConsensus {
 				fmt.Println("dddd msgQueue ok:", ok, msg.String())
@@ -151,7 +151,7 @@ func (s *State) ProcessQueues() (progress bool) {
 
 	select {
 	case ack := <-s.ackQueue:
-		_, ok := s.InternalReplay.Valid(ack.GetHash().Fixed(), int64(ack.GetTimestamp()/1000), int64(s.GetTimestamp()/1000))
+		_, ok := s.InternalReplay.Valid(ack.GetHash().Fixed(), ack.GetTimestamp(), s.GetTimestamp())
 		if ok && ack.Validate(s) == 1 {
 			ack.FollowerExecute(s)
 		} else if s.DebugConsensus {
@@ -347,8 +347,8 @@ func (s *State) LeaderExecute(m interfaces.IMsg) {
 	for i := 0; s.UpdateState() && i < 10; i++ {
 	}
 
-	_, ok1 := s.InternalReplay.Valid(m.GetHash().Fixed(), int64(m.GetTimestamp()/1000), int64(s.GetTimestamp()/1000))
-	_, ok2 := s.InternalReplay.Valid(m.GetMsgHash().Fixed(), int64(m.GetTimestamp()/1000), int64(s.GetTimestamp()/1000))
+	_, ok1 := s.InternalReplay.Valid(m.GetHash().Fixed(), m.GetTimestamp(), s.GetTimestamp())
+	_, ok2 := s.InternalReplay.Valid(m.GetMsgHash().Fixed(), m.GetTimestamp(), s.GetTimestamp())
 	if !ok1 || !ok2 {
 		fmt.Println("dddd Replay detected", s.FactomNodeName, m.String())
 		delete(s.Holding, m.GetMsgHash().Fixed())

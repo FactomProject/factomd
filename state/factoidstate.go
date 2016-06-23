@@ -46,7 +46,7 @@ func (fs *FactoidState) SetWallet(w interfaces.ISCWallet) {
 func (fs *FactoidState) GetCurrentBlock() interfaces.IFBlock {
 	if fs.CurrentBlock == nil {
 		fs.CurrentBlock = factoid.NewFBlock(fs.State.GetFactoshisPerEC(), fs.DBHeight)
-		t := factoid.GetCoinbase(uint64(fs.State.GetLeaderTimestamp()))
+		t := factoid.GetCoinbase(fs.State.GetLeaderTimestamp())
 		err := fs.CurrentBlock.AddCoinbase(t)
 		if err != nil {
 			panic(err.Error())
@@ -93,12 +93,12 @@ func (fs *FactoidState) AddECBlock(blk interfaces.IEntryCreditBlock) error {
 // No node has any responsiblity to forward on transactions that do not fall within
 // the timeframe around a block defined by TRANSACTION_PRIOR_LIMIT and TRANSACTION_POST_LIMIT
 func (fs *FactoidState) ValidateTransactionAge(trans interfaces.ITransaction) error {
-	tsblk := fs.GetCurrentBlock().GetCoinbaseTimestamp()
+	tsblk := fs.GetCurrentBlock().GetCoinbaseTimestamp().GetTimeMilli()
 	if tsblk < 0 {
 		return fmt.Errorf("Block has no coinbase transaction at this time")
 	}
 
-	tstrans := int64(trans.GetMilliTimestamp())
+	tstrans := trans.GetTimestamp().GetTimeMilli()
 
 	if tsblk-tstrans > constants.TRANSACTION_PRIOR_LIMIT {
 		return fmt.Errorf("Transaction is too old to be included in the current block")
@@ -125,7 +125,7 @@ func (fs *FactoidState) AddTransaction(index int, trans interfaces.ITransaction)
 		if err == nil {
 			// We assume validity has been done elsewhere.  We are maintaining the "seen" state of
 			// all transactions here.
-			fs.State.InternalReplay.IsTSValid(trans.GetHash(), int64(trans.GetMilliTimestamp()/1000))
+			fs.State.InternalReplay.IsTSValid(trans.GetHash(), trans.GetTimestamp())
 		}
 		return err
 	}
@@ -229,7 +229,7 @@ func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
 
 	fs.CurrentBlock = factoid.NewFBlock(fs.State.GetFactoshisPerEC(), fs.DBHeight+1)
 
-	t := factoid.GetCoinbase(uint64(fs.State.GetLeaderTimestamp()))
+	t := factoid.GetCoinbase(fs.State.GetLeaderTimestamp())
 	err := fs.CurrentBlock.AddCoinbase(t)
 	if err != nil {
 		panic(err.Error())

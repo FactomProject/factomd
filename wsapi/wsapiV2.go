@@ -395,7 +395,7 @@ func HandleV2EntryBlock(state interfaces.IState, params interface{}) (interface{
 	e.Header.DBHeight = int64(block.GetHeader().GetDBHeight())
 
 	if dblock, err := dbase.FetchDBlockByHeight(block.GetHeader().GetDBHeight()); err == nil {
-		e.Header.Timestamp = int64(dblock.GetHeader().GetTimestamp() * 60)
+		e.Header.Timestamp = dblock.GetHeader().GetTimestamp().GetTimeSeconds()
 	}
 
 	// create a map of possible minute markers that may be found in the
