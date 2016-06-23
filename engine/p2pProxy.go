@@ -35,7 +35,7 @@ type P2PProxy struct {
 	logFile    *os.File
 	logWriter  *bufio.Writer
 	debugMode  int
-	//logging    chan messageLog // NODE_TALK_FIX
+	logging    chan p2pMessageLog // NODE_TALK_FIX
 }
 
 type factomMessage struct {
@@ -124,31 +124,33 @@ func (f *P2PProxy) Len() int {
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
 func (p *P2PProxy) startProxy() {
-	// if 0 < p.debugMode {
-	// 	note("setting up message logging")
+	if 0 < p.debugMode {
+		note("setting up message logging")
 
-	// 	var err error
-	// 	p.logFile, err = os.OpenFile("message_log.json", os.O_CREATE|os.O_RDWR|os.O_APPEND, 0660)
-	// 	if nil != err {
-	// 		note("Unable to open logging file. %v", err)
-	// 		panic("unable to open logging file")
-	// 	}
-	// 	p.logWriter = bufio.NewWriter(p.logFile)
-	// 	p.logEncoder = json.NewEncoder(p.logWriter)
-	// 	p.logging = make(chan messageLog, 10000)
-	// 	go p.ManageLogging()
-	// }
+		var err error
+		p.logFile, err = os.OpenFile("message_log.json", os.O_CREATE|os.O_RDWR|os.O_APPEND, 0660)
+		if nil != err {
+			note("Unable to open logging file. %v", err)
+			panic("unable to open logging file")
+		}
+		p.logWriter = bufio.NewWriter(p.logFile)
+		p.logEncoder = json.NewEncoder(p.logWriter)
+		p.logging = make(chan p2pMessageLog, 10000)
+		go p.ManageLogging()
+	}
 	go p.ManageOutChannel() // Bridges between network format Parcels and factomd messages (incl. addressing to peers)
 	go p.ManageInChannel()
 }
 
 // NODE_TALK_FIX
-/*func (p *P2PProxy) stopProxy() {
-	// p.logWriter.Flush()
-	defer p.logFile.Close()
+func (p *P2PProxy) stopProxy() {
+	if 0 < p.debugMode {
+		// p.logWriter.Flush()
+		defer p.logFile.Close()
+	}
 }
 
-type messageLog struct {
+type p2pMessageLog struct {
 	hash     string // string(GetMsgHash().Bytes())
 	received bool   // true if logging a recieved message, false if sending
 }
@@ -162,9 +164,9 @@ func (p *P2PProxy) ManageLogging() {
 
 func (p *P2PProxy) logMessage(msg interfaces.IMsg, received bool) {
 	hash := fmt.Sprintf("%x", msg.GetMsgHash().Bytes())
-	ml := messageLog{hash: hash, received: received}
+	ml := p2pMessageLog{hash: hash, received: received}
 	p.logging <- ml
-}*/
+}
 
 // manageOutChannel takes messages from the f.broadcastOut channel and sends them to the network.
 func (f *P2PProxy) ManageOutChannel() {

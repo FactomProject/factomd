@@ -128,7 +128,7 @@ func NetStart(s *state.State) {
 		}
 		network.NetworkStop()
 		// NODE_TALK_FIX
-		//	p2pProxy.stopProxy()
+		p2pProxy.stopProxy()
 		fmt.Print("Waiting...\r\n")
 		time.Sleep(3 * time.Second)
 		os.Exit(0)
