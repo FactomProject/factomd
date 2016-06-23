@@ -317,6 +317,7 @@ func (c *Controller) handleConnectionCommand(command ConnectionCommand, connecti
 	switch command.command {
 	case ConnectionIsClosed:
 		debug("ctrlr", "handleConnectionCommand() Got ConnectionIsShutdown from  %s", connection.peer.Hash)
+		delete(c.connectionsByAddress, connection.peer.Address)
 		delete(c.connections, connection.peer.Hash)
 	case ConnectionUpdatingPeer:
 		debug("ctrlr", "handleConnectionCommand() Got ConnectionUpdatingPeer from  %s", connection.peer.Hash)
@@ -333,6 +334,7 @@ func (c *Controller) handleCommand(command interface{}) {
 		conn := new(Connection).Init(parameters.peer, parameters.persistent)
 		connection := *conn
 		c.connections[connection.peer.Hash] = connection
+		c.connectionsByAddress[connection.peer.Address] = connection
 		debug("ctrlr", "Controller.handleCommand(CommandDialPeer) got peer %s", parameters.peer.Address)
 	case CommandAddPeer: // parameter is a Connection. This message is sent by the accept loop which is in a different goroutine
 		parameters := command.(CommandAddPeer)
@@ -344,6 +346,7 @@ func (c *Controller) handleCommand(command interface{}) {
 		peer := new(Peer).Init(addPort[0], addPort[1], 0, RegularPeer, 0)
 		connection := new(Connection).InitWithConn(conn, *peer)
 		c.connections[connection.peer.Hash] = *connection
+		c.connectionsByAddress[connection.peer.Address] = *connection
 		debug("ctrlr", "Controller.handleCommand(CommandAddPeer) got peer %+v", *peer)
 	case CommandShutdown:
 		verbose("ctrlr", "handleCommand() Processing command: CommandShutdown")
@@ -396,6 +399,7 @@ func (c *Controller) managePeers() {
 		duration := time.Since(c.discovery.lastPeerSave)
 		// Every so often, tell the discovery service to save peers.
 		if PeerSaveInterval < duration {
+			significant("controller", "Saving peers")
 			c.discovery.SavePeers()
 			c.discovery.PrintPeers() // No-op if debugging off.
 		}
@@ -410,7 +414,8 @@ func (c *Controller) managePeers() {
 	}
 }
 
-func (c *Controller) updateConnectionAddressHash() {
+// updateConnectionAddressHash() updates the address index map to reflect all current connections
+func (c *Controller) updateConnectionAddressMap() {
 	c.connectionsByAddress = map[string]Connection{}
 	for _, value := range c.connections {
 		c.connectionsByAddress[value.peer.Address] = value
@@ -423,20 +428,22 @@ func (c *Controller) weAreNotAlreadyConnectedTo(peer Peer) bool {
 }
 
 func (c *Controller) fillOutgoingSlots() {
-	c.updateConnectionAddressHash()
-	// If exclusive/OnlySpecialPeers is set, then the connections for those peers are persistent.
-	// This means we never fill our slots.
-	if !OnlySpecialPeers {
-		peers := c.discovery.GetOutgoingPeers()
-		if len(peers) < NumberPeersToConnect*2 {
-			c.discovery.DiscoverPeers()
-			peers = c.discovery.GetOutgoingPeers()
-		}
-		// dial into the peers
-		for _, peer := range peers {
-			if c.weAreNotAlreadyConnectedTo(peer) {
-				c.DialPeer(peer, false)
-			}
+	c.updateConnectionAddressMap()
+	// discovery.GetOutgoingPeers() handles exclusivity for us
+	peers := c.discovery.GetOutgoingPeers()
+	if len(peers) < NumberPeersToConnect*2 {
+		c.discovery.DiscoverPeersFromSeed()
+		peers = c.discovery.GetOutgoingPeers()
+	}
+	// dial into the peers
+	significant("controller", "All the peers we are connected to:")
+	for key, _ := range c.connectionsByAddress {
+		significant("controller", "%s", key)
+	}
+	for _, peer := range peers {
+		if c.weAreNotAlreadyConnectedTo(peer) {
+			significant("controller", "We don't seem to be connected to %s", peer.Address)
+			c.DialPeer(peer, false)
 		}
 	}
 	c.discovery.PrintPeers()
