@@ -24,7 +24,7 @@ type Peer struct {
 	Type         uint8
 	Connections  int       // Number of successful connections.
 	LastContact  time.Time // Keep track of how long ago we talked to the peer.
-	Source       []string    // source where we heard from the peer.
+	Source       []string  // source where we heard from the peer.
 }
 
 const ( // iota is reset to 0
