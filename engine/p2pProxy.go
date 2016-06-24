@@ -27,10 +27,9 @@ type P2PProxy struct {
 	BroadcastOut chan factomMessage // ToNetwork from factomd
 	BroadcastIn  chan factomMessage // FromNetwork for Factomd
 
-	ToNetwork   chan p2p.Parcel // Parcels from the application for us to route
+	ToNetwork   chan p2p.Parcel // From p2pProxy to the p2p Controller
 	FromNetwork chan p2p.Parcel // Parcels from the network for the application
 
-	// logEncoder *json.Encoder
 	logFile   os.File
 	logWriter bufio.Writer
 	debugMode int
@@ -83,12 +82,12 @@ func (f *P2PProxy) Recieve() (interfaces.IMsg, error) {
 	case data, ok := <-f.BroadcastIn:
 		if ok {
 			msg, err := messages.UnmarshalMessage(data.message)
+			if nil == err {
+				msg.SetNetworkOrigin(data.peerHash)
+			}
 			if 0 < f.debugMode {
 				f.logMessage(msg, true)
 				fmt.Printf(".")
-			}
-			if nil == err {
-				msg.SetNetworkOrigin(data.peerHash)
 			}
 			return msg, err
 		}
@@ -135,7 +134,6 @@ func (p *P2PProxy) startProxy() {
 		}
 		writer := bufio.NewWriter(&p.logFile)
 		p.logWriter = *writer
-		// p.logEncoder = json.NewEncoder(p.logWriter)
 		p.logging = make(chan messageLog, 10000)
 		go p.ManageLogging()
 	}
@@ -156,7 +154,6 @@ type messageLog struct {
 func (p *P2PProxy) ManageLogging() {
 	for message := range p.logging {
 		line := fmt.Sprintf("%s, %t, %d\n", message.hash, message.received, message.time)
-		// p.logEncoder.Encode(message)
 		_, err := p.logWriter.Write([]byte(line))
 		if nil != err {
 			note("Error writing to logging file. %v", err)
