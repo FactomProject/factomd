@@ -16,6 +16,8 @@ import (
 	"net"
 	"strings"
 	"time"
+
+	"github.com/davecgh/go-spew/spew"
 )
 
 // Controller manages the peer to peer network.
@@ -217,10 +219,23 @@ func (c *Controller) acceptLoop(listener net.Listener) {
 func (c *Controller) runloop() {
 	// In long running processes it seems the runloop is exiting.
 	reportExit := func() {
-		silence("ctrlr", "@@@@@@@@@@ Controller.runloop() has exited! Here's its final state:")
-		silence("ctrlr", "Controller: %+v", c)
-		c.networkStatusReport()
-		silence("ctrlr", "@@@@@@@@@@ Controller.runloop() is terminated!")
+		significant("ctrlr", "@@@@@@@@@@ Controller.runloop() has exited! Here's its final state:")
+		if 0 < CurrentLoggingLevel {
+			spew.Dump(c)
+		}
+		significant("ctrlr", "###################################")
+		significant("ctrlr", " Network Controller Status Report:")
+		significant("ctrlr", "===================================")
+		significant("ctrlr", "     # Connections: %d", len(c.connections))
+		significant("ctrlr", "Unique Connections: %d", len(c.connectionsByAddress))
+		significant("ctrlr", "     Command Queue: %d", len(c.commandChannel))
+		significant("ctrlr", "         ToNetwork: %d", len(c.ToNetwork))
+		significant("ctrlr", "       FromNetwork: %d", len(c.FromNetwork))
+		significant("ctrlr", "        Total RECV: %d", TotalMessagesRecieved)
+		significant("ctrlr", "  Application RECV: %d", ApplicationMessagesRecieved)
+		significant("ctrlr", "        Total XMIT: %d", TotalMessagesSent)
+		significant("ctrlr", "###################################")
+		significant("ctrlr", "@@@@@@@@@@ Controller.runloop() is terminated!")
 	}
 	defer reportExit()
 
