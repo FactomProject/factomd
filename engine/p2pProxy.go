@@ -6,7 +6,6 @@ package engine
 
 import (
 	"bufio"
-	"encoding/json"
 	"fmt"
 	"os"
 	"time"
@@ -28,14 +27,13 @@ type P2PProxy struct {
 	BroadcastOut chan factomMessage // ToNetwork from factomd
 	BroadcastIn  chan factomMessage // FromNetwork for Factomd
 
-	ToNetwork   chan p2p.Parcel // Parcels from the application for us to route
+	ToNetwork   chan p2p.Parcel // From p2pProxy to the p2p Controller
 	FromNetwork chan p2p.Parcel // Parcels from the network for the application
 
-	logEncoder *json.Encoder
-	logFile    *os.File
-	logWriter  *bufio.Writer
-	debugMode  int
-	logging    chan messageLog // NODE_TALK_FIX
+	logFile   os.File
+	logWriter bufio.Writer
+	debugMode int
+	logging   chan messageLog // NODE_TALK_FIX
 }
 
 type factomMessage struct {
@@ -84,12 +82,12 @@ func (f *P2PProxy) Recieve() (interfaces.IMsg, error) {
 	case data, ok := <-f.BroadcastIn:
 		if ok {
 			msg, err := messages.UnmarshalMessage(data.message)
+			if nil == err {
+				msg.SetNetworkOrigin(data.peerHash)
+			}
 			if 0 < f.debugMode {
 				//	f.logMessage(msg, true) // NODE_TALK_FIX
 				fmt.Printf(".")
-			}
-			if nil == err {
-				msg.SetNetworkOrigin(data.peerHash)
 			}
 			return msg, err
 		}
@@ -124,17 +122,16 @@ func (f *P2PProxy) Len() int {
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
 func (p *P2PProxy) startProxy() {
-	if 0 < p.debugMode {
+	if 1 < p.debugMode {
 		note("setting up message logging")
-
-		var err error
-		p.logFile, err = os.OpenFile("message_log.json", os.O_CREATE|os.O_RDWR|os.O_APPEND, 0660)
+		file, err := os.OpenFile("message_log.csv", os.O_CREATE|os.O_RDWR|os.O_APPEND, 0660)
+		p.logFile = *file
 		if nil != err {
 			note("Unable to open logging file. %v", err)
 			panic("unable to open logging file")
 		}
-		p.logWriter = bufio.NewWriter(p.logFile)
-		p.logEncoder = json.NewEncoder(p.logWriter)
+		writer := bufio.NewWriter(&p.logFile)
+		p.logWriter = *writer
 		p.logging = make(chan messageLog, 10000)
 		go p.ManageLogging()
 	}
@@ -145,7 +142,7 @@ func (p *P2PProxy) startProxy() {
 // NODE_TALK_FIX
 func (p *P2PProxy) stopProxy() {
 	if 0 < p.debugMode {
-		// p.logWriter.Flush()
+		p.logWriter.Flush()
 		defer p.logFile.Close()
 	}
 }
@@ -153,18 +150,24 @@ func (p *P2PProxy) stopProxy() {
 type messageLog struct {
 	hash     string // string(GetMsgHash().Bytes())
 	received bool   // true if logging a recieved message, false if sending
+	time     int64
 }
 
 func (p *P2PProxy) ManageLogging() {
 	for message := range p.logging {
-		note("logging message: %s recieved? %v", message.hash, message.received)
-		p.logEncoder.Encode(message)
+		line := fmt.Sprintf("%s, %t, %d\n", message.hash, message.received, message.time)
+		_, err := p.logWriter.Write([]byte(line))
+		if nil != err {
+			note("Error writing to logging file. %v", err)
+			panic("Error writing to logging file")
+		}
 	}
 }
 
 func (p *P2PProxy) logMessage(msg interfaces.IMsg, received bool) {
 	hash := fmt.Sprintf("%x", msg.GetMsgHash().Bytes())
-	ml := messageLog{hash: hash, received: received}
+	time := time.Now().Unix()
+	ml := messageLog{hash: hash, received: received, time: time}
 	p.logging <- ml
 }
 
@@ -191,7 +194,7 @@ func (f *P2PProxy) ManageInChannel() {
 func (f *P2PProxy) ProxyStatusReport(fnodes []*FactomNode) {
 	time.Sleep(time.Second * 3) // wait for things to spin up
 	for {
-		time.Sleep(time.Second * 20)
+		time.Sleep(time.Second * 9)
 		listenTo := 0
 		if listenTo >= 0 && listenTo < len(fnodes) {
 			fmt.Printf("   %s\n", fnodes[listenTo].State.GetFactomNodeName())
@@ -206,7 +209,7 @@ func (f *P2PProxy) ProxyStatusReport(fnodes []*FactomNode) {
 func PeriodicStatusReport(fnodes []*FactomNode) {
 	time.Sleep(time.Second * 2) // wait for things to spin up
 	for {
-		time.Sleep(time.Second * 15)
+		time.Sleep(time.Second * 5)
 		fmt.Println("-------------------------------------------------------------------------------")
 		fmt.Println("-------------------------------------------------------------------------------")
 		for _, f := range fnodes {
