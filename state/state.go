@@ -648,6 +648,23 @@ func (s *State) GetAllEntries(ebKeyMR interfaces.IHash) bool {
 	return hasAllEntries
 }
 
+func (s *State) GetPendingEntryHashes() []interfaces.IHash {
+	pLists := s.ProcessLists
+	if pLists == nil {
+		return nil
+	}
+	ht := pLists.State.GetHighestRecordedBlock()
+	pl := pLists.Get(ht + 1)
+	var hashCount int32
+	hashCount = 0
+	hashResponse := make([]interfaces.IHash, len(pl.NewEntries))
+	for _, entryHash := range pl.NewEntries {
+		hashResponse[hashCount] = entryHash.GetHash()
+		hashCount++
+	}
+	return hashResponse
+}
+
 func (s *State) IncFactoidTrans() {
 	s.FactoidTrans++
 }
