@@ -213,7 +213,7 @@ func TestHandleDirectoryBlock(t *testing.T) {
 		t.Errorf("%v", testHelper.GetBody(context))
 	}
 
-	if strings.Contains(testHelper.GetBody(context), "\"Timestamp\": 74580") == false {
+	if strings.Contains(testHelper.GetBody(context), "\"Timestamp\":74580") == false {
 		t.Errorf("%v", testHelper.GetBody(context))
 	}
 
