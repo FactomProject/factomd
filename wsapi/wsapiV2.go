@@ -348,7 +348,7 @@ func HandleV2DirectoryBlock(state interfaces.IState, params interface{}) (interf
 	d := new(DirectoryBlockResponse)
 	d.Header.PrevBlockKeyMR = block.GetHeader().GetPrevKeyMR().String()
 	d.Header.SequenceNumber = int64(block.GetHeader().GetDBHeight())
-	d.Header.Timestamp = int64(block.GetHeader().GetTimestamp() * 60)
+	d.Header.Timestamp = block.GetHeader().GetTimestamp().GetTimeSeconds()
 	for _, v := range block.GetDBEntries() {
 		l := new(EBlockAddr)
 		l.ChainID = v.GetChainID().String()

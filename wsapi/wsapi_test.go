@@ -212,6 +212,11 @@ func TestHandleDirectoryBlock(t *testing.T) {
 	if strings.Contains(testHelper.GetBody(context), "8d70d04d3189b31bc7a1d12564731ec24775b0a082f23505bba380810c516ca4") == false {
 		t.Errorf("%v", testHelper.GetBody(context))
 	}
+
+	if strings.Contains(testHelper.GetBody(context), "\"Timestamp\": 74580") == false {
+		t.Errorf("%v", testHelper.GetBody(context))
+	}
+
 }
 
 func TestHandleEntryBlock(t *testing.T) {
@@ -337,7 +342,7 @@ func TestHandleChainHead(t *testing.T) {
 	HandleChainHead(context, hash)
 
 	if strings.Contains(testHelper.GetBody(context), "8d70d04d3189b31bc7a1d12564731ec24775b0a082f23505bba380810c516ca4") == false {
-		t.Errorf("Invalid entry block head: %v", testHelper.GetBody(context))
+		t.Errorf("Invalid anchor entry block head: %v", testHelper.GetBody(context))
 	}
 }
 
