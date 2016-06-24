@@ -54,7 +54,7 @@ func CreateTestDBStateList() []interfaces.IMsg {
 	for i := 0; i < BlockCount; i++ {
 		prev = CreateTestBlockSet(prev)
 
-		timestamp := interfaces.NewTimeStampNow()
+		timestamp := interfaces.NewTimestampNow()
 		timestamp.SetTime(uint64(i * 1000 * 60 * 60 * 6)) //6 hours of difference between messages
 
 		answer[i] = messages.NewDBStateMsg(*timestamp, prev.DBlock, prev.ABlock, prev.FBlock, prev.ECBlock)
@@ -191,10 +191,7 @@ func CreateTestBlockSet(prev *BlockSet) *BlockSet {
 	if err != nil {
 		panic(err)
 	}
-	de.KeyMR, err = answer.ABlock.GetKeyMR()
-	if err != nil {
-		panic(err)
-	}
+	de.KeyMR = answer.ABlock.DatabasePrimaryIndex()
 	dbEntries = append(dbEntries, de)
 
 	//FBlock
@@ -205,7 +202,7 @@ func CreateTestBlockSet(prev *BlockSet) *BlockSet {
 	if err != nil {
 		panic(err)
 	}
-	de.KeyMR = answer.FBlock.GetKeyMR()
+	de.KeyMR = answer.FBlock.DatabasePrimaryIndex()
 	dbEntries = append(dbEntries, de)
 
 	//EBlock
@@ -216,10 +213,7 @@ func CreateTestBlockSet(prev *BlockSet) *BlockSet {
 	if err != nil {
 		panic(err)
 	}
-	de.KeyMR, err = answer.EBlock.KeyMR()
-	if err != nil {
-		panic(err)
-	}
+	de.KeyMR = answer.EBlock.DatabasePrimaryIndex()
 	dbEntries = append(dbEntries, de)
 
 	//Anchor EBlock
@@ -232,10 +226,7 @@ func CreateTestBlockSet(prev *BlockSet) *BlockSet {
 	if err != nil {
 		panic(err)
 	}
-	de.KeyMR, err = answer.AnchorEBlock.KeyMR()
-	if err != nil {
-		panic(err)
-	}
+	de.KeyMR = answer.AnchorEBlock.DatabasePrimaryIndex()
 	dbEntries = append(dbEntries, de)
 
 	//ECBlock
@@ -248,10 +239,7 @@ func CreateTestBlockSet(prev *BlockSet) *BlockSet {
 	if err != nil {
 		panic(err)
 	}
-	de.KeyMR, err = answer.ECBlock.GetFullHash()
-	if err != nil {
-		panic(err)
-	}
+	de.KeyMR = answer.ECBlock.DatabasePrimaryIndex()
 	dbEntries = append(dbEntries[:1], append([]interfaces.IDBEntry{de}, dbEntries[1:]...)...)
 
 	answer.DBlock = CreateTestDirectoryBlock(prev.DBlock)

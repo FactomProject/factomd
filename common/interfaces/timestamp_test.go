@@ -5,13 +5,16 @@
 package interfaces_test
 
 import (
-	. "github.com/FactomProject/factomd/common/interfaces"
+	"fmt"
 	"testing"
+
+	. "github.com/FactomProject/factomd/common/interfaces"
 )
 
 func TestTimestamp(t *testing.T) {
 	ts := new(Timestamp)
 	ts.SetTimeNow()
+	fmt.Printf("ts: %d, milli: %d seconds %d", *ts, ts.GetTimeMilli(), ts.GetTimeSeconds())
 	hex, err := ts.MarshalBinary()
 	if err != nil {
 		t.Error(err)

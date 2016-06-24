@@ -96,8 +96,8 @@ func (e *DirBlockInfo) GetBTCTxHash() interfaces.IHash {
 	return e.BTCTxHash
 }
 
-func (e *DirBlockInfo) GetTimestamp() int64 {
-	return e.Timestamp
+func (e *DirBlockInfo) GetTimestamp() interfaces.Timestamp {
+	return *interfaces.NewTimestampFromMilliseconds(uint64(e.Timestamp))
 }
 
 func (e *DirBlockInfo) GetBTCBlockHeight() int32 {
@@ -130,6 +130,10 @@ func (e *DirBlockInfo) UnmarshalBinaryData(data []byte) (newData []byte, err err
 func (e *DirBlockInfo) UnmarshalBinary(data []byte) (err error) {
 	_, err = e.UnmarshalBinaryData(data)
 	return
+}
+
+func (e *DirBlockInfo) SetTimestamp(timestamp interfaces.Timestamp) {
+	e.Timestamp = timestamp.GetTimeMilli()
 }
 
 type dirBlockInfoCopy struct {
@@ -189,13 +193,13 @@ func (dbic *DirBlockInfo) parseDirBlockInfoCopy(dbi *dirBlockInfoCopy) {
 
 // NewDirBlockInfoFromDirBlock creates a DirDirBlockInfo from DirectoryBlock
 func NewDirBlockInfoFromDirBlock(dirBlock interfaces.IDirectoryBlock) *DirBlockInfo {
-	dbic := new(DirBlockInfo)
-	dbic.DBHash = dirBlock.GetHash()
-	dbic.DBHeight = dirBlock.GetDatabaseHeight()
-	dbic.DBMerkleRoot = dirBlock.GetKeyMR()
-	dbic.Timestamp = int64(dirBlock.GetHeader().GetTimestamp()) // * 60 ???
-	dbic.BTCTxHash = primitives.NewZeroHash()
-	dbic.BTCBlockHash = primitives.NewZeroHash()
-	dbic.BTCConfirmed = false
-	return dbic
+	dbi := new(DirBlockInfo)
+	dbi.DBHash = dirBlock.GetHash()
+	dbi.DBHeight = dirBlock.GetDatabaseHeight()
+	dbi.DBMerkleRoot = dirBlock.GetKeyMR()
+	dbi.SetTimestamp(dirBlock.GetHeader().GetTimestamp())
+	dbi.BTCTxHash = primitives.NewZeroHash()
+	dbi.BTCBlockHash = primitives.NewZeroHash()
+	dbi.BTCConfirmed = false
+	return dbi
 }

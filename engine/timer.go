@@ -10,6 +10,7 @@ import (
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	s "github.com/FactomProject/factomd/state"
+	"math/rand"
 )
 
 var _ = (*s.State)(nil)
@@ -32,6 +33,8 @@ func Timer(state interfaces.IState) {
 		state.Print(fmt.Sprintf("Time: %v\r\n", time.Now()))
 	}
 
+	delta := rand.Int63() % 10
+
 	time.Sleep(time.Duration(wait))
 
 	for {
@@ -39,7 +42,7 @@ func Timer(state interfaces.IState) {
 		for i := 0; i < 10; i++ {
 			// Don't stuff messages into the system if the
 			// Leader is behind.
-			for len(state.AckQueue()) > 0 {
+			for j := 0; j < 10 && len(state.AckQueue()) > 1000; j++ {
 				time.Sleep(time.Millisecond * 10)
 			}
 
@@ -55,9 +58,12 @@ func Timer(state interfaces.IState) {
 				next += tenthPeriod
 			}
 			time.Sleep(time.Duration(wait))
-			for len(state.InMsgQueue()) > 5000 || state.GetEOM() > 0 {
+			for len(state.InMsgQueue()) > 5000 {
 				time.Sleep(100 * time.Millisecond)
 			}
+
+			// Delay some number of milliseconds.
+			time.Sleep(time.Duration(delta) * time.Millisecond)
 
 			state.TickerQueue() <- i
 

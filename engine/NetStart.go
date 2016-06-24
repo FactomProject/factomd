@@ -56,6 +56,7 @@ func NetStart(s *state.State) {
 	exclusivePtr := flag.Bool("exclusive", false, "If true, we only dial out to special/trusted peers.")
 	prefixNodePtr := flag.String("prefix", "", "Prefix the Factom Node Names with this value; used to create leaderless networks.")
 	profilePtr := flag.String("profile", "", "If true, turn on the go Profiler to profile execution of Factomd")
+	multiLeaderPtr := flag.Bool("multileader", true, "If true, split responsiblity over all leaders. If false, only one leader rules at a time.")
 
 	flag.Parse()
 
@@ -78,12 +79,15 @@ func NetStart(s *state.State) {
 	exclusive := *exclusivePtr
 	prefix := *prefixNodePtr
 	profile := *profilePtr
+	multiLeader := *multiLeaderPtr
 
 	// Must add the prefix before loading the configuration.
 	s.AddPrefix(prefix)
 	FactomConfigFilename := util.GetConfigFilename("m2")
 	fmt.Println(fmt.Sprintf("factom config: %s", FactomConfigFilename))
 	s.LoadConfig(FactomConfigFilename, folder)
+
+	s.OneLeader = !multiLeader
 
 	if 999 < portOverride { // The command line flag exists and seems reasonable.
 		s.SetPort(portOverride)
@@ -123,6 +127,7 @@ func NetStart(s *state.State) {
 			fnode.State.ShutdownChan <- 0
 		}
 		network.NetworkStop()
+		// NODE_TALK_FIX
 		p2pProxy.stopProxy()
 		fmt.Print("Waiting...\r\n")
 		time.Sleep(3 * time.Second)
@@ -162,23 +167,24 @@ func NetStart(s *state.State) {
 		profile = "false"
 	}
 
-	os.Stderr.WriteString(fmt.Sprintf("node        %d\n", listenTo))
-	os.Stderr.WriteString(fmt.Sprintf("prefix      %s\n", prefix))
-	os.Stderr.WriteString(fmt.Sprintf("count       %d\n", cnt))
-	os.Stderr.WriteString(fmt.Sprintf("net         \"%s\"\n", net))
-	os.Stderr.WriteString(fmt.Sprintf("drop        %d\n", droprate))
-	os.Stderr.WriteString(fmt.Sprintf("journal     \"%s\"\n", journal))
-	os.Stderr.WriteString(fmt.Sprintf("db          \"%s\"\n", db))
-	os.Stderr.WriteString(fmt.Sprintf("clonedb     \"%s\"\n", cloneDB))
-	os.Stderr.WriteString(fmt.Sprintf("folder      \"%s\"\n", folder))
-	os.Stderr.WriteString(fmt.Sprintf("port        \"%d\"\n", s.PortNumber))
-	os.Stderr.WriteString(fmt.Sprintf("networkPort \"%s\"\n", networkPort))
-	os.Stderr.WriteString(fmt.Sprintf("peers       \"%s\"\n", peers))
-	os.Stderr.WriteString(fmt.Sprintf("netdebug       \"%d\"\n", netdebug))
-	os.Stderr.WriteString(fmt.Sprintf("exclusive       \"%t\"\n", exclusive))
-	os.Stderr.WriteString(fmt.Sprintf("blkTime     %d\n", blkTime))
-	os.Stderr.WriteString(fmt.Sprintf("runtimeLog  %v\n", runtimeLog))
-	os.Stderr.WriteString(fmt.Sprintf("profile     %v\n", profile))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "node", listenTo))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "prefix", prefix))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "node count", cnt))
+	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "net type", net))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "Msgs droped", droprate))
+	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "journal", journal))
+	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "database", db))
+	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "database for clones", cloneDB))
+	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "folder", folder))
+	os.Stderr.WriteString(fmt.Sprintf("%20s \"%d\"\n", "port", s.PortNumber))
+	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "networkPort", networkPort))
+	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "peers", peers))
+	os.Stderr.WriteString(fmt.Sprintf("%20s \"%d\"\n", "netdebug", netdebug))
+	os.Stderr.WriteString(fmt.Sprintf("%20s \"%t\"\n", "exclusive", exclusive))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "block time", blkTime))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "runtimeLog", runtimeLog))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "profile", profile))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "multiLeader", multiLeader))
 
 	s.AddPrefix(prefix)
 	s.SetOut(false)
@@ -264,6 +270,8 @@ func NetStart(s *state.State) {
 		for i := 1; i < cnt; i++ {
 			AddSimPeer(fnodes, i-1, i)
 		}
+		// Make long into a circle
+		AddSimPeer(fnodes, 0, cnt-1)
 	case "loops":
 		fmt.Println("Using loops Network")
 		for i := 1; i < cnt; i++ {
@@ -355,6 +363,7 @@ func makeServer(s *state.State) *FactomNode {
 	if len(fnodes) > 0 {
 		number := fmt.Sprintf("%d", len(fnodes))
 		newState = s.Clone(number).(*state.State)
+		time.Sleep(10 * time.Millisecond)
 		newState.Init()
 	}
 

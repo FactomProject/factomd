@@ -120,7 +120,7 @@ func TestMultiValue(t *testing.T) {
 		}
 	}
 
-	all, err := m.GetAll(bucket, new(TestData))
+	all, _, err := m.GetAll(bucket, new(TestData))
 	if err != nil {
 		t.Error(err)
 	}

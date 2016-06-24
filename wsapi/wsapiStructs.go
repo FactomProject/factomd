@@ -88,13 +88,17 @@ type FactoidBalanceResponse struct {
 	Balance int64 `json:"balance"`
 }
 
-type FactoidFeeResponse struct {
-	Fee int64 `json:"fee"`
+type EntryCreditRateResponse struct {
+	Rate int64 `json:"rate"`
 }
 
 type PropertiesResponse struct {
 	FactomdVersion string `json:"factomdversion"`
 	ApiVersion     string `json:"apiversion"`
+}
+
+type SendRawMessageResponse struct {
+	Message string `json:"message"`
 }
 
 /*********************************************************************/
@@ -196,4 +200,8 @@ type MessageRequest struct {
 
 type TransactionRequest struct {
 	Transaction string `json:"transaction"`
+}
+
+type SendRawMessageRequest struct {
+	Message string `json:"message"`
 }

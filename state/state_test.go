@@ -26,8 +26,8 @@ func TestDirBlockHead(t *testing.T) {
 		t.Errorf("Invalid DBLock Height - got %v, expected 10", height+1)
 	}
 	d := state.GetDirectoryBlockByHeight(height)
-	if d.GetKeyMR().String() != "3d5f53c7a065a15591251ec4d98863733ce2ada64143b847019aa1c93dce250c" {
-		t.Errorf("Invalid DBLock KeyMR - got %v, expected 3d5f53c7a065a15591251ec4d98863733ce2ada64143b847019aa1c93dce250c", d.GetKeyMR().String())
+	if d.GetKeyMR().String() != "836ba9715fc4e83ae1e8755c40374e7e2265e4f312788710af2ff5478c2b495e" {
+		t.Errorf("Invalid DBLock KeyMR - got %v, expected 836ba9715fc4e83ae1e8755c40374e7e2265e4f312788710af2ff5478c2b495e", d.GetKeyMR().String())
 	}
 }
 

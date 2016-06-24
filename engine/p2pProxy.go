@@ -33,7 +33,7 @@ type P2PProxy struct {
 	logFile   os.File
 	logWriter bufio.Writer
 	debugMode int
-	logging   chan messageLog
+	logging   chan messageLog // NODE_TALK_FIX
 }
 
 type factomMessage struct {
@@ -63,7 +63,7 @@ func (f *P2PProxy) GetNameTo() string {
 }
 
 func (f *P2PProxy) Send(msg interfaces.IMsg) error {
-	f.logMessage(msg, false)
+	//	f.logMessage(msg, false) // NODE_TALK_FIX
 	data, err := msg.MarshalBinary()
 	if err != nil {
 		fmt.Println("ERROR on Send: ", err)
@@ -86,7 +86,7 @@ func (f *P2PProxy) Recieve() (interfaces.IMsg, error) {
 				msg.SetNetworkOrigin(data.peerHash)
 			}
 			if 0 < f.debugMode {
-				f.logMessage(msg, true)
+				//	f.logMessage(msg, true) // NODE_TALK_FIX
 				fmt.Printf(".")
 			}
 			return msg, err
@@ -124,8 +124,6 @@ func (f *P2PProxy) Len() int {
 func (p *P2PProxy) startProxy() {
 	if 1 < p.debugMode {
 		note("setting up message logging")
-
-		// var err error
 		file, err := os.OpenFile("message_log.csv", os.O_CREATE|os.O_RDWR|os.O_APPEND, 0660)
 		p.logFile = *file
 		if nil != err {
@@ -140,9 +138,13 @@ func (p *P2PProxy) startProxy() {
 	go p.ManageOutChannel() // Bridges between network format Parcels and factomd messages (incl. addressing to peers)
 	go p.ManageInChannel()
 }
+
+// NODE_TALK_FIX
 func (p *P2PProxy) stopProxy() {
-	p.logWriter.Flush()
-	defer p.logFile.Close()
+	if 0 < p.debugMode {
+		p.logWriter.Flush()
+		defer p.logFile.Close()
+	}
 }
 
 type messageLog struct {
