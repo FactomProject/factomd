@@ -412,7 +412,7 @@ func registerIdentityAsServer(extIDs [][]byte, chainID interfaces.IHash, st *Sta
 	checkIdentityInitialStatus(IdentityIndex, st)
 }
 
-func registerBlockSigningKey(extIDs [][]byte, chainID interfaces.IHash, st *State, update bool) {
+func registerBlockSigningKey(extIDs [][]byte, subChainID interfaces.IHash, st *State, update bool) {
 	if bytes.Compare([]byte{0x00}, extIDs[0]) != 0 || // Version
 		!CheckLength(21, extIDs[1]) || // Ascii
 		!CheckLength(32, extIDs[2]) || // ID Chain
@@ -424,9 +424,17 @@ func registerBlockSigningKey(extIDs [][]byte, chainID interfaces.IHash, st *Stat
 		return
 	}
 
+	chainID := new(primitives.Hash)
+	chainID.SetBytes(extIDs[2][:32])
+
 	IdentityIndex := isIdentityChain(chainID, st.Identities)
 	if IdentityIndex == -1 {
 		log.Println("Identity Error: This cannot happen. New block signing key to nonexistent identity")
+		return
+	}
+
+	if !st.Identities[IdentityIndex].ManagementChainID.IsSameAs(subChainID) {
+		log.Println("Identity Error: Entry was not placed in the correct management chain")
 		return
 	}
 
@@ -466,7 +474,7 @@ func registerBlockSigningKey(extIDs [][]byte, chainID interfaces.IHash, st *Stat
 
 }
 
-func updateMatryoshkaHash(extIDs [][]byte, chainID interfaces.IHash, st *State, update bool) {
+func updateMatryoshkaHash(extIDs [][]byte, subChainID interfaces.IHash, st *State, update bool) {
 	if bytes.Compare([]byte{0x00}, extIDs[0]) != 0 || // Version
 		!CheckLength(19, extIDs[1]) || // Ascii
 		!CheckLength(32, extIDs[2]) || // ID Chain
@@ -478,9 +486,17 @@ func updateMatryoshkaHash(extIDs [][]byte, chainID interfaces.IHash, st *State, 
 		return
 	}
 
+	chainID := new(primitives.Hash)
+	chainID.SetBytes(extIDs[2][:32])
+
 	IdentityIndex := isIdentityChain(chainID, st.Identities)
 	if IdentityIndex == -1 {
 		log.Println("Identity Error: This cannot happen. New Matryoshka Hash to nonexistent identity")
+		return
+	}
+
+	if !st.Identities[IdentityIndex].ManagementChainID.IsSameAs(subChainID) {
+		log.Println("Identity Error: Entry was not placed in the correct management chain")
 		return
 	}
 
@@ -518,7 +534,7 @@ func updateMatryoshkaHash(extIDs [][]byte, chainID interfaces.IHash, st *State, 
 	}
 }
 
-func registerAnchorSigningKey(extIDs [][]byte, chainID interfaces.IHash, st *State, BlockChain string, update bool) {
+func registerAnchorSigningKey(extIDs [][]byte, subChainID interfaces.IHash, st *State, BlockChain string, update bool) {
 	if bytes.Compare([]byte{0x00}, extIDs[0]) != 0 || // Version
 		!CheckLength(15, extIDs[1]) || // Ascii
 		!CheckLength(32, extIDs[2]) || // ID Chain
@@ -532,9 +548,17 @@ func registerAnchorSigningKey(extIDs [][]byte, chainID interfaces.IHash, st *Sta
 		return
 	}
 
+	chainID := new(primitives.Hash)
+	chainID.SetBytes(extIDs[2][:32])
+
 	IdentityIndex := isIdentityChain(chainID, st.Identities)
 	if IdentityIndex == -1 {
 		log.Println("Identity Error: This cannot happen. New Bitcoin Key to nonexistent identity")
+		return
+	}
+
+	if !st.Identities[IdentityIndex].ManagementChainID.IsSameAs(subChainID) {
+		log.Println("Identity Error: Entry was not placed in the correct management chain")
 		return
 	}
 
