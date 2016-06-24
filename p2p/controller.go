@@ -16,6 +16,8 @@ import (
 	"net"
 	"strings"
 	"time"
+
+	"github.com/davecgh/go-spew/spew"
 )
 
 // Controller manages the peer to peer network.
@@ -92,7 +94,7 @@ type CommandChangeLogging struct {
 
 func (c *Controller) Init(ci ControllerInit) *Controller {
 	significant("ctrlr", "Controller.Init(%s) %#x", ci.Port, ci.Network)
-	silence("#################", "META: Last touched: WEDNESDAY JUNE 22 - 1AM")
+	silence("#################", "META: Last touched: FRIDAY JUNE 24 - 9AM")
 	c.keepRunning = true
 	c.commandChannel = make(chan interface{}, 1000) // Commands from App
 	c.FromNetwork = make(chan Parcel, 10000)        // Channel to the app for network data
@@ -159,7 +161,7 @@ func (c *Controller) AdjustPeerQuality(peerHash string, adjustment int32) {
 }
 
 func (c *Controller) Ban(peerHash string) {
-	debug("ctrlr", "NetworkStop ")
+	debug("ctrlr", "Ban %s ", peerHash)
 	c.commandChannel <- CommandBan{peerHash: peerHash}
 }
 
@@ -215,6 +217,28 @@ func (c *Controller) acceptLoop(listener net.Listener) {
 
 // runloop is a goroutine that does all the heavy lifting
 func (c *Controller) runloop() {
+	// In long running processes it seems the runloop is exiting.
+	reportExit := func() {
+		significant("ctrlr", "@@@@@@@@@@ Controller.runloop() has exited! Here's its final state:")
+		if 0 < CurrentLoggingLevel {
+			spew.Dump(c)
+		}
+		significant("ctrlr", "###################################")
+		significant("ctrlr", " Network Controller Status Report:")
+		significant("ctrlr", "===================================")
+		significant("ctrlr", "     # Connections: %d", len(c.connections))
+		significant("ctrlr", "Unique Connections: %d", len(c.connectionsByAddress))
+		significant("ctrlr", "     Command Queue: %d", len(c.commandChannel))
+		significant("ctrlr", "         ToNetwork: %d", len(c.ToNetwork))
+		significant("ctrlr", "       FromNetwork: %d", len(c.FromNetwork))
+		significant("ctrlr", "        Total RECV: %d", TotalMessagesRecieved)
+		significant("ctrlr", "  Application RECV: %d", ApplicationMessagesRecieved)
+		significant("ctrlr", "        Total XMIT: %d", TotalMessagesSent)
+		significant("ctrlr", "###################################")
+		significant("ctrlr", "@@@@@@@@@@ Controller.runloop() is terminated!")
+	}
+	defer reportExit()
+
 	note("ctrlr", "Controller.runloop() starting up")
 	// time.Sleep(time.Second * 5) // Wait a few seconds to let the system come up.
 
@@ -346,7 +370,7 @@ func (c *Controller) handleCommand(command interface{}) {
 		c.connections[connection.peer.Hash] = *connection
 		debug("ctrlr", "Controller.handleCommand(CommandAddPeer) got peer %+v", *peer)
 	case CommandShutdown:
-		verbose("ctrlr", "handleCommand() Processing command: CommandShutdown")
+		silence("ctrlr", "handleCommand() Processing command: CommandShutdown")
 		c.shutdown()
 	case CommandChangeLogging:
 		parameters := command.(CommandChangeLogging)
@@ -424,19 +448,20 @@ func (c *Controller) weAreNotAlreadyConnectedTo(peer Peer) bool {
 
 func (c *Controller) fillOutgoingSlots() {
 	c.updateConnectionAddressHash()
-	// If exclusive/OnlySpecialPeers is set, then the connections for those peers are persistent.
-	// This means we never fill our slots.
-	if !OnlySpecialPeers {
-		peers := c.discovery.GetOutgoingPeers()
-		if len(peers) < NumberPeersToConnect*2 {
-			c.discovery.DiscoverPeers()
-			peers = c.discovery.GetOutgoingPeers()
-		}
-		// dial into the peers
-		for _, peer := range peers {
-			if c.weAreNotAlreadyConnectedTo(peer) {
-				c.DialPeer(peer, false)
-			}
+	significant("controller", "Connected peers:")
+	for key := range c.connectionsByAddress {
+		significant("controller", "%s", key)
+	}
+	peers := c.discovery.GetOutgoingPeers()
+	if len(peers) < NumberPeersToConnect*2 {
+		c.discovery.DiscoverPeers()
+		peers = c.discovery.GetOutgoingPeers()
+	}
+	// dial into the peers
+	for _, peer := range peers {
+		if c.weAreNotAlreadyConnectedTo(peer) {
+			significant("controller", "We think we are not already connected to: %s so dialing.", peer.Address)
+			c.DialPeer(peer, false)
 		}
 	}
 	c.discovery.PrintPeers()
@@ -457,26 +482,17 @@ func (c *Controller) networkStatusReport() {
 	// silence("ctrlr", "networkStatusReport() NetworkStatusInterval: %s reportDuration: %s c.lastStatusReport: %s", NetworkStatusInterval.String(), reportDuration.String(), c.lastPeerManagement.String())
 	if reportDuration > NetworkStatusInterval {
 		c.lastStatusReport = time.Now()
-		silence("ctrlr", "###########################")
-		silence("ctrlr", "Network Status Report:")
-		silence("ctrlr", "===========================")
-		for _, value := range c.connections {
-			silence("ctrlr", "     Connection: %s", value.peer.PeerIdent())
-			silence("ctrlr", "          State: %s", value.ConnectionState())
-			silence("ctrlr", "          Notes: %s", value.Notes())
-			silence("ctrlr", "     Persistent: %t", value.IsPersistent())
-			silence("ctrlr", "       Outgoing: %t", value.IsOutGoing())
-			silence("ctrlr", " ReceiveChannel: %d", len(value.ReceiveChannel))
-			silence("ctrlr", "    SendChannel: %d", len(value.SendChannel))
-			// silence("ctrlr", "     Connection: %+v", value)
-			silence("ctrlr", "===========================")
-		}
-		silence("ctrlr", "   Command Queue: %d", len(c.commandChannel))
-		silence("ctrlr", "       ToNetwork: %d", len(c.ToNetwork))
-		silence("ctrlr", "     FromNetwork: %d", len(c.FromNetwork))
-		silence("ctrlr", "      Total RECV: %d", TotalMessagesRecieved)
-		silence("ctrlr", "Application RECV: %d", ApplicationMessagesRecieved)
-		silence("ctrlr", "      Total XMIT: %d", TotalMessagesSent)
-		silence("ctrlr", "###########################")
+		silence("ctrlr", "###################################")
+		silence("ctrlr", " Network Controller Status Report:")
+		silence("ctrlr", "===================================")
+		silence("ctrlr", "     # Connections: %d", len(c.connections))
+		silence("ctrlr", "Unique Connections: %d", len(c.connectionsByAddress))
+		silence("ctrlr", "     Command Queue: %d", len(c.commandChannel))
+		silence("ctrlr", "         ToNetwork: %d", len(c.ToNetwork))
+		silence("ctrlr", "       FromNetwork: %d", len(c.FromNetwork))
+		silence("ctrlr", "        Total RECV: %d", TotalMessagesRecieved)
+		silence("ctrlr", "  Application RECV: %d", ApplicationMessagesRecieved)
+		silence("ctrlr", "        Total XMIT: %d", TotalMessagesSent)
+		silence("ctrlr", "###################################")
 	}
 }
