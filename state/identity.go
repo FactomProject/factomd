@@ -282,7 +282,7 @@ func createFactomIdentity(st *State, chainID interfaces.IHash) int {
 }
 
 func registerFactomIdentity(extIDs [][]byte, chainID interfaces.IHash, st *State, height uint32) {
-	if bytes.Compare([]byte{0x00}, extIDs[0]) == 0 || // Version
+	if bytes.Compare([]byte{0x00}, extIDs[0]) != 0 || // Version
 		!CheckLength(24, extIDs[1]) || // Ascii
 		!CheckLength(32, extIDs[2]) || // ID Chain
 		!CheckLength(33, extIDs[3]) || // Preimage

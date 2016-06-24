@@ -15,18 +15,6 @@ import (
 )
 
 // Communicate a Admin Block Change
-/*
-	TYPE_MINUTE_NUM         uint8 = iota // 0
-	TYPE_DB_SIGNATURE                    // 1
-	TYPE_REVEAL_MATRYOSHKA               // 2
-	TYPE_ADD_MATRYOSHKA                  // 3
-	TYPE_ADD_SERVER_COUNT                // 4
-	TYPE_ADD_FED_SERVER                  // 5
-	TYPE_ADD_AUDIT_SERVER                // 6
-	TYPE_REMOVE_FED_SERVER               // 7
-	TYPE_ADD_FED_SERVER_KEY              // 8
-	TYPE_ADD_BTC_ANCHOR_KEY              // 9
-*/
 
 type ChangeServerKeyMsg struct {
 	MessageBase
@@ -75,9 +63,6 @@ func (m *ChangeServerKeyMsg) GetTimestamp() interfaces.Timestamp {
 }
 
 func (m *ChangeServerKeyMsg) Validate(state interfaces.IState) int {
-	return 1
-	// TODO: Check Signiture
-
 	// Check to see if identity exists and is audit or fed server
 	if !state.VerifyIdentityAdminInfo(m.IdentityChainID) {
 		return -1
@@ -92,6 +77,8 @@ func (m *ChangeServerKeyMsg) Validate(state interfaces.IState) int {
 		}
 	}
 
+	// TODO: Check signatures
+	return 1
 	isVer, err := m.VerifySignature()
 	if err != nil || !isVer {
 		// if there is an error during signature verification
