@@ -28,7 +28,7 @@ import (
 	TYPE_ADD_BTC_ANCHOR_KEY              // 9
 */
 
-type AddServerKeyMsg struct {
+type ChangeServerKeyMsg struct {
 	MessageBase
 	Timestamp        interfaces.Timestamp // Message Timestamp
 	IdentityChainID  interfaces.IHash     // ChainID of new server
@@ -40,14 +40,14 @@ type AddServerKeyMsg struct {
 	Signature interfaces.IFullSignature
 }
 
-var _ interfaces.IMsg = (*AddServerKeyMsg)(nil)
-var _ Signable = (*AddServerKeyMsg)(nil)
+var _ interfaces.IMsg = (*ChangeServerKeyMsg)(nil)
+var _ Signable = (*ChangeServerKeyMsg)(nil)
 
-func (m *AddServerKeyMsg) GetHash() interfaces.IHash {
+func (m *ChangeServerKeyMsg) GetHash() interfaces.IHash {
 	return m.GetMsgHash()
 }
 
-func (m *AddServerKeyMsg) GetMsgHash() interfaces.IHash {
+func (m *ChangeServerKeyMsg) GetMsgHash() interfaces.IHash {
 	if m.MsgHash == nil {
 		data, err := m.MarshalForSignature()
 		if err != nil {
@@ -58,23 +58,23 @@ func (m *AddServerKeyMsg) GetMsgHash() interfaces.IHash {
 	return m.MsgHash
 }
 
-func (m *AddServerKeyMsg) Type() byte {
-	return constants.ADDSERVER_KEY_MSG
+func (m *ChangeServerKeyMsg) Type() byte {
+	return constants.CHANGESERVER_KEY_MSG
 }
 
-func (m *AddServerKeyMsg) Int() int {
+func (m *ChangeServerKeyMsg) Int() int {
 	return -1
 }
 
-func (m *AddServerKeyMsg) Bytes() []byte {
+func (m *ChangeServerKeyMsg) Bytes() []byte {
 	return nil
 }
 
-func (m *AddServerKeyMsg) GetTimestamp() interfaces.Timestamp {
+func (m *ChangeServerKeyMsg) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp
 }
 
-func (m *AddServerKeyMsg) Validate(state interfaces.IState) int {
+func (m *ChangeServerKeyMsg) Validate(state interfaces.IState) int {
 	return 1
 	// TODO: Check Signiture
 
@@ -104,37 +104,37 @@ func (m *AddServerKeyMsg) Validate(state interfaces.IState) int {
 
 // Returns true if this is a message for this server to execute as
 // a leader.
-func (m *AddServerKeyMsg) ComputeVMIndex(state interfaces.IState) {
+func (m *ChangeServerKeyMsg) ComputeVMIndex(state interfaces.IState) {
 	m.VMIndex = state.ComputeVMIndex(constants.ADMIN_CHAINID)
 }
 
 // Execute the leader functions of the given message
-func (m *AddServerKeyMsg) LeaderExecute(state interfaces.IState) {
+func (m *ChangeServerKeyMsg) LeaderExecute(state interfaces.IState) {
 	state.LeaderExecute(m)
 }
 
-func (m *AddServerKeyMsg) FollowerExecute(state interfaces.IState) {
+func (m *ChangeServerKeyMsg) FollowerExecute(state interfaces.IState) {
 	state.FollowerExecuteMsg(m)
 }
 
 // Acknowledgements do not go into the process list.
-func (e *AddServerKeyMsg) Process(dbheight uint32, state interfaces.IState) bool {
-	return state.ProcessAddServerKey(dbheight, e)
+func (e *ChangeServerKeyMsg) Process(dbheight uint32, state interfaces.IState) bool {
+	return state.ProcessChangeServerKey(dbheight, e)
 }
 
-func (e *AddServerKeyMsg) JSONByte() ([]byte, error) {
+func (e *ChangeServerKeyMsg) JSONByte() ([]byte, error) {
 	return primitives.EncodeJSON(e)
 }
 
-func (e *AddServerKeyMsg) JSONString() (string, error) {
+func (e *ChangeServerKeyMsg) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
 }
 
-func (e *AddServerKeyMsg) JSONBuffer(b *bytes.Buffer) error {
+func (e *ChangeServerKeyMsg) JSONBuffer(b *bytes.Buffer) error {
 	return primitives.EncodeJSONToBuffer(e, b)
 }
 
-func (m *AddServerKeyMsg) Sign(key interfaces.Signer) error {
+func (m *ChangeServerKeyMsg) Sign(key interfaces.Signer) error {
 	signature, err := SignSignable(m, key)
 	if err != nil {
 		return err
@@ -143,15 +143,15 @@ func (m *AddServerKeyMsg) Sign(key interfaces.Signer) error {
 	return nil
 }
 
-func (m *AddServerKeyMsg) GetSignature() interfaces.IFullSignature {
+func (m *ChangeServerKeyMsg) GetSignature() interfaces.IFullSignature {
 	return m.Signature
 }
 
-func (m *AddServerKeyMsg) VerifySignature() (bool, error) {
+func (m *ChangeServerKeyMsg) VerifySignature() (bool, error) {
 	return VerifyMessage(m)
 }
 
-func (m *AddServerKeyMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+func (m *ChangeServerKeyMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		return
 		if r := recover(); r != nil {
@@ -200,12 +200,12 @@ func (m *AddServerKeyMsg) UnmarshalBinaryData(data []byte) (newData []byte, err 
 	return
 }
 
-func (m *AddServerKeyMsg) UnmarshalBinary(data []byte) error {
+func (m *ChangeServerKeyMsg) UnmarshalBinary(data []byte) error {
 	_, err := m.UnmarshalBinaryData(data)
 	return err
 }
 
-func (m *AddServerKeyMsg) MarshalForSignature() ([]byte, error) {
+func (m *ChangeServerKeyMsg) MarshalForSignature() ([]byte, error) {
 	var buf primitives.Buffer
 
 	binary.Write(&buf, binary.BigEndian, m.Type())
@@ -236,7 +236,7 @@ func (m *AddServerKeyMsg) MarshalForSignature() ([]byte, error) {
 	return buf.DeepCopyBytes(), nil
 }
 
-func (m *AddServerKeyMsg) MarshalBinary() ([]byte, error) {
+func (m *ChangeServerKeyMsg) MarshalBinary() ([]byte, error) {
 	var buf primitives.Buffer
 
 	data, err := m.MarshalForSignature()
@@ -256,7 +256,7 @@ func (m *AddServerKeyMsg) MarshalBinary() ([]byte, error) {
 	return buf.DeepCopyBytes(), nil
 }
 
-func (m *AddServerKeyMsg) String() string {
+func (m *ChangeServerKeyMsg) String() string {
 	var mtype string
 	if m.AdminBlockChange == constants.TYPE_ADD_MATRYOSHKA {
 		mtype = "MHash"
@@ -267,7 +267,7 @@ func (m *AddServerKeyMsg) String() string {
 	} else {
 		mtype = "other"
 	}
-	return fmt.Sprintf("AddServerKey (%s): ChainID: %x Time: %x  Key: %x Msg Hash %x ",
+	return fmt.Sprintf("ChangeServerKey (%s): ChainID: %x Time: %x  Key: %x Msg Hash %x ",
 		mtype,
 		m.IdentityChainID.Bytes()[:3],
 		m.Timestamp,
@@ -276,7 +276,7 @@ func (m *AddServerKeyMsg) String() string {
 
 }
 
-func (m *AddServerKeyMsg) IsSameAs(b *AddServerKeyMsg) bool {
+func (m *ChangeServerKeyMsg) IsSameAs(b *ChangeServerKeyMsg) bool {
 	if b == nil {
 		return false
 	}
@@ -309,8 +309,8 @@ func (m *AddServerKeyMsg) IsSameAs(b *AddServerKeyMsg) bool {
 	return true
 }
 
-func NewAddServerKeyMsg(state interfaces.IState, identityChain interfaces.IHash, adminChange byte, keyPriority byte, keyType byte, key interfaces.IHash) interfaces.IMsg {
-	msg := new(AddServerKeyMsg)
+func NewChangeServerKeyMsg(state interfaces.IState, identityChain interfaces.IHash, adminChange byte, keyPriority byte, keyType byte, key interfaces.IHash) interfaces.IMsg {
+	msg := new(ChangeServerKeyMsg)
 	msg.IdentityChainID = identityChain
 	msg.AdminBlockChange = adminChange
 	msg.KeyType = keyType

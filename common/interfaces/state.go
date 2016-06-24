@@ -147,7 +147,7 @@ type IState interface {
 	FollowerExecuteMMR(m IMsg)     // Handle Missing Message Responses
 
 	ProcessAddServer(dbheight uint32, addServerMsg IMsg) bool
-	ProcessAddServerKey(dbheight uint32, addServerKeyMsg IMsg) bool
+	ProcessChangeServerKey(dbheight uint32, changeServerKeyMsg IMsg) bool
 	ProcessCommitChain(dbheight uint32, commitChain IMsg) bool
 	ProcessCommitEntry(dbheight uint32, commitChain IMsg) bool
 	ProcessDBSig(dbheight uint32, commitChain IMsg) bool

@@ -450,8 +450,8 @@ func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) 
 	return true
 }
 
-func (s *State) ProcessAddServerKey(dbheight uint32, addServerKeyMsg interfaces.IMsg) bool {
-	ask, ok := addServerKeyMsg.(*messages.AddServerKeyMsg)
+func (s *State) ProcessChangeServerKey(dbheight uint32, changeServerKeyMsg interfaces.IMsg) bool {
+	ask, ok := changeServerKeyMsg.(*messages.ChangeServerKeyMsg)
 	if !ok {
 		return true
 	}

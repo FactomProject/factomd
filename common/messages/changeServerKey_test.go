@@ -14,8 +14,8 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
-func TestMarshalUnmarshalAddServerKey(t *testing.T) {
-	addserv := newAddServerKey()
+func TestMarshalUnmarshalChangeServerKey(t *testing.T) {
+	addserv := newChangeServerKey()
 
 	str, err := addserv.JSONString()
 	if err != nil {
@@ -42,13 +42,13 @@ func TestMarshalUnmarshalAddServerKey(t *testing.T) {
 		t.Error("Invalid message type unmarshalled")
 	}
 
-	if addserv.IsSameAs(addserv2.(*AddServerKeyMsg)) != true {
+	if addserv.IsSameAs(addserv2.(*ChangeServerKeyMsg)) != true {
 		t.Errorf("AddServer messages are not identical")
 	}
 }
 
 func TestMarshalUnmarshalSignedAddServer(t *testing.T) {
-	addserv := newSignedAddServerKey()
+	addserv := newSignedChangeServerKey()
 
 	str, err := addserv.JSONString()
 	if err != nil {
@@ -83,11 +83,11 @@ func TestMarshalUnmarshalSignedAddServer(t *testing.T) {
 		t.Error("Invalid message type unmarshalled")
 	}
 
-	if addserv.IsSameAs(addserv2.(*AddServerKeyMsg)) != true {
+	if addserv.IsSameAs(addserv2.(*ChangeServerKeyMsg)) != true {
 		t.Errorf("AddServer messages are not identical")
 	}
 
-	valid, err = addserv2.(*AddServerKeyMsg).VerifySignature()
+	valid, err = addserv2.(*ChangeServerKeyMsg).VerifySignature()
 	if err != nil {
 		t.Error(err)
 	}
@@ -96,8 +96,8 @@ func TestMarshalUnmarshalSignedAddServer(t *testing.T) {
 	}
 }
 
-func newAddServerKey() *AddServerKeyMsg {
-	addserv := new(AddServerKeyMsg)
+func newChangeServerKey() *ChangeServerKeyMsg {
+	addserv := new(ChangeServerKeyMsg)
 	ts := new(interfaces.Timestamp)
 	ts.SetTimeNow()
 	addserv.Timestamp = *ts
@@ -109,8 +109,8 @@ func newAddServerKey() *AddServerKeyMsg {
 	return addserv
 }
 
-func newSignedAddServerKey() *AddServerKeyMsg {
-	addserv := newAddServerKey()
+func newSignedChangeServerKey() *ChangeServerKeyMsg {
+	addserv := newChangeServerKey()
 
 	key, err := primitives.NewPrivateKeyFromHex("07c0d52cb74f4ca3106d80c4a70488426886bccc6ebc10c6bafb37bf8a65f4c38cee85c62a9e48039d4ac294da97943c2001be1539809ea5f54721f0c5477a0a")
 	if err != nil {
