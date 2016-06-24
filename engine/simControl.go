@@ -295,6 +295,7 @@ func printSummary(summary *int, value int, listenTo *int) {
 		time.Sleep(time.Second)
 
 		for _, f := range fnodes {
+
 			prt = prt + fmt.Sprintf("%s \n", f.State.ShortString())
 		}
 
@@ -398,7 +399,7 @@ func printProcessList(watchPL *int, value int, listenTo *int) {
 				out = nprt
 			}
 		}
-		time.Sleep(time.Second * 5)
+		time.Sleep(time.Second * 1)
 	}
 }
 

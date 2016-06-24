@@ -31,9 +31,13 @@ func (state *State) ValidatorLoop() {
 		for i := 0; i < 10; i++ {
 
 			// Process any messages we might have queued up.
-			p := state.Process()
-			b := state.UpdateState()
-			fmt.Printf("dddd %20s %10s --- %10s %10v %10s %10v\n", "Validation", state.FactomNodeName, "Process", p, "Update", b)
+			for i = 0; i < 10; i++ {
+				p, b := state.Process(), state.UpdateState()
+				if !p && !b {
+					break
+				}
+				//fmt.Printf("dddd %20s %10s --- %10s %10v %10s %10v\n", "Validation", state.FactomNodeName, "Process", p, "Update", b)
+			}
 
 			select {
 			case min := <-state.tickerQueue:

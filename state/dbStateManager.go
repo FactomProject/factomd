@@ -312,6 +312,9 @@ func (list *DBStateList) UpdateState() (progress bool) {
 			// this step if we got the block from a peer.  TODO we must however check the sigantures on the
 			// block before we write it to disk.
 			if i > 0 {
+				if !list.DBStates[i-1].Saved {
+					panic("Fixing Links, but previous block not saved!")
+				}
 				list.FixupLinks(i, d)
 			}
 			d.DirectoryBlock.MarshalBinary()

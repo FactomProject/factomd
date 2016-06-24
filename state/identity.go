@@ -46,7 +46,7 @@ func LoadIdentityCache(st *State) {
 	height := bHeader.GetDBHeight()
 
 	if err != nil {
-		log.Printfln("Identity Error:", err)
+		log.Printfln("Identity Error: %v", err)
 	}
 
 	var i uint32
@@ -61,7 +61,7 @@ func LoadIdentityByDirectoryBlockHeight(height uint32, st *State) {
 
 	dblk, err := st.DB.FetchDBlockByHeight(uint32(height))
 	if err != nil || dblk == nil {
-		log.Printfln("Identity Error:", err)
+		log.Printfln("Identity Error: %v", err)
 		return
 	}
 	var ManagementChain interfaces.IHash
@@ -145,7 +145,7 @@ func LoadIdentityByDirectoryBlockHeight(height uint32, st *State) {
 	}
 
 	if err != nil {
-		log.Printfln("Identity Error:", err)
+		log.Printfln("Identity Error: %s", err.Error())
 	}
 	// Remove Stale Identities
 	// if an identity has taken more than 72 blocks (12 hours) to be fully created, remove it from the state identity list.
@@ -231,7 +231,7 @@ func registerFactomIdentity(extIDs [][]byte, chainID interfaces.IHash, st *State
 
 	sigmsg, err := appendExtIDs(extIDs, 0, 2)
 	if err != nil {
-		log.Printfln("Identity Error:", err)
+		log.Printfln("Identity Error: %v", err)
 	} else {
 		// Verify Signature
 		idKey := st.Identities[IdentityIndex].Key1
@@ -302,7 +302,7 @@ func registerIdentityAsServer(extIDs [][]byte, chainID interfaces.IHash, st *Sta
 
 	sigmsg, err := appendExtIDs(extIDs, 0, 2)
 	if err != nil {
-		log.Printfln("Identity Error:", err)
+		log.Printfln("Identity Error: %v", err)
 	} else {
 		// Verify Signature
 		idKey := st.Identities[IdentityIndex].Key1
@@ -322,7 +322,7 @@ func registerBlockSigningKey(extIDs [][]byte, chainID interfaces.IHash, st *Stat
 
 	sigmsg, err := appendExtIDs(extIDs, 0, 4)
 	if err != nil {
-		log.Printfln("Identity Error:", err)
+		log.Printfln("Identity Error: %v", err)
 	} else {
 		//verify Signature
 		idKey := st.Identities[IdentityIndex].Key1
@@ -342,7 +342,7 @@ func updateMatryoshkaHash(extIDs [][]byte, chainID interfaces.IHash, st *State) 
 
 	sigmsg, err := appendExtIDs(extIDs, 0, 4)
 	if err != nil {
-		log.Printfln("Identity Error:", err)
+		log.Printfln("Identity Error: %v", err)
 	} else {
 		// Verify Signature
 		idKey := st.Identities[IdentityIndex].Key1
@@ -381,7 +381,7 @@ func registerAnchorSigningKey(extIDs [][]byte, chainID interfaces.IHash, st *Sta
 
 	sigmsg, err := appendExtIDs(extIDs, 0, 6)
 	if err != nil {
-		log.Printfln("Identity Error:", err)
+		log.Printfln("Identity Error: %v", err)
 	} else {
 		// Verify Signature
 		idKey := st.Identities[IdentityIndex].Key1

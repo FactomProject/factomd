@@ -92,9 +92,7 @@ type State struct {
 	OneLeader     bool
 	OutputAllowed bool
 
-	LeaderMinute int // The minute that just was processed by the follower, (1-10), set with EOM
-	LastMinute   int
-	LastHeight   uint32
+	LastHeight uint32
 
 	EOM            bool // Set to true when the first EOM is encountered
 	EOMProcessed   int
@@ -1028,8 +1026,19 @@ func (s *State) SetString() {
 	}
 	s.Status = false
 
-	fmt.Println("dddd  SetString::::::", s.FactomNodeName, "LeaderMinute", s.LeaderMinute)
-	lmin := s.LeaderMinute
+	// fmt.Println("dddd  SetString::::::", s.FactomNodeName, "LeaderMinute", s.LeaderMinute)
+	vmi := 0
+	if s.Leader && s.LeaderVMIndex >= 0 {
+		vmi = s.LeaderVMIndex
+	}
+	vmt0 := s.ProcessLists.Get(s.LLeaderHeight)
+	var vmt *VM
+	lmin := 0
+	if vmt0 != nil {
+		vmt = vmt0.VMs[vmi]
+		lmin = vmt.LeaderMinute
+	}
+
 	if s.EOM {
 		lmin--
 		if lmin < 0 {
@@ -1064,6 +1073,8 @@ func (s *State) SetString() {
 	case s.DBStates == nil:
 
 	case s.LLeaderHeight == 0:
+
+	case s.DBStates.Last() == nil:
 
 	case s.DBStates.Last().DirectoryBlock == nil:
 
