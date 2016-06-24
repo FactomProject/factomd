@@ -147,6 +147,7 @@ type IState interface {
 	FollowerExecuteMMR(m IMsg)     // Handle Missing Message Responses
 
 	ProcessAddServer(dbheight uint32, addServerMsg IMsg) bool
+	ProcessAddServerKey(dbheight uint32, addServerKeyMsg IMsg) bool
 	ProcessCommitChain(dbheight uint32, commitChain IMsg) bool
 	ProcessCommitEntry(dbheight uint32, commitChain IMsg) bool
 	ProcessDBSig(dbheight uint32, commitChain IMsg) bool
@@ -185,4 +186,7 @@ type IState interface {
 	ExchangeRateAuthorityIsValid(IEBEntry) bool
 	FerEntryIsValid(passedFEREntry IFEREntry) bool
 	GetPredictiveFER() uint64
+
+	// Identity Section
+	VerifyIdentityAdminInfo(cid IHash) bool // True if identity exists and is audit or fed server
 }

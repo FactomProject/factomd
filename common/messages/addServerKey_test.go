@@ -1,0 +1,127 @@
+// Copyright 2015 Factom Foundation
+// Use of this source code is governed by the MIT
+// license that can be found in the LICENSE file.
+
+package messages_test
+
+import (
+	"testing"
+
+	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/interfaces"
+	. "github.com/FactomProject/factomd/common/messages"
+
+	"github.com/FactomProject/factomd/common/primitives"
+)
+
+func TestMarshalUnmarshalAddServerKey(t *testing.T) {
+	addserv := newAddServerKey()
+
+	str, err := addserv.JSONString()
+	if err != nil {
+		t.Error(err)
+	}
+	t.Logf("str1 - %v", str)
+	hex, err := addserv.MarshalBinary()
+	if err != nil {
+		t.Error(err)
+	}
+	t.Logf("Marshalled - %x", hex)
+	addserv2, err := UnmarshalMessage(hex)
+	if err != nil {
+		t.Error(err)
+	}
+
+	str, err = addserv2.JSONString()
+	if err != nil {
+		t.Error(err)
+	}
+	t.Logf("str2 - %v", str)
+
+	if addserv2.Type() != constants.ADDSERVER_KEY_MSG {
+		t.Error("Invalid message type unmarshalled")
+	}
+
+	if addserv.IsSameAs(addserv2.(*AddServerKeyMsg)) != true {
+		t.Errorf("AddServer messages are not identical")
+	}
+}
+
+func TestMarshalUnmarshalSignedAddServer(t *testing.T) {
+	addserv := newSignedAddServerKey()
+
+	str, err := addserv.JSONString()
+	if err != nil {
+		t.Error(err)
+	}
+	t.Logf("str1 - %v", str)
+	hex, err := addserv.MarshalBinary()
+	if err != nil {
+		t.Error(err)
+	}
+	t.Logf("Marshalled - %x", hex)
+
+	valid, err := addserv.VerifySignature()
+	if err != nil {
+		t.Error(err)
+	}
+	if valid == false {
+		t.Error("Signature is not valid")
+	}
+
+	addserv2, err := UnmarshalMessage(hex)
+	if err != nil {
+		t.Error(err)
+	}
+	str, err = addserv2.JSONString()
+	if err != nil {
+		t.Error(err)
+	}
+	t.Logf("str2 - %v", str)
+
+	if addserv2.Type() != constants.ADDSERVER_KEY_MSG {
+		t.Error("Invalid message type unmarshalled")
+	}
+
+	if addserv.IsSameAs(addserv2.(*AddServerKeyMsg)) != true {
+		t.Errorf("AddServer messages are not identical")
+	}
+
+	valid, err = addserv2.(*AddServerKeyMsg).VerifySignature()
+	if err != nil {
+		t.Error(err)
+	}
+	if valid == false {
+		t.Error("Signature is not valid")
+	}
+}
+
+func newAddServerKey() *AddServerKeyMsg {
+	addserv := new(AddServerKeyMsg)
+	ts := new(interfaces.Timestamp)
+	ts.SetTimeNow()
+	addserv.Timestamp = *ts
+	addserv.IdentityChainID = primitives.Sha([]byte("FNode0"))
+	addserv.AdminBlockChange = 0
+	addserv.KeyPriority = 0
+	addserv.KeyType = 0
+	addserv.Key = primitives.Sha([]byte("A_Key"))
+	return addserv
+}
+
+func newSignedAddServerKey() *AddServerKeyMsg {
+	addserv := newAddServerKey()
+
+	key, err := primitives.NewPrivateKeyFromHex("07c0d52cb74f4ca3106d80c4a70488426886bccc6ebc10c6bafb37bf8a65f4c38cee85c62a9e48039d4ac294da97943c2001be1539809ea5f54721f0c5477a0a")
+	if err != nil {
+		panic(err)
+	}
+	err = addserv.Sign(&key)
+	if err != nil {
+		panic(err)
+	}
+
+	return addserv
+}
+
+// TODO: Add test for signed messages (See ack_test.go)

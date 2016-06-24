@@ -10,6 +10,7 @@ import (
 	ed "github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/log"
 )
@@ -446,7 +447,6 @@ func registerBlockSigningKey(extIDs [][]byte, subChainID interfaces.IHash, st *S
 		idKey := st.Identities[IdentityIndex].Key1
 		if CheckSig(idKey, extIDs[5][1:33], sigmsg, extIDs[6]) {
 			// Check block key length
-			var key [32]byte
 			if len(extIDs[3]) != 32 {
 				log.Println("New Block Signing key for identity [" + chainID.String()[:10] + "] is invalid length")
 				return
@@ -464,8 +464,12 @@ func registerBlockSigningKey(extIDs [][]byte, subChainID interfaces.IHash, st *S
 				status == constants.IDENTITY_AUDIT_SERVER ||
 				status == constants.IDENTITY_PENDING_FEDERATED_SERVER ||
 				status == constants.IDENTITY_PENDING_AUDIT_SERVER) {
-				copy(key[:32], extIDs[3][:32])
-				st.LeaderPL.AdminBlock.AddFederatedServerSigningKey(chainID, &key)
+				if st.LeaderPL.VMIndexFor(constants.ADMIN_CHAINID) == st.LeaderVMIndex {
+					key := primitives.NewHash(extIDs[3])
+					msg := messages.NewAddServerKeyMsg(st, chainID, constants.TYPE_ADD_FED_SERVER_KEY, 0, 0, key)
+					st.InMsgQueue() <- msg
+				}
+				//st.LeaderPL.AdminBlock.AddFederatedServerSigningKey(chainID, &key)
 			}
 		} else {
 			log.Println("New Block Signing key for identity [" + chainID.String()[:10] + "] is invalid. Bad signiture")
@@ -485,7 +489,6 @@ func updateMatryoshkaHash(extIDs [][]byte, subChainID interfaces.IHash, st *Stat
 		log.Println("Identity Error MHash: Invalid external ID length")
 		return
 	}
-
 	chainID := new(primitives.Hash)
 	chainID.SetBytes(extIDs[2][:32])
 
@@ -525,7 +528,11 @@ func updateMatryoshkaHash(extIDs [][]byte, subChainID interfaces.IHash, st *Stat
 				status == constants.IDENTITY_AUDIT_SERVER ||
 				status == constants.IDENTITY_PENDING_FEDERATED_SERVER ||
 				status == constants.IDENTITY_PENDING_AUDIT_SERVER) {
-				st.LeaderPL.AdminBlock.AddMatryoshkaHash(chainID, mhash)
+				if st.LeaderPL.VMIndexFor(constants.ADMIN_CHAINID) == st.LeaderVMIndex {
+					msg := messages.NewAddServerKeyMsg(st, chainID, constants.TYPE_ADD_FED_SERVER_KEY, 0, 0, mhash)
+					st.InMsgQueue() <- msg
+				}
+				//st.LeaderPL.AdminBlock.AddMatryoshkaHash(chainID, mhash)
 			}
 		} else {
 			log.Println("New Matryoshka Hash for identity [" + chainID.String()[:10] + "] is invalid. Bad signiture")
@@ -614,8 +621,14 @@ func registerAnchorSigningKey(extIDs [][]byte, subChainID interfaces.IHash, st *
 				status == constants.IDENTITY_AUDIT_SERVER ||
 				status == constants.IDENTITY_PENDING_FEDERATED_SERVER ||
 				status == constants.IDENTITY_PENDING_AUDIT_SERVER) {
-				copy(key[:20], extIDs[5][:20])
-				st.LeaderPL.AdminBlock.AddFederatedServerBitcoinAnchorKey(chainID, extIDs[3][0], extIDs[4][0], &key)
+				if st.LeaderPL.VMIndexFor(constants.ADMIN_CHAINID) == st.LeaderVMIndex {
+					copy(key[:20], extIDs[5][:20])
+					extIDs[5] = append(extIDs[5], []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}...)
+					key := primitives.NewHash(extIDs[5])
+					msg := messages.NewAddServerKeyMsg(st, chainID, constants.TYPE_ADD_FED_SERVER_KEY, extIDs[3][0], extIDs[4][0], key)
+					st.InMsgQueue() <- msg
+				}
+				//st.LeaderPL.AdminBlock.AddFederatedServerBitcoinAnchorKey(chainID, extIDs[3][0], extIDs[4][0], &key)
 			}
 		} else {
 			log.Println("New Anchor key for identity [" + chainID.String()[:10] + "] is invalid. Bad signiture")
@@ -656,6 +669,7 @@ func StubIdentityCache(st *State) {
 	st.Identities = id
 }
 
+// Called by AddServer Message
 func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype int) bool {
 	index := isIdentityChain(chainID, st.Identities)
 	if index != -1 {
@@ -804,6 +818,22 @@ func CheckTimestamp(time []byte) bool {
 	} else {
 		return false
 	}
+}
+
+// Verifies an identity exists and if it is a federated or audit server
+func (st *State) VerifyIdentityAdminInfo(cid interfaces.IHash) bool {
+	IdentityIndex := isIdentityChain(cid, st.Identities)
+	if IdentityIndex != -1 {
+		status := st.Identities[IdentityIndex].Status
+		if status == constants.IDENTITY_FEDERATED_SERVER ||
+			status == constants.IDENTITY_AUDIT_SERVER ||
+			status == constants.IDENTITY_PENDING_FEDERATED_SERVER ||
+			status == constants.IDENTITY_PENDING_AUDIT_SERVER {
+			// Is valid identity and a fed/audit server
+			return true
+		}
+	}
+	return false
 }
 
 func UpdateIdentityStatus(ChainID interfaces.IHash, StatusFrom int, StatusTo int, st *State) {

@@ -450,6 +450,32 @@ func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) 
 	return true
 }
 
+func (s *State) ProcessAddServerKey(dbheight uint32, addServerKeyMsg interfaces.IMsg) bool {
+	ask, ok := addServerKeyMsg.(*messages.AddServerKeyMsg)
+	if !ok {
+		return true
+	}
+
+	// TODO: Signiture && Checking
+
+	//fmt.Printf("DEBUG: Processed: %x", ask.AdminBlockChange)
+	switch ask.AdminBlockChange {
+	case constants.TYPE_ADD_BTC_ANCHOR_KEY:
+		var btcKey [20]byte
+		copy(btcKey[:], ask.Key.Bytes()[:20])
+		fmt.Println("Add BTC to admin block")
+		s.LeaderPL.AdminBlock.AddFederatedServerBitcoinAnchorKey(ask.IdentityChainID, ask.KeyPriority, ask.KeyType, &btcKey)
+	case constants.TYPE_ADD_FED_SERVER_KEY:
+		pub := ask.Key.Fixed()
+		fmt.Println("Add Block Key to admin block : " + s.IdentityChainID.String())
+		s.LeaderPL.AdminBlock.AddFederatedServerSigningKey(ask.IdentityChainID, &pub)
+	case constants.TYPE_ADD_MATRYOSHKA:
+		fmt.Println("Add MHash to admin block")
+		s.LeaderPL.AdminBlock.AddMatryoshkaHash(ask.IdentityChainID, ask.Key)
+	}
+	return true
+}
+
 func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg) bool {
 	c, _ := commitChain.(*messages.CommitChainMsg)
 
