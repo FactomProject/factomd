@@ -381,6 +381,58 @@ func TestHandleGetFee(t *testing.T) {
 	}
 }
 
+func TestDBlockList(t *testing.T) {
+	list := []string{
+		"508e19f65a7fc7e9cfa5a73281b5e08115ed25a1af5723350e5c21fc92c39b40", //9
+		"aeffa5d5c02498d958b88fab12672054c2729da46621b381793995ad9c47e4d3", //8
+		"cd63b26d12e9d397a545fd50e26b53ab8b1fb555f824edb1f71937a6288d5901", //7
+		"15f625a8b73f1d3d226ae957728537f084ba8f8d0b0867178a24efb5dc1bdd49", //6
+		"c4effa44e5b42d8c4ea78866b9ac99e603d13615780c0f31346fa775fd5cc5f6", //5
+		"4f4bbe848b8998f73a4eb940791302cf81733f7f9827865c846fee4f6edd98e2", //4
+		"5038b4f268fdc2e779553e70ac6a03a784c2958dbc2489affef52dafbdb073c7", //3
+		"f9fac92c710620e1e3dbfeadbc040ad0f2e5cbdd110c65455e168a09c922998f", //2
+		"3d451d1aace4dcbaa111106041d956ad3e6973aed945ec8cda5015fa356cf88c", //1
+		"dcc95bfa721ebb11297ecd390a5b1c21632b40c00e84ac0729b393b2de7633a7", //0
+	}
+
+	context := testHelper.CreateWebContext()
+	for i, l := range list {
+		testHelper.ClearContextResponseWriter(context)
+		HandleDirectoryBlock(context, l)
+
+		j := testHelper.GetRespText(context)
+		block := new(DBlock)
+		err := primitives.DecodeJSONString(j, block)
+		if err != nil {
+			t.Errorf("Error loading DBlock %v - %v", i, err)
+		}
+	}
+
+	hash := "000000000000000000000000000000000000000000000000000000000000000d"
+
+	testHelper.ClearContextResponseWriter(context)
+	HandleChainHead(context, hash)
+
+	j := testHelper.GetRespText(context)
+	head := new(CHead)
+	err := primitives.DecodeJSONString(j, head)
+	if err != nil {
+		panic(err)
+	}
+
+	testHelper.ClearContextResponseWriter(context)
+	HandleDirectoryBlock(context, head.ChainHead)
+
+	j = testHelper.GetRespText(context)
+	block := new(DBlock)
+	err = primitives.DecodeJSONString(j, block)
+	if err != nil {
+		panic(err)
+	}
+
+	//t.Errorf("%s", j)
+}
+
 func TestBlockIteration(t *testing.T) {
 	context := testHelper.CreateWebContext()
 	hash := "000000000000000000000000000000000000000000000000000000000000000d"
@@ -409,6 +461,7 @@ func TestBlockIteration(t *testing.T) {
 		if err != nil {
 			panic(err)
 		}
+		//t.Errorf("\n%v\n", j)
 		prev = block.Header.PrevBlockKeyMR
 		fetched++
 	}
