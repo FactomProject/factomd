@@ -76,8 +76,6 @@ func (s *State) Process() (progress bool) {
 	//fmt.Printf("dddd %20s %10s --- %10s %10v %10s %10v %10s %10v\n", "Process() EOB?", s.FactomNodeName, "LLeaderHt", s.LLeaderHeight, "Saving", s.Saving, "Locked", lock)
 	if s.Saving && ((s.LLeaderHeight == 0 && dbstate != nil) || (dbstate != nil && dbstate.Locked)) {
 
-		fmt.Printf("dddd c %10s: %30s %20s\n",s.FactomNodeName, "Saving Starts")
-
 		s.NewMinute()
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(0, s.IdentityChainID)
@@ -105,8 +103,6 @@ func (s *State) Process() (progress bool) {
 
 	if s.EOM && s.EOMProcessed >= len(s.LeaderPL.FedServers) {
 
-
-		fmt.Printf("dddd c %10s: %30s %20s\n",s.FactomNodeName, "ALL EOM")
 		//fmt.Printf("dddd %20s %10s --- %10s %10v %10s %10v %10s %10v %10s %10v\n", "NEW MINUTE", s.FactomNodeName, "EOM", s.EOM,
 		//	"EomCnt:", s.EOMProcessed, "FedServ#", len(s.ProcessLists.Get(s.LLeaderHeight).FedServers), "Saving", s.Saving)
 		// Out of the EOM processing, open all the VMs again.
@@ -499,9 +495,12 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
 	if _, ok := commit.(*messages.CommitEntryMsg); ok || isEntry {
 		eb := s.GetNewEBlocks(dbheight, chainID)
 		if eb == nil {
-			prev, err := s.DB.FetchEBlockHead(chainID)
-			if prev == nil || err != nil {
-				return false
+			prev := s.GetNewEBlocks(dbheight-1, chainID)
+			if prev == nil {
+				prev, _ = s.DB.FetchEBlockHead(chainID)
+				if prev == nil {
+					return false
+				}
 			}
 			eb = entryBlock.NewEBlock()
 			// Set the Chain ID
@@ -615,6 +614,9 @@ func (s *State) ConsiderSaved(dbheight uint32) {
 
 func (s *State) GetNewEBlocks(dbheight uint32, hash interfaces.IHash) interfaces.IEntryBlock {
 	pl := s.ProcessLists.Get(dbheight)
+	if pl == nil {
+		return nil
+	}
 	return pl.GetNewEBlocks(hash)
 }
 

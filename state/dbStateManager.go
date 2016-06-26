@@ -190,6 +190,7 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) {
 	if !d.isNew {
 		return
 	}
+
 	hash, _ := p.EntryCreditBlock.HeaderHash()
 	d.EntryCreditBlock.GetHeader().SetPrevHeaderHash(hash)
 
@@ -213,6 +214,12 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) {
 
 	pl := list.State.ProcessLists.Get(d.DirectoryBlock.GetHeader().GetDBHeight())
 
+	//for _, eb := range pl.NewEBlocks {
+	//	eb.BuildHeader()
+	//	eb.BodyKeyMR()
+	//	eb.KeyMR()
+	//}
+
 	for _, eb := range pl.NewEBlocks {
 		key, err := eb.KeyMR()
 		if err != nil {
@@ -220,6 +227,7 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) {
 		}
 		d.DirectoryBlock.AddEntry(eb.GetChainID(), key)
 	}
+
 	d.DirectoryBlock.BuildBodyMR()
 	d.DirectoryBlock.MarshalBinary()
 
@@ -259,6 +267,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) {
 			if err := list.State.DB.ProcessEBlockMultiBatch(eb, false); err != nil {
 				panic(err.Error())
 			}
+
 			for _, e := range eb.GetBody().GetEBEntries() {
 				if err := list.State.DB.InsertEntry(pl.NewEntries[e.Fixed()]); err != nil {
 					panic(err.Error())
