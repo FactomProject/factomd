@@ -191,8 +191,6 @@ func (s *State) ProcessQueues() (progress bool) {
 		_, ok := s.InternalReplay.Valid(ack.GetHash().Fixed(), int64(ack.GetTimestamp()/1000), int64(s.GetTimestamp()/1000))
 		if ok && ack.Validate(s) == 1 {
 			ack.FollowerExecute(s)
-		} else if s.DebugConsensus {
-			fmt.Println("dddd ackQueue ok:", s.FactomNodeName, ok, "validate:", ack.Validate(s), ack.String())
 		}
 		progress = true
 	case msg := <-s.msgQueue:
@@ -369,7 +367,6 @@ func (s *State) LeaderExecute(m interfaces.IMsg) {
 	_, ok1 := s.InternalReplay.Valid(m.GetHash().Fixed(), int64(m.GetTimestamp()/1000), int64(s.GetTimestamp()/1000))
 	_, ok2 := s.InternalReplay.Valid(m.GetMsgHash().Fixed(), int64(m.GetTimestamp()/1000), int64(s.GetTimestamp()/1000))
 	if !ok1 || !ok2 {
-		fmt.Println("dddd Replay detected", s.FactomNodeName, m.String())
 		delete(s.Holding, m.GetMsgHash().Fixed())
 		return
 	}
@@ -384,7 +381,6 @@ func (s *State) LeaderExecute(m interfaces.IMsg) {
 func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 
 	if !m.IsLocal() {
-		fmt.Println("dddd Leader Fail 1 ", s.FactomNodeName, s.EOM)
 		s.FollowerExecuteEOM(m)
 		return
 	}
@@ -407,7 +403,6 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 	ack := s.NewAck(m)
 	s.Acks[eom.GetMsgHash().Fixed()] = ack
 	m.SetLocal(false)
-	fmt.Println("dddd L", s.FactomNodeName)
 
 	s.FollowerExecuteEOM(m)
 
@@ -471,10 +466,7 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
 		chainID := msg.Entry.GetChainID()
 		eb, err := s.DB.FetchEBlockHead(chainID)
 		if err != nil || eb != nil {
-			if s.DebugConsensus {
-				fmt.Printf("dddd %s %s %s\n", s.FactomNodeName, "Chain already exists", msg.String())
-			}
-			handleAsEntry = true
+			return false
 		} else {
 
 			// Create a new Entry Block for a new Entry Block Chain
@@ -489,11 +481,10 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
 			s.PutNewEBlocks(dbheight, msg.Entry.GetChainID(), eb)
 			s.PutNewEntries(dbheight, msg.Entry.GetHash(), msg.Entry)
 
-			if v := s.GetReveals(myhash); v != nil {
-				s.PutReveals(myhash, nil)
-			}
+			delete(s.Reveals, myhash.Fixed())
 
 			s.PutCommits(myhash, nil)
+
 			s.IncEntryChains()
 			s.IncEntries()
 			return true
@@ -523,9 +514,7 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
 		s.PutNewEBlocks(dbheight, msg.Entry.GetChainID(), eb)
 		s.PutNewEntries(dbheight, msg.Entry.GetHash(), msg.Entry)
 
-		if v := s.GetReveals(myhash); v != nil {
-			s.PutReveals(myhash, nil)
-		}
+		delete(s.Reveals, myhash.Fixed())
 
 		s.PutCommits(myhash, nil)
 		s.IncEntries()

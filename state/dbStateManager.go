@@ -221,8 +221,9 @@ func (list *DBStateList) FixupLinks(i int, d *DBState) {
 			}
 			d.DirectoryBlock.AddEntry(eb.GetChainID(), key)
 		}
+		d.DirectoryBlock.MarshalBinary()
 		d.DirectoryBlock.BuildBodyMR()
-
+		d.DirectoryBlock.BuildKeyMerkleRoot()
 	}
 }
 
@@ -262,7 +263,6 @@ func (list *DBStateList) SaveDBStateToDB(i int, d *DBState) {
 	}
 
 	d.Saved = true
-	fmt.Println("dddd Saved", list.State.FactomNodeName, "height", d.DirectoryBlock.GetHeader().GetDBHeight())
 }
 
 func (list *DBStateList) UpdateState() (progress bool) {

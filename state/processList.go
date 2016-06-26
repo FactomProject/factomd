@@ -15,8 +15,6 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
-
-	"runtime/debug"
 )
 
 var _ = fmt.Print
@@ -176,8 +174,6 @@ func (p *ProcessList) MakeMap() {
 // This function will be replaced by a calculation from the Matryoshka hashes from the servers
 // but for now, we are just going to make it a function of the dbheight.
 func (p *ProcessList) PrintMap() string {
-
-	fmt.Println((string)(debug.Stack()))
 
 	n := len(p.FedServers)
 	prt := fmt.Sprintf("===PrintMapStart=== %d\n", p.DBHeight)
