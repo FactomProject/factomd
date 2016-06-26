@@ -129,6 +129,7 @@ func (s *State) Process() (progress bool) {
 			s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(0, s.IdentityChainID)
 			s.Saving = true
+			s.DBSigProcessed = 0
 		}
 		s.EOM = false
 	}
@@ -591,18 +592,16 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		s.SetLeaderTimestamp(dbs.GetTimestamp())
 	}
 
-	// TODO: check signatures here.  Count what match and what don't.  Then if a majority
-	// disagree with us, null our entry out.  Otherwise toss our DBState and ask for one from
-	// our neighbors.
-
-	pl := s.ProcessLists.Get(dbheight - 1)
-	//fmt.Printf("dddd %20s %10s --- %10s %10v \n", "ProcessDBSig()?", s.FactomNodeName, "LeaderMinute", pl.VMs[dbs.VMIndex].LeaderMinute)
-	if pl.VMs[dbs.VMIndex].LeaderMinute == 10 {
+	if !dbs.Once {
 		s.DBSigProcessed++
-		if s.DBSigProcessed == len(pl.FedServers) {
-			s.DBStates.Get(int(dbheight - 1)).ReadyToSave = true
-			s.DBSigProcessed = 0
-		}
+		dbs.Once = true
+	}
+
+	if s.DBSigProcessed >= len(s.LeaderPL.FedServers) {
+		// TODO: check signatures here.  Count what match and what don't.  Then if a majority
+		// disagree with us, null our entry out.  Otherwise toss our DBState and ask for one from
+		// our neighbors.
+		s.DBStates.Get(int(dbheight - 1)).ReadyToSave = true
 	}
 
 	return true

@@ -221,6 +221,7 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) {
 		d.DirectoryBlock.AddEntry(eb.GetChainID(), key)
 	}
 	d.DirectoryBlock.BuildBodyMR()
+	d.DirectoryBlock.MarshalBinary()
 
 	d.isNew = false
 
