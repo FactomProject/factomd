@@ -194,12 +194,13 @@ func (m *RevealEntryMsg) String() string {
 	if m.GetLeaderChainID() == nil {
 		m.SetLeaderChainID(primitives.NewZeroHash())
 	}
-	str := fmt.Sprintf("%6s-VM%3d: Min:%4d          -- Leader[%x] Entry[%x] hash[%x]",
+	str := fmt.Sprintf("%6s-VM%3d: Min:%4d          -- Leader[%x] Entry[%x] ChainID[%x] hash[%x]",
 		"REntry",
 		m.VMIndex,
 		m.Minute,
 		m.GetLeaderChainID().Bytes()[:3],
 		m.Entry.GetHash().Bytes()[:3],
+		m.Entry.GetChainID().Bytes()[:3],
 		m.GetHash().Bytes()[:3])
 
 	return str
