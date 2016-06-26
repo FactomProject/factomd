@@ -459,5 +459,6 @@ func (list *DBStateList) NewDBState(isNew bool,
 	dbState.EntryCreditBlock = entryCreditBlock
 
 	list.Put(dbState)
+
 	return dbState
 }
