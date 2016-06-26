@@ -100,10 +100,9 @@ func (s *State) Process() (progress bool) {
 		s.Saving = false
 	}
 
-	if s.EOM && s.EOMProcessed == len(s.LeaderPL.FedServers) {
+	if s.EOM && s.EOMProcessed >= len(s.LeaderPL.FedServers) {
 		//fmt.Printf("dddd %20s %10s --- %10s %10v %10s %10v %10s %10v %10s %10v\n", "NEW MINUTE", s.FactomNodeName, "EOM", s.EOM,
 		//	"EomCnt:", s.EOMProcessed, "FedServ#", len(s.ProcessLists.Get(s.LLeaderHeight).FedServers), "Saving", s.Saving)
-
 		// Out of the EOM processing, open all the VMs again.
 		for _, vm := range s.LeaderPL.VMs {
 			vm.EOM = false
@@ -457,34 +456,33 @@ func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg)
 func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
 	msg := m.(*messages.RevealEntryMsg)
 	myhash := msg.Entry.GetHash()
+	chainID := msg.Entry.GetChainID()
 	commit := s.GetCommits(myhash)
+
 	if commit == nil {
 		return false
 	}
 
-	handleAsEntry := false
-	if _, isNewChain := commit.(*messages.CommitChainMsg); isNewChain {
-		chainID := msg.Entry.GetChainID()
+	isEntry := false
+	if _, ok := commit.(*messages.CommitChainMsg); ok {
 		eb, err := s.DB.FetchEBlockHead(chainID)
 		if err != nil || eb != nil {
-			return false
+			isEntry = true
 		} else {
-
 			// Create a new Entry Block for a new Entry Block Chain
 			eb = entryBlock.NewEBlock()
 			// Set the Chain ID
-			eb.GetHeader().SetChainID(msg.Entry.GetChainID())
+			eb.GetHeader().SetChainID(chainID)
 			// Set the Directory Block Height for this Entry Block
 			eb.GetHeader().SetDBHeight(dbheight)
 			// Add our new entry
 			eb.AddEBEntry(msg.Entry)
 			// Put it in our list of new Entry Blocks for this Directory Block
-			s.PutNewEBlocks(dbheight, msg.Entry.GetChainID(), eb)
-			s.PutNewEntries(dbheight, msg.Entry.GetHash(), msg.Entry)
+			s.PutNewEBlocks(dbheight, chainID, eb)
+			s.PutNewEntries(dbheight, myhash, msg.Entry)
 
 			delete(s.Reveals, myhash.Fixed())
-
-			s.PutCommits(myhash, nil)
+			delete(s.Commits, myhash.Fixed())
 
 			s.IncEntryChains()
 			s.IncEntries()
@@ -492,8 +490,7 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
 		}
 	}
 
-	if _, isNewEntry := commit.(*messages.CommitEntryMsg); handleAsEntry || isNewEntry {
-		chainID := msg.Entry.GetChainID()
+	if _, ok := commit.(*messages.CommitEntryMsg); ok || isEntry {
 		eb := s.GetNewEBlocks(dbheight, chainID)
 		if eb == nil {
 			prev, err := s.DB.FetchEBlockHead(chainID)
@@ -502,7 +499,7 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
 			}
 			eb = entryBlock.NewEBlock()
 			// Set the Chain ID
-			eb.GetHeader().SetChainID(msg.Entry.GetChainID())
+			eb.GetHeader().SetChainID(chainID)
 			// Set the Directory Block Height for this Entry Block
 			eb.GetHeader().SetDBHeight(dbheight)
 			// Set the PrevKeyMR
@@ -512,12 +509,12 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
 		// Add our new entry
 		eb.AddEBEntry(msg.Entry)
 		// Put it in our list of new Entry Blocks for this Directory Block
-		s.PutNewEBlocks(dbheight, msg.Entry.GetChainID(), eb)
-		s.PutNewEntries(dbheight, msg.Entry.GetHash(), msg.Entry)
+		s.PutNewEBlocks(dbheight, chainID, eb)
+		s.PutNewEntries(dbheight, myhash, msg.Entry)
 
 		delete(s.Reveals, myhash.Fixed())
+		delete(s.Commits, myhash.Fixed())
 
-		s.PutCommits(myhash, nil)
 		s.IncEntries()
 		return true
 	}
@@ -543,27 +540,22 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 	s.EOMProcessed++
 
-	//fmt.Printf("dddd %20s %10s --- %10s %10v \n", "ProcessEOM()", s.FactomNodeName, "EomCnt", s.EOMProcessed)
+	// After all EOM markers are processed, but before anything else is done
+	// we do any cleanup required.
+	if s.EOMProcessed == len(s.LeaderPL.FedServers) {
 
-	if e.FactoidVM {
 		s.FactoidState.EndOfPeriod(int(e.Minute + 1))
-	}
 
-	// Add EOM to the EBlocks.  We only do this once, so
-	// we piggy back on the fact that we only do the FactoidState
-	// EndOfPeriod once too.
+		// Add EOM to the EBlocks.  We only do this once, so
+		// we piggy back on the fact that we only do the FactoidState
+		// EndOfPeriod once too.
 
-	for _, eb := range pl.NewEBlocks {
-		if pl.VMIndexFor(eb.GetChainID().Bytes()) == e.VMIndex {
-			eb.AddEndOfMinuteMarker(e.Bytes()[0])
+		for _, eb := range pl.NewEBlocks {
+			eb.AddEndOfMinuteMarker(byte(e.Minute + 1))
 		}
-	}
 
-	if pl.VMIndexFor(constants.ADMIN_CHAINID) == e.VMIndex {
 		pl.AdminBlock.AddEndOfMinuteMarker(e.Minute)
-	}
 
-	if pl.VMIndexFor(constants.EC_CHAINID) == e.VMIndex {
 		ecblk := pl.EntryCreditBlock
 		ecbody := ecblk.GetBody()
 		mn := entryCreditBlock.NewMinuteNumber2(e.Minute)

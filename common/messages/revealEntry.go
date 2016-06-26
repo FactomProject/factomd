@@ -28,6 +28,7 @@ type RevealEntryMsg struct {
 	isEntry     bool
 	commitChain *CommitChainMsg
 	commitEntry *CommitEntryMsg
+	Count       int
 }
 
 var _ interfaces.IMsg = (*RevealEntryMsg)(nil)
