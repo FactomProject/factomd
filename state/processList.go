@@ -380,6 +380,9 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 		return thetime
 	}
 
+	//------------------------------------------------------------
+	// Start Process Here
+	//------------------------------------------------------------
 	if p.DBHeight > 0 {
 
 		prev := state.DBStates.Get(int(p.DBHeight - 1))
@@ -401,11 +404,11 @@ VMLoop:
 
 		// If we are up to date with this VM, then continue to the next
 		if vm.Height == len(vm.List) {
-			//fmt.Printf("dddd %20s %10s --- %10s %10v %10s %10v %10s %10v \n", "VMLoop-", p.State.FactomNodeName, "vm.Height", vm.Height, "len(List)", len(vm.List))
-			if p.Sealing && vm.Seal == 0 {
-				vm.SealTime = ask(i, vm, vm.SealTime+2, vm.Height)
-			}
 			continue VMLoop // Go on to the next VM
+		}
+
+		if vm.EOM {
+			continue VMLoop
 		}
 
 	VMListLoop:

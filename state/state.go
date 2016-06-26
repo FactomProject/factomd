@@ -70,6 +70,7 @@ type State struct {
 	tickerQueue            chan int
 	timerMsgQueue          chan interfaces.IMsg
 	TimeOffset             interfaces.Timestamp
+	MaxTimeOffset          interfaces.Timestamp
 	networkOutMsgQueue     chan interfaces.IMsg
 	networkInvalidMsgQueue chan interfaces.IMsg
 	inMsgQueue             chan interfaces.IMsg
