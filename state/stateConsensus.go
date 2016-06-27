@@ -538,9 +538,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	if !s.EOM {
 		s.EOM = true
 		s.EOMProcessed = 0
-
 	}
-
 	s.EOMProcessed++
 
 	// After all EOM markers are processed, but before anything else is done
