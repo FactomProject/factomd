@@ -55,6 +55,14 @@ func (d *Discovery) updatePeer(peer Peer) {
 	UpdateKnownPeers.Unlock()
 }
 
+// getPeer returns a known peer, if present
+func (d *Discovery) getPeer(address string) Peer {
+	UpdateKnownPeers.Lock()
+	thePeer := d.knownPeers[address]
+	UpdateKnownPeers.Unlock()
+	return thePeer
+}
+
 // UpdatePeer updates the values in our known peers. Creates peer if its not in there.
 func (d *Discovery) isPeerPresent(peer Peer) bool {
 	UpdateKnownPeers.Lock()
@@ -159,10 +167,25 @@ func (d *Discovery) LearnPeers(parcel Parcel) {
 	}
 	for _, value := range peerArray {
 		value.QualityScore = 0
-		value.Source = append(value.Source, parcel.Header.PeerAddress)
-		d.updatePeer(value)
-		note("discovery", "Discovery.LearnPeers !!!!!!!!!!!!! Discoverd new PEER!   %+v ", value)
+		switch d.isPeerPresent(value) {
+		case true:
+			alreadyKnownPeer := d.getPeer(value.Address)
+			d.updatePeer(d.updatePeerSource(alreadyKnownPeer, parcel.Header.PeerAddress))
+		default:
+			value.Source = map[string]time.Time{parcel.Header.PeerAddress: time.Now()}
+			d.updatePeer(value)
+			note("discovery", "Discovery.LearnPeers !!!!!!!!!!!!! Discoverd new PEER!   %+v ", value)
+		}
 	}
+}
+
+// updatePeerSource checks to see if source is in peer's sources, and if not puts it in there with a value equal to time.Now()
+func (d *Discovery) updatePeerSource(peer Peer, source string) Peer {
+	_, sp := peer.Source[source]
+	if !sp {
+		peer.Source[source] = time.Now()
+	}
+	return peer
 }
 
 // GetOutgoingPeers gets a set of peers to connect to on startup
@@ -259,9 +282,9 @@ func (d *Discovery) DiscoverPeers() {
 	}
 	for _, line := range lines {
 		ipAndPort := strings.Split(line, ":")
-		peer := new(Peer).Init(ipAndPort[0], ipAndPort[1], 0, RegularPeer, 0)
-		peer.Source = append(peer.Source, "DNS Seed")
-		d.updatePeer(*peer)
+		peerp := new(Peer).Init(ipAndPort[0], ipAndPort[1], 0, RegularPeer, 0)
+		peer := *peerp
+		d.updatePeer(d.updatePeerSource(peer, "DNS Seed"))
 	}
 	silence("discovery", "DiscoverPeers got peers: %+v", lines)
 }
