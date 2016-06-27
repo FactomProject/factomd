@@ -240,10 +240,8 @@ func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
 		fs.CurrentBlock.SetPrevKeyMR(hash.Bytes())
 		fs.CurrentBlock.SetPrevFullHash(hash2.Bytes())
 	}
-
-	LoadIdentityByDirectoryBlockHeight(fs.DBHeight, fs.State, true)
-	LoadAuthorityByAdminBlockHeight(fs.DBHeight, fs.State, true)
-
+	dblk, _ := fs.State.DB.FetchDirectoryBlockHead()
+	LoadIdentityByDirectoryBlock(dblk, fs.State, true)
 	fs.DBHeight++
 }
 

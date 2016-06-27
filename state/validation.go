@@ -24,16 +24,20 @@ func (state *State) ValidatorLoop() {
 			return
 		default:
 		}
-		// Process any messages we might have queued up.
-		for i := 0; i < 10 && state.Process(); i++ {
-			state.UpdateState()
-		}
 
 		// Look for pending messages, and get one if there is one.
 		var msg interfaces.IMsg
 	loop:
-		for i := 0; i < 100; i++ {
-			state.UpdateState()
+		for i := 0; i < 10; i++ {
+
+			// Process any messages we might have queued up.
+			for i = 0; i < 10; i++ {
+				p, b := state.Process(), state.UpdateState()
+				if !p && !b {
+					break
+				}
+				//fmt.Printf("dddd %20s %10s --- %10s %10v %10s %10v\n", "Validation", state.FactomNodeName, "Process", p, "Update", b)
+			}
 
 			select {
 			case min := <-state.tickerQueue:
@@ -77,8 +81,6 @@ type Timer struct {
 }
 
 func (t *Timer) timer(state *State, min int) {
-
-	state.UpdateState()
 
 	t.lastMin = min
 

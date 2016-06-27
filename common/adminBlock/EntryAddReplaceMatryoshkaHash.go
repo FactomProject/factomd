@@ -23,7 +23,7 @@ func (m *AddReplaceMatryoshkaHash) Type() byte {
 }
 
 func (c *AddReplaceMatryoshkaHash) UpdateState(state interfaces.IState) {
-
+	state.UpdateAuthorityFromABEntry(c)
 }
 
 func NewAddReplaceMatryoshkaHash(identityChainID interfaces.IHash, mHash interfaces.IHash) *AddReplaceMatryoshkaHash {

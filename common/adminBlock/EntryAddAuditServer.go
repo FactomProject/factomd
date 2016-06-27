@@ -20,6 +20,7 @@ var _ interfaces.BinaryMarshallable = (*AddAuditServer)(nil)
 
 func (c *AddAuditServer) UpdateState(state interfaces.IState) {
 	state.AddAuditServer(c.DBHeight, c.IdentityChainID)
+	state.UpdateAuthorityFromABEntry(c)
 }
 
 // Create a new DB Signature Entry
