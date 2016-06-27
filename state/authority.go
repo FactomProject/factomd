@@ -45,6 +45,7 @@ func LoadAuthorityCache(st *State) {
 
 }
 
+// TODO: Remove function
 func LoadAuthorityByAdminBlockHeight(height uint32, st *State, update bool) {
 
 	dblk, _ := st.DB.FetchDBlockByHeight(uint32(height))
@@ -57,33 +58,7 @@ func LoadAuthorityByAdminBlockHeight(height uint32, st *State, update bool) {
 	if err == nil && msg != nil {
 		dsmsg := msg.(*messages.DBStateMsg)
 		ABlock := dsmsg.AdminBlock
-		//abBytes, _ := ABlock.MarshalBinary()
-		//abBytes = abBytes[32:] //remove admin chain id
-		//abBytes = abBytes[32:] //Previous Hash
-		//abBytes = abBytes[4:]  //remove Block Height
-		//ext, abBytes := primitives.DecodeVarIntBTC(abBytes)
-		//	don't care about header expansion at this time.  skip it.
-		//abBytes = abBytes[ext:] //remove admin chain id
-		//abBytes = abBytes[4:]   //remove message count (we are parsing bytes instead of messages)
-		//abBytes = abBytes[4:]   //remove body size
-		// the rest is admin byte messages
-
-		//ChainID := new(primitives.Hash)
 		var AuthorityIndex int
-		//var testBytes []byte
-
-		/*
-			TYPE_MINUTE_NUM         uint8 = iota // 0
-			TYPE_DB_SIGNATURE                    // 1
-			TYPE_REVEAL_MATRYOSHKA               // 2
-			TYPE_ADD_MATRYOSHKA                  // 3
-			TYPE_ADD_SERVER_COUNT                // 4
-			TYPE_ADD_FED_SERVER                  // 5
-			TYPE_ADD_AUDIT_SERVER                // 6
-			TYPE_REMOVE_FED_SERVER               // 7
-			TYPE_ADD_FED_SERVER_KEY              // 8
-			TYPE_ADD_BTC_ANCHOR_KEY              // 9
-		*/
 		for _, e := range ABlock.GetABEntries() {
 			data, err := e.MarshalBinary()
 			if err != nil {
@@ -91,7 +66,7 @@ func LoadAuthorityByAdminBlockHeight(height uint32, st *State, update bool) {
 			}
 			switch e.Type() {
 			case constants.TYPE_MINUTE_NUM:
-
+				// Does not affect Authority.
 			case constants.TYPE_DB_SIGNATURE:
 				// Does not affect Authority
 			case constants.TYPE_REVEAL_MATRYOSHKA:
@@ -111,7 +86,7 @@ func LoadAuthorityByAdminBlockHeight(height uint32, st *State, update bool) {
 				AuthorityIndex = isAuthorityChain(m.IdentityChainID, st.Authorities)
 				if AuthorityIndex == -1 {
 					log.Println("Invalid Authority Chain ID. Add MatryoshkaHash AdminBlock Height:" + string(height) + " " + m.IdentityChainID.String())
-					// dont return, just ignote this item
+					break
 				}
 				st.Authorities[AuthorityIndex].MatryoshkaHash = m.MHash
 			case constants.TYPE_ADD_SERVER_COUNT:
@@ -132,10 +107,10 @@ func LoadAuthorityByAdminBlockHeight(height uint32, st *State, update bool) {
 				AuthorityIndex = isAuthorityChain(f.IdentityChainID, st.Authorities)
 				if AuthorityIndex == -1 {
 					//Add Identity as Federated Server
-					log.Println(f.IdentityChainID.String() + " being added to Federated Server List AdminBlock Height:" + string(height))
+					//log.Println(f.IdentityChainID.String() + " being added to Federated Server List AdminBlock Height:" + string(height))
 					AuthorityIndex = addAuthority(st, f.IdentityChainID)
 				} else {
-					log.Println(f.IdentityChainID.String() + " being promoted to Federated Server AdminBlock Height:" + string(height))
+					//log.Println(f.IdentityChainID.String() + " being promoted to Federated Server AdminBlock Height:" + string(height))
 				}
 				st.Authorities[AuthorityIndex].Status = constants.IDENTITY_FEDERATED_SERVER
 				// check Identity status
@@ -150,10 +125,10 @@ func LoadAuthorityByAdminBlockHeight(height uint32, st *State, update bool) {
 				AuthorityIndex = isAuthorityChain(a.IdentityChainID, st.Authorities)
 				if AuthorityIndex == -1 {
 					//Add Identity as Federated Server
-					log.Println(a.IdentityChainID.String() + " being added to Federated Server List AdminBlock Height:" + string(height))
+					//log.Println(a.IdentityChainID.String() + " being added to Federated Server List AdminBlock Height:" + string(height))
 					AuthorityIndex = addAuthority(st, a.IdentityChainID)
 				} else {
-					log.Println(a.IdentityChainID.String() + " being promoted to Federated Server AdminBlock Height:" + string(height))
+					//log.Println(a.IdentityChainID.String() + " being promoted to Federated Server AdminBlock Height:" + string(height))
 				}
 				st.Authorities[AuthorityIndex].Status = constants.IDENTITY_AUDIT_SERVER
 				// check Identity status
@@ -170,7 +145,7 @@ func LoadAuthorityByAdminBlockHeight(height uint32, st *State, update bool) {
 					//Add Identity as Federated Server
 					log.Println(f.IdentityChainID.String() + " Cannot be removed.  Not in Authorities List. AdminBlock Height:" + string(height))
 				} else {
-					log.Println(f.IdentityChainID.String() + " being removed from Authorities List:" + string(height))
+					//log.Println(f.IdentityChainID.String() + " being removed from Authorities List:" + string(height))
 					removeAuthority(AuthorityIndex, st)
 				}
 			case constants.TYPE_ADD_FED_SERVER_KEY:
@@ -188,7 +163,7 @@ func LoadAuthorityByAdminBlockHeight(height uint32, st *State, update bool) {
 				if err != nil {
 					break
 				}
-				addServerSigningKey(f.IdentityChainID, key, height, st)
+				addServerSigningKey(f.IdentityChainID, key, st)
 			case constants.TYPE_ADD_BTC_ANCHOR_KEY:
 				b := new(adminBlock.AddFederatedServerBitcoinAnchorKey)
 				err := b.UnmarshalBinary(data)
@@ -201,7 +176,7 @@ func LoadAuthorityByAdminBlockHeight(height uint32, st *State, update bool) {
 					//Add Identity as Federated Server
 					log.Println(b.IdentityChainID.String() + " Cannot Update Signing Key.  Not in Authorities List. AdminBlock Height:" + string(height))
 				} else {
-					log.Println(b.IdentityChainID.String() + " Updating Signing Key. AdminBlock Height:" + string(height))
+					//log.Println(b.IdentityChainID.String() + " Updating Signing Key. AdminBlock Height:" + string(height))
 					pubKey, err := b.ECDSAPublicKey.MarshalBinary()
 					if err != nil {
 						break
@@ -216,6 +191,135 @@ func LoadAuthorityByAdminBlockHeight(height uint32, st *State, update bool) {
 
 }
 
+func (st *State) UpdateAuthorityFromABEntry(entry interfaces.IABEntry) error {
+	var AuthorityIndex int
+	data, err := entry.MarshalBinary()
+	if err != nil {
+		return err
+	}
+	switch entry.Type() {
+	case constants.TYPE_MINUTE_NUM:
+		// Does not affect Authority.
+	case constants.TYPE_DB_SIGNATURE:
+		// Does not affect Authority
+	case constants.TYPE_REVEAL_MATRYOSHKA:
+		r := new(adminBlock.RevealMatryoshkaHash)
+		err := r.UnmarshalBinary(data)
+		if err != nil {
+			break
+		}
+		// Does nothing for authority right now
+	case constants.TYPE_ADD_MATRYOSHKA:
+		m := new(adminBlock.AddReplaceMatryoshkaHash)
+		err := m.UnmarshalBinary(data)
+		if err != nil {
+			break
+		}
+
+		AuthorityIndex = isAuthorityChain(m.IdentityChainID, st.Authorities)
+		if AuthorityIndex == -1 {
+			log.Println("Invalid Authority Chain ID. Add MatryoshkaHash " + m.IdentityChainID.String())
+			break
+		}
+		st.Authorities[AuthorityIndex].MatryoshkaHash = m.MHash
+	case constants.TYPE_ADD_SERVER_COUNT:
+		s := new(adminBlock.IncreaseServerCount)
+		err := s.UnmarshalBinary(data)
+		if err != nil {
+			break
+		}
+
+		st.AuthorityServerCount = st.AuthorityServerCount + int(s.Amount)
+	case constants.TYPE_ADD_FED_SERVER:
+		f := new(adminBlock.AddFederatedServer)
+		err := f.UnmarshalBinary(data)
+		if err != nil {
+			break
+		}
+
+		AuthorityIndex = isAuthorityChain(f.IdentityChainID, st.Authorities)
+		if AuthorityIndex == -1 {
+			//Add Identity as Federated Server
+			//log.Println(f.IdentityChainID.String() + " being added to Federated Server List AdminBlock Height:" + string(height))
+			AuthorityIndex = addAuthority(st, f.IdentityChainID)
+		} else {
+			//log.Println(f.IdentityChainID.String() + " being promoted to Federated Server AdminBlock Height:" + string(height))
+		}
+		st.Authorities[AuthorityIndex].Status = constants.IDENTITY_FEDERATED_SERVER
+		// check Identity status
+		UpdateIdentityStatus(f.IdentityChainID, constants.IDENTITY_PENDING_FEDERATED_SERVER, constants.IDENTITY_FEDERATED_SERVER, st)
+	case constants.TYPE_ADD_AUDIT_SERVER:
+		a := new(adminBlock.AddAuditServer)
+		err := a.UnmarshalBinary(data)
+		if err != nil {
+			break
+		}
+
+		AuthorityIndex = isAuthorityChain(a.IdentityChainID, st.Authorities)
+		if AuthorityIndex == -1 {
+			//Add Identity as Federated Server
+			//log.Println(a.IdentityChainID.String() + " being added to Federated Server List AdminBlock Height:" + string(height))
+			AuthorityIndex = addAuthority(st, a.IdentityChainID)
+		} else {
+			//log.Println(a.IdentityChainID.String() + " being promoted to Federated Server AdminBlock Height:" + string(height))
+		}
+		st.Authorities[AuthorityIndex].Status = constants.IDENTITY_AUDIT_SERVER
+		// check Identity status
+		UpdateIdentityStatus(a.IdentityChainID, constants.IDENTITY_PENDING_AUDIT_SERVER, constants.IDENTITY_AUDIT_SERVER, st)
+	case constants.TYPE_REMOVE_FED_SERVER:
+		f := new(adminBlock.RemoveFederatedServer)
+		err := f.UnmarshalBinary(data)
+		if err != nil {
+			break
+		}
+
+		AuthorityIndex = isAuthorityChain(f.IdentityChainID, st.Authorities)
+		if AuthorityIndex == -1 {
+			//Add Identity as Federated Server
+			log.Println(f.IdentityChainID.String() + " Cannot be removed.  Not in Authorities List.")
+		} else {
+			//log.Println(f.IdentityChainID.String() + " being removed from Authorities List:" + string(height))
+			removeAuthority(AuthorityIndex, st)
+		}
+	case constants.TYPE_ADD_FED_SERVER_KEY:
+		f := new(adminBlock.AddFederatedServerSigningKey)
+		err := f.UnmarshalBinary(data)
+		if err != nil {
+			break
+		}
+		keyBytes, err := f.PublicKey.MarshalBinary()
+		if err != nil {
+			break
+		}
+		key := new(primitives.Hash)
+		err = key.SetBytes(keyBytes)
+		if err != nil {
+			break
+		}
+		addServerSigningKey(f.IdentityChainID, key, st)
+	case constants.TYPE_ADD_BTC_ANCHOR_KEY:
+		b := new(adminBlock.AddFederatedServerBitcoinAnchorKey)
+		err := b.UnmarshalBinary(data)
+		if err != nil {
+			break
+		}
+
+		AuthorityIndex = isAuthorityChain(b.IdentityChainID, st.Authorities)
+		if AuthorityIndex == -1 {
+			//Add Identity as Federated Server
+			log.Println(b.IdentityChainID.String() + " Cannot Update Signing Key.  Not in Authorities List.")
+		} else {
+			//log.Println(b.IdentityChainID.String() + " Updating Signing Key. AdminBlock Height:" + string(height))
+			pubKey, err := b.ECDSAPublicKey.MarshalBinary()
+			if err != nil {
+				break
+			}
+			registerAuthAnchor(AuthorityIndex, pubKey, b.KeyType, b.KeyPriority, st, "BTC")
+		}
+	}
+	return nil
+}
+
 func isAuthorityChain(cid interfaces.IHash, ids []Authority) int {
 	//is this an identity chain
 	for i, authorityChain := range ids {
@@ -223,7 +327,6 @@ func isAuthorityChain(cid interfaces.IHash, ids []Authority) int {
 			return i
 		}
 	}
-
 	return -1
 }
 
@@ -238,6 +341,22 @@ func addAuthority(st *State, chainID interfaces.IHash) int {
 		authnew[i] = st.Authorities[i]
 	}
 	oneAuth.AuthorityChainID = chainID
+	idIndex := isIdentityChain(chainID, st.Identities)
+	if idIndex != -1 && st.Identities[idIndex].ManagementChainID != nil {
+		oneAuth.ManagementChainID = st.Identities[idIndex].ManagementChainID
+		if st.Identities[idIndex].SigningKey != nil {
+			oneAuth.SigningKey = st.Identities[idIndex].SigningKey
+		}
+		if st.Identities[idIndex].MatryoshkaHash != nil {
+			oneAuth.MatryoshkaHash = st.Identities[idIndex].MatryoshkaHash
+		}
+		if len(st.Identities[idIndex].AnchorKeys) > 0 {
+			oneAuth.AnchorKeys = make([]AnchorSigningKey, 0)
+			oneAuth.AnchorKeys = append(oneAuth.AnchorKeys[:], st.Identities[idIndex].AnchorKeys[:]...)
+		}
+	} else {
+		log.Println("Authority Error: " + chainID.String()[:10] + " No management chain found from identities.")
+	}
 
 	oneAuth.Status = constants.IDENTITY_PENDING
 
@@ -282,14 +401,14 @@ func registerAuthAnchor(AuthorityIndex int, signingKey []byte, keyType byte, key
 	st.Authorities[AuthorityIndex].AnchorKeys = newASK
 }
 
-func addServerSigningKey(ChainID interfaces.IHash, key interfaces.IHash, height uint32, st *State) {
+func addServerSigningKey(ChainID interfaces.IHash, key interfaces.IHash, st *State) {
 	var AuthorityIndex int
 	AuthorityIndex = isAuthorityChain(ChainID, st.Authorities)
 	if AuthorityIndex == -1 {
 		//Add Identity as Federated Server
-		log.Println(ChainID.String() + " Cannot Update Signing Key.  Not in Authorities List. AdminBlock Height:" + string(height))
+		log.Println(ChainID.String() + " Cannot Update Signing Key.  Not in Authorities List.")
 	} else {
-		log.Println(ChainID.String() + " Updating Signing Key. AdminBlock Height:" + string(height))
+		//log.Println(ChainID.String() + " Updating Signing Key. AdminBlock Height:" + string(height))
 		st.Authorities[AuthorityIndex].SigningKey = key
 	}
 }

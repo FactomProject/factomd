@@ -443,7 +443,6 @@ func (s *State) Init() {
 	s.AuthorityServerCount = 0
 	LoadIdentityCache(s)
 	//StubIdentityCache(s)
-	LoadAuthorityCache(s)
 
 	s.starttime = time.Now()
 }

@@ -20,7 +20,7 @@ var _ interfaces.IABEntry = (*AddFederatedServerBitcoinAnchorKey)(nil)
 var _ interfaces.BinaryMarshallable = (*AddFederatedServerBitcoinAnchorKey)(nil)
 
 func (c *AddFederatedServerBitcoinAnchorKey) UpdateState(state interfaces.IState) {
-
+	state.UpdateAuthorityFromABEntry(c)
 }
 
 // Create a new DB Signature Entry

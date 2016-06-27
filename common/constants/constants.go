@@ -31,9 +31,10 @@ const (
 	DATA_RESPONSE         // 17
 	MISSING_MSG_RESPONSE  //18
 
-	DBSTATE_MSG         // 19
-	DBSTATE_MISSING_MSG // 20
-	ADDSERVER_MSG       // 21
+	DBSTATE_MSG          // 19
+	DBSTATE_MISSING_MSG  // 20
+	ADDSERVER_MSG        // 21
+	CHANGESERVER_KEY_MSG // 22
 )
 
 const (
