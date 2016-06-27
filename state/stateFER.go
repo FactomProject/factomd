@@ -3,18 +3,17 @@ package state
 import (
 	"bytes"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 
 	"github.com/FactomProject/btcutil/base58"
 	ed "github.com/FactomProject/ed25519"
+	"github.com/FactomProject/factomd/common/entryBlock/specialEntries"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
 // Go through the factoid exchange rate chain and determine if an FER change should be scheduled
 func (this *State) ProcessRecentFERChainEntries() {
-
 	// Find the FER entry chain
 	FERChainHash, err := primitives.HexToHash(this.FERChainId)
 	if err != nil {
@@ -73,7 +72,6 @@ func (this *State) ProcessRecentFERChainEntries() {
 
 		// Loop through the hashes from the last blocks FER entries and evaluate them individually
 		for _, entryHash := range entryHashes {
-
 			// if this entryhash is a minute mark then continue
 			if _, exist := mins[entryHash.String()]; exist {
 				continue
@@ -97,23 +95,22 @@ func (this *State) ProcessRecentFERChainEntries() {
 
 			entryContent := anEntry.GetContent()
 			// this.Println("Found content of an FER entry is:  ", string(entryContent))
-			anFEREntry := new(FEREntry)
-			err = json.Unmarshal(entryContent, &anFEREntry)
+			ferEntry := new(specialEntries.FEREntry)
+			err = ferEntry.UnmarshalBinary(entryContent)
 			if err != nil {
 				this.Println("A FEREntry messgae didn't unmarshall correctly: ", err)
 				continue
 			}
 
 			// Set it's resident height for validity checking
-			anFEREntry.SetResidentHeight(this.GetDBHeightComplete())
+			ferEntry.SetResidentHeight(this.GetDBHeightComplete())
 
-			if (this.FerEntryIsValid(anFEREntry)) && (anFEREntry.Priority > this.FERPriority) {
-
+			if (this.FerEntryIsValid(ferEntry)) && (ferEntry.Priority > this.FERPriority) {
 				fmt.Println(" Processing FER entry : ", string(entryContent))
-				this.FERPriority = anFEREntry.GetPriority()
+				this.FERPriority = ferEntry.GetPriority()
 				this.FERPrioritySetHeight = this.GetDBHeightComplete()
-				this.FERChangePrice = anFEREntry.GetTargetPrice()
-				this.FERChangeHeight = anFEREntry.GetTargetActivationHeight()
+				this.FERChangePrice = ferEntry.GetTargetPrice()
+				this.FERChangeHeight = ferEntry.GetTargetActivationHeight()
 
 				// Adjust the target if needed
 				if this.FERChangeHeight < (this.GetDBHeightComplete() + 2) {
