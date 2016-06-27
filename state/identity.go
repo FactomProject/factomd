@@ -464,9 +464,11 @@ func registerBlockSigningKey(extIDs [][]byte, subChainID interfaces.IHash, st *S
 				status == constants.IDENTITY_AUDIT_SERVER ||
 				status == constants.IDENTITY_PENDING_FEDERATED_SERVER ||
 				status == constants.IDENTITY_PENDING_AUDIT_SERVER) {
-				if st.LeaderPL.VMIndexFor(constants.ADMIN_CHAINID) == st.LeaderVMIndex {
+				if st.LeaderPL.VMIndexFor(constants.ADMIN_CHAINID) == st.GetLeaderVM() {
+					fmt.Println("DEBUG: Change Server Key Message Sent")
 					key := primitives.NewHash(extIDs[3])
 					msg := messages.NewChangeServerKeyMsg(st, chainID, constants.TYPE_ADD_FED_SERVER_KEY, 0, 0, key)
+					fmt.Println(msg.GetVMIndex())
 					st.InMsgQueue() <- msg
 				}
 				//st.LeaderPL.AdminBlock.AddFederatedServerSigningKey(chainID, &key)
@@ -528,7 +530,7 @@ func updateMatryoshkaHash(extIDs [][]byte, subChainID interfaces.IHash, st *Stat
 				status == constants.IDENTITY_AUDIT_SERVER ||
 				status == constants.IDENTITY_PENDING_FEDERATED_SERVER ||
 				status == constants.IDENTITY_PENDING_AUDIT_SERVER) {
-				if st.LeaderPL.VMIndexFor(constants.ADMIN_CHAINID) == st.LeaderVMIndex {
+				if st.LeaderPL.VMIndexFor(constants.ADMIN_CHAINID) == st.GetLeaderVM() {
 					msg := messages.NewChangeServerKeyMsg(st, chainID, constants.TYPE_ADD_FED_SERVER_KEY, 0, 0, mhash)
 					st.InMsgQueue() <- msg
 				}
@@ -621,7 +623,7 @@ func registerAnchorSigningKey(extIDs [][]byte, subChainID interfaces.IHash, st *
 				status == constants.IDENTITY_AUDIT_SERVER ||
 				status == constants.IDENTITY_PENDING_FEDERATED_SERVER ||
 				status == constants.IDENTITY_PENDING_AUDIT_SERVER) {
-				if st.LeaderPL.VMIndexFor(constants.ADMIN_CHAINID) == st.LeaderVMIndex {
+				if st.LeaderPL.VMIndexFor(constants.ADMIN_CHAINID) == st.GetLeaderVM() {
 					copy(key[:20], extIDs[5][:20])
 					extIDs[5] = append(extIDs[5], []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}...)
 					key := primitives.NewHash(extIDs[5])

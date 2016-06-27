@@ -119,6 +119,8 @@ checkout go-socks     $branch $default
 checkout seelog       $branch $default
 checkout snappy-go    $branch $default
 checkout websocket    $branch $default
+checkout factom-cli   $branch $default
+checkout factom-walletd $branch $default
 
 echo "
 ********************************************************
@@ -126,6 +128,8 @@ echo "
 ********************************************************
 "
 compile factomd              || exit 1
+compile factom-cli           || exit 1
+compile factom-walletd       || exit 1
 
 echo ""
 echo "

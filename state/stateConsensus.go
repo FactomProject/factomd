@@ -76,6 +76,7 @@ func (s *State) Process() (progress bool) {
 			dbs.DBHeight = s.LLeaderHeight
 			dbs.Timestamp = s.GetTimestamp()
 			dbs.SetVMHash(nil)
+			fmt.Println("DEBUG: VM Set", s.LeaderVMIndex)
 			dbs.SetVMIndex(s.LeaderVMIndex)
 			dbs.SetLocal(true)
 			dbs.Sign(s)
@@ -85,7 +86,6 @@ func (s *State) Process() (progress bool) {
 			}
 			dbs.LeaderExecute(s)
 		}
-		s.UpdateState()
 	}
 
 	if s.EOM > 0 && s.LeaderPL.Unsealable(s.EOM) {
@@ -457,8 +457,6 @@ func (s *State) ProcessChangeServerKey(dbheight uint32, changeServerKeyMsg inter
 	}
 
 	// TODO: Signiture && Checking
-
-	//fmt.Printf("DEBUG: Processed: %x", ask.AdminBlockChange)
 	switch ask.AdminBlockChange {
 	case constants.TYPE_ADD_BTC_ANCHOR_KEY:
 		var btcKey [20]byte
@@ -467,7 +465,7 @@ func (s *State) ProcessChangeServerKey(dbheight uint32, changeServerKeyMsg inter
 		s.LeaderPL.AdminBlock.AddFederatedServerBitcoinAnchorKey(ask.IdentityChainID, ask.KeyPriority, ask.KeyType, &btcKey)
 	case constants.TYPE_ADD_FED_SERVER_KEY:
 		pub := ask.Key.Fixed()
-		fmt.Println("Add Block Key to admin block : " + s.IdentityChainID.String())
+		fmt.Println("Add Block Key to admin block")
 		s.LeaderPL.AdminBlock.AddFederatedServerSigningKey(ask.IdentityChainID, &pub)
 	case constants.TYPE_ADD_MATRYOSHKA:
 		fmt.Println("Add MHash to admin block")

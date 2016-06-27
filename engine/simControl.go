@@ -326,6 +326,10 @@ func SimControl(listenTo int) {
 					fnodes[listenTo].State.IdentityChainID = id
 					fmt.Println("Identity of " + fnodes[listenTo].State.GetFactomNodeName() + " changed to [" + id.String()[:10] + "]")
 				}
+			case 'v' == b[0]:
+				for i, f := range fnodes {
+					os.Stderr.WriteString(fmt.Sprintf("VMI %d: %d\n", i, f.State.LeaderVMIndex))
+				}
 			case 'u' == b[0]:
 				os.Stderr.WriteString(fmt.Sprintf("=== Authority List ===  Total: %d Displaying: All\n", len(fnodes[listenTo].State.Authorities)))
 				for _, i := range fnodes[listenTo].State.Authorities {
@@ -363,8 +367,8 @@ func SimControl(listenTo int) {
 				os.Stderr.WriteString("Pending Entry Hash\n")
 				os.Stderr.WriteString("------------------\n")
 				for _, eh := range eHashes {
-					os.Stderr.WriteString(fmt.Sprint(eh.String() , "\n"))
-				}				
+					os.Stderr.WriteString(fmt.Sprint(eh.String(), "\n"))
+				}
 			case 'h' == b[0]:
 				os.Stderr.WriteString("-------------------------------------------------------------------------------\n")
 				os.Stderr.WriteString("h or ENTER    Shows this help\n")
