@@ -133,22 +133,17 @@ func (d *Discovery) SavePeers() {
 	defer file.Close()
 	writer := bufio.NewWriter(file)
 	encoder := json.NewEncoder(writer)
+	var qualityPeers = map[string]Peer{}
 	UpdateKnownPeers.Lock()
-	// Purge peers we have not talked to in awhile.
-	// BUGBUG Check with Brian. IF you enable this code, make sure you are saving the last contact accurately.
 	for _, peer := range d.knownPeers {
-		// if time.Since(peer.LastContact) > (time.Hour * 168) { // a week
-		// 	delete(d.knownPeers, peer.Address)
-		// }
-		if MinumumQualityScore > peer.QualityScore {
-			delete(d.knownPeers, peer.Address)
+		if time.Since(peer.LastContact) < (time.Hour*168) && MinumumQualityScore < peer.QualityScore {
+			qualityPeers[peer.Hash] = peer
 		}
 	}
 	UpdateKnownPeers.Unlock()
-
-	encoder.Encode(d.knownPeers)
+	encoder.Encode(qualityPeers)
 	writer.Flush()
-	note("discovery", "SavePeers() saved %d peers in peers.json", len(d.knownPeers))
+	significant("discovery", "SavePeers() saved %d peers in peers.json. \n They were: %+v", len(qualityPeers), qualityPeers)
 }
 
 // LearnPeers recieves a set of peers from other hosts

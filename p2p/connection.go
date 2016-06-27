@@ -24,7 +24,6 @@ type Connection struct {
 	// and as "address" for sending messages to specific nodes.
 	encoder         *gob.Encoder // Wire format is gobs in this version, may switch to binary
 	decoder         *gob.Decoder // Wire format is gobs in this version, may switch to binary
-	timeLastContact time.Time    // We track how recently we have heard from a peer to determin if it is still active.
 	peer            Peer         // the datastructure representing the peer we are talking to. defined in peer.go
 	attempts        int          // reconnection attempts
 	timeLastAttempt time.Time    // time of last attempt to connect via dial
@@ -271,7 +270,6 @@ func (c *Connection) goOnline() {
 	c.decoder = gob.NewDecoder(c.conn)
 	c.attempts = 0
 	c.timeLastPing = now
-	c.timeLastContact = now
 	c.timeLastAttempt = now
 	c.timeLastUpdate = now
 	c.peer.LastContact = now
@@ -425,9 +423,9 @@ func (c *Connection) handleParcel(parcel Parcel) {
 		c.peer.demerit()
 		return
 	case ParcelValid:
-		c.timeLastContact = time.Now() // We only update for valid messages (incluidng pings and heartbeats)
-		c.attempts = 0                 // reset since we are clearly in touch now.
-		c.peer.merit()                 // Increase peer quality score.
+		c.peer.LastContact = time.Now() // We only update for valid messages (incluidng pings and heartbeats)
+		c.attempts = 0                  // reset since we are clearly in touch now.
+		c.peer.merit()                  // Increase peer quality score.
 		debug(c.peer.PeerIdent(), "Connection.handleParcel() got ParcelValid %s", parcel.MessageType())
 		if Notes <= CurrentLoggingLevel {
 			parcel.PrintMessageType()
@@ -505,7 +503,7 @@ func (c *Connection) handleParcelTypes(parcel Parcel) {
 }
 
 func (c *Connection) pingPeer() {
-	durationLastContact := time.Since(c.timeLastContact)
+	durationLastContact := time.Since(c.peer.LastContact)
 	durationLastPing := time.Since(c.timeLastPing)
 	if PingInterval < durationLastContact && PingInterval < durationLastPing {
 		if MaxNumberOfRedialAttempts < c.attempts {
