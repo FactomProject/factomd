@@ -891,7 +891,9 @@ func (s *State) GetTimestamp() interfaces.Timestamp {
 		fmt.Println("^^^^^^^^ IsReplying is true")
 		return s.ReplayTimestamp
 	}
-	return interfaces.Timestamp(int64(*interfaces.NewTimeStampNow() + s.TimeOffset))
+	t := new(interfaces.Timestamp)
+	t = interfaces.NewTimestampNow()
+	return *t
 }
 
 func (s *State) GetTimeOffset() interfaces.Timestamp {
