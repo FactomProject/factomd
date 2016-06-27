@@ -181,17 +181,6 @@ func (b *AdminBlock) AddABEntry(e interfaces.IABEntry) (err error) {
 	return
 }
 
-// Add the end-of-minute marker into the admin block
-func (b *AdminBlock) AddEndOfMinuteMarker(minuteNumber byte) (err error) {
-	// Minute Markers removed.
-	//eOMEntry := &EndOfMinuteEntry{
-	//	MinuteNumber: minuteNumber}
-
-	//b.AddABEntry(eOMEntry)
-
-	return
-}
-
 // Write out the AdminBlock to binary.
 func (b *AdminBlock) MarshalBinary() ([]byte, error) {
 	// Marshal all the entries into their own thing (need the size)

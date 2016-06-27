@@ -559,8 +559,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			eb.AddEndOfMinuteMarker(byte(e.Minute + 1))
 		}
 
-		pl.AdminBlock.AddEndOfMinuteMarker(e.Minute)
-
 		ecblk := pl.EntryCreditBlock
 		ecbody := ecblk.GetBody()
 		mn := entryCreditBlock.NewMinuteNumber2(e.Minute)
