@@ -176,6 +176,7 @@ func (e *EBlock) BodyKeyMR() interfaces.IHash {
 // (e *EBlock) BuildHeader().
 func (e *EBlock) KeyMR() (interfaces.IHash, error) {
 	// Sha(Sha(header) + BodyMR)
+	e.BuildHeader()
 	h, err := e.HeaderHash()
 	if err != nil {
 		return nil, err
