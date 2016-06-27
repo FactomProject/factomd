@@ -13,7 +13,6 @@ import (
 )
 
 func TestMarshalUnmarshalServerFault(t *testing.T) {
-
 	ts := interfaces.NewTimestampNow()
 	vmIndex := int(*ts) % 10
 	sf := NewServerFault(*ts, primitives.NewHash([]byte("a test")), vmIndex, 10, 100)
