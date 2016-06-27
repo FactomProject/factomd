@@ -80,23 +80,28 @@ func LoadIdentityCache(st *State) {
 
 	var i uint32
 	for i = 1; i < height; i++ {
-
-		LoadIdentityByDirectoryBlockHeight(i, st, false)
+		dblk, err := st.DB.FetchDBlockByHeight(i)
+		if err != nil && dblk != nil {
+			LoadIdentityByDirectoryBlock(dblk, st, false)
+		}
 	}
 
 }
 
-func LoadIdentityByDirectoryBlockHeight(height uint32, st *State, update bool) {
-	dblk, err := st.DB.FetchDBlockByHeight(uint32(height))
-	if dblk == nil {
-		//log.Printfln("Identity Error. Blockchain Not Present.")
-		return
-	}
-	if err != nil {
-		log.Printfln("Identity Error:", err)
-		return
-	}
+func LoadIdentityByDirectoryBlock(dblk interfaces.IDirectoryBlock, st *State, update bool) {
 	var ManagementChain interfaces.IHash
+	var err error
+	if dblk == nil {
+		log.Println("DEBUG: Identity Error, DBlock nil, disregard")
+		return
+	}
+	height := dblk.GetDatabaseHeight()
+	// TODO: Remove 1 block wait
+	/*dblk, err = st.DB.FetchDBlockByHeight(height - 1)
+	if err != nil {
+		return
+	}*/
+
 	ManagementChain, _ = primitives.HexToHash("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")
 
 	entries := dblk.GetDBEntries()
@@ -113,7 +118,8 @@ func LoadIdentityByDirectoryBlockHeight(height uint32, st *State, update bool) {
 			// is it a new one?
 			entkmr := eBlk.GetKeyMR() //eBlock Hash
 			ecb, err := st.DB.FetchEBlock(entkmr)
-			if err != nil {
+			if err != nil || ecb == nil {
+				fmt.Println("DEBUG: ECB is nil")
 				continue
 			}
 			entryHashes := ecb.GetEntryHashes()
@@ -135,7 +141,8 @@ func LoadIdentityByDirectoryBlockHeight(height uint32, st *State, update bool) {
 		} else if cid.String()[0:6] == "888888" {
 			entkmr := eBlk.GetKeyMR() //eBlock Hash
 			ecb, err := st.DB.FetchEBlock(entkmr)
-			if err != nil {
+			if err != nil || ecb == nil {
+				fmt.Println("DEBUG: ECB is nil")
 				continue
 			}
 			entryHashes := ecb.GetEntryHashes()
@@ -852,14 +859,15 @@ func UpdateIdentityStatus(ChainID interfaces.IHash, StatusFrom int, StatusTo int
 		log.Println("Cannot Update Status for ChainID " + ChainID.String() + ". Chain not found in Identities")
 		return
 	}
-
-	if StatusFrom < 0 {
-		st.Identities[IdentityIndex].Status = StatusTo
-	} else {
-		if st.Identities[IdentityIndex].Status == StatusFrom {
+	st.Identities[IdentityIndex].Status = StatusTo
+	/*
+		if StatusFrom < 0 {
 			st.Identities[IdentityIndex].Status = StatusTo
 		} else {
-			log.Println("Cannot Update Status for ChainID " + ChainID.String() + ". Status not equal to expected Current Status.")
-		}
-	}
+			if st.Identities[IdentityIndex].Status == StatusFrom {
+				st.Identities[IdentityIndex].Status = StatusTo
+			} else {
+				log.Println("Cannot Update Status for ChainID " + ChainID.String() + ". Status not equal to expected Current Status.")
+			}
+		}*/
 }

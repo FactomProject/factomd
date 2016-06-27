@@ -45,6 +45,7 @@ func LoadAuthorityCache(st *State) {
 
 }
 
+// TODO: Remove function
 func LoadAuthorityByAdminBlockHeight(height uint32, st *State, update bool) {
 
 	dblk, _ := st.DB.FetchDBlockByHeight(uint32(height))
@@ -343,6 +344,16 @@ func addAuthority(st *State, chainID interfaces.IHash) int {
 	idIndex := isIdentityChain(chainID, st.Identities)
 	if idIndex != -1 && st.Identities[idIndex].ManagementChainID != nil {
 		oneAuth.ManagementChainID = st.Identities[idIndex].ManagementChainID
+		if st.Identities[idIndex].SigningKey != nil {
+			oneAuth.SigningKey = st.Identities[idIndex].SigningKey
+		}
+		if st.Identities[idIndex].MatryoshkaHash != nil {
+			oneAuth.MatryoshkaHash = st.Identities[idIndex].MatryoshkaHash
+		}
+		if len(st.Identities[idIndex].AnchorKeys) > 0 {
+			oneAuth.AnchorKeys = make([]AnchorSigningKey, 0)
+			oneAuth.AnchorKeys = append(oneAuth.AnchorKeys[:], st.Identities[idIndex].AnchorKeys[:]...)
+		}
 	} else {
 		log.Println("Authority Error: " + chainID.String()[:10] + " No management chain found from identities.")
 	}
