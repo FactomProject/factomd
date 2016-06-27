@@ -326,10 +326,6 @@ func SimControl(listenTo int) {
 					fnodes[listenTo].State.IdentityChainID = id
 					fmt.Println("Identity of " + fnodes[listenTo].State.GetFactomNodeName() + " changed to [" + id.String()[:10] + "]")
 				}
-			case 'v' == b[0]:
-				for i, f := range fnodes {
-					os.Stderr.WriteString(fmt.Sprintf("VMI %d: %d\n", i, f.State.LeaderVMIndex))
-				}
 			case 'u' == b[0]:
 				os.Stderr.WriteString(fmt.Sprintf("=== Authority List ===  Total: %d Displaying: All\n", len(fnodes[listenTo].State.Authorities)))
 				for _, i := range fnodes[listenTo].State.Authorities {
