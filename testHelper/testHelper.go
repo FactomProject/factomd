@@ -42,7 +42,7 @@ func CreateAndPopulateTestState() *state.State {
 	state.LoadDatabase(s)
 	s.UpdateState()
 	go s.ValidatorLoop()
-	time.Sleep(20 * time.Millisecond)
+	time.Sleep(30 * time.Millisecond)
 
 	return s
 }
