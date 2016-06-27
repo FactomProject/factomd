@@ -307,7 +307,7 @@ func (e *ECBlock) unmarshalBodyBinaryData(data []byte) ([]byte, error) {
 			}
 			e.Body.SetEntries(append(e.Body.GetEntries(), s))
 		case ECIDMinuteNumber:
-			m := NewMinuteNumber()
+			m := NewMinuteNumber(0)
 			if buf.Len() < MinuteNumberSize {
 				err = io.EOF
 				return nil, err

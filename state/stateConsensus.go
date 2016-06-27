@@ -561,7 +561,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 		ecblk := pl.EntryCreditBlock
 		ecbody := ecblk.GetBody()
-		mn := entryCreditBlock.NewMinuteNumber2(e.Minute)
+		mn := entryCreditBlock.NewMinuteNumber(e.Minute)
 		ecbody.AddEntry(mn)
 	}
 

@@ -52,11 +52,7 @@ func (b *MinuteNumber) Interpret() string {
 	return fmt.Sprintf("MinuteNumber %v", b.Number)
 }
 
-func NewMinuteNumber() *MinuteNumber {
-	return new(MinuteNumber)
-}
-
-func NewMinuteNumber2(number uint8) *MinuteNumber {
+func NewMinuteNumber(number uint8) *MinuteNumber {
 	mn := new(MinuteNumber)
 	mn.Number = number
 	return mn
