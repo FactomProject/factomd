@@ -363,8 +363,8 @@ func SimControl(listenTo int) {
 				os.Stderr.WriteString("Pending Entry Hash\n")
 				os.Stderr.WriteString("------------------\n")
 				for _, eh := range eHashes {
-					os.Stderr.WriteString(fmt.Sprint(eh.String() , "\n"))
-				}				
+					os.Stderr.WriteString(fmt.Sprint(eh.String(), "\n"))
+				}
 			case 'h' == b[0]:
 				os.Stderr.WriteString("-------------------------------------------------------------------------------\n")
 				os.Stderr.WriteString("h or ENTER    Shows this help\n")
