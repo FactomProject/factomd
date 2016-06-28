@@ -55,7 +55,6 @@ func NetStart(s *state.State) {
 	netdebugPtr := flag.Int("netdebug", 0, "0-5: 0 = quiet, >0 = increasing levels of logging")
 	exclusivePtr := flag.Bool("exclusive", false, "If true, we only dial out to special/trusted peers.")
 	prefixNodePtr := flag.String("prefix", "", "Prefix the Factom Node Names with this value; used to create leaderless networks.")
-	profilePtr := flag.String("profile", "", "If true, turn on the go Profiler to profile execution of Factomd")
 	rotatePtr := flag.Bool("rotate", false, "If true, responsiblity is owned by one leader, and rotated over the leaders.")
 	timeOffsetPtr := flag.Int("timedelta", 0, "Maximum timeDelta in milliseconds to offset each node.  Simulates deltas in system clocks over a network.")
 
@@ -79,7 +78,6 @@ func NetStart(s *state.State) {
 	netdebug := *netdebugPtr
 	exclusive := *exclusivePtr
 	prefix := *prefixNodePtr
-	profile := *profilePtr
 	rotate := *rotatePtr
 	timeOffset := *timeOffsetPtr
 
@@ -164,11 +162,7 @@ func NetStart(s *state.State) {
 		s.CloneDBType = db
 	}
 
-	if profile == "true" {
-		go StartProfiler()
-	} else {
-		profile = "false"
-	}
+	go StartProfiler()
 
 	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "node", listenTo))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "prefix", prefix))
@@ -186,7 +180,6 @@ func NetStart(s *state.State) {
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%t\"\n", "exclusive", exclusive))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "block time", blkTime))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "runtimeLog", runtimeLog))
-	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "profile", profile))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "rotate", rotate))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "timeOffset", timeOffset))
 

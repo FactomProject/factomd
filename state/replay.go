@@ -22,7 +22,6 @@ type Replay struct {
 	buckets  [numBuckets]map[[32]byte]byte
 	basetime int // hours since 1970
 	center   int // Hour of the current time.
-	check    map[[32]byte]byte
 }
 
 // Remember that Unix time is in seconds since 1970.  This code
@@ -42,8 +41,6 @@ func (r *Replay) Valid(hash [32]byte, timestamp interfaces.Timestamp, systemtime
 		return -1, false
 	}
 
-	_, okc := r.check[hash]
-
 	now := hours(systemTimeSeconds)
 
 	// We don't let the system clock go backwards.  likely an attack if it does.
@@ -54,7 +51,6 @@ func (r *Replay) Valid(hash [32]byte, timestamp interfaces.Timestamp, systemtime
 	if r.center == 0 {
 		r.center = now
 		r.basetime = now - (numBuckets / 2)
-		r.check = make(map[[32]byte]byte, 0)
 	}
 	for r.center < now {
 		copy(r.buckets[:], r.buckets[1:])
@@ -75,14 +71,8 @@ func (r *Replay) Valid(hash [32]byte, timestamp interfaces.Timestamp, systemtime
 	} else {
 		_, ok := r.buckets[index][hash]
 		if ok {
-			if !okc {
-				panic(fmt.Sprintf("dddd Replay Failure returns false %x timestamp: %d timeseconds: %v systemtime-seconds: %v", hash, timestamp, timeSeconds, systemTimeSeconds))
-			}
 			return index, false
 		}
-	}
-	if okc {
-		panic(fmt.Sprintf("dddd Replay Failure returns true %x %d", hash, timestamp))
 	}
 	return index, true
 }
@@ -107,7 +97,6 @@ func (r *Replay) IsTSValid_(hash [32]byte, timestamp interfaces.Timestamp, now i
 	if index, ok := r.Valid(hash, timestamp, now); ok {
 		// Mark this hash as seen
 		r.buckets[index][hash] = 'x'
-		r.check[hash] = 'x'
 		return true
 	}
 
