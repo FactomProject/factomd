@@ -181,6 +181,9 @@ func (d *Discovery) LearnPeers(parcel Parcel) {
 
 // updatePeerSource checks to see if source is in peer's sources, and if not puts it in there with a value equal to time.Now()
 func (d *Discovery) updatePeerSource(peer Peer, source string) Peer {
+	if nil == peer.Source {
+		peer.Source = map[string]time.Time{}
+	}
 	_, sp := peer.Source[source]
 	if !sp {
 		peer.Source[source] = time.Now()

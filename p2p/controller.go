@@ -16,8 +16,6 @@ import (
 	"net"
 	"strings"
 	"time"
-
-	"github.com/FactomProject/go-spew/spew"
 )
 
 // Controller manages the peer to peer network.
@@ -94,7 +92,7 @@ type CommandChangeLogging struct {
 
 func (c *Controller) Init(ci ControllerInit) *Controller {
 	significant("ctrlr", "Controller.Init(%s) %#x", ci.Port, ci.Network)
-	silence("#################", "META: Last touched: FRIDAY JUNE 24 - 9AM")
+	silence("#################", "META: Last touched: TUESDAY JUNE 28 - 11:38AM")
 	c.keepRunning = true
 	c.commandChannel = make(chan interface{}, 1000) // Commands from App
 	c.FromNetwork = make(chan Parcel, 10000)        // Channel to the app for network data
@@ -221,7 +219,7 @@ func (c *Controller) runloop() {
 	reportExit := func() {
 		significant("ctrlr", "@@@@@@@@@@ Controller.runloop() has exited! Here's its final state:")
 		if 0 < CurrentLoggingLevel {
-			spew.Dump(c)
+			significant("ctrlr", "%+v", c)
 		}
 		significant("ctrlr", "###################################")
 		significant("ctrlr", " Network Controller Status Report:")
