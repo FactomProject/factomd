@@ -70,7 +70,7 @@ func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 		return err
 	}
 	message := factomMessage{message: data, peerHash: msg.GetNetworkOrigin()}
-	if f.GetNameTo() == "P2P Network" {
+	if !msg.IsPeer2Peer() {
 		message.peerHash = ""
 	}
 	if len(f.BroadcastOut) < 10000 {

@@ -12,6 +12,7 @@ import (
 	"github.com/FactomProject/factom"
 	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/entryBlock"
+	"github.com/FactomProject/factomd/common/entryBlock/specialEntries"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
@@ -39,7 +40,7 @@ func MakeFEREntryWithHeightFromContent(passedResidentHeight uint32, passedTarget
 	copy(signingPrivateKey[:], signingBytes[:])
 	_ = ed.GetPublicKey(&signingPrivateKey) // Needed to format the public half of the key set
 
-	anFEREntry := new(state.FEREntry)
+	anFEREntry := new(specialEntries.FEREntry)
 
 	anFEREntry.SetExpirationHeight(passedExpirationHeight)
 	anFEREntry.SetTargetActivationHeight(passedTargetActivationHeight)
