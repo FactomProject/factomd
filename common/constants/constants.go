@@ -38,6 +38,10 @@ const (
 )
 
 const (
+	// Replay
+	INTERNAL_REPLAY = 1
+	NETWORK_REPLAY  = 2
+
 	ADDRESS_LENGTH = 32 // Length of an Address or a Hash or Public Key
 	// length of a Private Key
 	SIGNATURE_LENGTH     = 64    // Length of a signature
