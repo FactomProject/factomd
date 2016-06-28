@@ -405,6 +405,7 @@ func setupBlankAuthority(s *state.State) {
 	id.Key2 = primitives.NewZeroHash()
 	id.Key3 = primitives.NewZeroHash()
 	id.Key4 = primitives.NewZeroHash()
+	id.Status = 1
 	s.Identities = append(s.Identities, id)
 
 	var auth state.Authority

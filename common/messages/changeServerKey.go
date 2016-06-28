@@ -64,7 +64,7 @@ func (m *ChangeServerKeyMsg) GetTimestamp() interfaces.Timestamp {
 
 func (m *ChangeServerKeyMsg) Validate(state interfaces.IState) int {
 	// Check to see if identity exists and is audit or fed server
-	if !state.VerifyIdentityAdminInfo(m.IdentityChainID) {
+	if !state.VerifyIsAuthority(m.IdentityChainID) {
 		return -1
 	}
 

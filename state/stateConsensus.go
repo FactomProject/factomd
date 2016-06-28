@@ -416,6 +416,11 @@ func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) 
 		return true
 	}
 
+	if !ProcessIdentityToAdminBlock(s, as.ServerChainID, as.ServerType) {
+		fmt.Printf("dddd %s %s\n", s.FactomNodeName, "Addserver message did not add to admin block.")
+		return true
+	}
+
 	if leader, _ := s.LeaderPL.GetFedServerIndexHash(as.ServerChainID); leader {
 		return true
 	}
@@ -436,6 +441,10 @@ func (s *State) ProcessChangeServerKey(dbheight uint32, changeServerKeyMsg inter
 	}
 
 	// TODO: Signiture && Checking
+	if !s.VerifyIsAuthority(ask.IdentityChainID) {
+		fmt.Printf("dddd %s %s\n", s.FactomNodeName, "ChangeServerKey message did not add to admin block.")
+		return true
+	}
 
 	//fmt.Printf("DEBUG: Processed: %x", ask.AdminBlockChange)
 	switch ask.AdminBlockChange {
