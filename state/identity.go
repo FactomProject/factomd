@@ -78,7 +78,7 @@ func AddIdentityFromChainID(cid interfaces.IHash, st *State) error {
 	}
 	if mr == nil {
 		log.Println("Identity Error: No main Main Factom Identity Chain chain created")
-		return nil
+		return errors.New("Identity Error: No main Main Factom Identity Chain chain created")
 	}
 	// Check Factom Main Identity List
 	for !mr.IsSameAs(primitives.NewZeroHash()) {

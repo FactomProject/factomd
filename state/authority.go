@@ -14,7 +14,7 @@ type Authority struct {
 	AuthorityChainID  interfaces.IHash
 	ManagementChainID interfaces.IHash
 	MatryoshkaHash    interfaces.IHash
-	SigningKey        interfaces.IHash
+	SigningKey        primitives.PublicKey
 	Status            int
 	AnchorKeys        []AnchorSigningKey
 	// add key history?
@@ -347,7 +347,7 @@ func addAuthority(st *State, chainID interfaces.IHash) int {
 	if idIndex != -1 && st.Identities[idIndex].ManagementChainID != nil {
 		oneAuth.ManagementChainID = st.Identities[idIndex].ManagementChainID
 		if st.Identities[idIndex].SigningKey != nil {
-			oneAuth.SigningKey = st.Identities[idIndex].SigningKey
+			oneAuth.SigningKey = primitives.PubKeyFromString(st.Identities[idIndex].SigningKey.String())
 		}
 		if st.Identities[idIndex].MatryoshkaHash != nil {
 			oneAuth.MatryoshkaHash = st.Identities[idIndex].MatryoshkaHash
@@ -411,6 +411,6 @@ func addServerSigningKey(ChainID interfaces.IHash, key interfaces.IHash, st *Sta
 		log.Println(ChainID.String() + " Cannot Update Signing Key.  Not in Authorities List.")
 	} else {
 		//log.Println(ChainID.String() + " Updating Signing Key. AdminBlock Height:" + string(height))
-		st.Authorities[AuthorityIndex].SigningKey = key
+		st.Authorities[AuthorityIndex].SigningKey = primitives.PubKeyFromString(key.String())
 	}
 }
