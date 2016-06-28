@@ -655,10 +655,8 @@ func registerBlockSigningKey(extIDs [][]byte, subChainID interfaces.IHash, st *S
 				status == constants.IDENTITY_PENDING_FEDERATED_SERVER ||
 				status == constants.IDENTITY_PENDING_AUDIT_SERVER) {
 				if st.LeaderPL.VMIndexFor(constants.ADMIN_CHAINID) == st.GetLeaderVM() {
-					fmt.Println("DEBUG: Change Server Key Message Sent")
 					key := primitives.NewHash(extIDs[3])
 					msg := messages.NewChangeServerKeyMsg(st, chainID, constants.TYPE_ADD_FED_SERVER_KEY, 0, 0, key)
-					fmt.Println(msg.GetVMIndex())
 					st.InMsgQueue() <- msg
 				}
 				//st.LeaderPL.AdminBlock.AddFederatedServerSigningKey(chainID, &key)
