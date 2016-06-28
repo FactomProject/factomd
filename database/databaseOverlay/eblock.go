@@ -71,33 +71,6 @@ func (db *Overlay) FetchEBKeyMRByHash(hash interfaces.IHash) (interfaces.IHash, 
 	return db.FetchPrimaryIndexBySecondaryIndex(ENTRYBLOCK_SECONDARYINDEX, hash)
 }
 
-/*
-// InsertChain inserts the newly created chain into db
-func (db *Overlay) InsertChain(chain *EChain) error {
-	bucket := ENTRYCHAIN
-	key := chain.ChainID.Bytes()
-	err := db.DB.Put(bucket, key, chain)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-// FetchAllChains get all of the cahins
-func (db *Overlay) FetchAllChains() (chains []*EChain, err error) {
-	bucket := ENTRYCHAIN
-
-	list, _, err := db.DB.GetAll(bucket, new(primitives.Hash))
-	if err != nil {
-		return nil, err
-	}
-	answer := make([]*EChain, len(list))
-	for i, v := range list {
-		answer[i] = v.(*EChain)
-	}
-	return answer, nil
-}*/
-
 // FetchAllEBlocksByChain gets all of the blocks by chain id
 func (db *Overlay) FetchAllEBlocksByChain(chainID interfaces.IHash) ([]interfaces.IEntryBlock, error) {
 	bucket := append(ENTRYBLOCK_CHAIN_NUMBER, chainID.Bytes()...)
