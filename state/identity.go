@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
-	"fmt"
 	"strings"
 
 	ed "github.com/FactomProject/ed25519"
@@ -78,7 +77,8 @@ func AddIdentityFromChainID(cid interfaces.IHash, st *State) error {
 		return err
 	}
 	if mr == nil {
-		log.Println("Identity Error: No main Main Factom Identity Chain chain created")
+		//log.Println("Identity Error: No main Main Factom Identity Chain chain created")
+		removeIdentity(index, st)
 		return errors.New("Identity Error: No main Main Factom Identity Chain chain created")
 	}
 
@@ -88,7 +88,8 @@ func AddIdentityFromChainID(cid interfaces.IHash, st *State) error {
 	if err != nil {
 		return err
 	} else if mr == nil {
-		log.Println("Identity Error: No main Main Factom Identity Chain chain created")
+		removeIdentity(index, st)
+		//log.Println("Identity Error: No main Root Identity Chain chain created")
 		return nil
 	}
 	for !mr.IsSameAs(primitives.NewZeroHash()) {
@@ -107,10 +108,6 @@ func AddIdentityFromChainID(cid interfaces.IHash, st *State) error {
 	mr, err = st.DB.FetchHeadIndexByChainID(managementChain)
 	if err != nil {
 		return err
-	}
-	if mr == nil {
-		log.Println("Identity Error: No main Main Factom Identity Chain chain created")
-		return errors.New("Identity Error: No main Main Factom Identity Chain chain created")
 	}
 	// Check Factom Main Identity List
 	for !mr.IsSameAs(primitives.NewZeroHash()) {
@@ -148,21 +145,18 @@ func AddIdentityFromChainID(cid interfaces.IHash, st *State) error {
 		return errors.New("Identity not created, index is -1")
 	}
 
-	if isIdentityChain(cid, st.Identities) == -1 {
-		log.Println("Identity Error: No main Main Factom Identity Chain chain created")
-		return nil //errors.New(fmt.Scanf("Identity Error: %s never registered.", cid.String()[:10]))
-	}
-
 	eblkStackSub := make([]interfaces.IEntryBlock, 0)
 	if st.Identities[index].ManagementChainID == nil {
-		log.Println("Identity Error: No management chain found")
+		removeIdentity(index, st)
+		//log.Println("Identity Error: No management chain found")
 		return nil
 	}
 	mr, err = st.DB.FetchHeadIndexByChainID(st.Identities[index].ManagementChainID)
 	if err != nil {
 		return err
 	} else if mr == nil {
-		log.Println("Identity Error: No main Main Factom Identity Chain chain created")
+		//log.Println("Identity Error: No main Management Identity Chain chain created")
+		removeIdentity(index, st)
 		return nil
 	}
 	for !mr.IsSameAs(primitives.NewZeroHash()) {
@@ -177,8 +171,8 @@ func AddIdentityFromChainID(cid interfaces.IHash, st *State) error {
 		LoadIdentityByEntryBlock(eblkStackSub[i], st, false)
 	}
 	checkIdentityForFull(index, st)
-
 	if st.Identities[index].Status == constants.IDENTITY_PENDING {
+		removeIdentity(index, st)
 		return errors.New("Error: Identity not full")
 	}
 
@@ -262,7 +256,6 @@ func LoadIdentityByEntryBlock(eblk interfaces.IEntryBlock, st *State, update boo
 }
 
 func removeIdentity(i int, st *State) {
-	fmt.Println("Stale ID Removed")
 	var newIDs []Identity
 	newIDs = make([]Identity, len(st.Identities)-1)
 	var j int
@@ -740,6 +733,7 @@ func StubIdentityCache(st *State) {
 // Called by AddServer Message
 func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype int) bool {
 	index := isIdentityChain(chainID, st.Identities)
+	log.Printfln("DEBUG: %d", index)
 	if index == -1 {
 		err := AddIdentityFromChainID(chainID, st)
 		if err != nil {
