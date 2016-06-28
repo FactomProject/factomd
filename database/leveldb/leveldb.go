@@ -52,6 +52,11 @@ func (db *LevelDB) ListAllBuckets() ([][]byte, error) {
 		return answer, nil*/
 }
 
+// Can't trim a real database
+func (db *LevelDB) Trim() {
+
+}
+
 func (db *LevelDB) Delete(bucket []byte, key []byte) error {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
