@@ -167,6 +167,11 @@ func (db *Overlay) Close() (err error) {
 	return db.DB.Close()
 }
 
+// Tell the underlying database to Trim itself
+func (db *Overlay) Trim() {
+	db.DB.Trim()
+}
+
 func (db *Overlay) Delete(bucket, key []byte) error {
 	return db.DB.Delete(bucket, key)
 }

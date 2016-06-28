@@ -1068,6 +1068,9 @@ func (s *State) SetString() {
 			lmin = 9
 		}
 	}
+	if lmin > 9 {
+		lmin = 0
+	}
 
 	found, vm := s.GetVirtualServers(s.LLeaderHeight, lmin, s.GetIdentityChainID())
 	vmIndex := ""

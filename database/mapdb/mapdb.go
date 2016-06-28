@@ -41,6 +41,11 @@ func (db *MapDB) ListAllBuckets() ([][]byte, error) {
 	return answer, nil
 }
 
+// Don't do anything here.
+func (db *MapDB) Trim() {
+
+}
+
 func (db *MapDB) createCache(bucket []byte) {
 	if db.Cache == nil {
 		db.Sem.Lock()
