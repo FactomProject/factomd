@@ -19,12 +19,12 @@ type Peer struct {
 	Address      string // Must be in form of x.x.x.x
 	Port         string // Must be in form of xxxx
 	NodeID       uint64 // a nonce to distinguish multiple nodes behind one IP address
-	Hash         string
+	Hash         string // This is more of a connection ID than hash right now. 
 	Location     uint32 // IP address as an int.
 	Type         uint8
-	Connections  int       // Number of successful connections.
-	LastContact  time.Time // Keep track of how long ago we talked to the peer.
-	Source       []string  // source where we heard from the peer.
+	Connections  int                  // Number of successful connections.
+	LastContact  time.Time            // Keep track of how long ago we talked to the peer.
+	Source       map[string]time.Time // source where we heard from the peer.
 }
 
 const ( // iota is reset to 0
