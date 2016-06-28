@@ -441,7 +441,7 @@ func (s *State) Init() {
 
 	s.initServerKeys()
 	s.AuthorityServerCount = 0
-	LoadIdentityCache(s)
+	//LoadIdentityCache(s)
 	//StubIdentityCache(s)
 
 	s.starttime = time.Now()

@@ -240,7 +240,17 @@ func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
 		fs.CurrentBlock.SetPrevKeyMR(hash.Bytes())
 		fs.CurrentBlock.SetPrevFullHash(hash2.Bytes())
 	}
+
 	dblk, _ := fs.State.DB.FetchDirectoryBlockHead()
+	/*if dblk != nil {
+		for dbentries := range dblk.GetDBEntries() {
+
+		}
+		eblk := dblk.GetDBEntries()
+		fmt.Println(eblk)
+	}*/
+
+	//LoadIdentityByEntryBlock(fs.State.DB.FetchEBlock(hash), st, update)
 	LoadIdentityByDirectoryBlock(dblk, fs.State, true)
 	fs.DBHeight++
 }
