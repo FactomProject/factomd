@@ -266,7 +266,7 @@ func HandleGetReceipt(ctx *web.Context, hashkey string) {
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
 	param := HashRequest{Hash: hashkey}
-	req := primitives.NewJSON2Request("get-receipt", 1, param)
+	req := primitives.NewJSON2Request("receipt", 1, param)
 
 	jsonResp, jsonError := HandleV2Request(state, req)
 	returnV1(ctx, jsonResp, jsonError)
@@ -460,7 +460,7 @@ func HandleGetFee(ctx *web.Context) {
 
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
-	req := primitives.NewJSON2Request("factoid-fee", 1, nil)
+	req := primitives.NewJSON2Request("entry-credit-rate", 1, nil)
 
 	jsonResp, jsonError := HandleV2Request(state, req)
 	if jsonError != nil {
@@ -470,7 +470,7 @@ func HandleGetFee(ctx *web.Context) {
 	type x struct{ Fee int64 }
 	d := new(x)
 
-	d.Fee = int64(jsonResp.Result.(*FactoidFeeResponse).Fee)
+	d.Fee = int64(jsonResp.Result.(*EntryCreditRateResponse).Rate)
 
 	returnMsg(ctx, d, true)
 }

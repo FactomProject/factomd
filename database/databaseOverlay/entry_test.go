@@ -28,7 +28,7 @@ func TestSaveLoadEntries(t *testing.T) {
 
 	max := 10
 	for i := 0; i < max; i++ {
-		entry := CreateTestEnry(uint32(i))
+		entry := CreateTestEntry(uint32(i))
 		err = dbo.InsertEntry(entry)
 		if err != nil {
 			t.Error(err)

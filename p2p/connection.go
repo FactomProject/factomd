@@ -10,6 +10,7 @@ import (
 	"hash/crc32"
 	"io"
 	"net"
+	"syscall"
 	"time"
 )
 
@@ -29,6 +30,7 @@ type Connection struct {
 	timeLastAttempt time.Time    // time of last attempt to connect via dial
 	timeLastPing    time.Time    // time of last ping sent
 	timeLastUpdate  time.Time    // time of last peer update sent
+	timeLastStatus  time.Time    // last time we printed our status for debugging.
 	state           uint8        // Current state of the connection. Private. Only communication
 	isOutGoing      bool         // We keep track of outgoing dial() vs incomming accept() connections
 	isPersistent    bool         // Persistent connections we always redail. BUGBUG - should this be handled by peer type logic?
@@ -140,7 +142,6 @@ func (c *Connection) commonInit(peer Peer) {
 	c.ReceiveChannel = make(chan interface{}, 10000)
 	c.timeLastUpdate = time.Now()
 	c.timeLastAttempt = time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC)
-	// go c.processReceives() // Need seperate goroutine for send and recieves since they are blocking, or long timeouts
 	go c.runLoop() // handles sending messages, processing commands
 }
 
@@ -150,6 +151,7 @@ func (c *Connection) runLoop() {
 	for ConnectionClosed != c.state { // loop exits when we hit shutdown state
 		// time.Sleep(time.Second * 1) // This can be a tight loop, don't want to starve the application
 		time.Sleep(time.Millisecond * 10) // This can be a tight loop, don't want to starve the application
+		c.connectionStatusReport()
 		switch c.state {
 		case ConnectionInitialized:
 			// BUGBUG Note this means that we will redial ourselves if we are set as a persistent connection with ourselves as peer.
@@ -177,8 +179,13 @@ func (c *Connection) runLoop() {
 				c.goShutdown()
 			}
 		case ConnectionOffline:
-			note(c.peer.PeerIdent(), "Connection.runLoop() ConnectionOffline, going dialLoop().")
-			c.dialLoop() // dialLoop dials until it connects or shuts down.
+			switch {
+			case c.isOutGoing:
+				note(c.peer.PeerIdent(), "Connection.runLoop() ConnectionOffline, going dialLoop().")
+				c.dialLoop() // dialLoop dials until it connects or shuts down.
+			default: // the connection dialed us, so we shutdown
+				c.goShutdown()
+			}
 		case ConnectionShuttingDown:
 			debug(c.peer.PeerIdent(), "runLoop() ConnectionShuttingDown STATE runloop() cleaning up. ")
 			c.state = ConnectionClosed
@@ -353,7 +360,11 @@ func (c *Connection) sendParcel(parcel Parcel) {
 	}
 }
 
-// New version: Recieves is called as part of runloop
+// processReceives is called as part of runloop. This is essentially an infinite loop that exits
+// when:
+// -- a network error happens
+// -- something causes our state to be offline
+// -- we run out of data to recieve (which gives an io.EOF which is handled by handleNetErrors)
 func (c *Connection) processReceives() {
 	for ConnectionOnline == c.state {
 		var message Parcel
@@ -364,6 +375,7 @@ func (c *Connection) processReceives() {
 		case nil == err:
 			note(c.peer.PeerIdent(), "Connection.processReceives() RECIEVED FROM NETWORK!  State: %s MessageType: %s", c.ConnectionState(), message.MessageType())
 			c.bytesReceived += message.Header.Length
+			message.Header.PeerAddress = c.peer.Address
 			c.handleParcel(message)
 		default:
 			c.handleNetErrors(err)
@@ -375,7 +387,7 @@ func (c *Connection) processReceives() {
 //handleNetErrors Reacts to errors we get from encoder or decoder
 func (c *Connection) handleNetErrors(err error) {
 	nerr, isNetError := err.(net.Error)
-	verbose(c.peer.PeerIdent(), "Connection.handleNetErrors() got error: %+v", err)
+	verbose(c.peer.PeerIdent(), "Connection.handleNetErrors() State: %s We got error: %+v", c.ConnectionState(), err)
 	switch {
 	case isNetError && nerr.Timeout(): /// buffer empty
 		return
@@ -385,8 +397,11 @@ func (c *Connection) handleNetErrors(err error) {
 	case io.EOF == err, io.ErrClosedPipe == err: // Remote hung up
 		c.notes = fmt.Sprintf("handleNetErrors() Remote hung up - error: %+v", err)
 		c.goOffline()
+	case err == syscall.EPIPE: // "write: broken pipe"
+		c.notes = fmt.Sprintf("handleNetErrors() Broken Pipe: %+v", err)
+		c.goOffline()
 	default:
-		significant(c.peer.PeerIdent(), "Connection.handleNetErrors() got unhandled coding error: %+v", err)
+		significant(c.peer.PeerIdent(), "Connection.handleNetErrors() State: %s We got unhandled coding error: %+v", c.ConnectionState(), err)
 		c.notes = fmt.Sprintf("handleNetErrors() Unhandled error: %+v", err)
 		c.goOffline()
 	}
@@ -517,4 +532,20 @@ func (c *Connection) updatePeer() {
 
 func (c *Connection) ConnectionState() string {
 	return connectionStateStrings[c.state]
+}
+
+func (c *Connection) connectionStatusReport() {
+	reportDuration := time.Since(c.timeLastStatus)
+	if reportDuration > NetworkStatusInterval {
+		c.timeLastStatus = time.Now()
+		significant("ctrlr", "===========================")
+		significant("ctrlr", "     Connection: %s", c.peer.PeerIdent())
+		significant("ctrlr", "          State: %s", c.ConnectionState())
+		significant("ctrlr", "          Notes: %s", c.Notes())
+		significant("ctrlr", "     Persistent: %t", c.IsPersistent())
+		significant("ctrlr", "       Outgoing: %t", c.IsOutGoing())
+		significant("ctrlr", " ReceiveChannel: %d", len(c.ReceiveChannel))
+		significant("ctrlr", "    SendChannel: %d", len(c.SendChannel))
+		significant("ctrlr", "===========================")
+	}
 }

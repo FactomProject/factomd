@@ -6,9 +6,10 @@ package state
 
 import (
 	"fmt"
-	"github.com/FactomProject/factomd/common/interfaces"
 	"sync"
 	"time"
+
+	"github.com/FactomProject/factomd/common/interfaces"
 )
 
 const numBuckets = 27
@@ -21,7 +22,6 @@ type Replay struct {
 	buckets  [numBuckets]map[[32]byte]byte
 	basetime int // hours since 1970
 	center   int // Hour of the current time.
-	check    map[[32]byte]byte
 }
 
 // Remember that Unix time is in seconds since 1970.  This code
@@ -32,17 +32,16 @@ func hours(unix int64) int {
 
 // Returns false if the hash is too old, or is already a
 // member of the set.  Timestamp is in seconds.
-func (r *Replay) Valid(hash [32]byte, timestamp int64, systemtime int64) (index int, valid bool) {
-
+func (r *Replay) Valid(hash [32]byte, timestamp interfaces.Timestamp, systemtime interfaces.Timestamp) (index int, valid bool) {
+	timeSeconds := timestamp.GetTimeSeconds()
+	systemTimeSeconds := systemtime.GetTimeSeconds()
 	// Check the timestamp to see if within 12 hours of the system time.  That not valid, we are
 	// just done without any added concerns.
-	if timestamp-systemtime > 60*60*12 || systemtime-timestamp > 60*60*12 {
+	if timeSeconds-systemTimeSeconds > 60*60*12 || systemTimeSeconds-timeSeconds > 60*60*12 {
 		return -1, false
 	}
 
-	_, okc := r.check[hash]
-
-	now := hours(systemtime)
+	now := hours(systemTimeSeconds)
 
 	// We don't let the system clock go backwards.  likely an attack if it does.
 	if now < r.center {
@@ -52,7 +51,6 @@ func (r *Replay) Valid(hash [32]byte, timestamp int64, systemtime int64) (index 
 	if r.center == 0 {
 		r.center = now
 		r.basetime = now - (numBuckets / 2)
-		r.check = make(map[[32]byte]byte, 0)
 	}
 	for r.center < now {
 		copy(r.buckets[:], r.buckets[1:])
@@ -61,7 +59,7 @@ func (r *Replay) Valid(hash [32]byte, timestamp int64, systemtime int64) (index 
 		r.basetime++
 	}
 
-	t := hours(timestamp)
+	t := hours(timeSeconds)
 	index = t - r.basetime
 	if index < 0 || index >= numBuckets {
 		fmt.Println("dddd Timestamp false on time:", index)
@@ -73,14 +71,8 @@ func (r *Replay) Valid(hash [32]byte, timestamp int64, systemtime int64) (index 
 	} else {
 		_, ok := r.buckets[index][hash]
 		if ok {
-			if !okc {
-				panic(fmt.Sprintf("dddd Replay Failure returns false %x %d", hash, timestamp))
-			}
 			return index, false
 		}
-	}
-	if okc {
-		panic(fmt.Sprintf("dddd Replay Failure returns true %x %d", hash, timestamp))
 	}
 	return index, true
 }
@@ -90,14 +82,14 @@ func (r *Replay) Valid(hash [32]byte, timestamp int64, systemtime int64) (index 
 // have seen this hash before, then it is not valid.  To that end,
 // this code remembers hashes tested in the past, and rejects the
 // second submission of the same hash.
-func (r *Replay) IsTSValid(hash interfaces.IHash, timestamp int64) bool {
-	return r.IsTSValid_(hash.Fixed(), timestamp, time.Now().Unix())
+func (r *Replay) IsTSValid(hash interfaces.IHash, timestamp interfaces.Timestamp) bool {
+	return r.IsTSValid_(hash.Fixed(), timestamp, *interfaces.NewTimestampNow())
 }
 
 // To make the function testable, the logic accepts the current time
 // as a parameter.  This way, the test code can manipulate the clock
 // at will.
-func (r *Replay) IsTSValid_(hash [32]byte, timestamp int64, now int64) bool {
+func (r *Replay) IsTSValid_(hash [32]byte, timestamp interfaces.Timestamp, now interfaces.Timestamp) bool {
 
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
@@ -105,7 +97,6 @@ func (r *Replay) IsTSValid_(hash [32]byte, timestamp int64, now int64) bool {
 	if index, ok := r.Valid(hash, timestamp, now); ok {
 		// Mark this hash as seen
 		r.buckets[index][hash] = 'x'
-		r.check[hash] = 'x'
 		return true
 	}
 

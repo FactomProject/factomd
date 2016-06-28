@@ -9,7 +9,7 @@ var _ = fmt.Print
 
 type FEREntry struct {
 	Version                string `json:"version"`
-	ExpirationHeight       uint32 `json:"exiration_height"`
+	ExpirationHeight       uint32 `json:"expiration_height"`
 	ResidentHeight         uint32 `json:"resident_height"`
 	TargetActivationHeight uint32 `json:"target_activation_height"`
 	Priority               uint32 `json:"priority"`

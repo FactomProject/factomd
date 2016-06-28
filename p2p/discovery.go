@@ -95,7 +95,7 @@ func (d *Discovery) PrintPeers() {
 	note("discovery", "Peer Report:")
 	UpdateKnownPeers.Lock()
 	for key, value := range d.knownPeers {
-		note("discovery", "%s \t Address: %s \t Port: %s \tQuality: %d", key, value.Address, value.Port, value.QualityScore)
+		note("discovery", "%s \t Address: %s \t Port: %s \tQuality: %d Source: %+v", key, value.Address, value.Port, value.QualityScore, value.Source)
 	}
 	UpdateKnownPeers.Unlock()
 	note("discovery", "End Peer Report\n\n\n\n")
@@ -136,13 +136,17 @@ func (d *Discovery) SavePeers() {
 	UpdateKnownPeers.Lock()
 	// Purge peers we have not talked to in awhile.
 	// BUGBUG Check with Brian. IF you enable this code, make sure you are saving the last contact accurately.
-	// for _, peer := range d.knownPeers {
-	// 	if time.Since(peer.LastContact) > (time.Hour * 168) { // a week
-	// 		delete(d.knownPeers, peer.Address)
-	// 	}
-	// }
-	encoder.Encode(d.knownPeers)
+	for _, peer := range d.knownPeers {
+		// if time.Since(peer.LastContact) > (time.Hour * 168) { // a week
+		// 	delete(d.knownPeers, peer.Address)
+		// }
+		if MinumumQualityScore > peer.QualityScore {
+			delete(d.knownPeers, peer.Address)
+		}
+	}
 	UpdateKnownPeers.Unlock()
+
+	encoder.Encode(d.knownPeers)
 	writer.Flush()
 	note("discovery", "SavePeers() saved %d peers in peers.json", len(d.knownPeers))
 }
@@ -150,20 +154,19 @@ func (d *Discovery) SavePeers() {
 // LearnPeers recieves a set of peers from other hosts
 // The unique peers are added to our peer list.
 // The peers are in a json encoded string as a byte slice
-func (d *Discovery) LearnPeers(payload []byte) {
-	dec := json.NewDecoder(bytes.NewReader(payload))
+func (d *Discovery) LearnPeers(parcel Parcel) {
+	dec := json.NewDecoder(bytes.NewReader(parcel.Payload))
 	var peerArray []Peer
 	err := dec.Decode(&peerArray)
 	if nil != err {
-		logfatal("discovery", "Discovery.LearnPeers got an error unmarshalling json. error: %+v json: %+v", err, strconv.Quote(string(payload)))
+		logfatal("discovery", "Discovery.LearnPeers got an error unmarshalling json. error: %+v json: %+v", err, strconv.Quote(string(parcel.Payload)))
 		return
 	}
 	for _, value := range peerArray {
-		if d.isPeerPresent(value) {
-			value.QualityScore = 0
-			d.updatePeer(value)
-			note("discovery", "Discovery.LearnPeers !!!!!!!!!!!!! Discoverd new PEER!   %+v ", value)
-		}
+		value.QualityScore = 0
+		value.Source = append(value.Source, parcel.Header.PeerAddress)
+		d.updatePeer(value)
+		note("discovery", "Discovery.LearnPeers !!!!!!!!!!!!! Discoverd new PEER!   %+v ", value)
 	}
 }
 
@@ -262,6 +265,7 @@ func (d *Discovery) DiscoverPeers() {
 	for _, line := range lines {
 		ipAndPort := strings.Split(line, ":")
 		peer := new(Peer).Init(ipAndPort[0], ipAndPort[1], 0, RegularPeer, 0)
+		peer.Source = append(peer.Source, "DNS Seed")
 		d.updatePeer(*peer)
 	}
 	silence("discovery", "DiscoverPeers got peers: %+v", lines)

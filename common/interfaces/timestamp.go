@@ -14,12 +14,34 @@ func GetTimeMilli() uint64 {
 	return uint64(time.Now().UnixNano()) / 1000000 // 10^-9 >> 10^-3
 }
 
+func GetTime() uint64 {
+	return uint64(time.Now().Unix())
+}
+
 //A structure for handling timestamps for messages
 type Timestamp uint64 //in miliseconds
 
-func NewTimeStampNow() *Timestamp {
+func NewTimestampNow() *Timestamp {
 	t := new(Timestamp)
 	t.SetTimeNow()
+	return t
+}
+
+func NewTimestampFromSeconds(s uint32) *Timestamp {
+	t := new(Timestamp)
+	*t = Timestamp(int64(s) * 1000)
+	return t
+}
+
+func NewTimestampFromMinutes(s uint32) *Timestamp {
+	t := new(Timestamp)
+	*t = Timestamp(int64(s) * 60000)
+	return t
+}
+
+func NewTimestampFromMilliseconds(s uint64) *Timestamp {
+	t := new(Timestamp)
+	*t = Timestamp(s)
 	return t
 }
 
@@ -31,9 +53,8 @@ func (t *Timestamp) SetTime(miliseconds uint64) {
 	*t = Timestamp(miliseconds)
 }
 
-// Get the seconds from a Timestamp
-func (t *Timestamp) GetTime() time.Time {
-	return time.Unix(0, int64(*t)*1000000)
+func (t Timestamp) GetTime() time.Time {
+	return time.Unix(int64(t/1000), int64(((t)%1000)*1000))
 }
 
 func (t *Timestamp) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
@@ -48,19 +69,35 @@ func (t *Timestamp) UnmarshalBinary(data []byte) error {
 	return err
 }
 
-func (t *Timestamp) GetTimeSecond() int64 {
-	return int64(*t / 1000)
+func (t Timestamp) GetTimeSeconds() int64 {
+	return int64(t / 1000)
 }
 
-func (t *Timestamp) MarshalBinary() ([]byte, error) {
+func (t Timestamp) GetTimeMinutesUInt32() uint32 {
+	return uint32(t / 60000)
+}
+
+func (t Timestamp) GetTimeMilli() int64 {
+	return int64(t)
+}
+
+func (t Timestamp) GetTimeMilliUInt64() uint64 {
+	return uint64(t)
+}
+
+func (t Timestamp) GetTimeSecondsUInt32() uint32 {
+	return uint32(t / 1000)
+}
+
+func (t Timestamp) MarshalBinary() ([]byte, error) {
 	var out bytes.Buffer
-	hd := uint32(*t >> 16)
-	ld := uint16(*t & 0xFFFF)
+	hd := uint32(t >> 16)
+	ld := uint16(t & 0xFFFF)
 	binary.Write(&out, binary.BigEndian, uint32(hd))
 	binary.Write(&out, binary.BigEndian, uint16(ld))
 	return out.Bytes(), nil
 }
 
-func (t *Timestamp) String() string {
+func (t Timestamp) String() string {
 	return t.GetTime().Format("2006-01-02 15:04:05")
 }

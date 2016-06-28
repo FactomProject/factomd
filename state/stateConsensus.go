@@ -33,17 +33,17 @@ func (s *State) NewMinute() {
 		v := s.Holding[k]
 
 		// Make sure we don't process any dups...
-		if _, ok := s.InternalReplay.Valid(v.GetHash().Fixed(), int64(v.GetTimestamp()/1000), int64(s.GetTimestamp()/1000)); !ok {
+		if _, ok := s.InternalReplay.Valid(v.GetHash().Fixed(), v.GetTimestamp(), s.GetTimestamp()); !ok {
 			continue
 		}
-		if _, ok := s.InternalReplay.Valid(v.GetMsgHash().Fixed(), int64(v.GetTimestamp()/1000), int64(s.GetTimestamp()/1000)); !ok {
+		if _, ok := s.InternalReplay.Valid(v.GetMsgHash().Fixed(), v.GetTimestamp(), s.GetTimestamp()); !ok {
 			continue
 		}
 		a, _ := s.Acks[k].(*messages.Ack)
 		if a != nil && v != nil {
 			s.ProcessLists.Get(a.DBHeight).AddToProcessList(a, v)
 		} else if v != nil {
-			_, ok := s.InternalReplay.Valid(v.GetMsgHash().Fixed(), int64(v.GetTimestamp()/1000), int64(s.GetTimestamp()/1000))
+			_, ok := s.InternalReplay.Valid(v.GetMsgHash().Fixed(), v.GetTimestamp(), s.GetTimestamp())
 			if ok {
 				v.ComputeVMIndex(s)
 				s.XReview = append(s.XReview, v)
@@ -142,7 +142,7 @@ func (s *State) ProcessQueues() (progress bool) {
 
 	// Executing a message means looking if it is valid, checking if we are a leader.
 	executeMsg := func(msg interfaces.IMsg) (ret bool) {
-		_, ok := s.InternalReplay.Valid(msg.GetHash().Fixed(), int64(msg.GetTimestamp()/1000), int64(s.GetTimestamp()/1000))
+		_, ok := s.InternalReplay.Valid(msg.GetHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp())
 		if !ok {
 			return
 		}
@@ -190,7 +190,7 @@ func (s *State) ProcessQueues() (progress bool) {
 
 	select {
 	case ack := <-s.ackQueue:
-		_, ok := s.InternalReplay.Valid(ack.GetHash().Fixed(), int64(ack.GetTimestamp()/1000), int64(s.GetTimestamp()/1000))
+		_, ok := s.InternalReplay.Valid(ack.GetHash().Fixed(), ack.GetTimestamp(), s.GetTimestamp())
 		if ok && ack.Validate(s) == 1 {
 			ack.FollowerExecute(s)
 		}
@@ -366,8 +366,8 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 
 func (s *State) LeaderExecute(m interfaces.IMsg) {
 
-	_, ok1 := s.InternalReplay.Valid(m.GetHash().Fixed(), int64(m.GetTimestamp()/1000), int64(s.GetTimestamp()/1000))
-	_, ok2 := s.InternalReplay.Valid(m.GetMsgHash().Fixed(), int64(m.GetTimestamp()/1000), int64(s.GetTimestamp()/1000))
+	_, ok1 := s.InternalReplay.Valid(m.GetHash().Fixed(), m.GetTimestamp(), s.GetTimestamp())
+	_, ok2 := s.InternalReplay.Valid(m.GetMsgHash().Fixed(), m.GetTimestamp(), s.GetTimestamp())
 	if !ok1 || !ok2 {
 		delete(s.Holding, m.GetMsgHash().Fixed())
 		return
@@ -496,13 +496,25 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
 		eb := s.GetNewEBlocks(dbheight, chainID)
 		if eb == nil {
 			prev := s.GetNewEBlocks(dbheight-1, chainID)
-			if prev == nil {
-				prev, _ = s.DB.FetchEBlockHead(chainID)
-				if prev == nil {
-					return false
-				}
+			prevdb, _ := s.DB.FetchEBlockHead(chainID)
+			if prev == nil && prevdb == nil {
+				return false
 			}
+
+			if prev != nil {
+				mr1, _ := prev.KeyMR()
+				mr2, _ := prevdb.KeyMR()
+				if mr2 == nil || !mr1.IsSameAs(mr2) {
+					fmt.Printf("dddd BAD EB Block Head %s DBHeigth: %3d Min %2d PL: %x DB: %x\n",
+						s.FactomNodeName, s.LLeaderHeight, int(s.LeaderPL.VMs[0].LeaderMinute), mr1.Bytes(), mr2.Bytes())
+				}
+			} else {
+				prev = prevdb
+			}
+
 			eb = entryBlock.NewEBlock()
+			eb.GetHeader().SetEBSequence(prev.GetHeader().GetEBSequence() + 1)
+			eb.GetHeader().SetPrevFullHash(prev.GetHash())
 			// Set the Chain ID
 			eb.GetHeader().SetChainID(chainID)
 			// Set the Directory Block Height for this Entry Block
@@ -598,10 +610,14 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		// TODO: check signatures here.  Count what match and what don't.  Then if a majority
 		// disagree with us, null our entry out.  Otherwise toss our DBState and ask for one from
 		// our neighbors.
-		s.DBStates.Get(int(dbheight - 1)).ReadyToSave = true
+		dbstate := s.DBStates.Get(int(dbheight - 1))
+		if dbstate.Saved {
+			return true
+		} else {
+			dbstate.ReadyToSave = true
+		}
 	}
-
-	return true
+	return false
 }
 
 func (s *State) ConsiderSaved(dbheight uint32) {

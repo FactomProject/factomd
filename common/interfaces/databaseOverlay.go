@@ -85,6 +85,8 @@ type DBOverlay interface {
 	// FetchDBlockByHeight gets an directory block by height from the database.
 	FetchDBlockByHeight(uint32) (IDirectoryBlock, error)
 
+	FetchDBlockHead() (IDirectoryBlock, error)
+
 	// FetchDBKeyMRByHeight gets a dBlock KeyMR from the database.
 	FetchDBKeyMRByHeight(dBlockHeight uint32) (dBlockKeyMR IHash, err error)
 

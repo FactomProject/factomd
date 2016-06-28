@@ -95,11 +95,11 @@ func (c *FBlock) GetDatabaseHeight() uint32 {
 }
 
 // Return the timestamp of the coinbase transaction
-func (b *FBlock) GetCoinbaseTimestamp() int64 {
+func (b *FBlock) GetCoinbaseTimestamp() interfaces.Timestamp {
 	if len(b.Transactions) == 0 {
-		return -1
+		return 0xFFFFFFFFFFFFFFFF
 	}
-	return int64(b.Transactions[0].GetMilliTimestamp())
+	return b.Transactions[0].GetTimestamp()
 }
 
 func (b *FBlock) EndOfPeriod(period int) {

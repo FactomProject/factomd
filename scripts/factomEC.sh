@@ -11,5 +11,13 @@ do
     entry="$(echo "Here are some random numbers: " $RANDOM $RANDOM $RANDOM $RANDOM $RANDOM $RANDOM)"
     echo ${entry} | factom-cli put -c ${chain} e1
     echo ${entry}
+    sleep 8
+    entry="$(echo "Here are some random numbers: " $RANDOM $RANDOM $RANDOM $RANDOM $RANDOM $RANDOM)"
+    echo ${entry} | factom-cli put -c ${chain} e1
+    echo ${entry}
+    sleep 7
+    entry="$(echo "Here are some random numbers: " $RANDOM $RANDOM $RANDOM $RANDOM $RANDOM $RANDOM)"
+    echo ${entry} | factom-cli put -c ${chain} e1
+    echo ${entry}
 
 done

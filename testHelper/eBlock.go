@@ -35,7 +35,7 @@ func CreateTestEntryBlock(p interfaces.IEntryBlock) (*entryBlock.EBlock, []*entr
 		e.Header.SetDBHeight(prev.GetHeader().GetDBHeight() + 1)
 
 		e.Header.SetChainID(prev.GetHeader().GetChainID())
-		entry := CreateTestEnry(e.Header.GetDBHeight())
+		entry := CreateTestEntry(e.Header.GetDBHeight())
 		e.AddEBEntry(entry)
 		entries = append(entries, entry)
 	} else {
@@ -75,7 +75,7 @@ func CreateTestEntryBlockWithContentN(p interfaces.IEntryBlock, content uint32) 
 		e.Header.SetDBHeight(prev.GetHeader().GetDBHeight() + 1)
 
 		e.Header.SetChainID(prev.GetHeader().GetChainID())
-		entry := CreateTestEnry(content)
+		entry := CreateTestEntry(content)
 		e.AddEBEntry(entry)
 		entries = append(entries, entry)
 	} else {
@@ -164,7 +164,7 @@ func CreateFirstAnchorEntry() *entryBlock.Entry {
 	return answer
 }
 
-func CreateTestEnry(n uint32) *entryBlock.Entry {
+func CreateTestEntry(n uint32) *entryBlock.Entry {
 	answer := entryBlock.NewEntry()
 
 	answer.ChainID = GetChainID()

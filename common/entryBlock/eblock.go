@@ -6,6 +6,7 @@ package entryBlock
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -107,6 +108,22 @@ func (e *EBlock) AddEBEntry(entry interfaces.IEBEntry) error {
 // Minut byte becomes the last byte in a 32 byte slice that is added to the
 // Entry Block Body as an Entry Block Entry.
 func (e *EBlock) AddEndOfMinuteMarker(m byte) {
+	// create a map of possible minute markers that may be found in the
+	// EBlock Body
+	mins := make(map[string]uint8)
+	for i := byte(1); i <= 10; i++ {
+		h := make([]byte, 32)
+		h[len(h)-1] = i
+		mins[hex.EncodeToString(h)] = i
+	}
+
+	// check if the previous entry is a minute marker and return without
+	// writing if it is
+	prevEntry := e.Body.EBEntries[len(e.Body.EBEntries)-1]
+	if _, exist := mins[prevEntry.String()]; exist {
+		return
+	}
+
 	h := make([]byte, 32)
 	h[len(h)-1] = m
 	hash := primitives.NewZeroHash()

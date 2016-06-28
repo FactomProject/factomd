@@ -225,22 +225,146 @@ func SimControl(listenTo int) {
 				}
 
 			case 'i' == b[0]:
+				show := 0
+				amt := -1
+				if len(b) > 1 {
+					if b[1] == 'h' {
+						show = 1
+					} else if b[1] == 'm' {
+						show = 2
+					} else if b[1] == 'b' {
+						show = 3
+					} else if b[1] == 'a' {
+						show = 4
+					}
+					if len(b) > 2 {
+						amt, err = strconv.Atoi(b[2:])
+						if b[1] == 's' {
+							show = 5
+						} else if err == nil {
+						} else {
+							show = 0
+							amt = -1
+						}
+					}
+				}
+				if amt == -1 {
+					os.Stderr.WriteString(fmt.Sprintf("=== Identity List === Total: %d Displaying: All\n", len(fnodes[listenTo].State.Identities)))
 
-				for _, i := range fnodes[listenTo].State.Identities {
-					os.Stderr.WriteString("-------------------------------------------------------------------------------\n")
-					os.Stderr.WriteString(fmt.Sprint("Server Status: ", i.Status, "\n"))
-					os.Stderr.WriteString(fmt.Sprint("Identity Chain: ", i.IdentityChainID, "\n"))
-					os.Stderr.WriteString(fmt.Sprint("Management Chain: ", i.ManagementChainID, "\n"))
-					os.Stderr.WriteString(fmt.Sprint("Matryoshka Hash: ", i.MatryoshkaHash, "\n"))
-					os.Stderr.WriteString(fmt.Sprint("Key 1: ", i.Key1, "\n"))
-					os.Stderr.WriteString(fmt.Sprint("Key 2: ", i.Key2, "\n"))
-					os.Stderr.WriteString(fmt.Sprint("Key 3: ", i.Key3, "\n"))
-					os.Stderr.WriteString(fmt.Sprint("Key 4: ", i.Key4, "\n"))
-					os.Stderr.WriteString(fmt.Sprint("Signing Key: ", i.SigningKey, "\n"))
-					os.Stderr.WriteString(fmt.Sprint("Anchor Key: ", i.AnchorKeys, "\n"))
+				} else if show == 5 {
+					os.Stderr.WriteString(fmt.Sprintf("=== Identity List === Total: %d Displaying Only: %d\n", len(fnodes[listenTo].State.Identities), amt))
+				} else {
+					os.Stderr.WriteString(fmt.Sprintf("=== Identity List === Total: %d Displaying: %d\n", len(fnodes[listenTo].State.Identities), amt))
+				}
+				for c, i := range fnodes[listenTo].State.Identities {
+					if amt != -1 && c == amt+1 {
+						break
+					}
+					stat := returnStatString(i.Status)
+					if show == 5 {
+						if c != amt {
+
+						} else {
+							os.Stderr.WriteString(fmt.Sprint("-----------------------------------Identity: ", amt, "---------------------------------------\n"))
+						}
+					} else {
+						os.Stderr.WriteString(fmt.Sprint("-----------------------------------Identity: ", c, "---------------------------------------\n"))
+					}
+					if show == 0 || show == 5 {
+						if show == 0 || c == amt {
+							os.Stderr.WriteString(fmt.Sprint("Server Status: ", stat, "\n"))
+							os.Stderr.WriteString(fmt.Sprint("Identity Chain: ", i.IdentityChainID, "\n"))
+							os.Stderr.WriteString(fmt.Sprint("Management Chain: ", i.ManagementChainID, "\n"))
+							os.Stderr.WriteString(fmt.Sprint("Matryoshka Hash: ", i.MatryoshkaHash, "\n"))
+							os.Stderr.WriteString(fmt.Sprint("Key 1: ", i.Key1, "\n"))
+							os.Stderr.WriteString(fmt.Sprint("Key 2: ", i.Key2, "\n"))
+							os.Stderr.WriteString(fmt.Sprint("Key 3: ", i.Key3, "\n"))
+							os.Stderr.WriteString(fmt.Sprint("Key 4: ", i.Key4, "\n"))
+							os.Stderr.WriteString(fmt.Sprint("Signing Key: ", i.SigningKey, "\n"))
+							for _, a := range i.AnchorKeys {
+								os.Stderr.WriteString(fmt.Sprintf("Anchor Key: {'%s' L%x T%x K:%x}\n", a.BlockChain, a.KeyLevel, a.KeyType, a.SigningKey))
+							}
+						}
+					} else if show == 1 {
+						os.Stderr.WriteString(fmt.Sprint("Server Status: ", stat, "\n"))
+						os.Stderr.WriteString(fmt.Sprint("Identity Chain: ", i.IdentityChainID, "\n"))
+						os.Stderr.WriteString(fmt.Sprint("Management Chain: ", i.ManagementChainID, "\n"))
+					} else if show == 2 {
+						os.Stderr.WriteString(fmt.Sprint("Server Status: ", stat, "\n"))
+						os.Stderr.WriteString(fmt.Sprint("Identity Chain: ", i.IdentityChainID, "\n"))
+						os.Stderr.WriteString(fmt.Sprint("Matryoshka Hash: ", i.MatryoshkaHash, "\n"))
+					} else if show == 3 {
+						os.Stderr.WriteString(fmt.Sprint("Server Status: ", stat, "\n"))
+						os.Stderr.WriteString(fmt.Sprint("Identity Chain: ", i.IdentityChainID, "\n"))
+						os.Stderr.WriteString(fmt.Sprint("Signing Key: ", i.SigningKey, "\n"))
+					} else if show == 4 {
+						os.Stderr.WriteString(fmt.Sprint("Server Status: ", stat, "\n"))
+						os.Stderr.WriteString(fmt.Sprint("Identity Chain: ", i.IdentityChainID, "\n"))
+						for _, a := range i.AnchorKeys {
+							os.Stderr.WriteString(fmt.Sprintf("Anchor Key: {'%s' L%x T%x K:%x}\n", a.BlockChain, a.KeyLevel, a.KeyType, a.SigningKey))
+						}
+					}
 				}
 				//os.Stderr.WriteString(fmt.Sprint(fnodes[listenTo].State.Identities))
 
+			case 't' == b[0]:
+				if len(b) > 1 {
+					index, err := strconv.Atoi(string(b[1:]))
+					if err != nil {
+						fmt.Println("Incorrect input. bN where N is a number")
+						break
+					}
+					if index >= len(fnodes[listenTo].State.Identities) {
+						fmt.Println("Identity index does not exist")
+						break
+					}
+					id := fnodes[listenTo].State.Identities[index].IdentityChainID
+					if id == nil {
+						fmt.Println("Invalid identity, try 'isN' to see if identity exists.")
+						break
+					}
+					fnodes[listenTo].State.IdentityChainID = id
+					fmt.Println("Identity of " + fnodes[listenTo].State.GetFactomNodeName() + " changed to [" + id.String()[:10] + "]")
+				}
+			case 'u' == b[0]:
+				os.Stderr.WriteString(fmt.Sprintf("=== Authority List ===  Total: %d Displaying: All\n", len(fnodes[listenTo].State.Authorities)))
+				for _, i := range fnodes[listenTo].State.Authorities {
+					os.Stderr.WriteString("-------------------------------------------------------------------------------\n")
+					var stat string
+					switch i.Status {
+					case 0:
+						stat = "Unassigned"
+					case 1:
+						stat = "Federated Server"
+					case 2:
+						stat = "Audit Server"
+					case 3:
+						stat = "Full"
+					case 4:
+						stat = "Pending Federated Server"
+					case 5:
+						stat = "Pending Audit Server"
+					case 6:
+						stat = "Pending Full"
+					case 7:
+						stat = "Pending"
+					}
+					os.Stderr.WriteString(fmt.Sprint("Server Status: ", stat, "\n"))
+					os.Stderr.WriteString(fmt.Sprint("Identity Chain: ", i.AuthorityChainID, "\n"))
+					os.Stderr.WriteString(fmt.Sprint("Management Chain: ", i.ManagementChainID, "\n"))
+					os.Stderr.WriteString(fmt.Sprint("Matryoshka Hash: ", i.MatryoshkaHash, "\n"))
+					os.Stderr.WriteString(fmt.Sprint("Signing Key: ", i.SigningKey, "\n"))
+					for _, a := range i.AnchorKeys {
+						os.Stderr.WriteString(fmt.Sprintf("Anchor Key: {'%s' L%x T%x K:%x}\n", a.BlockChain, a.KeyLevel, a.KeyType, a.SigningKey))
+					}
+				}
+			case 'e' == b[0]:
+				eHashes := fnodes[listenTo].State.GetPendingEntryHashes()
+				os.Stderr.WriteString("Pending Entry Hash\n")
+				os.Stderr.WriteString("------------------\n")
+				for _, eh := range eHashes {
+					os.Stderr.WriteString(fmt.Sprint(eh.String(), "\n"))
+				}
 			case 'h' == b[0]:
 				os.Stderr.WriteString("-------------------------------------------------------------------------------\n")
 				os.Stderr.WriteString("h or ENTER    Shows this help\n")
@@ -254,7 +378,11 @@ func SimControl(listenTo int) {
 				os.Stderr.WriteString("n             Change the focus to the next node.\n")
 				os.Stderr.WriteString("l             Make focused node the Leader.\n")
 				os.Stderr.WriteString("x             Take the given node out of the netork or bring an offline node back in.\n")
-				os.Stderr.WriteString("w             Point the WSAPI to send API calls to the current node.")
+				os.Stderr.WriteString("w             Point the WSAPI to send API calls to the current node.\n")
+				os.Stderr.WriteString("i             Shows the identities in the current state.\n")
+				os.Stderr.WriteString("tN            Attaches identity N to the current node\n")
+				os.Stderr.WriteString("i[m/b/a][N]   Shows only the Mhash, block signing key, or anchor key up to the Nth identity\n")
+				os.Stderr.WriteString("isN           Shows only Nth identity\n")
 				os.Stderr.WriteString("h or <enter>  Show help\n")
 				os.Stderr.WriteString("\n")
 				os.Stderr.WriteString("Most commands are case insensitive.\n")
@@ -264,6 +392,28 @@ func SimControl(listenTo int) {
 			}
 		}
 	}
+}
+func returnStatString(i int) string {
+	var stat string
+	switch i {
+	case 0:
+		stat = "Unassigned"
+	case 1:
+		stat = "Federated Server"
+	case 2:
+		stat = "Audit Server"
+	case 3:
+		stat = "Full"
+	case 4:
+		stat = "Pending Federated Server"
+	case 5:
+		stat = "Pending Audit Server"
+	case 6:
+		stat = "Pending Full"
+	case 7:
+		stat = "Pending"
+	}
+	return stat
 }
 
 // Allows us to scatter transactions across all nodes.

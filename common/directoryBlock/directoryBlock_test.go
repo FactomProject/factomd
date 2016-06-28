@@ -7,6 +7,7 @@ package directoryBlock_test
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	"testing"
 
@@ -273,6 +274,25 @@ func TestKeyMRs(t *testing.T) {
 
 	if dBlock.GetKeyMR().String() != "1710a017d0aaa29e03cdce767f2442a8519a512769777eb5c93d0167ad788104" {
 		t.Error("Wrong DBlock KeyMR")
+	}
+}
+
+func TestDBlockTimestamp(t *testing.T) {
+	dbStr := "010000ffff45acc1e2847302b80d0558aac1504c54253c28293a92bab6c7f8bb984a1e696fcd63b26d12e9d397a545fd50e26b53ab8b1fb555f824edb1f71937a6288d59014d1b7854253ec712124c9862f3aece068fe8b56b33e540dd6e8f7bb30efdb4f7000004da0000000800000005000000000000000000000000000000000000000000000000000000000000000a44a3b5f89f8f861815930b8442ed143d61163a8d5ad4cc3f792847c6c26e3543000000000000000000000000000000000000000000000000000000000000000c9d149c5213f91502ad50d9136792974987ad086309bf4d1462c68fe982284245000000000000000000000000000000000000000000000000000000000000000f1a708e863af21b5492563f6440cabfd2932653864f77cf4519cf361b107e4ce86e7e64ac45ff57edbf8537a0c99fba2e9ee351ef3d3f4abd93af9f01107e592c25c9e5963917c97ed988c571e703104b34d11f2f6241c0c69d9cfd6ad94491dbdf3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604027710061c785d0ffbf15f2fe4a42a744f78ef6a0ca39bcf38ed4ead6ab0cded"
+	dbHex, err := hex.DecodeString(dbStr)
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	dBlock, err := UnmarshalDBlock(dbHex)
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+
+	timestamp := dBlock.GetTimestamp()
+
+	seconds := timestamp.GetTimeMilli()
+	if seconds != 1242*60*1000 {
+		t.Errorf("Invalid timestamp - %v vs %v", seconds, 1242*60*1000)
 	}
 }
 

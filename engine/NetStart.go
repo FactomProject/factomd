@@ -12,13 +12,14 @@ import (
 	"time"
 	"unicode"
 
+	"math"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
-	"math"
 )
 
 var _ = fmt.Print
@@ -32,6 +33,7 @@ type FactomNode struct {
 var fnodes []*FactomNode
 var mLog = new(MsgLog)
 var network p2p.Controller
+var p2pProxy *P2PProxy
 
 func NetStart(s *state.State) {
 
@@ -53,7 +55,6 @@ func NetStart(s *state.State) {
 	netdebugPtr := flag.Int("netdebug", 0, "0-5: 0 = quiet, >0 = increasing levels of logging")
 	exclusivePtr := flag.Bool("exclusive", false, "If true, we only dial out to special/trusted peers.")
 	prefixNodePtr := flag.String("prefix", "", "Prefix the Factom Node Names with this value; used to create leaderless networks.")
-	profilePtr := flag.String("profile", "", "If true, turn on the go Profiler to profile execution of Factomd")
 	rotatePtr := flag.Bool("rotate", false, "If true, responsiblity is owned by one leader, and rotated over the leaders.")
 	timeOffsetPtr := flag.Int("timedelta", 0, "Maximum timeDelta in milliseconds to offset each node.  Simulates deltas in system clocks over a network.")
 
@@ -77,7 +78,6 @@ func NetStart(s *state.State) {
 	netdebug := *netdebugPtr
 	exclusive := *exclusivePtr
 	prefix := *prefixNodePtr
-	profile := *profilePtr
 	rotate := *rotatePtr
 	timeOffset := *timeOffsetPtr
 
@@ -128,6 +128,8 @@ func NetStart(s *state.State) {
 			fnode.State.ShutdownChan <- 0
 		}
 		network.NetworkStop()
+		// NODE_TALK_FIX
+		p2pProxy.stopProxy()
 		fmt.Print("Waiting...\r\n")
 		time.Sleep(3 * time.Second)
 		os.Exit(0)
@@ -160,11 +162,7 @@ func NetStart(s *state.State) {
 		s.CloneDBType = db
 	}
 
-	if profile == "true" {
-		go StartProfiler()
-	} else {
-		profile = "false"
-	}
+	go StartProfiler()
 
 	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "node", listenTo))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "prefix", prefix))
@@ -182,7 +180,6 @@ func NetStart(s *state.State) {
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%t\"\n", "exclusive", exclusive))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "block time", blkTime))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "runtimeLog", runtimeLog))
-	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "profile", profile))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "rotate", rotate))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "timeOffset", timeOffset))
 
@@ -225,7 +222,7 @@ func NetStart(s *state.State) {
 	network = *p2pController
 	network.StartNetwork()
 	// Setup the proxy (Which translates from network parcels to factom messages, handling addressing for directed messages)
-	p2pProxy := new(P2PProxy).Init(fnodes[0].State.FactomNodeName, "P2P Network").(*P2PProxy)
+	p2pProxy = new(P2PProxy).Init(fnodes[0].State.FactomNodeName, "P2P Network").(*P2PProxy)
 	p2pProxy.FromNetwork = network.FromNetwork
 	p2pProxy.ToNetwork = network.ToNetwork
 	fnodes[0].Peers = append(fnodes[0].Peers, p2pProxy)
