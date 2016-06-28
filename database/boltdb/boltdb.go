@@ -83,6 +83,11 @@ func (db *BoltDB) Delete(bucket []byte, key []byte) error {
 	return nil
 }
 
+// Can't trim a real database
+func (db *BoltDB) Trim() {
+
+}
+
 func (db *BoltDB) Close() error {
 	db.Sem.Lock()
 	defer db.Sem.Unlock()
