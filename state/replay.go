@@ -19,7 +19,7 @@ var _ = fmt.Print
 
 type Replay struct {
 	mutex    sync.Mutex
-	buckets  [numBuckets]map[[32]byte]byte
+	buckets  [numBuckets]map[[32]byte]int
 	basetime int // hours since 1970
 	center   int // Hour of the current time.
 }
@@ -32,7 +32,7 @@ func hours(unix int64) int {
 
 // Returns false if the hash is too old, or is already a
 // member of the set.  Timestamp is in seconds.
-func (r *Replay) Valid(hash [32]byte, timestamp interfaces.Timestamp, systemtime interfaces.Timestamp) (index int, valid bool) {
+func (r *Replay) Valid(mask int, hash [32]byte, timestamp interfaces.Timestamp, systemtime interfaces.Timestamp) (index int, valid bool) {
 	timeSeconds := timestamp.GetTimeSeconds()
 	systemTimeSeconds := systemtime.GetTimeSeconds()
 	// Check the timestamp to see if within 12 hours of the system time.  That not valid, we are
@@ -42,6 +42,9 @@ func (r *Replay) Valid(hash [32]byte, timestamp interfaces.Timestamp, systemtime
 	}
 
 	now := hours(systemTimeSeconds)
+
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
 
 	// We don't let the system clock go backwards.  likely an attack if it does.
 	if now < r.center {
@@ -67,10 +70,10 @@ func (r *Replay) Valid(hash [32]byte, timestamp interfaces.Timestamp, systemtime
 	}
 
 	if r.buckets[index] == nil {
-		r.buckets[index] = make(map[[32]byte]byte)
+		r.buckets[index] = make(map[[32]byte]int)
 	} else {
-		_, ok := r.buckets[index][hash]
-		if ok {
+		v, _ := r.buckets[index][hash]
+		if v&mask > 0 {
 			return index, false
 		}
 	}
@@ -82,21 +85,20 @@ func (r *Replay) Valid(hash [32]byte, timestamp interfaces.Timestamp, systemtime
 // have seen this hash before, then it is not valid.  To that end,
 // this code remembers hashes tested in the past, and rejects the
 // second submission of the same hash.
-func (r *Replay) IsTSValid(hash interfaces.IHash, timestamp interfaces.Timestamp) bool {
-	return r.IsTSValid_(hash.Fixed(), timestamp, *interfaces.NewTimestampNow())
+func (r *Replay) IsTSValid(mask int, hash interfaces.IHash, timestamp interfaces.Timestamp) bool {
+	return r.IsTSValid_(mask, hash.Fixed(), timestamp, *interfaces.NewTimestampNow())
 }
 
 // To make the function testable, the logic accepts the current time
 // as a parameter.  This way, the test code can manipulate the clock
 // at will.
-func (r *Replay) IsTSValid_(hash [32]byte, timestamp interfaces.Timestamp, now interfaces.Timestamp) bool {
+func (r *Replay) IsTSValid_(mask int, hash [32]byte, timestamp interfaces.Timestamp, now interfaces.Timestamp) bool {
 
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
-	if index, ok := r.Valid(hash, timestamp, now); ok {
+	if index, ok := r.Valid(mask, hash, timestamp, now); ok {
+		r.mutex.Lock()
+		defer r.mutex.Unlock()
 		// Mark this hash as seen
-		r.buckets[index][hash] = 'x'
+		r.buckets[index][hash] = r.buckets[index][hash] | mask
 		return true
 	}
 

@@ -495,8 +495,8 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 
 	now := p.State.GetTimestamp()
 
-	_, isNew1 := p.State.InternalReplay.Valid(m.GetHash().Fixed(), m.GetTimestamp(), now)
-	_, isNew2 := p.State.InternalReplay.Valid(m.GetMsgHash().Fixed(), m.GetTimestamp(), now)
+	_, isNew1 := p.State.Replay.Valid(constants.INTERNAL_REPLAY, m.GetHash().Fixed(), m.GetTimestamp(), now)
+	_, isNew2 := p.State.Replay.Valid(constants.INTERNAL_REPLAY, m.GetMsgHash().Fixed(), m.GetTimestamp(), now)
 	if !isNew1 || !isNew2 {
 		toss("seen before, or too old")
 		return
@@ -537,8 +537,8 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 
 	// We have already tested and found m to be a new message.  We now record its hashes so later, we
 	// can detect that it has been recorded.  We don't care about the results of IsTSValid_ at this point.
-	p.State.InternalReplay.IsTSValid_(m.GetHash().Fixed(), m.GetTimestamp(), now)
-	p.State.InternalReplay.IsTSValid_(m.GetMsgHash().Fixed(), m.GetTimestamp(), now)
+	p.State.Replay.IsTSValid_(constants.INTERNAL_REPLAY, m.GetHash().Fixed(), m.GetTimestamp(), now)
+	p.State.Replay.IsTSValid_(constants.INTERNAL_REPLAY, m.GetMsgHash().Fixed(), m.GetTimestamp(), now)
 
 	delete(p.State.Acks, ack.GetHash().Fixed())
 	delete(p.State.Holding, m.GetMsgHash().Fixed())
