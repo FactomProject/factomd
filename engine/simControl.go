@@ -68,11 +68,11 @@ func SimControl(listenTo int) {
 					if err != nil {
 						os.Stderr.WriteString(fmt.Sprintf("Error in input bN, %s\n", err.Error()))
 					} else {
-						auths, err := authorityToBlockchain(count)
+						auths, skipped, err := authorityToBlockchain(count, fnodes[listenTo].State)
 						if err != nil {
 							os.Stderr.WriteString(fmt.Sprintf("Error making authorites, %s\n", err.Error()))
 						}
-						os.Stderr.WriteString(fmt.Sprintf("=== %d Authorities added to blockchain, %d remain in stack ===\n", len(auths), authStack.Length()))
+						os.Stderr.WriteString(fmt.Sprintf("=== %d Authorities added to blockchain, %d remain in stack, %d skipped (Added by someone else) ===\n", len(auths), authStack.Length(), skipped))
 						for _, ele := range auths {
 							fmt.Println(ele.ChainID.String())
 						}
@@ -330,6 +330,7 @@ func SimControl(listenTo int) {
 				//os.Stderr.WriteString(fmt.Sprint(fnodes[listenTo].State.Identities))
 
 			case 't' == b[0]:
+				index := 0
 				if len(b) == 65 {
 					hash, err := fnodes[listenTo].State.IdentityChainID.HexToHash(b[1:])
 					if err != nil {
@@ -341,25 +342,33 @@ func SimControl(listenTo int) {
 							fnodes[listenTo].State.LocalServerPrivKey = key
 						}
 						os.Stderr.WriteString(fmt.Sprintf("Identity of " + fnodes[listenTo].State.GetFactomNodeName() + " changed to [" + hash.String()[:10] + "]\n"))
-
 					}
+					break
+				} else if len(authKeyLibrary) == 0 {
+					os.Stderr.WriteString(fmt.Sprintf("There are no more available identities in this node. Press 'g1' to claim another identity\n"))
+					break
 				} else if len(b) > 1 {
-					index, err := strconv.Atoi(string(b[1:]))
+					index, err = strconv.Atoi(string(b[1:]))
 					if err != nil {
 						os.Stderr.WriteString(fmt.Sprintf("Incorrect input. bN where N is a number\n"))
 						break
 					}
-					if index >= len(fnodes[listenTo].State.Identities) {
-						os.Stderr.WriteString(fmt.Sprintf("Identity index does not exist\n"))
+				}
+				if index >= len(authKeyLibrary) {
+					os.Stderr.WriteString(fmt.Sprintf("Identity index out of bounds, only %d in the list.\n", len(authKeyLibrary)))
+					break
+				}
+				if authKeyLibrary[index].Taken == true {
+					os.Stderr.WriteString(fmt.Sprintf("Identity %d already taken, taking next available identity in list\n", index))
+				}
+				for index < len(authKeyLibrary) {
+					if authKeyLibrary[index].Taken == false {
+						authKeyLibrary[index].Taken = true
+						fnodes[listenTo].State.IdentityChainID = authKeyLibrary[index].ChainID
+						os.Stderr.WriteString(fmt.Sprintf("Identity of " + fnodes[listenTo].State.GetFactomNodeName() + " changed to [" + authKeyLibrary[index].ChainID.String()[:10] + "]\n"))
 						break
 					}
-					id := fnodes[listenTo].State.Identities[index].IdentityChainID
-					if id == nil {
-						os.Stderr.WriteString(fmt.Sprintf("Invalid identity, try 'isN' to see if identity exists.\n"))
-						break
-					}
-					fnodes[listenTo].State.IdentityChainID = id
-					os.Stderr.WriteString(fmt.Sprintf("Identity of " + fnodes[listenTo].State.GetFactomNodeName() + " changed to [" + id.String()[:10] + "]\n"))
+					index++
 				}
 			case 'u' == b[0]:
 				os.Stderr.WriteString(fmt.Sprintf("=== Authority List ===  Total: %d Displaying: All\n", len(fnodes[listenTo].State.Authorities)))

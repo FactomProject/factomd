@@ -15,6 +15,7 @@ import (
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/wsapi"
 	"github.com/FactomProject/serveridentity/identity"
 )
@@ -58,9 +59,12 @@ type hardCodedAuthority struct {
 	Ready       bool
 
 	NewBlockKey string
+	Taken       bool
 }
 
 var (
+	STACK_HEIGHT = 100
+
 	nextAuthority  int = -1
 	authStack      *authStackImp
 	authKeyLibrary []hardCodedAuthority
@@ -91,8 +95,17 @@ var (
 	privates    string = "4#2f08c7199cebb237d44f2d4139ba5de47e668f093442666a9811b62543350809a575e55dfc6d7f22eaae6a83455d9984e805afec23411aeea86d10de08815369#8#2a971c5d050c5f00cc5767026e80846a1aa3b0b052253ca4f5f892b15a4efe20756ae5009e249b240c46678d0ef854f375a652edef8fcaf452370cc859ebdc64#5#e2830e2a112b2d5771dff6b72d1bd97ba3990c16c610089745d39986fb1c17d78716096a2c9d448988cd3b3637b53e02e31f1661cd73f4c965d710c849ec50cb#7#ecb74484061433b0012e14fb1b650ec37d15b00dfd492479358bc4bddfb85ddbbf706ded7ccd3ae869f6ce0a17d43140ca2e188423c2e470d2eed43a639cecc6#2#143635fb3e4a43216b7131636ad0039ca34e028e340f43797b2437f8878d7ca42e0a694ca5e5d95ec38c83549b86964e084276205cec31aa377cf7f1583f47d4#0#073e2d49fccb7fc2616a07ca56d9095ee2264cb2af17266c95e560b651d57073e29a231b405ddb2a5eb963a15b2f06656adddbce2294c1fa33366540b6b2dd09#3#26027e822add6928174955b33ccdefeb63c7edb9dd9c0d8528a5dcbb44fa1ff9ff36689b5f57162e6d69e612adb65f5af6e32f7c3974044872ac7d64758313e3#1#a4205f0ba6ed82ad1b42f16b8b5191031f97e1cd03722ae4615b12249f5499a27ee3fa3c1228fa6a49a5e25d29e41eaa70fd712485a0233941bdd4b6d7f1980a#9#30a0e7cf62d945a0abc85ac668ff84dc2f0ef9a05141d83bab4978ea3d8cb6ca56c0174db2f5cc6cb5c734c34771214f04bc12182e76e40eda890fdc39c86426#6#3939254711c81c52dc7fb188bb6a4891d5e0de8bd401ab447a51e607f28661f6ffe04cd38c395c6299d018d5d49ed0fb403b3550ab99033c408be08ee12f73df"
 )
 
-func setUpAuthorites(st interfaces.IState) []hardCodedAuthority {
+func setUpAuthorites(st *state.State) []hardCodedAuthority {
 	// 0201559923a3d401000183ddb4b300646f3e8750c550e4582eca5047546ffef89c13a175985e320232bacac81cc42883dceb94003b6a27bcceb6a42d62a3a8d02a6f0d73653215771de243a63ac048a18b59da2901718b5edd2914acc2e4677f336c1a32736e5e9bde13663e6413894f57ec272e28da9e933ab39800c03e61b8740e2d7ec95d0019421a995d00bc4d1e52a1a3e1d68bf8d0d05e41396ba0fc867cc3d5febf5bf6baf187ef3291a874b876027c4e03
+	blank, _ := primitives.HexToHash("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")
+	exists, err := st.DB.FetchHeadIndexByChainID(blank)
+	if exists != nil && err == nil {
+		authStack = new(authStackImp)
+		authKeyLibrary = make([]hardCodedAuthority, 0)
+		list := buildMessages()
+		return list
+	}
+
 	inSec, _ := primitives.HexToHash("FB3B471B1DCDADFEB856BD0B02D8BF49ACE0EDD372A3D9F2A95B78EC12A324D6")
 	inAdd := new(factoid.Address)
 	inFS, _ := primitives.HexToHash("646F3E8750C550E4582ECA5047546FFEF89C13A175985E320232BACAC81CC428")
@@ -141,80 +154,87 @@ func buildMainChain() {
 	_, _ = v2Request(j)
 }
 
-func authorityToBlockchain(total int) ([]hardCodedAuthority, error) {
+func authorityToBlockchain(total int, st *state.State) ([]hardCodedAuthority, int, error) {
 	madeAuths := make([]hardCodedAuthority, 0)
+	skipped := 0
 	//for index, ele := range list {
 	for count := 0; count < total; count++ {
 		if authStack.Length() == 0 {
-			return madeAuths, errors.New("No hardcoded authorities remain")
+			return madeAuths, skipped, errors.New("No hardcoded authorities remain")
 		}
 		ele := authStack.Pop()
-		nextAuthority++
-		for i, mes := range ele.ChainCommits {
-			m := new(wsapi.MessageRequest)
-			m.Message = mes
-			j := primitives.NewJSON2Request("commit-chain", i, m)
-			_, _ = v2Request(j)
-		}
-		for i, mes := range ele.ChainReveals {
+		exists, err := st.DB.FetchHeadIndexByChainID(ele.ChainID)
+		if exists != nil && err == nil {
+			skipped++
+			count--
+		} else {
+			nextAuthority++
+			for i, mes := range ele.ChainCommits {
+				m := new(wsapi.MessageRequest)
+				m.Message = mes
+				j := primitives.NewJSON2Request("commit-chain", i, m)
+				_, _ = v2Request(j)
+			}
+			for i, mes := range ele.ChainReveals {
+				m := new(wsapi.EntryRequest)
+				m.Entry = mes
+				j := primitives.NewJSON2Request("reveal-chain", i, m)
+				_, _ = v2Request(j)
+			}
+			for i, mes := range ele.EntryCommits {
+				m := new(wsapi.EntryRequest)
+				m.Entry = mes
+				j := primitives.NewJSON2Request("commit-entry", i, m)
+				_, _ = v2Request(j)
+			}
+			for i, mes := range ele.EntryReveals {
+				m := new(wsapi.EntryRequest)
+				m.Entry = mes
+				j := primitives.NewJSON2Request("reveal-entry", i, m)
+				_, _ = v2Request(j)
+			}
+			sec, _ := hex.DecodeString(ecSec)
+			ec, _ := factom.MakeECAddress(sec[:32])
+
+			com, rev, key := makeBlockKey(ele, ec)
+			ele.NewBlockKey = key
 			m := new(wsapi.EntryRequest)
-			m.Entry = mes
-			j := primitives.NewJSON2Request("reveal-chain", i, m)
+			m.Entry = com
+			j := primitives.NewJSON2Request("commit-entry", 0, m)
 			_, _ = v2Request(j)
-		}
-		for i, mes := range ele.EntryCommits {
-			m := new(wsapi.EntryRequest)
-			m.Entry = mes
-			j := primitives.NewJSON2Request("commit-entry", i, m)
+
+			m = new(wsapi.EntryRequest)
+			m.Entry = rev
+			j = primitives.NewJSON2Request("reveal-entry", 0, m)
 			_, _ = v2Request(j)
-		}
-		for i, mes := range ele.EntryReveals {
-			m := new(wsapi.EntryRequest)
-			m.Entry = mes
-			j := primitives.NewJSON2Request("reveal-entry", i, m)
+
+			com, rev = makeMHash(ele, ec)
+			m = new(wsapi.EntryRequest)
+			m.Entry = com
+			j = primitives.NewJSON2Request("commit-entry", 0, m)
 			_, _ = v2Request(j)
+
+			m = new(wsapi.EntryRequest)
+			m.Entry = rev
+			j = primitives.NewJSON2Request("reveal-entry", 0, m)
+			_, _ = v2Request(j)
+
+			com, rev = makeBTCKey(ele, ec)
+			m = new(wsapi.EntryRequest)
+			m.Entry = com
+			j = primitives.NewJSON2Request("commit-entry", 0, m)
+			_, _ = v2Request(j)
+
+			m = new(wsapi.EntryRequest)
+			m.Entry = rev
+			j = primitives.NewJSON2Request("reveal-entry", 0, m)
+			_, _ = v2Request(j)
+
+			madeAuths = append(madeAuths, ele)
+			authKeyLibrary = append(authKeyLibrary, ele)
 		}
-		sec, _ := hex.DecodeString(ecSec)
-		ec, _ := factom.MakeECAddress(sec[:32])
-
-		com, rev, key := makeBlockKey(ele, ec)
-		ele.NewBlockKey = key
-		m := new(wsapi.EntryRequest)
-		m.Entry = com
-		j := primitives.NewJSON2Request("commit-entry", 0, m)
-		_, _ = v2Request(j)
-
-		m = new(wsapi.EntryRequest)
-		m.Entry = rev
-		j = primitives.NewJSON2Request("reveal-entry", 0, m)
-		_, _ = v2Request(j)
-
-		com, rev = makeMHash(ele, ec)
-		m = new(wsapi.EntryRequest)
-		m.Entry = com
-		j = primitives.NewJSON2Request("commit-entry", 0, m)
-		_, _ = v2Request(j)
-
-		m = new(wsapi.EntryRequest)
-		m.Entry = rev
-		j = primitives.NewJSON2Request("reveal-entry", 0, m)
-		_, _ = v2Request(j)
-
-		com, rev = makeBTCKey(ele, ec)
-		m = new(wsapi.EntryRequest)
-		m.Entry = com
-		j = primitives.NewJSON2Request("commit-entry", 0, m)
-		_, _ = v2Request(j)
-
-		m = new(wsapi.EntryRequest)
-		m.Entry = rev
-		j = primitives.NewJSON2Request("reveal-entry", 0, m)
-		_, _ = v2Request(j)
-
-		madeAuths = append(madeAuths, ele)
-		authKeyLibrary = append(authKeyLibrary, ele)
 	}
-	return madeAuths, nil
+	return madeAuths, skipped, nil
 }
 
 func makeBlockKey(ele hardCodedAuthority, ec *factom.ECAddress) (string, string, string) {
@@ -281,7 +301,7 @@ func authKeyLookup(auth interfaces.IHash) string {
 }
 
 func buildMessages() []hardCodedAuthority {
-	list := make([]hardCodedAuthority, 20)
+	list := make([]hardCodedAuthority, STACK_HEIGHT)
 	cComs := strings.Split(chainCommit, "#")
 	for i := 0; i < len(cComs); i = i + 2 {
 		index, err := strconv.Atoi(cComs[i])
@@ -376,6 +396,7 @@ func buildMessages() []hardCodedAuthority {
 	}
 	for _, ele := range list {
 		if ele.Ready == true {
+			ele.Taken = false
 			authStack.Push(ele)
 		}
 	}
