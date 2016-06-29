@@ -452,14 +452,14 @@ func (c *Controller) weAreNotAlreadyConnectedTo(peer Peer) bool {
 }
 
 func (c *Controller) fillOutgoingSlots() {
-	c.updateConnectionAddressHash()
+	c.updateConnectionAddressMap()
 	significant("controller", "Connected peers:")
 	for key := range c.connectionsByAddress {
 		significant("controller", "%s", key)
 	}
 	peers := c.discovery.GetOutgoingPeers()
 	if len(peers) < NumberPeersToConnect*2 {
-		c.discovery.DiscoverPeers()
+		c.discovery.GetOutgoingPeers()
 		peers = c.discovery.GetOutgoingPeers()
 	}
 	// dial into the peers
