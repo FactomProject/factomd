@@ -53,7 +53,6 @@ type State struct {
 	DirectoryBlockInSeconds int
 	PortNumber              int
 	Replay                  *Replay
-	InternalReplay          *Replay
 	DropRate                int
 
 	IdentityChainID      interfaces.IHash // If this node has an identity, this is it
@@ -352,7 +351,6 @@ func (s *State) Init() {
 	}
 	// Set up struct to stop replay attacks
 	s.Replay = new(Replay)
-	s.InternalReplay = new(Replay)
 
 	// Set up maps for the followers
 	s.Holding = make(map[[32]byte]interfaces.IMsg)
@@ -1069,6 +1067,9 @@ func (s *State) SetString() {
 		if lmin < 0 {
 			lmin = 9
 		}
+	}
+	if lmin > 9 {
+		lmin = 0
 	}
 
 	found, vm := s.GetVirtualServers(s.LLeaderHeight, lmin, s.GetIdentityChainID())

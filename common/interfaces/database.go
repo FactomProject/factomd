@@ -16,6 +16,7 @@ type IDatabase interface {
 	Clear(bucket []byte) error
 	PutInBatch(records []Record) error
 	ListAllBuckets() ([][]byte, error)
+	Trim()
 }
 
 type Record struct {

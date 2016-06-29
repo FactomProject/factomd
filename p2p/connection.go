@@ -24,7 +24,6 @@ type Connection struct {
 	// and as "address" for sending messages to specific nodes.
 	encoder         *gob.Encoder // Wire format is gobs in this version, may switch to binary
 	decoder         *gob.Decoder // Wire format is gobs in this version, may switch to binary
-	timeLastContact time.Time    // We track how recently we have heard from a peer to determin if it is still active.
 	peer            Peer         // the datastructure representing the peer we are talking to. defined in peer.go
 	attempts        int          // reconnection attempts
 	timeLastAttempt time.Time    // time of last attempt to connect via dial
@@ -100,6 +99,7 @@ func (c *Connection) InitWithConn(conn net.Conn, peer Peer) *Connection {
 	debug(c.peer.PeerIdent(), "Connection.InitWithConn() called.")
 	c.goOnline()
 	c.notes = "Incomming connection from accept()"
+	go c.runLoop() // handles sending messages, processing commands
 	return c
 }
 
@@ -110,6 +110,7 @@ func (c *Connection) Init(peer Peer, persistent bool) *Connection {
 	c.commonInit(peer)
 	c.isPersistent = persistent
 	debug(c.peer.PeerIdent(), "Connection.Init() called.")
+	go c.runLoop() // handles sending messages, processing commands
 	return c
 }
 
@@ -137,12 +138,11 @@ func (c *Connection) Notes() string {
 func (c *Connection) commonInit(peer Peer) {
 	c.state = ConnectionInitialized
 	c.peer = peer
-	c.notes = "initialized"
+	c.notes = "commonInit()"
 	c.SendChannel = make(chan interface{}, 10000)
 	c.ReceiveChannel = make(chan interface{}, 10000)
 	c.timeLastUpdate = time.Now()
 	c.timeLastAttempt = time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC)
-	go c.runLoop() // handles sending messages, processing commands
 }
 
 // runloop OWNs the connection.  It is the only goroutine that can change values in the connection struct
@@ -208,32 +208,39 @@ func (c *Connection) dialLoop() {
 			c.timeLastAttempt = time.Now()
 			switch c.dial() {
 			case true:
-				note(c.peer.PeerIdent(), "Connection.dialLoop() Connected, going online.")
+				c.notes = "Connection.dialLoop() Connected, going online."
+				note(c.peer.PeerIdent(), c.notes)
 				c.goOnline()
 				return
 			case false:
 				switch {
 				case c.isPersistent:
-					note(c.peer.PeerIdent(), "Connection.dialLoop() Persistent connection - Sleeping until next redial.")
+					c.notes = "Connection.dialLoop() Persistent connection - Sleeping until next redial."
+					note(c.peer.PeerIdent(), c.notes)
 					time.Sleep(TimeBetweenRedials)
 				case !c.isOutGoing: // incomming connection we redial once, then give up.
-					note(c.peer.PeerIdent(), "Connection.dialLoop() Incomming Connections - One Shot dial, so we're shutting down.")
+					c.notes = "Connection.dialLoop() Incomming Connection - One Shot re-dial, so we're shutting down."
+					note(c.peer.PeerIdent(), c.notes)
 					c.goShutdown()
 					return
 				case ConnectionInitialized == c.state:
-					note(c.peer.PeerIdent(), "Connection.dialLoop() ConnectionInitialized - One Shot dial, so we're shutting down.")
+					c.notes = "Connection.dialLoop() ConnectionInitialized - One Shot dial, so we're shutting down."
+					note(c.peer.PeerIdent(), c.notes)
 					c.goShutdown() // We're dialing possibly many peers who are no longer there.
 					return
 				case ConnectionOffline == c.state: // We were online with the peer at one point.
-					note(c.peer.PeerIdent(), "Connection.dialLoop() ConnectionOffline - Attempts: %d - since redial: %s TimeBetweenRedials: %s", c.attempts, elapsed.String(), TimeBetweenRedials.String())
+					c.notes = fmt.Sprintf("Connection.dialLoop() ConnectionOffline - Attempts: %d - since redial: %s TimeBetweenRedials: %s", c.attempts, elapsed.String(), TimeBetweenRedials.String())
+					note(c.peer.PeerIdent(), c.notes)
 					c.attempts++
 					switch {
 					case MaxNumberOfRedialAttempts < c.attempts:
-						note(c.peer.PeerIdent(), "Connection.dialLoop() MaxNumberOfRedialAttempts < Attempts: %d - since redial: %s TimeBetweenRedials: %s", c.attempts, elapsed.String(), TimeBetweenRedials.String())
+						c.notes = fmt.Sprintf("Connection.dialLoop() MaxNumberOfRedialAttempts < Attempts: %d - since redial: %s TimeBetweenRedials: %s", c.attempts, elapsed.String(), TimeBetweenRedials.String())
+						note(c.peer.PeerIdent(), c.notes)
 						c.goShutdown()
 						return
 					default:
-						note(c.peer.PeerIdent(), "Connection.dialLoop() MaxNumberOfRedialAttempts > Attempts: %d - since redial: %s TimeBetweenRedials: %s", c.attempts, elapsed.String(), TimeBetweenRedials.String())
+						c.notes = fmt.Sprintf("Connection.dialLoop() MaxNumberOfRedialAttempts > Attempts: %d - since redial: %s TimeBetweenRedials: %s", c.attempts, elapsed.String(), TimeBetweenRedials.String())
+						note(c.peer.PeerIdent(), c.notes)
 						time.Sleep(TimeBetweenRedials)
 					}
 				}
@@ -271,7 +278,6 @@ func (c *Connection) goOnline() {
 	c.decoder = gob.NewDecoder(c.conn)
 	c.attempts = 0
 	c.timeLastPing = now
-	c.timeLastContact = now
 	c.timeLastAttempt = now
 	c.timeLastUpdate = now
 	c.peer.LastContact = now
@@ -425,9 +431,9 @@ func (c *Connection) handleParcel(parcel Parcel) {
 		c.peer.demerit()
 		return
 	case ParcelValid:
-		c.timeLastContact = time.Now() // We only update for valid messages (incluidng pings and heartbeats)
-		c.attempts = 0                 // reset since we are clearly in touch now.
-		c.peer.merit()                 // Increase peer quality score.
+		c.peer.LastContact = time.Now() // We only update for valid messages (incluidng pings and heartbeats)
+		c.attempts = 0                  // reset since we are clearly in touch now.
+		c.peer.merit()                  // Increase peer quality score.
 		debug(c.peer.PeerIdent(), "Connection.handleParcel() got ParcelValid %s", parcel.MessageType())
 		if Notes <= CurrentLoggingLevel {
 			parcel.PrintMessageType()
@@ -505,7 +511,7 @@ func (c *Connection) handleParcelTypes(parcel Parcel) {
 }
 
 func (c *Connection) pingPeer() {
-	durationLastContact := time.Since(c.timeLastContact)
+	durationLastContact := time.Since(c.peer.LastContact)
 	durationLastPing := time.Since(c.timeLastPing)
 	if PingInterval < durationLastContact && PingInterval < durationLastPing {
 		if MaxNumberOfRedialAttempts < c.attempts {
@@ -538,14 +544,6 @@ func (c *Connection) connectionStatusReport() {
 	reportDuration := time.Since(c.timeLastStatus)
 	if reportDuration > NetworkStatusInterval {
 		c.timeLastStatus = time.Now()
-		significant("ctrlr", "===========================")
-		significant("ctrlr", "     Connection: %s", c.peer.PeerIdent())
-		significant("ctrlr", "          State: %s", c.ConnectionState())
-		significant("ctrlr", "          Notes: %s", c.Notes())
-		significant("ctrlr", "     Persistent: %t", c.IsPersistent())
-		significant("ctrlr", "       Outgoing: %t", c.IsOutGoing())
-		significant("ctrlr", " ReceiveChannel: %d", len(c.ReceiveChannel))
-		significant("ctrlr", "    SendChannel: %d", len(c.SendChannel))
-		significant("ctrlr", "===========================")
+		significant("connection", "\n\n===========================\n     Connection: %s\n          State: %s\n          Notes: %s\n           Hash: %s\n     Persistent: %t\n       Outgoing: %t\n ReceiveChannel: %d\n    SendChannel: %d\n===========================\n\n", c.peer.AddressPort(), c.ConnectionState(), c.Notes(), c.peer.Hash[0:12], c.IsPersistent(), c.IsOutGoing(), len(c.ReceiveChannel), len(c.SendChannel))
 	}
 }
