@@ -61,8 +61,9 @@ type hardCodedAuthority struct {
 }
 
 var (
-	nextAuthority int = -1
-	authStack     *authStackImp
+	nextAuthority  int = -1
+	authStack      *authStackImp
+	authKeyLibrary []hardCodedAuthority
 
 	chainCom []string
 	chainRev []string
@@ -120,7 +121,9 @@ func setUpAuthorites(st interfaces.IState) []hardCodedAuthority {
 	t.Transaction = hex.EncodeToString(data)
 	j := primitives.NewJSON2Request("factoid-submit", 0, t)
 	_, _ = v2Request(j)
+
 	authStack = new(authStackImp)
+	authKeyLibrary = make([]hardCodedAuthority, 0)
 	list := buildMessages()
 
 	return list
@@ -187,7 +190,6 @@ func authorityToBlockchain(total int) ([]hardCodedAuthority, error) {
 		_, _ = v2Request(j)
 
 		com, rev = makeMHash(ele, ec)
-		ele.NewBlockKey = key
 		m = new(wsapi.EntryRequest)
 		m.Entry = com
 		j = primitives.NewJSON2Request("commit-entry", 0, m)
@@ -210,6 +212,7 @@ func authorityToBlockchain(total int) ([]hardCodedAuthority, error) {
 		_, _ = v2Request(j)
 
 		madeAuths = append(madeAuths, ele)
+		authKeyLibrary = append(authKeyLibrary, ele)
 	}
 	return madeAuths, nil
 }
@@ -265,6 +268,16 @@ func getMessageString(e *factom.Entry, ec *factom.ECAddress) (string, string) {
 		return "", ""
 	}
 	return tC.Params.Message, tR.Params.Message
+}
+
+// Returns the private block signing key of the authority
+func authKeyLookup(auth interfaces.IHash) string {
+	for _, a := range authKeyLibrary {
+		if auth.IsSameAs(a.ChainID) {
+			return a.NewBlockKey
+		}
+	}
+	return ""
 }
 
 func buildMessages() []hardCodedAuthority {

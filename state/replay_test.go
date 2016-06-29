@@ -6,17 +6,19 @@ package state_test
 
 import (
 	"fmt"
-	"github.com/FactomProject/factomd/common/primitives"
-	. "github.com/FactomProject/factomd/state"
 	"math/rand"
 	"testing"
 	"time"
+
+	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
+	. "github.com/FactomProject/factomd/state"
 )
 
 var _ = fmt.Printf
 var _ = rand.New
 
-var now = time.Now().Unix()
 var hour = int64(60 * 60)
 
 var r = Replay{}
@@ -25,14 +27,15 @@ func Test_Replay(test *testing.T) {
 
 	type mh struct {
 		hash [32]byte
-		time int64
+		time interfaces.Timestamp
 	}
 
-	XTrans := 145000
+	XTrans := 10240 //61440 //145000
 
 	h := make([]*mh, XTrans)
 
-	start := now
+	start := *interfaces.NewTimestampNow()
+	now := *interfaces.NewTimestampNow()
 
 	for i := 0; i < XTrans; i++ {
 
@@ -45,29 +48,29 @@ func Test_Replay(test *testing.T) {
 		h[i].hash = primitives.Sha([]byte(fmt.Sprintf("h%d", i))).Fixed()
 
 		// Build a valid transaction somewhere +/- 12 hours of now
-		h[i].time = now + (rand.Int63() % 24 * hour) - 12*hour
+		h[i].time = *interfaces.NewTimestampFromSeconds(uint32(now.GetTimeSeconds() + (rand.Int63() % 24 * hour) - 12*hour))
 
 		// The first time we test, it should be valid.
-		if !r.IsTSValid_(h[i].hash, h[i].time, now) {
+		if !r.IsTSValid_(constants.INTERNAL_REPLAY, h[i].hash, h[i].time, now) {
 			fmt.Println("Failed Test ", i, "first")
 			test.Fail()
 			return
 		}
 
 		// An immediate replay!  Should fail!
-		if r.IsTSValid_(h[i].hash, h[i].time, now) {
+		if r.IsTSValid_(constants.INTERNAL_REPLAY, h[i].hash, h[i].time, now) {
 			fmt.Println("Failed Test ", i, "second")
 			test.Fail()
 			return
 		}
 
 		// Move time forward somewhere between 0 to 15 minutes
-		now += rand.Int63() % hour / 4
+		now = *interfaces.NewTimestampFromSeconds(uint32(now.GetTimeSeconds() + rand.Int63()%hour/4))
 
 		// Now replay all the transactions we have collected.  NONE of them
 		// should work.
 		for j := 0; j < i; j++ {
-			if r.IsTSValid_(h[i].hash, h[i].time, hour) {
+			if r.IsTSValid_(constants.INTERNAL_REPLAY, h[i].hash, h[i].time, now) {
 				fmt.Println("Failed Test ", i, j, "repeat")
 				test.Fail()
 				return
@@ -75,6 +78,6 @@ func Test_Replay(test *testing.T) {
 		}
 	}
 
-	fmt.Println("Simulation ran from", time.Unix(start, 0), "to", time.Unix(now, 0))
+	fmt.Println("Simulation ran from", time.Unix(start.GetTimeSeconds(), 0), "to", time.Unix(now.GetTimeSeconds(), 0))
 
 }

@@ -354,6 +354,7 @@ func (c *Controller) handleCommand(command interface{}) {
 		parameters := command.(CommandDialPeer)
 		conn := new(Connection).Init(parameters.peer, parameters.persistent)
 		connection := *conn
+		connection.Start()
 		c.connections[connection.peer.Hash] = connection
 		debug("ctrlr", "Controller.handleCommand(CommandDialPeer) got peer %s", parameters.peer.Address)
 	case CommandAddPeer: // parameter is a Connection. This message is sent by the accept loop which is in a different goroutine
@@ -365,6 +366,7 @@ func (c *Controller) handleCommand(command interface{}) {
 		// Port initially stored will be the connection port (not the listen port), but peer will update it on first message.
 		peer := new(Peer).Init(addPort[0], addPort[1], 0, RegularPeer, 0)
 		connection := new(Connection).InitWithConn(conn, *peer)
+		connection.Start()
 		c.connections[connection.peer.Hash] = *connection
 		debug("ctrlr", "Controller.handleCommand(CommandAddPeer) got peer %+v", *peer)
 	case CommandShutdown:

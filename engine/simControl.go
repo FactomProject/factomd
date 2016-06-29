@@ -336,6 +336,10 @@ func SimControl(listenTo int) {
 						os.Stderr.WriteString(fmt.Sprintf("Error: %s\n", err.Error()))
 					} else {
 						fnodes[listenTo].State.IdentityChainID = hash
+						key := authKeyLookup(fnodes[listenTo].State.IdentityChainID)
+						if len(key) == 64 {
+							fnodes[listenTo].State.LocalServerPrivKey = key
+						}
 						os.Stderr.WriteString(fmt.Sprintf("Identity of " + fnodes[listenTo].State.GetFactomNodeName() + " changed to [" + hash.String()[:10] + "]\n"))
 
 					}
