@@ -25,7 +25,6 @@ type IAdminBlock interface {
 	BuildFullBHash() (err error)
 	BuildPartialHash() (err error)
 	AddABEntry(e IABEntry) (err error)
-	AddEndOfMinuteMarker(eomType byte) (err error)
 	GetDBSignature() IABEntry
 	AddFedServer(IHash)
 	AddMatryoshkaHash(IHash, IHash)
