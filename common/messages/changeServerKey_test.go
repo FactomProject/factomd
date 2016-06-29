@@ -38,7 +38,7 @@ func TestMarshalUnmarshalChangeServerKey(t *testing.T) {
 	}
 	t.Logf("str2 - %v", str)
 
-	if addserv2.Type() != constants.ADDSERVER_KEY_MSG {
+	if addserv2.Type() != constants.CHANGESERVER_KEY_MSG {
 		t.Error("Invalid message type unmarshalled")
 	}
 
@@ -47,7 +47,7 @@ func TestMarshalUnmarshalChangeServerKey(t *testing.T) {
 	}
 }
 
-func TestMarshalUnmarshalSignedAddServer(t *testing.T) {
+func TestMarshalUnmarshalSignedChangeServerKey(t *testing.T) {
 	addserv := newSignedChangeServerKey()
 
 	str, err := addserv.JSONString()
@@ -79,7 +79,7 @@ func TestMarshalUnmarshalSignedAddServer(t *testing.T) {
 	}
 	t.Logf("str2 - %v", str)
 
-	if addserv2.Type() != constants.ADDSERVER_KEY_MSG {
+	if addserv2.Type() != constants.CHANGESERVER_KEY_MSG {
 		t.Error("Invalid message type unmarshalled")
 	}
 
