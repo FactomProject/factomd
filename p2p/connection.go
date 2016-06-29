@@ -99,7 +99,6 @@ func (c *Connection) InitWithConn(conn net.Conn, peer Peer) *Connection {
 	debug(c.peer.PeerIdent(), "Connection.InitWithConn() called.")
 	c.goOnline()
 	c.setNotes("Incomming connection from accept()")
-	go c.runLoop() // handles sending messages, processing commands
 	return c
 }
 
@@ -110,7 +109,6 @@ func (c *Connection) Init(peer Peer, persistent bool) *Connection {
 	c.commonInit(peer)
 	c.isPersistent = persistent
 	debug(c.peer.PeerIdent(), "Connection.Init() called.")
-	go c.runLoop() // handles sending messages, processing commands
 	return c
 }
 
@@ -143,6 +141,10 @@ func (c *Connection) commonInit(peer Peer) {
 	c.ReceiveChannel = make(chan interface{}, 10000)
 	c.timeLastUpdate = time.Now()
 	c.timeLastAttempt = time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC)
+}
+
+func (c *Connection) Start() {
+	go c.runLoop()
 }
 
 // runloop OWNs the connection.  It is the only goroutine that can change values in the connection struct
