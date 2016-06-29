@@ -42,7 +42,7 @@ func CreateAndPopulateTestState() *state.State {
 	state.LoadDatabase(s)
 	s.UpdateState()
 	go s.ValidatorLoop()
-	time.Sleep(20 * time.Millisecond)
+	time.Sleep(30 * time.Millisecond)
 
 	return s
 }
@@ -314,7 +314,7 @@ func CreateTestDirectoryBlockHeader(prevBlock *directoryBlock.DirectoryBlock) *d
 		header.SetDBHeight(0)
 		header.SetPrevFullHash(primitives.NewZeroHash())
 		header.SetPrevKeyMR(primitives.NewZeroHash())
-		header.SetTimestamp(1234)
+		header.SetTimestamp(*interfaces.NewTimestampFromMinutes(1234))
 	} else {
 		header.SetDBHeight(prevBlock.Header.GetDBHeight() + 1)
 		header.SetPrevFullHash(prevBlock.GetHash())
@@ -323,7 +323,7 @@ func CreateTestDirectoryBlockHeader(prevBlock *directoryBlock.DirectoryBlock) *d
 			panic(err)
 		}
 		header.SetPrevKeyMR(keyMR)
-		header.SetTimestamp(prevBlock.Header.GetTimestamp() + 1)
+		header.SetTimestamp(*interfaces.NewTimestampFromMinutes(prevBlock.Header.GetTimestamp().GetTimeMinutesUInt32() + 1))
 	}
 
 	header.SetVersion(1)

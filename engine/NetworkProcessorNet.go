@@ -9,6 +9,7 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/log"
 )
@@ -33,7 +34,7 @@ func Peers(fnode *FactomNode) {
 				}
 				cnt++
 				msg.SetOrigin(0)
-				if fnode.State.Replay.IsTSValid_(msg.GetMsgHash().Fixed(),
+				if fnode.State.Replay.IsTSValid_(constants.NETWORK_REPLAY, msg.GetMsgHash().Fixed(),
 					msg.GetTimestamp(),
 					fnode.State.GetTimestamp()) {
 
@@ -71,7 +72,7 @@ func Peers(fnode *FactomNode) {
 				}
 
 				msg.SetOrigin(i + 1)
-				if fnode.State.Replay.IsTSValid_(msg.GetMsgHash().Fixed(),
+				if fnode.State.Replay.IsTSValid_(constants.NETWORK_REPLAY, msg.GetMsgHash().Fixed(),
 					msg.GetTimestamp(),
 					fnode.State.GetTimestamp()) {
 					//if state.GetOut() {
@@ -121,6 +122,7 @@ func NetworkOutputs(fnode *FactomNode) {
 				// seen this message before, because we might have generated the message
 				// ourselves.
 				fnode.State.Replay.IsTSValid_(
+					constants.NETWORK_REPLAY,
 					msg.GetMsgHash().Fixed(),
 					msg.GetTimestamp(),
 					fnode.State.GetTimestamp())

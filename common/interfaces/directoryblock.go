@@ -21,6 +21,7 @@ type IDirectoryBlock interface {
 	GetHash() IHash
 	GetFullHash() IHash
 
+	GetTimestamp() Timestamp
 	HeaderHash() (IHash, error)
 	BodyKeyMR() IHash
 	GetEntryHashesForBranch() []IHash

@@ -45,26 +45,26 @@ func NewTimestampFromMilliseconds(s uint64) *Timestamp {
 	return t
 }
 
-func (t Timestamp) SetTimeNow() {
-	t = Timestamp(GetTimeMilli())
+func (t *Timestamp) SetTimeNow() {
+	*t = Timestamp(GetTimeMilli())
 }
 
-func (t Timestamp) SetTime(miliseconds uint64) {
-	t = Timestamp(miliseconds)
+func (t *Timestamp) SetTime(miliseconds uint64) {
+	*t = Timestamp(miliseconds)
 }
 
 func (t Timestamp) GetTime() time.Time {
 	return time.Unix(int64(t/1000), int64(((t)%1000)*1000))
 }
 
-func (t Timestamp) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+func (t *Timestamp) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	hd, data := binary.BigEndian.Uint32(data[:]), data[4:]
 	ld, data := binary.BigEndian.Uint16(data[:]), data[2:]
-	t = Timestamp((uint64(hd) << 16) + uint64(ld))
+	*t = Timestamp((uint64(hd) << 16) + uint64(ld))
 	return data, nil
 }
 
-func (t Timestamp) UnmarshalBinary(data []byte) error {
+func (t *Timestamp) UnmarshalBinary(data []byte) error {
 	_, err := t.UnmarshalBinaryData(data)
 	return err
 }

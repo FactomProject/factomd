@@ -1,8 +1,12 @@
-package state
+package specialEntries
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 var _ = fmt.Print
@@ -15,6 +19,10 @@ type FEREntry struct {
 	Priority               uint32 `json:"priority"`
 	TargetPrice            uint64 `json:"target_price"`
 }
+
+var _ interfaces.Printable = (*FEREntry)(nil)
+var _ interfaces.BinaryMarshallable = (*FEREntry)(nil)
+var _ interfaces.IFEREntry = (*FEREntry)(nil)
 
 // Getter Version
 func (this *FEREntry) GetVersion() string {
@@ -80,4 +88,34 @@ func (this *FEREntry) GetTargetPrice() uint64 {
 func (this *FEREntry) SetTargetPrice(passedTargetPrice uint64) interfaces.IFEREntry {
 	this.TargetPrice = passedTargetPrice
 	return this
+}
+
+func (e *FEREntry) JSONByte() ([]byte, error) {
+	return primitives.EncodeJSON(e)
+}
+
+func (e *FEREntry) JSONString() (string, error) {
+	return primitives.EncodeJSONString(e)
+}
+
+func (e *FEREntry) JSONBuffer(b *bytes.Buffer) error {
+	return primitives.EncodeJSONToBuffer(e, b)
+}
+
+func (e *FEREntry) String() string {
+	str, _ := e.JSONString()
+	return str
+}
+
+func (e *FEREntry) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+	return nil, json.Unmarshal(data, e)
+}
+
+func (e *FEREntry) UnmarshalBinary(data []byte) (err error) {
+	_, err = e.UnmarshalBinaryData(data)
+	return
+}
+
+func (e *FEREntry) MarshalBinary() ([]byte, error) {
+	return json.Marshal(e)
 }

@@ -327,6 +327,7 @@ func SimControl(listenTo int) {
 					fmt.Println("Identity of " + fnodes[listenTo].State.GetFactomNodeName() + " changed to [" + id.String()[:10] + "]")
 				}
 			case 'u' == b[0]:
+				os.Stderr.WriteString(fmt.Sprintf("=== Authority List ===  Total: %d Displaying: All\n", len(fnodes[listenTo].State.Authorities)))
 				for _, i := range fnodes[listenTo].State.Authorities {
 					os.Stderr.WriteString("-------------------------------------------------------------------------------\n")
 					var stat string
@@ -356,6 +357,13 @@ func SimControl(listenTo int) {
 					for _, a := range i.AnchorKeys {
 						os.Stderr.WriteString(fmt.Sprintf("Anchor Key: {'%s' L%x T%x K:%x}\n", a.BlockChain, a.KeyLevel, a.KeyType, a.SigningKey))
 					}
+				}
+			case 'e' == b[0]:
+				eHashes := fnodes[listenTo].State.GetPendingEntryHashes()
+				os.Stderr.WriteString("Pending Entry Hash\n")
+				os.Stderr.WriteString("------------------\n")
+				for _, eh := range eHashes {
+					os.Stderr.WriteString(fmt.Sprint(eh.String(), "\n"))
 				}
 			case 'h' == b[0]:
 				os.Stderr.WriteString("-------------------------------------------------------------------------------\n")
@@ -437,6 +445,7 @@ func printSummary(summary *int, value int, listenTo *int) {
 		time.Sleep(time.Second)
 
 		for _, f := range fnodes {
+
 			prt = prt + fmt.Sprintf("%s \n", f.State.ShortString())
 		}
 
@@ -540,7 +549,7 @@ func printProcessList(watchPL *int, value int, listenTo *int) {
 				out = nprt
 			}
 		}
-		time.Sleep(time.Second * 5)
+		time.Sleep(time.Second * 1)
 	}
 }
 

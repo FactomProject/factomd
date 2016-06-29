@@ -112,7 +112,7 @@ type IState interface {
 	// Returns the list of VirtualServers at a given directory block height and minute
 	GetVirtualServers(dbheight uint32, minute int, identityChainID IHash) (found bool, index int)
 	// Returns true if between minutes
-	GetEOM() int
+	GetEOM() bool
 
 	GetEBlockKeyMRFromEntryHash(entryHash IHash) IHash
 	GetAnchor() IAnchor
@@ -147,6 +147,7 @@ type IState interface {
 	FollowerExecuteMMR(m IMsg)     // Handle Missing Message Responses
 
 	ProcessAddServer(dbheight uint32, addServerMsg IMsg) bool
+	ProcessChangeServerKey(dbheight uint32, changeServerKeyMsg IMsg) bool
 	ProcessCommitChain(dbheight uint32, commitChain IMsg) bool
 	ProcessCommitEntry(dbheight uint32, commitChain IMsg) bool
 	ProcessDBSig(dbheight uint32, commitChain IMsg) bool
@@ -160,6 +161,7 @@ type IState interface {
 	SetNetStateOff(bool)
 
 	GetTimestamp() Timestamp
+	GetTimeOffset() Timestamp
 
 	Print(a ...interface{}) (n int, err error)
 	Println(a ...interface{}) (n int, err error)
@@ -185,4 +187,8 @@ type IState interface {
 	ExchangeRateAuthorityIsValid(IEBEntry) bool
 	FerEntryIsValid(passedFEREntry IFEREntry) bool
 	GetPredictiveFER() uint64
+
+	// Identity Section
+	VerifyIdentityAdminInfo(cid IHash) bool // True if identity exists and is audit or fed server
+	UpdateAuthorityFromABEntry(entry IABEntry) error
 }
