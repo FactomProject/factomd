@@ -3,8 +3,6 @@ package state_test
 import (
 	"bytes"
 	"encoding/binary"
-	"encoding/hex"
-	"fmt"
 	"testing"
 	"time"
 
