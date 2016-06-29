@@ -566,27 +566,22 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
 
 // TODO: Should fault the server if we don't have the proper sequence of EOM messages.
 func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
-
 	e := msg.(*messages.EOM)
 
 	pl := s.ProcessLists.Get(dbheight)
-
-	vm := s.ProcessLists.Get(dbheight).VMs[msg.GetVMIndex()]
+	vm := pl.VMs[msg.GetVMIndex()]
 	vm.LeaderMinute++
 	vm.EOM = true
 
 	if !s.EOM {
 		s.EOM = true
 		s.EOMProcessed = 0
-
 	}
-
 	s.EOMProcessed++
 
 	// After all EOM markers are processed, but before anything else is done
 	// we do any cleanup required.
 	if s.EOMProcessed == len(s.LeaderPL.FedServers) {
-
 		s.FactoidState.EndOfPeriod(int(e.Minute + 1))
 
 		// Add EOM to the EBlocks.  We only do this once, so
@@ -597,11 +592,9 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			eb.AddEndOfMinuteMarker(byte(e.Minute + 1))
 		}
 
-		pl.AdminBlock.AddEndOfMinuteMarker(e.Minute)
-
 		ecblk := pl.EntryCreditBlock
 		ecbody := ecblk.GetBody()
-		mn := entryCreditBlock.NewMinuteNumber2(e.Minute)
+		mn := entryCreditBlock.NewMinuteNumber(e.Minute + 1)
 		ecbody.AddEntry(mn)
 	}
 
