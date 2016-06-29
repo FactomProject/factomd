@@ -23,6 +23,29 @@ func (MapDB) Close() error {
 	return nil
 }
 
+func (db *MapDB) ListAllBuckets() ([][]byte, error) {
+	if db.Cache == nil {
+		db.Sem.Lock()
+		db.Cache = map[string]map[string][]byte{}
+		db.Sem.Unlock()
+	}
+
+	db.Sem.RLock()
+	defer db.Sem.RUnlock()
+
+	answer := [][]byte{}
+	for k, _ := range db.Cache {
+		answer = append(answer, []byte(k))
+	}
+
+	return answer, nil
+}
+
+// Don't do anything here.
+func (db *MapDB) Trim() {
+
+}
+
 func (db *MapDB) createCache(bucket []byte) {
 	if db.Cache == nil {
 		db.Sem.Lock()
@@ -161,7 +184,7 @@ func (db *MapDB) ListAllKeys(bucket []byte) ([][]byte, error) {
 	return answer, nil
 }
 
-func (db *MapDB) GetAll(bucket []byte, sample interfaces.BinaryMarshallableAndCopyable) ([]interfaces.BinaryMarshallableAndCopyable, error) {
+func (db *MapDB) GetAll(bucket []byte, sample interfaces.BinaryMarshallableAndCopyable) ([]interfaces.BinaryMarshallableAndCopyable, [][]byte, error) {
 	db.createCache(bucket)
 
 	db.Sem.RLock()
@@ -177,7 +200,7 @@ func (db *MapDB) GetAll(bucket []byte, sample interfaces.BinaryMarshallableAndCo
 
 	keys, err := db.ListAllKeys(bucket)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	answer := []interfaces.BinaryMarshallableAndCopyable{}
@@ -186,11 +209,11 @@ func (db *MapDB) GetAll(bucket []byte, sample interfaces.BinaryMarshallableAndCo
 		v := db.Cache[string(bucket)][string(k)]
 		err := tmp.UnmarshalBinary(v)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		answer = append(answer, tmp)
 	}
-	return answer, nil
+	return answer, keys, nil
 }
 
 func (db *MapDB) Clear(bucket []byte) error {

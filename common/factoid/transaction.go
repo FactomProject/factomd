@@ -62,7 +62,7 @@ func (*Transaction) GetVersion() uint64 {
 }
 
 func (t *Transaction) GetHash() interfaces.IHash {
-	m, err := t.MarshalBinarySig()
+	m, err := t.MarshalBinary()
 	if err != nil {
 		return nil
 	}
@@ -94,11 +94,12 @@ func (t Transaction) String() string {
 }
 
 // MilliTimestamp is in milliseconds
-func (t *Transaction) GetMilliTimestamp() uint64 {
-	return t.MilliTimestamp
+func (t *Transaction) GetTimestamp() interfaces.Timestamp {
+	return *interfaces.NewTimestampFromMilliseconds(t.MilliTimestamp)
 }
-func (t *Transaction) SetMilliTimestamp(ts uint64) {
-	t.MilliTimestamp = ts
+
+func (t *Transaction) SetTimestamp(ts interfaces.Timestamp) {
+	t.MilliTimestamp = ts.GetTimeMilliUInt64()
 }
 
 func (t *Transaction) SetSignatureBlock(i int, sig interfaces.ISignatureBlock) {

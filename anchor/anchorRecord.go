@@ -80,7 +80,7 @@ func CreateAnchorRecordFromDBlock(dBlock interfaces.IDirectoryBlock) *AnchorReco
 	ar := new(AnchorRecord)
 	ar.AnchorRecordVer = 1
 	ar.DBHeight = dBlock.GetHeader().GetDBHeight()
-	ar.KeyMR = fmt.Sprintf("%x", dBlock.GetKeyMR().Bytes())
+	ar.KeyMR = dBlock.DatabasePrimaryIndex().String()
 	ar.RecordHeight = ar.DBHeight
 	return ar
 }

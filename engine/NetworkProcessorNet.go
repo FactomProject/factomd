@@ -9,6 +9,7 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/log"
 )
@@ -33,9 +34,9 @@ func Peers(fnode *FactomNode) {
 				}
 				cnt++
 				msg.SetOrigin(0)
-				if fnode.State.Replay.IsTSValid_(msg.GetMsgHash().Fixed(),
-					int64(msg.GetTimestamp())/1000,
-					int64(fnode.State.GetTimestamp())/1000) {
+				if fnode.State.Replay.IsTSValid_(constants.NETWORK_REPLAY, msg.GetMsgHash().Fixed(),
+					msg.GetTimestamp(),
+					fnode.State.GetTimestamp()) {
 
 					fnode.MLog.add2(fnode, false, fnode.State.FactomNodeName, "API", true, msg)
 					if len(fnode.State.InMsgQueue()) < 9000 {
@@ -71,9 +72,9 @@ func Peers(fnode *FactomNode) {
 				}
 
 				msg.SetOrigin(i + 1)
-				if fnode.State.Replay.IsTSValid_(msg.GetMsgHash().Fixed(),
-					int64(msg.GetTimestamp())/1000,
-					int64(fnode.State.GetTimestamp())/1000) {
+				if fnode.State.Replay.IsTSValid_(constants.NETWORK_REPLAY, msg.GetMsgHash().Fixed(),
+					msg.GetTimestamp(),
+					fnode.State.GetTimestamp()) {
 					//if state.GetOut() {
 					//	fnode.State.Println("In Comming!! ",msg)
 					//}
@@ -121,9 +122,10 @@ func NetworkOutputs(fnode *FactomNode) {
 				// seen this message before, because we might have generated the message
 				// ourselves.
 				fnode.State.Replay.IsTSValid_(
+					constants.NETWORK_REPLAY,
 					msg.GetMsgHash().Fixed(),
-					int64(msg.GetTimestamp())/1000,
-					int64(fnode.State.GetTimestamp())/1000)
+					msg.GetTimestamp(),
+					fnode.State.GetTimestamp())
 
 				p := msg.GetOrigin() - 1
 

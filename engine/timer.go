@@ -59,6 +59,9 @@ func Timer(state interfaces.IState) {
 				time.Sleep(100 * time.Millisecond)
 			}
 
+			// Delay some number of milliseconds.
+			time.Sleep(time.Duration(state.GetTimeOffset()) * time.Millisecond)
+
 			state.TickerQueue() <- i
 
 		}

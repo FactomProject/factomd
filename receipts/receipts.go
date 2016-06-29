@@ -310,7 +310,7 @@ func CreateReceipt(dbo interfaces.DBOverlay, entryID interfaces.IHash) (*Receipt
 		return nil, fmt.Errorf("Block containing entry not found")
 	}
 
-	eBlock, err := dbo.FetchEBlockByKeyMR(hash)
+	eBlock, err := dbo.FetchEBlock(hash)
 	if err != nil {
 		return nil, err
 	}
@@ -351,7 +351,7 @@ func CreateReceipt(dbo interfaces.DBOverlay, entryID interfaces.IHash) (*Receipt
 		return nil, fmt.Errorf("Block containing EBlock not found")
 	}
 
-	dBlock, err := dbo.FetchDBlockByKeyMR(hash)
+	dBlock, err := dbo.FetchDBlock(hash)
 	if err != nil {
 		return nil, err
 	}
@@ -392,13 +392,12 @@ func CreateReceipt(dbo interfaces.DBOverlay, entryID interfaces.IHash) (*Receipt
 		return nil, err
 	}
 
-	if dirBlockInfo == nil {
-		return nil, fmt.Errorf("dirBlockInfo not found")
-	}
-	dbi := dirBlockInfo.(*dbInfo.DirBlockInfo)
+	if dirBlockInfo != nil {
+		dbi := dirBlockInfo.(*dbInfo.DirBlockInfo)
 
-	receipt.BitcoinTransactionHash = dbi.BTCTxHash.(*primitives.Hash)
-	receipt.BitcoinBlockHash = dbi.BTCBlockHash.(*primitives.Hash)
+		receipt.BitcoinTransactionHash = dbi.BTCTxHash.(*primitives.Hash)
+		receipt.BitcoinBlockHash = dbi.BTCBlockHash.(*primitives.Hash)
+	}
 
 	return receipt, nil
 }

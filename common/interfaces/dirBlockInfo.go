@@ -13,6 +13,6 @@ type IDirBlockInfo interface {
 	GetBTCConfirmed() bool
 	GetDBMerkleRoot() IHash
 	GetBTCTxHash() IHash
-	GetTimestamp() int64
+	GetTimestamp() Timestamp
 	GetBTCBlockHeight() int32
 }

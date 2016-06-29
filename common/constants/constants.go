@@ -31,12 +31,17 @@ const (
 	DATA_RESPONSE         // 17
 	MISSING_MSG_RESPONSE  //18
 
-	DBSTATE_MSG         // 19
-	DBSTATE_MISSING_MSG // 20
-	ADDSERVER_MSG       // 21
+	DBSTATE_MSG          // 19
+	DBSTATE_MISSING_MSG  // 20
+	ADDSERVER_MSG        // 21
+	CHANGESERVER_KEY_MSG // 22
 )
 
 const (
+	// Replay
+	INTERNAL_REPLAY = 1
+	NETWORK_REPLAY  = 2
+
 	ADDRESS_LENGTH = 32 // Length of an Address or a Hash or Public Key
 	// length of a Private Key
 	SIGNATURE_LENGTH     = 64    // Length of a signature
@@ -155,16 +160,16 @@ const (
 	TYPE_ADD_BTC_ANCHOR_KEY              // 9
 )
 
-
 //---------------------------------------------------------------------
 // Identity Status Types
 //---------------------------------------------------------------------
 const (
-		IDENTITY_UNASSIGNED					= 0
-		IDENTITY_FEDERATED_SERVER  			= 1
-		IDENTITY_AUDIT_SERVER				= 2
-		IDENTITY_FULL						= 3
-		IDENTITY_PENDING_FEDERATED_SERVER	= 4
-		IDENTITY_PENDING_AUDIT_SERVER		= 5
-		IDENTITY_PENDING_FULL				= 6
+	IDENTITY_UNASSIGNED               int = iota // 0
+	IDENTITY_FEDERATED_SERVER                    // 1
+	IDENTITY_AUDIT_SERVER                        // 2
+	IDENTITY_FULL                                // 3
+	IDENTITY_PENDING_FEDERATED_SERVER            // 4
+	IDENTITY_PENDING_AUDIT_SERVER                // 5
+	IDENTITY_PENDING_FULL                        // 6
+	IDENTITY_PENDING                             // 7
 )

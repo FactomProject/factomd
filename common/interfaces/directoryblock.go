@@ -21,9 +21,15 @@ type IDirectoryBlock interface {
 	GetHash() IHash
 	GetFullHash() IHash
 
+	GetTimestamp() Timestamp
 	HeaderHash() (IHash, error)
 	BodyKeyMR() IHash
 	GetEntryHashesForBranch() []IHash
+
+	SetEntryHash(hash, chainID IHash, index int)
+	SetABlockHash(aBlock IAdminBlock) error
+	SetECBlockHash(ecBlock IEntryCreditBlock) error
+	SetFBlockHash(fBlock IFBlock) error
 }
 
 type IDirectoryBlockHeader interface {
@@ -42,8 +48,8 @@ type IDirectoryBlockHeader interface {
 	SetDBHeight(uint32)
 	GetBlockCount() uint32
 	SetBlockCount(uint32)
-	GetTimestamp() uint32
-	SetTimestamp(uint32)
+	GetTimestamp() Timestamp
+	SetTimestamp(Timestamp)
 }
 
 type IDBEntry interface {

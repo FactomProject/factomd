@@ -19,7 +19,7 @@ type ServerFault struct {
 	Timestamp interfaces.Timestamp
 
 	ServerID interfaces.IHash
-	VMIndex  int
+	VMIndex  byte
 	DBHeight uint32
 	Height   uint32
 
@@ -60,7 +60,7 @@ func (m *ServerFault) Type() byte {
 func (m *ServerFault) MarshalForSignature() (data []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling Invalid Server Fault: %v", r)
+			err = fmt.Errorf("Error marshalling Invalid Server Fault: %v", r)
 		}
 	}()
 
@@ -78,7 +78,7 @@ func (m *ServerFault) MarshalForSignature() (data []byte, err error) {
 		buf.Write(d)
 	}
 
-	buf.WriteByte(byte(m.VMIndex))
+	buf.WriteByte(m.VMIndex)
 	binary.Write(&buf, binary.BigEndian, uint32(m.DBHeight))
 	binary.Write(&buf, binary.BigEndian, uint32(m.Height))
 
@@ -120,7 +120,15 @@ func (m *ServerFault) UnmarshalBinaryData(data []byte) (newData []byte, err erro
 		return nil, err
 	}
 
-	m.VMIndex, newData = int(newData[0]), newData[1:]
+	if m.ServerID == nil {
+		m.ServerID = primitives.NewZeroHash()
+	}
+	newData, err = m.ServerID.UnmarshalBinaryData(newData)
+	if err != nil {
+		return nil, err
+	}
+
+	m.VMIndex, newData = newData[0], newData[1:]
 	m.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 	m.Height, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
@@ -231,8 +239,9 @@ func (a *ServerFault) IsSameAs(b *ServerFault) bool {
 func NewServerFault(timeStamp interfaces.Timestamp, serverID interfaces.IHash, vmIndex int, dbheight uint32, height uint32) *ServerFault {
 	sf := new(ServerFault)
 	sf.Timestamp = timeStamp
-	sf.VMIndex = vmIndex
+	sf.VMIndex = byte(vmIndex)
 	sf.DBHeight = dbheight
 	sf.Height = height
+	sf.ServerID = primitives.NewZeroHash()
 	return sf
 }
