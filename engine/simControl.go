@@ -21,7 +21,6 @@ import (
 var _ = fmt.Print
 
 func SimControl(listenTo int) {
-
 	var _ = time.Sleep
 	var summary int
 	var watchPL int
@@ -56,6 +55,29 @@ func SimControl(listenTo int) {
 		} else {
 			// fmt.Printf("Parsing command, found %d elements.  The first element is: %+v / %s \n Full command: %+v\n", len(cmd), b[0], string(b), cmd)
 			switch {
+			case 'g' == b[0]:
+				if nextAuthority == -1 {
+					setUpAuthorites(fnodes[listenTo].State)
+					buildMainChain()
+					os.Stderr.WriteString(fmt.Sprintf("%d Authorities added to the stack and funds are in wallet\n", authStack.Length()))
+				}
+				os.Stderr.WriteString(fmt.Sprintf("Authorities are ready to be made. 'gN' where N is the number to be made.\n"))
+				if len(b) > 1 {
+					fmt.Println(authStack.Length())
+					count, err := strconv.Atoi(b[1:])
+					if err != nil {
+						os.Stderr.WriteString(fmt.Sprintf("Error in input bN, %s\n", err.Error()))
+					} else {
+						auths, err := authorityToBlockchain(count)
+						if err != nil {
+							os.Stderr.WriteString(fmt.Sprintf("Error making authorites, %s\n", err.Error()))
+						}
+						os.Stderr.WriteString(fmt.Sprintf("=== %d Authorities added to blockchain, %d remain in stack ===\n", len(auths), authStack.Length()))
+						for _, ele := range auths {
+							fmt.Println(ele.ChainID.String())
+						}
+					}
+				}
 			case 'w' == b[0]:
 				if listenTo >= 0 && listenTo < len(fnodes) {
 					wsapiNode = listenTo
@@ -308,23 +330,32 @@ func SimControl(listenTo int) {
 				//os.Stderr.WriteString(fmt.Sprint(fnodes[listenTo].State.Identities))
 
 			case 't' == b[0]:
-				if len(b) > 1 {
+				if len(b) == 65 {
+					hash, err := fnodes[listenTo].State.IdentityChainID.HexToHash(b[1:])
+					if err != nil {
+						os.Stderr.WriteString(fmt.Sprintf("Error: %s\n", err.Error()))
+					} else {
+						fnodes[listenTo].State.IdentityChainID = hash
+						os.Stderr.WriteString(fmt.Sprintf("Identity of " + fnodes[listenTo].State.GetFactomNodeName() + " changed to [" + hash.String()[:10] + "]\n"))
+
+					}
+				} else if len(b) > 1 {
 					index, err := strconv.Atoi(string(b[1:]))
 					if err != nil {
-						fmt.Println("Incorrect input. bN where N is a number")
+						os.Stderr.WriteString(fmt.Sprintf("Incorrect input. bN where N is a number\n"))
 						break
 					}
 					if index >= len(fnodes[listenTo].State.Identities) {
-						fmt.Println("Identity index does not exist")
+						os.Stderr.WriteString(fmt.Sprintf("Identity index does not exist\n"))
 						break
 					}
 					id := fnodes[listenTo].State.Identities[index].IdentityChainID
 					if id == nil {
-						fmt.Println("Invalid identity, try 'isN' to see if identity exists.")
+						os.Stderr.WriteString(fmt.Sprintf("Invalid identity, try 'isN' to see if identity exists.\n"))
 						break
 					}
 					fnodes[listenTo].State.IdentityChainID = id
-					fmt.Println("Identity of " + fnodes[listenTo].State.GetFactomNodeName() + " changed to [" + id.String()[:10] + "]")
+					os.Stderr.WriteString(fmt.Sprintf("Identity of " + fnodes[listenTo].State.GetFactomNodeName() + " changed to [" + id.String()[:10] + "]\n"))
 				}
 			case 'u' == b[0]:
 				os.Stderr.WriteString(fmt.Sprintf("=== Authority List ===  Total: %d Displaying: All\n", len(fnodes[listenTo].State.Authorities)))

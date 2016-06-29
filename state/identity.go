@@ -732,8 +732,29 @@ func StubIdentityCache(st *State) {
 
 // Called by AddServer Message
 func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype int) bool {
+	// If all valid
+	var matryoshkaHash interfaces.IHash
+	var blockSigningKey [32]byte
+	var btcKey [20]byte
+	var btcKeyLevel byte
+	var btcKeyType byte
+
+	// If already in authority list, only the change in status needs to be recorded
 	index := isIdentityChain(chainID, st.Identities)
-	log.Printfln("DEBUG: %d", index)
+	if auth := isAuthorityChain(chainID, st.Authorities); auth != -1 && index != -1 {
+		if servertype == 0 {
+			st.LeaderPL.AdminBlock.AddFedServer(chainID)
+		} else if servertype == 1 {
+			st.LeaderPL.AdminBlock.AddAuditServer(chainID)
+		}
+		if servertype == 0 {
+			st.Identities[index].Status = constants.IDENTITY_PENDING_FEDERATED_SERVER
+		} else if servertype == 1 {
+			st.Identities[index].Status = constants.IDENTITY_PENDING_AUDIT_SERVER
+		}
+		return true
+	}
+
 	if index == -1 {
 		err := AddIdentityFromChainID(chainID, st)
 		if err != nil {
@@ -749,40 +770,51 @@ func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype
 			log.Println("New Fed/Audit server [" + chainID.String()[:10] + "] does not have an Block Signing Key associated to it")
 			return false
 		} else {
-			var pub [32]byte
-			copy(pub[:32], id.SigningKey.Bytes()[:32])
-			st.LeaderPL.AdminBlock.AddFederatedServerSigningKey(chainID, &pub)
+			//var pub [32]byte
+			copy(blockSigningKey[:32], id.SigningKey.Bytes()[:32])
+			//st.LeaderPL.AdminBlock.AddFederatedServerSigningKey(chainID, &pub)
 		}
 
 		if id.AnchorKeys == nil {
 			log.Println("New Fed/Audit server [" + chainID.String()[:10] + "] does not have an BTC Anchor Key associated to it")
+			return false
 		} else {
 			for _, aKey := range id.AnchorKeys {
 				if strings.Compare(aKey.BlockChain, "BTC") == 0 {
-					var key [20]byte
-					copy(key[:20], aKey.SigningKey[:20])
-					st.LeaderPL.AdminBlock.AddFederatedServerBitcoinAnchorKey(chainID, aKey.KeyLevel, aKey.KeyType, &key)
+					//var key [20]byte
+					copy(btcKey[:20], aKey.SigningKey[:20])
+					//st.LeaderPL.AdminBlock.AddFederatedServerBitcoinAnchorKey(chainID, aKey.KeyLevel, aKey.KeyType, &key)
 				}
 			}
 		}
 
 		if id.MatryoshkaHash == nil {
 			log.Println("New Fed/Audit server [" + chainID.String()[:10] + "] does not have an Matryoshka Hash associated to it")
-		} else {
-			st.LeaderPL.AdminBlock.AddMatryoshkaHash(chainID, id.MatryoshkaHash)
+			return false
 		}
+		matryoshkaHash = id.MatryoshkaHash
+		//st.LeaderPL.AdminBlock.AddMatryoshkaHash(chainID, id.MatryoshkaHash)
 
 		if servertype == 0 {
 			id.Status = constants.IDENTITY_PENDING_FEDERATED_SERVER
 		} else if servertype == 1 {
 			id.Status = constants.IDENTITY_PENDING_AUDIT_SERVER
 		}
-
 		st.Identities[index] = id
 	} else {
 		log.Println("New Fed/Audit server [" + chainID.String()[:10] + "] does not have an identity associated to it")
 		return false
 	}
+
+	// Add to admin block
+	if servertype == 0 {
+		st.LeaderPL.AdminBlock.AddFedServer(chainID)
+	} else if servertype == 1 {
+		st.LeaderPL.AdminBlock.AddAuditServer(chainID)
+	}
+	st.LeaderPL.AdminBlock.AddFederatedServerSigningKey(chainID, &blockSigningKey)
+	st.LeaderPL.AdminBlock.AddMatryoshkaHash(chainID, matryoshkaHash)
+	st.LeaderPL.AdminBlock.AddFederatedServerBitcoinAnchorKey(chainID, btcKeyLevel, btcKeyType, &btcKey)
 	return true
 }
 
