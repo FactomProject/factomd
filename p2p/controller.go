@@ -28,9 +28,10 @@ type Controller struct {
 	ToNetwork   chan Parcel // Parcels from the application for us to route
 	FromNetwork chan Parcel // Parcels from the network for the application
 
-	listenPort           string                // port we listen on for new connections
-	connections          map[string]Connection // map of the connections indexed by peer hash
-	connectionsByAddress map[string]Connection // map of the connections indexed by peer address
+	listenPort           string                       // port we listen on for new connections
+	connections          map[string]Connection        // map of the connections indexed by peer hash
+	connectionsByAddress map[string]Connection        // map of the connections indexed by peer address
+	connectionMetrics    map[string]ConnectionMetrics // map of the metrics indexed by peer hash
 
 	discovery                  Discovery // Our discovery structure
 	numberIncommingConnections int       // In PeerManagmeent we track this and refuse incomming connections when we have too many.
@@ -100,6 +101,7 @@ func (c *Controller) Init(ci ControllerInit) *Controller {
 	c.listenPort = ci.Port
 	NetworkListenPort = ci.Port
 	c.connections = make(map[string]Connection)
+	c.connectionMetrics = make(map[string]ConnectionMetrics)
 	discovery := new(Discovery).Init(ci.PeersFile)
 	c.discovery = *discovery
 	c.discovery.seedURL = ci.SeedURL
@@ -337,6 +339,8 @@ func (c *Controller) handleParcelReceive(message interface{}, peerHash string, c
 
 func (c *Controller) handleConnectionCommand(command ConnectionCommand, connection Connection) {
 	switch command.command {
+	case ConnectionUpdateMetrics:
+		c.connectionMetrics[connection.peer.Hash] = command.metrics
 	case ConnectionIsClosed:
 		debug("ctrlr", "handleConnectionCommand() Got ConnectionIsShutdown from  %s", connection.peer.Hash)
 		delete(c.connectionsByAddress, connection.peer.Address)
@@ -367,6 +371,7 @@ func (c *Controller) handleCommand(command interface{}) {
 			conn.RemoteAddr().String(), addPort[0], addPort[1])
 		// Port initially stored will be the connection port (not the listen port), but peer will update it on first message.
 		peer := new(Peer).Init(addPort[0], addPort[1], 0, RegularPeer, 0)
+		peer.Source["Accept()"] = time.Now()
 		connection := new(Connection).InitWithConn(conn, *peer)
 		connection.Start()
 		c.connections[connection.peer.Hash] = *connection
@@ -453,6 +458,7 @@ func (c *Controller) weAreNotAlreadyConnectedTo(peer Peer) bool {
 
 func (c *Controller) fillOutgoingSlots() {
 	c.updateConnectionAddressMap()
+	significant("controller", "\n##############\n##############\n##############\n##############\n##############\n")
 	significant("controller", "Connected peers:")
 	for key := range c.connectionsByAddress {
 		significant("controller", "%s", key)
@@ -470,6 +476,7 @@ func (c *Controller) fillOutgoingSlots() {
 		}
 	}
 	c.discovery.PrintPeers()
+	significant("controller", "\n##############\n##############\n##############\n##############\n##############\n")
 }
 
 func (c *Controller) shutdown() {

@@ -22,20 +22,20 @@ type Connection struct {
 	SendChannel    chan interface{} // Send means "towards the network" Channel takes Parcels and ConnectionCommands
 	ReceiveChannel chan interface{} // Recieve means "from the network" Channel sends Parcels and ConnectionCommands
 	// and as "address" for sending messages to specific nodes.
-	encoder         *gob.Encoder // Wire format is gobs in this version, may switch to binary
-	decoder         *gob.Decoder // Wire format is gobs in this version, may switch to binary
-	peer            Peer         // the datastructure representing the peer we are talking to. defined in peer.go
-	attempts        int          // reconnection attempts
-	timeLastAttempt time.Time    // time of last attempt to connect via dial
-	timeLastPing    time.Time    // time of last ping sent
-	timeLastUpdate  time.Time    // time of last peer update sent
-	timeLastStatus  time.Time    // last time we printed our status for debugging.
-	state           uint8        // Current state of the connection. Private. Only communication
-	isOutGoing      bool         // We keep track of outgoing dial() vs incomming accept() connections
-	isPersistent    bool         // Persistent connections we always redail. BUGBUG - should this be handled by peer type logic?
-	notes           string       // Notes about the connection, for debugging (eg: error)
-	bytesSent       uint32       // Keeping track of the data sent/recieved for console
-	bytesReceived   uint32       // Keeping track of the data sent/recieved for console
+	encoder         *gob.Encoder      // Wire format is gobs in this version, may switch to binary
+	decoder         *gob.Decoder      // Wire format is gobs in this version, may switch to binary
+	peer            Peer              // the datastructure representing the peer we are talking to. defined in peer.go
+	attempts        int               // reconnection attempts
+	timeLastAttempt time.Time         // time of last attempt to connect via dial
+	timeLastPing    time.Time         // time of last ping sent
+	timeLastUpdate  time.Time         // time of last peer update sent
+	timeLastStatus  time.Time         // last time we printed our status for debugging.
+	timeLastMetrics time.Time         // last time we updated metrics
+	state           uint8             // Current state of the connection. Private. Only communication
+	isOutGoing      bool              // We keep track of outgoing dial() vs incomming accept() connections
+	isPersistent    bool              // Persistent connections we always redail. BUGBUG - should this be handled by peer type logic?
+	notes           string            // Notes about the connection, for debugging (eg: error)
+	metrics         ConnectionMetrics // Metrics about this connection
 }
 
 // Each connection is a simple state machine.  The state is managed by a single goroutine which also does netowrking.
@@ -68,11 +68,19 @@ type ConnectionParcel struct {
 	parcel Parcel
 }
 
+// ConnectionMetrics is used to encapsulate various metrics about the connection.
+type ConnectionMetrics struct {
+	momentConnected time.Time // when the connection started.
+	bytesSent       uint32    // Keeping track of the data sent/recieved for console
+	bytesReceived   uint32    // Keeping track of the data sent/recieved for console
+}
+
 // ConnectionCommand is used to instruct the Connection to carry out some functionality.
 type ConnectionCommand struct {
 	command uint8
 	peer    Peer
 	delta   int32
+	metrics ConnectionMetrics
 }
 
 // These are the commands that connections can send/recieve
@@ -81,6 +89,7 @@ const (
 	ConnectionShutdownNow
 	ConnectionUpdatingPeer
 	ConnectionAdjustPeerQuality
+	ConnectionUpdateMetrics
 	ConnectionGoOffline // Notifies the connection it should go offinline (eg from another goroutine)
 )
 
@@ -139,7 +148,8 @@ func (c *Connection) commonInit(peer Peer) {
 	c.setNotes("commonInit()")
 	c.SendChannel = make(chan interface{}, 10000)
 	c.ReceiveChannel = make(chan interface{}, 10000)
-	c.timeLastUpdate = time.Now()
+	c.metrics = ConnectionMetrics{momentConnected: time.Now()}
+	c.timeLastMetrics = time.Now()
 	c.timeLastAttempt = time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC)
 }
 
@@ -169,7 +179,8 @@ func (c *Connection) runLoop() {
 			c.processSends()
 			c.processReceives() // We may get messages that change state (Eg: loopback error)
 			if ConnectionOnline == c.state {
-				c.pingPeer() // sends a ping periodically if things have been quiet
+				c.pingPeer()    // sends a ping periodically if things have been quiet
+				c.updateStats() // Update controller with metrics
 				if PeerSaveInterval < time.Since(c.timeLastUpdate) {
 					significant(c.peer.PeerIdent(), "runLoop() PeerSaveInterval interval %s is less than duration since last update: %s ", PeerSaveInterval.String(), time.Since(c.timeLastUpdate).String())
 					c.updatePeer() // every PeerSaveInterval * 0.90 we send an update peer to the controller.
@@ -279,6 +290,7 @@ func (c *Connection) goOnline() {
 	c.timeLastAttempt = now
 	c.timeLastUpdate = now
 	c.peer.LastContact = now
+	c.metrics = ConnectionMetrics{momentConnected: now} // Reset metrics
 	// Now ask the other side for the peers they know about.
 	parcel := NewParcel(CurrentNetwork, []byte("Peer Request"))
 	parcel.Header.Type = TypePeerRequest
@@ -358,7 +370,7 @@ func (c *Connection) sendParcel(parcel Parcel) {
 	err := c.encoder.Encode(parcel)
 	switch {
 	case nil == err:
-		c.bytesSent += parcel.Header.Length
+		c.metrics.bytesSent += parcel.Header.Length
 	default:
 		c.handleNetErrors(err)
 	}
@@ -378,7 +390,7 @@ func (c *Connection) processReceives() {
 		switch {
 		case nil == err:
 			note(c.peer.PeerIdent(), "Connection.processReceives() RECIEVED FROM NETWORK!  State: %s MessageType: %s", c.ConnectionState(), message.MessageType())
-			c.bytesReceived += message.Header.Length
+			c.metrics.bytesReceived += message.Header.Length
 			message.Header.PeerAddress = c.peer.Address
 			c.handleParcel(message)
 		default:
@@ -534,6 +546,16 @@ func (c *Connection) updatePeer() {
 	c.ReceiveChannel <- ConnectionCommand{command: ConnectionUpdatingPeer, peer: c.peer}
 }
 
+func (c *Connection) updateStats() {
+	var NetworkMetricInterval time.Duration = time.Second * 1
+	if time.Since(c.timeLastMetrics) < NetworkMetricInterval {
+		return // not enough time has passed.
+	}
+	verbose(c.peer.PeerIdent(), "updatePeer() SENDING ConnectionUpdateMetrics - Bytes Sent: %d Bytes Received: %d", c.metrics.bytesSent, c.metrics.bytesReceived)
+	c.timeLastMetrics = time.Now()
+	c.ReceiveChannel <- ConnectionCommand{command: ConnectionUpdateMetrics, metrics: c.metrics}
+}
+
 func (c *Connection) ConnectionState() string {
 	return connectionStateStrings[c.state]
 }
@@ -542,6 +564,6 @@ func (c *Connection) connectionStatusReport() {
 	reportDuration := time.Since(c.timeLastStatus)
 	if reportDuration > NetworkStatusInterval {
 		c.timeLastStatus = time.Now()
-		significant("connection", "\n\n===========================\n     Connection: %s\n          State: %s\n          Notes: %s\n           Hash: %s\n     Persistent: %t\n       Outgoing: %t\n ReceiveChannel: %d\n    SendChannel: %d\n===========================\n\n", c.peer.AddressPort(), c.ConnectionState(), c.Notes(), c.peer.Hash[0:12], c.IsPersistent(), c.IsOutGoing(), len(c.ReceiveChannel), len(c.SendChannel))
+		significant("connection", "\n\n===============================================================================\n     Connection: %s\n          State: %s\n          Notes: %s\n           Hash: %s\n     Persistent: %t\n       Outgoing: %t\n ReceiveChannel: %d\n    SendChannel: %d\n===============================================================================\n\n", c.peer.AddressPort(), c.ConnectionState(), c.Notes(), c.peer.Hash[0:12], c.IsPersistent(), c.IsOutGoing(), len(c.ReceiveChannel), len(c.SendChannel))
 	}
 }

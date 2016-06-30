@@ -63,7 +63,7 @@ func (f *P2PProxy) GetNameTo() string {
 }
 
 func (f *P2PProxy) Send(msg interfaces.IMsg) error {
-	//	f.logMessage(msg, false) // NODE_TALK_FIX
+	f.logMessage(msg, false) // NODE_TALK_FIX
 	data, err := msg.MarshalBinary()
 	if err != nil {
 		fmt.Println("ERROR on Send: ", err)
@@ -89,7 +89,7 @@ func (f *P2PProxy) Recieve() (interfaces.IMsg, error) {
 				msg.SetNetworkOrigin(data.peerHash)
 			}
 			if 0 < f.debugMode {
-				//	f.logMessage(msg, true) // NODE_TALK_FIX
+				f.logMessage(msg, true) // NODE_TALK_FIX
 				fmt.Printf(".")
 			}
 			return msg, err

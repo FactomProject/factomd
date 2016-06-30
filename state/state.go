@@ -49,6 +49,7 @@ type State struct {
 	ExportDataSubpath       string
 	Network                 string
 	PeersFile               string
+	SeedURL                 string
 	LocalServerPrivKey      string
 	DirectoryBlockInSeconds int
 	PortNumber              int
@@ -210,6 +211,7 @@ func (s *State) Clone(number string) interfaces.IState {
 	clone.ExportDataSubpath = s.ExportDataSubpath + "sim-" + number
 	clone.Network = s.Network
 	clone.PeersFile = s.PeersFile
+	clone.SeedURL = s.SeedURL
 	clone.DirectoryBlockInSeconds = s.DirectoryBlockInSeconds
 	clone.PortNumber = s.PortNumber
 
@@ -283,6 +285,7 @@ func (s *State) LoadConfig(filename string, folder string) {
 		s.ExportDataSubpath = cfg.App.ExportDataSubpath
 		s.Network = cfg.App.Network
 		s.PeersFile = cfg.App.PeersFile
+		s.SeedURL = cfg.App.SeedURL
 		s.LocalServerPrivKey = cfg.App.LocalServerPrivKey
 		s.FactoshisPerEC = cfg.App.ExchangeRate
 		s.DirectoryBlockInSeconds = cfg.App.DirectoryBlockInSeconds
@@ -304,6 +307,7 @@ func (s *State) LoadConfig(filename string, folder string) {
 		s.ExportDataSubpath = "data/export"
 		s.Network = "LOCAL"
 		s.PeersFile = "peers.json"
+		s.SeedURL = "http://factomstatus.com/seed/seed.txt"
 		s.LocalServerPrivKey = "4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c9b08946553448d26d"
 		s.FactoshisPerEC = 006666
 		s.FERChainId = "eac57815972c504ec5ae3f9e5c1fe12321a3c8c78def62528fb74cf7af5e7389"
