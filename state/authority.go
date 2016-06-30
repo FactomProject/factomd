@@ -307,18 +307,29 @@ func (st *State) VerifyFederatedSignature(Message []byte,signature *[constants.S
 	
 fmt.Println("RUNNING VERIFY FEDERATED")
 	Authlist:= st.Authorities
-	for _, auth := range Authlist {
+	var pk [32]byte
+	var isFederatedSignature bool
 
-		pk := auth.SigningKey.Fixed()
-		if !ed.Verify(&pk, Message, signature) {
-			return false,fmt.Errorf("Invalid Signature") 
+	isFederatedSignature= false
+	for i, auth := range Authlist {
+		fmt.Println("Fed Server:",i)
+		tmp, err := auth.SigningKey.MarshalBinary()
+		if err != nil {
+			// will return false by default.  don't exit 
+		} else {
+			copy(pk[:],tmp)
+			fmt.Println("key:" , pk)
+			if !ed.Verify(&pk, Message, signature) {
+				fmt.Println("not signed by this server")
+			} else {
+				fmt.Println("YAY Signature!")
+				return true,nil
+			}
 		}
 
 	}
-
-	return false,fmt.Errorf("Signature Key Invalid or not Federated Server Key") 
-
-
-
+isFederatedSignature= true //test
+	return isFederatedSignature ,fmt.Errorf("Signature Key Invalid or not Federated Server Key") 
 
 }
+
