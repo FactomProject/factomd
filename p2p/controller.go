@@ -443,7 +443,7 @@ func (c *Controller) managePeers() {
 	}
 }
 
-// updateConnectionAddressHash() updates the address index map to reflect all current connections
+// updateConnectionAddressMap() updates the address index map to reflect all current connections
 func (c *Controller) updateConnectionAddressMap() {
 	c.connectionsByAddress = map[string]Connection{}
 	for _, value := range c.connections {
@@ -494,6 +494,7 @@ func (c *Controller) networkStatusReport() {
 	// silence("ctrlr", "networkStatusReport() NetworkStatusInterval: %s reportDuration: %s c.lastStatusReport: %s", NetworkStatusInterval.String(), reportDuration.String(), c.lastPeerManagement.String())
 	if reportDuration > NetworkStatusInterval {
 		c.lastStatusReport = time.Now()
+		c.updateConnectionAddressMap()
 		silence("ctrlr", "###################################")
 		silence("ctrlr", " Network Controller Status Report:")
 		silence("ctrlr", "===================================")
