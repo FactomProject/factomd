@@ -589,26 +589,32 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 	e := msg.(*messages.EOM)
 
+	// If I have done everything for all EOMs for all VMs, then and only then do I
+	// let processing continue.
 	if s.EOMDone && e.Processed {
 		return true
 	}
 
-	pl := s.ProcessLists.Get(dbheight)
-
-	vm := s.ProcessLists.Get(dbheight).VMs[msg.GetVMIndex()]
-	vm.LeaderMinute++
-	vm.EOM = true
-
+	// What I do once  for all VMs at the beginning of processing a particular EOM
 	if !s.EOM {
+		s.EOMDone = true
 		s.EOM = true
 		s.EOMProcessed = 0
-
 	}
 
-	s.EOMProcessed++
+	pl := s.ProcessLists.Get(dbheight)
+	vm := s.ProcessLists.Get(dbheight).VMs[msg.GetVMIndex()]
+
+	// What I do once for each vm, for each EOM:
+	if !vm.EOM {
+		vm.LeaderMinute++
+		vm.EOM = true
+		s.EOMProcessed++
+		e.Processed = true
+	}
 
 	// After all EOM markers are processed, but before anything else is done
-	// we do any cleanup required.
+	// we do any cleanup required, for all VMs for this EOM
 	if s.EOMProcessed == len(s.LeaderPL.FedServers) {
 
 		s.EOMDone = true
@@ -629,7 +635,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		ecbody.AddEntry(mn)
 	}
 
-	e.Processed = true
 	return false
 }
 
