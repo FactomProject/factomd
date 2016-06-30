@@ -59,6 +59,7 @@ func SimControl(listenTo int) {
 				if nextAuthority == -1 {
 					setUpAuthorites(fnodes[listenTo].State)
 					//	buildMainChain()
+					fundWallet(fnodes[listenTo].State, 2e6)
 					os.Stderr.WriteString(fmt.Sprintf("%d Authorities added to the stack and funds are in wallet\n", authStack.Length()))
 				}
 				if len(b) == 1 {
@@ -70,6 +71,11 @@ func SimControl(listenTo int) {
 					if err != nil {
 						os.Stderr.WriteString(fmt.Sprintf("Error in input bN, %s\n", err.Error()))
 					} else {
+						if count > 100 {
+							os.Stderr.WriteString(fmt.Sprintf("You can only pop a max of 100 off the stack at a time."))
+							count = 100
+						}
+						fundWallet(fnodes[listenTo].State, uint64(count*5e6))
 						auths, skipped, err := authorityToBlockchain(count, fnodes[listenTo].State)
 						if err != nil {
 							os.Stderr.WriteString(fmt.Sprintf("Error making authorites, %s\n", err.Error()))
