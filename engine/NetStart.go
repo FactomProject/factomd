@@ -248,6 +248,7 @@ func NetStart(s *state.State) {
 		fmt.Println("Dialing Peer: ", peerAddress)
 		ipPort := strings.Split(peerAddress, ":")
 		peer := new(p2p.Peer).Init(ipPort[0], ipPort[1], 0, p2p.SpecialPeer, 0)
+		peer.Source["Command Line"] = time.Now()
 		network.DialPeer(*peer, true) // these are persistent connections
 	}
 

@@ -369,6 +369,7 @@ func (c *Controller) handleCommand(command interface{}) {
 			conn.RemoteAddr().String(), addPort[0], addPort[1])
 		// Port initially stored will be the connection port (not the listen port), but peer will update it on first message.
 		peer := new(Peer).Init(addPort[0], addPort[1], 0, RegularPeer, 0)
+		peer.Source["Accept()"] = time.Now()
 		connection := new(Connection).InitWithConn(conn, *peer)
 		connection.Start()
 		c.connections[connection.peer.Hash] = *connection
