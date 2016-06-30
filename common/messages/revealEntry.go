@@ -25,7 +25,7 @@ type RevealEntryMsg struct {
 	//Not marshalled
 	hash        interfaces.IHash
 	chainIDHash interfaces.IHash
-	isEntry     bool
+	IsEntry     bool
 	commitChain *CommitChainMsg
 	commitEntry *CommitEntryMsg
 }
@@ -71,12 +71,11 @@ func (m *RevealEntryMsg) Type() byte {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
-	commit := state.GetCommits(m.Entry.GetHash())
+	commit := state.NextCommit(m.Entry.GetHash())
 
 	if commit == nil {
 		return 0
 	}
-
 	//
 	// Make sure one of the two proper commits got us here.
 	var okChain, okEntry bool
@@ -88,18 +87,20 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 
 	// Now make sure the proper amount of credits were paid to record the entry.
 	if okEntry {
-		m.isEntry = true
+		m.IsEntry = true
 		ECs := int(m.commitEntry.CommitEntry.Credits)
 		if m.Entry.KSize() > ECs {
-			return -1
+			return m.Validate(state)
 		}
 	} else {
-		m.isEntry = false
+		m.IsEntry = false
 		ECs := int(m.commitChain.CommitChain.Credits)
 		if m.Entry.KSize()+10 > ECs {
-			return -1
+			return m.Validate(state)
 		}
 	}
+
+	state.PutCommit(m.Entry.GetHash(), commit)
 
 	return 1
 }
@@ -112,7 +113,7 @@ func (m *RevealEntryMsg) ComputeVMIndex(state interfaces.IState) {
 
 // Execute the leader functions of the given message
 func (m *RevealEntryMsg) LeaderExecute(state interfaces.IState) {
-	state.LeaderExecute(m)
+	state.LeaderExecuteRevealEntry(m)
 }
 
 func (m *RevealEntryMsg) FollowerExecute(state interfaces.IState) {

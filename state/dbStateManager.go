@@ -236,7 +236,7 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 	return
 }
 
-func (list *DBStateList) ProcessBlocks(i int, d *DBState) (progress bool) {
+func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	if !d.Locked {
 		list.LastTime = list.State.GetTimestamp() // If I saved or processed stuff, I'm good for a while
 
@@ -253,6 +253,7 @@ func (list *DBStateList) ProcessBlocks(i int, d *DBState) (progress bool) {
 		list.State.ProcessRecentFERChainEntries()
 
 		// Step my counter of Complete blocks
+		i := d.DirectoryBlock.GetHeader().GetDBHeight() - list.Base
 		if uint32(i) > list.Complete {
 			list.Complete = uint32(i)
 		}
@@ -347,7 +348,7 @@ func (list *DBStateList) UpdateState() (progress bool) {
 		if i > 0 {
 			progress = list.FixupLinks(list.DBStates[i-1], d)
 		}
-		progress = list.ProcessBlocks(i, d) || progress
+		progress = list.ProcessBlocks(d) || progress
 
 		progress = list.SaveDBStateToDB(d) || progress
 

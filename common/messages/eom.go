@@ -28,6 +28,7 @@ type EOM struct {
 	FactoidVM bool
 
 	//Not marshalled
+	Processed  bool
 	hash       interfaces.IHash
 	MarkerSent bool // If we have set EOM markers on blocks like Factoid blocks and such.
 }
