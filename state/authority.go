@@ -120,6 +120,7 @@ func (st *State) UpdateAuthorityFromABEntry(entry interfaces.IABEntry) error {
 			err = AddIdentityFromChainID(f.IdentityChainID, st)
 			if err != nil {
 				log.Printfln(err.Error())
+				return err
 			} else {
 				AuthorityIndex = addAuthority(st, f.IdentityChainID)
 			}
