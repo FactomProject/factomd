@@ -71,7 +71,8 @@ func TestLoadDefaultConfigFull(t *testing.T) {
 	; --------------- Network: MAIN | TEST | LOCAL
 	Network                               = LOCAL
     PeersFile                             = "~/.factom/peers.json"
-	; --------------- NodeMode: FULL | SERVER | LIGHT ----------------
+	SeedURL                               = "http://factomstatus.com/seed/seed.txt"
+; --------------- NodeMode: FULL | SERVER | LIGHT ----------------
 	NodeMode                              = FULL
 	LocalServerPrivKey                    = 4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c9b08946553448d26d
 	LocalServerPublicKey                  = cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a

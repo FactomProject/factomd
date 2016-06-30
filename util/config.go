@@ -27,6 +27,7 @@ type FactomdConfig struct {
 		ExportDataSubpath            string
 		Network                      string
 		PeersFile                    string
+		SeedURL                      string
 		NodeMode                     string
 		LocalServerPrivKey           string
 		LocalServerPublicKey         string
@@ -106,6 +107,7 @@ ExportDataSubpath                     = "database/export/"
 ; --------------- Network: MAIN | TEST | LOCAL
 Network                               = LOCAL
 PeersFile                             = "peers.json"
+SeedURL                               = "http://factomstatus.com/seed/seed.txt"
 ; --------------- NodeMode: FULL | SERVER | LIGHT ----------------
 NodeMode                              = FULL
 LocalServerPrivKey                    = 4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c9b08946553448d26d
@@ -171,6 +173,7 @@ func (s *FactomdConfig) String() string {
 	out.WriteString(fmt.Sprintf("\n    ExportDataSubpath       %v", s.App.ExportDataSubpath))
 	out.WriteString(fmt.Sprintf("\n    Network                 %v", s.App.Network))
 	out.WriteString(fmt.Sprintf("\n    PeersFile               %v", s.App.PeersFile))
+	out.WriteString(fmt.Sprintf("\n    SeedURL                 %v", s.App.SeedURL))
 	out.WriteString(fmt.Sprintf("\n    NodeMode                %v", s.App.NodeMode))
 	out.WriteString(fmt.Sprintf("\n    LocalServerPrivKey      %v", s.App.LocalServerPrivKey))
 	out.WriteString(fmt.Sprintf("\n    LocalServerPublicKey    %v", s.App.LocalServerPublicKey))
@@ -265,6 +268,7 @@ func ReadConfig(filename string, folder string) *FactomdConfig {
 	cfg.Wallet.BoltDBPath = cfg.App.HomeDir + folder + cfg.Wallet.BoltDBPath
 	cfg.App.ExportDataSubpath = cfg.App.HomeDir + folder + cfg.App.ExportDataSubpath
 	cfg.App.PeersFile = cfg.App.HomeDir + cfg.App.PeersFile
+	cfg.App.SeedURL = cfg.App.HomeDir + cfg.App.SeedURL
 
 	return cfg
 }

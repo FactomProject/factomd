@@ -71,33 +71,6 @@ func (d *Discovery) isPeerPresent(peer Peer) bool {
 	return present
 }
 
-// GetFullPeer looks for a peer in the known peers, and if so, returns it  (based on
-// the hash of the passed in peer.)  If the peer is unknown , we create it and
-// add it to the known peers.
-// func (d *Discovery) GetFullPeer(prototype Peer) Peer {
-// 	return d.GetPeerByAddress(prototype.Address)
-// }
-
-// Since we can't deterministically find peers anymore, we
-// we don't need GetPeer - We get peers from discovery
-// for dialing and we can update them.
-// When new peers come in, they are created elsewhere and then
-// later saved by update peer.
-
-// func (d *Discovery) GetPeer(address string, port string) Peer {
-// 	hash := PeerHashFromAddress(address, port)
-// 	UpdateKnownPeers.Lock()
-// 	peer, present := d.knownPeers[hash]
-// 	UpdateKnownPeers.Unlock()
-// 	// If it exists, return it, otherwise create and add to knownPeers
-// 	if !present {
-// 		temp := new(Peer).Init(address, 0, RegularPeer)
-// 		peer = *temp
-// 		d.updatePeer(peer)
-// 	}
-// 	return peer
-// }
-
 // PrintPeers Print details about the known peers
 func (d *Discovery) PrintPeers() {
 	note("discovery", "Peer Report:")
@@ -202,7 +175,7 @@ func (d *Discovery) updatePeerSource(peer Peer, source string) Peer {
 //  -- continue until there are no candidates left, or we have our set.
 func (d *Discovery) GetOutgoingPeers() []Peer {
 	peerPool := []Peer{}
-	selectedPeers := []Peer{}
+	selectedPeers := map[string]Peer{}
 	UpdateKnownPeers.Lock()
 	for _, peer := range d.knownPeers {
 		switch {
@@ -221,10 +194,23 @@ func (d *Discovery) GetOutgoingPeers() []Peer {
 	if len(peerPool) < desiredQuantity*2 {
 		return peerPool
 	}
-	for index := 1; index < desiredQuantity; index++ {
-		selectedPeers = append(selectedPeers, peerPool[int(index/desiredQuantity*len(peerPool))])
+	// First, get half the peers with geographic diversity
+	for index := 1; index < int(desiredQuantity/2); index++ {
+		newPeer := peerPool[int(index/desiredQuantity*len(peerPool))]
+		selectedPeers[newPeer.Address] = newPeer
 	}
-	return selectedPeers
+	// Next, get half the peers with pure randomness
+	for desiredQuantity > len(selectedPeers) {
+		newPeer := peerPool[rand.Intn(len(peerPool))]
+		selectedPeers[newPeer.Address] = newPeer // overwrites if already there.
+	}
+	// Now derive a slice of peers to return
+	finalSet := []Peer{}
+	for _, v := range selectedPeers {
+		finalSet = append(finalSet, v)
+	}
+	significant("discovery", "discovery.GetOutgoingPeers() got the following peers: %+v", finalSet)
+	return finalSet
 }
 
 // SharePeers gets a set of peers to send to other hosts
