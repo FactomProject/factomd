@@ -58,10 +58,12 @@ func SimControl(listenTo int) {
 			case 'g' == b[0]:
 				if nextAuthority == -1 {
 					setUpAuthorites(fnodes[listenTo].State)
-					buildMainChain()
+					//	buildMainChain()
 					os.Stderr.WriteString(fmt.Sprintf("%d Authorities added to the stack and funds are in wallet\n", authStack.Length()))
 				}
-				os.Stderr.WriteString(fmt.Sprintf("Authorities are ready to be made. 'gN' where N is the number to be made.\n"))
+				if len(b) == 1 {
+					os.Stderr.WriteString(fmt.Sprintf("Authorities are ready to be made. 'gN' where N is the number to be made.\n"))
+				}
 				if len(b) > 1 {
 					fmt.Println(authStack.Length())
 					count, err := strconv.Atoi(b[1:])
