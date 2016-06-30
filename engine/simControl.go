@@ -57,9 +57,8 @@ func SimControl(listenTo int) {
 			switch {
 			case 'g' == b[0]:
 				if nextAuthority == -1 {
-					setUpAuthorites(fnodes[listenTo].State)
-					//	buildMainChain()
 					fundWallet(fnodes[listenTo].State, 2e6)
+					setUpAuthorites(fnodes[listenTo].State)
 					os.Stderr.WriteString(fmt.Sprintf("%d Authorities added to the stack and funds are in wallet\n", authStack.Length()))
 				}
 				if len(b) == 1 {
