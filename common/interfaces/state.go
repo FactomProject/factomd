@@ -194,5 +194,6 @@ type IState interface {
 	UpdateAuthorityFromABEntry(entry IABEntry) error
 
 	//Authority Section
+	VerifyFederatedSignature(Message []byte,signature *[64]byte)	 (bool, error)
 
 }

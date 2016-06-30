@@ -415,12 +415,14 @@ func addServerSigningKey(ChainID interfaces.IHash, key interfaces.IHash, st *Sta
 	}
 }
 
+func (st *State) VerifyFederatedSignature(Message []byte,signature *[constants.SIGNATURE_LENGTH]byte) (bool, error) {
 	
 fmt.Println("RUNNING VERIFY FEDERATED")
 	Authlist:= st.Authorities
 	for _, auth := range Authlist {
 
 		pk := auth.SigningKey.Fixed()
+		if !ed.Verify(&pk, Message, signature) {
 			return false,fmt.Errorf("Invalid Signature") 
 		}
 
