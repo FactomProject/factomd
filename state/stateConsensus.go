@@ -84,12 +84,10 @@ func (s *State) Process() (progress bool) {
 		switch {
 
 		case s.CurrentMinute > 0:
-			//fmt.Printf("dddd %20s %10s --- %10s %10v\n", "Process() lmin  > 0", s.FactomNodeName, "LeaderMin", min)
 			s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute-1, s.IdentityChainID)
 			s.NewMinute()
 		case s.CurrentMinute == 0:
-			//fmt.Printf("dddd %20s %10s --- %10s %10v %10s %10v\n", "Process() lmin == 0", s.FactomNodeName, "LeaderMin", min, "DBHT", s.LeaderPL.DirectoryBlock.GetHeader().GetDBHeight())
 			dbstate := s.AddDBState(true, s.LeaderPL.DirectoryBlock, s.LeaderPL.AdminBlock, s.GetFactoidState().GetCurrentBlock(), s.LeaderPL.EntryCreditBlock)
 			if s.LLeaderHeight > 0 {
 				prev := s.DBStates.Get(int(s.LLeaderHeight))
@@ -149,13 +147,19 @@ func (s *State) ProcessQueues() (progress bool) {
 
 		msg.ComputeVMIndex(s)
 
+		var vm *VM
+		if s.Leader {
+			vm = s.LeaderPL.VMs[s.LeaderVMIndex]
+		}
+
 		switch msg.Validate(s) {
 		case 1:
 			//fmt.Printf("dddd %20s %10s --- %10s %10v %10s %10v %10s %10v %10s %10v\n", "ProcessQ()>", s.FactomNodeName,
 			//	"EOM", s.EOM, "Saving", s.Saving, "RunLeader", s.RunLeader, "leader", s.Leader)
 			if s.Leader &&
 				!s.Saving &&
-				!s.LeaderPL.VMs[s.LeaderVMIndex].EOM &&
+				int(vm.Height) == len(vm.List) &&
+				!vm.EOM &&
 				(msg.IsLocal() || msg.GetVMIndex() == s.LeaderVMIndex) {
 
 				msg.LeaderExecute(s)
@@ -425,6 +429,7 @@ func (s *State) LeaderExecuteRevealEntry(m interfaces.IMsg) {
 	if commit == nil {
 		m.FollowerExecute(s)
 	}
+	s.PutCommit(re.Entry.GetHash(), commit)
 	s.LeaderExecute(m)
 }
 

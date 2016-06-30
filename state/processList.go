@@ -390,18 +390,8 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 
 	}
 
-VMLoop:
 	for i := 0; i < len(p.FedServers); i++ {
 		vm := p.VMs[i]
-
-		// If we are up to date with this VM, then continue to the next
-		if vm.Height == len(vm.List) {
-			continue VMLoop // Go on to the next VM
-		}
-
-		if vm.EOM {
-			continue VMLoop
-		}
 
 	VMListLoop:
 		for j := vm.Height; j < len(vm.List); j++ {
@@ -412,11 +402,6 @@ VMLoop:
 			}
 
 			thisAck := vm.ListAck[j]
-
-			if thisAck == nil { // IF I don't have an Ack to match this entry
-				vm.List[j] = nil // throw the entry away, and continue to the
-				break VMListLoop // next list.  SHOULD NEVER HAPPEN.
-			}
 
 			var expectedSerialHash interfaces.IHash
 			var err error
@@ -459,13 +444,12 @@ VMLoop:
 				}
 			}
 
-			//fmt.Printf("\ndddd %20s %10s --- %10s %10v  \n", "ListLoop+", p.State.FactomNodeName, "Executing", vm.List[j].String())
-
 			if vm.List[j].Process(p.DBHeight, state) { // Try and Process this entry
 
 				vm.Height = j + 1 // Don't process it again if the process worked.
 				progress = true
 			} else {
+				//fmt.Printf("dddd %20s %10s --- %10s %10v %10s %10v \n", "Process returns false", p.State.FactomNodeName, "vm", j, "msg", vm.List[j].String())
 				break VMListLoop // Don't process further in this list, go to the next.
 			}
 		}
