@@ -48,6 +48,7 @@ func (f *P2PProxy) Init(fromName, toName string) interfaces.IPeer {
 	f.FromName = fromName
 	f.BroadcastOut = make(chan factomMessage, 10000)
 	f.BroadcastIn = make(chan factomMessage, 10000)
+	f.logging = make(chan messageLog, 10000)
 	return f
 }
 func (f *P2PProxy) SetDebugMode(netdebug int) {
@@ -132,7 +133,6 @@ func (p *P2PProxy) startProxy() {
 		}
 		writer := bufio.NewWriter(&p.logFile)
 		p.logWriter = *writer
-		p.logging = make(chan messageLog, 10000)
 		go p.ManageLogging()
 	}
 	go p.ManageOutChannel() // Bridges between network format Parcels and factomd messages (incl. addressing to peers)
@@ -165,10 +165,12 @@ func (p *P2PProxy) ManageLogging() {
 }
 
 func (p *P2PProxy) logMessage(msg interfaces.IMsg, received bool) {
-	hash := fmt.Sprintf("%x", msg.GetMsgHash().Bytes())
-	time := time.Now().Unix()
-	ml := messageLog{hash: hash, received: received, time: time}
-	p.logging <- ml
+	if 1 < p.debugMode {
+		hash := fmt.Sprintf("%x", msg.GetMsgHash().Bytes())
+		time := time.Now().Unix()
+		ml := messageLog{hash: hash, received: received, time: time}
+		p.logging <- ml
+	}
 }
 
 // manageOutChannel takes messages from the f.broadcastOut channel and sends them to the network.
