@@ -25,7 +25,7 @@ var (
 	NumberPeersToConnect          int           = 12
 	MaxNumberIncommingConnections int           = 150
 	MaxNumberOfRedialAttempts     int           = 15
-	NetworkStatusInterval         time.Duration = time.Second * 22
+	NetworkStatusInterval         time.Duration = time.Second * 6
 	PingInterval                  time.Duration = time.Second * 15
 	TimeBetweenRedials            time.Duration = time.Second * 20
 	PeerSaveInterval              time.Duration = time.Second * 30
