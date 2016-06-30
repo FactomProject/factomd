@@ -219,7 +219,7 @@ func NetStart(s *state.State) {
 		PeersFile: s.PeersFile,
 		Network:   networkID,
 		Exclusive: exclusive,
-		SeedURL:   "http://factomstatus.com/seed/seed.txt",
+		SeedURL:   s.SeedURL,
 	}
 	p2pController := new(p2p.Controller).Init(ci)
 	network = *p2pController
