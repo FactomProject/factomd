@@ -439,7 +439,7 @@ func (c *Controller) managePeers() {
 	}
 }
 
-func (c *Controller) updateConnectionAddressHash() {
+func (c *Controller) updateConnectionAddressMap() {
 	c.connectionsByAddress = map[string]Connection{}
 	for _, value := range c.connections {
 		c.connectionsByAddress[value.peer.Address] = value
@@ -452,7 +452,7 @@ func (c *Controller) weAreNotAlreadyConnectedTo(peer Peer) bool {
 }
 
 func (c *Controller) fillOutgoingSlots() {
-	c.updateConnectionAddressHash()
+	c.updateConnectionAddressMap()
 	significant("controller", "##############\n##############\n##############\n##############\n##############\n")
 	significant("controller", "Connected peers:")
 	for key := range c.connectionsByAddress {
@@ -489,6 +489,7 @@ func (c *Controller) networkStatusReport() {
 	// silence("ctrlr", "networkStatusReport() NetworkStatusInterval: %s reportDuration: %s c.lastStatusReport: %s", NetworkStatusInterval.String(), reportDuration.String(), c.lastPeerManagement.String())
 	if reportDuration > NetworkStatusInterval {
 		c.lastStatusReport = time.Now()
+		c.updateConnectionAddressMap()
 		silence("ctrlr", "###################################")
 		silence("ctrlr", " Network Controller Status Report:")
 		silence("ctrlr", "===================================")
