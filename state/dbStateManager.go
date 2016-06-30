@@ -184,7 +184,7 @@ func (list *DBStateList) Catchup() {
 
 }
 
-func (list *DBStateList) FixupLinks(p *DBState, d *DBState) {
+func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 
 	// If this block is new, then make sure all hashes are fully computed.
 	if !d.isNew {
@@ -231,11 +231,38 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) {
 	d.DirectoryBlock.BuildBodyMR()
 	d.DirectoryBlock.MarshalBinary()
 
+	progress = true
 	d.isNew = false
-
+	return
 }
 
-func (list *DBStateList) SaveDBStateToDB(d *DBState) {
+func (list *DBStateList) ProcessBlocks(i int, d *DBState) (progress bool) {
+	if !d.Locked {
+		list.LastTime = list.State.GetTimestamp() // If I saved or processed stuff, I'm good for a while
+
+		// Any updates required to the state as established by the AdminBlock are applied here.
+		d.AdminBlock.UpdateState(list.State)
+
+		// Process the Factoid End of Block
+		fs := list.State.GetFactoidState()
+		fs.AddTransactionBlock(d.FactoidBlock)
+		fs.AddECBlock(d.EntryCreditBlock)
+		fs.ProcessEndOfBlock(list.State)
+
+		// Promote the currently scheduled next FER
+		list.State.ProcessRecentFERChainEntries()
+
+		// Step my counter of Complete blocks
+		if uint32(i) > list.Complete {
+			list.Complete = uint32(i)
+		}
+		progress = true
+		d.Locked = true // Only after all is done will I admit this state has been saved.
+	}
+	return
+}
+
+func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 
 	dblk, _ := list.State.DB.FetchDBKeyMRByHash(d.DirectoryBlock.GetKeyMR())
 	if d.Saved {
@@ -245,6 +272,10 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) {
 				d.DirectoryBlock.GetHeader().GetDBHeight(),
 				d.DirectoryBlock.GetKeyMR().Bytes()))
 		}
+		return
+	}
+
+	if !d.ReadyToSave {
 		return
 	}
 
@@ -290,8 +321,10 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) {
 	if err := list.State.DB.ExecuteMultiBatch(); err != nil {
 		panic(err.Error())
 	}
-
+	progress = true
+	d.ReadyToSave = false
 	d.Saved = true
+	return
 }
 
 func (list *DBStateList) UpdateState() (progress bool) {
@@ -311,65 +344,16 @@ func (list *DBStateList) UpdateState() (progress bool) {
 			continue
 		}
 
-		if d.Locked {
-			//fmt.Printf("dddd %20s %10s --- Start \n", "DBStateList Locked", list.State.FactomNodeName)
-			if d.ReadyToSave {
-				//fmt.Printf("dddd %20s %10s --- Start \n", "DBStateList Saving", list.State.FactomNodeName)
-				list.SaveDBStateToDB(d)
-				progress = true
-				continue
-			}
-			return
+		if i > 0 {
+			progress = list.FixupLinks(list.DBStates[i-1], d)
 		}
+		progress = list.ProcessBlocks(i, d) || progress
+
+		progress = list.SaveDBStateToDB(d) || progress
 
 		// Make sure the directory block is properly synced up with the prior block, if there
 		// is one.
 
-		dblk, _ := list.State.DB.FetchDBlock(d.DirectoryBlock.GetKeyMR())
-		if dblk == nil {
-			if i > 0 {
-				p := list.DBStates[i-1]
-				if !p.Locked {
-					//		fmt.Printf("dddd %20s %10s --- Previous unlocked \n", "DBStateList", list.State.FactomNodeName)
-					break
-				}
-			}
-
-			//fmt.Println("Saving DBHeight ", d.DirectoryBlock.GetHeader().GetDBHeight(), " on ", list.State.GetFactomNodeName())
-
-			// If we have previous blocks, update blocks that this follower potentially constructed.  We can optimize and skip
-			// this step if we got the block from a peer.  TODO we must however check the sigantures on the
-			// block before we write it to disk.
-			if i > 0 {
-				if !list.DBStates[i-1].Saved {
-					panic("Fixing Links, but previous block not saved!")
-				}
-				list.FixupLinks(list.DBStates[i-1], d)
-			}
-			d.DirectoryBlock.MarshalBinary()
-
-		}
-
-		list.LastTime = list.State.GetTimestamp() // If I saved or processed stuff, I'm good for a while
-		d.Locked = true                           // Only after all is done will I admit this state has been saved.
-
-		// Any updates required to the state as established by the AdminBlock are applied here.
-		d.AdminBlock.UpdateState(list.State)
-
-		// Process the Factoid End of Block
-		fs := list.State.GetFactoidState()
-		fs.AddTransactionBlock(d.FactoidBlock)
-		fs.AddECBlock(d.EntryCreditBlock)
-		fs.ProcessEndOfBlock(list.State)
-
-		// Promote the currently scheduled next FER
-		list.State.ProcessRecentFERChainEntries()
-
-		// Step my counter of Complete blocks
-		if uint32(i) > list.Complete {
-			list.Complete = uint32(i)
-		}
-		progress = true
 	}
 	return
 }
