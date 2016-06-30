@@ -182,6 +182,7 @@ type IState interface {
 	FetchECTransactionByHash(hash IHash) (IECBlockEntry, error)
 	FetchEntryByHash(IHash) (IEBEntry, error)
 
+
 	// FER section
 	ProcessRecentFERChainEntries()
 	ExchangeRateAuthorityIsValid(IEBEntry) bool
@@ -191,4 +192,7 @@ type IState interface {
 	// Identity Section
 	VerifyIdentityAdminInfo(cid IHash) bool // True if identity exists and is audit or fed server
 	UpdateAuthorityFromABEntry(entry IABEntry) error
+
+	//Authority Section
+
 }

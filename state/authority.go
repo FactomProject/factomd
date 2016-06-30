@@ -1,13 +1,15 @@
 package state
 
 import (
-	//	"bytes"
+	//"bytes"
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/log"
+	ed "github.com/FactomProject/ed25519"
+	"fmt"
 )
 
 type Authority struct {
@@ -411,4 +413,22 @@ func addServerSigningKey(ChainID interfaces.IHash, key interfaces.IHash, st *Sta
 		//log.Println(ChainID.String() + " Updating Signing Key. AdminBlock Height:" + string(height))
 		st.Authorities[AuthorityIndex].SigningKey = key
 	}
+}
+
+	
+fmt.Println("RUNNING VERIFY FEDERATED")
+	Authlist:= st.Authorities
+	for _, auth := range Authlist {
+
+		pk := auth.SigningKey.Fixed()
+			return false,fmt.Errorf("Invalid Signature") 
+		}
+
+	}
+
+	return false,fmt.Errorf("Signature Key Invalid or not Federated Server Key") 
+
+
+
+
 }
