@@ -19,7 +19,7 @@ type Peer struct {
 	Address      string // Must be in form of x.x.x.x
 	Port         string // Must be in form of xxxx
 	NodeID       uint64 // a nonce to distinguish multiple nodes behind one IP address
-	Hash         string // This is more of a connection ID than hash right now. 
+	Hash         string // This is more of a connection ID than hash right now.
 	Location     uint32 // IP address as an int.
 	Type         uint8
 	Connections  int                  // Number of successful connections.
