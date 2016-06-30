@@ -399,9 +399,9 @@ VMLoop:
 			continue VMLoop // Go on to the next VM
 		}
 
-		if vm.EOM {
-			continue VMLoop
-		}
+		//if vm.EOM {
+		//	continue VMLoop
+		//}
 
 	VMListLoop:
 		for j := vm.Height; j < len(vm.List); j++ {
@@ -567,11 +567,15 @@ func (p *ProcessList) String() string {
 		buf.WriteString("-- <nil>\n")
 	} else {
 		buf.WriteString(fmt.Sprintf("===ProcessListStart=== %s %d\n", p.State.GetFactomNodeName(), p.DBHeight))
-		buf.WriteString(fmt.Sprintf("%s #VMs %d\n", p.State.GetFactomNodeName(), len(p.FedServers)))
+		buf.WriteString(fmt.Sprintf("%s DBHeight %d #VMs %d EOMs %d \n",
+			p.State.GetFactomNodeName(),
+			p.DBHeight,
+			len(p.FedServers),
+			p.State.EOMProcessed))
 
 		for i := 0; i < len(p.FedServers); i++ {
 			vm := p.VMs[i]
-			eom := fmt.Sprintf("LeaderMinute %2d vm.Height %3d Len %3d ",
+			eom := fmt.Sprintf("LeaderMinute %2d vm.Height %3d Len(List) %3d ",
 				vm.LeaderMinute,
 				vm.Height,
 				len(vm.List))
@@ -579,7 +583,7 @@ func (p *ProcessList) String() string {
 			if min > 9 {
 				min = 9
 			}
-			buf.WriteString(fmt.Sprintf("  VM %d VM Minute %d Fed Server: %d %s\n", i, vm.LeaderMinute, p.ServerMap[min][i], eom))
+			buf.WriteString(fmt.Sprintf("  VM %d VM Minute %d vm.EOM %v Fed Server: %d %s\n", i, vm.LeaderMinute, vm.EOM, p.ServerMap[min][i], eom))
 			for j, msg := range vm.List {
 				buf.WriteString(fmt.Sprintf("   %3d", j))
 				if j < vm.Height {

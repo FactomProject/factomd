@@ -147,6 +147,11 @@ func (s *State) ProcessQueues() (progress bool) {
 			return
 		}
 
+		var vm *VM
+		if s.Leader {
+			vm = s.LeaderPL.VMs[s.LeaderVMIndex]
+		}
+
 		msg.ComputeVMIndex(s)
 
 		switch msg.Validate(s) {
@@ -155,7 +160,8 @@ func (s *State) ProcessQueues() (progress bool) {
 			//	"EOM", s.EOM, "Saving", s.Saving, "RunLeader", s.RunLeader, "leader", s.Leader)
 			if s.Leader &&
 				!s.Saving &&
-				!s.LeaderPL.VMs[s.LeaderVMIndex].EOM &&
+				int(vm.Height) == len(vm.List) &&
+				!vm.EOM &&
 				(msg.IsLocal() || msg.GetVMIndex() == s.LeaderVMIndex) {
 
 				msg.LeaderExecute(s)
@@ -516,48 +522,30 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
 
 	s.NextCommit(myhash)
 
-	eb, _ := s.DB.FetchEBlockHead(chainID)
-
+	eb := s.GetNewEBlocks(dbheight, chainID)
+	prev := s.GetNewEBlocks(dbheight-1, chainID)
+	if eb == nil && prev == nil {
+		prev, _ = s.DB.FetchEBlockHead(chainID)
+	}
 	if !msg.IsEntry && eb == nil {
-		eb, _ := s.DB.FetchEBlockHead(chainID)
-		if eb == nil {
-			// Create a new Entry Block for a new Entry Block Chain
-			eb = entryBlock.NewEBlock()
-			// Set the Chain ID
-			eb.GetHeader().SetChainID(chainID)
-			// Set the Directory Block Height for this Entry Block
-			eb.GetHeader().SetDBHeight(dbheight)
-			// Add our new entry
-			eb.AddEBEntry(msg.Entry)
-			// Put it in our list of new Entry Blocks for this Directory Block
-			s.PutNewEBlocks(dbheight, chainID, eb)
-			s.PutNewEntries(dbheight, myhash, msg.Entry)
+		// Create a new Entry Block for a new Entry Block Chain
+		eb = entryBlock.NewEBlock()
+		// Set the Chain ID
+		eb.GetHeader().SetChainID(chainID)
+		// Set the Directory Block Height for this Entry Block
+		eb.GetHeader().SetDBHeight(dbheight)
+		// Add our new entry
+		eb.AddEBEntry(msg.Entry)
+		// Put it in our list of new Entry Blocks for this Directory Block
+		s.PutNewEBlocks(dbheight, chainID, eb)
+		s.PutNewEntries(dbheight, myhash, msg.Entry)
 
-			s.IncEntryChains()
-			s.IncEntries()
-			return true
-		}
+		s.IncEntryChains()
+		s.IncEntries()
+		return true
 	}
 
-	ebc := s.GetNewEBlocks(dbheight, chainID)
-	if ebc == nil {
-		prev := s.GetNewEBlocks(dbheight-1, chainID)
-		prevdb := eb
-		if prev == nil && prevdb == nil {
-			return false
-		}
-
-		if prev != nil {
-			mr1, _ := prev.KeyMR()
-			mr2, _ := prevdb.KeyMR()
-			if mr2 == nil || !mr1.IsSameAs(mr2) {
-				fmt.Printf("dddd BAD EB Block Head %s DBHeigth: %3d Min %2d PL: %x DB: %x\n",
-					s.FactomNodeName, s.LLeaderHeight, int(s.LeaderPL.VMs[0].LeaderMinute), mr1.Bytes(), mr2.Bytes())
-			}
-		} else {
-			prev = prevdb
-		}
-
+	if eb == nil {
 		eb = entryBlock.NewEBlock()
 		eb.GetHeader().SetEBSequence(prev.GetHeader().GetEBSequence() + 1)
 		eb.GetHeader().SetPrevFullHash(prev.GetHash())
@@ -585,7 +573,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	e := msg.(*messages.EOM)
 
 	if s.EOMDone && e.Processed {
-		return true
+		//return true
 	}
 
 	pl := s.ProcessLists.Get(dbheight)
@@ -699,7 +687,9 @@ func (s *State) NextCommit(hash interfaces.IHash) interfaces.IMsg {
 		return nil
 	}
 	r := cs[0]
-	s.Commits[hash.Fixed()] = cs[1:]
+	copy(cs[:], cs[1:])
+	cs[len(cs)-1] = nil
+	s.Commits[hash.Fixed()] = cs[:len(cs)-1]
 	return r
 }
 
@@ -708,7 +698,11 @@ func (s *State) PutCommit(hash interfaces.IHash, msg interfaces.IMsg) {
 	if cs == nil {
 		cs = make([]interfaces.IMsg, 0)
 	}
-	s.Commits[hash.Fixed()] = append(cs, msg)
+	if len(cs) > 0 {
+		s.Commits[hash.Fixed()] = append(cs, msg)
+	} else {
+		delete(s.Commits, hash.Fixed())
+	}
 }
 
 // This is the highest block signed off and recorded in the Database.
