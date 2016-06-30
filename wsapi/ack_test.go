@@ -82,7 +82,7 @@ func TestHandleV2FactoidACK(t *testing.T) {
 	for _, block := range blocks {
 		for _, tx := range block.FBlock.GetTransactions() {
 			req := AckRequest{}
-			txID := tx.GetHash().String()
+			txID := tx.GetTxID().String()
 			req.TxID = txID
 
 			r, jError := HandleV2FactoidACK(state, req)

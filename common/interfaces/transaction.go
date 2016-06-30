@@ -27,6 +27,7 @@ type ITransaction interface {
 	// RCDs are generally added at the same time.
 	AddRCD(rcd IRCD)
 
+	GetTxID() IHash
 	// Get the hash of the signed portion (not including signatures)
 	GetSigHash() IHash
 	// Get the full hash of the transaction (including signatures)
