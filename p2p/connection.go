@@ -98,8 +98,7 @@ func (c *Connection) InitWithConn(conn net.Conn, peer Peer) *Connection {
 	c.isPersistent = false
 	debug(c.peer.PeerIdent(), "Connection.InitWithConn() called.")
 	c.goOnline()
-	c.notes = "Incomming connection from accept()"
-	go c.runLoop() // handles sending messages, processing commands
+	c.setNotes("Incomming connection from accept()")
 	return c
 }
 
@@ -110,7 +109,6 @@ func (c *Connection) Init(peer Peer, persistent bool) *Connection {
 	c.commonInit(peer)
 	c.isPersistent = persistent
 	debug(c.peer.PeerIdent(), "Connection.Init() called.")
-	go c.runLoop() // handles sending messages, processing commands
 	return c
 }
 
@@ -138,11 +136,15 @@ func (c *Connection) Notes() string {
 func (c *Connection) commonInit(peer Peer) {
 	c.state = ConnectionInitialized
 	c.peer = peer
-	c.notes = "commonInit()"
+	c.setNotes("commonInit()")
 	c.SendChannel = make(chan interface{}, 10000)
 	c.ReceiveChannel = make(chan interface{}, 10000)
 	c.timeLastUpdate = time.Now()
 	c.timeLastAttempt = time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC)
+}
+
+func (c *Connection) Start() {
+	go c.runLoop()
 }
 
 // runloop OWNs the connection.  It is the only goroutine that can change values in the connection struct
@@ -156,11 +158,11 @@ func (c *Connection) runLoop() {
 		case ConnectionInitialized:
 			// BUGBUG Note this means that we will redial ourselves if we are set as a persistent connection with ourselves as peer.
 			if MinumumQualityScore > c.peer.QualityScore && !c.isPersistent {
-				note(c.peer.PeerIdent(), "Connection.runloop(%s) ConnectionInitialized quality score too low: %d", c.peer.PeerIdent(), c.peer.QualityScore)
+				c.setNotes(fmt.Sprintf("Connection.runloop(%s) ConnectionInitialized quality score too low: %d", c.peer.PeerIdent(), c.peer.QualityScore))
 				c.updatePeer() // every PeerSaveInterval * 0.90 we send an update peer to the controller.
 				c.goShutdown()
 			} else {
-				note(c.peer.PeerIdent(), "Connection.runLoop() ConnectionInitialized, going dialLoop().")
+				c.setNotes(fmt.Sprintf("Connection.runLoop() ConnectionInitialized, going dialLoop(). %+v", c.peer.PeerIdent()))
 				c.dialLoop() // dialLoop dials until it connects or shuts down.
 			}
 		case ConnectionOnline:
@@ -169,7 +171,7 @@ func (c *Connection) runLoop() {
 			if ConnectionOnline == c.state {
 				c.pingPeer() // sends a ping periodically if things have been quiet
 				if PeerSaveInterval < time.Since(c.timeLastUpdate) {
-					debug(c.peer.PeerIdent(), "runLoop() PeerSaveInterval interval %s is less than duration since last update: %s ", PeerSaveInterval.String(), time.Since(c.timeLastUpdate).String())
+					significant(c.peer.PeerIdent(), "runLoop() PeerSaveInterval interval %s is less than duration since last update: %s ", PeerSaveInterval.String(), time.Since(c.timeLastUpdate).String())
 					c.updatePeer() // every PeerSaveInterval * 0.90 we send an update peer to the controller.
 				}
 			}
@@ -197,10 +199,15 @@ func (c *Connection) runLoop() {
 	}
 }
 
+func (c *Connection) setNotes(newNote string) {
+	c.notes = newNote
+	note(c.peer.PeerIdent(), c.notes)
+}
+
 // dialLoop:  dials the connection until giving up. Called in offline or initializing states.
 // All exits from dialLoop change the state of the connection allowing the outside run_loop to proceed.
 func (c *Connection) dialLoop() {
-	c.notes = fmt.Sprintf("dialLoop() dialing: %+v", c.peer.PeerIdent())
+	c.setNotes(fmt.Sprintf("dialLoop() dialing: %+v", c.peer.PeerIdent()))
 	for {
 		elapsed := time.Since(c.timeLastAttempt)
 		debug(c.peer.PeerIdent(), "Connection.dialLoop() elapsed: %s Attempts: %d", elapsed.String(), c.attempts)
@@ -208,45 +215,38 @@ func (c *Connection) dialLoop() {
 			c.timeLastAttempt = time.Now()
 			switch c.dial() {
 			case true:
-				c.notes = "Connection.dialLoop() Connected, going online."
-				note(c.peer.PeerIdent(), c.notes)
+				c.setNotes("Connection.dialLoop() Connected, going online.")
 				c.goOnline()
 				return
 			case false:
 				switch {
 				case c.isPersistent:
-					c.notes = "Connection.dialLoop() Persistent connection - Sleeping until next redial."
-					note(c.peer.PeerIdent(), c.notes)
+					c.setNotes("Connection.dialLoop() Persistent connection - Sleeping until next redial.")
 					time.Sleep(TimeBetweenRedials)
 				case !c.isOutGoing: // incomming connection we redial once, then give up.
-					c.notes = "Connection.dialLoop() Incomming Connection - One Shot re-dial, so we're shutting down."
-					note(c.peer.PeerIdent(), c.notes)
+					c.setNotes("Connection.dialLoop() Incomming Connection - One Shot re-dial, so we're shutting down.")
 					c.goShutdown()
 					return
 				case ConnectionInitialized == c.state:
-					c.notes = "Connection.dialLoop() ConnectionInitialized - One Shot dial, so we're shutting down."
-					note(c.peer.PeerIdent(), c.notes)
+					c.setNotes("Connection.dialLoop() ConnectionInitialized - One Shot dial, so we're shutting down.")
 					c.goShutdown() // We're dialing possibly many peers who are no longer there.
 					return
 				case ConnectionOffline == c.state: // We were online with the peer at one point.
-					c.notes = fmt.Sprintf("Connection.dialLoop() ConnectionOffline - Attempts: %d - since redial: %s TimeBetweenRedials: %s", c.attempts, elapsed.String(), TimeBetweenRedials.String())
-					note(c.peer.PeerIdent(), c.notes)
+					c.setNotes(fmt.Sprintf("Connection.dialLoop() ConnectionOffline - Attempts: %d - since redial: %s TimeBetweenRedials: %s", c.attempts, elapsed.String(), TimeBetweenRedials.String()))
 					c.attempts++
 					switch {
 					case MaxNumberOfRedialAttempts < c.attempts:
-						c.notes = fmt.Sprintf("Connection.dialLoop() MaxNumberOfRedialAttempts < Attempts: %d - since redial: %s TimeBetweenRedials: %s", c.attempts, elapsed.String(), TimeBetweenRedials.String())
-						note(c.peer.PeerIdent(), c.notes)
+						c.setNotes(fmt.Sprintf("Connection.dialLoop() MaxNumberOfRedialAttempts < Attempts: %d - since redial: %s TimeBetweenRedials: %s", c.attempts, elapsed.String(), TimeBetweenRedials.String()))
 						c.goShutdown()
 						return
 					default:
-						c.notes = fmt.Sprintf("Connection.dialLoop() MaxNumberOfRedialAttempts > Attempts: %d - since redial: %s TimeBetweenRedials: %s", c.attempts, elapsed.String(), TimeBetweenRedials.String())
-						note(c.peer.PeerIdent(), c.notes)
+						c.setNotes(fmt.Sprintf("Connection.dialLoop() MaxNumberOfRedialAttempts > Attempts: %d - since redial: %s TimeBetweenRedials: %s", c.attempts, elapsed.String(), TimeBetweenRedials.String()))
 						time.Sleep(TimeBetweenRedials)
 					}
 				}
 			}
 		} else {
-			note(c.peer.PeerIdent(), "Connection.dialLoop() TimeBetweenRedials > elapsed")
+			c.setNotes("Connection.dialLoop() TimeBetweenRedials > elapsed")
 			time.Sleep(TimeBetweenRedials)
 		}
 	}
@@ -259,13 +259,11 @@ func (c *Connection) dial() bool {
 	// conn, err := net.Dial("tcp", c.peer.Address)
 	conn, err := net.DialTimeout("tcp", address, time.Second*10)
 	if nil != err {
-		note(c.peer.PeerIdent(), "Connection.dial(%s) got error: %+v", address, err)
-		c.notes = fmt.Sprintf("dial() error: %+v", err)
+		c.setNotes(fmt.Sprintf("Connection.dial(%s) got error: %+v", address, err))
 		return false
 	}
 	c.conn = conn
-	note(c.peer.PeerIdent(), "Connection.dial(%s) was successful.", address)
-	c.notes = "Successful Dial"
+	c.setNotes(fmt.Sprintf("Connection.dial(%s) was successful.", address))
 	return true
 }
 
@@ -398,17 +396,17 @@ func (c *Connection) handleNetErrors(err error) {
 	case isNetError && nerr.Timeout(): /// buffer empty
 		return
 	case isNetError && nerr.Temporary(): /// Temporary error, try to reconnect.
-		c.notes = fmt.Sprintf("handleNetErrors() Temporary error: %+v", nerr)
+		c.setNotes(fmt.Sprintf("handleNetErrors() Temporary error: %+v", nerr))
 		c.goOffline()
 	case io.EOF == err, io.ErrClosedPipe == err: // Remote hung up
-		c.notes = fmt.Sprintf("handleNetErrors() Remote hung up - error: %+v", err)
+		c.setNotes(fmt.Sprintf("handleNetErrors() Remote hung up - error: %+v", err))
 		c.goOffline()
 	case err == syscall.EPIPE: // "write: broken pipe"
-		c.notes = fmt.Sprintf("handleNetErrors() Broken Pipe: %+v", err)
+		c.setNotes(fmt.Sprintf("handleNetErrors() Broken Pipe: %+v", err))
 		c.goOffline()
 	default:
 		significant(c.peer.PeerIdent(), "Connection.handleNetErrors() State: %s We got unhandled coding error: %+v", c.ConnectionState(), err)
-		c.notes = fmt.Sprintf("handleNetErrors() Unhandled error: %+v", err)
+		c.setNotes(fmt.Sprintf("handleNetErrors() Unhandled error: %+v", err))
 		c.goOffline()
 	}
 

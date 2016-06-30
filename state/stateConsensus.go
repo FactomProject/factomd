@@ -420,12 +420,15 @@ func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) 
 		return true
 	}
 
-	if as.ServerType == 0 {
+	/*if as.ServerType == 0 {
 		s.LeaderPL.AdminBlock.AddFedServer(as.ServerChainID)
 	} else if as.ServerType == 1 {
 		s.LeaderPL.AdminBlock.AddAuditServer(as.ServerChainID)
+	}*/
+	if !ProcessIdentityToAdminBlock(s, as.ServerChainID, as.ServerType) {
+		fmt.Printf("dddd %s %s\n", s.FactomNodeName, "Addserver message did not add to admin block.")
+		return true
 	}
-
 	return true
 }
 
@@ -436,20 +439,21 @@ func (s *State) ProcessChangeServerKey(dbheight uint32, changeServerKeyMsg inter
 	}
 
 	// TODO: Signiture && Checking
+	if !s.VerifyIsAuthority(ask.IdentityChainID) {
+		fmt.Printf("dddd %s %s\n", s.FactomNodeName, "ChangeServerKey message did not add to admin block.")
+		return true
+	}
 
 	//fmt.Printf("DEBUG: Processed: %x", ask.AdminBlockChange)
 	switch ask.AdminBlockChange {
 	case constants.TYPE_ADD_BTC_ANCHOR_KEY:
 		var btcKey [20]byte
 		copy(btcKey[:], ask.Key.Bytes()[:20])
-		fmt.Println("Add BTC to admin block")
 		s.LeaderPL.AdminBlock.AddFederatedServerBitcoinAnchorKey(ask.IdentityChainID, ask.KeyPriority, ask.KeyType, &btcKey)
 	case constants.TYPE_ADD_FED_SERVER_KEY:
 		pub := ask.Key.Fixed()
-		fmt.Println("Add Block Key to admin block : " + s.IdentityChainID.String())
 		s.LeaderPL.AdminBlock.AddFederatedServerSigningKey(ask.IdentityChainID, &pub)
 	case constants.TYPE_ADD_MATRYOSHKA:
-		fmt.Println("Add MHash to admin block")
 		s.LeaderPL.AdminBlock.AddMatryoshkaHash(ask.IdentityChainID, ask.Key)
 	}
 	return true
@@ -566,27 +570,22 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
 
 // TODO: Should fault the server if we don't have the proper sequence of EOM messages.
 func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
-
 	e := msg.(*messages.EOM)
 
 	pl := s.ProcessLists.Get(dbheight)
-
-	vm := s.ProcessLists.Get(dbheight).VMs[msg.GetVMIndex()]
+	vm := pl.VMs[msg.GetVMIndex()]
 	vm.LeaderMinute++
 	vm.EOM = true
 
 	if !s.EOM {
 		s.EOM = true
 		s.EOMProcessed = 0
-
 	}
-
 	s.EOMProcessed++
 
 	// After all EOM markers are processed, but before anything else is done
 	// we do any cleanup required.
 	if s.EOMProcessed == len(s.LeaderPL.FedServers) {
-
 		s.FactoidState.EndOfPeriod(int(e.Minute + 1))
 
 		// Add EOM to the EBlocks.  We only do this once, so
@@ -597,11 +596,9 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			eb.AddEndOfMinuteMarker(byte(e.Minute + 1))
 		}
 
-		pl.AdminBlock.AddEndOfMinuteMarker(e.Minute)
-
 		ecblk := pl.EntryCreditBlock
 		ecbody := ecblk.GetBody()
-		mn := entryCreditBlock.NewMinuteNumber2(e.Minute)
+		mn := entryCreditBlock.NewMinuteNumber(e.Minute + 1)
 		ecbody.AddEntry(mn)
 	}
 

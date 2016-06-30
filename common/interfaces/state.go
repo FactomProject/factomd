@@ -190,7 +190,7 @@ type IState interface {
 	GetPredictiveFER() uint64
 
 	// Identity Section
-	VerifyIdentityAdminInfo(cid IHash) bool // True if identity exists and is audit or fed server
+	VerifyIsAuthority(cid IHash) bool // True if is authority
 	UpdateAuthorityFromABEntry(entry IABEntry) error
 
 	//Authority Section

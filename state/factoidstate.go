@@ -241,8 +241,21 @@ func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
 		fs.CurrentBlock.SetPrevKeyMR(hash.Bytes())
 		fs.CurrentBlock.SetPrevFullHash(hash2.Bytes())
 	}
+
+	// Monitor for changes in Identity
 	dblk, _ := fs.State.DB.FetchDirectoryBlockHead()
-	LoadIdentityByDirectoryBlock(dblk, fs.State, true)
+	if dblk != nil {
+		for _, dEntry := range dblk.GetDBEntries() {
+			if isIdentityChain(dEntry.GetChainID(), fs.State.Identities) != -1 {
+				eblk, err := fs.State.DB.FetchEBlock(dEntry.GetKeyMR())
+				if err != nil {
+					continue
+				}
+				LoadIdentityByEntryBlock(eblk, fs.State, true)
+			}
+		}
+	}
+
 	fs.DBHeight++
 }
 

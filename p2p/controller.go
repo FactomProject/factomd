@@ -92,7 +92,7 @@ type CommandChangeLogging struct {
 
 func (c *Controller) Init(ci ControllerInit) *Controller {
 	significant("ctrlr", "Controller.Init(%s) %#x", ci.Port, ci.Network)
-	silence("#################", "META: Last touched: TUESDAY JUNE 28 - 11:38AM")
+	silence("#################", "META: Last touched: WEDNESDAY JUNE 29th - 10:38AM")
 	c.keepRunning = true
 	c.commandChannel = make(chan interface{}, 1000) // Commands from App
 	c.FromNetwork = make(chan Parcel, 10000)        // Channel to the app for network data
@@ -339,6 +339,7 @@ func (c *Controller) handleConnectionCommand(command ConnectionCommand, connecti
 	switch command.command {
 	case ConnectionIsClosed:
 		debug("ctrlr", "handleConnectionCommand() Got ConnectionIsShutdown from  %s", connection.peer.Hash)
+		delete(c.connectionsByAddress, connection.peer.Address)
 		delete(c.connections, connection.peer.Hash)
 	case ConnectionUpdatingPeer:
 		debug("ctrlr", "handleConnectionCommand() Got ConnectionUpdatingPeer from  %s", connection.peer.Hash)
@@ -354,7 +355,9 @@ func (c *Controller) handleCommand(command interface{}) {
 		parameters := command.(CommandDialPeer)
 		conn := new(Connection).Init(parameters.peer, parameters.persistent)
 		connection := *conn
+		connection.Start()
 		c.connections[connection.peer.Hash] = connection
+		c.connectionsByAddress[connection.peer.Address] = connection
 		debug("ctrlr", "Controller.handleCommand(CommandDialPeer) got peer %s", parameters.peer.Address)
 	case CommandAddPeer: // parameter is a Connection. This message is sent by the accept loop which is in a different goroutine
 		parameters := command.(CommandAddPeer)
@@ -365,7 +368,9 @@ func (c *Controller) handleCommand(command interface{}) {
 		// Port initially stored will be the connection port (not the listen port), but peer will update it on first message.
 		peer := new(Peer).Init(addPort[0], addPort[1], 0, RegularPeer, 0)
 		connection := new(Connection).InitWithConn(conn, *peer)
+		connection.Start()
 		c.connections[connection.peer.Hash] = *connection
+		c.connectionsByAddress[connection.peer.Address] = *connection
 		debug("ctrlr", "Controller.handleCommand(CommandAddPeer) got peer %+v", *peer)
 	case CommandShutdown:
 		silence("ctrlr", "handleCommand() Processing command: CommandShutdown")
@@ -418,6 +423,7 @@ func (c *Controller) managePeers() {
 		duration := time.Since(c.discovery.lastPeerSave)
 		// Every so often, tell the discovery service to save peers.
 		if PeerSaveInterval < duration {
+			significant("controller", "Saving peers")
 			c.discovery.SavePeers()
 			c.discovery.PrintPeers() // No-op if debugging off.
 		}
@@ -432,7 +438,8 @@ func (c *Controller) managePeers() {
 	}
 }
 
-func (c *Controller) updateConnectionAddressHash() {
+// updateConnectionAddressHash() updates the address index map to reflect all current connections
+func (c *Controller) updateConnectionAddressMap() {
 	c.connectionsByAddress = map[string]Connection{}
 	for _, value := range c.connections {
 		c.connectionsByAddress[value.peer.Address] = value
@@ -445,14 +452,14 @@ func (c *Controller) weAreNotAlreadyConnectedTo(peer Peer) bool {
 }
 
 func (c *Controller) fillOutgoingSlots() {
-	c.updateConnectionAddressHash()
+	c.updateConnectionAddressMap()
 	significant("controller", "Connected peers:")
 	for key := range c.connectionsByAddress {
 		significant("controller", "%s", key)
 	}
 	peers := c.discovery.GetOutgoingPeers()
 	if len(peers) < NumberPeersToConnect*2 {
-		c.discovery.DiscoverPeers()
+		c.discovery.GetOutgoingPeers()
 		peers = c.discovery.GetOutgoingPeers()
 	}
 	// dial into the peers

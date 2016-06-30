@@ -190,6 +190,8 @@ func NetStart(s *state.State) {
 
 	mLog.init(runtimeLog, cnt)
 
+	setupBlankAuthority(s)
+
 	//************************************************
 	// Actually setup the Network
 	//************************************************
@@ -385,4 +387,32 @@ func startServers(load bool) {
 		go Timer(fnode.State)
 		go fnode.State.ValidatorLoop()
 	}
+}
+
+func setupBlankAuthority(s *state.State) {
+	var id state.Identity
+	id.IdentityChainID = s.IdentityChainID
+	id.ManagementChainID, _ = primitives.HexToHash("88888800000000000000000000000000")
+	pub := s.GetServerPublicKey()
+	data, _ := pub.MarshalBinary()
+	id.SigningKey = primitives.NewHash(data)
+	id.MatryoshkaHash = primitives.NewZeroHash()
+	id.ManagementCreated = 0
+	id.ManagementRegistered = 0
+	id.IdentityCreated = 0
+	id.IdentityRegistered = 0
+	id.Key1 = primitives.NewZeroHash()
+	id.Key2 = primitives.NewZeroHash()
+	id.Key3 = primitives.NewZeroHash()
+	id.Key4 = primitives.NewZeroHash()
+	id.Status = 1
+	s.Identities = append(s.Identities, id)
+
+	var auth state.Authority
+	auth.Status = 1
+	auth.SigningKey = s.GetServerPublicKey()
+	auth.MatryoshkaHash = primitives.NewZeroHash()
+	auth.AuthorityChainID = s.IdentityChainID
+	auth.ManagementChainID, _ = primitives.HexToHash("88888800000000000000000000000000")
+	s.Authorities = append(s.Authorities, auth)
 }
