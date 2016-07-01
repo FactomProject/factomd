@@ -165,7 +165,7 @@ func (d *Discovery) updatePeerSource(peer Peer, source string) Peer {
 //  -- continue until there are no candidates left, or we have our set.
 func (d *Discovery) GetOutgoingPeers() []Peer {
 	peerPool := []Peer{}
-	selectedPeers := []Peer{}
+	selectedPeers := map[string]Peer{}
 	UpdateKnownPeers.Lock()
 	for _, peer := range d.knownPeers {
 		switch {
@@ -184,10 +184,23 @@ func (d *Discovery) GetOutgoingPeers() []Peer {
 	if len(peerPool) < desiredQuantity*2 {
 		return peerPool
 	}
-	for index := 1; index < desiredQuantity; index++ {
-		selectedPeers = append(selectedPeers, peerPool[int(index/desiredQuantity*len(peerPool))])
+	// First, get half the peers with geographic diversity
+	for index := 1; index < int(desiredQuantity/2); index++ {
+		newPeer := peerPool[int(index/desiredQuantity*len(peerPool))]
+		selectedPeers[newPeer.Address] = newPeer
 	}
-	return selectedPeers
+	// Next, get half the peers with pure randomness
+	for desiredQuantity > len(selectedPeers) {
+		newPeer := peerPool[rand.Intn(len(peerPool))]
+		selectedPeers[newPeer.Address] = newPeer // overwrites if already there.
+	}
+	// Now derive a slice of peers to return
+	finalSet := []Peer{}
+	for _, v := range selectedPeers {
+		finalSet = append(finalSet, v)
+	}
+	significant("discovery", "discovery.GetOutgoingPeers() got the following peers: %+v", finalSet)
+	return finalSet
 }
 
 // SharePeers gets a set of peers to send to other hosts

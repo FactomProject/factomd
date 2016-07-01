@@ -218,7 +218,7 @@ func NetStart(s *state.State) {
 		PeersFile: s.PeersFile,
 		Network:   networkID,
 		Exclusive: exclusive,
-		SeedURL:   "http://n1rvana.github.io/seed.txt",
+		SeedURL:   "http://factomstatus.com/seed/seed.txt",
 	}
 	p2pController := new(p2p.Controller).Init(ci)
 	network = *p2pController
@@ -247,6 +247,7 @@ func NetStart(s *state.State) {
 		fmt.Println("Dialing Peer: ", peerAddress)
 		ipPort := strings.Split(peerAddress, ":")
 		peer := new(p2p.Peer).Init(ipPort[0], ipPort[1], 0, p2p.SpecialPeer, 0)
+		peer.Source["Command Line"] = time.Now()
 		network.DialPeer(*peer, true) // these are persistent connections
 	}
 

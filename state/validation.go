@@ -85,7 +85,6 @@ func (t *Timer) timer(state *State, min int) {
 	t.lastMin = min
 
 	eom := new(messages.EOM)
-	eom.Minute = byte(min)
 	eom.Timestamp = state.GetTimestamp()
 	eom.ChainID = state.GetIdentityChainID()
 	eom.Sign(state)

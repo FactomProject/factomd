@@ -4,19 +4,19 @@
 
 for i in `seq 1 1`;
 do
-	factom-cli newtransaction t
-	factom-cli addinput t b .000016
-	factom-cli addoutput t b1 .000001
-	factom-cli addoutput t b2 .000001
-	factom-cli addoutput t b3 .000001
-	factom-cli addoutput t b4 .000001
-	factom-cli addoutput t b5 .000001
-	factom-cli addoutput t b6 .000001
-	factom-cli addecoutput t e1 .000010
-	factom-cli addfee t b
-	factom-cli sign t
-	factom-cli transactions
-	factom-cli submit t
+	factom-cli2 newtransaction t
+	factom-cli2 addinput t b .000016
+	factom-cli2 addoutput t b1 .000001
+	factom-cli2 addoutput t b2 .000001
+	factom-cli2 addoutput t b3 .000001
+	factom-cli2 addoutput t b4 .000001
+	factom-cli2 addoutput t b5 .000001
+	factom-cli2 addoutput t b6 .000001
+	factom-cli2 addecoutput t e1 .000010
+	factom-cli2 addfee t b
+	factom-cli2 sign t
+	factom-cli2 transactions
+	factom-cli2 submit t
 	sleep 2.5
 	scripts/factomEC.sh &
 done

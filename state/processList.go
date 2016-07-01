@@ -388,24 +388,10 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			return
 		}
 
-		if !prev.Locked {
-			//fmt.Printf("dddd %20s %10s --- %10s %10v \n", "PLProcess-", p.State.FactomNodeName, "PrevHt", p.DBHeight-1)
-			return
-		}
 	}
 
-VMLoop:
 	for i := 0; i < len(p.FedServers); i++ {
 		vm := p.VMs[i]
-
-		// If we are up to date with this VM, then continue to the next
-		if vm.Height == len(vm.List) {
-			continue VMLoop // Go on to the next VM
-		}
-
-		if vm.EOM {
-			continue VMLoop
-		}
 
 	VMListLoop:
 		for j := vm.Height; j < len(vm.List); j++ {
@@ -416,11 +402,6 @@ VMLoop:
 			}
 
 			thisAck := vm.ListAck[j]
-
-			if thisAck == nil { // IF I don't have an Ack to match this entry
-				vm.List[j] = nil // throw the entry away, and continue to the
-				break VMListLoop // next list.  SHOULD NEVER HAPPEN.
-			}
 
 			var expectedSerialHash interfaces.IHash
 			var err error
@@ -463,13 +444,12 @@ VMLoop:
 				}
 			}
 
-			//fmt.Printf("\ndddd %20s %10s --- %10s %10v  \n", "ListLoop+", p.State.FactomNodeName, "Executing", vm.List[j].String())
-
 			if vm.List[j].Process(p.DBHeight, state) { // Try and Process this entry
 
 				vm.Height = j + 1 // Don't process it again if the process worked.
 				progress = true
 			} else {
+				//fmt.Printf("dddd %20s %10s --- %10s %10v %10s %10v \n", "Process returns false", p.State.FactomNodeName, "vm", j, "msg", vm.List[j].String())
 				break VMListLoop // Don't process further in this list, go to the next.
 			}
 		}
@@ -495,9 +475,8 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 
 	now := p.State.GetTimestamp()
 
-	_, isNew1 := p.State.Replay.Valid(constants.INTERNAL_REPLAY, m.GetHash().Fixed(), m.GetTimestamp(), now)
 	_, isNew2 := p.State.Replay.Valid(constants.INTERNAL_REPLAY, m.GetMsgHash().Fixed(), m.GetTimestamp(), now)
-	if !isNew1 || !isNew2 {
+	if !isNew2 {
 		toss("seen before, or too old")
 		return
 	}
@@ -537,7 +516,6 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 
 	// We have already tested and found m to be a new message.  We now record its hashes so later, we
 	// can detect that it has been recorded.  We don't care about the results of IsTSValid_ at this point.
-	p.State.Replay.IsTSValid_(constants.INTERNAL_REPLAY, m.GetHash().Fixed(), m.GetTimestamp(), now)
 	p.State.Replay.IsTSValid_(constants.INTERNAL_REPLAY, m.GetMsgHash().Fixed(), m.GetTimestamp(), now)
 
 	delete(p.State.Acks, ack.GetHash().Fixed())

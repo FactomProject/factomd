@@ -37,7 +37,9 @@ func HandleV2(ctx *web.Context) {
 		return
 	}
 
+	ServersMutex.Lock()
 	state := ctx.Server.Env["state"].(interfaces.IState)
+	ServersMutex.Unlock()
 
 	jsonResp, jsonError := HandleV2Request(state, j)
 
@@ -557,6 +559,7 @@ func HandleV2FactoidSubmit(state interfaces.IState, params interface{}) (interfa
 
 	resp := new(FactoidSubmitResponse)
 	resp.Message = "Successfully submitted the transaction"
+	resp.TxID = msg.Transaction.GetSigHash().String()
 
 	return resp, nil
 }

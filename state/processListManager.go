@@ -71,10 +71,10 @@ func (lists *ProcessLists) Get(dbheight uint32) *ProcessList {
 
 func (lists *ProcessLists) String() string {
 	str := "Process Lists"
-	str = fmt.Sprintf("%s  DBBase: %d\n", str, lists.DBHeightBase)
-	ht := lists.State.GetHighestRecordedBlock()
-	pl := lists.Get(ht + 1)
-	str = fmt.Sprintf("%s ht: %d pl: %s\n", str, ht+1, pl.String())
+	for _, pl := range lists.Lists {
+		str = fmt.Sprintf("%s  DBBase: %d\n", str, lists.DBHeightBase)
+		str = fmt.Sprintf("%s ht: %d pl: %s\n", str, pl.DBHeight, pl.String())
+	}
 	return str
 }
 

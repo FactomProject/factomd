@@ -32,6 +32,9 @@ type FactoidState struct {
 var _ interfaces.IFactoidState = (*FactoidState)(nil)
 
 func (fs *FactoidState) EndOfPeriod(period int) {
+	if period > 9 || period < 0 {
+		panic(fmt.Sprintf("Minute is out of range: %d", period))
+	}
 	fs.GetCurrentBlock().EndOfPeriod(period)
 }
 

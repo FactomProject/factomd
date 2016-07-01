@@ -49,6 +49,7 @@ type State struct {
 	ExportDataSubpath       string
 	Network                 string
 	PeersFile               string
+	SeedURL                 string
 	LocalServerPrivKey      string
 	DirectoryBlockInSeconds int
 	PortNumber              int
@@ -98,6 +99,8 @@ type State struct {
 
 	EOM            bool // Set to true when the first EOM is encountered
 	EOMProcessed   int
+	EOMDone        bool
+	CurrentMinute  int
 	DBSigProcessed int  // Number of DBSignatures received and processed.
 	Saving         bool // True if we are in the process of saving to the database
 
@@ -110,11 +113,10 @@ type State struct {
 	// Maps
 	// ====
 	// For Follower
-	Holding map[[32]byte]interfaces.IMsg // Hold Messages
-	XReview []interfaces.IMsg            // After the EOM, we must review the messages in Holding
-	Acks    map[[32]byte]interfaces.IMsg // Hold Acknowledgemets
-	Commits map[[32]byte]interfaces.IMsg // Commit Messages
-	Reveals map[[32]byte]interfaces.IMsg // Reveal Messages
+	Holding map[[32]byte]interfaces.IMsg   // Hold Messages
+	XReview []interfaces.IMsg              // After the EOM, we must review the messages in Holding
+	Acks    map[[32]byte]interfaces.IMsg   // Hold Acknowledgemets
+	Commits map[[32]byte][]interfaces.IMsg // Commit Messages
 
 	InvalidMessages      map[[32]byte]interfaces.IMsg
 	InvalidMessagesMutex sync.RWMutex
@@ -209,6 +211,7 @@ func (s *State) Clone(number string) interfaces.IState {
 	clone.ExportDataSubpath = s.ExportDataSubpath + "sim-" + number
 	clone.Network = s.Network
 	clone.PeersFile = s.PeersFile
+	clone.SeedURL = s.SeedURL
 	clone.DirectoryBlockInSeconds = s.DirectoryBlockInSeconds
 	clone.PortNumber = s.PortNumber
 
@@ -282,6 +285,7 @@ func (s *State) LoadConfig(filename string, folder string) {
 		s.ExportDataSubpath = cfg.App.ExportDataSubpath
 		s.Network = cfg.App.Network
 		s.PeersFile = cfg.App.PeersFile
+		s.SeedURL = cfg.App.SeedURL
 		s.LocalServerPrivKey = cfg.App.LocalServerPrivKey
 		s.FactoshisPerEC = cfg.App.ExchangeRate
 		s.DirectoryBlockInSeconds = cfg.App.DirectoryBlockInSeconds
@@ -303,6 +307,7 @@ func (s *State) LoadConfig(filename string, folder string) {
 		s.ExportDataSubpath = "data/export"
 		s.Network = "LOCAL"
 		s.PeersFile = "peers.json"
+		s.SeedURL = "http://factomstatus.com/seed/seed.txt"
 		s.LocalServerPrivKey = "4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c9b08946553448d26d"
 		s.FactoshisPerEC = 006666
 		s.FERChainId = "eac57815972c504ec5ae3f9e5c1fe12321a3c8c78def62528fb74cf7af5e7389"
@@ -355,8 +360,7 @@ func (s *State) Init() {
 	// Set up maps for the followers
 	s.Holding = make(map[[32]byte]interfaces.IMsg)
 	s.Acks = make(map[[32]byte]interfaces.IMsg)
-	s.Commits = make(map[[32]byte]interfaces.IMsg)
-	s.Reveals = make(map[[32]byte]interfaces.IMsg)
+	s.Commits = make(map[[32]byte][]interfaces.IMsg)
 
 	// Setup the FactoidState and Validation Service that holds factoid and entry credit balances
 	s.FactoidBalancesP = map[[32]byte]int64{}

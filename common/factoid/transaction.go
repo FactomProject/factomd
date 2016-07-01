@@ -61,6 +61,10 @@ func (*Transaction) GetVersion() uint64 {
 	return 2
 }
 
+func (t *Transaction) GetTxID() interfaces.IHash {
+	return t.GetSigHash()
+}
+
 func (t *Transaction) GetHash() interfaces.IHash {
 	m, err := t.MarshalBinary()
 	if err != nil {

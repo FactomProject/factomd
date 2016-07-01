@@ -89,10 +89,9 @@ type IState interface {
 	PutNewEBlocks(dbheight uint32, hash IHash, eb IEntryBlock)
 	PutNewEntries(dbheight uint32, hash IHash, eb IEntry)
 
-	GetCommits(hash IHash) IMsg
-	GetReveals(hash IHash) IMsg
-	PutCommits(hash IHash, msg IMsg)
-	PutReveals(hash IHash, msg IMsg)
+	NextCommit(hash IHash) IMsg
+	PutCommit(hash IHash, msg IMsg)
+
 	IncEntryChains()
 	IncEntries()
 	// Server Configuration
@@ -156,6 +155,7 @@ type IState interface {
 	// For messages that go into the Process List
 	LeaderExecute(m IMsg)
 	LeaderExecuteEOM(m IMsg)
+	LeaderExecuteRevealEntry(m IMsg)
 
 	GetNetStateOff() bool //	If true, all network communications are disabled
 	SetNetStateOff(bool)
