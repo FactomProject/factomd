@@ -7,7 +7,6 @@ import (
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/log"
 )
@@ -20,54 +19,6 @@ type Authority struct {
 	Status            int
 	AnchorKeys        []AnchorSigningKey
 	// add key history?
-}
-
-// TODO: Remove function
-func LoadAuthorityCache(st *State) {
-
-	// var s State
-	blockHead, err := st.DB.FetchDirectoryBlockHead()
-
-	if blockHead == nil {
-		// new block chain just created.  no id yet
-		return
-	}
-	bHeader := blockHead.GetHeader()
-	height := bHeader.GetDBHeight()
-
-	if err != nil {
-		log.Printfln("ERR:", err)
-
-	}
-	var i uint32
-	for i = 1; i < height; i++ {
-
-		LoadAuthorityByAdminBlockHeight(i, st, false)
-
-	}
-
-}
-
-// TODO: Remove function
-func LoadAuthorityByAdminBlockHeight(height uint32, st *State, update bool) {
-	dblk, _ := st.DB.FetchDBlockByHeight(uint32(height))
-	if dblk == nil {
-		log.Println("Invalid Admin Block Height:" + string(height))
-		return
-	}
-
-	msg, err := st.LoadDBState(height)
-	if err == nil && msg != nil {
-		dsmsg := msg.(*messages.DBStateMsg)
-		ABlock := dsmsg.AdminBlock
-		//var AuthorityIndex int
-		for _, e := range ABlock.GetABEntries() {
-			st.UpdateAuthorityFromABEntry(e)
-		}
-	} else {
-		log.Printfln("ERR:", err)
-	}
-
 }
 
 func (st *State) UpdateAuthorityFromABEntry(entry interfaces.IABEntry) error {
@@ -233,17 +184,6 @@ func addAuthority(st *State, chainID interfaces.IHash) int {
 	idIndex := isIdentityChain(chainID, st.Identities)
 	if idIndex != -1 && st.Identities[idIndex].ManagementChainID != nil {
 		oneAuth.ManagementChainID = st.Identities[idIndex].ManagementChainID
-		// Keys should only update from admin block
-		/*if st.Identities[idIndex].SigningKey != nil {
-			oneAuth.SigningKey = primitives.PubKeyFromString(st.Identities[idIndex].SigningKey.String())
-		}*/
-		/*if st.Identities[idIndex].MatryoshkaHash != nil {
-			oneAuth.MatryoshkaHash = st.Identities[idIndex].MatryoshkaHash
-		}*/
-		/*if len(st.Identities[idIndex].AnchorKeys) > 0 {
-			oneAuth.AnchorKeys = make([]AnchorSigningKey, 0)
-			oneAuth.AnchorKeys = append(oneAuth.AnchorKeys[:], st.Identities[idIndex].AnchorKeys[:]...)
-		}*/
 	} else {
 		log.Println("Authority Error: " + chainID.String()[:10] + " No management chain found from identities.")
 	}
@@ -311,17 +251,13 @@ func (st *State) VerifyFederatedSignature(Message []byte, signature *[constants.
 
 	isFederatedSignature = false
 	for _, auth := range Authlist {
-		//	fmt.Println("Fed Server:",i)
 		tmp, err := auth.SigningKey.MarshalBinary()
 		if err != nil {
 			// will return false by default.  don't exit
 		} else {
 			copy(pk[:], tmp)
-			//	fmt.Println("key:" , pk)
 			if !ed.Verify(&pk, Message, signature) {
-				//		fmt.Println("not signed by this server")
 			} else {
-				fmt.Printf("YAY Signature! %x\n", pk)
 				return true, nil
 			}
 		}
