@@ -1126,9 +1126,9 @@ func (s *State) SetString() {
 		plht = fmt.Sprintf("%4d", s.LeaderPL.DBHeight)
 	}
 
-	s.serverPrt = fmt.Sprintf("%8s[%6x]%4s %4s DB: %d[%6x] PL:%d/%d Min: %2v DBHT %v EOM %5v Saving %5v PLHT %4s %3d-Fct %3d-EC %3d-E  %7.2f total tps %7.2f tps",
+	s.serverPrt = fmt.Sprintf("%8s[%8x]%4s %4s DB: %d[%6x] PL:%d/%d Min: %2v DBHT %v EOM %5v Saving %5v PLHT %4s %3d-Fct %3d-EC %3d-E  %7.2f total tps %7.2f tps",
 		s.FactomNodeName,
-		s.IdentityChainID.Bytes()[:3],
+		s.IdentityChainID.Bytes()[:4],
 		vmIndex,
 		stype,
 		dHeight,
