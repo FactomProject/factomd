@@ -321,7 +321,7 @@ func (st *State) VerifyFederatedSignature(Message []byte, signature *[constants.
 			if !ed.Verify(&pk, Message, signature) {
 				//		fmt.Println("not signed by this server")
 			} else {
-				//		fmt.Println("YAY Signature!")
+				fmt.Println("YAY Signature!")
 				return true, nil
 			}
 		}

@@ -854,11 +854,13 @@ func (s *State) GetFactomdVersion() int {
 
 func (s *State) initServerKeys() {
 	var err error
+	fmt.Printf("DEBUG Priv: %s\n", s.LocalServerPrivKey)
 	s.serverPrivKey, err = primitives.NewPrivateKeyFromHex(s.LocalServerPrivKey)
 	if err != nil {
 		//panic("Cannot parse Server Private Key from configuration file: " + err.Error())
 	}
 	s.serverPubKey = *(s.serverPrivKey.Pub)
+	fmt.Printf("DEBUG Pub: %s\n", s.serverPrivKey.Pub.String())
 	//s.serverPubKey = primitives.PubKeyFromString(constants.SERVER_PUB_KEY)
 }
 

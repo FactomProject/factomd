@@ -412,7 +412,7 @@ func setupBlankAuthority(s *state.State) {
 
 	var auth state.Authority
 	auth.Status = 1
-	auth.SigningKey = primitives.PubKeyFromString("0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a")
+	auth.SigningKey = s.GetServerPublicKey() //primitives.PubKeyFromString("0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a")
 	auth.MatryoshkaHash = primitives.NewZeroHash()
 	auth.AuthorityChainID, _ = primitives.HexToHash("38bab1455b7bd7e5efd15c53c777c79d0c988e9210f1da49a99d95b3a6417be9") //s.IdentityChainID
 	auth.ManagementChainID, _ = primitives.HexToHash("88888800000000000000000000000000")
