@@ -758,6 +758,7 @@ func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype
 	if index == -1 {
 		err := AddIdentityFromChainID(chainID, st)
 		if err != nil {
+			log.Println(err.Error())
 			return false
 		}
 		index = isIdentityChain(chainID, st.Identities)
