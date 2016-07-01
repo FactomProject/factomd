@@ -521,57 +521,45 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
 
 	s.NextCommit(myhash)
 
-	eb, _ := s.DB.FetchEBlockHead(chainID)
+	eb_db, _ := s.DB.FetchEBlockHead(chainID)
+	eb := s.GetNewEBlocks(dbheight, chainID)
 
-	if !msg.IsEntry && eb == nil {
-		eb, _ := s.DB.FetchEBlockHead(chainID)
-		if eb == nil {
-			// Create a new Entry Block for a new Entry Block Chain
-			eb = entryBlock.NewEBlock()
-			// Set the Chain ID
-			eb.GetHeader().SetChainID(chainID)
-			// Set the Directory Block Height for this Entry Block
-			eb.GetHeader().SetDBHeight(dbheight)
-			// Add our new entry
-			eb.AddEBEntry(msg.Entry)
-			// Put it in our list of new Entry Blocks for this Directory Block
-			s.PutNewEBlocks(dbheight, chainID, eb)
-			s.PutNewEntries(dbheight, myhash, msg.Entry)
+	// Handle the case that this is a Entry Chain create
+	// Must be built with CommitChain (i.e. !msg.IsEntry).  Also
+	// cannot have an existing chaing (eb and eb_db == nil)
+	if !msg.IsEntry && eb == nil && eb_db == nil {
+		// Create a new Entry Block for a new Entry Block Chain
+		eb = entryBlock.NewEBlock()
+		// Set the Chain ID
+		eb.GetHeader().SetChainID(chainID)
+		// Set the Directory Block Height for this Entry Block
+		eb.GetHeader().SetDBHeight(dbheight)
+		// Add our new entry
+		eb.AddEBEntry(msg.Entry)
+		// Put it in our list of new Entry Blocks for this Directory Block
+		s.PutNewEBlocks(dbheight, chainID, eb)
+		s.PutNewEntries(dbheight, myhash, msg.Entry)
 
-			s.IncEntryChains()
-			s.IncEntries()
-			return true
-		}
+		s.IncEntryChains()
+		s.IncEntries()
+		return true
 	}
 
-	ebc := s.GetNewEBlocks(dbheight, chainID)
-	if ebc == nil {
-		prev := s.GetNewEBlocks(dbheight-1, chainID)
-		prevdb := eb
-		if prev == nil && prevdb == nil {
+	// Create an entry (even if they used commitChain).  Means there must
+	// be a chain somewhere.  If not, we return false.
+	if eb == nil {
+		if eb_db == nil {
 			return false
 		}
-
-		if prev != nil {
-			mr1, _ := prev.KeyMR()
-			mr2, _ := prevdb.KeyMR()
-			if mr2 == nil || !mr1.IsSameAs(mr2) {
-				fmt.Printf("dddd BAD EB Block Head %s DBHeigth: %3d Min %2d PL: %x DB: %x\n",
-					s.FactomNodeName, s.LLeaderHeight, int(s.LeaderPL.VMs[0].LeaderMinute), mr1.Bytes(), mr2.Bytes())
-			}
-		} else {
-			prev = prevdb
-		}
-
 		eb = entryBlock.NewEBlock()
-		eb.GetHeader().SetEBSequence(prev.GetHeader().GetEBSequence() + 1)
-		eb.GetHeader().SetPrevFullHash(prev.GetHash())
+		eb.GetHeader().SetEBSequence(eb_db.GetHeader().GetEBSequence() + 1)
+		eb.GetHeader().SetPrevFullHash(eb_db.GetHash())
 		// Set the Chain ID
 		eb.GetHeader().SetChainID(chainID)
 		// Set the Directory Block Height for this Entry Block
 		eb.GetHeader().SetDBHeight(dbheight)
 		// Set the PrevKeyMR
-		key, _ := prev.KeyMR()
+		key, _ := eb_db.KeyMR()
 		eb.GetHeader().SetPrevKeyMR(key)
 	}
 	// Add our new entry

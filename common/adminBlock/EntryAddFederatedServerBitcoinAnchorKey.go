@@ -19,6 +19,17 @@ type AddFederatedServerBitcoinAnchorKey struct {
 var _ interfaces.IABEntry = (*AddFederatedServerBitcoinAnchorKey)(nil)
 var _ interfaces.BinaryMarshallable = (*AddFederatedServerBitcoinAnchorKey)(nil)
 
+func (e *AddFederatedServerBitcoinAnchorKey) String() string {
+	var out primitives.Buffer
+	out.WriteString(fmt.Sprintf("    E: %35s -- %20s %10x %20s %10x %20s %10x %20s %10x\n",
+		"AddFederatedServerBitcoinAnchorKey",
+		"IdentityChainID", e.IdentityChainID.Bytes()[:3],
+		"KeyPriority", e.KeyPriority,
+		"KeyType", e.KeyType,
+		"ECDSAPublicKey", e.ECDSAPublicKey.String()))
+	return (string)(out.DeepCopyBytes())
+}
+
 func (c *AddFederatedServerBitcoinAnchorKey) UpdateState(state interfaces.IState) {
 	state.UpdateAuthorityFromABEntry(c)
 }
@@ -108,11 +119,6 @@ func (e *AddFederatedServerBitcoinAnchorKey) JSONString() (string, error) {
 
 func (e *AddFederatedServerBitcoinAnchorKey) JSONBuffer(b *bytes.Buffer) error {
 	return primitives.EncodeJSONToBuffer(e, b)
-}
-
-func (e *AddFederatedServerBitcoinAnchorKey) String() string {
-	str, _ := e.JSONString()
-	return str
 }
 
 func (e *AddFederatedServerBitcoinAnchorKey) IsInterpretable() bool {

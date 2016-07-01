@@ -27,6 +27,18 @@ type ABlockHeader struct {
 var _ interfaces.Printable = (*ABlockHeader)(nil)
 var _ interfaces.BinaryMarshallable = (*ABlockHeader)(nil)
 
+func (e *ABlockHeader) String() string {
+	var out primitives.Buffer
+	out.WriteString("  Admin Block Header")
+	out.WriteString(fmt.Sprintf("    %20s: %10v", "PrevFullHash", e.PrevFullHash.String()))
+	out.WriteString(fmt.Sprintf("    %20s: %10v", "DBHeight", e.DBHeight))
+	out.WriteString(fmt.Sprintf("    %20s: %10v", "HeaderExpansionSize", e.HeaderExpansionSize))
+	out.WriteString(fmt.Sprintf("    %20s: %x", "HeaderExpansionArea", e.HeaderExpansionArea))
+	out.WriteString(fmt.Sprintf("    %20s: %x", "MessageCount", e.MessageCount))
+	out.WriteString(fmt.Sprintf("    %20s: %x", "MessageCount", e.BodySize))
+	return (string)(out.DeepCopyBytes())
+}
+
 func (b *ABlockHeader) GetMessageCount() uint32 {
 	return b.MessageCount
 }
@@ -147,9 +159,4 @@ func (e *ABlockHeader) JSONString() (string, error) {
 
 func (e *ABlockHeader) JSONBuffer(b *bytes.Buffer) error {
 	return primitives.EncodeJSONToBuffer(e, b)
-}
-
-func (e *ABlockHeader) String() string {
-	str, _ := e.JSONString()
-	return str
 }
