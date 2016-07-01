@@ -182,25 +182,25 @@ func (c *Connection) runLoop() {
 				c.pingPeer()    // sends a ping periodically if things have been quiet
 				c.updateStats() // Update controller with metrics
 				if PeerSaveInterval < time.Since(c.timeLastUpdate) {
-					debug(c.peer.PeerIdent(), "runLoop() PeerSaveInterval interval %s is less than duration since last update: %s ", PeerSaveInterval.String(), time.Since(c.timeLastUpdate).String())
+					significant(c.peer.PeerIdent(), "runLoop() PeerSaveInterval interval %s is less than duration since last update: %s ", PeerSaveInterval.String(), time.Since(c.timeLastUpdate).String())
 					c.updatePeer() // every PeerSaveInterval * 0.90 we send an update peer to the controller.
 				}
 			}
 			if MinumumQualityScore > c.peer.QualityScore && !c.isPersistent {
-				note(c.peer.PeerIdent(), "Connection.runloop(%s) ConnectionOnline quality score too low: %d", c.peer.PeerIdent(), c.peer.QualityScore)
+				significant(c.peer.PeerIdent(), "Connection.runloop(%s) ConnectionOnline quality score too low: %d", c.peer.PeerIdent(), c.peer.QualityScore)
 				c.updatePeer() // every PeerSaveInterval * 0.90 we send an update peer to the controller.
 				c.goShutdown()
 			}
 		case ConnectionOffline:
 			switch {
 			case c.isOutGoing:
-				note(c.peer.PeerIdent(), "Connection.runLoop() ConnectionOffline, going dialLoop().")
+				significant(c.peer.PeerIdent(), "Connection.runLoop() ConnectionOffline, going dialLoop().")
 				c.dialLoop() // dialLoop dials until it connects or shuts down.
 			default: // the connection dialed us, so we shutdown
 				c.goShutdown()
 			}
 		case ConnectionShuttingDown:
-			debug(c.peer.PeerIdent(), "runLoop() ConnectionShuttingDown STATE runloop() cleaning up. ")
+			significant(c.peer.PeerIdent(), "runLoop() ConnectionShuttingDown STATE runloop() cleaning up. ")
 			c.state = ConnectionClosed
 			c.ReceiveChannel <- ConnectionCommand{command: ConnectionIsClosed}
 			return // ending runloop() goroutine
@@ -208,6 +208,7 @@ func (c *Connection) runLoop() {
 			logfatal(c.peer.PeerIdent(), "runLoop() unknown state?: %s ", connectionStateStrings[c.state])
 		}
 	}
+	significant(c.peer.PeerIdent(), "runLoop() Connection runloop() exiting %+v", c)
 }
 
 func (c *Connection) setNotes(newNote string) {
