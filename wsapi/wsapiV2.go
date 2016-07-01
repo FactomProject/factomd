@@ -37,7 +37,9 @@ func HandleV2(ctx *web.Context) {
 		return
 	}
 
+	ServersMutex.Lock()
 	state := ctx.Server.Env["state"].(interfaces.IState)
+	ServersMutex.Unlock()
 
 	jsonResp, jsonError := HandleV2Request(state, j)
 
