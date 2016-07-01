@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strconv"
@@ -300,13 +301,15 @@ func getMessageString(e *factom.Entry, ec *factom.ECAddress) (string, string) {
 }
 
 // Returns the private block signing key of the authority
-func authKeyLookup(auth interfaces.IHash) string {
+func authKeyLookup(auth interfaces.IHash) (string, primitives.PrivateKey) {
+	key := ""
 	for _, a := range authKeyLibrary {
 		if auth.IsSameAs(a.ChainID) {
-			return a.NewBlockKey
+			key = a.NewBlockKey
 		}
 	}
-	return ""
+	p, _ := primitives.NewPrivateKeyFromHex(key)
+	return key, p
 }
 
 func buildMessages() []hardCodedAuthority {

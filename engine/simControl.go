@@ -360,9 +360,10 @@ func SimControl(listenTo int) {
 						os.Stderr.WriteString(fmt.Sprintf("Error: %s\n", err.Error()))
 					} else {
 						fnodes[listenTo].State.IdentityChainID = hash
-						key := authKeyLookup(fnodes[listenTo].State.IdentityChainID)
+						key, pKey := authKeyLookup(fnodes[listenTo].State.IdentityChainID)
 						if len(key) == 64 {
 							fnodes[listenTo].State.LocalServerPrivKey = key
+							fnodes[listenTo].State.SimSetNewKeys(pKey)
 						}
 						os.Stderr.WriteString(fmt.Sprintf("Identity of " + fnodes[listenTo].State.GetFactomNodeName() + " changed to [" + hash.String()[:10] + "]\n"))
 					}
@@ -388,6 +389,9 @@ func SimControl(listenTo int) {
 					if authKeyLibrary[index].Taken == false {
 						authKeyLibrary[index].Taken = true
 						fnodes[listenTo].State.IdentityChainID = authKeyLibrary[index].ChainID
+						key, pKey := authKeyLookup(fnodes[listenTo].State.IdentityChainID)
+						fnodes[listenTo].State.LocalServerPrivKey = key
+						fnodes[listenTo].State.SimSetNewKeys(pKey)
 						os.Stderr.WriteString(fmt.Sprintf("Identity of " + fnodes[listenTo].State.GetFactomNodeName() + " changed to [" + authKeyLibrary[index].ChainID.String()[:10] + "]\n"))
 						break
 					}
