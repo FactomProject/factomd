@@ -732,7 +732,6 @@ func StubIdentityCache(st *State) {
 
 // Called by AddServer Message
 func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype int) bool {
-	// If all valid
 	var matryoshkaHash interfaces.IHash
 	var blockSigningKey [32]byte
 	var btcKey [20]byte
@@ -770,9 +769,7 @@ func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype
 			log.Println("New Fed/Audit server [" + chainID.String()[:10] + "] does not have an Block Signing Key associated to it")
 			return false
 		} else {
-			//var pub [32]byte
 			copy(blockSigningKey[:32], id.SigningKey.Bytes()[:32])
-			//st.LeaderPL.AdminBlock.AddFederatedServerSigningKey(chainID, &pub)
 		}
 
 		if id.AnchorKeys == nil {
@@ -781,9 +778,7 @@ func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype
 		} else {
 			for _, aKey := range id.AnchorKeys {
 				if strings.Compare(aKey.BlockChain, "BTC") == 0 {
-					//var key [20]byte
 					copy(btcKey[:20], aKey.SigningKey[:20])
-					//st.LeaderPL.AdminBlock.AddFederatedServerBitcoinAnchorKey(chainID, aKey.KeyLevel, aKey.KeyType, &key)
 				}
 			}
 		}
@@ -793,7 +788,6 @@ func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype
 			return false
 		}
 		matryoshkaHash = id.MatryoshkaHash
-		//st.LeaderPL.AdminBlock.AddMatryoshkaHash(chainID, id.MatryoshkaHash)
 
 		if servertype == 0 {
 			id.Status = constants.IDENTITY_PENDING_FEDERATED_SERVER
