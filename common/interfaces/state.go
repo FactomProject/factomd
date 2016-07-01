@@ -182,6 +182,7 @@ type IState interface {
 	FetchECTransactionByHash(hash IHash) (IECBlockEntry, error)
 	FetchEntryByHash(IHash) (IEBEntry, error)
 
+
 	// FER section
 	ProcessRecentFERChainEntries()
 	ExchangeRateAuthorityIsValid(IEBEntry) bool
@@ -191,4 +192,8 @@ type IState interface {
 	// Identity Section
 	VerifyIsAuthority(cid IHash) bool // True if is authority
 	UpdateAuthorityFromABEntry(entry IABEntry) error
+
+	//Authority Section
+	VerifyFederatedSignature(Message []byte,signature *[64]byte)	 (bool, error)
+
 }
