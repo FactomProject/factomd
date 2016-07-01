@@ -559,7 +559,7 @@ func HandleV2FactoidSubmit(state interfaces.IState, params interface{}) (interfa
 
 	resp := new(FactoidSubmitResponse)
 	resp.Message = "Successfully submitted the transaction"
-	resp.TxID = msg.Transaction.GetTxID().String()
+	resp.TxID = msg.Transaction.GetSigHash().String()
 
 	return resp, nil
 }

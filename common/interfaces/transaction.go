@@ -27,9 +27,13 @@ type ITransaction interface {
 	// RCDs are generally added at the same time.
 	AddRCD(rcd IRCD)
 
-	GetTxID() IHash
+	//GetTxID() IHash
+
 	// Get the hash of the signed portion (not including signatures)
+	// This is the TxID of a factoid transaction
 	GetSigHash() IHash
+
+
 	// Get the full hash of the transaction (including signatures)
 	GetFullHash() IHash
 
