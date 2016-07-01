@@ -164,8 +164,10 @@ func (p *P2PProxy) logMessage(msg interfaces.IMsg, received bool) {
 }
 
 func (p *P2PProxy) ManageLogging() {
+	start := time.Now()
 	for message := range p.logging {
-		line := fmt.Sprintf("%s, %t, %d, %s\n", message.hash, message.received, message.time, message.target)
+		elapsedMinutes := int(time.Since(start).Minutes())
+		line := fmt.Sprintf("%s, %t, %d, %s, %d\n", message.hash, message.received, message.time, message.target, elapsedMinutes)
 		_, err := p.logWriter.Write([]byte(line))
 		if nil != err {
 			note("Error writing to logging file. %v", err)
