@@ -39,7 +39,7 @@ func HandleV2FactoidACK(state interfaces.IState, params interface{}) (interface{
 		if err != nil {
 			return nil, NewUnableToDecodeTransactionError()
 		}
-		txid = tx.GetTxID().String()
+		txid = tx.GetSigHash().String()
 	}
 
 	txhash, err := primitives.NewShaHashFromStr(txid)
