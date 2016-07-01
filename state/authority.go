@@ -295,7 +295,6 @@ func addServerSigningKey(ChainID interfaces.IHash, key interfaces.IHash, st *Sta
 	var AuthorityIndex int
 	AuthorityIndex = isAuthorityChain(ChainID, st.Authorities)
 	if AuthorityIndex == -1 {
-		//Add Identity as Federated Server
 		log.Println(ChainID.String() + " Cannot Update Signing Key.  Not in Authorities List.")
 	} else {
 		//log.Println(ChainID.String() + " Updating Signing Key. AdminBlock Height:" + string(height))
