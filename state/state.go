@@ -858,7 +858,8 @@ func (s *State) initServerKeys() {
 	if err != nil {
 		//panic("Cannot parse Server Private Key from configuration file: " + err.Error())
 	}
-	s.serverPubKey = primitives.PubKeyFromString(constants.SERVER_PUB_KEY)
+	s.serverPubKey = *(s.serverPrivKey.Pub)
+	//s.serverPubKey = primitives.PubKeyFromString(constants.SERVER_PUB_KEY)
 }
 
 func (s *State) LogInfo(args ...interface{}) {
