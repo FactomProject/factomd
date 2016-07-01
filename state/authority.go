@@ -305,24 +305,24 @@ func addServerSigningKey(ChainID interfaces.IHash, key interfaces.IHash, st *Sta
 
 func (st *State) VerifyFederatedSignature(Message []byte,signature *[constants.SIGNATURE_LENGTH]byte) (bool, error) {
 	
-fmt.Println("RUNNING VERIFY FEDERATED")
+	//fmt.Println("RUNNING VERIFY FEDERATED")
 	Authlist:= st.Authorities
 	var pk [32]byte
 	var isFederatedSignature bool
 
 	isFederatedSignature= false
 	for i, auth := range Authlist {
-		fmt.Println("Fed Server:",i)
+	//	fmt.Println("Fed Server:",i)
 		tmp, err := auth.SigningKey.MarshalBinary()
 		if err != nil {
 			// will return false by default.  don't exit 
 		} else {
 			copy(pk[:],tmp)
-			fmt.Println("key:" , pk)
+		//	fmt.Println("key:" , pk)
 			if !ed.Verify(&pk, Message, signature) {
-				fmt.Println("not signed by this server")
+		//		fmt.Println("not signed by this server")
 			} else {
-				fmt.Println("YAY Signature!")
+		//		fmt.Println("YAY Signature!")
 				return true,nil
 			}
 		}
