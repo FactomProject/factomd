@@ -93,7 +93,7 @@ type CommandChangeLogging struct {
 
 func (c *Controller) Init(ci ControllerInit) *Controller {
 	significant("ctrlr", "Controller.Init(%s) %#x", ci.Port, ci.Network)
-	silence("#################", "META: Last touched: WEDNESDAY JUNE 29th - 10:38AM")
+	silence("#################", "META: Last touched: FRIDAY JULY 1 7:45PM")
 	c.keepRunning = true
 	c.commandChannel = make(chan interface{}, 1000) // Commands from App
 	c.FromNetwork = make(chan Parcel, 10000)        // Channel to the app for network data
@@ -341,8 +341,7 @@ func (c *Controller) handleConnectionCommand(command ConnectionCommand, connecti
 	switch command.command {
 	case ConnectionUpdateMetrics:
 		c.connectionMetrics[connection.peer.Hash] = command.metrics
-		significant("ctrlr", "handleConnectionCommand() Got ConnectionUpdateMetrics command, all metrics are: %+v", c.connectionMetrics)
-
+		note("ctrlr", "handleConnectionCommand() Got ConnectionUpdateMetrics command, all metrics are: %+v", c.connectionMetrics)
 	case ConnectionIsClosed:
 		debug("ctrlr", "handleConnectionCommand() Got ConnectionIsShutdown from  %s", connection.peer.Hash)
 		delete(c.connectionsByAddress, connection.peer.Address)
