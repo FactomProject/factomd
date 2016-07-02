@@ -428,6 +428,7 @@ func (c *Controller) managePeers() {
 		duration := time.Since(c.discovery.lastPeerSave)
 		// Every so often, tell the discovery service to save peers.
 		if PeerSaveInterval < duration {
+			significant("controller", "Saving peers")
 			c.discovery.SavePeers()
 			c.discovery.PrintPeers() // No-op if debugging off.
 		}
@@ -444,39 +445,40 @@ func (c *Controller) managePeers() {
 	}
 }
 
+// updateConnectionAddressMap() updates the address index map to reflect all current connections
 func (c *Controller) updateConnectionAddressMap() {
 	c.connectionsByAddress = map[string]Connection{}
 	for _, value := range c.connections {
-		c.connectionsByAddress[value.peer.Address] = value
+		c.connectionsByAddress[value.peer.AddressPort()] = value
 	}
 }
 
 func (c *Controller) weAreNotAlreadyConnectedTo(peer Peer) bool {
-	_, present := c.connectionsByAddress[peer.Address]
+	_, present := c.connectionsByAddress[peer.AddressPort()]
 	return !present
 }
 
 func (c *Controller) fillOutgoingSlots() {
 	c.updateConnectionAddressMap()
-	significant("controller", "##############\n##############\n##############\n##############\n##############\n")
+	significant("controller", "\n##############\n##############\n##############\n##############\n##############\n")
 	significant("controller", "Connected peers:")
 	for _, v := range c.connectionsByAddress {
-		significant("controller", "%s", v.peer.AddressPort)
+		significant("controller", "%s", v.peer.AddressPort())
 	}
 	peers := c.discovery.GetOutgoingPeers()
 	if len(peers) < NumberPeersToConnect*2 {
-		c.discovery.DiscoverPeers()
+		c.discovery.GetOutgoingPeers()
 		peers = c.discovery.GetOutgoingPeers()
 	}
 	// dial into the peers
 	for _, peer := range peers {
 		if c.weAreNotAlreadyConnectedTo(peer) {
-			significant("controller", "We think we are not already connected to: %s so dialing.", peer.AddressPort)
+			significant("controller", "We think we are not already connected to: %s so dialing.", peer.AddressPort())
 			c.DialPeer(peer, false)
 		}
 	}
 	c.discovery.PrintPeers()
-	significant("controller", "##############\n##############\n##############\n##############\n##############\n")
+	significant("controller", "\n##############\n##############\n##############\n##############\n##############\n")
 }
 
 func (c *Controller) shutdown() {
