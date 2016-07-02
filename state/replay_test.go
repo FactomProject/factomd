@@ -39,7 +39,7 @@ func Test_Replay(test *testing.T) {
 
 	for i := 0; i < XTrans; i++ {
 
-		if i%10240 == 0 {
+		if i%1024 == 0 {
 			fmt.Println("Testing ", i)
 		}
 
@@ -48,7 +48,7 @@ func Test_Replay(test *testing.T) {
 		h[i].hash = primitives.Sha([]byte(fmt.Sprintf("h%d", i))).Fixed()
 
 		// Build a valid transaction somewhere +/- 12 hours of now
-		h[i].time = *interfaces.NewTimestampFromSeconds(uint32(now.GetTimeSeconds() + (rand.Int63() % 24 * hour) - 12*hour))
+		h[i].time = *interfaces.NewTimestampFromSeconds(uint32(now.GetTimeSeconds() + (rand.Int63() % HourRange * 2 * hour) - HourRange*hour))
 
 		// The first time we test, it should be valid.
 		if !r.IsTSValid_(constants.INTERNAL_REPLAY, h[i].hash, h[i].time, now) {
