@@ -33,7 +33,7 @@ type P2PProxy struct {
 	logFile   os.File
 	logWriter bufio.Writer
 	debugMode int
-	logging   chan messageLog // NODE_TALK_FIX
+	logging   chan interface{} // NODE_TALK_FIX
 }
 
 type factomMessage struct {
@@ -48,7 +48,7 @@ func (f *P2PProxy) Init(fromName, toName string) interfaces.IPeer {
 	f.FromName = fromName
 	f.BroadcastOut = make(chan factomMessage, 10000)
 	f.BroadcastIn = make(chan factomMessage, 10000)
-	f.logging = make(chan messageLog, 10000)
+	f.logging = make(chan interface{}, 10000)
 	return f
 }
 func (f *P2PProxy) SetDebugMode(netdebug int) {
@@ -124,15 +124,6 @@ func (f *P2PProxy) Len() int {
 
 func (p *P2PProxy) startProxy() {
 	if 1 < p.debugMode {
-		note("setting up message logging")
-		file, err := os.OpenFile("message_log.csv", os.O_CREATE|os.O_RDWR|os.O_APPEND, 0660)
-		p.logFile = *file
-		if nil != err {
-			note("Unable to open logging file. %v", err)
-			panic("unable to open logging file")
-		}
-		writer := bufio.NewWriter(&p.logFile)
-		p.logWriter = *writer
 		go p.ManageLogging()
 	}
 	go p.ManageOutChannel() // Bridges between network format Parcels and factomd messages (incl. addressing to peers)
@@ -142,8 +133,7 @@ func (p *P2PProxy) startProxy() {
 // NODE_TALK_FIX
 func (p *P2PProxy) stopProxy() {
 	if 0 < p.debugMode {
-		p.logWriter.Flush()
-		defer p.logFile.Close()
+		p.logging <- "stop"
 	}
 }
 
@@ -164,16 +154,34 @@ func (p *P2PProxy) logMessage(msg interfaces.IMsg, received bool) {
 }
 
 func (p *P2PProxy) ManageLogging() {
+	note("setting up message logging")
+	file, err := os.OpenFile("message_log.csv", os.O_CREATE|os.O_RDWR|os.O_APPEND, 0660)
+	p.logFile = *file
+	if nil != err {
+		note("Unable to open logging file. %v", err)
+		panic("unable to open logging file")
+	}
+	writer := bufio.NewWriter(&p.logFile)
+	p.logWriter = *writer
 	start := time.Now()
-	for message := range p.logging {
-		elapsedMinutes := int(time.Since(start).Minutes())
-		line := fmt.Sprintf("%s, %t, %d, %s, %d\n", message.hash, message.received, message.time, message.target, elapsedMinutes)
-		_, err := p.logWriter.Write([]byte(line))
-		if nil != err {
-			note("Error writing to logging file. %v", err)
-			panic("Error writing to logging file")
+	for {
+		item := <-p.logging
+		switch item.(type) {
+		case messageLog:
+			message := item.(messageLog)
+			elapsedMinutes := int(time.Since(start).Minutes())
+			line := fmt.Sprintf("%s, %t, %d, %s, %d\n", message.hash, message.received, message.time, message.target, elapsedMinutes)
+			_, err := p.logWriter.Write([]byte(line))
+			if nil != err {
+				note("Error writing to logging file. %v", err)
+				panic("Error writing to logging file")
+			}
+		default:
+			break
 		}
 	}
+	p.logWriter.Flush()
+	defer p.logFile.Close()
 }
 
 // manageOutChannel takes messages from the f.broadcastOut channel and sends them to the network.
