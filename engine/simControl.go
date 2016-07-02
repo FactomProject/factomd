@@ -208,6 +208,15 @@ func SimControl(listenTo int) {
 					f.State.SetNetStateOff(!v)
 				}
 
+			case 'y' == b[0]:
+				if listenTo >= 0 && listenTo < len(fnodes) {
+					f := fnodes[listenTo]
+					fmt.Println("Holding:")
+					for k := range f.State.Holding {
+						fmt.Println(f.State.Holding[k].String())
+					}
+				}
+
 			case 'm' == b[0]:
 				watchMessages++
 				if watchMessages%2 == 1 {
@@ -399,6 +408,7 @@ func SimControl(listenTo int) {
 				os.Stderr.WriteString("eN            Show Entry Credit Block   N. Indicate node eg:\"f5\" to shows blocks for that node.\n")
 				os.Stderr.WriteString("fN            Show Factoid block  			 N. Indicate node eg:\"f5\" to shows blocks for that node.\n")
 				os.Stderr.WriteString("dN            Show Directory block			 N. Indicate node eg:\"d5\" to shows blocks for that node.\n")
+				os.Stderr.WriteString("y             Dump what is in the Holding Map.  Can crash, but oh well.\n")
 				os.Stderr.WriteString("m             Show Messages as they are passed through the simulator.\n")
 				os.Stderr.WriteString("c             Trace the Consensus Process\n")
 				os.Stderr.WriteString("s             Show the state of all nodes as their state changes in the simulator.\n")

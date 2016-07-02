@@ -31,8 +31,11 @@ func (s *State) NewMinute() {
 	// Anything we are holding, we need to reprocess.
 	for k := range s.Holding {
 		v := s.Holding[k]
-		v.ComputeVMIndex(s)
-		s.XReview = append(s.XReview, v)
+		if v.Resend() < 5 {
+			s.networkOutMsgQueue <- v
+			v.ComputeVMIndex(s)
+			s.XReview = append(s.XReview, v)
+		}
 		delete(s.Holding, k)
 	}
 }
@@ -597,7 +600,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 	// After all EOM markers are processed, but before anything else is done
 	// we do any cleanup required, for all VMs for this EOM
-	if s.EOMProcessed == len(s.LeaderPL.FedServers) {
+	if s.EOMProcessed == len(s.LeaderPL.FedServers) && !s.EOMDone {
 
 		s.EOMDone = true
 

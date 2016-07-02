@@ -766,23 +766,25 @@ func (s *State) catchupEBlocks() {
 	isComplete := true
 	if s.GetEBDBHeightComplete() < s.GetDBHeightComplete() {
 		dblockGathering := s.GetDirectoryBlockByHeight(s.GetEBDBHeightComplete())
-		for idx, ebKeyMR := range dblockGathering.GetEntryHashes() {
-			if idx > 2 {
-				if s.DatabaseContains(ebKeyMR) {
-					if !s.GetAllEntries(ebKeyMR) {
+		if dblockGathering != nil {
+			for idx, ebKeyMR := range dblockGathering.GetEntryHashes() {
+				if idx > 2 {
+					if s.DatabaseContains(ebKeyMR) {
+						if !s.GetAllEntries(ebKeyMR) {
+							isComplete = false
+						}
+					} else {
 						isComplete = false
-					}
-				} else {
-					isComplete = false
-					if !s.HasDataRequest(ebKeyMR) {
-						eBlockRequest := messages.NewMissingData(s, ebKeyMR)
-						s.NetworkOutMsgQueue() <- eBlockRequest
+						if !s.HasDataRequest(ebKeyMR) {
+							eBlockRequest := messages.NewMissingData(s, ebKeyMR)
+							s.NetworkOutMsgQueue() <- eBlockRequest
+						}
 					}
 				}
 			}
-		}
-		if isComplete {
-			s.SetEBDBHeightComplete(s.GetEBDBHeightComplete() + 1)
+			if isComplete {
+				s.SetEBDBHeightComplete(s.GetEBDBHeightComplete() + 1)
+			}
 		}
 	}
 }
