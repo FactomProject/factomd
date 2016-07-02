@@ -85,7 +85,7 @@ func (s *State) Process() (progress bool) {
 
 		case s.CurrentMinute > 0:
 			s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
-			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute-1, s.IdentityChainID)
+			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
 			s.NewMinute()
 		case s.CurrentMinute == 0:
 			dbstate := s.AddDBState(true, s.LeaderPL.DirectoryBlock, s.LeaderPL.AdminBlock, s.GetFactoidState().GetCurrentBlock(), s.LeaderPL.EntryCreditBlock)
@@ -385,7 +385,7 @@ func (s *State) LeaderExecute(m interfaces.IMsg) {
 
 func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 
-	if !m.IsLocal() || s.EOM || s.Saving {
+	if !m.IsLocal() || s.Saving {
 		s.FollowerExecuteEOM(m)
 		return
 	}

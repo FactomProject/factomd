@@ -29,13 +29,13 @@ var _ interfaces.BinaryMarshallable = (*ABlockHeader)(nil)
 
 func (e *ABlockHeader) String() string {
 	var out primitives.Buffer
-	out.WriteString("  Admin Block Header")
-	out.WriteString(fmt.Sprintf("    %20s: %10v", "PrevFullHash", e.PrevFullHash.String()))
-	out.WriteString(fmt.Sprintf("    %20s: %10v", "DBHeight", e.DBHeight))
-	out.WriteString(fmt.Sprintf("    %20s: %10v", "HeaderExpansionSize", e.HeaderExpansionSize))
-	out.WriteString(fmt.Sprintf("    %20s: %x", "HeaderExpansionArea", e.HeaderExpansionArea))
-	out.WriteString(fmt.Sprintf("    %20s: %x", "MessageCount", e.MessageCount))
-	out.WriteString(fmt.Sprintf("    %20s: %x", "MessageCount", e.BodySize))
+	out.WriteString("  Admin Block Header\n")
+	out.WriteString(fmt.Sprintf("    %20s: %10v\n", "PrevFullHash", e.PrevFullHash.String()))
+	out.WriteString(fmt.Sprintf("    %20s: %10v\n", "DBHeight", e.DBHeight))
+	out.WriteString(fmt.Sprintf("    %20s: %10v\n", "HeaderExpansionSize", e.HeaderExpansionSize))
+	out.WriteString(fmt.Sprintf("    %20s: %x\n", "HeaderExpansionArea", e.HeaderExpansionArea))
+	out.WriteString(fmt.Sprintf("    %20s: %x\n", "MessageCount", e.MessageCount))
+	out.WriteString(fmt.Sprintf("    %20s: %x\n", "MessageCount", e.BodySize))
 	return (string)(out.DeepCopyBytes())
 }
 

@@ -1054,29 +1054,24 @@ func (s *State) SetString() {
 	s.Status = false
 
 	// fmt.Println("dddd  SetString::::::", s.FactomNodeName, "LeaderMinute", s.LeaderMinute)
-	vmi := 0
+	vmi := -1
 	if s.Leader && s.LeaderVMIndex >= 0 {
 		vmi = s.LeaderVMIndex
 	}
 	vmt0 := s.ProcessLists.Get(s.LLeaderHeight)
 	var vmt *VM
-	lmin := 0
-	if vmt0 != nil {
+	lmin := -1
+	if vmt0 != nil && vmi >= 0 {
 		vmt = vmt0.VMs[vmi]
 		lmin = vmt.LeaderMinute
 	}
 
-	if s.EOM {
-		lmin--
-		if lmin < 0 {
-			lmin = 9
-		}
-	}
-	if lmin > 9 {
-		lmin = 0
+	vmin := s.CurrentMinute
+	if s.CurrentMinute > 9 {
+		vmin = 0
 	}
 
-	found, vm := s.GetVirtualServers(s.LLeaderHeight, lmin, s.GetIdentityChainID())
+	found, vm := s.GetVirtualServers(s.LLeaderHeight, vmin, s.GetIdentityChainID())
 	vmIndex := ""
 	if found {
 		vmIndex = fmt.Sprintf("vm%2d", vm)
@@ -1125,12 +1120,7 @@ func (s *State) SetString() {
 		s.transCnt = total // transactions accounted for
 	}
 
-	plht := ""
-	if s.LeaderPL != nil {
-		plht = fmt.Sprintf("%4d", s.LeaderPL.DBHeight)
-	}
-
-	s.serverPrt = fmt.Sprintf("%8s[%6x]%4s %4s DB: %d[%6x] PL:%d/%d Min: %2v DBHT %v EOM %5v Saving %5v PLHT %4s %3d-Fct %3d-EC %3d-E  %7.2f total tps %7.2f tps",
+	s.serverPrt = fmt.Sprintf("%8s[%6x]%4s %4s DB: %d[%6x] PL:%d/%d VMMin: %2v CMin %2v DBHT %v EOM %5v EOMCnt %5d Saving %5v %3d-Fct %3d-EC %3d-E  %7.2f total tps %7.2f tps",
 		s.FactomNodeName,
 		s.IdentityChainID.Bytes()[:3],
 		vmIndex,
@@ -1140,10 +1130,11 @@ func (s *State) SetString() {
 		s.ProcessLists.DBHeightBase,
 		int(s.ProcessLists.DBHeightBase)+len(s.ProcessLists.Lists)-1,
 		lmin,
+		s.CurrentMinute,
 		s.LLeaderHeight,
 		s.EOM,
+		s.EOMProcessed,
 		s.Saving,
-		plht,
 		s.FactoidTrans,
 		s.NewEntryChains,
 		s.NewEntries,
