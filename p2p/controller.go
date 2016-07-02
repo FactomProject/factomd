@@ -449,12 +449,12 @@ func (c *Controller) managePeers() {
 func (c *Controller) updateConnectionAddressMap() {
 	c.connectionsByAddress = map[string]Connection{}
 	for _, value := range c.connections {
-		c.connectionsByAddress[value.peer.AddressPort()] = value
+		c.connectionsByAddress[value.peer.Address] = value
 	}
 }
 
 func (c *Controller) weAreNotAlreadyConnectedTo(peer Peer) bool {
-	_, present := c.connectionsByAddress[peer.AddressPort()]
+	_, present := c.connectionsByAddress[peer.Address]
 	return !present
 }
 
@@ -463,7 +463,7 @@ func (c *Controller) fillOutgoingSlots() {
 	significant("controller", "\n##############\n##############\n##############\n##############\n##############\n")
 	significant("controller", "Connected peers:")
 	for _, v := range c.connectionsByAddress {
-		significant("controller", "%s", v.peer.AddressPort())
+		significant("controller", "%s : %s", v.peer.Address, v.peer.Port)
 	}
 	peers := c.discovery.GetOutgoingPeers()
 	if len(peers) < NumberPeersToConnect*2 {
