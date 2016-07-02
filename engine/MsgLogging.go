@@ -37,7 +37,7 @@ type MsgLog struct {
 	msgPerSec int
 
 	// The last period (msg rate over the last period, so msg changes can be seen)
-	period     int
+	period     int64
 	startp     interfaces.Timestamp
 	msgCntp    int
 	msgPerSecp int
@@ -55,9 +55,9 @@ func (m *MsgLog) add2(fnode *FactomNode, out bool, peer string, where string, va
 
 	m.sem.Lock()
 	defer m.sem.Unlock()
-	now := fnode.State.GetTimestamp() / 1000
+	now := fnode.State.GetTimestamp()
 	if m.start == 0 {
-		m.start = fnode.State.GetTimestamp() / 1000
+		m.start = fnode.State.GetTimestamp()
 		m.last = m.start // last is start
 		m.period = 2
 		m.startp = m.start
@@ -78,10 +78,10 @@ func (m *MsgLog) add2(fnode *FactomNode, out bool, peer string, where string, va
 		return
 	}
 
-	if now-m.start > 1 {
+	if now.GetTimeSeconds()-m.start.GetTimeSeconds() > 1 {
 		m.msgPerSec = (m.msgCnt + len(m.MsgList)) / interval / m.nodeCnt
 	}
-	if int(now-m.startp) >= m.period {
+	if now.GetTimeSeconds()-m.startp.GetTimeSeconds() >= m.period {
 		m.msgPerSecp = (m.msgCntp + len(m.MsgList)) / interval / m.nodeCnt
 		m.msgCntp = 0
 		m.startp = now // Reset timer
@@ -91,7 +91,7 @@ func (m *MsgLog) add2(fnode *FactomNode, out bool, peer string, where string, va
 	if now-m.last > 100 {
 		m.msgCnt += len(m.MsgList) // Keep my counts
 		m.msgCntp += len(m.MsgList)
-		m.MsgList = m.MsgList[0:0] // Clear the record.
+		m.MsgList = make([]*msglist, 0) // Clear the record.
 		m.last = now
 	}
 
@@ -120,7 +120,7 @@ func (m *MsgLog) PrtMsgs(state interfaces.IState) {
 
 		}
 	}
-	now := state.GetTimestamp() / 1000
+	now := state.GetTimestamp()
 	m.last = now
 	m.msgCnt += len(m.MsgList) // Keep my counts
 	m.msgCntp += len(m.MsgList)

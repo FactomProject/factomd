@@ -89,15 +89,12 @@ func (s *State) Process() (progress bool) {
 			s.NewMinute()
 		case s.CurrentMinute == 0:
 			dbstate := s.AddDBState(true, s.LeaderPL.DirectoryBlock, s.LeaderPL.AdminBlock, s.GetFactoidState().GetCurrentBlock(), s.LeaderPL.EntryCreditBlock)
-			if s.LLeaderHeight > 0 {
-				prev := s.DBStates.Get(int(s.LLeaderHeight))
-				if s.DBStates.FixupLinks(prev, dbstate) {
-					fmt.Println("dddd Fixed", s.FactomNodeName)
-				}
+			dbht := int(dbstate.DirectoryBlock.GetHeader().GetDBHeight())
+			if dbht > 0 {
+				prev := s.DBStates.Get(dbht - 1)
+				s.DBStates.FixupLinks(prev, dbstate)
 			}
-			if s.DBStates.ProcessBlocks(dbstate) {
-				fmt.Println("dddd Processed", s.FactomNodeName)
-			}
+			s.DBStates.ProcessBlocks(dbstate)
 
 			s.LastHeight = s.LLeaderHeight
 			s.LLeaderHeight++
@@ -125,10 +122,7 @@ func (s *State) Process() (progress bool) {
 				dbs.LeaderExecute(s)
 			}
 
-			if s.DBStates.SaveDBStateToDB(dbstate) {
-				fmt.Println("dddd Saved", s.FactomNodeName)
-			}
-
+			s.DBStates.SaveDBStateToDB(dbstate)
 		}
 		s.EOM = false
 	}
@@ -697,7 +691,14 @@ func (s *State) NextCommit(hash interfaces.IHash) interfaces.IMsg {
 		return nil
 	}
 	r := cs[0]
-	s.Commits[hash.Fixed()] = cs[1:]
+	if len(cs) == 1 {
+		delete(s.Commits, hash.Fixed())
+	} else {
+		copy(cs[:], cs[1:])
+		cs[len(cs)-1] = nil
+		s.Commits[hash.Fixed()] = cs
+	}
+
 	return r
 }
 
