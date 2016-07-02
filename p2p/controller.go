@@ -467,7 +467,7 @@ func (c *Controller) fillOutgoingSlots() {
 	}
 	peers := c.discovery.GetOutgoingPeers()
 	if len(peers) < NumberPeersToConnect*2 {
-		c.discovery.GetOutgoingPeers()
+		c.discovery.DiscoverPeers()
 		peers = c.discovery.GetOutgoingPeers()
 	}
 	// dial into the peers
