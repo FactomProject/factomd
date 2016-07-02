@@ -13,6 +13,7 @@ if [ $? -eq 0 ]; then
     # factomd -count=2 -folder="test3-" -prefix="test3-" -port=9122 -p2pPort="34342" -peers="127.0.0.1:34340 127.0.0.1:34341 127.0.0.1:34343" -netdebug=2 -db=Map & node2=$!
     # sleep 6
     # factomd -count=2 -folder="test4-" -prefix="test4-" -port=9123 -p2pPort="34343" -peers="127.0.0.1:34340 127.0.0.1:34341 127.0.0.1:34342" -netdebug=2 -db=Map & node3=$!
+
     echo
     echo
     echo

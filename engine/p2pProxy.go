@@ -154,17 +154,7 @@ type messageLog struct {
 	hash     string // string(GetMsgHash().Bytes())
 	received bool   // true if logging a recieved message, false if sending
 	time     int64
-}
-
-func (p *P2PProxy) ManageLogging() {
-	for message := range p.logging {
-		line := fmt.Sprintf("%s, %t, %d\n", message.hash, message.received, message.time)
-		_, err := p.logWriter.Write([]byte(line))
-		if nil != err {
-			note("Error writing to logging file. %v", err)
-			panic("Error writing to logging file")
-		}
-	}
+	target   string // the id of the targetted node (value may only have local meaning)
 }
 
 func (p *P2PProxy) logMessage(msg interfaces.IMsg, received bool) {
@@ -173,6 +163,19 @@ func (p *P2PProxy) logMessage(msg interfaces.IMsg, received bool) {
 		time := time.Now().Unix()
 		ml := messageLog{hash: hash, received: received, time: time}
 		p.logging <- ml
+	}
+}
+
+func (p *P2PProxy) ManageLogging() {
+	start := time.Now()
+	for message := range p.logging {
+		elapsedMinutes := int(time.Since(start).Minutes())
+		line := fmt.Sprintf("%s, %t, %d, %s, %d\n", message.hash, message.received, message.time, message.target, elapsedMinutes)
+		_, err := p.logWriter.Write([]byte(line))
+		if nil != err {
+			note("Error writing to logging file. %v", err)
+			panic("Error writing to logging file")
+		}
 	}
 }
 
