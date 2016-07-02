@@ -466,7 +466,7 @@ func (c *Controller) fillOutgoingSlots() {
 	significant("controller", "\n##############\n##############\n##############\n##############\n##############\n")
 	significant("controller", "Connected peers:")
 	for _, v := range c.connectionsByAddress {
-		significant("controller", "%s", v.peer.AddressPort)
+		significant("controller", "%s : %s", v.peer.Address, v.peer.Port)
 	}
 	peers := c.discovery.GetOutgoingPeers()
 	if len(peers) < NumberPeersToConnect*2 {
@@ -476,7 +476,7 @@ func (c *Controller) fillOutgoingSlots() {
 	// dial into the peers
 	for _, peer := range peers {
 		if c.weAreNotAlreadyConnectedTo(peer) {
-			significant("controller", "We think we are not already connected to: %s so dialing.", peer.AddressPort)
+			significant("controller", "We think we are not already connected to: %s so dialing.", peer.AddressPort())
 			c.DialPeer(peer, false)
 		}
 	}
