@@ -31,7 +31,7 @@ func (s *State) NewMinute() {
 	// Anything we are holding, we need to reprocess.
 	for k := range s.Holding {
 		v := s.Holding[k]
-		if v.Resend() < 5 {
+		if v.Resend() < 40 {
 			s.networkOutMsgQueue <- v
 			v.ComputeVMIndex(s)
 			s.XReview = append(s.XReview, v)
