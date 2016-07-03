@@ -580,15 +580,17 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		return true
 	}
 
+	pl := s.ProcessLists.Get(dbheight)
+	vm := s.ProcessLists.Get(dbheight).VMs[msg.GetVMIndex()]
+
 	// What I do once  for all VMs at the beginning of processing a particular EOM
 	if !s.EOM {
+		vm.Synced = false
 		s.EOMDone = true
 		s.EOM = true
 		s.EOMProcessed = 0
+		s.Syncing = true
 	}
-
-	pl := s.ProcessLists.Get(dbheight)
-	vm := s.ProcessLists.Get(dbheight).VMs[msg.GetVMIndex()]
 
 	// What I do once for each vm, for each EOM:
 	if !vm.EOM {
@@ -602,6 +604,11 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	// we do any cleanup required, for all VMs for this EOM
 	if s.EOMProcessed == len(s.LeaderPL.FedServers) && !s.EOMDone {
 
+		for _, v := range pl.VMs {
+			v.Synced = true
+		}
+
+		s.Syncing = false
 		s.EOMDone = true
 
 		s.FactoidState.EndOfPeriod(int(e.Minute))
@@ -643,11 +650,17 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 	}
 
 	if !dbs.Once {
+		s.Syncing = true
+		s.ProcessLists.Get(dbheight).VMs[dbs.VMIndex].Synced = false
 		s.DBSigProcessed++
 		dbs.Once = true
 	}
 
 	if s.DBSigProcessed >= len(s.LeaderPL.FedServers) {
+		s.Syncing = false
+		for _, v := range s.ProcessLists.Get(dbheight).VMs {
+			v.Synced = true
+		}
 		// TODO: check signatures here.  Count what match and what don't.  Then if a majority
 		// disagree with us, null our entry out.  Otherwise toss our DBState and ask for one from
 		// our neighbors.

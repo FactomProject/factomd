@@ -5,8 +5,10 @@
 
 #Get all our data
 { 
-	if ($1 != 0 && $2 != 0) {
-		CPU[cnt]=$1; MEM[cnt]=$2; cnt++
+	if ($1+0 != 0 && $2+0 != 0) {
+		CPU[cnt]=$1; 
+		MEM[cnt]=$2; 
+		cnt++
 	}
 }
 
@@ -15,8 +17,8 @@
 
 END {
 	scale 	 = 500 / cnt
-	realdays = 10/60/60/24
-	simdays  = realdays / scale
+	realdays = 1/6/60/24
+	simdays  = 10/60/24
 		
 	for (i=0;i<cnt;i++){
 		oldptr = ptr		# Remember the old pointer
@@ -24,16 +26,19 @@ END {
 		sumCPU += CPU[i]
 		sumMEM += MEM[i]
 		sumCnt++
+		periodCnt++
 		# print "pointers" oldptr " " ptr		
 		if (oldptr != ptr || i+1 == cnt) {
-			realtime += sumCnt*realdays
-			simtime = sumCnt*simdays
-			cpu = sumCPU/sumCnt
-			mem = sumMEM/sumCnt
-			outstr = realtime "\t" simtime "\t" cpu "\t" mem
+			realtime += (i-(periodCnt/2) ) * realdays
+			simtime += (i-(periodCnt/2) ) * simdays
+			cpu = sumCPU/periodCnt
+			mem = sumMEM/periodCnt
+			outstr = realtime "\t" simtime "\t" cpu "\t" mem "\t" sumCPU "\t" periodCnt
 			print outstr
-			realtime = simtime = 0
 			ot++
+			sumCPU=0
+			sumMem=0
+			periodCnt=0
 		}
 	}
 	for (;ot<500;ot++){

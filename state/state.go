@@ -103,6 +103,7 @@ type State struct {
 	CurrentMinute  int
 	DBSigProcessed int  // Number of DBSignatures received and processed.
 	Saving         bool // True if we are in the process of saving to the database
+	Syncing        bool // Looking for messages from leaders to sync
 
 	NetStateOff     bool // Disable if true, Enable if false
 	DebugConsensus  bool // If true, dump consensus trace
@@ -567,58 +568,32 @@ func (s *State) LoadDataByHash(requestedHash interfaces.IHash) (interfaces.Binar
 }
 
 func (s *State) LoadSpecificMsg(dbheight uint32, vm int, plistheight uint32) (interfaces.IMsg, error) {
-	if dbheight < s.ProcessLists.DBHeightBase {
-		return nil, fmt.Errorf("Missing message is too deeply buried in blocks")
-	} else if dbheight > (s.ProcessLists.DBHeightBase + uint32(len(s.ProcessLists.Lists))) {
-		return nil, fmt.Errorf("Answering node has not reached DBHeight of missing message")
-	}
 
-	procList := s.ProcessLists.Get(dbheight)
-	if procList == nil {
-		return nil, fmt.Errorf("Nil Process List")
-	}
-	if len(procList.VMs[vm].List) < int(plistheight)+1 {
-		return nil, fmt.Errorf("Process List too small (lacks requested msg)")
-	}
-
-	msg := procList.VMs[vm].List[plistheight]
-
-	if msg == nil {
-		return nil, fmt.Errorf("State process list does not include requested message")
-	}
-
-	return msg, nil
+	msg, _, err := s.LoadSpecificMsgAndAck(dbheight, vm, plistheight)
+	return msg, err
 }
 
-func (s *State) LoadSpecificMsgAndAck(dbheight uint32, vm int, plistheight uint32) (interfaces.IMsg, interfaces.IMsg, error) {
-	if dbheight < s.ProcessLists.DBHeightBase {
-		return nil, nil, fmt.Errorf("Missing message is too deeply buried in blocks")
-	} else if dbheight > (s.ProcessLists.DBHeightBase + uint32(len(s.ProcessLists.Lists))) {
-		return nil, nil, fmt.Errorf("Answering node has not reached DBHeight of missing message")
-	}
+func (s *State) LoadSpecificMsgAndAck(dbheight uint32, vmIndex int, plistheight uint32) (interfaces.IMsg, interfaces.IMsg, error) {
 
-	procList := s.ProcessLists.Get(dbheight)
-	if procList == nil {
+	pl := s.ProcessLists.Get(dbheight)
+	if pl == nil {
 		return nil, nil, fmt.Errorf("Nil Process List")
-	} else if len(procList.VMs) < 1 {
-		return nil, nil, fmt.Errorf("No servers?")
 	}
-	if len(procList.VMs[vm].List) < int(plistheight)+1 {
+	if vmIndex < 0 || vmIndex >= len(pl.VMs) {
+		return nil, nil, fmt.Errorf("VM index out of range")
+	}
+	vm := pl.VMs[vmIndex]
+
+	if plistheight < 0 || int(plistheight) >= len(vm.List) {
 		return nil, nil, fmt.Errorf("Process List too small (lacks requested msg)")
 	}
 
-	msg := procList.VMs[vm].List[plistheight]
+	msg := vm.List[plistheight]
+	ackMsg := vm.ListAck[plistheight]
 
-	if msg == nil {
-		return nil, nil, fmt.Errorf("State process list does not include requested message")
+	if msg == nil || ackMsg == nil {
+		return nil, nil, fmt.Errorf("State process list does not include requested message/ack")
 	}
-
-	ackMsg := procList.VMs[vm].ListAck[plistheight]
-
-	if ackMsg == nil {
-		return nil, nil, fmt.Errorf("State process list does not include ack for message")
-	}
-
 	return msg, ackMsg, nil
 }
 

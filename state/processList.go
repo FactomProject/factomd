@@ -67,6 +67,7 @@ type VM struct {
 	Seal           int               // Sealed with an EOM minute, and released (0) when all EOM are found.
 	SealTime       int64             // The time since we started waiting
 	MinuteComplete int               // Highest minute complete recorded (0-9) by the follower
+	Synced         bool              // If we are syncing leaders, is this one synced yet?
 	EOM            bool              // Found the EOM; Don't process past until cleared.
 	MinuteFinished int               // Highest minute processed (0-9) by the follower
 	MinuteHeight   int               // Height of the last minute complete
@@ -351,15 +352,13 @@ func (p *ProcessList) CheckDiffSigTally() {
 // Process messages and update our state.
 func (p *ProcessList) Process(state *State) (progress bool) {
 
-	//	fmt.Printf("dddd %20s %10s --- %10s %10v \n", "ProcessList.Process", p.State.FactomNodeName, "len(Lists)", len(p.State.ProcessLists.Lists))
-
 	now := time.Now().Unix()
-	ask := func(vmIndex int, vm *VM, thetime int64, j int) int64 {
+	ask := func(vmIndex int, vm *VM, thetime int64, height int) int64 {
 		if thetime == 0 {
 			thetime = now
 		}
 		if now-thetime > 1 {
-			missingMsgRequest := messages.NewMissingMsg(state, p.DBHeight, uint32(j))
+			missingMsgRequest := messages.NewMissingMsg(state, vmIndex, p.DBHeight, uint32(height))
 			if missingMsgRequest != nil {
 				state.NetworkOutMsgQueue() <- missingMsgRequest
 			}
@@ -367,7 +366,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 		}
 		if p.State.Leader && now-thetime > 2 {
 			id := p.FedServers[p.ServerMap[vm.MinuteComplete][vmIndex]].GetChainID()
-			sf := messages.NewServerFault(state.GetTimestamp(), id, vmIndex, p.DBHeight, uint32(j))
+			sf := messages.NewServerFault(state.GetTimestamp(), id, vmIndex, p.DBHeight, uint32(height))
 			if sf != nil {
 				state.NetworkOutMsgQueue() <- sf
 			}
@@ -392,6 +391,10 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 
 	for i := 0; i < len(p.FedServers); i++ {
 		vm := p.VMs[i]
+
+		if vm.Height == len(vm.List) && p.State.Syncing && !vm.Synced {
+			vm.missingTime = ask(i, vm, vm.missingTime, vm.Height)
+		}
 
 	VMListLoop:
 		for j := vm.Height; j < len(vm.List); j++ {
