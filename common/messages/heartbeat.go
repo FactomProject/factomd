@@ -15,7 +15,7 @@ import (
 //A placeholder structure for messages
 type Heartbeat struct {
 	MessageBase
-	Timestamp       *interfaces.Timestamp
+	Timestamp       interfaces.Timestamp
 	DBlockHash      interfaces.IHash //Hash of last Directory Block
 	IdentityChainID interfaces.IHash //Identity Chain ID
 
@@ -92,7 +92,7 @@ func (m *Heartbeat) GetMsgHash() interfaces.IHash {
 	return m.MsgHash
 }
 
-func (m *Heartbeat) GetTimestamp() *interfaces.Timestamp {
+func (m *Heartbeat) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp
 }
 
@@ -120,7 +120,7 @@ func (m *Heartbeat) UnmarshalBinaryData(data []byte) (newData []byte, err error)
 	}
 	newData = newData[1:]
 
-	m.Timestamp = new(interfaces.Timestamp)
+	m.Timestamp = new(primitives.Timestamp)
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err

@@ -818,7 +818,7 @@ func CheckTimestamp(time []byte) bool {
 		time = append(add, time...)
 	}
 	//TODO: get time from State for replaying?
-	now := interfaces.GetTime()
+	now := primitives.GetTime()
 
 	ts := binary.BigEndian.Uint64(time)
 	var res uint64

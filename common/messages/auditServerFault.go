@@ -15,7 +15,7 @@ import (
 //A placeholder structure for messages
 type AuditServerFault struct {
 	MessageBase
-	Timestamp *interfaces.Timestamp
+	Timestamp interfaces.Timestamp
 
 	Signature interfaces.IFullSignature
 
@@ -69,7 +69,7 @@ func (e *AuditServerFault) Process(uint32, interfaces.IState) bool {
 	panic("AuditServerFault object should never have its Process() method called")
 }
 
-func (m *AuditServerFault) GetTimestamp() *interfaces.Timestamp {
+func (m *AuditServerFault) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp
 }
 
@@ -113,7 +113,7 @@ func (m *AuditServerFault) UnmarshalBinaryData(data []byte) (newData []byte, err
 	}
 	newData = newData[1:]
 
-	m.Timestamp = new(interfaces.Timestamp)
+	m.Timestamp = new(primitives.Timestamp)
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err

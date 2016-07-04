@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/state"
 )
@@ -49,7 +49,7 @@ func Factomd() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	state0 := new(state.State)
-	state0.SetLeaderTimestamp(interfaces.NewTimestampFromMilliseconds(0))
+	state0.SetLeaderTimestamp(primitives.NewTimestampFromMilliseconds(0))
 	fmt.Println("len(Args)", len(os.Args))
 
 	NetStart(state0)

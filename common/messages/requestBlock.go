@@ -15,7 +15,7 @@ import (
 //A placeholder structure for messages
 type RequestBlock struct {
 	MessageBase
-	Timestamp *interfaces.Timestamp
+	Timestamp interfaces.Timestamp
 
 	//TODO: figure whether this should be signed or not?
 
@@ -62,7 +62,7 @@ func (m *RequestBlock) GetMsgHash() interfaces.IHash {
 	return m.MsgHash
 }
 
-func (m *RequestBlock) GetTimestamp() *interfaces.Timestamp {
+func (m *RequestBlock) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp
 }
 
@@ -90,7 +90,7 @@ func (m *RequestBlock) UnmarshalBinaryData(data []byte) (newData []byte, err err
 	}
 	newData = newData[1:]
 
-	m.Timestamp = new(interfaces.Timestamp)
+	m.Timestamp = new(primitives.Timestamp)
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err

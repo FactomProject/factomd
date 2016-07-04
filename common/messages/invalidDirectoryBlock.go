@@ -15,7 +15,7 @@ import (
 //A placeholder structure for messages
 type InvalidDirectoryBlock struct {
 	MessageBase
-	Timestamp *interfaces.Timestamp
+	Timestamp interfaces.Timestamp
 
 	Signature interfaces.IFullSignature
 
@@ -89,7 +89,7 @@ func (m *InvalidDirectoryBlock) GetMsgHash() interfaces.IHash {
 	return m.MsgHash
 }
 
-func (m *InvalidDirectoryBlock) GetTimestamp() *interfaces.Timestamp {
+func (m *InvalidDirectoryBlock) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp
 }
 
@@ -117,7 +117,7 @@ func (m *InvalidDirectoryBlock) UnmarshalBinaryData(data []byte) (newData []byte
 	}
 	newData = newData[1:]
 
-	m.Timestamp = new(interfaces.Timestamp)
+	m.Timestamp = new(primitives.Timestamp)
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err

@@ -16,7 +16,7 @@ import (
 //A placeholder structure for messages
 type DirectoryBlockSignature struct {
 	MessageBase
-	Timestamp             *interfaces.Timestamp
+	Timestamp             interfaces.Timestamp
 	DBHeight              uint32
 	DirectoryBlockKeyMR   interfaces.IHash
 	ServerIdentityChainID interfaces.IHash
@@ -91,7 +91,7 @@ func (m *DirectoryBlockSignature) GetMsgHash() interfaces.IHash {
 	return m.MsgHash
 }
 
-func (m *DirectoryBlockSignature) GetTimestamp() *interfaces.Timestamp {
+func (m *DirectoryBlockSignature) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp
 }
 
@@ -180,7 +180,7 @@ func (m *DirectoryBlockSignature) UnmarshalBinaryData(data []byte) (newData []by
 	newData = newData[1:]
 
 	// TimeStamp
-	m.Timestamp = new(interfaces.Timestamp)
+	m.Timestamp = new(primitives.Timestamp)
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err

@@ -88,7 +88,7 @@ func NetStart(s *state.State) {
 	s.LoadConfig(FactomConfigFilename, folder)
 
 	s.OneLeader = rotate
-	s.TimeOffset = interfaces.NewTimestampFromMilliseconds(uint64(timeOffset))
+	s.TimeOffset = primitives.NewTimestampFromMilliseconds(uint64(timeOffset))
 
 	if 999 < portOverride { // The command line flag exists and seems reasonable.
 		s.SetPort(portOverride)

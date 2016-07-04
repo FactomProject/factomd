@@ -6,9 +6,11 @@ package engine
 
 import (
 	"fmt"
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/log"
 	"sync"
+
+	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/log"
 )
 
 var _ = log.Printf
@@ -28,17 +30,17 @@ type MsgLog struct {
 	Enable  bool
 	sem     sync.Mutex
 	MsgList []*msglist
-	last    *interfaces.Timestamp
+	last    interfaces.Timestamp
 	all     bool
 	nodeCnt int
 
-	start     *interfaces.Timestamp
+	start     interfaces.Timestamp
 	msgCnt    int
 	msgPerSec int
 
 	// The last period (msg rate over the last period, so msg changes can be seen)
 	period     int
-	startp     *interfaces.Timestamp
+	startp     interfaces.Timestamp
 	msgCntp    int
 	msgPerSecp int
 }
@@ -50,9 +52,9 @@ func (m *MsgLog) init(enable bool, nodecnt int) {
 		m.nodeCnt = 1
 	}
 
-	m.last = new(interfaces.Timestamp)
-	m.start = new(interfaces.Timestamp)
-	m.startp = new(interfaces.Timestamp)
+	m.last = new(primitives.Timestamp)
+	m.start = new(primitives.Timestamp)
+	m.startp = new(primitives.Timestamp)
 }
 
 func (m *MsgLog) add2(fnode *FactomNode, out bool, peer string, where string, valid bool, msg interfaces.IMsg) {

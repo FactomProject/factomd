@@ -18,8 +18,8 @@ import (
 
 type ChangeServerKeyMsg struct {
 	MessageBase
-	Timestamp        *interfaces.Timestamp // Message Timestamp
-	IdentityChainID  interfaces.IHash      // ChainID of new server
+	Timestamp        interfaces.Timestamp // Message Timestamp
+	IdentityChainID  interfaces.IHash     // ChainID of new server
 	AdminBlockChange byte
 	KeyType          byte
 	KeyPriority      byte
@@ -58,7 +58,7 @@ func (m *ChangeServerKeyMsg) Bytes() []byte {
 	return nil
 }
 
-func (m *ChangeServerKeyMsg) GetTimestamp() *interfaces.Timestamp {
+func (m *ChangeServerKeyMsg) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp
 }
 
@@ -151,7 +151,7 @@ func (m *ChangeServerKeyMsg) UnmarshalBinaryData(data []byte) (newData []byte, e
 	}
 	newData = newData[1:]
 
-	m.Timestamp = new(interfaces.Timestamp)
+	m.Timestamp = new(primitives.Timestamp)
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err

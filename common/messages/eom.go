@@ -19,7 +19,7 @@ var _ = log.Printf
 
 type EOM struct {
 	MessageBase
-	Timestamp *interfaces.Timestamp
+	Timestamp interfaces.Timestamp
 	Minute    byte
 
 	DBHeight  uint32
@@ -96,7 +96,7 @@ func (m *EOM) GetMsgHash() interfaces.IHash {
 	return m.MsgHash
 }
 
-func (m *EOM) GetTimestamp() *interfaces.Timestamp {
+func (m *EOM) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp
 }
 
@@ -193,7 +193,7 @@ func (m *EOM) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	}
 	newData = newData[1:]
 
-	m.Timestamp = new(interfaces.Timestamp)
+	m.Timestamp = new(primitives.Timestamp)
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err

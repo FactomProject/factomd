@@ -15,7 +15,7 @@ import (
 //A placeholder structure for messages
 type EOMTimeout struct {
 	MessageBase
-	Timestamp *interfaces.Timestamp
+	Timestamp interfaces.Timestamp
 
 	Signature interfaces.IFullSignature
 }
@@ -81,7 +81,7 @@ func (m *EOMTimeout) GetMsgHash() interfaces.IHash {
 	return m.MsgHash
 }
 
-func (m *EOMTimeout) GetTimestamp() *interfaces.Timestamp {
+func (m *EOMTimeout) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp
 }
 
@@ -109,7 +109,7 @@ func (m *EOMTimeout) UnmarshalBinaryData(data []byte) (newData []byte, err error
 	}
 	newData = newData[1:]
 
-	m.Timestamp = new(interfaces.Timestamp)
+	m.Timestamp = new(primitives.Timestamp)
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err

@@ -17,8 +17,8 @@ import (
 //General acknowledge message
 type Ack struct {
 	MessageBase
-	Timestamp   *interfaces.Timestamp // Timestamp of Ack by Leader
-	MessageHash interfaces.IHash      // Hash of message acknowledged
+	Timestamp   interfaces.Timestamp // Timestamp of Ack by Leader
+	MessageHash interfaces.IHash     // Hash of message acknowledged
 
 	DBHeight   uint32           // Directory Block Height that owns this ack
 	Height     uint32           // Height of this ack in this process list
@@ -61,7 +61,7 @@ func (m *Ack) Bytes() []byte {
 	return m.MessageHash.Bytes()
 }
 
-func (m *Ack) GetTimestamp() *interfaces.Timestamp {
+func (m *Ack) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp
 }
 
@@ -146,7 +146,7 @@ func (m *Ack) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 
 	m.VMIndex, newData = int(newData[0]), newData[1:]
 
-	m.Timestamp = new(interfaces.Timestamp)
+	m.Timestamp = new(primitives.Timestamp)
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err

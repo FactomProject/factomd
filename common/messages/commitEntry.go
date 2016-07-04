@@ -17,7 +17,7 @@ import (
 //A placeholder structure for messages
 type CommitEntryMsg struct {
 	MessageBase
-	Timestamp   *interfaces.Timestamp
+	Timestamp   interfaces.Timestamp
 	CommitEntry *entryCreditBlock.CommitEntry
 
 	Signature interfaces.IFullSignature
@@ -92,7 +92,7 @@ func (m *CommitEntryMsg) GetMsgHash() interfaces.IHash {
 	return m.MsgHash
 }
 
-func (m *CommitEntryMsg) GetTimestamp() *interfaces.Timestamp {
+func (m *CommitEntryMsg) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp
 }
 
@@ -137,7 +137,7 @@ func (m *CommitEntryMsg) UnmarshalBinaryData(data []byte) (newData []byte, err e
 	}
 	newData = newData[1:]
 
-	t := new(interfaces.Timestamp)
+	t := new(primitives.Timestamp)
 	newData, err = t.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err

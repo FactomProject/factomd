@@ -37,7 +37,7 @@ type DBState struct {
 
 type DBStateList struct {
 	SrcNetwork          bool // True if I got this block from the network.
-	LastTime            *interfaces.Timestamp
+	LastTime            interfaces.Timestamp
 	SecondsBetweenTests int
 	Lastreq             int
 	State               *State

@@ -18,7 +18,7 @@ import (
 
 type DBStateMissing struct {
 	MessageBase
-	Timestamp *interfaces.Timestamp
+	Timestamp interfaces.Timestamp
 
 	DBHeightStart uint32 // First block missing
 	DBHeightEnd   uint32 // Last block missing.
@@ -72,7 +72,7 @@ func (m *DBStateMissing) Bytes() []byte {
 	return nil
 }
 
-func (m *DBStateMissing) GetTimestamp() *interfaces.Timestamp {
+func (m *DBStateMissing) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp
 }
 
@@ -150,7 +150,7 @@ func (m *DBStateMissing) UnmarshalBinaryData(data []byte) (newData []byte, err e
 
 	m.Peer2Peer = true // This is always a Peer2peer message
 
-	m.Timestamp = new(interfaces.Timestamp)
+	m.Timestamp = new(primitives.Timestamp)
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err

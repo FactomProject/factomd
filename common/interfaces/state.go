@@ -160,8 +160,8 @@ type IState interface {
 	GetNetStateOff() bool //	If true, all network communications are disabled
 	SetNetStateOff(bool)
 
-	GetTimestamp() *Timestamp
-	GetTimeOffset() *Timestamp
+	GetTimestamp() Timestamp
+	GetTimeOffset() Timestamp
 
 	Print(a ...interface{}) (n int, err error)
 	Println(a ...interface{}) (n int, err error)

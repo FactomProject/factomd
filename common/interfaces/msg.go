@@ -31,7 +31,7 @@ type IMsg interface {
 	SetNetworkOrigin(string)
 
 	// Returns the timestamp for a message
-	GetTimestamp() *Timestamp
+	GetTimestamp() Timestamp
 
 	// Hash for this message as used by Consensus (i.e. what we match)
 	GetHash() IHash

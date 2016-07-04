@@ -98,7 +98,7 @@ func TestMarshalUnmarshalSignedChangeServerKey(t *testing.T) {
 
 func newChangeServerKey() *ChangeServerKeyMsg {
 	addserv := new(ChangeServerKeyMsg)
-	ts := new(interfaces.Timestamp)
+	ts := new(primitives.Timestamp)
 	ts.SetTimeNow()
 	addserv.Timestamp = *ts
 	addserv.IdentityChainID = primitives.Sha([]byte("FNode0"))

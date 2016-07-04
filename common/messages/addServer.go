@@ -19,9 +19,9 @@ import (
 
 type AddServerMsg struct {
 	MessageBase
-	Timestamp     *interfaces.Timestamp // Message Timestamp
-	ServerChainID interfaces.IHash      // ChainID of new server
-	ServerType    int                   // 0 = Federated, 1 = Audit
+	Timestamp     interfaces.Timestamp // Message Timestamp
+	ServerChainID interfaces.IHash     // ChainID of new server
+	ServerType    int                  // 0 = Federated, 1 = Audit
 
 	Signature interfaces.IFullSignature
 }
@@ -56,7 +56,7 @@ func (m *AddServerMsg) Bytes() []byte {
 	return nil
 }
 
-func (m *AddServerMsg) GetTimestamp() *interfaces.Timestamp {
+func (m *AddServerMsg) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp
 }
 
@@ -143,7 +143,7 @@ func (m *AddServerMsg) UnmarshalBinaryData(data []byte) (newData []byte, err err
 	}
 	newData = newData[1:]
 
-	m.Timestamp = new(interfaces.Timestamp)
+	m.Timestamp = new(primitives.Timestamp)
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
