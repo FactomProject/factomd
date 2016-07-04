@@ -116,7 +116,7 @@ func newCommitChain() *CommitChainMsg {
 	}
 
 	msg.CommitChain = cc
-	msg.Timestamp.SetTimeNow()
+	msg.Timestamp = primitives.NewTimestampNow()
 
 	return msg
 }

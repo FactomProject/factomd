@@ -291,7 +291,7 @@ func (a *Ack) IsSameAs(b *Ack) bool {
 	if a.Height != b.Height {
 		return false
 	}
-	if a.Timestamp != b.Timestamp {
+	if a.Timestamp.GetTimeMilli() != b.Timestamp.GetTimeMilli() {
 		return false
 	}
 

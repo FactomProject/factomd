@@ -236,7 +236,7 @@ func createTestDirectoryBlockHeader() *DBlockHeader {
 	header.SetNetworkID(0xffff)
 	header.SetPrevFullHash(primitives.NewZeroHash())
 	header.SetPrevKeyMR(primitives.NewZeroHash())
-	header.SetTimestamp(1234)
+	header.SetTimestamp(primitives.NewTimestampFromSeconds(1234))
 	header.SetVersion(1)
 
 	return header

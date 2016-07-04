@@ -123,8 +123,7 @@ func createECBlock() *ECBlock {
 	// add the CommitChain to the ECBlock
 	ecb1.AddEntry(cc)
 
-	m1 := NewMinuteNumber()
-	m1.Number = 0x01
+	m1 := NewMinuteNumber(0x01)
 	ecb1.AddEntry(m1)
 
 	// add a ServerIndexNumber
@@ -142,8 +141,7 @@ func createECBlock() *ECBlock {
 	// add the IncreaseBalance
 	ecb1.AddEntry(ib)
 
-	m2 := NewMinuteNumber()
-	m2.Number = 0x02
+	m2 := NewMinuteNumber(0x02)
 	ecb1.AddEntry(m2)
 
 	return ecb1
