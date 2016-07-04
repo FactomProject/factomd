@@ -97,7 +97,7 @@ func (e *DirBlockInfo) GetBTCTxHash() interfaces.IHash {
 }
 
 func (e *DirBlockInfo) GetTimestamp() interfaces.Timestamp {
-	return interfaces.NewTimestampFromMilliseconds(uint64(e.Timestamp))
+	return *interfaces.NewTimestampFromMilliseconds(uint64(e.Timestamp))
 }
 
 func (e *DirBlockInfo) GetBTCBlockHeight() int32 {
