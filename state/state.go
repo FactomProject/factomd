@@ -954,6 +954,9 @@ func (s *State) MsgQueue() chan interfaces.IMsg {
 }
 
 func (s *State) GetLeaderTimestamp() interfaces.Timestamp {
+	if s.LeaderTimestamp == nil {
+		s.LeaderTimestamp = new(primitives.Timestamp)
+	}
 	return s.LeaderTimestamp
 }
 
