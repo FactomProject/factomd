@@ -455,13 +455,32 @@ func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) 
 	return true
 }
 
+func (s *State) ProcessRemoveServer(dbheight uint32, removeServerMsg interfaces.IMsg) bool {
+	rs, ok := removeServerMsg.(*messages.RemoveServerMsg)
+	if !ok {
+		return true
+	}
+
+	/*if leader, _ := s.LeaderPL.GetFedServerIndexHash(rs.ServerChainID); leader {
+		fmt.Println("I exited")
+		return true
+	}*/
+
+	if !s.VerifyIsAuthority(rs.ServerChainID) {
+		fmt.Printf("dddd %s %s\n", s.FactomNodeName, "RemoveServer message did not add to admin block.")
+		return true
+	}
+
+	s.LeaderPL.AdminBlock.RemoveFederatedServer(rs.ServerChainID)
+	return true
+}
+
 func (s *State) ProcessChangeServerKey(dbheight uint32, changeServerKeyMsg interfaces.IMsg) bool {
 	ask, ok := changeServerKeyMsg.(*messages.ChangeServerKeyMsg)
 	if !ok {
 		return true
 	}
 
-	// TODO: Signiture && Checking
 	if !s.VerifyIsAuthority(ask.IdentityChainID) {
 		fmt.Printf("dddd %s %s\n", s.FactomNodeName, "ChangeServerKey message did not add to admin block.")
 		return true

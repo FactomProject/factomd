@@ -112,7 +112,6 @@ func (st *State) UpdateAuthorityFromABEntry(entry interfaces.IABEntry) error {
 		if err != nil {
 			return err
 		}
-
 		AuthorityIndex = isAuthorityChain(f.IdentityChainID, st.Authorities)
 		if AuthorityIndex == -1 {
 			//Add Identity as Federated Server
@@ -198,17 +197,11 @@ func addAuthority(st *State, chainID interfaces.IHash) int {
 }
 
 func removeAuthority(i int, st *State) {
-	var newIDs []Authority
-	newIDs = make([]Authority, len(st.Authorities)-1)
-	var j int
-	for j = 0; j < i; j++ {
-		newIDs[j] = st.Authorities[j]
+	if len(st.Authorities) > i+1 {
+		st.Authorities = append(st.Authorities[:i], st.Authorities[i+1:]...)
+	} else {
+		st.Authorities = st.Authorities[:i]
 	}
-	// skip removed Identity
-	for j = i + 1; j < len(newIDs); j++ {
-		newIDs[j-1] = st.Authorities[j]
-	}
-	st.Authorities = newIDs
 }
 
 func registerAuthAnchor(AuthorityIndex int, signingKey []byte, keyType byte, keyLevel byte, st *State, BlockChain string) {
@@ -248,7 +241,7 @@ func addServerSigningKey(ChainID interfaces.IHash, key interfaces.IHash, st *Sta
 				if bytes.Compare(pubData, key.Bytes()) == 0 {
 					st.serverPrivKey = st.serverPendingPrivKeys[i]
 					st.serverPubKey = st.serverPendingPubKeys[i]
-					if len(st.serverPendingPrivKeys) > i {
+					if len(st.serverPendingPrivKeys) > i+1 {
 						st.serverPendingPrivKeys = append(st.serverPendingPrivKeys[:i], st.serverPendingPrivKeys[i+1:]...)
 						st.serverPendingPubKeys = append(st.serverPendingPubKeys[:i], st.serverPendingPubKeys[i+1:]...)
 					} else {

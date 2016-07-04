@@ -20,12 +20,13 @@ var _ interfaces.IABEntry = (*RemoveFederatedServer)(nil)
 var _ interfaces.BinaryMarshallable = (*RemoveFederatedServer)(nil)
 
 func (c *RemoveFederatedServer) UpdateState(state interfaces.IState) {
-	if len(state.GetFedServers(c.DBHeight)) == 0 {
-		state.AddFedServer(c.DBHeight, c.IdentityChainID)
+	if len(state.GetFedServers(c.DBHeight)) != 0 {
+		state.RemoveFedServer(c.DBHeight, c.IdentityChainID)
 	}
 	if state.GetOut() {
 		state.Println(fmt.Sprintf("Removed Federated Server: %x", c.IdentityChainID.Bytes()[:3]))
 	}
+	state.UpdateAuthorityFromABEntry(c)
 }
 
 // Create a new DB Signature Entry

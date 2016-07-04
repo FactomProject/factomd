@@ -65,7 +65,6 @@ func SimControl(listenTo int) {
 					os.Stderr.WriteString(fmt.Sprintf("Authorities are ready to be made. 'gN' where N is the number to be made.\n"))
 				}
 				if len(b) > 1 {
-					fmt.Println(authStack.Length())
 					count, err := strconv.Atoi(b[1:])
 					if err != nil {
 						os.Stderr.WriteString(fmt.Sprintf("Error in input bN, %s\n", err.Error()))
@@ -218,12 +217,19 @@ func SimControl(listenTo int) {
 				} else {
 					os.Stderr.WriteString("--Print Messages Off--\n")
 				}
-			case 'o' == b[0]: // Add Audit server and Add Leader fall through to 'n', switch to next node.
-				msg := messages.NewAddServerMsg(fnodes[listenTo].State, 1)
+			case 'k' == b[0]: // Add Audit server, Remove server, and Add Leader fall through to 'n', switch to next node.
+				msg := messages.NewRemoveServerMsg(fnodes[listenTo].State, fnodes[listenTo].State.IdentityChainID)
 				fnodes[listenTo].State.InMsgQueue() <- msg
-				os.Stderr.WriteString(fmt.Sprintln("Attempting to make", fnodes[listenTo].State.GetFactomNodeName(), "a Audit Server"))
+				os.Stderr.WriteString(fmt.Sprintln("Attempting to remove", fnodes[listenTo].State.GetFactomNodeName(), "as a server"))
 				fallthrough
-			case 'l' == b[0]: // Add Audit server and Add Leader fall through to 'n', switch to next node.
+			case 'o' == b[0]: // Add Audit server and Add Leader fall through to 'n', switch to next node.
+				if b[0] == 'l' { // (Don't do anything if just passing along the remove server)
+					msg := messages.NewAddServerMsg(fnodes[listenTo].State, 1)
+					fnodes[listenTo].State.InMsgQueue() <- msg
+					os.Stderr.WriteString(fmt.Sprintln("Attempting to make", fnodes[listenTo].State.GetFactomNodeName(), "a Audit Server"))
+				}
+				fallthrough
+			case 'l' == b[0]: // Add Audit server, Remove server, and Add Leader fall through to 'n', switch to next node.
 				if b[0] == 'l' { // (Don't do anything if just passing along the audit server)
 					msg := messages.NewAddServerMsg(fnodes[listenTo].State, 0)
 					fnodes[listenTo].State.InMsgQueue() <- msg

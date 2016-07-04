@@ -942,8 +942,9 @@ func (st *State) VerifyIsAuthority(cid interfaces.IHash) bool {
 			status == constants.IDENTITY_AUDIT_SERVER ||
 			status == constants.IDENTITY_PENDING_FEDERATED_SERVER ||
 			status == constants.IDENTITY_PENDING_AUDIT_SERVER {
-			// Is valid identity and a fed/audit server
-			return true
+			if isAuthorityChain(cid, st.Authorities) != -1 {
+				return true
+			}
 		}
 	}
 	return false
