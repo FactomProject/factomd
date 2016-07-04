@@ -15,7 +15,7 @@ import (
 //A placeholder structure for messages
 type RequestBlock struct {
 	MessageBase
-	Timestamp interfaces.Timestamp
+	Timestamp *interfaces.Timestamp
 
 	//TODO: figure whether this should be signed or not?
 
@@ -62,7 +62,7 @@ func (m *RequestBlock) GetMsgHash() interfaces.IHash {
 	return m.MsgHash
 }
 
-func (m *RequestBlock) GetTimestamp() interfaces.Timestamp {
+func (m *RequestBlock) GetTimestamp() *interfaces.Timestamp {
 	return m.Timestamp
 }
 

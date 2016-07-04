@@ -49,7 +49,7 @@ func Factomd() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	state0 := new(state.State)
-	state0.SetLeaderTimestamp(interfaces.Timestamp(0))
+	state0.SetLeaderTimestamp(interfaces.NewTimestampFromMilliseconds(0))
 	fmt.Println("len(Args)", len(os.Args))
 
 	NetStart(state0)

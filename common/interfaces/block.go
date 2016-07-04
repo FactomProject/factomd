@@ -84,7 +84,7 @@ type IFBlock interface {
 	// the timestamps of transactions included in the block. Transactions prior to the
 	// TRANSACTION_PRIOR_LIMIT or after the TRANSACTION_POST_LIMIT are considered invalid
 	// for this block. -1 is returned if no coinbase transaction is found.
-	GetCoinbaseTimestamp() Timestamp
+	GetCoinbaseTimestamp() *Timestamp
 
 	GetNewInstance() IFBlock // Get a new instance of this object
 }

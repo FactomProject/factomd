@@ -72,11 +72,11 @@ func (h *DBlockHeader) SetPrevFullHash(PrevFullHash interfaces.IHash) {
 	h.PrevFullHash = PrevFullHash
 }
 
-func (h *DBlockHeader) GetTimestamp() interfaces.Timestamp {
-	return *interfaces.NewTimestampFromMinutes(h.Timestamp)
+func (h *DBlockHeader) GetTimestamp() *interfaces.Timestamp {
+	return interfaces.NewTimestampFromMinutes(h.Timestamp)
 }
 
-func (h *DBlockHeader) SetTimestamp(timestamp interfaces.Timestamp) {
+func (h *DBlockHeader) SetTimestamp(timestamp *interfaces.Timestamp) {
 	h.Timestamp = timestamp.GetTimeMinutesUInt32()
 }
 

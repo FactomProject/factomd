@@ -37,7 +37,7 @@ type DBState struct {
 
 type DBStateList struct {
 	SrcNetwork          bool // True if I got this block from the network.
-	LastTime            interfaces.Timestamp
+	LastTime            *interfaces.Timestamp
 	SecondsBetweenTests int
 	Lastreq             int
 	State               *State
@@ -128,7 +128,7 @@ func (list *DBStateList) Catchup() {
 	dbsHeight := list.GetHighestRecordedBlock()
 
 	// We only check if we need updates once every so often.
-	if int(now)/1000-int(list.LastTime)/1000 < SecondsBetweenTests {
+	if now.GetTimeSeconds()-list.LastTime.GetTimeSeconds() < SecondsBetweenTests {
 		return
 	}
 	list.LastTime = now

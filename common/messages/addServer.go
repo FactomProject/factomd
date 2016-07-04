@@ -19,9 +19,9 @@ import (
 
 type AddServerMsg struct {
 	MessageBase
-	Timestamp     interfaces.Timestamp // Message Timestamp
-	ServerChainID interfaces.IHash     // ChainID of new server
-	ServerType    int                  // 0 = Federated, 1 = Audit
+	Timestamp     *interfaces.Timestamp // Message Timestamp
+	ServerChainID interfaces.IHash      // ChainID of new server
+	ServerType    int                   // 0 = Federated, 1 = Audit
 
 	Signature interfaces.IFullSignature
 }
@@ -56,7 +56,7 @@ func (m *AddServerMsg) Bytes() []byte {
 	return nil
 }
 
-func (m *AddServerMsg) GetTimestamp() interfaces.Timestamp {
+func (m *AddServerMsg) GetTimestamp() *interfaces.Timestamp {
 	return m.Timestamp
 }
 
@@ -225,7 +225,7 @@ func (m *AddServerMsg) String() string {
 	return fmt.Sprintf("AddServer (%s): ChainID: %x Time: %x Msg Hash %x ",
 		stype,
 		m.ServerChainID.Bytes()[:3],
-		m.Timestamp,
+		&m.Timestamp,
 		m.GetMsgHash().Bytes()[:3])
 
 }
@@ -234,7 +234,7 @@ func (m *AddServerMsg) IsSameAs(b *AddServerMsg) bool {
 	if b == nil {
 		return false
 	}
-	if uint64(m.Timestamp) != uint64(b.Timestamp) {
+	if m.Timestamp.GetTimeMilli() != b.Timestamp.GetTimeMilli() {
 		return false
 	}
 	if !m.ServerChainID.IsSameAs(b.ServerChainID) {

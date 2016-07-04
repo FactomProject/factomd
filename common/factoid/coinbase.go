@@ -27,7 +27,7 @@ func UpdateAmount(amt uint64) {
 //
 // Currently we are paying just a few fixed addresses.
 //
-func GetCoinbase(ftime interfaces.Timestamp) interfaces.ITransaction {
+func GetCoinbase(ftime *interfaces.Timestamp) interfaces.ITransaction {
 	coinbase := new(Transaction)
 	coinbase.SetTimestamp(ftime)
 

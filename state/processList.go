@@ -322,14 +322,13 @@ func (p *ProcessList) PutNewEntries(dbheight uint32, key interfaces.IHash, value
 	p.NewEntries[key.Fixed()] = value
 }
 
-func (p *ProcessList) GetLeaderTimestamp() uint32 {
+func (p *ProcessList) GetLeaderTimestamp() *interfaces.Timestamp {
 	for _, msg := range p.VMs[0].List {
 		if msg.Type() == constants.DIRECTORY_BLOCK_SIGNATURE_MSG {
-			ts := msg.GetTimestamp()
-			return uint32(ts.GetTime().Unix())
+			return msg.GetTimestamp()
 		}
 	}
-	return 0
+	return nil
 }
 
 func (p *ProcessList) ResetDiffSigTally() {

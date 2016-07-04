@@ -17,7 +17,7 @@ import (
 //A placeholder structure for messages
 type RevealEntryMsg struct {
 	MessageBase
-	Timestamp interfaces.Timestamp
+	Timestamp *interfaces.Timestamp
 	Entry     interfaces.IEntry
 
 	//No signature!
@@ -58,7 +58,7 @@ func (m *RevealEntryMsg) GetChainIDHash() interfaces.IHash {
 	return m.chainIDHash
 }
 
-func (m *RevealEntryMsg) GetTimestamp() interfaces.Timestamp {
+func (m *RevealEntryMsg) GetTimestamp() *interfaces.Timestamp {
 	return m.Timestamp
 }
 
@@ -153,7 +153,7 @@ func (m *RevealEntryMsg) UnmarshalBinaryData(data []byte) (newData []byte, err e
 	if err != nil {
 		return nil, err
 	}
-	m.Timestamp = *t
+	m.Timestamp = t
 
 	e := entryBlock.NewEntry()
 	newData, err = e.UnmarshalBinaryData(newData)

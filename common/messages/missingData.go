@@ -16,7 +16,7 @@ import (
 //Structure to request missing messages in a node's process list
 type MissingData struct {
 	MessageBase
-	Timestamp interfaces.Timestamp
+	Timestamp *interfaces.Timestamp
 
 	RequestHash interfaces.IHash
 
@@ -74,7 +74,7 @@ func (m *MissingData) GetMsgHash() interfaces.IHash {
 	return m.MsgHash
 }
 
-func (m *MissingData) GetTimestamp() interfaces.Timestamp {
+func (m *MissingData) GetTimestamp() *interfaces.Timestamp {
 	return m.Timestamp
 }
 

@@ -23,7 +23,7 @@ import (
 
 type DBStateMsg struct {
 	MessageBase
-	Timestamp interfaces.Timestamp
+	Timestamp *interfaces.Timestamp
 
 	//TODO: handle misformed DBStates!
 	DirectoryBlock   interfaces.IDirectoryBlock
@@ -95,7 +95,7 @@ func (m *DBStateMsg) Bytes() []byte {
 	return nil
 }
 
-func (m *DBStateMsg) GetTimestamp() interfaces.Timestamp {
+func (m *DBStateMsg) GetTimestamp() *interfaces.Timestamp {
 	return m.Timestamp
 }
 
@@ -236,7 +236,7 @@ func (m *DBStateMsg) String() string {
 		m.GetHash().Bytes()[:3])
 }
 
-func NewDBStateMsg(timestamp interfaces.Timestamp,
+func NewDBStateMsg(timestamp *interfaces.Timestamp,
 	d interfaces.IDirectoryBlock,
 	a interfaces.IAdminBlock,
 	f interfaces.IFBlock,

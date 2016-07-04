@@ -15,7 +15,7 @@ import (
 //A placeholder structure for messages
 type SignatureTimeout struct {
 	MessageBase
-	Timestamp interfaces.Timestamp
+	Timestamp *interfaces.Timestamp
 
 	Signature interfaces.IFullSignature
 
@@ -71,7 +71,7 @@ func (m *SignatureTimeout) GetMsgHash() interfaces.IHash {
 	return m.MsgHash
 }
 
-func (m *SignatureTimeout) GetTimestamp() interfaces.Timestamp {
+func (m *SignatureTimeout) GetTimestamp() *interfaces.Timestamp {
 	return m.Timestamp
 }
 

@@ -19,7 +19,7 @@ import (
 
 type DataResponse struct {
 	MessageBase
-	Timestamp interfaces.Timestamp
+	Timestamp *interfaces.Timestamp
 
 	DataType   int // 0 = Entry, 1 = EntryBlock
 	DataHash   interfaces.IHash
@@ -96,7 +96,7 @@ func (m *DataResponse) Bytes() []byte {
 	return nil
 }
 
-func (m *DataResponse) GetTimestamp() interfaces.Timestamp {
+func (m *DataResponse) GetTimestamp() *interfaces.Timestamp {
 	return m.Timestamp
 }
 

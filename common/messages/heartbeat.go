@@ -15,7 +15,7 @@ import (
 //A placeholder structure for messages
 type Heartbeat struct {
 	MessageBase
-	Timestamp       interfaces.Timestamp
+	Timestamp       *interfaces.Timestamp
 	DBlockHash      interfaces.IHash //Hash of last Directory Block
 	IdentityChainID interfaces.IHash //Identity Chain ID
 
@@ -92,7 +92,7 @@ func (m *Heartbeat) GetMsgHash() interfaces.IHash {
 	return m.MsgHash
 }
 
-func (m *Heartbeat) GetTimestamp() interfaces.Timestamp {
+func (m *Heartbeat) GetTimestamp() *interfaces.Timestamp {
 	return m.Timestamp
 }
 

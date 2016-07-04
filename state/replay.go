@@ -32,7 +32,7 @@ func hours(unix int64) int {
 
 // Returns false if the hash is too old, or is already a
 // member of the set.  Timestamp is in seconds.
-func (r *Replay) Valid(mask int, hash [32]byte, timestamp interfaces.Timestamp, systemtime interfaces.Timestamp) (index int, valid bool) {
+func (r *Replay) Valid(mask int, hash [32]byte, timestamp *interfaces.Timestamp, systemtime *interfaces.Timestamp) (index int, valid bool) {
 	timeSeconds := timestamp.GetTimeSeconds()
 	systemTimeSeconds := systemtime.GetTimeSeconds()
 	// Check the timestamp to see if within 12 hours of the system time.  That not valid, we are
@@ -85,14 +85,14 @@ func (r *Replay) Valid(mask int, hash [32]byte, timestamp interfaces.Timestamp, 
 // have seen this hash before, then it is not valid.  To that end,
 // this code remembers hashes tested in the past, and rejects the
 // second submission of the same hash.
-func (r *Replay) IsTSValid(mask int, hash interfaces.IHash, timestamp interfaces.Timestamp) bool {
-	return r.IsTSValid_(mask, hash.Fixed(), timestamp, *interfaces.NewTimestampNow())
+func (r *Replay) IsTSValid(mask int, hash interfaces.IHash, timestamp *interfaces.Timestamp) bool {
+	return r.IsTSValid_(mask, hash.Fixed(), timestamp, interfaces.NewTimestampNow())
 }
 
 // To make the function testable, the logic accepts the current time
 // as a parameter.  This way, the test code can manipulate the clock
 // at will.
-func (r *Replay) IsTSValid_(mask int, hash [32]byte, timestamp interfaces.Timestamp, now interfaces.Timestamp) bool {
+func (r *Replay) IsTSValid_(mask int, hash [32]byte, timestamp *interfaces.Timestamp, now *interfaces.Timestamp) bool {
 
 	if index, ok := r.Valid(mask, hash, timestamp, now); ok {
 		r.mutex.Lock()

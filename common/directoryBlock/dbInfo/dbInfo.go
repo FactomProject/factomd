@@ -96,8 +96,8 @@ func (e *DirBlockInfo) GetBTCTxHash() interfaces.IHash {
 	return e.BTCTxHash
 }
 
-func (e *DirBlockInfo) GetTimestamp() interfaces.Timestamp {
-	return *interfaces.NewTimestampFromMilliseconds(uint64(e.Timestamp))
+func (e *DirBlockInfo) GetTimestamp() *interfaces.Timestamp {
+	return interfaces.NewTimestampFromMilliseconds(uint64(e.Timestamp))
 }
 
 func (e *DirBlockInfo) GetBTCBlockHeight() int32 {
@@ -132,7 +132,7 @@ func (e *DirBlockInfo) UnmarshalBinary(data []byte) (err error) {
 	return
 }
 
-func (e *DirBlockInfo) SetTimestamp(timestamp interfaces.Timestamp) {
+func (e *DirBlockInfo) SetTimestamp(timestamp *interfaces.Timestamp) {
 	e.Timestamp = timestamp.GetTimeMilli()
 }
 

@@ -19,7 +19,7 @@ var _ = log.Printf
 
 type EOM struct {
 	MessageBase
-	Timestamp interfaces.Timestamp
+	Timestamp *interfaces.Timestamp
 	Minute    byte
 
 	DBHeight  uint32
@@ -96,7 +96,7 @@ func (m *EOM) GetMsgHash() interfaces.IHash {
 	return m.MsgHash
 }
 
-func (m *EOM) GetTimestamp() interfaces.Timestamp {
+func (m *EOM) GetTimestamp() *interfaces.Timestamp {
 	return m.Timestamp
 }
 

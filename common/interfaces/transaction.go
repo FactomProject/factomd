@@ -33,7 +33,6 @@ type ITransaction interface {
 	// This is the TxID of a factoid transaction
 	GetSigHash() IHash
 
-
 	// Get the full hash of the transaction (including signatures)
 	GetFullHash() IHash
 
@@ -52,8 +51,8 @@ type ITransaction interface {
 	// Locktime serves as a nonce to make every transaction unique. Transactions
 	// that are more than 24 hours old are not included nor propagated through
 	// the network.
-	GetTimestamp() Timestamp
-	SetTimestamp(Timestamp)
+	GetTimestamp() *Timestamp
+	SetTimestamp(*Timestamp)
 	// Get a signature
 	GetSignatureBlock(i int) ISignatureBlock
 	SetSignatureBlock(i int, signatureblk ISignatureBlock)

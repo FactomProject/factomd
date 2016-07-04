@@ -18,7 +18,7 @@ import (
 type MissingMsg struct {
 	MessageBase
 
-	Timestamp         interfaces.Timestamp
+	Timestamp         *interfaces.Timestamp
 	DBHeight          uint32
 	VM                int
 	ProcessListHeight uint32
@@ -80,7 +80,7 @@ func (m *MissingMsg) GetMsgHash() interfaces.IHash {
 	return m.MsgHash
 }
 
-func (m *MissingMsg) GetTimestamp() interfaces.Timestamp {
+func (m *MissingMsg) GetTimestamp() *interfaces.Timestamp {
 	return m.Timestamp
 }
 

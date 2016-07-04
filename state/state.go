@@ -71,8 +71,8 @@ type State struct {
 
 	tickerQueue            chan int
 	timerMsgQueue          chan interfaces.IMsg
-	TimeOffset             interfaces.Timestamp
-	MaxTimeOffset          interfaces.Timestamp
+	TimeOffset             *interfaces.Timestamp
+	MaxTimeOffset          *interfaces.Timestamp
 	networkOutMsgQueue     chan interfaces.IMsg
 	networkInvalidMsgQueue chan interfaces.IMsg
 	inMsgQueue             chan interfaces.IMsg
@@ -86,7 +86,7 @@ type State struct {
 	serverPubKey  primitives.PublicKey
 
 	// Server State
-	StartDelay    interfaces.Timestamp
+	StartDelay    *interfaces.Timestamp
 	RunLeader     bool
 	LLeaderHeight uint32
 	Leader        bool
@@ -109,7 +109,7 @@ type State struct {
 	FactoidTrans    int
 	NewEntryChains  int
 	NewEntries      int
-	LeaderTimestamp interfaces.Timestamp
+	LeaderTimestamp *interfaces.Timestamp
 	// Maps
 	// ====
 	// For Follower
@@ -168,7 +168,7 @@ type State struct {
 
 	//For Replay / journal
 	IsReplaying     bool
-	ReplayTimestamp interfaces.Timestamp
+	ReplayTimestamp *interfaces.Timestamp
 
 	// DBlock Height at which node has a complete set of eblocks+entries
 	EBDBHeightComplete uint32
@@ -335,7 +335,7 @@ func (s *State) Init() {
 
 	s.tickerQueue = make(chan int, 10000)                        //ticks from a clock
 	s.timerMsgQueue = make(chan interfaces.IMsg, 10000)          //incoming eom notifications, used by leaders
-	s.TimeOffset = 0                                             //interfaces.Timestamp(int64(rand.Int63() % int64(time.Microsecond*10)))
+	s.TimeOffset = new(interfaces.Timestamp)                     //interfaces.Timestamp(int64(rand.Int63() % int64(time.Microsecond*10)))
 	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 10000) //incoming message queue from the network messages
 	s.InvalidMessages = make(map[[32]byte]interfaces.IMsg, 0)
 	s.networkOutMsgQueue = make(chan interfaces.IMsg, 10000) //Messages to be broadcast to the network
@@ -883,21 +883,19 @@ func (s *State) SetIsReplaying() {
 
 func (s *State) SetIsDoneReplaying() {
 	s.IsReplaying = false
-	s.ReplayTimestamp = 0
+	s.ReplayTimestamp = nil
 }
 
 // Returns a millisecond timestamp
-func (s *State) GetTimestamp() interfaces.Timestamp {
+func (s *State) GetTimestamp() *interfaces.Timestamp {
 	if s.IsReplaying == true {
 		fmt.Println("^^^^^^^^ IsReplying is true")
 		return s.ReplayTimestamp
 	}
-	t := new(interfaces.Timestamp)
-	t = interfaces.NewTimestampNow()
-	return *t
+	return interfaces.NewTimestampNow()
 }
 
-func (s *State) GetTimeOffset() interfaces.Timestamp {
+func (s *State) GetTimeOffset() *interfaces.Timestamp {
 	return s.TimeOffset
 }
 
@@ -954,11 +952,11 @@ func (s *State) MsgQueue() chan interfaces.IMsg {
 	return s.msgQueue
 }
 
-func (s *State) GetLeaderTimestamp() interfaces.Timestamp {
+func (s *State) GetLeaderTimestamp() *interfaces.Timestamp {
 	return s.LeaderTimestamp
 }
 
-func (s *State) SetLeaderTimestamp(ts interfaces.Timestamp) {
+func (s *State) SetLeaderTimestamp(ts *interfaces.Timestamp) {
 	s.LeaderTimestamp = ts
 }
 

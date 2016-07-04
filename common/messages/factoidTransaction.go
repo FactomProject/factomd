@@ -16,7 +16,7 @@ import (
 //A placeholder structure for messages
 type FactoidTransaction struct {
 	MessageBase
-	Timestamp   interfaces.Timestamp
+	Timestamp   *interfaces.Timestamp
 	Transaction interfaces.ITransaction
 
 	//No signature!
@@ -68,7 +68,7 @@ func (m *FactoidTransaction) GetMsgHash() interfaces.IHash {
 	return m.MsgHash
 }
 
-func (m *FactoidTransaction) GetTimestamp() interfaces.Timestamp {
+func (m *FactoidTransaction) GetTimestamp() *interfaces.Timestamp {
 	return m.Timestamp
 }
 
