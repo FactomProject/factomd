@@ -73,7 +73,7 @@ func (h *DBlockHeader) SetPrevFullHash(PrevFullHash interfaces.IHash) {
 }
 
 func (h *DBlockHeader) GetTimestamp() interfaces.Timestamp {
-	return *interfaces.NewTimestampFromMinutes(h.Timestamp)
+	return primitives.NewTimestampFromMinutes(h.Timestamp)
 }
 
 func (h *DBlockHeader) SetTimestamp(timestamp interfaces.Timestamp) {

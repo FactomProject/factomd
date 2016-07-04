@@ -91,7 +91,7 @@ func TestSignAndVerifyInvalidDirectoryBlock(t *testing.T) {
 
 func newInvalidDirectoryBlock() *InvalidDirectoryBlock {
 	eom := new(InvalidDirectoryBlock)
-	eom.Timestamp.SetTimeNow()
+	eo & m.Timestamp.SetTimeNow()
 
 	return eom
 }

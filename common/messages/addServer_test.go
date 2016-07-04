@@ -98,7 +98,7 @@ func TestMarshalUnmarshalSignedAddServer(t *testing.T) {
 
 func newAddServer() *AddServerMsg {
 	addserv := new(AddServerMsg)
-	ts := new(interfaces.Timestamp)
+	ts := new(primitives.Timestamp)
 	ts.SetTimeNow()
 	addserv.Timestamp = *ts
 	addserv.ServerChainID = primitives.Sha([]byte("FNode0"))

@@ -44,7 +44,7 @@ func (s *State) Process() (progress bool) {
 	if !s.RunLeader {
 		//fmt.Printf("dddd %20s %10s --- \n", "Process() Start", s.FactomNodeName)
 		now := s.GetTimestamp() // Timestamps are in milliseconds, so wait 20
-		if now-s.StartDelay > 5*1000 {
+		if now.GetTimeMilli()-s.StartDelay.GetTimeMilli() > 5*1000 {
 			s.RunLeader = true
 		}
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)

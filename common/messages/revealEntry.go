@@ -148,12 +148,12 @@ func (m *RevealEntryMsg) UnmarshalBinaryData(data []byte) (newData []byte, err e
 	}
 	newData = newData[1:]
 
-	t := new(interfaces.Timestamp)
+	t := new(primitives.Timestamp)
 	newData, err = t.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
 	}
-	m.Timestamp = *t
+	m.Timestamp = t
 
 	e := entryBlock.NewEntry()
 	newData, err = e.UnmarshalBinaryData(newData)

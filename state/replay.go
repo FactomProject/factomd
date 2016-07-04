@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 const numBuckets = 27
@@ -86,7 +87,7 @@ func (r *Replay) Valid(mask int, hash [32]byte, timestamp interfaces.Timestamp, 
 // this code remembers hashes tested in the past, and rejects the
 // second submission of the same hash.
 func (r *Replay) IsTSValid(mask int, hash interfaces.IHash, timestamp interfaces.Timestamp) bool {
-	return r.IsTSValid_(mask, hash.Fixed(), timestamp, *interfaces.NewTimestampNow())
+	return r.IsTSValid_(mask, hash.Fixed(), timestamp, primitives.NewTimestampNow())
 }
 
 // To make the function testable, the logic accepts the current time

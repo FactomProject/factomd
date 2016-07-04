@@ -337,7 +337,7 @@ func (s *State) Init() {
 
 	s.tickerQueue = make(chan int, 10000)                        //ticks from a clock
 	s.timerMsgQueue = make(chan interfaces.IMsg, 10000)          //incoming eom notifications, used by leaders
-	s.TimeOffset = 0                                             //interfaces.Timestamp(int64(rand.Int63() % int64(time.Microsecond*10)))
+	s.TimeOffset = new(primitives.Timestamp)                     //interfaces.Timestamp(int64(rand.Int63() % int64(time.Microsecond*10)))
 	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 10000) //incoming message queue from the network messages
 	s.InvalidMessages = make(map[[32]byte]interfaces.IMsg, 0)
 	s.networkOutMsgQueue = make(chan interfaces.IMsg, 10000) //Messages to be broadcast to the network
@@ -380,6 +380,7 @@ func (s *State) Init() {
 	s.FactomdVersion = constants.FACTOMD_VERSION
 
 	s.DBStates = new(DBStateList)
+	s.DBStates.LastTime = new(primitives.Timestamp)
 	s.DBStates.State = s
 	s.DBStates.DBStates = make([]*DBState, 0)
 
@@ -886,7 +887,7 @@ func (s *State) SetIsReplaying() {
 
 func (s *State) SetIsDoneReplaying() {
 	s.IsReplaying = false
-	s.ReplayTimestamp = 0
+	s.ReplayTimestamp = nil
 }
 
 // Returns a millisecond timestamp
@@ -895,9 +896,7 @@ func (s *State) GetTimestamp() interfaces.Timestamp {
 		fmt.Println("^^^^^^^^ IsReplying is true")
 		return s.ReplayTimestamp
 	}
-	t := new(interfaces.Timestamp)
-	t = interfaces.NewTimestampNow()
-	return *t
+	return primitives.NewTimestampNow()
 }
 
 func (s *State) GetTimeOffset() interfaces.Timestamp {
