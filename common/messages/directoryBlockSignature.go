@@ -180,6 +180,7 @@ func (m *DirectoryBlockSignature) UnmarshalBinaryData(data []byte) (newData []by
 	newData = newData[1:]
 
 	// TimeStamp
+	m.Timestamp = new(interfaces.Timestamp)
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err

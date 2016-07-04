@@ -99,6 +99,7 @@ func (m *SignatureTimeout) UnmarshalBinaryData(data []byte) (newData []byte, err
 	}
 	newData = newData[1:]
 
+	m.Timestamp = new(interfaces.Timestamp)
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err

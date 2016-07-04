@@ -49,6 +49,10 @@ func (m *MsgLog) init(enable bool, nodecnt int) {
 	if nodecnt == 0 {
 		m.nodeCnt = 1
 	}
+
+	m.last = new(interfaces.Timestamp)
+	m.start = new(interfaces.Timestamp)
+	m.startp = new(interfaces.Timestamp)
 }
 
 func (m *MsgLog) add2(fnode *FactomNode, out bool, peer string, where string, valid bool, msg interfaces.IMsg) {

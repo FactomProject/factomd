@@ -117,6 +117,7 @@ func (m *InvalidDirectoryBlock) UnmarshalBinaryData(data []byte) (newData []byte
 	}
 	newData = newData[1:]
 
+	m.Timestamp = new(interfaces.Timestamp)
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
