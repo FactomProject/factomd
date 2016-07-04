@@ -151,7 +151,6 @@ func (m *DBStateMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error
 	m.Peer2Peer = true
 
 	m.Timestamp = new(primitives.Timestamp)
-	m.Timestamp = new(primitives.Timestamp)
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
