@@ -99,7 +99,7 @@ func (t Transaction) String() string {
 
 // MilliTimestamp is in milliseconds
 func (t *Transaction) GetTimestamp() interfaces.Timestamp {
-	return *interfaces.NewTimestampFromMilliseconds(t.MilliTimestamp)
+	return interfaces.NewTimestampFromMilliseconds(t.MilliTimestamp)
 }
 
 func (t *Transaction) SetTimestamp(ts interfaces.Timestamp) {

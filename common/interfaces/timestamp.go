@@ -21,28 +21,22 @@ func GetTime() uint64 {
 //A structure for handling timestamps for messages
 type Timestamp uint64 //in miliseconds
 
-func NewTimestampNow() *Timestamp {
-	t := new(Timestamp)
+func NewTimestampNow() Timestamp {
+	var t Timestamp
 	t.SetTimeNow()
 	return t
 }
 
-func NewTimestampFromSeconds(s uint32) *Timestamp {
-	t := new(Timestamp)
-	*t = Timestamp(int64(s) * 1000)
-	return t
+func NewTimestampFromSeconds(s uint32) Timestamp {
+	return Timestamp(int64(s) * 1000)
 }
 
-func NewTimestampFromMinutes(s uint32) *Timestamp {
-	t := new(Timestamp)
-	*t = Timestamp(int64(s) * 60000)
-	return t
+func NewTimestampFromMinutes(s uint32) Timestamp {
+	return Timestamp(int64(s) * 60000)
 }
 
-func NewTimestampFromMilliseconds(s uint64) *Timestamp {
-	t := new(Timestamp)
-	*t = Timestamp(s)
-	return t
+func NewTimestampFromMilliseconds(s uint64) Timestamp {
+	return Timestamp(s)
 }
 
 func (t *Timestamp) SetTimeNow() {
