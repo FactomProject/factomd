@@ -1,8 +1,9 @@
 package state
 
 import (
-	//"bytes"
+	"bytes"
 	"fmt"
+
 	ed "github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
@@ -238,6 +239,26 @@ func addServerSigningKey(ChainID interfaces.IHash, key interfaces.IHash, st *Sta
 		log.Println(ChainID.String() + " Cannot Update Signing Key.  Not in Authorities List.")
 	} else {
 		//log.Println(ChainID.String() + " Updating Signing Key. AdminBlock Height:" + string(height))
+		if st.IdentityChainID.IsSameAs(ChainID) && len(st.serverPendingPrivKeys) > 0 {
+			for i, pubKey := range st.serverPendingPubKeys {
+				pubData, err := pubKey.MarshalBinary()
+				if err != nil {
+					break
+				}
+				if bytes.Compare(pubData, key.Bytes()) == 0 {
+					st.serverPrivKey = st.serverPendingPrivKeys[i]
+					st.serverPubKey = st.serverPendingPubKeys[i]
+					if len(st.serverPendingPrivKeys) > i {
+						st.serverPendingPrivKeys = append(st.serverPendingPrivKeys[:i], st.serverPendingPrivKeys[i+1:]...)
+						st.serverPendingPubKeys = append(st.serverPendingPubKeys[:i], st.serverPendingPubKeys[i+1:]...)
+					} else {
+						st.serverPendingPrivKeys = st.serverPendingPrivKeys[:i]
+						st.serverPendingPubKeys = st.serverPendingPubKeys[:i]
+					}
+					break
+				}
+			}
+		}
 		st.Authorities[AuthorityIndex].SigningKey = primitives.PubKeyFromString(key.String())
 	}
 }

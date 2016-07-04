@@ -353,6 +353,39 @@ func SimControl(listenTo int) {
 					}
 				}
 			case 't' == b[0]:
+				if len(b) == 2 && b[1] == 'm' {
+					_, _, auth := authKeyLookup(fnodes[listenTo].State.IdentityChainID)
+					if auth == nil {
+						break
+					}
+					fullSk := []byte{0x4d, 0xb6, 0xc9}
+					fullSk = append(fullSk[:], auth.Sk1[:32]...)
+					shadSk := shad(fullSk)
+					fullSk = append(fullSk[:], shadSk[:4]...)
+
+					os.Stderr.WriteString(fmt.Sprintf("Identity of Current Node Information\n"))
+					os.Stderr.WriteString(fmt.Sprintf("Root Chain ID: %s\n", auth.ChainID))
+					os.Stderr.WriteString(fmt.Sprintf("Sub Chain ID : %s\n", auth.ManageChain))
+					os.Stderr.WriteString(fmt.Sprintf("Sk1 Key (hex): %x\n", fullSk))
+					os.Stderr.WriteString(fmt.Sprintf("Signing Key (hex): %s\n", fnodes[listenTo].State.SimGetSigKey()))
+
+					break
+				} else if len(b) == 2 && b[1] == 'c' {
+					_, _, auth := authKeyLookup(fnodes[listenTo].State.IdentityChainID)
+					if auth == nil {
+						break
+					}
+					fundWallet(fnodes[listenTo].State, 1e7)
+					newKey, err := changeSigningKey(fnodes[listenTo].State.IdentityChainID, fnodes[listenTo].State)
+					if err != nil {
+						os.Stderr.WriteString(fmt.Sprintf("Error: %s\n", err.Error()))
+						break
+					}
+					fnodes[listenTo].State.LocalServerPrivKey = newKey.PrivateKeyString()
+					fnodes[listenTo].State.SetPendingSigningKey(*newKey)
+					os.Stderr.WriteString(fmt.Sprintf("New public key for [%s]: %s\n", fnodes[listenTo].State.IdentityChainID.String()[:8], newKey.Pub.String()))
+					break
+				}
 				index := 0
 				if len(b) == 65 {
 					hash, err := fnodes[listenTo].State.IdentityChainID.HexToHash(b[1:])
@@ -360,7 +393,7 @@ func SimControl(listenTo int) {
 						os.Stderr.WriteString(fmt.Sprintf("Error: %s\n", err.Error()))
 					} else {
 						fnodes[listenTo].State.IdentityChainID = hash
-						key, pKey := authKeyLookup(fnodes[listenTo].State.IdentityChainID)
+						key, pKey, _ := authKeyLookup(fnodes[listenTo].State.IdentityChainID)
 						if len(key) == 64 {
 							fnodes[listenTo].State.LocalServerPrivKey = key
 							fnodes[listenTo].State.SimSetNewKeys(pKey)
@@ -389,7 +422,7 @@ func SimControl(listenTo int) {
 					if authKeyLibrary[index].Taken == false {
 						authKeyLibrary[index].Taken = true
 						fnodes[listenTo].State.IdentityChainID = authKeyLibrary[index].ChainID
-						key, pKey := authKeyLookup(fnodes[listenTo].State.IdentityChainID)
+						key, pKey, _ := authKeyLookup(fnodes[listenTo].State.IdentityChainID)
 						fnodes[listenTo].State.LocalServerPrivKey = key
 						fnodes[listenTo].State.SimSetNewKeys(pKey)
 						os.Stderr.WriteString(fmt.Sprintf("Identity of " + fnodes[listenTo].State.GetFactomNodeName() + " changed to [" + authKeyLibrary[index].ChainID.String()[:10] + "]\n"))

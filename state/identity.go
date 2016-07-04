@@ -235,10 +235,21 @@ func LoadIdentityByEntryBlock(eblk interfaces.IEntryBlock, st *State, update boo
 		}
 		// Process entries that are being held
 		if len(holdEntry) > 0 {
-			for _, entry := range holdEntry {
+
+			// Find any entries that change the same key for an identity. Only last should go into admin block
+			repeatBlockSigning := make(map[string]bool)
+			repeatMHash := make(map[string]bool)
+			//for _, entry := range holdEntry {
+			for i := len(holdEntry) - 1; i >= 0; i-- {
+				entry := holdEntry[i]
 				if string(entry.ExternalIDs()[1]) == "New Block Signing Key" {
 					if len(entry.ExternalIDs()) == 7 {
-						registerBlockSigningKey(entry.ExternalIDs(), entry.GetChainID(), st, update)
+						index := primitives.NewHash(entry.ExternalIDs()[2])
+						if repeatBlockSigning[index.String()] == true {
+						} else {
+							repeatBlockSigning[index.String()] = true
+							registerBlockSigningKey(entry.ExternalIDs(), entry.GetChainID(), st, update)
+						}
 					}
 				} else if string(entry.ExternalIDs()[1]) == "New Bitcoin Key" {
 					if len(entry.ExternalIDs()) == 9 {
@@ -246,7 +257,12 @@ func LoadIdentityByEntryBlock(eblk interfaces.IEntryBlock, st *State, update boo
 					}
 				} else if string(entry.ExternalIDs()[1]) == "New Matryoshka Hash" {
 					if len(entry.ExternalIDs()) == 7 {
-						updateMatryoshkaHash(entry.ExternalIDs(), entry.GetChainID(), st, update)
+						if repeatMHash[string(entry.ExternalIDs()[2])] == true {
+
+						} else {
+							repeatMHash[string(entry.ExternalIDs()[2])] = true
+							updateMatryoshkaHash(entry.ExternalIDs(), entry.GetChainID(), st, update)
+						}
 					}
 				}
 			}
@@ -585,7 +601,7 @@ func updateMatryoshkaHash(extIDs [][]byte, subChainID interfaces.IHash, st *Stat
 				status == constants.IDENTITY_PENDING_FEDERATED_SERVER ||
 				status == constants.IDENTITY_PENDING_AUDIT_SERVER) {
 				if st.LeaderPL.VMIndexFor(constants.ADMIN_CHAINID) == st.GetLeaderVM() {
-					msg := messages.NewChangeServerKeyMsg(st, chainID, constants.TYPE_ADD_FED_SERVER_KEY, 0, 0, mhash)
+					msg := messages.NewChangeServerKeyMsg(st, chainID, constants.TYPE_ADD_MATRYOSHKA, 0, 0, mhash)
 					st.InMsgQueue() <- msg
 				}
 				//st.LeaderPL.AdminBlock.AddMatryoshkaHash(chainID, mhash)
@@ -684,7 +700,7 @@ func registerAnchorSigningKey(extIDs [][]byte, subChainID interfaces.IHash, st *
 					copy(key[:20], extIDs[5][:20])
 					extIDs[5] = append(extIDs[5], []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}...)
 					key := primitives.NewHash(extIDs[5])
-					msg := messages.NewChangeServerKeyMsg(st, chainID, constants.TYPE_ADD_FED_SERVER_KEY, extIDs[3][0], extIDs[4][0], key)
+					msg := messages.NewChangeServerKeyMsg(st, chainID, constants.TYPE_ADD_BTC_ANCHOR_KEY, extIDs[3][0], extIDs[4][0], key)
 					st.InMsgQueue() <- msg
 				}
 				//st.LeaderPL.AdminBlock.AddFederatedServerBitcoinAnchorKey(chainID, extIDs[3][0], extIDs[4][0], &key)

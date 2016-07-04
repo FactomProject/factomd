@@ -82,8 +82,10 @@ type State struct {
 	ShutdownChan           chan int // For gracefully halting Factom
 	JournalFile            string
 
-	serverPrivKey primitives.PrivateKey
-	serverPubKey  primitives.PublicKey
+	serverPrivKey         primitives.PrivateKey
+	serverPubKey          primitives.PublicKey
+	serverPendingPrivKeys []primitives.PrivateKey
+	serverPendingPubKeys  []primitives.PublicKey
 
 	// Server State
 	StartDelay    interfaces.Timestamp
@@ -1230,4 +1232,9 @@ func (s *State) ProcessInvalidMsgQueue() {
 			s.InvalidMessages[msg.GetHash().Fixed()] = msg
 		}
 	}
+}
+
+func (s *State) SetPendingSigningKey(p primitives.PrivateKey) {
+	s.serverPendingPrivKeys = append(s.serverPendingPrivKeys, p)
+	s.serverPendingPubKeys = append(s.serverPendingPubKeys, *(p.Pub))
 }

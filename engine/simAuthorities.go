@@ -252,6 +252,7 @@ func makeBlockKey(ele hardCodedAuthority, ec *factom.ECAddress) (string, string,
 		return "", "", ""
 	}
 	entry := blockKey.GetEntry()
+	entry.Content = []byte(interfaces.NewTimestampNow().String())
 	str1, str2 := getMessageString(entry, ec)
 	return str1, str2, hex.EncodeToString(key)
 }
@@ -299,16 +300,50 @@ func getMessageString(e *factom.Entry, ec *factom.ECAddress) (string, string) {
 	return tC.Params.Message, tR.Params.Message
 }
 
+func changeSigningKey(auth interfaces.IHash, st *state.State) (*primitives.PrivateKey, error) {
+	sec, _ := hex.DecodeString(ecSec)
+	ec, _ := factom.MakeECAddress(sec[:32])
+	if h, err := st.DB.FetchHeadIndexByChainID(auth); h == nil || err != nil {
+		return nil, errors.New("No chain exists for this identity. ")
+	}
+	for _, ele := range authKeyLibrary {
+		if auth.IsSameAs(ele.ChainID) {
+			com, rev, newKey := makeBlockKey(ele, ec)
+			ele.NewBlockKey = newKey
+			m := new(wsapi.EntryRequest)
+			m.Entry = com
+			j := primitives.NewJSON2Request("commit-entry", 0, m)
+			_, err := v2Request(j)
+			if err != nil {
+				return nil, err
+			}
+			m = new(wsapi.EntryRequest)
+			m.Entry = rev
+			j = primitives.NewJSON2Request("reveal-entry", 0, m)
+			_, err = v2Request(j)
+			if err != nil {
+				return nil, err
+			}
+			p, _ := primitives.NewPrivateKeyFromHex(newKey)
+			return &p, nil
+		}
+	}
+	return nil, errors.New("No identity found, it must be one of the pregenerated ones.")
+}
+
 // Returns the private block signing key of the authority
-func authKeyLookup(auth interfaces.IHash) (string, primitives.PrivateKey) {
+func authKeyLookup(auth interfaces.IHash) (string, primitives.PrivateKey, *hardCodedAuthority) {
 	key := ""
+	var resA hardCodedAuthority
 	for _, a := range authKeyLibrary {
 		if auth.IsSameAs(a.ChainID) {
 			key = a.NewBlockKey
+			resA = a
+			break
 		}
 	}
 	p, _ := primitives.NewPrivateKeyFromHex(key)
-	return key, p
+	return key, p, &resA
 }
 
 func buildMessages() []hardCodedAuthority {
