@@ -74,6 +74,9 @@ func (p *ProcessList) Complete() bool {
 		if vm.LeaderMinute < 10 {
 			return false
 		}
+		if vm.Height != len(vm.List) {
+			return false
+		}
 	}
 	return true
 }

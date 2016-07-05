@@ -588,7 +588,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			s.Saving = true
 			s.DBSigProcessed = 0
 
-			if s.Leader && dbstate != nil {
+			if s.Leader {
 				dbs := new(messages.DirectoryBlockSignature)
 				dbs.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
 				dbs.ServerIdentityChainID = s.GetIdentityChainID()
