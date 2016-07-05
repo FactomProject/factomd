@@ -21,7 +21,7 @@ var _ interfaces.BinaryMarshallable = (*RemoveFederatedServer)(nil)
 
 func (e *RemoveFederatedServer) String() string {
 	var out primitives.Buffer
-	out.WriteString(fmt.Sprintf("    E: %20s -- %17s %8x %12s %8d\n", "Remove Federated Server", "IdentityChainID", e.IdentityChainID.Bytes()[:4], "DBHeight", e.DBHeight))
+	out.WriteString(fmt.Sprintf("    E: %35s -- %17s %8x %12s %8d\n", "Remove Federated Server", "IdentityChainID", e.IdentityChainID.Bytes()[:4], "DBHeight", e.DBHeight))
 	return (string)(out.DeepCopyBytes())
 }
 
