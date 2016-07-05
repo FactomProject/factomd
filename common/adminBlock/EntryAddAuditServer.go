@@ -20,7 +20,7 @@ var _ interfaces.BinaryMarshallable = (*AddAuditServer)(nil)
 
 func (e *AddAuditServer) String() string {
 	var out primitives.Buffer
-	out.WriteString(fmt.Sprintf("    E: %20s -- %20s %10x %20s %10d\n", "AddAuditServer", "IdentityChainID", e.IdentityChainID.Bytes()[:3], "DBHeight", e.DBHeight))
+	out.WriteString(fmt.Sprintf("    E: %20s -- %17s %8x %12s %8d\n", "AddAuditServer", "IdentityChainID", e.IdentityChainID.Bytes()[:4], "DBHeight", e.DBHeight))
 	return (string)(out.DeepCopyBytes())
 }
 

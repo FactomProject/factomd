@@ -289,7 +289,7 @@ func SimControl(listenTo int) {
 				fallthrough
 			case 'l' == b[0]: // Add Audit server, Remove server, and Add Leader fall through to 'n', switch to next node.
 				if b[0] == 'l' { // (Don't do anything if just passing along the audit server)
-					if len(b) > 1 && b[1] == 'n' {
+					if len(b) > 1 && b[1] == 't' && fnodes[listenTo].State.IdentityChainID.String()[:6] != "888888" {
 						index := 0
 						for index < len(authKeyLibrary) {
 							if authKeyLibrary[index].Taken == false {
@@ -302,6 +302,10 @@ func SimControl(listenTo int) {
 								break
 							}
 							index++
+						}
+						if index >= len(authKeyLibrary) {
+							os.Stderr.WriteString(fmt.Sprintf("Did not make a leader, ran out of identities. Type 'g1' for one more identity.\n"))
+							break
 						}
 					}
 
@@ -566,6 +570,9 @@ func SimControl(listenTo int) {
 				os.Stderr.WriteString("p             Show the process lists and directory block states as they change.\n")
 				os.Stderr.WriteString("n             Change the focus to the next node.\n")
 				os.Stderr.WriteString("l             Make focused node the Leader.\n")
+				os.Stderr.WriteString("lt            Attach the next available identity to node and make focused node the Leader.\n")
+				os.Stderr.WriteString("k             Attempt to remove focused node as a federated server\n")
+				os.Stderr.WriteString("ka            Attempt to remove focused node as a audit server\n")
 				os.Stderr.WriteString("o             Make focused an audit server.\n")
 				os.Stderr.WriteString("x             Take the given node out of the netork or bring an offline node back in.\n")
 				os.Stderr.WriteString("w             Point the WSAPI to send API calls to the current node.\n")
