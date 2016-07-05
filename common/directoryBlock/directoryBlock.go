@@ -179,23 +179,15 @@ func (e *DirectoryBlock) JSONBuffer(b *bytes.Buffer) error {
 
 func (e *DirectoryBlock) String() string {
 	var out primitives.Buffer
-	kmr, err := e.BuildKeyMerkleRoot()
 
-	if err != nil {
-		out.WriteString(fmt.Sprintf("%20s %v\n", "KeyMR:", err))
-	} else {
-		out.WriteString(fmt.Sprintf("%20s %v\n", "KeyMR:", kmr.String()))
-	}
+	kmr := e.GetKeyMR()
+	out.WriteString(fmt.Sprintf("%20s %v\n", "KeyMR:", kmr.String()))
 
-	kmr, err = e.BuildBodyMR()
-	if err != nil {
-		out.WriteString(fmt.Sprintf("%20s %v\n", "BodyMR:", err))
-	} else {
-		out.WriteString(fmt.Sprintf("%20s %v\n", "BodyMR:", kmr.String()))
-	}
+	kmr = e.BodyKeyMR()
+	out.WriteString(fmt.Sprintf("%20s %v\n", "BodyMR:", kmr.String()))
 
 	fh := e.GetFullHash()
-	out.WriteString(fmt.Sprintf("%20s %v\n", "BodyMR:", fh.String()))
+	out.WriteString(fmt.Sprintf("%20s %v\n", "FullHash:", fh.String()))
 
 	out.WriteString(e.Header.String())
 	out.WriteString("Entries: \n")

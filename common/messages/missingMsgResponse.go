@@ -175,7 +175,7 @@ func (m *MissingMsgResponse) MarshalBinary() ([]byte, error) {
 }
 
 func (m *MissingMsgResponse) String() string {
-	return fmt.Sprintf("MissingMsgResponse MessageHash: %v AckHash: %v\n", m.MsgResponse.GetHash(), m.AckResponse.GetHash())
+	return fmt.Sprintf("MissingMsgResponse MessageHash: %x AckHash: %x\n", m.MsgResponse.GetHash().Bytes()[:3], m.AckResponse.GetHash().Bytes()[:3])
 }
 
 func (m *MissingMsgResponse) ChainID() []byte {

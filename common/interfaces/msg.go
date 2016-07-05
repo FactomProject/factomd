@@ -85,4 +85,5 @@ type IMsg interface {
 	// Stall handling
 	IsStalled() bool
 	SetStall(bool)
+	Resend() int
 }

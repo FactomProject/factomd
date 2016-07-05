@@ -34,6 +34,28 @@ var _ interfaces.Printable = (*AdminBlock)(nil)
 var _ interfaces.BinaryMarshallableAndCopyable = (*AdminBlock)(nil)
 var _ interfaces.DatabaseBatchable = (*AdminBlock)(nil)
 
+func (c *AdminBlock) String() string {
+	var out primitives.Buffer
+
+	kmr, err := c.GetKeyMR()
+	if err != nil {
+		out.WriteString(fmt.Sprintf("%20s %v\n", "KeyMR:", err))
+	} else {
+		out.WriteString(fmt.Sprintf("%20s %v\n", "KeyMR:", kmr.String()))
+	}
+
+	fh := c.GetHash()
+	out.WriteString(fmt.Sprintf("%20s %v\n", "FullHash:", fh.String()))
+
+	out.WriteString(c.Header.String())
+	out.WriteString("Entries: \n")
+	for _, entry := range c.ABEntries {
+		out.WriteString(entry.String())
+	}
+
+	return (string)(out.DeepCopyBytes())
+}
+
 func (c *AdminBlock) UpdateState(state interfaces.IState) {
 	for _, entry := range c.ABEntries {
 		entry.UpdateState(state)
@@ -301,10 +323,4 @@ func (e *AdminBlock) JSONString() (string, error) {
 
 func (e *AdminBlock) JSONBuffer(b *bytes.Buffer) error {
 	return primitives.EncodeJSONToBuffer(e, b)
-}
-
-func (e *AdminBlock) String() string {
-	e.FullHash()
-	str, _ := e.JSONString()
-	return str
 }
