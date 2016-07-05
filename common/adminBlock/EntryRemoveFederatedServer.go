@@ -24,7 +24,7 @@ func (c *RemoveFederatedServer) UpdateState(state interfaces.IState) {
 		state.RemoveFedServer(c.DBHeight, c.IdentityChainID)
 	}
 	if state.GetOut() {
-		state.Println(fmt.Sprintf("Removed Federated Server: %x", c.IdentityChainID.Bytes()[:3]))
+		state.Println(fmt.Sprintf("Removed Federated Server: %x", c.IdentityChainID.Bytes()[:4]))
 	}
 	state.UpdateAuthorityFromABEntry(c)
 }

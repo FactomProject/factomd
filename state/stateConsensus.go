@@ -461,11 +461,6 @@ func (s *State) ProcessRemoveServer(dbheight uint32, removeServerMsg interfaces.
 		return true
 	}
 
-	/*if leader, _ := s.LeaderPL.GetFedServerIndexHash(rs.ServerChainID); leader {
-		fmt.Println("I exited")
-		return true
-	}*/
-
 	if !s.VerifyIsAuthority(rs.ServerChainID) {
 		fmt.Printf("dddd %s %s\n", s.FactomNodeName, "RemoveServer message did not add to admin block.")
 		return true
