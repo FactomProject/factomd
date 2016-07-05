@@ -334,11 +334,6 @@ func (c *CommitEntry) UnmarshalBinaryData(data []byte) (newData []byte, err erro
 		}
 	}
 
-	err = c.ValidateSignatures()
-	if err != nil {
-		return
-	}
-
 	newData = buf.DeepCopyBytes()
 
 	return
