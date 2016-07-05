@@ -119,7 +119,7 @@ func (st *State) UpdateAuthorityFromABEntry(entry interfaces.IABEntry) error {
 		} else {
 			//log.Println(f.IdentityChainID.String() + " being removed from Authorities List:" + string(height))
 			removeAuthority(AuthorityIndex, st)
-			IdentityIndex := isIdentityChain(f.IdentityChainID, st.Authorities)
+			IdentityIndex := isIdentityChain(f.IdentityChainID, st.Identities)
 			if IdentityIndex != -1 && IdentityIndex < len(st.Identities) {
 				removeIdentity(IdentityIndex, st)
 			} else {
@@ -163,6 +163,23 @@ func (st *State) UpdateAuthorityFromABEntry(entry interfaces.IABEntry) error {
 		}
 	}
 	return nil
+}
+
+func (st *State) GetAuthorityServerType(chainID interfaces.IHash) int { // 0 = Federated, 1 = Audit
+	index := isAuthorityChain(chainID, st.Authorities)
+	if index == -1 {
+		return -1
+	}
+	status := st.Authorities[index].Status
+	if status == constants.IDENTITY_FEDERATED_SERVER ||
+		status == constants.IDENTITY_PENDING_FEDERATED_SERVER {
+		return 0
+	}
+	if status == constants.IDENTITY_AUDIT_SERVER ||
+		status == constants.IDENTITY_PENDING_AUDIT_SERVER {
+		return 1
+	}
+	return -1
 }
 
 func isAuthorityChain(cid interfaces.IHash, ids []Authority) int {

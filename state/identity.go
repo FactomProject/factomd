@@ -272,17 +272,7 @@ func LoadIdentityByEntryBlock(eblk interfaces.IEntryBlock, st *State, update boo
 }
 
 func removeIdentity(i int, st *State) {
-	var newIDs []Identity
-	newIDs = make([]Identity, len(st.Identities)-1)
-	var j int
-	for j = 0; j < i; j++ {
-		newIDs[j] = st.Identities[j]
-	}
-	// skip removed Identity
-	for j = i + 1; j < len(newIDs); j++ {
-		newIDs[j-1] = st.Identities[j]
-	}
-	st.Identities = newIDs
+	st.Identities = append(st.Identities[:i], st.Identities[i+1:]...)
 }
 
 func isIdentityChain(cid interfaces.IHash, ids []Identity) int {

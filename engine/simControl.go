@@ -254,9 +254,15 @@ func SimControl(listenTo int) {
 					os.Stderr.WriteString("--Print Messages Off--\n")
 				}
 			case 'k' == b[0]: // Add Audit server, Remove server, and Add Leader fall through to 'n', switch to next node.
-				msg := messages.NewRemoveServerMsg(fnodes[listenTo].State, fnodes[listenTo].State.IdentityChainID)
-				fnodes[listenTo].State.InMsgQueue() <- msg
-				os.Stderr.WriteString(fmt.Sprintln("Attempting to remove", fnodes[listenTo].State.GetFactomNodeName(), "as a server"))
+				if len(b) > 1 && b[1] == 'a' {
+					msg := messages.NewRemoveServerMsg(fnodes[listenTo].State, fnodes[listenTo].State.IdentityChainID, 1)
+					fnodes[listenTo].State.InMsgQueue() <- msg
+					os.Stderr.WriteString(fmt.Sprintln("Attempting to remove", fnodes[listenTo].State.GetFactomNodeName(), "as a server"))
+				} else {
+					msg := messages.NewRemoveServerMsg(fnodes[listenTo].State, fnodes[listenTo].State.IdentityChainID, 0)
+					fnodes[listenTo].State.InMsgQueue() <- msg
+					os.Stderr.WriteString(fmt.Sprintln("Attempting to remove", fnodes[listenTo].State.GetFactomNodeName(), "as a server"))
+				}
 				fallthrough
 			case 'o' == b[0]: // Add Audit server and Add Leader fall through to 'n', switch to next node.
 				if b[0] == 'o' { // (Don't do anything if just passing along the remove server)

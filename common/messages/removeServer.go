@@ -21,6 +21,7 @@ type RemoveServerMsg struct {
 	MessageBase
 	Timestamp     interfaces.Timestamp // Message Timestamp
 	ServerChainID interfaces.IHash     // ChainID of new server
+	ServerType    int                  // 0 = Federated, 1 = Audit
 
 	Signature interfaces.IFullSignature
 }
@@ -60,7 +61,7 @@ func (m *RemoveServerMsg) GetTimestamp() interfaces.Timestamp {
 }
 
 func (m *RemoveServerMsg) Validate(state interfaces.IState) int {
-	return 1
+	return 1 // Need to do validation
 	authoritativeKey, _ := hex.DecodeString("cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a")
 
 	if m.GetSignature() == nil || bytes.Compare(m.GetSignature().GetKey(), authoritativeKey) != 0 {
@@ -154,6 +155,9 @@ func (m *RemoveServerMsg) UnmarshalBinaryData(data []byte) (newData []byte, err 
 		return nil, err
 	}
 
+	m.ServerType = int(newData[0])
+	newData = newData[1:]
+
 	if len(newData) > 32 {
 		m.Signature = new(primitives.Signature)
 		newData, err = m.Signature.UnmarshalBinaryData(newData)
@@ -187,6 +191,8 @@ func (m *RemoveServerMsg) MarshalForSignature() ([]byte, error) {
 	}
 	buf.Write(data)
 
+	binary.Write(&buf, binary.BigEndian, uint8(m.ServerType))
+
 	return buf.DeepCopyBytes(), nil
 }
 
@@ -211,8 +217,15 @@ func (m *RemoveServerMsg) MarshalBinary() ([]byte, error) {
 }
 
 func (m *RemoveServerMsg) String() string {
-	return fmt.Sprintf("RemoveServer: ChainID: %x Time: %x Msg Hash %x ",
-		m.ServerChainID.Bytes()[:4],
+	var stype string
+	if m.ServerType == 0 {
+		stype = "Federated"
+	} else {
+		stype = "Audit"
+	}
+	return fmt.Sprintf("RemoveServer (%s): ChainID: %x Time: %x Msg Hash %x ",
+		stype,
+		m.ServerChainID.Bytes()[:3],
 		&m.Timestamp,
 		m.GetMsgHash().Bytes()[:3])
 
@@ -228,6 +241,9 @@ func (m *RemoveServerMsg) IsSameAs(b *RemoveServerMsg) bool {
 	if !m.ServerChainID.IsSameAs(b.ServerChainID) {
 		return false
 	}
+	if m.ServerType != b.ServerType {
+		return false
+	}
 	if m.Signature == nil && b.Signature != nil {
 		return false
 	}
@@ -239,9 +255,10 @@ func (m *RemoveServerMsg) IsSameAs(b *RemoveServerMsg) bool {
 	return true
 }
 
-func NewRemoveServerMsg(state interfaces.IState, chainId interfaces.IHash) interfaces.IMsg {
+func NewRemoveServerMsg(state interfaces.IState, chainId interfaces.IHash, serverType int) interfaces.IMsg {
 	msg := new(RemoveServerMsg)
 	msg.ServerChainID = chainId
+	msg.ServerType = serverType
 	msg.Timestamp = state.GetTimestamp()
 
 	return msg

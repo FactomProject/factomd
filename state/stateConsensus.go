@@ -396,6 +396,11 @@ func (s *State) ProcessRemoveServer(dbheight uint32, removeServerMsg interfaces.
 		return true
 	}
 
+	if s.GetAuthorityServerType(rs.ServerChainID) != rs.ServerType {
+		fmt.Printf("dddd %s %s\n", s.FactomNodeName, "RemoveServer message did not add to admin block. Servertype of message did not match authority's")
+		return true
+	}
+
 	s.LeaderPL.AdminBlock.RemoveFederatedServer(rs.ServerChainID)
 	return true
 }
