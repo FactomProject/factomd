@@ -56,7 +56,7 @@ func (m *MsgLog) add2(fnode *FactomNode, out bool, peer string, where string, va
 	m.sem.Lock()
 	defer m.sem.Unlock()
 	now := fnode.State.GetTimestamp()
-	if m.start.GetTimeMilli() == 0 {
+	if m.start == nil {
 		m.start = fnode.State.GetTimestamp()
 		m.last = m.start // last is start
 		m.period = 2
