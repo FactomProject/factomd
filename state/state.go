@@ -94,16 +94,20 @@ type State struct {
 	LeaderPL      *ProcessList
 	OneLeader     bool
 	OutputAllowed bool
+	CurrentMinute int
 
-	LastHeight uint32
+	EOMsyncing bool
 
-	EOM            bool // Set to true when the first EOM is encountered
-	EOMProcessed   int
-	EOMDone        bool
-	CurrentMinute  int
-	DBSigProcessed int  // Number of DBSignatures received and processed.
-	Saving         bool // True if we are in the process of saving to the database
-	Syncing        bool // Looking for messages from leaders to sync
+	EOM          bool // Set to true when the first EOM is encountered
+	EOMProcessed int
+	EOMDone      bool
+
+	DBSig          bool
+	DBSigProcessed int // Number of DBSignatures received and processed.
+	DBSigDone      bool
+
+	Saving  bool // True if we are in the process of saving to the database
+	Syncing bool // Looking for messages from leaders to sync
 
 	NetStateOff     bool // Disable if true, Enable if false
 	DebugConsensus  bool // If true, dump consensus trace
@@ -720,6 +724,7 @@ func (s *State) UpdateState() (progress bool) {
 	}
 	dbheight := s.GetHighestRecordedBlock()
 	plbase := s.ProcessLists.DBHeightBase
+
 	if plbase <= dbheight+1 {
 		progress = s.ProcessLists.UpdateState(dbheight + 1)
 	}
@@ -762,10 +767,6 @@ func (s *State) catchupEBlocks() {
 			}
 		}
 	}
-}
-
-func (s *State) GetEOM() bool {
-	return s.EOM
 }
 
 func (s *State) AddFedServer(dbheight uint32, hash interfaces.IHash) int {
@@ -1097,20 +1098,28 @@ func (s *State) SetString() {
 		s.transCnt = total // transactions accounted for
 	}
 
-	s.serverPrt = fmt.Sprintf("%8s[%6x]%4s %4s DB: %d[%6x] PL:%d/%d VMMin: %2v CMin %2v DBHT %v EOM %5v EOMCnt %5d Saving %5v %3d-Fct %3d-EC %3d-E  %7.2f total tps %7.2f tps",
+	str := fmt.Sprintf("%8s[%6x]%4s %4s ",
 		s.FactomNodeName,
 		s.IdentityChainID.Bytes()[:3],
 		vmIndex,
-		stype,
+		stype)
+
+	str = str + fmt.Sprintf("DB: %d[%6x] PL:%d/%d ",
 		dHeight,
 		keyMR[:3],
 		s.ProcessLists.DBHeightBase,
-		int(s.ProcessLists.DBHeightBase)+len(s.ProcessLists.Lists)-1,
+		int(s.ProcessLists.DBHeightBase)+len(s.ProcessLists.Lists)-1)
+
+	str = str + fmt.Sprintf("VMMin: %2v CMin %2v DBHT %v EOM %5v Syncing %5v ",
 		lmin,
 		s.CurrentMinute,
 		s.LLeaderHeight,
-		s.EOM,
+		s.EOMsyncing,
+		s.Syncing)
+
+	str = str + fmt.Sprintf("EOMCnt %5d DBSCnt %5d Saving %5v %3d-Fct %3d-EC %3d-E  %7.2f total tps %7.2f tps",
 		s.EOMProcessed,
+		s.DBSigProcessed,
 		s.Saving,
 		s.FactoidTrans,
 		s.NewEntryChains,
@@ -1118,6 +1127,7 @@ func (s *State) SetString() {
 		tps,
 		s.tps)
 
+	s.serverPrt = str
 }
 
 func (s *State) Print(a ...interface{}) (n int, err error) {
