@@ -125,11 +125,6 @@ func (c *CommitEntry) GetHash() interfaces.IHash {
 	return primitives.Sha(h)
 }
 
-func (c *CommitEntry) GetTransactionHash() interfaces.IHash {
-	h, _ := c.MarshalBinaryTransaction()
-	return primitives.Sha(h)
-}
-
 func (c *CommitEntry) GetSigHash() interfaces.IHash {
 	data := c.CommitMsg()
 	return primitives.Sha(data)
