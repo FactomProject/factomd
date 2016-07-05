@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"testing"
 
-	. "github.com/FactomProject/factomd/common/interfaces"
+	. "github.com/FactomProject/factomd/common/primitives"
 )
 
 func TestTimestamp(t *testing.T) {

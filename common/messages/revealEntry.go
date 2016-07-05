@@ -59,6 +59,9 @@ func (m *RevealEntryMsg) GetChainIDHash() interfaces.IHash {
 }
 
 func (m *RevealEntryMsg) GetTimestamp() interfaces.Timestamp {
+	if m.Timestamp == nil {
+		m.Timestamp = new(primitives.Timestamp)
+	}
 	return m.Timestamp
 }
 

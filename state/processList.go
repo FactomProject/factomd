@@ -328,7 +328,7 @@ func (p *ProcessList) GetLeaderTimestamp() interfaces.Timestamp {
 			return msg.GetTimestamp()
 		}
 	}
-	return nil
+	return new(primitives.Timestamp)
 }
 
 func (p *ProcessList) ResetDiffSigTally() {

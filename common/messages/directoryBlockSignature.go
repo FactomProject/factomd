@@ -36,7 +36,7 @@ func (a *DirectoryBlockSignature) IsSameAs(b *DirectoryBlockSignature) bool {
 		return false
 	}
 
-	if a.Timestamp != b.Timestamp {
+	if a.Timestamp.GetTimeMilli() != b.Timestamp.GetTimeMilli() {
 		return false
 	}
 	if a.DBHeight != b.DBHeight {
@@ -92,6 +92,9 @@ func (m *DirectoryBlockSignature) GetMsgHash() interfaces.IHash {
 }
 
 func (m *DirectoryBlockSignature) GetTimestamp() interfaces.Timestamp {
+	if m.Timestamp == nil {
+		m.Timestamp = new(primitives.Timestamp)
+	}
 	return m.Timestamp
 }
 

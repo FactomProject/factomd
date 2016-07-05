@@ -34,8 +34,8 @@ func Test_Replay(test *testing.T) {
 
 	h := make([]*mh, XTrans)
 
-	start := *primitives.NewTimestampNow()
-	now := *primitives.NewTimestampNow()
+	start := primitives.NewTimestampNow()
+	now := primitives.NewTimestampNow()
 
 	for i := 0; i < XTrans; i++ {
 
@@ -48,7 +48,7 @@ func Test_Replay(test *testing.T) {
 		h[i].hash = primitives.Sha([]byte(fmt.Sprintf("h%d", i))).Fixed()
 
 		// Build a valid transaction somewhere +/- 12 hours of now
-		h[i].time = *primitives.NewTimestampFromSeconds(uint32(now.GetTimeSeconds() + (rand.Int63() % 24 * hour) - 12*hour))
+		h[i].time = primitives.NewTimestampFromSeconds(uint32(now.GetTimeSeconds() + (rand.Int63() % 24 * hour) - 12*hour))
 
 		// The first time we test, it should be valid.
 		if !r.IsTSValid_(constants.INTERNAL_REPLAY, h[i].hash, h[i].time, now) {
@@ -65,7 +65,7 @@ func Test_Replay(test *testing.T) {
 		}
 
 		// Move time forward somewhere between 0 to 15 minutes
-		now = *primitives.NewTimestampFromSeconds(uint32(now.GetTimeSeconds() + rand.Int63()%hour/4))
+		now = primitives.NewTimestampFromSeconds(uint32(now.GetTimeSeconds() + rand.Int63()%hour/4))
 
 		// Now replay all the transactions we have collected.  NONE of them
 		// should work.

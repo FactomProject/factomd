@@ -30,7 +30,7 @@ func (a *SignatureTimeout) IsSameAs(b *SignatureTimeout) bool {
 	if b == nil {
 		return false
 	}
-	if a.Timestamp != b.Timestamp {
+	if a.Timestamp.GetTimeMilli() != b.Timestamp.GetTimeMilli() {
 		return false
 	}
 

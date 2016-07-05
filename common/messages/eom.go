@@ -41,7 +41,7 @@ func (a *EOM) IsSameAs(b *EOM) bool {
 	if b == nil {
 		return false
 	}
-	if a.Timestamp != b.Timestamp {
+	if a.Timestamp.GetTimeMilli() != b.Timestamp.GetTimeMilli() {
 		return false
 	}
 	if a.Minute != b.Minute {
@@ -97,6 +97,9 @@ func (m *EOM) GetMsgHash() interfaces.IHash {
 }
 
 func (m *EOM) GetTimestamp() interfaces.Timestamp {
+	if m.Timestamp == nil {
+		m.Timestamp = new(primitives.Timestamp)
+	}
 	return m.Timestamp
 }
 
