@@ -56,7 +56,7 @@ func (m *MsgLog) add2(fnode *FactomNode, out bool, peer string, where string, va
 	m.sem.Lock()
 	defer m.sem.Unlock()
 	now := fnode.State.GetTimestamp()
-	if m.start == 0 {
+	if m.start.GetTimeMilli() == 0 {
 		m.start = fnode.State.GetTimestamp()
 		m.last = m.start // last is start
 		m.period = 2
@@ -73,7 +73,7 @@ func (m *MsgLog) add2(fnode *FactomNode, out bool, peer string, where string, va
 	nm.msg = msg
 	m.MsgList = append(m.MsgList, nm)
 
-	interval := int(now - m.start)
+	interval := int(now.GetTimeMilli() - m.start.GetTimeMilli())
 	if interval == 0 || m.nodeCnt == 0 {
 		return
 	}
@@ -88,7 +88,7 @@ func (m *MsgLog) add2(fnode *FactomNode, out bool, peer string, where string, va
 	}
 	// If it has been 4 seconds and we are NOT printing, then toss.
 	// This gives us a second to get to print.
-	if now-m.last > 100 {
+	if now.GetTimeSeconds()-m.last.GetTimeSeconds() > 3 {
 		m.msgCnt += len(m.MsgList) // Keep my counts
 		m.msgCntp += len(m.MsgList)
 		m.MsgList = make([]*msglist, 0) // Clear the record.
