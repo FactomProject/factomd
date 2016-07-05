@@ -259,7 +259,23 @@ func SimControl(listenTo int) {
 				os.Stderr.WriteString(fmt.Sprintln("Attempting to remove", fnodes[listenTo].State.GetFactomNodeName(), "as a server"))
 				fallthrough
 			case 'o' == b[0]: // Add Audit server and Add Leader fall through to 'n', switch to next node.
-				if b[0] == 'l' { // (Don't do anything if just passing along the remove server)
+				if b[0] == 'o' { // (Don't do anything if just passing along the remove server)
+					if len(b) > 1 && b[1] == 'n' {
+						index := 0
+						for index < len(authKeyLibrary) {
+							if authKeyLibrary[index].Taken == false {
+								authKeyLibrary[index].Taken = true
+								fnodes[listenTo].State.IdentityChainID = authKeyLibrary[index].ChainID
+								key, pKey, _ := authKeyLookup(fnodes[listenTo].State.IdentityChainID)
+								fnodes[listenTo].State.LocalServerPrivKey = key
+								fnodes[listenTo].State.SimSetNewKeys(pKey)
+								os.Stderr.WriteString(fmt.Sprintf("Identity of " + fnodes[listenTo].State.GetFactomNodeName() + " changed to [" + authKeyLibrary[index].ChainID.String()[:10] + "]\n"))
+								break
+							}
+							index++
+						}
+					}
+
 					msg := messages.NewAddServerMsg(fnodes[listenTo].State, 1)
 					fnodes[listenTo].State.InMsgQueue() <- msg
 					os.Stderr.WriteString(fmt.Sprintln("Attempting to make", fnodes[listenTo].State.GetFactomNodeName(), "a Audit Server"))
@@ -267,6 +283,22 @@ func SimControl(listenTo int) {
 				fallthrough
 			case 'l' == b[0]: // Add Audit server, Remove server, and Add Leader fall through to 'n', switch to next node.
 				if b[0] == 'l' { // (Don't do anything if just passing along the audit server)
+					if len(b) > 1 && b[1] == 'n' {
+						index := 0
+						for index < len(authKeyLibrary) {
+							if authKeyLibrary[index].Taken == false {
+								authKeyLibrary[index].Taken = true
+								fnodes[listenTo].State.IdentityChainID = authKeyLibrary[index].ChainID
+								key, pKey, _ := authKeyLookup(fnodes[listenTo].State.IdentityChainID)
+								fnodes[listenTo].State.LocalServerPrivKey = key
+								fnodes[listenTo].State.SimSetNewKeys(pKey)
+								os.Stderr.WriteString(fmt.Sprintf("Identity of " + fnodes[listenTo].State.GetFactomNodeName() + " changed to [" + authKeyLibrary[index].ChainID.String()[:10] + "]\n"))
+								break
+							}
+							index++
+						}
+					}
+
 					msg := messages.NewAddServerMsg(fnodes[listenTo].State, 0)
 					fnodes[listenTo].State.InMsgQueue() <- msg
 					os.Stderr.WriteString(fmt.Sprintln("Attempting to make", fnodes[listenTo].State.GetFactomNodeName(), "a Leader"))

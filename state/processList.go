@@ -108,7 +108,6 @@ func (p *ProcessList) GetVirtualServers(minute int, identityChainID interfaces.I
 	if !found {
 		return false, -1
 	}
-
 	for i, fedix := range p.ServerMap[minute] {
 		if i == len(p.FedServers) {
 			break
@@ -117,7 +116,6 @@ func (p *ProcessList) GetVirtualServers(minute int, identityChainID interfaces.I
 			return true, i
 		}
 	}
-
 	return false, -1
 }
 
@@ -136,9 +134,9 @@ func (p *ProcessList) GetFedServerIndexHash(identityChainID interfaces.IHash) (b
 		if comp == 0 {
 			return true, i
 		}
-		if comp < 0 {
-			return false, i
-		}
+		//if comp < 0 {
+		//	return false, i
+		//}
 	}
 	return false, len(p.FedServers)
 }
@@ -235,6 +233,7 @@ func (p *ProcessList) RemoveFedServerHash(identityChainID interfaces.IHash) {
 		return
 	}
 	p.FedServers = append(p.FedServers[:i], p.FedServers[i+1:]...)
+	p.MakeMap()
 }
 
 // Remove the given serverChain from this processlist's Audit Servers

@@ -119,6 +119,12 @@ func (st *State) UpdateAuthorityFromABEntry(entry interfaces.IABEntry) error {
 		} else {
 			//log.Println(f.IdentityChainID.String() + " being removed from Authorities List:" + string(height))
 			removeAuthority(AuthorityIndex, st)
+			IdentityIndex := isIdentityChain(f.IdentityChainID, st.Authorities)
+			if IdentityIndex != -1 && IdentityIndex < len(st.Identities) {
+				removeIdentity(IdentityIndex, st)
+			} else {
+				log.Println(f.IdentityChainID.String() + " Cannot be removed, not in Identity list. This should only be called if it is.")
+			}
 		}
 	case constants.TYPE_ADD_FED_SERVER_KEY:
 		f := new(adminBlock.AddFederatedServerSigningKey)
