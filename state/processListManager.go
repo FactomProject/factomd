@@ -28,20 +28,24 @@ func (lists *ProcessLists) LastList() *ProcessList {
 // are at the highest known block, as long as that is above the highest recorded block.
 func (lists *ProcessLists) UpdateState(dbheight uint32) (progress bool) {
 
-	pl := lists.Get(dbheight)
-
 	// Look and see if we need to toss some previous blocks under construction.
-	diff := dbheight - lists.DBHeightBase
+	diff := int(dbheight) - int(lists.DBHeightBase)
 	if diff > 1 && len(lists.Lists) > 1 {
 		progress = true
-		lists.DBHeightBase += (diff - 1)
+		lists.DBHeightBase += uint32(diff - 1)
 		var newlist []*ProcessList
 		newlist = append(newlist, lists.Lists[(diff-1):]...)
 		lists.Lists = newlist
 	}
 	// Create DState blocks for all completed Process Lists
-	p2 := pl.Process(lists.State)
-	progress = p2 || progress
+	for _, pl := range lists.Lists {
+		if pl.DBHeight < dbheight || pl.Complete() {
+			continue
+		}
+		p2 := pl.Process(lists.State)
+		progress = p2 || progress
+		return
+	}
 	return
 }
 

@@ -22,8 +22,15 @@ type MessageBase struct {
 	VMIndex       int              // The Index of the VM responsible for this message.
 	VMHash        []byte           // Basis for selecting a VMIndex
 	Minute        byte
+	ResendCnt     int // Followers try resending old messages, then give up.
 
 	Stalled bool // This message is currently stalled
+}
+
+// Try and Resend.  Return true if we should keep the message, false if we should give up.
+func (m *MessageBase) Resend() int {
+	m.ResendCnt++
+	return m.ResendCnt
 }
 
 func (m *MessageBase) IsStalled() bool {

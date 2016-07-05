@@ -191,6 +191,8 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 		return
 	}
 
+	d.DirectoryBlock.MarshalBinary()
+
 	hash, _ := p.EntryCreditBlock.HeaderHash()
 	d.EntryCreditBlock.GetHeader().SetPrevHeaderHash(hash)
 
@@ -237,46 +239,49 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 }
 
 func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
-	if !d.Locked {
-		list.LastTime = list.State.GetTimestamp() // If I saved or processed stuff, I'm good for a while
-
-		// Any updates required to the state as established by the AdminBlock are applied here.
-		d.AdminBlock.UpdateState(list.State)
-
-		// Process the Factoid End of Block
-		fs := list.State.GetFactoidState()
-		fs.AddTransactionBlock(d.FactoidBlock)
-		fs.AddECBlock(d.EntryCreditBlock)
-		fs.ProcessEndOfBlock(list.State)
-
-		// Promote the currently scheduled next FER
-		list.State.ProcessRecentFERChainEntries()
-
-		// Step my counter of Complete blocks
-		i := d.DirectoryBlock.GetHeader().GetDBHeight() - list.Base
-		if uint32(i) > list.Complete {
-			list.Complete = uint32(i)
-		}
-		progress = true
-		d.Locked = true // Only after all is done will I admit this state has been saved.
+	if d.isNew || d.Locked {
+		return
 	}
+
+	list.LastTime = list.State.GetTimestamp() // If I saved or processed stuff, I'm good for a while
+
+	// Any updates required to the state as established by the AdminBlock are applied here.
+	d.AdminBlock.UpdateState(list.State)
+
+	// Process the Factoid End of Block
+	fs := list.State.GetFactoidState()
+	fs.AddTransactionBlock(d.FactoidBlock)
+	fs.AddECBlock(d.EntryCreditBlock)
+	fs.ProcessEndOfBlock(list.State)
+
+	// Promote the currently scheduled next FER
+	list.State.ProcessRecentFERChainEntries()
+
+	// Step my counter of Complete blocks
+	i := d.DirectoryBlock.GetHeader().GetDBHeight() - list.Base
+	if uint32(i) > list.Complete {
+		list.Complete = uint32(i)
+	}
+	progress = true
+	d.Locked = true // Only after all is done will I admit this state has been saved.
+
 	return
 }
 
 func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 
-	dblk, _ := list.State.DB.FetchDBKeyMRByHash(d.DirectoryBlock.GetKeyMR())
+	if !d.Locked || !d.ReadyToSave {
+		return
+	}
+
 	if d.Saved {
+		dblk, _ := list.State.DB.FetchDBKeyMRByHash(d.DirectoryBlock.GetKeyMR())
 		if dblk == nil {
 			panic(fmt.Sprintf("Claimed to be found on %s DBHeight %d Hash %x",
 				list.State.FactomNodeName,
 				d.DirectoryBlock.GetHeader().GetDBHeight(),
 				d.DirectoryBlock.GetKeyMR().Bytes()))
 		}
-		return
-	}
-
-	if !d.ReadyToSave {
 		return
 	}
 

@@ -24,6 +24,7 @@ type IEntryCreditBlock interface {
 type IECBlockHeader interface {
 	BinaryMarshallable
 
+	String() string
 	GetBodyHash() IHash
 	SetBodyHash(IHash)
 	GetPrevHeaderHash() IHash
@@ -42,6 +43,7 @@ type IECBlockHeader interface {
 }
 
 type IECBlockBody interface {
+	String() string
 	GetEntries() []IECBlockEntry
 	SetEntries([]IECBlockEntry)
 	AddEntry(IECBlockEntry)

@@ -37,6 +37,19 @@ var _ interfaces.ShortInterpretable = (*CommitEntry)(nil)
 var _ interfaces.IECBlockEntry = (*CommitEntry)(nil)
 var _ interfaces.ISignable = (*CommitEntry)(nil)
 
+func (e *CommitEntry) String() string {
+	var out primitives.Buffer
+	out.WriteString(fmt.Sprintf(" %-20s\n", "CommitEntry"))
+	out.WriteString(fmt.Sprintf("   %-20s %d\n", "Version", e.Version))
+	out.WriteString(fmt.Sprintf("   %-20s %x\n", "MilliTime", e.MilliTime))
+	out.WriteString(fmt.Sprintf("   %-20s %x\n", "EntryHash", e.EntryHash.Bytes()[:3]))
+	out.WriteString(fmt.Sprintf("   %-20s %x\n", "Credits", e.Credits))
+	out.WriteString(fmt.Sprintf("   %-20s %x\n", "ECPubKey", e.ECPubKey[:3]))
+	out.WriteString(fmt.Sprintf("   %-20s %d\n", "Sig", e.Sig[:3]))
+
+	return (string)(out.DeepCopyBytes())
+}
+
 func (a *CommitEntry) GetEntryHash() interfaces.IHash {
 	return a.EntryHash
 }
@@ -346,9 +359,4 @@ func (e *CommitEntry) JSONString() (string, error) {
 
 func (e *CommitEntry) JSONBuffer(b *bytes.Buffer) error {
 	return primitives.EncodeJSONToBuffer(e, b)
-}
-
-func (e *CommitEntry) String() string {
-	str, _ := e.JSONString()
-	return str
 }
