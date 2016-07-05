@@ -20,7 +20,6 @@ type MissingMsg struct {
 
 	Timestamp         interfaces.Timestamp
 	DBHeight          uint32
-	VM                int
 	ProcessListHeight uint32
 
 	//No signature!
@@ -43,7 +42,7 @@ func (a *MissingMsg) IsSameAs(b *MissingMsg) bool {
 		return false
 	}
 
-	if a.VM != b.VM {
+	if a.VMIndex != b.VMIndex {
 		return false
 	}
 
@@ -114,6 +113,7 @@ func (m *MissingMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error
 		return nil, err
 	}
 
+	m.VMIndex, newData = int(newData[0]), newData[1:]
 	m.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 	m.ProcessListHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
@@ -143,6 +143,7 @@ func (m *MissingMsg) MarshalBinary() ([]byte, error) {
 	}
 	buf.Write(data)
 
+	buf.WriteByte(uint8(m.VMIndex))
 	binary.Write(&buf, binary.BigEndian, m.DBHeight)
 	binary.Write(&buf, binary.BigEndian, m.ProcessListHeight)
 
@@ -160,7 +161,7 @@ func (m *MissingMsg) MarshalBinary() ([]byte, error) {
 }
 
 func (m *MissingMsg) String() string {
-	return fmt.Sprintf("MissingMsg vm=%d DBHeight:%3d PL Height:%3d", m.VMIndex, m.DBHeight, m.ProcessListHeight)
+	return fmt.Sprintf("MissingMsg DBHeight:%3d vm=%d PL Height:%3d msgHash[%x]", m.DBHeight, m.VMIndex, m.ProcessListHeight, m.GetMsgHash().Bytes()[:3])
 }
 
 func (m *MissingMsg) ChainID() []byte {
@@ -188,7 +189,7 @@ func (m *MissingMsg) LeaderExecute(state interfaces.IState) {
 }
 
 func (m *MissingMsg) FollowerExecute(state interfaces.IState) {
-	msg, ackMsg, err := state.LoadSpecificMsgAndAck(m.DBHeight, m.VM, m.ProcessListHeight)
+	msg, ackMsg, err := state.LoadSpecificMsgAndAck(m.DBHeight, m.VMIndex, m.ProcessListHeight)
 
 	if msg != nil && ackMsg != nil && err == nil { // If I don't have this message, ignore.
 		msgResponse := NewMissingMsgResponse(state, msg, ackMsg)
@@ -211,11 +212,12 @@ func (e *MissingMsg) JSONBuffer(b *bytes.Buffer) error {
 	return primitives.EncodeJSONToBuffer(e, b)
 }
 
-func NewMissingMsg(state interfaces.IState, dbHeight uint32, processlistHeight uint32) interfaces.IMsg {
+func NewMissingMsg(state interfaces.IState, vm int, dbHeight uint32, processlistHeight uint32) interfaces.IMsg {
 
 	msg := new(MissingMsg)
 
-	msg.Peer2Peer = true // Always a peer2peer request.
+	msg.Peer2Peer = true // Always a peer2peer request // .
+	msg.VMIndex = vm
 	msg.Timestamp = state.GetTimestamp()
 	msg.DBHeight = dbHeight
 	msg.ProcessListHeight = processlistHeight

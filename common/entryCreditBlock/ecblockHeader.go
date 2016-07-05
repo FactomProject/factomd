@@ -27,6 +27,20 @@ type ECBlockHeader struct {
 var _ = fmt.Print
 var _ interfaces.Printable = (*ECBlockHeader)(nil)
 
+func (e *ECBlockHeader) String() string {
+	var out primitives.Buffer
+	out.WriteString(fmt.Sprintf("   %-20s %x\n", "ECChainID", e.ECChainID.Bytes()[:3]))
+	out.WriteString(fmt.Sprintf("   %-20s %x\n", "BodyHash", e.BodyHash.Bytes()[:3]))
+	out.WriteString(fmt.Sprintf("   %-20s %x\n", "PrevHeaderHash", e.PrevHeaderHash.Bytes()[:3]))
+	out.WriteString(fmt.Sprintf("   %-20s %x\n", "PrevFullHash", e.PrevFullHash.Bytes()[:3]))
+	out.WriteString(fmt.Sprintf("   %-20s %d\n", "DBHeight", e.DBHeight))
+	out.WriteString(fmt.Sprintf("   %-20s %x\n", "HeaderExpansionArea", e.HeaderExpansionArea))
+	out.WriteString(fmt.Sprintf("   %-20s %d\n", "ObjectCount", e.ObjectCount))
+	out.WriteString(fmt.Sprintf("   %-20s %d\n", "BodySize", e.BodySize))
+
+	return (string)(out.DeepCopyBytes())
+}
+
 func (e *ECBlockHeader) SetBodySize(cnt uint64) {
 	e.BodySize = cnt
 }
@@ -112,11 +126,6 @@ func (e *ECBlockHeader) JSONString() (string, error) {
 
 func (e *ECBlockHeader) JSONBuffer(b *bytes.Buffer) error {
 	return primitives.EncodeJSONToBuffer(e, b)
-}
-
-func (e *ECBlockHeader) String() string {
-	str, _ := e.JSONString()
-	return str
 }
 
 func (e *ECBlockHeader) MarshalBinary() ([]byte, error) {

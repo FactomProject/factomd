@@ -94,15 +94,20 @@ type State struct {
 	LeaderPL      *ProcessList
 	OneLeader     bool
 	OutputAllowed bool
+	CurrentMinute int
 
-	LastHeight uint32
+	EOMsyncing bool
 
-	EOM            bool // Set to true when the first EOM is encountered
-	EOMProcessed   int
-	EOMDone        bool
-	CurrentMinute  int
-	DBSigProcessed int  // Number of DBSignatures received and processed.
-	Saving         bool // True if we are in the process of saving to the database
+	EOM          bool // Set to true when the first EOM is encountered
+	EOMProcessed int
+	EOMDone      bool
+
+	DBSig          bool
+	DBSigProcessed int // Number of DBSignatures received and processed.
+	DBSigDone      bool
+
+	Saving  bool // True if we are in the process of saving to the database
+	Syncing bool // Looking for messages from leaders to sync
 
 	NetStateOff     bool // Disable if true, Enable if false
 	DebugConsensus  bool // If true, dump consensus trace
@@ -568,58 +573,32 @@ func (s *State) LoadDataByHash(requestedHash interfaces.IHash) (interfaces.Binar
 }
 
 func (s *State) LoadSpecificMsg(dbheight uint32, vm int, plistheight uint32) (interfaces.IMsg, error) {
-	if dbheight < s.ProcessLists.DBHeightBase {
-		return nil, fmt.Errorf("Missing message is too deeply buried in blocks")
-	} else if dbheight > (s.ProcessLists.DBHeightBase + uint32(len(s.ProcessLists.Lists))) {
-		return nil, fmt.Errorf("Answering node has not reached DBHeight of missing message")
-	}
 
-	procList := s.ProcessLists.Get(dbheight)
-	if procList == nil {
-		return nil, fmt.Errorf("Nil Process List")
-	}
-	if len(procList.VMs[vm].List) < int(plistheight)+1 {
-		return nil, fmt.Errorf("Process List too small (lacks requested msg)")
-	}
-
-	msg := procList.VMs[vm].List[plistheight]
-
-	if msg == nil {
-		return nil, fmt.Errorf("State process list does not include requested message")
-	}
-
-	return msg, nil
+	msg, _, err := s.LoadSpecificMsgAndAck(dbheight, vm, plistheight)
+	return msg, err
 }
 
-func (s *State) LoadSpecificMsgAndAck(dbheight uint32, vm int, plistheight uint32) (interfaces.IMsg, interfaces.IMsg, error) {
-	if dbheight < s.ProcessLists.DBHeightBase {
-		return nil, nil, fmt.Errorf("Missing message is too deeply buried in blocks")
-	} else if dbheight > (s.ProcessLists.DBHeightBase + uint32(len(s.ProcessLists.Lists))) {
-		return nil, nil, fmt.Errorf("Answering node has not reached DBHeight of missing message")
-	}
+func (s *State) LoadSpecificMsgAndAck(dbheight uint32, vmIndex int, plistheight uint32) (interfaces.IMsg, interfaces.IMsg, error) {
 
-	procList := s.ProcessLists.Get(dbheight)
-	if procList == nil {
+	pl := s.ProcessLists.Get(dbheight)
+	if pl == nil {
 		return nil, nil, fmt.Errorf("Nil Process List")
-	} else if len(procList.VMs) < 1 {
-		return nil, nil, fmt.Errorf("No servers?")
 	}
-	if len(procList.VMs[vm].List) < int(plistheight)+1 {
+	if vmIndex < 0 || vmIndex >= len(pl.VMs) {
+		return nil, nil, fmt.Errorf("VM index out of range")
+	}
+	vm := pl.VMs[vmIndex]
+
+	if plistheight < 0 || int(plistheight) >= len(vm.List) {
 		return nil, nil, fmt.Errorf("Process List too small (lacks requested msg)")
 	}
 
-	msg := procList.VMs[vm].List[plistheight]
+	msg := vm.List[plistheight]
+	ackMsg := vm.ListAck[plistheight]
 
-	if msg == nil {
-		return nil, nil, fmt.Errorf("State process list does not include requested message")
+	if msg == nil || ackMsg == nil {
+		return nil, nil, fmt.Errorf("State process list does not include requested message/ack")
 	}
-
-	ackMsg := procList.VMs[vm].ListAck[plistheight]
-
-	if ackMsg == nil {
-		return nil, nil, fmt.Errorf("State process list does not include ack for message")
-	}
-
 	return msg, ackMsg, nil
 }
 
@@ -746,6 +725,7 @@ func (s *State) UpdateState() (progress bool) {
 	}
 	dbheight := s.GetHighestRecordedBlock()
 	plbase := s.ProcessLists.DBHeightBase
+
 	if plbase <= dbheight+1 {
 		progress = s.ProcessLists.UpdateState(dbheight + 1)
 	}
@@ -767,29 +747,27 @@ func (s *State) catchupEBlocks() {
 	isComplete := true
 	if s.GetEBDBHeightComplete() < s.GetDBHeightComplete() {
 		dblockGathering := s.GetDirectoryBlockByHeight(s.GetEBDBHeightComplete())
-		for idx, ebKeyMR := range dblockGathering.GetEntryHashes() {
-			if idx > 2 {
-				if s.DatabaseContains(ebKeyMR) {
-					if !s.GetAllEntries(ebKeyMR) {
+		if dblockGathering != nil {
+			for idx, ebKeyMR := range dblockGathering.GetEntryHashes() {
+				if idx > 2 {
+					if s.DatabaseContains(ebKeyMR) {
+						if !s.GetAllEntries(ebKeyMR) {
+							isComplete = false
+						}
+					} else {
 						isComplete = false
-					}
-				} else {
-					isComplete = false
-					if !s.HasDataRequest(ebKeyMR) {
-						eBlockRequest := messages.NewMissingData(s, ebKeyMR)
-						s.NetworkOutMsgQueue() <- eBlockRequest
+						if !s.HasDataRequest(ebKeyMR) {
+							eBlockRequest := messages.NewMissingData(s, ebKeyMR)
+							s.NetworkOutMsgQueue() <- eBlockRequest
+						}
 					}
 				}
 			}
-		}
-		if isComplete {
-			s.SetEBDBHeightComplete(s.GetEBDBHeightComplete() + 1)
+			if isComplete {
+				s.SetEBDBHeightComplete(s.GetEBDBHeightComplete() + 1)
+			}
 		}
 	}
-}
-
-func (s *State) GetEOM() bool {
-	return s.EOM
 }
 
 func (s *State) AddFedServer(dbheight uint32, hash interfaces.IHash) int {
@@ -1056,29 +1034,24 @@ func (s *State) SetString() {
 	s.Status = false
 
 	// fmt.Println("dddd  SetString::::::", s.FactomNodeName, "LeaderMinute", s.LeaderMinute)
-	vmi := 0
+	vmi := -1
 	if s.Leader && s.LeaderVMIndex >= 0 {
 		vmi = s.LeaderVMIndex
 	}
 	vmt0 := s.ProcessLists.Get(s.LLeaderHeight)
 	var vmt *VM
-	lmin := 0
-	if vmt0 != nil {
+	lmin := -1
+	if vmt0 != nil && vmi >= 0 {
 		vmt = vmt0.VMs[vmi]
 		lmin = vmt.LeaderMinute
 	}
 
-	if s.EOM {
-		lmin--
-		if lmin < 0 {
-			lmin = 9
-		}
-	}
-	if lmin > 9 {
-		lmin = 0
+	vmin := s.CurrentMinute
+	if s.CurrentMinute > 9 {
+		vmin = 0
 	}
 
-	found, vm := s.GetVirtualServers(s.LLeaderHeight, lmin, s.GetIdentityChainID())
+	found, vm := s.GetVirtualServers(s.LLeaderHeight, vmin, s.GetIdentityChainID())
 	vmIndex := ""
 	if found {
 		vmIndex = fmt.Sprintf("vm%2d", vm)
@@ -1127,31 +1100,36 @@ func (s *State) SetString() {
 		s.transCnt = total // transactions accounted for
 	}
 
-	plht := ""
-	if s.LeaderPL != nil {
-		plht = fmt.Sprintf("%4d", s.LeaderPL.DBHeight)
-	}
-
-	s.serverPrt = fmt.Sprintf("%8s[%6x]%4s %4s DB: %d[%6x] PL:%d/%d Min: %2v DBHT %v EOM %5v Saving %5v PLHT %4s %3d-Fct %3d-EC %3d-E  %7.2f total tps %7.2f tps",
+	str := fmt.Sprintf("%8s[%6x]%4s %4s ",
 		s.FactomNodeName,
 		s.IdentityChainID.Bytes()[:3],
 		vmIndex,
-		stype,
+		stype)
+
+	str = str + fmt.Sprintf("DB: %d[%6x] PL:%d/%d ",
 		dHeight,
 		keyMR[:3],
 		s.ProcessLists.DBHeightBase,
-		int(s.ProcessLists.DBHeightBase)+len(s.ProcessLists.Lists)-1,
+		int(s.ProcessLists.DBHeightBase)+len(s.ProcessLists.Lists)-1)
+
+	str = str + fmt.Sprintf("VMMin: %2v CMin %2v DBHT %v EOM %5v Syncing %5v ",
 		lmin,
+		s.CurrentMinute,
 		s.LLeaderHeight,
-		s.EOM,
+		s.EOMsyncing,
+		s.Syncing)
+
+	str = str + fmt.Sprintf("EOMCnt %5d DBSCnt %5d Saving %5v %3d-Fct %3d-EC %3d-E  %7.2f total tps %7.2f tps",
+		s.EOMProcessed,
+		s.DBSigProcessed,
 		s.Saving,
-		plht,
 		s.FactoidTrans,
 		s.NewEntryChains,
 		s.NewEntries,
 		tps,
 		s.tps)
 
+	s.serverPrt = str
 }
 
 func (s *State) Print(a ...interface{}) (n int, err error) {

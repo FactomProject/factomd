@@ -114,6 +114,33 @@ func SimControl(listenTo int) {
 						fmt.Println("Error: ", err, msg)
 					}
 				}
+			case 'e' == b[0]:
+				mLog.all = false
+				for _, fnode := range fnodes {
+					fnode.State.SetOut(false)
+				}
+				if listenTo < 0 || listenTo > len(fnodes) {
+					fmt.Println("Select a node first")
+					break
+				}
+				f := fnodes[listenTo]
+				fmt.Println("-----------------------------", f.State.FactomNodeName, "--------------------------------------", string(b[:len(b)]))
+				if len(b) < 2 {
+					break
+				}
+				ht, err := strconv.Atoi(string(b[1:]))
+				if err != nil {
+					fmt.Println(err, "Dump Entry Credit block with fn  where n = blockheight, i.e. 'e10'")
+				} else {
+					msg, err := f.State.LoadDBState(uint32(ht))
+					if err == nil && msg != nil {
+						dsmsg := msg.(*messages.DBStateMsg)
+						ECBlock := dsmsg.EntryCreditBlock
+						fmt.Printf(ECBlock.String())
+					} else {
+						fmt.Println("Error: ", err, msg)
+					}
+				}
 			case 'f' == b[0]:
 				mLog.all = false
 				for _, fnode := range fnodes {
@@ -179,6 +206,15 @@ func SimControl(listenTo int) {
 						os.Stderr.WriteString("Take  " + f.State.FactomNodeName + " off the network\n")
 					}
 					f.State.SetNetStateOff(!v)
+				}
+
+			case 'y' == b[0]:
+				if listenTo >= 0 && listenTo < len(fnodes) {
+					f := fnodes[listenTo]
+					fmt.Println("Holding:")
+					for k := range f.State.Holding {
+						fmt.Println(f.State.Holding[k].String())
+					}
 				}
 
 			case 'm' == b[0]:
@@ -368,9 +404,11 @@ func SimControl(listenTo int) {
 			case 'h' == b[0]:
 				os.Stderr.WriteString("-------------------------------------------------------------------------------\n")
 				os.Stderr.WriteString("h or ENTER    Shows this help\n")
-				os.Stderr.WriteString("aN            Show Admin block     N. Indicate node eg:\"a5\" to shows blocks for that node.\n")
-				os.Stderr.WriteString("fN            Show Factoid block   N. Indicate node eg:\"f5\" to shows blocks for that node.\n")
-				os.Stderr.WriteString("dN            Show Directory block N. Indicate node eg:\"d5\" to shows blocks for that node.\n")
+				os.Stderr.WriteString("aN            Show Admin block    			 N. Indicate node eg:\"a5\" to shows blocks for that node.\n")
+				os.Stderr.WriteString("eN            Show Entry Credit Block   N. Indicate node eg:\"f5\" to shows blocks for that node.\n")
+				os.Stderr.WriteString("fN            Show Factoid block  			 N. Indicate node eg:\"f5\" to shows blocks for that node.\n")
+				os.Stderr.WriteString("dN            Show Directory block			 N. Indicate node eg:\"d5\" to shows blocks for that node.\n")
+				os.Stderr.WriteString("y             Dump what is in the Holding Map.  Can crash, but oh well.\n")
 				os.Stderr.WriteString("m             Show Messages as they are passed through the simulator.\n")
 				os.Stderr.WriteString("c             Trace the Consensus Process\n")
 				os.Stderr.WriteString("s             Show the state of all nodes as their state changes in the simulator.\n")
