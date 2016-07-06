@@ -6,7 +6,6 @@ package wsapi
 
 import (
 	"encoding/hex"
-	//"fmt"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryBlock"
@@ -47,13 +46,14 @@ func HandleV2FactoidACK(state interfaces.IState, params interface{}) (interface{
 		return nil, NewInvalidParamsError()
 	}
 
-	status, err := state.GetACKStatus(txhash)
+	status, timestamp, err := state.GetACKStatus(txhash)
 	if err != nil {
 		return nil, NewInternalError()
 	}
 
 	answer := new(FactoidTxStatus)
 	answer.TxID = txid
+	answer.TransactionDate = timestamp.GetTimeMilli()
 
 	switch status {
 	case constants.AckStatusInvalid:
@@ -181,10 +181,12 @@ func HandleV2EntryACK(state interfaces.IState, params interface{}) (interface{},
 			return nil, NewInvalidParamsError()
 		}
 
-		status, err := state.GetACKStatus(h)
+		status, timestamp, err := state.GetACKStatus(h)
 		if err != nil {
 			return nil, NewInternalError()
 		}
+
+		answer.CommitData.TransactionDate = timestamp.GetTimeMilli()
 
 		switch status {
 		case constants.AckStatusInvalid:
@@ -219,10 +221,12 @@ func HandleV2EntryACK(state interfaces.IState, params interface{}) (interface{},
 			return nil, NewInvalidParamsError()
 		}
 
-		status, err := state.GetACKStatus(h)
+		status, timestamp, err := state.GetACKStatus(h)
 		if err != nil {
 			return nil, NewInternalError()
 		}
+
+		answer.CommitData.TransactionDate = timestamp.GetTimeMilli()
 
 		switch status {
 		case constants.AckStatusInvalid:
