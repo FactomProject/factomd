@@ -51,15 +51,6 @@ func (s *State) Process() (progress bool) {
 		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(0, s.IdentityChainID)
 	}
 
-	dbstate := s.DBStates.Get(int(s.LLeaderHeight - 1))
-
-	if s.Saving && ((s.LLeaderHeight == 0 && dbstate != nil) || (dbstate != nil && dbstate.Locked)) {
-		s.NewMinute()
-		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
-		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(0, s.IdentityChainID)
-		s.Saving = false
-	}
-
 	return s.ProcessQueues()
 }
 
@@ -88,7 +79,7 @@ func (s *State) ProcessQueues() (progress bool) {
 				int(vm.Height) == len(vm.List) &&
 				(!s.Syncing || !vm.Synced) &&
 				(msg.IsLocal() || msg.GetVMIndex() == s.LeaderVMIndex) {
-
+				fmt.Println("dddd", s.FactomNodeName, msg.GetVMIndex())
 				msg.LeaderExecute(s)
 
 			} else {
@@ -527,7 +518,11 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 	// If I have done everything for all EOMs for all VMs, then and only then do I
 	// let processing continue.
-	if s.EOMDone && e.Processed {
+	if s.EOMDone && s.EOMProcessed > 0 {
+		s.EOMProcessed--
+		if s.EOMProcessed == 0 {
+			s.EOM = false
+		}
 		return true
 	}
 
@@ -562,7 +557,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	// we do any cleanup required, for all VMs for this EOM
 	if s.EOMProcessed == len(pl.FedServers) && !s.EOMDone {
 
-		s.EOM = false
 		s.Syncing = false
 		s.EOMDone = true
 		s.FactoidState.EndOfPeriod(int(e.Minute))
@@ -621,9 +615,9 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 				}
 				dbs.LeaderExecute(s)
 			}
+			s.Saving = true
 		}
 
-		s.Saving = true
 		return false
 	}
 
@@ -674,19 +668,22 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 	if s.DBSigProcessed >= len(pl.FedServers) {
 
 		dbstate := s.DBStates.Get(int(dbheight - 1))
-		if dbstate.Saved {
-			s.DBSigDone = true
-			s.Syncing = false
-			for _, vm := range pl.VMs {
-				vm.Synced = true
-			}
-			return true
-		} else {
 
-			// TODO: check signatures here.  Count what match and what don't.  Then if a majority
-			// disagree with us, null our entry out.  Otherwise toss our DBState and ask for one from
-			// our neighbors.
+		// TODO: check signatures here.  Count what match and what don't.  Then if a majority
+		// disagree with us, null our entry out.  Otherwise toss our DBState and ask for one from
+		// our neighbors.
+
+		if !dbstate.Saved {
 			dbstate.ReadyToSave = true
+			s.DBStates.SaveDBStateToDB(dbstate)
+		}
+		s.NewMinute()
+		s.Saving = false
+		s.DBSigDone = true
+		s.DBSig = false
+		s.Syncing = false
+		for _, vm := range pl.VMs {
+			vm.Synced = true
 		}
 	}
 	return false

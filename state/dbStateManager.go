@@ -7,10 +7,11 @@ package state
 import (
 	"encoding/hex"
 	"fmt"
+	"time"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/log"
-	"time"
 )
 
 var _ = hex.EncodeToString
@@ -427,10 +428,6 @@ searchLoop:
 	if list.DBStates[index] == nil {
 		list.DBStates[index] = dbState
 	}
-
-	dbState.DirectoryBlock.SetABlockHash(dbState.AdminBlock)
-	dbState.DirectoryBlock.SetECBlockHash(dbState.EntryCreditBlock)
-	dbState.DirectoryBlock.SetFBlockHash(dbState.FactoidBlock)
 }
 
 func (list *DBStateList) Get(height int) *DBState {
