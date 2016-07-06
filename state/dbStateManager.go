@@ -166,7 +166,7 @@ func (list *DBStateList) Catchup() {
 			return
 		}
 
-		if list.Complete >= plHeight-1 {
+		if list.Complete >= plHeight-2 {
 			fmt.Println("Justin Catchup fix")
 			return
 		}
