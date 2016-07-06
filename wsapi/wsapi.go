@@ -38,10 +38,8 @@ func Start(state interfaces.IState) {
 	if Servers[state.GetPort()] == nil {
 		server = web.NewServer()
 
-		ServersMutex.Lock()
 		Servers[state.GetPort()] = server
 		server.Env["state"] = state
-		ServersMutex.Unlock()
 
 		server.Post("/v1/factoid-submit/?", HandleFactoidSubmit)
 		server.Post("/v1/commit-chain/?", HandleCommitChain)
