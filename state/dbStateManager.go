@@ -153,13 +153,16 @@ func (list *DBStateList) Catchup() {
 		plHeight := list.State.GetHighestKnownBlock()
 		// Don't worry about the block initialization case.
 		if plHeight < 1 {
+			fmt.Println("Justin Catchup init")
 			return
 		}
 
 		if plHeight >= dbsHeight && plHeight-dbsHeight > 1 {
 			begin = int(dbsHeight + 1)
 			end = int(plHeight - 1)
+			fmt.Println("Justin Catchup Med: ", begin, end)
 		} else {
+			fmt.Println("Justin Catchup term")
 			return
 		}
 	}
@@ -170,6 +173,8 @@ func (list *DBStateList) Catchup() {
 	if end < end2 {
 		end2 = end
 	}
+
+	fmt.Println("Justin Catchup Final: ", begin, end2)
 
 	msg := messages.NewDBStateMissing(list.State, uint32(begin), uint32(end2))
 
