@@ -174,9 +174,6 @@ func (list *DBStateList) Catchup() {
 	msg := messages.NewDBStateMissing(list.State, uint32(begin), uint32(end2))
 
 	if msg != nil {
-
-		fmt.Println("dddd ======================Ask for blocks", begin, end2)
-
 		list.State.RunLeader = false
 		list.State.StartDelay = list.State.GetTimestamp()
 		list.State.NetworkOutMsgQueue() <- msg

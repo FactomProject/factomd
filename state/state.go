@@ -737,9 +737,6 @@ func (s *State) UpdateState() (progress bool) {
 
 	s.SetString()
 
-	if s.DebugConsensus {
-		fmt.Printf("dddd %20s %10s --- %10s %10v\n", "Update State:>>>>", s.FactomNodeName, "progress:", progress)
-	}
 	return
 }
 
@@ -1033,7 +1030,6 @@ func (s *State) SetString() {
 	}
 	s.Status = false
 
-	// fmt.Println("dddd  SetString::::::", s.FactomNodeName, "LeaderMinute", s.LeaderMinute)
 	vmi := -1
 	if s.Leader && s.LeaderVMIndex >= 0 {
 		vmi = s.LeaderVMIndex
