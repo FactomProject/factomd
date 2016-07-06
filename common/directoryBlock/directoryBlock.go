@@ -191,8 +191,8 @@ func (e *DirectoryBlock) String() string {
 
 	out.WriteString(e.Header.String())
 	out.WriteString("Entries: \n")
-	for _, entry := range e.DBEntries {
-		out.WriteString(entry.String())
+	for i, entry := range e.DBEntries {
+		out.WriteString(fmt.Sprintf("%5d %s", i, entry.String()))
 	}
 
 	return (string)(out.DeepCopyBytes())

@@ -299,7 +299,8 @@ func (e *EBlock) JSONBuffer(b *bytes.Buffer) error {
 }
 
 func (e *EBlock) String() string {
-	str, _ := e.JSONString()
+	str := e.Header.String()
+	str = str + e.Body.String()
 	return str
 }
 

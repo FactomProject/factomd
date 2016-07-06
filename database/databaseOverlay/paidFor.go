@@ -50,7 +50,7 @@ func (db *Overlay) SavePaidForMultiFromBlockMultiBatch(block interfaces.IEntryCr
 				continue
 			}
 		}
-		batch = append(batch, interfaces.Record{PAID_FOR, entryHash.Bytes(), entry.Hash()})
+		batch = append(batch, interfaces.Record{PAID_FOR, entryHash.Bytes(), entry.GetSigHash()})
 	}
 	if len(batch) == 0 {
 		return nil

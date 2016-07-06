@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"strings"
 	"testing"
 
 	ed "github.com/FactomProject/ed25519"
@@ -112,7 +113,6 @@ func createECBlock() *ECBlock {
 	}
 
 	// create a ECBlock for testing
-	ecb1.Header.(*ECBlockHeader).ECChainID.SetBytes(byteof(0x11))
 	ecb1.Header.(*ECBlockHeader).BodyHash.SetBytes(byteof(0x22))
 	ecb1.Header.(*ECBlockHeader).PrevHeaderHash.SetBytes(byteof(0x33))
 	ecb1.Header.(*ECBlockHeader).PrevFullHash.SetBytes(byteof(0x44))
@@ -123,8 +123,7 @@ func createECBlock() *ECBlock {
 	// add the CommitChain to the ECBlock
 	ecb1.AddEntry(cc)
 
-	m1 := NewMinuteNumber()
-	m1.Number = 0x01
+	m1 := NewMinuteNumber(0x01)
 	ecb1.AddEntry(m1)
 
 	// add a ServerIndexNumber
@@ -142,8 +141,7 @@ func createECBlock() *ECBlock {
 	// add the IncreaseBalance
 	ecb1.AddEntry(ib)
 
-	m2 := NewMinuteNumber()
-	m2.Number = 0x02
+	m2 := NewMinuteNumber(0x02)
 	ecb1.AddEntry(m2)
 
 	return ecb1
@@ -155,4 +153,19 @@ func byteof(b byte) []byte {
 		r = append(r, b)
 	}
 	return r
+}
+
+func TestExpandedECBlockHeader(t *testing.T) {
+	block := createECBlock()
+	j, err := block.JSONString()
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
+	if !strings.Contains(j, `"ChainID":"000000000000000000000000000000000000000000000000000000000000000c"`) {
+		t.Error("Header does not contain ChainID")
+	}
+	if !strings.Contains(j, `"ECChainID":"000000000000000000000000000000000000000000000000000000000000000c"`) {
+		t.Error("Header does not contain ECChainID")
+	}
 }

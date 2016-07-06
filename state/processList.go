@@ -67,11 +67,17 @@ type VM struct {
 	MinuteComplete int               // Highest minute complete recorded (0-9) by the follower
 	Synced         bool              // Is this VM synced yet?
 	missingTime    int64             // How long we have been waiting for a missing message
+	missingEOM     int64             // Ask for EOM
+	heartBeat      int64             // Just ping ever so often if we have heard nothing.
 }
 
 func (p *ProcessList) Complete() bool {
-	for _, vm := range p.VMs {
+	for i := 0; i < len(p.FedServers); i++ {
+		vm := p.VMs[i]
 		if vm.LeaderMinute < 10 {
+			return false
+		}
+		if vm.Height != len(vm.List) {
 			return false
 		}
 	}
@@ -108,14 +114,14 @@ func (p *ProcessList) GetVirtualServers(minute int, identityChainID interfaces.I
 	if !found {
 		return false, -1
 	}
-	for i, fedix := range p.ServerMap[minute] {
-		if i == len(p.FedServers) {
-			break
-		}
+
+	for i := 0; i < len(p.FedServers); i++ {
+		fedix := p.ServerMap[minute][i]
 		if fedix == fedIndex {
 			return true, i
 		}
 	}
+
 	return false, -1
 }
 
@@ -134,9 +140,9 @@ func (p *ProcessList) GetFedServerIndexHash(identityChainID interfaces.IHash) (b
 		if comp == 0 {
 			return true, i
 		}
-		//if comp < 0 {
-		//	return false, i
-		//}
+		if comp < 0 {
+			return false, i
+		}
 	}
 	return false, len(p.FedServers)
 }
@@ -233,7 +239,6 @@ func (p *ProcessList) RemoveFedServerHash(identityChainID interfaces.IHash) {
 		return
 	}
 	p.FedServers = append(p.FedServers[:i], p.FedServers[i+1:]...)
-	p.MakeMap()
 }
 
 // Remove the given serverChain from this processlist's Audit Servers
@@ -288,7 +293,7 @@ func (p *ProcessList) GetLeaderTimestamp() interfaces.Timestamp {
 			return msg.GetTimestamp()
 		}
 	}
-	return nil
+	return new(primitives.Timestamp)
 }
 
 func (p *ProcessList) ResetDiffSigTally() {
@@ -307,74 +312,47 @@ func (p *ProcessList) CheckDiffSigTally() {
 	}
 }
 
+func ask(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64, height int) int64 {
+	now := time.Now().Unix()
+
+	if thetime == 0 {
+		thetime = now
+	}
+	if now-thetime > waitSeconds {
+		missingMsgRequest := messages.NewMissingMsg(p.State, vmIndex, p.DBHeight, uint32(height))
+		if missingMsgRequest != nil {
+			p.State.NetworkOutMsgQueue() <- missingMsgRequest
+		}
+		thetime = now
+	}
+	if p.State.Leader && now-thetime > waitSeconds+2 {
+		id := p.FedServers[p.ServerMap[0][vmIndex]].GetChainID()
+		sf := messages.NewServerFault(p.State.GetTimestamp(), id, vmIndex, p.DBHeight, uint32(height))
+		if sf != nil {
+			p.State.NetworkOutMsgQueue() <- sf
+		}
+	}
+
+	return thetime
+}
+
 // Process messages and update our state.
 func (p *ProcessList) Process(state *State) (progress bool) {
-
-	now := time.Now().Unix()
-	ask := func(p *ProcessList, vmIndex int, vm *VM, thetime int64, height int) int64 {
-		if thetime == 0 {
-			thetime = now
-		}
-		if now-thetime > 1 {
-			missingMsgRequest := messages.NewMissingMsg(state, vmIndex, p.DBHeight, uint32(height))
-			if missingMsgRequest != nil {
-				state.NetworkOutMsgQueue() <- missingMsgRequest
-			}
-			thetime = now
-		}
-		if p.State.Leader && now-thetime > 2 {
-			id := p.FedServers[p.ServerMap[0][vmIndex]].GetChainID()
-			sf := messages.NewServerFault(state.GetTimestamp(), id, vmIndex, p.DBHeight, uint32(height))
-			if sf != nil {
-				state.NetworkOutMsgQueue() <- sf
-			}
-		}
-
-		return thetime
-	}
-
-	//------------------------------------------------------------
-	// Start Process Here
-	//------------------------------------------------------------
-	if p.DBHeight > 0 {
-
-		prev := state.DBStates.Get(int(p.DBHeight - 1))
-
-		if prev == nil {
-			//fmt.Printf("dddd %20s %10s --- %10s %10v \n", "PLProcess-", p.State.FactomNodeName, "PrevHt", "<nil>")
-			return
-		}
-
-	}
-
-	allgood := true
-	if p.DBHeight > 1 {
-		plprev := p.State.ProcessLists.Get(p.DBHeight - 1)
-		for i := 0; i < len(plprev.FedServers); i++ {
-			vm := plprev.VMs[i]
-			if vm.LeaderMinute < 10 {
-				allgood = false
-				vm.missingTime = ask(p, i, vm, vm.missingTime, vm.Height)
-			}
-		}
-	}
-
-	if !allgood {
-		return false
-	}
 
 	for i := 0; i < len(p.FedServers); i++ {
 		vm := p.VMs[i]
 
 		if vm.Height == len(vm.List) && p.State.Syncing && !vm.Synced {
-			vm.missingTime = ask(p, i, vm, vm.missingTime, vm.Height)
+			vm.missingTime = ask(p, i, 1, vm, vm.missingTime, vm.Height)
 		}
+
+		vm.heartBeat = ask(p, i, 10, vm, vm.heartBeat, len(vm.List))
 
 	VMListLoop:
 		for j := vm.Height; j < len(vm.List); j++ {
 			if vm.List[j] == nil {
 				//fmt.Printf("dddd %20s %10s --- %10s %10v %10s %10v %10s %10v \n", "ListLoop-", p.State.FactomNodeName, "HT", j, "vm.Height", vm.Height, "len(List)", len(vm.List))
-				vm.missingTime = ask(p, i, vm, vm.missingTime, j)
+				vm.missingTime = ask(p, i, 1, vm, vm.missingTime, j)
 				break VMListLoop
 			}
 
@@ -394,7 +372,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 					vm.List[j] = nil
 					vm.ListAck[j] = nil
 					// Ask for the correct ack if this one is no good.
-					vm.missingTime = ask(p, i, vm, vm.missingTime, j)
+					vm.missingTime = ask(p, i, 1, vm, vm.missingTime, j)
 					break VMListLoop
 				}
 
@@ -416,13 +394,13 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 					// the SerialHash of this acknowledgment is incorrect
 					// according to this node's processList
 					vm.List[j] = nil
-					vm.missingTime = ask(p, i, vm, vm.missingTime, j)
+					vm.missingTime = ask(p, i, 1, vm, vm.missingTime, j)
 					break VMListLoop
 				}
 			}
 
 			if vm.List[j].Process(p.DBHeight, state) { // Try and Process this entry
-
+				vm.heartBeat = 0
 				vm.Height = j + 1 // Don't process it again if the process worked.
 				progress = true
 			} else {
@@ -491,6 +469,8 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	// From this point on, we consider the transaction recorded.  If we detect it has already been
 	// recorded, then we still treat it as if we recorded it.
 
+	vm.heartBeat = 0 // We have heard from this VM
+
 	// We have already tested and found m to be a new message.  We now record its hashes so later, we
 	// can detect that it has been recorded.  We don't care about the results of IsTSValid_ at this point.
 	p.State.Replay.IsTSValid_(constants.INTERNAL_REPLAY, m.GetMsgHash().Fixed(), m.GetTimestamp(), now)
@@ -528,7 +508,7 @@ func (p *ProcessList) String() string {
 		buf.WriteString("-- <nil>\n")
 	} else {
 		buf.WriteString(fmt.Sprintf("===ProcessListStart=== %s %d\n", p.State.GetFactomNodeName(), p.DBHeight))
-		buf.WriteString(fmt.Sprintf("%s #VMs %d\n", p.State.GetFactomNodeName(), len(p.FedServers)))
+		buf.WriteString(fmt.Sprintf("%s #VMs %d Complete %v\n", p.State.GetFactomNodeName(), len(p.FedServers), p.Complete()))
 
 		for i := 0; i < len(p.FedServers); i++ {
 			vm := p.VMs[i]

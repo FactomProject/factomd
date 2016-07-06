@@ -37,14 +37,10 @@ var _ interfaces.DatabaseBatchable = (*AdminBlock)(nil)
 func (c *AdminBlock) String() string {
 	var out primitives.Buffer
 
-	kmr, err := c.GetKeyMR()
-	if err != nil {
-		out.WriteString(fmt.Sprintf("%20s %v\n", "KeyMR:", err))
-	} else {
-		out.WriteString(fmt.Sprintf("%20s %v\n", "KeyMR:", kmr.String()))
+	fh, _ := c.FullHash()
+	if fh == nil {
+		fh = primitives.NewZeroHash()
 	}
-
-	fh := c.GetHash()
 	out.WriteString(fmt.Sprintf("%20s %v\n", "FullHash:", fh.String()))
 
 	out.WriteString(c.Header.String())

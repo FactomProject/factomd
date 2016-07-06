@@ -103,6 +103,7 @@ type State struct {
 	EOM          bool // Set to true when the first EOM is encountered
 	EOMProcessed int
 	EOMDone      bool
+	EOMMinute    int
 
 	DBSig          bool
 	DBSigProcessed int // Number of DBSignatures received and processed.
@@ -722,9 +723,6 @@ func (s *State) GetDirectoryBlockByHeight(height uint32) interfaces.IDirectoryBl
 
 func (s *State) UpdateState() (progress bool) {
 
-	if s.DebugConsensus {
-		fmt.Printf("dddd %20s %10s  \n", "Update State:<<<<", s.FactomNodeName)
-	}
 	dbheight := s.GetHighestRecordedBlock()
 	plbase := s.ProcessLists.DBHeightBase
 
@@ -939,6 +937,9 @@ func (s *State) MsgQueue() chan interfaces.IMsg {
 }
 
 func (s *State) GetLeaderTimestamp() interfaces.Timestamp {
+	if s.LeaderTimestamp == nil {
+		s.LeaderTimestamp = new(primitives.Timestamp)
+	}
 	return s.LeaderTimestamp
 }
 

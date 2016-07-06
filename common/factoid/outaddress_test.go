@@ -2,18 +2,18 @@ package factoid_test
 
 import (
 	. "github.com/FactomProject/factomd/common/factoid"
-	. "github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 	"strings"
 	"testing"
 )
 
 func TestOutAddress(t *testing.T) {
-	h, err := HexToHash("ec9f1cefa00406b80d46135a53504f1f4182d4c0f3fed6cca9281bc020eff973")
+	h, err := primitives.HexToHash("ec9f1cefa00406b80d46135a53504f1f4182d4c0f3fed6cca9281bc020eff973")
 	if err != nil {
 		t.Error(err)
 	}
-	add := h.(IAddress)
+	add := h.(interfaces.IAddress)
 	outAdd := NewOutAddress(add, 12345678)
 	str := outAdd.String()
 

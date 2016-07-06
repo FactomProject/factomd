@@ -92,7 +92,7 @@ func TestSignAndVerifyHeartbeat(t *testing.T) {
 
 func newHeartbeat() *Heartbeat {
 	eom := new(Heartbeat)
-	eo & m.Timestamp.SetTimeNow()
+	eom.Timestamp = primitives.NewTimestampNow()
 	h, err := primitives.NewShaHashFromStr("deadbeef00000000000000000000000000000000000000000000000000000000")
 	if err != nil {
 		panic(err)

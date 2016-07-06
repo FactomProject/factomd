@@ -52,7 +52,7 @@ func TestMarshalUnmarshalMissingData(t *testing.T) {
 
 func newMissingData() *MissingData {
 	msg := new(MissingData)
-	msg.Timestamp.SetTimeNow()
+	msg.Timestamp = primitives.NewTimestampNow()
 
 	h, err := primitives.NewShaHashFromStr("deadbeef00000000000000000000000000000000000000000000000000000000")
 	if err != nil {

@@ -124,3 +124,15 @@ func findLine(full, toFind string) string {
 	}
 	return ""
 }
+
+func TestExpandedDBlockHeader(t *testing.T) {
+	block := NewFBlock(1, 1)
+	j, err := block.JSONString()
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
+	if !strings.Contains(j, `"ChainID":"000000000000000000000000000000000000000000000000000000000000000f"`) {
+		t.Error("Header does not contain ChainID")
+	}
+}
