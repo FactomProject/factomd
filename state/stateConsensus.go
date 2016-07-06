@@ -441,9 +441,11 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
 
 	s.NextCommit(myhash)
 
-	eb_db, _ := s.DB.FetchEBlockHead(chainID)
 	eb := s.GetNewEBlocks(dbheight, chainID)
-
+	eb_db := s.GetNewEBlocks(dbheight-1, chainID)
+	if eb_db == nil {
+		eb_db, _ = s.DB.FetchEBlockHead(chainID)
+	}
 	// Handle the case that this is a Entry Chain create
 	// Must be built with CommitChain (i.e. !msg.IsEntry).  Also
 	// cannot have an existing chaing (eb and eb_db == nil)
