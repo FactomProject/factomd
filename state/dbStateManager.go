@@ -434,12 +434,6 @@ searchLoop:
 	if list.DBStates[index] == nil {
 		list.DBStates[index] = dbState
 	}
-
-	if dbheight == 0 {
-		dbState.DirectoryBlock.SetABlockHash(dbState.AdminBlock)
-		dbState.DirectoryBlock.SetECBlockHash(dbState.EntryCreditBlock)
-		dbState.DirectoryBlock.SetFBlockHash(dbState.FactoidBlock)
-	}
 }
 
 func (list *DBStateList) Get(height int) *DBState {
