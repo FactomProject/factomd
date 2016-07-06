@@ -88,7 +88,7 @@ func TestSignAndVerifyAck(t *testing.T) {
 
 func newAck() *Ack {
 	ack := new(Ack)
-	ack.Timestamp.SetTimeNow()
+	ack.Timestamp = primitives.NewTimestampNow()
 	hash, err := primitives.NewShaHashFromStr("cbd3d09db6defdc25dfc7d57f3479b339a077183cd67022e6d1ef6c041522b40")
 	if err != nil {
 		panic(err)

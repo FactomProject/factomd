@@ -38,6 +38,21 @@ var _ interfaces.ShortInterpretable = (*CommitChain)(nil)
 var _ interfaces.IECBlockEntry = (*CommitChain)(nil)
 var _ interfaces.ISignable = (*CommitChain)(nil)
 
+func (e *CommitChain) String() string {
+	var out primitives.Buffer
+	out.WriteString(fmt.Sprintf(" %-20s\n", "CommitChain"))
+	out.WriteString(fmt.Sprintf("   %-20s %d\n", "Version", e.Version))
+	out.WriteString(fmt.Sprintf("   %-20s %x\n", "MilliTime", e.MilliTime))
+	out.WriteString(fmt.Sprintf("   %-20s %x\n", "ChainIDHash", e.ChainIDHash.Bytes()[:3]))
+	out.WriteString(fmt.Sprintf("   %-20s %x\n", "Weld", e.Weld.Bytes()[:3]))
+	out.WriteString(fmt.Sprintf("   %-20s %x\n", "EntryHash", e.EntryHash.Bytes()[:3]))
+	out.WriteString(fmt.Sprintf("   %-20s %x\n", "Credits", e.Credits))
+	out.WriteString(fmt.Sprintf("   %-20s %x\n", "ECPubKey", e.ECPubKey[:3]))
+	out.WriteString(fmt.Sprintf("   %-20s %d\n", "Sig", e.Sig[:3]))
+
+	return (string)(out.DeepCopyBytes())
+}
+
 func NewCommitChain() *CommitChain {
 	c := new(CommitChain)
 	c.Version = 0
@@ -116,11 +131,6 @@ func (c *CommitChain) IsValid() bool {
 
 func (c *CommitChain) GetHash() interfaces.IHash {
 	data, _ := c.MarshalBinary()
-	return primitives.Sha(data)
-}
-
-func (c *CommitChain) GetTransactionHash() interfaces.IHash {
-	data, _ := c.MarshalBinaryTransaction()
 	return primitives.Sha(data)
 }
 
@@ -357,9 +367,4 @@ func (e *CommitChain) JSONString() (string, error) {
 
 func (e *CommitChain) JSONBuffer(b *bytes.Buffer) error {
 	return primitives.EncodeJSONToBuffer(e, b)
-}
-
-func (e *CommitChain) String() string {
-	str, _ := e.JSONString()
-	return str
 }

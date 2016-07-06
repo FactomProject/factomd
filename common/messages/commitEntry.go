@@ -36,7 +36,7 @@ func (a *CommitEntryMsg) IsSameAs(b *CommitEntryMsg) bool {
 	if b == nil {
 		return false
 	}
-	if a.Timestamp != b.Timestamp {
+	if a.Timestamp.GetTimeMilli() != b.Timestamp.GetTimeMilli() {
 		return false
 	}
 
@@ -137,12 +137,12 @@ func (m *CommitEntryMsg) UnmarshalBinaryData(data []byte) (newData []byte, err e
 	}
 	newData = newData[1:]
 
-	t := new(interfaces.Timestamp)
+	t := new(primitives.Timestamp)
 	newData, err = t.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
 	}
-	m.Timestamp = *t
+	m.Timestamp = t
 
 	ce := entryCreditBlock.NewCommitEntry()
 	newData, err = ce.UnmarshalBinaryData(newData)

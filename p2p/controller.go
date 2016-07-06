@@ -93,7 +93,7 @@ type CommandChangeLogging struct {
 
 func (c *Controller) Init(ci ControllerInit) *Controller {
 	significant("ctrlr", "Controller.Init(%s) %#x", ci.Port, ci.Network)
-	silence("#################", "META: Last touched: WEDNESDAY JUNE 29th - 10:38AM")
+	silence("#################", "META: Last touched: FRIDAY JULY 1 7:45PM")
 	c.keepRunning = true
 	c.commandChannel = make(chan interface{}, 1000) // Commands from App
 	c.FromNetwork = make(chan Parcel, 10000)        // Channel to the app for network data
@@ -341,8 +341,7 @@ func (c *Controller) handleConnectionCommand(command ConnectionCommand, connecti
 	switch command.command {
 	case ConnectionUpdateMetrics:
 		c.connectionMetrics[connection.peer.Hash] = command.metrics
-		significant("ctrlr", "handleConnectionCommand() Got ConnectionUpdateMetrics command, all metrics are: %+v", c.connectionMetrics)
-
+		note("ctrlr", "handleConnectionCommand() Got ConnectionUpdateMetrics command, all metrics are: %+v", c.connectionMetrics)
 	case ConnectionIsClosed:
 		debug("ctrlr", "handleConnectionCommand() Got ConnectionIsShutdown from  %s", connection.peer.Hash)
 		delete(c.connectionsByAddress, connection.peer.Address)
@@ -423,6 +422,8 @@ func (c *Controller) managePeers() {
 				c.numberIncommingConnections++
 			}
 		}
+		debug("ctrlr", "managePeers() NumberPeersToConnect: %d outgoing: %d", NumberPeersToConnect, outgoing)
+
 		if NumberPeersToConnect > outgoing {
 			// Get list of peers ordered by quality from discovery
 			c.fillOutgoingSlots()
@@ -436,10 +437,12 @@ func (c *Controller) managePeers() {
 		}
 		duration = time.Since(c.lastPeerRequest)
 		if PeerRequestInterval < duration {
+			c.lastPeerRequest = time.Now()
+			parcelp := NewParcel(CurrentNetwork, []byte("Peer Request"))
+			parcel := *parcelp
+			parcel.Header.Type = TypePeerRequest
 			for _, connection := range c.connections {
-				parcel := NewParcel(CurrentNetwork, []byte("Peer Request"))
-				parcel.Header.Type = TypePeerRequest
-				connection.SendChannel <- ConnectionParcel{parcel: *parcel}
+				connection.SendChannel <- ConnectionParcel{parcel: parcel}
 			}
 		}
 	}
@@ -462,8 +465,8 @@ func (c *Controller) fillOutgoingSlots() {
 	c.updateConnectionAddressMap()
 	significant("controller", "\n##############\n##############\n##############\n##############\n##############\n")
 	significant("controller", "Connected peers:")
-	for key := range c.connectionsByAddress {
-		significant("controller", "%s", key)
+	for _, v := range c.connectionsByAddress {
+		significant("controller", "%s", v.peer.AddressPort)
 	}
 	peers := c.discovery.GetOutgoingPeers()
 	if len(peers) < NumberPeersToConnect*2 {
@@ -473,7 +476,7 @@ func (c *Controller) fillOutgoingSlots() {
 	// dial into the peers
 	for _, peer := range peers {
 		if c.weAreNotAlreadyConnectedTo(peer) {
-			significant("controller", "We think we are not already connected to: %s so dialing.", peer.Address)
+			significant("controller", "We think we are not already connected to: %s so dialing.", peer.AddressPort)
 			c.DialPeer(peer, false)
 		}
 	}

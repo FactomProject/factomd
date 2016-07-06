@@ -122,7 +122,7 @@ func newCommitEntry() *CommitEntryMsg {
 	}
 
 	cem.CommitEntry = ce
-	cem.Timestamp.SetTimeNow()
+	cem.Timestamp = primitives.NewTimestampNow()
 
 	return cem
 }

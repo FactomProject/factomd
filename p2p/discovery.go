@@ -108,7 +108,7 @@ func (d *Discovery) SavePeers() {
 	UpdateKnownPeers.Lock()
 	for _, peer := range d.knownPeers {
 		if time.Since(peer.LastContact) < (time.Hour*168) && MinumumQualityScore < peer.QualityScore {
-			qualityPeers[peer.Hash] = peer
+			qualityPeers[peer.AddressPort()] = peer
 		}
 	}
 	UpdateKnownPeers.Unlock()
@@ -125,7 +125,7 @@ func (d *Discovery) LearnPeers(parcel Parcel) {
 	var peerArray []Peer
 	err := dec.Decode(&peerArray)
 	if nil != err {
-		logfatal("discovery", "Discovery.LearnPeers got an error unmarshalling json. error: %+v json: %+v", err, strconv.Quote(string(parcel.Payload)))
+		logerror("discovery", "Discovery.LearnPeers got an error unmarshalling json. error: %+v json: %+v", err, strconv.Quote(string(parcel.Payload)))
 		return
 	}
 	for _, value := range peerArray {
@@ -140,6 +140,7 @@ func (d *Discovery) LearnPeers(parcel Parcel) {
 			note("discovery", "Discovery.LearnPeers !!!!!!!!!!!!! Discoverd new PEER!   %+v ", value)
 		}
 	}
+	d.SavePeers()
 }
 
 // updatePeerSource checks to see if source is in peer's sources, and if not puts it in there with a value equal to time.Now()

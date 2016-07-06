@@ -93,7 +93,7 @@ func TestSignAndVerifySignatureTimeout(t *testing.T) {
 
 func newSignatureTimeout() *SignatureTimeout {
 	msg := new(SignatureTimeout)
-	msg.Timestamp.SetTimeNow()
+	msg.Timestamp = primitives.NewTimestampNow()
 
 	return msg
 }

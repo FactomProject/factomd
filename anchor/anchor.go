@@ -97,7 +97,7 @@ func (a *Anchor) doTransaction(hash interfaces.IHash, blockHeight uint32, dirBlo
 
 	if dirBlockInfo != nil {
 		dirBlockInfo.BTCTxHash = toHash(shaHash)
-		dirBlockInfo.SetTimestamp(*interfaces.NewTimestampNow())
+		dirBlockInfo.SetTimestamp(primitives.NewTimestampNow())
 		a.db.SaveDirBlockInfo(dirBlockInfo)
 	}
 
@@ -325,7 +325,7 @@ func (a *Anchor) checkMissingDirBlockInfo() {
 				dblock.BuildKeyMerkleRoot()
 			}
 			dirBlockInfo := dbInfo.NewDirBlockInfoFromDirBlock(dblock)
-			dirBlockInfo.SetTimestamp(*interfaces.NewTimestampNow())
+			dirBlockInfo.SetTimestamp(primitives.NewTimestampNow())
 			anchorLog.Debug("add missing dirBlockInfo to map: ", spew.Sdump(dirBlockInfo))
 			a.db.SaveDirBlockInfo(dirBlockInfo)
 			a.dirBlockInfoSlice = append(a.dirBlockInfoSlice, dirBlockInfo)
@@ -534,7 +534,7 @@ func (a *Anchor) doSaveDirBlockInfo(transaction *btcutil.Tx, details *btcjson.Bl
 	dirBlockInfo.BTCBlockHeight = details.Height
 	btcBlockHash, _ := wire.NewShaHashFromStr(details.Hash)
 	dirBlockInfo.BTCBlockHash = toHash(btcBlockHash)
-	dirBlockInfo.SetTimestamp(*interfaces.NewTimestampNow())
+	dirBlockInfo.SetTimestamp(primitives.NewTimestampNow())
 	a.db.SaveDirBlockInfo(dirBlockInfo)
 	anchorLog.Infof("In doSaveDirBlockInfo, dirBlockInfo:%s saved to db\n", spew.Sdump(dirBlockInfo))
 
@@ -642,7 +642,7 @@ func (a *Anchor) checkConfirmations(dirBlockInfo *dbInfo.DirBlockInfo, index int
 			rewrite = true
 		}
 		dirBlockInfo.BTCConfirmed = true // needs confirmationsNeeded (20) to be confirmed.
-		dirBlockInfo.SetTimestamp(*interfaces.NewTimestampNow())
+		dirBlockInfo.SetTimestamp(primitives.NewTimestampNow())
 		a.db.SaveDirBlockInfo(dirBlockInfo)
 		a.dirBlockInfoSlice = append(a.dirBlockInfoSlice[:index], a.dirBlockInfoSlice[index+1:]...) //delete it
 		anchorLog.Debugf("Fully confirmed %d times. txid=%s, dirblockInfo=%s\n", txResult.Confirmations, txResult.TxID, spew.Sdump(dirBlockInfo))

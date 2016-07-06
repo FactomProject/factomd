@@ -146,6 +146,7 @@ func (m *Ack) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 
 	m.VMIndex, newData = int(newData[0]), newData[1:]
 
+	m.Timestamp = new(primitives.Timestamp)
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
@@ -290,7 +291,7 @@ func (a *Ack) IsSameAs(b *Ack) bool {
 	if a.Height != b.Height {
 		return false
 	}
-	if a.Timestamp != b.Timestamp {
+	if a.Timestamp.GetTimeMilli() != b.Timestamp.GetTimeMilli() {
 		return false
 	}
 

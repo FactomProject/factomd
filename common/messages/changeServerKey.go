@@ -151,6 +151,7 @@ func (m *ChangeServerKeyMsg) UnmarshalBinaryData(data []byte) (newData []byte, e
 	}
 	newData = newData[1:]
 
+	m.Timestamp = new(primitives.Timestamp)
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
@@ -257,7 +258,7 @@ func (m *ChangeServerKeyMsg) String() string {
 	return fmt.Sprintf("ChangeServerKey (%s): ChainID: %x Time: %x  Key: %x Msg Hash %x ",
 		mtype,
 		m.IdentityChainID.Bytes()[:3],
-		m.Timestamp,
+		&m.Timestamp,
 		m.Key.Bytes()[:3],
 		m.GetMsgHash().Bytes()[:3])
 
@@ -267,7 +268,7 @@ func (m *ChangeServerKeyMsg) IsSameAs(b *ChangeServerKeyMsg) bool {
 	if b == nil {
 		return false
 	}
-	if uint64(m.Timestamp) != uint64(b.Timestamp) {
+	if m.Timestamp.GetTimeMilli() != b.Timestamp.GetTimeMilli() {
 		return false
 	}
 	if !m.IdentityChainID.IsSameAs(b.IdentityChainID) {

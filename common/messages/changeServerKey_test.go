@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/messages"
 
 	"github.com/FactomProject/factomd/common/primitives"
@@ -98,9 +97,7 @@ func TestMarshalUnmarshalSignedChangeServerKey(t *testing.T) {
 
 func newChangeServerKey() *ChangeServerKeyMsg {
 	addserv := new(ChangeServerKeyMsg)
-	ts := new(interfaces.Timestamp)
-	ts.SetTimeNow()
-	addserv.Timestamp = *ts
+	addserv.Timestamp = primitives.NewTimestampNow()
 	addserv.IdentityChainID = primitives.Sha([]byte("FNode0"))
 	addserv.AdminBlockChange = 0
 	addserv.KeyPriority = 0

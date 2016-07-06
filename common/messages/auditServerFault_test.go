@@ -92,7 +92,7 @@ func TestSignAndVerifyAuditServerFault(t *testing.T) {
 
 func newAuditServerFault() *AuditServerFault {
 	msg := new(AuditServerFault)
-	msg.Timestamp.SetTimeNow()
+	msg.Timestamp = primitives.NewTimestampNow()
 
 	return msg
 }
