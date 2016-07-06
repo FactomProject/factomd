@@ -44,8 +44,11 @@ func (e *ECBlockBody) JSONBuffer(b *bytes.Buffer) error {
 }
 
 func (e *ECBlockBody) String() string {
-	str, _ := e.JSONString()
-	return str
+	var out primitives.Buffer
+	for _, v := range e.Entries {
+		out.WriteString(v.String())
+	}
+	return string(out.DeepCopyBytes())
 }
 
 /*******************************************************

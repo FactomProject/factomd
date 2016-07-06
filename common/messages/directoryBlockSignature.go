@@ -24,8 +24,8 @@ type DirectoryBlockSignature struct {
 	Signature interfaces.IFullSignature
 
 	//Not marshalled
-	hash interfaces.IHash
-	Once bool
+	Processed bool
+	hash      interfaces.IHash
 }
 
 var _ interfaces.IMsg = (*DirectoryBlockSignature)(nil)
@@ -36,7 +36,7 @@ func (a *DirectoryBlockSignature) IsSameAs(b *DirectoryBlockSignature) bool {
 		return false
 	}
 
-	if a.Timestamp != b.Timestamp {
+	if a.Timestamp.GetTimeMilli() != b.Timestamp.GetTimeMilli() {
 		return false
 	}
 	if a.DBHeight != b.DBHeight {
@@ -92,6 +92,9 @@ func (m *DirectoryBlockSignature) GetMsgHash() interfaces.IHash {
 }
 
 func (m *DirectoryBlockSignature) GetTimestamp() interfaces.Timestamp {
+	if m.Timestamp == nil {
+		m.Timestamp = new(primitives.Timestamp)
+	}
 	return m.Timestamp
 }
 
@@ -180,6 +183,7 @@ func (m *DirectoryBlockSignature) UnmarshalBinaryData(data []byte) (newData []by
 	newData = newData[1:]
 
 	// TimeStamp
+	m.Timestamp = new(primitives.Timestamp)
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err

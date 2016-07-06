@@ -88,7 +88,7 @@ func NetStart(s *state.State) {
 	s.LoadConfig(FactomConfigFilename, folder)
 
 	s.OneLeader = rotate
-	s.TimeOffset = interfaces.Timestamp(timeOffset)
+	s.TimeOffset = primitives.NewTimestampFromMilliseconds(uint64(timeOffset))
 
 	if 999 < portOverride { // The command line flag exists and seems reasonable.
 		s.SetPort(portOverride)
@@ -216,7 +216,7 @@ func NetStart(s *state.State) {
 		PeersFile: s.PeersFile,
 		Network:   networkID,
 		Exclusive: exclusive,
-		SeedURL:   "http://n1rvana.github.io/seed.txt",
+		SeedURL:   s.SeedURL,
 	}
 	p2pController := new(p2p.Controller).Init(ci)
 	network = *p2pController
@@ -245,6 +245,7 @@ func NetStart(s *state.State) {
 		fmt.Println("Dialing Peer: ", peerAddress)
 		ipPort := strings.Split(peerAddress, ":")
 		peer := new(p2p.Peer).Init(ipPort[0], ipPort[1], 0, p2p.SpecialPeer, 0)
+		peer.Source["Command Line"] = time.Now()
 		network.DialPeer(*peer, true) // these are persistent connections
 	}
 

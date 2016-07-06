@@ -27,14 +27,13 @@ type CommitChainMsg struct {
 }
 
 var _ interfaces.IMsg = (*CommitChainMsg)(nil)
-var _ interfaces.ICounted = (*CommitChainMsg)(nil)
 var _ Signable = (*CommitChainMsg)(nil)
 
 func (a *CommitChainMsg) IsSameAs(b *CommitChainMsg) bool {
 	if b == nil {
 		return false
 	}
-	if a.Timestamp != b.Timestamp {
+	if a.Timestamp.GetTimeMilli() != b.Timestamp.GetTimeMilli() {
 		return false
 	}
 
@@ -176,12 +175,12 @@ func (m *CommitChainMsg) UnmarshalBinaryData(data []byte) (newData []byte, err e
 	}
 	newData = newData[1:]
 
-	t := new(interfaces.Timestamp)
+	t := new(primitives.Timestamp)
 	newData, err = t.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
 	}
-	m.Timestamp = *t
+	m.Timestamp = t
 
 	cc := entryCreditBlock.NewCommitChain()
 	newData, err = cc.UnmarshalBinaryData(newData)

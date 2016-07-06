@@ -89,10 +89,9 @@ type IState interface {
 	PutNewEBlocks(dbheight uint32, hash IHash, eb IEntryBlock)
 	PutNewEntries(dbheight uint32, hash IHash, eb IEntry)
 
-	GetCommits(hash IHash) IMsg
-	GetReveals(hash IHash) IMsg
-	PutCommits(hash IHash, msg IMsg)
-	PutReveals(hash IHash, msg IMsg)
+	NextCommit(hash IHash) IMsg
+	PutCommit(hash IHash, msg IMsg)
+
 	IncEntryChains()
 	IncEntries()
 	// Server Configuration
@@ -112,7 +111,6 @@ type IState interface {
 	// Returns the list of VirtualServers at a given directory block height and minute
 	GetVirtualServers(dbheight uint32, minute int, identityChainID IHash) (found bool, index int)
 	// Returns true if between minutes
-	GetEOM() bool
 
 	GetEBlockKeyMRFromEntryHash(entryHash IHash) IHash
 	GetAnchor() IAnchor
@@ -156,6 +154,7 @@ type IState interface {
 	// For messages that go into the Process List
 	LeaderExecute(m IMsg)
 	LeaderExecuteEOM(m IMsg)
+	LeaderExecuteRevealEntry(m IMsg)
 
 	GetNetStateOff() bool //	If true, all network communications are disabled
 	SetNetStateOff(bool)
@@ -176,7 +175,7 @@ type IState interface {
 	SetIsDoneReplaying()
 
 	//For ACK
-	GetACKStatus(hash IHash) (int, error)
+	GetACKStatus(hash IHash) (int, Timestamp, error)
 	FetchPaidFor(hash IHash) (IHash, error)
 	FetchFactoidTransactionByHash(hash IHash) (ITransaction, error)
 	FetchECTransactionByHash(hash IHash) (IECBlockEntry, error)

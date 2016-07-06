@@ -52,11 +52,7 @@ func (b *MinuteNumber) Interpret() string {
 	return fmt.Sprintf("MinuteNumber %v", b.Number)
 }
 
-func NewMinuteNumber() *MinuteNumber {
-	return new(MinuteNumber)
-}
-
-func NewMinuteNumber2(number uint8) *MinuteNumber {
+func NewMinuteNumber(number uint8) *MinuteNumber {
 	mn := new(MinuteNumber)
 	mn.Number = number
 	return mn
@@ -108,6 +104,8 @@ func (e *MinuteNumber) JSONBuffer(b *bytes.Buffer) error {
 }
 
 func (e *MinuteNumber) String() string {
-	str, _ := e.JSONString()
-	return str
+	var out primitives.Buffer
+	out.WriteString(fmt.Sprintf(" %-20s\n", "MinuteNumber"))
+	out.WriteString(fmt.Sprintf("   %-20s %d\n", "Number", e.Number))
+	return (string)(out.DeepCopyBytes())
 }

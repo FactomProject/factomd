@@ -39,6 +39,7 @@ func (p *Peer) Init(address string, port string, quality int32, peerType uint8, 
 	p.generatePeerHash()
 	p.Type = peerType
 	p.Location = p.locationFromAddress()
+	p.Source = map[string]time.Time{}
 	return p
 }
 

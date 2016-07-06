@@ -36,6 +36,12 @@ var _ interfaces.BinaryMarshallableAndCopyable = (*ECBlock)(nil)
 var _ interfaces.IEntryCreditBlock = (*ECBlock)(nil)
 var _ interfaces.DatabaseBlockWithEntries = (*ECBlock)(nil)
 
+func (c *ECBlock) String() string {
+	str := c.Header.String()
+	str = str + c.Body.String()
+	return str
+}
+
 func (c *ECBlock) GetEntries() []interfaces.IECBlockEntry {
 	return c.Body.GetEntries()
 }
@@ -307,7 +313,7 @@ func (e *ECBlock) unmarshalBodyBinaryData(data []byte) ([]byte, error) {
 			}
 			e.Body.SetEntries(append(e.Body.GetEntries(), s))
 		case ECIDMinuteNumber:
-			m := NewMinuteNumber()
+			m := NewMinuteNumber(0)
 			if buf.Len() < MinuteNumberSize {
 				err = io.EOF
 				return nil, err
@@ -431,11 +437,6 @@ func (e *ECBlock) JSONString() (string, error) {
 
 func (e *ECBlock) JSONBuffer(b *bytes.Buffer) error {
 	return primitives.EncodeJSONToBuffer(e, b)
-}
-
-func (e *ECBlock) String() string {
-	str, _ := e.JSONString()
-	return str
 }
 
 /********************************************************

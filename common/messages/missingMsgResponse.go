@@ -34,7 +34,7 @@ func (a *MissingMsgResponse) IsSameAs(b *MissingMsgResponse) bool {
 	if b == nil {
 		return false
 	}
-	if a.Timestamp != b.Timestamp {
+	if a.Timestamp.GetTimeMilli() != b.Timestamp.GetTimeMilli() {
 		return false
 	}
 
@@ -105,6 +105,7 @@ func (m *MissingMsgResponse) UnmarshalBinaryData(data []byte) (newData []byte, e
 	}
 	newData = newData[1:]
 
+	m.Timestamp = new(primitives.Timestamp)
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
@@ -174,7 +175,7 @@ func (m *MissingMsgResponse) MarshalBinary() ([]byte, error) {
 }
 
 func (m *MissingMsgResponse) String() string {
-	return fmt.Sprintf("MissingMsgResponse MessageHash: %v AckHash: %v\n", m.MsgResponse.GetHash(), m.AckResponse.GetHash())
+	return fmt.Sprintf("MissingMsgResponse MessageHash: %x AckHash: %x\n", m.MsgResponse.GetHash().Bytes()[:3], m.AckResponse.GetHash().Bytes()[:3])
 }
 
 func (m *MissingMsgResponse) ChainID() []byte {

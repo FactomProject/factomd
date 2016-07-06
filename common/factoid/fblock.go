@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -97,7 +98,7 @@ func (c *FBlock) GetDatabaseHeight() uint32 {
 // Return the timestamp of the coinbase transaction
 func (b *FBlock) GetCoinbaseTimestamp() interfaces.Timestamp {
 	if len(b.Transactions) == 0 {
-		return 0xFFFFFFFFFFFFFFFF
+		return nil
 	}
 	return b.Transactions[0].GetTimestamp()
 }
@@ -694,6 +695,18 @@ func (e *FBlock) JSONString() (string, error) {
 
 func (e *FBlock) JSONBuffer(b *bytes.Buffer) error {
 	return primitives.EncodeJSONToBuffer(e, b)
+}
+
+type ExpandedFBlock FBlock
+
+func (e FBlock) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		ExpandedFBlock
+		ChainID string
+	}{
+		ExpandedFBlock: ExpandedFBlock(e),
+		ChainID:        "000000000000000000000000000000000000000000000000000000000000000f",
+	})
 }
 
 /**************************

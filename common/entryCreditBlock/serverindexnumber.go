@@ -24,6 +24,13 @@ var _ interfaces.BinaryMarshallable = (*ServerIndexNumber)(nil)
 var _ interfaces.ShortInterpretable = (*ServerIndexNumber)(nil)
 var _ interfaces.IECBlockEntry = (*ServerIndexNumber)(nil)
 
+func (e *ServerIndexNumber) String() string {
+	var out primitives.Buffer
+	out.WriteString(fmt.Sprintf(" %-20s\n", "ServerIndexNumber"))
+	out.WriteString(fmt.Sprintf("   %-20s %d\n", "Number", e.Number))
+	return (string)(out.DeepCopyBytes())
+}
+
 func (e *ServerIndexNumber) Hash() interfaces.IHash {
 	bin, err := e.MarshalBinary()
 	if err != nil {
@@ -105,9 +112,4 @@ func (e *ServerIndexNumber) JSONString() (string, error) {
 
 func (e *ServerIndexNumber) JSONBuffer(b *bytes.Buffer) error {
 	return primitives.EncodeJSONToBuffer(e, b)
-}
-
-func (e *ServerIndexNumber) String() string {
-	str, _ := e.JSONString()
-	return str
 }

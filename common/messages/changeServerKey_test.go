@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/messages"
 
 	"github.com/FactomProject/factomd/common/primitives"
@@ -38,7 +37,7 @@ func TestMarshalUnmarshalChangeServerKey(t *testing.T) {
 	}
 	t.Logf("str2 - %v", str)
 
-	if addserv2.Type() != constants.ADDSERVER_KEY_MSG {
+	if addserv2.Type() != constants.CHANGESERVER_KEY_MSG {
 		t.Error("Invalid message type unmarshalled")
 	}
 
@@ -47,7 +46,7 @@ func TestMarshalUnmarshalChangeServerKey(t *testing.T) {
 	}
 }
 
-func TestMarshalUnmarshalSignedAddServer(t *testing.T) {
+func TestMarshalUnmarshalSignedChangeServerKey(t *testing.T) {
 	addserv := newSignedChangeServerKey()
 
 	str, err := addserv.JSONString()
@@ -79,7 +78,7 @@ func TestMarshalUnmarshalSignedAddServer(t *testing.T) {
 	}
 	t.Logf("str2 - %v", str)
 
-	if addserv2.Type() != constants.ADDSERVER_KEY_MSG {
+	if addserv2.Type() != constants.CHANGESERVER_KEY_MSG {
 		t.Error("Invalid message type unmarshalled")
 	}
 
@@ -98,9 +97,7 @@ func TestMarshalUnmarshalSignedAddServer(t *testing.T) {
 
 func newChangeServerKey() *ChangeServerKeyMsg {
 	addserv := new(ChangeServerKeyMsg)
-	ts := new(interfaces.Timestamp)
-	ts.SetTimeNow()
-	addserv.Timestamp = *ts
+	addserv.Timestamp = primitives.NewTimestampNow()
 	addserv.IdentityChainID = primitives.Sha([]byte("FNode0"))
 	addserv.AdminBlockChange = 0
 	addserv.KeyPriority = 0

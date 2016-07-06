@@ -28,9 +28,10 @@ type Controller struct {
 	ToNetwork   chan Parcel // Parcels from the application for us to route
 	FromNetwork chan Parcel // Parcels from the network for the application
 
-	listenPort           string                // port we listen on for new connections
-	connections          map[string]Connection // map of the connections indexed by peer hash
-	connectionsByAddress map[string]Connection // map of the connections indexed by peer address
+	listenPort           string                       // port we listen on for new connections
+	connections          map[string]Connection        // map of the connections indexed by peer hash
+	connectionsByAddress map[string]Connection        // map of the connections indexed by peer address
+	connectionMetrics    map[string]ConnectionMetrics // map of the metrics indexed by peer hash
 
 	discovery                  Discovery // Our discovery structure
 	numberIncommingConnections int       // In PeerManagmeent we track this and refuse incomming connections when we have too many.
@@ -92,7 +93,7 @@ type CommandChangeLogging struct {
 
 func (c *Controller) Init(ci ControllerInit) *Controller {
 	significant("ctrlr", "Controller.Init(%s) %#x", ci.Port, ci.Network)
-	silence("#################", "META: Last touched: TUESDAY JUNE 28 - 11:38AM")
+	silence("#################", "META: Last touched: FRIDAY JULY 1 7:45PM")
 	c.keepRunning = true
 	c.commandChannel = make(chan interface{}, 1000) // Commands from App
 	c.FromNetwork = make(chan Parcel, 10000)        // Channel to the app for network data
@@ -100,6 +101,7 @@ func (c *Controller) Init(ci ControllerInit) *Controller {
 	c.listenPort = ci.Port
 	NetworkListenPort = ci.Port
 	c.connections = make(map[string]Connection)
+	c.connectionMetrics = make(map[string]ConnectionMetrics)
 	discovery := new(Discovery).Init(ci.PeersFile)
 	c.discovery = *discovery
 	c.discovery.seedURL = ci.SeedURL
@@ -337,8 +339,12 @@ func (c *Controller) handleParcelReceive(message interface{}, peerHash string, c
 
 func (c *Controller) handleConnectionCommand(command ConnectionCommand, connection Connection) {
 	switch command.command {
+	case ConnectionUpdateMetrics:
+		c.connectionMetrics[connection.peer.Hash] = command.metrics
+		note("ctrlr", "handleConnectionCommand() Got ConnectionUpdateMetrics command, all metrics are: %+v", c.connectionMetrics)
 	case ConnectionIsClosed:
 		debug("ctrlr", "handleConnectionCommand() Got ConnectionIsShutdown from  %s", connection.peer.Hash)
+		delete(c.connectionsByAddress, connection.peer.Address)
 		delete(c.connections, connection.peer.Hash)
 	case ConnectionUpdatingPeer:
 		debug("ctrlr", "handleConnectionCommand() Got ConnectionUpdatingPeer from  %s", connection.peer.Hash)
@@ -356,6 +362,7 @@ func (c *Controller) handleCommand(command interface{}) {
 		connection := *conn
 		connection.Start()
 		c.connections[connection.peer.Hash] = connection
+		c.connectionsByAddress[connection.peer.Address] = connection
 		debug("ctrlr", "Controller.handleCommand(CommandDialPeer) got peer %s", parameters.peer.Address)
 	case CommandAddPeer: // parameter is a Connection. This message is sent by the accept loop which is in a different goroutine
 		parameters := command.(CommandAddPeer)
@@ -365,9 +372,11 @@ func (c *Controller) handleCommand(command interface{}) {
 			conn.RemoteAddr().String(), addPort[0], addPort[1])
 		// Port initially stored will be the connection port (not the listen port), but peer will update it on first message.
 		peer := new(Peer).Init(addPort[0], addPort[1], 0, RegularPeer, 0)
+		peer.Source["Accept()"] = time.Now()
 		connection := new(Connection).InitWithConn(conn, *peer)
 		connection.Start()
 		c.connections[connection.peer.Hash] = *connection
+		c.connectionsByAddress[connection.peer.Address] = *connection
 		debug("ctrlr", "Controller.handleCommand(CommandAddPeer) got peer %+v", *peer)
 	case CommandShutdown:
 		silence("ctrlr", "handleCommand() Processing command: CommandShutdown")
@@ -413,6 +422,8 @@ func (c *Controller) managePeers() {
 				c.numberIncommingConnections++
 			}
 		}
+		debug("ctrlr", "managePeers() NumberPeersToConnect: %d outgoing: %d", NumberPeersToConnect, outgoing)
+
 		if NumberPeersToConnect > outgoing {
 			// Get list of peers ordered by quality from discovery
 			c.fillOutgoingSlots()
@@ -420,21 +431,25 @@ func (c *Controller) managePeers() {
 		duration := time.Since(c.discovery.lastPeerSave)
 		// Every so often, tell the discovery service to save peers.
 		if PeerSaveInterval < duration {
+			significant("controller", "Saving peers")
 			c.discovery.SavePeers()
 			c.discovery.PrintPeers() // No-op if debugging off.
 		}
 		duration = time.Since(c.lastPeerRequest)
 		if PeerRequestInterval < duration {
+			c.lastPeerRequest = time.Now()
+			parcelp := NewParcel(CurrentNetwork, []byte("Peer Request"))
+			parcel := *parcelp
+			parcel.Header.Type = TypePeerRequest
 			for _, connection := range c.connections {
-				parcel := NewParcel(CurrentNetwork, []byte("Peer Request"))
-				parcel.Header.Type = TypePeerRequest
-				connection.SendChannel <- ConnectionParcel{parcel: *parcel}
+				connection.SendChannel <- ConnectionParcel{parcel: parcel}
 			}
 		}
 	}
 }
 
-func (c *Controller) updateConnectionAddressHash() {
+// updateConnectionAddressMap() updates the address index map to reflect all current connections
+func (c *Controller) updateConnectionAddressMap() {
 	c.connectionsByAddress = map[string]Connection{}
 	for _, value := range c.connections {
 		c.connectionsByAddress[value.peer.Address] = value
@@ -447,24 +462,26 @@ func (c *Controller) weAreNotAlreadyConnectedTo(peer Peer) bool {
 }
 
 func (c *Controller) fillOutgoingSlots() {
-	c.updateConnectionAddressHash()
+	c.updateConnectionAddressMap()
+	significant("controller", "\n##############\n##############\n##############\n##############\n##############\n")
 	significant("controller", "Connected peers:")
-	for key := range c.connectionsByAddress {
-		significant("controller", "%s", key)
+	for _, v := range c.connectionsByAddress {
+		significant("controller", "%s", v.peer.AddressPort)
 	}
 	peers := c.discovery.GetOutgoingPeers()
 	if len(peers) < NumberPeersToConnect*2 {
-		c.discovery.DiscoverPeers()
+		c.discovery.GetOutgoingPeers()
 		peers = c.discovery.GetOutgoingPeers()
 	}
 	// dial into the peers
 	for _, peer := range peers {
 		if c.weAreNotAlreadyConnectedTo(peer) {
-			significant("controller", "We think we are not already connected to: %s so dialing.", peer.Address)
+			significant("controller", "We think we are not already connected to: %s so dialing.", peer.AddressPort)
 			c.DialPeer(peer, false)
 		}
 	}
 	c.discovery.PrintPeers()
+	significant("controller", "\n##############\n##############\n##############\n##############\n##############\n")
 }
 
 func (c *Controller) shutdown() {
@@ -482,6 +499,7 @@ func (c *Controller) networkStatusReport() {
 	// silence("ctrlr", "networkStatusReport() NetworkStatusInterval: %s reportDuration: %s c.lastStatusReport: %s", NetworkStatusInterval.String(), reportDuration.String(), c.lastPeerManagement.String())
 	if reportDuration > NetworkStatusInterval {
 		c.lastStatusReport = time.Now()
+		c.updateConnectionAddressMap()
 		silence("ctrlr", "###################################")
 		silence("ctrlr", " Network Controller Status Report:")
 		silence("ctrlr", "===================================")

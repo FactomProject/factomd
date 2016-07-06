@@ -9,6 +9,7 @@ import (
 
 	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 func TestMarshalUnmarshalMissingDsg(t *testing.T) {
@@ -51,7 +52,7 @@ func TestMarshalUnmarshalMissingDsg(t *testing.T) {
 
 func newMissingMsg() *MissingMsg {
 	msg := new(MissingMsg)
-	msg.Timestamp.SetTimeNow()
+	msg.Timestamp = primitives.NewTimestampNow()
 
 	msg.DBHeight = 0x12345678
 	msg.ProcessListHeight = 0x98765432

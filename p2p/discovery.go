@@ -50,6 +50,7 @@ func (d *Discovery) Init(peersFile string) *Discovery {
 
 // UpdatePeer updates the values in our known peers. Creates peer if its not in there.
 func (d *Discovery) updatePeer(peer Peer) {
+	significant("discovery", "Updating peer: %v", peer)
 	UpdateKnownPeers.Lock()
 	d.knownPeers[peer.Address] = peer
 	UpdateKnownPeers.Unlock()
@@ -69,44 +70,6 @@ func (d *Discovery) isPeerPresent(peer Peer) bool {
 	_, present := d.knownPeers[peer.Address]
 	UpdateKnownPeers.Unlock()
 	return present
-}
-
-// GetFullPeer looks for a peer in the known peers, and if so, returns it  (based on
-// the hash of the passed in peer.)  If the peer is unknown , we create it and
-// add it to the known peers.
-// func (d *Discovery) GetFullPeer(prototype Peer) Peer {
-// 	return d.GetPeerByAddress(prototype.Address)
-// }
-
-// Since we can't deterministically find peers anymore, we
-// we don't need GetPeer - We get peers from discovery
-// for dialing and we can update them.
-// When new peers come in, they are created elsewhere and then
-// later saved by update peer.
-
-// func (d *Discovery) GetPeer(address string, port string) Peer {
-// 	hash := PeerHashFromAddress(address, port)
-// 	UpdateKnownPeers.Lock()
-// 	peer, present := d.knownPeers[hash]
-// 	UpdateKnownPeers.Unlock()
-// 	// If it exists, return it, otherwise create and add to knownPeers
-// 	if !present {
-// 		temp := new(Peer).Init(address, 0, RegularPeer)
-// 		peer = *temp
-// 		d.updatePeer(peer)
-// 	}
-// 	return peer
-// }
-
-// PrintPeers Print details about the known peers
-func (d *Discovery) PrintPeers() {
-	note("discovery", "Peer Report:")
-	UpdateKnownPeers.Lock()
-	for key, value := range d.knownPeers {
-		note("discovery", "%s \t Address: %s \t Port: %s \tQuality: %d Source: %+v", key, value.Address, value.Port, value.QualityScore, value.Source)
-	}
-	UpdateKnownPeers.Unlock()
-	note("discovery", "End Peer Report\n\n\n\n")
 }
 
 // LoadPeers loads the known peers from disk OVERWRITING PREVIOUS VALUES
@@ -145,7 +108,7 @@ func (d *Discovery) SavePeers() {
 	UpdateKnownPeers.Lock()
 	for _, peer := range d.knownPeers {
 		if time.Since(peer.LastContact) < (time.Hour*168) && MinumumQualityScore < peer.QualityScore {
-			qualityPeers[peer.Hash] = peer
+			qualityPeers[peer.AddressPort()] = peer
 		}
 	}
 	UpdateKnownPeers.Unlock()
@@ -162,7 +125,7 @@ func (d *Discovery) LearnPeers(parcel Parcel) {
 	var peerArray []Peer
 	err := dec.Decode(&peerArray)
 	if nil != err {
-		logfatal("discovery", "Discovery.LearnPeers got an error unmarshalling json. error: %+v json: %+v", err, strconv.Quote(string(parcel.Payload)))
+		logerror("discovery", "Discovery.LearnPeers got an error unmarshalling json. error: %+v json: %+v", err, strconv.Quote(string(parcel.Payload)))
 		return
 	}
 	for _, value := range peerArray {
@@ -177,6 +140,7 @@ func (d *Discovery) LearnPeers(parcel Parcel) {
 			note("discovery", "Discovery.LearnPeers !!!!!!!!!!!!! Discoverd new PEER!   %+v ", value)
 		}
 	}
+	d.SavePeers()
 }
 
 // updatePeerSource checks to see if source is in peer's sources, and if not puts it in there with a value equal to time.Now()
@@ -202,7 +166,7 @@ func (d *Discovery) updatePeerSource(peer Peer, source string) Peer {
 //  -- continue until there are no candidates left, or we have our set.
 func (d *Discovery) GetOutgoingPeers() []Peer {
 	peerPool := []Peer{}
-	selectedPeers := []Peer{}
+	selectedPeers := map[string]Peer{}
 	UpdateKnownPeers.Lock()
 	for _, peer := range d.knownPeers {
 		switch {
@@ -221,10 +185,23 @@ func (d *Discovery) GetOutgoingPeers() []Peer {
 	if len(peerPool) < desiredQuantity*2 {
 		return peerPool
 	}
-	for index := 1; index < desiredQuantity; index++ {
-		selectedPeers = append(selectedPeers, peerPool[int(index/desiredQuantity*len(peerPool))])
+	// First, get half the peers with geographic diversity
+	for index := 1; index < int(desiredQuantity/2); index++ {
+		newPeer := peerPool[int(index/desiredQuantity*len(peerPool))]
+		selectedPeers[newPeer.Address] = newPeer
 	}
-	return selectedPeers
+	// Next, get half the peers with pure randomness
+	for desiredQuantity > len(selectedPeers) {
+		newPeer := peerPool[rand.Intn(len(peerPool))]
+		selectedPeers[newPeer.Address] = newPeer // overwrites if already there.
+	}
+	// Now derive a slice of peers to return
+	finalSet := []Peer{}
+	for _, v := range selectedPeers {
+		finalSet = append(finalSet, v)
+	}
+	significant("discovery", "discovery.GetOutgoingPeers() got the following peers: %+v", finalSet)
+	return finalSet
 }
 
 // SharePeers gets a set of peers to send to other hosts
@@ -271,7 +248,7 @@ func (d *Discovery) getPeerSelection() []byte {
 }
 
 // DiscoverPeers gets a set of peers from a DNS Seed
-func (d *Discovery) DiscoverPeers() {
+func (d *Discovery) DiscoverPeersFromSeed() {
 	resp, err := http.Get(d.seedURL)
 	if nil != err {
 		logerror("discovery", "DiscoverPeers getting peers from %s produced error %+v", d.seedURL, err)
@@ -290,4 +267,15 @@ func (d *Discovery) DiscoverPeers() {
 		d.updatePeer(d.updatePeerSource(peer, "DNS Seed"))
 	}
 	silence("discovery", "DiscoverPeers got peers: %+v", lines)
+}
+
+// PrintPeers Print details about the known peers
+func (d *Discovery) PrintPeers() {
+	note("discovery", "Peer Report:")
+	UpdateKnownPeers.Lock()
+	for key, value := range d.knownPeers {
+		note("discovery", "%s \t Address: %s \t Port: %s \tQuality: %d Source: %+v", key, value.Address, value.Port, value.QualityScore, value.Source)
+	}
+	UpdateKnownPeers.Unlock()
+	note("discovery", "End Peer Report\n\n\n\n")
 }

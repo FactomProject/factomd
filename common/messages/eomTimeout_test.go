@@ -91,7 +91,7 @@ func TestSignAndVerifyEOMTimeout(t *testing.T) {
 
 func newEOMTimeout() *EOMTimeout {
 	msg := new(EOMTimeout)
-	msg.Timestamp.SetTimeNow()
+	msg.Timestamp = primitives.NewTimestampNow()
 
 	return msg
 }

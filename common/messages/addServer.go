@@ -143,6 +143,7 @@ func (m *AddServerMsg) UnmarshalBinaryData(data []byte) (newData []byte, err err
 	}
 	newData = newData[1:]
 
+	m.Timestamp = new(primitives.Timestamp)
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
@@ -225,7 +226,7 @@ func (m *AddServerMsg) String() string {
 	return fmt.Sprintf("AddServer (%s): ChainID: %x Time: %x Msg Hash %x ",
 		stype,
 		m.ServerChainID.Bytes()[:3],
-		m.Timestamp,
+		&m.Timestamp,
 		m.GetMsgHash().Bytes()[:3])
 
 }
@@ -234,7 +235,7 @@ func (m *AddServerMsg) IsSameAs(b *AddServerMsg) bool {
 	if b == nil {
 		return false
 	}
-	if uint64(m.Timestamp) != uint64(b.Timestamp) {
+	if m.Timestamp.GetTimeMilli() != b.Timestamp.GetTimeMilli() {
 		return false
 	}
 	if !m.ServerChainID.IsSameAs(b.ServerChainID) {
