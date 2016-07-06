@@ -167,6 +167,11 @@ func (list *DBStateList) Catchup() {
 		}
 	}
 
+	if int(list.Complete) >= begin {
+		fmt.Println("Justin Catchup fix")
+		return
+	}
+
 	list.Lastreq = begin
 
 	end2 := begin + 400
