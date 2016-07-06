@@ -153,21 +153,17 @@ func (list *DBStateList) Catchup() {
 		plHeight := list.State.GetHighestKnownBlock()
 		// Don't worry about the block initialization case.
 		if plHeight < 1 {
-			fmt.Println("Justin Catchup init")
 			return
 		}
 
 		if plHeight >= dbsHeight && plHeight-dbsHeight > 1 {
 			begin = int(dbsHeight + 1)
 			end = int(plHeight - 1)
-			fmt.Println("Justin Catchup Med: ", begin, end)
 		} else {
-			fmt.Println("Justin Catchup term")
 			return
 		}
 
 		if list.Complete >= plHeight-2 {
-			fmt.Println("Justin Catchup fix")
 			return
 		}
 	}
@@ -178,8 +174,6 @@ func (list *DBStateList) Catchup() {
 	if end < end2 {
 		end2 = end
 	}
-
-	fmt.Println("Justin Catchup Final: ", begin, end2, "...", list.Complete)
 
 	msg := messages.NewDBStateMissing(list.State, uint32(begin), uint32(end2))
 
@@ -425,9 +419,11 @@ searchLoop:
 	}
 
 	index := int(dbheight) - int(list.Base)
+	fmt.Println("Justin PUT index:", index, "list.Complete:", list.Complete, "cnt:", cnt)
 
 	// If we have already processed this State, ignore it.
 	if index < int(list.Complete) {
+		fmt.Println("Justin Put terminated")
 		return
 	}
 
@@ -437,6 +433,12 @@ searchLoop:
 	}
 	if list.DBStates[index] == nil {
 		list.DBStates[index] = dbState
+	}
+
+	if dbheight == 0 {
+		dbState.DirectoryBlock.SetABlockHash(dbState.AdminBlock)
+		dbState.DirectoryBlock.SetECBlockHash(dbState.EntryCreditBlock)
+		dbState.DirectoryBlock.SetFBlockHash(dbState.FactoidBlock)
 	}
 }
 
