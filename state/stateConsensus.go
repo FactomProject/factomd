@@ -93,8 +93,6 @@ func (s *State) ProcessQueues() (progress bool) {
 				(msg.IsLocal() || msg.GetVMIndex() == s.LeaderVMIndex) {
 
 				msg.LeaderExecute(s)
-				for i := 0; i < 10 && s.UpdateState(); i++ {
-				}
 
 			} else {
 				//fmt.Printf("dddd %20s %10s --- %10s %s \n", "xLeader()>", s.FactomNodeName, "Msg", msg.String())
@@ -307,11 +305,6 @@ func (s *State) LeaderExecute(m interfaces.IMsg) {
 		return
 	}
 
-	if s.Saving {
-		m.FollowerExecute(s)
-		return
-	}
-
 	ack := s.NewAck(m).(*messages.Ack)
 	m.SetLeaderChainID(ack.GetLeaderChainID())
 	m.SetMinute(ack.Minute)
@@ -321,7 +314,7 @@ func (s *State) LeaderExecute(m interfaces.IMsg) {
 
 func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 
-	if !m.IsLocal() || s.Saving {
+	if !m.IsLocal() {
 		s.FollowerExecuteEOM(m)
 		return
 	}
@@ -511,6 +504,10 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 	e := msg.(*messages.EOM)
 
+	if s.EOM && int(e.Minute) != s.EOMMinute {
+		return false
+	}
+
 	// If I have done everything for all EOMs for all VMs, then and only then do I
 	// let processing continue.
 	if s.EOMDone && e.Processed {
@@ -524,6 +521,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	if !s.EOM {
 		s.Syncing = true
 		s.EOM = true
+		s.EOMMinute = int(e.Minute)
 		s.EOMsyncing = true
 		s.EOMDone = false
 		s.EOMProcessed = 0
@@ -533,7 +531,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		}
 	}
 
-	// What I do once for each vm, for each EOM:
 	if !e.Processed {
 		vm.LeaderMinute++
 		vm.Synced = true
@@ -541,13 +538,17 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		e.Processed = true
 	}
 
+	vm.missingTime = ask(pl, msg.GetVMIndex(), 1, vm, vm.missingTime, vm.Height)
+
+	// What I do once for each vm, for each EOM:
+
 	// After all EOM markers are processed, but before anything else is done
 	// we do any cleanup required, for all VMs for this EOM
 	if s.EOMProcessed == len(pl.FedServers) && !s.EOMDone {
 
+		s.EOM = false
 		s.Syncing = false
 		s.EOMDone = true
-		s.EOM = false
 		s.FactoidState.EndOfPeriod(int(e.Minute))
 
 		// Add EOM to the EBlocks.  We only do this once, so
@@ -585,7 +586,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			s.LLeaderHeight++
 			s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(0, s.IdentityChainID)
-			s.Saving = true
 			s.DBSigProcessed = 0
 
 			if s.Leader {
@@ -603,12 +603,13 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 					//	fmt.Println("dddd ERROR:", s.FactomNodeName, err.Error())
 					panic(err)
 				}
-				//fmt.Println("dddd DBSig:", s.FactomNodeName, dbs.String())
+				fmt.Println("**** DBSig:", s.FactomNodeName, dbs.String())
 				dbs.LeaderExecute(s)
 			}
 		}
 
-		return true
+		s.Saving = true
+		return false
 	}
 
 	return false
@@ -639,6 +640,9 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		s.ProcessLists.Get(dbheight).VMs[dbs.VMIndex].Synced = false
 		s.DBSig = true
 		s.Syncing = true
+		for _, vm := range pl.VMs {
+			vm.Synced = false
+		}
 	}
 
 	// Put the stuff that executes per DBSignature here
@@ -659,7 +663,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			s.DBSigDone = true
 			s.Syncing = false
 			for _, vm := range pl.VMs {
-				vm.Synced = false
+				vm.Synced = true
 			}
 			return true
 		} else {
