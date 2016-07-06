@@ -167,7 +167,7 @@ func (list *DBStateList) Catchup() {
 		}
 	}
 
-	if int(list.Complete) >= begin {
+	if int(list.Complete) >= begin-1 {
 		fmt.Println("Justin Catchup fix")
 		return
 	}
@@ -179,7 +179,7 @@ func (list *DBStateList) Catchup() {
 		end2 = end
 	}
 
-	fmt.Println("Justin Catchup Final: ", begin, end2)
+	fmt.Println("Justin Catchup Final: ", begin, end2, "...", list.Complete)
 
 	msg := messages.NewDBStateMissing(list.State, uint32(begin), uint32(end2))
 
