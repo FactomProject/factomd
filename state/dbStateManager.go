@@ -419,11 +419,9 @@ searchLoop:
 	}
 
 	index := int(dbheight) - int(list.Base)
-	fmt.Println("Justin PUT index:", index, "list.Complete:", list.Complete, "cnt:", cnt)
 
 	// If we have already processed this State, ignore it.
 	if index < int(list.Complete) {
-		fmt.Println("Justin Put terminated")
 		return
 	}
 
