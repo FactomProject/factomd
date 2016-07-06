@@ -7,7 +7,6 @@ package messages
 import (
 	"bytes"
 	"encoding/binary"
-	"encoding/hex"
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -61,23 +60,33 @@ func (m *RemoveServerMsg) GetTimestamp() interfaces.Timestamp {
 }
 
 func (m *RemoveServerMsg) Validate(state interfaces.IState) int {
-	return 1 // Need to do validation
-	authoritativeKey, _ := hex.DecodeString("cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a")
-
-	if m.GetSignature() == nil || bytes.Compare(m.GetSignature().GetKey(), authoritativeKey) != 0 {
-		// the message was not signed with the proper authoritative signing key (from conf file)
-		// it is therefore considered invalid
+	return 1
+	// Check to see if identity exists and is audit or fed server
+	if !state.VerifyIsAuthority(m.ServerChainID) {
+		fmt.Printf("RemoveServerMsg Error: [%s] is not a server, cannot be removed\n", m.ServerChainID.String()[:8])
 		return -1
 	}
-
-	isVer, err := m.VerifySignature()
-	if err != nil || !isVer {
-		// if there is an error during signature verification
-		// or if the signature is invalid
-		// the message is considered invalid
+	// Check signatures
+	bytes, err := m.MarshalForSignature()
+	if err != nil {
+		fmt.Println("RemoveServerMsg Error: Err is not nil, err: ", err.Error())
 		return -1
 	}
+	if m.Signature == nil {
+		fmt.Println("RemoveServerMsg Error: No signiture on RemoveServerMsg")
+		return -1
+	}
+	sig := m.Signature.GetSignature()
+	authSigned, err := state.VerifyFederatedSignature(bytes, sig)
 
+	//ackSigned, err := m.VerifySignature()
+	if err != nil {
+		fmt.Println("RemoveServerMsg Error: Err is not nil, err: ", err.Error())
+		return -1
+	}
+	if !authSigned {
+		return -1
+	}
 	return 1
 }
 

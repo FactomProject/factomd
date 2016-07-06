@@ -239,6 +239,7 @@ func (p *ProcessList) RemoveFedServerHash(identityChainID interfaces.IHash) {
 		return
 	}
 	p.FedServers = append(p.FedServers[:i], p.FedServers[i+1:]...)
+	p.MakeMap()
 }
 
 // Remove the given serverChain from this processlist's Audit Servers

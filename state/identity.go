@@ -527,6 +527,10 @@ func registerBlockSigningKey(extIDs [][]byte, subChainID interfaces.IHash, st *S
 				if st.LeaderPL.VMIndexFor(constants.ADMIN_CHAINID) == st.GetLeaderVM() {
 					key := primitives.NewHash(extIDs[3])
 					msg := messages.NewChangeServerKeyMsg(st, chainID, constants.TYPE_ADD_FED_SERVER_KEY, 0, 0, key)
+					err := msg.(*messages.ChangeServerKeyMsg).Sign(&(st.serverPrivKey))
+					if err != nil {
+						return errors.New("New Block Signing key for identity [" + chainID.String()[:10] + "] Error: cannot sign msg")
+					}
 					st.InMsgQueue() <- msg
 				}
 				//st.LeaderPL.AdminBlock.AddFederatedServerSigningKey(chainID, &key)
@@ -592,7 +596,12 @@ func updateMatryoshkaHash(extIDs [][]byte, subChainID interfaces.IHash, st *Stat
 				status == constants.IDENTITY_PENDING_AUDIT_SERVER) {
 				if st.LeaderPL.VMIndexFor(constants.ADMIN_CHAINID) == st.GetLeaderVM() {
 					msg := messages.NewChangeServerKeyMsg(st, chainID, constants.TYPE_ADD_MATRYOSHKA, 0, 0, mhash)
+					err := msg.(*messages.ChangeServerKeyMsg).Sign(&(st.serverPrivKey))
+					if err != nil {
+						return errors.New("New Block Signing key for identity [" + chainID.String()[:10] + "] Error: cannot sign msg")
+					}
 					st.InMsgQueue() <- msg
+
 				}
 				//st.LeaderPL.AdminBlock.AddMatryoshkaHash(chainID, mhash)
 			}
@@ -691,6 +700,10 @@ func registerAnchorSigningKey(extIDs [][]byte, subChainID interfaces.IHash, st *
 					extIDs[5] = append(extIDs[5], []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}...)
 					key := primitives.NewHash(extIDs[5])
 					msg := messages.NewChangeServerKeyMsg(st, chainID, constants.TYPE_ADD_BTC_ANCHOR_KEY, extIDs[3][0], extIDs[4][0], key)
+					err := msg.(*messages.ChangeServerKeyMsg).Sign(&(st.serverPrivKey))
+					if err != nil {
+						return errors.New("New Block Signing key for identity [" + chainID.String()[:10] + "] Error: cannot sign msg")
+					}
 					st.InMsgQueue() <- msg
 				}
 				//st.LeaderPL.AdminBlock.AddFederatedServerBitcoinAnchorKey(chainID, extIDs[3][0], extIDs[4][0], &key)

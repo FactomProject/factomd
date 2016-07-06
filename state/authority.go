@@ -302,5 +302,4 @@ func (st *State) VerifyFederatedSignature(Message []byte, signature *[constants.
 	}
 	isFederatedSignature = true //test
 	return isFederatedSignature, fmt.Errorf("Signature Key Invalid or not Federated Server Key")
-
 }
