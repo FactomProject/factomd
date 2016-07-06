@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"strings"
 	"testing"
 
 	ed "github.com/FactomProject/ed25519"
@@ -112,7 +113,6 @@ func createECBlock() *ECBlock {
 	}
 
 	// create a ECBlock for testing
-	ecb1.Header.(*ECBlockHeader).ECChainID.SetBytes(byteof(0x11))
 	ecb1.Header.(*ECBlockHeader).BodyHash.SetBytes(byteof(0x22))
 	ecb1.Header.(*ECBlockHeader).PrevHeaderHash.SetBytes(byteof(0x33))
 	ecb1.Header.(*ECBlockHeader).PrevFullHash.SetBytes(byteof(0x44))
@@ -153,4 +153,19 @@ func byteof(b byte) []byte {
 		r = append(r, b)
 	}
 	return r
+}
+
+func TestExpandedECBlockHeader(t *testing.T) {
+	block := createECBlock()
+	j, err := block.JSONString()
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
+	if !strings.Contains(j, `"ChainID":"000000000000000000000000000000000000000000000000000000000000000c"`) {
+		t.Error("Header does not contain ChainID")
+	}
+	if !strings.Contains(j, `"ECChainID":"000000000000000000000000000000000000000000000000000000000000000c"`) {
+		t.Error("Header does not contain ECChainID")
+	}
 }

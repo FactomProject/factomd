@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"strings"
 	"testing"
 
 	. "github.com/FactomProject/factomd/common/adminBlock"
@@ -290,6 +291,21 @@ func TestInvalidAdminBlockUnmarshal(t *testing.T) {
 		t.Error("We did panic and we shouldn't have")
 		WeDidPanic = false
 		defer CatchPanic()
+	}
+}
+
+func TestExpandedABlockHeader(t *testing.T) {
+	block := createTestAdminBlock()
+	j, err := block.JSONString()
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
+	if !strings.Contains(j, `"AdminChainID":"000000000000000000000000000000000000000000000000000000000000000a"`) {
+		t.Error("Header does not contain AdminChainID")
+	}
+	if !strings.Contains(j, `"ChainID":"000000000000000000000000000000000000000000000000000000000000000a"`) {
+		t.Error("Header does not contain ChainID")
 	}
 }
 

@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -694,6 +695,18 @@ func (e *FBlock) JSONString() (string, error) {
 
 func (e *FBlock) JSONBuffer(b *bytes.Buffer) error {
 	return primitives.EncodeJSONToBuffer(e, b)
+}
+
+type ExpandedFBlock FBlock
+
+func (e FBlock) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		ExpandedFBlock
+		ChainID string
+	}{
+		ExpandedFBlock: ExpandedFBlock(e),
+		ChainID:        "000000000000000000000000000000000000000000000000000000000000000f",
+	})
 }
 
 /**************************
