@@ -723,9 +723,11 @@ func (s *State) UpdateState() (progress bool) {
 
 	dbheight := s.GetHighestRecordedBlock()
 	plbase := s.ProcessLists.DBHeightBase
-
-	if plbase <= dbheight+1 {
-		progress = s.ProcessLists.UpdateState(dbheight + 1)
+	if dbheight == 0 {
+		dbheight++
+	}
+	if plbase <= dbheight {
+		progress = s.ProcessLists.UpdateState(dbheight)
 	}
 
 	p2 := s.DBStates.UpdateState()
